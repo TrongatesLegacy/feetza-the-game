@@ -161,7 +161,17 @@ export async function recordTrailer(game: Phaser.Game, opts: { prefix: string })
   let boss: any;
 
   at(0, () => {
-    cam.fadeIn(450, 18, 10, 6);
+    // frame 0 is the thumbnail: open on feet already looming over two nervous pizzas
+    const loom = (id: string, pizza: number, y: number) => {
+      const f = g.spawnFoot(FOOT_BY_ID[id], g.pizzas[pizza], false);
+      f.x = g.pizzas[pizza].x;
+      f.y = y;
+      f.slot = 0;
+      f.setState('descend');
+      f.vy = 40;
+    };
+    loom('tina', 0, 700);
+    loom('clown', 2, 650);
     music.push({ key: 'music_boss', t: 0 });
     Object.assign(spawner, { on: true, every: 380, pool: ['bob', 'patty', 'sock', 'flipflop', 'sneaker', 'tina', 'harold', 'clara'] });
   });
