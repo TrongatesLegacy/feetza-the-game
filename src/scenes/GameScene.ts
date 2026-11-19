@@ -328,6 +328,7 @@ export class GameScene extends Phaser.Scene {
           this.fx.quip(ft.x, 260, 'IT GOT AWAY!', '#ffd23f', 46);
           audio.sfx('sfx_whoosh');
         },
+        canDescend: (ft) => this.laneFor(ft),
         onTrait: (ft, trait) => {
           if (trait === 'switch') {
             this.fx.quip(ft.x, ft.cy - 120, 'SWITCH!', '#39ff88', 38);
@@ -345,11 +346,33 @@ export class GameScene extends Phaser.Scene {
     return f;
   }
 
+  /** Lanes per pizza: two side-by-side when the table is roomy, one when it's crowded. */
+  private lanesFor(p: Pizza): number[] {
+    const spacing = this.pizzas.length > 1 ? Math.abs(this.pizzas[1].x - this.pizzas[0].x) : 600;
+    if (spacing < 450) return [0];
+    const off = Math.min(110, p.radius * 0.62);
+    return [-off, off];
+  }
+
+  /** A free lane offset for this foot's dive, or null if its pizza is full (it waits above). */
+  private laneFor(f: Foot): number | null {
+    const p = f.target;
+    if (!p || f.type.boss) return 0;
+    const divers = this.feet.filter((o) => o !== f && o.alive && o.target === p && (o.state === 'descend' || o.state === 'stomp'));
+    if (divers.some((o) => o.type.boss)) return null;
+    const lanes = this.lanesFor(p);
+    const free = lanes.filter((l) => !divers.some((o) => Math.abs(o.slot - l) < 1));
+    if (!free.length) return null;
+    // prefer the lane on the side the foot is already hovering
+    return free.sort((a, b) => Math.abs(p.x + a - f.x) - Math.abs(p.x + b - f.x))[0];
+  }
+
   private pickTarget(f: Foot): Pizza | null {
     const alive = this.alivePizzas();
     if (!alive.length) return null;
     // prefer pizzas fewer feet are already going for
-    const load = (p: Pizza) => this.feet.filter((o) => o !== f && o.alive && o.target === p).length;
+    const load = (p: Pizza) =>
+      this.feet.filter((o) => o !== f && o.alive && o.target === p).reduce((n, o) => n + (o.type.boss ? 3 : 1), 0);
     const sorted = [...alive].sort((a, b) => load(a) - load(b) + (Math.random() - 0.5) * 1.2);
     return sorted[0];
   }
@@ -577,7 +600,9 @@ export class GameScene extends Phaser.Scene {
       return;
     }
     if (this.tutorial) ui.hud.tutorial(false);
-    for (const { f } of hits) {
+    // a basic smack hits the foot you clicked; Bigger Peel turns it into an area smack
+    const targets = this.run.level('peel') > 0 ? hits : hits.slice(0, 1);
+    for (const { f } of targets) {
       this.hitFoot(f, x, y);
       if (Math.random() < this.run.stats.doubleChance && f.alive) {
         this.time.delayedCall(90, () => f.alive && this.hitFoot(f, x + 12, y - 12));

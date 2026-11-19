@@ -111,7 +111,7 @@ export const UPGRADES: Upgrade[] = [
   },
   {
     id: 'peel', name: 'Bigger Peel', icon: '🏓', rarity: 'common', max: 6,
-    desc: () => '+35% smack radius. Hit everything in range.',
+    desc: (l) => (l === 1 ? 'Smacks hit every foot in range, +35% radius' : '+35% smack radius'),
     apply: (s) => { s.radius += 9; },
   },
   {

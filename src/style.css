@@ -124,7 +124,10 @@ body {
   border-radius: 0.6em;
   padding: 0.38em 1.1em 0.45em;
   box-shadow: 0 0.22em 0 var(--ink), inset 0 0.12em 0 rgba(255, 255, 255, 0.35);
-  text-shadow: 0 0.08em 0 rgba(0, 0, 0, 0.35);
+  /* white button text carries a dark cartoon outline so it reads on every gradient stop */
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.16em var(--ink);
+  text-shadow: 0 0.08em 0 var(--ink);
   cursor: pointer;
   transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.15s;
   position: relative;
@@ -154,12 +157,14 @@ body {
   background: linear-gradient(180deg, #ffe680 0%, var(--cheese) 55%, #f0b400 100%);
   color: var(--ink);
   text-shadow: none;
+  -webkit-text-stroke: 0;
 }
 
 .btn.cream {
   background: linear-gradient(180deg, #fffaf0 0%, var(--paper) 100%);
   color: var(--ink);
   text-shadow: none;
+  -webkit-text-stroke: 0;
 }
 
 .btn.small {
@@ -703,11 +708,13 @@ h3 {
 
 .banner {
   position: absolute;
-  left: 0;
-  right: 0;
+  left: 8%;
+  right: 8%;
   top: 32%;
   display: grid;
   justify-items: center;
+  text-align: center;
+  gap: 0.1em;
   pointer-events: none;
   animation: bannerIn 2.2s ease both;
 }
@@ -725,6 +732,9 @@ h3 {
 .banner .small {
   font-family: 'Lilita One', sans-serif;
   font-size: 3em;
+  max-width: 24em;
+  line-height: 1.1;
+  text-wrap: balance;
   color: #fff;
   paint-order: stroke fill;
   -webkit-text-stroke: 0.2em var(--ink);
@@ -791,6 +801,9 @@ h3 {
   display: flex;
   align-items: center;
   gap: 0.8em;
+  color: var(--ink);
+  max-width: 34em;
+  line-height: 1.25;
   padding: 0.5em 1.1em 0.5em 0.5em;
   font-family: 'Fredoka', sans-serif;
   font-weight: 600;
@@ -810,7 +823,7 @@ h3 {
   display: block;
   font-family: 'Lilita One', sans-serif;
   font-weight: 400;
-  color: var(--tomato);
+  color: var(--tomato-d);
   font-size: 0.85em;
   letter-spacing: 0.05em;
 }
@@ -1251,6 +1264,7 @@ input[type='range']::-moz-range-thumb {
   background: linear-gradient(180deg, #fffaf0 0%, var(--paper-d) 100%);
   color: var(--ink);
   text-shadow: none;
+  -webkit-text-stroke: 0;
 }
 
 .scroll {
@@ -1310,7 +1324,7 @@ input[type='range']::-moz-range-thumb {
 }
 
 .tile.locked .nm {
-  color: rgba(42, 24, 16, 0.5);
+  color: rgba(42, 24, 16, 0.75);
 }
 
 .tile.boss {
@@ -1513,4 +1527,15 @@ input[type='range']::-moz-range-thumb {
   .slam span small {
     display: none;
   }
+}
+
+/* keyboard hints over the dimmed game get an outline instead of relying on the dim layer */
+.upgrade-wrap .kbd-hint {
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.25em var(--ink);
+  text-shadow: none !important;
+}
+
+.upgrade-wrap .kbd-hint .kbd {
+  -webkit-text-stroke: 0;
 }

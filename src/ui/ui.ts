@@ -602,7 +602,7 @@ class UI {
             ...PIZZAS.map((p) => {
               const owned = save.unlockedPizzas.includes(p.id);
               const b = owned
-                ? h('div', { class: 'chip', style: 'background:var(--basil);color:#fff' }, 'ON THE MENU')
+                ? h('div', { class: 'chip', style: 'background:var(--basil-d);color:#fff' }, 'ON THE MENU')
                 : btn(`${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} ${p.cost}`, 'green small', () => {
                     if (save.crusts < p.cost) return;
                     save.crusts -= p.cost;

@@ -72,6 +72,13 @@ src/
 public/audio/ music, ambience and SFX (+ CREDITS.md / credits.json)
 ```
 
+## Dev tools
+
+`npm run dev` exposes a `F` helper in the browser console (development builds only):
+
+- `F.contrast()` audits every visible piece of overlay text for WCAG contrast (4.5:1, or 3:1 for large text). It reads the real background behind each element, including every gradient stop, and flags text drawn over the game without an outline. Run it on each screen after UI changes.
+- `F.bot(true, accuracy, reactionMs)` plays the game automatically (useful for balance checks), and `F.shot(name)` saves a canvas screenshot when the server is started with `FEETZA_SHOT_DIR`.
+
 ## Audio mix
 
 - Music and ambience are loudness-normalised to about -16 LUFS. Ambience is mixed about 8 dB under music.

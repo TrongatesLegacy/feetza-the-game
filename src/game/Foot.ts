@@ -14,6 +14,8 @@ export interface FootHooks {
   onEscape(foot: Foot): void;
   /** Ability callouts (switch, clumsy) so the scene can show text/sound. */
   onTrait?(foot: Foot, trait: 'switch' | 'clumsy'): void;
+  /** Lane offset (px from pizza centre) if this foot may start its dive now, or null if the pizza's lanes are full. */
+  canDescend?(foot: Foot): number | null;
 }
 
 const LEG_LEN = 1500;
@@ -65,6 +67,12 @@ export class Foot {
   slowAbove = 0;
   /** Speed boost from a nearby Jingle Toes (0..1). */
   cheer = 0;
+  /** Horizontal lane offset from the target pizza's centre while diving. */
+  slot = 0;
+  /** True while queued above a busy pizza. */
+  waiting = false;
+  private waitT = 0;
+  private hoverOffset = (Math.random() - 0.5) * 110;
   glossy: boolean;
   wool: number;
   parryReady = true;
@@ -231,15 +239,32 @@ export class Foot {
           this.target = this.hooks.pickTarget(this);
           if (!this.target) break;
         }
-        this.x += (this.target!.x - this.x) * Math.min(1, dt * 3);
-        this.y += (HOVER_Y - this.y) * Math.min(1, dt * 3);
+        // queued feet wait higher up, fanned out, so they never stack on the divers below
+        const hoverX = this.target!.x + (this.waiting ? this.hoverOffset * 1.6 : this.hoverOffset);
+        this.x += (hoverX - this.x) * Math.min(1, dt * 3);
+        this.y += ((this.waiting ? HOVER_Y - 170 : HOVER_Y) - this.y) * Math.min(1, dt * 3);
         if (this.type.traits.includes('teleport') && this.stateT > this.hoverTime * 0.6 && Math.random() < dt * 0.8) {
           const other = this.hooks.pickTarget(this);
           if (other && other !== this.target) this.blinkTo(other);
         }
         if (this.stateT > this.hoverTime) {
-          this.vy = speed * 0.5;
-          this.setState('descend');
+          const lane = this.hooks.canDescend ? this.hooks.canDescend(this) : 0;
+          if (lane !== null) {
+            this.slot = lane;
+            this.waiting = false;
+            this.waitT = 0;
+            this.vy = speed * 0.5;
+            this.setState('descend');
+          } else {
+            this.waiting = true;
+            this.waitT += dt;
+            // every so often look for a pizza with a free lane
+            if (this.waitT > 1.1) {
+              this.waitT = 0;
+              const other = this.hooks.pickTarget(this);
+              if (other) this.target = other;
+            }
+          }
         }
         if (this.type.traits.includes('flee') && this.age > 7) this.escape();
         break;
@@ -257,9 +282,9 @@ export class Foot {
         // zig-zag weave
         if (this.type.traits.includes('zigzag')) {
           this.zigBase += dt;
-          this.x = t.x + Math.sin(this.zigBase * 3.2) * 70;
+          this.x = t.x + this.slot + Math.sin(this.zigBase * 3.2) * (this.slot ? 45 : 70);
         } else {
-          this.x += (t.x - this.x) * Math.min(1, dt * 2);
+          this.x += (t.x + this.slot - this.x) * Math.min(1, dt * 2);
         }
         let want = speed;
         if (this.type.traits.includes('burst')) {
@@ -281,8 +306,14 @@ export class Foot {
           let other = this.hooks.pickTarget(this);
           for (let i = 0; i < 6 && other === this.target; i++) other = this.hooks.pickTarget(this);
           if (other && other !== this.target) {
+            const prev = this.target;
             this.target = other;
-            this.hooks.onTrait?.(this, 'switch');
+            const lane = this.hooks.canDescend ? this.hooks.canDescend(this) : 0;
+            if (lane === null) this.target = prev; // no room on the other pizza: stay put
+            else {
+              this.slot = lane;
+              this.hooks.onTrait?.(this, 'switch');
+            }
           }
         }
         // clumsy: occasionally trips and stumbles back up on its own
