@@ -862,7 +862,7 @@ class UI {
       return row;
     };
     const holdReset = (label: string, note: string, wipes: string[], run: () => void) => {
-      const b = btn(label, 'danger', () => {
+      const b = btn(label, 'danger small', () => {
         let sHold: HTMLElement;
         const hold = h('button', { class: 'btn hold', type: 'button', 'data-pad': 'hold' }, h('i', {}), h('span', {}, 'HOLD TO RESET · 2 s')) as HTMLButtonElement;
         let t0 = 0;
