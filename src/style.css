@@ -2730,6 +2730,11 @@ body.pad :focus {
 }
 
 .victory {
+  background: radial-gradient(ellipse at 50% 30%, #6a4a20 0%, #2a1748 60%, #120a24 100%);
+  border: 0.25em solid var(--ink);
+  border-radius: 2em;
+  box-shadow: 0 0.45em 0 var(--ink), 0 1.4em 3em rgba(0, 0, 0, 0.6);
+  padding: 2.4em 3.4em 2.6em;
   display: grid;
   gap: 1.2em;
   justify-items: center;
@@ -2752,6 +2757,11 @@ body.pad :focus {
   paint-order: stroke fill;
   -webkit-text-stroke: 0.08em var(--ink);
   text-shadow: 0 0.06em 0 var(--tomato-d), 0 0.12em 0 var(--ink);
+}
+
+.victory .crusts {
+  color: var(--cream);
+  text-shadow: 0 0.08em 0 var(--ink);
 }
 
 .v-sub {

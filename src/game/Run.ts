@@ -87,6 +87,8 @@ export interface WavePlan {
   interval: number;
   maxAlive: number;
   hpMult: number;
+  /** Bosses' own base health already climbs after wave 30, so their multiplier stops at the wave-30 level. */
+  bossHpMult: number;
   speedMult: number;
   eliteChance: number;
   boss: string | null;
@@ -132,6 +134,7 @@ export function planWave(n: number, luck: number, heatId: HeatId = 'regular'): W
     interval: Math.max(0.32, 1.85 - Math.min(eff, 40) * 0.055),
     maxAlive: boss ? Math.min(2 + Math.floor(inLoop / 8), 6) : Math.min(3 + Math.floor(Math.min(eff, 40) * 0.6), 12),
     hpMult,
+    bossHpMult: (1 + Math.min(inLoop - 1, 29) * 0.1) * (1 + loop * 0.5) * heat.hp * 0.75,
     speedMult,
     eliteChance: n >= 6 ? Math.min(0.3, (n - 5) * 0.012) : 0,
     boss,

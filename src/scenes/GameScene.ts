@@ -672,7 +672,7 @@ export class GameScene extends Phaser.Scene implements Arena {
   private spawnFoot(type: FootType, target: Pizza | null, allowElite = true, x?: number): Foot {
     const plan = this.plan!;
     const elite = allowElite && !type.boss && !type.mini && type.id !== 'golden' && Math.random() < plan.eliteChance;
-    const hpMult = type.boss || type.mini ? plan.hpMult * 0.75 : plan.hpMult;
+    const hpMult = type.boss || type.mini ? plan.bossHpMult : plan.hpMult;
     const f = new Foot(this, this.feetLayer, this.shadowLayer, type, x ?? target?.x ?? W / 2, {
       hpMult,
       speedMult: plan.speedMult * this.run.stats.speedMult,
@@ -1735,6 +1735,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.fx.explosion(f.cx, f.cy, 380);
     audio.sfx('sfx_explosion');
     audio.sfx('sfx_crit');
+    // the boss wave ends with its boss: the rest of its entourage flees
+    if (this.plan) this.plan.queue = [];
     for (const o of this.aliveFeet()) if (o !== f) this.time.delayedCall(400, () => o.alive && this.killFoot(o, 'slam'));
     // Act 1 complete at wave 30
     const w = this.run.wave;
