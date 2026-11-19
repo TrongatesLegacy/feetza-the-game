@@ -1,10 +1,12 @@
 # 🍕 Feetza
 
-[![Feetza: stop the feet, save the pizza](public/og.png)](https://trongateslegacy.github.io/feetza-the-game/)
+[![Feetza trailer: click to watch it with sound](media/trailer.webp)](https://trongateslegacy.github.io/feetza-the-game/trailer.mp4)
 
 **Stop the feet. Save the pizza.** A browser arcade roguelike: cartoon feet descend on a table of pizzas and you smack them away with a pizza peel before they stomp. Build a run from roguelike upgrades, travel through six pizzerias, beat six bosses, and spend Golden Crusts on permanent upgrades between runs.
 
 **Play it: https://trongateslegacy.github.io/feetza-the-game/**
+
+**▶ Watch the 30s trailer with sound: https://trongateslegacy.github.io/feetza-the-game/trailer.mp4**
 
 - **52 feet** (46 regular + 6 bosses), each with its own art, stats and traits (dodging, feinting, phasing, teleporting, reviving, splitting, rocket bursts, stink clouds…)
 - **28 pizzas**, each granting a perk while it survives (lose the pizza, lose the perk)
@@ -77,6 +79,7 @@ public/audio/ music, ambience and SFX (+ CREDITS.md / credits.json)
 `npm run dev` exposes a `F` helper in the browser console (development builds only):
 
 - `F.contrast()` audits every visible piece of overlay text for WCAG contrast (4.5:1, or 3:1 for large text). It reads the real background behind each element, including every gradient stop, and flags text drawn over the game without an outline. Run it on each screen after UI changes.
+- `F.trailer()` renders the trailer: it steps the real game frame by frame at 60 fps on a virtual clock (with a scripted shot list in `src/trailer.ts`), uploads each frame, and logs every sound effect with its frame time. The soundtrack is then mixed in sync with ffmpeg. Start the dev server with `FEETZA_SHOT_DIR=<dir>` to receive the frames. Nothing plays through the speakers while it renders.
 - `F.bot(true, accuracy, reactionMs)` plays the game automatically (useful for balance checks), and `F.shot(name)` saves a canvas screenshot when the server is started with `FEETZA_SHOT_DIR`.
 
 ## Audio mix

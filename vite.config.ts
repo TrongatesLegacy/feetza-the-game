@@ -48,6 +48,16 @@ function devShots(): Plugin {
           res.end('ok');
         });
       });
+      // raw binary upload (e.g. a recorded trailer)
+      server.middlewares.use('/__file', (req, res) => {
+        const chunks: Buffer[] = [];
+        req.on('data', (c: Buffer) => chunks.push(c));
+        req.on('end', () => {
+          const name = (new URL(req.url ?? '', 'http://x').searchParams.get('name') ?? 'file').replace(/[^a-z0-9_.-]/gi, '');
+          writeFileSync(`${dir}/${name}`, Buffer.concat(chunks));
+          res.end('ok');
+        });
+      });
     },
   };
 }
