@@ -145,6 +145,60 @@ export function installDevTools(game: Phaser.Game): void {
       };
       loop();
     },
+    /**
+     * Layout audit: on-screen text that runs off the stage, is cut off (overflowing a fixed box),
+     * or in-game callouts drawn outside the 1920x1080 view. Run it during play and on every screen.
+     */
+    layout(): { where: string; text: string; issue: string }[] {
+      const out: { where: string; text: string; issue: string }[] = [];
+      const stage = document.getElementById('stage')?.getBoundingClientRect();
+      if (stage) {
+        const els = document.querySelectorAll<HTMLElement>('#ui *');
+        for (const el of els) {
+          if (!el.childNodes.length || ![...el.childNodes].some((n) => n.nodeType === 3 && (n.textContent ?? '').trim())) continue;
+          const cs = getComputedStyle(el);
+          if (cs.visibility === 'hidden' || cs.display === 'none') continue;
+          // skip text that is faded out or mid entrance/exit animation (banners zoom in from 2.4x)
+          let op = 1;
+          let animating = false;
+          for (let n: HTMLElement | null = el; n && n.id !== 'ui'; n = n.parentElement) {
+            op *= Number(getComputedStyle(n).opacity);
+            if (n.getAnimations?.().some((an) => an.playState === 'running' && Number(an.currentTime ?? 0) < 700)) animating = true;
+          }
+          if (op < 0.3 || animating) continue;
+          const r = el.getBoundingClientRect();
+          if (!r.width) continue;
+          const text = (el.textContent ?? '').trim().slice(0, 50);
+          if (r.left < stage.left - 2 || r.right > stage.right + 2 || r.top < stage.top - 2 || r.bottom > stage.bottom + 2) out.push({ where: 'dom', text, issue: 'off screen' });
+          if (el.scrollWidth > el.clientWidth + 2 && (cs.overflow === 'hidden' || cs.textOverflow === 'ellipsis' || cs.whiteSpace === 'nowrap') && el.clientWidth > 0) out.push({ where: 'dom', text, issue: 'cut off' });
+        }
+      }
+      const g = game.scene.getScene('Game') as AnyScene;
+      if (g?.sys?.isActive()) {
+        const walk = (o: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+          if (o.list) o.list.forEach(walk);
+          if (o.type === 'Text' && o.visible && o.alpha > 0.2 && o.text) {
+            const b = o.getBounds();
+            if (b.left < -2 || b.right > 1922 || b.top < -2 || b.bottom > 1082) out.push({ where: 'canvas', text: o.text.slice(0, 50), issue: 'off screen' });
+          }
+        };
+        g.children.list.forEach(walk);
+      }
+      return out;
+    },
+    /** Sample the layout audit for `ms` milliseconds; returns every distinct problem seen. */
+    watchLayout(ms = 10000): Promise<{ where: string; text: string; issue: string }[]> {
+      const seen = new Map<string, { where: string; text: string; issue: string }>();
+      return new Promise((resolve) => {
+        const t = setInterval(() => {
+          for (const i of (window as unknown as { F: { layout(): { where: string; text: string; issue: string }[] } }).F.layout()) seen.set(i.where + i.issue + i.text, i);
+        }, 120);
+        setTimeout(() => {
+          clearInterval(t);
+          resolve([...seen.values()]);
+        }, ms);
+      });
+    },
     /** Per-wave log the bot fills in: tips earned/spent, slices lost, upgrades owned. */
     log: [] as Record<string, unknown>[],
   };

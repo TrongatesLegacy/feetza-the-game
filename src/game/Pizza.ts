@@ -142,7 +142,7 @@ export class Pizza {
   /** Name and perk sit on two fixed lines and shrink to fit the plate's width instead of wrapping. */
   private fitLabel(): void {
     const s = this.s;
-    const room = Math.max(300, PIZZA_R * 2.3 * s);
+    const room = Math.min(420, Math.max(240, PIZZA_R * 2.3 * s));
     const want = Math.max(0.8, s * 1.1);
     this.label.setScale(1);
     const w = this.label.width;

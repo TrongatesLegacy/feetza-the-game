@@ -278,7 +278,7 @@ const ironheel = (): Brain => {
             a.sfx('sfx_piston', { volume: 0.8 });
             a.sc.time.delayedCall(1000, () => {
               if (!f.alive || s.lockT > 0) return;
-              s.lift = s.lift > 0 ? -60 : Math.random() < 0.7 ? 130 : -60;
+              s.lift = s.lift > 0 ? -30 : Math.random() < 0.7 ? 130 : -30;
               s.p.setLift(s.lift);
               a.quip(s.p.x, s.p.y - 120, s.lift > 0 ? 'RAISED!' : 'LOWERED', s.lift > 0 ? '#ff8a6a' : '#9ad8ff', 34);
             });

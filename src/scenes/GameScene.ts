@@ -474,7 +474,8 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   layoutPizzas(animate = true): void {
     const n = this.pizzas.length;
-    const spacing = Math.min(520, 1700 / n);
+    // a full table pulls in a little so the end pizzas' captions clear the corner buttons
+    const spacing = Math.min(520, (n >= 5 ? 1560 : 1700) / n);
     const s = Math.min(0.82, (spacing / 496) * 0.92);
     this.pizzas.forEach((p, i) => p.layout(W / 2 + (i - (n - 1) / 2) * spacing, s, animate));
   }

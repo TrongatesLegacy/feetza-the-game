@@ -98,6 +98,9 @@ export class Fx {
 
   number(x: number, y: number, value: number, kind: 'normal' | 'crit' | 'burn' | 'zap' | 'heal' | 'coin' = 'normal'): void {
     if (!save.settings.damageNumbers && kind !== 'coin') return;
+    // numbers float up 80px: start low enough to stay on screen
+    x = Math.min(Math.max(x, 60), 1860);
+    y = Math.min(Math.max(y, 150), 1040);
     const t = this.text();
     const styles = {
       normal: { size: 34, fill: '#ffffff' },
