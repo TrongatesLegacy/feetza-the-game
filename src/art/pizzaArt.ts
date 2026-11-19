@@ -898,7 +898,7 @@ export function drawSliceSprite(p: PizzaType, top: HTMLCanvasElement): HTMLCanva
 }
 
 /** Small preview used in the DOM menus. */
-export function pizzaPortrait(p: PizzaType, top: HTMLCanvasElement, size = 160): string {
+export function pizzaPortrait(p: PizzaType, top: HTMLCanvasElement, size = 160, alive: boolean[] = new Array(8).fill(true)): string {
   const [c, ctx] = makeCanvas(PIZZA_CANVAS_W, PIZZA_CANVAS_H + 60);
   // plate
   ctx.save();
@@ -913,7 +913,7 @@ export function pizzaPortrait(p: PizzaType, top: HTMLCanvasElement, size = 160):
   ctx.fill();
   ctx.restore();
   const [pc, pctx] = makeCanvas(PIZZA_CANVAS_W, PIZZA_CANVAS_H);
-  renderPizza(pctx, { type: p, top, alive: new Array(8).fill(true), prints: [], shield: false });
+  renderPizza(pctx, { type: p, top, alive, prints: [], shield: false });
   ctx.drawImage(pc, 0, 6);
   const k = size / c.width;
   const [o, octx] = makeCanvas(c.width * k, c.height * k);

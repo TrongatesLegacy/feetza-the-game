@@ -588,8 +588,11 @@ export const FEET: FootType[] = [
   {
     id: 'phantomking',
     name: 'GHOST OF FEET PAST',
-    desc: 'Boss. Haunts the whole table, phasing in and out between stomps.',
-    hp: 3800, speed: 0.65, armor: 3, stompDmg: 3, coins: 220, score: 26000, scale: 2.2, minWave: 30, weight: 0,
+    desc: 'The final boss. Haunts the whole table, phasing in and out between stomps.',
+    home: 'cellar',
+    howTo: 'Hit it while solid; Peel Slam breaks possession',
+    tell: 'It fades out for a moment before it vanishes',
+    hp: 6800, speed: 0.65, armor: 3, stompDmg: 3, coins: 320, score: 40000, scale: 2.2, minWave: 60, weight: 0,
     traits: ['phase', 'teleport'],
     boss: true,
     art: { kind: 'bare', skin: '#cfe9ff', ghost: true, nails: '#8fc7ff', leg: 'skin' },

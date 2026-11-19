@@ -119,3 +119,32 @@ export function pizzaPortraitURL(id: string): string {
   }
   return url;
 }
+
+/** Portrait showing how many slices are left: eaten slices are missing from the drawing. */
+export function pizzaStateURL(id: string, slices: number, max: number, size = 200): string {
+  const k = `pizza:${id}:${slices}/${max}:${size}`;
+  let url = portraitCache.get(k);
+  if (!url) {
+    const alive = Array.from({ length: Math.max(1, max) }, (_, i) => i < slices);
+    url = pizzaPortrait(PIZZA_BY_ID[id], pizzaTops[id], size, alive);
+    portraitCache.set(k, url);
+  }
+  return url;
+}
+
+let gameRef: Phaser.Game | null = null;
+export function setGame(g: Phaser.Game): void {
+  gameRef = g;
+}
+
+/** A registered canvas texture as a data URL (for DOM menus such as the Pizzapedia). */
+export function textureURL(key: string): string {
+  const k = `tex:${key}`;
+  let url = portraitCache.get(k);
+  if (!url && gameRef?.textures.exists(key)) {
+    const src = gameRef.textures.get(key).getSourceImage() as HTMLCanvasElement;
+    url = src.toDataURL('image/png');
+    portraitCache.set(k, url);
+  }
+  return url ?? '';
+}

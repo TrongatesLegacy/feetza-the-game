@@ -7,7 +7,7 @@ import { Foot } from '../game/Foot';
 import { Fx } from '../game/Fx';
 import { Pizza } from '../game/Pizza';
 import { audio } from '../systems/audio';
-import { save } from '../systems/save';
+import { freshStart, persist, save } from '../systems/save';
 import { ui } from '../ui/ui';
 
 export function randomLineup(n: number): string[] {
@@ -70,8 +70,44 @@ export class MenuScene extends Phaser.Scene {
 
   private showMenu(): void {
     ui.closeAll();
+    // veterans coming from the old version get a one-time welcome card first
+    if (save.welcomePending) {
+      ui.welcome({
+        keep: () => {
+          save.welcomePending = false;
+          persist();
+          this.showMenu();
+        },
+        fresh: () => {
+          freshStart();
+          save.welcomePending = false;
+          persist();
+          this.showMenu();
+        },
+      });
+      return;
+    }
     this.menuEl = ui.menu({
-      play: () => this.lineup(randomLineup(save.meta.table ? 4 : 3)),
+      play: () => {
+        if (save.run) {
+          // starting a new run abandons the saved one: ask first
+          ui.confirm('ABANDON YOUR SAVED RUN?', `Wave ${save.run.wave} on ${save.run.heat}. Starting a new run deletes it.`, 'NEW RUN', () => {
+            save.run = null;
+            persist();
+            this.lineup(randomLineup(save.meta.table ? 4 : 3));
+          }, () => this.showMenu());
+          return;
+        }
+        this.lineup(randomLineup(save.meta.table ? 4 : 3));
+      },
+      resume: save.run
+        ? () => {
+            const snapshot = save.run!;
+            ui.closeAll();
+            this.cameras.main.fadeOut(400, 18, 10, 6);
+            this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('Game', { snapshot }));
+          }
+        : null,
       pizzeria: () => {
         ui.close(this.menuEl!);
         ui.pizzeria(() => this.showMenu());
@@ -96,18 +132,18 @@ export class MenuScene extends Phaser.Scene {
     ui.lineup(
       ids,
       () => this.lineup(randomLineup(ids.length)),
-      () => {
+      (heat, act2) => {
         ui.closeAll();
         audio.sfx('sfx_levelup', { volume: 0.7 });
         this.cameras.main.fadeOut(400, 18, 10, 6);
-        this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('Game', { lineup: ids }));
+        this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('Game', { lineup: ids, heat, act2 }));
       },
       () => this.showMenu(),
     );
   }
 
   private spawnFoot(): void {
-    const ok = (f: (typeof FEET)[number]) => !f.boss && !f.traits.includes('flee');
+    const ok = (f: (typeof FEET)[number]) => !f.boss && !f.mini && !f.traits.includes('flee') && !f.traits.includes('invisible') && !f.traits.includes('bury');
     const pool = save.seenFeet.length ? FEET.filter((f) => save.seenFeet.includes(f.id) && ok(f)) : FEET.filter((f) => f.minWave <= 2 && f.weight > 0);
     const type = Phaser.Utils.Array.GetRandom(pool.length ? pool : FEET.slice(0, 3));
     const target = this.sidePizza();

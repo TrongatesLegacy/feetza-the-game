@@ -17,17 +17,17 @@ export interface Clickable {
 }
 
 export interface Arena {
-  scene: Phaser.Scene;
+  sc: Phaser.Scene;
   fx: Fx;
   /** Layer above the feet for projectiles, splats and markers. */
   fxLayer: Phaser.GameObjects.Container;
   /** Layer behind the pizzas (pistons, tentacles rising from the table). */
   underLayer: Phaser.GameObjects.Container;
   now(): number;
-  feet(): Foot[];
-  pizzas(): Pizza[];
+  allFeet(): Foot[];
+  allPizzas(): Pizza[];
   alivePizzas(): Pizza[];
-  pointer(): { x: number; y: number };
+  peelPoint(): { x: number; y: number };
   spawn(id: string, target?: Pizza | null, x?: number): Foot | null;
   /** A non-stomp ability hits a pizza: never blocked by shields, traps or thick crust. */
   hitPizza(p: Pizza, slices: number, label: string, color?: string): void;
