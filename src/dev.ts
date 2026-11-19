@@ -60,6 +60,16 @@ function botShop(g: AnyScene): void {
 
 export function installDevTools(game: Phaser.Game): void {
   let botOn = false;
+  // ?dev&show=welcome opens a screen straight away, for headless screenshots of DOM screens
+  const showParam = new URLSearchParams(location.search).get('show');
+  if (showParam) {
+    setTimeout(async () => {
+      await (window as unknown as { F: { boot(): Promise<void> } }).F.boot();
+      const { ui } = await import('./ui/ui');
+      document.querySelectorAll('.screen').forEach((e) => e.remove());
+      if (showParam === 'welcome') ui.welcome({ keep: () => {}, fresh: () => {} });
+    }, 0);
+  }
   const api = {
     game,
     scene: (k: string) => game.scene.getScene(k) as AnyScene,
@@ -214,6 +224,12 @@ export function installDevTools(game: Phaser.Game): void {
             }
           }
           if (!inScroller && (r.left < stage.left - 2 || r.right > stage.right + 2 || r.top < stage.top - 2 || r.bottom > stage.bottom + 2)) out.push({ where: 'dom', text, issue: 'off screen' });
+          // text spilling out of its own card (a nowrap row or a long title wider than the panel)
+          const card = el.parentElement?.closest<HTMLElement>('.panel, .shop-sec, .card, .callout, .btn');
+          if (card && card !== el) {
+            const c = card.getBoundingClientRect();
+            if (r.left < c.left - 2 || r.right > c.right + 2) out.push({ where: 'dom', text, issue: 'outside its card' });
+          }
           if (el.scrollWidth > el.clientWidth + 2 && (cs.overflow === 'hidden' || cs.textOverflow === 'ellipsis' || cs.whiteSpace === 'nowrap') && el.clientWidth > 0) out.push({ where: 'dom', text, issue: 'cut off' });
         }
       }

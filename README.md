@@ -108,3 +108,6 @@ In `npm run dev`, the browser console has `F`:
 - `F.seed(42)` makes the randomness repeatable; `F.saveScenario()` returns the current run as a scenario
 - `F.bot(true)` plays and shops by itself, logging each wave to `F.log`
 - `F.contrast()` lists any on-screen text below WCAG contrast
+- `F.layout()` lists text that runs off screen, is cut off, or spills out of its card; `F.watchLayout(ms)` samples it during play
+- `F.bot(true, 0.8, 260, 4)` runs the bot with a 4× time warp for quick balance runs
+- `scripts/dom-shots.mjs` takes real screenshots of DOM screens (menus, HUD, banners) through headless Chrome, which the canvas-only `F.shot` misses. `?dev&show=welcome` opens the welcome card directly

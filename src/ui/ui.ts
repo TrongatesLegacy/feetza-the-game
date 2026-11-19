@@ -432,7 +432,7 @@ class UI {
     const freshBtn = btn('FRESH START', 'cream', () => {
       if (!armed) {
         armed = true;
-        freshBtn.innerHTML = 'TAP AGAIN TO WIPE PROGRESS';
+        freshBtn.innerHTML = 'TAP AGAIN TO WIPE';
         freshBtn.classList.remove('cream');
         return;
       }
@@ -446,8 +446,8 @@ class UI {
       h('div', { class: 'title' }, 'FEETZA HAS A NEW MENU'),
       h('div', { class: 'subtitle' }, 'Your progress is safe. Here is what changed:'),
       h('div', { class: 'news' }, ...news.map(([t, d]) => h('div', { class: 'news-item' }, h('b', {}, t), h('span', {}, d)))),
-      h('div', { class: 'callout good' }, `You keep your ${fmt(save.crusts)} crusts, ${Object.keys(save.meta).length} Pizzeria upgrades and ${save.unlockedPizzas.length} unlocked pizzas.${save.welcomeBonus ? ` That includes +${fmt(save.welcomeBonus)} crusts for the bosses you'd already beaten.` : ''}`),
-      h('div', { class: 'row' }, freshBtn, btn('KEEP MY PROGRESS', 'green big', () => {
+      h('div', { class: 'callout good' }, welcomeKeep()),
+      h('div', { class: 'row' }, freshBtn, btn('KEEP MY PROGRESS', 'green', () => {
         this.close(s);
         o.keep();
       }, { 'data-pad-default': '' })),
@@ -664,11 +664,11 @@ class UI {
       const next = btn('NEXT WAVE', 'big next', () => act.next(), { 'data-pad': 'hold' });
       next.addEventListener('padhold', () => act.next());
       const pr = st.progress;
-      const prog = h('div', { class: 'crust-progress', html: `${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} <b>+${pr.runCrusts}</b> crusts so far${pr.next ? (pr.bank + pr.runCrusts >= pr.next.cost ? ` · ${pr.next.name} ready to unlock in the Pizzeria` : ` · next unlock: ${pr.next.name} (${pr.bank + pr.runCrusts}/${pr.next.cost})`) : ''}` });
+      const prog = h('div', { class: 'crust-progress', html: `${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} <b>+${pr.runCrusts}</b> crusts this run${pr.next ? (pr.bank + pr.runCrusts >= pr.next.cost ? ` · ${pr.next.name} ready to unlock` : ` · next: ${pr.next.name} ${pr.bank + pr.runCrusts}/${pr.next.cost}`) : ''}` });
       wrap.replaceChildren(
         head,
         h('div', { class: 'shop-body' }, h('div', { class: 'shop-left' }, toppings, table), h('div', { class: 'shop-right' }, counter, golden, next)),
-        h('div', { class: 'shop-foot' }, prog, h('span', { class: 'hint kbd-hint', html: `Press <span class="kbd">1</span>–<span class="kbd">${st.cards.length}</span> to buy · <span class="kbd">R</span> reroll · <span class="kbd">Enter</span> next wave` }), h('span', { class: 'hint pad-hint', html: `<span class="glyph">${glyph('A')}</span> buy · <span class="glyph">${glyph('Y')}</span> reroll · <span class="glyph">${glyph('LB')}</span><span class="glyph">${glyph('RB')}</span> sections · hold <span class="glyph">${glyph('MENU')}</span> next wave` })),
+        h('div', { class: 'shop-foot' }, prog, h('span', { class: 'hint kbd-hint', html: `<span class="kbd">1</span>–<span class="kbd">${st.cards.length}</span> buy · <span class="kbd">R</span> reroll · <span class="kbd">Enter</span> next wave` }), h('span', { class: 'hint pad-hint', html: `<span class="glyph">${glyph('A')}</span> buy · <span class="glyph">${glyph('Y')}</span> reroll · <span class="glyph">${glyph('LB')}</span><span class="glyph">${glyph('RB')}</span> sections · hold <span class="glyph">${glyph('MENU')}</span> next wave` })),
       );
     };
     render();
@@ -712,8 +712,8 @@ class UI {
     const sync = () => {
       tiles.forEach((t) => t.classList.toggle('picked', Number(t.dataset.i) === picked));
       const p = o.current[picked];
-      if (picked === -1) lose.replaceChildren(h('span', { class: 'lbl' }, 'YOU LOSE'), h('b', {}, 'Nothing'), h('span', {}, ' · it goes on a new plate'));
-      else if (p) lose.replaceChildren(h('span', { class: 'lbl' }, 'YOU LOSE'), h('b', {}, p.name), h('span', {}, p.dead ? ' · already toast' : ` · ${p.perk} · ${p.slices}/${p.max} left`));
+      if (picked === -1) lose.replaceChildren(h('span', { class: 'lbl' }, 'YOU LOSE'), h('b', {}, 'Nothing'), h('span', {}, 'It goes on a new plate'));
+      else if (p) lose.replaceChildren(h('span', { class: 'lbl' }, 'YOU LOSE'), h('b', {}, p.name), h('span', {}, p.dead ? 'Already toast' : `${p.perk} · ${p.slices}/${p.max} slices left`));
       confirm.innerHTML = picked === -1 ? `ADD · ${fmt(o.cost)}` : `SWAP · ${fmt(o.cost)}`;
     };
     for (const { p, i } of order) {
@@ -754,7 +754,7 @@ class UI {
         h('div', { class: 'in-ask' }, h('b', {}, 'WHERE DOES IT GO?'), h('span', {}, o.canAdd ? 'Add a plate or swap one out' : 'Table full: pick a pizza to swap out')),
       ),
       h('div', { class: 'swaprow' }, ...tiles),
-      h('div', { class: 'swapfoot' }, lose, h('div', { class: 'diff gain' }, h('span', { class: 'lbl' }, 'YOU GAIN'), h('b', {}, o.name), h('span', {}, ` · ${o.perk}`)), btn('CANCEL', 'cream', () => this.close(s), { 'data-pad': 'back' }), confirm),
+      h('div', { class: 'swapfoot' }, lose, h('div', { class: 'diff gain' }, h('span', { class: 'lbl' }, 'YOU GAIN'), h('b', {}, o.name), h('span', {}, o.perk)), btn('CANCEL', 'cream', () => this.close(s), { 'data-pad': 'back' }), confirm),
     );
     sync();
     s = this.open(panel);
@@ -1088,7 +1088,8 @@ class UI {
                 render();
               });
               b.disabled = maxed || save.crusts < cost;
-              return h('div', { class: 'meta' }, h('div', { class: 'ic' }, m.icon), h('div', {}, h('div', { class: 'nm' }, m.name), h('div', { class: 'ds' }, m.desc), pips), b);
+              // icon | name + level pips | price, with the description across the full width underneath
+              return h('div', { class: 'meta' }, h('div', { class: 'ic' }, m.icon), h('div', { class: 'nmrow' }, h('div', { class: 'nm' }, m.name), pips), b, h('div', { class: 'ds' }, m.desc));
             }),
           ),
         );
@@ -1224,7 +1225,7 @@ class UI {
             }),
           ),
         );
-        detail.replaceChildren(h('div', {}, h('h3', {}, 'Wave events'), h('p', {}, 'About one wave in four, something flies in or lands on the table. Smacks only go to it when no foot is closer.')));
+        detail.replaceChildren(h('div', { class: 'span' }, h('h3', {}, 'Wave events'), h('p', {}, 'About one wave in four, something flies in or lands on the table. Smacks only go to it when no foot is closer.')));
       }
     };
     render();
@@ -1316,3 +1317,14 @@ function stat(v: string, label: string): HTMLElement {
 }
 
 export const ui = new UI();
+
+/** What a returning player keeps, listing only the things they have. */
+function welcomeKeep(): string {
+  const metaLevels = Object.values(save.meta).reduce((n, l) => n + (l ?? 0), 0);
+  const parts = [`${fmt(save.crusts)} Golden Crusts`];
+  if (metaLevels) parts.push(`${metaLevels} Pizzeria upgrade${metaLevels === 1 ? '' : 's'}`);
+  parts.push(`${save.unlockedPizzas.length} unlocked pizzas`);
+  const list = parts.length > 2 ? `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}` : parts.join(' and ');
+  const bonus = save.welcomeBonus ? ` That includes +${fmt(save.welcomeBonus)} for the bosses you'd already beaten.` : '';
+  return `You keep your ${list}.${bonus}`;
+}

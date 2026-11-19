@@ -1295,6 +1295,9 @@ h3 {
   width: 50em;
   display: grid;
   gap: 1.1em;
+  /* every tab keeps the window the same size, so it doesn't jump as you switch */
+  min-height: 21em;
+  align-content: start;
 }
 
 .setting {
@@ -1605,9 +1608,10 @@ input[type='range']::-moz-range-thumb {
 
 .meta {
   display: grid;
-  grid-template-columns: 3.4em 1fr auto;
+  grid-template-columns: 3.4em minmax(0, 1fr) auto;
+  grid-template-areas: 'ic nm btn' 'ic ds ds';
   align-items: center;
-  gap: 0.9em;
+  gap: 0.25em 0.9em;
   background: rgba(255, 255, 255, 0.55);
   border: 0.16em solid var(--ink);
   border-radius: 1em;
@@ -1615,24 +1619,41 @@ input[type='range']::-moz-range-thumb {
 }
 
 .meta .ic {
+  grid-area: ic;
   font-size: 2.6em;
   font-family: system-ui, 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif;
   text-align: center;
 }
 
+.meta .nmrow {
+  grid-area: nm;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  min-width: 0;
+}
+
 .meta .nm {
   font-family: 'Lilita One', sans-serif;
   font-size: 1.5em;
+  white-space: nowrap;
 }
 
 .meta .ds {
+  grid-area: ds;
   font-size: 1.1em;
   font-weight: 600;
   color: var(--ink-soft);
 }
 
 .meta .btn {
-  font-size: 1.25em;
+  grid-area: btn;
+  font-size: 1.15em;
+  padding: 0.2em 0.7em 0.26em;
+}
+
+.detail .span {
+  grid-column: 1 / -1;
 }
 
 .lineup {
@@ -2422,6 +2443,12 @@ body.pad .slam .pd {
 
 .shop-foot .hint {
   color: var(--cream);
+  white-space: nowrap;
+}
+
+.shop-foot .crust-progress {
+  white-space: nowrap;
+  flex: 0 0 auto;
 }
 
 .shop-foot .crust-progress {
@@ -2629,12 +2656,12 @@ body.pad :focus {
   background: #fde3dc;
   border-radius: 1em;
   padding: 0.5em 1em;
-  display: flex;
-  flex-wrap: nowrap;
+  /* label + name on the first line, the perk underneath (wraps rather than being cut off) */
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-content: center;
   align-items: baseline;
-  gap: 0.3em;
-  overflow: hidden;
-  white-space: nowrap;
+  column-gap: 0.3em;
 }
 
 .diff.gain {
@@ -2660,10 +2687,16 @@ body.pad :focus {
   font-size: 1.3em;
 }
 
-.diff span:last-child {
-  font-weight: 600;
+.diff b {
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.diff span:last-child {
+  grid-column: 1 / -1;
+  font-weight: 600;
+  line-height: 1.2;
 }
 
 /* ——— Intro cards, welcome, confirm, second chance, victory ——— */
@@ -2673,6 +2706,23 @@ body.pad :focus {
 .second {
   max-width: 62em;
   text-align: center;
+  /* one column that can't grow past the card: long lines wrap instead of spilling out of it */
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.welcome {
+  width: 62em;
+}
+
+.welcome .title {
+  font-size: 3.4em;
+}
+
+.welcome .row .btn {
+  flex: 1 1 0;
+  font-size: 2.1em;
+  padding: 0.35em 0.8em 0.42em;
+  white-space: nowrap;
 }
 
 .intro p {
@@ -3108,6 +3158,10 @@ body.reduced-motion *::after {
 .second .row {
   flex-wrap: nowrap;
   align-items: center;
+}
+
+.welcome .row {
+  width: 100%;
 }
 
 /* the boss bar keeps its centring transform through its entrance animation */
