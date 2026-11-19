@@ -36,7 +36,11 @@ export interface Arena {
   /** The peel trails the pointer (brain freeze, sticky kelp). */
   slowPeel(sec: number): void;
   addClickable(c: Clickable): void;
-  banner(big: string, small: string, kind?: 'boss' | 'loc' | 'clear' | 'phase'): void;
+  banner(big: string, small: string, kind?: 'boss' | 'loc' | 'clear' | 'phase', desc?: string): void;
+  /** The boss's current move and its answer, shown under the boss bar. */
+  bossMove(f: Foot, name: string, info: string): void;
+  /** Slow the whole game for a moment (phase changes). */
+  dramatic(sec: number): void;
   quip(x: number, y: number, msg: string, color?: string, size?: number): void;
   sfx(key: string, opts?: { volume?: number; rate?: number; throttle?: number }): void;
   shake(ms: number, intensity: number): void;

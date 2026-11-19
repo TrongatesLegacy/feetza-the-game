@@ -562,6 +562,8 @@ export const FEET: FootType[] = [
     id: 'clownking',
     name: 'KING HONK',
     desc: 'Boss. The clown shoe to end all clown shoes. Squashes the whole table.',
+    howTo: 'Decoys pop in one hit: test each lane, then pile on the real one',
+    tell: 'Leaps off screen, then three shoes drop back in a random order',
     hp: 1900, speed: 0.6, armor: 3, stompDmg: 2, coins: 120, score: 12000, scale: 2.2, minWave: 15, weight: 0,
     traits: ['wide', 'zigzag'],
     boss: true,

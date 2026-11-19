@@ -71,6 +71,8 @@ export class Foot {
   cheer = 0;
   /** Horizontal lane offset from the target pizza's centre while diving. */
   slot = 0;
+  /** A fixed screen x to hover over instead of the target pizza (King Honk's shuffle keeps each shoe in its own lane). */
+  laneX: number | null = null;
   /** True while queued above a busy pizza. */
   waiting = false;
   private waitT = 0;
@@ -315,7 +317,8 @@ export class Foot {
     switch (this.state) {
       case 'enter': {
         this.y += (HOVER_Y - 20 - this.y) * Math.min(1, dt * 4);
-        if (target) this.x += (target.x - this.x) * Math.min(1, dt * 3);
+        if (this.laneX !== null) this.x += (this.laneX - this.x) * Math.min(1, dt * 3);
+        else if (target) this.x += (target.x - this.x) * Math.min(1, dt * 3);
         if (this.y > HOVER_Y - 40) this.setState('hover');
         break;
       }
@@ -338,7 +341,7 @@ export class Foot {
           if (!this.target) break;
         }
         // queued feet wait higher up, fanned out, so they never stack on the divers below
-        const hoverX = this.target!.x + (this.waiting ? this.hoverOffset * 1.6 : this.hoverOffset);
+        const hoverX = this.laneX ?? this.target!.x + (this.waiting ? this.hoverOffset * 1.6 : this.hoverOffset);
         this.x += (hoverX - this.x) * Math.min(1, dt * 3);
         this.y += ((this.waiting ? HOVER_Y - 170 : HOVER_Y) - this.y) * Math.min(1, dt * 3);
         if (this.type.traits.includes('teleport') && this.stateT > this.hoverTime * 0.6 && Math.random() < dt * 0.8) {
@@ -378,12 +381,16 @@ export class Foot {
           }
         }
         const t = this.target!;
+        // a laned shoe sharing a pizza dives on its own side of it, never on top of another
+        const aimX = this.laneX !== null ? t.x + Phaser.Math.Clamp(this.laneX - t.x, -t.radius * 0.8, t.radius * 0.8) : t.x + this.slot;
         // zig-zag weave
         if (this.type.traits.includes('zigzag')) {
           this.zigBase += dt;
-          this.x = t.x + this.slot + Math.sin(this.zigBase * 3.2) * (this.slot ? 45 : 70);
+          const weave = aimX + Math.sin(this.zigBase * 3.2) * (this.slot ? 45 : 70);
+          // a laned shoe eases into its weave instead of snapping across from its hover spot
+          this.x = this.laneX !== null ? this.x + (weave - this.x) * Math.min(1, dt * 6) : weave;
         } else {
-          this.x += (t.x + this.slot - this.x) * Math.min(1, dt * 2);
+          this.x += (aimX - this.x) * Math.min(1, dt * 2);
         }
         let want = speed;
         if (this.type.traits.includes('burst')) {
@@ -400,7 +407,7 @@ export class Foot {
           this.vy = Math.max(this.vy, 0);
         }
         // striker: switch pizzas once, mid-dive
-        if (this.has('switch') && !this.switched && this.y > HOVER_Y + (this.stompY - HOVER_Y) * 0.4) {
+        if (this.has('switch') && this.laneX === null && !this.switched && this.y > HOVER_Y + (this.stompY - HOVER_Y) * 0.4) {
           this.switched = true;
           let other = this.hooks.pickTarget(this);
           for (let i = 0; i < 6 && other === this.target; i++) other = this.hooks.pickTarget(this);
@@ -494,6 +501,20 @@ export class Foot {
     this.img.setAlpha(a);
     this.leg.setAlpha(a);
     this.cuff?.setAlpha(a);
+  }
+
+  private auraFx: Phaser.FX.Glow | null = null;
+  private auraTween: Phaser.Tweens.Tween | null = null;
+
+  /** A pulsing coloured outline that shows the boss's phase at a glance (null clears it). */
+  setPhaseAura(color: number | null): void {
+    this.auraTween?.remove();
+    this.auraTween = null;
+    if (this.auraFx) this.img.preFX?.remove(this.auraFx);
+    this.auraFx = null;
+    if (color === null || !this.img.preFX) return;
+    this.auraFx = this.img.preFX.addGlow(color, 6, 0, false, 0.1, 14);
+    this.auraTween = this.scene.tweens.add({ targets: this.auraFx, outerStrength: { from: 4, to: 10 }, duration: 650, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
   }
 
   tint(color: number | null): void {

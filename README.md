@@ -9,8 +9,8 @@
 **▶ Watch the 30s trailer with sound: https://trongateslegacy.github.io/feetza-the-game/trailer.mp4**
 
 - **A 60-wave journey**: 12 stages, each a location (waves 1–4) plus its boss's own arena (wave 5). Act 1 ends at wave 30, the finale is at wave 60, then endless mode
-- **24 bosses**: 12 main bosses and 12 mini-bosses (wave 3 of every stage). Every boss changes phase at 66% and 33% health, and every move has a tell and an answer
-- **Around 100 feet**, each with its own art, stats and traits, shown as icons on the foot and explained on a NEW FOOT card the first time it appears
+- **24 bosses**: 12 main bosses and 12 mini-bosses (wave 3 of every stage), each with a signature move from the start. Bosses change phase at 66% and 33% health (mini-bosses at 50%): they rear up, glow amber then red, and switch moves. A banner names each move with what it does and how to answer it, the line under the boss bar keeps the answer on screen, and every move has a wind-up you can read before it lands
+- **92 feet**, each with its own art, stats and traits, shown as icons on the foot and explained on a NEW FOOT card the first time it appears
 - **56 pizzas**, each granting a perk while it survives. Pizzas go stale after about 10 waves; reheat them or swap in fresh ones
 - **Five heat levels** (Mild to Inferno). Harder heats pay more Golden Crusts
 - **Between-wave shop**: toppings cost tips (permanent, once-per-run and one-use kinds), a pizza counter with a swap picker, heal, rebake and reheat services, and a Golden menu paid from banked crusts

@@ -114,12 +114,23 @@ export function installDevTools(game: Phaser.Game): void {
      * The auto-player: smacks the lowest foot, wipes boss props, and shops with a simple strategy
      * (heal when hurt, reheat stale pizzas, buy the best affordable topping, then next wave).
      */
-    bot(on = true, accuracy = 0.9, rate = 260): void {
+    bot(on = true, accuracy = 0.9, rate = 260, warp = 1): void {
       botOn = on;
       skipIntros();
       const loop = () => {
         if (!botOn) return;
         const g = game.scene.getScene('Game') as AnyScene;
+        // time warp for balance runs: the scene steps several times a frame, timers and tweens keep pace
+        if (g && warp > 1 && g.__warp !== warp && typeof g.update === 'function') {
+          const step = g.__origUpdate ?? g.update.bind(g);
+          g.__origUpdate = step;
+          g.update = (t: number, d: number) => {
+            for (let i = 0; i < warp; i++) step(t, d);
+          };
+          g.time.timeScale = warp;
+          g.tweens.timeScale = warp;
+          g.__warp = warp;
+        }
         if (g && (game.scene.isActive('Game') || game.scene.isPaused('Game'))) {
           const intro = document.querySelector<HTMLElement>('.intro .btn, .second .btn.cream');
           if (intro) intro.click();
@@ -141,7 +152,7 @@ export function installDevTools(game: Phaser.Game): void {
           }
           if (g.inUpgrade && g.shop) botShop(g);
         }
-        setTimeout(loop, rate);
+        setTimeout(loop, rate / warp);
       };
       loop();
     },
@@ -163,7 +174,13 @@ export function installDevTools(game: Phaser.Game): void {
           let animating = false;
           for (let n: HTMLElement | null = el; n && n.id !== 'ui'; n = n.parentElement) {
             op *= Number(getComputedStyle(n).opacity);
-            if (n.getAnimations?.().some((an) => an.playState === 'running' && Number(an.currentTime ?? 0) < 700)) animating = true;
+            // entrances (first 700 ms) and anything a running animation is moving (toasts sliding out)
+            // (and ones parked off screen by a finished exit animation, waiting to be removed)
+            const anims = n.getAnimations?.() ?? [];
+            const running = anims.filter((an) => an.playState === 'running');
+            const tf = getComputedStyle(n).transform;
+            const moved = tf !== 'none' && tf !== 'matrix(1, 0, 0, 1, 0, 0)';
+            if (running.some((an) => Number(an.currentTime ?? 0) < 700) || (anims.length && moved)) animating = true;
           }
           if (op < 0.3 || animating) continue;
           const r = el.getBoundingClientRect();

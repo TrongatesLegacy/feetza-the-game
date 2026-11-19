@@ -3,6 +3,7 @@
 // still be blocked by pizza defences, other moves cannot.
 
 import Phaser from 'phaser';
+import { W } from '../config';
 import { FOOT_BY_ID } from '../data/feet';
 import type { Arena } from './arena';
 import type { Foot } from './Foot';
@@ -11,6 +12,8 @@ import type { Pizza } from './Pizza';
 export interface Brain {
   /** Phase names, index 0 = phase 1. Longer than the boss's phase count is fine. */
   names: string[];
+  /** Per phase: what the move does · what to do about it. Shown on the phase banner and under the boss bar. */
+  info: string[];
   onPhase?(f: Foot, phase: number, a: Arena): void;
   update?(f: Foot, dt: number, a: Arena): void;
   /** Return true to cancel the smack's damage (parry, decoy, stone, sting). */
@@ -42,9 +45,10 @@ class Every {
 const rnd = <T>(a: T[]): T | undefined => a[Math.floor(Math.random() * a.length)];
 
 /** A slow projectile thrown at the peel. Smack it to bat it away; let it land and it hits the peel. */
-function throwAtPeel(a: Arena, key: string, from: { x: number; y: number }, sec: number, onLand: () => void, onSmack: () => void, spin = 6): void {
+function throwAtPeel(a: Arena, key: string, from: { x: number; y: number }, sec: number, onLand: () => void, onSmack: () => void, spin = 6, look: { scale?: number; tint?: number } = {}): void {
   const to = { ...a.peelPoint() };
-  const img = a.sc.add.image(from.x, from.y, key);
+  const img = a.sc.add.image(from.x, from.y, key).setScale(look.scale ?? 1);
+  if (look.tint !== undefined) img.setTint(look.tint);
   a.fxLayer.add(img);
   let done = false;
   const st = { t: 0 };
@@ -96,6 +100,53 @@ function mark(a: Arena, key: string, x: number, y: number, sec: number, scale = 
   a.sc.tweens.add({ targets: img, scale: scale * 1.12, duration: 300, yoyo: true, repeat: -1 });
   a.sc.time.delayedCall(sec * 1000, () => img.destroy());
   return img;
+}
+
+/** Something falls onto a marked pizza: a reticle appears first, then the drop takes `sec` to land.
+ * Smack it in the air to destroy it; let it land and the pizza loses a slice. */
+function dropOn(a: Arena, f: Foot, p: Pizza, key: string, sec: number, label: string, look: { scale?: number; tint?: number; color?: string } = {}): void {
+  const tx = p.x;
+  const ty = p.surfaceY - 30;
+  mark(a, 'p_reticle', tx, ty, sec, 0.7);
+  const img = a.sc.add.image(tx, -120, key).setScale(look.scale ?? 0.8);
+  if (look.tint !== undefined) img.setTint(look.tint);
+  a.fxLayer.add(img);
+  a.sfx('sfx_whoosh', { volume: 0.5, rate: 0.7 });
+  let done = false;
+  a.sc.tweens.add({
+    targets: img,
+    y: ty,
+    angle: 200,
+    duration: sec * 1000,
+    ease: 'Quad.In',
+    onComplete: () => {
+      if (done) return;
+      done = true;
+      img.destroy();
+      if (!f.alive || p.dead) return;
+      a.fx.explosion(tx, ty, 110);
+      a.hitPizza(p, 1, label, look.color ?? '#ff8a6a');
+    },
+  });
+  a.addClickable({
+    get x() {
+      return img.x;
+    },
+    get y() {
+      return img.y;
+    },
+    r: 80,
+    priority: 2,
+    alive: () => !done,
+    hit: () => {
+      if (done) return;
+      done = true;
+      a.fx.impact(img.x, img.y, true);
+      a.sfx('sfx_slap_2', { volume: 0.8 });
+      a.quip(img.x, img.y - 70, 'SMASHED!', '#7dff9a', 34);
+      a.sc.tweens.add({ targets: img, alpha: 0, scale: 0.2, duration: 220, onComplete: () => img.destroy() });
+    },
+  });
 }
 
 /** A splat on the screen that hides what's behind it until smacked `hits` times. */
@@ -166,8 +217,10 @@ function hitWindup(f: Foot, a: Arena, stun = 1.5): boolean {
 
 const bigfoot = (): Brain => {
   const pound = new Every(7, 3);
+  const step = new Every(7, 4);
   return {
-    names: ['', 'GROUND POUND', 'RAMPAGE'],
+    names: ['BIG STEP', 'GROUND POUND', 'RAMPAGE'],
+    info: ['Winds up a crushing stomp on one pizza · smack it twice to interrupt', 'Shakes every pizza and your peel · smack it twice during the wind-up', 'Enraged and faster, calling in more feet · keep hitting, it is nearly down'],
     onPhase: (f, ph, a) => {
       if (ph === 3) {
         f.enraged = true;
@@ -176,6 +229,16 @@ const bigfoot = (): Brain => {
       }
     },
     update: (f, dt, a) => {
+      if (f.phase === 1 && step.tick(dt) && !f.brain.windup) {
+        const p = f.target && !f.target.dead ? f.target : rnd(a.alivePizzas());
+        if (!p) return;
+        mark(a, 'p_reticle', p.x, p.surfaceY - 30, 1.4, 0.7);
+        windup(a, f, '', 1.4, 'BIG STEP!', 2, () => {
+          a.shake(300, 0.012);
+          a.sfx('sfx_stomp');
+          a.hitPizza(p, 1, 'CRUSHED!');
+        });
+      }
       if (f.phase < 2 || !pound.tick(dt)) return;
       windup(a, f, '', 1.3, 'GROUND POUND!', 2, () => {
         a.shake(500, 0.016);
@@ -196,6 +259,7 @@ const ironheel = (): Brain => {
   const vent = new Every(4.5, 2);
   const press = new Every(4.2, 1.5);
   const rockets = new Every(6.5, 4);
+  const rivet = new Every(4.5, 3);
   let pistons: { p: Pizza; col: Phaser.GameObjects.Image; valve: Phaser.GameObjects.Image; lift: number; lockT: number }[] = [];
   const clearPistons = () => {
     for (const s of pistons) {
@@ -206,7 +270,8 @@ const ironheel = (): Brain => {
     pistons = [];
   };
   return {
-    names: ['', 'OVERHEAT', 'PRESS LINE'],
+    names: ['RIVET SHOT', 'OVERHEAT', 'PRESS LINE'],
+    info: ['Fires rivets at your peel · smack them back for damage', 'Vents heat: armour drops to 0 while it glows red · pile on hits while it glows', 'Pistons lift pizzas into rocket fire · smack the glowing valves to lock them'],
     onPhase: (f, ph, a) => {
       if (ph === 3) {
         // a piston under every pizza
@@ -237,10 +302,13 @@ const ironheel = (): Brain => {
             },
           });
         }
-        a.banner('PRESS LINE', 'Smack the glowing valves to lock the pistons', 'phase');
       }
     },
     update: (f, dt, a) => {
+      if (f.phase === 1 && rivet.tick(dt)) {
+        throwAtPeel(a, 'p_valve', { x: f.x, y: f.cy }, 1.3, () => a.stunPeel(0.8, 'RIVETED!'), () => a.damageFoot(f, Math.round(f.maxHp * 0.025), 'RETURN TO SENDER!'), 8, { scale: 0.7, tint: 0xc0c6cf });
+        a.sfx('sfx_piston', { volume: 0.5, rate: 1.6 });
+      }
       if (f.phase === 2 || f.phase >= 3) {
         if (vent.tick(dt)) {
           // overheat window: armour off, glowing red
@@ -306,20 +374,126 @@ const ironheel = (): Brain => {
 const clownking = (): Brain => {
   const decoys = new Every(9, 1);
   const pie = new Every(6, 3);
-  return {
-    names: ['', 'DECOY SHOES', 'CREAM PIE'],
-    update: (f, dt, a) => {
-      if (f.phase >= 2 && decoys.tick(dt)) {
-        const live = a.allFeet().filter((o) => o.alive && o.brain.decoy);
-        for (let i = live.length; i < 2; i++) {
-          const d = a.spawn(f.type.id, rnd(a.alivePizzas()) ?? null, f.x + (i ? 300 : -300));
+  const honk = new Every(6.5, 3);
+  /** The real King and his decoys, while a shuffle is on the table. */
+  let trio: Foot[] = [];
+  let shuffling = false;
+  /** Three lanes as far apart as the table allows (the outer pizzas and the middle one), so the big
+   * shoes never overlap; with fewer than three pizzas, spread evenly across the table. */
+  const lanes = (a: Arena): number[] => {
+    const ps = [...a.alivePizzas()].sort((p, q) => p.x - q.x);
+    if (ps.length < 3) return [W * 0.24, W * 0.5, W * 0.76];
+    const inner = ps.slice(1, -1).sort((p, q) => Math.abs(p.x - W / 2) - Math.abs(q.x - W / 2))[0];
+    return [ps[0].x, inner.x, ps[ps.length - 1].x];
+  };
+  /** Each shoe aims at the pizza under its lane, and no two share one while there are enough. */
+  const assign = (a: Arena) => {
+    const taken = new Set<Pizza>();
+    for (const o of trio) {
+      if (o.laneX === null || o.state === 'stomp') {
+        if (o.target) taken.add(o.target);
+        continue;
+      }
+      const lx = o.laneX;
+      const ps = [...a.alivePizzas()].sort((p, q) => Math.abs(p.x - lx) - Math.abs(q.x - lx));
+      const t = ps.find((p) => !taken.has(p)) ?? ps[0] ?? null;
+      if (t) taken.add(t);
+      // mid-dive shoes keep their pizza unless it's gone
+      if (o.state === 'descend' && o.target && !o.target.dead) continue;
+      o.target = t;
+    }
+  };
+  const shuffle = (f: Foot, a: Arena) => {
+    shuffling = true;
+    // old decoys vanish in a puff as the King leaps off the top of the screen
+    for (const o of a.allFeet()) {
+      if (o.alive && o.brain.decoy) {
+        a.fx.puff(o.cx, o.cy, 10);
+        o.die();
+      }
+    }
+    f.puppet = true;
+    f.shielded = true;
+    a.quip(f.x, f.cy - 160, 'WHICH ONE IS REAL?', '#b06bff', 42);
+    a.sfx('sfx_boing', { rate: 0.7 });
+    a.sc.tweens.add({
+      targets: f,
+      y: -420,
+      duration: 450,
+      ease: 'Back.In',
+      onComplete: () => {
+        if (!f.alive) return (shuffling = false);
+        const team: Foot[] = [f];
+        for (let i = 0; i < 2; i++) {
+          const d = a.spawn(f.type.id, null, f.x);
           if (!d) continue;
           d.brain.decoy = true;
           d.maxHp = d.hp = 1;
           d.armor = 0;
+          // identical in every visible way: same phase speed, same hurry
+          d.phase = f.phase;
+          d.hurry = f.hurry;
+          d.speedMul = f.speedMul;
+          d.setPhaseAura(BossDirector.auraFor(f.phase));
+          d.puppet = true;
+          d.y = -420;
+          team.push(d);
         }
-        a.quip(f.x, f.cy - 160, 'WHICH ONE IS REAL?', '#b06bff', 42);
-        a.sfx('sfx_boing', { rate: 0.7 });
+        const xs = lanes(a);
+        const order = Phaser.Utils.Array.Shuffle([...team]);
+        order.forEach((o, i) => {
+          o.laneX = xs[i];
+          o.x = xs[i];
+          o.y = -420;
+        });
+        trio = team;
+        // they drop back in a random order, so the first one down tells you nothing
+        Phaser.Utils.Array.Shuffle([...order]).forEach((o, k) => {
+          a.sc.time.delayedCall(250 + k * 330, () => {
+            if (!o.alive) return;
+            o.puppet = false;
+            assign(a);
+            o.setState('enter');
+            a.sfx('sfx_whoosh', { volume: 0.5, rate: 0.9 + k * 0.1 });
+            if (o === f) {
+              f.shielded = false;
+              shuffling = false;
+            }
+          });
+        });
+      },
+    });
+  };
+  return {
+    names: ['HONK', 'DECOY SHOES', 'CREAM PIE'],
+    info: ['Winds up a horn blast that stuns your peel · smack it twice to stop it', 'Leaps away and drops back with two decoys in random lanes · decoys pop in one hit: find the real one', 'Throws cream pies that cover the screen · smack the pie in flight, or wipe the splat'],
+    onSmacked: (f, a) => {
+      hitWindup(f, a, 1);
+      return false;
+    },
+    update: (f, dt, a) => {
+      // the shuffle holds while the King is off screen
+      if (shuffling) return;
+      if (f.phase === 1 && honk.tick(dt) && !f.brain.windup) {
+        windup(a, f, '', 1.3, 'HONK…', 2, () => {
+          a.sfx('sfx_warning', { rate: 1.4 });
+          a.fx.ring(f.x, f.cy, 0xff3d7f, 1.4, 1);
+          a.stunPeel(1, 'HONKED!');
+        });
+      }
+      trio = trio.filter((o) => o.alive);
+      if (trio.length && !trio.some((o) => o !== f)) {
+        // all decoys popped: the King is free to roam again
+        f.laneX = null;
+        trio = [];
+      }
+      // each shoe keeps to its own lane, aiming at the pizza under it
+      if (trio.length) assign(a);
+      // due every 9 s; it waits for the King to be hovering, never yanking him out of a stomp
+      if (f.phase >= 2) decoys.t -= dt;
+      if (f.phase >= 2 && decoys.t <= 0 && f.state === 'hover') {
+        decoys.t = decoys.every;
+        shuffle(f, a);
       }
       if (f.phase >= 3 && pie.tick(dt)) {
         const x = 300 + Math.random() * 1320;
@@ -327,17 +501,40 @@ const clownking = (): Brain => {
         const img = a.sc.add.image(f.x, f.cy, 'p_pie');
         a.fxLayer.add(img);
         a.sfx('sfx_whoosh');
+        a.quip(f.x, f.cy - 160, 'PIE!', '#ffffff', 44);
+        let blocked = false;
+        // a slower lob than before: there's time to smack it out of the air
         a.sc.tweens.add({
           targets: img,
           x,
           y,
           angle: 540,
-          duration: 700,
+          duration: 1150,
           ease: 'Quad.In',
           onComplete: () => {
+            if (blocked) return;
+            blocked = true;
             img.destroy();
             a.sfx('sfx_squish', { rate: 0.7 });
             screenSplat(a, 'p_cream', x, y, 2, 'WIPED!');
+          },
+        });
+        a.addClickable({
+          get x() {
+            return img.x;
+          },
+          get y() {
+            return img.y;
+          },
+          r: 80,
+          priority: 2,
+          alive: () => !blocked,
+          hit: () => {
+            if (blocked) return;
+            blocked = true;
+            a.fx.impact(img.x, img.y, true);
+            a.quip(img.x, img.y - 60, 'BLOCKED!', '#7dff9a', 36);
+            a.sc.tweens.add({ targets: img, alpha: 0, y: img.y - 300, duration: 300, onComplete: () => img.destroy() });
           },
         });
       }
@@ -347,9 +544,15 @@ const clownking = (): Brain => {
 
 const trex = (): Brain => {
   const roar = new Every(9, 4);
+  const swipe = new Every(7, 4);
   let roaring = 0;
   return {
-    names: ['', 'DOUBLE STOMP', 'ROAR'],
+    names: ['TAIL SWIPE', 'DOUBLE STOMP', 'ROAR'],
+    info: ['Marks two pizzas, then swipes them both · smack it twice to interrupt', 'Every stomp lands twice · stop it before it lands', 'Takes a deep breath, then roars to speed up every foot · Peel Slam during the roar to stop it'],
+    onSmacked: (f, a) => {
+      hitWindup(f, a, 1.2);
+      return false;
+    },
     onStomp: (f, p, a) => {
       if (f.phase >= 2 && !f.brain.second) {
         f.brain.second = true;
@@ -371,14 +574,30 @@ const trex = (): Brain => {
         }
         if (roaring <= 0) f.vuln = 1;
       }
+      if (f.phase === 1 && swipe.tick(dt) && !f.brain.windup) {
+        const ps = a.alivePizzas().sort((p, q) => p.x - q.x);
+        const i = Math.floor(Math.random() * Math.max(1, ps.length - 1));
+        const pair = ps.slice(i, i + 2);
+        for (const p of pair) mark(a, 'p_reticle', p.x, p.surfaceY - 30, 1.5, 0.7);
+        windup(a, f, '', 1.5, 'TAIL SWIPE!', 2, () => {
+          a.sfx('sfx_whoosh', { volume: 1, rate: 0.7 });
+          for (const [k, p] of pair.entries()) a.sc.time.delayedCall(k * 160, () => !p.dead && a.hitPizza(p, 1, 'SWIPED!'));
+        });
+      }
       if (f.phase >= 3 && roar.tick(dt)) {
-        a.quip(f.x, f.cy - 170, 'ROOOOAR!', '#ff4d3d', 64);
-        a.shake(600, 0.01);
-        a.rumble(0.6, 600);
-        a.sfx('sfx_warning');
-        a.hurry(1.4, 3.5);
-        roaring = 3.5;
-        f.vuln = 1.6; // wide open while it roars
+        // tell: a deep breath first, so there's time to get the slam ready
+        a.quip(f.x, f.cy - 170, 'DEEP BREATH…', '#ffb0a0', 46);
+        a.sfx('sfx_whoosh', { rate: 0.5, volume: 0.6 });
+        a.sc.time.delayedCall(1000, () => {
+          if (!f.alive) return;
+          a.quip(f.x, f.cy - 170, 'ROOOOAR!', '#ff4d3d', 64);
+          a.shake(600, 0.01);
+          a.rumble(0.6, 600);
+          a.sfx('sfx_warning');
+          a.hurry(1.4, 3.5);
+          roaring = 3.5;
+          f.vuln = 1.6; // wide open while it roars
+        });
       }
     },
   };
@@ -387,13 +606,13 @@ const trex = (): Brain => {
 const colossus = (): Brain => {
   let parryCount = 0;
   return {
-    names: ['', 'PARRY', 'SHATTERED'],
+    names: ['IRON SHELL', 'PARRY', 'SHATTERED'],
+    info: ['Thick armour soaks small hits · big hits (crits, slams) crack it', 'Parries every third smack · when it glints, hold your next smack', 'Armour gone, but its stomps pierce shields · hit hard and fast'],
     onPhase: (f, ph, a) => {
       if (ph === 3) {
         f.armor = 0;
         f.enraged = true;
         a.fx.explosion(f.cx, f.cy, 260);
-        a.banner('ARMOUR SHATTERED', 'Its stomps now ignore shields', 'phase');
       }
     },
     onSmacked: (f, a, x, y, dmg) => {
@@ -420,13 +639,14 @@ const colossus = (): Brain => {
 const phantomking = (): Brain => {
   const echo = new Every(9, 2);
   const hop = new Every(8, 8);
+  let hopping = false;
   return {
-    names: ['', 'ECHOES', 'POSSESSION'],
+    names: ['FADE', 'ECHOES', 'POSSESSION'],
+    info: ['Fades out between stomps · hit it while it is solid', 'Summons faint echoes of past bosses · echoes are weak: clear them fast', 'Possesses a pizza, then hops to another every 8 s · Peel Slam while the Ghost is solid'],
     onPhase: (_f, ph, a) => {
       if (ph === 3) {
         const p = rnd(a.alivePizzas());
         if (p) a.possess(p);
-        a.banner('POSSESSION', 'Peel Slam while the Ghost is solid', 'phase');
         a.sfx('sfx_possess');
       }
     },
@@ -445,13 +665,23 @@ const phantomking = (): Brain => {
         }
       }
       if (f.phase >= 3) {
-        if (a.possessed() && hop.tick(dt)) {
+        if (a.possessed() && !hopping && hop.tick(dt)) {
           const others = a.alivePizzas().filter((p) => p !== a.possessed());
           const next = rnd(others);
           if (next) {
-            a.possess(next);
-            a.quip(next.x, next.surfaceY - 160, 'THE CURSE MOVES!', '#c9a8ff', 38);
-            a.sfx('sfx_possess', { volume: 0.7 });
+            // tell: the next pizza glows for a second before the curse moves
+            hopping = true;
+            const glow = a.sc.add.image(next.x, next.surfaceY + 20, 'glow').setTint(0xc9a8ff).setBlendMode(Phaser.BlendModes.ADD).setScale(2.2, 1.1).setAlpha(0.8);
+            a.fxLayer.add(glow);
+            a.quip(next.x, next.surfaceY - 160, 'THE CURSE STIRS…', '#c9a8ff', 34);
+            a.sc.time.delayedCall(1000, () => {
+              glow.destroy();
+              hopping = false;
+              if (!f.alive || !a.possessed() || next.dead) return;
+              a.possess(next);
+              a.quip(next.x, next.surfaceY - 160, 'THE CURSE MOVES!', '#c9a8ff', 38);
+              a.sfx('sfx_possess', { volume: 0.7 });
+            });
           }
         }
         // a slam while the ghost is solid breaks the possession
@@ -475,9 +705,15 @@ const phantomking = (): Brain => {
 const cosmiccroc = (): Brain => {
   const flip = new Every(8, 3);
   const hole = new Every(11, 5);
+  const meteor = new Every(5.5, 3);
   return {
-    names: ['', 'GRAVITY FLIP', 'BLACK HOLE'],
+    names: ['METEOR', 'GRAVITY FLIP', 'BLACK HOLE'],
+    info: ['Calls meteors onto marked pizzas · smack the meteor before it lands', 'A pizza glows purple, then it stomps up through the table · watch for the glow and hit it as it surfaces', 'Opens a black hole that pulls every foot to one pizza · smack the black hole 3 times to close it'],
     update: (f, dt, a) => {
+      if (f.phase === 1 && meteor.tick(dt)) {
+        const p = rnd(a.alivePizzas());
+        if (p) dropOn(a, f, p, 'p_snowball', 1.6, 'METEOR!', { scale: 0.75, tint: 0xff8a3d });
+      }
       if (f.phase >= 2 && !f.puppet && f.state === 'hover' && flip.tick(dt)) {
         // tell: the pizza glows from beneath for a second, then the croc stomps UP from under the table
         const p = rnd(a.alivePizzas());
@@ -558,10 +794,18 @@ const cosmiccroc = (): Brain => {
 
 const nonna = (): Brain => {
   const slipper = new Every(4, 2);
+  const pin = new Every(6.5, 3);
   let n = 0;
   return {
-    names: ['', 'FLYING SLIPPERS', 'WOODEN SPOON'],
+    names: ['ROLLING PIN', 'FLYING SLIPPERS', 'WOODEN SPOON'],
+    info: ['Winds up a rolling-pin whack on one pizza · smack her twice to interrupt', 'Throws slippers at your peel · smack them back at her', 'Her spoon blocks every second smack · Peel Slams and burns get through'],
     update: (f, dt, a) => {
+      if (f.phase === 1 && pin.tick(dt) && !f.brain.windup) {
+        const p = f.target && !f.target.dead ? f.target : rnd(a.alivePizzas());
+        if (!p) return;
+        mark(a, 'p_reticle', p.x, p.surfaceY - 30, 1.4, 0.7);
+        windup(a, f, '', 1.4, 'ROLLING PIN!', 2, () => a.hitPizza(p, 1, 'WHACKED!', '#e0a868'));
+      }
       if (f.phase >= 2 && slipper.tick(dt)) {
         throwAtPeel(a, 'p_slipper', { x: f.x, y: f.cy }, 1.5, () => a.stunPeel(1, 'SLIPPERED!'), () => {
           a.damageFoot(f, Math.round(f.maxHp * 0.03), 'RETURN TO SENDER!');
@@ -571,6 +815,7 @@ const nonna = (): Brain => {
       if (f.phase >= 3) f.brain.spoonReady = n % 2 === 1;
     },
     onSmacked: (f, a, x, y) => {
+      if (hitWindup(f, a, 1)) return false;
       if (f.phase < 3) return false;
       n++;
       if (n % 2 === 0) {
@@ -593,6 +838,7 @@ const gargoyle = (): Brain => {
   let cracks = 0;
   return {
     names: ['SWOOP', 'STONE FORM', 'PIGEON STORM'],
+    info: ['Swoops between pizzas while it hovers · strike when it settles over one', 'Turns to stone: smacks do no damage · crack it 6 times to break it and stun it', 'Calls flocks of pigeons · clear the pigeons, then hit the gargoyle'],
     update: (f, dt, a) => {
       if (swoop.tick(dt) && f.state === 'hover') {
         const p = rnd(a.alivePizzas().filter((q) => q !== f.target));
@@ -643,9 +889,15 @@ const gargoyle = (): Brain => {
 const kraken = (): Brain => {
   const grab = new Every(8, 2);
   const ink = new Every(8, 4);
+  const splash = new Every(5.5, 3);
   return {
-    names: ['', 'TENTACLE GRAB', 'INK CLOUD'],
+    names: ['SPLASH', 'TENTACLE GRAB', 'INK CLOUD'],
+    info: ['Hurls water at marked pizzas · smack the splash before it lands', 'Grabs a pizza to drag it under · smack the tentacle 3 times to free it', 'Squirts ink across the screen · smack the ink twice to clear it'],
     update: (f, dt, a) => {
+      if (f.phase === 1 && splash.tick(dt)) {
+        const p = rnd(a.alivePizzas());
+        if (p) dropOn(a, f, p, 'p_snowball', 1.6, 'SPLASH!', { scale: 0.7, tint: 0x5ab8ff, color: '#7fd0ff' });
+      }
       if (f.phase >= 2 && grab.tick(dt)) {
         const p = rnd(a.alivePizzas().filter((q) => !q.flags.grabbed));
         if (!p) return;
@@ -678,7 +930,15 @@ const kraken = (): Brain => {
       }
       if (f.phase >= 3 && ink.tick(dt)) {
         const x = 300 + Math.random() * 1320;
-        screenSplat(a, 'p_ink', x, 300 + Math.random() * 280, 2, 'INK CLEARED!');
+        const y = 300 + Math.random() * 280;
+        // tell: a squirt flies out of the kraken first
+        a.quip(f.x, f.cy - 150, 'SQUIRT!', '#b46ad8', 38);
+        const blob = a.sc.add.image(f.x, f.cy, 'p_ink').setScale(0.2);
+        a.fxLayer.add(blob);
+        a.sc.tweens.add({ targets: blob, x, y, duration: 700, ease: 'Quad.Out', onComplete: () => {
+          blob.destroy();
+          screenSplat(a, 'p_ink', x, y, 2, 'INK CLEARED!');
+        } });
         a.sfx('sfx_squish', { rate: 0.5 });
       }
     },
@@ -688,9 +948,15 @@ const kraken = (): Brain => {
 const rinkqueen = (): Brain => {
   const shuffle = new Every(7, 2);
   const dash = new Every(6.5, 3);
+  const puck = new Every(4.5, 3);
   return {
-    names: ['', 'ROLLING PIZZAS', 'SPEED DASH'],
+    names: ['PUCK SHOT', 'ROLLING PIZZAS', 'SPEED DASH'],
+    info: ['Shoots pucks at your peel · smack them back for damage', 'Whistles, then shuffles the pizzas around · follow the pizzas as they roll', 'Marks a line of pizzas and dashes through them · smack her 3 times during the wind-up'],
     update: (f, dt, a) => {
+      if (f.phase === 1 && puck.tick(dt)) {
+        throwAtPeel(a, 'p_plate', { x: f.x, y: f.cy }, 1.2, () => a.stunPeel(0.8, 'PUCKED!'), () => a.damageFoot(f, Math.round(f.maxHp * 0.025), 'SLAPSHOT!'), 12, { scale: 0.55, tint: 0x2a2a34 });
+        a.sfx('sfx_whistle', { rate: 1.6, volume: 0.5 });
+      }
       if (f.phase >= 2 && shuffle.tick(dt)) {
         a.sfx('sfx_whistle');
         a.quip(960, 300, 'SHUFFLE!', '#4cf0e0', 56);
@@ -732,10 +998,16 @@ const rinkqueen = (): Brain => {
 const yeti = (): Brain => {
   const ball = new Every(4, 2);
   const slide = new Every(10, 5);
+  const icicle = new Every(5.5, 3);
   let avalanche = 0;
   return {
-    names: ['', 'SNOWBALLS', 'AVALANCHE'],
+    names: ['ICICLES', 'SNOWBALLS', 'AVALANCHE'],
+    info: ['Drops icicles on marked pizzas · smack them as they fall', 'Throws snowballs at your peel · smack them out of the air', 'Rumbles, then an avalanche speeds up every foot · Peel Slam to stop it'],
     update: (f, dt, a) => {
+      if (f.phase === 1 && icicle.tick(dt)) {
+        const p = rnd(a.alivePizzas());
+        if (p) dropOn(a, f, p, 'p_snowball', 1.6, 'ICICLE!', { scale: 0.7, tint: 0xbfe8ff, color: '#a8dcff' });
+      }
       if (f.phase >= 2 && ball.tick(dt)) {
         throwAtPeel(a, 'p_snowball', { x: f.x, y: f.cy }, 1.3, () => a.stunPeel(1, 'FROZEN PEEL!'), () => a.quip(a.peelPoint().x, a.peelPoint().y - 60, 'SHATTERED!', '#a8dcff', 32), 3);
         a.sfx('sfx_whoosh', { rate: 0.9 });
@@ -767,9 +1039,15 @@ const yeti = (): Brain => {
 
 const headwaiter = (): Brain => {
   const serve = new Every(5, 2);
+  const tray = new Every(4.5, 2.5);
   return {
-    names: ['', 'SERVICE!'],
+    names: ['TRAY TOSS', 'SERVICE!'],
+    info: ['Flings silver trays at your peel · smack them back at him', 'Calls waiters to the table · clear them before they stomp'],
     update: (f, dt, a) => {
+      if (f.phase === 1 && tray.tick(dt)) {
+        throwAtPeel(a, 'p_tray', { x: f.x, y: f.cy }, 1.3, () => a.stunPeel(0.7, 'TRAYED!'), () => a.damageFoot(f, Math.round(f.maxHp * 0.04), 'RETURN TO SENDER!'), 9, { scale: 0.6 });
+        a.sfx('sfx_whoosh', { rate: 1.2 });
+      }
       if (f.phase >= 2 && serve.tick(dt)) {
         for (let i = 0; i < 2; i++) a.spawn(FOOT_BY_ID.waiter ? 'waiter' : 'bob', rnd(a.alivePizzas()) ?? null, f.x + (i ? 160 : -160));
         a.quip(f.x, f.cy - 150, 'TABLE FOR TWO!', '#ffffff', 40);
@@ -780,11 +1058,27 @@ const headwaiter = (): Brain => {
 
 const doughboy = (): Brain => {
   let since = 0;
+  let puffT = 0;
+  const balls = new Every(5, 2.5);
   return {
-    names: ['', 'RISING'],
-    update: (f, dt) => {
+    names: ['DOUGH BALLS', 'RISING'],
+    info: ['Lobs dough balls onto marked pizzas · smack them as they fall', 'Rises back to health if you leave it alone · keep hitting it'],
+    update: (f, dt, a) => {
       since += dt;
-      if (f.phase >= 2 && since > 1.5 && f.hp < f.maxHp) f.hp = Math.min(f.maxHp, f.hp + f.maxHp * 0.03 * dt);
+      if (f.phase === 1 && balls.tick(dt)) {
+        const p = rnd(a.alivePizzas());
+        if (p) dropOn(a, f, p, 'p_dough', 1.5, 'DOUGHED!', { scale: 0.45, color: '#f6e6c4' });
+      }
+      if (f.phase >= 2 && since > 1.5 && f.hp < f.maxHp) {
+        f.hp = Math.min(f.maxHp, f.hp + f.maxHp * 0.03 * dt);
+        // visible: it swells and sparkles green while it heals
+        puffT -= dt;
+        if (puffT <= 0) {
+          puffT = 0.9;
+          a.fx.healBurst(f.cx, f.cy);
+          a.quip(f.x, f.cy - 140, 'rising…', '#7dff9a', 30);
+        }
+      }
     },
     onSmacked: () => {
       since = 0;
@@ -798,6 +1092,7 @@ const sweep = (): Brain => {
   let clearT = 0;
   return {
     names: ['SOOT CLOUD', 'CHIMNEY HOP'],
+    info: ['Hides inside a soot cloud · a smack clears the soot for 3 s', 'A puff of soot marks where it hops next · follow the puff'],
     update: (f, dt, a) => {
       if (!soot) {
         soot = a.sc.add.image(f.x, f.cy, 'p_soot').setScale(2.2).setAlpha(0.75);
@@ -805,13 +1100,20 @@ const sweep = (): Brain => {
       }
       clearT -= dt;
       soot.setPosition(f.x, f.cy + 40).setAlpha(clearT > 0 ? 0 : 0.75);
-      if (f.phase >= 2 && Math.random() < dt / 3 && f.state === 'hover') {
-        const p = rnd(a.alivePizzas());
+      if (f.phase >= 2 && !f.brain.hopping && Math.random() < dt / 3 && f.state === 'hover') {
+        const p = rnd(a.alivePizzas().filter((q) => q !== f.target));
         if (p) {
-          f.target = p;
-          f.x = p.x;
-          a.fx.puff(f.x, f.cy, 10);
-          a.quip(f.x, f.cy - 150, 'POP!', '#cfcfcf', 36);
+          // tell: soot puffs where it's about to pop out
+          f.brain.hopping = true;
+          a.fx.puff(p.x, f.cy, 10);
+          a.sc.time.delayedCall(650, () => {
+            f.brain.hopping = false;
+            if (!f.alive || p.dead || f.state !== 'hover') return;
+            f.target = p;
+            f.x = p.x;
+            a.fx.puff(f.x, f.cy, 10);
+            a.quip(f.x, f.cy - 150, 'POP!', '#cfcfcf', 36);
+          });
         }
       }
     },
@@ -827,9 +1129,15 @@ const sweep = (): Brain => {
 
 const pigeonking = (): Brain => {
   const flock = new Every(6, 1);
+  const bomb = new Every(5, 2.5);
   return {
-    names: ['', 'FLOCK CALL'],
+    names: ['BIRD BOMB', 'FLOCK CALL'],
+    info: ['Drops bombs on marked pizzas · smack them as they fall', 'Calls three pigeons at a time · clear the flock fast'],
     update: (f, dt, a) => {
+      if (f.phase === 1 && bomb.tick(dt)) {
+        const p = rnd(a.alivePizzas());
+        if (p) dropOn(a, f, p, 'p_cream', 1.5, 'SPLAT!', { scale: 0.3, color: '#ffffff' });
+      }
       if (f.phase >= 2 && flock.tick(dt)) {
         for (let i = 0; i < 3; i++) a.spawn('pigeon', rnd(a.alivePizzas()) ?? null, f.x + (i - 1) * 110);
         a.quip(f.x, f.cy - 150, 'COO COO!', '#c7ccd4', 44);
@@ -844,6 +1152,7 @@ const sandcastle = (): Brain => {
   let hits = 0;
   return {
     names: ['SAND WALLS', 'HIGH TIDE BUILDER'],
+    info: ['Builds a sand wall that blocks damage · smack it 3 times to smash it', 'Rebuilds every 4 s · smash each wall straight away'],
     onPhase: (_f, ph) => {
       if (ph === 2) build.every = 4;
     },
@@ -877,6 +1186,7 @@ const jellyfish = (): Brain => {
   let t = 0;
   return {
     names: ['GLOW', 'BRIGHT GLOW'],
+    info: ['Stings your peel while it glows pink · hit it only when it dims', 'Glows for longer · wait for the dim, then strike'],
     update: (f, dt) => {
       t += dt;
       const cycle = f.phase >= 2 ? 4 : 4;
@@ -898,6 +1208,7 @@ const shortorder = (): Brain => {
   const order = new Every(7, 2);
   return {
     names: ['ORDER UP', 'RUSH HOUR'],
+    info: ['Tickets a pizza: the next feet all go for it · guard the ticketed pizza', 'Tickets two pizzas at once · guard both'],
     update: (f, dt, a) => {
       if (!order.tick(dt)) return;
       const n = f.phase >= 2 ? 2 : 1;
@@ -916,13 +1227,16 @@ const milkshake = (): Brain => {
   const straw = new Every(7, 4);
   return {
     names: ['BRAIN FREEZE', 'BOTTOMS UP'],
+    info: ['Winds up a brain freeze that slows your peel · smack it during the wind-up', 'Slurps a marked pizza · smack it twice to interrupt'],
     update: (f, dt, a) => {
-      if (freeze.tick(dt)) {
-        a.slowPeel(2);
-        a.quip(a.peelPoint().x, a.peelPoint().y - 70, 'BRAIN FREEZE!', '#a8dcff', 36);
-        a.sfx('sfx_freeze', { volume: 0.7 });
+      if (freeze.tick(dt) && !f.brain.windup) {
+        windup(a, f, '', 1.1, 'BRAIN FREEZE…', 1, () => {
+          a.slowPeel(2);
+          a.quip(a.peelPoint().x, a.peelPoint().y - 70, 'BRAIN FREEZE!', '#a8dcff', 36);
+          a.sfx('sfx_freeze', { volume: 0.7 });
+        });
       }
-      if (f.phase >= 2 && straw.tick(dt)) {
+      if (f.phase >= 2 && straw.tick(dt) && !f.brain.windup) {
         const p = rnd(a.alivePizzas());
         if (!p) return;
         mark(a, 'p_reticle', p.x, p.surfaceY - 30, 3, 0.6);
@@ -939,6 +1253,7 @@ const milkshake = (): Brain => {
 
 const iceskate = (): Brain => ({
   names: ['ICE TRAILS', 'TRIPLE AXEL'],
+  info: ['Feet near it skate in faster · take it out first', 'Spins into bursts of speed · hit it between bursts'],
   update: (f, dt, a) => {
     for (const o of a.allFeet()) if (o !== f && o.alive && Math.abs(o.x - f.x) < 220) o.hurry = Math.max(o.hurry, 1.3);
     if (f.phase >= 2) f.hurry = 1 + Math.abs(Math.sin(a.now() * 1.3)) * 0.8;
@@ -950,8 +1265,9 @@ const lumberjack = (): Brain => {
   const chop = new Every(6, 3);
   return {
     names: ['TIMBER', 'DOUBLE CHOP'],
+    info: ['Marks a pizza, then chops it · smack it once during the wind-up', 'Faster chops that take 2 slices · react quicker'],
     update: (f, dt, a) => {
-      if (!chop.tick(dt)) return;
+      if (!chop.tick(dt) || f.brain.windup) return;
       const p = f.target && !f.target.dead ? f.target : rnd(a.alivePizzas());
       if (!p) return;
       const sec = f.phase >= 2 ? 0.9 : 1.3;
@@ -972,6 +1288,7 @@ const ufotoe = (): Brain => {
   const beam = new Every(6, 2);
   return {
     names: ['TRACTOR BEAM', 'DOUBLE ABDUCTION'],
+    info: ['Beams a slice off a pizza after 3 s · smack the beam to break it', 'Beams two pizzas at once · break both beams'],
     update: (f, dt, a) => {
       if (!beam.tick(dt)) return;
       const n = f.phase >= 2 ? 2 : 1;
@@ -1001,6 +1318,7 @@ const poltergeist = (): Brain => {
   let visibleT = 0;
   return {
     names: ['FLYING PLATES', 'NOW YOU SEE ME'],
+    info: ['Flings plates at your peel · smack them out of the air', 'Invisible except right after a throw · hit it the moment a plate flies'],
     update: (f, dt, a) => {
       visibleT -= dt;
       if (f.phase >= 2) {
@@ -1024,6 +1342,8 @@ const BRAINS: Record<string, () => Brain> = {
 };
 
 /** Runs every boss and mini-boss on the field: phases, moves and smack/stomp hooks. */
+const ENRAGED_INFO = 'Everything it does comes faster · finish it off';
+
 export class BossDirector {
   private brains = new Map<Foot, Brain>();
   private phases = new Map<Foot, number>();
@@ -1038,6 +1358,19 @@ export class BossDirector {
     const n = f.type.mini ? Math.max(1, this.a.bossPhases() - 1) : this.a.bossPhases();
     this.phases.set(f, n);
     f.phase = 1;
+    this.a.bossMove(f, b.names[0], b.info[0]);
+  }
+
+  /** Phase colours: amber, red, violet. Every shoe in the fight wears its phase (decoys too). */
+  static auraFor(phase: number): number | null {
+    return phase <= 1 ? null : phase === 2 ? 0xffa53d : phase === 3 ? 0xff3d3d : 0xc04dff;
+  }
+
+  /** The current move's name and its answer, e.g. for the boss bar. */
+  moveOf(f: Foot): { name: string; info: string } | null {
+    const b = this.brains.get(f);
+    if (!b) return null;
+    return { name: b.names[f.phase - 1] || 'ENRAGED', info: b.info[f.phase - 1] || ENRAGED_INFO };
   }
 
   brainOf(f: Foot): Brain | undefined {
@@ -1055,6 +1388,18 @@ export class BossDirector {
         this.brains.delete(f);
         continue;
       }
+      // phase 3 and up: embers rise off the boss
+      if (f.phase >= 3 && f.root.visible && Math.random() < dt * 6) this.a.fx.burn(f.x + (Math.random() - 0.5) * 120 * f.scale, f.cy + (Math.random() - 0.5) * 80 * f.scale);
+      // the transform beat: the boss holds still, then gets on with its new moves
+      const tr = Number(f.brain.transformT ?? 0);
+      if (tr > 0) {
+        f.brain.transformT = tr - dt;
+        if (tr - dt <= 0) {
+          f.puppet = false;
+          if (!f.brain.wasShielded) f.shielded = false;
+        }
+        continue;
+      }
       if (f.stunT > 0 && !f.puppet) continue;
       b.update?.(f, dt, this.a);
     }
@@ -1067,18 +1412,37 @@ export class BossDirector {
     const n = this.phaseCount(f);
     const frac = f.hp / f.maxHp;
     const want = Math.min(n, 1 + Math.floor((1 - frac) * n + 1e-6));
-    while (f.phase < want) {
-      f.phase++;
-      const name = b.names[f.phase - 1] || 'ENRAGED';
-      this.a.banner(`PHASE ${f.phase}`, `${name} · ${f.type.name}`, 'phase');
-      this.a.sfx('sfx_phase');
-      this.a.flash(220, 255, 220, 160);
-      this.a.shake(500, 0.012);
-      this.a.rumble(0.8, 350);
-      // the 4th phase (Extra Hot, or the second time through) makes everything faster
-      if (f.phase >= 4) f.hurry = 1.25;
-      b.onPhase?.(f, f.phase, this.a);
+    if (f.phase >= want) return;
+    // one phase at a time: a huge hit can't skip a phase (or kill the boss) before you've seen it
+    f.phase++;
+    if (f.phase < n) {
+      const floor = (1 - f.phase / n) * f.maxHp;
+      if (f.hp <= floor) f.hp = Math.floor(floor) + 1;
+    } else if (f.hp <= 0) f.hp = Math.max(1, Math.round(f.maxHp * 0.05)); // the final phase still gets its moment
+    const name = b.names[f.phase - 1] || 'ENRAGED';
+    const info = b.info[f.phase - 1] || ENRAGED_INFO;
+    this.a.banner(`PHASE ${f.phase}`, name, 'phase', info);
+    this.a.bossMove(f, name, info);
+    this.a.sfx('sfx_phase');
+    this.a.flash(220, 255, 220, 160);
+    this.a.shake(500, 0.012);
+    this.a.rumble(0.8, 350);
+    this.a.dramatic(0.7);
+    f.setPhaseAura(BossDirector.auraFor(f.phase));
+    // transform: it rears up, can't be hurt for a moment, and holds still (unless a move is moving it)
+    if (!f.puppet) {
+      f.brain.wasShielded = f.shielded;
+      f.brain.transformT = 1.1;
+      f.puppet = true;
+      f.shielded = true;
+      const sy = f.root.scaleY;
+      const sx = f.root.scaleX;
+      this.a.sc.tweens.add({ targets: f.root, scaleX: sx * 1.14, scaleY: sy * 1.14, duration: 260, yoyo: true, repeat: 1, ease: 'Sine.InOut', onComplete: () => f.root.setScale(sx, sy) });
     }
+    this.a.fx.ring(f.cx, f.cy, BossDirector.auraFor(f.phase) ?? 0xffffff, 2, 0.6);
+    // the 4th phase (Extra Hot, or the second time through) makes everything faster
+    if (f.phase >= 4) f.hurry = 1.25;
+    b.onPhase?.(f, f.phase, this.a);
   }
 
   onSmacked(f: Foot, x: number, y: number, dmg: number): boolean {

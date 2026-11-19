@@ -168,8 +168,18 @@ export class GameScene extends Phaser.Scene implements Arena {
   addClickable(c: Clickable): void {
     this.clickables.push(c);
   }
-  banner(big: string, small: string, kind: 'boss' | 'loc' | 'clear' | 'phase' = 'boss'): void {
-    ui.hud.banner(big, small, kind);
+  banner(big: string, small: string, kind: 'boss' | 'loc' | 'clear' | 'phase' = 'boss', desc?: string): void {
+    // phase banners explain the move, so they stay up long enough to read (longer on Mild)
+    const ms = desc ? (this.run.heat === 'mild' ? 4800 : 3800) : undefined;
+    ui.hud.banner(big, small, kind, desc, ms);
+  }
+  bossMove(f: Foot, name: string, info: string): void {
+    if (f !== this.bossFoot && f !== this.miniFoot) return;
+    ui.hud.setBossMove(name, info);
+  }
+  dramatic(sec: number): void {
+    if (save.settings.reducedMotion) return;
+    this.slowMo = Math.max(this.slowMo, sec);
   }
   quip(x: number, y: number, msg: string, color = '#ffffff', size = 40): void {
     this.fx.quip(x, y, msg, color, size);
@@ -673,6 +683,9 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.bossFoot = f;
     this.bossSummonT = 4;
     this.director.attach(f);
+    // phase 1 gets its own introduction: what the boss does first and how to answer it
+    const mv = this.director.moveOf(f);
+    if (mv) this.banner('PHASE 1', mv.name, 'phase', mv.info);
     this.director.afterDamage(f);
     this.shake(900, 0.01);
     this.rumble(1, 400);
@@ -697,7 +710,9 @@ export class GameScene extends Phaser.Scene implements Arena {
     audio.sfx('sfx_miniboss');
     audio.duck(0.75);
     this.time.delayedCall(1500, () => !this.paused && audio.duck(1));
-    ui.hud.banner('MINI-BOSS!', t.name, 'boss');
+    const mv = this.director.moveOf(f);
+    if (mv) this.banner('MINI-BOSS!', `${t.name} · ${mv.name}`, 'boss', mv.info);
+    else ui.hud.banner('MINI-BOSS!', t.name, 'boss');
     ui.hud.setBoss(t.name, 1, this.director.phaseCount(f));
     this.introCard('mini');
   }
@@ -788,6 +803,8 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   private laneFor(f: Foot): number | null {
     const p = f.target;
+    // King Honk's shuffled shoes take turns on a shared pizza, so they never land on top of each other
+    if (p && f.laneX !== null && this.feet.some((o) => o !== f && o.alive && o.laneX !== null && o.target === p && (o.state === 'descend' || o.state === 'stomp'))) return null;
     if (!p || f.isBossLike) return 0;
     const divers = this.feet.filter((o) => o !== f && o.alive && o.target === p && (o.state === 'descend' || o.state === 'stomp'));
     if (divers.some((o) => o.isBossLike)) return null;

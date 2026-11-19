@@ -3129,3 +3129,99 @@ body.reduced-motion *::after {
     opacity: 1;
   }
 }
+
+/* ——— explained phase banners: PHASE N, the move, then what it does and what to do ——— */
+.banner.explained {
+  top: 24%;
+}
+
+.banner.phase.explained .big {
+  font-size: 7em;
+}
+
+.banner.phase.explained .small {
+  font-size: 4.2em;
+  color: var(--cheese);
+}
+
+.banner.boss.explained .small {
+  font-size: 3.4em;
+}
+
+.banner .desc {
+  display: grid;
+  justify-items: center;
+  gap: 0.15em;
+  margin-top: 0.35em;
+  padding: 0.5em 1.2em;
+  border-radius: 0.8em;
+  background: rgba(26, 14, 8, 0.82);
+  border: 0.15em solid var(--ink);
+}
+
+.banner .desc span {
+  font-family: 'Lilita One', sans-serif;
+  white-space: nowrap;
+  line-height: 1.15;
+}
+
+.banner .desc .does {
+  font-size: 2.3em;
+  color: #fff;
+}
+
+.banner .desc .answer {
+  font-size: 2.3em;
+  color: #7dff9a;
+}
+
+.banner .desc .answer::before {
+  content: '▶ ';
+  font-size: 0.8em;
+}
+
+/* the current move under the boss bar */
+.bossbar .move {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 0.6em;
+  margin-top: 0.45em;
+  white-space: nowrap;
+}
+
+.bossbar .move:empty {
+  display: none;
+}
+
+.bossbar .move b {
+  font-family: 'Lilita One', sans-serif;
+  font-size: 1.35em;
+  color: var(--ink);
+  background: var(--cheese);
+  border: 0.14em solid var(--ink);
+  border-radius: 0.5em;
+  padding: 0 0.5em;
+}
+
+.bossbar .move span {
+  font-size: 1.3em;
+  font-weight: 700;
+  color: #7dff9a;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.22em var(--ink);
+}
+
+/* the phase pill and bar take the phase's colour, matching the glow on the boss */
+.bossbar[data-phase='2'] .phase {
+  background: #ffa53d;
+}
+
+.bossbar[data-phase='3'] .phase {
+  background: #ff6a5a;
+}
+
+.bossbar[data-phase='4'] .phase {
+  background: #c04dff;
+  color: #fff;
+}

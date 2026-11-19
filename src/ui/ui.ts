@@ -92,6 +92,7 @@ class Hud {
   private bossTrail = h('div', { class: 'trail' });
   private bossPhase = h('span', { class: 'phase' });
   private bossNotches = h('div', { class: 'notches' });
+  private bossMove = h('div', { class: 'move' });
   private newFootEl: HTMLElement | null = null;
   private slam = h('div', { class: 'slam', role: 'button', 'aria-label': 'Peel Slam' });
   private owned = h('div', { class: 'owned' });
@@ -108,7 +109,7 @@ class Hud {
     this.coinPill.innerHTML = COIN_SVG;
     this.coinPill.append(this.coins);
     this.combo.append(this.comboLabel, this.comboMult, h('div', { class: 'timer' }, this.comboTimer));
-    this.boss.append(h('div', { class: 'bossname' }, this.bossName, this.bossPhase), h('div', { class: 'track' }, this.bossTrail, this.bossHp, this.bossNotches));
+    this.boss.append(h('div', { class: 'bossname' }, this.bossName, this.bossPhase), h('div', { class: 'track' }, this.bossTrail, this.bossHp, this.bossNotches), this.bossMove);
     this.slam.innerHTML = '<span>PEEL<br>SLAM<small class="kb">SPACE</small><small class="pd" data-glyph="X">X</small></span>';
     this.slam.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
@@ -174,7 +175,11 @@ class Hud {
 
   setBoss(name: string | null, frac = 1, phases = 1, phase = 1): void {
     this.boss.classList.toggle('on', !!name);
-    if (!name) return;
+    if (!name) {
+      this.setBossMove(null);
+      return;
+    }
+    this.boss.dataset.phase = String(phase);
     if (this.bossName.textContent !== name || this.bossNotches.childElementCount !== Math.max(0, phases - 1)) {
       this.bossNotches.replaceChildren();
       for (let i = 1; i < phases; i++) this.bossNotches.append(h('i', { style: `left:${(1 - i / phases) * 100}%` }));
@@ -231,16 +236,31 @@ class Hud {
     if (save.settings.showFps) this.fpsEl.textContent = `${Math.round(n)} FPS`;
   }
 
-  banner(big: string, small = '', kind: '' | 'boss' | 'loc' | 'clear' | 'phase' = ''): void {
+  banner(big: string, small = '', kind: '' | 'boss' | 'loc' | 'clear' | 'phase' = '', desc?: string, ms = 2300): void {
     for (const old of this.root.querySelectorAll('.banner')) old.remove();
-    const b = h('div', { class: `banner ${kind}` }, h('div', { class: 'big' }, big), small ? h('div', { class: 'small' }, small) : null);
+    // a description line ("what it does · what to do") splits at the dot into two lines
+    const descEl = desc
+      ? h('div', { class: 'desc' }, ...desc.split(' · ').map((part, i) => h('span', { class: i ? 'answer' : 'does' }, part)))
+      : null;
+    const b = h('div', { class: `banner ${kind}${desc ? ' explained' : ''}` }, h('div', { class: 'big' }, big), small ? h('div', { class: 'small' }, small) : null, descEl);
+    b.style.animationDuration = `${ms - 100}ms`;
     this.root.append(b);
     // long titles shrink to fit the screen instead of running off it
-    for (const el of b.querySelectorAll<HTMLElement>('.big, .small')) {
+    for (const el of b.querySelectorAll<HTMLElement>('.big, .small, .desc span')) {
       const room = b.clientWidth;
       if (el.scrollWidth > room) el.style.fontSize = `${(parseFloat(getComputedStyle(el).fontSize) * room) / el.scrollWidth}px`;
     }
-    setTimeout(() => b.remove(), 2300);
+    setTimeout(() => b.remove(), ms);
+  }
+
+  /** The boss's current move, under its health bar: name, then what to do about it. */
+  setBossMove(name: string | null, info = ''): void {
+    if (!name) {
+      this.bossMove.replaceChildren();
+      return;
+    }
+    const answer = info.split(' · ')[1] ?? info;
+    this.bossMove.replaceChildren(h('b', {}, name), h('span', {}, answer));
   }
 
   toast(img: string | null, title: string, text: string): void {

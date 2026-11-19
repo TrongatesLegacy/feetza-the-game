@@ -43,7 +43,7 @@ export const INTROS: Record<string, { tag: string; title: string; lines: string[
   phases: {
     tag: 'NEW: BOSS PHASES',
     title: 'Bosses change as they weaken',
-    lines: ['At 66% and 33% health a boss starts a new phase with new moves.', 'Every move has a tell and an answer. Pizza defences still block stomps, but not special moves.'],
+    lines: ['At 66% and 33% health a boss changes phase: it rears up, glows amber, then red, and switches to new moves.', 'Each move has a warning before it lands. The banner and the line under the boss bar say what to do about it.'],
   },
   mini: {
     tag: 'NEW: MINI-BOSSES',
