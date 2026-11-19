@@ -3,7 +3,7 @@
 import Phaser from 'phaser';
 import { PIZZA_CANVAS_H, PIZZA_CANVAS_W, PIZZA_R, PIZZA_SIZE, TILT, renderPizza, sideFor, type Footprint } from '../art/pizzaArt';
 import { makeCanvas } from '../art/util';
-import type { PizzaType } from '../data/pizzas';
+import type { PizzaPerk, PizzaType } from '../data/pizzas';
 import { pizzaTops } from './assets';
 
 let uid = 0;
@@ -26,6 +26,16 @@ export class Pizza {
   revived = false;
   /** 0..1 how threatened the pizza currently feels (nearest foot proximity). */
   fear = 0;
+  /** Waves of freshness left (0 = stale). */
+  fresh = 10;
+  maxFresh = 10;
+  /** Freshness is off on Mild and for Pumpkin Spice. */
+  freshOn = true;
+  /** Per-pizza flags for perks and boss effects (season, rise used, possessed…). */
+  flags: Record<string, number | boolean> = {};
+  /** Resting table y; `y` moves with piston lifts. */
+  baseY: number;
+  private freshBar: Phaser.GameObjects.Graphics;
 
   private plate: Phaser.GameObjects.Image;
   private img: Phaser.GameObjects.Image;
@@ -53,6 +63,7 @@ export class Pizza {
     this.y = y;
     this.s = s;
     this.alive = new Array(Math.max(1, slices)).fill(true);
+    this.baseY = y;
     this.root = scene.add.container(x, y);
     layer.add(this.root);
 
@@ -88,11 +99,12 @@ export class Pizza {
         stroke: '#2a1810',
         strokeThickness: 6,
         align: 'center',
-        wordWrap: { width: 360 },
+        lineSpacing: -4,
       })
       .setOrigin(0.5, 0)
       .setAlpha(0.92);
-    this.root.add([this.plate, this.trapImg, this.img, this.face, this.shield, this.label]);
+    this.freshBar = scene.add.graphics();
+    this.root.add([this.plate, this.trapImg, this.img, this.face, this.shield, this.label, this.freshBar]);
     this.applyScale();
     this.redraw();
   }
@@ -122,8 +134,67 @@ export class Pizza {
     this.face.setScale(Math.max(0.75, s * 1.15)).setY(-lift + PIZZA_R * TILT * s * 0.32);
     this.shield.setScale(s * 0.95).setY(-lift - 30 * s);
     this.trapImg.setScale(s * 1.1).setPosition(-PIZZA_R * s * 1.02, 34 * s);
-    this.label.setY((PIZZA_R + 40) * TILT * s + 14).setScale(Math.max(0.8, s * 1.1));
-    this.label.setWordWrapWidth(Math.max(280, (PIZZA_R * 2 * s) / this.label.scaleX));
+    this.label.setY((PIZZA_R + 40) * TILT * s + 14);
+    this.fitLabel();
+    this.drawFresh();
+  }
+
+  /** Name and perk sit on two fixed lines and shrink to fit the plate's width instead of wrapping. */
+  private fitLabel(): void {
+    const s = this.s;
+    const room = Math.max(300, PIZZA_R * 2.3 * s);
+    const want = Math.max(0.8, s * 1.1);
+    this.label.setScale(1);
+    const w = this.label.width;
+    this.label.setScale(Math.min(want, room / Math.max(1, w)));
+  }
+
+  get stale(): boolean {
+    return this.freshOn && !this.dead && this.fresh <= 0;
+  }
+
+  /** The perk this pizza currently grants (stale pizzas grant none; Quattro Stagioni rotates). */
+  get perk(): PizzaPerk | null {
+    if (this.dead || this.stale) return null;
+    if (this.type.perk === 'rotate') return (['damage', 'coins', 'regen', 'shield'] as PizzaPerk[])[Number(this.flags.season ?? 0) % 4];
+    return this.type.perk;
+  }
+
+  get perkLine(): string {
+    if (this.dead) return 'PERK LOST';
+    if (this.stale) return 'STALE · perk off';
+    if (this.type.perk === 'rotate') return ['+10% smack damage', '+20% tips from feet', 'Regrows a slice every 20s', 'Blocks the first stomp each wave'][Number(this.flags.season ?? 0) % 4];
+    return this.type.perkText;
+  }
+
+  setFresh(n: number): void {
+    this.fresh = Phaser.Math.Clamp(n, 0, Math.max(this.maxFresh, n));
+    this.maxFresh = Math.max(this.maxFresh, this.fresh);
+    this.redraw();
+  }
+
+  private drawFresh(): void {
+    const g = this.freshBar;
+    g.clear();
+    if (!this.freshOn || this.dead) return;
+    const s = Math.max(0.8, this.s * 1.1);
+    const w = 120 * s;
+    const y = -sideFor(this.type.shape) * this.s - PIZZA_R * TILT * this.s - 22 * s;
+    const f = Phaser.Math.Clamp(this.fresh / this.maxFresh, 0, 1);
+    g.fillStyle(0x2a1810, 0.8).fillRoundedRect(-w / 2 - 3, y - 3, w + 6, 12 * s, 6 * s);
+    if (f > 0) g.fillStyle(f <= 0.3 ? 0xe5402a : 0x6fd35a, 1).fillRoundedRect(-w / 2, y, Math.max(6, w * f), 6 * s, 3 * s);
+  }
+
+  /** Piston lift: positive dy raises the pizza (world px). */
+  setLift(dy: number, ms = 350): void {
+    const to = this.baseY - dy;
+    this.scene.tweens.add({ targets: this, y: to, duration: ms, ease: 'Back.Out', onUpdate: () => (this.root.y = this.y) });
+  }
+
+  /** Slide along the table to a new x (rolling pizzas). */
+  rollTo(x: number, ms = 700): void {
+    this.x = x;
+    this.scene.tweens.add({ targets: this.root, x, duration: ms, ease: 'Sine.InOut' });
   }
 
   layout(x: number, s: number, animate = true): void {
@@ -145,8 +216,12 @@ export class Pizza {
     });
     this.tex.refresh();
     this.face.setVisible(!this.dead);
-    this.label.setText(this.dead ? `${this.type.name} · PERK LOST` : `${this.type.name} · ${this.type.perkText}`);
-    this.label.setColor(this.dead ? '#ff8a6a' : '#fff6e2').setAlpha(this.dead ? 0.75 : 0.92);
+    this.label.setText(`${this.type.name}\n${this.perkLine}`);
+    this.label.setColor(this.dead ? '#ff8a6a' : this.stale ? '#cfe0a8' : '#fff6e2').setAlpha(this.dead ? 0.75 : 0.92);
+    if (this.stale) this.img.setTint(0xc8d4a0);
+    else this.img.clearTint();
+    this.fitLabel();
+    this.drawFresh();
   }
 
   /** Hide the perk caption (the menu screen doesn't need it). */

@@ -5,6 +5,7 @@ import '../content/art';
 import { drawBackdrop, type BackdropId } from '../art/backdrops';
 import { ART_RES, drawFoot, footPortrait, type FootTextures } from '../art/feetArt';
 import { drawPizzaTop, drawSliceSprite, pizzaPortrait } from '../art/pizzaArt';
+import { buildEventSprites } from '../art/eventArt';
 import { buildSprites } from '../art/sprites';
 import { FEET, FOOT_BY_ID } from '../data/feet';
 import { PIZZAS, PIZZA_BY_ID } from '../data/pizzas';
@@ -39,6 +40,7 @@ export async function generateAll(scene: Phaser.Scene, progress: (p: number, lab
     () => {
       const sprites = buildSprites();
       for (const [k, c] of Object.entries(sprites)) addCanvas(scene, k, c);
+      for (const [k, c] of Object.entries(buildEventSprites())) addCanvas(scene, k, c);
     },
   ]);
   for (const p of PIZZAS) {

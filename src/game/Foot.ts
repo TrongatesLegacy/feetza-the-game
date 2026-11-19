@@ -12,8 +12,10 @@ export interface FootHooks {
   onStomp(foot: Foot): void;
   pickTarget(foot: Foot): Pizza | null;
   onEscape(foot: Foot): void;
-  /** Ability callouts (switch, clumsy) so the scene can show text/sound. */
-  onTrait?(foot: Foot, trait: 'switch' | 'clumsy'): void;
+  /** Ability callouts so the scene can show text/sound. */
+  onTrait?(foot: Foot, trait: 'switch' | 'clumsy' | 'hop' | 'surface' | 'reveal' | 'guardDown'): void;
+  /** Called every frame while alive (medic heals, magnet pull, roll targeting). */
+  onTick?(foot: Foot, dt: number): void;
   /** Lane offset (px from pizza centre) if this foot may start its dive now, or null if the pizza's lanes are full. */
   canDescend?(foot: Foot): number | null;
 }
@@ -84,6 +86,33 @@ export class Foot {
   private zigBase = 0;
   private wobbleT = Math.random() * 10;
   private flashT = 0;
+  /** Riot shield is down for a moment right after a stomp. */
+  guardOpen = 0;
+  /** Gym Bro: armour gained while unhit. */
+  bulk = 0;
+  private bulkT = 0;
+  private hopped = false;
+  /** Sandy: buried (untouchable) while hovering. */
+  buried = false;
+  /** Seconds the foot stays visible after being revealed (Mime). */
+  revealT = 0;
+  /** Tips stolen by a Thief, returned when it is smacked down. */
+  stolen = 0;
+  /** Greek perk: traits switched off for a few seconds. */
+  disarmT = 0;
+  /** Boss phase (1-based). */
+  phase = 1;
+  /** Extra state for boss brains. */
+  brain: Record<string, number | boolean> = {};
+  /** Damage-taken multiplier (overheat windows, marks). */
+  vuln = 1;
+  /** Hard invulnerability (stone form, decoys handled by brains). */
+  shielded = false;
+  private icons?: Phaser.GameObjects.Container;
+  /** A boss brain is moving this foot by hand: skip its own movement AI. */
+  puppet = false;
+  /** Speed multiplier from boss roars, avalanches and enrages. */
+  hurry = 1;
 
   constructor(scene: Phaser.Scene, layer: Phaser.GameObjects.Container, shadowLayer: Phaser.GameObjects.Container, type: FootType, x: number, opts: { hpMult: number; speedMult: number; elite: boolean; hooks: FootHooks }) {
     this.scene = scene;
@@ -128,13 +157,41 @@ export class Foot {
     if (opts.elite || type.id === 'golden') {
       this.img.preFX?.addGlow(opts.elite ? 0xff4dd2 : 0xffe066, 4, 0, false, 0.1, 12);
     }
+    if (type.mini) this.root.setScale(rel);
     this.glossy = type.traits.includes('glossy');
+    this.buildIcons();
     this.wool = type.traits.includes('woolly') ? 15 : 0;
     this.hoverTime = this.freshHoverTime(type.traits.includes('flee') ? 0.4 : 0.7 + Math.random() * 0.7);
   }
 
   has(t: FootType['traits'][number]): boolean {
+    if (this.disarmT > 0) return false;
     return this.type.traits.includes(t);
+  }
+
+  get isBossLike(): boolean {
+    return !!this.type.boss || !!this.type.mini;
+  }
+
+  /** Trait badges on the cuff, so players can see what a foot does before it does it. */
+  private buildIcons(): void {
+    const ts = this.type.traits.filter((t) => t !== 'tiny').slice(0, 3);
+    if (!ts.length || this.type.boss || !this.scene.textures.exists(`trait_${ts[0]}`)) return;
+    const c = this.scene.add.container(0, -this.meta.footHeight * this.type.scale - 70);
+    ts.forEach((t, i) => {
+      const k = `trait_${t}`;
+      if (!this.scene.textures.exists(k)) return;
+      c.add(this.scene.add.image((i - (ts.length - 1) / 2) * 46, 0, k).setScale(0.9));
+    });
+    this.icons = c;
+    this.root.add(c);
+    this.syncIcons();
+  }
+
+  syncIcons(): void {
+    if (!this.icons) return;
+    const on = (this.scene.registry.get('traitIcons') as boolean | undefined) ?? true;
+    this.icons.setVisible(on && this.alive);
   }
 
   private freshHoverTime(base: number): number {
@@ -147,7 +204,7 @@ export class Foot {
   }
 
   get hittable(): boolean {
-    return this.alive && !this.phased && this.y > -20;
+    return this.alive && !this.phased && !this.buried && this.y > -20;
   }
 
   get stompY(): number {
@@ -200,6 +257,29 @@ export class Foot {
       this.flashT -= dt;
       if (this.flashT <= 0) this.clearTint();
     }
+    if (this.disarmT > 0) this.disarmT -= dt;
+    if (this.guardOpen > 0) this.guardOpen -= dt;
+    if (this.revealT > 0) this.revealT -= dt;
+    // Mime: invisible (only its shadow shows) until it commits to a stomp or gets smacked
+    if (this.has('invisible') && this.alive) {
+      const seen = this.state === 'stomp' || this.revealT > 0 || this.state === 'lift';
+      const a = seen ? 1 : 0.07;
+      this.img.setAlpha(a);
+      this.leg.setAlpha(a);
+      this.cuff?.setAlpha(a);
+      this.icons?.setAlpha(seen ? 1 : 0.5);
+    }
+    // Gym Bro: bulks up while nobody hits it
+    if (this.has('bulk') && this.alive) {
+      this.bulkT += dt;
+      if (this.bulkT > 1.5 && this.bulk < 6) {
+        this.bulkT = 0;
+        this.bulk++;
+        this.armor++;
+        this.scene.tweens.add({ targets: this.img, scaleX: this.img.scaleX * 1.05, duration: 120, yoyo: true });
+      }
+    }
+    this.hooks.onTick?.(this, dt);
     if (this.type.traits.includes('phase') && this.alive) {
       this.phaseT += dt;
       const cycle = this.type.boss ? 3.2 : 2.6;
@@ -208,6 +288,10 @@ export class Foot {
       const a = this.phased ? 0.18 + Math.sin(this.age * 30) * 0.06 : this.type.art.ghost ? 0.82 : 1;
       this.img.setAlpha(a);
       this.leg.setAlpha(a * 0.85);
+    }
+    if (this.puppet) {
+      this.render(dt);
+      return;
     }
     if (this.stunT > 0) {
       this.stunT -= dt;
@@ -223,7 +307,8 @@ export class Foot {
       globalSlow *
       (1 - this.slowAbove) *
       (1 + this.cheer) *
-      (this.enraged ? 1.5 : 1);
+      (this.enraged ? 1.5 : 1) *
+      this.hurry;
     const speed = BASE_DESCEND * this.type.speed * this.speedMul * slowF;
     const target = this.target;
 
@@ -235,6 +320,19 @@ export class Foot {
         break;
       }
       case 'hover': {
+        if (this.has('bury')) {
+          const was = this.buried;
+          this.buried = this.stateT < this.hoverTime * 0.9;
+          this.img.setAlpha(this.buried ? 0.25 : 1);
+          this.leg.setAlpha(this.buried ? 0.25 : 1);
+          if (was && !this.buried) this.hooks.onTrait?.(this, 'surface');
+        }
+        if (this.has('roll') && this.stateT < this.hoverTime) {
+          // bowling shoe: rolls sideways across the table before picking its lane
+          this.x += Math.sin(this.age * 1.6) * 260 * dt;
+          const t = this.hooks.pickTarget(this);
+          if (t && Math.abs(t.x - this.x) < 200) this.target = t;
+        }
         if (!target || target.dead) {
           this.target = this.hooks.pickTarget(this);
           if (!this.target) break;
@@ -248,6 +346,7 @@ export class Foot {
           if (other && other !== this.target) this.blinkTo(other);
         }
         if (this.stateT > this.hoverTime) {
+          this.buried = false;
           const lane = this.hooks.canDescend ? this.hooks.canDescend(this) : 0;
           if (lane !== null) {
             this.slot = lane;
@@ -316,6 +415,21 @@ export class Foot {
             }
           }
         }
+        // pogo: bounces over to another pizza once, mid-dive
+        if (this.has('hop') && !this.hopped && this.y > HOVER_Y + (this.stompY - HOVER_Y) * 0.5) {
+          this.hopped = true;
+          const other = this.hooks.pickTarget(this);
+          if (other && other !== this.target) {
+            this.target = other;
+            this.slot = 0;
+            this.vy = -420;
+            this.hooks.onTrait?.(this, 'hop');
+          }
+        }
+        // astronaut: floats back up partway through every dive
+        if (this.has('antigrav') && this.y > HOVER_Y + (this.stompY - HOVER_Y) * 0.55 && Math.random() < dt * 0.9) {
+          this.vy = -260;
+        }
         // clumsy: occasionally trips and stumbles back up on its own
         if (this.has('clumsy') && this.vy > 0 && Math.random() < dt * 0.35) {
           this.vy = -380;
@@ -331,6 +445,10 @@ export class Foot {
           this.y = this.stompY;
           this.vy = 0;
           this.setState('stomp');
+          if (this.has('guard')) {
+            this.guardOpen = 1.1;
+            this.hooks.onTrait?.(this, 'guardDown');
+          }
           this.hooks.onStomp(this);
         }
         break;
@@ -355,6 +473,7 @@ export class Foot {
         if (this.vy >= 0 || this.y <= HOVER_Y) {
           this.target = this.hooks.pickTarget(this);
           this.feinted = false;
+          this.hopped = false;
           this.hoverTime = this.freshHoverTime(0.4 + Math.random() * 0.6);
           this.setState('hover');
         }
@@ -366,7 +485,26 @@ export class Foot {
     this.render(dt);
   }
 
-  private render(dt: number): void {
+  /** Show the foot regardless of invisibility (Mime) for a moment. */
+  reveal(sec: number): void {
+    this.revealT = Math.max(this.revealT, sec);
+  }
+
+  setVisualAlpha(a: number): void {
+    this.img.setAlpha(a);
+    this.leg.setAlpha(a);
+    this.cuff?.setAlpha(a);
+  }
+
+  tint(color: number | null): void {
+    for (const o of [this.img, this.leg, this.cuff]) {
+      if (!o) continue;
+      if (color === null) o.clearTint();
+      else o.setTint(color);
+    }
+  }
+
+  render(dt: number): void {
     if (!this.alive) return;
     const lean = this.state === 'descend' ? Phaser.Math.Clamp(this.vy / 2400, -0.08, 0.08) : 0;
     const wob = this.state === 'hover' ? Math.sin(this.wobbleT * 5) * 0.03 : Math.sin(this.wobbleT * 9) * 0.008;
@@ -391,7 +529,8 @@ export class Foot {
   private drawHp(): void {
     const g = this.hpBar;
     g.clear();
-    if (!this.hitOnce || this.type.boss || this.hp <= 0) return;
+    if (!this.hitOnce || this.isBossLike || this.hp <= 0) return;
+    if (this.has('invisible') && this.revealT <= 0 && this.state !== 'stomp') return;
     const w = 90;
     const y = -this.meta.footHeight * this.type.scale - 34;
     const f = Phaser.Math.Clamp(this.hp / this.maxHp, 0, 1);
@@ -430,7 +569,7 @@ export class Foot {
     let p = power;
     if (this.type.traits.includes('heavy')) p *= 0.35;
     if (this.type.traits.includes('floaty')) p *= 1.8;
-    if (this.type.boss) p *= 0.4;
+    if (this.isBossLike) p *= 0.4;
     if (this.state === 'hover') {
       this.y -= p * 0.12;
       this.stateT = Math.min(this.stateT, this.hoverTime * 0.5);
@@ -506,6 +645,7 @@ export class Foot {
       if (this.root.active) this.clearTint();
     });
     this.hpBar.clear();
+    this.icons?.setVisible(false);
     this.stars?.destroy();
     this.shadow.setVisible(false);
     const spin = (Math.random() < 0.5 ? -1 : 1) * (boss ? 0.15 : 0.35);
