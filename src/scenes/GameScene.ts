@@ -179,8 +179,11 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (!save.settings.screenShake || save.settings.reducedMotion) return;
     this.cameras.main.shake(ms, intensity);
   }
+  /** A soft full-screen flash (at most 45% opaque) that fades out, instead of the camera's full-white flash. */
   flash(ms: number, r: number, g: number, b: number): void {
-    if (save.settings.flashes && !save.settings.reducedMotion) this.cameras.main.flash(ms, r, g, b);
+    if (!save.settings.flashes || save.settings.reducedMotion) return;
+    const o = this.add.rectangle(W / 2, H / 2, W, H, Phaser.Display.Color.GetColor(r, g, b)).setAlpha(0.45).setDepth(1000);
+    this.tweens.add({ targets: o, alpha: 0, duration: Math.max(200, ms * 1.4), ease: 'Quad.Out', onComplete: () => o.destroy() });
   }
   rumble(strength: number, ms: number): void {
     pad.rumble(strength, ms);
