@@ -8,6 +8,9 @@ import { JOURNEY_WAVES, MINI_WAVE, STAGES, WAVES_PER_STAGE } from '../data/stage
 import { CONSUMABLE_COOLDOWN, RARITY_WEIGHT, UPGRADES, UPGRADE_BY_ID, baseStats, kindOf, type Rarity, type Stats, type Upgrade } from '../data/upgrades';
 import { save } from '../systems/save';
 
+/** The most tip boosts can add up to (see recompute). */
+export const TIP_MULT_CAP = 2.5;
+
 export const LOCATIONS: LocationId[] = STAGES.map((s) => s.location);
 
 export const LOCATION_MUSIC: Record<LocationId, string[]> = {
@@ -247,6 +250,8 @@ export class Run {
     s.slowPct = Math.min(0.7, s.slowPct);
     s.critChance = Math.min(0.85, s.critChance);
     s.execute = Math.min(0.4, s.execute);
+    // tip boosts: full value up to ×2, half value beyond, never above ×2.5 (late runs piled up 100k+ tips)
+    if (s.coinMult > 2) s.coinMult = Math.min(TIP_MULT_CAP, 2 + (s.coinMult - 2) * 0.5);
     this.stats = s;
   }
 

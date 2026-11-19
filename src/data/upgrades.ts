@@ -161,7 +161,7 @@ export const UPGRADES: Upgrade[] = [
   },
   {
     id: 'tips', name: 'Tip Jar', icon: '🫙', rarity: 'common', max: 5,
-    desc: () => '+25% tips from feet',
+    desc: () => '+25% tips from feet (all tip boosts top out at ×2.5)',
     apply: (s) => { s.coinMult += 0.25; },
   },
   {
@@ -329,8 +329,10 @@ export const RARITY_COLOR: Record<Rarity, string> = {
 /** Base topping price by rarity; +2 tips per wave. Consumables cost less. */
 export const RARITY_PRICE: Record<Rarity, number> = { common: 30, rare: 70, epic: 120, legendary: 235 };
 
-export function upgradePrice(u: Upgrade, wave: number): number {
-  const base = RARITY_PRICE[u.rarity] + 2 * wave;
+/** Price of the next level: rarity base + 4 per wave, +35% for every level already owned (so stacking
+ * one upgrade gets expensive and tips spread across the run); consumables are 30% cheaper. */
+export function upgradePrice(u: Upgrade, wave: number, owned = 0): number {
+  const base = (RARITY_PRICE[u.rarity] + 4 * wave) * (1 + 0.35 * owned);
   const k = (u.kind ?? 'permanent') === 'consumable' ? 0.7 : 1;
   return Math.round((base * k) / 5) * 5;
 }

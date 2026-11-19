@@ -1139,7 +1139,7 @@ export class GameScene extends Phaser.Scene implements Arena {
         kind: k,
         desc: u.desc(lvl + 1),
         lvl: k === 'consumable' ? 'One use, back in 3 waves' : k === 'unique' ? 'Once per run' : lvl ? `LV ${lvl} → ${lvl + 1}` : 'NEW',
-        price: sh.free === u.id ? 0 : upgradePrice(u, r.wave),
+        price: sh.free === u.id ? 0 : upgradePrice(u, r.wave, r.level(u.id)),
         free: sh.free === u.id,
         sold: sh.sold.has(u.id),
       };
@@ -1189,7 +1189,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     const sh = this.shop;
     const u = UPGRADE_BY_ID[id];
     if (!sh || !u || sh.sold.has(id)) return;
-    const price = sh.free === id ? 0 : upgradePrice(u, this.run.wave);
+    const price = sh.free === id ? 0 : upgradePrice(u, this.run.wave, this.run.level(id));
     if (this.run.coins < price) return;
     this.run.coins -= price;
     if (sh.free === id) sh.free = null;
@@ -1701,7 +1701,9 @@ export class GameScene extends Phaser.Scene implements Arena {
     const echoCut = f.brain.echo ? 0.1 : 1;
     const scoreGain = Math.round(f.type.score * (f.elite ? 2 : 1) * (midas ? 2 : 1) * echoCut);
     this.addScore(scoreGain, true);
-    let coins = Math.max(1, Math.round(f.type.coins * st.coinMult * (f.elite ? 2 : 1) * (midas ? 5 : 1) * this.run.heatDef.tips * echoCut));
+    // later waves bring far more feet, so each one pays a little less after wave 10 (×0.71 at 20, ×0.5 at 35)
+    const taper = 1 / (1 + Math.max(0, this.run.wave - 10) / 25);
+    let coins = Math.max(1, Math.round(f.type.coins * st.coinMult * (f.elite ? 2 : 1) * (midas ? 5 : 1) * this.run.heatDef.tips * echoCut * taper));
     if (f.type.id === 'mimic') coins *= 2;
     // New York Slice: +1 tip per quick kill
     if (st.quickTips && this.nowT - this.lastKillAt < 1) coins += st.quickTips;
