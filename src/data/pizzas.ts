@@ -44,7 +44,8 @@ export type Topping =
   | 'hotSauce'
   | 'cheddar'
   | 'beef'
-  | 'redStripes';
+  | 'redStripes'
+  | (string & {}); // Feetza 2.0 toppings, drawn in src/art/toppings2.ts
 
 export type PizzaPerk =
   | 'damage'
@@ -74,7 +75,14 @@ export type PizzaPerk =
   | 'radius'
   | 'superStart'
   | 'coinsWave'
-  | 'critDmg';
+  | 'critDmg'
+  // ——— Feetza 2.0 perks ———
+  | 'splash' | 'bigHurt' | 'bossDmg' | 'tenthCrit' | 'cutter'
+  | 'neighbourShield' | 'sturdyMulti' | 'immuneEffects' | 'heatAbove' | 'rotate'
+  | 'quickTips' | 'counterDiscount' | 'extraConsumable' | 'crustBonus' | 'refund'
+  | 'preserve' | 'neverStale' | 'staleHeal' | 'riseOnce' | 'bossRegrow'
+  | 'stunVuln' | 'markFirst' | 'disarm' | 'slamStun' | 'miniWeak'
+  | 'bounceTop' | 'perkBoost' | 'freeTopping';
 
 export interface PizzaType {
   id: string;

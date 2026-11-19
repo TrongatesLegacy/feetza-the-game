@@ -15,6 +15,12 @@ export const LOCATION_MUSIC: Record<LocationId, string[]> = {
   diner: ['music_diner', 'music_game'],
   lodge: ['music_lodge', 'music_menu', 'music_game'],
   space: ['music_space', 'music_rooftop', 'music_game'],
+  kitchen: ['music_kitchen', 'music_game'],
+  oldtown: ['music_oldtown', 'music_rooftop', 'music_game'],
+  pier: ['music_pier', 'music_beach', 'music_game'],
+  rink: ['music_rink', 'music_diner', 'music_game'],
+  slopes: ['music_slopes', 'music_lodge', 'music_game'],
+  cellar: ['music_cellar', 'music_boss_phantomking', 'music_game'],
 };
 
 export const LOCATION_AMBIENCE: Record<LocationId, string[]> = {
@@ -24,6 +30,12 @@ export const LOCATION_AMBIENCE: Record<LocationId, string[]> = {
   diner: ['ambience_diner', 'ambience_pizzeria'],
   lodge: ['ambience_lodge', 'ambience_pizzeria'],
   space: ['ambience_space', 'ambience_pizzeria'],
+  kitchen: ['ambience_kitchen', 'ambience_pizzeria'],
+  oldtown: ['ambience_oldtown', 'ambience_rooftop', 'ambience_pizzeria'],
+  pier: ['ambience_pier', 'ambience_beach', 'ambience_pizzeria'],
+  rink: ['ambience_rink', 'ambience_diner', 'ambience_pizzeria'],
+  slopes: ['ambience_slopes', 'ambience_lodge', 'ambience_pizzeria'],
+  cellar: ['ambience_cellar', 'ambience_pizzeria'],
 };
 
 export function isBossWave(n: number): boolean {

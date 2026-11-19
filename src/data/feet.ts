@@ -33,7 +33,24 @@ export type FootTrait =
   | 'woolly' // absorbs the first 15 damage
   | 'tender' // every smack is a crit
   | 'scorch' // stomped pizza burns another slice
-  | 'tiny'; // narrow hitbox (informational)
+  | 'tiny' // narrow hitbox (informational)
+  // ——— Feetza 2.0 traits ———
+  | 'invisible' // unseen (only its shadow shows) until it starts its stomp
+  | 'magnet' // pulls the player's aim toward it
+  | 'hop' // hops to another pizza mid-descent
+  | 'guard' // front shield: only hurt just after a stomp
+  | 'bulk' // gains armour for every second unhit
+  | 'thief' // steals tips when it stomps
+  | 'spoil' // stomps drain freshness instead of slices
+  | 'tag' // tags a pizza: the next foot on it stomps twice as hard
+  | 'pinch' // pinches the peel briefly when smacked
+  | 'bury' // buried and untouchable until it surfaces
+  | 'medic' // heals nearby feet
+  | 'sticky' // smacking it slows the peel briefly
+  | 'roll' // rolls sideways across the pizzas
+  | 'antigrav' // floats back up between stomps
+  | 'crusty' // rare: escapes fast, drops Golden Crusts
+  | 'mimic'; // looks like a Golden Foot, then stomps hard
 
 export type FootKind =
   | 'bare'
@@ -67,7 +84,9 @@ export type FootKind =
   | 'tap'
   | 'platform'
   | 'cleat'
-  | 'webbed';
+  | 'webbed'
+  // Feetza 2.0 kinds are drawn by the extra-kind modules (see src/art/feetKinds*.ts)
+  | (string & {});
 
 export type LegKind =
   | 'skin'
@@ -110,6 +129,8 @@ export interface FootArt {
   toeRing?: boolean;
   sunburn?: boolean;
   frost?: boolean;
+  /** Free-form art parameters for Feetza 2.0 kinds. */
+  extra?: Record<string, string | number | boolean>;
 }
 
 export interface FootType {
@@ -128,6 +149,14 @@ export interface FootType {
   traits: FootTrait[];
   art: FootArt;
   boss?: boolean;
+  /** Mini-bosses arrive partway through a wave and have 2 phases. */
+  mini?: boolean;
+  /** Home location id (spawns ~3x as often there). */
+  home?: string;
+  /** Pizzapedia: one-line answer to the foot's ability. */
+  howTo?: string;
+  /** Pizzapedia: the visible tell before its ability fires. */
+  tell?: string;
   quips?: string[];
 }
 
@@ -603,6 +632,22 @@ export const TRAIT_INFO: Record<FootTrait, string> = {
   tender: '🔥 Every smack crits',
   scorch: '♨️ Scorches pizza',
   tiny: '🎯 Tiny target',
+  invisible: '👻 Invisible until it stomps',
+  magnet: '🧲 Pulls your aim',
+  hop: '🦘 Hops between pizzas',
+  guard: '🛡️ Front shield',
+  bulk: '💪 Bulks up if ignored',
+  thief: '💰 Steals tips',
+  spoil: '🪰 Spoils freshness',
+  tag: '🖍️ Tags a pizza',
+  pinch: '🦀 Pinches your peel',
+  bury: '⏳ Buried in sand',
+  medic: '🩹 Heals other feet',
+  sticky: '🌿 Sticky: slows your peel',
+  roll: '🎳 Rolls across the table',
+  antigrav: '🪐 Floats back up',
+  crusty: '✨ Drops Golden Crusts',
+  mimic: '🎭 A fake Golden Foot',
 };
 
 export const OUCH = [
