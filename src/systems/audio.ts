@@ -43,6 +43,24 @@ const TRIM: Record<string, number> = {
   sfx_levelup: 0.85,
   sfx_warning: 0.85,
   sfx_gameover: 1.0,
+  // Feetza 2.0: "measured" dB is the file's 50ms RMS peak, "→" the level after this trim.
+  sfx_miniboss: 1.05, // -8.4 dB → -8.0: alert must cut through the music, like a crit
+  sfx_phase: 1.07, // -8.6 dB → -8.0: boss phase change, clearly over the music
+  sfx_piston: 1.08, // -12.7 dB → -12.0: hazard cue, just under the slap
+  sfx_chest: 1.4, // -15.4 dB → -12.5: transient-heavy source, lifted toward the slap
+  sfx_drone: 0.97, // -11.7 dB → -12.0: a bit below the slap
+  sfx_whistle: 0.59, // -6.4 dB → -11.0: piercing source, held just under the slap
+  sfx_pop: 0.7, // -7.9 dB → -11.0: about slap level
+  sfx_seagull: 0.6, // -7.0 dB → -11.4: a bit below the slap
+  sfx_possess: 1.1, // -12.8 dB → -12.0
+  sfx_stale: 0.92, // -10.3 dB → -11.0
+  sfx_reheat: 1.04, // -12.3 dB → -12.0
+  sfx_steal: 1.3, // -15.3 dB → -13.0: sneaky, sits behind
+  sfx_hold: 0.92, // -23.8 dB → -24.5: quiet tick, about click level
+  // Stings are normalised to the music loudness (-16.4 LUFS, like music_gameover). audio.sting() plays
+  // them at music volume and does not read TRIM; these gains apply if they're played through sfx().
+  music_victory: 2.04, // -15.7 dB → -9.5: the 60-wave finish, a little over the slap
+  music_act: 1.74, // -15.3 dB → -10.5: act-complete sting at slap level
 };
 
 const AMBIENCE_GAIN = 0.4;
