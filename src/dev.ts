@@ -204,7 +204,16 @@ export function installDevTools(game: Phaser.Game): void {
           const r = el.getBoundingClientRect();
           if (!r.width) continue;
           const text = (el.textContent ?? '').trim().slice(0, 50);
-          if (r.left < stage.left - 2 || r.right > stage.right + 2 || r.top < stage.top - 2 || r.bottom > stage.bottom + 2) out.push({ where: 'dom', text, issue: 'off screen' });
+          // items further down a scrolling list are reachable by scrolling, not off screen
+          let inScroller = false;
+          for (let n = el.parentElement; n && n.id !== 'ui'; n = n.parentElement) {
+            const o = getComputedStyle(n).overflowY;
+            if ((o === 'auto' || o === 'scroll') && n.scrollHeight > n.clientHeight) {
+              inScroller = true;
+              break;
+            }
+          }
+          if (!inScroller && (r.left < stage.left - 2 || r.right > stage.right + 2 || r.top < stage.top - 2 || r.bottom > stage.bottom + 2)) out.push({ where: 'dom', text, issue: 'off screen' });
           if (el.scrollWidth > el.clientWidth + 2 && (cs.overflow === 'hidden' || cs.textOverflow === 'ellipsis' || cs.whiteSpace === 'nowrap') && el.clientWidth > 0) out.push({ where: 'dom', text, issue: 'cut off' });
         }
       }
