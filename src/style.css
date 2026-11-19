@@ -1699,3 +1699,44 @@ input[type='range']::-moz-range-thumb {
 .upgrade-wrap .kbd-hint .kbd {
   -webkit-text-stroke: 0;
 }
+
+/* ——— pizza placement picker ——— */
+.placement {
+  display: flex;
+  gap: 1em;
+  justify-content: center;
+  flex-wrap: wrap;
+  max-width: 82em;
+}
+
+.tile.place {
+  width: 13.5em;
+  cursor: default;
+}
+
+.tile.place img {
+  height: 7em;
+}
+
+.tile.place.gone img {
+  filter: grayscale(1) opacity(0.5);
+}
+
+.tile.place.new {
+  border-style: dashed;
+  background: rgba(223, 245, 211, 0.8);
+}
+
+.tile.place.new.full {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.tile.place .plus {
+  display: grid;
+  place-items: center;
+  font-family: 'Lilita One', sans-serif;
+  font-size: 4em;
+  line-height: 1;
+  color: var(--basil-d);
+  height: 1.75em;
+}

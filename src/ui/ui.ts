@@ -384,6 +384,7 @@ class UI {
       return c;
     });
     let done = false;
+    let screen: HTMLElement | null = null;
     const choose = (id: string) => {
       if (done) return;
       done = true;
@@ -391,6 +392,7 @@ class UI {
       o.onPick(id);
     };
     const onKey = (e: KeyboardEvent) => {
+      if (this.stack[this.stack.length - 1] !== screen) return;
       const n = parseInt(e.key, 10);
       if (n >= 1 && n <= o.choices.length) choose(o.choices[n - 1].id);
       if (e.key.toLowerCase() === 'r' && (o.freeRerolls > 0 || o.coins >= o.rerollCost)) {
@@ -417,12 +419,9 @@ class UI {
     });
     revive.disabled = !o.canRevive || o.coins < o.reviveCost;
     // the pizza counter: buy (or rent a locked "Chef's Special") for this run
-    const counter = h('div', { class: 'counter' }, h('div', { class: 'counter-title' }, 'PIZZA COUNTER', h('small', {}, o.counter.canBuy ? 'for this run' : 'table full')));
+    const counter = h('div', { class: 'counter' }, h('div', { class: 'counter-title' }, 'PIZZA COUNTER', h('small', {}, 'add or swap')));
     for (const off of o.counter.offers) {
-      const b = btn(`${off.trial ? 'RENT' : 'ADD'} ${COIN_SVG.replace('class="coin"', 'class="coin-ico"')}${off.cost}`, `${off.trial ? '' : 'green'} small`, () => {
-        window.removeEventListener('keydown', onKey);
-        o.counter.onBuy(off.id);
-      });
+      const b = btn(`${off.trial ? 'RENT' : 'BUY'} ${COIN_SVG.replace('class="coin"', 'class="coin-ico"')}${off.cost}`, `${off.trial ? '' : 'green'} small`, () => o.counter.onBuy(off.id));
       b.disabled = !o.counter.canBuy || o.coins < off.cost;
       counter.append(
         h(
@@ -463,7 +462,53 @@ class UI {
       h('div', { class: 'hint kbd-hint', style: 'color:#fff6e2;text-shadow:0 .1em 0 #2a1810', html: `Press <span class="kbd">1</span>–<span class="kbd">${o.choices.length}</span> to pick · <span class="kbd">R</span> to reroll` }),
     );
     const s = this.open(wrap);
+    screen = s;
     this.onClose(s, () => window.removeEventListener('keydown', onKey));
+    return s;
+  }
+
+  // ——— Pizza placement: add to a new plate or swap out an existing pizza ———
+  placement(o: {
+    id: string;
+    name: string;
+    canAdd: boolean;
+    current: { id: string; name: string; slices: number; max: number; dead: boolean }[];
+    onChoose: (index: number) => void; // -1 = new plate
+  }): HTMLElement {
+    let s: HTMLElement;
+    const choose = (i: number) => {
+      this.close(s);
+      o.onChoose(i);
+    };
+    const tiles: HTMLElement[] = o.current.map((p, i) =>
+      h(
+        'div',
+        { class: `tile place${p.dead ? ' gone' : ''}` },
+        h('img', { src: pizzaPortraitURL(p.id), alt: '' }),
+        h('div', { class: 'nm' }, p.name),
+        h('div', { class: 'ds' }, p.dead ? 'Destroyed' : `${p.slices}/${p.max} slices · perk active`),
+        btn(p.dead ? 'REPLACE' : 'SWAP', p.dead ? 'green small' : 'small', () => choose(i)),
+      ),
+    );
+    const add = h(
+      'div',
+      { class: `tile place new${o.canAdd ? '' : ' full'}` },
+      h('div', { class: 'plus' }, '+'),
+      h('div', { class: 'nm' }, 'New plate'),
+      h('div', { class: 'ds' }, o.canAdd ? `Add it as pizza #${o.current.length + 1}` : `Table full (${o.current.length}/${o.current.length})`),
+    );
+    const addBtn = btn('ADD', 'green small', () => choose(-1));
+    addBtn.disabled = !o.canAdd;
+    add.append(addBtn);
+    const panel = h(
+      'div',
+      { class: 'panel modal' },
+      h('div', { class: 'title', style: 'font-size:3.2em' }, `WHERE DOES ${o.name.toUpperCase()} GO?`),
+      h('div', { class: 'subtitle' }, 'Swapping removes that pizza and its perk for the rest of the run.'),
+      h('div', { class: 'placement' }, add, ...tiles),
+      btn('CANCEL', 'cream', () => this.close(s)),
+    );
+    s = this.open(panel);
     return s;
   }
 

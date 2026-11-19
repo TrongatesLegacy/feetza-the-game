@@ -543,16 +543,26 @@ export class GameScene extends Phaser.Scene {
       },
       counter: {
         offers: this.counterOffers,
-        canBuy: this.pizzas.length < MAX_PIZZAS || dead.length > 0,
+        canBuy: true,
         onBuy: (id) => {
           const off = this.counterOffers.find((o) => o.id === id);
           if (!off || this.run.coins < off.cost) return;
-          this.run.coins -= off.cost;
-          this.run.pizzasBought++;
-          this.counterOffers = this.counterOffers.filter((o) => o !== off);
-          this.placeNewPizza(id, off.trial ? `${PIZZA_BY_ID[id].name} (Chef's Special, this run only)` : PIZZA_BY_ID[id].name);
-          ui.close(s);
-          this.openUpgrades(bossReward, choices);
+          ui.placement({
+            id,
+            name: off.name,
+            canAdd: this.pizzas.length < MAX_PIZZAS,
+            current: this.pizzas.map((p) => ({ id: p.type.id, name: p.type.name, slices: p.slices, max: p.maxSlices, dead: p.dead })),
+            onChoose: (index) => {
+              if (this.run.coins < off.cost) return;
+              this.run.coins -= off.cost;
+              this.run.pizzasBought++;
+              this.counterOffers = this.counterOffers.filter((o) => o !== off);
+              const label = off.trial ? `${PIZZA_BY_ID[id].name} (Chef's Special, this run only)` : PIZZA_BY_ID[id].name;
+              this.placeNewPizza(id, label, index >= 0 ? index : undefined);
+              ui.close(s);
+              this.openUpgrades(bossReward, choices);
+            },
+          });
         },
       },
       progress: { runCrusts: this.run.crustsEarned(), bank: save.crusts, next: next ? { name: next.name, cost: next.cost } : null },
@@ -589,8 +599,23 @@ export class GameScene extends Phaser.Scene {
     return offers;
   }
 
-  /** Put a new pizza on the table (replacing a destroyed one if the table is full). */
-  private placeNewPizza(id: string, label: string): void {
+  /** Put a new pizza on the table: into the given slot (swapping that pizza out), or a new plate. */
+  private placeNewPizza(id: string, label: string, swapIndex?: number): void {
+    if (swapIndex !== undefined && this.pizzas[swapIndex]) {
+      const old = this.pizzas[swapIndex];
+      const fresh = this.addPizza(id, BASE_SLICES + (save.meta.pies ?? 0), true);
+      this.pizzas.pop();
+      this.pizzas.splice(swapIndex, 1, fresh);
+      this.fx.puff(old.x, old.surfaceY, 10);
+      old.destroy();
+      this.layoutPizzas(false);
+      fresh.root.setScale(0).setY(PIZZA_Y - 200);
+      this.tweens.add({ targets: fresh.root, scale: 1, y: PIZZA_Y, duration: 700, ease: 'Bounce.Out' });
+      this.recompute();
+      audio.sfx('sfx_levelup', { volume: 0.6 });
+      ui.hud.toast(pizzaPortraitURL(id), 'PIZZA SWAPPED', `${label} replaces ${old.type.name}: ${PIZZA_BY_ID[id].perkText}`);
+      return;
+    }
     if (this.pizzas.length >= MAX_PIZZAS) {
       const dead = this.pizzas.find((p) => p.dead);
       if (!dead) return;
