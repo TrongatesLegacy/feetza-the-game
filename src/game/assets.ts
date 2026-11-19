@@ -1,6 +1,7 @@
 // Generates every procedural texture and registers it with Phaser.
 
 import Phaser from 'phaser';
+import '../content/art';
 import { drawBackdrop, type BackdropId } from '../art/backdrops';
 import { ART_RES, drawFoot, footPortrait, type FootTextures } from '../art/feetArt';
 import { drawPizzaTop, drawSliceSprite, pizzaPortrait } from '../art/pizzaArt';

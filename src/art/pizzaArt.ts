@@ -1,6 +1,7 @@
 // Procedural pizzas: a detailed top-down image per variety, plus a perspective renderer
 // that shows remaining slices, crust thickness and stomp footprints.
 
+import { toppingDrawer } from './registry';
 import type { PizzaType, Topping } from '../data/pizzas';
 import { EXTRA_COUNTS, EXTRA_ORDER, drawDrizzles, drawExtraTopping } from './toppingsExtra';
 import { type Ctx, blob, ellipse, grain, hashStr, makeCanvas, mix, rgba, rng, roundRect, shade } from './util';
@@ -546,7 +547,7 @@ function drawTopping(ctx: Ctx, t: Topping, x: number, y: number, rand: () => num
     case 'bbq':
       break;
     default:
-      drawExtraTopping(ctx, t, rand);
+      if (!drawExtraTopping(ctx, t, rand)) toppingDrawer(t)?.draw(ctx, rand);
   }
   ctx.restore();
 }
@@ -568,6 +569,13 @@ function drawToppings(ctx: Ctx, p: PizzaType, rand: () => number): void {
     if (!p.toppings.includes(t)) continue;
     const n = Math.round((counts[t] ?? 8) * per);
     const pts = scatter(p.shape, r, n, t === 'chili' || t === 'parmesan' || t === 'goldLeaf' ? 14 : t === 'pepperoni' || t === 'salami' ? 44 : 28, rand);
+    for (const [x, y] of pts) drawTopping(ctx, t, x, y, rand);
+  }
+  // Feetza 2.0 toppings registered by content modules, drawn after the built-in ones
+  for (const t of p.toppings) {
+    const d = toppingDrawer(t);
+    if (!d || order.includes(t)) continue;
+    const pts = scatter(p.shape, r, Math.round((d.count ?? 8) * per), d.minDist ?? 28, rand);
     for (const [x, y] of pts) drawTopping(ctx, t, x, y, rand);
   }
   drawDrizzles(ctx, p.toppings, PIZZA_SIZE);

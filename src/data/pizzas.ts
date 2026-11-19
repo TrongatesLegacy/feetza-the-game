@@ -1,5 +1,7 @@
 // Pizza varieties. Each pizza on the table grants its perk while it still has slices left.
 
+import { CONTENT_PIZZAS } from '../content/pizzaData';
+
 export type Topping =
   | 'pepperoni'
   | 'mushroom'
@@ -211,5 +213,7 @@ export const PIZZAS: PizzaType[] = [
     shape: 'round', base: 'tomato', cheese: 1, toppings: ['pepperoni', 'goldLeaf', 'basil'], crust: '#e0a83e', cost: 400,
   },
 ];
+
+PIZZAS.push(...CONTENT_PIZZAS);
 
 export const PIZZA_BY_ID: Record<string, PizzaType> = Object.fromEntries(PIZZAS.map((p) => [p.id, p]));

@@ -1,5 +1,7 @@
 // The foot roster. Every foot has gameplay stats, traits and art parameters.
 
+import { CONTENT_FEET } from '../content/feetData';
+
 export type FootTrait =
   | 'dodge' // sidesteps when hit
   | 'feint' // fake descents
@@ -593,6 +595,8 @@ export const FEET: FootType[] = [
     art: { kind: 'bare', skin: '#cfe9ff', ghost: true, nails: '#8fc7ff', leg: 'skin' },
   },
 ];
+
+FEET.push(...CONTENT_FEET);
 
 export const FOOT_BY_ID: Record<string, FootType> = Object.fromEntries(FEET.map((f) => [f.id, f]));
 export const BOSS_ORDER = ['bigfoot', 'ironheel', 'clownking', 'trex', 'colossus', 'phantomking'];

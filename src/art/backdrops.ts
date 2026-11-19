@@ -1,6 +1,7 @@
 // Procedural 1920x1080 scene backdrops (wall + table) for every location and boss arena.
 // Everything is painted with Canvas 2D in the same bold cartoon style as the feet and pizzas.
 
+import { onSceneRegistered, sceneDef } from './registry';
 import { type Ctx, blob, ellipse, hashStr, makeCanvas, mix, rgba, rng, roundRect, shade } from './util';
 
 export type LocationId = 'trattoria' | 'rooftop' | 'beach' | 'diner' | 'lodge' | 'space' | 'kitchen' | 'oldtown' | 'pier' | 'rink' | 'slopes' | 'cellar';
@@ -4780,6 +4781,11 @@ for (const [id, from] of Object.entries(PLACEHOLDER) as [BackdropId, BackdropId]
   (BACKDROPS as Record<BackdropId, BackdropInfo>)[id] = { ...BACKDROPS[from], id, name, subtitle };
 }
 
+// registered scenes replace their placeholder info as soon as they load
+onSceneRegistered((id, def) => {
+  (BACKDROPS as Record<BackdropId, BackdropInfo>)[id] = { ...def.info, id };
+});
+
 export function drawBackdrop(id: BackdropId): HTMLCanvasElement {
   const [c, ctx] = makeCanvas(W, H);
   const r = rng(hashStr('backdrop:' + id));
@@ -4823,6 +4829,11 @@ export function drawBackdrop(id: BackdropId): HTMLCanvasElement {
       drawHall(ctx, r);
       break;
     default: {
+      const def = sceneDef(id);
+      if (def) {
+        def.draw(ctx, r);
+        break;
+      }
       const from = PLACEHOLDER[id];
       if (from) return drawBackdrop(from);
     }

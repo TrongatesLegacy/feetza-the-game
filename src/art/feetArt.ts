@@ -1,6 +1,7 @@
 // Procedural cartoon feet. Each foot is drawn front-on, toes pointing down at the pizza,
 // in a 300x340 design space (foot centre x = 150 canvas / 110 design) and scaled up for crispness.
 
+import { kindDrawer } from './registry';
 import type { FootArt, FootType, LegKind } from '../data/feet';
 import { type Ctx, ellipse, hashStr, makeCanvas, mix, rgba, rng, roundRect, shade } from './util';
 import { CX, INK, OUT, argyle, barePath, drawBare, drawBareBody, drawHair, drawSock, drawToe, glossy, laces, leatherFill, outlineOf, shoePath, skinBodyFill, toesFor } from './feetCommon';
@@ -691,7 +692,7 @@ function contactY(art: FootArt): number {
     case 'webbed':
       return 274;
     default:
-      return art.chubby ? 264 : 260;
+      return kindDrawer(art.kind)?.contactY ?? (art.chubby ? 264 : 260);
   }
 }
 
@@ -712,7 +713,7 @@ function halfWidth(art: FootArt): number {
     case 'platform':
       return 110;
     default:
-      return 104;
+      return kindDrawer(art.kind)?.halfWidth ?? 104;
   }
 }
 
@@ -1161,7 +1162,7 @@ export function drawFoot(type: FootType): FootTextures {
       drawBigfoot(ctx, art, r);
       break;
     default:
-      drawExtraKind(ctx, art, r);
+      if (!drawExtraKind(ctx, art, r)) kindDrawer(art.kind)?.draw(ctx, art, r);
   }
   drawAccessories(ctx, art, r);
   if (art.lava) drawLavaOverlay(ctx, art, r);
