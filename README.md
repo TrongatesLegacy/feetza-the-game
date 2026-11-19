@@ -33,13 +33,17 @@ npm run preview  # serve the production build
 
 Requires Node 20+.
 
-## Deploy to Netlify
+## Deploy
 
-`netlify.toml` is already set up (`npm run build` → publish `dist/`, Node 22, long-cache headers for hashed assets).
+**Live:** https://trongateslegacy.github.io/feetza-the-game/
 
-- **Git deploy:** push the repo to GitHub/GitLab and "Add new site → Import an existing project" in Netlify. No settings to change.
-- **CLI:** `npx netlify-cli deploy --build --prod`
-- **Drag and drop:** run `npm run build` and drop the `dist/` folder onto https://app.netlify.com/drop
+### GitHub Pages (current)
+
+`.github/workflows/pages.yml` builds and deploys on every push to `main`. You can also run it by hand from the Actions tab. The build uses relative asset paths (`base: './'`), so it works under the `/feetza-the-game/` subpath with no changes.
+
+### Netlify (alternative)
+
+`netlify.toml` is ready (`npm run build` → publish `dist/`, Node 22, long-cache headers for hashed assets and audio, which GitHub Pages can't set). Import the repo in Netlify ("Add new site → Import an existing project") or run `npx netlify-cli deploy --build --prod`.
 
 The game is fully static, so any static host works too.
 
