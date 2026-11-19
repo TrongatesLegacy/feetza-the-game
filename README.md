@@ -80,7 +80,7 @@ public/audio/ music, ambience and SFX (+ CREDITS.md / credits.json)
 `npm run dev` exposes a `F` helper in the browser console (development builds only):
 
 - `F.contrast()` audits every visible piece of overlay text for WCAG contrast (4.5:1, or 3:1 for large text). It reads the real background behind each element, including every gradient stop, and flags text drawn over the game without an outline. Run it on each screen after UI changes.
-- `F.trailer()` renders the trailer: it steps the real game frame by frame at 60 fps on a virtual clock (with a scripted shot list in `src/trailer.ts`), uploads each frame, and logs every sound effect with its frame time. The soundtrack is then mixed in sync with ffmpeg. Start the dev server with `FEETZA_SHOT_DIR=<dir>` to receive the frames. Nothing plays through the speakers while it renders.
+- `F.trailer()` renders the trailer: it steps the real game frame by frame at 60 fps on a virtual clock (with a scripted shot list in `src/trailer.ts`), uploads each frame, and logs every sound effect with its frame time. The soundtrack is then mixed in sync with ffmpeg. Start the dev server with `FEETZA_SHOT_DIR=<dir>` to receive the frames. Nothing plays through the speakers while it renders. `F.trailer('v_', true)` renders the 9:16 portrait cut for Reels, Shorts and TikTok instead: the game renders at 2×, and each frame is composited into 1080×1920, cutting between the whole table and full-screen close-ups.
 - `F.bot(true, accuracy, reactionMs)` plays the game automatically (useful for balance checks), and `F.shot(name)` saves a canvas screenshot when the server is started with `FEETZA_SHOT_DIR`.
 
 ## Audio mix

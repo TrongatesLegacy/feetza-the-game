@@ -55,7 +55,7 @@ export function installDevTools(game: Phaser.Game): void {
       loop();
     },
   };
-  const trailer = (prefix = 'f_') => import('./trailer').then((m) => m.recordTrailer(game, { prefix }));
+  const trailer = (prefix = 'f_', vertical = false) => import('./trailer').then((m) => m.recordTrailer(game, { prefix, vertical }));
   (window as unknown as { F: typeof api & { contrast: typeof contrastAudit; trailer: typeof trailer } }).F = Object.assign(api, { contrast: contrastAudit, trailer });
 }
 

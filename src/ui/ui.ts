@@ -32,6 +32,14 @@ const ICONS = {
   close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
 };
 
+/** "Made by TrongatesLegacy" credit (title screens), opens the website in a new tab. */
+function madeBy(): HTMLElement {
+  const a = h('a', { class: 'made-by', href: 'https://trongateslegacy.com', target: '_blank', rel: 'noopener', 'aria-label': 'Made by TrongatesLegacy (opens trongateslegacy.com in a new tab)' }, 'Made by ', h('b', {}, 'TrongatesLegacy'), h('span', { class: 'ext', html: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>' }));
+  // the splash starts the game on any click: keep the link's click to itself
+  for (const ev of ['pointerdown', 'pointerup', 'click'] as const) a.addEventListener(ev, (e) => e.stopPropagation());
+  return a;
+}
+
 export const COIN_SVG =
   '<svg class="coin" viewBox="0 0 24 24"><circle cx="12" cy="13" r="10" fill="#9a6a00"/><circle cx="12" cy="12" r="10" fill="#ffcf3a" stroke="#7a4a00" stroke-width="1.5"/><circle cx="12" cy="12" r="7" fill="none" stroke="#a86a00" stroke-width="1"/><path d="M12 17l-3.6-7.4q3.6-2 7.2 0z" fill="#c47a00"/><ellipse cx="8.5" cy="7.5" rx="2.5" ry="1.2" fill="#fff" opacity=".7" transform="rotate(-30 8.5 7.5)"/></svg>';
 
@@ -286,6 +294,7 @@ class UI {
       h('div', { class: 'menu' }, logo(), h('div', { class: 'tagline' }, 'Stop the feet. Save the pizza.'), h('div', { class: 'splash-hint' }, 'Click to open the pizzeria')),
       false,
     );
+    s.append(madeBy());
     s.style.cursor = 'pointer';
     const go = () => {
       window.removeEventListener('keydown', go);
@@ -323,7 +332,7 @@ class UI {
       ),
     );
     const s = this.open(content, false);
-    s.append(stats);
+    s.append(stats, madeBy());
     return s;
   }
 

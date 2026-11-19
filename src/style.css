@@ -395,6 +395,48 @@ h3 {
   color: var(--cheese);
 }
 
+.made-by {
+  position: absolute;
+  right: 1.6em;
+  bottom: 1.2em;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 0.45em 0.9em;
+  font-size: 1.4em;
+  font-weight: 600;
+  color: var(--cream);
+  text-decoration: none;
+  background: rgba(18, 10, 6, 0.78);
+  border: 0.14em solid var(--ink);
+  border-radius: 99em;
+  box-shadow: 0 0.2em 0 var(--ink);
+  cursor: pointer;
+  transition: transform 0.12s, background 0.12s;
+}
+
+.made-by b {
+  color: var(--cheese);
+}
+
+.made-by .ext {
+  display: inline-flex;
+  width: 0.9em;
+  height: 0.9em;
+  opacity: 0.8;
+}
+
+.made-by:hover,
+.made-by:focus-visible {
+  transform: translateY(-0.12em);
+  background: rgba(42, 24, 16, 0.92);
+}
+
+.made-by:focus-visible {
+  outline: 0.18em solid var(--cheese);
+  outline-offset: 0.15em;
+}
+
 .splash-hint {
   font-family: 'Lilita One', sans-serif;
   font-size: 2.6em;
