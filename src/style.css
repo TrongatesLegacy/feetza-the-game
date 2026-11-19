@@ -3097,3 +3097,23 @@ body.reduced-motion *::after {
   flex-wrap: nowrap;
   align-items: center;
 }
+
+/* the boss bar keeps its centring transform through its entrance animation */
+.bossbar.on {
+  animation: bossIn 0.5s ease both;
+}
+
+@keyframes bossIn {
+  0% {
+    transform: translateX(-50%) scale(0.6) translateY(1em);
+    opacity: 0;
+  }
+  70% {
+    transform: translateX(-50%) scale(1.04);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-50%);
+    opacity: 1;
+  }
+}
