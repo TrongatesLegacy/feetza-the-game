@@ -2,6 +2,8 @@
 
 **Stop the feet. Save the pizza.** A browser arcade roguelike: cartoon feet descend on a table of pizzas and you smack them away with a pizza peel before they stomp. Build a run from roguelike upgrades, travel through six pizzerias, beat six bosses, and spend Golden Crusts on permanent upgrades between runs.
 
+**Play it: https://trongateslegacy.github.io/feetza-the-game/**
+
 - **52 feet** (46 regular + 6 bosses), each with its own art, stats and traits (dodging, feinting, phasing, teleporting, reviving, splitting, rocket bursts, stink clouds…)
 - **28 pizzas**, each granting a perk while it survives (lose the pizza, lose the perk)
 - **30 in-run upgrades** across 4 rarities, plus rerolls, healing and rebaking between waves
@@ -22,7 +24,7 @@ All art (feet, pizzas, toppings, backdrops, UI sprites) is drawn procedurally wi
 | Mute | Speaker button | `M` |
 | Pick an upgrade / reroll | Click a card / Reroll | `1`–`4` / `R` |
 
-## Run it
+## Play / develop
 
 ```bash
 npm install
@@ -33,19 +35,15 @@ npm run preview  # serve the production build
 
 Requires Node 20+.
 
-## Deploy
+## Hosting
 
-**Live:** https://trongateslegacy.github.io/feetza-the-game/
+Every push to `main` deploys to GitHub Pages through `.github/workflows/pages.yml`.
 
-### GitHub Pages (current)
+`dist/` is a plain static folder with relative paths, so it can also go anywhere else:
 
-`.github/workflows/pages.yml` builds and deploys on every push to `main`. You can also run it by hand from the Actions tab. The build uses relative asset paths (`base: './'`), so it works under the `/feetza-the-game/` subpath with no changes.
-
-### Netlify (alternative)
-
-`netlify.toml` is ready (`npm run build` → publish `dist/`, Node 22, long-cache headers for hashed assets and audio, which GitHub Pages can't set). Import the repo in Netlify ("Add new site → Import an existing project") or run `npx netlify-cli deploy --build --prod`.
-
-The game is fully static, so any static host works too.
+- **Netlify**: `netlify.toml` is already set up (build `npm run build`, publish `dist`, plus long-cache headers for assets and audio, which GitHub Pages can't set). Import the repo in Netlify, or run `npx netlify-cli deploy --build --prod`.
+- **itch.io**: zip the *contents* of `dist/`, upload it as an HTML game, and tick "Mobile friendly".
+- **Vercel / Cloudflare Pages**: build command `npm run build`, publish directory `dist`.
 
 ## Stack choice
 
