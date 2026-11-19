@@ -25,7 +25,7 @@ export interface FootTextures {
   legWidth: number;
 }
 
-function drawSneaker(ctx: Ctx, art: FootArt): void {
+export function drawSneaker(ctx: Ctx, art: FootArt): void {
   const p = art.primary!;
   const s = art.secondary!;
   // sole
