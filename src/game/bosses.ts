@@ -1070,7 +1070,7 @@ export class BossDirector {
     while (f.phase < want) {
       f.phase++;
       const name = b.names[f.phase - 1] || 'ENRAGED';
-      this.a.banner(`PHASE ${f.phase}: ${name}`, f.type.name, 'phase');
+      this.a.banner(`PHASE ${f.phase}`, `${name} · ${f.type.name}`, 'phase');
       this.a.sfx('sfx_phase');
       this.a.flash(220, 255, 220, 160);
       this.a.shake(500, 0.012);

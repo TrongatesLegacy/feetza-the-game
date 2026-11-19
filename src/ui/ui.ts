@@ -235,6 +235,11 @@ class Hud {
     for (const old of this.root.querySelectorAll('.banner')) old.remove();
     const b = h('div', { class: `banner ${kind}` }, h('div', { class: 'big' }, big), small ? h('div', { class: 'small' }, small) : null);
     this.root.append(b);
+    // long titles shrink to fit the screen instead of running off it
+    for (const el of b.querySelectorAll<HTMLElement>('.big, .small')) {
+      const room = b.clientWidth;
+      if (el.scrollWidth > room) el.style.fontSize = `${(parseFloat(getComputedStyle(el).fontSize) * room) / el.scrollWidth}px`;
+    }
     setTimeout(() => b.remove(), 2300);
   }
 

@@ -127,6 +127,10 @@ export class Fx {
     const t = this.text();
     t.setText(msg);
     t.setStyle({ fontFamily: FONT, fontSize: `${size}px`, color, stroke: '#2a1810', strokeThickness: 10 });
+    // keep callouts fully on screen, clear of the top HUD (score, boss bar, tips)
+    const half = t.width / 2 + 20;
+    x = Math.min(Math.max(x, half), 1920 - half);
+    y = Math.min(Math.max(y, 230), 1000);
     t.setOrigin(0.5).setPosition(x, y).setAngle(angle).setScale(0.2);
     this.scene.tweens.add({ targets: t, scale: 1, duration: 260, ease: 'Back.Out' });
     this.scene.tweens.add({ targets: t, y: y - 60, alpha: 0, delay: 600, duration: 500, onComplete: () => this.release(t) });

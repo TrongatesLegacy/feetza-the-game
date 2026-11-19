@@ -530,7 +530,18 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (devBoss) {
       const t = FOOT_BY_ID[devBoss.id];
       if (t?.boss) this.plan.boss = devBoss.id;
-      if (t?.mini) this.plan.mini = devBoss.id;
+      if (t?.mini) {
+        this.plan.mini = devBoss.id;
+        // dev shortcut: the mini-boss arrives straight away
+        this.time.delayedCall(1500, () => {
+          if (this.miniSpawned) return;
+          this.spawnMini(devBoss.id);
+          if (devBoss.hp && this.miniFoot) {
+            this.miniFoot.hp = Math.round(this.miniFoot.maxHp * devBoss.hp);
+            this.director.afterDamage(this.miniFoot);
+          }
+        });
+      }
     }
     this.planSize = this.plan.queue.length;
     this.spawnT = 1.2;
