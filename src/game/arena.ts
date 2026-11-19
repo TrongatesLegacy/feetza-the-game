@@ -45,6 +45,8 @@ export interface Arena {
   /** Speed every regular foot up (roar, avalanche) for a while. */
   hurry(mult: number, sec: number): void;
   hurrying(): boolean;
+  /** True while a wave is being fought (false in the shop, after the last kill, or once the run is over). */
+  inWave(): boolean;
   cancelHurry(): void;
   /** True for one frame after a Peel Slam lands. */
   slammedAt(): number;

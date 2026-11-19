@@ -533,7 +533,10 @@ class UI {
       if (n >= 1 && n <= st.cards.length) act.buy(st.cards[n - 1].id);
       const k = e.key.toLowerCase();
       if (k === 'r' && st.canReroll) act.reroll();
-      if (k === 'enter' || k === 'n') act.next();
+      // Enter on a focused card or button presses that control, not Next Wave
+      const fe = document.activeElement as HTMLElement | null;
+      const onControl = !!fe && fe !== document.body && screen.contains(fe) && !fe.classList.contains('next');
+      if (k === 'n' || (k === 'enter' && !onControl)) act.next();
     };
     window.addEventListener('keydown', onKey);
     const sliceArt = (p: ShopPizza, size: number) => pizzaThumb(p.id, p.slices, p.max, size, p.stale, p.dead);
@@ -640,7 +643,7 @@ class UI {
       const next = btn('NEXT WAVE', 'big next', () => act.next(), { 'data-pad': 'hold' });
       next.addEventListener('padhold', () => act.next());
       const pr = st.progress;
-      const prog = h('div', { class: 'crust-progress', html: `${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} <b>+${pr.runCrusts}</b> crusts so far${pr.next ? ` · next unlock: ${pr.next.name} (${Math.min(pr.bank + pr.runCrusts, pr.next.cost)}/${pr.next.cost})` : ''}` });
+      const prog = h('div', { class: 'crust-progress', html: `${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} <b>+${pr.runCrusts}</b> crusts so far${pr.next ? (pr.bank + pr.runCrusts >= pr.next.cost ? ` · ${pr.next.name} ready to unlock in the Pizzeria` : ` · next unlock: ${pr.next.name} (${pr.bank + pr.runCrusts}/${pr.next.cost})`) : ''}` });
       wrap.replaceChildren(
         head,
         h('div', { class: 'shop-body' }, h('div', { class: 'shop-left' }, toppings, table), h('div', { class: 'shop-right' }, counter, golden, next)),
@@ -813,7 +816,7 @@ class UI {
       h('div', { class: 'title' }, 'PAUSED'),
       h('div', { class: 'subtitle' }, `Wave ${o.wave} · ${fmt(o.score)} points`),
       list,
-      h('div', { class: 'row' }, btn('RESUME', 'green big', o.resume), btn('SETTINGS', 'yellow', o.settings), quit),
+      h('div', { class: 'row' }, btn('RESUME', 'green big', o.resume, { 'data-pad': 'menu', 'data-pad-default': '' }), btn('SETTINGS', 'yellow', o.settings), quit),
       h('div', { class: 'hint kbd-hint', html: '<span class="kbd">ESC</span> resume · <span class="kbd">M</span> mute · <span class="kbd">SPACE</span> Peel Slam' }),
     );
     return this.open(panel);

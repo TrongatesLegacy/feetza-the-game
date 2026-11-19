@@ -27,6 +27,8 @@ class Pad {
   private held: Record<number, number> = {};
   private repeat: Record<number, number> = {};
   private menuRaf = 0;
+  /** When the game scene last polled; while it's paused (pause menu, intro cards) the menu loop takes over. */
+  private polledAt = 0;
 
   init(): void {
     window.addEventListener('gamepadconnected', (e) => {
@@ -94,6 +96,7 @@ class Pad {
 
   /** In play: called every frame by the game scene. */
   poll(dt: number): void {
+    this.polledAt = performance.now();
     const g = this.gp();
     if (!g) return;
     const now = performance.now() / 1000;
@@ -130,7 +133,7 @@ class Pad {
     if (this.menuRaf) return;
     const tick = () => {
       this.menuRaf = requestAnimationFrame(tick);
-      if (this.onPlay) return; // the game scene polls during play
+      if (performance.now() - this.polledAt < 120) return; // the game scene is polling
       const g = this.gp();
       if (!g) return;
       const now = performance.now() / 1000;
@@ -192,7 +195,8 @@ class Pad {
       else cur.click();
     }
     if (this.pressed(g, B.Y, now)) top.querySelector<HTMLElement>('[data-pad="y"]')?.click();
-    if (this.pressed(g, B.B, now)) top.querySelector<HTMLElement>('[data-pad="back"]')?.click();
+    if (this.pressed(g, B.B, now)) top.querySelector<HTMLElement>('[data-pad="back"], [data-pad="menu"]')?.click();
+    if (this.pressed(g, B.MENU, now)) top.querySelector<HTMLElement>('[data-pad="menu"]')?.click();
     // hold-to-confirm buttons (Next Wave, resets) listen for a held Menu / A
     const holdBtn = top.querySelector<HTMLElement>('[data-pad="hold"]');
     if (holdBtn) {

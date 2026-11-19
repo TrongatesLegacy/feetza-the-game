@@ -202,6 +202,11 @@ function chest(a: Arena, mimic: boolean, rw: EventRewards): void {
       if (done) return;
       done = true;
       bar.destroy();
+      if (!a.inWave()) {
+        // the wave ended first: it slinks away rather than chasing you into the shop
+        a.sc.tweens.add({ targets: img, alpha: 0, duration: 300, onComplete: () => img.destroy() });
+        return;
+      }
       img.setTexture('ev_mimic');
       a.quip(x, y - 140, 'IT WAS A MIMIC!', '#ff4d3d', 46);
       a.sfx('sfx_warning');

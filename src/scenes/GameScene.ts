@@ -105,6 +105,8 @@ export class GameScene extends Phaser.Scene implements Arena {
   private orders = new Map<Pizza, number>();
   private displayCoins = 0;
   private freeRerollsLeft = 0;
+  /** The shop a Continue resumes into (cards, purchases, counter). */
+  private restoredShop: { counter: RunSnapshot['counter']; shop: RunSnapshot['shop'] } | null = null;
   private healCost = 30;
   private reviveCost = 120;
   private nowT = 0;
@@ -192,6 +194,10 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.hurryMult = mult;
     this.hurryT = sec;
   }
+  inWave(): boolean {
+    return this.waveActive && !this.over;
+  }
+
   hurrying(): boolean {
     return this.hurryT > 0;
   }
@@ -320,7 +326,11 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (snap) {
       // resume in the shop of the wave that was cleared
       this.showLocation(snap.wave, true);
-      this.time.delayedCall(500, () => this.openUpgrades(isBossWave(snap.wave), undefined, 'WELCOME BACK!'));
+      const rs = snap.shop;
+      const cards = rs?.cards.map((id) => UPGRADE_BY_ID[id]).filter(Boolean);
+      this.freeRerollsLeft = rs ? rs.freeRerolls : this.run.stats.freeRerolls;
+      const keep = rs && cards?.length ? { cards, sold: new Set(rs.sold), free: rs.free } : undefined;
+      this.time.delayedCall(500, () => this.openUpgrades(rs?.bossReward ?? isBossWave(snap.wave), keep, 'WELCOME BACK!'));
     } else if (this.start.act2) {
       this.run.wave = ACT_WAVES;
       this.showLocation(ACT_WAVES + 1, true);
@@ -412,8 +422,11 @@ export class GameScene extends Phaser.Scene implements Arena {
       secondChances: r.secondChances,
       rentedSpecial: r.rentedSpecial,
       pizzas: this.pizzas.map((p) => ({ id: p.type.id, slices: p.slices, max: p.maxSlices, fresh: p.fresh, dead: p.dead, flags: { ...p.flags, possessed: false } })),
-      counter: this.shop?.counter ?? [],
+      counter: this.shop?.counter ?? this.restoredShop?.counter ?? [],
       bossBonusGiven: this.bossBonusGiven,
+      shop: this.shop
+        ? { cards: this.shop.cards.map((u) => u.id), sold: [...this.shop.sold], free: this.shop.free, bossReward: this.shop.bossReward, freeRerolls: this.freeRerollsLeft }
+        : this.restoredShop?.shop,
     };
   }
 
@@ -445,6 +458,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     r.secondChances = s.secondChances;
     r.rentedSpecial = s.rentedSpecial;
     this.bossBonusGiven = s.bossBonusGiven;
+    this.restoredShop = { counter: s.counter, shop: s.shop };
     for (const ps of s.pizzas) {
       if (!PIZZA_BY_ID[ps.id]) continue;
       const p = this.addPizza(ps.id, ps.max, false, ps.fresh, true);
@@ -1066,7 +1080,9 @@ export class GameScene extends Phaser.Scene implements Arena {
       if (bossReward && cards.length) free = cards[0].id;
       else if (this.run.stats.freeTopping && this.run.wave % 5 === 4 && cards.length) free = Phaser.Utils.Array.GetRandom(cards).id;
     }
-    const counter = this.shop?.counter && this.shop.state.wave === this.run.wave ? this.shop.counter : this.rollCounterOffers();
+    const restored = this.restoredShop?.counter.length ? this.restoredShop.counter : null;
+    const counter = this.shop?.counter && this.shop.state.wave === this.run.wave ? this.shop.counter : restored ?? this.rollCounterOffers();
+    this.restoredShop = null;
     this.shop = { el: null as unknown as HTMLElement, state: null as unknown as ShopState, cards, sold: keepCards?.sold ?? new Set(), free, bossReward, counter };
     this.saveRun();
     const state = this.shopState(title);
@@ -1143,6 +1159,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     ui.updateShop(this.shop.el, this.shop.state);
     ui.hud.setCoins(this.run.coins);
     ui.hud.setOwned(this.run.owned);
+    this.saveRun();
   }
 
   private shopBuy(id: string): void {
@@ -1200,7 +1217,8 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   private rerollCards(withLegendary: boolean): void {
     const sh = this.shop!;
-    const count = sh.cards.length;
+    // the base count: Mac & Cheese's extra consumable card is added on top by rollChoices
+    const count = sh.bossReward ? sh.cards.length : 3 + (save.meta.indecisive ? 1 : 0);
     const tableFull = this.pizzas.length >= MAX_PIZZAS && !this.pizzas.some((p) => p.dead);
     const keep = sh.cards.filter((u) => sh.sold.has(u.id));
     let fresh = sh.bossReward ? this.run.rollBossChoices(count - keep.length, [...keep.map((u) => u.id), ...(tableFull ? ['helping'] : [])]) : this.run.rollChoices(count - keep.length, [...keep.map((u) => u.id), ...(tableFull ? ['helping'] : [])]);
@@ -1312,6 +1330,7 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   private shopNext(): void {
     if (!this.shop) return;
+    this.saveRun();
     ui.close(this.shop.el);
     this.shop = null;
     this.inUpgrade = false;
@@ -1696,7 +1715,8 @@ export class GameScene extends Phaser.Scene implements Arena {
         baby.setState('hover');
       }
     }
-    if (boss || mini) this.bossDown(f);
+    // echoes and decoys are boss-typed stand-ins: they never count as the boss going down
+    if ((boss || mini) && !f.brain.echo && !f.brain.decoy) this.bossDown(f);
     f.die(boss);
   }
 
@@ -1712,6 +1732,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (f === this.bossFoot) this.bossFoot = null;
     if (f === this.miniFoot) this.miniFoot = null;
     ui.hud.setBoss(null);
+    // the wave ends with the boss: no golden foot arrives afterwards
+    if (!mini) this.goldenSpawned = true;
     this.run.bossesBeaten.push(f.type.id);
     if (!save.bossesBeaten.includes(f.type.id)) {
       save.bossesBeaten.push(f.type.id);
@@ -1879,7 +1901,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     }
     if (f.has('scorch') && !immune) {
       this.time.delayedCall(2000, () => {
-        if (p.dead || this.over) return;
+        if (p.dead || this.over || !this.waveActive) return;
         for (let i = 0; i < 6; i++) this.fx.burn(p.x + (Math.random() - 0.5) * 140, p.surfaceY);
         this.fx.quip(p.x, p.surfaceY - 150, 'SCORCHED!', '#ff8a3d', 40);
         audio.sfx('sfx_fire', { volume: 0.6 });
@@ -2112,6 +2134,7 @@ export class GameScene extends Phaser.Scene implements Arena {
           audio.sfx('sfx_squish', { rate: 0.7 });
           const removed = t.takeSlices(1, t.x);
           this.waveSlicesLost += removed.length;
+          this.run.slicesLost += removed.length;
           if (t.dead) this.pizzaDestroyed(t);
         }
       }

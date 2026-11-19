@@ -1,4 +1,5 @@
-// A saved run, written when the shop opens between waves. The same shape drives Continue run,
+// A saved run, rewritten after every shop action and when Next Wave is pressed (a reload mid-wave
+// goes back to that shop, as it was left). The same shape drives Continue run,
 // Act 2 starts and dev scenario starts.
 
 import type { HeatId } from '../data/difficulty';
@@ -54,4 +55,6 @@ export interface RunSnapshot {
   pizzas: PizzaSnap[];
   counter: CounterSnap[];
   bossBonusGiven: boolean;
+  /** The open shop, so a reload doesn't reroll it or undo purchases. */
+  shop?: { cards: string[]; sold: string[]; free: string | null; bossReward: boolean; freeRerolls: number };
 }

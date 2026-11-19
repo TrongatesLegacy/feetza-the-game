@@ -1994,7 +1994,7 @@ body.pad .slam .pd {
 }
 
 .shop-sub {
-  color: var(--paper-d);
+  color: var(--cream);
   font-weight: 600;
   font-size: 1.2em;
 }
@@ -2299,11 +2299,19 @@ body.pad .slam .pd {
   grid-template-columns: 4.2em minmax(0, 1fr) auto;
 }
 
-.counter2 .offer-text b,
-.counter2 .offer-text span {
+.counter2 .offer-text b {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* a long perk takes a second line rather than being cut off */
+.counter2 .offer-text span {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  line-height: 1.15;
 }
 
 .services {
@@ -2409,6 +2417,10 @@ body.pad .slam .pd {
   padding-right: 30em;
   align-items: center;
   gap: 1em;
+  color: var(--cream);
+}
+
+.shop-foot .hint {
   color: var(--cream);
 }
 
