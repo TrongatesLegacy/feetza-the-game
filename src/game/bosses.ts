@@ -476,6 +476,7 @@ const clownking = (): Brain => {
       if (shuffling) return;
       if (f.phase === 1 && honk.tick(dt) && !f.brain.windup) {
         windup(a, f, '', 1.3, 'HONK…', 2, () => {
+          if (f.y < 100 || shuffling) return; // phase 2 began mid wind-up and he's leapt away
           a.sfx('sfx_warning', { rate: 1.4 });
           a.fx.ring(f.x, f.cy, 0xff3d7f, 1.4, 1);
           a.stunPeel(1, 'HONKED!');
@@ -515,6 +516,7 @@ const clownking = (): Brain => {
             if (blocked) return;
             blocked = true;
             img.destroy();
+            if (!f.alive || !a.inWave()) return;
             a.sfx('sfx_squish', { rate: 0.7 });
             screenSplat(a, 'p_cream', x, y, 2, 'WIPED!');
           },
@@ -937,6 +939,7 @@ const kraken = (): Brain => {
         a.fxLayer.add(blob);
         a.sc.tweens.add({ targets: blob, x, y, duration: 700, ease: 'Quad.Out', onComplete: () => {
           blob.destroy();
+          if (!f.alive || !a.inWave()) return;
           screenSplat(a, 'p_ink', x, y, 2, 'INK CLEARED!');
         } });
         a.sfx('sfx_squish', { rate: 0.5 });
@@ -1358,6 +1361,8 @@ export class BossDirector {
     const n = f.type.mini ? Math.max(1, this.a.bossPhases() - 1) : this.a.bossPhases();
     this.phases.set(f, n);
     f.phase = 1;
+    f.brain.baseSX = f.root.scaleX;
+    f.brain.baseSY = f.root.scaleY;
     this.a.bossMove(f, b.names[0], b.info[0]);
   }
 
@@ -1406,13 +1411,21 @@ export class BossDirector {
   }
 
   /** Check phase thresholds after damage. */
-  afterDamage(f: Foot): void {
+  afterDamage(f: Foot, jump = false): void {
     const b = this.brains.get(f);
     if (!b || !f.alive) return;
     const n = this.phaseCount(f);
     const frac = f.hp / f.maxHp;
     const want = Math.min(n, 1 + Math.floor((1 - frac) * n + 1e-6));
     if (f.phase >= want) return;
+    // dev starts at a given health go straight to the matching phase, without clamping
+    if (jump) {
+      while (f.phase < want - 1) {
+        f.phase++;
+        b.onPhase?.(f, f.phase, this.a);
+      }
+      f.hp = Math.max(f.hp, 1);
+    }
     // one phase at a time: a huge hit can't skip a phase (or kill the boss) before you've seen it
     f.phase++;
     if (f.phase < n) {
@@ -1435,8 +1448,11 @@ export class BossDirector {
       f.brain.transformT = 1.1;
       f.puppet = true;
       f.shielded = true;
-      const sy = f.root.scaleY;
-      const sx = f.root.scaleX;
+      // restore to the boss's real size, never a mid-wind-up squash
+      const sx = Number(f.brain.baseSX ?? f.root.scaleX);
+      const sy = Number(f.brain.baseSY ?? f.root.scaleY);
+      this.a.sc.tweens.killTweensOf(f.root);
+      f.root.setScale(sx, sy);
       this.a.sc.tweens.add({ targets: f.root, scaleX: sx * 1.14, scaleY: sy * 1.14, duration: 260, yoyo: true, repeat: 1, ease: 'Sine.InOut', onComplete: () => f.root.setScale(sx, sy) });
     }
     this.a.fx.ring(f.cx, f.cy, BossDirector.auraFor(f.phase) ?? 0xffffff, 2, 0.6);
@@ -1447,6 +1463,11 @@ export class BossDirector {
 
   onSmacked(f: Foot, x: number, y: number, dmg: number): boolean {
     if (f.brain.decoy) return false;
+    // during the transform beat the boss is simply untouchable: no stone cracks, wall hits or parries count
+    if (Number(f.brain.transformT ?? 0) > 0) {
+      hitWindup(f, this.a);
+      return true;
+    }
     return this.brains.get(f)?.onSmacked?.(f, this.a, x, y, dmg) ?? false;
   }
 

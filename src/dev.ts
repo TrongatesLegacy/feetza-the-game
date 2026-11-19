@@ -117,20 +117,38 @@ export function installDevTools(game: Phaser.Game): void {
     bot(on = true, accuracy = 0.9, rate = 260, warp = 1): void {
       botOn = on;
       skipIntros();
+      if (!on) {
+        // undo any time warp
+        const g0 = game.scene.getScene('Game') as AnyScene;
+        const sys0 = g0?.sys as unknown as { sceneUpdate?: ((t: number, d: number) => void) & { orig?: (t: number, d: number) => void } } | undefined;
+        if (g0 && sys0?.sceneUpdate?.orig) {
+          sys0.sceneUpdate = sys0.sceneUpdate.orig;
+          g0.time.timeScale = 1;
+          g0.tweens.timeScale = 1;
+          g0.tweenBase = 1;
+        }
+        return;
+      }
       const loop = () => {
         if (!botOn) return;
         const g = game.scene.getScene('Game') as AnyScene;
         // time warp for balance runs: the scene steps several times a frame, timers and tweens keep pace
-        if (g && warp > 1 && g.__warp !== warp && typeof g.update === 'function') {
-          const step = g.__origUpdate ?? g.update.bind(g);
-          g.__origUpdate = step;
-          g.update = (t: number, d: number) => {
-            for (let i = 0; i < warp; i++) step(t, d);
+        type Step = ((t: number, d: number) => void) & { warped?: number; orig?: (t: number, d: number) => void };
+        const sys = g?.sys as unknown as { sceneUpdate?: Step } | undefined;
+        // Phaser calls the bound copy it keeps on sys (re-bound on every scene start), not scene.update
+        if (g && sys?.sceneUpdate && warp > 1 && sys.sceneUpdate.warped !== warp) {
+          const step = sys.sceneUpdate.orig ?? sys.sceneUpdate;
+          const warped: Step = (t: number, d: number) => {
+            for (let i = 0; i < warp; i++) step.call(g, t, d);
           };
+          warped.warped = warp;
+          warped.orig = step;
+          sys.sceneUpdate = warped;
           g.time.timeScale = warp;
           g.tweens.timeScale = warp;
-          g.__warp = warp;
+          g.tweenBase = warp;
         }
+
         if (g && (game.scene.isActive('Game') || game.scene.isPaused('Game'))) {
           const intro = document.querySelector<HTMLElement>('.intro .btn, .second .btn.cream');
           if (intro) intro.click();

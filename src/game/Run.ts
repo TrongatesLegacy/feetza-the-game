@@ -308,7 +308,10 @@ export class Run {
   /** Golden Crusts this run would pay out now (see the plan's crust table). */
   crustsEarned(figOnTable = false): number {
     const waves = Math.max(0, this.wave - 1 - (this.act2Start ? 30 : 0));
-    const base = Math.floor(this.score / 500) + waves * 2 + this.bossesBeaten.length * 5 + this.firstKills * 100;
+    // score counts on a square-root curve: late-game combos push scores into the millions, and a linear
+    // rate paid ~19,000 crusts for one Regular journey (the whole Pizzeria costs ~8,500). Now a full
+    // journey pays ~600, plus 100 per first kill.
+    const base = Math.floor(Math.sqrt(Math.max(0, this.score)) / 8) + waves * 2 + this.bossesBeaten.length * 5 + this.firstKills * 100;
     const mult = this.heatDef.crusts * (figOnTable ? 1 + this.stats.crustBonus : 1);
     return Math.floor(base * mult) + this.eventCrusts;
   }

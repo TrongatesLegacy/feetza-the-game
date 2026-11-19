@@ -659,6 +659,8 @@ export class Foot {
 
   /** Comedic yank off-screen. */
   die(boss = false): void {
+    this.auraTween?.remove();
+    this.auraTween = null;
     this.setState('dying');
     // the killing blow flashes white; make sure the flash clears since update() stops running now
     this.scene.time.delayedCall(boss ? 140 : 70, () => {
@@ -690,6 +692,8 @@ export class Foot {
   }
 
   destroy(): void {
+    this.auraTween?.remove();
+    this.auraTween = null;
     this.state = 'gone';
     this.root.destroy();
     this.shadow.destroy();

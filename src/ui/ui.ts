@@ -246,8 +246,9 @@ class Hud {
     b.style.animationDuration = `${ms - 100}ms`;
     this.root.append(b);
     // long titles shrink to fit the screen instead of running off it
+    const descPad = descEl ? parseFloat(getComputedStyle(descEl).paddingLeft) * 2 + parseFloat(getComputedStyle(descEl).borderLeftWidth) * 2 : 0;
     for (const el of b.querySelectorAll<HTMLElement>('.big, .small, .desc span')) {
-      const room = b.clientWidth;
+      const room = b.clientWidth - (descEl?.contains(el) ? descPad : 0);
       if (el.scrollWidth > room) el.style.fontSize = `${(parseFloat(getComputedStyle(el).fontSize) * room) / el.scrollWidth}px`;
     }
     setTimeout(() => b.remove(), ms);

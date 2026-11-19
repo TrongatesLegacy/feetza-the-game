@@ -90,6 +90,8 @@ export class GameScene extends Phaser.Scene implements Arena {
   private garlicT = 0;
   private hitStop = 0;
   private slowMo = 0;
+  /** Normal tween speed (the dev bot's time warp raises it). */
+  tweenBase = 1;
   private over = false;
   private paused = false;
   private inUpgrade = false;
@@ -570,7 +572,8 @@ export class GameScene extends Phaser.Scene implements Arena {
           this.spawnMini(devBoss.id);
           if (devBoss.hp && this.miniFoot) {
             this.miniFoot.hp = Math.round(this.miniFoot.maxHp * devBoss.hp);
-            this.director.afterDamage(this.miniFoot);
+            this.director.afterDamage(this.miniFoot, true);
+            ui.hud.setBoss(this.miniFoot.type.name, this.miniFoot.hp / this.miniFoot.maxHp, this.director.phaseCount(this.miniFoot), this.miniFoot.phase);
           }
         });
       }
@@ -684,14 +687,16 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.bossSummonT = 4;
     this.director.attach(f);
     // phase 1 gets its own introduction: what the boss does first and how to answer it
-    const mv = this.director.moveOf(f);
-    if (mv) this.banner('PHASE 1', mv.name, 'phase', mv.info);
-    this.director.afterDamage(f);
+    this.director.afterDamage(f, true);
     this.shake(900, 0.01);
     this.rumble(1, 400);
     audio.sfx('sfx_stomp');
-    ui.hud.setBoss(FOOT_BY_ID[id].name, f.hp / f.maxHp, this.director.phaseCount(f));
-    this.introCard('phases');
+    ui.hud.setBoss(FOOT_BY_ID[id].name, f.hp / f.maxHp, this.director.phaseCount(f), f.phase);
+    // the current phase gets its own introduction (after the first-time phases card, if that shows)
+    const mv = this.director.moveOf(f);
+    this.introCard('phases', () => {
+      if (mv && f.alive) this.banner(`PHASE ${f.phase}`, mv.name, 'phase', mv.info);
+    });
   }
 
   private spawnMini(id: string): void {
@@ -711,10 +716,11 @@ export class GameScene extends Phaser.Scene implements Arena {
     audio.duck(0.75);
     this.time.delayedCall(1500, () => !this.paused && audio.duck(1));
     const mv = this.director.moveOf(f);
-    if (mv) this.banner('MINI-BOSS!', `${t.name} · ${mv.name}`, 'boss', mv.info);
-    else ui.hud.banner('MINI-BOSS!', t.name, 'boss');
     ui.hud.setBoss(t.name, 1, this.director.phaseCount(f));
-    this.introCard('mini');
+    this.introCard('mini', () => {
+      if (mv && f.alive) this.banner('MINI-BOSS!', `${t.name} · ${mv.name}`, 'boss', mv.info);
+      else ui.hud.banner('MINI-BOSS!', t.name, 'boss');
+    });
   }
 
   private spawnFoot(type: FootType, target: Pizza | null, allowElite = true, x?: number): Foot {
@@ -1673,6 +1679,12 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   private killFoot(f: Foot, source: DamageOpts['source']): void {
     if (!f.alive) return;
+    // King Honk's decoys are props: they pop without paying out (the cleanup after his death included)
+    if (f.brain.decoy) {
+      this.fx.puff(f.cx, f.cy, 12);
+      f.die();
+      return;
+    }
     if (f.has('revive') && !f.reviveUsed) {
       f.revive();
       this.fx.quip(f.x, f.cy - 120, 'NOT DEAD YET!', '#7dff9a', 40);
@@ -1685,9 +1697,11 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.run.feetSmacked++;
     save.totalFeet++;
     const midas = !boss && !mini && f.type.id !== 'golden' && Math.random() < st.goldenTouch;
-    const scoreGain = f.type.score * (f.elite ? 2 : 1) * (midas ? 2 : 1);
+    // Ghost echoes copy a boss's type but are a fraction of one: they pay a tenth
+    const echoCut = f.brain.echo ? 0.1 : 1;
+    const scoreGain = Math.round(f.type.score * (f.elite ? 2 : 1) * (midas ? 2 : 1) * echoCut);
     this.addScore(scoreGain, true);
-    let coins = Math.max(1, Math.round(f.type.coins * st.coinMult * (f.elite ? 2 : 1) * (midas ? 5 : 1) * this.run.heatDef.tips));
+    let coins = Math.max(1, Math.round(f.type.coins * st.coinMult * (f.elite ? 2 : 1) * (midas ? 5 : 1) * this.run.heatDef.tips * echoCut));
     if (f.type.id === 'mimic') coins *= 2;
     // New York Slice: +1 tip per quick kill
     if (st.quickTips && this.nowT - this.lastKillAt < 1) coins += st.quickTips;
@@ -2219,9 +2233,12 @@ export class GameScene extends Phaser.Scene implements Arena {
   }
 
   // ——— Onboarding ———
-  private introCard(id: 'shop' | 'kinds' | 'swap' | 'freshness' | 'phases' | 'mini' | 'events' | 'golden'): void {
-    if (save.seenIntros.includes(id)) return;
-    if (id === 'freshness' && this.run.heatDef.freshness <= 0) return;
+  /** A first-time card; `after` runs once it's closed (or straight away if it isn't shown). */
+  private introCard(id: 'shop' | 'kinds' | 'swap' | 'freshness' | 'phases' | 'mini' | 'events' | 'golden', after?: () => void): void {
+    if (save.seenIntros.includes(id) || (id === 'freshness' && this.run.heatDef.freshness <= 0)) {
+      after?.();
+      return;
+    }
     save.seenIntros.push(id);
     persist();
     const inPlay = !this.inUpgrade;
@@ -2234,6 +2251,7 @@ export class GameScene extends Phaser.Scene implements Arena {
         this.paused = false;
         this.scene.resume();
       }
+      after?.();
     });
   }
 
@@ -2252,8 +2270,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (this.slowMo > 0) {
       this.slowMo -= real;
       scale = Math.min(scale, 0.3);
-      this.tweens.timeScale = 0.4;
-      if (this.slowMo <= 0) this.tweens.timeScale = 1;
+      this.tweens.timeScale = 0.4 * this.tweenBase;
+      if (this.slowMo <= 0) this.tweens.timeScale = this.tweenBase;
     }
     const dt = real * scale;
     // peel: stunned, slowed (trails the pointer) or free
