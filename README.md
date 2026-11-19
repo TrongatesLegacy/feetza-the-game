@@ -1,5 +1,7 @@
 # 🍕 Feetza
 
+[![Feetza: stop the feet, save the pizza](public/og.png)](https://trongateslegacy.github.io/feetza-the-game/)
+
 **Stop the feet. Save the pizza.** A browser arcade roguelike: cartoon feet descend on a table of pizzas and you smack them away with a pizza peel before they stomp. Build a run from roguelike upgrades, travel through six pizzerias, beat six bosses, and spend Golden Crusts on permanent upgrades between runs.
 
 **Play it: https://trongateslegacy.github.io/feetza-the-game/**
