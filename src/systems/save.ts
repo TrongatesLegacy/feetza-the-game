@@ -26,6 +26,7 @@ export interface SaveData {
   totalFeet: number;
   bossesBeaten: string[];
   tutorialDone: boolean;
+  milestones: string[];
 }
 
 const DEFAULTS: SaveData = {
@@ -50,6 +51,7 @@ const DEFAULTS: SaveData = {
   totalFeet: 0,
   bossesBeaten: [],
   tutorialDone: false,
+  milestones: [],
 };
 
 function clone<T>(v: T): T {
@@ -107,4 +109,9 @@ export function resetProgress(): void {
   const settings = save.settings;
   Object.assign(save, clone(DEFAULTS), { settings });
   persist();
+}
+
+/** Cheapest pizza not yet unlocked (or null if everything is unlocked). */
+export function nextLockedPizza<T extends { id: string; cost: number }>(all: T[]): T | null {
+  return [...all].filter((p) => !save.unlockedPizzas.includes(p.id)).sort((a, b) => a.cost - b.cost)[0] ?? null;
 }

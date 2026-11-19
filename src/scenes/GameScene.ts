@@ -4,14 +4,16 @@ import { BASE_SLICES, COMBO_BASE_WINDOW, H, MAX_PIZZAS, PIZZA_Y, W } from '../co
 import { FOOT_BY_ID, OUCH, TRAIT_INFO, type FootType } from '../data/feet';
 import { PIZZAS, PIZZA_BY_ID } from '../data/pizzas';
 import { UPGRADES, UPGRADE_BY_ID } from '../data/upgrades';
-import { footPortraitURL } from '../game/assets';
+import { footPortraitURL, pizzaPortraitURL } from '../game/assets';
 import { BackdropView } from '../game/BackdropView';
 import { Foot } from '../game/Foot';
 import { Fx } from '../game/Fx';
 import { Pizza } from '../game/Pizza';
 import { LOCATION_AMBIENCE, LOCATION_MUSIC, Run, backdropFor, bossMusic, isBossWave, locationFor, planWave, type WavePlan } from '../game/Run';
 import { audio } from '../systems/audio';
-import { markFootSeen, persist, save, updateSettings } from '../systems/save';
+import { markFootSeen, nextLockedPizza, persist, save, updateSettings } from '../systems/save';
+import { MILESTONES } from '../data/meta';
+import type { CounterOffer } from '../ui/ui';
 import { ui } from '../ui/ui';
 import { randomLineup } from './MenuScene';
 
@@ -68,6 +70,9 @@ export class GameScene extends Phaser.Scene {
   private currentLocation: LocationId | null = null;
   private tutorial = false;
   private slamHinted = false;
+  private counterOffers: CounterOffer[] = [];
+  private counterWave = -1;
+  private bossBonusGiven = false;
   private keyHandler = (e: KeyboardEvent) => this.onKey(e);
   private visHandler = () => {
     if (document.hidden && this.waveActive && !this.paused && !this.over && !this.inUpgrade) this.togglePause(true);
@@ -170,6 +175,9 @@ export class GameScene extends Phaser.Scene {
     this.hitStop = 0;
     this.slowMo = 0;
     this.slamHinted = false;
+    this.counterOffers = [];
+    this.counterWave = -1;
+    this.bossBonusGiven = false;
     this.tweens.timeScale = 1;
   }
 
@@ -470,6 +478,7 @@ export class GameScene extends Phaser.Scene {
     }
     if (n > save.bestWave) save.bestWave = n;
     persist();
+    this.checkMilestones();
     this.time.delayedCall(boss ? 2400 : 1700, () => this.openUpgrades(boss));
   }
 
@@ -494,6 +503,11 @@ export class GameScene extends Phaser.Scene {
     const exclude = tableFull ? ['helping'] : [];
     const choices = reuse ?? (bossReward ? this.run.rollBossChoices(count, exclude) : this.run.rollChoices(count, exclude));
     const dead = this.pizzas.filter((p) => p.dead);
+    if (this.counterWave !== this.run.wave) {
+      this.counterWave = this.run.wave;
+      this.counterOffers = this.rollCounterOffers();
+    }
+    const next = nextLockedPizza(PIZZAS);
     const s = ui.upgrade({
       title: bossReward ? 'BOSS LOOT!' : `WAVE ${this.run.wave} CLEARED!`,
       sub: bossReward ? 'Pick an epic topping' : 'Pick a topping upgrade',
@@ -527,6 +541,21 @@ export class GameScene extends Phaser.Scene {
         ui.close(s);
         this.openUpgrades(bossReward, choices);
       },
+      counter: {
+        offers: this.counterOffers,
+        canBuy: this.pizzas.length < MAX_PIZZAS || dead.length > 0,
+        onBuy: (id) => {
+          const off = this.counterOffers.find((o) => o.id === id);
+          if (!off || this.run.coins < off.cost) return;
+          this.run.coins -= off.cost;
+          this.run.pizzasBought++;
+          this.counterOffers = this.counterOffers.filter((o) => o !== off);
+          this.placeNewPizza(id, off.trial ? `${PIZZA_BY_ID[id].name} (Chef's Special, this run only)` : PIZZA_BY_ID[id].name);
+          ui.close(s);
+          this.openUpgrades(bossReward, choices);
+        },
+      },
+      progress: { runCrusts: this.run.crustsEarned(), bank: save.crusts, next: next ? { name: next.name, cost: next.cost } : null },
       onRevive: () => {
         const p = this.pizzas.find((x) => x.dead);
         if (!p) return;
@@ -541,6 +570,68 @@ export class GameScene extends Phaser.Scene {
         this.openUpgrades(bossReward, choices);
       },
     });
+  }
+
+  /** Two pizzas from your unlocked pool, plus sometimes a locked "Chef's Special" you can rent. */
+  private rollCounterOffers(): CounterOffer[] {
+    const onTable = new Set(this.pizzas.map((p) => p.type.id));
+    const price = 60 + 35 * this.run.pizzasBought + 4 * this.run.wave;
+    const round5 = (n: number) => Math.round(n / 5) * 5;
+    const owned = Phaser.Utils.Array.Shuffle(save.unlockedPizzas.filter((id) => !onTable.has(id)));
+    const offers: CounterOffer[] = owned.slice(0, 2).map((id) => ({ id, name: PIZZA_BY_ID[id].name, perk: PIZZA_BY_ID[id].perkText, cost: round5(price), trial: false }));
+    const locked = PIZZAS.filter((p) => !save.unlockedPizzas.includes(p.id) && !onTable.has(p.id))
+      .sort((a, b) => a.cost - b.cost)
+      .slice(0, 8);
+    if (locked.length && (offers.length < 2 || Math.random() < 0.5)) {
+      const p = Phaser.Utils.Array.GetRandom(locked);
+      offers.push({ id: p.id, name: p.name, perk: p.perkText, cost: round5(price * 1.4), trial: true });
+    }
+    return offers;
+  }
+
+  /** Put a new pizza on the table (replacing a destroyed one if the table is full). */
+  private placeNewPizza(id: string, label: string): void {
+    if (this.pizzas.length >= MAX_PIZZAS) {
+      const dead = this.pizzas.find((p) => p.dead);
+      if (!dead) return;
+      this.pizzas.splice(this.pizzas.indexOf(dead), 1);
+      dead.destroy();
+    }
+    this.addPizza(id, BASE_SLICES + (save.meta.pies ?? 0), true);
+    this.layoutPizzas(true);
+    this.recompute();
+    audio.sfx('sfx_levelup', { volume: 0.6 });
+    ui.hud.toast(pizzaPortraitURL(id), 'NEW PIZZA ON THE TABLE', `${label}: ${PIZZA_BY_ID[id].perkText}`);
+  }
+
+  /** Award any milestones reached: each unlocks the cheapest locked pizza for free. */
+  private checkMilestones(): void {
+    const r = this.run;
+    const reached: Record<string, boolean> = {
+      firstWave3: r.wave >= 3,
+      firstBoss: save.bossesBeaten.length >= 1,
+      feet150: save.totalFeet >= 150,
+      wave10: r.wave >= 10,
+      bosses3: save.bossesBeaten.length >= 3,
+      feet600: save.totalFeet >= 600,
+      wave20: r.wave >= 20,
+      allBosses: save.bossesBeaten.length >= 6,
+    };
+    for (const m of MILESTONES) {
+      if (!reached[m.id] || save.milestones.includes(m.id)) continue;
+      save.milestones.push(m.id);
+      const prize = nextLockedPizza(PIZZAS);
+      if (prize) {
+        save.unlockedPizzas.push(prize.id);
+        r.newUnlocks.push(prize.id);
+        ui.hud.toast(pizzaPortraitURL(prize.id), `MILESTONE: ${m.name.toUpperCase()}`, `${prize.name} unlocked for free!`);
+      } else {
+        save.crusts += 50;
+        ui.hud.toast(null, `MILESTONE: ${m.name.toUpperCase()}`, '+50 Golden Crusts');
+      }
+      audio.sfx('sfx_levelup', { volume: 0.7 });
+    }
+    persist();
   }
 
   private pickUpgrade(id: string): void {
@@ -560,9 +651,7 @@ export class GameScene extends Phaser.Scene {
       const have = new Set(this.pizzas.map((p) => p.type.id));
       const pool = save.unlockedPizzas.filter((x) => !have.has(x));
       const pick = Phaser.Utils.Array.GetRandom(pool.length ? pool : PIZZAS.map((p) => p.id));
-      this.addPizza(pick, BASE_SLICES + (save.meta.pies ?? 0), true);
-      this.layoutPizzas(true);
-      ui.hud.toast(null, 'NEW PIZZA!', `${PIZZA_BY_ID[pick].name}: ${PIZZA_BY_ID[pick].perkText}`);
+      this.placeNewPizza(pick, PIZZA_BY_ID[pick].name);
     }
     this.recompute();
     ui.hud.setOwned(this.run.owned);
@@ -807,6 +896,16 @@ export class GameScene extends Phaser.Scene {
     ui.hud.setBoss(null);
     this.run.bossesBeaten.push(f.type.id);
     if (!save.bossesBeaten.includes(f.type.id)) save.bossesBeaten.push(f.type.id);
+    // the first boss of every run brings a new pizza to a small table
+    if (!this.bossBonusGiven && this.pizzas.length < 4) {
+      this.bossBonusGiven = true;
+      const have = new Set(this.pizzas.map((p) => p.type.id));
+      const pool = save.unlockedPizzas.filter((x) => !have.has(x));
+      if (pool.length) {
+        const pick = Phaser.Utils.Array.GetRandom(pool);
+        this.time.delayedCall(1600, () => !this.over && this.placeNewPizza(pick, `Boss bonus: ${PIZZA_BY_ID[pick].name}`));
+      }
+    }
     this.slowMo = 1.4;
     if (save.settings.flashes) this.cameras.main.flash(300, 255, 240, 200);
     this.shake(900, 0.012);
@@ -1249,6 +1348,7 @@ export class GameScene extends Phaser.Scene {
       this.time.delayedCall(900, () => audio.sting('music_gameover', 0.9));
     } else audio.stop('music', 400);
     for (const f of this.aliveFeet()) this.time.delayedCall(Math.random() * 600, () => f.alive && f.escape());
+    this.checkMilestones();
     const crusts = r.crustsEarned();
     const newBest = r.score > save.bestScore;
     save.crusts += crusts;
@@ -1274,6 +1374,10 @@ export class GameScene extends Phaser.Scene {
         crusts,
         newBest,
         time: `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`,
+        unlocked: r.newUnlocks,
+        affordable: PIZZAS.filter((p) => !save.unlockedPizzas.includes(p.id) && p.cost <= save.crusts)
+          .sort((a, b) => a.cost - b.cost)
+          .map((p) => p.id),
         again: () => restart(randomLineup(save.meta.table ? 4 : 3)),
         menu: () => {
           ui.closeAll();

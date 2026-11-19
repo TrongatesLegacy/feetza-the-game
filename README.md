@@ -11,7 +11,8 @@
 - **52 feet** (46 regular + 6 bosses), each with its own art, stats and traits (dodging, feinting, phasing, teleporting, reviving, splitting, rocket bursts, stink clouds…)
 - **28 pizzas**, each granting a perk while it survives (lose the pizza, lose the perk)
 - **30 in-run upgrades** across 4 rarities, plus rerolls, healing and rebaking between waves
-- **9 permanent Pizzeria upgrades** and 25 unlockable pizzas (meta-progression)
+- **9 permanent Pizzeria upgrades** and 25 unlockable pizzas: buy them with Golden Crusts earned each run, or get them free from 8 milestones (first boss, wave 10, 600 feet smacked…)
+- **Pizza counter** between waves: spend tips to add a pizza to the table for the run, swap out a destroyed one, or rent a locked "Chef's Special". Beating your first boss of a run also brings a bonus pizza to a small table
 - **12 hand-painted locations**: six pizzerias (one every 5 waves) and a unique arena per boss, each with its own lighting, ambient particles, music and ambience
 - **Pizzapedia** collection of every foot you've smacked
 - Full audio: 11 music tracks, 6 location ambiences, 23 SFX, with Master / Music / SFX / Ambience volume, mute, screen shake, damage numbers, flashes and FPS toggles

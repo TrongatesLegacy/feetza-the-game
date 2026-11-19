@@ -53,6 +53,14 @@ function btn(label: string, cls: string, onClick: () => void, attrs: Attrs = {})
 
 const fmt = (n: number) => Math.floor(n).toLocaleString('en-US');
 
+export interface CounterOffer {
+  id: string;
+  name: string;
+  perk: string;
+  cost: number;
+  trial: boolean;
+}
+
 class Hud {
   root: HTMLElement;
   private score = h('div', { class: 'score' }, '0');
@@ -308,7 +316,7 @@ class UI {
       h(
         'div',
         { class: 'menu-buttons' },
-        btn(`PIZZERIA`, 'yellow', h_.pizzeria),
+        btn(`PIZZERIA${PIZZAS.some((p) => !save.unlockedPizzas.includes(p.id) && p.cost <= save.crusts) ? ' <span class="badge">NEW</span>' : ''}`, 'yellow', h_.pizzeria),
         btn(`PIZZAPEDIA <small style="font-size:.7em">${seen}/${FEET.length}</small>`, 'green', h_.pedia),
         btn('SETTINGS', 'cream', h_.settings),
         btn('CREDITS', 'cream', h_.credits),
@@ -354,6 +362,8 @@ class UI {
     onReroll: () => void;
     onHeal: () => void;
     onRevive: () => void;
+    counter: { offers: CounterOffer[]; canBuy: boolean; onBuy: (id: string) => void };
+    progress: { runCrusts: number; bank: number; next: { name: string; cost: number } | null };
   }): HTMLElement {
     const cards = o.choices.map((u, i) => {
       const lvl = o.levels[u.id] ?? 0;
@@ -406,13 +416,50 @@ class UI {
       o.onRevive();
     });
     revive.disabled = !o.canRevive || o.coins < o.reviveCost;
+    // the pizza counter: buy (or rent a locked "Chef's Special") for this run
+    const counter = h('div', { class: 'counter' }, h('div', { class: 'counter-title' }, 'PIZZA COUNTER', h('small', {}, o.counter.canBuy ? 'for this run' : 'table full')));
+    for (const off of o.counter.offers) {
+      const b = btn(`${off.trial ? 'RENT' : 'ADD'} ${COIN_SVG.replace('class="coin"', 'class="coin-ico"')}${off.cost}`, `${off.trial ? '' : 'green'} small`, () => {
+        window.removeEventListener('keydown', onKey);
+        o.counter.onBuy(off.id);
+      });
+      b.disabled = !o.counter.canBuy || o.coins < off.cost;
+      counter.append(
+        h(
+          'div',
+          { class: `offer${off.trial ? ' trial' : ''}`, title: off.perk },
+          h('img', { src: pizzaPortraitURL(off.id), alt: '' }),
+          h('div', { class: 'offer-text' }, off.trial ? h('span', { class: 'tag' }, "CHEF'S SPECIAL") : null, h('b', {}, off.name), h('span', {}, off.perk)),
+          b,
+        ),
+      );
+    }
+    if (!o.counter.offers.length) counter.append(h('div', { class: 'hint' }, 'Unlock more pizzas in the Pizzeria to see them here.'));
+    // permanent-progress strip
+    const pr = o.progress;
+    const total = pr.bank + pr.runCrusts;
+    const progress = h(
+      'div',
+      { class: 'crust-progress' },
+      h('span', { html: `${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} <b>+${pr.runCrusts}</b> Golden Crusts this run` }),
+      pr.next
+        ? h(
+            'span',
+            { class: 'next' },
+            `Next unlock: ${pr.next.name} `,
+            h('i', { class: 'bar' }, h('i', { style: `width:${Math.min(100, (total / pr.next.cost) * 100)}%` })),
+            ` ${Math.min(total, pr.next.cost)}/${pr.next.cost}`,
+          )
+        : h('span', { class: 'next' }, 'Every pizza unlocked!'),
+    );
     const wrap = h(
       'div',
       { class: 'upgrade-wrap' },
       h('div', { class: 'title' }, o.title),
       h('div', { class: 'tagline', style: 'font-size:2em' }, o.sub),
+      progress,
       h('div', { class: 'cards' }, ...cards),
-      h('div', { class: 'panel shopbar' }, coinPill, reroll, heal, o.canRevive ? revive : null),
+      h('div', { class: 'panel shopbar' }, h('div', { class: 'shop-row' }, coinPill, reroll, heal, o.canRevive ? revive : null), counter),
       h('div', { class: 'hint kbd-hint', style: 'color:#fff6e2;text-shadow:0 .1em 0 #2a1810', html: `Press <span class="kbd">1</span>–<span class="kbd">${o.choices.length}</span> to pick · <span class="kbd">R</span> to reroll` }),
     );
     const s = this.open(wrap);
@@ -526,7 +573,11 @@ class UI {
   }
 
   // ——— Game over ———
-  gameOver(o: { score: number; wave: number; feet: number; combo: number; bosses: number; crusts: number; newBest: boolean; time: string; again: () => void; menu: () => void; pizzeria: () => void }): HTMLElement {
+  gameOver(o: { score: number; wave: number; feet: number; combo: number; bosses: number; crusts: number; newBest: boolean; time: string; unlocked: string[]; affordable: string[]; again: () => void; menu: () => void; pizzeria: () => void }): HTMLElement {
+    const shopBtn = btn('PIZZERIA', `yellow${o.affordable.length ? ' attention' : ''}`, o.pizzeria);
+    const callouts = h('div', { class: 'callouts' });
+    if (o.unlocked.length) callouts.append(h('div', { class: 'callout good', html: `🎉 Unlocked this run: <b>${o.unlocked.map((id) => PIZZA_BY_ID[id].name).join(', ')}</b>` }));
+    if (o.affordable.length) callouts.append(h('div', { class: 'callout', html: `🍕 You can now unlock <b>${o.affordable.slice(0, 3).map((id) => PIZZA_BY_ID[id].name).join(', ')}${o.affordable.length > 3 ? ` +${o.affordable.length - 3} more` : ''}</b> in the Pizzeria!` }));
     const crustsEl = h('span', {}, '0');
     const panel = h(
       'div',
@@ -544,7 +595,8 @@ class UI {
         stat(o.time, 'Time'),
       ),
       h('div', { class: 'crusts', html: `${CRUST_SVG.replace('class="coin"', 'style="width:1.2em;height:1.2em"')} +` }, crustsEl, h('span', { style: 'font-size:.6em' }, ' Golden Crusts')),
-      h('div', { class: 'row' }, btn('PLAY AGAIN', 'green big', o.again), btn('PIZZERIA', 'yellow', o.pizzeria), btn('MENU', 'cream', o.menu)),
+      callouts.childElementCount ? callouts : null,
+      h('div', { class: 'row' }, btn('PLAY AGAIN', 'green big', o.again), shopBtn, btn('MENU', 'cream', o.menu)),
     );
     const s = this.open(panel);
     // count-up

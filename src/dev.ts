@@ -25,6 +25,13 @@ export function installDevTools(game: Phaser.Game): void {
     },
     startGame(lineup?: string[]): void {
       document.querySelectorAll('.screen').forEach((e) => e.remove());
+      const g = game.scene.getScene('Game');
+      // stop+start of the same scene in one frame leaves it shut down; restart it instead
+      if (g && (g.sys.isActive() || g.sys.isPaused())) {
+        if (g.sys.isPaused()) g.scene.resume();
+        g.scene.restart({ lineup });
+        return;
+      }
       game.scene.getScenes(true).forEach((s) => s.scene.stop());
       game.scene.start('Game', { lineup });
     },

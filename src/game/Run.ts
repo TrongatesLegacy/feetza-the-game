@@ -115,6 +115,8 @@ export class Run {
   perkCounts: Partial<Record<PizzaPerk, number>> = {};
   angelUsed = false;
   slicesLost = 0;
+  pizzasBought = 0;
+  newUnlocks: string[] = [];
   startTime = performance.now();
 
   level(id: string): number {
@@ -207,6 +209,6 @@ export class Run {
   }
 
   crustsEarned(): number {
-    return Math.floor(this.score / 400) + Math.max(0, this.wave - 1) * 3 + this.bossesBeaten.length * 25;
+    return Math.floor(this.score / 250) + Math.max(0, this.wave - 1) * 4 + this.bossesBeaten.length * 30;
   }
 }
