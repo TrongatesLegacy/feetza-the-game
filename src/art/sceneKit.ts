@@ -338,19 +338,27 @@ export function snowfall(ctx: Ctx, r: R, x: number, y: number, w: number, h: num
   }
 }
 
-/** Soft curved aurora ribbon. */
-export function aurora(ctx: Ctx, pts: [number, number][], cols: string[], width: number, a: number): void {
+/** Aurora curtain: vertical light streaks hanging along a smooth curve of points. */
+export function aurora(ctx: Ctx, pts: [number, number][], cols: string[], height: number, a: number, r: R): void {
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
-  ctx.lineCap = 'round';
-  for (let k = 0; k < 5; k++) {
-    ctx.strokeStyle = rgba(cols[k % cols.length], a * (1 - k * 0.15));
-    ctx.lineWidth = width * (1 - k * 0.17);
-    ctx.beginPath();
-    ctx.moveTo(pts[0][0], pts[0][1] + k * width * 0.18);
-    for (let i = 1; i + 2 < pts.length + 1; i += 3)
-      ctx.bezierCurveTo(pts[i][0], pts[i][1] + k * width * 0.18, pts[i + 1][0], pts[i + 1][1] + k * width * 0.18, pts[i + 2][0], pts[i + 2][1] + k * width * 0.22);
-    ctx.stroke();
+  const N = 260;
+  for (let i = 0; i < N; i++) {
+    const t = (i / (N - 1)) * (pts.length - 1);
+    const k = Math.min(pts.length - 2, Math.floor(t));
+    const u = t - k;
+    const s = u * u * (3 - 2 * u);
+    const x = pts[k][0] + (pts[k + 1][0] - pts[k][0]) * u;
+    const y = pts[k][1] + (pts[k + 1][1] - pts[k][1]) * s;
+    const c = cols[Math.floor((i / N) * cols.length * 2) % cols.length];
+    const h = height * (0.5 + r() * 0.7);
+    const aa = a * (0.4 + r() * 0.6) * Math.sin((i / (N - 1)) * Math.PI);
+    const gr = ctx.createLinearGradient(0, y - h, 0, y + 10);
+    gr.addColorStop(0, rgba(c, 0));
+    gr.addColorStop(0.75, rgba(c, aa));
+    gr.addColorStop(1, rgba(c, 0));
+    ctx.fillStyle = gr;
+    ctx.fillRect(x - 6, y - h, 12 + r() * 10, h + 10);
   }
   ctx.restore();
 }

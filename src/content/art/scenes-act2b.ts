@@ -32,10 +32,8 @@ import {
   gothicArch,
   grade,
   grainRect,
-  hgrad,
   laneCalm,
   lgrad,
-  mottle,
   neonStroke,
   neonText,
   outline,
@@ -48,7 +46,6 @@ import {
   roundRect,
   shade,
   snowfall,
-  starPath,
   stoneBlocks,
   tableLight,
   vgrad,
@@ -413,7 +410,7 @@ function liftChair(ctx: Ctx, x: number, y: number, col: string): void {
   fillOl(ctx, col, 3);
 }
 
-function chalet(ctx: Ctx, r: R, x: number, base: number): void {
+function chalet(ctx: Ctx, x: number, base: number): void {
   const w = 300;
   const h = 150;
   // chimney smoke
@@ -471,7 +468,6 @@ function chalet(ctx: Ctx, r: R, x: number, base: number): void {
     [0, '#ffffff'],
     [1, '#c8d8f0'],
   ]), 5);
-  void r;
 }
 
 function drawSlopes(ctx: Ctx, r: R): void {
@@ -592,7 +588,7 @@ function drawSlopes(ctx: Ctx, r: R): void {
     const y = cable.y0 + t * (cable.y1 - cable.y0);
     liftChair(ctx, x, y, c);
   }
-  chalet(ctx, r, SL.hut.x, SL.hut.y);
+  chalet(ctx, SL.hut.x, SL.hut.y);
   laneCalm(ctx, 0.06, 80, 600, '#1a2a50');
   // terrace railing with snow on top
   railing(ctx, 660, TY, 180, '#8a5a32', 22, [0, 52], 0);
@@ -907,10 +903,6 @@ function drawCellar(ctx: Ctx, r: R): void {
   tableLight(ctx, '#b0e0b8', 0.05, 0.55);
   fogBand(ctx, r, 990, 140, '#9fe8d0', 0.1, 20);
   vignette(ctx, 0.9, '#010403', 0.6);
-  void hgrad;
-  void mottle;
-  void starPath;
-  void cylV;
 }
 
 function mixGreen(k: number): string {

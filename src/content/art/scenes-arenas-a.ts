@@ -5,7 +5,6 @@ import { registerScene } from '../../art/registry';
 import {
   type Ctx,
   type R,
-  H,
   HY,
   OL,
   TY,
@@ -966,4 +965,3 @@ registerScene('gargoyle', {
   draw: drawBellTower,
 });
 
-void H;

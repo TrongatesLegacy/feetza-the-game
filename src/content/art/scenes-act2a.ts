@@ -12,18 +12,13 @@ import {
   bandCloth,
   bandsX,
   bandsZ,
-  blob,
-  bulbsOn,
   catenaryPt,
   checkerTop,
   clipRect,
-  cone,
   contactShadow,
   cylH,
   cylV,
   darkSpot,
-  drawBulbs,
-  drawWires,
   ellipse,
   fillOl,
   flame,
@@ -34,7 +29,6 @@ import {
   hgrad,
   laneCalm,
   lgrad,
-  mix,
   moon,
   mottle,
   outline,
@@ -579,7 +573,7 @@ function townRow(ctx: Ctx, r: R, base: number, minH: number, maxH: number, minW:
   return out;
 }
 
-function cathedral(ctx: Ctx, r: R, base: number): void {
+function cathedral(ctx: Ctx, base: number): void {
   const col = '#1c2048';
   const { tower } = OT;
   ctx.fillStyle = col;
@@ -637,7 +631,6 @@ function cathedral(ctx: Ctx, r: R, base: number): void {
     ctx.rect(900 + k * 72, base - 140, 16, 40);
     ctx.fill();
   }
-  void r;
 }
 
 function washing(ctx: Ctx, r: R): void {
@@ -711,7 +704,7 @@ function drawOldTown(ctx: Ctx, r: R): void {
   moon(ctx, OT.moon.x, OT.moon.y, 64, r);
   // wispy night clouds
   for (let i = 0; i < 6; i++) darkSpot(ctx, r() * W, 160 + r() * 220, 220 + r() * 200, 22 + r() * 16, 0.35, '#5a5a9a');
-  cathedral(ctx, r, 560);
+  cathedral(ctx, 560);
   townRow(ctx, r, 560, 60, 120, 90, 150, '#2a2c5a', '#3a2c4a', '#ffc070', 0.25, 0, 0.35);
   townRow(ctx, r, 640, 90, 170, 130, 210, '#4a3a5a', '#7a3a34', '#ffc070', 0.35, 3, 0.25);
   // washing strung between the near houses
@@ -721,8 +714,7 @@ function drawOldTown(ctx: Ctx, r: R): void {
   fillOl(ctx, '#3a2a3a', 3);
   washing(ctx, r);
   // near row: warm terracotta roofs, bigger
-  const near = townRow(ctx, r, 700, 60, 110, 240, 330, '#8a5a50', '#b0502e', '#ffcf7a', 0.5, 4, 0);
-  void near;
+  townRow(ctx, r, 700, 60, 110, 240, 330, '#8a5a50', '#b0502e', '#ffcf7a', 0.5, 4, 0);
   laneCalm(ctx, 0.18, 60, 620, '#060818');
   // terrace parapet with terracotta coping
   const py = 690;
@@ -823,7 +815,7 @@ const PR = {
   front: 1040,
 };
 
-function ferrisWheel(ctx: Ctx, r: R): GlowSpot[] {
+function ferrisWheel(ctx: Ctx): GlowSpot[] {
   const { x, y, r: R0 } = PR.wheel;
   const col = '#3a1e3a';
   // legs
@@ -897,11 +889,10 @@ function ferrisWheel(ctx: Ctx, r: R): GlowSpot[] {
   }
   ellipse(ctx, x, y, 26, 26);
   fillOl(ctx, cylH(ctx, x - 26, 52, '#8a5a6a'), 5);
-  void r;
   return out;
 }
 
-function carousel(ctx: Ctx, r: R): void {
+function carousel(ctx: Ctx): void {
   const { x, y } = PR.carousel;
   const w = 380;
   const eave = y + 110;
@@ -987,7 +978,6 @@ function carousel(ctx: Ctx, r: R): void {
   ctx.lineTo(x + 40, y - 78);
   ctx.lineTo(x, y - 66);
   fillOl(ctx, '#d0342a', 3);
-  void r;
 }
 
 function drawPier(ctx: Ctx, r: R): void {
@@ -1055,8 +1045,8 @@ function drawPier(ctx: Ctx, r: R): void {
   // pier deck behind the railing
   ctx.fillStyle = '#5a3a3a';
   ctx.fillRect(0, 630, W, TY - 630);
-  ferrisWheel(ctx, r);
-  carousel(ctx, r);
+  ferrisWheel(ctx);
+  carousel(ctx);
   laneCalm(ctx, 0.1, 80, 560, '#200a20');
   // lamp posts
   for (const lx of PR.lamps) {
@@ -1160,10 +1150,3 @@ registerScene('pier', {
   draw: drawPier,
 });
 
-void mix;
-void cone;
-void bulbsOn;
-void drawBulbs;
-void drawWires;
-void blob;
-void TY;
