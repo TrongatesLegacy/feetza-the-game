@@ -4840,3 +4840,19 @@ export function drawBackdrop(id: BackdropId): HTMLCanvasElement {
   }
   return c;
 }
+
+// ---------------------------------------------------------------------------------------------
+// Shared painting kit for scenes registered from src/content/art (re-exported by sceneKit.ts).
+
+export type { R, Stop, Swag, Bulb, Band };
+export {
+  W, H, TY, OL, HY, VX, FOC, ZB,
+  CHALK, ROUND, SCRIPT, SLAB, BLOCK,
+  yAt, xAt, zAt, quad, planePoly,
+  noise, speck, grainRect, cloud, mottle, vgrad, glow, darkSpot, cone, outline, fillOl, hgrad, lgrad, cylH, cylV,
+  grade, vignette, contactShadow, tableLight, frontFace, clipRect, zFront,
+  checkerTop, bandsX, bandsZ, drapeColumns, clothWeave, drapeFolds, bandCloth, planksTop, woodLip,
+  footPath, neonStroke, neonText, cobweb, fogBand, stars, moon, flame, logEnd, pendant, lampLight,
+  brickWall, wainscot, catenaryPt, bulbsOn, drawWires, drawBulbs, pine, palm, frond, skyline, hazard, rivet,
+  terracottaPot, cloudStreak, chain, girder, starPath, gothicArch,
+};
