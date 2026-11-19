@@ -1,0 +1,80 @@
+# 🍕 Feetza
+
+**Stop the feet. Save the pizza.** A browser arcade roguelike: cartoon feet descend on a table of pizzas and you smack them away with a pizza peel before they stomp. Build a run from roguelike upgrades, travel through six pizzerias, beat six bosses, and spend Golden Crusts on permanent upgrades between runs.
+
+- **52 feet** (46 regular + 6 bosses), each with its own art, stats and traits (dodging, feinting, phasing, teleporting, reviving, splitting, rocket bursts, stink clouds…)
+- **28 pizzas**, each granting a perk while it survives (lose the pizza, lose the perk)
+- **30 in-run upgrades** across 4 rarities, plus rerolls, healing and rebaking between waves
+- **9 permanent Pizzeria upgrades** and 25 unlockable pizzas (meta-progression)
+- **12 hand-painted locations**: six pizzerias (one every 5 waves) and a unique arena per boss, each with its own lighting, ambient particles, music and ambience
+- **Pizzapedia** collection of every foot you've smacked
+- Full audio: 11 music tracks, 6 location ambiences, 23 SFX, with Master / Music / SFX / Ambience volume, mute, screen shake, damage numbers, flashes and FPS toggles
+
+All art (feet, pizzas, toppings, backdrops, UI sprites) is drawn procedurally with Canvas 2D at load time, so there are no image assets to download and everything stays sharp at any resolution.
+
+## Controls
+
+| Action | Mouse / touch | Keyboard |
+|---|---|---|
+| Smack a foot | Click / tap it | — |
+| Peel Slam (screen-wide smack when charged) | Tap the SLAM button | `Space` |
+| Pause | Pause button | `Esc` / `P` |
+| Mute | Speaker button | `M` |
+| Pick an upgrade / reroll | Click a card / Reroll | `1`–`4` / `R` |
+
+## Run it
+
+```bash
+npm install
+npm run dev      # http://localhost:5173
+npm run build    # typecheck + production build into dist/
+npm run preview  # serve the production build
+```
+
+Requires Node 20+.
+
+## Deploy to Netlify
+
+`netlify.toml` is already set up (`npm run build` → publish `dist/`, Node 22, long-cache headers for hashed assets).
+
+- **Git deploy:** push the repo to GitHub/GitLab and "Add new site → Import an existing project" in Netlify. No settings to change.
+- **CLI:** `npx netlify-cli deploy --build --prod`
+- **Drag and drop:** run `npm run build` and drop the `dist/` folder onto https://app.netlify.com/drop
+
+The game is fully static, so any static host works too.
+
+## Stack choice
+
+| Option | Verdict |
+|---|---|
+| **Phaser 3.90 + Vite + TypeScript** ✅ | Mature 2D engine: WebGL batching, particles, tweens, cameras, a Web Audio sound manager, scale manager. Vite gives instant dev reloads and an optimised static build that suits Netlify. 3.90 is the final, battle-tested v3 release. |
+| Phaser 4 | Newer renderer, but a younger API with breaking changes. No benefit for a 2D sprite game. |
+| PixiJS + Howler | Great renderer, but you'd hand-roll scenes, tweens, input and audio categories. |
+| Three.js / Babylon | 3D engines, overkill for a 2D arcade game. |
+| React/Canvas from scratch | Maximum control, but slower to reach this level of polish. |
+
+UI (HUD, menus, upgrade cards, settings) is a DOM overlay scaled with CSS container-query units, which gives crisp text, real range sliders and accessibility for free while Phaser renders the game.
+
+## Project layout
+
+```
+src/
+  art/        procedural Canvas2D art: feet, pizzas, toppings, backdrops, sprites
+  data/       feet, pizzas, upgrades, meta upgrades (all the content tables)
+  game/       Foot, Pizza, Run (stats + wave planning), Fx, BackdropView, assets
+  scenes/     Boot (generation + loading), Menu, Game
+  systems/    audio (category volumes, crossfades, lazy loading), save (localStorage)
+  ui/         DOM overlay: HUD, menus, modals
+public/audio/ music, ambience and SFX (+ CREDITS.md / credits.json)
+```
+
+## Audio mix
+
+- Music and ambience are loudness-normalised to about -16 LUFS. Ambience is mixed about 8 dB under music.
+- SFX gains are calibrated from measured 50 ms RMS peaks so slaps, crits, stomps and UI sounds sit at deliberate relative levels (see `TRIM` in `src/systems/audio.ts`). Slaps round-robin through three recordings with pitch variation.
+- Loops are made gapless at runtime by trimming MP3 encoder padding from the decoded buffer.
+- Larger tracks stream in lazily, and the next location's and boss's tracks are preloaded one wave ahead.
+
+## Credits
+
+Music by Kevin MacLeod (incompetech.com), licensed CC-BY 4.0. SFX and ambiences are CC0 from Kenney.nl and Freesound contributors. Full per-file credits are in [`public/audio/CREDITS.md`](public/audio/CREDITS.md) and in-game under **Credits**. Fonts: Lilita One and Fredoka (SIL OFL).

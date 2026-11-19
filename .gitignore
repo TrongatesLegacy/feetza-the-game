@@ -1,0 +1,9 @@
+node_modules
+dist
+.DS_Store
+.netlify
+*.local
+.env*
+
+# personal reference material, not part of the game
+inspiration/
