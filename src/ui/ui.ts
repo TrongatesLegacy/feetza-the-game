@@ -1,7 +1,7 @@
 // DOM overlay UI: HUD, menus and modal screens. Rendered over the Phaser canvas and scaled with
 // container query units (1em = 1% of the stage width) so it stays crisp at any size.
 
-import { FEET, FOOT_BY_ID, TRAIT_INFO, type FootType } from '../data/feet';
+import { FEET, FOOT_BY_ID, TRAIT_INFO, howToFor, tellFor, type FootType } from '../data/feet';
 import { META } from '../data/meta';
 import { PIZZAS, PIZZA_BY_ID } from '../data/pizzas';
 import { RARITY_COLOR, UPGRADE_BY_ID } from '../data/upgrades';
@@ -216,8 +216,8 @@ class Hud {
       { class: 'newfoot panel' },
       h('span', { class: 'nf-tag' }, label),
       h('div', { class: 'nf-row' }, h('img', { src: img, alt: '' }), h('div', {}, h('b', {}, f.name), chips)),
-      f.howTo ? h('div', { class: 'nf-how' }, h('b', {}, 'How to beat it: '), f.howTo) : null,
-      f.tell ? h('div', { class: 'nf-tell' }, h('b', {}, 'Watch for: '), f.tell) : null,
+      howToFor(f) ? h('div', { class: 'nf-how' }, h('b', {}, 'How to beat it: '), howToFor(f)!) : null,
+      tellFor(f) ? h('div', { class: 'nf-tell' }, h('b', {}, 'Watch for: '), tellFor(f)!) : null,
     );
     this.newFootEl = el;
     this.root.append(el);
@@ -613,7 +613,7 @@ class UI {
       const counter = h(
         'section',
         { class: 'shop-sec counter2', 'data-pad-section': '' },
-        h('div', { class: 'sec-head' }, h('h2', {}, 'PIZZA COUNTER'), st.tableFull ? h('span', { class: 'sec-note' }, 'Full table: you pick one to swap') : null),
+        h('div', { class: 'sec-head' }, h('h2', {}, 'PIZZA COUNTER'), st.tableFull ? h('span', { class: 'sec-note' }, 'Full: you pick one to swap') : null),
         ...(offers.length ? offers : [h('div', { class: 'hint' }, 'Unlock more pizzas in the Pizzeria to see them here.')]),
         services,
       );
@@ -621,11 +621,16 @@ class UI {
         'section',
         { class: 'shop-sec golden', 'data-pad-section': '' },
         h('div', { class: 'sec-head' }, h('h2', {}, 'GOLDEN MENU'), h('span', { class: 'sec-note' }, 'Paid from banked crusts')),
-        ...st.golden.map((g) => {
-          const b = btn(g.available ? `${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} ${g.cost}` : 'N/A', g.available ? 'yellow small' : 'small', () => act.golden(g.id));
-          b.disabled = !g.available;
-          return h('div', { class: 'gitem', title: g.note }, h('div', {}, h('b', {}, g.name), h('span', {}, g.note || g.desc)), b);
-        }),
+        h(
+          'div',
+          { class: 'gitems' },
+          ...st.golden.map((g) => {
+            const el = h('button', { class: `gitem${g.available ? ' on' : ''}`, type: 'button', title: `${g.desc}${g.note ? ` · ${g.note}` : ''}` }, h('b', {}, g.name), h('span', { html: g.available ? `${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} ${g.cost}` : g.note || 'Not now' })) as HTMLButtonElement;
+            el.disabled = !g.available;
+            el.addEventListener('click', () => g.available && act.golden(g.id));
+            return el;
+          }),
+        ),
       );
       const next = btn('NEXT WAVE', 'big next', () => act.next(), { 'data-pad': 'hold' });
       next.addEventListener('padhold', () => act.next());
@@ -1125,8 +1130,8 @@ class UI {
           h('h3', {}, seen ? f.name : '???'),
           h('p', {}, seen ? f.desc : f.boss || f.mini ? `A ${f.mini ? 'mini-boss' : 'boss'} lurks at wave ${f.minWave}…` : `Appears from wave ${f.minWave}. Spot one to learn more.`),
           seen && home ? h('p', { class: 'home' }, `Home: ${home}`) : null,
-          seen && f.howTo ? h('div', { class: 'howto' }, h('b', {}, 'HOW TO BEAT IT'), h('span', {}, f.howTo)) : null,
-          seen && f.tell ? h('div', { class: 'tell' }, h('b', {}, 'THE TELL'), h('span', {}, f.tell)) : null,
+          seen && howToFor(f) ? h('div', { class: 'howto' }, h('b', {}, 'HOW TO BEAT IT'), h('span', {}, howToFor(f)!)) : null,
+          seen && tellFor(f) ? h('div', { class: 'tell' }, h('b', {}, 'THE TELL'), h('span', {}, tellFor(f)!)) : null,
           chips,
         ),
       );

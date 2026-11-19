@@ -2324,37 +2324,66 @@ body.pad .slam .pd {
   color: #8a5a00;
 }
 
-.gitem {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.6em;
-  background: rgba(255, 255, 255, 0.7);
-  border: 0.14em solid var(--ink);
-  border-radius: 0.7em;
-  padding: 0.3em 0.5em 0.3em 0.8em;
+.gitems {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4em;
 }
 
-.gitem > div {
+.gitem {
+  font: inherit;
+  color: var(--ink);
+  text-align: left;
   display: flex;
   flex-direction: column;
+  gap: 0.05em;
+  background: rgba(255, 255, 255, 0.55);
+  border: 0.14em solid rgba(42, 24, 16, 0.5);
+  border-radius: 0.7em;
+  padding: 0.3em 0.6em;
   min-width: 0;
+  cursor: not-allowed;
+}
+
+.gitem.on {
+  background: linear-gradient(180deg, #ffe680, #f2b731);
+  border-color: var(--ink);
+  box-shadow: 0 0.18em 0 var(--ink);
+  cursor: pointer;
+}
+
+.gitem.on:hover {
+  filter: brightness(1.06);
 }
 
 .gitem b {
   font-family: 'Lilita One', sans-serif;
   font-weight: 400;
-  font-size: 1.1em;
+  font-size: 1em;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .gitem span {
   font-weight: 600;
-  font-size: 0.85em;
+  font-size: 0.8em;
   color: var(--ink-soft);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 0.2em;
+}
+
+.gitem .coin-ico {
+  width: 1.1em;
+  height: 1.1em;
+}
+
+.shop-right .btn.next {
+  margin-top: auto;
 }
 
 .btn.next {
@@ -2376,7 +2405,8 @@ body.pad .slam .pd {
 
 .shop-foot {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
+  padding-right: 30em;
   align-items: center;
   gap: 1em;
   color: var(--cream);

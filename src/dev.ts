@@ -1,7 +1,62 @@
 // Dev-only tooling (tree-shaken out of production builds): screenshots + a simple auto-player.
 import type Phaser from 'phaser';
+import type { HeatId } from './data/difficulty';
+import type { RunSnapshot } from './game/snapshot';
+import { save } from './systems/save';
 
 type AnyScene = Phaser.Scene & Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+let realRandom = Math.random;
+
+/** Replace Math.random with a seeded generator (mulberry32). seed(null) restores it. */
+function seed(n: number | null): void {
+  if (n === null) {
+    Math.random = realRandom;
+    return;
+  }
+  realRandom = realRandom ?? Math.random;
+  let a = n >>> 0;
+  Math.random = () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function skipIntros(): void {
+  save.seenIntros = ['shop', 'kinds', 'swap', 'freshness', 'phases', 'mini', 'events', 'golden'];
+  save.tutorialDone = true;
+}
+
+function scenarioSnapshot(o: { wave: number; heat: HeatId; lineup?: string[]; owned: Record<string, number>; coins: number }): RunSnapshot {
+  const ids = o.lineup ?? ['margherita', 'pepperoni', 'funghi'];
+  return {
+    version: 1, heat: o.heat, act2Start: false, wave: o.wave, score: 0, coins: o.coins, owned: o.owned, cooldowns: {}, armed: [], super: 0,
+    rerollCost: 10, healCost: 30, reviveCost: 120, reheatUses: 0, bestCombo: 0, feetSmacked: 0, bossesBeaten: [], firstKills: 0, slicesLost: 0,
+    pizzasBought: 0, eventCrusts: 0, goldenUsed: {}, newUnlocks: [], elapsed: 0, secondChances: 0, rentedSpecial: null,
+    pizzas: ids.map((id, i) => ({ id, slices: 8, max: 8, fresh: [10, 8, 6, 9, 7][i % 5], dead: false })), counter: [], bossBonusGiven: false,
+  };
+}
+
+/** Bot shopping: heal when hurt, reheat stale pizzas, buy the best affordable card, then next wave. */
+function botShop(g: AnyScene): void {
+  const st = g.shop?.state;
+  if (!st || g.__botBusy) return;
+  g.__botBusy = true;
+  setTimeout(() => (g.__botBusy = false), 250);
+  const hurt = st.table.some((p: any) => !p.dead && p.slices <= p.max / 2); // eslint-disable-line @typescript-eslint/no-explicit-any
+  if (hurt && st.heal.can && st.coins >= st.heal.cost + 20) return g.shopHeal();
+  if (st.reheat.can && st.table.some((p: any) => p.freshOn && p.fresh <= 2)) return g.shopReheat(); // eslint-disable-line @typescript-eslint/no-explicit-any
+  if (st.rebake.can && st.rebake.shown) return g.shopRebake();
+  const rank: Record<string, number> = { legendary: 4, epic: 3, rare: 2, common: 1 };
+  const card = st.cards.filter((c: any) => !c.sold && (c.free || st.coins >= c.price)).sort((a: any, b: any) => rank[b.rarity] - rank[a.rarity])[0]; // eslint-disable-line @typescript-eslint/no-explicit-any
+  if (card) return g.shopBuy(card.id);
+  const dev = (window as unknown as { F: { log: Record<string, unknown>[] } }).F;
+  dev.log.push({ wave: st.wave, coins: st.coins, slices: st.table.reduce((n: number, p: any) => n + p.slices, 0), pizzas: st.table.filter((p: any) => !p.dead).length, owned: Object.keys(g.run.owned).length, crusts: st.progress.runCrusts, t: Math.round((performance.now() - g.run.startTime) / 1000) }); // eslint-disable-line @typescript-eslint/no-explicit-any
+  g.shopNext();
+}
 
 export function installDevTools(game: Phaser.Game): void {
   let botOn = false;
@@ -23,37 +78,75 @@ export function installDevTools(game: Phaser.Game): void {
       document.querySelector('.screen')?.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
       await sleep(800);
     },
-    startGame(lineup?: string[]): void {
+    /**
+     * Start a run from any point. Pass a lineup array (old form) or a scenario:
+     * { lineup, heat, wave, tips, boss: { id, hp }, snapshot, act2, seed, upgrades: { heavy: 3 }, intros: false }.
+     */
+    startGame(opts?: string[] | Record<string, any>): void { // eslint-disable-line @typescript-eslint/no-explicit-any
+      const o = Array.isArray(opts) ? { lineup: opts } : (opts ?? {});
+      if (o.seed !== undefined) seed(Number(o.seed));
+      if (o.intros === false) skipIntros();
       document.querySelectorAll('.screen').forEach((e) => e.remove());
+      const data = { ...o };
+      if (o.upgrades || o.coins !== undefined) {
+        // a scenario with upgrades starts from a snapshot in the shop of wave-1
+        const wave = Math.max(0, (o.wave ?? 1) - 1);
+        data.snapshot = scenarioSnapshot({ wave, heat: o.heat ?? 'regular', lineup: o.lineup, owned: o.upgrades ?? {}, coins: o.coins ?? o.tips ?? 0 });
+      }
       const g = game.scene.getScene('Game');
-      // stop+start of the same scene in one frame leaves it shut down; restart it instead
       if (g && (g.sys.isActive() || g.sys.isPaused())) {
         if (g.sys.isPaused()) g.scene.resume();
-        g.scene.restart({ lineup });
+        g.scene.restart(data);
         return;
       }
       game.scene.getScenes(true).forEach((s) => s.scene.stop());
-      game.scene.start('Game', { lineup });
+      game.scene.start('Game', data);
     },
+    /** Save the current run as a scenario (same shape as the run save). */
+    saveScenario(): unknown {
+      const g = game.scene.getScene('Game') as AnyScene;
+      return g?.snapshot?.();
+    },
+    /** Deterministic randomness for fair before/after comparisons. */
+    seed,
+    skipIntros,
+    /**
+     * The auto-player: smacks the lowest foot, wipes boss props, and shops with a simple strategy
+     * (heal when hurt, reheat stale pizzas, buy the best affordable topping, then next wave).
+     */
     bot(on = true, accuracy = 0.9, rate = 260): void {
       botOn = on;
+      skipIntros();
       const loop = () => {
         if (!botOn) return;
         const g = game.scene.getScene('Game') as AnyScene;
-        if (g && game.scene.isActive('Game') && g.feet) {
-          const t = g.feet.filter((f: any) => f.hittable).sort((a: any, b: any) => b.y - a.y)[0]; // eslint-disable-line @typescript-eslint/no-explicit-any
-          if (t && Math.random() < accuracy) {
-            g.pointer.x = t.cx;
-            g.pointer.y = t.cy;
-            g.smack(t.cx, t.cy);
+        if (g && (game.scene.isActive('Game') || game.scene.isPaused('Game'))) {
+          const intro = document.querySelector<HTMLElement>('.intro .btn, .second .btn.cream');
+          if (intro) intro.click();
+          if (g.feet && !g.inUpgrade && !g.over) {
+            const prop = (g.clickables ?? []).find((c: any) => c.alive() && (c.priority ?? 0) >= 2); // eslint-disable-line @typescript-eslint/no-explicit-any
+            const t = g.feet.filter((f: any) => f.hittable).sort((a: any, b: any) => b.y - a.y)[0]; // eslint-disable-line @typescript-eslint/no-explicit-any
+            if (prop && Math.random() < accuracy) {
+              g.pointer.x = prop.x;
+              g.pointer.y = prop.y;
+              g.smack(prop.x, prop.y);
+            } else if (t && Math.random() < accuracy) {
+              g.pointer.x = t.cx;
+              g.pointer.y = t.cy;
+              g.peelPos.x = t.cx;
+              g.peelPos.y = t.cy;
+              g.smack(t.cx, t.cy);
+            }
+            if (g.run?.super >= 1 && Math.random() < 0.05) g.peelSlam();
           }
-          const card = document.querySelector('.card') as HTMLElement | null;
-          if (card && g.inUpgrade) card.click();
+          if (g.inUpgrade && g.shop) botShop(g);
         }
         setTimeout(loop, rate);
       };
       loop();
     },
+    /** Per-wave log the bot fills in: tips earned/spent, slices lost, upgrades owned. */
+    log: [] as Record<string, unknown>[],
   };
   const trailer = (prefix = 'f_', vertical = false) => import('./trailer').then((m) => m.recordTrailer(game, { prefix, vertical }));
   (window as unknown as { F: typeof api & { contrast: typeof contrastAudit; trailer: typeof trailer } }).F = Object.assign(api, { contrast: contrastAudit, trailer });

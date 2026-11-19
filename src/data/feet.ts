@@ -660,3 +660,63 @@ export const TRAIT_INFO: Record<FootTrait, string> = {
 export const OUCH = [
   'OUCH!', 'YOWCH!', 'EEK!', 'OOF!', 'MY TOE!', 'NOT THE TOES!', 'HEY!', 'RUDE!', 'AIEEE!', 'OWIE!', 'BONK!', 'YIKES!',
 ];
+
+/** One-line answers and tells per trait, used for feet without hand-written ones. */
+const TRAIT_HOWTO: Partial<Record<FootTrait, [string, string]>> = {
+  dodge: ['Smack again right after it sidesteps', 'It leans before it dodges'],
+  feint: ['Wait out the fake dip, then smack', 'It dips halfway, then pulls up'],
+  stink: ['Smack it before the cloud builds', 'Green fumes gather below it'],
+  phase: ['Hit it while it is solid', 'It flickers before it fades out'],
+  revive: ['Smack it twice: it gets back up once', 'It lies still, then springs up'],
+  burst: ['Hit it between rocket bursts', 'Flames flare before each burst'],
+  zigzag: ['Aim at its middle path', 'It sways side to side'],
+  flee: ['Smack it before it runs off', 'It hovers high and nervous'],
+  immuneSlow: ['Burns and damage still work', 'Frost slides right off it'],
+  immuneBurn: ['Slows and damage still work', 'Flames fizzle on it'],
+  swarm: ['Use area smacks on the group', 'They arrive in threes'],
+  flutter: ['Keep hitting: it bounces back fast', 'It springs back after knockback'],
+  wide: ['Stop it early: it squashes neighbours', 'Its huge sole shadows two pizzas'],
+  split: ['Be ready for the babies it drops', 'It wobbles when it is about to pop'],
+  teleport: ['Watch for where it reappears', 'A sparkle marks its next spot'],
+  heavy: ['Damage it: knockback barely works', 'It barely moves when smacked'],
+  floaty: ['Knock it high, then finish it', 'It drifts up when hit'],
+  glossy: ['The first smack slips: hit twice', 'Its shine means the first hit slips'],
+  soggy: ['Stop it: the next stomp hits harder', 'It drips on the way down'],
+  rush: ['React fast: it barely hovers', 'It drops almost at once'],
+  enrage: ['Finish it fast below half health', 'Steam rises when it gets angry'],
+  crack: ['Every smack strips its armour', 'Cracks spread with each hit'],
+  pierce: ['Shields will not stop it: smack it', 'Its heel is needle sharp'],
+  parry: ['Feint: its first smack is parried', 'It glints just before it parries'],
+  cheer: ['Take it out to slow the others', 'Confetti around nearby feet'],
+  double: ['Knock it off before the second stomp', 'It bounces for a second stomp'],
+  regen: ['Burst it down before it heals', 'A green glow while it heals'],
+  switch: ['Watch it switch pizzas mid-dive', 'It turns as it changes targets'],
+  clumsy: ['Punish it when it trips', 'It wobbles before it trips'],
+  woolly: ['Its wool soaks the first hits', 'Thick wool on its sock'],
+  tender: ['Every smack crits: easy points', 'Its skin is bright red'],
+  scorch: ['Stop it: its stomp burns an extra slice', 'Embers fall from its sole'],
+  invisible: ['Watch for its shadow on the pizza', 'Only its shadow shows'],
+  magnet: ['Fight the pull on your aim', 'Your peel drifts toward it'],
+  hop: ['It hops pizzas halfway down', 'Its spring coils before the hop'],
+  guard: ['Hit it right after it stomps', 'Its shield drops as it lands'],
+  bulk: ['Hit it early before it bulks up', 'It flexes when it gains armour'],
+  thief: ['Smack it to get your tips back', 'It eyes your tip jar'],
+  spoil: ['Stop it: it spoils freshness', 'Flies buzz around it'],
+  tag: ['Clear tagged pizzas fast', 'Fresh paint marks a pizza'],
+  pinch: ['Smack fast twice to break free', 'Its claws snap open'],
+  bury: ['Wait for it to surface', 'The sand shifts before it pops up'],
+  medic: ['Take it out first', 'Green crosses heal nearby feet'],
+  sticky: ['Leave it for area damage', 'It drips with kelp'],
+  roll: ['Track it as it rolls across', 'It spins sideways first'],
+  antigrav: ['Hit it at the bottom of a dive', 'It floats back up mid-dive'],
+  crusty: ['Smack it before it escapes', 'It glitters like a golden crust'],
+  mimic: ['It is not a real Golden Foot', 'A sly grin gives it away'],
+};
+
+export function howToFor(f: FootType): string | undefined {
+  return f.howTo ?? f.traits.map((t) => TRAIT_HOWTO[t]?.[0]).find(Boolean);
+}
+
+export function tellFor(f: FootType): string | undefined {
+  return f.tell ?? f.traits.map((t) => TRAIT_HOWTO[t]?.[1]).find(Boolean);
+}
