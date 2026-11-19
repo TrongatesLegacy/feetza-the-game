@@ -1094,8 +1094,9 @@ export class BossDirector {
     return this.brains.get(f)?.pierce?.(f) ?? false;
   }
 
-  clear(): void {
-    for (const [f, b] of this.brains) b.onDeath?.(f, this.a);
+  /** Drop every brain. `tidy` runs their cleanup (pistons, possession); skip it when the scene is shutting down. */
+  clear(tidy = true): void {
+    if (tidy) for (const [f, b] of this.brains) b.onDeath?.(f, this.a);
     this.brains.clear();
   }
 }

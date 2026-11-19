@@ -205,6 +205,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.orders.set(p, (this.orders.get(p) ?? 0) + n);
   }
   possess(p: Pizza | null): void {
+    if (!this.sys.isActive() && !this.sys.isPaused()) return;
     if (this.possessedPizza) {
       this.possessedPizza.flags.possessed = false;
       this.possessedPizza.redraw();
@@ -287,7 +288,10 @@ export class GameScene extends Phaser.Scene implements Arena {
     window.addEventListener('keydown', this.keyHandler);
     document.addEventListener('visibilitychange', this.visHandler);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-      this.director.clear();
+      // nothing may touch pizzas or feet after this: the scene's objects are being torn down
+      this.possessedPizza = null;
+      this.over = true;
+      this.director.clear(false);
       for (const p of this.pizzas) p.destroy();
       this.pizzas = [];
       window.removeEventListener('keydown', this.keyHandler);

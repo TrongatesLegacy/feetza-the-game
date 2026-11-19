@@ -175,6 +175,7 @@ export class Pizza {
 
   private drawFresh(): void {
     const g = this.freshBar;
+    if (!g.active) return;
     g.clear();
     if (!this.freshOn || this.dead) return;
     const s = Math.max(0.8, this.s * 1.1);
@@ -207,6 +208,7 @@ export class Pizza {
   }
 
   redraw(): void {
+    if (!this.root.active) return;
     renderPizza(this.ctx, {
       type: this.type,
       top: pizzaTops[this.type.id],
