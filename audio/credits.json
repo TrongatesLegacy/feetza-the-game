@@ -1,0 +1,332 @@
+[
+  {
+    "file": "music_menu.mp3",
+    "title": "Monkeys Spinning Monkeys",
+    "author": "Kevin MacLeod (incompetech.com)",
+    "license": "CC-BY 4.0",
+    "url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Monkeys%20Spinning%20Monkeys.mp3",
+    "attribution": "\"Monkeys Spinning Monkeys\" Kevin MacLeod (incompetech.com) Licensed under Creative Commons: By Attribution 4.0 License http://creativecommons.org/licenses/by/4.0/"
+  },
+  {
+    "file": "music_game.mp3",
+    "title": "Bushwick Tarantella Loop",
+    "author": "Kevin MacLeod (incompetech.com)",
+    "license": "CC-BY 4.0",
+    "url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Bushwick%20Tarantella%20Loop.mp3",
+    "attribution": "\"Bushwick Tarantella Loop\" Kevin MacLeod (incompetech.com) Licensed under Creative Commons: By Attribution 4.0 License http://creativecommons.org/licenses/by/4.0/"
+  },
+  {
+    "file": "music_boss.mp3",
+    "title": "Run Amok",
+    "author": "Kevin MacLeod (incompetech.com)",
+    "license": "CC-BY 4.0",
+    "url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Run%20Amok.mp3",
+    "attribution": "\"Run Amok\" Kevin MacLeod (incompetech.com) Licensed under Creative Commons: By Attribution 4.0 License http://creativecommons.org/licenses/by/4.0/"
+  },
+  {
+    "file": "music_gameover.mp3",
+    "title": "Der Kleber Sting",
+    "author": "Kevin MacLeod (incompetech.com)",
+    "license": "CC-BY 4.0",
+    "url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Der%20Kleber%20Sting.mp3",
+    "attribution": "\"Der Kleber Sting\" Kevin MacLeod (incompetech.com) Licensed under Creative Commons: By Attribution 4.0 License http://creativecommons.org/licenses/by/4.0/"
+  },
+  {
+    "file": "ambience_pizzeria.mp3",
+    "title": "Dinner Atmo.wav",
+    "author": "burkay (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/burkay/sounds/325558/",
+    "notes": "60 s excerpt, tail crossfaded into head for a seamless loop"
+  },
+  {
+    "file": "sfx_slap_1.mp3",
+    "title": "Hitting in a Face",
+    "author": "florianreichelt (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/florianreichelt/sounds/460509/",
+    "notes": "second hit"
+  },
+  {
+    "file": "sfx_slap_2.mp3",
+    "title": "Punch in the face",
+    "author": "Huminaatio (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Huminaatio/sounds/390462/"
+  },
+  {
+    "file": "sfx_slap_3.mp3",
+    "title": "Hitting in a Face",
+    "author": "florianreichelt (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/florianreichelt/sounds/460509/",
+    "notes": "first hit"
+  },
+  {
+    "file": "sfx_crit.mp3",
+    "title": "Huge Slap in the Face",
+    "author": "njjjjjjjjjjjjjjjjjjjjjjjj (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/njjjjjjjjjjjjjjjjjjjjjjjj/sounds/564230/",
+    "notes": "layered with Kenney Impact Sounds impactPunch_heavy_000 (CC0)"
+  },
+  {
+    "file": "sfx_squish.mp3",
+    "title": "Cartoon - Splat!",
+    "author": "Breviceps (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Breviceps/sounds/445118/"
+  },
+  {
+    "file": "sfx_stomp.mp3",
+    "title": "Dinosaur falls to the ground",
+    "author": "Breviceps (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Breviceps/sounds/457531/",
+    "notes": "first impact only"
+  },
+  {
+    "file": "sfx_whoosh.mp3",
+    "title": "Whoosh",
+    "author": "qubodup (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/qubodup/sounds/60013/"
+  },
+  {
+    "file": "sfx_coin.mp3",
+    "title": "coin object",
+    "author": "Leszek_Szary (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Leszek_Szary/sounds/146723/"
+  },
+  {
+    "file": "sfx_click.mp3",
+    "title": "Interface Sounds (click_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/interface-sounds"
+  },
+  {
+    "file": "sfx_hover.mp3",
+    "title": "Interface Sounds (tick_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/interface-sounds"
+  },
+  {
+    "file": "sfx_upgrade.mp3",
+    "title": "Short Success Sound Glockenspiel Treasure Video Game",
+    "author": "FunWithSound (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/FunWithSound/sounds/456965/"
+  },
+  {
+    "file": "sfx_levelup.mp3",
+    "title": "Level Up / Mission Complete",
+    "author": "Beetlemuse (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Beetlemuse/sounds/528958/",
+    "notes": "trimmed to 3 s"
+  },
+  {
+    "file": "sfx_ouch.mp3",
+    "title": "[Ow] Sound",
+    "author": "Topschool (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Topschool/sounds/442602/"
+  },
+  {
+    "file": "sfx_boing.mp3",
+    "title": "Cartoon Boing.wav",
+    "author": "reelworldstudio (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/reelworldstudio/sounds/161122/"
+  },
+  {
+    "file": "sfx_zap.mp3",
+    "title": "Electric zap.wav",
+    "author": "michael_grinnell (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/michael_grinnell/sounds/512471/",
+    "notes": "layered with \"ELECTRIC_ZAP_001.wav\" by JoelAudio, https://freesound.org/people/JoelAudio/sounds/136542/ (CC0)"
+  },
+  {
+    "file": "sfx_freeze.mp3",
+    "title": "Impact Sounds (impactGlass_medium_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "layered with an original synthesized ice shimmer and frost hiss (made with ffmpeg, CC0)"
+  },
+  {
+    "file": "sfx_fire.mp3",
+    "title": "Basic Fire whoosh",
+    "author": "LookIMadeAThing (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/LookIMadeAThing/sounds/260554/",
+    "notes": "trimmed to 1.6 s"
+  },
+  {
+    "file": "sfx_explosion.mp3",
+    "title": "Retro Small Bomb Explosion",
+    "author": "modusmogulus (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/modusmogulus/sounds/792520/"
+  },
+  {
+    "file": "sfx_shield.mp3",
+    "title": "Impact Sounds (impactMetal_light_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds"
+  },
+  {
+    "file": "sfx_warning.mp3",
+    "title": "airhorn-short.wav",
+    "author": "guitarguy1985 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/guitarguy1985/sounds/68999/",
+    "notes": "trimmed to 1.8 s"
+  },
+  {
+    "file": "sfx_combo.mp3",
+    "title": "Interface Sounds (confirmation_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/interface-sounds"
+  },
+  {
+    "file": "sfx_heal.mp3",
+    "title": "Heal - Rpg",
+    "author": "colorsCrimsonTears (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/colorsCrimsonTears/sounds/562292/"
+  },
+  {
+    "file": "sfx_gameover.mp3",
+    "title": "wah wah sad trombone.wav",
+    "author": "kirbydx (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/kirbydx/sounds/175409/"
+  },
+  {
+    "file": "music_boss_bigfoot.mp3",
+    "title": "Perigrine Grandeur",
+    "author": "Kevin MacLeod (incompetech.com)",
+    "license": "CC-BY 4.0",
+    "url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Perigrine%20Grandeur.mp3",
+    "attribution": "\"Perigrine Grandeur\" Kevin MacLeod (incompetech.com) Licensed under Creative Commons: By Attribution 4.0 License http://creativecommons.org/licenses/by/4.0/"
+  },
+  {
+    "file": "music_boss_ironheel.mp3",
+    "title": "Industrial Revolution",
+    "author": "Kevin MacLeod (incompetech.com)",
+    "license": "CC-BY 4.0",
+    "url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Industrial%20Revolution.mp3",
+    "attribution": "\"Industrial Revolution\" Kevin MacLeod (incompetech.com) Licensed under Creative Commons: By Attribution 4.0 License http://creativecommons.org/licenses/by/4.0/"
+  },
+  {
+    "file": "music_boss_clownking.mp3",
+    "title": "Waltz of the Carnies",
+    "author": "Kevin MacLeod (incompetech.com)",
+    "license": "CC-BY 4.0",
+    "url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Waltz%20of%20the%20Carnies.mp3",
+    "attribution": "\"Waltz of the Carnies\" Kevin MacLeod (incompetech.com) Licensed under Creative Commons: By Attribution 4.0 License http://creativecommons.org/licenses/by/4.0/"
+  },
+  {
+    "file": "music_boss_trex.mp3",
+    "title": "Mountain Emperor",
+    "author": "Kevin MacLeod (incompetech.com)",
+    "license": "CC-BY 4.0",
+    "url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Mountain%20Emperor.mp3",
+    "attribution": "\"Mountain Emperor\" Kevin MacLeod (incompetech.com) Licensed under Creative Commons: By Attribution 4.0 License http://creativecommons.org/licenses/by/4.0/"
+  },
+  {
+    "file": "music_boss_colossus.mp3",
+    "title": "Death and Axes",
+    "author": "Kevin MacLeod (incompetech.com)",
+    "license": "CC-BY 4.0",
+    "url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Death%20and%20Axes.mp3",
+    "attribution": "\"Death and Axes\" Kevin MacLeod (incompetech.com) Licensed under Creative Commons: By Attribution 4.0 License http://creativecommons.org/licenses/by/4.0/"
+  },
+  {
+    "file": "music_boss_phantomking.mp3",
+    "title": "Graveyard Shift",
+    "author": "Kevin MacLeod (incompetech.com)",
+    "license": "CC-BY 4.0",
+    "url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Graveyard%20Shift.mp3",
+    "attribution": "\"Graveyard Shift\" Kevin MacLeod (incompetech.com) Licensed under Creative Commons: By Attribution 4.0 License http://creativecommons.org/licenses/by/4.0/"
+  },
+  {
+    "file": "music_rooftop.mp3",
+    "title": "Quirky Dog",
+    "author": "Kevin MacLeod (incompetech.com)",
+    "license": "CC-BY 4.0",
+    "url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Quirky%20Dog.mp3",
+    "attribution": "\"Quirky Dog\" Kevin MacLeod (incompetech.com) Licensed under Creative Commons: By Attribution 4.0 License http://creativecommons.org/licenses/by/4.0/"
+  },
+  {
+    "file": "music_beach.mp3",
+    "title": "Surf Shimmy",
+    "author": "Kevin MacLeod (incompetech.com)",
+    "license": "CC-BY 4.0",
+    "url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Surf%20Shimmy.mp3",
+    "attribution": "\"Surf Shimmy\" Kevin MacLeod (incompetech.com) Licensed under Creative Commons: By Attribution 4.0 License http://creativecommons.org/licenses/by/4.0/"
+  },
+  {
+    "file": "music_diner.mp3",
+    "title": "Malt Shop Bop",
+    "author": "Kevin MacLeod (incompetech.com)",
+    "license": "CC-BY 4.0",
+    "url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Malt%20Shop%20Bop.mp3",
+    "attribution": "\"Malt Shop Bop\" Kevin MacLeod (incompetech.com) Licensed under Creative Commons: By Attribution 4.0 License http://creativecommons.org/licenses/by/4.0/"
+  },
+  {
+    "file": "music_space.mp3",
+    "title": "Mesmerizing Galaxy",
+    "author": "Kevin MacLeod (incompetech.com)",
+    "license": "CC-BY 4.0",
+    "url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Mesmerizing%20Galaxy%20Loop.mp3",
+    "attribution": "\"Mesmerizing Galaxy\" Kevin MacLeod (incompetech.com) Licensed under Creative Commons: By Attribution 4.0 License http://creativecommons.org/licenses/by/4.0/"
+  },
+  {
+    "file": "ambience_rooftop.mp3",
+    "title": "City Ambience Distant Stereo.wav",
+    "author": "Yakobb1 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Yakobb1/sounds/495866/",
+    "notes": "50 s excerpt, crossfaded loop"
+  },
+  {
+    "file": "ambience_beach.mp3",
+    "title": "Gentle ocean waves birdsong and gull.WAV",
+    "author": "jackmichaelking (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/jackmichaelking/sounds/518637/",
+    "notes": "50 s excerpt, crossfaded loop"
+  },
+  {
+    "file": "ambience_diner.mp3",
+    "title": "Gilroy Diner Ambience During Brunch",
+    "author": "magnesium1 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/magnesium1/sounds/238511/",
+    "notes": "50 s excerpt, crossfaded loop, with a quiet synthesized fridge hum added"
+  },
+  {
+    "file": "ambience_lodge.mp3",
+    "title": "Crackling Fire",
+    "author": "samarobryn (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/samarobryn/sounds/414767/",
+    "notes": "layered with \"Winter wind whistling through window.mp3\" by audible-edge, https://freesound.org/people/audible-edge/sounds/69512/ (CC0); 45 s crossfaded loop"
+  },
+  {
+    "file": "ambience_space.mp3",
+    "title": "control_room.wav",
+    "author": "Diboz (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Diboz/sounds/211683/",
+    "notes": "50 s excerpt, crossfaded loop"
+  }
+]
