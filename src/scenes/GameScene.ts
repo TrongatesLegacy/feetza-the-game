@@ -2209,6 +2209,21 @@ export class GameScene extends Phaser.Scene implements Arena {
         const ps = this.alivePizzas();
         return live.filter((f) => ps.some((p) => Math.hypot(f.cx - p.x, f.cy - (p.surfaceY - 80)) <= t.r));
       }
+      case 'blast': {
+        const picks =
+          t.pick === 'front'
+            ? [...live].sort((a, b) => b.y - a.y).slice(0, t.n)
+            : t.pick === 'toughest'
+              ? [...live].sort((a, b) => Number(b.isBossLike) - Number(a.isBossLike) || b.hp - a.hp).slice(0, t.n)
+              : Phaser.Utils.Array.Shuffle([...live]).slice(0, t.n);
+        const out = new Set<Foot>();
+        for (const c of picks) {
+          this.fx.explosion(c.cx, c.cy, t.r);
+          for (const f of live) if (f.distanceTo(c.cx, c.cy) <= t.r) out.add(f);
+        }
+        if (picks.length) audio.sfx('sfx_explosion', { throttle: 90, volume: 0.6 });
+        return [...out];
+      }
     }
   }
 

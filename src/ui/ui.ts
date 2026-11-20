@@ -211,7 +211,11 @@ class Hud {
       return;
     }
     const passive = kind !== 'ACTIVE';
-    this.slam.innerHTML = `<span><b class="an">${name}</b>${passive ? `<small class="pk">${kind}</small>` : '<small class="kb">SPACE</small><small class="pd" data-glyph="X">X</small>'}</span>`;
+    // one word per line, like PEEL / SLAM; long words shrink to fit the circle
+    const words = name.toUpperCase().split(/\s+/);
+    const longest = Math.max(...words.map((w) => w.length));
+    const size = Math.min(1, 6.5 / longest, 2.4 / words.length);
+    this.slam.innerHTML = `<span><b class="an" style="font-size:${size.toFixed(2)}em">${words.join('<br>')}</b>${passive ? `<small class="pk">${kind}</small>` : '<small class="kb">SPACE</small><small class="pd" data-glyph="X">X</small>'}</span>`;
     this.slam.classList.add('ability');
     this.slam.classList.toggle('passive', passive);
     this.slam.setAttribute('aria-label', name);

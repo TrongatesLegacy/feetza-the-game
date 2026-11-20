@@ -18,7 +18,9 @@ export type Target =
   /** The healthiest feet (bosses first). */
   | { to: 'toughest'; n: number }
   /** Feet within r of any pizza. */
-  | { to: 'pizzas'; r: number };
+  | { to: 'pizzas'; r: number }
+  /** Blasts: pick n feet (random, front-most or toughest) and hit everything within r of each. */
+  | { to: 'blast'; n: number; r: number; pick: 'random' | 'front' | 'toughest' };
 
 type NumStat = { [K in keyof Stats]: Stats[K] extends number ? K : never }[keyof Stats];
 
@@ -80,6 +82,7 @@ const rnd = (n: number): Target => ({ to: 'random', n });
 const front = (n: number): Target => ({ to: 'front', n });
 const tough = (n: number): Target => ({ to: 'toughest', n });
 const nearP = (r = 200): Target => ({ to: 'pizzas', r });
+const BL = (n: number, r: number, pick: 'random' | 'front' | 'toughest' = 'random'): Target => ({ to: 'blast', n, r, pick });
 
 const D = (x: number, at: Target, knock?: number): Effect => ({ e: 'dmg', x, at, knock });
 const B = (x: number, sec: number, at: Target): Effect => ({ e: 'burn', x, sec, at });
@@ -96,6 +99,9 @@ const FR = (n: number, who: 'weakest' | 'all' = 'all'): Effect => ({ e: 'fresh',
 const T = (n: number): Effect => ({ e: 'tips', n });
 const STAT = (mods: Partial<Record<NumStat, number>>): Effect => ({ e: 'stat', mods });
 
+/** Builders shared with the topping procs. */
+export const P = { all, peel, hit, rnd, front, tough, nearP, BL, D, B, S, ST, FZ, K, M, C, EX, H, SH, FR, T, STAT };
+
 const act: Trigger = { t: 'active' };
 const auto: Trigger = { t: 'auto' };
 const every = (sec: number): Trigger => ({ t: 'every', sec });
@@ -104,6 +110,58 @@ const kill = (p: number): Trigger => ({ t: 'kill', p });
 const stomp: Trigger = { t: 'stomp' };
 const wave: Trigger = { t: 'wave' };
 const always: Trigger = { t: 'always' };
+
+export const TRIG = {
+  every: (sec: number): Trigger => ({ t: 'every', sec }),
+  smack: (p: number): Trigger => ({ t: 'smack', p }),
+  kill: (p: number): Trigger => ({ t: 'kill', p }),
+  stomp: { t: 'stomp' } as Trigger,
+  wave: { t: 'wave' } as Trigger,
+};
+
+/** A topping proc: an ability-style trigger and effects, scaled by the topping's level. */
+export interface Proc {
+  trigger: Trigger;
+  fx: Effect[];
+  color: number;
+  vfx: Vfx;
+}
+
+/** Level scaling for topping procs: +50% effect per extra level, more often, a little longer. */
+export function scaleProc(p: Proc, lvl: number): Proc {
+  if (lvl <= 1) return p;
+  const k = 1 + 0.5 * (lvl - 1);
+  const more = 1 + 0.25 * (lvl - 1);
+  const trig: Trigger =
+    p.trigger.t === 'smack' || p.trigger.t === 'kill'
+      ? { ...p.trigger, p: Math.min(0.9, +(p.trigger.p * more).toFixed(2)) }
+      : p.trigger.t === 'every'
+        ? { t: 'every', sec: +(p.trigger.sec / (1 + 0.2 * (lvl - 1))).toFixed(1) }
+        : p.trigger;
+  const fx = p.fx.map((e): Effect => {
+    switch (e.e) {
+      case 'dmg':
+      case 'burn':
+      case 'chain':
+        return { ...e, x: +(e.x * k).toFixed(2) };
+      case 'mark':
+        return { ...e, mult: +(1 + (e.mult - 1) * k).toFixed(2) };
+      case 'slow':
+        return { ...e, pct: Math.min(0.8, +(e.pct * (1 + 0.2 * (lvl - 1))).toFixed(2)) };
+      case 'stun':
+        return { ...e, sec: +(e.sec * more).toFixed(1) };
+      case 'tips':
+        return { ...e, n: Math.round(e.n * k) };
+      default:
+        return e;
+    }
+  });
+  return { ...p, trigger: trig, fx };
+}
+
+export function describeProc(p: Proc): string {
+  return describeAbility({ name: '', trigger: p.trigger, fx: p.fx, charge: 1, color: p.color, vfx: p.vfx });
+}
 
 const RED = 0xff5a3c;
 const ORANGE = 0xff9f1c;
@@ -396,6 +454,11 @@ function who(t: Target, verbObj = true): string {
       return t.n === 1 ? 'the toughest foot' : `the ${t.n} toughest feet`;
     case 'pizzas':
       return 'feet near your pizzas';
+    case 'blast': {
+      const what = t.pick === 'front' ? 'the foot closest to a pizza' : t.pick === 'toughest' ? 'the toughest foot' : 'a random foot';
+      const whats = t.pick === 'front' ? `the ${t.n} feet closest to the pizzas` : t.pick === 'toughest' ? `the ${t.n} toughest feet` : `${t.n} random feet`;
+      return `everything around ${t.n === 1 ? what : whats}`;
+    }
   }
 }
 
