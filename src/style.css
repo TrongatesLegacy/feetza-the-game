@@ -2643,6 +2643,11 @@ body.pad :focus {
   transform: translateY(-0.4em);
 }
 
+/* the picked tile says SWAPPING OUT; its STALE / TOAST tag steps aside rather than sitting on top */
+.swaptile.picked .flag:not(.out) {
+  display: none;
+}
+
 .swaptile.picked .flag.out {
   display: block;
 }
@@ -3366,4 +3371,12 @@ body.reduced-motion *::after {
   font-weight: 600;
   color: var(--ink-soft);
   line-height: 1.2;
+}
+
+/* a stale pizza's perk stays readable but crossed out: it's off until the pizza is reheated */
+.ds.off {
+  text-decoration: line-through;
+  text-decoration-color: var(--tomato-d);
+  text-decoration-thickness: 0.14em;
+  opacity: 0.75;
 }

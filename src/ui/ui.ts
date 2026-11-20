@@ -647,7 +647,7 @@ class UI {
               p.stale ? h('span', { class: 'flag' }, 'STALE') : p.dead ? h('span', { class: 'flag dead' }, 'TOAST') : null,
               sliceArt(p, 120),
               h('div', { class: 'nm' }, p.name),
-              h('div', { class: 'ds' }, p.perk),
+              h('div', { class: `ds${p.stale ? ' off' : ''}` }, p.perk),
               h('div', { class: 'sl' }, `${p.slices} / ${p.max} slices`),
               p.freshOn && !p.dead ? freshBar(p.fresh, p.maxFresh) : null,
             ),
@@ -748,7 +748,7 @@ class UI {
       tiles.forEach((t) => t.classList.toggle('picked', Number(t.dataset.i) === picked));
       const p = o.current[picked];
       if (picked === -1) lose.replaceChildren(h('span', { class: 'lbl' }, 'YOU LOSE'), h('b', {}, 'Nothing'), h('span', {}, 'It goes on a new plate'));
-      else if (p) lose.replaceChildren(h('span', { class: 'lbl' }, 'YOU LOSE'), h('b', {}, p.name), h('span', {}, p.dead ? 'Already toast' : `${p.perk} · ${p.slices}/${p.max} slices left`));
+      else if (p) lose.replaceChildren(h('span', { class: 'lbl' }, 'YOU LOSE'), h('b', {}, p.name), h('span', {}, p.dead ? 'Already toast' : `${p.stale ? `Stale (perk off): ${p.perk}` : p.perk} · ${p.slices}/${p.max} slices left`));
       confirm.innerHTML = picked === -1 ? `ADD · ${fmt(o.cost)}` : `SWAP · ${fmt(o.cost)}`;
     };
     for (const { p, i } of order) {
@@ -759,7 +759,7 @@ class UI {
         p.stale ? h('span', { class: 'flag' }, 'STALE') : p.dead ? h('span', { class: 'flag dead' }, 'TOAST') : null,
         pizzaThumb(p.id, p.slices, p.max, 200, p.stale, p.dead),
         h('span', { class: 'nm' }, p.name),
-        h('span', { class: 'ds' }, p.perk),
+        h('span', { class: `ds${p.stale ? ' off' : ''}` }, p.perk),
         h('span', { class: 'sl' }, `${p.slices} / ${p.max} slices`),
       );
       t.addEventListener('click', () => {

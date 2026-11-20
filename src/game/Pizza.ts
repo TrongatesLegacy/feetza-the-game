@@ -51,6 +51,9 @@ export class Pizza {
   private squints: Phaser.GameObjects.Image[] = [];
   private mouth: Phaser.GameObjects.Image;
   private label: Phaser.GameObjects.Text;
+  /** The perk line under the name (crossed out while the pizza is stale). */
+  private perkLabel: Phaser.GameObjects.Text;
+  private strike: Phaser.GameObjects.Graphics;
   private hurtTimer = 0;
   private blinkTimer = 2 + Math.random() * 3;
   private lookX = 0;
@@ -90,21 +93,20 @@ export class Pizza {
     }
     this.mouth = scene.add.image(0, 34, 'mouthSmile');
     this.face.add(this.mouth);
-    this.label = scene.add
-      .text(0, 0, `${type.name} · ${type.perkText}`, {
-        fontFamily: '"Fredoka", system-ui, sans-serif',
-        fontStyle: '600',
-        fontSize: '22px',
-        color: '#fff6e2',
-        stroke: '#2a1810',
-        strokeThickness: 6,
-        align: 'center',
-        lineSpacing: -4,
-      })
-      .setOrigin(0.5, 0)
-      .setAlpha(0.92);
+    const labelStyle = {
+      fontFamily: '"Fredoka", system-ui, sans-serif',
+      fontStyle: '600',
+      fontSize: '22px',
+      color: '#fff6e2',
+      stroke: '#2a1810',
+      strokeThickness: 6,
+      align: 'center',
+    };
+    this.label = scene.add.text(0, 0, type.name, labelStyle).setOrigin(0.5, 0).setAlpha(0.92);
+    this.perkLabel = scene.add.text(0, 0, type.perkText, labelStyle).setOrigin(0.5, 0).setAlpha(0.92);
+    this.strike = scene.add.graphics();
     this.freshBar = scene.add.graphics();
-    this.root.add([this.plate, this.trapImg, this.img, this.face, this.shield, this.label, this.freshBar]);
+    this.root.add([this.plate, this.trapImg, this.img, this.face, this.shield, this.label, this.perkLabel, this.strike, this.freshBar]);
     this.applyScale();
     this.redraw();
   }
@@ -145,8 +147,19 @@ export class Pizza {
     const room = Math.min(420, Math.max(240, PIZZA_R * 2.3 * s));
     const want = Math.max(0.8, s * 1.1);
     this.label.setScale(1);
-    const w = this.label.width;
-    this.label.setScale(Math.min(want, room / Math.max(1, w)));
+    this.perkLabel.setScale(1);
+    const w = Math.max(this.label.width, this.perkLabel.width);
+    const k = Math.min(want, room / Math.max(1, w));
+    this.label.setScale(k);
+    this.perkLabel.setScale(k).setY(this.label.y + (this.label.height - 10) * k);
+    // stale: a line through the perk (it's switched off until the pizza is reheated)
+    this.strike.clear();
+    if (this.stale && this.perkLabel.visible) {
+      const pw = (this.perkLabel.width - 8) * k;
+      const y = this.perkLabel.y + this.perkLabel.height * k * 0.52;
+      this.strike.lineStyle(6 * k, 0x2a1810, 1).lineBetween(-pw / 2 - 4, y, pw / 2 + 4, y);
+      this.strike.lineStyle(3 * k, 0xff8a6a, 1).lineBetween(-pw / 2 - 3, y, pw / 2 + 3, y);
+    }
   }
 
   get stale(): boolean {
@@ -160,9 +173,9 @@ export class Pizza {
     return this.type.perk;
   }
 
+  /** The perk's text. A stale pizza still shows it (crossed out), so you can see what reheating brings back. */
   get perkLine(): string {
     if (this.dead) return 'PERK LOST';
-    if (this.stale) return 'STALE · perk off';
     if (this.type.perk === 'rotate') return ['+10% smack damage', '+20% tips from feet', 'Regrows a slice every 20s', 'Blocks the first stomp each wave'][Number(this.flags.season ?? 0) % 4];
     return this.type.perkText;
   }
@@ -218,8 +231,11 @@ export class Pizza {
     });
     this.tex.refresh();
     this.face.setVisible(!this.dead);
-    this.label.setText(`${this.type.name}\n${this.perkLine}`);
-    this.label.setColor(this.dead ? '#ff8a6a' : this.stale ? '#cfe0a8' : '#fff6e2').setAlpha(this.dead ? 0.75 : 0.92);
+    this.label.setText(this.type.name);
+    this.perkLabel.setText(this.perkLine);
+    const col = this.dead ? '#ff8a6a' : this.stale ? '#cfe0a8' : '#fff6e2';
+    this.label.setColor(col).setAlpha(this.dead ? 0.75 : 0.92);
+    this.perkLabel.setColor(col).setAlpha(this.dead ? 0.75 : this.stale ? 0.8 : 0.92);
     if (this.stale) this.img.setTint(0xc8d4a0);
     else this.img.clearTint();
     this.fitLabel();
@@ -229,6 +245,8 @@ export class Pizza {
   /** Hide the perk caption (the menu screen doesn't need it). */
   hideLabel(): this {
     this.label.setVisible(false);
+    this.perkLabel.setVisible(false);
+    this.strike.clear();
     return this;
   }
 
