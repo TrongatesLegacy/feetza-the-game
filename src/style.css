@@ -1888,7 +1888,9 @@ body.pad .slam .pd {
 .newfoot {
   position: absolute;
   left: 1.4em;
-  top: 8.6em;
+  /* lower left, sitting just above the table so it never hides a pizza */
+  bottom: 15.5em;
+  transition: opacity 0.2s ease;
   width: 27em;
   padding: 1em 1.2em 1.1em;
   display: grid;
@@ -1897,6 +1899,10 @@ body.pad .slam .pd {
   color: var(--ink);
   animation: popIn 0.4s ease both;
   pointer-events: none;
+}
+
+.newfoot.faded {
+  opacity: 0.22;
 }
 
 .newfoot.leaving {

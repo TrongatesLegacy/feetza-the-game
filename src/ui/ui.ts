@@ -94,6 +94,8 @@ class Hud {
   private bossNotches = h('div', { class: 'notches' });
   private bossMove = h('div', { class: 'move' });
   private newFootEl: HTMLElement | null = null;
+  /** When the current centre banner disappears (performance.now() ms). */
+  private bannerUntil = 0;
   private slam = h('div', { class: 'slam', role: 'button', 'aria-label': 'Peel Slam' });
   private owned = h('div', { class: 'owned' });
   private toasts = h('div', { class: 'toasts' });
@@ -212,8 +214,14 @@ class Hud {
     this.coinPill.classList.toggle('faded', on);
   }
 
+  /** The NEW FOOT card fades while a foot is coming down through its corner. */
+  setNewFootFade(on: boolean): void {
+    this.newFootEl?.classList.toggle('faded', on);
+  }
+
   /** NEW FOOT card on first sighting: name, abilities and how to beat it. */
-  newFoot(img: string, f: FootType, label: string): void {
+  /** Returns how long (ms) until the card actually shows. */
+  newFoot(img: string, f: FootType, label: string): number {
     this.newFootEl?.remove();
     const chips = h('div', { class: 'nf-traits' }, ...f.traits.filter((t) => t !== 'tiny').slice(0, 3).map((t) => h('span', { class: 'chip' }, TRAIT_INFO[t])));
     const el = h(
@@ -225,11 +233,17 @@ class Hud {
       tellFor(f) ? h('div', { class: 'nf-tell' }, h('b', {}, 'Watch for: '), tellFor(f)!) : null,
     );
     this.newFootEl = el;
-    this.root.append(el);
+    // it waits for a centre banner (WAVE N · New: …) to finish, so the two never overlap
+    const wait = Math.max(0, this.bannerUntil - performance.now());
     setTimeout(() => {
-      el.classList.add('leaving');
-      setTimeout(() => el.remove(), 300);
-    }, 5200);
+      if (this.newFootEl !== el) return;
+      this.root.append(el);
+      setTimeout(() => {
+        el.classList.add('leaving');
+        setTimeout(() => el.remove(), 300);
+      }, 5200);
+    }, wait);
+    return wait;
   }
 
   setFps(n: number): void {
@@ -244,6 +258,7 @@ class Hud {
       : null;
     const b = h('div', { class: `banner ${kind}${desc ? ' explained' : ''}` }, h('div', { class: 'big' }, big), small ? h('div', { class: 'small' }, small) : null, descEl);
     b.style.animationDuration = `${ms - 100}ms`;
+    this.bannerUntil = performance.now() + ms;
     this.root.append(b);
     // long titles shrink to fit the screen instead of running off it
     const descPad = descEl ? parseFloat(getComputedStyle(descEl).paddingLeft) * 2 + parseFloat(getComputedStyle(descEl).borderLeftWidth) * 2 : 0;

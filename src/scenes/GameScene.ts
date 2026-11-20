@@ -747,8 +747,13 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.feet.push(f);
     // first sighting: a NEW FOOT card with its ability and how to beat it
     if (markFootSeen(type.id) && !type.boss) {
-      ui.hud.newFoot(footPortraitURL(type.id), type, type.mini ? 'NEW MINI-BOSS' : 'NEW FOOT');
-      if (save.settings.slowNewCards && !save.settings.reducedMotion && (this.run.heat === 'mild' || this.run.heat === 'regular')) this.slowMo = Math.max(this.slowMo, 0.6);
+      const wait = ui.hud.newFoot(footPortraitURL(type.id), type, type.mini ? 'NEW MINI-BOSS' : 'NEW FOOT');
+      // the slow-down lands when the card appears (it waits for any centre banner first)
+      if (save.settings.slowNewCards && !save.settings.reducedMotion && (this.run.heat === 'mild' || this.run.heat === 'regular')) {
+        window.setTimeout(() => {
+          if (this.sys.isActive() && !this.over) this.slowMo = Math.max(this.slowMo, 0.6);
+        }, wait);
+      }
     }
     return f;
   }
@@ -2323,6 +2328,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     }
     // the tips counter fades while a foot is behind it
     ui.hud.setCoinFade(this.feet.some((f) => f.alive && f.x > 1460 && f.y < 520));
+    // …and the NEW FOOT card (bottom-left) while one comes down over the left of the table
+    ui.hud.setNewFootFade(this.feet.some((f) => f.alive && f.x < 640 && f.y > 380));
     const r = this.run;
     ui.hud.setScore(r.score);
     if (this.displayCoins > r.coins) this.displayCoins = r.coins;

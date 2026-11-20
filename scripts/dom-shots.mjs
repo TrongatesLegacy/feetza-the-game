@@ -27,7 +27,8 @@ for (const s of steps) {
   const c = await send('Runtime.evaluate', { expression: 'Promise.resolve(F.contrast()).then(r=>JSON.stringify(r.map(i=>i.text.slice(0,30)+" "+i.ratio)))', awaitPromise: true, returnByValue: true });
   const shot = await send('Page.captureScreenshot', { format: 'png' });
   fs.writeFileSync(s.out, Buffer.from(shot.result.data, 'base64'));
-  console.log(s.out.split('/').pop(), res.result?.exceptionDetails ? 'ERR ' + res.result.exceptionDetails.exception?.description?.slice(0, 120) : '', 'layout', audit.result?.result?.value, 'contrast', c.result?.result?.value);
+  const ret = res.result?.result?.value;
+  console.log(s.out.split('/').pop(), ret !== undefined ? 'returned ' + JSON.stringify(ret) : '', res.result?.exceptionDetails ? 'ERR ' + res.result.exceptionDetails.exception?.description?.slice(0, 120) : '', 'layout', audit.result?.result?.value, 'contrast', c.result?.result?.value);
 }
 await fetch(`http://127.0.0.1:9333/json/close/${tab.id}`);
 ws.close();
