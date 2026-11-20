@@ -38,6 +38,10 @@ export interface PeelLook {
   footArt?: HTMLCanvasElement | null;
   /** Pizza peels: the head IS the pizza (drawn as-is, not flipped). */
   pizzaArt?: HTMLCanvasElement | null;
+  /** Round pizzas sit on a wooden board; square ones and calzones stand on their own. */
+  pizzaRound?: boolean;
+  /** Calzones: flipped so the flat edge sits on the hilt and the dome points up. */
+  pizzaFlip?: boolean;
   /** Gold (or other) studs around the rim: bosses. */
   studs?: string;
   /** Outline colour (ink by default). */
@@ -622,23 +626,65 @@ function drawFootHead(ctx: Ctx, look: PeelLook): void {
 function drawPizzaHead(ctx: Ctx, look: PeelLook): void {
   const art = look.pizzaArt!;
   const r = R + 2;
-  // the wooden board under the pie
-  ellipse(ctx, HX, HY + 4, r, r);
-  ctx.fillStyle = 'rgba(0,0,0,0.2)';
-  ctx.fill();
-  ellipse(ctx, HX, HY, r, r);
-  const g = ctx.createRadialGradient(HX - 30, HY - 36, 10, HX, HY, r * 1.1);
-  g.addColorStop(0, '#f6cf94');
-  g.addColorStop(1, '#a8703a');
-  ctx.fillStyle = g;
-  ctx.fill();
-  ctx.strokeStyle = look.rim ?? INK;
-  ctx.lineWidth = 5;
-  ctx.stroke();
-  const k = ((r - 8) * 2) / Math.max(art.width, art.height);
-  ctx.drawImage(art, HX - (art.width * k) / 2, HY - (art.height * k) / 2, art.width * k, art.height * k);
+  let bottom: number;
+  if (look.pizzaRound !== false) {
+    // the wooden board under the pie
+    ellipse(ctx, HX, HY + 4, r, r);
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.fill();
+    ellipse(ctx, HX, HY, r, r);
+    const g = ctx.createRadialGradient(HX - 30, HY - 36, 10, HX, HY, r * 1.1);
+    g.addColorStop(0, '#f6cf94');
+    g.addColorStop(1, '#a8703a');
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.strokeStyle = look.rim ?? INK;
+    ctx.lineWidth = 5;
+    ctx.stroke();
+    const k = ((r - 8) * 2) / Math.max(art.width, art.height);
+    ctx.drawImage(art, HX - (art.width * k) / 2, HY - (art.height * k) / 2, art.width * k, art.height * k);
+    bottom = HY + r - 2;
+  } else {
+    // square pizzas and calzones: just the pie, with a soft shadow
+    const k = (r * 2) / Math.max(art.width, art.height);
+    const w = art.width * k;
+    const hh = art.height * k;
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.3)';
+    ctx.shadowBlur = 8;
+    ctx.shadowOffsetY = 4;
+    if (look.pizzaFlip) {
+      // the dome up, the flat edge down; the art's empty top half becomes empty space above
+      const top = visibleEdge(art, false) * k; // empty rows above the pie in the art
+      const vis = visibleEdge(art, true) * k - top; // the pie's own height
+      const y0 = HY + vis / 2 + 6; // where the flat edge lands
+      ctx.translate(HX, y0 + top);
+      ctx.scale(1, -1);
+      ctx.drawImage(art, -w / 2, 0, w, hh);
+      ctx.restore();
+      bottom = y0 - 2;
+    } else {
+      ctx.drawImage(art, HX - w / 2, HY - hh / 2, w, hh);
+      ctx.restore();
+      // the hilt meets the pie's visible bottom edge
+      bottom = HY - hh / 2 + visibleEdge(art, true) * k - 4;
+    }
+  }
+  // a stem down to the handle when the pie ends high (calzones)
+  const handleTop = HY + R - 14;
+  if (bottom + 6 < handleTop + 4) {
+    roundRect(ctx, HX - 14, bottom, 28, handleTop - bottom + 8, 6);
+    const sg = ctx.createLinearGradient(HX - 14, 0, HX + 14, 0);
+    sg.addColorStop(0, look.handle[1]);
+    sg.addColorStop(0.45, look.handle[0]);
+    sg.addColorStop(1, shade(look.handle[1], -0.15));
+    ctx.fillStyle = sg;
+    ctx.fill();
+    ctx.strokeStyle = look.rim ?? INK;
+    ctx.lineWidth = 5;
+    ctx.stroke();
+  }
   // hilt
-  const bottom = HY + r - 2;
   const metal = look.handle[0];
   roundRect(ctx, HX - 30, bottom - 8, 60, 16, 8);
   ctx.fillStyle = metal;
@@ -651,24 +697,71 @@ function drawPizzaHead(ctx: Ctx, look: PeelLook): void {
   ctx.fill();
 }
 
+const edgeCache = new WeakMap<HTMLCanvasElement, [number, number]>();
+
+/** First and last rows with visible pixels near the middle column: bottom=true gives the last. */
+function visibleEdge(art: HTMLCanvasElement, bottom: boolean): number {
+  let hit = edgeCache.get(art);
+  if (!hit) {
+    const ctx = art.getContext('2d')!;
+    const x0 = Math.round(art.width * 0.4);
+    const cw = Math.max(1, Math.round(art.width * 0.2));
+    const data = ctx.getImageData(x0, 0, cw, art.height).data;
+    const rowOn = (y: number) => {
+      for (let x = 0; x < cw; x++) if (data[(y * cw + x) * 4 + 3] > 60) return true;
+      return false;
+    };
+    let first = 0;
+    while (first < art.height - 1 && !rowOn(first)) first++;
+    let last = art.height - 1;
+    while (last > 0 && !rowOn(last)) last--;
+    hit = [first, last];
+    edgeCache.set(art, hit);
+  }
+  return bottom ? hit[1] : hit[0];
+}
+
 const ankleCache = new WeakMap<HTMLCanvasElement, { w: number; cx: number }>();
 
-/** The ankle: width and centre of the opaque pixels near the top edge of the foot art (it meets the handle once flipped). */
+/** Longest run of opaque pixels in a row: [start, end] or null. */
+function longestRun(data: Uint8ClampedArray, w: number, y: number): [number, number] | null {
+  let best: [number, number] | null = null;
+  let start = -1;
+  for (let x = 0; x <= w; x++) {
+    const on = x < w && data[(y * w + x) * 4 + 3] > 60;
+    if (on && start < 0) start = x;
+    if (!on && start >= 0) {
+      if (!best || x - 1 - start > best[1] - best[0]) best = [start, x - 1];
+      start = -1;
+    }
+  }
+  return best;
+}
+
+const median = (xs: number[]) => {
+  const v = [...xs].sort((a, b) => a - b);
+  return v.length ? v[Math.floor(v.length / 2)] : 0;
+};
+
+/**
+ * Where the handle should go: the centre of the foot's main body (the longest opaque run in each row,
+ * so accessories like a spray can or a bowling ball beside it don't count), and the ankle's width.
+ */
 function ankleOf(art: HTMLCanvasElement): { w: number; cx: number } {
   const hit = ankleCache.get(art);
   if (hit) return hit;
   const ctx = art.getContext('2d')!;
-  const rows = Math.max(2, Math.round(art.height * 0.08));
-  const data = ctx.getImageData(0, 0, art.width, rows).data;
-  let x0 = art.width;
-  let x1 = 0;
-  for (let y = Math.floor(rows / 2); y < rows; y++)
-    for (let x = 0; x < art.width; x++)
-      if (data[(y * art.width + x) * 4 + 3] > 40) {
-        x0 = Math.min(x0, x);
-        x1 = Math.max(x1, x);
-      }
-  const out = x1 > x0 ? { w: x1 - x0, cx: (x0 + x1) / 2 } : { w: art.width * 0.5, cx: art.width / 2 };
+  const { width: w, height: h } = art;
+  const data = ctx.getImageData(0, 0, w, h).data;
+  const mids: number[] = [];
+  const ankles: number[] = [];
+  for (let y = Math.round(h * 0.04); y < Math.round(h * 0.95); y += 2) {
+    const run = longestRun(data, w, y);
+    if (!run) continue;
+    mids.push((run[0] + run[1]) / 2);
+    if (y < h * 0.16) ankles.push(run[1] - run[0]);
+  }
+  const out = mids.length ? { cx: median(mids), w: median(ankles.length ? ankles : [w * 0.5]) } : { w: w * 0.5, cx: w / 2 };
   ankleCache.set(art, out);
   return out;
 }

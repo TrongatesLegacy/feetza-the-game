@@ -78,6 +78,8 @@ export class GameScene extends Phaser.Scene implements Arena {
   private abilityT = 0;
   /** Proc toppings owned this run (scaled by level), with their timers. */
   private procs: { id: string; p: Proc; t: number }[] = [];
+  /** Damage dealt this run by source (dev balance tooling reads it). */
+  dmgLog: Record<string, number> = {};
   private lastPeelPos = { x: 0, y: 0 };
   /** Dev: multiplies the shiny-foot chance. */
   shinyBoost = 1;
@@ -396,6 +398,7 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   private resetState(): void {
     this.run = new Run();
+    this.dmgLog = {};
     this.pizzas = [];
     this.feet = [];
     this.cutters = [];
@@ -1712,6 +1715,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       else if (smack) this.fx.puff(o.x ?? f.cx, o.y ?? f.cy, 3);
     }
     f.hp -= dealt;
+    this.dmgLog[o.source] = (this.dmgLog[o.source] ?? 0) + dealt;
     if (smack && f.has('crack') && f.armor > 0) {
       f.armor--;
       this.fx.quip(f.x + 60, f.cy - 60, 'CRACK!', '#c7ccd4', 30);

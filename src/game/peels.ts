@@ -311,7 +311,7 @@ function buildDefs(): PeelDef[] {
       group: 'pizza',
       how: `Clear ${PIZZA_WAVES} waves with ${pz.name} on the table.`,
       progress: () => [Math.min(PIZZA_WAVES, save.pizzaWaves[pz.id] ?? 0), PIZZA_WAVES],
-      look: () => ({ ...plain(`pizza:${pz.id}`, { shape: 'round', base: '#d9a066', pattern: 'plain', pc: '#7a4a22', handle: '#8a5a2b', trail: '#ffb347' })(), pizzaArt: pizzaTops[pz.id] ?? null }),
+      look: () => ({ ...plain(`pizza:${pz.id}`, { shape: 'round', base: '#d9a066', pattern: 'plain', pc: '#7a4a22', handle: '#8a5a2b', trail: '#ffb347' })(), pizzaArt: pizzaTops[pz.id] ?? null, pizzaRound: pz.shape === 'round' || pz.shape === 'deep', pizzaFlip: pz.shape === 'calzone' }),
     });
   }
   for (const f of feet) {

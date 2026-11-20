@@ -3714,8 +3714,45 @@ body.reduced-motion *::after {
   color: var(--ink);
 }
 
-.abl > span:last-child {
-  flex-basis: 100%;
+.abl > span:last-child::before {
+  content: '— ';
+}
+
+/* detail panels: name, pills and the action share the first row */
+.dt-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.3em 0.6em;
+}
+
+.dt-head .dt-act {
+  margin-left: auto;
+}
+
+.dt-head .btn {
+  font-size: 0.95em;
+}
+
+.dt-how {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.2em 1em;
+}
+
+.dt-how p {
+  margin: 0.15em 0 0 !important;
+}
+
+.dt-how .pbar {
+  margin-top: 0.15em;
+  max-width: 16em;
+  flex: 1 1 10em;
+}
+
+.home-chip {
+  font-size: 0.95em;
 }
 
 .chip.active {

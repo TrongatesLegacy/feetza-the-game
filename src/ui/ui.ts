@@ -1280,9 +1280,8 @@ class UI {
         h(
           'div',
           {},
-          h('h3', {}, seen ? f.name : '???'),
+          h('div', { class: 'dt-head' }, h('h3', {}, seen ? f.name : '???'), seen && home ? h('span', { class: 'chip home-chip' }, `🏠 ${home}`) : null),
           h('p', {}, seen ? f.desc : f.boss || f.mini ? `A ${f.mini ? 'mini-boss' : 'boss'} lurks at wave ${f.minWave}…` : `Appears from wave ${f.minWave}. Spot one to learn more.`),
-          seen && home ? h('p', { class: 'home' }, `Home: ${home}`) : null,
           seen && (howToFor(f) || tellFor(f))
             ? h(
                 'div',
@@ -1298,7 +1297,7 @@ class UI {
     const showPizza = (id: string) => {
       const p = PIZZA_BY_ID[id];
       const owned = save.unlockedPizzas.includes(id);
-      detail.replaceChildren(h('img', { src: pizzaPortraitURL(id), alt: '' }), h('div', {}, h('h3', {}, p.name), h('p', {}, `Perk: ${p.perkText}`), h('div', { class: 'chips' }, h('span', { class: 'chip' }, owned ? '✅ Unlocked' : `🔒 ${p.cost} Golden Crusts`))));
+      detail.replaceChildren(h('img', { src: pizzaPortraitURL(id), alt: '' }), h('div', {}, h('div', { class: 'dt-head' }, h('h3', {}, p.name), h('span', { class: 'chip' }, owned ? '✅ Unlocked' : `🔒 ${p.cost} Golden Crusts`)), h('p', {}, `Perk: ${p.perkText}`)));
     };
     const EVENTS: [string, string, string, string][] = [
       ['balloon', 'ev_balloon', 'Tip Balloon', 'Drifts across the top. One smack: 10 to 25 tips.'],
@@ -1504,11 +1503,9 @@ class UI {
         h(
           'div',
           {},
-          h('h3', {}, shownName(d)),
-          h('p', {}, d.how),
+          h('div', { class: 'dt-head' }, h('h3', {}, shownName(d)), h('span', { class: 'chip' }, owned ? '✅ Unlocked' : '🔒 Locked'), d.shiny ? h('span', { class: 'chip shiny-chip' }, d.ultra ? '💎 Ultra rare' : '✨ Shiny') : null, action ? h('span', { class: 'dt-act' }, action) : null),
+          h('div', { class: 'dt-how' }, h('p', {}, d.how), pr && !owned ? bar(pr[0], pr[1]) : null),
           hidden(d) && d.ultra ? null : abilityLine(d.id),
-          pr && !owned ? bar(pr[0], pr[1]) : null,
-          h('div', { class: 'chips' }, h('span', { class: 'chip' }, owned ? '✅ Unlocked' : '🔒 Locked'), d.shiny ? h('span', { class: 'chip shiny-chip' }, d.ultra ? '💎 Ultra rare' : '✨ Shiny') : null, action),
         ),
       );
     };
