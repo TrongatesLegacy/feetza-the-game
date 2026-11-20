@@ -107,8 +107,10 @@ function mark(a: Arena, key: string, x: number, y: number, sec: number, scale = 
 function dropOn(a: Arena, f: Foot, p: Pizza, key: string, sec: number, label: string, look: { scale?: number; tint?: number; color?: string } = {}): void {
   const tx = p.x;
   const ty = p.surfaceY - 30;
-  mark(a, 'p_reticle', tx, ty, sec, 0.7);
-  const img = a.sc.add.image(tx, -120, key).setScale(look.scale ?? 0.8);
+  mark(a, 'p_reticle', tx, ty, sec + 0.3, 0.7);
+  // it starts on screen and falls at a steady speed, so it's catchable for the whole drop
+  // (it used to start above the screen and accelerate, which left a split second to react)
+  const img = a.sc.add.image(tx, 70, key).setScale(look.scale ?? 0.8);
   if (look.tint !== undefined) img.setTint(look.tint);
   a.fxLayer.add(img);
   a.sfx('sfx_whoosh', { volume: 0.5, rate: 0.7 });
@@ -117,8 +119,8 @@ function dropOn(a: Arena, f: Foot, p: Pizza, key: string, sec: number, label: st
     targets: img,
     y: ty,
     angle: 200,
-    duration: sec * 1000,
-    ease: 'Quad.In',
+    duration: (sec + 0.3) * 1000,
+    ease: 'Linear',
     onComplete: () => {
       if (done) return;
       done = true;
@@ -135,8 +137,10 @@ function dropOn(a: Arena, f: Foot, p: Pizza, key: string, sec: number, label: st
     get y() {
       return img.y;
     },
-    r: 80,
+    r: 120,
     priority: 2,
+    // a forgiving box around the falling object: taller than wide, since it's moving down
+    contains: (x, y) => Math.abs(x - img.x) < 110 && Math.abs(y - img.y) < 140,
     alive: () => !done,
     hit: () => {
       if (done) return;
