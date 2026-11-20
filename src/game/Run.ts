@@ -266,7 +266,12 @@ export class Run {
   }
 
   /** Can this upgrade be offered right now? */
+  /** Set by the scene when a peel ability replaces the Peel Slam: slam-only toppings aren't offered. */
+  slamless: { slam: boolean; meter: boolean } = { slam: false, meter: false };
+
   offerable(u: Upgrade, wave: number): boolean {
+    if (this.slamless.slam && u.id === 'freeze') return false;
+    if (this.slamless.meter && (u.id === 'oregano' || u.id === 'dried' || u.id === 'overtime')) return false;
     const k = kindOf(u);
     if (k === 'unique') return this.level(u.id) === 0;
     if (k === 'consumable') return !this.armed.includes(u.id) && (this.cooldowns[u.id] ?? 0) <= wave;

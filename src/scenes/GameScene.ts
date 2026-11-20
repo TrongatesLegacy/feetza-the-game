@@ -24,6 +24,7 @@ import type { GoldenItem, ShopCard, ShopState } from '../ui/shopTypes';
 import { ui } from '../ui/ui';
 import { applyEquippedPeel, checkPeelAchievements, grantShinyFoot, peelThumbURL, peelTrail, rollEventDrop, SHINY_FOOT_CHANCE, type PeelDef } from '../game/peels';
 import { STAGES, WAVES_PER_STAGE } from '../data/stages';
+import { passiveBoost, setSlamMode } from '../game/slamMode';
 import { abilityFor, abilityKindLabel, scaleProc, usesMeter, type Ability, type Effect, type Proc, type Target } from '../game/abilities';
 import { randomLineup } from './MenuScene';
 
@@ -310,6 +311,12 @@ export class GameScene extends Phaser.Scene implements Arena {
     const wantAbility = this.start.snapshot?.ability ?? save.useAbility;
     this.ability = wantAbility && peelDef.id !== 'classic' ? abilityFor(peelDef.id) : null;
     this.abilityT = 0;
+    // slam-related toppings and perks reword (and work) for the ability in use; meter boosts are only
+    // useless for passives with no timer or chance to speed up
+    setSlamMode(this.ability);
+    this.events.once('shutdown', () => setSlamMode(undefined));
+    const t0 = this.ability?.trigger.t;
+    this.run.slamless = { slam: false, meter: !!this.ability && (t0 === 'always' || t0 === 'wave' || t0 === 'stomp') };
     ui.hud.setSlamLabel(this.ability ? this.ability.name : null, this.ability ? abilityKindLabel(this.ability) : null);
     this.peel = this.add.image(W / 2, H / 2, 'peel').setOrigin(0.5, 100 / 360).setScale(0.62).setAngle(-28).setAlpha(0.95);
     if (this.peelShiny) this.peel.preFX?.addShine(0.6, 0.4, 3.5);
@@ -640,6 +647,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     // Grandma Square guards both neighbours' first stomp each wave
     for (const p of this.alivePizzas()) if (p.perk === 'neighbourShield') for (const q of this.neighbours(p)) q.flags.grandma = true;
     this.run.super = Math.max(this.run.super, st.superStart);
+    // a passive on a timer gets its head start (S'mores, Pre-Heated Peel) as timer progress
+    if (this.ability?.trigger.t === 'every') this.abilityT = Math.max(this.abilityT, this.ability.trigger.sec * Math.min(1, this.run.super));
     const boss = isBossWave(n);
     this.waveEvent = boss || isMiniWave(n) ? null : rollEvent(EVENT_RATE[this.run.heat]);
     this.eventStarted = false;
@@ -957,7 +966,11 @@ export class GameScene extends Phaser.Scene implements Arena {
         const ps = [...this.alivePizzas()].sort((a, b) => a.slices / a.maxSlices - b.slices / b.maxSlices);
         if (ps[0]) this.healPizza(ps[0], n);
       },
-      slam: (frac) => (this.run.super = Math.min(1, this.run.super + frac)),
+      slam: (frac) => {
+        if (this.ability?.trigger.t === 'every') this.abilityT += this.ability.trigger.sec * frac;
+        else if (this.ability && !usesMeter(this.ability)) this.giveTips(15, W / 2, 300);
+        else this.run.super = Math.min(1, this.run.super + frac);
+      },
       crust: (n, x, y) => {
         const cap = Math.round(EVENT_CRUST_CAP * this.run.heatDef.crusts);
         const got = Math.max(0, Math.min(n, cap - this.run.eventCrusts));
@@ -1602,7 +1615,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.dealDamage(f, st.damage, { source: 'smack', canCrit: true, knock: st.knockback, x, y });
     // smack abilities only when the smack landed (not parried, guarded or dodged)
     const landed = !f.alive || f.hp < hpBefore;
-    if (landed && this.ability?.trigger.t === 'smack' && Math.random() < this.ability.trigger.p) this.fireAbility({ foot: f, x: f.cx, y: f.cy });
+    if (landed && this.ability?.trigger.t === 'smack' && Math.random() < this.ability.trigger.p * passiveBoost(st.superGain).chance) this.fireAbility({ foot: f, x: f.cx, y: f.cy });
     if (landed) this.fireProcs('smack', { foot: f, x: f.cx, y: f.cy });
     if (!f.alive) return;
     if (f.has('pinch')) this.stunPeel(0.5, 'PINCHED!');
@@ -1847,7 +1860,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     // kills charge the Peel Slam, except kills by the slam itself (it would refill its own meter)
     // the slam and abilities never refill their own meter (their burns included)
     if (source !== 'slam' && source !== 'ability' && !(source === 'burn' && f.burnFromAbility)) this.run.super = Math.min(1, this.run.super + 0.05 * st.superGain * (this.ability ? this.ability.charge : 1));
-    if (this.ability?.trigger.t === 'kill' && source !== 'ability' && Math.random() < this.ability.trigger.p) {
+    if (this.ability?.trigger.t === 'kill' && source !== 'ability' && Math.random() < this.ability.trigger.p * passiveBoost(st.superGain).chance) {
       const at = { x: f.cx, y: f.cy };
       this.time.delayedCall(40, () => this.fireAbility({ x: at.x, y: at.y }));
     }
@@ -2189,7 +2202,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.run.super = 0;
       this.fireAbility();
     } else if (a.trigger.t === 'every') {
-      this.abilityT += dt;
+      this.abilityT += dt * passiveBoost(this.run.stats.superGain).timer;
       if (this.abilityT >= a.trigger.sec && this.feet.some((f) => f.hittable)) {
         this.abilityT = 0;
         this.fireAbility();
@@ -2267,8 +2280,18 @@ export class GameScene extends Phaser.Scene implements Arena {
     } else if (a.trigger.t === 'every' || a.trigger.t === 'wave') {
       this.fx.quip(ctx.x ?? this.peelPos.x, (ctx.y ?? this.peelPos.y) - 90, a.name, '#' + color.toString(16).padStart(6, '0'), 30, 0);
     }
-    this.runEffects(a.fx, ctx, color, a.vfx);
-    void st;
+    this.runEffects(a.fx, ctx, color, a.vfx, true);
+    // Freeze Frame and Cajun Shrimp work on a meter ability the way they do on the Peel Slam
+    if (big && (st.freezeSlam || st.slamStun)) {
+      for (const f of this.feet) {
+        if (!f.alive || !f.hittable) continue;
+        if (st.freezeSlam) {
+          f.stun(3, true);
+          this.fx.frost(f.cx, f.cy);
+        } else if (!f.isBossLike) f.stun(1.5);
+      }
+      if (st.freezeSlam) audio.sfx('sfx_freeze');
+    }
   }
 
   /** Topping procs for one trigger kind (smack, kill, stomp, wave). */
@@ -2295,12 +2318,12 @@ export class GameScene extends Phaser.Scene implements Arena {
   }
 
   /** Run a list of effects; effects that share a target hit the same feet ("…then burn them"). */
-  private runEffects(fx: Effect[], ctx: { foot?: Foot; x?: number; y?: number }, color: number, vfx: Ability['vfx']): void {
+  private runEffects(fx: Effect[], ctx: { foot?: Foot; x?: number; y?: number }, color: number, vfx: Ability['vfx'], fromAbility = false): void {
     const cache = new Map<string, Foot[]>();
-    for (const e of fx) this.applyAbilityEffect(e, ctx, color, vfx, cache);
+    for (const e of fx) this.applyAbilityEffect(e, ctx, color, vfx, cache, fromAbility);
   }
 
-  private applyAbilityEffect(e: Effect, ctx: { foot?: Foot; x?: number; y?: number }, color: number, vfx: Ability['vfx'], cache?: Map<string, Foot[]>): void {
+  private applyAbilityEffect(e: Effect, ctx: { foot?: Foot; x?: number; y?: number }, color: number, vfx: Ability['vfx'], cache?: Map<string, Foot[]>, fromAbility = false): void {
     const st = this.run.stats;
     const targets = (t: Target): Foot[] => {
       const k = JSON.stringify(t);
@@ -2325,6 +2348,14 @@ export class GameScene extends Phaser.Scene implements Arena {
         for (const f of targets(e.at)) {
           mark(f);
           this.dealDamage(f, e.x * st.damage, { source: 'ability', knock: e.knock ?? 120, x: f.cx, y: f.cy });
+          // a passive ability's hits pick up Freeze Frame (chill) and Cajun Shrimp (sometimes stun)
+          if (fromAbility && f.alive && this.ability && !usesMeter(this.ability)) {
+            if (st.freezeSlam) {
+              f.slowT = Math.max(f.slowT, 2);
+              f.slowPct = Math.max(f.slowPct, 0.4);
+            }
+            if (st.slamStun && !f.isBossLike && Math.random() < 0.25) f.stun(1);
+          }
         }
         break;
       case 'burn':

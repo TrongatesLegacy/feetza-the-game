@@ -1,5 +1,6 @@
 // The 28 Feetza 2.0 pizzas. Toppings not in src/art/pizzaArt.ts or toppingsExtra.ts are drawn in
 // src/content/art/toppings-new.ts. perkText must stay at 40 characters or fewer (one card line).
+import { slamStunText } from '../../game/slamMode';
 import type { PizzaType } from '../../data/pizzas';
 
 export const pizzas: PizzaType[] = [
@@ -101,7 +102,7 @@ export const pizzas: PizzaType[] = [
     shape: 'round', base: 'tomato', cheese: 0.7, toppings: ['onion', 'feta', 'kalamata', 'oregano'], crust: '#d9a050', cost: 600,
   },
   {
-    id: 'cajun', name: 'Cajun Shrimp', perk: 'slamStun', perkText: 'Peel Slam also stuns all feet for 1.5s',
+    id: 'cajun', name: 'Cajun Shrimp', perk: 'slamStun', get perkText() { return slamStunText(); },
     shape: 'round', base: 'tomato', cheese: 0.9, toppings: ['greenPepper', 'andouille', 'cajunShrimp'], crust: '#c98238', cost: 740,
   },
   {

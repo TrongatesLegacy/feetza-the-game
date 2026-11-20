@@ -2,6 +2,7 @@
 
 import type { Proc } from '../game/abilities';
 import { MORE_TOPPINGS } from './toppingsMore';
+import { freezeText, meterBoostText } from '../game/slamMode';
 
 export interface Stats {
   damage: number;
@@ -181,7 +182,7 @@ export const UPGRADES: Upgrade[] = [
   },
   {
     id: 'oregano', name: 'Oregano Overdrive', icon: '🌿', rarity: 'common', max: 4,
-    desc: () => '+35% Peel Slam charge rate',
+    desc: () => meterBoostText(35),
     apply: (s) => { s.superGain += 0.35; },
   },
   {
@@ -310,7 +311,7 @@ export const UPGRADES: Upgrade[] = [
   },
   {
     id: 'freeze', name: 'Freeze Frame', icon: '⏳', rarity: 'legendary', max: 1,
-    desc: () => 'Peel Slam also freezes every foot for 3 seconds',
+    desc: () => freezeText(),
     apply: (s) => { s.freezeSlam = true; },
   },
   {

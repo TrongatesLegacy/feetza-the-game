@@ -1303,7 +1303,7 @@ class UI {
     const EVENTS: [string, string, string, string][] = [
       ['balloon', 'ev_balloon', 'Tip Balloon', 'Drifts across the top. One smack: 10 to 25 tips.'],
       ['drone', 'ev_drone', 'Delivery Drone', 'Zips across. Three smacks: a slice for your weakest pizza.'],
-      ['moth', 'ev_moth', 'Pepper Moth', 'Flutters about. Two smacks: half a Peel Slam.'],
+      ['moth', 'ev_moth', 'Pepper Moth', 'Flutters about. Two smacks: half a meter (Peel Slam or ability).'],
       ['seagull', 'ev_seagull', 'Golden Seagull', 'Very rare and fast. Two smacks: a Golden Crust.'],
       ['chest', 'ev_chest', 'Pizza Box Chest', 'Smash it open for tips, a free topping, slices or a crust.'],
       ['mimic', 'ev_mimic', 'Mimic Box', 'It wobbles. Smack it fast or it turns into a foot.'],

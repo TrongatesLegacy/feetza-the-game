@@ -3,6 +3,7 @@
 
 import { P, TRIG, describeProc, scaleProc, type Proc } from '../game/abilities';
 import type { Rarity, Stats, Upgrade } from './upgrades';
+import { meterBoostText } from '../game/slamMode';
 
 const { all, peel, hit, rnd, front, tough, nearP, BL, D, B, S, ST, FZ, K, M, C, H, SH, T } = P;
 const { every, smack, kill, stomp, wave } = TRIG;
@@ -42,7 +43,7 @@ export const MORE_TOPPINGS: Upgrade[] = [
   stat('showboat', 'Showboat', '🎭', 'common', 5, '+10% score', (s) => { s.scoreMult += 0.1; }),
   stat('handle', 'Long Handle', '🥢', 'common', 5, '+6 smack reach', (s) => { s.radius += 6; }),
   stat('grip', 'Better Grip', '🧤', 'common', 6, '+10% smack damage', (s) => { s.damage *= 1.1; }),
-  stat('dried', 'Dried Oregano', '🍂', 'common', 4, '+20% meter charge', (s) => { s.superGain += 0.2; }),
+  { ...stat('dried', 'Dried Oregano', '🍂', 'common', 4, '', (s) => { s.superGain += 0.2; }), desc: () => meterBoostText(20) },
   stat('slayer', 'Giant Slayer', '🛡️', 'common', 4, '+12% damage to bosses', (s) => { s.bossDmg += 0.12; }),
   stat('bully', 'Bully Smack', '👊', 'common', 4, '+12% damage to feet above half health', (s) => { s.bigHurt += 0.12; }),
   stat('crumbs', 'Crumb Trail', '🥖', 'common', 3, 'Smacks finish feet under +4% health', (s) => { s.execute += 0.04; }),
@@ -107,7 +108,7 @@ export const MORE_TOPPINGS: Upgrade[] = [
   stat('hydra', 'Hydra Peel', '🐉', 'epic', 2, '+15% chain lightning chance, +1 chain target', (s) => { s.chainChance += 0.15; s.chainCount += 1; }),
   stat('radiant', 'Radiant Crust', '☀️', 'epic', 2, 'Feet near pizzas take +12 dmg/s', (s) => { s.garlicDps += 12; }),
   stat('bossbane', 'Bossbane', '👹', 'epic', 3, '+30% damage to bosses', (s) => { s.bossDmg += 0.3; }),
-  stat('overtime', 'Overtime', '⏰', 'epic', 2, '+60% meter charge', (s) => { s.superGain += 0.6; }),
+  { ...stat('overtime', 'Overtime', '⏰', 'epic', 2, '', (s) => { s.superGain += 0.6; }), desc: () => meterBoostText(60) },
   stat('chainreaction', 'Chain Reaction', '🔗', 'epic', 2, 'Smacked-down feet explode for +25 area damage', (s) => { s.explodeDmg += 25; }),
   proc('inferno', 'Inferno Crust', '🏮', 'epic', 3, pr(every(6), [B(1.5, 4, all)], 0xff5a3c, 'fire')),
   proc('meteor', 'Meteor Pepperoni', '🌠', 'epic', 3, pr(every(7), [D(4, BL(2, 220))], 0xff9f1c, 'rain')),

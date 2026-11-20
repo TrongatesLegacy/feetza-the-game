@@ -1,5 +1,6 @@
 // Pizza varieties. Each pizza on the table grants its perk while it still has slices left.
 
+import { meterBoostText, superStartText } from '../game/slamMode';
 import { CONTENT_PIZZAS } from '../content/pizzaData';
 
 export type Topping =
@@ -145,7 +146,7 @@ export const PIZZAS: PizzaType[] = [
     shape: 'square', base: 'tomato', cheese: 0.85, toppings: ['basil', 'parmesan'], crust: '#c98a3e', cost: 255,
   },
   {
-    id: 'dessert', name: 'Choco-Berry', perk: 'super', perkText: '+35% Peel Slam charge',
+    id: 'dessert', name: 'Choco-Berry', perk: 'super', get perkText() { return meterBoostText(35); },
     shape: 'round', base: 'choc', cheese: 0, toppings: ['strawberry', 'chocolate'], crust: '#c8874a', cost: 300,
   },
   {
@@ -197,7 +198,7 @@ export const PIZZAS: PizzaType[] = [
     shape: 'deep', base: 'tomato', cheese: 0, toppings: ['sausage', 'parmesan', 'basil'], crust: '#c88a3e', cost: 360,
   },
   {
-    id: 'smores', name: 'S\'mores', perk: 'superStart', perkText: 'Start each wave with 40% Peel Slam',
+    id: 'smores', name: 'S\'mores', perk: 'superStart', get perkText() { return superStartText(40); },
     shape: 'round', base: 'choc', cheese: 0, toppings: ['marshmallow', 'chocolate'], crust: '#b97a3e', cost: 420,
   },
   {

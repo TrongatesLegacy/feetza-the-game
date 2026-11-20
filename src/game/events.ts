@@ -4,6 +4,7 @@
 import Phaser from 'phaser';
 import { W } from '../config';
 import type { Arena } from './arena';
+import { slamMode } from './slamMode';
 
 export type EventId = 'balloon' | 'drone' | 'moth' | 'seagull' | 'chest' | 'mimic';
 
@@ -117,7 +118,9 @@ export function startEvent(a: Arena, id: EventId, rw: EventRewards): void {
         a.quip(x, y - 80, 'DELIVERY: +1 SLICE', '#7dff9a', 40);
       } else if (id === 'moth') {
         rw.slam(0.5);
-        a.quip(x, y - 80, '+50% PEEL SLAM', '#ffd23f', 40);
+        const m = slamMode();
+        const label = m.kind !== 'passive' ? `+50% ${m.name.toUpperCase()}` : m.trigger === 'every' ? `${m.name.toUpperCase()} SOONER` : '+15 TIPS';
+        a.quip(x, y - 80, label, '#ffd23f', 40);
       } else if (id === 'seagull') {
         const got = rw.crust(1, x, y);
         a.quip(x, y - 80, got ? '+1 GOLDEN CRUST' : 'CRUST CAP REACHED', '#ffd23f', 40);
