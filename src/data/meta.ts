@@ -13,11 +13,11 @@ export const META: MetaUpgrade[] = [
   { id: 'tips', name: 'Tip Culture', icon: '🪙', desc: '+10% tips per level', costs: [60, 125, 225, 350, 500] },
   { id: 'pies', name: 'Bigger Pies', icon: '🥧', desc: '+1 slice on every pizza per level', costs: [125, 300, 625] },
   { id: 'apron', name: 'Lucky Apron', icon: '🍀', desc: 'Better upgrade rarities', costs: [150, 350, 750] },
-  { id: 'opinion', name: 'Second Opinion', icon: '🎲', desc: '+1 free reroll on every upgrade screen', costs: [200, 500] },
+  { id: 'opinion', name: 'Second Opinion', icon: '🎲', desc: '+1 free reroll in every shop', costs: [200, 500] },
   { id: 'preheat', name: 'Pre-Heated Peel', icon: '🔥', desc: 'Start every run with a full Peel Slam', costs: [250] },
-  { id: 'headstart', name: 'Head Start', icon: '🚀', desc: 'Start every run with a random rare upgrade', costs: [375] },
+  { id: 'headstart', name: 'Head Start', icon: '🚀', desc: 'Start each run with a rare topping', costs: [375] },
   { id: 'table', name: 'Extra Table Space', icon: '🍽️', desc: 'Start with 4 pizzas instead of 3', costs: [700] },
-  { id: 'indecisive', name: 'Indecisive Chef', icon: '🤔', desc: 'Choose from 4 upgrade cards instead of 3', costs: [1000] },
+  { id: 'indecisive', name: 'Indecisive Chef', icon: '🤔', desc: '4 topping cards in every shop, not 3', costs: [1000] },
 ];
 
 /** Prices before Feetza 2.0, kept so Reset refunds what veterans actually paid. */

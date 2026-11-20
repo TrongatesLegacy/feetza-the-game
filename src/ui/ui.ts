@@ -1108,14 +1108,14 @@ class UI {
       );
       if (tab === 'upgrades') {
         const refund = metaRefundValue();
-        const resetBtn = btn(`RESET UPGRADES · REFUND ${fmt(refund)}`, 'cream small', () => {
+        const resetBtn = btn(refund > 0 ? `RESET UPGRADES · REFUND ${fmt(refund)}` : 'RESET UPGRADES', 'cream small', () => {
           resetMeta();
           audio.sfx('sfx_coin');
           render();
         });
         resetBtn.disabled = refund <= 0;
         body.replaceChildren(
-          h('div', { class: 'reset-row' }, resetBtn, h('span', {}, 'Full refund, any time. Pizza unlocks stay unlocked.')),
+          h('div', { class: 'reset-row meta-reset' }, resetBtn, h('span', {}, 'Full refund, any time. Pizza unlocks stay unlocked.')),
           h(
             'div',
             { class: 'meta-list' },
@@ -1207,8 +1207,14 @@ class UI {
           h('h3', {}, seen ? f.name : '???'),
           h('p', {}, seen ? f.desc : f.boss || f.mini ? `A ${f.mini ? 'mini-boss' : 'boss'} lurks at wave ${f.minWave}…` : `Appears from wave ${f.minWave}. Spot one to learn more.`),
           seen && home ? h('p', { class: 'home' }, `Home: ${home}`) : null,
-          seen && howToFor(f) ? h('div', { class: 'howto' }, h('b', {}, 'HOW TO BEAT IT'), h('span', {}, howToFor(f)!)) : null,
-          seen && tellFor(f) ? h('div', { class: 'tell' }, h('b', {}, 'THE TELL'), h('span', {}, tellFor(f)!)) : null,
+          seen && (howToFor(f) || tellFor(f))
+            ? h(
+                'div',
+                { class: 'ht' },
+                howToFor(f) ? h('div', { class: 'howto' }, h('b', {}, 'HOW TO BEAT IT'), h('span', {}, howToFor(f)!)) : null,
+                tellFor(f) ? h('div', { class: 'tell' }, h('b', {}, 'THE TELL'), h('span', {}, tellFor(f)!)) : null,
+              )
+            : null,
           chips,
         ),
       );

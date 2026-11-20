@@ -1280,8 +1280,29 @@ h3 {
 
 .modal.wide .scroll {
   flex: 1 1 auto;
-  min-height: 0;
+  min-height: 12em;
   max-height: none !important;
+}
+
+/* the Pizzapedia's info panel keeps its full height; the grid underneath scrolls instead */
+.modal.wide .detail {
+  flex-shrink: 0;
+}
+
+/* how to beat it and the tell sit side by side to keep the panel short */
+.detail .ht {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6em;
+  margin: 0.3em 0;
+}
+
+.detail .ht > div {
+  margin: 0;
+}
+
+.detail .ht > div:only-child {
+  grid-column: 1 / -1;
 }
 
 .modal.wide .title {
@@ -1636,8 +1657,9 @@ input[type='range']::-moz-range-thumb {
 .meta .nmrow {
   grid-area: nm;
   display: flex;
-  align-items: center;
-  gap: 0.5em;
+  flex-direction: column; /* level pips on their own line under the name, clear of the price */
+  align-items: flex-start;
+  gap: 0.2em;
   min-width: 0;
 }
 
@@ -3102,6 +3124,11 @@ body.pad :focus {
 
 .reset-row .btn {
   white-space: nowrap;
+}
+
+/* the Pizzeria's reset sits above the card grid: clear the button's drop shadow and match the grid's gap */
+.reset-row.meta-reset {
+  margin-bottom: 1.15em;
 }
 
 .tile.unowned img {
