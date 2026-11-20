@@ -1368,6 +1368,8 @@ input[type='range']::-moz-range-thumb {
 }
 
 .toggle .sw {
+  /* sizes include the border, and the knob is centred inside it, so it never pokes past the track */
+  box-sizing: border-box;
   width: 3em;
   height: 1.6em;
   border-radius: 1em;
@@ -1380,14 +1382,16 @@ input[type='range']::-moz-range-thumb {
 
 .toggle .sw::after {
   content: '';
+  box-sizing: border-box;
   position: absolute;
-  top: 0.1em;
-  left: 0.1em;
-  width: 1.15em;
-  height: 1.15em;
+  top: 50%;
+  left: 0.13em;
+  width: 1.06em;
+  height: 1.06em;
+  transform: translateY(-50%);
   border-radius: 50%;
   background: #fff;
-  border: 0.12em solid var(--ink);
+  border: 0.1em solid var(--ink);
   transition: left 0.15s;
 }
 
@@ -1396,7 +1400,7 @@ input[type='range']::-moz-range-thumb {
 }
 
 .toggle input:checked + .sw::after {
-  left: 1.5em;
+  left: calc(100% - 1.06em - 0.13em);
 }
 
 .section-title {
