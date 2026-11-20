@@ -534,7 +534,9 @@ class UI {
   }
 
   // ——— Pre-run setup: heat, act, journey and lineup ———
-  lineup(ids: string[], onShuffle: () => void, onStart: (heat: HeatId, act2: boolean) => void, onBack: () => void): HTMLElement {
+  /** shuffle returns a new lineup; it's swapped in place (re-opening the screen made the backdrop flicker). */
+  lineup(ids: string[], shuffle: () => string[], onStart: (heat: HeatId, act2: boolean, ids: string[]) => void, onBack: () => void): HTMLElement {
+    let cur = ids;
     let heat: HeatId = save.heat;
     let act2 = false;
     const unlocked = (hd: (typeof HEATS)[number]) => !hd.unlockAfter || save.act1Cleared.includes(hd.unlockAfter);
@@ -543,7 +545,7 @@ class UI {
     const startBtn = btn('', 'green big', () => {
       save.heat = heat;
       persist();
-      onStart(heat, act2);
+      onStart(heat, act2, cur);
     });
     const render = () => {
       heatRow.replaceChildren(
@@ -629,10 +631,15 @@ class UI {
       );
     };
     renderPeel();
-    const tiles = ids.map((id) => {
-      const p = PIZZA_BY_ID[id];
-      return h('div', { class: 'lu' }, h('img', { src: pizzaPortraitURL(id), alt: p.name }), h('div', {}, h('b', {}, p.name), h('span', {}, p.perkText)));
-    });
+    const lineupRow = h('div', { class: 'lineup2' });
+    const renderLineup = () =>
+      lineupRow.replaceChildren(
+        ...cur.map((id) => {
+          const p = PIZZA_BY_ID[id];
+          return h('div', { class: 'lu' }, h('img', { src: pizzaPortraitURL(id), alt: p.name }), h('div', {}, h('b', {}, p.name), h('span', {}, p.perkText)));
+        }),
+      );
+    renderLineup();
     const panel = h(
       'div',
       { class: 'panel modal wide prerun' },
@@ -640,8 +647,11 @@ class UI {
       h('div', { class: 'section-title' }, 'HEAT'),
       heatRow,
       h('div', { class: 'prerun-mid' }, h('div', {}, h('div', { class: 'section-title' }, 'START AT'), actRow), h('div', { class: 'journey-wrap' }, h('div', { class: 'section-title' }, 'THE JOURNEY · 60 WAVES'), journey)),
-      h('div', { class: 'prerun-bottom' }, h('div', {}, h('div', { class: 'section-title' }, "TONIGHT'S LINEUP"), h('div', { class: 'lineup2' }, ...tiles)), h('div', {}, h('div', { class: 'section-title' }, 'YOUR PEEL'), peelCard)),
-      h('div', { class: 'row' }, btn('BACK', 'cream', onBack, { 'data-pad': 'back' }), btn('SHUFFLE', 'yellow', onShuffle, { 'data-pad': 'y' }), startBtn),
+      h('div', { class: 'prerun-bottom' }, h('div', {}, h('div', { class: 'section-title' }, "TONIGHT'S LINEUP"), lineupRow), h('div', {}, h('div', { class: 'section-title' }, 'YOUR PEEL'), peelCard)),
+      h('div', { class: 'row' }, btn('BACK', 'cream', onBack, { 'data-pad': 'back' }), btn('SHUFFLE', 'yellow', () => {
+        cur = shuffle();
+        renderLineup();
+      }, { 'data-pad': 'y' }), startBtn),
     );
     return this.open(panel);
   }

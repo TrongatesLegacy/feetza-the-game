@@ -137,16 +137,27 @@ export class MenuScene extends Phaser.Scene {
     });
   }
 
+  private lastLineup: string[] | null = null;
+
   private lineup(ids: string[]): void {
+    this.lastLineup = ids;
     ui.closeAll();
     ui.lineup(
       ids,
-      () => this.lineup(randomLineup(ids.length)),
-      (heat, act2) => {
+      () => {
+        // never the same three again (unless that's all you own)
+        const key = (l: string[]) => [...l].sort().join();
+        const was = key(this.lastLineup ?? ids);
+        let next = randomLineup(ids.length);
+        for (let i = 0; i < 8 && key(next) === was && save.unlockedPizzas.length > ids.length; i++) next = randomLineup(ids.length);
+        this.lastLineup = next;
+        return next;
+      },
+      (heat, act2, lineup) => {
         ui.closeAll();
         audio.sfx('sfx_levelup', { volume: 0.7 });
         this.cameras.main.fadeOut(400, 18, 10, 6);
-        this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('Game', { lineup: ids, heat, act2 }));
+        this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('Game', { lineup, heat, act2 }));
       },
       () => this.showMenu(),
     );
