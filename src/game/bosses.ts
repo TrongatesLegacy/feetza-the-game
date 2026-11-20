@@ -853,12 +853,46 @@ const nonna = (): Brain => {
 const gargoyle = (): Brain => {
   const swoop = new Every(3, 3);
   const stone = new Every(9, 3);
-  const pigeons = new Every(6, 2);
   let stoneT = 0;
   let cracks = 0;
+  // phase 3+: it hides behind a flock of pigeons, can't be hurt until every one is gone,
+  // then is exposed for a few seconds before calling the next (bigger at higher heats)
+  let flock: Foot[] = [];
+  let warded = false;
+  let exposedT = 0;
+  const flockSize = (f: Foot, a: Arena) => Math.ceil(3 * a.heatCount()) + (f.phase >= 4 ? 1 : 0);
+  const callFlock = (f: Foot, a: Arena) => {
+    flock = [];
+    const n = flockSize(f, a);
+    for (let i = 0; i < n; i++) {
+      const pg = a.spawn('pigeon', rnd(a.alivePizzas()) ?? null, f.x + (i - (n - 1) / 2) * 110);
+      if (pg) {
+        pg.y -= (i % 3) * 60;
+        flock.push(pg);
+      }
+    }
+    if (!flock.length) {
+      exposedT = 1; // nothing could spawn: try again shortly rather than every frame
+      return;
+    }
+    warded = true;
+    f.shielded = true;
+    f.tint(0xa9b8d0);
+    a.quip(f.x, f.cy - 150, `PIGEON STORM ×${flock.length}`, '#c7ccd4', 44);
+    a.sfx('sfx_boing', { rate: 1.6 });
+  };
   return {
     names: ['SWOOP', 'STONE FORM', 'PIGEON STORM'],
-    info: ['Swoops between pizzas while it hovers · strike when it settles over one', 'Turns to stone: smacks do no damage · crack it 6 times to break it and stun it', 'Calls flocks of pigeons · clear the pigeons, then hit the gargoyle'],
+    info: ['Swoops between pizzas while it hovers · strike when it settles over one', 'Turns to stone: smacks do no damage · crack it 6 times to break it and stun it', "Hides behind a flock of pigeons and can't be hurt · clear every pigeon, then hit it while it's exposed"],
+    onPhase: (f, phase, a) => {
+      if (phase < 3) return;
+      // leaving stone form behind: the transform beat's end drops the stone shield too
+      stoneT = 0;
+      f.brain.wasShielded = false;
+      f.tint(null);
+      if (phase === 3) exposedT = 0;
+      a.fx.puff(f.cx, f.cy, 6);
+    },
     update: (f, dt, a) => {
       if (swoop.tick(dt) && f.state === 'hover') {
         const p = rnd(a.alivePizzas().filter((q) => q !== f.target));
@@ -881,15 +915,28 @@ const gargoyle = (): Brain => {
         a.quip(f.x, f.cy - 150, 'STONE FORM!', '#c7ccd4', 44);
         a.sfx('sfx_shield', { rate: 0.6 });
       }
-      if (f.phase >= 3 && pigeons.tick(dt)) {
-        for (let i = 0; i < 3; i++) {
-          const pg = a.spawn('pigeon', rnd(a.alivePizzas()) ?? null, f.x + (i - 1) * 120);
-          if (pg) pg.y -= i * 60;
-        }
-        a.sfx('sfx_boing', { rate: 1.6 });
+      if (f.phase >= 3) {
+        if (warded) {
+          f.shielded = true; // keep the ward through the transform beat restoring it
+          flock = flock.filter((pg) => pg.alive);
+          if (!flock.length) {
+            warded = false;
+            f.shielded = false;
+            f.tint(null);
+            exposedT = f.phase >= 4 ? 4 : 5;
+            a.quip(f.x, f.cy - 150, 'EXPOSED! HIT IT!', '#7dff9a', 46);
+            a.sfx('sfx_crit');
+          }
+        } else if (exposedT > 0) {
+          exposedT -= dt;
+        } else if (a.inWave()) callFlock(f, a);
       }
     },
     onSmacked: (f, a) => {
+      if (warded) {
+        a.quip(f.x + 60, f.cy - 60, `CLEAR THE PIGEONS · ${flock.filter((pg) => pg.alive).length} LEFT`, '#c7ccd4', 30);
+        return true;
+      }
       if (!f.shielded) return false;
       cracks++;
       a.quip(f.x + 60, f.cy - 60, `CRACK ${cracks}/6`, '#c7ccd4', 30);

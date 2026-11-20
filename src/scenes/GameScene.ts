@@ -244,6 +244,9 @@ export class GameScene extends Phaser.Scene implements Arena {
   bossPhases(): number {
     return this.run.heatDef.bossPhases + (this.plan && this.plan.loop > 0 ? 1 : 0);
   }
+  heatCount(): number {
+    return this.run.heatDef.count;
+  }
   damageFoot(f: Foot, amount: number, label?: string): void {
     if (label) this.fx.quip(f.x, f.cy - 130, label, '#7dff9a', 40);
     this.dealDamage(f, amount, { source: 'direct', x: f.cx, y: f.cy });

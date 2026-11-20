@@ -63,6 +63,8 @@ export interface Arena {
   layoutPizzas(): void;
   /** Heat: how many phases main bosses get (mini-bosses one fewer). */
   bossPhases(): number;
+  /** The heat's foot-count multiplier (Mild 0.8 … Inferno 1.45): scales boss summons. */
+  heatCount(): number;
   /** Damage a boss directly (batted-back slippers, cracks). */
   damageFoot(f: Foot, amount: number, label?: string): void;
 }
