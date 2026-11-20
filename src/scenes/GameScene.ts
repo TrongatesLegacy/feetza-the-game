@@ -1265,9 +1265,17 @@ export class GameScene extends Phaser.Scene implements Arena {
     const count = sh.bossReward ? sh.cards.length : 3 + (save.meta.indecisive ? 1 : 0);
     const tableFull = this.pizzas.length >= MAX_PIZZAS && !this.pizzas.some((p) => p.dead);
     const keep = sh.cards.filter((u) => sh.sold.has(u.id));
-    let fresh = sh.bossReward ? this.run.rollBossChoices(count - keep.length, [...keep.map((u) => u.id), ...(tableFull ? ['helping'] : [])]) : this.run.rollChoices(count - keep.length, [...keep.map((u) => u.id), ...(tableFull ? ['helping'] : [])]);
+    // a reroll never deals back the cards it replaced: roll from everything else first,
+    // and only top up with old cards if the pool has run that dry
+    const old = sh.cards.filter((u) => !sh.sold.has(u.id)).map((u) => u.id);
+    const base = [...keep.map((u) => u.id), ...(tableFull ? ['helping'] : [])];
+    const roll = (n: number, ex: string[]) => (sh.bossReward ? this.run.rollBossChoices(n, ex) : this.run.rollChoices(n, ex));
+    let fresh = roll(count - keep.length, [...base, ...old]);
+    if (fresh.length < count - keep.length) fresh = [...fresh, ...roll(count - keep.length - fresh.length, [...base, ...fresh.map((u) => u.id)]).slice(0, count - keep.length - fresh.length)];
     if (withLegendary && !fresh.some((u) => u.rarity === 'legendary')) {
-      const leg = UPGRADES.filter((u) => u.rarity === 'legendary' && this.run.offerable(u, this.run.wave) && !keep.includes(u) && !(tableFull && u.id === 'helping'));
+      const leg = UPGRADES.filter((u) => u.rarity === 'legendary' && this.run.offerable(u, this.run.wave) && !keep.includes(u) && !fresh.includes(u) && !(tableFull && u.id === 'helping'));
+      const newLeg = leg.filter((u) => !old.includes(u.id));
+      if (newLeg.length) leg.splice(0, leg.length, ...newLeg);
       if (leg.length) fresh = [...fresh.slice(0, Math.max(0, fresh.length - 1)), Phaser.Utils.Array.GetRandom(leg)];
     }
     sh.cards = [...keep, ...fresh];
