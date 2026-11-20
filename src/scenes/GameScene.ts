@@ -1323,6 +1323,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     }
     if (u.onPick === 'arm') this.run.armed.push(u.id);
     if (u.onPick === 'fridge') for (const p of this.alivePizzas()) if (p.freshOn) p.setFresh(p.fresh + 4);
+    // trade-offs paid in freshness: a one-time hit to the pizzas on the table, never enough to make one stale
+    if (u.freshNow) for (const p of this.alivePizzas()) if (p.freshOn && p.fresh > 1) p.setFresh(Math.max(1, p.fresh - u.freshNow));
     if (u.onPick === 'extraPizza') {
       if (this.pizzas.length >= MAX_PIZZAS) {
         const dead = this.pizzas.find((p) => p.dead);

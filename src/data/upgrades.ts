@@ -143,6 +143,8 @@ export interface Upgrade {
   proc?: Proc;
   /** Trade-off toppings: the catch, shown as its own red line. */
   downside?: string;
+  /** One-time cost when bought: pizzas on the table lose this much freshness (never below 1). */
+  freshNow?: number;
 }
 
 const pct = (n: number) => `${Math.round(n * 100)}%`;
@@ -351,7 +353,9 @@ export const RARITY_PER_WAVE: Record<Rarity, number> = { common: 3, rare: 4, epi
 /** Price of the next level: rarity base + 4 per wave, +35% for every level already owned (so stacking
  * one upgrade gets expensive and tips spread across the run); consumables are 30% cheaper. */
 export function upgradePrice(u: Upgrade, wave: number, owned = 0): number {
-  const base = (RARITY_PRICE[u.rarity] + RARITY_PER_WAVE[u.rarity] * wave) * (1 + 0.35 * owned);
+  // tips per wave roughly triple from wave 10 to wave 30, so prices climb faster later on (×1.07 at 10, ×1.6 at 30, ×2.2 cap)
+  const late = 1 + Math.min(1.2, 0.6 * (wave / 30) ** 2);
+  const base = (RARITY_PRICE[u.rarity] + RARITY_PER_WAVE[u.rarity] * wave) * late * (1 + 0.35 * owned);
   // consumables are one-use; trade-offs pay part of their price in the downside
   const k = ((u.kind ?? 'permanent') === 'consumable' ? 0.7 : 1) * (u.downside ? 0.8 : 1);
   return Math.round((base * k) / 5) * 5;

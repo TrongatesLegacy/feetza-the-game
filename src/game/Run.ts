@@ -261,10 +261,12 @@ export class Run {
     s.superGain = Math.max(0.2, s.superGain);
     s.coinMult = Math.max(0.3, s.coinMult);
     s.radius = Math.max(14, s.radius);
-    s.freshBonus = Math.max(-7, s.freshBonus);
+    s.freshBonus = Math.max(-4, s.freshBonus);
     s.critChance = Math.max(0, s.critChance);
     s.stompExtra = Math.min(0.6, s.stompExtra);
     s.speedMult = Math.min(1.6, s.speedMult);
+    // golden feet stack fast across toppings, peels and perks: at most 30% of feet turn to gold
+    s.goldenTouch = Math.min(0.3, s.goldenTouch);
     s.slowPct = Math.min(0.7, s.slowPct);
     s.critChance = Math.min(0.85, s.critChance);
     s.execute = Math.min(0.4, s.execute);
