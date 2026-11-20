@@ -4,7 +4,7 @@
 // then, with the dev server on :5180:
 //   node scripts/dom-shots.mjs "http://localhost:5180/?dev" steps.json [initialWaitMs]
 // steps: [{ "js": "async code run in the page (F.* is available)", "out": "/abs/file.png", "wait": 600 }]
-// Each step runs in the same page, then a 1600x900 screenshot is saved and F.layout() is printed.
+// Each step runs in the same page, then a screenshot (1600x900, or VIEW=WxH) is saved and F.layout() is printed.
 // ?dev&show=welcome opens the welcome card straight away.
 const [url, stepsFile, waitMs = '9000'] = process.argv.slice(2);
 const fs = await import('node:fs');
@@ -16,7 +16,9 @@ const pending = new Map();
 ws.onmessage = (m) => { const d = JSON.parse(m.data); if (d.id && pending.has(d.id)) { pending.get(d.id)(d); pending.delete(d.id); } };
 await new Promise((r) => (ws.onopen = r));
 const send = (method, params = {}) => new Promise((r) => { const i = ++id; pending.set(i, r); ws.send(JSON.stringify({ id: i, method, params })); });
-await send('Emulation.setDeviceMetricsOverride', { width: 1600, height: 900, deviceScaleFactor: 1, mobile: false });
+// VIEW=1280x720 picks another window size (default 1600x900)
+const [vw, vh] = (process.env.VIEW ?? '1600x900').split('x').map(Number);
+await send('Emulation.setDeviceMetricsOverride', { width: vw, height: vh, deviceScaleFactor: 1, mobile: false });
 await send('Page.enable');
 await send('Page.navigate', { url });
 await new Promise((r) => setTimeout(r, Number(waitMs)));
