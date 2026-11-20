@@ -1492,7 +1492,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     // boss props and wave events: a smack goes to them only when no foot is closer
     this.clickables = this.clickables.filter((c) => c.alive());
     const click = this.clickables
-      .map((c) => ({ c, d: Math.hypot(c.x - x, c.y - y) - c.r }))
+      .map((c) => ({ c, d: c.contains ? (c.contains(x, y) ? 0 : 1) : Math.hypot(c.x - x, c.y - y) - c.r }))
       .filter((o) => o.d <= 0)
       .sort((a, b) => (b.c.priority ?? 0) - (a.c.priority ?? 0) || a.d - b.d)[0];
     if (click && (!hits.length || (click.c.priority ?? 0) >= 2 || hits[0].d > 18)) {

@@ -1314,7 +1314,10 @@ const ufotoe = (): Brain => {
         a.fxLayer.add(b);
         a.sfx('sfx_zap', { rate: 1.4, volume: 0.6 });
         let live = true;
-        a.addClickable({ x: p.x, y: p.surfaceY - 160, r: 110, priority: 2, alive: () => live, hit: () => {
+        // the whole beam is the target, and it wins over the UFO foot hovering right above it
+        const box = b.getBounds();
+        Phaser.Geom.Rectangle.Inflate(box, 30, 10);
+        a.addClickable({ x: p.x, y: box.centerY, r: 110, priority: 2, contains: (x, y) => box.contains(x, y), alive: () => live, hit: () => {
           live = false;
           a.quip(p.x, p.surfaceY - 200, 'BEAM BROKEN!', '#7dff9a', 38);
           b.destroy();

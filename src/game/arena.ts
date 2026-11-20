@@ -13,6 +13,8 @@ export interface Clickable {
   hit(): void;
   /** Smacks prefer this over a foot at the same distance. */
   priority?: number;
+  /** A custom hit shape (e.g. a tall beam) instead of the x/y/r circle. */
+  contains?(x: number, y: number): boolean;
   alive(): boolean;
 }
 
