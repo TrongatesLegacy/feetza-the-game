@@ -3407,3 +3407,221 @@ body.reduced-motion *::after {
   text-decoration-thickness: 0.14em;
   opacity: 0.75;
 }
+
+/* ——— Peel Locker ——— */
+.locker .crusts {
+  font-size: 1.6em;
+}
+
+.locker .crusts .coin {
+  width: 1.2em;
+  height: 1.2em;
+}
+
+.locker-tabs {
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.locker-tabs .btn {
+  font-size: 1.2em;
+}
+
+.locker-tabs .btn small {
+  font-size: 0.75em;
+  opacity: 0.85;
+}
+
+.peel-detail {
+  grid-template-columns: 6em 1fr;
+  min-height: 0;
+  padding-top: 0.5em;
+  padding-bottom: 0.5em;
+}
+
+.peel-detail h3 {
+  font-size: 1.7em;
+}
+
+.peel-detail p {
+  font-size: 1.15em;
+}
+
+.peel-big {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 8em;
+  overflow: hidden;
+}
+
+.peel-big img,
+.detail .peel-big img {
+  width: auto;
+  height: 8em;
+  max-height: none;
+  transform: rotate(-14deg);
+}
+
+.peel-grid {
+  grid-template-columns: repeat(auto-fill, minmax(8.6em, 1fr));
+}
+
+.peel-tile {
+  position: relative;
+}
+
+.peel-tile img {
+  height: 7.5em;
+  width: auto;
+}
+
+.peel-tile .cost {
+  font-weight: 700;
+  font-size: 0.95em;
+  color: var(--ink-soft);
+}
+
+/* locked peels show what you're working towards, faded; undiscovered shinies are silhouettes */
+.tile.peel-tile.locked img {
+  filter: grayscale(0.7) opacity(0.55);
+}
+
+.tile.peel-tile.hidden img,
+.peel-big.hidden img {
+  filter: brightness(0) opacity(0.3);
+}
+
+.tile .tag.new {
+  background: var(--tomato);
+  color: #fff;
+}
+
+/* shiny: a rainbow sheen sweeping across, masked to the peel */
+.peel-tile.shiny,
+.peel-big.shiny {
+  overflow: hidden;
+}
+
+.peel-tile.shiny {
+  border-color: #b98a00;
+  background: linear-gradient(160deg, #fffaf0, #fff1c8 45%, #f2e6ff);
+}
+
+.peel-big.shiny::after,
+.peel-tile.shiny::after {
+  content: '';
+  position: absolute;
+  inset: -20%;
+  background: linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, 0.85) 45%, rgba(255, 240, 160, 0.6) 50%, rgba(160, 220, 255, 0.5) 55%, transparent 65%);
+  mix-blend-mode: soft-light;
+  animation: peelShine 2.6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes peelShine {
+  0% {
+    transform: translateX(-70%);
+  }
+  60%,
+  100% {
+    transform: translateX(70%);
+  }
+}
+
+.shiny-chip {
+  background: linear-gradient(90deg, #ffe0f0, #fff6c0, #d8f6ff) !important;
+}
+
+.pbar {
+  position: relative;
+  width: 100%;
+  max-width: 22em;
+  height: 1.3em;
+  border: 0.12em solid var(--ink);
+  border-radius: 0.7em;
+  background: rgba(255, 255, 255, 0.7);
+  overflow: hidden;
+  margin-top: 0.3em;
+}
+
+.pbar i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: linear-gradient(180deg, #8de06a, var(--basil));
+}
+
+.pbar span {
+  position: relative;
+  display: block;
+  text-align: center;
+  font-weight: 800;
+  font-size: 0.85em;
+  line-height: 1.45em;
+  color: var(--ink);
+}
+
+.sec-head {
+  font-family: 'Lilita One', sans-serif;
+  font-size: 1.4em;
+  margin: 0.9em 0 0.4em;
+  display: flex;
+  gap: 0.6em;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.sec-head:first-child {
+  margin-top: 0;
+}
+
+.sec-head span {
+  font-family: inherit;
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 600;
+  font-size: 0.7em;
+  color: var(--ink-soft);
+}
+
+.goals {
+  display: grid;
+  gap: 0.6em;
+}
+
+.goal {
+  display: grid;
+  grid-template-columns: 3em minmax(0, 1fr) 14em;
+  gap: 0.9em;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.55);
+  border: 0.14em solid var(--ink);
+  border-radius: 0.9em;
+  padding: 0.3em 0.9em;
+  cursor: pointer;
+}
+
+.goal img {
+  height: 4.4em;
+  width: auto;
+  justify-self: center;
+}
+
+.goal .gt {
+  display: grid;
+  min-width: 0;
+}
+
+.goal .gt b {
+  font-family: 'Lilita One', sans-serif;
+  font-weight: 400;
+  font-size: 1.2em;
+}
+
+.goal .gt span {
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.goal .pbar {
+  margin: 0;
+}

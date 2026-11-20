@@ -122,6 +122,10 @@ export class MenuScene extends Phaser.Scene {
         ui.close(this.menuEl!);
         ui.pedia(() => this.showMenu());
       },
+      locker: () => {
+        ui.close(this.menuEl!);
+        ui.locker(() => this.showMenu());
+      },
       settings: () => {
         ui.close(this.menuEl!);
         ui.settings(() => this.showMenu());

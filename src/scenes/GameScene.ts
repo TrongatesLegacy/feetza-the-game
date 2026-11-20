@@ -22,6 +22,8 @@ import { pad } from '../systems/gamepad';
 import { markFootSeen, nextLockedPizza, persist, save, updateSettings } from '../systems/save';
 import type { GoldenItem, ShopCard, ShopState } from '../ui/shopTypes';
 import { ui } from '../ui/ui';
+import { applyEquippedPeel, checkPeelAchievements, grantShinyFoot, peelThumbURL, peelTrail, rollEventDrop, SHINY_FOOT_CHANCE, type PeelDef } from '../game/peels';
+import { STAGES, WAVES_PER_STAGE } from '../data/stages';
 import { randomLineup } from './MenuScene';
 
 interface DamageOpts {
@@ -64,6 +66,12 @@ export class GameScene extends Phaser.Scene implements Arena {
   fxLayer!: Phaser.GameObjects.Container;
   private cursorLayer!: Phaser.GameObjects.Container;
   private peel!: Phaser.GameObjects.Image;
+  /** The equipped peel's trail colour (null: the Classic Peel has none) and whether it sparkles. */
+  private peelTrailColor: number | null = null;
+  private peelShiny = false;
+  private lastPeelPos = { x: 0, y: 0 };
+  /** Dev: multiplies the shiny-foot chance. */
+  shinyBoost = 1;
   private cutters: Phaser.GameObjects.Image[] = [];
   private cutterAngle = 0;
   private cutterCd = new WeakMap<Foot, number>();
@@ -287,7 +295,11 @@ export class GameScene extends Phaser.Scene implements Arena {
     }
 
     // cursor peel
+    const peelDef = applyEquippedPeel(this);
+    this.peelTrailColor = peelTrail(peelDef);
+    this.peelShiny = !!peelDef.shiny;
     this.peel = this.add.image(W / 2, H / 2, 'peel').setOrigin(0.5, 100 / 360).setScale(0.62).setAngle(-28).setAlpha(0.95);
+    if (this.peelShiny) this.peel.preFX?.addShine(0.6, 0.4, 3.5);
     this.cursorLayer.add(this.peel);
 
     if (!snap) {
@@ -752,6 +764,16 @@ export class GameScene extends Phaser.Scene implements Arena {
     });
     f.target = target;
     this.feet.push(f);
+    // a rare shiny: any regular foot, never a boss, mini-boss or a boss's stand-in
+    if (!type.boss && !type.mini && !this.tutorial && Math.random() < SHINY_FOOT_CHANCE * this.shinyBoost) {
+      f.makeShiny();
+      this.time.delayedCall(250, () => {
+        if (!f.alive) return;
+        this.fx.quip(f.x, Math.max(140, f.cy - 120), 'SHINY!', '#fff6c0', 46);
+        this.fx.glint(f.cx, f.cy, 12);
+        audio.sfx('sfx_levelup', { volume: 0.45, rate: 1.4 });
+      });
+    }
     // first sighting: a NEW FOOT card with its ability and how to beat it
     if (markFootSeen(type.id) && !type.boss) {
       const wait = ui.hud.newFoot(footPortraitURL(type.id), type, type.mini ? 'NEW MINI-BOSS' : 'NEW FOOT');
@@ -787,6 +809,7 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   /** Per-frame trait upkeep: magnets pull the peel, medics heal, Tandoori marks. */
   private footTick(f: Foot, dt: number): void {
+    if (f.shiny && Math.random() < dt * 9) this.fx.glint(f.cx + (Math.random() - 0.5) * 90 * f.scale, f.cy + (Math.random() - 0.5) * 120 * f.scale);
     if (f.has('magnet') && (f.state === 'hover' || f.state === 'descend')) {
       const dx = f.cx - this.peelPos.x;
       const dy = f.cy - this.peelPos.y;
@@ -929,6 +952,16 @@ export class GameScene extends Phaser.Scene implements Arena {
           m.setState('hover');
         }
       },
+      done: (ev, x, y) => {
+        save.eventsDone[ev] = (save.eventsDone[ev] ?? 0) + 1;
+        const drop = rollEventDrop(ev);
+        if (drop) {
+          this.fx.glint(x, y, 30);
+          this.fx.quip(x, y - 150, drop.drop!.chance < 0.01 ? 'ULTRA RARE DROP!' : 'SHINY DROP!', '#fff6c0', 50);
+        }
+        this.peelToasts([...(drop ? [drop] : []), ...checkPeelAchievements()]);
+        persist();
+      },
       firstSighting: (ev) => {
         if (save.seenEvents.includes(ev)) return;
         save.seenEvents.push(ev);
@@ -974,6 +1007,9 @@ export class GameScene extends Phaser.Scene implements Arena {
   private waveClear(): void {
     this.waveActive = false;
     const n = this.run.wave;
+    const stage = STAGES[Math.floor((n - 1) / WAVES_PER_STAGE) % STAGES.length];
+    if (stage) save.stageWaves[stage.location] = (save.stageWaves[stage.location] ?? 0) + 1;
+    this.time.delayedCall(1200, () => this.peelToasts(checkPeelAchievements()));
     const boss = isBossWave(n);
     if (this.tutorial) {
       this.tutorial = false;
@@ -1711,6 +1747,24 @@ export class GameScene extends Phaser.Scene implements Arena {
     }
   }
 
+  /** NEW PEEL toasts for freshly unlocked peels. */
+  private peelToasts(list: PeelDef[]): void {
+    for (const d of list) {
+      ui.hud.toast(peelThumbURL(d.id, 96), d.shiny ? 'NEW SHINY PEEL!' : 'NEW PEEL', `${d.name} · equip it in the Peel Locker`);
+      audio.sfx('sfx_levelup', { volume: 0.5, rate: d.shiny ? 1.5 : 1.2 });
+    }
+  }
+
+  /** The equipped peel's trail (and sparkles for shiny peels) while it moves. */
+  private peelTrailTick(): void {
+    const { x, y } = this.peelPos;
+    const moved = Math.hypot(x - this.lastPeelPos.x, y - this.lastPeelPos.y);
+    this.lastPeelPos = { x, y };
+    if (!this.peel.visible || save.settings.reducedMotion || moved < 8) return;
+    if (this.peelTrailColor !== null) this.fx.trail(x, y, this.peelTrailColor);
+    if (this.peelShiny && Math.random() < 0.35) this.fx.glint(x + (Math.random() - 0.5) * 40, y + (Math.random() - 0.5) * 40);
+  }
+
   private killFoot(f: Foot, source: DamageOpts['source']): void {
     if (!f.alive) return;
     // King Honk's decoys are props: they pop without paying out (the cleanup after his death included)
@@ -1730,6 +1784,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     const mini = !!f.type.mini;
     this.run.feetSmacked++;
     save.totalFeet++;
+    // achievements count real feet only, never a Ghost echo
+    if (!f.brain.echo) save.kills[f.type.id] = (save.kills[f.type.id] ?? 0) + 1;
     const midas = !boss && !mini && f.type.id !== 'golden' && Math.random() < st.goldenTouch;
     // Ghost echoes copy a boss's type but are a fraction of one: they pay a tenth
     const echoCut = f.brain.echo ? 0.1 : 1;
@@ -1739,6 +1795,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     const taper = 1 / (1 + Math.max(0, this.run.wave - 10) / 25);
     let coins = Math.max(1, Math.round(f.type.coins * st.coinMult * (f.elite ? 2 : 1) * (midas ? 5 : 1) * this.run.heatDef.tips * echoCut * taper));
     if (f.type.id === 'mimic') coins *= 2;
+    if (f.shiny) coins *= 3;
     // New York Slice: +1 tip per quick kill
     if (st.quickTips && this.nowT - this.lastKillAt < 1) coins += st.quickTips;
     this.lastKillAt = this.nowT;
@@ -1787,6 +1844,13 @@ export class GameScene extends Phaser.Scene implements Arena {
     }
     // echoes and decoys are boss-typed stand-ins: they never count as the boss going down
     if ((boss || mini) && !f.brain.echo && !f.brain.decoy) this.bossDown(f);
+    if (f.shiny) {
+      this.fx.glint(f.cx, f.cy, 24);
+      this.fx.quip(f.x, f.cy - 170, 'SHINY DEFEATED!', '#fff6c0', 48);
+      const g = grantShinyFoot(f.type.id);
+      if (g) this.peelToasts([g]);
+    }
+    this.peelToasts(checkPeelAchievements());
     f.die(boss);
   }
 
@@ -2337,6 +2401,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (this.hurryT > 0) this.hurryT -= dt;
     const touchIdle = this.pointer.touch && this.nowT - this.pointer.lastMove > 0.5;
     this.peel.setPosition(this.peelPos.x, this.peelPos.y).setVisible(!this.inUpgrade && !this.over && !touchIdle);
+    this.peelTrailTick();
     if (!this.paused && !this.over && !this.inUpgrade) {
       this.spawnTick(dt);
       for (const f of this.feet) if (f.alive) f.update(dt, 1);

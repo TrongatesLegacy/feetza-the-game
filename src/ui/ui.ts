@@ -15,6 +15,7 @@ import { HEATS, HEAT_BY_ID, type HeatId } from '../data/difficulty';
 import { ACT_WAVES, STAGES } from '../data/stages';
 import { BACKDROPS } from '../art/backdrops';
 import { applyA11y } from './a11y';
+import { PEELS, buyPeel, checkPeelAchievements, equipPeel, equippedPeel, hasPeel, peelThumbURL, type PeelDef, type PeelGroup } from '../game/peels';
 
 type Attrs = Record<string, string | number | boolean | undefined>;
 
@@ -403,7 +404,7 @@ class UI {
   }
 
   // ——— Main menu ———
-  menu(h_: { play: () => void; resume: (() => void) | null; pizzeria: () => void; pedia: () => void; settings: () => void; credits: () => void }): HTMLElement {
+  menu(h_: { play: () => void; resume: (() => void) | null; pizzeria: () => void; pedia: () => void; locker: () => void; settings: () => void; credits: () => void }): HTMLElement {
     const seen = save.seenFeet.length;
     const best = bestFor(save.heat);
     const stats = h(
@@ -435,6 +436,7 @@ class UI {
         { class: 'menu-buttons' },
         btn(`PIZZERIA${PIZZAS.some((p) => !save.unlockedPizzas.includes(p.id) && p.cost <= save.crusts) ? ' <span class="badge">NEW</span>' : ''}`, 'yellow', h_.pizzeria),
         btn(`PIZZAPEDIA <small style="font-size:.7em">${seen}/${FEET.length}</small>`, 'green', h_.pedia),
+        btn(`PEELS${save.peelsNew.length ? ' <span class="badge">NEW</span>' : ''}`, 'yellow', h_.locker),
         btn('SETTINGS', 'cream', h_.settings),
         btn('CREDITS', 'cream', h_.credits),
       ),
@@ -1030,7 +1032,7 @@ class UI {
           }), h('span', {}, 'Full refund of every crust spent on upgrades')),
           inRun
             ? h('div', { class: 'hint' }, 'The full resets are hidden during a run.')
-            : holdReset('RESET PROGRESS', 'Wipes all progress, keeps settings', ['Golden Crusts and Pizzeria upgrades', 'Unlocked pizzas and the Pizzapedia', 'Best scores on every heat', 'Bosses beaten, milestones and any saved run'], () => resetProgress()),
+            : holdReset('RESET PROGRESS', 'Wipes all progress, keeps settings', ['Golden Crusts and Pizzeria upgrades', 'Unlocked pizzas and the Pizzapedia', 'Best scores on every heat', 'Bosses beaten, milestones and any saved run', 'Peels and achievement progress'], () => resetProgress()),
           inRun ? '' : holdReset('RESET EVERYTHING', 'Factory reset, settings included', ['Everything in Reset progress', 'All settings, controls and accessibility options'], () => {
             resetEverything();
             applyA11y();
@@ -1291,6 +1293,189 @@ class UI {
       detail,
       body,
       btn('DONE', 'green', () => {
+        this.close(s);
+        onClose();
+      }, { 'data-pad': 'back' }),
+    );
+    s = this.open(panel);
+    return s;
+  }
+
+  // ——— Peel Locker: cosmetic peels and the achievements that unlock them ———
+  locker(onClose: () => void): HTMLElement {
+    type Tab = 'goals' | 'crusts' | 'feet' | 'bosses' | 'places' | 'events' | 'shiny';
+    const TAB_GROUPS: Record<Exclude<Tab, 'goals'>, PeelGroup[]> = {
+      crusts: ['classic', 'golden', 'jewel'],
+      feet: ['foot'],
+      bosses: ['boss'],
+      places: ['place'],
+      events: ['event'],
+      shiny: ['shinyFoot', 'shinyEvent'],
+    };
+    const NAMES: Record<Tab, string> = { goals: 'GOALS', crusts: 'CRUSTS', feet: 'FEET', bosses: 'BOSSES', places: 'PLACES', events: 'EVENTS', shiny: 'SHINY' };
+    // catch up on goals already met (older saves, bosses beaten before peels existed)
+    checkPeelAchievements();
+    const fresh = new Set(save.peelsNew);
+    save.peelsNew = [];
+    persist();
+    const eq = equippedPeel();
+    let tab: Tab = (Object.keys(TAB_GROUPS) as Exclude<Tab, 'goals'>[]).find((t) => TAB_GROUPS[t].includes(eq.group)) ?? 'crusts';
+    let selected: PeelDef = eq;
+    const tabs = h('div', { class: 'tabs locker-tabs' });
+    const detail = h('div', { class: 'detail peel-detail' });
+    const body = h('div', { class: 'scroll' });
+    const crustLine = h('div', { class: 'crusts' });
+    // undiscovered shinies stay a mystery
+    const hidden = (d: PeelDef) => !!d.shiny && (d.group === 'shinyFoot' || d.group === 'shinyEvent') && !hasPeel(d.id);
+    const shownName = (d: PeelDef) => (hidden(d) && d.ultra ? '???' : d.name);
+    // thumbnails are drawn lazily as tiles scroll into view
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting) continue;
+          const img = e.target as HTMLImageElement;
+          io.unobserve(img);
+          img.src = peelThumbURL(img.dataset.peel!);
+        }
+      },
+      { root: body, rootMargin: '200px' },
+    );
+    const bar = (have: number, need: number) =>
+      h('div', { class: 'pbar' }, h('i', { style: `width:${Math.round((100 * have) / need)}%` }), h('span', {}, `${fmt(have)}/${fmt(need)}`));
+    const showDetail = () => {
+      const d = selected;
+      const owned = hasPeel(d.id);
+      const equipped = equippedPeel().id === d.id;
+      const pr = d.progress?.();
+      let action: HTMLElement | null = null;
+      if (owned) {
+        action = btn(equipped ? 'EQUIPPED' : 'EQUIP', equipped ? 'cream small' : 'green small', () => {
+          equipPeel(d.id);
+          audio.sfx('sfx_upgrade');
+          render();
+        });
+        (action as HTMLButtonElement).disabled = equipped;
+      } else if (d.cost) {
+        action = btn(`BUY ${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} ${fmt(d.cost)}`, 'green small', () => {
+          if (!buyPeel(d.id)) return;
+          audio.sfx('sfx_coin');
+          render();
+        });
+        (action as HTMLButtonElement).disabled = save.crusts < d.cost;
+      }
+      const img = h('img', { src: peelThumbURL(d.id, 300), alt: '' });
+      detail.replaceChildren(
+        h('div', { class: `peel-big${d.shiny ? ' shiny' : ''}${hidden(d) ? ' hidden' : ''}` }, img),
+        h(
+          'div',
+          {},
+          h('h3', {}, shownName(d)),
+          h('p', {}, d.how),
+          pr && !owned ? bar(pr[0], pr[1]) : null,
+          h('div', { class: 'chips' }, h('span', { class: 'chip' }, owned ? '✅ Unlocked' : '🔒 Locked'), d.shiny ? h('span', { class: 'chip shiny-chip' }, d.ultra ? '💎 Ultra rare' : '✨ Shiny') : null, action),
+        ),
+      );
+    };
+    const tile = (d: PeelDef) => {
+      const owned = hasPeel(d.id);
+      const pr = d.progress?.();
+      const img = h('img', { alt: '', 'data-peel': d.id });
+      io.observe(img);
+      const t = h(
+        'div',
+        { class: `tile peel-tile${owned ? '' : ' locked'}${hidden(d) ? ' hidden' : ''}${d.shiny && owned ? ' shiny' : ''}${selected.id === d.id ? ' selected' : ''}`, tabindex: 0 },
+        img,
+        h('div', { class: 'nm' }, shownName(d).replace(/ Peel$/, '')),
+        !owned && pr ? bar(pr[0], pr[1]) : null,
+        !owned && d.cost ? h('div', { class: 'cost' }, `${fmt(d.cost)} crusts`) : null,
+        equippedPeel().id === d.id ? h('span', { class: 'tag' }, 'ON') : fresh.has(d.id) ? h('span', { class: 'tag new' }, 'NEW') : null,
+      );
+      t.addEventListener('click', () => {
+        audio.sfx('sfx_click');
+        selected = d;
+        body.querySelectorAll('.tile.selected').forEach((e) => e.classList.remove('selected'));
+        t.classList.add('selected');
+        showDetail();
+      });
+      return t;
+    };
+    const render = () => {
+      const count = (groups: PeelGroup[]) => {
+        const list = PEELS.filter((d) => groups.includes(d.group));
+        return `${list.filter((d) => hasPeel(d.id)).length}/${list.length}`;
+      };
+      tabs.replaceChildren(
+        ...(Object.keys(NAMES) as Tab[]).map((t) =>
+          btn(t === 'goals' ? NAMES[t] : `${NAMES[t]} <small>${count(TAB_GROUPS[t])}</small>`, `small ${tab === t ? 'active' : ''}`, () => {
+            tab = t;
+            // show the equipped peel if it lives on this tab, otherwise the tab's first peel
+            if (t !== 'goals') {
+              const list = PEELS.filter((d) => TAB_GROUPS[t].includes(d.group));
+              selected = list.find((d) => d.id === equippedPeel().id) ?? list[0];
+            }
+            render();
+          }),
+        ),
+      );
+      crustLine.innerHTML = `${CRUST_SVG} <b>${fmt(save.crusts)}</b> Golden Crusts · ${PEELS.filter((d) => hasPeel(d.id)).length}/${PEELS.length} peels`;
+      body.scrollTop = 0;
+      if (tab === 'goals') {
+        // the achievements closest to done
+        const goals = PEELS.filter((d) => d.progress && !hasPeel(d.id))
+          .map((d) => ({ d, p: d.progress!() }))
+          .sort((a, b) => b.p[0] / b.p[1] - a.p[0] / a.p[1] || a.p[1] - b.p[1])
+          .slice(0, 40);
+        body.replaceChildren(
+          goals.length
+            ? h(
+                'div',
+                { class: 'goals' },
+                ...goals.map(({ d, p }) => {
+                  const img = h('img', { alt: '', 'data-peel': d.id });
+                  io.observe(img);
+                  const row = h('div', { class: 'goal', tabindex: 0 }, img, h('div', { class: 'gt' }, h('b', {}, d.name), h('span', {}, d.how)), bar(p[0], p[1]));
+                  row.addEventListener('click', () => {
+                    audio.sfx('sfx_click');
+                    selected = d;
+                    showDetail();
+                  });
+                  return row;
+                }),
+              )
+            : h('p', { class: 'hint' }, 'Every achievement peel is unlocked. Shinies are still out there…'),
+        );
+      } else {
+        const groups = TAB_GROUPS[tab];
+        const list = PEELS.filter((d) => groups.includes(d.group));
+        if (tab === 'shiny') {
+          body.replaceChildren(
+            h('div', { class: 'sec-head' }, `SHINY FEET · ${count(['shinyFoot'])}`, h('span', {}, 'Any foot can rarely turn up shiny. Defeat it for its shiny peel.')),
+            h('div', { class: 'grid peel-grid' }, ...list.filter((d) => d.group === 'shinyFoot').map(tile)),
+            h('div', { class: 'sec-head' }, `EVENT SHINIES · ${count(['shinyEvent'])}`, h('span', {}, 'Rare drops from wave events, and a few extremely rare jewels.')),
+            h('div', { class: 'grid peel-grid' }, ...list.filter((d) => d.group === 'shinyEvent').map(tile)),
+          );
+        } else if (tab === 'crusts') {
+          body.replaceChildren(
+            h('div', { class: 'grid peel-grid' }, ...list.filter((d) => d.group !== 'jewel').map(tile)),
+            h('div', { class: 'sec-head' }, `THE JEWELLERY BOX · ${count(['jewel'])}`, h('span', {}, 'Shiny peels for serious crust savers.')),
+            h('div', { class: 'grid peel-grid' }, ...list.filter((d) => d.group === 'jewel').map(tile)),
+          );
+        } else body.replaceChildren(h('div', { class: 'grid peel-grid' }, ...list.map(tile)));
+      }
+      showDetail();
+    };
+    render();
+    let s: HTMLElement;
+    const panel = h(
+      'div',
+      { class: 'panel modal wide locker' },
+      h('div', { class: 'title' }, 'PEEL LOCKER'),
+      crustLine,
+      tabs,
+      detail,
+      body,
+      btn('DONE', 'green', () => {
+        io.disconnect();
         this.close(s);
         onClose();
       }, { 'data-pad': 'back' }),

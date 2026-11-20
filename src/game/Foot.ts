@@ -126,6 +126,8 @@ export class Foot {
   puppet = false;
   /** Speed multiplier from boss roars, avalanches and enrages. */
   hurry = 1;
+  /** A rare shiny: unlocks its shiny peel when defeated. */
+  shiny = false;
 
   constructor(scene: Phaser.Scene, layer: Phaser.GameObjects.Container, shadowLayer: Phaser.GameObjects.Container, type: FootType, x: number, opts: { hpMult: number; speedMult: number; elite: boolean; hooks: FootHooks }) {
     this.scene = scene;
@@ -543,6 +545,14 @@ export class Foot {
   private auraTween: Phaser.Tweens.Tween | null = null;
 
   /** A pulsing coloured outline that shows the boss's phase at a glance (null clears it). */
+  /** Turn this foot shiny: a white-gold glow and a sweeping shine (sparkles are emitted by the scene). */
+  makeShiny(): void {
+    this.shiny = true;
+    this.img.preFX?.addGlow(0xfff6c0, 5, 0, false, 0.1, 14);
+    this.img.preFX?.addShine(0.7, 0.35, 4);
+    if (this.leg) this.leg.preFX?.addShine(0.7, 0.35, 4);
+  }
+
   setPhaseAura(color: number | null): void {
     this.auraTween?.remove();
     this.auraTween = null;

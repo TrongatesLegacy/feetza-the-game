@@ -1,0 +1,442 @@
+// Peel skins and the achievements that unlock them.
+//
+// - Feet: defeat N of a foot type (N scales with how common it is).
+// - Bosses and mini-bosses: defeat it once.
+// - Places: clear 10 waves in a location's stage.
+// - Events: deal with N of a wave event.
+// - Golden Crusts: bought in the locker (including the jewellery set).
+// - Shiny feet: a rare shiny foot unlocks the shiny version of that foot's peel.
+// - Event shinies: rare drops from wave events, with a few extremely rare jewels.
+
+import type Phaser from 'phaser';
+import { BACKDROPS, type LocationId } from '../art/backdrops';
+import { drawPeelSkin, handleFrom, headFrom, PEEL_H, PEEL_W, type PeelLook, type PeelPattern, type PeelShape } from '../art/peelArt';
+import { hashStr, makeCanvas, shade } from '../art/util';
+import { FEET, FOOT_BY_ID, type FootType } from '../data/feet';
+import { STAGES } from '../data/stages';
+import { persist, save } from '../systems/save';
+import { addCanvas, eventCanvases, footMeta } from './assets';
+import type { EventId } from './events';
+
+export type PeelGroup = 'classic' | 'golden' | 'jewel' | 'foot' | 'boss' | 'place' | 'event' | 'shinyFoot' | 'shinyEvent';
+
+export interface PeelDef {
+  id: string;
+  name: string;
+  group: PeelGroup;
+  /** How it's unlocked, for the locker. */
+  how: string;
+  /** Achievement progress, for peels that unlock themselves. */
+  progress?: () => [number, number];
+  /** Golden Crust price, for peels bought in the locker. */
+  cost?: number;
+  /** Event drop: which event and the chance per event dealt with. */
+  drop?: { event: EventId; chance: number };
+  /** Shiny foot peel: which foot. */
+  foot?: string;
+  shiny?: boolean;
+  /** Extremely rare. */
+  ultra?: boolean;
+  look: () => PeelLook;
+}
+
+export const SHINY_FOOT_CHANCE = 1 / 300;
+
+const EVENT_LABEL: Record<EventId, [string, string]> = {
+  balloon: ['Tip Balloon', 'Pop'],
+  drone: ['Delivery Drone', 'Catch'],
+  moth: ['Pepper Moth', 'Swat'],
+  seagull: ['Golden Seagull', 'Smack'],
+  chest: ['Pizza Box Chest', 'Open'],
+  mimic: ['Mimic', 'Beat'],
+};
+const EVENT_NEED: Record<EventId, number> = { balloon: 10, drone: 5, moth: 5, seagull: 2, chest: 5, mimic: 3 };
+const EVENT_KEY: Record<EventId, string> = { balloon: 'ev_balloon', drone: 'ev_drone', moth: 'ev_moth', seagull: 'ev_seagull', chest: 'ev_chest', mimic: 'ev_mimic' };
+
+/** Kills needed for a regular foot's peel: common feet need more, rare ones fewer. */
+export function killsNeeded(f: FootType): number {
+  const w = f.weight;
+  if (w <= 0) return 3; // golden, crusty, mimic: special appearances
+  if (w >= 6) return 50;
+  if (w >= 5) return 35;
+  if (w >= 4) return 25;
+  if (w >= 3) return 15;
+  return 10;
+}
+
+const PLURAL_EXCEPTIONS: Record<string, string> = {};
+function plural(name: string, n: number): string {
+  if (n === 1) return name;
+  return PLURAL_EXCEPTIONS[name] ?? (/s$/i.test(name) ? name : `${name}s`);
+}
+
+const SHAPES: PeelShape[] = ['round', 'oval', 'square', 'paddle'];
+const FOOT_PATTERNS: PeelPattern[] = ['spots', 'stripes', 'waves', 'checker', 'stars', 'bubbles', 'bolts', 'grain'];
+const BOSS_PATTERNS: PeelPattern[] = ['flames', 'bolts', 'scales', 'marble', 'stars'];
+
+const trimCache = new Map<string, HTMLCanvasElement>();
+
+/** The foot texture cropped to its visible pixels, so the emblem fills its disc. */
+function footEmblem(id: string): CanvasImageSource | null {
+  const src = footMeta[id]?.textures.foot;
+  if (!src) return null;
+  let out = trimCache.get(id);
+  if (out) return out;
+  const ctx = src.getContext('2d')!;
+  const { width: w, height: h } = src;
+  const data = ctx.getImageData(0, 0, w, h).data;
+  let x0 = w;
+  let y0 = h;
+  let x1 = 0;
+  let y1 = 0;
+  for (let y = 0; y < h; y += 2)
+    for (let x = 0; x < w; x += 2)
+      if (data[(y * w + x) * 4 + 3] > 24) {
+        if (x < x0) x0 = x;
+        if (x > x1) x1 = x;
+        if (y < y0) y0 = y;
+        if (y > y1) y1 = y;
+      }
+  if (x1 <= x0 || y1 <= y0) return src;
+  const [c, cctx] = makeCanvas(x1 - x0 + 4, y1 - y0 + 4);
+  cctx.drawImage(src, x0 - 2, y0 - 2, c.width, c.height, 0, 0, c.width, c.height);
+  out = c;
+  trimCache.set(id, out);
+  return out;
+}
+
+/** 'THE HEAD WAITER' → 'Head Waiter' (boss names are stored in capitals). */
+export function titleCase(name: string): string {
+  if (name !== name.toUpperCase()) return name;
+  return name
+    .replace(/^THE /, '')
+    .toLowerCase()
+    .replace(/(^|[\s-])([a-z])/g, (_, a: string, b: string) => a + b.toUpperCase());
+}
+
+function footLook(f: FootType, shiny: boolean): PeelLook {
+  const a = f.art;
+  const h = hashStr(f.id);
+  const base = a.primary ?? a.skin;
+  const accent = a.secondary ?? a.nails ?? a.legColor ?? shade(base, -0.45);
+  let pattern: PeelPattern = FOOT_PATTERNS[h % FOOT_PATTERNS.length];
+  if (a.leg === 'fur' || a.hair) pattern = 'fur';
+  if (a.leg === 'scales') pattern = 'scales';
+  if (a.ghost) pattern = 'bubbles';
+  if (a.lava) pattern = 'flames';
+  if (a.zombie) pattern = 'drips';
+  const boss = !!(f.boss || f.mini);
+  if (boss) pattern = BOSS_PATTERNS[h % BOSS_PATTERNS.length];
+  return {
+    shape: boss ? 'spade' : SHAPES[(h >>> 4) % SHAPES.length],
+    head: headFrom(base),
+    handle: handleFrom(a.legColor ?? '#8a5a2b'),
+    pattern,
+    patternColor: accent,
+    emblem: footEmblem(f.id),
+    studs: f.boss ? '#ffd23f' : f.mini ? '#d7dde6' : undefined,
+    metal: !!a.gold || a.leg === 'armor',
+    shiny,
+    trail: accent,
+    seed: f.id,
+  };
+}
+
+interface Plain {
+  shape: PeelShape;
+  base: string;
+  pattern: PeelPattern;
+  pc: string;
+  handle?: string;
+  metal?: boolean;
+  studs?: string;
+  gem?: string;
+  trail?: string;
+}
+
+function plain(id: string, p: Plain, shiny = false, emblem: CanvasImageSource | null = null): () => PeelLook {
+  return () => ({
+    shape: p.shape,
+    head: headFrom(p.base),
+    handle: handleFrom(p.handle ?? '#8a5a2b'),
+    pattern: p.pattern,
+    patternColor: p.pc,
+    emblem,
+    studs: p.studs,
+    metal: p.metal,
+    gem: p.gem,
+    shiny,
+    trail: p.trail ?? p.pc,
+    seed: id,
+  });
+}
+
+const PLACE_LOOK: Record<LocationId, Plain> = {
+  trattoria: { shape: 'round', base: '#c8553d', pattern: 'checker', pc: '#fff2e0' },
+  rooftop: { shape: 'paddle', base: '#e9824a', pattern: 'spots', pc: '#ffe28a' },
+  beach: { shape: 'oval', base: '#f2d38a', pattern: 'waves', pc: '#3fb6c9' },
+  diner: { shape: 'square', base: '#ff4fa3', pattern: 'stripes', pc: '#3ae8ff', handle: '#c7ccd4' },
+  lodge: { shape: 'round', base: '#7a4a2b', pattern: 'snow', pc: '#ffffff' },
+  space: { shape: 'spade', base: '#2a2160', pattern: 'stars', pc: '#fff06a', handle: '#5a5a7a' },
+  kitchen: { shape: 'square', base: '#e8e2d6', pattern: 'checker', pc: '#9fb7c9', handle: '#c7ccd4', metal: true },
+  oldtown: { shape: 'spade', base: '#9a8f86', pattern: 'scales', pc: '#4b4856' },
+  pier: { shape: 'paddle', base: '#5a7a8a', pattern: 'waves', pc: '#d8f3ff' },
+  rink: { shape: 'oval', base: '#ff9ad5', pattern: 'stripes', pc: '#ffffff' },
+  slopes: { shape: 'round', base: '#cfe9fb', pattern: 'snow', pc: '#5a9ad0' },
+  cellar: { shape: 'spade', base: '#3b2a3a', pattern: 'drips', pc: '#a8304f' },
+};
+
+const EVENT_LOOK: Record<EventId, Plain> = {
+  balloon: { shape: 'oval', base: '#ff6b6b', pattern: 'spots', pc: '#ffd6d6' },
+  drone: { shape: 'square', base: '#9aa7b8', pattern: 'circuit', pc: '#3ae8ff', metal: true },
+  moth: { shape: 'round', base: '#d9c27a', pattern: 'fur', pc: '#7a5a2a' },
+  seagull: { shape: 'paddle', base: '#ffd23f', pattern: 'waves', pc: '#ffffff', metal: true },
+  chest: { shape: 'square', base: '#d9a066', pattern: 'grain', pc: '#7a4a22' },
+  mimic: { shape: 'spade', base: '#a8703a', pattern: 'drips', pc: '#ff3d5a' },
+};
+
+/** Golden Crust peels (not shiny). */
+const GOLDEN: [string, string, number, Plain][] = [
+  ['marble', 'Marble Slab', 400, { shape: 'square', base: '#efe9e2', pattern: 'marble', pc: '#7a7a8a', handle: '#c7ccd4' }],
+  ['copper', 'Copper Pan', 600, { shape: 'round', base: '#c8743a', pattern: 'plain', pc: '#ffd2a8', metal: true, handle: '#3a2a20' }],
+  ['neon', 'Neon Night', 900, { shape: 'paddle', base: '#1a1030', pattern: 'circuit', pc: '#3ae8ff', handle: '#ff4fa3' }],
+  ['obsidian', 'Obsidian', 1200, { shape: 'oval', base: '#1d1a24', pattern: 'marble', pc: '#8a7ad8', metal: true, handle: '#2a2430' }],
+];
+
+/** The jewellery set: shiny, bought with Golden Crusts. */
+const JEWELS: [string, string, number, Plain][] = [
+  ['silver', 'Sterling Silver', 800, { shape: 'round', base: '#c9cfd8', pattern: 'facets', pc: '#7a8494', metal: true, handle: '#e8edf2', studs: '#ffffff' }],
+  ['gold', 'Solid Gold', 1500, { shape: 'spade', base: '#ffc93a', pattern: 'facets', pc: '#b07a10', metal: true, handle: '#ffd23f', studs: '#fff4b0' }],
+  ['ruby', 'Ruby Crown', 2000, { shape: 'spade', base: '#c8102e', pattern: 'gems', pc: '#ffd23f', gem: '#ff4d6d', metal: true, handle: '#ffd23f', studs: '#ffd23f' }],
+  ['sapphire', 'Sapphire Tide', 2000, { shape: 'oval', base: '#1f4fbf', pattern: 'gems', pc: '#e8edf2', gem: '#5fa8ff', metal: true, handle: '#c9cfd8', studs: '#e8edf2' }],
+  ['emerald', 'Emerald Isle', 2000, { shape: 'square', base: '#128a4a', pattern: 'gems', pc: '#ffd23f', gem: '#5fe89a', metal: true, handle: '#ffd23f', studs: '#ffd23f' }],
+  ['amethyst', 'Amethyst Dream', 2500, { shape: 'round', base: '#7a3ac8', pattern: 'facets', pc: '#e0c8ff', metal: true, handle: '#c9cfd8', studs: '#e0c8ff' }],
+  ['pearl', 'Pearl Diver', 3000, { shape: 'oval', base: '#f4efe8', pattern: 'bubbles', pc: '#c8b8d8', metal: true, handle: '#e8e2d6', studs: '#ffffff' }],
+  ['diamond', 'Chef’s Diamond', 5000, { shape: 'spade', base: '#d8f6ff', pattern: 'facets', pc: '#7ad0ff', metal: true, handle: '#e8edf2', studs: '#ffffff' }],
+];
+
+/** Event shinies: a common-ish shiny per event, plus extremely rare jewels. */
+const EVENT_SHINY_CHANCE = 1 / 40;
+const ULTRA: [string, string, EventId, number, Plain][] = [
+  ['rosegold', 'Rose Gold', 'balloon', 1 / 300, { shape: 'oval', base: '#e8a090', pattern: 'facets', pc: '#a85a50', metal: true, handle: '#f2c0b0', studs: '#ffe0d8' }],
+  ['platinum', 'Platinum Prop', 'drone', 1 / 300, { shape: 'square', base: '#e4e8ee', pattern: 'circuit', pc: '#9aa7b8', metal: true, handle: '#ffffff', studs: '#ffffff' }],
+  ['opal', 'Fire Opal', 'moth', 1 / 300, { shape: 'round', base: '#ff9a5a', pattern: 'marble', pc: '#5fd8ff', metal: true, handle: '#ffd2a8', studs: '#fff4e0' }],
+  ['goldfeather', 'Golden Feather', 'seagull', 1 / 150, { shape: 'paddle', base: '#ffd23f', pattern: 'fur', pc: '#b07a10', metal: true, handle: '#ffd23f', studs: '#fff4b0' }],
+  ['prism', 'Prismatic', 'seagull', 1 / 250, { shape: 'spade', base: '#ffffff', pattern: 'facets', pc: '#a77dff', metal: true, handle: '#e8edf2', studs: '#ffffff' }],
+  ['blackdiamond', 'Black Diamond', 'mimic', 1 / 200, { shape: 'spade', base: '#24202c', pattern: 'facets', pc: '#9a8ad8', metal: true, handle: '#3a3444', studs: '#d8d0ff' }],
+  ['crownjewel', 'Crown Jewel', 'chest', 1 / 400, { shape: 'spade', base: '#5a1a8a', pattern: 'gems', pc: '#ffd23f', gem: '#ff3d6e', metal: true, handle: '#ffd23f', studs: '#ffd23f' }],
+  ['cosmic', 'Cosmic Crust', 'chest', 1 / 400, { shape: 'oval', base: '#120a3a', pattern: 'stars', pc: '#ffffff', handle: '#3a2a6a', studs: '#a77dff' }],
+];
+
+function buildDefs(): PeelDef[] {
+  const defs: PeelDef[] = [];
+  defs.push({
+    id: 'classic',
+    name: 'Classic Peel',
+    group: 'classic',
+    how: 'The one you started with.',
+    look: plain('classic', { shape: 'round', base: '#d9a066', pattern: 'grain', pc: '#7a4a22', trail: '#f6cf94' }),
+  });
+  for (const [id, name, cost, p] of GOLDEN) defs.push({ id, name, group: 'golden', how: `Buy for ${cost.toLocaleString()} Golden Crusts.`, cost, look: plain(id, p) });
+  for (const [id, name, cost, p] of JEWELS) defs.push({ id, name, group: 'jewel', how: `Buy for ${cost.toLocaleString()} Golden Crusts.`, cost, shiny: true, look: plain(id, p, true) });
+  const feet = FEET.filter((f) => !f.boss && !f.mini);
+  for (const f of feet) {
+    const need = killsNeeded(f);
+    defs.push({
+      id: `foot:${f.id}`,
+      name: `${f.name} Peel`,
+      group: 'foot',
+      how: `Defeat ${need} ${plural(f.name, need)}.`,
+      progress: () => [Math.min(need, save.kills[f.id] ?? 0), need],
+      foot: f.id,
+      look: () => footLook(f, false),
+    });
+  }
+  for (const f of FEET.filter((x) => x.boss || x.mini)) {
+    defs.push({
+      id: `boss:${f.id}`,
+      name: `${titleCase(f.name)} Peel`,
+      group: 'boss',
+      how: `Defeat ${f.mini ? 'the mini-boss' : 'the boss'} ${titleCase(f.name)}.`,
+      progress: () => [save.bossesBeaten.includes(f.id) ? 1 : 0, 1],
+      foot: f.id,
+      look: () => footLook(f, false),
+    });
+  }
+  STAGES.forEach((st, i) => {
+    const name = BACKDROPS[st.location].name;
+    defs.push({
+      id: `place:${st.location}`,
+      name: `${name} Peel`,
+      group: 'place',
+      how: `Clear 10 waves at ${name} (stage ${i + 1}, boss wave included).`,
+      progress: () => [Math.min(10, save.stageWaves[st.location] ?? 0), 10],
+      look: plain(`place:${st.location}`, PLACE_LOOK[st.location]),
+    });
+  });
+  for (const ev of Object.keys(EVENT_LABEL) as EventId[]) {
+    const [label, verb] = EVENT_LABEL[ev];
+    const need = EVENT_NEED[ev];
+    defs.push({
+      id: `event:${ev}`,
+      name: `${label} Peel`,
+      group: 'event',
+      how: `${verb} ${need} ${plural(label, need)}${ev === 'mimic' ? ' before they open' : ''}.`,
+      progress: () => [Math.min(need, save.eventsDone[ev] ?? 0), need],
+      look: () => plain(`event:${ev}`, EVENT_LOOK[ev], false, eventCanvases[EVENT_KEY[ev]] ?? null)(),
+    });
+  }
+  for (const f of feet) {
+    defs.push({
+      id: `shiny:${f.id}`,
+      name: `Shiny ${f.name} Peel`,
+      group: 'shinyFoot',
+      how: `Defeat a shiny ${f.name}. Any foot has a rare chance to turn up shiny.`,
+      foot: f.id,
+      shiny: true,
+      look: () => footLook(f, true),
+    });
+  }
+  for (const ev of Object.keys(EVENT_LABEL) as EventId[]) {
+    const [label, verb] = EVENT_LABEL[ev];
+    defs.push({
+      id: `shinyev:${ev}`,
+      name: `Shiny ${label} Peel`,
+      group: 'shinyEvent',
+      how: `A rare drop: ${verb.toLowerCase()} a ${label} (about 1 in 40).`,
+      drop: { event: ev, chance: EVENT_SHINY_CHANCE },
+      shiny: true,
+      look: () => plain(`shinyev:${ev}`, EVENT_LOOK[ev], true, eventCanvases[EVENT_KEY[ev]] ?? null)(),
+    });
+  }
+  for (const [id, name, ev, chance, p] of ULTRA) {
+    const [label, verb] = EVENT_LABEL[ev];
+    defs.push({
+      id: `ultra:${id}`,
+      name,
+      group: 'shinyEvent',
+      how: `Extremely rare: ${verb.toLowerCase()} a ${label} (about 1 in ${Math.round(1 / chance)}).`,
+      drop: { event: ev, chance },
+      shiny: true,
+      ultra: true,
+      look: plain(`ultra:${id}`, p, true),
+    });
+  }
+  return defs;
+}
+
+export const PEELS: PeelDef[] = buildDefs();
+export const PEEL_BY_ID: Record<string, PeelDef> = Object.fromEntries(PEELS.map((p) => [p.id, p]));
+
+export function hasPeel(id: string): boolean {
+  return id === 'classic' || save.peels.includes(id);
+}
+
+export function equippedPeel(): PeelDef {
+  return PEEL_BY_ID[save.peel] && hasPeel(save.peel) ? PEEL_BY_ID[save.peel] : PEEL_BY_ID.classic;
+}
+
+function grant(id: string): PeelDef | null {
+  if (hasPeel(id) || !PEEL_BY_ID[id]) return null;
+  save.peels.push(id);
+  if (!save.peelsNew.includes(id)) save.peelsNew.push(id);
+  return PEEL_BY_ID[id];
+}
+
+/** Unlock every achievement peel whose goal is met; returns the new ones. */
+export function checkPeelAchievements(): PeelDef[] {
+  const out: PeelDef[] = [];
+  for (const d of PEELS) {
+    if (!d.progress || hasPeel(d.id)) continue;
+    const [have, need] = d.progress();
+    if (have >= need) {
+      const g = grant(d.id);
+      if (g) out.push(g);
+    }
+  }
+  if (out.length) persist();
+  return out;
+}
+
+/** A shiny foot went down: unlock its shiny peel. */
+export function grantShinyFoot(footId: string): PeelDef | null {
+  const g = grant(`shiny:${footId}`);
+  if (g) persist();
+  return g;
+}
+
+/** An event was dealt with: roll its drops (one at most, rarest first). */
+export function rollEventDrop(ev: EventId, roll: () => number = Math.random): PeelDef | null {
+  const drops = PEELS.filter((d) => d.drop?.event === ev).sort((a, b) => a.drop!.chance - b.drop!.chance);
+  for (const d of drops) {
+    if (roll() < d.drop!.chance) {
+      if (hasPeel(d.id)) continue;
+      const g = grant(d.id);
+      if (g) persist();
+      return g;
+    }
+  }
+  return null;
+}
+
+export function buyPeel(id: string): boolean {
+  const d = PEEL_BY_ID[id];
+  if (!d?.cost || hasPeel(id) || save.crusts < d.cost) return false;
+  save.crusts -= d.cost;
+  save.peels.push(id);
+  save.peel = id;
+  persist();
+  return true;
+}
+
+export function equipPeel(id: string): void {
+  if (!hasPeel(id)) return;
+  save.peel = id;
+  persist();
+}
+
+// ——— images ———
+
+const thumbCache = new Map<string, string>();
+
+/** Full-size canvas for a peel (not cached: they're big). */
+export function peelCanvas(id: string): HTMLCanvasElement {
+  return drawPeelSkin((PEEL_BY_ID[id] ?? PEEL_BY_ID.classic).look());
+}
+
+/** A small data URL for menus, cached. */
+export function peelThumbURL(id: string, h = 180): string {
+  const k = `${id}@${h}`;
+  let url = thumbCache.get(k);
+  if (!url) {
+    const big = peelCanvas(id);
+    const w = Math.round((PEEL_W * h) / PEEL_H);
+    const [c, ctx] = makeCanvas(w, h);
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(big, 0, 0, w, h);
+    url = c.toDataURL('image/png');
+    thumbCache.set(k, url);
+  }
+  return url;
+}
+
+let appliedPeel = 'classic';
+
+/** Swap the 'peel' texture for the equipped skin (cheap when nothing changed). */
+export function applyEquippedPeel(scene: Phaser.Scene): PeelDef {
+  const d = equippedPeel();
+  if (d.id !== appliedPeel || !scene.textures.exists('peel')) {
+    addCanvas(scene, 'peel', peelCanvas(d.id));
+    appliedPeel = d.id;
+  }
+  return d;
+}
+
+export function peelTrail(d: PeelDef): number | null {
+  if (d.id === 'classic') return null;
+  return parseInt(d.look().trail.replace('#', ''), 16);
+}
+
+export function footOf(d: PeelDef): FootType | null {
+  return d.foot ? FOOT_BY_ID[d.foot] : null;
+}

@@ -22,6 +22,8 @@ export class Fx {
   private cheese: Phaser.GameObjects.Particles.ParticleEmitter;
   private sweat: Phaser.GameObjects.Particles.ParticleEmitter;
   private heal: Phaser.GameObjects.Particles.ParticleEmitter;
+  private glints: Phaser.GameObjects.Particles.ParticleEmitter;
+  private trailEm: Phaser.GameObjects.Particles.ParticleEmitter;
 
   constructor(scene: Phaser.Scene, layer: Phaser.GameObjects.Container) {
     this.scene = scene;
@@ -82,6 +84,24 @@ export class Fx {
       lifespan: 900, speedY: { min: -180, max: -60 }, speedX: { min: -60, max: 60 }, scale: { start: 0.5, end: 0 },
       tint: [0x7be04a, 0xc8ff9a, 0xffffff], blendMode: 'ADD',
     });
+    // shiny feet and shiny peels: slow rainbow glints
+    this.glints = em('star', {
+      lifespan: 700, speed: { min: 10, max: 60 }, scale: { start: 0.42, end: 0 }, rotate: { min: 0, max: 90 }, blendMode: 'ADD',
+      tint: [0xffffff, 0xfff06a, 0x7dff9a, 0x5fd8ff, 0xff7ad9, 0xa77dff],
+    });
+    // the equipped peel's trail
+    this.trailEm = em('soft', {
+      lifespan: 260, speed: { min: 0, max: 20 }, scale: { start: 0.32, end: 0 }, alpha: { start: 0.7, end: 0 }, blendMode: 'ADD',
+    });
+  }
+
+  glint(x: number, y: number, n = 1): void {
+    this.glints.explode(n, x, y);
+  }
+
+  trail(x: number, y: number, color: number): void {
+    this.trailEm.setParticleTint(color);
+    this.trailEm.explode(1, x, y);
   }
 
   private text(): Phaser.GameObjects.Text {

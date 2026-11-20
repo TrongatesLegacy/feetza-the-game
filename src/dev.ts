@@ -120,6 +120,19 @@ export function installDevTools(game: Phaser.Game): void {
     /** Deterministic randomness for fair before/after comparisons. */
     seed,
     skipIntros,
+    /** Peels: unlock everything, or make shiny feet common (n = chance multiplier) for testing. */
+    peels: {
+      unlockAll: async () => {
+        const { PEELS } = await import('./game/peels');
+        const { save, persist } = await import('./systems/save');
+        save.peels = PEELS.map((p) => p.id);
+        persist();
+      },
+      shinyBoost: (n: number) => {
+        const g = game.scene.getScene('Game') as AnyScene;
+        if (g) g.shinyBoost = n;
+      },
+    },
     /**
      * The auto-player: smacks the lowest foot, wipes boss props, and shops with a simple strategy
      * (heal when hurt, reheat stale pizzas, buy the best affordable topping, then next wave).

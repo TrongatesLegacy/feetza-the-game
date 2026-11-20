@@ -69,6 +69,19 @@ export interface SaveData {
   /** Crusts granted on migration for bosses already beaten (shown on the welcome card). */
   welcomeBonus: number;
   run: RunSnapshot | null;
+  // Peel skins and achievements
+  /** Feet defeated, per foot type. */
+  kills: Record<string, number>;
+  /** Waves cleared in each stage (location waves and its boss wave). */
+  stageWaves: Record<string, number>;
+  /** Wave events dealt with, per event. */
+  eventsDone: Record<string, number>;
+  /** Unlocked peel ids (the Classic Peel is always owned). */
+  peels: string[];
+  /** Equipped peel. */
+  peel: string;
+  /** Peels unlocked but not yet looked at in the locker. */
+  peelsNew: string[];
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -117,6 +130,12 @@ const DEFAULTS: SaveData = {
   welcomePending: false,
   welcomeBonus: 0,
   run: null,
+  kills: {},
+  stageWaves: {},
+  eventsDone: {},
+  peels: [],
+  peel: 'classic',
+  peelsNew: [],
 };
 
 function clone<T>(v: T): T {

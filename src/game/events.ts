@@ -16,6 +16,8 @@ export interface EventRewards {
   consumable(): void;
   spawnMimic(x: number): void;
   firstSighting(id: EventId): void;
+  /** The event was dealt with (popped, caught, opened, a mimic beaten in time): achievements and drops. */
+  done(id: EventId, x: number, y: number): void;
 }
 
 const EVENT_NAMES: Record<EventId, string> = {
@@ -106,6 +108,7 @@ export function startEvent(a: Arena, id: EventId, rw: EventRewards): void {
       }
       done = true;
       const { x, y } = img;
+      rw.done(id, x, y);
       if (id === 'balloon') {
         a.sfx('sfx_pop');
         rw.tips(10 + Math.floor(Math.random() * 16), x, y);
@@ -173,6 +176,7 @@ function chest(a: Arena, mimic: boolean, rw: EventRewards): void {
         bar.destroy();
         img.setTexture('ev_mimic');
         a.quip(x, y - 140, 'MIMIC! Beaten in time', '#ffd23f', 40);
+        rw.done('mimic', x, y);
         rw.tips(40 + Math.floor(Math.random() * 30), x, y);
         a.sc.tweens.add({ targets: img, alpha: 0, y: y - 120, duration: 500, delay: 300, onComplete: () => img.destroy() });
         return;
@@ -182,6 +186,7 @@ function chest(a: Arena, mimic: boolean, rw: EventRewards): void {
       bar.destroy();
       img.setTexture('ev_chest_open');
       a.sfx('sfx_chest');
+      rw.done('chest', x, y);
       a.fx.party(x, y - 40, 50);
       const roll = Math.random();
       if (roll < 0.45) rw.tips(25 + Math.floor(Math.random() * 30), x, y);

@@ -23,11 +23,13 @@ export interface FootMeta {
 
 export const footMeta: Record<string, FootMeta> = {};
 export const pizzaTops: Record<string, HTMLCanvasElement> = {};
+/** Event sprites (balloon, drone, …) kept for DOM art such as peel emblems. */
+export const eventCanvases: Record<string, HTMLCanvasElement> = {};
 const portraitCache = new Map<string, string>();
 
 export { ART_RES };
 
-function addCanvas(scene: Phaser.Scene, key: string, canvas: HTMLCanvasElement): void {
+export function addCanvas(scene: Phaser.Scene, key: string, canvas: HTMLCanvasElement): void {
   if (scene.textures.exists(key)) scene.textures.remove(key);
   scene.textures.addCanvas(key, canvas);
 }
@@ -40,7 +42,10 @@ export async function generateAll(scene: Phaser.Scene, progress: (p: number, lab
     () => {
       const sprites = buildSprites();
       for (const [k, c] of Object.entries(sprites)) addCanvas(scene, k, c);
-      for (const [k, c] of Object.entries(buildEventSprites())) addCanvas(scene, k, c);
+      for (const [k, c] of Object.entries(buildEventSprites())) {
+        addCanvas(scene, k, c);
+        eventCanvases[k] = c;
+      }
     },
   ]);
   for (const p of PIZZAS) {
