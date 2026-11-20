@@ -1,5 +1,8 @@
 // In-run roguelike upgrades. Each upgrade stacks up to `max` levels and modifies Stats.
 
+import type { Proc } from '../game/abilities';
+import { MORE_TOPPINGS } from './toppingsMore';
+
 export interface Stats {
   damage: number;
   critChance: number;
@@ -128,6 +131,8 @@ export interface Upgrade {
   onPick?: 'healAll2' | 'extraPizza' | 'fridge' | 'arm';
   /** permanent (default): levels and stacks · unique: once per run · consumable: one use, back after a cooldown. */
   kind?: UpgradeKind;
+  /** Proc toppings: an ability-style trigger and effects (scaled by level), run by the scene. */
+  proc?: Proc;
 }
 
 const pct = (n: number) => `${Math.round(n * 100)}%`;
@@ -313,6 +318,7 @@ export const UPGRADES: Upgrade[] = [
     desc: () => '8% of smacked-down feet turn to gold: 5x tips',
     apply: (s) => { s.goldenTouch += 0.08; },
   },
+  ...MORE_TOPPINGS,
 ];
 
 export const UPGRADE_BY_ID: Record<string, Upgrade> = Object.fromEntries(UPGRADES.map((u) => [u.id, u]));

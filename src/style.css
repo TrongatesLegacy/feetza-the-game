@@ -3631,7 +3631,7 @@ body.reduced-motion *::after {
   color: var(--ink);
 }
 
-.sec-head {
+.locker .sec-head {
   font-family: 'Lilita One', sans-serif;
   font-size: 1.4em;
   margin: 0.9em 0 0.4em;
@@ -3641,11 +3641,11 @@ body.reduced-motion *::after {
   flex-wrap: wrap;
 }
 
-.sec-head:first-child {
+.locker .sec-head:first-child {
   margin-top: 0;
 }
 
-.sec-head span {
+.locker .sec-head span {
   font-family: inherit;
   font-family: 'Fredoka', sans-serif;
   font-weight: 600;

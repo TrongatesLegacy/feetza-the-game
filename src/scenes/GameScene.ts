@@ -24,7 +24,7 @@ import type { GoldenItem, ShopCard, ShopState } from '../ui/shopTypes';
 import { ui } from '../ui/ui';
 import { applyEquippedPeel, checkPeelAchievements, grantShinyFoot, peelThumbURL, peelTrail, rollEventDrop, SHINY_FOOT_CHANCE, type PeelDef } from '../game/peels';
 import { STAGES, WAVES_PER_STAGE } from '../data/stages';
-import { abilityFor, abilityKindLabel, usesMeter, type Ability, type Effect, type Target } from '../game/abilities';
+import { abilityFor, abilityKindLabel, scaleProc, usesMeter, type Ability, type Effect, type Proc, type Target } from '../game/abilities';
 import { randomLineup } from './MenuScene';
 
 interface DamageOpts {
@@ -75,6 +75,8 @@ export class GameScene extends Phaser.Scene implements Arena {
   /** The peel's ability, when it replaces the Peel Slam this run (null: the Peel Slam). */
   private ability: Ability | null = null;
   private abilityT = 0;
+  /** Proc toppings owned this run (scaled by level), with their timers. */
+  private procs: { id: string; p: Proc; t: number }[] = [];
   private lastPeelPos = { x: 0, y: 0 };
   /** Dev: multiplies the shiny-foot chance. */
   shinyBoost = 1;
@@ -570,6 +572,11 @@ export class GameScene extends Phaser.Scene implements Arena {
       else s.damage *= 0.95;
     }
     for (const p of this.pizzas) p.maxFresh = 10 + this.run.stats.freshBonus;
+    const timers = new Map(this.procs.map((x) => [x.id, x.t]));
+    this.procs = Object.entries(this.run.owned)
+      .map(([id, lvl]) => ({ u: UPGRADE_BY_ID[id], lvl }))
+      .filter((x) => x.u?.proc && x.lvl > 0)
+      .map((x) => ({ id: x.u.id, p: scaleProc(x.u.proc!, x.lvl), t: timers.get(x.u.id) ?? 0 }));
     this.syncCutters();
     this.syncGarlic();
   }
@@ -1596,6 +1603,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     // smack abilities only when the smack landed (not parried, guarded or dodged)
     const landed = !f.alive || f.hp < hpBefore;
     if (landed && this.ability?.trigger.t === 'smack' && Math.random() < this.ability.trigger.p) this.fireAbility({ foot: f, x: f.cx, y: f.cy });
+    if (landed) this.fireProcs('smack', { foot: f, x: f.cx, y: f.cy });
     if (!f.alive) return;
     if (f.has('pinch')) this.stunPeel(0.5, 'PINCHED!');
     if (f.has('sticky')) {
@@ -1843,6 +1851,10 @@ export class GameScene extends Phaser.Scene implements Arena {
       const at = { x: f.cx, y: f.cy };
       this.time.delayedCall(40, () => this.fireAbility({ x: at.x, y: at.y }));
     }
+    if (source !== 'ability' && this.procs.length) {
+      const at = { x: f.cx, y: f.cy };
+      this.time.delayedCall(40, () => this.fireProcs('kill', { x: at.x, y: at.y }));
+    }
     if (f.has('crusty')) {
       const cap = Math.round(EVENT_CRUST_CAP * this.run.heatDef.crusts);
       const got = Math.max(0, Math.min(1 + Math.floor(Math.random() * 3), cap - this.run.eventCrusts));
@@ -1977,6 +1989,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.rumble(f.isBossLike ? 0.8 : 0.3, f.isBossLike ? 250 : 90);
     this.director.onStomp(f, p);
     if (this.ability?.trigger.t === 'stomp') this.fireAbility({ foot: f, x: f.cx, y: f.cy });
+    this.fireProcs('stomp', { foot: f, x: f.cx, y: f.cy });
     // Graffiti Gina tags the pizza; the next foot on it stomps twice as hard
     let tagged = false;
     if (p.flags.tagged && !f.has('tag')) {
@@ -2187,6 +2200,7 @@ export class GameScene extends Phaser.Scene implements Arena {
   /** Wave-start abilities: heals, shields, tips. */
   private abilityWaveStart(): void {
     if (this.ability?.trigger.t === 'wave') this.time.delayedCall(600, () => this.fireAbility({ x: W / 2, y: 520 }));
+    if (this.procs.some((x) => x.p.trigger.t === 'wave')) this.time.delayedCall(700, () => this.fireProcs('wave', { x: W / 2, y: 520 }));
   }
 
   private abilityTargets(t: Target, ctx: { foot?: Foot; x?: number; y?: number }): Foot[] {
@@ -2253,12 +2267,49 @@ export class GameScene extends Phaser.Scene implements Arena {
     } else if (a.trigger.t === 'every' || a.trigger.t === 'wave') {
       this.fx.quip(ctx.x ?? this.peelPos.x, (ctx.y ?? this.peelPos.y) - 90, a.name, '#' + color.toString(16).padStart(6, '0'), 30, 0);
     }
-    for (const e of a.fx) this.applyAbilityEffect(e, ctx, color, a.vfx);
+    this.runEffects(a.fx, ctx, color, a.vfx);
     void st;
   }
 
-  private applyAbilityEffect(e: Effect, ctx: { foot?: Foot; x?: number; y?: number }, color: number, vfx: Ability['vfx']): void {
+  /** Topping procs for one trigger kind (smack, kill, stomp, wave). */
+  private fireProcs(kind: 'smack' | 'kill' | 'stomp' | 'wave', ctx: { foot?: Foot; x?: number; y?: number }): void {
+    if (this.over || this.inUpgrade) return;
+    for (const pr of this.procs) {
+      const t = pr.p.trigger;
+      if (t.t !== kind) continue;
+      if ((t.t === 'smack' || t.t === 'kill') && Math.random() >= t.p) continue;
+      this.runEffects(pr.p.fx, ctx, pr.p.color, pr.p.vfx);
+    }
+  }
+
+  private procTick(dt: number): void {
+    if (!this.waveActive || !this.procs.length) return;
+    const any = this.feet.some((f) => f.hittable);
+    for (const pr of this.procs) {
+      if (pr.p.trigger.t !== 'every') continue;
+      pr.t += dt;
+      if (pr.t < pr.p.trigger.sec || !any) continue;
+      pr.t = 0;
+      this.runEffects(pr.p.fx, { x: this.peelPos.x, y: this.peelPos.y }, pr.p.color, pr.p.vfx);
+    }
+  }
+
+  /** Run a list of effects; effects that share a target hit the same feet ("…then burn them"). */
+  private runEffects(fx: Effect[], ctx: { foot?: Foot; x?: number; y?: number }, color: number, vfx: Ability['vfx']): void {
+    const cache = new Map<string, Foot[]>();
+    for (const e of fx) this.applyAbilityEffect(e, ctx, color, vfx, cache);
+  }
+
+  private applyAbilityEffect(e: Effect, ctx: { foot?: Foot; x?: number; y?: number }, color: number, vfx: Ability['vfx'], cache?: Map<string, Foot[]>): void {
     const st = this.run.stats;
+    const targets = (t: Target): Foot[] => {
+      const k = JSON.stringify(t);
+      const hitList = cache?.get(k);
+      if (hitList) return hitList.filter((f) => f.alive && f.hittable);
+      const list = this.abilityTargets(t, ctx);
+      cache?.set(k, list);
+      return list;
+    };
     const mark = (f: Foot) => {
       if (vfx === 'frost') this.fx.frost(f.cx, f.cy);
       else if (vfx === 'fire') this.fx.burn(f.cx, f.cy);
@@ -2271,13 +2322,13 @@ export class GameScene extends Phaser.Scene implements Arena {
     };
     switch (e.e) {
       case 'dmg':
-        for (const f of this.abilityTargets(e.at, ctx)) {
+        for (const f of targets(e.at)) {
           mark(f);
           this.dealDamage(f, e.x * st.damage, { source: 'ability', knock: e.knock ?? 120, x: f.cx, y: f.cy });
         }
         break;
       case 'burn':
-        for (const f of this.abilityTargets(e.at, ctx)) {
+        for (const f of targets(e.at)) {
           if (f.has('immuneBurn')) continue;
           this.fx.burn(f.cx, f.cy);
           f.burnFromAbility = true;
@@ -2286,13 +2337,13 @@ export class GameScene extends Phaser.Scene implements Arena {
         }
         break;
       case 'slow':
-        for (const f of this.abilityTargets(e.at, ctx)) {
+        for (const f of targets(e.at)) {
           f.slowT = Math.max(f.slowT, e.sec);
           f.slowPct = Math.max(f.slowPct, e.pct);
         }
         break;
       case 'stun':
-        for (const f of this.abilityTargets(e.at, ctx)) {
+        for (const f of targets(e.at)) {
           // bosses shrug off half of it
           f.stun(f.isBossLike ? e.sec / 2 : e.sec, !!e.freeze);
           if (e.freeze) this.fx.frost(f.cx, f.cy);
@@ -2300,17 +2351,17 @@ export class GameScene extends Phaser.Scene implements Arena {
         if (e.freeze) audio.sfx('sfx_freeze', { throttle: 200 });
         break;
       case 'knock':
-        for (const f of this.abilityTargets(e.at, ctx)) if (!f.isBossLike) f.knock(e.px);
+        for (const f of targets(e.at)) if (!f.isBossLike) f.knock(e.px);
         break;
       case 'mark':
-        for (const f of this.abilityTargets(e.at, ctx)) {
+        for (const f of targets(e.at)) {
           f.markMult = Math.max(f.markUntil > this.nowT ? f.markMult : 1, e.mult);
           f.markUntil = this.nowT + e.sec;
           f.flash(color, 120);
         }
         break;
       case 'chain': {
-        const from = this.abilityTargets(e.at, ctx)[0];
+        const from = targets(e.at)[0];
         if (!from) break;
         let prev = from;
         const done = new Set<Foot>([from]);
@@ -2328,7 +2379,7 @@ export class GameScene extends Phaser.Scene implements Arena {
         break;
       }
       case 'execute':
-        for (const f of this.abilityTargets(e.at, ctx)) {
+        for (const f of targets(e.at)) {
           if (f.isBossLike || !f.alive || f.shielded || f.hp / f.maxHp > e.below) continue;
           this.fx.quip(f.x, f.cy - 120, 'FINISHED!', '#ff8a6a', 36);
           f.wool = 0;
@@ -2645,6 +2696,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.feetLayer.sort('y');
       this.passives(dt);
       this.abilityTick(dt);
+      this.procTick(dt);
       if (this.run.combo > 0) {
         this.run.comboTimer -= dt;
         if (this.run.combo > 0 && this.run.comboTimer <= 0) this.run.combo = 0;

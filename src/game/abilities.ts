@@ -159,8 +159,71 @@ export function scaleProc(p: Proc, lvl: number): Proc {
   return { ...p, trigger: trig, fx };
 }
 
+/** Short form for topping cards: "Every 8s: hit 3 random feet and nearby for 5×, then burn them (1×/s, 3s)." (× = your smack damage) */
 export function describeProc(p: Proc): string {
-  return describeAbility({ name: '', trigger: p.trigger, fx: p.fx, charge: 1, color: p.color, vfx: p.vfx });
+  const sameAt = (a: Effect, b: Effect | undefined) => !!b && 'at' in a && 'at' in b && JSON.stringify(a.at) === JSON.stringify(b.at);
+  const parts = p.fx.map((f, i) => shortEffect(f, sameAt(f, p.fx[i - 1])));
+  return `${shortTrigger(p.trigger)}: ${parts.join(', then ')}.`;
+}
+
+function shortWho(t: Target): string {
+  switch (t.to) {
+    case 'all':
+      return 'every foot';
+    case 'peel':
+      return 'feet near the peel';
+    case 'hit':
+      return t.r ? 'it and nearby feet' : 'it';
+    case 'random':
+      return t.n === 1 ? 'a random foot' : `${t.n} random feet`;
+    case 'front':
+      return t.n === 1 ? 'the front foot' : `the ${t.n} front feet`;
+    case 'toughest':
+      return t.n === 1 ? 'the toughest foot' : `the ${t.n} toughest feet`;
+    case 'pizzas':
+      return 'feet near pizzas';
+    case 'blast':
+      return `${t.n === 1 ? (t.pick === 'front' ? 'the front foot' : t.pick === 'toughest' ? 'the toughest foot' : 'a random foot') : `${t.n} ${t.pick === 'front' ? 'front' : t.pick === 'toughest' ? 'toughest' : 'random'} feet`} and nearby`;
+  }
+}
+
+function shortEffect(f: Effect, same: boolean): string {
+  const w = (t: Target) => (same ? 'them' : shortWho(t));
+  switch (f.e) {
+    case 'dmg':
+      return `hit ${w(f.at)} for ${fmtX(f.x)}${f.knock && f.knock > 300 ? ' with knockback' : ''}`;
+    case 'burn':
+      return `burn ${w(f.at)} (${fmtX(f.x)}/s, ${sec(f.sec)})`;
+    case 'slow':
+      return `slow ${w(f.at)} ${Math.round(f.pct * 100)}% (${sec(f.sec)})`;
+    case 'stun':
+      return `${f.freeze ? 'freeze' : 'stun'} ${w(f.at)} ${sec(f.sec)}`;
+    case 'knock':
+      return `knock ${w(f.at)} back`;
+    case 'mark':
+      return `mark ${w(f.at)}: ${fmtX(f.mult)} damage taken (${sec(f.sec)})`;
+    case 'chain':
+      return `chain lightning from ${w(f.at)} to ${f.jumps} more (${fmtX(f.x)})`;
+    default:
+      return effectText(f);
+  }
+}
+
+function shortTrigger(t: Trigger): string {
+  switch (t.t) {
+    case 'every':
+      return `Every ${sec(t.sec)}`;
+    case 'smack':
+      return `${Math.round(t.p * 100)}% of smacks`;
+    case 'kill':
+      return `${Math.round(t.p * 100)}% of kills`;
+    case 'stomp':
+      return 'On a stomp';
+    case 'wave':
+      return 'Each wave';
+    default:
+      return triggerText(t);
+  }
 }
 
 const RED = 0xff5a3c;
