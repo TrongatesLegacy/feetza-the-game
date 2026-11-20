@@ -330,7 +330,8 @@ const ironheel = (): Brain => {
             },
             r: 60,
             priority: 2,
-            alive: () => f.alive && pistons.includes(s),
+            // a locked valve stops taking smacks (it used to soak up every smack aimed near it)
+            alive: () => f.alive && pistons.includes(s) && s.lockT <= 0,
             hit: () => {
               s.lockT = 4;
               s.lift = 0;
@@ -392,8 +393,8 @@ const ironheel = (): Brain => {
           }
         }
         if (rockets.tick(dt)) {
-          const raised = pistons.filter((s) => s.lift > 0 && !s.p.dead).map((s) => s.p);
-          const targets = (raised.length ? raised : a.alivePizzas()).slice(0, 2);
+          // rockets only reach pizzas a piston has raised: locked valves really do protect them
+          const targets = pistons.filter((s) => s.lift > 0 && !s.p.dead).map((s) => s.p).slice(0, 2);
           for (const p of targets) {
             mark(a, 'p_reticle', p.x, p.surfaceY - 30, 2);
             a.sc.time.delayedCall(2000, () => {
