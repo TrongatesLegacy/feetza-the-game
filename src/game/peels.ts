@@ -133,7 +133,7 @@ function footLook(f: FootType, shiny: boolean): PeelLook {
     handle: handleFrom(a.legColor ?? '#8a5a2b'),
     pattern,
     patternColor: accent,
-    emblem: footEmblem(f.id),
+    footArt: footEmblem(f.id) as HTMLCanvasElement | null,
     studs: f.boss ? '#ffd23f' : f.mini ? '#d7dde6' : undefined,
     metal: !!a.gold || a.leg === 'armor',
     shiny,

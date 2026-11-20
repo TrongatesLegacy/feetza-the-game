@@ -34,6 +34,8 @@ export interface PeelLook {
   patternColor: string;
   /** A picture stamped in the middle of the head. */
   emblem?: CanvasImageSource | null;
+  /** Foot and boss peels: the head IS the foot (toes up, handle at the heel), patterned and foiled. */
+  footArt?: HTMLCanvasElement | null;
   /** Gold (or other) studs around the rim: bosses. */
   studs?: string;
   /** Outline colour (ink by default). */
@@ -393,6 +395,10 @@ export function drawPeelSkin(look: PeelLook): HTMLCanvasElement {
   ctx.fillStyle = INK;
   ctx.fill();
 
+  if (look.footArt) {
+    drawFootHead(ctx, look);
+    return c;
+  }
   // head
   headPath(ctx, look.shape);
   const g = ctx.createRadialGradient(HX - 30, HY - 36, 10, HX, HY, R * 1.15);
@@ -494,6 +500,74 @@ export function drawPeelSkin(look: PeelLook): HTMLCanvasElement {
   ctx.fillStyle = rgba('#ffffff', look.metal ? 0.45 : 0.3);
   ctx.fill();
   return c;
+}
+
+/** A foot-shaped head: the foot's own art flipped toes-up over the handle, with the peel's pattern and foil on top. */
+function drawFootHead(ctx: Ctx, look: PeelLook): void {
+  const art = look.footArt!;
+  // fit inside the head area, the heel meeting the top of the handle
+  const boxW = R * 2 + 8;
+  const boxH = R * 2 + 14;
+  const k = Math.min(boxW / art.width, boxH / art.height);
+  const w = art.width * k;
+  const hgt = art.height * k;
+  const bottom = HY + R + 10;
+  const [t, tctx] = makeCanvas(PEEL_W, PEEL_H);
+  tctx.save();
+  tctx.translate(HX, bottom - hgt / 2);
+  tctx.scale(1, -1); // toes up
+  tctx.drawImage(art, -w / 2, -hgt / 2, w, hgt);
+  tctx.restore();
+  // pattern and foil only where the foot is
+  tctx.globalCompositeOperation = 'source-atop';
+  tctx.globalAlpha = 0.28;
+  drawPattern(tctx, look);
+  tctx.globalAlpha = 1;
+  if (look.shiny) {
+    // keep a copy of the foot's shape: 'overlay' isn't clipped, so the foil is trimmed back to it afterwards
+    const [mask, mctx] = makeCanvas(PEEL_W, PEEL_H);
+    mctx.drawImage(t, 0, 0);
+    const fg = tctx.createLinearGradient(HX - R, HY - R, HX + R, HY + R);
+    const hues = ['#ff5f6d', '#ffc371', '#fff06a', '#7dff9a', '#5fd8ff', '#a77dff', '#ff7ad9'];
+    hues.forEach((hc, i) => fg.addColorStop(i / (hues.length - 1), hc));
+    tctx.globalCompositeOperation = 'overlay';
+    tctx.globalAlpha = 0.75;
+    tctx.fillStyle = fg;
+    tctx.fillRect(0, 0, PEEL_W, PEEL_H);
+    tctx.globalAlpha = 1;
+    tctx.globalCompositeOperation = 'destination-in';
+    tctx.drawImage(mask, 0, 0);
+    tctx.globalCompositeOperation = 'source-atop';
+    const sr = rng(hashStr(look.seed + 'sparkle'));
+    tctx.fillStyle = '#ffffff';
+    for (let i = 0; i < 7; i++) {
+      star(tctx, HX - R + 14 + sr() * (R * 2 - 28), HY - R + 14 + sr() * (R * 2 - 28), 4 + sr() * 7, 4, 0.28, 0);
+      tctx.fill();
+    }
+  }
+  tctx.globalCompositeOperation = 'source-over';
+  // a soft drop shadow, then the foot
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.3)';
+  ctx.shadowBlur = 8;
+  ctx.shadowOffsetY = 4;
+  ctx.drawImage(t, 0, 0);
+  ctx.restore();
+  // a collar where the handle meets the heel
+  roundRect(ctx, HX - 18, bottom - 10, 36, 14, 5);
+  ctx.fillStyle = look.studs ?? look.handle[1];
+  ctx.fill();
+  ctx.strokeStyle = look.rim ?? INK;
+  ctx.lineWidth = 3.5;
+  ctx.stroke();
+  // boss studs along the collar
+  if (look.studs) {
+    for (const dx of [-10, 0, 10]) {
+      ellipse(ctx, HX + dx, bottom - 3, 2.6, 2.6);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+    }
+  }
 }
 
 /** Head colours from one base colour. */
