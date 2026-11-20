@@ -129,12 +129,12 @@ export const feet: FootType[] = [
   {
     id: 'riot',
     name: 'Riot Ryan',
-    desc: 'A tactical boot behind a riot shield, only hurt in the moment just after it stomps.',
+    desc: 'A tactical boot behind a riot shield. The shield drops for a moment every few seconds, and right after it stomps.',
     hp: 48, speed: 0.85, armor: 3, stompDmg: 1, coins: 8, score: 270, scale: 1.05, minWave: 16, weight: 4,
     traits: ['guard'],
     home: 'diner',
-    howTo: 'Let it stomp, then smack while the shield is up',
-    tell: 'The shield lifts right after it stomps',
+    howTo: 'Smack it in the short window when the shield drops',
+    tell: 'It glints blue just before the shield drops',
     art: { kind: 'r_riot', skin: SKIN.light, primary: '#1d1f24', secondary: '#9fc4e8', leg: 'suit', legColor: '#23262d' },
   },
   {

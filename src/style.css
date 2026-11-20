@@ -3289,3 +3289,77 @@ body.reduced-motion *::after {
   background: #c04dff;
   color: #fff;
 }
+
+/* ——— pause menu: your toppings (moved off the HUD) ——— */
+.hud .bl .owned {
+  display: none;
+}
+
+.pause-sec {
+  width: 58em;
+  display: grid;
+  gap: 0.5em;
+}
+
+.pause-tops {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5em;
+  max-height: 22em;
+  overflow-y: auto;
+  padding-right: 0.3em;
+}
+
+.ptop {
+  display: grid;
+  grid-template-columns: 2.6em minmax(0, 1fr);
+  align-items: center;
+  gap: 0.6em;
+  padding: 0.45em 0.7em;
+  background: rgba(255, 255, 255, 0.6);
+  border: 0.16em solid var(--ink);
+  border-left: 0.5em solid var(--rc);
+  border-radius: 0.8em;
+}
+
+.ptop .ic {
+  font-size: 1.9em;
+  text-align: center;
+  font-family: system-ui, 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif;
+}
+
+.ptop .tx {
+  display: grid;
+  min-width: 0;
+}
+
+.ptop b {
+  font-family: 'Lilita One', sans-serif;
+  font-weight: 400;
+  font-size: 1.25em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ptop .lv {
+  margin-left: 0.35em;
+  color: var(--tomato-d);
+}
+
+.ptop .armed {
+  margin-left: 0.4em;
+  font-size: 0.7em;
+  color: #fff;
+  background: var(--basil-d);
+  border-radius: 0.6em;
+  padding: 0 0.4em;
+  vertical-align: middle;
+}
+
+.ptop .tx > span {
+  font-size: 0.95em;
+  font-weight: 600;
+  color: var(--ink-soft);
+  line-height: 1.2;
+}

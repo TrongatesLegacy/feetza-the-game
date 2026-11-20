@@ -29,7 +29,14 @@ export class Foot {
   readonly type: FootType;
   readonly meta: FootMeta;
   readonly root: Phaser.GameObjects.Container;
-  readonly scale: number;
+  private readonly baseScale: number;
+  /** Size multiplier on top of the type's scale (King Honk's shuffle shrinks his shoes so three fit). */
+  sizeMul = 1;
+  get scale(): number {
+    return this.baseScale * this.sizeMul;
+  }
+  /** Overrides where this foot hovers (contact y) before diving; null = the usual HOVER_Y. */
+  hoverY: number | null = null;
   private leg: Phaser.GameObjects.TileSprite;
   private img: Phaser.GameObjects.Image;
   private cuff?: Phaser.GameObjects.Image;
@@ -90,6 +97,10 @@ export class Foot {
   private flashT = 0;
   /** Riot shield is down for a moment right after a stomp. */
   guardOpen = 0;
+  /** Riot shield rhythm: counts up to the next timed drop while hovering or diving. */
+  private guardT = 0;
+  private guardNext = 2.4 + Math.random() * 0.8;
+  private guardWarned = false;
   /** Gym Bro: armour gained while unhit. */
   bulk = 0;
   private bulkT = 0;
@@ -122,7 +133,7 @@ export class Foot {
     this.meta = footMeta[type.id];
     this.hooks = opts.hooks;
     this.elite = opts.elite;
-    this.scale = type.scale * FOOT_DISPLAY * (opts.elite ? 1.08 : 1);
+    this.baseScale = type.scale * FOOT_DISPLAY * (opts.elite ? 1.08 : 1);
     this.maxHp = Math.round(type.hp * opts.hpMult * (opts.elite ? 1.8 : 1));
     this.hp = this.maxHp;
     this.armor = type.armor + (opts.elite ? 1 : 0);
@@ -261,6 +272,21 @@ export class Foot {
     }
     if (this.disarmT > 0) this.disarmT -= dt;
     if (this.guardOpen > 0) this.guardOpen -= dt;
+    // the riot shield also drops on a timer (every 2.4–3.2 s for 0.75 s), with a glint half a second before
+    if (this.has('guard') && this.alive && (this.state === 'hover' || this.state === 'descend') && this.guardOpen <= 0) {
+      this.guardT += dt;
+      if (!this.guardWarned && this.guardT >= this.guardNext - 0.5) {
+        this.guardWarned = true;
+        this.flash(0x9ad8ff, 160);
+      }
+      if (this.guardT >= this.guardNext) {
+        this.guardT = 0;
+        this.guardNext = 2.4 + Math.random() * 0.8;
+        this.guardWarned = false;
+        this.guardOpen = 0.75;
+        this.hooks.onTrait?.(this, 'guardDown');
+      }
+    }
     if (this.revealT > 0) this.revealT -= dt;
     // Mime: invisible (only its shadow shows) until it commits to a stomp or gets smacked
     if (this.has('invisible') && this.alive) {
@@ -316,10 +342,11 @@ export class Foot {
 
     switch (this.state) {
       case 'enter': {
-        this.y += (HOVER_Y - 20 - this.y) * Math.min(1, dt * 4);
+        const hy = this.hoverY ?? HOVER_Y;
+        this.y += (hy - 20 - this.y) * Math.min(1, dt * 4);
         if (this.laneX !== null) this.x += (this.laneX - this.x) * Math.min(1, dt * 3);
         else if (target) this.x += (target.x - this.x) * Math.min(1, dt * 3);
-        if (this.y > HOVER_Y - 40) this.setState('hover');
+        if (this.y > hy - 40) this.setState('hover');
         break;
       }
       case 'hover': {
@@ -343,7 +370,8 @@ export class Foot {
         // queued feet wait higher up, fanned out, so they never stack on the divers below
         const hoverX = this.laneX ?? this.target!.x + (this.waiting ? this.hoverOffset * 1.6 : this.hoverOffset);
         this.x += (hoverX - this.x) * Math.min(1, dt * 3);
-        this.y += ((this.waiting ? HOVER_Y - 170 : HOVER_Y) - this.y) * Math.min(1, dt * 3);
+        const hy = this.hoverY ?? HOVER_Y;
+        this.y += ((this.waiting ? hy - 170 : hy) - this.y) * Math.min(1, dt * 3);
         if (this.type.traits.includes('teleport') && this.stateT > this.hoverTime * 0.6 && Math.random() < dt * 0.8) {
           const other = this.hooks.pickTarget(this);
           if (other && other !== this.target) this.blinkTo(other);
@@ -501,6 +529,14 @@ export class Foot {
     this.img.setAlpha(a);
     this.leg.setAlpha(a);
     this.cuff?.setAlpha(a);
+  }
+
+  /** Resize the whole foot (art and hit area) to `mul` of its normal size. */
+  setSize(mul: number, ms = 250): void {
+    this.sizeMul = mul;
+    const rel = (this.baseScale / this.type.scale) * mul;
+    if (ms > 0) this.scene.tweens.add({ targets: this.root, scaleX: rel, scaleY: rel, duration: ms, ease: 'Back.Out' });
+    else this.root.setScale(rel);
   }
 
   private auraFx: Phaser.FX.Glow | null = null;

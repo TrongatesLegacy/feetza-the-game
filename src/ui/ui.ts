@@ -849,13 +849,25 @@ class UI {
   }
 
   // ——— Pause ———
-  pause(o: { resume: () => void; settings: () => void; quit: () => void; owned: Record<string, number>; wave: number; score: number }): HTMLElement {
-    const list = h('div', { class: 'chips', style: 'justify-content:center;max-width:44em' });
-    for (const [id, lvl] of Object.entries(o.owned)) {
-      const u = UPGRADE_BY_ID[id];
-      list.append(h('span', { class: 'chip', style: `border-color:${RARITY_COLOR[u.rarity]}` }, `${u.icon} ${u.name}${lvl > 1 ? ` ×${lvl}` : ''}`));
-    }
-    if (!Object.keys(o.owned).length) list.append(h('span', { class: 'hint' }, 'No upgrades yet. Clear a wave to choose one!'));
+  pause(o: { resume: () => void; settings: () => void; quit: () => void; owned: Record<string, number>; armed?: string[]; wave: number; score: number }): HTMLElement {
+    // your toppings live here rather than on the HUD, where they piled up over the pizzas
+    const entries = Object.entries(o.owned).filter(([id]) => UPGRADE_BY_ID[id]);
+    const list = h(
+      'div',
+      { class: 'pause-tops' },
+      ...entries.map(([id, lvl]) => {
+        const u = UPGRADE_BY_ID[id];
+        const armed = o.armed?.includes(id);
+        return h(
+          'div',
+          { class: 'ptop', style: `--rc:${RARITY_COLOR[u.rarity]}` },
+          h('div', { class: 'ic' }, u.icon),
+          h('div', { class: 'tx' }, h('b', {}, u.name, lvl > 1 ? h('span', { class: 'lv' }, `×${lvl}`) : null, armed ? h('span', { class: 'armed' }, 'READY') : null), h('span', {}, u.desc(1))),
+        );
+      }),
+    );
+    if (!entries.length) list.append(h('span', { class: 'hint' }, 'No toppings yet. Clear a wave to buy some!'));
+    const tops = h('div', { class: 'pause-sec' }, h('div', { class: 'section-title' }, `YOUR TOPPINGS · ${entries.length}`), list);
     let confirmQuit = false;
     const quit = btn('QUIT RUN', 'cream', () => {
       if (!confirmQuit) {
@@ -871,7 +883,7 @@ class UI {
       { class: 'panel modal' },
       h('div', { class: 'title' }, 'PAUSED'),
       h('div', { class: 'subtitle' }, `Wave ${o.wave} · ${fmt(o.score)} points`),
-      list,
+      tops,
       h('div', { class: 'row' }, btn('RESUME', 'green big', o.resume, { 'data-pad': 'menu', 'data-pad-default': '' }), btn('SETTINGS', 'yellow', o.settings), quit),
       h('div', { class: 'hint kbd-hint', html: '<span class="kbd">ESC</span> resume · <span class="kbd">M</span> mute · <span class="kbd">SPACE</span> Peel Slam' }),
     );

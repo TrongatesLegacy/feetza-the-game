@@ -40,7 +40,7 @@ export type FootTrait =
   | 'invisible' // unseen (only its shadow shows) until it starts its stomp
   | 'magnet' // pulls the player's aim toward it
   | 'hop' // hops to another pizza mid-descent
-  | 'guard' // front shield: only hurt just after a stomp
+  | 'guard' // front shield: only hurt in short windows (a timed drop, and just after a stomp)
   | 'bulk' // gains armour for every second unhit
   | 'thief' // steals tips when it stomps
   | 'spoil' // stomps drain freshness instead of slices
@@ -700,7 +700,7 @@ const TRAIT_HOWTO: Partial<Record<FootTrait, [string, string]>> = {
   invisible: ['Watch for its shadow on the pizza', 'Only its shadow shows'],
   magnet: ['Fight the pull on your aim', 'Your peel drifts toward it'],
   hop: ['It hops pizzas halfway down', 'Its spring coils before the hop'],
-  guard: ['Hit it right after it stomps', 'Its shield drops as it lands'],
+  guard: ['Hit it when the shield drops: every few seconds, and right after it stomps', 'It glints blue just before the shield drops'],
   bulk: ['Hit it early before it bulks up', 'It flexes when it gains armour'],
   thief: ['Smack it to get your tips back', 'It eyes your tip jar'],
   spoil: ['Stop it: it spoils freshness', 'Flies buzz around it'],

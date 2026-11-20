@@ -778,6 +778,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.fx.quip(ft.x, ft.cy - 120, 'SURPRISE!', '#f8dca0', 36);
     } else if (trait === 'guardDown') {
       this.fx.quip(ft.x, ft.cy - 140, 'SHIELD DOWN!', '#9ad8ff', 32);
+      this.fx.ring(ft.cx, ft.cy, 0x9ad8ff, 0.7, 0.8);
     }
   }
 
@@ -1566,7 +1567,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (smack && f.has('guard') && f.guardOpen <= 0) {
       f.flash(0x9ad8ff, 80);
       f.knock(80);
-      this.fx.quip(f.x, f.cy - 110, 'SHIELD! Hit it after it stomps', '#9ad8ff', 30);
+      this.fx.quip(f.x, f.cy - 110, 'SHIELD! Wait for it to drop', '#9ad8ff', 30);
       audio.sfx('sfx_shield', { volume: 0.6 });
       return;
     }
@@ -2403,6 +2404,7 @@ export class GameScene extends Phaser.Scene implements Arena {
         this.gameOver(true);
       },
       owned: this.run.owned,
+      armed: this.run.armed,
       wave: this.run.wave,
       score: this.run.score,
     });

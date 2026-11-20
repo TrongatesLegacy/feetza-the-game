@@ -3,7 +3,7 @@
 // still be blocked by pizza defences, other moves cannot.
 
 import Phaser from 'phaser';
-import { W } from '../config';
+import { HOVER_Y, W } from '../config';
 import { FOOT_BY_ID } from '../data/feet';
 import type { Arena } from './arena';
 import type { Foot } from './Foot';
@@ -371,6 +371,9 @@ const ironheel = (): Brain => {
   };
 };
 
+/** King Honk and his decoys during a shuffle, relative to his full size. */
+const SHUFFLE_SIZE = 0.62;
+
 const clownking = (): Brain => {
   const decoys = new Every(9, 1);
   const pie = new Every(6, 3);
@@ -445,7 +448,12 @@ const clownking = (): Brain => {
           o.laneX = xs[i];
           o.x = xs[i];
           o.y = -420;
+          // smaller and lower than the King's usual hover, so three whole shoes fit side by side
+          o.setSize(SHUFFLE_SIZE, 0);
+          o.hoverY = HOVER_Y + 130;
         });
+        f.brain.baseSX = f.root.scaleX;
+        f.brain.baseSY = f.root.scaleY;
         trio = team;
         // they drop back in a random order, so the first one down tells you nothing
         Phaser.Utils.Array.Shuffle([...order]).forEach((o, k) => {
@@ -484,8 +492,14 @@ const clownking = (): Brain => {
       }
       trio = trio.filter((o) => o.alive);
       if (trio.length && !trio.some((o) => o !== f)) {
-        // all decoys popped: the King is free to roam again
+        // all decoys popped: the King is free to roam again, back to full size
         f.laneX = null;
+        f.hoverY = null;
+        f.setSize(1);
+        a.sc.time.delayedCall(300, () => {
+          f.brain.baseSX = f.root.scaleX;
+          f.brain.baseSY = f.root.scaleY;
+        });
         trio = [];
       }
       // each shoe keeps to its own lane, aiming at the pizza under it
