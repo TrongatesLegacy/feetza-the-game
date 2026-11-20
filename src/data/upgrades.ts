@@ -343,14 +343,17 @@ export const RARITY_COLOR: Record<Rarity, string> = {
   legendary: '#ffbf1f',
 };
 
-/** Base topping price by rarity; +2 tips per wave. Consumables cost less. */
-export const RARITY_PRICE: Record<Rarity, number> = { common: 30, rare: 70, epic: 120, legendary: 235 };
+/** Base topping price by rarity (plus RARITY_PER_WAVE a wave). Consumables and trade-offs cost less. */
+export const RARITY_PRICE: Record<Rarity, number> = { common: 30, rare: 70, epic: 120, legendary: 200 };
+/** Tips added per wave, by rarity: rarer toppings stay proportionally dearer all run (legendary ~3–4× common). */
+export const RARITY_PER_WAVE: Record<Rarity, number> = { common: 3, rare: 4, epic: 6, legendary: 9 };
 
 /** Price of the next level: rarity base + 4 per wave, +35% for every level already owned (so stacking
  * one upgrade gets expensive and tips spread across the run); consumables are 30% cheaper. */
 export function upgradePrice(u: Upgrade, wave: number, owned = 0): number {
-  const base = (RARITY_PRICE[u.rarity] + 4 * wave) * (1 + 0.35 * owned);
-  const k = (u.kind ?? 'permanent') === 'consumable' ? 0.7 : 1;
+  const base = (RARITY_PRICE[u.rarity] + RARITY_PER_WAVE[u.rarity] * wave) * (1 + 0.35 * owned);
+  // consumables are one-use; trade-offs pay part of their price in the downside
+  const k = ((u.kind ?? 'permanent') === 'consumable' ? 0.7 : 1) * (u.downside ? 0.8 : 1);
   return Math.round((base * k) / 5) * 5;
 }
 

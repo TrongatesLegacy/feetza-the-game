@@ -2798,6 +2798,14 @@ body.pad :focus {
 /* ——— Intro cards, welcome, confirm, second chance, victory ——— */
 .intro,
 .welcome,
+.modal.confirm {
+  display: grid;
+  justify-items: center;
+  align-items: start;
+  font-size: 1em;
+  font-weight: 400;
+}
+
 .confirm,
 .second {
   max-width: 62em;

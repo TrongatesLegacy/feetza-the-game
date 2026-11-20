@@ -9,7 +9,8 @@
 const [url, stepsFile, waitMs = '9000'] = process.argv.slice(2);
 const fs = await import('node:fs');
 const steps = JSON.parse(fs.readFileSync(stepsFile, 'utf8'));
-const tab = await (await fetch('http://127.0.0.1:9333/json/new?about:blank', { method: 'PUT' })).json();
+const PORT = process.env.CDP_PORT ?? '9333';
+const tab = await (await fetch(`http://127.0.0.1:${PORT}/json/new?about:blank`, { method: 'PUT' })).json();
 const ws = new WebSocket(tab.webSocketDebuggerUrl);
 let id = 0;
 const pending = new Map();
@@ -32,5 +33,5 @@ for (const s of steps) {
   const ret = res.result?.result?.value;
   console.log(s.out.split('/').pop(), ret !== undefined ? 'returned ' + JSON.stringify(ret) : '', res.result?.exceptionDetails ? 'ERR ' + res.result.exceptionDetails.exception?.description?.slice(0, 120) : '', 'layout', audit.result?.result?.value, 'contrast', c.result?.result?.value);
 }
-await fetch(`http://127.0.0.1:9333/json/close/${tab.id}`);
+await fetch(`http://127.0.0.1:${PORT}/json/close/${tab.id}`);
 ws.close();

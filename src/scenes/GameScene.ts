@@ -80,6 +80,10 @@ export class GameScene extends Phaser.Scene implements Arena {
   private procs: { id: string; p: Proc; t: number }[] = [];
   /** Damage dealt this run by source (dev balance tooling reads it). */
   dmgLog: Record<string, number> = {};
+  /** Tips earned in each wave (wave clear bonus included), for balance tooling. */
+  tipLog: { wave: number; earned: number; spent: number }[] = [];
+  private coinsAtWaveStart = 0;
+  private coinsAtLastClear = 0;
   private lastPeelPos = { x: 0, y: 0 };
   /** Dev: multiplies the shiny-foot chance. */
   shinyBoost = 1;
@@ -399,6 +403,7 @@ export class GameScene extends Phaser.Scene implements Arena {
   private resetState(): void {
     this.run = new Run();
     this.dmgLog = {};
+    this.tipLog = [];
     this.pizzas = [];
     this.feet = [];
     this.cutters = [];
@@ -642,6 +647,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.orders.clear();
     this.freeRerollsLeft = this.run.stats.freeRerolls;
     this.abilityWaveStart();
+    this.coinsAtWaveStart = this.run.coins;
     const st = this.run.stats;
     for (const p of this.alivePizzas()) {
       p.setShield(st.shields + (p.perk === 'shield' ? 1 : 0));
@@ -1067,6 +1073,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     const perfect = this.waveSlicesLost === 0;
     const bonus = Math.round((5 + n * 2 + this.run.stats.coinsPerWave) * (perfect ? 1.5 : 1) * this.run.heatDef.tips);
     this.run.coins += bonus;
+    this.tipLog.push({ wave: n, earned: this.run.coins - this.coinsAtWaveStart, spent: Math.max(0, this.coinsAtLastClear - this.coinsAtWaveStart) });
+    this.coinsAtLastClear = this.run.coins;
     if (perfect) this.addScore(500 * n, false);
     audio.sfx('sfx_levelup');
     const crustNote = boss && this.lastBossCrusts ? ` · +${this.lastBossCrusts} Golden Crusts` : perfect ? ' · no slices lost' : '';

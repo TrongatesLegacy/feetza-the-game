@@ -102,33 +102,63 @@ function mark(a: Arena, key: string, x: number, y: number, sec: number, scale = 
   return img;
 }
 
-/** Something falls onto a marked pizza: a reticle appears first, then the drop takes `sec` to land.
- * Smack it in the air to destroy it; let it land and the pizza loses a slice. */
+/** The pizza in the boss's lane: the alive pizza nearest to it (drops stay in the boss's own lane). */
+function laneOf(a: Arena, f: Foot): Pizza | null {
+  const ps = a.alivePizzas();
+  if (!ps.length) return null;
+  return ps.reduce((best, p) => (Math.abs(p.x - f.x) < Math.abs(best.x - f.x) ? p : best));
+}
+
+/** Something falls onto a marked pizza in the boss's lane. It's broadcast first: a reticle on the pizza,
+ * a glowing column down the lane, and the object appearing at the top and wobbling for a moment.
+ * Then it falls slowly at a steady speed. Smack it any time before it lands; if it lands, the pizza loses a slice. */
 function dropOn(a: Arena, f: Foot, p: Pizza, key: string, sec: number, label: string, look: { scale?: number; tint?: number; color?: string } = {}): void {
   const tx = p.x;
   const ty = p.surfaceY - 30;
-  mark(a, 'p_reticle', tx, ty, sec + 0.3, 0.7);
-  // it starts on screen and falls at a steady speed, so it's catchable for the whole drop
-  // (it used to start above the screen and accelerate, which left a split second to react)
-  const img = a.sc.add.image(tx, 70, key).setScale(look.scale ?? 0.8);
+  const warn = 0.9;
+  const fall = sec + 1.1;
+  const top = 90;
+  mark(a, 'p_reticle', tx, ty, warn + fall, 0.75);
+  // the lane lights up from the drop point down to the pizza
+  // drawn in front of the boss (it hovers over the lane), translucent so the boss still reads
+  const col = a.sc.add.graphics();
+  a.fxLayer.add(col);
+  const tint = look.tint ?? 0xffd23f;
+  col.fillStyle(tint, 0.13).fillRoundedRect(tx - 60, top - 40, 120, ty - top + 60, 30);
+  col.lineStyle(5, tint, 0.6).strokeRoundedRect(tx - 60, top - 40, 120, ty - top + 60, 30);
+  a.sc.tweens.add({ targets: col, alpha: { from: 0.5, to: 1 }, duration: 300, yoyo: true, repeat: -1 });
+  a.quip(tx, ty - 150, '!', look.color ?? '#ff8a6a', 60);
+  const scale = look.scale ?? 0.8;
+  const img = a.sc.add.image(tx, top, key).setScale(0);
   if (look.tint !== undefined) img.setTint(look.tint);
   a.fxLayer.add(img);
-  a.sfx('sfx_whoosh', { volume: 0.5, rate: 0.7 });
+  a.sfx('sfx_warning', { volume: 0.35, rate: 1.3, throttle: 200 });
   let done = false;
-  a.sc.tweens.add({
-    targets: img,
-    y: ty,
-    angle: 200,
-    duration: (sec + 0.3) * 1000,
-    ease: 'Linear',
-    onComplete: () => {
-      if (done) return;
-      done = true;
-      img.destroy();
-      if (!f.alive || p.dead) return;
-      a.fx.explosion(tx, ty, 110);
-      a.hitPizza(p, 1, label, look.color ?? '#ff8a6a');
-    },
+  const finish = () => {
+    done = true;
+    col.destroy();
+  };
+  // wind-up: pops in and wobbles at the top of the lane
+  a.sc.tweens.add({ targets: img, scale, duration: 220, ease: 'Back.Out' });
+  a.sc.tweens.add({ targets: img, angle: { from: -14, to: 14 }, duration: 110, yoyo: true, repeat: Math.max(1, Math.round((warn * 1000) / 220) - 1) });
+  a.sc.time.delayedCall(warn * 1000, () => {
+    if (done) return;
+    a.sfx('sfx_whoosh', { volume: 0.5, rate: 0.7 });
+    a.sc.tweens.add({
+      targets: img,
+      y: ty,
+      angle: 200,
+      duration: fall * 1000,
+      ease: 'Linear',
+      onComplete: () => {
+        if (done) return;
+        finish();
+        img.destroy();
+        if (!f.alive || p.dead) return;
+        a.fx.explosion(tx, ty, 110);
+        a.hitPizza(p, 1, label, look.color ?? '#ff8a6a');
+      },
+    });
   });
   a.addClickable({
     get x() {
@@ -144,12 +174,17 @@ function dropOn(a: Arena, f: Foot, p: Pizza, key: string, sec: number, label: st
     alive: () => !done,
     hit: () => {
       if (done) return;
-      done = true;
+      finish();
+      a.sc.tweens.killTweensOf(img);
       a.fx.impact(img.x, img.y, true);
       a.sfx('sfx_slap_2', { volume: 0.8 });
       a.quip(img.x, img.y - 70, 'SMASHED!', '#7dff9a', 34);
       a.sc.tweens.add({ targets: img, alpha: 0, scale: 0.2, duration: 220, onComplete: () => img.destroy() });
     },
+  });
+  // the wave ending (or the boss going down) clears it
+  a.sc.time.delayedCall((warn + fall) * 1000 + 50, () => {
+    if (!done) finish();
   });
 }
 
@@ -728,10 +763,10 @@ const cosmiccroc = (): Brain => {
   const meteor = new Every(5.5, 3);
   return {
     names: ['METEOR', 'GRAVITY FLIP', 'BLACK HOLE'],
-    info: ['Calls meteors onto marked pizzas · smack the meteor before it lands', 'A pizza glows purple, then it stomps up through the table · watch for the glow and hit it as it surfaces', 'Opens a black hole that pulls every foot to one pizza · smack the black hole 3 times to close it'],
+    info: ['Calls meteors onto the pizza below it · smack the meteor before it lands', 'A pizza glows purple, then it stomps up through the table · watch for the glow and hit it as it surfaces', 'Opens a black hole that pulls every foot to one pizza · smack the black hole 3 times to close it'],
     update: (f, dt, a) => {
       if (f.phase === 1 && meteor.tick(dt)) {
-        const p = rnd(a.alivePizzas());
+        const p = laneOf(a, f);
         if (p) dropOn(a, f, p, 'p_snowball', 1.6, 'METEOR!', { scale: 0.75, tint: 0xff8a3d });
       }
       if (f.phase >= 2 && !f.puppet && f.state === 'hover' && flip.tick(dt)) {
@@ -959,10 +994,10 @@ const kraken = (): Brain => {
   const splash = new Every(5.5, 3);
   return {
     names: ['SPLASH', 'TENTACLE GRAB', 'INK CLOUD'],
-    info: ['Hurls water at marked pizzas · smack the splash before it lands', 'Grabs a pizza to drag it under · smack the tentacle 3 times to free it', 'Squirts ink across the screen · smack the ink twice to clear it'],
+    info: ['Hurls water at the pizza below it · smack the splash before it lands', 'Grabs a pizza to drag it under · smack the tentacle 3 times to free it', 'Squirts ink across the screen · smack the ink twice to clear it'],
     update: (f, dt, a) => {
       if (f.phase === 1 && splash.tick(dt)) {
-        const p = rnd(a.alivePizzas());
+        const p = laneOf(a, f);
         if (p) dropOn(a, f, p, 'p_snowball', 1.6, 'SPLASH!', { scale: 0.7, tint: 0x5ab8ff, color: '#7fd0ff' });
       }
       if (f.phase >= 2 && grab.tick(dt)) {
@@ -1070,10 +1105,10 @@ const yeti = (): Brain => {
   let avalanche = 0;
   return {
     names: ['ICICLES', 'SNOWBALLS', 'AVALANCHE'],
-    info: ['Drops icicles on marked pizzas · smack them as they fall', 'Throws snowballs at your peel · smack them out of the air', 'Rumbles, then an avalanche speeds up every foot · Peel Slam to stop it'],
+    info: ['Drops icicles on the pizza below it · smack them as they fall', 'Throws snowballs at your peel · smack them out of the air', 'Rumbles, then an avalanche speeds up every foot · Peel Slam to stop it'],
     update: (f, dt, a) => {
       if (f.phase === 1 && icicle.tick(dt)) {
-        const p = rnd(a.alivePizzas());
+        const p = laneOf(a, f);
         if (p) dropOn(a, f, p, 'p_snowball', 1.6, 'ICICLE!', { scale: 0.7, tint: 0xbfe8ff, color: '#a8dcff' });
       }
       if (f.phase >= 2 && ball.tick(dt)) {
@@ -1130,11 +1165,11 @@ const doughboy = (): Brain => {
   const balls = new Every(5, 2.5);
   return {
     names: ['DOUGH BALLS', 'RISING'],
-    info: ['Lobs dough balls onto marked pizzas · smack them as they fall', 'Rises back to health if you leave it alone · keep hitting it'],
+    info: ['Lobs dough balls onto the pizza below it · smack them as they fall', 'Rises back to health if you leave it alone · keep hitting it'],
     update: (f, dt, a) => {
       since += dt;
       if (f.phase === 1 && balls.tick(dt)) {
-        const p = rnd(a.alivePizzas());
+        const p = laneOf(a, f);
         if (p) dropOn(a, f, p, 'p_dough', 1.5, 'DOUGHED!', { scale: 0.45, color: '#f6e6c4' });
       }
       if (f.phase >= 2 && since > 1.5 && f.hp < f.maxHp) {
@@ -1200,10 +1235,10 @@ const pigeonking = (): Brain => {
   const bomb = new Every(5, 2.5);
   return {
     names: ['BIRD BOMB', 'FLOCK CALL'],
-    info: ['Drops bombs on marked pizzas · smack them as they fall', 'Calls three pigeons at a time · clear the flock fast'],
+    info: ['Drops bombs on the pizza below it · smack them as they fall', 'Calls three pigeons at a time · clear the flock fast'],
     update: (f, dt, a) => {
       if (f.phase === 1 && bomb.tick(dt)) {
-        const p = rnd(a.alivePizzas());
+        const p = laneOf(a, f);
         if (p) dropOn(a, f, p, 'p_cream', 1.5, 'SPLAT!', { scale: 0.3, color: '#ffffff' });
       }
       if (f.phase >= 2 && flock.tick(dt)) {
