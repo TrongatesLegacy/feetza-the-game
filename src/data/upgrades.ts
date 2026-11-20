@@ -145,6 +145,8 @@ export interface Upgrade {
   downside?: string;
   /** One-time cost when bought: pizzas on the table lose this much freshness (never below 1). */
   freshNow?: number;
+  /** One-time cost when bought: pizzas on the table lose this many slices (never below 1). */
+  slicesNow?: number;
 }
 
 const pct = (n: number) => `${Math.round(n * 100)}%`;

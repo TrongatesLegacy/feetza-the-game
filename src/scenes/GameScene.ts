@@ -25,6 +25,7 @@ import { ui } from '../ui/ui';
 import { applyEquippedPeel, checkPeelAchievements, grantShinyFoot, peelThumbURL, peelTrail, rollEventDrop, SHINY_FOOT_CHANCE, type PeelDef } from '../game/peels';
 import { STAGES, WAVES_PER_STAGE } from '../data/stages';
 import { passiveBoost, setSlamMode } from '../game/slamMode';
+import { setRunHeat } from '../game/heatRules';
 import { abilityFor, abilityKindLabel, scaleProc, usesMeter, type Ability, type Effect, type Proc, type Target } from '../game/abilities';
 import { randomLineup } from './MenuScene';
 
@@ -283,6 +284,7 @@ export class GameScene extends Phaser.Scene implements Arena {
   create(): void {
     this.resetState();
     this.run.heat = this.start.snapshot?.heat ?? this.start.heat ?? save.heat;
+    setRunHeat(this.run.heat);
     this.registry.set('traitIcons', save.settings.traitIcons);
     const bg = this.add.container(0, 0);
     const ambient = this.add.container(0, 0);
@@ -320,7 +322,10 @@ export class GameScene extends Phaser.Scene implements Arena {
     // slam-related toppings and perks reword (and work) for the ability in use; meter boosts are only
     // useless for passives with no timer or chance to speed up
     setSlamMode(this.ability);
-    this.events.once('shutdown', () => setSlamMode(undefined));
+    this.events.once('shutdown', () => {
+      setSlamMode(undefined);
+      setRunHeat(null);
+    });
     const t0 = this.ability?.trigger.t;
     this.run.slamless = { slam: false, meter: !!this.ability && (t0 === 'always' || t0 === 'wave' || t0 === 'stomp') };
     ui.hud.setSlamLabel(this.ability ? this.ability.name : null, this.ability ? abilityKindLabel(this.ability) : null);
@@ -1325,6 +1330,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (u.onPick === 'fridge') for (const p of this.alivePizzas()) if (p.freshOn) p.setFresh(p.fresh + 4);
     // trade-offs paid in freshness: a one-time hit to the pizzas on the table, never enough to make one stale
     if (u.freshNow) for (const p of this.alivePizzas()) if (p.freshOn && p.fresh > 1) p.setFresh(Math.max(1, p.fresh - u.freshNow));
+    // on Mild (no freshness) those trade-offs cost slices instead, never the last one
+    if (u.slicesNow) for (const p of this.alivePizzas()) if (p.slices > 1) p.takeSlices(Math.min(u.slicesNow, p.slices - 1), p.x);
     if (u.onPick === 'extraPizza') {
       if (this.pizzas.length >= MAX_PIZZAS) {
         const dead = this.pizzas.find((p) => p.dead);
