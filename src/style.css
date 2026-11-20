@@ -1552,12 +1552,18 @@ input[type='range']::-moz-range-thumb {
   border-radius: 1em;
   padding: 0.6em 0.5em 0.7em;
   text-align: center;
-  display: grid;
+  /* picture on top, the last item (a button, bar or name) pinned to the bottom of the card */
+  display: flex;
+  flex-direction: column;
   gap: 0.3em;
-  justify-items: center;
+  align-items: center;
   cursor: pointer;
   transition: transform 0.1s;
   position: relative;
+}
+
+.tile > :last-child:not(.tag) {
+  margin-top: auto;
 }
 
 .tile:hover {
@@ -3539,6 +3545,23 @@ body.reduced-motion *::after {
 
 .peel-tile {
   position: relative;
+  /* name in the middle, progress (or price) always pinned to the bottom of the card */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.peel-tile .nm {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.peel-tile .pbar,
+.peel-tile .cost,
+.peel-tile .ab {
+  margin-top: 0.3em;
 }
 
 .peel-tile img {
