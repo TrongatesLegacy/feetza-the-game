@@ -1617,6 +1617,7 @@ input[type='range']::-moz-range-thumb {
   display: flex;
   gap: 0.4em;
   flex-wrap: wrap;
+  align-items: center;
   margin-top: 0.5em;
 }
 
@@ -1625,8 +1626,12 @@ input[type='range']::-moz-range-thumb {
   font-size: 1.05em;
   border: 0.12em solid var(--ink);
   border-radius: 0.8em;
-  padding: 0.05em 0.6em;
+  padding: 0.12em 0.6em;
   background: #fff;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  line-height: 1.15;
 }
 
 .meta-list {
@@ -3437,6 +3442,10 @@ body.reduced-motion *::after {
   min-height: 0;
   padding-top: 0.5em;
   padding-bottom: 0.5em;
+}
+
+.peel-detail .chips .btn {
+  margin-left: 0.4em;
 }
 
 .peel-detail h3 {
