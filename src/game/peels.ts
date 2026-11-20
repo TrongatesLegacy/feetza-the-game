@@ -15,10 +15,11 @@ import { hashStr, makeCanvas, shade } from '../art/util';
 import { FEET, FOOT_BY_ID, type FootType } from '../data/feet';
 import { STAGES } from '../data/stages';
 import { persist, save } from '../systems/save';
-import { addCanvas, eventCanvases, footMeta } from './assets';
+import { addCanvas, eventCanvases, footMeta, pizzaTops } from './assets';
+import { PIZZAS } from '../data/pizzas';
 import type { EventId } from './events';
 
-export type PeelGroup = 'classic' | 'golden' | 'jewel' | 'foot' | 'boss' | 'place' | 'event' | 'shinyFoot' | 'shinyEvent';
+export type PeelGroup = 'classic' | 'golden' | 'jewel' | 'foot' | 'boss' | 'place' | 'event' | 'pizza' | 'shinyFoot' | 'shinyEvent' | 'master';
 
 export interface PeelDef {
   id: string;
@@ -41,6 +42,10 @@ export interface PeelDef {
 }
 
 export const SHINY_FOOT_CHANCE = 1 / 300;
+/** Cleared waves a pizza must sit on the table for its peel. */
+export const PIZZA_WAVES = 20;
+/** Wave to reach with a Crust peel equipped to master it. */
+export const MASTER_WAVE = 60;
 
 const EVENT_LABEL: Record<EventId, [string, string]> = {
   balloon: ['Tip Balloon', 'Pop'],
@@ -286,6 +291,29 @@ function buildDefs(): PeelDef[] {
       look: () => plain(`event:${ev}`, EVENT_LOOK[ev], false, eventCanvases[EVENT_KEY[ev]] ?? null)(),
     });
   }
+  // prestige: reach wave 60 with a Classic, Golden Crust or jewellery peel to master it
+  for (const base of defs.filter((d) => d.group === 'classic' || d.group === 'golden' || d.group === 'jewel')) {
+    const baseLook = base.look;
+    defs.push({
+      id: `master:${base.id}`,
+      name: `Mastered ${base.name.replace(/ Peel$/, '')}`,
+      group: 'master',
+      how: `Reach wave ${MASTER_WAVE} with ${base.name} equipped.`,
+      progress: () => [Math.min(MASTER_WAVE, save.peelBest[base.id] ?? 0), MASTER_WAVE],
+      shiny: true,
+      look: () => ({ ...baseLook(), shiny: true, studs: '#ffd23f', seed: `master:${base.id}` }),
+    });
+  }
+  for (const pz of PIZZAS) {
+    defs.push({
+      id: `pizza:${pz.id}`,
+      name: `${pz.name} Peel`,
+      group: 'pizza',
+      how: `Clear ${PIZZA_WAVES} waves with ${pz.name} on the table.`,
+      progress: () => [Math.min(PIZZA_WAVES, save.pizzaWaves[pz.id] ?? 0), PIZZA_WAVES],
+      look: () => ({ ...plain(`pizza:${pz.id}`, { shape: 'round', base: '#d9a066', pattern: 'plain', pc: '#7a4a22', handle: '#8a5a2b', trail: '#ffb347' })(), pizzaArt: pizzaTops[pz.id] ?? null }),
+    });
+  }
   for (const f of feet) {
     defs.push({
       id: `shiny:${f.id}`,
@@ -423,8 +451,8 @@ export function peelThumbURL(id: string, h = 180): string {
 let appliedPeel = 'classic';
 
 /** Swap the 'peel' texture for the equipped skin (cheap when nothing changed). */
-export function applyEquippedPeel(scene: Phaser.Scene): PeelDef {
-  const d = equippedPeel();
+export function applyEquippedPeel(scene: Phaser.Scene, id?: string): PeelDef {
+  const d = id && PEEL_BY_ID[id] && hasPeel(id) ? PEEL_BY_ID[id] : equippedPeel();
   if (d.id !== appliedPeel || !scene.textures.exists('peel')) {
     addCanvas(scene, 'peel', peelCanvas(d.id));
     appliedPeel = d.id;

@@ -24,10 +24,11 @@ import type { GoldenItem, ShopCard, ShopState } from '../ui/shopTypes';
 import { ui } from '../ui/ui';
 import { applyEquippedPeel, checkPeelAchievements, grantShinyFoot, peelThumbURL, peelTrail, rollEventDrop, SHINY_FOOT_CHANCE, type PeelDef } from '../game/peels';
 import { STAGES, WAVES_PER_STAGE } from '../data/stages';
+import { abilityFor, abilityKindLabel, usesMeter, type Ability, type Effect, type Target } from '../game/abilities';
 import { randomLineup } from './MenuScene';
 
 interface DamageOpts {
-  source: 'smack' | 'chain' | 'cutter' | 'olive' | 'slam' | 'explode' | 'garlic' | 'burn' | 'trap' | 'splash' | 'direct';
+  source: 'smack' | 'chain' | 'cutter' | 'olive' | 'slam' | 'explode' | 'garlic' | 'burn' | 'trap' | 'splash' | 'direct' | 'ability';
   canCrit?: boolean;
   knock?: number;
   x?: number;
@@ -69,6 +70,11 @@ export class GameScene extends Phaser.Scene implements Arena {
   /** The equipped peel's trail colour (null: the Classic Peel has none) and whether it sparkles. */
   private peelTrailColor: number | null = null;
   private peelShiny = false;
+  /** The peel this run is played with (prestige goals count it). */
+  private peelId = 'classic';
+  /** The peel's ability, when it replaces the Peel Slam this run (null: the Peel Slam). */
+  private ability: Ability | null = null;
+  private abilityT = 0;
   private lastPeelPos = { x: 0, y: 0 };
   /** Dev: multiplies the shiny-foot chance. */
   shinyBoost = 1;
@@ -295,9 +301,14 @@ export class GameScene extends Phaser.Scene implements Arena {
     }
 
     // cursor peel
-    const peelDef = applyEquippedPeel(this);
+    const peelDef = applyEquippedPeel(this, this.start.snapshot?.peel);
     this.peelTrailColor = peelTrail(peelDef);
     this.peelShiny = !!peelDef.shiny;
+    this.peelId = peelDef.id;
+    const wantAbility = this.start.snapshot?.ability ?? save.useAbility;
+    this.ability = wantAbility && peelDef.id !== 'classic' ? abilityFor(peelDef.id) : null;
+    this.abilityT = 0;
+    ui.hud.setSlamLabel(this.ability ? this.ability.name : null, this.ability ? abilityKindLabel(this.ability) : null);
     this.peel = this.add.image(W / 2, H / 2, 'peel').setOrigin(0.5, 100 / 360).setScale(0.62).setAngle(-28).setAlpha(0.95);
     if (this.peelShiny) this.peel.preFX?.addShine(0.6, 0.4, 3.5);
     this.cursorLayer.add(this.peel);
@@ -454,6 +465,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       pizzas: this.pizzas.map((p) => ({ id: p.type.id, slices: p.slices, max: p.maxSlices, fresh: p.fresh, dead: p.dead, flags: { ...p.flags, possessed: false } })),
       counter: this.shop?.counter ?? this.restoredShop?.counter ?? [],
       bossBonusGiven: this.bossBonusGiven,
+      peel: this.peelId,
+      ability: !!this.ability,
       shop: this.shop
         ? { cards: this.shop.cards.map((u) => u.id), sold: [...this.shop.sold], free: this.shop.free, bossReward: this.shop.bossReward, freeRerolls: this.freeRerollsLeft, goldenBought: this.shop.goldenBought }
         : this.restoredShop?.shop,
@@ -553,6 +566,11 @@ export class GameScene extends Phaser.Scene implements Arena {
       else if (inv === 'crit') s.critChance = Math.max(0, s.critChance - 0.06);
       else s.damage *= 0.95;
     }
+    // always-on peel abilities
+    if (this.ability?.trigger.t === 'always') {
+      const st = this.run.stats as unknown as Record<string, number>;
+      for (const e of this.ability.fx) if (e.e === 'stat') for (const [k, v] of Object.entries(e.mods)) st[k] = (st[k] ?? 0) + (v as number);
+    }
     for (const p of this.pizzas) p.maxFresh = 10 + this.run.stats.freshBonus;
     this.syncCutters();
     this.syncGarlic();
@@ -605,6 +623,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.waveSlicesLost = 0;
     this.orders.clear();
     this.freeRerollsLeft = this.run.stats.freeRerolls;
+    this.abilityWaveStart();
     const st = this.run.stats;
     for (const p of this.alivePizzas()) {
       p.setShield(st.shields + (p.perk === 'shield' ? 1 : 0));
@@ -1009,6 +1028,9 @@ export class GameScene extends Phaser.Scene implements Arena {
     const n = this.run.wave;
     const stage = STAGES[Math.floor((n - 1) / WAVES_PER_STAGE) % STAGES.length];
     if (stage) save.stageWaves[stage.location] = (save.stageWaves[stage.location] ?? 0) + 1;
+    for (const p of this.alivePizzas()) save.pizzaWaves[p.type.id] = (save.pizzaWaves[p.type.id] ?? 0) + 1;
+    const eqId = this.peelId;
+    save.peelBest[eqId] = Math.max(save.peelBest[eqId] ?? 0, n);
     this.time.delayedCall(1200, () => this.peelToasts(checkPeelAchievements()));
     const boss = isBossWave(n);
     if (this.tutorial) {
@@ -1572,6 +1594,7 @@ export class GameScene extends Phaser.Scene implements Arena {
   private hitFoot(f: Foot, x: number, y: number): void {
     const st = this.run.stats;
     this.dealDamage(f, st.damage, { source: 'smack', canCrit: true, knock: st.knockback, x, y });
+    if (this.ability?.trigger.t === 'smack' && Math.random() < this.ability.trigger.p) this.fireAbility({ foot: f, x: f.cx, y: f.cy });
     if (!f.alive) return;
     if (f.has('pinch')) this.stunPeel(0.5, 'PINCHED!');
     if (f.has('sticky')) {
@@ -1648,6 +1671,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     // multipliers: overheats and marks, boss hunters, big-health hunters, stunned near Okonomiyaki
     dmg *= f.vuln;
     if (f.brain.marked) dmg *= 2;
+    if (f.markUntil > this.nowT) dmg *= f.markMult;
     if (f.isBossLike) dmg *= 1 + st.bossDmg;
     if (f.hp > f.maxHp * 0.5) dmg *= 1 + st.bigHurt;
     if (f.stunT > 0 && f.target?.perk === 'stunVuln') dmg *= 1.5;
@@ -1811,7 +1835,11 @@ export class GameScene extends Phaser.Scene implements Arena {
       audio.sfx('sfx_coin', { throttle: 40, jitter: 0.15 });
     });
     // kills charge the Peel Slam, except kills by the slam itself (it would refill its own meter)
-    if (source !== 'slam') this.run.super = Math.min(1, this.run.super + 0.05 * st.superGain);
+    if (source !== 'slam' && source !== 'ability') this.run.super = Math.min(1, this.run.super + 0.05 * st.superGain * (this.ability ? this.ability.charge : 1));
+    if (this.ability?.trigger.t === 'kill' && source !== 'ability' && Math.random() < this.ability.trigger.p) {
+      const at = { x: f.cx, y: f.cy };
+      this.time.delayedCall(40, () => this.fireAbility({ x: at.x, y: at.y }));
+    }
     if (f.has('crusty')) {
       const cap = Math.round(EVENT_CRUST_CAP * this.run.heatDef.crusts);
       const got = Math.max(0, Math.min(1 + Math.floor(Math.random() * 3), cap - this.run.eventCrusts));
@@ -1945,6 +1973,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.run.combo = 0;
     this.rumble(f.isBossLike ? 0.8 : 0.3, f.isBossLike ? 250 : 90);
     this.director.onStomp(f, p);
+    if (this.ability?.trigger.t === 'stomp') this.fireAbility({ foot: f, x: f.cx, y: f.cy });
     // Graffiti Gina tags the pizza; the next foot on it stomps twice as hard
     let tagged = false;
     if (p.flags.tagged && !f.has('tag')) {
@@ -2136,8 +2165,194 @@ export class GameScene extends Phaser.Scene implements Arena {
   }
 
   // ——— Peel Slam ———
+  // ——— Peel abilities ———
+  private abilityTick(dt: number): void {
+    const a = this.ability;
+    if (!a || !this.waveActive) return;
+    if (a.trigger.t === 'auto' && this.run.super >= 1) {
+      this.run.super = 0;
+      this.fireAbility();
+    } else if (a.trigger.t === 'every') {
+      this.abilityT += dt;
+      if (this.abilityT >= a.trigger.sec && this.feet.some((f) => f.hittable)) {
+        this.abilityT = 0;
+        this.fireAbility();
+      }
+    }
+  }
+
+  /** Wave-start abilities: heals, shields, tips. */
+  private abilityWaveStart(): void {
+    if (this.ability?.trigger.t === 'wave') this.time.delayedCall(600, () => this.fireAbility({ x: W / 2, y: 520 }));
+  }
+
+  private abilityTargets(t: Target, ctx: { foot?: Foot; x?: number; y?: number }): Foot[] {
+    const live = this.feet.filter((f) => f.hittable && !f.phased);
+    switch (t.to) {
+      case 'all':
+        return live;
+      case 'peel':
+        return live.filter((f) => f.distanceTo(this.peelPos.x, this.peelPos.y) <= t.r);
+      case 'hit': {
+        const x = ctx.foot?.cx ?? ctx.x ?? this.peelPos.x;
+        const y = ctx.foot?.cy ?? ctx.y ?? this.peelPos.y;
+        if (!t.r) return ctx.foot && ctx.foot.alive ? [ctx.foot] : live.filter((f) => f.distanceTo(x, y) <= 60).slice(0, 1);
+        return live.filter((f) => f === ctx.foot || f.distanceTo(x, y) <= t.r!);
+      }
+      case 'random':
+        return Phaser.Utils.Array.Shuffle([...live]).slice(0, t.n);
+      case 'front':
+        return [...live].sort((a, b) => b.y - a.y).slice(0, t.n);
+      case 'toughest':
+        return [...live].sort((a, b) => Number(b.isBossLike) - Number(a.isBossLike) || b.hp - a.hp).slice(0, t.n);
+      case 'pizzas': {
+        const ps = this.alivePizzas();
+        return live.filter((f) => ps.some((p) => Math.hypot(f.cx - p.x, f.cy - (p.surfaceY - 80)) <= t.r));
+      }
+    }
+  }
+
+  /** Run the peel's ability. ctx: the foot (and point) that set it off, for smack, kill and stomp triggers. */
+  private fireAbility(ctx: { foot?: Foot; x?: number; y?: number } = {}): void {
+    const a = this.ability;
+    if (!a || this.over || this.inUpgrade) return;
+    const st = this.run.stats;
+    const color = a.color;
+    const big = a.trigger.t === 'active' || a.trigger.t === 'auto';
+    if (big) {
+      if (a.vfx === 'slam') {
+        const sweep = this.add.image(-400, 560, 'peel').setScale(3.2).setAngle(-90).setOrigin(0.5, 100 / 360);
+        this.fxLayer.add(sweep);
+        this.tweens.add({ targets: sweep, x: W + 400, angle: -70, duration: 520, ease: 'Sine.InOut', onComplete: () => sweep.destroy() });
+      }
+      audio.sfx('sfx_whoosh', { volume: 1, rate: 0.8 });
+      audio.sfx(a.vfx === 'frost' ? 'sfx_freeze' : a.vfx === 'zap' ? 'sfx_zap' : 'sfx_crit');
+      this.shake(300, 0.009);
+      this.rumble(0.8, 250);
+      this.flash(160, (color >> 16) & 255, (color >> 8) & 255, color & 255);
+      this.fx.quip(W / 2, 420, `${a.name.toUpperCase()}!`, '#' + color.toString(16).padStart(6, '0'), 72, -4);
+      this.lastSlam = this.nowT;
+    } else if (a.trigger.t === 'every' || a.trigger.t === 'wave') {
+      this.fx.quip(ctx.x ?? this.peelPos.x, (ctx.y ?? this.peelPos.y) - 90, a.name, '#' + color.toString(16).padStart(6, '0'), 30, 0);
+    }
+    for (const e of a.fx) this.applyAbilityEffect(e, ctx, color, a.vfx);
+    void st;
+  }
+
+  private applyAbilityEffect(e: Effect, ctx: { foot?: Foot; x?: number; y?: number }, color: number, vfx: Ability['vfx']): void {
+    const st = this.run.stats;
+    const mark = (f: Foot) => {
+      if (vfx === 'frost') this.fx.frost(f.cx, f.cy);
+      else if (vfx === 'fire') this.fx.burn(f.cx, f.cy);
+      else if (vfx === 'zap' || vfx === 'gold') this.fx.glint(f.cx, f.cy, 3);
+      else if (vfx === 'rain') {
+        const drop = this.add.image(f.cx, f.cy - 320, 'glow').setTint(color).setBlendMode(Phaser.BlendModes.ADD).setScale(0.35, 0.9).setAlpha(0.9);
+        this.fxLayer.add(drop);
+        this.tweens.add({ targets: drop, y: f.cy, duration: 160, ease: 'Quad.In', onComplete: () => drop.destroy() });
+      } else this.fx.impact(f.cx, f.cy, false);
+    };
+    switch (e.e) {
+      case 'dmg':
+        for (const f of this.abilityTargets(e.at, ctx)) {
+          mark(f);
+          this.dealDamage(f, e.x * st.damage, { source: 'ability', knock: e.knock ?? 120, x: f.cx, y: f.cy });
+        }
+        break;
+      case 'burn':
+        for (const f of this.abilityTargets(e.at, ctx)) {
+          if (f.has('immuneBurn')) continue;
+          this.fx.burn(f.cx, f.cy);
+          f.burnT = Math.max(f.burnT, e.sec);
+          f.burnDps = Math.max(f.burnDps, e.x * st.damage);
+        }
+        break;
+      case 'slow':
+        for (const f of this.abilityTargets(e.at, ctx)) {
+          f.slowT = Math.max(f.slowT, e.sec);
+          f.slowPct = Math.max(f.slowPct, e.pct);
+        }
+        break;
+      case 'stun':
+        for (const f of this.abilityTargets(e.at, ctx)) {
+          // bosses shrug off half of it
+          f.stun(f.isBossLike ? e.sec / 2 : e.sec, !!e.freeze);
+          if (e.freeze) this.fx.frost(f.cx, f.cy);
+        }
+        if (e.freeze) audio.sfx('sfx_freeze', { throttle: 200 });
+        break;
+      case 'knock':
+        for (const f of this.abilityTargets(e.at, ctx)) if (!f.isBossLike) f.knock(e.px);
+        break;
+      case 'mark':
+        for (const f of this.abilityTargets(e.at, ctx)) {
+          f.markUntil = this.nowT + e.sec;
+          f.markMult = Math.max(f.markUntil > this.nowT ? f.markMult : 1, e.mult);
+          f.flash(color, 120);
+        }
+        break;
+      case 'chain': {
+        const from = this.abilityTargets(e.at, ctx)[0];
+        if (!from) break;
+        let prev = from;
+        const done = new Set<Foot>([from]);
+        audio.sfx('sfx_zap', { throttle: 60 });
+        for (let i = 0; i < e.jumps; i++) {
+          const next = this.feet
+            .filter((o) => o.hittable && !done.has(o))
+            .sort((a, b) => Math.hypot(a.cx - prev.cx, a.cy - prev.cy) - Math.hypot(b.cx - prev.cx, b.cy - prev.cy))[0];
+          if (!next || Math.hypot(next.cx - prev.cx, next.cy - prev.cy) > 700) break;
+          this.fx.lightning(prev.cx, prev.cy, next.cx, next.cy);
+          this.dealDamage(next, e.x * st.damage, { source: 'ability' });
+          done.add(next);
+          prev = next;
+        }
+        break;
+      }
+      case 'execute':
+        for (const f of this.abilityTargets(e.at, ctx)) {
+          if (f.isBossLike || !f.alive || f.hp / f.maxHp > e.below) continue;
+          this.fx.quip(f.x, f.cy - 120, 'FINISHED!', '#ff8a6a', 36);
+          this.dealDamage(f, f.hp + 1, { source: 'direct' });
+        }
+        break;
+      case 'heal': {
+        const ps = this.alivePizzas();
+        const list = e.who === 'all' ? ps : [...ps].sort((a, b) => a.slices / a.maxSlices - b.slices / b.maxSlices).slice(0, 1);
+        for (const p of list) if (p.slices < p.maxSlices) this.healPizza(p, e.n);
+        break;
+      }
+      case 'shield': {
+        const ps = this.alivePizzas();
+        const list = e.who === 'all' ? ps : [...ps].sort((a, b) => a.shieldCharges - b.shieldCharges || a.slices - b.slices).slice(0, 1);
+        for (const p of list) {
+          p.setShield(p.shieldCharges + 1);
+          this.fx.ring(p.x, p.surfaceY - 40, color, 0.8, 0.4);
+        }
+        break;
+      }
+      case 'fresh': {
+        const ps = this.alivePizzas().filter((p) => p.freshOn);
+        const list = e.who === 'all' ? ps : [...ps].sort((a, b) => a.fresh - b.fresh).slice(0, 1);
+        for (const p of list) p.setFresh(Math.min(p.maxFresh, p.fresh + e.n));
+        break;
+      }
+      case 'tips':
+        this.giveTips(Math.round(e.n * this.run.heatDef.tips), ctx.x ?? this.peelPos.x, ctx.y ?? this.peelPos.y);
+        break;
+      case 'stat':
+        break; // applied in recompute()
+    }
+  }
+
   private peelSlam(): void {
     if (this.run.super < 1 || !this.waveActive || this.over || this.paused || this.inUpgrade) return;
+    if (this.ability) {
+      // the peel's ability replaces the slam: only active ones are pressed
+      if (this.ability.trigger.t !== 'active') return;
+      this.run.super = 0;
+      this.fireAbility();
+      return;
+    }
     this.run.super = 0;
     const st = this.run.stats;
     const big = this.add.image(-400, 560, 'peel').setScale(3.2).setAngle(-90).setOrigin(0.5, 100 / 360);
@@ -2409,6 +2624,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.feet = this.feet.filter((f) => f.state !== 'gone');
       this.feetLayer.sort('y');
       this.passives(dt);
+      this.abilityTick(dt);
       if (this.run.combo > 0) {
         this.run.comboTimer -= dt;
         if (this.run.combo > 0 && this.run.comboTimer <= 0) this.run.combo = 0;
@@ -2438,7 +2654,10 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (this.displayCoins > r.coins) this.displayCoins = r.coins;
     ui.hud.setCoins(this.inUpgrade ? r.coins : Math.round(this.displayCoins));
     ui.hud.setCombo(r.combo, r.comboMult(), r.comboTimer / (COMBO_BASE_WINDOW + r.stats.comboBonus));
-    ui.hud.setSuper(r.super);
+    const ab = this.ability;
+    if (!ab || usesMeter(ab)) ui.hud.setSuper(r.super);
+    else ui.hud.setSuper(ab.trigger.t === 'every' ? this.abilityT / ab.trigger.sec : 0);
+    if (ab && ab.trigger.t !== 'active') this.slamHinted = true;
     if (r.super >= 1 && !this.slamHinted && this.waveActive) {
       this.slamHinted = true;
       ui.hud.toast(null, 'PEEL SLAM READY!', pad.active ? 'Press X to smack every foot at once' : 'Press SPACE or tap the SLAM button to smack every foot at once');

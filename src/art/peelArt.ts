@@ -36,6 +36,8 @@ export interface PeelLook {
   emblem?: CanvasImageSource | null;
   /** Foot and boss peels: the head IS the foot (toes up, handle at the heel), patterned and foiled. */
   footArt?: HTMLCanvasElement | null;
+  /** Pizza peels: the head IS the pizza (drawn as-is, not flipped). */
+  pizzaArt?: HTMLCanvasElement | null;
   /** Gold (or other) studs around the rim: bosses. */
   studs?: string;
   /** Outline colour (ink by default). */
@@ -399,6 +401,10 @@ export function drawPeelSkin(look: PeelLook): HTMLCanvasElement {
     drawFootHead(ctx, look);
     return c;
   }
+  if (look.pizzaArt) {
+    drawPizzaHead(ctx, look);
+    return c;
+  }
   // head
   headPath(ctx, look.shape);
   const g = ctx.createRadialGradient(HX - 30, HY - 36, 10, HX, HY, R * 1.15);
@@ -610,6 +616,39 @@ function drawFootHead(ctx: Ctx, look: PeelLook): void {
     ctx.fillStyle = 'rgba(255,255,255,0.85)';
     ctx.fill();
   }
+}
+
+/** A pizza-shaped head: the whole pie on a wooden disc, with a hilt. */
+function drawPizzaHead(ctx: Ctx, look: PeelLook): void {
+  const art = look.pizzaArt!;
+  const r = R + 2;
+  // the wooden board under the pie
+  ellipse(ctx, HX, HY + 4, r, r);
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.fill();
+  ellipse(ctx, HX, HY, r, r);
+  const g = ctx.createRadialGradient(HX - 30, HY - 36, 10, HX, HY, r * 1.1);
+  g.addColorStop(0, '#f6cf94');
+  g.addColorStop(1, '#a8703a');
+  ctx.fillStyle = g;
+  ctx.fill();
+  ctx.strokeStyle = look.rim ?? INK;
+  ctx.lineWidth = 5;
+  ctx.stroke();
+  const k = ((r - 8) * 2) / Math.max(art.width, art.height);
+  ctx.drawImage(art, HX - (art.width * k) / 2, HY - (art.height * k) / 2, art.width * k, art.height * k);
+  // hilt
+  const bottom = HY + r - 2;
+  const metal = look.handle[0];
+  roundRect(ctx, HX - 30, bottom - 8, 60, 16, 8);
+  ctx.fillStyle = metal;
+  ctx.fill();
+  ctx.strokeStyle = look.rim ?? INK;
+  ctx.lineWidth = 3.5;
+  ctx.stroke();
+  roundRect(ctx, HX - 22, bottom - 5, 44, 3.5, 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.45)';
+  ctx.fill();
 }
 
 const ankleCache = new WeakMap<HTMLCanvasElement, { w: number; cx: number }>();

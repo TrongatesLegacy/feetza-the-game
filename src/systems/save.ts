@@ -76,10 +76,16 @@ export interface SaveData {
   stageWaves: Record<string, number>;
   /** Wave events dealt with, per event. */
   eventsDone: Record<string, number>;
+  /** Cleared waves each pizza was on the table (alive) for. */
+  pizzaWaves: Record<string, number>;
+  /** Best wave cleared with each peel equipped (prestige goals). */
+  peelBest: Record<string, number>;
   /** Unlocked peel ids (the Classic Peel is always owned). */
   peels: string[];
   /** Equipped peel. */
   peel: string;
+  /** Use the equipped peel's ability instead of the Peel Slam (picked on the run-start screen). */
+  useAbility: boolean;
   /** Peels unlocked but not yet looked at in the locker. */
   peelsNew: string[];
 }
@@ -133,8 +139,11 @@ const DEFAULTS: SaveData = {
   kills: {},
   stageWaves: {},
   eventsDone: {},
+  pizzaWaves: {},
+  peelBest: {},
   peels: [],
   peel: 'classic',
+  useAbility: false,
   peelsNew: [],
 };
 

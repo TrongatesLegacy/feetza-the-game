@@ -49,6 +49,9 @@ export interface RunSnapshot {
   eventCrusts: number;
   /** Crusts already paid into the bank this run. */
   bankedCrusts?: number;
+  /** The peel this run is played with, and whether its ability replaces the Peel Slam. */
+  peel?: string;
+  ability?: boolean;
   goldenUsed: Record<string, number>;
   newUnlocks: string[];
   elapsed: number;

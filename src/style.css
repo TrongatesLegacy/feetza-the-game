@@ -702,6 +702,31 @@ h3 {
   color: var(--cheese);
 }
 
+.slam.ability span {
+  font-size: 1.15em;
+  line-height: 1;
+  max-width: 6.2em;
+}
+
+.slam.ability .an {
+  display: block;
+  font-weight: 400;
+}
+
+.slam .pk {
+  margin-top: 0.25em;
+  letter-spacing: 0.08em;
+}
+
+/* passive abilities: the ring shows the timer (or nothing); never pulses */
+.slam.passive {
+  cursor: default;
+}
+
+.slam.passive.ready {
+  animation: none;
+}
+
 .slam.ready {
   animation: pulse 0.7s ease infinite;
   box-shadow: 0 0.3em 0 var(--ink), 0 0 2em 0.4em rgba(255, 210, 63, 0.75);
@@ -3084,6 +3109,37 @@ body.pad :focus {
   width: 5em;
 }
 
+.prerun-bottom .lineup2 {
+  flex-wrap: nowrap;
+  gap: 0.5em;
+  justify-content: flex-start;
+}
+
+.prerun-bottom .lu {
+  padding: 0.25em 0.7em 0.25em 0.25em;
+  min-width: 0;
+  flex: 1 1 0;
+}
+
+.prerun-bottom .lu img {
+  width: 3.6em;
+}
+
+.prerun-bottom .lu b {
+  font-size: 1.05em;
+}
+
+.prerun-bottom .lu span {
+  font-size: 0.85em;
+  white-space: normal;
+  line-height: 1.15;
+}
+
+.prerun-bottom .lu b {
+  white-space: normal;
+  line-height: 1.05;
+}
+
 .lu > div {
   display: flex;
   flex-direction: column;
@@ -3633,4 +3689,150 @@ body.reduced-motion *::after {
 
 .goal .pbar {
   margin: 0;
+}
+
+/* ——— Peel abilities: locker line, run-start card, picker ——— */
+.abl {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.2em 0.5em;
+  margin-top: 0.35em;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.abl b {
+  font-family: 'Lilita One', sans-serif;
+  font-weight: 400;
+  font-size: 1.2em;
+  color: var(--ink);
+}
+
+.abl > span:last-child {
+  flex-basis: 100%;
+}
+
+.chip.active {
+  background: var(--cheese);
+}
+
+.chip.passive {
+  background: #d8f6e0;
+}
+
+.chip.auto {
+  background: #d8ecff;
+}
+
+.prerun-bottom {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 31em;
+  gap: 1.4em;
+  width: 100%;
+  align-items: start;
+}
+
+.peelcard {
+  display: grid;
+  grid-template-columns: 3.6em minmax(0, 1fr);
+  gap: 0.7em;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.55);
+  border: 0.16em solid var(--ink);
+  border-radius: 1em;
+  padding: 0.4em 0.8em;
+}
+
+.peelcard .pk-img {
+  position: relative;
+  overflow: hidden;
+  height: 6.4em;
+  display: grid;
+  place-items: center;
+}
+
+.peelcard .pk-img img {
+  height: 6.4em;
+  transform: rotate(-14deg);
+}
+
+.peelcard .pk-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  flex-wrap: wrap;
+}
+
+.peelcard .pk-head .btn {
+  margin-left: auto;
+  font-size: 0.85em;
+}
+
+.peelcard .pk-img.shiny::after {
+  content: '';
+  position: absolute;
+  inset: -20%;
+  background: linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, 0.85) 45%, rgba(160, 220, 255, 0.5) 55%, transparent 65%);
+  mix-blend-mode: soft-light;
+  animation: peelShine 2.6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.pk-body {
+  display: grid;
+  gap: 0.3em;
+  justify-items: start;
+  min-width: 0;
+}
+
+.pk-body b.pk-name {
+  font-family: 'Lilita One', sans-serif;
+  font-weight: 400;
+  font-size: 1.2em;
+}
+
+.pk-body {
+  justify-items: stretch;
+}
+
+.pk-opts {
+  display: flex;
+  gap: 0.4em;
+  flex-wrap: wrap;
+}
+
+.pk-opt {
+  font-family: 'Lilita One', sans-serif;
+  font-size: 1em;
+  border: 0.14em solid var(--ink);
+  border-radius: 0.7em;
+  background: #fff;
+  padding: 0.2em 0.7em;
+  cursor: pointer;
+  color: var(--ink);
+}
+
+.pk-opt.on {
+  background: var(--tomato-d);
+  color: #fff;
+}
+
+.pk-opt:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.pk-desc {
+  font-weight: 600;
+  font-size: 0.85em;
+  color: var(--ink-soft);
+  line-height: 1.25;
+}
+
+.peel-tile .ab {
+  font-size: 0.85em;
+  font-weight: 700;
+  color: var(--tomato-d);
+  line-height: 1.1;
 }

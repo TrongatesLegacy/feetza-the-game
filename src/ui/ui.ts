@@ -15,6 +15,7 @@ import { HEATS, HEAT_BY_ID, type HeatId } from '../data/difficulty';
 import { ACT_WAVES, STAGES } from '../data/stages';
 import { BACKDROPS } from '../art/backdrops';
 import { applyA11y } from './a11y';
+import { abilityFor, abilityKindLabel, describeAbility } from '../game/abilities';
 import { PEELS, buyPeel, checkPeelAchievements, equipPeel, equippedPeel, hasPeel, peelThumbURL, type PeelDef, type PeelGroup } from '../game/peels';
 
 type Attrs = Record<string, string | number | boolean | undefined>;
@@ -68,6 +69,13 @@ export function btn(label: string, cls: string, onClick: () => void, attrs: Attr
 }
 
 const fmt = (n: number) => Math.floor(n).toLocaleString('en-US');
+
+/** A peel's ability as a line for the locker: kind pill, name and what it does. */
+function abilityLine(peelId: string): HTMLElement {
+  if (peelId === 'classic') return h('div', { class: 'abl' }, h('span', { class: 'chip' }, 'ACTIVE'), h('b', {}, 'Peel Slam'), h('span', {}, 'Press Space when the meter is full: smack every foot at once.'));
+  const a = abilityFor(peelId);
+  return h('div', { class: 'abl' }, h('span', { class: `chip ${abilityKindLabel(a).toLowerCase()}` }, abilityKindLabel(a)), h('b', {}, a.name), h('span', {}, describeAbility(a)));
+}
 
 export interface CounterOffer {
   id: string;
@@ -192,6 +200,21 @@ class Hud {
     const w = `${Math.max(0, frac) * 100}%`;
     this.bossHp.style.width = w;
     this.bossTrail.style.width = w;
+  }
+
+  /** The slam button: the Peel Slam, or the peel ability that replaces it this run. */
+  setSlamLabel(name: string | null, kind: string | null): void {
+    if (!name) {
+      this.slam.innerHTML = '<span>PEEL<br>SLAM<small class="kb">SPACE</small><small class="pd" data-glyph="X">X</small></span>';
+      this.slam.classList.remove('ability', 'passive');
+      this.slam.setAttribute('aria-label', 'Peel Slam');
+      return;
+    }
+    const passive = kind !== 'ACTIVE';
+    this.slam.innerHTML = `<span><b class="an">${name}</b>${passive ? `<small class="pk">${kind}</small>` : '<small class="kb">SPACE</small><small class="pd" data-glyph="X">X</small>'}</span>`;
+    this.slam.classList.add('ability');
+    this.slam.classList.toggle('passive', passive);
+    this.slam.setAttribute('aria-label', name);
   }
 
   setSuper(frac: number): void {
@@ -554,6 +577,36 @@ class UI {
         );
       }),
     );
+    // the peel, its ability, and the Peel Slam / ability switch
+    const peelCard = h('div', { class: 'peelcard', 'data-pad-section': '' });
+    const renderPeel = () => {
+      const d = equippedPeel();
+      const classic = d.id === 'classic';
+      const a = abilityFor(d.id);
+      const useAb = save.useAbility && !classic;
+      const choice = (on: boolean, label: string, val: boolean) => {
+        const b = h('button', { class: `pk-opt${on ? ' on' : ''}`, type: 'button', 'aria-pressed': on ? 'true' : 'false' }, label) as HTMLButtonElement;
+        b.disabled = classic && val;
+        b.addEventListener('click', () => {
+          audio.sfx('sfx_click');
+          save.useAbility = val;
+          persist();
+          renderPeel();
+        });
+        return b;
+      };
+      peelCard.replaceChildren(
+        h('div', { class: `pk-img${d.shiny ? ' shiny' : ''}` }, h('img', { src: peelThumbURL(d.id, 200), alt: '' })),
+        h(
+          'div',
+          { class: 'pk-body' },
+          h('div', { class: 'pk-head' }, h('b', { class: 'pk-name' }, d.name), btn('CHANGE', 'cream small', () => this.peelPicker(renderPeel))),
+          h('div', { class: 'pk-opts' }, choice(!useAb, 'PEEL SLAM', false), choice(useAb, classic ? 'NO ABILITY' : a.name.toUpperCase(), true)),
+          h('span', { class: 'pk-desc' }, useAb ? describeAbility(a) : 'Press Space when the meter is full to smack every foot at once.'),
+        ),
+      );
+    };
+    renderPeel();
     const tiles = ids.map((id) => {
       const p = PIZZA_BY_ID[id];
       return h('div', { class: 'lu' }, h('img', { src: pizzaPortraitURL(id), alt: p.name }), h('div', {}, h('b', {}, p.name), h('span', {}, p.perkText)));
@@ -565,8 +618,7 @@ class UI {
       h('div', { class: 'section-title' }, 'HEAT'),
       heatRow,
       h('div', { class: 'prerun-mid' }, h('div', {}, h('div', { class: 'section-title' }, 'START AT'), actRow), h('div', { class: 'journey-wrap' }, h('div', { class: 'section-title' }, 'THE JOURNEY · 60 WAVES'), journey)),
-      h('div', { class: 'section-title' }, "TONIGHT'S LINEUP"),
-      h('div', { class: 'lineup2' }, ...tiles),
+      h('div', { class: 'prerun-bottom' }, h('div', {}, h('div', { class: 'section-title' }, "TONIGHT'S LINEUP"), h('div', { class: 'lineup2' }, ...tiles)), h('div', {}, h('div', { class: 'section-title' }, 'YOUR PEEL'), peelCard)),
       h('div', { class: 'row' }, btn('BACK', 'cream', onBack, { 'data-pad': 'back' }), btn('SHUFFLE', 'yellow', onShuffle, { 'data-pad': 'y' }), startBtn),
     );
     return this.open(panel);
@@ -1301,18 +1353,76 @@ class UI {
     return s;
   }
 
+  /** Quick peel picker (from the run-start screen): owned peels only, with their abilities. */
+  peelPicker(onDone: () => void): HTMLElement {
+    let s: HTMLElement;
+    const owned = PEELS.filter((d) => hasPeel(d.id));
+    const close = () => {
+      io.disconnect();
+      this.close(s);
+      onDone();
+    };
+    const body = h('div', { class: 'scroll' });
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting) continue;
+          const img = e.target as HTMLImageElement;
+          io.unobserve(img);
+          img.src = peelThumbURL(img.dataset.peel!);
+        }
+      },
+      { root: body, rootMargin: '200px' },
+    );
+    body.append(
+      h(
+        'div',
+        { class: 'grid peel-grid' },
+        ...owned.map((d) => {
+          const img = h('img', { alt: '', 'data-peel': d.id });
+          io.observe(img);
+          const a = abilityFor(d.id);
+          const t = h(
+            'div',
+            { class: `tile peel-tile${d.shiny ? ' shiny' : ''}${equippedPeel().id === d.id ? ' selected' : ''}`, tabindex: 0, title: describeAbility(a) },
+            img,
+            h('div', { class: 'nm' }, d.name.replace(/ Peel$/, '')),
+            h('div', { class: 'ab' }, d.id === 'classic' ? 'Peel Slam' : a.name),
+          );
+          t.addEventListener('click', () => {
+            audio.sfx('sfx_upgrade');
+            equipPeel(d.id);
+            close();
+          });
+          return t;
+        }),
+      ),
+    );
+    const panel = h(
+      'div',
+      { class: 'panel modal wide locker' },
+      h('div', { class: 'title' }, 'PICK A PEEL'),
+      h('div', { class: 'subtitle' }, `${owned.length} unlocked · more in the Peel Locker on the title screen`),
+      body,
+      btn('BACK', 'cream', close, { 'data-pad': 'back' }),
+    );
+    s = this.open(panel);
+    return s;
+  }
+
   // ——— Peel Locker: cosmetic peels and the achievements that unlock them ———
   locker(onClose: () => void): HTMLElement {
-    type Tab = 'goals' | 'crusts' | 'feet' | 'bosses' | 'places' | 'events' | 'shiny';
+    type Tab = 'goals' | 'crusts' | 'feet' | 'bosses' | 'pizzas' | 'places' | 'events' | 'shiny';
     const TAB_GROUPS: Record<Exclude<Tab, 'goals'>, PeelGroup[]> = {
-      crusts: ['classic', 'golden', 'jewel'],
+      crusts: ['classic', 'golden', 'jewel', 'master'],
       feet: ['foot'],
       bosses: ['boss'],
+      pizzas: ['pizza'],
       places: ['place'],
       events: ['event'],
       shiny: ['shinyFoot', 'shinyEvent'],
     };
-    const NAMES: Record<Tab, string> = { goals: 'GOALS', crusts: 'CRUSTS', feet: 'FEET', bosses: 'BOSSES', places: 'PLACES', events: 'EVENTS', shiny: 'SHINY' };
+    const NAMES: Record<Tab, string> = { goals: 'GOALS', crusts: 'CRUSTS', feet: 'FEET', bosses: 'BOSSES', pizzas: 'PIZZAS', places: 'PLACES', events: 'EVENTS', shiny: 'SHINY' };
     // catch up on goals already met (older saves, bosses beaten before peels existed)
     checkPeelAchievements();
     const fresh = new Set(save.peelsNew);
@@ -1371,6 +1481,7 @@ class UI {
           {},
           h('h3', {}, shownName(d)),
           h('p', {}, d.how),
+          hidden(d) && d.ultra ? null : abilityLine(d.id),
           pr && !owned ? bar(pr[0], pr[1]) : null,
           h('div', { class: 'chips' }, h('span', { class: 'chip' }, owned ? '✅ Unlocked' : '🔒 Locked'), d.shiny ? h('span', { class: 'chip shiny-chip' }, d.ultra ? '💎 Ultra rare' : '✨ Shiny') : null, action),
         ),

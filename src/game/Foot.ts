@@ -128,6 +128,9 @@ export class Foot {
   hurry = 1;
   /** A rare shiny: unlocks its shiny peel when defeated. */
   shiny = false;
+  /** Peel-ability mark: takes markMult damage until markUntil (scene time). */
+  markUntil = 0;
+  markMult = 1;
 
   constructor(scene: Phaser.Scene, layer: Phaser.GameObjects.Container, shadowLayer: Phaser.GameObjects.Container, type: FootType, x: number, opts: { hpMult: number; speedMult: number; elite: boolean; hooks: FootHooks }) {
     this.scene = scene;
