@@ -8,9 +8,14 @@ import { H, W } from './config';
 import { BootScene } from './scenes/BootScene';
 import { GameScene } from './scenes/GameScene';
 import { MenuScene } from './scenes/MenuScene';
+import { setGame } from './game/assets';
+import { pad } from './systems/gamepad';
+import { applyA11y } from './ui/a11y';
 import { ui } from './ui/ui';
 
 ui.init();
+applyA11y();
+pad.init();
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,
@@ -32,6 +37,8 @@ const game = new Phaser.Game({
   fps: { target: 60, smoothStep: true },
   scene: [BootScene, MenuScene, GameScene],
 });
+
+setGame(game);
 
 // Development-only helpers for debugging and automated visual review.
 if (import.meta.env.DEV) {

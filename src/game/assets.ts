@@ -1,9 +1,11 @@
 // Generates every procedural texture and registers it with Phaser.
 
 import Phaser from 'phaser';
+import '../content/art';
 import { drawBackdrop, type BackdropId } from '../art/backdrops';
 import { ART_RES, drawFoot, footPortrait, type FootTextures } from '../art/feetArt';
 import { drawPizzaTop, drawSliceSprite, pizzaPortrait } from '../art/pizzaArt';
+import { buildEventSprites } from '../art/eventArt';
 import { buildSprites } from '../art/sprites';
 import { FEET, FOOT_BY_ID } from '../data/feet';
 import { PIZZAS, PIZZA_BY_ID } from '../data/pizzas';
@@ -21,11 +23,13 @@ export interface FootMeta {
 
 export const footMeta: Record<string, FootMeta> = {};
 export const pizzaTops: Record<string, HTMLCanvasElement> = {};
+/** Event sprites (balloon, drone, …) kept for DOM art such as peel emblems. */
+export const eventCanvases: Record<string, HTMLCanvasElement> = {};
 const portraitCache = new Map<string, string>();
 
 export { ART_RES };
 
-function addCanvas(scene: Phaser.Scene, key: string, canvas: HTMLCanvasElement): void {
+export function addCanvas(scene: Phaser.Scene, key: string, canvas: HTMLCanvasElement): void {
   if (scene.textures.exists(key)) scene.textures.remove(key);
   scene.textures.addCanvas(key, canvas);
 }
@@ -38,6 +42,10 @@ export async function generateAll(scene: Phaser.Scene, progress: (p: number, lab
     () => {
       const sprites = buildSprites();
       for (const [k, c] of Object.entries(sprites)) addCanvas(scene, k, c);
+      for (const [k, c] of Object.entries(buildEventSprites())) {
+        addCanvas(scene, k, c);
+        eventCanvases[k] = c;
+      }
     },
   ]);
   for (const p of PIZZAS) {
@@ -115,4 +123,33 @@ export function pizzaPortraitURL(id: string): string {
     portraitCache.set(k, url);
   }
   return url;
+}
+
+/** Portrait showing how many slices are left: eaten slices are missing from the drawing. */
+export function pizzaStateURL(id: string, slices: number, max: number, size = 200): string {
+  const k = `pizza:${id}:${slices}/${max}:${size}`;
+  let url = portraitCache.get(k);
+  if (!url) {
+    const alive = Array.from({ length: Math.max(1, max) }, (_, i) => i < slices);
+    url = pizzaPortrait(PIZZA_BY_ID[id], pizzaTops[id], size, alive);
+    portraitCache.set(k, url);
+  }
+  return url;
+}
+
+let gameRef: Phaser.Game | null = null;
+export function setGame(g: Phaser.Game): void {
+  gameRef = g;
+}
+
+/** A registered canvas texture as a data URL (for DOM menus such as the Pizzapedia). */
+export function textureURL(key: string): string {
+  const k = `tex:${key}`;
+  let url = portraitCache.get(k);
+  if (!url && gameRef?.textures.exists(key)) {
+    const src = gameRef.textures.get(key).getSourceImage() as HTMLCanvasElement;
+    url = src.toDataURL('image/png');
+    portraitCache.set(k, url);
+  }
+  return url ?? '';
 }

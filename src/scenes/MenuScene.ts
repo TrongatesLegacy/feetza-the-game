@@ -1,13 +1,15 @@
 import Phaser from 'phaser';
 import { H, PIZZA_Y, W } from '../config';
+import { HEAT_BY_ID } from '../data/difficulty';
 import { FEET } from '../data/feet';
 import { PIZZA_BY_ID } from '../data/pizzas';
 import { BackdropView } from '../game/BackdropView';
 import { Foot } from '../game/Foot';
 import { Fx } from '../game/Fx';
 import { Pizza } from '../game/Pizza';
+import { endCrustsFor } from '../game/Run';
 import { audio } from '../systems/audio';
-import { save } from '../systems/save';
+import { freshStart, persist, save } from '../systems/save';
 import { ui } from '../ui/ui';
 
 export function randomLineup(n: number): string[] {
@@ -70,8 +72,48 @@ export class MenuScene extends Phaser.Scene {
 
   private showMenu(): void {
     ui.closeAll();
+    // veterans coming from the old version get a one-time welcome card first
+    if (save.welcomePending) {
+      ui.welcome({
+        keep: () => {
+          save.welcomePending = false;
+          persist();
+          this.showMenu();
+        },
+        fresh: () => {
+          freshStart();
+          save.welcomePending = false;
+          persist();
+          this.showMenu();
+        },
+      });
+      return;
+    }
     this.menuEl = ui.menu({
-      play: () => this.lineup(randomLineup(save.meta.table ? 4 : 3)),
+      play: () => {
+        if (save.run) {
+          // starting a new run abandons the saved one: ask first
+          const r = save.run;
+          const owed = endCrustsFor(r.score, r.wave, r.act2Start, r.heat);
+          ui.confirm('END YOUR SAVED RUN?', `Wave ${r.wave} on ${HEAT_BY_ID[r.heat].name}. Starting a new run ends it${owed ? `: you keep the ${owed} Golden Crusts it earned` : ''}.`, 'NEW RUN', () => {
+            // an abandoned run still pays what it earned (bosses were already banked)
+            save.crusts += owed;
+            save.run = null;
+            persist();
+            this.lineup(randomLineup(save.meta.table ? 4 : 3));
+          }, () => this.showMenu());
+          return;
+        }
+        this.lineup(randomLineup(save.meta.table ? 4 : 3));
+      },
+      resume: save.run
+        ? () => {
+            const snapshot = save.run!;
+            ui.closeAll();
+            this.cameras.main.fadeOut(400, 18, 10, 6);
+            this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('Game', { snapshot }));
+          }
+        : null,
       pizzeria: () => {
         ui.close(this.menuEl!);
         ui.pizzeria(() => this.showMenu());
@@ -79,6 +121,10 @@ export class MenuScene extends Phaser.Scene {
       pedia: () => {
         ui.close(this.menuEl!);
         ui.pedia(() => this.showMenu());
+      },
+      locker: () => {
+        ui.close(this.menuEl!);
+        ui.locker(() => this.showMenu());
       },
       settings: () => {
         ui.close(this.menuEl!);
@@ -91,23 +137,34 @@ export class MenuScene extends Phaser.Scene {
     });
   }
 
+  private lastLineup: string[] | null = null;
+
   private lineup(ids: string[]): void {
+    this.lastLineup = ids;
     ui.closeAll();
     ui.lineup(
       ids,
-      () => this.lineup(randomLineup(ids.length)),
       () => {
+        // never the same three again (unless that's all you own)
+        const key = (l: string[]) => [...l].sort().join();
+        const was = key(this.lastLineup ?? ids);
+        let next = randomLineup(ids.length);
+        for (let i = 0; i < 8 && key(next) === was && save.unlockedPizzas.length > ids.length; i++) next = randomLineup(ids.length);
+        this.lastLineup = next;
+        return next;
+      },
+      (heat, act2, lineup) => {
         ui.closeAll();
         audio.sfx('sfx_levelup', { volume: 0.7 });
         this.cameras.main.fadeOut(400, 18, 10, 6);
-        this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('Game', { lineup: ids }));
+        this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('Game', { lineup, heat, act2 }));
       },
       () => this.showMenu(),
     );
   }
 
   private spawnFoot(): void {
-    const ok = (f: (typeof FEET)[number]) => !f.boss && !f.traits.includes('flee');
+    const ok = (f: (typeof FEET)[number]) => !f.boss && !f.mini && !f.traits.includes('flee') && !f.traits.includes('invisible') && !f.traits.includes('bury');
     const pool = save.seenFeet.length ? FEET.filter((f) => save.seenFeet.includes(f.id) && ok(f)) : FEET.filter((f) => f.minWave <= 2 && f.weight > 0);
     const type = Phaser.Utils.Array.GetRandom(pool.length ? pool : FEET.slice(0, 3));
     const target = this.sidePizza();

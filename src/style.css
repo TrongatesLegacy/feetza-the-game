@@ -702,6 +702,36 @@ h3 {
   color: var(--cheese);
 }
 
+.slam.ability span {
+  font-size: 1.6em;
+  line-height: 0.92;
+  max-width: 4.6em;
+}
+
+.slam.ability .an {
+  display: block;
+  font-weight: 400;
+}
+
+.slam.ability .kb,
+.slam.ability .pd {
+  margin-top: 0.35em;
+}
+
+.slam .pk {
+  margin-top: 0.35em;
+  letter-spacing: 0.08em;
+}
+
+/* passive abilities: the ring shows the timer (or nothing); never pulses */
+.slam.passive {
+  cursor: default;
+}
+
+.slam.passive.ready {
+  animation: none;
+}
+
 .slam.ready {
   animation: pulse 0.7s ease infinite;
   box-shadow: 0 0.3em 0 var(--ink), 0 0 2em 0.4em rgba(255, 210, 63, 0.75);
@@ -948,6 +978,10 @@ h3 {
   animation: dealIn 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
 }
 
+.card.dealt {
+  animation: none;
+}
+
 .card:nth-child(2) {
   animation-delay: 0.08s;
 }
@@ -1031,6 +1065,20 @@ h3 {
   color: var(--ink-soft);
   line-height: 1.25;
   align-self: center;
+}
+
+.card .down {
+  font-size: 1.15em;
+  font-weight: 700;
+  color: #b3261e;
+  line-height: 1.2;
+  margin-top: -0.2em;
+}
+
+.down {
+  color: #b3261e;
+  font-style: normal;
+  font-weight: 700;
 }
 
 .card .lvl {
@@ -1276,8 +1324,29 @@ h3 {
 
 .modal.wide .scroll {
   flex: 1 1 auto;
-  min-height: 0;
+  min-height: 12em;
   max-height: none !important;
+}
+
+/* the Pizzapedia's info panel keeps its full height; the grid underneath scrolls instead */
+.modal.wide .detail {
+  flex-shrink: 0;
+}
+
+/* how to beat it and the tell sit side by side to keep the panel short */
+.detail .ht {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6em;
+  margin: 0.3em 0;
+}
+
+.detail .ht > div {
+  margin: 0;
+}
+
+.detail .ht > div:only-child {
+  grid-column: 1 / -1;
 }
 
 .modal.wide .title {
@@ -1295,6 +1364,9 @@ h3 {
   width: 50em;
   display: grid;
   gap: 1.1em;
+  /* every tab keeps the window the same size, so it doesn't jump as you switch */
+  min-height: 21em;
+  align-content: start;
 }
 
 .setting {
@@ -1361,6 +1433,8 @@ input[type='range']::-moz-range-thumb {
 }
 
 .toggle .sw {
+  /* sizes include the border, and the knob is centred inside it, so it never pokes past the track */
+  box-sizing: border-box;
   width: 3em;
   height: 1.6em;
   border-radius: 1em;
@@ -1373,14 +1447,16 @@ input[type='range']::-moz-range-thumb {
 
 .toggle .sw::after {
   content: '';
+  box-sizing: border-box;
   position: absolute;
-  top: 0.1em;
-  left: 0.1em;
-  width: 1.15em;
-  height: 1.15em;
+  top: 50%;
+  left: 0.13em;
+  width: 1.06em;
+  height: 1.06em;
+  transform: translateY(-50%);
   border-radius: 50%;
   background: #fff;
-  border: 0.12em solid var(--ink);
+  border: 0.1em solid var(--ink);
   transition: left 0.15s;
 }
 
@@ -1389,7 +1465,7 @@ input[type='range']::-moz-range-thumb {
 }
 
 .toggle input:checked + .sw::after {
-  left: 1.5em;
+  left: calc(100% - 1.06em - 0.13em);
 }
 
 .section-title {
@@ -1490,12 +1566,18 @@ input[type='range']::-moz-range-thumb {
   border-radius: 1em;
   padding: 0.6em 0.5em 0.7em;
   text-align: center;
-  display: grid;
+  /* picture on top, the last item (a button, bar or name) pinned to the bottom of the card */
+  display: flex;
+  flex-direction: column;
   gap: 0.3em;
-  justify-items: center;
+  align-items: center;
   cursor: pointer;
   transition: transform 0.1s;
   position: relative;
+}
+
+.tile > :last-child:not(.tag) {
+  margin-top: auto;
 }
 
 .tile:hover {
@@ -1585,6 +1667,7 @@ input[type='range']::-moz-range-thumb {
   display: flex;
   gap: 0.4em;
   flex-wrap: wrap;
+  align-items: center;
   margin-top: 0.5em;
 }
 
@@ -1593,8 +1676,12 @@ input[type='range']::-moz-range-thumb {
   font-size: 1.05em;
   border: 0.12em solid var(--ink);
   border-radius: 0.8em;
-  padding: 0.05em 0.6em;
+  padding: 0.12em 0.6em;
   background: #fff;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  line-height: 1.15;
 }
 
 .meta-list {
@@ -1605,9 +1692,10 @@ input[type='range']::-moz-range-thumb {
 
 .meta {
   display: grid;
-  grid-template-columns: 3.4em 1fr auto;
+  grid-template-columns: 3.4em minmax(0, 1fr) auto;
+  grid-template-areas: 'ic nm btn' 'ic ds ds';
   align-items: center;
-  gap: 0.9em;
+  gap: 0.25em 0.9em;
   background: rgba(255, 255, 255, 0.55);
   border: 0.16em solid var(--ink);
   border-radius: 1em;
@@ -1615,24 +1703,42 @@ input[type='range']::-moz-range-thumb {
 }
 
 .meta .ic {
+  grid-area: ic;
   font-size: 2.6em;
   font-family: system-ui, 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif;
   text-align: center;
 }
 
+.meta .nmrow {
+  grid-area: nm;
+  display: flex;
+  flex-direction: column; /* level pips on their own line under the name, clear of the price */
+  align-items: flex-start;
+  gap: 0.2em;
+  min-width: 0;
+}
+
 .meta .nm {
   font-family: 'Lilita One', sans-serif;
   font-size: 1.5em;
+  white-space: nowrap;
 }
 
 .meta .ds {
+  grid-area: ds;
   font-size: 1.1em;
   font-weight: 600;
   color: var(--ink-soft);
 }
 
 .meta .btn {
-  font-size: 1.25em;
+  grid-area: btn;
+  font-size: 1.15em;
+  padding: 0.2em 0.7em 0.26em;
+}
+
+.detail .span {
+  grid-column: 1 / -1;
 }
 
 .lineup {
@@ -1781,4 +1887,2060 @@ input[type='range']::-moz-range-thumb {
   line-height: 1;
   color: var(--basil-d);
   height: 1.75em;
+}
+
+/* ═══════════════════════ Feetza 2.0 ═══════════════════════ */
+
+/* ——— HUD: pause and mute in the bottom strip; tips fade when a foot is behind them ——— */
+.hud .bl {
+  position: absolute;
+  left: 1.2em;
+  bottom: 1.2em;
+  display: flex;
+  align-items: flex-end;
+  gap: 0.7em;
+}
+
+.hud .bl .owned {
+  position: static;
+  max-width: 30em;
+  margin-left: 0.6em;
+}
+
+.hud .tr .pill {
+  transition: opacity 0.25s ease;
+}
+
+.hud .tr .pill.faded {
+  opacity: 0.3;
+}
+
+.bossbar .bossname {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 0.6em;
+}
+
+.bossbar .phase {
+  font-size: 1.1em;
+  color: var(--ink);
+  background: var(--cheese);
+  border: 0.14em solid var(--ink);
+  border-radius: 0.5em;
+  padding: 0 0.5em;
+  white-space: nowrap;
+}
+
+.bossbar .phase:empty {
+  display: none;
+}
+
+.bossbar .notches i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0.25em;
+  margin-left: -0.125em;
+  background: var(--cream);
+  box-shadow: 0 0 0 0.08em var(--ink);
+}
+
+.banner.phase .big {
+  color: var(--cheese);
+}
+
+.banner .big,
+.banner .small,
+.bossbar .name,
+.toast b {
+  white-space: nowrap;
+}
+
+.slam .pd {
+  display: none;
+}
+
+body.pad .slam .kb {
+  display: none;
+}
+
+body.pad .slam .pd {
+  display: block;
+}
+
+/* NEW FOOT card */
+.newfoot {
+  position: absolute;
+  left: 1.4em;
+  /* lower left, sitting just above the table so it never hides a pizza */
+  bottom: 15.5em;
+  transition: opacity 0.2s ease;
+  width: 27em;
+  padding: 1em 1.2em 1.1em;
+  display: grid;
+  gap: 0.5em;
+  font-family: 'Fredoka', sans-serif;
+  color: var(--ink);
+  animation: popIn 0.4s ease both;
+  pointer-events: none;
+}
+
+.newfoot.faded {
+  opacity: 0.22;
+}
+
+.newfoot.leaving {
+  animation: fadeOut 0.3s ease both;
+}
+
+.newfoot .nf-tag,
+.intro-tag,
+.cont-tag {
+  justify-self: start;
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 700;
+  font-size: 0.85em;
+  letter-spacing: 0.12em;
+  color: #fff;
+  background: var(--tomato-d);
+  border: 0.14em solid var(--ink);
+  border-radius: 1em;
+  padding: 0.1em 0.8em;
+  white-space: nowrap;
+}
+
+.newfoot .nf-row {
+  display: flex;
+  gap: 0.8em;
+  align-items: center;
+}
+
+.newfoot img {
+  width: 5.4em;
+  height: 5.4em;
+  object-fit: contain;
+  background: #fff;
+  border: 0.16em solid var(--ink);
+  border-radius: 0.8em;
+}
+
+.newfoot b {
+  font-family: 'Lilita One', sans-serif;
+  font-weight: 400;
+  font-size: 1.8em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.nf-traits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3em;
+  margin-top: 0.3em;
+}
+
+.nf-traits .chip {
+  font-size: 0.85em;
+  white-space: nowrap;
+}
+
+.nf-how,
+.nf-tell {
+  font-weight: 600;
+  font-size: 1.05em;
+  line-height: 1.25;
+}
+
+.nf-how b,
+.nf-tell b {
+  font-family: 'Fredoka', sans-serif;
+  font-size: 1em;
+  color: var(--basil-d);
+}
+
+.nf-tell b {
+  color: var(--tomato-d);
+}
+
+.pad-banner {
+  position: absolute;
+  left: 50%;
+  top: 1.4em;
+  transform: translateX(-50%);
+  z-index: 50;
+  font-family: 'Lilita One', sans-serif;
+  font-size: 1.6em;
+  color: var(--ink);
+  background: var(--cream);
+  border: 0.18em solid var(--ink);
+  border-radius: 2em;
+  padding: 0.3em 1.2em;
+  box-shadow: 0 0.2em 0 var(--ink);
+  white-space: nowrap;
+  animation: popIn 0.3s ease both;
+}
+
+/* ——— Shop ——— */
+.shop2 {
+  width: 96em;
+  max-height: 96cqh;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9em;
+  font-family: 'Fredoka', sans-serif;
+  color: var(--ink);
+}
+
+.shop-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5em;
+}
+
+.shop-head .title {
+  font-size: 3.2em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.shop-sub {
+  color: var(--cream);
+  font-weight: 600;
+  font-size: 1.2em;
+}
+
+.shop-purses {
+  display: flex;
+  gap: 0.8em;
+}
+
+.purse {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  background: var(--cream);
+  border: 0.22em solid var(--ink);
+  border-radius: 2em;
+  box-shadow: 0 0.22em 0 var(--ink);
+  padding: 0.25em 1em 0.25em 0.5em;
+  font-family: 'Lilita One', sans-serif;
+  font-size: 1.7em;
+  white-space: nowrap;
+}
+
+.purse small {
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 600;
+  font-size: 0.55em;
+  color: var(--ink-soft);
+}
+
+.purse.gold {
+  background: #fff3c4;
+}
+
+.purse .coin-ico {
+  width: 1.1em;
+  height: 1.1em;
+}
+
+.shop-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 29em;
+  gap: 1.3em;
+  min-height: 0;
+}
+
+.shop-left,
+.shop-right {
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+  min-width: 0;
+}
+
+.shop-sec {
+  background: linear-gradient(180deg, var(--cream), var(--paper));
+  border: 0.24em solid var(--ink);
+  border-radius: 1.3em;
+  box-shadow: 0 0.35em 0 var(--ink);
+  padding: 0.8em 1.1em 1em;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7em;
+}
+
+.sec-head {
+  display: flex;
+  align-items: center;
+  gap: 0.8em;
+}
+
+.sec-head h2 {
+  margin: 0;
+  font-family: 'Lilita One', sans-serif;
+  font-weight: 400;
+  font-size: 1.7em;
+  color: var(--tomato-d);
+  white-space: nowrap;
+}
+
+.sec-note {
+  font-weight: 600;
+  font-size: 1em;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sec-head .btn {
+  margin-left: auto;
+}
+
+.sec-chip {
+  font-weight: 700;
+  font-size: 1em;
+  color: #fff;
+  background: var(--basil-d);
+  border-radius: 1em;
+  padding: 0.1em 0.7em;
+  white-space: nowrap;
+}
+
+.sec-chip.full {
+  background: var(--tomato-d);
+}
+
+.shop2 .cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13em, 1fr));
+  gap: 0.9em;
+}
+
+.shop2 .card {
+  width: auto;
+  min-height: 0;
+  padding: 0.9em 0.9em 1em;
+  gap: 0.35em;
+  grid-template-rows: auto auto auto auto 1fr auto auto;
+}
+
+.shop2 .card .icon {
+  font-size: 2.8em;
+}
+
+.shop2 .card .name {
+  font-size: 1.5em;
+  white-space: nowrap;
+}
+
+.shop2 .card .desc {
+  font-size: 1.05em;
+}
+
+.shop2 .card .lvl {
+  font-size: 0.95em;
+  white-space: nowrap;
+}
+
+.shop2 .card .btn {
+  width: 100%;
+}
+
+.shop2 .card.sold {
+  filter: saturate(0.4);
+  opacity: 0.75;
+}
+
+.kind {
+  font-weight: 700;
+  font-size: 0.75em;
+  letter-spacing: 0.1em;
+  border: 0.14em solid var(--ink);
+  border-radius: 0.4em;
+  padding: 0 0.5em;
+  white-space: nowrap;
+  background: var(--cream);
+  color: var(--ink);
+}
+
+.kind.consumable {
+  background: var(--basil-d);
+  color: #fff;
+}
+
+.kind.unique {
+  background: #5a2a8a;
+  color: #fff;
+}
+
+.strip {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.8em;
+}
+
+.ptile {
+  position: relative;
+  background: #fff;
+  border: 0.18em solid var(--ink);
+  border-radius: 1em;
+  padding: 0.6em 0.6em 0.7em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25em;
+  text-align: center;
+  min-width: 0;
+}
+
+.ptile .pthumb {
+  width: 7.5em;
+  height: auto;
+}
+
+.ptile .nm,
+.swaptile .nm {
+  font-family: 'Lilita One', sans-serif;
+  font-size: 1.15em;
+  line-height: 1.05;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.ptile .ds {
+  font-weight: 600;
+  font-size: 0.85em;
+  color: var(--ink-soft);
+  line-height: 1.2;
+  flex: 1;
+}
+
+.ptile .sl,
+.swaptile .sl {
+  font-weight: 700;
+  font-size: 0.8em;
+  white-space: nowrap;
+}
+
+.ptile.stale,
+.swaptile.stale {
+  background: #e3e8d6;
+  border-color: #4f6a3a;
+}
+
+.ptile.stale .ds {
+  color: #4f6a3a;
+  text-decoration: line-through;
+}
+
+.ptile.dead,
+.swaptile.dead {
+  background: #efe0d8;
+}
+
+.pthumb.stale {
+  filter: saturate(0.35) hue-rotate(40deg);
+}
+
+.pthumb.dead {
+  filter: grayscale(1) opacity(0.5);
+}
+
+.flag {
+  position: absolute;
+  top: -0.8em;
+  left: 50%;
+  transform: translateX(-50%);
+  font-weight: 700;
+  font-size: 0.75em;
+  letter-spacing: 0.1em;
+  color: #fff;
+  background: #4f6a3a;
+  border: 0.14em solid var(--ink);
+  border-radius: 1em;
+  padding: 0.05em 0.7em;
+  white-space: nowrap;
+  z-index: 1;
+}
+
+.flag.dead {
+  background: var(--tomato-d);
+}
+
+.fresh {
+  display: flex;
+  align-items: center;
+  gap: 0.35em;
+  width: 100%;
+  font-weight: 700;
+  font-size: 0.75em;
+}
+
+.fresh .fbar {
+  flex: 1;
+  height: 0.7em;
+  border: 0.14em solid var(--ink);
+  border-radius: 0.5em;
+  background: #e8dcc4;
+  overflow: hidden;
+}
+
+.fresh .fbar i {
+  display: block;
+  height: 100%;
+  background: var(--basil);
+}
+
+.fresh .fbar i.low,
+.fresh .fn.low {
+  background: var(--tomato);
+}
+
+.fresh .fn.low {
+  background: none;
+  color: var(--tomato-d);
+}
+
+.counter2 .offer {
+  grid-template-columns: 4.2em minmax(0, 1fr) auto;
+}
+
+.counter2 .offer-text b {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* a long perk takes a second line rather than being cut off */
+.counter2 .offer-text span {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  line-height: 1.15;
+}
+
+.services {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5em;
+}
+
+.services .btn {
+  flex: 1 1 8em;
+}
+
+.golden {
+  background: linear-gradient(160deg, #fff3c4, #f7d872);
+}
+
+.golden .sec-head h2 {
+  color: #8a5a00;
+}
+
+.gitems {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4em;
+}
+
+.gitem {
+  font: inherit;
+  color: var(--ink);
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 0.05em;
+  background: rgba(255, 255, 255, 0.55);
+  border: 0.14em solid rgba(42, 24, 16, 0.5);
+  border-radius: 0.7em;
+  padding: 0.3em 0.6em;
+  min-width: 0;
+  cursor: not-allowed;
+}
+
+.gitem.on {
+  background: linear-gradient(180deg, #ffe680, #f2b731);
+  border-color: var(--ink);
+  box-shadow: 0 0.18em 0 var(--ink);
+  cursor: pointer;
+}
+
+.gitem.on:hover {
+  filter: brightness(1.06);
+}
+
+.gitem b {
+  font-family: 'Lilita One', sans-serif;
+  font-weight: 400;
+  font-size: 1em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gitem span {
+  font-weight: 600;
+  font-size: 0.8em;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 0.2em;
+}
+
+.gitem .coin-ico {
+  width: 1.1em;
+  height: 1.1em;
+}
+
+.shop-right .btn.next {
+  margin-top: auto;
+}
+
+.btn.next {
+  font-size: 2.2em;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn[data-pad='hold']::before,
+.btn.hold::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: calc(var(--hold, 0) * 100%);
+  background: rgba(255, 255, 255, 0.35);
+  pointer-events: none;
+}
+
+.shop-foot {
+  display: flex;
+  justify-content: flex-start;
+  padding-right: 30em;
+  align-items: center;
+  gap: 1em;
+  color: var(--cream);
+}
+
+.shop-foot .hint {
+  color: var(--cream);
+  white-space: nowrap;
+}
+
+.shop-foot .crust-progress {
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.shop-foot .crust-progress {
+  margin: 0;
+}
+
+.pad-hint {
+  display: none;
+}
+
+body.pad .pad-hint {
+  display: inline;
+}
+
+body.pad .kbd-hint {
+  display: none;
+}
+
+.glyph {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.6em;
+  height: 1.6em;
+  padding: 0 0.3em;
+  border-radius: 1em;
+  background: var(--cream);
+  color: var(--ink);
+  border: 0.12em solid var(--ink);
+  font-family: 'Lilita One', sans-serif;
+  font-size: 0.9em;
+  margin: 0 0.15em;
+}
+
+body.pad :focus-visible,
+body.pad :focus {
+  outline: 0.3em solid var(--cheese) !important;
+  outline-offset: 0.25em;
+}
+
+.btn.danger {
+  background: linear-gradient(180deg, #ff6a4d 0%, var(--tomato-d) 100%);
+}
+
+.btn.active {
+  outline: 0.18em solid var(--cheese);
+}
+
+/* ——— Swap picker ——— */
+.swap2 {
+  width: 96em;
+  max-height: 94cqh;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1em;
+  font-family: 'Fredoka', sans-serif;
+  color: var(--ink);
+}
+
+.incoming {
+  display: flex;
+  align-items: center;
+  gap: 1.4em;
+  background: linear-gradient(160deg, #e9f7df, #cdeab9);
+  border: 0.3em solid var(--basil-d);
+  border-radius: 1.5em;
+  box-shadow: 0 0.35em 0 #14400e;
+  padding: 0.8em 1.6em 0.8em 1em;
+}
+
+.incoming img {
+  width: 10em;
+}
+
+.in-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2em;
+  flex: 1;
+  min-width: 0;
+}
+
+.in-text .tag {
+  align-self: flex-start;
+  font-weight: 700;
+  font-size: 0.85em;
+  letter-spacing: 0.12em;
+  color: #fff;
+  background: var(--basil-d);
+  border-radius: 1em;
+  padding: 0.1em 0.8em;
+  white-space: nowrap;
+}
+
+.in-text b {
+  font-family: 'Lilita One', sans-serif;
+  font-weight: 400;
+  font-size: 2.6em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.in-text span:last-child {
+  font-weight: 600;
+  font-size: 1.3em;
+  color: var(--basil-d);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.in-ask {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3em;
+}
+
+.in-ask b {
+  font-family: 'Lilita One', sans-serif;
+  font-weight: 400;
+  font-size: 1.9em;
+  color: var(--basil-d);
+  white-space: nowrap;
+}
+
+.in-ask span {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.swaprow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  grid-auto-flow: column;
+  gap: 1em;
+}
+
+.swaptile {
+  position: relative;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  background: var(--cream);
+  border: 0.24em solid var(--ink);
+  border-radius: 1.4em;
+  box-shadow: 0 0.3em 0 var(--ink);
+  padding: 1.3em 0.8em 1em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4em;
+  text-align: center;
+  min-width: 0;
+  transition: transform 0.12s ease;
+}
+
+.swaptile .pthumb {
+  width: 12em;
+}
+
+.swaptile .ds {
+  font-weight: 600;
+  font-size: 1em;
+  color: var(--ink-soft);
+  line-height: 1.25;
+  min-height: 2.5em;
+}
+
+.swaptile .flag.out {
+  display: none;
+  background: var(--tomato-d);
+}
+
+.swaptile.picked {
+  background: #fde3dc;
+  border-color: var(--tomato);
+  box-shadow: 0 0.5em 0 var(--tomato-d);
+  transform: translateY(-0.4em);
+}
+
+/* the picked tile says SWAPPING OUT; its STALE / TOAST tag steps aside rather than sitting on top */
+.swaptile.picked .flag:not(.out) {
+  display: none;
+}
+
+.swaptile.picked .flag.out {
+  display: block;
+}
+
+.swaptile.picked .pthumb {
+  opacity: 0.6;
+}
+
+.swaptile.add .plus {
+  font-family: 'Lilita One', sans-serif;
+  font-size: 7em;
+  line-height: 1.4;
+  color: var(--basil-d);
+}
+
+.swapfoot {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto auto;
+  gap: 0.9em;
+  align-items: stretch;
+}
+
+.diff {
+  border: 0.18em solid var(--tomato-d);
+  background: #fde3dc;
+  border-radius: 1em;
+  padding: 0.5em 1em;
+  /* label + name on the first line, the perk underneath (wraps rather than being cut off) */
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-content: center;
+  align-items: baseline;
+  column-gap: 0.3em;
+}
+
+.diff.gain {
+  border-color: var(--basil-d);
+  background: #e9f7df;
+}
+
+.diff .lbl {
+  font-weight: 700;
+  font-size: 0.85em;
+  letter-spacing: 0.1em;
+  color: var(--tomato-d);
+  margin-right: 0.4em;
+}
+
+.diff.gain .lbl {
+  color: var(--basil-d);
+}
+
+.diff b {
+  font-family: 'Lilita One', sans-serif;
+  font-weight: 400;
+  font-size: 1.3em;
+}
+
+.diff b {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.diff span:last-child {
+  grid-column: 1 / -1;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+/* ——— Intro cards, welcome, confirm, second chance, victory ——— */
+.intro,
+.welcome,
+.modal.confirm {
+  display: grid;
+  justify-items: center;
+  align-items: start;
+  font-size: 1em;
+  font-weight: 400;
+}
+
+.confirm,
+.second {
+  max-width: 62em;
+  text-align: center;
+  /* one column that can't grow past the card: long lines wrap instead of spilling out of it */
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.welcome {
+  width: 62em;
+}
+
+.welcome .title {
+  font-size: 3.4em;
+}
+
+.welcome .row .btn {
+  flex: 1 1 0;
+  font-size: 2.1em;
+  padding: 0.35em 0.8em 0.42em;
+  white-space: nowrap;
+}
+
+.intro p {
+  margin: 0;
+  font-weight: 600;
+  font-size: 1.35em;
+  color: var(--ink-soft);
+  max-width: 40em;
+}
+
+.news {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6em 2em;
+  text-align: left;
+}
+
+.news-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.news-item b {
+  font-family: 'Lilita One', sans-serif;
+  font-weight: 400;
+  font-size: 1.4em;
+}
+
+.news-item span {
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.wipes {
+  text-align: left;
+  font-weight: 600;
+  font-size: 1.2em;
+  margin: 0;
+}
+
+.btn.hold {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, #ff6a4d 0%, var(--tomato-d) 100%);
+}
+
+.gold-card {
+  background: linear-gradient(160deg, #fff3c4, #f7d872);
+  border: 0.22em solid var(--ink);
+  border-radius: 1.2em;
+  padding: 1em 1.4em;
+  display: grid;
+  gap: 0.4em;
+  justify-items: center;
+}
+
+.gold-card b {
+  font-family: 'Lilita One', sans-serif;
+  font-weight: 400;
+  font-size: 2.4em;
+}
+
+.gold-card p {
+  margin: 0;
+  font-weight: 600;
+  font-size: 1.2em;
+}
+
+.victory {
+  background: radial-gradient(ellipse at 50% 30%, #6a4a20 0%, #2a1748 60%, #120a24 100%);
+  border: 0.25em solid var(--ink);
+  border-radius: 2em;
+  box-shadow: 0 0.45em 0 var(--ink), 0 1.4em 3em rgba(0, 0, 0, 0.6);
+  padding: 2.4em 3.4em 2.6em;
+  display: grid;
+  gap: 1.2em;
+  justify-items: center;
+  text-align: center;
+  font-family: 'Fredoka', sans-serif;
+}
+
+.v-kicker {
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--cheese);
+  font-size: 1.1em;
+}
+
+.v-title {
+  font-family: 'Lilita One', sans-serif;
+  font-size: 8em;
+  line-height: 0.95;
+  color: var(--cheese);
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.08em var(--ink);
+  text-shadow: 0 0.06em 0 var(--tomato-d), 0 0.12em 0 var(--ink);
+}
+
+.victory .crusts {
+  color: var(--cream);
+  text-shadow: 0 0.08em 0 var(--ink);
+}
+
+.v-sub {
+  font-family: 'Lilita One', sans-serif;
+  font-size: 1.8em;
+  color: var(--cream);
+  text-shadow: 0 0.08em 0 var(--ink);
+}
+
+.v-choice {
+  display: grid;
+  gap: 0.4em;
+  justify-items: center;
+  background: var(--cream);
+  border: 0.22em solid var(--ink);
+  border-radius: 1.2em;
+  padding: 1em 1.4em;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* ——— Main menu: continue run ——— */
+.continue {
+  display: flex;
+  align-items: center;
+  gap: 1.4em;
+  padding: 1em 1.4em;
+  pointer-events: auto;
+}
+
+.cont-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2em;
+  text-align: left;
+  font-family: 'Fredoka', sans-serif;
+  color: var(--ink);
+}
+
+.cont-text b {
+  font-family: 'Lilita One', sans-serif;
+  font-weight: 400;
+  font-size: 1.9em;
+  white-space: nowrap;
+}
+
+.cont-text span:last-child {
+  font-weight: 600;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+/* ——— Pre-run: heat, act, journey ——— */
+.prerun {
+  gap: 0.55em !important;
+}
+
+.prerun .section-title {
+  align-self: flex-start;
+  margin-bottom: 0.35em;
+}
+
+/* HEAT sits straight in the panel, whose own gap already matches the nested titles' margin */
+.prerun > .section-title {
+  margin-bottom: 0;
+}
+
+.heats {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.8em;
+  width: 100%;
+}
+
+.heat,
+.act {
+  font: inherit;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  background: #fffaf0;
+  border: 0.22em solid var(--ink);
+  border-radius: 1em;
+  box-shadow: 0 0.25em 0 var(--ink);
+  padding: 0.7em 0.9em;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2em;
+  font-family: 'Fredoka', sans-serif;
+}
+
+.heat b,
+.act b {
+  font-family: 'Lilita One', sans-serif;
+  font-weight: 400;
+  font-size: 1.5em;
+  white-space: nowrap;
+}
+
+.heat span,
+.act span {
+  font-weight: 600;
+  font-size: 0.9em;
+  color: var(--ink-soft);
+}
+
+.heat small {
+  font-weight: 700;
+  font-size: 0.8em;
+  color: var(--tomato-d);
+}
+
+.heat .chilis {
+  font-size: 0.9em;
+  letter-spacing: -0.1em;
+  font-family: system-ui, 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif;
+}
+
+.heat.on,
+.act.on {
+  background: #fff;
+  border-color: var(--tomato);
+  box-shadow: 0 0.35em 0 var(--tomato-d);
+}
+
+.heat.locked,
+.act:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: #e8dcc4;
+}
+
+.prerun-mid {
+  display: grid;
+  grid-template-columns: 24em minmax(0, 1fr);
+  gap: 1.2em;
+  width: 100%;
+}
+
+.acts {
+  display: grid;
+  gap: 0.6em;
+}
+
+.journey {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5em;
+}
+
+.stage {
+  background: #3a2a4a;
+  color: #f0e6ff;
+  border: 0.16em solid var(--ink);
+  border-radius: 0.7em;
+  padding: 0.35em 0.5em;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-family: 'Fredoka', sans-serif;
+}
+
+.stage.act1 {
+  background: var(--cream);
+  color: var(--ink);
+}
+
+.stage.reached {
+  background: var(--cheese);
+  color: var(--ink);
+}
+
+.stage .sn {
+  font-weight: 700;
+  font-size: 0.7em;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  opacity: 0.85;
+}
+
+.stage b {
+  font-family: 'Lilita One', sans-serif;
+  font-weight: 400;
+  font-size: 1em;
+  line-height: 1.05;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stage span:last-child {
+  font-weight: 700;
+  font-size: 0.75em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lineup2 {
+  display: flex;
+  gap: 0.8em;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.lu {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  background: #fff;
+  border: 0.16em solid var(--ink);
+  border-radius: 1em;
+  padding: 0.3em 1em 0.3em 0.3em;
+  font-family: 'Fredoka', sans-serif;
+}
+
+.lu img {
+  width: 5em;
+}
+
+.prerun-bottom .lineup2 {
+  flex-wrap: nowrap;
+  gap: 0.5em;
+  justify-content: flex-start;
+}
+
+.prerun-bottom .lu {
+  padding: 0.25em 0.7em 0.25em 0.25em;
+  min-width: 0;
+  flex: 1 1 0;
+}
+
+.prerun-bottom .lu img {
+  width: 5.4em;
+}
+
+.prerun-bottom .lu b {
+  font-size: 1.3em;
+}
+
+.prerun-bottom .lu span {
+  font-size: 0.95em;
+  white-space: normal;
+  line-height: 1.15;
+}
+
+.prerun-bottom .lu b {
+  white-space: normal;
+  line-height: 1.05;
+}
+
+.lu > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.lu b {
+  font-family: 'Lilita One', sans-serif;
+  font-weight: 400;
+  font-size: 1.25em;
+  white-space: nowrap;
+}
+
+.lu span {
+  font-weight: 600;
+  font-size: 0.9em;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+/* ——— Settings, Pizzeria, Pizzapedia extras ——— */
+.choice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1em;
+  font-weight: 600;
+  font-size: 1.25em;
+}
+
+.choice .seg {
+  display: flex;
+  gap: 0.3em;
+  font-size: 0.75em;
+}
+
+.reset-row {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.reset-row .btn {
+  white-space: nowrap;
+}
+
+/* the Pizzeria's reset sits above the card grid: clear the button's drop shadow and match the grid's gap */
+.reset-row.meta-reset {
+  margin-bottom: 1.15em;
+}
+
+.tile.unowned img {
+  filter: grayscale(0.55);
+}
+
+.detail .howto,
+.detail .tell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1em;
+  border-radius: 0.8em;
+  padding: 0.4em 0.8em;
+  margin: 0.3em 0;
+  font-weight: 600;
+  background: #e9f7df;
+  border: 0.14em solid var(--basil-d);
+}
+
+.detail .tell {
+  background: #fff;
+  border-color: var(--ink);
+}
+
+.detail .howto b,
+.detail .tell b {
+  font-size: 0.8em;
+  letter-spacing: 0.12em;
+  color: var(--basil-d);
+}
+
+.detail .tell b {
+  color: var(--ink-soft);
+}
+
+.detail .home {
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.grid.events .tile img {
+  height: 5em;
+  object-fit: contain;
+}
+
+/* ——— Accessibility ——— */
+body[data-cb='redgreen'] {
+  --common: #4c9df0;
+  --rare: #f0c419;
+  --epic: #8a5ad0;
+  --legendary: #ff7a1a;
+  --basil: #2a7ad0;
+  --basil-d: #1a4a8a;
+}
+
+body[data-cb='blueyellow'] {
+  --common: #2fb87a;
+  --rare: #e5402a;
+  --epic: #8a3a5a;
+  --legendary: #f0a0c8;
+}
+
+body.reduced-motion *,
+body.reduced-motion *::before,
+body.reduced-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
+.welcome .row,
+.confirm .row,
+.second .row {
+  flex-wrap: nowrap;
+  align-items: center;
+}
+
+.welcome .row {
+  width: 100%;
+}
+
+/* the boss bar keeps its centring transform through its entrance animation */
+.bossbar.on {
+  animation: bossIn 0.5s ease both;
+}
+
+@keyframes bossIn {
+  0% {
+    transform: translateX(-50%) scale(0.6) translateY(1em);
+    opacity: 0;
+  }
+  70% {
+    transform: translateX(-50%) scale(1.04);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-50%);
+    opacity: 1;
+  }
+}
+
+/* ——— explained phase banners: PHASE N, the move, then what it does and what to do ——— */
+.banner.explained {
+  top: 24%;
+}
+
+.banner.phase.explained .big {
+  font-size: 7em;
+}
+
+.banner.phase.explained .small {
+  font-size: 4.2em;
+  color: var(--cheese);
+}
+
+.banner.boss.explained .small {
+  font-size: 3.4em;
+}
+
+.banner .desc {
+  display: grid;
+  justify-items: center;
+  gap: 0.15em;
+  margin-top: 0.35em;
+  padding: 0.5em 1.2em;
+  border-radius: 0.8em;
+  background: rgba(26, 14, 8, 0.82);
+  border: 0.15em solid var(--ink);
+}
+
+.banner .desc span {
+  font-family: 'Lilita One', sans-serif;
+  white-space: nowrap;
+  line-height: 1.15;
+}
+
+.banner .desc .does {
+  font-size: 2.3em;
+  color: #fff;
+}
+
+.banner .desc .answer {
+  font-size: 2.3em;
+  color: #7dff9a;
+}
+
+.banner .desc .answer::before {
+  content: '▶ ';
+  font-size: 0.8em;
+}
+
+/* the current move under the boss bar */
+.bossbar .move {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 0.6em;
+  margin-top: 0.45em;
+  white-space: nowrap;
+}
+
+.bossbar .move:empty {
+  display: none;
+}
+
+.bossbar .move b {
+  font-family: 'Lilita One', sans-serif;
+  font-size: 1.35em;
+  color: var(--ink);
+  background: var(--cheese);
+  border: 0.14em solid var(--ink);
+  border-radius: 0.5em;
+  padding: 0 0.5em;
+}
+
+.bossbar .move span {
+  font-size: 1.3em;
+  font-weight: 700;
+  color: #7dff9a;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.22em var(--ink);
+}
+
+/* the phase pill and bar take the phase's colour, matching the glow on the boss */
+.bossbar[data-phase='2'] .phase {
+  background: #ffa53d;
+}
+
+.bossbar[data-phase='3'] .phase {
+  background: #ff6a5a;
+}
+
+.bossbar[data-phase='4'] .phase {
+  background: #c04dff;
+  color: #fff;
+}
+
+/* ——— pause menu: your toppings (moved off the HUD) ——— */
+.hud .bl .owned {
+  display: none;
+}
+
+.pause-sec {
+  width: 58em;
+  display: grid;
+  gap: 0.5em;
+}
+
+.pause-tops {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5em;
+  max-height: 22em;
+  overflow-y: auto;
+  padding-right: 0.3em;
+}
+
+.ptop {
+  display: grid;
+  grid-template-columns: 2.6em minmax(0, 1fr);
+  align-items: center;
+  gap: 0.6em;
+  padding: 0.45em 0.7em;
+  background: rgba(255, 255, 255, 0.6);
+  border: 0.16em solid var(--ink);
+  border-left: 0.5em solid var(--rc);
+  border-radius: 0.8em;
+}
+
+.ptop .ic {
+  font-size: 1.9em;
+  text-align: center;
+  font-family: system-ui, 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif;
+}
+
+.ptop .tx {
+  display: grid;
+  min-width: 0;
+}
+
+.ptop b {
+  font-family: 'Lilita One', sans-serif;
+  font-weight: 400;
+  font-size: 1.25em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ptop .lv {
+  margin-left: 0.35em;
+  color: var(--tomato-d);
+}
+
+.ptop .armed {
+  margin-left: 0.4em;
+  font-size: 0.7em;
+  color: #fff;
+  background: var(--basil-d);
+  border-radius: 0.6em;
+  padding: 0 0.4em;
+  vertical-align: middle;
+}
+
+.ptop .tx > span {
+  font-size: 0.95em;
+  font-weight: 600;
+  color: var(--ink-soft);
+  line-height: 1.2;
+}
+
+/* a stale pizza's perk stays readable but crossed out: it's off until the pizza is reheated */
+.ds.off {
+  text-decoration: line-through;
+  text-decoration-color: var(--tomato-d);
+  text-decoration-thickness: 0.14em;
+  opacity: 0.75;
+}
+
+/* ——— Peel Locker ——— */
+.locker .crusts {
+  font-size: 1.6em;
+}
+
+.locker .crusts .coin {
+  width: 1.2em;
+  height: 1.2em;
+}
+
+.locker-tabs {
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.locker-tabs .btn {
+  font-size: 1.2em;
+}
+
+.locker-tabs .btn small {
+  font-size: 0.75em;
+  opacity: 0.85;
+}
+
+.peel-detail {
+  grid-template-columns: 6em 1fr;
+  min-height: 0;
+  padding-top: 0.5em;
+  padding-bottom: 0.5em;
+}
+
+.peel-detail .chips .btn {
+  margin-left: 0.4em;
+}
+
+.peel-detail h3 {
+  font-size: 1.7em;
+}
+
+.peel-detail p {
+  font-size: 1.15em;
+}
+
+.peel-big {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 8em;
+  overflow: hidden;
+}
+
+.peel-big img,
+.detail .peel-big img {
+  width: auto;
+  height: 8em;
+  max-height: none;
+  transform: rotate(-14deg);
+}
+
+.peel-grid {
+  grid-template-columns: repeat(auto-fill, minmax(8.6em, 1fr));
+}
+
+.peel-tile {
+  position: relative;
+  /* name in the middle, progress (or price) always pinned to the bottom of the card */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.peel-tile .nm {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.peel-tile .pbar,
+.peel-tile .cost,
+.peel-tile .ab {
+  margin-top: 0.3em;
+}
+
+.peel-tile img {
+  height: 7.5em;
+  width: auto;
+}
+
+.peel-tile .cost {
+  font-weight: 700;
+  font-size: 0.95em;
+  color: var(--ink-soft);
+}
+
+/* locked peels show what you're working towards, faded; undiscovered shinies are silhouettes */
+.tile.peel-tile.locked img {
+  filter: grayscale(0.7) opacity(0.55);
+}
+
+.tile.peel-tile.hidden img,
+.peel-big.hidden img {
+  filter: brightness(0) opacity(0.3);
+}
+
+.tile .tag.new {
+  background: var(--tomato);
+  color: #fff;
+}
+
+/* shiny: a rainbow sheen sweeping across, masked to the peel */
+.peel-tile.shiny,
+.peel-big.shiny {
+  overflow: hidden;
+}
+
+.peel-tile.shiny {
+  border-color: #b98a00;
+  background: linear-gradient(160deg, #fffaf0, #fff1c8 45%, #f2e6ff);
+}
+
+.peel-big.shiny::after,
+.peel-tile.shiny::after {
+  content: '';
+  position: absolute;
+  inset: -20%;
+  background: linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, 0.85) 45%, rgba(255, 240, 160, 0.6) 50%, rgba(160, 220, 255, 0.5) 55%, transparent 65%);
+  mix-blend-mode: soft-light;
+  animation: peelShine 2.6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes peelShine {
+  0% {
+    transform: translateX(-70%);
+  }
+  60%,
+  100% {
+    transform: translateX(70%);
+  }
+}
+
+.shiny-chip {
+  background: linear-gradient(90deg, #ffe0f0, #fff6c0, #d8f6ff) !important;
+}
+
+.pbar {
+  position: relative;
+  width: 100%;
+  max-width: 22em;
+  height: 1.3em;
+  border: 0.12em solid var(--ink);
+  border-radius: 0.7em;
+  background: rgba(255, 255, 255, 0.7);
+  overflow: hidden;
+  margin-top: 0.3em;
+}
+
+.pbar i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: linear-gradient(180deg, #8de06a, var(--basil));
+}
+
+.pbar span {
+  position: relative;
+  display: block;
+  text-align: center;
+  font-weight: 800;
+  font-size: 0.85em;
+  line-height: 1.45em;
+  color: var(--ink);
+}
+
+.locker .sec-head {
+  font-family: 'Lilita One', sans-serif;
+  font-size: 1.4em;
+  margin: 0.9em 0 0.4em;
+  display: flex;
+  gap: 0.6em;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.locker .sec-head:first-child {
+  margin-top: 0;
+}
+
+.locker .sec-head span {
+  font-family: inherit;
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 600;
+  font-size: 0.7em;
+  color: var(--ink-soft);
+}
+
+.goals {
+  display: grid;
+  gap: 0.6em;
+}
+
+.goal {
+  display: grid;
+  grid-template-columns: 3em minmax(0, 1fr) 14em;
+  gap: 0.9em;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.55);
+  border: 0.14em solid var(--ink);
+  border-radius: 0.9em;
+  padding: 0.3em 0.9em;
+  cursor: pointer;
+}
+
+.goal img {
+  height: 4.4em;
+  width: auto;
+  justify-self: center;
+}
+
+.goal .gt {
+  display: grid;
+  min-width: 0;
+}
+
+.goal .gt b {
+  font-family: 'Lilita One', sans-serif;
+  font-weight: 400;
+  font-size: 1.2em;
+}
+
+.goal .gt span {
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.goal .pbar {
+  margin: 0;
+}
+
+/* ——— Peel abilities: locker line, run-start card, picker ——— */
+.abl {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.2em 0.5em;
+  margin-top: 0.35em;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.abl b {
+  font-family: 'Lilita One', sans-serif;
+  font-weight: 400;
+  font-size: 1.2em;
+  color: var(--ink);
+}
+
+.abl > span:last-child::before {
+  content: '— ';
+}
+
+/* detail panels: name, pills and the action share the first row */
+.dt-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.3em 0.6em;
+}
+
+.dt-head .dt-act {
+  margin-left: auto;
+}
+
+.dt-head .btn {
+  font-size: 0.95em;
+}
+
+.dt-how {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.2em 1em;
+}
+
+.dt-how p {
+  margin: 0.15em 0 0 !important;
+}
+
+.dt-how .pbar {
+  margin-top: 0.15em;
+  max-width: 16em;
+  flex: 1 1 10em;
+}
+
+.home-chip {
+  font-size: 0.95em;
+}
+
+.chip.active {
+  background: var(--cheese);
+}
+
+.chip.passive {
+  background: #d8f6e0;
+}
+
+.chip.auto {
+  background: #d8ecff;
+}
+
+.prerun-bottom {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 31em;
+  gap: 1.4em;
+  width: 100%;
+  align-items: stretch;
+}
+
+/* the lineup pills grow to the peel card's height */
+.prerun-bottom > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.prerun-bottom .lineup2 {
+  flex: 1 1 auto;
+  align-items: stretch;
+}
+
+.prerun-bottom .peelcard {
+  flex: 1 1 auto;
+}
+
+.peelcard {
+  display: grid;
+  grid-template-columns: 3.6em minmax(0, 1fr);
+  gap: 0.7em;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.55);
+  border: 0.16em solid var(--ink);
+  border-radius: 1em;
+  padding: 0.4em 0.8em;
+}
+
+.peelcard .pk-img {
+  position: relative;
+  overflow: hidden;
+  height: 6.4em;
+  display: grid;
+  place-items: center;
+}
+
+.peelcard .pk-img img {
+  height: 6.4em;
+  transform: rotate(-14deg);
+}
+
+.peelcard .pk-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  flex-wrap: wrap;
+}
+
+.peelcard .pk-head .btn {
+  margin-left: auto;
+  font-size: 0.85em;
+}
+
+.peelcard .pk-img.shiny::after {
+  content: '';
+  position: absolute;
+  inset: -20%;
+  background: linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, 0.85) 45%, rgba(160, 220, 255, 0.5) 55%, transparent 65%);
+  mix-blend-mode: soft-light;
+  animation: peelShine 2.6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.pk-body {
+  display: grid;
+  gap: 0.3em;
+  justify-items: start;
+  min-width: 0;
+}
+
+.pk-body b.pk-name {
+  font-family: 'Lilita One', sans-serif;
+  font-weight: 400;
+  font-size: 1.2em;
+}
+
+.pk-body {
+  justify-items: stretch;
+}
+
+.pk-opts {
+  display: flex;
+  gap: 0.4em;
+  flex-wrap: wrap;
+}
+
+.pk-opt {
+  font-family: 'Lilita One', sans-serif;
+  font-size: 1em;
+  border: 0.14em solid var(--ink);
+  border-radius: 0.7em;
+  background: #fff;
+  padding: 0.2em 0.7em;
+  cursor: pointer;
+  color: var(--ink);
+}
+
+.pk-opt.on {
+  background: var(--tomato-d);
+  color: #fff;
+}
+
+.pk-opt:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.pk-desc {
+  font-weight: 600;
+  font-size: 0.85em;
+  color: var(--ink-soft);
+  line-height: 1.25;
+}
+
+.peel-tile .ab {
+  font-size: 0.85em;
+  font-weight: 700;
+  color: var(--tomato-d);
+  line-height: 1.1;
 }

@@ -1,10 +1,11 @@
 // Procedural 1920x1080 scene backdrops (wall + table) for every location and boss arena.
 // Everything is painted with Canvas 2D in the same bold cartoon style as the feet and pizzas.
 
+import { onSceneRegistered, sceneDef } from './registry';
 import { type Ctx, blob, ellipse, hashStr, makeCanvas, mix, rgba, rng, roundRect, shade } from './util';
 
-export type LocationId = 'trattoria' | 'rooftop' | 'beach' | 'diner' | 'lodge' | 'space';
-export type ArenaId = 'bigfoot' | 'ironheel' | 'clownking' | 'trex' | 'colossus' | 'phantomking';
+export type LocationId = 'trattoria' | 'rooftop' | 'beach' | 'diner' | 'lodge' | 'space' | 'kitchen' | 'oldtown' | 'pier' | 'rink' | 'slopes' | 'cellar';
+export type ArenaId = 'bigfoot' | 'ironheel' | 'clownking' | 'trex' | 'colossus' | 'phantomking' | 'cosmiccroc' | 'nonna' | 'gargoyle' | 'kraken' | 'rinkqueen' | 'yeti';
 export type BackdropId = LocationId | ArenaId;
 export type AmbientKind =
   | 'dust'
@@ -4587,7 +4588,7 @@ const g = (x: number, y: number, r: number, color: string, flicker: number): Glo
 const every = (bulbs: Bulb[], n: number, rr: number, flicker: number): GlowSpot[] =>
   bulbs.filter((_, i) => i % n === 0).map((b) => g(b.x, b.y, rr, b.color, flicker));
 
-export const BACKDROPS: Record<BackdropId, BackdropInfo> = {
+export const BACKDROPS = {
   trattoria: {
     id: 'trattoria',
     name: 'Trattoria Nonna',
@@ -4742,7 +4743,48 @@ export const BACKDROPS: Record<BackdropId, BackdropInfo> = {
     light: '#9fd8d0',
     tableTint: '#cfe0e0',
   },
+} as Record<BackdropId, BackdropInfo>;
+
+// Placeholders for the Feetza 2.0 locations and arenas until their own art lands: each borrows an
+// existing backdrop's drawing and lighting under its own name.
+const PLACEHOLDER: Partial<Record<BackdropId, BackdropId>> = {
+  kitchen: 'trattoria',
+  oldtown: 'rooftop',
+  pier: 'beach',
+  rink: 'diner',
+  slopes: 'lodge',
+  cellar: 'phantomking',
+  cosmiccroc: 'space',
+  nonna: 'trattoria',
+  gargoyle: 'rooftop',
+  kraken: 'beach',
+  rinkqueen: 'diner',
+  yeti: 'lodge',
 };
+const PLACEHOLDER_NAMES: Partial<Record<BackdropId, [string, string]>> = {
+  kitchen: ["Nonna's Kitchen", 'Stage 7'],
+  oldtown: ['Old Town Rooftops', 'Stage 8'],
+  pier: ['The Pier', 'Stage 9'],
+  rink: 'Roller Rink,Stage 10'.split(',') as [string, string],
+  slopes: ['Ski Slopes', 'Stage 11'],
+  cellar: ['Haunted Cellar', 'Stage 12'],
+  cosmiccroc: ['Moon Crater', 'Boss: COSMIC CROC'],
+  nonna: ["Nonna's Pantry", "Boss: NONNA'S SLIPPER"],
+  gargoyle: ['Bell Tower', 'Boss: THE GARGOYLE'],
+  kraken: ['Shipwreck', 'Boss: KRAKEN TOES'],
+  rinkqueen: ['Skate Bowl', 'Boss: QUEEN OF THE RINK'],
+  yeti: ['Summit', 'Boss: THE YETI SKI BOOT'],
+};
+for (const [id, from] of Object.entries(PLACEHOLDER) as [BackdropId, BackdropId][]) {
+  if ((BACKDROPS as Partial<Record<BackdropId, BackdropInfo>>)[id]) continue;
+  const [name, subtitle] = PLACEHOLDER_NAMES[id]!;
+  (BACKDROPS as Record<BackdropId, BackdropInfo>)[id] = { ...BACKDROPS[from], id, name, subtitle };
+}
+
+// registered scenes replace their placeholder info as soon as they load
+onSceneRegistered((id, def) => {
+  (BACKDROPS as Record<BackdropId, BackdropInfo>)[id] = { ...def.info, id };
+});
 
 export function drawBackdrop(id: BackdropId): HTMLCanvasElement {
   const [c, ctx] = makeCanvas(W, H);
@@ -4786,6 +4828,31 @@ export function drawBackdrop(id: BackdropId): HTMLCanvasElement {
     case 'colossus':
       drawHall(ctx, r);
       break;
+    default: {
+      const def = sceneDef(id);
+      if (def) {
+        def.draw(ctx, r);
+        break;
+      }
+      const from = PLACEHOLDER[id];
+      if (from) return drawBackdrop(from);
+    }
   }
   return c;
 }
+
+// ---------------------------------------------------------------------------------------------
+// Shared painting kit for scenes registered from src/content/art (re-exported by sceneKit.ts).
+
+export type { R, Stop, Swag, Bulb, Band };
+export {
+  W, H, TY, OL, HY, VX, FOC, ZB,
+  CHALK, ROUND, SCRIPT, SLAB, BLOCK,
+  yAt, xAt, zAt, quad, planePoly,
+  noise, speck, grainRect, cloud, mottle, vgrad, glow, darkSpot, cone, outline, fillOl, hgrad, lgrad, cylH, cylV,
+  grade, vignette, contactShadow, tableLight, frontFace, clipRect, zFront,
+  checkerTop, bandsX, bandsZ, drapeColumns, clothWeave, drapeFolds, bandCloth, planksTop, woodLip,
+  footPath, neonStroke, neonText, cobweb, fogBand, stars, moon, flame, logEnd, pendant, lampLight,
+  brickWall, wainscot, catenaryPt, bulbsOn, drawWires, drawBulbs, pine, palm, frond, skyline, hazard, rivet,
+  terracottaPot, cloudStreak, chain, girder, starPath, gothicArch,
+};

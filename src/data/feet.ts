@@ -1,5 +1,7 @@
 // The foot roster. Every foot has gameplay stats, traits and art parameters.
 
+import { CONTENT_FEET } from '../content/feetData';
+
 export type FootTrait =
   | 'dodge' // sidesteps when hit
   | 'feint' // fake descents
@@ -33,7 +35,24 @@ export type FootTrait =
   | 'woolly' // absorbs the first 15 damage
   | 'tender' // every smack is a crit
   | 'scorch' // stomped pizza burns another slice
-  | 'tiny'; // narrow hitbox (informational)
+  | 'tiny' // narrow hitbox (informational)
+  // ——— Feetza 2.0 traits ———
+  | 'invisible' // unseen (only its shadow shows) until it starts its stomp
+  | 'magnet' // pulls the player's aim toward it
+  | 'hop' // hops to another pizza mid-descent
+  | 'guard' // front shield: only hurt in short windows (a timed drop, and just after a stomp)
+  | 'bulk' // gains armour for every second unhit
+  | 'thief' // steals tips when it stomps
+  | 'spoil' // stomps drain freshness instead of slices
+  | 'tag' // tags a pizza: the next foot on it stomps twice as hard
+  | 'pinch' // pinches the peel briefly when smacked
+  | 'bury' // buried and untouchable until it surfaces
+  | 'medic' // heals nearby feet
+  | 'sticky' // smacking it slows the peel briefly
+  | 'roll' // rolls sideways across the pizzas
+  | 'antigrav' // floats back up between stomps
+  | 'crusty' // rare: escapes fast, drops Golden Crusts
+  | 'mimic'; // looks like a Golden Foot, then stomps hard
 
 export type FootKind =
   | 'bare'
@@ -67,7 +86,9 @@ export type FootKind =
   | 'tap'
   | 'platform'
   | 'cleat'
-  | 'webbed';
+  | 'webbed'
+  // Feetza 2.0 kinds are drawn by the extra-kind modules (see src/art/feetKinds*.ts)
+  | (string & {});
 
 export type LegKind =
   | 'skin'
@@ -110,6 +131,8 @@ export interface FootArt {
   toeRing?: boolean;
   sunburn?: boolean;
   frost?: boolean;
+  /** Free-form art parameters for Feetza 2.0 kinds. */
+  extra?: Record<string, string | number | boolean>;
 }
 
 export interface FootType {
@@ -128,6 +151,14 @@ export interface FootType {
   traits: FootTrait[];
   art: FootArt;
   boss?: boolean;
+  /** Mini-bosses arrive partway through a wave and have 2 phases. */
+  mini?: boolean;
+  /** Home location id (spawns ~3x as often there). */
+  home?: string;
+  /** Pizzapedia: one-line answer to the foot's ability. */
+  howTo?: string;
+  /** Pizzapedia: the visible tell before its ability fires. */
+  tell?: string;
   quips?: string[];
 }
 
@@ -531,6 +562,8 @@ export const FEET: FootType[] = [
     id: 'clownking',
     name: 'KING HONK',
     desc: 'Boss. The clown shoe to end all clown shoes. Squashes the whole table.',
+    howTo: 'Decoys pop in one hit: test each lane, then pile on the real one',
+    tell: 'Leaps off screen, then three shoes drop back in a random order',
     hp: 1900, speed: 0.6, armor: 3, stompDmg: 2, coins: 120, score: 12000, scale: 2.2, minWave: 15, weight: 0,
     traits: ['wide', 'zigzag'],
     boss: true,
@@ -557,13 +590,18 @@ export const FEET: FootType[] = [
   {
     id: 'phantomking',
     name: 'GHOST OF FEET PAST',
-    desc: 'Boss. Haunts the whole table, phasing in and out between stomps.',
-    hp: 3800, speed: 0.65, armor: 3, stompDmg: 3, coins: 220, score: 26000, scale: 2.2, minWave: 30, weight: 0,
+    desc: 'The final boss. Haunts the whole table, phasing in and out between stomps.',
+    home: 'cellar',
+    howTo: 'Hit it while solid; Peel Slam breaks possession',
+    tell: 'It fades out for a moment before it vanishes',
+    hp: 6800, speed: 0.65, armor: 3, stompDmg: 3, coins: 320, score: 40000, scale: 2.2, minWave: 60, weight: 0,
     traits: ['phase', 'teleport'],
     boss: true,
     art: { kind: 'bare', skin: '#cfe9ff', ghost: true, nails: '#8fc7ff', leg: 'skin' },
   },
 ];
+
+FEET.push(...CONTENT_FEET);
 
 export const FOOT_BY_ID: Record<string, FootType> = Object.fromEntries(FEET.map((f) => [f.id, f]));
 export const BOSS_ORDER = ['bigfoot', 'ironheel', 'clownking', 'trex', 'colossus', 'phantomking'];
@@ -603,8 +641,84 @@ export const TRAIT_INFO: Record<FootTrait, string> = {
   tender: '🔥 Every smack crits',
   scorch: '♨️ Scorches pizza',
   tiny: '🎯 Tiny target',
+  invisible: '👻 Invisible until it stomps',
+  magnet: '🧲 Pulls your aim',
+  hop: '🦘 Hops between pizzas',
+  guard: '🛡️ Front shield',
+  bulk: '💪 Bulks up if ignored',
+  thief: '💰 Steals tips',
+  spoil: '🪰 Spoils freshness',
+  tag: '🖍️ Tags a pizza',
+  pinch: '🦀 Pinches your peel',
+  bury: '⏳ Buried in sand',
+  medic: '🩹 Heals other feet',
+  sticky: '🌿 Sticky: slows your peel',
+  roll: '🎳 Rolls across the table',
+  antigrav: '🪐 Floats back up',
+  crusty: '✨ Drops Golden Crusts',
+  mimic: '🎭 A fake Golden Foot',
 };
 
 export const OUCH = [
   'OUCH!', 'YOWCH!', 'EEK!', 'OOF!', 'MY TOE!', 'NOT THE TOES!', 'HEY!', 'RUDE!', 'AIEEE!', 'OWIE!', 'BONK!', 'YIKES!',
 ];
+
+/** One-line answers and tells per trait, used for feet without hand-written ones. */
+const TRAIT_HOWTO: Partial<Record<FootTrait, [string, string]>> = {
+  dodge: ['Smack again right after it sidesteps', 'It leans before it dodges'],
+  feint: ['Wait out the fake dip, then smack', 'It dips halfway, then pulls up'],
+  stink: ['Smack it before the cloud builds', 'Green fumes gather below it'],
+  phase: ['Hit it while it is solid', 'It flickers before it fades out'],
+  revive: ['Smack it twice: it gets back up once', 'It lies still, then springs up'],
+  burst: ['Hit it between rocket bursts', 'Flames flare before each burst'],
+  zigzag: ['Aim at its middle path', 'It sways side to side'],
+  flee: ['Smack it before it runs off', 'It hovers high and nervous'],
+  immuneSlow: ['Burns and damage still work', 'Frost slides right off it'],
+  immuneBurn: ['Slows and damage still work', 'Flames fizzle on it'],
+  swarm: ['Use area smacks on the group', 'They arrive in threes'],
+  flutter: ['Keep hitting: it bounces back fast', 'It springs back after knockback'],
+  wide: ['Stop it early: it squashes neighbours', 'Its huge sole shadows two pizzas'],
+  split: ['Be ready for the babies it drops', 'It wobbles when it is about to pop'],
+  teleport: ['Watch for where it reappears', 'A sparkle marks its next spot'],
+  heavy: ['Damage it: knockback barely works', 'It barely moves when smacked'],
+  floaty: ['Knock it high, then finish it', 'It drifts up when hit'],
+  glossy: ['The first smack slips: hit twice', 'Its shine means the first hit slips'],
+  soggy: ['Stop it: the next stomp hits harder', 'It drips on the way down'],
+  rush: ['React fast: it barely hovers', 'It drops almost at once'],
+  enrage: ['Finish it fast below half health', 'Steam rises when it gets angry'],
+  crack: ['Every smack strips its armour', 'Cracks spread with each hit'],
+  pierce: ['Shields will not stop it: smack it', 'Its heel is needle sharp'],
+  parry: ['Feint: its first smack is parried', 'It glints just before it parries'],
+  cheer: ['Take it out to slow the others', 'Confetti around nearby feet'],
+  double: ['Knock it off before the second stomp', 'It bounces for a second stomp'],
+  regen: ['Burst it down before it heals', 'A green glow while it heals'],
+  switch: ['Watch it switch pizzas mid-dive', 'It turns as it changes targets'],
+  clumsy: ['Punish it when it trips', 'It wobbles before it trips'],
+  woolly: ['Its wool soaks the first hits', 'Thick wool on its sock'],
+  tender: ['Every smack crits: easy points', 'Its skin is bright red'],
+  scorch: ['Stop it: its stomp burns an extra slice', 'Embers fall from its sole'],
+  invisible: ['Watch for its shadow on the pizza', 'Only its shadow shows'],
+  magnet: ['Fight the pull on your aim', 'Your peel drifts toward it'],
+  hop: ['It hops pizzas halfway down', 'Its spring coils before the hop'],
+  guard: ['Hit it when the shield drops: every few seconds, and right after it stomps', 'It glints blue just before the shield drops'],
+  bulk: ['Hit it early before it bulks up', 'It flexes when it gains armour'],
+  thief: ['Smack it to get your tips back', 'It eyes your tip jar'],
+  spoil: ['Stop it: it spoils freshness', 'Flies buzz around it'],
+  tag: ['Clear tagged pizzas fast', 'Fresh paint marks a pizza'],
+  pinch: ['Smack fast twice to break free', 'Its claws snap open'],
+  bury: ['Wait for it to surface', 'The sand shifts before it pops up'],
+  medic: ['Take it out first', 'Green crosses heal nearby feet'],
+  sticky: ['Leave it for area damage', 'It drips with kelp'],
+  roll: ['Track it as it rolls across', 'It spins sideways first'],
+  antigrav: ['Hit it at the bottom of a dive', 'It floats back up mid-dive'],
+  crusty: ['Smack it before it escapes', 'It glitters like a golden crust'],
+  mimic: ['It is not a real Golden Foot', 'A sly grin gives it away'],
+};
+
+export function howToFor(f: FootType): string | undefined {
+  return f.howTo ?? f.traits.map((t) => TRAIT_HOWTO[t]?.[0]).find(Boolean);
+}
+
+export function tellFor(f: FootType): string | undefined {
+  return f.tell ?? f.traits.map((t) => TRAIT_HOWTO[t]?.[1]).find(Boolean);
+}

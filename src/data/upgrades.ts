@@ -1,5 +1,10 @@
 // In-run roguelike upgrades. Each upgrade stacks up to `max` levels and modifies Stats.
 
+import type { Proc } from '../game/abilities';
+import { MORE_TOPPINGS } from './toppingsMore';
+import { TRADEOFF_TOPPINGS } from './toppingsTradeoff';
+import { freezeText, meterBoostText } from '../game/slamMode';
+
 export interface Stats {
   damage: number;
   critChance: number;
@@ -40,6 +45,24 @@ export interface Stats {
   healWeakest: number;
   regenAll: number;
   superStart: number;
+  /** Extra freshness for every pizza (Fridge Magnet). */
+  freshBonus: number;
+  splashDmg: number;
+  bigHurt: number;
+  bossDmg: number;
+  tenthCrit: boolean;
+  quickTips: number;
+  counterDiscount: number;
+  extraConsumable: number;
+  crustBonus: number;
+  slamStun: boolean;
+  miniWeak: number;
+  stunVuln: number;
+  freeTopping: boolean;
+  /** Feet health multiplier (trade-off toppings). */
+  footHp: number;
+  /** Chance a stomp takes an extra slice (trade-off toppings). */
+  stompExtra: number;
 }
 
 export function baseStats(): Stats {
@@ -83,10 +106,26 @@ export function baseStats(): Stats {
     healWeakest: 0,
     regenAll: 0,
     superStart: 0,
+    freshBonus: 0,
+    splashDmg: 0,
+    bigHurt: 0,
+    bossDmg: 0,
+    tenthCrit: false,
+    quickTips: 0,
+    counterDiscount: 0,
+    extraConsumable: 0,
+    crustBonus: 0,
+    slamStun: false,
+    miniWeak: 0,
+    stunVuln: 0,
+    freeTopping: false,
+    footHp: 1,
+    stompExtra: 0,
   };
 }
 
 export type Rarity = 'common' | 'rare' | 'epic' | 'legendary';
+export type UpgradeKind = 'permanent' | 'unique' | 'consumable';
 
 export interface Upgrade {
   id: string;
@@ -96,8 +135,18 @@ export interface Upgrade {
   max: number;
   desc: (lvl: number) => string; // describes the effect of taking level `lvl`
   apply: (s: Stats, lvl: number) => void; // applied once per owned level (lvl = 1..owned)
-  /** Called once when picked (immediate effects). */
-  onPick?: 'healAll2' | 'extraPizza';
+  /** Called once when picked (immediate effects). 'arm' = a consumable that waits to trigger. */
+  onPick?: 'healAll2' | 'extraPizza' | 'fridge' | 'arm';
+  /** permanent (default): levels and stacks · unique: once per run · consumable: one use, back after a cooldown. */
+  kind?: UpgradeKind;
+  /** Proc toppings: an ability-style trigger and effects (scaled by level), run by the scene. */
+  proc?: Proc;
+  /** Trade-off toppings: the catch, shown as its own red line. */
+  downside?: string;
+  /** One-time cost when bought: pizzas on the table lose this much freshness (never below 1). */
+  freshNow?: number;
+  /** One-time cost when bought: pizzas on the table lose this many slices (never below 1). */
+  slicesNow?: number;
 }
 
 const pct = (n: number) => `${Math.round(n * 100)}%`;
@@ -131,7 +180,7 @@ export const UPGRADES: Upgrade[] = [
   },
   {
     id: 'tips', name: 'Tip Jar', icon: '🫙', rarity: 'common', max: 5,
-    desc: () => '+25% tips from feet',
+    desc: () => '+25% tips from feet (all tip boosts top out at ×2.5)',
     apply: (s) => { s.coinMult += 0.25; },
   },
   {
@@ -146,14 +195,37 @@ export const UPGRADES: Upgrade[] = [
   },
   {
     id: 'oregano', name: 'Oregano Overdrive', icon: '🌿', rarity: 'common', max: 4,
-    desc: () => '+35% Peel Slam charge rate',
+    desc: () => meterBoostText(35),
     apply: (s) => { s.superGain += 0.35; },
   },
   {
-    id: 'oven', name: 'Fresh From the Oven', icon: '🧑‍🍳', rarity: 'common', max: 3,
-    desc: () => 'Heal every pizza 2 slices now, +1 slice regrowth after each wave',
-    apply: (s) => { s.regenPerWave += 1; },
+    id: 'oven', name: 'Fresh From the Oven', icon: '🧑‍🍳', rarity: 'common', max: 1, kind: 'consumable',
+    desc: () => 'Heal every pizza 2 slices, right now',
+    apply: () => {},
     onPick: 'healAll2',
+  },
+  {
+    id: 'proof', name: 'Slow Proof', icon: '🍞', rarity: 'common', max: 3,
+    desc: () => '+1 slice regrowth on every pizza after each wave',
+    apply: (s) => { s.regenPerWave += 1; },
+  },
+  {
+    id: 'fridge', name: 'Fridge Magnet', icon: '🧊', rarity: 'rare', max: 2,
+    desc: () => '+4 freshness on every pizza, now and for new ones',
+    apply: (s) => { s.freshBonus += 4; },
+    onPick: 'fridge',
+  },
+  {
+    id: 'leftovers', name: 'Leftovers Box', icon: '🥡', rarity: 'common', max: 1, kind: 'consumable',
+    desc: () => 'The next pizza to go stale stays fresh 4 more waves',
+    apply: () => {},
+    onPick: 'arm',
+  },
+  {
+    id: 'dough', name: 'Emergency Dough', icon: '🫓', rarity: 'rare', max: 1, kind: 'consumable',
+    desc: () => 'A pizza that drops to 1 slice regains 3, once',
+    apply: () => {},
+    onPick: 'arm',
   },
   // ——— Rare ———
   {
@@ -239,19 +311,20 @@ export const UPGRADES: Upgrade[] = [
   },
   // ——— Legendary ———
   {
-    id: 'helping', name: 'Second Helping', icon: '🍕', rarity: 'legendary', max: 2,
+    id: 'helping', name: 'Second Helping', icon: '🍕', rarity: 'legendary', max: 1, kind: 'unique',
     desc: () => 'A brand-new pizza joins the table',
     apply: () => {},
     onPick: 'extraPizza',
   },
   {
-    id: 'angel', name: 'Pizza Angel', icon: '👼', rarity: 'legendary', max: 1,
-    desc: () => 'The first pizza destroyed rises again with 4 slices',
-    apply: (s) => { s.angel += 1; },
+    id: 'angel', name: 'Pizza Angel', icon: '👼', rarity: 'legendary', max: 1, kind: 'consumable',
+    desc: () => 'The next pizza destroyed rises again with 4 slices',
+    apply: () => {},
+    onPick: 'arm',
   },
   {
     id: 'freeze', name: 'Freeze Frame', icon: '⏳', rarity: 'legendary', max: 1,
-    desc: () => 'Peel Slam also freezes every foot for 3 seconds',
+    desc: () => freezeText(),
     apply: (s) => { s.freezeSlam = true; },
   },
   {
@@ -259,6 +332,8 @@ export const UPGRADES: Upgrade[] = [
     desc: () => '8% of smacked-down feet turn to gold: 5x tips',
     apply: (s) => { s.goldenTouch += 0.08; },
   },
+  ...MORE_TOPPINGS,
+  ...TRADEOFF_TOPPINGS,
 ];
 
 export const UPGRADE_BY_ID: Record<string, Upgrade> = Object.fromEntries(UPGRADES.map((u) => [u.id, u]));
@@ -271,5 +346,28 @@ export const RARITY_COLOR: Record<Rarity, string> = {
   epic: '#b06bff',
   legendary: '#ffbf1f',
 };
+
+/** Base topping price by rarity (plus RARITY_PER_WAVE a wave). Consumables and trade-offs cost less. */
+export const RARITY_PRICE: Record<Rarity, number> = { common: 30, rare: 70, epic: 120, legendary: 200 };
+/** Tips added per wave, by rarity: rarer toppings stay proportionally dearer all run (legendary ~3–4× common). */
+export const RARITY_PER_WAVE: Record<Rarity, number> = { common: 3, rare: 4, epic: 6, legendary: 9 };
+
+/** Price of the next level: rarity base + 4 per wave, +35% for every level already owned (so stacking
+ * one upgrade gets expensive and tips spread across the run); consumables are 30% cheaper. */
+export function upgradePrice(u: Upgrade, wave: number, owned = 0): number {
+  // tips per wave roughly triple from wave 10 to wave 30, so prices climb faster later on (×1.07 at 10, ×1.6 at 30, ×2.2 cap)
+  const late = 1 + Math.min(1.2, 0.6 * (wave / 30) ** 2);
+  const base = (RARITY_PRICE[u.rarity] + RARITY_PER_WAVE[u.rarity] * wave) * late * (1 + 0.35 * owned);
+  // consumables are one-use; trade-offs pay part of their price in the downside
+  const k = ((u.kind ?? 'permanent') === 'consumable' ? 0.7 : 1) * (u.downside ? 0.8 : 1);
+  return Math.round((base * k) / 5) * 5;
+}
+
+export function kindOf(u: Upgrade): UpgradeKind {
+  return u.kind ?? 'permanent';
+}
+
+/** Waves a used consumable stays out of the shop. */
+export const CONSUMABLE_COOLDOWN = 3;
 
 export { pct };

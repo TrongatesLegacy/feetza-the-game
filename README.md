@@ -2,20 +2,24 @@
 
 [![Feetza trailer: click to watch it with sound](media/trailer.webp)](https://trongateslegacy.github.io/feetza-the-game/trailer.mp4)
 
-**Stop the feet. Save the pizza.** A browser arcade roguelike: cartoon feet descend on a table of pizzas and you smack them away with a pizza peel before they stomp. Build a run from roguelike upgrades, travel through six pizzerias, beat six bosses, and spend Golden Crusts on permanent upgrades between runs.
+**Stop the feet. Save the pizza.** A browser arcade roguelike: cartoon feet descend on a table of pizzas and you smack them away with a pizza peel before they stomp. Build a run from priced toppings and pizzas, travel a 60-wave journey through 12 stages, beat 24 bosses, and spend Golden Crusts on permanent upgrades between runs.
 
 **Play it: https://trongateslegacy.github.io/feetza-the-game/**
 
 **▶ Watch the 30s trailer with sound: https://trongateslegacy.github.io/feetza-the-game/trailer.mp4**
 
-- **52 feet** (46 regular + 6 bosses), each with its own art, stats and traits (dodging, feinting, phasing, teleporting, reviving, splitting, rocket bursts, stink clouds…)
-- **28 pizzas**, each granting a perk while it survives (lose the pizza, lose the perk)
-- **30 in-run upgrades** across 4 rarities, plus rerolls, healing and rebaking between waves
-- **9 permanent Pizzeria upgrades** and 25 unlockable pizzas: buy them with Golden Crusts earned each run, or get them free from 8 milestones (first boss, wave 10, 600 feet smacked…)
-- **Pizza counter** between waves: spend tips on a pizza (or rent a locked "Chef's Special"), then add it on a new plate or swap out any pizza on the table, living or destroyed. Beating your first boss of a run also brings a bonus pizza to a small table
-- **12 hand-painted locations**: six pizzerias (one every 5 waves) and a unique arena per boss, each with its own lighting, ambient particles, music and ambience
-- **Pizzapedia** collection of every foot you've smacked
-- Full audio: 11 music tracks, 6 location ambiences, 23 SFX, with Master / Music / SFX / Ambience volume, mute, screen shake, damage numbers, flashes and FPS toggles
+- **A 60-wave journey**: 12 stages, each a location (waves 1–4) plus its boss's own arena (wave 5). Act 1 ends at wave 30, the finale is at wave 60, then endless mode
+- **24 bosses**: 12 main bosses and 12 mini-bosses (wave 3 of every stage), each with a signature move from the start. Bosses change phase at 66% and 33% health (mini-bosses at 50%): they rear up, glow amber then red, and switch moves. A banner names each move with what it does and how to answer it, the line under the boss bar keeps the answer on screen, and every move has a wind-up you can read before it lands
+- **92 feet**, each with its own art, stats and traits, shown as icons on the foot and explained on a NEW FOOT card the first time it appears
+- **56 pizzas**, each granting a perk while it survives. Pizzas go stale after about 10 waves; reheat them or swap in fresh ones
+- **Five heat levels** (Mild to Inferno). Harder heats pay more Golden Crusts
+- **Between-wave shop**: toppings cost tips (permanent, once-per-run and one-use kinds), a pizza counter with a swap picker, heal, rebake and reheat services, and a Golden menu paid from banked crusts
+- **Wave events**: tip balloons, delivery drones, pepper moths, golden seagulls and pizza box chests (watch out for mimics)
+- **9 permanent Pizzeria upgrades** (resettable for a full refund) and 53 unlockable pizzas
+- **Run saves**: close the tab and continue from the shop; Act 2 starts unlock once you beat wave 30
+- **Controller support** with free aim or lane mode, button prompts for Xbox, PlayStation and Switch, and full menu navigation
+- **Accessibility**: colour-blind palettes, reduced motion, trait icons, screen shake and flash toggles
+- **Pizzapedia** of every foot, boss, pizza and event, with how to beat each foot
 
 All art (feet, pizzas, toppings, backdrops, UI sprites) is drawn procedurally with Canvas 2D at load time, so there are no image assets to download and everything stays sharp at any resolution.
 
@@ -27,7 +31,9 @@ All art (feet, pizzas, toppings, backdrops, UI sprites) is drawn procedurally wi
 | Peel Slam (screen-wide smack when charged) | Tap the SLAM button | `Space` |
 | Pause | Pause button | `Esc` / `P` |
 | Mute | Speaker button | `M` |
-| Pick an upgrade / reroll | Click a card / Reroll | `1`–`4` / `R` |
+| Buy a topping / reroll / next wave | Click a card / Reroll / Next wave | `1`–`4` / `R` / `Enter` |
+
+On a controller: left stick aims (or pick a pizza in lane mode), A or RT smacks, X or LT Peel Slams, Menu pauses; in menus the d-pad moves, A selects, B goes back and the bumpers jump between shop sections.
 
 ## Play / develop
 
@@ -42,7 +48,7 @@ Requires Node 20+.
 
 ## Hosting
 
-Every push to `main` deploys to GitHub Pages through `.github/workflows/pages.yml`.
+Every push to `main` deploys to GitHub Pages (served from the `gh-pages` branch) through `.github/workflows/pages.yml`. Every pull request gets its own playable preview at `https://trongateslegacy.github.io/feetza-the-game/pr-preview/pr-<number>/` through `.github/workflows/pr-preview.yml`; the preview is removed when the pull request closes.
 
 `dist/` is a plain static folder with relative paths, so it can also go anywhere else:
 
@@ -93,3 +99,15 @@ public/audio/ music, ambience and SFX (+ CREDITS.md / credits.json)
 ## Credits
 
 Music by Kevin MacLeod (incompetech.com), licensed CC-BY 4.0. SFX and ambiences are CC0 from Kenney.nl and Freesound contributors. Full per-file credits are in [`public/audio/CREDITS.md`](public/audio/CREDITS.md) and in-game under **Credits**. Fonts: Lilita One and Fredoka (SIL OFL).
+
+## Dev tools
+
+In `npm run dev`, the browser console has `F`:
+
+- `F.startGame({ heat: 'hot', wave: 23, coins: 400, upgrades: { heavy: 3 }, lineup: [...], intros: false })` starts from any point; `F.startGame({ boss: { id: 'kraken', hp: 0.5 } })` jumps straight to a boss at half health
+- `F.seed(42)` makes the randomness repeatable; `F.saveScenario()` returns the current run as a scenario
+- `F.bot(true)` plays and shops by itself, logging each wave to `F.log`
+- `F.contrast()` lists any on-screen text below WCAG contrast
+- `F.layout()` lists text that runs off screen, is cut off, or spills out of its card; `F.watchLayout(ms)` samples it during play
+- `F.bot(true, 0.8, 260, 4)` runs the bot with a 4× time warp for quick balance runs
+- `scripts/dom-shots.mjs` takes real screenshots of DOM screens (menus, HUD, banners) through headless Chrome, which the canvas-only `F.shot` misses. `?dev&show=welcome` opens the welcome card directly

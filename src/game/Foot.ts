@@ -12,8 +12,10 @@ export interface FootHooks {
   onStomp(foot: Foot): void;
   pickTarget(foot: Foot): Pizza | null;
   onEscape(foot: Foot): void;
-  /** Ability callouts (switch, clumsy) so the scene can show text/sound. */
-  onTrait?(foot: Foot, trait: 'switch' | 'clumsy'): void;
+  /** Ability callouts so the scene can show text/sound. */
+  onTrait?(foot: Foot, trait: 'switch' | 'clumsy' | 'hop' | 'surface' | 'reveal' | 'guardDown'): void;
+  /** Called every frame while alive (medic heals, magnet pull, roll targeting). */
+  onTick?(foot: Foot, dt: number): void;
   /** Lane offset (px from pizza centre) if this foot may start its dive now, or null if the pizza's lanes are full. */
   canDescend?(foot: Foot): number | null;
 }
@@ -27,7 +29,14 @@ export class Foot {
   readonly type: FootType;
   readonly meta: FootMeta;
   readonly root: Phaser.GameObjects.Container;
-  readonly scale: number;
+  private readonly baseScale: number;
+  /** Size multiplier on top of the type's scale (King Honk's shuffle shrinks his shoes so three fit). */
+  sizeMul = 1;
+  get scale(): number {
+    return this.baseScale * this.sizeMul;
+  }
+  /** Overrides where this foot hovers (contact y) before diving; null = the usual HOVER_Y. */
+  hoverY: number | null = null;
   private leg: Phaser.GameObjects.TileSprite;
   private img: Phaser.GameObjects.Image;
   private cuff?: Phaser.GameObjects.Image;
@@ -52,6 +61,8 @@ export class Foot {
   burnT = 0;
   burnDps = 0;
   burnAcc = 0;
+  /** The current burn came from a peel ability (its kills don't charge the meter). */
+  burnFromAbility = false;
   slowT = 0;
   slowPct = 0;
   stunT = 0;
@@ -69,6 +80,8 @@ export class Foot {
   cheer = 0;
   /** Horizontal lane offset from the target pizza's centre while diving. */
   slot = 0;
+  /** A fixed screen x to hover over instead of the target pizza (King Honk's shuffle keeps each shoe in its own lane). */
+  laneX: number | null = null;
   /** True while queued above a busy pizza. */
   waiting = false;
   private waitT = 0;
@@ -84,6 +97,42 @@ export class Foot {
   private zigBase = 0;
   private wobbleT = Math.random() * 10;
   private flashT = 0;
+  /** Riot shield is down for a moment right after a stomp. */
+  guardOpen = 0;
+  /** Riot shield rhythm: counts up to the next timed drop while hovering or diving. */
+  private guardT = 0;
+  private guardNext = 2.4 + Math.random() * 0.8;
+  private guardWarned = false;
+  /** Gym Bro: armour gained while unhit. */
+  bulk = 0;
+  private bulkT = 0;
+  private hopped = false;
+  /** Sandy: buried (untouchable) while hovering. */
+  buried = false;
+  /** Seconds the foot stays visible after being revealed (Mime). */
+  revealT = 0;
+  /** Tips stolen by a Thief, returned when it is smacked down. */
+  stolen = 0;
+  /** Greek perk: traits switched off for a few seconds. */
+  disarmT = 0;
+  /** Boss phase (1-based). */
+  phase = 1;
+  /** Extra state for boss brains. */
+  brain: Record<string, number | boolean> = {};
+  /** Damage-taken multiplier (overheat windows, marks). */
+  vuln = 1;
+  /** Hard invulnerability (stone form, decoys handled by brains). */
+  shielded = false;
+  private icons?: Phaser.GameObjects.Container;
+  /** A boss brain is moving this foot by hand: skip its own movement AI. */
+  puppet = false;
+  /** Speed multiplier from boss roars, avalanches and enrages. */
+  hurry = 1;
+  /** A rare shiny: unlocks its shiny peel when defeated. */
+  shiny = false;
+  /** Peel-ability mark: takes markMult damage until markUntil (scene time). */
+  markUntil = 0;
+  markMult = 1;
 
   constructor(scene: Phaser.Scene, layer: Phaser.GameObjects.Container, shadowLayer: Phaser.GameObjects.Container, type: FootType, x: number, opts: { hpMult: number; speedMult: number; elite: boolean; hooks: FootHooks }) {
     this.scene = scene;
@@ -91,7 +140,7 @@ export class Foot {
     this.meta = footMeta[type.id];
     this.hooks = opts.hooks;
     this.elite = opts.elite;
-    this.scale = type.scale * FOOT_DISPLAY * (opts.elite ? 1.08 : 1);
+    this.baseScale = type.scale * FOOT_DISPLAY * (opts.elite ? 1.08 : 1);
     this.maxHp = Math.round(type.hp * opts.hpMult * (opts.elite ? 1.8 : 1));
     this.hp = this.maxHp;
     this.armor = type.armor + (opts.elite ? 1 : 0);
@@ -128,13 +177,41 @@ export class Foot {
     if (opts.elite || type.id === 'golden') {
       this.img.preFX?.addGlow(opts.elite ? 0xff4dd2 : 0xffe066, 4, 0, false, 0.1, 12);
     }
+    if (type.mini) this.root.setScale(rel);
     this.glossy = type.traits.includes('glossy');
+    this.buildIcons();
     this.wool = type.traits.includes('woolly') ? 15 : 0;
     this.hoverTime = this.freshHoverTime(type.traits.includes('flee') ? 0.4 : 0.7 + Math.random() * 0.7);
   }
 
   has(t: FootType['traits'][number]): boolean {
+    if (this.disarmT > 0) return false;
     return this.type.traits.includes(t);
+  }
+
+  get isBossLike(): boolean {
+    return !!this.type.boss || !!this.type.mini;
+  }
+
+  /** Trait badges on the cuff, so players can see what a foot does before it does it. */
+  private buildIcons(): void {
+    const ts = this.type.traits.filter((t) => t !== 'tiny').slice(0, 3);
+    if (!ts.length || this.type.boss || !this.scene.textures.exists(`trait_${ts[0]}`)) return;
+    const c = this.scene.add.container(0, -this.meta.footHeight * this.type.scale - 70);
+    ts.forEach((t, i) => {
+      const k = `trait_${t}`;
+      if (!this.scene.textures.exists(k)) return;
+      c.add(this.scene.add.image((i - (ts.length - 1) / 2) * 46, 0, k).setScale(0.9));
+    });
+    this.icons = c;
+    this.root.add(c);
+    this.syncIcons();
+  }
+
+  syncIcons(): void {
+    if (!this.icons) return;
+    const on = (this.scene.registry.get('traitIcons') as boolean | undefined) ?? true;
+    this.icons.setVisible(on && this.alive);
   }
 
   private freshHoverTime(base: number): number {
@@ -147,7 +224,7 @@ export class Foot {
   }
 
   get hittable(): boolean {
-    return this.alive && !this.phased && this.y > -20;
+    return this.alive && !this.phased && !this.buried && this.y > -20;
   }
 
   get stompY(): number {
@@ -200,6 +277,44 @@ export class Foot {
       this.flashT -= dt;
       if (this.flashT <= 0) this.clearTint();
     }
+    if (this.disarmT > 0) this.disarmT -= dt;
+    if (this.guardOpen > 0) this.guardOpen -= dt;
+    // the riot shield also drops on a timer (every 2.4–3.2 s for 0.75 s), with a glint half a second before
+    if (this.has('guard') && this.alive && (this.state === 'hover' || this.state === 'descend') && this.guardOpen <= 0) {
+      this.guardT += dt;
+      if (!this.guardWarned && this.guardT >= this.guardNext - 0.5) {
+        this.guardWarned = true;
+        this.flash(0x9ad8ff, 160);
+      }
+      if (this.guardT >= this.guardNext) {
+        this.guardT = 0;
+        this.guardNext = 2.4 + Math.random() * 0.8;
+        this.guardWarned = false;
+        this.guardOpen = 0.75;
+        this.hooks.onTrait?.(this, 'guardDown');
+      }
+    }
+    if (this.revealT > 0) this.revealT -= dt;
+    // Mime: invisible (only its shadow shows) until it commits to a stomp or gets smacked
+    if (this.has('invisible') && this.alive) {
+      const seen = this.state === 'stomp' || this.revealT > 0 || this.state === 'lift';
+      const a = seen ? 1 : 0.07;
+      this.img.setAlpha(a);
+      this.leg.setAlpha(a);
+      this.cuff?.setAlpha(a);
+      this.icons?.setAlpha(seen ? 1 : 0.5);
+    }
+    // Gym Bro: bulks up while nobody hits it
+    if (this.has('bulk') && this.alive) {
+      this.bulkT += dt;
+      if (this.bulkT > 1.5 && this.bulk < 6) {
+        this.bulkT = 0;
+        this.bulk++;
+        this.armor++;
+        this.scene.tweens.add({ targets: this.img, scaleX: this.img.scaleX * 1.05, duration: 120, yoyo: true });
+      }
+    }
+    this.hooks.onTick?.(this, dt);
     if (this.type.traits.includes('phase') && this.alive) {
       this.phaseT += dt;
       const cycle = this.type.boss ? 3.2 : 2.6;
@@ -208,6 +323,10 @@ export class Foot {
       const a = this.phased ? 0.18 + Math.sin(this.age * 30) * 0.06 : this.type.art.ghost ? 0.82 : 1;
       this.img.setAlpha(a);
       this.leg.setAlpha(a * 0.85);
+    }
+    if (this.puppet) {
+      this.render(dt);
+      return;
     }
     if (this.stunT > 0) {
       this.stunT -= dt;
@@ -223,31 +342,49 @@ export class Foot {
       globalSlow *
       (1 - this.slowAbove) *
       (1 + this.cheer) *
-      (this.enraged ? 1.5 : 1);
+      (this.enraged ? 1.5 : 1) *
+      this.hurry;
     const speed = BASE_DESCEND * this.type.speed * this.speedMul * slowF;
     const target = this.target;
 
     switch (this.state) {
       case 'enter': {
-        this.y += (HOVER_Y - 20 - this.y) * Math.min(1, dt * 4);
-        if (target) this.x += (target.x - this.x) * Math.min(1, dt * 3);
-        if (this.y > HOVER_Y - 40) this.setState('hover');
+        const hy = this.hoverY ?? HOVER_Y;
+        this.y += (hy - 20 - this.y) * Math.min(1, dt * 4);
+        if (this.laneX !== null) this.x += (this.laneX - this.x) * Math.min(1, dt * 3);
+        else if (target) this.x += (target.x - this.x) * Math.min(1, dt * 3);
+        if (this.y > hy - 40) this.setState('hover');
         break;
       }
       case 'hover': {
+        if (this.has('bury')) {
+          const was = this.buried;
+          this.buried = this.stateT < this.hoverTime * 0.9;
+          this.img.setAlpha(this.buried ? 0.25 : 1);
+          this.leg.setAlpha(this.buried ? 0.25 : 1);
+          if (was && !this.buried) this.hooks.onTrait?.(this, 'surface');
+        }
+        if (this.has('roll') && this.stateT < this.hoverTime) {
+          // bowling shoe: rolls sideways across the table before picking its lane
+          this.x += Math.sin(this.age * 1.6) * 260 * dt;
+          const t = this.hooks.pickTarget(this);
+          if (t && Math.abs(t.x - this.x) < 200) this.target = t;
+        }
         if (!target || target.dead) {
           this.target = this.hooks.pickTarget(this);
           if (!this.target) break;
         }
         // queued feet wait higher up, fanned out, so they never stack on the divers below
-        const hoverX = this.target!.x + (this.waiting ? this.hoverOffset * 1.6 : this.hoverOffset);
+        const hoverX = this.laneX ?? this.target!.x + (this.waiting ? this.hoverOffset * 1.6 : this.hoverOffset);
         this.x += (hoverX - this.x) * Math.min(1, dt * 3);
-        this.y += ((this.waiting ? HOVER_Y - 170 : HOVER_Y) - this.y) * Math.min(1, dt * 3);
+        const hy = this.hoverY ?? HOVER_Y;
+        this.y += ((this.waiting ? hy - 170 : hy) - this.y) * Math.min(1, dt * 3);
         if (this.type.traits.includes('teleport') && this.stateT > this.hoverTime * 0.6 && Math.random() < dt * 0.8) {
           const other = this.hooks.pickTarget(this);
           if (other && other !== this.target) this.blinkTo(other);
         }
         if (this.stateT > this.hoverTime) {
+          this.buried = false;
           const lane = this.hooks.canDescend ? this.hooks.canDescend(this) : 0;
           if (lane !== null) {
             this.slot = lane;
@@ -279,12 +416,16 @@ export class Foot {
           }
         }
         const t = this.target!;
+        // a laned shoe sharing a pizza dives on its own side of it, never on top of another
+        const aimX = this.laneX !== null ? t.x + Phaser.Math.Clamp(this.laneX - t.x, -t.radius * 0.8, t.radius * 0.8) : t.x + this.slot;
         // zig-zag weave
         if (this.type.traits.includes('zigzag')) {
           this.zigBase += dt;
-          this.x = t.x + this.slot + Math.sin(this.zigBase * 3.2) * (this.slot ? 45 : 70);
+          const weave = aimX + Math.sin(this.zigBase * 3.2) * (this.slot ? 45 : 70);
+          // a laned shoe eases into its weave instead of snapping across from its hover spot
+          this.x = this.laneX !== null ? this.x + (weave - this.x) * Math.min(1, dt * 6) : weave;
         } else {
-          this.x += (t.x + this.slot - this.x) * Math.min(1, dt * 2);
+          this.x += (aimX - this.x) * Math.min(1, dt * 2);
         }
         let want = speed;
         if (this.type.traits.includes('burst')) {
@@ -301,7 +442,7 @@ export class Foot {
           this.vy = Math.max(this.vy, 0);
         }
         // striker: switch pizzas once, mid-dive
-        if (this.has('switch') && !this.switched && this.y > HOVER_Y + (this.stompY - HOVER_Y) * 0.4) {
+        if (this.has('switch') && this.laneX === null && !this.switched && this.y > HOVER_Y + (this.stompY - HOVER_Y) * 0.4) {
           this.switched = true;
           let other = this.hooks.pickTarget(this);
           for (let i = 0; i < 6 && other === this.target; i++) other = this.hooks.pickTarget(this);
@@ -315,6 +456,21 @@ export class Foot {
               this.hooks.onTrait?.(this, 'switch');
             }
           }
+        }
+        // pogo: bounces over to another pizza once, mid-dive
+        if (this.has('hop') && !this.hopped && this.y > HOVER_Y + (this.stompY - HOVER_Y) * 0.5) {
+          this.hopped = true;
+          const other = this.hooks.pickTarget(this);
+          if (other && other !== this.target) {
+            this.target = other;
+            this.slot = 0;
+            this.vy = -420;
+            this.hooks.onTrait?.(this, 'hop');
+          }
+        }
+        // astronaut: floats back up partway through every dive
+        if (this.has('antigrav') && this.y > HOVER_Y + (this.stompY - HOVER_Y) * 0.55 && Math.random() < dt * 0.9) {
+          this.vy = -260;
         }
         // clumsy: occasionally trips and stumbles back up on its own
         if (this.has('clumsy') && this.vy > 0 && Math.random() < dt * 0.35) {
@@ -331,6 +487,10 @@ export class Foot {
           this.y = this.stompY;
           this.vy = 0;
           this.setState('stomp');
+          if (this.has('guard')) {
+            this.guardOpen = 1.1;
+            this.hooks.onTrait?.(this, 'guardDown');
+          }
           this.hooks.onStomp(this);
         }
         break;
@@ -355,6 +515,7 @@ export class Foot {
         if (this.vy >= 0 || this.y <= HOVER_Y) {
           this.target = this.hooks.pickTarget(this);
           this.feinted = false;
+          this.hopped = false;
           this.hoverTime = this.freshHoverTime(0.4 + Math.random() * 0.6);
           this.setState('hover');
         }
@@ -366,7 +527,56 @@ export class Foot {
     this.render(dt);
   }
 
-  private render(dt: number): void {
+  /** Show the foot regardless of invisibility (Mime) for a moment. */
+  reveal(sec: number): void {
+    this.revealT = Math.max(this.revealT, sec);
+  }
+
+  setVisualAlpha(a: number): void {
+    this.img.setAlpha(a);
+    this.leg.setAlpha(a);
+    this.cuff?.setAlpha(a);
+  }
+
+  /** Resize the whole foot (art and hit area) to `mul` of its normal size. */
+  setSize(mul: number, ms = 250): void {
+    this.sizeMul = mul;
+    const rel = (this.baseScale / this.type.scale) * mul;
+    if (ms > 0) this.scene.tweens.add({ targets: this.root, scaleX: rel, scaleY: rel, duration: ms, ease: 'Back.Out' });
+    else this.root.setScale(rel);
+  }
+
+  private auraFx: Phaser.FX.Glow | null = null;
+  private auraTween: Phaser.Tweens.Tween | null = null;
+
+  /** A pulsing coloured outline that shows the boss's phase at a glance (null clears it). */
+  /** Turn this foot shiny: a white-gold glow and a sweeping shine (sparkles are emitted by the scene). */
+  makeShiny(): void {
+    this.shiny = true;
+    this.img.preFX?.addGlow(0xfff6c0, 5, 0, false, 0.1, 14);
+    this.img.preFX?.addShine(0.7, 0.35, 4);
+    if (this.leg) this.leg.preFX?.addShine(0.7, 0.35, 4);
+  }
+
+  setPhaseAura(color: number | null): void {
+    this.auraTween?.remove();
+    this.auraTween = null;
+    if (this.auraFx) this.img.preFX?.remove(this.auraFx);
+    this.auraFx = null;
+    if (color === null || !this.img.preFX) return;
+    this.auraFx = this.img.preFX.addGlow(color, 6, 0, false, 0.1, 14);
+    this.auraTween = this.scene.tweens.add({ targets: this.auraFx, outerStrength: { from: 4, to: 10 }, duration: 650, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+  }
+
+  tint(color: number | null): void {
+    for (const o of [this.img, this.leg, this.cuff]) {
+      if (!o) continue;
+      if (color === null) o.clearTint();
+      else o.setTint(color);
+    }
+  }
+
+  render(dt: number): void {
     if (!this.alive) return;
     const lean = this.state === 'descend' ? Phaser.Math.Clamp(this.vy / 2400, -0.08, 0.08) : 0;
     const wob = this.state === 'hover' ? Math.sin(this.wobbleT * 5) * 0.03 : Math.sin(this.wobbleT * 9) * 0.008;
@@ -391,7 +601,8 @@ export class Foot {
   private drawHp(): void {
     const g = this.hpBar;
     g.clear();
-    if (!this.hitOnce || this.type.boss || this.hp <= 0) return;
+    if (!this.hitOnce || this.isBossLike || this.hp <= 0) return;
+    if (this.has('invisible') && this.revealT <= 0 && this.state !== 'stomp') return;
     const w = 90;
     const y = -this.meta.footHeight * this.type.scale - 34;
     const f = Phaser.Math.Clamp(this.hp / this.maxHp, 0, 1);
@@ -430,7 +641,7 @@ export class Foot {
     let p = power;
     if (this.type.traits.includes('heavy')) p *= 0.35;
     if (this.type.traits.includes('floaty')) p *= 1.8;
-    if (this.type.boss) p *= 0.4;
+    if (this.isBossLike) p *= 0.4;
     if (this.state === 'hover') {
       this.y -= p * 0.12;
       this.stateT = Math.min(this.stateT, this.hoverTime * 0.5);
@@ -499,6 +710,8 @@ export class Foot {
 
   /** Comedic yank off-screen. */
   die(boss = false): void {
+    this.auraTween?.remove();
+    this.auraTween = null;
     this.setState('dying');
     // the killing blow flashes white; make sure the flash clears since update() stops running now
     this.scene.time.delayedCall(boss ? 140 : 70, () => {
@@ -506,6 +719,7 @@ export class Foot {
       if (this.root.active) this.clearTint();
     });
     this.hpBar.clear();
+    this.icons?.setVisible(false);
     this.stars?.destroy();
     this.shadow.setVisible(false);
     const spin = (Math.random() < 0.5 ? -1 : 1) * (boss ? 0.15 : 0.35);
@@ -529,6 +743,8 @@ export class Foot {
   }
 
   destroy(): void {
+    this.auraTween?.remove();
+    this.auraTween = null;
     this.state = 'gone';
     this.root.destroy();
     this.shadow.destroy();

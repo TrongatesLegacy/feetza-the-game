@@ -1,13 +1,22 @@
 // DOM overlay UI: HUD, menus and modal screens. Rendered over the Phaser canvas and scaled with
 // container query units (1em = 1% of the stage width) so it stays crisp at any size.
 
-import { FEET, FOOT_BY_ID, TRAIT_INFO } from '../data/feet';
+import { FEET, FOOT_BY_ID, TRAIT_INFO, howToFor, tellFor, type FootType } from '../data/feet';
 import { META } from '../data/meta';
 import { PIZZAS, PIZZA_BY_ID } from '../data/pizzas';
-import { RARITY_COLOR, UPGRADE_BY_ID, type Upgrade } from '../data/upgrades';
-import { footPortraitURL, pizzaPortraitURL } from '../game/assets';
+import { RARITY_COLOR, UPGRADE_BY_ID } from '../data/upgrades';
+import { glyph } from '../systems/gamepad';
+import type { ShopActions, ShopPizza, ShopState } from './shopTypes';
+import { INTROS, freshBar, pizzaThumb } from './bits';
+import { footPortraitURL, pizzaPortraitURL, textureURL } from '../game/assets';
 import { audio } from '../systems/audio';
-import { persist, resetProgress, save, updateSettings, type Settings } from '../systems/save';
+import { bestFor, metaRefundValue, persist, resetEverything, resetMeta, resetProgress, save, updateSettings, type Settings } from '../systems/save';
+import { HEATS, HEAT_BY_ID, type HeatId } from '../data/difficulty';
+import { ACT_WAVES, STAGES } from '../data/stages';
+import { BACKDROPS } from '../art/backdrops';
+import { applyA11y } from './a11y';
+import { abilityFor, abilityKindLabel, describeAbility } from '../game/abilities';
+import { PEELS, buyPeel, checkPeelAchievements, equipPeel, equippedPeel, hasPeel, peelThumbURL, type PeelDef, type PeelGroup } from '../game/peels';
 
 type Attrs = Record<string, string | number | boolean | undefined>;
 
@@ -46,7 +55,7 @@ export const COIN_SVG =
 const CRUST_SVG =
   '<svg class="coin" viewBox="0 0 24 24"><path d="M3 9c3-5 15-5 18 0l-9 13z" fill="#ffd23f" stroke="#2a1810" stroke-width="1.6" stroke-linejoin="round"/><path d="M3 9c3-5 15-5 18 0" fill="none" stroke="#d9963f" stroke-width="3.2" stroke-linecap="round"/><circle cx="10" cy="12" r="1.6" fill="#e5402a"/><circle cx="14" cy="15" r="1.4" fill="#e5402a"/></svg>';
 
-function btn(label: string, cls: string, onClick: () => void, attrs: Attrs = {}): HTMLButtonElement {
+export function btn(label: string, cls: string, onClick: () => void, attrs: Attrs = {}): HTMLButtonElement {
   const b = h('button', { class: `btn ${cls}`, type: 'button', ...attrs });
   b.innerHTML = label;
   b.addEventListener('pointerenter', () => audio.sfx('sfx_hover', { throttle: 60 }));
@@ -60,6 +69,31 @@ function btn(label: string, cls: string, onClick: () => void, attrs: Attrs = {})
 }
 
 const fmt = (n: number) => Math.floor(n).toLocaleString('en-US');
+
+/** Enter/Space on a focusable tile acts like a click (keyboard and gamepad). */
+function activatable<T extends HTMLElement>(el: T): T {
+  el.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      el.click();
+    }
+  });
+  return el;
+}
+
+/** Re-render without losing focus: refocus the element with the same data-fk afterwards. */
+function keepFocus(root: HTMLElement, render: () => void): void {
+  const fk = (document.activeElement as HTMLElement | null)?.dataset?.fk;
+  render();
+  if (fk) root.querySelector<HTMLElement>(`[data-fk="${CSS.escape(fk)}"]`)?.focus();
+}
+
+/** A peel's ability as a line for the locker: kind pill, name and what it does. */
+function abilityLine(peelId: string): HTMLElement {
+  if (peelId === 'classic') return h('div', { class: 'abl' }, h('span', { class: 'chip' }, 'ACTIVE'), h('b', {}, 'Peel Slam'), h('span', {}, 'Press Space when the meter is full: smack every foot at once.'));
+  const a = abilityFor(peelId);
+  return h('div', { class: 'abl' }, h('span', { class: `chip ${abilityKindLabel(a).toLowerCase()}` }, abilityKindLabel(a)), h('b', {}, a.name), h('span', {}, describeAbility(a)));
+}
 
 export interface CounterOffer {
   id: string;
@@ -83,6 +117,12 @@ class Hud {
   private bossName = h('div', { class: 'name' });
   private bossHp = h('div', { class: 'hp' });
   private bossTrail = h('div', { class: 'trail' });
+  private bossPhase = h('span', { class: 'phase' });
+  private bossNotches = h('div', { class: 'notches' });
+  private bossMove = h('div', { class: 'move' });
+  private newFootEl: HTMLElement | null = null;
+  /** When the current centre banner disappears (performance.now() ms). */
+  private bannerUntil = 0;
   private slam = h('div', { class: 'slam', role: 'button', 'aria-label': 'Peel Slam' });
   private owned = h('div', { class: 'owned' });
   private toasts = h('div', { class: 'toasts' });
@@ -98,8 +138,8 @@ class Hud {
     this.coinPill.innerHTML = COIN_SVG;
     this.coinPill.append(this.coins);
     this.combo.append(this.comboLabel, this.comboMult, h('div', { class: 'timer' }, this.comboTimer));
-    this.boss.append(this.bossName, h('div', { class: 'track' }, this.bossTrail, this.bossHp));
-    this.slam.innerHTML = '<span>PEEL<br>SLAM<small>SPACE</small></span>';
+    this.boss.append(h('div', { class: 'bossname' }, this.bossName, this.bossPhase), h('div', { class: 'track' }, this.bossTrail, this.bossHp, this.bossNotches), this.bossMove);
+    this.slam.innerHTML = '<span>PEEL<br>SLAM<small class="kb">SPACE</small><small class="pd" data-glyph="X">X</small></span>';
     this.slam.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
       this.onSlam();
@@ -115,9 +155,10 @@ class Hud {
       h('div', { class: 'tl' }, this.score, this.wave),
       this.combo,
       this.boss,
-      h('div', { class: 'tr' }, this.coinPill, this.muteBtn, pause),
+      h('div', { class: 'tr' }, this.coinPill),
       this.toasts,
-      this.owned,
+      // pause and mute live in the bottom strip, which feet never reach
+      h('div', { class: 'bl' }, this.muteBtn, pause, this.owned),
       this.slam,
       this.fpsEl,
     );
@@ -161,13 +202,41 @@ class Hud {
     this.comboTimer.style.width = `${Math.max(0, frac) * 100}%`;
   }
 
-  setBoss(name: string | null, frac = 1): void {
+  setBoss(name: string | null, frac = 1, phases = 1, phase = 1): void {
     this.boss.classList.toggle('on', !!name);
-    if (!name) return;
+    if (!name) {
+      this.setBossMove(null);
+      return;
+    }
+    this.boss.dataset.phase = String(phase);
+    if (this.bossName.textContent !== name || this.bossNotches.childElementCount !== Math.max(0, phases - 1)) {
+      this.bossNotches.replaceChildren();
+      for (let i = 1; i < phases; i++) this.bossNotches.append(h('i', { style: `left:${(1 - i / phases) * 100}%` }));
+    }
     this.bossName.textContent = name;
+    this.bossPhase.textContent = phases > 1 ? `PHASE ${phase} / ${phases}` : '';
     const w = `${Math.max(0, frac) * 100}%`;
     this.bossHp.style.width = w;
     this.bossTrail.style.width = w;
+  }
+
+  /** The slam button: the Peel Slam, or the peel ability that replaces it this run. */
+  setSlamLabel(name: string | null, kind: string | null): void {
+    if (!name) {
+      this.slam.innerHTML = '<span>PEEL<br>SLAM<small class="kb">SPACE</small><small class="pd" data-glyph="X">X</small></span>';
+      this.slam.classList.remove('ability', 'passive');
+      this.slam.setAttribute('aria-label', 'Peel Slam');
+      return;
+    }
+    const passive = kind !== 'ACTIVE';
+    // one word per line, like PEEL / SLAM; long words shrink to fit the circle
+    const words = name.toUpperCase().split(/\s+/);
+    const longest = Math.max(...words.map((w) => w.length));
+    const size = Math.min(1, 5 / longest, 2.4 / words.length);
+    this.slam.innerHTML = `<span><b class="an" style="font-size:${size.toFixed(2)}em">${words.join('<br>')}</b>${passive ? `<small class="pk">${kind}</small>` : '<small class="kb">SPACE</small><small class="pd" data-glyph="X">X</small>'}</span>`;
+    this.slam.classList.add('ability');
+    this.slam.classList.toggle('passive', passive);
+    this.slam.setAttribute('aria-label', name);
   }
 
   setSuper(frac: number): void {
@@ -186,20 +255,94 @@ class Hud {
     );
   }
 
+  /** The tips counter fades while a foot passes behind it. */
+  setCoinFade(on: boolean): void {
+    this.coinPill.classList.toggle('faded', on);
+  }
+
+  /** The NEW FOOT card fades while a foot is coming down through its corner. */
+  setNewFootFade(on: boolean): void {
+    this.newFootEl?.classList.toggle('faded', on);
+  }
+
+  /** NEW FOOT card on first sighting: name, abilities and how to beat it. */
+  /** Returns how long (ms) until the card actually shows. */
+  newFoot(img: string, f: FootType, label: string): number {
+    this.newFootEl?.remove();
+    const chips = h('div', { class: 'nf-traits' }, ...f.traits.filter((t) => t !== 'tiny').slice(0, 3).map((t) => h('span', { class: 'chip' }, TRAIT_INFO[t])));
+    const el = h(
+      'div',
+      { class: 'newfoot panel' },
+      h('span', { class: 'nf-tag' }, label),
+      h('div', { class: 'nf-row' }, h('img', { src: img, alt: '' }), h('div', {}, h('b', {}, f.name), chips)),
+      howToFor(f) ? h('div', { class: 'nf-how' }, h('b', {}, 'How to beat it: '), howToFor(f)!) : null,
+      tellFor(f) ? h('div', { class: 'nf-tell' }, h('b', {}, 'Watch for: '), tellFor(f)!) : null,
+    );
+    this.newFootEl = el;
+    // it waits for a centre banner (WAVE N · New: …) to finish, so the two never overlap
+    const wait = Math.max(0, this.bannerUntil - performance.now());
+    setTimeout(() => {
+      if (this.newFootEl !== el) return;
+      this.root.append(el);
+      setTimeout(() => {
+        el.classList.add('leaving');
+        setTimeout(() => el.remove(), 300);
+      }, 5200);
+    }, wait);
+    return wait;
+  }
+
   setFps(n: number): void {
     if (save.settings.showFps) this.fpsEl.textContent = `${Math.round(n)} FPS`;
   }
 
-  banner(big: string, small = '', kind: '' | 'boss' | 'loc' | 'clear' = ''): void {
-    const b = h('div', { class: `banner ${kind}` }, h('div', { class: 'big' }, big), small ? h('div', { class: 'small' }, small) : null);
+  banner(big: string, small = '', kind: '' | 'boss' | 'loc' | 'clear' | 'phase' = '', desc?: string, ms = 2300): void {
+    for (const old of this.root.querySelectorAll('.banner')) old.remove();
+    // a description line ("what it does · what to do") splits at the dot into two lines
+    const descEl = desc
+      ? h('div', { class: 'desc' }, ...desc.split(' · ').map((part, i) => h('span', { class: i ? 'answer' : 'does' }, part)))
+      : null;
+    const b = h('div', { class: `banner ${kind}${desc ? ' explained' : ''}` }, h('div', { class: 'big' }, big), small ? h('div', { class: 'small' }, small) : null, descEl);
+    b.style.animationDuration = `${ms - 100}ms`;
+    this.bannerUntil = performance.now() + ms;
     this.root.append(b);
-    setTimeout(() => b.remove(), 2300);
+    // long titles shrink to fit the screen instead of running off it
+    const descPad = descEl ? parseFloat(getComputedStyle(descEl).paddingLeft) * 2 + parseFloat(getComputedStyle(descEl).borderLeftWidth) * 2 : 0;
+    for (const el of b.querySelectorAll<HTMLElement>('.big, .small, .desc span')) {
+      const room = b.clientWidth - (descEl?.contains(el) ? descPad : 0);
+      if (el.scrollWidth > room) el.style.fontSize = `${(parseFloat(getComputedStyle(el).fontSize) * room) / el.scrollWidth}px`;
+    }
+    setTimeout(() => b.remove(), ms);
   }
 
+  /** The boss's current move, under its health bar: name, then what to do about it. */
+  setBossMove(name: string | null, info = ''): void {
+    if (!name) {
+      this.bossMove.replaceChildren();
+      return;
+    }
+    const answer = info.split(' · ')[1] ?? info;
+    this.bossMove.replaceChildren(h('b', {}, name), h('span', {}, answer));
+  }
+
+  private toastQueue: HTMLElement[] = [];
+
+  /** Toasts stack two at a time; more wait their turn so the column never runs into the centre banner. */
   toast(img: string | null, title: string, text: string): void {
     const t = h('div', { class: 'toast panel' }, img ? h('img', { src: img, alt: '' }) : null, h('div', {}, h('b', {}, title), text));
-    this.toasts.append(t);
-    setTimeout(() => t.remove(), 4100);
+    this.toastQueue.push(t);
+    this.pumpToasts();
+  }
+
+  private pumpToasts(): void {
+    while (this.toastQueue.length && this.toasts.childElementCount < 2) {
+      const t = this.toastQueue.shift()!;
+      this.toasts.append(t);
+      setTimeout(() => {
+        t.remove();
+        this.pumpToasts();
+      }, 4100);
+    }
   }
 
   tutorial(show: boolean): void {
@@ -306,27 +449,39 @@ class UI {
   }
 
   // ——— Main menu ———
-  menu(h_: { play: () => void; pizzeria: () => void; pedia: () => void; settings: () => void; credits: () => void }): HTMLElement {
+  menu(h_: { play: () => void; resume: (() => void) | null; pizzeria: () => void; pedia: () => void; locker: () => void; settings: () => void; credits: () => void }): HTMLElement {
     const seen = save.seenFeet.length;
+    const best = bestFor(save.heat);
     const stats = h(
       'div',
       { class: 'menu-stats' },
-      h('span', { html: `Best <b>${fmt(save.bestScore)}</b>` }),
-      h('span', { html: `Wave <b>${save.bestWave}</b>` }),
+      h('span', { html: `Best <b>${fmt(best.score)}</b>` }),
+      h('span', { html: `Wave <b>${best.wave}</b> <small>${HEAT_BY_ID[save.heat].name}</small>` }),
       h('span', { html: `Crusts <b>${fmt(save.crusts)}</b>` }),
     );
     stats.classList.add('corner');
+    const r = save.run;
+    const cont = r && h_.resume
+      ? h(
+          'div',
+          { class: 'continue panel' },
+          h('div', { class: 'cont-text' }, h('span', { class: 'cont-tag' }, 'RUN IN PROGRESS'), h('b', {}, `Wave ${r.wave} · ${HEAT_BY_ID[r.heat].name} · ${r.wave >= ACT_WAVES ? 'Act 2' : 'Act 1'}`), h('span', {}, `${fmt(r.score)} points · ${r.pizzas.filter((p) => !p.dead).length} pizzas · saved at the shop`)),
+          btn('CONTINUE', 'green big', h_.resume, { 'data-pad-default': '' }),
+        )
+      : null;
     const content = h(
       'div',
       { class: 'menu main' },
       logo(),
       h('div', { class: 'tagline' }, 'Stop the feet. Save the pizza.'),
-      btn('PLAY', 'big', h_.play),
+      cont,
+      btn(r ? 'NEW RUN' : 'PLAY', cont ? '' : 'big', h_.play, cont ? {} : { 'data-pad-default': '' }),
       h(
         'div',
         { class: 'menu-buttons' },
         btn(`PIZZERIA${PIZZAS.some((p) => !save.unlockedPizzas.includes(p.id) && p.cost <= save.crusts) ? ' <span class="badge">NEW</span>' : ''}`, 'yellow', h_.pizzeria),
         btn(`PIZZAPEDIA <small style="font-size:.7em">${seen}/${FEET.length}</small>`, 'green', h_.pedia),
+        btn(`PEELS${save.peelsNew.length ? ' <span class="badge">NEW</span>' : ''}`, 'yellow', h_.locker),
         btn('SETTINGS', 'cream', h_.settings),
         btn('CREDITS', 'cream', h_.credits),
       ),
@@ -336,199 +491,470 @@ class UI {
     return s;
   }
 
-  // ——— Pre-run lineup ———
-  lineup(ids: string[], onShuffle: () => void, onStart: () => void, onBack: () => void): HTMLElement {
-    const tiles = ids.map((id) => {
-      const p = PIZZA_BY_ID[id];
-      return h('div', { class: 'tile pop' }, h('img', { src: pizzaPortraitURL(id), alt: p.name }), h('div', { class: 'nm' }, p.name), h('div', { class: 'ds' }, p.perkText));
-    });
-    const panel = h(
-      'div',
-      { class: 'panel modal' },
-      h('div', { class: 'title' }, "TONIGHT'S MENU"),
-      h('div', { class: 'subtitle' }, 'Each pizza grants its perk for as long as it survives.'),
-      h('div', { class: 'lineup' }, ...tiles),
-      h('div', { class: 'row' }, btn('BACK', 'cream', onBack), btn('SHUFFLE', 'yellow', onShuffle), btn('OPEN FOR BUSINESS!', 'green', onStart)),
-      h('div', { class: 'hint', html: 'Unlock more pizzas in the <b>Pizzeria</b> with Golden Crusts.' }),
-    );
-    return this.open(panel);
-  }
-
-  // ——— Upgrade picker ———
-  upgrade(o: {
-    title: string;
-    sub: string;
-    choices: Upgrade[];
-    levels: Record<string, number>;
-    coins: number;
-    rerollCost: number;
-    freeRerolls: number;
-    healCost: number;
-    canHeal: boolean;
-    reviveCost: number;
-    canRevive: boolean;
-    onPick: (id: string) => void;
-    onReroll: () => void;
-    onHeal: () => void;
-    onRevive: () => void;
-    counter: { offers: CounterOffer[]; canBuy: boolean; onBuy: (id: string) => void };
-    progress: { runCrusts: number; bank: number; next: { name: string; cost: number } | null };
-  }): HTMLElement {
-    const cards = o.choices.map((u, i) => {
-      const lvl = o.levels[u.id] ?? 0;
-      const pips = h('div', { class: 'pips' });
-      for (let k = 0; k < u.max; k++) pips.append(h('i', { class: k < lvl ? 'on' : k === lvl ? 'new' : '' }));
-      const c = h(
-        'div',
-        { class: `card ${u.rarity}`, tabindex: 0, role: 'button' },
-        h('div', { class: 'key' }, String(i + 1)),
-        h('div', { class: 'rarity' }, u.rarity),
-        h('div', { class: 'icon' }, u.icon),
-        h('div', { class: 'name' }, u.name),
-        h('div', { class: 'desc' }, u.desc(lvl + 1)),
-        h('div', { class: 'lvl' }, lvl ? `LV ${lvl} → ${lvl + 1}` : 'NEW', pips),
-      );
-      c.addEventListener('pointerenter', () => audio.sfx('sfx_hover', { throttle: 60 }));
-      c.addEventListener('click', () => choose(u.id));
-      return c;
-    });
-    let done = false;
-    let screen: HTMLElement | null = null;
-    const choose = (id: string) => {
-      if (done) return;
-      done = true;
-      window.removeEventListener('keydown', onKey);
-      o.onPick(id);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (this.stack[this.stack.length - 1] !== screen) return;
-      const n = parseInt(e.key, 10);
-      if (n >= 1 && n <= o.choices.length) choose(o.choices[n - 1].id);
-      if (e.key.toLowerCase() === 'r' && (o.freeRerolls > 0 || o.coins >= o.rerollCost)) {
-        window.removeEventListener('keydown', onKey);
-        o.onReroll();
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    const coinPill = h('div', { class: 'pill', html: `${COIN_SVG}<span>${fmt(o.coins)}</span>` });
-    const rerollLabel = o.freeRerolls > 0 ? `REROLL <small>(${o.freeRerolls} free)</small>` : `REROLL ${COIN_SVG.replace('class="coin"', 'class="coin-ico"')}${o.rerollCost}`;
-    const reroll = btn(rerollLabel, 'yellow small', () => {
-      window.removeEventListener('keydown', onKey);
-      o.onReroll();
-    });
-    reroll.disabled = o.freeRerolls <= 0 && o.coins < o.rerollCost;
-    const heal = btn(`HEAL ALL +2 ${COIN_SVG.replace('class="coin"', 'class="coin-ico"')}${o.healCost}`, 'green small', () => {
-      window.removeEventListener('keydown', onKey);
-      o.onHeal();
-    });
-    heal.disabled = !o.canHeal || o.coins < o.healCost;
-    const revive = btn(`REBAKE A PIZZA ${COIN_SVG.replace('class="coin"', 'class="coin-ico"')}${o.reviveCost}`, 'small', () => {
-      window.removeEventListener('keydown', onKey);
-      o.onRevive();
-    });
-    revive.disabled = !o.canRevive || o.coins < o.reviveCost;
-    // the pizza counter: buy (or rent a locked "Chef's Special") for this run
-    const counter = h('div', { class: 'counter' }, h('div', { class: 'counter-title' }, 'PIZZA COUNTER', h('small', {}, 'add or swap')));
-    for (const off of o.counter.offers) {
-      const b = btn(`${off.trial ? 'RENT' : 'BUY'} ${COIN_SVG.replace('class="coin"', 'class="coin-ico"')}${off.cost}`, `${off.trial ? '' : 'green'} small`, () => o.counter.onBuy(off.id));
-      b.disabled = !o.counter.canBuy || o.coins < off.cost;
-      counter.append(
-        h(
-          'div',
-          { class: `offer${off.trial ? ' trial' : ''}`, title: off.perk },
-          h('img', { src: pizzaPortraitURL(off.id), alt: '' }),
-          h('div', { class: 'offer-text' }, off.trial ? h('span', { class: 'tag' }, "CHEF'S SPECIAL") : null, h('b', {}, off.name), h('span', {}, off.perk)),
-          b,
-        ),
-      );
-    }
-    if (!o.counter.offers.length) counter.append(h('div', { class: 'hint' }, 'Unlock more pizzas in the Pizzeria to see them here.'));
-    // permanent-progress strip
-    const pr = o.progress;
-    const total = pr.bank + pr.runCrusts;
-    const progress = h(
-      'div',
-      { class: 'crust-progress' },
-      h('span', { html: `${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} <b>+${pr.runCrusts}</b> Golden Crusts this run` }),
-      pr.next
-        ? h(
-            'span',
-            { class: 'next' },
-            `Next unlock: ${pr.next.name} `,
-            h('i', { class: 'bar' }, h('i', { style: `width:${Math.min(100, (total / pr.next.cost) * 100)}%` })),
-            ` ${Math.min(total, pr.next.cost)}/${pr.next.cost}`,
-          )
-        : h('span', { class: 'next' }, 'Every pizza unlocked!'),
-    );
-    const wrap = h(
-      'div',
-      { class: 'upgrade-wrap' },
-      h('div', { class: 'title' }, o.title),
-      h('div', { class: 'tagline', style: 'font-size:2em' }, o.sub),
-      progress,
-      h('div', { class: 'cards' }, ...cards),
-      h('div', { class: 'panel shopbar' }, h('div', { class: 'shop-row' }, coinPill, reroll, heal, o.canRevive ? revive : null), counter),
-      h('div', { class: 'hint kbd-hint', style: 'color:#fff6e2;text-shadow:0 .1em 0 #2a1810', html: `Press <span class="kbd">1</span>–<span class="kbd">${o.choices.length}</span> to pick · <span class="kbd">R</span> to reroll` }),
-    );
-    const s = this.open(wrap);
-    screen = s;
-    this.onClose(s, () => window.removeEventListener('keydown', onKey));
-    return s;
-  }
-
-  // ——— Pizza placement: add to a new plate or swap out an existing pizza ———
-  placement(o: {
-    id: string;
-    name: string;
-    canAdd: boolean;
-    current: { id: string; name: string; slices: number; max: number; dead: boolean }[];
-    onChoose: (index: number) => void; // -1 = new plate
-  }): HTMLElement {
+  /** One-time welcome for players coming from the old version. */
+  welcome(o: { keep: () => void; fresh: () => void }): HTMLElement {
+    const news: [string, string][] = [
+      ['Five heat levels', 'Mild to Inferno. Your bests move to Regular.'],
+      ['Toppings now cost tips', 'Buy as many as you can afford between waves.'],
+      ['Bosses fight in phases', 'Each one changes up at 66% and 33% health.'],
+      ['Mini-bosses and wave events', 'Flyers and chests worth smacking.'],
+      ['Pizzas go stale', 'Reheat them, or swap in fresh ones.'],
+      ['A 60-wave journey', '12 stages, 24 bosses, an ending, then endless.'],
+      ['Controller support', 'Plug in and play, menus included.'],
+      ['Saves mid-run', 'Close the tab and continue from the shop.'],
+    ];
     let s: HTMLElement;
-    const choose = (i: number) => {
+    let armed = false;
+    const freshBtn = btn('FRESH START', 'cream', () => {
+      if (!armed) {
+        armed = true;
+        freshBtn.innerHTML = 'TAP AGAIN TO WIPE';
+        freshBtn.classList.remove('cream');
+        return;
+      }
       this.close(s);
-      o.onChoose(i);
-    };
-    const tiles: HTMLElement[] = o.current.map((p, i) =>
-      h(
-        'div',
-        { class: `tile place${p.dead ? ' gone' : ''}` },
-        h('img', { src: pizzaPortraitURL(p.id), alt: '' }),
-        h('div', { class: 'nm' }, p.name),
-        h('div', { class: 'ds' }, p.dead ? 'Destroyed' : `${p.slices}/${p.max} slices · perk active`),
-        btn(p.dead ? 'REPLACE' : 'SWAP', p.dead ? 'green small' : 'small', () => choose(i)),
-      ),
-    );
-    const add = h(
-      'div',
-      { class: `tile place new${o.canAdd ? '' : ' full'}` },
-      h('div', { class: 'plus' }, '+'),
-      h('div', { class: 'nm' }, 'New plate'),
-      h('div', { class: 'ds' }, o.canAdd ? `Add it as pizza #${o.current.length + 1}` : `Table full (${o.current.length}/${o.current.length})`),
-    );
-    const addBtn = btn('ADD', 'green small', () => choose(-1));
-    addBtn.disabled = !o.canAdd;
-    add.append(addBtn);
+      o.fresh();
+    });
     const panel = h(
       'div',
-      { class: 'panel modal' },
-      h('div', { class: 'title', style: 'font-size:3.2em' }, `WHERE DOES ${o.name.toUpperCase()} GO?`),
-      h('div', { class: 'subtitle' }, 'Swapping removes that pizza and its perk for the rest of the run.'),
-      h('div', { class: 'placement' }, add, ...tiles),
-      btn('CANCEL', 'cream', () => this.close(s)),
+      { class: 'panel modal welcome' },
+      h('span', { class: 'intro-tag' }, "WHAT'S NEW"),
+      h('div', { class: 'title' }, 'FEETZA HAS A NEW MENU'),
+      h('div', { class: 'subtitle' }, 'Your progress is safe. Here is what changed:'),
+      h('div', { class: 'news' }, ...news.map(([t, d]) => h('div', { class: 'news-item' }, h('b', {}, t), h('span', {}, d)))),
+      h('div', { class: 'callout good' }, welcomeKeep()),
+      h('div', { class: 'row' }, freshBtn, btn('KEEP MY PROGRESS', 'green', () => {
+        this.close(s);
+        o.keep();
+      }, { 'data-pad-default': '' })),
+      h('div', { class: 'hint' }, 'Fresh start wipes progress but keeps settings. Old best scores stay as an Old Version record.'),
     );
     s = this.open(panel);
     return s;
   }
 
-  // ——— Pause ———
-  pause(o: { resume: () => void; settings: () => void; quit: () => void; owned: Record<string, number>; wave: number; score: number }): HTMLElement {
-    const list = h('div', { class: 'chips', style: 'justify-content:center;max-width:44em' });
-    for (const [id, lvl] of Object.entries(o.owned)) {
-      const u = UPGRADE_BY_ID[id];
-      list.append(h('span', { class: 'chip', style: `border-color:${RARITY_COLOR[u.rarity]}` }, `${u.icon} ${u.name}${lvl > 1 ? ` ×${lvl}` : ''}`));
+  // ——— Pre-run setup: heat, act, journey and lineup ———
+  /** shuffle returns a new lineup; it's swapped in place (re-opening the screen made the backdrop flicker). */
+  lineup(ids: string[], shuffle: () => string[], onStart: (heat: HeatId, act2: boolean, ids: string[]) => void, onBack: () => void): HTMLElement {
+    let cur = ids;
+    let heat: HeatId = save.heat;
+    let act2 = false;
+    const unlocked = (hd: (typeof HEATS)[number]) => !hd.unlockAfter || save.act1Cleared.includes(hd.unlockAfter);
+    const heatRow = h('div', { class: 'heats', 'data-pad-section': '' });
+    const actRow = h('div', { class: 'acts', 'data-pad-section': '' });
+    const startBtn = btn('', 'green big', () => {
+      save.heat = heat;
+      persist();
+      onStart(heat, act2, cur);
+    });
+    const render = () => {
+      heatRow.replaceChildren(
+        ...HEATS.map((hd) => {
+          const ok = unlocked(hd);
+          const b = h(
+            'button',
+            { class: `heat${hd.id === heat ? ' on' : ''}${ok ? '' : ' locked'}`, type: 'button', 'aria-pressed': hd.id === heat ? 'true' : 'false' },
+            h('span', { class: 'chilis', html: '🌶️'.repeat(hd.chilis) }),
+            h('b', {}, hd.name),
+            h('span', {}, hd.desc),
+            h('small', {}, ok ? `Crusts ${hd.crusts}×${hd.id === 'regular' ? ' · default' : ''}` : `Beat wave 30 on ${HEAT_BY_ID[hd.unlockAfter!].name}`),
+          ) as HTMLButtonElement;
+          b.disabled = !ok;
+          b.addEventListener('click', () => {
+            if (!ok) return;
+            audio.sfx('sfx_click');
+            heat = hd.id;
+            if (!save.act1Cleared.includes(heat)) act2 = false;
+            render();
+          });
+          return b;
+        }),
+      );
+      const act2ok = save.act1Cleared.includes(heat);
+      const mk = (on: boolean, title: string, desc: string, enabled: boolean, val: boolean) => {
+        const b = h('button', { class: `act${on ? ' on' : ''}`, type: 'button' }, h('b', {}, title), h('span', {}, desc)) as HTMLButtonElement;
+        b.disabled = !enabled;
+        b.addEventListener('click', () => {
+          act2 = val;
+          render();
+        });
+        return b;
+      };
+      actRow.replaceChildren(
+        mk(!act2, 'Act 1 · wave 1', 'Trattoria, with your lineup below', true, false),
+        mk(act2, 'Act 2 · wave 31', act2ok ? 'Starter kit: 5 pizzas, about 6 toppings and 420 tips' : `Locked: beat wave 30 on ${HEAT_BY_ID[heat].name}`, act2ok, true),
+      );
+      startBtn.innerHTML = `START · ${HEAT_BY_ID[heat].name.toUpperCase()}`;
+    };
+    render();
+    const journey = h(
+      'div',
+      { class: 'journey' },
+      ...STAGES.map((st, i) => {
+        const reached = save.bestWave > i * 5;
+        return h(
+          'div',
+          { class: `stage act${st.act}${reached ? ' reached' : ''}` },
+          h('span', { class: 'sn' }, `STAGE ${i + 1} · W${i * 5 + 1}–${i * 5 + 5}`),
+          h('b', {}, BACKDROPS[st.location].name),
+          h('span', {}, reached ? FOOT_BY_ID[st.boss]?.name ?? '' : '???'),
+        );
+      }),
+    );
+    // the peel, its ability, and the Peel Slam / ability switch
+    const peelCard = h('div', { class: 'peelcard', 'data-pad-section': '' });
+    const renderPeel = () => {
+      const d = equippedPeel();
+      const classic = d.id === 'classic';
+      const a = abilityFor(d.id);
+      const useAb = save.useAbility && !classic;
+      const choice = (on: boolean, label: string, val: boolean) => {
+        const b = h('button', { class: `pk-opt${on ? ' on' : ''}`, type: 'button', 'aria-pressed': on ? 'true' : 'false', 'data-fk': `pk:${val}` }, label) as HTMLButtonElement;
+        b.disabled = classic && val;
+        b.addEventListener('click', () => {
+          audio.sfx('sfx_click');
+          save.useAbility = val;
+          persist();
+          keepFocus(peelCard, renderPeel);
+        });
+        return b;
+      };
+      peelCard.replaceChildren(
+        h('div', { class: `pk-img${d.shiny ? ' shiny' : ''}` }, h('img', { src: peelThumbURL(d.id, 200), alt: '' })),
+        h(
+          'div',
+          { class: 'pk-body' },
+          h('div', { class: 'pk-head' }, h('b', { class: 'pk-name' }, d.name), btn('CHANGE', 'cream small', () => this.peelPicker(renderPeel))),
+          h('div', { class: 'pk-opts' }, choice(!useAb, 'PEEL SLAM', false), choice(useAb, classic ? 'NO ABILITY' : a.name.toUpperCase(), true)),
+          h('span', { class: 'pk-desc' }, useAb ? describeAbility(a) : 'Press Space when the meter is full to smack every foot at once.'),
+        ),
+      );
+    };
+    renderPeel();
+    const lineupRow = h('div', { class: 'lineup2' });
+    const renderLineup = () =>
+      lineupRow.replaceChildren(
+        ...cur.map((id) => {
+          const p = PIZZA_BY_ID[id];
+          return h('div', { class: 'lu' }, h('img', { src: pizzaPortraitURL(id), alt: p.name }), h('div', {}, h('b', {}, p.name), h('span', {}, p.perkText)));
+        }),
+      );
+    renderLineup();
+    const panel = h(
+      'div',
+      { class: 'panel modal wide prerun' },
+      h('div', { class: 'title' }, 'NEW RUN'),
+      h('div', { class: 'section-title' }, 'HEAT'),
+      heatRow,
+      h('div', { class: 'prerun-mid' }, h('div', {}, h('div', { class: 'section-title' }, 'START AT'), actRow), h('div', { class: 'journey-wrap' }, h('div', { class: 'section-title' }, 'THE JOURNEY · 60 WAVES'), journey)),
+      h('div', { class: 'prerun-bottom' }, h('div', {}, h('div', { class: 'section-title' }, "TONIGHT'S LINEUP"), lineupRow), h('div', {}, h('div', { class: 'section-title' }, 'YOUR PEEL'), peelCard)),
+      h('div', { class: 'row' }, btn('BACK', 'cream', onBack, { 'data-pad': 'back' }), btn('SHUFFLE', 'yellow', () => {
+        cur = shuffle();
+        renderLineup();
+      }, { 'data-pad': 'y' }), startBtn),
+    );
+    return this.open(panel);
+  }
+
+  // ——— Between-wave shop ———
+  private shops = new WeakMap<HTMLElement, (st: ShopState) => void>();
+
+  shop(st0: ShopState, act: ShopActions): HTMLElement {
+    let st = st0;
+    /** Topping ids already dealt onto the counter (they don't replay their entrance). */
+    const dealt = new Set<string>();
+    const wrap = h('div', { class: 'shop2' });
+    let screen: HTMLElement;
+    const onKey = (e: KeyboardEvent) => {
+      if (this.stack[this.stack.length - 1] !== screen) return;
+      const n = parseInt(e.key, 10);
+      if (n >= 1 && n <= st.cards.length) act.buy(st.cards[n - 1].id);
+      const k = e.key.toLowerCase();
+      if (k === 'r' && st.canReroll) act.reroll();
+      // Enter on a focused card or button presses that control, not Next Wave
+      const fe = document.activeElement as HTMLElement | null;
+      const onControl = !!fe && fe !== document.body && screen.contains(fe) && !fe.classList.contains('next');
+      if (k === 'n' || (k === 'enter' && !onControl)) act.next();
+    };
+    window.addEventListener('keydown', onKey);
+    const sliceArt = (p: ShopPizza, size: number) => pizzaThumb(p.id, p.slices, p.max, size, p.stale, p.dead);
+    const render = () => {
+      const coin = (n: number) => `${COIN_SVG.replace('class="coin"', 'class="coin-ico"')}${fmt(n)}`;
+      const crust = (n: number) => `${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')}${fmt(n)}`;
+      // header
+      const head = h(
+        'div',
+        { class: 'shop-head' },
+        h('div', {}, h('div', { class: 'title' }, st.title), h('div', { class: 'shop-sub' }, st.sub)),
+        h('div', { class: 'shop-purses' }, h('div', { class: 'purse', html: `${coin(st.coins)} <small>tips</small>` }), h('div', { class: 'purse gold', html: `${crust(st.crusts)} <small>Golden Crusts</small>` })),
+      );
+      // topping cards
+      // cards already on the table don't deal in again when the shop redraws after a purchase;
+      // only new ones (after a reroll) animate
+      const cards = st.cards.map((c, i) => {
+        const b = btn(c.sold ? 'BOUGHT' : c.free ? 'FREE' : st.coins >= c.price ? `BUY · ${fmt(c.price)}` : `NEED ${fmt(c.price)}`, c.sold ? 'cream small' : c.free || st.coins >= c.price ? 'green small' : 'small', () => act.buy(c.id));
+        b.disabled = c.sold || (!c.free && st.coins < c.price);
+        const el = h(
+          'div',
+          { class: `card ${c.rarity}${c.sold ? ' sold' : ''}${dealt.has(c.id) ? ' dealt' : ''}`, tabindex: 0, role: 'button', 'aria-label': `${c.name}: ${c.desc}` },
+          h('div', { class: 'key' }, String(i + 1)),
+          h('span', { class: `kind ${c.kind}` }, c.kind === 'permanent' ? 'PERMANENT' : c.kind === 'unique' ? 'ONCE PER RUN' : 'ONE USE'),
+          h('div', { class: 'rarity' }, c.rarity),
+          h('div', { class: 'icon' }, c.icon),
+          h('div', { class: 'name' }, c.name),
+          h('div', { class: 'desc' }, c.desc),
+          c.downside ? h('div', { class: 'down' }, `▼ ${c.downside}`) : null,
+          h('div', { class: 'lvl' }, c.lvl),
+          b,
+        );
+        el.addEventListener('click', () => !c.sold && act.buy(c.id));
+        el.addEventListener('keydown', (e) => e.key === 'Enter' && !c.sold && act.buy(c.id));
+        return el;
+      });
+      const reroll = btn(st.rerollLabel, 'yellow small', () => act.reroll(), { 'data-pad': 'y' });
+      reroll.disabled = !st.canReroll;
+      const toppings = h(
+        'section',
+        { class: 'shop-sec toppings', 'data-pad-section': '' },
+        h('div', { class: 'sec-head' }, h('h2', {}, 'TOPPINGS'), h('span', { class: 'sec-note' }, 'Buy as many as you can afford'), reroll),
+        h('div', { class: 'cards' }, ...cards),
+      );
+      // table strip
+      const table = h(
+        'section',
+        { class: 'shop-sec table', 'data-pad-section': '' },
+        h('div', { class: 'sec-head' }, h('h2', {}, 'YOUR TABLE'), h('span', { class: `sec-chip${st.tableFull ? ' full' : ''}` }, `${st.table.length} / 5${st.tableFull ? ' FULL' : ''}`)),
+        h(
+          'div',
+          { class: 'strip' },
+          ...st.table.map((p) =>
+            h(
+              'div',
+              { class: `ptile${p.stale ? ' stale' : ''}${p.dead ? ' dead' : ''}` },
+              p.stale ? h('span', { class: 'flag' }, 'STALE') : p.dead ? h('span', { class: 'flag dead' }, 'TOAST') : null,
+              sliceArt(p, 120),
+              h('div', { class: 'nm' }, p.name),
+              h('div', { class: `ds${p.stale ? ' off' : ''}` }, p.perk),
+              h('div', { class: 'sl' }, `${p.slices} / ${p.max} slices`),
+              p.freshOn && !p.dead ? freshBar(p.fresh, p.maxFresh) : null,
+            ),
+          ),
+        ),
+      );
+      // counter + services
+      const offers = st.offers.map((o) => {
+        const b = btn(`${o.trial ? 'RENT' : 'BUY'} · ${fmt(o.cost)}`, `${st.coins >= o.cost ? 'green' : ''} small`, () => act.buyPizza(o.id));
+        b.disabled = st.coins < o.cost;
+        return h('div', { class: `offer${o.trial ? ' trial' : ''}` }, h('img', { src: pizzaPortraitURL(o.id), alt: '' }), h('div', { class: 'offer-text' }, o.trial ? h('span', { class: 'tag' }, "CHEF'S SPECIAL") : null, h('b', {}, o.name), h('span', {}, o.perk)), b);
+      });
+      const svc = (label: string, s: { cost: number; can: boolean }, fn: () => void, cls: string) => {
+        const b = btn(`${label} · ${fmt(s.cost)}`, `${cls} small`, fn);
+        b.disabled = !s.can;
+        return b;
+      };
+      const services = h(
+        'div',
+        { class: 'services' },
+        st.reheat.shown ? svc('REHEAT', st.reheat, act.reheat, 'yellow') : null,
+        svc('HEAL ALL +2', st.heal, act.heal, 'green'),
+        st.rebake.shown ? svc('REBAKE', st.rebake, act.rebake, '') : null,
+      );
+      const counter = h(
+        'section',
+        { class: 'shop-sec counter2', 'data-pad-section': '' },
+        h('div', { class: 'sec-head' }, h('h2', {}, 'PIZZA COUNTER'), st.tableFull ? h('span', { class: 'sec-note' }, 'Full: you pick one to swap') : null),
+        ...(offers.length ? offers : [h('div', { class: 'hint' }, 'Unlock more pizzas in the Pizzeria to see them here.')]),
+        services,
+      );
+      const golden = h(
+        'section',
+        { class: 'shop-sec golden', 'data-pad-section': '' },
+        h('div', { class: 'sec-head' }, h('h2', {}, 'GOLDEN MENU'), h('span', { class: 'sec-note' }, 'One per shop · banked crusts')),
+        h(
+          'div',
+          { class: 'gitems' },
+          ...st.golden.map((g) => {
+            const el = h('button', { class: `gitem${g.available ? ' on' : ''}`, type: 'button', title: `${g.desc}${g.note ? ` · ${g.note}` : ''}` }, h('b', {}, g.name), h('span', { html: g.available ? `${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} ${g.cost}` : g.note || 'Not now' })) as HTMLButtonElement;
+            el.disabled = !g.available;
+            el.addEventListener('click', () => g.available && act.golden(g.id));
+            return el;
+          }),
+        ),
+      );
+      const next = btn('NEXT WAVE', 'big next', () => act.next(), { 'data-pad': 'hold' });
+      next.addEventListener('padhold', () => act.next());
+      const pr = st.progress;
+      const prog = h('div', { class: 'crust-progress', html: `${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} <b>+${pr.runCrusts}</b> crusts this run${pr.next ? (pr.bank + pr.runCrusts >= pr.next.cost ? ` · ${pr.next.name} ready to unlock` : ` · next: ${pr.next.name} ${pr.bank + pr.runCrusts}/${pr.next.cost}`) : ''}` });
+      wrap.replaceChildren(
+        head,
+        h('div', { class: 'shop-body' }, h('div', { class: 'shop-left' }, toppings, table), h('div', { class: 'shop-right' }, counter, golden, next)),
+        h('div', { class: 'shop-foot' }, prog, h('span', { class: 'hint kbd-hint', html: `<span class="kbd">1</span>–<span class="kbd">${st.cards.length}</span> buy · <span class="kbd">R</span> reroll · <span class="kbd">Enter</span> next wave` }), h('span', { class: 'hint pad-hint', html: `<span class="glyph">${glyph('A')}</span> buy · <span class="glyph">${glyph('Y')}</span> reroll · <span class="glyph">${glyph('LB')}</span><span class="glyph">${glyph('RB')}</span> sections · hold <span class="glyph">${glyph('MENU')}</span> next wave` })),
+      );
+    };
+    render();
+    for (const c of st.cards) dealt.add(c.id);
+    screen = this.open(wrap);
+    this.shops.set(screen, (s) => {
+      st = s;
+      const focusIdx = [...wrap.querySelectorAll('button, [tabindex="0"]')].indexOf(document.activeElement as Element);
+      render();
+      for (const c of st.cards) dealt.add(c.id);
+      if (focusIdx >= 0) (wrap.querySelectorAll<HTMLElement>('button, [tabindex="0"]')[focusIdx] ?? null)?.focus();
+    });
+    this.onClose(screen, () => window.removeEventListener('keydown', onKey));
+    return screen;
+  }
+
+  updateShop(screen: HTMLElement, st: ShopState): void {
+    this.shops.get(screen)?.(st);
+  }
+
+  // ——— Swap picker: the incoming pizza on top, your pizzas drawn big below ———
+  swapPicker(o: {
+    id: string;
+    name: string;
+    perk: string;
+    cost: number;
+    coins: number;
+    canAdd: boolean;
+    current: { id: string; name: string; perk: string; slices: number; max: number; dead: boolean; stale: boolean; fresh: number; freshOn: boolean }[];
+    onChoose: (index: number) => void; // -1 = new plate
+  }): HTMLElement {
+    let s: HTMLElement;
+    // stale and destroyed pizzas first: they're the obvious ones to swap
+    const order = o.current.map((p, i) => ({ p, i })).sort((a, b) => Number(b.p.dead || b.p.stale) - Number(a.p.dead || a.p.stale));
+    let picked = order[0]?.i ?? -1;
+    const lose = h('div', { class: 'diff lose' });
+    const confirm = btn('', 'green big', () => {
+      if (picked === -2) return;
+      this.close(s);
+      o.onChoose(picked);
+    });
+    const tiles: HTMLElement[] = [];
+    const sync = () => {
+      tiles.forEach((t) => t.classList.toggle('picked', Number(t.dataset.i) === picked));
+      const p = o.current[picked];
+      if (picked === -1) lose.replaceChildren(h('span', { class: 'lbl' }, 'YOU LOSE'), h('b', {}, 'Nothing'), h('span', {}, 'It goes on a new plate'));
+      else if (p) lose.replaceChildren(h('span', { class: 'lbl' }, 'YOU LOSE'), h('b', {}, p.name), h('span', {}, p.dead ? 'Already toast' : `${p.stale ? `Stale (perk off): ${p.perk}` : p.perk} · ${p.slices}/${p.max} slices left`));
+      confirm.innerHTML = picked === -1 ? `ADD · ${fmt(o.cost)}` : `SWAP · ${fmt(o.cost)}`;
+    };
+    for (const { p, i } of order) {
+      const t = h(
+        'button',
+        { class: `swaptile${p.stale ? ' stale' : ''}${p.dead ? ' dead' : ''}`, type: 'button', 'data-i': i },
+        h('span', { class: 'flag out' }, 'SWAPPING OUT'),
+        p.stale ? h('span', { class: 'flag' }, 'STALE') : p.dead ? h('span', { class: 'flag dead' }, 'TOAST') : null,
+        pizzaThumb(p.id, p.slices, p.max, 200, p.stale, p.dead),
+        h('span', { class: 'nm' }, p.name),
+        h('span', { class: `ds${p.stale ? ' off' : ''}` }, p.perk),
+        h('span', { class: 'sl' }, `${p.slices} / ${p.max} slices`),
+      );
+      t.addEventListener('click', () => {
+        audio.sfx('sfx_click');
+        picked = i;
+        sync();
+      });
+      tiles.push(t);
     }
-    if (!Object.keys(o.owned).length) list.append(h('span', { class: 'hint' }, 'No upgrades yet. Clear a wave to choose one!'));
+    if (o.canAdd) {
+      const t = h('button', { class: 'swaptile add', type: 'button', 'data-i': -1 }, h('span', { class: 'plus' }, '+'), h('span', { class: 'nm' }, 'New plate'), h('span', { class: 'ds' }, 'Keep everything'));
+      t.addEventListener('click', () => {
+        picked = -1;
+        sync();
+      });
+      tiles.unshift(t);
+      picked = -1;
+    }
+    const panel = h(
+      'div',
+      { class: 'swap2' },
+      h(
+        'div',
+        { class: 'incoming' },
+        h('img', { src: pizzaPortraitURL(o.id), alt: '' }),
+        h('div', { class: 'in-text' }, h('span', { class: 'tag' }, `COMING IN · ${fmt(o.cost)} TIPS`), h('b', {}, o.name), h('span', {}, `${o.perk} · arrives whole`)),
+        h('div', { class: 'in-ask' }, h('b', {}, 'WHERE DOES IT GO?'), h('span', {}, o.canAdd ? 'Add a plate or swap one out' : 'Table full: pick a pizza to swap out')),
+      ),
+      h('div', { class: 'swaprow' }, ...tiles),
+      h('div', { class: 'swapfoot' }, lose, h('div', { class: 'diff gain' }, h('span', { class: 'lbl' }, 'YOU GAIN'), h('b', {}, o.name), h('span', {}, o.perk)), btn('CANCEL', 'cream', () => this.close(s), { 'data-pad': 'back' }), confirm),
+    );
+    sync();
+    s = this.open(panel);
+    return s;
+  }
+
+  // ——— One-time intro cards for each new system ———
+  intro(id: string, onClose: () => void): HTMLElement {
+    const c = INTROS[id] ?? { tag: 'NEW', title: 'Something new', lines: [] };
+    let s: HTMLElement;
+    const panel = h(
+      'div',
+      { class: 'panel modal intro' },
+      h('span', { class: 'intro-tag' }, c.tag),
+      h('div', { class: 'title' }, c.title),
+      ...c.lines.map((l) => h('p', {}, l)),
+      h('div', { class: 'row' }, btn('GOT IT', 'green', () => {
+        this.close(s);
+        onClose();
+      }, { 'data-pad': 'back', 'data-pad-default': '' })),
+      h('div', { class: 'hint' }, 'Shown once. Intro cards can be reset in Settings.'),
+    );
+    s = this.open(panel);
+    return s;
+  }
+
+  // ——— Second Chance (Golden menu) on game over ———
+  secondChance(o: { wave: number; cost: number; bank: number; nextCost: number; use: () => void; decline: () => void }): HTMLElement {
+    const panel = h(
+      'div',
+      { class: 'panel modal second' },
+      h('div', { class: 'title' }, 'ALL PIZZAS STOMPED'),
+      h('div', { class: 'gold-card' }, h('span', { class: 'intro-tag' }, 'GOLDEN MENU'), h('b', {}, 'Second Chance'), h('p', {}, `Replay wave ${o.wave} with 3 pizzas at half slices. The run is marked as a second-chance run.`), h('span', { class: 'hint' }, `You have ${fmt(o.bank)} crusts banked · next use costs ${fmt(o.nextCost)}`)),
+      h('div', { class: 'row' }, btn('NO THANKS', 'cream', o.decline, { 'data-pad': 'back' }), btn(`${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} USE ${o.cost} CRUSTS`, 'yellow big', o.use)),
+    );
+    return this.open(panel);
+  }
+
+  // ——— Victory after the 60-wave journey ———
+  victory(o: { score: number; time: string; feet: number; bosses: number; heat: string; crusts: number; keepGoing: () => void; bank: () => void }): HTMLElement {
+    const panel = h(
+      'div',
+      { class: 'victory' },
+      h('div', { class: 'v-kicker' }, 'GHOST OF FEET PAST DEFEATED'),
+      h('div', { class: 'v-title' }, 'PIZZA SAVED!'),
+      h('div', { class: 'v-sub' }, 'Every foot from past to present, smacked. The table is yours.'),
+      h('div', { class: 'stats' }, stat(fmt(o.score), 'Score'), stat(o.time, 'Run time'), stat(fmt(o.feet), 'Feet smacked'), stat(String(o.bosses), 'Bosses beaten'), stat(o.heat, 'Heat')),
+      h('div', { class: 'crusts', html: `${CRUST_SVG.replace('class="coin"', 'style="width:1.2em;height:1.2em"')} +${fmt(o.crusts)} <span style="font-size:.55em">Golden Crusts</span>` }),
+      h(
+        'div',
+        { class: 'row' },
+        h('div', { class: 'v-choice' }, btn('KEEP GOING', 'big', o.keepGoing), h('span', {}, 'Endless mode: the journey again, harder')),
+        h('div', { class: 'v-choice' }, btn('BANK IT', 'green big', o.bank), h('span', {}, 'End the run and collect your crusts')),
+      ),
+    );
+    return this.open(panel);
+  }
+
+  // ——— Pause ———
+  pause(o: { resume: () => void; settings: () => void; quit: () => void; owned: Record<string, number>; armed?: string[]; wave: number; score: number }): HTMLElement {
+    // your toppings live here rather than on the HUD, where they piled up over the pizzas
+    const entries = Object.entries(o.owned).filter(([id]) => UPGRADE_BY_ID[id]);
+    const list = h(
+      'div',
+      { class: 'pause-tops' },
+      ...entries.map(([id, lvl]) => {
+        const u = UPGRADE_BY_ID[id];
+        const armed = o.armed?.includes(id);
+        return h(
+          'div',
+          { class: 'ptop', style: `--rc:${RARITY_COLOR[u.rarity]}` },
+          h('div', { class: 'ic' }, u.icon),
+          h('div', { class: 'tx' }, h('b', {}, u.name, lvl > 1 ? h('span', { class: 'lv' }, `×${lvl}`) : null, armed ? h('span', { class: 'armed' }, 'READY') : null), h('span', {}, u.desc(1), u.downside ? h('em', { class: 'down' }, ` ▼ ${u.downside}`) : null)),
+        );
+      }),
+    );
+    if (!entries.length) list.append(h('span', { class: 'hint' }, 'No toppings yet. Clear a wave to buy some!'));
+    const tops = h('div', { class: 'pause-sec' }, h('div', { class: 'section-title' }, `YOUR TOPPINGS · ${entries.length}`), list);
     let confirmQuit = false;
     const quit = btn('QUIT RUN', 'cream', () => {
       if (!confirmQuit) {
@@ -544,16 +970,17 @@ class UI {
       { class: 'panel modal' },
       h('div', { class: 'title' }, 'PAUSED'),
       h('div', { class: 'subtitle' }, `Wave ${o.wave} · ${fmt(o.score)} points`),
-      list,
-      h('div', { class: 'row' }, btn('RESUME', 'green big', o.resume), btn('SETTINGS', 'yellow', o.settings), quit),
+      tops,
+      h('div', { class: 'row' }, btn('RESUME', 'green big', o.resume, { 'data-pad': 'menu', 'data-pad-default': '' }), btn('SETTINGS', 'yellow', o.settings), quit),
       h('div', { class: 'hint kbd-hint', html: '<span class="kbd">ESC</span> resume · <span class="kbd">M</span> mute · <span class="kbd">SPACE</span> Peel Slam' }),
     );
     return this.open(panel);
   }
 
   // ——— Settings ———
-  settings(onClose: () => void): HTMLElement {
-    const slider = (key: keyof Settings & ('master' | 'music' | 'sfx' | 'ambience'), label: string) => {
+  settings(onClose: () => void, inRun = false): HTMLElement {
+    let tab: 'audio' | 'controls' | 'access' | 'progress' = 'audio';
+    const slider = (key: 'master' | 'music' | 'sfx' | 'ambience' | 'stickSensitivity' | 'aimAssist', label: string) => {
       const v = save.settings[key];
       const out = h('output', {}, `${Math.round(v * 100)}`);
       const input = h('input', { type: 'range', min: 0, max: 100, value: Math.round(v * 100), 'aria-label': label }) as HTMLInputElement;
@@ -569,44 +996,142 @@ class UI {
       });
       return h('label', { class: 'setting' }, h('span', {}, label), input, out);
     };
-    const toggle = (key: 'muted' | 'screenShake' | 'damageNumbers' | 'flashes' | 'showFps', label: string) => {
+    const toggle = (key: 'muted' | 'screenShake' | 'damageNumbers' | 'flashes' | 'showFps' | 'traitIcons' | 'reducedMotion' | 'slowNewCards' | 'vibration', label: string) => {
       const input = h('input', { type: 'checkbox' }) as HTMLInputElement;
       input.checked = save.settings[key];
       input.addEventListener('change', () => {
         updateSettings({ [key]: input.checked } as Partial<Settings>);
         this.hud.syncMute();
+        applyA11y();
         audio.sfx('sfx_click');
       });
       return h('label', { class: 'toggle' }, h('span', {}, label), input, h('span', { class: 'sw' }));
     };
-    let resetArmed = false;
-    const reset = btn('RESET PROGRESS', 'cream small', () => {
-      if (!resetArmed) {
-        resetArmed = true;
-        reset.innerHTML = 'TAP AGAIN TO WIPE EVERYTHING';
-        reset.classList.remove('cream');
-        return;
-      }
-      resetProgress();
-      reset.innerHTML = 'PROGRESS RESET';
-      reset.disabled = true;
-    });
+    const choice = <K extends 'aimScheme' | 'prompts' | 'colorBlind'>(key: K, label: string, opts: [Settings[K], string][]) => {
+      const row = h('div', { class: 'choice' }, h('span', {}, label));
+      const seg = h('div', { class: 'seg' });
+      const draw = () =>
+        seg.replaceChildren(
+          ...opts.map(([v, l]) =>
+            btn(l, `small ${save.settings[key] === v ? 'active' : 'cream'}`, () => {
+              updateSettings({ [key]: v } as Partial<Settings>);
+              applyA11y();
+              draw();
+            }),
+          ),
+        );
+      draw();
+      row.append(seg);
+      return row;
+    };
+    const holdReset = (label: string, note: string, wipes: string[], run: () => void) => {
+      const b = btn(label, 'danger small', () => {
+        let sHold: HTMLElement;
+        const hold = h('button', { class: 'btn hold', type: 'button', 'data-pad': 'hold' }, h('i', {}), h('span', {}, 'HOLD TO RESET · 2 s')) as HTMLButtonElement;
+        let t0 = 0;
+        let raf = 0;
+        const stop = () => {
+          cancelAnimationFrame(raf);
+          hold.style.setProperty('--hold', '0');
+        };
+        const go = () => {
+          stop();
+          this.close(sHold);
+          run();
+          audio.sfx('sfx_boing', { rate: 0.6 });
+          render();
+        };
+        const step = () => {
+          const k = Math.min(1, (performance.now() - t0) / 2000);
+          hold.style.setProperty('--hold', String(k));
+          if (k >= 1) go();
+          else raf = requestAnimationFrame(step);
+        };
+        const begin = () => {
+          t0 = performance.now();
+          audio.sfx('sfx_hold', { volume: 0.5 });
+          raf = requestAnimationFrame(step);
+        };
+        hold.addEventListener('pointerdown', begin);
+        hold.addEventListener('pointerup', stop);
+        hold.addEventListener('pointerleave', stop);
+        hold.addEventListener('keydown', (e) => (e.key === 'Enter' || e.key === ' ') && !e.repeat && begin());
+        hold.addEventListener('keyup', stop);
+        hold.addEventListener('padhold', go);
+        const conf = h(
+          'div',
+          { class: 'panel modal confirm' },
+          h('div', { class: 'title', style: 'color:var(--tomato-d)' }, `${label}?`),
+          h('div', { class: 'subtitle' }, 'This wipes:'),
+          h('ul', { class: 'wipes' }, ...wipes.map((w) => h('li', {}, w))),
+          h('div', { class: 'hint' }, note),
+          h('div', { class: 'row' }, btn('CANCEL', 'cream', () => this.close(sHold), { 'data-pad': 'back', 'data-pad-default': '' }), hold),
+        );
+        sHold = this.open(conf);
+      });
+      return h('div', { class: 'reset-row' }, b, h('span', {}, note));
+    };
+    const body = h('div', { class: 'settings' });
+    const tabs = h('div', { class: 'tabs' });
+    const render = () => {
+      tabs.replaceChildren(
+        ...(['audio', 'controls', 'access', 'progress'] as const).map((t) => btn({ audio: 'AUDIO', controls: 'CONTROLS', access: 'ACCESSIBILITY', progress: 'PROGRESS' }[t], `small ${tab === t ? 'active' : ''}`, () => ((tab = t), render()))),
+      );
+      if (tab === 'audio')
+        body.replaceChildren(
+          h('div', { class: 'section-title' }, 'VOLUME'),
+          slider('master', 'Master'),
+          slider('music', 'Music'),
+          slider('sfx', 'Sound FX'),
+          slider('ambience', 'Ambience'),
+          h('div', { class: 'toggles' }, toggle('muted', 'Mute all'), toggle('showFps', 'Show FPS'), toggle('damageNumbers', 'Damage numbers')),
+        );
+      else if (tab === 'controls')
+        body.replaceChildren(
+          h('div', { class: 'section-title' }, 'CONTROLLER'),
+          choice('aimScheme', 'Aiming', [['free', 'FREE AIM'], ['lane', 'LANE MODE']]),
+          h('div', { class: 'hint' }, 'Lane mode: pick a pizza with left and right; Smack hits the lowest foot above it.'),
+          slider('stickSensitivity', 'Stick sensitivity'),
+          slider('aimAssist', 'Aim assist'),
+          choice('prompts', 'Button prompts', [['auto', 'AUTO'], ['xbox', 'XBOX'], ['playstation', 'PLAYSTATION'], ['switch', 'SWITCH']]),
+          h('div', { class: 'toggles' }, toggle('vibration', 'Vibration')),
+        );
+      else if (tab === 'access')
+        body.replaceChildren(
+          h('div', { class: 'section-title' }, 'ACCESSIBILITY'),
+          choice('colorBlind', 'Colour-blind palette', [['off', 'OFF'], ['redgreen', 'RED-GREEN'], ['blueyellow', 'BLUE-YELLOW']]),
+          h('div', { class: 'toggles' }, toggle('traitIcons', 'Trait icons on feet'), toggle('reducedMotion', 'Reduced motion'), toggle('screenShake', 'Screen shake'), toggle('flashes', 'Screen flashes'), toggle('slowNewCards', 'Slow time on NEW cards')),
+        );
+      else
+        body.replaceChildren(
+          h('div', { class: 'section-title' }, 'PROGRESS'),
+          h('div', { class: 'reset-row' }, btn('RESET INTRO CARDS', 'cream small', () => {
+            save.seenIntros = [];
+            persist();
+            audio.sfx('sfx_click');
+          }), h('span', {}, 'Show every how-it-works card again')),
+          h('div', { class: 'reset-row' }, btn(`RESET PIZZERIA UPGRADES · +${fmt(metaRefundValue())}`, 'cream small', () => {
+            const n = resetMeta();
+            this.hud.toast(null, 'PIZZERIA RESET', `+${fmt(n)} Golden Crusts refunded`);
+            render();
+          }), h('span', {}, 'Full refund of every crust spent on upgrades')),
+          inRun
+            ? h('div', { class: 'hint' }, 'The full resets are hidden during a run.')
+            : holdReset('RESET PROGRESS', 'Wipes all progress, keeps settings', ['Golden Crusts and Pizzeria upgrades', 'Unlocked pizzas and the Pizzapedia', 'Best scores on every heat', 'Bosses beaten, milestones and any saved run', 'Peels and achievement progress'], () => resetProgress()),
+          inRun ? '' : holdReset('RESET EVERYTHING', 'Factory reset, settings included', ['Everything in Reset progress', 'All settings, controls and accessibility options'], () => {
+            resetEverything();
+            applyA11y();
+          }),
+        );
+    };
+    render();
     let s: HTMLElement;
     const panel = h(
       'div',
       { class: 'panel modal' },
       h('div', { class: 'title' }, 'SETTINGS'),
-      h(
-        'div',
-        { class: 'settings' },
-        h('div', { class: 'section-title' }, 'VOLUME'),
-        slider('master', 'Master'),
-        slider('music', 'Music'),
-        slider('sfx', 'Sound FX'),
-        slider('ambience', 'Ambience'),
-        h('div', { class: 'section-title' }, 'OPTIONS'),
-        h('div', { class: 'toggles' }, toggle('muted', 'Mute all'), toggle('screenShake', 'Screen shake'), toggle('damageNumbers', 'Damage numbers'), toggle('flashes', 'Screen flashes'), toggle('showFps', 'Show FPS')),
-      ),
+      tabs,
+      body,
       h(
         'div',
         { class: 'row' },
@@ -615,11 +1140,10 @@ class UI {
           if (document.fullscreenElement) void document.exitFullscreen();
           else void el.requestFullscreen?.().catch(() => {});
         }),
-        reset,
         btn('DONE', 'green', () => {
           this.close(s);
           onClose();
-        }),
+        }, { 'data-pad': 'back' }),
       ),
     );
     s = this.open(panel);
@@ -627,33 +1151,26 @@ class UI {
   }
 
   // ——— Game over ———
-  gameOver(o: { score: number; wave: number; feet: number; combo: number; bosses: number; crusts: number; newBest: boolean; time: string; unlocked: string[]; affordable: string[]; again: () => void; menu: () => void; pizzeria: () => void }): HTMLElement {
+  gameOver(o: { score: number; wave: number; feet: number; combo: number; bosses: number; crusts: number; newBest: boolean; heat: string; location: string; secondChanceRun: boolean; time: string; unlocked: string[]; affordable: string[]; next: { name: string; cost: number } | null; victory: boolean; again: () => void; menu: () => void; pizzeria: () => void }): HTMLElement {
     const shopBtn = btn('PIZZERIA', `yellow${o.affordable.length ? ' attention' : ''}`, o.pizzeria);
     const callouts = h('div', { class: 'callouts' });
     if (o.unlocked.length) callouts.append(h('div', { class: 'callout good', html: `🎉 Unlocked this run: <b>${o.unlocked.map((id) => PIZZA_BY_ID[id].name).join(', ')}</b>` }));
     if (o.affordable.length) callouts.append(h('div', { class: 'callout', html: `🍕 You can now unlock <b>${o.affordable.slice(0, 3).map((id) => PIZZA_BY_ID[id].name).join(', ')}${o.affordable.length > 3 ? ` +${o.affordable.length - 3} more` : ''}</b> in the Pizzeria!` }));
+    else if (o.next) callouts.append(h('div', { class: 'callout', html: `Next unlock: <b>${o.next.name}</b> · ${fmt(Math.min(save.crusts, o.next.cost))} / ${fmt(o.next.cost)} crusts` }));
+    if (o.secondChanceRun) callouts.append(h('div', { class: 'callout' }, 'Second-chance run'));
     const crustsEl = h('span', {}, '0');
     const panel = h(
       'div',
       { class: 'panel modal pop' },
-      h('div', { class: 'title', style: 'font-size:5em;color:#ff6a4d' }, 'THE PIZZA IS TOAST'),
-      o.newBest ? h('div', { class: 'newbest' }, 'NEW BEST SCORE!') : null,
-      h(
-        'div',
-        { class: 'stats' },
-        stat(fmt(o.score), 'Score'),
-        stat(String(o.wave), 'Wave reached'),
-        stat(fmt(o.feet), 'Feet smacked'),
-        stat(String(o.combo), 'Best combo'),
-        stat(String(o.bosses), 'Bosses beaten'),
-        stat(o.time, 'Time'),
-      ),
+      h('div', { class: 'title', style: `font-size:4.6em;color:${o.victory ? 'var(--cheese-d)' : '#ff6a4d'}` }, o.victory ? 'JOURNEY COMPLETE' : 'THE PIZZA IS TOAST'),
+      h('div', { class: 'subtitle' }, `Wave ${o.wave} · ${o.location} · ${o.heat}`),
+      o.newBest ? h('div', { class: 'newbest' }, `NEW BEST ON ${o.heat.toUpperCase()}!`) : null,
+      h('div', { class: 'stats' }, stat(fmt(o.score), 'Score'), stat(String(o.wave), 'Wave reached'), stat(fmt(o.feet), 'Feet smacked'), stat(String(o.combo), 'Best combo'), stat(String(o.bosses), 'Bosses beaten'), stat(o.time, 'Time')),
       h('div', { class: 'crusts', html: `${CRUST_SVG.replace('class="coin"', 'style="width:1.2em;height:1.2em"')} +` }, crustsEl, h('span', { style: 'font-size:.6em' }, ' Golden Crusts')),
       callouts.childElementCount ? callouts : null,
-      h('div', { class: 'row' }, btn('PLAY AGAIN', 'green big', o.again), shopBtn, btn('MENU', 'cream', o.menu)),
+      h('div', { class: 'row' }, btn('PLAY AGAIN', 'green big', o.again, { 'data-pad-default': '' }), shopBtn, btn('MENU', 'cream', o.menu, { 'data-pad': 'back' })),
     );
     const s = this.open(panel);
-    // count-up
     const t0 = performance.now();
     const step = () => {
       const k = Math.min(1, (performance.now() - t0) / 1200);
@@ -677,7 +1194,15 @@ class UI {
         btn(`PIZZAS ${save.unlockedPizzas.length}/${PIZZAS.length}`, `small ${tab === 'pizzas' ? 'active' : ''}`, () => ((tab = 'pizzas'), render())),
       );
       if (tab === 'upgrades') {
+        const refund = metaRefundValue();
+        const resetBtn = btn(refund > 0 ? `RESET UPGRADES · REFUND ${fmt(refund)}` : 'RESET UPGRADES', 'cream small', () => {
+          resetMeta();
+          audio.sfx('sfx_coin');
+          render();
+        });
+        resetBtn.disabled = refund <= 0;
         body.replaceChildren(
+          h('div', { class: 'reset-row meta-reset' }, resetBtn, h('span', {}, 'Full refund, any time. Pizza unlocks stay unlocked.')),
           h(
             'div',
             { class: 'meta-list' },
@@ -687,16 +1212,18 @@ class UI {
               const cost = m.costs[lvl];
               const pips = h('div', { class: 'pips', style: '--rc:var(--tomato)' });
               for (let i = 0; i < m.costs.length; i++) pips.append(h('i', { class: i < lvl ? 'on' : '' }));
-              const b = btn(maxed ? 'MAXED' : `${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} ${cost}`, maxed ? 'cream' : 'green', () => {
+              const b = btn(maxed ? 'MAXED' : `${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} ${fmt(cost)}`, maxed ? 'cream' : 'green', () => {
                 if (maxed || save.crusts < cost) return;
                 save.crusts -= cost;
                 save.meta[m.id] = lvl + 1;
+                save.metaSpent[m.id] = (save.metaSpent[m.id] ?? 0) + cost;
                 persist();
                 audio.sfx('sfx_upgrade');
                 render();
               });
               b.disabled = maxed || save.crusts < cost;
-              return h('div', { class: 'meta' }, h('div', { class: 'ic' }, m.icon), h('div', {}, h('div', { class: 'nm' }, m.name), h('div', { class: 'ds' }, m.desc), pips), b);
+              // icon | name + level pips | price, with the description across the full width underneath
+              return h('div', { class: 'meta' }, h('div', { class: 'ic' }, m.icon), h('div', { class: 'nmrow' }, h('div', { class: 'nm' }, m.name), pips), b, h('div', { class: 'ds' }, m.desc));
             }),
           ),
         );
@@ -705,11 +1232,11 @@ class UI {
           h(
             'div',
             { class: 'grid' },
-            ...PIZZAS.map((p) => {
+            ...[...PIZZAS].sort((a, b) => Number(save.unlockedPizzas.includes(b.id)) - Number(save.unlockedPizzas.includes(a.id)) || a.cost - b.cost).map((p) => {
               const owned = save.unlockedPizzas.includes(p.id);
               const b = owned
                 ? h('div', { class: 'chip', style: 'background:var(--basil-d);color:#fff' }, 'ON THE MENU')
-                : btn(`${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} ${p.cost}`, 'green small', () => {
+                : btn(`${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} ${fmt(p.cost)}`, 'green small', () => {
                     if (save.crusts < p.cost) return;
                     save.crusts -= p.cost;
                     save.unlockedPizzas.push(p.id);
@@ -718,7 +1245,7 @@ class UI {
                     render();
                   });
               if (!owned) (b as HTMLButtonElement).disabled = save.crusts < p.cost;
-              return h('div', { class: `tile${owned ? '' : ''}` }, h('img', { src: pizzaPortraitURL(p.id), alt: p.name, loading: 'lazy' }), h('div', { class: 'nm' }, p.name), h('div', { class: 'ds' }, p.perkText), b);
+              return h('div', { class: `tile${owned ? '' : ' unowned'}` }, h('img', { src: pizzaPortraitURL(p.id), alt: p.name, loading: 'lazy' }), h('div', { class: 'nm' }, p.name), h('div', { class: 'ds' }, p.perkText), b);
             }),
           ),
         );
@@ -736,7 +1263,7 @@ class UI {
       btn('DONE', 'green', () => {
         this.close(s);
         onClose();
-      }),
+      }, { 'data-pad': 'back' }),
     );
     s = this.open(panel);
     return s;
@@ -744,10 +1271,10 @@ class UI {
 
   // ——— Pizzapedia ———
   pedia(onClose: () => void): HTMLElement {
-    let tab: 'feet' | 'pizzas' = 'feet';
+    let tab: 'feet' | 'bosses' | 'pizzas' | 'events' = 'feet';
     const tabs = h('div', { class: 'tabs' });
     const detail = h('div', { class: 'detail' });
-    const body = h('div', { class: 'scroll', style: 'max-height:44cqh' });
+    const body = h('div', { class: 'scroll', style: 'max-height:40cqh' });
     const showFoot = (id: string) => {
       const f = FOOT_BY_ID[id];
       const seen = save.seenFeet.includes(id);
@@ -758,25 +1285,53 @@ class UI {
         chips.append(h('span', { class: 'chip' }, `🍕 ${f.stompDmg} slice stomp`));
         for (const t of f.traits) chips.append(h('span', { class: 'chip', style: 'background:var(--cheese)' }, TRAIT_INFO[t]));
       }
+      const home = f.home ? BACKDROPS[f.home as keyof typeof BACKDROPS]?.name : null;
       detail.replaceChildren(
         h('img', { src: footPortraitURL(id), alt: '', style: seen ? '' : 'filter:brightness(0) opacity(.35)' }),
-        h('div', {}, h('h3', {}, seen ? f.name : '???'), h('p', {}, seen ? f.desc : f.boss ? `A boss lurks at wave ${f.minWave}…` : `Appears from wave ${f.minWave}. Smack one to learn more.`), chips),
+        h(
+          'div',
+          {},
+          h('div', { class: 'dt-head' }, h('h3', {}, seen ? f.name : '???'), seen && home ? h('span', { class: 'chip home-chip' }, `🏠 ${home}`) : null),
+          h('p', {}, seen ? f.desc : f.boss || f.mini ? `A ${f.mini ? 'mini-boss' : 'boss'} lurks at wave ${f.minWave}…` : `Appears from wave ${f.minWave}. Spot one to learn more.`),
+          seen && (howToFor(f) || tellFor(f))
+            ? h(
+                'div',
+                { class: 'ht' },
+                howToFor(f) ? h('div', { class: 'howto' }, h('b', {}, 'HOW TO BEAT IT'), h('span', {}, howToFor(f)!)) : null,
+                tellFor(f) ? h('div', { class: 'tell' }, h('b', {}, 'THE TELL'), h('span', {}, tellFor(f)!)) : null,
+              )
+            : null,
+          chips,
+        ),
       );
     };
     const showPizza = (id: string) => {
       const p = PIZZA_BY_ID[id];
       const owned = save.unlockedPizzas.includes(id);
-      detail.replaceChildren(h('img', { src: pizzaPortraitURL(id), alt: '' }), h('div', {}, h('h3', {}, p.name), h('p', {}, `Perk: ${p.perkText}`), h('div', { class: 'chips' }, h('span', { class: 'chip' }, owned ? '✅ Unlocked' : `🔒 ${p.cost} Golden Crusts`))));
+      detail.replaceChildren(h('img', { src: pizzaPortraitURL(id), alt: '' }), h('div', {}, h('div', { class: 'dt-head' }, h('h3', {}, p.name), h('span', { class: 'chip' }, owned ? '✅ Unlocked' : `🔒 ${p.cost} Golden Crusts`)), h('p', {}, `Perk: ${p.perkText}`)));
     };
+    const EVENTS: [string, string, string, string][] = [
+      ['balloon', 'ev_balloon', 'Tip Balloon', 'Drifts across the top. One smack: 10 to 25 tips.'],
+      ['drone', 'ev_drone', 'Delivery Drone', 'Zips across. Three smacks: a slice for your weakest pizza.'],
+      ['moth', 'ev_moth', 'Pepper Moth', 'Flutters about. Two smacks: half a meter (Peel Slam or ability).'],
+      ['seagull', 'ev_seagull', 'Golden Seagull', 'Very rare and fast. Two smacks: a Golden Crust.'],
+      ['chest', 'ev_chest', 'Pizza Box Chest', 'Smash it open for tips, a free topping, slices or a crust.'],
+      ['mimic', 'ev_mimic', 'Mimic Box', 'It wobbles. Smack it fast or it turns into a foot.'],
+    ];
     const render = () => {
+      const feet = FEET.filter((f) => !f.boss && !f.mini);
+      const bosses = FEET.filter((f) => f.boss || f.mini);
       tabs.replaceChildren(
-        btn(`FEET ${save.seenFeet.length}/${FEET.length}`, `small ${tab === 'feet' ? 'active' : ''}`, () => ((tab = 'feet'), render())),
+        btn(`FEET ${feet.filter((f) => save.seenFeet.includes(f.id)).length}/${feet.length}`, `small ${tab === 'feet' ? 'active' : ''}`, () => ((tab = 'feet'), render())),
+        btn(`BOSSES ${bosses.filter((f) => save.seenFeet.includes(f.id)).length}/${bosses.length}`, `small ${tab === 'bosses' ? 'active' : ''}`, () => ((tab = 'bosses'), render())),
         btn(`PIZZAS ${PIZZAS.length}`, `small ${tab === 'pizzas' ? 'active' : ''}`, () => ((tab = 'pizzas'), render())),
+        btn(`EVENTS ${save.seenEvents.length}/${EVENTS.length}`, `small ${tab === 'events' ? 'active' : ''}`, () => ((tab = 'events'), render())),
       );
-      if (tab === 'feet') {
-        const tiles = FEET.map((f) => {
+      if (tab === 'feet' || tab === 'bosses') {
+        const list = tab === 'feet' ? feet : bosses;
+        const tiles = list.map((f) => {
           const seen = save.seenFeet.includes(f.id);
-          const t = h('div', { class: `tile${seen ? '' : ' locked'}${f.boss ? ' boss' : ''}` }, h('img', { src: footPortraitURL(f.id), alt: '', loading: 'lazy' }), h('div', { class: 'nm' }, seen ? f.name : '???'), f.boss ? h('span', { class: 'tag' }, 'BOSS') : null);
+          const t = h('div', { class: `tile${seen ? '' : ' locked'}${f.boss ? ' boss' : ''}`, tabindex: 0 }, h('img', { src: footPortraitURL(f.id), alt: '', loading: 'lazy' }), h('div', { class: 'nm' }, seen ? f.name : '???'), f.boss ? h('span', { class: 'tag' }, 'BOSS') : f.mini ? h('span', { class: 'tag' }, 'MINI') : null);
           t.addEventListener('click', () => {
             audio.sfx('sfx_click');
             showFoot(f.id);
@@ -784,11 +1339,12 @@ class UI {
           return t;
         });
         body.replaceChildren(h('div', { class: 'grid' }, ...tiles));
-        showFoot(save.seenFeet[save.seenFeet.length - 1] ?? FEET[0].id);
-      } else {
+        const lastSeen = [...save.seenFeet].reverse().find((id) => list.some((f) => f.id === id));
+        showFoot(lastSeen ?? list[0].id);
+      } else if (tab === 'pizzas') {
         const tiles = PIZZAS.map((p) => {
           const owned = save.unlockedPizzas.includes(p.id);
-          const t = h('div', { class: 'tile' }, h('img', { src: pizzaPortraitURL(p.id), alt: '', loading: 'lazy' }), h('div', { class: 'nm' }, p.name), owned ? null : h('span', { class: 'tag' }, '🔒'));
+          const t = h('div', { class: 'tile', tabindex: 0 }, h('img', { src: pizzaPortraitURL(p.id), alt: '', loading: 'lazy' }), h('div', { class: 'nm' }, p.name), owned ? null : h('span', { class: 'tag' }, '🔒'));
           t.addEventListener('click', () => {
             audio.sfx('sfx_click');
             showPizza(p.id);
@@ -797,6 +1353,18 @@ class UI {
         });
         body.replaceChildren(h('div', { class: 'grid' }, ...tiles));
         showPizza(PIZZAS[0].id);
+      } else {
+        body.replaceChildren(
+          h(
+            'div',
+            { class: 'grid events' },
+            ...EVENTS.map(([id, key, name, desc]) => {
+              const seen = save.seenEvents.includes(id);
+              return h('div', { class: `tile${seen ? '' : ' locked'}` }, h('img', { src: textureURL(key), alt: '' }), h('div', { class: 'nm' }, seen ? name : '???'), h('div', { class: 'ds' }, seen ? desc : 'Not spotted yet'));
+            }),
+          ),
+        );
+        detail.replaceChildren(h('div', { class: 'span' }, h('h3', {}, 'Wave events'), h('p', {}, 'About one wave in four, something flies in or lands on the table. Smacks only go to it when no foot is closer.')));
       }
     };
     render();
@@ -811,7 +1379,271 @@ class UI {
       btn('DONE', 'green', () => {
         this.close(s);
         onClose();
-      }),
+      }, { 'data-pad': 'back' }),
+    );
+    s = this.open(panel);
+    return s;
+  }
+
+  /** Quick peel picker (from the run-start screen): owned peels only, with their abilities. */
+  peelPicker(onDone: () => void): HTMLElement {
+    let s: HTMLElement;
+    const owned = PEELS.filter((d) => hasPeel(d.id));
+    const close = () => {
+      this.close(s);
+      onDone();
+    };
+    const body = h('div', { class: 'scroll' });
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting) continue;
+          const img = e.target as HTMLImageElement;
+          io.unobserve(img);
+          img.src = peelThumbURL(img.dataset.peel!);
+        }
+      },
+      { root: body, rootMargin: '200px' },
+    );
+    body.append(
+      h(
+        'div',
+        { class: 'grid peel-grid' },
+        ...owned.map((d) => {
+          const img = h('img', { alt: '', 'data-peel': d.id });
+          io.observe(img);
+          const a = abilityFor(d.id);
+          const t = activatable(h(
+            'div',
+            { class: `tile peel-tile${d.shiny ? ' shiny' : ''}${equippedPeel().id === d.id ? ' selected' : ''}`, tabindex: 0, title: describeAbility(a) },
+            img,
+            h('div', { class: 'nm' }, d.name.replace(/ Peel$/, '')),
+            h('div', { class: 'ab' }, d.id === 'classic' ? 'Peel Slam' : a.name),
+          ));
+          t.addEventListener('click', () => {
+            audio.sfx('sfx_upgrade');
+            equipPeel(d.id);
+            close();
+          });
+          return t;
+        }),
+      ),
+    );
+    const panel = h(
+      'div',
+      { class: 'panel modal wide locker' },
+      h('div', { class: 'title' }, 'PICK A PEEL'),
+      h('div', { class: 'subtitle' }, `${owned.length} unlocked · more in the Peel Locker on the title screen`),
+      body,
+      btn('BACK', 'cream', close, { 'data-pad': 'back' }),
+    );
+    s = this.open(panel);
+    this.onClose(s, () => io.disconnect());
+    return s;
+  }
+
+  // ——— Peel Locker: cosmetic peels and the achievements that unlock them ———
+  locker(onClose: () => void): HTMLElement {
+    type Tab = 'goals' | 'crusts' | 'feet' | 'bosses' | 'pizzas' | 'places' | 'events' | 'shiny';
+    const TAB_GROUPS: Record<Exclude<Tab, 'goals'>, PeelGroup[]> = {
+      crusts: ['classic', 'golden', 'jewel', 'master'],
+      feet: ['foot'],
+      bosses: ['boss'],
+      pizzas: ['pizza'],
+      places: ['place'],
+      events: ['event'],
+      shiny: ['shinyFoot', 'shinyEvent'],
+    };
+    const NAMES: Record<Tab, string> = { goals: 'GOALS', crusts: 'CRUSTS', feet: 'FEET', bosses: 'BOSSES', pizzas: 'PIZZAS', places: 'PLACES', events: 'EVENTS', shiny: 'SHINY' };
+    // catch up on goals already met (older saves, bosses beaten before peels existed)
+    checkPeelAchievements();
+    const fresh = new Set(save.peelsNew);
+    save.peelsNew = [];
+    persist();
+    const eq = equippedPeel();
+    let tab: Tab = (Object.keys(TAB_GROUPS) as Exclude<Tab, 'goals'>[]).find((t) => TAB_GROUPS[t].includes(eq.group)) ?? 'crusts';
+    let selected: PeelDef = eq;
+    const tabs = h('div', { class: 'tabs locker-tabs' });
+    const detail = h('div', { class: 'detail peel-detail' });
+    const body = h('div', { class: 'scroll' });
+    const crustLine = h('div', { class: 'crusts' });
+    // undiscovered shinies stay a mystery
+    const hidden = (d: PeelDef) => !!d.shiny && (d.group === 'shinyFoot' || d.group === 'shinyEvent') && !hasPeel(d.id);
+    const shownName = (d: PeelDef) => (hidden(d) && d.ultra ? '???' : d.name);
+    // thumbnails are drawn lazily as tiles scroll into view
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting) continue;
+          const img = e.target as HTMLImageElement;
+          io.unobserve(img);
+          img.src = peelThumbURL(img.dataset.peel!);
+        }
+      },
+      { root: body, rootMargin: '200px' },
+    );
+    const bar = (have: number, need: number) =>
+      h('div', { class: 'pbar' }, h('i', { style: `width:${Math.round((100 * have) / need)}%` }), h('span', {}, `${fmt(have)}/${fmt(need)}`));
+    const showDetail = () => {
+      const d = selected;
+      const owned = hasPeel(d.id);
+      const equipped = equippedPeel().id === d.id;
+      const pr = d.progress?.();
+      let action: HTMLElement | null = null;
+      if (owned) {
+        action = btn(equipped ? 'EQUIPPED' : 'EQUIP', equipped ? 'cream small' : 'green small', () => {
+          equipPeel(d.id);
+          audio.sfx('sfx_upgrade');
+          const sc = body.scrollTop;
+          render();
+          body.scrollTop = sc;
+          body.querySelector<HTMLElement>(`[data-fk="${CSS.escape(d.id)}"]`)?.focus();
+        });
+        (action as HTMLButtonElement).disabled = equipped;
+      } else if (d.cost) {
+        action = btn(`BUY ${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} ${fmt(d.cost)}`, 'green small', () => {
+          if (!buyPeel(d.id)) return;
+          audio.sfx('sfx_coin');
+          render();
+        });
+        (action as HTMLButtonElement).disabled = save.crusts < d.cost;
+      }
+      const img = h('img', { src: peelThumbURL(d.id, 300), alt: '' });
+      detail.replaceChildren(
+        h('div', { class: `peel-big${d.shiny ? ' shiny' : ''}${hidden(d) ? ' hidden' : ''}` }, img),
+        h(
+          'div',
+          {},
+          h('div', { class: 'dt-head' }, h('h3', {}, shownName(d)), h('span', { class: 'chip' }, owned ? '✅ Unlocked' : '🔒 Locked'), d.shiny ? h('span', { class: 'chip shiny-chip' }, d.ultra ? '💎 Ultra rare' : '✨ Shiny') : null, action ? h('span', { class: 'dt-act' }, action) : null),
+          h('div', { class: 'dt-how' }, h('p', {}, d.how), pr && !owned ? bar(pr[0], pr[1]) : null),
+          hidden(d) && d.ultra ? null : abilityLine(d.id),
+        ),
+      );
+    };
+    const tile = (d: PeelDef) => {
+      const owned = hasPeel(d.id);
+      const pr = d.progress?.();
+      const img = h('img', { alt: '', 'data-peel': d.id });
+      io.observe(img);
+      const t = h(
+        'div',
+        { class: `tile peel-tile${owned ? '' : ' locked'}${hidden(d) ? ' hidden' : ''}${d.shiny && owned ? ' shiny' : ''}${selected.id === d.id ? ' selected' : ''}`, tabindex: 0, 'data-fk': d.id },
+        img,
+        h('div', { class: 'nm' }, shownName(d).replace(/ Peel$/, '')),
+        !owned && pr ? bar(pr[0], pr[1]) : null,
+        !owned && d.cost ? h('div', { class: 'cost' }, `${fmt(d.cost)} crusts`) : null,
+        equippedPeel().id === d.id ? h('span', { class: 'tag' }, 'ON') : fresh.has(d.id) ? h('span', { class: 'tag new' }, 'NEW') : null,
+      );
+      activatable(t);
+      t.addEventListener('click', () => {
+        audio.sfx('sfx_click');
+        selected = d;
+        body.querySelectorAll('.tile.selected').forEach((e) => e.classList.remove('selected'));
+        t.classList.add('selected');
+        showDetail();
+      });
+      return t;
+    };
+    const render = () => {
+      const count = (groups: PeelGroup[]) => {
+        const list = PEELS.filter((d) => groups.includes(d.group));
+        return `${list.filter((d) => hasPeel(d.id)).length}/${list.length}`;
+      };
+      tabs.replaceChildren(
+        ...(Object.keys(NAMES) as Tab[]).map((t) =>
+          btn(t === 'goals' ? NAMES[t] : `${NAMES[t]} <small>${count(TAB_GROUPS[t])}</small>`, `small ${tab === t ? 'active' : ''}`, () => {
+            tab = t;
+            // show the equipped peel if it lives on this tab, otherwise the tab's first peel
+            if (t !== 'goals') {
+              const list = PEELS.filter((d) => TAB_GROUPS[t].includes(d.group));
+              selected = list.find((d) => d.id === equippedPeel().id) ?? list[0];
+            }
+            keepFocus(tabs, render);
+          }, { 'data-fk': `tab:${t}` }),
+        ),
+      );
+      crustLine.innerHTML = `${CRUST_SVG} <b>${fmt(save.crusts)}</b> Golden Crusts · ${PEELS.filter((d) => hasPeel(d.id)).length}/${PEELS.length} peels`;
+      body.scrollTop = 0;
+      if (tab === 'goals') {
+        // the achievements closest to done
+        const goals = PEELS.filter((d) => d.progress && !hasPeel(d.id))
+          .map((d) => ({ d, p: d.progress!() }))
+          .sort((a, b) => b.p[0] / b.p[1] - a.p[0] / a.p[1] || a.p[1] - b.p[1])
+          .slice(0, 40);
+        body.replaceChildren(
+          goals.length
+            ? h(
+                'div',
+                { class: 'goals' },
+                ...goals.map(({ d, p }) => {
+                  const img = h('img', { alt: '', 'data-peel': d.id });
+                  io.observe(img);
+                  const row = activatable(h('div', { class: 'goal', tabindex: 0, 'data-fk': `goal:${d.id}` }, img, h('div', { class: 'gt' }, h('b', {}, d.name), h('span', {}, d.how)), bar(p[0], p[1])));
+                  row.addEventListener('click', () => {
+                    audio.sfx('sfx_click');
+                    selected = d;
+                    showDetail();
+                  });
+                  return row;
+                }),
+              )
+            : h('p', { class: 'hint' }, 'Every achievement peel is unlocked. Shinies are still out there…'),
+        );
+      } else {
+        const groups = TAB_GROUPS[tab];
+        const list = PEELS.filter((d) => groups.includes(d.group));
+        if (tab === 'shiny') {
+          body.replaceChildren(
+            h('div', { class: 'sec-head' }, `SHINY FEET · ${count(['shinyFoot'])}`, h('span', {}, 'Any foot can rarely turn up shiny. Defeat it for its shiny peel.')),
+            h('div', { class: 'grid peel-grid' }, ...list.filter((d) => d.group === 'shinyFoot').map(tile)),
+            h('div', { class: 'sec-head' }, `EVENT SHINIES · ${count(['shinyEvent'])}`, h('span', {}, 'Rare drops from wave events, and a few extremely rare jewels.')),
+            h('div', { class: 'grid peel-grid' }, ...list.filter((d) => d.group === 'shinyEvent').map(tile)),
+          );
+        } else if (tab === 'crusts') {
+          body.replaceChildren(
+            h('div', { class: 'grid peel-grid' }, ...list.filter((d) => d.group !== 'jewel').map(tile)),
+            h('div', { class: 'sec-head' }, `THE JEWELLERY BOX · ${count(['jewel'])}`, h('span', {}, 'Shiny peels for serious crust savers.')),
+            h('div', { class: 'grid peel-grid' }, ...list.filter((d) => d.group === 'jewel').map(tile)),
+          );
+        } else body.replaceChildren(h('div', { class: 'grid peel-grid' }, ...list.map(tile)));
+      }
+      showDetail();
+    };
+    render();
+    let s: HTMLElement;
+    const panel = h(
+      'div',
+      { class: 'panel modal wide locker' },
+      h('div', { class: 'title' }, 'PEEL LOCKER'),
+      crustLine,
+      tabs,
+      detail,
+      body,
+      btn('DONE', 'green', () => {
+        this.close(s);
+        onClose();
+      }, { 'data-pad': 'back' }),
+    );
+    s = this.open(panel);
+    this.onClose(s, () => io.disconnect());
+    return s;
+  }
+
+  /** A plain yes/no confirm. */
+  confirm(title: string, text: string, yes: string, onYes: () => void, onNo: () => void): HTMLElement {
+    let s: HTMLElement;
+    const panel = h(
+      'div',
+      { class: 'panel modal confirm' },
+      h('div', { class: 'title', style: 'font-size:3.2em' }, title),
+      h('div', { class: 'subtitle' }, text),
+      h('div', { class: 'row' }, btn('CANCEL', 'cream', () => {
+        this.close(s);
+        onNo();
+      }, { 'data-pad': 'back', 'data-pad-default': '' }), btn(yes, 'danger', () => {
+        this.close(s);
+        onYes();
+      })),
     );
     s = this.open(panel);
     return s;
@@ -868,3 +1700,14 @@ function stat(v: string, label: string): HTMLElement {
 }
 
 export const ui = new UI();
+
+/** What a returning player keeps, listing only the things they have. */
+function welcomeKeep(): string {
+  const metaLevels = Object.values(save.meta).reduce((n, l) => n + (l ?? 0), 0);
+  const parts = [`${fmt(save.crusts)} Golden Crusts`];
+  if (metaLevels) parts.push(`${metaLevels} Pizzeria upgrade${metaLevels === 1 ? '' : 's'}`);
+  parts.push(`${save.unlockedPizzas.length} unlocked pizzas`);
+  const list = parts.length > 2 ? `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}` : parts.join(' and ');
+  const bonus = save.welcomeBonus ? ` That includes +${fmt(save.welcomeBonus)} for the bosses you'd already beaten.` : '';
+  return `You keep your ${list}.${bonus}`;
+}

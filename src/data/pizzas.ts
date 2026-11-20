@@ -1,5 +1,8 @@
 // Pizza varieties. Each pizza on the table grants its perk while it still has slices left.
 
+import { meterBoostText, superStartText } from '../game/slamMode';
+import { CONTENT_PIZZAS } from '../content/pizzaData';
+
 export type Topping =
   | 'pepperoni'
   | 'mushroom'
@@ -44,7 +47,8 @@ export type Topping =
   | 'hotSauce'
   | 'cheddar'
   | 'beef'
-  | 'redStripes';
+  | 'redStripes'
+  | (string & {}); // Feetza 2.0 toppings, drawn in src/art/toppings2.ts
 
 export type PizzaPerk =
   | 'damage'
@@ -74,7 +78,14 @@ export type PizzaPerk =
   | 'radius'
   | 'superStart'
   | 'coinsWave'
-  | 'critDmg';
+  | 'critDmg'
+  // ——— Feetza 2.0 perks ———
+  | 'splash' | 'bigHurt' | 'bossDmg' | 'tenthCrit' | 'cutter'
+  | 'neighbourShield' | 'sturdyMulti' | 'immuneEffects' | 'heatAbove' | 'rotate'
+  | 'quickTips' | 'counterDiscount' | 'extraConsumable' | 'crustBonus' | 'refund'
+  | 'preserve' | 'neverStale' | 'staleHeal' | 'riseOnce' | 'bossRegrow'
+  | 'stunVuln' | 'markFirst' | 'disarm' | 'slamStun' | 'miniWeak'
+  | 'bounceTop' | 'perkBoost' | 'freeTopping';
 
 export interface PizzaType {
   id: string;
@@ -104,104 +115,106 @@ export const PIZZAS: PizzaType[] = [
   },
   {
     id: 'hawaiian', name: 'Hawaiian', perk: 'explode', perkText: 'Smacked-down feet explode (15 dmg)',
-    shape: 'round', base: 'tomato', cheese: 1, toppings: ['ham', 'pineapple'], crust: '#dc9a48', cost: 25,
+    shape: 'round', base: 'tomato', cheese: 1, toppings: ['ham', 'pineapple'], crust: '#dc9a48', cost: 40,
   },
   {
     id: 'veggie', name: 'Garden Veggie', perk: 'regen', perkText: 'Regrows a slice every 20s',
-    shape: 'round', base: 'tomato', cheese: 0.9, toppings: ['greenPepper', 'redPepper', 'onion', 'olive', 'tomato'], crust: '#d39646', cost: 40,
+    shape: 'round', base: 'tomato', cheese: 0.9, toppings: ['greenPepper', 'redPepper', 'onion', 'olive', 'tomato'], crust: '#d39646', cost: 60,
   },
   {
     id: 'formaggi', name: 'Quattro Formaggi', perk: 'shield', perkText: 'Blocks the first stomp each wave',
-    shape: 'round', base: 'white', cheese: 1, toppings: ['blueCheese', 'parmesan', 'mozzarella'], crust: '#dca050', cost: 50,
+    shape: 'round', base: 'white', cheese: 1, toppings: ['blueCheese', 'parmesan', 'mozzarella'], crust: '#dca050', cost: 75,
   },
   {
     id: 'diavola', name: 'Diavola', perk: 'burnStomper', perkText: 'Feet that stomp it catch fire',
-    shape: 'round', base: 'tomato', cheese: 0.9, toppings: ['salami', 'chili', 'jalapeno'], crust: '#cf8a38', cost: 70,
+    shape: 'round', base: 'tomato', cheese: 0.9, toppings: ['salami', 'chili', 'jalapeno'], crust: '#cf8a38', cost: 105,
   },
   {
     id: 'bbq', name: 'BBQ Chicken', perk: 'crit', perkText: '+6% critical smack chance',
-    shape: 'round', base: 'bbq', cheese: 1, toppings: ['chicken', 'onion', 'bbq'], crust: '#c9843a', cost: 90,
+    shape: 'round', base: 'bbq', cheese: 1, toppings: ['chicken', 'onion', 'bbq'], crust: '#c9843a', cost: 135,
   },
   {
     id: 'meat', name: 'Meat Feast', perk: 'slices', perkText: 'Extra hearty: 12 slices instead of 8',
-    shape: 'round', base: 'tomato', cheese: 1, toppings: ['pepperoni', 'sausage', 'bacon', 'ham'], crust: '#c88038', cost: 120,
+    shape: 'round', base: 'tomato', cheese: 1, toppings: ['pepperoni', 'sausage', 'bacon', 'ham'], crust: '#c88038', cost: 180,
   },
   {
     id: 'pesto', name: 'Pesto Genovese', perk: 'slowAbove', perkText: 'Feet above it move 25% slower',
-    shape: 'round', base: 'pesto', cheese: 0.7, toppings: ['tomato', 'mozzarella', 'basil'], crust: '#d9a050', cost: 150,
+    shape: 'round', base: 'pesto', cheese: 0.7, toppings: ['tomato', 'mozzarella', 'basil'], crust: '#d9a050', cost: 225,
   },
   {
     id: 'sicilian', name: 'Sicilian Square', perk: 'thick', perkText: 'Thick crust: 30% chance to block a stomp',
-    shape: 'square', base: 'tomato', cheese: 0.85, toppings: ['basil', 'parmesan'], crust: '#c98a3e', cost: 170,
+    shape: 'square', base: 'tomato', cheese: 0.85, toppings: ['basil', 'parmesan'], crust: '#c98a3e', cost: 255,
   },
   {
-    id: 'dessert', name: 'Choco-Berry', perk: 'super', perkText: '+35% Peel Slam charge',
-    shape: 'round', base: 'choc', cheese: 0, toppings: ['strawberry', 'chocolate'], crust: '#c8874a', cost: 200,
+    id: 'dessert', name: 'Choco-Berry', perk: 'super', get perkText() { return meterBoostText(35); },
+    shape: 'round', base: 'choc', cheese: 0, toppings: ['strawberry', 'chocolate'], crust: '#c8874a', cost: 300,
   },
   {
     id: 'truffle', name: 'Black Truffle', perk: 'score', perkText: '+25% score',
-    shape: 'round', base: 'white', cheese: 0.9, toppings: ['truffle', 'arugula', 'parmesan'], crust: '#d79c52', cost: 260,
+    shape: 'round', base: 'white', cheese: 0.9, toppings: ['truffle', 'arugula', 'parmesan'], crust: '#d79c52', cost: 390,
   },
   {
     id: 'marinara', name: 'Marinara', perk: 'garlic', perkText: 'Garlic aura: feet above it take 6 dmg/s',
-    shape: 'round', base: 'tomato', cheese: 0, toppings: ['garlic', 'basil'], crust: '#d39646', cost: 30,
+    shape: 'round', base: 'tomato', cheese: 0, toppings: ['garlic', 'basil'], crust: '#d39646', cost: 45,
   },
   {
     id: 'capricciosa', name: 'Capricciosa', perk: 'reroll', perkText: '+1 free upgrade reroll each wave',
-    shape: 'round', base: 'tomato', cheese: 0.9, toppings: ['ham', 'mushroom', 'artichoke', 'olive'], crust: '#d6973f', cost: 60,
+    shape: 'round', base: 'tomato', cheese: 0.9, toppings: ['ham', 'mushroom', 'artichoke', 'olive'], crust: '#d6973f', cost: 90,
   },
   {
     id: 'calzone', name: 'Calzone', perk: 'healWeakest', perkText: 'Patches the weakest pizza by 1 slice each wave',
-    shape: 'calzone', base: 'tomato', cheese: 0, toppings: [], crust: '#d99a48', cost: 80,
+    shape: 'calzone', base: 'tomato', cheese: 0, toppings: [], crust: '#d99a48', cost: 120,
   },
   {
     id: 'prosciutto', name: 'Prosciutto e Rucola', perk: 'knockback', perkText: '+35% smack knockback',
-    shape: 'round', base: 'tomato', cheese: 0.8, toppings: ['prosciutto', 'arugula', 'parmesan'], crust: '#d7a050', cost: 100,
+    shape: 'round', base: 'tomato', cheese: 0.8, toppings: ['prosciutto', 'arugula', 'parmesan'], crust: '#d7a050', cost: 150,
   },
   {
     id: 'buffalo', name: 'Buffalo Hot', perk: 'burnHits', perkText: 'Smacks set feet on fire (4 dmg/s)',
-    shape: 'round', base: 'tomato', cheese: 1, toppings: ['chicken', 'blueCheese', 'hotSauce'], crust: '#cf8a38', cost: 110,
+    shape: 'round', base: 'tomato', cheese: 1, toppings: ['chicken', 'blueCheese', 'hotSauce'], crust: '#cf8a38', cost: 165,
   },
   {
     id: 'breakfast', name: 'Breakfast Club', perk: 'combo', perkText: 'Combos last 0.6s longer',
-    shape: 'round', base: 'white', cheese: 0.9, toppings: ['bacon', 'egg', 'cheddar'], crust: '#d79c4a', cost: 130,
+    shape: 'round', base: 'white', cheese: 0.9, toppings: ['bacon', 'egg', 'cheddar'], crust: '#d79c4a', cost: 195,
   },
   {
     id: 'seafood', name: 'Frutti di Mare', perk: 'slowHits', perkText: 'Smacks chill feet (-20% speed)',
-    shape: 'round', base: 'tomato', cheese: 0.5, toppings: ['shrimp', 'mussel', 'squid', 'basil'], crust: '#d39646', cost: 140,
+    shape: 'round', base: 'tomato', cheese: 0.5, toppings: ['shrimp', 'mussel', 'squid', 'basil'], crust: '#d39646', cost: 210,
   },
   {
     id: 'taco', name: 'Taco Fiesta', perk: 'double', perkText: '10% chance to smack twice',
-    shape: 'round', base: 'tomato', cheese: 1, toppings: ['beef', 'cheddar', 'lettuce', 'tomato', 'nacho'], crust: '#d8a245', cost: 160,
+    shape: 'round', base: 'tomato', cheese: 1, toppings: ['beef', 'cheddar', 'lettuce', 'tomato', 'nacho'], crust: '#d8a245', cost: 240,
   },
   {
     id: 'spinach', name: 'Spinach & Feta', perk: 'regenAll', perkText: 'Every pizza regrows 1 slice each wave',
-    shape: 'round', base: 'white', cheese: 0.7, toppings: ['spinach', 'feta', 'garlic'], crust: '#d9a050', cost: 190,
+    shape: 'round', base: 'white', cheese: 0.7, toppings: ['spinach', 'feta', 'garlic'], crust: '#d9a050', cost: 285,
   },
   {
     id: 'detroit', name: 'Detroit Red Top', perk: 'execute', perkText: 'Feet under 12% HP are smacked out instantly',
-    shape: 'square', base: 'white', cheese: 1, toppings: ['pepperoni', 'redStripes'], crust: '#b8742c', cost: 220,
+    shape: 'square', base: 'white', cheese: 1, toppings: ['pepperoni', 'redStripes'], crust: '#b8742c', cost: 330,
   },
   {
     id: 'deepdish', name: 'Chicago Deep Dish', perk: 'radius', perkText: '+20% smack area',
-    shape: 'deep', base: 'tomato', cheese: 0, toppings: ['sausage', 'parmesan', 'basil'], crust: '#c88a3e', cost: 240,
+    shape: 'deep', base: 'tomato', cheese: 0, toppings: ['sausage', 'parmesan', 'basil'], crust: '#c88a3e', cost: 360,
   },
   {
-    id: 'smores', name: 'S\'mores', perk: 'superStart', perkText: 'Start each wave with 40% Peel Slam',
-    shape: 'round', base: 'choc', cheese: 0, toppings: ['marshmallow', 'chocolate'], crust: '#b97a3e', cost: 280,
+    id: 'smores', name: 'S\'mores', perk: 'superStart', get perkText() { return superStartText(40); },
+    shape: 'round', base: 'choc', cheese: 0, toppings: ['marshmallow', 'chocolate'], crust: '#b97a3e', cost: 420,
   },
   {
     id: 'bianca', name: 'Patate e Rosmarino', perk: 'coinsWave', perkText: '+8 tips for every wave cleared',
-    shape: 'round', base: 'white', cheese: 0.6, toppings: ['potato', 'rosemary', 'parmesan'], crust: '#dca355', cost: 300,
+    shape: 'round', base: 'white', cheese: 0.6, toppings: ['potato', 'rosemary', 'parmesan'], crust: '#dca355', cost: 450,
   },
   {
     id: 'unicorn', name: 'Unicorn Dream', perk: 'critDmg', perkText: '+60% critical smack damage',
-    shape: 'round', base: 'white', cheese: 0, toppings: ['marshmallow', 'sprinkles', 'strawberry'], crust: '#e0a86a', cost: 330,
+    shape: 'round', base: 'white', cheese: 0, toppings: ['marshmallow', 'sprinkles', 'strawberry'], crust: '#e0a86a', cost: 495,
   },
   {
     id: 'golden', name: 'The Golden Pie', perk: 'luck', perkText: 'Better upgrade rarity & +15% tips',
-    shape: 'round', base: 'tomato', cheese: 1, toppings: ['pepperoni', 'goldLeaf', 'basil'], crust: '#e0a83e', cost: 400,
+    shape: 'round', base: 'tomato', cheese: 1, toppings: ['pepperoni', 'goldLeaf', 'basil'], crust: '#e0a83e', cost: 600,
   },
 ];
+
+PIZZAS.push(...CONTENT_PIZZAS);
 
 export const PIZZA_BY_ID: Record<string, PizzaType> = Object.fromEntries(PIZZAS.map((p) => [p.id, p]));
