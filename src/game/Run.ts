@@ -174,6 +174,8 @@ export class Run {
   pizzasBought = 0;
   /** Golden Crusts from wave events (capped per run). */
   eventCrusts = 0;
+  /** Crusts already paid into the bank this run (bosses, first kills, events): they're never lost. */
+  bankedCrusts = 0;
   /** Golden menu uses this run, by item id. */
   goldenUsed: Record<string, number> = {};
   secondChances = 0;
@@ -310,14 +312,35 @@ export class Run {
     return 1 + Math.min(4, Math.floor(this.combo / 5) * 0.25);
   }
 
-  /** Golden Crusts this run would pay out now (see the plan's crust table). */
+  /** Every Golden Crust this run has earned: banked ones plus what the end of the run will pay. */
   crustsEarned(figOnTable = false): number {
-    const waves = Math.max(0, this.wave - 1 - (this.act2Start ? 30 : 0));
-    // score counts on a square-root curve: late-game combos push scores into the millions, and a linear
-    // rate paid ~19,000 crusts for one Regular journey (the whole Pizzeria costs ~8,500). Now a full
-    // journey pays ~600, plus 100 per first kill.
-    const base = Math.floor(Math.sqrt(Math.max(0, this.score)) / 8) + waves * 2 + this.bossesBeaten.length * 5 + this.firstKills * 100;
-    const mult = this.heatDef.crusts * (figOnTable ? 1 + this.stats.crustBonus : 1);
-    return Math.floor(base * mult) + this.eventCrusts;
+    return this.endCrusts(figOnTable) + this.bankedCrusts;
   }
+
+  /** The part paid when the run ends: score and waves cleared. */
+  endCrusts(figOnTable = false): number {
+    return endCrustsFor(this.score, this.wave, this.act2Start, this.heat, figOnTable ? this.stats.crustBonus : 0);
+  }
+
+  /** Crusts for a boss kill, scaled by heat (and Fig & Gorgonzola). */
+  bossCrusts(firstKill: boolean, figOnTable = false): number {
+    const mult = this.heatDef.crusts * (figOnTable ? 1 + this.stats.crustBonus : 1);
+    return Math.round((5 + (firstKill ? 100 : 0)) * mult);
+  }
+
+  /** Pay crusts into the bank straight away. */
+  bank(n: number): void {
+    if (n <= 0) return;
+    save.crusts += n;
+    this.bankedCrusts += n;
+  }
+}
+
+/** End-of-run crusts: score on a square-root curve (late combos push scores into the millions, and a
+ * linear rate once paid ~19,000 crusts for one Regular journey) plus 2 per wave cleared, times heat.
+ * Bosses, first kills and events are banked as they happen, not here. */
+export function endCrustsFor(score: number, wave: number, act2Start: boolean, heat: HeatId, figBonus = 0): number {
+  const waves = Math.max(0, wave - 1 - (act2Start ? 30 : 0));
+  const base = Math.floor(Math.sqrt(Math.max(0, score)) / 8) + waves * 2;
+  return Math.floor(base * HEAT_BY_ID[heat].crusts * (1 + figBonus));
 }

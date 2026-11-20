@@ -1,11 +1,13 @@
 import Phaser from 'phaser';
 import { H, PIZZA_Y, W } from '../config';
+import { HEAT_BY_ID } from '../data/difficulty';
 import { FEET } from '../data/feet';
 import { PIZZA_BY_ID } from '../data/pizzas';
 import { BackdropView } from '../game/BackdropView';
 import { Foot } from '../game/Foot';
 import { Fx } from '../game/Fx';
 import { Pizza } from '../game/Pizza';
+import { endCrustsFor } from '../game/Run';
 import { audio } from '../systems/audio';
 import { freshStart, persist, save } from '../systems/save';
 import { ui } from '../ui/ui';
@@ -91,7 +93,11 @@ export class MenuScene extends Phaser.Scene {
       play: () => {
         if (save.run) {
           // starting a new run abandons the saved one: ask first
-          ui.confirm('ABANDON YOUR SAVED RUN?', `Wave ${save.run.wave} on ${save.run.heat}. Starting a new run deletes it.`, 'NEW RUN', () => {
+          const r = save.run;
+          const owed = endCrustsFor(r.score, r.wave, r.act2Start, r.heat);
+          ui.confirm('END YOUR SAVED RUN?', `Wave ${r.wave} on ${HEAT_BY_ID[r.heat].name}. Starting a new run ends it${owed ? `: you keep the ${owed} Golden Crusts it earned` : ''}.`, 'NEW RUN', () => {
+            // an abandoned run still pays what it earned (bosses were already banked)
+            save.crusts += owed;
             save.run = null;
             persist();
             this.lineup(randomLineup(save.meta.table ? 4 : 3));

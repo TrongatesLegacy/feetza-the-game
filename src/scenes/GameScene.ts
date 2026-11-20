@@ -90,6 +90,8 @@ export class GameScene extends Phaser.Scene implements Arena {
   private garlicT = 0;
   private hitStop = 0;
   private slowMo = 0;
+  /** Crusts banked for the boss this wave, for the BOSS DEFEATED banner. */
+  private lastBossCrusts = 0;
   /** Normal tween speed (the dev bot's time warp raises it). */
   tweenBase = 1;
   private over = false;
@@ -428,6 +430,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       slicesLost: r.slicesLost,
       pizzasBought: r.pizzasBought,
       eventCrusts: r.eventCrusts,
+      bankedCrusts: r.bankedCrusts,
       goldenUsed: { ...r.goldenUsed },
       newUnlocks: [...r.newUnlocks],
       elapsed: (performance.now() - r.startTime) / 1000,
@@ -464,6 +467,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     r.slicesLost = s.slicesLost;
     r.pizzasBought = s.pizzasBought;
     r.eventCrusts = s.eventCrusts;
+    r.bankedCrusts = s.bankedCrusts ?? 0;
     r.goldenUsed = { ...s.goldenUsed };
     r.newUnlocks = [...s.newUnlocks];
     r.startTime = performance.now() - s.elapsed * 1000;
@@ -907,6 +911,8 @@ export class GameScene extends Phaser.Scene implements Arena {
         const cap = Math.round(EVENT_CRUST_CAP * this.run.heatDef.crusts);
         const got = Math.max(0, Math.min(n, cap - this.run.eventCrusts));
         this.run.eventCrusts += got;
+        this.run.bank(got);
+        persist();
         if (got) this.fx.coinFlight(x, y, got * 3, ui.hud.coinTarget(), () => audio.sfx('sfx_coin', { throttle: 30 }));
         return got;
       },
@@ -977,7 +983,9 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.run.coins += bonus;
     if (perfect) this.addScore(500 * n, false);
     audio.sfx('sfx_levelup');
-    ui.hud.banner(boss ? 'BOSS DEFEATED!' : perfect ? 'PERFECT!' : 'WAVE CLEAR!', `+${bonus} tips${perfect ? ' · no slices lost' : ''}`, 'clear');
+    const crustNote = boss && this.lastBossCrusts ? ` · +${this.lastBossCrusts} Golden Crusts` : perfect ? ' · no slices lost' : '';
+    this.lastBossCrusts = 0;
+    ui.hud.banner(boss ? 'BOSS DEFEATED!' : perfect ? 'PERFECT!' : 'WAVE CLEAR!', `+${bonus} tips${crustNote}`, 'clear');
     const target = ui.hud.coinTarget();
     this.fx.coinFlight(W / 2, 420, Math.min(12, bonus), target, () => {
       this.displayCoins = Math.min(this.run.coins, this.displayCoins + bonus / Math.min(12, bonus));
@@ -1177,7 +1185,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       rebake: { cost: this.reviveCost, can: dead.length > 0 && r.coins >= this.reviveCost, shown: this.run.heatDef.rebake },
       reheat: { cost: this.reheatCost(), can: !!stalest && r.coins >= this.reheatCost(), shown: this.run.heatDef.freshness > 0 },
       golden,
-      progress: { runCrusts: r.crustsEarned(this.figOnTable()), bank: save.crusts, next: next ? { name: next.name, cost: next.cost } : null },
+      // bank already holds this run's boss and event crusts; only the end-of-run part is still to come
+      progress: { runCrusts: r.crustsEarned(this.figOnTable()), bank: save.crusts - r.bankedCrusts, next: next ? { name: next.name, cost: next.cost } : null },
     };
   }
 
@@ -1729,6 +1738,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       const cap = Math.round(EVENT_CRUST_CAP * this.run.heatDef.crusts);
       const got = Math.max(0, Math.min(1 + Math.floor(Math.random() * 3), cap - this.run.eventCrusts));
       this.run.eventCrusts += got;
+      this.run.bank(got);
+      persist();
       this.fx.quip(f.x, f.cy - 140, got ? `+${got} GOLDEN CRUST${got > 1 ? 'S' : ''}` : 'CRUST CAP REACHED', '#ffd23f', 42);
     }
     if (midas) {
@@ -1773,20 +1784,26 @@ export class GameScene extends Phaser.Scene implements Arena {
     // the wave ends with the boss: no golden foot arrives afterwards
     if (!mini) this.goldenSpawned = true;
     this.run.bossesBeaten.push(f.type.id);
-    if (!save.bossesBeaten.includes(f.type.id)) {
+    const firstKill = !save.bossesBeaten.includes(f.type.id);
+    if (firstKill) {
       save.bossesBeaten.push(f.type.id);
-      if (!mini) {
-        this.run.firstKills++;
-        ui.hud.toast(footPortraitURL(f.type.id), 'FIRST KILL', `${f.type.name}: +100 Golden Crusts at the end of the run`);
-      }
+      if (!mini) this.run.firstKills++;
     }
+    // boss crusts go straight into the bank, where you can see them (and they're never lost)
+    // (shown on the BOSS DEFEATED / MINI-BOSS DOWN banner)
+    const crusts = this.run.bossCrusts(firstKill && !mini, this.figOnTable());
+    this.run.bank(crusts);
+    this.lastBossCrusts = crusts;
+    persist();
+    audio.sfx('sfx_coin', { rate: 0.8 });
+    if (firstKill && !mini) ui.hud.toast(footPortraitURL(f.type.id), 'FIRST KILL', `${f.type.name}: +100 Golden Crusts, banked`);
     if (mini) {
       // mini-boss loot: a pile of tips and a free consumable, no separate loot screen
       this.giveTips(Math.round(40 * this.run.heatDef.tips + this.run.wave * 2), f.cx, f.cy);
       this.freeConsumable();
       this.fx.party(f.cx, f.cy, 60);
       audio.sfx('sfx_levelup', { volume: 0.8 });
-      ui.hud.banner('MINI-BOSS DOWN!', f.type.name, 'clear');
+      ui.hud.banner('MINI-BOSS DOWN!', `${f.type.name} · +${crusts} Golden Crusts`, 'clear');
       return;
     }
     // the first boss of every run brings a new pizza to a small table
@@ -2480,12 +2497,13 @@ export class GameScene extends Phaser.Scene implements Arena {
     const canSecond = !quit && !victory && this.run.heat !== 'inferno' && save.crusts >= this.secondChanceCost();
     const finish = () => {
       this.checkMilestones();
+      // bosses and events were banked as they happened; the score and waves pay out now
       const crusts = r.crustsEarned(this.figOnTable());
       const table = r.act2Start ? save.bestAct2 : save.best;
       const best = table[r.heat] ?? { score: 0, wave: 0 };
       const newBest = r.score > best.score;
       table[r.heat] = { score: Math.max(best.score, r.score), wave: Math.max(best.wave, r.wave) };
-      save.crusts += crusts;
+      save.crusts += r.endCrusts(this.figOnTable());
       save.runs++;
       if (r.score > save.bestScore) save.bestScore = r.score;
       if (r.wave > save.bestWave) save.bestWave = r.wave;

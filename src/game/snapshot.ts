@@ -47,6 +47,8 @@ export interface RunSnapshot {
   slicesLost: number;
   pizzasBought: number;
   eventCrusts: number;
+  /** Crusts already paid into the bank this run. */
+  bankedCrusts?: number;
   goldenUsed: Record<string, number>;
   newUnlocks: string[];
   elapsed: number;

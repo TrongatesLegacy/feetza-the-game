@@ -279,10 +279,24 @@ class Hud {
     this.bossMove.replaceChildren(h('b', {}, name), h('span', {}, answer));
   }
 
+  private toastQueue: HTMLElement[] = [];
+
+  /** Toasts stack two at a time; more wait their turn so the column never runs into the centre banner. */
   toast(img: string | null, title: string, text: string): void {
     const t = h('div', { class: 'toast panel' }, img ? h('img', { src: img, alt: '' }) : null, h('div', {}, h('b', {}, title), text));
-    this.toasts.append(t);
-    setTimeout(() => t.remove(), 4100);
+    this.toastQueue.push(t);
+    this.pumpToasts();
+  }
+
+  private pumpToasts(): void {
+    while (this.toastQueue.length && this.toasts.childElementCount < 2) {
+      const t = this.toastQueue.shift()!;
+      this.toasts.append(t);
+      setTimeout(() => {
+        t.remove();
+        this.pumpToasts();
+      }, 4100);
+    }
   }
 
   tutorial(show: boolean): void {
@@ -561,6 +575,8 @@ class UI {
 
   shop(st0: ShopState, act: ShopActions): HTMLElement {
     let st = st0;
+    /** Topping ids already dealt onto the counter (they don't replay their entrance). */
+    const dealt = new Set<string>();
     const wrap = h('div', { class: 'shop2' });
     let screen: HTMLElement;
     const onKey = (e: KeyboardEvent) => {
@@ -587,12 +603,14 @@ class UI {
         h('div', { class: 'shop-purses' }, h('div', { class: 'purse', html: `${coin(st.coins)} <small>tips</small>` }), h('div', { class: 'purse gold', html: `${crust(st.crusts)} <small>Golden Crusts</small>` })),
       );
       // topping cards
+      // cards already on the table don't deal in again when the shop redraws after a purchase;
+      // only new ones (after a reroll) animate
       const cards = st.cards.map((c, i) => {
         const b = btn(c.sold ? 'BOUGHT' : c.free ? 'FREE' : st.coins >= c.price ? `BUY · ${fmt(c.price)}` : `NEED ${fmt(c.price)}`, c.sold ? 'cream small' : c.free || st.coins >= c.price ? 'green small' : 'small', () => act.buy(c.id));
         b.disabled = c.sold || (!c.free && st.coins < c.price);
         const el = h(
           'div',
-          { class: `card ${c.rarity}${c.sold ? ' sold' : ''}`, tabindex: 0, role: 'button', 'aria-label': `${c.name}: ${c.desc}` },
+          { class: `card ${c.rarity}${c.sold ? ' sold' : ''}${dealt.has(c.id) ? ' dealt' : ''}`, tabindex: 0, role: 'button', 'aria-label': `${c.name}: ${c.desc}` },
           h('div', { class: 'key' }, String(i + 1)),
           h('span', { class: `kind ${c.kind}` }, c.kind === 'permanent' ? 'PERMANENT' : c.kind === 'unique' ? 'ONCE PER RUN' : 'ONE USE'),
           h('div', { class: 'rarity' }, c.rarity),
@@ -687,11 +705,13 @@ class UI {
       );
     };
     render();
+    for (const c of st.cards) dealt.add(c.id);
     screen = this.open(wrap);
     this.shops.set(screen, (s) => {
       st = s;
       const focusIdx = [...wrap.querySelectorAll('button, [tabindex="0"]')].indexOf(document.activeElement as Element);
       render();
+      for (const c of st.cards) dealt.add(c.id);
       if (focusIdx >= 0) (wrap.querySelectorAll<HTMLElement>('button, [tabindex="0"]')[focusIdx] ?? null)?.focus();
     });
     this.onClose(screen, () => window.removeEventListener('keydown', onKey));
