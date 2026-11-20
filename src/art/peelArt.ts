@@ -508,15 +508,19 @@ function drawFootHead(ctx: Ctx, look: PeelLook): void {
   // fit inside the head area, the heel meeting the top of the handle
   const boxW = R * 2 + 8;
   const boxH = R * 2 + 14;
-  const k = Math.min(boxW / art.width, boxH / art.height);
+  // centre on the ankle, not the picture: tails and accessories would push the handle off-centre
+  const an = ankleOf(art);
+  const halfSpan = Math.max(an.cx, art.width - an.cx);
+  const k = Math.min(boxW / (halfSpan * 2), boxH / art.height);
   const w = art.width * k;
   const hgt = art.height * k;
-  const bottom = HY + R + 10;
+  const dx = (art.width / 2 - an.cx) * k;
+  const bottom = HY + R + 6;
   const [t, tctx] = makeCanvas(PEEL_W, PEEL_H);
   tctx.save();
   tctx.translate(HX, bottom - hgt / 2);
   tctx.scale(1, -1); // toes up
-  tctx.drawImage(art, -w / 2, -hgt / 2, w, hgt);
+  tctx.drawImage(art, -w / 2 + dx, -hgt / 2, w, hgt);
   tctx.restore();
   // pattern and foil only where the foot is
   tctx.globalCompositeOperation = 'source-atop';
@@ -553,21 +557,81 @@ function drawFootHead(ctx: Ctx, look: PeelLook): void {
   ctx.shadowOffsetY = 4;
   ctx.drawImage(t, 0, 0);
   ctx.restore();
-  // a collar where the handle meets the heel
-  roundRect(ctx, HX - 18, bottom - 10, 36, 14, 5);
-  ctx.fillStyle = look.studs ?? look.handle[1];
+  // the hilt: a crossguard as wide as the ankle, so foot and handle join cleanly
+  const ankle = an.w * k;
+  const gw = Math.max(56, Math.min(128, ankle + 22));
+  const metal = look.studs ?? look.handle[0];
+  const gg = ctx.createLinearGradient(0, bottom - 12, 0, bottom + 10);
+  gg.addColorStop(0, shade(metal, 0.35));
+  gg.addColorStop(0.5, metal);
+  gg.addColorStop(1, shade(metal, -0.35));
+  roundRect(ctx, HX - gw / 2, bottom - 12, gw, 20, 10);
+  ctx.fillStyle = gg;
+  ctx.fill();
+  ctx.strokeStyle = look.rim ?? INK;
+  ctx.lineWidth = 4;
+  ctx.stroke();
+  // pommel caps on each end of the guard
+  for (const sx of [-1, 1]) {
+    ellipse(ctx, HX + sx * (gw / 2 - 2), bottom - 2, 9, 9);
+    ctx.fillStyle = shade(metal, -0.1);
+    ctx.fill();
+    ctx.strokeStyle = look.rim ?? INK;
+    ctx.lineWidth = 3.5;
+    ctx.stroke();
+    ellipse(ctx, HX + sx * (gw / 2 - 2) - 2.5, bottom - 5, 3, 2.4);
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.fill();
+  }
+  // shine along the guard
+  roundRect(ctx, HX - gw / 2 + 12, bottom - 8, gw - 24, 4, 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.45)';
+  ctx.fill();
+  // a ferrule where the handle leaves the guard
+  roundRect(ctx, HX - 17, bottom + 6, 34, 16, 5);
+  const fg2 = ctx.createLinearGradient(HX - 17, 0, HX + 17, 0);
+  fg2.addColorStop(0, shade(metal, -0.3));
+  fg2.addColorStop(0.45, shade(metal, 0.3));
+  fg2.addColorStop(1, shade(metal, -0.35));
+  ctx.fillStyle = fg2;
   ctx.fill();
   ctx.strokeStyle = look.rim ?? INK;
   ctx.lineWidth = 3.5;
   ctx.stroke();
-  // boss studs along the collar
+  // boss jewels on the guard
   if (look.studs) {
-    for (const dx of [-10, 0, 10]) {
-      ellipse(ctx, HX + dx, bottom - 3, 2.6, 2.6);
-      ctx.fillStyle = '#ffffff';
-      ctx.fill();
-    }
+    ellipse(ctx, HX, bottom - 2, 6, 6);
+    ctx.fillStyle = '#ff3d6e';
+    ctx.fill();
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    ellipse(ctx, HX - 1.8, bottom - 4, 2, 1.6);
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.fill();
   }
+}
+
+const ankleCache = new WeakMap<HTMLCanvasElement, { w: number; cx: number }>();
+
+/** The ankle: width and centre of the opaque pixels near the top edge of the foot art (it meets the handle once flipped). */
+function ankleOf(art: HTMLCanvasElement): { w: number; cx: number } {
+  const hit = ankleCache.get(art);
+  if (hit) return hit;
+  const ctx = art.getContext('2d')!;
+  const rows = Math.max(2, Math.round(art.height * 0.08));
+  const data = ctx.getImageData(0, 0, art.width, rows).data;
+  let x0 = art.width;
+  let x1 = 0;
+  for (let y = Math.floor(rows / 2); y < rows; y++)
+    for (let x = 0; x < art.width; x++)
+      if (data[(y * art.width + x) * 4 + 3] > 40) {
+        x0 = Math.min(x0, x);
+        x1 = Math.max(x1, x);
+      }
+  const out = x1 > x0 ? { w: x1 - x0, cx: (x0 + x1) / 2 } : { w: art.width * 0.5, cx: art.width / 2 };
+  ankleCache.set(art, out);
+  return out;
 }
 
 /** Head colours from one base colour. */
