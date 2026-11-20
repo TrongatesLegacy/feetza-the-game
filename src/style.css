@@ -1067,6 +1067,20 @@ h3 {
   align-self: center;
 }
 
+.card .down {
+  font-size: 1.15em;
+  font-weight: 700;
+  color: #b3261e;
+  line-height: 1.2;
+  margin-top: -0.2em;
+}
+
+.down {
+  color: #b3261e;
+  font-style: normal;
+  font-weight: 700;
+}
+
 .card .lvl {
   font-family: 'Lilita One', sans-serif;
   font-size: 1.2em;

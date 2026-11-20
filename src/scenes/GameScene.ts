@@ -581,7 +581,10 @@ export class GameScene extends Phaser.Scene implements Arena {
       else if (inv === 'crit') s.critChance = Math.max(0, s.critChance - 0.06);
       else s.damage *= 0.95;
     }
-    for (const p of this.pizzas) p.maxFresh = 10 + this.run.stats.freshBonus;
+    for (const p of this.pizzas) {
+      p.maxFresh = 10 + this.run.stats.freshBonus;
+      if (p.fresh > p.maxFresh) p.setFresh(p.maxFresh);
+    }
     const timers = new Map(this.procs.map((x) => [x.id, x.t]));
     this.procs = Object.entries(this.run.owned)
       .map(([id, lvl]) => ({ u: UPGRADE_BY_ID[id], lvl }))
@@ -781,7 +784,7 @@ export class GameScene extends Phaser.Scene implements Arena {
   private spawnFoot(type: FootType, target: Pizza | null, allowElite = true, x?: number): Foot {
     const plan = this.plan!;
     const elite = allowElite && !type.boss && !type.mini && type.id !== 'golden' && Math.random() < plan.eliteChance;
-    const hpMult = type.boss || type.mini ? plan.bossHpMult : plan.hpMult;
+    const hpMult = (type.boss || type.mini ? plan.bossHpMult : plan.hpMult) * this.run.stats.footHp;
     const f = new Foot(this, this.feetLayer, this.shadowLayer, type, x ?? target?.x ?? W / 2, {
       hpMult,
       speedMult: plan.speedMult * this.run.stats.speedMult,
@@ -1234,6 +1237,7 @@ export class GameScene extends Phaser.Scene implements Arena {
         rarity: u.rarity,
         kind: k,
         desc: u.desc(lvl + 1),
+        downside: u.downside,
         lvl: k === 'consumable' ? 'One use, back in 3 waves' : k === 'unique' ? 'Once per run' : lvl ? `LV ${lvl} → ${lvl + 1}` : 'NEW',
         price: sh.free === u.id ? 0 : upgradePrice(u, r.wave, r.level(u.id)),
         free: sh.free === u.id,
@@ -2136,6 +2140,11 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   private applyStomp(p: Pizza, f: Foot | null, dmg: number, big: boolean): void {
     if (p.dead) return;
+    // trade-off toppings: a foot's stomp can take an extra slice
+    if (f && dmg > 0 && Math.random() < this.run.stats.stompExtra) {
+      dmg += 1;
+      this.fx.quip(p.x, p.surfaceY - 190, '+1 SLICE!', '#ff6b6b', 30);
+    }
     const removed = p.takeSlices(dmg, f?.x ?? p.x);
     this.waveSlicesLost += removed.length;
     this.run.slicesLost += removed.length;

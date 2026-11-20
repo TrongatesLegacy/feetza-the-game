@@ -2,6 +2,7 @@
 
 import type { Proc } from '../game/abilities';
 import { MORE_TOPPINGS } from './toppingsMore';
+import { TRADEOFF_TOPPINGS } from './toppingsTradeoff';
 import { freezeText, meterBoostText } from '../game/slamMode';
 
 export interface Stats {
@@ -58,6 +59,10 @@ export interface Stats {
   miniWeak: number;
   stunVuln: number;
   freeTopping: boolean;
+  /** Feet health multiplier (trade-off toppings). */
+  footHp: number;
+  /** Chance a stomp takes an extra slice (trade-off toppings). */
+  stompExtra: number;
 }
 
 export function baseStats(): Stats {
@@ -114,6 +119,8 @@ export function baseStats(): Stats {
     miniWeak: 0,
     stunVuln: 0,
     freeTopping: false,
+    footHp: 1,
+    stompExtra: 0,
   };
 }
 
@@ -134,6 +141,8 @@ export interface Upgrade {
   kind?: UpgradeKind;
   /** Proc toppings: an ability-style trigger and effects (scaled by level), run by the scene. */
   proc?: Proc;
+  /** Trade-off toppings: the catch, shown as its own red line. */
+  downside?: string;
 }
 
 const pct = (n: number) => `${Math.round(n * 100)}%`;
@@ -320,6 +329,7 @@ export const UPGRADES: Upgrade[] = [
     apply: (s) => { s.goldenTouch += 0.08; },
   },
   ...MORE_TOPPINGS,
+  ...TRADEOFF_TOPPINGS,
 ];
 
 export const UPGRADE_BY_ID: Record<string, Upgrade> = Object.fromEntries(UPGRADES.map((u) => [u.id, u]));

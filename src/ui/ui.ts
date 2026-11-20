@@ -693,6 +693,7 @@ class UI {
           h('div', { class: 'icon' }, c.icon),
           h('div', { class: 'name' }, c.name),
           h('div', { class: 'desc' }, c.desc),
+          c.downside ? h('div', { class: 'down' }, `▼ ${c.downside}`) : null,
           h('div', { class: 'lvl' }, c.lvl),
           b,
         );
@@ -938,7 +939,7 @@ class UI {
           'div',
           { class: 'ptop', style: `--rc:${RARITY_COLOR[u.rarity]}` },
           h('div', { class: 'ic' }, u.icon),
-          h('div', { class: 'tx' }, h('b', {}, u.name, lvl > 1 ? h('span', { class: 'lv' }, `×${lvl}`) : null, armed ? h('span', { class: 'armed' }, 'READY') : null), h('span', {}, u.desc(1))),
+          h('div', { class: 'tx' }, h('b', {}, u.name, lvl > 1 ? h('span', { class: 'lv' }, `×${lvl}`) : null, armed ? h('span', { class: 'armed' }, 'READY') : null), h('span', {}, u.desc(1), u.downside ? h('em', { class: 'down' }, ` ▼ ${u.downside}`) : null)),
         );
       }),
     );

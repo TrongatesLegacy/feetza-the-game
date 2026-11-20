@@ -10,6 +10,8 @@ export interface ShopCard {
   rarity: Rarity;
   kind: UpgradeKind;
   desc: string;
+  /** Trade-off toppings: the catch. */
+  downside?: string;
   lvl: string;
   price: number;
   free: boolean;
