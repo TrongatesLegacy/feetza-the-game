@@ -139,8 +139,8 @@ export function migrate(parsed: Partial<SaveData>): SaveData {
       s.metaSpent[id] = costs.slice(0, lvl).reduce((a, b) => a + b, 0);
     }
     s.best = s.bestScore || s.bestWave ? { regular: { score: s.bestScore, wave: s.bestWave } } : {};
-    // the 100-crust first-kill bonus for bosses already beaten, paid once
-    s.welcomeBonus = s.bossesBeaten.length * 100;
+    // the first-kill bonus (20 crusts) for bosses already beaten, paid once
+    s.welcomeBonus = s.bossesBeaten.length * 20;
     s.crusts += s.welcomeBonus;
     s.welcomePending = s.runs > 0 || s.crusts > 0;
     // the old "all 6 bosses" milestone is now "6 different bosses"

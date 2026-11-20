@@ -121,7 +121,7 @@ export class GameScene extends Phaser.Scene implements Arena {
   private smackCount = 0;
   private lastKillAt = -9;
   private bossBonusGiven = false;
-  private shop: { el: HTMLElement; state: ShopState; cards: Upgrade[]; sold: Set<string>; free: string | null; bossReward: boolean; counter: ReturnType<GameScene['rollCounterOffers']> } | null = null;
+  private shop: { el: HTMLElement; state: ShopState; cards: Upgrade[]; sold: Set<string>; free: string | null; bossReward: boolean; counter: ReturnType<GameScene['rollCounterOffers']>; goldenBought?: GoldenItem['id'] } | null = null;
   private keyHandler = (e: KeyboardEvent) => this.onKey(e);
   private visHandler = () => {
     if (document.hidden && this.waveActive && !this.paused && !this.over && !this.inUpgrade) this.togglePause(true);
@@ -343,7 +343,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       const rs = snap.shop;
       const cards = rs?.cards.map((id) => UPGRADE_BY_ID[id]).filter(Boolean);
       this.freeRerollsLeft = rs ? rs.freeRerolls : this.run.stats.freeRerolls;
-      const keep = rs && cards?.length ? { cards, sold: new Set(rs.sold), free: rs.free } : undefined;
+      const keep = rs && cards?.length ? { cards, sold: new Set(rs.sold), free: rs.free, goldenBought: rs.goldenBought } : undefined;
       this.time.delayedCall(500, () => this.openUpgrades(rs?.bossReward ?? isBossWave(snap.wave), keep, 'WELCOME BACK!'));
     } else if (this.start.act2) {
       this.run.wave = ACT_WAVES;
@@ -440,7 +440,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       counter: this.shop?.counter ?? this.restoredShop?.counter ?? [],
       bossBonusGiven: this.bossBonusGiven,
       shop: this.shop
-        ? { cards: this.shop.cards.map((u) => u.id), sold: [...this.shop.sold], free: this.shop.free, bossReward: this.shop.bossReward, freeRerolls: this.freeRerollsLeft }
+        ? { cards: this.shop.cards.map((u) => u.id), sold: [...this.shop.sold], free: this.shop.free, bossReward: this.shop.bossReward, freeRerolls: this.freeRerollsLeft, goldenBought: this.shop.goldenBought }
         : this.restoredShop?.shop,
     };
   }
@@ -1100,7 +1100,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     return offers;
   }
 
-  private openUpgrades(bossReward: boolean, keepCards?: { cards: Upgrade[]; sold: Set<string>; free: string | null }, title?: string): void {
+  private openUpgrades(bossReward: boolean, keepCards?: { cards: Upgrade[]; sold: Set<string>; free: string | null; goldenBought?: GoldenItem['id'] }, title?: string): void {
     if (this.over) return;
     this.inUpgrade = true;
     ui.setPlaying(false);
@@ -1120,7 +1120,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     const restored = this.restoredShop?.counter.length ? this.restoredShop.counter : null;
     const counter = this.shop?.counter && this.shop.state.wave === this.run.wave ? this.shop.counter : restored ?? this.rollCounterOffers();
     this.restoredShop = null;
-    this.shop = { el: null as unknown as HTMLElement, state: null as unknown as ShopState, cards, sold: keepCards?.sold ?? new Set(), free, bossReward, counter };
+    this.shop = { el: null as unknown as HTMLElement, state: null as unknown as ShopState, cards, sold: keepCards?.sold ?? new Set(), free, bossReward, counter, goldenBought: keepCards?.goldenBought };
     this.saveRun();
     const state = this.shopState(title);
     this.shop.state = state;
@@ -1169,6 +1169,12 @@ export class GameScene extends Phaser.Scene implements Arena {
       { id: 'fresh', name: 'Fresh Batch', desc: 'Every pizza back to full freshness', cost: 30, available: used('fresh') < 1 && this.run.heatDef.freshness > 0, note: this.run.heatDef.freshness > 0 ? (used('fresh') ? 'Used this run' : '') : 'Freshness is off' },
     ];
     for (const g of golden) g.available = g.available && save.crusts >= g.cost;
+    // one Golden Menu pick per shop: once something is bought, the rest wait for the next shop
+    const picked = this.shop?.goldenBought;
+    if (picked) for (const g of golden) {
+      g.available = false;
+      g.note = g.id === picked ? 'Bought this shop' : 'One per shop';
+    }
     const stalest = [...this.alivePizzas()].filter((p) => p.freshOn && p.fresh < p.maxFresh).sort((a, b) => a.fresh - b.fresh)[0];
     return {
       title: title ?? (this.shop?.bossReward ? 'BOSS LOOT!' : `WAVE ${r.wave} CLEARED!`),
@@ -1341,8 +1347,10 @@ export class GameScene extends Phaser.Scene implements Arena {
   private shopGolden(id: GoldenItem['id']): void {
     const g = this.shop?.state.golden.find((x) => x.id === id);
     if (!g || !g.available || save.crusts < g.cost) return;
+    if (this.shop!.goldenBought) return;
     save.crusts -= g.cost;
     this.run.goldenUsed[id] = (this.run.goldenUsed[id] ?? 0) + 1;
+    this.shop!.goldenBought = id;
     audio.sfx('sfx_levelup', { volume: 0.7 });
     if (id === 'rebake') {
       const p = this.pizzas.find((x) => x.dead);
@@ -1734,7 +1742,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.displayCoins = Math.min(this.run.coins, this.displayCoins + coins / flights);
       audio.sfx('sfx_coin', { throttle: 40, jitter: 0.15 });
     });
-    this.run.super = Math.min(1, this.run.super + 0.05 * st.superGain);
+    // kills charge the Peel Slam, except kills by the slam itself (it would refill its own meter)
+    if (source !== 'slam') this.run.super = Math.min(1, this.run.super + 0.05 * st.superGain);
     if (f.has('crusty')) {
       const cap = Math.round(EVENT_CRUST_CAP * this.run.heatDef.crusts);
       const got = Math.max(0, Math.min(1 + Math.floor(Math.random() * 3), cap - this.run.eventCrusts));
@@ -1797,7 +1806,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.lastBossCrusts = crusts;
     persist();
     audio.sfx('sfx_coin', { rate: 0.8 });
-    if (firstKill && !mini) ui.hud.toast(footPortraitURL(f.type.id), 'FIRST KILL', `${f.type.name}: +100 Golden Crusts, banked`);
+    if (firstKill && !mini) ui.hud.toast(footPortraitURL(f.type.id), 'FIRST KILL', `${f.type.name}: +${crusts} Golden Crusts, banked`);
     if (mini) {
       // mini-boss loot: a pile of tips and a free consumable, no separate loot screen
       this.giveTips(Math.round(40 * this.run.heatDef.tips + this.run.wave * 2), f.cx, f.cy);

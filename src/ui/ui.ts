@@ -682,7 +682,7 @@ class UI {
       const golden = h(
         'section',
         { class: 'shop-sec golden', 'data-pad-section': '' },
-        h('div', { class: 'sec-head' }, h('h2', {}, 'GOLDEN MENU'), h('span', { class: 'sec-note' }, 'Paid from banked crusts')),
+        h('div', { class: 'sec-head' }, h('h2', {}, 'GOLDEN MENU'), h('span', { class: 'sec-note' }, 'One per shop · banked crusts')),
         h(
           'div',
           { class: 'gitems' },

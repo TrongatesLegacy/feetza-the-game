@@ -8,6 +8,9 @@ import { JOURNEY_WAVES, MINI_WAVE, STAGES, WAVES_PER_STAGE } from '../data/stage
 import { CONSUMABLE_COOLDOWN, RARITY_WEIGHT, UPGRADES, UPGRADE_BY_ID, baseStats, kindOf, type Rarity, type Stats, type Upgrade } from '../data/upgrades';
 import { save } from '../systems/save';
 
+/** Golden Crusts for the first time you ever beat a main boss (on top of the usual 5). */
+export const FIRST_KILL_CRUSTS = 20;
+
 /** The most tip boosts can add up to (see recompute). */
 export const TIP_MULT_CAP = 2.5;
 
@@ -158,7 +161,7 @@ export class Run {
   comboTimer = 0;
   feetSmacked = 0;
   bossesBeaten: string[] = [];
-  /** First-ever boss kills this run (100 crusts each). */
+  /** First-ever boss kills this run (20 crusts each). */
   firstKills = 0;
   owned: Record<string, number> = {};
   /** Consumable id → first wave it may be offered again. */
@@ -325,7 +328,7 @@ export class Run {
   /** Crusts for a boss kill, scaled by heat (and Fig & Gorgonzola). */
   bossCrusts(firstKill: boolean, figOnTable = false): number {
     const mult = this.heatDef.crusts * (figOnTable ? 1 + this.stats.crustBonus : 1);
-    return Math.round((5 + (firstKill ? 100 : 0)) * mult);
+    return Math.round((5 + (firstKill ? FIRST_KILL_CRUSTS : 0)) * mult);
   }
 
   /** Pay crusts into the bank straight away. */
