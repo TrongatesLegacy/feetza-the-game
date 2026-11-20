@@ -36,6 +36,8 @@ export interface PeelLook {
   emblem?: CanvasImageSource | null;
   /** Foot and boss peels: the head IS the foot (toes up, handle at the heel), patterned and foiled. */
   footArt?: HTMLCanvasElement | null;
+  /** Objects more than feet (a jukebox, a riot shield): keep them upright instead of toes-up. */
+  footUpright?: boolean;
   /** Pizza peels: the head IS the pizza (drawn as-is, not flipped). */
   pizzaArt?: HTMLCanvasElement | null;
   /** Round pizzas sit on a wooden board; square ones and calzones stand on their own. */
@@ -529,7 +531,7 @@ function drawFootHead(ctx: Ctx, look: PeelLook): void {
   const [t, tctx] = makeCanvas(PEEL_W, PEEL_H);
   tctx.save();
   tctx.translate(HX, bottom - hgt / 2);
-  tctx.scale(1, -1); // toes up
+  if (!look.footUpright) tctx.scale(1, -1); // toes up
   tctx.drawImage(art, -w / 2 + dx, -hgt / 2, w, hgt);
   tctx.restore();
   // pattern and foil only where the foot is
@@ -568,7 +570,7 @@ function drawFootHead(ctx: Ctx, look: PeelLook): void {
   ctx.drawImage(t, 0, 0);
   ctx.restore();
   // the hilt: a crossguard as wide as the ankle, so foot and handle join cleanly
-  const ankle = an.w * k;
+  const ankle = (look.footUpright ? an.sole : an.w) * k;
   const gw = Math.max(56, Math.min(128, ankle + 22));
   const metal = look.studs ?? look.handle[0];
   const gg = ctx.createLinearGradient(0, bottom - 12, 0, bottom + 10);
@@ -721,7 +723,7 @@ function visibleEdge(art: HTMLCanvasElement, bottom: boolean): number {
   return bottom ? hit[1] : hit[0];
 }
 
-const ankleCache = new WeakMap<HTMLCanvasElement, { w: number; cx: number }>();
+const ankleCache = new WeakMap<HTMLCanvasElement, { w: number; cx: number; sole: number }>();
 
 /** Longest run of opaque pixels in a row: [start, end] or null. */
 function longestRun(data: Uint8ClampedArray, w: number, y: number): [number, number] | null {
@@ -747,7 +749,7 @@ const median = (xs: number[]) => {
  * Where the handle should go: the centre of the foot's main body (the longest opaque run in each row,
  * so accessories like a spray can or a bowling ball beside it don't count), and the ankle's width.
  */
-function ankleOf(art: HTMLCanvasElement): { w: number; cx: number } {
+function ankleOf(art: HTMLCanvasElement): { w: number; cx: number; sole: number } {
   const hit = ankleCache.get(art);
   if (hit) return hit;
   const ctx = art.getContext('2d')!;
@@ -755,13 +757,17 @@ function ankleOf(art: HTMLCanvasElement): { w: number; cx: number } {
   const data = ctx.getImageData(0, 0, w, h).data;
   const mids: number[] = [];
   const ankles: number[] = [];
+  const soles: number[] = [];
   for (let y = Math.round(h * 0.04); y < Math.round(h * 0.95); y += 2) {
     const run = longestRun(data, w, y);
     if (!run) continue;
     mids.push((run[0] + run[1]) / 2);
     if (y < h * 0.16) ankles.push(run[1] - run[0]);
+    if (y > h * 0.8) soles.push(run[1] - run[0]);
   }
-  const out = mids.length ? { cx: median(mids), w: median(ankles.length ? ankles : [w * 0.5]) } : { w: w * 0.5, cx: w / 2 };
+  const out = mids.length
+    ? { cx: median(mids), w: median(ankles.length ? ankles : [w * 0.5]), sole: median(soles.length ? soles : [w * 0.5]) }
+    : { w: w * 0.5, cx: w / 2, sole: w * 0.5 };
   ankleCache.set(art, out);
   return out;
 }

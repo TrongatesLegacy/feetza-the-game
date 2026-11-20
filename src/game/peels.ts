@@ -76,6 +76,8 @@ function plural(name: string, n: number): string {
 }
 
 const SHAPES: PeelShape[] = ['round', 'oval', 'square', 'paddle'];
+/** Feet that are really objects (or carry lettering): their peel heads stay upright. */
+const UPRIGHT = new Set(['jukebox', 'riot', 'ketchup', 'chimney', 'rover', 'milkshake']);
 const FOOT_PATTERNS: PeelPattern[] = ['spots', 'stripes', 'waves', 'checker', 'stars', 'bubbles', 'bolts', 'grain'];
 const BOSS_PATTERNS: PeelPattern[] = ['flames', 'bolts', 'scales', 'marble', 'stars'];
 
@@ -139,6 +141,7 @@ function footLook(f: FootType, shiny: boolean): PeelLook {
     pattern,
     patternColor: accent,
     footArt: footEmblem(f.id) as HTMLCanvasElement | null,
+    footUpright: UPRIGHT.has(f.id),
     studs: f.boss ? '#ffd23f' : f.mini ? '#d7dde6' : undefined,
     metal: !!a.gold || a.leg === 'armor',
     shiny,
