@@ -70,6 +70,24 @@ export function btn(label: string, cls: string, onClick: () => void, attrs: Attr
 
 const fmt = (n: number) => Math.floor(n).toLocaleString('en-US');
 
+/** Enter/Space on a focusable tile acts like a click (keyboard and gamepad). */
+function activatable<T extends HTMLElement>(el: T): T {
+  el.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      el.click();
+    }
+  });
+  return el;
+}
+
+/** Re-render without losing focus: refocus the element with the same data-fk afterwards. */
+function keepFocus(root: HTMLElement, render: () => void): void {
+  const fk = (document.activeElement as HTMLElement | null)?.dataset?.fk;
+  render();
+  if (fk) root.querySelector<HTMLElement>(`[data-fk="${CSS.escape(fk)}"]`)?.focus();
+}
+
 /** A peel's ability as a line for the locker: kind pill, name and what it does. */
 function abilityLine(peelId: string): HTMLElement {
   if (peelId === 'classic') return h('div', { class: 'abl' }, h('span', { class: 'chip' }, 'ACTIVE'), h('b', {}, 'Peel Slam'), h('span', {}, 'Press Space when the meter is full: smack every foot at once.'));
@@ -214,7 +232,7 @@ class Hud {
     // one word per line, like PEEL / SLAM; long words shrink to fit the circle
     const words = name.toUpperCase().split(/\s+/);
     const longest = Math.max(...words.map((w) => w.length));
-    const size = Math.min(1, 6.5 / longest, 2.4 / words.length);
+    const size = Math.min(1, 5 / longest, 2.4 / words.length);
     this.slam.innerHTML = `<span><b class="an" style="font-size:${size.toFixed(2)}em">${words.join('<br>')}</b>${passive ? `<small class="pk">${kind}</small>` : '<small class="kb">SPACE</small><small class="pd" data-glyph="X">X</small>'}</span>`;
     this.slam.classList.add('ability');
     this.slam.classList.toggle('passive', passive);
@@ -589,13 +607,13 @@ class UI {
       const a = abilityFor(d.id);
       const useAb = save.useAbility && !classic;
       const choice = (on: boolean, label: string, val: boolean) => {
-        const b = h('button', { class: `pk-opt${on ? ' on' : ''}`, type: 'button', 'aria-pressed': on ? 'true' : 'false' }, label) as HTMLButtonElement;
+        const b = h('button', { class: `pk-opt${on ? ' on' : ''}`, type: 'button', 'aria-pressed': on ? 'true' : 'false', 'data-fk': `pk:${val}` }, label) as HTMLButtonElement;
         b.disabled = classic && val;
         b.addEventListener('click', () => {
           audio.sfx('sfx_click');
           save.useAbility = val;
           persist();
-          renderPeel();
+          keepFocus(peelCard, renderPeel);
         });
         return b;
       };
@@ -1362,7 +1380,6 @@ class UI {
     let s: HTMLElement;
     const owned = PEELS.filter((d) => hasPeel(d.id));
     const close = () => {
-      io.disconnect();
       this.close(s);
       onDone();
     };
@@ -1386,13 +1403,13 @@ class UI {
           const img = h('img', { alt: '', 'data-peel': d.id });
           io.observe(img);
           const a = abilityFor(d.id);
-          const t = h(
+          const t = activatable(h(
             'div',
             { class: `tile peel-tile${d.shiny ? ' shiny' : ''}${equippedPeel().id === d.id ? ' selected' : ''}`, tabindex: 0, title: describeAbility(a) },
             img,
             h('div', { class: 'nm' }, d.name.replace(/ Peel$/, '')),
             h('div', { class: 'ab' }, d.id === 'classic' ? 'Peel Slam' : a.name),
-          );
+          ));
           t.addEventListener('click', () => {
             audio.sfx('sfx_upgrade');
             equipPeel(d.id);
@@ -1411,6 +1428,7 @@ class UI {
       btn('BACK', 'cream', close, { 'data-pad': 'back' }),
     );
     s = this.open(panel);
+    this.onClose(s, () => io.disconnect());
     return s;
   }
 
@@ -1466,7 +1484,10 @@ class UI {
         action = btn(equipped ? 'EQUIPPED' : 'EQUIP', equipped ? 'cream small' : 'green small', () => {
           equipPeel(d.id);
           audio.sfx('sfx_upgrade');
+          const sc = body.scrollTop;
           render();
+          body.scrollTop = sc;
+          body.querySelector<HTMLElement>(`[data-fk="${CSS.escape(d.id)}"]`)?.focus();
         });
         (action as HTMLButtonElement).disabled = equipped;
       } else if (d.cost) {
@@ -1498,13 +1519,14 @@ class UI {
       io.observe(img);
       const t = h(
         'div',
-        { class: `tile peel-tile${owned ? '' : ' locked'}${hidden(d) ? ' hidden' : ''}${d.shiny && owned ? ' shiny' : ''}${selected.id === d.id ? ' selected' : ''}`, tabindex: 0 },
+        { class: `tile peel-tile${owned ? '' : ' locked'}${hidden(d) ? ' hidden' : ''}${d.shiny && owned ? ' shiny' : ''}${selected.id === d.id ? ' selected' : ''}`, tabindex: 0, 'data-fk': d.id },
         img,
         h('div', { class: 'nm' }, shownName(d).replace(/ Peel$/, '')),
         !owned && pr ? bar(pr[0], pr[1]) : null,
         !owned && d.cost ? h('div', { class: 'cost' }, `${fmt(d.cost)} crusts`) : null,
         equippedPeel().id === d.id ? h('span', { class: 'tag' }, 'ON') : fresh.has(d.id) ? h('span', { class: 'tag new' }, 'NEW') : null,
       );
+      activatable(t);
       t.addEventListener('click', () => {
         audio.sfx('sfx_click');
         selected = d;
@@ -1528,8 +1550,8 @@ class UI {
               const list = PEELS.filter((d) => TAB_GROUPS[t].includes(d.group));
               selected = list.find((d) => d.id === equippedPeel().id) ?? list[0];
             }
-            render();
-          }),
+            keepFocus(tabs, render);
+          }, { 'data-fk': `tab:${t}` }),
         ),
       );
       crustLine.innerHTML = `${CRUST_SVG} <b>${fmt(save.crusts)}</b> Golden Crusts · ${PEELS.filter((d) => hasPeel(d.id)).length}/${PEELS.length} peels`;
@@ -1548,7 +1570,7 @@ class UI {
                 ...goals.map(({ d, p }) => {
                   const img = h('img', { alt: '', 'data-peel': d.id });
                   io.observe(img);
-                  const row = h('div', { class: 'goal', tabindex: 0 }, img, h('div', { class: 'gt' }, h('b', {}, d.name), h('span', {}, d.how)), bar(p[0], p[1]));
+                  const row = activatable(h('div', { class: 'goal', tabindex: 0, 'data-fk': `goal:${d.id}` }, img, h('div', { class: 'gt' }, h('b', {}, d.name), h('span', {}, d.how)), bar(p[0], p[1])));
                   row.addEventListener('click', () => {
                     audio.sfx('sfx_click');
                     selected = d;
@@ -1590,12 +1612,12 @@ class UI {
       detail,
       body,
       btn('DONE', 'green', () => {
-        io.disconnect();
         this.close(s);
         onClose();
       }, { 'data-pad': 'back' }),
     );
     s = this.open(panel);
+    this.onClose(s, () => io.disconnect());
     return s;
   }
 

@@ -197,7 +197,7 @@ export const ABILITIES: Record<string, Ability> = {
 
   // ——— Mastered (prestige): stronger takes on the Crust peels ———
   'master:classic': ab('Grand Peel Slam', act, [D(14, all, 1300), ST(1.5, all)], GOLD, 'slam', 1.15),
-  'master:marble': ab('Avalanche of Marble', act, [D(9, all, 800), ST(3, all)], WHITE, 'burst', 1.1),
+  'master:marble': ab('Marble Avalanche', act, [D(9, all, 800), ST(3, all)], WHITE, 'burst', 1.1),
   'master:copper': ab('Tesla Coil', smack(0.4), [C(1.5, 5)], ORANGE, 'zap'),
   'master:neon': ab('Neon Rave', every(3.5), [D(3, all), S(0.35, 2, all)], PINK, 'zap'),
   'master:obsidian': ab('Volcanic Glass', always, [STAT({ critChance: 0.18, critMult: 1.8 })], PURPLE, 'burst'),
@@ -232,12 +232,12 @@ export const ABILITIES: Record<string, Ability> = {
   'place:pier': ab('Sea Spray', smack(0.3), [S(0.35, 3, hit(200)), D(0.8, hit(200))], CYAN, 'wind'),
   'place:rink': ab('Spin Out', act, [D(6, all), ST(2, all), K(800, all)], PINK, 'wind'),
   'place:slopes': ab('Whiteout', auto, [FZ(3, all)], WHITE, 'frost', 1),
-  'place:cellar': ab('Things in the Dark', every(5), [D(4, tough(1)), M(1.5, 4, tough(1))], PURPLE, 'ink'),
+  'place:cellar': ab('Dark Cellar', every(5), [D(4, tough(1)), M(1.5, 4, tough(1))], PURPLE, 'ink'),
 
   // ——— Wave events ———
   'event:balloon': ab('Pop!', kill(0.35), [D(1.5, hit(200)), T(1)], RED, 'burst'),
   'event:drone': ab('Air Support', every(3), [D(2, front(1))], CYAN, 'zap'),
-  'event:moth': ab('Moth to a Flame', smack(0.25), [B(1.2, 3, hit(150))], ORANGE, 'fire'),
+  'event:moth': ab('Moth Flame', smack(0.25), [B(1.2, 3, hit(150))], ORANGE, 'fire'),
   'event:seagull': ab('Dive-Bomb', every(5), [D(4, rnd(2)), K(500, rnd(2))], GOLD, 'rain'),
   'event:chest': ab('Treasure Trove', wave, [T(25)], GOLD, 'gold'),
   'event:mimic': ab('Gotcha!', stomp, [D(5, hit()), ST(1.5, hit())], BROWN, 'burst'),
@@ -245,7 +245,7 @@ export const ABILITIES: Record<string, Ability> = {
   // ——— Bosses and mini-bosses ———
   'boss:bigfoot': ab('Big Stomp', act, [D(12, all, 1300), ST(1.5, all)], BROWN, 'slam', 0.95),
   'boss:ironheel': ab('Piston Barrage', act, [D(6, rnd(6)), D(4, all)], ORANGE, 'rain'),
-  'boss:clownking': ab('Pie in the Face', every(5), [ST(2, rnd(2)), D(2, rnd(2))], PINK, 'burst'),
+  'boss:clownking': ab('Pie Face', every(5), [ST(2, rnd(2)), D(2, rnd(2))], PINK, 'burst'),
   'boss:trex': ab('Extinction Roar', act, [K(1500, all), D(7, all), S(0.3, 4, all)], GREEN, 'wind'),
   'boss:colossus': ab('Earthquake', auto, [D(9, all, 900), ST(1.2, all)], BROWN, 'slam', 0.9),
   'boss:phantomking': ab('Possession', act, [M(2.2, 8, all), D(3, all)], PURPLE, 'ink'),
@@ -266,7 +266,7 @@ export const ABILITIES: Record<string, Ability> = {
   'boss:jellyfish': ab('Sting', smack(0.3), [ST(1, hit(150)), D(0.8, hit(150))], PINK, 'zap'),
   'boss:milkshake': ab('Brain Freeze', act, [FZ(3, all), M(1.5, 5, all)], PINK, 'frost'),
   'boss:lumberjack': ab('Timber!', act, [D(18, front(3), 900)], BROWN, 'slam'),
-  'boss:poltergeist': ab('Things That Go Bump', every(5), [K(800, rnd(3)), D(2.5, rnd(3))], PURPLE, 'ink'),
+  'boss:poltergeist': ab('Spooky Shove', every(5), [K(800, rnd(3)), D(2.5, rnd(3))], PURPLE, 'ink'),
 
   // ——— Feet ———
   'foot:bob': ab('Barefoot Basics', always, [STAT({ damage: 2 })], 0xf0c8a0, 'burst'),
@@ -274,7 +274,7 @@ export const ABILITIES: Record<string, Ability> = {
   'foot:sock': ab('Soggy Socks', smack(0.3), [S(0.35, 2.5, hit(130))], 0xd8e8f0, 'wind'),
   'foot:baby': ab('Tiny Tantrum', every(4), [D(1.5, rnd(4))], PINK, 'burst'),
   'foot:flipflop': ab('Flip-Flop Slap', smack(0.2), [D(1, hit()), D(1, hit())], CYAN, 'burst'),
-  'foot:tina': ab('Five Little Piggies', every(5), [D(1.4, rnd(5))], PINK, 'rain'),
+  'foot:tina': ab('Little Piggies', every(5), [D(1.4, rnd(5))], PINK, 'rain'),
   'foot:harold': ab('Hair Trigger', smack(0.25), [B(1, 3, hit(140))], BROWN, 'fire'),
   'foot:sneaker': ab('Fresh Kicks', kill(0.3), [D(1.5, hit(160))], RED, 'burst'),
   'foot:stan': ab('Stink Cloud', every(6), [D(2, peel(260)), S(0.25, 2, peel(260))], GREEN, 'ink'),
@@ -292,12 +292,12 @@ export const ABILITIES: Record<string, Ability> = {
   'foot:sasha': ab('Stiletto', smack(0.35), [EX(0.3, hit())], RED, 'burst'),
   'foot:bunny': ab('Hop Along', every(5), [K(900, front(3))], PINK, 'wind'),
   'foot:rita': ab('Roller Disco', act, [D(5, all), S(0.3, 4, all), T(10)], PINK, 'wind'),
-  'foot:gus': ab('Shield Wall', wave, [SH(1, 'weakest'), SH(1, 'weakest')], GOLD, 'heal'),
+  'foot:gus': ab('Shield Wall', wave, [SH(2, 'weakest')], GOLD, 'heal'),
   'foot:clyde': ab('Clog Dance', every(6), [D(2.5, peel(240)), ST(0.6, peel(240))], BROWN, 'burst'),
   'foot:wendy': ab('Puddle Jump', smack(0.25), [S(0.4, 2, hit(160)), K(400, hit(160))], 0xffd23f, 'wind'),
   'foot:moe': ab('Moonwalk', act, [K(1600, all), D(4, all)], WHITE, 'wind', 1.1),
   'foot:stompalot': ab('Knight Charge', act, [D(14, front(4), 1000)], 0x8a929e, 'slam'),
-  'foot:jingle': ab('Jingle All the Way', wave, [T(12), H(1, 'weakest')], GREEN, 'gold'),
+  'foot:jingle': ab('Jingle Bells', wave, [T(12), H(1, 'weakest')], GREEN, 'gold'),
   'foot:pete': ab('Walk the Plank', every(8), [D(6, tough(1)), K(1000, tough(1))], BROWN, 'burst'),
   'foot:dino': ab('Jurassic Stomp', act, [D(8, all), ST(1, all)], GREEN, 'slam'),
   'foot:xeno': ab('Abduction', every(9), [D(8, front(1)), K(1400, front(1))], GREEN, 'zap'),
@@ -310,7 +310,7 @@ export const ABILITIES: Record<string, Ability> = {
   'foot:quack': ab('Duck and Cover', stomp, [SH(1, 'weakest')], GOLD, 'heal'),
   'foot:wally': ab('Full Moon', kill(0.3), [D(2.5, hit(200))], BROWN, 'burst'),
   'foot:tony': ab('Tough Ink', always, [STAT({ bigHurt: 0.25 })], BLUE, 'burst'),
-  'foot:clara': ab('Butterfingers', every(7), [D(3, rnd(2)), K(600, rnd(2))], PINK, 'burst'),
+  'foot:clara': ab('Fumble', every(7), [D(3, rnd(2)), K(600, rnd(2))], PINK, 'burst'),
   'foot:arthur': ab('Argyle Armour', wave, [SH(1, 'all')], PURPLE, 'heal'),
   'foot:sue': ab('Sunburn', smack(0.3), [B(1.3, 4, hit())], ORANGE, 'fire'),
   'foot:fred': ab('Frostbite', smack(0.3), [S(0.5, 3, hit(140))], CYAN, 'frost'),
@@ -338,7 +338,7 @@ export const ABILITIES: Record<string, Ability> = {
   'foot:robosock': ab('Overclock', always, [STAT({ chainChance: 0.12 })], CYAN, 'zap'),
   'foot:comet': ab('Comet Tail', act, [D(9, rnd(4)), B(1, 3, rnd(4))], ORANGE, 'rain'),
   'foot:rover': ab('Survey Laser', every(4), [D(2.5, tough(1))], RED, 'zap'),
-  'foot:starlight': ab('Wish Upon a Star', kill(0.3), [T(2), D(1, rnd(2))], GOLD, 'gold'),
+  'foot:starlight': ab('Star Wish', kill(0.3), [T(2), D(1, rnd(2))], GOLD, 'gold'),
   'foot:thief': ab('Pickpocket', smack(0.15), [T(1)], PURPLE, 'gold'),
   'foot:fruitfly': ab('Swarm', every(3), [D(1, rnd(5))], GREEN, 'rain'),
   'foot:doughtoes': ab('Proving Drawer', always, [STAT({ regenPerWave: 1 })], 0xf2dfb0, 'heal'),
@@ -357,7 +357,7 @@ export const ABILITIES: Record<string, Ability> = {
   'foot:snowshoe': ab('Snowdrift', every(6), [S(0.45, 3, all)], WHITE, 'frost'),
   'foot:hiking': ab('Trailblazer', always, [STAT({ damage: 1, bossDmg: 0.15 })], BROWN, 'burst'),
   'foot:skier': ab('Downhill', act, [D(7, front(5), 1000), S(0.3, 3, all)], WHITE, 'wind'),
-  'foot:mime': ab('Invisible Wall', wave, [SH(1, 'weakest'), SH(1, 'weakest'), SH(1, 'weakest')], WHITE, 'heal'),
+  'foot:mime': ab('Invisible Wall', wave, [SH(3, 'weakest')], WHITE, 'heal'),
   'foot:neon': ab('Glow Up', every(5), [M(1.4, 4, all)], PINK, 'zap'),
   'foot:crusty': ab('Crust Lust', kill(0.08), [T(5)], GOLD, 'gold'),
   'foot:mimic': ab('Surprise!', kill(0.25), [D(3, hit(220))], BROWN, 'burst'),
@@ -382,30 +382,30 @@ export const ABILITIES: Record<string, Ability> = {
   'pizza:prosciutto': ab('Rocket Salad', every(5), [D(4, front(1))], GREEN, 'zap'),
   'pizza:buffalo': ab('Buffalo Stampede', act, [D(7, front(6), 1200)], ORANGE, 'slam'),
   'pizza:breakfast': ab('Early Bird', wave, [T(8), FR(1)], GOLD, 'gold'),
-  'pizza:seafood': ab('Catch of the Day', every(6), [S(0.4, 3, rnd(3)), D(2, rnd(3))], CYAN, 'wind'),
+  'pizza:seafood': ab('Fresh Catch', every(6), [S(0.4, 3, rnd(3)), D(2, rnd(3))], CYAN, 'wind'),
   'pizza:taco': ab('Taco Tuesday', smack(0.2), [D(1, hit(150)), B(0.8, 2, hit(150))], ORANGE, 'fire'),
   'pizza:spinach': ab('Iron Leaves', always, [STAT({ damage: 1, knockback: 80 })], GREEN, 'burst'),
   'pizza:detroit': ab('Motor City', every(3), [D(1.5, front(2))], RED, 'zap'),
-  'pizza:deepdish': ab('Deep Dish Defence', wave, [SH(1, 'all'), H(1, 'weakest')], GOLD, 'heal'),
+  'pizza:deepdish': ab('Deep Defence', wave, [SH(1, 'all'), H(1, 'weakest')], GOLD, 'heal'),
   'pizza:smores': ab('Campfire Treat', every(7), [B(1.2, 4, rnd(3)), H(1, 'weakest')], BROWN, 'fire'),
   'pizza:bianca': ab('Rosemary Roast', always, [STAT({ burnDps: 4, critChance: 0.03 })], WHITE, 'fire'),
   'pizza:unicorn': ab('Rainbow Blast', act, [D(8, all), ST(1.5, all), T(15)], PINK, 'gold'),
-  'pizza:golden': ab('The Golden Touch', always, [STAT({ goldenTouch: 0.05, coinMult: 0.15 })], GOLD, 'gold'),
+  'pizza:golden': ab('Golden Pie', always, [STAT({ goldenTouch: 0.05, coinMult: 0.15 })], GOLD, 'gold'),
   'pizza:nduja': ab('Spicy Spread', kill(0.4), [B(1.5, 3, hit(200))], RED, 'fire'),
   'pizza:hothoney': ab('Sweet Heat', smack(0.25), [B(1, 3, hit()), T(1)], GOLD, 'fire'),
   'pizza:calabrese': ab('Chilli Kick', smack(0.2), [D(1.5, hit(140)), B(0.8, 2, hit(140))], RED, 'fire'),
   'pizza:puttanesca': ab('Olive Volley', every(3), [D(1.5, rnd(2))], GREEN, 'rain'),
-  'pizza:philly': ab('Cheesesteak Sizzle', every(6), [D(2.5, peel(260)), B(1, 3, peel(260))], ORANGE, 'fire'),
+  'pizza:philly': ab('Steak Sizzle', every(6), [D(2.5, peel(260)), B(1, 3, peel(260))], ORANGE, 'fire'),
   'pizza:grandma': ab('Grandma’s Love', wave, [H(1, 'all'), FR(1)], PINK, 'heal'),
   'pizza:stromboli': ab('Rolled Up', act, [ST(3, front(5)), D(5, front(5))], GOLD, 'burst'),
   'pizza:whitepie': ab('White Out', act, [FZ(2.5, all)], WHITE, 'frost'),
   'pizza:flambee': ab('Flambé!', act, [B(2, 5, all), D(4, all)], ORANGE, 'fire'),
   'pizza:stagioni': ab('Four Seasons', every(8), [D(2, all), S(0.3, 2, all), B(0.6, 2, all)], GREEN, 'wind'),
-  'pizza:nyslice': ab('Fold and Go', always, [STAT({ quickTips: 1, damage: 1 })], GOLD, 'gold'),
+  'pizza:nyslice': ab('Quick Fold', always, [STAT({ quickTips: 1, damage: 1 })], GOLD, 'gold'),
   'pizza:kebab': ab('Skewered', smack(0.25), [D(1, hit()), C(1, 2)], BROWN, 'zap'),
   'pizza:maccheese': ab('Comfort Food', stomp, [H(1, 'weakest'), FR(1, 'weakest')], GOLD, 'heal'),
-  'pizza:fig': ab('Fine Dining', always, [STAT({ crustBonus: 0.1, coinMult: 0.1 })], PURPLE, 'gold'),
-  'pizza:taglio': ab('By the Slice', every(4), [D(2.5, tough(1))], RED, 'burst'),
+  'pizza:fig': ab('Fine Dining', always, [STAT({ coinMult: 0.2, scoreMult: 0.1 })], PURPLE, 'gold'),
+  'pizza:taglio': ab('Slice Strike', every(4), [D(2.5, tough(1))], RED, 'burst'),
   'pizza:pickle': ab('Sour Face', smack(0.25), [ST(1, hit(130))], GREEN, 'ink'),
   'pizza:pumpkin': ab('Spice Storm', every(6), [B(1, 3, all)], ORANGE, 'fire'),
   'pizza:fritta': ab('Hot Oil', stomp, [B(2, 4, hit()), D(2, hit())], GOLD, 'fire'),
@@ -481,6 +481,7 @@ const STAT_LABEL: Partial<Record<NumStat, (v: number) => string>> = {
   bossDmg: (v) => `+${Math.round(v * 100)}% boss damage`,
   quickTips: (v) => `+${v} tip per quick kill`,
   crustBonus: (v) => `+${Math.round(v * 100)}% Golden Crusts`,
+  scoreMult: (v) => `+${Math.round(v * 100)}% score`,
 };
 
 function effectText(f: Effect): string {
@@ -504,7 +505,7 @@ function effectText(f: Effect): string {
     case 'heal':
       return f.who === 'all' ? `heal every pizza ${f.n} slice${f.n > 1 ? 's' : ''}` : `heal your weakest pizza ${f.n} slice${f.n > 1 ? 's' : ''}`;
     case 'shield':
-      return f.who === 'all' ? `give every pizza a stomp shield` : `give your weakest pizza a stomp shield`;
+      return `give ${f.who === 'all' ? 'every pizza' : 'your weakest pizza'} ${f.n > 1 ? `${f.n} stomp shields` : 'a stomp shield'}`;
     case 'fresh':
       return f.who === 'all' ? `+${f.n} freshness on every pizza` : `+${f.n} freshness on your stalest pizza`;
     case 'tips':
@@ -544,7 +545,6 @@ export function describeAbility(a: Ability): string {
   for (const f of a.fx) {
     const t = effectText(f);
     if (!parts.includes(t)) parts.push(t);
-    else if (f.e === 'shield') parts[parts.indexOf(t)] = t.replace('a stomp shield', 'extra stomp shields');
   }
   const body = parts.join(', then ');
   const lead = triggerText(a.trigger);

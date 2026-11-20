@@ -61,6 +61,8 @@ export class Foot {
   burnT = 0;
   burnDps = 0;
   burnAcc = 0;
+  /** The current burn came from a peel ability (its kills don't charge the meter). */
+  burnFromAbility = false;
   slowT = 0;
   slowPct = 0;
   stunT = 0;

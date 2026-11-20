@@ -556,7 +556,10 @@ export class GameScene extends Phaser.Scene implements Arena {
       .filter((p) => p !== this.possessedPizza)
       .map((p) => p.perk)
       .filter((x): x is PizzaPerk => !!x);
-    this.run.recompute(perks);
+    // always-on peel abilities change stats before the caps are applied
+    const extra: Record<string, number> = {};
+    if (this.ability?.trigger.t === 'always') for (const e of this.ability.fx) if (e.e === 'stat') for (const [k, v] of Object.entries(e.mods)) extra[k] = (extra[k] ?? 0) + (v as number);
+    this.run.recompute(perks, extra);
     // the Ghost's possession inverts the haunted pizza's perk
     const inv = this.possessedPizza?.perk;
     if (inv) {
@@ -565,11 +568,6 @@ export class GameScene extends Phaser.Scene implements Arena {
       else if (inv === 'damage' || inv === 'critDmg' || inv === 'bigHurt' || inv === 'bossDmg') s.damage *= 0.9;
       else if (inv === 'crit') s.critChance = Math.max(0, s.critChance - 0.06);
       else s.damage *= 0.95;
-    }
-    // always-on peel abilities
-    if (this.ability?.trigger.t === 'always') {
-      const st = this.run.stats as unknown as Record<string, number>;
-      for (const e of this.ability.fx) if (e.e === 'stat') for (const [k, v] of Object.entries(e.mods)) st[k] = (st[k] ?? 0) + (v as number);
     }
     for (const p of this.pizzas) p.maxFresh = 10 + this.run.stats.freshBonus;
     this.syncCutters();
@@ -1593,8 +1591,11 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   private hitFoot(f: Foot, x: number, y: number): void {
     const st = this.run.stats;
+    const hpBefore = f.hp;
     this.dealDamage(f, st.damage, { source: 'smack', canCrit: true, knock: st.knockback, x, y });
-    if (this.ability?.trigger.t === 'smack' && Math.random() < this.ability.trigger.p) this.fireAbility({ foot: f, x: f.cx, y: f.cy });
+    // smack abilities only when the smack landed (not parried, guarded or dodged)
+    const landed = !f.alive || f.hp < hpBefore;
+    if (landed && this.ability?.trigger.t === 'smack' && Math.random() < this.ability.trigger.p) this.fireAbility({ foot: f, x: f.cx, y: f.cy });
     if (!f.alive) return;
     if (f.has('pinch')) this.stunPeel(0.5, 'PINCHED!');
     if (f.has('sticky')) {
@@ -1726,8 +1727,9 @@ export class GameScene extends Phaser.Scene implements Arena {
         audio.sfx('sfx_combo', { rate: 1 + Math.min(0.6, this.run.combo / 100) });
         this.fx.quip(W / 2, 330, `${this.run.combo} COMBO!`, '#ffd23f', 56, 0);
       }
-      this.run.super = Math.min(1, this.run.super + 0.018 * st.superGain);
+      this.run.super = Math.min(1, this.run.super + 0.018 * st.superGain * (this.ability ? this.ability.charge : 1));
       if (st.burnDps > 0 && !f.type.traits.includes('immuneBurn')) {
+        f.burnFromAbility = false;
         f.burnT = 3;
         f.burnDps = Math.max(f.burnDps, st.burnDps);
         audio.sfx('sfx_fire', { volume: 0.4, throttle: 300 });
@@ -1835,7 +1837,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       audio.sfx('sfx_coin', { throttle: 40, jitter: 0.15 });
     });
     // kills charge the Peel Slam, except kills by the slam itself (it would refill its own meter)
-    if (source !== 'slam' && source !== 'ability') this.run.super = Math.min(1, this.run.super + 0.05 * st.superGain * (this.ability ? this.ability.charge : 1));
+    // the slam and abilities never refill their own meter (their burns included)
+    if (source !== 'slam' && source !== 'ability' && !(source === 'burn' && f.burnFromAbility)) this.run.super = Math.min(1, this.run.super + 0.05 * st.superGain * (this.ability ? this.ability.charge : 1));
     if (this.ability?.trigger.t === 'kill' && source !== 'ability' && Math.random() < this.ability.trigger.p) {
       const at = { x: f.cx, y: f.cy };
       this.time.delayedCall(40, () => this.fireAbility({ x: at.x, y: at.y }));
@@ -2169,7 +2172,7 @@ export class GameScene extends Phaser.Scene implements Arena {
   private abilityTick(dt: number): void {
     const a = this.ability;
     if (!a || !this.waveActive) return;
-    if (a.trigger.t === 'auto' && this.run.super >= 1) {
+    if (a.trigger.t === 'auto' && this.run.super >= 1 && this.feet.some((f) => f.hittable)) {
       this.run.super = 0;
       this.fireAbility();
     } else if (a.trigger.t === 'every') {
@@ -2277,6 +2280,7 @@ export class GameScene extends Phaser.Scene implements Arena {
         for (const f of this.abilityTargets(e.at, ctx)) {
           if (f.has('immuneBurn')) continue;
           this.fx.burn(f.cx, f.cy);
+          f.burnFromAbility = true;
           f.burnT = Math.max(f.burnT, e.sec);
           f.burnDps = Math.max(f.burnDps, e.x * st.damage);
         }
@@ -2300,8 +2304,8 @@ export class GameScene extends Phaser.Scene implements Arena {
         break;
       case 'mark':
         for (const f of this.abilityTargets(e.at, ctx)) {
-          f.markUntil = this.nowT + e.sec;
           f.markMult = Math.max(f.markUntil > this.nowT ? f.markMult : 1, e.mult);
+          f.markUntil = this.nowT + e.sec;
           f.flash(color, 120);
         }
         break;
@@ -2325,9 +2329,10 @@ export class GameScene extends Phaser.Scene implements Arena {
       }
       case 'execute':
         for (const f of this.abilityTargets(e.at, ctx)) {
-          if (f.isBossLike || !f.alive || f.hp / f.maxHp > e.below) continue;
+          if (f.isBossLike || !f.alive || f.shielded || f.hp / f.maxHp > e.below) continue;
           this.fx.quip(f.x, f.cy - 120, 'FINISHED!', '#ff8a6a', 36);
-          this.dealDamage(f, f.hp + 1, { source: 'direct' });
+          f.wool = 0;
+          this.killFoot(f, 'ability');
         }
         break;
       case 'heal': {
@@ -2340,7 +2345,7 @@ export class GameScene extends Phaser.Scene implements Arena {
         const ps = this.alivePizzas();
         const list = e.who === 'all' ? ps : [...ps].sort((a, b) => a.shieldCharges - b.shieldCharges || a.slices - b.slices).slice(0, 1);
         for (const p of list) {
-          p.setShield(p.shieldCharges + 1);
+          p.setShield(p.shieldCharges + e.n);
           this.fx.ring(p.x, p.surfaceY - 40, color, 0.8, 0.4);
         }
         break;

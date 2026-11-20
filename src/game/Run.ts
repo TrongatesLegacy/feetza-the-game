@@ -198,7 +198,8 @@ export class Run {
     return save.meta[id] ?? 0;
   }
 
-  recompute(alivePerks: PizzaPerk[]): void {
+  /** extra: always-on peel ability stat changes, added before the caps. */
+  recompute(alivePerks: PizzaPerk[], extra: Partial<Record<keyof Stats, number>> = {}): void {
     const s = baseStats();
     // meta progression
     s.damage *= 1 + 0.08 * this.meta('wrists');
@@ -252,6 +253,10 @@ export class Run {
     s.miniWeak = Math.min(0.5, s.miniWeak + 0.2 * c('miniWeak'));
     s.stunVuln += 0.5 * c('stunVuln');
     s.freeTopping = s.freeTopping || c('freeTopping') > 0;
+    for (const [k, v] of Object.entries(extra)) {
+      const key = k as keyof Stats;
+      if (typeof s[key] === 'number') (s as unknown as Record<string, number>)[key] += v as number;
+    }
     s.slowPct = Math.min(0.7, s.slowPct);
     s.critChance = Math.min(0.85, s.critChance);
     s.execute = Math.min(0.4, s.execute);
