@@ -1,4 +1,4 @@
-// Peel abilities: every peel type has its own, chosen at the start of a run instead of the Peel Slam.
+// Peel abilities: every peel but the Classic has its own, used in place of the Peel Slam.
 // Shiny peels share their base peel's ability. Abilities are built from shared triggers and effects
 // so the game can run (and describe) all of them the same way.
 //

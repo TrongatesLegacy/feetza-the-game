@@ -16,7 +16,7 @@ import { ACT_WAVES, STAGES } from '../data/stages';
 import { BACKDROPS } from '../art/backdrops';
 import { applyA11y } from './a11y';
 import { abilityFor, abilityKindLabel, describeAbility } from '../game/abilities';
-import { PEELS, buyPeel, checkPeelAchievements, equipPeel, equippedPeel, hasPeel, peelThumbURL, type PeelDef, type PeelGroup } from '../game/peels';
+import { PEELS, buyPeel, checkPeelAchievements, equipPeel, equippedPeel, hasPeel, peelThumbURL, wearSkin, wornSkin, type PeelDef, type PeelGroup } from '../game/peels';
 
 type Attrs = Record<string, string | number | boolean | undefined>;
 
@@ -601,32 +601,30 @@ class UI {
         );
       }),
     );
-    // the peel, its ability, and the Peel Slam / ability switch
+    // the peel and what it does: the Classic Peel has the Peel Slam, every other peel its own ability
     const peelCard = h('div', { class: 'peelcard', 'data-pad-section': '' });
     const renderPeel = () => {
       const d = equippedPeel();
-      const classic = d.id === 'classic';
-      const a = abilityFor(d.id);
-      const useAb = save.useAbility && !classic;
-      const choice = (on: boolean, label: string, val: boolean) => {
-        const b = h('button', { class: `pk-opt${on ? ' on' : ''}`, type: 'button', 'aria-pressed': on ? 'true' : 'false', 'data-fk': `pk:${val}` }, label) as HTMLButtonElement;
-        b.disabled = classic && val;
-        b.addEventListener('click', () => {
-          audio.sfx('sfx_click');
-          save.useAbility = val;
-          persist();
-          keepFocus(peelCard, renderPeel);
-        });
-        return b;
-      };
+      // a worn look shows on the card (it's what you'll play with), with the equipped peel's name
+      const look = wornSkin();
+      const lookRow = look && look.id !== d.id
+        ? h('span', { class: 'pk-look' }, `👕 Wearing the ${look.name.replace(/ Peel$/, '')} look · `, Object.assign(h('button', { class: 'linkish', type: 'button', 'data-fk': 'pk:look' }, 'take off'), {
+            onclick: () => {
+              audio.sfx('sfx_click');
+              wearSkin(null);
+              keepFocus(peelCard, renderPeel);
+            },
+          }))
+        : null;
+      const shown = look ?? d;
       peelCard.replaceChildren(
-        h('div', { class: `pk-img${d.shiny ? ' shiny' : ''}` }, h('img', { src: peelThumbURL(d.id, 200), alt: '' })),
+        h('div', { class: `pk-img${shown.shiny ? ' shiny' : ''}` }, h('img', { src: peelThumbURL(shown.id, 200), alt: '' })),
         h(
           'div',
           { class: 'pk-body' },
           h('div', { class: 'pk-head' }, h('b', { class: 'pk-name' }, d.name), btn('CHANGE', 'cream small', () => this.peelPicker(renderPeel))),
-          h('div', { class: 'pk-opts' }, choice(!useAb, 'PEEL SLAM', false), choice(useAb, classic ? 'NO ABILITY' : a.name.toUpperCase(), true)),
-          h('span', { class: 'pk-desc' }, useAb ? describeAbility(a) : 'Press Space when the meter is full to smack every foot at once.'),
+          abilityLine(d.id),
+          lookRow,
         ),
       );
     };
@@ -1385,67 +1383,16 @@ class UI {
     return s;
   }
 
-  /** Quick peel picker (from the run-start screen): owned peels only, with their abilities. */
+  /** Peel picker (from the run-start screen): the Peel Locker, showing unlocked peels first; equipping one closes it. */
   peelPicker(onDone: () => void): HTMLElement {
-    let s: HTMLElement;
-    const owned = PEELS.filter((d) => hasPeel(d.id));
-    const close = () => {
-      this.close(s);
-      onDone();
-    };
-    const body = h('div', { class: 'scroll' });
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries) {
-          if (!e.isIntersecting) continue;
-          const img = e.target as HTMLImageElement;
-          io.unobserve(img);
-          img.src = peelThumbURL(img.dataset.peel!);
-        }
-      },
-      { root: body, rootMargin: '200px' },
-    );
-    body.append(
-      h(
-        'div',
-        { class: 'grid peel-grid' },
-        ...owned.map((d) => {
-          const img = h('img', { alt: '', 'data-peel': d.id });
-          io.observe(img);
-          const a = abilityFor(d.id);
-          const t = activatable(h(
-            'div',
-            { class: `tile peel-tile${d.shiny ? ' shiny' : ''}${equippedPeel().id === d.id ? ' selected' : ''}`, tabindex: 0, title: describeAbility(a) },
-            img,
-            h('div', { class: 'nm' }, d.name.replace(/ Peel$/, '')),
-            h('div', { class: 'ab' }, d.id === 'classic' ? 'Peel Slam' : a.name),
-          ));
-          t.addEventListener('click', () => {
-            audio.sfx('sfx_upgrade');
-            equipPeel(d.id);
-            close();
-          });
-          return t;
-        }),
-      ),
-    );
-    const panel = h(
-      'div',
-      { class: 'panel modal wide locker' },
-      h('div', { class: 'title' }, 'PICK A PEEL'),
-      h('div', { class: 'subtitle' }, `${owned.length} unlocked · more in the Peel Locker on the title screen`),
-      body,
-      btn('BACK', 'cream', close, { 'data-pad': 'back' }),
-    );
-    s = this.open(panel);
-    this.onClose(s, () => io.disconnect());
-    return s;
+    return this.locker(onDone, true);
   }
 
-  // ——— Peel Locker: cosmetic peels and the achievements that unlock them ———
-  locker(onClose: () => void): HTMLElement {
-    type Tab = 'goals' | 'crusts' | 'feet' | 'bosses' | 'pizzas' | 'places' | 'events' | 'shiny';
+  // ——— Peel Locker: every peel, the achievements that unlock them, and what you equip and wear ———
+  locker(onClose: () => void, pick = false): HTMLElement {
+    type Tab = 'all' | 'goals' | 'crusts' | 'feet' | 'bosses' | 'pizzas' | 'places' | 'events' | 'shiny';
     const TAB_GROUPS: Record<Exclude<Tab, 'goals'>, PeelGroup[]> = {
+      all: [...new Set(PEELS.map((d) => d.group))],
       crusts: ['classic', 'golden', 'jewel', 'master'],
       feet: ['foot'],
       bosses: ['boss'],
@@ -1454,22 +1401,34 @@ class UI {
       events: ['event'],
       shiny: ['shinyFoot', 'shinyEvent'],
     };
-    const NAMES: Record<Tab, string> = { goals: 'GOALS', crusts: 'CRUSTS', feet: 'FEET', bosses: 'BOSSES', pizzas: 'PIZZAS', places: 'PLACES', events: 'EVENTS', shiny: 'SHINY' };
+    const NAMES: Record<Tab, string> = { all: 'ALL', goals: 'GOALS', crusts: 'CRUSTS', feet: 'FEET', bosses: 'BOSSES', pizzas: 'PIZZAS', places: 'PLACES', events: 'EVENTS', shiny: 'SHINY' };
     // catch up on goals already met (older saves, bosses beaten before peels existed)
     checkPeelAchievements();
     const fresh = new Set(save.peelsNew);
     save.peelsNew = [];
     persist();
-    const eq = equippedPeel();
-    let tab: Tab = (Object.keys(TAB_GROUPS) as Exclude<Tab, 'goals'>[]).find((t) => TAB_GROUPS[t].includes(eq.group)) ?? 'crusts';
-    let selected: PeelDef = eq;
+    let tab: Tab = 'all';
+    // the picker opens on what you can use right now; the locker on everything
+    let unlockedOnly = pick;
+    let selected: PeelDef = equippedPeel();
+    let s: HTMLElement;
+    const finish = () => {
+      this.close(s);
+      onClose();
+    };
     const tabs = h('div', { class: 'tabs locker-tabs' });
+    const tabSelect = h('select', { class: 'locker-select', 'aria-label': 'Peel type' }) as HTMLSelectElement;
+    const filter = h('button', { class: 'locker-filter', type: 'button', 'data-fk': 'filter:unlocked' }) as HTMLButtonElement;
+    const toolbar = h('div', { class: 'locker-bar' }, tabs, tabSelect, filter);
     const detail = h('div', { class: 'detail peel-detail' });
     const body = h('div', { class: 'scroll' });
     const crustLine = h('div', { class: 'crusts' });
     // undiscovered shinies stay a mystery
     const hidden = (d: PeelDef) => !!d.shiny && (d.group === 'shinyFoot' || d.group === 'shinyEvent') && !hasPeel(d.id);
     const shownName = (d: PeelDef) => (hidden(d) && d.ultra ? '???' : d.name);
+    const inTab = (t: Exclude<Tab, 'goals'>) => PEELS.filter((d) => TAB_GROUPS[t].includes(d.group));
+    const shown = (list: PeelDef[]) => (unlockedOnly ? list.filter((d) => hasPeel(d.id)) : list);
+    const tabsShown = () => (Object.keys(NAMES) as Tab[]).filter((t) => !(t === 'goals' && unlockedOnly));
     // thumbnails are drawn lazily as tiles scroll into view
     const io = new IntersectionObserver(
       (entries) => {
@@ -1484,37 +1443,59 @@ class UI {
     );
     const bar = (have: number, need: number) =>
       h('div', { class: 'pbar' }, h('i', { style: `width:${Math.round((100 * have) / need)}%` }), h('span', {}, `${fmt(have)}/${fmt(need)}`));
+    // re-render in place: keep the scroll position and the focused tile
+    const refresh = (focusId?: string) => {
+      const sc = body.scrollTop;
+      render();
+      body.scrollTop = sc;
+      if (focusId) body.querySelector<HTMLElement>(`[data-fk="${CSS.escape(focusId)}"]`)?.focus();
+    };
     const showDetail = () => {
       const d = selected;
       const owned = hasPeel(d.id);
       const equipped = equippedPeel().id === d.id;
+      const worn = wornSkin()?.id === d.id;
       const pr = d.progress?.();
-      let action: HTMLElement | null = null;
+      const actions: HTMLElement[] = [];
       if (owned) {
-        action = btn(equipped ? 'EQUIPPED' : 'EQUIP', equipped ? 'cream small' : 'green small', () => {
+        // equip: the peel's ability (and its look, unless another look is worn)
+        const eq = btn(equipped ? 'EQUIPPED' : 'EQUIP', equipped ? 'cream small' : 'green small', () => {
           equipPeel(d.id);
           audio.sfx('sfx_upgrade');
-          const sc = body.scrollTop;
-          render();
-          body.scrollTop = sc;
-          body.querySelector<HTMLElement>(`[data-fk="${CSS.escape(d.id)}"]`)?.focus();
+          if (pick) return finish();
+          refresh(d.id);
         });
-        (action as HTMLButtonElement).disabled = equipped;
+        (eq as HTMLButtonElement).disabled = equipped;
+        eq.title = 'Use this peel and its ability';
+        // wear: only the look, over whichever peel is equipped
+        const look = btn(worn ? 'TAKE OFF LOOK' : 'WEAR LOOK', worn ? 'cream small' : 'yellow small', () => {
+          wearSkin(worn ? null : d.id);
+          audio.sfx('sfx_click');
+          refresh(d.id);
+        });
+        look.title = worn ? 'Go back to the equipped peel’s own look' : 'Look like this peel, whatever peel is equipped';
+        actions.push(eq, look);
       } else if (d.cost) {
-        action = btn(`BUY ${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} ${fmt(d.cost)}`, 'green small', () => {
+        const buy = btn(`BUY ${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} ${fmt(d.cost)}`, 'green small', () => {
           if (!buyPeel(d.id)) return;
           audio.sfx('sfx_coin');
-          render();
+          refresh(d.id);
         });
-        (action as HTMLButtonElement).disabled = save.crusts < d.cost;
+        (buy as HTMLButtonElement).disabled = save.crusts < d.cost;
+        actions.push(buy);
       }
       const img = h('img', { src: peelThumbURL(d.id, 300), alt: '' });
+      const chips = [
+        h('span', { class: 'chip' }, owned ? '✅ Unlocked' : '🔒 Locked'),
+        d.shiny ? h('span', { class: 'chip shiny-chip' }, d.ultra ? '💎 Ultra rare' : '✨ Shiny') : null,
+        worn ? h('span', { class: 'chip look-chip' }, '👕 Worn look') : null,
+      ];
       detail.replaceChildren(
         h('div', { class: `peel-big${d.shiny ? ' shiny' : ''}${hidden(d) ? ' hidden' : ''}` }, img),
         h(
           'div',
           {},
-          h('div', { class: 'dt-head' }, h('h3', {}, shownName(d)), h('span', { class: 'chip' }, owned ? '✅ Unlocked' : '🔒 Locked'), d.shiny ? h('span', { class: 'chip shiny-chip' }, d.ultra ? '💎 Ultra rare' : '✨ Shiny') : null, action ? h('span', { class: 'dt-act' }, action) : null),
+          h('div', { class: 'dt-head' }, h('h3', {}, shownName(d)), ...chips, actions.length ? h('span', { class: 'dt-act' }, ...actions) : null),
           h('div', { class: 'dt-how' }, h('p', {}, d.how), pr && !owned ? bar(pr[0], pr[1]) : null),
           hidden(d) && d.ultra ? null : abilityLine(d.id),
         ),
@@ -1525,14 +1506,18 @@ class UI {
       const pr = d.progress?.();
       const img = h('img', { alt: '', 'data-peel': d.id });
       io.observe(img);
+      const equipped = equippedPeel().id === d.id;
+      const worn = wornSkin()?.id === d.id;
       const t = h(
         'div',
         { class: `tile peel-tile${owned ? '' : ' locked'}${hidden(d) ? ' hidden' : ''}${d.shiny && owned ? ' shiny' : ''}${selected.id === d.id ? ' selected' : ''}`, tabindex: 0, 'data-fk': d.id },
         img,
         h('div', { class: 'nm' }, shownName(d).replace(/ Peel$/, '')),
+        pick && owned ? h('div', { class: 'ab' }, d.id === 'classic' ? 'Peel Slam' : abilityFor(d.id).name) : null,
         !owned && pr ? bar(pr[0], pr[1]) : null,
         !owned && d.cost ? h('div', { class: 'cost' }, `${fmt(d.cost)} crusts`) : null,
-        equippedPeel().id === d.id ? h('span', { class: 'tag' }, 'ON') : fresh.has(d.id) ? h('span', { class: 'tag new' }, 'NEW') : null,
+        equipped ? h('span', { class: 'tag' }, 'ON') : fresh.has(d.id) ? h('span', { class: 'tag new' }, 'NEW') : null,
+        worn ? h('span', { class: 'tag look', title: 'Worn look' }, 'LOOK') : null,
       );
       activatable(t);
       t.addEventListener('click', () => {
@@ -1544,26 +1529,46 @@ class UI {
       });
       return t;
     };
+    const grid = (list: PeelDef[]) => h('div', { class: 'grid peel-grid' }, ...shown(list).map(tile));
+    const section = (title: string, groups: PeelGroup[], note: string, list: PeelDef[]) => {
+      const mine = shown(list.filter((d) => groups.includes(d.group)));
+      return mine.length ? [h('div', { class: 'sec-head' }, `${title} · ${count(groups)}`, h('span', {}, note)), grid(mine)] : [];
+    };
+    const count = (groups: PeelGroup[]) => {
+      const list = PEELS.filter((d) => groups.includes(d.group));
+      return `${list.filter((d) => hasPeel(d.id)).length}/${list.length}`;
+    };
+    const setTab = (t: Tab) => {
+      tab = t;
+      // keep the selected peel if it's on this tab, otherwise show the equipped one or the tab's first
+      if (t !== 'goals') {
+        const list = shown(inTab(t));
+        if (!list.some((d) => d.id === selected.id)) selected = list.find((d) => d.id === equippedPeel().id) ?? list[0] ?? selected;
+      }
+    };
     const render = () => {
-      const count = (groups: PeelGroup[]) => {
-        const list = PEELS.filter((d) => groups.includes(d.group));
-        return `${list.filter((d) => hasPeel(d.id)).length}/${list.length}`;
-      };
+      if (!tabsShown().includes(tab)) setTab('all');
+      const label = (t: Tab) => (t === 'goals' ? NAMES[t] : `${NAMES[t]} <small>${count(TAB_GROUPS[t])}</small>`);
       tabs.replaceChildren(
-        ...(Object.keys(NAMES) as Tab[]).map((t) =>
-          btn(t === 'goals' ? NAMES[t] : `${NAMES[t]} <small>${count(TAB_GROUPS[t])}</small>`, `small ${tab === t ? 'active' : ''}`, () => {
-            tab = t;
-            // show the equipped peel if it lives on this tab, otherwise the tab's first peel
-            if (t !== 'goals') {
-              const list = PEELS.filter((d) => TAB_GROUPS[t].includes(d.group));
-              selected = list.find((d) => d.id === equippedPeel().id) ?? list[0];
-            }
+        ...tabsShown().map((t) =>
+          btn(label(t), `small ${tab === t ? 'active' : ''}`, () => {
+            setTab(t);
             keepFocus(tabs, render);
-          }, { 'data-fk': `tab:${t}` }),
+          }, { 'data-fk': `tab:${t}`, 'aria-pressed': tab === t ? 'true' : 'false' }),
         ),
       );
+      // narrow screens: the same tabs as a dropdown
+      tabSelect.replaceChildren(
+        ...tabsShown().map((t) => {
+          const o = h('option', { value: t }, t === 'goals' ? 'Goals' : `${NAMES[t][0]}${NAMES[t].slice(1).toLowerCase()} · ${count(TAB_GROUPS[t])}`) as HTMLOptionElement;
+          o.selected = tab === t;
+          return o;
+        }),
+      );
+      filter.classList.toggle('on', unlockedOnly);
+      filter.setAttribute('aria-pressed', unlockedOnly ? 'true' : 'false');
+      filter.innerHTML = `<i>${unlockedOnly ? '✔' : ''}</i>Unlocked only`;
       crustLine.innerHTML = `${CRUST_SVG} <b>${fmt(save.crusts)}</b> Golden Crusts · ${PEELS.filter((d) => hasPeel(d.id)).length}/${PEELS.length} peels`;
-      body.scrollTop = 0;
       if (tab === 'goals') {
         // the achievements closest to done
         const goals = PEELS.filter((d) => d.progress && !hasPeel(d.id))
@@ -1590,45 +1595,60 @@ class UI {
             : h('p', { class: 'hint' }, 'Every achievement peel is unlocked. Shinies are still out there…'),
         );
       } else {
-        const groups = TAB_GROUPS[tab];
-        const list = PEELS.filter((d) => groups.includes(d.group));
-        if (tab === 'shiny') {
-          body.replaceChildren(
-            h('div', { class: 'sec-head' }, `SHINY FEET · ${count(['shinyFoot'])}`, h('span', {}, 'Any foot can rarely turn up shiny. Defeat it for its shiny peel.')),
-            h('div', { class: 'grid peel-grid' }, ...list.filter((d) => d.group === 'shinyFoot').map(tile)),
-            h('div', { class: 'sec-head' }, `EVENT SHINIES · ${count(['shinyEvent'])}`, h('span', {}, 'Rare drops from wave events, and a few extremely rare jewels.')),
-            h('div', { class: 'grid peel-grid' }, ...list.filter((d) => d.group === 'shinyEvent').map(tile)),
-          );
+        const list = inTab(tab);
+        let parts: HTMLElement[];
+        if (tab === 'all') {
+          // everything, in the same sections as the tabs
+          parts = (Object.keys(TAB_GROUPS) as Exclude<Tab, 'goals'>[])
+            .filter((t) => t !== 'all')
+            .flatMap((t) => section(NAMES[t], TAB_GROUPS[t], '', list));
+        } else if (tab === 'shiny') {
+          parts = [
+            ...section('SHINY FEET', ['shinyFoot'], 'Any foot can rarely turn up shiny. Defeat it for its shiny peel.', list),
+            ...section('EVENT SHINIES', ['shinyEvent'], 'Rare drops from wave events, and a few extremely rare jewels.', list),
+          ];
         } else if (tab === 'crusts') {
-          body.replaceChildren(
-            h('div', { class: 'grid peel-grid' }, ...list.filter((d) => d.group !== 'jewel').map(tile)),
-            h('div', { class: 'sec-head' }, `THE JEWELLERY BOX · ${count(['jewel'])}`, h('span', {}, 'Shiny peels for serious crust savers.')),
-            h('div', { class: 'grid peel-grid' }, ...list.filter((d) => d.group === 'jewel').map(tile)),
-          );
-        } else body.replaceChildren(h('div', { class: 'grid peel-grid' }, ...list.map(tile)));
+          parts = [grid(list.filter((d) => d.group !== 'jewel')), ...section('THE JEWELLERY BOX', ['jewel'], 'Shiny peels for serious crust savers.', list)];
+        } else parts = [grid(list)];
+        const any = parts.some((p) => p.querySelector('.tile'));
+        body.replaceChildren(...(any ? parts : [h('p', { class: 'hint' }, 'None unlocked here yet. Turn off “Unlocked only” to see how to get them.')]));
       }
       showDetail();
     };
+    tabSelect.addEventListener('change', () => {
+      audio.sfx('sfx_click');
+      setTab(tabSelect.value as Tab);
+      body.scrollTop = 0;
+      render();
+    });
+    filter.addEventListener('click', () => {
+      audio.sfx('sfx_click');
+      unlockedOnly = !unlockedOnly;
+      if (unlockedOnly && !hasPeel(selected.id)) selected = equippedPeel();
+      body.scrollTop = 0;
+      keepFocus(toolbar, render);
+    });
     render();
-    let s: HTMLElement;
     const panel = h(
       'div',
-      { class: 'panel modal wide locker' },
-      h('div', { class: 'title' }, 'PEEL LOCKER'),
+      { class: `panel modal wide locker${pick ? ' picking' : ''}` },
+      h('div', { class: 'title' }, pick ? 'PICK A PEEL' : 'PEEL LOCKER'),
       crustLine,
-      tabs,
+      toolbar,
       detail,
       body,
-      btn('DONE', 'green', () => {
-        this.close(s);
-        onClose();
-      }, { 'data-pad': 'back' }),
+      btn(pick ? 'BACK' : 'DONE', pick ? 'cream' : 'green', finish, { 'data-pad': 'back' }),
     );
     s = this.open(panel);
     this.onClose(s, () => io.disconnect());
+    // start with the equipped peel in view
+    // (scroll the grid only: scrollIntoView would also scroll the screen behind it)
+    requestAnimationFrame(() => {
+      const t = body.querySelector<HTMLElement>('.tile.selected');
+      if (t) body.scrollTop = t.getBoundingClientRect().top - body.getBoundingClientRect().top + body.scrollTop - (body.clientHeight - t.offsetHeight) / 2;
+    });
     return s;
   }
-
   /** A plain yes/no confirm. */
   confirm(title: string, text: string, yes: string, onYes: () => void, onNo: () => void): HTMLElement {
     let s: HTMLElement;

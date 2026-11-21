@@ -426,6 +426,23 @@ export function equipPeel(id: string): void {
   persist();
 }
 
+/** The peel worn as a look only, or null when the look matches the equipped peel. */
+export function wornSkin(): PeelDef | null {
+  return save.skin && PEEL_BY_ID[save.skin] && hasPeel(save.skin) ? PEEL_BY_ID[save.skin] : null;
+}
+
+/** Wear a peel's look over the equipped one (null goes back to the equipped peel's own look). */
+export function wearSkin(id: string | null): void {
+  if (id && !hasPeel(id)) return;
+  save.skin = id ?? '';
+  persist();
+}
+
+/** What the cursor peel looks like: the worn look, or the equipped peel's own. */
+export function lookPeel(equipped: PeelDef = equippedPeel()): PeelDef {
+  return wornSkin() ?? equipped;
+}
+
 // ——— images ———
 
 const thumbCache = new Map<string, string>();
@@ -453,9 +470,13 @@ export function peelThumbURL(id: string, h = 180): string {
 
 let appliedPeel = 'classic';
 
-/** Swap the 'peel' texture for the equipped skin (cheap when nothing changed). */
-export function applyEquippedPeel(scene: Phaser.Scene, id?: string): PeelDef {
-  const d = id && PEEL_BY_ID[id] && hasPeel(id) ? PEEL_BY_ID[id] : equippedPeel();
+/** The equipped peel (or a resumed run's), for its ability. */
+export function abilityPeel(id?: string): PeelDef {
+  return id && PEEL_BY_ID[id] && hasPeel(id) ? PEEL_BY_ID[id] : equippedPeel();
+}
+
+/** Swap the 'peel' texture for the peel's look (cheap when nothing changed). */
+export function applyPeelLook(scene: Phaser.Scene, d: PeelDef): PeelDef {
   if (d.id !== appliedPeel || !scene.textures.exists('peel')) {
     addCanvas(scene, 'peel', peelCanvas(d.id));
     appliedPeel = d.id;

@@ -82,10 +82,10 @@ export interface SaveData {
   peelBest: Record<string, number>;
   /** Unlocked peel ids (the Classic Peel is always owned). */
   peels: string[];
-  /** Equipped peel. */
+  /** Equipped peel (its ability, and its look unless a look is worn). */
   peel: string;
-  /** Use the equipped peel's ability instead of the Peel Slam (picked on the run-start screen). */
-  useAbility: boolean;
+  /** Peel worn as a look only, over the equipped peel's own ('' = match the equipped peel). */
+  skin: string;
   /** Peels unlocked but not yet looked at in the locker. */
   peelsNew: string[];
 }
@@ -143,7 +143,7 @@ const DEFAULTS: SaveData = {
   peelBest: {},
   peels: [],
   peel: 'classic',
-  useAbility: false,
+  skin: '',
   peelsNew: [],
 };
 

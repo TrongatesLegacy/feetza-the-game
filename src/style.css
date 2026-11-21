@@ -3519,13 +3519,164 @@ body.reduced-motion *::after {
   height: 1.2em;
 }
 
-.locker-tabs {
-  flex-wrap: wrap;
+/* type tabs, a dropdown on narrow screens, and the Unlocked only filter share one row */
+.locker-bar {
+  display: flex;
+  align-items: center;
   justify-content: center;
+  gap: 0.8em;
+  width: 100%;
+}
+
+.locker-tabs {
+  flex-wrap: nowrap;
+  justify-content: center;
+  gap: 0.35em;
+  min-width: 0;
+}
+
+.locker-select {
+  display: none;
+  font: 400 1.4em 'Lilita One', sans-serif;
+  color: var(--ink);
+  background: linear-gradient(180deg, #fffaf0 0%, var(--paper-d) 100%);
+  border: 0.14em solid var(--ink);
+  border-radius: 0.7em;
+  padding: 0.25em 0.6em;
+  min-width: 10em;
+  cursor: pointer;
+}
+
+.locker-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  flex-shrink: 0;
+  font: 400 1.15em 'Lilita One', sans-serif;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.6);
+  border: 0.14em solid var(--ink);
+  border-radius: 0.7em;
+  padding: 0.3em 0.7em;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.locker-filter i {
+  display: inline-grid;
+  place-items: center;
+  width: 1.05em;
+  height: 1.05em;
+  border: 0.12em solid var(--ink);
+  border-radius: 0.25em;
+  background: #fff;
+  font-style: normal;
+  font-size: 0.9em;
+  line-height: 1;
+}
+
+.locker-filter.on {
+  background: #c9efb5;
+}
+
+.locker-filter.on i {
+  background: var(--basil-d);
+  color: #fff;
+}
+
+.dt-act {
+  display: inline-flex;
+  gap: 0.4em;
+}
+
+/* the tile's LOOK tag sits opposite its ON/NEW tag */
+.tile .tag.look {
+  right: auto;
+  left: 0.4em;
+  background: #bfe6ff;
+}
+
+.look-chip {
+  background: #dff1ff !important;
+}
+
+/* on the run card the ability's description gets its own line */
+.peelcard .abl {
+  margin-top: 0;
+  font-size: 0.9em;
+}
+
+.peelcard .abl > span:last-child {
+  flex-basis: 100%;
+  line-height: 1.25;
+}
+
+.peelcard .abl > span:last-child::before {
+  content: none;
+}
+
+.pk-look {
+  font-weight: 600;
+  font-size: 0.85em;
+  color: var(--ink-soft);
+}
+
+.pk-look .linkish {
+  font: inherit;
+  font-weight: 700;
+  color: var(--tomato-d);
+  background: none;
+  border: 0;
+  padding: 0;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* phones (where the overlay scales up): the tabs become a dropdown */
+@container (max-width: 900px) {
+  .locker-tabs {
+    display: none;
+  }
+
+  .locker-select {
+    display: block;
+  }
+
+  /* and the window gets tighter so the grid keeps room to scroll */
+  .modal.wide.locker {
+    padding-top: 0.9em;
+    padding-bottom: 1em;
+    gap: 0.5em;
+  }
+
+  .modal.wide.locker .title {
+    font-size: 2.4em;
+  }
+
+  .locker .crusts {
+    font-size: 1.2em;
+  }
+
+  .locker .peel-detail {
+    grid-template-columns: 4em 1fr;
+    padding-top: 0.3em;
+    padding-bottom: 0.3em;
+  }
+
+  .locker .peel-big {
+    height: 5.5em;
+  }
+
+  .locker .btn.green:not(.small),
+  .locker .btn.cream:not(.small) {
+    font-size: 1.6em;
+  }
 }
 
 .locker-tabs .btn {
-  font-size: 1.2em;
+  font-size: 1.02em;
+  padding-left: 0.55em;
+  padding-right: 0.55em;
 }
 
 .locker-tabs .btn small {

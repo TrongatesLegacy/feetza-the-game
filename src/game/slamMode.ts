@@ -27,8 +27,8 @@ export function setSlamMode(a: Ability | null | undefined): void {
 
 export function slamMode(): SlamMode {
   if (current) return current;
-  const useAb = save.useAbility && save.peel !== 'classic';
-  return fromAbility(useAb ? abilityFor(save.peel) : null);
+  // only the Classic Peel has the Peel Slam; every other peel brings its ability
+  return fromAbility(save.peel !== 'classic' ? abilityFor(save.peel) : null);
 }
 
 /** Meter charge bonuses (Oregano, Choco-Berry…): faster meter, or a passive that fires more often. */

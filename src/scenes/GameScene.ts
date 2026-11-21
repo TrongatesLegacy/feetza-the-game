@@ -25,7 +25,7 @@ import { pad } from '../systems/gamepad';
 import { markFootSeen, nextLockedPizza, persist, save, updateSettings } from '../systems/save';
 import type { GoldenItem, ShopCard, ShopState } from '../ui/shopTypes';
 import { ui } from '../ui/ui';
-import { applyEquippedPeel, checkPeelAchievements, grantShinyFoot, peelThumbURL, peelTrail, rollEventDrop, SHINY_FOOT_CHANCE, type PeelDef } from '../game/peels';
+import { abilityPeel, applyPeelLook, lookPeel, checkPeelAchievements, grantShinyFoot, peelThumbURL, peelTrail, rollEventDrop, SHINY_FOOT_CHANCE, type PeelDef } from '../game/peels';
 import { STAGES, WAVES_PER_STAGE } from '../data/stages';
 import { passiveBoost, setSlamMode } from '../game/slamMode';
 import { setRunHeat } from '../game/heatRules';
@@ -58,6 +58,9 @@ export interface GameStart {
 const EVENT_RATE: Record<HeatId, number> = { mild: 0.35, regular: 0.25, hot: 0.22, extrahot: 0.2, inferno: 0.18 };
 const EVENT_CRUST_CAP = 3;
 const FRESH_START = [10, 8, 6, 9, 7];
+
+/** Coins you have after clearing wave 1, at least: enough for a common topping (35 at wave 1). */
+const WAVE1_MIN_COINS = 35;
 
 export class GameScene extends Phaser.Scene implements Arena {
   private run!: Run;
@@ -351,11 +354,14 @@ export class GameScene extends Phaser.Scene implements Arena {
     }
 
     // cursor peel
-    const peelDef = applyEquippedPeel(this, this.start.snapshot?.peel);
-    this.peelTrailColor = peelTrail(peelDef);
-    this.peelShiny = !!peelDef.shiny;
+    // the equipped peel brings the ability; a worn look (if any) only changes how it looks
+    const peelDef = abilityPeel(this.start.snapshot?.peel);
+    const look = applyPeelLook(this, lookPeel(peelDef));
+    this.peelTrailColor = peelTrail(look);
+    this.peelShiny = !!look.shiny;
     this.peelId = peelDef.id;
-    const wantAbility = this.start.snapshot?.ability ?? save.useAbility;
+    // every peel but the Classic brings its ability (runs saved with the old Peel Slam switch keep their choice)
+    const wantAbility = this.start.snapshot?.ability ?? true;
     this.ability = wantAbility && peelDef.id !== 'classic' ? abilityFor(peelDef.id) : null;
     this.abilityT = 0;
     // slam-related toppings and perks reword (and work) for the ability in use; meter boosts are only
@@ -1371,7 +1377,9 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.run.combo = 0;
     this.clickables = [];
     const perfect = this.waveSlicesLost === 0;
-    const bonus = Math.round((5 + n * 2 + this.run.stats.coinsPerWave) * (perfect ? 1.5 : 1) * this.run.heatDef.tips);
+    let bonus = Math.round((5 + n * 2 + this.run.stats.coinsPerWave) * (perfect ? 1.5 : 1) * this.run.heatDef.tips);
+    // the first shop should always offer a real choice: wave 1 tops you up to the price of a common topping
+    if (n === 1) bonus = Math.max(bonus, WAVE1_MIN_COINS - this.run.coins);
     this.run.coins += bonus;
     this.tipLog.push({ wave: n, earned: this.run.coins - this.coinsAtWaveStart, spent: Math.max(0, this.coinsAtLastClear - this.coinsAtWaveStart) });
     this.coinsAtLastClear = this.run.coins;
