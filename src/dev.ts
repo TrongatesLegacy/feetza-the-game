@@ -237,7 +237,9 @@ export function installDevTools(game: Phaser.Game): void {
           if (intro) intro.click();
           if (g.feet && !g.inUpgrade && !g.over) {
             const prop = (g.clickables ?? []).find((c: any) => c.alive() && (c.priority ?? 0) >= 2); // eslint-disable-line @typescript-eslint/no-explicit-any
-            const t = g.feet.filter((f: any) => f.hittable).sort((a: any, b: any) => b.y - a.y)[0]; // eslint-disable-line @typescript-eslint/no-explicit-any
+            // the lowest foot, skipping any with a guard up (as a player would) unless that's all there is
+            const ts = g.feet.filter((f: any) => f.hittable).sort((a: any, b: any) => b.y - a.y); // eslint-disable-line @typescript-eslint/no-explicit-any
+            const t = ts.find((f: any) => !f.shielded) ?? ts[0]; // eslint-disable-line @typescript-eslint/no-explicit-any
             if (prop && Math.random() < accuracy) {
               g.pointer.x = prop.x;
               g.pointer.y = prop.y;

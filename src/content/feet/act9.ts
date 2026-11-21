@@ -149,7 +149,8 @@ export const feet: FootType[] = [
     id: 'medusa',
     name: 'MEDUSA',
     desc: 'Boss. A snake-haired sandal with a stare that turns pizzas to stone. Never look her in the eye.',
-    hp: 7400, speed: 0.6, armor: 4, stompDmg: 3, coins: 380, score: 47000, scale: 2.2, minWave: 85, weight: 0,
+    // (6800, was 7400: Regular runs reached her already worn down by Act 9's heavies, and lost)
+    hp: 6800, speed: 0.6, armor: 4, stompDmg: 3, coins: 380, score: 47000, scale: 2.2, minWave: 85, weight: 0,
     traits: [],
     boss: true,
     home: 'labyrinth',
@@ -175,7 +176,8 @@ export const feet: FootType[] = [
     id: 'hades',
     name: 'HADES',
     desc: 'Boss. Lord of the underworld, in a sandal of black iron and blue fire. Frees the Titans one by one, then comes for your slices himself.',
-    hp: 9600, speed: 0.6, armor: 5, stompDmg: 3, coins: 420, score: 52000, scale: 2.2, minWave: 90, weight: 0,
+    // (8600, was 9600: two Titans and his shadows' healing made the longest fight of the journey)
+    hp: 8600, speed: 0.6, armor: 5, stompDmg: 3, coins: 420, score: 52000, scale: 2.2, minWave: 90, weight: 0,
     traits: [],
     boss: true,
     home: 'tartarus',

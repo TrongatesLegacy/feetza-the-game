@@ -74,7 +74,8 @@ export const feet: FootType[] = [
     id: 'surtr',
     name: 'SURTR THE FIRE GIANT',
     desc: 'Boss. The fire giant of Muspelheim, a magma boot with a sword of flame. He brings Ragnarök to the bridge.',
-    hp: 8400, speed: 0.55, armor: 5, stompDmg: 2, coins: 420, score: 52000, scale: 2.2, minWave: 80, weight: 0,
+    // (7800, was 8400: burning pizzas and fireballs from phase 1 wore Regular tables out before the sword)
+    hp: 7800, speed: 0.55, armor: 5, stompDmg: 2, coins: 420, score: 52000, scale: 2.2, minWave: 80, weight: 0,
     traits: ['heavy', 'immuneBurn'],
     boss: true,
     home: 'bifrost',

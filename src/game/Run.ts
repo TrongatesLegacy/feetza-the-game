@@ -192,7 +192,7 @@ export const THEMED_TAPER = 0.25;
 const ELEPHANT_ACT = 9;
 /** Elephants' weight multiplier all through Act 9 (both stages), in place of the fresh and home bonuses: those
  * stacked to ×13 at waves 81–82 and a herd of 650-health elephants flattened the table in a minute. */
-const ELEPHANT_ACT_MULT = 3.5;
+const ELEPHANT_ACT_MULT = 3;
 /** Chance an Act 9 location wave brings a Persian war band (4–6 elephants with Spartan Sandals guarding). */
 const BAND_CHANCE = 0.5;
 

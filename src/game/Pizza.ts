@@ -294,6 +294,9 @@ export class Pizza {
 
   /** Switch the perk off for `sec` (a second freeze adds to the time left, up to 15 s). */
   freezePerk(sec: number): void {
+    // a pizza already taken off the table (swapped, or the scene torn down) has no badge left to write to: writing
+    // to its destroyed text threw inside Phaser's update and froze the game
+    if (!this.root.active) return;
     // a second freeze extends it, up to 15 s left
     this.perkFrozenT = Math.min(15, this.perkFrozenT > 0 ? this.perkFrozenT + sec : sec);
     if (!this.frost) {
@@ -318,6 +321,7 @@ export class Pizza {
   tickFreeze(dt: number): boolean {
     if (this.perkFrozenT <= 0) return false;
     this.perkFrozenT -= dt;
+    if (!this.root.active) return false;
     if (this.frost) this.frost.setAlpha(0.55 + Math.sin(this.bob * 4) * 0.2);
     this.frostText?.setText(`${Math.max(1, Math.ceil(this.perkFrozenT))}s`);
     if (this.perkFrozenT > 0) return false;

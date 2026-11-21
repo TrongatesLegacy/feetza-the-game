@@ -1,7 +1,7 @@
 // What the Kratos Peel's two feet do (data in src/content/feet/gods.ts), through the contentFx foot hooks.
 //
 // - Persian Elephant Feet: when it stomps, its trunk swings down onto the pizza next to its own (the side it
-//   leans to). After every smack it raises gold-edged armour for 1 s: nothing hurts it until it drops.
+//   leans to). After every smack it raises gold-edged armour for 0.7 s: nothing hurts it until it drops.
 // - Spartan Sandals: march in pairs. A round bronze shield (the guard trait) is raised for 1 s, then lowered for
 //   1.2 s, over and over; smacks bounce off it while it's up. At a quarter of its health it enrages: a red
 //   flash and a roar, 60% faster, and it stomps 40% sooner.
@@ -13,7 +13,8 @@ import type { Foot } from '../Foot';
 
 const SHIELD_UP = 1;
 const SHIELD_DOWN = 1.2;
-const ELEPHANT_GUARD = 1;
+/** Seconds its armour stays up after a smack (0.7, was 1: with elephants common in Act 9 they outlasted the waves). */
+const ELEPHANT_GUARD = 0.7;
 
 const shields = new WeakMap<Foot, Phaser.GameObjects.Image>();
 const plates = new WeakMap<Foot, Phaser.GameObjects.Graphics>();

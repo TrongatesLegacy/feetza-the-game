@@ -1254,7 +1254,8 @@ const surtr = (): Brain => {
     update: (f, dt, a) => {
       const h = heat(a);
       // fireballs: all phases (slower once the sword's out)
-      fireball.every = h.cooldown(f.phase >= n ? 6 : f.phase >= 3 ? 3.2 : 4);
+      // (phase 1: every 5 s, was 4: with a pizza already burning, Regular tables ran dry before phase 2)
+      fireball.every = h.cooldown(f.phase >= n ? 6 : f.phase >= 3 ? 3.2 : 5);
       if (!sword && fireball.tick(dt)) {
         const p = rnd(a.alivePizzas());
         if (p) {
