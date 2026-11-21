@@ -107,6 +107,12 @@ export interface SaveData {
   pizzasNew: string[];
   /** Times each locked pizza has turned up as a Chef's Special. */
   specialSeen: Record<string, number>;
+  // ——— Act 10 · Finale ———
+  /** Beat wave 100 (the Sole Proprietor Unbound): the Pizza Legend title and gold frame on the title screen. */
+  legend: boolean;
+  /** Endless+ is unlocked (by the same win) and was the last run-length choice. */
+  endlessPlus: boolean;
+  endlessPlusPick: boolean;
   /** Rare Finds that have turned up on the new-run screen (shown in the Pizzeria from then on). */
   rareSeen: string[];
   /** Milestone records for the phase 3 pizzas: bestCombo, perfectBest, fastWave (best clear in seconds), nightRuns, untouched (1 once done). */
@@ -181,6 +187,9 @@ const DEFAULTS: SaveData = {
   rareSeen: [],
   pizzaGoals: {},
   goals: {},
+  legend: false,
+  endlessPlus: false,
+  endlessPlusPick: false,
 };
 
 function clone<T>(v: T): T {

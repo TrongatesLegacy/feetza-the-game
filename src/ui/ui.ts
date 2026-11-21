@@ -552,6 +552,11 @@ class UI {
       h('span', { html: `Crusts <b>${fmt(save.crusts)}</b>` }),
     );
     stats.classList.add('corner');
+    // beat wave 100: the Pizza Legend title, in a gold frame
+    if (save.legend) {
+      stats.classList.add('legend');
+      stats.prepend(h('span', { class: 'legend-title', title: 'You beat the Sole Proprietor Unbound at wave 100' }, 'PIZZA LEGEND'));
+    }
     const r = save.run;
     const cont = r && h_.resume
       ? h(
@@ -632,12 +637,15 @@ class UI {
     let heat: HeatId = save.heat;
     // run length: end at the journey's end (JOURNEY_WAVES), or endless (remembered)
     let endless = save.endless;
+    // Endless+ (Act 10): unlocked by beating wave 100
+    let plus = save.endlessPlus && save.endlessPlusPick && endless;
     const unlocked = (hd: (typeof HEATS)[number]) => !hd.unlockAfter || save.act1Cleared.includes(hd.unlockAfter);
     const heatRow = h('div', { class: 'heats', 'data-pad-section': '' });
     const actRow = h('div', { class: 'acts', 'data-pad-section': '' });
     const startBtn = btn('', 'green big', () => {
       save.heat = heat;
       save.endless = endless;
+      save.endlessPlusPick = plus;
       persist();
       redealLineup = null;
       onStart(heat, endless, startIds());
@@ -664,18 +672,20 @@ class UI {
           return b;
         }),
       );
-      const mk = (on: boolean, title: string, desc: string, val: boolean) => {
-        const b = h('button', { class: `act${on ? ' on' : ''}`, type: 'button', 'aria-pressed': on ? 'true' : 'false' }, h('b', {}, title), h('span', {}, desc)) as HTMLButtonElement;
+      const mk = (on: boolean, title: string, desc: string, val: boolean, isPlus = false) => {
+        const b = h('button', { class: `act${on ? ' on' : ''}${isPlus ? ' plus' : ''}`, type: 'button', 'aria-pressed': on ? 'true' : 'false' }, h('b', {}, title), h('span', {}, desc)) as HTMLButtonElement;
         b.addEventListener('click', () => {
           audio.sfx('sfx_click');
           endless = val;
+          plus = isPlus;
           render();
         });
         return b;
       };
       actRow.replaceChildren(
         mk(!endless, `End at wave ${JOURNEY_WAVES}`, `${ACT_COUNT} acts, ${STAGES.length * 2} bosses. Bank at any act's end`, false),
-        mk(endless, 'Endless', `Past wave ${JOURNEY_WAVES} the journey starts again, harder`, true),
+        mk(endless && !plus, 'Endless', `Past wave ${JOURNEY_WAVES} the journey starts again, harder`, true),
+        ...(save.endlessPlus ? [mk(endless && plus, 'Endless+', `From wave ${JOURNEY_WAVES + 1} every place, boss and foot is shuffled`, true, true)] : []),
       );
       startBtn.innerHTML = `START · ${HEAT_BY_ID[heat].name.toUpperCase()}`;
     };
@@ -1196,12 +1206,13 @@ class UI {
 
   // ——— Victory at the journey's end ———
   /** keepGoing: endless runs carry on from here (the journey again, harder). */
-  victory(o: { kicker: string; acts: number; score: number; time: string; feet: number; bosses: number; heat: string; crusts: number; bank: () => void; keepGoing: (() => void) | null }): HTMLElement {
+  victory(o: { kicker: string; acts: number; score: number; time: string; feet: number; bosses: number; heat: string; crusts: number; bank: () => void; keepGoing: (() => void) | null; legend?: boolean }): HTMLElement {
     const panel = h(
       'div',
-      { class: 'victory' },
+      { class: `victory${o.legend ? ' legend' : ''}` },
       h('div', { class: 'v-kicker' }, o.kicker),
       h('div', { class: 'v-title' }, 'PIZZA SAVED!'),
+      o.legend ? h('div', { class: 'v-legend' }, h('b', {}, 'PIZZA LEGEND'), h('span', {}, 'Endless+ is unlocked on the new-run screen')) : null,
       h('div', { class: 'v-sub' }, `All ${o.acts} acts, every boss, smacked. The table is yours.`),
       actTrack(o.acts, o.acts),
       h('div', { class: 'stats' }, stat(fmt(o.score), 'Score'), stat(o.time, 'Run time'), stat(fmt(o.feet), 'Feet smacked'), stat(String(o.bosses), 'Bosses beaten'), stat(o.heat, 'Heat')),

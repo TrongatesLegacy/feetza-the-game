@@ -40,6 +40,9 @@ export const LOCATION_MUSIC: Record<LocationId, string[]> = {
   // ——— Act 9 · Greek myths ———
   labyrinth: ['music_labyrinth', 'music_game'],
   tartarus: ['music_tartarus', 'music_cellar', 'music_game'],
+  // ——— Act 10 · Finale ———
+  oven: ['music_oven', 'music_space', 'music_game'],
+  firstpizzeria: ['music_firstpizzeria', 'music_game'],
 };
 
 export const LOCATION_AMBIENCE: Record<LocationId, string[]> = {
@@ -64,6 +67,9 @@ export const LOCATION_AMBIENCE: Record<LocationId, string[]> = {
   // ——— Act 9 · Greek myths ———
   labyrinth: ['ambience_labyrinth', 'ambience_pizzeria'],
   tartarus: ['ambience_tartarus', 'ambience_cellar', 'ambience_pizzeria'],
+  // ——— Act 10 · Finale ———
+  oven: ['ambience_oven', 'ambience_space', 'ambience_pizzeria'],
+  firstpizzeria: ['ambience_firstpizzeria', 'ambience_pizzeria'],
 };
 
 /** How many times the journey has been completed before wave n (0 on the first time through). */
@@ -88,15 +94,54 @@ export function isMiniWave(n: number): boolean {
 }
 
 export function locationFor(n: number): LocationId {
-  return STAGES[stageIndex(n)].location;
+  return stageFor(n).location;
 }
 
 export function bossFor(n: number): ArenaId {
-  return STAGES[stageIndex(n)].boss;
+  return stageFor(n).boss;
 }
 
 export function miniFor(n: number): string {
-  return STAGES[stageIndex(n)].mini;
+  return stageFor(n).mini;
+}
+
+// ——— Act 10 · Finale: Endless+ ———
+
+/** Endless+ (unlocked by beating wave 100): past the journey's end every stage's place, mini-boss and
+ * boss are dealt from shuffled decks, a new deal each loop. The scene sets it for the run (seed: the deal). */
+export const endlessPlus = { on: false, seed: 1 };
+
+/** The finale's own bosses stay in the finale (the buyout and the ending belong to waves 95 and 100). */
+const UNSHUFFLED_BOSSES = new Set(['soleprop', 'soleunbound']);
+
+function deck<T>(items: T[], seed: number): T[] {
+  const out = [...items];
+  let a = seed >>> 0 || 1;
+  const rnd = () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), a | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+/** Wave n's stage: the journey's own, or on an Endless+ loop a shuffled place, mini-boss and boss. */
+function stageFor(n: number): { location: LocationId; boss: ArenaId; mini: string } {
+  const st = STAGES[stageIndex(n)];
+  const loop = loopOf(n);
+  if (!endlessPlus.on || loop === 0) return st;
+  const real = STAGES.filter((x) => !x.dev);
+  const i = stageIndex(n);
+  const s0 = endlessPlus.seed * 7919 + loop * 104729;
+  const places = deck(real.map((x) => x.location), s0 + 1);
+  const minis = deck(real.map((x) => x.mini), s0 + 2);
+  const bosses = deck(real.map((x) => x.boss).filter((b) => !UNSHUFFLED_BOSSES.has(b)), s0 + 3);
+  return { location: places[i % places.length], mini: minis[i % minis.length], boss: bosses[i % bosses.length] };
 }
 
 export function backdropFor(n: number): BackdropId {

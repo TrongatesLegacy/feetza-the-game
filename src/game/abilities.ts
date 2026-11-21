@@ -702,6 +702,19 @@ export const ABILITIES: Record<string, Ability> = {
   'boss:cerberus': ab('Three Tempers', every(6), [B(1.5, 3, front(1)), FZ(1.5, tough(1)), S(0.5, 3, rnd(2)), D(2, rnd(2))], RED, 'fire'),
   'boss:hades': ab('Shadow Grasp', every(5), [EX(0.3, front(2)), D(2.5, front(2))], PURPLE, 'ink'),
 
+  // ——— Act 10 · Finale: places, echoes and the four finale fights ———
+  'place:oven': ab('Memory Lane', every(8), [D(3, rnd(3)), ST(1.2, rnd(3)), T(2)], PURPLE, 'zap'),
+  'place:firstpizzeria': ab('First Fire', wave, [FR(2), H(1, 'weakest'), SH(1, 'weakest')], ORANGE, 'fire'),
+  'foot:echobot': ab('Glitch Step', smack(0.25), [ST(1, hit()), C(1, 2)], 0x33e1ff, 'zap'),
+  'foot:echoghost': ab('Phase Out', every(6), [S(0.5, 3, front(2)), D(2, front(2))], 0x7df9ff, 'ink'),
+  'foot:echocowboy': ab('Low Gravity', every(7), [K(1300, front(2)), S(0.4, 3, front(2))], 0x7df9ff, 'wind'),
+  'foot:echoclown': ab('Jousting Honk', kill(0.35), [K(1100, hit(200)), D(2, hit(200))], RED, 'burst'),
+  'foot:echodino': ab('Phalanx Claw', smack(0.2), [D(2, hit(160)), ST(0.8, hit(160))], 0xb06bff, 'burst'),
+  'boss:mirrorpeel': ab('Reflection', stomp, [D(5, hit()), M(1.6, 4, hit())], PURPLE, 'zap'),
+  'boss:soleprop': ab('Hostile Takeover', wave, [T(30)], GOLD, 'gold'),
+  'boss:ghostfuture': ab('Foresight', smack(0.3), [D(1.5, rnd(1)), ST(1, rnd(1))], 0xbfe6ff, 'frost'),
+  'boss:soleunbound': ab('Every Peel at Once', act, [D(14, all, 1300), B(1.5, 4, all), FZ(1.5, all), T(25)], GOLD, 'slam', 0.85),
+
   // ——— Event shinies use their event's ability (see abilityKey) ———
 };
 

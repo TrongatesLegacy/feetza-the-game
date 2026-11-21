@@ -47,7 +47,8 @@ export class MenuScene extends Phaser.Scene {
     const fxLayer = this.add.container(0, 0);
     this.add.image(W / 2, H / 2, 'vignette').setDisplaySize(W, H);
     this.backdrop = new BackdropView(this, bg, ambient);
-    this.backdrop.show('trattoria');
+    // a Pizza Legend's table is the First Pizzeria's (Act 10's ending)
+    this.backdrop.show(save.legend ? 'firstpizzeria' : 'trattoria');
     this.fx = new Fx(this, fxLayer);
     const ids = randomLineup(3);
     ids.forEach((id, i) => {
@@ -157,7 +158,7 @@ export class MenuScene extends Phaser.Scene {
         ui.closeAll();
         audio.sfx('sfx_levelup', { volume: 0.7 });
         this.cameras.main.fadeOut(400, 18, 10, 6);
-        this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('Game', { lineup, heat, endless }));
+        this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('Game', { lineup, heat, endless, endlessPlus: endless && save.endlessPlus && save.endlessPlusPick }));
       },
       () => this.showMenu(),
     );

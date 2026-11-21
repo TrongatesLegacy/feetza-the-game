@@ -461,6 +461,56 @@ const TRIM: Record<string, number> = {
   // them at music volume and does not read TRIM; these gains apply if they're played through sfx().
   music_victory: 2.04, // -15.7 dB → -9.5: the 60-wave finish, a little over the slap
   music_act: 1.74, // -15.3 dB → -10.5: act-complete sting at slap level
+  // ——— Act 10 · Finale (scripts/finale-audio/) ———
+  // Same levels as the boss SFX: signature hits -9.5, slap-level hits -10.5, tells -11, the rest -12, repeated
+  // or mashable ones -13.5. The Act 10 music and ambience loops are levelled to -16.5 LUFS and do not use TRIM.
+  // Mirror Peel (mini-boss)
+  sfx_mirrorpeel_enter: 1.09, // -11.3 dB → -10.6: mirror peel shimmers in
+  sfx_mirrorpeel_charge: 1.06, // -11.5 dB → -11.0: mirrored wind-up (tell)
+  sfx_mirrorpeel_fire: 0.97, // -10.2 dB → -10.5: reversed slam and zap
+  sfx_mirrorpeel_interrupt: 1.09, // -11.2 dB → -10.5: glass crack (charge broken)
+  sfx_mirrorpeel_echo: 0.92, // -12.8 dB → -13.5: dark peel echo swoops down
+  sfx_mirrorpeel_shatter: 0.92, // -12.8 dB → -13.5: falling echo smacked to glass shards
+  sfx_mirrorpeel_land: 1.05, // -12.4 dB → -12.0: dark echo thuds onto a pizza
+  sfx_mirrorpeel_death: 1.1, // -10.4 dB → -9.6: mirror peel shatters
+  // The Sole Proprietor (first meeting)
+  sfx_soleprop_enter: 1.05, // -11.0 dB → -10.6: ominous gong chord and coins
+  sfx_soleprop_voice: 1.06, // -12.5 dB → -12.0: low "hmm-hm" murmur
+  sfx_soleprop_stamp: 1.05, // -10.0 dB → -9.6: heavy SOLD stamp thunk
+  sfx_soleprop_cash: 1.13, // -13.1 dB → -12.0: cash register ka-ching
+  sfx_soleprop_leave: 1.04, // -11.3 dB → -11.0: portal whoosh out
+  sfx_soleprop_agent: 0.98, // -13.3 dB → -13.5: briefcase snaps open (agent arrives)
+  sfx_soleprop_clock: 1.09, // -14.3 dB → -13.6: clock tick
+  sfx_soleprop_bell: 1.1, // -11.4 dB → -10.6: shift-over bell and whistle
+  // Ghost of Feet Future (mini-boss)
+  sfx_ghostfuture_enter: 1.03, // -10.8 dB → -10.5: reversed ghostly swell
+  sfx_ghostfuture_foresee: 0.87, // -12.3 dB → -13.5: ghost phases out
+  sfx_ghostfuture_mark: 1.05, // -11.4 dB → -11.0: future footprint appears (tell)
+  sfx_ghostfuture_stomp: 1.05, // -11.0 dB → -10.6: pale ethereal stomp lands
+  sfx_ghostfuture_paradox: 1.05, // -10.9 dB → -10.5: peel caught in a paradox: warped zap
+  sfx_ghostfuture_rewind: 1.09, // -11.8 dB → -11.1: tape rewind
+  sfx_ghostfuture_death: 1.09, // -11.3 dB → -10.6: ghost dissolves
+  // Sole Proprietor Unbound (final boss)
+  sfx_soleunbound_enter: 1.05, // -10.0 dB → -9.6: massive impact and low choir chord
+  sfx_soleunbound_fist: 1.09, // -11.7 dB → -11.0: gauntlet fist wind-up whoosh (tell)
+  sfx_soleunbound_krak: 1.1, // -10.3 dB → -9.5: comic KRAK impact
+  sfx_soleunbound_frost: 1.14, // -11.7 dB → -10.6: ice crackle freeze
+  sfx_soleunbound_fire: 1.09, // -11.2 dB → -10.5: fire whoomph ignites
+  sfx_soleunbound_douse: 1.06, // -12.5 dB → -12.0: flame smacked out: hiss
+  sfx_soleunbound_gaze: 1.05, // -11.4 dB → -11.0: glowing eyes hum (tell)
+  sfx_soleunbound_stone: 1.07, // -11.1 dB → -10.5: petrify crunch
+  sfx_soleunbound_reflect: 1.06, // -12.5 dB → -12.0: mirror shield reflects: ping
+  sfx_soleunbound_hole: 1.04, // -11.4 dB → -11.1: black hole opens: deep suction drone
+  sfx_soleunbound_collapse: 1.01, // -10.6 dB → -10.5: black hole collapses
+  sfx_soleunbound_eat: 1.12, // -10.5 dB → -9.5: huge chomp and gulp as he eats a pizza
+  sfx_soleunbound_gather: 1.05, // -11.5 dB → -11.1: power gathers (riser)
+  sfx_soleunbound_montage: 0.87, // -12.3 dB → -13.5: punchy whoosh-hit (montage, many fast)
+  sfx_soleunbound_final: 1.08, // -10.2 dB → -9.5: the final smack: the biggest impact in the game
+  sfx_soleunbound_crack: 1.1, // -10.3 dB → -9.5: the sole cracks open into light
+  // Finale shared
+  sfx_finale_warp: 1.07, // -11.6 dB → -11.0: memory-lane warp between backdrops (tell)
+  sfx_finale_glitch: 0.89, // -12.5 dB → -13.5: glitching echo foot blip
+  sfx_finale_peelwall: 0.89, // -12.5 dB → -13.5: peel on the wall lights up: chime
 };
 
 const AMBIENCE_GAIN = 0.4;

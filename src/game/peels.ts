@@ -215,6 +215,9 @@ const PLACE_LOOK: Record<LocationId, Plain> = {
   // ——— Act 9 · Greek myths ———
   labyrinth: { shape: 'square', base: '#d8cbb0', pattern: 'marble', pc: '#8a6a3a', handle: '#c9873a', studs: '#c9873a' },
   tartarus: { shape: 'spade', base: '#1e1a2a', pattern: 'flames', pc: '#4fb8ff', handle: '#3a2a20', metal: true },
+  // ——— Act 10 · Finale ———
+  oven: { shape: 'round', base: '#1a0a3a', pattern: 'stars', pc: '#ff9a3a', handle: '#8a4a2a', studs: '#ffd23f' },
+  firstpizzeria: { shape: 'paddle', base: '#8a7a6a', pattern: 'marble', pc: '#ffb347', handle: '#5a3a22' },
 };
 
 const EVENT_LOOK: Record<EventId, Plain> = {

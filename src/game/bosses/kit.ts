@@ -23,6 +23,8 @@ export interface Brain {
   /** Stomps from this boss ignore pizza defences right now. */
   pierce?(f: Foot): boolean;
   onDeath?(f: Foot, a: Arena): void;
+  /** A fixed phase count for this fight on every heat (default: the heat's, one fewer for mini-bosses). */
+  phases?(a: Arena): number;
 }
 
 export class Every {

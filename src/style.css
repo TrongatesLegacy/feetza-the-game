@@ -5359,4 +5359,41 @@ body.reduced-motion *::after {
   .roul-pic img {
     height: 10em;
   }
+/* ——— Act 10 · Finale: the Pizza Legend title (title screen, victory) ——— */
+.menu-stats.legend {
+  align-items: center;
+  padding: 0.5em 1.1em;
+  border-radius: 1em;
+  border: 0.22em solid #ffd23f;
+  background: linear-gradient(180deg, rgba(42, 24, 16, 0.9), rgba(26, 14, 8, 0.92));
+  box-shadow: 0 0 0 0.14em var(--ink), 0 0 1.2em rgba(255, 210, 63, 0.55), inset 0 0 0.6em rgba(255, 244, 176, 0.25);
+}
+
+.legend-title {
+  font-family: 'Lilita One', sans-serif;
+  letter-spacing: 0.06em;
+  color: #ffd23f;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.12em var(--ink);
+  text-shadow: 0 0.08em 0 #8a5a10;
+}
+
+.v-legend {
+  display: grid;
+  gap: 0.2em;
+  padding: 0.5em 1.6em;
+  border-radius: 1em;
+  border: 0.2em solid #ffd23f;
+  background: rgba(26, 14, 8, 0.85);
+  box-shadow: 0 0 1em rgba(255, 210, 63, 0.5);
+  color: var(--cream);
+  font-weight: 700;
+}
+
+.v-legend b {
+  font-family: 'Lilita One', sans-serif;
+  font-size: 2.6em;
+  color: #ffd23f;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.1em var(--ink);
 }

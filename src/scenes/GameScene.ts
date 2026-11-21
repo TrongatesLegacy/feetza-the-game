@@ -19,7 +19,7 @@ import { Foot } from '../game/Foot';
 import { Fx } from '../game/Fx';
 import { Pizza } from '../game/Pizza';
 import { Projectiles } from '../game/projectiles';
-import { LOCATION_AMBIENCE, LOCATION_MUSIC, RARITY_FROM, Run, awardMilestones, milestoneProgress, backdropFor, bestRarity, rarityOpen, specialPrice, bossMusic, isBossWave, isMiniWave, locationFor, loopOf, planWave, type WavePlan, bossFor, miniFor } from '../game/Run';
+import { endlessPlus, LOCATION_AMBIENCE, LOCATION_MUSIC, RARITY_FROM, Run, awardMilestones, milestoneProgress, backdropFor, bestRarity, rarityOpen, specialPrice, bossMusic, isBossWave, isMiniWave, locationFor, loopOf, planWave, type WavePlan, bossFor, miniFor } from '../game/Run';
 import type { CounterSnap, RunSnapshot } from '../game/snapshot';
 import { audio, bossSfx, heroSfx } from '../systems/audio';
 import { pad } from '../systems/gamepad';
@@ -45,6 +45,8 @@ import { HeroTracker, bestGoal, type RunView } from '../game/heroGoals';
 import { maybeSignal, sightingChance, sightingDue } from '../game/sightings';
 import { addCanvas } from '../game/assets';
 import { heroFootDmg, heroFootStomp, heroFootTick } from '../game/heroFeet';
+// ——— Act 10 · Finale: the buyout and the ending (src/game/finale.ts; its layers run from src/game/acts/act10.ts) ———
+import { finaleState, playEnding } from '../game/finale';
 
 interface DamageOpts {
   source: 'smack' | 'chain' | 'cutter' | 'olive' | 'slam' | 'explode' | 'garlic' | 'burn' | 'trap' | 'splash' | 'direct' | 'ability';
@@ -64,6 +66,8 @@ export interface GameStart {
   kit?: boolean;
   /** Keep going past the journey's end (endless) instead of ending the run there. */
   endless?: boolean;
+  /** Endless+: from wave 101 every place, boss and foot is shuffled (unlocked by beating wave 100). */
+  endlessPlus?: boolean;
   /** Resume a saved run (or a dev scenario) in its shop. */
   snapshot?: RunSnapshot;
   /** Dev: jump straight to a boss or mini-boss, optionally at a health fraction. */
@@ -198,7 +202,7 @@ export class GameScene extends Phaser.Scene implements Arena {
   private smackCount = 0;
   private lastKillAt = -9;
   private bossBonusGiven = false;
-  private shop: { el: HTMLElement; state: ShopState; cards: Upgrade[]; sold: Set<string>; free: string | null; bossReward: boolean; counter: CounterOffer[]; goldenBought?: GoldenItem['id']; lastStand: boolean } | null = null;
+  private shop: { el: HTMLElement; state: ShopState; cards: Upgrade[]; sold: Set<string>; free: string | null; bossReward: boolean; counter: CounterOffer[]; goldenBought?: GoldenItem['id']; lastStand: boolean; boughtOut?: boolean } | null = null;
   private keyHandler = (e: KeyboardEvent) => this.onKey(e);
   private visHandler = () => {
     if (document.hidden && this.waveActive && !this.paused && !this.over && !this.inUpgrade) this.togglePause(true);
@@ -418,6 +422,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       () => this.runView(),
       () => this.peelToasts(checkPeelAchievements()),
     );
+    finaleState.buyout = false;
 
     const snap = this.start.snapshot;
     if (snap) {
@@ -472,6 +477,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       if (save.meta.preheat) this.run.super = 1;
       this.run.endless = !!this.start.endless;
       this.perkKit.runStart();
+      endlessPlus.on = this.run.endless && !!this.start.endlessPlus;
+      endlessPlus.seed = 1 + Math.floor(Math.random() * 1e6);
       if (this.start.act2 || this.start.kit) this.devKit(this.kitWave());
       if (this.start.tips) this.run.coins = this.start.tips;
     }
@@ -637,6 +644,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       newUnlocks: [...r.newUnlocks],
       elapsed: r.elapsed,
       endless: r.endless,
+      endlessPlus: endlessPlus.on ? endlessPlus.seed : 0,
       actFrom: r.actFrom,
       actPending: !!this.actEl && !this.shop,
       secondChances: r.secondChances,
@@ -685,6 +693,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     r.newUnlocks = [...s.newUnlocks];
     r.elapsed = s.elapsed;
     r.endless = s.endless ?? false;
+    endlessPlus.on = !!s.endlessPlus;
+    endlessPlus.seed = s.endlessPlus || 1;
     r.actFrom = s.actFrom ?? null;
     r.secondChances = s.secondChances;
     r.enhanceUses = s.enhanceUses ?? 0;
@@ -1775,7 +1785,7 @@ export class GameScene extends Phaser.Scene implements Arena {
   /** Reheating one pizza: by the freshness it's missing and the wave, so a top-up is cheap and a rescue isn't. */
   private reheatCost(p: Pizza): number {
     const missing = Math.max(0, p.maxFresh - p.fresh);
-    return Math.max(5, Math.round(((4 + this.run.wave * 0.6) * missing) / 5) * 5);
+    return this.boughtOut(Math.max(5, Math.round(((4 + this.run.wave * 0.6) * missing) / 5) * 5));
   }
 
   /**
@@ -1820,7 +1830,7 @@ export class GameScene extends Phaser.Scene implements Arena {
   private offerPrice(o: CounterOffer): number {
     // shop toppings: Premium Menu, Owner's Discount, Chef's Favourite, and the free pizzas
     const cost = counterPrice(this.run, o.cost, o.kind);
-    if (!this.lastStandOpen()) return cost;
+    if (!this.lastStandOpen()) return this.boughtOut(cost);
     return o.kind === 'pizza' ? 0 : Math.round(cost / 2 / 5) * 5;
   }
 
@@ -1853,7 +1863,11 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.restoredShop = null;
     // one pizza left: a free one from the counter, and Next Wave waits for it
     const lastStand = keepCards?.lastStand ?? (this.alivePizzas().length === 1 && counter.some((o) => o.kind === 'pizza'));
-    this.shop = { el: null as unknown as HTMLElement, state: null as unknown as ShopState, cards, sold: keepCards?.sold ?? new Set(), free, bossReward, counter, goldenBought: keepCards?.goldenBought, lastStand };
+    // the Sole Proprietor bought this shop out (wave 95): every price is doubled
+    const boughtOut = !!this.shop?.boughtOut || finaleState.buyout;
+    finaleState.buyout = false;
+    this.shop = { el: null as unknown as HTMLElement, state: null as unknown as ShopState, cards, sold: keepCards?.sold ?? new Set(), free, bossReward, counter, goldenBought: keepCards?.goldenBought, lastStand, boughtOut };
+    if (boughtOut) title = title ?? 'BOUGHT OUT! EVERY PRICE ×2';
     this.saveRun();
     const state = this.shopState(title);
     this.shop.state = state;
@@ -1889,7 +1903,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     const sh = this.shop;
     const free = !!sh && (sh.free === u.id || freeLunchReady(this.run));
     const p = toppingPrice(this.run, u);
-    return { ...p, price: free ? 0 : p.price, free };
+    // Act 10: the Sole Proprietor bought this shop out
+    return { ...p, price: free ? 0 : this.boughtOut(p.price), free };
   }
 
   /** The table as the shop draws it (and the enhance picker). */
@@ -1978,7 +1993,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     }));
     return {
       title: title ?? (lastStand ? 'ONE PIZZA LEFT' : this.shop?.bossReward ? 'BOSS LOOT!' : `WAVE ${r.wave} CLEARED!`),
-      sub: lastStand ? 'Add another pizza before the next wave: one is on the house' : this.shop?.bossReward ? 'One epic pick is on the house' : 'Spend your tips on toppings and pizzas, or bank them',
+      sub: lastStand ? 'Add another pizza before the next wave: one is on the house' : sh.boughtOut ? 'The Sole Proprietor owns this shop now: everything costs double' : this.shop?.bossReward ? 'One epic pick is on the house' : 'Spend your tips on toppings and pizzas, or bank them',
       wave: r.wave,
       coins: r.coins,
       crusts: save.crusts,
@@ -1988,7 +2003,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       table: this.shopPizzas(),
       tableFull: this.pizzas.length >= MAX_PIZZAS,
       offers,
-      heal: { cost: this.healCost, can: this.alivePizzas().some((p) => p.slices < p.maxSlices) && r.coins >= this.healCost },
+      heal: { cost: this.boughtOut(this.healCost), can: this.alivePizzas().some((p) => p.slices < p.maxSlices) && r.coins >= this.boughtOut(this.healCost) },
       rebake: { cost: this.reviveCost, can: dead.length > 0 && r.coins >= this.reviveCost, shown: this.run.heatDef.rebake },
       lastStand,
       yours: this.yourToppings(),
@@ -2237,8 +2252,8 @@ export class GameScene extends Phaser.Scene implements Arena {
   }
 
   private shopHeal(): void {
-    if (this.run.coins < this.healCost) return;
-    this.run.coins -= this.healCost;
+    if (this.run.coins < this.boughtOut(this.healCost)) return;
+    this.run.coins -= this.boughtOut(this.healCost);
     this.healCost = Math.round(this.healCost * 1.45 + 10);
     for (const p of this.alivePizzas()) this.healPizza(p, 2);
     this.refreshShop();
@@ -4105,6 +4120,14 @@ export class GameScene extends Phaser.Scene implements Arena {
     audio.music(this, isBossWave(w) ? bossMusic(backdropFor(w) as ArenaId) : LOCATION_MUSIC[loc], 800);
   }
 
+  /** The finale's ending has played this run (the victory screen follows it). */
+  private endingShown = false;
+
+  /** A price in a shop the Sole Proprietor bought out (doubled), or as it is. */
+  private boughtOut(price: number): number {
+    return this.shop?.boughtOut ? price * 2 : price;
+  }
+
   /** The ACT COMPLETE (or endless victory) screen, while it's up: the pause menu works over it. */
   private actEl: HTMLElement | null = null;
 
@@ -4152,9 +4175,16 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (this.over) return;
     this.inUpgrade = true;
     ui.setPlaying(false);
+    const r = this.run;
+    // the Sole Proprietor Unbound's fall plays the ending first (the first time through the journey)
+    if (bossFor(r.wave) === 'soleunbound' && loopOf(r.wave) === 0 && !this.endingShown) {
+      this.endingShown = true;
+      this.timerStopped = true;
+      playEnding(this, () => this.victory());
+      return;
+    }
     audio.stop('music', 600);
     this.time.delayedCall(300, () => audio.sting('music_victory', 1));
-    const r = this.run;
     this.timerStopped = true;
     const secs = Math.round(r.elapsed);
     const finalBoss = FOOT_BY_ID[bossFor(r.wave)];
@@ -4167,6 +4197,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       bosses: r.bossesBeaten.length,
       heat: r.heatDef.name,
       crusts: r.crustsEarned(this.figOnTable()),
+      legend: this.endingShown,
       bank: () => {
         this.actEl = null;
         this.gameOver(true, true);
@@ -4309,7 +4340,7 @@ export class GameScene extends Phaser.Scene implements Arena {
             .map((p) => p.id),
           next: nextLockedPizza(PIZZAS),
           victory,
-          again: () => restart({ lineup: randomLineup(save.meta.table ? 4 : 3), heat: r.heat, endless: r.endless }),
+          again: () => restart({ lineup: randomLineup(save.meta.table ? 4 : 3), heat: r.heat, endless: r.endless, endlessPlus: endlessPlus.on }),
           menu: () => {
             ui.closeAll();
             this.scene.start('Menu');

@@ -15,6 +15,8 @@ import { brains as act7 } from './bosses/act7';
 import { brains as act8 } from './bosses/act8';
 // ——— Act 9 · Greek myths ———
 import { brains as act9 } from './bosses/act9';
+// ——— Act 10 · Finale ———
+import { brains as act10 } from './bosses/act10';
 import { type Brain, auraFor, hitWindup } from './bosses/kit';
 
 export type { Brain };
@@ -26,6 +28,8 @@ Object.assign(BRAINS, act7);
 Object.assign(BRAINS, act8);
 // ——— Act 9 · Greek myths ———
 Object.assign(BRAINS, act9);
+// ——— Act 10 · Finale ———
+Object.assign(BRAINS, act10);
 
 /** Dev boss lab: a boss's phase names and move info, without spawning it. */
 export function bossPhaseInfo(id: string): { names: string[]; info: string[] } | null {
@@ -49,7 +53,7 @@ export class BossDirector {
     if (!make) return;
     const b = make();
     this.brains.set(f, b);
-    const n = f.type.mini ? Math.max(1, this.a.bossPhases() - 1) : this.a.bossPhases();
+    const n = b.phases?.(this.a) ?? (f.type.mini ? Math.max(1, this.a.bossPhases() - 1) : this.a.bossPhases());
     this.phases.set(f, n);
     f.phase = 1;
     f.brain.baseSX = f.root.scaleX;

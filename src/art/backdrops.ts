@@ -13,7 +13,9 @@ export type LocationId = 'trattoria' | 'rooftop' | 'beach' | 'diner' | 'lodge' |
   | 'bifrost'
   // ——— Act 9 · Greek myths ———
   | 'labyrinth'
-  | 'tartarus';
+  | 'tartarus'
+  // Act 10 · Finale (src/content/art/scenes-act10.ts)
+  | 'oven' | 'firstpizzeria';
 export type ArenaId = 'bigfoot' | 'ironheel' | 'clownking' | 'trex' | 'colossus' | 'phantomking' | 'cosmiccroc' | 'nonna' | 'gargoyle' | 'kraken' | 'rinkqueen' | 'yeti'
   // ——— Act 7 · Comics ———
   | 'doomstomp'
@@ -27,7 +29,9 @@ export type ArenaId = 'bigfoot' | 'ironheel' | 'clownking' | 'trex' | 'colossus'
   | 'minotaur'
   | 'medusa'
   | 'cerberus'
-  | 'hades';
+  | 'hades'
+  // Act 10 · Finale
+  | 'soleprop' | 'soleunbound';
 export type BackdropId = LocationId | ArenaId;
 export type AmbientKind =
   | 'dust'

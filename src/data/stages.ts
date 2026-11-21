@@ -35,6 +35,9 @@ export const STAGES: Stage[] = [
   // ——— Act 9 · Greek myths (waves 81–90) ———
   { location: 'labyrinth', mini: 'minotaur', boss: 'medusa' },
   { location: 'tartarus', mini: 'cerberus', boss: 'hades' },
+  // ——— Act 10 · Finale (stages 19–20; src/game/bosses/act10.ts) ———
+  { location: 'oven', mini: 'mirrorpeel', boss: 'soleprop' },
+  { location: 'firstpizzeria', mini: 'ghostfuture', boss: 'soleunbound' },
 ];
 
 /** The acts, in order: two stages each. Acts 7–10 are named ahead of their stages, so new stages slot in. */
@@ -55,8 +58,11 @@ export const ACTS: { name: string }[] = [
 // long journey (acts 7–10, wave 100) can be played end to end. Never in a production build.
 if (import.meta.env.DEV && typeof location !== 'undefined') {
   const fake = Math.min(40, Number(new URLSearchParams(location.search).get('fakeStages')) || 0);
-  const real = STAGES.length;
-  for (let i = 0; i < fake; i++) STAGES.push({ ...STAGES[(4 + i) % real], dev: true });
+  // the Finale always closes the journey: stand-ins go in before it (its stages stay 19–20 with 6 fakes)
+  const end = STAGES.findIndex((s) => s.location === 'oven');
+  const at = end >= 0 ? end : STAGES.length;
+  const real = at;
+  for (let i = 0; i < fake; i++) STAGES.splice(at + i, 0, { ...STAGES[(4 + i) % real], dev: true });
 }
 
 export const WAVES_PER_STAGE = 5;
@@ -137,4 +143,7 @@ export const BOSS_MINION: Record<string, string> = {
   medusa: 'gorgonsnake',
   cerberus: 'hoplite',
   hades: 'hoplite',
+  // ——— Act 10 · Finale ———
+  soleprop: 'echobot',
+  soleunbound: 'echoclown',
 };
