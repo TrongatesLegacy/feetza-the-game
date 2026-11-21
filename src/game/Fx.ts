@@ -24,6 +24,9 @@ export class Fx {
   private heal: Phaser.GameObjects.Particles.ParticleEmitter;
   private glints: Phaser.GameObjects.Particles.ParticleEmitter;
   private trailEm: Phaser.GameObjects.Particles.ParticleEmitter;
+  private propTrailEm: Phaser.GameObjects.Particles.ParticleEmitter;
+  private propTrailBig: Phaser.GameObjects.Particles.ParticleEmitter;
+  private propBits: Phaser.GameObjects.Particles.ParticleEmitter;
 
   constructor(scene: Phaser.Scene, layer: Phaser.GameObjects.Container) {
     this.scene = scene;
@@ -93,6 +96,35 @@ export class Fx {
     this.trailEm = em('soft', {
       lifespan: 260, speed: { min: 0, max: 20 }, scale: { start: 0.32, end: 0 }, alpha: { start: 0.7, end: 0 }, blendMode: 'ADD',
     });
+    // thrown props: a short trail in the prop's colour (normal blend, so it reads on bright stages too)
+    this.propTrailEm = em('soft', {
+      lifespan: 230, speed: { min: 0, max: 14 }, scale: { start: 0.62, end: 0 }, alpha: { start: 0.5, end: 0 },
+    });
+    this.propTrailBig = em('soft', {
+      lifespan: 250, speed: { min: 0, max: 18 }, scale: { start: 1, end: 0 }, alpha: { start: 0.45, end: 0 },
+    });
+    // …and the chunky bits it throws off when it lands
+    this.propBits = em('soft', {
+      lifespan: 420, speed: { min: 160, max: 460 }, gravityY: 1100, scale: { start: 0.26, end: 0.04 }, alpha: { start: 1, end: 0.2 },
+    });
+  }
+
+  /** A thrown prop's trail puff (size ≈ the prop's size / 150). */
+  propTrail(x: number, y: number, color: number, size = 0.5): void {
+    const em = size >= 0.6 ? this.propTrailBig : this.propTrailEm;
+    em.setParticleTint(color);
+    em.explode(1, x, y);
+  }
+
+  /** A thrown prop lands: a pop, a ring and a spray of bits in its colour. */
+  propBurst(x: number, y: number, color: number, size = 1): void {
+    this.propBits.setParticleTint(color);
+    this.propBits.explode(Math.round(7 * size), x, y);
+    const b = this.scene.add.image(x, y, 'burst').setScale(0.22 * size).setAngle(Math.random() * 360).setTint(color);
+    this.layer.add(b);
+    this.scene.tweens.add({ targets: b, scale: 0.5 * size, alpha: 0, duration: 200, ease: 'Quad.Out', onComplete: () => b.destroy() });
+    this.ring(x, y, color, 0.55 * size, 0.7);
+    this.stars.explode(3, x, y);
   }
 
   glint(x: number, y: number, n = 1): void {

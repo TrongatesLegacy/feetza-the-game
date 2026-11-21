@@ -220,6 +220,25 @@ const TRIM: Record<string, number> = {
   sfx_phantomking_stir: 1.07, // -12.6 dB → -12.0: curse stirs (tell)
   sfx_phantomking_curse: 1.09, // -11.7 dB → -11.0: curse jumps pizzas
   sfx_phantomking_exorcise: 1.05, // -10.9 dB → -10.5: exorcism chime
+  // Thrown props (src/game/projectiles.ts; made by scripts/throw-sfx/). Launches fire often, so they sit well under
+  // the slap (-14.5); impacts just under it (-12.5); the explosion near it (-11).
+  sfx_tosssoft: 0.79, // -12.4 dB → -14.5: soft prop leaves the peel
+  sfx_tossflick: 0.81, // -12.7 dB → -14.5: small prop flicked
+  sfx_tossspin: 0.84, // -13.0 dB → -14.5: spinning disc thrown
+  sfx_tossheavy: 0.78, // -12.4 dB → -14.5: heavy prop heaved
+  sfx_tossrope: 0.82, // -12.8 dB → -14.5: ring or lasso swung
+  sfx_hitsplat: 1.06, // -13.0 dB → -12.5: soft prop splats
+  sfx_hittink: 1.22, // -14.2 dB → -12.5: small hard prop ticks off
+  sfx_hitcoin: 0.99, // -12.4 dB → -12.5: coin bonk
+  sfx_hitclang: 1.15, // -13.7 dB → -12.5: plate, can or board clangs
+  sfx_hitbonk: 1.0, // -12.5 dB → -12.5: rubbery bonk
+  sfx_hitthud: 0.99, // -12.4 dB → -12.5: heavy prop lands
+  sfx_hitboom: 1.05, // -11.5 dB → -11.0: cannonball or grenade explodes
+  sfx_hitrope: 1.02, // -12.7 dB → -12.5: rope snaps tight
+  sfx_hitsqueak: 0.99, // -12.4 dB → -12.5: rubber duck squeak
+  sfx_hitrattle: 1.26, // -14.5 dB → -12.5: rattle shakes
+  sfx_rollrumble: 0.99, // -12.4 dB → -12.5: ball rolls along a lane
+  sfx_beam: 1.0, // -12.5 dB → -12.5: beam fires
   // Stings are normalised to the music loudness (-16.4 LUFS, like music_gameover). audio.sting() plays
   // them at music volume and does not read TRIM; these gains apply if they're played through sfx().
   music_victory: 2.04, // -15.7 dB → -9.5: the 60-wave finish, a little over the slap
