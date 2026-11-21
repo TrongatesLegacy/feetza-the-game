@@ -28,6 +28,48 @@ const PINNED_Y = 150;
 const HELD_Y = -260;
 
 const LEG_LEN = 1500;
+
+/** How much further down (world px) a leg's bottom edge must go to tuck inside the foot. The leg is drawn behind
+ * the foot, so its square bottom corners show wherever the foot is narrower than the leg (a boot's neck, a narrow
+ * cuff). Push the edge down until the foot is at least as wide as the leg, but no more than a third of the foot. */
+const tuckCache = new Map<string, number>();
+function legTuck(scene: Phaser.Scene, type: FootType, m: FootMeta, footTop: number): number {
+  const hit = tuckCache.get(type.id);
+  if (hit !== undefined) return hit;
+  let tuck = 0;
+  try {
+    const ft = scene.textures.get(m.footKey).getSourceImage() as HTMLCanvasElement;
+    const lt = scene.textures.get(m.legKey).getSourceImage() as HTMLCanvasElement;
+    const fw = ft.width;
+    const fh = ft.height;
+    const fd = ft.getContext('2d')!.getImageData(0, 0, fw, fh).data;
+    const ld = lt.getContext('2d')!.getImageData(0, 0, lt.width, 1).data;
+    // the leg's solid width (its canvas has a little clear padding)
+    let la = -1;
+    let lb = -1;
+    for (let x = 0; x < lt.width; x++) if (ld[x * 4 + 3] > 128) (la < 0 && (la = x), (lb = x));
+    const legSolid = la < 0 ? lt.width : lb - la + 1;
+    const rowWidth = (y: number) => {
+      let a = -1;
+      let b = -1;
+      for (let x = 0; x < fw; x++) if (fd[(y * fw + x) * 4 + 3] > 128) (a < 0 && (a = x), (b = x));
+      return a < 0 ? 0 : b - a + 1;
+    };
+    // leg bottom in the foot texture's rows (contact is at originY · height)
+    const start = Math.round((-footTop + 16 * type.scale) * ART_RES + m.originY * fh);
+    const limit = Math.min(fh - 1, start + Math.round(fh * 0.33));
+    let y = Math.max(0, start);
+    if (rowWidth(y) < legSolid - 2) {
+      while (y < limit && rowWidth(y) < legSolid - 2) y++;
+      // only tuck when it actually hides the corners; otherwise leave the leg as drawn
+      tuck = y < limit ? (y - start + 2) / ART_RES : 0;
+    }
+  } catch {
+    tuck = 0;
+  }
+  tuckCache.set(type.id, tuck);
+  return tuck;
+}
 /** Feet are drawn a touch larger than their texture so they read clearly against the busy backdrops. */
 const FOOT_DISPLAY = 1.12;
 
@@ -179,7 +221,8 @@ export class Foot {
     const legTex = scene.textures.get(m.legKey).getSourceImage() as HTMLCanvasElement;
     const legW = legTex.width * k;
     const footTop = m.footHeight * type.scale; // world px from contact up to ankle
-    this.leg = scene.add.tileSprite(0, -footTop + 16 * type.scale, legW, LEG_LEN, m.legKey).setOrigin(0.5, 1).setTileScale(k, k);
+    const legBottom = -footTop + 16 * type.scale + legTuck(scene, type, m, footTop);
+    this.leg = scene.add.tileSprite(0, legBottom, legW, LEG_LEN, m.legKey).setOrigin(0.5, 1).setTileScale(k, k);
     this.img = scene.add.image(0, 0, m.footKey).setOrigin(0.5, m.originY).setScale(k);
     this.root.add([this.leg, this.img]);
     if (m.cuffKey) {
