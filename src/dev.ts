@@ -318,6 +318,8 @@ export function installDevTools(game: Phaser.Game): void {
       const g = game.scene.getScene('Game') as AnyScene;
       if (g?.sys?.isActive()) {
         const walk = (o: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+          // a hidden container hides its text too (Nonna's parked tug panel, an eaten pizza's label)
+          if (o.visible === false) return;
           if (o.list) o.list.forEach(walk);
           if (o.type === 'Text' && o.visible && o.alpha > 0.2 && o.text) {
             const b = o.getBounds();
