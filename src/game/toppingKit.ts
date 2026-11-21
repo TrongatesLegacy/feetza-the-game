@@ -346,8 +346,8 @@ export class ToppingKit {
 
   // ——— events ———
 
-  /** This wave's events (0, 1 or 2), after the event toppings. */
-  rollEvents(rate: number): EventId[] {
+  /** This wave's events (0, 1 or 2), after the event toppings. sighting: the hero sighting chance, rolled first (one a wave at most). */
+  rollEvents(rate: number, sighting = 0): EventId[] {
     const st = this.run.stats;
     const k = this.run.kit;
     this.retried.clear();
@@ -363,7 +363,7 @@ export class ToppingKit {
     }
     const chance = st.eventAlways ? 1 : Math.min(1, rate * Math.max(0, st.eventMult));
     for (let i = 0; i < st.eventCount && out.length < 2; i++) {
-      let e = rollEvent(chance);
+      let e = rollEvent(chance, out.includes('sighting') ? 0 : sighting);
       if (!e) break;
       // Bird Feeder: chests mostly become flyers
       if ((e === 'chest' || e === 'mimic') && st.flyerBias && Math.random() < 0.6) e = Phaser.Utils.Array.GetRandom(['balloon', 'balloon', 'drone', 'drone', 'moth', 'seagull'] as EventId[]);

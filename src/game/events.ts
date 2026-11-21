@@ -5,8 +5,9 @@ import Phaser from 'phaser';
 import { W } from '../config';
 import type { Arena } from './arena';
 import { slamMode } from './slamMode';
+import { heroSighting } from './sightings';
 
-export type EventId = 'balloon' | 'drone' | 'moth' | 'seagull' | 'chest' | 'mimic';
+export type EventId = 'balloon' | 'drone' | 'moth' | 'seagull' | 'chest' | 'mimic' | 'sighting';
 
 export interface EventRewards {
   tips(n: number, x: number, y: number): void;
@@ -19,9 +20,10 @@ export interface EventRewards {
   firstSighting(id: EventId): void;
   /** The event was dealt with (popped, caught, opened, a mimic beaten in time): achievements and drops. */
   done(id: EventId, x: number, y: number): void;
-  /** Event toppings: seconds flyers stay longer, smacks fewer a chest needs, and a callback when one is missed. */
+  /** Event toppings: seconds flyers stay longer, smacks fewer a chest needs, smacks a hero sighting needs (0: the usual 2), and a callback when one is missed (hero goals count streaks). */
   flyerSec?: number;
   chestLess?: number;
+  sightingHits?: number;
   missed?(id: EventId): void;
 }
 
@@ -32,14 +34,17 @@ const EVENT_NAMES: Record<EventId, string> = {
   seagull: 'GOLDEN SEAGULL',
   chest: 'PIZZA BOX CHEST',
   mimic: 'PIZZA BOX CHEST',
+  sighting: 'HERO SIGHTING',
 };
 
 export function eventName(id: EventId): string {
   return EVENT_NAMES[id];
 }
 
-/** Pick an event for this wave, or null. Never on boss or mini-boss waves. */
-export function rollEvent(rate: number): EventId | null {
+/** Pick an event for this wave, or null. Never on boss or mini-boss waves.
+ * sighting: this wave's chance of a hero sighting (src/game/sightings.ts), rolled first. */
+export function rollEvent(rate: number, sighting = 0): EventId | null {
+  if (sighting > 0 && Math.random() < sighting) return 'sighting';
   if (Math.random() > rate) return null;
   const r = Math.random();
   if (r < 0.26) return 'balloon';
@@ -53,6 +58,7 @@ export function rollEvent(rate: number): EventId | null {
 /** Start an event; it runs itself (flight path, clicks, rewards) until it leaves or pays out. */
 export function startEvent(a: Arena, id: EventId, rw: EventRewards): void {
   rw.firstSighting(id);
+  if (id === 'sighting') return heroSighting(a, rw);
   if (id === 'chest' || id === 'mimic') return chest(a, id === 'mimic', rw);
   const cfg = {
     balloon: { key: 'ev_balloon', hits: 1, sec: 9, y: 170, sfx: 'sfx_pop' },
