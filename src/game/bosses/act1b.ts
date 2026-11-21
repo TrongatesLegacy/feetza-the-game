@@ -95,7 +95,7 @@ const shortorder = (): Brain => {
     const ret = mark(a, 'p_reticle', p.x, p.surfaceY - 30, warn + lunge + creep, 0.75);
     mark(a, 'p_ticket', p.x, p.surfaceY - 245, warn + 0.6);
     a.quip(p.x, p.surfaceY - 140, slices > 1 ? 'RUSH ORDER!' : 'ORDER UP!', '#ffffff', 40);
-    a.sfx('sfx_warning', { volume: 0.4, rate: 1.2 });
+    a.sfx(slices > 1 ? 'sfx_shortorder_rush' : 'sfx_shortorder_bell');
     /** Stretch the sleeve from the shoulder (off screen) to the cuff of a hand at x, y. */
     const drawArm = (img: Phaser.GameObjects.Image, x: number, y: number) => {
       const wx = x - dir * 150 * S;
@@ -109,7 +109,7 @@ const shortorder = (): Brain => {
         finish(f);
         return;
       }
-      a.sfx('sfx_whoosh', { volume: 0.8, rate: 1.3 });
+      a.sfx('sfx_shortorder_grab');
       const t0 = a.sc.time.now;
       // the sleeve goes in first so the hand draws over its end
       sleeve = a.sc.add.image(shoulder.x, shoulder.y, 'p_order_sleeve').setOrigin(0, 0.5).setFlipY(!fromLeft);
@@ -192,7 +192,10 @@ const shortorder = (): Brain => {
         label: 'ORDER CANCELLED!',
         onClear: () => done(false),
         onFail: () => {
-          if (f.alive && !p.dead && a.inWave()) a.hitPizza(p, slices, slices > 1 ? 'TWO TO GO!' : 'TO GO!');
+          if (f.alive && !p.dead && a.inWave()) {
+            a.sfx('sfx_shortorder_togo');
+            a.hitPizza(p, slices, slices > 1 ? 'TWO TO GO!' : 'TO GO!');
+          }
           done(true);
         },
       });
@@ -266,7 +269,7 @@ const trex = (): Brain => {
         a.sc.time.delayedCall(500, () => {
           if (!a.inWave() || p.dead || dead) return;
           const t0 = a.sc.time.now;
-          a.sfx('sfx_warning', { volume: 0.35, rate: 1.6, throttle: 200 });
+          a.sfx('sfx_trex_dinosqueak', { throttle: 200 });
           // a ground shadow so it sits on the table on any backdrop, and a dashed run line to its pizza
           const shadow = a.sc.add.image(sx, feetY, 'p_ground_shadow').setScale(0.9).setAlpha(0);
           a.fxLayer.add(shadow);
@@ -328,7 +331,10 @@ const trex = (): Brain => {
               a.sc.tweens.add({ targets: ko, alpha: 0, delay: 400, duration: 250, onComplete: () => ko.destroy() });
             },
             onFail: () => {
-              if (!p.dead && a.inWave() && !dead) a.hitPizza(p, h.slices(1), 'CHOMPED!', '#9cff6a');
+              if (!p.dead && a.inWave() && !dead) {
+                a.sfx('sfx_trex_snack', { volume: 0.6 });
+                a.hitPizza(p, h.slices(1), 'CHOMPED!', '#9cff6a');
+              }
             },
           });
           const me = prop;
@@ -366,7 +372,7 @@ const trex = (): Brain => {
             blink.remove();
             if (me.alive()) {
               me.img.clearTint();
-              a.sfx('sfx_whoosh', { volume: 0.5, rate: 1.5 });
+              a.sfx('sfx_trex_dinorun', { throttle: 150 });
             }
           });
         });
@@ -397,7 +403,7 @@ const trex = (): Brain => {
     const ret = mark(a, 'p_reticle', v.x, vy - vh * 0.45, tell + 0.6, 0.9);
     keep(ret);
     const follow = a.sc.time.addEvent({ delay: 16, loop: true, callback: () => (v.alive && ret.active ? ret.setPosition(v.x, v.y - vh * 0.45) : follow.remove()) });
-    a.sfx('sfx_warning', { volume: 0.5, rate: 0.8 });
+    a.sfx('sfx_trex_growl');
     // the shake
     const shake = a.sc.time.addEvent({ delay: 40, repeat: Math.floor((tell * 1000) / 40), callback: () => f.alive && (f.x = home.x + (Math.random() - 0.5) * 30) });
     const release = () => {
@@ -436,7 +442,7 @@ const trex = (): Brain => {
               if (!f.alive) return release();
               a.shake(250, 0.008);
               a.quip(v.x, vy + 60, 'CHOMP!', '#ff4d3d', 58);
-              a.sfx('sfx_squish', { volume: 1, rate: 0.7 });
+              a.sfx('sfx_trex_snack');
               // squash on the bite, then spring back
               const sx = f.root.scaleX;
               const sy = f.root.scaleY;
@@ -535,14 +541,14 @@ const trex = (): Brain => {
       if (f.phase >= 3 && roaring <= 0 && roar.tick(dt)) {
         // tell: a deep breath first, so there's time to get the slam ready
         a.quip(f.x, Math.max(f.y + 60, 340), 'DEEP BREATH…', '#ffb0a0', 46);
-        a.sfx('sfx_whoosh', { rate: 0.5, volume: 0.6 });
+        a.sfx('sfx_trex_breath');
         a.sc.time.delayedCall(1000, () => {
           if (!f.alive || !a.inWave()) return;
           a.quip(f.x, Math.max(f.y + 60, 340), 'ROOOOAR!', '#ff4d3d', 64);
           a.quip(960, 430, 'EVERY STOMP LANDS TWICE!', '#ffb0a0', 40);
           a.shake(600, 0.01);
           a.rumble(0.6, 600);
-          a.sfx('sfx_warning');
+          a.sfx('sfx_trex_roar');
           a.hurry(1.4, 3.5);
           roaring = 3.5;
           f.vuln = 1.6; // wide open while it roars
@@ -606,7 +612,7 @@ const iceskate = (): Brain => {
     a.sc.tweens.add({ targets: cloud, y: top + 10, duration: 600, ease: 'Back.Out' });
     a.sc.tweens.add({ targets: cloud, x: p.x + 10, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
     a.quip(p.x, top + 120, 'SNOW INCOMING!', '#bfe6ff', 42);
-    a.sfx('sfx_warning', { volume: 0.35, rate: 1.4 });
+    a.sfx('sfx_iceskate_snow');
     // live: frost creeps down the lane from the cloud, with a no-smack sign
     const frost = a.sc.add.image(p.x, top, 'p_ivy_frost').setOrigin(0.5, 0).setAlpha(0);
     frost.setDisplaySize(half * 2, bottom - top);
@@ -648,7 +654,7 @@ const iceskate = (): Brain => {
       a.sc.tweens.add({ targets: frost, scaleY: fullSY, duration: 420, ease: 'Quad.Out' });
       a.sc.tweens.add({ targets: sign, scale: 0.62, duration: 260, delay: 200, ease: 'Back.Out' });
       a.quip(p.x, top + 260, 'FROZEN LANE!', '#ffffff', 44);
-      a.sfx('sfx_whoosh', { volume: 0.6, rate: 0.6 });
+      a.sfx('sfx_iceskate_freeze');
       const t0 = a.now();
       flakes = a.sc.time.addEvent({
         delay: 70,
@@ -679,7 +685,7 @@ const iceskate = (): Brain => {
           a.fx.puff(a.peelPoint().x, a.peelPoint().y, 6);
           a.fx.frost(a.peelPoint().x, a.peelPoint().y);
           a.sc.tweens.add({ targets: sign, scale: { from: 0.85, to: 0.62 }, angle: { from: -12, to: 0 }, duration: 260, ease: 'Back.Out' });
-          a.sfx('sfx_shield', { volume: 0.5, rate: 1.4 });
+          a.sfx('sfx_iceskate_frostbite', { throttle: 150 });
         },
       });
       a.sc.time.delayedCall(dur * 1000, end);
@@ -722,7 +728,7 @@ const iceskate = (): Brain => {
         f.stateT = 0;
         swinging = 1.3;
         a.quip(f.x, Math.max(f.y + 50, 330), 'TRIPLE AXEL!', '#d9c8ff', 40);
-        a.sfx('sfx_whoosh', { volume: 0.6, rate: 1.4 });
+        a.sfx('sfx_iceskate_axel');
       }
     },
     onDeath: () => {
@@ -809,7 +815,7 @@ const colossus = (): Brain => {
     slab(a, w.x, w.y, Math.sign(at.x) || 1);
     a.fx.impact(w.x, w.y, true);
     a.shake(160, 0.006);
-    a.sfx('sfx_crit');
+    a.sfx(pieces > 0 ? 'sfx_colossus_crack' : 'sfx_colossus_shatter');
     if (pieces > 0) a.quip(w.x, w.y - 90, `CRACK! (${pieces} LEFT)`, '#e6ebf2', 40);
     else {
       a.quip(f.x, Math.max(f.y - 140, 360), 'SHELL BROKEN!', '#7dff9a', 54);
@@ -849,7 +855,7 @@ const colossus = (): Brain => {
     shards(a, w.x, w.y, 3);
     slab(a, w.x, w.y, Math.sign(img.x) || 1);
     a.fx.impact(w.x, w.y, true);
-    a.sfx('sfx_crit');
+    a.sfx('sfx_colossus_crack');
     a.quip(w.x, w.y - 90, plates.length ? `PLATE OFF! (${plates.length} LEFT)` : 'ARMOUR OFF!', '#7dff9a', 42);
     if (!plates.length) a.bossMove(f, 'SHATTERED', 'Blacksmiths come to rebuild his armour · smack them before they reach him');
   };
@@ -867,7 +873,7 @@ const colossus = (): Brain => {
     a.fxLayer.add(glintImg);
     a.sc.tweens.add({ targets: glintImg, scale: 2, angle: 90, duration: warn * 1000, ease: 'Sine.In' });
     a.quip(f.x, guardY(f) + 150, 'GLINT!', '#ffe14d', 50);
-    a.sfx('sfx_combo', { volume: 0.6, rate: 1.8 });
+    a.sfx('sfx_colossus_glint');
     a.sc.time.delayedCall(warn * 1000, () => {
       glintImg?.destroy();
       glintImg = null;
@@ -878,7 +884,7 @@ const colossus = (): Brain => {
       a.fxLayer.add(shieldImg);
       a.sc.tweens.add({ targets: shieldImg, scale: 0.9, angle: 0, duration: 200, ease: 'Back.Out' });
       a.fx.ring(f.x, guardY(f), 0xffd34d, 1.2, 1);
-      a.sfx('sfx_shield');
+      a.sfx('sfx_kit_shieldup');
     });
   };
   const sendSmith = (f: Foot, a: Arena) => {
@@ -953,6 +959,7 @@ const colossus = (): Brain => {
         smithWarned = true;
         a.quip(s.x, s.y - s.meta.footHeight * s.scale - 30, 'HAMMER TIME!', '#ff9a3d', 38);
         // three quick orange flashes, not one long solid fill
+        a.sfx('sfx_colossus_smith');
         for (let i = 0; i < 3; i++) a.sc.time.delayedCall(i * 260, () => s.alive && s.flash(0xff9a3d, 110));
       }
       // wind-up: it rocks back, hammer raised, over its last second
@@ -991,10 +998,10 @@ const colossus = (): Brain => {
         a.fx.impact(hitX, s.y - 80, true);
         a.shake(110, 0.004 + i * 0.002);
         if (i === 1) {
-          a.sfx('sfx_shield', { volume: 0.9, rate: 0.8 });
+          a.sfx('sfx_colossus_anvil');
           a.quip(s.x, s.y - s.meta.footHeight * s.scale - 30, 'FRESH PLATE!', '#ff9a3d', 42);
           addPlate(f, a, to.side);
-        } else a.sfx('sfx_shield', { volume: 0.6, rate: 1.1 });
+        } else a.sfx('sfx_colossus_clang', { volume: 0.7 });
       });
     };
     blow(0);
@@ -1031,6 +1038,7 @@ const colossus = (): Brain => {
         shards(a, f.x, cy, 14, true);
         for (let i = 0; i < 4; i++) slab(a, f.x + (i - 1.5) * 110, cy - 40 + Math.random() * 80);
         a.flash(160, 255, 255, 255);
+        a.sfx('sfx_colossus_shatter');
         a.quip(f.x, Math.max(f.y + 60, 420), 'SHATTERED!', '#ffffff', 60);
         a.setMinions(['stompalot']);
         smithT = 2.5;
@@ -1050,13 +1058,14 @@ const colossus = (): Brain => {
         } else if (a.now() > clangT) {
           clangT = a.now() + 0.5;
           a.quip(x, y - 50, 'CLANG!', '#c7ccd4', 30);
+          a.sfx('sfx_colossus_clang', { throttle: 120 });
         }
         return true;
       }
       if (f.phase === 2 && stance > 0) {
         a.fx.ring(x, y, 0xffd34d, 0.9, 1);
         a.quip(f.x, guardY(f) + 170, 'PARRIED!', '#ffd34d', 48);
-        a.sfx('sfx_shield');
+        a.sfx('sfx_colossus_parry', { throttle: 150 });
         if (shieldImg) {
           // the shield takes the blow: a white flash, a knock and sparks off its face
           const sh = shieldImg;
@@ -1075,6 +1084,7 @@ const colossus = (): Brain => {
         if (a.now() > clangT) {
           clangT = a.now() + 0.5;
           a.quip(x, y - 50, 'CLANG! (crit or slam)', '#c7ccd4', 28);
+          a.sfx('sfx_colossus_clang', { throttle: 120 });
         }
         return true;
       }
@@ -1179,7 +1189,7 @@ const ufotoe = (): Brain => {
         a.sc.tweens.add({ targets: r, y: top + 30, scaleX: sx * 0.32, scaleY: sy * 0.32, alpha: 0.2, duration: 1100, ease: 'Sine.In', onComplete: () => r.destroy() });
       },
     });
-    a.sfx('sfx_zap', { rate: 1.4, volume: 0.6 });
+    a.sfx('sfx_ufotoe_beam');
     a.quip(p.x, p.surfaceY - 190, 'TRACTOR BEAM!', '#a0ff8c', 36);
     let live = true;
     const end = (broken: boolean) => {
@@ -1213,13 +1223,17 @@ const ufotoe = (): Brain => {
     const box = new Phaser.Geom.Rectangle(p.x - 95, top, 190, bottom - top);
     a.addClickable({ x: p.x, y: box.centerY, r: 110, priority: 2, contains: (x, y) => box.contains(x, y), alive: () => live, hit: () => {
       a.quip(p.x, p.surfaceY - 230, 'BEAM BROKEN!', '#7dff9a', 38);
+      a.sfx('sfx_ufotoe_beambreak');
       a.fx.impact(a.peelPoint().x, a.peelPoint().y, true);
       end(true);
     } });
     a.sc.time.delayedCall(sec * 1000, () => {
       if (!live) return;
       end(false);
-      if (f.alive && !p.dead && a.inWave()) a.hitPizza(p, heat(a).slices(1), 'ABDUCTED!', '#a0ff8c');
+      if (f.alive && !p.dead && a.inWave()) {
+        a.sfx('sfx_ufotoe_abduct');
+        a.hitPizza(p, heat(a).slices(1), 'ABDUCTED!', '#a0ff8c');
+      }
     });
   };
 
@@ -1256,6 +1270,7 @@ const ufotoe = (): Brain => {
         const t = twin(a, f);
         if (t) {
           twinFoot = t;
+          a.sfx('sfx_ufotoe_twin');
           // the twin's first beam lands a beat after the boss's, never at the same moment
           saucers.push({ f: t, hold: null, t: 1.6, beam: null });
         }
@@ -1419,10 +1434,8 @@ const cosmiccroc = (): Brain => {
     }
     // smacks land where the peel is drawn: keep the pointer's world point fresh while the camera turns
     a.sc.tweens.add({ targets: cam, rotation: on ? Math.PI : 0, duration: 1200, ease: 'Sine.InOut', onUpdate: () => refreshPointer(a), onComplete: () => refreshPointer(a) });
-    if (on) {
-      a.sfx('sfx_whoosh', { volume: 0.9, rate: 0.5 });
-      a.rumble(0.5, 500);
-    }
+    a.sfx('sfx_cosmiccroc_flip');
+    if (on) a.rumble(0.5, 500);
   };
 
   /** A black hole over one pizza: the feet over that pizza's lanes get pulled down onto it faster. */
@@ -1432,7 +1445,7 @@ const cosmiccroc = (): Brain => {
     const p = rnd(a.alivePizzas().filter((q) => q !== mine)) ?? rnd(a.alivePizzas());
     if (!p) return;
     const HY = 360;
-    a.sfx('sfx_zap', { rate: 0.5 });
+    a.sfx('sfx_cosmiccroc_blackhole');
     a.quip(p.x, HY + 150, 'BLACK HOLE!', '#c9a0ff', 44);
     let open = true;
     const pulled = new Set<Foot>();
@@ -1461,8 +1474,12 @@ const cosmiccroc = (): Brain => {
       },
       label: 'CLOSED!',
       onHit: () => a.fx.ring(p.x, HY, 0xffffff, 0.8, 0.6),
+      clearSfx: 'sfx_cosmiccroc_holeclose',
       onClear: close,
-      onFail: close,
+      onFail: () => {
+        a.sfx('sfx_cosmiccroc_holeclose', { volume: 0.6 });
+        close();
+      },
     });
     // the pull: purple rings sink into it, and each foot it has hold of glows purple (no muddy tint)
     pull = a.sc.time.addEvent({ delay: 100, loop: true, callback: () => {
@@ -1504,7 +1521,11 @@ const cosmiccroc = (): Brain => {
       // meteors keep coming while the table is upside down
       if (f.phase <= 2 && meteor.tick(dt)) {
         const p = laneOf(a, f);
-        if (p) dropOn(a, f, p, 'p_meteor', 1.6, 'METEOR!', { scale: 0.62, color: '#ffb03d' });
+        if (p) {
+          dropOn(a, f, p, 'p_meteor', 1.6, 'METEOR!', { scale: 0.62, color: '#ffb03d' });
+          // dropOn's own fall whoosh still plays: the meteor's roar goes on top as it starts to fall
+          a.sc.time.delayedCall(900, () => a.inWave() && a.sfx('sfx_cosmiccroc_meteor', { throttle: 200 }));
+        }
       }
       if (f.phase >= 3 && hole.tick(dt)) blackHole(f, a);
     },
