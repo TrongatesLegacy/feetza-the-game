@@ -558,6 +558,41 @@ const TRIM: Record<string, number> = {
   sfx_finale_warp: 1.07, // -11.6 dB → -11.0: memory-lane warp between backdrops (tell)
   sfx_finale_glitch: 0.89, // -12.5 dB → -13.5: glitching echo foot blip
   sfx_finale_peelwall: 0.89, // -12.5 dB → -13.5: peel on the wall lights up: chime
+  // ——— Batpeel's Gotham (nemesis stage, scripts/gotham-audio): Bunion and the Jokester's moves, the Dark Kneader ———
+  sfx_bunion_enter: 1.05, // -10.0 dB → -9.6: Bunion drops in: a heavy crunching landing and a low grunt
+  sfx_bunion_pump: 1.06, // -12.5 dB → -12.0: a venom tube fills to full: pump gurgle and hiss (tell)
+  sfx_bunion_surge: 1.13, // -12.1 dB → -11.0: VENOM SURGE tell: a monstrous roar with bubbling
+  sfx_bunion_smash: 1.09, // -10.2 dB → -9.5: the VENOM SURGE stomp lands on a pizza
+  sfx_bunion_tubehit: 0.89, // -12.4 dB → -13.4: smack on a venom tube: a thick rubber and glass thunk with a slosh
+  sfx_bunion_drain: 1.04, // -10.9 dB → -10.6: a venom tube is drained: a glugging hiss, deflating
+  sfx_bunion_grab: 1.08, // -11.7 dB → -11.0: THE BREAK starts: he grabs a pizza (leather creak and a grunt)
+  sfx_bunion_strain: 1.16, // -14.8 dB → -13.5: the crust creaks under the strain (repeats)
+  sfx_bunion_break: 1.16, // -10.8 dB → -9.5: the pizza breaks: a big crunchy crack
+  sfx_bunion_saved: 1.09, // -11.2 dB → -10.5: you foil THE BREAK: he's shoved back (thud and whoosh)
+  sfx_bunion_death: 1.11, // -10.4 dB → -9.5: his tubes burst and he deflates (hiss, splatter, thud)
+  sfx_jokester_enter: 1.20, // -11.1 dB → -9.5: the Jokester's entrance: a jack-in-the-box spring BOING and a confetti pop
+  sfx_jokester_laugh: 1.05, // -11.5 dB → -11.1: his manic cackle "ha-ha-ha-HA" (tell)
+  sfx_jokester_toss: 1.13, // -13.1 dB → -12.0: a joke box is tossed (whoosh and a ribbon jingle)
+  sfx_jokester_land: 1.10, // -12.9 dB → -12.1: a joke box lands on a pizza (cardboard thud)
+  sfx_jokester_tick: 1.08, // -14.2 dB → -13.5: a bomb box ticks (about 1 s)
+  sfx_jokester_boom: 1.05, // -10.9 dB → -10.5: a bomb box blows (cartoon blast with a party-horn tail)
+  sfx_jokester_defuse: 1.13, // -11.5 dB → -10.4: a smack defuses a bomb box (snip and fizzle)
+  sfx_jokester_gift: 1.05, // -12.4 dB → -12.0: a gift box opens itself (sparkle chime and party blower)
+  sfx_jokester_gas: 1.10, // -11.8 dB → -11.0: laughing gas puffs out (hiss and pfft)
+  sfx_jokester_clear: 1.11, // -11.4 dB → -10.5: the laughing gas is blown away (whoosh)
+  sfx_jokester_giggle: 0.89, // -12.5 dB → -13.5: feet giggle in the laughing gas (little high giggles)
+  sfx_jokester_jack: 1.05, // -11.4 dB → -11.0: THE GAUNTLET: the jack-in-the-box crank tune winds up (music-box notes, tell)
+  sfx_jokester_spring: 1.09, // -11.3 dB → -10.6: the jack springs out (BOING and slap)
+  sfx_jokester_pie: 1.05, // -12.4 dB → -12.0: a cream pie is thrown (whoosh)
+  sfx_jokester_splat: 1.05, // -10.9 dB → -10.5: the cream pie splats
+  sfx_jokester_teeth: 1.19, // -13.5 dB → -12.0: wind-up chattering teeth clatter (about 1.2 s)
+  sfx_jokester_weight: 1.05, // -12.5 dB → -12.1: a cartoon weight falls (the whistle, about 1.8 s)
+  sfx_jokester_thud: 1.06, // -10.0 dB → -9.5: the falling weight lands (big clank and thud)
+  sfx_jokester_bang: 1.07, // -11.1 dB → -10.5: the BANG! flag gun pops (pop and a cloth snap)
+  sfx_jokester_window: 1.15, // -12.2 dB → -11.0: the punchline window opens: he's dizzy (a sad trombone "wah-wah")
+  sfx_jokester_death: 1.09, // -10.2 dB → -9.5: his death: a last laugh fading into a big confetti bang
+  sfx_hero_darkfalls: 1.05, // -10.0 dB → -9.6: the Dark Kneader's darkness falls: a heavy low boom, a wing whoosh and a sub tail
+  sfx_hero_split: 1.10, // -12.8 dB → -12.0: a Dark Kneader wing-boomerang splits in two on impact (a metallic shing)
 };
 
 const AMBIENCE_GAIN = 0.4;

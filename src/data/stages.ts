@@ -146,4 +146,7 @@ export const BOSS_MINION: Record<string, string> = {
   // ——— Act 10 · Finale ———
   soleprop: 'echobot',
   soleunbound: 'echoclown',
+  // ——— Nemesis stages (src/game/nemesis.ts): Batpeel's Gotham ———
+  bunion: 'henchman',
+  jokester: 'clown',
 };

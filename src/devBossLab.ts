@@ -7,6 +7,7 @@ import { HEATS, HEAT_BY_ID, type HeatId } from './data/difficulty';
 import { FOOT_BY_ID } from './data/feet';
 import { STAGES } from './data/stages';
 import { bossPhaseInfo } from './game/bosses';
+import { NEMESES } from './game/nemesis';
 import { footPortraitURL } from './game/assets';
 import { PEELS, checkPeelAchievements } from './game/peels';
 import { peelsWithoutAbility } from './game/abilities';
@@ -24,6 +25,11 @@ const ENRAGED = 'ENRAGED';
 const ENTRIES = STAGES.flatMap((s, i) => [
   { id: s.mini, mini: true, stage: i + 1 },
   { id: s.boss as string, mini: false, stage: i + 1 },
+  // nemesis bosses (src/game/nemesis.ts) sit with the stage they take over
+  ...NEMESES.filter((n) => n.stage === i).flatMap((n) => [
+    ...(n.mini ? [{ id: n.mini, mini: true, stage: i + 1 }] : []),
+    ...(n.boss ? [{ id: n.boss as string, mini: false, stage: i + 1 }] : []),
+  ]),
 ]);
 
 function phaseCount(mini: boolean, heat: HeatId, id?: string): number {

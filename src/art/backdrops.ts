@@ -15,7 +15,9 @@ export type LocationId = 'trattoria' | 'rooftop' | 'beach' | 'diner' | 'lodge' |
   | 'labyrinth'
   | 'tartarus'
   // Act 10 · Finale (src/content/art/scenes-act10.ts)
-  | 'oven' | 'firstpizzeria';
+  | 'oven' | 'firstpizzeria'
+  // ——— Nemesis stages (src/game/nemesis.ts; scenes in src/content/art/scenes-gotham.ts) ———
+  | 'gotham';
 export type ArenaId = 'bigfoot' | 'ironheel' | 'clownking' | 'trex' | 'colossus' | 'phantomking' | 'cosmiccroc' | 'nonna' | 'gargoyle' | 'kraken' | 'rinkqueen' | 'yeti'
   // ——— Act 7 · Comics ———
   | 'doomstomp'
@@ -31,7 +33,10 @@ export type ArenaId = 'bigfoot' | 'ironheel' | 'clownking' | 'trex' | 'colossus'
   | 'cerberus'
   | 'hades'
   // Act 10 · Finale
-  | 'soleprop' | 'soleunbound';
+  | 'soleprop' | 'soleunbound'
+  // ——— Nemesis stages: Batpeel's Gotham (the mini-boss gets an arena of its own too) ———
+  | 'bunion'
+  | 'jokester';
 export type BackdropId = LocationId | ArenaId;
 export type AmbientKind =
   | 'dust'

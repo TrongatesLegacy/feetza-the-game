@@ -4243,5 +4243,312 @@
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
     "notes": "a bronze shield is raised (Spartan Sandals, Persian Elephant Feet); a synthesized bronze shield clang, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "music_gotham.mp3",
+    "title": "Crossing the Chasm",
+    "author": "Kevin MacLeod (incompetech.com)",
+    "license": "CC-BY 4.0",
+    "url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Crossing%20the%20Chasm.mp3",
+    "attribution": "\"Crossing the Chasm\" Kevin MacLeod (incompetech.com) Licensed under Creative Commons: By Attribution 4.0 License http://creativecommons.org/licenses/by/4.0/",
+    "notes": "Batpeel's Gotham: Goth-Ham Rooftops (waves 61–65 with the Batpeel peel); a bar-aligned loop with a short crossfade at the loop point"
+  },
+  {
+    "file": "music_boss_bunion.mp3",
+    "title": "Metalmania",
+    "author": "Kevin MacLeod (incompetech.com)",
+    "license": "CC-BY 4.0",
+    "url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Metalmania.mp3",
+    "attribution": "\"Metalmania\" Kevin MacLeod (incompetech.com) Licensed under Creative Commons: By Attribution 4.0 License http://creativecommons.org/licenses/by/4.0/",
+    "notes": "Batpeel's Gotham: Bunion (mini-boss, wave 63); a bar-aligned loop with a short crossfade at the loop point"
+  },
+  {
+    "file": "music_boss_jokester.mp3",
+    "title": "Carnivale Intrigue",
+    "author": "Kevin MacLeod (incompetech.com)",
+    "license": "CC-BY 4.0",
+    "url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Carnivale%20Intrigue.mp3",
+    "attribution": "\"Carnivale Intrigue\" Kevin MacLeod (incompetech.com) Licensed under Creative Commons: By Attribution 4.0 License http://creativecommons.org/licenses/by/4.0/",
+    "notes": "Batpeel's Gotham: The Jokester (wave 65); a bar-aligned loop with a short crossfade at the loop point"
+  },
+  {
+    "file": "sfx_bunion_enter.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Batpeel's Gotham: Bunion drops in: a heavy crunching landing and a low grunt; a synthesized sub landing and a low grunt, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactMining_001, impactPunch_heavy_001 and Sci-fi Sounds explosionCrunch_003 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_bunion_pump.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Batpeel's Gotham: a venom tube fills to full: pump gurgle and hiss (tell); a synthesized pump stroke, gurgle and pressure hiss, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds slime_000 and Impact Sounds impactGlass_light_001 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_bunion_surge.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Batpeel's Gotham: VENOM SURGE tell: a monstrous roar with bubbling; a synthesized monster roar over boiling bubbles, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds slime_001 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_bunion_smash.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Batpeel's Gotham: the VENOM SURGE stomp lands on a pizza; a synthesized sub stomp, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactPunch_heavy_003, impactMining_004, impactWood_heavy_002 and Sci-fi Sounds lowFrequency_explosion_000 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_bunion_tubehit.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Batpeel's Gotham: smack on a venom tube: a thick rubber and glass thunk with a slosh; a synthesized slosh, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactSoft_medium_002, impactGlass_medium_001 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_bunion_drain.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Batpeel's Gotham: a venom tube is drained: a glugging hiss, deflating; synthesized glugs, a falling hiss and a deflating squeal, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds slime_000 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_bunion_grab.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Batpeel's Gotham: THE BREAK starts: he grabs a pizza (leather creak and a grunt); a synthesized effort grunt, made with ffmpeg and Python and released as CC0, layered with Kenney RPG Audio handleSmallLeather, creak2, dropLeather (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_bunion_strain.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Batpeel's Gotham: the crust creaks under the strain (repeats); a synthesized stick-slip crust creak, made with ffmpeg and Python and released as CC0, layered with Kenney RPG Audio creak1 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_bunion_break.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Batpeel's Gotham: the pizza breaks: a big crunchy crack; a synthesized crust crunch, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactWood_heavy_001, impactPlank_medium_000, impactWood_medium_003 and Sci-fi Sounds explosionCrunch_001 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_bunion_saved.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Batpeel's Gotham: you foil THE BREAK: he's shoved back (thud and whoosh); a synthesized whoosh, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactPunch_heavy_000, impactSoft_heavy_001 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_bunion_death.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Batpeel's Gotham: his tubes burst and he deflates (hiss, splatter, thud); a synthesized burst hiss, splatter and deflating squeal, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactSoft_heavy_003, impactGlass_heavy_000, impactPunch_heavy_004 and Sci-fi Sounds slime_001 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_jokester_enter.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Batpeel's Gotham: the Jokester's entrance: a jack-in-the-box spring BOING and a confetti pop; a synthesized spring boing and confetti pop, made with ffmpeg and Python and released as CC0, layered with Kenney RPG Audio metalLatch (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_jokester_laugh.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Batpeel's Gotham: his manic cackle \"ha-ha-ha-HA\" (tell); a synthesized manic cackle, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_jokester_toss.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Batpeel's Gotham: a joke box is tossed (whoosh and a ribbon jingle); a synthesized whoosh and ribbon bells, made with ffmpeg and Python and released as CC0, layered with Kenney RPG Audio cloth2 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_jokester_land.mp3",
+    "title": "Impact Sounds (impactSoft_medium_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Batpeel's Gotham: a joke box lands on a pizza (cardboard thud); layered with Impact Sounds impactWood_light_002 and Casino Audio card-place-2 (Kenney, CC0)"
+  },
+  {
+    "file": "sfx_jokester_tick.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Batpeel's Gotham: a bomb box ticks (about 1 s); a synthesized woody tick-tock body under the ticks, made with ffmpeg and Python and released as CC0, layered with Kenney Interface Sounds tick_001, tick_002 and RPG Audio metalClick (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_jokester_boom.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Batpeel's Gotham: a bomb box blows (cartoon blast with a party-horn tail); a synthesized blast thump and a deflating party-horn tail, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds explosionCrunch_002 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_jokester_defuse.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Batpeel's Gotham: a smack defuses a bomb box (snip and fizzle); a synthesized scissor snip and fizzle, made with ffmpeg and Python and released as CC0, layered with Kenney RPG Audio metalClick (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_jokester_gift.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Batpeel's Gotham: a gift box opens itself (sparkle chime and party blower); a synthesized sparkle arpeggio and party blower, made with ffmpeg and Python and released as CC0, layered with Kenney Casino Audio cards-pack-open-1 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_jokester_gas.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Batpeel's Gotham: laughing gas puffs out (hiss and pfft); a synthesized gas hiss and puff, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds slime_000 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_jokester_clear.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Batpeel's Gotham: the laughing gas is blown away (whoosh); a synthesized gust whoosh, made with ffmpeg and Python and released as CC0, layered with Kenney RPG Audio cloth3 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_jokester_giggle.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Batpeel's Gotham: feet giggle in the laughing gas (little high giggles); synthesized little high giggles, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_jokester_jack.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Batpeel's Gotham: THE GAUNTLET: the jack-in-the-box crank tune winds up (music-box notes, tell); a synthesized music-box crank tune (the traditional \"Pop Goes the Weasel\"), made with ffmpeg and Python and released as CC0, layered with Kenney Interface Sounds click_002 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_jokester_spring.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Batpeel's Gotham: the jack springs out (BOING and slap); a synthesized spring boing, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactPunch_medium_001 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_jokester_pie.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Batpeel's Gotham: a cream pie is thrown (whoosh); a synthesized whoosh, made with ffmpeg and Python and released as CC0, layered with Kenney RPG Audio cloth1 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_jokester_splat.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Batpeel's Gotham: the cream pie splats; a synthesized wet splat, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactSoft_heavy_002 and Sci-fi Sounds slime_001 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_jokester_teeth.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Batpeel's Gotham: wind-up chattering teeth clatter (about 1.2 s); a synthesized wind-up whirr under the clatter, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactPlate_light_000, impactPlate_light_002 and Casino Audio chips-collide-1 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_jokester_weight.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Batpeel's Gotham: a cartoon weight falls (the whistle, about 1.8 s); a synthesized falling whistle, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_jokester_thud.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Batpeel's Gotham: the falling weight lands (big clank and thud); a synthesized sub thud, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactMetal_heavy_002, impactBell_heavy_001, impactMining_002 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_jokester_bang.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Batpeel's Gotham: the BANG! flag gun pops (pop and a cloth snap); a synthesized cork pop, made with ffmpeg and Python and released as CC0, layered with Kenney RPG Audio cloth4, clothBelt (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_jokester_window.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Batpeel's Gotham: the punchline window opens: he's dizzy (a sad trombone \"wah-wah\"); a synthesized sad trombone \"wah-wah-wah-wahhh\", made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_jokester_death.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Batpeel's Gotham: his death: a last laugh fading into a big confetti bang; a synthesized fading laugh, a blast and a confetti burst, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds explosionCrunch_000 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_hero_darkfalls.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Batpeel's Gotham: the Dark Kneader's darkness falls: a heavy low boom, a wing whoosh and a sub tail; a synthesized low boom, a bat-wing whoosh and a sub tail, made with ffmpeg and Python and released as CC0, layered with Kenney Interface Sounds switch_007 and Impact Sounds impactPlate_heavy_001 and Sci-fi Sounds lowFrequency_explosion_001 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_hero_split.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Batpeel's Gotham: a Dark Kneader wing-boomerang splits in two on impact (a metallic shing); two synthesized shimmering rings parting, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactMetal_light_002 and RPG Audio drawKnife1 (CC0, kenney.nl)"
+  },
+  {
+    "file": "ambience_gotham.mp3",
+    "title": "Original synthesized ambience",
+    "author": "Made for Feetza",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Batpeel's Gotham: Goth-Ham Rooftops: steady rain on the rooftop, drips from the gutters, gusts of wind, two distant thunder rolls and a faint far-off siren; synthesized with Python and ffmpeg (scripts/gotham-audio/ambience.py), 50 s crossfaded loop",
+    "license": "CC0 1.0"
   }
 ]

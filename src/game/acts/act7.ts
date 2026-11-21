@@ -22,7 +22,7 @@ import { doomSpare } from '../bosses/act7';
 import type { ActFx, FootFx } from '../contentFx';
 import type { Foot } from '../Foot';
 import type { Pizza } from '../Pizza';
-import { locationFor, waveInStage, isBossWave } from '../Run';
+import { bossFor, locationFor, waveInStage, isBossWave } from '../Run';
 
 const FONT = 'Lilita One, Fredoka, sans-serif';
 const INK = 0x2a1810;
@@ -345,7 +345,8 @@ function lightning(a: Arena, layer: Layer, strong: boolean): void {
 }
 
 function setup(a: Arena, layer: Layer, n: number): void {
-  const place = isBossWave(n) ? (locationFor(n) === 'metropizza' ? 'doomstomp' : 'thanfoot') : locationFor(n);
+  // the wave's own arena or place (a nemesis stage, like Batpeel's Gotham, brings its own: src/game/nemesis.ts)
+  const place = isBossWave(n) ? bossFor(n) : locationFor(n);
   const ws = waveInStage(n);
   const changed = place !== layer.place;
   layer.wave = n;
