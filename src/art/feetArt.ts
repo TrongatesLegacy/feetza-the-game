@@ -1071,8 +1071,72 @@ function drawHairTile(ctx: Ctx, r: () => number, x0: number, w: number, col: str
   ctx.globalAlpha = 1;
 }
 
+/** Moon Boot Mo's puffy leg is wider than the boot's opening, so the boot gets a padded, quilted collar that is wider
+ * than the leg, cinched with an orange drawstring: the leg goes into the collar instead of showing past the boot. */
+function moonbootCollar(art: FootType['art'], s: number): HTMLCanvasElement {
+  const lw = LEG_W.puffy + 22;
+  const [c, ctx] = makeCanvas((lw + 16) * s, 108 * s);
+  ctx.scale(s, s);
+  // drawn in the lower half of a tall canvas, so (being centred on the ankle) it sits down over the boot's neck
+  ctx.translate(0, 46);
+  const x0 = 8;
+  const col = art.primary ?? '#f2f5fa';
+  const acc = art.secondary ?? '#ff5a36';
+  roundRect(ctx, x0, 0, lw, 54, 20);
+  const g = ctx.createLinearGradient(x0, 0, x0 + lw, 0);
+  g.addColorStop(0, shade(col, -0.32));
+  g.addColorStop(0.45, '#ffffff');
+  g.addColorStop(1, shade(col, -0.36));
+  ctx.fillStyle = g;
+  ctx.fill();
+  // quilted pillows: soft shading in each panel
+  ctx.save();
+  roundRect(ctx, x0, 0, lw, 54, 20);
+  ctx.clip();
+  for (let i = 1; i < 5; i++) {
+    const x = x0 + (lw * i) / 5;
+    ctx.strokeStyle = rgba('#5a6070', 0.35);
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.quadraticCurveTo(x - 3, 27, x, 54);
+    ctx.stroke();
+  }
+  const sh = ctx.createLinearGradient(0, 0, 0, 54);
+  sh.addColorStop(0, rgba('#ffffff', 0.5));
+  sh.addColorStop(0.4, rgba('#ffffff', 0));
+  sh.addColorStop(1, rgba('#3a4050', 0.3));
+  ctx.fillStyle = sh;
+  ctx.fillRect(x0, 0, lw, 54);
+  ctx.restore();
+  // drawstring across the collar with a toggle and two tails
+  ctx.strokeStyle = acc;
+  ctx.lineWidth = 3.5;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(x0 + 6, 27);
+  ctx.quadraticCurveTo(x0 + lw / 2, 32, x0 + lw - 6, 27);
+  ctx.stroke();
+  const tx = x0 + lw * 0.68;
+  ctx.beginPath();
+  ctx.moveTo(tx, 30);
+  ctx.quadraticCurveTo(tx + 4, 40, tx - 2, 50);
+  ctx.moveTo(tx + 6, 30);
+  ctx.quadraticCurveTo(tx + 12, 39, tx + 9, 49);
+  ctx.stroke();
+  roundRect(ctx, tx - 5, 24, 14, 10, 3);
+  ctx.fillStyle = '#2a2f3a';
+  ctx.fill();
+  roundRect(ctx, x0, 0, lw, 54, 20);
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = OUT;
+  ctx.stroke();
+  return c;
+}
+
 function drawCuff(type: FootType, s: number): HTMLCanvasElement | undefined {
   const art = type.art;
+  if (art.kind === 'moonboot') return moonbootCollar(art, s);
   if (!['jeans', 'suit', 'clown'].includes(art.leg)) return undefined;
   const lw = LEG_W[art.leg] + 14;
   const [c, ctx] = makeCanvas((lw + 16) * s, 40 * s);
