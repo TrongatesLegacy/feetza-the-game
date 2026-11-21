@@ -560,6 +560,12 @@ export const ABILITIES: Record<string, Ability> = {
   'foot:elephant': ab('Elephant Stomp', every(8), [D(3, front(3), 1100)], 0x8e8a86, 'slam'),
   // its late-wave +25% is a passive in src/game/godMoves.ts
   'foot:spartan': { ...ab('Phalanx', wave, [SH(1, 'weakest')], 0xc9873a, 'heal'), desc: 'Each wave: a bronze shield on your weakest pizza. When only a quarter of the wave’s feet are left, +25% damage.' },
+  // the Persian army (src/content/feet/persians.ts)
+  'foot:immortal': ab('Ten Thousand', kill(0.25), [D(2.5, front(1)), M(1.3, 3, front(1))], 0x7a4aa8, 'ink'),
+  'foot:archer': ab('Arrow Storm', every(5), [TH('arrow', 'straight', 1.5, rnd(3))], 0xe8a030, 'rain'),
+  'foot:cavalry': ab('Cavalry Charge', every(7), [D(2.5, front(3), 900), ST(0.6, front(3))], 0x7a4e2e, 'wind'),
+  'foot:chariot': ab('Scythed Wheel', every(8), [TH('wheelcutter', 'roll', 3, front(1), { r: 100 })], 0xc9873a, 'burst'),
+  'foot:satrap': ab('Royal Treasury', always, [STAT({ coinMult: 0.12, damage: 1 })], 0xf0c040, 'gold'),
 
   // ——— Pizzas ———
   'pizza:margherita': plus(ab('Classic Crust', always, [STAT({ damage: 1.5 })], RED, 'burst'), every(6), TH('tomato', 'bounce', 2, rnd(1), { more: [1.5, 1] })),

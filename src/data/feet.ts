@@ -160,6 +160,8 @@ export interface FootType {
   /** Pizzapedia: the visible tell before its ability fires. */
   tell?: string;
   quips?: string[];
+  /** One of the Persian army (Act 9): the Kratos Peel counts their defeats, and a Satrap's Slipper armours them. */
+  persian?: boolean;
 }
 
 const SKIN = {
