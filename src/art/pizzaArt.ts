@@ -24,6 +24,11 @@ const SAUCE: Record<PizzaType['base'], string> = {
   bbq: '#6a2812',
   white: '#f1e2bd',
   choc: '#4a2414',
+  // phase 3 bases
+  saffron: '#e8a02a',
+  ink: '#231e2a',
+  moon: '#c9d0d8',
+  pink: '#d23a78',
 };
 
 function shapePath(ctx: Ctx, shape: PizzaType['shape'], r: number): void {
@@ -710,6 +715,12 @@ export function drawPizzaTop(p: PizzaType): HTMLCanvasElement {
   const rand = rng(hashStr(p.id));
   if (p.shape === 'calzone') {
     drawCalzone(ctx, p, rand);
+    // phase 3 calzones paint their overlays (lava, cracks) over the folded crust
+    for (const t of p.toppings) {
+      ctx.save();
+      toppingDrawer(t)?.draw(ctx, rand);
+      ctx.restore();
+    }
     return c;
   }
   drawCrust(ctx, p, rand);
@@ -795,6 +806,8 @@ export function renderPizza(ctx: Ctx, st: PizzaRenderState): void {
     ctx.beginPath();
     for (let i = 0; i < n; i++) if (st.alive[i]) addSlice(ctx, type.shape, i, n);
   };
+  // Pizza Fantasma: the whole pie is see-through
+  ctx.globalAlpha = type.finish?.ghost ? 0.72 : 1;
   // crust side (thickness)
   ctx.save();
   ctx.setTransform(k, 0, 0, k * TILT, ox, oy + SIDE * k);
@@ -845,6 +858,7 @@ export function renderPizza(ctx: Ctx, st: PizzaRenderState): void {
     ctx.fill();
   }
   ctx.restore();
+  ctx.globalAlpha = 1;
 }
 
 function drawPrint(ctx: Ctx, fp: Footprint): void {

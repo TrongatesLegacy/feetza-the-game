@@ -38,7 +38,7 @@ export const INTROS: Record<string, { tag: string; title: string; lines: string[
   freshness: {
     tag: 'NEW: FRESHNESS',
     title: 'Pizzas go stale',
-    lines: ['Each pizza loses 1 freshness every wave. At 0 it goes stale: its perk switches off and it loses a slice every wave.', 'Reheat it at the pizza counter, or swap in a fresh pizza.'],
+    lines: ['Each pizza loses 1 freshness every wave. At 0 it goes stale: its perk switches off and it loses a slice every wave.', 'Reheat it with the button on its card in the shop, or swap in a fresh pizza.'],
   },
   phases: {
     tag: 'NEW: BOSS PHASES',

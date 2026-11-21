@@ -15,7 +15,25 @@ interface Track {
 
 const AVAILABLE = new Set<string>(manifest);
 // Small files loaded at boot; everything else streams in on demand.
-export const BOOT_AUDIO = [...AVAILABLE].filter((k) => k.startsWith('sfx_') || k === 'music_menu' || k === 'music_gameover');
+// Boss move sounds (sfx_<boss>_<move>) load a wave ahead of their fight instead (see bossSfx).
+export const BOOT_AUDIO = [...AVAILABLE].filter((k) => (k.startsWith('sfx_') && isCoreSfx(k)) || k === 'music_menu' || k === 'music_gameover');
+
+/** The original sfx all have one-word names (sfx_slap_1 has a digit); boss move sounds are sfx_<boss>_<move>. */
+function isCoreSfx(k: string): boolean {
+  return !/^sfx_[a-z]+_[a-z]+$/.test(k) || k.startsWith('sfx_kit_');
+}
+
+/** A boss's move sounds, to preload before its fight. The Phantom King's echoes borrow other bosses' sounds. */
+export function bossSfx(id: string): string[] {
+  return [...AVAILABLE].filter((k) => !isCoreSfx(k) && !k.startsWith('sfx_hero_') && (id === 'phantomking' || k.startsWith(`sfx_${id}_`)));
+}
+
+/** Hero sounds (sfx_hero_*): a hero peel's moves (all of them, for a hero run), or just the sightings'. */
+export function heroSfx(all: boolean): string[] {
+  // sightings and Spider Socks turn up in any run
+  const shared = ['sfx_hero_flyby', 'sfx_hero_glint', 'sfx_hero_saucer', 'sfx_hero_magic', 'sfx_hero_squeak', 'sfx_hero_catch', 'sfx_hero_secret', 'sfx_hero_web', 'sfx_hero_snip'];
+  return [...AVAILABLE].filter((k) => (all ? k.startsWith('sfx_hero_') || k === 'music_tape' : shared.includes(k)));
+}
 
 // Per-file gain trims, calibrated from measured 50ms RMS peaks (see README "Audio mix") so each
 // sound lands at an intentional level relative to the slap (reference ≈ -10.5 dB RMS peak).
@@ -57,10 +75,489 @@ const TRIM: Record<string, number> = {
   sfx_reheat: 1.04, // -12.3 dB → -12.0
   sfx_steal: 1.3, // -15.3 dB → -13.0: sneaky, sits behind
   sfx_hold: 0.92, // -23.8 dB → -24.5: quiet tick, about click level
+  // Boss set-piece moves (sfx_<boss>_<move>) and the shared boss kit (sfx_kit_*). Each file is normalised to about
+  // -12 dB or louder; the trim sets its final level: tells and hits near the slap (-10.5 to -11), signature hits a
+  // little over it (-9.5), mashable or repeated hits under it (-13.5), and long beds/risers further under (-14.5).
+  // shared boss kit
+  sfx_kit_prophit: 1.28, // -14.2 dB → -12.1: hit-counter prop takes a hit
+  sfx_kit_propclear: 1.1, // -11.3 dB → -10.5: prop cleared
+  sfx_kit_shieldup: 1.05, // -11.4 dB → -11.0: boss shield goes up
+  sfx_kit_shieldblock: 1.05, // -12.4 dB → -12.0: smack bounces off a boss shield
+  sfx_kit_shielddown: 1.07, // -12.6 dB → -12.0: boss shield drops
+  sfx_kit_lane: 1.05, // -12.5 dB → -12.1: boss takes over a lane
+  sfx_kit_retreat: 1.1, // -12.8 dB → -12.0: feet scurry back ("STAND BACK!")
+  // Head Waiter
+  sfx_headwaiter_traytoss: 1.13, // -12.0 dB → -10.9: tray thrown, spinning
+  sfx_headwaiter_traybat: 1.27, // -12.5 dB → -10.4: tray batted back
+  sfx_headwaiter_trayclang: 1.17, // -11.8 dB → -10.4: tray crashes on a pizza
+  sfx_headwaiter_service: 1.05, // -11.4 dB → -11.0: desk-bell double ding
+  // Bigfoot
+  sfx_bigfoot_ring: 1.05, // -12.4 dB → -12.0: QTE ring appears
+  sfx_bigfoot_ringok: 1.05, // -11.4 dB → -11.0: good QTE click
+  sfx_bigfoot_bigstep: 1.05, // -9.9 dB → -9.5: the big step lands
+  sfx_bigfoot_trapbuild: 1.21, // -15.2 dB → -13.5: bear trap ratchets together
+  sfx_bigfoot_trapsnap: 1.5, // -13.0 dB → -9.5: bear trap snaps shut
+  sfx_bigfoot_pound: 1.07, // -10.1 dB → -9.5: ground pound crashes down
+  sfx_bigfoot_rampage: 1.05, // -10.9 dB → -10.5: second Bigfoot arrives
+  // Chimney Sweep
+  sfx_sweep_brush: 1.09, // -12.7 dB → -12.0: chimney brush scrubbing (tell)
+  sfx_sweep_soot: 1.06, // -11.0 dB → -10.5: soot column whoomph
+  sfx_sweep_hop: 1.18, // -12.4 dB → -11.0: pops out of one chimney into another
+  sfx_sweep_brick: 1.05, // -12.4 dB → -12.0: chimney brick laid (enraged)
+  // Iron Heel
+  sfx_ironheel_charge: 0.79, // -12.4 dB → -14.4: power-blast charge riser, sits under
+  sfx_ironheel_launcher: 1.05, // -11.4 dB → -11.0: rocket launcher deploys
+  sfx_ironheel_rocket: 1.05, // -10.9 dB → -10.5: rocket launches
+  sfx_ironheel_blast: 1.08, // -10.2 dB → -9.5: power blast fires
+  sfx_ironheel_vent: 1.03, // -11.3 dB → -11.0: armour vents open
+  sfx_ironheel_hiss: 0.88, // -12.4 dB → -13.5: steam warning hiss, sits under
+  sfx_ironheel_steam: 1.07, // -11.1 dB → -10.5: steam burst
+  sfx_ironheel_press: 1.18, // -11.9 dB → -10.5: hydraulic press stamps
+  sfx_ironheel_valve: 1.05, // -11.4 dB → -11.0: valve wheel locks
+  // Sandcastle Sam
+  sfx_sandcastle_shovel: 1.13, // -13.0 dB → -11.9: shovel scrape (tell)
+  sfx_sandcastle_walls: 1.05, // -10.9 dB → -10.5: sand walls rise
+  sfx_sandcastle_pour: 1.09, // -12.8 dB → -12.1: sand pour
+  sfx_sandcastle_sandland: 1.09, // -11.7 dB → -11.0: wet sand lands on a pizza
+  // King Honk
+  sfx_clownking_honkwind: 1.05, // -11.4 dB → -11.0: bulb-horn squeeze wind-up
+  sfx_clownking_honk: 1.04, // -9.9 dB → -9.6: clown horn blast
+  sfx_clownking_leap: 1.05, // -11.4 dB → -11.0: slide-whistle leap away
+  sfx_clownking_decoydrop: 1.05, // -12.4 dB → -12.0: slide-whistle drop
+  sfx_clownking_pie: 1.06, // -12.5 dB → -12.0: wobbly pie throw
+  sfx_clownking_piesplat: 1.1, // -10.3 dB → -9.5: big cream-pie splat
+  // Short-Order Shoe
+  sfx_shortorder_bell: 1.1, // -11.4 dB → -10.6: order bell ding
+  sfx_shortorder_grab: 1.09, // -11.7 dB → -11.0: grabbing hand lunges in
+  sfx_shortorder_togo: 1.11, // -11.9 dB → -11.0: hand snatches a slice
+  sfx_shortorder_rush: 1.05, // -10.9 dB → -10.5: rush-hour triple bell and ticket chatter
+  // T-Rex Toes
+  sfx_trex_dinosqueak: 1.05, // -12.4 dB → -12.0: baby dino squeak
+  sfx_trex_dinorun: 1.07, // -14.1 dB → -13.5: baby dino pitter-patter
+  sfx_trex_growl: 1.05, // -11.4 dB → -11.0: snack-time growl (tell)
+  sfx_trex_snack: 1.08, // -11.2 dB → -10.5: jaws snap on a foot
+  sfx_trex_breath: 0.91, // -12.7 dB → -13.5: deep breath in (tell)
+  sfx_trex_roar: 1.05, // -9.9 dB → -9.5: the roar
+  // Ice Skate Ivy
+  sfx_iceskate_snow: 1.02, // -12.2 dB → -12.0: snow cloud gust (tell)
+  sfx_iceskate_freeze: 1.28, // -12.6 dB → -10.5: lane freezes over
+  sfx_iceskate_frostbite: 1.12, // -12.0 dB → -11.0: peel stung in the snow
+  sfx_iceskate_axel: 1.09, // -11.7 dB → -11.0: triple skate swish
+  // The Colossus
+  sfx_colossus_clang: 1.13, // -14.6 dB → -13.5: small hit chips the shell
+  sfx_colossus_crack: 1.13, // -11.6 dB → -10.5: armour cracks
+  sfx_colossus_shatter: 1.11, // -10.4 dB → -9.5: shell shatters
+  sfx_colossus_glint: 1.12, // -12.0 dB → -11.0: sword glint (tell)
+  sfx_colossus_parry: 1.14, // -11.7 dB → -10.6: parry clash
+  sfx_colossus_smith: 1.19, // -13.5 dB → -12.0: blacksmith taps the anvil (tell)
+  sfx_colossus_anvil: 1.4, // -13.4 dB → -10.5: plate hammered back on
+  // UFO Toe
+  sfx_ufotoe_beam: 1.06, // -12.5 dB → -12.0: tractor beam hum
+  sfx_ufotoe_beambreak: 1.05, // -11.4 dB → -11.0: beam broken
+  sfx_ufotoe_abduct: 1.05, // -11.4 dB → -11.0: slice beamed up
+  sfx_ufotoe_twin: 1.05, // -11.5 dB → -11.1: second saucer warbles in
+  // Cosmic Croc
+  sfx_cosmiccroc_meteor: 1.06, // -12.5 dB → -12.0: meteor falling whistle
+  sfx_cosmiccroc_impact: 1.11, // -11.4 dB → -10.5: meteor impact
+  sfx_cosmiccroc_flip: 1.03, // -11.3 dB → -11.0: gravity warp
+  sfx_cosmiccroc_blackhole: 1.02, // -11.2 dB → -11.0: black hole opens
+  sfx_cosmiccroc_holeclose: 0.95, // -10.5 dB → -10.9: black hole implodes
+  // Dough Boy
+  sfx_doughboy_ball: 1.05, // -12.5 dB → -12.1: dough ball blorps out
+  sfx_doughboy_splat: 1.05, // -11.4 dB → -11.0: dough splat
+  sfx_doughboy_rise: 0.77, // -12.2 dB → -14.5: yeasty bubbling rise, sits under
+  // Nonna's Slipper
+  sfx_nonna_pin: 1.05, // -12.4 dB → -12.0: rolling pin rumble
+  sfx_nonna_pinsmash: 1.1, // -10.3 dB → -9.5: rolling pin crashes into the pizzas
+  sfx_nonna_slippers: 1.13, // -13.1 dB → -12.0: slippers flap (tell)
+  sfx_nonna_slipper: 1.05, // -10.9 dB → -10.5: slipper thwack
+  sfx_nonna_spoon: 1.1, // -11.8 dB → -11.0: wooden spoon swings and grabs
+  sfx_nonna_tug: 1.04, // -13.8 dB → -13.5: tug-of-war creak, sits under
+  // The Pigeon King
+  sfx_pigeonking_coo: 1.05, // -12.4 dB → -12.0: pigeon coo
+  sfx_pigeonking_splat: 1.08, // -11.6 dB → -10.9: bird bomb splat
+  sfx_pigeonking_flock: 1.05, // -11.4 dB → -11.0: flock flutters in
+  // The Gargoyle
+  sfx_gargoyle_swoop: 1.02, // -12.2 dB → -12.0: stony wing swoop
+  sfx_gargoyle_stone: 1.1, // -11.8 dB → -11.0: turns to stone (grind)
+  sfx_gargoyle_stonecrack: 0.89, // -12.4 dB → -13.4: stone cracks under a smack
+  sfx_gargoyle_stonebreak: 1.05, // -10.0 dB → -9.6: stone crumbles
+  sfx_gargoyle_storm: 1.05, // -11.4 dB → -11.0: mini-gargoyle screech chorus
+  // Jellyfish Flip-Flop
+  sfx_jellyfish_charge: 1.27, // -14.1 dB → -12.0: jelly charge hum
+  sfx_jellyfish_sting: 1.05, // -10.9 dB → -10.5: jelly zap on the peel
+  sfx_jellyfish_bright: 1.06, // -11.5 dB → -11.0: bright-glow crackle
+  // Kraken Toes
+  sfx_kraken_splash: 1.1, // -11.3 dB → -10.5: water splash
+  sfx_kraken_tentacle: 1.05, // -11.4 dB → -11.0: tentacle squelches up
+  sfx_kraken_drag: 1.06, // -11.5 dB → -11.0: dragged under, gurgling
+  sfx_kraken_squirt: 1.13, // -12.1 dB → -11.0: ink squirt
+  sfx_kraken_inked: 1.05, // -11.5 dB → -11.1: ink splats on a pizza
+  // Milkshake Max
+  sfx_milkshake_freeze: 1.05, // -11.5 dB → -11.1: brain-freeze chime (tell)
+  sfx_milkshake_frozen: 1.12, // -11.5 dB → -10.5: brain freeze lands on the peel
+  sfx_milkshake_straw: 1.05, // -12.4 dB → -12.0: straw plonks in
+  sfx_milkshake_slurp: 0.89, // -12.5 dB → -13.5: slurp, sits under
+  sfx_milkshake_snap: 1.33, // -13.0 dB → -10.5: straw snaps
+  // Queen of the Rink
+  sfx_rinkqueen_puck: 1.17, // -11.9 dB → -10.5: slapshot
+  sfx_rinkqueen_roll: 1.01, // -12.1 dB → -12.0: pizzas glide across the ice
+  sfx_rinkqueen_dash: 1.22, // -12.2 dB → -10.5: speed-dash swish and ice spray
+  // The Lumberjack
+  sfx_lumberjack_timber: 1.05, // -11.4 dB → -11.0: tree creak and crack (tell)
+  sfx_lumberjack_chainsaw: 1.05, // -12.5 dB → -12.1: chainsaw revs
+  sfx_lumberjack_sawbite: 1.1, // -11.3 dB → -10.5: chainsaw bites a pizza
+  sfx_lumberjack_axe: 1.05, // -12.4 dB → -12.0: spinning axe
+  sfx_lumberjack_thunk: 1.21, // -12.2 dB → -10.5: axe thunks into the table
+  // The Yeti Ski Boot
+  sfx_yeti_icicle: 1.11, // -12.9 dB → -12.0: icicle forms and cracks loose
+  sfx_yeti_iciclehit: 1.3, // -12.8 dB → -10.5: icicle shatters on a pizza
+  sfx_yeti_snowball: 1.09, // -12.7 dB → -12.0: snowball packed and thrown
+  sfx_yeti_avalanche: 1.08, // -11.2 dB → -10.5: avalanche rumble (tell)
+  sfx_yeti_bigball: 1.08, // -11.7 dB → -11.0: big snowball lands
+  // The Zombie Loafer
+  sfx_poltergeist_groan: 1.05, // -11.4 dB → -11.0: zombie groan (tell)
+  sfx_poltergeist_bite: 1.33, // -13.0 dB → -10.5: zombie bite
+  sfx_poltergeist_cough: 1.21, // -12.7 dB → -11.0: coughing fit
+  sfx_poltergeist_sick: 1.05, // -12.5 dB → -12.1: pizza turns zombie
+  sfx_poltergeist_munch: 1.11, // -12.9 dB → -12.0: zombie pizza munches a slice
+  // Phantom King
+  sfx_phantomking_fade: 1.04, // -12.4 dB → -12.1: ghostly fade
+  sfx_phantomking_echo: 1.06, // -11.5 dB → -11.0: ghostly echo appears
+  sfx_phantomking_stir: 1.07, // -12.6 dB → -12.0: curse stirs (tell)
+  sfx_phantomking_curse: 1.09, // -11.7 dB → -11.0: curse jumps pizzas
+  sfx_phantomking_exorcise: 1.05, // -10.9 dB → -10.5: exorcism chime
+  // Thrown props (src/game/projectiles.ts; made by scripts/throw-sfx/). Launches fire often, so they sit well under
+  // the slap (-14.5); impacts just under it (-12.5); the explosion near it (-11).
+  sfx_tosssoft: 0.79, // -12.4 dB → -14.5: soft prop leaves the peel
+  sfx_tossflick: 0.81, // -12.7 dB → -14.5: small prop flicked
+  sfx_tossspin: 0.84, // -13.0 dB → -14.5: spinning disc thrown
+  sfx_tossheavy: 0.78, // -12.4 dB → -14.5: heavy prop heaved
+  sfx_tossrope: 0.82, // -12.8 dB → -14.5: ring or lasso swung
+  sfx_hitsplat: 1.06, // -13.0 dB → -12.5: soft prop splats
+  sfx_hittink: 1.22, // -14.2 dB → -12.5: small hard prop ticks off
+  sfx_hitcoin: 0.99, // -12.4 dB → -12.5: coin bonk
+  sfx_hitclang: 1.15, // -13.7 dB → -12.5: plate, can or board clangs
+  sfx_hitbonk: 1.0, // -12.5 dB → -12.5: rubbery bonk
+  sfx_hitthud: 0.99, // -12.4 dB → -12.5: heavy prop lands
+  sfx_hitboom: 1.05, // -11.5 dB → -11.0: cannonball or grenade explodes
+  sfx_hitrope: 1.02, // -12.7 dB → -12.5: rope snaps tight
+  sfx_hitsqueak: 0.99, // -12.4 dB → -12.5: rubber duck squeak
+  sfx_hitrattle: 1.26, // -14.5 dB → -12.5: rattle shakes
+  sfx_rollrumble: 0.99, // -12.4 dB → -12.5: ball rolls along a lane
+  sfx_beam: 1.0, // -12.5 dB → -12.5: beam fires
+  // ——— Act 7 · Comics (scripts/act7-audio): the act's weather and villain feet, then each boss's moves ———
+  sfx_thunder: 1.05, // -11.4 dB → -11.0: Act 7 weather: thunder after a lightning flash
+  sfx_jetpack: 1.09, // -12.8 dB → -12.1: Jetpack Jackboots fly in from the side
+  sfx_bombfuse: 1.31, // -14.4 dB → -12.1: Goon Galoshes light a fuse (tell); also a defused bomb
+  sfx_bombboom: 1.05, // -10.9 dB → -10.5: a Goon's bomb lands on a pizza
+  sfx_gang: 1.05, // -12.4 dB → -12.0: a gang of Henchman Spats arrives
+  sfx_lexlugtoe_cash: 1.05, // -11.4 dB → -11.0: HOSTILE TAKEOVER: a pizza is acquired (SOLD!), cash register
+  sfx_lexlugtoe_glass: 1.26, // -14.0 dB → -12.0: the glass case drops over the pizza
+  sfx_lexlugtoe_lock: 0.88, // -12.4 dB → -13.5: smack on the case's lock
+  sfx_lexlugtoe_shatter: 1.26, // -12.5 dB → -10.5: the case breaks open (and his death)
+  sfx_lexlugtoe_tags: 1.06, // -12.5 dB → -12.0: his entrance: price tags and coins flutter in
+  sfx_doomstomp_roar: 2.02, // -17.1 dB → -11.0: RAMPAGE tell: he roars and paws the table
+  sfx_doomstomp_stomp: 1.05, // -9.9 dB → -9.5: each RAMPAGE stomp lands on a pizza (and his entrance)
+  sfx_doomstomp_quake: 1.08, // -11.7 dB → -11.0: BONE QUAKE tell: the table shudders
+  sfx_doomstomp_spike: 1.07, // -12.5 dB → -11.9: a bone spike bursts up behind a pizza
+  sfx_doomstomp_bonebreak: 0.89, // -12.5 dB → -13.5: smack on a bone spike (it snaps on the last)
+  sfx_doomstomp_ko: 1.05, // -9.9 dB → -9.5: he's knocked out (a life lost) and his death
+  sfx_doomstomp_rise: 1.63, // -15.2 dB → -11.0: he gets back up, bigger
+  sfx_doomstomp_dazed: 1.05, // -12.4 dB → -12.0: LAST LIFE: he slumps, dazed (finish him)
+  sfx_ultoe_upload: 0.79, // -12.4 dB → -14.4: UPLOAD tell: the UPLOADING bar fills
+  sfx_ultoe_glitch: 1.05, // -10.9 dB → -10.5: he jumps bodies: every drone glitches
+  sfx_ultoe_boot: 0.89, // -12.5 dB → -13.5: a drone boots up (and his entrance)
+  sfx_ultoe_crash: 1.10, // -10.4 dB → -9.6: his death: every drone powers down
+  sfx_thanfoot_stone: 1.06, // -12.5 dB → -12.0: a stone streaks across the sky towards the sock (tell)
+  sfx_thanfoot_socket: 1.05, // -11.4 dB → -11.0: a stone clicks into the sock
+  sfx_thanfoot_stonehit: 0.93, // -12.9 dB → -13.5: smack on a stone in the sock
+  sfx_thanfoot_stoneout: 1.11, // -11.4 dB → -10.5: a stone is knocked out of the sock
+  sfx_thanfoot_snapwind: 1.10, // -15.3 dB → -14.5: THE SNAP winds up (all six stones in)
+  sfx_thanfoot_snap: 1.05, // -9.9 dB → -9.5: THE SNAP lands (and his death)
+  sfx_thanfoot_portal: 1.06, // -12.5 dB → -12.0: his entrance and the SPACE stone's blinks
+  sfx_thanfoot_power: 1.04, // -12.4 dB → -12.1: a stone power fires (POWER, REALITY, TIME)
+  // ——— Act 8 · Norse ———
+  // Boss moves (sfx_<boss>_<move>, loaded a wave ahead of each fight) and the Norse feet (core sounds). Same
+  // targets as the other boss sounds: tells and hits -10.5 to -11, signature hits -9.5, repeated ones -13.5.
+  // Fenrir's Paw
+  sfx_fenrir_strain: 0.98, // -13.4 dB → -13.6: chain creaks under strain (each smack)
+  sfx_fenrir_snap: 1.12, // -10.5 dB → -9.5: Gleipnir snaps
+  sfx_fenrir_howl: 1.02, // -9.7 dB → -9.5: wolf howl (entrance, loose)
+  sfx_fenrir_pounce: 0.98, // -10.3 dB → -10.5: paw pounces on a pizza
+  sfx_fenrir_claw: 1.08, // -12.6 dB → -11.9: frost claw swipe
+  sfx_fenrir_link: 1.06, // -12.5 dB → -12.0: a fallen chain link is smacked
+  sfx_fenrir_bind: 1.15, // -10.7 dB → -9.5: the chain re-forms
+  sfx_fenrir_death: 1.05, // -10.9 dB → -10.5: whimpering howl (death)
+  // Thrym the Frost King
+  sfx_thrym_enter: 1.14, // -10.7 dB → -9.6: ice cracks and a giant rumble (entrance)
+  sfx_thrym_freeze: 1.11, // -11.4 dB → -10.5: a pizza freezes solid
+  sfx_thrym_thaw: 1.12, // -11.4 dB → -10.4: ice shell smashed off a pizza
+  sfx_thrym_block: 1.12, // -12.0 dB → -11.0: an ice block forms
+  sfx_thrym_crack: 0.93, // -12.9 dB → -13.5: ice block takes a hit
+  sfx_thrym_shatter: 1.1, // -11.3 dB → -10.5: ice block broken
+  sfx_thrym_close: 1.05, // -9.9 dB → -9.5: the fortress walls meet
+  sfx_thrym_keystone: 1.05, // -12.4 dB → -12.0: keystone takes a hit
+  sfx_thrym_blizzard: 1.1, // -11.8 dB → -11.0: blizzard gust
+  sfx_thrym_hail: 1.05, // -12.4 dB → -12.0: falling ice shard
+  sfx_thrym_spread: 0.88, // -12.4 dB → -13.5: ice creeps to the next pizza
+  sfx_thrym_death: 1.08, // -10.1 dB → -9.4: huge shatter and collapse (death)
+  // Jörmungandr
+  sfx_jormungandr_enter: 1.13, // -10.5 dB → -9.4: deep sea surge (entrance)
+  sfx_jormungandr_surface: 1.08, // -11.7 dB → -11.0: the head rises from the water
+  sfx_jormungandr_hiss: 1.14, // -12.2 dB → -11.1: serpent hiss (tell)
+  sfx_jormungandr_bite: 1.17, // -11.9 dB → -10.5: snapping lunge
+  sfx_jormungandr_reflect: 1.07, // -11.1 dB → -10.5: a smack bounces off the coils
+  sfx_jormungandr_constrict: 1.11, // -12.9 dB → -12.0: coils squeeze a pizza
+  sfx_jormungandr_venom: 1.1, // -12.9 dB → -12.1: venom spit
+  sfx_jormungandr_dive: 1.06, // -12.5 dB → -12.0: the head dives back under
+  sfx_jormungandr_death: 1.05, // -9.9 dB → -9.5: fading roar and huge splash (death)
+  // Surtr
+  sfx_surtr_enter: 1.07, // -10.1 dB → -9.5: fire giant roar and fire whoosh (entrance)
+  sfx_surtr_fireball: 1.05, // -12.4 dB → -12.0: fireball launched
+  sfx_surtr_impact: 1.05, // -10.9 dB → -10.5: fireball lands
+  sfx_surtr_ignite: 1.06, // -11.0 dB → -10.5: a pizza bursts into flame
+  sfx_surtr_douse: 1.1, // -12.8 dB → -12.0: flames smacked out
+  sfx_surtr_fuse: 0.89, // -12.5 dB → -13.5: fire runs along the bridge
+  sfx_surtr_raise: 1.07, // -11.5 dB → -10.9: sword raised (riser, tell)
+  sfx_surtr_window: 1.09, // -11.3 dB → -10.6: the sword flashes: the timing window
+  sfx_surtr_sweep: 1.1, // -10.3 dB → -9.5: flaming sword sweeps the table
+  sfx_surtr_parry: 1.04, // -9.9 dB → -9.6: perfect counter: the sweep is cancelled
+  sfx_surtr_roar: 1.05, // -11.0 dB → -10.6: giant roar
+  sfx_surtr_death: 1.08, // -10.2 dB → -9.5: collapse as the fire dies (death)
+  // Norse feet
+  sfx_frostchill: 0.88, // -12.4 dB → -13.5: frost creeps over a pizza
+  sfx_trollstone: 1.05, // -10.9 dB → -10.5: a troll turns to stone
+  sfx_draugrrise: 1.05, // -11.4 dB → -11.0: the dead rise again
+  sfx_valkyrieswoop: 1.21, // -13.6 dB → -11.9: a pair of clogs swoops in
+  sfx_sungap: 1.13, // -12.1 dB → -11.0: the clouds part
+  // ——— god peels and their feet (generated by scripts/god-sfx/integrate.py) ———
+  sfx_hero_zeus: 1.10, // -10.3 dB → -9.5
+  sfx_hero_decree: 1.10, // -10.3 dB → -9.5
+  sfx_hero_earthshaker: 1.05, // -9.9 dB → -9.5
+  sfx_hero_harvest: 1.08, // -11.2 dB → -10.5
+  sfx_hero_aegis: 1.09, // -10.2 dB → -9.5
+  sfx_hero_chariot: 1.10, // -10.3 dB → -9.5
+  sfx_hero_moon: 1.10, // -11.4 dB → -10.5
+  sfx_hero_warcry: 1.08, // -10.2 dB → -9.5
+  sfx_hero_charm: 1.11, // -11.4 dB → -10.5
+  sfx_hero_forge: 1.10, // -10.3 dB → -9.5
+  sfx_hero_spark: 0.89, // -12.4 dB → -13.5
+  sfx_hero_messenger: 1.12, // -11.5 dB → -10.5
+  sfx_hero_dart: 0.90, // -12.6 dB → -13.5
+  sfx_hero_revel: 1.06, // -11.0 dB → -10.5
+  sfx_hero_hearth: 1.05, // -10.9 dB → -10.5
+  sfx_hero_underworld: 1.07, // -10.1 dB → -9.5
+  sfx_hero_spring: 1.08, // -11.2 dB → -10.5
+  sfx_hero_wings: 1.06, // -11.0 dB → -10.5
+  sfx_hero_nightfall: 1.10, // -10.4 dB → -9.5
+  sfx_hero_spartaaa: 1.04, // -9.8 dB → -9.5
+  sfx_hero_rage: 0.79, // -12.5 dB → -14.5
+  sfx_hero_flamesmack: 0.88, // -12.4 dB → -13.5
+  sfx_hero_ragehiss: 1.04, // -12.4 dB → -12.0
+  sfx_hero_blade: 0.87, // -12.3 dB → -13.5
+  sfx_hero_allfather: 1.14, // -10.6 dB → -9.5
+  sfx_hero_thundergod: 1.11, // -10.4 dB → -9.5
+  sfx_hero_mjolnir: 0.94, // -12.9 dB → -13.5
+  sfx_hero_mischief: 1.09, // -11.2 dB → -10.5
+  sfx_hero_foresight: 1.06, // -11.0 dB → -10.5
+  sfx_hero_falcon: 1.06, // -11.0 dB → -10.5
+  sfx_hero_boar: 1.06, // -10.0 dB → -9.5
+  sfx_hero_oath: 1.05, // -9.9 dB → -9.5
+  sfx_hero_gjallarhorn: 1.11, // -10.4 dB → -9.5
+  sfx_hero_radiance: 1.11, // -11.4 dB → -10.5
+  sfx_hero_halfdeath: 1.04, // -9.9 dB → -9.5
+  sfx_hero_seawind: 1.06, // -11.0 dB → -10.5
+  sfx_hero_winterhunt: 1.07, // -11.1 dB → -10.5
+  sfx_hero_freeze: 0.90, // -12.6 dB → -13.5
+  sfx_hero_apples: 1.07, // -11.1 dB → -10.5
+  sfx_hero_saga: 1.09, // -11.2 dB → -10.5
+  sfx_hero_verse: 0.89, // -12.5 dB → -13.5
+  sfx_divinefeast: 1.11, // -10.4 dB → -9.5
+  sfx_godreveal: 1.13, // -10.6 dB → -9.5
+  sfx_trumpet: 1.31, // -14.4 dB → -12.0
+  sfx_spartanroar: 1.06, // -12.5 dB → -12.0
+  sfx_bronzeshield: 0.89, // -12.5 dB → -13.5
+  // ——— hero peels (generated by scripts/hero-sfx/integrate.py) ———
+  sfx_hero_end: 0.89, // -12.5 dB → -13.5
+  sfx_hero_nightfalls: 1.06, // -11.0 dB → -10.5
+  sfx_hero_speedforce: 1.05, // -10.9 dB → -10.5
+  sfx_hero_suitup: 1.05, // -10.9 dB → -10.5
+  sfx_hero_berserker: 1.08, // -11.2 dB → -10.5
+  sfx_hero_giant: 1.05, // -10.9 dB → -10.5
+  sfx_hero_radar: 1.05, // -10.9 dB → -10.5
+  sfx_hero_tapeclick: 1.09, // -11.3 dB → -10.5
+  sfx_hero_binary: 1.1, // -11.3 dB → -10.5
+  sfx_hero_shazamozza: 1.05, // -10.0 dB → -9.5
+  sfx_hero_sidekick: 1.05, // -10.9 dB → -10.5
+  sfx_hero_heist: 1.05, // -11.0 dB → -10.5
+  sfx_hero_shift: 1.05, // -10.9 dB → -10.5
+  sfx_hero_stretch: 1.04, // -10.9 dB → -10.5
+  sfx_hero_scarab: 1.12, // -11.4 dB → -10.5
+  sfx_hero_overload: 1.05, // -10.9 dB → -10.5
+  sfx_hero_escrima: 1.23, // -12.3 dB → -10.5
+  sfx_hero_firedup: 1.06, // -10.0 dB → -9.5
+  sfx_hero_bulk: 1.05, // -9.9 dB → -9.5
+  sfx_hero_heatvision: 1.11, // -10.4 dB → -9.5
+  sfx_hero_lasso: 1.05, // -12.4 dB → -12.0
+  sfx_hero_calldeep: 1.06, // -11.0 dB → -10.5
+  sfx_hero_bite: 0.87, // -12.3 dB → -13.5
+  sfx_hero_construct: 1.09, // -10.2 dB → -9.5
+  sfx_hero_sweep: 1.06, // -12.5 dB → -12.0
+  sfx_hero_webceiling: 1.26, // -12.5 dB → -10.5
+  sfx_hero_web: 0.87, // -12.3 dB → -13.5
+  sfx_hero_repulsor: 0.88, // -12.4 dB → -13.5
+  sfx_hero_unibeam: 1.12, // -10.5 dB → -9.5
+  sfx_hero_shield: 1.07, // -12.6 dB → -12.0
+  sfx_hero_ledger: 1.05, // -12.4 dB → -12.0
+  sfx_hero_quiver: 1.05, // -12.4 dB → -12.0
+  sfx_hero_slash: 0.92, // -12.7 dB → -13.5
+  sfx_hero_storm: 1.05, // -10.9 dB → -10.5
+  sfx_hero_thunder: 1.05, // -12.4 dB → -12.0
+  sfx_hero_optic: 1.31, // -11.9 dB → -9.5
+  sfx_hero_kinetic: 1.11, // -10.4 dB → -9.5
+  sfx_hero_timestone: 1.14, // -10.6 dB → -9.5
+  sfx_hero_mystic: 1.06, // -12.5 dB → -12.0
+  sfx_hero_hex: 1.1, // -10.3 dB → -9.5
+  sfx_hero_shrink: 0.89, // -12.5 dB → -13.5
+  sfx_hero_coins: 1.11, // -10.4 dB → -9.5
+  sfx_hero_board: 1.09, // -10.3 dB → -9.5
+  sfx_hero_whoosh: 0.87, // -12.3 dB → -13.5
+  sfx_hero_crust: 1.1, // -10.3 dB → -9.5
+  sfx_hero_biggun: 1.03, // -9.8 dB → -9.5
+  sfx_hero_photon: 0.89, // -12.4 dB → -13.5
+  sfx_hero_boomtube: 1.05, // -9.9 dB → -9.5
+  sfx_hero_boing: 0.89, // -12.5 dB → -13.5
+  sfx_hero_arrow: 1.04, // -12.4 dB → -12.0
+  sfx_hero_boxing: 1.08, // -10.2 dB → -9.5
+  sfx_hero_dive: 1.08, // -10.1 dB → -9.5
+  sfx_hero_blast: 0.89, // -12.5 dB → -13.5
+  sfx_hero_sponsored: 1.07, // -10.1 dB → -9.5
+  sfx_hero_backwards: 1.12, // -10.5 dB → -9.5
+  sfx_hero_bog: 1.05, // -10.9 dB → -10.5
+  sfx_hero_stick: 0.97, // -13.2 dB → -13.5
+  sfx_hero_penance: 1.05, // -9.9 dB → -9.5
+  sfx_hero_chain: 0.88, // -12.4 dB → -13.5
+  sfx_hero_crescent: 1.17, // -10.8 dB → -9.5
+  sfx_hero_objection: 1.05, // -9.9 dB → -9.5
+  sfx_hero_buzz: 1.09, // -12.8 dB → -12.0
+  sfx_hero_cards: 1.23, // -11.3 dB → -9.5
+  sfx_hero_ice: 1.07, // -11.1 dB → -10.5
+  sfx_hero_elastic: 1.11, // -10.4 dB → -9.5
+  sfx_hero_squirrels: 1.07, // -10.1 dB → -9.5
+  sfx_hero_gadget: 1.22, // -13.7 dB → -12.0
+  sfx_hero_ping: 1.06, // -12.5 dB → -12.0
+  sfx_hero_blur: 0.87, // -12.3 dB → -13.5
+  sfx_hero_snip: 1.09, // -12.8 dB → -12.0
+  sfx_hero_flyby: 0.77, // -12.2 dB → -14.5
+  sfx_hero_glint: 0.79, // -12.4 dB → -14.5
+  sfx_hero_saucer: 0.79, // -12.4 dB → -14.5
+  sfx_hero_magic: 0.79, // -12.4 dB → -14.5
+  sfx_hero_squeak: 0.79, // -12.5 dB → -14.5
+  sfx_hero_catch: 1.05, // -10.9 dB → -10.5
+  sfx_hero_secret: 1.09, // -11.3 dB → -10.5
+  music_tape: 0.94, // -12.4 dB → -13.0
+  // ——— end hero peels ———
+  // ——— Act 9 · Greek myths (made by scripts/act9-audio/, same levels as the boss kit above: tells and hits near the
+  // slap, signature hits a little over it, repeated ones under it). Feet and Charybdis sounds are core (load at boot).
+  // The Minotaur
+  sfx_minotaur_bellow: 1.05, // -9.9 dB → -9.5: bull bellow (entrance and phase roar)
+  sfx_minotaur_snort: 1.11, // -11.9 dB → -11.0: pawing and steam snort (tell)
+  sfx_minotaur_charge: 1.05, // -10.0 dB → -9.6: hooves thunder into a charge
+  sfx_minotaur_gore: 1.1, // -11.3 dB → -10.5: horns hit a pizza
+  sfx_minotaur_crash: 1.09, // -10.2 dB → -9.5: slams into a stone wall
+  sfx_minotaur_walls: 1.06, // -12.5 dB → -12.0: maze walls grind and shift
+  // Medusa
+  sfx_medusa_glow: 1.04, // -11.3 dB → -11.0: eyes glow (tell)
+  sfx_medusa_petrify: 1.05, // -10.9 dB → -10.5: a pizza turns to stone
+  sfx_medusa_crack: 0.89, // -12.5 dB → -13.5: a statue cracks under a stomp
+  sfx_medusa_crumble: 1.05, // -10.0 dB → -9.6: a statue crumbles
+  sfx_medusa_mirror: 1.06, // -12.5 dB → -12.0: mirror shield appears
+  sfx_medusa_reflect: 1.11, // -11.4 dB → -10.5: smack on her reflection
+  sfx_medusa_cure: 1.1, // -11.4 dB → -10.6: curse broken on a statue
+  sfx_medusa_hiss: 1.01, // -12.1 dB → -12.0: snakes hiss
+  sfx_medusa_gaze: 1.05, // -11.0 dB → -10.6: the peel caught by her stare
+  // Cerberus
+  sfx_cerberus_bark: 1.1, // -10.3 dB → -9.5: triple bark (entrance)
+  sfx_cerberus_growl: 1.06, // -11.5 dB → -11.0: triple growl (tell)
+  sfx_cerberus_fire: 1.1, // -11.3 dB → -10.5: fire breath
+  sfx_cerberus_ice: 1.13, // -11.6 dB → -10.5: frost blast
+  sfx_cerberus_poison: 1.08, // -11.2 dB → -10.5: poison spit
+  sfx_cerberus_howl: 1.1, // -10.3 dB → -9.5: a head beaten, the others go wild
+  // Hades and the Titans
+  sfx_hades_toll: 1.05, // -10.0 dB → -9.6: death bell (entrance)
+  sfx_hades_rise: 1.05, // -10.0 dB → -9.6: a Titan rises from the floor
+  sfx_hades_chains: 1.11, // -12.9 dB → -12.0: chains rattle
+  sfx_hades_tick: 1.08, // -14.1 dB → -13.4: Kronos clock tick, sits under
+  sfx_hades_slow: 1.05, // -11.4 dB → -11.0: time slows (tell)
+  sfx_hades_shatter: 1.31, // -12.8 dB → -10.5: hourglass smashed
+  sfx_hades_tilt: 0.99, // -10.9 dB → -11.0: Atlas tilts the table (tell)
+  sfx_hades_slide: 1.06, // -12.5 dB → -12.0: pizzas slide
+  sfx_hades_flare: 1.1, // -11.3 dB → -10.5: Hyperion solar flare
+  sfx_hades_douse: 1.09, // -12.7 dB → -12.0: flames smacked out
+  sfx_hades_banish: 1.05, // -10.0 dB → -9.6: a Titan sent back
+  sfx_hades_shadow: 1.06, // -12.5 dB → -12.0: shadow creeps out
+  sfx_hades_grab: 1.08, // -11.2 dB → -10.5: shadow steals a slice
+  // Act 9 feet and events
+  sfx_sirensong: 0.89, // -12.5 dB → -13.5: Siren Slippers sing, sits under
+  sfx_harpy: 1.05, // -11.4 dB → -11.0: Harpy Talons screech and flap
+  sfx_eyepoke: 1.05, // -10.9 dB → -10.5: Cyclops Sandals poked in the eye
+  sfx_whirlpool: 1.11, // -11.9 dB → -11.0: Charybdis whirlpool opens
+  sfx_gulp: 1.05, // -10.9 dB → -10.5: Charybdis swallows
   // Stings are normalised to the music loudness (-16.4 LUFS, like music_gameover). audio.sting() plays
   // them at music volume and does not read TRIM; these gains apply if they're played through sfx().
   music_victory: 2.04, // -15.7 dB → -9.5: the 60-wave finish, a little over the slap
   music_act: 1.74, // -15.3 dB → -10.5: act-complete sting at slap level
+  // ——— Act 10 · Finale (scripts/finale-audio/) ———
+  // Same levels as the boss SFX: signature hits -9.5, slap-level hits -10.5, tells -11, the rest -12, repeated
+  // or mashable ones -13.5. The Act 10 music and ambience loops are levelled to -16.5 LUFS and do not use TRIM.
+  // Mirror Peel (mini-boss)
+  sfx_mirrorpeel_enter: 1.09, // -11.3 dB → -10.6: mirror peel shimmers in
+  sfx_mirrorpeel_charge: 1.06, // -11.5 dB → -11.0: mirrored wind-up (tell)
+  sfx_mirrorpeel_fire: 0.97, // -10.2 dB → -10.5: reversed slam and zap
+  sfx_mirrorpeel_interrupt: 1.09, // -11.2 dB → -10.5: glass crack (charge broken)
+  sfx_mirrorpeel_echo: 0.92, // -12.8 dB → -13.5: dark peel echo swoops down
+  sfx_mirrorpeel_shatter: 0.92, // -12.8 dB → -13.5: falling echo smacked to glass shards
+  sfx_mirrorpeel_land: 1.05, // -12.4 dB → -12.0: dark echo thuds onto a pizza
+  sfx_mirrorpeel_death: 1.1, // -10.4 dB → -9.6: mirror peel shatters
+  // The Sole Proprietor (first meeting)
+  sfx_soleprop_enter: 1.05, // -11.0 dB → -10.6: ominous gong chord and coins
+  sfx_soleprop_voice: 1.06, // -12.5 dB → -12.0: low "hmm-hm" murmur
+  sfx_soleprop_stamp: 1.05, // -10.0 dB → -9.6: heavy SOLD stamp thunk
+  sfx_soleprop_cash: 1.13, // -13.1 dB → -12.0: cash register ka-ching
+  sfx_soleprop_leave: 1.04, // -11.3 dB → -11.0: portal whoosh out
+  sfx_soleprop_agent: 0.98, // -13.3 dB → -13.5: briefcase snaps open (agent arrives)
+  sfx_soleprop_clock: 1.09, // -14.3 dB → -13.6: clock tick
+  sfx_soleprop_bell: 1.1, // -11.4 dB → -10.6: shift-over bell and whistle
+  // Ghost of Feet Future (mini-boss)
+  sfx_ghostfuture_enter: 1.03, // -10.8 dB → -10.5: reversed ghostly swell
+  sfx_ghostfuture_foresee: 0.87, // -12.3 dB → -13.5: ghost phases out
+  sfx_ghostfuture_mark: 1.05, // -11.4 dB → -11.0: future footprint appears (tell)
+  sfx_ghostfuture_stomp: 1.05, // -11.0 dB → -10.6: pale ethereal stomp lands
+  sfx_ghostfuture_paradox: 1.05, // -10.9 dB → -10.5: peel caught in a paradox: warped zap
+  sfx_ghostfuture_rewind: 1.09, // -11.8 dB → -11.1: tape rewind
+  sfx_ghostfuture_death: 1.09, // -11.3 dB → -10.6: ghost dissolves
+  // Sole Proprietor Unbound (final boss)
+  sfx_soleunbound_enter: 1.05, // -10.0 dB → -9.6: massive impact and low choir chord
+  sfx_soleunbound_fist: 1.09, // -11.7 dB → -11.0: gauntlet fist wind-up whoosh (tell)
+  sfx_soleunbound_krak: 1.1, // -10.3 dB → -9.5: comic KRAK impact
+  sfx_soleunbound_frost: 1.14, // -11.7 dB → -10.6: ice crackle freeze
+  sfx_soleunbound_fire: 1.09, // -11.2 dB → -10.5: fire whoomph ignites
+  sfx_soleunbound_douse: 1.06, // -12.5 dB → -12.0: flame smacked out: hiss
+  sfx_soleunbound_gaze: 1.05, // -11.4 dB → -11.0: glowing eyes hum (tell)
+  sfx_soleunbound_stone: 1.07, // -11.1 dB → -10.5: petrify crunch
+  sfx_soleunbound_reflect: 1.06, // -12.5 dB → -12.0: mirror shield reflects: ping
+  sfx_soleunbound_hole: 1.04, // -11.4 dB → -11.1: black hole opens: deep suction drone
+  sfx_soleunbound_collapse: 1.01, // -10.6 dB → -10.5: black hole collapses
+  sfx_soleunbound_eat: 1.12, // -10.5 dB → -9.5: huge chomp and gulp as he eats a pizza
+  sfx_soleunbound_gather: 1.05, // -11.5 dB → -11.1: power gathers (riser)
+  sfx_soleunbound_montage: 0.87, // -12.3 dB → -13.5: punchy whoosh-hit (montage, many fast)
+  sfx_soleunbound_final: 1.08, // -10.2 dB → -9.5: the final smack: the biggest impact in the game
+  sfx_soleunbound_crack: 1.1, // -10.3 dB → -9.5: the sole cracks open into light
+  // Finale shared
+  sfx_finale_warp: 1.07, // -11.6 dB → -11.0: memory-lane warp between backdrops (tell)
+  sfx_finale_glitch: 0.89, // -12.5 dB → -13.5: glitching echo foot blip
+  sfx_finale_peelwall: 0.89, // -12.5 dB → -13.5: peel on the wall lights up: chime
 };
 
 const AMBIENCE_GAIN = 0.4;

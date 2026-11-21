@@ -46,20 +46,37 @@ function botShop(g: AnyScene): void {
   if (!st || g.__botBusy) return;
   g.__botBusy = true;
   setTimeout(() => (g.__botBusy = false), 250);
+  // a Pick or Peel Roulette window: take the first choice
+  const pick = document.querySelector<HTMLElement>('.pickwin .card, .pickwin .roul-tile');
+  if (pick) return pick.click();
   const hurt = st.table.some((p: any) => !p.dead && p.slices <= p.max / 2); // eslint-disable-line @typescript-eslint/no-explicit-any
   if (hurt && st.heal.can && st.coins >= st.heal.cost + 20) return g.shopHeal();
-  if (st.reheat.can && st.table.some((p: any) => p.freshOn && p.fresh <= 2)) return g.shopReheat(); // eslint-disable-line @typescript-eslint/no-explicit-any
+  const stale = st.table.findIndex((p: any) => p.reheat?.can && p.fresh <= 2); // eslint-disable-line @typescript-eslint/no-explicit-any
+  if (stale >= 0) return g.shopReheat(stale);
+  // last pizza standing: take the free pizza before moving on
+  if (st.lastStand) {
+    const free = st.offers.find((o: any) => o.cost <= st.coins); // eslint-disable-line @typescript-eslint/no-explicit-any
+    if (free) {
+      g.shopBuyPizza(free.id);
+      // a full table asks where it goes: take the default (a toast pizza first)
+      setTimeout(() => document.querySelector<HTMLElement>('.swap2 .swapfoot .btn.green')?.click(), 60);
+      return;
+    }
+  }
   if (st.rebake.can && st.rebake.shown) return g.shopRebake();
   const rank: Record<string, number> = { legendary: 4, epic: 3, rare: 2, common: 1 };
   const card = st.cards.filter((c: any) => !c.sold && (c.free || st.coins >= c.price)).sort((a: any, b: any) => rank[b.rarity] - rank[a.rarity])[0]; // eslint-disable-line @typescript-eslint/no-explicit-any
   if (card) return g.shopBuy(card.id);
   const dev = (window as unknown as { F: { log: Record<string, unknown>[] } }).F;
-  dev.log.push({ wave: st.wave, coins: st.coins, slices: st.table.reduce((n: number, p: any) => n + p.slices, 0), pizzas: st.table.filter((p: any) => !p.dead).length, owned: Object.keys(g.run.owned).length, crusts: st.progress.runCrusts, t: Math.round((performance.now() - g.run.startTime) / 1000) }); // eslint-disable-line @typescript-eslint/no-explicit-any
+  dev.log.push({ wave: st.wave, coins: st.coins, slices: st.table.reduce((n: number, p: any) => n + p.slices, 0), pizzas: st.table.filter((p: any) => !p.dead).length, owned: Object.keys(g.run.owned).length, crusts: st.progress.runCrusts, t: Math.round(g.run.elapsed) }); // eslint-disable-line @typescript-eslint/no-explicit-any
   g.shopNext();
 }
 
 export function installDevTools(game: Phaser.Game): void {
   let botOn = false;
+  /** The dev bot draws the game scene (off for fast balance runs). */
+  let botRender = true;
+  void import('./devBossLab').then((m) => m.installBossLab(game));
   // ?dev&show=welcome opens a screen straight away, for headless screenshots of DOM screens
   const showParam = new URLSearchParams(location.search).get('show');
   if (showParam) {
@@ -90,7 +107,9 @@ export function installDevTools(game: Phaser.Game): void {
     },
     /**
      * Start a run from any point. Pass a lineup array (old form) or a scenario:
-     * { lineup, heat, wave, tips, boss: { id, hp }, snapshot, act2, seed, upgrades: { heavy: 3 }, intros: false }.
+     * { lineup, heat, wave, tips, boss: { id, hp }, snapshot, act2, kit, endless, seed, upgrades: { heavy: 3 }, intros: false }.
+     * kit: true starts in the shop before `wave` with 5 pizzas, toppings and tips sized for that wave,
+     * e.g. F.startGame({ wave: 61, kit: true }). For acts 7–10 before their stages exist, see fakeStages.
      */
     startGame(opts?: string[] | Record<string, any>): void { // eslint-disable-line @typescript-eslint/no-explicit-any
       const o = Array.isArray(opts) ? { lineup: opts } : (opts ?? {});
@@ -112,10 +131,28 @@ export function installDevTools(game: Phaser.Game): void {
       game.scene.getScenes(true).forEach((s) => s.scene.stop());
       game.scene.start('Game', data);
     },
+    /** Dev: reload with n stand-in stages added to the journey (repeats of real ones), so acts past the
+     * real ones and wave 100 can be tested end to end: F.fakeStages(8) → a 100-wave journey. 0 removes them. */
+    fakeStages(n = 8): void {
+      const q = new URLSearchParams(location.search);
+      if (n > 0) q.set('fakeStages', String(n));
+      else q.delete('fakeStages');
+      location.search = q.toString().replace(/=(&|$)/g, '$1');
+    },
+    /** The journey as built (with any fake stages): waves, acts and stages. */
+    async journey(): Promise<{ waves: number; acts: number; stages: number }> {
+      const m = await import('./data/stages');
+      return { waves: m.JOURNEY_WAVES, acts: m.ACT_COUNT, stages: m.STAGES.length };
+    },
     /** Save the current run as a scenario (same shape as the run save). */
     saveScenario(): unknown {
       const g = game.scene.getScene('Game') as AnyScene;
       return g?.snapshot?.();
+    },
+    /** Show this pizza as a Rare Find on the new-run screen (now if it's open, else on its next deal). */
+    async rareFind(id: string): Promise<void> {
+      const { forceRareFind } = await import('./ui/ui');
+      forceRareFind(id);
     },
     /** Deterministic randomness for fair before/after comparisons. */
     seed,
@@ -136,9 +173,12 @@ export function installDevTools(game: Phaser.Game): void {
     /**
      * The auto-player: smacks the lowest foot, wipes boss props, and shops with a simple strategy
      * (heal when hurt, reheat stale pizzas, buy the best affordable topping, then next wave).
+     * Balance runs: warp steps the game several times a frame; `{ render: false }` also stops drawing the
+     * game scene (the logic, timers and DOM keep running), which lets a high warp run at full speed.
      */
-    bot(on = true, accuracy = 0.9, rate = 260, warp = 1): void {
+    bot(on = true, accuracy = 0.9, rate = 260, warp = 1, opts: { render?: boolean } = {}): void {
       botOn = on;
+      botRender = opts.render ?? true;
       skipIntros();
       if (!on) {
         // undo any time warp
@@ -150,8 +190,12 @@ export function installDevTools(game: Phaser.Game): void {
           g0.tweens.timeScale = 1;
           g0.tweenBase = 1;
         }
+        g0?.scene.setVisible(true);
         return;
       }
+      // the bot acts every `rate` ms of game time: inside the warped steps when warping (so a high warp doesn't
+      // make it react less often), otherwise on a timer
+      let gameMs = 0;
       const loop = () => {
         if (!botOn) return;
         const g = game.scene.getScene('Game') as AnyScene;
@@ -162,7 +206,14 @@ export function installDevTools(game: Phaser.Game): void {
         if (g && sys?.sceneUpdate && warp > 1 && sys.sceneUpdate.warped !== warp) {
           const step = sys.sceneUpdate.orig ?? sys.sceneUpdate;
           const warped: Step = (t: number, d: number) => {
-            for (let i = 0; i < warp; i++) step.call(g, t, d);
+            for (let i = 0; i < warp; i++) {
+              step.call(g, t, d);
+              gameMs += Math.min(50, d);
+              if (botOn && gameMs >= rate) {
+                gameMs = 0;
+                act(g);
+              }
+            }
           };
           warped.warped = warp;
           warped.orig = step;
@@ -171,6 +222,15 @@ export function installDevTools(game: Phaser.Game): void {
           g.tweens.timeScale = warp;
           g.tweenBase = warp;
         }
+
+        // warping: the steps drive the bot; otherwise (or in the shop, where the scene may be paused) the timer does
+        if (warp <= 1 || !g || g.inUpgrade || g.over || !game.scene.isActive('Game')) act(g);
+        else if (g && !botRender && g.sys.settings.visible) g.scene.setVisible(false);
+        setTimeout(loop, warp > 1 ? 100 : rate);
+      };
+      const act = (g: AnyScene | undefined): void => {
+        // no drawing while a balance run warps (set again each tick: a restart makes the scene visible)
+        if (g && !botRender && g.sys.settings.visible) g.scene.setVisible(false);
 
         if (g && (game.scene.isActive('Game') || game.scene.isPaused('Game'))) {
           const intro = document.querySelector<HTMLElement>('.intro .btn, .second .btn.cream');
@@ -192,8 +252,14 @@ export function installDevTools(game: Phaser.Game): void {
             if (g.run?.super >= 1 && Math.random() < 0.05) g.peelSlam();
           }
           if (g.inUpgrade && g.shop) botShop(g);
+          // ACT COMPLETE (and an endless victory): keep going
+          else if (g.inUpgrade && g.actEl && !g.paused && !g.__botBusy) {
+            g.__botBusy = true;
+            setTimeout(() => (g.__botBusy = false), 400);
+            api.log.push({ act: true, wave: g.run.wave, t: Math.round(g.run.elapsed), slices: g.run.slicesLost });
+            g.actEl.querySelector('.v-choice .btn.green')?.click();
+          }
         }
-        setTimeout(loop, rate / warp);
       };
       loop();
     },

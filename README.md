@@ -9,10 +9,11 @@
 **▶ Watch the 30s trailer with sound: https://trongateslegacy.github.io/feetza-the-game/trailer.mp4**
 
 - **A 60-wave journey**: 12 stages, each a location (waves 1–4) plus its boss's own arena (wave 5). Act 1 ends at wave 30, the finale is at wave 60, then endless mode
-- **24 bosses**: 12 main bosses and 12 mini-bosses (wave 3 of every stage), each with a signature move from the start. Bosses change phase at 66% and 33% health (mini-bosses at 50%): they rear up, glow amber then red, and switch moves. A banner names each move with what it does and how to answer it, the line under the boss bar keeps the answer on screen, and every move has a wind-up you can read before it lands
-- **92 feet**, each with its own art, stats and traits, shown as icons on the foot and explained on a NEW FOOT card the first time it appears
+- **24 bosses**: 12 main bosses and 12 mini-bosses (wave 3 of every stage), each with a signature move from the start. Bosses change phase at 66% and 33% health (mini-bosses at 50%): they rear up, glow amber then red, and switch moves. A banner names each move with what it does and how to answer it, the line under the boss bar keeps the answer on screen, and every move has a wind-up you can read before it lands. Phases are set-pieces: bosses take a lane for themselves, pull every foot back for a chainsaw or rolling-pin run, hide behind flocks and force fields, call in a twin, freeze pizza perks or snatch your peel
+- **Feet never overlap**: each one hovers in its own lane, and the rest wait off screen until a lane frees up
+- **94 feet**, each with its own art, stats and traits, shown as icons on the foot and explained on a NEW FOOT card the first time it appears
 - **56 pizzas**, each granting a perk while it survives. Pizzas go stale after about 10 waves; reheat them or swap in fresh ones
-- **Five heat levels** (Mild to Inferno). Harder heats pay more Golden Crusts
+- **Five heat levels** (Mild to Inferno). Mild and Regular waves grow slower and stop growing sooner; harder heats pay more Golden Crusts
 - **Between-wave shop**: toppings cost tips (permanent, once-per-run and one-use kinds), a pizza counter with a swap picker, heal, rebake and reheat services, and a Golden menu paid from banked crusts
 - **Wave events**: tip balloons, delivery drones, pepper moths, golden seagulls and pizza box chests (watch out for mimics)
 - **9 permanent Pizzeria upgrades** (resettable for a full refund) and 53 unlockable pizzas
@@ -93,12 +94,13 @@ public/audio/ music, ambience and SFX (+ CREDITS.md / credits.json)
 
 - Music and ambience are loudness-normalised to about -16 LUFS. Ambience is mixed about 8 dB under music.
 - SFX gains are calibrated from measured 50 ms RMS peaks so slaps, crits, stomps and UI sounds sit at deliberate relative levels (see `TRIM` in `src/systems/audio.ts`). Slaps round-robin through three recordings with pitch variation.
+- Every boss move has its own signature sound (`sfx_<boss>_<move>`), plus a shared kit for prop hits, shields, lane takeovers and retreats (`sfx_kit_*`). Tells and hits sit near the slap, signature hits a little over it, and mashable hits and long risers under it. They're made from Kenney CC0 packs and original synthesis by `scripts/boss-sfx/`, which also measures them and writes their `TRIM` entries and credits.
 - Loops are made gapless at runtime by trimming MP3 encoder padding from the decoded buffer.
 - Larger tracks stream in lazily, and the next location's and boss's tracks are preloaded one wave ahead.
 
 ## Credits
 
-Music by Kevin MacLeod (incompetech.com), licensed CC-BY 4.0. SFX and ambiences are CC0 from Kenney.nl and Freesound contributors. Full per-file credits are in [`public/audio/CREDITS.md`](public/audio/CREDITS.md) and in-game under **Credits**. Fonts: Lilita One and Fredoka (SIL OFL).
+Music by Kevin MacLeod (incompetech.com), licensed CC-BY 4.0. SFX and ambiences are CC0 from Kenney.nl and Freesound contributors, plus original synthesized boss sounds (CC0). Full per-file credits are in [`public/audio/CREDITS.md`](public/audio/CREDITS.md) and in-game under **Credits**. Fonts: Lilita One and Fredoka (SIL OFL).
 
 ## Dev tools
 

@@ -1,12 +1,14 @@
-// Run state: owned upgrades, stat aggregation and wave planning over the 12-stage, 60-wave journey.
+// Run state: owned upgrades, stat aggregation and wave planning over the journey (STAGES, 10-wave acts).
 
 import type { ArenaId, BackdropId, LocationId } from '../art/backdrops';
-import { HEAT_BY_ID, type HeatId } from '../data/difficulty';
+import { DEEP_FROM, DEEP_SPAN, HEAT_BY_ID, type HeatId } from '../data/difficulty';
 import { FEET, type FootType } from '../data/feet';
-import type { PizzaPerk } from '../data/pizzas';
+import { PIZZA_BY_ID, type PizzaPerk, type PizzaType } from '../data/pizzas';
+import { MILESTONES, type Milestone } from '../data/meta';
 import { JOURNEY_WAVES, MINI_WAVE, STAGES, WAVES_PER_STAGE } from '../data/stages';
-import { CONSUMABLE_COOLDOWN, RARITY_WEIGHT, UPGRADES, UPGRADE_BY_ID, baseStats, kindOf, type Rarity, type Stats, type Upgrade } from '../data/upgrades';
-import { save } from '../systems/save';
+import { CONSUMABLE_COOLDOWN, RARITY_WEIGHT, UPGRADES, UPGRADE_BY_ID, baseStats, kindOf, type OfferEnv, type Rarity, type Stats, type Upgrade } from '../data/upgrades';
+import { freshKitState, type KitState } from './kitState';
+import { save, unlockPizza } from '../systems/save';
 
 /** Golden Crusts for the first time you ever beat a main boss (on top of the usual 5). */
 export const FIRST_KILL_CRUSTS = 20;
@@ -29,6 +31,18 @@ export const LOCATION_MUSIC: Record<LocationId, string[]> = {
   rink: ['music_rink', 'music_diner', 'music_game'],
   slopes: ['music_slopes', 'music_lodge', 'music_game'],
   cellar: ['music_cellar', 'music_boss_phantomking', 'music_game'],
+  // ——— Act 7 · Comics ———
+  metropizza: ['music_metropizza', 'music_rooftop', 'music_game'],
+  doomlab: ['music_doomlab', 'music_space', 'music_game'],
+  // ——— Act 8 · Norse ———
+  jotunheim: ['music_jotunheim', 'music_slopes', 'music_game'],
+  bifrost: ['music_bifrost', 'music_jotunheim', 'music_game'],
+  // ——— Act 9 · Greek myths ———
+  labyrinth: ['music_labyrinth', 'music_game'],
+  tartarus: ['music_tartarus', 'music_cellar', 'music_game'],
+  // ——— Act 10 · Finale ———
+  oven: ['music_oven', 'music_space', 'music_game'],
+  firstpizzeria: ['music_firstpizzeria', 'music_game'],
 };
 
 export const LOCATION_AMBIENCE: Record<LocationId, string[]> = {
@@ -44,6 +58,18 @@ export const LOCATION_AMBIENCE: Record<LocationId, string[]> = {
   rink: ['ambience_rink', 'ambience_diner', 'ambience_pizzeria'],
   slopes: ['ambience_slopes', 'ambience_lodge', 'ambience_pizzeria'],
   cellar: ['ambience_cellar', 'ambience_pizzeria'],
+  // ——— Act 7 · Comics ———
+  metropizza: ['ambience_metropizza', 'ambience_rooftop', 'ambience_pizzeria'],
+  doomlab: ['ambience_doomlab', 'ambience_space', 'ambience_pizzeria'],
+  // ——— Act 8 · Norse ———
+  jotunheim: ['ambience_jotunheim', 'ambience_slopes', 'ambience_pizzeria'],
+  bifrost: ['ambience_bifrost', 'ambience_jotunheim', 'ambience_pizzeria'],
+  // ——— Act 9 · Greek myths ———
+  labyrinth: ['ambience_labyrinth', 'ambience_pizzeria'],
+  tartarus: ['ambience_tartarus', 'ambience_cellar', 'ambience_pizzeria'],
+  // ——— Act 10 · Finale ———
+  oven: ['ambience_oven', 'ambience_space', 'ambience_pizzeria'],
+  firstpizzeria: ['ambience_firstpizzeria', 'ambience_pizzeria'],
 };
 
 /** How many times the journey has been completed before wave n (0 on the first time through). */
@@ -68,15 +94,70 @@ export function isMiniWave(n: number): boolean {
 }
 
 export function locationFor(n: number): LocationId {
-  return STAGES[stageIndex(n)].location;
+  return stageFor(n).location;
 }
 
 export function bossFor(n: number): ArenaId {
-  return STAGES[stageIndex(n)].boss;
+  return stageFor(n).boss;
 }
 
 export function miniFor(n: number): string {
-  return STAGES[stageIndex(n)].mini;
+  return stageFor(n).mini;
+}
+
+// ——— Act 10 · Finale: Endless+ ———
+
+/** Endless+ (unlocked by beating wave 100): past the journey's end every stage's place, mini-boss and
+ * boss are dealt from shuffled decks, a new deal each loop. The scene sets it for the run (seed: the deal). */
+export const endlessPlus = { on: false, seed: 1 };
+
+/** A smack's follow-up chance never reaches certainty (the same ceiling as crits). */
+export const DOUBLE_CAP = 0.85;
+
+/** The finale's own bosses stay in the finale (the buyout and the ending belong to waves 95 and 100). */
+const UNSHUFFLED_BOSSES = new Set(['soleprop', 'soleunbound']);
+
+function deck<T>(items: T[], seed: number): T[] {
+  const out = [...items];
+  let a = seed >>> 0 || 1;
+  const rnd = () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), a | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+/** The last Endless+ deal, kept: stageFor runs on every damage tick (night damage reads the place). */
+let dealt: { key: string; places: LocationId[]; minis: string[]; bosses: ArenaId[] } | null = null;
+
+function loopDecks(seed: number, loop: number): { places: LocationId[]; minis: string[]; bosses: ArenaId[] } {
+  const key = `${seed}:${loop}`;
+  if (dealt?.key === key) return dealt;
+  const real = STAGES.filter((x) => !x.dev);
+  const s0 = seed * 7919 + loop * 104729;
+  dealt = {
+    key,
+    places: deck(real.map((x) => x.location), s0 + 1),
+    minis: deck(real.map((x) => x.mini), s0 + 2),
+    bosses: deck(real.map((x) => x.boss).filter((b) => !UNSHUFFLED_BOSSES.has(b)), s0 + 3),
+  };
+  return dealt;
+}
+
+/** Wave n's stage: the journey's own, or on an Endless+ loop a shuffled place, mini-boss and boss. */
+function stageFor(n: number): { location: LocationId; boss: ArenaId; mini: string } {
+  const st = STAGES[stageIndex(n)];
+  const loop = loopOf(n);
+  if (!endlessPlus.on || loop === 0) return st;
+  const i = stageIndex(n);
+  const { places, minis, bosses } = loopDecks(endlessPlus.seed, loop);
+  return { location: places[i % places.length], mini: minis[i % minis.length], boss: bosses[i % bosses.length] };
 }
 
 export function backdropFor(n: number): BackdropId {
@@ -118,15 +199,20 @@ export function planWave(n: number, luck: number, heatId: HeatId = 'regular'): W
   const loop = loopOf(n);
   const inLoop = n - loop * JOURNEY_WAVES;
   const eff = inLoop + loop * 36; // later loops start harder
-  const hpMult = (1 + Math.min(inLoop - 1, 29) * 0.1 + Math.max(0, inLoop - 30) * 0.06) * (1 + loop * 0.5) * heat.hp;
-  const speedMult = Math.min(1.85, 1 + (Math.min(eff, 40) - 1) * 0.026) * heat.speed;
+  const crowd = heat.crowd;
+  // acts 7–10 (waves 61–100 the first time through): health and the crowd caps keep climbing, gently
+  const deep = Math.min(DEEP_SPAN, Math.max(0, inLoop - DEEP_FROM));
+  const deepUp = 1 + (deep / DEEP_SPAN) * crowd.deepGrowth;
+  const hpMult = (1 + Math.min(inLoop - 1, 29) * 0.1 + (Math.min(inLoop, DEEP_FROM) - Math.min(inLoop, 30)) * 0.06 + deep * crowd.deepHp) * (1 + loop * 0.5) * heat.hp;
+  const speedMult = Math.min(heat.crowd.speedCap, 1 + (Math.min(eff, 40) - 1) * 0.026) * heat.speed;
   const boss = isBossWave(n) ? bossFor(n) : null;
   const mini = isMiniWave(n) ? miniFor(n) : null;
   const home = locationFor(n);
   const pool = FEET.filter((f) => !f.boss && !f.mini && f.weight > 0 && (f.minWave <= inLoop || loop > 0));
   // freshly unlocked feet get the spotlight; feet at home in this location turn up 3x as often
   const weight = (f: FootType) => f.weight * (f.minWave >= inLoop - 1 && loop === 0 ? 3 : 1) * (f.home === home ? 3 : 1);
-  let count = Math.round((6 + Math.min(eff, 40) * 2.1 + loop * 4) * heat.count);
+  const loopUp = 1 + loop * 0.5;
+  let count = Math.min(Math.round(crowd.countCap * loopUp * deepUp), Math.round((6 + Math.min(eff, 40) * crowd.perWave + deep * crowd.perWave * 0.25 + loop * 4) * heat.count));
   if (boss) count = Math.round(count * 0.35);
   const queue: string[] = [];
   while (queue.length < count) {
@@ -137,17 +223,24 @@ export function planWave(n: number, luck: number, heatId: HeatId = 'regular'): W
   return {
     n,
     queue,
-    interval: Math.max(0.32, 1.85 - Math.min(eff, 40) * 0.055),
-    maxAlive: boss ? Math.min(2 + Math.floor(inLoop / 8), 6) : Math.min(3 + Math.floor(Math.min(eff, 40) * 0.6), 12),
+    interval: Math.max(crowd.intervalFloor, 1.85 - Math.min(eff, 40) * 0.055),
+    maxAlive: boss ? Math.min(2 + Math.floor(inLoop / 8), Math.min(6, crowd.aliveCap)) : Math.min(3 + Math.floor(Math.min(eff, 40) * 0.6) + Math.floor(deep / 10), Math.round(crowd.aliveCap * loopUp * deepUp)),
     hpMult,
     bossHpMult: (1 + Math.min(inLoop - 1, 29) * 0.1) * (1 + loop * 0.5) * heat.hp * 0.75,
     speedMult,
-    eliteChance: n >= 6 ? Math.min(0.3, (n - 5) * 0.012) : 0,
+    eliteChance: n >= 6 ? Math.min(crowd.eliteCap, (n - 5) * 0.012) : 0,
     boss,
     mini,
     golden: n >= 3 && Math.random() < 0.28 + luck * 0.08,
     loop,
   };
+}
+
+export interface ActMark {
+  wave: number;
+  elapsed: number;
+  feet: number;
+  slices: number;
 }
 
 export class Run {
@@ -182,9 +275,30 @@ export class Run {
   /** Golden menu uses this run, by item id. */
   goldenUsed: Record<string, number> = {};
   secondChances = 0;
-  rentedSpecial: string | null = null;
   newUnlocks: string[] = [];
-  startTime = performance.now();
+  /** Why each pizza in newUnlocks was unlocked (for the end-of-run summary). */
+  unlockWhy: Record<string, string> = {};
+  /** Milestones reached this run. */
+  milestonesHit: string[] = [];
+  /** Enhance a Pizza uses this run (its crust price doubles each time). */
+  enhanceUses = 0;
+  /** Toppings bought this run (each counts once towards its run count in the Toppings tab). */
+  bought: string[] = [];
+  /** Peels owned when the run began, and each locked goal's progress then (end-of-run summary). */
+  startPeels: string[] | null = null;
+  goalStart: Record<string, number> = {};
+  /** Perks of the enhanced pizzas on the table (set by recompute). */
+  enhancedPerks = new Set<PizzaPerk>();
+  /** Run time in seconds: counts waves and the shop, stops in the pause menu, while the tab is hidden and while away from the run. */
+  elapsed = 0;
+  /** Endless: the run carries on past the journey's end (JOURNEY_WAVES) instead of ending there. */
+  endless = false;
+  /** Where the current act began: its first wave and the run's clock, feet and slices lost then (for ACT COMPLETE). */
+  actFrom: ActMark | null = null;
+  /** Run state for the event, mixed, shop and wildcard toppings (saved with the run). */
+  kit: KitState = freshKitState();
+  /** Set by the scene: what toppings with an offerIf need to know. */
+  env: OfferEnv = { otherPeels: 0, throws: false };
 
   get heatDef() {
     return HEAT_BY_ID[this.heat];
@@ -198,8 +312,9 @@ export class Run {
     return save.meta[id] ?? 0;
   }
 
-  /** extra: always-on peel ability stat changes, added before the caps. */
-  recompute(alivePerks: PizzaPerk[], extra: Partial<Record<keyof Stats, number>> = {}): void {
+  /** extra: always-on peel ability stat changes, added before the caps. enhanced: the perks of
+   * enhanced pizzas among alivePerks, each worth 1.5 of a plain one. */
+  recompute(alivePerks: PizzaPerk[], extra: Partial<Record<keyof Stats, number>> = {}, enhanced: PizzaPerk[] = []): void {
     const s = baseStats();
     // meta progression
     s.damage *= 1 + 0.08 * this.meta('wrists');
@@ -215,7 +330,9 @@ export class Run {
     // live pizza perks (Napoletana makes every other perk 5% stronger)
     const counts: Partial<Record<PizzaPerk, number>> = {};
     for (const p of alivePerks) counts[p] = (counts[p] ?? 0) + 1;
+    for (const p of enhanced) counts[p] = (counts[p] ?? 0) + 0.5;
     this.perkCounts = counts;
+    this.enhancedPerks = new Set(enhanced);
     const boost = 1 + 0.05 * (counts.perkBoost ?? 0);
     const c = (p: PizzaPerk) => (counts[p] ?? 0) * boost;
     s.damage *= 1 + 0.1 * c('damage');
@@ -269,6 +386,7 @@ export class Run {
     s.goldenTouch = Math.min(0.3, s.goldenTouch);
     s.slowPct = Math.min(0.7, s.slowPct);
     s.critChance = Math.min(0.85, s.critChance);
+    s.doubleChance = Math.min(DOUBLE_CAP, s.doubleChance);
     s.execute = Math.min(0.4, s.execute);
     // tip boosts: full value up to ×2, half value beyond, never above ×2.5 (late runs piled up 100k+ tips)
     if (s.coinMult > 2) s.coinMult = Math.min(TIP_MULT_CAP, 2 + (s.coinMult - 2) * 0.5);
@@ -277,15 +395,25 @@ export class Run {
 
   /** Can this upgrade be offered right now? */
   /** Set by the scene when a peel ability replaces the Peel Slam: slam-only toppings aren't offered. */
-  slamless: { slam: boolean; meter: boolean } = { slam: false, meter: false };
+  slamless: { slam: boolean; meter: boolean; tank?: boolean } = { slam: false, meter: false };
+
+  /** A topping's level cap this run (Infinite Oven lifts every one that levels up). */
+  maxLevel(u: Upgrade): number {
+    return u.max > 1 && kindOf(u) === 'permanent' ? u.max + this.stats.capBonus : u.max;
+  }
 
   offerable(u: Upgrade, wave: number): boolean {
+    // rarer toppings arrive as the run builds up (shop cards, rerolls, boss loot, events, Golden Menu)
+    if (!rarityOpen(u.rarity, wave)) return false;
     if (this.slamless.slam && u.id === 'freeze') return false;
-    if (this.slamless.meter && (u.id === 'oregano' || u.id === 'dried' || u.id === 'overtime')) return false;
+    if (this.slamless.meter && (u.id === 'oregano' || u.id === 'dried' || u.id === 'overtime' || u.needsMeter)) return false;
+    if (u.needsMeter === 'tank' && this.slamless.tank) return false;
+    if (u.needsEvents && (this.stats.noEvents || (this.stats.eventMult <= 0 && !this.stats.eventAlways))) return false;
+    if (u.offerIf && !u.offerIf(this.env)) return false;
     const k = kindOf(u);
     if (k === 'unique') return this.level(u.id) === 0;
     if (k === 'consumable') return !this.armed.includes(u.id) && (this.cooldowns[u.id] ?? 0) <= wave;
-    return this.level(u.id) < u.max;
+    return this.level(u.id) < this.maxLevel(u);
   }
 
   /** A consumable was used up: keep it out of the shop for a few waves. */
@@ -311,12 +439,25 @@ export class Run {
       if (!remaining.length) break;
       picks.push(weightedPick(remaining, (u) => weights[u.rarity]));
     }
-    // Mac & Cheese: one extra consumable card
-    for (let i = 0; i < this.stats.extraConsumable; i++) {
+    // Mac & Cheese: one extra consumable card (not past Exclusive Menu's 2-card cap)
+    for (let i = 0; i < (this.level('exclusivemenu') ? 0 : this.stats.extraConsumable); i++) {
       const cons = avail.filter((u) => kindOf(u) === 'consumable' && !picks.includes(u));
       if (cons.length) picks.push(weightedPick(cons, () => 1));
     }
-    return picks;
+    return this.bumpRarity(picks, exclude);
+  }
+
+  /** Exclusive Menu: every card is dealt one rarity higher (when that rarity is open and has one to offer). */
+  private bumpRarity(picks: Upgrade[], exclude: string[]): Upgrade[] {
+    if (!this.level('exclusivemenu')) return picks;
+    const up: Record<Rarity, Rarity> = { common: 'rare', rare: 'epic', epic: 'legendary', legendary: 'legendary' };
+    const out: Upgrade[] = [];
+    for (const u of picks) {
+      const r = up[u.rarity];
+      const pool = r === u.rarity ? [] : UPGRADES.filter((x) => x.rarity === r && this.offerable(x, this.wave) && !exclude.includes(x.id) && !out.includes(x) && !picks.includes(x));
+      out.push(pool.length ? pool[Math.floor(Math.random() * pool.length)] : u);
+    }
+    return out;
   }
 
   /** Boss loot guarantees epic-or-better. */
@@ -328,7 +469,7 @@ export class Run {
       picks.push(u);
       avail.splice(avail.indexOf(u), 1);
     }
-    return picks.length ? picks : this.rollChoices(n, exclude);
+    return picks.length ? this.bumpRarity(picks, exclude) : this.rollChoices(n, exclude);
   }
 
   comboMult(): number {
@@ -342,13 +483,27 @@ export class Run {
 
   /** The part paid when the run ends: score and waves cleared. */
   endCrusts(figOnTable = false): number {
-    return endCrustsFor(this.score, this.wave, this.act2Start, this.heat, figOnTable ? this.stats.crustBonus : 0);
+    // Vow of Focus adds its share on top
+    return endCrustsFor(this.score, this.wave, this.act2Start, this.heat, (figOnTable ? this.stats.crustBonus : 0) + this.stats.endCrustMult);
   }
 
   /** Crusts for a boss kill, scaled by heat (and Fig & Gorgonzola). */
   bossCrusts(firstKill: boolean, figOnTable = false): number {
     const mult = this.heatDef.crusts * (figOnTable ? 1 + this.stats.crustBonus : 1);
     return Math.round((5 + (firstKill ? FIRST_KILL_CRUSTS : 0)) * mult);
+  }
+
+  /** Unlock a pizza for good, noting why for the end-of-run summary. */
+  unlock(id: string, why: string): boolean {
+    if (!unlockPizza(id)) return false;
+    if (!this.newUnlocks.includes(id)) this.newUnlocks.push(id);
+    this.unlockWhy[id] = why;
+    return true;
+  }
+
+  /** Enhance a Pizza's crust price: 30, then doubling each use this run. */
+  enhanceCost(): number {
+    return 30 * 2 ** this.enhanceUses;
   }
 
   /** Pay crusts into the bank straight away. */
@@ -366,4 +521,100 @@ export function endCrustsFor(score: number, wave: number, act2Start: boolean, he
   const waves = Math.max(0, wave - 1 - (act2Start ? 30 : 0));
   const base = Math.floor(Math.sqrt(Math.max(0, score)) / 8) + waves * 2;
   return Math.floor(base * HEAT_BY_ID[heat].crusts * (1 + figBonus));
+}
+
+/** First shop (wave cleared) each rarity can be dealt in: epics from the wave 5 boss shop,
+ * legendaries from wave 10. */
+export const RARITY_FROM: Record<Rarity, number> = { common: 0, rare: 0, epic: 5, legendary: 10 };
+
+export function rarityOpen(r: Rarity, wave: number): boolean {
+  return wave >= RARITY_FROM[r];
+}
+
+/** The rarest rarity open at this wave (Golden Reroll guarantees one). */
+export function bestRarity(wave: number): Rarity {
+  return rarityOpen('legendary', wave) ? 'legendary' : rarityOpen('epic', wave) ? 'epic' : 'rare';
+}
+
+/** A pizza's tier, by its crust price: 1 simple, 2 mid, 3 fancy. */
+export function pizzaTier(p: PizzaType): number {
+  return p.cost < 150 ? 1 : p.cost < 400 ? 2 : 3;
+}
+
+/** A Chef's Special's coin price: about twice a normal counter pizza, plus a bonus for fancier ones
+ * that grows with the wave. */
+export function specialPrice(normal: number, p: PizzaType, wave: number): number {
+  return Math.round((normal * 2 + pizzaTier(p) * (15 + 2 * wave)) / 5) * 5;
+}
+
+/** A milestone's progress towards its goal: [have, need]. */
+export function milestoneProgress(id: string): [number, number] {
+  const nb = save.bossesBeaten.length;
+  const wave = save.bestWave;
+  const g = save.pizzaGoals ?? {};
+  const act1 = (h: HeatId): [number, number] => (save.act1Cleared.includes(h) ? [30, 30] : [Math.min(29, save.best[h]?.wave ?? 0), 30]);
+  switch (id) {
+    case 'firstWave3': return [Math.min(3, wave), 3];
+    case 'firstBoss': return [Math.min(1, nb), 1];
+    case 'feet150': return [Math.min(150, save.totalFeet), 150];
+    case 'wave10': return [Math.min(10, wave), 10];
+    case 'bosses3': return [Math.min(3, nb), 3];
+    case 'feet600': return [Math.min(600, save.totalFeet), 600];
+    case 'wave20': return [Math.min(20, wave), 20];
+    case 'bosses6': return [Math.min(6, nb), 6];
+    case 'act1': return save.act1Cleared.length ? [30, 30] : [Math.min(29, wave), 30];
+    case 'bosses12': return [Math.min(12, nb), 12];
+    case 'feet1500': return [Math.min(1500, save.totalFeet), 1500];
+    case 'wave45': return [Math.min(45, wave), 45];
+    case 'bosses18': return [Math.min(18, nb), 18];
+    case 'journey': return [Math.min(JOURNEY_WAVES, wave), JOURNEY_WAVES];
+    case 'allBosses': return [Math.min(24, nb), 24];
+    case 'hot30': return act1('hot');
+    case 'extrahot30': return act1('extrahot');
+    case 'inferno30': return act1('inferno');
+    // phase 3 milestone prizes
+    case 'act1Lap': return save.act1Cleared.length ? [30, 30] : [Math.min(29, wave), 30];
+    case 'slayer24': {
+      // the first 12 stages' bosses and mini-bosses: the 24 the game began with (acts 1–6)
+      const original = new Set(STAGES.slice(0, 12).flatMap((s) => [s.boss, s.mini] as string[]));
+      return [Math.min(24, save.bossesBeaten.filter((b) => original.has(b)).length), 24];
+    }
+    case 'wave100': return [Math.min(100, wave), 100];
+    case 'feet5000': return [Math.min(5000, save.totalFeet), 5000];
+    case 'perfect10': return [Math.min(10, g.perfectBest ?? 0), 10];
+    case 'runs25': return [Math.min(25, save.runs), 25];
+    case 'peels100': return [Math.min(100, new Set(['classic', ...save.peels]).size), 100];
+    case 'combo150': return [Math.min(150, g.bestCombo ?? 0), 150];
+    case 'untouched': return [Math.min(1, g.untouched ?? 0), 1];
+    case 'fastWave': return [(g.fastWave ?? 99) < 8 ? 1 : 0, 1];
+    case 'night10': return [Math.min(10, g.nightRuns ?? 0), 10];
+    case 'surtr': return [save.bossesBeaten.includes('surtr') ? 1 : 0, 1];
+    case 'hades': return [save.bossesBeaten.includes('hades') ? 1 : 0, 1];
+    default: return [0, 1];
+  }
+}
+
+/**
+ * Award milestones reached (and catch up on ones reached before they named a pizza). Returns the
+ * newly awarded ones with their pizza, or crusts when the milestone has no pizza.
+ */
+export function awardMilestones(run: Run | null): { m: Milestone; pizza: PizzaType | null; crusts: number }[] {
+  const out: { m: Milestone; pizza: PizzaType | null; crusts: number }[] = [];
+  for (const m of MILESTONES) {
+    const [have, need] = milestoneProgress(m.id);
+    const fresh = have >= need && !save.milestones.includes(m.id);
+    const pizza = m.pizza ? PIZZA_BY_ID[m.pizza] ?? null : null;
+    const owed = save.milestones.includes(m.id) && pizza && !save.unlockedPizzas.includes(pizza.id);
+    if (!fresh && !owed) continue;
+    if (fresh) save.milestones.push(m.id);
+    if (pizza) {
+      if (run) run.unlock(pizza.id, `Milestone: ${m.name}`);
+      else unlockPizza(pizza.id);
+    } else save.crusts += 50;
+    if (fresh) {
+      run?.milestonesHit.push(m.id);
+      out.push({ m, pizza, crusts: pizza ? 0 : 50 });
+    }
+  }
+  return out;
 }

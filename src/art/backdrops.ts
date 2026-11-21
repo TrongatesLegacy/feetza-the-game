@@ -4,8 +4,34 @@
 import { onSceneRegistered, sceneDef } from './registry';
 import { type Ctx, blob, ellipse, hashStr, makeCanvas, mix, rgba, rng, roundRect, shade } from './util';
 
-export type LocationId = 'trattoria' | 'rooftop' | 'beach' | 'diner' | 'lodge' | 'space' | 'kitchen' | 'oldtown' | 'pier' | 'rink' | 'slopes' | 'cellar';
-export type ArenaId = 'bigfoot' | 'ironheel' | 'clownking' | 'trex' | 'colossus' | 'phantomking' | 'cosmiccroc' | 'nonna' | 'gargoyle' | 'kraken' | 'rinkqueen' | 'yeti';
+export type LocationId = 'trattoria' | 'rooftop' | 'beach' | 'diner' | 'lodge' | 'space' | 'kitchen' | 'oldtown' | 'pier' | 'rink' | 'slopes' | 'cellar'
+  // ——— Act 7 · Comics ———
+  | 'metropizza'
+  | 'doomlab'
+  // ——— Act 8 · Norse ———
+  | 'jotunheim'
+  | 'bifrost'
+  // ——— Act 9 · Greek myths ———
+  | 'labyrinth'
+  | 'tartarus'
+  // Act 10 · Finale (src/content/art/scenes-act10.ts)
+  | 'oven' | 'firstpizzeria';
+export type ArenaId = 'bigfoot' | 'ironheel' | 'clownking' | 'trex' | 'colossus' | 'phantomking' | 'cosmiccroc' | 'nonna' | 'gargoyle' | 'kraken' | 'rinkqueen' | 'yeti'
+  // ——— Act 7 · Comics ———
+  | 'doomstomp'
+  | 'thanfoot'
+  // ——— Act 8 · Norse (the two mini-bosses get arenas of their own too) ———
+  | 'thrym'
+  | 'surtr'
+  | 'fenrir'
+  | 'jormungandr'
+  // ——— Act 9 · Greek myths (the mini-bosses get arenas of their own too) ———
+  | 'minotaur'
+  | 'medusa'
+  | 'cerberus'
+  | 'hades'
+  // Act 10 · Finale
+  | 'soleprop' | 'soleunbound';
 export type BackdropId = LocationId | ArenaId;
 export type AmbientKind =
   | 'dust'

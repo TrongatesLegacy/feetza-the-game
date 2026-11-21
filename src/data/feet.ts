@@ -177,6 +177,8 @@ export const FEET: FootType[] = [
     desc: 'The classic. Hasn\'t worn shoes since 1997 and won\'t start now.',
     hp: 24, speed: 1, armor: 0, stompDmg: 1, coins: 2, score: 100, scale: 1, minWave: 1, weight: 10,
     traits: [],
+    howTo: 'A couple of smacks does it: hit him while he hovers, before the dive',
+    tell: 'Wiggles his toes, then drops straight down on the pizza below',
     art: { kind: 'bare', skin: SKIN.light, leg: 'jeans', legColor: '#3d5a8a' },
   },
   {
@@ -409,6 +411,8 @@ export const FEET: FootType[] = [
     desc: 'Arr! A wooden peg makes a tiny target but a mighty jab.',
     hp: 30, speed: 1.1, armor: 2, stompDmg: 2, coins: 6, score: 200, scale: 1, minWave: 7, weight: 3,
     traits: ['tiny'],
+    howTo: 'Aim right at the peg: it\'s a tiny target, and it shrugs off weak hits with its armour',
+    tell: 'The peg taps twice on the table edge before it jabs',
     art: { kind: 'peg', skin: SKIN.tan, primary: '#8a5a32', secondary: '#c9a25a', leg: 'suit', legColor: '#3a2a4a' },
   },
   {

@@ -2,21 +2,25 @@
 // container query units (1em = 1% of the stage width) so it stays crisp at any size.
 
 import { FEET, FOOT_BY_ID, TRAIT_INFO, howToFor, tellFor, type FootType } from '../data/feet';
-import { META } from '../data/meta';
-import { PIZZAS, PIZZA_BY_ID } from '../data/pizzas';
-import { RARITY_COLOR, UPGRADE_BY_ID } from '../data/upgrades';
-import { glyph } from '../systems/gamepad';
-import type { ShopActions, ShopPizza, ShopState } from './shopTypes';
+import { META, MILESTONE_BY_PIZZA } from '../data/meta';
+import { PIZZAS, PIZZA_BY_ID, type PizzaRoute, type PizzaType } from '../data/pizzas';
+import { awardMilestones, milestoneProgress } from '../game/Run';
+import { RARITY_COLOR, UPGRADES, UPGRADE_BY_ID, kindOf, type Rarity } from '../data/upgrades';
+import { glyph, slamPrompt } from '../systems/gamepad';
+import type { RunSummary, ShopActions, ShopPizza, ShopState, YourTopping } from './shopTypes';
 import { INTROS, freshBar, pizzaThumb } from './bits';
 import { footPortraitURL, pizzaPortraitURL, textureURL } from '../game/assets';
 import { audio } from '../systems/audio';
-import { bestFor, metaRefundValue, persist, resetEverything, resetMeta, resetProgress, save, updateSettings, type Settings } from '../systems/save';
+import { bestFor, metaRefundValue, persist, resetEverything, resetMeta, resetProgress, save, unlockPizza, updateSettings, type Settings } from '../systems/save';
 import { HEATS, HEAT_BY_ID, type HeatId } from '../data/difficulty';
-import { ACT_WAVES, STAGES } from '../data/stages';
+import { ACT_COUNT, JOURNEY_WAVES, STAGES, actLabel, actName, actOf } from '../data/stages';
 import { BACKDROPS } from '../art/backdrops';
 import { applyA11y } from './a11y';
 import { abilityFor, abilityKindLabel, describeAbility } from '../game/abilities';
-import { PEELS, buyPeel, checkPeelAchievements, equipPeel, equippedPeel, hasPeel, peelThumbURL, type PeelDef, type PeelGroup } from '../game/peels';
+import { animateLookImg, hasAnimatedLook, stopLookOverlays } from '../art/animatedLooks';
+import { GOD_PEEL, PEELS, PEEL_BY_ID, buyPeel, checkPeelAchievements, equipPeel, equippedPeel, hasPeel, peelThumbURL, wearSkin, wornSkin, type PeelDef, type PeelGroup } from '../game/peels';
+import { HERO_SUBS } from '../content/heroPeels';
+import './gods.css';
 
 type Attrs = Record<string, string | number | boolean | undefined>;
 
@@ -49,6 +53,15 @@ function madeBy(): HTMLElement {
   return a;
 }
 
+/** The close cross for window corners. */
+const X_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="3.6" stroke-linecap="round"/></svg>';
+
+/** A chunky cog for the shop's pause-menu button (centred in its box, unlike the ⚙ glyph). */
+const GEAR_SVG =
+  '<svg class="gear" viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor">' +
+  Array.from({ length: 8 }, (_, i) => `<rect x="10" y="1.2" width="4" height="5" rx="1" transform="rotate(${i * 45} 12 12)"/>`).join('') +
+  '</g><circle cx="12" cy="12" r="5.3" fill="none" stroke="currentColor" stroke-width="4.6"/></svg>';
+
 export const COIN_SVG =
   '<svg class="coin" viewBox="0 0 24 24"><circle cx="12" cy="13" r="10" fill="#9a6a00"/><circle cx="12" cy="12" r="10" fill="#ffcf3a" stroke="#7a4a00" stroke-width="1.5"/><circle cx="12" cy="12" r="7" fill="none" stroke="#a86a00" stroke-width="1"/><path d="M12 17l-3.6-7.4q3.6-2 7.2 0z" fill="#c47a00"/><ellipse cx="8.5" cy="7.5" rx="2.5" ry="1.2" fill="#fff" opacity=".7" transform="rotate(-30 8.5 7.5)"/></svg>';
 
@@ -70,6 +83,28 @@ export function btn(label: string, cls: string, onClick: () => void, attrs: Attr
 
 const fmt = (n: number) => Math.floor(n).toLocaleString('en-US');
 
+/** Chance each lineup deal puts a Rare Find in one slot. */
+const RARE_FIND_CHANCE = 1 / 20;
+/** Dev: the next lineup deal shows this pizza as a Rare Find (any locked pizza, for testing). */
+let forcedRare: string | null = null;
+/** Re-deal the open new-run screen (so a forced Rare Find shows straight away). */
+let redealLineup: (() => void) | null = null;
+
+/** Dev: force a Rare Find on the next lineup deal (and re-deal the open new-run screen). */
+export function forceRareFind(id: string): void {
+  forcedRare = id;
+  redealLineup?.();
+}
+
+/** A run time: m:ss, or h:mm:ss past an hour. */
+export function fmtTime(secs: number): string {
+  const s = Math.max(0, Math.floor(secs));
+  const hrs = Math.floor(s / 3600);
+  const mm = Math.floor(s / 60) % 60;
+  const ss = String(s % 60).padStart(2, '0');
+  return hrs ? `${hrs}:${String(mm).padStart(2, '0')}:${ss}` : `${mm}:${ss}`;
+}
+
 /** Enter/Space on a focusable tile acts like a click (keyboard and gamepad). */
 function activatable<T extends HTMLElement>(el: T): T {
   el.addEventListener('keydown', (e) => {
@@ -88,11 +123,47 @@ function keepFocus(root: HTMLElement, render: () => void): void {
   if (fk) root.querySelector<HTMLElement>(`[data-fk="${CSS.escape(fk)}"]`)?.focus();
 }
 
+/**
+ * An enhanced perk: the whole line in gold, with each changed number struck through next to its
+ * new one (e.g. ~~+10%~~ +15% smack damage). Words that change are shown in their new form.
+ */
+function perkDiff(base: string, now: string): HTMLElement {
+  const a = base.split(' ');
+  const b = now.split(' ');
+  // longest common run of words, so only what changed is marked
+  const L = Array.from({ length: a.length + 1 }, () => new Array<number>(b.length + 1).fill(0));
+  for (let i = a.length - 1; i >= 0; i--) for (let j = b.length - 1; j >= 0; j--) L[i][j] = a[i] === b[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  const out = h('span', { class: 'perk-gold' });
+  const word = (el: Node | string) => {
+    if (out.childNodes.length) out.append(' ');
+    out.append(el);
+  };
+  let i = 0;
+  let j = 0;
+  while (i < a.length || j < b.length) {
+    if (i < a.length && j < b.length && a[i] === b[j]) {
+      word(a[i++]);
+      j++;
+    } else if (i < a.length && (j >= b.length || L[i + 1][j] >= L[i][j + 1])) {
+      // a dropped number stays visible, struck through; dropped words just go
+      if (/\d/.test(a[i])) word(h('s', {}, a[i]));
+      i++;
+    } else word(h('b', {}, b[j++]));
+  }
+  return out;
+}
+
 /** A peel's ability as a line for the locker: kind pill, name and what it does. */
 function abilityLine(peelId: string): HTMLElement {
-  if (peelId === 'classic') return h('div', { class: 'abl' }, h('span', { class: 'chip' }, 'ACTIVE'), h('b', {}, 'Peel Slam'), h('span', {}, 'Press Space when the meter is full: smack every foot at once.'));
+  const [chip, name, desc] = abilityBits(peelId);
+  return h('div', { class: 'abl' }, chip, name, h('span', {}, desc));
+}
+
+/** A peel's ability as parts: its kind pill, its name and what it does (for layouts that split them up). */
+function abilityBits(peelId: string): [HTMLElement, HTMLElement, string] {
+  if (peelId === 'classic') return [h('span', { class: 'chip' }, 'ACTIVE'), h('b', { class: 'abl-name' }, 'Peel Slam'), `${slamPrompt()} when the meter is full: smack every foot at once.`];
   const a = abilityFor(peelId);
-  return h('div', { class: 'abl' }, h('span', { class: `chip ${abilityKindLabel(a).toLowerCase()}` }, abilityKindLabel(a)), h('b', {}, a.name), h('span', {}, describeAbility(a)));
+  return [h('span', { class: `chip ${abilityKindLabel(a).toLowerCase()}` }, abilityKindLabel(a)), h('b', { class: 'abl-name' }, a.name), describeAbility(a)];
 }
 
 export interface CounterOffer {
@@ -107,6 +178,8 @@ class Hud {
   root: HTMLElement;
   private score = h('div', { class: 'score' }, '0');
   private wave = h('div', { class: 'wave' });
+  private clock = h('div', { class: 'runclock', 'aria-label': 'Run time' });
+  private lastSec = -1;
   private coins = h('span', {}, '0');
   private coinPill = h('div', { class: 'pill' });
   private combo = h('div', { class: 'combo' });
@@ -152,7 +225,7 @@ class Hud {
     this.root = h(
       'div',
       { class: 'hud' },
-      h('div', { class: 'tl' }, this.score, this.wave),
+      h('div', { class: 'tl' }, this.score, this.wave, this.clock),
       this.combo,
       this.boss,
       h('div', { class: 'tr' }, this.coinPill),
@@ -163,11 +236,21 @@ class Hud {
       this.fpsEl,
     );
     this.fpsEl.style.display = save.settings.showFps ? '' : 'none';
+    this.clock.style.display = save.settings.showTimer ? '' : 'none';
   }
 
   syncMute(): void {
     this.muteBtn.innerHTML = save.settings.muted ? ICONS.mute : ICONS.sound;
     this.fpsEl.style.display = save.settings.showFps ? '' : 'none';
+    this.clock.style.display = save.settings.showTimer ? '' : 'none';
+  }
+
+  /** The run clock under the wave: m:ss, or h:mm:ss past an hour. */
+  setTime(secs: number): void {
+    const n = Math.floor(secs);
+    if (n === this.lastSec) return;
+    this.lastSec = n;
+    this.clock.textContent = fmtTime(n);
   }
 
   setScore(n: number): void {
@@ -391,7 +474,18 @@ class UI {
     if (!on) this.hud.root.remove();
   }
 
-  private open(content: HTMLElement, dim = true): HTMLElement {
+  /** Open a window on top (public for the topping windows in pickWindows.ts). */
+  open(content: HTMLElement, dim = true): HTMLElement {
+    // a window that a Back / Cancel / Done button dismisses also gets an X in its top-right corner
+    const back = content.classList.contains('panel') ? content.querySelector<HTMLButtonElement>('[data-pad="back"]:not([data-no-x])') : null;
+    if (back) {
+      const x = h('button', { class: 'x-close', type: 'button', 'aria-label': 'Close', title: 'Close', html: X_SVG }) as HTMLButtonElement;
+      x.addEventListener('click', (e) => {
+        e.stopPropagation();
+        back.click();
+      });
+      content.append(x);
+    }
     const s = h('div', { class: `screen${dim ? ' dim' : ''}` }, content);
     s.addEventListener('pointerdown', (e) => e.stopPropagation());
     this.layer.append(s);
@@ -409,8 +503,14 @@ class UI {
     setTimeout(() => el.remove(), 200);
   }
 
-  closeAll(): void {
-    for (const s of [...this.stack]) this.close(s);
+  /** Close every screen (except `keep`, e.g. the shop under the pause menu). */
+  closeAll(keep?: HTMLElement | null): void {
+    for (const s of [...this.stack]) if (s !== keep) this.close(s);
+  }
+
+  /** Is this screen the one on top (nothing open over it)? */
+  isTop(s: HTMLElement | null | undefined): boolean {
+    return !!s && this.stack[this.stack.length - 1] === s;
   }
 
   get modalOpen(): boolean {
@@ -456,16 +556,21 @@ class UI {
       'div',
       { class: 'menu-stats' },
       h('span', { html: `Best <b>${fmt(best.score)}</b>` }),
-      h('span', { html: `Wave <b>${best.wave}</b> <small>${HEAT_BY_ID[save.heat].name}</small>` }),
+      h('span', { html: `Wave <b>${best.wave}</b> <small>${HEAT_BY_ID[save.heat].name}</small>`, title: best.wave ? `Best wave on ${HEAT_BY_ID[save.heat].name}: ${actLabel(actOf(best.wave))}` : '' }),
       h('span', { html: `Crusts <b>${fmt(save.crusts)}</b>` }),
     );
     stats.classList.add('corner');
+    // beat wave 100: the Pizza Legend title, in a gold frame
+    if (save.legend) {
+      stats.classList.add('legend');
+      stats.prepend(h('span', { class: 'legend-title', title: 'You beat the Sole Proprietor Unbound at wave 100' }, 'PIZZA LEGEND'));
+    }
     const r = save.run;
     const cont = r && h_.resume
       ? h(
           'div',
           { class: 'continue panel' },
-          h('div', { class: 'cont-text' }, h('span', { class: 'cont-tag' }, 'RUN IN PROGRESS'), h('b', {}, `Wave ${r.wave} · ${HEAT_BY_ID[r.heat].name} · ${r.wave >= ACT_WAVES ? 'Act 2' : 'Act 1'}`), h('span', {}, `${fmt(r.score)} points · ${r.pizzas.filter((p) => !p.dead).length} pizzas · saved at the shop`)),
+          h('div', { class: 'cont-text' }, h('span', { class: 'cont-tag' }, 'RUN IN PROGRESS'), h('b', {}, `Wave ${r.wave} · ${HEAT_BY_ID[r.heat].name} · ${r.actPending ? `${actName(actOf(r.wave))} complete` : actLabel(actOf(r.wave + 1))}`), h('span', {}, `${fmt(r.score)} points · ${r.pizzas.filter((p) => !p.dead).length} pizzas · saved ${r.actPending ? 'at the end of the act' : 'at the shop'}`)),
           btn('CONTINUE', 'green big', h_.resume, { 'data-pad-default': '' }),
         )
       : null;
@@ -479,7 +584,7 @@ class UI {
       h(
         'div',
         { class: 'menu-buttons' },
-        btn(`PIZZERIA${PIZZAS.some((p) => !save.unlockedPizzas.includes(p.id) && p.cost <= save.crusts) ? ' <span class="badge">NEW</span>' : ''}`, 'yellow', h_.pizzeria),
+        btn(`PIZZERIA${save.pizzasNew.length || save.toppingsNew.length || PIZZAS.some((p) => p.route === 'pizzeria' && !save.unlockedPizzas.includes(p.id) && p.cost <= save.crusts) ? ' <span class="badge">NEW</span>' : ''}`, 'yellow', h_.pizzeria),
         btn(`PIZZAPEDIA <small style="font-size:.7em">${seen}/${FEET.length}</small>`, 'green', h_.pedia),
         btn(`PEELS${save.peelsNew.length ? ' <span class="badge">NEW</span>' : ''}`, 'yellow', h_.locker),
         btn('SETTINGS', 'cream', h_.settings),
@@ -488,7 +593,37 @@ class UI {
     );
     const s = this.open(content, false);
     s.append(stats, madeBy());
+    this.godReveal();
     return s;
+  }
+
+  /** The God Peel's first unlock: light floods in, the halo descends, a choir sting, and it's equipped.
+   * Plays once, at the next calm screen (the title or the locker); `force` replays it (dev). */
+  godReveal(after?: () => void, force = false): void {
+    if (!force && save.goals.godReveal !== 1) return;
+    save.goals.godReveal = 2;
+    equipPeel(GOD_PEEL);
+    persist();
+    audio.sfx('sfx_godreveal', { volume: 1 });
+    audio.duck(0.3, 300);
+    let s: HTMLElement;
+    const done = () => {
+      audio.duck(1, 800);
+      this.close(s);
+      after?.();
+    };
+    const panel = h(
+      'div',
+      { class: 'god-reveal' },
+      h('i', { class: 'gr-light' }),
+      h('i', { class: 'gr-rays' }),
+      h('div', { class: 'gr-stage' }, h('i', { class: 'gr-halo' }), h('img', { class: 'gr-peel', src: peelThumbURL(GOD_PEEL, 360), alt: '' })),
+      h('div', { class: 'gr-kicker' }, 'EVERY PEEL IS YOURS'),
+      h('div', { class: 'gr-title' }, 'PEEL OF THE PIZZA GODS'),
+      h('div', { class: 'gr-sub' }, 'Divine Feast, and the Pantheon at your side. It’s equipped.'),
+      btn('PRAISE BE', 'yellow big', done, { 'data-pad': 'back', 'data-pad-default': '', 'data-no-x': '' }),
+    );
+    s = this.open(panel);
   }
 
   /** One-time welcome for players coming from the old version. */
@@ -499,7 +634,7 @@ class UI {
       ['Bosses fight in phases', 'Each one changes up at 66% and 33% health.'],
       ['Mini-bosses and wave events', 'Flyers and chests worth smacking.'],
       ['Pizzas go stale', 'Reheat them, or swap in fresh ones.'],
-      ['A 60-wave journey', '12 stages, 24 bosses, an ending, then endless.'],
+      [`A ${JOURNEY_WAVES}-wave journey`, `${ACT_COUNT} acts, ${STAGES.length * 2} bosses, an ending, then endless.`],
       ['Controller support', 'Plug in and play, menus included.'],
       ['Saves mid-run', 'Close the tab and continue from the shop.'],
     ];
@@ -533,19 +668,25 @@ class UI {
     return s;
   }
 
-  // ——— Pre-run setup: heat, act, journey and lineup ———
+  // ——— Pre-run setup: heat, act, your peel and the lineup ———
   /** shuffle returns a new lineup; it's swapped in place (re-opening the screen made the backdrop flicker). */
-  lineup(ids: string[], shuffle: () => string[], onStart: (heat: HeatId, act2: boolean, ids: string[]) => void, onBack: () => void): HTMLElement {
+  lineup(ids: string[], shuffle: () => string[], onStart: (heat: HeatId, endless: boolean, ids: string[]) => void, onBack: () => void): HTMLElement {
     let cur = ids;
     let heat: HeatId = save.heat;
-    let act2 = false;
+    // run length: end at the journey's end (JOURNEY_WAVES), or endless (remembered)
+    let endless = save.endless;
+    // Endless+ (Act 10): unlocked by beating wave 100
+    let plus = save.endlessPlus && save.endlessPlusPick && endless;
     const unlocked = (hd: (typeof HEATS)[number]) => !hd.unlockAfter || save.act1Cleared.includes(hd.unlockAfter);
     const heatRow = h('div', { class: 'heats', 'data-pad-section': '' });
     const actRow = h('div', { class: 'acts', 'data-pad-section': '' });
     const startBtn = btn('', 'green big', () => {
       save.heat = heat;
+      save.endless = endless;
+      save.endlessPlusPick = plus;
       persist();
-      onStart(heat, act2, cur);
+      redealLineup = null;
+      onStart(heat, endless, startIds());
     });
     const render = () => {
       heatRow.replaceChildren(
@@ -564,92 +705,144 @@ class UI {
             if (!ok) return;
             audio.sfx('sfx_click');
             heat = hd.id;
-            if (!save.act1Cleared.includes(heat)) act2 = false;
             render();
           });
           return b;
         }),
       );
-      const act2ok = save.act1Cleared.includes(heat);
-      const mk = (on: boolean, title: string, desc: string, enabled: boolean, val: boolean) => {
-        const b = h('button', { class: `act${on ? ' on' : ''}`, type: 'button' }, h('b', {}, title), h('span', {}, desc)) as HTMLButtonElement;
-        b.disabled = !enabled;
+      const mk = (on: boolean, title: string, desc: string, val: boolean, isPlus = false) => {
+        const b = h('button', { class: `act${on ? ' on' : ''}${isPlus ? ' plus' : ''}`, type: 'button', 'aria-pressed': on ? 'true' : 'false' }, h('b', {}, title), h('span', {}, desc)) as HTMLButtonElement;
         b.addEventListener('click', () => {
-          act2 = val;
+          audio.sfx('sfx_click');
+          endless = val;
+          plus = isPlus;
           render();
         });
         return b;
       };
       actRow.replaceChildren(
-        mk(!act2, 'Act 1 · wave 1', 'Trattoria, with your lineup below', true, false),
-        mk(act2, 'Act 2 · wave 31', act2ok ? 'Starter kit: 5 pizzas, about 6 toppings and 420 tips' : `Locked: beat wave 30 on ${HEAT_BY_ID[heat].name}`, act2ok, true),
+        mk(!endless, `End at wave ${JOURNEY_WAVES}`, `${ACT_COUNT} acts, ${STAGES.length * 2} bosses. Bank at any act's end`, false),
+        mk(endless && !plus, 'Endless', `Past wave ${JOURNEY_WAVES} the journey starts again, harder`, true),
+        ...(save.endlessPlus ? [mk(endless && plus, 'Endless+', `From wave ${JOURNEY_WAVES + 1} every place, boss and foot is shuffled`, true, true)] : []),
       );
       startBtn.innerHTML = `START · ${HEAT_BY_ID[heat].name.toUpperCase()}`;
     };
     render();
-    const journey = h(
-      'div',
-      { class: 'journey' },
-      ...STAGES.map((st, i) => {
-        const reached = save.bestWave > i * 5;
-        return h(
-          'div',
-          { class: `stage act${st.act}${reached ? ' reached' : ''}` },
-          h('span', { class: 'sn' }, `STAGE ${i + 1} · W${i * 5 + 1}–${i * 5 + 5}`),
-          h('b', {}, BACKDROPS[st.location].name),
-          h('span', {}, reached ? FOOT_BY_ID[st.boss]?.name ?? '' : '???'),
-        );
-      }),
-    );
-    // the peel, its ability, and the Peel Slam / ability switch
-    const peelCard = h('div', { class: 'peelcard', 'data-pad-section': '' });
+    // your peel, as two boxes: the peel you play with (its ability) and the look you wear over it
+    const peelCard = h('div', { class: 'peelboxes', 'data-pad-section': '' });
     const renderPeel = () => {
       const d = equippedPeel();
-      const classic = d.id === 'classic';
-      const a = abilityFor(d.id);
-      const useAb = save.useAbility && !classic;
-      const choice = (on: boolean, label: string, val: boolean) => {
-        const b = h('button', { class: `pk-opt${on ? ' on' : ''}`, type: 'button', 'aria-pressed': on ? 'true' : 'false', 'data-fk': `pk:${val}` }, label) as HTMLButtonElement;
-        b.disabled = classic && val;
-        b.addEventListener('click', () => {
-          audio.sfx('sfx_click');
-          save.useAbility = val;
-          persist();
-          keepFocus(peelCard, renderPeel);
-        });
-        return b;
-      };
+      const worn = wornSkin();
+      const look = worn ?? d;
+      const pic = (pd: PeelDef) => h('div', { class: `pk-img${pd.shiny ? ' shiny' : ''}` }, h('img', { src: peelThumbURL(pd.id, 200), alt: '' }));
+      const reset = worn
+        ? Object.assign(h('button', { class: 'linkish', type: 'button', 'data-fk': 'pk:look' }, 'match my peel'), {
+            onclick: () => {
+              audio.sfx('sfx_click');
+              wearSkin(null);
+              keepFocus(peelCard, renderPeel);
+            },
+          })
+        : null;
       peelCard.replaceChildren(
-        h('div', { class: `pk-img${d.shiny ? ' shiny' : ''}` }, h('img', { src: peelThumbURL(d.id, 200), alt: '' })),
         h(
           'div',
-          { class: 'pk-body' },
-          h('div', { class: 'pk-head' }, h('b', { class: 'pk-name' }, d.name), btn('CHANGE', 'cream small', () => this.peelPicker(renderPeel))),
-          h('div', { class: 'pk-opts' }, choice(!useAb, 'PEEL SLAM', false), choice(useAb, classic ? 'NO ABILITY' : a.name.toUpperCase(), true)),
-          h('span', { class: 'pk-desc' }, useAb ? describeAbility(a) : 'Press Space when the meter is full to smack every foot at once.'),
+          { class: `peelbox${d.id === GOD_PEEL ? ' god' : ''}` },
+          pic(d),
+          h(
+            'div',
+            { class: 'pk-body' },
+            h('div', { class: 'pk-head' }, h('span', { class: 'pk-kind' }, 'ABILITY'), btn('CHANGE', 'cream small', () => this.peelPicker(renderPeel, 'ability'), { 'data-fk': 'pk:ability' })),
+            h('b', { class: 'pk-name' }, d.name),
+            abilityLine(d.id),
+          ),
+        ),
+        h(
+          'div',
+          { class: `peelbox look${worn ? '' : ' matching'}` },
+          pic(look),
+          h(
+            'div',
+            { class: 'pk-body' },
+            h('div', { class: 'pk-head' }, h('span', { class: 'pk-kind' }, 'LOOK'), btn('CHANGE', 'cream small', () => this.peelPicker(renderPeel, 'look'), { 'data-fk': 'pk:lookpick' })),
+            h('b', { class: 'pk-name' }, look.name),
+            h('span', { class: 'pk-desc' }, worn ? 'Worn over your peel: looks only, no ability. ' : 'Matches your peel. Wear any unlocked peel’s look instead.', reset),
+          ),
         ),
       );
     };
     renderPeel();
     const lineupRow = h('div', { class: 'lineup2' });
+    // a Rare Find: now and then (1 in 20 deals) a locked rare pizza takes a slot, to buy with crusts
+    let rare: { id: string; slot: number; was: string; bought: boolean } | null = null;
+    const deal = () => {
+      rare = null;
+      const forced = forcedRare && PIZZA_BY_ID[forcedRare] && !save.unlockedPizzas.includes(forcedRare) ? forcedRare : null;
+      forcedRare = null;
+      const pool = PIZZAS.filter((p) => p.route === 'rare' && !save.unlockedPizzas.includes(p.id));
+      const id = forced ?? (pool.length && Math.random() < RARE_FIND_CHANCE ? pool[Math.floor(Math.random() * pool.length)].id : null);
+      if (!id || !cur.length) return;
+      const slot = Math.floor(Math.random() * cur.length);
+      rare = { id, slot, was: cur[slot], bought: false };
+      if (!save.rareSeen.includes(id)) {
+        save.rareSeen.push(id);
+        persist();
+      }
+    };
     const renderLineup = () =>
       lineupRow.replaceChildren(
-        ...cur.map((id) => {
+        ...cur.map((id, i) => {
+          const r = rare && rare.slot === i ? rare : null;
+          if (r) {
+            const p = PIZZA_BY_ID[r.id];
+            const buy = btn(r.bought ? 'UNLOCKED' : `BUY ${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} ${fmt(p.cost)}`, r.bought ? 'cream small' : 'yellow small', () => {
+              if (r.bought || save.crusts < p.cost) return;
+              save.crusts -= p.cost;
+              unlockPizza(p.id);
+              r.bought = true;
+              audio.sfx('sfx_levelup');
+              renderLineup();
+            });
+            buy.disabled = r.bought || save.crusts < p.cost;
+            return h(
+              'div',
+              { class: `lu rare${r.bought ? ' bought' : ''}` },
+              h('span', { class: 'tag new' }, r.bought ? 'YOURS' : 'NEW'),
+              h('img', { src: pizzaPortraitURL(p.id), alt: p.name }),
+              h('div', {}, h('span', { class: 'rf' }, 'RARE FIND'), h('b', {}, p.name), h('span', {}, r.bought ? p.perkText : `${p.perkText} · gone if you shuffle`), buy),
+            );
+          }
           const p = PIZZA_BY_ID[id];
           return h('div', { class: 'lu' }, h('img', { src: pizzaPortraitURL(id), alt: p.name }), h('div', {}, h('b', {}, p.name), h('span', {}, p.perkText)));
         }),
       );
+    // the lineup that actually starts: an unbought Rare Find gives its slot back
+    const startIds = () => cur.map((id, i) => (rare && rare.slot === i ? (rare.bought ? rare.id : rare.was) : id));
+    deal();
+    if (rare) cur = cur.map((id, i) => (i === rare!.slot ? rare!.id : id));
     renderLineup();
+    redealLineup = () => {
+      cur = startIds();
+      deal();
+      if (rare) cur = cur.map((id, i) => (i === rare!.slot ? rare!.id : id));
+      renderLineup();
+    };
     const panel = h(
       'div',
       { class: 'panel modal wide prerun' },
       h('div', { class: 'title' }, 'NEW RUN'),
       h('div', { class: 'section-title' }, 'HEAT'),
       heatRow,
-      h('div', { class: 'prerun-mid' }, h('div', {}, h('div', { class: 'section-title' }, 'START AT'), actRow), h('div', { class: 'journey-wrap' }, h('div', { class: 'section-title' }, 'THE JOURNEY · 60 WAVES'), journey)),
-      h('div', { class: 'prerun-bottom' }, h('div', {}, h('div', { class: 'section-title' }, "TONIGHT'S LINEUP"), lineupRow), h('div', {}, h('div', { class: 'section-title' }, 'YOUR PEEL'), peelCard)),
-      h('div', { class: 'row' }, btn('BACK', 'cream', onBack, { 'data-pad': 'back' }), btn('SHUFFLE', 'yellow', () => {
+      h('div', { class: 'prerun-mid' }, h('div', {}, h('div', { class: 'section-title' }, 'RUN LENGTH'), actRow), h('div', { class: 'peel-wrap' }, h('div', { class: 'section-title' }, 'YOUR PEEL'), peelCard)),
+      h('div', { class: 'prerun-bottom' }, h('div', { class: 'section-title' }, "TONIGHT'S LINEUP"), lineupRow),
+      h('div', { class: 'row' }, btn('BACK', 'cream', () => {
+        redealLineup = null;
+        onBack();
+      }, { 'data-pad': 'back' }), btn('SHUFFLE', 'yellow', () => {
+        // a bought Rare Find is unlocked already; an unbought one is gone
         cur = shuffle();
+        deal();
+        if (rare) cur = cur.map((id, i) => (i === rare!.slot ? rare!.id : id));
         renderLineup();
       }, { 'data-pad': 'y' }), startBtn),
     );
@@ -692,12 +885,15 @@ class UI {
       // cards already on the table don't deal in again when the shop redraws after a purchase;
       // only new ones (after a reroll) animate
       const cards = st.cards.map((c, i) => {
-        const b = btn(c.sold ? 'BOUGHT' : c.free ? 'FREE' : st.coins >= c.price ? `BUY · ${fmt(c.price)}` : `NEED ${fmt(c.price)}`, c.sold ? 'cream small' : c.free || st.coins >= c.price ? 'green small' : 'small', () => act.buy(c.id));
+        // shop toppings: a struck-through usual price when it's cheaper today
+        const was = !c.sold && !c.free && c.was && c.was > c.price ? `<s>${fmt(c.was)}</s> ` : '';
+        const b = btn(c.sold ? 'BOUGHT' : c.free ? 'FREE' : st.coins >= c.price ? `BUY · ${was}${fmt(c.price)}` : `NEED ${was}${fmt(c.price)}`, c.sold ? 'cream small' : c.free || st.coins >= c.price ? 'green small' : 'small', () => act.buy(c.id));
         b.disabled = c.sold || (!c.free && st.coins < c.price);
         const el = h(
           'div',
           { class: `card ${c.rarity}${c.sold ? ' sold' : ''}${dealt.has(c.id) ? ' dealt' : ''}`, tabindex: 0, role: 'button', 'aria-label': `${c.name}: ${c.desc}` },
           h('div', { class: 'key' }, String(i + 1)),
+          !c.sold && (c.free || c.tag) ? h('span', { class: `ptag ${c.free ? 'free' : c.tag!.kind}` }, c.free ? 'FREE' : c.tag!.text) : null,
           h('span', { class: `kind ${c.kind}` }, c.kind === 'permanent' ? 'PERMANENT' : c.kind === 'unique' ? 'ONCE PER RUN' : 'ONE USE'),
           h('div', { class: 'rarity' }, c.rarity),
           h('div', { class: 'icon' }, c.icon),
@@ -717,7 +913,7 @@ class UI {
         'section',
         { class: 'shop-sec toppings', 'data-pad-section': '' },
         h('div', { class: 'sec-head' }, h('h2', {}, 'TOPPINGS'), h('span', { class: 'sec-note' }, 'Buy as many as you can afford'), reroll),
-        h('div', { class: 'cards' }, ...cards),
+        h('div', { class: `cards${cards.length > 4 ? ' row' : ''}${cards.length > 5 ? ' many' : ''}` }, ...cards),
       );
       // table strip
       const table = h(
@@ -727,25 +923,43 @@ class UI {
         h(
           'div',
           { class: 'strip' },
-          ...st.table.map((p) =>
-            h(
+          ...st.table.map((p, i) => {
+            // each pizza that isn't fully fresh gets its own Reheat button
+            const reheat = p.reheat ? btn(`REHEAT · ${fmt(p.reheat.cost)}`, 'yellow small reheat', () => act.reheat(i), { 'aria-label': `Reheat ${p.name} for ${p.reheat.cost} tips` }) : null;
+            if (reheat && p.reheat) reheat.disabled = !p.reheat.can;
+            return h(
               'div',
-              { class: `ptile${p.stale ? ' stale' : ''}${p.dead ? ' dead' : ''}` },
+              { class: `ptile${p.stale ? ' stale' : ''}${p.dead ? ' dead' : ''}${p.enhanced ? ' enhanced' : ''}` },
               p.stale ? h('span', { class: 'flag' }, 'STALE') : p.dead ? h('span', { class: 'flag dead' }, 'TOAST') : null,
+              p.enhanced ? h('span', { class: 'star-badge', title: 'Enhanced: its perk is stronger this run', 'aria-label': 'Enhanced' }, '★') : null,
               sliceArt(p, 120),
               h('div', { class: 'nm' }, p.name),
-              h('div', { class: `ds${p.stale ? ' off' : ''}` }, p.perk),
+              h('div', { class: `ds${p.stale ? ' off' : ''}` }, p.enhanced && !p.stale ? perkDiff(p.basePerk, p.perk) : p.perk),
               h('div', { class: 'sl' }, `${p.slices} / ${p.max} slices`),
               p.freshOn && !p.dead ? freshBar(p.fresh, p.maxFresh) : null,
-            ),
-          ),
+              reheat,
+            );
+          }),
         ),
       );
       // counter + services
       const offers = st.offers.map((o) => {
-        const b = btn(`${o.trial ? 'RENT' : 'BUY'} · ${fmt(o.cost)}`, `${st.coins >= o.cost ? 'green' : ''} small`, () => act.buyPizza(o.id));
+        const was = o.cost < o.fullCost ? `<s>${fmt(o.fullCost)}</s> ` : '';
+        const b = btn(o.cost === 0 ? 'FREE' : `BUY · ${was}${fmt(o.cost)}`, `${st.coins >= o.cost ? 'green' : ''} small`, () => act.buyPizza(o.id));
         b.disabled = st.coins < o.cost;
-        return h('div', { class: `offer${o.trial ? ' trial' : ''}` }, h('img', { src: pizzaPortraitURL(o.id), alt: '' }), h('div', { class: 'offer-text' }, o.trial ? h('span', { class: 'tag' }, "CHEF'S SPECIAL") : null, h('b', {}, o.name), h('span', {}, o.perk)), b);
+        const pic = h('div', { class: 'offer-pic' }, h('img', { src: pizzaPortraitURL(o.id), alt: '' }), o.kind === 'enhanced' ? h('span', { class: 'star-badge' }, '★') : null);
+        if (o.kind === 'special')
+          return h(
+            'div',
+            { class: 'offer special' },
+            pic,
+            h('div', { class: 'offer-text' }, h('span', { class: 'tag' }, "CHEF'S SPECIAL"), h('b', {}, o.name), h('span', {}, o.perk)),
+            b,
+            h('div', { class: 'unlock-note' }, h('b', {}, 'NEW PIZZA'), ' · Buy it to add it to your table and unlock it forever'),
+          );
+        if (o.kind === 'enhanced')
+          return h('div', { class: 'offer enhanced' }, pic, h('div', { class: 'offer-text' }, h('span', { class: 'tag' }, '★ ENHANCED PIZZA'), h('b', {}, o.name), h('span', {}, perkDiff(o.basePerk ?? o.perk, o.perk))), b);
+        return h('div', { class: `offer${o.cost === 0 ? ' free' : ''}` }, pic, h('div', { class: 'offer-text' }, o.cost === 0 ? h('span', { class: 'tag' }, 'ON THE HOUSE') : null, h('b', {}, o.name), h('span', {}, o.perk)), b);
       });
       const svc = (label: string, s: { cost: number; can: boolean }, fn: () => void, cls: string) => {
         const b = btn(`${label} · ${fmt(s.cost)}`, `${cls} small`, fn);
@@ -755,15 +969,16 @@ class UI {
       const services = h(
         'div',
         { class: 'services' },
-        st.reheat.shown ? svc('REHEAT', st.reheat, act.reheat, 'yellow') : null,
-        svc('HEAL ALL +2', st.heal, act.heal, 'green'),
+        btn('YOUR TOPPINGS', 'yellow small', () => act.toppings(), { title: 'Every topping you have, its level, and when used ones come back', 'aria-label': `Your toppings: ${st.yours.filter((y) => y.back === null).length}` }),
+        svc('HEAL +2', st.heal, act.heal, 'green'),
         st.rebake.shown ? svc('REBAKE', st.rebake, act.rebake, '') : null,
       );
       const counter = h(
         'section',
-        { class: 'shop-sec counter2', 'data-pad-section': '' },
+        { class: `shop-sec counter2${st.lastStand ? ' last-stand' : ''}`, 'data-pad-section': '' },
         h('div', { class: 'sec-head' }, h('h2', {}, 'PIZZA COUNTER'), st.tableFull ? h('span', { class: 'sec-note' }, 'Full: you pick one to swap') : null),
-        ...(offers.length ? offers : [h('div', { class: 'hint' }, 'Unlock more pizzas in the Pizzeria to see them here.')]),
+        st.lastStand ? h('div', { class: 'ls-banner', role: 'status' }, h('b', {}, 'ONE PIZZA LEFT'), h('span', {}, 'PICK ANOTHER ONE, ON THE HOUSE')) : null,
+        ...(offers.length ? offers : [h('div', { class: 'hint' }, 'Nothing more at the counter this time.')]),
         services,
       );
       const golden = h(
@@ -781,14 +996,19 @@ class UI {
           }),
         ),
       );
-      const next = btn('NEXT WAVE', 'big next', () => act.next(), { 'data-pad': 'hold' });
+      // last pizza standing: Next Wave waits until a pizza is added
+      const next = st.lastStand
+        ? btn('🔒 NEXT WAVE<small>Add a pizza from the counter first</small>', 'big next locked', () => act.next(), { 'data-pad': 'hold', 'aria-label': 'Next wave is locked: add a pizza from the counter first' })
+        : btn('NEXT WAVE', 'big next', () => act.next(), { 'data-pad': 'hold' });
       next.addEventListener('padhold', () => act.next());
+      // the pause menu from the shop: settings, save and leave, or quit
+      const gear = btn(GEAR_SVG, 'shop-pause cream', () => act.pause(), { 'aria-label': 'Pause menu', title: 'Pause menu (Esc)' });
       const pr = st.progress;
       const prog = h('div', { class: 'crust-progress', html: `${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} <b>+${pr.runCrusts}</b> crusts this run${pr.next ? (pr.bank + pr.runCrusts >= pr.next.cost ? ` · ${pr.next.name} ready to unlock` : ` · next: ${pr.next.name} ${pr.bank + pr.runCrusts}/${pr.next.cost}`) : ''}` });
       wrap.replaceChildren(
         head,
-        h('div', { class: 'shop-body' }, h('div', { class: 'shop-left' }, toppings, table), h('div', { class: 'shop-right' }, counter, golden, next)),
-        h('div', { class: 'shop-foot' }, prog, h('span', { class: 'hint kbd-hint', html: `<span class="kbd">1</span>–<span class="kbd">${st.cards.length}</span> buy · <span class="kbd">R</span> reroll · <span class="kbd">Enter</span> next wave` }), h('span', { class: 'hint pad-hint', html: `<span class="glyph">${glyph('A')}</span> buy · <span class="glyph">${glyph('Y')}</span> reroll · <span class="glyph">${glyph('LB')}</span><span class="glyph">${glyph('RB')}</span> sections · hold <span class="glyph">${glyph('MENU')}</span> next wave` })),
+        h('div', { class: 'shop-body' }, h('div', { class: 'shop-left' }, toppings, table), h('div', { class: 'shop-right' }, counter, golden, h('div', { class: 'next-row' }, gear, next))),
+        h('div', { class: 'shop-foot' }, prog, h('span', { class: 'hint kbd-hint', html: `<span class="kbd">1</span>–<span class="kbd">${st.cards.length}</span> buy · <span class="kbd">R</span> reroll · <span class="kbd">Enter</span> next wave · <span class="kbd">Esc</span> menu` }), h('span', { class: 'hint pad-hint', html: `<span class="glyph">${glyph('A')}</span> buy · <span class="glyph">${glyph('Y')}</span> reroll · <span class="glyph">${glyph('LB')}</span><span class="glyph">${glyph('RB')}</span> sections · hold <span class="glyph">${glyph('MENU')}</span> next wave` })),
       );
     };
     render();
@@ -807,6 +1027,113 @@ class UI {
 
   updateShop(screen: HTMLElement, st: ShopState): void {
     this.shops.get(screen)?.(st);
+  }
+
+  /** Next Wave pressed while it's locked: shake the counter so the eye goes there. */
+  nudgeCounter(screen: HTMLElement): void {
+    const c = screen.querySelector<HTMLElement>('.counter2');
+    if (!c) return;
+    c.classList.remove('nudge');
+    void c.offsetWidth;
+    c.classList.add('nudge');
+  }
+
+  // ——— Your Toppings: everything you own, searchable ———
+  yourToppings(list: YourTopping[], wave: number): HTMLElement {
+    let s: HTMLElement;
+    const search = h('input', { class: 'yt-search', type: 'search', placeholder: 'Search your toppings', 'aria-label': 'Search your toppings' }) as HTMLInputElement;
+    const body = h('div', { class: 'scroll yt-list' });
+    const rows = list.map((y) => {
+      const u = UPGRADE_BY_ID[y.id];
+      const k = kindOf(u);
+      const more = k === 'permanent' && y.lvl > 1 && u.desc(2) !== u.desc(1) ? `Each level after the first: ${u.desc(2)}` : '';
+      // cooldowns hold the first wave a used consumable may be dealt again: it's back in that wave's shop
+      const status =
+        y.back !== null
+          ? h('span', { class: 'yt-st back' }, `Used · back in the shop after wave ${y.back}${y.back > wave ? ` (${y.back - wave} to go)` : ''}`)
+          : y.armed
+            ? h('span', { class: 'yt-st ready' }, 'READY · waiting to trigger')
+            : k === 'permanent'
+              ? h('span', { class: 'yt-st' }, `LV ${y.lvl} / ${y.max ?? u.max}`)
+              : h('span', { class: 'yt-st' }, k === 'unique' ? 'Once per run' : 'One use');
+      const row = h(
+        'div',
+        { class: `ytop${y.back !== null ? ' used' : ''}`, style: `--rc:${RARITY_COLOR[u.rarity]}` },
+        h('div', { class: 'ic' }, u.icon),
+        h('div', { class: 'tx' }, h('div', { class: 'yt-head' }, h('b', {}, u.name), h('span', { class: `rar ${u.rarity}` }, u.rarity), status), h('span', {}, u.desc(1)), more ? h('small', {}, more) : null, u.downside ? h('em', { class: 'down' }, `▼ ${u.downside}`) : null),
+      );
+      return { row, text: `${u.name} ${u.desc(1)} ${u.rarity} ${u.downside ?? ''}`.toLowerCase() };
+    });
+    const empty = h('div', { class: 'hint' }, list.length ? 'No toppings match that.' : 'No toppings yet. Buy some from the cards!');
+    const filter = () => {
+      const q = search.value.trim().toLowerCase();
+      const shown = rows.filter((r) => !q || r.text.includes(q));
+      body.replaceChildren(...shown.map((r) => r.row), ...(shown.length ? [] : [empty]));
+    };
+    search.addEventListener('input', filter);
+    // typing in the box mustn't trigger the shop's keys (1-4 buy, R reroll, N next wave)
+    search.addEventListener('keydown', (e) => e.stopPropagation());
+    filter();
+    const owned = list.filter((y) => y.back === null).length;
+    const panel = h(
+      'div',
+      { class: 'panel modal wide yourtops' },
+      h('div', { class: 'title' }, 'YOUR TOPPINGS'),
+      h('div', { class: 'subtitle' }, `${owned} topping${owned === 1 ? '' : 's'} on your pizzas${list.length > owned ? ` · ${list.length - owned} coming back` : ''}`),
+      search,
+      body,
+      btn('DONE', 'green', () => this.close(s), { 'data-pad': 'back' }),
+    );
+    s = this.open(panel);
+    setTimeout(() => search.focus({ preventScroll: true }), 50);
+    return s;
+  }
+
+  // ——— Enhance a Pizza (Golden Menu): pick a pizza on the table ———
+  enhancePicker(o: { cost: number; pizzas: ShopPizza[]; onPick: (index: number) => void }): HTMLElement {
+    let s: HTMLElement;
+    let picked = o.pizzas.findIndex((p) => !p.dead && !p.enhanced);
+    const confirm = btn('', 'yellow big', () => {
+      if (picked < 0) return;
+      this.close(s);
+      o.onPick(picked);
+    });
+    const tiles: HTMLButtonElement[] = [];
+    const sync = () => {
+      tiles.forEach((t) => t.classList.toggle('picked', Number(t.dataset.i) === picked));
+      const p = o.pizzas[picked];
+      confirm.innerHTML = p ? `${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} ENHANCE · ${o.cost}` : 'ENHANCE';
+      confirm.disabled = !p;
+    };
+    o.pizzas.forEach((p, i) => {
+      const off = p.dead || p.enhanced;
+      const t = h(
+        'button',
+        { class: `swaptile enh${p.dead ? ' dead' : ''}${p.enhanced ? ' done' : ''}`, type: 'button', 'data-i': i },
+        p.enhanced ? h('span', { class: 'flag gold' }, '★ ENHANCED') : p.dead ? h('span', { class: 'flag dead' }, 'TOAST') : null,
+        pizzaThumb(p.id, p.slices, p.max, 200, p.stale, p.dead),
+        h('span', { class: 'nm' }, p.name),
+        p.dead ? h('span', { class: 'ds' }, 'Destroyed') : h('span', { class: 'ds' }, perkDiff(p.basePerk, p.enhanced ? p.perk : p.enhancedPerk)),
+      ) as HTMLButtonElement;
+      t.disabled = off;
+      t.addEventListener('click', () => {
+        if (off) return;
+        audio.sfx('sfx_click');
+        picked = i;
+        sync();
+      });
+      tiles.push(t);
+    });
+    const panel = h(
+      'div',
+      { class: 'swap2 enhance2' },
+      h('div', { class: 'incoming' }, h('div', { class: 'in-star' }, '★'), h('div', { class: 'in-text' }, h('span', { class: 'tag' }, 'GOLDEN MENU · ENHANCE A PIZZA'), h('b', {}, 'Make one perk stronger'), h('span', {}, 'About +50% for the rest of the run, or a better effect. One per pizza.')), h('div', { class: 'in-ask' }, h('b', {}, 'WHICH PIZZA?'), h('span', {}, `${o.cost} crusts · the price doubles each time`))),
+      h('div', { class: 'swaprow' }, ...tiles),
+      h('div', { class: 'swapfoot' }, btn('CANCEL', 'cream', () => this.close(s), { 'data-pad': 'back' }), confirm),
+    );
+    sync();
+    s = this.open(panel);
+    return s;
   }
 
   // ——— Swap picker: the incoming pizza on top, your pizzas drawn big below ———
@@ -910,33 +1237,58 @@ class UI {
       { class: 'panel modal second' },
       h('div', { class: 'title' }, 'ALL PIZZAS STOMPED'),
       h('div', { class: 'gold-card' }, h('span', { class: 'intro-tag' }, 'GOLDEN MENU'), h('b', {}, 'Second Chance'), h('p', {}, `Replay wave ${o.wave} with 3 pizzas at half slices. The run is marked as a second-chance run.`), h('span', { class: 'hint' }, `You have ${fmt(o.bank)} crusts banked · next use costs ${fmt(o.nextCost)}`)),
-      h('div', { class: 'row' }, btn('NO THANKS', 'cream', o.decline, { 'data-pad': 'back' }), btn(`${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} USE ${o.cost} CRUSTS`, 'yellow big', o.use)),
+      h('div', { class: 'row' }, btn('NO THANKS', 'cream', o.decline, { 'data-pad': 'back', 'data-no-x': '' }), btn(`${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} USE ${o.cost} CRUSTS`, 'yellow big', o.use)),
     );
     return this.open(panel);
   }
 
-  // ——— Victory after the 60-wave journey ———
-  victory(o: { score: number; time: string; feet: number; bosses: number; heat: string; crusts: number; keepGoing: () => void; bank: () => void }): HTMLElement {
+  // ——— Victory at the journey's end ———
+  /** keepGoing: endless runs carry on from here (the journey again, harder). */
+  victory(o: { kicker: string; acts: number; score: number; time: string; feet: number; bosses: number; heat: string; crusts: number; bank: () => void; keepGoing: (() => void) | null; legend?: boolean }): HTMLElement {
     const panel = h(
       'div',
-      { class: 'victory' },
-      h('div', { class: 'v-kicker' }, 'GHOST OF FEET PAST DEFEATED'),
+      { class: `victory${o.legend ? ' legend' : ''}` },
+      h('div', { class: 'v-kicker' }, o.kicker),
       h('div', { class: 'v-title' }, 'PIZZA SAVED!'),
-      h('div', { class: 'v-sub' }, 'Every foot from past to present, smacked. The table is yours.'),
+      o.legend ? h('div', { class: 'v-legend' }, h('b', {}, 'PIZZA LEGEND'), h('span', {}, 'Endless+ is unlocked on the new-run screen')) : null,
+      h('div', { class: 'v-sub' }, `All ${o.acts} acts, every boss, smacked. The table is yours.`),
+      actTrack(o.acts, o.acts),
       h('div', { class: 'stats' }, stat(fmt(o.score), 'Score'), stat(o.time, 'Run time'), stat(fmt(o.feet), 'Feet smacked'), stat(String(o.bosses), 'Bosses beaten'), stat(o.heat, 'Heat')),
       h('div', { class: 'crusts', html: `${CRUST_SVG.replace('class="coin"', 'style="width:1.2em;height:1.2em"')} +${fmt(o.crusts)} <span style="font-size:.55em">Golden Crusts</span>` }),
       h(
         'div',
         { class: 'row' },
-        h('div', { class: 'v-choice' }, btn('KEEP GOING', 'big', o.keepGoing), h('span', {}, 'Endless mode: the journey again, harder')),
-        h('div', { class: 'v-choice' }, btn('BANK IT', 'green big', o.bank), h('span', {}, 'End the run and collect your crusts')),
+        o.keepGoing ? h('div', { class: 'v-choice' }, btn('KEEP GOING', 'green big', o.keepGoing, { 'data-pad-default': '' }), h('span', {}, 'Endless: the journey again, harder')) : null,
+        h('div', { class: 'v-choice' }, btn('BANK IT', o.keepGoing ? 'yellow big' : 'green big', o.bank, o.keepGoing ? {} : { 'data-pad-default': '' }), h('span', {}, 'End the run and collect your crusts')),
+      ),
+    );
+    return this.open(panel);
+  }
+
+  // ——— ACT COMPLETE: after the boss that ends each act ———
+  actComplete(o: { act: number; name: string; acts: number; loop: number; kicker: string; time: string; feet: number; slices: number; crusts: number; nextLabel: string; keepGoing: () => void; bank: () => void; pause: () => void }): HTMLElement {
+    const gear = btn(GEAR_SVG, 'act-pause cream', o.pause, { 'aria-label': 'Pause menu', title: 'Pause menu (Esc)' });
+    const panel = h(
+      'div',
+      { class: 'victory actdone' },
+      gear,
+      h('div', { class: 'v-kicker' }, o.kicker),
+      h('div', { class: 'v-title' }, 'ACT COMPLETE!'),
+      h('div', { class: 'v-sub' }, `Act ${o.act} · ${o.name}${o.loop ? ` · Endless loop ${o.loop + 1}` : ''}`),
+      actTrack(o.acts, o.act),
+      h('div', { class: 'stats' }, stat(o.time, 'Act time'), stat(fmt(o.feet), 'Feet smacked'), stat(fmt(o.slices), 'Slices lost'), stat(fmt(o.crusts), 'Crusts so far')),
+      h(
+        'div',
+        { class: 'row' },
+        h('div', { class: 'v-choice' }, btn('KEEP GOING', 'green big', o.keepGoing, { 'data-pad-default': '' }), h('span', {}, `On to ${o.nextLabel}`)),
+        h('div', { class: 'v-choice' }, btn('BANK IT', 'yellow big', o.bank), h('span', {}, 'End the run and collect your crusts')),
       ),
     );
     return this.open(panel);
   }
 
   // ——— Pause ———
-  pause(o: { resume: () => void; settings: () => void; quit: () => void; owned: Record<string, number>; armed?: string[]; wave: number; score: number }): HTMLElement {
+  pause(o: { resume: () => void; settings: () => void; quit: () => void; leave: (() => void) | null; leaveNote: string; inShop?: boolean; backLabel?: string; act?: string; owned: Record<string, number>; armed?: string[]; wave: number; score: number }): HTMLElement {
     // your toppings live here rather than on the HUD, where they piled up over the pizzas
     const entries = Object.entries(o.owned).filter(([id]) => UPGRADE_BY_ID[id]);
     const list = h(
@@ -969,10 +1321,13 @@ class UI {
       'div',
       { class: 'panel modal' },
       h('div', { class: 'title' }, 'PAUSED'),
-      h('div', { class: 'subtitle' }, `Wave ${o.wave} · ${fmt(o.score)} points`),
+      h('div', { class: 'subtitle' }, `Wave ${o.wave}${o.act ? ` · ${o.act}` : ''} · ${fmt(o.score)} points`),
       tops,
-      h('div', { class: 'row' }, btn('RESUME', 'green big', o.resume, { 'data-pad': 'menu', 'data-pad-default': '' }), btn('SETTINGS', 'yellow', o.settings), quit),
-      h('div', { class: 'hint kbd-hint', html: '<span class="kbd">ESC</span> resume · <span class="kbd">M</span> mute · <span class="kbd">SPACE</span> Peel Slam' }),
+      h('div', { class: 'row' }, btn(o.backLabel ?? (o.inShop ? 'BACK TO SHOP' : 'RESUME'), 'green big', o.resume, { 'data-pad': 'menu', 'data-pad-default': '' }), btn('SETTINGS', 'yellow', o.settings)),
+      // leave keeps the run saved (Resume on the title screen); quit ends it
+      h('div', { class: 'row' }, o.leave ? btn('SAVE &amp; MENU', 'cream', o.leave) : null, quit),
+      h('div', { class: 'hint pause-note' }, o.leaveNote),
+      h('div', { class: 'hint kbd-hint', html: o.backLabel ? '<span class="kbd">ESC</span> back · <span class="kbd">M</span> mute' : o.inShop ? '<span class="kbd">ESC</span> back to the shop · <span class="kbd">M</span> mute' : '<span class="kbd">ESC</span> resume · <span class="kbd">M</span> mute · <span class="kbd">SPACE</span> Peel Slam' }),
     );
     return this.open(panel);
   }
@@ -996,7 +1351,7 @@ class UI {
       });
       return h('label', { class: 'setting' }, h('span', {}, label), input, out);
     };
-    const toggle = (key: 'muted' | 'screenShake' | 'damageNumbers' | 'flashes' | 'showFps' | 'traitIcons' | 'reducedMotion' | 'slowNewCards' | 'vibration', label: string) => {
+    const toggle = (key: 'muted' | 'screenShake' | 'damageNumbers' | 'flashes' | 'showFps' | 'showTimer' | 'traitIcons' | 'reducedMotion' | 'slowNewCards' | 'vibration', label: string) => {
       const input = h('input', { type: 'checkbox' }) as HTMLInputElement;
       input.checked = save.settings[key];
       input.addEventListener('change', () => {
@@ -1084,7 +1439,7 @@ class UI {
           slider('music', 'Music'),
           slider('sfx', 'Sound FX'),
           slider('ambience', 'Ambience'),
-          h('div', { class: 'toggles' }, toggle('muted', 'Mute all'), toggle('showFps', 'Show FPS'), toggle('damageNumbers', 'Damage numbers')),
+          h('div', { class: 'toggles' }, toggle('muted', 'Mute all'), toggle('showFps', 'Show FPS'), toggle('damageNumbers', 'Damage numbers'), toggle('showTimer', 'Run timer')),
         );
       else if (tab === 'controls')
         body.replaceChildren(
@@ -1151,10 +1506,9 @@ class UI {
   }
 
   // ——— Game over ———
-  gameOver(o: { score: number; wave: number; feet: number; combo: number; bosses: number; crusts: number; newBest: boolean; heat: string; location: string; secondChanceRun: boolean; time: string; unlocked: string[]; affordable: string[]; next: { name: string; cost: number } | null; victory: boolean; again: () => void; menu: () => void; pizzeria: () => void }): HTMLElement {
+  gameOver(o: { score: number; wave: number; feet: number; combo: number; bosses: number; crusts: number; newBest: boolean; heat: string; location: string; act: string; banked: boolean; secondChanceRun: boolean; time: string; affordable: string[]; next: { name: string; cost: number } | null; victory: boolean; again: () => void; menu: () => void; pizzeria: () => void }): HTMLElement {
     const shopBtn = btn('PIZZERIA', `yellow${o.affordable.length ? ' attention' : ''}`, o.pizzeria);
     const callouts = h('div', { class: 'callouts' });
-    if (o.unlocked.length) callouts.append(h('div', { class: 'callout good', html: `🎉 Unlocked this run: <b>${o.unlocked.map((id) => PIZZA_BY_ID[id].name).join(', ')}</b>` }));
     if (o.affordable.length) callouts.append(h('div', { class: 'callout', html: `🍕 You can now unlock <b>${o.affordable.slice(0, 3).map((id) => PIZZA_BY_ID[id].name).join(', ')}${o.affordable.length > 3 ? ` +${o.affordable.length - 3} more` : ''}</b> in the Pizzeria!` }));
     else if (o.next) callouts.append(h('div', { class: 'callout', html: `Next unlock: <b>${o.next.name}</b> · ${fmt(Math.min(save.crusts, o.next.cost))} / ${fmt(o.next.cost)} crusts` }));
     if (o.secondChanceRun) callouts.append(h('div', { class: 'callout' }, 'Second-chance run'));
@@ -1162,13 +1516,13 @@ class UI {
     const panel = h(
       'div',
       { class: 'panel modal pop' },
-      h('div', { class: 'title', style: `font-size:4.6em;color:${o.victory ? 'var(--cheese-d)' : '#ff6a4d'}` }, o.victory ? 'JOURNEY COMPLETE' : 'THE PIZZA IS TOAST'),
-      h('div', { class: 'subtitle' }, `Wave ${o.wave} · ${o.location} · ${o.heat}`),
+      h('div', { class: 'title', style: `font-size:4.6em;color:${o.victory || o.banked ? 'var(--cheese-d)' : '#ff6a4d'}` }, o.victory ? 'JOURNEY COMPLETE' : o.banked ? 'BANKED!' : 'THE PIZZA IS TOAST'),
+      h('div', { class: 'subtitle' }, `Wave ${o.wave} · ${o.act} · ${o.location} · ${o.heat}`),
       o.newBest ? h('div', { class: 'newbest' }, `NEW BEST ON ${o.heat.toUpperCase()}!`) : null,
       h('div', { class: 'stats' }, stat(fmt(o.score), 'Score'), stat(String(o.wave), 'Wave reached'), stat(fmt(o.feet), 'Feet smacked'), stat(String(o.combo), 'Best combo'), stat(String(o.bosses), 'Bosses beaten'), stat(o.time, 'Time')),
       h('div', { class: 'crusts', html: `${CRUST_SVG.replace('class="coin"', 'style="width:1.2em;height:1.2em"')} +` }, crustsEl, h('span', { style: 'font-size:.6em' }, ' Golden Crusts')),
       callouts.childElementCount ? callouts : null,
-      h('div', { class: 'row' }, btn('PLAY AGAIN', 'green big', o.again, { 'data-pad-default': '' }), shopBtn, btn('MENU', 'cream', o.menu, { 'data-pad': 'back' })),
+      h('div', { class: 'row' }, btn('PLAY AGAIN', 'green big', o.again, { 'data-pad-default': '' }), shopBtn, btn('MENU', 'cream', o.menu, { 'data-pad': 'back', 'data-no-x': '' })),
     );
     const s = this.open(panel);
     const t0 = performance.now();
@@ -1181,89 +1535,261 @@ class UI {
     return s;
   }
 
-  // ——— Pizzeria (meta shop) ———
-  pizzeria(onClose: () => void): HTMLElement {
-    let tab: 'upgrades' | 'pizzas' = 'upgrades';
+  // ——— Pizzeria (meta shop): upgrades, every pizza and how it unlocks, and the toppings collection ———
+  pizzeria(onClose: () => void, openOn: { tab?: 'upgrades' | 'pizzas' | 'toppings'; pizza?: string } = {}): HTMLElement {
+    type Tab = 'upgrades' | 'pizzas' | 'toppings';
+    // catch up on milestones met before they named their pizza
+    awardMilestones(null);
+    // NEW badges stay for this visit; looking at a tab clears them for next time
+    const newPizzas = new Set(save.pizzasNew);
+    const newTops = new Set(save.toppingsNew);
+    let tab: Tab = openOn.tab ?? 'upgrades';
+    let rarity: 'all' | Rarity = 'all';
+    let seenFilter: 'all' | 'seen' | 'unseen' = 'all';
+    // pizzas tab: which group, and whether to show only unlocked ones
+    type PzGroup = 'all' | 'pizzeria' | 'milestone' | 'special' | 'rare';
+    let pzGroup: PzGroup = openOn.pizza ? 'pizzeria' : 'all';
+    let pzUnlockedOnly = false;
     const balance = h('div', { class: 'crusts' });
     const body = h('div', { class: 'scroll' });
     const tabs = h('div', { class: 'tabs' });
+    const crustIco = CRUST_SVG.replace('class="coin"', 'class="coin-ico"');
+    const bar = (have: number, need: number) => h('div', { class: 'pbar' }, h('i', { style: `width:${Math.round((100 * Math.min(have, need)) / need)}%` }), h('span', {}, `${fmt(have)}/${fmt(need)}`));
+    const badge = (on: boolean) => (on ? ' <span class="badge">NEW</span>' : '');
     const render = () => {
       balance.innerHTML = `${CRUST_SVG.replace('class="coin"', 'style="width:1.2em;height:1.2em"')} ${fmt(save.crusts)} <span style="font-size:.55em">Golden Crusts</span>`;
+      if (tab === 'pizzas' && save.pizzasNew.length) {
+        save.pizzasNew = [];
+        persist();
+      }
+      if (tab === 'toppings' && save.toppingsNew.length) {
+        save.toppingsNew = [];
+        persist();
+      }
+      const seenCount = UPGRADES.filter((u) => save.seenToppings.includes(u.id)).length;
       tabs.replaceChildren(
         btn('UPGRADES', `small ${tab === 'upgrades' ? 'active' : ''}`, () => ((tab = 'upgrades'), render())),
-        btn(`PIZZAS ${save.unlockedPizzas.length}/${PIZZAS.length}`, `small ${tab === 'pizzas' ? 'active' : ''}`, () => ((tab = 'pizzas'), render())),
+        btn(`PIZZAS ${save.unlockedPizzas.filter((id) => PIZZA_BY_ID[id]).length}/${PIZZAS.length}${badge(tab !== 'pizzas' && save.pizzasNew.length > 0)}`, `small ${tab === 'pizzas' ? 'active' : ''}`, () => ((tab = 'pizzas'), render())),
+        btn(`TOPPINGS ${seenCount}/${UPGRADES.length}${badge(tab !== 'toppings' && save.toppingsNew.length > 0)}`, `small ${tab === 'toppings' ? 'active' : ''}`, () => ((tab = 'toppings'), render())),
       );
-      if (tab === 'upgrades') {
-        const refund = metaRefundValue();
-        const resetBtn = btn(refund > 0 ? `RESET UPGRADES · REFUND ${fmt(refund)}` : 'RESET UPGRADES', 'cream small', () => {
-          resetMeta();
-          audio.sfx('sfx_coin');
-          render();
+      body.scrollTop = 0;
+      if (tab === 'upgrades') body.replaceChildren(...upgradesTab());
+      else if (tab === 'pizzas') body.replaceChildren(...pizzasTab());
+      else body.replaceChildren(...toppingsTab());
+    };
+    const upgradesTab = (): HTMLElement[] => {
+      const refund = metaRefundValue();
+      const resetBtn = btn(refund > 0 ? `RESET UPGRADES · REFUND ${fmt(refund)}` : 'RESET UPGRADES', 'cream small', () => {
+        resetMeta();
+        audio.sfx('sfx_coin');
+        render();
+      });
+      resetBtn.disabled = refund <= 0;
+      return [
+        h('div', { class: 'reset-row meta-reset' }, resetBtn, h('span', {}, 'Full refund, any time. Pizza unlocks stay unlocked.')),
+        h(
+          'div',
+          { class: 'meta-list' },
+          ...META.map((m) => {
+            const lvl = save.meta[m.id] ?? 0;
+            const maxed = lvl >= m.costs.length;
+            const cost = m.costs[lvl];
+            const pips = h('div', { class: 'pips', style: '--rc:var(--tomato)' });
+            for (let i = 0; i < m.costs.length; i++) pips.append(h('i', { class: i < lvl ? 'on' : '' }));
+            const b = btn(maxed ? 'MAXED' : `${crustIco} ${fmt(cost)}`, maxed ? 'cream' : 'green', () => {
+              if (maxed || save.crusts < cost) return;
+              save.crusts -= cost;
+              save.meta[m.id] = lvl + 1;
+              save.metaSpent[m.id] = (save.metaSpent[m.id] ?? 0) + cost;
+              persist();
+              audio.sfx('sfx_upgrade');
+              render();
+            });
+            b.disabled = maxed || save.crusts < cost;
+            // icon | name + level pips | price, with the description across the full width underneath
+            return h('div', { class: 'meta' }, h('div', { class: 'ic' }, m.icon), h('div', { class: 'nmrow' }, h('div', { class: 'nm' }, m.name), pips), b, h('div', { class: 'ds' }, m.desc));
+          }),
+        ),
+      ];
+    };
+    // every pizza, grouped by how it unlocks
+    const pizzasTab = (): HTMLElement[] => {
+      const has = (id: string) => save.unlockedPizzas.includes(id);
+      const tile = (p: PizzaType, cls: string, ...rest: (HTMLElement | null)[]) =>
+        h('div', { class: `tile pz-tile ${cls}` }, h('img', { src: pizzaPortraitURL(p.id), alt: p.name, loading: 'lazy' }), h('div', { class: 'nm' }, p.name), h('div', { class: 'ds' }, p.perkText), ...rest, newPizzas.has(p.id) ? h('span', { class: 'tag new' }, 'NEW') : null);
+      const section = (title: string, note: string, tiles: HTMLElement[]) => (tiles.length ? [h('div', { class: 'pz-sec' }, h('b', {}, title), h('span', {}, note)), h('div', { class: 'grid' }, ...tiles)] : []);
+      const owned = PIZZAS.filter((p) => has(p.id)).sort((a, b) => Number(newPizzas.has(b.id)) - Number(newPizzas.has(a.id)) || a.cost - b.cost);
+      const locked = (r: PizzaRoute) => PIZZAS.filter((p) => p.route === r && !has(p.id));
+      const shop = locked('pizzeria')
+        .sort((a, b) => a.cost - b.cost)
+        .map((p) => {
+          const b = btn(`${crustIco} ${fmt(p.cost)}`, 'green small', () => {
+            if (save.crusts < p.cost) return;
+            save.crusts -= p.cost;
+            unlockPizza(p.id);
+            newPizzas.add(p.id);
+            save.pizzasNew = save.pizzasNew.filter((x) => x !== p.id);
+            persist();
+            audio.sfx('sfx_levelup');
+            render();
+          });
+          b.disabled = save.crusts < p.cost;
+          const t = tile(p, `unowned${openOn.pizza === p.id ? ' selected' : ''}`, b);
+          t.dataset.pz = p.id;
+          return t;
         });
-        resetBtn.disabled = refund <= 0;
-        body.replaceChildren(
-          h('div', { class: 'reset-row meta-reset' }, resetBtn, h('span', {}, 'Full refund, any time. Pizza unlocks stay unlocked.')),
-          h(
-            'div',
-            { class: 'meta-list' },
-            ...META.map((m) => {
-              const lvl = save.meta[m.id] ?? 0;
-              const maxed = lvl >= m.costs.length;
-              const cost = m.costs[lvl];
-              const pips = h('div', { class: 'pips', style: '--rc:var(--tomato)' });
-              for (let i = 0; i < m.costs.length; i++) pips.append(h('i', { class: i < lvl ? 'on' : '' }));
-              const b = btn(maxed ? 'MAXED' : `${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} ${fmt(cost)}`, maxed ? 'cream' : 'green', () => {
-                if (maxed || save.crusts < cost) return;
-                save.crusts -= cost;
-                save.meta[m.id] = lvl + 1;
-                save.metaSpent[m.id] = (save.metaSpent[m.id] ?? 0) + cost;
-                persist();
-                audio.sfx('sfx_upgrade');
-                render();
-              });
-              b.disabled = maxed || save.crusts < cost;
-              // icon | name + level pips | price, with the description across the full width underneath
-              return h('div', { class: 'meta' }, h('div', { class: 'ic' }, m.icon), h('div', { class: 'nmrow' }, h('div', { class: 'nm' }, m.name), pips), b, h('div', { class: 'ds' }, m.desc));
-            }),
-          ),
+      const prizes = locked('milestone')
+        .map((p) => ({ p, m: MILESTONE_BY_PIZZA[p.id], pr: MILESTONE_BY_PIZZA[p.id] ? milestoneProgress(MILESTONE_BY_PIZZA[p.id].id) : ([0, 1] as [number, number]) }))
+        .sort((a, b) => b.pr[0] / b.pr[1] - a.pr[0] / a.pr[1])
+        .map(({ p, m, pr }) => tile(p, 'unowned pz-goal', h('div', { class: 'route' }, m ? m.name : 'A milestone prize'), bar(pr[0], pr[1])));
+      const specials = locked('special')
+        .sort((a, b) => a.cost - b.cost)
+        .map((p) => {
+          const n = save.specialSeen[p.id] ?? 0;
+          return tile(p, 'unowned', h('div', { class: 'route' }, 'Turns up as a Chef’s Special in the shop'), h('div', { class: 'seen' }, n ? `Seen ${n} time${n === 1 ? '' : 's'}` : 'Not seen yet'));
+        });
+      const rare = locked('rare').map((p) => {
+        // a silhouette until it's turned up once
+        const seen = save.rareSeen.includes(p.id);
+        return h(
+          'div',
+          { class: `tile pz-tile unowned rare${seen ? '' : ' unseen'}` },
+          h('img', { src: pizzaPortraitURL(p.id), alt: seen ? p.name : 'Unknown pizza', loading: 'lazy' }),
+          h('div', { class: 'nm' }, seen ? p.name : '???'),
+          h('div', { class: 'ds' }, seen ? p.perkText : 'A Rare Find'),
+          h('div', { class: 'route' }, 'Turns up rarely on the new-run screen'),
+          seen ? h('div', { class: 'seen' }, `${fmt(p.cost)} crusts when it turns up`) : null,
         );
-      } else {
-        body.replaceChildren(
-          h(
-            'div',
-            { class: 'grid' },
-            ...[...PIZZAS].sort((a, b) => Number(save.unlockedPizzas.includes(b.id)) - Number(save.unlockedPizzas.includes(a.id)) || a.cost - b.cost).map((p) => {
-              const owned = save.unlockedPizzas.includes(p.id);
-              const b = owned
-                ? h('div', { class: 'chip', style: 'background:var(--basil-d);color:#fff' }, 'ON THE MENU')
-                : btn(`${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} ${fmt(p.cost)}`, 'green small', () => {
-                    if (save.crusts < p.cost) return;
-                    save.crusts -= p.cost;
-                    save.unlockedPizzas.push(p.id);
-                    persist();
-                    audio.sfx('sfx_levelup');
-                    render();
-                  });
-              if (!owned) (b as HTMLButtonElement).disabled = save.crusts < p.cost;
-              return h('div', { class: `tile${owned ? '' : ' unowned'}` }, h('img', { src: pizzaPortraitURL(p.id), alt: p.name, loading: 'lazy' }), h('div', { class: 'nm' }, p.name), h('div', { class: 'ds' }, p.perkText), b);
-            }),
-          ),
+      });
+      // the ones you can act on first (buy with crusts, chase a goal), then what you own
+      // filters: each unlock group (with unlocked/total), and an Unlocked only toggle
+      const inGroup = (g: PzGroup) => PIZZAS.filter((p) => g === 'all' || p.route === g);
+      const gCount = (g: PzGroup) => `${inGroup(g).filter((p) => has(p.id)).length}/${inGroup(g).length}`;
+      const GROUPS: [PzGroup, string][] = [['all', 'ALL'], ['pizzeria', 'GOLDEN CRUSTS'], ['milestone', 'MILESTONES'], ['special', 'CHEF’S SPECIALS'], ['rare', 'RARE FINDS']];
+      const gTabs = h('div', { class: 'tabs locker-tabs' }, ...GROUPS.map(([g, l]) => btn(`${l} <small>${gCount(g)}</small>`, `small ${pzGroup === g ? 'active' : ''}`, () => ((pzGroup = g), render()))));
+      const gSelect = h('select', { class: 'locker-select', 'aria-label': 'How it unlocks' }) as HTMLSelectElement;
+      for (const [g, l] of GROUPS) gSelect.append(h('option', { value: g, selected: g === pzGroup }, `${l === 'ALL' ? 'All pizzas' : l} · ${gCount(g)}`));
+      gSelect.addEventListener('change', () => ((pzGroup = gSelect.value as PzGroup), render()));
+      const filter = h('button', { class: `locker-filter${pzUnlockedOnly ? ' on' : ''}`, type: 'button', 'aria-pressed': pzUnlockedOnly ? 'true' : 'false', html: `<i>${pzUnlockedOnly ? '✔' : ''}</i>Unlocked only` });
+      filter.addEventListener('click', () => {
+        audio.sfx('sfx_click');
+        pzUnlockedOnly = !pzUnlockedOnly;
+        render();
+      });
+      const show = (g: Exclude<PzGroup, 'all'>) => pzGroup === 'all' || pzGroup === g;
+      const ownedHere = owned.filter((p) => pzGroup === 'all' || p.route === pzGroup);
+      const parts = pzUnlockedOnly
+        ? []
+        : [
+            ...(show('pizzeria') ? section(`BUY WITH GOLDEN CRUSTS · ${shop.length}`, 'Unlock them here', shop) : []),
+            ...(show('milestone') ? section(`MILESTONE PRIZES · ${prizes.length}`, 'Reach the goal and the pizza is yours', prizes) : []),
+            ...(show('special') ? section(`CHEF’S SPECIALS · ${specials.length}`, 'Buy one in the shop with tips to unlock it for good', specials) : []),
+            ...(show('rare') ? section(`RARE FINDS · ${rare.length}`, 'Only by luck, on the new-run screen', rare) : []),
+          ];
+      parts.push(...section(`ON THE MENU · ${ownedHere.length}`, 'Unlocked: these can turn up at the shop counter', ownedHere.map((p) => tile(p, '', h('div', { class: 'chip', style: 'background:var(--basil-d);color:#fff' }, 'ON THE MENU')))));
+      return [
+        h('div', { class: 'locker-bar pz-bar' }, gTabs, gSelect, filter),
+        ...(parts.length ? parts : [h('p', { class: 'hint' }, 'Nothing here yet.')]),
+      ];
+    };
+    // every topping in the game: seen ones in full, the rest as ??? in their rarity colour
+    const RARITIES: Rarity[] = ['common', 'rare', 'epic', 'legendary'];
+    const toppingsTab = (): HTMLElement[] => {
+      const seen = new Set(save.seenToppings);
+      const rTabs = h('div', { class: 'tabs locker-tabs' });
+      const rSelect = h('select', { class: 'locker-select', 'aria-label': 'Rarity' }) as HTMLSelectElement;
+      const sTabs = h('div', { class: 'tabs locker-tabs' });
+      const sSelect = h('select', { class: 'locker-select', 'aria-label': 'Seen or not' }) as HTMLSelectElement;
+      const rOpts: ['all' | Rarity, string][] = [['all', 'ALL'], ...RARITIES.map((r) => [r, r.toUpperCase()] as [Rarity, string])];
+      const sOpts: ['all' | 'seen' | 'unseen', string][] = [['all', 'ALL'], ['seen', 'SEEN'], ['unseen', 'NOT SEEN']];
+      // seen/total on every rarity button (and how many each seen filter holds)
+      const ofRarity = (v: 'all' | Rarity) => UPGRADES.filter((u) => v === 'all' || u.rarity === v);
+      const rCount = (v: 'all' | Rarity) => `${ofRarity(v).filter((u) => seen.has(u.id)).length}/${ofRarity(v).length}`;
+      const inRarity = ofRarity(rarity);
+      const sCount = (v: 'all' | 'seen' | 'unseen') => String(v === 'all' ? inRarity.length : inRarity.filter((u) => (v === 'seen') === seen.has(u.id)).length);
+      rTabs.append(...rOpts.map(([v, l]) => btn(`${l} <small>${rCount(v)}</small>`, `small ${rarity === v ? 'active' : ''}`, () => ((rarity = v), render()))));
+      sTabs.append(...sOpts.map(([v, l]) => btn(`${l} <small>${sCount(v)}</small>`, `small ${seenFilter === v ? 'active' : ''}`, () => ((seenFilter = v), render()))));
+      for (const [v, l] of rOpts) rSelect.append(h('option', { value: v, selected: v === rarity }, `${l === 'ALL' ? 'All rarities' : l} · ${rCount(v)}`));
+      for (const [v, l] of sOpts) sSelect.append(h('option', { value: v, selected: v === seenFilter }, `${l === 'ALL' ? 'Seen and not seen' : l} · ${sCount(v)}`));
+      rSelect.addEventListener('change', () => ((rarity = rSelect.value as typeof rarity), render()));
+      sSelect.addEventListener('change', () => ((seenFilter = sSelect.value as typeof seenFilter), render()));
+      const list = UPGRADES.filter((u) => (rarity === 'all' || u.rarity === rarity) && (seenFilter === 'all' || (seenFilter === 'seen') === seen.has(u.id))).sort(
+        (a, b) => RARITIES.indexOf(a.rarity) - RARITIES.indexOf(b.rarity) || Number(seen.has(b.id)) - Number(seen.has(a.id)) || Number(newTops.has(b.id)) - Number(newTops.has(a.id)) || a.name.localeCompare(b.name),
+      );
+      const card = (u: (typeof UPGRADES)[number]) => {
+        if (!seen.has(u.id)) return h('div', { class: `tcard unseen ${u.rarity}`, style: `--rc:${RARITY_COLOR[u.rarity]}`, 'aria-label': `Not seen yet: a ${u.rarity} topping` }, h('div', { class: 'q' }, '???'), h('div', { class: 'rarity' }, u.rarity));
+        const k = kindOf(u);
+        const runs = save.toppingRuns[u.id] ?? 0;
+        return h(
+          'div',
+          { class: `tcard ${u.rarity}${runs ? ' bought' : ''}`, style: `--rc:${RARITY_COLOR[u.rarity]}` },
+          h('div', { class: 'tc-top' }, h('span', { class: 'ic' }, u.icon), h('div', { class: 'rarity' }, u.rarity), h('span', { class: `kind ${k}` }, k === 'permanent' ? 'PERMANENT' : k === 'unique' ? 'ONCE PER RUN' : 'ONE USE')),
+          h('div', { class: 'nm' }, u.name),
+          h('div', { class: 'ds' }, u.desc(1)),
+          u.downside ? h('div', { class: 'down' }, `▼ ${u.downside}`) : null,
+          runs ? h('div', { class: 'runs' }, h('span', { class: 'tick', 'aria-hidden': 'true' }, '✔'), `Bought in ${runs} run${runs === 1 ? '' : 's'}`) : null,
+          newTops.has(u.id) ? h('span', { class: 'tag new' }, 'NEW') : null,
         );
-      }
+      };
+      return [
+        h('div', { class: 'locker-bar tops-bar' }, rTabs, rSelect, sTabs, sSelect),
+        h('div', { class: 'tops-note' }, `${seen.size ? `${UPGRADES.filter((u) => seen.has(u.id)).length} seen of ${UPGRADES.length}` : 'Nothing seen yet'} · a topping shows here once it's dealt in a shop`),
+        list.length ? h('div', { class: 'tgrid' }, ...list.map(card)) : h('div', { class: 'hint' }, 'Nothing here yet.'),
+      ];
     };
     render();
     let s: HTMLElement;
     const panel = h(
       'div',
-      { class: 'panel modal wide' },
-      h('div', { class: 'title' }, 'THE PIZZERIA'),
-      balance,
+      { class: 'panel modal wide pizzeria' },
+      h('div', { class: 'win-head' }, h('div', { class: 'title' }, 'THE PIZZERIA'), balance),
       tabs,
       body,
-      btn('DONE', 'green', () => {
+      btn('DONE', 'green win-done', () => {
         this.close(s);
         onClose();
       }, { 'data-pad': 'back' }),
+    );
+    s = this.open(panel);
+    // opened on a pizza (from the Pizzapedia): bring its card into view
+    if (openOn.pizza) {
+      requestAnimationFrame(() => {
+        const t = body.querySelector<HTMLElement>(`[data-pz="${CSS.escape(openOn.pizza!)}"]`);
+        if (t) body.scrollTop = t.offsetTop - body.offsetTop - 20;
+      });
+    }
+    return s;
+  }
+
+  // ——— Unlocked this run: after every run (win, bank or loss), before its stats ———
+  runSummary(o: RunSummary, onContinue: () => void): HTMLElement {
+    let s: HTMLElement;
+    const item = (art: HTMLElement, title: string, line: string, cls = '', isNew = false, extra: HTMLElement | null = null) =>
+      h('div', { class: `rs-item ${cls}` }, art, h('div', { class: 'rs-tx' }, h('b', {}, title), h('span', {}, line), extra), isNew ? h('span', { class: 'tag new' }, 'NEW') : null);
+    const img = (src: string, cls = '') => h('div', { class: `rs-art ${cls}` }, h('img', { src, alt: '' }));
+    const ico = (t: string) => h('div', { class: 'rs-art ic' }, t);
+    const sec = (title: string, items: HTMLElement[]) => (items.length ? [h('div', { class: 'section-title' }, title), h('div', { class: 'rs-grid' }, ...items)] : []);
+    const bar = (have: number, need: number) => h('div', { class: 'pbar' }, h('i', { style: `width:${Math.round((100 * Math.min(have, need)) / need)}%` }), h('span', {}, `${fmt(have)}/${fmt(need)}`));
+    const nothing = !o.pizzas.length && !o.peels.length && !o.milestones.length;
+    const panel = h(
+      'div',
+      { class: 'panel modal wide runsum' },
+      h('div', { class: 'rs-kicker' }, o.victory ? 'JOURNEY COMPLETE' : 'RUN OVER'),
+      h('div', { class: 'title' }, 'UNLOCKED THIS RUN'),
+      h('div', { class: 'crusts', html: `${CRUST_SVG.replace('class="coin"', 'style="width:1.2em;height:1.2em"')} +${fmt(o.crusts)} <span style="font-size:.55em">Golden Crusts earned</span>` }),
+      h(
+        'div',
+        { class: 'scroll rs-body' },
+        ...sec('NEW PIZZAS', o.pizzas.map((p) => item(img(pizzaPortraitURL(p.id)), p.name, p.why, 'pizza', true))),
+        ...sec('NEW PEELS', o.peels.map((p) => item(img(peelThumbURL(p.id, 160), `peel${p.shiny ? ' shiny' : ''}`), p.name, p.shiny ? 'A shiny! Rare as anything' : p.how, p.shiny ? 'shiny' : '', true))),
+        ...sec('MILESTONES', o.milestones.map((m) => item(ico('🏁'), m.name, m.pizza ? `Won ${m.pizza}` : '+50 Golden Crusts'))),
+        nothing ? h('div', { class: 'rs-none' }, 'Nothing new unlocked this time, but every run counts towards your goals.') : null,
+        ...sec('GETTING CLOSER', o.goals.map((g) => item(g.kind === 'pizza' ? img(pizzaPortraitURL(g.id)) : img(peelThumbURL(g.id, 160), 'peel'), g.name, '', 'goal', false, bar(g.have, g.need)))),
+      ),
+      h('div', { class: 'row' }, btn('CONTINUE', 'green big', () => {
+        this.close(s);
+        onContinue();
+      }, { 'data-pad-default': '', 'data-pad': 'back', 'data-no-x': '' })),
     );
     s = this.open(panel);
     return s;
@@ -1271,7 +1797,7 @@ class UI {
 
   // ——— Pizzapedia ———
   pedia(onClose: () => void): HTMLElement {
-    let tab: 'feet' | 'bosses' | 'pizzas' | 'events' = 'feet';
+    let tab: 'feet' | 'bosses' | 'pizzas' | 'places' | 'events' = 'feet';
     const tabs = h('div', { class: 'tabs' });
     const detail = h('div', { class: 'detail' });
     const body = h('div', { class: 'scroll', style: 'max-height:40cqh' });
@@ -1305,10 +1831,26 @@ class UI {
         ),
       );
     };
+    // a Rare Find stays a mystery until it has turned up once
+    const hiddenRare = (p: PizzaType) => p.route === 'rare' && !save.unlockedPizzas.includes(p.id) && !save.rareSeen.includes(p.id);
     const showPizza = (id: string) => {
       const p = PIZZA_BY_ID[id];
       const owned = save.unlockedPizzas.includes(id);
-      detail.replaceChildren(h('img', { src: pizzaPortraitURL(id), alt: '' }), h('div', {}, h('div', { class: 'dt-head' }, h('h3', {}, p.name), h('span', { class: 'chip' }, owned ? '✅ Unlocked' : `🔒 ${p.cost} Golden Crusts`)), h('p', {}, `Perk: ${p.perkText}`)));
+      const ms = MILESTONE_BY_PIZZA[id];
+      // how a locked pizza unlocks, by its route
+      const how = p.route === 'special' ? '🔒 Chef’s Special in the shop' : p.route === 'milestone' ? `🔒 Milestone: ${ms?.name ?? 'a milestone'}` : p.route === 'rare' ? '🔒 Rare Find on the new-run screen' : `🔒 ${p.cost} Golden Crusts`;
+      if (hiddenRare(p)) {
+        detail.replaceChildren(h('img', { src: pizzaPortraitURL(id), alt: '', style: 'filter:brightness(0) opacity(0.35)' }), h('div', {}, h('div', { class: 'dt-head' }, h('h3', {}, '???'), h('span', { class: 'chip' }, how)), h('p', {}, 'A Rare Find. It turns up only by luck, in a lineup on the new-run screen.')));
+        return;
+      }
+      // a crust pizza can be unlocked straight from here: the Pizzeria opens on it
+      const go = !owned && p.route === 'pizzeria'
+        ? btn(`UNLOCK IN THE PIZZERIA`, 'green small', () => {
+            this.close(s);
+            this.pizzeria(() => this.pedia(onClose), { tab: 'pizzas', pizza: id });
+          })
+        : null;
+      detail.replaceChildren(h('img', { src: pizzaPortraitURL(id), alt: '' }), h('div', {}, h('div', { class: 'dt-head' }, h('h3', {}, p.name), h('span', { class: 'chip' }, owned ? '✅ Unlocked' : how), go ? h('span', { class: 'dt-act' }, go) : null), h('p', {}, `Perk: ${p.perkText}`)));
     };
     const EVENTS: [string, string, string, string][] = [
       ['balloon', 'ev_balloon', 'Tip Balloon', 'Drifts across the top. One smack: 10 to 25 tips.'],
@@ -1317,15 +1859,42 @@ class UI {
       ['seagull', 'ev_seagull', 'Golden Seagull', 'Very rare and fast. Two smacks: a Golden Crust.'],
       ['chest', 'ev_chest', 'Pizza Box Chest', 'Smash it open for tips, a free topping, slices or a crust.'],
       ['mimic', 'ev_mimic', 'Mimic Box', 'It wobbles. Smack it fast or it turns into a foot.'],
+      ['sighting', 'ev_sighting', 'Hero Sighting', 'A hero streaks across the top. Smack it twice to catch it: tips, and a step towards that hero’s peel.'],
+      ['charybdis', 'ev_charybdis', 'Charybdis', 'A whirlpool in Tartarus drags feet and your peel in. Smack its maw 5 times to close it.'],
     ];
+    // places: a stage counts as seen once a run has reached it
+    const placeSeen = (st: (typeof STAGES)[number]) => save.bestWave >= STAGES.indexOf(st) * 5 + 1 || (save.stageWaves[st.location] ?? 0) > 0;
+    const showPlace = (st: (typeof STAGES)[number]) => {
+      const i = STAGES.indexOf(st);
+      const seen = placeSeen(st);
+      const name = BACKDROPS[st.location as keyof typeof BACKDROPS]?.name ?? st.location;
+      const boss = FOOT_BY_ID[st.boss];
+      const mini = FOOT_BY_ID[st.mini];
+      const locals = FEET.filter((f) => f.home === st.location && !f.boss && !f.mini);
+      if (!seen) {
+        detail.replaceChildren(h('img', { src: footPortraitURL(st.boss), alt: '', style: 'filter:brightness(0) opacity(.35)' }), h('div', {}, h('div', { class: 'dt-head' }, h('h3', {}, '???'), h('span', { class: 'chip' }, `Stage ${i + 1} · waves ${i * 5 + 1}–${i * 5 + 5}`)), h('p', {}, `Somewhere in ${actLabel(actOf(i * 5 + 1))}. Reach wave ${i * 5 + 1} to find out.`)));
+        return;
+      }
+      detail.replaceChildren(
+        h('img', { src: footPortraitURL(st.boss), alt: '' }),
+        h(
+          'div',
+          {},
+          h('div', { class: 'dt-head' }, h('h3', {}, name), h('span', { class: 'chip' }, `${actLabel(actOf(i * 5 + 1))} · stage ${i + 1} · waves ${i * 5 + 1}–${i * 5 + 5}`)),
+          h('p', {}, `Mini-boss on wave ${i * 5 + 3}: ${save.seenFeet.includes(st.mini) ? mini?.name ?? '???' : '???'}. Boss on wave ${i * 5 + 5}: ${save.seenFeet.includes(st.boss) ? boss?.name ?? '???' : '???'}.`),
+          locals.length ? h('p', {}, `Locals: ${locals.map((f) => (save.seenFeet.includes(f.id) ? f.name : '???')).join(', ')}.`) : null,
+        ),
+      );
+    };
     const render = () => {
       const feet = FEET.filter((f) => !f.boss && !f.mini);
       const bosses = FEET.filter((f) => f.boss || f.mini);
       tabs.replaceChildren(
         btn(`FEET ${feet.filter((f) => save.seenFeet.includes(f.id)).length}/${feet.length}`, `small ${tab === 'feet' ? 'active' : ''}`, () => ((tab = 'feet'), render())),
         btn(`BOSSES ${bosses.filter((f) => save.seenFeet.includes(f.id)).length}/${bosses.length}`, `small ${tab === 'bosses' ? 'active' : ''}`, () => ((tab = 'bosses'), render())),
-        btn(`PIZZAS ${PIZZAS.length}`, `small ${tab === 'pizzas' ? 'active' : ''}`, () => ((tab = 'pizzas'), render())),
-        btn(`EVENTS ${save.seenEvents.length}/${EVENTS.length}`, `small ${tab === 'events' ? 'active' : ''}`, () => ((tab = 'events'), render())),
+        btn(`PIZZAS ${PIZZAS.filter((p) => save.unlockedPizzas.includes(p.id)).length}/${PIZZAS.length}`, `small ${tab === 'pizzas' ? 'active' : ''}`, () => ((tab = 'pizzas'), render())),
+        btn(`PLACES ${STAGES.filter(placeSeen).length}/${STAGES.length}`, `small ${tab === 'places' ? 'active' : ''}`, () => ((tab = 'places'), render())),
+        btn(`EVENTS ${EVENTS.filter(([id]) => save.seenEvents.includes(id)).length}/${EVENTS.length}`, `small ${tab === 'events' ? 'active' : ''}`, () => ((tab = 'events'), render())),
       );
       if (tab === 'feet' || tab === 'bosses') {
         const list = tab === 'feet' ? feet : bosses;
@@ -1342,17 +1911,41 @@ class UI {
         const lastSeen = [...save.seenFeet].reverse().find((id) => list.some((f) => f.id === id));
         showFoot(lastSeen ?? list[0].id);
       } else if (tab === 'pizzas') {
-        const tiles = PIZZAS.map((p) => {
+        const pTile = (p: PizzaType) => {
           const owned = save.unlockedPizzas.includes(p.id);
-          const t = h('div', { class: 'tile', tabindex: 0 }, h('img', { src: pizzaPortraitURL(p.id), alt: '', loading: 'lazy' }), h('div', { class: 'nm' }, p.name), owned ? null : h('span', { class: 'tag' }, '🔒'));
+          const hide = hiddenRare(p);
+          // locked pizzas are dimmed, with how they unlock under the name
+          const route = owned ? null : p.route === 'pizzeria' ? `${fmt(p.cost)} crusts` : p.route === 'milestone' ? 'Milestone' : p.route === 'special' ? 'Chef’s Special' : 'Rare Find';
+          const t = h('div', { class: `tile pz-tile${hide ? ' locked' : owned ? '' : ' unowned'}`, tabindex: 0 }, h('img', { src: pizzaPortraitURL(p.id), alt: '', loading: 'lazy' }), h('div', { class: 'nm' }, hide ? '???' : p.name), route ? h('div', { class: 'ds' }, route) : null, owned ? null : h('span', { class: 'tag' }, '🔒'));
           t.addEventListener('click', () => {
             audio.sfx('sfx_click');
             showPizza(p.id);
           });
           return t;
+        };
+        const group = (title: string, list: PizzaType[]) => (list.length ? [h('div', { class: 'pz-sec' }, h('b', {}, `${title} · ${list.length}`)), h('div', { class: 'grid' }, ...list.map(pTile))] : []);
+        const has = (p: PizzaType) => save.unlockedPizzas.includes(p.id);
+        const lockedBy = (r: PizzaType['route']) => PIZZAS.filter((p) => !has(p) && p.route === r);
+        body.replaceChildren(
+          ...group('UNLOCKED', PIZZAS.filter(has)),
+          ...group('BUY WITH GOLDEN CRUSTS (IN THE PIZZERIA)', lockedBy('pizzeria').sort((a, b) => a.cost - b.cost)),
+          ...group('MILESTONE PRIZES', lockedBy('milestone')),
+          ...group('CHEF’S SPECIALS', lockedBy('special')),
+          ...group('RARE FINDS', lockedBy('rare')),
+        );
+        showPizza((PIZZAS.find(has) ?? PIZZAS[0]).id);
+      } else if (tab === 'places') {
+        const tiles = STAGES.map((st, i) => {
+          const seen = placeSeen(st);
+          const t = h('div', { class: `tile${seen ? '' : ' locked'}`, tabindex: 0 }, h('img', { src: footPortraitURL(st.boss), alt: '', loading: 'lazy' }), h('div', { class: 'nm' }, seen ? BACKDROPS[st.location as keyof typeof BACKDROPS]?.name ?? st.location : '???'), h('div', { class: 'ds' }, `Act ${actOf(i * 5 + 1)} · W${i * 5 + 1}–${i * 5 + 5}`));
+          t.addEventListener('click', () => {
+            audio.sfx('sfx_click');
+            showPlace(st);
+          });
+          return t;
         });
         body.replaceChildren(h('div', { class: 'grid' }, ...tiles));
-        showPizza(PIZZAS[0].id);
+        showPlace(STAGES.find(placeSeen) ?? STAGES[0]);
       } else {
         body.replaceChildren(
           h(
@@ -1372,11 +1965,11 @@ class UI {
     const panel = h(
       'div',
       { class: 'panel modal wide' },
-      h('div', { class: 'title' }, 'PIZZAPEDIA'),
+      h('div', { class: 'win-head' }, h('div', { class: 'title' }, 'PIZZAPEDIA')),
       tabs,
       detail,
       body,
-      btn('DONE', 'green', () => {
+      btn('DONE', 'green win-done', () => {
         this.close(s);
         onClose();
       }, { 'data-pad': 'back' }),
@@ -1385,91 +1978,58 @@ class UI {
     return s;
   }
 
-  /** Quick peel picker (from the run-start screen): owned peels only, with their abilities. */
-  peelPicker(onDone: () => void): HTMLElement {
-    let s: HTMLElement;
-    const owned = PEELS.filter((d) => hasPeel(d.id));
-    const close = () => {
-      this.close(s);
-      onDone();
-    };
-    const body = h('div', { class: 'scroll' });
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries) {
-          if (!e.isIntersecting) continue;
-          const img = e.target as HTMLImageElement;
-          io.unobserve(img);
-          img.src = peelThumbURL(img.dataset.peel!);
-        }
-      },
-      { root: body, rootMargin: '200px' },
-    );
-    body.append(
-      h(
-        'div',
-        { class: 'grid peel-grid' },
-        ...owned.map((d) => {
-          const img = h('img', { alt: '', 'data-peel': d.id });
-          io.observe(img);
-          const a = abilityFor(d.id);
-          const t = activatable(h(
-            'div',
-            { class: `tile peel-tile${d.shiny ? ' shiny' : ''}${equippedPeel().id === d.id ? ' selected' : ''}`, tabindex: 0, title: describeAbility(a) },
-            img,
-            h('div', { class: 'nm' }, d.name.replace(/ Peel$/, '')),
-            h('div', { class: 'ab' }, d.id === 'classic' ? 'Peel Slam' : a.name),
-          ));
-          t.addEventListener('click', () => {
-            audio.sfx('sfx_upgrade');
-            equipPeel(d.id);
-            close();
-          });
-          return t;
-        }),
-      ),
-    );
-    const panel = h(
-      'div',
-      { class: 'panel modal wide locker' },
-      h('div', { class: 'title' }, 'PICK A PEEL'),
-      h('div', { class: 'subtitle' }, `${owned.length} unlocked · more in the Peel Locker on the title screen`),
-      body,
-      btn('BACK', 'cream', close, { 'data-pad': 'back' }),
-    );
-    s = this.open(panel);
-    this.onClose(s, () => io.disconnect());
-    return s;
+  /** Peel picker (from the run-start screen): the Peel Locker on unlocked peels, picking the peel you play with
+   * ('ability') or the look you wear over it ('look'); picking one closes it. */
+  peelPicker(onDone: () => void, mode: 'ability' | 'look' = 'ability'): HTMLElement {
+    return this.locker(onDone, mode);
   }
 
-  // ——— Peel Locker: cosmetic peels and the achievements that unlock them ———
-  locker(onClose: () => void): HTMLElement {
-    type Tab = 'goals' | 'crusts' | 'feet' | 'bosses' | 'pizzas' | 'places' | 'events' | 'shiny';
+  // ——— Peel Locker: every peel, the achievements that unlock them, and what you equip and wear ———
+  locker(onClose: () => void, pickMode: 'ability' | 'look' | null = null): HTMLElement {
+    const pick = !!pickMode;
+    type Tab = 'all' | 'goals' | 'crusts' | 'feet' | 'bosses' | 'pizzas' | 'places' | 'acts' | 'events' | 'shiny' | 'heroes';
     const TAB_GROUPS: Record<Exclude<Tab, 'goals'>, PeelGroup[]> = {
+      all: [...new Set(PEELS.map((d) => d.group))].filter((g) => g !== 'god'),
       crusts: ['classic', 'golden', 'jewel', 'master'],
       feet: ['foot'],
       bosses: ['boss'],
       pizzas: ['pizza'],
       places: ['place'],
+      acts: ['act'],
       events: ['event'],
       shiny: ['shinyFoot', 'shinyEvent'],
+      heroes: ['hero'],
     };
-    const NAMES: Record<Tab, string> = { goals: 'GOALS', crusts: 'CRUSTS', feet: 'FEET', bosses: 'BOSSES', pizzas: 'PIZZAS', places: 'PLACES', events: 'EVENTS', shiny: 'SHINY' };
+    const NAMES: Record<Tab, string> = { all: 'ALL', goals: 'GOALS', crusts: 'CRUSTS', feet: 'FEET', bosses: 'BOSSES', pizzas: 'PIZZAS', places: 'PLACES', acts: 'ACTS', events: 'EVENTS', shiny: 'SHINY', heroes: 'HEROES' };
     // catch up on goals already met (older saves, bosses beaten before peels existed)
     checkPeelAchievements();
     const fresh = new Set(save.peelsNew);
     save.peelsNew = [];
     persist();
-    const eq = equippedPeel();
-    let tab: Tab = (Object.keys(TAB_GROUPS) as Exclude<Tab, 'goals'>[]).find((t) => TAB_GROUPS[t].includes(eq.group)) ?? 'crusts';
-    let selected: PeelDef = eq;
+    let tab: Tab = 'all';
+    // the picker opens on what you can use right now; the locker on everything
+    let unlockedOnly = pick;
+    let selected: PeelDef = pickMode === 'look' ? wornSkin() ?? equippedPeel() : equippedPeel();
+    let s: HTMLElement;
+    const finish = () => {
+      this.close(s);
+      onClose();
+    };
     const tabs = h('div', { class: 'tabs locker-tabs' });
+    const tabSelect = h('select', { class: 'locker-select', 'aria-label': 'Peel type' }) as HTMLSelectElement;
+    const filter = h('button', { class: 'locker-filter', type: 'button', 'data-fk': 'filter:unlocked' }) as HTMLButtonElement;
+    const toolbar = h('div', { class: 'locker-bar' }, tabs, tabSelect, filter);
     const detail = h('div', { class: 'detail peel-detail' });
     const body = h('div', { class: 'scroll' });
+    // the God Peel's gold slot, pinned above the tabs
+    const godSlot = h('div', { class: 'god-slot', tabindex: 0, role: 'button', 'data-fk': 'god-slot' });
     const crustLine = h('div', { class: 'crusts' });
     // undiscovered shinies stay a mystery
     const hidden = (d: PeelDef) => !!d.shiny && (d.group === 'shinyFoot' || d.group === 'shinyEvent') && !hasPeel(d.id);
     const shownName = (d: PeelDef) => (hidden(d) && d.ultra ? '???' : d.name);
+    const inTab = (t: Exclude<Tab, 'goals'>) => PEELS.filter((d) => TAB_GROUPS[t].includes(d.group));
+    const shown = (list: PeelDef[]) => (unlockedOnly ? list.filter((d) => hasPeel(d.id)) : list);
+    const tabsShown = () => (Object.keys(NAMES) as Tab[]).filter((t) => !(t === 'goals' && unlockedOnly));
     // thumbnails are drawn lazily as tiles scroll into view
     const io = new IntersectionObserver(
       (entries) => {
@@ -1484,57 +2044,90 @@ class UI {
     );
     const bar = (have: number, need: number) =>
       h('div', { class: 'pbar' }, h('i', { style: `width:${Math.round((100 * have) / need)}%` }), h('span', {}, `${fmt(have)}/${fmt(need)}`));
+    // re-render in place: keep the scroll position and the focused tile
+    const refresh = (focusId?: string) => {
+      const sc = body.scrollTop;
+      render();
+      body.scrollTop = sc;
+      if (focusId) body.querySelector<HTMLElement>(`[data-fk="${CSS.escape(focusId)}"]`)?.focus();
+    };
     const showDetail = () => {
       const d = selected;
       const owned = hasPeel(d.id);
       const equipped = equippedPeel().id === d.id;
+      const worn = wornSkin()?.id === d.id;
       const pr = d.progress?.();
-      let action: HTMLElement | null = null;
+      const actions: HTMLElement[] = [];
       if (owned) {
-        action = btn(equipped ? 'EQUIPPED' : 'EQUIP', equipped ? 'cream small' : 'green small', () => {
+        // equip: the peel's ability (and its look, unless another look is worn)
+        const eq = btn(equipped ? 'EQUIPPED' : 'EQUIP', equipped ? 'cream small' : 'green small', () => {
           equipPeel(d.id);
           audio.sfx('sfx_upgrade');
-          const sc = body.scrollTop;
-          render();
-          body.scrollTop = sc;
-          body.querySelector<HTMLElement>(`[data-fk="${CSS.escape(d.id)}"]`)?.focus();
+          if (pick) return finish();
+          refresh(d.id);
         });
-        (action as HTMLButtonElement).disabled = equipped;
+        (eq as HTMLButtonElement).disabled = equipped;
+        eq.title = 'Use this peel and its ability';
+        // picking a look only offers the look, and wearing one closes the picker
+        // wear: only the look, over whichever peel is equipped
+        const look = btn(worn ? 'TAKE OFF LOOK' : 'WEAR LOOK', worn ? 'cream small' : 'yellow small', () => {
+          wearSkin(worn ? null : d.id);
+          audio.sfx('sfx_click');
+          if (pickMode === 'look') return finish();
+          refresh(d.id);
+        });
+        look.title = worn ? 'Go back to the equipped peel’s own look' : 'Look like this peel, whatever peel is equipped';
+        if (pickMode !== 'look') actions.push(eq);
+        if (pickMode !== 'ability') actions.push(look);
       } else if (d.cost) {
-        action = btn(`BUY ${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} ${fmt(d.cost)}`, 'green small', () => {
+        const buy = btn(`BUY ${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} ${fmt(d.cost)}`, 'green small', () => {
           if (!buyPeel(d.id)) return;
           audio.sfx('sfx_coin');
-          render();
+          refresh(d.id);
         });
-        (action as HTMLButtonElement).disabled = save.crusts < d.cost;
+        (buy as HTMLButtonElement).disabled = save.crusts < d.cost;
+        actions.push(buy);
       }
       const img = h('img', { src: peelThumbURL(d.id, 300), alt: '' });
+      const chips = [
+        h('span', { class: 'chip' }, owned ? '✅ Unlocked' : '🔒 Locked'),
+        d.shiny ? h('span', { class: 'chip shiny-chip' }, d.ultra ? '💎 Ultra rare' : '✨ Shiny') : null,
+        worn ? h('span', { class: 'chip look-chip' }, '👕 Worn look') : null,
+      ];
       detail.replaceChildren(
         h('div', { class: `peel-big${d.shiny ? ' shiny' : ''}${hidden(d) ? ' hidden' : ''}` }, img),
         h(
           'div',
           {},
-          h('div', { class: 'dt-head' }, h('h3', {}, shownName(d)), h('span', { class: 'chip' }, owned ? '✅ Unlocked' : '🔒 Locked'), d.shiny ? h('span', { class: 'chip shiny-chip' }, d.ultra ? '💎 Ultra rare' : '✨ Shiny') : null, action ? h('span', { class: 'dt-act' }, action) : null),
+          // one row: name, status pills, then the ability's kind and name; the actions sit on the right
+          h('div', { class: 'dt-head' }, h('h3', {}, shownName(d)), ...chips, ...(hidden(d) && d.ultra ? [] : abilityBits(d.id).slice(0, 2)), actions.length ? h('span', { class: 'dt-act' }, ...actions) : null),
           h('div', { class: 'dt-how' }, h('p', {}, d.how), pr && !owned ? bar(pr[0], pr[1]) : null),
-          hidden(d) && d.ultra ? null : abilityLine(d.id),
+          hidden(d) && d.ultra ? null : h('p', { class: 'dt-desc' }, abilityBits(d.id)[2]),
         ),
       );
+      // peels with a live look (Zeus's lightning) play it over the big preview
+      if (!hidden(d)) animateLookImg(img as HTMLImageElement, d.id);
     };
     const tile = (d: PeelDef) => {
       const owned = hasPeel(d.id);
       const pr = d.progress?.();
       const img = h('img', { alt: '', 'data-peel': d.id });
       io.observe(img);
+      const equipped = equippedPeel().id === d.id;
+      const worn = wornSkin()?.id === d.id;
       const t = h(
         'div',
         { class: `tile peel-tile${owned ? '' : ' locked'}${hidden(d) ? ' hidden' : ''}${d.shiny && owned ? ' shiny' : ''}${selected.id === d.id ? ' selected' : ''}`, tabindex: 0, 'data-fk': d.id },
         img,
         h('div', { class: 'nm' }, shownName(d).replace(/ Peel$/, '')),
+        pick && owned ? h('div', { class: 'ab' }, d.id === 'classic' ? 'Peel Slam' : abilityFor(d.id).name) : null,
         !owned && pr ? bar(pr[0], pr[1]) : null,
         !owned && d.cost ? h('div', { class: 'cost' }, `${fmt(d.cost)} crusts`) : null,
-        equippedPeel().id === d.id ? h('span', { class: 'tag' }, 'ON') : fresh.has(d.id) ? h('span', { class: 'tag new' }, 'NEW') : null,
+        equipped ? h('span', { class: 'tag' }, 'ON') : fresh.has(d.id) ? h('span', { class: 'tag new' }, 'NEW') : null,
+        worn ? h('span', { class: 'tag look', title: 'Worn look' }, 'LOOK') : null,
       );
       activatable(t);
+      if (owned && hasAnimatedLook(d.id)) animateLookImg(img as HTMLImageElement, d.id);
       t.addEventListener('click', () => {
         audio.sfx('sfx_click');
         selected = d;
@@ -1544,26 +2137,47 @@ class UI {
       });
       return t;
     };
+    const grid = (list: PeelDef[]) => h('div', { class: 'grid peel-grid' }, ...shown(list).map(tile));
+    const section = (title: string, groups: PeelGroup[], note: string, list: PeelDef[]) => {
+      const mine = shown(list.filter((d) => groups.includes(d.group)));
+      return mine.length ? [h('div', { class: 'sec-head' }, `${title} · ${count(groups)}`, h('span', {}, note)), grid(mine)] : [];
+    };
+    const count = (groups: PeelGroup[]) => {
+      const list = PEELS.filter((d) => groups.includes(d.group));
+      return `${list.filter((d) => hasPeel(d.id)).length}/${list.length}`;
+    };
+    const setTab = (t: Tab) => {
+      tab = t;
+      // keep the selected peel if it's on this tab, otherwise show the equipped one or the tab's first
+      if (t !== 'goals') {
+        const list = shown(inTab(t));
+        if (!list.some((d) => d.id === selected.id)) selected = list.find((d) => d.id === equippedPeel().id) ?? list[0] ?? selected;
+      }
+    };
     const render = () => {
-      const count = (groups: PeelGroup[]) => {
-        const list = PEELS.filter((d) => groups.includes(d.group));
-        return `${list.filter((d) => hasPeel(d.id)).length}/${list.length}`;
-      };
+      if (!tabsShown().includes(tab)) setTab('all');
+      const label = (t: Tab) => (t === 'goals' ? NAMES[t] : `${NAMES[t]} <small>${count(TAB_GROUPS[t])}</small>`);
       tabs.replaceChildren(
-        ...(Object.keys(NAMES) as Tab[]).map((t) =>
-          btn(t === 'goals' ? NAMES[t] : `${NAMES[t]} <small>${count(TAB_GROUPS[t])}</small>`, `small ${tab === t ? 'active' : ''}`, () => {
-            tab = t;
-            // show the equipped peel if it lives on this tab, otherwise the tab's first peel
-            if (t !== 'goals') {
-              const list = PEELS.filter((d) => TAB_GROUPS[t].includes(d.group));
-              selected = list.find((d) => d.id === equippedPeel().id) ?? list[0];
-            }
+        ...tabsShown().map((t) =>
+          btn(label(t), `small ${tab === t ? 'active' : ''}`, () => {
+            setTab(t);
             keepFocus(tabs, render);
-          }, { 'data-fk': `tab:${t}` }),
+          }, { 'data-fk': `tab:${t}`, 'aria-pressed': tab === t ? 'true' : 'false' }),
         ),
       );
+      // narrow screens: the same tabs as a dropdown
+      tabSelect.replaceChildren(
+        ...tabsShown().map((t) => {
+          const o = h('option', { value: t }, t === 'goals' ? 'Goals' : `${NAMES[t][0]}${NAMES[t].slice(1).toLowerCase()} · ${count(TAB_GROUPS[t])}`) as HTMLOptionElement;
+          o.selected = tab === t;
+          return o;
+        }),
+      );
+      filter.classList.toggle('on', unlockedOnly);
+      filter.setAttribute('aria-pressed', unlockedOnly ? 'true' : 'false');
+      filter.innerHTML = `<i>${unlockedOnly ? '✔' : ''}</i>Unlocked only`;
       crustLine.innerHTML = `${CRUST_SVG} <b>${fmt(save.crusts)}</b> Golden Crusts · ${PEELS.filter((d) => hasPeel(d.id)).length}/${PEELS.length} peels`;
-      body.scrollTop = 0;
+      renderGodSlot();
       if (tab === 'goals') {
         // the achievements closest to done
         const goals = PEELS.filter((d) => d.progress && !hasPeel(d.id))
@@ -1590,45 +2204,93 @@ class UI {
             : h('p', { class: 'hint' }, 'Every achievement peel is unlocked. Shinies are still out there…'),
         );
       } else {
-        const groups = TAB_GROUPS[tab];
-        const list = PEELS.filter((d) => groups.includes(d.group));
+        const list = inTab(tab);
+        let parts: HTMLElement[];
         if (tab === 'shiny') {
-          body.replaceChildren(
-            h('div', { class: 'sec-head' }, `SHINY FEET · ${count(['shinyFoot'])}`, h('span', {}, 'Any foot can rarely turn up shiny. Defeat it for its shiny peel.')),
-            h('div', { class: 'grid peel-grid' }, ...list.filter((d) => d.group === 'shinyFoot').map(tile)),
-            h('div', { class: 'sec-head' }, `EVENT SHINIES · ${count(['shinyEvent'])}`, h('span', {}, 'Rare drops from wave events, and a few extremely rare jewels.')),
-            h('div', { class: 'grid peel-grid' }, ...list.filter((d) => d.group === 'shinyEvent').map(tile)),
-          );
+          parts = [
+            ...section('SHINY FEET', ['shinyFoot'], 'Any foot can rarely turn up shiny. Defeat it for its shiny peel.', list),
+            ...section('EVENT SHINIES', ['shinyEvent'], 'Rare drops from wave events, and a few extremely rare jewels.', list),
+          ];
+        } else if (tab === 'heroes') {
+          // heroes, then the Greek and Norse gods, each with its own count
+          parts = HERO_SUBS.flatMap(([sub, title, note]) => {
+            const mine = list.filter((d) => d.sub === sub);
+            const shownHere = shown(mine);
+            return shownHere.length ? [h('div', { class: 'sec-head' }, `${title} · ${mine.filter((d) => hasPeel(d.id)).length}/${mine.length}`, h('span', {}, note)), grid(mine)] : [];
+          });
         } else if (tab === 'crusts') {
-          body.replaceChildren(
-            h('div', { class: 'grid peel-grid' }, ...list.filter((d) => d.group !== 'jewel').map(tile)),
-            h('div', { class: 'sec-head' }, `THE JEWELLERY BOX · ${count(['jewel'])}`, h('span', {}, 'Shiny peels for serious crust savers.')),
-            h('div', { class: 'grid peel-grid' }, ...list.filter((d) => d.group === 'jewel').map(tile)),
-          );
-        } else body.replaceChildren(h('div', { class: 'grid peel-grid' }, ...list.map(tile)));
+          parts = [grid(list.filter((d) => d.group !== 'jewel')), ...section('THE JEWELLERY BOX', ['jewel'], 'Shiny peels for serious crust savers.', list)];
+        } else parts = [grid(list)];
+        const any = parts.some((p) => p.querySelector('.tile'));
+        body.replaceChildren(...(any ? parts : [h('p', { class: 'hint' }, 'None unlocked here yet. Turn off “Unlocked only” to see how to get them.')]));
       }
       showDetail();
     };
+    const renderGodSlot = () => {
+      const g = PEEL_BY_ID[GOD_PEEL];
+      const owned = hasPeel(GOD_PEEL);
+      const [have, need] = g.progress!();
+      godSlot.className = `god-slot${owned ? ' owned' : ' sealed'}${selected.id === GOD_PEEL ? ' selected' : ''}${pick && !owned ? ' hide' : ''}`;
+      godSlot.title = owned ? g.name : 'The God Peel: sealed until every other peel is yours, the shinies and the ultra-rare jewels included.';
+      godSlot.replaceChildren(
+        h('div', { class: 'gs-pic' }, h('i', { class: 'gs-halo' }), h('img', { src: peelThumbURL(GOD_PEEL, 200), alt: '' }), owned ? null : h('span', { class: 'gs-seal', 'aria-hidden': 'true' }, '🔒')),
+        h(
+          'div',
+          { class: 'gs-body' },
+          h('b', {}, owned ? g.name.toUpperCase() : 'THE GOD PEEL'),
+          h('span', {}, owned ? (equippedPeel().id === GOD_PEEL ? 'Equipped. The gods are pleased.' : 'Yours. Pick it to equip it.') : 'Sealed until every other peel is yours, the shinies and the ultra-rare jewels included.'),
+          owned ? null : bar(have, need),
+        ),
+        ...(equippedPeel().id === GOD_PEEL ? [h('span', { class: 'tag' }, 'ON')] : []),
+      );
+    };
+    activatable(godSlot);
+    godSlot.addEventListener('click', () => {
+      audio.sfx('sfx_click');
+      selected = PEEL_BY_ID[GOD_PEEL];
+      body.querySelectorAll('.tile.selected').forEach((e) => e.classList.remove('selected'));
+      renderGodSlot();
+      showDetail();
+    });
+    tabSelect.addEventListener('change', () => {
+      audio.sfx('sfx_click');
+      setTab(tabSelect.value as Tab);
+      body.scrollTop = 0;
+      render();
+    });
+    filter.addEventListener('click', () => {
+      audio.sfx('sfx_click');
+      unlockedOnly = !unlockedOnly;
+      if (unlockedOnly && !hasPeel(selected.id)) selected = equippedPeel();
+      body.scrollTop = 0;
+      keepFocus(toolbar, render);
+    });
     render();
-    let s: HTMLElement;
     const panel = h(
       'div',
-      { class: 'panel modal wide locker' },
-      h('div', { class: 'title' }, 'PEEL LOCKER'),
-      crustLine,
-      tabs,
+      { class: `panel modal wide locker${pick ? ' picking' : ''}` },
+      // the title and the crust count share one row, and the X closes (the Done button stays for controllers)
+      // the God Peel sits in the header as a compact gold pill (its full story shows in the detail panel when picked)
+      h('div', { class: 'win-head' }, h('div', { class: 'title' }, pickMode === 'look' ? 'PICK A LOOK' : pick ? 'PICK A PEEL' : 'PEEL LOCKER'), crustLine, godSlot),
+      toolbar,
       detail,
       body,
-      btn('DONE', 'green', () => {
-        this.close(s);
-        onClose();
-      }, { 'data-pad': 'back' }),
+      btn(pick ? 'BACK' : 'DONE', `${pick ? 'cream' : 'green'} win-done`, finish, { 'data-pad': 'back' }),
     );
     s = this.open(panel);
-    this.onClose(s, () => io.disconnect());
+    this.onClose(s, () => {
+      io.disconnect();
+      stopLookOverlays();
+    });
+    this.godReveal(() => refresh());
+    // start with the equipped peel in view
+    // (scroll the grid only: scrollIntoView would also scroll the screen behind it)
+    requestAnimationFrame(() => {
+      const t = body.querySelector<HTMLElement>('.tile.selected');
+      if (t) body.scrollTop = t.getBoundingClientRect().top - body.getBoundingClientRect().top + body.scrollTop - (body.clientHeight - t.offsetHeight) / 2;
+    });
     return s;
   }
-
   /** A plain yes/no confirm. */
   confirm(title: string, text: string, yes: string, onYes: () => void, onNo: () => void): HTMLElement {
     let s: HTMLElement;
@@ -1674,7 +2336,7 @@ class UI {
       btn('DONE', 'green', () => {
         this.close(s);
         onClose();
-      }),
+      }, { 'data-pad': 'back' }),
     );
     s = this.open(panel);
     return s;
@@ -1693,6 +2355,15 @@ function logo(): HTMLElement {
 <text x="500" y="212" fill="none" stroke="#ffffff" stroke-opacity=".35" stroke-width="4" transform="translate(-3 -5)">FEET<tspan rotate="-9">Z</tspan>A</text>
 </g></svg>`,
   });
+}
+
+/** The journey's acts as a row of medals: done ones gold, the one just finished (cur) glowing. */
+function actTrack(acts: number, cur: number): HTMLElement {
+  return h(
+    'div',
+    { class: 'act-track', 'aria-label': `Act ${cur} of ${acts}` },
+    ...Array.from({ length: acts }, (_, i) => h('span', { class: i + 1 < cur ? 'done' : i + 1 === cur ? 'done cur' : '' }, String(i + 1))),
+  );
 }
 
 function stat(v: string, label: string): HTMLElement {

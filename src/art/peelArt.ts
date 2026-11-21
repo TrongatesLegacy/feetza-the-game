@@ -58,6 +58,8 @@ export interface PeelLook {
   gem?: string;
   /** Seed for the pattern's randomness. */
   seed: string;
+  /** Hand-drawn heads (hero peels, src/art/heroHeads.ts): drawn over the handle instead of the parts above. */
+  custom?: (ctx: Ctx) => void;
 }
 
 export const PEEL_W = 220;
@@ -65,8 +67,10 @@ export const PEEL_H = 360;
 const HX = 110;
 const HY = 100;
 const R = 86;
+/** The head's centre and radius on the 220×360 canvas (custom heads draw around it). */
+export const PEEL_HEAD = { x: HX, y: HY, r: R };
 
-function headPath(ctx: Ctx, shape: PeelShape): void {
+export function headPath(ctx: Ctx, shape: PeelShape): void {
   ctx.beginPath();
   if (shape === 'round') {
     ctx.arc(HX, HY, R, Math.PI * 0.62, Math.PI * 2.38);
@@ -403,6 +407,10 @@ export function drawPeelSkin(look: PeelLook): HTMLCanvasElement {
   ctx.fillStyle = INK;
   ctx.fill();
 
+  if (look.custom) {
+    look.custom(ctx);
+    return c;
+  }
   if (look.footArt) {
     drawFootHead(ctx, look);
     return c;

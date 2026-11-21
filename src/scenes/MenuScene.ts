@@ -11,6 +11,7 @@ import { endCrustsFor } from '../game/Run';
 import { audio } from '../systems/audio';
 import { freshStart, persist, save } from '../systems/save';
 import { ui } from '../ui/ui';
+import { lokiPeek } from '../game/lokiSecret';
 
 export function randomLineup(n: number): string[] {
   const pool = [...save.unlockedPizzas];
@@ -47,8 +48,11 @@ export class MenuScene extends Phaser.Scene {
     const fxLayer = this.add.container(0, 0);
     this.add.image(W / 2, H / 2, 'vignette').setDisplaySize(W, H);
     this.backdrop = new BackdropView(this, bg, ambient);
-    this.backdrop.show('trattoria');
+    // a Pizza Legend's table is the First Pizzeria's (Act 10's ending)
+    this.backdrop.show(save.legend ? 'firstpizzeria' : 'trattoria');
     this.fx = new Fx(this, fxLayer);
+    // Loki's secret: he sometimes peeks out from behind the chalkboard (the Trattoria's)
+    if (!save.legend) lokiPeek(this, fxLayer, () => this.showMenu());
     const ids = randomLineup(3);
     ids.forEach((id, i) => {
       this.pizzas.push(new Pizza(this, pz, PIZZA_BY_ID[id], W / 2 + (i - 1) * 560, PIZZA_Y + 20, 0.78, 8).hideLabel());
@@ -153,11 +157,11 @@ export class MenuScene extends Phaser.Scene {
         this.lastLineup = next;
         return next;
       },
-      (heat, act2, lineup) => {
+      (heat, endless, lineup) => {
         ui.closeAll();
         audio.sfx('sfx_levelup', { volume: 0.7 });
         this.cameras.main.fadeOut(400, 18, 10, 6);
-        this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('Game', { lineup, heat, act2 }));
+        this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('Game', { lineup, heat, endless, endlessPlus: endless && save.endlessPlus && save.endlessPlusPick }));
       },
       () => this.showMenu(),
     );
