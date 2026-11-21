@@ -30,6 +30,9 @@ export const LOCATION_MUSIC: Record<LocationId, string[]> = {
   rink: ['music_rink', 'music_diner', 'music_game'],
   slopes: ['music_slopes', 'music_lodge', 'music_game'],
   cellar: ['music_cellar', 'music_boss_phantomking', 'music_game'],
+  // ——— Act 7 · Comics ———
+  metropizza: ['music_metropizza', 'music_rooftop', 'music_game'],
+  doomlab: ['music_doomlab', 'music_space', 'music_game'],
 };
 
 export const LOCATION_AMBIENCE: Record<LocationId, string[]> = {
@@ -45,6 +48,9 @@ export const LOCATION_AMBIENCE: Record<LocationId, string[]> = {
   rink: ['ambience_rink', 'ambience_diner', 'ambience_pizzeria'],
   slopes: ['ambience_slopes', 'ambience_lodge', 'ambience_pizzeria'],
   cellar: ['ambience_cellar', 'ambience_pizzeria'],
+  // ——— Act 7 · Comics ———
+  metropizza: ['ambience_metropizza', 'ambience_rooftop', 'ambience_pizzeria'],
+  doomlab: ['ambience_doomlab', 'ambience_space', 'ambience_pizzeria'],
 };
 
 /** How many times the journey has been completed before wave n (0 on the first time through). */

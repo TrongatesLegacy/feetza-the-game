@@ -577,6 +577,18 @@ export const ABILITIES: Record<string, Ability> = {
   'pizza:napoletana': ab('Wood-Fired', act, [B(2.5, 4, all), D(5, all)], ORANGE, 'fire'),
   'pizza:birthday': ab('Party Time', wave, [T(15), H(1, 'weakest')], PINK, 'gold'),
 
+  // ——— Act 7 · Comics: places, bosses and villain feet ———
+  'place:metropizza': ab('Searchlight', every(6), [M(1.6, 4, tough(2)), D(2, tough(2))], GOLD, 'zap'),
+  'place:doomlab': ab('Mad Science', every(7), [C(1.4, 4, rnd(1)), S(0.3, 2, all)], GREEN, 'zap'),
+  'boss:lexlugtoe': ab('Hostile Takeover', kill(0.35), [T(3), D(1.5, hit(170))], GREEN, 'gold'),
+  'boss:doomstomp': ab('Comeback', act, [D(11, all, 1200), ST(1, all)], 0x8a9a7a, 'slam', 0.95),
+  'boss:ultoe': ab('Upload', every(5), [D(2, rnd(4)), M(1.3, 3, rnd(4))], RED, 'zap'),
+  'boss:thanfoot': ab('The Snap', act, [D(6, all), EX(0.5, all)], PURPLE, 'slam', 0.85),
+  'foot:henchman': ab('Gang Up', smack(0.25), [D(1, rnd(3))], RED, 'burst'),
+  'foot:jetpack': ab('Afterburner', every(5), [B(1.2, 3, front(2)), K(600, front(2))], ORANGE, 'fire'),
+  'foot:goon': plus(ab('Hired Muscle', always, [STAT({ knockback: 100, damage: 1 })], GOLD, 'burst'), every(7), TH('grenade', 'explode', 3, rnd(1), { r: 170, splash: 1.5 })),
+  'foot:ultodrone': ab('Drone Swarm', every(3), [D(1, rnd(3))], CYAN, 'zap'),
+
   // ——— Event shinies use their event's ability (see abilityKey) ———
 };
 

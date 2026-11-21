@@ -26,6 +26,9 @@ export const STAGES: Stage[] = [
   { location: 'rink', mini: 'milkshake', boss: 'rinkqueen' },
   { location: 'slopes', mini: 'lumberjack', boss: 'yeti' },
   { location: 'cellar', mini: 'poltergeist', boss: 'phantomking' },
+  // ——— Act 7 · Comics ———
+  { location: 'metropizza', mini: 'lexlugtoe', boss: 'doomstomp' },
+  { location: 'doomlab', mini: 'ultoe', boss: 'thanfoot' },
 ];
 
 /** The acts, in order: two stages each. Acts 7–10 are named ahead of their stages, so new stages slot in. */
@@ -115,4 +118,7 @@ export const BOSS_MINION: Record<string, string> = {
   kraken: 'tidepool',
   rinkqueen: 'skateboard',
   yeti: 'skier',
+  // ——— Act 7 · Comics ———
+  doomstomp: 'henchman',
+  thanfoot: 'jetpack',
 };

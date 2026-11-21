@@ -32,6 +32,7 @@ import { passiveBoost, setSlamMode } from '../game/slamMode';
 import { setRunHeat } from '../game/heatRules';
 import { abilityFor, abilityKindLabel, scaleProc, usesMeter, type Ability, type Effect, type Proc, type Target } from '../game/abilities';
 import { randomLineup } from './MenuScene';
+import { contentFx } from '../game/contentFx';
 
 interface DamageOpts {
   source: 'smack' | 'chain' | 'cutter' | 'olive' | 'slam' | 'explode' | 'garlic' | 'burn' | 'trap' | 'splash' | 'direct' | 'ability';
@@ -356,6 +357,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.fx = new Fx(this, this.fxLayer);
     this.throws = new Projectiles(this, this.fxLayer, this.fx, { peel: () => this.peel, peelPos: () => this.peelPos, feet: () => this.feet });
     this.director = new BossDirector(this);
+    contentFx.reset(this);
 
     const snap = this.start.snapshot;
     if (snap) this.restore(snap);
@@ -384,6 +386,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.throws.clear(false);
       setSlamMode(undefined);
       setRunHeat(null);
+      contentFx.reset(null);
     });
     const t0 = this.ability?.trigger.t;
     this.run.slamless = { slam: false, meter: !!this.ability && (t0 === 'always' || t0 === 'wave' || t0 === 'stomp') };
@@ -717,6 +720,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       audio.ambience(this, LOCATION_AMBIENCE[loc], immediate ? 800 : 2400);
     }
     ui.hud.setWave(n, BACKDROPS[bd].name);
+    contentFx.wave(this, n);
   }
 
   private beginWave(n: number, devBoss?: { id: string; hp?: number }): void {
@@ -982,6 +986,7 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   /** Per-frame trait upkeep: magnets pull the peel, medics heal, Tandoori marks. */
   private footTick(f: Foot, dt: number): void {
+    contentFx.footTick(this, f, dt);
     if (f.shiny && Math.random() < dt * 9) this.fx.glint(f.cx + (Math.random() - 0.5) * 90 * f.scale, f.cy + (Math.random() - 0.5) * 120 * f.scale);
     if (f.has('magnet') && (f.state === 'hover' || f.state === 'descend')) {
       const dx = f.cx - this.peelPos.x;
@@ -2287,6 +2292,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       f.flash(0xffffff, 60);
       if (o.knock) f.knock(o.knock);
     }
+    contentFx.hit(this, f, px, py, dealt, crit, o.source);
     if (f.isBossLike) this.director.afterDamage(f);
     if (f.hp <= 0) this.killFoot(f, o.source);
     else if (f === this.bossFoot || f === this.miniFoot) ui.hud.setBoss(f.type.name, f.hp / f.maxHp, this.director.phaseCount(f), f.phase);
@@ -2335,12 +2341,15 @@ export class GameScene extends Phaser.Scene implements Arena {
       f.die();
       return;
     }
+    // content can spare a foot from a killing blow (Doomstomp's last life only ends with a signature move)
+    if (contentFx.spare(this, f, source)) return;
     if (f.has('revive') && !f.reviveUsed) {
       f.revive();
       this.fx.quip(f.x, f.cy - 120, 'NOT DEAD YET!', '#7dff9a', 40);
       audio.sfx('sfx_boing');
       return;
     }
+    contentFx.kill(this, f);
     const st = this.run.stats;
     const boss = !!f.type.boss;
     const mini = !!f.type.mini;
@@ -3218,6 +3227,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     const real = Math.min(0.05, deltaMs / 1000);
     this.nowT += real;
     this.backdrop.update(real);
+    contentFx.tick(this, real);
     pad.poll(real);
     ui.hud.setFps(this.game.loop.actualFps);
     // the run clock: real time (not slow-mo), and the scene doesn't update while paused or with the tab hidden
