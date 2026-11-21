@@ -370,9 +370,12 @@ export function hitProp(a: Arena, o: PropOpts): Prop {
   const scale = o.scale ?? 1;
   a.sc.tweens.add({ targets: img, scale, duration: 240, ease: 'Back.Out' });
   const badge = a.sc.add.container(o.x, o.y + (o.badgeDy ?? -80));
-  const disc = a.sc.add.circle(0, 0, 26, 0x2a1810, 0.92).setStrokeStyle(4, 0xfff6e2);
-  const txt = a.sc.add.text(0, 1, String(o.hits), { fontFamily: 'Lilita One, Fredoka, sans-serif', fontSize: '34px', color: '#fff6e2' }).setOrigin(0.5);
-  badge.add([disc, txt]);
+  // a chunky counter with a pulsing ring, so "hit this N times" reads at a glance
+  const pulse = a.sc.add.circle(0, 0, 34, 0xffd23f, 0).setStrokeStyle(5, 0xffd23f, 0.9);
+  const disc = a.sc.add.circle(0, 0, 34, 0x2a1810, 0.94).setStrokeStyle(5, 0xfff6e2);
+  const txt = a.sc.add.text(0, 1, String(o.hits), { fontFamily: 'Lilita One, Fredoka, sans-serif', fontSize: '44px', color: '#fff6e2' }).setOrigin(0.5);
+  badge.add([pulse, disc, txt]);
+  a.sc.tweens.add({ targets: pulse, scale: { from: 1, to: 1.6 }, alpha: { from: 0.9, to: 0 }, duration: 900, repeat: -1 });
   a.fxLayer.add(badge);
   let left = o.hits;
   let live = true;

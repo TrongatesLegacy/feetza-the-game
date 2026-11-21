@@ -1045,8 +1045,18 @@ export class GameScene extends Phaser.Scene implements Arena {
       free = this.freeLanes(1, f, avoid);
       useSpan = 1;
     }
-    // a boss's own summons (a flock it hides behind) may share the boss's lanes rather than wait off screen
-    if (!free.length && f.brain.summoned) free = this.freeLanes(1, f, avoid, true);
+    // a boss's own summons (a flock it hides behind) first take a hovering foot's lane (it waits off screen),
+    // and only share the boss's lanes when there's nobody to bump
+    if (!free.length && f.brain.summoned && !avoid) {
+      const v = this.feet.find((o) => o !== f && o.alive && !o.isBossLike && !o.held && !o.brain.summoned && o.state === 'hover');
+      if (v) {
+        v.held = true;
+        v.laneSide = -1;
+        v.laneX = null;
+        free = this.freeLanes(1, f);
+      }
+      if (!free.length) free = this.freeLanes(1, f, avoid, true);
+    }
     if (!free.length) {
       if (!avoid) {
         f.held = true;

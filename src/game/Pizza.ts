@@ -36,6 +36,9 @@ export class Pizza {
   /** Seconds left with the perk switched off by a boss (sand, ink, icicles). */
   perkFrozenT = 0;
   private frost?: Phaser.GameObjects.Image;
+  /** Snowflake badge with the seconds left on a perk freeze. */
+  private frostBadge?: Phaser.GameObjects.Container;
+  private frostText?: Phaser.GameObjects.Text;
   /** Resting table y; `y` moves with piston lifts. */
   baseY: number;
   private freshBar: Phaser.GameObjects.Graphics;
@@ -178,6 +181,16 @@ export class Pizza {
       this.root.add(this.frost);
     }
     this.frost.setScale((PIZZA_R * 2.4) / 256, (PIZZA_R * 1.1) / 256).setVisible(true);
+    if (!this.frostBadge) {
+      const disc = this.scene.add.circle(0, 0, 30, 0x1d4a6e, 0.95).setStrokeStyle(4, 0xd8f2ff);
+      const flake = this.scene.add.text(0, -2, '❄', { fontFamily: 'Fredoka, sans-serif', fontSize: '34px', color: '#e8f8ff' }).setOrigin(0.5);
+      this.frostText = this.scene.add.text(0, 44, '', { fontFamily: 'Lilita One, Fredoka, sans-serif', fontSize: '28px', color: '#e8f8ff', stroke: '#1d4a6e', strokeThickness: 6 }).setOrigin(0.5);
+      this.frostBadge = this.scene.add.container(PIZZA_R * 0.95, -PIZZA_R * 0.55, [disc, flake, this.frostText]);
+      this.root.add(this.frostBadge);
+    }
+    this.frostBadge.setVisible(true).setScale(0.3);
+    this.scene.tweens.add({ targets: this.frostBadge, scale: 1, duration: 260, ease: 'Back.Out' });
+    this.frostText?.setText(`${Math.ceil(this.perkFrozenT)}s`);
     this.redraw();
   }
 
@@ -185,10 +198,12 @@ export class Pizza {
   tickFreeze(dt: number): boolean {
     if (this.perkFrozenT <= 0) return false;
     this.perkFrozenT -= dt;
-    if (this.frost) this.frost.setAlpha(0.4 + Math.sin(this.bob * 4) * 0.15);
+    if (this.frost) this.frost.setAlpha(0.55 + Math.sin(this.bob * 4) * 0.2);
+    this.frostText?.setText(`${Math.max(1, Math.ceil(this.perkFrozenT))}s`);
     if (this.perkFrozenT > 0) return false;
     this.perkFrozenT = 0;
     this.frost?.setVisible(false);
+    this.frostBadge?.setVisible(false);
     this.redraw();
     return true;
   }
@@ -267,7 +282,8 @@ export class Pizza {
     const col = this.dead ? '#ff8a6a' : this.stale ? '#cfe0a8' : '#fff6e2';
     this.label.setColor(col).setAlpha(this.dead ? 0.75 : 0.92);
     this.perkLabel.setColor(col).setAlpha(this.dead ? 0.75 : this.stale ? 0.8 : 0.92);
-    if (this.stale) this.img.setTint(0xc8d4a0);
+    if (this.perkFrozen) this.img.setTint(0xb8e2ff);
+    else if (this.stale) this.img.setTint(0xc8d4a0);
     else this.img.clearTint();
     this.fitLabel();
     this.drawFresh();
