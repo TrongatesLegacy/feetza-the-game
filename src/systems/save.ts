@@ -109,6 +109,8 @@ export interface SaveData {
   specialSeen: Record<string, number>;
   /** Rare Finds that have turned up on the new-run screen (shown in the Pizzeria from then on). */
   rareSeen: string[];
+  /** Milestone records for the phase 3 pizzas: bestCombo, perfectBest, fastWave (best clear in seconds), nightRuns, untouched (1 once done). */
+  pizzaGoals: Record<string, number>;
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -175,6 +177,7 @@ const DEFAULTS: SaveData = {
   pizzasNew: [],
   specialSeen: {},
   rareSeen: [],
+  pizzaGoals: {},
 };
 
 function clone<T>(v: T): T {

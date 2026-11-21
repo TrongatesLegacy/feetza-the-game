@@ -85,7 +85,16 @@ export type PizzaPerk =
   | 'quickTips' | 'counterDiscount' | 'extraConsumable' | 'crustBonus' | 'refund'
   | 'preserve' | 'neverStale' | 'staleHeal' | 'riseOnce' | 'bossRegrow'
   | 'stunVuln' | 'markFirst' | 'disarm' | 'slamStun' | 'miniWeak'
-  | 'bounceTop' | 'perkBoost' | 'freeTopping';
+  | 'bounceTop' | 'perkBoost' | 'freeTopping'
+  // ——— Phase 3 perks (run by src/game/pizzaPerks.ts) ———
+  | 'tipsAbove' | 'nearDmg' | 'slowWait' | 'wave5Tips' | 'fullSpeed' | 'stompMeter' | 'meatball' | 'fastDmg'
+  | 'bossShield' | 'hoverFire' | 'freshTips' | 'stickyStomp' | 'slipStomp' | 'neighbourRegrow' | 'honeyStomp'
+  | 'fullBoss' | 'scoreAbove' | 'crustWaves' | 'phaseHeal' | 'firstFreeze' | 'killReroll' | 'varietyDmg'
+  | 'shinyDouble' | 'bossTips' | 'miniDmg' | 'eventDrops' | 'knockAbove' | 'stompCooldown' | 'goldenDouble'
+  | 'actStart' | 'slayer' | 'bigStart' | 'killSlices' | 'perfectTips' | 'burnAbove' | 'crustRun' | 'peelDmg'
+  | 'comboLong' | 'firstBack' | 'smackSpeed' | 'nightDmg' | 'frostFire' | 'surviveOnce'
+  | 'rainbow' | 'postBoss' | 'fireLane' | 'ghostPass' | 'mystery' | 'eventChance' | 'timeStop' | 'meteor'
+  | 'erupt' | 'pinata' | 'orbitRing' | 'goldenDiscount' | 'treasure' | 'nonna';
 
 export interface PizzaType {
   id: string;
@@ -93,7 +102,7 @@ export interface PizzaType {
   perk: PizzaPerk;
   perkText: string;
   shape: 'round' | 'square' | 'calzone' | 'deep';
-  base: 'tomato' | 'pesto' | 'bbq' | 'white' | 'choc';
+  base: 'tomato' | 'pesto' | 'bbq' | 'white' | 'choc' | 'saffron' | 'ink' | 'moon' | 'pink';
   cheese: number; // 0..1 cheese coverage
   toppings: Topping[];
   crust: string;
@@ -102,6 +111,8 @@ export interface PizzaType {
    * in the Pizzeria (crusts), won by its milestone (MILESTONES in data/meta.ts names it), or found
    * by luck on the new-run screen (bought there with crusts). Starters are 'pizzeria' at cost 0. */
   route: PizzaRoute;
+  /** Rare Finds' special finish: a coloured glow and sparkles on the table, and a see-through ghost. */
+  finish?: { glow?: number; sparkle?: boolean; ghost?: boolean };
 }
 
 export type PizzaRoute = 'special' | 'pizzeria' | 'milestone' | 'rare';
@@ -285,6 +296,64 @@ export const ENHANCED_PERK: Record<PizzaPerk, string | (() => string)> = {
   bounceTop: "First 2 smacks above it each wave: to top",
   perkBoost: "Every other pizza's perk is 8% stronger",
   freeTopping: 'Every 3rd wave: 1 free shop topping',
+  // Phase 3
+  tipsAbove: '+2 tips for every foot defeated above it',
+  nearDmg: 'Smacks near it deal +15% damage',
+  slowWait: 'Hovering feet slow 15% more per second',
+  wave5Tips: 'Every 5th wave: +38 tips',
+  fullSpeed: 'Smacks 15% faster with all slices left',
+  stompMeter: 'Stomps on it charge your meter 8%',
+  meatball: 'Kills above it roll a meatball (×1.5)',
+  fastDmg: '+23% damage to fast feet',
+  bossShield: '+2 shields at the start of boss waves',
+  hoverFire: 'Feet hovering over 1.3s catch fire',
+  freshTips: "+15% tips while it's fully fresh",
+  stickyStomp: 'Stompers get sticky (60% slow, 3s)',
+  slipStomp: 'Its stomper slips (0.8s stun)',
+  neighbourRegrow: 'Neighbours regrow a slice every 2 waves',
+  honeyStomp: 'Hot honey: 60% slow, burns 1.5×/s',
+  fullBoss: 'Bosses take +23% damage at full slices',
+  scoreAbove: '+45% score from feet above it',
+  crustWaves: '+1 Golden Crust per 7 waves it survives',
+  phaseHeal: 'Heals 2 slices when a boss changes phase',
+  firstFreeze: "Each wave's first stomper freezes for 3s",
+  killReroll: 'Every 7 kills above it: a free reroll',
+  varietyDmg: '+8% damage per different pizza out',
+  shinyDouble: 'Shiny feet three times as likely',
+  bossTips: '+30% tips on boss waves',
+  miniDmg: 'Mini-bosses take +38% damage',
+  eventDrops: 'Event peel drops 38% more likely',
+  knockAbove: '+60% knockback above it',
+  stompCooldown: "Can't be stomped twice within 3s",
+  goldenDouble: 'Golden feet pay triple tips',
+  actStart: "+15% dmg & tips on an act's first wave",
+  slayer: '+30% damage to bosses',
+  bigStart: 'Starts every run with 12 slices',
+  killSlices: 'Every 70 kills: +1 slice on every pizza',
+  perfectTips: '+75% tips on perfect waves',
+  burnAbove: 'Feet above it burn 50% hotter; fireproof',
+  crustRun: '+15% Golden Crusts if on table at end',
+  peelDmg: '+1.5% damage for every 10 peels you own',
+  comboLong: 'Combos last 2.5 times as long',
+  firstBack: 'First pizza lost comes back fully baked',
+  smackSpeed: 'Smacks 23% faster',
+  nightDmg: '+30% damage on night stages',
+  frostFire: 'Stompers frozen 2s, then burned hotter',
+  surviveOnce: 'Once a run, it survives on 3 slices',
+  rainbow: 'Each wave: borrows an enhanced perk',
+  postBoss: '×2.5 damage the wave after a boss',
+  fireLane: '15% of smacks breathe fire down a lane',
+  ghostPass: '38% of stomps on it pass right through',
+  mystery: 'A random huge perk, revealed on wave 1',
+  eventChance: 'Wave events 38% more likely',
+  timeStop: 'Each wave starts with feet frozen 4.5s',
+  meteor: 'Every 10s a meteor hits a foot (×3)',
+  erupt: 'Its last slice lost: erupts, ×15 to all',
+  pinata: 'Kills above it: 30% burst into tips',
+  orbitRing: 'Two ghost pineapple rings orbit it (×1)',
+  goldenDiscount: 'Golden Menu items cost 38% less',
+  treasure: "A richer chest on each stage's wave 4",
+  nonna: 'Twice per act, fully heals every pizza',
 };
 
 /** A perk's enhanced text. */
