@@ -17,6 +17,8 @@ import { brains as act8 } from './bosses/act8';
 import { brains as act9 } from './bosses/act9';
 // ——— Act 10 · Finale ———
 import { brains as act10 } from './bosses/act10';
+// ——— Nemesis stages: Batpeel's Gotham (src/game/nemesis.ts) ———
+import { brains as gotham } from './bosses/gotham';
 import { type Brain, auraFor, hitWindup } from './bosses/kit';
 
 export type { Brain };
@@ -30,6 +32,8 @@ Object.assign(BRAINS, act8);
 Object.assign(BRAINS, act9);
 // ——— Act 10 · Finale ———
 Object.assign(BRAINS, act10);
+// ——— Nemesis stages: Batpeel's Gotham ———
+Object.assign(BRAINS, gotham);
 
 /** Dev boss lab: a boss's phase names and move info, without spawning it. */
 export function bossPhaseInfo(id: string): { names: string[]; info: string[]; fixed?: number } | null {

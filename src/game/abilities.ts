@@ -733,6 +733,11 @@ export const ABILITIES: Record<string, Ability> = {
   'boss:ghostfuture': ab('Foresight', smack(0.3), [D(1.5, rnd(1)), ST(1, rnd(1))], 0xbfe6ff, 'frost'),
   'boss:soleunbound': ab('Every Peel at Once', act, [D(14, all, 1300), B(1.5, 4, all), FZ(1.5, all), T(25)], GOLD, 'slam', 0.85),
 
+  // ——— Nemesis stages: Batpeel's Gotham (src/game/nemesis.ts; the Dark Kneader is in src/content/peels/nemesis.ts) ———
+  'place:gotham': ab('Rooftop Vigil', every(7), [S(0.3, 3, all), M(1.5, 4, tough(1)), ST(1, tough(1))], BLUE, 'ink'),
+  'boss:bunion': plus(ab('Venom', always, [STAT({ damage: 2, knockback: 80 })], GREEN, 'burst'), every(9), D(5, tough(1), 1200), ST(1.5, tough(1))),
+  'boss:jokester': plus(ab('Last Laugh', act, [ST(2.5, all), D(5, all), T(10)], 0x9be23a, 'gold'), every(6), TH('card', 'explode', 2, rnd(1), { r: 150, splash: 1 })),
+
   // ——— Event shinies use their event's ability (see abilityKey) ———
 };
 

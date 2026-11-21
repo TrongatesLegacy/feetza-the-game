@@ -22,6 +22,7 @@ import type { EventId } from './events';
 import { HERO_PEELS, type HeroSub } from '../content/heroPeels';
 import { goalProgress, heatHow } from './heroGoals';
 import { godPeelLook } from '../art/godHeads';
+import { NEMESES, nemesisOf, nemesisWaves } from './nemesis';
 
 export type PeelGroup = 'classic' | 'golden' | 'jewel' | 'foot' | 'boss' | 'place' | 'event' | 'pizza' | 'shinyFoot' | 'shinyEvent' | 'master' | 'act' | 'hero' | 'god';
 
@@ -236,6 +237,8 @@ const PLACE_LOOK: Record<LocationId, Plain> = {
   // ——— Act 10 · Finale ———
   oven: { shape: 'round', base: '#1a0a3a', pattern: 'stars', pc: '#ff9a3a', handle: '#8a4a2a', studs: '#ffd23f' },
   firstpizzeria: { shape: 'paddle', base: '#8a7a6a', pattern: 'marble', pc: '#ffb347', handle: '#5a3a22' },
+  // ——— Nemesis stages (src/game/nemesis.ts) ———
+  gotham: { shape: 'spade', base: '#2a2f45', pattern: 'drips', pc: '#ffd23f', handle: '#1a1c28', studs: '#c9cfd8' },
 };
 
 const EVENT_LOOK: Record<EventId, Plain> = {
@@ -352,11 +355,14 @@ function buildDefs(): PeelDef[] {
     });
   }
   for (const f of FEET.filter((x) => x.boss || x.mini)) {
+    // a nemesis boss only turns up with its hero's peel equipped (src/game/nemesis.ts)
+    const nm = nemesisOf(f.id);
+    const nmAt = nm ? ` It only turns up at wave ${f.mini ? nemesisWaves(nm).mini : nemesisWaves(nm).boss} with ${nm.hero} equipped.` : '';
     defs.push({
       id: `boss:${f.id}`,
       name: peelName(titleCase(f.name)),
       group: 'boss',
-      how: `Defeat ${f.mini ? 'the mini-boss' : 'the boss'} ${titleCase(f.name)}.`,
+      how: `Defeat ${f.mini ? 'the mini-boss' : 'the boss'} ${titleCase(f.name)}.${nmAt}`,
       progress: () => [save.bossesBeaten.includes(f.id) ? 1 : 0, 1],
       foot: f.id,
       look: () => footLook(f, false),
@@ -374,6 +380,21 @@ function buildDefs(): PeelDef[] {
       look: plain(`place:${st.location}`, PLACE_LOOK[st.location]),
     });
   });
+  // nemesis places: they take over a stage only while their hero's peel is equipped
+  for (const nm of NEMESES) {
+    if (!nm.location) continue;
+    const loc = nm.location;
+    const name = BACKDROPS[loc].name;
+    const w = nemesisWaves(nm);
+    defs.push({
+      id: `place:${loc}`,
+      name: `${name} Peel`,
+      group: 'place',
+      how: `Clear 10 waves at ${name} (boss wave included). It only appears with ${nm.hero} equipped, in place of stage ${nm.stage + 1} (waves ${w.first}–${w.boss}).`,
+      progress: () => [Math.min(10, save.stageWaves[loc] ?? 0), 10],
+      look: plain(`place:${loc}`, PLACE_LOOK[loc]),
+    });
+  }
   for (const ev of Object.keys(EVENT_LABEL) as EventId[]) {
     const [label, verb] = EVENT_LABEL[ev];
     const need = EVENT_NEED[ev];

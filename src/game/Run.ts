@@ -8,6 +8,7 @@ import { MILESTONES, type Milestone } from '../data/meta';
 import { JOURNEY_WAVES, MINI_WAVE, STAGES, WAVES_PER_STAGE } from '../data/stages';
 import { CONSUMABLE_COOLDOWN, RARITY_WEIGHT, UPGRADES, UPGRADE_BY_ID, baseStats, kindOf, type OfferEnv, type Rarity, type Stats, type Upgrade } from '../data/upgrades';
 import { freshKitState, type KitState } from './kitState';
+import { applyNemesis, homeOf } from './nemesis';
 import { save, unlockPizza } from '../systems/save';
 
 /** Golden Crusts for the first time you ever beat a main boss (on top of the usual 5). */
@@ -43,6 +44,8 @@ export const LOCATION_MUSIC: Record<LocationId, string[]> = {
   // ——— Act 10 · Finale ———
   oven: ['music_oven', 'music_space', 'music_game'],
   firstpizzeria: ['music_firstpizzeria', 'music_game'],
+  // ——— Nemesis stages (src/game/nemesis.ts) ———
+  gotham: ['music_gotham', 'music_metropizza', 'music_game'],
 };
 
 export const LOCATION_AMBIENCE: Record<LocationId, string[]> = {
@@ -70,6 +73,8 @@ export const LOCATION_AMBIENCE: Record<LocationId, string[]> = {
   // ——— Act 10 · Finale ———
   oven: ['ambience_oven', 'ambience_space', 'ambience_pizzeria'],
   firstpizzeria: ['ambience_firstpizzeria', 'ambience_pizzeria'],
+  // ——— Nemesis stages (src/game/nemesis.ts) ———
+  gotham: ['ambience_gotham', 'ambience_metropizza', 'ambience_pizzeria'],
 };
 
 /** How many times the journey has been completed before wave n (0 on the first time through). */
@@ -132,6 +137,11 @@ function deck<T>(items: T[], seed: number): T[] {
 
 /** Wave n's stage: the journey's own, or on an Endless+ loop a shuffled place, mini-boss and boss. */
 function stageFor(n: number): { location: LocationId; boss: ArenaId; mini: string } {
+  // a hero's nemesis stage swaps in its own place and bosses (src/game/nemesis.ts)
+  return applyNemesis(dealtStage(n));
+}
+
+function dealtStage(n: number): { location: LocationId; boss: ArenaId; mini: string } {
   const st = STAGES[stageIndex(n)];
   const loop = loopOf(n);
   if (!endlessPlus.on || loop === 0) return st;
@@ -191,7 +201,8 @@ export function planWave(n: number, luck: number, heatId: HeatId = 'regular'): W
   const speedMult = Math.min(heat.crowd.speedCap, 1 + (Math.min(eff, 40) - 1) * 0.026) * heat.speed;
   const boss = isBossWave(n) ? bossFor(n) : null;
   const mini = isMiniWave(n) ? miniFor(n) : null;
-  const home = locationFor(n);
+  // a nemesis place still brings the regular feet of the place it stands in for
+  const home = homeOf(locationFor(n));
   const pool = FEET.filter((f) => !f.boss && !f.mini && f.weight > 0 && (f.minWave <= inLoop || loop > 0));
   // freshly unlocked feet get the spotlight; feet at home in this location turn up 3x as often
   const weight = (f: FootType) => f.weight * (f.minWave >= inLoop - 1 && loop === 0 ? 3 : 1) * (f.home === home ? 3 : 1);

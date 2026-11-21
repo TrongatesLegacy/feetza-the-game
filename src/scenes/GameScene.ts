@@ -48,6 +48,8 @@ import { addCanvas } from '../game/assets';
 import { heroFootDmg, heroFootStomp, heroFootTick } from '../game/heroFeet';
 // ——— Act 10 · Finale: the buyout and the ending (src/game/finale.ts; its layers run from src/game/acts/act10.ts) ———
 import { finaleState, playEnding } from '../game/finale';
+// ——— Nemesis stages: a hero peel swaps a stage for its nemesis (src/game/nemesis.ts) ———
+import { applyNemesis, nemesisOf, setNemesisPeel } from '../game/nemesis';
 
 interface DamageOpts {
   source: 'smack' | 'chain' | 'cutter' | 'olive' | 'slam' | 'explode' | 'garlic' | 'burn' | 'trap' | 'splash' | 'direct' | 'ability';
@@ -420,6 +422,11 @@ export class GameScene extends Phaser.Scene implements Arena {
     });
     this.events.once('shutdown', () => this.perkKit.clear());
     contentFx.reset(this);
+    // the run's ability peel brings its nemesis stage, if it has one (a resumed run's peel comes from its save);
+    // a dev boss start of a nemesis boss brings its stage too, so it fights in its own arena
+    const nmDev = this.start.boss ? nemesisOf(this.start.boss.id) : null;
+    setNemesisPeel(nmDev ? nmDev.peels[0] : abilityPeel(this.start.snapshot?.peel).id);
+    this.events.once('shutdown', () => setNemesisPeel(''));
     this.heroes = new HeroDirector(this.heroHost());
     this.tracker = new HeroTracker(
       () => this.runView(),
@@ -872,6 +879,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     const def = PEEL_BY_ID[id];
     if (!def) return;
     this.peelId = id;
+    // the new peel's nemesis (or none) from the next stage on, as a resumed run would see it
+    setNemesisPeel(id);
     const look = applyPeelLook(this, lookPeel(def));
     this.peelTrailColor = peelTrail(look);
     this.peelShiny = !!look.shiny;
@@ -1675,7 +1684,9 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.thawPerks();
     const n = this.run.wave;
     const stage = STAGES[Math.floor((n - 1) / WAVES_PER_STAGE) % STAGES.length];
-    if (stage) save.stageWaves[stage.location] = (save.stageWaves[stage.location] ?? 0) + 1;
+    // a nemesis stage counts for its own place, not the one it stands in for
+    const where = stage ? applyNemesis(stage).location : null;
+    if (where) save.stageWaves[where] = (save.stageWaves[where] ?? 0) + 1;
     for (const p of this.alivePizzas()) save.pizzaWaves[p.type.id] = (save.pizzaWaves[p.type.id] ?? 0) + 1;
     const eqId = this.peelId;
     save.peelBest[eqId] = Math.max(save.peelBest[eqId] ?? 0, n);
