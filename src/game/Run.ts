@@ -1,7 +1,7 @@
-// Run state: owned upgrades, stat aggregation and wave planning over the 12-stage, 60-wave journey.
+// Run state: owned upgrades, stat aggregation and wave planning over the journey (STAGES, 10-wave acts).
 
 import type { ArenaId, BackdropId, LocationId } from '../art/backdrops';
-import { HEAT_BY_ID, type HeatId } from '../data/difficulty';
+import { DEEP_FROM, DEEP_SPAN, HEAT_BY_ID, type HeatId } from '../data/difficulty';
 import { FEET, type FootType } from '../data/feet';
 import type { PizzaPerk } from '../data/pizzas';
 import { JOURNEY_WAVES, MINI_WAVE, STAGES, WAVES_PER_STAGE } from '../data/stages';
@@ -118,7 +118,11 @@ export function planWave(n: number, luck: number, heatId: HeatId = 'regular'): W
   const loop = loopOf(n);
   const inLoop = n - loop * JOURNEY_WAVES;
   const eff = inLoop + loop * 36; // later loops start harder
-  const hpMult = (1 + Math.min(inLoop - 1, 29) * 0.1 + Math.max(0, inLoop - 30) * 0.06) * (1 + loop * 0.5) * heat.hp;
+  const crowd = heat.crowd;
+  // acts 7–10 (waves 61–100 the first time through): health and the crowd caps keep climbing, gently
+  const deep = Math.min(DEEP_SPAN, Math.max(0, inLoop - DEEP_FROM));
+  const deepUp = 1 + (deep / DEEP_SPAN) * crowd.deepGrowth;
+  const hpMult = (1 + Math.min(inLoop - 1, 29) * 0.1 + (Math.min(inLoop, DEEP_FROM) - Math.min(inLoop, 30)) * 0.06 + deep * crowd.deepHp) * (1 + loop * 0.5) * heat.hp;
   const speedMult = Math.min(heat.crowd.speedCap, 1 + (Math.min(eff, 40) - 1) * 0.026) * heat.speed;
   const boss = isBossWave(n) ? bossFor(n) : null;
   const mini = isMiniWave(n) ? miniFor(n) : null;
@@ -126,9 +130,8 @@ export function planWave(n: number, luck: number, heatId: HeatId = 'regular'): W
   const pool = FEET.filter((f) => !f.boss && !f.mini && f.weight > 0 && (f.minWave <= inLoop || loop > 0));
   // freshly unlocked feet get the spotlight; feet at home in this location turn up 3x as often
   const weight = (f: FootType) => f.weight * (f.minWave >= inLoop - 1 && loop === 0 ? 3 : 1) * (f.home === home ? 3 : 1);
-  const crowd = heat.crowd;
   const loopUp = 1 + loop * 0.5;
-  let count = Math.min(Math.round(crowd.countCap * loopUp), Math.round((6 + Math.min(eff, 40) * crowd.perWave + loop * 4) * heat.count));
+  let count = Math.min(Math.round(crowd.countCap * loopUp * deepUp), Math.round((6 + Math.min(eff, 40) * crowd.perWave + deep * crowd.perWave * 0.25 + loop * 4) * heat.count));
   if (boss) count = Math.round(count * 0.35);
   const queue: string[] = [];
   while (queue.length < count) {
@@ -140,7 +143,7 @@ export function planWave(n: number, luck: number, heatId: HeatId = 'regular'): W
     n,
     queue,
     interval: Math.max(crowd.intervalFloor, 1.85 - Math.min(eff, 40) * 0.055),
-    maxAlive: boss ? Math.min(2 + Math.floor(inLoop / 8), Math.min(6, crowd.aliveCap)) : Math.min(3 + Math.floor(Math.min(eff, 40) * 0.6), Math.round(crowd.aliveCap * loopUp)),
+    maxAlive: boss ? Math.min(2 + Math.floor(inLoop / 8), Math.min(6, crowd.aliveCap)) : Math.min(3 + Math.floor(Math.min(eff, 40) * 0.6) + Math.floor(deep / 10), Math.round(crowd.aliveCap * loopUp * deepUp)),
     hpMult,
     bossHpMult: (1 + Math.min(inLoop - 1, 29) * 0.1) * (1 + loop * 0.5) * heat.hp * 0.75,
     speedMult,
@@ -150,6 +153,13 @@ export function planWave(n: number, luck: number, heatId: HeatId = 'regular'): W
     golden: n >= 3 && Math.random() < 0.28 + luck * 0.08,
     loop,
   };
+}
+
+export interface ActMark {
+  wave: number;
+  elapsed: number;
+  feet: number;
+  slices: number;
 }
 
 export class Run {
@@ -188,8 +198,10 @@ export class Run {
   newUnlocks: string[] = [];
   /** Run time in seconds: counts waves and the shop, stops in the pause menu, while the tab is hidden and while away from the run. */
   elapsed = 0;
-  /** Endless: the run carries on past wave 60 instead of ending there. */
+  /** Endless: the run carries on past the journey's end (JOURNEY_WAVES) instead of ending there. */
   endless = false;
+  /** Where the current act began: its first wave and the run's clock, feet and slices lost then (for ACT COMPLETE). */
+  actFrom: ActMark | null = null;
 
   get heatDef() {
     return HEAT_BY_ID[this.heat];

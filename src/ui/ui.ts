@@ -12,7 +12,7 @@ import { footPortraitURL, pizzaPortraitURL, textureURL } from '../game/assets';
 import { audio } from '../systems/audio';
 import { bestFor, metaRefundValue, persist, resetEverything, resetMeta, resetProgress, save, updateSettings, type Settings } from '../systems/save';
 import { HEATS, HEAT_BY_ID, type HeatId } from '../data/difficulty';
-import { ACT_WAVES } from '../data/stages';
+import { ACT_COUNT, JOURNEY_WAVES, STAGES, actLabel, actName, actOf } from '../data/stages';
 import { BACKDROPS } from '../art/backdrops';
 import { applyA11y } from './a11y';
 import { abilityFor, abilityKindLabel, describeAbility } from '../game/abilities';
@@ -502,7 +502,7 @@ class UI {
       'div',
       { class: 'menu-stats' },
       h('span', { html: `Best <b>${fmt(best.score)}</b>` }),
-      h('span', { html: `Wave <b>${best.wave}</b> <small>${HEAT_BY_ID[save.heat].name}</small>` }),
+      h('span', { html: `Wave <b>${best.wave}</b> <small>${HEAT_BY_ID[save.heat].name}</small>`, title: best.wave ? `Best wave on ${HEAT_BY_ID[save.heat].name}: ${actLabel(actOf(best.wave))}` : '' }),
       h('span', { html: `Crusts <b>${fmt(save.crusts)}</b>` }),
     );
     stats.classList.add('corner');
@@ -511,7 +511,7 @@ class UI {
       ? h(
           'div',
           { class: 'continue panel' },
-          h('div', { class: 'cont-text' }, h('span', { class: 'cont-tag' }, 'RUN IN PROGRESS'), h('b', {}, `Wave ${r.wave} · ${HEAT_BY_ID[r.heat].name} · ${r.wave >= ACT_WAVES ? 'Act 2' : 'Act 1'}`), h('span', {}, `${fmt(r.score)} points · ${r.pizzas.filter((p) => !p.dead).length} pizzas · saved at the shop`)),
+          h('div', { class: 'cont-text' }, h('span', { class: 'cont-tag' }, 'RUN IN PROGRESS'), h('b', {}, `Wave ${r.wave} · ${HEAT_BY_ID[r.heat].name} · ${r.actPending ? `${actName(actOf(r.wave))} complete` : actLabel(actOf(r.wave + 1))}`), h('span', {}, `${fmt(r.score)} points · ${r.pizzas.filter((p) => !p.dead).length} pizzas · saved ${r.actPending ? 'at the end of the act' : 'at the shop'}`)),
           btn('CONTINUE', 'green big', h_.resume, { 'data-pad-default': '' }),
         )
       : null;
@@ -545,7 +545,7 @@ class UI {
       ['Bosses fight in phases', 'Each one changes up at 66% and 33% health.'],
       ['Mini-bosses and wave events', 'Flyers and chests worth smacking.'],
       ['Pizzas go stale', 'Reheat them, or swap in fresh ones.'],
-      ['A 60-wave journey', '12 stages, 24 bosses, an ending, then endless.'],
+      [`A ${JOURNEY_WAVES}-wave journey`, `${ACT_COUNT} acts, ${STAGES.length * 2} bosses, an ending, then endless.`],
       ['Controller support', 'Plug in and play, menus included.'],
       ['Saves mid-run', 'Close the tab and continue from the shop.'],
     ];
@@ -584,7 +584,7 @@ class UI {
   lineup(ids: string[], shuffle: () => string[], onStart: (heat: HeatId, endless: boolean, ids: string[]) => void, onBack: () => void): HTMLElement {
     let cur = ids;
     let heat: HeatId = save.heat;
-    // run length: end at wave 60, or endless (remembered)
+    // run length: end at the journey's end (JOURNEY_WAVES), or endless (remembered)
     let endless = save.endless;
     const unlocked = (hd: (typeof HEATS)[number]) => !hd.unlockAfter || save.act1Cleared.includes(hd.unlockAfter);
     const heatRow = h('div', { class: 'heats', 'data-pad-section': '' });
@@ -627,8 +627,8 @@ class UI {
         return b;
       };
       actRow.replaceChildren(
-        mk(!endless, 'End at wave 60', '12 stages and 24 bosses, then bank your crusts', false),
-        mk(endless, 'Endless', 'Past wave 60 the journey starts again, harder', true),
+        mk(!endless, `End at wave ${JOURNEY_WAVES}`, `${ACT_COUNT} acts, ${STAGES.length * 2} bosses. Bank at any act's end`, false),
+        mk(endless, 'Endless', `Past wave ${JOURNEY_WAVES} the journey starts again, harder`, true),
       );
       startBtn.innerHTML = `START · ${HEAT_BY_ID[heat].name.toUpperCase()}`;
     };
@@ -963,27 +963,52 @@ class UI {
     return this.open(panel);
   }
 
-  // ——— Victory after the 60-wave journey ———
-  victory(o: { score: number; time: string; feet: number; bosses: number; heat: string; crusts: number; bank: () => void }): HTMLElement {
+  // ——— Victory at the journey's end ———
+  /** keepGoing: endless runs carry on from here (the journey again, harder). */
+  victory(o: { kicker: string; acts: number; score: number; time: string; feet: number; bosses: number; heat: string; crusts: number; bank: () => void; keepGoing: (() => void) | null }): HTMLElement {
     const panel = h(
       'div',
       { class: 'victory' },
-      h('div', { class: 'v-kicker' }, 'GHOST OF FEET PAST DEFEATED'),
+      h('div', { class: 'v-kicker' }, o.kicker),
       h('div', { class: 'v-title' }, 'PIZZA SAVED!'),
-      h('div', { class: 'v-sub' }, 'Every foot from past to present, smacked. The table is yours.'),
+      h('div', { class: 'v-sub' }, `All ${o.acts} acts, every boss, smacked. The table is yours.`),
+      actTrack(o.acts, o.acts),
       h('div', { class: 'stats' }, stat(fmt(o.score), 'Score'), stat(o.time, 'Run time'), stat(fmt(o.feet), 'Feet smacked'), stat(String(o.bosses), 'Bosses beaten'), stat(o.heat, 'Heat')),
       h('div', { class: 'crusts', html: `${CRUST_SVG.replace('class="coin"', 'style="width:1.2em;height:1.2em"')} +${fmt(o.crusts)} <span style="font-size:.55em">Golden Crusts</span>` }),
       h(
         'div',
         { class: 'row' },
-        h('div', { class: 'v-choice' }, btn('BANK IT', 'green big', o.bank), h('span', {}, 'End the run and collect your crusts')),
+        o.keepGoing ? h('div', { class: 'v-choice' }, btn('KEEP GOING', 'green big', o.keepGoing, { 'data-pad-default': '' }), h('span', {}, 'Endless: the journey again, harder')) : null,
+        h('div', { class: 'v-choice' }, btn('BANK IT', o.keepGoing ? 'yellow big' : 'green big', o.bank, o.keepGoing ? {} : { 'data-pad-default': '' }), h('span', {}, 'End the run and collect your crusts')),
+      ),
+    );
+    return this.open(panel);
+  }
+
+  // ——— ACT COMPLETE: after the boss that ends each act ———
+  actComplete(o: { act: number; name: string; acts: number; loop: number; kicker: string; time: string; feet: number; slices: number; crusts: number; nextLabel: string; keepGoing: () => void; bank: () => void; pause: () => void }): HTMLElement {
+    const gear = btn(GEAR_SVG, 'act-pause cream', o.pause, { 'aria-label': 'Pause menu', title: 'Pause menu (Esc)' });
+    const panel = h(
+      'div',
+      { class: 'victory actdone' },
+      gear,
+      h('div', { class: 'v-kicker' }, o.kicker),
+      h('div', { class: 'v-title' }, 'ACT COMPLETE!'),
+      h('div', { class: 'v-sub' }, `Act ${o.act} · ${o.name}${o.loop ? ` · Endless loop ${o.loop + 1}` : ''}`),
+      actTrack(o.acts, o.act),
+      h('div', { class: 'stats' }, stat(o.time, 'Act time'), stat(fmt(o.feet), 'Feet smacked'), stat(fmt(o.slices), 'Slices lost'), stat(fmt(o.crusts), 'Crusts so far')),
+      h(
+        'div',
+        { class: 'row' },
+        h('div', { class: 'v-choice' }, btn('KEEP GOING', 'green big', o.keepGoing, { 'data-pad-default': '' }), h('span', {}, `On to ${o.nextLabel}`)),
+        h('div', { class: 'v-choice' }, btn('BANK IT', 'yellow big', o.bank), h('span', {}, 'End the run and collect your crusts')),
       ),
     );
     return this.open(panel);
   }
 
   // ——— Pause ———
-  pause(o: { resume: () => void; settings: () => void; quit: () => void; leave: (() => void) | null; leaveNote: string; inShop?: boolean; owned: Record<string, number>; armed?: string[]; wave: number; score: number }): HTMLElement {
+  pause(o: { resume: () => void; settings: () => void; quit: () => void; leave: (() => void) | null; leaveNote: string; inShop?: boolean; backLabel?: string; act?: string; owned: Record<string, number>; armed?: string[]; wave: number; score: number }): HTMLElement {
     // your toppings live here rather than on the HUD, where they piled up over the pizzas
     const entries = Object.entries(o.owned).filter(([id]) => UPGRADE_BY_ID[id]);
     const list = h(
@@ -1016,13 +1041,13 @@ class UI {
       'div',
       { class: 'panel modal' },
       h('div', { class: 'title' }, 'PAUSED'),
-      h('div', { class: 'subtitle' }, `Wave ${o.wave} · ${fmt(o.score)} points`),
+      h('div', { class: 'subtitle' }, `Wave ${o.wave}${o.act ? ` · ${o.act}` : ''} · ${fmt(o.score)} points`),
       tops,
-      h('div', { class: 'row' }, btn(o.inShop ? 'BACK TO SHOP' : 'RESUME', 'green big', o.resume, { 'data-pad': 'menu', 'data-pad-default': '' }), btn('SETTINGS', 'yellow', o.settings)),
+      h('div', { class: 'row' }, btn(o.backLabel ?? (o.inShop ? 'BACK TO SHOP' : 'RESUME'), 'green big', o.resume, { 'data-pad': 'menu', 'data-pad-default': '' }), btn('SETTINGS', 'yellow', o.settings)),
       // leave keeps the run saved (Resume on the title screen); quit ends it
       h('div', { class: 'row' }, o.leave ? btn('SAVE &amp; MENU', 'cream', o.leave) : null, quit),
       h('div', { class: 'hint pause-note' }, o.leaveNote),
-      h('div', { class: 'hint kbd-hint', html: o.inShop ? '<span class="kbd">ESC</span> back to the shop · <span class="kbd">M</span> mute' : '<span class="kbd">ESC</span> resume · <span class="kbd">M</span> mute · <span class="kbd">SPACE</span> Peel Slam' }),
+      h('div', { class: 'hint kbd-hint', html: o.backLabel ? '<span class="kbd">ESC</span> back · <span class="kbd">M</span> mute' : o.inShop ? '<span class="kbd">ESC</span> back to the shop · <span class="kbd">M</span> mute' : '<span class="kbd">ESC</span> resume · <span class="kbd">M</span> mute · <span class="kbd">SPACE</span> Peel Slam' }),
     );
     return this.open(panel);
   }
@@ -1201,7 +1226,7 @@ class UI {
   }
 
   // ——— Game over ———
-  gameOver(o: { score: number; wave: number; feet: number; combo: number; bosses: number; crusts: number; newBest: boolean; heat: string; location: string; secondChanceRun: boolean; time: string; unlocked: string[]; affordable: string[]; next: { name: string; cost: number } | null; victory: boolean; again: () => void; menu: () => void; pizzeria: () => void }): HTMLElement {
+  gameOver(o: { score: number; wave: number; feet: number; combo: number; bosses: number; crusts: number; newBest: boolean; heat: string; location: string; act: string; banked: boolean; secondChanceRun: boolean; time: string; unlocked: string[]; affordable: string[]; next: { name: string; cost: number } | null; victory: boolean; again: () => void; menu: () => void; pizzeria: () => void }): HTMLElement {
     const shopBtn = btn('PIZZERIA', `yellow${o.affordable.length ? ' attention' : ''}`, o.pizzeria);
     const callouts = h('div', { class: 'callouts' });
     if (o.unlocked.length) callouts.append(h('div', { class: 'callout good', html: `🎉 Unlocked this run: <b>${o.unlocked.map((id) => PIZZA_BY_ID[id].name).join(', ')}</b>` }));
@@ -1212,8 +1237,8 @@ class UI {
     const panel = h(
       'div',
       { class: 'panel modal pop' },
-      h('div', { class: 'title', style: `font-size:4.6em;color:${o.victory ? 'var(--cheese-d)' : '#ff6a4d'}` }, o.victory ? 'JOURNEY COMPLETE' : 'THE PIZZA IS TOAST'),
-      h('div', { class: 'subtitle' }, `Wave ${o.wave} · ${o.location} · ${o.heat}`),
+      h('div', { class: 'title', style: `font-size:4.6em;color:${o.victory || o.banked ? 'var(--cheese-d)' : '#ff6a4d'}` }, o.victory ? 'JOURNEY COMPLETE' : o.banked ? 'BANKED!' : 'THE PIZZA IS TOAST'),
+      h('div', { class: 'subtitle' }, `Wave ${o.wave} · ${o.act} · ${o.location} · ${o.heat}`),
       o.newBest ? h('div', { class: 'newbest' }, `NEW BEST ON ${o.heat.toUpperCase()}!`) : null,
       h('div', { class: 'stats' }, stat(fmt(o.score), 'Score'), stat(String(o.wave), 'Wave reached'), stat(fmt(o.feet), 'Feet smacked'), stat(String(o.combo), 'Best combo'), stat(String(o.bosses), 'Bosses beaten'), stat(o.time, 'Time')),
       h('div', { class: 'crusts', html: `${CRUST_SVG.replace('class="coin"', 'style="width:1.2em;height:1.2em"')} +` }, crustsEl, h('span', { style: 'font-size:.6em' }, ' Golden Crusts')),
@@ -1444,7 +1469,7 @@ class UI {
   // ——— Peel Locker: every peel, the achievements that unlock them, and what you equip and wear ———
   locker(onClose: () => void, pickMode: 'ability' | 'look' | null = null): HTMLElement {
     const pick = !!pickMode;
-    type Tab = 'all' | 'goals' | 'crusts' | 'feet' | 'bosses' | 'pizzas' | 'places' | 'events' | 'shiny';
+    type Tab = 'all' | 'goals' | 'crusts' | 'feet' | 'bosses' | 'pizzas' | 'places' | 'acts' | 'events' | 'shiny';
     const TAB_GROUPS: Record<Exclude<Tab, 'goals'>, PeelGroup[]> = {
       all: [...new Set(PEELS.map((d) => d.group))],
       crusts: ['classic', 'golden', 'jewel', 'master'],
@@ -1452,10 +1477,11 @@ class UI {
       bosses: ['boss'],
       pizzas: ['pizza'],
       places: ['place'],
+      acts: ['act'],
       events: ['event'],
       shiny: ['shinyFoot', 'shinyEvent'],
     };
-    const NAMES: Record<Tab, string> = { all: 'ALL', goals: 'GOALS', crusts: 'CRUSTS', feet: 'FEET', bosses: 'BOSSES', pizzas: 'PIZZAS', places: 'PLACES', events: 'EVENTS', shiny: 'SHINY' };
+    const NAMES: Record<Tab, string> = { all: 'ALL', goals: 'GOALS', crusts: 'CRUSTS', feet: 'FEET', bosses: 'BOSSES', pizzas: 'PIZZAS', places: 'PLACES', acts: 'ACTS', events: 'EVENTS', shiny: 'SHINY' };
     // catch up on goals already met (older saves, bosses beaten before peels existed)
     checkPeelAchievements();
     const fresh = new Set(save.peelsNew);
@@ -1765,6 +1791,15 @@ function logo(): HTMLElement {
 <text x="500" y="212" fill="none" stroke="#ffffff" stroke-opacity=".35" stroke-width="4" transform="translate(-3 -5)">FEET<tspan rotate="-9">Z</tspan>A</text>
 </g></svg>`,
   });
+}
+
+/** The journey's acts as a row of medals: done ones gold, the one just finished (cur) glowing. */
+function actTrack(acts: number, cur: number): HTMLElement {
+  return h(
+    'div',
+    { class: 'act-track', 'aria-label': `Act ${cur} of ${acts}` },
+    ...Array.from({ length: acts }, (_, i) => h('span', { class: i + 1 < cur ? 'done' : i + 1 === cur ? 'done cur' : '' }, String(i + 1))),
+  );
 }
 
 function stat(v: string, label: string): HTMLElement {

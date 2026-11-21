@@ -57,11 +57,14 @@ export interface SaveData {
   milestones: string[];
   // Feetza 2.0
   heat: HeatId;
-  /** Best score and wave per heat (Act 1 starts) and for Act 2 starts. */
+  /** Best score and wave per heat (runs from wave 1). */
   best: Partial<Record<HeatId, Best>>;
+  /** Old saves only: bests from the retired wave-31 starts. Kept as a record; nothing writes it now. */
   bestAct2: Partial<Record<HeatId, Best>>;
-  /** Heats on which wave 30 has been beaten (unlocks the next heat and Act 2 starts on it). */
+  /** Heats on which wave 30 has been beaten (unlocks the next heat). Named for when wave 30 ended Act 1. */
   act1Cleared: HeatId[];
+  /** Acts completed (their last boss beaten), on any heat: each unlocks its act peel. */
+  actsCleared: number[];
   /** Pre-2.0 best scores kept as a record when a veteran takes a fresh start. */
   oldVersionBest: Best | null;
   seenIntros: string[];
@@ -88,7 +91,7 @@ export interface SaveData {
   peel: string;
   /** Peel worn as a look only, over the equipped peel's own ('' = match the equipped peel). */
   skin: string;
-  /** The last run-length choice on the new-run screen: end the run at wave 60, or keep going (endless). */
+  /** The last run-length choice on the new-run screen: end the run at the journey's end, or keep going (endless). */
   endless: boolean;
   /** Peels unlocked but not yet looked at in the locker. */
   peelsNew: string[];
@@ -135,6 +138,7 @@ const DEFAULTS: SaveData = {
   best: {},
   bestAct2: {},
   act1Cleared: [],
+  actsCleared: [],
   oldVersionBest: null,
   seenIntros: [],
   seenEvents: [],
@@ -180,6 +184,18 @@ export function migrate(parsed: Partial<SaveData>): SaveData {
     // the old "all 6 bosses" milestone is now "6 different bosses"
     s.milestones = s.milestones.map((m) => (m === 'allBosses' ? 'bosses6' : m));
     s.run = null;
+  }
+  // saves from before acts: count the acts already done from the records (the journey then ended at wave 60)
+  if (!parsed.actsCleared) {
+    const OLD_JOURNEY = 60;
+    const done = new Set<number>();
+    const add = (from: number, wave: number) => {
+      for (let a = from; a * 10 <= Math.min(wave, OLD_JOURNEY); a++) done.add(a);
+    };
+    for (const b of Object.values(s.best)) if (b) add(1, b.wave);
+    for (const b of Object.values(s.bestAct2)) if (b) add(4, b.wave);
+    if (s.act1Cleared.length) add(1, 30);
+    s.actsCleared = [...done].sort((a, b) => a - b);
   }
   return s;
 }

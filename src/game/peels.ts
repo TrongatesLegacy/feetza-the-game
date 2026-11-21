@@ -7,19 +7,20 @@
 // - Golden Crusts: bought in the locker (including the jewellery set).
 // - Shiny feet: a rare shiny foot unlocks the shiny version of that foot's peel.
 // - Event shinies: rare drops from wave events, with a few extremely rare jewels.
+// - Acts: complete the act (beat its last boss), on any heat.
 
 import type Phaser from 'phaser';
 import { BACKDROPS, type LocationId } from '../art/backdrops';
 import { drawPeelSkin, handleFrom, headFrom, PEEL_H, PEEL_W, type PeelLook, type PeelPattern, type PeelShape } from '../art/peelArt';
 import { hashStr, makeCanvas, shade } from '../art/util';
 import { FEET, FOOT_BY_ID, type FootType } from '../data/feet';
-import { STAGES } from '../data/stages';
+import { ACTS, STAGES, WAVES_PER_ACT } from '../data/stages';
 import { persist, save } from '../systems/save';
 import { addCanvas, eventCanvases, footMeta, pizzaTops } from './assets';
 import { PIZZAS } from '../data/pizzas';
 import type { EventId } from './events';
 
-export type PeelGroup = 'classic' | 'golden' | 'jewel' | 'foot' | 'boss' | 'place' | 'event' | 'pizza' | 'shinyFoot' | 'shinyEvent' | 'master';
+export type PeelGroup = 'classic' | 'golden' | 'jewel' | 'foot' | 'boss' | 'place' | 'event' | 'pizza' | 'shinyFoot' | 'shinyEvent' | 'master' | 'act';
 
 export interface PeelDef {
   id: string;
@@ -236,6 +237,50 @@ const ULTRA: [string, string, EventId, number, Plain][] = [
   ['cosmic', 'Cosmic Crust', 'chest', 1 / 400, { shape: 'oval', base: '#120a3a', pattern: 'stars', pc: '#ffffff', handle: '#3a2a6a', studs: '#a77dff' }],
 ];
 
+/** Act peels: a look for each act (the trophy studs, and the act's number stamped on the head). */
+const ACT_LOOK: Plain[] = [
+  { shape: 'round', base: '#c8553d', pattern: 'checker', pc: '#fff2e0', studs: '#ffd23f' }, // Opening Night
+  { shape: 'oval', base: '#ffb347', pattern: 'waves', pc: '#ff5fa0', studs: '#ffd23f' }, // Summer Rush
+  { shape: 'spade', base: '#2a2160', pattern: 'stars', pc: '#7be0ff', handle: '#5a5a7a', studs: '#ffd23f' }, // Out of This World
+  { shape: 'square', base: '#f2dfb0', pattern: 'checker', pc: '#c8553d', studs: '#ffd23f' }, // Home Cooking
+  { shape: 'paddle', base: '#3f8fc9', pattern: 'waves', pc: '#ff9ad5', studs: '#ffd23f' }, // Sea and Skates
+  { shape: 'spade', base: '#24304a', pattern: 'snow', pc: '#a8304f', studs: '#ffd23f' }, // Cold and Dark
+  { shape: 'square', base: '#ffd23f', pattern: 'spots', pc: '#e83a3a', studs: '#2a6bd8' }, // Comics
+  { shape: 'round', base: '#5a7fa0', pattern: 'bolts', pc: '#e8f6ff', handle: '#6a4a2b', metal: true, studs: '#ffd23f' }, // Norse
+  { shape: 'oval', base: '#efe9e2', pattern: 'marble', pc: '#c9a23a', handle: '#c7ccd4', studs: '#ffd23f' }, // Greek Myths
+  { shape: 'spade', base: '#120a3a', pattern: 'stars', pc: '#ffd23f', handle: '#3a2a6a', metal: true, studs: '#fff4b0' }, // Finale
+];
+
+const actEmblems = new Map<number, HTMLCanvasElement>();
+
+/** The act's number in gold, for its peel's stamped disc. */
+function actEmblem(act: number): HTMLCanvasElement {
+  let c = actEmblems.get(act);
+  if (c) return c;
+  const [cv, ctx] = makeCanvas(120, 120);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.lineJoin = 'round';
+  ctx.font = `${act >= 10 ? 84 : 104}px 'Lilita One', 'Fredoka', sans-serif`;
+  const g = ctx.createLinearGradient(0, 18, 0, 104);
+  g.addColorStop(0, '#fff4b0');
+  g.addColorStop(0.5, '#ffd23f');
+  g.addColorStop(1, '#d8901a');
+  ctx.lineWidth = 14;
+  ctx.strokeStyle = '#2a1810';
+  ctx.strokeText(String(act), 60, 66);
+  ctx.fillStyle = g;
+  ctx.fillText(String(act), 60, 66);
+  // a highlight sheen across the top of the number
+  ctx.globalCompositeOperation = 'source-atop';
+  ctx.fillStyle = 'rgba(255,255,255,0.28)';
+  ctx.fillRect(0, 24, 120, 22);
+  c = cv;
+  // fonts may still be loading on the first draw: only keep it once Lilita One is in
+  if (typeof document === 'undefined' || document.fonts?.check("80px 'Lilita One'")) actEmblems.set(act, c);
+  return c;
+}
+
 function buildDefs(): PeelDef[] {
   const defs: PeelDef[] = [];
   defs.push({
@@ -272,6 +317,7 @@ function buildDefs(): PeelDef[] {
     });
   }
   STAGES.forEach((st, i) => {
+    if (st.dev) return;
     const name = BACKDROPS[st.location].name;
     defs.push({
       id: `place:${st.location}`,
@@ -294,6 +340,18 @@ function buildDefs(): PeelDef[] {
       look: () => plain(`event:${ev}`, EVENT_LOOK[ev], false, eventCanvases[EVENT_KEY[ev]] ?? null)(),
     });
   }
+  // one for completing each act, on any heat (acts 7–10 are named ahead of their stages)
+  ACTS.forEach((a, i) => {
+    const n = i + 1;
+    defs.push({
+      id: `act:${n}`,
+      name: `${a.name} Peel`,
+      group: 'act',
+      how: `Complete Act ${n}, ${a.name}: beat the boss of wave ${n * WAVES_PER_ACT}, on any heat.`,
+      progress: () => [save.actsCleared.includes(n) ? 1 : 0, 1],
+      look: () => plain(`act:${n}`, ACT_LOOK[i] ?? ACT_LOOK[0], false, actEmblem(n))(),
+    });
+  });
   // prestige: reach wave 60 with a Classic, Golden Crust or jewellery peel to master it
   for (const base of defs.filter((d) => d.group === 'classic' || d.group === 'golden' || d.group === 'jewel')) {
     const baseLook = base.look;

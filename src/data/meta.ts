@@ -1,5 +1,7 @@
 // Permanent upgrades bought with Golden Crusts in the Pizzeria between runs.
 
+import { JOURNEY_WAVES } from './stages';
+
 export interface MetaUpgrade {
   id: string;
   name: string;
@@ -50,14 +52,14 @@ export const MILESTONES: Milestone[] = [
   { id: 'feet600', name: 'Smack 600 feet' },
   { id: 'wave20', name: 'Reach wave 20' },
   { id: 'bosses6', name: 'Beat 6 different bosses' },
-  { id: 'act1', name: 'Finish Act 1 (wave 30)' },
+  { id: 'act1', name: 'Beat wave 30' },
   { id: 'bosses12', name: 'Beat 12 different bosses' },
   { id: 'feet1500', name: 'Smack 1,500 feet' },
   { id: 'wave45', name: 'Reach wave 45' },
   { id: 'bosses18', name: 'Beat 18 different bosses' },
-  { id: 'journey', name: 'Finish the journey (wave 60)' },
+  { id: 'journey', name: `Finish the journey (wave ${JOURNEY_WAVES})` },
   { id: 'allBosses', name: 'Beat all 24 bosses' },
-  { id: 'hot30', name: 'Finish Act 1 on Hot' },
-  { id: 'extrahot30', name: 'Finish Act 1 on Extra Hot' },
-  { id: 'inferno30', name: 'Finish Act 1 on Inferno' },
+  { id: 'hot30', name: 'Beat wave 30 on Hot' },
+  { id: 'extrahot30', name: 'Beat wave 30 on Extra Hot' },
+  { id: 'inferno30', name: 'Beat wave 30 on Inferno' },
 ];

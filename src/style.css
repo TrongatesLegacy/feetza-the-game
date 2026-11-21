@@ -3015,7 +3015,7 @@ body.pad :focus {
 
 .v-choice {
   display: grid;
-  gap: 0.4em;
+  gap: 0.7em;
   justify-items: center;
   background: var(--cream);
   border: 0.22em solid var(--ink);
@@ -3023,6 +3023,111 @@ body.pad :focus {
   padding: 1em 1.4em;
   color: var(--ink);
   font-weight: 600;
+}
+
+/* ——— ACT COMPLETE (the victory screen's style, a notch smaller) ——— */
+.victory.actdone {
+  position: relative;
+  background: radial-gradient(ellipse at 50% 28%, #5e3e14 0%, #5a2216 52%, #2a1208 100%);
+  padding: 2em 3em 2.2em;
+  gap: 1em;
+}
+
+.actdone .v-title {
+  font-size: 5.6em;
+  animation: act-pop 0.7s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+
+/* one row of stats keeps the victory (now with the act medals) on screen */
+.victory .stats {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+.victory .stat b {
+  font-size: 2.2em;
+}
+
+.actdone .stats {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.actdone .stat b {
+  font-size: 2.6em;
+}
+
+.btn.act-pause {
+  position: absolute;
+  top: 0.9em;
+  right: 0.9em;
+  width: 2.8em;
+  height: 2.8em;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 0.6em;
+  color: var(--ink);
+}
+
+.btn.act-pause .gear {
+  width: 1.6em;
+  height: 1.6em;
+  display: block;
+}
+
+@keyframes act-pop {
+  0% {
+    transform: scale(0.4) rotate(-6deg);
+    opacity: 0;
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* the journey's acts as medals: done ones gold, the one just finished glowing */
+.act-track {
+  display: flex;
+  gap: 0.6em;
+  justify-content: center;
+}
+
+.act-track span {
+  width: 2.6em;
+  height: 2.6em;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 0.16em solid var(--ink);
+  background: #4a3426;
+  color: #d8c4a8;
+  font-family: 'Lilita One', sans-serif;
+  font-size: 1.3em;
+  box-shadow: 0 0.14em 0 var(--ink);
+}
+
+.act-track span.done {
+  background: radial-gradient(circle at 35% 30%, #fff4b0 0%, #ffd23f 45%, #d8901a 100%);
+  color: var(--ink);
+}
+
+.act-track span.cur {
+  transform: scale(1.22);
+  box-shadow: 0 0.14em 0 var(--ink), 0 0 0 0.2em rgba(255, 210, 63, 0.45), 0 0 1.2em rgba(255, 210, 63, 0.8);
+  animation: act-glow 1.6s ease-in-out infinite;
+}
+
+@keyframes act-glow {
+  50% {
+    box-shadow: 0 0.14em 0 var(--ink), 0 0 0 0.3em rgba(255, 210, 63, 0.25), 0 0 2em rgba(255, 210, 63, 1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .actdone .v-title,
+  .act-track span.cur {
+    animation: none;
+  }
 }
 
 /* ——— Main menu: continue run ——— */
@@ -3779,9 +3884,10 @@ body.reduced-motion *::after {
 }
 
 .locker-tabs .btn {
-  font-size: 1.02em;
-  padding-left: 0.55em;
-  padding-right: 0.55em;
+  /* ten tabs and the filter share one row */
+  font-size: 0.94em;
+  padding-left: 0.42em;
+  padding-right: 0.42em;
 }
 
 .locker-tabs .btn small {

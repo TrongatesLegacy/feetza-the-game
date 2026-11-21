@@ -91,7 +91,9 @@ export function installDevTools(game: Phaser.Game): void {
     },
     /**
      * Start a run from any point. Pass a lineup array (old form) or a scenario:
-     * { lineup, heat, wave, tips, boss: { id, hp }, snapshot, act2, seed, upgrades: { heavy: 3 }, intros: false }.
+     * { lineup, heat, wave, tips, boss: { id, hp }, snapshot, act2, kit, endless, seed, upgrades: { heavy: 3 }, intros: false }.
+     * kit: true starts in the shop before `wave` with 5 pizzas, toppings and tips sized for that wave,
+     * e.g. F.startGame({ wave: 61, kit: true }). For acts 7–10 before their stages exist, see fakeStages.
      */
     startGame(opts?: string[] | Record<string, any>): void { // eslint-disable-line @typescript-eslint/no-explicit-any
       const o = Array.isArray(opts) ? { lineup: opts } : (opts ?? {});
@@ -112,6 +114,19 @@ export function installDevTools(game: Phaser.Game): void {
       }
       game.scene.getScenes(true).forEach((s) => s.scene.stop());
       game.scene.start('Game', data);
+    },
+    /** Dev: reload with n stand-in stages added to the journey (repeats of real ones), so acts past the
+     * real ones and wave 100 can be tested end to end: F.fakeStages(8) → a 100-wave journey. 0 removes them. */
+    fakeStages(n = 8): void {
+      const q = new URLSearchParams(location.search);
+      if (n > 0) q.set('fakeStages', String(n));
+      else q.delete('fakeStages');
+      location.search = q.toString().replace(/=(&|$)/g, '$1');
+    },
+    /** The journey as built (with any fake stages): waves, acts and stages. */
+    async journey(): Promise<{ waves: number; acts: number; stages: number }> {
+      const m = await import('./data/stages');
+      return { waves: m.JOURNEY_WAVES, acts: m.ACT_COUNT, stages: m.STAGES.length };
     },
     /** Save the current run as a scenario (same shape as the run save). */
     saveScenario(): unknown {
@@ -193,6 +208,13 @@ export function installDevTools(game: Phaser.Game): void {
             if (g.run?.super >= 1 && Math.random() < 0.05) g.peelSlam();
           }
           if (g.inUpgrade && g.shop) botShop(g);
+          // ACT COMPLETE (and an endless victory): keep going
+          else if (g.inUpgrade && g.actEl && !g.paused && !g.__botBusy) {
+            g.__botBusy = true;
+            setTimeout(() => (g.__botBusy = false), 400);
+            api.log.push({ act: true, wave: g.run.wave, t: Math.round(g.run.elapsed), slices: g.run.slicesLost });
+            g.actEl.querySelector('.v-choice .btn.green')?.click();
+          }
         }
         setTimeout(loop, rate / warp);
       };

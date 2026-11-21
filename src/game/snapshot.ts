@@ -57,6 +57,9 @@ export interface RunSnapshot {
   elapsed: number;
   /** Endless run (older saves: ask at wave 60, as before). */
   endless?: boolean;
+  /** Where the current act began (ACT COMPLETE's act stats), and whether the run was saved on that screen. */
+  actFrom?: { wave: number; elapsed: number; feet: number; slices: number } | null;
+  actPending?: boolean;
   secondChances: number;
   rentedSpecial: string | null;
   pizzas: PizzaSnap[];
