@@ -2,9 +2,17 @@
 // hero's passive and fires its base move with a twist on top, so the base move stays the single source of truth.
 // - Kratos, Ghost of Sparta: This Is Spartaaa, but the rage leaves a fire trail on the table that burns feet
 //   (1×/s for 2 s, at most every 0.5 s a foot); three blades from the start; an ember aura all the time.
+// - Superpeel Prime: Heat Vision rakes the whole screen top to bottom (×12, 1.5 s stun, burn) over 2 s.
+// - Iron Pan Mark Infinity: Suit Up, plus a second repulsor at the next-nearest foot and, as the suit ends, a
+//   six-coloured beam that sweeps every lane (×15).
+// - Thor, Thunder Unleashed: Thunder God, then 4 s of storm (a ×2 chaining bolt every 0.35 s); Mjölnir every 5 s.
+// - Odin Allfather Ascended: Allfather, plus the eye's light stuns every foot 1.5 s and Gungnir strikes 8, not 4.
+// - Zeus, King Unbound: Wrath of Olympus, then one colossal bolt through every foot (×8, 2 s stun).
+// - Endgame variants: the hero's own move, then a ring of 5 portals strikes the 5 toughest feet (×3 each).
 // Also adds the Kratos nemesis arenas to the night stages (Moon Knife's Moonlit, Batpeel's Signal).
 
 import Phaser from 'phaser';
+import { TABLE_Y, W } from '../../config';
 import { audio } from '../../systems/audio';
 import type { ActFx } from '../contentFx';
 import type { Foot } from '../Foot';
@@ -51,7 +59,7 @@ export function passiveFrom(base: string, extra: Partial<Passive> = {}): Passive
   const p = PASSIVES[base] ?? {};
   const out: Passive = { ...p, ...extra };
   // hooks both sides define run one after the other
-  for (const key of ['tick', 'waveStart', 'waveClear', 'hit', 'kill'] as const) {
+  for (const key of ['tick', 'waveStart', 'waveClear', 'hit', 'kill', 'lost', 'blocked'] as const) {
     const a = p[key] as ((...args: unknown[]) => void) | undefined;
     const b = extra[key] as ((...args: unknown[]) => void) | undefined;
     if (a && b) (out as Record<string, unknown>)[key] = (...args: unknown[]) => (a(...args), b(...args));
@@ -138,5 +146,270 @@ registerPassives({
     waveClear: (k) => void (k.st.auraG as unknown as Phaser.GameObjects.Image | undefined)?.setVisible(false),
   }),
 });
+
+// ——— shared: the Endgame portals ———
+
+/** A ring of golden portals opens over the table and each sends a strike at one of the 5 toughest feet (×3). */
+function portals(k: HeroKit): void {
+  if (!k.host.inWave()) return;
+  audio.sfx('sfx_hero_endgame', { volume: 0.9 });
+  k.host.quip(W / 2, 230, 'ASSEMBLE!', '#ffd23f', 64);
+  const targets = k.toughest(5);
+  for (let i = 0; i < 5; i++) {
+    const x = 260 + i * 350;
+    const y = 200 + (i % 2) * 70;
+    const ring = k.sc.add.graphics().setBlendMode(Phaser.BlendModes.ADD);
+    k.host.layers.fx.add(ring);
+    const o = { r: 0, a: 1 };
+    const draw = () => {
+      ring.clear();
+      // a spinning ring of gold sparks round an amber rim
+      for (let s = 0; s < 14; s++) {
+        const a = (s / 14) * Math.PI * 2 + k.host.now() * 6;
+        ring.fillStyle(0xffd23f, 0.9 * o.a).fillCircle(x + Math.cos(a) * o.r, y + Math.sin(a) * o.r * 0.45, 5);
+      }
+      ring.lineStyle(6, 0xffb040, 0.7 * o.a).strokeEllipse(x, y, o.r * 2, o.r * 0.9);
+    };
+    k.sc.tweens.add({ targets: o, r: 70, duration: 300, delay: i * 90, ease: 'Back.Out', onUpdate: draw });
+    k.sc.time.delayedCall(420 + i * 110, () => {
+      const f = targets[i];
+      if (f?.alive && k.host.inWave()) {
+        k.beam(x, y, f.cx, f.cy, 0xffd23f, 16, 300);
+        k.host.hurt(f, 3, { knock: 300 });
+        k.host.fx.propBurst(f.cx, f.cy, 0xffd23f, 1);
+      }
+      k.sc.tweens.add({ targets: o, a: 0, duration: 400, onUpdate: draw, onComplete: () => ring.destroy() });
+    });
+  }
+}
+
+registerMoves({
+  // ——— Superpeel Prime: Heat Vision rakes the whole screen ———
+  heatVisionPrime: (k) => {
+    audio.sfx('sfx_hero_primebeam', { volume: 1 });
+    const peel = k.host.peel();
+    const eyes = [-1, 1].map((s) => {
+      const p = k.host.peelPos();
+      const e = k.img('glow', p.x + s * 14, p.y - 12, 0.05).setTint(0xff3a2a).setBlendMode(Phaser.BlendModes.ADD);
+      k.sc.tweens.add({ targets: e, scale: 0.7, duration: 450, ease: 'Quad.In' });
+      return e;
+    });
+    k.flashC(0xff3a2a, 200);
+    const g = k.sc.add.graphics().setBlendMode(Phaser.BlendModes.ADD);
+    k.host.layers.fx.add(g);
+    const hit = new Set<Foot>();
+    timed(
+      k,
+      2.6,
+      (_dt, t) => {
+        const p = k.host.peelPos();
+        eyes.forEach((e, i) => e.setPosition(p.x + (i ? 14 : -14) + Math.sin(peel.rotation) * 6, p.y - 12));
+        g.clear();
+        if (t < 0.5) return;
+        // the beams' aim rakes left and right as it falls from the top of the screen to the table
+        const u = Math.min(1, (t - 0.5) / 2);
+        const ty = 80 + (TABLE_Y - 80) * u;
+        const sx = W / 2 + Math.sin(u * Math.PI * 3.5) * (W / 2 + 80);
+        for (const s of [-1, 1]) {
+          const ex = p.x + s * 14;
+          const ey = p.y - 12;
+          const dx = sx + s * 60 - ex;
+          const dy = ty - ey;
+          const len = Math.hypot(dx, dy) || 1;
+          const fx = ex + (dx / len) * 2600;
+          const fy = ey + (dy / len) * 2600;
+          for (const [w, c, a] of [[52, 0xff2a1a, 0.25], [22, 0xff4a2a, 0.8], [8, 0xfff0e0, 1]] as const) {
+            g.lineStyle(w, c, a);
+            g.lineBetween(ex, ey, fx, fy);
+          }
+          for (const f of k.feetOnLine(ex, ey, fx, fy, 50)) {
+            if (hit.has(f)) continue;
+            hit.add(f);
+            k.host.hurt(f, 12, { knock: 320 });
+            if (f.alive) {
+              k.stun(f, 1.5);
+              k.burn(f, 1, 3);
+            }
+            k.host.fx.explosion(f.cx, f.cy, 100);
+          }
+          if (Math.random() < 0.7) k.host.fx.burn(sx + s * 60, ty);
+        }
+        if (Math.random() < 0.4) k.host.shake(60, 0.004);
+      },
+      () => {
+        g.destroy();
+        eyes.forEach((e) => e.destroy());
+      },
+    );
+  },
+
+  // ——— Iron Pan Mark Infinity: twin repulsors, then the Infinity Beam sweeps every lane ———
+  suitUpInfinity: withBase('suitUp', (k) => {
+    audio.sfx('sfx_hero_infinity', { volume: 0.7 });
+    let fire = 0.35;
+    timed(
+      k,
+      20,
+      (dt) => {
+        fire += dt;
+        if (fire < 0.7 || k.running?.label !== 'SUIT UP') return;
+        fire = 0;
+        // the second repulsor: the next-nearest foot
+        const p = k.host.peelPos();
+        const f = [...k.host.live()].sort((a, b) => Math.hypot(a.cx - p.x, a.cy - p.y) - Math.hypot(b.cx - p.x, b.cy - p.y))[1];
+        if (!f) return;
+        k.beam(p.x, p.y, f.cx, f.cy, 0xffd23f, 12, 180);
+        k.host.hurt(f, 2, { knock: 300 });
+      },
+      () => {
+        if (!k.host.inWave() || k.closing) return;
+        // the Infinity Beam: six colours, sweeping across every lane once
+        audio.sfx('sfx_hero_infinity', { volume: 1 });
+        const g = k.sc.add.graphics().setBlendMode(Phaser.BlendModes.ADD);
+        k.host.layers.fx.add(g);
+        const cols = [0x7a5aff, 0xff3a3a, 0x3a8aff, 0xffd23f, 0xff8a1c, 0x3acf6a];
+        const hit = new Set<Foot>();
+        const o = { u: 0 };
+        k.sc.tweens.add({
+          targets: o,
+          u: 1,
+          delay: 500,
+          duration: 1300,
+          ease: 'Sine.InOut',
+          onUpdate: () => {
+            const x = 80 + (W - 160) * o.u;
+            g.clear();
+            cols.forEach((c, i) => {
+              g.lineStyle(26, c, 0.55);
+              g.lineBetween(x + (i - 2.5) * 16, -40, x + (i - 2.5) * 16, TABLE_Y);
+            });
+            g.lineStyle(20, 0xffffff, 0.9);
+            g.lineBetween(x, -40, x, TABLE_Y);
+            if (!k.host.inWave()) return;
+            for (const f of k.host.live()) {
+              if (hit.has(f) || Math.abs(f.cx - x) > 90) continue;
+              hit.add(f);
+              k.host.hurt(f, 15, { knock: 900 });
+              k.host.fx.explosion(f.cx, f.cy, 110);
+            }
+            k.host.shake(40, 0.004);
+          },
+          onComplete: () => k.sc.tweens.add({ targets: g, alpha: 0, duration: 300, onComplete: () => g.destroy() }),
+        });
+      },
+    );
+  }),
+
+  // ——— Thor, Thunder Unleashed: the storm stays ———
+  thunderUnleashed: withBase('thunderGod', (k) => {
+    audio.sfx('sfx_hero_unleashed', { volume: 0.9 });
+    let beat = 0;
+    timed(k, 5, (dt, t) => {
+      if (t < 1) return;
+      beat -= dt;
+      if (beat > 0) return;
+      beat = 0.35;
+      const f = k.random(1)[0];
+      if (!f) return;
+      k.strike(f.cx, f.cy, 0xffe680);
+      k.host.hurt(f, 2, { knock: 200 });
+      k.host.runFx([{ e: 'chain', x: 1, jumps: 2, at: { to: 'hit' } }], { foot: f, x: f.cx, y: f.cy }, 0xffe680);
+      audio.sfx('sfx_hero_thunder', { volume: 0.35, throttle: 160 });
+    });
+  }),
+
+  // ——— Odin Allfather Ascended: the eye's light stuns, and Gungnir strikes four more ———
+  allfatherAscended: withBase('allfather', (k) => {
+    audio.sfx('sfx_hero_ascended', { volume: 0.9 });
+    k.sc.time.delayedCall(500, () => {
+      if (!k.host.inWave()) return;
+      k.flashC(0xffe680, 260);
+      for (const f of k.host.live()) {
+        k.stun(f, 1.5);
+        k.host.fx.glint(f.cx, f.cy - 30);
+      }
+    });
+    k.sc.time.delayedCall(2500, () => {
+      if (!k.host.inWave()) return;
+      for (const [i, f] of k.toughest(8).slice(4).entries()) {
+        k.sc.time.delayedCall(i * 160, () => {
+          if (!f.alive) return;
+          const sp = k.img('g_spear', f.cx, -200, 0.8).setAngle(90).setTint(0xffe680);
+          k.sc.tweens.add({
+            targets: sp,
+            y: f.cy - 40,
+            duration: 160,
+            ease: 'Quad.In',
+            onComplete: () => {
+              k.host.hurt(f, 6, { knock: 500 });
+              k.strike(f.cx, f.cy, 0xffe680);
+              k.host.shake(140, 0.008);
+              k.sc.tweens.add({ targets: sp, alpha: 0, duration: 300, onComplete: () => sp.destroy() });
+            },
+          });
+        });
+      }
+    });
+  }),
+
+  // ——— Zeus, King Unbound: after the storm, one colossal bolt through every foot ———
+  wrathUnbound: withBase('wrathOlympus', (k) => {
+    k.sc.time.delayedCall(3300, () => {
+      if (!k.host.inWave()) return;
+      audio.sfx('sfx_hero_unbound', { volume: 1 });
+      k.shout('UNBOUND!', 0xc8a0ff, 120);
+      k.flashC(0xffffff, 300);
+      k.host.shake(600, 0.016);
+      k.host.rumble(1, 500);
+      for (const f of k.host.live()) {
+        k.strike(f.cx, f.cy, 0xe0c8ff);
+        k.host.hurt(f, 8, { knock: 600 });
+        if (f.alive) k.stun(f, 2);
+      }
+    });
+  }),
+});
+
+// ——— Endgame: each Avengers-style hero's own move, then the portals ———
+for (const base of ['binaryMode', 'awesomeMix', 'redLedger', 'trickQuiver', 'kinetic', 'timeStone', 'chaosHex', 'giantSize', 'stingSwarm', 'bigGun', 'iAmCrust']) {
+  registerMoves({ [`endgame_${base}`]: withBase(base, (k) => void k.sc.time.delayedCall(400, () => portals(k))) });
+}
+
+// ——— the variants' passives: their base hero's, with a twist or two ———
+
+const thor = PASSIVES['hero:thor'];
+registerPassives({
+  'hero:superpeelprime': passiveFrom('hero:superpeel'),
+  'hero:ironpaninfinity': passiveFrom('hero:ironpan'),
+  // Mjölnir every 5 s (Thor: 7)
+  'hero:thorunleashed': {
+    ...thor,
+    tick: (k, dt) => {
+      k.st.mjolnir = Number(k.st.mjolnir ?? 0) + dt;
+      if (Number(k.st.mjolnir) < 5) return;
+      k.st.mjolnir = 0;
+      const pick = k.toughest(1);
+      if (!pick.length) return;
+      audio.sfx('sfx_hero_mjolnir', { volume: 0.7, throttle: 60 });
+      k.host.throwAt({ e: 'throw', prop: 'hammer', how: 'boomerang', x: 4, more: [4], at: { to: 'random', n: 1 } }, pick, 0xffe680, (f, x) => {
+        k.host.hurt(f, x, { knock: 500 });
+        k.strike(f.cx, f.cy, 0xffe680);
+      });
+    },
+  },
+  'hero:odinascended': passiveFrom('hero:odin'),
+  'hero:zeusunbound': passiveFrom('hero:zeus'),
+  // the Bulk hulks out on his own: the portals open the first time he does each wave
+  'hero:incrediblebulkendgame': passiveFrom('hero:incrediblebulk', {
+    lost: (k) => {
+      if (!k.wv.raged || k.wv.endgamed) return;
+      k.wv.endgamed = true;
+      portals(k);
+    },
+  }),
+});
+for (const id of ['captainmarvellous', 'starlard', 'blackwindow', 'hawkeyetalian', 'blackpanther', 'strangeloaf', 'scarletpitch', 'antpan', 'wasabiwasp', 'rocketrucola', 'iamcrust']) {
+  registerPassives({ [`hero:${id}endgame`]: passiveFrom(`hero:${id}`) });
+}
 
 export const actFx: Record<number, ActFx> = {};

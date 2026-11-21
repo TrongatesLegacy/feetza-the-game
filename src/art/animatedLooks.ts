@@ -551,6 +551,8 @@ function paintZeus(): (pen: Pen, ctx: CanvasRenderingContext2D, dt: number) => v
 
 const LOOKS: Record<string, AnimatedLook> = {
   'hero:zeus': { play: playZeus, painter: paintZeus },
+  // Zeus, King Unbound (src/content/peels/variants.ts): the same living lightning blade on his storm-dark head
+  'hero:zeusunbound': { play: playZeus, painter: paintZeus },
 };
 
 export function hasAnimatedLook(id: string): boolean {
