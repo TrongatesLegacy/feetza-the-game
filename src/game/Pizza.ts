@@ -33,6 +33,9 @@ export class Pizza {
   freshOn = true;
   /** Per-pizza flags for perks and boss effects (season, rise used, possessed…). */
   flags: Record<string, number | boolean> = {};
+  /** Seconds left with the perk switched off by a boss (sand, ink, icicles). */
+  perkFrozenT = 0;
+  private frost?: Phaser.GameObjects.Image;
   /** Resting table y; `y` moves with piston lifts. */
   baseY: number;
   private freshBar: Phaser.GameObjects.Graphics;
@@ -154,12 +157,39 @@ export class Pizza {
     this.perkLabel.setScale(k).setY(this.label.y + (this.label.height - 10) * k);
     // stale: a line through the perk (it's switched off until the pizza is reheated)
     this.strike.clear();
-    if (this.stale && this.perkLabel.visible) {
+    if ((this.stale || this.perkFrozen) && this.perkLabel.visible) {
       const pw = (this.perkLabel.width - 8) * k;
       const y = this.perkLabel.y + this.perkLabel.height * k * 0.52;
       this.strike.lineStyle(6 * k, 0x2a1810, 1).lineBetween(-pw / 2 - 4, y, pw / 2 + 4, y);
       this.strike.lineStyle(3 * k, 0xff8a6a, 1).lineBetween(-pw / 2 - 3, y, pw / 2 + 3, y);
     }
+  }
+
+  get perkFrozen(): boolean {
+    return this.perkFrozenT > 0 && !this.dead;
+  }
+
+  /** Switch the perk off for `sec` (a second freeze adds to the time left). */
+  freezePerk(sec: number): void {
+    this.perkFrozenT = this.perkFrozenT > 0 ? this.perkFrozenT + sec : sec;
+    if (!this.frost) {
+      this.frost = this.scene.add.image(0, -10, 'glow').setTint(0x9ad8ff).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.55);
+      this.root.add(this.frost);
+    }
+    this.frost.setScale((PIZZA_R * 2.4) / 256, (PIZZA_R * 1.1) / 256).setVisible(true);
+    this.redraw();
+  }
+
+  /** Count the freeze down (game time). Returns true the moment it ends. */
+  tickFreeze(dt: number): boolean {
+    if (this.perkFrozenT <= 0) return false;
+    this.perkFrozenT -= dt;
+    if (this.frost) this.frost.setAlpha(0.4 + Math.sin(this.bob * 4) * 0.15);
+    if (this.perkFrozenT > 0) return false;
+    this.perkFrozenT = 0;
+    this.frost?.setVisible(false);
+    this.redraw();
+    return true;
   }
 
   get stale(): boolean {
@@ -168,7 +198,7 @@ export class Pizza {
 
   /** The perk this pizza currently grants (stale pizzas grant none; Quattro Stagioni rotates). */
   get perk(): PizzaPerk | null {
-    if (this.dead || this.stale) return null;
+    if (this.dead || this.stale || this.perkFrozen) return null;
     if (this.type.perk === 'rotate') return (['damage', 'coins', 'regen', 'shield'] as PizzaPerk[])[Number(this.flags.season ?? 0) % 4];
     return this.type.perk;
   }

@@ -1,6 +1,9 @@
 import Phaser from 'phaser';
 import { BACKDROPS, type ArenaId, type BackdropId, type LocationId } from '../art/backdrops';
 import { BASE_SLICES, COMBO_BASE_WINDOW, H, MAX_PIZZAS, PIZZA_Y, W } from '../config';
+
+/** Lane width: about one foot wide, so feet in neighbouring lanes don't overlap. */
+const LANE_W = 250;
 import type { HeatId } from '../data/difficulty';
 import { FOOT_BY_ID, OUCH, type FootType } from '../data/feet';
 import { MILESTONES } from '../data/meta';
@@ -131,6 +134,12 @@ export class GameScene extends Phaser.Scene implements Arena {
   private lastSlam = -99;
   private possessedPizza: Pizza | null = null;
   private orders = new Map<Pizza, number>();
+  /** Pizzas a boss has claimed for a move: no regular foot may use their lanes. */
+  private lockedPizzas = new Set<Pizza>();
+  /** True while a boss set-piece has every foot pulled back to the top. */
+  private retreating = false;
+  /** While set, the only regular feet that spawn (a boss's own kind). */
+  private minionPool: string[] | null = null;
   private displayCoins = 0;
   private freeRerollsLeft = 0;
   /** The shop a Continue resumes into (cards, purchases, counter). */
@@ -270,6 +279,32 @@ export class GameScene extends Phaser.Scene implements Arena {
   }
   heatCount(): number {
     return this.run.heatDef.count;
+  }
+  heat(): HeatId {
+    return this.run.heat;
+  }
+  lockLane(p: Pizza, on: boolean): void {
+    if (on) this.lockedPizzas.add(p);
+    else this.lockedPizzas.delete(p);
+  }
+  retreat(on: boolean): void {
+    this.retreating = on;
+    for (const f of this.feet) if (f.alive && !f.isBossLike) f.pinned = on;
+  }
+  isRetreating(): boolean {
+    return this.retreating;
+  }
+  setMinions(ids: string[] | null): void {
+    this.minionPool = ids && ids.length ? ids : null;
+  }
+  freezePerk(p: Pizza, sec: number): void {
+    if (p.dead) return;
+    const was = p.perkFrozen;
+    p.freezePerk(sec);
+    if (!was) {
+      this.fx.quip(p.x, p.surfaceY - 120, 'PERK FROZEN!', '#a8dcff', 36);
+      this.recompute();
+    }
   }
   damageFoot(f: Foot, amount: number, label?: string): void {
     if (label) this.fx.quip(f.x, f.cy - 130, label, '#7dff9a', 40);
@@ -434,6 +469,9 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.bossBonusGiven = false;
     this.possessedPizza = null;
     this.orders = new Map();
+    this.lockedPizzas = new Set();
+    this.retreating = false;
+    this.minionPool = null;
     this.peelStunT = 0;
     this.peelSlowT = 0;
     this.hurryT = 0;
@@ -650,6 +688,10 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.miniFoot = null;
     this.waveSlicesLost = 0;
     this.orders.clear();
+    this.lockedPizzas.clear();
+    this.retreat(false);
+    this.minionPool = null;
+    for (const p of this.pizzas) if (p.perkFrozenT > 0) p.tickFreeze(p.perkFrozenT);
     this.freeRerollsLeft = this.run.stats.freeRerolls;
     this.abilityWaveStart();
     this.coinsAtWaveStart = this.run.coins;
@@ -808,12 +850,22 @@ export class GameScene extends Phaser.Scene implements Arena {
           audio.sfx('sfx_whoosh');
         },
         canDescend: (ft) => this.laneFor(ft),
+        relane: (ft) => this.relane(ft),
         onTrait: (ft, trait) => this.onTrait(ft, trait),
         onTick: (ft, dt) => this.footTick(ft, dt),
       },
     });
     f.target = target;
+    f.setHoverMul(this.run.heatDef.crowd.hoverMul);
     this.feet.push(f);
+    // regular feet each take their own lane (or wait off screen until one frees up)
+    if (!type.boss && !type.mini) {
+      this.assignLane(f, target);
+      f.laneKey = this.laneCache.key;
+      if (x === undefined && f.laneX !== null) f.x = f.laneX;
+      if (f.held) f.y = -260;
+    }
+    if (this.retreating && !f.isBossLike) f.pinned = true;
     // a rare shiny: any regular foot, never a boss, mini-boss or a boss's stand-in
     if (!type.boss && !type.mini && !this.tutorial && Math.random() < SHINY_FOOT_CHANCE * this.shinyBoost) {
       f.makeShiny();
@@ -885,37 +937,222 @@ export class GameScene extends Phaser.Scene implements Arena {
     }
   }
 
-  /** Lanes per pizza: two side-by-side when the table is roomy, one when it's crowded. */
-  private lanesFor(p: Pizza): number[] {
-    const spacing = this.pizzas.length > 1 ? Math.abs(this.pizzas[1].x - this.pizzas[0].x) : 600;
-    if (spacing < 450) return [0];
-    const off = Math.min(110, p.radius * 0.62);
-    return [-off, off];
+  // ——— Lanes: every regular foot hovers in its own lane, so feet never overlap ———
+  // Lanes are evenly spaced columns across the table (about one foot wide each, up to two per pizza).
+  // Each lane dives onto its nearest pizza. A wide foot takes two lanes; a boss takes every lane it covers.
+
+  private laneCache: { key: string; lanes: { x: number; p: Pizza }[] } = { key: '', lanes: [] };
+
+  /** The table's lanes, left to right. */
+  private lanes(): { x: number; p: Pizza }[] {
+    const ps = this.alivePizzas().sort((a, b) => a.x - b.x);
+    const key = ps.map((p) => Math.round(p.x)).join(',');
+    if (key === this.laneCache.key) return this.laneCache.lanes;
+    let lanes: { x: number; p: Pizza }[] = [];
+    if (ps.length) {
+      const r = ps[0].radius;
+      const left = Math.max(110, ps[0].x - r * 0.95);
+      const right = Math.min(W - 110, ps[ps.length - 1].x + r * 0.95);
+      const n = ps.length === 1 ? 2 : Math.max(ps.length, Math.min(ps.length * 2, Math.floor((right - left) / LANE_W) + 1));
+      for (let i = 0; i < n; i++) {
+        const x = n === 1 ? (left + right) / 2 : left + ((right - left) * i) / (n - 1);
+        const p = ps.reduce((best, q) => (Math.abs(q.x - x) < Math.abs(best.x - x) ? q : best));
+        lanes.push({ x, p });
+      }
+    }
+    this.laneCache = { key, lanes };
+    return lanes;
+  }
+
+  private laneSpacing(): number {
+    const l = this.lanes();
+    return l.length > 1 ? l[1].x - l[0].x : LANE_W;
+  }
+
+  /** How many lanes a foot needs: wide feet take two. */
+  private laneSpan(f: Foot): number {
+    return f.meta.halfWidth * 2 * f.scale > this.laneSpacing() * 1.3 ? 2 : 1;
+  }
+
+  /** Lanes nobody may use: covered by a boss (or its stand-ins) or locked by a boss move. */
+  private blockedLanes(except?: Foot): Set<number> {
+    const out = new Set<number>();
+    const lanes = this.lanes();
+    const sp = this.laneSpacing();
+    for (const o of this.feet) {
+      if (o === except || !o.alive || !o.isBossLike) continue;
+      const half = o.meta.halfWidth * o.scale;
+      const cx = o.laneX ?? o.target?.x ?? o.x;
+      lanes.forEach((l, i) => {
+        if (Math.abs(l.x - cx) < half + sp * 0.35) out.add(i);
+      });
+    }
+    lanes.forEach((l, i) => {
+      if (this.lockedPizzas.has(l.p)) out.add(i);
+    });
+    return out;
+  }
+
+  /** Lanes in use by regular feet. */
+  private usedLanes(except?: Foot): Set<number> {
+    const out = new Set<number>();
+    for (const o of this.feet) {
+      if (o === except || !o.alive || o.isBossLike || o.held || o.laneSide < 0) continue;
+      for (let k = 0; k < o.laneRow; k++) out.add(o.laneSide + k);
+    }
+    return out;
+  }
+
+  /** Free lanes (start indices) for a foot of this span. `avoid` skips lanes over one pizza (a foot switching away from it). */
+  private freeLanes(span = 1, except?: Foot, avoid?: Pizza | null): number[] {
+    const lanes = this.lanes();
+    const blocked = this.blockedLanes(except);
+    const used = this.usedLanes(except);
+    const out: number[] = [];
+    for (let i = 0; i + span <= lanes.length; i++) {
+      let ok = true;
+      for (let k = 0; k < span; k++) if (blocked.has(i + k) || used.has(i + k) || lanes[i + k].p === avoid) ok = false;
+      if (ok) out.push(i);
+    }
+    return out;
+  }
+
+  private hasFreeLane(): boolean {
+    return this.freeLanes(1).length > 0;
+  }
+
+  /** Put a regular foot in a free lane (preferring `prefer`'s lanes, then the quietest pizza nearest to it). False = none free: it waits off screen. */
+  private assignLane(f: Foot, prefer?: Pizza | null, avoid?: Pizza | null): boolean {
+    const span = this.laneSpan(f);
+    let free = this.freeLanes(span, f, avoid);
+    // a wide foot with no double gap squeezes into a single lane rather than waiting forever
+    let useSpan = span;
+    if (!free.length && span > 1) {
+      free = this.freeLanes(1, f, avoid);
+      useSpan = 1;
+    }
+    if (!free.length) {
+      if (!avoid) {
+        f.held = true;
+        f.laneSide = -1;
+        f.laneX = null;
+      }
+      return false;
+    }
+    const lanes = this.lanes();
+    const load = (p: Pizza) => this.feet.filter((o) => o !== f && o.alive && !o.isBossLike && o.target === p).length;
+    const ordered = this.orderedPizza();
+    const want = prefer && !prefer.dead ? prefer : ordered;
+    const pick = free.sort((a, b) => {
+      const pa = lanes[a].p;
+      const pb = lanes[b].p;
+      if (want && (pa === want) !== (pb === want)) return pa === want ? -1 : 1;
+      const la = load(pa) - load(pb);
+      if (la) return la + (Math.random() - 0.5) * 0.9;
+      return Math.abs(lanes[a].x - f.x) - Math.abs(lanes[b].x - f.x) + (Math.random() - 0.5) * 200;
+    })[0];
+    const p = lanes[pick].p;
+    if (p === ordered) this.orders.set(ordered, (this.orders.get(ordered) ?? 1) - 1);
+    f.target = p;
+    f.laneSide = pick;
+    f.laneRow = useSpan;
+    f.laneX = this.laneCentre(pick, useSpan);
+    f.slot = 0;
+    if (f.held) {
+      // drop in from above its new lane
+      f.held = false;
+      f.x = f.laneX;
+    }
+    return true;
+  }
+
+  private laneCentre(i: number, span: number): number {
+    const lanes = this.lanes();
+    return (lanes[i].x + lanes[Math.min(lanes.length - 1, i + span - 1)].x) / 2;
+  }
+
+  /** Short-Order Shoe: the pizza the next feet go for, if an order is open. */
+  private orderedPizza(): Pizza | null {
+    for (const [p, n] of this.orders) if (n > 0 && !p.dead) return p;
+    return null;
+  }
+
+  /** Keep every regular foot in a valid lane: off blocked lanes and dead pizzas, re-placed when the table changes. */
+  private laneTick(dt: number): void {
+    const crowd = this.run.heatDef.crowd;
+    const switchOn = crowd.laneSwitchWave > 0 && this.run.wave >= crowd.laneSwitchWave;
+    const lanes = this.lanes();
+    const key = this.laneCache.key;
+    for (const f of this.feet) {
+      if (!f.alive || f.isBossLike) continue;
+      f.pinned = this.retreating;
+      if (f.held) {
+        this.assignLane(f);
+        continue;
+      }
+      const busy = f.state === 'descend' || f.state === 'stomp';
+      const i = f.laneSide;
+      const valid = i >= 0 && i + f.laneRow <= lanes.length && f.laneKey === key;
+      if (!valid) {
+        // the table changed (a pizza died, moved or was added): find a lane again
+        if (!busy || !f.target || f.target.dead) {
+          f.laneSide = -1;
+          this.assignLane(f, f.target);
+          f.laneKey = key;
+        }
+        continue;
+      }
+      if (!busy) {
+        let blocked = false;
+        const bl = this.blockedLanes(f);
+        for (let k = 0; k < f.laneRow; k++) if (bl.has(i + k)) blocked = true;
+        if (blocked) {
+          this.assignLane(f);
+          continue;
+        }
+      }
+      f.target = lanes[i].p;
+      f.laneX = this.laneCentre(i, f.laneRow);
+      // later waves: hovering feet sometimes hop to another free lane
+      if (switchOn && f.state === 'hover' && !this.retreating && Math.random() < dt * 0.07) this.relane(f);
+    }
+  }
+
+  /** Move a foot to a free lane over a different pizza. Returns the new pizza, or null if none is free. */
+  private relane(f: Foot): Pizza | null {
+    if (f.isBossLike) return null;
+    const from = f.target;
+    const keep = { side: f.laneSide, span: f.laneRow, laneX: f.laneX, target: f.target };
+    if (!this.assignLane(f, null, from)) {
+      Object.assign(f, { laneSide: keep.side, laneRow: keep.span, laneX: keep.laneX, target: keep.target });
+      return null;
+    }
+    f.laneKey = this.laneCache.key;
+    return f.target;
   }
 
   private laneFor(f: Foot): number | null {
     const p = f.target;
     // King Honk's shuffled shoes take turns on a shared pizza, so they never land on top of each other
-    if (p && f.laneX !== null && this.feet.some((o) => o !== f && o.alive && o.laneX !== null && o.target === p && (o.state === 'descend' || o.state === 'stomp'))) return null;
+    if (p && f.isBossLike && f.laneX !== null && this.feet.some((o) => o !== f && o.alive && o.isBossLike && o.laneX !== null && o.target === p && (o.state === 'descend' || o.state === 'stomp'))) return null;
     if (!p || f.isBossLike) return 0;
-    const divers = this.feet.filter((o) => o !== f && o.alive && o.target === p && (o.state === 'descend' || o.state === 'stomp'));
-    if (divers.some((o) => o.isBossLike)) return null;
-    const lanes = this.lanesFor(p);
-    const free = lanes.filter((l) => !divers.some((o) => Math.abs(o.slot - l) < 1));
-    if (!free.length) return null;
-    return free.sort((a, b) => Math.abs(p.x + a - f.x) - Math.abs(p.x + b - f.x))[0];
+    if (this.retreating || f.held || f.laneSide < 0) return null;
+    return 0;
   }
 
   private pickTarget(f: Foot | null): Pizza | null {
     const alive = this.alivePizzas();
     if (!alive.length) return null;
-    // Short-Order Shoe: the next few feet all go for the ordered pizza
-    for (const [p, n] of this.orders) {
-      if (n > 0 && !p.dead && (!f || f.state === 'enter')) {
-        this.orders.set(p, n - 1);
-        return p;
-      }
+    // a regular foot keeps its own lane, or gets a new one
+    if (f && !f.isBossLike) {
+      const p = f.target;
+      if (p && !p.dead && f.laneSide >= 0 && f.laneKey === this.laneCache.key) return p;
+      this.assignLane(f, p);
+      f.laneKey = this.laneCache.key;
+      return f.held ? null : f.target;
     }
+    const ordered = this.orderedPizza();
+    if (ordered && (!f || f.state === 'enter')) return ordered;
     const load = (p: Pizza) => this.feet.filter((o) => o !== f && o.alive && o.target === p).reduce((n, o) => n + (o.isBossLike ? 3 : 1), 0);
     const sorted = [...alive].sort((a, b) => load(a) - load(b) + (Math.random() - 0.5) * 1.2);
     return sorted[0];
@@ -930,8 +1167,10 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (!plan || !this.waveActive) return;
     this.spawnT -= dt;
     const alive = this.aliveFeet().length;
-    if (this.spawnT <= 0 && plan.queue.length && alive < plan.maxAlive) {
-      const id = plan.queue.shift()!;
+    if (this.spawnT <= 0 && plan.queue.length && alive < plan.maxAlive && !this.retreating && this.hasFreeLane()) {
+      let id = plan.queue.shift()!;
+      // during some boss fights the only feet are the boss's own kind
+      if (this.minionPool) id = Phaser.Utils.Array.GetRandom(this.minionPool);
       const type = FOOT_BY_ID[id];
       if (type.traits.includes('swarm')) {
         let extra = 0;
@@ -967,9 +1206,9 @@ export class GameScene extends Phaser.Scene implements Arena {
     const boss = this.bossFoot;
     if (boss && boss.alive) {
       this.bossSummonT -= dt;
-      if (this.bossSummonT <= 0 && alive < plan.maxAlive + 1) {
+      if (this.bossSummonT <= 0 && alive < plan.maxAlive + 1 && !this.retreating && this.hasFreeLane()) {
         this.bossSummonT = boss.brain.summonFast ? 3.2 : 6.5;
-        const minion = BOSS_MINION[boss.type.id] ?? 'bob';
+        const minion = this.minionPool ? Phaser.Utils.Array.GetRandom(this.minionPool) : (BOSS_MINION[boss.type.id] ?? 'bob');
         const t = this.pickTarget(null);
         if (t && FOOT_BY_ID[minion]) this.spawnFoot(FOOT_BY_ID[minion], t, false);
       }
@@ -1060,6 +1299,9 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   private waveClear(): void {
     this.waveActive = false;
+    this.lockedPizzas.clear();
+    this.retreat(false);
+    this.minionPool = null;
     const n = this.run.wave;
     const stage = STAGES[Math.floor((n - 1) / WAVES_PER_STAGE) % STAGES.length];
     if (stage) save.stageWaves[stage.location] = (save.stageWaves[stage.location] ?? 0) + 1;
@@ -1662,6 +1904,12 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   private dealDamage(f: Foot, amount: number, o: DamageOpts): void {
     if (!f.alive) return;
+    // twins share one health bar: a hit on either one lands on the boss
+    if (f.link && f.link.alive && f.link !== f) {
+      f.flash(0xffffff, 70);
+      this.dealDamage(f.link, amount, o);
+      return;
+    }
     const st = this.run.stats;
     const smack = o.source === 'smack';
     // Ghost echoes and King Honk's decoys pop in one hit and hurt nothing
@@ -2751,6 +2999,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.peelTrailTick();
     if (!this.paused && !this.over && !this.inUpgrade) {
       this.spawnTick(dt);
+      this.laneTick(dt);
+      for (const p of this.pizzas) if (p.tickFreeze(dt)) this.recompute();
       for (const f of this.feet) if (f.alive) f.update(dt, 1);
       this.director.update(dt);
       this.feet = this.feet.filter((f) => f.state !== 'gone');

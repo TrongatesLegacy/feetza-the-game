@@ -19,14 +19,48 @@ export interface Heat {
   rebake: boolean;
   /** Which heat must be beaten (wave 30) to unlock this one. */
   unlockAfter?: HeatId;
+  /** Wave crowd: how the foot count, crowding and pace grow through a run at this heat. */
+  crowd: Crowd;
 }
 
+/** How busy waves get. Mild and Regular grow slower and stop sooner, so a Mild run is hard to lose. */
+export interface Crowd {
+  /** Feet added to the wave per wave (before the heat's count multiplier). */
+  perWave: number;
+  /** Most feet a wave can have (endless loops raise it). */
+  countCap: number;
+  /** Most regular feet on screen at once, before lanes limit it further. */
+  aliveCap: number;
+  /** Shortest gap between spawns (seconds). */
+  intervalFloor: number;
+  /** Top speed growth across a run (before the heat's speed multiplier). */
+  speedCap: number;
+  /** Highest elite chance. */
+  eliteCap: number;
+  /** Hover-time multiplier before a foot dives (longer = more time to react). */
+  hoverMul: number;
+  /** First wave in which hovering feet hop to another free lane (0 = never). */
+  laneSwitchWave: number;
+}
+
+const GENTLE: Crowd = { perWave: 1.1, countCap: 40, aliveCap: 6, intervalFloor: 0.8, speedCap: 1.4, eliteCap: 0.1, hoverMul: 1.35, laneSwitchWave: 0 };
+const STEADY: Crowd = { perWave: 1.6, countCap: 60, aliveCap: 9, intervalFloor: 0.5, speedCap: 1.65, eliteCap: 0.2, hoverMul: 1.15, laneSwitchWave: 20 };
+// lanes cap how many feet are on screen, so the hotter heats get their pressure from tempo instead
+const FULL: Crowd = { perWave: 2.1, countCap: 999, aliveCap: 12, intervalFloor: 0.32, speedCap: 1.85, eliteCap: 0.3, hoverMul: 0.95, laneSwitchWave: 10 };
+const FULLER: Crowd = { ...FULL, hoverMul: 0.85, laneSwitchWave: 6 };
+const FULLEST: Crowd = { ...FULL, hoverMul: 0.75, laneSwitchWave: 4 };
+
 export const HEATS: Heat[] = [
-  { id: 'mild', name: 'Mild', chilis: 1, desc: 'Slower, softer feet. Freshness off.', hp: 0.7, speed: 0.85, count: 0.8, tips: 1.2, crusts: 0.5, bossPhases: 2, freshness: 0, rebake: true },
-  { id: 'regular', name: 'Regular', chilis: 2, desc: 'The game as designed.', hp: 1, speed: 1, count: 1, tips: 1, crusts: 1, bossPhases: 3, freshness: 1, rebake: true },
-  { id: 'hot', name: 'Hot', chilis: 3, desc: 'Tougher, faster, more feet.', hp: 1.3, speed: 1.1, count: 1.15, tips: 0.9, crusts: 1.5, bossPhases: 3, freshness: 1, rebake: true },
-  { id: 'extrahot', name: 'Extra Hot', chilis: 4, desc: 'Bosses start with their extra phase.', hp: 1.7, speed: 1.2, count: 1.3, tips: 0.8, crusts: 2, bossPhases: 4, freshness: 1, rebake: true, unlockAfter: 'hot' },
-  { id: 'inferno', name: 'Inferno', chilis: 5, desc: 'No Rebake. Freshness drains faster.', hp: 2.2, speed: 1.3, count: 1.45, tips: 0.7, crusts: 3, bossPhases: 4, freshness: 1.5, rebake: false, unlockAfter: 'extrahot' },
+  { id: 'mild', name: 'Mild', chilis: 1, desc: 'Slower, softer feet. Freshness off.', hp: 0.7, speed: 0.85, count: 0.8, tips: 1.2, crusts: 0.5, bossPhases: 2, freshness: 0, rebake: true, crowd: GENTLE },
+  { id: 'regular', name: 'Regular', chilis: 2, desc: 'The game as designed.', hp: 1, speed: 1, count: 1, tips: 1, crusts: 1, bossPhases: 3, freshness: 1, rebake: true, crowd: STEADY },
+  { id: 'hot', name: 'Hot', chilis: 3, desc: 'Tougher, faster, more feet.', hp: 1.3, speed: 1.1, count: 1.15, tips: 0.9, crusts: 1.5, bossPhases: 3, freshness: 1, rebake: true, crowd: FULL },
+  { id: 'extrahot', name: 'Extra Hot', chilis: 4, desc: 'Bosses start with their extra phase.', hp: 1.7, speed: 1.2, count: 1.3, tips: 0.8, crusts: 2, bossPhases: 4, freshness: 1, rebake: true, unlockAfter: 'hot', crowd: FULLER },
+  { id: 'inferno', name: 'Inferno', chilis: 5, desc: 'No Rebake. Freshness drains faster.', hp: 2.2, speed: 1.3, count: 1.45, tips: 0.7, crusts: 3, bossPhases: 4, freshness: 1.5, rebake: false, unlockAfter: 'extrahot', crowd: FULLEST },
 ];
 
 export const HEAT_BY_ID: Record<HeatId, Heat> = Object.fromEntries(HEATS.map((h) => [h.id, h])) as Record<HeatId, Heat>;
+
+/** 0 = Mild … 4 = Inferno. */
+export function heatRank(id: HeatId): number {
+  return HEATS.findIndex((h) => h.id === id);
+}

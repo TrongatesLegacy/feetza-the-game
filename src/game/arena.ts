@@ -4,6 +4,7 @@ import type Phaser from 'phaser';
 import type { Foot } from './Foot';
 import type { Fx } from './Fx';
 import type { Pizza } from './Pizza';
+import type { HeatId } from '../data/difficulty';
 
 export interface Clickable {
   x: number;
@@ -67,4 +68,15 @@ export interface Arena {
   heatCount(): number;
   /** Damage a boss directly (batted-back slippers, cracks). */
   damageFoot(f: Foot, amount: number, label?: string): void;
+  /** The run's heat. */
+  heat(): HeatId;
+  /** Claim (or release) a pizza's lanes for a boss move: regular feet move out and none come in. */
+  lockLane(p: Pizza, on: boolean): void;
+  /** Pull every regular foot back to the top and pause it (true), or let them carry on (false). No new feet spawn meanwhile. */
+  retreat(on: boolean): void;
+  isRetreating(): boolean;
+  /** While set, the only regular feet that spawn are these ids (a boss's own kind). null = normal. */
+  setMinions(ids: string[] | null): void;
+  /** Switch a pizza's perk off for `sec` (adds to a freeze already running). */
+  freezePerk(p: Pizza, sec: number): void;
 }

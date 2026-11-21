@@ -119,14 +119,16 @@ export function planWave(n: number, luck: number, heatId: HeatId = 'regular'): W
   const inLoop = n - loop * JOURNEY_WAVES;
   const eff = inLoop + loop * 36; // later loops start harder
   const hpMult = (1 + Math.min(inLoop - 1, 29) * 0.1 + Math.max(0, inLoop - 30) * 0.06) * (1 + loop * 0.5) * heat.hp;
-  const speedMult = Math.min(1.85, 1 + (Math.min(eff, 40) - 1) * 0.026) * heat.speed;
+  const speedMult = Math.min(heat.crowd.speedCap, 1 + (Math.min(eff, 40) - 1) * 0.026) * heat.speed;
   const boss = isBossWave(n) ? bossFor(n) : null;
   const mini = isMiniWave(n) ? miniFor(n) : null;
   const home = locationFor(n);
   const pool = FEET.filter((f) => !f.boss && !f.mini && f.weight > 0 && (f.minWave <= inLoop || loop > 0));
   // freshly unlocked feet get the spotlight; feet at home in this location turn up 3x as often
   const weight = (f: FootType) => f.weight * (f.minWave >= inLoop - 1 && loop === 0 ? 3 : 1) * (f.home === home ? 3 : 1);
-  let count = Math.round((6 + Math.min(eff, 40) * 2.1 + loop * 4) * heat.count);
+  const crowd = heat.crowd;
+  const loopUp = 1 + loop * 0.5;
+  let count = Math.min(Math.round(crowd.countCap * loopUp), Math.round((6 + Math.min(eff, 40) * crowd.perWave + loop * 4) * heat.count));
   if (boss) count = Math.round(count * 0.35);
   const queue: string[] = [];
   while (queue.length < count) {
@@ -137,12 +139,12 @@ export function planWave(n: number, luck: number, heatId: HeatId = 'regular'): W
   return {
     n,
     queue,
-    interval: Math.max(0.32, 1.85 - Math.min(eff, 40) * 0.055),
-    maxAlive: boss ? Math.min(2 + Math.floor(inLoop / 8), 6) : Math.min(3 + Math.floor(Math.min(eff, 40) * 0.6), 12),
+    interval: Math.max(crowd.intervalFloor, 1.85 - Math.min(eff, 40) * 0.055),
+    maxAlive: boss ? Math.min(2 + Math.floor(inLoop / 8), Math.min(6, crowd.aliveCap)) : Math.min(3 + Math.floor(Math.min(eff, 40) * 0.6), Math.round(crowd.aliveCap * loopUp)),
     hpMult,
     bossHpMult: (1 + Math.min(inLoop - 1, 29) * 0.1) * (1 + loop * 0.5) * heat.hp * 0.75,
     speedMult,
-    eliteChance: n >= 6 ? Math.min(0.3, (n - 5) * 0.012) : 0,
+    eliteChance: n >= 6 ? Math.min(crowd.eliteCap, (n - 5) * 0.012) : 0,
     boss,
     mini,
     golden: n >= 3 && Math.random() < 0.28 + luck * 0.08,
