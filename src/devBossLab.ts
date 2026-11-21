@@ -26,19 +26,22 @@ const ENTRIES = STAGES.flatMap((s, i) => [
   { id: s.boss as string, mini: false, stage: i + 1 },
 ]);
 
-function phaseCount(mini: boolean, heat: HeatId): number {
+function phaseCount(mini: boolean, heat: HeatId, id?: string): number {
+  // fights with a fixed phase count (the Sole Proprietor: 1, then 5 when Unbound) ignore the heat
+  const fixed = id ? bossPhaseInfo(id)?.fixed : undefined;
+  if (fixed) return fixed;
   const n = HEAT_BY_ID[heat].bossPhases;
   return mini ? Math.max(1, n - 1) : n;
 }
 
 /** The mildest heat on which this boss reaches phase k. */
-function heatFor(mini: boolean, k: number): HeatId | null {
-  return HEATS.find((h) => phaseCount(mini, h.id) >= k)?.id ?? null;
+function heatFor(mini: boolean, k: number, id?: string): HeatId | null {
+  return HEATS.find((h) => phaseCount(mini, h.id, id) >= k)?.id ?? null;
 }
 
 function phaseNames(id: string, mini: boolean): { name: string; info: string }[] {
   const b = bossPhaseInfo(id);
-  const max = Math.max(...HEATS.map((h) => phaseCount(mini, h.id)));
+  const max = Math.max(...HEATS.map((h) => phaseCount(mini, h.id, id)));
   return Array.from({ length: max }, (_, i) => ({ name: b?.names[i] ?? ENRAGED, info: b?.info[i] ?? 'Everything it does comes faster' }));
 }
 
@@ -153,7 +156,7 @@ export function installBossLab(game: Phaser.Game): void {
       await new Promise((r) => setTimeout(r, 800));
     }
     const mini = !!FOOT_BY_ID[id]?.mini;
-    const n = phaseCount(mini, h);
+    const n = phaseCount(mini, h, id);
     const hp = phase > 1 ? Math.max(0.02, 1 - (phase - 1) / n - 0.02) : undefined;
     last = { id, phase, heat: h };
     api().startGame({ heat: h, boss: { id, hp }, intros: false });
@@ -251,7 +254,7 @@ export function installBossLab(game: Phaser.Game): void {
     if (!wrap) return;
     const e = ENTRIES.find((x) => x.id === selected) ?? ENTRIES[0];
     const t = FOOT_BY_ID[e.id];
-    const n = phaseCount(e.mini, heat);
+    const n = phaseCount(e.mini, heat, e.id);
     const phases = phaseNames(e.id, e.mini);
     const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] as string);
     const list = STAGES.map(
@@ -268,7 +271,7 @@ export function installBossLab(game: Phaser.Game): void {
       .map((p, i) => {
         const k = i + 1;
         const on = k <= n;
-        const needs = on ? heat : heatFor(e.mini, k);
+        const needs = on ? heat : heatFor(e.mini, k, e.id);
         const btn = needs ? `<button class="bl-btn" data-play="${k}" data-heat="${needs}">▶ Play phase ${k}${on ? '' : ` (${HEAT_BY_ID[needs].name})`}</button>` : '';
         return `<div class="bl-phase${on ? '' : ' off'}"><div class="row"><b>Phase ${k} · ${esc(p.name)}</b>${on ? '' : `<span class="tag">Not on ${HEAT_BY_ID[heat].name}</span>`}<span class="info">${esc(p.info)}</span>${btn}</div><textarea data-note="${k}" placeholder="Notes on phase ${k}…">${esc(notes[e.id]?.phases?.[k] ?? '')}</textarea></div>`;
       })

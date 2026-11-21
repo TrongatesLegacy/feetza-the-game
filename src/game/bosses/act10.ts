@@ -272,7 +272,9 @@ const mirrorpeel = (): Brain => {
         // pips: smacks still needed to cancel it
         for (let i = 0; i < need; i++) {
           const on = i < need - left;
-          ring.fillStyle(on ? 0x7dff9a : 0xffffff, on ? 1 : 0.55).fillCircle(f.cx - (need - 1) * 18 + i * 36, f.cy + 140 * f.scale * 0.55 + 30, 11);
+          const py = Math.max(SAFE_TOP + 30, f.cy - 150 * f.scale * 0.55 - 34);
+          ring.fillStyle(0x2a1810, 0.8).fillCircle(f.cx - (need - 1) * 22 + i * 44, py, 16);
+          ring.fillStyle(on ? 0x7dff9a : 0xffffff, on ? 1 : 0.6).fillCircle(f.cx - (need - 1) * 22 + i * 44, py, 11);
         }
       },
     });
@@ -419,16 +421,19 @@ const soleprop = (): Brain => {
 
   const say = (a: Arena, f: Foot, msg: string) => {
     a.sfx('sfx_soleprop_voice');
-    const bubble = a.sc.add.container(f.x, Math.max(SAFE_TOP + 60, f.cy - 260 * f.scale * 0.5));
+    // beside him (left of centre when he's on the right), so he stays in view while he talks
+    const side = f.x > 960 ? -1 : 1;
+    const bubble = a.sc.add.container(f.x + side * 470, Math.max(SAFE_TOP + 90, f.cy - 120));
     const txt = a.sc.add.text(0, 0, msg, { fontFamily: 'Lilita One, Fredoka, sans-serif', fontSize: '40px', color: '#2a1810', align: 'center', wordWrap: { width: 620 } }).setOrigin(0.5);
     const g = a.sc.add.graphics();
     const w = txt.width + 60;
     const hh = txt.height + 40;
     g.fillStyle(0xfff6e2, 1).fillRoundedRect(-w / 2, -hh / 2, w, hh, 26);
     g.lineStyle(7, 0x2a1810, 1).strokeRoundedRect(-w / 2, -hh / 2, w, hh, 26);
-    g.fillStyle(0xfff6e2, 1).fillTriangle(-30, hh / 2 - 4, 10, hh / 2 - 4, -10, hh / 2 + 34);
-    g.lineStyle(7, 0x2a1810, 1).strokeTriangle(-30, hh / 2 - 4, 10, hh / 2 - 4, -10, hh / 2 + 34);
-    g.fillStyle(0xfff6e2, 1).fillRect(-26, hh / 2 - 10, 32, 10);
+    // the tail points back at him
+    const tx = -side * (w / 2);
+    g.lineStyle(7, 0x2a1810, 1).strokeTriangle(tx, -18, tx, 18, tx - side * 44, 30);
+    g.fillStyle(0xfff6e2, 1).fillTriangle(tx + side * 6, -16, tx + side * 6, 16, tx - side * 40, 28);
     bubble.add([g, txt]);
     bubble.setScale(0.3);
     a.fxLayer.add(bubble);
@@ -476,10 +481,11 @@ const soleprop = (): Brain => {
         a.shake(900, 0.008);
         const r = retreat(a);
         bin.add(r);
-        a.sc.tweens.add({ targets: f, y: 470, duration: 1800, ease: 'Back.Out' });
-        a.sc.time.delayedCall(1900, () => f.alive && say(a, f, 'SO. YOU\'RE THE ONE SMACKING MY STAFF.'));
-        a.sc.time.delayedCall(4300, () => f.alive && say(a, f, 'I OWN EVERY PIZZERIA IN EVERY WORLD. NOW I OWN YOUR SHOP.'));
-        a.sc.time.delayedCall(6200, () => {
+        a.sc.tweens.add({ targets: f, y: 560, duration: 1800, ease: 'Back.Out' });
+        // he talks once the phase banner has gone
+        a.sc.time.delayedCall(4900, () => f.alive && say(a, f, 'SO. YOU\'RE THE ONE SMACKING MY STAFF.'));
+        a.sc.time.delayedCall(7100, () => f.alive && say(a, f, 'I OWN EVERY PIZZERIA IN EVERY WORLD. NOW I OWN YOUR SHOP.'));
+        a.sc.time.delayedCall(9200, () => {
           if (!f.alive) return;
           // the deed of sale, then the stamp
           const deed = a.sc.add.image(960, 560, 'p_contract').setScale(0).setAngle(-4);
@@ -502,8 +508,8 @@ const soleprop = (): Brain => {
             a.sc.tweens.add({ targets: [deed, stamp], alpha: 0, duration: 400, delay: 2000, onComplete: () => { deed.destroy(); stamp.destroy(); } });
           });
         });
-        a.sc.time.delayedCall(9600, () => f.alive && say(a, f, 'MY AGENTS WILL BE IN TOUCH.'));
-        a.sc.time.delayedCall(11400, () => {
+        a.sc.time.delayedCall(12300, () => f.alive && say(a, f, 'MY AGENTS WILL BE IN TOUCH.'));
+        a.sc.time.delayedCall(14200, () => {
           if (!f.alive) return;
           a.sfx('sfx_soleprop_leave');
           screenGlitch(a.sc, 700, 0.9);
@@ -523,8 +529,8 @@ const soleprop = (): Brain => {
           });
         });
       }
-      // the puppet follows its own y (the brain moves it)
-      f.root.setPosition(f.x, f.y);
+      // the meeting is staged by hand (the phase-change beat would hand him back his own AI)
+      if (stage < 3) f.puppet = true;
       if (stage !== 2 || !a.inWave()) return;
       // ——— the shift: agents from every boss you've met, until the watch runs out ———
       const h = heat(a);
@@ -618,7 +624,7 @@ const ghostfuture = (): Brain => {
     const p = a.peelPoint();
     last.x = p.x;
     last.y = p.y;
-    future = a.sc.add.image(p.x, p.y, 'peel').setOrigin(0.5, 100 / 360).setScale(0.55).setAngle(-28).setTint(0xbfe6ff).setAlpha(0).setBlendMode(Phaser.BlendModes.ADD);
+    future = a.sc.add.image(p.x, p.y, 'peel').setOrigin(0.5, 100 / 360).setScale(0.55).setAngle(-28).setTintFill(0xdff4ff).setAlpha(0);
     line = a.sc.add.graphics();
     a.fxLayer.add([line, future]);
     fightMusic(a, 'music_boss_ghostfuture');
@@ -725,7 +731,7 @@ const ghostfuture = (): Brain => {
       // the future peel: where it thinks you're going
       if (future && line) {
         const show = Math.hypot(pred.x - p.x, pred.y - p.y) > 30 || foreseen;
-        future.setPosition(pred.x, pred.y).setAlpha(show ? (foreseen ? 0.75 : 0.4) : 0.12);
+        future.setPosition(pred.x, pred.y).setAlpha(show ? (foreseen ? 0.8 : 0.5) : 0.15);
         line.clear();
         if (show) {
           line.lineStyle(4, 0xbfe6ff, 0.5);

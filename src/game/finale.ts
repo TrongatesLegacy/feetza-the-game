@@ -374,7 +374,8 @@ export class Finale {
       this.wallQueue.push({ id, x, y, h: lay.h });
     });
     if (ids.length > shown.length) {
-      const more = this.sc.add.text((x0 + x1) / 2, FIN.wall.y1 - 4, `+${ids.length - shown.length} MORE IN THE LOCKER`, { fontFamily: 'Lilita One, Fredoka, sans-serif', fontSize: '24px', color: '#fff0c8', stroke: '#2a1810', strokeThickness: 7 }).setOrigin(0.5, 1);
+      // on the capstones, above the rows (the peels hang down over anything lower)
+      const more = this.sc.add.text((x0 + x1) / 2, y0 - 26, `+${ids.length - shown.length} MORE IN THE LOCKER`, { fontFamily: 'Lilita One, Fredoka, sans-serif', fontSize: '24px', color: '#fff0c8', stroke: '#2a1810', strokeThickness: 7 }).setOrigin(0.5);
       wall.add(more);
     }
   }
@@ -560,6 +561,9 @@ export function playEnding(sc: Phaser.Scene, done: () => void): void {
     if (finished) return;
     const roll = sc.add.container(0, 0);
     root.add(roll);
+    // the credits roll in the sky only: the parade has the back of the table to itself
+    const maskShape = sc.make.graphics({}, false).fillStyle(0xffffff).fillRect(0, 70, W, 520);
+    roll.setMask(maskShape.createGeometryMask());
     let y = 0;
     for (const [txt, size] of lines) {
       if (txt) roll.add(title(txt, y, size, size >= 60 ? '#ffe28a' : size >= 40 ? '#ffd8a8' : '#fff6e2').setPosition(W / 2, y));

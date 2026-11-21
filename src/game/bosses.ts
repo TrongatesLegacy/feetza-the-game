@@ -32,11 +32,12 @@ Object.assign(BRAINS, act9);
 Object.assign(BRAINS, act10);
 
 /** Dev boss lab: a boss's phase names and move info, without spawning it. */
-export function bossPhaseInfo(id: string): { names: string[]; info: string[] } | null {
+export function bossPhaseInfo(id: string): { names: string[]; info: string[]; fixed?: number } | null {
   const make = BRAINS[id];
   if (!make) return null;
   const b = make();
-  return { names: b.names, info: b.info };
+  // a fixed phase count (Act 10's Sole Proprietor) doesn't read the arena
+  return { names: b.names, info: b.info, fixed: b.phases?.(null as never) };
 }
 
 /** Runs every boss and mini-boss on the field: phases, moves and smack/stomp hooks. */
