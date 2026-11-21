@@ -22,6 +22,8 @@ import { HeroKit, MOVES, PASSIVES, registerMoves, registerPassives, type DmgSour
 import type { Pizza } from './Pizza';
 // the god peels' moves and passives register themselves (src/game/godMoves.ts)
 import './godMoves';
+import { STAGES } from '../data/stages';
+import { NIGHT_STAGES } from './heroGoals';
 
 const RED = 0xff3a2a;
 const GOLD = 0xffd23f;
@@ -32,8 +34,9 @@ const PINK = 0xff7ad9;
 const ORANGE = 0xff9f1c;
 const WHITE = 0xffffff;
 
-/** Night stages (and their arenas): Batpeel's signal shows here; Moon Knife hits twice as hard. */
-export const NIGHT = new Set(['diner', 'space', 'oldtown', 'cellar', 'rooftop', 'bigfoot', 'phantomking', 'cosmiccroc', 'gargoyle']);
+/** Night stages (and their bosses' arenas): Batpeel's signal shows here; Moon Knife hits twice as hard.
+ * The same night stages as Moon Knife's unlock (NIGHT_STAGES), so the passive and the goal agree. */
+export const NIGHT = new Set(STAGES.filter((st) => NIGHT_STAGES.includes(st.location)).flatMap((st) => [st.location, st.boss as string]));
 /** Outdoor stages: Stormy Weather brings rain. */
 const OUTDOOR = new Set(['rooftop', 'beach', 'oldtown', 'pier', 'slopes']);
 
