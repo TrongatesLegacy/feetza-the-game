@@ -10,7 +10,7 @@
 
 import Phaser from 'phaser';
 import { ZEUS_BLADE } from './godShapes';
-import { canvasPen, css, graphicsPen, paintCore, playCore, type LookCore, type LookFx, type LookHost, type Painter, type Pen } from './lookKit';
+import { canvasPen, css, graphicsPen, paintCore, paintMoving, playCore, type Motion, type MovingPainter, type LookCore, type LookFx, type LookHost, type Painter, type Pen } from './lookKit';
 import { FIRE_PEELS, fireCore } from './lookFire';
 import { glowCore, godPeelStyle, godStyle, heroStyle, jewelStyle, masterStyle, ultraStyle, type GlowStyle } from './lookGlow';
 import { PEEL_BY_ID } from '../game/peels';
@@ -22,6 +22,8 @@ interface AnimatedLook {
   play(h: LookHost): LookFx;
   /** A fresh painter for one locker image: draws a frame in the peel's frame (origin at the peel's grip point). */
   painter(): Painter;
+  /** The dev look lab: a painter for the peel moving along a path (kit looks only). */
+  moving?: (m: Motion) => MovingPainter;
   /** Paints behind the image too (glows and flames), on a second canvas. */
   back?: boolean;
   /** Cheap and striking enough to animate on the locker's tiles, not just the big preview. */
@@ -540,6 +542,7 @@ const calm = () => save.settings.reducedMotion;
 const kitLook = (make: () => LookCore, tile: boolean): AnimatedLook => ({
   play: (h) => playCore(h, make()),
   painter: () => paintCore(make(), calm),
+  moving: (m) => paintMoving(make(), calm, m),
   back: true,
   tile,
 });
@@ -571,6 +574,12 @@ function lookOf(id: string): AnimatedLook | null {
 export function hasAnimatedLook(id: string): boolean {
   return !!lookOf(id);
 }
+
+/** The dev look lab: a painter for this peel's look moving along a path (null for hand-made looks like Zeus's). */
+export function movingLook(id: string, m: Motion): MovingPainter | null {
+  return lookOf(id)?.moving?.(m) ?? null;
+}
+export { canvasPen, OX as LOOK_OX, OY as LOOK_OY };
 
 /** Start a peel's animated look on the cursor peel (null when it has none). */
 export function playLook(id: string, host: LookHost): LookFx | null {

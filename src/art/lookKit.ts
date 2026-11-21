@@ -784,6 +784,51 @@ export interface PaintCtx {
 }
 export type Painter = (p: PaintCtx, dt: number) => void;
 
+/** A peel moving through a canvas (the dev look lab): its path, in peel units, and when it smacks. */
+export interface Motion {
+  (t: number): { x: number; y: number; rot: number; smack?: boolean };
+}
+/** Paint a look on a peel that moves around (so its trail and smacks show). The canvas's base transform is the
+ *  world; `peel(ctx)` draws the peel's own image in its frame (origin at the grip point), between back and front. */
+export type MovingPainter = (back: { pen: Pen; ctx: CanvasRenderingContext2D }, front: { pen: Pen; ctx: CanvasRenderingContext2D }, dt: number, peel: (ctx: CanvasRenderingContext2D) => void) => void;
+export function paintMoving(core: LookCore, calm: () => boolean, motion: Motion): MovingPainter {
+  const f: Frame = { x: 0, y: 0, rot: 0, s: 1, vx: 0, vy: 0, moved: 0, calm: false, menu: false, t: 0 };
+  // drawn as in play (menu: false), so the trail, dust and full-height flames show
+  let first = true;
+  return (back, front, dt, peel) => {
+    f.calm = calm();
+    f.t += dt;
+    const m = motion(f.t);
+    const d = Math.max(dt, 0.004);
+    const mvx = first ? 0 : m.x - f.x;
+    const mvy = first ? 0 : m.y - f.y;
+    first = false;
+    f.moved = Math.hypot(mvx, mvy);
+    const k = Math.min(1, dt * 12);
+    f.vx += (mvx / d - f.vx) * k;
+    f.vy += (mvy / d - f.vy) * k;
+    f.x = m.x;
+    f.y = m.y;
+    f.rot = m.rot;
+    core.tick(dt, f);
+    if (m.smack) core.smack(f.x, f.y, f);
+    const local = (ctx: CanvasRenderingContext2D, draw: () => void) => {
+      ctx.save();
+      ctx.translate(f.x, f.y);
+      ctx.rotate(f.rot);
+      draw();
+      ctx.restore();
+    };
+    core.under(back.pen, f, dt);
+    local(back.ctx, () => core.back(back.pen, f));
+    local(front.ctx, () => {
+      peel(front.ctx);
+      core.front(front.pen, f);
+    });
+    core.over(front.pen, f, dt);
+  };
+}
+
 /** Paint a look in the locker: the peel sits still at the origin of its own frame. */
 export function paintCore(core: LookCore, calm: () => boolean): Painter {
   const f: Frame = { x: 0, y: 0, rot: 0, s: 1, vx: 0, vy: 0, moved: 0, calm: false, menu: true, t: 0 };
