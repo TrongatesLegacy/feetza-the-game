@@ -4552,6 +4552,110 @@
     "license": "CC0 1.0"
   },
   {
+    "file": "sfx_immortalreturn.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Immortal Sandals: another Immortal steps into a fallen one’s place; a synthesized low drum, a rising shadowy whoosh and a hummed chant, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_immortalfall.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Immortal Sandals: a burning Immortal falls for good; a synthesized fire hiss and a falling low tone, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_bowdraw.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Archer Slippers draw their bow (the tell); a synthesized creaking bow and a tightening string, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_arrowloose.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Archer Slippers loose an arrow at the peel; a synthesized bowstring twang and an arrow whoosh, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_arrowthunk.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "an Archer Slippers arrow lands (and pins the peel); a synthesized arrow thunk into wood with a quiver, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_gallop.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Cavalry Hooves gallop across; synthesized hoofbeats at a gallop, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_neigh.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Cavalry Hooves rear before a gallop, or trip when smacked mid-gallop; a synthesized horse whinny, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_chariotrev.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Chariot Wheel revs before it rolls (the tell); a synthesized wooden wheel spinning up with a rattle, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_chariotroll.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Chariot Wheel rolls along the row of pizzas; a synthesized rumbling chariot roll with clacking spokes, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_chariotchip.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Chariot Wheel chips a slice off a pizza; a synthesized crunch of a crust chipped by a blade, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hubbreak.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Chariot Wheel: its hub is smacked and the wheel breaks; a synthesized splintering wooden wheel and a bronze clang, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_satrapbuff.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Satrap’s Slipper armours a Persian foot; a synthesized golden chime, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_warhorn.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "a Persian war band arrives; a synthesized long war horn, two notes, made with ffmpeg and Python and released as CC0"
+  },
+  {
     "file": "music_boss_titanking.mp3",
     "title": "Grim Idol",
     "author": "Kevin MacLeod (incompetech.com)",

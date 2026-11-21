@@ -727,7 +727,8 @@ export class Foot {
       duration: 120,
       yoyo: true,
       onYoyo: () => {
-        this.x = p.x + this.slot;
+        // reappear in the lane relane() just gave it, not on the pizza's centre (on top of the foot there)
+        this.x = this.laneX ?? p.x + this.slot;
       },
     });
   }

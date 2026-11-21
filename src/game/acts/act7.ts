@@ -458,6 +458,19 @@ function gangBadge(a: Arena, f: Foot, no: number): void {
   const disc = sc.add.circle(0, y, 24, 0xffd23f).setStrokeStyle(5, INK);
   const t = sc.add.text(0, y + 1, String(no), { fontFamily: FONT, fontSize: '34px', color: '#2a1810' }).setOrigin(0.5);
   f.root.add([disc, t]);
+  badges.set(f, { disc, t, y });
+}
+
+const badges = new WeakMap<Foot, { disc: Phaser.GameObjects.Arc; t: Phaser.GameObjects.Text; y: number }>();
+
+/** Keeps the badge on screen: a gang waiting high up the lane slides it down its leg instead of off the top. */
+function keepBadge(f: Foot): void {
+  const b = badges.get(f);
+  if (!b) return;
+  const top = 44 - f.root.y;
+  const y = Math.max(b.y, Math.min(top, -40));
+  b.disc.y = y;
+  b.t.y = y + 1;
 }
 
 const henchman: FootFx = {
@@ -476,6 +489,9 @@ const henchman: FootFx = {
     }
     a.sc.time.delayedCall(350, () => f.alive && bubble(a, f.type.quips?.[0] ?? 'GET THE PIZZA, BOYS!', f));
     a.sfx('sfx_gang', { volume: 0.8, throttle: 600 });
+  },
+  tick(_a, f) {
+    keepBadge(f);
   },
 };
 

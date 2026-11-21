@@ -2,7 +2,7 @@
 // - Frost Giant Toes chill the pizzas beside them (their perks ice over while it's near).
 // - Draugr Boots rise again once (the 'revive' trait), unless they were ever set burning.
 // - Troll Feet follow your peel from pizza to pizza, and turn to stone in the sun-gap's light.
-// - Valkyrie-cursed Clogs always fly in as a pair, swooping down from the top.
+// - Valkyrie-Cursed Clogs always fly in as a pair, swooping down from the top.
 // It also tells the Norse backdrops which wave of the stage it is (see actFx at the end).
 
 import Phaser from 'phaser';
@@ -261,7 +261,7 @@ const troll: FootFx = {
   },
 };
 
-// ——— Valkyrie-cursed Clogs ———
+// ——— Valkyrie-Cursed Clogs ———
 
 let partnering = false;
 
@@ -273,7 +273,7 @@ const valkyrie: FootFx = {
     f.x += side * 260;
     if (partnering || f.brain.partner) return;
     a.sfx('sfx_valkyrieswoop');
-    a.quip(Phaser.Math.Clamp(f.x - side * 260, 260, 1660), 200, 'VALKYRIES!', '#fff6e2', 38);
+    a.quip(Phaser.Math.Clamp(f.x - side * 260, 260, 1660), 380, 'VALKYRIES!', '#fff6e2', 38);
     // her partner flies in beside her, a beat behind
     const others = a.alivePizzas().filter((p) => p !== f.target);
     const p = others.length ? others.reduce((b, q) => (Math.abs(q.x - f.x) < Math.abs(b.x - f.x) ? q : b)) : f.target;

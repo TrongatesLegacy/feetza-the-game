@@ -1566,8 +1566,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       const band = plan.band;
       const inBand = !!band && plan.queue.length <= band.at && plan.queue.length > band.at - band.size;
       if (band && plan.queue.length === band.at && !this.minionPool) {
-        this.banner('PERSIAN WAR BAND!', 'Elephants on the march, Spartans in front', 'loc');
-        audio.sfx('sfx_bronzeshield', { volume: 0.6 });
+        this.banner('PERSIAN WAR BAND!', 'A Satrap leads the march: take it out first', 'loc');
+        audio.sfx('sfx_warhorn', { volume: 0.7 });
       }
       let id = plan.queue.shift()!;
       // during some boss fights the only feet are the boss's own kind
@@ -1583,7 +1583,11 @@ export class GameScene extends Phaser.Scene implements Arena {
           const baby = this.spawnFoot(type, this.pickTarget(null));
           baby.y -= i * 90;
         }
-      } else this.spawnFoot(type, this.pickTarget(null));
+      } else {
+        const f = this.spawnFoot(type, this.pickTarget(null));
+        // war band feet take their places in the formation (src/game/acts/persians.ts)
+        if (inBand && !this.minionPool) f.brain.band = true;
+      }
       this.spawnT = plan.interval * (0.7 + Math.random() * 0.6) * (this.bossFoot ? 2.2 : 1) * (inBand ? 0.6 : 1);
     }
     // mini-boss arrives partway through wave 3 of each stage

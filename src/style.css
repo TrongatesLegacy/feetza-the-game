@@ -3130,6 +3130,27 @@ body.pad :focus {
   }
 }
 
+/* phone: the legend victory (title, badge, medals, stats and two choices) fits without its choices running off the bottom */
+@container (max-width: 900px) {
+  .victory:not(.actdone) {
+    padding: 1.4em 2.6em 1.6em;
+    gap: 0.75em;
+  }
+
+  .victory:not(.actdone) .v-title {
+    font-size: 5.2em;
+  }
+
+  .victory:not(.actdone) .v-sub {
+    font-size: 1.5em;
+  }
+
+  .victory:not(.actdone) .v-choice {
+    padding: 0.6em 1.2em;
+    gap: 0.4em;
+  }
+}
+
 /* ——— Main menu: continue run ——— */
 .continue {
   display: flex;
@@ -3930,7 +3951,8 @@ body.reduced-motion *::after {
   display: grid;
   place-items: center;
   height: 8em;
-  overflow: hidden;
+  /* visible, so an animated look's glow and bolts bleed out past the box instead of being cut flat */
+  overflow: visible;
 }
 
 .peel-big img,
@@ -5466,6 +5488,11 @@ body.reduced-motion *::after {
 
 .locker .peel-big {
   height: 5.6em;
+}
+
+/* the peel fits its (shorter) locker box whole, rather than being cut off top and bottom */
+.locker .peel-big img {
+  height: 6.4em;
 }
 
 .locker .dt-head h3 {

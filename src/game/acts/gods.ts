@@ -10,6 +10,7 @@ import Phaser from 'phaser';
 import type { Arena } from '../arena';
 import type { FootFx } from '../contentFx';
 import type { Foot } from '../Foot';
+import { takeCentre } from './persians';
 
 const SHIELD_UP = 1;
 const SHIELD_DOWN = 1.2;
@@ -137,6 +138,7 @@ function spartanTick(a: Arena, f: Foot, dt: number): void {
 }
 
 export const footFx: Record<string, FootFx> = {
-  elephant: { tick: elephantTick },
+  // (in a war band it takes the middle of the line)
+  elephant: { spawn: takeCentre, tick: elephantTick },
   spartan: { spawn: spartanSpawn, tick: spartanTick },
 };

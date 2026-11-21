@@ -219,7 +219,8 @@ const ELEPHANT_ACT = 9;
 /** Elephants' weight multiplier all through Act 9 (both stages), in place of the fresh and home bonuses: those
  * stacked to ×13 at waves 81–82 and a herd of 650-health elephants flattened the table in a minute. */
 const ELEPHANT_ACT_MULT = 3;
-/** Chance an Act 9 location wave brings a Persian war band (4–6 elephants with Spartan Sandals guarding). */
+/** Chance an Act 9 location wave brings a Persian war band (a Satrap, elephants, cavalry and archers, with Spartan
+ * Sandals guarding). */
 const BAND_CHANCE = 0.5;
 
 export function planWave(n: number, luck: number, heatId: HeatId = 'regular'): WavePlan {
@@ -260,11 +261,14 @@ export function planWave(n: number, luck: number, heatId: HeatId = 'regular'): W
     if (f.traits.includes('swarm')) queue.push(f.id, f.id, f.id);
     else queue.push(f.id);
   }
-  // a Persian war band: 4–6 elephants marching in together with a pair of Spartan Sandals in front (the first
-  // brings its partner). It takes the place of feet already queued, so the wave's size and caps stay the same.
+  // a Persian war band, in marching order: a Satrap's Slipper leading, a pair of Spartan Sandals defending (the
+  // first brings its partner), 2 elephants in front, cavalry riding in on the flanks and an archer behind: 7 queued
+  // feet, the old band's most (a Spartan and 4–6 elephants). It takes the place of feet already queued, so the
+  // wave's size and caps stay the same. Lanes and roles are set by the feet themselves (src/game/acts/persians.ts).
   let band: WavePlan['band'] = null;
   if (act === ELEPHANT_ACT && !boss && !mini && queue.length >= 16 && Math.random() < BAND_CHANCE) {
-    const ids = ['spartan', ...Array.from({ length: 4 + Math.floor(Math.random() * 3) }, () => 'elephant')];
+    // (half the time a second archer rides in place of a horse)
+    const ids = ['satrap', 'spartan', 'elephant', 'elephant', 'cavalry', ...(Math.random() < 0.5 ? ['cavalry', 'archer'] : ['archer', 'archer'])];
     // somewhere in the middle of the wave, never its first or last feet
     const start = Math.floor(queue.length * (0.25 + Math.random() * 0.4));
     queue.splice(start, ids.length, ...ids);
