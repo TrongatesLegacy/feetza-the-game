@@ -76,4 +76,6 @@ export interface ShopActions {
   buyPizza(id: string): void;
   golden(id: GoldenItem['id']): void;
   next(): void;
+  /** Open the pause menu (settings, save and leave, quit). */
+  pause(): void;
 }

@@ -409,8 +409,14 @@ class UI {
     setTimeout(() => el.remove(), 200);
   }
 
-  closeAll(): void {
-    for (const s of [...this.stack]) this.close(s);
+  /** Close every screen (except `keep`, e.g. the shop under the pause menu). */
+  closeAll(keep?: HTMLElement | null): void {
+    for (const s of [...this.stack]) if (s !== keep) this.close(s);
+  }
+
+  /** Is this screen the one on top (nothing open over it)? */
+  isTop(s: HTMLElement | null | undefined): boolean {
+    return !!s && this.stack[this.stack.length - 1] === s;
   }
 
   get modalOpen(): boolean {
@@ -781,12 +787,14 @@ class UI {
       );
       const next = btn('NEXT WAVE', 'big next', () => act.next(), { 'data-pad': 'hold' });
       next.addEventListener('padhold', () => act.next());
+      // the pause menu from the shop: settings, save and leave, or quit
+      const gear = btn('⚙', 'big shop-pause cream', () => act.pause(), { 'aria-label': 'Pause menu', title: 'Pause menu (Esc)' });
       const pr = st.progress;
       const prog = h('div', { class: 'crust-progress', html: `${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} <b>+${pr.runCrusts}</b> crusts this run${pr.next ? (pr.bank + pr.runCrusts >= pr.next.cost ? ` · ${pr.next.name} ready to unlock` : ` · next: ${pr.next.name} ${pr.bank + pr.runCrusts}/${pr.next.cost}`) : ''}` });
       wrap.replaceChildren(
         head,
-        h('div', { class: 'shop-body' }, h('div', { class: 'shop-left' }, toppings, table), h('div', { class: 'shop-right' }, counter, golden, next)),
-        h('div', { class: 'shop-foot' }, prog, h('span', { class: 'hint kbd-hint', html: `<span class="kbd">1</span>–<span class="kbd">${st.cards.length}</span> buy · <span class="kbd">R</span> reroll · <span class="kbd">Enter</span> next wave` }), h('span', { class: 'hint pad-hint', html: `<span class="glyph">${glyph('A')}</span> buy · <span class="glyph">${glyph('Y')}</span> reroll · <span class="glyph">${glyph('LB')}</span><span class="glyph">${glyph('RB')}</span> sections · hold <span class="glyph">${glyph('MENU')}</span> next wave` })),
+        h('div', { class: 'shop-body' }, h('div', { class: 'shop-left' }, toppings, table), h('div', { class: 'shop-right' }, counter, golden, h('div', { class: 'next-row' }, next, gear))),
+        h('div', { class: 'shop-foot' }, prog, h('span', { class: 'hint kbd-hint', html: `<span class="kbd">1</span>–<span class="kbd">${st.cards.length}</span> buy · <span class="kbd">R</span> reroll · <span class="kbd">Enter</span> next wave · <span class="kbd">Esc</span> menu` }), h('span', { class: 'hint pad-hint', html: `<span class="glyph">${glyph('A')}</span> buy · <span class="glyph">${glyph('Y')}</span> reroll · <span class="glyph">${glyph('LB')}</span><span class="glyph">${glyph('RB')}</span> sections · hold <span class="glyph">${glyph('MENU')}</span> next wave` })),
       );
     };
     render();
@@ -934,7 +942,7 @@ class UI {
   }
 
   // ——— Pause ———
-  pause(o: { resume: () => void; settings: () => void; quit: () => void; owned: Record<string, number>; armed?: string[]; wave: number; score: number }): HTMLElement {
+  pause(o: { resume: () => void; settings: () => void; quit: () => void; leave: (() => void) | null; leaveNote: string; inShop?: boolean; owned: Record<string, number>; armed?: string[]; wave: number; score: number }): HTMLElement {
     // your toppings live here rather than on the HUD, where they piled up over the pizzas
     const entries = Object.entries(o.owned).filter(([id]) => UPGRADE_BY_ID[id]);
     const list = h(
@@ -969,8 +977,11 @@ class UI {
       h('div', { class: 'title' }, 'PAUSED'),
       h('div', { class: 'subtitle' }, `Wave ${o.wave} · ${fmt(o.score)} points`),
       tops,
-      h('div', { class: 'row' }, btn('RESUME', 'green big', o.resume, { 'data-pad': 'menu', 'data-pad-default': '' }), btn('SETTINGS', 'yellow', o.settings), quit),
-      h('div', { class: 'hint kbd-hint', html: '<span class="kbd">ESC</span> resume · <span class="kbd">M</span> mute · <span class="kbd">SPACE</span> Peel Slam' }),
+      h('div', { class: 'row' }, btn(o.inShop ? 'BACK TO SHOP' : 'RESUME', 'green big', o.resume, { 'data-pad': 'menu', 'data-pad-default': '' }), btn('SETTINGS', 'yellow', o.settings)),
+      // leave keeps the run saved (Resume on the title screen); quit ends it
+      h('div', { class: 'row' }, o.leave ? btn('SAVE &amp; MENU', 'cream', o.leave) : null, quit),
+      h('div', { class: 'hint pause-note' }, o.leaveNote),
+      h('div', { class: 'hint kbd-hint', html: o.inShop ? '<span class="kbd">ESC</span> back to the shop · <span class="kbd">M</span> mute' : '<span class="kbd">ESC</span> resume · <span class="kbd">M</span> mute · <span class="kbd">SPACE</span> Peel Slam' }),
     );
     return this.open(panel);
   }
@@ -1597,12 +1608,7 @@ class UI {
       } else {
         const list = inTab(tab);
         let parts: HTMLElement[];
-        if (tab === 'all') {
-          // everything, in the same sections as the tabs
-          parts = (Object.keys(TAB_GROUPS) as Exclude<Tab, 'goals'>[])
-            .filter((t) => t !== 'all')
-            .flatMap((t) => section(NAMES[t], TAB_GROUPS[t], '', list));
-        } else if (tab === 'shiny') {
+        if (tab === 'shiny') {
           parts = [
             ...section('SHINY FEET', ['shinyFoot'], 'Any foot can rarely turn up shiny. Defeat it for its shiny peel.', list),
             ...section('EVENT SHINIES', ['shinyEvent'], 'Rare drops from wave events, and a few extremely rare jewels.', list),

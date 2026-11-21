@@ -1534,6 +1534,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       buyPizza: (id) => this.shopBuyPizza(id),
       golden: (id) => this.shopGolden(id),
       next: () => this.shopNext(),
+      pause: () => this.togglePause(),
     });
     this.introCard('shop');
     if (cards.some((u) => kindOf(u) !== 'permanent')) this.introCard('kinds');
@@ -3123,7 +3124,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     pad.usedMouse();
     if (k === 'escape' || k === 'p') {
       if (this.paused) this.resume();
-      else this.togglePause();
+      // in the shop, Esc opens the pause menu (unless something, like an intro card, is open over it)
+      else if (!this.inUpgrade || ui.isTop(this.shop?.el)) this.togglePause();
     } else if (k === ' ' || k === 'spacebar') {
       e.preventDefault();
       this.peelSlam();
@@ -3136,12 +3138,26 @@ export class GameScene extends Phaser.Scene implements Arena {
   private pauseEl: HTMLElement | null = null;
 
   private togglePause(force = false): void {
-    if (this.over || this.inUpgrade || (this.paused && !force)) return;
+    if (this.over || (this.paused && !force)) return;
+    // the shop can pause too (from its ⚙ button or Esc), but only from the shop itself
+    const inShop = this.inUpgrade;
+    if (inShop && !this.shop) return;
     this.paused = true;
     this.scene.pause();
     ui.setPlaying(false);
     audio.duck(0.45);
+    // leaving keeps the run: from the shop exactly as it is, mid-wave from the shop before this wave
+    // (nothing is saved until wave 1 or the act's first wave is cleared)
+    const canLeave = inShop || !!save.run;
+    const leaveNote = inShop
+      ? 'Save & Menu keeps this run: pick it up from this shop with Continue on the title screen.'
+      : canLeave
+        ? `Save & Menu keeps this run, but this wave starts over: Continue puts you back in the shop before wave ${this.run.wave}.`
+        : 'Clear this wave to be able to save and leave. Quitting ends the run.';
     this.pauseEl = ui.pause({
+      inShop,
+      leaveNote,
+      leave: canLeave ? () => this.leaveRun() : null,
       resume: () => this.resume(),
       settings: () => {
         if (this.pauseEl) ui.close(this.pauseEl);
@@ -3168,12 +3184,32 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   private resume(): void {
     if (!this.paused) return;
-    ui.closeAll();
+    // close the pause menu (and settings) but never the shop under it
+    ui.closeAll(this.inUpgrade ? this.shop?.el : null);
     this.pauseEl = null;
     this.paused = false;
     this.scene.resume();
     ui.setPlaying(!this.inUpgrade);
+    audio.duck(this.inUpgrade ? 0.55 : 1);
+  }
+
+  /** Back to the title screen without ending the run: Continue there picks it up from its last shop. */
+  private leaveRun(): void {
+    if (this.inUpgrade && this.shop) this.saveRun();
+    this.over = true;
+    this.waveActive = false;
+    this.inUpgrade = false;
+    this.shop = null;
+    ui.closeAll();
+    ui.setPlaying(false);
+    ui.hud.setBoss(null);
+    ui.hud.tutorial(false);
+    this.paused = false;
+    this.scene.resume();
+    audio.stop('music', 400);
     audio.duck(1);
+    this.cameras.main.fadeOut(350, 18, 10, 6);
+    this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('Menu'));
   }
 
   private secondChanceCost(): number {
