@@ -584,7 +584,7 @@ export class PizzaPerkKit {
     if (changed) this.h.recompute();
     const k = this.c('timeStop');
     // the clock stops once the wave's first feet are on the table (they arrive a moment after the banner)
-    this.timeStopPending = k > 0 ? 3 * k : 0;
+    this.timeStopPending = k > 0 ? Math.min(5, 3 * k) : 0;
     this.timeStopT = 0;
     if (this.c('postBoss') > 0 && n > 1 && isBossWave(n - 1)) this.sc.time.delayedCall(1400, () => a.quip(960, 330, 'MOON CHEESE: DOUBLE DAMAGE!', '#cfe4ff', 40));
     if (this.c('actStart') > 0 && this.actStart()) this.sc.time.delayedCall(1400, () => a.quip(960, 330, 'VICTORY LAP!', '#ffd23f', 44));
