@@ -395,18 +395,32 @@ function playZeus(h: LookHost): LookFx {
   const { scene, layer, peel } = h;
   const ADD = Phaser.BlendModes.ADD;
   // behind the peel: a soft blue halo down the blade and the crackling trail; over it: the arcs, then sparks and bursts
+  // a wide blue aura round the whole peel, under the blade halo
+  // normal blend, so the blue reads on warm, bright backdrops too (added light washes out there)
+  const aura = scene.add.image(0, 0, 'glow').setTint(0x3d8cff);
   const halo = scene.add.image(0, 0, 'glow').setTint(0x4aa8ff).setBlendMode(ADD);
   const haloCore = scene.add.image(0, 0, 'glow').setTint(0xbfe8ff).setBlendMode(ADD);
   const trailG = scene.add.graphics().setBlendMode(ADD);
   const arcG = scene.add.graphics().setBlendMode(ADD);
   const worldG = scene.add.graphics().setBlendMode(ADD);
-  for (const o of [trailG, halo, haloCore]) {
+  // the swept trail: a soft glowing ribbon where the blade has been (drawn under the crackle)
+  const ribbonG = scene.add.graphics();
+  for (const o of [ribbonG, aura, trailG, halo, haloCore]) {
     layer.add(o);
     layer.moveBelow(o as unknown as Phaser.GameObjects.GameObject, peel as unknown as Phaser.GameObjects.GameObject);
   }
   layer.add(arcG);
   layer.add(worldG);
-  const all = [halo, haloCore, trailG, arcG, worldG];
+  const all = [ribbonG, aura, halo, haloCore, trailG, arcG, worldG];
+  const ribbonPen = graphicsPen(ribbonG);
+  // ribbon history: blade middle and tip, a ring
+  const RN = 16;
+  const rmx = new Float32Array(RN);
+  const rmy = new Float32Array(RN);
+  const rtx = new Float32Array(RN);
+  const rty = new Float32Array(RN);
+  const rt = new Float32Array(RN).fill(9);
+  let rhead = 0;
   const arcPen = graphicsPen(arcG);
   const worldPen = graphicsPen(worldG);
   const trailPen = graphicsPen(trailG);
@@ -452,11 +466,14 @@ function playZeus(h: LookHost): LookFx {
       const m = toWorld(BLADE_MID.x, BLADE_MID.y);
       halo.setPosition(m.x, m.y).setRotation(peel.rotation).setScale((120 * s) / 256, (BLADE_LEN * 1.9 * s) / 256).setAlpha(Math.min(1, 0.7 * gl));
       haloCore.setPosition(m.x, m.y).setRotation(peel.rotation).setScale((60 * s) / 256, (BLADE_LEN * 1.35 * s) / 256).setAlpha(Math.min(1, 0.5 * gl));
+      // the aura: a broad soft glow round the head and blade, breathing with the storm
+      aura.setPosition(m.x, m.y).setRotation(peel.rotation).setScale((430 * s) / 256, (BLADE_LEN * 3.8 * s) / 256).setAlpha(Math.min(0.9, (calm ? 0.6 : 0.75) * gl));
       arcG.clear();
       arcG.setPosition(peel.x, peel.y).setRotation(peel.rotation).setScale(s);
       core.draw(arcPen);
       worldG.clear();
       trailG.clear();
+      ribbonG.clear();
       const mvx = peel.x - lastX;
       const mvy = peel.y - lastY;
       const moved = Math.hypot(mvx, mvy);
@@ -472,6 +489,40 @@ function playZeus(h: LookHost): LookFx {
           const ang = Math.random() * Math.PI * 2;
           const sp = 60 + Math.random() * 140;
           sparks.emit(w.x, w.y, Math.cos(ang) * sp - (mvx / Math.max(dt, 0.008)) * 0.12, Math.sin(ang) * sp - 80 - (mvy / Math.max(dt, 0.008)) * 0.12);
+        }
+        // the swept ribbon: blade-mid and tip positions, joined into a fading band of blue light
+        {
+          const mid = toWorld(BLADE_MID.x, BLADE_MID.y);
+          const mx = mid.x;
+          const my = mid.y;
+          const tp = toWorld(TIP.x * 0.8, TIP.y * 0.85);
+          for (let i = 0; i < RN; i++) rt[i] += dt;
+          const rp = (rhead + RN - 1) % RN;
+          if (moved > 2 && Math.hypot(mx - rmx[rp], my - rmy[rp]) > 6) {
+            rmx[rhead] = mx;
+            rmy[rhead] = my;
+            rtx[rhead] = tp.x;
+            rty[rhead] = tp.y;
+            rt[rhead] = 0;
+            rhead = (rhead + 1) % RN;
+          }
+          const RL = 0.42;
+          for (let k = 1; k < RN; k++) {
+            const i1 = (rhead + k) % RN;
+            const i0 = (rhead + k - 1) % RN;
+            if (rt[i0] > RL || rt[i1] > RL) continue;
+            const a = 1 - rt[i0] / RL;
+            // the band between the two edges (mid line and tip line), as a few strokes across
+            for (let q = 0; q <= 3; q++) {
+              const f = q / 3;
+              const x0 = rmx[i0] + (rtx[i0] - rmx[i0]) * f;
+              const y0 = rmy[i0] + (rty[i0] - rmy[i0]) * f;
+              const x1 = rmx[i1] + (rtx[i1] - rmx[i1]) * f;
+              const y1 = rmy[i1] + (rty[i1] - rmy[i1]) * f;
+              ribbonPen.seg(x0, y0, x1, y1, 46 * a * s, 0x3d8cff, 0.35 * a);
+              ribbonPen.seg(x0, y0, x1, y1, 14 * a * s, 0xbfe9ff, 0.45 * a);
+            }
+          }
         }
         // the crackling trail behind the tip
         const tip = toWorld(TIP.x * 0.6, TIP.y * 0.75);
