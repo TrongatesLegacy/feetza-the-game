@@ -57,6 +57,158 @@ const TRIM: Record<string, number> = {
   sfx_reheat: 1.04, // -12.3 dB → -12.0
   sfx_steal: 1.3, // -15.3 dB → -13.0: sneaky, sits behind
   sfx_hold: 0.92, // -23.8 dB → -24.5: quiet tick, about click level
+  // Boss set-piece moves (sfx_<boss>_<move>) and the shared boss kit (sfx_kit_*). Each file is normalised to about
+  // -12 dB or louder; the trim sets its final level: tells and hits near the slap (-10.5 to -11), signature hits a
+  // little over it (-9.5), mashable or repeated hits under it (-13.5), and long beds/risers further under (-14.5).
+  // shared boss kit
+  sfx_kit_prophit: 1.28, // -14.2 dB → -12.1: hit-counter prop takes a hit
+  sfx_kit_propclear: 1.1, // -11.3 dB → -10.5: prop cleared
+  sfx_kit_shieldup: 1.05, // -11.4 dB → -11.0: boss shield goes up
+  sfx_kit_shieldblock: 1.05, // -12.4 dB → -12.0: smack bounces off a boss shield
+  sfx_kit_shielddown: 1.07, // -12.6 dB → -12.0: boss shield drops
+  sfx_kit_lane: 1.05, // -12.5 dB → -12.1: boss takes over a lane
+  sfx_kit_retreat: 1.1, // -12.8 dB → -12.0: feet scurry back ("STAND BACK!")
+  // Head Waiter
+  sfx_headwaiter_traytoss: 1.13, // -12.0 dB → -10.9: tray thrown, spinning
+  sfx_headwaiter_traybat: 1.27, // -12.5 dB → -10.4: tray batted back
+  sfx_headwaiter_trayclang: 1.17, // -11.8 dB → -10.4: tray crashes on a pizza
+  sfx_headwaiter_service: 1.05, // -11.4 dB → -11.0: desk-bell double ding
+  // Bigfoot
+  sfx_bigfoot_ring: 1.05, // -12.4 dB → -12.0: QTE ring appears
+  sfx_bigfoot_ringok: 1.05, // -11.4 dB → -11.0: good QTE click
+  sfx_bigfoot_bigstep: 1.05, // -9.9 dB → -9.5: the big step lands
+  sfx_bigfoot_trapbuild: 1.21, // -15.2 dB → -13.5: bear trap ratchets together
+  sfx_bigfoot_trapsnap: 1.5, // -13.0 dB → -9.5: bear trap snaps shut
+  sfx_bigfoot_pound: 1.07, // -10.1 dB → -9.5: ground pound crashes down
+  sfx_bigfoot_rampage: 1.05, // -10.9 dB → -10.5: second Bigfoot arrives
+  // Chimney Sweep
+  sfx_sweep_brush: 1.09, // -12.7 dB → -12.0: chimney brush scrubbing (tell)
+  sfx_sweep_soot: 1.06, // -11.0 dB → -10.5: soot column whoomph
+  sfx_sweep_hop: 1.18, // -12.4 dB → -11.0: pops out of one chimney into another
+  sfx_sweep_brick: 1.05, // -12.4 dB → -12.0: chimney brick laid (enraged)
+  // Iron Heel
+  sfx_ironheel_charge: 0.79, // -12.4 dB → -14.4: power-blast charge riser, sits under
+  sfx_ironheel_launcher: 1.05, // -11.4 dB → -11.0: rocket launcher deploys
+  sfx_ironheel_rocket: 1.05, // -10.9 dB → -10.5: rocket launches
+  sfx_ironheel_blast: 1.08, // -10.2 dB → -9.5: power blast fires
+  sfx_ironheel_vent: 1.03, // -11.3 dB → -11.0: armour vents open
+  sfx_ironheel_hiss: 0.88, // -12.4 dB → -13.5: steam warning hiss, sits under
+  sfx_ironheel_steam: 1.07, // -11.1 dB → -10.5: steam burst
+  sfx_ironheel_press: 1.18, // -11.9 dB → -10.5: hydraulic press stamps
+  sfx_ironheel_valve: 1.05, // -11.4 dB → -11.0: valve wheel locks
+  // Sandcastle Sam
+  sfx_sandcastle_shovel: 1.13, // -13.0 dB → -11.9: shovel scrape (tell)
+  sfx_sandcastle_walls: 1.05, // -10.9 dB → -10.5: sand walls rise
+  sfx_sandcastle_pour: 1.09, // -12.8 dB → -12.1: sand pour
+  sfx_sandcastle_sandland: 1.09, // -11.7 dB → -11.0: wet sand lands on a pizza
+  // King Honk
+  sfx_clownking_honkwind: 1.05, // -11.4 dB → -11.0: bulb-horn squeeze wind-up
+  sfx_clownking_honk: 1.04, // -9.9 dB → -9.6: clown horn blast
+  sfx_clownking_leap: 1.05, // -11.4 dB → -11.0: slide-whistle leap away
+  sfx_clownking_decoydrop: 1.05, // -12.4 dB → -12.0: slide-whistle drop
+  sfx_clownking_pie: 1.06, // -12.5 dB → -12.0: wobbly pie throw
+  sfx_clownking_piesplat: 1.1, // -10.3 dB → -9.5: big cream-pie splat
+  // Short-Order Shoe
+  sfx_shortorder_bell: 1.1, // -11.4 dB → -10.6: order bell ding
+  sfx_shortorder_grab: 1.09, // -11.7 dB → -11.0: grabbing hand lunges in
+  sfx_shortorder_togo: 1.11, // -11.9 dB → -11.0: hand snatches a slice
+  sfx_shortorder_rush: 1.05, // -10.9 dB → -10.5: rush-hour triple bell and ticket chatter
+  // T-Rex Toes
+  sfx_trex_dinosqueak: 1.05, // -12.4 dB → -12.0: baby dino squeak
+  sfx_trex_dinorun: 1.07, // -14.1 dB → -13.5: baby dino pitter-patter
+  sfx_trex_growl: 1.05, // -11.4 dB → -11.0: snack-time growl (tell)
+  sfx_trex_snack: 1.08, // -11.2 dB → -10.5: jaws snap on a foot
+  sfx_trex_breath: 0.91, // -12.7 dB → -13.5: deep breath in (tell)
+  sfx_trex_roar: 1.05, // -9.9 dB → -9.5: the roar
+  // Ice Skate Ivy
+  sfx_iceskate_snow: 1.02, // -12.2 dB → -12.0: snow cloud gust (tell)
+  sfx_iceskate_freeze: 1.28, // -12.6 dB → -10.5: lane freezes over
+  sfx_iceskate_frostbite: 1.12, // -12.0 dB → -11.0: peel stung in the snow
+  sfx_iceskate_axel: 1.09, // -11.7 dB → -11.0: triple skate swish
+  // The Colossus
+  sfx_colossus_clang: 1.13, // -14.6 dB → -13.5: small hit chips the shell
+  sfx_colossus_crack: 1.13, // -11.6 dB → -10.5: armour cracks
+  sfx_colossus_shatter: 1.11, // -10.4 dB → -9.5: shell shatters
+  sfx_colossus_glint: 1.12, // -12.0 dB → -11.0: sword glint (tell)
+  sfx_colossus_parry: 1.14, // -11.7 dB → -10.6: parry clash
+  sfx_colossus_smith: 1.19, // -13.5 dB → -12.0: blacksmith taps the anvil (tell)
+  sfx_colossus_anvil: 1.4, // -13.4 dB → -10.5: plate hammered back on
+  // UFO Toe
+  sfx_ufotoe_beam: 1.06, // -12.5 dB → -12.0: tractor beam hum
+  sfx_ufotoe_beambreak: 1.05, // -11.4 dB → -11.0: beam broken
+  sfx_ufotoe_abduct: 1.05, // -11.4 dB → -11.0: slice beamed up
+  sfx_ufotoe_twin: 1.05, // -11.5 dB → -11.1: second saucer warbles in
+  // Cosmic Croc
+  sfx_cosmiccroc_meteor: 1.06, // -12.5 dB → -12.0: meteor falling whistle
+  sfx_cosmiccroc_impact: 1.11, // -11.4 dB → -10.5: meteor impact
+  sfx_cosmiccroc_flip: 1.03, // -11.3 dB → -11.0: gravity warp
+  sfx_cosmiccroc_blackhole: 1.02, // -11.2 dB → -11.0: black hole opens
+  sfx_cosmiccroc_holeclose: 0.95, // -10.5 dB → -10.9: black hole implodes
+  // Dough Boy
+  sfx_doughboy_ball: 1.05, // -12.5 dB → -12.1: dough ball blorps out
+  sfx_doughboy_splat: 1.05, // -11.4 dB → -11.0: dough splat
+  sfx_doughboy_rise: 0.77, // -12.2 dB → -14.5: yeasty bubbling rise, sits under
+  // Nonna's Slipper
+  sfx_nonna_pin: 1.05, // -12.4 dB → -12.0: rolling pin rumble
+  sfx_nonna_pinsmash: 1.1, // -10.3 dB → -9.5: rolling pin crashes into the pizzas
+  sfx_nonna_slippers: 1.13, // -13.1 dB → -12.0: slippers flap (tell)
+  sfx_nonna_slipper: 1.05, // -10.9 dB → -10.5: slipper thwack
+  sfx_nonna_spoon: 1.1, // -11.8 dB → -11.0: wooden spoon swings and grabs
+  sfx_nonna_tug: 1.04, // -13.8 dB → -13.5: tug-of-war creak, sits under
+  // The Pigeon King
+  sfx_pigeonking_coo: 1.05, // -12.4 dB → -12.0: pigeon coo
+  sfx_pigeonking_splat: 1.08, // -11.6 dB → -10.9: bird bomb splat
+  sfx_pigeonking_flock: 1.05, // -11.4 dB → -11.0: flock flutters in
+  // The Gargoyle
+  sfx_gargoyle_swoop: 1.02, // -12.2 dB → -12.0: stony wing swoop
+  sfx_gargoyle_stone: 1.1, // -11.8 dB → -11.0: turns to stone (grind)
+  sfx_gargoyle_stonecrack: 0.89, // -12.4 dB → -13.4: stone cracks under a smack
+  sfx_gargoyle_stonebreak: 1.05, // -10.0 dB → -9.6: stone crumbles
+  sfx_gargoyle_storm: 1.05, // -11.4 dB → -11.0: mini-gargoyle screech chorus
+  // Jellyfish Flip-Flop
+  sfx_jellyfish_charge: 1.27, // -14.1 dB → -12.0: jelly charge hum
+  sfx_jellyfish_sting: 1.05, // -10.9 dB → -10.5: jelly zap on the peel
+  sfx_jellyfish_bright: 1.06, // -11.5 dB → -11.0: bright-glow crackle
+  // Kraken Toes
+  sfx_kraken_splash: 1.1, // -11.3 dB → -10.5: water splash
+  sfx_kraken_tentacle: 1.05, // -11.4 dB → -11.0: tentacle squelches up
+  sfx_kraken_drag: 1.06, // -11.5 dB → -11.0: dragged under, gurgling
+  sfx_kraken_squirt: 1.13, // -12.1 dB → -11.0: ink squirt
+  sfx_kraken_inked: 1.05, // -11.5 dB → -11.1: ink splats on a pizza
+  // Milkshake Max
+  sfx_milkshake_freeze: 1.05, // -11.5 dB → -11.1: brain-freeze chime (tell)
+  sfx_milkshake_frozen: 1.12, // -11.5 dB → -10.5: brain freeze lands on the peel
+  sfx_milkshake_straw: 1.05, // -12.4 dB → -12.0: straw plonks in
+  sfx_milkshake_slurp: 0.89, // -12.5 dB → -13.5: slurp, sits under
+  sfx_milkshake_snap: 1.33, // -13.0 dB → -10.5: straw snaps
+  // Queen of the Rink
+  sfx_rinkqueen_puck: 1.17, // -11.9 dB → -10.5: slapshot
+  sfx_rinkqueen_roll: 1.01, // -12.1 dB → -12.0: pizzas glide across the ice
+  sfx_rinkqueen_dash: 1.22, // -12.2 dB → -10.5: speed-dash swish and ice spray
+  // The Lumberjack
+  sfx_lumberjack_timber: 1.05, // -11.4 dB → -11.0: tree creak and crack (tell)
+  sfx_lumberjack_chainsaw: 1.05, // -12.5 dB → -12.1: chainsaw revs
+  sfx_lumberjack_sawbite: 1.1, // -11.3 dB → -10.5: chainsaw bites a pizza
+  sfx_lumberjack_axe: 1.05, // -12.4 dB → -12.0: spinning axe
+  sfx_lumberjack_thunk: 1.21, // -12.2 dB → -10.5: axe thunks into the table
+  // The Yeti Ski Boot
+  sfx_yeti_icicle: 1.11, // -12.9 dB → -12.0: icicle forms and cracks loose
+  sfx_yeti_iciclehit: 1.3, // -12.8 dB → -10.5: icicle shatters on a pizza
+  sfx_yeti_snowball: 1.09, // -12.7 dB → -12.0: snowball packed and thrown
+  sfx_yeti_avalanche: 1.08, // -11.2 dB → -10.5: avalanche rumble (tell)
+  sfx_yeti_bigball: 1.08, // -11.7 dB → -11.0: big snowball lands
+  // The Zombie Loafer
+  sfx_poltergeist_groan: 1.05, // -11.4 dB → -11.0: zombie groan (tell)
+  sfx_poltergeist_bite: 1.33, // -13.0 dB → -10.5: zombie bite
+  sfx_poltergeist_cough: 1.21, // -12.7 dB → -11.0: coughing fit
+  sfx_poltergeist_sick: 1.05, // -12.5 dB → -12.1: pizza turns zombie
+  sfx_poltergeist_munch: 1.11, // -12.9 dB → -12.0: zombie pizza munches a slice
+  // Phantom King
+  sfx_phantomking_fade: 1.04, // -12.4 dB → -12.1: ghostly fade
+  sfx_phantomking_echo: 1.06, // -11.5 dB → -11.0: ghostly echo appears
+  sfx_phantomking_stir: 1.07, // -12.6 dB → -12.0: curse stirs (tell)
+  sfx_phantomking_curse: 1.09, // -11.7 dB → -11.0: curse jumps pizzas
+  sfx_phantomking_exorcise: 1.05, // -10.9 dB → -10.5: exorcism chime
   // Stings are normalised to the music loudness (-16.4 LUFS, like music_gameover). audio.sting() plays
   // them at music volume and does not read TRIM; these gains apply if they're played through sfx().
   music_victory: 2.04, // -15.7 dB → -9.5: the 60-wave finish, a little over the slap
