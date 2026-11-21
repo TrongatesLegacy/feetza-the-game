@@ -5501,3 +5501,8 @@ body.reduced-motion *::after {
     width: 80em;
   }
 }
+
+/* the Pizzeria's pizza filters sit in a row like the Peel Locker's */
+.pz-bar {
+  margin-bottom: 0.6em;
+}

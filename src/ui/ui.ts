@@ -1536,16 +1536,20 @@ class UI {
   }
 
   // ——— Pizzeria (meta shop): upgrades, every pizza and how it unlocks, and the toppings collection ———
-  pizzeria(onClose: () => void): HTMLElement {
+  pizzeria(onClose: () => void, openOn: { tab?: 'upgrades' | 'pizzas' | 'toppings'; pizza?: string } = {}): HTMLElement {
     type Tab = 'upgrades' | 'pizzas' | 'toppings';
     // catch up on milestones met before they named their pizza
     awardMilestones(null);
     // NEW badges stay for this visit; looking at a tab clears them for next time
     const newPizzas = new Set(save.pizzasNew);
     const newTops = new Set(save.toppingsNew);
-    let tab: Tab = 'upgrades';
+    let tab: Tab = openOn.tab ?? 'upgrades';
     let rarity: 'all' | Rarity = 'all';
     let seenFilter: 'all' | 'seen' | 'unseen' = 'all';
+    // pizzas tab: which group, and whether to show only unlocked ones
+    type PzGroup = 'all' | 'pizzeria' | 'milestone' | 'special' | 'rare';
+    let pzGroup: PzGroup = openOn.pizza ? 'pizzeria' : 'all';
+    let pzUnlockedOnly = false;
     const balance = h('div', { class: 'crusts' });
     const body = h('div', { class: 'scroll' });
     const tabs = h('div', { class: 'tabs' });
@@ -1630,7 +1634,9 @@ class UI {
             render();
           });
           b.disabled = save.crusts < p.cost;
-          return tile(p, 'unowned', b);
+          const t = tile(p, `unowned${openOn.pizza === p.id ? ' selected' : ''}`, b);
+          t.dataset.pz = p.id;
+          return t;
         });
       const prizes = locked('milestone')
         .map((p) => ({ p, m: MILESTONE_BY_PIZZA[p.id], pr: MILESTONE_BY_PIZZA[p.id] ? milestoneProgress(MILESTONE_BY_PIZZA[p.id].id) : ([0, 1] as [number, number]) }))
@@ -1656,12 +1662,34 @@ class UI {
         );
       });
       // the ones you can act on first (buy with crusts, chase a goal), then what you own
+      // filters: each unlock group (with unlocked/total), and an Unlocked only toggle
+      const inGroup = (g: PzGroup) => PIZZAS.filter((p) => g === 'all' || p.route === g);
+      const gCount = (g: PzGroup) => `${inGroup(g).filter((p) => has(p.id)).length}/${inGroup(g).length}`;
+      const GROUPS: [PzGroup, string][] = [['all', 'ALL'], ['pizzeria', 'GOLDEN CRUSTS'], ['milestone', 'MILESTONES'], ['special', 'CHEF’S SPECIALS'], ['rare', 'RARE FINDS']];
+      const gTabs = h('div', { class: 'tabs locker-tabs' }, ...GROUPS.map(([g, l]) => btn(`${l} <small>${gCount(g)}</small>`, `small ${pzGroup === g ? 'active' : ''}`, () => ((pzGroup = g), render()))));
+      const gSelect = h('select', { class: 'locker-select', 'aria-label': 'How it unlocks' }) as HTMLSelectElement;
+      for (const [g, l] of GROUPS) gSelect.append(h('option', { value: g, selected: g === pzGroup }, `${l === 'ALL' ? 'All pizzas' : l} · ${gCount(g)}`));
+      gSelect.addEventListener('change', () => ((pzGroup = gSelect.value as PzGroup), render()));
+      const filter = h('button', { class: `locker-filter${pzUnlockedOnly ? ' on' : ''}`, type: 'button', 'aria-pressed': pzUnlockedOnly ? 'true' : 'false', html: `<i>${pzUnlockedOnly ? '✔' : ''}</i>Unlocked only` });
+      filter.addEventListener('click', () => {
+        audio.sfx('sfx_click');
+        pzUnlockedOnly = !pzUnlockedOnly;
+        render();
+      });
+      const show = (g: Exclude<PzGroup, 'all'>) => pzGroup === 'all' || pzGroup === g;
+      const ownedHere = owned.filter((p) => pzGroup === 'all' || p.route === pzGroup);
+      const parts = pzUnlockedOnly
+        ? []
+        : [
+            ...(show('pizzeria') ? section(`BUY WITH GOLDEN CRUSTS · ${shop.length}`, 'Unlock them here', shop) : []),
+            ...(show('milestone') ? section(`MILESTONE PRIZES · ${prizes.length}`, 'Reach the goal and the pizza is yours', prizes) : []),
+            ...(show('special') ? section(`CHEF’S SPECIALS · ${specials.length}`, 'Buy one in the shop with tips to unlock it for good', specials) : []),
+            ...(show('rare') ? section(`RARE FINDS · ${rare.length}`, 'Only by luck, on the new-run screen', rare) : []),
+          ];
+      parts.push(...section(`ON THE MENU · ${ownedHere.length}`, 'Unlocked: these can turn up at the shop counter', ownedHere.map((p) => tile(p, '', h('div', { class: 'chip', style: 'background:var(--basil-d);color:#fff' }, 'ON THE MENU')))));
       return [
-        ...section(`BUY WITH GOLDEN CRUSTS · ${shop.length}`, 'Unlock them here', shop),
-        ...section(`MILESTONE PRIZES · ${prizes.length}`, 'Reach the goal and the pizza is yours', prizes),
-        ...section(`CHEF’S SPECIALS · ${specials.length}`, 'Buy one in the shop with tips to unlock it for good', specials),
-        ...section(`RARE FINDS · ${rare.length}`, 'Only by luck, on the new-run screen', rare),
-        ...section(`ON THE MENU · ${owned.length}`, 'Unlocked: these can turn up at the shop counter', owned.map((p) => tile(p, '', h('div', { class: 'chip', style: 'background:var(--basil-d);color:#fff' }, 'ON THE MENU')))),
+        h('div', { class: 'locker-bar pz-bar' }, gTabs, gSelect, filter),
+        ...(parts.length ? parts : [h('p', { class: 'hint' }, 'Nothing here yet.')]),
       ];
     };
     // every topping in the game: seen ones in full, the rest as ??? in their rarity colour
@@ -1723,6 +1751,13 @@ class UI {
       }, { 'data-pad': 'back' }),
     );
     s = this.open(panel);
+    // opened on a pizza (from the Pizzapedia): bring its card into view
+    if (openOn.pizza) {
+      requestAnimationFrame(() => {
+        const t = body.querySelector<HTMLElement>(`[data-pz="${CSS.escape(openOn.pizza!)}"]`);
+        if (t) body.scrollTop = t.offsetTop - body.offsetTop - 20;
+      });
+    }
     return s;
   }
 
@@ -1808,7 +1843,14 @@ class UI {
         detail.replaceChildren(h('img', { src: pizzaPortraitURL(id), alt: '', style: 'filter:brightness(0) opacity(0.35)' }), h('div', {}, h('div', { class: 'dt-head' }, h('h3', {}, '???'), h('span', { class: 'chip' }, how)), h('p', {}, 'A Rare Find. It turns up only by luck, in a lineup on the new-run screen.')));
         return;
       }
-      detail.replaceChildren(h('img', { src: pizzaPortraitURL(id), alt: '' }), h('div', {}, h('div', { class: 'dt-head' }, h('h3', {}, p.name), h('span', { class: 'chip' }, owned ? '✅ Unlocked' : how)), h('p', {}, `Perk: ${p.perkText}`)));
+      // a crust pizza can be unlocked straight from here: the Pizzeria opens on it
+      const go = !owned && p.route === 'pizzeria'
+        ? btn(`UNLOCK IN THE PIZZERIA`, 'green small', () => {
+            this.close(s);
+            this.pizzeria(() => this.pedia(onClose), { tab: 'pizzas', pizza: id });
+          })
+        : null;
+      detail.replaceChildren(h('img', { src: pizzaPortraitURL(id), alt: '' }), h('div', {}, h('div', { class: 'dt-head' }, h('h3', {}, p.name), h('span', { class: 'chip' }, owned ? '✅ Unlocked' : how), go ? h('span', { class: 'dt-act' }, go) : null), h('p', {}, `Perk: ${p.perkText}`)));
     };
     const EVENTS: [string, string, string, string][] = [
       ['balloon', 'ev_balloon', 'Tip Balloon', 'Drifts across the top. One smack: 10 to 25 tips.'],
