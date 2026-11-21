@@ -8,6 +8,9 @@ import { FOOT_BY_ID } from './data/feet';
 import { STAGES } from './data/stages';
 import { bossPhaseInfo } from './game/bosses';
 import { footPortraitURL } from './game/assets';
+import { PEELS, checkPeelAchievements } from './game/peels';
+import { peelsWithoutAbility } from './game/abilities';
+import { persist, save as saveData } from './systems/save';
 
 type AnyScene = Phaser.Scene & Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 type Notes = Record<string, { general?: string; phases?: Record<string, string> }>;
@@ -167,10 +170,39 @@ export function installBossLab(game: Phaser.Game): void {
   // ——— floating buttons ———
   const fab = document.createElement('div');
   fab.className = 'bl-fab';
-  fab.innerHTML = `<button data-a="open" title="Boss lab (\`)">☰ Bosses</button><button data-a="phase" title="Replay the phase you're in">↻ Phase</button><button data-a="boss" title="Restart this boss from phase 1">↻ Boss</button>`;
+  fab.innerHTML = `<button data-a="open" title="Boss lab (\`)">☰ Bosses</button><button data-a="phase" title="Replay the phase you're in">↻ Phase</button><button data-a="boss" title="Restart this boss from phase 1">↻ Boss</button><button data-a="peels"></button>`;
+  // every peel unlocked for testing; the real unlocks are kept and come back with the second press
+  const PEEL_BACKUP = 'feetza.dev.peelsBackup';
+  const peelBtn = fab.querySelector<HTMLButtonElement>('[data-a="peels"]')!;
+  const syncPeelBtn = () => {
+    const on = localStorage.getItem(PEEL_BACKUP) !== null;
+    peelBtn.textContent = on ? '🔒 Peels' : '🔓 Peels';
+    peelBtn.title = on ? 'Put back the peels you had really unlocked' : 'Unlock every peel for testing (press again to undo)';
+  };
+  syncPeelBtn();
+  const togglePeels = () => {
+    const backup = localStorage.getItem(PEEL_BACKUP);
+    if (backup === null) {
+      localStorage.setItem(PEEL_BACKUP, JSON.stringify({ peels: saveData.peels, peel: saveData.peel, skin: saveData.skin }));
+      saveData.peels = PEELS.map((p) => p.id).filter((id) => id !== 'classic');
+    } else {
+      const b = JSON.parse(backup) as { peels: string[]; peel: string; skin: string };
+      saveData.peels = b.peels;
+      saveData.peel = b.peel;
+      saveData.skin = b.skin;
+      localStorage.removeItem(PEEL_BACKUP);
+      checkPeelAchievements();
+    }
+    persist();
+    syncPeelBtn();
+  };
+  // every peel but the Classic needs its own ability: say so loudly if one is missing
+  const noAbility = peelsWithoutAbility(PEELS.map((p) => p.id));
+  if (noAbility.length) console.error(`[peels] ${noAbility.length} peel(s) have no ability and fall back to the Peel Slam: ${noAbility.join(', ')}. Add them to ABILITIES in src/game/abilities.ts.`);
   fab.addEventListener('click', (e) => {
     const a = (e.target as HTMLElement).closest('button')?.dataset.a;
-    if (a === 'open') open();
+    if (a === 'peels') togglePeels();
+    else if (a === 'open') open();
     else if (a === 'phase' && last) void launch(last.id, livePhase(), last.heat);
     else if (a === 'boss' && last) void launch(last.id, 1, last.heat);
   });

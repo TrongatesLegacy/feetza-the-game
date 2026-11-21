@@ -425,6 +425,8 @@ export const ABILITIES: Record<string, Ability> = {
   'foot:neon': ab('Glow Up', every(5), [M(1.4, 4, all)], PINK, 'zap'),
   'foot:crusty': ab('Crust Lust', kill(0.08), [T(5)], GOLD, 'gold'),
   'foot:mimic': ab('Surprise!', kill(0.25), [D(3, hit(220))], BROWN, 'burst'),
+  'foot:blacksmith': ab('Anvil Drop', every(6), [D(4, tough(1)), ST(1, tough(1))], 0x9aa3ad, 'rain'),
+  'foot:gargoylet': ab('Petrify', smack(0.25), [ST(1.2, hit()), M(1.3, 3, hit())], 0x9a9488, 'burst'),
 
   // ——— Pizzas ———
   'pizza:margherita': ab('Classic Crust', always, [STAT({ damage: 1.5 })], RED, 'burst'),
@@ -496,6 +498,13 @@ export function abilityKey(peelId: string): string {
 
 export function abilityFor(peelId: string): Ability {
   return ABILITIES[abilityKey(peelId)] ?? ABILITIES.classic;
+}
+
+/** Peels with no ability of their own (they'd fall back to the Classic's Peel Slam). Every peel but the
+ * Classic needs one: a new foot, boss, pizza, location or event gets its peel automatically, but its
+ * ability is written by hand in ABILITIES. The dev build reports these at boot. */
+export function peelsWithoutAbility(ids: string[]): string[] {
+  return ids.filter((id) => id !== 'classic' && !ABILITIES[abilityKey(id)]);
 }
 
 // ——— plain-English descriptions ———
