@@ -454,6 +454,38 @@ export class Finale {
 
 // ——— The ending ———
 
+/** The credits' own band in the sky (top and bottom edges), clear of the parade on the floor below. */
+const CREDITS_TOP = 70;
+const CREDITS_BOTTOM = 470;
+/** Where the parade's soles land: on the floor, under the credits. */
+const PARADE_LANE = 905;
+/** Tallest a marching foot may stand, so its toes never reach up into the credits. */
+const PARADE_MAX_H = 330;
+
+/** A soft dark plate behind the credits: feathered on every edge, so it never reads as a box. */
+function creditsPlate(): HTMLCanvasElement {
+  const w = 1240;
+  const h = CREDITS_BOTTOM - CREDITS_TOP + 80;
+  const [c, ctx] = makeCanvas(w, h);
+  const g = ctx.createLinearGradient(0, 0, w, 0);
+  g.addColorStop(0, rgba('#05040c', 0));
+  g.addColorStop(0.22, rgba('#05040c', 0.5));
+  g.addColorStop(0.78, rgba('#05040c', 0.5));
+  g.addColorStop(1, rgba('#05040c', 0));
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, w, h);
+  // feather top and bottom too
+  ctx.globalCompositeOperation = 'destination-in';
+  const v = ctx.createLinearGradient(0, 0, 0, h);
+  v.addColorStop(0, 'rgba(0,0,0,0)');
+  v.addColorStop(0.2, 'rgba(0,0,0,1)');
+  v.addColorStop(0.8, 'rgba(0,0,0,1)');
+  v.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = v;
+  ctx.fillRect(0, 0, w, h);
+  return c;
+}
+
 /** Every foot fought so far: regular feet you've smacked, and every boss you've beaten. */
 function foughtFeet(): FootType[] {
   const ids = new Set<string>([...Object.keys(save.kills).filter((k) => (save.kills[k] ?? 0) > 0), ...save.bossesBeaten]);
@@ -536,18 +568,21 @@ export function playEnding(sc: Phaser.Scene, done: () => void): void {
   sc.tweens.add({ targets: skip, alpha: 0.85, duration: 400, delay: 2000 });
   // the parade: every foot fought marches past along the back of the table, waving
   const cast = foughtFeet().slice(-48);
-  const spacing = 190;
+  const spacing = 240;
   const speed = 360;
-  const lane = 690;
+  const lane = PARADE_LANE;
   const parade = sc.add.container(0, 0);
   root.addAt(parade, 3);
   cast.forEach((f, i) => {
     const m = footMeta[f.id];
     const big = f.boss || f.mini;
-    const s = (big ? 0.36 : 0.5) * Math.min(1.25, 1 / Math.max(0.7, f.scale));
+    const img = sc.add.image(0, 0, m.footKey).setOrigin(0.5, m.originY);
+    // tall feet (and bosses) are scaled down to the lane's height, so none reaches the credits
+    const s = Math.min((big ? 0.42 : 0.6) * Math.min(1.25, 1 / Math.max(0.7, f.scale)), PARADE_MAX_H / (img.height * m.originY), (spacing * 1.3) / img.width);
+    img.setScale(s);
     const c = sc.add.container(W + 160 + i * spacing, lane);
-    const img = sc.add.image(0, 0, m.footKey).setOrigin(0.5, m.originY).setScale(s);
-    const name = sc.add.text(0, 34, f.name.length > 22 ? f.name.slice(0, 21) + '…' : f.name, { fontFamily: 'Fredoka, sans-serif', fontStyle: '700', fontSize: '20px', color: '#fff6e2', stroke: '#2a1810', strokeThickness: 6, align: 'center' }).setOrigin(0.5, 0);
+    // names wrap onto two lines within the foot's own spacing, so neighbours never run together
+    const name = sc.add.text(0, 22, f.name, { fontFamily: 'Fredoka, sans-serif', fontStyle: '700', fontSize: '21px', color: '#fff6e2', stroke: '#2a1810', strokeThickness: 6, align: 'center', wordWrap: { width: spacing - 30 } }).setOrigin(0.5, 0);
     c.add([img, name]);
     parade.add(c);
     // a march: a step every 0.36 s, a lean and a little wave
@@ -556,22 +591,44 @@ export function playEnding(sc: Phaser.Scene, done: () => void): void {
   });
   const marchMs = ((W + 320 + cast.length * spacing) / speed) * 1000;
   sc.tweens.add({ targets: parade, x: -(W + 320 + cast.length * spacing), duration: marchMs, delay: 3600 });
-  // credits roll up the sky
+  // feet waiting off stage (or already gone) are hidden, so only the ones on screen draw
+  const cull = () => {
+    if (!parade.active) return sc.events.off('update', cull);
+    for (const c of parade.list as Phaser.GameObjects.Container[]) {
+      const on = Math.abs(parade.x + c.x - W / 2) < W / 2 + 200;
+      if (c.visible !== on) for (const o of [c, ...c.list] as Phaser.GameObjects.Image[]) o.setVisible(on);
+    }
+  };
+  sc.events.on('update', cull);
+  // credits roll up the sky, in their own band above the parade
   void creditLines().then((lines) => {
     if (finished) return;
     const roll = sc.add.container(0, 0);
     root.add(roll);
-    // the credits roll in the sky only: the parade has the back of the table to itself
-    const maskShape = sc.make.graphics({}, false).fillStyle(0xffffff).fillRect(0, 70, W, 520);
-    roll.setMask(maskShape.createGeometryMask());
     let y = 0;
+    const rows: Phaser.GameObjects.Text[] = [];
     for (const [txt, size] of lines) {
-      if (txt) roll.add(title(txt, y, size, size >= 60 ? '#ffe28a' : size >= 40 ? '#ffd8a8' : '#fff6e2').setPosition(W / 2, y));
+      if (txt) rows.push(title(txt, y, size, size >= 60 ? '#ffe28a' : size >= 40 ? '#ffd8a8' : '#fff6e2').setPosition(W / 2, y + size * 0.5));
       y += size * 1.35;
     }
-    const band = sc.add.rectangle(W / 2, 330, 1100, 520, 0x05040c, 0.35);
+    roll.add(rows);
+    if (!sc.textures.exists('fin_creditsplate')) addCanvas(sc, 'fin_creditsplate', creditsPlate());
+    const band = sc.add.image(W / 2, (CREDITS_TOP + CREDITS_BOTTOM) / 2, 'fin_creditsplate').setAlpha(0);
     root.addAt(band, 3);
-    roll.y = H * 0.62;
+    sc.tweens.add({ targets: band, alpha: 1, duration: 900, delay: 3200 });
+    // lines fade in at the bottom of the band and out at the top, instead of being cut by a hard edge
+    const FADE = 70;
+    const fade = () => {
+      for (const t of rows) {
+        const ty = roll.y + t.y;
+        const k = Math.min(1, Math.max(0, (ty - CREDITS_TOP) / FADE), Math.max(0, (CREDITS_BOTTOM - ty) / FADE));
+        t.setAlpha(k).setVisible(k > 0.01);
+      }
+    };
+    sc.events.on('update', fade);
+    roll.once('destroy', () => sc.events.off('update', fade));
+    roll.y = CREDITS_BOTTOM + 20;
+    fade();
     const rollMs = Math.max(marchMs, 18000);
     sc.tweens.add({ targets: roll, y: -y - 40, duration: rollMs, delay: 3800, ease: 'Linear' });
     sc.time.delayedCall(3800 + Math.max(rollMs, marchMs) - 1500, () => {

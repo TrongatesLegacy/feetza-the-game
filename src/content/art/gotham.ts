@@ -217,17 +217,21 @@ function drawBunion(ctx: Ctx, art: FootArt): void {
 // ——— THE JOKESTER: a plum winklepicker with pinstripes, a green spat, a painted grin and a curling toe ———
 
 function jokesterPath(ctx: Ctx): void {
-  // slim at the ankle, a long body that narrows into a pointed toe, which curls up into a spiral
+  // a proper winklepicker: slim ankle, a rounded heel at the back, a flat sole, and a long pointed toe that
+  // runs out to the right and curls up into a spiral (so it reads as a shoe, not a bag)
   ctx.beginPath();
   ctx.moveTo(CX - 50, -6);
-  ctx.bezierCurveTo(CX - 56, 50, CX - 96, 110, CX - 100, 160);
-  ctx.bezierCurveTo(CX - 104, 206, CX - 70, 240, CX - 30, 252);
-  ctx.bezierCurveTo(CX - 12, 258, CX + 4, 262, CX + 24, 258);
-  // the curled tip: out to the right and back up over itself
-  ctx.bezierCurveTo(CX + 62, 252, CX + 100, 236, CX + 112, 206);
-  ctx.bezierCurveTo(CX + 122, 180, CX + 104, 160, CX + 86, 170);
-  ctx.bezierCurveTo(CX + 96, 140, CX + 98, 110, CX + 84, 80);
-  ctx.bezierCurveTo(CX + 70, 50, CX + 54, 30, CX + 50, -6);
+  ctx.bezierCurveTo(CX - 54, 50, CX - 86, 100, CX - 92, 150);
+  ctx.bezierCurveTo(CX - 96, 200, CX - 96, 238, CX - 80, 254);
+  ctx.bezierCurveTo(CX - 50, 264, CX + 10, 262, CX + 60, 257);
+  // the long toe, rising to the curl
+  ctx.bezierCurveTo(CX + 100, 252, CX + 130, 236, CX + 146, 206);
+  ctx.bezierCurveTo(CX + 152, 192, CX + 150, 174, CX + 138, 166);
+  // the thin tip curls back over itself, then the top of the toe runs back down to the instep
+  ctx.bezierCurveTo(CX + 132, 176, CX + 128, 192, CX + 120, 200);
+  ctx.bezierCurveTo(CX + 100, 220, CX + 80, 212, CX + 72, 190);
+  ctx.bezierCurveTo(CX + 64, 150, CX + 66, 100, CX + 64, 60);
+  ctx.bezierCurveTo(CX + 58, 30, CX + 52, 14, CX + 50, -6);
   ctx.closePath();
 }
 
@@ -252,16 +256,16 @@ function drawJokester(ctx: Ctx, art: FootArt): void {
   // the acid-green spat over the upper, buttoned up the side
   ctx.beginPath();
   ctx.moveTo(CX - 54, -6);
-  ctx.bezierCurveTo(CX - 60, 40, CX - 84, 84, CX - 92, 116);
-  ctx.quadraticCurveTo(CX, 136, CX + 88, 100);
-  ctx.bezierCurveTo(CX + 72, 60, CX + 58, 30, CX + 54, -6);
+  ctx.bezierCurveTo(CX - 58, 30, CX - 70, 62, CX - 80, 86);
+  ctx.quadraticCurveTo(CX, 106, CX + 80, 76);
+  ctx.bezierCurveTo(CX + 66, 40, CX + 58, 20, CX + 54, -6);
   ctx.closePath();
   ctx.fillStyle = lit(ctx, lime, 0, -6, 200, 130, 0.3);
   ctx.fill();
   ink(ctx, 3.5, rgba(INK, 0.85));
-  for (let k = 0; k < 4; k++) {
+  for (let k = 0; k < 3; k++) {
     const y = 14 + k * 24;
-    const x = CX - 50 - k * 9;
+    const x = CX - 50 - k * 8;
     ctx.beginPath();
     ctx.arc(x, y, 6, 0, Math.PI * 2);
     ctx.fillStyle = lit(ctx, '#7a3ab0', x - 6, y - 6, x + 6, y + 6, 0.5);
@@ -352,31 +356,45 @@ function drawJokester(ctx: Ctx, art: FootArt): void {
     ctx.arc(CX + s * 56, 186 + (s < 0 ? 4 : 0), 8, s < 0 ? -0.4 : Math.PI - 0.6, s < 0 ? 1.4 : Math.PI + 1.2);
     ink(ctx, 2.4, rgba(INK, 0.7));
   }
-  // the curl's spiral line, and a little red pompom at its tip
+  // the curl's spiral line, winding in towards the pompom
   ctx.beginPath();
-  ctx.moveTo(CX + 30, 254);
-  ctx.bezierCurveTo(CX + 76, 246, CX + 108, 222, CX + 106, 196);
-  ctx.bezierCurveTo(CX + 104, 178, CX + 90, 178, CX + 88, 188);
-  ink(ctx, 3, rgba(INK, 0.6));
-  // the sole: a thin lime welt and a shiny black heel line
+  ctx.moveTo(CX + 74, 236);
+  ctx.bezierCurveTo(CX + 104, 232, CX + 128, 220, CX + 138, 196);
+  ink(ctx, 3, rgba(INK, 0.5));
+  // the sole: a thin lime welt from the heel to the tip of the toe
   ctx.beginPath();
-  ctx.moveTo(CX - 80, 236);
-  ctx.bezierCurveTo(CX - 40, 262, CX + 20, 266, CX + 70, 250);
+  ctx.moveTo(CX - 46, 254);
+  ctx.bezierCurveTo(CX, 262, CX + 40, 262, CX + 80, 254);
+  ctx.bezierCurveTo(CX + 110, 248, CX + 132, 234, CX + 144, 210);
   ink(ctx, 6, '#18121e');
   ink(ctx, 2, rgba(lime, 0.8));
   sheen(ctx, 50, 70, 16, 40, 0.35, 0.3);
   sheen(ctx, CX - 34, 220, 22, 9, 0.3, -0.3);
-  rimAndShade(ctx, -10, 230, -6, 262, '#e8c8ff', 0.36);
+  rimAndShade(ctx, -10, 256, -6, 262, '#e8c8ff', 0.36);
   ctx.restore();
   jokesterPath(ctx);
   ink(ctx, OUT + 0.5, outlineOf(plum));
-  // the pompom on the curled tip, outside the clip so it reads as its own bobble
+  // a stacked black heel at the back, outside the clip so it stands out as a heel under the shoe
   ctx.beginPath();
-  ctx.arc(CX + 86, 172, 13, 0, Math.PI * 2);
-  ctx.fillStyle = lit(ctx, grin, CX + 73, 159, CX + 99, 185, 0.4);
+  ctx.moveTo(CX - 94, 238);
+  ctx.lineTo(CX - 50, 244);
+  ctx.lineTo(CX - 54, 263);
+  ctx.lineTo(CX - 90, 263);
+  ctx.closePath();
+  ctx.fillStyle = lit(ctx, '#2a1a36', CX - 94, 238, CX - 50, 263, 0.4);
   ctx.fill();
   ink(ctx, 3.5);
-  sheen(ctx, CX + 81, 166, 5, 3, 0.7);
+  ctx.beginPath();
+  ctx.moveTo(CX - 92, 252);
+  ctx.lineTo(CX - 52, 255);
+  ink(ctx, 1.8, rgba('#d8b8ff', 0.35));
+  // the pompom on the curled tip, outside the clip so it reads as its own bobble
+  ctx.beginPath();
+  ctx.arc(CX + 134, 164, 13, 0, Math.PI * 2);
+  ctx.fillStyle = lit(ctx, grin, CX + 121, 151, CX + 147, 177, 0.4);
+  ctx.fill();
+  ink(ctx, 3.5);
+  sheen(ctx, CX + 129, 158, 5, 3, 0.7);
   // the lapel flower pinned on the side (the laughing gas comes out of it in play)
   const F = FLOWER;
   for (let k = 0; k < 6; k++) {
@@ -395,4 +413,4 @@ function drawJokester(ctx: Ctx, art: FootArt): void {
 }
 
 registerKind('gt_bunion', { draw: drawBunion, contactY: BUNION_CONTACT, halfWidth: 112 });
-registerKind('gt_jokester', { draw: drawJokester, contactY: FLOWER.contact, halfWidth: 108 });
+registerKind('gt_jokester', { draw: drawJokester, contactY: FLOWER.contact, halfWidth: 118 });

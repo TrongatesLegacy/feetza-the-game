@@ -24,6 +24,8 @@ interface SceneBits {
   currentBackdrop: BackdropId | null;
   run: { wave: number; super: number };
   ability: { trigger: { t: string } } | null;
+  /** the one-time "PEEL SLAM READY!" toast has been shown */
+  slamHinted: boolean;
 }
 const bits = (a: Arena) => a as unknown as SceneBits;
 
@@ -1004,6 +1006,10 @@ const WINDOW = [1.0, 0.72, 0.56, 0.46, 0.38];
 /** Slices the sweep takes from every pizza, by heat; Mild and Regular never take the last one. */
 const SWEEP = [1, 2, 2, 3, 3];
 
+/** Where the sword rises: its hilt, in the middle of the table; the ring and rune sit on the blade. */
+const SWORD_X = 960;
+const SWORD_Y = 790;
+
 const surtr = (): Brain => {
   const bin = new Bin();
   let ready = false;
@@ -1018,6 +1024,8 @@ const surtr = (): Brain => {
     img: Phaser.GameObjects.Image;
     ring: Phaser.GameObjects.Graphics;
     rune: Phaser.GameObjects.Image;
+    /** the sword's one caption: what to do, then NOW! (one place, so nothing piles up) */
+    cap: Phaser.GameObjects.Container;
     open: number;
     early: boolean;
     countered: boolean;
@@ -1082,40 +1090,57 @@ const surtr = (): Brain => {
     const s = sword;
     sword = null;
     s.lane?.release();
-    a.sc.tweens.add({ targets: [s.img, s.rune], alpha: 0, duration: 300, onComplete: () => { s.img.destroy(); s.rune.destroy(); } });
+    a.sc.tweens.add({ targets: [s.img, s.rune, s.cap], alpha: 0, duration: 300, onComplete: () => { s.img.destroy(); s.rune.destroy(); s.cap.destroy(); } });
     s.ring.destroy();
+  };
+
+  /** Sets the sword's caption: a big line and an optional small one, popping in. */
+  const caption = (a: Arena, cap: Phaser.GameObjects.Container, big: string, color: string, small = '', size = 56) => {
+    const [bigT, smallT] = cap.list as Phaser.GameObjects.Text[];
+    bigT.setText(big).setColor(color).setFontSize(size);
+    smallT.setText(small).setY(size * 0.5 + 22);
+    a.sc.tweens.killTweensOf(cap);
+    cap.setScale(0.4).setAlpha(1);
+    a.sc.tweens.add({ targets: cap, scale: 1, duration: 260, ease: 'Back.Out' });
   };
 
   const startSword = (f: Foot, a: Arena) => {
     const h = heat(a);
     const lane = takeLane(a, f, lanePizzas(a)[Math.floor(lanePizzas(a).length / 2)] ?? null);
-    const img = a.sc.add.image(f.x + 150, 520, 'p_sword').setOrigin(0.5, 0.85).setScale(0.6).setAngle(30).setAlpha(0);
+    // the sword rises up through the target circle, so the flash and the ring are one tell
+    const img = a.sc.add.image(SWORD_X, SWORD_Y + 260, 'p_sword').setOrigin(0.5, 0.85).setScale(0.52).setAngle(0).setAlpha(0);
     a.fxLayer.add(img);
-    a.sc.tweens.add({ targets: img, alpha: 1, angle: -12, y: 470, duration: 700, ease: 'Back.Out' });
+    a.sc.tweens.add({ targets: img, alpha: 1, y: SWORD_Y, duration: 700, ease: 'Back.Out' });
     const ring = a.sc.add.graphics();
     a.fxLayer.add(ring);
-    const rune = a.sc.add.image(960, 600, 'p_rune').setScale(0.6).setAlpha(0.35);
+    const rune = a.sc.add.image(SWORD_X, SWORD_Y - 190, 'p_rune').setScale(0.6).setAlpha(0.35);
     a.fxLayer.add(rune);
-    sword = { stage: 'raise', t: h.windup(2.2), img, ring, rune, open: 0, early: false, countered: false, lane };
+    // the caption sits under the boss bar, above the ring: everything else stays clear of the middle
+    const style = { fontFamily: 'Lilita One, Fredoka, sans-serif', color: '#fff6e2', stroke: '#2a1810', align: 'center' };
+    const cap = a.sc.add.container(SWORD_X, 268, [
+      a.sc.add.text(0, 0, '', { ...style, fontSize: '56px', strokeThickness: 12 }).setOrigin(0.5),
+      a.sc.add.text(0, 50, '', { ...style, fontSize: '30px', strokeThickness: 8 }).setOrigin(0.5),
+    ]);
+    a.fxLayer.add(cap);
+    sword = { stage: 'raise', t: h.windup(2.2), img, ring, rune, cap, open: 0, early: false, countered: false, lane };
     bin.add(() => finishSword(a));
-    // a callout up top, not a banner: the ring in the middle of the screen must stay clear
-    a.quip(960, 250, 'THE SWORD RISES!', '#ffb24a', 56);
     a.sfx('sfx_surtr_raise');
     // the runes charge the peel, so the counter is always in hand (abilities that fire themselves can't
     // be timed: those peels strike the rune instead)
     const sc = bits(a);
     const t = sc.ability?.trigger.t;
     const pressable = !sc.ability || t === 'active';
-    if (pressable && sc.run.super < 1) {
-      sc.run.super = 1;
-      a.sc.time.delayedCall(1300, () => a.quip(960, 300, 'THE RUNES CHARGE YOUR PEEL!', '#ffd23f', 36));
-    }
-    if (!pressable) a.sc.time.delayedCall(1300, () => a.quip(960, 300, 'STRIKE THE RUNE WHEN IT FLASHES!', '#ffd23f', 36));
+    const charged = pressable && sc.run.super < 1;
+    if (charged) sc.run.super = 1;
+    // the caption says what the meter's for, so the one-time "PEEL SLAM READY!" toast would only pile on
+    if (pressable) sc.slamHinted = true;
+    const how = !pressable ? 'STRIKE THE RUNE WHEN THE SWORD FLASHES' : charged ? 'THE RUNES CHARGE YOUR PEEL: FIRE IT ON THE FLASH' : 'FIRE YOUR PEEL ON THE FLASH';
+    caption(a, cap, 'THE SWORD RISES!', '#ffb24a', how);
     sword.rune.setVisible(!pressable);
     // passive peels: the rune can be struck only while the window is open
     a.addClickable({
-      x: 960,
-      y: 600,
+      x: SWORD_X,
+      y: SWORD_Y - 190,
       r: 110,
       priority: 3,
       alive: () => !!sword && sword.img === img && sword.stage === 'window' && !pressable,
@@ -1169,7 +1194,8 @@ const surtr = (): Brain => {
       // each phase sets another pizza alight
       lightOne(f, a);
       if (ph === n) {
-        swordT.t = 2.5;
+        // the first raise waits for the phase banner to go, so the banner never sits over the ring
+        swordT.t = heat(a).rank === 0 ? 5.2 : 4.2;
         a.sfx('sfx_surtr_roar');
       }
     },
@@ -1208,23 +1234,24 @@ const surtr = (): Brain => {
         const s = sword;
         s.t -= dt;
         const h = heat(a);
-        const cx = 960;
-        const cy = 600;
+        const cx = SWORD_X;
+        const cy = SWORD_Y - 190;
         s.ring.clear();
         if (s.stage === 'raise') {
           // a ring closes on the target circle: when it lands, the sword flashes and the window opens
           const total = h.windup(2.2);
           const k = Phaser.Math.Clamp(1 - s.t / total, 0, 1);
-          const r = 110 + 380 * (1 - k);
+          // (starts small enough to stay under the boss bar and the caption)
+          const r = 110 + 150 * (1 - k);
           s.ring.lineStyle(14, 0x2a1810, 0.5).strokeCircle(cx, cy, 110);
           s.ring.lineStyle(8, 0xffd23f, 0.9).strokeCircle(cx, cy, 110);
           s.ring.lineStyle(10, 0x2a1810, 0.5).strokeCircle(cx, cy, r);
           s.ring.lineStyle(6, 0xff7a1a, 1).strokeCircle(cx, cy, r);
-          s.img.setAngle(-12 - 10 * k);
+          s.img.setAngle(Math.sin(a.now() * 30) * 1.5 * k);
           // fired too soon: the meter's spent and the sweep comes anyway
           if (a.now() - a.slammedAt() < 0.05 && !s.early && s.t < total - 0.2) {
             s.early = true;
-            a.quip(cx, cy - 170, 'TOO EARLY!', '#ff8a6a', 48);
+            caption(a, s.cap, 'TOO EARLY!', '#ff8a6a', 'THE METER’S SPENT: BRACE FOR THE SWEEP');
           }
           if (s.t <= 0) {
             s.stage = 'window';
@@ -1234,8 +1261,8 @@ const surtr = (): Brain => {
             s.open = a.now();
             a.sfx('sfx_surtr_window');
             a.flash(140, 255, 255, 230);
-            s.img.setTintFill(0xffffff);
-            a.quip(cx, cy - 170, 'NOW!', '#ffffff', 72);
+            s.img.setTintFill(0xffffff).setAngle(0);
+            if (!s.early) caption(a, s.cap, 'NOW!', '#ffffff', '', 84);
           }
         } else if (s.stage === 'window') {
           s.ring.fillStyle(0x7dff9a, 0.25).fillCircle(cx, cy, 110);

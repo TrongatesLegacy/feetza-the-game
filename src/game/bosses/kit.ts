@@ -394,7 +394,10 @@ export function hitProp(a: Arena, o: PropOpts): Prop {
       if (!live) return;
       const at = o.follow?.();
       if (at) img.setPosition(at.x, at.y);
-      badge.setPosition(img.x, img.y + (o.badgeDy ?? -80) * (img.scale / scale || 1));
+      // the hit count stays on screen and clear of the top HUD and the boss bar, however high the prop rides
+      const bx = Phaser.Math.Clamp(img.x, 50, 1870);
+      const by = img.y + (o.badgeDy ?? -80) * (img.scale / scale || 1);
+      badge.setPosition(bx, Math.max(by, bx > 470 && bx < 1450 ? 250 : 165));
     },
   });
   const end = (fade = true) => {

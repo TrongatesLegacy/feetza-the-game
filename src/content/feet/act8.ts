@@ -45,7 +45,7 @@ export const feet: FootType[] = [
   },
   {
     id: 'valkyrie',
-    name: 'Valkyrie-cursed Clogs',
+    name: 'Valkyrie-Cursed Clogs',
     desc: 'Winged clogs bewitched by a Valkyrie. They always fly in as a pair, fast and straight down from the sky.',
     hp: 26, speed: 1.55, armor: 0, stompDmg: 1, coins: 12, score: 400, scale: 0.95, minWave: 73, weight: 6,
     traits: ['flutter'],
