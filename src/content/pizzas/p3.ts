@@ -81,7 +81,7 @@ export const pizzas: PizzaType[] = [
   },
   {
     id: 'burrata', name: 'Burrata & Heirloom', perk: 'phaseHeal', perkText: 'Heals 1 slice when a boss changes phase',
-    shape: 'round', base: 'white', cheese: 0, toppings: ['heirloom', 'burrata', 'basil', 'oliveOil'], crust: '#dcac60', cost: 900, route: 'pizzeria',
+    shape: 'round', base: 'pesto', cheese: 0, toppings: ['heirloom', 'burrata', 'basil', 'oliveOil'], crust: '#dcac60', cost: 900, route: 'pizzeria',
   },
   {
     id: 'salmon', name: 'Smoked Salmon & Dill', perk: 'firstFreeze', perkText: "Each wave's first stomper freezes for 2s",

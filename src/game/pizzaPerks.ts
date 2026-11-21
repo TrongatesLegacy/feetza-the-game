@@ -76,6 +76,8 @@ export class PizzaPerkKit {
   private sc: Phaser.Scene;
   private meteorT = 0;
   private timeStopT = 0;
+  /** Tikka Time Machine's freeze, waiting for the wave's first feet to arrive. */
+  private timeStopPending = 0;
   private rings: { p: Pizza; img: Phaser.GameObjects.Image; glow: Phaser.GameObjects.Image; i: number }[] = [];
   private ringAngle = 0;
   private ringCd = new WeakMap<Foot, number>();
@@ -579,12 +581,9 @@ export class PizzaPerkKit {
     }
     if (changed) this.h.recompute();
     const k = this.c('timeStop');
-    if (k > 0) {
-      this.timeStopT = 3 * k;
-      a.flash(250, 140, 220, 255);
-      this.sc.time.delayedCall(1200, () => a.quip(960, 300, 'TIME STOP!', '#9ae6ff', 52));
-      a.sfx('sfx_freeze', { volume: 0.7 });
-    }
+    // the clock stops once the wave's first feet are on the table (they arrive a moment after the banner)
+    this.timeStopPending = k > 0 ? 3 * k : 0;
+    this.timeStopT = 0;
     if (this.c('postBoss') > 0 && n > 1 && isBossWave(n - 1)) this.sc.time.delayedCall(1400, () => a.quip(960, 330, 'MOON CHEESE: DOUBLE DAMAGE!', '#cfe4ff', 40));
     if (this.c('actStart') > 0 && this.actStart()) this.sc.time.delayedCall(1400, () => a.quip(960, 330, 'VICTORY LAP!', '#ffd23f', 44));
     // Pirate's Treasure: a chest turns up on the 4th wave of every stage
@@ -639,6 +638,14 @@ export class PizzaPerkKit {
     if (!a.inWave()) return;
     const feet = a.allFeet();
     if (feet.some((f) => f.alive && f.hittable)) this.footTime += dt;
+    if (this.timeStopPending > 0 && feet.some((f) => f.alive && !f.isBossLike && f.y > 60)) {
+      this.timeStopT = this.timeStopPending;
+      this.timeStopPending = 0;
+      a.flash(300, 140, 220, 255);
+      a.quip(960, 300, 'TIME STOP!', '#9ae6ff', 56);
+      a.sfx('sfx_freeze', { volume: 0.8 });
+      for (const p of this.with('timeStop')) a.fx.ring(p.x, p.surfaceY - 30, 0x9ae6ff, 2.4, 0.45);
+    }
     const st = this.run.stats;
     for (const f of feet) {
       if (!f.alive) continue;
@@ -742,7 +749,7 @@ export class PizzaPerkKit {
     });
     for (const w of want) {
       if (this.rings.some((r) => r.p === w.p && r.i === w.i)) continue;
-      const glow = this.sc.add.image(0, 0, 'glow').setTint(0x8aff9a).setBlendMode(Phaser.BlendModes.ADD).setScale(0.6).setAlpha(0.45);
+      const glow = this.sc.add.image(0, 0, 'glow').setTint(0x8aff9a).setBlendMode(Phaser.BlendModes.ADD).setScale(0.85).setAlpha(0.45);
       const img = this.sc.add.image(0, 0, 'pk_ring').setAlpha(0.85);
       a.fxLayer.add([glow, img]);
       this.rings.push({ p: w.p, img, glow, i: w.i });
@@ -755,10 +762,10 @@ export class PizzaPerkKit {
       const ang = this.ringAngle + (r.i / n) * Math.PI * 2;
       const x = r.p.x + Math.cos(ang) * r.p.radius * 0.95;
       const y = r.p.surfaceY - 260 + Math.sin(ang) * 90;
-      r.img.setPosition(x, y).setRotation(ang * 1.5).setScale(0.8 + Math.sin(ang) * 0.1);
+      r.img.setPosition(x, y).setRotation(ang * 1.5).setScale(1.15 + Math.sin(ang) * 0.12);
       r.glow.setPosition(x, y).setAlpha(0.35 + Math.sin(a.now() * 5) * 0.1);
       for (const f of a.allFeet()) {
-        if (!f.hittable || f.distanceTo(x, y) > 55) continue;
+        if (!f.hittable || f.distanceTo(x, y) > 70) continue;
         if ((this.ringCd.get(f) ?? 0) > a.now()) continue;
         this.ringCd.set(f, a.now() + 0.6);
         this.h.dealDamage(f, dmg, 'cutter', 120);
