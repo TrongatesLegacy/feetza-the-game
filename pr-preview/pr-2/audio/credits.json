@@ -3875,5 +3875,373 @@
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
     "notes": "Act 10 finale: peel on the wall lights up: chime; a synthesized chime, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactGlass_light_000 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_hero_zeus.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "God peels: Zeus’s Wrath of Olympus; a synthesized sky-splitting thunder crack and rolling rumble, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_decree.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "God peels: Hera’s Queen’s Decree; a synthesized royal brass fanfare and a glittering crown chime, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_earthshaker.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "God peels: Poseidon’s Earthshaker; a synthesized trident strike and a crashing wave, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_harvest.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "God peels: Demeter’s Harvest; a synthesized rustle of wheat and a warm rising chime, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_aegis.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "God peels: Athena’s Aegis; a synthesized great shield clang and a protective hum, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_chariot.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "God peels: Apollo’s Sun Chariot; a synthesized blazing chariot: fire roar, galloping hooves and a whoosh, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_moon.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "God peels: Artemis’s Hunter’s Moon; a synthesized silver shimmer and a soft rising tone, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_warcry.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "God peels: Ares’s War Cry; a synthesized bronze war horn blast and a battle shout, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_charm.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "God peels: Aphrodite’s Charm; a synthesized harp glissando and sparkling hearts, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_forge.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "God peels: Hephaestus’s Forge; a synthesized anvil drop and a ringing hammer clang, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_spark.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "God peels: a spark off Hephaestus’s anvil; a synthesized hammer ping and a spark crackle, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_messenger.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "God peels: Hermes’s Messenger; a synthesized wing flutter and a quick whoosh, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_dart.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "God peels: a quick darting strike (Hermes, Freya); a synthesized short zip, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_revel.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "God peels: Dionysus’s Revel; a synthesized party horn, cheers and a wobbly lute, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_hearth.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "God peels: Hestia’s Hearth; a synthesized warm crackling fire and a soft major chord, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_underworld.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "God peels: Hades’s Underworld; a synthesized ground-splitting crack and a deep underworld groan, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_spring.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "God peels: Persephone’s Spring Returns; synthesized birdsong chirps and a blooming chime, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_wings.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "God peels: Nike’s Victory Wings; a synthesized great wingbeat swell and a victory chime, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_nightfall.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "God peels: Nyx’s Nightfall; a synthesized falling dark drone and a hush, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_spartaaa.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "God peels: the Kratos Peel’s “This Is Spartaaa!” shout; a synthesized roaring “THIS IS SPARTAAA!” war shout, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_rage.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "God peels: the Kratos Peel’s roaring fire loop while enraged; a synthesized roaring fire loop, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_flamesmack.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "God peels: an enraged, flaming smack (the Kratos Peel); a synthesized heavy smack with a whoosh of flame, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_ragehiss.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "God peels: the Kratos Peel’s rage hisses out; a synthesized hiss of dying flames and a smoke puff, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_blade.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "God peels: the Kratos Peel’s Spinning Blade hits; a synthesized blade slash and a chain rattle, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_allfather.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "God peels: Odin’s Allfather; a synthesized deep horn call, an eye opening and raven caws, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_thundergod.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "God peels: Thor’s Thunder God; a synthesized raised-hammer rumble and a chained lightning crack, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_mjolnir.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "God peels: Thor’s hammer thrown; a synthesized spinning hammer whoosh, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_mischief.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "God peels: Loki’s Mischief; a synthesized sly giggle and a puff of trickery, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_foresight.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "God peels: Frigg’s Foresight; a synthesized glassy shimmer and a reversed swell, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_falcon.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "God peels: Freya’s Falcon Cloak; a synthesized falcon screech and a diving whoosh, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_boar.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "God peels: Freyr’s Golden Boar; a synthesized boar grunt, a charge of hooves and a jingle of coins, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_oath.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "God peels: Tyr’s Oath; a synthesized solemn gong and a low oath hum, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_gjallarhorn.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "God peels: Heimdall’s Gjallarhorn; a synthesized mighty horn blast echoing across the sky, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_radiance.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "God peels: Baldur’s Radiance; a synthesized shining choir chord and a bell of light, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_halfdeath.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "God peels: Hel’s Half-Death; a synthesized eerie half-chord and a cold wind, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_seawind.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "God peels: Njord’s Sea Wind; a synthesized rising gale with a creak of rigging, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_winterhunt.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "God peels: Skadi’s Winter Hunt; a synthesized icy wind and tinkling frost, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_freeze.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "God peels: a Winter Hunt smack freezes a foot; a synthesized ice crackle, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_apples.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "God peels: Idun’s Golden Apples; synthesized falling-apple thunks and a golden chime, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_saga.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "God peels: Bragi’s Saga; a synthesized harp strum and a bard’s hum, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_verse.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "God peels: Bragi’s Skald verse; a synthesized short harp flourish, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_divinefeast.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "The God Peel: Divine Feast; a synthesized heavenly choir swell, a thunder clap and a golden shimmer, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_godreveal.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "The God Peel: its first-unlock reveal (a choir sting); a synthesized choir sting: a rising “aah” to a bright major chord and bells, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_trumpet.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Persian Elephant Feet trumpet as they dive; a synthesized elephant trumpet, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_spartanroar.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Spartan Sandals roar as they enrage; a synthesized battle roar, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_bronzeshield.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "a bronze shield is raised (Spartan Sandals, Persian Elephant Feet); a synthesized bronze shield clang, made with ffmpeg and Python and released as CC0"
   }
 ]
