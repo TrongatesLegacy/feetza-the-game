@@ -531,10 +531,140 @@ function paintZeus(): Painter {
   };
 }
 
+/** The dev look lab: Zeus's blade on a peel that moves along a path, with the aura, the swept ribbon, the crackling
+ *  trail, sparks and smack bursts, as in play (playZeus) but drawn on canvases. */
+function movingZeus(motion: Motion): MovingPainter {
+  const core = new ZeusCore();
+  const sparks = new Sparks();
+  const bursts = new Bursts();
+  const f = { x: 0, y: 0, rot: 0 };
+  let first = true;
+  let t = 0;
+  const RN = 16;
+  const rmx = new Float32Array(RN);
+  const rmy = new Float32Array(RN);
+  const rtx = new Float32Array(RN);
+  const rty = new Float32Array(RN);
+  const rt = new Float32Array(RN).fill(9);
+  let rhead = 0;
+  const TN = 12;
+  const tx = new Float32Array(TN);
+  const ty = new Float32Array(TN);
+  const tt = new Float32Array(TN).fill(9);
+  const tj = new Float32Array(TN * 2);
+  let head = 0;
+  let trailRegen = 0;
+  const w = { x: 0, y: 0 };
+  const toW = (lx: number, ly: number) => {
+    const c = Math.cos(f.rot);
+    const sn = Math.sin(f.rot);
+    w.x = f.x + lx * c - ly * sn;
+    w.y = f.y + lx * sn + ly * c;
+    return w;
+  };
+  return (back, front, dt, peel) => {
+    t += dt;
+    const m = motion(t);
+    const mvx = first ? 0 : m.x - f.x;
+    const mvy = first ? 0 : m.y - f.y;
+    first = false;
+    const moved = Math.hypot(mvx, mvy);
+    f.x = m.x;
+    f.y = m.y;
+    f.rot = m.rot;
+    const calm = save.settings.reducedMotion;
+    core.tick(dt, !calm);
+    if (m.smack) {
+      bursts.fire(f.x, f.y + 230);
+      if (!calm) core.flash = Math.max(core.flash, 0.7);
+    }
+    const gl = core.glow();
+    const mid = toW(BLADE_MID.x, BLADE_MID.y);
+    // behind: the aura and the blade's halo
+    back.pen.glow(mid.x, mid.y, 215, BLADE_LEN * 1.9, f.rot, 0x3d8cff, Math.min(0.9, (calm ? 0.6 : 0.75) * gl) * 0.5);
+    back.pen.glow(mid.x, mid.y, 60, BLADE_LEN * 0.95, f.rot, 0x4aa8ff, Math.min(1, 0.7 * gl) * 0.6);
+    if (!calm) {
+      // the swept ribbon between the blade's middle and its tip
+      const mx = mid.x;
+      const my = mid.y;
+      const tp = toW(TIP.x * 0.8, TIP.y * 0.85);
+      for (let i = 0; i < RN; i++) rt[i] += dt;
+      const rp = (rhead + RN - 1) % RN;
+      if (moved > 2 && Math.hypot(mx - rmx[rp], my - rmy[rp]) > 6) {
+        rmx[rhead] = mx;
+        rmy[rhead] = my;
+        rtx[rhead] = tp.x;
+        rty[rhead] = tp.y;
+        rt[rhead] = 0;
+        rhead = (rhead + 1) % RN;
+      }
+      for (let k = 1; k < RN; k++) {
+        const i1 = (rhead + k) % RN;
+        const i0 = (rhead + k - 1) % RN;
+        if (rt[i0] > 0.42 || rt[i1] > 0.42) continue;
+        const a = 1 - rt[i0] / 0.42;
+        for (let q = 0; q <= 3; q++) {
+          const g = q / 3;
+          back.pen.seg(rmx[i0] + (rtx[i0] - rmx[i0]) * g, rmy[i0] + (rty[i0] - rmy[i0]) * g, rmx[i1] + (rtx[i1] - rmx[i1]) * g, rmy[i1] + (rty[i1] - rmy[i1]) * g, 46 * a, 0x3d8cff, 0.35 * a);
+          back.pen.seg(rmx[i0] + (rtx[i0] - rmx[i0]) * g, rmy[i0] + (rty[i0] - rmy[i0]) * g, rmx[i1] + (rtx[i1] - rmx[i1]) * g, rmy[i1] + (rty[i1] - rmy[i1]) * g, 14 * a, 0xbfe9ff, 0.45 * a);
+        }
+      }
+      // the crackling trail behind the tip
+      const tip = toW(TIP.x * 0.6, TIP.y * 0.75);
+      for (let i = 0; i < TN; i++) tt[i] += dt;
+      const prev = (head + TN - 1) % TN;
+      if (moved > 3 && Math.hypot(tip.x - tx[prev], tip.y - ty[prev]) > 8) {
+        tx[head] = tip.x;
+        ty[head] = tip.y;
+        tt[head] = 0;
+        head = (head + 1) % TN;
+      }
+      trailRegen -= dt;
+      if (trailRegen <= 0) {
+        trailRegen = 0.035;
+        for (let i = 0; i < tj.length; i++) tj[i] = (Math.random() * 2 - 1) * 7;
+      }
+      for (let k = 1; k < TN; k++) {
+        const i1 = (head + k) % TN;
+        const i0 = (head + k - 1) % TN;
+        if (tt[i0] > 0.2 || tt[i1] > 0.2) continue;
+        const a = 1 - tt[i0] / 0.2;
+        const x0 = tx[i0] + tj[i0 * 2];
+        const y0 = ty[i0] + tj[i0 * 2 + 1];
+        const x1 = tx[i1] + tj[i1 * 2];
+        const y1 = ty[i1] + tj[i1 * 2 + 1];
+        back.pen.seg(x0, y0, x1, y1, 14 * a, 0x2a8cff, 0.28 * a);
+        back.pen.seg(x0, y0, x1, y1, 6 * a, 0x8fd8ff, 0.6 * a);
+        back.pen.seg(x0, y0, x1, y1, 1.5 + 1.5 * a, 0xffffff, 0.95 * a);
+      }
+      // sparks shed as it moves
+      const want = moved > 5 ? Math.min(2, moved / 30) : 0.04;
+      for (let k = want; k > 0; k--) {
+        if (k < 1 && Math.random() > k) break;
+        const p = bladeAt(0.15 + Math.random() * 0.85, Math.random() < 0.5 ? -1 : 1);
+        const q = toW(p.x, p.y);
+        const ang = Math.random() * Math.PI * 2;
+        const sp = 60 + Math.random() * 140;
+        sparks.emit(q.x, q.y, Math.cos(ang) * sp - (mvx / Math.max(dt, 0.008)) * 0.12, Math.sin(ang) * sp - 80 - (mvy / Math.max(dt, 0.008)) * 0.12);
+      }
+    }
+    // the peel, then the arcs over it, in its frame
+    const ctx = front.ctx;
+    ctx.save();
+    ctx.translate(f.x, f.y);
+    ctx.rotate(f.rot);
+    peel(ctx);
+    core.draw(front.pen);
+    ctx.restore();
+    if (!calm) sparks.tick(dt, front.pen);
+    bursts.tick(dt, front.pen);
+  };
+}
+
 const LOOKS: Record<string, AnimatedLook> = {
-  'hero:zeus': { play: playZeus, painter: paintZeus, tile: true },
+  'hero:zeus': { play: playZeus, painter: paintZeus, moving: movingZeus, tile: true },
   // Zeus, King Unbound (src/content/peels/variants.ts): the same living lightning blade on his storm-dark head
-  'hero:zeusunbound': { play: playZeus, painter: paintZeus, tile: true },
+  'hero:zeusunbound': { play: playZeus, painter: paintZeus, moving: movingZeus, tile: true },
 };
 
 const calm = () => save.settings.reducedMotion;
@@ -575,7 +705,7 @@ export function hasAnimatedLook(id: string): boolean {
   return !!lookOf(id);
 }
 
-/** The dev look lab: a painter for this peel's look moving along a path (null for hand-made looks like Zeus's). */
+/** The dev look lab: a painter for this peel's look moving along a path. */
 export function movingLook(id: string, m: Motion): MovingPainter | null {
   return lookOf(id)?.moving?.(m) ?? null;
 }

@@ -193,6 +193,10 @@ const both = (a: Partial<GlowStyle>, b: Partial<GlowStyle>): Partial<GlowStyle> 
 
 const GODS: Record<string, [number, Partial<GlowStyle>]> = {
   'hero:kratos': [0xe0402a, embers(0xe0402a)],
+  // King Leonidas: a bronze glint off the helm, dust kicked up from the pass, and his crimson cloak sweeping behind
+  'hero:leonidas': [0xc9873a, { ...both(glints(0xe0a850), { bits: [bit(Bit.Ash, 0xd8c0a0, 0x8a6a48, { rate: 2.4, move: 2, size: 3.4, life: 1.1, vy: 26, grav: 30, spread: 34 })] }), trail: ribbon(0xb8182a, 28, 0.8, 0.36) }],
+  // Leonidas, Hot Gates: the burning pass at dusk, embers and smoke, and a blood-red cloak
+  'hero:hotgates': [0xff6a2a, { ...both(both(embers(0xff6a2a), smoke(0x5a3a30, 0x2a1810)), glints(0xd89040)), trail: ribbon(0x8a0a18, 30, 0.85, 0.4) }],
   'hero:ghostofsparta': [0xd8d0c8, both(embers(0xe0402a), { bits: [bit(Bit.Ash, 0x5a5450, 0xff6a3a, { rate: 1.5, move: 1, size: 3.6, life: 1.3, vy: -36 })] })],
   'hero:hera': [0x5fd0c0, glints(0x5fd0c0)],
   'hero:poseidon': [0x3ab0e0, water(0x3ab0e0)],
