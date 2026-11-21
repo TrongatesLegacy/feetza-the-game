@@ -747,9 +747,27 @@ registerMoves({
     sfx('moon');
     title(k, 'HUNTER’S MOON!', 0xd8e4f0, 100);
     until(k, 'moon', 12);
-    const moon = k.img('glow', W - 260, 150, 0.2).setTint(0xd8e4f0).setBlendMode(Phaser.BlendModes.ADD);
+    const moon = k.img('glow', W - 260, 150, 0.2).setTint(0xd8e4f0).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.45); // a soft halo: full strength washed out the moon's face
+    // the moon in the game's style: outlined, softly shaded from a top-left light, with craters and a sheen
     const disc = k.sc.add.graphics();
     k.host.layers.under.add(disc);
+    for (const [r, c] of [[72, 0xb8c6d6], [66, 0xcdd8e4], [58, 0xdde6ef], [46, 0xeaf0f6]] as const) {
+      disc.fillStyle(c, 1);
+      disc.fillCircle(-(72 - r) * 0.5, -(72 - r) * 0.5, r);
+    }
+    for (const [cx, cy, r] of [[-22, 14, 15], [24, -18, 10], [18, 30, 8], [-30, -26, 6], [36, 10, 5]] as const) {
+      disc.fillStyle(0xb4c2d2, 1);
+      disc.fillCircle(cx, cy, r);
+      disc.fillStyle(0x9eadc0, 1);
+      disc.fillCircle(cx + r * 0.2, cy + r * 0.2, r * 0.7);
+      disc.lineStyle(2.5, 0x2a1810, 0.35);
+      disc.strokeCircle(cx, cy, r);
+    }
+    disc.fillStyle(0xffffff, 0.55);
+    disc.fillEllipse(-30, -38, 34, 16);
+    disc.lineStyle(7, 0x2a1810, 1);
+    disc.strokeCircle(0, 0, 72);
+    disc.setPosition(W - 260, 240).setAlpha(0);
     const tint = k.overlay({ kind: 'tint', color: 0x3a4a7a, alpha: 0.25, blend: 'multiply' }, 400);
     const ring = k.img('glow', 0, 0, 0.6).setTint(0xd8e4f0).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
     timed(
@@ -758,12 +776,7 @@ registerMoves({
       (_dt, t) => {
         const rise = Math.min(1, t * 1.5);
         moon.setScale(1.6 * rise).setY(240 - 90 * rise);
-        disc.clear();
-        disc.fillStyle(0xeef4fa, 0.95 * rise);
-        disc.fillCircle(W - 260, 240 - 90 * rise, 70);
-        disc.fillStyle(0xc8d4e0, 0.6 * rise);
-        disc.fillCircle(W - 280, 140 - 90 * rise + 100, 14);
-        disc.fillCircle(W - 236, 176 - 90 * rise + 100, 9);
+        disc.setY(240 - 90 * rise).setAlpha(rise);
         // the prey: a silver ring round the toughest foot
         const f = k.toughest(1)[0];
         if (f) ring.setPosition(f.cx, f.cy).setScale(0.55 + Math.sin(t * 6) * 0.05).setAlpha(0.7);
