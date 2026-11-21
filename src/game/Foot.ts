@@ -371,7 +371,9 @@ export class Foot {
       if (this.state !== 'hover') this.setState('hover');
       this.stateT = 0;
       this.vy = 0;
-      this.y += (PINNED_Y - this.y) * Math.min(1, dt * 5);
+      // bosses holding a lane stay near their usual hover height, clear of the boss bar
+      const py = this.isBossLike ? (this.hoverY ?? HOVER_Y) - 40 : PINNED_Y;
+      this.y += (py - this.y) * Math.min(1, dt * 5);
       const px = this.laneX ?? (this.target && !this.target.dead ? this.target.x : this.x);
       this.x += (px - this.x) * Math.min(1, dt * 3);
       this.render(dt);

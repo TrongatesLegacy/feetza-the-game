@@ -281,17 +281,14 @@ export function heat(a: Arena) {
 
 // ——— Lane takeover ———
 
-/** Where a boss sits while it holds a lane (contact y, near the top of the screen). */
-export const TOP_Y = 150;
-
 export interface Takeover {
   p: Pizza;
   /** Give the lane back: the boss carries on as normal and feet may use the lane again. */
   release(): void;
 }
 
-/** The boss claims a pizza's lanes and sits at the top of them: regular feet move out and none come in
- * until `release()`. The boss doesn't dive while it holds the lane. */
+/** The boss claims a pizza's lanes and holds still over them, just above its usual hover height: regular
+ * feet move out and none come in until `release()`. The boss doesn't dive while it holds the lane. */
 export function takeLane(a: Arena, f: Foot, p?: Pizza | null): Takeover | null {
   const pick = p && !p.dead ? p : rnd(a.alivePizzas());
   if (!pick) return null;

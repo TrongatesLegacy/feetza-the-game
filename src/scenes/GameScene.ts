@@ -186,7 +186,11 @@ export class GameScene extends Phaser.Scene implements Arena {
   spawn(id: string, target?: Pizza | null, x?: number): Foot | null {
     const t = FOOT_BY_ID[id];
     if (!t || !this.plan) return null;
-    return this.spawnFoot(t, target ?? this.pickTarget(null), false, x);
+    const f = this.spawnFoot(t, target ?? this.pickTarget(null), false, x);
+    // a boss's own summons (flocks, waiters, blacksmiths) jump the queue for a lane
+    f.brain.summoned = true;
+    if (f.held) this.bumpForSummon(f);
+    return f;
   }
   hitPizza(p: Pizza, slices: number, label: string, color = '#ff8a6a'): void {
     if (p.dead || this.over) return;
@@ -1087,7 +1091,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       if (!f.alive || f.isBossLike) continue;
       f.pinned = this.retreating;
       if (f.held) {
-        this.assignLane(f);
+        if (!this.assignLane(f) && f.brain.summoned) this.bumpForSummon(f);
         continue;
       }
       const busy = f.state === 'descend' || f.state === 'stomp';
@@ -1116,6 +1120,16 @@ export class GameScene extends Phaser.Scene implements Arena {
       // later waves: hovering feet sometimes hop to another free lane
       if (switchOn && f.state === 'hover' && !this.retreating && Math.random() < dt * 0.07) this.relane(f);
     }
+  }
+
+  /** A boss summon with no free lane takes the lane of a hovering regular foot, which waits off screen instead. */
+  private bumpForSummon(f: Foot): void {
+    const v = this.feet.find((o) => o !== f && o.alive && !o.isBossLike && !o.held && !o.brain.summoned && o.state === 'hover' && o.laneRow === 1);
+    if (!v) return;
+    v.held = true;
+    v.laneSide = -1;
+    v.laneX = null;
+    if (this.assignLane(f)) f.laneKey = this.laneCache.key;
   }
 
   /** Move a foot to a free lane over a different pizza. Returns the new pizza, or null if none is free. */

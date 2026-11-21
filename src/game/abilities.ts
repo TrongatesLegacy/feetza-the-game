@@ -329,7 +329,7 @@ export const ABILITIES: Record<string, Ability> = {
   'boss:jellyfish': ab('Sting', smack(0.3), [ST(1, hit(150)), D(0.8, hit(150))], PINK, 'zap'),
   'boss:milkshake': ab('Brain Freeze', act, [FZ(3, all), M(1.5, 5, all)], PINK, 'frost'),
   'boss:lumberjack': ab('Timber!', act, [D(14, front(3), 900)], BROWN, 'slam'),
-  'boss:poltergeist': ab('Spooky Shove', every(5), [K(800, rnd(3)), D(2.5, rnd(3))], PURPLE, 'ink'),
+  'boss:poltergeist': ab('Grave Shove', every(5), [K(800, rnd(3)), D(2.5, rnd(3))], PURPLE, 'ink'),
 
   // ——— Feet ———
   'foot:bob': ab('Barefoot Basics', always, [STAT({ damage: 2 })], 0xf0c8a0, 'burst'),
