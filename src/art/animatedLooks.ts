@@ -1,50 +1,31 @@
 // Animated peel looks: live effects layered over a peel's static art, keyed by peel id. A look plays in two
 // places from one set of drawing code:
 // - in play, on Phaser Graphics that follow the cursor peel (playLook, from GameScene), plus its smack burst
-// - in the Peel Locker, on a small canvas laid over the peel's <img> (animateLookImg, from ui.ts)
-// Each look draws through a Pen, so the same strokes go to a Graphics object or a 2D canvas. Everything is
-// allocated up front (pools and typed arrays) so nothing is created per frame.
-// To give another peel an animated look, add an entry to LOOKS.
+// - in the Peel Locker, on small canvases laid behind and over the peel's <img> (animateLookImg, from ui.ts)
+// Each look draws through a Pen (src/art/lookKit.ts), so the same strokes go to a Graphics object or a 2D canvas.
+// Everything is allocated up front (pools and typed arrays) so nothing is created per frame.
+// Which peels get which look (lookOf): Zeus's lightning sword is hand-made here; the always-aflame peels burn in
+// their own style (FIRE_PEELS in lookFire.ts); the jewellery box, masterworks, ultra-rares, gods, the God Peel and
+// the heroes get their family's glow and trail (lookGlow.ts). Only the equipped (or worn) look runs in play.
 
 import Phaser from 'phaser';
 import { ZEUS_BLADE } from './godShapes';
+import { canvasPen, css, graphicsPen, paintCore, playCore, type LookCore, type LookFx, type LookHost, type Painter, type Pen } from './lookKit';
+import { FIRE_PEELS, fireCore } from './lookFire';
+import { glowCore, godPeelStyle, godStyle, heroStyle, jewelStyle, masterStyle, ultraStyle, type GlowStyle } from './lookGlow';
+import { PEEL_BY_ID } from '../game/peels';
+import { save } from '../systems/save';
 
-/** What a look needs from the game scene. */
-export interface LookHost {
-  scene: Phaser.Scene;
-  /** The cursor layer the peel lives in. */
-  layer: Phaser.GameObjects.Container;
-  peel: Phaser.GameObjects.Image;
-  /** Reduced motion: keep the calm parts (glow, arcs) and drop the flashes, sparks and trail. */
-  reduced: () => boolean;
-}
-
-/** A look playing on the cursor peel. */
-export interface LookFx {
-  tick(dt: number): void;
-  /** A smack landed (or missed) at this point. */
-  smack(x: number, y: number): void;
-  /** Hide it (another texture is on the peel for a while) or show it again. */
-  setActive(on: boolean): void;
-  destroy(): void;
-  /** The look draws its own trail, so the plain trail puffs can stay off. */
-  ownTrail: boolean;
-}
-
-/** The strokes a look draws with, on either a Graphics object or a 2D canvas. */
-interface Pen {
-  /** A polyline through n points of xy pairs. */
-  line(pts: Float32Array, n: number, w: number, color: number, a: number): void;
-  seg(x0: number, y0: number, x1: number, y1: number, w: number, color: number, a: number): void;
-  dot(x: number, y: number, r: number, color: number, a: number): void;
-  /** Drawing over a light menu with normal blending: bolts get a crisper, deeper blue edge. */
-  light?: boolean;
-}
+export type { LookFx, LookHost } from './lookKit';
 
 interface AnimatedLook {
   play(h: LookHost): LookFx;
-  /** A fresh painter for one locker canvas: draws a frame in the peel's frame (origin at the peel's grip point). */
-  painter(): (pen: Pen, ctx: CanvasRenderingContext2D, dt: number) => void;
+  /** A fresh painter for one locker image: draws a frame in the peel's frame (origin at the peel's grip point). */
+  painter(): Painter;
+  /** Paints behind the image too (glows and flames), on a second canvas. */
+  back?: boolean;
+  /** Cheap and striking enough to animate on the locker's tiles, not just the big preview. */
+  tile?: boolean;
 }
 
 // ——— shared lightning helpers ———
@@ -337,58 +318,6 @@ class Bursts {
   }
 }
 
-// ——— pens ———
-
-function graphicsPen(g: Phaser.GameObjects.Graphics): Pen {
-  return {
-    line(pts, n, w, color, a) {
-      g.lineStyle(w, color, a);
-      g.beginPath();
-      g.moveTo(pts[0], pts[1]);
-      for (let i = 1; i < n; i++) g.lineTo(pts[i * 2], pts[i * 2 + 1]);
-      g.strokePath();
-    },
-    seg(x0, y0, x1, y1, w, color, a) {
-      g.lineStyle(w, color, a);
-      g.lineBetween(x0, y0, x1, y1);
-    },
-    dot(x, y, r, color, a) {
-      g.fillStyle(color, a);
-      g.fillCircle(x, y, r);
-    },
-  };
-}
-
-const css = (c: number, a: number) => `rgba(${(c >> 16) & 255},${(c >> 8) & 255},${c & 255},${a})`;
-/** m: a line-width boost, so bolts stay crisp when the peel is drawn small. */
-function canvasPen(ctx: CanvasRenderingContext2D, m: { w: number }): Pen {
-  return {
-    light: true,
-    line(pts, n, w, color, a) {
-      ctx.beginPath();
-      ctx.moveTo(pts[0], pts[1]);
-      for (let i = 1; i < n; i++) ctx.lineTo(pts[i * 2], pts[i * 2 + 1]);
-      ctx.strokeStyle = css(color, a);
-      ctx.lineWidth = w * m.w;
-      ctx.stroke();
-    },
-    seg(x0, y0, x1, y1, w, color, a) {
-      ctx.beginPath();
-      ctx.moveTo(x0, y0);
-      ctx.lineTo(x1, y1);
-      ctx.strokeStyle = css(color, a);
-      ctx.lineWidth = w * m.w;
-      ctx.stroke();
-    },
-    dot(x, y, r, color, a) {
-      ctx.beginPath();
-      ctx.arc(x, y, r * Math.sqrt(m.w), 0, Math.PI * 2);
-      ctx.fillStyle = css(color, a);
-      ctx.fill();
-    },
-  };
-}
-
 // ——— Zeus in play ———
 
 function playZeus(h: LookHost): LookFx {
@@ -571,10 +500,10 @@ function playZeus(h: LookHost): LookFx {
   };
 }
 
-function paintZeus(): (pen: Pen, ctx: CanvasRenderingContext2D, dt: number) => void {
+function paintZeus(): Painter {
   const core = new ZeusCore();
   const sparks = new Sparks();
-  return (pen, ctx, dt) => {
+  return ({ front: pen, fctx: ctx }, dt) => {
     core.tick(dt, true);
     // the overlay sits over the art, so a standing halo would blur it: the blade only blooms with a flash
     if (core.flash > 0.02) {
@@ -601,36 +530,78 @@ function paintZeus(): (pen: Pen, ctx: CanvasRenderingContext2D, dt: number) => v
 }
 
 const LOOKS: Record<string, AnimatedLook> = {
-  'hero:zeus': { play: playZeus, painter: paintZeus },
+  'hero:zeus': { play: playZeus, painter: paintZeus, tile: true },
   // Zeus, King Unbound (src/content/peels/variants.ts): the same living lightning blade on his storm-dark head
-  'hero:zeusunbound': { play: playZeus, painter: paintZeus },
+  'hero:zeusunbound': { play: playZeus, painter: paintZeus, tile: true },
 };
 
+const calm = () => save.settings.reducedMotion;
+/** A look built on the shared kit: a fresh core for each place it plays. */
+const kitLook = (make: () => LookCore, tile: boolean): AnimatedLook => ({
+  play: (h) => playCore(h, make()),
+  painter: () => paintCore(make(), calm),
+  back: true,
+  tile,
+});
+const glowLook = (st: GlowStyle, tile: boolean) => kitLook(() => glowCore(st), tile);
+
+const built = new Map<string, AnimatedLook | null>();
+/** A peel's animated look: a hand-made one (Zeus), a fire (lookFire.ts), or its family's glow (lookGlow.ts). */
+function lookOf(id: string): AnimatedLook | null {
+  if (LOOKS[id]) return LOOKS[id];
+  if (built.has(id)) return built.get(id)!;
+  let out: AnimatedLook | null = null;
+  const fire = FIRE_PEELS[id];
+  const d = PEEL_BY_ID[id];
+  if (fire) out = kitLook(() => fireCore(fire), true);
+  else if (d) {
+    if (d.group === 'god') out = glowLook(godPeelStyle(), true);
+    else if (d.pantheon) {
+      const st = godStyle(id);
+      out = st ? glowLook(st, true) : null;
+    } else if (d.ultra) out = glowLook(ultraStyle(id, d.look()), true);
+    else if (d.group === 'jewel') out = glowLook(jewelStyle(d.look()), false);
+    else if (d.group === 'master') out = glowLook(masterStyle(d.look()), false);
+    else if (d.group === 'hero') out = glowLook(heroStyle(d.look()), false);
+  }
+  built.set(id, out);
+  return out;
+}
+
 export function hasAnimatedLook(id: string): boolean {
-  return id in LOOKS;
+  return !!lookOf(id);
 }
 
 /** Start a peel's animated look on the cursor peel (null when it has none). */
 export function playLook(id: string, host: LookHost): LookFx | null {
-  return LOOKS[id]?.play(host) ?? null;
+  return lookOf(id)?.play(host) ?? null;
 }
 
-// ——— the locker: a canvas laid over the peel's <img> ———
+// ——— the locker: canvases laid behind and over the peel's <img> ———
 
 interface Overlay {
   img: HTMLImageElement;
   canvas: HTMLCanvasElement;
   ctx: CanvasRenderingContext2D;
   pen: Pen;
-  /** The pen's line-width boost, set each frame from the drawn size. */
+  back: HTMLCanvasElement | null;
+  bctx: CanvasRenderingContext2D | null;
+  bpen: Pen | null;
+  /** The pens' line-width boost, set each frame from the drawn size. */
   boost: { w: number };
-  paint: (pen: Pen, ctx: CanvasRenderingContext2D, dt: number) => void;
+  paint: Painter;
+  /** On screen (tiles scrolled out of view skip their frames). */
+  seen: boolean;
 }
 const overlays = new Set<Overlay>();
 let raf = 0;
 let lastT = 0;
-// room round the image for bolts that leap past the peel's edge
+// room round the image for bolts and flames that leap past the peel's edge
 const PAD = 0.14;
+// tiles only paint while on screen
+const seen = typeof IntersectionObserver === 'undefined' ? null : new IntersectionObserver((es) => {
+  for (const e of es) for (const o of overlays) if (o.img === e.target) o.seen = e.isIntersecting;
+});
 
 function frame(now: number): void {
   raf = 0;
@@ -645,9 +616,12 @@ function frame(now: number): void {
     // gone with the locker (or a re-render): clean up
     if (!o.img.isConnected || !o.canvas.isConnected) {
       o.canvas.remove();
+      o.back?.remove();
+      seen?.unobserve(o.img);
       overlays.delete(o);
       continue;
     }
+    if (!o.seen) continue;
     const w = o.img.offsetWidth;
     const hh = o.img.offsetHeight;
     if (!w || !hh) continue;
@@ -656,54 +630,77 @@ function frame(now: number): void {
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     const cw = Math.round((w + px * 2) * dpr);
     const ch = Math.round((hh + py * 2) * dpr);
-    const cs = o.canvas.style;
-    if (o.canvas.width !== cw || o.canvas.height !== ch) {
-      o.canvas.width = cw;
-      o.canvas.height = ch;
-      cs.width = `${w + px * 2}px`;
-      cs.height = `${hh + py * 2}px`;
-    }
-    cs.left = `${o.img.offsetLeft - px}px`;
-    cs.top = `${o.img.offsetTop - py}px`;
     // follow the image's own tilt (the detail panel turns it)
     const tf = getComputedStyle(o.img).transform;
-    cs.transform = tf === 'none' ? '' : tf;
-    cs.opacity = getComputedStyle(o.img).opacity;
-    const ctx = o.ctx;
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, cw, ch);
+    const op = getComputedStyle(o.img).opacity;
     // object-fit: contain, so the peel sits centred in the image box
     const k = Math.min(w / 220, hh / 360) * dpr;
     const ox = (px + (w - 220 * (k / dpr)) / 2) * dpr;
     const oy = (py + (hh - 360 * (k / dpr)) / 2) * dpr;
-    ctx.setTransform(k, 0, 0, k, ox + OX * k, oy + OY * k);
-    // about half a peel unit per css pixel or less: thicken the bolts so they don't vanish
+    for (const [cv, ctx] of [[o.canvas, o.ctx], [o.back, o.bctx]] as const) {
+      if (!cv || !ctx) continue;
+      const cs = cv.style;
+      if (cv.width !== cw || cv.height !== ch) {
+        cv.width = cw;
+        cv.height = ch;
+        cs.width = `${w + px * 2}px`;
+        cs.height = `${hh + py * 2}px`;
+      }
+      cs.left = `${o.img.offsetLeft - px}px`;
+      cs.top = `${o.img.offsetTop - py}px`;
+      cs.transform = tf === 'none' ? '' : tf;
+      cs.opacity = op;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, cw, ch);
+      ctx.setTransform(k, 0, 0, k, ox + OX * k, oy + OY * k);
+      // menus are light: normal blending, so colour shows on cream (adding light to cream shows nothing)
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+    }
+    // about half a peel unit per css pixel or less: thicken the strokes so they don't vanish
     o.boost.w = Math.min(2.2, Math.max(1, 0.5 / (k / dpr)));
-    // menus are light: normal blending, so the blue haze shows on cream (adding light to cream shows nothing)
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.lineJoin = 'round';
-    ctx.lineCap = 'round';
-    o.paint(o.pen, ctx, dt);
+    o.paint({ front: o.pen, fctx: o.ctx, back: o.bpen, bctx: o.bctx }, dt);
   }
   if (overlays.size) raf = requestAnimationFrame(frame);
 }
 
-/** Animate a peel's look over its <img> (in the Peel Locker). Does nothing for peels without one. The overlay
- *  removes itself when the image leaves the page; stopLookOverlays() clears them all at once. */
+const overlayCanvas = (z: string) => {
+  const c = document.createElement('canvas');
+  c.className = 'look-fx';
+  c.setAttribute('aria-hidden', 'true');
+  Object.assign(c.style, { position: 'absolute', pointerEvents: 'none', zIndex: z });
+  return c;
+};
+
+/** Animate a peel's look over its <img> (in the Peel Locker). Does nothing for peels without one; on the grid's
+ *  tiles only the showpieces animate (the rest play on the big preview). The overlay removes itself when the
+ *  image leaves the page; stopLookOverlays() clears them all at once. */
 export function animateLookImg(img: HTMLImageElement, id: string): void {
-  const look = LOOKS[id];
+  const look = lookOf(id);
   const parent = img.parentElement;
   if (!look || !parent) return;
+  const isTile = !!img.closest('.peel-tile');
+  if (isTile && !look.tile) return;
   for (const o of overlays) if (o.img === img) return;
-  const canvas = document.createElement('canvas');
-  canvas.className = 'look-fx';
-  canvas.setAttribute('aria-hidden', 'true');
-  Object.assign(canvas.style, { position: 'absolute', pointerEvents: 'none', zIndex: '1' });
   if (getComputedStyle(parent).position === 'static') parent.style.position = 'relative';
+  const canvas = overlayCanvas('1');
   img.after(canvas);
-  const ctx = canvas.getContext('2d')!;
   const boost = { w: 1 };
-  overlays.add({ img, canvas, ctx, pen: canvasPen(ctx, boost), boost, paint: look.painter() });
+  let back: HTMLCanvasElement | null = null;
+  let bctx: CanvasRenderingContext2D | null = null;
+  if (look.back) {
+    // glows and flames go on a canvas behind the image: positioned, it paints in page order, so the image
+    // (positioned too) sits over it
+    back = overlayCanvas('auto');
+    img.before(back);
+    if (getComputedStyle(img).position === 'static') img.style.position = 'relative';
+    bctx = back.getContext('2d')!;
+  }
+  const ctx = canvas.getContext('2d')!;
+  const o: Overlay = { img, canvas, ctx, pen: canvasPen(ctx, boost), back, bctx, bpen: bctx ? canvasPen(bctx, boost) : null, boost, paint: look.painter(), seen: !isTile || !seen };
+  overlays.add(o);
+  if (isTile) seen?.observe(img);
   if (!raf) {
     lastT = performance.now();
     raf = requestAnimationFrame(frame);
@@ -712,7 +709,11 @@ export function animateLookImg(img: HTMLImageElement, id: string): void {
 
 /** Stop every locker overlay (the locker closed). */
 export function stopLookOverlays(): void {
-  for (const o of overlays) o.canvas.remove();
+  for (const o of overlays) {
+    o.canvas.remove();
+    o.back?.remove();
+    seen?.unobserve(o.img);
+  }
   overlays.clear();
   if (raf) cancelAnimationFrame(raf);
   raf = 0;
