@@ -193,6 +193,9 @@ const PLACE_LOOK: Record<LocationId, Plain> = {
   rink: { shape: 'oval', base: '#ff9ad5', pattern: 'stripes', pc: '#ffffff' },
   slopes: { shape: 'round', base: '#cfe9fb', pattern: 'snow', pc: '#5a9ad0' },
   cellar: { shape: 'spade', base: '#3b2a3a', pattern: 'drips', pc: '#a8304f' },
+  // ——— Act 7 · Comics ———
+  metropizza: { shape: 'square', base: '#f2c230', pattern: 'spots', pc: '#d8322e', handle: '#2a2d3a' },
+  doomlab: { shape: 'spade', base: '#3a424c', pattern: 'circuit', pc: '#3dff7a', handle: '#5a626c', metal: true },
 };
 
 const EVENT_LOOK: Record<EventId, Plain> = {

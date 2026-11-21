@@ -239,6 +239,37 @@ const TRIM: Record<string, number> = {
   sfx_hitrattle: 1.26, // -14.5 dB → -12.5: rattle shakes
   sfx_rollrumble: 0.99, // -12.4 dB → -12.5: ball rolls along a lane
   sfx_beam: 1.0, // -12.5 dB → -12.5: beam fires
+  // ——— Act 7 · Comics (scripts/act7-audio): the act's weather and villain feet, then each boss's moves ———
+  sfx_thunder: 1.05, // -11.4 dB → -11.0: Act 7 weather: thunder after a lightning flash
+  sfx_jetpack: 1.09, // -12.8 dB → -12.1: Jetpack Jackboots fly in from the side
+  sfx_bombfuse: 1.31, // -14.4 dB → -12.1: Goon Galoshes light a fuse (tell); also a defused bomb
+  sfx_bombboom: 1.05, // -10.9 dB → -10.5: a Goon's bomb lands on a pizza
+  sfx_gang: 1.05, // -12.4 dB → -12.0: a gang of Henchman Spats arrives
+  sfx_lexlugtoe_cash: 1.05, // -11.4 dB → -11.0: HOSTILE TAKEOVER: a pizza is acquired (SOLD!), cash register
+  sfx_lexlugtoe_glass: 1.26, // -14.0 dB → -12.0: the glass case drops over the pizza
+  sfx_lexlugtoe_lock: 0.88, // -12.4 dB → -13.5: smack on the case's lock
+  sfx_lexlugtoe_shatter: 1.26, // -12.5 dB → -10.5: the case breaks open (and his death)
+  sfx_lexlugtoe_tags: 1.06, // -12.5 dB → -12.0: his entrance: price tags and coins flutter in
+  sfx_doomstomp_roar: 2.02, // -17.1 dB → -11.0: RAMPAGE tell: he roars and paws the table
+  sfx_doomstomp_stomp: 1.05, // -9.9 dB → -9.5: each RAMPAGE stomp lands on a pizza (and his entrance)
+  sfx_doomstomp_quake: 1.08, // -11.7 dB → -11.0: BONE QUAKE tell: the table shudders
+  sfx_doomstomp_spike: 1.07, // -12.5 dB → -11.9: a bone spike bursts up behind a pizza
+  sfx_doomstomp_bonebreak: 0.89, // -12.5 dB → -13.5: smack on a bone spike (it snaps on the last)
+  sfx_doomstomp_ko: 1.05, // -9.9 dB → -9.5: he's knocked out (a life lost) and his death
+  sfx_doomstomp_rise: 1.63, // -15.2 dB → -11.0: he gets back up, bigger
+  sfx_doomstomp_dazed: 1.05, // -12.4 dB → -12.0: LAST LIFE: he slumps, dazed (finish him)
+  sfx_ultoe_upload: 0.79, // -12.4 dB → -14.4: UPLOAD tell: the UPLOADING bar fills
+  sfx_ultoe_glitch: 1.05, // -10.9 dB → -10.5: he jumps bodies: every drone glitches
+  sfx_ultoe_boot: 0.89, // -12.5 dB → -13.5: a drone boots up (and his entrance)
+  sfx_ultoe_crash: 1.10, // -10.4 dB → -9.6: his death: every drone powers down
+  sfx_thanfoot_stone: 1.06, // -12.5 dB → -12.0: a stone streaks across the sky towards the sock (tell)
+  sfx_thanfoot_socket: 1.05, // -11.4 dB → -11.0: a stone clicks into the sock
+  sfx_thanfoot_stonehit: 0.93, // -12.9 dB → -13.5: smack on a stone in the sock
+  sfx_thanfoot_stoneout: 1.11, // -11.4 dB → -10.5: a stone is knocked out of the sock
+  sfx_thanfoot_snapwind: 1.10, // -15.3 dB → -14.5: THE SNAP winds up (all six stones in)
+  sfx_thanfoot_snap: 1.05, // -9.9 dB → -9.5: THE SNAP lands (and his death)
+  sfx_thanfoot_portal: 1.06, // -12.5 dB → -12.0: his entrance and the SPACE stone's blinks
+  sfx_thanfoot_power: 1.04, // -12.4 dB → -12.1: a stone power fires (POWER, REALITY, TIME)
   // Stings are normalised to the music loudness (-16.4 LUFS, like music_gameover). audio.sting() plays
   // them at music volume and does not read TRIM; these gains apply if they're played through sfx().
   music_victory: 2.04, // -15.7 dB → -9.5: the 60-wave finish, a little over the slap
