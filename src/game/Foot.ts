@@ -189,6 +189,11 @@ export class Foot {
   /** Hard invulnerability (stone form, decoys handled by brains). */
   shielded = false;
   private icons?: Phaser.GameObjects.Container;
+  /** Live art layered round the drawn foot (src/game/footLive.ts): images follow its tint, flashes and fades. */
+  private liveImgs: Phaser.GameObjects.Image[] = [];
+  private liveAbove = 0;
+  /** The live art's owner: told when the foot dies, escapes or is destroyed. */
+  liveHost: { die(): void; destroy(): void } | null = null;
   /** A boss brain is moving this foot by hand: skip its own movement AI. */
   puppet = false;
   /** Speed multiplier from boss roars, avalanches and enrages. */
@@ -618,6 +623,21 @@ export class Foot {
     this.img.setAlpha(a);
     this.leg.setAlpha(a);
     this.cuff?.setAlpha(a);
+    for (const o of this.liveImgs) o.setAlpha(a);
+  }
+
+  /** Add live art round the drawn foot: `below` stacks it under the foot's art (over the leg), otherwise over it.
+   * Each call goes above the earlier ones on its side. Images are tinted, flashed and faded with the foot. */
+  addLiveArt(o: Phaser.GameObjects.GameObject, below: boolean): void {
+    const i = this.root.getIndex(this.img);
+    if (below) this.root.addAt(o, i);
+    else this.root.addAt(o, i + 1 + this.liveAbove++);
+    if (o instanceof Phaser.GameObjects.Image) this.liveImgs.push(o);
+  }
+
+  /** Draw the foot with another texture of the same frame (its live art draws the rest). */
+  setArtTexture(key: string): void {
+    this.img.setTexture(key);
   }
 
   /** Resize the whole foot (art and hit area) to `mul` of its normal size. */
@@ -651,7 +671,7 @@ export class Foot {
   }
 
   tint(color: number | null): void {
-    for (const o of [this.img, this.leg, this.cuff]) {
+    for (const o of [this.img, this.leg, this.cuff, ...this.liveImgs]) {
       if (!o) continue;
       if (color === null) o.clearTint();
       else o.setTint(color);
@@ -701,11 +721,12 @@ export class Foot {
     this.img.setTintFill(color);
     this.leg.setTintFill(color);
     this.cuff?.setTintFill(color);
+    for (const o of this.liveImgs) o.setTintFill(color);
   }
 
   clearTint(): void {
     const slowTint = this.slowT > 0 || this.frozen ? 0xa8dcff : this.burnT > 0 ? 0xffc0a0 : null;
-    for (const o of [this.img, this.leg, this.cuff]) {
+    for (const o of [this.img, this.leg, this.cuff, ...this.liveImgs]) {
       if (!o) continue;
       o.clearTint();
       if (slowTint) o.setTint(slowTint);
@@ -780,6 +801,7 @@ export class Foot {
     if (!this.alive) return;
     this.setState('dying');
     this.shadow.setVisible(false);
+    this.liveHost?.die();
     this.hooks.onEscape(this);
     this.scene.tweens.add({ targets: this.root, y: -900, duration: 700, ease: 'Back.In', onComplete: () => this.destroy() });
   }
@@ -796,6 +818,7 @@ export class Foot {
     this.auraTween?.remove();
     this.auraTween = null;
     this.setState('dying');
+    this.liveHost?.die();
     // the killing blow flashes white; make sure the flash clears since update() stops running now
     this.scene.time.delayedCall(boss ? 140 : 70, () => {
       this.flashT = 0;
@@ -829,6 +852,8 @@ export class Foot {
     this.auraTween?.remove();
     this.auraTween = null;
     this.state = 'gone';
+    this.liveHost?.destroy();
+    this.liveHost = null;
     this.root.destroy();
     this.shadow.destroy();
   }

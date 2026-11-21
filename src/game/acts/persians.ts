@@ -1,7 +1,7 @@
 // What the Persian army does (data in src/content/feet/persians.ts), through the contentFx foot hooks.
 //
-// - Immortal Sandals: when one falls, another steps out of purple smoke to take its place, once. A burning
-//   Immortal stays down.
+// - Immortal Sandals: when one falls, another steps out of black smoke to take its place, once. A burning
+//   Immortal stays down. Its smoke body, and the Immortal Brute's watching eye, are live art (src/game/footLive.ts).
 // - Archer Slippers: hover high and loose arrows at the peel (two a hover, one on Mild). An arrow that lands where
 //   the peel is pins it (a short peel stun). Smack an arrow to bat it back: the peel fires it at the archer
 //   through the projectile system (src/game/projectiles.ts).
@@ -24,6 +24,7 @@ import type { FootFx } from '../contentFx';
 import type { Foot } from '../Foot';
 import type { Pizza } from '../Pizza';
 import { WHEEL_AT } from '../../content/art/persianFeet';
+import { bruteLive, immortalLive } from '../footLive';
 
 /** The scene behind the Arena: the projectiles (for batted arrows), the smack damage and the lane hooks. */
 interface SceneBits {
@@ -64,8 +65,9 @@ const RETURN_FADE = 0.45;
 
 const immortal: FootFx = {
   tick: (a, f, dt) => {
-    // the mask's eyes glow now and then (the art carries the glow; a glint sells it)
-    if (f.state === 'hover' && Math.random() < dt * 0.8) a.fx.glint(f.cx + (Math.random() - 0.5) * 20, f.cy - footH(f) * 0.35);
+    immortalLive(f, dt);
+    // light catches the chrome mask now and then
+    if (f.state === 'hover' && Math.random() < dt * 0.8) a.fx.glint(f.cx + (Math.random() - 0.5) * 60, f.cy - footH(f) * 0.3);
     // burning: tell the player the return is off
     if (f.burnT > 0 && !f.brain.returned && !f.brain.burnTold) {
       f.brain.burnTold = 1;
@@ -87,13 +89,19 @@ const immortal: FootFx = {
     if (!n) return;
     n.brain.returned = 1;
     n.y = Math.min(f.y, HOVER_Y) - 40;
+    n.brain.smokeIn = 1;
     n.setVisualAlpha(0);
     a.sc.tweens.addCounter({ from: 0, to: 1, duration: RETURN_FADE * 1000, onUpdate: (tw) => n.alive && n.setVisualAlpha(tw.getValue() ?? 1) });
-    for (let i = 0; i < 3; i++) a.sc.time.delayedCall(i * 90, () => a.fx.puff(n.x + (Math.random() - 0.5) * 60, n.cy + 30 - i * 30, 8));
-    a.fx.ring(n.x, n.cy, 0x7a4aa8, 1.1, 0.7);
-    a.quip(n.x, Math.max(240, n.cy - 160), 'THE IMMORTALS RETURN!', '#c8a8ff', 38);
+    // it steps out of a cloud of its own black smoke (footLive.ts boils it up on its first frame)
+    a.fx.ring(n.x, n.cy, 0x2a2630, 1.1, 0.7);
+    a.quip(n.x, Math.max(240, n.cy - 160), 'THE IMMORTALS RETURN!', '#d8dce4', 38);
     a.sfx('sfx_immortalreturn', { volume: 0.85, throttle: 200 });
   },
+};
+
+/** The Immortal Brute (its fight is in src/game/bosses/leonidas.ts): only its live eye and smoke here. */
+const immortalbrute: FootFx = {
+  tick: (_a, f, dt) => bruteLive(f, dt),
 };
 
 // ——— Archer Slippers ———
@@ -556,4 +564,4 @@ const satrap: FootFx = {
   },
 };
 
-export const footFx: Record<string, FootFx> = { immortal, archer, cavalry, chariot, satrap };
+export const footFx: Record<string, FootFx> = { immortal, immortalbrute, archer, cavalry, chariot, satrap };

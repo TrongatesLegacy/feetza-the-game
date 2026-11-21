@@ -13,6 +13,17 @@ const PAD_Y = 8;
 const DESIGN_W = 300;
 const DESIGN_H = 345;
 
+/** A canvas in the same frame as a foot's texture (drawFoot), for a variant of its art drawn by `draw` in design
+ * space: the in-play body of a foot whose live parts are drawn separately (src/game/footLive.ts). */
+export function footCanvas(type: FootType, draw: (ctx: Ctx) => void): HTMLCanvasElement {
+  const s = type.scale * ART_RES;
+  const [c, ctx] = makeCanvas(DESIGN_W * s, DESIGN_H * s);
+  ctx.scale(s, s);
+  ctx.translate(PAD_X, PAD_Y);
+  draw(ctx);
+  return c;
+}
+
 export interface FootTextures {
   foot: HTMLCanvasElement;
   leg: HTMLCanvasElement;
@@ -734,6 +745,8 @@ const LEG_W: Record<LegKind, number> = {
   scales: 116,
   wood: 112,
   puffy: 142,
+  chrome: 106,
+  iron: 112,
 };
 
 function drawLeg(type: FootType, s: number): HTMLCanvasElement {
@@ -957,6 +970,30 @@ function drawLeg(type: FootType, s: number): HTMLCanvasElement {
       ctx.fillRect(x0, 59, w, 3);
       break;
     }
+    case 'chrome': {
+      // the Immortal's mask metal: a polished cylinder with the mask's banded reflections
+      const light = art.legColor ?? '#c9d0da';
+      const dark = art.legAccent ?? '#3a3f47';
+      const g = ctx.createLinearGradient(x0, 0, x0 + w, 0);
+      const stops: [number, string][] = [
+        [0, dark], [0.1, shade(light, -0.2)], [0.2, '#ffffff'], [0.3, shade(light, -0.3)], [0.46, dark],
+        [0.58, shade(light, -0.1)], [0.7, '#f6f8fb'], [0.82, shade(light, -0.35)], [1, dark],
+      ];
+      for (const [k, col] of stops) g.addColorStop(k, col);
+      ctx.fillStyle = g;
+      ctx.fillRect(x0, 0, w, 66);
+      // (to 66: the canvas rounds up past 64 units, and a clear last row shows as a seam on the polished metal)
+      break;
+    }
+    case 'iron': {
+      const g = ctx.createLinearGradient(x0, 0, x0 + w, 0);
+      g.addColorStop(0, '#050407');
+      g.addColorStop(0.5, art.legColor ?? '#6c7480');
+      g.addColorStop(1, '#050407');
+      ctx.fillStyle = g;
+      ctx.fillRect(x0, 0, w, 66);
+      break;
+    }
     case 'bandage': {
       ctx.save();
       ctx.beginPath();
@@ -1045,10 +1082,11 @@ function drawLeg(type: FootType, s: number): HTMLCanvasElement {
     : ['scales', 'puffy', 'sock'].includes(art.leg)
       ? art.legColor ?? art.primary ?? base
       : base;
-  const ol = outlineOf(olBase);
+  const ol = art.leg === 'chrome' || art.leg === 'iron' ? '#1d120c' : outlineOf(olBase);
+  const metalLeg = art.leg === 'chrome' || art.leg === 'iron';
   ctx.fillStyle = ol;
-  ctx.fillRect(x0 - OUT / 2, 0, OUT, 64);
-  ctx.fillRect(x0 + w - OUT / 2, 0, OUT, 64);
+  ctx.fillRect(x0 - OUT / 2, 0, OUT, metalLeg ? 66 : 64);
+  ctx.fillRect(x0 + w - OUT / 2, 0, OUT, metalLeg ? 66 : 64);
   return c;
 }
 
