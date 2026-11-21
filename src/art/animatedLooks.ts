@@ -74,7 +74,7 @@ function strokeBolt(pen: Pen, pts: Float32Array, n: number, w: number, a: number
   }
   pen.line(pts, n, w * 3.6, haze, 0.3 * a);
   pen.line(pts, n, w * 1.7, body, 0.6 * a);
-  pen.line(pts, n, w * 0.7, 0xffffff, 0.6 * a);
+  pen.line(pts, n, w * 0.7, 0xffffff, 0.95 * a);
 }
 
 // ——— Zeus: a lightning sword ———

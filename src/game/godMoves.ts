@@ -1984,9 +1984,20 @@ registerPassives({
 function godHalo(k: HeroKit): void {
   let g = k.st.haloG as unknown as Phaser.GameObjects.Graphics | undefined;
   if (!g || !g.active) {
-    g = k.sc.add.graphics().setBlendMode(Phaser.BlendModes.ADD);
-    k.host.layers.cursor.add(g);
-    (k.st as Record<string, unknown>).haloG = g;
+    const halo = k.sc.add.graphics().setBlendMode(Phaser.BlendModes.ADD);
+    g = halo;
+    k.host.layers.cursor.add(halo);
+    (k.st as Record<string, unknown>).haloG = halo;
+    // the passive stops ticking when the ability is swapped away (Peel Roulette, Shape-Shift), so the halo
+    // watches for that itself and goes with it
+    const watch = () => {
+      if (k.peelId === GOD_PEEL && halo.active) return;
+      k.sc.events.off('update', watch);
+      if ((k.st as Record<string, unknown>).haloG === halo) delete (k.st as Record<string, unknown>).haloG;
+      halo.destroy();
+    };
+    k.sc.events.on('update', watch);
+    k.sc.events.once('shutdown', () => k.sc.events.off('update', watch));
   }
   const p = k.host.peelPos();
   const peel = k.host.peel();
