@@ -9,6 +9,9 @@ import { borrowLine, borrowedPerk } from './pizzaPerks';
 
 let uid = 0;
 
+/** Told whenever slices grow back (heal, or a revive from dead), wherever it came from: hero goals count them. */
+export const pizzaHooks: { healed?: (p: Pizza, n: number) => void; revived?: (p: Pizza, slices: number) => void } = {};
+
 export class Pizza {
   readonly scene: Phaser.Scene;
   readonly type: PizzaType;
@@ -479,16 +482,19 @@ export class Pizza {
       this.dead = false;
       if (this.slices >= this.maxSlices * 0.75) this.prints = this.prints.slice(-1);
       this.redraw();
+      pizzaHooks.healed?.(this, healed);
     }
     return healed;
   }
 
   revive(slices: number): void {
+    const wasDead = this.dead;
     this.revived = true;
     this.dead = false;
     this.prints = [];
     this.alive = this.alive.map((_, i) => i < slices);
     this.redraw();
+    if (wasDead) pizzaHooks.revived?.(this, this.slices);
   }
 
   addSlices(n: number): void {

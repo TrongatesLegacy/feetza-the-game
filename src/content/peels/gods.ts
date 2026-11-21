@@ -8,7 +8,6 @@ import type { HeroGoal } from '../../game/heroGoals';
 import { godLook, kratosLook, type GodArt, type GreekSymbol, type NorseSymbol } from '../../art/godHeads';
 import type { PeelLook } from '../../art/peelArt';
 import type { HeroPeel, HeroSub } from '../heroPeels';
-import { PIZZAS } from '../../data/pizzas';
 import { save } from '../../systems/save';
 
 const S = '{slam}';
@@ -79,8 +78,8 @@ const ROWS: Row[] = [
   },
   {
     id: 'demeter', name: 'Demeter', sub: 'greek',
-    goal: { kind: 'any', of: [{ kind: 'time', key: 'autumn', when: { season: 'autumn' } }, { kind: 'value', read: () => save.unlockedPizzas.length, need: PIZZAS.length }] },
-    how: 'Goddess of the harvest: play a run in autumn (September to November), or unlock every pizza.',
+    goal: track('regrow50'),
+    how: 'Goddess of the harvest: regrow 50 slices in one run, counting every heal and the slices a pizza comes back with.',
     look: greek('demeter', 'wheat', C.demeter),
     ability: sig('Harvest', 'harvest', 1, hex(C.demeter), `Signature (${S}): wheat bursts up between the pizzas. Every pizza regrows 2 slices and its freshness refills. Passive, Bounty: when a wave is cleared, a 15% chance of a free slice on your weakest pizza.`),
   },
@@ -93,8 +92,8 @@ const ROWS: Row[] = [
   },
   {
     id: 'apollo', name: 'Apollo', sub: 'greek',
-    goal: track('daylightRun'),
-    how: 'God of the sun: play a run that starts and ends in daylight (7am to 7pm, your local time).',
+    goal: track('day20'),
+    how: 'God of the sun: reach wave 20 in a run played in daylight, 7am to 7pm your local time.',
     look: greek('apollo', 'lyre', C.apollo),
     ability: sig('Sun Chariot', 'sunChariot', 0.9, hex(C.apollo), `Signature (${S}): a blazing chariot drives across the sky. Every foot it passes is set alight (2×/s for 4 s). Passive, Muse: every 10th smack fires a sun arrow at a random foot (×3).`),
   },
@@ -156,8 +155,8 @@ const ROWS: Row[] = [
   },
   {
     id: 'persephone', name: 'Persephone', sub: 'greek',
-    goal: { kind: 'any', of: [{ kind: 'time', key: 'spring', when: { season: 'spring' } }, track('cellarLodge')] },
-    how: 'Queen of two worlds: play a run in spring (March to May), or clear Haunted Cellar and Alpine Lodge in one run.',
+    goal: track('reviveBoss'),
+    how: 'Queen of two worlds: bring a pizza back from the dead (a Rebake or any other revive), then beat the next boss with that pizza still on the table.',
     look: greek('persephone', 'pomegranate', C.persephone),
     ability: sig('Spring Returns', 'springReturns', 1, hex(C.persephone), `Signature (${S}): flowers bloom across the table. Once a run, a destroyed pizza comes back on full slices; any other time (or with nothing to bring back), every pizza regrows a slice. Passive, Two Seasons: alternate waves give +10% damage or +10% tips.`),
   },
@@ -170,8 +169,8 @@ const ROWS: Row[] = [
   },
   {
     id: 'nyx', name: 'Nyx', sub: 'greek',
-    goal: { kind: 'time', key: 'midnight', when: { hours: [0, 4] } },
-    how: 'Goddess of the night: play between midnight and 4am (your local time).',
+    goal: track('night20'),
+    how: 'Goddess of the night: reach wave 20 in a run played between midnight and 4am, your local time.',
     look: greek('nyx', 'veil', C.nyx, { base: '#d8d4e8' }),
     ability: sig('Nightfall', 'nightfall', 0.9, hex(C.nyx), `Signature (${S}): total darkness for 5 s; only your peel glows. Every foot is stunned and marked (×1.5 damage taken for 6 s). Passive, Night Owl: +20% damage on night stages.`),
   },
@@ -186,22 +185,22 @@ const ROWS: Row[] = [
   },
   {
     id: 'thor', name: 'Thor', sub: 'norse',
-    goal: track('anyBoss', 1, { weekday: [4] }),
-    how: 'God of thunder: beat a boss on a Thursday (Thor’s day).',
+    goal: track('threeBosses', 1, { weekday: [4] }),
+    how: 'God of thunder: on a Thursday (Thor’s day), beat 3 bosses in one run.',
     look: norse('thor', 'hammer', C.thor),
     ability: sig('Thunder God', 'thunderGod', 0.85, hex(C.thor), `Signature (${S}): the sky darkens and the hammer is raised; lightning strikes every foot (×6) and chains on for 3 jumps (×2). Passive, Mjölnir: every 7 s the hammer is thrown as a boomerang (×4 out, ×4 back). Only you can lift it, so your peel can’t be snatched or stunned.`),
   },
   {
     id: 'loki', name: 'Loki', sub: 'norse',
     goal: { kind: 'secret', id: 'loki', need: 1 },
-    how: 'Secret: someone shifty sometimes peeks out from behind the chalkboard on the title screen. Smack him.',
+    how: 'Secret: someone shifty very rarely peeks out from behind the chalkboard on the title screen, just for a moment. Smack him.',
     look: norse('loki', 'serpent', C.loki, { base: '#7a5a3a' }),
     ability: sig('Mischief', 'mischief', 0.9, hex(C.loki), `Signature (${S}): 3 decoy peels appear. For 10 s the feet lose track of which one is real, and 30% of their stomps miss. Passive, Trickster: every few seconds two diving feet swap places.`),
   },
   {
     id: 'frigg', name: 'Frigg', sub: 'norse',
     goal: track('tenClean', 1, { weekday: [5] }),
-    how: 'Queen of Asgard: lose no slices for 10 waves in a row, on a Friday (Frigg’s day).',
+    how: 'Queen of Asgard: on a Friday (Frigg’s day), lose no slices for 10 waves in a row.',
     look: norse('frigg', 'spindle', C.frigg),
     ability: sig('Foresight', 'foresight', 0.85, hex(C.frigg), `Signature (${S}): for 15 s every stomp shows a ghost of where it will land, and those stomps are blocked. Passive, Weaver: the first stomp on each pizza each wave is blocked.`),
   },
@@ -221,8 +220,8 @@ const ROWS: Row[] = [
   },
   {
     id: 'tyr', name: 'Tyr', sub: 'norse',
-    goal: track('bossNoAbility', 1, { weekday: [2] }),
-    how: 'God of law: beat a boss without using your peel’s ability, on a Tuesday (Tyr’s day).',
+    goal: track('threeBossesNoAbility', 1, { weekday: [2] }),
+    how: 'God of law: on a Tuesday (Tyr’s day), with any peel but the Classic Peel, beat 3 bosses in one run without using your peel’s ability.',
     look: norse('tyr', 'sword', C.tyr),
     ability: sig('Oath of Tyr', 'oathTyr', 0.85, hex(C.tyr), `Signature (${S}): you sacrifice the peel’s hand: for 5 s your smacks can’t hit anything. Then for 15 s every hit deals ×3. Passive, Lawgiver: +25% damage to bosses and mini-bosses.`),
   },
@@ -235,8 +234,8 @@ const ROWS: Row[] = [
   },
   {
     id: 'baldur', name: 'Baldur', sub: 'norse',
-    goal: track('fullRun'),
-    how: 'The shining god: finish a run (at least 10 waves) with every pizza on the table at full slices.',
+    goal: track('fullRun30'),
+    how: 'The shining god: finish a run of 30 waves or more with every pizza on the table at full slices.',
     look: norse('baldur', 'sun', C.baldur, { base: '#b08a58' }),
     ability: sig('Radiance', 'radiance', 0.85, hex(C.baldur), `Signature (${S}): a pillar of light. For 10 s nothing can hurt your pizzas. Passive, Beloved: your weakest pizza regrows a slice every 6 s.`),
   },
@@ -256,7 +255,7 @@ const ROWS: Row[] = [
   },
   {
     id: 'skadi', name: 'Skadi', sub: 'norse',
-    goal: track('hotSlopes'),
+    goal: { kind: 'track', key: 'hotSlopes', need: 1, minHeat: 'hot' },
     how: 'Huntress of the mountains: clear Ski Slopes (beat the Yeti) on Hot or hotter.',
     look: norse('skadi', 'snowflake', C.skadi, { base: '#8a6a4e' }),
     ability: sig('Winter Hunt', 'winterHunt', 0.9, hex(C.skadi), `Signature (${S}): snow falls. For 10 s every smack freezes the foot for 2 s. Passive, Mountain Born: +20% damage at Alpine Lodge and Ski Slopes.`),

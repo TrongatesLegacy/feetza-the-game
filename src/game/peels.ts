@@ -20,7 +20,7 @@ import { addCanvas, eventCanvases, footMeta, pizzaTops } from './assets';
 import { PIZZAS } from '../data/pizzas';
 import type { EventId } from './events';
 import { HERO_PEELS, type HeroSub } from '../content/heroPeels';
-import { goalProgress } from './heroGoals';
+import { goalProgress, heatHow } from './heroGoals';
 import { godPeelLook } from '../art/godHeads';
 
 export type PeelGroup = 'classic' | 'golden' | 'jewel' | 'foot' | 'boss' | 'place' | 'event' | 'pizza' | 'shinyFoot' | 'shinyEvent' | 'master' | 'act' | 'hero' | 'god';
@@ -129,14 +129,29 @@ function footEmblem(id: string): CanvasImageSource | null {
   return out;
 }
 
-/** 'THE HEAD WAITER' → 'Head Waiter' (boss names are stored in capitals). */
+/** Little words that stay lower-case inside a name ('Queen of the Rink'). */
+const SMALL_WORDS = new Set(['a', 'an', 'and', 'at', 'by', 'for', 'in', 'of', 'on', 'or', 'the', 'to']);
+/** Words that stay in capitals. */
+const ACRONYMS = new Set(['UFO']);
+
+/** 'THE HEAD WAITER' → 'Head Waiter', 'GHOST OF FEET PAST' → 'Ghost of Feet Past', 'UFO TOE' → 'UFO Toe'
+ *  (boss names are stored in capitals). */
 export function titleCase(name: string): string {
   if (name !== name.toUpperCase()) return name;
   return name
     .replace(/^THE /, '')
-    .toLowerCase()
-    .replace(/(^|[\s-])([a-z])/g, (_, a: string, b: string) => a + b.toUpperCase());
+    .split(' ')
+    .map((w, i) => {
+      if (ACRONYMS.has(w)) return w;
+      const lower = w.toLowerCase();
+      if (i > 0 && SMALL_WORDS.has(lower)) return lower;
+      return lower.replace(/(^|-)([a-z\u00e0-\u00fe])/g, (_, a: string, b: string) => a + b.toUpperCase());
+    })
+    .join(' ');
 }
+
+/** 'Iron Heel' → 'Iron Heel Peel', but 'Mirror Peel' stays as it is. */
+const peelName = (name: string) => (/\bPeel$/.test(name) ? name : `${name} Peel`);
 
 function footLook(f: FootType, shiny: boolean): PeelLook {
   const a = f.art;
@@ -328,7 +343,7 @@ function buildDefs(): PeelDef[] {
     const need = killsNeeded(f);
     defs.push({
       id: `foot:${f.id}`,
-      name: `${f.name} Peel`,
+      name: peelName(f.name),
       group: 'foot',
       how: `Defeat ${need} ${plural(f.name, need)}.`,
       progress: () => [Math.min(need, save.kills[f.id] ?? 0), need],
@@ -339,7 +354,7 @@ function buildDefs(): PeelDef[] {
   for (const f of FEET.filter((x) => x.boss || x.mini)) {
     defs.push({
       id: `boss:${f.id}`,
-      name: `${titleCase(f.name)} Peel`,
+      name: peelName(titleCase(f.name)),
       group: 'boss',
       how: `Defeat ${f.mini ? 'the mini-boss' : 'the boss'} ${titleCase(f.name)}.`,
       progress: () => [save.bossesBeaten.includes(f.id) ? 1 : 0, 1],
@@ -451,7 +466,7 @@ function buildDefs(): PeelDef[] {
       group: 'hero',
       sub: hp.sub,
       pantheon: hp.pantheon,
-      how: hp.how,
+      how: heatHow(hp.how, g),
       cost: g.kind === 'crusts' ? g.cost : undefined,
       progress: g.kind === 'crusts' ? undefined : () => goalProgress(g),
       look: hp.look,

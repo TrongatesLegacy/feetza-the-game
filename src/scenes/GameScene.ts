@@ -17,7 +17,7 @@ import { BossDirector } from '../game/bosses';
 import { eventName, startEvent, type EventId } from '../game/events';
 import { Foot } from '../game/Foot';
 import { Fx } from '../game/Fx';
-import { Pizza } from '../game/Pizza';
+import { Pizza, pizzaHooks } from '../game/Pizza';
 import { Projectiles } from '../game/projectiles';
 import { endlessPlus, LOCATION_AMBIENCE, LOCATION_MUSIC, RARITY_FROM, Run, awardMilestones, milestoneProgress, backdropFor, bestRarity, rarityOpen, specialPrice, bossMusic, isBossWave, isMiniWave, locationFor, loopOf, planWave, type WavePlan, bossFor, miniFor } from '../game/Run';
 import type { CounterSnap, RunSnapshot } from '../game/snapshot';
@@ -422,6 +422,16 @@ export class GameScene extends Phaser.Scene implements Arena {
       () => this.runView(),
       () => this.peelToasts(checkPeelAchievements()),
     );
+    // slices grown back (from anywhere) and pizzas back from the dead feed Demeter's and Persephone's goals
+    pizzaHooks.healed = (_p, n) => this.tracker.emit('healed', { n });
+    pizzaHooks.revived = (p, n) => {
+      this.tracker.emit('revive', { onTable: () => !p.dead && this.pizzas.includes(p) });
+      if (n) this.tracker.emit('healed', { n });
+    };
+    this.events.once('shutdown', () => {
+      pizzaHooks.healed = undefined;
+      pizzaHooks.revived = undefined;
+    });
     finaleState.buyout = false;
 
     const snap = this.start.snapshot;
@@ -3454,7 +3464,10 @@ export class GameScene extends Phaser.Scene implements Arena {
     const st = this.run.stats;
     const color = a.color;
     const big = a.trigger.t === 'active' || a.trigger.t === 'auto';
-    if (big) this.heroT.abilityUsed = true;
+    if (big) {
+      this.heroT.abilityUsed = true;
+      this.tracker.emit('ability', {});
+    }
     if (big && !a.custom) {
       if (a.vfx === 'slam') {
         const sweep = this.add.image(-400, 560, 'peel').setScale(3.2).setAngle(-90).setOrigin(0.5, 100 / 360);
