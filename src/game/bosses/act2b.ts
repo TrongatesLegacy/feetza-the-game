@@ -192,7 +192,6 @@ const milkshake = (): Brain => {
   let ready = false;
   const freeze = new Every(7, 4);
   const straw = new Every(9, 3);
-  (globalThis as any).__T = { freeze, straw }; // DEV-HOOK
   let freezing = false;
   let hold = 0;
   let warm = 0;
@@ -299,7 +298,7 @@ const milkshake = (): Brain => {
         const sec = h.windup(2);
         a.quip(f.x, Math.max(280, f.cy - 160), 'BRAIN FREEZE…', '#a8dcff', 44);
         a.quip(BOWL.x - 60, BOWL.y - 160, 'WARM UP!', '#ffb24a', 40);
-        a.sfx('sfx_freeze', { volume: 0.5, rate: 0.7 });
+        a.sfx('sfx_milkshake_freeze');
         f.tint(0xa8dcff);
         if (bowl) a.sc.tweens.add({ targets: bowl, scale: 0.85, duration: 220, yoyo: true, repeat: Math.max(1, Math.round((sec * 1000) / 440) - 1) });
         a.sc.time.delayedCall(sec * 1000, () => {
@@ -315,7 +314,7 @@ const milkshake = (): Brain => {
           }
           a.slowPeel(h.stun(4));
           a.quip(at.x, at.y - 70, 'BRAIN FREEZE!', '#a8dcff', 36);
-          a.sfx('sfx_freeze', { volume: 0.7 });
+          a.sfx('sfx_milkshake_frozen');
         });
       }
 
@@ -334,6 +333,7 @@ const milkshake = (): Brain => {
         const centre = () => bottom() - (STRAW.mouth - STRAW.ch / 2) * s;
         const st = { k: 0 };
         a.sc.tweens.add({ targets: st, k: 1, duration: 450, ease: 'Bounce.Out', delay: 500 });
+        a.sc.time.delayedCall(950, () => sucking?.prop === prop && a.sfx('sfx_milkshake_straw'));
         const prop = hitProp(a, {
           key: 'p_straw',
           x: p.x,
@@ -350,6 +350,7 @@ const milkshake = (): Brain => {
             endStraw(f, a);
             f.stun(1.5);
             a.sfx('sfx_crit');
+            a.sfx('sfx_milkshake_snap');
           },
           onFail: () => {
             endStraw(f, a);
@@ -384,7 +385,7 @@ const milkshake = (): Brain => {
           a.fxLayer.add(d);
           a.sc.tweens.add({ targets: d, x: s.p.x + (Math.random() - 0.5) * 40, y: s.p.surfaceY - 30, scale: 0.6, duration: 220, ease: 'Quad.In' });
           a.sc.tweens.add({ targets: d, y: s.p.surfaceY - 470, alpha: 0, scale: 0.45, duration: 520, delay: 220, ease: 'Quad.In', onComplete: () => d.destroy() });
-          a.sfx('sfx_squish', { volume: 0.3, rate: 0.6, throttle: 450 });
+          a.sfx('sfx_milkshake_slurp', { throttle: 450 });
         }
       }
     },
@@ -428,7 +429,6 @@ const rinkqueen = (): Brain => {
   const shuffle = new Every(7, 2);
   const dash = new Every(6.5, 3);
   const puck = new Every(4.5, 3);
-  (globalThis as any).__T = { shuffle, dash, puck }; // DEV-HOOK
   // never a shuffle and a dash wind-up at the same moment
   let busy = 0;
   return {
@@ -445,6 +445,7 @@ const rinkqueen = (): Brain => {
       if (f.phase === 1 && puck.tick(dt)) {
         throwAtPeel(a, 'p_puck', { x: f.x, y: f.cy }, 1.2, () => a.stunPeel(0.8, 'PUCKED!'), () => a.damageFoot(f, Math.round(f.maxHp * 0.025), 'SLAPSHOT!'), 12, { scale: 0.75 });
         a.sfx('sfx_whistle', { rate: 1.6, volume: 0.5 });
+        a.sfx('sfx_rinkqueen_puck');
       }
       if (f.phase >= 2 && busy <= 0 && !f.brain.windup && shuffle.tick(dt)) {
         busy = 2.4;
@@ -459,6 +460,7 @@ const rinkqueen = (): Brain => {
           const ps = a.allPizzas();
           const xs = shuffled(ps.map((p) => p.x));
           ps.forEach((p, i) => p.rollTo(xs[i]));
+          a.sfx('sfx_rinkqueen_roll');
           ps.sort((p, q) => p.x - q.x);
         });
       }
@@ -473,7 +475,7 @@ const rinkqueen = (): Brain => {
         a.sfx('sfx_whistle', { rate: 1.3 });
         windup(a, f, '', sec, 'SPEED DASH!', 3, () => {
           for (const [i, p] of line.entries()) a.sc.time.delayedCall(i * 140, () => !p.dead && f.alive && a.inWave() && a.hitPizza(p, 1, 'DASHED!', '#ff4fd8'));
-          a.sfx('sfx_whoosh', { volume: 1, rate: 1.2 });
+          a.sfx('sfx_rinkqueen_dash');
           dashStreak(a, line);
         });
       }
@@ -490,7 +492,6 @@ const rinkqueen = (): Brain => {
 const lumberjack = (): Brain => {
   const bin = new Bin();
   const next = new Every(9, 3);
-  (globalThis as any).__T = { next }; // DEV-HOOK
   let end: (() => void) | null = null;
   const stop = (f: Foot) => {
     end?.();
@@ -520,7 +521,7 @@ const lumberjack = (): Brain => {
       if (f.phase === 1) {
         // Timber: a chainsaw down each lane in turn; one that gets through takes half the pizza
         a.quip(960, 300, 'TIMBER!', '#e0a868', 56);
-        a.sfx('sfx_warning', { volume: 0.5, rate: 0.8 });
+        a.sfx('sfx_lumberjack_timber');
         left = lanes.length;
         lanes.forEach((p, i) => {
           a.sc.time.delayedCall((0.6 + i * h.windup(1.1)) * 1000, () => {
@@ -539,11 +540,11 @@ const lumberjack = (): Brain => {
               label: 'SAW STOPPED!',
               onLand: (q) => {
                 a.hitPizza(q, Math.max(1, Math.floor(q.slices / 2)), 'SAWN IN HALF!', '#ff8a2a');
-                a.sfx('sfx_explosion', { volume: 0.5 });
+                a.sfx('sfx_lumberjack_sawbite');
               },
               onEnd: done,
             }, bin);
-            a.sfx('sfx_whoosh', { volume: 0.5, rate: 0.6 });
+            a.sfx('sfx_lumberjack_chainsaw');
           });
         });
         return;
@@ -562,6 +563,7 @@ const lumberjack = (): Brain => {
           // move over the lane (he waits at the top of it), then let go
           f.target = p;
           a.quip(p.x, 300, 'CHOP CHOP!', '#e0a868', 36);
+          a.sfx('sfx_lumberjack_thunk', { volume: 0.6 });
         });
         for (const k of [0, 1]) {
           a.sc.time.delayedCall(at + (1.2 + k * gap) * 1000, () => {
@@ -577,10 +579,13 @@ const lumberjack = (): Brain => {
               halfH: 115,
               color: 0xff6a3a,
               label: 'BLOCKED!',
-              onLand: (q) => a.hitPizza(q, h.slices(1), 'CHOPPED!', '#e0a868'),
+              onLand: (q) => {
+                a.hitPizza(q, h.slices(1), 'CHOPPED!', '#e0a868');
+                a.sfx('sfx_lumberjack_thunk');
+              },
               onEnd: done,
             }, bin);
-            a.sfx('sfx_whoosh', { volume: 0.6, rate: 0.9 });
+            a.sfx('sfx_lumberjack_axe');
           });
         }
       });
@@ -599,7 +604,6 @@ const yeti = (): Brain => {
   const ball = new Every(4, 2);
   const icicle = new Every(5.5, 3);
   const avalanche = new Every(13, 3);
-  (globalThis as any).__T = { ball, icicle, avalanche }; // DEV-HOOK
   let end: (() => void) | null = null;
   const stop = (f: Foot) => {
     end?.();
@@ -615,6 +619,7 @@ const yeti = (): Brain => {
         icicle.every = h.cooldown(4.5);
         const p = laneOf(a, f);
         if (p) {
+          a.sfx('sfx_yeti_icicle');
           laneFall(a, p, {
             key: 'p_icicle',
             scale: 0.85,
@@ -629,7 +634,7 @@ const yeti = (): Brain => {
             onLand: (q) => {
               a.freezePerk(q, h.stun(6));
               a.quip(q.x, q.surfaceY - 170, 'ICED!', '#a8dcff', 44);
-              a.sfx('sfx_freeze', { volume: 0.7 });
+              a.sfx('sfx_yeti_iciclehit');
             },
           }, bin);
         }
@@ -637,7 +642,7 @@ const yeti = (): Brain => {
       // snowballs at the peel (paused while an avalanche is coming down)
       if (f.phase >= 2 && !end && ball.tick(dt)) {
         throwAtPeel(a, 'p_yetiball', { x: f.x, y: f.cy }, 1.3, () => a.stunPeel(1, 'FROZEN PEEL!'), () => a.quip(a.peelPoint().x, a.peelPoint().y - 60, 'SHATTERED!', '#a8dcff', 32), 3, { scale: 0.85 });
-        a.sfx('sfx_whoosh', { rate: 0.9 });
+        a.sfx('sfx_yeti_snowball');
       }
       if (f.phase >= 3 && !end && avalanche.tick(dt)) {
         avalanche.every = h.cooldown(13);
@@ -648,7 +653,7 @@ const yeti = (): Brain => {
         a.quip(960, 300, 'AVALANCHE!', '#cfe0ff', 60);
         a.rumble(0.5, 900);
         a.shake(900, 0.004);
-        a.sfx('sfx_warning', { volume: 0.5, rate: 0.7 });
+        a.sfx('sfx_yeti_avalanche');
         // two passes over every lane, left to right (so a lane's second ball never stacks on its first)
         const order = [...lanes, ...lanes];
         let left = order.length;
@@ -678,11 +683,11 @@ const yeti = (): Brain => {
                 a.hitPizza(q, h.slices(1), 'BURIED!', '#cfe0ff');
                 // a fresh freeze, or more time on one already running
                 if (!q.dead) a.freezePerk(q, h.stun(5));
-                a.sfx('sfx_freeze', { volume: 0.6 });
+                a.sfx('sfx_yeti_bigball', { throttle: 150 });
               },
               onEnd: done,
             }, bin);
-            a.sfx('sfx_whoosh', { volume: 0.5, rate: 0.7 });
+            a.sfx('sfx_yeti_snowball', { volume: 0.7 });
           });
         });
       }
@@ -711,7 +716,6 @@ const poltergeist = (): Brain => {
   const bin = new Bin();
   const bite = new Every(5, 3);
   const cough = new Every(11, 3);
-  (globalThis as any).__T = { bite, cough }; // DEV-HOOK
   const zombies = new Map<Foot, Zombie>();
   let biting: { o: Foot; reticle: Phaser.GameObjects.Image } | null = null;
   let coughing = false;
@@ -803,7 +807,7 @@ const poltergeist = (): Brain => {
           });
           a.quip(o.x, Math.max(300, o.cy - 140), 'BITE INCOMING!', '#9be36a', 36);
           a.quip(f.x, Math.max(280, f.cy - 170), 'BRAAAINS…', '#9be36a', 40);
-          a.sfx('sfx_warning', { volume: 0.4, rate: 0.9 });
+          a.sfx('sfx_poltergeist_groan');
           a.sc.time.delayedCall(h.windup(1.4) * 1000, () => {
             forget();
             if (!f.alive || !a.inWave()) return;
@@ -828,7 +832,7 @@ const poltergeist = (): Brain => {
                   zombify(o);
                   a.fx.impact(o.cx, o.cy, true);
                   a.quip(o.x, Math.max(300, o.cy - 150), 'CHOMP! ZOMBIE!', '#9be36a', 42);
-                  a.sfx('sfx_squish', { volume: 0.9, rate: 0.7 });
+                  a.sfx('sfx_poltergeist_bite');
                   // each bite heals the boss a little
                   const heal = Math.min(f.maxHp - f.hp, Math.round(f.maxHp * (h.rank === 0 ? 0.03 : 0.04)));
                   if (heal > 0) {
@@ -868,7 +872,7 @@ const poltergeist = (): Brain => {
             coughing = false;
             f.tint(null);
             if (!f.alive || !a.inWave() || p.dead) return;
-            a.sfx('sfx_squish', { volume: 0.8, rate: 0.5 });
+            a.sfx('sfx_poltergeist_cough');
             const puff = a.sc.add.image(f.x, f.cy, 'p_cough').setScale(0.3).setAlpha(0.9);
             a.fxLayer.add(puff);
             a.sc.tweens.add({
@@ -885,6 +889,7 @@ const poltergeist = (): Brain => {
                 a.fxLayer.add(glow);
                 a.sc.tweens.add({ targets: glow, alpha: 0.12, duration: 600, yoyo: true, repeat: -1 });
                 a.freezePerk(p, 9999);
+                a.sfx('sfx_poltergeist_sick');
                 a.quip(p.x, p.surfaceY - 190, rnd(GROANS)!, '#9be36a', 46);
                 const prop = hitProp(a, {
                   key: 'p_cough',
@@ -916,7 +921,7 @@ const poltergeist = (): Brain => {
           // it eats its own slices, but never the last one
           if (s.munch.tick(dt) && s.p.slices > 1) {
             a.hitPizza(s.p, 1, 'MUNCH!', '#9be36a');
-            a.sfx('sfx_squish', { volume: 0.6, rate: 0.8 });
+            a.sfx('sfx_poltergeist_munch', { throttle: 200 });
             if (Math.random() < 0.5) a.quip(s.p.x + 90, s.p.surfaceY - 120, rnd(GROANS)!, '#9be36a', 30);
           }
         }
@@ -1002,8 +1007,8 @@ function ghostify(a: Arena, e: Foot): void {
 const phantomking = (): Brain => {
   const summon = new Every(7, 1.5);
   const hop = new Every(8, 8);
-  (globalThis as any).__T = { summon, hop }; // DEV-HOOK
   let hopping = false;
+  let wasPhased = false;
   let end: (() => void) | null = null;
   // each echo's next move (seconds), and a gap so two echoes never act at once
   const echoes = new Map<Foot, number>();
@@ -1024,6 +1029,11 @@ const phantomking = (): Brain => {
   return {
     names: ['FADE', 'ECHOES', 'POSSESSION'],
     info: ['Fades out between stomps · hit it while it is solid', 'Only echoes of past bosses join it, each with one weak move · clear them fast and stop their moves', 'Possesses a pizza, then hops to another every 8 s · Peel Slam while the Ghost is solid'],
+    // the Fade: a ghostly whoosh each time he phases out (runs while stunned too, so no flip is missed)
+    upkeep: (f, _dt, a) => {
+      if (f.phased && !wasPhased) a.sfx('sfx_phantomking_fade', { throttle: 500 });
+      wasPhased = f.phased;
+    },
     onPhase: (_f, ph, a) => {
       if (ph === 2) {
         // the living feet back away: the only other feet this phase are the echoes
@@ -1070,6 +1080,7 @@ const phantomking = (): Brain => {
             // smaller and see-through (setSize keeps the hit area and lane width in step with the art)
             e.setSize(0.62, 0);
             ghostify(a, e);
+            a.sfx('sfx_phantomking_echo');
             echoes.set(e, 1.4);
             a.quip(Phaser.Math.Clamp(e.x, 300, 1620), 300, `ECHO OF ${FOOT_BY_ID[id].name}: ${ECHOES[id].move}`, '#9ad8ff', 32);
           }
@@ -1088,13 +1099,14 @@ const phantomking = (): Brain => {
             a.sc.tweens.add({ targets: glow, alpha: 0.7, scaleX: 2.3, scaleY: 1.1, duration: 700, ease: 'Sine.Out' });
             a.sc.tweens.add({ targets: glow, alpha: { from: 0.7, to: 0.35 }, duration: 110, yoyo: true, repeat: 3, delay: 420 });
             a.quip(next.x, next.surfaceY - 200, 'THE CURSE STIRS…', '#c9a8ff', 34);
+            a.sfx('sfx_phantomking_stir');
             a.sc.time.delayedCall(1000, () => {
               a.sc.tweens.killTweensOf(glow);
               a.sc.tweens.add({ targets: glow, alpha: 0, scaleX: 3, scaleY: 1.5, duration: 350, onComplete: () => glow.destroy() });
               hopping = false;
               if (!f.alive || !a.possessed() || next.dead) return;
               a.possess(next);
-              a.sfx('sfx_possess', { volume: 0.7 });
+              a.sfx('sfx_phantomking_curse');
             });
           }
         }
@@ -1103,7 +1115,7 @@ const phantomking = (): Brain => {
           a.possess(null);
           f.stun(2.5);
           a.banner('EXORCISED!', 'The curse is broken', 'clear');
-          a.sfx('sfx_levelup');
+          a.sfx('sfx_phantomking_exorcise');
           a.sc.time.delayedCall(9000, () => {
             if (!f.alive || !a.inWave()) return;
             const p = rnd(a.alivePizzas());
