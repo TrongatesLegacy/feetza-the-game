@@ -1961,7 +1961,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (f.link && f.link.alive && f.link !== f) {
       if (f.shielded) {
         this.fx.quip(f.x, f.cy - 110, 'BLOCKED', '#c7ccd4', 32);
-      audio.sfx('sfx_kit_shieldblock', { throttle: 150 });
+        audio.sfx('sfx_kit_shieldblock', { throttle: 150 });
         return;
       }
       f.flash(0xffffff, 70);
