@@ -39,6 +39,8 @@ export type Effect =
   | { e: 'fresh'; n: number; who: 'weakest' | 'all' }
   | { e: 'tips'; n: number }
   | { e: 'stat'; mods: Partial<Record<NumStat, number>> }
+  /** A hand-built move (hero signature moves, src/game/heroMoves.ts): the scene's hero director runs it by id. */
+  | { e: 'move'; id: string }
   | ThrowFx;
 
 /** How a thrown prop flies (see src/game/projectiles.ts). */
@@ -104,6 +106,14 @@ export const THROW_PROPS = {
   calzone: ['calzone', 'calzones'],
   napkin: ['napkin', 'napkins'],
   wheelcutter: ['rolling cutter', 'rolling cutters'],
+  // hero props (src/content/props/heroes.ts)
+  wingrang: ['wing-boomerang', 'wing-boomerangs'],
+  shield: ['star shield', 'star shields'],
+  arrow: ['trick arrow', 'trick arrows'],
+  card: ['playing card', 'playing cards'],
+  bolt: ['blaster bolt', 'blaster bolts'],
+  rocket: ['rocket', 'rockets'],
+  crescent: ['crescent dart', 'crescent darts'],
 } as const;
 export type ThrowProp = keyof typeof THROW_PROPS;
 
@@ -134,6 +144,10 @@ export interface Ability {
   charge: number;
   color: number;
   vfx: Vfx;
+  /** Hand-written description (hero peels): replaces the generated one. `{slam}` becomes the meter prompt. */
+  desc?: string;
+  /** Hand-built peels (heroes) stage their own big moment, so the generic flash and shout are skipped. */
+  custom?: boolean;
 }
 
 export function isPassive(a: Ability): boolean {
@@ -403,6 +417,7 @@ export const ABILITIES: Record<string, Ability> = {
   'event:seagull': ab('Dive-Bomb', every(5), [D(4, rnd(2)), K(500, rnd(2))], GOLD, 'rain'),
   'event:chest': ab('Treasure Trove', wave, [T(25)], GOLD, 'gold'),
   'event:mimic': ab('Gotcha!', stomp, [D(5, hit()), ST(1.5, hit())], BROWN, 'burst'),
+  'event:sighting': ab('Hero Cameo', every(8), [TH('shield', 'ricochet', 2, rnd(1), { more: [2, 2] })], BLUE, 'burst'),
 
   // ——— Bosses and mini-bosses ———
   'boss:bigfoot': ab('Big Stomp', act, [D(10, all, 1300), ST(0.8, all)], BROWN, 'slam', 0.95),
@@ -525,6 +540,8 @@ export const ABILITIES: Record<string, Ability> = {
   'foot:mimic': ab('Surprise!', kill(0.25), [D(3, hit(220))], BROWN, 'burst'),
   'foot:blacksmith': ab('Anvil Drop', every(6), [D(4, tough(1)), ST(1, tough(1))], 0x9aa3ad, 'rain'),
   'foot:gargoylet': ab('Petrify', smack(0.25), [ST(1.2, hit()), M(1.3, 3, hit())], 0x9a9488, 'burst'),
+  'foot:batfeet': ab('Night Swoop', every(5), [D(2, front(1)), ST(1, front(1))], PURPLE, 'rain'),
+  'foot:spidersocks': ab('Web Shot', smack(0.25), [S(0.6, 2.5, hit())], WHITE, 'ink'),
 
   // ——— Pizzas ———
   'pizza:margherita': plus(ab('Classic Crust', always, [STAT({ damage: 1.5 })], RED, 'burst'), every(6), TH('tomato', 'bounce', 2, rnd(1), { more: [1.5, 1] })),
@@ -753,6 +770,8 @@ function effectText(f: Effect): string {
       return `+${f.n} tips`;
     case 'throw':
       return throwText(f, false);
+    case 'move':
+      return 'a hand-built move';
     case 'stat':
       return Object.entries(f.mods)
         .map(([k, v]) => STAT_LABEL[k as NumStat]?.(v as number) ?? `${k} +${v}`)
@@ -871,6 +890,7 @@ function triggerText(t: Trigger): string {
 
 /** "Every 5s: hit 4 random feet for 2× smack damage." */
 export function describeAbility(a: Ability): string {
+  if (a.desc) return a.desc.replace(/\{slam\}/g, slamPrompt());
   // merge repeated shields/heals into one phrase
   const parts: string[] = [];
   for (const f of a.fx) {

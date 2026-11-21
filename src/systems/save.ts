@@ -111,6 +111,8 @@ export interface SaveData {
   rareSeen: string[];
   /** Milestone records for the phase 3 pizzas: bestCombo, perfectBest, fastWave (best clear in seconds), nightRuns, untouched (1 once done). */
   pizzaGoals: Record<string, number>;
+  /** Hero and god peel goals (src/game/heroGoals.ts): counters, bests and flags by key. */
+  goals: Record<string, number>;
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -178,6 +180,7 @@ const DEFAULTS: SaveData = {
   specialSeen: {},
   rareSeen: [],
   pizzaGoals: {},
+  goals: {},
 };
 
 function clone<T>(v: T): T {

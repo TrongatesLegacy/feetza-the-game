@@ -19,8 +19,10 @@ import { persist, save } from '../systems/save';
 import { addCanvas, eventCanvases, footMeta, pizzaTops } from './assets';
 import { PIZZAS } from '../data/pizzas';
 import type { EventId } from './events';
+import { HERO_PEELS, type HeroSub } from '../content/heroPeels';
+import { goalProgress } from './heroGoals';
 
-export type PeelGroup = 'classic' | 'golden' | 'jewel' | 'foot' | 'boss' | 'place' | 'event' | 'pizza' | 'shinyFoot' | 'shinyEvent' | 'master' | 'act';
+export type PeelGroup = 'classic' | 'golden' | 'jewel' | 'foot' | 'boss' | 'place' | 'event' | 'pizza' | 'shinyFoot' | 'shinyEvent' | 'master' | 'act' | 'hero';
 
 export interface PeelDef {
   id: string;
@@ -39,6 +41,8 @@ export interface PeelDef {
   shiny?: boolean;
   /** Extremely rare. */
   ultra?: boolean;
+  /** Hero peels: their section in the HEROES tab. */
+  sub?: HeroSub;
   look: () => PeelLook;
 }
 
@@ -55,9 +59,10 @@ const EVENT_LABEL: Record<EventId, [string, string]> = {
   seagull: ['Golden Seagull', 'Smack'],
   chest: ['Pizza Box Chest', 'Open'],
   mimic: ['Mimic', 'Beat'],
+  sighting: ['Hero Sighting', 'Catch'],
 };
-const EVENT_NEED: Record<EventId, number> = { balloon: 10, drone: 5, moth: 5, seagull: 2, chest: 5, mimic: 3 };
-const EVENT_KEY: Record<EventId, string> = { balloon: 'ev_balloon', drone: 'ev_drone', moth: 'ev_moth', seagull: 'ev_seagull', chest: 'ev_chest', mimic: 'ev_mimic' };
+const EVENT_NEED: Record<EventId, number> = { balloon: 10, drone: 5, moth: 5, seagull: 2, chest: 5, mimic: 3, sighting: 3 };
+const EVENT_KEY: Record<EventId, string> = { balloon: 'ev_balloon', drone: 'ev_drone', moth: 'ev_moth', seagull: 'ev_seagull', chest: 'ev_chest', mimic: 'ev_mimic', sighting: 'ev_sighting' };
 
 /** Kills needed for a regular foot's peel: common feet need more, rare ones fewer. */
 export function killsNeeded(f: FootType): number {
@@ -205,6 +210,7 @@ const EVENT_LOOK: Record<EventId, Plain> = {
   seagull: { shape: 'paddle', base: '#ffd23f', pattern: 'waves', pc: '#ffffff', metal: true },
   chest: { shape: 'square', base: '#d9a066', pattern: 'grain', pc: '#7a4a22' },
   mimic: { shape: 'spade', base: '#a8703a', pattern: 'drips', pc: '#ff3d5a' },
+  sighting: { shape: 'spade', base: '#1f3a8a', pattern: 'stars', pc: '#ffd23f', studs: '#ffd23f' },
 };
 
 /** Golden Crust peels (not shiny). */
@@ -412,6 +418,20 @@ function buildDefs(): PeelDef[] {
       shiny: true,
       ultra: true,
       look: plain(`ultra:${id}`, p, true),
+    });
+  }
+  // heroes and gods (src/content/peels/): a goal each, or a crust price
+  for (const hp of HERO_PEELS) {
+    const g = hp.goal;
+    defs.push({
+      id: hp.id,
+      name: hp.name,
+      group: 'hero',
+      sub: hp.sub,
+      how: hp.how,
+      cost: g.kind === 'crusts' ? g.cost : undefined,
+      progress: g.kind === 'crusts' ? undefined : () => goalProgress(g),
+      look: hp.look,
     });
   }
   return defs;
