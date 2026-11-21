@@ -369,6 +369,15 @@ function blades(k: HeroKit, dt: number): void {
     k.host.layers.cursor.add(g);
     (k.st as Record<string, unknown>).bladeG = g;
   }
+  // the chains meet under the peel's handle, so they're drawn on their own layer behind the peel
+  let cg = k.st.chainG as unknown as Phaser.GameObjects.Graphics | undefined;
+  if (!cg || !cg.active) {
+    cg = k.sc.add.graphics();
+    k.host.layers.cursor.add(cg);
+    (k.st as Record<string, unknown>).chainG = cg;
+  }
+  const peelObj = k.host.peel() as unknown as Phaser.GameObjects.GameObject;
+  if (peelObj && k.host.layers.cursor.exists(peelObj)) k.host.layers.cursor.moveBelow(cg as unknown as Phaser.GameObjects.GameObject, peelObj);
   const raging = !!k.st.breaker;
   // one turn every 1.2 s; twice as fast in the rage
   const spin = ((Math.PI * 2) / 1.2) * (raging ? 2 : 1);
@@ -376,18 +385,19 @@ function blades(k: HeroKit, dt: number): void {
   const p = k.host.peelPos();
   const R = 120;
   g.clear();
+  cg.clear();
   const lastHit = bladeHits(k);
   for (let i = 0; i < n; i++) {
     const a = ang + (i / n) * Math.PI * 2;
     const bx = p.x + Math.cos(a) * R;
     const by = p.y + Math.sin(a) * R;
     // the chain: links from the peel out to the blade
-    g.lineStyle(5, 0x2a1810, 0.7);
-    g.lineBetween(p.x, p.y, bx, by);
+    cg.lineStyle(5, 0x2a1810, 0.7);
+    cg.lineBetween(p.x, p.y, bx, by);
     for (let j = 1; j < 7; j++) {
       const u = j / 7;
-      g.fillStyle(raging ? 0xff9a3a : 0x9aa3ad, 1);
-      g.fillEllipse(p.x + (bx - p.x) * u, p.y + (by - p.y) * u, 9, 6);
+      cg.fillStyle(raging ? 0xff9a3a : 0x9aa3ad, 1);
+      cg.fillEllipse(p.x + (bx - p.x) * u, p.y + (by - p.y) * u, 9, 6);
     }
     // the blade: a curved, back-swept blade facing the way it spins
     const tang = a + Math.PI / 2;
@@ -1600,6 +1610,7 @@ registerPassives(
       tick: (k, dt) => blades(k, dt),
       waveClear: (k) => {
         (k.st.bladeG as unknown as Phaser.GameObjects.Graphics | undefined)?.clear();
+        (k.st.chainG as unknown as Phaser.GameObjects.Graphics | undefined)?.clear();
       },
     },
 
