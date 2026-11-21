@@ -17,7 +17,9 @@ export type LocationId = 'trattoria' | 'rooftop' | 'beach' | 'diner' | 'lodge' |
   // Act 10 · Finale (src/content/art/scenes-act10.ts)
   | 'oven' | 'firstpizzeria'
   // ——— Nemesis stages (src/game/nemesis.ts; scenes in src/content/art/scenes-gotham.ts) ———
-  | 'gotham';
+  | 'gotham'
+  // King Leonidas's Hot Gates (src/content/art/scenes-leonidas.ts)
+  | 'hotgates';
 export type ArenaId = 'bigfoot' | 'ironheel' | 'clownking' | 'trex' | 'colossus' | 'phantomking' | 'cosmiccroc' | 'nonna' | 'gargoyle' | 'kraken' | 'rinkqueen' | 'yeti'
   // ——— Act 7 · Comics ———
   | 'doomstomp'
@@ -36,7 +38,17 @@ export type ArenaId = 'bigfoot' | 'ironheel' | 'clownking' | 'trex' | 'colossus'
   | 'soleprop' | 'soleunbound'
   // ——— Nemesis stages: Batpeel's Gotham (the mini-boss gets an arena of its own too) ———
   | 'bunion'
-  | 'jokester';
+  | 'jokester'
+  // ——— Nemesis bosses: Kratos in Tartarus (src/content/art/scenes-kratos.ts) ———
+  | 'titanking'
+  | 'zeus'
+  // ——— Nemesis bosses: the comic heroes' minis (src/content/art/scenes-comics.ts) ———
+  | 'redsole'
+  | 'venomnom'
+  | 'cheetoe'
+  // ——— Nemesis bosses: King Leonidas at the Hot Gates ———
+  | 'immortalbrute'
+  | 'xerxes';
 export type BackdropId = LocationId | ArenaId;
 export type AmbientKind =
   | 'dust'

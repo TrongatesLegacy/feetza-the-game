@@ -88,6 +88,8 @@ const LOOK: Record<ThrowProp, Look> = {
   crescent: { size: 70, color: 0xe8edf2, spin: 1200, ...TINK },
   // god props (src/content/props/gods.ts)
   hammer: { size: 100, color: 0x9fd8ff, spin: 900, ...HEAVY, impact: 'sfx_hitclang' },
+  // King Leonidas (src/content/props/leonidas.ts)
+  spear: { point: true, size: 132, color: 0xc9873a, spin: 0, ...TINK, impact: 'sfx_hitclang' },
 };
 
 // sizes above are the drawing's units (src/content/props/throws.ts); on screen they show a quarter bigger,

@@ -116,6 +116,8 @@ export const THROW_PROPS = {
   crescent: ['crescent dart', 'crescent darts'],
   // god props (src/content/props/gods.ts)
   hammer: ['thunder hammer', 'thunder hammers'],
+  // King Leonidas (src/content/props/leonidas.ts)
+  spear: ['Spartan spear', 'Spartan spears'],
 } as const;
 export type ThrowProp = keyof typeof THROW_PROPS;
 
@@ -743,6 +745,18 @@ export const ABILITIES: Record<string, Ability> = {
   'place:gotham': ab('Rooftop Vigil', every(7), [S(0.3, 3, all), M(1.5, 4, tough(1)), ST(1, tough(1))], BLUE, 'ink'),
   'boss:bunion': plus(ab('Venom', always, [STAT({ damage: 2, knockback: 80 })], GREEN, 'burst'), every(9), D(5, tough(1), 1200), ST(1.5, tough(1))),
   'boss:jokester': plus(ab('Last Laugh', act, [ST(2.5, all), D(5, all), T(10)], 0x9be23a, 'gold'), every(6), TH('card', 'explode', 2, rnd(1), { r: 150, splash: 1 })),
+
+  // ——— Nemesis bosses: Kratos in Tartarus (src/game/bosses/kratos.ts) ———
+  'boss:titanking': plus(ab('Time Eater', every(8), [S(0.45, 3, all), ST(1, tough(1))], GOLD, 'frost'), kill(0.2), H(1)),
+  'boss:zeus': plus(ab('King of the Sky', act, [D(7, all, 400), ST(1.5, all), SH(1, 'all')], 0x9fd8ff, 'zap', 0.9), every(7), TH('bolt', 'straight', 3, tough(1))),
+  // ——— Nemesis bosses: the comic heroes' minis (src/game/bosses/comics.ts) ———
+  'boss:redsole': plus(ab('Cosmic Crouton', every(9), [D(4, rnd(1), 300), ST(1.5, rnd(1))], 0x5fb8ff, 'zap'), kill(0.2), T(2)),
+  'boss:venomnom': plus(ab('We Are Hungry', smack(0.15), [S(0.5, 2.5, hit()), D(1, hit(120))], 0x8a8aff, 'ink'), every(10), H(1)),
+  'boss:cheetoe': plus(ab('Pounce', every(5), [D(3, front(1), 400), ST(1, front(1))], 0xf0a040, 'wind'), always, STAT({ radius: 6 })),
+  // ——— Nemesis: King Leonidas at the Hot Gates (src/game/bosses/leonidas.ts) ———
+  'place:hotgates': ab('This Is Where We Hold', every(8), [K(260, front(3)), ST(1, front(3)), D(1.5, front(3))], 0xc9873a, 'burst'),
+  'boss:immortalbrute': plus(ab('Blade on a Chain', every(6), [D(3, front(2), 300), B(1, 2, front(2))], 0x9aa3ad, 'wind'), kill(0.15), SH(1)),
+  'boss:xerxes': ab('Arrows Blot Out the Sun', act, [D(5, all, 200), M(1.5, 6, all), T(15)], 0xffd23f, 'gold', 0.9),
 
   // ——— Event shinies use their event's ability (see abilityKey) ———
 };

@@ -26,6 +26,14 @@ export interface Nemesis {
 
 export const NEMESES: Nemesis[] = [
   { peels: ['hero:batpeel', 'hero:darkkneader'], hero: 'Batpeel', stage: 12, location: 'gotham', mini: 'bunion', boss: 'jokester' },
+  // Kratos in Tartarus: Kronos the Titan King for Cerberus, Zeus for Hades (src/game/bosses/kratos.ts)
+  { peels: ['hero:kratos', 'hero:ghostofsparta'], hero: 'the Kratos Peel', stage: 17, mini: 'titanking', boss: 'zeus' },
+  // the comic heroes' minis (src/game/bosses/comics.ts): two of them want the Doom Lab's slot, each with its own nemesis
+  { peels: ['hero:captainpizzeria', 'hero:shieldofliberty'], hero: 'Captain Pizzeria', stage: 13, mini: 'redsole' },
+  { peels: ['hero:spiderpan', 'hero:symbiotepan'], hero: 'Spider-Pan', stage: 13, mini: 'venomnom' },
+  { peels: ['hero:wonderwedge', 'hero:amazonqueen'], hero: 'Wonder Wedge', stage: 12, mini: 'cheetoe' },
+  // King Leonidas: the Labyrinth becomes the Hot Gates, with the Immortal Brute and Xerxes (src/game/bosses/leonidas.ts)
+  { peels: ['hero:leonidas', 'hero:hotgates'], hero: 'King Leonidas', stage: 16, location: 'hotgates', mini: 'immortalbrute', boss: 'xerxes' },
 ];
 
 /** The run's ability peel, as far as nemesis stages are concerned ('' outside a run). */

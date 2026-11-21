@@ -422,7 +422,8 @@ export function charybdis(a: Arena, rw: EventRewards): void {
 // ——— Home ground: Greek god peels get +10% in this act ———
 
 /** Act 9's stages, where the Greek god peels fight on home ground. */
-export const GREEK_HOME: LocationId[] = ['labyrinth', 'tartarus'];
+// (the Hot Gates stand in for the Labyrinth when King Leonidas is the run's peel: src/game/nemesis.ts)
+export const GREEK_HOME: LocationId[] = ['labyrinth', 'tartarus', 'hotgates'];
 export const HOME_GROUND_BONUS = 0.1;
 
 /** A peel is a Greek god when it's in the 'hero' group with `pantheon: 'greek'` (the hero peels are built

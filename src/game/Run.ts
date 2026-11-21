@@ -46,6 +46,7 @@ export const LOCATION_MUSIC: Record<LocationId, string[]> = {
   firstpizzeria: ['music_firstpizzeria', 'music_game'],
   // ——— Nemesis stages (src/game/nemesis.ts) ———
   gotham: ['music_gotham', 'music_metropizza', 'music_game'],
+  hotgates: ['music_hotgates', 'music_labyrinth', 'music_game'],
 };
 
 export const LOCATION_AMBIENCE: Record<LocationId, string[]> = {
@@ -75,6 +76,7 @@ export const LOCATION_AMBIENCE: Record<LocationId, string[]> = {
   firstpizzeria: ['ambience_firstpizzeria', 'ambience_pizzeria'],
   // ——— Nemesis stages (src/game/nemesis.ts) ———
   gotham: ['ambience_gotham', 'ambience_metropizza', 'ambience_pizzeria'],
+  hotgates: ['ambience_hotgates', 'ambience_labyrinth', 'ambience_pizzeria'],
 };
 
 /** How many times the journey has been completed before wave n (0 on the first time through). */

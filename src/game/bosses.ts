@@ -19,6 +19,12 @@ import { brains as act9 } from './bosses/act9';
 import { brains as act10 } from './bosses/act10';
 // ——— Nemesis stages: Batpeel's Gotham (src/game/nemesis.ts) ———
 import { brains as gotham } from './bosses/gotham';
+// ——— Nemesis bosses: Kratos in Tartarus ———
+import { brains as kratos } from './bosses/kratos';
+// ——— Nemesis bosses: the comic heroes' minis ———
+import { brains as comics } from './bosses/comics';
+// ——— Nemesis bosses: King Leonidas at the Hot Gates ———
+import { brains as leonidas } from './bosses/leonidas';
 import { type Brain, auraFor, hitWindup } from './bosses/kit';
 
 export type { Brain };
@@ -34,6 +40,12 @@ Object.assign(BRAINS, act9);
 Object.assign(BRAINS, act10);
 // ——— Nemesis stages: Batpeel's Gotham ———
 Object.assign(BRAINS, gotham);
+// ——— Nemesis bosses: Kratos in Tartarus ———
+Object.assign(BRAINS, kratos);
+// ——— Nemesis bosses: the comic heroes' minis ———
+Object.assign(BRAINS, comics);
+// ——— Nemesis bosses: King Leonidas at the Hot Gates ———
+Object.assign(BRAINS, leonidas);
 
 /** Dev boss lab: a boss's phase names and move info, without spawning it. */
 export function bossPhaseInfo(id: string): { names: string[]; info: string[]; fixed?: number } | null {

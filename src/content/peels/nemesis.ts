@@ -106,6 +106,7 @@ export const peels: HeroPeel[] = [
     id: 'hero:darkkneader',
     name: 'The Dark Kneader',
     sub: 'heroes',
+    after: 'hero:batpeel',
     goal,
     how: 'The long night: beat the Jokester 3 times with Batpeel equipped. He only turns up at wave 65, in Goth-Ham, when Batpeel is your peel. Any heat counts.',
     look: heroLook('hero:darkkneader', {

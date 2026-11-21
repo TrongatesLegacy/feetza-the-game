@@ -462,3 +462,6 @@ export const peels: HeroPeel[] = ROWS.map((r) => ({
   look: heroLook(`hero:${r.id}`, r.art),
   ability: r.ability,
 }));
+
+/** Each hero's art, by id (the variants in ./variants.ts restyle their base hero's). */
+export const HERO_ART: Record<string, HeroArt> = Object.fromEntries(ROWS.map((r) => [r.id, r.art]));

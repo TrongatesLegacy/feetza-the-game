@@ -607,6 +607,106 @@ const TRIM: Record<string, number> = {
   sfx_jokester_death: 1.09, // -10.2 dB → -9.5: his death: a last laugh fading into a big confetti bang
   sfx_hero_darkfalls: 1.05, // -10.0 dB → -9.6: the Dark Kneader's darkness falls: a heavy low boom, a wing whoosh and a sub tail
   sfx_hero_split: 1.10, // -12.8 dB → -12.0: a Dark Kneader wing-boomerang splits in two on impact (a metallic shing)
+  // ——— Nemesis bosses and hero variants (scripts/nemesis-audio): Kronos the Titan King, Zeus, the Red Sole, Venomnom, the Cheetoe, and the upgraded hero peels ———
+  sfx_titanking_enter: 1.05, // -9.9 dB → -9.5: Kronos lands: a colossal stone foot, rattling chains and a deep rumble
+  sfx_titanking_roar: 1.20, // -12.6 dB → -11.0: Kronos roars as a new phase starts: an ancient titan bellow
+  sfx_titanking_flip: 1.11, // -11.9 dB → -11.0: the giant hourglass flips: stone grinding and a glassy whoosh (tell)
+  sfx_titanking_tick: 0.89, // -12.5 dB → -13.5: one deep tick of the Titan's clock (repeats while the sand runs)
+  sfx_titanking_shatter: 1.14, // -10.6 dB → -9.5: the hourglass is smashed: a great glass shatter and a pour of sand
+  sfx_titanking_slow: 1.06, // -11.5 dB → -11.0: time slows on you: a warped, falling tape-stop whoosh
+  sfx_titanking_chomp: 1.06, // -10.0 dB → -9.5: Devour: the stone jaw clamps onto a pizza with a heavy chomp
+  sfx_titanking_chew: 0.89, // -12.5 dB → -13.5: the stone jaw grinds and chews (repeats while it eats)
+  sfx_titanking_jawhit: 1.06, // -11.0 dB → -10.5: a smack on the stone jaw: a hard stone clack
+  sfx_titanking_freed: 1.09, // -11.3 dB → -10.6: the jaw is forced open and the pizza is freed: a crack and a relief chime
+  sfx_titanking_chain: 1.10, // -11.8 dB → -11.0: Reign of the Titans: chains crash down across a lane (tell)
+  sfx_titanking_chainhit: 1.24, // -12.4 dB → -10.5: a smack on a locking chain: a metallic clank
+  sfx_titanking_chainbreak: 1.23, // -11.3 dB → -9.5: a chain snaps and its links scatter
+  sfx_titanking_death: 1.10, // -10.4 dB → -9.6: Kronos crumbles: stone collapsing, a hiss of sand and falling chains
+  sfx_zeus_enter: 1.07, // -10.1 dB → -9.5: Zeus descends: a thunderclap, a choir swell and a marble landing
+  sfx_zeus_thunder: 1.05, // -11.4 dB → -11.0: a huge rolling thunder as Zeus starts a new phase
+  sfx_zeus_charge: 1.07, // -11.6 dB → -11.0: a storm cloud charges over a lane: a building crackle (tell, about 1.5 s)
+  sfx_zeus_bolt: 1.07, // -10.1 dB → -9.5: a lightning bolt strikes: a sharp crack and boom
+  sfx_zeus_scatter: 1.09, // -11.2 dB → -10.5: a storm cloud is smacked away: a puff and a dying fizzle
+  sfx_zeus_hurl: 1.03, // -12.3 dB → -12.0: Zeus hurls a thunderbolt at your peel: a zapping whoosh
+  sfx_zeus_deflect: 1.11, // -11.4 dB → -10.5: the thunderbolt is batted back: an electric ping
+  sfx_zeus_poseidon: 1.04, // -11.3 dB → -11.0: Zeus calls Poseidon: a conch horn over a rising swell of water (tell)
+  sfx_zeus_wave: 1.05, // -9.9 dB → -9.5: Poseidon's wave crashes across the table
+  sfx_zeus_trident: 1.21, // -12.2 dB → -10.5: the trident is knocked away: a metal clang and a splash
+  sfx_zeus_ares: 1.08, // -11.7 dB → -11.0: Zeus calls Ares: a blast on a war horn (tell)
+  sfx_zeus_warcry: 1.14, // -13.1 dB → -12.0: the feet answer Ares's war cry: a roaring crowd shout
+  sfx_zeus_silence: 1.11, // -10.4 dB → -9.5: Ares's war helmet is smashed: a bronze clang
+  sfx_zeus_hera: 1.06, // -11.5 dB → -11.0: Zeus calls Hera: her crown descends with a regal chime and shimmer
+  sfx_zeus_peacock: 1.15, // -11.7 dB → -10.5: a smack on a peacock-eye gem in Hera's crown: a glassy ping
+  sfx_zeus_crown: 1.15, // -10.7 dB → -9.5: Hera's crown breaks: a shatter of gold
+  sfx_zeus_death: 1.11, // -10.4 dB → -9.5: Zeus falls: fading thunder, cracking marble and a choir cut short
+  sfx_redsole_enter: 1.08, // -10.2 dB → -9.5: the Red Sole marches in: jackboots and a sinister laugh
+  sfx_redsole_laugh: 1.04, // -11.4 dB → -11.1: the Red Sole's villain laugh (tell)
+  sfx_redsole_cube: 1.08, // -11.6 dB → -10.9: the cosmic cube hums as it charges (tell, about 2 s)
+  sfx_redsole_beam: 1.16, // -10.8 dB → -9.5: the cube fires an energy beam down a lane
+  sfx_redsole_misfire: 1.05, // -10.0 dB → -9.6: the cube backfires on him: an overload zap and a boom
+  sfx_redsole_cubehit: 1.11, // -11.4 dB → -10.5: a smack on the cosmic cube: a crystal thunk
+  sfx_redsole_turret: 1.05, // -11.5 dB → -11.1: a hydrant turret rises from the table edge: a mechanical clunk and hiss
+  sfx_redsole_spray: 1.02, // -12.2 dB → -12.0: a hydrant turret sprays: a pressurised burst
+  sfx_redsole_cap: 1.03, // -10.8 dB → -10.5: a turret is capped: a metal clang as the hiss dies
+  sfx_redsole_march: 1.17, // -12.3 dB → -10.9: the Skull Blitz: his goose-step heel clicks (tell)
+  sfx_redsole_stomp: 1.05, // -9.9 dB → -9.5: a heavy jackboot stomp lands
+  sfx_redsole_death: 1.07, // -10.1 dB → -9.5: the Red Sole goes down: his skull mask cracks, an alarm whoops and the bunker blows
+  sfx_venomnom_enter: 1.12, // -10.5 dB → -9.5: Venomnom splats down: wet goo and a deep, double-voiced growl
+  sfx_venomnom_growl: 1.20, // -12.6 dB → -11.0: Venomnom's wet growl (tell)
+  sfx_venomnom_tongue: 1.07, // -12.6 dB → -12.0: his long tongue lashes out: a wet whip
+  sfx_venomnom_snatch: 1.05, // -10.9 dB → -10.5: a slice is gulped down
+  sfx_venomnom_cut: 1.04, // -10.9 dB → -10.6: his tongue is smacked: a slap and a yelp
+  sfx_venomnom_goo: 1.08, // -12.7 dB → -12.0: a tendril binds a pizza: a sticky stretching squelch
+  sfx_venomnom_drain: 1.10, // -12.8 dB → -12.0: the bound pizza is slurped: a slice drains away
+  sfx_venomnom_tendril: 1.13, // -11.5 dB → -10.4: a smack on a goo tendril: a rubbery thwack
+  sfx_venomnom_sonic: 1.08, // -10.2 dB → -9.5: a sonic emitter fires a piercing pulse
+  sfx_venomnom_shriek: 1.14, // -12.1 dB → -11.0: the sound hurts him: Venomnom shrieks
+  sfx_venomnom_split: 1.06, // -12.5 dB → -12.0: the goo tears into copies of him
+  sfx_venomnom_death: 1.23, // -11.3 dB → -9.5: Venomnom melts: a sonic shriek, then goo dissolving and splattering
+  sfx_cheetoe_enter: 1.07, // -10.1 dB → -9.5: the Cheetoe leaps in: a big-cat roar and a landing
+  sfx_cheetoe_dash: 1.05, // -12.5 dB → -12.1: she dashes from lane to lane: a fast whoosh
+  sfx_cheetoe_crouch: 1.27, // -13.1 dB → -11.0: she crouches to pounce: a low growl (tell)
+  sfx_cheetoe_pounce: 1.07, // -10.1 dB → -9.5: the pounce lands: a thump and a snarl
+  sfx_cheetoe_slash: 1.03, // -12.3 dB → -12.0: a claw swipe
+  sfx_cheetoe_scratch: 1.11, // -11.4 dB → -10.5: claws rake a pizza
+  sfx_cheetoe_hiss: 1.17, // -13.4 dB → -12.0: the Cheetoe hisses
+  sfx_cheetoe_rustle: 0.90, // -12.6 dB → -13.5: the jungle leaves rustle where she hides
+  sfx_cheetoe_flush: 1.04, // -10.9 dB → -10.6: she's flushed out of the leaves: a yowl and a burst of foliage
+  sfx_cheetoe_death: 1.12, // -10.5 dB → -9.5: the Cheetoe is beaten: a defeated yowl and a collapse
+  sfx_hero_ghostsparta: 1.10, // -10.3 dB → -9.5: Kratos, Ghost of Sparta: a deeper, distorted war shout and a whoosh of fire
+  sfx_hero_firetrail: 0.88, // -12.4 dB → -13.5: Ghost of Sparta's rage leaves fire on the table: a short fire whoosh (repeats)
+  sfx_hero_primebeam: 1.24, // -11.4 dB → -9.5: Superpeel Prime: Heat Vision sweeps the whole screen
+  sfx_hero_infinity: 1.11, // -10.4 dB → -9.5: Iron Pan Mark Infinity: a cosmic charge and the sweeping Infinity Beam
+  sfx_hero_endgame: 1.09, // -10.3 dB → -9.6: an Endgame variant's move: portals open and a heroic brass stab
+  sfx_hero_unleashed: 1.10, // -10.3 dB → -9.5: Thor, Thunder Unleashed: a massive rolling thunderstorm
+  sfx_hero_ascended: 1.11, // -10.4 dB → -9.5: Odin Allfather Ascended: a deep horn and raven caws
+  sfx_hero_unbound: 1.05, // -10.0 dB → -9.6: Zeus, King Unbound: an overcharged lightning-sword blast
+  sfx_hero_liberty: 1.10, // -12.8 dB → -12.0: Shield of Liberty: a bright shield ricochet ping
+  sfx_hero_tendril: 1.10, // -12.8 dB → -12.0: Symbiote Pan: a web tendril snatches a foot (a sticky squelch)
+  sfx_hero_amazon: 1.10, // -10.3 dB → -9.5: Amazon Queen: a golden lasso crack and a war cry
+  // ——— Leonidas's nemesis, the Hot Gates (scripts/nemesis-audio/recipes_hotgates.py): the Immortal Brute, Xerxes, King Leonidas and the Hot Gates variant ———
+  sfx_immortalbrute_enter: 1.05, // -10.0 dB → -9.6: the Immortal Brute lands: a hulking crash, chain rattle and a roar behind his mask
+  sfx_immortalbrute_horde: 1.06, // -11.5 dB → -11.0: a horde wave of Immortals comes: a Persian war horn over marching feet (tell)
+  sfx_immortalbrute_whirl: 1.06, // -11.5 dB → -11.0: the Brute whirls his chain blade overhead (tell, about 1.5 s)
+  sfx_immortalbrute_slam: 1.10, // -10.3 dB → -9.5: the chain blade slams down: a metal crash
+  sfx_immortalbrute_snag: 1.28, // -12.6 dB → -10.5: the chain blade is snagged: a big metallic clank and a grunt
+  sfx_immortalbrute_roar: 1.28, // -13.1 dB → -11.0: the Immortal Brute roars as a new phase starts
+  sfx_immortalbrute_death: 0.99, // -9.4 dB → -9.5: the Immortal Brute topples: an armour crash and a clatter of chain
+  sfx_xerxes_enter: 1.06, // -10.0 dB → -9.5: Xerxes arrives: gongs, a deep choir swell and a heavy golden landing
+  sfx_xerxes_laugh: 1.08, // -11.7 dB → -11.0: Xerxes laughs: a deep, regal god-king laugh (tell)
+  sfx_xerxes_arrows: 1.05, // -11.5 dB → -11.1: the arrow storm: thousands of bows loose and the sky darkens with a rising hiss
+  sfx_xerxes_volley: 1.08, // -12.7 dB → -12.0: one volley of arrows whistling down onto the table
+  sfx_xerxes_bat: 1.11, // -11.4 dB → -10.5: arrows batted away: a wooden clatter
+  sfx_xerxes_rhino: 1.11, // -11.9 dB → -11.0: a war rhino snorts and paws the ground before it charges (tell)
+  sfx_xerxes_charge: 1.05, // -9.9 dB → -9.5: the war rhino charges down a lane: a thundering gallop and a crash
+  sfx_xerxes_turn: 1.05, // -10.9 dB → -10.5: the war rhino is turned away: a snort and a retreat
+  sfx_xerxes_elephants: 1.12, // -12.0 dB → -11.0: war elephants trumpet
+  sfx_xerxes_guard: 1.05, // -12.4 dB → -12.0: a golden guard ward hums up round Xerxes
+  sfx_xerxes_death: 1.08, // -10.1 dB → -9.4: the god-king falls: a crash of gold armour, chains and a fading gong
+  sfx_hero_holdline: 1.08, // -10.1 dB → -9.4: King Leonidas's Hold the Line: a wall of bronze shields slams down with a shout
+  sfx_hero_spear: 1.09, // -12.8 dB → -12.1: King Leonidas's spear is hurled: a strong whoosh and a thunk
+  sfx_hero_shieldblock: 1.13, // -11.6 dB → -10.5: a stomp clangs off a bronze shield in the shield wall
+  sfx_hero_hotgates: 1.09, // -10.2 dB → -9.5: Leonidas, Hot Gates: a roaring Spartan war cry with shields beating
 };
 
 const AMBIENCE_GAIN = 0.4;

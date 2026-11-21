@@ -239,6 +239,7 @@ const PLACE_LOOK: Record<LocationId, Plain> = {
   firstpizzeria: { shape: 'paddle', base: '#8a7a6a', pattern: 'marble', pc: '#ffb347', handle: '#5a3a22' },
   // ——— Nemesis stages (src/game/nemesis.ts) ———
   gotham: { shape: 'spade', base: '#2a2f45', pattern: 'drips', pc: '#ffd23f', handle: '#1a1c28', studs: '#c9cfd8' },
+  hotgates: { shape: 'round', base: '#c9873a', pattern: 'marble', pc: '#8a0a14', handle: '#5a2a1a', studs: '#ffe0a0' },
 };
 
 const EVENT_LOOK: Record<EventId, Plain> = {

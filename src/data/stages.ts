@@ -149,4 +149,14 @@ export const BOSS_MINION: Record<string, string> = {
   // ——— Nemesis stages (src/game/nemesis.ts): Batpeel's Gotham ———
   bunion: 'henchman',
   jokester: 'clown',
+  // ——— Nemesis bosses: Kratos in Tartarus ———
+  titanking: 'titantoes',
+  zeus: 'harpy',
+  // ——— Nemesis bosses: the comic heroes' minis ———
+  redsole: 'henchman',
+  venomnom: 'ultodrone',
+  cheetoe: 'jetpack',
+  // ——— Nemesis bosses: King Leonidas at the Hot Gates ———
+  immortalbrute: 'immortal',
+  xerxes: 'archer',
 };

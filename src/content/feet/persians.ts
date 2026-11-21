@@ -1,7 +1,7 @@
 // The Persian army: five feet that march with the Persian Elephant Feet in Act 9 (Greek myths), alone or in a
 // war band (see planWave in src/game/Run.ts). Art in src/content/art/persianFeet.ts, behaviour in
 // src/game/acts/persians.ts, peel abilities in ABILITIES (src/game/abilities.ts). All of them are `persian`:
-// the Kratos Peel counts them, and a Satrap's Slipper armours them.
+// King Leonidas's unlock counts them, and a Satrap's Slipper armours them.
 
 import type { FootType } from '../../data/feet';
 
