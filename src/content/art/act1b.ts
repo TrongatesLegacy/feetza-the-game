@@ -27,21 +27,6 @@ function steel(ctx: Ctx, x0: number, x1: number): CanvasGradient {
 function drawBlacksmith(ctx: Ctx, art: FootArt, r: () => number): void {
   const boot = art.primary!;
   const apron = art.secondary!;
-  // hammer tucked behind at the right: wooden handle, iron head
-  ctx.save();
-  ctx.translate(204, 70);
-  ctx.rotate(0.3);
-  roundRect(ctx, -7, -40, 14, 130, 6);
-  ctx.fillStyle = leatherFill(ctx, '#b07a40');
-  ctx.fill();
-  ink(ctx, 4);
-  roundRect(ctx, -34, -74, 68, 38, 7);
-  ctx.fillStyle = steel(ctx, -34, 34);
-  ctx.fill();
-  ink(ctx, 4.5);
-  ctx.fillStyle = rgba('#ffffff', 0.7);
-  ctx.fillRect(-26, -68, 30, 5);
-  ctx.restore();
   // heavy flat sole
   roundRect(ctx, CX - 112, 226, 224, 34, 12);
   ctx.fillStyle = '#231a14';
@@ -131,6 +116,34 @@ function drawBlacksmith(ctx: Ctx, art: FootArt, r: () => number): void {
   ctx.fillStyle = steel(ctx, CX - 13, CX + 13);
   ctx.fill();
   ink(ctx, 3);
+  // the big forging hammer, gripped across the front of the boot: it's what marks a blacksmith out
+  ctx.save();
+  ctx.translate(196, 64);
+  ctx.rotate(0.55);
+  roundRect(ctx, -9, -8, 18, 140, 8);
+  ctx.fillStyle = leatherFill(ctx, '#c08a4c');
+  ctx.fill();
+  ink(ctx, 5);
+  // leather grip wrap
+  for (let y = 70; y < 128; y += 12) {
+    ctx.beginPath();
+    ctx.moveTo(-9, y);
+    ctx.lineTo(9, y + 6);
+    ink(ctx, 3, rgba(INK, 0.55));
+  }
+  roundRect(ctx, -44, -52, 88, 46, 9);
+  ctx.fillStyle = steel(ctx, -44, 44);
+  ctx.fill();
+  ink(ctx, 5.5);
+  // striking faces, glowing from the forge
+  for (const x of [-44, 36]) {
+    roundRect(ctx, x, -50, 8, 42, 3);
+    ctx.fillStyle = x < 0 ? '#ff9a3d' : '#d8dde4';
+    ctx.fill();
+  }
+  ctx.fillStyle = rgba('#ffffff', 0.75);
+  ctx.fillRect(-30, -45, 40, 6);
+  ctx.restore();
 }
 
 registerKind('blacksmith', { draw: drawBlacksmith, contactY: 262, halfWidth: 112 });

@@ -13,6 +13,6 @@ export const feet: FootType[] = [
     howTo: 'Smack it down before it reaches The Colossus',
     tell: 'It raises its hammer, then swings over to him',
     quips: ['FRESH PLATE!', 'HAMMER TIME!', 'GOOD AS NEW!'],
-    art: { kind: 'blacksmith', skin: '#d99a6c', primary: '#3a2c24', secondary: '#9a5a2a', leg: 'jeans', legColor: '#3d3a40' },
+    art: { kind: 'blacksmith', skin: '#d99a6c', primary: '#5a3d2b', secondary: '#9a5a2a', leg: 'jeans', legColor: '#3d3a40' },
   },
 ];
