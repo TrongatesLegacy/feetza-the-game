@@ -272,7 +272,7 @@ const headwaiter = (): Brain => {
     const tr = { img, shadow, reticle, p, k: 0, dur, spin: 0, back: false, done: false };
     tray = tr;
     a.quip(f.x, f.y - 40, 'TRAY!', '#ffffff', 44);
-    a.sfx('sfx_whoosh', { rate: 0.8 });
+    a.sfx('sfx_headwaiter_traytoss');
     a.addClickable({
       get x() {
         return img.x;
@@ -293,7 +293,7 @@ const headwaiter = (): Brain => {
         img.setTintFill(0x9dffb0);
         a.sc.time.delayedCall(90, () => img.active && img.clearTint());
         a.fx.impact(img.x, img.y, true);
-        a.sfx('sfx_slap_2', { volume: 0.8 });
+        a.sfx('sfx_headwaiter_traybat');
         a.quip(img.x, img.y - 70, 'BATTED!', '#7dff9a', 38);
       },
     });
@@ -335,7 +335,7 @@ const headwaiter = (): Brain => {
     if (tr.k >= 1) {
       const p = tr.p;
       a.fx.impact(img.x, img.y, false);
-      a.sfx('sfx_piston', { volume: 0.6, rate: 1.8 });
+      a.sfx('sfx_headwaiter_trayclang');
       endTray(a, true);
       if (!p.dead) a.hitPizza(p, heat(a).slices(1), 'TRAYED!');
       afterThrow(f, a);
@@ -362,7 +362,7 @@ const headwaiter = (): Brain => {
     setSlow(f, true);
     const n = heat(a).adds(1) + (f.phase >= 3 ? 1 : 0);
     a.quip(f.x, f.cy - 150, 'SERVICE!', '#ffffff', 46);
-    a.sfx('sfx_warning', { volume: 0.4, rate: 1.4 });
+    a.sfx('sfx_headwaiter_service');
     waiters = [];
     for (let i = 0; i < n; i++) {
       a.sc.time.delayedCall(i * 380, () => {
@@ -402,7 +402,10 @@ const headwaiter = (): Brain => {
     a.sc.time.delayedCall(1500, () => {
       tick.remove();
       if (!img.active) return;
-      if (w.alive) a.quip(w.x, w.y - 40, 'BON APPÉTIT!', '#ffffff', 30);
+      if (w.alive) {
+        a.quip(w.x, w.y - 40, 'BON APPÉTIT!', '#ffffff', 30);
+        a.sfx('sfx_headwaiter_service', { volume: 0.5 });
+      }
       a.sc.tweens.add({ targets: img, y: img.y - 120, angle: 360, alpha: 0, duration: 450, onComplete: () => img.destroy() });
     });
   };
@@ -549,14 +552,14 @@ const bigfoot = (): Brain => {
         got++;
         a.fx.ring(p.x, p.y, 0x7dff9a, 1, 1);
         a.quip(p.x + (p.x < W / 2 ? 1 : -1) * R * 2.2, p.y, 'NICE!', '#7dff9a', 50);
-        a.sfx('sfx_slap_2', { volume: 0.8 });
+        a.sfx('sfx_bigfoot_ringok');
       } else {
         missed++;
         // he shakes harder and steps lower for every miss
         h.shake += 4;
         h.y += 70;
         a.quip(p.x + (p.x < W / 2 ? 1 : -1) * R * 2.2, p.y, 'MISS!', '#ff8a6a', 50);
-        a.sfx('sfx_stomp', { volume: 0.4, rate: 1.4 });
+        a.sfx('sfx_bigfoot_bigstep', { volume: 0.45, rate: 1.4 });
         a.shake(160, 0.004);
       }
       if (got >= need) return success();
@@ -578,7 +581,7 @@ const bigfoot = (): Brain => {
       h.shake = 0;
       slam(a, g, h.p.surfaceY + 4, 220, () => {
         a.shake(400, 0.014);
-        a.sfx('sfx_stomp');
+        a.sfx('sfx_bigfoot_bigstep');
         if (!h.p.dead) a.hitPizza(h.p, hz.slices(1), 'CRUSHED!');
         shield(a, g, false);
         h.release('lift');
@@ -633,7 +636,10 @@ const bigfoot = (): Brain => {
         started = true;
         if (rt < 0) {
           rt += dt;
-          if (rt >= 0) clicked = false;
+          if (rt >= 0) {
+            clicked = false;
+            a.sfx('sfx_bigfoot_ring');
+          }
           ring.clear();
           target.setTint(0xffffff);
           return;
@@ -693,6 +699,7 @@ const bigfoot = (): Brain => {
       sec: hz.windup(5.5),
       label: 'TRAP SET!',
       badgeDy: -120,
+      hitSfx: 'sfx_bigfoot_trapbuild',
       onHit: (left) => {
         // blueprint until the last smack: it only looks built (stage 3) once it really is
         const stage = Math.min(2, Math.ceil(((total - left) / total) * 3));
@@ -710,7 +717,7 @@ const bigfoot = (): Brain => {
           a.shake(500, 0.016);
           a.rumble(0.9, 400);
           a.sfx('sfx_crit');
-          a.sfx('sfx_stomp', { volume: 0.6 });
+          a.sfx('sfx_bigfoot_trapsnap');
           a.quip(g.x, g.y - 160, 'OUCH!', '#ff4d3d', 72);
           shield(a, g, false);
           // back up to the top, stunned
@@ -738,7 +745,7 @@ const bigfoot = (): Brain => {
         slam(a, g, p.surfaceY + 4, 200, () => {
           a.shake(600, 0.02);
           a.rumble(1, 450);
-          a.sfx('sfx_stomp');
+          a.sfx('sfx_bigfoot_pound');
           a.fx.explosion(p.x, p.surfaceY, 170);
           if (!p.dead) a.hitPizza(p, hz.slices(2), 'GROUND POUND!');
           shield(a, g, false);
@@ -781,6 +788,7 @@ const bigfoot = (): Brain => {
       f0 = f;
       if (ph === 3 && !tw) {
         tw = twin(a, f);
+        if (tw) a.sfx('sfx_bigfoot_rampage');
         t = 2.5;
       }
       if (ph >= 4) f.enraged = true;
@@ -812,6 +820,7 @@ const bigfoot = (): Brain => {
       // a hit on the shielded twin lands on the boss: block it like the bubble would
       if (tw && tw.shielded && tw.distanceTo(x, y) < 40) {
         a.quip(tw.x, tw.cy - 110, 'BLOCKED', '#c7ccd4', 32);
+        a.sfx('sfx_kit_shieldblock', { throttle: 150 });
         return true;
       }
       return false;
@@ -892,11 +901,12 @@ const sweep = (): Brain => {
           // the tell: he shakes his brush and soot puffs at the top of the lane
           pending = true;
           a.quip(f.x, f.cy - 150, 'SOOT CLOUD!', '#cfcfcf', 42);
-          a.sfx('sfx_whoosh', { volume: 0.5, rate: 0.6 });
+          a.sfx('sfx_sweep_brush');
           for (let i = 0; i < 4; i++) a.sc.time.delayedCall(i * 150, () => a.fx.puff(p.x + (Math.random() - 0.5) * 120, 140 + i * 60, 10));
           a.sc.time.delayedCall(700, () => {
             pending = false;
             if (!f.alive || p.dead || !a.inWave()) return;
+            a.sfx('sfx_sweep_soot');
             covers.add(a, p, { key: 'p_sootcol', hits: hz.hits(4), slow: true, reset: true, label: 'CLEARED!', sec: hz.windup(7) });
           });
         }
@@ -912,6 +922,7 @@ const sweep = (): Brain => {
             f.x = p.x;
             a.fx.puff(f.x, f.cy, 10);
             a.quip(f.x, f.cy - 150, 'POP!', '#cfcfcf', 36);
+            a.sfx('sfx_sweep_hop');
           }
         }
       }
@@ -929,7 +940,7 @@ const sweep = (): Brain => {
             c.bricks++;
             c.p.setLift(c.bricks * BRICK);
           }
-          a.sfx('sfx_piston', { volume: 0.4, rate: 1.4 });
+          a.sfx('sfx_sweep_brick', { throttle: 120 });
         }
       }
     },
@@ -1014,6 +1025,8 @@ const ironheel = (): Brain => {
     const lnc = a.sc.add.image(lx, ly, 'p_launcher').setScale(0);
     a.fxLayer.add([orb, lnc]);
     a.sc.tweens.add({ targets: lnc, scale: 0.85, duration: 260, ease: 'Back.Out' });
+    a.sfx('sfx_ironheel_charge');
+    a.sfx('sfx_ironheel_launcher');
     const cleanup = () => {
       over = true;
       a.sc.tweens.killTweensOf(col);
@@ -1030,7 +1043,7 @@ const ironheel = (): Brain => {
     const rocket = (x: number, toY: number, onHit: () => void) => {
       const r = a.sc.add.image(x, ly - 40, 'p_rocket');
       a.fxLayer.add(r);
-      a.sfx('sfx_whoosh', { rate: 1.4 });
+      a.sfx('sfx_ironheel_rocket');
       a.sc.tweens.add({ targets: r, y: toY, duration: 380, ease: 'Quad.In', onComplete: () => (r.destroy(), onHit()) });
     };
     a.addClickable({
@@ -1052,7 +1065,7 @@ const ironheel = (): Brain => {
           over = true;
           rocket(lnc.x, f.cy, () => {
             a.fx.explosion(f.x, f.y, 160);
-            a.sfx('sfx_explosion', { volume: 0.7 });
+            a.sfx('sfx_ironheel_blast', { volume: 0.7, rate: 1.2 });
             a.sfx('sfx_crit');
             a.quip(f.x, f.y - 40, 'BACKFIRE!', '#7dff9a', 54);
             end('stun');
@@ -1131,7 +1144,7 @@ const ironheel = (): Brain => {
             a.sc.tweens.add({ targets: beam, alpha: 0, duration: 650, delay: 200, onComplete: () => beam.destroy() });
             a.flash(200, 160, 230, 255);
             a.shake(500, 0.016);
-            a.sfx('sfx_explosion', { volume: 0.8 });
+            a.sfx('sfx_ironheel_blast');
             a.fx.explosion(p.x, p.surfaceY, 170);
             a.hitPizza(p, hz.slices(1), 'POWER BLAST!');
             end('hover');
@@ -1154,7 +1167,7 @@ const ironheel = (): Brain => {
     a.sc.tweens.add({ targets: ring, scale: (R * 2) / 360, duration: 220, ease: 'Back.Out' });
     a.sc.tweens.add({ targets: ring, alpha: { from: 0.55, to: 1 }, duration: 160, yoyo: true, repeat: -1 });
     a.quip(x, y - R - 30, 'HISS…', '#ffe8c0', 34);
-    a.sfx('sfx_fire', { volume: 0.35, rate: 1.6 });
+    a.sfx('sfx_ironheel_hiss');
     const wisps = a.sc.time.addEvent({
       delay: 140,
       loop: true,
@@ -1169,7 +1182,7 @@ const ironheel = (): Brain => {
       a.sc.tweens.killTweensOf(ring);
       ring.destroy();
       if (!a.inWave() || !f.alive) return;
-      a.sfx('sfx_fire', { volume: 0.7, rate: 0.8 });
+      a.sfx('sfx_ironheel_steam');
       for (let i = 0; i < 7; i++) {
         const s = a.sc.add.image(x + (Math.random() - 0.5) * R, y + (Math.random() - 0.5) * 60, 'p_steam').setScale(0.6).setAlpha(0.95);
         a.fxLayer.add(s);
@@ -1222,7 +1235,7 @@ const ironheel = (): Brain => {
               s.p.setLift(s.lift);
               valve.setTint(0x8a909a);
               a.quip(valve.x, valve.y - 60, deep && s.lift > 0 ? 'ONE STEP DOWN!' : 'LOCKED!', '#7dff9a', 36);
-              a.sfx('sfx_shield');
+              a.sfx('sfx_ironheel_valve', { throttle: 120 });
             },
           });
         }
@@ -1247,7 +1260,7 @@ const ironheel = (): Brain => {
         f.vuln = 1.3;
         f.tint(0xff8060);
         a.quip(f.x, f.cy - 150, 'OVERHEATED: ARMOUR 0', '#ffd23f', 38);
-        a.sfx('sfx_fire', { volume: 0.6 });
+        a.sfx('sfx_ironheel_vent');
         a.sc.time.delayedCall(3000, () => {
           if (!f.alive) return;
           f.armor = Number(f.brain.armorWas ?? 6);
@@ -1279,7 +1292,7 @@ const ironheel = (): Brain => {
           const puff = a.sc.add.image(s.p.x, s.p.y + 40, 'p_steam').setAlpha(0.8).setScale(0.6);
           a.fxLayer.add(puff);
           a.sc.tweens.add({ targets: puff, y: puff.y - 120, alpha: 0, scale: 1, duration: 1000, onComplete: () => puff.destroy() });
-          a.sfx('sfx_piston', { volume: 0.8 });
+          a.sfx('sfx_ironheel_press');
           a.sc.time.delayedCall(1000, () => {
             if (!f.alive || s.lockT > 0) return;
             // Extra Hot and up raise in two steps of 65
@@ -1292,7 +1305,10 @@ const ironheel = (): Brain => {
       if (rockets.tick(dt)) {
         // rockets only reach pizzas a piston has raised: locked valves really do protect them
         const targets = pistons.filter((s) => s.lift > 0 && !s.p.dead).map((s) => s.p).slice(0, 2);
-        if (targets.length) rocketBusyUntil = a.now() + 2.5;
+        if (targets.length) {
+          rocketBusyUntil = a.now() + 2.5;
+          a.sfx('sfx_ironheel_rocket', { volume: 0.6 });
+        }
         for (const p of targets) {
           mark(a, 'p_reticle', p.x, p.surfaceY - 30, 2);
           a.sc.time.delayedCall(2000, () => {
@@ -1346,7 +1362,7 @@ const sandcastle = (): Brain => {
       if (!pending && !covers.live().length && !f.brain.windup && walls.tick(dt)) {
         pending = true;
         a.quip(f.x, f.cy - 150, 'SAND WALLS!', '#f8dca0', 44);
-        a.sfx('sfx_whoosh', { volume: 0.5, rate: 0.7 });
+        a.sfx('sfx_sandcastle_shovel');
         f.tint(0xffe0a0);
         const sy = Number(f.brain.baseSY ?? f.root.scaleY);
         a.sc.tweens.add({ targets: f.root, scaleY: { from: sy, to: sy * 0.9 }, duration: 220, yoyo: true, repeat: 1, onComplete: () => f.root.setScale(f.root.scaleX, sy) });
@@ -1355,6 +1371,7 @@ const sandcastle = (): Brain => {
           f.tint(null);
           if (!f.alive || !a.inWave()) return;
           const mine = laneOf(a, f);
+          a.sfx('sfx_sandcastle_walls');
           for (const p of a.alivePizzas()) if (p !== mine) covers.add(a, p, { key: 'p_sandcol', hits: hz.hits(3), slow: false, reset: false, label: 'WASHED AWAY!', sec: hz.windup(7), raise: p.radius * 0.36 });
         });
       }
@@ -1381,7 +1398,7 @@ const sandcastle = (): Brain => {
           if (p.dead || !a.inWave()) return;
           const s = a.sc.add.image(f.x, f.y, 'p_dough').setTint(0xf0d090).setScale(0.3);
           a.fxLayer.add(s);
-          a.sfx('sfx_whoosh', { rate: 0.6 });
+          a.sfx('sfx_sandcastle_pour');
           a.sc.tweens.add({
             targets: s,
             x: p.x,
@@ -1391,7 +1408,7 @@ const sandcastle = (): Brain => {
             ease: 'Quad.In',
             onComplete: () => {
               a.fx.puff(p.x, p.surfaceY - 20, 14);
-              a.sfx('sfx_squish', { rate: 0.6 });
+              a.sfx('sfx_sandcastle_sandland');
               a.sc.tweens.add({ targets: s, alpha: 0, delay: 500, duration: 500, onComplete: () => s.destroy() });
               if (!p.dead && f.alive && a.inWave()) a.freezePerk(p, hz.stun(6));
             },
@@ -1492,7 +1509,7 @@ const clownking = (): Brain => {
     f.puppet = true;
     f.shielded = true;
     a.quip(f.x, f.cy - 160, 'WHICH ONE IS REAL?', '#b06bff', 42);
-    a.sfx('sfx_boing', { rate: 0.7 });
+    a.sfx('sfx_clownking_leap');
     a.sc.tweens.add({
       targets: f,
       y: -420,
@@ -1544,7 +1561,7 @@ const clownking = (): Brain => {
             o.puppet = false;
             assign(a);
             o.setState('enter');
-            a.sfx('sfx_whoosh', { volume: 0.5, rate: 0.9 + k * 0.1 });
+            a.sfx('sfx_clownking_decoydrop', { rate: 0.9 + k * 0.1 });
             if (o === f) {
               f.shielded = false;
               shuffling = false;
@@ -1565,9 +1582,10 @@ const clownking = (): Brain => {
       // the shuffle holds while the King is off screen
       if (shuffling) return;
       if (f.phase === 1 && honk.tick(dt) && !f.brain.windup) {
+        a.sfx('sfx_clownking_honkwind');
         windup(a, f, '', 1.3, 'HONK…', 2, () => {
           if (f.y < 100 || shuffling) return; // phase 2 began mid wind-up and he's leapt away
-          a.sfx('sfx_warning', { rate: 1.4 });
+          a.sfx('sfx_clownking_honk');
           a.fx.ring(f.x, f.cy, 0xff3d7f, 1.4, 1);
           a.stunPeel(1, 'HONKED!');
         });
@@ -1598,7 +1616,7 @@ const clownking = (): Brain => {
         // it leaves from his toe, in view even while he hovers high
         const img = a.sc.add.image(f.x, Math.max(f.cy, 240), 'p_pie2').setScale(0.45);
         a.fxLayer.add(img);
-        a.sfx('sfx_whoosh');
+        a.sfx('sfx_clownking_pie');
         a.quip(f.x, f.cy - 160, 'PIE!', '#ffffff', 44);
         let blocked = false;
         // a slow lob that grows as it comes at the screen: there's time to smack it out of the air
@@ -1615,7 +1633,7 @@ const clownking = (): Brain => {
             blocked = true;
             img.destroy();
             if (!f.alive || !a.inWave()) return;
-            a.sfx('sfx_squish', { rate: 0.7 });
+            a.sfx('sfx_clownking_piesplat');
             a.shake(200, 0.006);
             bigSplat(a, x, y, 2);
           },
@@ -1635,6 +1653,7 @@ const clownking = (): Brain => {
             blocked = true;
             a.fx.impact(img.x, img.y, true);
             a.quip(img.x, img.y - 60, 'BLOCKED!', '#7dff9a', 36);
+            a.sfx('sfx_clownking_piesplat', { volume: 0.6, rate: 1.3 });
             a.sc.tweens.add({ targets: img, alpha: 0, y: img.y - 300, duration: 300, onComplete: () => img.destroy() });
           },
         });
