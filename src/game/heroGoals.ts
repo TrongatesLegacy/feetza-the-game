@@ -7,6 +7,10 @@
 //   - 'time:<key>'     a run played at a real-world time (counted at run start and every wave clear)
 //   - anything else    a tracker in TRACKERS, fed game events by the scene through HeroTracker.emit()
 //
+// Heat: feats and in-run tracking (track and time goals) only count on Regular or hotter (GOAL_HEAT), so Mild
+// isn't a shortcut. A track goal can ask for more with `minHeat`. Sightings, secrets, partners, crust prices and
+// value goals (boss defeats, best wave, peels owned) count on any heat. The locker adds "(Regular or hotter)".
+//
 // To add a goal: give the peel a HeroGoal in its content file (src/content/peels/*.ts). If it needs a new feat,
 // add a tracker below: a few hooks on HeroEvents that return true (or a number) when the feat (or progress) happens.
 // Per-run state lives in `c.st` (reset at the start of every run).
@@ -27,9 +31,6 @@ export interface When {
   hours?: [number, number];
   /** 1–12. */
   months?: number[];
-  season?: 'spring' | 'summer' | 'autumn' | 'winter';
-  /** About a day either side of the real full (or new) moon, computed from the date. */
-  moon?: 'full' | 'new';
   /** 7am to 7pm. */
   daylight?: boolean;
 }
@@ -43,8 +44,9 @@ export type HeroGoal =
   | { kind: 'crusts'; cost: number }
   /** Own `peel`, then clear `waves` waves with it equipped. */
   | { kind: 'partner'; peel: string; waves: number }
-  /** A tracker's counter (TRACKERS[key]) reaches need; with `when`, only progress made at that time counts. */
-  | { kind: 'track'; key: string; need: number; when?: When }
+  /** A tracker's counter (TRACKERS[key]) reaches need; with `when`, only progress made at that time counts.
+   *  minHeat: the lowest heat that counts (default GOAL_HEAT). */
+  | { kind: 'track'; key: string; need: number; when?: When; minHeat?: HeatId }
   /** Something already in the save (best wave, bosses beaten, peels owned); with `when`, it unlocks only then. */
   | { kind: 'value'; read: () => number; need: number; when?: When }
   /** Play a run at this real-world time (counted at run start and at each wave clear). */
@@ -52,32 +54,37 @@ export type HeroGoal =
   /** Any one of these (the best one shows as progress). */
   | { kind: 'any'; of: HeroGoal[] };
 
+// ——— heat ———
+const HEAT_ORDER: HeatId[] = ['mild', 'regular', 'hot', 'extrahot', 'inferno'];
+/** The lowest heat that counts for feats and in-run tracking. */
+export const GOAL_HEAT: HeatId = 'regular';
+const atLeast = (heat: HeatId, min: HeatId) => HEAT_ORDER.indexOf(heat) >= HEAT_ORDER.indexOf(min);
+
+/** The lowest heat a goal counts on (null: any heat). */
+export function goalHeat(g: HeroGoal): HeatId | null {
+  switch (g.kind) {
+    case 'track':
+      return g.minHeat ?? GOAL_HEAT;
+    case 'time':
+      return GOAL_HEAT;
+    case 'any': {
+      const all = g.of.map(goalHeat);
+      // the easiest way in decides it
+      if (all.includes(null)) return null;
+      return all.sort((a, b) => HEAT_ORDER.indexOf(a!) - HEAT_ORDER.indexOf(b!))[0] ?? null;
+    }
+    default:
+      return null;
+  }
+}
+
+/** The locker text with the heat rule added: "… (Regular or hotter)." Goals that name a higher heat already say so. */
+export function heatHow(how: string, g: HeroGoal): string {
+  if (goalHeat(g) !== 'regular') return how;
+  return `${how.replace(/\.$/, '')} (Regular or hotter).`;
+}
+
 // ——— real-world time ———
-const SYNODIC = 29.530588853;
-/** A known new moon: 6 Jan 2000, 18:14 UTC. */
-const NEW_MOON_2000 = Date.UTC(2000, 0, 6, 18, 14);
-
-/** Days since the last new moon (0 … 29.5). */
-export function moonAge(d = new Date()): number {
-  const days = (d.getTime() - NEW_MOON_2000) / 86400000;
-  return ((days % SYNODIC) + SYNODIC) % SYNODIC;
-}
-
-export function isFullMoon(d = new Date()): boolean {
-  return Math.abs(moonAge(d) - SYNODIC / 2) <= 1;
-}
-
-export function isNewMoon(d = new Date()): boolean {
-  const a = moonAge(d);
-  return a <= 1 || a >= SYNODIC - 1;
-}
-
-/** Meteorological seasons (northern hemisphere): spring is March to May. */
-export function seasonOf(d = new Date()): 'spring' | 'summer' | 'autumn' | 'winter' {
-  const m = d.getMonth() + 1;
-  return m >= 3 && m <= 5 ? 'spring' : m >= 6 && m <= 8 ? 'summer' : m >= 9 && m <= 11 ? 'autumn' : 'winter';
-}
-
 /** Dev: pretend it's this date (null: the real clock). */
 let fakeNow: Date | null = null;
 export function setFakeNow(d: Date | null): void {
@@ -90,9 +97,6 @@ export function now(): Date {
 export function matches(w: When, d = now()): boolean {
   if (w.weekday && !w.weekday.includes(d.getDay())) return false;
   if (w.months && !w.months.includes(d.getMonth() + 1)) return false;
-  if (w.season && seasonOf(d) !== w.season) return false;
-  if (w.moon === 'full' && !isFullMoon(d)) return false;
-  if (w.moon === 'new' && !isNewMoon(d)) return false;
   const h = d.getHours() + d.getMinutes() / 60;
   if (w.daylight !== undefined && w.daylight !== (h >= 7 && h < 19)) return false;
   if (w.hours) {
@@ -106,12 +110,10 @@ export function matches(w: When, d = now()): boolean {
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const hr = (h: number) => (h === 0 ? 'midnight' : h === 12 ? 'noon' : h < 12 ? `${h}am` : `${h - 12}pm`);
 
-/** "on a Thursday", "during a full moon", "in autumn (September to November)". */
+/** "on a Thursday", "between midnight and 4am (your local time)". */
 export function whenText(w: When): string {
   const parts: string[] = [];
   if (w.weekday) parts.push(`on a ${w.weekday.map((d) => DAYS[d]).join(' or ')}`);
-  if (w.season) parts.push(`in ${w.season} (${{ spring: 'March to May', summer: 'June to August', autumn: 'September to November', winter: 'December to February' }[w.season]})`);
-  if (w.moon) parts.push(`during a real ${w.moon} moon`);
   if (w.hours) parts.push(`between ${hr(w.hours[0])} and ${hr(w.hours[1])} (your local time)`);
   if (w.daylight) parts.push('in daylight (your local time)');
   return parts.join(', ');
@@ -222,14 +224,30 @@ function timeGoals(): Extract<HeroGoal, { kind: 'time' }>[] {
   return out;
 }
 
-function timedTracks(): Extract<HeroGoal, { kind: 'track' }>[] {
+function trackGoals(): Extract<HeroGoal, { kind: 'track' }>[] {
   const out: Extract<HeroGoal, { kind: 'track' }>[] = [];
   const walk = (g: HeroGoal) => {
-    if (g.kind === 'track' && g.when) out.push(g);
+    if (g.kind === 'track') out.push(g);
     else if (g.kind === 'any') g.of.forEach(walk);
   };
   for (const e of GOALS) walk(e.goal);
   return out;
+}
+
+const timedTracks = () => trackGoals().filter((g) => g.when);
+
+/** Each tracker's lowest counting heat: the lowest any goal on it asks for (no goal: it doesn't run). */
+let keyHeat: Map<string, HeatId> | null = null;
+function trackerHeat(key: string): HeatId | undefined {
+  if (!keyHeat) {
+    keyHeat = new Map();
+    for (const g of trackGoals()) {
+      const h = g.minHeat ?? GOAL_HEAT;
+      const was = keyHeat.get(g.key);
+      if (!was || !atLeast(h, was)) keyHeat.set(g.key, h);
+    }
+  }
+  return keyHeat.get(key);
 }
 
 /** Sightings that can still turn up: their peel isn't unlocked yet. */
@@ -262,6 +280,12 @@ export interface HeroEvents {
   /** A foot came down on a pizza. blocked: what stopped it (null: it landed). */
   stomp: { foot: Foot; blocked: 'shield' | 'other' | null };
   slices: { n: number };
+  /** Slices grew back on a pizza (any heal, or the slices a revive brings back). */
+  healed: { n: number };
+  /** A pizza came back from the dead. onTable: it's still alive and on the table. */
+  revive: { onTable: () => boolean };
+  /** The peel's ability was used (an active or auto ability fired). */
+  ability: Record<string, never>;
   pizzaLost: Record<string, never>;
   peelStunned: Record<string, never>;
   bossDown: { foot: Foot; mini: boolean; secs: number; smacks: number; slicesLost: number; peelStunned: boolean; abilityUsed: boolean };
@@ -326,6 +350,17 @@ export function registerTrackers(list: Record<string, [string, Tracker]>): void 
 }
 
 const HIGH: HeatId[] = ['hot', 'extrahot', 'inferno'];
+/** Night stages (by location; their boss arenas count too): Moon Knife's goal. Picked by their backdrops: a
+ *  night sky (or no sky at all, deep underground). Indoor stages with a daytime or no view don't count. */
+export const NIGHT_STAGES = ['lodge', 'space', 'oldtown', 'cellar', 'metropizza', 'jotunheim', 'tartarus', 'firstpizzeria'];
+/** A one-off feat in a run: true the first time `hit` is true, never again that run. */
+const once = (c: TrackCtx, hit: boolean): true | void => {
+  if (c.st.done || !hit) return;
+  c.st.done = true;
+  return true;
+};
+/** Persephone: the pizza most recently brought back, keyed by the run's tracker state. */
+const revivedPizza = new WeakMap<object, () => boolean>();
 /** The stage a wave belongs to. */
 const stageAt = (wave: number) => STAGES[Math.floor((waveInJourney(wave) - 1) / WAVES_PER_STAGE)];
 const FROZEN = (f: Foot) => f.alive && f.frozen && f.stunT > 0;
@@ -344,9 +379,6 @@ export function statusesOf(f: Foot, now: number): string[] {
 }
 
 registerTrackers({
-  bossNoSlices: ['Beat a boss without losing a slice', {
-    bossDown: (e) => !e.mini && e.slicesLost === 0,
-  }],
   fastWave: ['Clear a wave in under 8 seconds', {
     waveClear: (e) => !e.boss && e.secs < 8,
   }],
@@ -365,9 +397,6 @@ registerTrackers({
   }],
   shieldBlocks: ['Block stomps with shields', {
     stomp: (e) => e.blocked === 'shield',
-  }],
-  bulkWave: ['Lose 5 slices in one wave and still clear it', {
-    waveClear: (e) => e.slicesLost >= 5,
   }],
   highWave: ['Clear a wave without a single foot reaching the bottom half of the screen', {
     waveStart: (_e, c) => {
@@ -404,9 +433,6 @@ registerTrackers({
         return true;
       }
     },
-  }],
-  quickMini: ['Beat a mini-boss in 25 smacks or fewer', {
-    bossDown: (e) => e.mini && e.smacks <= 25,
   }],
   cleanCellar: ['Clear a Haunted Cellar wave without missing a smack', {
     waveStart: (_e, c) => {
@@ -474,9 +500,6 @@ registerTrackers({
     },
     waveClear: (_e, c) => c.run.location === 'beach' && !c.st.touched,
   }],
-  fastBoss: ['Beat a boss in under 60 seconds', {
-    bossDown: (e) => !e.mini && e.secs < 60,
-  }],
   threeBossesNoLoss: ['Beat 3 bosses in one run without losing a pizza', {
     bossDown: (e, c) => {
       if (e.mini || c.st.done) return;
@@ -540,17 +563,6 @@ registerTrackers({
       }
     },
   }],
-  cellarLodge: ['Clear Haunted Cellar and Alpine Lodge in one run', {
-    waveClear: (e, c) => {
-      if (!e.boss || c.st.done) return;
-      if (stageAt(c.run.wave)?.location === 'cellar') c.st.cellar = true;
-      if (stageAt(c.run.wave)?.location === 'lodge') c.st.lodge = true;
-      if (c.st.cellar && c.st.lodge) {
-        c.st.done = true;
-        return true;
-      }
-    },
-  }],
   frugal30: ['Reach wave 30 owning no more than 5 toppings', {
     waveClear: (_e, c) => {
       if (c.st.done || c.run.wave < 30 || c.run.firstWave > 1) return;
@@ -604,9 +616,6 @@ registerTrackers({
   wins: ['Win runs', {
     runEnd: (e) => e.victory,
   }],
-  anyBoss: ['Beat a boss', {
-    bossDown: (e) => !e.mini,
-  }],
   tenClean: ['Lose no slices for 10 waves in a row', {
     waveClear: (e, c) => {
       const n = e.slicesLost === 0 ? Number(c.st.n ?? 0) + 1 : 0;
@@ -620,12 +629,6 @@ registerTrackers({
   stageFull: ['End a stage with every pizza at full slices', {
     waveClear: (e, c) => e.stageEnd && c.run.allFull,
   }],
-  fullRun: ['Finish a run with every pizza at full slices', {
-    runEnd: (_e, c) => c.run.allFull && c.run.wave - c.run.firstWave + 1 >= 10,
-  }],
-  bossNoAbility: ['Beat a boss without using your peel’s ability', {
-    bossDown: (e) => !e.mini && !e.abilityUsed,
-  }],
   pierClears: ['Clear The Pier', {
     waveClear: (e, c) => e.boss && stageAt(c.run.wave)?.location === 'pier',
   }],
@@ -638,11 +641,76 @@ registerTrackers({
     },
     runEnd: (_e, c) => c.run.freshOn && !c.st.stale && c.run.wave - c.run.firstWave + 1 >= 10,
   }],
-  daylightRun: ['Play a run that starts and ends in daylight (your local time)', {
+  // ——— retuned goals: new keys, so progress made on the old, easier versions doesn't carry over ———
+  day20: ['Reach wave 20 in a run played in daylight (7am to 7pm, your local time)', {
     runStart: (_e, c) => {
-      c.st.day = matches({ daylight: true });
+      c.st.ok = matches({ daylight: true });
     },
-    runEnd: (_e, c) => !!c.st.day && matches({ daylight: true }) && c.run.wave >= 5,
+    waveStart: (_e, c) => once(c, !!c.st.ok && c.run.wave >= 20 && matches({ daylight: true })),
+  }],
+  night20: ['Reach wave 20 in a run played between midnight and 4am (your local time)', {
+    runStart: (_e, c) => {
+      c.st.ok = matches({ hours: [0, 4] });
+    },
+    waveStart: (_e, c) => once(c, !!c.st.ok && c.run.wave >= 20 && matches({ hours: [0, 4] })),
+  }],
+  threeBosses: ['Beat 3 bosses in one run', {
+    bossDown: (e, c) => once(c, !e.mini && c.run.bosses >= 3),
+  }],
+  threeBossesNoAbility: ['Beat 3 bosses in one run without using your peel’s ability (any peel but the Classic Peel)', {
+    ability: (_e, c) => {
+      c.st.used = true;
+    },
+    bossDown: (e, c) => once(c, !e.mini && !c.st.used && c.run.peel !== 'classic' && c.run.bosses >= 3),
+  }],
+  reviveBoss: ['Bring a pizza back from the dead, then beat the next boss with it on the table', {
+    revive: (e, c) => {
+      revivedPizza.set(c.st, e.onTable);
+    },
+    bossDown: (e, c) => {
+      if (e.mini) return;
+      // only the next boss: win or lose, the pizza's chance is used up
+      const onTable = revivedPizza.get(c.st);
+      revivedPizza.delete(c.st);
+      return !!onTable?.();
+    },
+  }],
+  regrow50: ['Regrow 50 slices in one run', {
+    // the counter holds the best run so far (up to 50), so the locker shows how close you've come
+    healed: (e, c) => {
+      const n = Number(c.st.n ?? 0) + e.n;
+      c.st.n = n;
+      const best = save.goals.regrow50 ?? 0;
+      if (best < 50 && n > best) return Math.min(50, n) - best;
+    },
+  }],
+  nightBosses: ['Beat 2 bosses on night stages in one run', {
+    bossDown: (e, c) => {
+      if (e.mini || !NIGHT_STAGES.includes(stageAt(c.run.wave)?.location ?? '')) return;
+      const n = Number(c.st.n ?? 0) + 1;
+      c.st.n = n;
+      return once(c, n >= 2);
+    },
+  }],
+  fastBoss20: ['Beat a boss from wave 20 onwards in under 60 seconds', {
+    bossDown: (e, c) => !e.mini && c.run.wave >= 20 && e.secs < 60,
+  }],
+  quickMini21: ['Beat a mini-boss from Act 3 onwards (wave 21 or later) in 25 smacks or fewer', {
+    bossDown: (e, c) => e.mini && c.run.wave >= 21 && e.smacks <= 25,
+  }],
+  threeCleanBosses: ['Beat 3 bosses in one run without losing a slice in any of their waves', {
+    bossDown: (e, c) => {
+      if (e.mini || e.slicesLost > 0) return;
+      const n = Number(c.st.n ?? 0) + 1;
+      c.st.n = n;
+      return once(c, n >= 3);
+    },
+  }],
+  fullRun30: ['Finish a run of 30 or more waves with every pizza on the table at full slices', {
+    runEnd: (_e, c) => c.run.allFull && c.run.wave - c.run.firstWave + 1 >= 30,
+  }],
+  bulkWave10: ['Lose 10 slices in one wave and still clear it', {
+    waveClear: (e) => e.slicesLost >= 10,
   }],
 });
 
@@ -664,6 +732,9 @@ export class HeroTracker {
     for (const [key, t] of Object.entries(TRACKERS)) {
       const fn = t[ev] as ((e: HeroEvents[E], c: TrackCtx) => number | boolean | void) | undefined;
       if (!fn) continue;
+      // below its goals' heat (Mild, usually), a tracker doesn't run at all; with no goal on it, never
+      const min = trackerHeat(key);
+      if (!min || !atLeast(run.heat, min)) continue;
       const st = (this.st[key] ??= {});
       const r = fn(e, { st, run });
       if (!r) continue;
@@ -677,7 +748,7 @@ export class HeroTracker {
       }
       any = true;
     }
-    if (ev === 'runStart' || ev === 'waveClear') any = this.checkTime() || any;
+    if ((ev === 'runStart' || ev === 'waveClear') && atLeast(run.heat, GOAL_HEAT)) any = this.checkTime() || any;
     if (ev === 'waveClear') any = this.partner(run.peel) || any;
     if (any) {
       persist();
@@ -688,6 +759,8 @@ export class HeroTracker {
   /** Tips earned this run (the scene sums them as they come in). */
   tipsEarned(n: number): void {
     if (n <= 0) return;
+    const min = trackerHeat('tipsRun');
+    if (!min || !atLeast(this.view().heat, min)) return;
     this.tipsRun += n;
     if (this.tipsRun >= 5000 && !(save.goals.tipsRun > 0)) {
       save.goals.tipsRun = 1;
