@@ -23,7 +23,8 @@ export const feet: FootType[] = [
     id: 'cyclops',
     name: 'Cyclops Sandals',
     desc: 'One giant eye on the toe cap and it never blinks. Hits hard, shrugs off knockback, but hates a poke in the eye.',
-    hp: 110, speed: 0.8, armor: 3, stompDmg: 2, coins: 20, score: 620, scale: 1.25, minWave: 82, weight: 3,
+    // (90, was 110: with elephants about in Act 9, two heavies in a wave were too many for Regular)
+    hp: 90, speed: 0.8, armor: 3, stompDmg: 2, coins: 20, score: 620, scale: 1.25, minWave: 82, weight: 3,
     traits: ['heavy'],
     home: 'labyrinth',
     howTo: 'Smack the eye: it is blinded, takes double damage and its next stomp misses',
@@ -48,7 +49,8 @@ export const feet: FootType[] = [
     id: 'titantoes',
     name: 'Titan Toes',
     desc: 'A foot from before the gods. So big it stomps the pizzas either side as well, and nothing moves it.',
-    hp: 300, speed: 0.6, armor: 4, stompDmg: 2, coins: 40, score: 1200, scale: 1.7, minWave: 84, weight: 1,
+    // (250, was 300, for the same reason)
+    hp: 250, speed: 0.6, armor: 4, stompDmg: 2, coins: 40, score: 1200, scale: 1.7, minWave: 84, weight: 1,
     traits: ['heavy', 'wide'],
     howTo: 'Save your big hits for it, and keep the pizzas either side healthy',
     tell: 'The ground shakes and pebbles jump as it rises',

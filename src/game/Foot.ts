@@ -81,6 +81,8 @@ export class Foot {
   trapped = false;
   hitOnce = false;
   lastHitBy = 0;
+  /** Seconds before a regrowing boss starts to heal again after a hit (GameScene sets it on damage). */
+  regenHold = 0;
   golden = false; // converted by Golden Touch
   slowAbove = 0;
   /** Speed boost from a nearby Jingle Toes (0..1). */
@@ -397,7 +399,10 @@ export class Foot {
       return;
     }
 
-    if (this.has('regen') && this.alive && this.hp < this.maxHp) this.hp = Math.min(this.maxHp, this.hp + this.maxHp * 0.04 * dt);
+    if (this.regenHold > 0) this.regenHold -= dt;
+    // regrowing feet heal 4% a second; a boss (the Kraken) only 1%, and only between flurries of hits, so steady
+    // smacking always wins (at 4% its regrowth outpaced a whole Mild build and the fight could never end)
+    if (this.has('regen') && this.alive && this.hp < this.maxHp && !(this.isBossLike && this.regenHold > 0)) this.hp = Math.min(this.maxHp, this.hp + this.maxHp * (this.isBossLike ? 0.01 : 0.04) * dt);
     const slowF =
       (this.slowT > 0 && !this.type.traits.includes('immuneSlow') ? 1 - this.slowPct : 1) *
       globalSlow *

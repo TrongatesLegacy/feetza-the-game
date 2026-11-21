@@ -249,7 +249,8 @@ export function installDevTools(game: Phaser.Game): void {
               g.peelPos.y = t.cy;
               g.smack(t.cx, t.cy);
             }
-            if (g.run?.super >= 1 && Math.random() < 0.05) g.peelSlam();
+            // (and straight away when Surtr's sword window opens, as a player would)
+            if (g.run?.super >= 1 && (Math.random() < 0.05 || g.feet.some((f: any) => f.alive && f.brain?.swordWindow))) g.peelSlam(); // eslint-disable-line @typescript-eslint/no-explicit-any
           }
           if (g.inUpgrade && g.shop) botShop(g);
           // ACT COMPLETE (and an endless victory): keep going

@@ -402,7 +402,8 @@ const thrym = (): Brain => {
       x: p.x,
       y: p.surfaceY + 6,
       scale: (p.radius * 2.3) / 420,
-      hits: h.hits(3),
+      // 2 smacks (was 3): with blocks, hail and spreading ice all wanting smacks the fight ran 4–6 minutes
+      hits: h.hits(2),
       follow: () => ({ x: p.x, y: p.surfaceY + 6 }),
       // only the front of the pizza: feet stomping on top of it still take the smack
       contains: (px, py) => Math.abs(px - p.x) < p.radius * 1.05 && py > p.surfaceY - 8 && py < p.surfaceY + p.radius * 0.75,
@@ -606,7 +607,8 @@ const thrym = (): Brain => {
       if (pause > 0) pause -= dt;
 
       // ——— the fortress: a block every few seconds (two at a time in Fimbulwinter) ———
-      build.every = h.cooldown(f.phase >= 3 ? 3.4 : 2.6);
+      // (a block every 3.6 s on Regular, 4.7 s two at a time in Fimbulwinter; was 3.1 s and 4.1 s)
+      build.every = h.cooldown(f.phase >= 3 ? 3.9 : 3);
       if (!sealed && pause <= 0 && build.tick(dt)) {
         const l = filled(-1);
         const r = filled(1);
@@ -716,7 +718,7 @@ const jormungandr = (): Brain => {
   let head: Phaser.GameObjects.Image | null = null;
   // head position (centre of the head image) and the gap it rises from
   const H = { x: 960, y: EDGE_Y + 80, gap: 960, up: false };
-  let cycle: { stage: 'wait' | 'tell' | 'rise' | 'up' | 'bite' | 'dive'; t: number; p: Pizza | null; hits: number; venom: boolean } = { stage: 'wait', t: 2.2, p: null, hits: 0, venom: false };
+  let cycle: { stage: 'wait' | 'tell' | 'rise' | 'up' | 'dazed' | 'bite' | 'dive'; t: number; p: Pizza | null; hits: number; venom: boolean } = { stage: 'wait', t: 2.2, p: null, hits: 0, venom: false };
   let lastGap = -1;
   let squeeze: { p: Pizza; img: Phaser.GameObjects.Image; t: number; tw: Phaser.Tweens.Tween } | null = null;
   const constrict = new Every(9, 6);
@@ -805,8 +807,9 @@ const jormungandr = (): Brain => {
     a.quip(H.x, Math.max(280, H.y - 150), 'RECOILS!', '#7dff9a', 44);
     a.sfx('sfx_crit');
     releaseSqueeze(a);
-    cycle = { stage: 'dive', t: 0, p: null, hits: 0, venom: false };
-    a.sfx('sfx_jormungandr_dive');
+    // reeling, it stays up for a moment before it dives: a window to pile on hits (without it the head took only
+    // 2–4 smacks a surfacing and the fight ran three or four minutes)
+    cycle = { stage: 'dazed', t: [2, 1.6, 1.4, 1.2, 1][heat(a).rank], p: null, hits: 0, venom: true };
     f.stun(0.4);
   };
 
@@ -898,6 +901,14 @@ const jormungandr = (): Brain => {
           head?.setTexture('p_serpentbite');
           a.sfx('sfx_jormungandr_bite');
         }
+      } else if (c.stage === 'dazed') {
+        // reeling: it wobbles where it is, then dives
+        H.x = H.gap + Math.sin(a.now() * 9) * 24;
+        H.y = 440 + Math.sin(a.now() * 7) * 10;
+        if (c.t <= 0) {
+          cycle = { stage: 'dive', t: 0, p: null, hits: 0, venom: false };
+          a.sfx('sfx_jormungandr_dive');
+        }
       } else if (c.stage === 'bite') {
         const p = c.p!;
         H.x += (p.x - H.x) * Math.min(1, dt * 14);
@@ -951,7 +962,7 @@ const jormungandr = (): Brain => {
     },
     onSmacked: (f, a, _x, y) => {
       // only the head counts (the air above it is just air)
-      if (!H.up && cycle.stage !== 'bite') return true;
+      if (!H.up && cycle.stage !== 'bite' && cycle.stage !== 'dazed') return true;
       if (head && y < H.y - head.displayHeight * 0.55) return true;
       cycle.hits++;
       if (cycle.stage === 'up' && cycle.hits >= need(a)) recoil(f, a);

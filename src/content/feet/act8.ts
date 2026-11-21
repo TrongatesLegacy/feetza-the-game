@@ -60,7 +60,8 @@ export const feet: FootType[] = [
     id: 'thrym',
     name: 'THRYM THE FROST KING',
     desc: 'Boss. The king of the frost giants, in a boot of blue glacier ice. Freezes pizzas solid and rebuilds his ice fortress around the table.',
-    hp: 7400, speed: 0.5, armor: 6, stompDmg: 1, coins: 380, score: 47000, scale: 2.2, minWave: 75, weight: 0,
+    // (6600, was 7400: the fortress, ice and hail keep the peel busy, and the fight ran 4–6 minutes on Regular)
+    hp: 6600, speed: 0.5, armor: 6, stompDmg: 1, coins: 380, score: 47000, scale: 2.2, minWave: 75, weight: 0,
     traits: ['heavy', 'immuneSlow'],
     boss: true,
     home: 'jotunheim',

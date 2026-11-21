@@ -1067,6 +1067,12 @@ const hades = (): Brain => {
         if (!titan.f.alive) banishTitan(f, a, true);
         else titanTick(f, dt, a);
       }
+      // down to the pizza he's holding: let its lane go, or the Titan (and every other foot) could never reach the
+      // table while he hides behind his shield, and the fight would never end
+      if (hold && !a.alivePizzas().some((p) => p !== hold!.p)) {
+        hold.release();
+        hold = null;
+      }
     },
     onPhase: (f, ph, a) => {
       // a big hit can end a Titan phase early only by beating the Titan; the next phase frees the next one
@@ -1112,7 +1118,8 @@ const hades = (): Brain => {
     const h = heat(a);
     shield(a, f, true);
     hold?.release();
-    hold = takeLane(a, f);
+    // (with one pizza left he doesn't claim its lane: the Titan has to be able to reach it)
+    hold = a.alivePizzas().length > 1 ? takeLane(a, f) : null;
     const others = a.alivePizzas().filter((p) => p !== hold?.p);
     const p = rnd(others) ?? rnd(a.alivePizzas()) ?? null;
     const x = p?.x ?? W / 2;

@@ -5,7 +5,7 @@ import { DEEP_FROM, DEEP_SPAN, HEAT_BY_ID, type HeatId } from '../data/difficult
 import { FEET, type FootType } from '../data/feet';
 import { PIZZA_BY_ID, type PizzaPerk, type PizzaType } from '../data/pizzas';
 import { MILESTONES, type Milestone } from '../data/meta';
-import { JOURNEY_WAVES, MINI_WAVE, STAGES, WAVES_PER_STAGE } from '../data/stages';
+import { JOURNEY_WAVES, MINI_WAVE, STAGES, STAGES_PER_ACT, WAVES_PER_STAGE } from '../data/stages';
 import { CONSUMABLE_COOLDOWN, RARITY_WEIGHT, UPGRADES, UPGRADE_BY_ID, baseStats, kindOf, type OfferEnv, type Rarity, type Stats, type Upgrade } from '../data/upgrades';
 import { freshKitState, type KitState } from './kitState';
 import { save, unlockPizza } from '../systems/save';
@@ -160,6 +160,8 @@ export interface WavePlan {
   hpMult: number;
   /** Bosses' own base health already climbs after wave 30, so their multiplier stops at the wave-30 level. */
   bossHpMult: number;
+  /** A Persian war band in this wave: the queue position (feet still queued) where it starts, and its size. */
+  band: { at: number; size: number } | null;
   speedMult: number;
   eliteChance: number;
   boss: string | null;
@@ -178,6 +180,22 @@ function weightedPick<T>(items: T[], weight: (t: T) => number): T {
   return items[items.length - 1];
 }
 
+/** The act a location belongs to. A themed foot's act is its home's (feet without a home are everyday feet). */
+function actOfLocation(loc: string | undefined): number | null {
+  const i = loc ? STAGES.findIndex((s) => s.location === loc) : -1;
+  return i < 0 ? null : Math.floor(i / STAGES_PER_ACT) + 1;
+}
+const homeAct = (f: FootType) => actOfLocation(f.home);
+/** Themed feet are common in their own act and rare anywhere else (later acts and endless loops). */
+export const THEMED_TAPER = 0.25;
+/** Act 9 (Greek myths) is where Persian Elephant Feet gather (300 of them unlock the Kratos Peel). */
+const ELEPHANT_ACT = 9;
+/** Elephants' weight multiplier all through Act 9 (both stages), in place of the fresh and home bonuses: those
+ * stacked to ×13 at waves 81–82 and a herd of 650-health elephants flattened the table in a minute. */
+const ELEPHANT_ACT_MULT = 3.5;
+/** Chance an Act 9 location wave brings a Persian war band (4–6 elephants with Spartan Sandals guarding). */
+const BAND_CHANCE = 0.5;
+
 export function planWave(n: number, luck: number, heatId: HeatId = 'regular'): WavePlan {
   const heat = HEAT_BY_ID[heatId];
   const loop = loopOf(n);
@@ -187,14 +205,25 @@ export function planWave(n: number, luck: number, heatId: HeatId = 'regular'): W
   // acts 7–10 (waves 61–100 the first time through): health and the crowd caps keep climbing, gently
   const deep = Math.min(DEEP_SPAN, Math.max(0, inLoop - DEEP_FROM));
   const deepUp = 1 + (deep / DEEP_SPAN) * crowd.deepGrowth;
-  const hpMult = (1 + Math.min(inLoop - 1, 29) * 0.1 + (Math.min(inLoop, DEEP_FROM) - Math.min(inLoop, 30)) * 0.06 + deep * crowd.deepHp) * (1 + loop * 0.5) * heat.hp;
+  // foot health climbs through the journey; an endless loop carries on from where the last one ended (it used to
+  // restart from wave 1's level ×1.5, so wave 101's feet had a fifth of wave 100's health)
+  const climb = (w: number) => Math.min(w - 1, 29) * 0.1 + (Math.min(w, DEEP_FROM) - Math.min(w, 30)) * 0.06 + Math.min(DEEP_SPAN, Math.max(0, w - DEEP_FROM)) * crowd.deepHp;
+  const hpMult = (1 + climb(inLoop) + loop * climb(JOURNEY_WAVES)) * heat.hp;
   const speedMult = Math.min(heat.crowd.speedCap, 1 + (Math.min(eff, 40) - 1) * 0.026) * heat.speed;
   const boss = isBossWave(n) ? bossFor(n) : null;
   const mini = isMiniWave(n) ? miniFor(n) : null;
   const home = locationFor(n);
   const pool = FEET.filter((f) => !f.boss && !f.mini && f.weight > 0 && (f.minWave <= inLoop || loop > 0));
-  // freshly unlocked feet get the spotlight; feet at home in this location turn up 3x as often
-  const weight = (f: FootType) => f.weight * (f.minWave >= inLoop - 1 && loop === 0 ? 3 : 1) * (f.home === home ? 3 : 1);
+  // freshly unlocked feet get the spotlight; feet at home in this location turn up 3x as often.
+  // The act of this wave's location (Endless+ shuffles locations, so this follows the place, not the wave number)
+  const act = actOfLocation(home) ?? Math.floor(stageIndex(n) / STAGES_PER_ACT) + 1;
+  const weight = (f: FootType) => {
+    if (f.id === 'elephant' && act === ELEPHANT_ACT) return f.weight * ELEPHANT_ACT_MULT;
+    const own = homeAct(f);
+    return f.weight * (f.minWave >= inLoop - 1 && loop === 0 ? 3 : 1) * (f.home === home ? 3 : 1)
+      // themed feet taper off outside their own act (an act's feet stay its own)
+      * (own !== null && own !== act ? THEMED_TAPER : 1);
+  };
   const loopUp = 1 + loop * 0.5;
   let count = Math.min(Math.round(crowd.countCap * loopUp * deepUp), Math.round((6 + Math.min(eff, 40) * crowd.perWave + deep * crowd.perWave * 0.25 + loop * 4) * heat.count));
   if (boss) count = Math.round(count * 0.35);
@@ -204,13 +233,25 @@ export function planWave(n: number, luck: number, heatId: HeatId = 'regular'): W
     if (f.traits.includes('swarm')) queue.push(f.id, f.id, f.id);
     else queue.push(f.id);
   }
+  // a Persian war band: 4–6 elephants marching in together with a pair of Spartan Sandals in front (the first
+  // brings its partner). It takes the place of feet already queued, so the wave's size and caps stay the same.
+  let band: WavePlan['band'] = null;
+  if (act === ELEPHANT_ACT && !boss && !mini && queue.length >= 16 && Math.random() < BAND_CHANCE) {
+    const ids = ['spartan', ...Array.from({ length: 4 + Math.floor(Math.random() * 3) }, () => 'elephant')];
+    // somewhere in the middle of the wave, never its first or last feet
+    const start = Math.floor(queue.length * (0.25 + Math.random() * 0.4));
+    queue.splice(start, ids.length, ...ids);
+    band = { at: queue.length - start, size: ids.length };
+  }
   return {
     n,
     queue,
     interval: Math.max(crowd.intervalFloor, 1.85 - Math.min(eff, 40) * 0.055),
     maxAlive: boss ? Math.min(2 + Math.floor(inLoop / 8), Math.min(6, crowd.aliveCap)) : Math.min(3 + Math.floor(Math.min(eff, 40) * 0.6) + Math.floor(deep / 10), Math.round(crowd.aliveCap * loopUp * deepUp)),
     hpMult,
-    bossHpMult: (1 + Math.min(inLoop - 1, 29) * 0.1) * (1 + loop * 0.5) * heat.hp * 0.75,
+    // (endless loops shuffle the bosses, so an early stage's boss there starts from the wave-30 level, not wave 1's)
+    bossHpMult: (1 + Math.min((loop > 0 ? 30 : inLoop) - 1, 29) * 0.1) * (1 + loop * 0.5) * heat.hp * 0.75,
+    band,
     speedMult,
     eliteChance: n >= 6 ? Math.min(crowd.eliteCap, (n - 5) * 0.012) : 0,
     boss,
