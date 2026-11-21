@@ -285,7 +285,7 @@ export function installBossLab(game: Phaser.Game): void {
     wrap.innerHTML = `<div class="bl-panel"><div class="bl-list">${list}</div><div class="bl-main">
       <div class="bl-head"><img src="${footPortraitURL(e.id)}" alt=""><div><h2>${esc(t?.name ?? e.id)}</h2>Stage ${e.stage} ${e.mini ? 'mini-boss' : 'boss'} · ${n} phase${n > 1 ? 's' : ''} on ${HEAT_BY_ID[heat].name}</div><span class="sp"></span>
       <select data-heat-sel>${HEATS.map((h) => `<option value="${h.id}"${h.id === heat ? ' selected' : ''}>${h.name}</option>`).join('')}</select>
-      <button class="bl-btn" data-play="1" data-heat="${heat}">▶ Play</button><button class="bl-btn alt" data-close>✕</button></div>
+      <button class="bl-btn" data-play="1" data-heat="${heat}">▶ Play</button><button class="bl-btn alt" data-clear title="Clear every boss's notes (press twice)">🗑 Clear all notes</button><button class="bl-btn alt" data-close>✕</button></div>
       <div class="bl-body"><div class="bl-phase"><div class="row"><b>Overall</b><span class="info">Arrival, look, difficulty, anything not tied to one phase</span><span class="bl-status">${status}</span></div><textarea data-note="general" placeholder="Overall notes…">${esc(notes[e.id]?.general ?? '')}</textarea></div>${cards}</div></div></div>`;
     wrap.querySelectorAll<HTMLElement>('[data-sel]').forEach((b) =>
       b.addEventListener('click', () => {
@@ -295,6 +295,24 @@ export function installBossLab(game: Phaser.Game): void {
     );
     wrap.querySelectorAll<HTMLElement>('[data-play]').forEach((b) => b.addEventListener('click', () => void launch(e.id, Number(b.dataset.play), b.dataset.heat as HeatId)));
     wrap.querySelector('[data-close]')?.addEventListener('click', close);
+    // two presses to clear every boss's notes, here, in the browser and in the notes file
+    wrap.querySelector<HTMLButtonElement>('[data-clear]')?.addEventListener('click', (ev) => {
+      const b = ev.currentTarget as HTMLButtonElement;
+      if (b.dataset.armed !== '1') {
+        b.dataset.armed = '1';
+        b.textContent = 'Really clear all?';
+        setTimeout(() => {
+          if (b.isConnected && b.dataset.armed === '1') {
+            b.dataset.armed = '';
+            b.textContent = '🗑 Clear all notes';
+          }
+        }, 3000);
+        return;
+      }
+      for (const k of Object.keys(notes)) delete notes[k];
+      save();
+      render();
+    });
     wrap.querySelector<HTMLSelectElement>('[data-heat-sel]')?.addEventListener('change', (ev) => {
       heat = (ev.target as HTMLSelectElement).value as HeatId;
       persistLocal();
