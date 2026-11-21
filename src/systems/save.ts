@@ -4,6 +4,7 @@
 import { STORAGE_KEY } from '../config';
 import type { HeatId } from '../data/difficulty';
 import { META_COSTS_V1 } from '../data/meta';
+import { STAGES, STAGES_PER_ACT } from '../data/stages';
 import type { RunSnapshot } from '../game/snapshot';
 
 export type AimScheme = 'free' | 'lane';
@@ -185,17 +186,13 @@ export function migrate(parsed: Partial<SaveData>): SaveData {
     s.milestones = s.milestones.map((m) => (m === 'allBosses' ? 'bosses6' : m));
     s.run = null;
   }
-  // saves from before acts: count the acts already done from the records (the journey then ended at wave 60)
+  // saves from before acts: an act is done if the boss closing it was ever beaten (bosses only appear on their wave)
   if (!parsed.actsCleared) {
-    const OLD_JOURNEY = 60;
-    const done = new Set<number>();
-    const add = (from: number, wave: number) => {
-      for (let a = from; a * 10 <= Math.min(wave, OLD_JOURNEY); a++) done.add(a);
-    };
-    for (const b of Object.values(s.best)) if (b) add(1, b.wave);
-    for (const b of Object.values(s.bestAct2)) if (b) add(4, b.wave);
-    if (s.act1Cleared.length) add(1, 30);
-    s.actsCleared = [...done].sort((a, b) => a - b);
+    s.actsCleared = [];
+    for (let a = 1; a * STAGES_PER_ACT <= STAGES.length; a++) {
+      const st = STAGES[a * STAGES_PER_ACT - 1];
+      if (!st.dev && s.bossesBeaten.includes(st.boss)) s.actsCleared.push(a);
+    }
   }
   return s;
 }

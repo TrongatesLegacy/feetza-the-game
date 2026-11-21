@@ -3236,7 +3236,8 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   /** Back to the title screen without ending the run: Continue there picks it up from its last shop. */
   private leaveRun(): void {
-    if (this.inUpgrade && this.shop) this.saveRun();
+    // the shop, or ACT COMPLETE (its clock has kept running since it was saved)
+    if (this.inUpgrade && (this.shop || this.actEl)) this.saveRun();
     this.over = true;
     this.waveActive = false;
     this.inUpgrade = false;
@@ -3355,7 +3356,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       },
       keepGoing: r.endless
         ? () => {
-            if (this.paused) return;
+            // once only (a double click or pad press lands while the screen fades out)
+            if (!this.actEl || this.paused) return;
             ui.close(el);
             this.actEl = null;
             this.timerStopped = false;
