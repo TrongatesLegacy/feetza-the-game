@@ -3,6 +3,10 @@
 import type { Proc } from '../game/abilities';
 import { MORE_TOPPINGS } from './toppingsMore';
 import { TRADEOFF_TOPPINGS } from './toppingsTradeoff';
+import { EVENT_TOPPINGS } from './toppingsEvents';
+import { MIXED_TOPPINGS } from './toppingsMixed2';
+import { SHOP_TOPPINGS } from './toppingsShop';
+import { WILD_TOPPINGS } from './toppingsWild';
 import { freezeText, meterBoostText } from '../game/slamMode';
 
 export interface Stats {
@@ -63,6 +67,54 @@ export interface Stats {
   footHp: number;
   /** Chance a stomp takes an extra slice (trade-off toppings). */
   stompExtra: number;
+  // ——— event, mixed, shop and wildcard toppings (src/data/toppings{Events,Mixed2,Shop,Wild}.ts) ———
+  /** Wave event chance: base rate × this (event toppings add to it; capped at 100%). */
+  eventMult: number;
+  eventAlways: boolean;
+  /** Events per (non-boss) wave when one happens: Grand Parade makes it 2. */
+  eventCount: number;
+  noEvents: boolean;
+  noGolden: boolean;
+  /** Extra share of tips from wave events. */
+  eventTips: number;
+  /** Seconds flyers stay on screen longer. */
+  flyerSec: number;
+  flyerBias: boolean;
+  seagullCrust: number;
+  /** Smacks fewer a pizza box chest takes to open. */
+  chestLess: number;
+  /** Mimic chance multiplier. */
+  mimicMult: number;
+  eventRetry: boolean;
+  /** Event drop chance: × (1 + dropAdd) × dropMult. */
+  dropAdd: number;
+  dropMult: number;
+  /** Beating a mimic: drop chance multiplier (0: the usual). */
+  mimicDrop: number;
+  shinyMult: number;
+  /** Golden Crusts each shiny foot pays. */
+  shinyCrusts: number;
+  /** Hero sightings (read by the sighting event): chance multiplier, a guaranteed one every n waves (0: none), smacks to catch (0: the usual). */
+  sightingMult: number;
+  sightingEvery: number;
+  sightingHits: number;
+  /** Extra share of end-of-run Golden Crusts. */
+  endCrustMult: number;
+  /** Topping discount (stacks additively, capped at 60% in the shop; negative is a surcharge). */
+  shopDiscount: number;
+  /** Extra discount on one-use toppings. */
+  consumableDiscount: number;
+  /** Topping cards added to (or taken from) every shop. */
+  cardDelta: number;
+  /** Tips off every reroll, and its multiplier. */
+  rerollLess: number;
+  rerollMult: number;
+  /** Share off Golden Menu crust prices. */
+  goldenDiscount: number;
+  /** Counter pizzas price multiplier (surcharges). */
+  counterMult: number;
+  /** Levels added to every topping that levels up (Infinite Oven). */
+  capBonus: number;
 }
 
 export function baseStats(): Stats {
@@ -121,10 +173,47 @@ export function baseStats(): Stats {
     freeTopping: false,
     footHp: 1,
     stompExtra: 0,
+    eventMult: 1,
+    eventAlways: false,
+    eventCount: 1,
+    noEvents: false,
+    noGolden: false,
+    eventTips: 0,
+    flyerSec: 0,
+    flyerBias: false,
+    seagullCrust: 0,
+    chestLess: 0,
+    mimicMult: 1,
+    eventRetry: false,
+    dropAdd: 0,
+    dropMult: 1,
+    mimicDrop: 0,
+    shinyMult: 1,
+    shinyCrusts: 0,
+    sightingMult: 1,
+    sightingEvery: 0,
+    sightingHits: 0,
+    endCrustMult: 0,
+    shopDiscount: 0,
+    consumableDiscount: 0,
+    cardDelta: 0,
+    rerollLess: 0,
+    rerollMult: 1,
+    goldenDiscount: 0,
+    counterMult: 1,
+    capBonus: 0,
   };
 }
 
 export type Rarity = 'common' | 'rare' | 'epic' | 'legendary';
+
+/** What the scene tells the shop about the run, for toppings that only make sense sometimes. */
+export interface OfferEnv {
+  /** Unlocked peels other than the one in use. */
+  otherPeels: number;
+  /** Something throws: the peel's ability or a topping you own. */
+  throws: boolean;
+}
 export type UpgradeKind = 'permanent' | 'unique' | 'consumable';
 
 export interface Upgrade {
@@ -136,7 +225,15 @@ export interface Upgrade {
   desc: (lvl: number) => string; // describes the effect of taking level `lvl`
   apply: (s: Stats, lvl: number) => void; // applied once per owned level (lvl = 1..owned)
   /** Called once when picked (immediate effects). 'arm' = a consumable that waits to trigger. */
-  onPick?: 'healAll2' | 'extraPizza' | 'fridge' | 'arm';
+  onPick?: 'healAll2' | 'extraPizza' | 'fridge' | 'arm' | 'pick' | 'roulette' | 'crispy' | 'bogo';
+  /** Pick toppings: choose one of 3 random toppings of this rarity, free. */
+  pick?: Rarity;
+  /** Only offered while this holds (Peel Roulette needs 3 other peels, Head Chef something that throws). */
+  offerIf?: (env: OfferEnv) => boolean;
+  /** Only offered while wave events can happen (not after Do Not Disturb and friends). */
+  needsEvents?: boolean;
+  /** 'meter': only when the peel's meter (or timer) can be sped up · 'tank': only when the wave-start meter matters. */
+  needsMeter?: 'meter' | 'tank';
   /** permanent (default): levels and stacks · unique: once per run · consumable: one use, back after a cooldown. */
   kind?: UpgradeKind;
   /** Proc toppings: an ability-style trigger and effects (scaled by level), run by the scene. */
@@ -334,6 +431,10 @@ export const UPGRADES: Upgrade[] = [
   },
   ...MORE_TOPPINGS,
   ...TRADEOFF_TOPPINGS,
+  ...EVENT_TOPPINGS,
+  ...MIXED_TOPPINGS,
+  ...SHOP_TOPPINGS,
+  ...WILD_TOPPINGS,
 ];
 
 export const UPGRADE_BY_ID: Record<string, Upgrade> = Object.fromEntries(UPGRADES.map((u) => [u.id, u]));

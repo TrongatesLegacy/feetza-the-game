@@ -97,6 +97,13 @@ export const THROW_PROPS = {
   coconut: ['coconut', 'coconuts'],
   lasso: ['lasso', 'lassos'],
   skateboard: ['skateboard', 'skateboards'],
+  // topping throws (src/content/props/toppings3.ts)
+  anchovy: ['anchovy', 'anchovies'],
+  meatball: ['meatball', 'meatballs'],
+  pizzacutter: ['pizza cutter', 'pizza cutters'],
+  calzone: ['calzone', 'calzones'],
+  napkin: ['napkin', 'napkins'],
+  wheelcutter: ['rolling cutter', 'rolling cutters'],
 } as const;
 export type ThrowProp = keyof typeof THROW_PROPS;
 

@@ -14,7 +14,11 @@ export interface ShopCard {
   downside?: string;
   lvl: string;
   price: number;
+  /** Its usual price, when a shop topping makes it cheaper (shown struck through). */
+  was?: number;
   free: boolean;
+  /** A ribbon on the card: a sale (Clearance Rack, Happy Hour…). FREE cards always get one. */
+  tag?: { text: string; kind: 'sale' };
   sold: boolean;
 }
 
@@ -88,6 +92,8 @@ export interface YourTopping {
   armed: boolean;
   /** Consumables used up: the wave they're back in the shop from. */
   back: number | null;
+  /** Its level cap this run (Infinite Oven raises it). */
+  max?: number;
 }
 
 export interface ShopActions {

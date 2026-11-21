@@ -6,7 +6,8 @@ import { FEET, type FootType } from '../data/feet';
 import { PIZZA_BY_ID, type PizzaPerk, type PizzaType } from '../data/pizzas';
 import { MILESTONES, type Milestone } from '../data/meta';
 import { JOURNEY_WAVES, MINI_WAVE, STAGES, WAVES_PER_STAGE } from '../data/stages';
-import { CONSUMABLE_COOLDOWN, RARITY_WEIGHT, UPGRADES, UPGRADE_BY_ID, baseStats, kindOf, type Rarity, type Stats, type Upgrade } from '../data/upgrades';
+import { CONSUMABLE_COOLDOWN, RARITY_WEIGHT, UPGRADES, UPGRADE_BY_ID, baseStats, kindOf, type OfferEnv, type Rarity, type Stats, type Upgrade } from '../data/upgrades';
+import { freshKitState, type KitState } from './kitState';
 import { save, unlockPizza } from '../systems/save';
 
 /** Golden Crusts for the first time you ever beat a main boss (on top of the usual 5). */
@@ -203,6 +204,10 @@ export class Run {
   elapsed = 0;
   /** Endless: the run carries on past wave 60 instead of ending there. */
   endless = false;
+  /** Run state for the event, mixed, shop and wildcard toppings (saved with the run). */
+  kit: KitState = freshKitState();
+  /** Set by the scene: what toppings with an offerIf need to know. */
+  env: OfferEnv = { otherPeels: 0, throws: false };
 
   get heatDef() {
     return HEAT_BY_ID[this.heat];
@@ -298,17 +303,25 @@ export class Run {
 
   /** Can this upgrade be offered right now? */
   /** Set by the scene when a peel ability replaces the Peel Slam: slam-only toppings aren't offered. */
-  slamless: { slam: boolean; meter: boolean } = { slam: false, meter: false };
+  slamless: { slam: boolean; meter: boolean; tank?: boolean } = { slam: false, meter: false };
+
+  /** A topping's level cap this run (Infinite Oven lifts every one that levels up). */
+  maxLevel(u: Upgrade): number {
+    return u.max > 1 && kindOf(u) === 'permanent' ? u.max + this.stats.capBonus : u.max;
+  }
 
   offerable(u: Upgrade, wave: number): boolean {
     // rarer toppings arrive as the run builds up (shop cards, rerolls, boss loot, events, Golden Menu)
     if (!rarityOpen(u.rarity, wave)) return false;
     if (this.slamless.slam && u.id === 'freeze') return false;
-    if (this.slamless.meter && (u.id === 'oregano' || u.id === 'dried' || u.id === 'overtime')) return false;
+    if (this.slamless.meter && (u.id === 'oregano' || u.id === 'dried' || u.id === 'overtime' || u.needsMeter)) return false;
+    if (u.needsMeter === 'tank' && this.slamless.tank) return false;
+    if (u.needsEvents && (this.stats.noEvents || (this.stats.eventMult <= 0 && !this.stats.eventAlways))) return false;
+    if (u.offerIf && !u.offerIf(this.env)) return false;
     const k = kindOf(u);
     if (k === 'unique') return this.level(u.id) === 0;
     if (k === 'consumable') return !this.armed.includes(u.id) && (this.cooldowns[u.id] ?? 0) <= wave;
-    return this.level(u.id) < u.max;
+    return this.level(u.id) < this.maxLevel(u);
   }
 
   /** A consumable was used up: keep it out of the shop for a few waves. */
@@ -334,12 +347,25 @@ export class Run {
       if (!remaining.length) break;
       picks.push(weightedPick(remaining, (u) => weights[u.rarity]));
     }
-    // Mac & Cheese: one extra consumable card
-    for (let i = 0; i < this.stats.extraConsumable; i++) {
+    // Mac & Cheese: one extra consumable card (not past Exclusive Menu's 2-card cap)
+    for (let i = 0; i < (this.level('exclusivemenu') ? 0 : this.stats.extraConsumable); i++) {
       const cons = avail.filter((u) => kindOf(u) === 'consumable' && !picks.includes(u));
       if (cons.length) picks.push(weightedPick(cons, () => 1));
     }
-    return picks;
+    return this.bumpRarity(picks, exclude);
+  }
+
+  /** Exclusive Menu: every card is dealt one rarity higher (when that rarity is open and has one to offer). */
+  private bumpRarity(picks: Upgrade[], exclude: string[]): Upgrade[] {
+    if (!this.level('exclusivemenu')) return picks;
+    const up: Record<Rarity, Rarity> = { common: 'rare', rare: 'epic', epic: 'legendary', legendary: 'legendary' };
+    const out: Upgrade[] = [];
+    for (const u of picks) {
+      const r = up[u.rarity];
+      const pool = r === u.rarity ? [] : UPGRADES.filter((x) => x.rarity === r && this.offerable(x, this.wave) && !exclude.includes(x.id) && !out.includes(x) && !picks.includes(x));
+      out.push(pool.length ? pool[Math.floor(Math.random() * pool.length)] : u);
+    }
+    return out;
   }
 
   /** Boss loot guarantees epic-or-better. */
@@ -351,7 +377,7 @@ export class Run {
       picks.push(u);
       avail.splice(avail.indexOf(u), 1);
     }
-    return picks.length ? picks : this.rollChoices(n, exclude);
+    return picks.length ? this.bumpRarity(picks, exclude) : this.rollChoices(n, exclude);
   }
 
   comboMult(): number {
@@ -365,7 +391,8 @@ export class Run {
 
   /** The part paid when the run ends: score and waves cleared. */
   endCrusts(figOnTable = false): number {
-    return endCrustsFor(this.score, this.wave, this.act2Start, this.heat, figOnTable ? this.stats.crustBonus : 0);
+    // Vow of Focus adds its share on top
+    return endCrustsFor(this.score, this.wave, this.act2Start, this.heat, (figOnTable ? this.stats.crustBonus : 0) + this.stats.endCrustMult);
   }
 
   /** Crusts for a boss kill, scaled by heat (and Fig & Gorgonzola). */

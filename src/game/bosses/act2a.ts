@@ -376,6 +376,12 @@ const nonna = (): Brain => {
     const ps = [...a.alivePizzas()].sort((p, q) => p.x - q.x);
     if (!ps.length) return;
     const edge = Math.random() < 0.5 ? ps[0] : ps[ps.length - 1];
+    // Oven Mitts: she can't get a grip on it
+    if (a.peelGuarded?.()) {
+      say(a, f.x, f.y + 60, 'OVEN MITTS! NO SNATCHING', '#ffd23f', 44);
+      done(f, h.cooldown(12));
+      return;
+    }
     busy = true;
     lane = takeLane(a, f, edge);
     endRetreat = retreat(a);

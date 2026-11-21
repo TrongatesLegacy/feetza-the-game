@@ -3,6 +3,7 @@
 // Act 2 starts and dev scenario starts.
 
 import type { HeatId } from '../data/difficulty';
+import type { KitState } from './kitState';
 
 export interface PizzaSnap {
   id: string;
@@ -70,6 +71,8 @@ export interface RunSnapshot {
   milestonesHit?: string[];
   startPeels?: string[];
   goalStart?: Record<string, number>;
+  /** The event, mixed, shop and wildcard toppings' run state (crumbs, once-per-run uses, this shop's deals). */
+  kit?: KitState;
   pizzas: PizzaSnap[];
   counter: CounterSnap[];
   bossBonusGiven: boolean;

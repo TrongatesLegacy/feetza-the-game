@@ -19,6 +19,10 @@ export interface EventRewards {
   firstSighting(id: EventId): void;
   /** The event was dealt with (popped, caught, opened, a mimic beaten in time): achievements and drops. */
   done(id: EventId, x: number, y: number): void;
+  /** Event toppings: seconds flyers stay longer, smacks fewer a chest needs, and a callback when one is missed. */
+  flyerSec?: number;
+  chestLess?: number;
+  missed?(id: EventId): void;
 }
 
 const EVENT_NAMES: Record<EventId, string> = {
@@ -71,7 +75,7 @@ export function startEvent(a: Arena, id: EventId, rw: EventRewards): void {
   a.sc.tweens.add({
     targets: st,
     t: 1,
-    duration: cfg.sec * 1000,
+    duration: (cfg.sec + (rw.flyerSec ?? 0)) * 1000,
     onUpdate: () => {
       const k = st.t;
       img.x = x0 + (x1 - x0) * k;
@@ -83,6 +87,7 @@ export function startEvent(a: Arena, id: EventId, rw: EventRewards): void {
     onComplete: () => {
       if (!done) {
         done = true;
+        rw.missed?.(id);
         a.sc.tweens.add({ targets: [img, sh], alpha: 0, duration: 300, onComplete: () => (img.destroy(), sh.destroy()) });
       }
     },
@@ -147,7 +152,7 @@ function chest(a: Arena, mimic: boolean, rw: EventRewards): void {
     a.sfx('sfx_stomp', { volume: 0.5, rate: 1.4 });
     a.shake(120, 0.004);
   } });
-  const need = 6 + Math.floor(Math.random() * 5);
+  const need = Math.max(2, 6 + Math.floor(Math.random() * 5) - (rw.chestLess ?? 0));
   let hits = 0;
   let done = false;
   // mimic tell: it wobbles
@@ -225,6 +230,7 @@ function chest(a: Arena, mimic: boolean, rw: EventRewards): void {
     a.sc.time.delayedCall(14000, () => {
       if (done) return;
       done = true;
+      rw.missed?.('chest');
       bar.destroy();
       a.sc.tweens.add({ targets: img, alpha: 0, duration: 500, onComplete: () => img.destroy() });
     });
