@@ -3422,7 +3422,8 @@ body.reduced-motion *::after {
 }
 
 .bossbar[data-phase='4'] .phase {
-  background: #c04dff;
+  /* a deeper violet so the white text clears 4.5:1 */
+  background: #8a2bc7;
   color: #fff;
 }
 

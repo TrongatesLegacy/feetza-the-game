@@ -153,7 +153,8 @@ export class Fx {
     // keep callouts fully on screen, clear of the top HUD (score, boss bar, tips)
     const half = t.width / 2 + 20;
     x = Math.min(Math.max(x, half), 1920 - half);
-    y = Math.min(Math.max(y, 230), 1000);
+    // (low enough that the float-up stays under the boss bar's move line)
+    y = Math.min(Math.max(y, 290), 1000);
     t.setOrigin(0.5).setPosition(x, y).setAngle(angle).setScale(0.2);
     this.scene.tweens.add({ targets: t, scale: 1, duration: 260, ease: 'Back.Out' });
     this.scene.tweens.add({ targets: t, y: y - 60, alpha: 0, delay: 600, duration: 500, onComplete: () => this.release(t) });

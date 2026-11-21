@@ -113,7 +113,7 @@ export function laneOf(a: Arena, f: Foot): Pizza | null {
 /** Something falls onto a marked pizza in the boss's lane. It's broadcast first: a reticle on the pizza,
  * a glowing column down the lane, and the object appearing at the top and wobbling for a moment.
  * Then it falls slowly at a steady speed. Smack it any time before it lands; if it lands, the pizza loses a slice. */
-export function dropOn(a: Arena, f: Foot, p: Pizza, key: string, sec: number, label: string, look: { scale?: number; tint?: number; color?: string } = {}): void {
+export function dropOn(a: Arena, f: Foot, p: Pizza, key: string, sec: number, label: string, look: { scale?: number; tint?: number; color?: string; fallSfx?: string; landSfx?: string } = {}): void {
   const tx = p.x;
   const ty = p.surfaceY - 30;
   const warn = 0.9;
@@ -144,7 +144,7 @@ export function dropOn(a: Arena, f: Foot, p: Pizza, key: string, sec: number, la
   a.sc.tweens.add({ targets: img, angle: { from: -14, to: 14 }, duration: 110, yoyo: true, repeat: Math.max(1, Math.round((warn * 1000) / 220) - 1) });
   a.sc.time.delayedCall(warn * 1000, () => {
     if (done) return;
-    a.sfx('sfx_whoosh', { volume: 0.5, rate: 0.7 });
+    a.sfx(look.fallSfx ?? 'sfx_whoosh', look.fallSfx ? { throttle: 200 } : { volume: 0.5, rate: 0.7 });
     a.sc.tweens.add({
       targets: img,
       y: ty,
@@ -157,6 +157,7 @@ export function dropOn(a: Arena, f: Foot, p: Pizza, key: string, sec: number, la
         img.destroy();
         if (!f.alive || p.dead) return;
         a.fx.explosion(tx, ty, 110);
+        if (look.landSfx) a.sfx(look.landSfx);
         a.hitPizza(p, 1, label, look.color ?? '#ff8a6a');
       },
     });

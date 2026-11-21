@@ -1522,9 +1522,7 @@ const cosmiccroc = (): Brain => {
       if (f.phase <= 2 && meteor.tick(dt)) {
         const p = laneOf(a, f);
         if (p) {
-          dropOn(a, f, p, 'p_meteor', 1.6, 'METEOR!', { scale: 0.62, color: '#ffb03d' });
-          // dropOn's own fall whoosh still plays: the meteor's roar goes on top as it starts to fall
-          a.sc.time.delayedCall(900, () => a.inWave() && a.sfx('sfx_cosmiccroc_meteor', { throttle: 200 }));
+          dropOn(a, f, p, 'p_meteor', 1.6, 'METEOR!', { scale: 0.62, color: '#ffb03d', fallSfx: 'sfx_cosmiccroc_meteor', landSfx: 'sfx_cosmiccroc_impact' });
         }
       }
       if (f.phase >= 3 && hole.tick(dt)) blackHole(f, a);

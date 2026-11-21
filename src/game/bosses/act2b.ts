@@ -982,7 +982,7 @@ const ECHOES: Record<string, { move: string; act: EchoMove }> = {
     move: 'METEOR',
     act: (e, a) => {
       const p = e.target && !e.target.dead ? e.target : laneOf(a, e);
-      if (p) dropOn(a, e, p, 'p_snowball', heat(a).windup(1.4), 'METEOR!', { scale: 0.6, tint: 0xff8a3d });
+      if (p) dropOn(a, e, p, 'p_snowball', heat(a).windup(1.4), 'METEOR!', { scale: 0.6, tint: 0xff8a3d, fallSfx: 'sfx_cosmiccroc_meteor', landSfx: 'sfx_cosmiccroc_impact' });
     },
   },
 };
