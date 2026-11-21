@@ -116,6 +116,8 @@ export const THROW_PROPS = {
   crescent: ['crescent dart', 'crescent darts'],
   // god props (src/content/props/gods.ts)
   hammer: ['thunder hammer', 'thunder hammers'],
+  // King Leonidas (src/content/props/leonidas.ts)
+  spear: ['Spartan spear', 'Spartan spears'],
 } as const;
 export type ThrowProp = keyof typeof THROW_PROPS;
 
@@ -751,6 +753,10 @@ export const ABILITIES: Record<string, Ability> = {
   'boss:redsole': plus(ab('Cosmic Crouton', every(9), [D(4, rnd(1), 300), ST(1.5, rnd(1))], 0x5fb8ff, 'zap'), kill(0.2), T(2)),
   'boss:venomnom': plus(ab('We Are Hungry', smack(0.15), [S(0.5, 2.5, hit()), D(1, hit(120))], 0x8a8aff, 'ink'), every(10), H(1)),
   'boss:cheetoe': plus(ab('Pounce', every(5), [D(3, front(1), 400), ST(1, front(1))], 0xf0a040, 'wind'), always, STAT({ radius: 6 })),
+  // ——— Nemesis: King Leonidas at the Hot Gates (src/game/bosses/leonidas.ts) ———
+  'place:hotgates': ab('This Is Where We Hold', every(8), [K(260, front(3)), ST(1, front(3)), D(1.5, front(3))], 0xc9873a, 'burst'),
+  'boss:immortalbrute': plus(ab('Blade on a Chain', every(6), [D(3, front(2), 300), B(1, 2, front(2))], 0x9aa3ad, 'wind'), kill(0.15), SH(1)),
+  'boss:xerxes': ab('Arrows Blot Out the Sun', act, [D(5, all, 200), M(1.5, 6, all), T(15)], 0xffd23f, 'gold', 0.9),
 
   // ——— Event shinies use their event's ability (see abilityKey) ———
 };

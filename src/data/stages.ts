@@ -156,4 +156,7 @@ export const BOSS_MINION: Record<string, string> = {
   redsole: 'henchman',
   venomnom: 'ultodrone',
   cheetoe: 'jetpack',
+  // ——— Nemesis bosses: King Leonidas at the Hot Gates ———
+  immortalbrute: 'immortal',
+  xerxes: 'archer',
 };

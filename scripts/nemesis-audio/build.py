@@ -8,6 +8,7 @@ import traceback
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(1, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'boss-sfx'))
 import recipes  # noqa: E402,F401  (registers)
+import recipes_hotgates  # noqa: E402,F401  (registers Leonidas's Hot Gates set)
 from render import REG, build  # noqa: E402
 
 OUT = sys.argv[1]

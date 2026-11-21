@@ -32,6 +32,8 @@ export const NEMESES: Nemesis[] = [
   { peels: ['hero:captainpizzeria', 'hero:shieldofliberty'], hero: 'Captain Pizzeria', stage: 13, mini: 'redsole' },
   { peels: ['hero:spiderpan', 'hero:symbiotepan'], hero: 'Spider-Pan', stage: 13, mini: 'venomnom' },
   { peels: ['hero:wonderwedge', 'hero:amazonqueen'], hero: 'Wonder Wedge', stage: 12, mini: 'cheetoe' },
+  // King Leonidas: the Labyrinth becomes the Hot Gates, with the Immortal Brute and Xerxes (src/game/bosses/leonidas.ts)
+  { peels: ['hero:leonidas', 'hero:hotgates'], hero: 'King Leonidas', stage: 16, location: 'hotgates', mini: 'immortalbrute', boss: 'xerxes' },
 ];
 
 /** The run's ability peel, as far as nemesis stages are concerned ('' outside a run). */

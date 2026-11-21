@@ -684,6 +684,29 @@ const TRIM: Record<string, number> = {
   sfx_hero_liberty: 1.10, // -12.8 dB → -12.0: Shield of Liberty: a bright shield ricochet ping
   sfx_hero_tendril: 1.10, // -12.8 dB → -12.0: Symbiote Pan: a web tendril snatches a foot (a sticky squelch)
   sfx_hero_amazon: 1.10, // -10.3 dB → -9.5: Amazon Queen: a golden lasso crack and a war cry
+  // ——— Leonidas's nemesis, the Hot Gates (scripts/nemesis-audio/recipes_hotgates.py): the Immortal Brute, Xerxes, King Leonidas and the Hot Gates variant ———
+  sfx_immortalbrute_enter: 1.05, // -10.0 dB → -9.6: the Immortal Brute lands: a hulking crash, chain rattle and a roar behind his mask
+  sfx_immortalbrute_horde: 1.06, // -11.5 dB → -11.0: a horde wave of Immortals comes: a Persian war horn over marching feet (tell)
+  sfx_immortalbrute_whirl: 1.06, // -11.5 dB → -11.0: the Brute whirls his chain blade overhead (tell, about 1.5 s)
+  sfx_immortalbrute_slam: 1.10, // -10.3 dB → -9.5: the chain blade slams down: a metal crash
+  sfx_immortalbrute_snag: 1.28, // -12.6 dB → -10.5: the chain blade is snagged: a big metallic clank and a grunt
+  sfx_immortalbrute_roar: 1.28, // -13.1 dB → -11.0: the Immortal Brute roars as a new phase starts
+  sfx_immortalbrute_death: 0.99, // -9.4 dB → -9.5: the Immortal Brute topples: an armour crash and a clatter of chain
+  sfx_xerxes_enter: 1.06, // -10.0 dB → -9.5: Xerxes arrives: gongs, a deep choir swell and a heavy golden landing
+  sfx_xerxes_laugh: 1.08, // -11.7 dB → -11.0: Xerxes laughs: a deep, regal god-king laugh (tell)
+  sfx_xerxes_arrows: 1.05, // -11.5 dB → -11.1: the arrow storm: thousands of bows loose and the sky darkens with a rising hiss
+  sfx_xerxes_volley: 1.08, // -12.7 dB → -12.0: one volley of arrows whistling down onto the table
+  sfx_xerxes_bat: 1.11, // -11.4 dB → -10.5: arrows batted away: a wooden clatter
+  sfx_xerxes_rhino: 1.11, // -11.9 dB → -11.0: a war rhino snorts and paws the ground before it charges (tell)
+  sfx_xerxes_charge: 1.05, // -9.9 dB → -9.5: the war rhino charges down a lane: a thundering gallop and a crash
+  sfx_xerxes_turn: 1.05, // -10.9 dB → -10.5: the war rhino is turned away: a snort and a retreat
+  sfx_xerxes_elephants: 1.12, // -12.0 dB → -11.0: war elephants trumpet
+  sfx_xerxes_guard: 1.05, // -12.4 dB → -12.0: a golden guard ward hums up round Xerxes
+  sfx_xerxes_death: 1.08, // -10.1 dB → -9.4: the god-king falls: a crash of gold armour, chains and a fading gong
+  sfx_hero_holdline: 1.08, // -10.1 dB → -9.4: King Leonidas's Hold the Line: a wall of bronze shields slams down with a shout
+  sfx_hero_spear: 1.09, // -12.8 dB → -12.1: King Leonidas's spear is hurled: a strong whoosh and a thunk
+  sfx_hero_shieldblock: 1.13, // -11.6 dB → -10.5: a stomp clangs off a bronze shield in the shield wall
+  sfx_hero_hotgates: 1.09, // -10.2 dB → -9.5: Leonidas, Hot Gates: a roaring Spartan war cry with shields beating
 };
 
 const AMBIENCE_GAIN = 0.4;
