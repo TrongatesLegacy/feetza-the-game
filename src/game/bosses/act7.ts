@@ -349,7 +349,8 @@ const doomstomp = (): Brain => {
     const h = heat(a);
     busy = true;
     a.sfx('sfx_doomstomp_roar');
-    bubble(a, rnd(['DOOMSTOMP SMASH!', 'RAAAARGH!', 'MORE PIZZA FOR DOOMSTOMP!'])!, f, 1400);
+    // the roar line waits for the RAMPAGE! callout to clear (they sat on top of each other)
+    a.sc.time.delayedCall(1100, () => f.alive && bubble(a, rnd(['DOOMSTOMP SMASH!', 'RAAAARGH!', 'MORE PIZZA FOR DOOMSTOMP!'])!, f, 1400));
     f.tint(0xff9080);
     // the tell: he paws the table (spikes glow red); 4 smacks stop the charge
     windup(a, f, '', h.windup(1.6), 'RAMPAGE!', h.hits(4), () => {

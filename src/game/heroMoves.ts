@@ -800,9 +800,11 @@ registerMoves({
           audio.sfx('sfx_hitcoin', { volume: 0.5, throttle: 50 });
         },
       });
-      if (i % 8 === 0) {
+      // a line every 14 coins (each stays up ~1.1 s), left and right of the peel in turn, so two never stack
+      if (i % 14 === 0) {
         const p = k.host.peelPos();
-        k.host.quip(p.x, p.y - 120, lines[(i / 8) % lines.length], '#ff4a5a', 34);
+        const j = i / 14;
+        k.host.quip(p.x + (j % 2 ? 190 : -190), p.y - 120, lines[j % lines.length], '#ff4a5a', 34);
       }
     });
   },

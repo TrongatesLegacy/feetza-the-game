@@ -16,6 +16,7 @@ import Phaser from 'phaser';
 import { H, HOVER_Y, W } from '../../config';
 import { FOOT_BY_ID, type FootType } from '../../data/feet';
 import { save } from '../../systems/save';
+import { ui } from '../../ui/ui';
 import type { Arena } from '../arena';
 import { heat } from '../bosses/kit';
 import { doomSpare } from '../bosses/act7';
@@ -40,6 +41,12 @@ let bubbles = 0;
 /** A white comic speech bubble with a tail, over a foot (it follows it) or a point. */
 export function bubble(a: Arena, text: string, at: Foot | { x: number; y: number }, ms = 1700): void {
   if (bubbles >= 3) return;
+  // a centre banner (PHASE 2 …) is up: speak once it has gone, rather than sit behind its title
+  const wait = ui.hud.bannerLeft();
+  if (wait > 0) {
+    a.sc.time.delayedCall(wait + 100, () => (!('type' in at) || at.alive) && bubble(a, text, at, ms));
+    return;
+  }
   const sc = a.sc;
   const t = sc.add.text(0, 0, text, { fontFamily: FONT, fontSize: '30px', color: '#2a1810', align: 'center', wordWrap: { width: 360 } }).setOrigin(0.5);
   const w = t.width + 44;
