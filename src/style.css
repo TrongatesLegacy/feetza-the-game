@@ -3193,17 +3193,18 @@ body.pad :focus {
 }
 
 .prerun-bottom .lu img {
-  width: 5.4em;
+  width: 4.6em;
+  flex-shrink: 0;
 }
 
 .prerun-bottom .lu b {
-  font-size: 1.3em;
+  font-size: 1.2em;
 }
 
 .prerun-bottom .lu span {
-  font-size: 0.95em;
+  font-size: 0.88em;
   white-space: normal;
-  line-height: 1.15;
+  line-height: 1.12;
 }
 
 .prerun-bottom .lu b {
@@ -3632,19 +3633,22 @@ body.reduced-motion *::after {
   background: #dff1ff !important;
 }
 
-/* on the run card the ability's description gets its own line */
+/* on the run card the ability's description runs on after its name, small, so the card stays short */
 .peelcard .abl {
-  margin-top: 0;
-  font-size: 0.9em;
-}
-
-.peelcard .abl > span:last-child {
-  flex-basis: 100%;
+  display: block;
+  margin-top: 0.1em;
+  font-size: 0.82em;
   line-height: 1.25;
 }
 
-.peelcard .abl > span:last-child::before {
-  content: none;
+.peelcard .abl .chip {
+  font-size: 0.9em;
+  margin-right: 0.3em;
+}
+
+.peelcard .abl b {
+  font-size: 1.15em;
+  margin-right: 0.2em;
 }
 
 .pk-look {
@@ -4004,7 +4008,7 @@ body.reduced-motion *::after {
 
 .prerun-bottom {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 31em;
+  grid-template-columns: minmax(0, 1fr) 34em;
   gap: 1.4em;
   width: 100%;
   align-items: stretch;
