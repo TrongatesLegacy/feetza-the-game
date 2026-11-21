@@ -174,6 +174,8 @@ export class PizzaPerkKit {
   /** A saved run comes back: did it lose a pizza already? */
   restored(pizzas: Pizza[]): void {
     this.lost = pizzas.some((p) => p.dead || p.flags.lost);
+    // older saves (and dev scenarios) may lack a borrower's pick
+    for (const p of pizzas) this.placed(p, false);
   }
 
   /** The run is over: Untouchable's and Combo King's records. */
