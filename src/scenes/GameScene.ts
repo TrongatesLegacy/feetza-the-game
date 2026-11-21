@@ -39,6 +39,7 @@ import { pickWindow, rouletteWindow, type PickOption } from '../ui/pickWindows';
 import { abilityKey } from '../game/abilities';
 import { PizzaPerkKit } from '../game/pizzaPerks';
 import { contentFx } from '../game/contentFx';
+import { playLook, type LookFx } from '../art/animatedLooks';
 import { HeroDirector } from '../game/heroMoves';
 import type { HeroHost } from '../game/heroKit';
 import { HeroTracker, bestGoal, type RunView } from '../game/heroGoals';
@@ -102,6 +103,8 @@ export class GameScene extends Phaser.Scene implements Arena {
   private peel!: Phaser.GameObjects.Image;
   /** The equipped peel's trail colour (null: the Classic Peel has none) and whether it sparkles. */
   private peelTrailColor: number | null = null;
+  /** The worn look's live effect (Zeus's lightning), if it has one (src/art/animatedLooks.ts). */
+  private lookFx: LookFx | null = null;
   private peelShiny = false;
   /** The peel this run is played with (prestige goals count it). */
   private peelId = 'classic';
@@ -459,6 +462,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       setSlamMode(undefined);
       setRunHeat(null);
       contentFx.reset(null);
+      this.lookFx?.destroy();
+      this.lookFx = null;
     });
     const t0 = this.ability?.trigger.t;
     // 'tank': a passive with no meter or timer, so a full meter at the start of a wave does nothing
@@ -467,6 +472,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.peel = this.add.image(W / 2, H / 2, 'peel').setOrigin(0.5, 100 / 360).setScale(0.62).setAngle(-28).setAlpha(0.95);
     if (this.peelShiny) this.peel.preFX?.addShine(0.6, 0.4, 3.5);
     this.cursorLayer.add(this.peel);
+    this.setLookFx(look.id);
 
     if (!snap) {
       // meta perks at run start
@@ -862,6 +868,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.peel.setTexture('peel');
     this.peel.preFX?.clear();
     if (this.peelShiny) this.peel.preFX?.addShine(0.6, 0.4, 3.5);
+    this.setLookFx(look.id);
     this.ability = id !== 'classic' ? abilityFor(id) : null;
     this.abilityT = 0;
     this.run.super = 0;
@@ -2495,6 +2502,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.tweens.killTweensOf(this.peel);
     this.peel.setAngle(-62).setScale(this.peelScale() * 1.12);
     this.tweens.add({ targets: this.peel, angle: -28, scale: this.peelScale(), duration: 180, ease: 'Back.Out' });
+    this.lookFx?.smack(x, y);
     const r = this.run.stats.radius * this.heroes.reachMult();
     // Dare-Dough's Fearless: phasing feet can be hit too
     const fearless = this.heroes.fearless();
@@ -2760,13 +2768,19 @@ export class GameScene extends Phaser.Scene implements Arena {
     }
   }
 
+  /** Start the worn look's live effect (or stop the last one). */
+  private setLookFx(id: string): void {
+    this.lookFx?.destroy();
+    this.lookFx = playLook(id, { scene: this, layer: this.cursorLayer, peel: this.peel, reduced: () => save.settings.reducedMotion });
+  }
+
   /** The equipped peel's trail (and sparkles for shiny peels) while it moves. */
   private peelTrailTick(): void {
     const { x, y } = this.peelPos;
     const moved = Math.hypot(x - this.lastPeelPos.x, y - this.lastPeelPos.y);
     this.lastPeelPos = { x, y };
     if (!this.peel.visible || save.settings.reducedMotion || moved < 8) return;
-    if (this.peelTrailColor !== null) this.fx.trail(x, y, this.peelTrailColor);
+    if (this.peelTrailColor !== null && !this.lookFx?.ownTrail) this.fx.trail(x, y, this.peelTrailColor);
     if (this.peelShiny && Math.random() < 0.35) this.fx.glint(x + (Math.random() - 0.5) * 40, y + (Math.random() - 0.5) * 40);
   }
 
@@ -3353,6 +3367,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       addCanvas(this, 'peel_shift', peelCanvas(id));
       this.peel.setTexture('peel_shift');
     } else this.peel.setTexture('peel');
+    // the worn look's live effect rests while another peel's look is borrowed
+    this.lookFx?.setActive(!id);
     setSlamMode(this.ability);
     ui.hud.setSlamLabel(this.ability.name, abilityKindLabel(this.ability));
     this.abilityT = 0;
@@ -3943,6 +3959,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (this.hurryT > 0) this.hurryT -= dt;
     const touchIdle = this.pointer.touch && this.nowT - this.pointer.lastMove > 0.5;
     this.peel.setPosition(this.peelPos.x, this.peelPos.y).setVisible(!this.inUpgrade && !this.over && !touchIdle);
+    this.lookFx?.tick(real);
     this.peelTrailTick();
     if (!this.paused && !this.over && !this.inUpgrade) {
       this.spawnTick(dt);

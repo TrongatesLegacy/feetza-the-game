@@ -266,28 +266,236 @@ interface Shape {
   marks?: P[];
   /** Where the top-left sheen goes. */
   sheen?: [number, number, number, number];
+  /** Heads that are more than parts (Zeus's sword): drawn whole, instead of the parts, collar and glow. */
+  draw?: (ctx: Ctx, a: GodArt) => void;
 }
 
 const S: Record<string, Shape> = {};
 
 // ——— GREEK ———
-const bolt = () => poly(ctx0(), [[64, 4], [162, 4], [134, 62], [180, 62], [110, 190], [112, 110], [48, 110]]);
-S.bolt = {
-  parts: [['gold', bolt]],
-  sheen: [104, 20, 22, 7],
-  detail: (ctx, a) => {
-    // a white-hot marble core down the middle of the bolt
-    poly(ctx, [[96, 18], [136, 18], [114, 72], [150, 72], [118, 140], [122, 96], [80, 96]]);
-    ctx.fillStyle = lit(ctx, 110, 60, 80, '#fbf8f0', 0.15);
+// Zeus: a sword forged from a thunderbolt. The blade's spine zig-zags like a bolt, the crossguard is gold and
+// marble with an eagle's wings, and a storm gem sits in the pommel. Its live lightning is in animatedLooks.ts.
+/** The blade's spine, hilt to tip, as [x, y, width] in the peel frame (the live arcs crawl along it too). */
+export const ZEUS_BLADE: [number, number, number][] = [
+  [110, 176, 66], [110, 156, 66], [121, 132, 60], [99, 106, 54], [119, 80, 46], [102, 54, 36], [114, 30, 24], [110, 3, 0],
+];
+/** The pommel gem's centre. */
+export const ZEUS_POMMEL: P = [110, 336];
+// the edges follow the spine, and each zig juts out into a sharp bolt-step on its outer side
+const bladeEdge = (side: number): P[] =>
+  ZEUS_BLADE.map(([x, y, w], i) => {
+    const prev = ZEUS_BLADE[i - 1]?.[0] ?? x;
+    const next = ZEUS_BLADE[i + 1]?.[0] ?? x;
+    const bend = x - (prev + next) / 2;
+    const jut = Math.sign(bend) === side && i > 1 && w > 0 ? 7 : 0;
+    return [x + side * (w / 2 + jut), y + (jut ? 3 : 0)] as P;
+  });
+const bladeL = (): P[] => bladeEdge(-1);
+function bladePath(ctx: Ctx): void {
+  poly(ctx, [...bladeL(), ...bladeEdge(1).reverse().slice(1)]);
+}
+
+/** A feather: a band along a cubic that narrows to a round tip (the cap always bulges forwards). */
+function feather(ctx: Ctx, c: [P, P, P, P], w0: number, w1: number, n = 20): void {
+  const L: P[] = [];
+  const Rr: P[] = [];
+  for (let i = 0; i <= n; i++) {
+    const t = i / n;
+    const [x, y] = bez(...c, t);
+    const [x2, y2] = bez(...c, Math.min(1, t + 0.01));
+    const [x1, y1] = bez(...c, Math.max(0, t - 0.01));
+    const d = Math.hypot(x2 - x1, y2 - y1) || 1;
+    const nx = -(y2 - y1) / d;
+    const ny = (x2 - x1) / d;
+    // a little belly in the middle of the vane
+    const w = ((w0 + (w1 - w0) * t) / 2) * (1 + 0.25 * Math.sin(t * Math.PI));
+    L.push([x + nx * w, y + ny * w]);
+    Rr.push([x - nx * w, y - ny * w]);
+  }
+  const [ex, ey] = c[3];
+  const a0 = Math.atan2(L[n][1] - ey, L[n][0] - ex);
+  const a1 = Math.atan2(Rr[n][1] - ey, Rr[n][0] - ex);
+  const [px, py] = bez(...c, 0.99);
+  const fwd = Math.atan2(ey - py, ex - px);
+  // sweep the way that passes through the forward direction
+  const cwMid = a0 + (((a1 - a0) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2) / 2;
+  const ccw = Math.cos(cwMid - fwd) < 0;
+  ctx.beginPath();
+  L.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+  ctx.arc(ex, ey, w1 / 2, a0, a1, ccw);
+  [...Rr].reverse().forEach(([x, y]) => ctx.lineTo(x, y));
+  ctx.closePath();
+}
+
+/** One eagle wing of the crossguard (side 1 right, -1 left): a fan of chunky gold feathers swept up and out. */
+function eagleWing(ctx: Ctx, side: number): void {
+  const fx = (x: number) => X + side * x;
+  // back to front: the long top primary down to the short low one; [tip x, tip y, bend, width]
+  const feathers: [number, number, number, number][] = [
+    [90, 126, -14, 22],
+    [96, 150, -8, 21],
+    [92, 172, -2, 20],
+    [78, 192, 4, 19],
+  ];
+  for (const [tx, ty, bend, w] of feathers) {
+    const c: [P, P, P, P] = [[fx(36), 184], [fx(52), 182 + bend], [fx(tx - 22), ty + 8], [fx(tx), ty]];
+    feather(ctx, c, w, w * 0.62);
+    const g = ctx.createLinearGradient(fx(36), 184, fx(tx), ty);
+    g.addColorStop(0, '#c8861e');
+    g.addColorStop(0.45, '#f4c24a');
+    g.addColorStop(1, '#ffd862');
+    ctx.fillStyle = g;
     ctx.fill();
-    ink(ctx, 2.6, rgba(INK, 0.7));
-    ctx.save();
-    ctx.shadowColor = a.color;
-    ctx.shadowBlur = 14;
-    gem(ctx, 116, 84, 9, a.color);
-    ctx.restore();
-  },
-};
+    // the quill
+    ctx.beginPath();
+    ctx.moveTo(fx(44), 183 + bend * 0.2);
+    ctx.bezierCurveTo(fx(56), 181 + bend, fx(tx - 22), ty + 7, fx(tx - 5), ty + 1);
+    ctx.strokeStyle = rgba('#8a5410', 0.6);
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    feather(ctx, c, w, w * 0.62);
+    ink(ctx, 3.8);
+  }
+  // a plump covert over the roots, with a bright edge
+  ellipse(ctx, fx(50), 180, 22, 14, side * -0.35);
+  ctx.fillStyle = lit(ctx, fx(46), 176, 22, '#f4c24a', 0.45);
+  ctx.fill();
+  ink(ctx, 3.8);
+  ellipse(ctx, fx(46), 173, 10, 3.5, side * -0.35);
+  ctx.fillStyle = rgba('#ffffff', 0.6);
+  ctx.fill();
+}
+
+function drawZeusSword(ctx: Ctx, a: GodArt): void {
+  const elec = '#7fd0ff';
+  // Zeus's gold handle: a spiral of gold wire over it, and a gold pommel with a storm gem
+  ctx.save();
+  roundRect(ctx, X - 14, 172, 28, 170, 12);
+  ctx.clip();
+  for (let y = 206; y < 340; y += 13) {
+    ctx.beginPath();
+    ctx.moveTo(X - 16, y);
+    ctx.lineTo(X + 16, y + 8);
+    ctx.strokeStyle = rgba(INK, 0.55);
+    ctx.lineWidth = 5;
+    ctx.stroke();
+    ctx.strokeStyle = '#ffe9a0';
+    ctx.lineWidth = 2.4;
+    ctx.stroke();
+  }
+  ctx.restore();
+  const [px, py] = ZEUS_POMMEL;
+  star(ctx, px, py, 20, 8, 0.84, -Math.PI / 2);
+  ctx.fillStyle = goldG(ctx);
+  ctx.fill();
+  ink(ctx, 3.8);
+  ctx.save();
+  ctx.shadowColor = elec;
+  ctx.shadowBlur = 16;
+  gem(ctx, px, py, 10.5, a.color);
+  ctx.restore();
+
+  // the divine glow behind the blade
+  ctx.save();
+  ctx.shadowColor = rgba('#bfe6ff', 0.95);
+  ctx.shadowBlur = 26;
+  bladePath(ctx);
+  ctx.fillStyle = '#e8f6ff';
+  ctx.fill();
+  ctx.restore();
+  // the blade: white-hot down the middle, electric blue to the edges, brighter towards the tip
+  bladePath(ctx);
+  const g = ctx.createLinearGradient(80, 0, 140, 0);
+  g.addColorStop(0, '#3f8fe0');
+  g.addColorStop(0.3, '#a8e0ff');
+  g.addColorStop(0.5, '#ffffff');
+  g.addColorStop(0.7, '#a8e0ff');
+  g.addColorStop(1, '#3f8fe0');
+  ctx.fillStyle = g;
+  ctx.fill();
+  ctx.save();
+  bladePath(ctx);
+  ctx.clip();
+  const v = ctx.createLinearGradient(0, 0, 0, 172);
+  v.addColorStop(0, rgba('#ffffff', 0.55));
+  v.addColorStop(0.5, rgba('#ffffff', 0));
+  v.addColorStop(1, rgba('#1a4a9a', 0.25));
+  ctx.fillStyle = v;
+  ctx.fillRect(0, 0, 220, 180);
+  // the light catches the left facet of every zig
+  ctx.beginPath();
+  bladeL().forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+  [...ZEUS_BLADE].reverse().forEach(([x, y]) => ctx.lineTo(x - 2, y));
+  ctx.closePath();
+  ctx.fillStyle = rgba('#ffffff', 0.32);
+  ctx.fill();
+  // gold edges, like the marble heads' inner band
+  bladePath(ctx);
+  ctx.strokeStyle = goldG(ctx);
+  ctx.lineWidth = 11;
+  ctx.stroke();
+  bladePath(ctx);
+  ctx.strokeStyle = rgba('#fff6c8', 0.6);
+  ctx.lineWidth = 2;
+  ctx.translate(-2, -2);
+  ctx.stroke();
+  ctx.restore();
+  // the dark core line down the spine, with a hot glow either side
+  const spine = (lw: number, col: string) => {
+    ctx.beginPath();
+    ZEUS_BLADE.slice(0, -1).forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+    ctx.strokeStyle = col;
+    ctx.lineWidth = lw;
+    ctx.lineJoin = 'miter';
+    ctx.stroke();
+    ctx.lineJoin = 'round';
+  };
+  spine(9, rgba('#ffffff', 0.85));
+  spine(3.4, '#1d3c7a');
+  bladePath(ctx);
+  ink(ctx, 4.5);
+
+  // the crossguard: eagle wings either side of a gold-and-marble block
+  eagleWing(ctx, -1);
+  eagleWing(ctx, 1);
+  const guard = () => {
+    ctx.beginPath();
+    ctx.moveTo(X - 46, 168);
+    ctx.quadraticCurveTo(X, 160, X + 46, 168);
+    ctx.quadraticCurveTo(X + 50, 186, X + 32, 202);
+    ctx.lineTo(X - 32, 202);
+    ctx.quadraticCurveTo(X - 50, 186, X - 46, 168);
+    ctx.closePath();
+  };
+  guard();
+  ctx.fillStyle = lit(ctx, 96, 176, 60, '#efe9dc', 0.2);
+  ctx.fill();
+  ctx.save();
+  guard();
+  ctx.clip();
+  ctx.beginPath();
+  ctx.moveTo(X - 46, 180);
+  ctx.lineTo(X - 20, 186);
+  ctx.lineTo(X - 4, 178);
+  ctx.strokeStyle = rgba('#4a463e', 0.3);
+  ctx.lineWidth = 1.4;
+  ctx.stroke();
+  guard();
+  ctx.strokeStyle = goldG(ctx);
+  ctx.lineWidth = 10;
+  ctx.stroke();
+  ctx.restore();
+  guard();
+  ink(ctx, 4.5);
+  // the storm gem set in the guard
+  ctx.save();
+  ctx.shadowColor = elec;
+  ctx.shadowBlur = 14;
+  gem(ctx, X, 184, 10.5, a.color);
+  ctx.restore();
+  shine(ctx, 100, 34, 5, 16, 0.55, 0.45);
+}
+S.bolt = { parts: [], draw: drawZeusSword };
 
 S.peacock = {
   parts: [
@@ -1358,6 +1566,10 @@ function ctx0(): Ctx {
 export function drawShaped(ctx: Ctx, a: GodArt, id: string): boolean {
   const sh = S[a.symbol];
   if (!sh) return false;
+  if (sh.draw) {
+    sh.draw(ctx, a);
+    return true;
+  }
   cur = ctx;
   const r = rng(hashStr(id));
   const greek = a.pantheon === 'greek';

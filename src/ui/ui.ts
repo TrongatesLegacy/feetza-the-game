@@ -17,6 +17,7 @@ import { ACT_COUNT, JOURNEY_WAVES, STAGES, actLabel, actName, actOf } from '../d
 import { BACKDROPS } from '../art/backdrops';
 import { applyA11y } from './a11y';
 import { abilityFor, abilityKindLabel, describeAbility } from '../game/abilities';
+import { animateLookImg, hasAnimatedLook, stopLookOverlays } from '../art/animatedLooks';
 import { GOD_PEEL, PEELS, PEEL_BY_ID, buyPeel, checkPeelAchievements, equipPeel, equippedPeel, hasPeel, peelThumbURL, wearSkin, wornSkin, type PeelDef, type PeelGroup } from '../game/peels';
 import { HERO_SUBS } from '../content/heroPeels';
 import './gods.css';
@@ -2006,6 +2007,8 @@ class UI {
           hidden(d) && d.ultra ? null : h('p', { class: 'dt-desc' }, abilityBits(d.id)[2]),
         ),
       );
+      // peels with a live look (Zeus's lightning) play it over the big preview
+      if (!hidden(d)) animateLookImg(img as HTMLImageElement, d.id);
     };
     const tile = (d: PeelDef) => {
       const owned = hasPeel(d.id);
@@ -2026,6 +2029,7 @@ class UI {
         worn ? h('span', { class: 'tag look', title: 'Worn look' }, 'LOOK') : null,
       );
       activatable(t);
+      if (owned && hasAnimatedLook(d.id)) animateLookImg(img as HTMLImageElement, d.id);
       t.addEventListener('click', () => {
         audio.sfx('sfx_click');
         selected = d;
@@ -2176,7 +2180,10 @@ class UI {
       btn(pick ? 'BACK' : 'DONE', `${pick ? 'cream' : 'green'} win-done`, finish, { 'data-pad': 'back' }),
     );
     s = this.open(panel);
-    this.onClose(s, () => io.disconnect());
+    this.onClose(s, () => {
+      io.disconnect();
+      stopLookOverlays();
+    });
     this.godReveal(() => refresh());
     // start with the equipped peel in view
     // (scroll the grid only: scrollIntoView would also scroll the screen behind it)
