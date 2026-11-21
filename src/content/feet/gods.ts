@@ -12,6 +12,7 @@ export const feet: FootType[] = [
     // (64, was 96: Act 9 is now full of them, and at 96 with its guard each one cost Regular more than a slice)
     hp: 64, speed: 0.6, armor: 2, stompDmg: 1, coins: 15, score: 480, scale: 1.4, minWave: 81, weight: 4,
     traits: ['heavy'],
+    persian: true,
     home: 'labyrinth',
     howTo: 'Space your smacks to land between its shield-ups, or freeze it',
     tell: 'Its trunk curls up and it trumpets just before it stomps; gold plates flash up when it shields',
