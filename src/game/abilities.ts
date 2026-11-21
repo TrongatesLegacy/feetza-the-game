@@ -683,6 +683,25 @@ export const ABILITIES: Record<string, Ability> = {
   'foot:troll': ab('Sunlight', every(8), [ST(2.5, tough(1)), M(2, 3, tough(1))], GOLD, 'burst'),
   'foot:valkyrie': ab('Ride of the Valkyries', every(5), [D(2.5, rnd(2)), K(600, rnd(2))], WHITE, 'rain'),
 
+  // ——— Act 9 · Greek myths: its place, event, feet, Titans and bosses ———
+  'place:labyrinth': ab('Dead End', every(7), [ST(1.5, front(3)), D(2, front(3))], BROWN, 'burst'),
+  'place:tartarus': ab('River Styx', smack(0.25), [S(0.4, 3, hit(180)), M(1.3, 3, hit(180))], CYAN, 'ink'),
+  'event:charybdis': ab('Whirlpool', act, [D(6, all), S(0.5, 4, all), ST(1, all)], CYAN, 'wind'),
+  'foot:satyr': ab('Panic', smack(0.25), [ST(1.2, hit(150))], GREEN, 'burst'),
+  'foot:cyclops': ab('One Eye Open', always, [STAT({ critChance: 0.1 })], RED, 'burst'),
+  'foot:harpy': ab('Snatch and Grab', kill(0.3), [T(3)], GOLD, 'gold'),
+  'foot:titantoes': ab('Titan Stomp', auto, [D(11, all, 1300), ST(1.2, all)], BROWN, 'slam', 0.85),
+  'foot:hoplite': ab('Phalanx', wave, [SH(1, 'all'), D(2, front(3))], 0xc9873a, 'heal'),
+  'foot:siren': ab('Siren Song', every(7), [ST(1.2, all), M(1.3, 3, all)], CYAN, 'wind'),
+  'foot:gorgonsnake': ab('Venom', smack(0.25), [B(1, 3, hit())], GREEN, 'ink'),
+  'foot:kronos': ab('Time Stop', act, [ST(4, all), M(1.5, 4, all)], 0xd9c27a, 'zap', 1.05),
+  'foot:atlas': ab('Weight of the World', every(8), [D(5, tough(1), 900), ST(1.5, tough(1))], BLUE, 'burst'),
+  'foot:hyperion': ab('Solar Flare', every(6), [B(2, 3, rnd(3))], ORANGE, 'fire'),
+  'boss:minotaur': ab('Bull Rush', act, [D(7, front(4), 1300), ST(1.5, front(4))], BROWN, 'wind'),
+  'boss:medusa': ab('Stone Gaze', act, [FZ(3, all), M(1.6, 5, all)], 0x9dff6a, 'frost'),
+  'boss:cerberus': ab('Three Tempers', every(6), [B(1.5, 3, front(1)), FZ(1.5, tough(1)), S(0.5, 3, rnd(2)), D(2, rnd(2))], RED, 'fire'),
+  'boss:hades': ab('Shadow Grasp', every(5), [EX(0.3, front(2)), D(2.5, front(2))], PURPLE, 'ink'),
+
   // ——— Event shinies use their event's ability (see abilityKey) ———
 };
 

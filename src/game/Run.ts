@@ -37,6 +37,9 @@ export const LOCATION_MUSIC: Record<LocationId, string[]> = {
   // ——— Act 8 · Norse ———
   jotunheim: ['music_jotunheim', 'music_slopes', 'music_game'],
   bifrost: ['music_bifrost', 'music_jotunheim', 'music_game'],
+  // ——— Act 9 · Greek myths ———
+  labyrinth: ['music_labyrinth', 'music_game'],
+  tartarus: ['music_tartarus', 'music_cellar', 'music_game'],
 };
 
 export const LOCATION_AMBIENCE: Record<LocationId, string[]> = {
@@ -58,6 +61,9 @@ export const LOCATION_AMBIENCE: Record<LocationId, string[]> = {
   // ——— Act 8 · Norse ———
   jotunheim: ['ambience_jotunheim', 'ambience_slopes', 'ambience_pizzeria'],
   bifrost: ['ambience_bifrost', 'ambience_jotunheim', 'ambience_pizzeria'],
+  // ——— Act 9 · Greek myths ———
+  labyrinth: ['ambience_labyrinth', 'ambience_pizzeria'],
+  tartarus: ['ambience_tartarus', 'ambience_cellar', 'ambience_pizzeria'],
 };
 
 /** How many times the journey has been completed before wave n (0 on the first time through). */

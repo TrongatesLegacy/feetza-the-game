@@ -411,6 +411,52 @@ const TRIM: Record<string, number> = {
   sfx_hero_secret: 1.09, // -11.3 dB → -10.5
   music_tape: 0.94, // -12.4 dB → -13.0
   // ——— end hero peels ———
+  // ——— Act 9 · Greek myths (made by scripts/act9-audio/, same levels as the boss kit above: tells and hits near the
+  // slap, signature hits a little over it, repeated ones under it). Feet and Charybdis sounds are core (load at boot).
+  // The Minotaur
+  sfx_minotaur_bellow: 1.05, // -9.9 dB → -9.5: bull bellow (entrance and phase roar)
+  sfx_minotaur_snort: 1.11, // -11.9 dB → -11.0: pawing and steam snort (tell)
+  sfx_minotaur_charge: 1.05, // -10.0 dB → -9.6: hooves thunder into a charge
+  sfx_minotaur_gore: 1.1, // -11.3 dB → -10.5: horns hit a pizza
+  sfx_minotaur_crash: 1.09, // -10.2 dB → -9.5: slams into a stone wall
+  sfx_minotaur_walls: 1.06, // -12.5 dB → -12.0: maze walls grind and shift
+  // Medusa
+  sfx_medusa_glow: 1.04, // -11.3 dB → -11.0: eyes glow (tell)
+  sfx_medusa_petrify: 1.05, // -10.9 dB → -10.5: a pizza turns to stone
+  sfx_medusa_crack: 0.89, // -12.5 dB → -13.5: a statue cracks under a stomp
+  sfx_medusa_crumble: 1.05, // -10.0 dB → -9.6: a statue crumbles
+  sfx_medusa_mirror: 1.06, // -12.5 dB → -12.0: mirror shield appears
+  sfx_medusa_reflect: 1.11, // -11.4 dB → -10.5: smack on her reflection
+  sfx_medusa_cure: 1.1, // -11.4 dB → -10.6: curse broken on a statue
+  sfx_medusa_hiss: 1.01, // -12.1 dB → -12.0: snakes hiss
+  sfx_medusa_gaze: 1.05, // -11.0 dB → -10.6: the peel caught by her stare
+  // Cerberus
+  sfx_cerberus_bark: 1.1, // -10.3 dB → -9.5: triple bark (entrance)
+  sfx_cerberus_growl: 1.06, // -11.5 dB → -11.0: triple growl (tell)
+  sfx_cerberus_fire: 1.1, // -11.3 dB → -10.5: fire breath
+  sfx_cerberus_ice: 1.13, // -11.6 dB → -10.5: frost blast
+  sfx_cerberus_poison: 1.08, // -11.2 dB → -10.5: poison spit
+  sfx_cerberus_howl: 1.1, // -10.3 dB → -9.5: a head beaten, the others go wild
+  // Hades and the Titans
+  sfx_hades_toll: 1.05, // -10.0 dB → -9.6: death bell (entrance)
+  sfx_hades_rise: 1.05, // -10.0 dB → -9.6: a Titan rises from the floor
+  sfx_hades_chains: 1.11, // -12.9 dB → -12.0: chains rattle
+  sfx_hades_tick: 1.08, // -14.1 dB → -13.4: Kronos clock tick, sits under
+  sfx_hades_slow: 1.05, // -11.4 dB → -11.0: time slows (tell)
+  sfx_hades_shatter: 1.31, // -12.8 dB → -10.5: hourglass smashed
+  sfx_hades_tilt: 0.99, // -10.9 dB → -11.0: Atlas tilts the table (tell)
+  sfx_hades_slide: 1.06, // -12.5 dB → -12.0: pizzas slide
+  sfx_hades_flare: 1.1, // -11.3 dB → -10.5: Hyperion solar flare
+  sfx_hades_douse: 1.09, // -12.7 dB → -12.0: flames smacked out
+  sfx_hades_banish: 1.05, // -10.0 dB → -9.6: a Titan sent back
+  sfx_hades_shadow: 1.06, // -12.5 dB → -12.0: shadow creeps out
+  sfx_hades_grab: 1.08, // -11.2 dB → -10.5: shadow steals a slice
+  // Act 9 feet and events
+  sfx_sirensong: 0.89, // -12.5 dB → -13.5: Siren Slippers sing, sits under
+  sfx_harpy: 1.05, // -11.4 dB → -11.0: Harpy Talons screech and flap
+  sfx_eyepoke: 1.05, // -10.9 dB → -10.5: Cyclops Sandals poked in the eye
+  sfx_whirlpool: 1.11, // -11.9 dB → -11.0: Charybdis whirlpool opens
+  sfx_gulp: 1.05, // -10.9 dB → -10.5: Charybdis swallows
   // Stings are normalised to the music loudness (-16.4 LUFS, like music_gameover). audio.sting() plays
   // them at music volume and does not read TRIM; these gains apply if they're played through sfx().
   music_victory: 2.04, // -15.7 dB → -9.5: the 60-wave finish, a little over the slap

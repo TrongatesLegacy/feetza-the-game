@@ -4215,7 +4215,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       if (was === undefined || save.milestones.includes(m.id)) continue;
       const [have, need] = milestoneProgress(m.id);
       const pz = m.pizza ? PIZZA_BY_ID[m.pizza] : null;
-      if (have > was) goals.push({ kind: 'pizza', id: pz?.id ?? m.id, name: pz ? `${pz.name}: ${m.name}` : m.name, have, need });
+      // milestones without a pizza prize (crusts only) have no portrait, so they're left out of GETTING CLOSER
+      if (have > was && pz) goals.push({ kind: 'pizza', id: pz.id, name: `${pz.name}: ${m.name}`, have, need });
     }
     // closest to done first
     goals.sort((a, b) => b.have / b.need - a.have / a.need);

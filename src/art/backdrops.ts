@@ -10,7 +10,10 @@ export type LocationId = 'trattoria' | 'rooftop' | 'beach' | 'diner' | 'lodge' |
   | 'doomlab'
   // ——— Act 8 · Norse ———
   | 'jotunheim'
-  | 'bifrost';
+  | 'bifrost'
+  // ——— Act 9 · Greek myths ———
+  | 'labyrinth'
+  | 'tartarus';
 export type ArenaId = 'bigfoot' | 'ironheel' | 'clownking' | 'trex' | 'colossus' | 'phantomking' | 'cosmiccroc' | 'nonna' | 'gargoyle' | 'kraken' | 'rinkqueen' | 'yeti'
   // ——— Act 7 · Comics ———
   | 'doomstomp'
@@ -19,7 +22,12 @@ export type ArenaId = 'bigfoot' | 'ironheel' | 'clownking' | 'trex' | 'colossus'
   | 'thrym'
   | 'surtr'
   | 'fenrir'
-  | 'jormungandr';
+  | 'jormungandr'
+  // ——— Act 9 · Greek myths (the mini-bosses get arenas of their own too) ———
+  | 'minotaur'
+  | 'medusa'
+  | 'cerberus'
+  | 'hades';
 export type BackdropId = LocationId | ArenaId;
 export type AmbientKind =
   | 'dust'
