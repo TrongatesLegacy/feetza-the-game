@@ -32,6 +32,8 @@ export interface PeelDef {
   group: PeelGroup;
   /** How it's unlocked, for the locker. */
   how: string;
+  /** Extra detail on hover (a list too long for the unlock line). */
+  tip?: string;
   /** Achievement progress, for peels that unlock themselves. */
   progress?: () => [number, number];
   /** Golden Crust price, for peels bought in the locker. */
@@ -492,6 +494,7 @@ function buildDefs(): PeelDef[] {
       sub: hp.sub,
       pantheon: hp.pantheon,
       how: heatHow(hp.how, g),
+      tip: hp.tip,
       cost: g.kind === 'crusts' ? g.cost : undefined,
       progress: g.kind === 'crusts' ? undefined : () => goalProgress(g),
       look: hp.look,

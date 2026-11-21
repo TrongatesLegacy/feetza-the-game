@@ -122,19 +122,27 @@ function godPassives(list: Record<string, Passive>): Record<string, Passive> {
 
 // ——— the Kratos Peel ———
 
-/** The flaming head, ember stream and fire-ribbon trail, drawn every frame while the rage lasts. */
+/** The flaming head, hot glow, heat shimmer, ember stream and fire-ribbon trail, drawn every frame while the rage lasts. */
 function flames(k: HeroKit): { tick: (dt: number, left: number) => void; kill: () => void } {
-  // the flame tongues sit behind the helm (normal blend, cartoon-solid); a white-hot rim glows over its edge
+  // back to front: the fire ribbon (a normal-blended body with an additive hot core), a hot orange glow
+  // (normal blend: an additive wash turns white and vanishes on bright backdrops), the flame tongues
+  // (cartoon-solid, outlined), the peel, then a white-hot rim and the heat shimmer over it
+  const ribbonBody = k.sc.add.graphics();
+  const ribbon = k.sc.add.graphics().setBlendMode(Phaser.BlendModes.ADD);
+  const glow = k.sc.add.graphics();
   const head = k.sc.add.graphics();
   const rim = k.sc.add.graphics().setBlendMode(Phaser.BlendModes.ADD);
-  const ribbon = k.sc.add.graphics().setBlendMode(Phaser.BlendModes.ADD);
+  const haze = k.sc.add.graphics();
   const L = k.host.layers.cursor;
-  L.add(ribbon);
-  L.add(head);
-  L.add(rim);
+  const peelObj = k.host.peel() as unknown as Phaser.GameObjects.GameObject;
+  L.add([ribbonBody, ribbon, glow, head, rim, haze]);
   L.sendToBack(ribbon);
-  L.moveBelow(head as unknown as Phaser.GameObjects.GameObject, k.host.peel() as unknown as Phaser.GameObjects.GameObject);
+  L.sendToBack(ribbonBody);
+  L.moveBelow(glow as unknown as Phaser.GameObjects.GameObject, peelObj);
+  L.moveBelow(head as unknown as Phaser.GameObjects.GameObject, peelObj);
   const trail: { x: number; y: number; t: number }[] = [];
+  // loose flame licks that break off the top of the fire and rise away (in the peel's turned frame)
+  const licks: { a: number; d: number; t: number; life: number; size: number }[] = [];
   let t = 0;
   return {
     tick: (dt, left) => {
@@ -146,81 +154,148 @@ function flames(k: HeroKit): { tick: (dt: number, left: number) => void; kill: (
       const life = left < 3 ? 0.35 + 0.45 * Math.abs(Math.sin(t * 22)) * (left / 3) + 0.2 : 1;
       head.clear();
       rim.clear();
+      glow.clear();
+      haze.clear();
       head.setPosition(p.x, p.y).setRotation(peel.rotation).setScale(s);
       rim.setPosition(p.x, p.y).setRotation(peel.rotation).setScale(s);
       // flames lick upwards whatever way the peel leans (in the peel's own turned frame)
       const up = -Math.PI / 2 - peel.rotation;
       const ux = Math.cos(up);
       const uy = Math.sin(up);
-      const layer = (rad: number, n: number, len: number, col: number, speed: number, outline: boolean) => {
+
+      // the hot glow: stacked soft discs, pushed up a little where the flames rise, breathing with the fire
+      const pulse = (0.85 + 0.15 * Math.sin(t * 9) + 0.08 * Math.sin(t * 23)) * life;
+      glow.setPosition(p.x, p.y - 18 * s).setScale(s);
+      for (const [r, c, a] of [[180, 0xff4a10, 0.1], [148, 0xff5a14, 0.13], [120, 0xff7a1a, 0.17], [96, 0xff9a2a, 0.2], [74, 0xffc040, 0.24]] as const) {
+        glow.fillStyle(c, a * pulse);
+        glow.fillCircle(0, 0, r);
+      }
+
+      // a flame tongue: a curved, tapering lick from the helm's edge, swaying more towards its tip
+      const tongue = (bx: number, by: number, dx: number, dy: number, l: number, w: number, sway: number, col: number, outline: boolean) => {
+        const nx = -dy;
+        const ny = dx;
+        const left: [number, number][] = [];
+        const right: [number, number][] = [];
+        for (const u of [0, 0.3, 0.55, 0.78, 1]) {
+          const off = sway * u * u;
+          const cx = bx + dx * l * u + nx * off;
+          const cy = by + dy * l * u + ny * off;
+          const hw = (w / 2) * Math.pow(1 - u, 0.85);
+          left.push([cx - nx * hw, cy - ny * hw]);
+          right.push([cx + nx * hw, cy + ny * hw]);
+        }
+        const pts = [...left, ...right.reverse().slice(1)];
+        head.fillStyle(col, 1);
+        head.beginPath();
+        head.moveTo(pts[0][0], pts[0][1]);
+        for (let i = 1; i < pts.length; i++) head.lineTo(pts[i][0], pts[i][1]);
+        head.closePath();
+        if (outline) {
+          head.lineStyle(5, 0x2a1810, 0.9);
+          head.strokePath();
+        }
+        head.fillPath();
+      };
+      const layer = (rad: number, n: number, len: number, col: number, speed: number, outline: boolean, spin: number) => {
         for (let i = 0; i < n; i++) {
-          const ang = (i / n) * Math.PI * 2 + Math.sin(t * 0.7 + i) * 0.12;
+          const ang = (i / n) * Math.PI * 2 + spin + Math.sin(t * 0.7 + i) * 0.12;
           const cx = Math.cos(ang);
           const cy = Math.sin(ang);
-          // taller on the upper side, short licks underneath
+          // the whole helm burns: tall on the upper side, still a good lick underneath
           const lean = Math.max(0, cx * ux + cy * uy);
-          const l = len * (0.35 + 0.65 * lean) * (0.75 + 0.35 * Math.sin(t * speed + i * 1.7)) * life;
-          const bx = cx * rad;
-          const by = cy * rad;
-          const sway = Math.sin(t * 8 + i * 2.1) * 6;
-          const tx = bx + (ux * 0.75 + cx * 0.35) * l + -uy * sway;
-          const ty = by + (uy * 0.75 + cy * 0.35) * l + ux * sway;
-          const w = ((Math.PI * 2 * rad) / n) * 0.62;
-          const nx = -cy * w * 0.5;
-          const ny = cx * w * 0.5;
-          head.fillStyle(col, 1);
-          head.beginPath();
-          head.moveTo(bx - nx, by - ny);
-          head.lineTo((bx * 0.4 + tx * 0.6) - nx * 0.5, (by * 0.4 + ty * 0.6) - ny * 0.5);
-          head.lineTo(tx, ty);
-          head.lineTo((bx * 0.4 + tx * 0.6) + nx * 0.5, (by * 0.4 + ty * 0.6) + ny * 0.5);
-          head.lineTo(bx + nx, by + ny);
-          head.closePath();
-          if (outline) {
-            head.lineStyle(5, 0x2a1810, 0.9);
-            head.strokePath();
-          }
-          head.fillPath();
+          // two beats of flicker so no two tongues pulse together
+          const flick = 0.72 + 0.28 * Math.sin(t * speed + i * 1.7) + 0.14 * Math.sin(t * speed * 2.3 + i * 3.1);
+          const l = len * (0.42 + 0.58 * lean) * flick * life;
+          // each tongue leaves the helm outwards and bends up
+          let dx = ux * 0.7 + cx * 0.55;
+          let dy = uy * 0.7 + cy * 0.55;
+          const m = Math.hypot(dx, dy) || 1;
+          dx /= m;
+          dy /= m;
+          const w = ((Math.PI * 2 * rad) / n) * 0.78;
+          tongue(cx * rad, cy * rad, dx, dy, l, w, Math.sin(t * 7 + i * 2.1) * l * 0.22, col, outline);
         }
       };
       // red outer tongues (outlined, the game's style), the orange body and a yellow core
-      layer(48, 13, 92, 0xd8261a, 7, true);
-      layer(46, 12, 66, 0xff7a1a, 9, false);
-      layer(42, 10, 38, 0xffd23f, 12, false);
-      // the white-hot rim hugging the helm, and a soft heat glow
-      rim.lineStyle(6, 0xfff4d0, 0.7 * life);
+      layer(50, 14, 175, 0xd8261a, 7, true, 0);
+      layer(48, 13, 128, 0xff7a1a, 9, false, 0.2);
+      layer(44, 11, 78, 0xffd23f, 12, false, 0.45);
+      // loose licks break off the top and rise away
+      if (Math.random() < 14 * dt * life) licks.push({ a: (Math.random() - 0.5) * 1.6, d: 0, t: 0, life: 0.28 + Math.random() * 0.2, size: 14 + Math.random() * 12 });
+      for (let i = licks.length - 1; i >= 0; i--) {
+        const q = licks[i];
+        q.t += dt;
+        q.d += dt * 420;
+        if (q.t > q.life) {
+          licks.splice(i, 1);
+          continue;
+        }
+        const f = 1 - q.t / q.life;
+        const base = 120 * life + q.d;
+        const ax = ux * Math.cos(q.a) - uy * Math.sin(q.a);
+        const ay = ux * Math.sin(q.a) + uy * Math.cos(q.a);
+        tongue(ax * base, ay * base, ux, uy, q.size * 2.2 * f, q.size * f, Math.sin(t * 9 + i) * 6, f > 0.5 ? 0xff7a1a : 0xd8261a, true);
+      }
+      // the white-hot rim hugging the helm
+      rim.lineStyle(7, 0xfff4d0, 0.75 * life);
       rim.strokeCircle(0, 0, 47);
-      rim.lineStyle(18, 0xff8a2a, 0.3 * life);
+      rim.lineStyle(16, 0xff9a3a, 0.35 * life);
       rim.strokeCircle(0, 0, 56);
+
+      // heat shimmer: wavy lines of hot air wobbling up off the flames
+      for (let j = 0; j < 4; j++) {
+        const ph = (t * 0.9 + j / 4) % 1;
+        const x0 = p.x + (j - 1.5) * 34 * s;
+        const y0 = p.y - (120 + ph * 90) * s;
+        haze.lineStyle(4 * s, 0xfff2d0, 0.38 * Math.sin(ph * Math.PI) * life);
+        haze.beginPath();
+        for (let q = 0; q <= 8; q++) {
+          const yy = y0 - q * 9 * s;
+          const xx = x0 + Math.sin(t * 10 + q * 0.9 + j * 1.3) * 7 * s;
+          if (q) haze.lineTo(xx, yy);
+          else haze.moveTo(xx, yy);
+        }
+        haze.strokePath();
+      }
+
       // embers stream off it as you move
-      if (Math.random() < 0.9 * life) k.host.fx.burn(p.x + (Math.random() - 0.5) * 60 * s, p.y - 40 * s);
+      if (Math.random() < 0.95 * life) k.host.fx.burn(p.x + (Math.random() - 0.5) * 80 * s, p.y - 60 * s);
+      if (Math.random() < 0.5 * life) k.host.fx.burn(p.x + (Math.random() - 0.5) * 50 * s, p.y - 110 * s);
       const last = trail[trail.length - 1];
       const moved = last ? Math.hypot(p.x - last.x, p.y - last.y) : 99;
+      // a jump (a teleport, the peel snapping back) starts a new ribbon rather than drawing a long straight bar
+      if (moved > 320) trail.length = 0;
       if (moved > 6) trail.push({ x: p.x, y: p.y, t: 0 });
-      if (moved > 18 && Math.random() < 0.8) k.host.fx.trail(p.x, p.y, FIRE);
-      // the fire ribbon: a tapering band along the peel's recent path
+      if (moved > 14 && moved <= 320 && Math.random() < 0.9) k.host.fx.trail(p.x, p.y, FIRE);
+      if (moved > 14 && moved <= 320 && Math.random() < 0.6) k.host.fx.burn(p.x, p.y);
+      // the fire ribbon: a tapering band along the peel's recent path, with a dark-red edge that reads on
+      // bright backdrops and a white-hot core
       for (const q of trail) q.t += dt;
-      while (trail.length && (trail[0].t > 0.35 || trail.length > 26)) trail.shift();
+      while (trail.length && (trail[0].t > 0.5 || trail.length > 34)) trail.shift();
+      ribbonBody.clear();
       ribbon.clear();
       for (let i = 1; i < trail.length; i++) {
         const a = trail[i - 1];
         const b = trail[i];
         const u = i / trail.length;
-        for (const [w, c, al] of [[34, 0xd8201a, 0.35], [20, 0xff8a1a, 0.55], [7, 0xfff0c0, 0.7]] as const) {
+        for (const [w, c, al] of [[62, 0xa8160c, 0.5], [44, 0xe8381a, 0.65], [28, 0xff8a1a, 0.75]] as const) {
+          ribbonBody.lineStyle(w * u * life, c, al * u);
+          ribbonBody.lineBetween(a.x, a.y, b.x, b.y);
+        }
+        for (const [w, c, al] of [[20, 0xffb040, 0.6], [9, 0xfff0c0, 0.85]] as const) {
           ribbon.lineStyle(w * u * life, c, al * u);
           ribbon.lineBetween(a.x, a.y, b.x, b.y);
         }
       }
     },
     kill: () => {
-      head.destroy();
-      rim.destroy();
-      ribbon.destroy();
+      for (const g of [ribbonBody, ribbon, glow, head, rim, haze]) g.destroy();
     },
   };
 }
 
-/** A ring of fire on the table where an enraged smack lands. */
+/** A ring of fire on the table where an enraged smack lands, and a burst of embers off the blow. */
 function fireRing(k: HeroKit, x: number, y: number): void {
   const g = k.sc.add.graphics().setBlendMode(Phaser.BlendModes.ADD);
   k.host.layers.fx.add(g);
@@ -244,6 +319,45 @@ function fireRing(k: HeroKit, x: number, y: number): void {
     const a = (i / 10) * Math.PI * 2;
     k.host.fx.burn(x + Math.cos(a) * 90, y + Math.sin(a) * 40);
   }
+  // the ember burst: chunky outlined sparks thrown up and out, falling back as they cool from yellow to red
+  const e = k.sc.add.graphics();
+  k.host.layers.fx.add(e);
+  const sparks = Array.from({ length: 26 }, () => {
+    const a = -Math.PI / 2 + (Math.random() - 0.5) * 2.6;
+    const v = 380 + Math.random() * 560;
+    return { vx: Math.cos(a) * v, vy: Math.sin(a) * v, r: 9 + Math.random() * 8 };
+  });
+  const st = { p: 0 };
+  k.sc.tweens.add({
+    targets: st,
+    p: 1,
+    duration: 700,
+    onUpdate: () => {
+      e.clear();
+      const sec = st.p * 0.7;
+      for (const q of sparks) {
+        const px = x + q.vx * sec;
+        const py = y + q.vy * sec + 0.5 * 1500 * sec * sec;
+        const r = q.r * (1 - st.p * 0.75);
+        const col = st.p < 0.3 ? 0xfff0a0 : st.p < 0.6 ? 0xffa030 : 0xe8381a;
+        // a stretched diamond along its flight, outlined like the rest of the game
+        const ang = Math.atan2(q.vy + 1500 * sec, q.vx);
+        const cx = Math.cos(ang);
+        const cy = Math.sin(ang);
+        e.fillStyle(col, 1 - st.p * 0.5);
+        e.lineStyle(2.5, 0x2a1810, 0.85 * (1 - st.p * 0.5));
+        e.beginPath();
+        e.moveTo(px + cx * r * 2, py + cy * r * 2);
+        e.lineTo(px - cy * r * 0.8, py + cx * r * 0.8);
+        e.lineTo(px - cx * r * 1.2, py - cy * r * 1.2);
+        e.lineTo(px + cy * r * 0.8, py - cx * r * 0.8);
+        e.closePath();
+        e.fillPath();
+        e.strokePath();
+      }
+    },
+    onComplete: () => e.destroy(),
+  });
 }
 
 /** The Spinning Blade: chained blades orbiting the peel. */

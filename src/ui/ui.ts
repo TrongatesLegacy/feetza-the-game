@@ -196,6 +196,10 @@ class Hud {
   private newFootEl: HTMLElement | null = null;
   /** When the current centre banner disappears (performance.now() ms). */
   private bannerUntil = 0;
+  /** Milliseconds until the centre banner on screen goes (0: none). */
+  bannerLeft(): number {
+    return Math.max(0, this.bannerUntil - performance.now());
+  }
   private slam = h('div', { class: 'slam', role: 'button', 'aria-label': 'Peel Slam' });
   private owned = h('div', { class: 'owned' });
   private toasts = h('div', { class: 'toasts' });
@@ -287,6 +291,8 @@ class Hud {
 
   setBoss(name: string | null, frac = 1, phases = 1, phase = 1): void {
     this.boss.classList.toggle('on', !!name);
+    // the combo sits in one row above the boss bar, so its score pill doesn't cover the boss's name
+    this.combo.classList.toggle('beside-boss', !!name);
     if (!name) {
       this.setBossMove(null);
       return;
@@ -389,12 +395,19 @@ class Hud {
     b.style.animationDuration = `${ms - 100}ms`;
     this.bannerUntil = performance.now() + ms;
     this.root.append(b);
-    // long titles shrink to fit the screen instead of running off it
-    const descPad = descEl ? parseFloat(getComputedStyle(descEl).paddingLeft) * 2 + parseFloat(getComputedStyle(descEl).borderLeftWidth) * 2 : 0;
-    for (const el of b.querySelectorAll<HTMLElement>('.big, .small, .desc span')) {
-      const room = b.clientWidth - (descEl?.contains(el) ? descPad : 0);
-      if (el.scrollWidth > room) el.style.fontSize = `${(parseFloat(getComputedStyle(el).fontSize) * room) / el.scrollWidth}px`;
-    }
+    // long titles shrink to fit the screen instead of running off it (with a little room for the outline,
+    // which draws outside the measured width), and again once the fonts are in: measured in a fallback
+    // font, "PERSIAN WAR BAND!" ran to the edge of a phone
+    const fit = () => {
+      const descPad = descEl ? parseFloat(getComputedStyle(descEl).paddingLeft) * 2 + parseFloat(getComputedStyle(descEl).borderLeftWidth) * 2 : 0;
+      for (const el of b.querySelectorAll<HTMLElement>('.big, .small, .desc span')) {
+        el.style.fontSize = '';
+        const room = (b.clientWidth - (descEl?.contains(el) ? descPad : 0)) * 0.96;
+        if (el.scrollWidth > room) el.style.fontSize = `${(parseFloat(getComputedStyle(el).fontSize) * room) / el.scrollWidth}px`;
+      }
+    };
+    fit();
+    if (document.fonts.status !== 'loaded') document.fonts.ready.then(() => b.isConnected && fit());
     setTimeout(() => b.remove(), ms);
   }
 
@@ -2101,7 +2114,7 @@ class UI {
           {},
           // one row: name, status pills, then the ability's kind and name; the actions sit on the right
           h('div', { class: 'dt-head' }, h('h3', {}, shownName(d)), ...chips, ...(hidden(d) && d.ultra ? [] : abilityBits(d.id).slice(0, 2)), actions.length ? h('span', { class: 'dt-act' }, ...actions) : null),
-          h('div', { class: 'dt-how' }, h('p', {}, d.how), pr && !owned ? bar(pr[0], pr[1]) : null),
+          h('div', { class: 'dt-how' }, h('p', d.tip ? { title: d.tip, class: 'has-tip' } : {}, d.how), pr && !owned ? bar(pr[0], pr[1]) : null),
           hidden(d) && d.ultra ? null : h('p', { class: 'dt-desc' }, abilityBits(d.id)[2]),
         ),
       );

@@ -995,7 +995,7 @@ function surtrNames(n: number): string[] {
 }
 
 const SURTR_INFO: Record<string, string> = {
-  'MUSPEL FIRE': 'Sets a pizza alight and hurls fireballs · smack out the flames (a burning pizza loses a slice every 4 s) and smack the fireballs as they fall',
+  'MUSPEL FIRE': 'Sets a pizza alight (it loses a slice every 4 s) and hurls fireballs · smack out the flames and the fireballs as they fall',
   'THE BRIDGE BURNS': 'Fire runs along the bridge towards a pizza and sets it alight · smack the running flame before it gets there',
   'TWILIGHT OF THE GODS': 'Fire and fireballs come faster · keep the flames out',
   'SWORD OF RAGNARÖK': 'He raises his sword to sweep the table · fire your signature move (or Peel Slam) the moment the sword flashes',

@@ -70,6 +70,12 @@ function devNotes(): Plugin {
     configureServer(server) {
       const file = process.env.FEETZA_NOTES;
       server.middlewares.use('/__notes', (req, res) => {
+        // without a notes file the lab keeps its notes in the browser: an empty answer, not a 404 in the console
+        if (!file && req.method === 'GET') {
+          res.setHeader('content-type', 'application/json');
+          res.end('{}');
+          return;
+        }
         if (!file) {
           res.statusCode = 404;
           res.end('FEETZA_NOTES not set');

@@ -653,6 +653,28 @@ h3 {
   animation: pulse 0.3s ease infinite;
 }
 
+/* a boss on screen: label and score pill side by side, the timer under them, all clear of the boss bar */
+.combo.beside-boss {
+  top: 0.5em;
+  grid-template-columns: auto auto;
+  align-items: center;
+  column-gap: 0.5em;
+}
+
+.combo.beside-boss .label {
+  font-size: 2.4em;
+}
+
+.combo.beside-boss .mult {
+  margin-top: 0;
+}
+
+.combo.beside-boss .timer {
+  grid-column: 1 / -1;
+  width: 100%;
+  margin-top: 0.2em;
+}
+
 .bossbar {
   position: absolute;
   left: 50%;
@@ -868,6 +890,13 @@ h3 {
 
 .banner.loc .small {
   color: var(--cheese);
+}
+
+/* phones: place titles ("PERSIAN WAR BAND!") stay well inside the screen instead of running to its edges */
+@container (max-width: 900px) {
+  .banner.loc .big {
+    font-size: 5.6em;
+  }
 }
 
 @keyframes bannerIn {
@@ -4192,6 +4221,13 @@ body.reduced-motion *::after {
   margin: 0.15em 0 0 !important;
 }
 
+/* more detail on hover (Moon Knife's night stages) */
+.dt-how p.has-tip {
+  cursor: help;
+  text-decoration: underline dotted rgba(42, 24, 16, 0.45);
+  text-underline-offset: 0.2em;
+}
+
 .dt-how .pbar {
   margin-top: 0.15em;
   max-width: 16em;
@@ -5374,6 +5410,16 @@ body.reduced-motion *::after {
   margin: 0;
 }
 
+/* the ability text gets its own line under the pill and name, so no lead-in dash */
+.roul-tile .abl > span:last-child {
+  flex-basis: 100%;
+  color: var(--ink);
+}
+
+.roul-tile .abl > span:last-child::before {
+  content: none;
+}
+
 .roul-go {
   width: 100%;
   pointer-events: none;
@@ -5390,7 +5436,29 @@ body.reduced-motion *::after {
 
   .roul-pic,
   .roul-pic img {
-    height: 10em;
+    height: 8.5em;
+  }
+
+  /* phones: the card text was 8px; bigger, with the cards a touch wider */
+  .roul-row {
+    gap: 1em;
+  }
+
+  .roul-tile {
+    max-width: 25em;
+    padding: 0.9em 0.8em 1em;
+  }
+
+  .roul-tile .abl {
+    font-size: 1.15em;
+  }
+
+  .pickwin .pick-cards .card .desc {
+    font-size: 1.55em;
+  }
+
+  .pickwin .pick-cards .card .down {
+    font-size: 1.3em;
   }
 }
 

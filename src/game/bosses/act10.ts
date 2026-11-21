@@ -1116,7 +1116,8 @@ const soleunbound = (): Brain => {
           onComplete: () => {
             flyer.destroy();
             burstOf(a, f, ab);
-            a.quip(f.cx + (Math.random() - 0.5) * 300, f.cy - 160 - (i % 3) * 50, ab.name.toUpperCase(), hexStr(ab.color), 30);
+            // the names fan out across five columns and three rows, so a quick burst still reads (they piled up)
+            a.quip(f.cx + ((i % 5) - 2) * 250, f.cy - 150 - (Math.floor(i / 5) % 3) * 56, ab.name.toUpperCase(), hexStr(ab.color), 30);
           },
         });
       });
