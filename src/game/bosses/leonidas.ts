@@ -4,8 +4,12 @@
 // horde's adds are the Persian army's own Immortal Sandals and the war elephants are Persian Elephant Feet.
 //
 // Choices the spec left open (numbers are Regular; heat() scales them):
-// - The Immortal Brute: THE IMMORTAL HORDE (every 11 s a war horn and 4 Immortal Sandals march in; while two or more
-//   stand he can't be hurt, for 12 s at most), BLADE ON A CHAIN (from phase 2, every 9 s he whirls his blade over a
+// - The Immortal Brute: THE IMMORTAL HORDE (a war horn and 4 Immortal Sandals march in; while two or more stand he
+//   can't be hurt, for 12 s at most; no new horde while any stand, and once the last falls he's open for a gap of 8 s,
+//   7 s in phase 2, 6 s in phase 3, scaled by heat and a quarter shorter in NO RETREAT, before the next; he rises to
+//   the top of a random lane and holds there while each horde marches in), DEVOUR (every 12 s while the horde stands
+//   he hooks an Immortal on his chain for 1.8 s: kill it first or he eats it for 6% of his health, 8% in phase 3,
+//   more on hotter heats), BLADE ON A CHAIN (from phase 2, every 9 s he whirls his blade over a
 //   pair of neighbouring pizzas for 2.6 s; 3 smacks snag the chain, stunning him 2 s for 5% of his health, or it slams
 //   a slice off both) and NO RETREAT (phase 3: both, a quarter faster). 1 phase on Mild, 2 on Regular and Hot, 3 above.
 // - Xerxes: ARROW STORM (the sky goes dark and volleys fall on 3 pizzas in turn; bat each away or it takes a slice),
@@ -38,17 +42,36 @@ function laneColumn(a: Arena, p: Pizza, y0: number, color: number): () => void {
 const immortalbrute = (): Brain => {
   const bin = new Bin();
   const start = once();
-  const hordeT = new Every(11, 1.5);
+  /** Seconds until the next horde (it only runs while no Immortal stands); the first comes 1.5 s in. */
+  let gapT = 1.5;
   const bladeT = new Every(9, 3);
   let horde: Foot[] = [];
   let guardFor = 0;
   let whirling = false;
+  /** Immortals were standing last frame (so the moment the last one falls opens the gap). */
+  let held = false;
+  /** Seconds he stays at the top of the lane he summoned from. */
+  let pauseT = 0;
+  /** DEVOUR: seconds to the next Immortal he hooks and eats, and the one on the hook now. */
+  let devourT = 6;
+  let hooked: { victim: Foot; end: () => void } | null = null;
+  /** Every Immortal on the table: the horde and the ones that stepped back out of the smoke. */
+  const standing = (a: Arena) => a.allFeet().filter((o) => o.alive && o.type.id === 'immortal').length;
 
   const march = (f: Foot, a: Arena) => {
     const h = heat(a);
     a.sfx('sfx_immortalbrute_horde');
     a.quip(f.x, Math.max(SAFE_TOP + 40, f.cy - 180), 'THE HORDE MARCHES!', '#e8e4dc', 44);
     const n = f.phase >= 2 ? h.adds(2) : h.adds(3);
+    // he rises to the top of a lane and holds there, horn up, while they march in
+    const ps = a.alivePizzas();
+    const lane = rnd(ps.filter((p) => p !== f.target)) ?? rnd(ps);
+    if (lane) {
+      f.target = lane;
+      f.laneX = null;
+    }
+    f.pinned = true;
+    pauseT = 1.6 + n * 0.35;
     for (let i = 0; i < n; i++) {
       a.sc.time.delayedCall(i * 350, () => {
         if (!f.alive || !a.inWave()) return;
@@ -136,6 +159,69 @@ const immortalbrute = (): Brain => {
     });
   };
 
+  // DEVOUR: now and then he hooks one of his own Immortals on his chain and drags it in; kill it first, or he
+  // eats it and heals (a little more on hotter heats, more again in NO RETREAT)
+  const devour = (f: Foot, a: Arena) => {
+    const h = heat(a);
+    const victim = rnd(a.allFeet().filter((o) => o.alive && o.type.id === 'immortal'));
+    if (!victim) return;
+    const sec = h.windup(1.8);
+    const t0 = a.now();
+    a.sfx('sfx_immortalbrute_roar', { rate: 0.8 });
+    a.quip(f.x, Math.max(SAFE_TOP + 40, f.cy - 180), 'FEED ME!', '#ff6a5a', 42);
+    a.quip(victim.x, Math.max(SAFE_TOP + 40, victim.cy - 150), 'SMACK IT!', '#ffd23f', 32);
+    victim.brain.hooked = 1;
+    const chain = a.sc.add.graphics();
+    a.fxLayer.add(chain);
+    const draw = a.sc.time.addEvent({
+      delay: 16,
+      loop: true,
+      callback: () => {
+        chain.clear();
+        if (!victim.alive || !f.alive) return;
+        // the chain pulls taut: it shakes more as time runs out
+        const k = Math.min(1, (a.now() - t0) / sec);
+        const j = (Math.random() - 0.5) * 8 * k;
+        for (const [w, c] of [[12, 0x2a1810], [6, 0x9aa3ad]] as const) {
+          chain.lineStyle(w, c, 1);
+          chain.lineBetween(f.x, f.cy, victim.x + j, victim.cy + j);
+        }
+        chain.fillStyle(0xff3a2a, 0.35 + 0.3 * Math.sin(a.now() * 18)).fillCircle(victim.x, victim.cy, 46);
+      },
+    });
+    const ring = timerRing(a, () => (victim.alive ? { x: victim.x, y: victim.cy } : null), 70, 0xff6a5a, () => 1 - (a.now() - t0) / sec);
+    const end = () => {
+      draw.remove();
+      chain.destroy();
+      ring();
+      if (victim.alive) victim.brain.hooked = 0;
+      hooked = null;
+      forget();
+    };
+    const forget = bin.add(() => {
+      draw.remove();
+      chain.destroy();
+      ring();
+    });
+    hooked = { victim, end };
+    a.sc.time.delayedCall(sec * 1000, () => {
+      if (!hooked || hooked.victim !== victim) return;
+      end();
+      if (!f.alive || !a.inWave()) return;
+      if (!victim.alive) return;
+      // dragged in and swallowed: it doesn't step back out of the smoke
+      victim.brain.returned = 1;
+      a.fx.puff(victim.x, victim.cy, 12);
+      a.fx.ring(f.x, f.cy, 0x2a2630, 1.3, 0.6);
+      victim.die();
+      a.sfx('sfx_gulp', { volume: 1.1, rate: 0.7 });
+      a.shake(200, 0.008);
+      const heal = f.maxHp * (f.phase >= 3 ? 0.08 : 0.06) / h.cooldown(1);
+      f.hp = Math.min(f.maxHp, f.hp + heal);
+      a.quip(f.x, Math.max(SAFE_TOP + 40, f.cy - 170), 'DEVOURED!', '#7dff9a', 44);
+    });
+  };
+
   return {
     names: ['THE IMMORTAL HORDE', 'BLADE ON A CHAIN', 'NO RETREAT'],
     info: [
@@ -150,6 +236,16 @@ const immortalbrute = (): Brain => {
       });
       // the horde guards him while two or more of them stand (for a while)
       horde = horde.filter((o) => o.alive);
+      // he holds the top of the lane while the horde marches in, then fights on
+      if (pauseT > 0) {
+        pauseT -= dt;
+        if (pauseT <= 0) f.pinned = false;
+      }
+      // killed it before he could reel it in
+      if (hooked && !hooked.victim.alive) {
+        hooked.end();
+        a.quip(f.x, Math.max(SAFE_TOP + 40, f.cy - 170), 'DENIED!', '#ffd23f', 40);
+      }
       guardFor = Math.max(0, guardFor - dt);
       const want = horde.length >= 2 && guardFor > 0;
       if (want !== f.shielded && !f.puppet) shield(a, f, want);
@@ -162,14 +258,38 @@ const immortalbrute = (): Brain => {
     update(f, dt, a) {
       const h = heat(a);
       const fast = f.phase >= 3 ? 0.75 : 1;
-      hordeT.every = h.cooldown((f.phase >= 2 ? 16 : 11) * fast);
-      if (hordeT.tick(dt)) march(f, a);
+      // no new horde while any Immortal stands; once the last falls, a gap in which he's open to smacks
+      // (longer on milder heats and in his first phase), then the war horn
+      const up = standing(a) > 0;
+      if (up) held = true;
+      else if (held) {
+        held = false;
+        gapT = h.cooldown((f.phase >= 3 ? 6 : f.phase >= 2 ? 7 : 8) * fast);
+        a.quip(f.x, Math.max(SAFE_TOP + 40, f.cy - 180), 'HE’S OPEN!', '#7dff9a', 42);
+      }
+      // DEVOUR, while the horde stands (not while he's whirling or holding the lane)
+      if (up && !hooked && !whirling && pauseT <= 0) {
+        devourT -= dt;
+        if (devourT <= 0) {
+          devourT = h.cooldown(12 * fast);
+          devour(f, a);
+        }
+      }
+      if (!up) {
+        gapT -= dt;
+        if (gapT <= 0) {
+          // long enough for the horde to step in (one every 0.35 s); if none could, the horn sounds again
+          gapT = 3;
+          march(f, a);
+        }
+      }
       if (f.phase >= 2 && !whirling) {
         bladeT.every = h.cooldown(9 * fast);
         if (bladeT.tick(dt)) whirl(f, a);
       }
     },
     onDeath(f, a) {
+      hooked = null;
       bin.flush();
       for (const o of horde) if (o.alive) o.die();
       horde = [];
