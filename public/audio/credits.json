@@ -1581,5 +1581,141 @@
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
     "notes": "Phantom King: exorcism chime; a synthesized holy chime arpeggio, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_tosssoft.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Thrown props: a soft prop leaves the peel (tomato, polish, dough, pie, duck); a short synthesized air swish, made with ffmpeg and Python and released as CC0, layered with Kenney RPG Audio cloth1 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_tossflick.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Thrown props: a small hard prop is flicked (toenail, coin, square slice, olive, clutter, rattle); a quick synthesized flick swish, made with ffmpeg and Python and released as CC0, layered with Kenney Interface Sounds click_002 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_tossspin.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Thrown props: a spinning prop is thrown (plate, flatbread, skateboard, football); a synthesized spinning whirr, made with ffmpeg and Python and released as CC0, layered with Kenney Interface Sounds scroll_002 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_tossheavy.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Thrown props: a heavy prop is heaved (dumbbell, cannonball, bowling ball, coconut, can, grenade); a low synthesized heave and swish, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_tossrope.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Thrown props: a life ring or lasso is swung; a synthesized lasso swing, made with ffmpeg and Python and released as CC0, layered with Kenney RPG Audio beltHandle1 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_hitsplat.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Thrown props: a soft prop splats on a foot; a wet synthesized splat, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactSoft_medium_000 and Sci-fi Sounds slime_000 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_hittink.mp3",
+    "title": "Impact Sounds (impactPlate_light_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Thrown props: a small hard prop ticks off a foot; layered with Impact Sounds impactGlass_light_000 (Kenney, CC0)"
+  },
+  {
+    "file": "sfx_hitcoin.mp3",
+    "title": "RPG Audio (handleCoins)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/rpg-audio",
+    "notes": "Thrown props: a stolen coin bonks a foot; layered with Impact Sounds impactPlate_light_000 (Kenney, CC0) and a synthesized coin ring (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_hitclang.mp3",
+    "title": "Impact Sounds (impactPlate_medium_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Thrown props: a plate, can or skateboard clangs off a foot; layered with Impact Sounds impactMetal_light_001 (Kenney, CC0)"
+  },
+  {
+    "file": "sfx_hitbonk.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Thrown props: a rubbery prop bonks a foot; a rubbery synthesized bonk, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactSoft_heavy_000 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_hitthud.mp3",
+    "title": "Impact Sounds (impactPunch_heavy_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Thrown props: a heavy prop lands on a foot; layered with Impact Sounds impactWood_heavy_000 (Kenney, CC0) and a low synthesized thump (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_hitboom.mp3",
+    "title": "Sci-fi Sounds (explosionCrunch_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "notes": "Thrown props: a cannonball or pepper grenade explodes; layered with Sci-fi Sounds lowFrequency_explosion_000 (Kenney, CC0)"
+  },
+  {
+    "file": "sfx_hitrope.mp3",
+    "title": "RPG Audio (beltHandle2)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/rpg-audio",
+    "notes": "Thrown props: a life ring or lasso snaps tight round a foot; layered with RPG Audio cloth3 (Kenney, CC0) and a synthesized rope snap (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_hitsqueak.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Thrown props: a rubber duck squeaks off a foot; a synthesized rubber-duck squeak, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactSoft_medium_000 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_hitrattle.mp3",
+    "title": "Casino Audio (dice-shake-1)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/casino-audio",
+    "notes": "Thrown props: a rattle bounces off a foot; layered with Impact Sounds impactPlate_light_002 (Kenney, CC0)"
+  },
+  {
+    "file": "sfx_rollrumble.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Thrown props: a bowling ball or pineapple ring rolls along a lane; a synthesized rolling rumble, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactWood_medium_000 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_beam.mp3",
+    "title": "Sci-fi Sounds (laserLarge_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "notes": "Thrown props: a beam fires across the screen; layered with Digital Audio zap1 (Kenney, CC0)"
   }
 ]

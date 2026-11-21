@@ -17,6 +17,7 @@ import { eventName, rollEvent, startEvent, type EventId } from '../game/events';
 import { Foot } from '../game/Foot';
 import { Fx } from '../game/Fx';
 import { Pizza } from '../game/Pizza';
+import { Projectiles } from '../game/projectiles';
 import { LOCATION_AMBIENCE, LOCATION_MUSIC, RARITY_FROM, Run, awardMilestones, milestoneProgress, backdropFor, bestRarity, rarityOpen, specialPrice, bossMusic, isBossWave, isMiniWave, locationFor, loopOf, planWave, type WavePlan, bossFor, miniFor } from '../game/Run';
 import type { CounterSnap, RunSnapshot } from '../game/snapshot';
 import { audio, bossSfx } from '../systems/audio';
@@ -92,6 +93,8 @@ export class GameScene extends Phaser.Scene implements Arena {
   private abilityT = 0;
   /** Proc toppings owned this run (scaled by level), with their timers. */
   private procs: { id: string; p: Proc; t: number }[] = [];
+  /** Thrown props (peel abilities and topping procs). */
+  private throws!: Projectiles;
   /** Damage dealt this run by source (dev balance tooling reads it). */
   dmgLog: Record<string, number> = {};
   /** Tips earned in each wave (wave clear bonus included), for balance tooling. */
@@ -349,6 +352,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.cursorLayer = this.add.container(0, 0);
     this.backdrop = new BackdropView(this, bg, ambient);
     this.fx = new Fx(this, this.fxLayer);
+    this.throws = new Projectiles(this, this.fxLayer, this.fx, { peel: () => this.peel, peelPos: () => this.peelPos, feet: () => this.feet });
     this.director = new BossDirector(this);
 
     const snap = this.start.snapshot;
@@ -375,6 +379,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     // useless for passives with no timer or chance to speed up
     setSlamMode(this.ability);
     this.events.once('shutdown', () => {
+      this.throws.clear(false);
       setSlamMode(undefined);
       setRunHeat(null);
     });
@@ -671,6 +676,9 @@ export class GameScene extends Phaser.Scene implements Arena {
       .map(([id, lvl]) => ({ u: UPGRADE_BY_ID[id], lvl }))
       .filter((x) => x.u?.proc && x.lvl > 0)
       .map((x) => ({ id: x.u.id, p: scaleProc(x.u.proc!, x.lvl), t: timers.get(x.u.id) ?? 0 }));
+    // a throwing peel's passive throw runs like a proc
+    const also = this.ability?.also;
+    if (also) this.procs.push({ id: 'peel:also', p: { ...also, color: this.ability!.color, vfx: this.ability!.vfx }, t: timers.get('peel:also') ?? 0 });
     this.syncCutters();
     this.syncGarlic();
   }
@@ -1380,6 +1388,7 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   private waveClear(): void {
     this.waveActive = false;
+    this.throws.clear();
     this.lockedPizzas.clear();
     this.retreat(false);
     this.minionPool = null;
@@ -2484,6 +2493,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (!p || p.dead) return;
     const st = this.run.stats;
     if (f.type.stompDmg <= 0) return;
+    if (this.throws.blindMiss(f)) return;
     if (this.run.combo >= 5) this.fx.quip(W / 2, 200, 'COMBO LOST', '#ff8a6a', 40, 0);
     this.run.combo = 0;
     this.rumble(f.isBossLike ? 0.8 : 0.3, f.isBossLike ? 250 : 90);
@@ -2935,6 +2945,12 @@ export class GameScene extends Phaser.Scene implements Arena {
       case 'tips':
         this.giveTips(Math.round(e.n * this.run.heatDef.tips), ctx.x ?? this.peelPos.x, ctx.y ?? this.peelPos.y);
         break;
+      case 'throw':
+        this.throws.launch(e, targets(e.at), color, (f, x) => {
+          if (x > 0) this.dealDamage(f, x * st.damage, { source: 'ability', knock: e.knock ?? 120, x: f.cx, y: f.cy });
+          for (const r of e.on ?? []) this.applyAbilityEffect(r, { foot: f, x: f.cx, y: f.cy }, color, vfx, undefined, fromAbility);
+        });
+        break;
       case 'stat':
         break; // applied in recompute()
     }
@@ -3236,6 +3252,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.passives(dt);
       this.abilityTick(dt);
       this.procTick(dt);
+      this.throws.update(dt);
       if (this.run.combo > 0) {
         this.run.comboTimer -= dt;
         if (this.run.combo > 0 && this.run.comboTimer <= 0) this.run.combo = 0;
@@ -3357,6 +3374,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (this.inUpgrade && this.shop) this.saveRun();
     this.over = true;
     this.waveActive = false;
+    this.throws.clear();
     this.inUpgrade = false;
     this.shop = null;
     ui.closeAll();
@@ -3469,6 +3487,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (this.over) return;
     this.over = true;
     this.waveActive = false;
+    this.throws.clear();
     this.inUpgrade = false;
     this.run.combo = 0;
     ui.closeAll();
