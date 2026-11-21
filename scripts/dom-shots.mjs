@@ -1,6 +1,6 @@
 // Real screenshots of DOM screens (menus, HUD, banners) for visual passes: the canvas-only F.shot
 // misses them. Start headless Chrome first:
-//   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --remote-debugging-port=9333 --user-data-dir=/tmp/feetza-chrome about:blank &
+//   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --mute-audio --remote-debugging-port=9333 --user-data-dir=/tmp/feetza-chrome about:blank &
 // then, with the dev server on :5180:
 //   node scripts/dom-shots.mjs "http://localhost:5180/?dev" steps.json [initialWaitMs]
 // steps: [{ "js": "async code run in the page (F.* is available)", "out": "/abs/file.png", "wait": 600 }]
