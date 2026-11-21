@@ -86,6 +86,8 @@ const LOOK: Record<ThrowProp, Look> = {
   bolt: { point: true, size: 72, color: 0xff7a2a, spin: 0, ...TINK, impact: 'sfx_hittink' },
   rocket: { point: true, size: 92, color: 0x8a929e, spin: 0, ...HEAVY, impact: 'sfx_hitboom' },
   crescent: { size: 70, color: 0xe8edf2, spin: 1200, ...TINK },
+  // god props (src/content/props/gods.ts)
+  hammer: { size: 100, color: 0x9fd8ff, spin: 900, ...HEAVY, impact: 'sfx_hitclang' },
 };
 
 // sizes above are the drawing's units (src/content/props/throws.ts); on screen they show a quarter bigger,

@@ -11,6 +11,7 @@ import { endCrustsFor } from '../game/Run';
 import { audio } from '../systems/audio';
 import { freshStart, persist, save } from '../systems/save';
 import { ui } from '../ui/ui';
+import { lokiPeek } from '../game/lokiSecret';
 
 export function randomLineup(n: number): string[] {
   const pool = [...save.unlockedPizzas];
@@ -50,6 +51,8 @@ export class MenuScene extends Phaser.Scene {
     // a Pizza Legend's table is the First Pizzeria's (Act 10's ending)
     this.backdrop.show(save.legend ? 'firstpizzeria' : 'trattoria');
     this.fx = new Fx(this, fxLayer);
+    // Loki's secret: he sometimes peeks out from behind the chalkboard (the Trattoria's)
+    if (!save.legend) lokiPeek(this, fxLayer, () => this.showMenu());
     const ids = randomLineup(3);
     ids.forEach((id, i) => {
       this.pizzas.push(new Pizza(this, pz, PIZZA_BY_ID[id], W / 2 + (i - 1) * 560, PIZZA_Y + 20, 0.78, 8).hideLabel());

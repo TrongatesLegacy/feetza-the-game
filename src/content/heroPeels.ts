@@ -17,6 +17,8 @@ export interface HeroPeel {
   id: string;
   name: string;
   sub: HeroSub;
+  /** Gods: their pantheon (Act 9's home-ground bonus reads 'greek'). */
+  pantheon?: 'greek' | 'norse';
   goal: HeroGoal;
   /** The locker's unlock line. */
   how: string;

@@ -21,8 +21,9 @@ import { PIZZAS } from '../data/pizzas';
 import type { EventId } from './events';
 import { HERO_PEELS, type HeroSub } from '../content/heroPeels';
 import { goalProgress } from './heroGoals';
+import { godPeelLook } from '../art/godHeads';
 
-export type PeelGroup = 'classic' | 'golden' | 'jewel' | 'foot' | 'boss' | 'place' | 'event' | 'pizza' | 'shinyFoot' | 'shinyEvent' | 'master' | 'act' | 'hero';
+export type PeelGroup = 'classic' | 'golden' | 'jewel' | 'foot' | 'boss' | 'place' | 'event' | 'pizza' | 'shinyFoot' | 'shinyEvent' | 'master' | 'act' | 'hero' | 'god';
 
 export interface PeelDef {
   id: string;
@@ -43,6 +44,8 @@ export interface PeelDef {
   ultra?: boolean;
   /** Hero peels: their section in the HEROES tab. */
   sub?: HeroSub;
+  /** God peels: their pantheon. */
+  pantheon?: 'greek' | 'norse';
   look: () => PeelLook;
 }
 
@@ -447,14 +450,32 @@ function buildDefs(): PeelDef[] {
       name: hp.name,
       group: 'hero',
       sub: hp.sub,
+      pantheon: hp.pantheon,
       how: hp.how,
       cost: g.kind === 'crusts' ? g.cost : undefined,
       progress: g.kind === 'crusts' ? undefined : () => goalProgress(g),
       look: hp.look,
     });
   }
+  // the God Peel: the final trophy, for owning every other peel (shinies and the ultra-rare jewels included).
+  // No crust price, and Peel Roulette never deals it.
+  defs.push({
+    id: GOD_PEEL,
+    name: 'Peel of the Pizza Gods',
+    group: 'god',
+    how: 'The final trophy: own every other peel, the shinies and the ultra-rare jewels included.',
+    progress: () => {
+      const others = PEELS.filter((d) => d.id !== GOD_PEEL);
+      return [others.filter((d) => hasPeel(d.id)).length, others.length];
+    },
+    shiny: true,
+    look: godPeelLook,
+  });
   return defs;
 }
+
+/** The Peel of the Pizza Gods. */
+export const GOD_PEEL = 'god:pizzagods';
 
 export const PEELS: PeelDef[] = buildDefs();
 export const PEEL_BY_ID: Record<string, PeelDef> = Object.fromEntries(PEELS.map((p) => [p.id, p]));
@@ -471,6 +492,12 @@ function grant(id: string): PeelDef | null {
   if (hasPeel(id) || !PEEL_BY_ID[id]) return null;
   save.peels.push(id);
   if (!save.peelsNew.includes(id)) save.peelsNew.push(id);
+  // the God Peel equips itself, and its reveal plays at the next calm moment (1: due, 2: seen)
+  if (id === GOD_PEEL) {
+    save.peel = id;
+    save.skin = '';
+    if (!save.goals.godReveal) save.goals.godReveal = 1;
+  }
   return PEEL_BY_ID[id];
 }
 

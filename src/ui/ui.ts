@@ -17,8 +17,9 @@ import { ACT_COUNT, JOURNEY_WAVES, STAGES, actLabel, actName, actOf } from '../d
 import { BACKDROPS } from '../art/backdrops';
 import { applyA11y } from './a11y';
 import { abilityFor, abilityKindLabel, describeAbility } from '../game/abilities';
-import { PEELS, buyPeel, checkPeelAchievements, equipPeel, equippedPeel, hasPeel, peelThumbURL, wearSkin, wornSkin, type PeelDef, type PeelGroup } from '../game/peels';
+import { GOD_PEEL, PEELS, PEEL_BY_ID, buyPeel, checkPeelAchievements, equipPeel, equippedPeel, hasPeel, peelThumbURL, wearSkin, wornSkin, type PeelDef, type PeelGroup } from '../game/peels';
 import { HERO_SUBS } from '../content/heroPeels';
+import './gods.css';
 
 type Attrs = Record<string, string | number | boolean | undefined>;
 
@@ -585,7 +586,37 @@ class UI {
     );
     const s = this.open(content, false);
     s.append(stats, madeBy());
+    this.godReveal();
     return s;
+  }
+
+  /** The God Peel's first unlock: light floods in, the halo descends, a choir sting, and it's equipped.
+   * Plays once, at the next calm screen (the title or the locker); `force` replays it (dev). */
+  godReveal(after?: () => void, force = false): void {
+    if (!force && save.goals.godReveal !== 1) return;
+    save.goals.godReveal = 2;
+    equipPeel(GOD_PEEL);
+    persist();
+    audio.sfx('sfx_godreveal', { volume: 1 });
+    audio.duck(0.3, 300);
+    let s: HTMLElement;
+    const done = () => {
+      audio.duck(1, 800);
+      this.close(s);
+      after?.();
+    };
+    const panel = h(
+      'div',
+      { class: 'god-reveal' },
+      h('i', { class: 'gr-light' }),
+      h('i', { class: 'gr-rays' }),
+      h('div', { class: 'gr-stage' }, h('i', { class: 'gr-halo' }), h('img', { class: 'gr-peel', src: peelThumbURL(GOD_PEEL, 360), alt: '' })),
+      h('div', { class: 'gr-kicker' }, 'EVERY PEEL IS YOURS'),
+      h('div', { class: 'gr-title' }, 'PEEL OF THE PIZZA GODS'),
+      h('div', { class: 'gr-sub' }, 'Divine Feast, and the Pantheon at your side. It’s equipped.'),
+      btn('PRAISE BE', 'yellow big', done, { 'data-pad': 'back', 'data-pad-default': '', 'data-no-x': '' }),
+    );
+    s = this.open(panel);
   }
 
   /** One-time welcome for players coming from the old version. */
@@ -709,7 +740,7 @@ class UI {
       peelCard.replaceChildren(
         h(
           'div',
-          { class: 'peelbox' },
+          { class: `peelbox${d.id === GOD_PEEL ? ' god' : ''}` },
           pic(d),
           h(
             'div',
@@ -1854,7 +1885,7 @@ class UI {
     const pick = !!pickMode;
     type Tab = 'all' | 'goals' | 'crusts' | 'feet' | 'bosses' | 'pizzas' | 'places' | 'acts' | 'events' | 'shiny' | 'heroes';
     const TAB_GROUPS: Record<Exclude<Tab, 'goals'>, PeelGroup[]> = {
-      all: [...new Set(PEELS.map((d) => d.group))],
+      all: [...new Set(PEELS.map((d) => d.group))].filter((g) => g !== 'god'),
       crusts: ['classic', 'golden', 'jewel', 'master'],
       feet: ['foot'],
       bosses: ['boss'],
@@ -1886,6 +1917,8 @@ class UI {
     const toolbar = h('div', { class: 'locker-bar' }, tabs, tabSelect, filter);
     const detail = h('div', { class: 'detail peel-detail' });
     const body = h('div', { class: 'scroll' });
+    // the God Peel's gold slot, pinned above the tabs
+    const godSlot = h('div', { class: 'god-slot', tabindex: 0, role: 'button', 'data-fk': 'god-slot' });
     const crustLine = h('div', { class: 'crusts' });
     // undiscovered shinies stay a mystery
     const hidden = (d: PeelDef) => !!d.shiny && (d.group === 'shinyFoot' || d.group === 'shinyEvent') && !hasPeel(d.id);
@@ -2036,6 +2069,7 @@ class UI {
       filter.setAttribute('aria-pressed', unlockedOnly ? 'true' : 'false');
       filter.innerHTML = `<i>${unlockedOnly ? '✔' : ''}</i>Unlocked only`;
       crustLine.innerHTML = `${CRUST_SVG} <b>${fmt(save.crusts)}</b> Golden Crusts · ${PEELS.filter((d) => hasPeel(d.id)).length}/${PEELS.length} peels`;
+      renderGodSlot();
       if (tab === 'goals') {
         // the achievements closest to done
         const goals = PEELS.filter((d) => d.progress && !hasPeel(d.id))
@@ -2084,6 +2118,31 @@ class UI {
       }
       showDetail();
     };
+    const renderGodSlot = () => {
+      const g = PEEL_BY_ID[GOD_PEEL];
+      const owned = hasPeel(GOD_PEEL);
+      const [have, need] = g.progress!();
+      godSlot.className = `god-slot${owned ? ' owned' : ' sealed'}${selected.id === GOD_PEEL ? ' selected' : ''}${pick && !owned ? ' hide' : ''}`;
+      godSlot.replaceChildren(
+        h('div', { class: 'gs-pic' }, h('i', { class: 'gs-halo' }), h('img', { src: peelThumbURL(GOD_PEEL, 200), alt: '' }), owned ? null : h('span', { class: 'gs-seal', 'aria-hidden': 'true' }, '🔒')),
+        h(
+          'div',
+          { class: 'gs-body' },
+          h('b', {}, owned ? g.name.toUpperCase() : 'THE GOD PEEL'),
+          h('span', {}, owned ? (equippedPeel().id === GOD_PEEL ? 'Equipped. The gods are pleased.' : 'Yours. Pick it to equip it.') : 'Sealed until every other peel is yours, the shinies and the ultra-rare jewels included.'),
+          owned ? null : bar(have, need),
+        ),
+        ...(equippedPeel().id === GOD_PEEL ? [h('span', { class: 'tag' }, 'ON')] : []),
+      );
+    };
+    activatable(godSlot);
+    godSlot.addEventListener('click', () => {
+      audio.sfx('sfx_click');
+      selected = PEEL_BY_ID[GOD_PEEL];
+      body.querySelectorAll('.tile.selected').forEach((e) => e.classList.remove('selected'));
+      renderGodSlot();
+      showDetail();
+    });
     tabSelect.addEventListener('change', () => {
       audio.sfx('sfx_click');
       setTab(tabSelect.value as Tab);
@@ -2103,6 +2162,7 @@ class UI {
       { class: `panel modal wide locker${pick ? ' picking' : ''}` },
       h('div', { class: 'title' }, pickMode === 'look' ? 'PICK A LOOK' : pick ? 'PICK A PEEL' : 'PEEL LOCKER'),
       crustLine,
+      godSlot,
       toolbar,
       detail,
       body,
@@ -2110,6 +2170,7 @@ class UI {
     );
     s = this.open(panel);
     this.onClose(s, () => io.disconnect());
+    this.godReveal(() => refresh());
     // start with the equipped peel in view
     // (scroll the grid only: scrollIntoView would also scroll the screen behind it)
     requestAnimationFrame(() => {

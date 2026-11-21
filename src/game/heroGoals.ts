@@ -293,6 +293,14 @@ export interface RunView {
   bosses: number;
   pizzasLost: number;
   victory: boolean;
+  /** The current combo. */
+  combo: number;
+  /** Every pizza on the table is alive and at full slices. */
+  allFull: boolean;
+  /** Any pizza on the table is stale (freshness on). */
+  stale: boolean;
+  /** Freshness is on this run (it's off on Mild). */
+  freshOn: boolean;
 }
 
 export interface TrackCtx {
@@ -318,6 +326,8 @@ export function registerTrackers(list: Record<string, [string, Tracker]>): void 
 }
 
 const HIGH: HeatId[] = ['hot', 'extrahot', 'inferno'];
+/** The stage a wave belongs to. */
+const stageAt = (wave: number) => STAGES[Math.floor((waveInJourney(wave) - 1) / WAVES_PER_STAGE)];
 const FROZEN = (f: Foot) => f.alive && f.frozen && f.stunT > 0;
 const BURNING = (f: Foot) => f.alive && f.burnT > 0;
 
@@ -507,6 +517,126 @@ registerTrackers({
       c.st.done = true;
       return true;
     },
+  }],
+  // ——— god peel goals (src/content/peels/gods.ts) ———
+  aliveThirty: ['Keep every pizza alive for 30 waves in one run', {
+    pizzaLost: (_e, c) => {
+      c.st.lost = true;
+    },
+    waveClear: (_e, c) => {
+      if (c.st.lost || c.st.done || c.run.wave - c.run.firstWave + 1 < 30) return;
+      c.st.done = true;
+      return true;
+    },
+  }],
+  pierBeach: ['Clear The Pier and Shack Attack Beach Bar in one run', {
+    waveClear: (e, c) => {
+      if (!e.boss || c.st.done) return;
+      if (stageAt(c.run.wave)?.location === 'pier') c.st.pier = true;
+      if (stageAt(c.run.wave)?.location === 'beach') c.st.beach = true;
+      if (c.st.pier && c.st.beach) {
+        c.st.done = true;
+        return true;
+      }
+    },
+  }],
+  cellarLodge: ['Clear Haunted Cellar and Alpine Lodge in one run', {
+    waveClear: (e, c) => {
+      if (!e.boss || c.st.done) return;
+      if (stageAt(c.run.wave)?.location === 'cellar') c.st.cellar = true;
+      if (stageAt(c.run.wave)?.location === 'lodge') c.st.lodge = true;
+      if (c.st.cellar && c.st.lodge) {
+        c.st.done = true;
+        return true;
+      }
+    },
+  }],
+  frugal30: ['Reach wave 30 owning no more than 5 toppings', {
+    waveClear: (_e, c) => {
+      if (c.st.done || c.run.wave < 30 || c.run.firstWave > 1) return;
+      c.st.done = true;
+      return Object.values(c.run.owned).reduce((a, b) => a + b, 0) <= 5;
+    },
+  }],
+  oneSmack: ['Defeat feet with a single smack each', {
+    // a kill is told before its smack's own 'hit' event, so a foot smacked before already has a count
+    hit: (e) => {
+      e.foot.brain.godSmacks = Number(e.foot.brain.godSmacks ?? 0) + 1;
+    },
+    kill: (e) => e.source === 'smack' && !e.foot.brain.godSmacks && !e.foot.isBossLike,
+  }],
+  hundredWave: ['Defeat 100 feet in one wave', {
+    waveStart: (_e, c) => {
+      c.st.n = 0;
+    },
+    kill: (_e, c) => {
+      const n = Number(c.st.n ?? 0) + 1;
+      c.st.n = n;
+      if (n === 100) return true;
+    },
+  }],
+  combo100: ['Reach a 100 combo', {
+    tick: (_e, c) => {
+      if (c.st.done || c.run.combo < 100) return;
+      c.st.done = true;
+      return true;
+    },
+  }],
+  combo200: ['Reach a 200 combo', {
+    tick: (_e, c) => {
+      if (c.st.done || c.run.combo < 200) return;
+      c.st.done = true;
+      return true;
+    },
+  }],
+  colossusNoSlices: ['Beat the Colossus without losing a slice', {
+    bossDown: (e) => e.foot.type.id === 'colossus' && e.slicesLost === 0,
+  }],
+  loaferNoSlices: ['Beat the Zombie Loafer without losing a slice', {
+    bossDown: (e) => e.foot.type.id === 'poltergeist' && e.slicesLost === 0,
+  }],
+  tenSecWave: ['Clear waves in under 10 seconds each', {
+    waveClear: (e) => !e.boss && e.secs < 10,
+  }],
+  fivePizzaWaves: ['Clear waves with 5 pizzas on the table', {
+    waveClear: (_e, c) => c.run.pizzasAlive >= 5,
+  }],
+  wins: ['Win runs', {
+    runEnd: (e) => e.victory,
+  }],
+  anyBoss: ['Beat a boss', {
+    bossDown: (e) => !e.mini,
+  }],
+  tenClean: ['Lose no slices for 10 waves in a row', {
+    waveClear: (e, c) => {
+      const n = e.slicesLost === 0 ? Number(c.st.n ?? 0) + 1 : 0;
+      c.st.n = n;
+      if (n === 10) return true;
+    },
+  }],
+  goldenKills: ['Catch golden feet', {
+    kill: (e) => e.foot.type.id === 'golden',
+  }],
+  stageFull: ['End a stage with every pizza at full slices', {
+    waveClear: (e, c) => e.stageEnd && c.run.allFull,
+  }],
+  fullRun: ['Finish a run with every pizza at full slices', {
+    runEnd: (_e, c) => c.run.allFull && c.run.wave - c.run.firstWave + 1 >= 10,
+  }],
+  bossNoAbility: ['Beat a boss without using your peel’s ability', {
+    bossDown: (e) => !e.mini && !e.abilityUsed,
+  }],
+  pierClears: ['Clear The Pier', {
+    waveClear: (e, c) => e.boss && stageAt(c.run.wave)?.location === 'pier',
+  }],
+  hotSlopes: ['Clear Ski Slopes on Hot (or hotter)', {
+    waveClear: (e, c) => e.boss && stageAt(c.run.wave)?.boss === 'yeti' && HIGH.includes(c.run.heat),
+  }],
+  freshRun: ['Play a run of at least 10 waves without a pizza going stale', {
+    tick: (_e, c) => {
+      if (c.run.stale) c.st.stale = true;
+    },
+    runEnd: (_e, c) => c.run.freshOn && !c.st.stale && c.run.wave - c.run.firstWave + 1 >= 10,
   }],
   daylightRun: ['Play a run that starts and ends in daylight (your local time)', {
     runStart: (_e, c) => {

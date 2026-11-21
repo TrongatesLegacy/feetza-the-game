@@ -55,6 +55,14 @@ export interface HeroHost {
   runFx: (fx: Effect[], ctx: { foot?: Foot; x?: number; y?: number }, color: number) => void;
   meter: () => number;
   setMeter: (v: number) => void;
+  /** The current combo. */
+  combo: () => number;
+  /** Keep the combo alive this many seconds longer. */
+  holdCombo: (sec: number) => void;
+  /** Toppings owned this run, by id (their levels). */
+  owned: () => Record<string, number>;
+  /** How much of this wave's feet are still to beat (1 at the start, 0 when it's clear). */
+  waveLeft: () => number;
   /** Swap in another peel's ability (and look) for a while; null puts the hero back. */
   swapAbility: (peelId: string | null) => void;
   /** Stats changed (an always-on hero passive). */

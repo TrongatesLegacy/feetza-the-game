@@ -20,6 +20,8 @@ import type { ThrowFx } from './abilities';
 import type { Foot } from './Foot';
 import { HeroKit, MOVES, PASSIVES, registerMoves, registerPassives, type DmgSource, type HeroHost, type MoveCtx, type Passive } from './heroKit';
 import type { Pizza } from './Pizza';
+// the god peels' moves and passives register themselves (src/game/godMoves.ts)
+import './godMoves';
 
 const RED = 0xff3a2a;
 const GOLD = 0xffd23f;
@@ -1094,7 +1096,7 @@ registerMoves({
 
   // 32 · Martian Mozzarella
   shapeShift: (k) => {
-    const own = save.peels.filter((id) => !id.startsWith('hero:') && id !== 'classic');
+    const own = save.peels.filter((id) => !id.startsWith('hero:') && !id.startsWith('god:') && id !== 'classic');
     const pick = own.length ? Phaser.Utils.Array.GetRandom(own) : 'classic';
     k.transform({
       label: 'SHAPE-SHIFT',
@@ -2114,7 +2116,12 @@ export class HeroDirector {
   }
 
   ignoreShields(): boolean {
-    return !!this.passive?.ignoreShields;
+    return !!this.passive?.ignoreShields || !!this.k.st.breaker;
+  }
+
+  /** The Kratos Peel's rage: smacks break armour. */
+  breaksArmour(): boolean {
+    return !!this.k.st.breaker;
   }
 
   fearless(): boolean {
