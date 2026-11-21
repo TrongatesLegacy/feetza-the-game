@@ -22,7 +22,8 @@ import { doomSpare } from '../bosses/act7';
 import type { ActFx, FootFx } from '../contentFx';
 import type { Foot } from '../Foot';
 import type { Pizza } from '../Pizza';
-import { bossFor, locationFor, waveInStage, isBossWave } from '../Run';
+import { nemesisOf } from '../nemesis';
+import { bossFor, locationFor, miniFor, waveInStage, isBossWave, isMiniWave } from '../Run';
 
 const FONT = 'Lilita One, Fredoka, sans-serif';
 const INK = 0x2a1810;
@@ -346,7 +347,8 @@ function lightning(a: Arena, layer: Layer, strong: boolean): void {
 
 function setup(a: Arena, layer: Layer, n: number): void {
   // the wave's own arena or place (a nemesis stage, like Batpeel's Gotham, brings its own: src/game/nemesis.ts)
-  const place = isBossWave(n) ? bossFor(n) : locationFor(n);
+  // (a nemesis mini-boss's wave is in its own arena too: the place's weather and machinery stay out of it)
+  const place = isBossWave(n) ? bossFor(n) : isMiniWave(n) && nemesisOf(miniFor(n)) ? miniFor(n) : locationFor(n);
   const ws = waveInStage(n);
   const changed = place !== layer.place;
   layer.wave = n;

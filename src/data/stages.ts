@@ -152,4 +152,8 @@ export const BOSS_MINION: Record<string, string> = {
   // ——— Nemesis bosses: Kratos in Tartarus ———
   titanking: 'titantoes',
   zeus: 'harpy',
+  // ——— Nemesis bosses: the comic heroes' minis ———
+  redsole: 'henchman',
+  venomnom: 'ultodrone',
+  cheetoe: 'jetpack',
 };

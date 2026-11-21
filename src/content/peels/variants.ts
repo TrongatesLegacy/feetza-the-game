@@ -301,6 +301,80 @@ function endgamePeel(id: string): HeroPeel {
   };
 }
 
+// ——— the comic nemeses' variants ———
+
+/** Shield of Liberty: the star shield itself, big and gold-rimmed, held in front. */
+function libertyDetail(ctx: Ctx): void {
+  const x = HX + 46;
+  const y = HY + 62;
+  for (const [r, col] of [[34, '#ffd23f'], [27, '#c8102e'], [19, '#f4f1ea'], [12, '#2a4ab8']] as const) {
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fillStyle = col;
+    ctx.fill();
+    stroke(ctx, 2.5);
+  }
+  ctx.beginPath();
+  for (let i = 0; i < 10; i++) {
+    const a = (i / 10) * Math.PI * 2 - Math.PI / 2;
+    const rr = i % 2 ? 4.5 : 10;
+    ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+  }
+  ctx.closePath();
+  ctx.fillStyle = '#ffffff';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(x - 12, y - 14, 10, 4, -0.6, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  ctx.fill();
+}
+
+/** Symbiote Pan: a big white jagged spider across the chest, and goo dripping off the rim. */
+function symbioteDetail(ctx: Ctx): void {
+  ctx.beginPath();
+  ctx.moveTo(HX, HY + 28);
+  for (const [dx, dy] of [[-8, 50], [-44, 38], [-20, 62], [-48, 86], [-12, 76], [0, 104], [12, 76], [48, 86], [20, 62], [44, 38], [8, 50]]) ctx.lineTo(HX + dx, HY + dy);
+  ctx.closePath();
+  ctx.fillStyle = '#f4f4f8';
+  ctx.fill();
+  stroke(ctx, 2.5);
+  for (const [x, l] of [[HX - 60, 22], [HX + 54, 30], [HX - 20, 16]]) {
+    ctx.beginPath();
+    ctx.moveTo(x - 6, HY + HR - 18);
+    ctx.quadraticCurveTo(x - 4, HY + HR - 18 + l, x, HY + HR - 14 + l);
+    ctx.quadraticCurveTo(x + 4, HY + HR - 18 + l, x + 6, HY + HR - 18);
+    ctx.fillStyle = '#16161e';
+    ctx.fill();
+    stroke(ctx, 2);
+  }
+}
+
+/** Amazon Queen: a golden eagle-wing crest over the head and a gold breastplate rim. */
+function amazonDetail(ctx: Ctx): void {
+  for (const s of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(HX + s * 10, HY - HR + 14);
+    ctx.bezierCurveTo(HX + s * 40, HY - HR - 20, HX + s * 80, HY - HR - 10, HX + s * 96, HY - HR + 30);
+    ctx.lineTo(HX + s * 70, HY - HR + 22);
+    ctx.lineTo(HX + s * 74, HY - HR + 40);
+    ctx.lineTo(HX + s * 48, HY - HR + 30);
+    ctx.lineTo(HX + s * 46, HY - HR + 46);
+    ctx.lineTo(HX + s * 16, HY - HR + 32);
+    ctx.closePath();
+    const g = ctx.createLinearGradient(0, HY - HR - 20, 0, HY - HR + 46);
+    g.addColorStop(0, '#fff2b0');
+    g.addColorStop(0.5, '#e8b23a');
+    g.addColorStop(1, '#8a5a14');
+    ctx.fillStyle = g;
+    ctx.fill();
+    stroke(ctx, 3);
+  }
+  ctx.beginPath();
+  ctx.arc(HX, HY + 58, 34, Math.PI * 0.1, Math.PI * 0.9);
+  stroke(ctx, 6);
+  stroke(ctx, 3, '#ffd23f');
+}
+
 const sp = hero('superpeel');
 const ip = hero('ironpan');
 
@@ -413,4 +487,34 @@ export const peels: HeroPeel[] = [
     },
   },
   ...ENDGAME.map(endgamePeel),
+  {
+    id: 'hero:shieldofliberty',
+    name: 'Shield of Liberty',
+    sub: 'heroes',
+    after: 'hero:captainpizzeria',
+    goal: beatWith('redsoleCaptain', 'redsole', 'the Red Sole', 'hero:captainpizzeria', 'Captain Pizzeria', 3),
+    how: 'HYDRANT falls: beat the Red Sole 3 times with Captain Pizzeria equipped. He only turns up at wave 68, in The Doom Lab, when Captain Pizzeria is your peel. Any heat counts.',
+    look: heroLook('hero:shieldofliberty', { ...HERO_ART.captainpizzeria, suit: '#1a2f80', maskColor: '#1a2f80', earColor: '#ffd23f', emblemBg: '#c8102e', metal: true, glow: '#ffd23f', trail: '#ffd23f', handle: '#8a0a1a', fine: true, detail: libertyDetail }),
+    ability: variantAbility(hero('captainpizzeria').ability, 'Shield of Liberty', 'shieldLiberty', `Signature (${S}): the star shield ricochets 16 times round the screen (×3 each), twice as often as Captain Pizzeria’s, and on its last bounce it lands on your weakest pizza as a stomp shield. Passive, I can do this all day: +30% damage while any pizza is on 1 slice.`, 1, 0xffd23f),
+  },
+  {
+    id: 'hero:symbiotepan',
+    name: 'Symbiote Pan',
+    sub: 'heroes',
+    after: 'hero:spiderpan',
+    goal: beatWith('venomnomSpider', 'venomnom', 'Venomnom', 'hero:spiderpan', 'Spider-Pan', 3),
+    how: 'We are Spider-Pan: beat Venomnom 3 times with Spider-Pan equipped. It only turns up at wave 68, in The Doom Lab, when Spider-Pan is your peel. Any heat counts.',
+    look: heroLook('hero:symbiotepan', { ...HERO_ART.spiderpan, suit: '#16161e', patternColor: '#30303e', maskColor: '#16161e', emblemColor: '#f4f4f8', glow: '#7a6aff', trail: '#c8c8ff', handle: '#16161e', fine: true, detail: symbioteDetail }),
+    ability: variantAbility(hero('spiderpan').ability, 'Web Ceiling: Symbiote', 'webSymbiote', `Signature (${S}): black webs span the top of the screen for 10 s. Every foot that drops through them sticks for 2 s, and the webs grow tendrils: every 0.7 s one reaches down, grabs the nearest foot below and drags it up into the web (stuck for 2 s, ×1). Passive, Spider-Sense: a foot’s outline tingles 0.5 s before it stomps.`, 1, 0x7a6aff),
+  },
+  {
+    id: 'hero:amazonqueen',
+    name: 'Amazon Queen',
+    sub: 'heroes',
+    after: 'hero:wonderwedge',
+    goal: beatWith('cheetoeWonder', 'cheetoe', 'the Cheetoe', 'hero:wonderwedge', 'Wonder Wedge', 3),
+    how: 'Queen of the Amazons: beat the Cheetoe 3 times with Wonder Wedge equipped. She only turns up at wave 63, on Metropizza Rooftops, when Wonder Wedge is your peel. Any heat counts.',
+    look: heroLook('hero:amazonqueen', { ...HERO_ART.wonderwedge, suit: '#e8b23a', suit2: '#8a1a1a', emblemColor: '#c8102e', emblemBg: '#ffd23f', metal: true, glow: '#ffd23f', trail: '#ffd23f', handle: '#8a1a1a', fine: true, detail: amazonDetail }),
+    ability: variantAbility(hero('wonderwedge').ability, 'Lasso of the Queen', 'lassoQueen', `Signature (${S}): the golden lasso ropes the 3 toughest feet and yanks them together: each is stunned for 1.5 s, its next stomp is cancelled and its weak spot glows (×3 damage there for 8 s). Passive, Royal Bracers: 25% of stomps glance off with a ping.`, 1),
+  },
 ];

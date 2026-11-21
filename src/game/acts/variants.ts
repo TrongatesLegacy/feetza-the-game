@@ -9,6 +9,10 @@
 // - Odin Allfather Ascended: Allfather, plus the eye's light stuns every foot 1.5 s and Gungnir strikes 8, not 4.
 // - Zeus, King Unbound: Wrath of Olympus, then one colossal bolt through every foot (×8, 2 s stun).
 // - Endgame variants: the hero's own move, then a ring of 5 portals strikes the 5 toughest feet (×3 each).
+// - Shield of Liberty: 16 ricochets (×3), then a stomp shield on the weakest pizza.
+// - Symbiote Pan: Web Ceiling, plus a tendril every 0.7 s that drags the nearest foot below up into the web.
+// - Amazon Queen: the lasso ropes the 3 toughest (×3 weak spot for 8 s, a 1.5 s stun, pulled together); Royal
+//   Bracers glance off 25% of stomps (Wonder Wedge: 15%).
 // Also adds the Kratos nemesis arenas to the night stages (Moon Knife's Moonlit, Batpeel's Signal).
 
 import Phaser from 'phaser';
@@ -20,7 +24,8 @@ import '../godMoves';
 import { MOVES, PASSIVES, registerMoves, registerPassives, type HeroKit, type MoveCtx, type Passive } from '../heroKit';
 import { NIGHT } from '../heroMoves';
 
-for (const id of ['titanking', 'zeus']) NIGHT.add(id);
+// the nemesis arenas on night stages (Tartarus, Metropizza Rooftops)
+for (const id of ['titanking', 'zeus', 'cheetoe']) NIGHT.add(id);
 
 /** Something that ticks for `sec` seconds then cleans up (stops with the wave). */
 export function timed(k: HeroKit, sec: number, tick: (dt: number, t: number) => void, stop: () => void = () => {}): void {
@@ -370,6 +375,111 @@ registerMoves({
   }),
 });
 
+// ——— the comic nemeses' variants ———
+
+registerMoves({
+  // Shield of Liberty: 16 ricochets (Captain Pizzeria: 8), and the shield lands on the weakest pizza as a stomp shield
+  shieldLiberty: (k) => {
+    audio.sfx('sfx_hero_liberty', { volume: 0.9 });
+    const t = k.front(1);
+    if (!t.length) return;
+    k.host.throwAt({ e: 'throw', prop: 'shield', how: 'ricochet', x: 3, more: Array(15).fill(3), at: { to: 'front', n: 1 } }, t, 0xffd23f);
+    k.sc.time.delayedCall(2600, () => {
+      if (!k.host.inWave()) return;
+      const p = [...k.host.pizzas()].filter((q) => !q.dead).sort((a, b) => a.slices / a.maxSlices - b.slices / b.maxSlices)[0];
+      if (!p) return;
+      k.host.runFx([{ e: 'shield', n: 1, who: 'weakest' }], { x: p.x, y: p.surfaceY }, 0xffd23f);
+      k.host.quip(p.x, p.surfaceY - 140, 'LIBERTY!', '#ffd23f', 40);
+      audio.sfx('sfx_hero_liberty', { volume: 0.6 });
+    });
+  },
+
+  // Symbiote Pan: Web Ceiling, plus tendrils that drag the feet below up into the web
+  webSymbiote: withBase('webCeiling', (k) => {
+    let grab = 0.4;
+    const grabbed = new WeakSet<Foot>();
+    timed(k, 10, (dt) => {
+      grab -= dt;
+      if (grab > 0 || !k.host.inWave()) return;
+      grab = 0.7;
+      // the nearest foot below the web that isn't already stuck
+      const p = k.host.peelPos();
+      const f = k.host
+        .live()
+        .filter((o) => o.cy > 300 && !o.brain.webbed && !grabbed.has(o))
+        .sort((a, b) => Math.hypot(a.cx - p.x, a.cy - p.y) - Math.hypot(b.cx - p.x, b.cy - p.y))[0];
+      if (!f) return;
+      grabbed.add(f);
+      audio.sfx('sfx_hero_tendril', { volume: 0.7, throttle: 120 });
+      const ax = f.cx + (Math.random() - 0.5) * 120;
+      const g = k.sc.add.graphics();
+      k.host.layers.fx.add(g);
+      const o = { u: 0 };
+      const draw = () => {
+        g.clear();
+        const tx = ax + (f.cx - ax) * Math.min(1, o.u * 2);
+        const ty = 200 + (f.cy - 200) * Math.min(1, o.u * 2);
+        for (const [w, c] of [[16, 0x2a1810], [10, 0x16161e], [3, 0x6a6aff]] as const) {
+          g.lineStyle(w, c, 1);
+          g.beginPath();
+          g.moveTo(ax, 200);
+          g.lineTo((ax + tx) / 2 + Math.sin(o.u * 20) * 18, (200 + ty) / 2);
+          g.lineTo(tx, ty);
+          g.strokePath();
+        }
+      };
+      k.sc.tweens.add({
+        targets: o,
+        u: 1,
+        duration: 520,
+        onUpdate: draw,
+        onComplete: () => {
+          g.destroy();
+          if (!f.alive || !k.host.inWave()) return;
+          // yanked up into the web and stuck there
+          f.knock(320);
+          f.brain.webbed = 1;
+          k.stun(f, 2);
+          k.host.hurt(f, 1, { quiet: true });
+          k.host.fx.propBurst(f.cx, f.cy, 0x6a6aff, 0.8);
+          k.sc.time.delayedCall(2000, () => (f.brain.webbed = 0));
+        },
+      });
+    });
+  }),
+
+  // Amazon Queen: the lasso ropes the 3 toughest and yanks them together
+  lassoQueen: (k) => {
+    const feet = k.toughest(3);
+    if (!feet.length) return;
+    audio.sfx('sfx_hero_amazon', { volume: 0.9 });
+    const cx = feet.reduce((s, f) => s + f.cx, 0) / feet.length;
+    for (const f of feet) {
+      k.host.throwAt({ e: 'throw', prop: 'lasso', how: 'stick', x: 0, stick: 8, at: { to: 'toughest', n: 1 } }, [f], 0xffd23f, (t) => {
+        t.brain.lassoed = 1;
+        t.brain.lassoStomp = 1;
+        k.mark(t, 3, 8);
+        k.stun(t, 1.5);
+        if (!t.isBossLike) k.sc.tweens.add({ targets: t, x: t.x + (cx - t.x) * 0.5, duration: 260, ease: 'Quad.Out' });
+        k.host.quip(t.x, t.cy - 140, 'ROPED!', '#ffd23f', 36);
+        const ring = k.img('glow', t.cx, t.cy, 0.5).setTint(0xffd23f).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.8);
+        timed(
+          k,
+          8,
+          (_dt, tt) => {
+            ring.setPosition(t.cx, t.cy).setScale(0.45 + Math.sin(tt * 8) * 0.08);
+            if (!t.alive) ring.setVisible(false);
+          },
+          () => {
+            ring.destroy();
+            t.brain.lassoed = 0;
+          },
+        );
+      });
+    }
+  },
+});
+
 // ——— Endgame: each Avengers-style hero's own move, then the portals ———
 for (const base of ['binaryMode', 'awesomeMix', 'redLedger', 'trickQuiver', 'kinetic', 'timeStone', 'chaosHex', 'giantSize', 'stingSwarm', 'bigGun', 'iAmCrust']) {
   registerMoves({ [`endgame_${base}`]: withBase(base, (k) => void k.sc.time.delayedCall(400, () => portals(k))) });
@@ -398,6 +508,20 @@ registerPassives({
     },
   },
   'hero:odinascended': passiveFrom('hero:odin'),
+  'hero:shieldofliberty': passiveFrom('hero:captainpizzeria'),
+  'hero:symbiotepan': passiveFrom('hero:spiderpan'),
+  // Royal Bracers: 25% of stomps glance off (Wonder Wedge: 15%); a roped foot's stomp is still cancelled
+  'hero:amazonqueen': {
+    ...PASSIVES['hero:wonderwedge'],
+    stomp: (k, f, p) => {
+      if (PASSIVES['hero:wonderwedge']?.stomp?.(k, f, p)) return true;
+      if (f.isBossLike || Math.random() >= 0.1 / 0.85) return false;
+      k.host.quip(f.x, f.cy - 120, 'PING!', '#ffe680', 38);
+      audio.sfx('sfx_hero_ping', { volume: 0.7, throttle: 60 });
+      f.knock(600);
+      return true;
+    },
+  },
   'hero:zeusunbound': passiveFrom('hero:zeus'),
   // the Bulk hulks out on his own: the portals open the first time he does each wave
   'hero:incrediblebulkendgame': passiveFrom('hero:incrediblebulk', {

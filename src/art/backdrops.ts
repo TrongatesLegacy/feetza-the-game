@@ -39,7 +39,11 @@ export type ArenaId = 'bigfoot' | 'ironheel' | 'clownking' | 'trex' | 'colossus'
   | 'jokester'
   // ——— Nemesis bosses: Kratos in Tartarus (src/content/art/scenes-kratos.ts) ———
   | 'titanking'
-  | 'zeus';
+  | 'zeus'
+  // ——— Nemesis bosses: the comic heroes' minis (src/content/art/scenes-comics.ts) ———
+  | 'redsole'
+  | 'venomnom'
+  | 'cheetoe';
 export type BackdropId = LocationId | ArenaId;
 export type AmbientKind =
   | 'dust'
