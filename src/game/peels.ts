@@ -196,6 +196,9 @@ const PLACE_LOOK: Record<LocationId, Plain> = {
   // ——— Act 7 · Comics ———
   metropizza: { shape: 'square', base: '#f2c230', pattern: 'spots', pc: '#d8322e', handle: '#2a2d3a' },
   doomlab: { shape: 'spade', base: '#3a424c', pattern: 'circuit', pc: '#3dff7a', handle: '#5a626c', metal: true },
+  // ——— Act 8 · Norse ———
+  jotunheim: { shape: 'spade', base: '#9fc6e0', pattern: 'snow', pc: '#ffffff', handle: '#5a4632' },
+  bifrost: { shape: 'paddle', base: '#2a2350', pattern: 'stripes', pc: '#ff9a3d', handle: '#c7a24a', metal: true },
 };
 
 const EVENT_LOOK: Record<EventId, Plain> = {

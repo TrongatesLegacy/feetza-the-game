@@ -29,6 +29,9 @@ export const STAGES: Stage[] = [
   // ——— Act 7 · Comics ———
   { location: 'metropizza', mini: 'lexlugtoe', boss: 'doomstomp' },
   { location: 'doomlab', mini: 'ultoe', boss: 'thanfoot' },
+  // ——— Act 8 · Norse (waves 71–80) ———
+  { location: 'jotunheim', mini: 'fenrir', boss: 'thrym' },
+  { location: 'bifrost', mini: 'jormungandr', boss: 'surtr' },
 ];
 
 /** The acts, in order: two stages each. Acts 7–10 are named ahead of their stages, so new stages slot in. */
@@ -121,4 +124,9 @@ export const BOSS_MINION: Record<string, string> = {
   // ——— Act 7 · Comics ———
   doomstomp: 'henchman',
   thanfoot: 'jetpack',
+  // ——— Act 8 · Norse ———
+  fenrir: 'troll',
+  thrym: 'frostgiant',
+  jormungandr: 'draugr',
+  surtr: 'valkyrie',
 };

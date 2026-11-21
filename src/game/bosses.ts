@@ -11,6 +11,8 @@ import { brains as act2a } from './bosses/act2a';
 import { brains as act2b } from './bosses/act2b';
 // ——— Act 7 · Comics ———
 import { brains as act7 } from './bosses/act7';
+// ——— Act 8 · Norse ———
+import { brains as act8 } from './bosses/act8';
 import { type Brain, auraFor, hitWindup } from './bosses/kit';
 
 export type { Brain };
@@ -18,6 +20,8 @@ export type { Brain };
 const BRAINS: Record<string, () => Brain> = { ...act1a, ...act1b, ...act2a, ...act2b };
 // ——— Act 7 · Comics ———
 Object.assign(BRAINS, act7);
+// ——— Act 8 · Norse ———
+Object.assign(BRAINS, act8);
 
 /** Dev boss lab: a boss's phase names and move info, without spawning it. */
 export function bossPhaseInfo(id: string): { names: string[]; info: string[] } | null {

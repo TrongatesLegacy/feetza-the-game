@@ -34,6 +34,9 @@ export const LOCATION_MUSIC: Record<LocationId, string[]> = {
   // ——— Act 7 · Comics ———
   metropizza: ['music_metropizza', 'music_rooftop', 'music_game'],
   doomlab: ['music_doomlab', 'music_space', 'music_game'],
+  // ——— Act 8 · Norse ———
+  jotunheim: ['music_jotunheim', 'music_slopes', 'music_game'],
+  bifrost: ['music_bifrost', 'music_jotunheim', 'music_game'],
 };
 
 export const LOCATION_AMBIENCE: Record<LocationId, string[]> = {
@@ -52,6 +55,9 @@ export const LOCATION_AMBIENCE: Record<LocationId, string[]> = {
   // ——— Act 7 · Comics ———
   metropizza: ['ambience_metropizza', 'ambience_rooftop', 'ambience_pizzeria'],
   doomlab: ['ambience_doomlab', 'ambience_space', 'ambience_pizzeria'],
+  // ——— Act 8 · Norse ———
+  jotunheim: ['ambience_jotunheim', 'ambience_slopes', 'ambience_pizzeria'],
+  bifrost: ['ambience_bifrost', 'ambience_jotunheim', 'ambience_pizzeria'],
 };
 
 /** How many times the journey has been completed before wave n (0 on the first time through). */

@@ -13,7 +13,7 @@ import { type Brain, type Prop, type Takeover, Every, dropOn, heat, hitProp, hit
 // ——— Batch helpers ———
 
 /** Things a fight has put on the table, cleared together when the boss goes down. */
-class Bin {
+export class Bin {
   private items = new Set<() => void>();
   /** Track a cleanup; returns a function that runs it now and forgets it. */
   add(fn: () => void): () => void {
@@ -49,7 +49,7 @@ const shuffled = <T>(xs: T[]): T[] => {
   return out;
 };
 
-interface FallOpts {
+export interface FallOpts {
   key: string;
   scale: number;
   /** Seconds it wobbles at the top before it starts to fall (it can already be smacked). */
@@ -82,7 +82,7 @@ const SAFE_TOP = 260;
 /** Something comes down a pizza's lane. It drops in just under the boss bar and wobbles there while a
  * lane column (with chevrons pointing at the pizza) and a reticle warn; then it falls at a steady speed
  * while its shadow on the pizza grows. Smack it (once, unless `hits` says more) before it lands. */
-function laneFall(a: Arena, p: Pizza, o: FallOpts, bin: Bin): void {
+export function laneFall(a: Arena, p: Pizza, o: FallOpts, bin: Bin): void {
   const x0 = p.x;
   // the whole prop starts below the boss bar, so the thing to hit is never hidden behind the HUD
   const top = Math.max(o.fromY ?? 0, SAFE_TOP + o.halfH);

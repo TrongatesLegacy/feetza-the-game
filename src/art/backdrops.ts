@@ -7,11 +7,19 @@ import { type Ctx, blob, ellipse, hashStr, makeCanvas, mix, rgba, rng, roundRect
 export type LocationId = 'trattoria' | 'rooftop' | 'beach' | 'diner' | 'lodge' | 'space' | 'kitchen' | 'oldtown' | 'pier' | 'rink' | 'slopes' | 'cellar'
   // ——— Act 7 · Comics ———
   | 'metropizza'
-  | 'doomlab';
+  | 'doomlab'
+  // ——— Act 8 · Norse ———
+  | 'jotunheim'
+  | 'bifrost';
 export type ArenaId = 'bigfoot' | 'ironheel' | 'clownking' | 'trex' | 'colossus' | 'phantomking' | 'cosmiccroc' | 'nonna' | 'gargoyle' | 'kraken' | 'rinkqueen' | 'yeti'
   // ——— Act 7 · Comics ———
   | 'doomstomp'
-  | 'thanfoot';
+  | 'thanfoot'
+  // ——— Act 8 · Norse (the two mini-bosses get arenas of their own too) ———
+  | 'thrym'
+  | 'surtr'
+  | 'fenrir'
+  | 'jormungandr';
 export type BackdropId = LocationId | ArenaId;
 export type AmbientKind =
   | 'dust'

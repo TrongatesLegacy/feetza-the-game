@@ -270,6 +270,60 @@ const TRIM: Record<string, number> = {
   sfx_thanfoot_snap: 1.05, // -9.9 dB → -9.5: THE SNAP lands (and his death)
   sfx_thanfoot_portal: 1.06, // -12.5 dB → -12.0: his entrance and the SPACE stone's blinks
   sfx_thanfoot_power: 1.04, // -12.4 dB → -12.1: a stone power fires (POWER, REALITY, TIME)
+  // ——— Act 8 · Norse ———
+  // Boss moves (sfx_<boss>_<move>, loaded a wave ahead of each fight) and the Norse feet (core sounds). Same
+  // targets as the other boss sounds: tells and hits -10.5 to -11, signature hits -9.5, repeated ones -13.5.
+  // Fenrir's Paw
+  sfx_fenrir_strain: 0.98, // -13.4 dB → -13.6: chain creaks under strain (each smack)
+  sfx_fenrir_snap: 1.12, // -10.5 dB → -9.5: Gleipnir snaps
+  sfx_fenrir_howl: 1.02, // -9.7 dB → -9.5: wolf howl (entrance, loose)
+  sfx_fenrir_pounce: 0.98, // -10.3 dB → -10.5: paw pounces on a pizza
+  sfx_fenrir_claw: 1.08, // -12.6 dB → -11.9: frost claw swipe
+  sfx_fenrir_link: 1.06, // -12.5 dB → -12.0: a fallen chain link is smacked
+  sfx_fenrir_bind: 1.15, // -10.7 dB → -9.5: the chain re-forms
+  sfx_fenrir_death: 1.05, // -10.9 dB → -10.5: whimpering howl (death)
+  // Thrym the Frost King
+  sfx_thrym_enter: 1.14, // -10.7 dB → -9.6: ice cracks and a giant rumble (entrance)
+  sfx_thrym_freeze: 1.11, // -11.4 dB → -10.5: a pizza freezes solid
+  sfx_thrym_thaw: 1.12, // -11.4 dB → -10.4: ice shell smashed off a pizza
+  sfx_thrym_block: 1.12, // -12.0 dB → -11.0: an ice block forms
+  sfx_thrym_crack: 0.93, // -12.9 dB → -13.5: ice block takes a hit
+  sfx_thrym_shatter: 1.1, // -11.3 dB → -10.5: ice block broken
+  sfx_thrym_close: 1.05, // -9.9 dB → -9.5: the fortress walls meet
+  sfx_thrym_keystone: 1.05, // -12.4 dB → -12.0: keystone takes a hit
+  sfx_thrym_blizzard: 1.1, // -11.8 dB → -11.0: blizzard gust
+  sfx_thrym_hail: 1.05, // -12.4 dB → -12.0: falling ice shard
+  sfx_thrym_spread: 0.88, // -12.4 dB → -13.5: ice creeps to the next pizza
+  sfx_thrym_death: 1.08, // -10.1 dB → -9.4: huge shatter and collapse (death)
+  // Jörmungandr
+  sfx_jormungandr_enter: 1.13, // -10.5 dB → -9.4: deep sea surge (entrance)
+  sfx_jormungandr_surface: 1.08, // -11.7 dB → -11.0: the head rises from the water
+  sfx_jormungandr_hiss: 1.14, // -12.2 dB → -11.1: serpent hiss (tell)
+  sfx_jormungandr_bite: 1.17, // -11.9 dB → -10.5: snapping lunge
+  sfx_jormungandr_reflect: 1.07, // -11.1 dB → -10.5: a smack bounces off the coils
+  sfx_jormungandr_constrict: 1.11, // -12.9 dB → -12.0: coils squeeze a pizza
+  sfx_jormungandr_venom: 1.1, // -12.9 dB → -12.1: venom spit
+  sfx_jormungandr_dive: 1.06, // -12.5 dB → -12.0: the head dives back under
+  sfx_jormungandr_death: 1.05, // -9.9 dB → -9.5: fading roar and huge splash (death)
+  // Surtr
+  sfx_surtr_enter: 1.07, // -10.1 dB → -9.5: fire giant roar and fire whoosh (entrance)
+  sfx_surtr_fireball: 1.05, // -12.4 dB → -12.0: fireball launched
+  sfx_surtr_impact: 1.05, // -10.9 dB → -10.5: fireball lands
+  sfx_surtr_ignite: 1.06, // -11.0 dB → -10.5: a pizza bursts into flame
+  sfx_surtr_douse: 1.1, // -12.8 dB → -12.0: flames smacked out
+  sfx_surtr_fuse: 0.89, // -12.5 dB → -13.5: fire runs along the bridge
+  sfx_surtr_raise: 1.07, // -11.5 dB → -10.9: sword raised (riser, tell)
+  sfx_surtr_window: 1.09, // -11.3 dB → -10.6: the sword flashes: the timing window
+  sfx_surtr_sweep: 1.1, // -10.3 dB → -9.5: flaming sword sweeps the table
+  sfx_surtr_parry: 1.04, // -9.9 dB → -9.6: perfect counter: the sweep is cancelled
+  sfx_surtr_roar: 1.05, // -11.0 dB → -10.6: giant roar
+  sfx_surtr_death: 1.08, // -10.2 dB → -9.5: collapse as the fire dies (death)
+  // Norse feet
+  sfx_frostchill: 0.88, // -12.4 dB → -13.5: frost creeps over a pizza
+  sfx_trollstone: 1.05, // -10.9 dB → -10.5: a troll turns to stone
+  sfx_draugrrise: 1.05, // -11.4 dB → -11.0: the dead rise again
+  sfx_valkyrieswoop: 1.21, // -13.6 dB → -11.9: a pair of clogs swoops in
+  sfx_sungap: 1.13, // -12.1 dB → -11.0: the clouds part
   // Stings are normalised to the music loudness (-16.4 LUFS, like music_gameover). audio.sting() plays
   // them at music volume and does not read TRIM; these gains apply if they're played through sfx().
   music_victory: 2.04, // -15.7 dB → -9.5: the 60-wave finish, a little over the slap

@@ -654,6 +654,18 @@ export const ABILITIES: Record<string, Ability> = {
   'foot:goon': plus(ab('Hired Muscle', always, [STAT({ knockback: 100, damage: 1 })], GOLD, 'burst'), every(7), TH('grenade', 'explode', 3, rnd(1), { r: 170, splash: 1.5 })),
   'foot:ultodrone': ab('Drone Swarm', every(3), [D(1, rnd(3))], CYAN, 'zap'),
 
+  // ——— Act 8 · Norse: places, bosses and feet ———
+  'place:jotunheim': ab('Land of Giants', every(7), [FZ(2, front(2)), M(1.5, 4, front(2))], CYAN, 'frost'),
+  'place:bifrost': ab('Rainbow Bridge', act, [D(8, all, 900), ST(1.5, all), T(8)], GOLD, 'burst'),
+  'boss:fenrir': ab('Gleipnir Snaps', act, [D(7, front(5), 1000), ST(1.2, front(5))], 0x9aa3ad, 'slam'),
+  'boss:thrym': ab('Frost King', act, [FZ(4, all), M(1.6, 5, all)], CYAN, 'frost'),
+  'boss:jormungandr': ab('World Serpent', every(6), [D(3, rnd(3)), S(0.5, 3, rnd(3))], GREEN, 'ink'),
+  'boss:surtr': ab('Ragnarök', act, [D(12, all, 1200), B(2, 5, all)], ORANGE, 'fire', 0.9),
+  'foot:frostgiant': ab("Giant's Chill", smack(0.25), [FZ(1.5, hit(170)), D(1, hit(170))], CYAN, 'frost'),
+  'foot:draugr': ab('Barrow Blaze', kill(0.3), [B(1.5, 3, hit(200)), D(1.5, hit(200))], GREEN, 'fire'),
+  'foot:troll': ab('Sunlight', every(8), [ST(2.5, tough(1)), M(2, 3, tough(1))], GOLD, 'burst'),
+  'foot:valkyrie': ab('Ride of the Valkyries', every(5), [D(2.5, rnd(2)), K(600, rnd(2))], WHITE, 'rain'),
+
   // ——— Event shinies use their event's ability (see abilityKey) ———
 };
 
