@@ -32,6 +32,9 @@ export const STAGES: Stage[] = [
   // ——— Act 8 · Norse (waves 71–80) ———
   { location: 'jotunheim', mini: 'fenrir', boss: 'thrym' },
   { location: 'bifrost', mini: 'jormungandr', boss: 'surtr' },
+  // ——— Act 9 · Greek myths (waves 81–90) ———
+  { location: 'labyrinth', mini: 'minotaur', boss: 'medusa' },
+  { location: 'tartarus', mini: 'cerberus', boss: 'hades' },
 ];
 
 /** The acts, in order: two stages each. Acts 7–10 are named ahead of their stages, so new stages slot in. */
@@ -129,4 +132,9 @@ export const BOSS_MINION: Record<string, string> = {
   thrym: 'frostgiant',
   jormungandr: 'draugr',
   surtr: 'valkyrie',
+  // ——— Act 9 · Greek myths ———
+  minotaur: 'satyr',
+  medusa: 'gorgonsnake',
+  cerberus: 'hoplite',
+  hades: 'hoplite',
 };

@@ -55,9 +55,15 @@ const EVENT_LABEL: Record<EventId, [string, string]> = {
   seagull: ['Golden Seagull', 'Smack'],
   chest: ['Pizza Box Chest', 'Open'],
   mimic: ['Mimic', 'Beat'],
+  // Act 9 · Greek myths
+  charybdis: ['Charybdis', 'Close'],
 };
-const EVENT_NEED: Record<EventId, number> = { balloon: 10, drone: 5, moth: 5, seagull: 2, chest: 5, mimic: 3 };
-const EVENT_KEY: Record<EventId, string> = { balloon: 'ev_balloon', drone: 'ev_drone', moth: 'ev_moth', seagull: 'ev_seagull', chest: 'ev_chest', mimic: 'ev_mimic' };
+const EVENT_NEED: Record<EventId, number> = { balloon: 10, drone: 5, moth: 5, seagull: 2, chest: 5, mimic: 3,
+  // Act 9 · Greek myths
+  charybdis: 3 };
+const EVENT_KEY: Record<EventId, string> = { balloon: 'ev_balloon', drone: 'ev_drone', moth: 'ev_moth', seagull: 'ev_seagull', chest: 'ev_chest', mimic: 'ev_mimic',
+  // Act 9 · Greek myths
+  charybdis: 'ev_charybdis' };
 
 /** Kills needed for a regular foot's peel: common feet need more, rare ones fewer. */
 export function killsNeeded(f: FootType): number {
@@ -78,7 +84,9 @@ function plural(name: string, n: number): string {
 
 const SHAPES: PeelShape[] = ['round', 'oval', 'square', 'paddle'];
 /** Feet that are really objects (or carry lettering): their peel heads stay upright. */
-const UPRIGHT = new Set(['jukebox', 'riot', 'ketchup', 'chimney', 'rover', 'milkshake']);
+const UPRIGHT = new Set(['jukebox', 'riot', 'ketchup', 'chimney', 'rover', 'milkshake',
+  // Act 9 · Greek myths (the hoplite's shield has a lambda on it)
+  'hoplite']);
 const FOOT_PATTERNS: PeelPattern[] = ['spots', 'stripes', 'waves', 'checker', 'stars', 'bubbles', 'bolts', 'grain'];
 const BOSS_PATTERNS: PeelPattern[] = ['flames', 'bolts', 'scales', 'marble', 'stars'];
 
@@ -199,6 +207,9 @@ const PLACE_LOOK: Record<LocationId, Plain> = {
   // ——— Act 8 · Norse ———
   jotunheim: { shape: 'spade', base: '#9fc6e0', pattern: 'snow', pc: '#ffffff', handle: '#5a4632' },
   bifrost: { shape: 'paddle', base: '#2a2350', pattern: 'stripes', pc: '#ff9a3d', handle: '#c7a24a', metal: true },
+  // ——— Act 9 · Greek myths ———
+  labyrinth: { shape: 'square', base: '#d8cbb0', pattern: 'marble', pc: '#8a6a3a', handle: '#c9873a', studs: '#c9873a' },
+  tartarus: { shape: 'spade', base: '#1e1a2a', pattern: 'flames', pc: '#4fb8ff', handle: '#3a2a20', metal: true },
 };
 
 const EVENT_LOOK: Record<EventId, Plain> = {
@@ -208,6 +219,8 @@ const EVENT_LOOK: Record<EventId, Plain> = {
   seagull: { shape: 'paddle', base: '#ffd23f', pattern: 'waves', pc: '#ffffff', metal: true },
   chest: { shape: 'square', base: '#d9a066', pattern: 'grain', pc: '#7a4a22' },
   mimic: { shape: 'spade', base: '#a8703a', pattern: 'drips', pc: '#ff3d5a' },
+  // Act 9 · Greek myths
+  charybdis: { shape: 'round', base: '#1f5a7a', pattern: 'waves', pc: '#8fe8ff' },
 };
 
 /** Golden Crust peels (not shiny). */

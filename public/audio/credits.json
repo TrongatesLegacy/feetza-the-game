@@ -2459,5 +2459,381 @@
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
     "notes": "the troll sun-gap: the clouds part; a synthesized choir-like shimmer, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "music_labyrinth.mp3",
+    "title": "Teller of the Tales",
+    "author": "Kevin MacLeod (incompetech.com)",
+    "license": "CC-BY 4.0",
+    "url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Teller%20of%20the%20Tales.mp3",
+    "attribution": "\"Teller of the Tales\" Kevin MacLeod (incompetech.com) Licensed under Creative Commons: By Attribution 4.0 License http://creativecommons.org/licenses/by/4.0/"
+  },
+  {
+    "file": "music_tartarus.mp3",
+    "title": "Gathering Darkness",
+    "author": "Kevin MacLeod (incompetech.com)",
+    "license": "CC-BY 4.0",
+    "url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Gathering%20Darkness.mp3",
+    "attribution": "\"Gathering Darkness\" Kevin MacLeod (incompetech.com) Licensed under Creative Commons: By Attribution 4.0 License http://creativecommons.org/licenses/by/4.0/"
+  },
+  {
+    "file": "music_boss_minotaur.mp3",
+    "title": "Five Armies",
+    "author": "Kevin MacLeod (incompetech.com)",
+    "license": "CC-BY 4.0",
+    "url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Five%20Armies.mp3",
+    "attribution": "\"Five Armies\" Kevin MacLeod (incompetech.com) Licensed under Creative Commons: By Attribution 4.0 License http://creativecommons.org/licenses/by/4.0/"
+  },
+  {
+    "file": "music_boss_medusa.mp3",
+    "title": "Curse of the Scarab",
+    "author": "Kevin MacLeod (incompetech.com)",
+    "license": "CC-BY 4.0",
+    "url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Curse%20of%20the%20Scarab.mp3",
+    "attribution": "\"Curse of the Scarab\" Kevin MacLeod (incompetech.com) Licensed under Creative Commons: By Attribution 4.0 License http://creativecommons.org/licenses/by/4.0/"
+  },
+  {
+    "file": "music_boss_cerberus.mp3",
+    "title": "Night of Chaos",
+    "author": "Kevin MacLeod (incompetech.com)",
+    "license": "CC-BY 4.0",
+    "url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Night%20of%20Chaos.mp3",
+    "attribution": "\"Night of Chaos\" Kevin MacLeod (incompetech.com) Licensed under Creative Commons: By Attribution 4.0 License http://creativecommons.org/licenses/by/4.0/"
+  },
+  {
+    "file": "music_boss_hades.mp3",
+    "title": "Strength of the Titans",
+    "author": "Kevin MacLeod (incompetech.com)",
+    "license": "CC-BY 4.0",
+    "url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Strength%20of%20the%20Titans.mp3",
+    "attribution": "\"Strength of the Titans\" Kevin MacLeod (incompetech.com) Licensed under Creative Commons: By Attribution 4.0 License http://creativecommons.org/licenses/by/4.0/"
+  },
+  {
+    "file": "ambience_labyrinth.mp3",
+    "title": "mystic wind howling",
+    "author": "launemax (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/launemax/sounds/250036/",
+    "notes": "layered with \"torch ambience loop\" by LordStirling, https://freesound.org/people/LordStirling/sounds/483692/ (CC0), and synthesized echoing water drips (original, made for Feetza with Python, CC0); 45 s crossfaded loop"
+  },
+  {
+    "file": "ambience_tartarus.mp3",
+    "title": "Lava Rumble",
+    "author": "CAT-FOX_ALEX (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/CAT-FOX_ALEX/sounds/871610/",
+    "notes": "layered with \"Dark Dungeon Ambience\" by Kinoton, https://freesound.org/people/Kinoton/sounds/516566/, and a distant, filtered \"Rushing River Loop\" by ThanksForTheInspiration, https://freesound.org/people/ThanksForTheInspiration/sounds/523022/ (both CC0); 45 s crossfaded loop"
+  },
+  {
+    "file": "sfx_minotaur_bellow.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "The Minotaur: bull bellow (entrance and phase roar); a synthesized bull bellow (pitched-down formant voice) and chest rumble, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactSoft_heavy_002 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_minotaur_snort.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "The Minotaur: pawing and steam snort (tell); synthesized steam snorts and a hoof scrape, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds footstep_concrete_002, footstep_concrete_004 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_minotaur_charge.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "The Minotaur: hooves thunder into a charge; synthesized galloping hoof thunder, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds footstep_concrete_000, footstep_concrete_001, footstep_concrete_002, footstep_concrete_003, footstep_concrete_004 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_minotaur_gore.mp3",
+    "title": "Impact Sounds (impactPunch_heavy_003)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "The Minotaur: horns hit a pizza; layered with Impact Sounds impactWood_heavy_002, impactSoft_heavy_000 (Kenney, CC0) and a synthesized horn-thrust grunt (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_minotaur_crash.mp3",
+    "title": "Impact Sounds (impactMining_003)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "The Minotaur: slams into a stone wall; layered with Impact Sounds impactPunch_heavy_000, impactMining_001 (Kenney, CC0) and a synthesized stone-wall crunch and dazed tweet (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_minotaur_walls.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "The Minotaur: maze walls grind and shift; synthesized heavy stone blocks grinding into place, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactMining_004 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_medusa_glow.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Medusa: eyes glow (tell); a synthesized eerie rising shimmer and a snake hiss, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds forceField_002 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_medusa_petrify.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Medusa: a pizza turns to stone; synthesized stone grinding over a crackle of frost-like grit, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactMining_002 and Sci-fi Sounds forceField_004 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_medusa_crack.mp3",
+    "title": "Impact Sounds (impactMining_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Medusa: a statue cracks under a stomp; layered with Impact Sounds impactGlass_light_001 (Kenney, CC0) and a synthesized stone crack (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_medusa_crumble.mp3",
+    "title": "Impact Sounds (impactMining_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Medusa: a statue crumbles; layered with Impact Sounds impactMining_001, impactMining_002, impactMining_003, impactMining_004 (Kenney, CC0) and a synthesized crumbling rubble cascade (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_medusa_mirror.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Medusa: mirror shield appears; a synthesized bright mirror shimmer, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactMetal_light_002 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_medusa_reflect.mp3",
+    "title": "Impact Sounds (impactMetal_heavy_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Medusa: smack on her reflection; layered with Impact Sounds impactBell_heavy_002 (Kenney, CC0) and a synthesized bronze shield ring (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_medusa_cure.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Medusa: curse broken on a statue; a synthesized rising three-note chime and stone release, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactMining_001 and Interface Sounds confirmation_002 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_medusa_hiss.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Medusa: snakes hiss; synthesized layered snake hisses and a rattle, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_medusa_gaze.mp3",
+    "title": "Impact Sounds (impactMining_004)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Medusa: the peel caught by her stare; layered with Impact Sounds impactPunch_heavy_002 (Kenney, CC0) and a synthesized stony thunk and a frozen shimmer (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_cerberus_bark.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Cerberus: triple bark (entrance); three synthesized barks at three pitches and a growl, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_cerberus_growl.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Cerberus: triple growl (tell); a synthesized triple-throat growl, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_cerberus_fire.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Cerberus: fire breath; a synthesized fire-breath roar, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds thrusterFire_001 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_cerberus_ice.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Cerberus: frost blast; a synthesized frost blast and crystal tinkle, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactGlass_medium_003 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_cerberus_poison.mp3",
+    "title": "Sci-fi Sounds (slime_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "notes": "Cerberus: poison spit; layered with Sci-fi Sounds slime_001 (Kenney, CC0) and a synthesized poison spit and bubbling (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_cerberus_howl.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Cerberus: a head beaten, the others go wild; synthesized two-voice howls rising over a yelp, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hades_toll.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Hades and the Titans: death bell (entrance); a synthesized deep funeral bell toll, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactBell_heavy_003 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_hades_rise.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Hades and the Titans: a Titan rises from the floor; a synthesized earth-splitting rumble and chains snapping, made with ffmpeg and Python and released as CC0, layered with Kenney RPG Audio metalLatch and Impact Sounds impactMetal_light_003, impactMetal_heavy_003 and Sci-fi Sounds lowFrequency_explosion_001 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_hades_chains.mp3",
+    "title": "Impact Sounds (impactMetal_light_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Hades and the Titans: chains rattle; layered with RPG Audio metalClick, metalLatch and Impact Sounds impactMetal_light_003 (Kenney, CC0)"
+  },
+  {
+    "file": "sfx_hades_tick.mp3",
+    "title": "Interface Sounds (tick_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/interface-sounds",
+    "notes": "Hades and the Titans: Kronos clock tick, sits under; layered with a synthesized deep clock tick (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_hades_slow.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Hades and the Titans: time slows (tell); a synthesized descending tape-slowdown warble, made with ffmpeg and Python and released as CC0, layered with Kenney Interface Sounds tick_002 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_hades_shatter.mp3",
+    "title": "Impact Sounds (impactGlass_heavy_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Hades and the Titans: hourglass smashed; layered with Impact Sounds impactGlass_light_002 (Kenney, CC0) and synthesized sand spilling from the broken hourglass (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_hades_tilt.mp3",
+    "title": "RPG Audio (creak1)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/rpg-audio",
+    "notes": "Hades and the Titans: Atlas tilts the table (tell); layered with RPG Audio creak3 (Kenney, CC0) and a synthesized table-creak strain and a Titan grunt (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_hades_slide.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Hades and the Titans: pizzas slide; a synthesized plates-sliding scrape, made with ffmpeg and Python and released as CC0, layered with Kenney Casino Audio card-slide-3 and Impact Sounds impactPlate_light_003 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_hades_flare.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Hades and the Titans: Hyperion solar flare; a synthesized solar-flare whoosh and roar, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds thrusterFire_003 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_hades_douse.mp3",
+    "title": "Impact Sounds (impactSoft_medium_003)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Hades and the Titans: flames smacked out; layered with Sci-fi Sounds thrusterFire_004 (Kenney, CC0) and a synthesized fizzle and steam (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_hades_banish.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Hades and the Titans: a Titan sent back; a synthesized downward vortex whoosh and sealing slam, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactMining_003, impactMetal_light_003, impactMetal_light_001 and RPG Audio metalClick (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_hades_shadow.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Hades and the Titans: shadow creeps out; a synthesized creeping shadow whisper, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hades_grab.mp3",
+    "title": "Sci-fi Sounds (slime_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "notes": "Hades and the Titans: shadow steals a slice; layered with Impact Sounds impactSoft_medium_001 and RPG Audio cloth3 (Kenney, CC0) and a synthesized inky snatch (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_sirensong.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Act 9 feet and events: Siren Slippers sing, sits under; a synthesized wordless siren phrase, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_harpy.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Act 9 feet and events: Harpy Talons screech and flap; a synthesized harpy screech and wing flaps, made with ffmpeg and Python and released as CC0, layered with Kenney RPG Audio cloth1, cloth2, cloth3, cloth4 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_eyepoke.mp3",
+    "title": "Sci-fi Sounds (slime_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "notes": "Act 9 feet and events: Cyclops Sandals poked in the eye; layered with Impact Sounds impactPunch_medium_002 (Kenney, CC0) and a synthesized squelchy poke and a Cyclops yowl (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_whirlpool.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Act 9 feet and events: Charybdis whirlpool opens; a synthesized swirling whirlpool roar, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds forceField_001 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_gulp.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Act 9 feet and events: Charybdis swallows; a synthesized deep watery gulp, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds slime_001 (CC0, kenney.nl)"
   }
 ]
