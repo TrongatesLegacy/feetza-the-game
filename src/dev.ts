@@ -74,6 +74,8 @@ function botShop(g: AnyScene): void {
 
 export function installDevTools(game: Phaser.Game): void {
   let botOn = false;
+  /** The dev bot draws the game scene (off for fast balance runs). */
+  let botRender = true;
   void import('./devBossLab').then((m) => m.installBossLab(game));
   // ?dev&show=welcome opens a screen straight away, for headless screenshots of DOM screens
   const showParam = new URLSearchParams(location.search).get('show');
@@ -171,9 +173,12 @@ export function installDevTools(game: Phaser.Game): void {
     /**
      * The auto-player: smacks the lowest foot, wipes boss props, and shops with a simple strategy
      * (heal when hurt, reheat stale pizzas, buy the best affordable topping, then next wave).
+     * Balance runs: warp steps the game several times a frame; `{ render: false }` also stops drawing the
+     * game scene (the logic, timers and DOM keep running), which lets a high warp run at full speed.
      */
-    bot(on = true, accuracy = 0.9, rate = 260, warp = 1): void {
+    bot(on = true, accuracy = 0.9, rate = 260, warp = 1, opts: { render?: boolean } = {}): void {
       botOn = on;
+      botRender = opts.render ?? true;
       skipIntros();
       if (!on) {
         // undo any time warp
@@ -185,8 +190,12 @@ export function installDevTools(game: Phaser.Game): void {
           g0.tweens.timeScale = 1;
           g0.tweenBase = 1;
         }
+        g0?.scene.setVisible(true);
         return;
       }
+      // the bot acts every `rate` ms of game time: inside the warped steps when warping (so a high warp doesn't
+      // make it react less often), otherwise on a timer
+      let gameMs = 0;
       const loop = () => {
         if (!botOn) return;
         const g = game.scene.getScene('Game') as AnyScene;
@@ -197,7 +206,14 @@ export function installDevTools(game: Phaser.Game): void {
         if (g && sys?.sceneUpdate && warp > 1 && sys.sceneUpdate.warped !== warp) {
           const step = sys.sceneUpdate.orig ?? sys.sceneUpdate;
           const warped: Step = (t: number, d: number) => {
-            for (let i = 0; i < warp; i++) step.call(g, t, d);
+            for (let i = 0; i < warp; i++) {
+              step.call(g, t, d);
+              gameMs += Math.min(50, d);
+              if (botOn && gameMs >= rate) {
+                gameMs = 0;
+                act(g);
+              }
+            }
           };
           warped.warped = warp;
           warped.orig = step;
@@ -206,6 +222,15 @@ export function installDevTools(game: Phaser.Game): void {
           g.tweens.timeScale = warp;
           g.tweenBase = warp;
         }
+
+        // warping: the steps drive the bot; otherwise (or in the shop, where the scene may be paused) the timer does
+        if (warp <= 1 || !g || g.inUpgrade || g.over || !game.scene.isActive('Game')) act(g);
+        else if (g && !botRender && g.sys.settings.visible) g.scene.setVisible(false);
+        setTimeout(loop, warp > 1 ? 100 : rate);
+      };
+      const act = (g: AnyScene | undefined): void => {
+        // no drawing while a balance run warps (set again each tick: a restart makes the scene visible)
+        if (g && !botRender && g.sys.settings.visible) g.scene.setVisible(false);
 
         if (g && (game.scene.isActive('Game') || game.scene.isPaused('Game'))) {
           const intro = document.querySelector<HTMLElement>('.intro .btn, .second .btn.cream');
@@ -235,7 +260,6 @@ export function installDevTools(game: Phaser.Game): void {
             g.actEl.querySelector('.v-choice .btn.green')?.click();
           }
         }
-        setTimeout(loop, rate / warp);
       };
       loop();
     },
