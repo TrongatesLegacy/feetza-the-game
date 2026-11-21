@@ -362,6 +362,12 @@ export class Foot {
     }
     // a boss set-piece: every foot backs off to the top of its lane and waits
     if (this.pinned && this.alive) {
+      // stuns still wear off while pinned (a boss holding a lane can be frozen by a slam)
+      if (this.stunT > 0) {
+        this.stunT -= dt;
+        if (this.stars) this.stars.rotation += dt * 5;
+        if (this.stunT <= 0) this.endStun();
+      }
       if (this.state !== 'hover') this.setState('hover');
       this.stateT = 0;
       this.vy = 0;

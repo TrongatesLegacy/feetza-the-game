@@ -10,23 +10,6 @@ import { type Brain, type Prop, Every, dropOn, heat, hitProp, laneOf, mark, retr
 
 // ——— Helpers for this batch ———
 
-/** A pinned boss never ticks its stun down (the pinned branch of Foot.update returns first), and the
- * director skips a stunned boss's brain, so a Freeze Frame slam on a lane-holding boss would hang it.
- * This thaws it on the scene clock instead. Returns the function that stops it. */
-function pinGuard(a: Arena, f: Foot): () => void {
-  const tick = (_t: number, ms: number) => {
-    if (!f.alive || !f.pinned || f.stunT <= 0) return;
-    f.stunT -= ms / 1000;
-    if (f.stunT <= 0) {
-      f.stunT = 0;
-      f.frozen = false;
-      f.clearTint();
-    }
-  };
-  a.sc.events.on('update', tick);
-  return () => a.sc.events.off('update', tick);
-}
-
 /** Temporary speed-ups on regular feet. The scene resets `hurry` every frame, so these go on speedMul
  * and are put back when they run out (or the fight ends). */
 class Boosts {
@@ -77,7 +60,6 @@ const shortorder = (): Brain => {
   let hand: Prop | null = null;
   let arm: Phaser.GameObjects.Graphics | null = null;
   let endRetreat: (() => void) | null = null;
-  let unguard: (() => void) | null = null;
   const finish = (f: Foot) => {
     busy = false;
     endRetreat?.();
@@ -178,7 +160,6 @@ const shortorder = (): Brain => {
     names: ['ORDER UP', 'RUSH HOUR'],
     info: ['The feet step back and a grabbing hand reaches for the marked pizza · whack the hand before it grabs a slice', 'Same hand, but it grabs two slices · whack it before it reaches the pizza'],
     update: (f, dt, a) => {
-      unguard ??= pinGuard(a, f);
       if (busy || !a.inWave()) return;
       next -= dt;
       if (next > 0 || f.puppet) return;
@@ -191,7 +172,6 @@ const shortorder = (): Brain => {
       arm?.destroy();
       arm = null;
       finish(f);
-      unguard?.();
     },
   };
 };
