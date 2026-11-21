@@ -68,8 +68,11 @@ function devNotes(): Plugin {
     name: 'dev-notes',
     apply: 'serve',
     configureServer(server) {
-      const file = process.env.FEETZA_NOTES;
+      const base = process.env.FEETZA_NOTES;
       server.middlewares.use('/__notes', (req, res) => {
+        // ?name=looks keeps another lab's notes in a file beside the boss notes (…-looks.json)
+        const name = new URL(req.url ?? '/', 'http://x').searchParams.get('name');
+        const file = base && name && /^[a-z]+$/.test(name) ? base.replace(/\.json$/, '') + `-${name}.json` : base;
         // without a notes file the lab keeps its notes in the browser: an empty answer, not a 404 in the console
         if (!file && req.method === 'GET') {
           res.setHeader('content-type', 'application/json');
