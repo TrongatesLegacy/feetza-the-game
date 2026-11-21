@@ -1,8 +1,8 @@
 // Art for the Persian army (data in src/content/feet/persians.ts). Same design frame as the built-in kinds:
 // centre x = CX (110), the ankle opens at y = -6, toes at the bottom, the sole touching at contactY. Leaning
 // toward the cohesive style: one outer silhouette with the details painted inside it (clipped), light from the
-// top left, one outline weight. The four booted feet share one Persian boot (soft leather, a pointed toe that
-// curls up); the cavalry is a horse's hoof. The archer's bow and the chariot's wheel are separate props
+// top left, one outline weight. The three booted feet share one Persian boot (soft leather, a pointed toe that
+// curls up); the cavalry is a horse's hoof; the Immortal Sandals are in src/content/art/immortals.ts. The archer's bow and the chariot's wheel are separate props
 // (src/content/props/persians.ts) so they can move in play.
 
 import type { FootArt } from '../../data/feet';
@@ -116,103 +116,6 @@ function band(ctx: Ctx, y: number, h: number, cloth: string, gold: string): void
     ctx.fillStyle = '#2a6ab8';
     ctx.fill();
   }
-}
-
-// ——— IMMORTAL SANDALS: a purple boot under gold scale armour, and a silver mask with glowing eye slits ———
-function drawImmortal(ctx: Ctx, art: FootArt): void {
-  const col = art.primary ?? '#5a2a7a';
-  const gold = art.secondary ?? '#e8b43a';
-  const silver = String(art.extra?.mask ?? '#d8dce4');
-  bootBody(ctx, col);
-  // overlapping gold scales down the shin, darker as they go into shadow
-  for (let row = 0; row < 6; row++) {
-    const y = 4 + row * 17;
-    for (let x = (row % 2) * 11 - 4; x < 230; x += 22) {
-      ctx.beginPath();
-      ctx.moveTo(x - 11, y);
-      ctx.quadraticCurveTo(x - 11, y + 20, x, y + 20);
-      ctx.quadraticCurveTo(x + 11, y + 20, x + 11, y);
-      const k = x > 170 ? -0.35 : x < 40 ? -0.2 : 0.05;
-      ctx.fillStyle = shade(gold, k - row * 0.03);
-      ctx.fill();
-      ctx.strokeStyle = rgba(INK, 0.55);
-      ctx.lineWidth = 1.8;
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(x - 6, y + 6);
-      ctx.quadraticCurveTo(x - 5, y + 13, x, y + 14);
-      ctx.strokeStyle = rgba('#ffffff', 0.45);
-      ctx.lineWidth = 1.6;
-      ctx.stroke();
-    }
-  }
-  // the scale skirt's lower edge
-  ctx.fillStyle = rgba(INK, 0.35);
-  ctx.fillRect(0, 108, 230, 4);
-  bootEnd(ctx, col);
-  // the silver mask: a calm face with dark eye slits that glow gold, and a curled black beard below
-  const face = () => {
-    ctx.beginPath();
-    ctx.moveTo(70, 20);
-    ctx.bezierCurveTo(70, 0, 150, 0, 150, 20);
-    ctx.bezierCurveTo(152, 58, 138, 88, 110, 92);
-    ctx.bezierCurveTo(82, 88, 68, 58, 70, 20);
-    ctx.closePath();
-  };
-  // beard first, so the mask's chin sits over it
-  for (let i = 0; i < 5; i++) {
-    const x = 86 + i * 12;
-    ellipse(ctx, x, 96 + (i % 2) * 4, 8, 11);
-    ctx.fillStyle = '#1e1a2e';
-    ctx.fill();
-    ink(ctx, 2.4);
-    ctx.beginPath();
-    ctx.arc(x, 96 + (i % 2) * 4, 4, 0.5, 3.6);
-    ctx.strokeStyle = rgba('#7a8aa8', 0.6);
-    ctx.lineWidth = 1.6;
-    ctx.stroke();
-  }
-  face();
-  ctx.fillStyle = metal(ctx, 68, 152, silver);
-  ctx.fill();
-  ctx.save();
-  face();
-  ctx.clip();
-  glossy(ctx, 92, 26, 18, 26, 0.55);
-  ctx.restore();
-  face();
-  ink(ctx, 4, outlineOf(silver));
-  // brow ridge and nose
-  ctx.beginPath();
-  ctx.moveTo(84, 36);
-  ctx.quadraticCurveTo(110, 28, 136, 36);
-  ctx.moveTo(110, 38);
-  ctx.lineTo(106, 62);
-  ctx.lineTo(114, 64);
-  ink(ctx, 2.6, rgba(INK, 0.7));
-  for (const sx of [-1, 1]) {
-    ctx.beginPath();
-    ctx.moveTo(110 + sx * 8, 46);
-    ctx.quadraticCurveTo(110 + sx * 18, 40, 110 + sx * 28, 46);
-    ctx.quadraticCurveTo(110 + sx * 18, 52, 110 + sx * 8, 46);
-    ctx.closePath();
-    ctx.fillStyle = '#1a1420';
-    ctx.fill();
-    // the glow behind the slits
-    ctx.save();
-    ctx.shadowColor = gold;
-    ctx.shadowBlur = 10;
-    ellipse(ctx, 110 + sx * 18, 46, 5, 2.4);
-    ctx.fillStyle = shade(gold, 0.5);
-    ctx.fill();
-    ctx.restore();
-  }
-  // a thin mouth
-  ctx.beginPath();
-  ctx.moveTo(100, 76);
-  ctx.quadraticCurveTo(110, 79, 120, 76);
-  ink(ctx, 2.4, rgba(INK, 0.7));
-  curl(ctx, col, gold);
 }
 
 // ——— ARCHER SLIPPERS: a saffron slipper, a teal trouser cuff and a quiver strapped to the side ———
@@ -563,7 +466,6 @@ function drawSatrap(ctx: Ctx, art: FootArt, r: () => number): void {
   curl(ctx, col, pearl);
 }
 
-registerKind('p_immortal', { draw: drawImmortal, contactY: 254, halfWidth: 96 });
 registerKind('p_archer', { draw: drawArcher, contactY: 254, halfWidth: 96 });
 registerKind('p_cavalry', { draw: drawCavalry, contactY: 262, halfWidth: 92 });
 registerKind('p_chariot', { draw: drawChariot, contactY: 254, halfWidth: 96 });

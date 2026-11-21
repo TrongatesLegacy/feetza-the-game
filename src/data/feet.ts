@@ -106,7 +106,11 @@ export type LegKind =
   | 'cast'
   | 'scales'
   | 'wood'
-  | 'puffy';
+  | 'puffy'
+  /** Polished chrome (legColor is the light, legAccent the dark): the Immortal Sandals. */
+  | 'chrome'
+  /** Dark iron (legColor): the Immortal Brute. */
+  | 'iron';
 
 export interface FootArt {
   kind: FootKind;

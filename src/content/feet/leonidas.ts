@@ -1,6 +1,6 @@
 // King Leonidas's nemesis (src/game/nemesis.ts): with Leonidas equipped, the Labyrinth (stage 17, waves 81–85) becomes
 // the Hot Gates, and its bosses change. The Immortal Brute (mini, wave 83) leads the Immortal Horde: waves of masked
-// Immortal Sandals, then the giant champion himself, a hulking masked brute with a blade on a chain. Xerxes (wave 85)
+// Immortal Sandals, then the giant champion himself, a hulking one-eyed brute with a blade on a chain. Xerxes (wave 85)
 // is a towering god-king sandal in gold, chains and piercings who darkens the sky with arrows and sends in his war
 // rhino and war elephants. Our own names and designs. Their fights are in src/game/bosses/leonidas.ts and their art
 // in src/content/art/leonidas.ts. The stage's regular feet are the Labyrinth's.
@@ -11,7 +11,7 @@ export const feet: FootType[] = [
   {
     id: 'immortalbrute',
     name: 'THE IMMORTAL BRUTE',
-    desc: 'Mini-boss. The champion of the Immortal Horde: a hulking masked brute in iron scale, swinging a great blade on a chain. His horde marches first; he waits behind it.',
+    desc: 'Mini-boss. The champion of the Immortal Horde: a hulking foot of stone-grey hide with one great dark eye that never stops watching, black smoke seeping round it, and hooked claws; he swings a great blade on a chain. His horde marches first; he waits behind it.',
     hp: 3200, speed: 0.6, armor: 5, stompDmg: 2, coins: 170, score: 14000, scale: 1.6, minWave: 83, weight: 0,
     traits: ['heavy'],
     mini: true,
@@ -19,7 +19,7 @@ export const feet: FootType[] = [
     howTo: 'Beat his Immortals: he can’t be hurt while two or more of them march. When he whirls his blade, smack it to snag the chain before it slams down.',
     tell: 'A war horn blows before each wave of the horde; the chain whistles as the blade whirls over a pair of pizzas.',
     quips: ['NO ONE LEAVES THE PASS.', 'WE ARE MANY. YOU ARE FEW.', 'THE BLADE IS HUNGRY.', 'RRRAAAGH!'],
-    art: { kind: 'lx_brute', skin: '#8a6a5a', primary: '#3a3440', secondary: '#c9c4bc', leg: 'armor', legColor: '#3a3440', extra: { mask: '#e8e4dc' } },
+    art: { kind: 'lx_brute', skin: '#7a838f', primary: '#7a838f', secondary: '#c9c4bc', leg: 'iron', legColor: '#6c7480' },
   },
   {
     id: 'xerxes',
