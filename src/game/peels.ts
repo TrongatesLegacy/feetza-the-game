@@ -152,6 +152,9 @@ export function titleCase(name: string): string {
 }
 
 /** 'Iron Heel' → 'Iron Heel Peel', but 'Mirror Peel' stays as it is. */
+/** Boss peels whose plain name would clash with another peel's (Zeus the boss vs the Zeus god peel). */
+const BOSS_PEEL_NAME: Record<string, string> = { zeus: 'Storm Throne Zeus Peel' };
+
 const peelName = (name: string) => (/\bPeel$/.test(name) ? name : `${name} Peel`);
 
 function footLook(f: FootType, shiny: boolean): PeelLook {
@@ -361,7 +364,7 @@ function buildDefs(): PeelDef[] {
     const nmAt = nm ? ` It only turns up at wave ${f.mini ? nemesisWaves(nm).mini : nemesisWaves(nm).boss} with ${nm.hero} equipped.` : '';
     defs.push({
       id: `boss:${f.id}`,
-      name: peelName(titleCase(f.name)),
+      name: BOSS_PEEL_NAME[f.id] ?? peelName(titleCase(f.name)),
       group: 'boss',
       how: `Defeat ${f.mini ? 'the mini-boss' : 'the boss'} ${titleCase(f.name)}.${nmAt}`,
       progress: () => [save.bossesBeaten.includes(f.id) ? 1 : 0, 1],
