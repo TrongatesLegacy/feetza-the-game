@@ -1712,10 +1712,19 @@ class UI {
         ),
       );
     };
+    // a Rare Find stays a mystery until it has turned up once
+    const hiddenRare = (p: PizzaType) => p.route === 'rare' && !save.unlockedPizzas.includes(p.id) && !save.rareSeen.includes(p.id);
     const showPizza = (id: string) => {
       const p = PIZZA_BY_ID[id];
       const owned = save.unlockedPizzas.includes(id);
-      detail.replaceChildren(h('img', { src: pizzaPortraitURL(id), alt: '' }), h('div', {}, h('div', { class: 'dt-head' }, h('h3', {}, p.name), h('span', { class: 'chip' }, owned ? '✅ Unlocked' : `🔒 ${p.cost} Golden Crusts`)), h('p', {}, `Perk: ${p.perkText}`)));
+      const ms = MILESTONE_BY_PIZZA[id];
+      // how a locked pizza unlocks, by its route
+      const how = p.route === 'special' ? '🔒 Chef’s Special in the shop' : p.route === 'milestone' ? `🔒 Milestone: ${ms?.name ?? 'a milestone'}` : p.route === 'rare' ? '🔒 Rare Find on the new-run screen' : `🔒 ${p.cost} Golden Crusts`;
+      if (hiddenRare(p)) {
+        detail.replaceChildren(h('img', { src: pizzaPortraitURL(id), alt: '', style: 'filter:brightness(0) opacity(0.35)' }), h('div', {}, h('div', { class: 'dt-head' }, h('h3', {}, '???'), h('span', { class: 'chip' }, how)), h('p', {}, 'A Rare Find. It turns up only by luck, in a lineup on the new-run screen.')));
+        return;
+      }
+      detail.replaceChildren(h('img', { src: pizzaPortraitURL(id), alt: '' }), h('div', {}, h('div', { class: 'dt-head' }, h('h3', {}, p.name), h('span', { class: 'chip' }, owned ? '✅ Unlocked' : how)), h('p', {}, `Perk: ${p.perkText}`)));
     };
     const EVENTS: [string, string, string, string][] = [
       ['balloon', 'ev_balloon', 'Tip Balloon', 'Drifts across the top. One smack: 10 to 25 tips.'],
@@ -1751,7 +1760,8 @@ class UI {
       } else if (tab === 'pizzas') {
         const tiles = PIZZAS.map((p) => {
           const owned = save.unlockedPizzas.includes(p.id);
-          const t = h('div', { class: 'tile', tabindex: 0 }, h('img', { src: pizzaPortraitURL(p.id), alt: '', loading: 'lazy' }), h('div', { class: 'nm' }, p.name), owned ? null : h('span', { class: 'tag' }, '🔒'));
+          const hide = hiddenRare(p);
+          const t = h('div', { class: `tile${hide ? ' locked' : ''}`, tabindex: 0 }, h('img', { src: pizzaPortraitURL(p.id), alt: '', loading: 'lazy' }), h('div', { class: 'nm' }, hide ? '???' : p.name), owned ? null : h('span', { class: 'tag' }, '🔒'));
           t.addEventListener('click', () => {
             audio.sfx('sfx_click');
             showPizza(p.id);

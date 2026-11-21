@@ -432,6 +432,7 @@ export function specialPrice(normal: number, p: PizzaType, wave: number): number
 export function milestoneProgress(id: string): [number, number] {
   const nb = save.bossesBeaten.length;
   const wave = save.bestWave;
+  const g = save.pizzaGoals ?? {};
   const act1 = (h: HeatId): [number, number] => (save.act1Cleared.includes(h) ? [30, 30] : [Math.min(29, save.best[h]?.wave ?? 0), 30]);
   switch (id) {
     case 'firstWave3': return [Math.min(3, wave), 3];
@@ -452,6 +453,23 @@ export function milestoneProgress(id: string): [number, number] {
     case 'hot30': return act1('hot');
     case 'extrahot30': return act1('extrahot');
     case 'inferno30': return act1('inferno');
+    // phase 3 milestone prizes
+    case 'act1Lap': return save.act1Cleared.length ? [30, 30] : [Math.min(29, wave), 30];
+    case 'slayer24': {
+      const original = new Set(STAGES.flatMap((s) => [s.boss, s.mini] as string[]));
+      return [Math.min(24, save.bossesBeaten.filter((b) => original.has(b)).length), 24];
+    }
+    case 'wave100': return [Math.min(100, wave), 100];
+    case 'feet5000': return [Math.min(5000, save.totalFeet), 5000];
+    case 'perfect10': return [Math.min(10, g.perfectBest ?? 0), 10];
+    case 'runs25': return [Math.min(25, save.runs), 25];
+    case 'peels100': return [Math.min(100, new Set(['classic', ...save.peels]).size), 100];
+    case 'combo150': return [Math.min(150, g.bestCombo ?? 0), 150];
+    case 'untouched': return [Math.min(1, g.untouched ?? 0), 1];
+    case 'fastWave': return [(g.fastWave ?? 99) < 8 ? 1 : 0, 1];
+    case 'night10': return [Math.min(10, g.nightRuns ?? 0), 10];
+    case 'surtr': return [save.bossesBeaten.includes('surtr') ? 1 : 0, 1];
+    case 'hades': return [save.bossesBeaten.includes('hades') ? 1 : 0, 1];
     default: return [0, 1];
   }
 }

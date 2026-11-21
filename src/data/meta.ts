@@ -61,7 +61,21 @@ export const MILESTONES: Milestone[] = [
   { id: 'allBosses', name: 'Beat all 24 bosses', pizza: 'unicorn' },
   { id: 'hot30', name: 'Finish Act 1 on Hot', pizza: 'truffle' },
   { id: 'extrahot30', name: 'Finish Act 1 on Extra Hot' },
-  { id: 'inferno30', name: 'Finish Act 1 on Inferno' },
+  { id: 'inferno30', name: 'Clear wave 30 on Inferno', pizza: 'infernocalzone' },
+  // phase 3 milestone prizes (progress in milestoneProgress, records in save.pizzaGoals)
+  { id: 'act1Lap', name: 'Clear Act 1', pizza: 'victorylap' },
+  { id: 'slayer24', name: 'Beat all 24 original bosses', pizza: 'slayer' },
+  { id: 'wave100', name: 'Reach wave 100', pizza: 'century' },
+  { id: 'feet5000', name: 'Defeat 5,000 feet', pizza: 'thousand' },
+  { id: 'perfect10', name: '10 perfect waves in a row', pizza: 'perfectpie' },
+  { id: 'runs25', name: 'Play 25 runs', pizza: 'anniversary' },
+  { id: 'peels100', name: 'Own 100 peels', pizza: 'peelcollector' },
+  { id: 'combo150', name: 'Reach a 150 combo', pizza: 'comboking' },
+  { id: 'untouched', name: 'Finish a run without losing a pizza', pizza: 'untouchable' },
+  { id: 'fastWave', name: 'Clear a wave in under 8s', pizza: 'speedslice' },
+  { id: 'night10', name: 'Play 10 runs after 10pm', pizza: 'nightshift' },
+  { id: 'surtr', name: 'Beat Surtr', pizza: 'ragnarok' },
+  { id: 'hades', name: 'Beat Hades', pizza: 'olympian' },
 ];
 
 export const MILESTONE_BY_PIZZA: Record<string, Milestone> = Object.fromEntries(MILESTONES.filter((m) => m.pizza).map((m) => [m.pizza!, m]));

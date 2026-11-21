@@ -31,6 +31,7 @@ import { passiveBoost, setSlamMode } from '../game/slamMode';
 import { setRunHeat } from '../game/heatRules';
 import { abilityFor, abilityKindLabel, scaleProc, usesMeter, type Ability, type Effect, type Proc, type Target } from '../game/abilities';
 import { randomLineup } from './MenuScene';
+import { PizzaPerkKit } from '../game/pizzaPerks';
 
 interface DamageOpts {
   source: 'smack' | 'chain' | 'cutter' | 'olive' | 'slam' | 'explode' | 'garlic' | 'burn' | 'trap' | 'splash' | 'direct' | 'ability';
@@ -107,6 +108,8 @@ export class GameScene extends Phaser.Scene implements Arena {
   private garlicAuras: Phaser.GameObjects.Image[] = [];
   private grade!: Phaser.GameObjects.Rectangle;
   private director!: BossDirector;
+  /** The phase 3 pizzas' perks (src/game/pizzaPerks.ts). */
+  private perkKit!: PizzaPerkKit;
   private clickables: Clickable[] = [];
 
   private start: GameStart = {};
@@ -350,9 +353,23 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.backdrop = new BackdropView(this, bg, ambient);
     this.fx = new Fx(this, this.fxLayer);
     this.director = new BossDirector(this);
+    this.perkKit = new PizzaPerkKit(this, {
+      run: () => this.run,
+      dealDamage: (f, amount, source, knock) => this.dealDamage(f, amount, { source, knock, x: f.cx, y: f.cy }),
+      giveTips: (n, x, y) => this.giveTips(n, x, y),
+      healPizza: (p, n) => this.healPizza(p, n),
+      neighbours: (p) => this.neighbours(p),
+      recompute: () => this.recompute(),
+      addReroll: () => this.freeRerollsLeft++,
+      toast: (id, title, body) => ui.hud.toast(pizzaPortraitURL(id), title, body),
+    });
+    this.events.once('shutdown', () => this.perkKit.clear());
 
     const snap = this.start.snapshot;
-    if (snap) this.restore(snap);
+    if (snap) {
+      this.restore(snap);
+      this.perkKit.restored(this.pizzas);
+    }
     else {
       const slices = BASE_SLICES + (save.meta.pies ?? 0);
       const ids = this.start.act2 ? randomLineup(5) : this.start.lineup?.length ? this.start.lineup : randomLineup(save.meta.table ? 4 : 3);
@@ -393,6 +410,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       }
       if (save.meta.preheat) this.run.super = 1;
       this.run.endless = !!this.start.endless;
+      this.perkKit.runStart();
       if (this.start.act2) this.act2Kit();
       if (this.start.tips) this.run.coins = this.start.tips;
     }
@@ -622,6 +640,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     p.maxFresh = 10 + (this.run.stats?.freshBonus ?? 0);
     p.setFresh(fresh ?? p.maxFresh);
     if (type.perk === 'rotate' && p.flags.season === undefined) p.flags.season = 0;
+    this.perkKit.placed(p, !exact);
     this.pizzas.push(p);
     if (animate) {
       p.root.setScale(0).setY(PIZZA_Y - 200);
@@ -648,7 +667,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     const live = this.alivePizzas().filter((p) => p !== this.possessedPizza && p.perk);
     const perks = live.map((p) => p.perk!);
     // an enhanced pizza's perk counts half as much again
-    const enhanced = live.filter((p) => p.enhanced).map((p) => p.perk!);
+    const enhanced = [...live.filter((p) => p.enhanced).map((p) => p.perk!), ...this.perkKit.bigPerks(live)];
     // always-on peel abilities change stats before the caps are applied
     const extra: Record<string, number> = {};
     if (this.ability?.trigger.t === 'always') for (const e of this.ability.fx) if (e.e === 'stat') for (const [k, v] of Object.entries(e.mods)) extra[k] = (extra[k] ?? 0) + (v as number);
@@ -662,6 +681,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       else if (inv === 'crit') s.critChance = Math.max(0, s.critChance - 0.06);
       else s.damage *= 0.95;
     }
+    this.perkKit.afterRecompute(this.run.stats, COMBO_BASE_WINDOW);
     for (const p of this.pizzas) {
       p.maxFresh = 10 + this.run.stats.freshBonus;
       if (p.fresh > p.maxFresh) p.setFresh(p.maxFresh);
@@ -738,11 +758,12 @@ export class GameScene extends Phaser.Scene implements Arena {
     }
     // Grandma Square guards both neighbours' first stomp each wave (enhanced: itself too)
     for (const p of this.alivePizzas()) if (p.perk === 'neighbourShield') for (const q of [...this.neighbours(p), ...(p.enhanced ? [p] : [])]) q.flags.grandma = true;
+    this.perkKit.waveStart(n);
     this.run.super = Math.max(this.run.super, st.superStart);
     // a passive on a timer gets its head start (S'mores, Pre-Heated Peel) as timer progress
     if (this.ability?.trigger.t === 'every') this.abilityT = Math.max(this.abilityT, this.ability.trigger.sec * Math.min(1, this.run.super));
     const boss = isBossWave(n);
-    this.waveEvent = boss || isMiniWave(n) ? null : rollEvent(EVENT_RATE[this.run.heat]);
+    this.waveEvent = boss || isMiniWave(n) ? null : rollEvent(Math.min(0.9, EVENT_RATE[this.run.heat] * this.perkKit.eventRateMult()));
     this.eventStarted = false;
 
     const bd = backdropFor(n);
@@ -905,7 +926,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     }
     if (this.retreating && !f.isBossLike) f.pinned = true;
     // a rare shiny: any regular foot, never a boss, mini-boss or a boss's stand-in
-    if (!type.boss && !type.mini && !this.tutorial && Math.random() < SHINY_FOOT_CHANCE * this.shinyBoost) {
+    if (!type.boss && !type.mini && !this.tutorial && Math.random() < SHINY_FOOT_CHANCE * this.shinyBoost * this.perkKit.shinyMult()) {
       f.makeShiny();
       this.time.delayedCall(250, () => {
         if (!f.alive) return;
@@ -1328,7 +1349,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       },
       done: (ev, x, y) => {
         save.eventsDone[ev] = (save.eventsDone[ev] ?? 0) + 1;
-        const drop = rollEventDrop(ev);
+        const dropMult = this.perkKit.eventDropMult();
+        const drop = rollEventDrop(ev, () => Math.random() / dropMult);
         if (drop) {
           this.fx.glint(x, y, 30);
           this.fx.quip(x, y - 150, drop.drop!.chance < 0.01 ? 'ULTRA RARE DROP!' : 'SHINY DROP!', '#fff6c0', 50);
@@ -1427,6 +1449,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       if (weakest) this.healPizza(weakest, 1);
     }
     this.tickFreshness();
+    this.perkKit.waveClear(n, perfect, this.run.coins - this.coinsAtWaveStart);
     // Quattro Stagioni turns to its next season
     for (const p of this.alivePizzas()) if (p.type.perk === 'rotate') {
       p.flags.season = (Number(p.flags.season ?? 0) + 1) % 4;
@@ -1667,6 +1690,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       { id: 'topping', name: 'Golden Topping', desc: 'A guaranteed legendary card', cost: 60, available: legOpen && used('topping') < 1, note: !legOpen ? `From wave ${RARITY_FROM.legendary}` : used('topping') ? 'Used this run' : '' },
       { id: 'fresh', name: 'Fresh Batch', desc: 'Every pizza back to full freshness', cost: 30, available: used('fresh') < 1 && this.run.heatDef.freshness > 0, note: this.run.heatDef.freshness > 0 ? (used('fresh') ? 'Used this run' : '') : 'Freshness is off' },
     ];
+    // Royal Wedding: the Golden Menu for less
+    for (const g of golden) g.cost = Math.max(1, Math.round(g.cost * this.perkKit.goldenMult()));
     for (const g of golden) g.available = g.available && save.crusts >= g.cost;
     // one Golden Menu pick per shop: once something is bought, the rest wait for the next shop
     const picked = this.shop?.goldenBought;
@@ -1905,6 +1930,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     p.flags.enhanced = true;
     // Meat Feast and Lahmacun: two more slices
     if (p.type.perk === 'slices' || p.type.perk === 'bossRegrow') p.addSlices(2);
+    this.perkKit.enhanced(p);
     p.redraw();
     this.fx.healBurst(p.x, p.surfaceY - 20);
     this.fx.ring(p.x, p.surfaceY - 30, 0xffc93a, 2.4, 0.5);
@@ -2016,7 +2042,7 @@ export class GameScene extends Phaser.Scene implements Arena {
   }
 
   private figOnTable(): boolean {
-    return this.alivePizzas().some((p) => p.perk === 'crustBonus');
+    return this.alivePizzas().some((p) => p.perk === 'crustBonus' || p.perk === 'crustRun');
   }
 
   /** Award any milestones reached: each unlocks the pizza it names (or 50 crusts). */
@@ -2078,7 +2104,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     const targets = this.run.level('peel') > 0 ? hits : hits.slice(0, 1);
     for (const { f } of targets) {
       this.hitFoot(f, x, y);
-      if (Math.random() < this.run.stats.doubleChance && f.alive) this.time.delayedCall(90, () => f.alive && this.hitFoot(f, x + 12, y - 12));
+      if (Math.random() < this.run.stats.doubleChance + this.perkKit.extraDouble() && f.alive) this.time.delayedCall(90, () => f.alive && this.hitFoot(f, x + 12, y - 12));
     }
   }
 
@@ -2090,6 +2116,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     const landed = !f.alive || f.hp < hpBefore;
     if (landed && this.ability?.trigger.t === 'smack' && Math.random() < this.ability.trigger.p * passiveBoost(st.superGain).chance) this.fireAbility({ foot: f, x: f.cx, y: f.cy });
     if (landed) this.fireProcs('smack', { foot: f, x: f.cx, y: f.cy });
+    if (landed) this.perkKit.smacked(f, x);
     if (!f.alive) return;
     if (f.has('pinch')) this.stunPeel(0.5, 'PINCHED!');
     if (f.has('sticky')) {
@@ -2182,6 +2209,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (f.isBossLike) dmg *= 1 + st.bossDmg;
     if (f.hp > f.maxHp * 0.5) dmg *= 1 + st.bigHurt;
     if (f.stunT > 0 && f.target?.perk === 'stunVuln') dmg *= f.target.enhanced ? 1.75 : 1.5;
+    dmg *= this.perkKit.damageMult(f, smack);
     let executed = false;
     if (smack && !f.isBossLike && st.execute > 0 && f.hp / f.maxHp <= st.execute) {
       executed = true;
@@ -2226,7 +2254,7 @@ export class GameScene extends Phaser.Scene implements Arena {
         this.shake(120, 0.004);
         this.rumble(0.35, 80);
       } else audio.slap(0.8);
-      if (o.knock) f.knock(o.knock * (crit ? 1.4 : 1));
+      if (o.knock) f.knock(o.knock * (crit ? 1.4 : 1) * this.perkKit.knockMult(f));
       this.run.combo++;
       this.run.bestCombo = Math.max(this.run.bestCombo, this.run.combo);
       this.run.comboTimer = COMBO_BASE_WINDOW + st.comboBonus;
@@ -2322,13 +2350,14 @@ export class GameScene extends Phaser.Scene implements Arena {
     const midas = !boss && !mini && f.type.id !== 'golden' && Math.random() < st.goldenTouch;
     // Ghost echoes copy a boss's type but are a fraction of one: they pay a tenth
     const echoCut = f.brain.echo ? 0.1 : 1;
-    const scoreGain = Math.round(f.type.score * (f.elite ? 2 : 1) * (midas ? 2 : 1) * echoCut);
+    const scoreGain = Math.round(f.type.score * (f.elite ? 2 : 1) * (midas ? 2 : 1) * echoCut * this.perkKit.scoreMult(f));
     this.addScore(scoreGain, true);
     // later waves bring far more feet, so each one pays a little less after wave 10 (×0.71 at 20, ×0.5 at 35)
     const taper = 1 / (1 + Math.max(0, this.run.wave - 10) / 25);
     let coins = Math.max(1, Math.round(f.type.coins * st.coinMult * (f.elite ? 2 : 1) * (midas ? 5 : 1) * this.run.heatDef.tips * echoCut * taper));
     if (f.type.id === 'mimic') coins *= 2;
     if (f.shiny) coins *= 3;
+    coins = Math.max(1, Math.round(coins * this.perkKit.tipMult(f, midas)));
     // New York Slice: +1 tip per quick kill
     if (st.quickTips && this.nowT - this.lastKillAt < 1) coins += st.quickTips;
     this.lastKillAt = this.nowT;
@@ -2354,6 +2383,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       const at = { x: f.cx, y: f.cy };
       this.time.delayedCall(40, () => this.fireProcs('kill', { x: at.x, y: at.y }));
     }
+    this.perkKit.killed(f, coins);
     if (f.has('crusty')) {
       const cap = Math.round(EVENT_CRUST_CAP * this.run.heatDef.crusts);
       const got = Math.max(0, Math.min(1 + Math.floor(Math.random() * 3), cap - this.run.eventCrusts));
@@ -2484,6 +2514,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (!p || p.dead) return;
     const st = this.run.stats;
     if (f.type.stompDmg <= 0) return;
+    // Pizza Fantasma's ghost pass, Oyster Rockefeller's shell
+    if (this.perkKit.preStomp(f, p)) return;
     if (this.run.combo >= 5) this.fx.quip(W / 2, 200, 'COMBO LOST', '#ff8a6a', 40, 0);
     this.run.combo = 0;
     this.rumble(f.isBossLike ? 0.8 : 0.3, f.isBossLike ? 250 : 90);
@@ -2581,12 +2613,14 @@ export class GameScene extends Phaser.Scene implements Arena {
     }
     this.applyStomp(p, f, dmg, big);
     // Pizza Bianca (enhanced: its neighbours too)
+    // Inferno Calzone is fireproof
     const immune = p.perk === 'immuneEffects' || this.neighbours(p).some((q) => q.perk === 'immuneEffects' && q.enhanced);
+    const fireproof = immune || p.perk === 'burnAbove';
     if (f.has('soggy') && !p.dead && !immune) {
       p.soggy = true;
       for (let i = 0; i < 4; i++) this.fx.sweatDrop(p.x + (Math.random() - 0.5) * 120, p.surfaceY - 20);
     }
-    if (f.has('scorch') && !immune) {
+    if (f.has('scorch') && !fireproof) {
       this.time.delayedCall(2000, () => {
         if (p.dead || this.over || !this.waveActive) return;
         for (let i = 0; i < 6; i++) this.fx.burn(p.x + (Math.random() - 0.5) * 140, p.surfaceY);
@@ -2617,6 +2651,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.fx.quip(f.x, f.cy - 100, 'HOT HOT HOT!', '#ff8a3d', 38);
       audio.sfx('sfx_fire', { volume: 0.6 });
     }
+    this.perkKit.afterStomp(f, p);
   }
 
   private applyStomp(p: Pizza, f: Foot | null, dmg: number, big: boolean): void {
@@ -2650,6 +2685,12 @@ export class GameScene extends Phaser.Scene implements Arena {
   }
 
   private pizzaDestroyed(p: Pizza): void {
+    // Olympian Feast stays standing; Untouchable brings the first loss back; Volcano Calzone erupts
+    const kit = this.perkKit.destroyed(p);
+    if (kit === 'survive') {
+      this.recompute();
+      return;
+    }
     this.fx.puff(p.x, p.surfaceY, 14);
     this.fx.splat(p.x, p.surfaceY, true);
     this.fx.quip(p.x, p.surfaceY - 160, `${p.type.name.toUpperCase()} IS TOAST!`, '#ff6a4d', 40, 0);
@@ -2657,8 +2698,9 @@ export class GameScene extends Phaser.Scene implements Arena {
     p.setShield(0);
     p.setTraps(0);
     if (p === this.possessedPizza) this.possess(null);
-    let rises = false;
-    if (this.run.armed.includes('angel')) {
+    let rises = kit === 'rise';
+    if (rises) ui.hud.toast(pizzaPortraitURL(p.type.id), 'UNTOUCHABLE', `${p.type.name} comes back in a moment`);
+    else if (this.run.armed.includes('angel')) {
       this.run.consume('angel');
       rises = true;
       this.time.delayedCall(1100, () => {
@@ -3234,6 +3276,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.feet = this.feet.filter((f) => f.state !== 'gone');
       this.feetLayer.sort('y');
       this.passives(dt);
+      this.perkKit.update(dt);
       this.abilityTick(dt);
       this.procTick(dt);
       if (this.run.combo > 0) {
@@ -3494,6 +3537,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       table[r.heat] = { score: Math.max(best.score, r.score), wave: Math.max(best.wave, r.wave) };
       save.crusts += r.endCrusts(this.figOnTable());
       save.runs++;
+      this.perkKit.runEnd(victory);
       if (r.score > save.bestScore) save.bestScore = r.score;
       if (r.wave > save.bestWave) save.bestWave = r.wave;
       // the wave you went out on counts as reached (as it always has), so milestones come after the bests
