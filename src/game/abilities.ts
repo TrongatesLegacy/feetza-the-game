@@ -377,6 +377,18 @@ export const ABILITIES: Record<string, Ability> = {
   'place:slopes': ab('Whiteout', auto, [FZ(3, all)], WHITE, 'frost', 1),
   'place:cellar': ab('Dark Cellar', every(5), [D(4, tough(1)), M(1.5, 4, tough(1))], PURPLE, 'ink'),
 
+  // ——— Acts: one for completing each act ———
+  'act:1': ab('Grand Opening', wave, [T(12), SH(1, 'weakest')], RED, 'gold'),
+  'act:2': ab('Heatwave', every(6), [B(1, 3, rnd(3)), S(0.2, 3, rnd(3))], ORANGE, 'fire'),
+  'act:3': ab('Orbit', every(7), [K(1000, front(2)), S(0.4, 3, front(2))], PURPLE, 'wind'),
+  'act:4': ab('Comfort Food', wave, [H(1, 'weakest'), FR(1)], 0xf2dfb0, 'heal'),
+  'act:5': ab('Riptide', smack(0.25), [S(0.35, 2.5, hit(160)), K(500, hit(160))], CYAN, 'wind'),
+  'act:6': ab('Long Night', kill(0.35), [FZ(1.2, hit(170)), D(1, hit(170))], BLUE, 'frost'),
+  'act:7': ab('KRAK!', act, [D(8, all, 1000), ST(1.5, all)], GOLD, 'slam'),
+  'act:8': ab('Thunderclap', smack(0.2), [C(1.3, 4)], CYAN, 'zap'),
+  'act:9': ab('Heroic Labours', always, [STAT({ damage: 2, bossDmg: 0.15 })], WHITE, 'burst'),
+  'act:10': ab('Curtain Call', auto, [D(12, all, 1200), ST(2, all), T(20)], GOLD, 'gold', 0.9),
+
   // ——— Wave events ———
   'event:balloon': ab('Pop!', kill(0.35), [D(1.5, hit(200)), T(1)], RED, 'burst'),
   'event:drone': ab('Air Support', every(3), [D(2, front(1))], CYAN, 'zap'),

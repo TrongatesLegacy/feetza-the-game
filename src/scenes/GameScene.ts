@@ -6,8 +6,9 @@ import { BASE_SLICES, COMBO_BASE_WINDOW, H, MAX_PIZZAS, PIZZA_Y, W } from '../co
 const LANE_W = 250;
 import type { HeatId } from '../data/difficulty';
 import { FOOT_BY_ID, OUCH, type FootType } from '../data/feet';
+import { MILESTONES } from '../data/meta';
 import { PIZZAS, PIZZA_BY_ID, enhancedText } from '../data/pizzas';
-import { ACT_WAVES, BOSS_MINION, JOURNEY_WAVES } from '../data/stages';
+import { ACT_COUNT, BOSS_MINION, HEAT_UNLOCK_WAVE, JOURNEY_WAVES, actLabel, actName, actOf, actStartWave, isActEnd, isActStart, waveInJourney } from '../data/stages';
 import { UPGRADES, UPGRADE_BY_ID, kindOf, upgradePrice, type Rarity, type Upgrade } from '../data/upgrades';
 import type { Arena, Clickable } from '../game/arena';
 import { footPortraitURL, pizzaPortraitURL } from '../game/assets';
@@ -25,8 +26,7 @@ import { pad } from '../systems/gamepad';
 import { markFootSeen, markToppingsSeen, nextLockedPizza, persist, save, updateSettings } from '../systems/save';
 import type { GoldenItem, RunSummary, ShopCard, ShopOffer, ShopPizza, ShopState, YourTopping } from '../ui/shopTypes';
 import { ui, fmtTime } from '../ui/ui';
-import { PEELS, PEEL_BY_ID, abilityPeel, applyPeelLook, hasPeel, lookPeel, checkPeelAchievements, grantShinyFoot, peelThumbURL, peelTrail, rollEventDrop, SHINY_FOOT_CHANCE, type PeelDef } from '../game/peels';
-import { MILESTONES } from '../data/meta';
+import { PEELS, PEEL_BY_ID, abilityPeel, applyPeelLook, hasPeel, lookPeel, checkPeelAchievements, grantShinyFoot, peelThumbURL, peelTrail, rollEventDrop, SHINY_FOOT_CHANCE, titleCase, type PeelDef } from '../game/peels';
 import { STAGES, WAVES_PER_STAGE } from '../data/stages';
 import { passiveBoost, setSlamMode } from '../game/slamMode';
 import { setRunHeat } from '../game/heatRules';
@@ -45,9 +45,11 @@ interface DamageOpts {
 export interface GameStart {
   lineup?: string[];
   heat?: HeatId;
-  /** Dev only: start at wave 31 with an Act 2 starter kit (the new-run screen no longer offers it). */
+  /** Dev only: start at wave 31 with a starter kit (the old Act 2 start; the new-run screen no longer offers it). */
   act2?: boolean;
-  /** Keep going past wave 60 (endless) instead of ending the run there. */
+  /** Dev only: start in the shop before `wave` with a starter kit sized for that wave (5 pizzas, toppings, tips). */
+  kit?: boolean;
+  /** Keep going past the journey's end (endless) instead of ending the run there. */
   endless?: boolean;
   /** Resume a saved run (or a dev scenario) in its shop. */
   snapshot?: RunSnapshot;
@@ -86,7 +88,7 @@ export class GameScene extends Phaser.Scene implements Arena {
   private peelShiny = false;
   /** The peel this run is played with (prestige goals count it). */
   private peelId = 'classic';
-  /** Set once the run is finished (the wave 60 finale), so the clock stops. */
+  /** Set on the victory screen at the journey's end, so the clock stops (endless picks it up again). */
   private timerStopped = false;
   /** The peel's ability, when it replaces the Peel Slam this run (null: the Peel Slam). */
   private ability: Ability | null = null;
@@ -359,7 +361,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (snap) this.restore(snap);
     else {
       const slices = BASE_SLICES + (save.meta.pies ?? 0);
-      const ids = this.start.act2 ? randomLineup(5) : this.start.lineup?.length ? this.start.lineup : randomLineup(save.meta.table ? 4 : 3);
+      const ids = this.start.act2 || this.start.kit ? randomLineup(5) : this.start.lineup?.length ? this.start.lineup : randomLineup(save.meta.table ? 4 : 3);
       ids.forEach((id, i) => this.addPizza(id, slices, false, FRESH_START[i % FRESH_START.length]));
       this.layoutPizzas(false);
     }
@@ -398,7 +400,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       }
       if (save.meta.preheat) this.run.super = 1;
       this.run.endless = !!this.start.endless;
-      if (this.start.act2) this.act2Kit();
+      if (this.start.act2 || this.start.kit) this.devKit(this.kitWave());
       if (this.start.tips) this.run.coins = this.start.tips;
     }
     // where every goal stands as the run begins, for the end-of-run summary
@@ -440,7 +442,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     ui.hud.setBoss(null);
     audio.duck(1);
     this.cameras.main.fadeIn(500, 18, 10, 6);
-    this.tutorial = !save.tutorialDone && !snap && !this.start.act2;
+    this.tutorial = !save.tutorialDone && !snap && !this.start.act2 && !this.start.kit;
     pad.onPlay = (ev) => this.padInput(ev);
 
     if (snap) {
@@ -450,11 +452,14 @@ export class GameScene extends Phaser.Scene implements Arena {
       const cards = rs?.cards.map((id) => UPGRADE_BY_ID[id]).filter(Boolean);
       this.freeRerollsLeft = rs ? rs.freeRerolls : this.run.stats.freeRerolls;
       const keep = rs && cards?.length ? { cards, sold: new Set(rs.sold), free: rs.free, goldenBought: rs.goldenBought, lastStand: rs.lastStand } : undefined;
-      this.time.delayedCall(500, () => this.openUpgrades(rs?.bossReward ?? isBossWave(snap.wave), keep, 'WELCOME BACK!'));
-    } else if (this.start.act2) {
-      this.run.wave = ACT_WAVES;
-      this.showLocation(ACT_WAVES + 1, true);
-      this.time.delayedCall(600, () => this.openUpgrades(false, undefined, 'ACT 2 · STOCK UP'));
+      // saved on the ACT COMPLETE (or endless victory) screen: back to it, then its shop
+      if (snap.actPending && !rs) this.time.delayedCall(500, () => (waveInJourney(snap.wave) === JOURNEY_WAVES ? this.victory() : this.actComplete(snap.wave)));
+      else this.time.delayedCall(500, () => this.openUpgrades(rs?.bossReward ?? isBossWave(snap.wave), keep, 'WELCOME BACK!'));
+    } else if (this.start.act2 || this.start.kit) {
+      const kw = this.kitWave();
+      this.run.wave = kw - 1;
+      this.showLocation(kw, true);
+      this.time.delayedCall(600, () => this.openUpgrades(isBossWave(kw - 1), undefined, `${actName(actOf(kw)).toUpperCase()} · STOCK UP`));
     } else if (this.start.boss) {
       const id = this.start.boss.id;
       const t = FOOT_BY_ID[id];
@@ -501,18 +506,28 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.peelSlowT = 0;
     this.hurryT = 0;
     this.shop = null;
+    // a restart reuses the scene: the last run's victory clock stop and end-of-act screen go with it
+    this.timerStopped = false;
+    this.actEl = null;
     this.tweens.timeScale = 1;
   }
 
-  /** Act 2 starter kit: 5 pizzas (placed in create), ~6 toppings, and the tips a wave-30 run usually holds. */
-  private act2Kit(): void {
-    this.run.act2Start = true;
-    const pool = UPGRADES.filter((u) => kindOf(u) === 'permanent' && (u.rarity === 'common' || u.rarity === 'rare'));
-    for (let i = 0; i < 6; i++) {
+  /** Dev starts: the wave a kit start begins at (31 for the old Act 2 start). */
+  private kitWave(): number {
+    return this.start.act2 ? 31 : Math.max(2, this.start.wave ?? 31);
+  }
+
+  /** Dev starter kit for a run begun at wave w: 5 pizzas (placed in create), about a topping per 3 waves
+   * (epics from wave 30, legendaries from 60), and roughly the tips a run holds by then. The old Act 2 start: 6 at w = 31. */
+  private devKit(w: number): void {
+    this.run.act2Start = !!this.start.act2;
+    const rarities = w >= 60 ? ['common', 'rare', 'epic', 'legendary'] : w >= 30 && !this.start.act2 ? ['common', 'rare', 'epic'] : ['common', 'rare'];
+    const pool = UPGRADES.filter((u) => kindOf(u) === 'permanent' && rarities.includes(u.rarity));
+    for (let i = 0; i < (this.start.act2 ? 6 : Math.round(w / 3)); i++) {
       const u = Phaser.Utils.Array.GetRandom(pool);
       this.run.owned[u.id] = Math.min(u.max, (this.run.owned[u.id] ?? 0) + 1);
     }
-    this.run.coins = 420;
+    this.run.coins = this.start.tips ?? Math.round(w * 14);
     this.run.pizzasBought = 2;
   }
 
@@ -546,6 +561,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       newUnlocks: [...r.newUnlocks],
       elapsed: r.elapsed,
       endless: r.endless,
+      actFrom: r.actFrom,
+      actPending: !!this.actEl && !this.shop,
       secondChances: r.secondChances,
       enhanceUses: r.enhanceUses,
       bought: [...r.bought],
@@ -591,6 +608,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     r.newUnlocks = [...s.newUnlocks];
     r.elapsed = s.elapsed;
     r.endless = s.endless ?? false;
+    r.actFrom = s.actFrom ?? null;
     r.secondChances = s.secondChances;
     r.enhanceUses = s.enhanceUses ?? 0;
     // runs saved before the Toppings tab: what's owned was bought this run
@@ -704,6 +722,12 @@ export class GameScene extends Phaser.Scene implements Arena {
   private beginWave(n: number, devBoss?: { id: string; hp?: number }): void {
     if (this.over) return;
     this.run.wave = n;
+    // the act's stats count from its first wave (or from wherever this run joined it)
+    const actFirst = actStartWave(n);
+    if (!this.run.actFrom || this.run.actFrom.wave !== actFirst) {
+      const r = this.run;
+      r.actFrom = { wave: actFirst, elapsed: r.elapsed, feet: r.feetSmacked, slices: r.slicesLost };
+    }
     this.plan = planWave(n, this.run.stats.luck, this.run.heat);
     if (devBoss) {
       const t = FOOT_BY_ID[devBoss.id];
@@ -757,7 +781,6 @@ export class GameScene extends Phaser.Scene implements Arena {
     const loc = locationFor(n);
     const locChanged = this.currentLocation !== loc;
     this.showLocation(n, false);
-    if (n === ACT_WAVES + 1 && loopOf(n) === 0 && !this.run.act2Start) this.time.delayedCall(200, () => ui.hud.banner('ACT 2', 'The journey goes on', 'loc'));
     if (boss) {
       const id = this.plan.boss as ArenaId;
       audio.music(this, bossMusic(id), 1500);
@@ -770,7 +793,9 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.waveActive = true;
     } else {
       if (locChanged && n > 1) {
-        ui.hud.banner(BACKDROPS[loc].name, 'NEW LOCATION', 'loc');
+        // a new act opens with its name; any other new stage with the place's
+        if (isActStart(n)) ui.hud.banner(actName(actOf(n)).toUpperCase(), `Act ${actOf(n)} · ${BACKDROPS[loc].name}`, 'loc');
+        else ui.hud.banner(BACKDROPS[loc].name, 'NEW LOCATION', 'loc');
         audio.sfx('sfx_levelup', { volume: 0.6 });
         this.time.delayedCall(2300, () => ui.hud.banner(`WAVE ${n}`, this.waveSubtitle(n)));
         this.time.delayedCall(2300, () => (this.waveActive = true));
@@ -1447,18 +1472,13 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (n > save.bestWave) save.bestWave = n;
     persist();
     this.checkMilestones();
-    const journeyDone = boss && n % JOURNEY_WAVES === 0;
-    if (journeyDone && !this.run.endless) {
+    // the journey's end is the full victory (endless can keep going from it); every other act ends on ACT COMPLETE
+    if (boss && waveInJourney(n) === JOURNEY_WAVES) {
       this.time.delayedCall(2400, () => this.victory());
       return;
     }
-    if (journeyDone) {
-      // endless: the journey is done, and it starts over, harder
-      this.time.delayedCall(2400, () => {
-        ui.hud.banner('JOURNEY COMPLETE!', 'Endless: the journey again, harder', 'clear');
-        audio.sting('music_victory', 0.8);
-      });
-      this.time.delayedCall(5200, () => this.openUpgrades(true, undefined, 'ENDLESS MODE · STOCK UP'));
+    if (boss && isActEnd(n)) {
+      this.time.delayedCall(2400, () => this.actComplete(n));
       return;
     }
     this.time.delayedCall(boss ? 2400 : 1700, () => this.openUpgrades(boss));
@@ -1733,7 +1753,7 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   private refreshShop(): void {
     if (!this.shop) return;
-    this.shop.state = this.shopState(this.shop.state.title === 'WELCOME BACK!' || this.shop.state.title.startsWith('ACT 2') ? this.shop.state.title : undefined);
+    this.shop.state = this.shopState(this.shop.state.title === 'WELCOME BACK!' || this.shop.state.title.endsWith('STOCK UP') ? this.shop.state.title : undefined);
     ui.updateShop(this.shop.el, this.shop.state);
     ui.hud.setCoins(this.run.coins);
     ui.hud.setOwned(this.run.owned);
@@ -2471,16 +2491,11 @@ export class GameScene extends Phaser.Scene implements Arena {
     // the boss wave ends with its boss: the rest of its entourage flees
     if (this.plan) this.plan.queue = [];
     for (const o of this.aliveFeet()) if (o !== f) this.time.delayedCall(400, () => o.alive && this.killFoot(o, 'slam'));
-    // Act 1 complete at wave 30
+    // beating wave 30 unlocks the next heat; the act's last boss completes the act (ACT COMPLETE follows the wave)
     const w = this.run.wave;
-    if (w % JOURNEY_WAVES === ACT_WAVES) {
-      if (!save.act1Cleared.includes(this.run.heat)) save.act1Cleared.push(this.run.heat);
-      persist();
-      this.time.delayedCall(900, () => {
-        ui.hud.banner('ACT 1 COMPLETE!', 'Six stages down. Six to go.', 'clear');
-        audio.sting('music_act', 0.9);
-      });
-    }
+    if (waveInJourney(w) === HEAT_UNLOCK_WAVE && !save.act1Cleared.includes(this.run.heat)) save.act1Cleared.push(this.run.heat);
+    if (isActEnd(w) && !save.actsCleared.includes(actOf(w))) save.actsCleared.push(actOf(w));
+    persist();
   }
 
   private addScore(base: number, combo: boolean): void {
@@ -3301,7 +3316,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (k === 'escape' || k === 'p') {
       if (this.paused) this.resume();
       // in the shop, Esc opens the pause menu (unless something, like an intro card, is open over it)
-      else if (!this.inUpgrade || ui.isTop(this.shop?.el)) this.togglePause();
+      else if (!this.inUpgrade || ui.isTop(this.shop?.el ?? this.actEl)) this.togglePause();
     } else if (k === ' ' || k === 'spacebar') {
       e.preventDefault();
       this.peelSlam();
@@ -3315,9 +3330,10 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   private togglePause(force = false): void {
     if (this.over || (this.paused && !force)) return;
-    // the shop can pause too (from its ⚙ button or Esc), but only from the shop itself
+    // the shop and ACT COMPLETE can pause too (⚙ button or Esc), but only from the screen itself
     const inShop = this.inUpgrade;
-    if (inShop && !this.shop) return;
+    if (inShop && !this.shop && !this.actEl) return;
+    if (inShop && !ui.isTop(this.shop?.el ?? this.actEl)) return;
     this.paused = true;
     this.scene.pause();
     ui.setPlaying(false);
@@ -3325,7 +3341,9 @@ export class GameScene extends Phaser.Scene implements Arena {
     // leaving keeps the run: from the shop exactly as it is, mid-wave from the shop before this wave
     // (nothing is saved until wave 1 or the act's first wave is cleared)
     const canLeave = inShop || !!save.run;
-    const leaveNote = inShop
+    const leaveNote = this.actEl && !this.shop
+      ? 'Save & Menu keeps this run: Continue on the title screen brings you back here.'
+      : inShop
       ? 'Save & Menu keeps this run: pick it up from this shop with Continue on the title screen.'
       : canLeave
         ? `Save & Menu keeps this run, but this wave starts over: Continue puts you back in the shop before wave ${this.run.wave}.`
@@ -3351,6 +3369,8 @@ export class GameScene extends Phaser.Scene implements Arena {
         this.paused = false;
         this.gameOver(true);
       },
+      backLabel: this.actEl && !this.shop ? 'BACK' : undefined,
+      act: actName(actOf(Math.max(1, this.run.wave))),
       owned: this.run.owned,
       armed: this.run.armed,
       wave: this.run.wave,
@@ -3361,7 +3381,7 @@ export class GameScene extends Phaser.Scene implements Arena {
   private resume(): void {
     if (!this.paused) return;
     // close the pause menu (and settings) but never the shop under it
-    ui.closeAll(this.inUpgrade ? this.shop?.el : null);
+    ui.closeAll(this.inUpgrade ? (this.shop?.el ?? this.actEl) : null);
     this.pauseEl = null;
     this.paused = false;
     this.scene.resume();
@@ -3371,7 +3391,8 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   /** Back to the title screen without ending the run: Continue there picks it up from its last shop. */
   private leaveRun(): void {
-    if (this.inUpgrade && this.shop) this.saveRun();
+    // the shop, or ACT COMPLETE (its clock has kept running since it was saved)
+    if (this.inUpgrade && (this.shop || this.actEl)) this.saveRun();
     this.over = true;
     this.waveActive = false;
     this.throws.clear();
@@ -3423,8 +3444,51 @@ export class GameScene extends Phaser.Scene implements Arena {
     audio.music(this, isBossWave(w) ? bossMusic(backdropFor(w) as ArenaId) : LOCATION_MUSIC[loc], 800);
   }
 
-  /** Finished the 60-wave journey. */
+  /** The ACT COMPLETE (or endless victory) screen, while it's up: the pause menu works over it. */
+  private actEl: HTMLElement | null = null;
+
+  /** An act's last boss is down: celebrate, then keep going (to the boss shop) or bank the run. The clock keeps running, as in the shop. */
+  private actComplete(n: number): void {
+    if (this.over) return;
+    this.inUpgrade = true;
+    ui.setPlaying(false);
+    audio.duck(0.55);
+    audio.sting('music_act', 0.9);
+    const r = this.run;
+    const act = actOf(n);
+    const from = r.actFrom ?? { wave: actStartWave(n), elapsed: 0, feet: 0, slices: 0 };
+    const boss = FOOT_BY_ID[bossFor(n)];
+    const next = actOf(n + 1);
+    this.actEl = ui.actComplete({
+      act,
+      name: actName(act),
+      acts: ACT_COUNT,
+      loop: loopOf(n),
+      kicker: boss ? `${titleCase(boss.name).toUpperCase()} DEFEATED` : 'ACT COMPLETE',
+      time: fmtTime(Math.round(r.elapsed - from.elapsed)),
+      feet: r.feetSmacked - from.feet,
+      slices: r.slicesLost - from.slices,
+      crusts: r.crustsEarned(this.figOnTable()),
+      nextLabel: actLabel(next),
+      keepGoing: () => {
+        if (!this.actEl || this.paused) return;
+        ui.close(this.actEl);
+        this.actEl = null;
+        this.openUpgrades(true);
+      },
+      bank: () => {
+        if (!this.actEl || this.paused) return;
+        this.actEl = null;
+        this.gameOver(true, false, true);
+      },
+      pause: () => this.togglePause(),
+    });
+    this.saveRun();
+  }
+
+  /** The journey's end: the full victory. The clock stops; endless runs can keep going (the journey again, harder). */
   private victory(): void {
+    if (this.over) return;
     this.inUpgrade = true;
     ui.setPlaying(false);
     audio.stop('music', 600);
@@ -3432,15 +3496,36 @@ export class GameScene extends Phaser.Scene implements Arena {
     const r = this.run;
     this.timerStopped = true;
     const secs = Math.round(r.elapsed);
-    ui.victory({
+    const finalBoss = FOOT_BY_ID[bossFor(r.wave)];
+    const el = ui.victory({
+      kicker: finalBoss ? `${titleCase(finalBoss.name).toUpperCase()} DEFEATED` : 'JOURNEY COMPLETE',
+      acts: ACT_COUNT,
       score: r.score,
       time: fmtTime(secs),
       feet: r.feetSmacked,
       bosses: r.bossesBeaten.length,
       heat: r.heatDef.name,
       crusts: r.crustsEarned(this.figOnTable()),
-      bank: () => this.gameOver(true, true),
+      bank: () => {
+        this.actEl = null;
+        this.gameOver(true, true);
+      },
+      keepGoing: r.endless
+        ? () => {
+            // once only (a double click or pad press lands while the screen fades out)
+            if (!this.actEl || this.paused) return;
+            ui.close(el);
+            this.actEl = null;
+            this.timerStopped = false;
+            this.openUpgrades(true, undefined, 'ENDLESS MODE · STOCK UP');
+          }
+        : null,
     });
+    // endless: the run goes on, so it saves here and the pause menu works over the screen
+    if (r.endless) {
+      this.actEl = el;
+      this.saveRun();
+    }
   }
 
   /** Note the peels owned and every locked goal's progress as the run begins. */
@@ -3483,8 +3568,9 @@ export class GameScene extends Phaser.Scene implements Arena {
     };
   }
 
-  private gameOver(quit = false, victory = false): void {
+  private gameOver(quit = false, victory = false, banked = false): void {
     if (this.over) return;
+    this.actEl = null;
     this.over = true;
     this.waveActive = false;
     this.throws.clear();
@@ -3503,14 +3589,14 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.time.delayedCall(900, () => audio.sting('music_gameover', 0.9));
     } else audio.stop('music', 400);
     for (const f of this.aliveFeet()) this.time.delayedCall(Math.random() * 600, () => f.alive && f.escape());
-    const canSecond = !quit && !victory && this.run.heat !== 'inferno' && save.crusts >= this.secondChanceCost();
+    const canSecond = !quit && !victory && !banked && this.run.heat !== 'inferno' && save.crusts >= this.secondChanceCost();
     const finish = () => {
       // bosses and events were banked as they happened; the score and waves pay out now
       const crusts = r.crustsEarned(this.figOnTable());
-      const table = r.act2Start ? save.bestAct2 : save.best;
-      const best = table[r.heat] ?? { score: 0, wave: 0 };
-      const newBest = r.score > best.score;
-      table[r.heat] = { score: Math.max(best.score, r.score), wave: Math.max(best.wave, r.wave) };
+      // records are per heat, by wave (to 100); the retired wave-31 starts (dev only now) don't write any
+      const best = save.best[r.heat] ?? { score: 0, wave: 0 };
+      const newBest = !r.act2Start && r.score > best.score;
+      if (!r.act2Start) save.best[r.heat] = { score: Math.max(best.score, r.score), wave: Math.max(best.wave, r.wave) };
       save.crusts += r.endCrusts(this.figOnTable());
       save.runs++;
       if (r.score > save.bestScore) save.bestScore = r.score;
@@ -3548,6 +3634,8 @@ export class GameScene extends Phaser.Scene implements Arena {
           newBest,
           heat: r.heatDef.name,
           location: BACKDROPS[backdropFor(Math.max(1, r.wave))].name,
+          act: actName(actOf(Math.max(1, r.wave))),
+          banked,
           secondChanceRun: r.secondChances > 0,
           time: fmtTime(secs),
           affordable: PIZZAS.filter((p) => p.route === 'pizzeria' && !save.unlockedPizzas.includes(p.id) && p.cost <= save.crusts)
@@ -3555,7 +3643,7 @@ export class GameScene extends Phaser.Scene implements Arena {
             .map((p) => p.id),
           next: nextLockedPizza(PIZZAS),
           victory,
-          again: () => restart({ lineup: randomLineup(save.meta.table ? 4 : 3), heat: r.heat }),
+          again: () => restart({ lineup: randomLineup(save.meta.table ? 4 : 3), heat: r.heat, endless: r.endless }),
           menu: () => {
             ui.closeAll();
             this.scene.start('Menu');

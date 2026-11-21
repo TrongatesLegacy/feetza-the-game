@@ -4,6 +4,7 @@
 import { STORAGE_KEY } from '../config';
 import type { HeatId } from '../data/difficulty';
 import { META_COSTS_V1 } from '../data/meta';
+import { STAGES, STAGES_PER_ACT } from '../data/stages';
 import type { RunSnapshot } from '../game/snapshot';
 
 export type AimScheme = 'free' | 'lane';
@@ -57,11 +58,14 @@ export interface SaveData {
   milestones: string[];
   // Feetza 2.0
   heat: HeatId;
-  /** Best score and wave per heat (Act 1 starts) and for Act 2 starts. */
+  /** Best score and wave per heat (runs from wave 1). */
   best: Partial<Record<HeatId, Best>>;
+  /** Old saves only: bests from the retired wave-31 starts. Kept as a record; nothing writes it now. */
   bestAct2: Partial<Record<HeatId, Best>>;
-  /** Heats on which wave 30 has been beaten (unlocks the next heat and Act 2 starts on it). */
+  /** Heats on which wave 30 has been beaten (unlocks the next heat). Named for when wave 30 ended Act 1. */
   act1Cleared: HeatId[];
+  /** Acts completed (their last boss beaten), on any heat: each unlocks its act peel. */
+  actsCleared: number[];
   /** Pre-2.0 best scores kept as a record when a veteran takes a fresh start. */
   oldVersionBest: Best | null;
   seenIntros: string[];
@@ -88,7 +92,7 @@ export interface SaveData {
   peel: string;
   /** Peel worn as a look only, over the equipped peel's own ('' = match the equipped peel). */
   skin: string;
-  /** The last run-length choice on the new-run screen: end the run at wave 60, or keep going (endless). */
+  /** The last run-length choice on the new-run screen: end the run at the journey's end, or keep going (endless). */
   endless: boolean;
   /** Peels unlocked but not yet looked at in the locker. */
   peelsNew: string[];
@@ -148,6 +152,7 @@ const DEFAULTS: SaveData = {
   best: {},
   bestAct2: {},
   act1Cleared: [],
+  actsCleared: [],
   oldVersionBest: null,
   seenIntros: [],
   seenEvents: [],
@@ -205,6 +210,14 @@ export function migrate(parsed: Partial<SaveData>): SaveData {
     const owned = Object.keys(s.run.owned ?? {});
     s.seenToppings = [...new Set([...owned, ...(s.run.armed ?? []), ...(s.run.shop?.cards ?? [])])];
     s.toppingRuns = Object.fromEntries([...new Set([...owned, ...(s.run.armed ?? [])])].map((id) => [id, 1]));
+  }
+  // saves from before acts: an act is done if the boss closing it was ever beaten (bosses only appear on their wave)
+  if (!parsed.actsCleared) {
+    s.actsCleared = [];
+    for (let a = 1; a * STAGES_PER_ACT <= STAGES.length; a++) {
+      const st = STAGES[a * STAGES_PER_ACT - 1];
+      if (!st.dev && s.bossesBeaten.includes(st.boss)) s.actsCleared.push(a);
+    }
   }
   return s;
 }

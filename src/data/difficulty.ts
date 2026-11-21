@@ -17,7 +17,7 @@ export interface Heat {
   /** Freshness drain multiplier (0 = Freshness off). */
   freshness: number;
   rebake: boolean;
-  /** Which heat must be beaten (wave 30) to unlock this one. */
+  /** Which heat must be beaten (wave 30, HEAT_UNLOCK_WAVE) to unlock this one. */
   unlockAfter?: HeatId;
   /** Wave crowd: how the foot count, crowding and pace grow through a run at this heat. */
   crowd: Crowd;
@@ -41,12 +41,21 @@ export interface Crowd {
   hoverMul: number;
   /** First wave in which hovering feet hop to another free lane (0 = never). */
   laneSwitchWave: number;
+  /** Past DEEP_FROM (the old journey's end) the crowd caps keep growing, up to ×(1 + deepGrowth) by wave 100. */
+  deepGrowth: number;
+  /** Foot health added per wave past DEEP_FROM (before the heat's hp multiplier; 0.06 a wave before it). */
+  deepHp: number;
 }
 
-const GENTLE: Crowd = { perWave: 1.1, countCap: 40, aliveCap: 6, intervalFloor: 0.8, speedCap: 1.4, eliteCap: 0.1, hoverMul: 1.35, laneSwitchWave: 0 };
-const STEADY: Crowd = { perWave: 1.6, countCap: 60, aliveCap: 9, intervalFloor: 0.5, speedCap: 1.65, eliteCap: 0.2, hoverMul: 1.15, laneSwitchWave: 20 };
+/** Waves past this on the first time through (acts 7–10) keep climbing gently, so wave 100 on Mild stays very winnable. */
+export const DEEP_FROM = 60;
+/** Waves over which the deep ramp reaches its full value (wave 100). */
+export const DEEP_SPAN = 40;
+
+const GENTLE: Crowd = { perWave: 1.1, countCap: 40, aliveCap: 6, intervalFloor: 0.8, speedCap: 1.4, eliteCap: 0.1, hoverMul: 1.35, laneSwitchWave: 0, deepGrowth: 0.2, deepHp: 0.03 };
+const STEADY: Crowd = { perWave: 1.6, countCap: 60, aliveCap: 9, intervalFloor: 0.5, speedCap: 1.65, eliteCap: 0.2, hoverMul: 1.15, laneSwitchWave: 20, deepGrowth: 0.35, deepHp: 0.05 };
 // lanes cap how many feet are on screen, so the hotter heats get their pressure from tempo instead
-const FULL: Crowd = { perWave: 2.1, countCap: 999, aliveCap: 12, intervalFloor: 0.32, speedCap: 1.85, eliteCap: 0.3, hoverMul: 0.95, laneSwitchWave: 10 };
+const FULL: Crowd = { perWave: 2.1, countCap: 999, aliveCap: 12, intervalFloor: 0.32, speedCap: 1.85, eliteCap: 0.3, hoverMul: 0.95, laneSwitchWave: 10, deepGrowth: 0.5, deepHp: 0.06 };
 const FULLER: Crowd = { ...FULL, hoverMul: 0.85, laneSwitchWave: 6 };
 const FULLEST: Crowd = { ...FULL, hoverMul: 0.75, laneSwitchWave: 4 };
 

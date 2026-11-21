@@ -1,5 +1,7 @@
 // Permanent upgrades bought with Golden Crusts in the Pizzeria between runs.
 
+import { JOURNEY_WAVES } from './stages';
+
 export interface MetaUpgrade {
   id: string;
   name: string;
@@ -52,16 +54,16 @@ export const MILESTONES: Milestone[] = [
   { id: 'feet600', name: 'Smack 600 feet', pizza: 'maccheese' },
   { id: 'wave20', name: 'Reach wave 20', pizza: 'fritta' },
   { id: 'bosses6', name: 'Beat 6 different bosses', pizza: 'okonomiyaki' },
-  { id: 'act1', name: 'Finish Act 1 (wave 30)', pizza: 'carbonara' },
+  { id: 'act1', name: 'Beat wave 30', pizza: 'carbonara' },
   { id: 'bosses12', name: 'Beat 12 different bosses', pizza: 'cajun' },
   { id: 'feet1500', name: 'Smack 1,500 feet', pizza: 'marshmallow' },
   { id: 'wave45', name: 'Reach wave 45', pizza: 'stagioni' },
   { id: 'bosses18', name: 'Beat 18 different bosses', pizza: 'pumpkin' },
-  { id: 'journey', name: 'Finish the journey (wave 60)', pizza: 'golden' },
+  { id: 'journey', name: `Finish the journey (wave ${JOURNEY_WAVES})`, pizza: 'golden' },
   { id: 'allBosses', name: 'Beat all 24 bosses', pizza: 'unicorn' },
-  { id: 'hot30', name: 'Finish Act 1 on Hot', pizza: 'truffle' },
-  { id: 'extrahot30', name: 'Finish Act 1 on Extra Hot' },
-  { id: 'inferno30', name: 'Finish Act 1 on Inferno' },
+  { id: 'hot30', name: 'Beat wave 30 on Hot', pizza: 'truffle' },
+  { id: 'extrahot30', name: 'Beat wave 30 on Extra Hot' },
+  { id: 'inferno30', name: 'Beat wave 30 on Inferno' },
 ];
 
 export const MILESTONE_BY_PIZZA: Record<string, Milestone> = Object.fromEntries(MILESTONES.filter((m) => m.pizza).map((m) => [m.pizza!, m]));
