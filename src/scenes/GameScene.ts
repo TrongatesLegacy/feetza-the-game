@@ -1332,7 +1332,7 @@ export class GameScene extends Phaser.Scene implements Arena {
   }
 
   /** Lanes nobody may use: covered by a boss (or its stand-ins) or locked by a boss move.
-   * `ignoreBosses` leaves out boss-covered lanes (a boss's own summons may use them when nothing else is free). */
+   * `ignoreBosses` leaves out boss-covered and locked lanes (a boss's own summons may use them when nothing else is free). */
   private blockedLanes(except?: Foot, ignoreBosses = false): Set<number> {
     const cacheable = !ignoreBosses && (!except || !except.isBossLike);
     if (cacheable && this.blockedCache.frame === this.frameNo) return this.blockedCache.set;
@@ -1347,9 +1347,12 @@ export class GameScene extends Phaser.Scene implements Arena {
         if (Math.abs(l.x - cx) < half + sp * 0.35) out.add(i);
       });
     }
-    lanes.forEach((l, i) => {
-      if (this.lockedPizzas.has(l.p)) out.add(i);
-    });
+    // (a boss's summons with nowhere else to go may use locked lanes too, or a held last pizza would shut them out for good)
+    if (!ignoreBosses) {
+      lanes.forEach((l, i) => {
+        if (this.lockedPizzas.has(l.p)) out.add(i);
+      });
+    }
     if (cacheable) this.blockedCache = { frame: this.frameNo, set: out };
     return out;
   }
@@ -1559,6 +1562,13 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.spawnT -= dt;
     const alive = this.aliveFeet().length;
     if (this.spawnT <= 0 && plan.queue.length && alive < plan.maxAlive && !this.retreating && this.hasFreeLane()) {
+      // a Persian war band (Act 9): called out as it arrives, and it marches in close together
+      const band = plan.band;
+      const inBand = !!band && plan.queue.length <= band.at && plan.queue.length > band.at - band.size;
+      if (band && plan.queue.length === band.at && !this.minionPool) {
+        this.banner('PERSIAN WAR BAND!', 'Elephants on the march, Spartans in front', 'loc');
+        audio.sfx('sfx_bronzeshield', { volume: 0.6 });
+      }
       let id = plan.queue.shift()!;
       // during some boss fights the only feet are the boss's own kind
       if (this.minionPool) id = Phaser.Utils.Array.GetRandom(this.minionPool);
@@ -1574,7 +1584,7 @@ export class GameScene extends Phaser.Scene implements Arena {
           baby.y -= i * 90;
         }
       } else this.spawnFoot(type, this.pickTarget(null));
-      this.spawnT = plan.interval * (0.7 + Math.random() * 0.6) * (this.bossFoot ? 2.2 : 1);
+      this.spawnT = plan.interval * (0.7 + Math.random() * 0.6) * (this.bossFoot ? 2.2 : 1) * (inBand ? 0.6 : 1);
     }
     // mini-boss arrives partway through wave 3 of each stage
     if (plan.mini && !this.miniSpawned && plan.queue.length <= this.planSize * 0.55) this.spawnMini(plan.mini);
@@ -2746,6 +2756,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       else if (smack) this.fx.puff(o.x ?? f.cx, o.y ?? f.cy, 3);
     }
     f.hp -= dealt;
+    if (dealt > 0) f.regenHold = 2;
     this.dmgLog[o.source] = (this.dmgLog[o.source] ?? 0) + dealt;
     if (smack && f.has('crack') && f.armor > 0) {
       f.armor--;

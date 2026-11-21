@@ -1166,7 +1166,8 @@ const soleunbound = (): Brain => {
         for (const ft of a.allFeet()) if (ft.alive && !ft.isBossLike && Math.abs(ft.x - o.x) < 600) ft.x += Math.sign(o.x - ft.x) * 30 * dt;
         o.swallowT -= dt;
         if (o.swallowT <= 0) {
-          o.swallowT = [5, 4, 4, 3.5, 3][heat(a).rank];
+          // (a slice every 5 s on Regular, was 4: the black hole came fourth of five phases and ended runs)
+          o.swallowT = [5, 5, 4, 3.5, 3][heat(a).rank];
           const ps = a.alivePizzas();
           const p = ps.length ? ps.reduce((b, q) => (Math.abs(q.x - o.x) < Math.abs(b.x - o.x) ? q : b)) : null;
           if (p) {

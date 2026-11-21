@@ -237,7 +237,9 @@ export function installDevTools(game: Phaser.Game): void {
           if (intro) intro.click();
           if (g.feet && !g.inUpgrade && !g.over) {
             const prop = (g.clickables ?? []).find((c: any) => c.alive() && (c.priority ?? 0) >= 2); // eslint-disable-line @typescript-eslint/no-explicit-any
-            const t = g.feet.filter((f: any) => f.hittable).sort((a: any, b: any) => b.y - a.y)[0]; // eslint-disable-line @typescript-eslint/no-explicit-any
+            // the lowest foot, skipping any with a guard up (as a player would) unless that's all there is
+            const ts = g.feet.filter((f: any) => f.hittable).sort((a: any, b: any) => b.y - a.y); // eslint-disable-line @typescript-eslint/no-explicit-any
+            const t = ts.find((f: any) => !f.shielded) ?? ts[0]; // eslint-disable-line @typescript-eslint/no-explicit-any
             if (prop && Math.random() < accuracy) {
               g.pointer.x = prop.x;
               g.pointer.y = prop.y;
@@ -249,7 +251,8 @@ export function installDevTools(game: Phaser.Game): void {
               g.peelPos.y = t.cy;
               g.smack(t.cx, t.cy);
             }
-            if (g.run?.super >= 1 && Math.random() < 0.05) g.peelSlam();
+            // (and straight away when Surtr's sword window opens, as a player would)
+            if (g.run?.super >= 1 && (Math.random() < 0.05 || g.feet.some((f: any) => f.alive && f.brain?.swordWindow))) g.peelSlam(); // eslint-disable-line @typescript-eslint/no-explicit-any
           }
           if (g.inUpgrade && g.shop) botShop(g);
           // ACT COMPLETE (and an endless victory): keep going

@@ -623,7 +623,10 @@ const ultoe = (): Brain => {
     const bar = a.sc.add.graphics();
     const label = a.sc.add.text(0, 0, 'UPLOADING…', { fontFamily: 'Lilita One, Fredoka, sans-serif', fontSize: '30px', color: '#ffffff', stroke: '#2a1810', strokeThickness: 7 }).setOrigin(0.5);
     a.fxLayer.add([bar, label]);
+    // (the tick goes with the bar: when he died mid-upload the tick kept writing to the destroyed label, which
+    // threw inside Phaser's update and froze the game)
     const kill = bin.add(() => {
+      tick.remove();
       bar.destroy();
       label.destroy();
     });
@@ -632,6 +635,7 @@ const ultoe = (): Brain => {
       delay: 16,
       loop: true,
       callback: () => {
+        if (!label.active) return;
         const k = Math.min(1, (a.now() - t0) / sec);
         const x = f.x;
         const y = Math.max(290, f.cy - f.meta.footHeight * f.scale * 0.7 - 30);
@@ -643,7 +647,6 @@ const ultoe = (): Brain => {
       },
     });
     a.sc.time.delayedCall(sec * 1000, () => {
-      tick.remove();
       kill();
       uploading = false;
       if (!f.alive || !a.inWave()) return;

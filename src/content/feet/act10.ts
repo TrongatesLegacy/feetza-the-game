@@ -112,7 +112,8 @@ export const feet: FootType[] = [
     id: 'soleunbound',
     name: 'THE SOLE PROPRIETOR UNBOUND',
     desc: 'The final boss. Every act\'s power in one cosmic foot: gauntlet, frost and fire, a stone gaze and a black hole. Then he eats the pizzas.',
-    hp: 8200, speed: 0.6, armor: 4, stompDmg: 3, coins: 400, score: 60000, scale: 2.3, minWave: 100, weight: 0,
+    // (7000, was 8200: five phases on every heat; Regular tables ran dry in Frost and Fire and the black hole)
+    hp: 7000, speed: 0.6, armor: 4, stompDmg: 3, coins: 400, score: 60000, scale: 2.3, minWave: 100, weight: 0,
     traits: ['heavy'],
     boss: true,
     home: 'firstpizzeria',
