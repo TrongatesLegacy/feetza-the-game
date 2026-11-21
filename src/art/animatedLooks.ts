@@ -74,7 +74,7 @@ function strokeBolt(pen: Pen, pts: Float32Array, n: number, w: number, a: number
   }
   pen.line(pts, n, w * 3.6, haze, 0.3 * a);
   pen.line(pts, n, w * 1.7, body, 0.6 * a);
-  pen.line(pts, n, w * 0.7, 0xffffff, 0.95 * a);
+  pen.line(pts, n, w * 0.7, 0xffffff, 0.6 * a);
 }
 
 // ——— Zeus: a lightning sword ———
@@ -450,8 +450,8 @@ function playZeus(h: LookHost): LookFx {
               const y0 = rmy[i0] + (rty[i0] - rmy[i0]) * f;
               const x1 = rmx[i1] + (rtx[i1] - rmx[i1]) * f;
               const y1 = rmy[i1] + (rty[i1] - rmy[i1]) * f;
-              ribbonPen.seg(x0, y0, x1, y1, 46 * a * s, 0x3d8cff, 0.35 * a);
-              ribbonPen.seg(x0, y0, x1, y1, 14 * a * s, 0xbfe9ff, 0.45 * a);
+              ribbonPen.seg(x0, y0, x1, y1, 46 * a * s, 0x3d8cff, 0.17 * a);
+              ribbonPen.seg(x0, y0, x1, y1, 14 * a * s, 0xbfe9ff, 0.22 * a);
             }
           }
         }
@@ -480,9 +480,9 @@ function playZeus(h: LookHost): LookFx {
           const y0 = ty[i0] + tj[i0 * 2 + 1];
           const x1 = tx[i1] + tj[i1 * 2];
           const y1 = ty[i1] + tj[i1 * 2 + 1];
-          trailPen.seg(x0, y0, x1, y1, 14 * a, 0x2a8cff, 0.28 * a);
-          trailPen.seg(x0, y0, x1, y1, 6 * a, 0x8fd8ff, 0.6 * a);
-          trailPen.seg(x0, y0, x1, y1, 1.5 + 1.5 * a, 0xffffff, 0.95 * a);
+          trailPen.seg(x0, y0, x1, y1, 14 * a, 0x2a8cff, 0.16 * a);
+          trailPen.seg(x0, y0, x1, y1, 6 * a, 0x8fd8ff, 0.36 * a);
+          trailPen.seg(x0, y0, x1, y1, 1.5 + 1.5 * a, 0xffffff, 0.6 * a);
         }
         sparks.tick(dt, worldPen);
       }
@@ -605,8 +605,8 @@ function movingZeus(motion: Motion): MovingPainter {
         const a = 1 - rt[i0] / 0.42;
         for (let q = 0; q <= 3; q++) {
           const g = q / 3;
-          back.pen.seg(rmx[i0] + (rtx[i0] - rmx[i0]) * g, rmy[i0] + (rty[i0] - rmy[i0]) * g, rmx[i1] + (rtx[i1] - rmx[i1]) * g, rmy[i1] + (rty[i1] - rmy[i1]) * g, 46 * a, 0x3d8cff, 0.35 * a);
-          back.pen.seg(rmx[i0] + (rtx[i0] - rmx[i0]) * g, rmy[i0] + (rty[i0] - rmy[i0]) * g, rmx[i1] + (rtx[i1] - rmx[i1]) * g, rmy[i1] + (rty[i1] - rmy[i1]) * g, 14 * a, 0xbfe9ff, 0.45 * a);
+          back.pen.seg(rmx[i0] + (rtx[i0] - rmx[i0]) * g, rmy[i0] + (rty[i0] - rmy[i0]) * g, rmx[i1] + (rtx[i1] - rmx[i1]) * g, rmy[i1] + (rty[i1] - rmy[i1]) * g, 46 * a, 0x3d8cff, 0.17 * a);
+          back.pen.seg(rmx[i0] + (rtx[i0] - rmx[i0]) * g, rmy[i0] + (rty[i0] - rmy[i0]) * g, rmx[i1] + (rtx[i1] - rmx[i1]) * g, rmy[i1] + (rty[i1] - rmy[i1]) * g, 14 * a, 0xbfe9ff, 0.22 * a);
         }
       }
       // the crackling trail behind the tip
@@ -633,9 +633,9 @@ function movingZeus(motion: Motion): MovingPainter {
         const y0 = ty[i0] + tj[i0 * 2 + 1];
         const x1 = tx[i1] + tj[i1 * 2];
         const y1 = ty[i1] + tj[i1 * 2 + 1];
-        back.pen.seg(x0, y0, x1, y1, 14 * a, 0x2a8cff, 0.28 * a);
-        back.pen.seg(x0, y0, x1, y1, 6 * a, 0x8fd8ff, 0.6 * a);
-        back.pen.seg(x0, y0, x1, y1, 1.5 + 1.5 * a, 0xffffff, 0.95 * a);
+        back.pen.seg(x0, y0, x1, y1, 14 * a, 0x2a8cff, 0.16 * a);
+        back.pen.seg(x0, y0, x1, y1, 6 * a, 0x8fd8ff, 0.36 * a);
+        back.pen.seg(x0, y0, x1, y1, 1.5 + 1.5 * a, 0xffffff, 0.6 * a);
       }
       // sparks shed as it moves
       const want = moved > 5 ? Math.min(2, moved / 30) : 0.04;
