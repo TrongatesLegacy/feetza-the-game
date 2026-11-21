@@ -22,6 +22,8 @@ export interface HeroPeel {
   goal: HeroGoal;
   /** The locker's unlock line. */
   how: string;
+  /** Extra detail for the locker's hover tooltip. */
+  tip?: string;
   look: () => PeelLook;
   ability: Ability;
 }

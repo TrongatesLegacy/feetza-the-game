@@ -39,6 +39,8 @@ interface Row {
   name: string;
   goal: HeroGoal;
   how: string;
+  /** Extra detail for the locker's hover tooltip (kept out of the unlock line). */
+  tip?: string;
   art: HeroArt;
   ability: Ability;
 }
@@ -52,7 +54,7 @@ const ROWS: Row[] = [
     id: 'superpeel',
     name: 'Superpeel',
     goal: sighting('bird'),
-    how: 'Is it a bird? Is it a pizza? Catch the caped flyby 3 times. It streaks across the top of the screen on rare waves: smack it twice.',
+    how: 'Is it a bird? Is it a pizza? Catch the caped flyby 3 times: it streaks across the top on rare waves. Smack it twice.',
     art: { suit: '#2a5fd0', suit2: '#2350b8', cape: '#e0242f', skin: '#f2c8a6', mask: 'open', eyes: 'friendly', hair: '#2a1d1a', hairStyle: 'quiff', emblem: 'star4', emblemColor: '#ffd23f', emblemBg: '#e0242f', extras: ['belt'], trail: '#e0242f', handle: '#c8102e', fine: true },
     ability: sig('Heat Vision', 'heatVision', 0.8, RED, `Signature (${S} when the meter is full): the peel’s eyes glow, then two red beams sweep across the top third of the screen: ×10 to every foot they touch, a 1.5 s stun and a burn. Passive, Man of Steel: your peel can’t be stunned, frozen, slowed or snatched.`),
   },
@@ -188,7 +190,8 @@ const ROWS: Row[] = [
     id: 'scarletpitch',
     name: 'Scarlet Pitch',
     goal: track('fiveStatuses'),
-    how: 'Reality bends: have 5 different status effects on feet at once, such as burn, slow, stun, freeze, mark, shrink, bleed and web.',
+    how: 'Reality bends: have 5 different status effects on feet at once (burn, slow, stun, freeze, mark and more).',
+    tip: 'Burn, slow, stun, freeze, mark, shrink, bleed, web, hex, root and lasso all count.',
     art: { suit: '#b0102e', skin: '#f2c8a6', mask: 'open', eyes: 'glow', eyeColor: '#ff7ad9', hair: '#7a1a2a', hairStyle: 'long', extras: ['crownSpikes'], emblem: 'hex', emblemColor: '#ff7ad9', emblemBg: '#6a0a1a', glow: '#ff4a8a', trail: '#ff4a8a', handle: '#b0102e' },
     ability: sig('Chaos Hex', 'chaosHex', 1, PINK, `Signature (${S}): every foot gets a random hex: shrink (×1.5 damage taken), freeze (2.5 s), burn (1.5×/s), mark (×2 for 6 s), swap places with another foot, or turn gold (pays ×5 tips). Bosses only get marked.`),
   },
@@ -380,7 +383,8 @@ const ROWS: Row[] = [
     id: 'moonknife',
     name: 'Moon Knife',
     goal: track('nightBosses'),
-    how: 'By the light of the moon: Alpine Lodge, Orbital Pizzeria, Old Town Rooftops, Haunted Cellar, Metropizza Rooftops, Jotunheim Ice Fields, Tartarus and The First Pizzeria are night stages. Beat 2 of their bosses in one run.',
+    how: 'By the light of the moon: beat 2 bosses on night stages in one run.',
+    tip: 'Night stages: Alpine Lodge, Orbital Pizzeria, Old Town Rooftops, Haunted Cellar, Metropizza Rooftops, Jotunheim Ice Fields, Tartarus and The First Pizzeria.',
     art: { suit: '#e8e8ee', pattern: 'wraps', patternColor: '#b8b8c8', mask: 'hood', maskColor: '#f4f4f8', eyes: 'glow', eyeColor: '#d8f0ff', emblem: 'crescent', emblemColor: '#c9cfd8', emblemBg: '#3a3d4c', cape: '#e8e8ee', trail: '#d8f0ff', handle: '#3a3d4c' },
     ability: sig('Crescent Storm', 'crescentStorm', 1, WHITE, `Signature (${S}): 12 crescent darts fan out across the screen, through every foot in their way (×2 each). Passive, Moonlit: ×2 damage on night stages.`),
   },
@@ -459,6 +463,7 @@ export const peels: HeroPeel[] = ROWS.map((r) => ({
   sub: 'heroes',
   goal: r.goal,
   how: r.how,
+  tip: r.tip,
   look: heroLook(`hero:${r.id}`, r.art),
   ability: r.ability,
 }));

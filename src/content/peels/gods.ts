@@ -158,7 +158,7 @@ const ROWS: Row[] = [
   {
     id: 'persephone', name: 'Persephone', sub: 'greek',
     goal: track('reviveBoss'),
-    how: 'Queen of two worlds: bring a pizza back from the dead (a Rebake or any other revive), then beat the next boss with that pizza still on the table.',
+    how: 'Queen of two worlds: bring a pizza back from the dead (any revive), then beat the next boss with it still on the table.',
     look: greek('persephone', 'pomegranate', C.persephone),
     ability: sig('Spring Returns', 'springReturns', 1, hex(C.persephone), `Signature (${S}): flowers bloom across the table. Once a run, a destroyed pizza comes back on full slices; any other time (or with nothing to bring back), every pizza regrows a slice. Passive, Two Seasons: alternate waves give +10% damage or +10% tips.`),
   },
@@ -223,7 +223,7 @@ const ROWS: Row[] = [
   {
     id: 'tyr', name: 'Tyr', sub: 'norse',
     goal: track('threeBossesNoAbility', 1, { weekday: [2] }),
-    how: 'God of law: on a Tuesday (Tyr’s day), with any peel but the Classic Peel, beat 3 bosses in one run without using your peel’s ability.',
+    how: 'God of law: on a Tuesday (Tyr’s day), with any peel but the Classic, beat 3 bosses in one run without using its ability.',
     look: norse('tyr', 'sword', C.tyr),
     ability: sig('Oath of Tyr', 'oathTyr', 0.85, hex(C.tyr), `Signature (${S}): you sacrifice the peel’s hand: for 5 s your smacks can’t hit anything. Then for 15 s every hit deals ×3. Passive, Lawgiver: +25% damage to bosses and mini-bosses.`),
   },
