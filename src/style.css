@@ -5399,3 +5399,94 @@ body.reduced-motion *::after {
   paint-order: stroke fill;
   -webkit-text-stroke: 0.1em var(--ink);
 }
+
+/* ——— Compact wide windows (Peel Locker, Pizzeria, Pizzapedia): more room for the scrolling list ——— */
+.modal.wide {
+  width: 92em;
+  padding: 1em 2em 1.2em;
+  gap: 0.6em;
+}
+
+/* title and crust count on one row, clear of the X in the corner */
+.win-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.2em;
+  width: 100%;
+  padding: 0 3.6em;
+  min-height: 3.4em;
+}
+
+.modal.wide .win-head .title {
+  font-size: 2.7em;
+  line-height: 1;
+}
+
+.win-head .crusts {
+  font-size: 1.35em;
+}
+
+/* the X closes these; their Done button stays in the page (hidden) so the gamepad B button still closes them */
+.modal.wide .btn.win-done {
+  display: none;
+}
+
+/* the type tabs scroll sideways rather than running into the Unlocked only filter */
+.locker-bar .locker-tabs {
+  flex: 1 1 auto;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  justify-content: flex-start;
+  padding-bottom: 0.25em;
+}
+
+.locker-bar .locker-tabs .btn {
+  flex-shrink: 0;
+}
+
+/* the peel detail: one head row (name, pills, ability), then how to get it and what the ability does */
+.locker .peel-detail {
+  grid-template-columns: 4.6em 1fr;
+  gap: 1em;
+  padding-top: 0.3em;
+  padding-bottom: 0.35em;
+}
+
+.locker .peel-big {
+  height: 5.6em;
+}
+
+.locker .dt-head h3 {
+  font-size: 1.5em;
+}
+
+.locker .dt-head .abl-name {
+  font-family: 'Lilita One', sans-serif;
+  font-weight: 400;
+  font-size: 1.15em;
+}
+
+.locker .dt-how p {
+  font-size: 1em;
+}
+
+.dt-desc {
+  margin: 0.1em 0 0;
+  font-size: 0.9em;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--ink-soft);
+}
+
+/* the Pizzeria's balance shrinks its own label, so the number itself needs more size in the header row */
+.pizzeria .win-head .crusts {
+  font-size: 2.1em;
+}
+
+/* phones scale the overlay up, so wide windows go back to their phone width */
+@container (max-width: 900px) {
+  .modal.wide {
+    width: 80em;
+  }
+}

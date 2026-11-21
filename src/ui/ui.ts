@@ -153,9 +153,15 @@ function perkDiff(base: string, now: string): HTMLElement {
 
 /** A peel's ability as a line for the locker: kind pill, name and what it does. */
 function abilityLine(peelId: string): HTMLElement {
-  if (peelId === 'classic') return h('div', { class: 'abl' }, h('span', { class: 'chip' }, 'ACTIVE'), h('b', {}, 'Peel Slam'), h('span', {}, `${slamPrompt()} when the meter is full: smack every foot at once.`));
+  const [chip, name, desc] = abilityBits(peelId);
+  return h('div', { class: 'abl' }, chip, name, h('span', {}, desc));
+}
+
+/** A peel's ability as parts: its kind pill, its name and what it does (for layouts that split them up). */
+function abilityBits(peelId: string): [HTMLElement, HTMLElement, string] {
+  if (peelId === 'classic') return [h('span', { class: 'chip' }, 'ACTIVE'), h('b', { class: 'abl-name' }, 'Peel Slam'), `${slamPrompt()} when the meter is full: smack every foot at once.`];
   const a = abilityFor(peelId);
-  return h('div', { class: 'abl' }, h('span', { class: `chip ${abilityKindLabel(a).toLowerCase()}` }, abilityKindLabel(a)), h('b', {}, a.name), h('span', {}, describeAbility(a)));
+  return [h('span', { class: `chip ${abilityKindLabel(a).toLowerCase()}` }, abilityKindLabel(a)), h('b', { class: 'abl-name' }, a.name), describeAbility(a)];
 }
 
 export interface CounterOffer {
@@ -1670,11 +1676,10 @@ class UI {
     const panel = h(
       'div',
       { class: 'panel modal wide pizzeria' },
-      h('div', { class: 'title' }, 'THE PIZZERIA'),
-      balance,
+      h('div', { class: 'win-head' }, h('div', { class: 'title' }, 'THE PIZZERIA'), balance),
       tabs,
       body,
-      btn('DONE', 'green', () => {
+      btn('DONE', 'green win-done', () => {
         this.close(s);
         onClose();
       }, { 'data-pad': 'back' }),
@@ -1830,11 +1835,11 @@ class UI {
     const panel = h(
       'div',
       { class: 'panel modal wide' },
-      h('div', { class: 'title' }, 'PIZZAPEDIA'),
+      h('div', { class: 'win-head' }, h('div', { class: 'title' }, 'PIZZAPEDIA')),
       tabs,
       detail,
       body,
-      btn('DONE', 'green', () => {
+      btn('DONE', 'green win-done', () => {
         this.close(s);
         onClose();
       }, { 'data-pad': 'back' }),
@@ -1962,9 +1967,10 @@ class UI {
         h(
           'div',
           {},
-          h('div', { class: 'dt-head' }, h('h3', {}, shownName(d)), ...chips, actions.length ? h('span', { class: 'dt-act' }, ...actions) : null),
+          // one row: name, status pills, then the ability's kind and name; the actions sit on the right
+          h('div', { class: 'dt-head' }, h('h3', {}, shownName(d)), ...chips, ...(hidden(d) && d.ultra ? [] : abilityBits(d.id).slice(0, 2)), actions.length ? h('span', { class: 'dt-act' }, ...actions) : null),
           h('div', { class: 'dt-how' }, h('p', {}, d.how), pr && !owned ? bar(pr[0], pr[1]) : null),
-          hidden(d) && d.ultra ? null : abilityLine(d.id),
+          hidden(d) && d.ultra ? null : h('p', { class: 'dt-desc' }, abilityBits(d.id)[2]),
         ),
       );
     };
@@ -2101,12 +2107,12 @@ class UI {
     const panel = h(
       'div',
       { class: `panel modal wide locker${pick ? ' picking' : ''}` },
-      h('div', { class: 'title' }, pickMode === 'look' ? 'PICK A LOOK' : pick ? 'PICK A PEEL' : 'PEEL LOCKER'),
-      crustLine,
+      // the title and the crust count share one row, and the X closes (the Done button stays for controllers)
+      h('div', { class: 'win-head' }, h('div', { class: 'title' }, pickMode === 'look' ? 'PICK A LOOK' : pick ? 'PICK A PEEL' : 'PEEL LOCKER'), crustLine),
       toolbar,
       detail,
       body,
-      btn(pick ? 'BACK' : 'DONE', pick ? 'cream' : 'green', finish, { 'data-pad': 'back' }),
+      btn(pick ? 'BACK' : 'DONE', `${pick ? 'cream' : 'green'} win-done`, finish, { 'data-pad': 'back' }),
     );
     s = this.open(panel);
     this.onClose(s, () => io.disconnect());
