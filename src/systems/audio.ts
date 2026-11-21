@@ -15,7 +15,18 @@ interface Track {
 
 const AVAILABLE = new Set<string>(manifest);
 // Small files loaded at boot; everything else streams in on demand.
-export const BOOT_AUDIO = [...AVAILABLE].filter((k) => k.startsWith('sfx_') || k === 'music_menu' || k === 'music_gameover');
+// Boss move sounds (sfx_<boss>_<move>) load a wave ahead of their fight instead (see bossSfx).
+export const BOOT_AUDIO = [...AVAILABLE].filter((k) => (k.startsWith('sfx_') && isCoreSfx(k)) || k === 'music_menu' || k === 'music_gameover');
+
+/** The original sfx all have one-word names (sfx_slap_1 has a digit); boss move sounds are sfx_<boss>_<move>. */
+function isCoreSfx(k: string): boolean {
+  return !/^sfx_[a-z]+_[a-z]+$/.test(k) || k.startsWith('sfx_kit_');
+}
+
+/** A boss's move sounds, to preload before its fight. The Phantom King's echoes borrow other bosses' sounds. */
+export function bossSfx(id: string): string[] {
+  return [...AVAILABLE].filter((k) => !isCoreSfx(k) && (id === 'phantomking' || k.startsWith(`sfx_${id}_`)));
+}
 
 // Per-file gain trims, calibrated from measured 50ms RMS peaks (see README "Audio mix") so each
 // sound lands at an intentional level relative to the slap (reference ≈ -10.5 dB RMS peak).

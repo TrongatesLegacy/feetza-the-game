@@ -18,9 +18,9 @@ import { eventName, rollEvent, startEvent, type EventId } from '../game/events';
 import { Foot } from '../game/Foot';
 import { Fx } from '../game/Fx';
 import { Pizza } from '../game/Pizza';
-import { LOCATION_AMBIENCE, LOCATION_MUSIC, Run, backdropFor, bossMusic, isBossWave, isMiniWave, locationFor, loopOf, planWave, type WavePlan } from '../game/Run';
+import { LOCATION_AMBIENCE, LOCATION_MUSIC, Run, backdropFor, bossMusic, isBossWave, isMiniWave, locationFor, loopOf, planWave, type WavePlan, bossFor, miniFor } from '../game/Run';
 import type { RunSnapshot } from '../game/snapshot';
-import { audio } from '../systems/audio';
+import { audio, bossSfx } from '../systems/audio';
 import { pad } from '../systems/gamepad';
 import { markFootSeen, nextLockedPizza, persist, save, updateSettings } from '../systems/save';
 import type { GoldenItem, ShopCard, ShopState } from '../ui/shopTypes';
@@ -785,6 +785,11 @@ export class GameScene extends Phaser.Scene implements Arena {
     const nl = locationFor(next + (isBossWave(next) ? 1 : 0));
     keys.push(...LOCATION_MUSIC[nl], ...LOCATION_AMBIENCE[nl]);
     audio.preload(this, keys.filter((k) => audio.has(k)).slice(0, 4));
+    // the next fight's move sounds (and this wave's, for runs that start mid-journey)
+    for (const w of [n, next]) {
+      const id = isBossWave(w) ? bossFor(w) : isMiniWave(w) ? miniFor(w) : null;
+      if (id) audio.preload(this, bossSfx(id));
+    }
   }
 
   private spawnBoss(id: string, hpFrac?: number): void {
@@ -1956,6 +1961,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (f.link && f.link.alive && f.link !== f) {
       if (f.shielded) {
         this.fx.quip(f.x, f.cy - 110, 'BLOCKED', '#c7ccd4', 32);
+      audio.sfx('sfx_kit_shieldblock', { throttle: 150 });
         return;
       }
       f.flash(0xffffff, 70);
@@ -2012,6 +2018,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     }
     if (f.shielded) {
       this.fx.quip(f.x, f.cy - 110, 'BLOCKED', '#c7ccd4', 32);
+      audio.sfx('sfx_kit_shieldblock', { throttle: 150 });
       return;
     }
     // multipliers: overheats and marks, boss hunters, big-health hunters, stunned near Okonomiyaki

@@ -297,6 +297,7 @@ export function takeLane(a: Arena, f: Foot, p?: Pizza | null): Takeover | null {
   f.target = pick;
   f.pinned = true;
   a.lockLane(pick, true);
+  a.sfx('sfx_kit_lane', { throttle: 300 });
   let done = false;
   return {
     p: pick,
@@ -315,6 +316,7 @@ export function takeLane(a: Arena, f: Foot, p?: Pizza | null): Takeover | null {
 export function retreat(a: Arena): () => void {
   a.retreat(true);
   a.quip(960, 230, 'STAND BACK!', '#ffffff', 40);
+  a.sfx('sfx_kit_retreat', { throttle: 400 });
   let done = false;
   return () => {
     if (done) return;
@@ -360,6 +362,9 @@ export interface PropOpts {
   label?: string;
   /** Badge offset from the prop's centre. */
   badgeDy?: number;
+  /** Themed sounds for a hit and for the clearing hit (default: the kit's prop hit and clear). */
+  hitSfx?: string;
+  clearSfx?: string;
 }
 
 /** A whackable thing with a visible count of hits left. It fails into `onFail` if `sec` runs out first. */
@@ -419,7 +424,8 @@ export function hitProp(a: Arena, o: PropOpts): Prop {
       left--;
       txt.setText(String(Math.max(0, left)));
       a.fx.impact(img.x, img.y, left <= 0);
-      a.sfx(left <= 0 ? 'sfx_slap_2' : 'sfx_slap_1', { volume: 0.8 });
+      if (left <= 0) a.sfx(o.clearSfx ?? 'sfx_kit_propclear');
+      else a.sfx(o.hitSfx ?? 'sfx_kit_prophit', { throttle: 60 });
       a.sc.tweens.add({ targets: badge, scale: { from: 1.35, to: 1 }, duration: 160 });
       a.sc.tweens.add({ targets: img, angle: { from: -6, to: 6 }, duration: 60, yoyo: true });
       o.onHit?.(left);
@@ -465,12 +471,13 @@ export function shield(a: Arena, f: Foot, on: boolean): void {
     bubbles.set(f, b);
     a.sc.tweens.add({ targets: b, alpha: 0.85, duration: 200 });
     a.sc.tweens.add({ targets: b, scaleX: b.scaleX * 1.04, scaleY: b.scaleY * 0.97, duration: 500, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
-    a.sfx('sfx_shield', { volume: 0.6 });
+    a.sfx('sfx_kit_shieldup');
   } else if (!on && b) {
     bubbles.delete(f);
     const img = b;
     a.sc.tweens.killTweensOf(img);
     a.sc.tweens.add({ targets: img, alpha: 0, scale: img.scale * 1.3, duration: 220, onComplete: () => img.destroy() });
+    a.sfx('sfx_kit_shielddown');
   }
 }
 
