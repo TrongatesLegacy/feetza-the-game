@@ -4224,3 +4224,807 @@ body.reduced-motion *::after {
   color: var(--tomato-d);
   line-height: 1.1;
 }
+
+/* ——— Pizza unlock routes, enhanced pizzas, the Toppings tab and the run summary ——— */
+
+/* an enhanced perk: the line in deep gold on a gold highlighter, old numbers struck through */
+.perk-gold {
+  color: #7a4c00;
+  font-weight: 700;
+  background: linear-gradient(180deg, transparent 55%, rgba(255, 201, 58, 0.55) 55%);
+  border-radius: 0.2em;
+}
+
+.perk-gold s {
+  color: var(--ink-soft);
+  font-weight: 600;
+  text-decoration-thickness: 0.12em;
+  text-decoration-color: var(--tomato-d);
+}
+
+.perk-gold b {
+  font-weight: 800;
+  color: #6a3e00;
+}
+
+.star-badge {
+  position: absolute;
+  top: -0.55em;
+  right: -0.45em;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 1.9em;
+  height: 1.9em;
+  font-size: 1.05em;
+  line-height: 1;
+  color: #fff3b0;
+  background: radial-gradient(circle at 35% 30%, #ffe680, #e0a000 70%);
+  border: 0.14em solid var(--ink);
+  border-radius: 50%;
+  box-shadow: 0 0.15em 0 var(--ink), 0 0 0.8em rgba(255, 201, 58, 0.9);
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.12em var(--ink);
+  animation: starTwinkle 2.4s ease-in-out infinite;
+}
+
+@keyframes starTwinkle {
+  0%,
+  100% {
+    transform: rotate(-8deg) scale(1);
+  }
+  50% {
+    transform: rotate(8deg) scale(1.12);
+  }
+}
+
+.ptile.enhanced {
+  border-color: #b07800;
+  background: linear-gradient(170deg, #fffdf2, #fff1c2);
+  box-shadow: 0 0 0 0.18em #ffc93a, 0 0 1.1em rgba(255, 190, 40, 0.75);
+}
+
+.ptile.enhanced .pthumb {
+  filter: drop-shadow(0 0 0.35em rgba(255, 196, 40, 0.95));
+}
+
+.ptile .btn.reheat {
+  font-size: 0.85em;
+  width: 100%;
+  margin-top: 0.15em;
+  padding: 0.22em 0.4em 0.28em;
+  white-space: nowrap;
+}
+
+.btn s {
+  font-size: 0.8em;
+  color: rgba(255, 255, 255, 0.85);
+  -webkit-text-stroke: 0.1em var(--ink);
+  text-decoration-thickness: 0.14em;
+  text-decoration-color: var(--ink);
+}
+
+.offer-pic {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.offer-pic .star-badge {
+  top: -0.3em;
+  right: -0.4em;
+  font-size: 0.8em;
+}
+
+/* the Chef's Special: a new pizza, and the card says plainly what buying it does */
+.counter2 .offer.special {
+  grid-template-columns: 4.2em minmax(0, 1fr) auto;
+  background: linear-gradient(135deg, #fff3c4, #ffe08a);
+  border-color: var(--cheese-d);
+  row-gap: 0.15em;
+}
+
+.offer.special .unlock-note b {
+  color: var(--tomato-d);
+}
+
+.offer.special .unlock-note {
+  grid-column: 1 / -1;
+  font-weight: 700;
+  font-size: 0.85em;
+  color: #6a3e00;
+  background: rgba(255, 255, 255, 0.55);
+  border-radius: 0.6em;
+  padding: 0.1em 0.6em;
+  text-align: center;
+}
+
+.counter2 .offer.enhanced {
+  background: linear-gradient(135deg, #fffbe6, #ffe9a8);
+  border-color: #b07800;
+  box-shadow: 0 0 0.7em rgba(255, 190, 40, 0.6);
+}
+
+.offer.enhanced .tag {
+  color: #8a5a00;
+}
+
+.offer.free {
+  background: linear-gradient(135deg, #eefbe6, #cdeab9);
+  border-color: var(--basil-d);
+}
+
+.offer.free .tag {
+  color: var(--basil-d);
+}
+
+/* last pizza standing: the counter calls for attention until a pizza is added */
+.ls-banner {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+  gap: 0.2em 0.6em;
+  font-family: 'Lilita One', sans-serif;
+  color: #fff;
+  background: linear-gradient(180deg, #ff6a4d, var(--tomato-d));
+  border: 0.16em solid var(--ink);
+  border-radius: 0.7em;
+  padding: 0.25em 0.8em 0.3em;
+  text-align: center;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.14em var(--ink);
+}
+
+.ls-banner {
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.05;
+}
+
+.ls-banner b {
+  font-weight: 400;
+  font-size: 1.25em;
+}
+
+.ls-banner span {
+  font-size: 0.95em;
+}
+
+.counter2.last-stand {
+  animation: counterPulse 1.3s ease-in-out infinite;
+}
+
+@keyframes counterPulse {
+  0%,
+  100% {
+    box-shadow: 0 0.35em 0 var(--ink), 0 0 0 0 rgba(255, 106, 77, 0);
+  }
+  50% {
+    box-shadow: 0 0.35em 0 var(--ink), 0 0 0 0.35em rgba(255, 106, 77, 0.75), 0 0 1.6em rgba(255, 106, 77, 0.7);
+  }
+}
+
+.counter2.nudge {
+  animation: counterNudge 0.5s ease-in-out, counterPulse 1.3s ease-in-out 0.5s infinite;
+}
+
+@keyframes counterNudge {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20%,
+  60% {
+    transform: translateX(-0.6em);
+  }
+  40%,
+  80% {
+    transform: translateX(0.6em);
+  }
+}
+
+.btn.next.locked {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+  gap: 0.1em;
+  background: linear-gradient(180deg, #9a8a80, #6e5f56);
+}
+
+.btn.next.locked small {
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 700;
+  font-size: 0.42em;
+  letter-spacing: 0;
+  -webkit-text-stroke: 0.1em var(--ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .counter2.last-stand,
+  .counter2.nudge,
+  .star-badge {
+    animation: none;
+  }
+}
+
+/* ——— Your Toppings window ——— */
+.modal.wide.yourtops {
+  width: 72em;
+  max-height: 92cqh;
+}
+
+.yt-search {
+  font: 600 1.3em 'Fredoka', sans-serif;
+  color: var(--ink);
+  width: 100%;
+  background: #fff;
+  border: 0.14em solid var(--ink);
+  border-radius: 0.7em;
+  padding: 0.35em 0.8em;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.yt-search:focus {
+  outline: 0.18em solid var(--cheese-d);
+}
+
+.yt-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
+  gap: 0.6em;
+  width: 100%;
+}
+
+.ytop {
+  display: grid;
+  grid-template-columns: 2.6em minmax(0, 1fr);
+  align-items: center;
+  gap: 0.6em;
+  padding: 0.5em 0.8em;
+  background: rgba(255, 255, 255, 0.7);
+  border: 0.16em solid var(--ink);
+  border-left: 0.55em solid var(--rc);
+  border-radius: 0.8em;
+}
+
+.ytop.used {
+  background: rgba(230, 220, 205, 0.7);
+}
+
+.ytop .ic {
+  font-size: 2em;
+  text-align: center;
+  font-family: system-ui, 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif;
+}
+
+.ytop .tx {
+  display: grid;
+  gap: 0.1em;
+  min-width: 0;
+}
+
+.yt-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.2em 0.5em;
+}
+
+.ytop b {
+  font-family: 'Lilita One', sans-serif;
+  font-weight: 400;
+  font-size: 1.3em;
+}
+
+.ytop .rar {
+  font-family: 'Lilita One', sans-serif;
+  font-size: 0.8em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: var(--rc);
+  border: 0.1em solid var(--ink);
+  border-radius: 0.6em;
+  padding: 0 0.5em;
+}
+
+.yt-st {
+  margin-left: auto;
+  font-weight: 700;
+  font-size: 0.9em;
+  color: var(--tomato-d);
+  white-space: nowrap;
+}
+
+.yt-st.ready {
+  color: var(--basil-d);
+}
+
+.yt-st.back {
+  color: var(--ink-soft);
+}
+
+.ytop .tx > span {
+  font-weight: 600;
+  color: var(--ink-soft);
+  line-height: 1.2;
+}
+
+.ytop small {
+  font-weight: 600;
+  font-size: 0.85em;
+  color: var(--ink-soft);
+}
+
+.ytop .down {
+  font-style: normal;
+  font-weight: 700;
+  font-size: 0.9em;
+  color: var(--tomato-d);
+}
+
+/* ——— Enhance a Pizza picker (the swap picker, in gold) ——— */
+.enhance2 .incoming {
+  background: linear-gradient(160deg, #fff6d0, #ffe08a);
+  border-color: #b07800;
+  box-shadow: 0 0.35em 0 #6a4600;
+}
+
+.enhance2 .in-star {
+  font-size: 5.5em;
+  line-height: 1;
+  color: #ffd23f;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.06em var(--ink);
+  filter: drop-shadow(0 0 0.15em rgba(255, 190, 40, 0.9));
+}
+
+.enhance2 .in-text .tag {
+  background: #8a5a00;
+}
+
+.enhance2 .in-text span:last-child,
+.enhance2 .in-ask b {
+  color: #6a3e00;
+}
+
+.enhance2 .swapfoot {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.enhance2 .swapfoot > :first-child {
+  grid-column: 2;
+}
+
+.swaptile.enh.picked {
+  background: #fff3c4;
+  border-color: #d99a00;
+  box-shadow: 0 0.5em 0 #8a5a00, 0 0 1.2em rgba(255, 190, 40, 0.8);
+}
+
+.swaptile.enh.picked .pthumb {
+  opacity: 1;
+  filter: drop-shadow(0 0 0.5em rgba(255, 196, 40, 1));
+}
+
+.swaptile.enh .ds {
+  font-size: 1.25em;
+}
+
+.swaptile.enh[disabled] {
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+
+.flag.gold {
+  background: #b07800;
+}
+
+.swaptile.enh.picked .flag.gold {
+  display: block;
+}
+
+/* ——— Pizzeria: pizzas by route, and the toppings collection ——— */
+.pz-sec {
+  display: flex;
+  align-items: baseline;
+  gap: 0.8em;
+  margin: 1.2em 0 0.6em;
+  font-family: 'Lilita One', sans-serif;
+}
+
+.pz-sec:first-child {
+  margin-top: 0.2em;
+}
+
+.pz-sec b {
+  font-weight: 400;
+  font-size: 1.5em;
+  color: var(--tomato-d);
+}
+
+.pz-sec span {
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.pz-tile .route {
+  font-weight: 700;
+  font-size: 0.9em;
+  line-height: 1.15;
+  color: #6a3e00;
+}
+
+.pz-tile .seen {
+  font-weight: 600;
+  font-size: 0.85em;
+  color: var(--ink-soft);
+}
+
+.pz-tile .pbar {
+  margin-top: 0.1em;
+}
+
+.pz-tile.rare {
+  border-color: #6a3aa8;
+  background: linear-gradient(160deg, #f6efff, #e9dcff);
+}
+
+.pz-tile.rare.unseen img {
+  filter: brightness(0) opacity(0.35);
+}
+
+.pz-tile .tag.new,
+.tcard .tag.new,
+.rs-item .tag.new,
+.lu .tag.new {
+  background: var(--tomato-d);
+  color: #fff;
+}
+
+.tops-bar {
+  flex-wrap: wrap;
+  margin-bottom: 0.4em;
+}
+
+.tops-note {
+  text-align: center;
+  font-weight: 600;
+  color: var(--ink-soft);
+  margin-bottom: 0.7em;
+}
+
+.tgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(12em, 1fr));
+  gap: 0.8em;
+}
+
+.tcard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25em;
+  text-align: center;
+  padding: 0.6em 0.6em 0.7em;
+  background: linear-gradient(180deg, #fffaf0, var(--paper));
+  border: 0.18em solid var(--ink);
+  border-radius: 1em;
+  box-shadow: 0 0 0 0.22em var(--rc) inset;
+}
+
+.tcard .tc-top {
+  display: flex;
+  align-items: center;
+  gap: 0.35em;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.tcard .ic {
+  font-size: 1.7em;
+  font-family: system-ui, 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif;
+}
+
+.tcard .rarity {
+  font-family: 'Lilita One', sans-serif;
+  font-size: 0.85em;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--rc);
+  border: 0.12em solid var(--ink);
+  border-radius: 1em;
+  padding: 0 0.6em;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.16em var(--ink);
+}
+
+.tcard .kind {
+  font-size: 0.65em;
+}
+
+.tcard .nm {
+  font-family: 'Lilita One', sans-serif;
+  font-size: 1.2em;
+  line-height: 1.05;
+}
+
+.tcard .ds {
+  font-weight: 600;
+  font-size: 0.9em;
+  color: var(--ink-soft);
+  line-height: 1.2;
+}
+
+.tcard .down {
+  font-weight: 700;
+  font-size: 0.85em;
+  color: var(--tomato-d);
+}
+
+.tcard .runs {
+  margin-top: auto;
+  font-weight: 700;
+  font-size: 0.85em;
+  color: var(--basil-d);
+}
+
+.tcard .tick {
+  display: inline-grid;
+  place-items: center;
+  width: 1.3em;
+  height: 1.3em;
+  margin-right: 0.3em;
+  color: #fff;
+  background: var(--basil-d);
+  border-radius: 50%;
+  font-size: 0.9em;
+}
+
+.tcard .tag {
+  position: absolute;
+  top: -0.5em;
+  right: -0.3em;
+  font-family: 'Lilita One', sans-serif;
+  font-size: 0.85em;
+  border: 0.12em solid var(--ink);
+  border-radius: 0.6em;
+  padding: 0 0.4em;
+}
+
+.tcard.unseen {
+  justify-content: center;
+  min-height: 9em;
+  background: repeating-linear-gradient(135deg, rgba(42, 24, 16, 0.06) 0 0.6em, transparent 0.6em 1.2em), #e6d9c2;
+  box-shadow: 0 0 0 0.22em var(--rc) inset;
+  opacity: 0.8;
+}
+
+.tcard.unseen .q {
+  font-family: 'Lilita One', sans-serif;
+  font-size: 2.6em;
+  color: var(--rc);
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.08em var(--ink);
+}
+
+/* ——— Unlocked this run ——— */
+.modal.wide.runsum {
+  width: 84em;
+  max-height: 94cqh;
+}
+
+.rs-kicker {
+  font-family: 'Lilita One', sans-serif;
+  font-size: 1.3em;
+  letter-spacing: 0.15em;
+  color: var(--tomato-d);
+}
+
+.rs-body {
+  width: 100%;
+}
+
+.rs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(22em, 1fr));
+  gap: 0.6em;
+  margin-bottom: 0.6em;
+}
+
+.rs-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 5em minmax(0, 1fr);
+  align-items: center;
+  gap: 0.7em;
+  background: rgba(255, 255, 255, 0.7);
+  border: 0.16em solid var(--ink);
+  border-radius: 0.9em;
+  padding: 0.35em 0.8em 0.35em 0.35em;
+}
+
+.rs-item.pizza {
+  background: linear-gradient(135deg, #eefbe6, #d6f0c4);
+}
+
+.rs-item.shiny {
+  background: linear-gradient(135deg, #fffaf0, #fff1c8 45%, #f2e6ff);
+}
+
+.rs-art {
+  display: grid;
+  place-items: center;
+  height: 4em;
+}
+
+.rs-art img {
+  max-width: 100%;
+  max-height: 4em;
+  object-fit: contain;
+}
+
+.rs-art.peel img {
+  max-height: 4.3em;
+  transform: rotate(-20deg);
+}
+
+.rs-art.ic {
+  height: auto;
+  line-height: 1;
+  font-size: 2.6em;
+  font-family: system-ui, 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif;
+}
+
+.rs-tx {
+  display: grid;
+  gap: 0.05em;
+  min-width: 0;
+}
+
+.rs-tx b {
+  font-family: 'Lilita One', sans-serif;
+  font-weight: 400;
+  font-size: 1.25em;
+  line-height: 1.05;
+}
+
+.rs-tx span {
+  font-weight: 600;
+  font-size: 0.9em;
+  color: var(--ink-soft);
+  line-height: 1.15;
+}
+
+.rs-tx .pbar {
+  margin-top: 0.15em;
+}
+
+.rs-item .tag {
+  position: absolute;
+  top: -0.5em;
+  right: -0.3em;
+  font-family: 'Lilita One', sans-serif;
+  font-size: 0.85em;
+  border: 0.12em solid var(--ink);
+  border-radius: 0.6em;
+  padding: 0 0.4em;
+}
+
+.rs-none {
+  text-align: center;
+  font-weight: 600;
+  font-size: 1.2em;
+  color: var(--ink-soft);
+  margin: 0.6em 0 1em;
+}
+
+/* ——— Rare Find on the new-run screen ——— */
+.lu.rare {
+  position: relative;
+  overflow: hidden;
+  border-color: #6a3aa8;
+  background: linear-gradient(135deg, #f6efff, #e3d2ff);
+  box-shadow: 0 0 0 0.16em #b98aff, 0 0 1.2em rgba(176, 107, 255, 0.7);
+}
+
+.lu.rare::after {
+  content: '';
+  position: absolute;
+  inset: -20%;
+  background: linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, 0.85) 45%, rgba(255, 240, 160, 0.6) 50%, rgba(160, 220, 255, 0.5) 55%, transparent 65%);
+  mix-blend-mode: soft-light;
+  animation: peelShine 2.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.lu .rf {
+  font-family: 'Lilita One', sans-serif;
+  font-size: 0.8em;
+  letter-spacing: 0.12em;
+  color: #5a2a8a;
+}
+
+.lu.rare .btn {
+  align-self: flex-start;
+  margin-top: 0.2em;
+  font-size: 0.9em;
+  position: relative;
+  z-index: 1;
+}
+
+.lu .tag {
+  position: absolute;
+  top: 0.3em;
+  left: 0.3em;
+  z-index: 1;
+  font-family: 'Lilita One', sans-serif;
+  font-size: 0.8em;
+  border: 0.12em solid var(--ink);
+  border-radius: 0.6em;
+  padding: 0 0.4em;
+}
+
+@container (max-width: 900px) {
+  /* the shop is laid out edge to edge at 96em: on phones the UI's larger text (1.18cqw) pushed its
+     right column and Next Wave off screen, so the shop keeps the desktop scale */
+  .shop2,
+  .swap2 {
+    font-size: 0.847em;
+  }
+
+  .yt-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .modal.wide.runsum .title {
+    font-size: 2.4em;
+  }
+}
+
+/* the counter's services sit on one row, and the Golden Menu in three columns, so a full counter
+   (last pizza standing: banner, two free pizzas and the special) still leaves Next Wave on screen */
+.services {
+  display: grid;
+  grid-template-columns: auto auto auto;
+  gap: 0.4em;
+}
+
+.services .btn {
+  font-size: 0.98em;
+  letter-spacing: 0;
+  padding-left: 0.4em;
+  padding-right: 0.4em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.services .btn:only-child,
+.services .btn:first-child:nth-last-child(2) ~ .btn {
+  grid-column: span 2;
+}
+
+.gitems {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.gitems .gitem {
+  padding: 0.3em 0.45em;
+}
+
+.gitems .gitem b {
+  font-size: 0.94em;
+}
+
+.counter2 .offer {
+  padding-top: 0.15em;
+  padding-bottom: 0.15em;
+}

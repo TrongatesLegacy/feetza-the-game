@@ -92,6 +92,19 @@ export interface SaveData {
   endless: boolean;
   /** Peels unlocked but not yet looked at in the locker. */
   peelsNew: string[];
+  // Pizza unlock routes and the toppings collection
+  /** Toppings dealt in a shop at least once (the Pizzeria's Toppings tab). */
+  seenToppings: string[];
+  /** Runs each topping was bought in. */
+  toppingRuns: Record<string, number>;
+  /** Toppings first seen since the Toppings tab was last opened. */
+  toppingsNew: string[];
+  /** Pizzas unlocked but not yet looked at in the Pizzeria. */
+  pizzasNew: string[];
+  /** Times each locked pizza has turned up as a Chef's Special. */
+  specialSeen: Record<string, number>;
+  /** Rare Finds that have turned up on the new-run screen (shown in the Pizzeria from then on). */
+  rareSeen: string[];
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -151,6 +164,12 @@ const DEFAULTS: SaveData = {
   skin: '',
   endless: false,
   peelsNew: [],
+  seenToppings: [],
+  toppingRuns: {},
+  toppingsNew: [],
+  pizzasNew: [],
+  specialSeen: {},
+  rareSeen: [],
 };
 
 function clone<T>(v: T): T {
@@ -180,6 +199,12 @@ export function migrate(parsed: Partial<SaveData>): SaveData {
     // the old "all 6 bosses" milestone is now "6 different bosses"
     s.milestones = s.milestones.map((m) => (m === 'allBosses' ? 'bosses6' : m));
     s.run = null;
+  }
+  // saves from before the Toppings tab: nothing was recorded, so only the run in progress counts
+  if (!parsed.seenToppings && s.run) {
+    const owned = Object.keys(s.run.owned ?? {});
+    s.seenToppings = [...new Set([...owned, ...(s.run.armed ?? []), ...(s.run.shop?.cards ?? [])])];
+    s.toppingRuns = Object.fromEntries([...new Set([...owned, ...(s.run.armed ?? [])])].map((id) => [id, 1]));
   }
   return s;
 }
@@ -267,7 +292,28 @@ export function bestFor(heat: HeatId, act2 = false): Best {
   return (act2 ? save.bestAct2 : save.best)[heat] ?? { score: 0, wave: 0 };
 }
 
-/** Cheapest pizza not yet unlocked (or null if everything is unlocked). */
-export function nextLockedPizza<T extends { id: string; cost: number }>(all: T[]): T | null {
-  return [...all].filter((p) => !save.unlockedPizzas.includes(p.id)).sort((a, b) => a.cost - b.cost)[0] ?? null;
+/** Cheapest pizza still to buy in the Pizzeria (or null if they're all unlocked). */
+export function nextLockedPizza<T extends { id: string; cost: number; route: string }>(all: T[]): T | null {
+  return [...all].filter((p) => p.route === 'pizzeria' && !save.unlockedPizzas.includes(p.id)).sort((a, b) => a.cost - b.cost)[0] ?? null;
+}
+
+/** Unlock a pizza for good. It carries a NEW badge in the Pizzeria until that's opened. */
+export function unlockPizza(id: string): boolean {
+  if (save.unlockedPizzas.includes(id)) return false;
+  save.unlockedPizzas.push(id);
+  if (!save.pizzasNew.includes(id)) save.pizzasNew.push(id);
+  persist();
+  return true;
+}
+
+/** Record toppings dealt in a shop. New ones get a NEW badge in the Toppings tab. */
+export function markToppingsSeen(ids: string[]): void {
+  let changed = false;
+  for (const id of ids) {
+    if (save.seenToppings.includes(id)) continue;
+    save.seenToppings.push(id);
+    save.toppingsNew.push(id);
+    changed = true;
+  }
+  if (changed) persist();
 }

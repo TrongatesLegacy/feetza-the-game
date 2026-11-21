@@ -3,7 +3,7 @@
 import Phaser from 'phaser';
 import { PIZZA_CANVAS_H, PIZZA_CANVAS_W, PIZZA_R, PIZZA_SIZE, TILT, renderPizza, sideFor, type Footprint } from '../art/pizzaArt';
 import { makeCanvas } from '../art/util';
-import type { PizzaPerk, PizzaType } from '../data/pizzas';
+import { SEASONS, enhancedText, type PizzaPerk, type PizzaType } from '../data/pizzas';
 import { pizzaTops } from './assets';
 
 let uid = 0;
@@ -42,6 +42,8 @@ export class Pizza {
   /** Resting table y; `y` moves with piston lifts. */
   baseY: number;
   private freshBar: Phaser.GameObjects.Graphics;
+  /** Enhanced look: a gold rim with a warm glow, a star, and sparkles twinkling round the crust. */
+  private gold?: { rim: Phaser.GameObjects.Graphics; glow: Phaser.GameObjects.Image; badge: Phaser.GameObjects.Image; sparks: Phaser.GameObjects.Image[]; tweens: Phaser.Tweens.Tween[] };
 
   private plate: Phaser.GameObjects.Image;
   private img: Phaser.GameObjects.Image;
@@ -145,6 +147,67 @@ export class Pizza {
     this.label.setY((PIZZA_R + 40) * TILT * s + 14);
     this.fitLabel();
     this.drawFresh();
+    this.drawGold();
+  }
+
+  /** Enhanced (Golden Menu): its perk is stronger for the rest of the run. Kept in flags, so it's saved with the run. */
+  get enhanced(): boolean {
+    return !!this.flags.enhanced;
+  }
+
+  /** Gold rim, glow, star and sparkles for an enhanced pizza (made on first use). */
+  private drawGold(): void {
+    const on = this.enhanced && !this.dead;
+    if (!on && !this.gold) return;
+    if (!this.gold) {
+      const sc = this.scene;
+      const glow = sc.add.image(0, 0, 'glow').setTint(0xffc93a).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.5);
+      const rim = sc.add.graphics();
+      const badge = sc.add.image(0, 0, 'star5');
+      const sparks = Array.from({ length: 7 }, () => sc.add.image(0, 0, 'star').setTint(0xfff0a0).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0));
+      // the glow sits under the pizza, the rim on its crust, the star and sparkles over it
+      this.root.addAt(glow, 2);
+      this.root.addAt(rim, this.root.getIndex(this.img) + 1);
+      this.root.add([badge, ...sparks]);
+      const tweens = sparks.map((sp, i) =>
+        sc.tweens.add({
+          targets: sp,
+          alpha: { from: 0, to: 1 },
+          scale: { from: 0.1, to: 0.8 },
+          angle: { from: 0, to: 90 },
+          duration: 520,
+          yoyo: true,
+          repeat: -1,
+          repeatDelay: 380 + i * 170,
+          delay: i * 260,
+          onRepeat: () => this.placeSpark(sp),
+        }),
+      );
+      sparks.forEach((sp) => this.placeSpark(sp));
+      tweens.push(sc.tweens.add({ targets: glow, alpha: { from: 0.35, to: 0.6 }, duration: 1100, yoyo: true, repeat: -1, ease: 'Sine.InOut' }));
+      this.gold = { rim, glow, badge, sparks, tweens };
+    }
+    const g = this.gold;
+    for (const o of [g.rim, g.glow, g.badge, ...g.sparks]) o.setVisible(on);
+    if (!on) return;
+    const s = this.s;
+    const cy = -sideFor(this.type.shape) * s;
+    const rx = PIZZA_R * s * 1.01;
+    const ry = PIZZA_R * TILT * s * 1.01;
+    g.glow.setPosition(0, cy).setScale((rx * 2.9) / 256, (ry * 3.6) / 256);
+    // a gold band round the crust: dark outline, gold, then a bright highlight on top
+    g.rim.clear();
+    g.rim.lineStyle(20 * s, 0x2a1810, 1).strokeEllipse(0, cy, rx * 2, ry * 2);
+    g.rim.lineStyle(13 * s, 0xf2b316, 1).strokeEllipse(0, cy, rx * 2, ry * 2);
+    g.rim.lineStyle(5 * s, 0xfff0a0, 1).strokeEllipse(0, cy - 3 * s, rx * 2 - 4 * s, ry * 2 - 4 * s);
+    g.badge.setPosition(rx * 0.82, cy - ry * 0.95).setScale(Math.max(0.7, s * 1.25));
+  }
+
+  /** A sparkle somewhere on the gold rim. */
+  private placeSpark(sp: Phaser.GameObjects.Image): void {
+    const a = Math.random() * Math.PI * 2;
+    const cy = -sideFor(this.type.shape) * this.s;
+    sp.setPosition(Math.cos(a) * PIZZA_R * this.s * 1.01, cy + Math.sin(a) * PIZZA_R * TILT * this.s * 1.01);
   }
 
   /** Name and perk sit on two fixed lines and shrink to fit the plate's width instead of wrapping. */
@@ -215,12 +278,27 @@ export class Pizza {
   /** The perk this pizza currently grants (stale pizzas grant none; Quattro Stagioni rotates). */
   get perk(): PizzaPerk | null {
     if (this.dead || this.stale || this.perkFrozen) return null;
-    if (this.type.perk === 'rotate') return (['damage', 'coins', 'regen', 'shield'] as PizzaPerk[])[Number(this.flags.season ?? 0) % 4];
+    if (this.type.perk === 'rotate') return SEASONS[Number(this.flags.season ?? 0) % 4];
     return this.type.perk;
   }
 
   /** The perk's text. A stale pizza still shows it (crossed out), so you can see what reheating brings back. */
   get perkLine(): string {
+    if (this.dead) return 'PERK LOST';
+    if (this.type.perk === 'rotate') {
+      const season = SEASONS[Number(this.flags.season ?? 0) % 4];
+      return this.enhanced ? enhancedText(season) : ['+10% smack damage', '+20% tips from feet', 'Regrows a slice every 20s', 'Blocks the first stomp each wave'][Number(this.flags.season ?? 0) % 4];
+    }
+    return this.enhanced ? enhancedText(this.type.perk) : this.type.perkText;
+  }
+
+  /** What the perk would read enhanced (the enhance picker previews it). */
+  get enhancedLine(): string {
+    return enhancedText(this.type.perk === 'rotate' ? SEASONS[Number(this.flags.season ?? 0) % 4] : this.type.perk);
+  }
+
+  /** The plain perk text (an enhanced pizza's card shows it struck through). */
+  get basePerkLine(): string {
     if (this.dead) return 'PERK LOST';
     if (this.type.perk === 'rotate') return ['+10% smack damage', '+20% tips from feet', 'Regrows a slice every 20s', 'Blocks the first stomp each wave'][Number(this.flags.season ?? 0) % 4];
     return this.type.perkText;
@@ -281,12 +359,14 @@ export class Pizza {
     this.perkLabel.setText(this.perkLine);
     const col = this.dead ? '#ff8a6a' : this.stale ? '#cfe0a8' : '#fff6e2';
     this.label.setColor(col).setAlpha(this.dead ? 0.75 : 0.92);
-    this.perkLabel.setColor(col).setAlpha(this.dead ? 0.75 : this.stale ? 0.8 : 0.92);
+    // an enhanced perk reads in gold
+    this.perkLabel.setColor(this.enhanced && !this.dead && !this.stale ? '#ffd23f' : col).setAlpha(this.dead ? 0.75 : this.stale ? 0.8 : this.enhanced ? 1 : 0.92);
     if (this.perkFrozen) this.img.setTint(0xb8e2ff);
     else if (this.stale) this.img.setTint(0xc8d4a0);
     else this.img.clearTint();
     this.fitLabel();
     this.drawFresh();
+    this.drawGold();
   }
 
   /** Hide the perk caption (the menu screen doesn't need it). */
@@ -400,6 +480,7 @@ export class Pizza {
   }
 
   destroy(): void {
+    this.gold?.tweens.forEach((t) => t.remove());
     this.root.destroy();
     if (this.scene.textures.exists(this.texKey)) this.scene.textures.remove(this.texKey);
   }

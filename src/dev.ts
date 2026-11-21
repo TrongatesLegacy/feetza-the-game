@@ -48,7 +48,18 @@ function botShop(g: AnyScene): void {
   setTimeout(() => (g.__botBusy = false), 250);
   const hurt = st.table.some((p: any) => !p.dead && p.slices <= p.max / 2); // eslint-disable-line @typescript-eslint/no-explicit-any
   if (hurt && st.heal.can && st.coins >= st.heal.cost + 20) return g.shopHeal();
-  if (st.reheat.can && st.table.some((p: any) => p.freshOn && p.fresh <= 2)) return g.shopReheat(); // eslint-disable-line @typescript-eslint/no-explicit-any
+  const stale = st.table.findIndex((p: any) => p.reheat?.can && p.fresh <= 2); // eslint-disable-line @typescript-eslint/no-explicit-any
+  if (stale >= 0) return g.shopReheat(stale);
+  // last pizza standing: take the free pizza before moving on
+  if (st.lastStand) {
+    const free = st.offers.find((o: any) => o.cost <= st.coins); // eslint-disable-line @typescript-eslint/no-explicit-any
+    if (free) {
+      g.shopBuyPizza(free.id);
+      // a full table asks where it goes: take the default (a toast pizza first)
+      setTimeout(() => document.querySelector<HTMLElement>('.swap2 .swapfoot .btn.green')?.click(), 60);
+      return;
+    }
+  }
   if (st.rebake.can && st.rebake.shown) return g.shopRebake();
   const rank: Record<string, number> = { legendary: 4, epic: 3, rare: 2, common: 1 };
   const card = st.cards.filter((c: any) => !c.sold && (c.free || st.coins >= c.price)).sort((a: any, b: any) => rank[b.rarity] - rank[a.rarity])[0]; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -117,6 +128,11 @@ export function installDevTools(game: Phaser.Game): void {
     saveScenario(): unknown {
       const g = game.scene.getScene('Game') as AnyScene;
       return g?.snapshot?.();
+    },
+    /** Show this pizza as a Rare Find on the new-run screen (now if it's open, else on its next deal). */
+    async rareFind(id: string): Promise<void> {
+      const { forceRareFind } = await import('./ui/ui');
+      forceRareFind(id);
     },
     /** Deterministic randomness for fair before/after comparisons. */
     seed,

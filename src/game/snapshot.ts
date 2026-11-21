@@ -18,8 +18,12 @@ export interface CounterSnap {
   id: string;
   name: string;
   perk: string;
+  /** Full coin price (last pizza standing discounts it in the shop). */
   cost: number;
-  trial: boolean;
+  /** Old saves: a rented Chef's Special. */
+  trial?: boolean;
+  /** pizza: one you own · special: a locked pizza, unlocked for good when bought · enhanced: one you own, arriving enhanced. */
+  kind?: 'pizza' | 'special' | 'enhanced';
 }
 
 export interface RunSnapshot {
@@ -58,10 +62,17 @@ export interface RunSnapshot {
   /** Endless run (older saves: ask at wave 60, as before). */
   endless?: boolean;
   secondChances: number;
-  rentedSpecial: string | null;
+  /** Old saves only: renting is gone (buying a Chef's Special unlocks it). */
+  rentedSpecial?: string | null;
+  enhanceUses?: number;
+  bought?: string[];
+  unlockWhy?: Record<string, string>;
+  milestonesHit?: string[];
+  startPeels?: string[];
+  goalStart?: Record<string, number>;
   pizzas: PizzaSnap[];
   counter: CounterSnap[];
   bossBonusGiven: boolean;
   /** The open shop, so a reload doesn't reroll it or undo purchases. */
-  shop?: { cards: string[]; sold: string[]; free: string | null; bossReward: boolean; freeRerolls: number; goldenBought?: 'rebake' | 'keep' | 'reroll' | 'topping' | 'fresh' };
+  shop?: { cards: string[]; sold: string[]; free: string | null; bossReward: boolean; freeRerolls: number; goldenBought?: 'rebake' | 'enhance' | 'reroll' | 'topping' | 'fresh'; lastStand?: boolean; lastStandDone?: boolean };
 }

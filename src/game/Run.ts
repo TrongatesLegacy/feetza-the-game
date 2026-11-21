@@ -3,10 +3,11 @@
 import type { ArenaId, BackdropId, LocationId } from '../art/backdrops';
 import { HEAT_BY_ID, type HeatId } from '../data/difficulty';
 import { FEET, type FootType } from '../data/feet';
-import type { PizzaPerk } from '../data/pizzas';
+import { PIZZA_BY_ID, type PizzaPerk, type PizzaType } from '../data/pizzas';
+import { MILESTONES, type Milestone } from '../data/meta';
 import { JOURNEY_WAVES, MINI_WAVE, STAGES, WAVES_PER_STAGE } from '../data/stages';
 import { CONSUMABLE_COOLDOWN, RARITY_WEIGHT, UPGRADES, UPGRADE_BY_ID, baseStats, kindOf, type Rarity, type Stats, type Upgrade } from '../data/upgrades';
-import { save } from '../systems/save';
+import { save, unlockPizza } from '../systems/save';
 
 /** Golden Crusts for the first time you ever beat a main boss (on top of the usual 5). */
 export const FIRST_KILL_CRUSTS = 20;
@@ -184,8 +185,20 @@ export class Run {
   /** Golden menu uses this run, by item id. */
   goldenUsed: Record<string, number> = {};
   secondChances = 0;
-  rentedSpecial: string | null = null;
   newUnlocks: string[] = [];
+  /** Why each pizza in newUnlocks was unlocked (for the end-of-run summary). */
+  unlockWhy: Record<string, string> = {};
+  /** Milestones reached this run. */
+  milestonesHit: string[] = [];
+  /** Enhance a Pizza uses this run (its crust price doubles each time). */
+  enhanceUses = 0;
+  /** Toppings bought this run (each counts once towards its run count in the Toppings tab). */
+  bought: string[] = [];
+  /** Peels owned when the run began, and each locked goal's progress then (end-of-run summary). */
+  startPeels: string[] | null = null;
+  goalStart: Record<string, number> = {};
+  /** Perks of the enhanced pizzas on the table (set by recompute). */
+  enhancedPerks = new Set<PizzaPerk>();
   /** Run time in seconds: counts waves and the shop, stops in the pause menu, while the tab is hidden and while away from the run. */
   elapsed = 0;
   /** Endless: the run carries on past wave 60 instead of ending there. */
@@ -203,8 +216,9 @@ export class Run {
     return save.meta[id] ?? 0;
   }
 
-  /** extra: always-on peel ability stat changes, added before the caps. */
-  recompute(alivePerks: PizzaPerk[], extra: Partial<Record<keyof Stats, number>> = {}): void {
+  /** extra: always-on peel ability stat changes, added before the caps. enhanced: the perks of
+   * enhanced pizzas among alivePerks, each worth 1.5 of a plain one. */
+  recompute(alivePerks: PizzaPerk[], extra: Partial<Record<keyof Stats, number>> = {}, enhanced: PizzaPerk[] = []): void {
     const s = baseStats();
     // meta progression
     s.damage *= 1 + 0.08 * this.meta('wrists');
@@ -220,7 +234,9 @@ export class Run {
     // live pizza perks (Napoletana makes every other perk 5% stronger)
     const counts: Partial<Record<PizzaPerk, number>> = {};
     for (const p of alivePerks) counts[p] = (counts[p] ?? 0) + 1;
+    for (const p of enhanced) counts[p] = (counts[p] ?? 0) + 0.5;
     this.perkCounts = counts;
+    this.enhancedPerks = new Set(enhanced);
     const boost = 1 + 0.05 * (counts.perkBoost ?? 0);
     const c = (p: PizzaPerk) => (counts[p] ?? 0) * boost;
     s.damage *= 1 + 0.1 * c('damage');
@@ -285,6 +301,8 @@ export class Run {
   slamless: { slam: boolean; meter: boolean } = { slam: false, meter: false };
 
   offerable(u: Upgrade, wave: number): boolean {
+    // rarer toppings arrive as the run builds up (shop cards, rerolls, boss loot, events, Golden Menu)
+    if (!rarityOpen(u.rarity, wave)) return false;
     if (this.slamless.slam && u.id === 'freeze') return false;
     if (this.slamless.meter && (u.id === 'oregano' || u.id === 'dried' || u.id === 'overtime')) return false;
     const k = kindOf(u);
@@ -356,6 +374,19 @@ export class Run {
     return Math.round((5 + (firstKill ? FIRST_KILL_CRUSTS : 0)) * mult);
   }
 
+  /** Unlock a pizza for good, noting why for the end-of-run summary. */
+  unlock(id: string, why: string): boolean {
+    if (!unlockPizza(id)) return false;
+    if (!this.newUnlocks.includes(id)) this.newUnlocks.push(id);
+    this.unlockWhy[id] = why;
+    return true;
+  }
+
+  /** Enhance a Pizza's crust price: 30, then doubling each use this run. */
+  enhanceCost(): number {
+    return 30 * 2 ** this.enhanceUses;
+  }
+
   /** Pay crusts into the bank straight away. */
   bank(n: number): void {
     if (n <= 0) return;
@@ -371,4 +402,81 @@ export function endCrustsFor(score: number, wave: number, act2Start: boolean, he
   const waves = Math.max(0, wave - 1 - (act2Start ? 30 : 0));
   const base = Math.floor(Math.sqrt(Math.max(0, score)) / 8) + waves * 2;
   return Math.floor(base * HEAT_BY_ID[heat].crusts * (1 + figBonus));
+}
+
+/** First shop (wave cleared) each rarity can be dealt in: epics from the wave 5 boss shop,
+ * legendaries from wave 10. */
+export const RARITY_FROM: Record<Rarity, number> = { common: 0, rare: 0, epic: 5, legendary: 10 };
+
+export function rarityOpen(r: Rarity, wave: number): boolean {
+  return wave >= RARITY_FROM[r];
+}
+
+/** The rarest rarity open at this wave (Golden Reroll guarantees one). */
+export function bestRarity(wave: number): Rarity {
+  return rarityOpen('legendary', wave) ? 'legendary' : rarityOpen('epic', wave) ? 'epic' : 'rare';
+}
+
+/** A pizza's tier, by its crust price: 1 simple, 2 mid, 3 fancy. */
+export function pizzaTier(p: PizzaType): number {
+  return p.cost < 150 ? 1 : p.cost < 400 ? 2 : 3;
+}
+
+/** A Chef's Special's coin price: about twice a normal counter pizza, plus a bonus for fancier ones
+ * that grows with the wave. */
+export function specialPrice(normal: number, p: PizzaType, wave: number): number {
+  return Math.round((normal * 2 + pizzaTier(p) * (15 + 2 * wave)) / 5) * 5;
+}
+
+/** A milestone's progress towards its goal: [have, need]. */
+export function milestoneProgress(id: string): [number, number] {
+  const nb = save.bossesBeaten.length;
+  const wave = save.bestWave;
+  const act1 = (h: HeatId): [number, number] => (save.act1Cleared.includes(h) ? [30, 30] : [Math.min(29, save.best[h]?.wave ?? 0), 30]);
+  switch (id) {
+    case 'firstWave3': return [Math.min(3, wave), 3];
+    case 'firstBoss': return [Math.min(1, nb), 1];
+    case 'feet150': return [Math.min(150, save.totalFeet), 150];
+    case 'wave10': return [Math.min(10, wave), 10];
+    case 'bosses3': return [Math.min(3, nb), 3];
+    case 'feet600': return [Math.min(600, save.totalFeet), 600];
+    case 'wave20': return [Math.min(20, wave), 20];
+    case 'bosses6': return [Math.min(6, nb), 6];
+    case 'act1': return save.act1Cleared.length ? [30, 30] : [Math.min(29, wave), 30];
+    case 'bosses12': return [Math.min(12, nb), 12];
+    case 'feet1500': return [Math.min(1500, save.totalFeet), 1500];
+    case 'wave45': return [Math.min(45, wave), 45];
+    case 'bosses18': return [Math.min(18, nb), 18];
+    case 'journey': return [Math.min(JOURNEY_WAVES, wave), JOURNEY_WAVES];
+    case 'allBosses': return [Math.min(24, nb), 24];
+    case 'hot30': return act1('hot');
+    case 'extrahot30': return act1('extrahot');
+    case 'inferno30': return act1('inferno');
+    default: return [0, 1];
+  }
+}
+
+/**
+ * Award milestones reached (and catch up on ones reached before they named a pizza). Returns the
+ * newly awarded ones with their pizza, or crusts when the milestone has no pizza.
+ */
+export function awardMilestones(run: Run | null): { m: Milestone; pizza: PizzaType | null; crusts: number }[] {
+  const out: { m: Milestone; pizza: PizzaType | null; crusts: number }[] = [];
+  for (const m of MILESTONES) {
+    const [have, need] = milestoneProgress(m.id);
+    const fresh = have >= need && !save.milestones.includes(m.id);
+    const pizza = m.pizza ? PIZZA_BY_ID[m.pizza] ?? null : null;
+    const owed = save.milestones.includes(m.id) && pizza && !save.unlockedPizzas.includes(pizza.id);
+    if (!fresh && !owed) continue;
+    if (fresh) save.milestones.push(m.id);
+    if (pizza) {
+      if (run) run.unlock(pizza.id, `Milestone: ${m.name}`);
+      else unlockPizza(pizza.id);
+    } else save.crusts += 50;
+    if (fresh) {
+      run?.milestonesHit.push(m.id);
+      out.push({ m, pizza, crusts: pizza ? 0 : 50 });
+    }
+  }
+  return out;
 }

@@ -2,15 +2,16 @@
 // container query units (1em = 1% of the stage width) so it stays crisp at any size.
 
 import { FEET, FOOT_BY_ID, TRAIT_INFO, howToFor, tellFor, type FootType } from '../data/feet';
-import { META } from '../data/meta';
-import { PIZZAS, PIZZA_BY_ID } from '../data/pizzas';
-import { RARITY_COLOR, UPGRADE_BY_ID } from '../data/upgrades';
+import { META, MILESTONE_BY_PIZZA } from '../data/meta';
+import { PIZZAS, PIZZA_BY_ID, type PizzaRoute, type PizzaType } from '../data/pizzas';
+import { awardMilestones, milestoneProgress } from '../game/Run';
+import { RARITY_COLOR, UPGRADES, UPGRADE_BY_ID, kindOf, type Rarity } from '../data/upgrades';
 import { glyph, slamPrompt } from '../systems/gamepad';
-import type { ShopActions, ShopPizza, ShopState } from './shopTypes';
+import type { RunSummary, ShopActions, ShopPizza, ShopState, YourTopping } from './shopTypes';
 import { INTROS, freshBar, pizzaThumb } from './bits';
 import { footPortraitURL, pizzaPortraitURL, textureURL } from '../game/assets';
 import { audio } from '../systems/audio';
-import { bestFor, metaRefundValue, persist, resetEverything, resetMeta, resetProgress, save, updateSettings, type Settings } from '../systems/save';
+import { bestFor, metaRefundValue, persist, resetEverything, resetMeta, resetProgress, save, unlockPizza, updateSettings, type Settings } from '../systems/save';
 import { HEATS, HEAT_BY_ID, type HeatId } from '../data/difficulty';
 import { ACT_WAVES } from '../data/stages';
 import { BACKDROPS } from '../art/backdrops';
@@ -79,6 +80,19 @@ export function btn(label: string, cls: string, onClick: () => void, attrs: Attr
 
 const fmt = (n: number) => Math.floor(n).toLocaleString('en-US');
 
+/** Chance each lineup deal puts a Rare Find in one slot. */
+const RARE_FIND_CHANCE = 1 / 20;
+/** Dev: the next lineup deal shows this pizza as a Rare Find (any locked pizza, for testing). */
+let forcedRare: string | null = null;
+/** Re-deal the open new-run screen (so a forced Rare Find shows straight away). */
+let redealLineup: (() => void) | null = null;
+
+/** Dev: force a Rare Find on the next lineup deal (and re-deal the open new-run screen). */
+export function forceRareFind(id: string): void {
+  forcedRare = id;
+  redealLineup?.();
+}
+
 /** A run time: m:ss, or h:mm:ss past an hour. */
 export function fmtTime(secs: number): string {
   const s = Math.max(0, Math.floor(secs));
@@ -104,6 +118,36 @@ function keepFocus(root: HTMLElement, render: () => void): void {
   const fk = (document.activeElement as HTMLElement | null)?.dataset?.fk;
   render();
   if (fk) root.querySelector<HTMLElement>(`[data-fk="${CSS.escape(fk)}"]`)?.focus();
+}
+
+/**
+ * An enhanced perk: the whole line in gold, with each changed number struck through next to its
+ * new one (e.g. ~~+10%~~ +15% smack damage). Words that change are shown in their new form.
+ */
+function perkDiff(base: string, now: string): HTMLElement {
+  const a = base.split(' ');
+  const b = now.split(' ');
+  // longest common run of words, so only what changed is marked
+  const L = Array.from({ length: a.length + 1 }, () => new Array<number>(b.length + 1).fill(0));
+  for (let i = a.length - 1; i >= 0; i--) for (let j = b.length - 1; j >= 0; j--) L[i][j] = a[i] === b[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  const out = h('span', { class: 'perk-gold' });
+  const word = (el: Node | string) => {
+    if (out.childNodes.length) out.append(' ');
+    out.append(el);
+  };
+  let i = 0;
+  let j = 0;
+  while (i < a.length || j < b.length) {
+    if (i < a.length && j < b.length && a[i] === b[j]) {
+      word(a[i++]);
+      j++;
+    } else if (i < a.length && (j >= b.length || L[i + 1][j] >= L[i][j + 1])) {
+      // a dropped number stays visible, struck through; dropped words just go
+      if (/\d/.test(a[i])) word(h('s', {}, a[i]));
+      i++;
+    } else word(h('b', {}, b[j++]));
+  }
+  return out;
 }
 
 /** A peel's ability as a line for the locker: kind pill, name and what it does. */
@@ -525,7 +569,7 @@ class UI {
       h(
         'div',
         { class: 'menu-buttons' },
-        btn(`PIZZERIA${PIZZAS.some((p) => !save.unlockedPizzas.includes(p.id) && p.cost <= save.crusts) ? ' <span class="badge">NEW</span>' : ''}`, 'yellow', h_.pizzeria),
+        btn(`PIZZERIA${save.pizzasNew.length || save.toppingsNew.length || PIZZAS.some((p) => p.route === 'pizzeria' && !save.unlockedPizzas.includes(p.id) && p.cost <= save.crusts) ? ' <span class="badge">NEW</span>' : ''}`, 'yellow', h_.pizzeria),
         btn(`PIZZAPEDIA <small style="font-size:.7em">${seen}/${FEET.length}</small>`, 'green', h_.pedia),
         btn(`PEELS${save.peelsNew.length ? ' <span class="badge">NEW</span>' : ''}`, 'yellow', h_.locker),
         btn('SETTINGS', 'cream', h_.settings),
@@ -593,7 +637,8 @@ class UI {
       save.heat = heat;
       save.endless = endless;
       persist();
-      onStart(heat, endless, cur);
+      redealLineup = null;
+      onStart(heat, endless, startIds());
     });
     const render = () => {
       heatRow.replaceChildren(
@@ -678,14 +723,60 @@ class UI {
     };
     renderPeel();
     const lineupRow = h('div', { class: 'lineup2' });
+    // a Rare Find: now and then (1 in 20 deals) a locked rare pizza takes a slot, to buy with crusts
+    let rare: { id: string; slot: number; was: string; bought: boolean } | null = null;
+    const deal = () => {
+      rare = null;
+      const forced = forcedRare && PIZZA_BY_ID[forcedRare] && !save.unlockedPizzas.includes(forcedRare) ? forcedRare : null;
+      forcedRare = null;
+      const pool = PIZZAS.filter((p) => p.route === 'rare' && !save.unlockedPizzas.includes(p.id));
+      const id = forced ?? (pool.length && Math.random() < RARE_FIND_CHANCE ? pool[Math.floor(Math.random() * pool.length)].id : null);
+      if (!id || !cur.length) return;
+      const slot = Math.floor(Math.random() * cur.length);
+      rare = { id, slot, was: cur[slot], bought: false };
+      if (!save.rareSeen.includes(id)) {
+        save.rareSeen.push(id);
+        persist();
+      }
+    };
     const renderLineup = () =>
       lineupRow.replaceChildren(
-        ...cur.map((id) => {
+        ...cur.map((id, i) => {
+          const r = rare && rare.slot === i ? rare : null;
+          if (r) {
+            const p = PIZZA_BY_ID[r.id];
+            const buy = btn(r.bought ? 'UNLOCKED' : `BUY ${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} ${fmt(p.cost)}`, r.bought ? 'cream small' : 'yellow small', () => {
+              if (r.bought || save.crusts < p.cost) return;
+              save.crusts -= p.cost;
+              unlockPizza(p.id);
+              r.bought = true;
+              audio.sfx('sfx_levelup');
+              renderLineup();
+            });
+            buy.disabled = r.bought || save.crusts < p.cost;
+            return h(
+              'div',
+              { class: `lu rare${r.bought ? ' bought' : ''}` },
+              h('span', { class: 'tag new' }, r.bought ? 'YOURS' : 'NEW'),
+              h('img', { src: pizzaPortraitURL(p.id), alt: p.name }),
+              h('div', {}, h('span', { class: 'rf' }, 'RARE FIND'), h('b', {}, p.name), h('span', {}, r.bought ? p.perkText : `${p.perkText} · gone if you shuffle`), buy),
+            );
+          }
           const p = PIZZA_BY_ID[id];
           return h('div', { class: 'lu' }, h('img', { src: pizzaPortraitURL(id), alt: p.name }), h('div', {}, h('b', {}, p.name), h('span', {}, p.perkText)));
         }),
       );
+    // the lineup that actually starts: an unbought Rare Find gives its slot back
+    const startIds = () => cur.map((id, i) => (rare && rare.slot === i ? (rare.bought ? rare.id : rare.was) : id));
+    deal();
+    if (rare) cur = cur.map((id, i) => (i === rare!.slot ? rare!.id : id));
     renderLineup();
+    redealLineup = () => {
+      cur = startIds();
+      deal();
+      if (rare) cur = cur.map((id, i) => (i === rare!.slot ? rare!.id : id));
+      renderLineup();
+    };
     const panel = h(
       'div',
       { class: 'panel modal wide prerun' },
@@ -694,8 +785,14 @@ class UI {
       heatRow,
       h('div', { class: 'prerun-mid' }, h('div', {}, h('div', { class: 'section-title' }, 'RUN LENGTH'), actRow), h('div', { class: 'peel-wrap' }, h('div', { class: 'section-title' }, 'YOUR PEEL'), peelCard)),
       h('div', { class: 'prerun-bottom' }, h('div', { class: 'section-title' }, "TONIGHT'S LINEUP"), lineupRow),
-      h('div', { class: 'row' }, btn('BACK', 'cream', onBack, { 'data-pad': 'back' }), btn('SHUFFLE', 'yellow', () => {
+      h('div', { class: 'row' }, btn('BACK', 'cream', () => {
+        redealLineup = null;
+        onBack();
+      }, { 'data-pad': 'back' }), btn('SHUFFLE', 'yellow', () => {
+        // a bought Rare Find is unlocked already; an unbought one is gone
         cur = shuffle();
+        deal();
+        if (rare) cur = cur.map((id, i) => (i === rare!.slot ? rare!.id : id));
         renderLineup();
       }, { 'data-pad': 'y' }), startBtn),
     );
@@ -773,25 +870,43 @@ class UI {
         h(
           'div',
           { class: 'strip' },
-          ...st.table.map((p) =>
-            h(
+          ...st.table.map((p, i) => {
+            // each pizza that isn't fully fresh gets its own Reheat button
+            const reheat = p.reheat ? btn(`REHEAT · ${fmt(p.reheat.cost)}`, 'yellow small reheat', () => act.reheat(i), { 'aria-label': `Reheat ${p.name} for ${p.reheat.cost} tips` }) : null;
+            if (reheat && p.reheat) reheat.disabled = !p.reheat.can;
+            return h(
               'div',
-              { class: `ptile${p.stale ? ' stale' : ''}${p.dead ? ' dead' : ''}` },
+              { class: `ptile${p.stale ? ' stale' : ''}${p.dead ? ' dead' : ''}${p.enhanced ? ' enhanced' : ''}` },
               p.stale ? h('span', { class: 'flag' }, 'STALE') : p.dead ? h('span', { class: 'flag dead' }, 'TOAST') : null,
+              p.enhanced ? h('span', { class: 'star-badge', title: 'Enhanced: its perk is stronger this run', 'aria-label': 'Enhanced' }, '★') : null,
               sliceArt(p, 120),
               h('div', { class: 'nm' }, p.name),
-              h('div', { class: `ds${p.stale ? ' off' : ''}` }, p.perk),
+              h('div', { class: `ds${p.stale ? ' off' : ''}` }, p.enhanced && !p.stale ? perkDiff(p.basePerk, p.perk) : p.perk),
               h('div', { class: 'sl' }, `${p.slices} / ${p.max} slices`),
               p.freshOn && !p.dead ? freshBar(p.fresh, p.maxFresh) : null,
-            ),
-          ),
+              reheat,
+            );
+          }),
         ),
       );
       // counter + services
       const offers = st.offers.map((o) => {
-        const b = btn(`${o.trial ? 'RENT' : 'BUY'} · ${fmt(o.cost)}`, `${st.coins >= o.cost ? 'green' : ''} small`, () => act.buyPizza(o.id));
+        const was = o.cost < o.fullCost ? `<s>${fmt(o.fullCost)}</s> ` : '';
+        const b = btn(o.cost === 0 ? 'FREE' : `BUY · ${was}${fmt(o.cost)}`, `${st.coins >= o.cost ? 'green' : ''} small`, () => act.buyPizza(o.id));
         b.disabled = st.coins < o.cost;
-        return h('div', { class: `offer${o.trial ? ' trial' : ''}` }, h('img', { src: pizzaPortraitURL(o.id), alt: '' }), h('div', { class: 'offer-text' }, o.trial ? h('span', { class: 'tag' }, "CHEF'S SPECIAL") : null, h('b', {}, o.name), h('span', {}, o.perk)), b);
+        const pic = h('div', { class: 'offer-pic' }, h('img', { src: pizzaPortraitURL(o.id), alt: '' }), o.kind === 'enhanced' ? h('span', { class: 'star-badge' }, '★') : null);
+        if (o.kind === 'special')
+          return h(
+            'div',
+            { class: 'offer special' },
+            pic,
+            h('div', { class: 'offer-text' }, h('span', { class: 'tag' }, "CHEF'S SPECIAL"), h('b', {}, o.name), h('span', {}, o.perk)),
+            b,
+            h('div', { class: 'unlock-note' }, h('b', {}, 'NEW PIZZA'), ' · Buy it to add it to your table and unlock it forever'),
+          );
+        if (o.kind === 'enhanced')
+          return h('div', { class: 'offer enhanced' }, pic, h('div', { class: 'offer-text' }, h('span', { class: 'tag' }, '★ ENHANCED PIZZA'), h('b', {}, o.name), h('span', {}, perkDiff(o.basePerk ?? o.perk, o.perk))), b);
+        return h('div', { class: `offer${o.cost === 0 ? ' free' : ''}` }, pic, h('div', { class: 'offer-text' }, o.cost === 0 ? h('span', { class: 'tag' }, 'ON THE HOUSE') : null, h('b', {}, o.name), h('span', {}, o.perk)), b);
       });
       const svc = (label: string, s: { cost: number; can: boolean }, fn: () => void, cls: string) => {
         const b = btn(`${label} · ${fmt(s.cost)}`, `${cls} small`, fn);
@@ -801,15 +916,16 @@ class UI {
       const services = h(
         'div',
         { class: 'services' },
-        st.reheat.shown ? svc('REHEAT', st.reheat, act.reheat, 'yellow') : null,
-        svc('HEAL ALL +2', st.heal, act.heal, 'green'),
+        btn('YOUR TOPPINGS', 'yellow small', () => act.toppings(), { title: 'Every topping you have, its level, and when used ones come back', 'aria-label': `Your toppings: ${st.yours.filter((y) => y.back === null).length}` }),
+        svc('HEAL +2', st.heal, act.heal, 'green'),
         st.rebake.shown ? svc('REBAKE', st.rebake, act.rebake, '') : null,
       );
       const counter = h(
         'section',
-        { class: 'shop-sec counter2', 'data-pad-section': '' },
+        { class: `shop-sec counter2${st.lastStand ? ' last-stand' : ''}`, 'data-pad-section': '' },
         h('div', { class: 'sec-head' }, h('h2', {}, 'PIZZA COUNTER'), st.tableFull ? h('span', { class: 'sec-note' }, 'Full: you pick one to swap') : null),
-        ...(offers.length ? offers : [h('div', { class: 'hint' }, 'Unlock more pizzas in the Pizzeria to see them here.')]),
+        st.lastStand ? h('div', { class: 'ls-banner', role: 'status' }, h('b', {}, 'ONE PIZZA LEFT'), h('span', {}, 'PICK ANOTHER ONE, ON THE HOUSE')) : null,
+        ...(offers.length ? offers : [h('div', { class: 'hint' }, 'Nothing more at the counter this time.')]),
         services,
       );
       const golden = h(
@@ -827,7 +943,10 @@ class UI {
           }),
         ),
       );
-      const next = btn('NEXT WAVE', 'big next', () => act.next(), { 'data-pad': 'hold' });
+      // last pizza standing: Next Wave waits until a pizza is added
+      const next = st.lastStand
+        ? btn('🔒 NEXT WAVE<small>Add a pizza from the counter first</small>', 'big next locked', () => act.next(), { 'data-pad': 'hold', 'aria-label': 'Next wave is locked: add a pizza from the counter first' })
+        : btn('NEXT WAVE', 'big next', () => act.next(), { 'data-pad': 'hold' });
       next.addEventListener('padhold', () => act.next());
       // the pause menu from the shop: settings, save and leave, or quit
       const gear = btn(GEAR_SVG, 'shop-pause cream', () => act.pause(), { 'aria-label': 'Pause menu', title: 'Pause menu (Esc)' });
@@ -855,6 +974,113 @@ class UI {
 
   updateShop(screen: HTMLElement, st: ShopState): void {
     this.shops.get(screen)?.(st);
+  }
+
+  /** Next Wave pressed while it's locked: shake the counter so the eye goes there. */
+  nudgeCounter(screen: HTMLElement): void {
+    const c = screen.querySelector<HTMLElement>('.counter2');
+    if (!c) return;
+    c.classList.remove('nudge');
+    void c.offsetWidth;
+    c.classList.add('nudge');
+  }
+
+  // ——— Your Toppings: everything you own, searchable ———
+  yourToppings(list: YourTopping[], wave: number): HTMLElement {
+    let s: HTMLElement;
+    const search = h('input', { class: 'yt-search', type: 'search', placeholder: 'Search your toppings', 'aria-label': 'Search your toppings' }) as HTMLInputElement;
+    const body = h('div', { class: 'scroll yt-list' });
+    const rows = list.map((y) => {
+      const u = UPGRADE_BY_ID[y.id];
+      const k = kindOf(u);
+      const more = k === 'permanent' && y.lvl > 1 && u.desc(2) !== u.desc(1) ? `Each level after the first: ${u.desc(2)}` : '';
+      // cooldowns hold the first wave a used consumable may be dealt again: it's back in that wave's shop
+      const status =
+        y.back !== null
+          ? h('span', { class: 'yt-st back' }, `Used · back in the shop after wave ${y.back}${y.back > wave ? ` (${y.back - wave} to go)` : ''}`)
+          : y.armed
+            ? h('span', { class: 'yt-st ready' }, 'READY · waiting to trigger')
+            : k === 'permanent'
+              ? h('span', { class: 'yt-st' }, `LV ${y.lvl} / ${u.max}`)
+              : h('span', { class: 'yt-st' }, k === 'unique' ? 'Once per run' : 'One use');
+      const row = h(
+        'div',
+        { class: `ytop${y.back !== null ? ' used' : ''}`, style: `--rc:${RARITY_COLOR[u.rarity]}` },
+        h('div', { class: 'ic' }, u.icon),
+        h('div', { class: 'tx' }, h('div', { class: 'yt-head' }, h('b', {}, u.name), h('span', { class: `rar ${u.rarity}` }, u.rarity), status), h('span', {}, u.desc(1)), more ? h('small', {}, more) : null, u.downside ? h('em', { class: 'down' }, `▼ ${u.downside}`) : null),
+      );
+      return { row, text: `${u.name} ${u.desc(1)} ${u.rarity} ${u.downside ?? ''}`.toLowerCase() };
+    });
+    const empty = h('div', { class: 'hint' }, list.length ? 'No toppings match that.' : 'No toppings yet. Buy some from the cards!');
+    const filter = () => {
+      const q = search.value.trim().toLowerCase();
+      const shown = rows.filter((r) => !q || r.text.includes(q));
+      body.replaceChildren(...shown.map((r) => r.row), ...(shown.length ? [] : [empty]));
+    };
+    search.addEventListener('input', filter);
+    // typing in the box mustn't trigger the shop's keys (1-4 buy, R reroll, N next wave)
+    search.addEventListener('keydown', (e) => e.stopPropagation());
+    filter();
+    const owned = list.filter((y) => y.back === null).length;
+    const panel = h(
+      'div',
+      { class: 'panel modal wide yourtops' },
+      h('div', { class: 'title' }, 'YOUR TOPPINGS'),
+      h('div', { class: 'subtitle' }, `${owned} topping${owned === 1 ? '' : 's'} on your pizzas${list.length > owned ? ` · ${list.length - owned} coming back` : ''}`),
+      search,
+      body,
+      btn('DONE', 'green', () => this.close(s), { 'data-pad': 'back' }),
+    );
+    s = this.open(panel);
+    setTimeout(() => search.focus({ preventScroll: true }), 50);
+    return s;
+  }
+
+  // ——— Enhance a Pizza (Golden Menu): pick a pizza on the table ———
+  enhancePicker(o: { cost: number; pizzas: ShopPizza[]; onPick: (index: number) => void }): HTMLElement {
+    let s: HTMLElement;
+    let picked = o.pizzas.findIndex((p) => !p.dead && !p.enhanced);
+    const confirm = btn('', 'yellow big', () => {
+      if (picked < 0) return;
+      this.close(s);
+      o.onPick(picked);
+    });
+    const tiles: HTMLButtonElement[] = [];
+    const sync = () => {
+      tiles.forEach((t) => t.classList.toggle('picked', Number(t.dataset.i) === picked));
+      const p = o.pizzas[picked];
+      confirm.innerHTML = p ? `${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} ENHANCE · ${o.cost}` : 'ENHANCE';
+      confirm.disabled = !p;
+    };
+    o.pizzas.forEach((p, i) => {
+      const off = p.dead || p.enhanced;
+      const t = h(
+        'button',
+        { class: `swaptile enh${p.dead ? ' dead' : ''}${p.enhanced ? ' done' : ''}`, type: 'button', 'data-i': i },
+        p.enhanced ? h('span', { class: 'flag gold' }, '★ ENHANCED') : p.dead ? h('span', { class: 'flag dead' }, 'TOAST') : null,
+        pizzaThumb(p.id, p.slices, p.max, 200, p.stale, p.dead),
+        h('span', { class: 'nm' }, p.name),
+        p.dead ? h('span', { class: 'ds' }, 'Destroyed') : h('span', { class: 'ds' }, perkDiff(p.basePerk, p.enhanced ? p.perk : p.enhancedPerk)),
+      ) as HTMLButtonElement;
+      t.disabled = off;
+      t.addEventListener('click', () => {
+        if (off) return;
+        audio.sfx('sfx_click');
+        picked = i;
+        sync();
+      });
+      tiles.push(t);
+    });
+    const panel = h(
+      'div',
+      { class: 'swap2 enhance2' },
+      h('div', { class: 'incoming' }, h('div', { class: 'in-star' }, '★'), h('div', { class: 'in-text' }, h('span', { class: 'tag' }, 'GOLDEN MENU · ENHANCE A PIZZA'), h('b', {}, 'Make one perk stronger'), h('span', {}, 'About +50% for the rest of the run, or a better effect. One per pizza.')), h('div', { class: 'in-ask' }, h('b', {}, 'WHICH PIZZA?'), h('span', {}, `${o.cost} crusts · the price doubles each time`))),
+      h('div', { class: 'swaprow' }, ...tiles),
+      h('div', { class: 'swapfoot' }, btn('CANCEL', 'cream', () => this.close(s), { 'data-pad': 'back' }), confirm),
+    );
+    sync();
+    s = this.open(panel);
+    return s;
   }
 
   // ——— Swap picker: the incoming pizza on top, your pizzas drawn big below ———
@@ -1201,10 +1427,9 @@ class UI {
   }
 
   // ——— Game over ———
-  gameOver(o: { score: number; wave: number; feet: number; combo: number; bosses: number; crusts: number; newBest: boolean; heat: string; location: string; secondChanceRun: boolean; time: string; unlocked: string[]; affordable: string[]; next: { name: string; cost: number } | null; victory: boolean; again: () => void; menu: () => void; pizzeria: () => void }): HTMLElement {
+  gameOver(o: { score: number; wave: number; feet: number; combo: number; bosses: number; crusts: number; newBest: boolean; heat: string; location: string; secondChanceRun: boolean; time: string; affordable: string[]; next: { name: string; cost: number } | null; victory: boolean; again: () => void; menu: () => void; pizzeria: () => void }): HTMLElement {
     const shopBtn = btn('PIZZERIA', `yellow${o.affordable.length ? ' attention' : ''}`, o.pizzeria);
     const callouts = h('div', { class: 'callouts' });
-    if (o.unlocked.length) callouts.append(h('div', { class: 'callout good', html: `🎉 Unlocked this run: <b>${o.unlocked.map((id) => PIZZA_BY_ID[id].name).join(', ')}</b>` }));
     if (o.affordable.length) callouts.append(h('div', { class: 'callout', html: `🍕 You can now unlock <b>${o.affordable.slice(0, 3).map((id) => PIZZA_BY_ID[id].name).join(', ')}${o.affordable.length > 3 ? ` +${o.affordable.length - 3} more` : ''}</b> in the Pizzeria!` }));
     else if (o.next) callouts.append(h('div', { class: 'callout', html: `Next unlock: <b>${o.next.name}</b> · ${fmt(Math.min(save.crusts, o.next.cost))} / ${fmt(o.next.cost)} crusts` }));
     if (o.secondChanceRun) callouts.append(h('div', { class: 'callout' }, 'Second-chance run'));
@@ -1231,81 +1456,179 @@ class UI {
     return s;
   }
 
-  // ——— Pizzeria (meta shop) ———
+  // ——— Pizzeria (meta shop): upgrades, every pizza and how it unlocks, and the toppings collection ———
   pizzeria(onClose: () => void): HTMLElement {
-    let tab: 'upgrades' | 'pizzas' = 'upgrades';
+    type Tab = 'upgrades' | 'pizzas' | 'toppings';
+    // catch up on milestones met before they named their pizza
+    awardMilestones(null);
+    // NEW badges stay for this visit; looking at a tab clears them for next time
+    const newPizzas = new Set(save.pizzasNew);
+    const newTops = new Set(save.toppingsNew);
+    let tab: Tab = 'upgrades';
+    let rarity: 'all' | Rarity = 'all';
+    let seenFilter: 'all' | 'seen' | 'unseen' = 'all';
     const balance = h('div', { class: 'crusts' });
     const body = h('div', { class: 'scroll' });
     const tabs = h('div', { class: 'tabs' });
+    const crustIco = CRUST_SVG.replace('class="coin"', 'class="coin-ico"');
+    const bar = (have: number, need: number) => h('div', { class: 'pbar' }, h('i', { style: `width:${Math.round((100 * Math.min(have, need)) / need)}%` }), h('span', {}, `${fmt(have)}/${fmt(need)}`));
+    const badge = (on: boolean) => (on ? ' <span class="badge">NEW</span>' : '');
     const render = () => {
       balance.innerHTML = `${CRUST_SVG.replace('class="coin"', 'style="width:1.2em;height:1.2em"')} ${fmt(save.crusts)} <span style="font-size:.55em">Golden Crusts</span>`;
+      if (tab === 'pizzas' && save.pizzasNew.length) {
+        save.pizzasNew = [];
+        persist();
+      }
+      if (tab === 'toppings' && save.toppingsNew.length) {
+        save.toppingsNew = [];
+        persist();
+      }
+      const seenCount = UPGRADES.filter((u) => save.seenToppings.includes(u.id)).length;
       tabs.replaceChildren(
         btn('UPGRADES', `small ${tab === 'upgrades' ? 'active' : ''}`, () => ((tab = 'upgrades'), render())),
-        btn(`PIZZAS ${save.unlockedPizzas.length}/${PIZZAS.length}`, `small ${tab === 'pizzas' ? 'active' : ''}`, () => ((tab = 'pizzas'), render())),
+        btn(`PIZZAS ${save.unlockedPizzas.filter((id) => PIZZA_BY_ID[id]).length}/${PIZZAS.length}${badge(tab !== 'pizzas' && save.pizzasNew.length > 0)}`, `small ${tab === 'pizzas' ? 'active' : ''}`, () => ((tab = 'pizzas'), render())),
+        btn(`TOPPINGS ${seenCount}/${UPGRADES.length}${badge(tab !== 'toppings' && save.toppingsNew.length > 0)}`, `small ${tab === 'toppings' ? 'active' : ''}`, () => ((tab = 'toppings'), render())),
       );
-      if (tab === 'upgrades') {
-        const refund = metaRefundValue();
-        const resetBtn = btn(refund > 0 ? `RESET UPGRADES · REFUND ${fmt(refund)}` : 'RESET UPGRADES', 'cream small', () => {
-          resetMeta();
-          audio.sfx('sfx_coin');
-          render();
+      body.scrollTop = 0;
+      if (tab === 'upgrades') body.replaceChildren(...upgradesTab());
+      else if (tab === 'pizzas') body.replaceChildren(...pizzasTab());
+      else body.replaceChildren(...toppingsTab());
+    };
+    const upgradesTab = (): HTMLElement[] => {
+      const refund = metaRefundValue();
+      const resetBtn = btn(refund > 0 ? `RESET UPGRADES · REFUND ${fmt(refund)}` : 'RESET UPGRADES', 'cream small', () => {
+        resetMeta();
+        audio.sfx('sfx_coin');
+        render();
+      });
+      resetBtn.disabled = refund <= 0;
+      return [
+        h('div', { class: 'reset-row meta-reset' }, resetBtn, h('span', {}, 'Full refund, any time. Pizza unlocks stay unlocked.')),
+        h(
+          'div',
+          { class: 'meta-list' },
+          ...META.map((m) => {
+            const lvl = save.meta[m.id] ?? 0;
+            const maxed = lvl >= m.costs.length;
+            const cost = m.costs[lvl];
+            const pips = h('div', { class: 'pips', style: '--rc:var(--tomato)' });
+            for (let i = 0; i < m.costs.length; i++) pips.append(h('i', { class: i < lvl ? 'on' : '' }));
+            const b = btn(maxed ? 'MAXED' : `${crustIco} ${fmt(cost)}`, maxed ? 'cream' : 'green', () => {
+              if (maxed || save.crusts < cost) return;
+              save.crusts -= cost;
+              save.meta[m.id] = lvl + 1;
+              save.metaSpent[m.id] = (save.metaSpent[m.id] ?? 0) + cost;
+              persist();
+              audio.sfx('sfx_upgrade');
+              render();
+            });
+            b.disabled = maxed || save.crusts < cost;
+            // icon | name + level pips | price, with the description across the full width underneath
+            return h('div', { class: 'meta' }, h('div', { class: 'ic' }, m.icon), h('div', { class: 'nmrow' }, h('div', { class: 'nm' }, m.name), pips), b, h('div', { class: 'ds' }, m.desc));
+          }),
+        ),
+      ];
+    };
+    // every pizza, grouped by how it unlocks
+    const pizzasTab = (): HTMLElement[] => {
+      const has = (id: string) => save.unlockedPizzas.includes(id);
+      const tile = (p: PizzaType, cls: string, ...rest: (HTMLElement | null)[]) =>
+        h('div', { class: `tile pz-tile ${cls}` }, h('img', { src: pizzaPortraitURL(p.id), alt: p.name, loading: 'lazy' }), h('div', { class: 'nm' }, p.name), h('div', { class: 'ds' }, p.perkText), ...rest, newPizzas.has(p.id) ? h('span', { class: 'tag new' }, 'NEW') : null);
+      const section = (title: string, note: string, tiles: HTMLElement[]) => (tiles.length ? [h('div', { class: 'pz-sec' }, h('b', {}, title), h('span', {}, note)), h('div', { class: 'grid' }, ...tiles)] : []);
+      const owned = PIZZAS.filter((p) => has(p.id)).sort((a, b) => Number(newPizzas.has(b.id)) - Number(newPizzas.has(a.id)) || a.cost - b.cost);
+      const locked = (r: PizzaRoute) => PIZZAS.filter((p) => p.route === r && !has(p.id));
+      const shop = locked('pizzeria')
+        .sort((a, b) => a.cost - b.cost)
+        .map((p) => {
+          const b = btn(`${crustIco} ${fmt(p.cost)}`, 'green small', () => {
+            if (save.crusts < p.cost) return;
+            save.crusts -= p.cost;
+            unlockPizza(p.id);
+            newPizzas.add(p.id);
+            save.pizzasNew = save.pizzasNew.filter((x) => x !== p.id);
+            persist();
+            audio.sfx('sfx_levelup');
+            render();
+          });
+          b.disabled = save.crusts < p.cost;
+          return tile(p, 'unowned', b);
         });
-        resetBtn.disabled = refund <= 0;
-        body.replaceChildren(
-          h('div', { class: 'reset-row meta-reset' }, resetBtn, h('span', {}, 'Full refund, any time. Pizza unlocks stay unlocked.')),
-          h(
-            'div',
-            { class: 'meta-list' },
-            ...META.map((m) => {
-              const lvl = save.meta[m.id] ?? 0;
-              const maxed = lvl >= m.costs.length;
-              const cost = m.costs[lvl];
-              const pips = h('div', { class: 'pips', style: '--rc:var(--tomato)' });
-              for (let i = 0; i < m.costs.length; i++) pips.append(h('i', { class: i < lvl ? 'on' : '' }));
-              const b = btn(maxed ? 'MAXED' : `${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} ${fmt(cost)}`, maxed ? 'cream' : 'green', () => {
-                if (maxed || save.crusts < cost) return;
-                save.crusts -= cost;
-                save.meta[m.id] = lvl + 1;
-                save.metaSpent[m.id] = (save.metaSpent[m.id] ?? 0) + cost;
-                persist();
-                audio.sfx('sfx_upgrade');
-                render();
-              });
-              b.disabled = maxed || save.crusts < cost;
-              // icon | name + level pips | price, with the description across the full width underneath
-              return h('div', { class: 'meta' }, h('div', { class: 'ic' }, m.icon), h('div', { class: 'nmrow' }, h('div', { class: 'nm' }, m.name), pips), b, h('div', { class: 'ds' }, m.desc));
-            }),
-          ),
+      const prizes = locked('milestone')
+        .map((p) => ({ p, m: MILESTONE_BY_PIZZA[p.id], pr: MILESTONE_BY_PIZZA[p.id] ? milestoneProgress(MILESTONE_BY_PIZZA[p.id].id) : ([0, 1] as [number, number]) }))
+        .sort((a, b) => b.pr[0] / b.pr[1] - a.pr[0] / a.pr[1])
+        .map(({ p, m, pr }) => tile(p, 'unowned pz-goal', h('div', { class: 'route' }, m ? m.name : 'A milestone prize'), bar(pr[0], pr[1])));
+      const specials = locked('special')
+        .sort((a, b) => a.cost - b.cost)
+        .map((p) => {
+          const n = save.specialSeen[p.id] ?? 0;
+          return tile(p, 'unowned', h('div', { class: 'route' }, 'Turns up as a Chef’s Special in the shop'), h('div', { class: 'seen' }, n ? `Seen ${n} time${n === 1 ? '' : 's'}` : 'Not seen yet'));
+        });
+      const rare = locked('rare').map((p) => {
+        // a silhouette until it's turned up once
+        const seen = save.rareSeen.includes(p.id);
+        return h(
+          'div',
+          { class: `tile pz-tile unowned rare${seen ? '' : ' unseen'}` },
+          h('img', { src: pizzaPortraitURL(p.id), alt: seen ? p.name : 'Unknown pizza', loading: 'lazy' }),
+          h('div', { class: 'nm' }, seen ? p.name : '???'),
+          h('div', { class: 'ds' }, seen ? p.perkText : 'A Rare Find'),
+          h('div', { class: 'route' }, 'Turns up rarely on the new-run screen'),
+          seen ? h('div', { class: 'seen' }, `${fmt(p.cost)} crusts when it turns up`) : null,
         );
-      } else {
-        body.replaceChildren(
-          h(
-            'div',
-            { class: 'grid' },
-            ...[...PIZZAS].sort((a, b) => Number(save.unlockedPizzas.includes(b.id)) - Number(save.unlockedPizzas.includes(a.id)) || a.cost - b.cost).map((p) => {
-              const owned = save.unlockedPizzas.includes(p.id);
-              const b = owned
-                ? h('div', { class: 'chip', style: 'background:var(--basil-d);color:#fff' }, 'ON THE MENU')
-                : btn(`${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} ${fmt(p.cost)}`, 'green small', () => {
-                    if (save.crusts < p.cost) return;
-                    save.crusts -= p.cost;
-                    save.unlockedPizzas.push(p.id);
-                    persist();
-                    audio.sfx('sfx_levelup');
-                    render();
-                  });
-              if (!owned) (b as HTMLButtonElement).disabled = save.crusts < p.cost;
-              return h('div', { class: `tile${owned ? '' : ' unowned'}` }, h('img', { src: pizzaPortraitURL(p.id), alt: p.name, loading: 'lazy' }), h('div', { class: 'nm' }, p.name), h('div', { class: 'ds' }, p.perkText), b);
-            }),
-          ),
+      });
+      return [
+        ...section(`ON THE MENU · ${owned.length}`, 'These can turn up at the shop counter', owned.map((p) => tile(p, '', h('div', { class: 'chip', style: 'background:var(--basil-d);color:#fff' }, 'ON THE MENU')))),
+        ...section(`BUY HERE · ${shop.length}`, 'Unlock with Golden Crusts', shop),
+        ...section(`MILESTONE PRIZES · ${prizes.length}`, 'Reach the goal and the pizza is yours', prizes),
+        ...section(`CHEF’S SPECIALS · ${specials.length}`, 'Buy one in the shop with tips to unlock it for good', specials),
+        ...section(`RARE FINDS · ${rare.length}`, 'Only by luck, on the new-run screen', rare),
+      ];
+    };
+    // every topping in the game: seen ones in full, the rest as ??? in their rarity colour
+    const RARITIES: Rarity[] = ['common', 'rare', 'epic', 'legendary'];
+    const toppingsTab = (): HTMLElement[] => {
+      const seen = new Set(save.seenToppings);
+      const rTabs = h('div', { class: 'tabs locker-tabs' });
+      const rSelect = h('select', { class: 'locker-select', 'aria-label': 'Rarity' }) as HTMLSelectElement;
+      const sTabs = h('div', { class: 'tabs locker-tabs' });
+      const sSelect = h('select', { class: 'locker-select', 'aria-label': 'Seen or not' }) as HTMLSelectElement;
+      const rOpts: ['all' | Rarity, string][] = [['all', 'ALL'], ...RARITIES.map((r) => [r, r.toUpperCase()] as [Rarity, string])];
+      const sOpts: ['all' | 'seen' | 'unseen', string][] = [['all', 'ALL'], ['seen', 'SEEN'], ['unseen', 'NOT SEEN']];
+      rTabs.append(...rOpts.map(([v, l]) => btn(l, `small ${rarity === v ? 'active' : ''}`, () => ((rarity = v), render()))));
+      sTabs.append(...sOpts.map(([v, l]) => btn(l, `small ${seenFilter === v ? 'active' : ''}`, () => ((seenFilter = v), render()))));
+      for (const [v, l] of rOpts) rSelect.append(h('option', { value: v, selected: v === rarity }, l === 'ALL' ? 'All rarities' : l));
+      for (const [v, l] of sOpts) sSelect.append(h('option', { value: v, selected: v === seenFilter }, l === 'ALL' ? 'Seen and not seen' : l));
+      rSelect.addEventListener('change', () => ((rarity = rSelect.value as typeof rarity), render()));
+      sSelect.addEventListener('change', () => ((seenFilter = sSelect.value as typeof seenFilter), render()));
+      const list = UPGRADES.filter((u) => (rarity === 'all' || u.rarity === rarity) && (seenFilter === 'all' || (seenFilter === 'seen') === seen.has(u.id))).sort(
+        (a, b) => RARITIES.indexOf(a.rarity) - RARITIES.indexOf(b.rarity) || Number(seen.has(b.id)) - Number(seen.has(a.id)) || Number(newTops.has(b.id)) - Number(newTops.has(a.id)) || a.name.localeCompare(b.name),
+      );
+      const card = (u: (typeof UPGRADES)[number]) => {
+        if (!seen.has(u.id)) return h('div', { class: `tcard unseen ${u.rarity}`, style: `--rc:${RARITY_COLOR[u.rarity]}`, 'aria-label': `Not seen yet: a ${u.rarity} topping` }, h('div', { class: 'q' }, '???'), h('div', { class: 'rarity' }, u.rarity));
+        const k = kindOf(u);
+        const runs = save.toppingRuns[u.id] ?? 0;
+        return h(
+          'div',
+          { class: `tcard ${u.rarity}${runs ? ' bought' : ''}`, style: `--rc:${RARITY_COLOR[u.rarity]}` },
+          h('div', { class: 'tc-top' }, h('span', { class: 'ic' }, u.icon), h('div', { class: 'rarity' }, u.rarity), h('span', { class: `kind ${k}` }, k === 'permanent' ? 'PERMANENT' : k === 'unique' ? 'ONCE PER RUN' : 'ONE USE')),
+          h('div', { class: 'nm' }, u.name),
+          h('div', { class: 'ds' }, u.desc(1)),
+          u.downside ? h('div', { class: 'down' }, `▼ ${u.downside}`) : null,
+          runs ? h('div', { class: 'runs' }, h('span', { class: 'tick', 'aria-hidden': 'true' }, '✔'), `Bought in ${runs} run${runs === 1 ? '' : 's'}`) : null,
+          newTops.has(u.id) ? h('span', { class: 'tag new' }, 'NEW') : null,
         );
-      }
+      };
+      return [
+        h('div', { class: 'locker-bar tops-bar' }, rTabs, rSelect, sTabs, sSelect),
+        h('div', { class: 'tops-note' }, `${seen.size ? `${UPGRADES.filter((u) => seen.has(u.id)).length} seen of ${UPGRADES.length}` : 'Nothing seen yet'} · a topping shows here once it's dealt in a shop`),
+        list.length ? h('div', { class: 'tgrid' }, ...list.map(card)) : h('div', { class: 'hint' }, 'Nothing here yet.'),
+      ];
     };
     render();
     let s: HTMLElement;
     const panel = h(
       'div',
-      { class: 'panel modal wide' },
+      { class: 'panel modal wide pizzeria' },
       h('div', { class: 'title' }, 'THE PIZZERIA'),
       balance,
       tabs,
@@ -1314,6 +1637,40 @@ class UI {
         this.close(s);
         onClose();
       }, { 'data-pad': 'back' }),
+    );
+    s = this.open(panel);
+    return s;
+  }
+
+  // ——— Unlocked this run: after every run (win, bank or loss), before its stats ———
+  runSummary(o: RunSummary, onContinue: () => void): HTMLElement {
+    let s: HTMLElement;
+    const item = (art: HTMLElement, title: string, line: string, cls = '', isNew = false, extra: HTMLElement | null = null) =>
+      h('div', { class: `rs-item ${cls}` }, art, h('div', { class: 'rs-tx' }, h('b', {}, title), h('span', {}, line), extra), isNew ? h('span', { class: 'tag new' }, 'NEW') : null);
+    const img = (src: string, cls = '') => h('div', { class: `rs-art ${cls}` }, h('img', { src, alt: '' }));
+    const ico = (t: string) => h('div', { class: 'rs-art ic' }, t);
+    const sec = (title: string, items: HTMLElement[]) => (items.length ? [h('div', { class: 'section-title' }, title), h('div', { class: 'rs-grid' }, ...items)] : []);
+    const bar = (have: number, need: number) => h('div', { class: 'pbar' }, h('i', { style: `width:${Math.round((100 * Math.min(have, need)) / need)}%` }), h('span', {}, `${fmt(have)}/${fmt(need)}`));
+    const nothing = !o.pizzas.length && !o.peels.length && !o.milestones.length;
+    const panel = h(
+      'div',
+      { class: 'panel modal wide runsum' },
+      h('div', { class: 'rs-kicker' }, o.victory ? 'JOURNEY COMPLETE' : 'RUN OVER'),
+      h('div', { class: 'title' }, 'UNLOCKED THIS RUN'),
+      h('div', { class: 'crusts', html: `${CRUST_SVG.replace('class="coin"', 'style="width:1.2em;height:1.2em"')} +${fmt(o.crusts)} <span style="font-size:.55em">Golden Crusts earned</span>` }),
+      h(
+        'div',
+        { class: 'scroll rs-body' },
+        ...sec('NEW PIZZAS', o.pizzas.map((p) => item(img(pizzaPortraitURL(p.id)), p.name, p.why, 'pizza', true))),
+        ...sec('NEW PEELS', o.peels.map((p) => item(img(peelThumbURL(p.id, 160), `peel${p.shiny ? ' shiny' : ''}`), p.name, p.shiny ? 'A shiny! Rare as anything' : p.how, p.shiny ? 'shiny' : '', true))),
+        ...sec('MILESTONES', o.milestones.map((m) => item(ico('🏁'), m.name, m.pizza ? `Won ${m.pizza}` : '+50 Golden Crusts'))),
+        nothing ? h('div', { class: 'rs-none' }, 'Nothing new unlocked this time, but every run counts towards your goals.') : null,
+        ...sec('GETTING CLOSER', o.goals.map((g) => item(g.kind === 'pizza' ? img(pizzaPortraitURL(g.id)) : img(peelThumbURL(g.id, 160), 'peel'), g.name, '', 'goal', false, bar(g.have, g.need)))),
+      ),
+      h('div', { class: 'row' }, btn('CONTINUE', 'green big', () => {
+        this.close(s);
+        onContinue();
+      }, { 'data-pad-default': '', 'data-pad': 'back', 'data-no-x': '' })),
     );
     s = this.open(panel);
     return s;
