@@ -5,6 +5,7 @@
 // Damage is in "smacks": ×1 is one smack at your current damage, so abilities grow with your toppings.
 
 import type { Stats } from '../data/upgrades';
+import { slamPrompt } from '../systems/gamepad';
 
 export type Target =
   | { to: 'all' }
@@ -40,7 +41,7 @@ export type Effect =
   | { e: 'stat'; mods: Partial<Record<NumStat, number>> };
 
 export type Trigger =
-  /** Charge the meter, then press Space (or the button). */
+  /** Charge the meter, then fire it (Space, the controller's slam button, or a tap on the meter). */
   | { t: 'active' }
   /** Fires by itself when the meter fills. */
   | { t: 'auto' }
@@ -583,7 +584,7 @@ function effectText(f: Effect): string {
 function triggerText(t: Trigger): string {
   switch (t.t) {
     case 'active':
-      return 'Press Space when the meter is full';
+      return `${slamPrompt()} when the meter is full`;
     case 'auto':
       return 'Fires by itself when the meter fills';
     case 'every':

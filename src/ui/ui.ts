@@ -5,14 +5,14 @@ import { FEET, FOOT_BY_ID, TRAIT_INFO, howToFor, tellFor, type FootType } from '
 import { META } from '../data/meta';
 import { PIZZAS, PIZZA_BY_ID } from '../data/pizzas';
 import { RARITY_COLOR, UPGRADE_BY_ID } from '../data/upgrades';
-import { glyph } from '../systems/gamepad';
+import { glyph, slamPrompt } from '../systems/gamepad';
 import type { ShopActions, ShopPizza, ShopState } from './shopTypes';
 import { INTROS, freshBar, pizzaThumb } from './bits';
 import { footPortraitURL, pizzaPortraitURL, textureURL } from '../game/assets';
 import { audio } from '../systems/audio';
 import { bestFor, metaRefundValue, persist, resetEverything, resetMeta, resetProgress, save, updateSettings, type Settings } from '../systems/save';
 import { HEATS, HEAT_BY_ID, type HeatId } from '../data/difficulty';
-import { ACT_WAVES, STAGES } from '../data/stages';
+import { ACT_WAVES } from '../data/stages';
 import { BACKDROPS } from '../art/backdrops';
 import { applyA11y } from './a11y';
 import { abilityFor, abilityKindLabel, describeAbility } from '../game/abilities';
@@ -48,6 +48,9 @@ function madeBy(): HTMLElement {
   for (const ev of ['pointerdown', 'pointerup', 'click'] as const) a.addEventListener(ev, (e) => e.stopPropagation());
   return a;
 }
+
+/** The close cross for window corners. */
+const X_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="3.6" stroke-linecap="round"/></svg>';
 
 /** A chunky cog for the shop's pause-menu button (centred in its box, unlike the ⚙ glyph). */
 const GEAR_SVG =
@@ -96,7 +99,7 @@ function keepFocus(root: HTMLElement, render: () => void): void {
 
 /** A peel's ability as a line for the locker: kind pill, name and what it does. */
 function abilityLine(peelId: string): HTMLElement {
-  if (peelId === 'classic') return h('div', { class: 'abl' }, h('span', { class: 'chip' }, 'ACTIVE'), h('b', {}, 'Peel Slam'), h('span', {}, 'Press Space when the meter is full: smack every foot at once.'));
+  if (peelId === 'classic') return h('div', { class: 'abl' }, h('span', { class: 'chip' }, 'ACTIVE'), h('b', {}, 'Peel Slam'), h('span', {}, `${slamPrompt()} when the meter is full: smack every foot at once.`));
   const a = abilityFor(peelId);
   return h('div', { class: 'abl' }, h('span', { class: `chip ${abilityKindLabel(a).toLowerCase()}` }, abilityKindLabel(a)), h('b', {}, a.name), h('span', {}, describeAbility(a)));
 }
@@ -398,6 +401,16 @@ class UI {
   }
 
   private open(content: HTMLElement, dim = true): HTMLElement {
+    // a window that a Back / Cancel / Done button dismisses also gets an X in its top-right corner
+    const back = content.classList.contains('panel') ? content.querySelector<HTMLButtonElement>('[data-pad="back"]:not([data-no-x])') : null;
+    if (back) {
+      const x = h('button', { class: 'x-close', type: 'button', 'aria-label': 'Close', title: 'Close', html: X_SVG }) as HTMLButtonElement;
+      x.addEventListener('click', (e) => {
+        e.stopPropagation();
+        back.click();
+      });
+      content.append(x);
+    }
     const s = h('div', { class: `screen${dim ? ' dim' : ''}` }, content);
     s.addEventListener('pointerdown', (e) => e.stopPropagation());
     this.layer.append(s);
@@ -545,7 +558,7 @@ class UI {
     return s;
   }
 
-  // ——— Pre-run setup: heat, act, journey and lineup ———
+  // ——— Pre-run setup: heat, act, your peel and the lineup ———
   /** shuffle returns a new lineup; it's swapped in place (re-opening the screen made the backdrop flicker). */
   lineup(ids: string[], shuffle: () => string[], onStart: (heat: HeatId, act2: boolean, ids: string[]) => void, onBack: () => void): HTMLElement {
     let cur = ids;
@@ -599,44 +612,46 @@ class UI {
       startBtn.innerHTML = `START · ${HEAT_BY_ID[heat].name.toUpperCase()}`;
     };
     render();
-    const journey = h(
-      'div',
-      { class: 'journey' },
-      ...STAGES.map((st, i) => {
-        const reached = save.bestWave > i * 5;
-        return h(
-          'div',
-          { class: `stage act${st.act}${reached ? ' reached' : ''}` },
-          h('span', { class: 'sn' }, `STAGE ${i + 1} · W${i * 5 + 1}–${i * 5 + 5}`),
-          h('b', {}, BACKDROPS[st.location].name),
-          h('span', {}, reached ? FOOT_BY_ID[st.boss]?.name ?? '' : '???'),
-        );
-      }),
-    );
-    // the peel and what it does: the Classic Peel has the Peel Slam, every other peel its own ability
-    const peelCard = h('div', { class: 'peelcard', 'data-pad-section': '' });
+    // your peel, as two boxes: the peel you play with (its ability) and the look you wear over it
+    const peelCard = h('div', { class: 'peelboxes', 'data-pad-section': '' });
     const renderPeel = () => {
       const d = equippedPeel();
-      // a worn look shows on the card (it's what you'll play with), with the equipped peel's name
-      const look = wornSkin();
-      const lookRow = look && look.id !== d.id
-        ? h('span', { class: 'pk-look' }, `👕 Wearing the ${look.name.replace(/ Peel$/, '')} look · `, Object.assign(h('button', { class: 'linkish', type: 'button', 'data-fk': 'pk:look' }, 'take off'), {
+      const worn = wornSkin();
+      const look = worn ?? d;
+      const pic = (pd: PeelDef) => h('div', { class: `pk-img${pd.shiny ? ' shiny' : ''}` }, h('img', { src: peelThumbURL(pd.id, 200), alt: '' }));
+      const reset = worn
+        ? Object.assign(h('button', { class: 'linkish', type: 'button', 'data-fk': 'pk:look' }, 'match my peel'), {
             onclick: () => {
               audio.sfx('sfx_click');
               wearSkin(null);
               keepFocus(peelCard, renderPeel);
             },
-          }))
+          })
         : null;
-      const shown = look ?? d;
       peelCard.replaceChildren(
-        h('div', { class: `pk-img${shown.shiny ? ' shiny' : ''}` }, h('img', { src: peelThumbURL(shown.id, 200), alt: '' })),
         h(
           'div',
-          { class: 'pk-body' },
-          h('div', { class: 'pk-head' }, h('b', { class: 'pk-name' }, d.name), btn('CHANGE', 'cream small', () => this.peelPicker(renderPeel))),
-          abilityLine(d.id),
-          lookRow,
+          { class: 'peelbox' },
+          pic(d),
+          h(
+            'div',
+            { class: 'pk-body' },
+            h('div', { class: 'pk-head' }, h('span', { class: 'pk-kind' }, 'ABILITY'), btn('CHANGE', 'cream small', () => this.peelPicker(renderPeel, 'ability'), { 'data-fk': 'pk:ability' })),
+            h('b', { class: 'pk-name' }, d.name),
+            abilityLine(d.id),
+          ),
+        ),
+        h(
+          'div',
+          { class: `peelbox look${worn ? '' : ' matching'}` },
+          pic(look),
+          h(
+            'div',
+            { class: 'pk-body' },
+            h('div', { class: 'pk-head' }, h('span', { class: 'pk-kind' }, 'LOOK'), btn('CHANGE', 'cream small', () => this.peelPicker(renderPeel, 'look'), { 'data-fk': 'pk:lookpick' })),
+            h('b', { class: 'pk-name' }, look.name),
+            h('span', { class: 'pk-desc' }, worn ? 'Worn over your peel: looks only, no ability. ' : 'Matches your peel. Wear any unlocked peel’s look instead.', reset),
+          ),
         ),
       );
     };
@@ -656,8 +671,8 @@ class UI {
       h('div', { class: 'title' }, 'NEW RUN'),
       h('div', { class: 'section-title' }, 'HEAT'),
       heatRow,
-      h('div', { class: 'prerun-mid' }, h('div', {}, h('div', { class: 'section-title' }, 'START AT'), actRow), h('div', { class: 'journey-wrap' }, h('div', { class: 'section-title' }, 'THE JOURNEY · 60 WAVES'), journey)),
-      h('div', { class: 'prerun-bottom' }, h('div', {}, h('div', { class: 'section-title' }, "TONIGHT'S LINEUP"), lineupRow), h('div', {}, h('div', { class: 'section-title' }, 'YOUR PEEL'), peelCard)),
+      h('div', { class: 'prerun-mid' }, h('div', {}, h('div', { class: 'section-title' }, 'START AT'), actRow), h('div', { class: 'peel-wrap' }, h('div', { class: 'section-title' }, 'YOUR PEEL'), peelCard)),
+      h('div', { class: 'prerun-bottom' }, h('div', { class: 'section-title' }, "TONIGHT'S LINEUP"), lineupRow),
       h('div', { class: 'row' }, btn('BACK', 'cream', onBack, { 'data-pad': 'back' }), btn('SHUFFLE', 'yellow', () => {
         cur = shuffle();
         renderLineup();
@@ -922,7 +937,7 @@ class UI {
       { class: 'panel modal second' },
       h('div', { class: 'title' }, 'ALL PIZZAS STOMPED'),
       h('div', { class: 'gold-card' }, h('span', { class: 'intro-tag' }, 'GOLDEN MENU'), h('b', {}, 'Second Chance'), h('p', {}, `Replay wave ${o.wave} with 3 pizzas at half slices. The run is marked as a second-chance run.`), h('span', { class: 'hint' }, `You have ${fmt(o.bank)} crusts banked · next use costs ${fmt(o.nextCost)}`)),
-      h('div', { class: 'row' }, btn('NO THANKS', 'cream', o.decline, { 'data-pad': 'back' }), btn(`${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} USE ${o.cost} CRUSTS`, 'yellow big', o.use)),
+      h('div', { class: 'row' }, btn('NO THANKS', 'cream', o.decline, { 'data-pad': 'back', 'data-no-x': '' }), btn(`${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} USE ${o.cost} CRUSTS`, 'yellow big', o.use)),
     );
     return this.open(panel);
   }
@@ -1183,7 +1198,7 @@ class UI {
       h('div', { class: 'stats' }, stat(fmt(o.score), 'Score'), stat(String(o.wave), 'Wave reached'), stat(fmt(o.feet), 'Feet smacked'), stat(String(o.combo), 'Best combo'), stat(String(o.bosses), 'Bosses beaten'), stat(o.time, 'Time')),
       h('div', { class: 'crusts', html: `${CRUST_SVG.replace('class="coin"', 'style="width:1.2em;height:1.2em"')} +` }, crustsEl, h('span', { style: 'font-size:.6em' }, ' Golden Crusts')),
       callouts.childElementCount ? callouts : null,
-      h('div', { class: 'row' }, btn('PLAY AGAIN', 'green big', o.again, { 'data-pad-default': '' }), shopBtn, btn('MENU', 'cream', o.menu, { 'data-pad': 'back' })),
+      h('div', { class: 'row' }, btn('PLAY AGAIN', 'green big', o.again, { 'data-pad-default': '' }), shopBtn, btn('MENU', 'cream', o.menu, { 'data-pad': 'back', 'data-no-x': '' })),
     );
     const s = this.open(panel);
     const t0 = performance.now();
@@ -1400,13 +1415,15 @@ class UI {
     return s;
   }
 
-  /** Peel picker (from the run-start screen): the Peel Locker, showing unlocked peels first; equipping one closes it. */
-  peelPicker(onDone: () => void): HTMLElement {
-    return this.locker(onDone, true);
+  /** Peel picker (from the run-start screen): the Peel Locker on unlocked peels, picking the peel you play with
+   * ('ability') or the look you wear over it ('look'); picking one closes it. */
+  peelPicker(onDone: () => void, mode: 'ability' | 'look' = 'ability'): HTMLElement {
+    return this.locker(onDone, mode);
   }
 
   // ——— Peel Locker: every peel, the achievements that unlock them, and what you equip and wear ———
-  locker(onClose: () => void, pick = false): HTMLElement {
+  locker(onClose: () => void, pickMode: 'ability' | 'look' | null = null): HTMLElement {
+    const pick = !!pickMode;
     type Tab = 'all' | 'goals' | 'crusts' | 'feet' | 'bosses' | 'pizzas' | 'places' | 'events' | 'shiny';
     const TAB_GROUPS: Record<Exclude<Tab, 'goals'>, PeelGroup[]> = {
       all: [...new Set(PEELS.map((d) => d.group))],
@@ -1427,7 +1444,7 @@ class UI {
     let tab: Tab = 'all';
     // the picker opens on what you can use right now; the locker on everything
     let unlockedOnly = pick;
-    let selected: PeelDef = equippedPeel();
+    let selected: PeelDef = pickMode === 'look' ? wornSkin() ?? equippedPeel() : equippedPeel();
     let s: HTMLElement;
     const finish = () => {
       this.close(s);
@@ -1484,14 +1501,17 @@ class UI {
         });
         (eq as HTMLButtonElement).disabled = equipped;
         eq.title = 'Use this peel and its ability';
+        // picking a look only offers the look, and wearing one closes the picker
         // wear: only the look, over whichever peel is equipped
         const look = btn(worn ? 'TAKE OFF LOOK' : 'WEAR LOOK', worn ? 'cream small' : 'yellow small', () => {
           wearSkin(worn ? null : d.id);
           audio.sfx('sfx_click');
+          if (pickMode === 'look') return finish();
           refresh(d.id);
         });
         look.title = worn ? 'Go back to the equipped peel’s own look' : 'Look like this peel, whatever peel is equipped';
-        actions.push(eq, look);
+        if (pickMode !== 'look') actions.push(eq);
+        if (pickMode !== 'ability') actions.push(look);
       } else if (d.cost) {
         const buy = btn(`BUY ${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} ${fmt(d.cost)}`, 'green small', () => {
           if (!buyPeel(d.id)) return;
@@ -1644,7 +1664,7 @@ class UI {
     const panel = h(
       'div',
       { class: `panel modal wide locker${pick ? ' picking' : ''}` },
-      h('div', { class: 'title' }, pick ? 'PICK A PEEL' : 'PEEL LOCKER'),
+      h('div', { class: 'title' }, pickMode === 'look' ? 'PICK A LOOK' : pick ? 'PICK A PEEL' : 'PEEL LOCKER'),
       crustLine,
       toolbar,
       detail,
@@ -1706,7 +1726,7 @@ class UI {
       btn('DONE', 'green', () => {
         this.close(s);
         onClose();
-      }),
+      }, { 'data-pad': 'back' }),
     );
     s = this.open(panel);
     return s;

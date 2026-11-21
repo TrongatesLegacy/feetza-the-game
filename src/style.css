@@ -207,6 +207,40 @@ body {
   position: relative;
 }
 
+/* the close cross in a window's top-right corner (it presses the window's Back / Cancel / Done) */
+.x-close {
+  position: absolute;
+  top: 0.9em;
+  right: 0.9em;
+  z-index: 2;
+  width: 3em;
+  height: 3em;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--ink);
+  background: linear-gradient(180deg, #fffaf0 0%, var(--paper-d) 100%);
+  border: 0.18em solid var(--ink);
+  border-radius: 0.5em;
+  box-shadow: 0 0.18em 0 var(--ink);
+  cursor: pointer;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+
+.x-close svg {
+  width: 1.4em;
+  height: 1.4em;
+}
+
+.x-close:hover {
+  background: #fff;
+}
+
+.x-close:active {
+  transform: translateY(0.14em);
+  box-shadow: 0 0.04em 0 var(--ink);
+}
+
 .panel::before {
   content: '';
   position: absolute;
@@ -3067,6 +3101,7 @@ body.pad :focus {
 }
 
 .heat small {
+  margin-top: auto;
   font-weight: 700;
   font-size: 0.8em;
   color: var(--tomato-d);
@@ -3181,6 +3216,7 @@ body.pad :focus {
 }
 
 .prerun-bottom .lineup2 {
+  width: 100%;
   flex-wrap: nowrap;
   gap: 0.5em;
   justify-content: flex-start;
@@ -3193,7 +3229,7 @@ body.pad :focus {
 }
 
 .prerun-bottom .lu img {
-  width: 4.6em;
+  width: 6em;
   flex-shrink: 0;
 }
 
@@ -3634,19 +3670,19 @@ body.reduced-motion *::after {
 }
 
 /* on the run card the ability's description runs on after its name, small, so the card stays short */
-.peelcard .abl {
+.peelbox .abl {
   display: block;
   margin-top: 0.1em;
   font-size: 0.82em;
   line-height: 1.25;
 }
 
-.peelcard .abl .chip {
+.peelbox .abl .chip {
   font-size: 0.9em;
   margin-right: 0.3em;
 }
 
-.peelcard .abl b {
+.peelbox .abl b {
   font-size: 1.15em;
   margin-right: 0.2em;
 }
@@ -3706,6 +3742,29 @@ body.reduced-motion *::after {
   .locker .btn.green:not(.small),
   .locker .btn.cream:not(.small) {
     font-size: 1.6em;
+  }
+
+  /* the new-run screen tightens up too, so its buttons stay on screen */
+  .modal.wide.prerun {
+    padding-top: 0.9em;
+    padding-bottom: 1.1em;
+  }
+
+  .modal.wide.prerun .title {
+    font-size: 2.4em;
+  }
+
+  .prerun .heat,
+  .prerun .act {
+    padding: 0.45em 0.7em;
+  }
+
+  .prerun .row .btn {
+    font-size: 1.6em;
+  }
+
+  .prerun .row .btn.big {
+    font-size: 2.2em;
   }
 }
 
@@ -4007,29 +4066,52 @@ body.reduced-motion *::after {
 }
 
 .prerun-bottom {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 34em;
-  gap: 1.4em;
   width: 100%;
-  align-items: stretch;
-}
-
-/* the lineup pills grow to the peel card's height */
-.prerun-bottom > div {
   display: flex;
   flex-direction: column;
 }
 
-.prerun-bottom .lineup2 {
-  flex: 1 1 auto;
-  align-items: stretch;
+/* your peel: the ability box and the look box side by side, where the journey used to be */
+.peel-wrap {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
-.prerun-bottom .peelcard {
+.peelboxes {
   flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 0.8em;
 }
 
-.peelcard {
+.peelbox .pk-body {
+  align-self: start;
+}
+
+.peelbox .pk-kind {
+  font-family: 'Lilita One', sans-serif;
+  font-size: 0.85em;
+  letter-spacing: 0.08em;
+  color: var(--tomato-d);
+}
+
+.peelbox.look.matching .pk-img img {
+  opacity: 0.85;
+}
+
+.peelbox .pk-desc .linkish {
+  font: inherit;
+  font-weight: 700;
+  color: var(--tomato-d);
+  background: none;
+  border: 0;
+  padding: 0;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.peelbox {
   display: grid;
   grid-template-columns: 3.6em minmax(0, 1fr);
   gap: 0.7em;
@@ -4040,7 +4122,7 @@ body.reduced-motion *::after {
   padding: 0.4em 0.8em;
 }
 
-.peelcard .pk-img {
+.peelbox .pk-img {
   position: relative;
   overflow: hidden;
   height: 6.4em;
@@ -4048,24 +4130,24 @@ body.reduced-motion *::after {
   place-items: center;
 }
 
-.peelcard .pk-img img {
+.peelbox .pk-img img {
   height: 6.4em;
   transform: rotate(-14deg);
 }
 
-.peelcard .pk-head {
+.peelbox .pk-head {
   display: flex;
   align-items: center;
   gap: 0.6em;
   flex-wrap: wrap;
 }
 
-.peelcard .pk-head .btn {
+.peelbox .pk-head .btn {
   margin-left: auto;
   font-size: 0.85em;
 }
 
-.peelcard .pk-img.shiny::after {
+.peelbox .pk-img.shiny::after {
   content: '';
   position: absolute;
   inset: -20%;
