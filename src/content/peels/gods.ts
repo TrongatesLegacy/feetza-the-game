@@ -9,7 +9,6 @@ import { godLook, kratosLook, type GodArt, type GreekSymbol, type NorseSymbol } 
 import type { PeelLook } from '../../art/peelArt';
 import type { HeroPeel, HeroSub } from '../heroPeels';
 import { save } from '../../systems/save';
-import { FEET } from '../../data/feet';
 
 const S = '{slam}';
 const active = { t: 'active' } as const;
@@ -58,9 +57,9 @@ const ROWS: Row[] = [
   },
   {
     id: 'kratos', name: 'Kratos Peel', sub: 'greek',
-    // any of the Persian army counts (the elephants and the five feet in src/content/feet/persians.ts)
-    goal: { kind: 'value', read: () => FEET.filter((f) => f.persian).reduce((n, f) => n + (save.kills[f.id] ?? 0), 0), need: 300 },
-    how: 'Strength of the gods: defeat 300 Persian feet (any of the Persian army).',
+    // the best wave reached on Extra Hot or Inferno (the Persian-kills goal is King Leonidas's now: src/content/peels/leonidas.ts)
+    goal: { kind: 'value', read: () => Math.max(save.best.extrahot?.wave ?? 0, save.best.inferno?.wave ?? 0), need: 100 },
+    how: 'The Journey of Blood: reach wave 100 on Extra Hot (Inferno counts too).',
     look: kratosLook,
     ability: sig('This Is Spartaaa', 'spartaaa', 0.7, 0xff6a1a, `Signature (${S}): a huge “THIS IS SPARTAAA!”, then 30 s of rage. Smacks deal +100% damage and every smack hits all feet within 160 px (the rest take normal damage), burns them all (1.5×/s for 3 s), knocks them back hard and breaks shields and armour. The meter doesn’t fill while the rage lasts. Passive, Spinning Blade: a chained blade orbits your peel (×1 to every foot it passes, at most every 0.5 s a foot). While enraged it catches fire and spins twice as fast. One more blade at the start of each new act in the run, up to 5.`),
   },
