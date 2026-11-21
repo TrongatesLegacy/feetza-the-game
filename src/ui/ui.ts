@@ -2129,6 +2129,7 @@ class UI {
       const owned = hasPeel(GOD_PEEL);
       const [have, need] = g.progress!();
       godSlot.className = `god-slot${owned ? ' owned' : ' sealed'}${selected.id === GOD_PEEL ? ' selected' : ''}${pick && !owned ? ' hide' : ''}`;
+      godSlot.title = owned ? g.name : 'The God Peel: sealed until every other peel is yours, the shinies and the ultra-rare jewels included.';
       godSlot.replaceChildren(
         h('div', { class: 'gs-pic' }, h('i', { class: 'gs-halo' }), h('img', { src: peelThumbURL(GOD_PEEL, 200), alt: '' }), owned ? null : h('span', { class: 'gs-seal', 'aria-hidden': 'true' }, '🔒')),
         h(
@@ -2167,8 +2168,8 @@ class UI {
       'div',
       { class: `panel modal wide locker${pick ? ' picking' : ''}` },
       // the title and the crust count share one row, and the X closes (the Done button stays for controllers)
-      h('div', { class: 'win-head' }, h('div', { class: 'title' }, pickMode === 'look' ? 'PICK A LOOK' : pick ? 'PICK A PEEL' : 'PEEL LOCKER'), crustLine),
-      godSlot,
+      // the God Peel sits in the header as a compact gold pill (its full story shows in the detail panel when picked)
+      h('div', { class: 'win-head' }, h('div', { class: 'title' }, pickMode === 'look' ? 'PICK A LOOK' : pick ? 'PICK A PEEL' : 'PEEL LOCKER'), crustLine, godSlot),
       toolbar,
       detail,
       body,

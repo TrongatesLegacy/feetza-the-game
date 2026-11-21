@@ -370,3 +370,41 @@
     font-size: 3.4em;
   }
 }
+
+/* in the locker's header row: a compact pill (title, a short progress bar), no description */
+.win-head .god-slot {
+  width: auto;
+  margin: 0;
+  grid-template-columns: 2.3em auto;
+  gap: 0.45em;
+  padding: 0.1em 0.8em 0.1em 0.3em;
+  border-radius: 0.8em;
+}
+
+.win-head .god-slot .gs-pic {
+  height: 2.3em;
+  width: 2.3em;
+}
+
+.win-head .god-slot .gs-pic img {
+  height: 4.2em;
+}
+
+.win-head .god-slot .gs-body b {
+  font-size: 0.95em;
+}
+
+.win-head .god-slot .gs-body span {
+  display: none;
+}
+
+.win-head .god-slot .pbar {
+  width: 9em;
+  height: 0.95em;
+  margin-top: 0.05em;
+}
+
+.win-head .god-slot .pbar span {
+  font-size: 0.7em;
+  line-height: 1.35em;
+}
