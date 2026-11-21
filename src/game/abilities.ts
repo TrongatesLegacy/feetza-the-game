@@ -738,6 +738,10 @@ export const ABILITIES: Record<string, Ability> = {
   'boss:bunion': plus(ab('Venom', always, [STAT({ damage: 2, knockback: 80 })], GREEN, 'burst'), every(9), D(5, tough(1), 1200), ST(1.5, tough(1))),
   'boss:jokester': plus(ab('Last Laugh', act, [ST(2.5, all), D(5, all), T(10)], 0x9be23a, 'gold'), every(6), TH('card', 'explode', 2, rnd(1), { r: 150, splash: 1 })),
 
+  // ——— Nemesis bosses: Kratos in Tartarus (src/game/bosses/kratos.ts) ———
+  'boss:titanking': plus(ab('Time Eater', every(8), [S(0.45, 3, all), ST(1, tough(1))], GOLD, 'frost'), kill(0.2), H(1)),
+  'boss:zeus': plus(ab('King of the Sky', act, [D(7, all, 400), ST(1.5, all), SH(1, 'all')], 0x9fd8ff, 'zap', 0.9), every(7), TH('bolt', 'straight', 3, tough(1))),
+
   // ——— Event shinies use their event's ability (see abilityKey) ———
 };
 

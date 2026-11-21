@@ -36,7 +36,10 @@ export type ArenaId = 'bigfoot' | 'ironheel' | 'clownking' | 'trex' | 'colossus'
   | 'soleprop' | 'soleunbound'
   // ——— Nemesis stages: Batpeel's Gotham (the mini-boss gets an arena of its own too) ———
   | 'bunion'
-  | 'jokester';
+  | 'jokester'
+  // ——— Nemesis bosses: Kratos in Tartarus (src/content/art/scenes-kratos.ts) ———
+  | 'titanking'
+  | 'zeus';
 export type BackdropId = LocationId | ArenaId;
 export type AmbientKind =
   | 'dust'

@@ -26,6 +26,8 @@ export interface Nemesis {
 
 export const NEMESES: Nemesis[] = [
   { peels: ['hero:batpeel', 'hero:darkkneader'], hero: 'Batpeel', stage: 12, location: 'gotham', mini: 'bunion', boss: 'jokester' },
+  // Kratos in Tartarus: Kronos the Titan King for Cerberus, Zeus for Hades (src/game/bosses/kratos.ts)
+  { peels: ['hero:kratos', 'hero:ghostofsparta'], hero: 'the Kratos Peel', stage: 17, mini: 'titanking', boss: 'zeus' },
 ];
 
 /** The run's ability peel, as far as nemesis stages are concerned ('' outside a run). */

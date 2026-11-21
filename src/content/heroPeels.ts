@@ -24,12 +24,25 @@ export interface HeroPeel {
   how: string;
   look: () => PeelLook;
   ability: Ability;
+  /** A variant (an upgraded hero peel): the peel it sits beside in the locker. */
+  after?: string;
 }
 
 const mods = import.meta.glob<{ peels: HeroPeel[] }>('./peels/*.ts', { eager: true });
-export const HERO_PEELS: HeroPeel[] = Object.keys(mods)
+const listed = Object.keys(mods)
   .sort()
   .flatMap((k) => mods[k].peels);
+// variants sit beside their base peel (after any variant already there), so the locker shows them side by side
+export const HERO_PEELS: HeroPeel[] = listed.filter((p) => !p.after);
+for (const p of listed.filter((q) => q.after)) {
+  let i = HERO_PEELS.findIndex((q) => q.id === p.after);
+  if (i < 0) {
+    HERO_PEELS.push(p);
+    continue;
+  }
+  while (HERO_PEELS[i + 1]?.after === p.after) i++;
+  HERO_PEELS.splice(i + 1, 0, p);
+}
 
 for (const p of HERO_PEELS) ABILITIES[p.id] = p.ability;
 registerGoals(HERO_PEELS.map((p) => ({ peel: p.id, goal: p.goal })));
