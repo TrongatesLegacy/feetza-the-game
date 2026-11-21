@@ -3,6 +3,7 @@
 // src/content/props/act2b.ts.
 
 import Phaser from 'phaser';
+import { STRAW } from '../../content/props/act2b';
 import { FOOT_BY_ID } from '../../data/feet';
 import type { Arena } from '../arena';
 import type { Foot } from '../Foot';
@@ -68,29 +69,61 @@ interface FallOpts {
   /** Lane glow colour. */
   color: number;
   label?: string;
+  /** Where the hit-count badge sits, from the prop's centre (on its body, so it never hides under the HUD). */
+  badgeDy?: number;
   onLand(p: Pizza): void;
   /** Called once it's gone either way (smashed, landed or cleared). */
   onEnd?(): void;
 }
 
-/** Something comes down a pizza's lane: a reticle on the pizza and a glowing lane column warn first,
- * then it falls at a steady speed. Smack it (once, unless `hits` says more) before it lands. */
+/** Game y below the boss bar and its move line: anything the player must hit starts below this. */
+const SAFE_TOP = 260;
+
+/** Something comes down a pizza's lane. It drops in just under the boss bar and wobbles there while a
+ * lane column (with chevrons pointing at the pizza) and a reticle warn; then it falls at a steady speed
+ * while its shadow on the pizza grows. Smack it (once, unless `hits` says more) before it lands. */
 function laneFall(a: Arena, p: Pizza, o: FallOpts, bin: Bin): void {
   const x0 = p.x;
-  const top = o.fromY ?? 230;
+  // the whole prop starts below the boss bar, so the thing to hit is never hidden behind the HUD
+  const top = Math.max(o.fromY ?? 0, SAFE_TOP + o.halfH);
   const total = o.warn + o.fall;
   const endY = () => p.surfaceY - 40;
   const ret = mark(a, 'p_reticle', x0, p.surfaceY - 30, total, 0.6);
-  const col = a.sc.add.graphics();
-  a.fxLayer.add(col);
-  col.fillStyle(o.color, 0.12).fillRoundedRect(x0 - 70, top - 40, 140, endY() - top + 70, 34);
-  col.lineStyle(5, o.color, 0.55).strokeRoundedRect(x0 - 70, top - 40, 140, endY() - top + 70, 34);
-  a.sc.tweens.add({ targets: col, alpha: { from: 0.45, to: 1 }, duration: 300, yoyo: true, repeat: -1 });
+  // the lane column and the shadow on the pizza: redrawn every frame (chevrons scroll down the lane)
+  const col = a.sc.add.graphics().setAlpha(0);
+  const shadow = a.sc.add.graphics();
+  a.fxLayer.add([shadow, col]);
+  a.sc.tweens.add({ targets: col, alpha: 1, duration: 180 });
+  const drawLane = (cx: number, y: number, k: number) => {
+    const y0 = top - o.halfH - 24;
+    const y1 = endY() + 34;
+    const pulse = 0.75 + Math.sin(a.now() * 10) * 0.25;
+    col.clear();
+    col.fillStyle(o.color, 0.16 * pulse).fillRoundedRect(cx - 74, y0, 148, y1 - y0, 36);
+    col.lineStyle(9, 0x2a1810, 0.35).strokeRoundedRect(cx - 74, y0, 148, y1 - y0, 36);
+    col.lineStyle(5, o.color, 0.6 + 0.35 * pulse).strokeRoundedRect(cx - 74, y0, 148, y1 - y0, 36);
+    // chevrons between the prop and the pizza, sliding down towards it
+    const from = y + o.halfH + 30;
+    const step = 70;
+    const off = (a.now() * 140) % step;
+    for (let cy = from + off; cy < y1 - 50; cy += step) {
+      const fade = Math.min(1, (cy - from) / 60) * Math.min(1, (y1 - 50 - cy) / 60);
+      if (fade <= 0) continue;
+      const pts = [new Phaser.Math.Vector2(cx - 26, cy - 12), new Phaser.Math.Vector2(cx, cy + 10), new Phaser.Math.Vector2(cx + 26, cy - 12)];
+      col.lineStyle(13, 0x2a1810, 0.5 * fade).strokePoints(pts, false);
+      col.lineStyle(7, o.color, 0.95 * fade).strokePoints(pts, false);
+    }
+    // its shadow on the pizza: small and faint up top, wide and dark just before it lands
+    shadow.clear();
+    shadow.fillStyle(0x000000, 0.12 + 0.33 * k).fillEllipse(cx, p.surfaceY - 6, o.halfW * (0.9 + 0.9 * k), o.halfW * (0.3 + 0.32 * k));
+  };
   a.sfx('sfx_warning', { volume: 0.35, rate: 1.3, throttle: 200 });
   const st = { t: 0 };
   const yAt = () => {
     const s = st.t * total;
-    return s < o.warn ? top : top + (endY() - top) * ((s - o.warn) / o.fall);
+    // drops in from just above its start (eased), wobbles, then falls straight down
+    if (s < o.warn) return top - 120 * Math.pow(1 - Math.min(1, s / 0.3), 3);
+    return top + (endY() - top) * ((s - o.warn) / o.fall);
   };
   let ended = false;
   let tw: Phaser.Tweens.Tween | null = null;
@@ -99,33 +132,36 @@ function laneFall(a: Arena, p: Pizza, o: FallOpts, bin: Bin): void {
     ended = true;
     tw?.remove();
     a.sc.tweens.killTweensOf(col);
-    col.destroy();
-    ret.destroy();
+    // the lane warning fades out rather than vanishing
+    a.sc.tweens.add({ targets: [col, shadow], alpha: 0, duration: 220, onComplete: () => { col.destroy(); shadow.destroy(); } });
+    if (ret.active) a.sc.tweens.add({ targets: ret, alpha: 0, duration: 160, onComplete: () => ret.destroy() });
     if (!smashed) prop.destroy();
     o.onEnd?.();
   };
   const prop: Prop = hitProp(a, {
     key: o.key,
     x: x0,
-    y: top,
+    y: top - 120,
     scale: o.scale,
     hits: o.hits ?? 1,
     contains: (px, py) => Math.abs(px - prop.img.x) < o.halfW && Math.abs(py - prop.img.y) < o.halfH,
     follow: () => ({ x: p.x + (o.jitter ? (Math.random() - 0.5) * o.jitter : 0), y: yAt() }),
     label: o.label ?? 'SMASHED!',
-    badgeDy: -o.halfH - 20,
+    badgeDy: o.badgeDy ?? 0,
     onClear: () => finish(true),
   });
   const forget = bin.add(() => finish(false));
+  drawLane(x0, top, 0);
   tw = a.sc.tweens.add({
     targets: st,
     t: 1,
     duration: total * 1000,
     ease: 'Linear',
     onUpdate: () => {
-      // the lane column follows its pizza if the table re-lays out mid-fall
-      col.x = p.x - x0;
-      if (st.t * total < o.warn) prop.img.angle = Math.sin(st.t * total * 18) * 12;
+      const s = st.t * total;
+      // the lane follows its pizza if the table re-lays out mid-fall
+      drawLane(p.x, prop.img.y, s < o.warn ? 0 : (s - o.warn) / o.fall);
+      if (s < o.warn) prop.img.angle = Math.sin(s * 18) * 12;
       else if (o.spin) prop.img.angle += o.spin;
     },
     onComplete: () => {
@@ -156,36 +192,40 @@ const milkshake = (): Brain => {
   let ready = false;
   const freeze = new Every(7, 4);
   const straw = new Every(9, 3);
+  (globalThis as any).__T = { freeze, straw }; // DEV-HOOK
   let freezing = false;
   let hold = 0;
   let warm = 0;
   let bowl: Phaser.GameObjects.Image | null = null;
+  let halo: Phaser.GameObjects.Image | null = null;
   let ring: Phaser.GameObjects.Graphics | null = null;
   let glow: Phaser.GameObjects.Image | null = null;
   let steamT = 0;
-  let sucking: { lane: Takeover; prop: Prop; p: Pizza; wobble: Phaser.Tweens.Tween; dripT: number } | null = null;
+  let sucking: { lane: Takeover; prop: Prop; p: Pizza; wobble: Phaser.Tweens.Tween; dripT: number; fill: Phaser.GameObjects.Image; t: number; sec: number } | null = null;
 
   const setup = (a: Arena) => {
     ready = true;
     const h = heat(a);
     freeze.every = h.cooldown(7);
     straw.every = h.cooldown(9);
+    // the bowl sits at the back of the fx layer: over the feet (a foot in the end lane can't hide it),
+    // under every projectile, splat and quip
+    halo = a.sc.add.image(BOWL.x, BOWL.y - 10, 'glow').setTint(0xff9a3a).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0).setScale(1.7, 1.4);
     bowl = a.sc.add.image(BOWL.x, BOWL.y, 'p_hotbowl').setScale(0);
-    a.underLayer.add(bowl);
-    a.sc.tweens.add({ targets: bowl, scale: 0.75, duration: 300, ease: 'Back.Out' });
-    const label = a.sc.add.text(BOWL.x, BOWL.y + 100, 'HOT WATER', { fontFamily: 'Lilita One, Fredoka, sans-serif', fontSize: '28px', color: '#fff6e2', stroke: '#2a1810', strokeThickness: 7 }).setOrigin(0.5);
-    a.underLayer.add(label);
+    const label = a.sc.add.text(BOWL.x, BOWL.y + 104, 'HOT WATER', { fontFamily: 'Lilita One, Fredoka, sans-serif', fontSize: '30px', color: '#ffd9a0', stroke: '#2a1810', strokeThickness: 8 }).setOrigin(0.5).setAlpha(0);
+    a.fxLayer.addAt([halo, bowl, label], 0);
+    a.sc.tweens.add({ targets: bowl, scale: 0.85, duration: 320, ease: 'Back.Out' });
+    a.sc.tweens.add({ targets: [halo, label], alpha: { from: 0, to: 1 }, duration: 320 });
     ring = a.sc.add.graphics();
     a.fxLayer.add(ring);
     glow = a.sc.add.image(0, 0, 'glow').setTint(0xffa040).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0).setScale(0.9);
     a.fxLayer.add(glow);
     a.quip(BOWL.x - 60, BOWL.y - 150, 'HOT WATER!', '#ffb24a', 40);
     bin.add(() => {
-      bowl?.destroy();
-      label.destroy();
+      for (const o of [bowl, halo, label]) if (o) a.sc.tweens.add({ targets: o, alpha: 0, duration: 300, onComplete: () => o.destroy() });
       ring?.destroy();
       glow?.destroy();
-      bowl = ring = glow = null;
+      bowl = halo = ring = glow = null;
     });
   };
 
@@ -194,6 +234,8 @@ const milkshake = (): Brain => {
     const s = sucking;
     sucking = null;
     s.wobble.remove();
+    const fill = s.fill;
+    a.sc.tweens.add({ targets: fill, alpha: 0, duration: 220, onComplete: () => fill.destroy() });
     if (s.p.root.active) a.sc.tweens.add({ targets: s.p.root, scaleX: 1, scaleY: 1, duration: 200 });
     s.lane.release();
     shield(a, f, false);
@@ -224,9 +266,24 @@ const milkshake = (): Brain => {
       warm = Math.max(0, warm - dt);
       if (ring) {
         ring.clear();
-        if (hold > 0) ring.lineStyle(10, 0xffa040, 0.9).beginPath().arc(BOWL.x, BOWL.y - 10, 100, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (hold / WARM_HOLD)).strokePath();
+        if (hold > 0) {
+          const end = -Math.PI / 2 + Math.PI * 2 * (hold / WARM_HOLD);
+          ring.lineStyle(16, 0x2a1810, 0.6).beginPath().arc(BOWL.x, BOWL.y - 10, 112, -Math.PI / 2, end).strokePath();
+          ring.lineStyle(10, 0xffb24a, 1).beginPath().arc(BOWL.x, BOWL.y - 10, 112, -Math.PI / 2, end).strokePath();
+        }
       }
+      // the bowl glows softly; during a brain-freeze wind-up it blazes and pulses so it's easy to find
+      halo?.setAlpha(freezing ? 0.75 + Math.sin(a.now() * 12) * 0.25 : 0.3 + Math.sin(a.now() * 3) * 0.08);
       glow?.setPosition(pp.x, pp.y).setAlpha(warm > 0 ? 0.45 + Math.sin(a.now() * 6) * 0.15 : 0);
+      // the milkshake climbs the straw as it slurps: when it reaches the top, the pizza loses a slice
+      if (sucking) {
+        const s = sucking;
+        s.t += dt;
+        const img = s.prop.img;
+        const k = Phaser.Math.Clamp((s.t - 0.95) / (s.sec - 0.95), 0, 1);
+        const cy = STRAW.mouth * (1 - k);
+        s.fill.setPosition(img.x, img.y).setScale(img.scaleX, img.scaleY).setAngle(img.angle).setCrop(0, cy, STRAW.cw, STRAW.ch - cy);
+      }
       steamT -= dt;
       if (bowl && steamT <= 0) {
         steamT = 0.5;
@@ -268,10 +325,13 @@ const milkshake = (): Brain => {
         if (!lane) return;
         const p = lane.p;
         shield(a, f, true);
-        a.quip(p.x, 230, 'BOTTOMS UP!', '#ff9ad8', 48);
+        a.quip(p.x + (p.x > 960 ? -240 : 240), 420, 'BOTTOMS UP!', '#ff9ad8', 48);
         a.sfx('sfx_whoosh', { volume: 0.6, rate: 0.8 });
         const s = 0.95;
+        const sec = h.windup(6) + 0.5;
+        // the straw's mouth sits in the pizza; the rest runs up out of sight behind the boss
         const bottom = () => p.surfaceY + 10;
+        const centre = () => bottom() - (STRAW.mouth - STRAW.ch / 2) * s;
         const st = { k: 0 };
         a.sc.tweens.add({ targets: st, k: 1, duration: 450, ease: 'Bounce.Out', delay: 500 });
         const prop = hitProp(a, {
@@ -280,11 +340,11 @@ const milkshake = (): Brain => {
           y: -400,
           scale: s,
           hits: h.hits(4),
-          sec: h.windup(6) + 0.5,
+          sec,
           // it drops from above the boss down into the pizza, then stays planted in it
-          follow: () => ({ x: p.x + 30 * s, y: bottom() - 380 * s - (1 - st.k) * 800 }),
+          follow: () => ({ x: p.x, y: centre() - (1 - st.k) * 800 }),
           contains: (px, py) => Math.abs(px - p.x) < 100 && py > bottom() - 700 && py < bottom() + 10,
-          badgeDy: 210,
+          badgeDy: 200,
           label: 'STRAW SNAPPED!',
           onClear: () => {
             endStraw(f, a);
@@ -297,7 +357,10 @@ const milkshake = (): Brain => {
           },
         });
         const wobble = a.sc.tweens.add({ targets: p.root, scaleX: 0.93, scaleY: 0.88, duration: 230, yoyo: true, repeat: -1, ease: 'Sine.InOut', delay: 900 });
-        sucking = { lane, prop, p, wobble, dripT: 0.9 };
+        // the milkshake level inside the straw (above the straw, under its hit badge)
+        const fill = a.sc.add.image(p.x, -400, 'p_strawfill').setScale(s).setAlpha(0.88).setCrop(0, STRAW.ch, STRAW.cw, 0);
+        a.fxLayer.addAt(fill, a.fxLayer.getIndex(prop.img) + 1);
+        sucking = { lane, prop, p, wobble, dripT: 0.9, fill, t: 0, sec };
         bin.add(() => {
           prop.destroy();
           endStraw(f, a);
@@ -313,11 +376,14 @@ const milkshake = (): Brain => {
           return;
         }
         s.dripT -= dt;
-        if (s.dripT <= 0) {
-          s.dripT = 0.16;
-          const d = a.sc.add.image(s.p.x + 28 + (Math.random() - 0.5) * 60, s.p.surfaceY - 10, 'p_slurp').setScale(0.7);
+        if (s.dripT <= 0 && s.t > 0.95) {
+          s.dripT = 0.18;
+          // blobs of pizza-shake get pulled in at the mouth and shoot up the straw
+          const x = s.p.x + (Math.random() - 0.5) * 150;
+          const d = a.sc.add.image(x, s.p.surfaceY + 10, 'p_slurp').setScale(0.9).setAngle(180);
           a.fxLayer.add(d);
-          a.sc.tweens.add({ targets: d, x: s.p.x + 28, y: s.p.surfaceY - 420, scale: 0.35, alpha: 0, duration: 600, ease: 'Quad.In', onComplete: () => d.destroy() });
+          a.sc.tweens.add({ targets: d, x: s.p.x + (Math.random() - 0.5) * 40, y: s.p.surfaceY - 30, scale: 0.6, duration: 220, ease: 'Quad.In' });
+          a.sc.tweens.add({ targets: d, y: s.p.surfaceY - 470, alpha: 0, scale: 0.45, duration: 520, delay: 220, ease: 'Quad.In', onComplete: () => d.destroy() });
           a.sfx('sfx_squish', { volume: 0.3, rate: 0.6, throttle: 450 });
         }
       }
@@ -331,10 +397,38 @@ const milkshake = (): Brain => {
 
 // ——— 20. QUEEN OF THE RINK (boss) ———
 
+/** The dash itself: neon speed lines whip across the marked pizzas, left to right, then fade. */
+function dashStreak(a: Arena, line: Pizza[]): void {
+  if (!line.length) return;
+  const x0 = line[0].x - 220;
+  const x1 = line[line.length - 1].x + 220;
+  const y = line[0].surfaceY - 40;
+  const g = a.sc.add.graphics();
+  a.fxLayer.add(g);
+  const st = { k: 0 };
+  a.sc.tweens.add({
+    targets: st,
+    k: 1,
+    duration: Math.max(260, line.length * 140),
+    ease: 'Quad.Out',
+    onUpdate: () => {
+      const head = x0 + (x1 - x0) * st.k;
+      g.clear();
+      for (const [dy, w, c] of [[-34, 8, 0x4cf0e0], [0, 14, 0xff4fd8], [34, 8, 0xffd23f]] as const) {
+        const tail = Math.max(x0, head - 420);
+        g.lineStyle(w + 8, 0x2a1810, 0.5).lineBetween(tail, y + dy, head, y + dy);
+        g.lineStyle(w, c, 1).lineBetween(tail, y + dy, head, y + dy);
+      }
+    },
+    onComplete: () => a.sc.tweens.add({ targets: g, alpha: 0, duration: 260, onComplete: () => g.destroy() }),
+  });
+}
+
 const rinkqueen = (): Brain => {
   const shuffle = new Every(7, 2);
   const dash = new Every(6.5, 3);
   const puck = new Every(4.5, 3);
+  (globalThis as any).__T = { shuffle, dash, puck }; // DEV-HOOK
   // never a shuffle and a dash wind-up at the same moment
   let busy = 0;
   return {
@@ -349,7 +443,7 @@ const rinkqueen = (): Brain => {
       shuffle.every = 7 * cd;
       dash.every = 6.5 * cd;
       if (f.phase === 1 && puck.tick(dt)) {
-        throwAtPeel(a, 'p_plate', { x: f.x, y: f.cy }, 1.2, () => a.stunPeel(0.8, 'PUCKED!'), () => a.damageFoot(f, Math.round(f.maxHp * 0.025), 'SLAPSHOT!'), 12, { scale: 0.55, tint: 0x2a2a34 });
+        throwAtPeel(a, 'p_puck', { x: f.x, y: f.cy }, 1.2, () => a.stunPeel(0.8, 'PUCKED!'), () => a.damageFoot(f, Math.round(f.maxHp * 0.025), 'SLAPSHOT!'), 12, { scale: 0.75 });
         a.sfx('sfx_whistle', { rate: 1.6, volume: 0.5 });
       }
       if (f.phase >= 2 && busy <= 0 && !f.brain.windup && shuffle.tick(dt)) {
@@ -380,6 +474,7 @@ const rinkqueen = (): Brain => {
         windup(a, f, '', sec, 'SPEED DASH!', 3, () => {
           for (const [i, p] of line.entries()) a.sc.time.delayedCall(i * 140, () => !p.dead && f.alive && a.inWave() && a.hitPizza(p, 1, 'DASHED!', '#ff4fd8'));
           a.sfx('sfx_whoosh', { volume: 1, rate: 1.2 });
+          dashStreak(a, line);
         });
       }
     },
@@ -395,6 +490,7 @@ const rinkqueen = (): Brain => {
 const lumberjack = (): Brain => {
   const bin = new Bin();
   const next = new Every(9, 3);
+  (globalThis as any).__T = { next }; // DEV-HOOK
   let end: (() => void) | null = null;
   const stop = (f: Foot) => {
     end?.();
@@ -432,12 +528,13 @@ const lumberjack = (): Brain => {
             if (p.dead) return done();
             laneFall(a, p, {
               key: 'p_chainsaw',
-              scale: 0.85,
+              scale: 0.9,
               warn: h.windup(0.8),
               fall: h.windup(2.4),
               jitter: 6,
               halfW: 90,
               halfH: 150,
+              badgeDy: -75,
               color: 0xff8a2a,
               label: 'SAW STOPPED!',
               onLand: (q) => {
@@ -464,7 +561,7 @@ const lumberjack = (): Brain => {
           if (!end || p.dead) return;
           // move over the lane (he waits at the top of it), then let go
           f.target = p;
-          a.quip(p.x, 250, 'CHOP CHOP!', '#e0a868', 36);
+          a.quip(p.x, 300, 'CHOP CHOP!', '#e0a868', 36);
         });
         for (const k of [0, 1]) {
           a.sc.time.delayedCall(at + (1.2 + k * gap) * 1000, () => {
@@ -472,14 +569,13 @@ const lumberjack = (): Brain => {
             if (p.dead || !f.alive) return done();
             laneFall(a, p, {
               key: 'p_axe',
-              scale: 0.8,
+              scale: 0.85,
               warn: h.windup(0.5),
               fall: h.windup(1.8),
               spin: 9,
-              fromY: 260,
-              halfW: 80,
-              halfH: 100,
-              color: 0xe0a868,
+              halfW: 90,
+              halfH: 115,
+              color: 0xff6a3a,
               label: 'BLOCKED!',
               onLand: (q) => a.hitPizza(q, h.slices(1), 'CHOPPED!', '#e0a868'),
               onEnd: done,
@@ -503,6 +599,7 @@ const yeti = (): Brain => {
   const ball = new Every(4, 2);
   const icicle = new Every(5.5, 3);
   const avalanche = new Every(13, 3);
+  (globalThis as any).__T = { ball, icicle, avalanche }; // DEV-HOOK
   let end: (() => void) | null = null;
   const stop = (f: Foot) => {
     end?.();
@@ -520,12 +617,13 @@ const yeti = (): Brain => {
         if (p) {
           laneFall(a, p, {
             key: 'p_icicle',
-            scale: 0.8,
+            scale: 0.85,
             warn: h.windup(0.7),
             fall: h.windup(1.6),
             halfW: 80,
-            halfH: 110,
-            color: 0x9ad8ff,
+            halfH: 115,
+            badgeDy: -50,
+            color: 0x5ab8ff,
             label: 'SHATTERED!',
             // no slices: it ices the perk instead
             onLand: (q) => {
@@ -538,7 +636,7 @@ const yeti = (): Brain => {
       }
       // snowballs at the peel (paused while an avalanche is coming down)
       if (f.phase >= 2 && !end && ball.tick(dt)) {
-        throwAtPeel(a, 'p_snowball', { x: f.x, y: f.cy }, 1.3, () => a.stunPeel(1, 'FROZEN PEEL!'), () => a.quip(a.peelPoint().x, a.peelPoint().y - 60, 'SHATTERED!', '#a8dcff', 32), 3);
+        throwAtPeel(a, 'p_yetiball', { x: f.x, y: f.cy }, 1.3, () => a.stunPeel(1, 'FROZEN PEEL!'), () => a.quip(a.peelPoint().x, a.peelPoint().y - 60, 'SHATTERED!', '#a8dcff', 32), 3, { scale: 0.85 });
         a.sfx('sfx_whoosh', { rate: 0.9 });
       }
       if (f.phase >= 3 && !end && avalanche.tick(dt)) {
@@ -574,7 +672,7 @@ const yeti = (): Brain => {
               spin: 5,
               halfW: 105,
               halfH: 105,
-              color: 0xcfe0ff,
+              color: 0x5ab8ff,
               label: 'SMASHED!',
               onLand: (q) => {
                 a.hitPizza(q, h.slices(1), 'BURIED!', '#cfe0ff');
@@ -613,9 +711,11 @@ const poltergeist = (): Brain => {
   const bin = new Bin();
   const bite = new Every(5, 3);
   const cough = new Every(11, 3);
+  (globalThis as any).__T = { bite, cough }; // DEV-HOOK
   const zombies = new Map<Foot, Zombie>();
   let biting: { o: Foot; reticle: Phaser.GameObjects.Image } | null = null;
   let coughing = false;
+  let stinkT = 0;
   let sick: { p: Pizza; prop: Prop; glow: Phaser.GameObjects.Image; munch: Every } | null = null;
 
   const zombify = (o: Foot) => {
@@ -653,7 +753,14 @@ const poltergeist = (): Brain => {
   return {
     names: ['BITE', 'COUGH'],
     info: ['Marks a foot, then bites it: zombie feet are tougher and stomp harder, and each bite heals it · smack the marked foot first', 'Coughs on a pizza: it eats its own slices and its perk stops · click the pizza to cure it'],
-    upkeep: (_f, _dt, a) => {
+    upkeep: (_f, dt, a) => {
+      // a whiff of green stink off every zombie foot and the sick pizza, now and then
+      stinkT -= dt;
+      const whiff = stinkT <= 0;
+      if (whiff) {
+        stinkT = 0.35;
+        if (sick && !sick.p.dead) a.fx.stinkPuff(sick.p.x, sick.p.surfaceY - 60);
+      }
       // ——— zombie upkeep: keep the green tint, and a landed zombie stomp bites off one more slice ———
       for (const [o, z] of zombies) {
         if (!o.alive) {
@@ -661,6 +768,7 @@ const poltergeist = (): Brain => {
           continue;
         }
         if (!imgOf(o).tintFill) o.tint(ZOMBIE_TINT);
+        if (whiff && Math.random() < 0.5) a.fx.stinkPuff(o.cx, o.cy);
         if (o.state === 'descend') {
           z.armed = true;
           z.p = o.target;
@@ -681,19 +789,19 @@ const poltergeist = (): Brain => {
       // ——— Bite: mark a regular foot, then swing over and bite it ———
       if (!biting && !coughing && bite.tick(dt)) {
         bite.every = h.cooldown(5);
-        const prey = a.allFeet().filter((o) => o.alive && !o.isBossLike && !zombies.has(o) && o.y > 120 && o.x > 100 && o.x < 1820);
+        const prey = a.allFeet().filter((o) => o.alive && !o.isBossLike && !zombies.has(o) && o.cy > 300 && o.x > 140 && o.x < 1780);
         const o = prey.sort((p, q) => Math.abs(p.x - f.x) - Math.abs(q.x - f.x))[0];
         if (!o) bite.t = 1;
         else {
-          const reticle = a.sc.add.image(o.cx, o.cy, 'p_reticle').setScale(0.6).setTint(ZOMBIE_GLOW);
+          const reticle = a.sc.add.image(o.cx, o.cy, 'p_reticle').setScale(0.75);
           a.fxLayer.add(reticle);
-          a.sc.tweens.add({ targets: reticle, scale: 0.7, duration: 260, yoyo: true, repeat: -1 });
+          a.sc.tweens.add({ targets: reticle, scale: 0.9, angle: 45, duration: 260, yoyo: true, repeat: -1 });
           biting = { o, reticle };
           const forget = bin.add(() => {
             reticle.destroy();
             biting = null;
           });
-          a.quip(o.x, Math.max(150, o.cy - 140), 'BITE INCOMING!', '#9be36a', 36);
+          a.quip(o.x, Math.max(300, o.cy - 140), 'BITE INCOMING!', '#9be36a', 36);
           a.quip(f.x, Math.max(280, f.cy - 170), 'BRAAAINS…', '#9be36a', 40);
           a.sfx('sfx_warning', { volume: 0.4, rate: 0.9 });
           a.sc.time.delayedCall(h.windup(1.4) * 1000, () => {
@@ -719,7 +827,7 @@ const poltergeist = (): Brain => {
                 if (f.alive && o.alive && a.inWave()) {
                   zombify(o);
                   a.fx.impact(o.cx, o.cy, true);
-                  a.quip(o.x, Math.max(150, o.cy - 150), 'CHOMP! ZOMBIE!', '#9be36a', 42);
+                  a.quip(o.x, Math.max(300, o.cy - 150), 'CHOMP! ZOMBIE!', '#9be36a', 42);
                   a.sfx('sfx_squish', { volume: 0.9, rate: 0.7 });
                   // each bite heals the boss a little
                   const heal = Math.min(f.maxHp - f.hp, Math.round(f.maxHp * (h.rank === 0 ? 0.03 : 0.04)));
@@ -773,9 +881,9 @@ const poltergeist = (): Brain => {
               onComplete: () => {
                 a.sc.tweens.add({ targets: puff, alpha: 0, scale: 1.2, duration: 300, onComplete: () => puff.destroy() });
                 if (p.dead || !f.alive || !a.inWave()) return;
-                const glow = a.sc.add.image(p.x, p.surfaceY - 10, 'glow').setTint(ZOMBIE_GLOW).setBlendMode(Phaser.BlendModes.ADD).setScale(2.4, 1.2).setAlpha(0.5);
+                const glow = a.sc.add.image(p.x, p.surfaceY - 10, 'glow').setTint(ZOMBIE_GLOW).setBlendMode(Phaser.BlendModes.ADD).setScale(2.2, 0.9).setAlpha(0.3);
                 a.fxLayer.add(glow);
-                a.sc.tweens.add({ targets: glow, alpha: 0.25, duration: 500, yoyo: true, repeat: -1 });
+                a.sc.tweens.add({ targets: glow, alpha: 0.12, duration: 600, yoyo: true, repeat: -1 });
                 a.freezePerk(p, 9999);
                 a.quip(p.x, p.surfaceY - 190, rnd(GROANS)!, '#9be36a', 46);
                 const prop = hitProp(a, {
@@ -840,12 +948,12 @@ const echoWindup = (label: string, landLabel: string): EchoMove => (e, a) => {
   const sec = h.windup(1.6);
   const hp0 = e.hp;
   mark(a, 'p_reticle', p.x, p.surfaceY - 30, sec, 0.6);
-  a.quip(e.x, Math.max(150, e.cy - 140), label, '#9ad8ff', 34);
+  a.quip(e.x, Math.max(300, e.cy - 140), label, '#9ad8ff', 34);
   a.sc.tweens.add({ targets: e.root, scaleY: e.root.scaleY * 0.88, duration: sec * 500, yoyo: true });
   a.sc.time.delayedCall(sec * 1000, () => {
     if (!e.alive || p.dead || !a.inWave()) return;
     if (e.hp < hp0) {
-      a.quip(e.x, Math.max(150, e.cy - 140), 'INTERRUPTED!', '#7dff9a', 36);
+      a.quip(e.x, Math.max(300, e.cy - 140), 'INTERRUPTED!', '#7dff9a', 36);
       e.stun(1.2);
       return;
     }
@@ -876,9 +984,25 @@ const ECHOES: Record<string, { move: string; act: EchoMove }> = {
 
 const ECHO_TINT = 0x9ad8ff;
 
+/** Turn a summoned boss into a spectral echo: its colours washed into ghostly blue (so a purple clown or
+ * a green croc still reads as "not the real thing"), see-through and flickering, with a cold glow. */
+function ghostify(a: Arena, e: Foot): void {
+  const parts = e as unknown as { img: Phaser.GameObjects.Image; leg: Phaser.GameObjects.TileSprite; cuff?: Phaser.GameObjects.Image };
+  const objs = [parts.img, parts.leg, parts.cuff].filter((o): o is Phaser.GameObjects.Image | Phaser.GameObjects.TileSprite => !!o);
+  for (const o of objs) {
+    const cm = o.preFX?.addColorMatrix();
+    // luminance into a pale blue ramp (offsets keep the darks from going black)
+    cm?.set([0.17, 0.33, 0.06, 0, 30, 0.24, 0.47, 0.09, 0, 50, 0.3, 0.59, 0.11, 0, 80, 0, 0, 0, 1, 0]);
+  }
+  e.setPhaseAura(ECHO_TINT);
+  e.setVisualAlpha(0.6);
+  a.sc.tweens.add({ targets: objs, alpha: { from: 0.62, to: 0.4 }, duration: 520, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+}
+
 const phantomking = (): Brain => {
   const summon = new Every(7, 1.5);
   const hop = new Every(8, 8);
+  (globalThis as any).__T = { summon, hop }; // DEV-HOOK
   let hopping = false;
   let end: (() => void) | null = null;
   // each echo's next move (seconds), and a gap so two echoes never act at once
@@ -922,7 +1046,6 @@ const phantomking = (): Brain => {
             echoes.delete(e);
             continue;
           }
-          if (!imgOf(e).tintFill) e.tint(ECHO_TINT);
           // it acts once it has settled into its lane, then every few seconds
           if (e.state !== 'hover' && e.state !== 'descend') continue;
           const left = t - dt;
@@ -946,10 +1069,9 @@ const phantomking = (): Brain => {
             e.maxHp = e.hp = Math.round(f.maxHp * 0.06);
             // smaller and see-through (setSize keeps the hit area and lane width in step with the art)
             e.setSize(0.62, 0);
-            e.setVisualAlpha(0.55);
-            e.tint(ECHO_TINT);
+            ghostify(a, e);
             echoes.set(e, 1.4);
-            a.quip(e.x, 220, `ECHO OF ${FOOT_BY_ID[id].name}: ${ECHOES[id].move}`, '#9ad8ff', 32);
+            a.quip(Phaser.Math.Clamp(e.x, 300, 1620), 300, `ECHO OF ${FOOT_BY_ID[id].name}: ${ECHOES[id].move}`, '#9ad8ff', 32);
           }
         }
       }
@@ -960,15 +1082,18 @@ const phantomking = (): Brain => {
           if (next) {
             // tell: the next pizza glows for a second before the curse moves
             hopping = true;
-            const glow = a.sc.add.image(next.x, next.surfaceY + 20, 'glow').setTint(0xc9a8ff).setBlendMode(Phaser.BlendModes.ADD).setScale(2.2, 1.1).setAlpha(0.8);
+            const glow = a.sc.add.image(next.x, next.surfaceY + 10, 'glow').setTint(0xa070ff).setBlendMode(Phaser.BlendModes.ADD).setScale(1.6, 0.8).setAlpha(0);
             a.fxLayer.add(glow);
-            a.quip(next.x, next.surfaceY - 160, 'THE CURSE STIRS…', '#c9a8ff', 34);
+            // it swells in, flickering, then flares as the curse jumps
+            a.sc.tweens.add({ targets: glow, alpha: 0.7, scaleX: 2.3, scaleY: 1.1, duration: 700, ease: 'Sine.Out' });
+            a.sc.tweens.add({ targets: glow, alpha: { from: 0.7, to: 0.35 }, duration: 110, yoyo: true, repeat: 3, delay: 420 });
+            a.quip(next.x, next.surfaceY - 200, 'THE CURSE STIRS…', '#c9a8ff', 34);
             a.sc.time.delayedCall(1000, () => {
-              glow.destroy();
+              a.sc.tweens.killTweensOf(glow);
+              a.sc.tweens.add({ targets: glow, alpha: 0, scaleX: 3, scaleY: 1.5, duration: 350, onComplete: () => glow.destroy() });
               hopping = false;
               if (!f.alive || !a.possessed() || next.dead) return;
               a.possess(next);
-              a.quip(next.x, next.surfaceY - 160, 'THE CURSE MOVES!', '#c9a8ff', 38);
               a.sfx('sfx_possess', { volume: 0.7 });
             });
           }
