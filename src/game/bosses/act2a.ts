@@ -18,7 +18,7 @@ function drop(a: Arena, f: Foot, p: Pizza, key: string, sec: number, label: stri
   const warn = 0.9;
   const fall = sec + 1.1;
   const top = look.top ?? 240; // below the boss bar, which sits over the top of the screen
-  mark(a, 'p_reticle', tx, ty, warn + fall, 0.75);
+  const ret = mark(a, 'p_reticle', tx, ty, warn + fall, 0.75);
   // the lane lights up from the drop point down to the pizza, in front of the boss but translucent
   const col = a.sc.add.graphics();
   a.fxLayer.add(col);
@@ -36,6 +36,11 @@ function drop(a: Arena, f: Foot, p: Pizza, key: string, sec: number, label: stri
   const finish = () => {
     done = true;
     col.destroy();
+    // the target marker goes with it (it used to linger on the pizza after a smash)
+    if (ret.active) {
+      a.sc.tweens.killTweensOf(ret);
+      a.sc.tweens.add({ targets: ret, alpha: 0, scale: ret.scale * 1.3, duration: 180, onComplete: () => ret.destroy() });
+    }
   };
   a.sc.tweens.add({ targets: img, scale, duration: 220, ease: 'Back.Out' });
   a.sc.tweens.add({ targets: img, angle: { from: -14, to: 14 }, duration: 110, yoyo: true, repeat: Math.max(1, Math.round((warn * 1000) / 220) - 1) });
@@ -89,7 +94,54 @@ function drop(a: Arena, f: Foot, p: Pizza, key: string, sec: number, label: stri
 function sour(a: Arena, p: Pizza): void {
   if (!p.freshOn || p.dead || p.fresh <= 1) return;
   p.setFresh(p.fresh - 1);
-  a.quip(p.x + 90, p.surfaceY - 90, '-1 FRESH', '#9ad0ff', 30);
+  a.quip(p.x + 130, p.surfaceY - 40, '-1 FRESH', '#9ad0ff', 30);
+}
+
+/** A quip kept clear of the boss bar's move line (the Fx clamp stops at y 230, which still touches it). */
+function say(a: Arena, x: number, y: number, msg: string, color: string, size: number): void {
+  a.quip(x, Math.max(300, y), msg, color, size);
+}
+
+/** Stops the kit's ±6° hit wobble on a prop (very visible on wide or tall ones) and puts it back square. */
+function steady(a: Arena, img: Phaser.GameObjects.Image, scale: number): void {
+  a.sc.tweens.killTweensOf(img);
+  img.setAngle(0).setScale(scale);
+}
+
+const FONT = 'Lilita One, Fredoka, sans-serif';
+
+/** A counter in the kit's badge style (dark disc, cream ring, big number) with a small caption under it,
+ * following `at` each frame: the flock left, the cracks left. Same look as the hit counters on props. */
+function counter(a: Arena, at: () => { x: number; y: number }, caption: string): { set(n: number): void; destroy(): void } {
+  const box = a.sc.add.container(0, 0).setAlpha(0);
+  const disc = a.sc.add.circle(0, 0, 30, 0x2a1810, 0.92).setStrokeStyle(4, 0xfff6e2);
+  const num = a.sc.add.text(0, 1, '', { fontFamily: FONT, fontSize: '38px', color: '#fff6e2' }).setOrigin(0.5);
+  const cap = a.sc.add.text(0, 44, caption, { fontFamily: FONT, fontSize: '20px', color: '#fff6e2', stroke: '#2a1810', strokeThickness: 6 }).setOrigin(0.5);
+  box.add([disc, num, cap]);
+  a.fxLayer.add(box);
+  a.sc.tweens.add({ targets: box, alpha: 1, duration: 200 });
+  let live = true;
+  const place = () => {
+    const p = at();
+    box.setPosition(Phaser.Math.Clamp(p.x, 120, 1800), Phaser.Math.Clamp(p.y, 300, 940));
+  };
+  place();
+  const ev = a.sc.time.addEvent({ delay: 16, loop: true, callback: () => live && place() });
+  let last = -1;
+  return {
+    set: (n) => {
+      if (!live || n === last) return;
+      if (last >= 0) a.sc.tweens.add({ targets: box, scale: { from: 1.35, to: 1 }, duration: 180 });
+      last = n;
+      num.setText(String(n));
+    },
+    destroy: () => {
+      if (!live) return;
+      live = false;
+      ev.remove();
+      a.sc.tweens.add({ targets: box, alpha: 0, scale: 0.6, duration: 200, onComplete: () => box.destroy() });
+    },
+  };
 }
 
 /** The pizza nearest the middle of the table. */
@@ -120,6 +172,7 @@ function ticker(a: Arena, fn: (dt: number) => boolean | void): Phaser.Time.Timer
 const doughboy = (): Brain => {
   let since = 0;
   let puffT = 0;
+  let riseN = 0;
   let next = 2.5;
   return {
     names: ['DOUGH BALLS', 'RISING'],
@@ -132,17 +185,21 @@ const doughboy = (): Brain => {
         if (next <= 0 && p) {
           next = heat(a).cooldown(3.6);
           // a golden, outlined ball that pops out just under his sole, so it's never lost against his cream body
-          drop(a, f, p, 'p_doughball', 1.5, 'DOUGHED!', { scale: 0.75, tint: 0xffc46a, color: '#ffd9a0', top: Math.max(90, Math.min(f.y + 80, p.surfaceY - 260)) });
+          drop(a, f, p, 'p_doughball', 1.5, 'DOUGHED!', { scale: 0.8, tint: 0xffc46a, color: '#ffd9a0', top: Math.max(300, Math.min(f.y + 80, p.surfaceY - 260)) });
         }
       }
       if (f.phase >= 2 && since > 1.5 && f.hp < f.maxHp) {
         f.hp = Math.min(f.maxHp, f.hp + f.maxHp * 0.03 * dt);
-        // visible: it swells and sparkles green while it heals
+        // visible: it swells like proving dough and sparkles green while it heals
         puffT -= dt;
         if (puffT <= 0) {
           puffT = 0.9;
           a.fx.healBurst(f.cx, f.cy);
-          a.quip(f.x, f.cy - 140, 'rising…', '#7dff9a', 30);
+          const sx = f.root.scaleX;
+          const sy = f.root.scaleY;
+          a.sc.tweens.add({ targets: f.root, scaleX: sx * 1.05, scaleY: sy * 1.08, duration: 240, yoyo: true, ease: 'Sine.InOut' });
+          // the call-out sits under its sole, where the peel is (above it is behind the boss bar)
+          if ((riseN++ & 1) === 0) say(a, f.x, f.y + 50, 'RISING! KEEP HITTING', '#7dff9a', 34);
         }
       }
     },
@@ -187,14 +244,26 @@ const nonna = (): Brain => {
     const right = Math.max(...ps.map((p) => p.x + p.radius));
     const scale = Phaser.Math.Clamp((right - left + 240) / 1560, 0.6, 1.15);
     const cx = (left + right) / 2;
-    const top = 300; // starts below the boss bar
+    const top = 250 + 110 * scale; // its top edge starts just under the boss bar's move line
     const bottom = Math.max(...ps.map((p) => p.surfaceY)) + 40;
     const warn = 1;
     const travel = h.windup(5);
     const st = { y: top };
-    a.quip(cx, top + 120, 'ROLLING PIN!', '#ffd9a0', 56);
+    say(a, cx, top + 200, 'ROLLING PIN!', '#ffd9a0', 56);
     a.sfx('sfx_warning', { volume: 0.6 });
     a.shake(250, 0.006);
+    // six frames of the barrel turning: it visibly rolls as it comes down (and back up when knocked)
+    const frames = ['p_rollpin', 'p_rollpin1', 'p_rollpin2', 'p_rollpin3', 'p_rollpin4', 'p_rollpin5'];
+    const perFrame = 28 * scale; // px of travel per frame (a third of the barrel's turn over six frames)
+    let rolled = 0;
+    let shown = 0;
+    let back = 0; // knock-back still to apply, eased out over a few frames rather than snapping
+    const ghost = (img: Phaser.GameObjects.Image) => {
+      const g = a.sc.add.image(img.x, img.y, img.texture.key).setScale(scale);
+      a.fxLayer.add(g);
+      img.setVisible(false);
+      return g;
+    };
     pin = hitProp(a, {
       key: 'p_rollpin',
       x: cx,
@@ -202,21 +271,35 @@ const nonna = (): Brain => {
       scale,
       hits: h.hits(4),
       sec: warn + travel,
-      follow: () => ({ x: cx + Math.sin(a.now() * 9) * 3, y: st.y }),
+      follow: () => ({ x: cx, y: st.y }),
       contains: (x, y) => !!pin && Math.abs(x - pin.img.x) < 760 * scale && Math.abs(y - pin.img.y) < 110 * scale + 30,
-      badgeDy: -130,
+      // the counter sits on the middle of the barrel (above it is the boss bar)
+      badgeDy: 0,
       label: 'STOPPED!',
-      // each smack knocks it back up the table a little
+      // each smack knocks it back up the table a little, with a squash instead of the kit's tilt
       onHit: () => {
-        st.y = Math.max(top, st.y - 35);
+        if (!pin) return;
+        steady(a, pin.img, scale);
+        a.sc.tweens.add({ targets: pin.img, scaleY: scale * 0.86, scaleX: scale * 1.015, duration: 70, yoyo: true, ease: 'Quad.Out' });
+        back += 40;
         a.fx.puff(cx + (Math.random() - 0.5) * 900 * scale, st.y + 60, 4);
       },
       onClear: () => {
+        // it bounces back up the table and fades
+        if (pin) {
+          const g = ghost(pin.img);
+          a.sc.tweens.add({ targets: g, y: g.y - 70, scaleY: scale * 0.8, alpha: 0, duration: 420, ease: 'Quad.Out', onComplete: () => g.destroy() });
+        }
         pin = null;
         a.sfx('sfx_crit');
         done(f, h.cooldown(9));
       },
       onFail: () => {
+        // it keeps rolling, right over the pizzas and off the front of the table
+        if (pin) {
+          const g = ghost(pin.img);
+          a.sc.tweens.add({ targets: g, y: 1300, duration: 520, ease: 'Quad.In', onUpdate: () => g.setTexture(frames[Math.floor(g.y / perFrame) % 6]), onComplete: () => g.destroy() });
+        }
         pin = null;
         a.shake(400, 0.014);
         a.sfx('sfx_stomp');
@@ -229,15 +312,28 @@ const nonna = (): Brain => {
     let dust = 0;
     ticker(a, (dt) => {
       if (!pin || !pin.alive()) return false;
-      if (wait > 0) {
-        wait -= dt;
-        return;
+      if (back > 0) {
+        const k = Math.min(back, back * dt * 14 + 1);
+        back -= k;
+        const was = st.y;
+        st.y = Math.max(top, st.y - k);
+        rolled -= was - st.y;
       }
-      st.y = Math.min(bottom, st.y + speed * dt);
-      dust -= dt;
-      if (dust <= 0) {
-        dust = 0.25;
-        a.fx.puff(cx + (Math.random() - 0.5) * 1300 * scale, st.y + 70 * scale, 3);
+      if (wait > 0) wait -= dt;
+      else {
+        const was = st.y;
+        st.y = Math.min(bottom, st.y + speed * dt);
+        rolled += st.y - was;
+        dust -= dt;
+        if (dust <= 0) {
+          dust = 0.25;
+          a.fx.puff(cx + (Math.random() - 0.5) * 1300 * scale, st.y + 70 * scale, 3);
+        }
+      }
+      const fr = ((Math.floor(rolled / perFrame) % 6) + 6) % 6;
+      if (fr !== shown) {
+        shown = fr;
+        pin.img.setTexture(frames[fr]);
       }
     });
   };
@@ -250,12 +346,13 @@ const nonna = (): Brain => {
     busy = true;
     f.pinned = true;
     endRetreat = retreat(a);
-    a.quip(f.x, f.cy - 160, 'FLYING SLIPPERS!', '#ff9ad8', 52);
+    say(a, 960, 420, 'FLYING SLIPPERS!', '#ff9ad8', 52);
     const gap = h.windup(0.85);
     ps.forEach((p, i) => {
       a.sc.time.delayedCall(500 + i * gap * 1000, () => {
         if (!f.alive || !a.inWave() || p.dead) return;
-        drop(a, f, p, 'p_bigslipper', 1.1, 'SLIPPERED!', { scale: 0.62, tint: 0xff9ad8, color: '#ff9ad8' });
+        // starts under the boss bar's move line so the whole slipper is in view while it wobbles
+        drop(a, f, p, 'p_bigslipper', 1.1, 'SLIPPERED!', { scale: 0.72, tint: 0xff9ad8, color: '#ff9ad8', top: 320 });
       });
     });
     // the last slipper's warning and fall, then feet carry on
@@ -273,16 +370,24 @@ const nonna = (): Brain => {
     busy = true;
     lane = takeLane(a, f, edge);
     endRetreat = retreat(a);
-    a.quip(f.x, f.cy - 170, 'PEEL SNATCH!', '#ffd23f', 56);
+    say(a, f.x, f.y + 60, 'PEEL SNATCH!', '#ffd23f', 56);
     a.sfx('sfx_warning', { volume: 0.6 });
     const handle = a.sc.add.graphics();
     a.fxLayer.add(handle);
-    const bowl = a.sc.add.image(0, 0, 'p_spoonbowl').setScale(1.15).setVisible(false);
-    a.fxLayer.add(bowl);
+    // the bowl is added to the scene itself, after the cursor layer, so it clamps down ON TOP of the peel
+    const bowl = a.sc.add.image(0, 0, 'p_spoonbowl').setScale(0.85).setVisible(false);
+    // the direction arrows also sit above the peel, so it never hides them
+    const arrows = a.sc.add.graphics();
+    // the panel: "PULL AWAY!", the tug meter and the time left, all in one place above the peel
+    const panel = a.sc.add.container(0, 0).setVisible(false);
     const meter = a.sc.add.graphics();
-    a.fxLayer.add(meter);
-    const tip = a.sc.add.text(0, 0, 'PULL AWAY!', { fontFamily: 'Lilita One, Fredoka, sans-serif', fontSize: '34px', color: '#fff6e2', stroke: '#2a1810', strokeThickness: 8 }).setOrigin(0.5).setVisible(false);
-    a.fxLayer.add(tip);
+    const txt = (x: number, y: number, s: string, size: number, color = '#fff6e2') =>
+      a.sc.add.text(x, y, s, { fontFamily: FONT, fontSize: `${size}px`, color, stroke: '#2a1810', strokeThickness: 6 }).setOrigin(0.5);
+    const title = txt(0, -44, 'PULL AWAY!', 36, '#ffd23f');
+    const tugL = txt(-128, 8, 'TUG', 20);
+    const timeL = txt(-128, 42, 'TIME', 20);
+    panel.add([meter, title, tugL, timeL]);
+    a.fxLayer.add(panel);
     const grabFor = Math.max(1.5, h.windup(1.8));
     const need = 1000 + 150 * h.rank; // px of movement away from her
     const pull = 240 + 30 * h.rank;
@@ -295,12 +400,25 @@ const nonna = (): Brain => {
     let grabbedAt = -1;
     let over = false;
     const hand = () => ({ x: f.x, y: f.cy + 30 });
-    const tidy = () => {
+    const drawHandle = (x0: number, y0: number, x1: number, y1: number) => {
+      handle.clear().lineStyle(32, 0x2a1810, 1).lineBetween(x0, y0, x1, y1).lineStyle(22, 0xc8884a, 1).lineBetween(x0, y0, x1, y1);
+      // a highlight along the top of the handle
+      const l = Math.hypot(x1 - x0, y1 - y0) || 1;
+      const ox = ((y1 - y0) / l) * -5;
+      const oy = ((x0 - x1) / l) * -5;
+      handle.lineStyle(5, 0xf6d29a, 0.8).lineBetween(x0 + ox, y0 + oy, x1 + ox, y1 + oy);
+    };
+    const tidy = (fade = false) => {
       over = true;
-      handle.destroy();
-      bowl.destroy();
-      meter.destroy();
-      tip.destroy();
+      for (const o of [handle, arrows, panel]) {
+        if (fade) a.sc.tweens.add({ targets: o, alpha: 0, duration: 220, onComplete: () => o.destroy() });
+        else o.destroy();
+      }
+      if (fade) {
+        // the spoon lets go and springs back towards her
+        const me = hand();
+        a.sc.tweens.add({ targets: bowl, x: me.x, y: Math.max(200, me.y), alpha: 0, scale: 0.6, duration: 300, ease: 'Quad.In', onComplete: () => bowl.destroy() });
+      } else bowl.destroy();
     };
     stopSnatch = () => {
       if (!over) tidy();
@@ -308,10 +426,10 @@ const nonna = (): Brain => {
     const finish = (ok: boolean) => {
       if (over) return;
       const at = { x: bowl.x, y: bowl.y };
-      tidy();
+      tidy(true);
       stopSnatch = null;
       if (ok) {
-        a.quip(at.x, at.y - 90, 'GOT IT BACK!', '#7dff9a', 46);
+        say(a, at.x, at.y - 100, 'GOT IT BACK!', '#7dff9a', 46);
         a.sfx('sfx_crit');
         if (f.alive) f.stun(1.2);
       } else if (f.alive && a.inWave()) {
@@ -334,7 +452,7 @@ const nonna = (): Brain => {
       done(f, h.cooldown(18));
     };
     // while she has it, smacks do nothing (and say why)
-    a.addClickable({ x: 0, y: 0, r: 0, priority: 9, contains: () => true, alive: () => grabbedAt >= 0 && !over, hit: () => a.quip(a.peelPoint().x, a.peelPoint().y - 70, 'PULL AWAY!', '#ffd23f', 30) });
+    a.addClickable({ x: 0, y: 0, r: 0, priority: 9, contains: () => true, alive: () => grabbedAt >= 0 && !over, hit: () => a.quip(a.peelPoint().x, a.peelPoint().y + 90, 'PULL AWAY!', '#ffd23f', 30) });
     ticker(a, (dt) => {
       if (over) return false;
       if (!f.alive || !a.inWave()) {
@@ -351,15 +469,17 @@ const nonna = (): Brain => {
         const k = Phaser.Math.Easing.Back.Out((t - reach) / swing);
         const ex = me.x + (pp.x - me.x) * k;
         const ey = me.y + (pp.y - me.y) * k;
-        handle.clear().lineStyle(26, 0x2a1810, 1).lineBetween(me.x, me.y, ex, ey).lineStyle(16, 0xc8884a, 1).lineBetween(me.x, me.y, ex, ey);
-        bowl.setVisible(true).setPosition(ex, ey).setRotation(Math.atan2(ey - me.y, ex - me.x) + Math.PI / 2);
+        drawHandle(me.x, me.y, ex, ey);
+        bowl.setVisible(true).setPosition(ex, ey).setRotation(Math.atan2(ey - me.y, ex - me.x) - Math.PI / 2);
         return;
       }
       if (grabbedAt < 0) {
         grabbedAt = a.now();
         a.sfx('sfx_squish', { rate: 0.8 });
-        a.quip(pp.x, pp.y - 120, 'GOTCHA!', '#ff8a6a', 44);
-        tip.setVisible(true);
+        say(a, me.x, me.y + 80, 'GOTCHA!', '#ff8a6a', 44);
+        a.sc.tweens.add({ targets: bowl, scale: { from: 1.1, to: 0.85 }, duration: 200, ease: 'Back.Out' });
+        panel.setVisible(true).setAlpha(0);
+        a.sc.tweens.add({ targets: panel, alpha: 1, duration: 150 });
       }
       // a Peel Slam knocks her off it
       if (a.slammedAt() >= grabbedAt) {
@@ -381,17 +501,44 @@ const nonna = (): Brain => {
         pp.y += ((me.y - pp.y) / d) * pull * dt;
       }
       const held = a.now() - grabbedAt;
-      // draw: spoon handle from her to the peel, bowl clamped on it, tug meter and time left above
-      handle.clear().lineStyle(26, 0x2a1810, 1).lineBetween(me.x, me.y, pp.x, pp.y).lineStyle(16, 0xc8884a, 1).lineBetween(me.x, me.y, pp.x, pp.y);
-      bowl.setPosition(pp.x, pp.y).setRotation(Math.atan2(pp.y - me.y, pp.x - me.x) + Math.PI / 2);
-      const mx = pp.x - 110;
-      const my = pp.y - 150;
+      const left = Math.max(0, 1 - held / grabFor);
+      // spoon handle from her to the peel, the bowl clamped over it and straining (it shakes)
+      const ux = d ? (pp.x - me.x) / d : 1;
+      const uy = d ? (pp.y - me.y) / d : 0;
+      // the bowl hooks the near edge of the peel's head, so the peel itself stays in view under it
+      const bx = pp.x - ux * 105;
+      const by = pp.y - uy * 105;
+      drawHandle(me.x, me.y, bx, by);
+      const jig = 2 + 3 * (1 - left);
+      bowl.setPosition(bx + (Math.random() - 0.5) * jig, by + (Math.random() - 0.5) * jig).setRotation(Math.atan2(uy, ux) - Math.PI / 2);
+      // chevrons from the peel pointing away from her: which way to pull
+      arrows.clear();
+      const now = a.now();
+      for (let i = 0; i < 3; i++) {
+        const dist = 150 + i * 56;
+        const ax = pp.x + ux * dist;
+        const ay = pp.y + uy * dist;
+        const s = 28;
+        const alpha = 0.35 + 0.65 * Math.max(0, Math.sin(now * 9 - i * 1.2));
+        const pts = [ax - ux * s - uy * s, ay - uy * s + ux * s, ax, ay, ax - ux * s + uy * s, ay - uy * s - ux * s];
+        arrows.lineStyle(20, 0x2a1810, alpha).beginPath().moveTo(pts[0], pts[1]).lineTo(pts[2], pts[3]).lineTo(pts[4], pts[5]).strokePath();
+        arrows.lineStyle(10, 0xffd23f, alpha).beginPath().moveTo(pts[0], pts[1]).lineTo(pts[2], pts[3]).lineTo(pts[4], pts[5]).strokePath();
+      }
+      // the panel sits above the peel (below it when the peel is near the top), always fully on screen
+      const above = pp.y - 210;
+      panel.setPosition(Phaser.Math.Clamp(pp.x, 190, 1730), above >= 330 ? above : Math.min(960, pp.y + 220));
       meter.clear();
-      meter.fillStyle(0x2a1810, 0.92).fillRoundedRect(mx - 6, my - 6, 232, 38, 14);
-      meter.fillStyle(0x4a3a30, 1).fillRoundedRect(mx, my, 220, 26, 10);
-      meter.fillStyle(fill > 0.7 ? 0x7dff9a : 0xffd23f, 1).fillRoundedRect(mx, my, Math.max(8, 220 * Math.min(1, fill)), 26, 10);
-      meter.fillStyle(0xff5a4a, 1).fillRect(mx, my + 34, 220 * Math.max(0, 1 - held / grabFor), 6);
-      tip.setPosition(pp.x, my - 30);
+      meter.fillStyle(0x2a1810, 0.92).fillRoundedRect(-170, -78, 340, 140, 18);
+      meter.lineStyle(4, 0xfff6e2, 1).strokeRoundedRect(-170, -78, 340, 140, 18);
+      // tug meter, yellow → green near the end, with quarter ticks
+      meter.fillStyle(0x4a3a30, 1).fillRoundedRect(-92, -6, 240, 28, 10);
+      meter.fillStyle(fill > 0.7 ? 0x7dff9a : 0xffd23f, 1).fillRoundedRect(-92, -6, Math.max(10, 240 * Math.min(1, fill)), 28, 10);
+      meter.lineStyle(2, 0x2a1810, 0.6);
+      for (const q of [0.25, 0.5, 0.75]) meter.lineBetween(-92 + 240 * q, -4, -92 + 240 * q, 20);
+      // time left drains red; it flashes in the last third
+      const flash = left < 0.34 && Math.sin(now * 20) > 0;
+      meter.fillStyle(0x4a3a30, 1).fillRoundedRect(-92, 34, 240, 16, 7);
+      meter.fillStyle(flash ? 0xffffff : left < 0.34 ? 0xff4a3a : 0xff8a3a, 1).fillRoundedRect(-92, 34, Math.max(8, 240 * left), 16, 7);
       if (fill >= 1) {
         finish(true);
         return false;
@@ -441,6 +588,7 @@ const pigeonking = (): Brain => {
   let wardT = 0;
   let gap = 1.5;
   let nagT = 0;
+  let count: ReturnType<typeof counter> | null = null;
   return {
     names: ['BIRD BOMB', 'FLOCK CALL'],
     info: ['Drops bombs on the pizza below it · smack them as they fall', 'Shielded while his flock is out · clear every pigeon, then hit him'],
@@ -454,6 +602,7 @@ const pigeonking = (): Brain => {
       if (warded) {
         shield(a, f, true);
         flock = flock.filter((pg) => pg.alive);
+        count?.set(flock.length);
         // a safety net: the ward never outlasts 25 s, even if a pigeon can't be reached
         wardT += dt;
         if (!flock.length || wardT > 25) {
@@ -461,8 +610,10 @@ const pigeonking = (): Brain => {
           warded = false;
           shield(a, f, false);
           a.setMinions(null);
+          count?.destroy();
+          count = null;
           gap = heat(a).cooldown(6);
-          a.quip(f.x, f.cy - 150, 'EXPOSED! HIT HIM!', '#7dff9a', 46);
+          say(a, f.x, f.y + 70, 'EXPOSED! HIT HIM!', '#7dff9a', 46);
           a.sfx('sfx_crit');
         }
         return;
@@ -487,28 +638,35 @@ const pigeonking = (): Brain => {
       }
       warded = true;
       shield(a, f, true);
-      a.quip(f.x, f.cy - 150, `FLOCK CALL ×${flock.length}`, '#c7ccd4', 44);
+      say(a, f.x, f.y + 190, `FLOCK CALL ×${flock.length}`, '#c7ccd4', 44);
+      // how many pigeons are left, under his sole for as long as the shield is up
+      count = counter(a, () => ({ x: f.x, y: f.y + 60 }), 'PIGEONS LEFT');
+      count.set(flock.length);
       a.sfx('sfx_boing', { rate: 1.6 });
     },
     onSmacked: (f, a) => {
       if (!warded) return false;
       if (nagT <= 0) {
         nagT = 0.6;
-        a.quip(f.x + 60, f.cy - 60, `CLEAR THE FLOCK · ${flock.filter((pg) => pg.alive).length} LEFT`, '#c7ccd4', 30);
+        say(a, f.x, f.y + 190, `CLEAR THE FLOCK · ${flock.filter((pg) => pg.alive).length} LEFT`, '#c7ccd4', 30);
       }
       return true;
     },
     onDeath: (f, a) => {
       shield(a, f, false);
       a.setMinions(null);
+      count?.destroy();
+      count = null;
     },
   };
 };
 
 // ——— 16. The Gargoyle ———
 
-/** Where the Gargoyle's statue sits (contact y): lower than its usual hover, so it is in plain view under the boss bar. */
-const STONE_Y = 450;
+/** Where the Gargoyle's statue sits (contact y): well below its usual hover, so most of the statue is in plain
+ * view under the boss bar (at 450 only its toes showed and every call-out above it was hidden). */
+const STONE_Y = 600;
+const CRACKS = 6;
 
 const gargoyle = (): Brain => {
   let started = false;
@@ -517,6 +675,10 @@ const gargoyle = (): Brain => {
   let stoneT = 0;
   let cracks = 0;
   let lane: Takeover | null = null;
+  // the statue look: fissures drawn on the foot itself, one more per smack, and the cracks-left counter
+  let fissures: Phaser.GameObjects.Graphics | null = null;
+  let paths: { x: number; y: number }[][] = [];
+  let count: ReturnType<typeof counter> | null = null;
   // phase 3+: it hides behind a flock of little gargoyles, can't be hurt until every one is gone,
   // then is exposed for a few seconds before calling the next (bigger at higher heats)
   let flock: Foot[] = [];
@@ -525,7 +687,12 @@ const gargoyle = (): Brain => {
   let exposedT = 0;
   let nagT = 0;
   const flockSize = (f: Foot, a: Arena) => Math.ceil(3 * a.heatCount()) + (f.phase >= 4 ? 1 : 0);
-  const endStone = (f: Foot) => {
+  const under = (f: Foot) => () => ({ x: f.x, y: f.y + 60 });
+  const dropCount = () => {
+    count?.destroy();
+    count = null;
+  };
+  const endStone = (f: Foot, a: Arena) => {
     stoneT = 0;
     f.shielded = false;
     f.brain.wasShielded = false;
@@ -533,6 +700,53 @@ const gargoyle = (): Brain => {
     if (lane) f.puppet = false;
     lane?.release();
     lane = null;
+    dropCount();
+    if (fissures) {
+      const g = fissures;
+      fissures = null;
+      a.sc.tweens.add({ targets: g, alpha: 0, duration: 300, onComplete: () => g.destroy() });
+    }
+  };
+  /** Fissure k: a jagged line down the lower body (the top of the statue is behind the boss bar). */
+  const drawCracks = () => {
+    if (!fissures) return;
+    const g = fissures.clear();
+    for (const pts of paths.slice(0, cracks)) {
+      g.lineStyle(9, 0x1e1c22, 0.9).beginPath().moveTo(pts[0].x, pts[0].y);
+      for (const p of pts.slice(1)) g.lineTo(p.x, p.y);
+      g.strokePath();
+      g.lineStyle(3, 0xeef2fa, 0.75).beginPath().moveTo(pts[0].x + 3, pts[0].y + 2);
+      for (const p of pts.slice(1)) g.lineTo(p.x + 3, p.y + 2);
+      g.strokePath();
+    }
+  };
+  const startStone = (f: Foot, a: Arena) => {
+    stoneT = 5;
+    cracks = 0;
+    f.shielded = true;
+    f.brain.wasShielded = true;
+    // cold slate blue: reads as a carved statue next to its usual warm grey
+    f.tint(0x9fb2d0);
+    const hw = f.meta.halfWidth * f.type.scale;
+    const fh = f.meta.footHeight * f.type.scale;
+    paths = [];
+    for (let k = 0; k < CRACKS; k++) {
+      let x = (((k * 0.37) % 1) - 0.5) * hw * 1.3;
+      let y = -fh * (0.62 - 0.07 * (k % 3));
+      const pts = [{ x, y }];
+      for (let i = 0; i < 5; i++) {
+        x += (Math.random() - 0.5) * hw * 0.35;
+        y += fh * (0.06 + Math.random() * 0.04);
+        pts.push({ x, y });
+      }
+      paths.push(pts);
+    }
+    fissures = a.sc.add.graphics();
+    f.root.add(fissures);
+    count = counter(a, under(f), 'CRACKS LEFT');
+    count.set(CRACKS);
+    a.fx.puff(f.cx, f.cy, 8);
+    say(a, f.x, f.y + 190, 'STONE FORM!', '#c7ccd4', 44);
   };
   const callFlock = (f: Foot, a: Arena) => {
     flock = [];
@@ -550,20 +764,23 @@ const gargoyle = (): Brain => {
     }
     warded = true;
     shield(a, f, true);
-    a.quip(f.x, f.cy - 150, `GARGOYLE STORM ×${flock.length}`, '#c7ccd4', 44);
+    say(a, f.x, f.y + 190, `GARGOYLE STORM ×${flock.length}`, '#c7ccd4', 44);
+    dropCount();
+    count = counter(a, under(f), 'GARGOYLES LEFT');
+    count.set(flock.length);
     a.sfx('sfx_boing', { rate: 0.8 });
   };
   return {
     names: ['SWOOP', 'STONE FORM', 'GARGOYLE STORM'],
     info: [
       'Swoops between pizzas while it hovers · strike when it settles over one',
-      'Sits in the middle lane as a statue: smacks do no damage · crack it 6 times to break it and stun it',
+      'Turns to stone over the middle pizza: smacks do no damage · crack it 6 times to break it and stun it',
       "Hides behind a flock of little gargoyles and can't be hurt · clear the flock, then hit it while it's exposed",
     ],
     onPhase: (f, phase, a) => {
       if (phase < 3) return;
       // leaving stone form behind
-      endStone(f);
+      endStone(f, a);
       if (phase === 3) exposedT = 0;
       a.fx.puff(f.cx, f.cy, 6);
     },
@@ -590,13 +807,13 @@ const gargoyle = (): Brain => {
         }
         stoneT -= dt;
         if (stoneT <= 0) {
-          endStone(f);
+          endStone(f, a);
           stoneNext = heat(a).cooldown(7);
         }
       } else if (f.phase === 2 && a.inWave()) {
         stoneNext -= dt;
         if (stoneNext <= 0) {
-          // a statue in the middle lane: it rises to the top of it and holds still
+          // a statue in the middle lane: it settles low over it and holds still
           lane = takeLane(a, f, middlePizza(a));
           if (!lane) {
             stoneNext = 1;
@@ -604,12 +821,7 @@ const gargoyle = (): Brain => {
           }
           f.puppet = true;
           f.setState('hover');
-          stoneT = 5;
-          cracks = 0;
-          f.shielded = true;
-          f.brain.wasShielded = true;
-          f.tint(0x8a8a8a);
-          a.quip(f.x, f.cy - 150, 'STONE FORM!', '#c7ccd4', 44);
+          startStone(f, a);
           a.sfx('sfx_shield', { rate: 0.6 });
         }
       }
@@ -617,13 +829,15 @@ const gargoyle = (): Brain => {
         if (warded) {
           shield(a, f, true); // keep the ward through the transform beat
           flock = flock.filter((g) => g.alive);
+          count?.set(flock.length);
           wardT += dt;
           if (!flock.length || wardT > 25) {
             wardT = 0;
             warded = false;
             shield(a, f, false);
+            dropCount();
             exposedT = f.phase >= 4 ? 4 : 5;
-            a.quip(f.x, f.cy - 150, 'EXPOSED! HIT IT!', '#7dff9a', 46);
+            say(a, f.x, f.y + 70, 'EXPOSED! HIT IT!', '#7dff9a', 46);
             a.sfx('sfx_crit');
           }
         } else if (exposedT > 0) {
@@ -635,25 +849,28 @@ const gargoyle = (): Brain => {
       if (warded) {
         if (nagT <= 0) {
           nagT = 0.6;
-          a.quip(f.x + 60, f.cy - 60, `CLEAR THE GARGOYLES · ${flock.filter((g) => g.alive).length} LEFT`, '#c7ccd4', 30);
+          say(a, f.x, f.y + 190, `CLEAR THE GARGOYLES · ${flock.filter((g) => g.alive).length} LEFT`, '#c7ccd4', 30);
         }
         return true;
       }
       if (stoneT <= 0) return false;
       cracks++;
-      a.quip(f.x + 60, f.cy - 60, `CRACK ${cracks}/6`, '#c7ccd4', 30);
-      a.fx.puff(f.cx + (Math.random() - 0.5) * 80, f.cy, 4);
-      if (cracks >= 6) {
-        endStone(f);
+      drawCracks();
+      count?.set(CRACKS - cracks);
+      a.fx.puff(f.cx + (Math.random() - 0.5) * 80, f.y - 60, 5);
+      if (cracks >= CRACKS) {
+        endStone(f, a);
         stoneNext = heat(a).cooldown(7);
         f.stun(1.5);
-        a.quip(f.x, f.cy - 150, 'STONE BROKEN!', '#7dff9a', 46);
+        a.fx.explosion(f.cx, f.y - 80, 160);
+        a.shake(250, 0.008);
+        say(a, f.x, f.y + 70, 'STONE BROKEN!', '#7dff9a', 46);
         a.sfx('sfx_crit');
       }
       return true;
     },
     onDeath: (f, a) => {
-      endStone(f);
+      endStone(f, a);
       shield(a, f, false);
       a.setMinions(null);
     },
@@ -666,22 +883,32 @@ const jellyfish = (): Brain => {
   // dim → (charge) → glow → dim. Phase 1 holds still from the charge to the end of the glow.
   let mode: 'dim' | 'charge' | 'glow' = 'dim';
   let t = 2;
-  let halo: { g: Phaser.GameObjects.Graphics; bang: Phaser.GameObjects.Text } | null = null;
+  const CHARGE = 0.7;
+  let halo: { g: Phaser.GameObjects.Graphics; sign: Phaser.GameObjects.Container } | null = null;
   const still = (f: Foot) => f.phase === 1;
   const hide = (a: Arena) => {
     if (!halo) return;
-    a.sc.tweens.killTweensOf(halo.bang);
-    halo.g.destroy();
-    halo.bang.destroy();
+    const { g, sign } = halo;
     halo = null;
+    a.sc.tweens.killTweensOf(sign);
+    a.sc.tweens.add({ targets: [g, sign], alpha: 0, duration: 160, onComplete: () => (g.destroy(), sign.destroy()) });
   };
   const show = (a: Arena) => {
     if (halo) return;
     const g = a.sc.add.graphics();
-    const bang = a.sc.add.text(0, 0, '!', { fontFamily: 'Lilita One, Fredoka, sans-serif', fontSize: '96px', color: '#ff5ad0', stroke: '#2a1810', strokeThickness: 12 }).setOrigin(0.5);
-    a.fxLayer.add([g, bang]);
-    a.sc.tweens.add({ targets: bang, scale: { from: 0.85, to: 1.2 }, duration: 260, yoyo: true, repeat: -1 });
-    halo = { g, bang };
+    // a "don't hit" sign under the sole, where the peel is (above the foot is off the top of the screen):
+    // the same dark pill as the hit counters, in the sting's pink, so it can't be mistaken for "hit this"
+    const sign = a.sc.add.container(0, 0);
+    const label = a.sc.add.text(0, 0, "⚡ DON'T HIT! ⚡", { fontFamily: FONT, fontSize: '34px', color: '#ff8ae0', stroke: '#2a1810', strokeThickness: 6 }).setOrigin(0.5);
+    const w = label.width + 36;
+    const bg = a.sc.add.graphics();
+    bg.fillStyle(0x2a1810, 0.92).fillRoundedRect(-w / 2, -30, w, 60, 30);
+    bg.lineStyle(4, 0xff8ae0, 1).strokeRoundedRect(-w / 2, -30, w, 60, 30);
+    sign.add([bg, label]);
+    a.fxLayer.add([g, sign]);
+    sign.setScale(0.4);
+    a.sc.tweens.add({ targets: sign, scale: 1, duration: 200, ease: 'Back.Out' });
+    halo = { g, sign };
   };
   const draw = (f: Foot, a: Arena) => {
     if (!halo) return;
@@ -689,10 +916,20 @@ const jellyfish = (): Brain => {
     const now = a.now();
     const pulse = 0.5 + 0.5 * Math.sin(now * 14);
     const g = halo.g.clear();
-    const live = mode === 'glow';
-    g.fillStyle(0xff5ad0, live ? 0.18 + pulse * 0.16 : 0.08 + pulse * 0.08).fillCircle(f.cx, f.cy, r);
-    g.lineStyle(live ? 8 : 4, 0xffb0ee, live ? 0.95 : 0.6).strokeCircle(f.cx, f.cy, r * (0.96 + pulse * 0.06));
-    if (live) {
+    if (mode === 'charge') {
+      // the wind-up: a ring closes in on it and brightens, with sparks along it
+      const k = Phaser.Math.Clamp(1 - t / CHARGE, 0, 1);
+      const rr = r * (2 - 0.9 * k);
+      g.fillStyle(0xff5ad0, 0.06 + 0.12 * k).fillCircle(f.cx, f.cy, rr);
+      g.lineStyle(4 + 6 * k, 0xffb0ee, 0.4 + 0.55 * k).strokeCircle(f.cx, f.cy, rr);
+      g.lineStyle(4, 0xffffff, 0.8 * k);
+      for (let i = 0; i < 6; i++) {
+        const ang = Math.random() * Math.PI * 2;
+        g.lineBetween(f.cx + Math.cos(ang) * rr, f.cy + Math.sin(ang) * rr, f.cx + Math.cos(ang + 0.15) * (rr - 26), f.cy + Math.sin(ang + 0.15) * (rr - 26));
+      }
+    } else if (mode === 'glow') {
+      g.fillStyle(0xff5ad0, 0.12 + pulse * 0.1).fillCircle(f.cx, f.cy, r);
+      g.lineStyle(8, 0xffb0ee, 0.95).strokeCircle(f.cx, f.cy, r * (0.96 + pulse * 0.06));
       // a crackling ring: jagged zigzag that re-rolls every frame
       g.lineStyle(5, 0xffffff, 0.9);
       g.beginPath();
@@ -707,8 +944,7 @@ const jellyfish = (): Brain => {
       }
       g.strokePath();
     }
-    // under the sole, where the peel is aiming (above the foot is off the top of the screen)
-    halo.bang.setPosition(f.cx, f.y + 150).setAlpha(live ? 1 : 0.4 + pulse * 0.6);
+    halo.sign.setPosition(Phaser.Math.Clamp(f.x, 200, 1720), Phaser.Math.Clamp(f.y + 40, 320, 900)).setAlpha(mode === 'glow' ? 0.75 + 0.25 * pulse : 1);
   };
   return {
     names: ['GLOW', 'BRIGHT GLOW'],
@@ -717,7 +953,7 @@ const jellyfish = (): Brain => {
       t -= dt;
       if (mode === 'dim' && t <= 0 && (!still(f) || f.state === 'hover')) {
         mode = still(f) ? 'charge' : 'glow';
-        t = still(f) ? 0.7 : 2.5;
+        t = still(f) ? CHARGE : 2.5;
         if (still(f)) f.puppet = true;
         show(a);
         a.sfx('sfx_zap', { volume: 0.4, rate: 1.6 });
@@ -729,6 +965,8 @@ const jellyfish = (): Brain => {
         t = f.phase >= 2 ? 1.5 : 2;
         if (f.puppet && !Number(f.brain.transformT ?? 0)) f.puppet = false;
         hide(a);
+        // the all-clear, in the same green as every "hit it now" call-out
+        if (f.alive) say(a, f.x, f.y + 40, 'HIT NOW!', '#7dff9a', 40);
       }
       f.brain.glowing = mode === 'glow';
       // only retint when the colour changes, so hit flashes and status tints aren't wiped every frame
@@ -745,6 +983,7 @@ const jellyfish = (): Brain => {
       mode = 'dim';
       t = 1;
       f.tint(null);
+      f.brain.jellyTint = false;
       hide(a);
     },
     onSmacked: (f, a) => {
@@ -767,7 +1006,7 @@ const kraken = (): Brain => {
   let next = 3;
   let busy = false;
   let turn = 0;
-  const props: { prop: Prop; p: Pizza }[] = [];
+  const props: { prop: Prop; p: Pizza; wrap: Phaser.GameObjects.Image }[] = [];
 
   const grab = (f: Foot, a: Arena) => {
     const h = heat(a);
@@ -778,14 +1017,19 @@ const kraken = (): Brain => {
     // feet clear out of its lanes: the lock moves hovering feet, and any already diving get swatted back up
     a.lockLane(p, true);
     for (const o of a.allFeet()) if (o.alive && !o.isBossLike && o.target === p && (o.state === 'descend' || o.state === 'stomp')) o.knock(700);
-    const scale = 0.95;
-    const baseX = p.x + p.radius * 0.75;
-    const baseY = p.y + 150;
-    const st = { y: baseY + 700 };
-    a.sc.tweens.add({ targets: st, y: baseY, duration: 550, ease: 'Back.Out' });
-    a.quip(p.x, p.surfaceY - 150, 'GRABBED!', '#b46ad8', 44);
+    const k = p.radius / 154; // drawn for a 154 px pizza
+    const scale = 0.95 * k;
+    // it comes up from behind the pizza on its outer side (so it never covers the next pizza) and curls over it
+    const left = p.x < 960;
+    const baseX = p.x + (left ? -1 : 1) * p.radius * 0.62;
+    const baseY = p.y + 30; // hidden behind the plate
+    say(a, p.x, p.surfaceY - 340, 'GRABBED!', '#d9a0ff', 44);
     a.sfx('sfx_squish', { rate: 0.6 });
     a.shake(200, 0.006);
+    // the coil round the front of the plate, in front of the pizza (the body is behind it)
+    const wrap = a.sc.add.image(p.x, p.y, 'p_tentwrap').setOrigin(230 / 470, 40 / 200).setFlipX(left).setScale(p.radius * 1.12 / 200, 0).setAlpha(0);
+    a.fxLayer.add(wrap);
+    a.sc.tweens.add({ targets: wrap, scaleY: p.radius * 1.12 / 200, alpha: 1, delay: 250, duration: 300, ease: 'Back.Out' });
     const release = () => {
       p.flags.grabbed = false;
       a.lockLane(p, false);
@@ -794,44 +1038,72 @@ const kraken = (): Brain => {
       const i = props.findIndex((o) => o.prop === prop);
       if (i >= 0) props.splice(i, 1);
     };
-    // the whole visible tentacle is whackable: un-rotate the click into the image's frame and test its box
+    // the whole tentacle is whackable (un-rotate the click into the image's frame and test its box), and so is the coil
     const inside = (x: number, y: number) => {
       const img = prop.img;
-      const s = img.scale || scale;
+      const s = img.scaleY || scale;
       const r = -img.rotation;
       const dx = x - img.x;
       const dy = y - img.y;
       const lx = dx * Math.cos(r) - dy * Math.sin(r);
       const ly = dx * Math.sin(r) + dy * Math.cos(r);
-      return Math.abs(lx) < 140 * s && ly < 20 && ly > -700 * s;
+      if (Math.abs(lx) < 150 * s && ly < 20 && ly > -800 * s) return true;
+      const ex = (x - p.x) / (p.radius * 1.4);
+      const ey = (y - p.y) / (p.radius * 0.95);
+      return y > p.y - 20 && ex * ex + ey * ey < 1;
     };
+    // a slow sway from its base, driven here so a smack's wobble can't fight it
+    const t0 = a.now();
     const prop: Prop = hitProp(a, {
       key: 'p_bigtentacle',
       x: baseX,
-      y: st.y,
+      y: baseY,
       scale,
+      under: true,
       hits: h.hits(3),
       sec: h.windup(4),
       contains: inside,
-      follow: () => ({ x: baseX, y: st.y }),
-      badgeDy: -420,
+      follow: () => {
+        if (prop) prop.img.setAngle(Math.sin((a.now() - t0) * 3.2) * 4);
+        return { x: baseX, y: baseY };
+      },
+      // the counter sits on the middle of the tentacle
+      badgeDy: -330,
       label: 'FREED!',
+      onHit: () => {
+        // a squeeze instead of the kit's tilt: it flinches down into itself
+        steady(a, prop.img, scale);
+        a.sc.tweens.add({ targets: prop.img, scaleY: scale * 0.88, scaleX: scale * 1.08, duration: 80, yoyo: true, ease: 'Quad.Out' });
+        a.sc.tweens.add({ targets: wrap, scaleX: wrap.scaleX * 1.04, duration: 80, yoyo: true });
+      },
       onClear: () => {
         release();
-        // it slides back under the table
-        const ghost = a.sc.add.image(prop.img.x, prop.img.y, 'p_bigtentacle').setOrigin(0.5, 1).setScale(scale).setRotation(prop.img.rotation);
-        a.fxLayer.add(ghost);
-        a.sc.tweens.add({ targets: ghost, y: ghost.y + 750, duration: 420, ease: 'Quad.In', onComplete: () => ghost.destroy() });
+        // it lets go and sinks back down behind the table
+        const ghost = a.sc.add.image(prop.img.x, prop.img.y, 'p_bigtentacle').setOrigin(0.5, 1).setScale(scale).setRotation(prop.img.rotation).setFlipX(!left);
+        prop.img.setVisible(false);
+        a.underLayer.add(ghost);
+        a.sc.tweens.add({ targets: ghost, scaleY: 0.02, duration: 380, ease: 'Back.In', onComplete: () => ghost.destroy() });
+        a.sc.tweens.add({ targets: wrap, alpha: 0, scaleY: 0, duration: 260, onComplete: () => wrap.destroy() });
       },
       onFail: () => {
         release();
-        if (f.alive && a.inWave() && !p.dead) a.hitPizza(p, h.slices(2), 'DRAGGED UNDER!', '#b46ad8');
+        // it yanks hard: the tentacle snaps down and the coil tightens before it lets go
+        const ghost = a.sc.add.image(prop.img.x, prop.img.y, 'p_bigtentacle').setOrigin(0.5, 1).setScale(scale).setRotation(prop.img.rotation).setFlipX(!left);
+        prop.img.setVisible(false);
+        a.underLayer.add(ghost);
+        a.sc.tweens.add({ targets: ghost, scaleY: 0.02, duration: 220, ease: 'Quad.In', onComplete: () => ghost.destroy() });
+        a.sc.tweens.add({ targets: wrap, scaleX: wrap.scaleX * 0.9, y: wrap.y + 30, duration: 160, yoyo: true, onComplete: () => a.sc.tweens.add({ targets: wrap, alpha: 0, duration: 200, onComplete: () => wrap.destroy() }) });
+        a.shake(300, 0.012);
+        if (f.alive && a.inWave() && !p.dead) a.hitPizza(p, h.slices(2), 'DRAGGED UNDER!', '#d9a0ff');
       },
     });
-    prop.img.setOrigin(0.5, 1);
-    // a gentle sway from its base
-    a.sc.tweens.add({ targets: prop.img, angle: { from: -5, to: 5 }, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
-    props.push({ prop, p });
+    // the art leans right; mirror it on the left so the tip always curls over the pizza
+    prop.img.setOrigin(0.5, 1).setFlipX(!left);
+    // it rises out from behind the pizza (the kit's pop-in, but growing upwards from the base)
+    a.sc.tweens.killTweensOf(prop.img);
+    prop.img.setScale(scale, scale * 0.05);
+    a.sc.tweens.add({ targets: prop.img, scaleY: scale, duration: 520, ease: 'Back.Out' });
+    props.push({ prop, p, wrap });
   };
 
   const ink = (f: Foot, a: Arena) => {
@@ -841,19 +1113,26 @@ const kraken = (): Brain => {
     busy = true;
     const tx = p.x;
     const ty = p.surfaceY - 10;
-    mark(a, 'p_reticle', tx, ty, 1.9, 0.75);
-    a.quip(tx, p.surfaceY - 190, 'SQUIRT!', '#d9a0ff', 48);
+    const ret = mark(a, 'p_reticle', tx, ty, h.windup(1.3) + 0.2, 0.75);
+    say(a, tx, p.surfaceY - 250, 'SQUIRT!', '#d9a0ff', 48);
     a.sfx('sfx_squish', { rate: 0.5 });
-    const blob = a.sc.add.image(f.cx, f.cy, 'p_ink').setScale(0.2);
+    // squirted from under its toes (from its middle it was lost against its own purple)
+    const from = { x: f.x, y: Math.max(300, f.y - 20) };
+    const blob = a.sc.add.image(from.x, from.y, 'p_inkblob').setScale(0.42);
     a.fxLayer.add(blob);
     let blocked = false;
     let landed = false;
+    let dripT = 0;
     const end = () => {
       busy = false;
       next = h.cooldown(f.phase >= 3 ? 4 : 6);
+      if (ret.active) {
+        a.sc.tweens.killTweensOf(ret);
+        a.sc.tweens.add({ targets: ret, alpha: 0, duration: 160, onComplete: () => ret.destroy() });
+      }
     };
+    const pos = (t: number) => ({ x: from.x + (tx - from.x) * t, y: from.y + (ty - from.y) * t - Math.sin(t * Math.PI) * 160 });
     // a slow arc down to the pizza; smack the blob on the way to block it
-    const from = { x: f.cx, y: f.cy };
     const k = { t: 0 };
     a.sc.tweens.add({
       targets: k,
@@ -861,9 +1140,18 @@ const kraken = (): Brain => {
       duration: h.windup(1.3) * 1000,
       ease: 'Sine.In',
       onUpdate: () => {
-        blob.setPosition(from.x + (tx - from.x) * k.t, from.y + (ty - from.y) * k.t - Math.sin(k.t * Math.PI) * 140);
-        blob.setScale(0.2 + k.t * 0.12);
-        blob.rotation += 0.12;
+        const at = pos(k.t);
+        const ahead = pos(Math.min(1, k.t + 0.02));
+        blob.setPosition(at.x, at.y).setScale(0.42 + k.t * 0.2);
+        // the drop's point trails behind it along the arc
+        if (Math.hypot(ahead.x - at.x, ahead.y - at.y) > 0.5) blob.setRotation(Math.atan2(-(ahead.x - at.x), ahead.y - at.y));
+        // a dribble of ink drops behind it
+        if (a.now() >= dripT) {
+          dripT = a.now() + 0.06;
+          const d = a.sc.add.circle(at.x, at.y, 9 + Math.random() * 6, 0x24143e).setStrokeStyle(3, 0x2a1810);
+          a.fxLayer.add(d);
+          a.sc.tweens.add({ targets: d, alpha: 0, scale: 0.3, y: d.y + 30, duration: 420, onComplete: () => d.destroy() });
+        }
       },
       onComplete: () => {
         if (blocked) return;
@@ -874,14 +1162,15 @@ const kraken = (): Brain => {
         const sec = h.stun(6);
         a.sfx('sfx_squish', { rate: 0.7 });
         a.fx.puff(tx, ty, 8);
-        a.quip(tx, p.surfaceY - 160, 'INKED!', '#b46ad8', 44);
+        say(a, tx, p.surfaceY - 230, 'INKED!', '#d9a0ff', 44);
         sour(a, p);
         a.freezePerk(p, sec);
-        // the ink sits on the pizza and fades as the freeze wears off
-        const splat = a.sc.add.image(tx, p.y - p.radius * 0.15, 'p_inkpizza').setScale((p.radius * 1.5) / 300).setAlpha(0);
+        // the ink splashes onto the pizza and fades as the freeze wears off
+        const s = (p.radius * 1.6) / 360;
+        const splat = a.sc.add.image(tx, p.y - p.radius * 0.12, 'p_inkpizza').setScale(s * 0.5).setAlpha(0);
         a.fxLayer.add(splat);
-        a.sc.tweens.add({ targets: splat, alpha: 0.88, duration: 160 });
-        a.sc.tweens.add({ targets: splat, alpha: 0, delay: 160, duration: sec * 1000 - 160, ease: 'Quad.In', onComplete: () => splat.destroy() });
+        a.sc.tweens.add({ targets: splat, alpha: 0.94, scale: s, duration: 220, ease: 'Back.Out' });
+        a.sc.tweens.add({ targets: splat, alpha: 0, delay: 220 + sec * 600, duration: sec * 400 - 220, ease: 'Quad.In', onComplete: () => splat.destroy() });
       },
     });
     a.addClickable({
@@ -899,7 +1188,7 @@ const kraken = (): Brain => {
         a.sc.tweens.killTweensOf(k);
         a.fx.impact(blob.x, blob.y, true);
         a.sfx('sfx_slap_2', { volume: 0.8 });
-        a.quip(blob.x, blob.y - 70, 'BLOCKED!', '#7dff9a', 36);
+        say(a, blob.x, blob.y - 70, 'BLOCKED!', '#7dff9a', 36);
         a.sc.tweens.add({ targets: blob, alpha: 0, scale: 0.05, duration: 200, onComplete: () => blob.destroy() });
         end();
       },
@@ -933,8 +1222,9 @@ const kraken = (): Brain => {
       else grab(f, a);
     },
     onDeath: (_f, a) => {
-      for (const { prop, p } of props) {
+      for (const { prop, p, wrap } of props) {
         prop.destroy();
+        wrap.destroy();
         p.flags.grabbed = false;
         a.lockLane(p, false);
       }

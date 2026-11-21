@@ -1,6 +1,7 @@
 // Stage 7–9 boss adds. The Gargoyle's storm calls these instead of pigeons (see src/game/bosses/act2a.ts).
-// They reuse the Gargoyle's own art kind, drawn small and paler so they read as its little stone
-// imps rather than more bosses. Weight 0: they only ever come from the boss.
+// They reuse the Gargoyle's own art kind, but small and in warm sandstone with terracotta wings and bright
+// moss, so they read as the gutters' little imps next to the boss's cold grey granite. Weight 0: they only
+// ever come from the boss.
 
 import type { FootType } from '../../data/feet';
 
@@ -14,6 +15,6 @@ export const feet: FootType[] = [
     home: 'oldtown',
     howTo: 'One or two smacks each; clear the flock to expose the Gargoyle',
     tell: 'Grit falls as the flock swoops in',
-    art: { kind: 'gargoyle', skin: '#a6a5ad', primary: '#6c6878', secondary: '#8f9a86', leg: 'scales', legColor: '#94939b' },
+    art: { kind: 'gargoyle', skin: '#d8bf8e', primary: '#b4603a', secondary: '#7fb04a', leg: 'scales', legColor: '#c4a676' },
   },
 ];
