@@ -188,6 +188,8 @@ const trex = (): Brain => {
   let lastSlam = -1;
   const dinos: Prop[] = [];
   const extra = new Set<Foot>();
+  /** Set when the T-Rex goes down: queued dinos stay home. */
+  let dead = false;
   let marks: Phaser.GameObjects.Image[] = [];
   const keep = (m: Phaser.GameObjects.Image) => {
     marks = marks.filter((o) => o.active);
@@ -209,13 +211,13 @@ const trex = (): Brain => {
       const run = Math.abs(p.x - sx) / speed;
       const delay = i * 0.7;
       a.sc.time.delayedCall(delay * 1000, () => {
-        if (!a.inWave() || p.dead) return;
+        if (!a.inWave() || p.dead || dead) return;
         // broadcast: the target first, then the dino pops in, flashes and pauses before it runs
         const ret = mark(a, 'p_reticle', p.x, p.surfaceY - 30, 0.5 + pause + run, 0.75);
         keep(ret);
         a.quip(p.x, p.surfaceY - 150, 'HUNGRY!', '#9cff6a', 38);
         a.sc.time.delayedCall(500, () => {
-          if (!a.inWave() || p.dead) return;
+          if (!a.inWave() || p.dead || dead) return;
           const t0 = a.sc.time.now;
           a.sfx('sfx_warning', { volume: 0.35, rate: 1.6, throttle: 200 });
           const prop = hitProp(a, {
@@ -235,7 +237,7 @@ const trex = (): Brain => {
             },
             label: 'BONK!',
             onFail: () => {
-              if (!p.dead && a.inWave()) a.hitPizza(p, h.slices(1), 'CHOMPED!', '#9cff6a');
+              if (!p.dead && a.inWave() && !dead) a.hitPizza(p, h.slices(1), 'CHOMPED!', '#9cff6a');
             },
           });
           prop.img.setFlipX(!fromLeft);
@@ -364,7 +366,7 @@ const trex = (): Brain => {
           extra.add(o);
           const p = o.target;
           a.sc.time.delayedCall(240, () => {
-            if (!o.alive || !p || p.dead || !a.inWave()) return;
+            if (!o.alive || !f.alive || !p || p.dead || !a.inWave()) return;
             a.sc.tweens.add({ targets: o, y: o.y - 50, duration: 80, yoyo: true, ease: 'Quad.Out' });
             a.hitPizza(p, 1, 'AGAIN!');
           });
@@ -406,6 +408,7 @@ const trex = (): Brain => {
       }
     },
     onDeath: (f, a) => {
+      dead = true;
       a.setMinions(null);
       for (const d of dinos) d.destroy();
       dinos.length = 0;
@@ -496,7 +499,7 @@ const iceskate = (): Brain => {
           // everything in the lane freezes (and stays frozen until just after the snow stops)
           const left = dur - (a.now() - t0);
           for (const o of a.allFeet()) {
-            if (!o.alive || o.isBossLike || Math.abs(o.x - p.x) > half) continue;
+            if (!o.alive || o.isBossLike || o.held || Math.abs(o.x - p.x) > half) continue;
             if (!o.frozen) a.fx.frost(o.cx, o.cy);
             o.stun(Math.max(0.3, left + 0.4), true);
           }
@@ -522,8 +525,8 @@ const iceskate = (): Brain => {
   return {
     names: ['ICE TRAILS', 'TRIPLE AXEL'],
     info: ['Snow falls on one lane and freezes the feet in it · don\'t smack inside the snow or your peel freezes', 'Skates from lane to lane, speeding up the feet she passes · smack the fast ones first'],
+    upkeep: (_f, _dt, a) => boosts.tick(a),
     update: (f, dt, a) => {
-      boosts.tick(a);
       if (!a.inWave()) return;
       snowT -= dt;
       if (snowT <= 0 && !snowy) {
@@ -1081,8 +1084,8 @@ const cosmiccroc = (): Brain => {
         flip(a, true);
       } else flip(a, false);
     },
+    upkeep: (_f, _dt, a) => boosts.tick(a),
     update: (f, dt, a) => {
-      boosts.tick(a);
       if (!a.inWave()) {
         flip(a, false);
         holeEnd?.();

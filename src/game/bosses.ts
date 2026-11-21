@@ -72,6 +72,7 @@ export class BossDirector {
         this.brains.delete(f);
         continue;
       }
+      b.upkeep?.(f, dt, this.a);
       // phase 3 and up: embers rise off the boss
       if (f.phase >= 3 && f.root.visible && Math.random() < dt * 6) this.a.fx.burn(f.x + (Math.random() - 0.5) * 120 * f.scale, f.cy + (Math.random() - 0.5) * 80 * f.scale);
       // the transform beat: the boss holds still, then gets on with its new moves

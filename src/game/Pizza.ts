@@ -169,9 +169,10 @@ export class Pizza {
     return this.perkFrozenT > 0 && !this.dead;
   }
 
-  /** Switch the perk off for `sec` (a second freeze adds to the time left). */
+  /** Switch the perk off for `sec` (a second freeze adds to the time left, up to 15 s). */
   freezePerk(sec: number): void {
-    this.perkFrozenT = this.perkFrozenT > 0 ? this.perkFrozenT + sec : sec;
+    // a second freeze extends it, up to 15 s left
+    this.perkFrozenT = Math.min(15, this.perkFrozenT > 0 ? this.perkFrozenT + sec : sec);
     if (!this.frost) {
       this.frost = this.scene.add.image(0, -10, 'glow').setTint(0x9ad8ff).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.55);
       this.root.add(this.frost);

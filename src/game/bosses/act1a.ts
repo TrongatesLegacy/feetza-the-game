@@ -120,6 +120,7 @@ class Covers {
 
   /** Covers still standing. */
   live(): Cover[] {
+    for (const c of this.list) if (c.p.dead) c.prop.destroy();
     this.list = this.list.filter((c) => c.prop.alive() && !c.p.dead);
     return this.list;
   }
@@ -588,8 +589,12 @@ const bigfoot = (): Brain => {
     let over = false;
     let trap: Phaser.GameObjects.Image | null = null;
     const ty = p.surfaceY - 50;
+    // runs once, whichever of the slam, the miss or the timeout gets there first
+    let finished = false;
     const finish = () => {
       over = true;
+      if (finished) return;
+      finished = true;
       move = null;
       done();
     };
@@ -787,8 +792,8 @@ const sweep = (): Brain => {
         });
       }
     },
+    upkeep: (_f, _dt, a) => covers.tick(a),
     update: (f, dt, a) => {
-      covers.tick(a);
       if (!a.inWave()) return;
       const hz = heat(a);
       const fast = f.phase >= 3 ? 0.7 : 1;
@@ -1023,7 +1028,7 @@ const ironheel = (): Brain => {
   };
 
   /** Overheat steam: a vent marked under the peel, then a scalding burst there. */
-  const steamBurst = (a: Arena) => {
+  const steamBurst = (f: Foot, a: Arena) => {
     const hz = heat(a);
     const pp = a.peelPoint();
     const x = Phaser.Math.Clamp(pp.x + (Math.random() - 0.5) * 120, 200, W - 200);
@@ -1049,7 +1054,7 @@ const ironheel = (): Brain => {
       wisps.remove();
       a.sc.tweens.killTweensOf(ring);
       ring.destroy();
-      if (!a.inWave()) return;
+      if (!a.inWave() || !f.alive) return;
       a.sfx('sfx_fire', { volume: 0.7, rate: 0.8 });
       for (let i = 0; i < 7; i++) {
         const s = a.sc.add.image(x + (Math.random() - 0.5) * R, y + (Math.random() - 0.5) * 60, 'p_steam').setScale(0.6).setAlpha(0.95);
@@ -1140,7 +1145,7 @@ const ironheel = (): Brain => {
       steam.every = hz.cooldown(7) * (f.phase >= 3 ? 1.4 : 1);
       if (steam.tick(dt)) {
         if (a.now() < rocketBusyUntil) steam.t = 1;
-        else steamBurst(a);
+        else steamBurst(f, a);
       }
       if (f.phase < 3) return;
       const deep = hz.rank >= 3;
@@ -1217,8 +1222,8 @@ const sandcastle = (): Brain => {
     onPhase: (f, ph) => {
       if (ph >= 3) f.enraged = true;
     },
+    upkeep: (_f, _dt, a) => covers.tick(a),
     update: (f, dt, a) => {
-      covers.tick(a);
       h?.tick(dt);
       if (!a.inWave()) return endHold();
       const hz = heat(a);
@@ -1229,7 +1234,8 @@ const sandcastle = (): Brain => {
         a.quip(f.x, f.cy - 150, 'SAND WALLS!', '#f8dca0', 44);
         a.sfx('sfx_whoosh', { volume: 0.5, rate: 0.7 });
         f.tint(0xffe0a0);
-        a.sc.tweens.add({ targets: f.root, scaleY: f.root.scaleY * 0.9, duration: 220, yoyo: true, repeat: 1 });
+        const sy = Number(f.brain.baseSY ?? f.root.scaleY);
+        a.sc.tweens.add({ targets: f.root, scaleY: { from: sy, to: sy * 0.9 }, duration: 220, yoyo: true, repeat: 1, onComplete: () => f.root.setScale(f.root.scaleX, sy) });
         a.sc.time.delayedCall(800, () => {
           pending = false;
           f.tint(null);
@@ -1273,7 +1279,7 @@ const sandcastle = (): Brain => {
               a.fx.puff(p.x, p.surfaceY - 20, 14);
               a.sfx('sfx_squish', { rate: 0.6 });
               a.sc.tweens.add({ targets: s, alpha: 0, delay: 500, duration: 500, onComplete: () => s.destroy() });
-              if (!p.dead) a.freezePerk(p, hz.stun(6));
+              if (!p.dead && f.alive && a.inWave()) a.freezePerk(p, hz.stun(6));
             },
           });
         });

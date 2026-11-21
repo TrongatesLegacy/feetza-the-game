@@ -83,7 +83,14 @@ function devNotes(): Plugin {
         const chunks: Buffer[] = [];
         req.on('data', (c: Buffer) => chunks.push(c));
         req.on('end', () => {
-          const body = JSON.parse(Buffer.concat(chunks).toString()) as { notes: unknown; md: string };
+          let body: { notes: unknown; md: string };
+          try {
+            body = JSON.parse(Buffer.concat(chunks).toString());
+          } catch {
+            res.statusCode = 400;
+            res.end('bad json');
+            return;
+          }
           mkdirSync(dirname(file), { recursive: true });
           writeFileSync(file, JSON.stringify(body.notes, null, 2));
           writeFileSync(file.replace(/\.json$/, '') + '.md', body.md);

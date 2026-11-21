@@ -695,7 +695,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.lockedPizzas.clear();
     this.retreat(false);
     this.minionPool = null;
-    for (const p of this.pizzas) if (p.perkFrozenT > 0) p.tickFreeze(p.perkFrozenT);
+    this.thawPerks();
     this.freeRerollsLeft = this.run.stats.freeRerolls;
     this.abilityWaveStart();
     this.coinsAtWaveStart = this.run.coins;
@@ -946,9 +946,15 @@ export class GameScene extends Phaser.Scene implements Arena {
   // Each lane dives onto its nearest pizza. A wide foot takes two lanes; a boss takes every lane it covers.
 
   private laneCache: { key: string; lanes: { x: number; p: Pizza }[] } = { key: '', lanes: [] };
+  /** Frame counter: lanes and boss-blocked lanes are worked out once per frame. */
+  private frameNo = 0;
+  private laneFrame = -1;
+  private blockedCache: { frame: number; set: Set<number> } = { frame: -1, set: new Set() };
 
   /** The table's lanes, left to right. */
   private lanes(): { x: number; p: Pizza }[] {
+    if (this.laneFrame === this.frameNo) return this.laneCache.lanes;
+    this.laneFrame = this.frameNo;
     const ps = this.alivePizzas().sort((a, b) => a.x - b.x);
     const key = ps.map((p) => Math.round(p.x)).join(',');
     if (key === this.laneCache.key) return this.laneCache.lanes;
@@ -978,13 +984,16 @@ export class GameScene extends Phaser.Scene implements Arena {
     return f.meta.halfWidth * 2 * f.scale > this.laneSpacing() * 1.3 ? 2 : 1;
   }
 
-  /** Lanes nobody may use: covered by a boss (or its stand-ins) or locked by a boss move. */
-  private blockedLanes(except?: Foot): Set<number> {
+  /** Lanes nobody may use: covered by a boss (or its stand-ins) or locked by a boss move.
+   * `ignoreBosses` leaves out boss-covered lanes (a boss's own summons may use them when nothing else is free). */
+  private blockedLanes(except?: Foot, ignoreBosses = false): Set<number> {
+    const cacheable = !ignoreBosses && (!except || !except.isBossLike);
+    if (cacheable && this.blockedCache.frame === this.frameNo) return this.blockedCache.set;
     const out = new Set<number>();
     const lanes = this.lanes();
     const sp = this.laneSpacing();
     for (const o of this.feet) {
-      if (o === except || !o.alive || !o.isBossLike) continue;
+      if (ignoreBosses || o === except || !o.alive || !o.isBossLike) continue;
       const half = o.meta.halfWidth * o.scale;
       const cx = o.laneX ?? o.target?.x ?? o.x;
       lanes.forEach((l, i) => {
@@ -994,6 +1003,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     lanes.forEach((l, i) => {
       if (this.lockedPizzas.has(l.p)) out.add(i);
     });
+    if (cacheable) this.blockedCache = { frame: this.frameNo, set: out };
     return out;
   }
 
@@ -1008,9 +1018,9 @@ export class GameScene extends Phaser.Scene implements Arena {
   }
 
   /** Free lanes (start indices) for a foot of this span. `avoid` skips lanes over one pizza (a foot switching away from it). */
-  private freeLanes(span = 1, except?: Foot, avoid?: Pizza | null): number[] {
+  private freeLanes(span = 1, except?: Foot, avoid?: Pizza | null, ignoreBosses = false): number[] {
     const lanes = this.lanes();
-    const blocked = this.blockedLanes(except);
+    const blocked = this.blockedLanes(except, ignoreBosses);
     const used = this.usedLanes(except);
     const out: number[] = [];
     for (let i = 0; i + span <= lanes.length; i++) {
@@ -1035,6 +1045,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       free = this.freeLanes(1, f, avoid);
       useSpan = 1;
     }
+    // a boss's own summons (a flock it hides behind) may share the boss's lanes rather than wait off screen
+    if (!free.length && f.brain.summoned) free = this.freeLanes(1, f, avoid, true);
     if (!free.length) {
       if (!avoid) {
         f.held = true;
@@ -1056,7 +1068,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       return Math.abs(lanes[a].x - f.x) - Math.abs(lanes[b].x - f.x) + (Math.random() - 0.5) * 200;
     })[0];
     const p = lanes[pick].p;
-    if (p === ordered) this.orders.set(ordered, (this.orders.get(ordered) ?? 1) - 1);
+    if (p === ordered && f.target !== p) this.orders.set(ordered, (this.orders.get(ordered) ?? 1) - 1);
     f.target = p;
     f.laneSide = pick;
     f.laneRow = useSpan;
@@ -1091,7 +1103,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       if (!f.alive || f.isBossLike) continue;
       f.pinned = this.retreating;
       if (f.held) {
-        if (!this.assignLane(f) && f.brain.summoned) this.bumpForSummon(f);
+        if (this.assignLane(f)) f.laneKey = key;
+        else if (f.brain.summoned) this.bumpForSummon(f);
         continue;
       }
       const busy = f.state === 'descend' || f.state === 'stomp';
@@ -1120,6 +1133,13 @@ export class GameScene extends Phaser.Scene implements Arena {
       // later waves: hovering feet sometimes hop to another free lane
       if (switchOn && f.state === 'hover' && !this.retreating && Math.random() < dt * 0.07) this.relane(f);
     }
+  }
+
+  /** Boss perk freezes end with the wave. */
+  private thawPerks(): void {
+    let any = false;
+    for (const p of this.pizzas) if (p.perkFrozenT > 0 && p.tickFreeze(p.perkFrozenT)) any = true;
+    if (any) this.recompute();
   }
 
   /** A boss summon with no free lane takes the lane of a hovering regular foot, which waits off screen instead. */
@@ -1211,7 +1231,10 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.goldenSpawned = true;
       const t = this.pickTarget(null);
       if (t) {
-        this.spawnFoot(FOOT_BY_ID.golden, t, false);
+        const gf = this.spawnFoot(FOOT_BY_ID.golden, t, false);
+        // it gets a lane straight away (a hovering foot waits instead), so it isn't announced off screen
+        gf.brain.summoned = true;
+        if (gf.held) this.bumpForSummon(gf);
         audio.sfx('sfx_combo', { rate: 1.3 });
         this.fx.quip(t.x, 220, 'GOLDEN FOOT!', '#ffd23f', 50);
       }
@@ -1316,6 +1339,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.lockedPizzas.clear();
     this.retreat(false);
     this.minionPool = null;
+    this.thawPerks();
     const n = this.run.wave;
     const stage = STAGES[Math.floor((n - 1) / WAVES_PER_STAGE) % STAGES.length];
     if (stage) save.stageWaves[stage.location] = (save.stageWaves[stage.location] ?? 0) + 1;
@@ -1918,8 +1942,12 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   private dealDamage(f: Foot, amount: number, o: DamageOpts): void {
     if (!f.alive) return;
-    // twins share one health bar: a hit on either one lands on the boss
+    // twins share one health bar: a hit on either one lands on the boss (unless this one is shielded)
     if (f.link && f.link.alive && f.link !== f) {
+      if (f.shielded) {
+        this.fx.quip(f.x, f.cy - 110, 'BLOCKED', '#c7ccd4', 32);
+        return;
+      }
       f.flash(0xffffff, 70);
       this.dealDamage(f.link, amount, o);
       return;
@@ -2975,6 +3003,7 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   // ——— Frame ———
   update(_time: number, deltaMs: number): void {
+    this.frameNo++;
     const real = Math.min(0.05, deltaMs / 1000);
     this.nowT += real;
     this.backdrop.update(real);

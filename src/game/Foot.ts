@@ -103,6 +103,8 @@ export class Foot {
   pinned = false;
   /** Hover time multiplier (the heat's crowd setting). */
   hoverMul = 1;
+  /** Seconds actually on screen (not held or pinned). */
+  fleeAge = 0;
   /** A twin that shares this foot's health: damage to this foot goes to `link` instead. */
   link: Foot | null = null;
   glossy: boolean;
@@ -349,7 +351,15 @@ export class Foot {
       this.img.setAlpha(a);
       this.leg.setAlpha(a * 0.85);
     }
+    // time on screen (golden feet flee after 7 s of it, not counting time spent waiting for a lane)
+    if (!this.held && !this.pinned) this.fleeAge += dt;
     if (this.puppet) {
+      // a boss moved by hand still comes out of a stun
+      if (this.stunT > 0) {
+        this.stunT -= dt;
+        if (this.stars) this.stars.rotation += dt * 5;
+        if (this.stunT <= 0) this.endStun();
+      }
       this.render(dt);
       return;
     }
@@ -440,7 +450,7 @@ export class Foot {
             this.setState('descend');
           }
         }
-        if (this.type.traits.includes('flee') && this.age > 7) this.escape();
+        if (this.type.traits.includes('flee') && this.fleeAge > 7) this.escape();
         break;
       }
       case 'descend': {
@@ -506,7 +516,7 @@ export class Foot {
           this.feinted = true;
           this.vy = -520;
         }
-        if (this.type.traits.includes('flee') && this.age > 7) this.escape();
+        if (this.type.traits.includes('flee') && this.fleeAge > 7) this.escape();
         if (this.y >= this.stompY) {
           this.y = this.stompY;
           this.vy = 0;

@@ -438,6 +438,7 @@ const pigeonking = (): Brain => {
   const bomb = new Every(5, 2.5);
   let flock: Foot[] = [];
   let warded = false;
+  let wardT = 0;
   let gap = 1.5;
   let nagT = 0;
   return {
@@ -453,7 +454,10 @@ const pigeonking = (): Brain => {
       if (warded) {
         shield(a, f, true);
         flock = flock.filter((pg) => pg.alive);
-        if (!flock.length) {
+        // a safety net: the ward never outlasts 25 s, even if a pigeon can't be reached
+        wardT += dt;
+        if (!flock.length || wardT > 25) {
+          wardT = 0;
           warded = false;
           shield(a, f, false);
           a.setMinions(null);
@@ -517,6 +521,7 @@ const gargoyle = (): Brain => {
   // then is exposed for a few seconds before calling the next (bigger at higher heats)
   let flock: Foot[] = [];
   let warded = false;
+  let wardT = 0;
   let exposedT = 0;
   let nagT = 0;
   const flockSize = (f: Foot, a: Arena) => Math.ceil(3 * a.heatCount()) + (f.phase >= 4 ? 1 : 0);
@@ -612,7 +617,9 @@ const gargoyle = (): Brain => {
         if (warded) {
           shield(a, f, true); // keep the ward through the transform beat
           flock = flock.filter((g) => g.alive);
-          if (!flock.length) {
+          wardT += dt;
+          if (!flock.length || wardT > 25) {
+            wardT = 0;
             warded = false;
             shield(a, f, false);
             exposedT = f.phase >= 4 ? 4 : 5;
@@ -724,7 +731,12 @@ const jellyfish = (): Brain => {
         hide(a);
       }
       f.brain.glowing = mode === 'glow';
-      f.tint(mode === 'glow' ? 0xff5ad0 : mode === 'charge' ? (Math.sin(a.now() * 30) > 0 ? 0xffb0ee : null) : null);
+      // only retint when the colour changes, so hit flashes and status tints aren't wiped every frame
+      const want = mode === 'glow' ? 0xff5ad0 : mode === 'charge' ? (Math.sin(a.now() * 30) > 0 ? 0xffb0ee : null) : null;
+      if ((want ?? false) !== f.brain.jellyTint) {
+        f.brain.jellyTint = want ?? false;
+        f.tint(want);
+      }
       draw(f, a);
     },
     onPhase: (f, _p, a) => {

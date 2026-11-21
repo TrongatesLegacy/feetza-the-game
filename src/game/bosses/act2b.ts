@@ -203,9 +203,9 @@ const milkshake = (): Brain => {
   return {
     names: ['BRAIN FREEZE', 'BOTTOMS UP'],
     info: ['Winds up a brain freeze that slows your peel · hold the peel over the hot water to melt it or stop it', 'Shielded at the top of a lane, it slurps a pizza through a straw · smack the straw before the pizza loses a slice'],
-    update: (f, dt, a) => {
+    // the bowl keeps working while the boss is stunned (its freeze timer still runs)
+    upkeep: (_f, dt, a) => {
       if (!ready) setup(a);
-      const h = heat(a);
       // ——— the hot-water bowl: hover the peel over it to warm up (melts a freeze, or stops the next one) ———
       const pp = a.peelPoint();
       const over = Math.hypot(pp.x - BOWL.x, pp.y - BOWL.y) < BOWL.r;
@@ -232,6 +232,9 @@ const milkshake = (): Brain => {
         steamT = 0.5;
         a.fx.puff(BOWL.x + (Math.random() - 0.5) * 60, BOWL.y - 70, 1);
       }
+    },
+    update: (f, dt, a) => {
+      const h = heat(a);
 
       // ——— Brain freeze: a long, readable wind-up (time to reach the bowl); hitting the boss doesn't stop it ———
       if (!freezing && !sucking && freeze.tick(dt)) {
@@ -340,6 +343,11 @@ const rinkqueen = (): Brain => {
     update: (f, dt, a) => {
       const h = heat(a);
       busy -= dt;
+      // her moves come round faster on hotter heats
+      const cd = h.cooldown(1);
+      puck.every = 4.5 * cd;
+      shuffle.every = 7 * cd;
+      dash.every = 6.5 * cd;
       if (f.phase === 1 && puck.tick(dt)) {
         throwAtPeel(a, 'p_plate', { x: f.x, y: f.cy }, 1.2, () => a.stunPeel(0.8, 'PUCKED!'), () => a.damageFoot(f, Math.round(f.maxHp * 0.025), 'SLAPSHOT!'), 12, { scale: 0.55, tint: 0x2a2a34 });
         a.sfx('sfx_whistle', { rate: 1.6, volume: 0.5 });
@@ -370,7 +378,7 @@ const rinkqueen = (): Brain => {
         for (const p of line) mark(a, 'p_reticle', p.x, p.surfaceY - 20, sec, 0.7);
         a.sfx('sfx_whistle', { rate: 1.3 });
         windup(a, f, '', sec, 'SPEED DASH!', 3, () => {
-          for (const [i, p] of line.entries()) a.sc.time.delayedCall(i * 140, () => !p.dead && a.hitPizza(p, 1, 'DASHED!', '#ff4fd8'));
+          for (const [i, p] of line.entries()) a.sc.time.delayedCall(i * 140, () => !p.dead && f.alive && a.inWave() && a.hitPizza(p, 1, 'DASHED!', '#ff4fd8'));
           a.sfx('sfx_whoosh', { volume: 1, rate: 1.2 });
         });
       }
@@ -645,8 +653,7 @@ const poltergeist = (): Brain => {
   return {
     names: ['BITE', 'COUGH'],
     info: ['Marks a foot, then bites it: zombie feet are tougher and stomp harder, and each bite heals it · smack the marked foot first', 'Coughs on a pizza: it eats its own slices and its perk stops · click the pizza to cure it'],
-    update: (f, dt, a) => {
-      const h = heat(a);
+    upkeep: (_f, _dt, a) => {
       // ——— zombie upkeep: keep the green tint, and a landed zombie stomp bites off one more slice ———
       for (const [o, z] of zombies) {
         if (!o.alive) {
@@ -667,6 +674,9 @@ const poltergeist = (): Brain => {
         }
       }
       if (biting) biting.reticle.setPosition(biting.o.cx, biting.o.cy);
+    },
+    update: (f, dt, a) => {
+      const h = heat(a);
 
       // ——— Bite: mark a regular foot, then swing over and bite it ———
       if (!biting && !coughing && bite.tick(dt)) {

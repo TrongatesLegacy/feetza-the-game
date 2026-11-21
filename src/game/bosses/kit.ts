@@ -15,6 +15,8 @@ export interface Brain {
   info: string[];
   onPhase?(f: Foot, phase: number, a: Arena): void;
   update?(f: Foot, dt: number, a: Arena): void;
+  /** Runs every frame even while the boss is stunned or mid phase change (timers on feet, covers, the hot-water bowl). */
+  upkeep?(f: Foot, dt: number, a: Arena): void;
   /** Return true to cancel the smack's damage (parry, decoy, stone, sting). */
   onSmacked?(f: Foot, a: Arena, x: number, y: number, dmg: number): boolean;
   onStomp?(f: Foot, p: Pizza, a: Arena): void;
@@ -67,7 +69,7 @@ export function throwAtPeel(a: Arena, key: string, from: { x: number; y: number 
       done = true;
       img.destroy();
       const p = a.peelPoint();
-      if (Math.hypot(p.x - to.x, p.y - to.y) < 220) onLand();
+      if (a.inWave() && Math.hypot(p.x - to.x, p.y - to.y) < 220) onLand();
     },
   });
   a.addClickable({
