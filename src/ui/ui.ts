@@ -465,7 +465,8 @@ class UI {
     if (!on) this.hud.root.remove();
   }
 
-  private open(content: HTMLElement, dim = true): HTMLElement {
+  /** Open a window on top (public for the topping windows in pickWindows.ts). */
+  open(content: HTMLElement, dim = true): HTMLElement {
     // a window that a Back / Cancel / Done button dismisses also gets an X in its top-right corner
     const back = content.classList.contains('panel') ? content.querySelector<HTMLButtonElement>('[data-pad="back"]:not([data-no-x])') : null;
     if (back) {
@@ -835,12 +836,15 @@ class UI {
       // cards already on the table don't deal in again when the shop redraws after a purchase;
       // only new ones (after a reroll) animate
       const cards = st.cards.map((c, i) => {
-        const b = btn(c.sold ? 'BOUGHT' : c.free ? 'FREE' : st.coins >= c.price ? `BUY · ${fmt(c.price)}` : `NEED ${fmt(c.price)}`, c.sold ? 'cream small' : c.free || st.coins >= c.price ? 'green small' : 'small', () => act.buy(c.id));
+        // shop toppings: a struck-through usual price when it's cheaper today
+        const was = !c.sold && !c.free && c.was && c.was > c.price ? `<s>${fmt(c.was)}</s> ` : '';
+        const b = btn(c.sold ? 'BOUGHT' : c.free ? 'FREE' : st.coins >= c.price ? `BUY · ${was}${fmt(c.price)}` : `NEED ${was}${fmt(c.price)}`, c.sold ? 'cream small' : c.free || st.coins >= c.price ? 'green small' : 'small', () => act.buy(c.id));
         b.disabled = c.sold || (!c.free && st.coins < c.price);
         const el = h(
           'div',
           { class: `card ${c.rarity}${c.sold ? ' sold' : ''}${dealt.has(c.id) ? ' dealt' : ''}`, tabindex: 0, role: 'button', 'aria-label': `${c.name}: ${c.desc}` },
           h('div', { class: 'key' }, String(i + 1)),
+          !c.sold && (c.free || c.tag) ? h('span', { class: `ptag ${c.free ? 'free' : c.tag!.kind}` }, c.free ? 'FREE' : c.tag!.text) : null,
           h('span', { class: `kind ${c.kind}` }, c.kind === 'permanent' ? 'PERMANENT' : c.kind === 'unique' ? 'ONCE PER RUN' : 'ONE USE'),
           h('div', { class: 'rarity' }, c.rarity),
           h('div', { class: 'icon' }, c.icon),
@@ -860,7 +864,7 @@ class UI {
         'section',
         { class: 'shop-sec toppings', 'data-pad-section': '' },
         h('div', { class: 'sec-head' }, h('h2', {}, 'TOPPINGS'), h('span', { class: 'sec-note' }, 'Buy as many as you can afford'), reroll),
-        h('div', { class: 'cards' }, ...cards),
+        h('div', { class: `cards${cards.length > 4 ? ' row' : ''}${cards.length > 5 ? ' many' : ''}` }, ...cards),
       );
       // table strip
       const table = h(
@@ -1001,7 +1005,7 @@ class UI {
           : y.armed
             ? h('span', { class: 'yt-st ready' }, 'READY · waiting to trigger')
             : k === 'permanent'
-              ? h('span', { class: 'yt-st' }, `LV ${y.lvl} / ${u.max}`)
+              ? h('span', { class: 'yt-st' }, `LV ${y.lvl} / ${y.max ?? u.max}`)
               : h('span', { class: 'yt-st' }, k === 'unique' ? 'Once per run' : 'One use');
       const row = h(
         'div',

@@ -46,6 +46,9 @@ function botShop(g: AnyScene): void {
   if (!st || g.__botBusy) return;
   g.__botBusy = true;
   setTimeout(() => (g.__botBusy = false), 250);
+  // a Pick or Peel Roulette window: take the first choice
+  const pick = document.querySelector<HTMLElement>('.pickwin .card, .pickwin .roul-tile');
+  if (pick) return pick.click();
   const hurt = st.table.some((p: any) => !p.dead && p.slices <= p.max / 2); // eslint-disable-line @typescript-eslint/no-explicit-any
   if (hurt && st.heal.can && st.coins >= st.heal.cost + 20) return g.shopHeal();
   const stale = st.table.findIndex((p: any) => p.reheat?.can && p.fresh <= 2); // eslint-disable-line @typescript-eslint/no-explicit-any

@@ -38,6 +38,8 @@ export interface Arena {
   stunPeel(sec: number, label: string): void;
   /** The peel trails the pointer (brain freeze, sticky kelp). */
   slowPeel(sec: number): void;
+  /** Oven Mitts: the peel can't be stunned, slowed or snatched this run. */
+  peelGuarded?(): boolean;
   addClickable(c: Clickable): void;
   banner(big: string, small: string, kind?: 'boss' | 'loc' | 'clear' | 'phase', desc?: string): void;
   /** The boss's current move and its answer, shown under the boss bar. */

@@ -70,6 +70,12 @@ const LOOK: Record<ThrowProp, Look> = {
   coconut: { size: 80, color: 0x8a5a32, spin: 420, ...HEAVY },
   lasso: { size: 104, color: 0xc8904a, spin: 600, ...ROPE },
   skateboard: { size: 124, color: 0xff9f1c, spin: 720, tumble: true, ...DISC },
+  anchovy: { size: 84, color: 0xa8c4dc, spin: 200, ...SOFT },
+  meatball: { size: 64, color: 0xb0603a, spin: 520, ...HEAVY, impact: 'sfx_hitsplat' },
+  pizzacutter: { size: 96, color: 0xc7ccd4, spin: 1300, ...DISC },
+  calzone: { size: 100, color: 0xe8a040, spin: 320, ...HEAVY, impact: 'sfx_hitboom' },
+  napkin: { size: 76, color: 0xfff4e0, spin: 600, tumble: true, ...SOFT },
+  wheelcutter: { size: 100, color: 0xc7ccd4, spin: 0, ...DISC },
 };
 
 // sizes above are the drawing's units (src/content/props/throws.ts); on screen they show a quarter bigger,
