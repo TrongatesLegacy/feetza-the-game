@@ -124,7 +124,7 @@ export class GameScene extends Phaser.Scene implements Arena {
   private tracker!: HeroTracker;
   /** Goal bookkeeping: when the wave and the boss fight began, smacks on the boss, a stunned peel, and the
    * plan and shop a hero showed early (Herald, From the Future). */
-  private heroT = { wave: 0, boss: 0, bossSmacks: 0, stunned: false, tick: 0, coins: 0, firstWave: 0, since: 0, bosses: 0, lost: 0, plan: null as (WavePlan & { n: number }) | null, shop: null as Upgrade[] | null };
+  private heroT = { wave: 0, boss: 0, bossSmacks: 0, stunned: false, tick: 0, coins: 0, firstWave: 0, since: 0, bosses: 0, lost: 0, abilityUsed: false, plan: null as (WavePlan & { n: number }) | null, shop: null as Upgrade[] | null };
   /** Damage dealt this run by source (dev balance tooling reads it). */
   dmgLog: Record<string, number> = {};
   /** Tips earned in each wave (wave clear bonus included), for balance tooling. */
@@ -842,7 +842,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     const mine = abilityKey(this.peelId);
     const byKey = new Map<string, string[]>();
     for (const d of PEELS) {
-      if (d.id === this.peelId || !hasPeel(d.id)) continue;
+      if (d.id === this.peelId || !hasPeel(d.id) || d.group === 'god') continue;
       const k = d.id === 'classic' ? 'classic' : abilityKey(d.id);
       if (k === mine) continue;
       byKey.set(k, [...(byKey.get(k) ?? []), d.id]);
@@ -1066,6 +1066,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.heroT.boss = this.nowT;
     this.heroT.bossSmacks = 0;
     this.heroT.stunned = false;
+    this.heroT.abilityUsed = false;
     this.director.attach(f);
     // phase 1 gets its own introduction: what the boss does first and how to answer it
     this.director.afterDamage(f, true);
@@ -1095,6 +1096,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.heroT.boss = this.nowT;
     this.heroT.bossSmacks = 0;
     this.heroT.stunned = false;
+    this.heroT.abilityUsed = false;
     this.director.attach(f);
     audio.sfx('sfx_miniboss');
     audio.duck(0.75);
@@ -2648,6 +2650,10 @@ export class GameScene extends Phaser.Scene implements Arena {
       executed = true;
       f.wool = 0;
     }
+    if (smack && f.armor > 0 && this.heroes.breaksArmour()) {
+      f.armor = 0;
+      this.fx.quip(f.x + 60, f.cy - 60, 'ARMOUR BROKEN!', '#ffb040', 30);
+    }
     const armourMult = o.source === 'burn' || o.source === 'garlic' || o.source === 'direct' ? 1 : 10 / (10 + Math.max(0, f.armor));
     let dealt = executed ? f.hp : dmg * armourMult;
     if (f.wool > 0) {
@@ -2888,7 +2894,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (!mini) this.goldenSpawned = true;
     this.run.bossesBeaten.push(f.type.id);
     if (!mini) this.heroT.bosses++;
-    this.tracker.emit('bossDown', { foot: f, mini, secs: this.nowT - this.heroT.boss, smacks: this.heroT.bossSmacks, slicesLost: this.waveSlicesLost, peelStunned: this.heroT.stunned, abilityUsed: false });
+    this.tracker.emit('bossDown', { foot: f, mini, secs: this.nowT - this.heroT.boss, smacks: this.heroT.bossSmacks, slicesLost: this.waveSlicesLost, peelStunned: this.heroT.stunned, abilityUsed: this.heroT.abilityUsed });
     const firstKill = !save.bossesBeaten.includes(f.type.id);
     if (firstKill) {
       save.bossesBeaten.push(f.type.id);
@@ -3287,6 +3293,10 @@ export class GameScene extends Phaser.Scene implements Arena {
       runFx: (fx, ctx, color) => this.runEffects(fx, ctx, color, 'burst'),
       meter: () => this.run.super,
       setMeter: (v) => (this.run.super = v),
+      combo: () => this.run.combo,
+      owned: () => this.run.owned,
+      waveLeft: () => (this.plan ? Math.min(1, (this.plan.queue.length + this.feet.filter((f) => f.alive && !f.isBossLike).length) / Math.max(1, this.planSize)) : 1),
+      holdCombo: (sec) => (this.run.comboTimer = Math.min(COMBO_BASE_WINDOW + this.run.stats.comboBonus, Math.max(this.run.comboTimer, 0) + sec)),
       swapAbility: (id) => this.swapAbility(id),
       recompute: () => this.recompute(),
       toast: (img, title, text) => ui.hud.toast(img, title, text),
@@ -3329,6 +3339,10 @@ export class GameScene extends Phaser.Scene implements Arena {
       bosses: this.heroT.bosses,
       pizzasLost: this.heroT.lost,
       victory: false,
+      combo: this.run.combo,
+      allFull: this.pizzas.length > 0 && this.pizzas.every((p) => !p.dead && p.slices >= p.maxSlices),
+      stale: this.alivePizzas().some((p) => p.freshOn && p.stale),
+      freshOn: this.run.heatDef.freshness > 0,
     };
   }
 
@@ -3440,6 +3454,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     const st = this.run.stats;
     const color = a.color;
     const big = a.trigger.t === 'active' || a.trigger.t === 'auto';
+    if (big) this.heroT.abilityUsed = true;
     if (big && !a.custom) {
       if (a.vfx === 'slam') {
         const sweep = this.add.image(-400, 560, 'peel').setScale(3.2).setAngle(-90).setOrigin(0.5, 100 / 360);

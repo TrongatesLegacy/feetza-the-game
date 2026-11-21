@@ -114,6 +114,8 @@ export const THROW_PROPS = {
   bolt: ['blaster bolt', 'blaster bolts'],
   rocket: ['rocket', 'rockets'],
   crescent: ['crescent dart', 'crescent darts'],
+  // god props (src/content/props/gods.ts)
+  hammer: ['thunder hammer', 'thunder hammers'],
 } as const;
 export type ThrowProp = keyof typeof THROW_PROPS;
 
@@ -445,6 +447,18 @@ export const ABILITIES: Record<string, Ability> = {
   'boss:lumberjack': ab('Timber!', act, [D(14, front(3), 900)], BROWN, 'slam'),
   'boss:poltergeist': ab('Grave Shove', every(5), [K(800, rnd(3)), D(2.5, rnd(3))], PURPLE, 'ink'),
 
+  // ——— The God Peel (src/game/peels.ts): its move and passive are in src/game/godMoves.ts ———
+  'god:pizzagods': {
+    name: 'Divine Feast',
+    trigger: act,
+    fx: [{ e: 'move', id: 'divineFeast' }],
+    charge: 0.8,
+    color: GOLD,
+    vfx: 'gold',
+    custom: true,
+    desc: 'Active ({slam}): a golden peel sweeps down from the heavens. Every foot takes ×25, is stunned for 3 s and burns (2×/s for 4 s); then every pizza gets 2 shields and a slice back, and you get +50 tips. Passive, Pantheon: every 3 s it throws a projectile borrowed at random from the throwing peels, at ×2.',
+  },
+
   // ——— Feet ———
   'foot:bob': plus(ab('Barefoot Basics', always, [STAT({ damage: 2 })], 0xf0c8a0, 'burst'), every(5), TH('toenail', 'pierce', 1.5, front(1))),
   'foot:patty': plus(ab('Fresh Polish', always, [STAT({ critChance: 0.08 })], PINK, 'burst'), every(6), TH('polish', 'stick', 1, tough(1), { stick: 4, on: [M(1.5, 4, hit())] })),
@@ -542,6 +556,10 @@ export const ABILITIES: Record<string, Ability> = {
   'foot:gargoylet': ab('Petrify', smack(0.25), [ST(1.2, hit()), M(1.3, 3, hit())], 0x9a9488, 'burst'),
   'foot:batfeet': ab('Night Swoop', every(5), [D(2, front(1)), ST(1, front(1))], PURPLE, 'rain'),
   'foot:spidersocks': ab('Web Shot', smack(0.25), [S(0.6, 2.5, hit())], WHITE, 'ink'),
+  // the Kratos Peel's feet (src/content/feet/gods.ts)
+  'foot:elephant': ab('Elephant Stomp', every(8), [D(3, front(3), 1100)], 0x8e8a86, 'slam'),
+  // its late-wave +25% is a passive in src/game/godMoves.ts
+  'foot:spartan': { ...ab('Phalanx', wave, [SH(1, 'weakest')], 0xc9873a, 'heal'), desc: 'Each wave: a bronze shield on your weakest pizza. When only a quarter of the wave’s feet are left, +25% damage.' },
 
   // ——— Pizzas ———
   'pizza:margherita': plus(ab('Classic Crust', always, [STAT({ damage: 1.5 })], RED, 'burst'), every(6), TH('tomato', 'bounce', 2, rnd(1), { more: [1.5, 1] })),
