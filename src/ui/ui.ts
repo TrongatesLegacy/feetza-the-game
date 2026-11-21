@@ -1850,7 +1850,7 @@ class UI {
       tabs.replaceChildren(
         btn(`FEET ${feet.filter((f) => save.seenFeet.includes(f.id)).length}/${feet.length}`, `small ${tab === 'feet' ? 'active' : ''}`, () => ((tab = 'feet'), render())),
         btn(`BOSSES ${bosses.filter((f) => save.seenFeet.includes(f.id)).length}/${bosses.length}`, `small ${tab === 'bosses' ? 'active' : ''}`, () => ((tab = 'bosses'), render())),
-        btn(`PIZZAS ${PIZZAS.length}`, `small ${tab === 'pizzas' ? 'active' : ''}`, () => ((tab = 'pizzas'), render())),
+        btn(`PIZZAS ${PIZZAS.filter((p) => save.unlockedPizzas.includes(p.id)).length}/${PIZZAS.length}`, `small ${tab === 'pizzas' ? 'active' : ''}`, () => ((tab = 'pizzas'), render())),
         btn(`PLACES ${STAGES.filter(placeSeen).length}/${STAGES.length}`, `small ${tab === 'places' ? 'active' : ''}`, () => ((tab = 'places'), render())),
         btn(`EVENTS ${EVENTS.filter(([id]) => save.seenEvents.includes(id)).length}/${EVENTS.length}`, `small ${tab === 'events' ? 'active' : ''}`, () => ((tab = 'events'), render())),
       );
@@ -1869,18 +1869,29 @@ class UI {
         const lastSeen = [...save.seenFeet].reverse().find((id) => list.some((f) => f.id === id));
         showFoot(lastSeen ?? list[0].id);
       } else if (tab === 'pizzas') {
-        const tiles = PIZZAS.map((p) => {
+        const pTile = (p: PizzaType) => {
           const owned = save.unlockedPizzas.includes(p.id);
           const hide = hiddenRare(p);
-          const t = h('div', { class: `tile${hide ? ' locked' : ''}`, tabindex: 0 }, h('img', { src: pizzaPortraitURL(p.id), alt: '', loading: 'lazy' }), h('div', { class: 'nm' }, hide ? '???' : p.name), owned ? null : h('span', { class: 'tag' }, '🔒'));
+          // locked pizzas are dimmed, with how they unlock under the name
+          const route = owned ? null : p.route === 'pizzeria' ? `${fmt(p.cost)} crusts` : p.route === 'milestone' ? 'Milestone' : p.route === 'special' ? 'Chef’s Special' : 'Rare Find';
+          const t = h('div', { class: `tile pz-tile${hide ? ' locked' : owned ? '' : ' unowned'}`, tabindex: 0 }, h('img', { src: pizzaPortraitURL(p.id), alt: '', loading: 'lazy' }), h('div', { class: 'nm' }, hide ? '???' : p.name), route ? h('div', { class: 'ds' }, route) : null, owned ? null : h('span', { class: 'tag' }, '🔒'));
           t.addEventListener('click', () => {
             audio.sfx('sfx_click');
             showPizza(p.id);
           });
           return t;
-        });
-        body.replaceChildren(h('div', { class: 'grid' }, ...tiles));
-        showPizza(PIZZAS[0].id);
+        };
+        const group = (title: string, list: PizzaType[]) => (list.length ? [h('div', { class: 'pz-sec' }, h('b', {}, `${title} · ${list.length}`)), h('div', { class: 'grid' }, ...list.map(pTile))] : []);
+        const has = (p: PizzaType) => save.unlockedPizzas.includes(p.id);
+        const lockedBy = (r: PizzaType['route']) => PIZZAS.filter((p) => !has(p) && p.route === r);
+        body.replaceChildren(
+          ...group('UNLOCKED', PIZZAS.filter(has)),
+          ...group('BUY WITH GOLDEN CRUSTS (IN THE PIZZERIA)', lockedBy('pizzeria').sort((a, b) => a.cost - b.cost)),
+          ...group('MILESTONE PRIZES', lockedBy('milestone')),
+          ...group('CHEF’S SPECIALS', lockedBy('special')),
+          ...group('RARE FINDS', lockedBy('rare')),
+        );
+        showPizza((PIZZAS.find(has) ?? PIZZAS[0]).id);
       } else if (tab === 'places') {
         const tiles = STAGES.map((st, i) => {
           const seen = placeSeen(st);
