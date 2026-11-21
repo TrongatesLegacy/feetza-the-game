@@ -240,7 +240,7 @@ function drawClown(ctx: Ctx, art: FootArt): void {
   ctx.lineWidth = OUT;
   ctx.stroke();
   // giant bulb toe
-  ellipse(ctx, CX + 6, 214, 142, 58);
+  ellipse(ctx, CX, 214, 142, 58);
   const g = ctx.createRadialGradient(CX - 40, 186, 6, CX, 214, 150);
   g.addColorStop(0, shade(p, 0.45));
   g.addColorStop(0.45, p);
