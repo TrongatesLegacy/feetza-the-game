@@ -589,5 +589,997 @@
     "license": "CC0 1.0",
     "url": "https://kenney.nl/assets/interface-sounds",
     "notes": "three ticks at rising pitch"
+  },
+  {
+    "file": "sfx_kit_prophit.mp3",
+    "title": "Impact Sounds (impactWood_light_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "shared boss kit: hit-counter prop takes a hit; layered with Impact Sounds impactPlate_light_000 (Kenney, CC0) and a short synthesized knock (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_kit_propclear.mp3",
+    "title": "Impact Sounds (impactPlate_light_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "shared boss kit: prop cleared; layered with a synthesized two-note sparkle (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_kit_shieldup.mp3",
+    "title": "Sci-fi Sounds (forceField_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "notes": "shared boss kit: boss shield goes up; layered with a synthesized rising hum (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_kit_shieldblock.mp3",
+    "title": "Sci-fi Sounds (forceField_003)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "notes": "shared boss kit: smack bounces off a boss shield; layered with Impact Sounds impactSoft_medium_000 (Kenney, CC0) and a synthesized bubble thunk (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_kit_shielddown.mp3",
+    "title": "Digital Audio (phaserDown2)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/digital-audio",
+    "notes": "shared boss kit: boss shield drops; layered with Interface Sounds drop_002 (Kenney, CC0)"
+  },
+  {
+    "file": "sfx_kit_lane.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "shared boss kit: boss takes over a lane; a synthesized low thump and air swell, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactSoft_heavy_000 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_kit_retreat.mp3",
+    "title": "RPG Audio (footstep00)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/rpg-audio",
+    "notes": "shared boss kit: feet scurry back (\"STAND BACK!\"); layered with RPG Audio footstep02, footstep04, footstep06, footstep08, footstep01 (Kenney, CC0) and a synthesized cartoon zip (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_headwaiter_traytoss.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Head Waiter: tray thrown, spinning; a synthesized spinning whirr, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactTin_medium_000 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_headwaiter_traybat.mp3",
+    "title": "Impact Sounds (impactMetal_light_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Head Waiter: tray batted back; layered with Impact Sounds impactBell_heavy_001 (Kenney, CC0)"
+  },
+  {
+    "file": "sfx_headwaiter_trayclang.mp3",
+    "title": "Impact Sounds (impactTin_medium_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Head Waiter: tray crashes on a pizza; layered with Impact Sounds impactMetal_medium_001, impactPlate_heavy_000, impactTin_medium_004 (Kenney, CC0)"
+  },
+  {
+    "file": "sfx_headwaiter_service.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Head Waiter: desk-bell double ding; a synthesized desk-bell double ding, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactMetal_light_000 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_bigfoot_ring.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Bigfoot: QTE ring appears; a synthesized rising blip, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_bigfoot_ringok.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Bigfoot: good QTE click; a synthesized bright chime, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactWood_light_002 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_bigfoot_bigstep.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Bigfoot: the big step lands; a synthesized sub-bass thud and rumble, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactWood_heavy_001 and Sci-fi Sounds lowFrequency_explosion_001 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_bigfoot_trapbuild.mp3",
+    "title": "RPG Audio (metalClick)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/rpg-audio",
+    "notes": "Bigfoot: bear trap ratchets together; layered with RPG Audio metalLatch (Kenney, CC0)"
+  },
+  {
+    "file": "sfx_bigfoot_trapsnap.mp3",
+    "title": "RPG Audio (metalLatch)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/rpg-audio",
+    "notes": "Bigfoot: bear trap snaps shut; layered with Impact Sounds impactMetal_heavy_002, impactMetal_light_004 (Kenney, CC0) and a synthesized snap transient (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_bigfoot_pound.mp3",
+    "title": "Impact Sounds (impactMining_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Bigfoot: ground pound crashes down; layered with Impact Sounds impactPlank_medium_001, impactWood_light_003, impactWood_light_001 (Kenney, CC0) and a synthesized sub thump and debris rumble (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_bigfoot_rampage.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Bigfoot: second Bigfoot arrives; synthesized double thuds and a low growl, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactWood_heavy_000 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_sweep_brush.mp3",
+    "title": "Interface Sounds (scratch_004)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/interface-sounds",
+    "notes": "Chimney Sweep: chimney brush scrubbing (tell); layered with Interface Sounds scratch_005 (Kenney, CC0) and synthesized bristle scrubs (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_sweep_soot.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Chimney Sweep: soot column whoomph; a synthesized soot whoomph, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds explosionCrunch_000 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_sweep_hop.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Chimney Sweep: pops out of one chimney into another; a synthesized cork pop and puff, made with ffmpeg and Python and released as CC0, layered with Kenney Interface Sounds drop_003 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_sweep_brick.mp3",
+    "title": "Impact Sounds (impactPlate_medium_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Chimney Sweep: chimney brick laid (enraged); layered with Impact Sounds impactMining_002 (Kenney, CC0)"
+  },
+  {
+    "file": "sfx_ironheel_charge.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Iron Heel: power-blast charge riser, sits under; a synthesized two-second energy riser, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_ironheel_launcher.mp3",
+    "title": "Sci-fi Sounds (doorOpen_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "notes": "Iron Heel: rocket launcher deploys; layered with RPG Audio metalLatch and Impact Sounds impactMetal_medium_003 (Kenney, CC0)"
+  },
+  {
+    "file": "sfx_ironheel_rocket.mp3",
+    "title": "Impact Sounds (impactMetal_light_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Iron Heel: rocket launches; layered with Sci-fi Sounds thrusterFire_000 (Kenney, CC0) and a synthesized rising launch whoosh (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_ironheel_blast.mp3",
+    "title": "Sci-fi Sounds (laserLarge_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "notes": "Iron Heel: power blast fires; layered with Sci-fi Sounds lowFrequency_explosion_000 (Kenney, CC0) and a synthesized beam crackle (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_ironheel_vent.mp3",
+    "title": "RPG Audio (metalLatch)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/rpg-audio",
+    "notes": "Iron Heel: armour vents open; layered with Sci-fi Sounds doorClose_002 (Kenney, CC0)"
+  },
+  {
+    "file": "sfx_ironheel_hiss.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Iron Heel: steam warning hiss, sits under; a synthesized rising steam hiss, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_ironheel_steam.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Iron Heel: steam burst; a synthesized steam burst, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds thrusterFire_002, doorOpen_002 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_ironheel_press.mp3",
+    "title": "Sci-fi Sounds (doorClose_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "notes": "Iron Heel: hydraulic press stamps; layered with Impact Sounds impactMetal_heavy_000 (Kenney, CC0) and a synthesized low thump (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_ironheel_valve.mp3",
+    "title": "RPG Audio (metalLatch)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/rpg-audio",
+    "notes": "Iron Heel: valve wheel locks; layered with Impact Sounds impactMetal_light_004 (Kenney, CC0) and a synthesized valve squeak (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_sandcastle_shovel.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Sandcastle Sam: shovel scrape (tell); a synthesized sand scrape, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds footstep_snow_001, impactMetal_light_003 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_sandcastle_walls.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Sandcastle Sam: sand walls rise; a synthesized sand pour, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactSoft_heavy_001, footstep_snow_004 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_sandcastle_pour.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Sandcastle Sam: sand pour; a synthesized sand pour, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_sandcastle_sandland.mp3",
+    "title": "Impact Sounds (impactSoft_medium_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Sandcastle Sam: wet sand lands on a pizza; layered with Impact Sounds footstep_snow_003 (Kenney, CC0) and a synthesized sand spray (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_clownking_honkwind.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "King Honk: bulb-horn squeeze wind-up; synthesized rubber-bulb squeaks, made with ffmpeg and Python and released as CC0, layered with Kenney RPG Audio handleSmallLeather (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_clownking_honk.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "King Honk: clown horn blast; a synthesized bulb-horn blast, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_clownking_leap.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "King Honk: slide-whistle leap away; a synthesized slide whistle, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_clownking_decoydrop.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "King Honk: slide-whistle drop; a synthesized falling slide whistle, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactSoft_medium_001 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_clownking_pie.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "King Honk: wobbly pie throw; a synthesized wobbling whoosh, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds slime_000 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_clownking_piesplat.mp3",
+    "title": "Sci-fi Sounds (slime_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "notes": "King Honk: big cream-pie splat; layered with Impact Sounds impactSoft_heavy_002 and RPG Audio dropLeather (Kenney, CC0) and a synthesized splat burst (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_shortorder_bell.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Short-Order Shoe: order bell ding; a synthesized service-bell ring, made with ffmpeg and Python and released as CC0, layered with Kenney Casino Audio card-slide-2 and Impact Sounds impactBell_heavy_002 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_shortorder_grab.mp3",
+    "title": "RPG Audio (cloth1)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/rpg-audio",
+    "notes": "Short-Order Shoe: grabbing hand lunges in; layered with RPG Audio handleSmallLeather2 (Kenney, CC0) and a synthesized lunge whoosh (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_shortorder_togo.mp3",
+    "title": "Casino Audio (cards-pack-take-out-1)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/casino-audio",
+    "notes": "Short-Order Shoe: hand snatches a slice; layered with RPG Audio cloth3 (Kenney, CC0) and a synthesized yoink zip (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_shortorder_rush.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Short-Order Shoe: rush-hour triple bell and ticket chatter; synthesized triple bell dings and ticket-printer chatter, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_trex_dinosqueak.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "T-Rex Toes: baby dino squeak; synthesized baby-dino chirps, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_trex_dinorun.mp3",
+    "title": "RPG Audio (footstep01)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/rpg-audio",
+    "notes": "T-Rex Toes: baby dino pitter-patter; layered with RPG Audio footstep03, footstep05, footstep07, footstep09, footstep02, footstep04, footstep06 (Kenney, CC0)"
+  },
+  {
+    "file": "sfx_trex_growl.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "T-Rex Toes: snack-time growl (tell); a synthesized rumbling growl, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_trex_snack.mp3",
+    "title": "Impact Sounds (impactWood_medium_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "T-Rex Toes: jaws snap on a foot; layered with Impact Sounds impactPunch_medium_001 and Sci-fi Sounds slime_000 (Kenney, CC0) and a synthesized crunch (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_trex_breath.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "T-Rex Toes: deep breath in (tell); a synthesized deep inhale, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_trex_roar.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "T-Rex Toes: the roar; a synthesized roar (formant-filtered saw, rasp and sub), made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds lowFrequency_explosion_001 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_iceskate_snow.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Ice Skate Ivy: snow cloud gust (tell); a synthesized wind gust and ice tinkles, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_iceskate_freeze.mp3",
+    "title": "Impact Sounds (impactGlass_light_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Ice Skate Ivy: lane freezes over; layered with Impact Sounds impactGlass_light_001, impactGlass_light_002 (Kenney, CC0) and a synthesized ice crackle (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_iceskate_frostbite.mp3",
+    "title": "Impact Sounds (impactGlass_medium_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Ice Skate Ivy: peel stung in the snow; layered with a synthesized icy zap (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_iceskate_axel.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Ice Skate Ivy: triple skate swish; synthesized skate swishes and an ice scrape, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_colossus_clang.mp3",
+    "title": "Impact Sounds (impactMetal_medium_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "The Colossus: small hit chips the shell; layered with Sci-fi Sounds impactMetal_004 (Kenney, CC0)"
+  },
+  {
+    "file": "sfx_colossus_crack.mp3",
+    "title": "Impact Sounds (impactMetal_heavy_003)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "The Colossus: armour cracks; layered with Impact Sounds impactMining_003 (Kenney, CC0) and a synthesized crackle (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_colossus_shatter.mp3",
+    "title": "Impact Sounds (impactMetal_light_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "The Colossus: shell shatters; layered with Impact Sounds impactMetal_light_001, impactMetal_light_002, impactMetal_light_003, impactMetal_light_004, impactMetal_heavy_004, impactPlate_heavy_002, impactPlate_heavy_004 and Sci-fi Sounds lowFrequency_explosion_001 (Kenney, CC0)"
+  },
+  {
+    "file": "sfx_colossus_glint.mp3",
+    "title": "RPG Audio (drawKnife2)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/rpg-audio",
+    "notes": "The Colossus: sword glint (tell); layered with a synthesized shimmer (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_colossus_parry.mp3",
+    "title": "RPG Audio (drawKnife1)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/rpg-audio",
+    "notes": "The Colossus: parry clash; layered with Impact Sounds impactMetal_light_003, impactBell_heavy_003 (Kenney, CC0)"
+  },
+  {
+    "file": "sfx_colossus_smith.mp3",
+    "title": "Impact Sounds (impactMetal_light_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "The Colossus: blacksmith taps the anvil (tell)"
+  },
+  {
+    "file": "sfx_colossus_anvil.mp3",
+    "title": "Impact Sounds (impactBell_heavy_004)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "The Colossus: plate hammered back on; layered with Impact Sounds impactMetal_heavy_001 (Kenney, CC0)"
+  },
+  {
+    "file": "sfx_ufotoe_beam.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "UFO Toe: tractor beam hum; a synthesized warbling beam hum, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds engineCircular_001 and Digital Audio phaserUp1 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_ufotoe_beambreak.mp3",
+    "title": "Digital Audio (phaserDown3)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/digital-audio",
+    "notes": "UFO Toe: beam broken; layered with Impact Sounds impactGlass_light_004 and Sci-fi Sounds forceField_004 (Kenney, CC0)"
+  },
+  {
+    "file": "sfx_ufotoe_abduct.mp3",
+    "title": "Digital Audio (phaserUp5)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/digital-audio",
+    "notes": "UFO Toe: slice beamed up; layered with a synthesized rising zip (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_ufotoe_twin.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "UFO Toe: second saucer warbles in; a synthesized theremin warble, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds spaceEngineSmall_001 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_cosmiccroc_meteor.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Cosmic Croc: meteor falling whistle; a synthesized falling whistle and burn, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds thrusterFire_003 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_cosmiccroc_impact.mp3",
+    "title": "Sci-fi Sounds (explosionCrunch_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "notes": "Cosmic Croc: meteor impact; layered with Impact Sounds impactMining_004 (Kenney, CC0) and a synthesized sub boom (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_cosmiccroc_flip.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Cosmic Croc: gravity warp; a synthesized gravity-warp sweep, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_cosmiccroc_blackhole.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Cosmic Croc: black hole opens; a synthesized swirling suction and sub, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds lowFrequency_explosion_001 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_cosmiccroc_holeclose.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Cosmic Croc: black hole implodes; a synthesized implosion, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactGlass_light_003 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_doughboy_ball.mp3",
+    "title": "Sci-fi Sounds (slime_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "notes": "Dough Boy: dough ball blorps out; layered with Interface Sounds drop_004 (Kenney, CC0) and a synthesized blorp (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_doughboy_splat.mp3",
+    "title": "Impact Sounds (impactSoft_heavy_003)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Dough Boy: dough splat; layered with Sci-fi Sounds slime_000 (Kenney, CC0) and a synthesized splat transient (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_doughboy_rise.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Dough Boy: yeasty bubbling rise, sits under; synthesized yeasty bubbles and stretch, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_nonna_pin.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Nonna's Slipper: rolling pin rumble; a synthesized wooden rolling rumble, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactWood_light_000, impactWood_light_001, impactWood_light_002, impactWood_light_003, impactWood_light_004, impactWood_medium_001 and RPG Audio creak2 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_nonna_pinsmash.mp3",
+    "title": "Impact Sounds (impactWood_heavy_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Nonna's Slipper: rolling pin crashes into the pizzas; layered with Impact Sounds impactWood_heavy_003, impactPlate_medium_001 (Kenney, CC0)"
+  },
+  {
+    "file": "sfx_nonna_slippers.mp3",
+    "title": "Casino Audio (card-fan-1)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/casino-audio",
+    "notes": "Nonna's Slipper: slippers flap (tell); layered with RPG Audio cloth2, cloth4 (Kenney, CC0)"
+  },
+  {
+    "file": "sfx_nonna_slipper.mp3",
+    "title": "Impact Sounds (impactPunch_heavy_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Nonna's Slipper: slipper thwack; layered with RPG Audio dropLeather (Kenney, CC0) and a synthesized whip-crack transient (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_nonna_spoon.mp3",
+    "title": "Impact Sounds (impactWood_light_003)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Nonna's Slipper: wooden spoon swings and grabs; layered with RPG Audio handleSmallLeather (Kenney, CC0) and a synthesized swing whoosh (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_nonna_tug.mp3",
+    "title": "RPG Audio (creak1)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/rpg-audio",
+    "notes": "Nonna's Slipper: tug-of-war creak, sits under; layered with RPG Audio creak2, creak3 (Kenney, CC0)"
+  },
+  {
+    "file": "sfx_pigeonking_coo.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "The Pigeon King: pigeon coo; a synthesized pigeon coo, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_pigeonking_splat.mp3",
+    "title": "Sci-fi Sounds (slime_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "notes": "The Pigeon King: bird bomb splat; layered with Impact Sounds impactSoft_medium_004 (Kenney, CC0)"
+  },
+  {
+    "file": "sfx_pigeonking_flock.mp3",
+    "title": "Casino Audio (card-fan-2)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/casino-audio",
+    "notes": "The Pigeon King: flock flutters in; layered with Casino Audio card-shuffle (Kenney, CC0) and synthesized coos (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_gargoyle_swoop.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "The Gargoyle: stony wing swoop; a synthesized low swoop, made with ffmpeg and Python and released as CC0, layered with Kenney RPG Audio cloth4 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_gargoyle_stone.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "The Gargoyle: turns to stone (grind); a synthesized stone grind, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds footstep_concrete_000, footstep_concrete_002, impactMining_001 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_gargoyle_stonecrack.mp3",
+    "title": "Impact Sounds (impactMining_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "The Gargoyle: stone cracks under a smack; layered with a synthesized crackle (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_gargoyle_stonebreak.mp3",
+    "title": "Impact Sounds (impactMining_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "The Gargoyle: stone crumbles; layered with Impact Sounds impactMining_003, impactMining_004, footstep_concrete_003 (Kenney, CC0) and a synthesized rubble rumble (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_gargoyle_storm.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "The Gargoyle: mini-gargoyle screech chorus; a synthesized screech chorus, made with ffmpeg and Python and released as CC0, layered with Kenney RPG Audio cloth4, cloth2 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_jellyfish_charge.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Jellyfish Flip-Flop: jelly charge hum; a synthesized wobbling electric hum, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_jellyfish_sting.mp3",
+    "title": "Digital Audio (zap2)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/digital-audio",
+    "notes": "Jellyfish Flip-Flop: jelly zap on the peel; layered with Sci-fi Sounds slime_000 (Kenney, CC0) and a synthesized crackle burst (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_jellyfish_bright.mp3",
+    "title": "Digital Audio (zapThreeToneUp)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/digital-audio",
+    "notes": "Jellyfish Flip-Flop: bright-glow crackle; layered with a synthesized shimmer and crackle (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_kraken_splash.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Kraken Toes: water splash; a synthesized water splash and bubbles, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactSoft_heavy_004 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_kraken_tentacle.mp3",
+    "title": "Sci-fi Sounds (slime_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "notes": "Kraken Toes: tentacle squelches up; layered with Sci-fi Sounds slime_000 and Impact Sounds impactSoft_heavy_000 (Kenney, CC0)"
+  },
+  {
+    "file": "sfx_kraken_drag.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Kraken Toes: dragged under, gurgling; a synthesized sinking gurgle, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds slime_000 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_kraken_squirt.mp3",
+    "title": "Sci-fi Sounds (slime_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "notes": "Kraken Toes: ink squirt; layered with a synthesized pssht (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_kraken_inked.mp3",
+    "title": "Sci-fi Sounds (slime_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "notes": "Kraken Toes: ink splats on a pizza; layered with Impact Sounds impactSoft_medium_003 (Kenney, CC0) and synthesized drips (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_milkshake_freeze.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Milkshake Max: brain-freeze chime (tell); a synthesized brain-freeze chime cluster, made with ffmpeg and Python and released as CC0, layered with Kenney Interface Sounds glass_004 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_milkshake_frozen.mp3",
+    "title": "Impact Sounds (impactGlass_heavy_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Milkshake Max: brain freeze lands on the peel; layered with a synthesized ice crack and low bwong (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_milkshake_straw.mp3",
+    "title": "Interface Sounds (drop_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/interface-sounds",
+    "notes": "Milkshake Max: straw plonks in; layered with a synthesized plastic boing (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_milkshake_slurp.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Milkshake Max: slurp, sits under; a synthesized straw slurp, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_milkshake_snap.mp3",
+    "title": "Impact Sounds (impactPlate_light_003)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Milkshake Max: straw snaps; layered with a synthesized snap and pop (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_rinkqueen_puck.mp3",
+    "title": "Impact Sounds (impactWood_medium_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Queen of the Rink: slapshot; layered with Impact Sounds impactPlank_medium_002 (Kenney, CC0) and a synthesized puck whoosh (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_rinkqueen_roll.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Queen of the Rink: pizzas glide across the ice; synthesized long skate glides, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_rinkqueen_dash.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Queen of the Rink: speed-dash swish and ice spray; a synthesized dash swish and ice spray, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds footstep_snow_002 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_lumberjack_timber.mp3",
+    "title": "RPG Audio (creak2)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/rpg-audio",
+    "notes": "The Lumberjack: tree creak and crack (tell); layered with RPG Audio creak1 and Impact Sounds impactWood_heavy_004, impactPlank_medium_003 (Kenney, CC0)"
+  },
+  {
+    "file": "sfx_lumberjack_chainsaw.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "The Lumberjack: chainsaw revs; a synthesized two-stroke chainsaw rev, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_lumberjack_sawbite.mp3",
+    "title": "Impact Sounds (impactWood_medium_003)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "The Lumberjack: chainsaw bites a pizza; layered with Impact Sounds impactPlank_medium_004 (Kenney, CC0) and a synthesized chainsaw bite (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_lumberjack_axe.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "The Lumberjack: spinning axe; a synthesized spinning whoosh, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_lumberjack_thunk.mp3",
+    "title": "RPG Audio (chop)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/rpg-audio",
+    "notes": "The Lumberjack: axe thunks into the table; layered with Impact Sounds impactWood_heavy_000, impactMetal_light_000 (Kenney, CC0)"
+  },
+  {
+    "file": "sfx_yeti_icicle.mp3",
+    "title": "Impact Sounds (impactGlass_light_003)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "The Yeti Ski Boot: icicle forms and cracks loose; layered with a synthesized ice creak and tinkle (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_yeti_iciclehit.mp3",
+    "title": "Impact Sounds (impactGlass_heavy_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "The Yeti Ski Boot: icicle shatters on a pizza; layered with Impact Sounds impactGlass_medium_003, impactGlass_light_001 (Kenney, CC0)"
+  },
+  {
+    "file": "sfx_yeti_snowball.mp3",
+    "title": "Impact Sounds (footstep_snow_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "The Yeti Ski Boot: snowball packed and thrown; layered with a synthesized throw whoosh (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_yeti_avalanche.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "The Yeti Ski Boot: avalanche rumble (tell); a synthesized avalanche rumble, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds footstep_snow_000, footstep_snow_001, footstep_snow_002, footstep_snow_003, footstep_snow_004 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_yeti_bigball.mp3",
+    "title": "Impact Sounds (footstep_snow_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "The Yeti Ski Boot: big snowball lands; layered with Impact Sounds impactSoft_heavy_004 (Kenney, CC0) and a synthesized snow spray (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_poltergeist_groan.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "The Zombie Loafer: zombie groan (tell); a synthesized zombie groan, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_poltergeist_bite.mp3",
+    "title": "Impact Sounds (impactWood_light_004)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "The Zombie Loafer: zombie bite; layered with Sci-fi Sounds slime_000 (Kenney, CC0) and a synthesized crunch (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_poltergeist_cough.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "The Zombie Loafer: coughing fit; synthesized coughs, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_poltergeist_sick.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "The Zombie Loafer: pizza turns zombie; a synthesized gurgle and short groan, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_poltergeist_munch.mp3",
+    "title": "Impact Sounds (impactSoft_medium_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "The Zombie Loafer: zombie pizza munches a slice; layered with a synthesized crunch (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_phantomking_fade.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Phantom King: ghostly fade; a synthesized ghostly shimmer, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_phantomking_echo.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Phantom King: ghostly echo appears; a synthesized ghostly \"ooo\" with echoes, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_phantomking_stir.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Phantom King: curse stirs (tell); a synthesized rising shimmer, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_phantomking_curse.mp3",
+    "title": "Digital Audio (phaseJump3)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/digital-audio",
+    "notes": "Phantom King: curse jumps pizzas; layered with a synthesized echoing whoosh (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_phantomking_exorcise.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Phantom King: exorcism chime; a synthesized holy chime arpeggio, made with ffmpeg and Python and released as CC0"
   }
 ]

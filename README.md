@@ -94,12 +94,13 @@ public/audio/ music, ambience and SFX (+ CREDITS.md / credits.json)
 
 - Music and ambience are loudness-normalised to about -16 LUFS. Ambience is mixed about 8 dB under music.
 - SFX gains are calibrated from measured 50 ms RMS peaks so slaps, crits, stomps and UI sounds sit at deliberate relative levels (see `TRIM` in `src/systems/audio.ts`). Slaps round-robin through three recordings with pitch variation.
+- Every boss move has its own signature sound (`sfx_<boss>_<move>`), plus a shared kit for prop hits, shields, lane takeovers and retreats (`sfx_kit_*`). Tells and hits sit near the slap, signature hits a little over it, and mashable hits and long risers under it. They're made from Kenney CC0 packs and original synthesis by `scripts/boss-sfx/`, which also measures them and writes their `TRIM` entries and credits.
 - Loops are made gapless at runtime by trimming MP3 encoder padding from the decoded buffer.
 - Larger tracks stream in lazily, and the next location's and boss's tracks are preloaded one wave ahead.
 
 ## Credits
 
-Music by Kevin MacLeod (incompetech.com), licensed CC-BY 4.0. SFX and ambiences are CC0 from Kenney.nl and Freesound contributors. Full per-file credits are in [`public/audio/CREDITS.md`](public/audio/CREDITS.md) and in-game under **Credits**. Fonts: Lilita One and Fredoka (SIL OFL).
+Music by Kevin MacLeod (incompetech.com), licensed CC-BY 4.0. SFX and ambiences are CC0 from Kenney.nl and Freesound contributors, plus original synthesized boss sounds (CC0). Full per-file credits are in [`public/audio/CREDITS.md`](public/audio/CREDITS.md) and in-game under **Credits**. Fonts: Lilita One and Fredoka (SIL OFL).
 
 ## Dev tools
 
