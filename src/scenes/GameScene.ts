@@ -19,7 +19,7 @@ import { Foot } from '../game/Foot';
 import { Fx } from '../game/Fx';
 import { Pizza, pizzaHooks } from '../game/Pizza';
 import { Projectiles } from '../game/projectiles';
-import { endlessPlus, LOCATION_AMBIENCE, LOCATION_MUSIC, RARITY_FROM, Run, awardMilestones, milestoneProgress, backdropFor, bestRarity, rarityOpen, specialPrice, bossMusic, isBossWave, isMiniWave, locationFor, loopOf, planWave, type WavePlan, bossFor, miniFor } from '../game/Run';
+import { DOUBLE_CAP, endlessPlus, LOCATION_AMBIENCE, LOCATION_MUSIC, RARITY_FROM, Run, awardMilestones, milestoneProgress, backdropFor, bestRarity, rarityOpen, specialPrice, bossMusic, isBossWave, isMiniWave, locationFor, loopOf, planWave, type WavePlan, bossFor, miniFor } from '../game/Run';
 import type { CounterSnap, RunSnapshot } from '../game/snapshot';
 import { audio, bossSfx, heroSfx } from '../systems/audio';
 import { pad } from '../systems/gamepad';
@@ -127,7 +127,10 @@ export class GameScene extends Phaser.Scene implements Arena {
   private tracker!: HeroTracker;
   /** Goal bookkeeping: when the wave and the boss fight began, smacks on the boss, a stunned peel, and the
    * plan and shop a hero showed early (Herald, From the Future). */
-  private heroT = { wave: 0, boss: 0, bossSmacks: 0, stunned: false, tick: 0, coins: 0, firstWave: 0, since: 0, bosses: 0, lost: 0, abilityUsed: false, plan: null as (WavePlan & { n: number }) | null, shop: null as Upgrade[] | null };
+  private heroT = GameScene.freshHeroT();
+  private static freshHeroT() {
+    return { wave: 0, boss: 0, bossSmacks: 0, stunned: false, tick: 0, coins: 0, firstWave: 0, since: 0, bosses: 0, lost: 0, abilityUsed: false, plan: null as (WavePlan & { n: number }) | null, shop: null as Upgrade[] | null };
+  }
   /** Damage dealt this run by source (dev balance tooling reads it). */
   dmgLog: Record<string, number> = {};
   /** Tips earned in each wave (wave clear bonus included), for balance tooling. */
@@ -173,6 +176,8 @@ export class GameScene extends Phaser.Scene implements Arena {
   /** Normal tween speed (the dev bot's time warp raises it). */
   tweenBase = 1;
   private over = false;
+  /** Save & Menu is on its way out of the run. */
+  private leaving = false;
   private paused = false;
   private inUpgrade = false;
   private pointer = { x: W / 2, y: H / 2, touch: false, lastMove: 0 };
@@ -229,7 +234,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     return this.pizzas;
   }
   alivePizzas(): Pizza[] {
-    return this.pizzas.filter((p) => !p.dead);
+    // pizzas the Sole Proprietor Unbound has eaten are off the table (and their perks with them) until he lets them go
+    return this.pizzas.filter((p) => !p.dead && !p.flags.eaten);
   }
   peelPoint(): { x: number; y: number } {
     return this.peelPos;
@@ -292,6 +298,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.fx.quip(x, y, msg, color, size);
   }
   sfx(key: string, opts?: { volume?: number; rate?: number; throttle?: number }): void {
+    // Save & Menu tidies the bosses away: their death sounds stay quiet
+    if (this.leaving) return;
     audio.sfx(key, opts);
   }
   shake(ms: number, intensity: number): void {
@@ -517,7 +525,12 @@ export class GameScene extends Phaser.Scene implements Arena {
       // nothing may touch pizzas or feet after this: the scene's objects are being torn down
       this.possessedPizza = null;
       this.over = true;
+      // no tidy: the scene's objects are going. A boss that overrode the smack or the slam on this
+      // (reused) scene instance gets the real methods back all the same
       this.director.clear(false);
+      const own = this as unknown as Record<string, unknown>;
+      delete own.smack;
+      delete own.peelSlam;
       for (const p of this.pizzas) p.destroy();
       this.pizzas = [];
       window.removeEventListener('keydown', this.keyHandler);
@@ -551,8 +564,11 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.freeRerollsLeft = rs ? rs.freeRerolls : this.run.stats.freeRerolls;
       const keep = rs && cards?.length ? { cards, sold: new Set(rs.sold), free: rs.free, goldenBought: rs.goldenBought, lastStand: rs.lastStand } : undefined;
       // saved on the ACT COMPLETE (or endless victory) screen: back to it, then its shop
-      if (snap.actPending && !rs) this.time.delayedCall(500, () => (waveInJourney(snap.wave) === JOURNEY_WAVES ? this.victory() : this.actComplete(snap.wave)));
-      else this.time.delayedCall(500, () => this.openUpgrades(rs?.bossReward ?? isBossWave(snap.wave), keep, 'WELCOME BACK!'));
+      if (snap.actPending && !rs) {
+        // the victory screen was saved after the ending played: Continue goes straight back to it
+        if (waveInJourney(snap.wave) === JOURNEY_WAVES) this.endingShown = true;
+        this.time.delayedCall(500, () => (waveInJourney(snap.wave) === JOURNEY_WAVES ? this.victory() : this.actComplete(snap.wave)));
+      } else this.time.delayedCall(500, () => this.openUpgrades(rs?.bossReward ?? isBossWave(snap.wave), keep, 'WELCOME BACK!'));
     } else if (this.start.act2 || this.start.kit) {
       const kw = this.kitWave();
       this.run.wave = kw - 1;
@@ -584,6 +600,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.bossFoot = null;
     this.miniFoot = null;
     this.over = false;
+    this.leaving = false;
     this.paused = false;
     this.inUpgrade = false;
     this.displayCoins = 0;
@@ -609,6 +626,22 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.actEl = null;
     this.pickOpen = false;
     this.tweens.timeScale = 1;
+    // the rest of the per-run bookkeeping: hero goals (a peeked shop or wave plan, boss streaks), the
+    // ending, the counters a smack or kill reads, and the shop a Continue resumed into
+    this.heroT = GameScene.freshHeroT();
+    this.endingShown = false;
+    this.restoredShop = null;
+    this.smackCount = 0;
+    this.lastKillAt = -9;
+    this.lastSlam = -99;
+    this.waveEvent = null;
+    this.waveEvent2 = null;
+    this.eventStarted = false;
+    this.event2Started = false;
+    this.goldenSpawned = false;
+    this.miniSpawned = false;
+    this.waveSlicesLost = 0;
+    this.procs = [];
   }
 
   /** Dev starts: the wave a kit start begins at (31 for the old Act 2 start). */
@@ -671,13 +704,13 @@ export class GameScene extends Phaser.Scene implements Arena {
       startPeels: r.startPeels ?? undefined,
       goalStart: { ...r.goalStart },
       kit: JSON.parse(JSON.stringify(r.kit)),
-      pizzas: this.pizzas.map((p) => ({ id: p.type.id, slices: p.slices, max: p.maxSlices, fresh: p.fresh, dead: p.dead, flags: { ...p.flags, possessed: false } })),
+      pizzas: this.pizzas.map((p) => ({ id: p.type.id, slices: p.slices, max: p.maxSlices, fresh: p.fresh, dead: p.dead, flags: { ...p.flags, possessed: false, eaten: false } })),
       counter: this.shop?.counter ?? this.restoredShop?.counter ?? [],
       bossBonusGiven: this.bossBonusGiven,
       peel: this.peelId,
       ability: !!this.ability,
       shop: this.shop
-        ? { cards: this.shop.cards.map((u) => u.id), sold: [...this.shop.sold], free: this.shop.free, bossReward: this.shop.bossReward, freeRerolls: this.freeRerollsLeft, goldenBought: this.shop.goldenBought, lastStand: this.shop.lastStand }
+        ? { cards: this.shop.cards.map((u) => u.id), sold: [...this.shop.sold], free: this.shop.free, bossReward: this.shop.bossReward, freeRerolls: this.freeRerollsLeft, goldenBought: this.shop.goldenBought, lastStand: this.shop.lastStand, boughtOut: this.shop.boughtOut }
         : this.restoredShop?.shop,
     };
   }
@@ -772,7 +805,14 @@ export class GameScene extends Phaser.Scene implements Arena {
     return [sorted[i - 1], sorted[i + 1]].filter((q): q is Pizza => !!q && !q.dead);
   }
 
+  /** Toppings owned that add chain lightning (counted in recompute, read by every goal event). */
+  private chainToppings = 0;
+
   private recompute(): void {
+    this.chainToppings = Object.entries(this.run.owned).filter(([id, lvl]) => {
+      const u = UPGRADE_BY_ID[id];
+      return lvl > 0 && !!u && (/chain lightning/i.test(u.desc(1)) || !!u.proc?.fx.some((e) => e.e === 'chain'));
+    }).length;
     const live = this.alivePizzas().filter((p) => p !== this.possessedPizza && p.perk);
     const perks = live.map((p) => p.perk!);
     // an enhanced pizza's perk counts half as much again
@@ -794,6 +834,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       else s.damage *= 0.95;
     }
     this.perkKit.afterRecompute(this.run.stats, COMBO_BASE_WINDOW);
+    // the perks' faster smacks land after Run's caps: cap the follow-up chance again
+    this.run.stats.doubleChance = Math.min(DOUBLE_CAP, this.run.stats.doubleChance);
     for (const p of this.pizzas) {
       p.maxFresh = 10 + this.run.stats.freshBonus;
       if (p.fresh > p.maxFresh) p.setFresh(p.maxFresh);
@@ -879,6 +921,9 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.peel.preFX?.clear();
     if (this.peelShiny) this.peel.preFX?.addShine(0.6, 0.4, 3.5);
     this.setLookFx(look.id);
+    // the hero passive (and its sounds) follow the new peel
+    this.heroes.setPeel(id, peelTrail(def) ?? 0xffd23f);
+    audio.preload(this, heroSfx(id.startsWith('hero:')));
     this.ability = id !== 'classic' ? abilityFor(id) : null;
     this.abilityT = 0;
     this.run.super = 0;
@@ -888,6 +933,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.run.slamless = { slam: false, meter: !!this.ability && (t0 === 'always' || t0 === 'wave' || t0 === 'stomp'), tank: passive && t0 !== 'every' };
     ui.hud.setSlamLabel(this.ability ? this.ability.name : null, this.ability ? abilityKindLabel(this.ability) : null);
     this.recompute();
+    // Act 9's home ground follows the new peel (on for a Greek god, off for anyone else)
+    contentFx.abilityChanged(this);
     this.fx.ring(W / 2, H / 2, this.ability?.color ?? 0xffd23f, 3, 1);
     ui.hud.toast(peelThumbURL(id, 96), 'PEEL ROULETTE', `${def.name} · ${this.ability ? this.ability.name : 'Peel Slam'} for the rest of the run`);
   }
@@ -1867,9 +1914,9 @@ export class GameScene extends Phaser.Scene implements Arena {
     // From the Future (Booster Gouda) showed these as the wave began
     const future = !bossReward ? this.heroT.shop : null;
     this.heroT.shop = null;
+    // a new shop: its deals start over (a resumed shop keeps them, even one saved with no cards left)
+    if (!keepCards && !this.restoredShop?.shop) this.run.kit.shop = freshKitShop();
     if (!cards) {
-      // a new shop: its deals start over (a resumed shop keeps them)
-      this.run.kit.shop = freshKitShop();
       cards = future ?? (bossReward ? this.run.rollBossChoices(count, exclude) : this.run.rollChoices(count, exclude));
       // boss loot: one epic-or-better pick is free · Birthday Cake: every 5th wave a random card is free (enhanced: every 3rd)
       const every = this.run.enhancedPerks.has('freeTopping') ? 3 : 5;
@@ -1879,11 +1926,13 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (!keepCards) this.pickClearance(cards, free, new Set());
     const restored = this.restoredShop?.counter.length ? this.restoredShop.counter.map((o) => ({ ...o, kind: o.kind ?? (o.trial ? 'special' : 'pizza') }) as CounterOffer) : null;
     const counter = this.shop?.counter && this.shop.state.wave === this.run.wave ? this.shop.counter : restored ?? this.rollCounterOffers();
+    // a bought-out shop stays bought out through Save & Menu
+    const restoredBuyout = !!this.restoredShop?.shop?.boughtOut;
     this.restoredShop = null;
     // one pizza left: a free one from the counter, and Next Wave waits for it
     const lastStand = keepCards?.lastStand ?? (this.alivePizzas().length === 1 && counter.some((o) => o.kind === 'pizza'));
     // the Sole Proprietor bought this shop out (wave 95): every price is doubled
-    const boughtOut = !!this.shop?.boughtOut || finaleState.buyout;
+    const boughtOut = !!this.shop?.boughtOut || finaleState.buyout || restoredBuyout;
     finaleState.buyout = false;
     this.shop = { el: null as unknown as HTMLElement, state: null as unknown as ShopState, cards, sold: keepCards?.sold ?? new Set(), free, bossReward, counter, goldenBought: keepCards?.goldenBought, lastStand, boughtOut };
     if (boughtOut) title = title ?? 'BOUGHT OUT! EVERY PRICE ×2';
@@ -2023,7 +2072,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       tableFull: this.pizzas.length >= MAX_PIZZAS,
       offers,
       heal: { cost: this.boughtOut(this.healCost), can: this.alivePizzas().some((p) => p.slices < p.maxSlices) && r.coins >= this.boughtOut(this.healCost) },
-      rebake: { cost: this.reviveCost, can: dead.length > 0 && r.coins >= this.reviveCost, shown: this.run.heatDef.rebake },
+      rebake: { cost: this.boughtOut(this.reviveCost), can: dead.length > 0 && r.coins >= this.boughtOut(this.reviveCost), shown: this.run.heatDef.rebake },
       lastStand,
       yours: this.yourToppings(),
       golden,
@@ -2227,7 +2276,7 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   /** A reroll's price: the shop deals, then Gambeet's Gambler (1 less). */
   private rerollCost(): number {
-    return Math.max(0, rerollPrice(this.run) - this.heroes.rerollDiscount());
+    return this.boughtOut(Math.max(0, rerollPrice(this.run) - this.heroes.rerollDiscount()));
   }
 
   private shopReroll(): void {
@@ -2280,8 +2329,9 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   private shopRebake(): void {
     const p = this.pizzas.find((x) => x.dead);
-    if (!p || this.run.coins < this.reviveCost || !this.run.heatDef.rebake) return;
-    this.run.coins -= this.reviveCost;
+    const cost = this.boughtOut(this.reviveCost);
+    if (!p || this.run.coins < cost || !this.run.heatDef.rebake) return;
+    this.run.coins -= cost;
     this.reviveCost = Math.round(this.reviveCost * 1.8);
     p.revived = false;
     p.revive(Math.ceil(p.maxSlices / 2));
@@ -2514,10 +2564,11 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.tweens.add({ targets: this.peel, angle: -28, scale: this.peelScale(), duration: 180, ease: 'Back.Out' });
     this.lookFx?.smack(x, y);
     const r = this.run.stats.radius * this.heroes.reachMult();
-    // Dare-Dough's Fearless: phasing feet can be hit too
+    // Dare-Dough's Fearless: phasing feet can be hit too, but never a boss's own phasing (Jörmungandr
+    // submerged, a boss mid-move): that's the fight's answer, not a ghost foot
     const fearless = this.heroes.fearless();
     const hits = this.feet
-      .filter((f) => f.hittable || (fearless && f.alive && f.phased && f.y > -20))
+      .filter((f) => f.hittable || (fearless && f.alive && f.phased && f.y > -20 && !f.type.boss && !f.type.mini && !this.director.brainOf(f)))
       .map((f) => ({ f, d: f.distanceTo(x, y) }))
       .filter((o) => o.d <= r)
       .sort((a, b) => a.d - b.d);
@@ -2544,9 +2595,11 @@ export class GameScene extends Phaser.Scene implements Arena {
     // Bigger Peel (and The Last Slice) hit every foot in range
     const targets = this.heroes.smackHits(this.run.level('peel') > 0 || this.kit.areaSmack() ? hits : hits.slice(0, 1));
     this.tracker.emit('smack', { hits: targets.length, x, y });
+    // Pizza Romana's extra is worked out once a smack, and the total stays under the cap
+    const double = Math.min(DOUBLE_CAP, this.run.stats.doubleChance + this.perkKit.extraDouble());
     for (const { f } of targets) {
       this.hitFoot(f, x, y);
-      if (Math.random() < this.run.stats.doubleChance + this.perkKit.extraDouble() && f.alive) this.time.delayedCall(90, () => f.alive && this.hitFoot(f, x + 12, y - 12));
+      if (Math.random() < double && f.alive) this.time.delayedCall(90, () => f.alive && this.hitFoot(f, x + 12, y - 12));
     }
   }
 
@@ -3338,7 +3391,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       peekShop: () => {
         if (isBossWave(this.run.wave)) return [];
         const tableFull = this.pizzas.length >= MAX_PIZZAS && !this.pizzas.some((p) => p.dead);
-        this.heroT.shop = this.run.rollChoices(3 + (save.meta.indecisive ? 1 : 0), tableFull ? ['helping'] : []);
+        // the same number of cards the shop itself will deal
+        this.heroT.shop = this.run.rollChoices(cardCount(this.run, 3 + (save.meta.indecisive ? 1 : 0)), tableFull ? ['helping'] : []);
         return this.heroT.shop.map((u) => u.name);
       },
     };
@@ -3346,10 +3400,6 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   /** What the goal trackers see of the run. */
   private runView(): RunView {
-    const chain = Object.entries(this.run.owned).filter(([id, lvl]) => {
-      const u = UPGRADE_BY_ID[id];
-      return lvl > 0 && !!u && (/chain lightning/i.test(u.desc(1)) || !!u.proc?.fx.some((e) => e.e === 'chain'));
-    }).length;
     return {
       wave: this.run.wave,
       firstWave: this.heroT.firstWave,
@@ -3359,7 +3409,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       peel: this.peelId,
       pizzasAlive: this.alivePizzas().length,
       owned: this.run.owned,
-      chainToppings: chain,
+      chainToppings: this.chainToppings,
       bosses: this.heroT.bosses,
       pizzasLost: this.heroT.lost,
       victory: false,
@@ -3383,6 +3433,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     ui.hud.setSlamLabel(this.ability.name, abilityKindLabel(this.ability));
     this.abilityT = 0;
     this.recompute();
+    // Act 9's home ground: off for a borrowed ability, back on when the god returns
+    contentFx.abilityChanged(this);
     // a borrowed meter ability goes off straight away
     if (id && usesMeter(this.ability)) this.fireAbility();
   }
@@ -4114,7 +4166,12 @@ export class GameScene extends Phaser.Scene implements Arena {
     // the shop, or ACT COMPLETE (its clock has kept running since it was saved)
     if (this.inUpgrade && (this.shop || this.actEl)) this.saveRun();
     this.over = true;
+    this.leaving = true;
+    this.tracker.flush();
     this.waveActive = false;
+    // the scene is still whole here, so the bosses tidy up properly: the Last Slice's smack and slam
+    // overrides, pistons, statues, possession
+    this.director.clear();
     this.throws.clear();
     this.kit.hide();
     this.inUpgrade = false;
@@ -4309,8 +4366,6 @@ export class GameScene extends Phaser.Scene implements Arena {
   private gameOver(quit = false, victory = false, banked = false): void {
     if (this.over) return;
     this.actEl = null;
-    this.tracker.emit('runEnd', { victory });
-    this.heroes.shutdown();
     this.over = true;
     this.waveActive = false;
     this.throws.clear();
@@ -4332,6 +4387,9 @@ export class GameScene extends Phaser.Scene implements Arena {
     for (const f of this.aliveFeet()) this.time.delayedCall(Math.random() * 600, () => f.alive && f.escape());
     const canSecond = !quit && !victory && !banked && this.run.heat !== 'inferno' && save.crusts >= this.secondChanceCost();
     const finish = () => {
+      // the run really ends here, not before the Second Chance choice (taking it keeps the hero going)
+      this.tracker.emit('runEnd', { victory });
+      this.heroes.shutdown();
       // bosses and events were banked as they happened; the score and waves pay out now
       const crusts = r.crustsEarned(this.figOnTable());
       // records are per heat, by wave (to 100); the retired wave-31 starts (dev only now) don't write any

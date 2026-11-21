@@ -692,6 +692,8 @@ const medusa = (): Brain => {
     ],
     upkeep: (f, _dt, a) => {
       start(() => {
+        // statues left by a run that ended mid-fight (Play Again, Save & Menu) belong to pizzas that are gone
+        statues.clear();
         // her eyes: glows over the art's two eyes, dim until she stares
         const hgt = f.meta.footHeight * f.type.scale;
         const hw = f.meta.halfWidth * f.type.scale;

@@ -111,6 +111,9 @@ export function miniFor(n: number): string {
  * boss are dealt from shuffled decks, a new deal each loop. The scene sets it for the run (seed: the deal). */
 export const endlessPlus = { on: false, seed: 1 };
 
+/** A smack's follow-up chance never reaches certainty (the same ceiling as crits). */
+export const DOUBLE_CAP = 0.85;
+
 /** The finale's own bosses stay in the finale (the buyout and the ending belong to waves 95 and 100). */
 const UNSHUFFLED_BOSSES = new Set(['soleprop', 'soleunbound']);
 
@@ -130,17 +133,30 @@ function deck<T>(items: T[], seed: number): T[] {
   return out;
 }
 
+/** The last Endless+ deal, kept: stageFor runs on every damage tick (night damage reads the place). */
+let dealt: { key: string; places: LocationId[]; minis: string[]; bosses: ArenaId[] } | null = null;
+
+function loopDecks(seed: number, loop: number): { places: LocationId[]; minis: string[]; bosses: ArenaId[] } {
+  const key = `${seed}:${loop}`;
+  if (dealt?.key === key) return dealt;
+  const real = STAGES.filter((x) => !x.dev);
+  const s0 = seed * 7919 + loop * 104729;
+  dealt = {
+    key,
+    places: deck(real.map((x) => x.location), s0 + 1),
+    minis: deck(real.map((x) => x.mini), s0 + 2),
+    bosses: deck(real.map((x) => x.boss).filter((b) => !UNSHUFFLED_BOSSES.has(b)), s0 + 3),
+  };
+  return dealt;
+}
+
 /** Wave n's stage: the journey's own, or on an Endless+ loop a shuffled place, mini-boss and boss. */
 function stageFor(n: number): { location: LocationId; boss: ArenaId; mini: string } {
   const st = STAGES[stageIndex(n)];
   const loop = loopOf(n);
   if (!endlessPlus.on || loop === 0) return st;
-  const real = STAGES.filter((x) => !x.dev);
   const i = stageIndex(n);
-  const s0 = endlessPlus.seed * 7919 + loop * 104729;
-  const places = deck(real.map((x) => x.location), s0 + 1);
-  const minis = deck(real.map((x) => x.mini), s0 + 2);
-  const bosses = deck(real.map((x) => x.boss).filter((b) => !UNSHUFFLED_BOSSES.has(b)), s0 + 3);
+  const { places, minis, bosses } = loopDecks(endlessPlus.seed, loop);
   return { location: places[i % places.length], mini: minis[i % minis.length], boss: bosses[i % bosses.length] };
 }
 
@@ -370,6 +386,7 @@ export class Run {
     s.goldenTouch = Math.min(0.3, s.goldenTouch);
     s.slowPct = Math.min(0.7, s.slowPct);
     s.critChance = Math.min(0.85, s.critChance);
+    s.doubleChance = Math.min(DOUBLE_CAP, s.doubleChance);
     s.execute = Math.min(0.4, s.execute);
     // tip boosts: full value up to ×2, half value beyond, never above ×2.5 (late runs piled up 100k+ tips)
     if (s.coinMult > 2) s.coinMult = Math.min(TIP_MULT_CAP, 2 + (s.coinMult - 2) * 0.5);
@@ -558,7 +575,8 @@ export function milestoneProgress(id: string): [number, number] {
     // phase 3 milestone prizes
     case 'act1Lap': return save.act1Cleared.length ? [30, 30] : [Math.min(29, wave), 30];
     case 'slayer24': {
-      const original = new Set(STAGES.flatMap((s) => [s.boss, s.mini] as string[]));
+      // the first 12 stages' bosses and mini-bosses: the 24 the game began with (acts 1–6)
+      const original = new Set(STAGES.slice(0, 12).flatMap((s) => [s.boss, s.mini] as string[]));
       return [Math.min(24, save.bossesBeaten.filter((b) => original.has(b)).length), 24];
     }
     case 'wave100': return [Math.min(100, wave), 100];

@@ -13,6 +13,8 @@ export interface ActFx {
   enter?(a: Arena, n: number): void;
   /** The run moved on to another act, or the scene is ending: remove what `enter` made. */
   leave?(a: Arena): void;
+  /** The peel's ability was swapped mid-act (Peel Roulette, Shape-Shift): redo anything built on it. */
+  abilityChanged?(a: Arena): void;
   /** Every frame, real time (also in the shop and between waves). */
   tick?(a: Arena, dt: number): void;
   /** Damage landed on a foot (after armour), from any source. */
@@ -56,6 +58,9 @@ export const contentFx = {
       current = act;
     }
     ACTS[act]?.enter?.(a, n);
+  },
+  abilityChanged(a: Arena): void {
+    if (current !== null) ACTS[current]?.abilityChanged?.(a);
   },
   tick(a: Arena, dt: number): void {
     if (current !== null) ACTS[current]?.tick?.(a, dt);

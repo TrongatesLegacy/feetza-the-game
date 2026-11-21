@@ -6,7 +6,7 @@ import Phaser from 'phaser';
 import { BACKDROPS, type ArenaId, type BackdropId, type LocationId } from '../../art/backdrops';
 import { W } from '../../config';
 import { audio } from '../../systems/audio';
-import type { Ability, Effect } from '../abilities';
+import { abilityFor, type Ability, type Effect } from '../abilities';
 import type { Arena } from '../arena';
 import type { ActFx, FootFx } from '../contentFx';
 import type { EventId, EventRewards } from '../events';
@@ -247,8 +247,30 @@ export const footFx: Record<string, FootFx> = {
 
 // ——— The act's layer: the backdrop's wave, Charybdis in Tartarus, and the Greek gods' home ground ———
 
-/** The ability the equipped peel had before the home-ground bonus (put back when the act ends). */
+/** The ability the equipped peel had before the home-ground bonus (put back when the act ends), and the
+ * boosted copy the scene holds while it's on. */
 let homeBase: Ability | null = null;
+let homeLive: Ability | null = null;
+
+/** Work the home-ground bonus out again for wave n: a new stage (an Endless+ deal can move the act off
+ * Greek ground), a Peel Roulette swap, or Shape-Shift starting or ending. */
+function applyHome(a: Arena, n: number): void {
+  const sc = bits(a);
+  // the scene still holds our boosted copy: start from its base; anything else is a new ability
+  const base = homeLive && sc.ability === homeLive ? homeBase : sc.ability;
+  const was = sc.ability;
+  homeBase = homeLive = null;
+  // only the god's own ability: a borrowed one (Shape-Shift) is another peel's
+  if (base && base === abilityFor(sc.peelId)) {
+    const fx = homeGroundFx(base.fx, sc.peelId, locationFor(n));
+    if (fx !== base.fx) {
+      homeBase = base;
+      homeLive = { ...base, fx };
+    }
+  }
+  sc.ability = homeLive ?? base;
+  if (sc.ability !== was) sc.recompute();
+}
 
 export const actFx: Record<number, ActFx> = {
   9: {
@@ -259,12 +281,9 @@ export const actFx: Record<number, ActFx> = {
       // Charybdis: in Tartarus, 40% of the wave events are the whirlpool
       if (locationFor(n) === 'tartarus' && sc.waveEvent && !sc.eventStarted && !isBossWave(n) && !isMiniWave(n) && Math.random() < 0.4) sc.waveEvent = 'charybdis';
       // home ground: a Greek god peel's ability is 10% stronger in the Labyrinth and Tartarus
-      if (!homeBase && sc.ability && isGreekGod(PEEL_BY_ID[sc.peelId])) {
-        homeBase = sc.ability;
-        sc.ability = { ...homeBase, fx: homeGroundFx(homeBase.fx, sc.peelId, locationFor(n)) };
-        sc.recompute();
-      }
+      applyHome(a, n);
     },
+    abilityChanged: (a) => applyHome(a, bits(a).run.wave),
     hit: (a, f, x, y, dealt, _crit, source) => {
       if (source !== 'smack') return;
       if (f.type.id === 'cyclops') cyclopsSmack(f, a, x, y, dealt);
@@ -272,8 +291,8 @@ export const actFx: Record<number, ActFx> = {
     },
     leave: (a) => {
       const sc = bits(a);
-      if (homeBase && sc.ability?.name === homeBase.name) sc.ability = homeBase;
-      homeBase = null;
+      if (homeLive && sc.ability === homeLive) sc.ability = homeBase;
+      homeBase = homeLive = null;
     },
   },
 };

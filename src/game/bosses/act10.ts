@@ -44,6 +44,8 @@ interface Bits {
   run: { wave: number };
   smack(x: number, y: number): void;
   peelSlam(): void;
+  /** Stats from the pizzas on the table (eaten ones drop out). */
+  recompute(): void;
 }
 const bits = (a: Arena) => a as unknown as Bits;
 
@@ -1034,6 +1036,7 @@ const soleunbound = (): Brain => {
       a.sc.time.delayedCall(1000 + i * 650, () => {
         if (!f.alive) return;
         p.flags.eaten = true;
+        bits(a).recompute();
         homeY.set(p, p.root.y);
         a.sfx('sfx_soleunbound_eat');
         a.shake(250, 0.01);
@@ -1291,6 +1294,7 @@ const soleunbound = (): Brain => {
         a.sc.tweens.add({ targets: p.root, x: p.x, y: homeY.get(p) ?? p.root.y, alpha: 1, scaleX: 1, scaleY: 1, duration: 700, delay: 500, ease: 'Back.Out' });
       }
       eaten = [];
+      bits(a).recompute();
       a.sc.time.delayedCall(1300, () => {
         a.layoutPizzas();
         a.quip(960, 380, 'THE PIZZAS ARE FREE!', '#ffd23f', 60);

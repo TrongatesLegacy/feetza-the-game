@@ -300,6 +300,9 @@ export interface HeroEvents {
   runEnd: { victory: boolean };
 }
 
+/** Events that fire constantly in a fight: they don't save on their own (HeroTracker.flush). */
+const HOT = new Set<keyof HeroEvents>(['smack', 'hit', 'kill', 'stomp', 'slices', 'healed', 'chainHit', 'knockedTop', 'ability']);
+
 /** What the trackers can see of the run. */
 export interface RunView {
   wave: number;
@@ -718,6 +721,7 @@ registerTrackers({
 export class HeroTracker {
   private st: Record<string, Record<string, number | boolean>> = {};
   private tipsRun = 0;
+  private dirty = false;
   constructor(
     private view: () => RunView,
     /** Something moved: check for unlocks (and toast them). */
@@ -750,10 +754,18 @@ export class HeroTracker {
     }
     if ((ev === 'runStart' || ev === 'waveClear') && atLeast(run.heat, GOAL_HEAT)) any = this.checkTime() || any;
     if (ev === 'waveClear') any = this.partner(run.peel) || any;
-    if (any) {
-      persist();
-      this.changed();
-    }
+    if (any) this.dirty = true;
+    // smacks, hits and chains fire many times a second: they only mark the goals dirty, and the
+    // save and unlock check (every peel) wait for the next tick, wave clear or other event
+    if (this.dirty && !HOT.has(ev)) this.flush();
+  }
+
+  /** Save the goals and check for unlocks, if anything moved since the last flush. */
+  flush(): void {
+    if (!this.dirty) return;
+    this.dirty = false;
+    persist();
+    this.changed();
   }
 
   /** Tips earned this run (the scene sums them as they come in). */

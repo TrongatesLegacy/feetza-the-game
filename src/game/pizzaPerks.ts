@@ -234,7 +234,8 @@ export class PizzaPerkKit {
     }
     if (f.type.mini) m *= 1 + 0.25 * this.c('miniDmg');
     if (this.actStart()) m *= 1 + 0.1 * this.c('actStart');
-    if (NIGHT.has(locationFor(this.wave()))) m *= 1 + 0.2 * this.c('nightDmg');
+    // the cheap count first: the place only matters with a night pizza on the table
+    if (this.c('nightDmg') > 0 && NIGHT.has(locationFor(this.wave()))) m *= 1 + 0.2 * this.c('nightDmg');
     // Moon Cheese: double damage the wave after a boss
     if (this.wave() > 1 && isBossWave(this.wave() - 1)) m *= 1 + this.c('postBoss');
     return m;
@@ -596,6 +597,8 @@ export class PizzaPerkKit {
   /** The wave is clear. earned: tips this wave so far. */
   waveClear(n: number, perfect: boolean, earned: number): void {
     const a = this.a;
+    // the rings only move in a wave: off the table until the next one (they'd hang frozen over the shop)
+    this.dropRings();
     const g = save.pizzaGoals;
     g.perfectStreak = perfect ? (g.perfectStreak ?? 0) + 1 : 0;
     g.perfectBest = Math.max(g.perfectBest ?? 0, g.perfectStreak);
@@ -856,11 +859,15 @@ export class PizzaPerkKit {
 
   /** The scene is shutting down. */
   clear(): void {
+    this.dropRings();
+    this.chest = null;
+  }
+
+  private dropRings(): void {
     for (const r of this.rings) {
       r.img.destroy();
       r.glow.destroy();
     }
     this.rings = [];
-    this.chest = null;
   }
 }
