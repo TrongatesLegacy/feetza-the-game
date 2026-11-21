@@ -79,6 +79,15 @@ export function btn(label: string, cls: string, onClick: () => void, attrs: Attr
 
 const fmt = (n: number) => Math.floor(n).toLocaleString('en-US');
 
+/** A run time: m:ss, or h:mm:ss past an hour. */
+export function fmtTime(secs: number): string {
+  const s = Math.max(0, Math.floor(secs));
+  const hrs = Math.floor(s / 3600);
+  const mm = Math.floor(s / 60) % 60;
+  const ss = String(s % 60).padStart(2, '0');
+  return hrs ? `${hrs}:${String(mm).padStart(2, '0')}:${ss}` : `${mm}:${ss}`;
+}
+
 /** Enter/Space on a focusable tile acts like a click (keyboard and gamepad). */
 function activatable<T extends HTMLElement>(el: T): T {
   el.addEventListener('keydown', (e) => {
@@ -116,6 +125,8 @@ class Hud {
   root: HTMLElement;
   private score = h('div', { class: 'score' }, '0');
   private wave = h('div', { class: 'wave' });
+  private clock = h('div', { class: 'runclock', 'aria-label': 'Run time' });
+  private lastSec = -1;
   private coins = h('span', {}, '0');
   private coinPill = h('div', { class: 'pill' });
   private combo = h('div', { class: 'combo' });
@@ -161,7 +172,7 @@ class Hud {
     this.root = h(
       'div',
       { class: 'hud' },
-      h('div', { class: 'tl' }, this.score, this.wave),
+      h('div', { class: 'tl' }, this.score, this.wave, this.clock),
       this.combo,
       this.boss,
       h('div', { class: 'tr' }, this.coinPill),
@@ -172,11 +183,21 @@ class Hud {
       this.fpsEl,
     );
     this.fpsEl.style.display = save.settings.showFps ? '' : 'none';
+    this.clock.style.display = save.settings.showTimer ? '' : 'none';
   }
 
   syncMute(): void {
     this.muteBtn.innerHTML = save.settings.muted ? ICONS.mute : ICONS.sound;
     this.fpsEl.style.display = save.settings.showFps ? '' : 'none';
+    this.clock.style.display = save.settings.showTimer ? '' : 'none';
+  }
+
+  /** The run clock under the wave: m:ss, or h:mm:ss past an hour. */
+  setTime(secs: number): void {
+    const n = Math.floor(secs);
+    if (n === this.lastSec) return;
+    this.lastSec = n;
+    this.clock.textContent = fmtTime(n);
   }
 
   setScore(n: number): void {
@@ -560,17 +581,19 @@ class UI {
 
   // ——— Pre-run setup: heat, act, your peel and the lineup ———
   /** shuffle returns a new lineup; it's swapped in place (re-opening the screen made the backdrop flicker). */
-  lineup(ids: string[], shuffle: () => string[], onStart: (heat: HeatId, act2: boolean, ids: string[]) => void, onBack: () => void): HTMLElement {
+  lineup(ids: string[], shuffle: () => string[], onStart: (heat: HeatId, endless: boolean, ids: string[]) => void, onBack: () => void): HTMLElement {
     let cur = ids;
     let heat: HeatId = save.heat;
-    let act2 = false;
+    // run length: end at wave 60, or endless (remembered)
+    let endless = save.endless;
     const unlocked = (hd: (typeof HEATS)[number]) => !hd.unlockAfter || save.act1Cleared.includes(hd.unlockAfter);
     const heatRow = h('div', { class: 'heats', 'data-pad-section': '' });
     const actRow = h('div', { class: 'acts', 'data-pad-section': '' });
     const startBtn = btn('', 'green big', () => {
       save.heat = heat;
+      save.endless = endless;
       persist();
-      onStart(heat, act2, cur);
+      onStart(heat, endless, cur);
     });
     const render = () => {
       heatRow.replaceChildren(
@@ -589,25 +612,23 @@ class UI {
             if (!ok) return;
             audio.sfx('sfx_click');
             heat = hd.id;
-            if (!save.act1Cleared.includes(heat)) act2 = false;
             render();
           });
           return b;
         }),
       );
-      const act2ok = save.act1Cleared.includes(heat);
-      const mk = (on: boolean, title: string, desc: string, enabled: boolean, val: boolean) => {
-        const b = h('button', { class: `act${on ? ' on' : ''}`, type: 'button' }, h('b', {}, title), h('span', {}, desc)) as HTMLButtonElement;
-        b.disabled = !enabled;
+      const mk = (on: boolean, title: string, desc: string, val: boolean) => {
+        const b = h('button', { class: `act${on ? ' on' : ''}`, type: 'button', 'aria-pressed': on ? 'true' : 'false' }, h('b', {}, title), h('span', {}, desc)) as HTMLButtonElement;
         b.addEventListener('click', () => {
-          act2 = val;
+          audio.sfx('sfx_click');
+          endless = val;
           render();
         });
         return b;
       };
       actRow.replaceChildren(
-        mk(!act2, 'Act 1 · wave 1', 'Trattoria, with your lineup below', true, false),
-        mk(act2, 'Act 2 · wave 31', act2ok ? 'Starter kit: 5 pizzas, about 6 toppings and 420 tips' : `Locked: beat wave 30 on ${HEAT_BY_ID[heat].name}`, act2ok, true),
+        mk(!endless, 'End at wave 60', '12 stages and 24 bosses, then bank your crusts', false),
+        mk(endless, 'Endless', 'Past wave 60 the journey starts again, harder', true),
       );
       startBtn.innerHTML = `START · ${HEAT_BY_ID[heat].name.toUpperCase()}`;
     };
@@ -671,7 +692,7 @@ class UI {
       h('div', { class: 'title' }, 'NEW RUN'),
       h('div', { class: 'section-title' }, 'HEAT'),
       heatRow,
-      h('div', { class: 'prerun-mid' }, h('div', {}, h('div', { class: 'section-title' }, 'START AT'), actRow), h('div', { class: 'peel-wrap' }, h('div', { class: 'section-title' }, 'YOUR PEEL'), peelCard)),
+      h('div', { class: 'prerun-mid' }, h('div', {}, h('div', { class: 'section-title' }, 'RUN LENGTH'), actRow), h('div', { class: 'peel-wrap' }, h('div', { class: 'section-title' }, 'YOUR PEEL'), peelCard)),
       h('div', { class: 'prerun-bottom' }, h('div', { class: 'section-title' }, "TONIGHT'S LINEUP"), lineupRow),
       h('div', { class: 'row' }, btn('BACK', 'cream', onBack, { 'data-pad': 'back' }), btn('SHUFFLE', 'yellow', () => {
         cur = shuffle();
@@ -943,7 +964,7 @@ class UI {
   }
 
   // ——— Victory after the 60-wave journey ———
-  victory(o: { score: number; time: string; feet: number; bosses: number; heat: string; crusts: number; keepGoing: () => void; bank: () => void }): HTMLElement {
+  victory(o: { score: number; time: string; feet: number; bosses: number; heat: string; crusts: number; bank: () => void }): HTMLElement {
     const panel = h(
       'div',
       { class: 'victory' },
@@ -955,7 +976,6 @@ class UI {
       h(
         'div',
         { class: 'row' },
-        h('div', { class: 'v-choice' }, btn('KEEP GOING', 'big', o.keepGoing), h('span', {}, 'Endless mode: the journey again, harder')),
         h('div', { class: 'v-choice' }, btn('BANK IT', 'green big', o.bank), h('span', {}, 'End the run and collect your crusts')),
       ),
     );
@@ -1026,7 +1046,7 @@ class UI {
       });
       return h('label', { class: 'setting' }, h('span', {}, label), input, out);
     };
-    const toggle = (key: 'muted' | 'screenShake' | 'damageNumbers' | 'flashes' | 'showFps' | 'traitIcons' | 'reducedMotion' | 'slowNewCards' | 'vibration', label: string) => {
+    const toggle = (key: 'muted' | 'screenShake' | 'damageNumbers' | 'flashes' | 'showFps' | 'showTimer' | 'traitIcons' | 'reducedMotion' | 'slowNewCards' | 'vibration', label: string) => {
       const input = h('input', { type: 'checkbox' }) as HTMLInputElement;
       input.checked = save.settings[key];
       input.addEventListener('change', () => {
@@ -1114,7 +1134,7 @@ class UI {
           slider('music', 'Music'),
           slider('sfx', 'Sound FX'),
           slider('ambience', 'Ambience'),
-          h('div', { class: 'toggles' }, toggle('muted', 'Mute all'), toggle('showFps', 'Show FPS'), toggle('damageNumbers', 'Damage numbers')),
+          h('div', { class: 'toggles' }, toggle('muted', 'Mute all'), toggle('showFps', 'Show FPS'), toggle('damageNumbers', 'Damage numbers'), toggle('showTimer', 'Run timer')),
         );
       else if (tab === 'controls')
         body.replaceChildren(

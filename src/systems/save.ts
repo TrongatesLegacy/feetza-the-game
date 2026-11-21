@@ -20,6 +20,8 @@ export interface Settings {
   damageNumbers: boolean;
   flashes: boolean;
   showFps: boolean;
+  /** Show the run timer under the wave in the HUD. */
+  showTimer: boolean;
   // Feetza 2.0
   traitIcons: boolean;
   reducedMotion: boolean;
@@ -86,6 +88,8 @@ export interface SaveData {
   peel: string;
   /** Peel worn as a look only, over the equipped peel's own ('' = match the equipped peel). */
   skin: string;
+  /** The last run-length choice on the new-run screen: end the run at wave 60, or keep going (endless). */
+  endless: boolean;
   /** Peels unlocked but not yet looked at in the locker. */
   peelsNew: string[];
 }
@@ -100,6 +104,7 @@ const DEFAULT_SETTINGS: Settings = {
   damageNumbers: true,
   flashes: true,
   showFps: false,
+  showTimer: true,
   traitIcons: true,
   reducedMotion: false,
   colorBlind: 'off',
@@ -144,6 +149,7 @@ const DEFAULTS: SaveData = {
   peels: [],
   peel: 'classic',
   skin: '',
+  endless: false,
   peelsNew: [],
 };
 

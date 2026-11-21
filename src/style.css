@@ -550,6 +550,16 @@ h3 {
   -webkit-text-stroke: 0.22em var(--ink);
 }
 
+.hud .runclock {
+  font: 600 1.15em 'Fredoka', sans-serif;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  opacity: 0.85;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.2em var(--ink);
+  letter-spacing: 0.02em;
+}
+
 .hud .wave small {
   color: #fff;
   font-size: 0.8em;

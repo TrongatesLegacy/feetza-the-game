@@ -54,7 +54,7 @@ function botShop(g: AnyScene): void {
   const card = st.cards.filter((c: any) => !c.sold && (c.free || st.coins >= c.price)).sort((a: any, b: any) => rank[b.rarity] - rank[a.rarity])[0]; // eslint-disable-line @typescript-eslint/no-explicit-any
   if (card) return g.shopBuy(card.id);
   const dev = (window as unknown as { F: { log: Record<string, unknown>[] } }).F;
-  dev.log.push({ wave: st.wave, coins: st.coins, slices: st.table.reduce((n: number, p: any) => n + p.slices, 0), pizzas: st.table.filter((p: any) => !p.dead).length, owned: Object.keys(g.run.owned).length, crusts: st.progress.runCrusts, t: Math.round((performance.now() - g.run.startTime) / 1000) }); // eslint-disable-line @typescript-eslint/no-explicit-any
+  dev.log.push({ wave: st.wave, coins: st.coins, slices: st.table.reduce((n: number, p: any) => n + p.slices, 0), pizzas: st.table.filter((p: any) => !p.dead).length, owned: Object.keys(g.run.owned).length, crusts: st.progress.runCrusts, t: Math.round(g.run.elapsed) }); // eslint-disable-line @typescript-eslint/no-explicit-any
   g.shopNext();
 }
 

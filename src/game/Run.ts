@@ -186,7 +186,10 @@ export class Run {
   secondChances = 0;
   rentedSpecial: string | null = null;
   newUnlocks: string[] = [];
-  startTime = performance.now();
+  /** Run time in seconds: counts waves and the shop, stops in the pause menu, while the tab is hidden and while away from the run. */
+  elapsed = 0;
+  /** Endless: the run carries on past wave 60 instead of ending there. */
+  endless = false;
 
   get heatDef() {
     return HEAT_BY_ID[this.heat];

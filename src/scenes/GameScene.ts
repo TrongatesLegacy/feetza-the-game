@@ -24,7 +24,7 @@ import { audio, bossSfx } from '../systems/audio';
 import { pad } from '../systems/gamepad';
 import { markFootSeen, nextLockedPizza, persist, save, updateSettings } from '../systems/save';
 import type { GoldenItem, ShopCard, ShopState } from '../ui/shopTypes';
-import { ui } from '../ui/ui';
+import { ui, fmtTime } from '../ui/ui';
 import { abilityPeel, applyPeelLook, lookPeel, checkPeelAchievements, grantShinyFoot, peelThumbURL, peelTrail, rollEventDrop, SHINY_FOOT_CHANCE, type PeelDef } from '../game/peels';
 import { STAGES, WAVES_PER_STAGE } from '../data/stages';
 import { passiveBoost, setSlamMode } from '../game/slamMode';
@@ -44,8 +44,10 @@ interface DamageOpts {
 export interface GameStart {
   lineup?: string[];
   heat?: HeatId;
-  /** Start at wave 31 with an Act 2 starter kit. */
+  /** Dev only: start at wave 31 with an Act 2 starter kit (the new-run screen no longer offers it). */
   act2?: boolean;
+  /** Keep going past wave 60 (endless) instead of ending the run there. */
+  endless?: boolean;
   /** Resume a saved run (or a dev scenario) in its shop. */
   snapshot?: RunSnapshot;
   /** Dev: jump straight to a boss or mini-boss, optionally at a health fraction. */
@@ -80,6 +82,8 @@ export class GameScene extends Phaser.Scene implements Arena {
   private peelShiny = false;
   /** The peel this run is played with (prestige goals count it). */
   private peelId = 'classic';
+  /** Set once the run is finished (the wave 60 finale), so the clock stops. */
+  private timerStopped = false;
   /** The peel's ability, when it replaces the Peel Slam this run (null: the Peel Slam). */
   private ability: Ability | null = null;
   private abilityT = 0;
@@ -385,6 +389,7 @@ export class GameScene extends Phaser.Scene implements Arena {
         this.run.owned[Phaser.Utils.Array.GetRandom(rares).id] = 1;
       }
       if (save.meta.preheat) this.run.super = 1;
+      this.run.endless = !!this.start.endless;
       if (this.start.act2) this.act2Kit();
       if (this.start.tips) this.run.coins = this.start.tips;
     }
@@ -529,7 +534,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       bankedCrusts: r.bankedCrusts,
       goldenUsed: { ...r.goldenUsed },
       newUnlocks: [...r.newUnlocks],
-      elapsed: (performance.now() - r.startTime) / 1000,
+      elapsed: r.elapsed,
+      endless: r.endless,
       secondChances: r.secondChances,
       rentedSpecial: r.rentedSpecial,
       pizzas: this.pizzas.map((p) => ({ id: p.type.id, slices: p.slices, max: p.maxSlices, fresh: p.fresh, dead: p.dead, flags: { ...p.flags, possessed: false } })),
@@ -568,7 +574,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     r.bankedCrusts = s.bankedCrusts ?? 0;
     r.goldenUsed = { ...s.goldenUsed };
     r.newUnlocks = [...s.newUnlocks];
-    r.startTime = performance.now() - s.elapsed * 1000;
+    r.elapsed = s.elapsed;
+    r.endless = s.endless ?? false;
     r.secondChances = s.secondChances;
     r.rentedSpecial = s.rentedSpecial;
     this.bossBonusGiven = s.bossBonusGiven;
@@ -1416,8 +1423,17 @@ export class GameScene extends Phaser.Scene implements Arena {
     persist();
     this.checkMilestones();
     const journeyDone = boss && n % JOURNEY_WAVES === 0;
-    if (journeyDone) {
+    if (journeyDone && !this.run.endless) {
       this.time.delayedCall(2400, () => this.victory());
+      return;
+    }
+    if (journeyDone) {
+      // endless: the journey is done, and it starts over, harder
+      this.time.delayedCall(2400, () => {
+        ui.hud.banner('JOURNEY COMPLETE!', 'Endless: the journey again, harder', 'clear');
+        audio.sting('music_victory', 0.8);
+      });
+      this.time.delayedCall(5200, () => this.openUpgrades(true, undefined, 'ENDLESS MODE · STOCK UP'));
       return;
     }
     this.time.delayedCall(boss ? 2400 : 1700, () => this.openUpgrades(boss));
@@ -3035,6 +3051,11 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.backdrop.update(real);
     pad.poll(real);
     ui.hud.setFps(this.game.loop.actualFps);
+    // the run clock: real time (not slow-mo), and the scene doesn't update while paused or with the tab hidden
+    if (!this.over && !this.timerStopped) {
+      this.run.elapsed += Math.min(0.25, deltaMs / 1000);
+      ui.hud.setTime(this.run.elapsed);
+    }
     let scale = 1;
     if (this.hitStop > 0) {
       this.hitStop -= real;
@@ -3253,18 +3274,15 @@ export class GameScene extends Phaser.Scene implements Arena {
     audio.stop('music', 600);
     this.time.delayedCall(300, () => audio.sting('music_victory', 1));
     const r = this.run;
-    const secs = Math.round((performance.now() - r.startTime) / 1000);
+    this.timerStopped = true;
+    const secs = Math.round(r.elapsed);
     ui.victory({
       score: r.score,
-      time: `${Math.floor(secs / 3600)}:${String(Math.floor(secs / 60) % 60).padStart(2, '0')}:${String(secs % 60).padStart(2, '0')}`,
+      time: fmtTime(secs),
       feet: r.feetSmacked,
       bosses: r.bossesBeaten.length,
       heat: r.heatDef.name,
       crusts: r.crustsEarned(this.figOnTable()),
-      keepGoing: () => {
-        ui.closeAll();
-        this.openUpgrades(true, undefined, 'ENDLESS MODE · STOCK UP');
-      },
       bank: () => this.gameOver(true, true),
     });
   }
@@ -3306,7 +3324,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       persist();
       return { crusts, newBest };
     };
-    const secs = Math.round((performance.now() - r.startTime) / 1000);
+    const secs = Math.round(r.elapsed);
     this.time.delayedCall(quit ? 200 : 2000, () => {
       audio.duck(0.6);
       const restart = (data: GameStart) => {
@@ -3327,7 +3345,7 @@ export class GameScene extends Phaser.Scene implements Arena {
           heat: r.heatDef.name,
           location: BACKDROPS[backdropFor(Math.max(1, r.wave))].name,
           secondChanceRun: r.secondChances > 0,
-          time: `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`,
+          time: fmtTime(secs),
           unlocked: r.newUnlocks,
           affordable: PIZZAS.filter((p) => !save.unlockedPizzas.includes(p.id) && p.cost <= save.crusts)
             .sort((a, b) => a.cost - b.cost)

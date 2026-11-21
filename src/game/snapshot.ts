@@ -55,6 +55,8 @@ export interface RunSnapshot {
   goldenUsed: Record<string, number>;
   newUnlocks: string[];
   elapsed: number;
+  /** Endless run (older saves: ask at wave 60, as before). */
+  endless?: boolean;
   secondChances: number;
   rentedSpecial: string | null;
   pizzas: PizzaSnap[];

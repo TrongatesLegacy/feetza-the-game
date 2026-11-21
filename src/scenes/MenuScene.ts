@@ -153,11 +153,11 @@ export class MenuScene extends Phaser.Scene {
         this.lastLineup = next;
         return next;
       },
-      (heat, act2, lineup) => {
+      (heat, endless, lineup) => {
         ui.closeAll();
         audio.sfx('sfx_levelup', { volume: 0.7 });
         this.cameras.main.fadeOut(400, 18, 10, 6);
-        this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('Game', { lineup, heat, act2 }));
+        this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('Game', { lineup, heat, endless }));
       },
       () => this.showMenu(),
     );
