@@ -49,6 +49,12 @@ function madeBy(): HTMLElement {
   return a;
 }
 
+/** A chunky cog for the shop's pause-menu button (centred in its box, unlike the ⚙ glyph). */
+const GEAR_SVG =
+  '<svg class="gear" viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor">' +
+  Array.from({ length: 8 }, (_, i) => `<rect x="10" y="1.2" width="4" height="5" rx="1" transform="rotate(${i * 45} 12 12)"/>`).join('') +
+  '</g><circle cx="12" cy="12" r="5.3" fill="none" stroke="currentColor" stroke-width="4.6"/></svg>';
+
 export const COIN_SVG =
   '<svg class="coin" viewBox="0 0 24 24"><circle cx="12" cy="13" r="10" fill="#9a6a00"/><circle cx="12" cy="12" r="10" fill="#ffcf3a" stroke="#7a4a00" stroke-width="1.5"/><circle cx="12" cy="12" r="7" fill="none" stroke="#a86a00" stroke-width="1"/><path d="M12 17l-3.6-7.4q3.6-2 7.2 0z" fill="#c47a00"/><ellipse cx="8.5" cy="7.5" rx="2.5" ry="1.2" fill="#fff" opacity=".7" transform="rotate(-30 8.5 7.5)"/></svg>';
 
@@ -788,12 +794,12 @@ class UI {
       const next = btn('NEXT WAVE', 'big next', () => act.next(), { 'data-pad': 'hold' });
       next.addEventListener('padhold', () => act.next());
       // the pause menu from the shop: settings, save and leave, or quit
-      const gear = btn('⚙', 'big shop-pause cream', () => act.pause(), { 'aria-label': 'Pause menu', title: 'Pause menu (Esc)' });
+      const gear = btn(GEAR_SVG, 'shop-pause cream', () => act.pause(), { 'aria-label': 'Pause menu', title: 'Pause menu (Esc)' });
       const pr = st.progress;
       const prog = h('div', { class: 'crust-progress', html: `${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} <b>+${pr.runCrusts}</b> crusts this run${pr.next ? (pr.bank + pr.runCrusts >= pr.next.cost ? ` · ${pr.next.name} ready to unlock` : ` · next: ${pr.next.name} ${pr.bank + pr.runCrusts}/${pr.next.cost}`) : ''}` });
       wrap.replaceChildren(
         head,
-        h('div', { class: 'shop-body' }, h('div', { class: 'shop-left' }, toppings, table), h('div', { class: 'shop-right' }, counter, golden, h('div', { class: 'next-row' }, next, gear))),
+        h('div', { class: 'shop-body' }, h('div', { class: 'shop-left' }, toppings, table), h('div', { class: 'shop-right' }, counter, golden, h('div', { class: 'next-row' }, gear, next))),
         h('div', { class: 'shop-foot' }, prog, h('span', { class: 'hint kbd-hint', html: `<span class="kbd">1</span>–<span class="kbd">${st.cards.length}</span> buy · <span class="kbd">R</span> reroll · <span class="kbd">Enter</span> next wave · <span class="kbd">Esc</span> menu` }), h('span', { class: 'hint pad-hint', html: `<span class="glyph">${glyph('A')}</span> buy · <span class="glyph">${glyph('Y')}</span> reroll · <span class="glyph">${glyph('LB')}</span><span class="glyph">${glyph('RB')}</span> sections · hold <span class="glyph">${glyph('MENU')}</span> next wave` })),
       );
     };
