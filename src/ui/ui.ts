@@ -1673,10 +1673,15 @@ class UI {
       const sSelect = h('select', { class: 'locker-select', 'aria-label': 'Seen or not' }) as HTMLSelectElement;
       const rOpts: ['all' | Rarity, string][] = [['all', 'ALL'], ...RARITIES.map((r) => [r, r.toUpperCase()] as [Rarity, string])];
       const sOpts: ['all' | 'seen' | 'unseen', string][] = [['all', 'ALL'], ['seen', 'SEEN'], ['unseen', 'NOT SEEN']];
-      rTabs.append(...rOpts.map(([v, l]) => btn(l, `small ${rarity === v ? 'active' : ''}`, () => ((rarity = v), render()))));
-      sTabs.append(...sOpts.map(([v, l]) => btn(l, `small ${seenFilter === v ? 'active' : ''}`, () => ((seenFilter = v), render()))));
-      for (const [v, l] of rOpts) rSelect.append(h('option', { value: v, selected: v === rarity }, l === 'ALL' ? 'All rarities' : l));
-      for (const [v, l] of sOpts) sSelect.append(h('option', { value: v, selected: v === seenFilter }, l === 'ALL' ? 'Seen and not seen' : l));
+      // seen/total on every rarity button (and how many each seen filter holds)
+      const ofRarity = (v: 'all' | Rarity) => UPGRADES.filter((u) => v === 'all' || u.rarity === v);
+      const rCount = (v: 'all' | Rarity) => `${ofRarity(v).filter((u) => seen.has(u.id)).length}/${ofRarity(v).length}`;
+      const inRarity = ofRarity(rarity);
+      const sCount = (v: 'all' | 'seen' | 'unseen') => String(v === 'all' ? inRarity.length : inRarity.filter((u) => (v === 'seen') === seen.has(u.id)).length);
+      rTabs.append(...rOpts.map(([v, l]) => btn(`${l} <small>${rCount(v)}</small>`, `small ${rarity === v ? 'active' : ''}`, () => ((rarity = v), render()))));
+      sTabs.append(...sOpts.map(([v, l]) => btn(`${l} <small>${sCount(v)}</small>`, `small ${seenFilter === v ? 'active' : ''}`, () => ((seenFilter = v), render()))));
+      for (const [v, l] of rOpts) rSelect.append(h('option', { value: v, selected: v === rarity }, `${l === 'ALL' ? 'All rarities' : l} · ${rCount(v)}`));
+      for (const [v, l] of sOpts) sSelect.append(h('option', { value: v, selected: v === seenFilter }, `${l === 'ALL' ? 'Seen and not seen' : l} · ${sCount(v)}`));
       rSelect.addEventListener('change', () => ((rarity = rSelect.value as typeof rarity), render()));
       sSelect.addEventListener('change', () => ((seenFilter = sSelect.value as typeof seenFilter), render()));
       const list = UPGRADES.filter((u) => (rarity === 'all' || u.rarity === rarity) && (seenFilter === 'all' || (seenFilter === 'seen') === seen.has(u.id))).sort(
@@ -1756,7 +1761,7 @@ class UI {
 
   // ——— Pizzapedia ———
   pedia(onClose: () => void): HTMLElement {
-    let tab: 'feet' | 'bosses' | 'pizzas' | 'events' = 'feet';
+    let tab: 'feet' | 'bosses' | 'pizzas' | 'places' | 'events' = 'feet';
     const tabs = h('div', { class: 'tabs' });
     const detail = h('div', { class: 'detail' });
     const body = h('div', { class: 'scroll', style: 'max-height:40cqh' });
@@ -1811,7 +1816,33 @@ class UI {
       ['seagull', 'ev_seagull', 'Golden Seagull', 'Very rare and fast. Two smacks: a Golden Crust.'],
       ['chest', 'ev_chest', 'Pizza Box Chest', 'Smash it open for tips, a free topping, slices or a crust.'],
       ['mimic', 'ev_mimic', 'Mimic Box', 'It wobbles. Smack it fast or it turns into a foot.'],
+      ['sighting', 'ev_sighting', 'Hero Sighting', 'A hero streaks across the top. Smack it twice to catch it: tips, and a step towards that hero’s peel.'],
+      ['charybdis', 'ev_charybdis', 'Charybdis', 'A whirlpool in Tartarus drags feet and your peel in. Smack its maw 5 times to close it.'],
     ];
+    // places: a stage counts as seen once a run has reached it
+    const placeSeen = (st: (typeof STAGES)[number]) => save.bestWave >= STAGES.indexOf(st) * 5 + 1 || (save.stageWaves[st.location] ?? 0) > 0;
+    const showPlace = (st: (typeof STAGES)[number]) => {
+      const i = STAGES.indexOf(st);
+      const seen = placeSeen(st);
+      const name = BACKDROPS[st.location as keyof typeof BACKDROPS]?.name ?? st.location;
+      const boss = FOOT_BY_ID[st.boss];
+      const mini = FOOT_BY_ID[st.mini];
+      const locals = FEET.filter((f) => f.home === st.location && !f.boss && !f.mini);
+      if (!seen) {
+        detail.replaceChildren(h('img', { src: footPortraitURL(st.boss), alt: '', style: 'filter:brightness(0) opacity(.35)' }), h('div', {}, h('div', { class: 'dt-head' }, h('h3', {}, '???'), h('span', { class: 'chip' }, `Stage ${i + 1} · waves ${i * 5 + 1}–${i * 5 + 5}`)), h('p', {}, `Somewhere in ${actLabel(actOf(i * 5 + 1))}. Reach wave ${i * 5 + 1} to find out.`)));
+        return;
+      }
+      detail.replaceChildren(
+        h('img', { src: footPortraitURL(st.boss), alt: '' }),
+        h(
+          'div',
+          {},
+          h('div', { class: 'dt-head' }, h('h3', {}, name), h('span', { class: 'chip' }, `${actLabel(actOf(i * 5 + 1))} · stage ${i + 1} · waves ${i * 5 + 1}–${i * 5 + 5}`)),
+          h('p', {}, `Mini-boss on wave ${i * 5 + 3}: ${save.seenFeet.includes(st.mini) ? mini?.name ?? '???' : '???'}. Boss on wave ${i * 5 + 5}: ${save.seenFeet.includes(st.boss) ? boss?.name ?? '???' : '???'}.`),
+          locals.length ? h('p', {}, `Locals: ${locals.map((f) => (save.seenFeet.includes(f.id) ? f.name : '???')).join(', ')}.`) : null,
+        ),
+      );
+    };
     const render = () => {
       const feet = FEET.filter((f) => !f.boss && !f.mini);
       const bosses = FEET.filter((f) => f.boss || f.mini);
@@ -1819,7 +1850,8 @@ class UI {
         btn(`FEET ${feet.filter((f) => save.seenFeet.includes(f.id)).length}/${feet.length}`, `small ${tab === 'feet' ? 'active' : ''}`, () => ((tab = 'feet'), render())),
         btn(`BOSSES ${bosses.filter((f) => save.seenFeet.includes(f.id)).length}/${bosses.length}`, `small ${tab === 'bosses' ? 'active' : ''}`, () => ((tab = 'bosses'), render())),
         btn(`PIZZAS ${PIZZAS.length}`, `small ${tab === 'pizzas' ? 'active' : ''}`, () => ((tab = 'pizzas'), render())),
-        btn(`EVENTS ${save.seenEvents.length}/${EVENTS.length}`, `small ${tab === 'events' ? 'active' : ''}`, () => ((tab = 'events'), render())),
+        btn(`PLACES ${STAGES.filter(placeSeen).length}/${STAGES.length}`, `small ${tab === 'places' ? 'active' : ''}`, () => ((tab = 'places'), render())),
+        btn(`EVENTS ${EVENTS.filter(([id]) => save.seenEvents.includes(id)).length}/${EVENTS.length}`, `small ${tab === 'events' ? 'active' : ''}`, () => ((tab = 'events'), render())),
       );
       if (tab === 'feet' || tab === 'bosses') {
         const list = tab === 'feet' ? feet : bosses;
@@ -1848,6 +1880,18 @@ class UI {
         });
         body.replaceChildren(h('div', { class: 'grid' }, ...tiles));
         showPizza(PIZZAS[0].id);
+      } else if (tab === 'places') {
+        const tiles = STAGES.map((st, i) => {
+          const seen = placeSeen(st);
+          const t = h('div', { class: `tile${seen ? '' : ' locked'}`, tabindex: 0 }, h('img', { src: footPortraitURL(st.boss), alt: '', loading: 'lazy' }), h('div', { class: 'nm' }, seen ? BACKDROPS[st.location as keyof typeof BACKDROPS]?.name ?? st.location : '???'), h('div', { class: 'ds' }, `Act ${actOf(i * 5 + 1)} · W${i * 5 + 1}–${i * 5 + 5}`));
+          t.addEventListener('click', () => {
+            audio.sfx('sfx_click');
+            showPlace(st);
+          });
+          return t;
+        });
+        body.replaceChildren(h('div', { class: 'grid' }, ...tiles));
+        showPlace(STAGES.find(placeSeen) ?? STAGES[0]);
       } else {
         body.replaceChildren(
           h(
