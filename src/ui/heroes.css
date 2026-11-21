@@ -1,0 +1,104 @@
+/* Hero peels: the transformation countdown bar under the meter, and the HEROES tab's sections. */
+
+.hud .hero-bar {
+  position: absolute;
+  right: 1.4em;
+  bottom: 0.2em;
+  width: 8em;
+  height: 1em;
+  border-radius: 0.5em;
+  background: rgba(0, 0, 0, 0.6);
+  border: 0.16em solid var(--ink);
+  overflow: hidden;
+  animation: heroBarIn 0.25s ease-out both;
+}
+
+.hud .hero-bar i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 100%;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--c) 55%, #fff), var(--c) 60%, color-mix(in srgb, var(--c) 70%, #000));
+  box-shadow: 0 0 0.6em var(--c);
+}
+
+.hud .hero-bar span {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 0.62em;
+  letter-spacing: 0.06em;
+  color: #fff;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.3em var(--ink);
+  white-space: nowrap;
+}
+
+.hud .hero-bar.ending i {
+  animation: heroBarFlicker 0.18s steps(2) infinite;
+}
+
+.hud .hero-bar.out {
+  animation: heroBarOut 0.35s ease-in both;
+}
+
+@keyframes heroBarIn {
+  from {
+    transform: scaleX(0.2);
+    opacity: 0;
+  }
+}
+
+@keyframes heroBarOut {
+  to {
+    transform: translateY(0.6em);
+    opacity: 0;
+  }
+}
+
+@keyframes heroBarFlicker {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* Batpeel's gadget for the wave, beside the meter */
+.hud .hero-gadget {
+  position: absolute;
+  right: 1.4em;
+  bottom: 10.4em;
+  padding: 0.3em 0.7em;
+  border-radius: 0.8em;
+  font-size: 0.95em;
+  background: #2b2d3a;
+  color: #ffd23f;
+  border: 0.18em solid var(--ink);
+  box-shadow: 0 0.2em 0 var(--ink);
+  animation: heroBarIn 0.3s ease-out both;
+}
+
+.hud .hero-gadget.used {
+  opacity: 0.35;
+  filter: grayscale(1);
+}
+
+/* the tips counter, when Deadpeel grabs it */
+.hud .pill.grabbed {
+  animation: heroGrab 0.5s ease-in-out 2;
+}
+
+@keyframes heroGrab {
+  30% {
+    transform: translate(-0.6em, 0.4em) rotate(-12deg) scale(1.15);
+  }
+  60% {
+    transform: translate(0.3em, -0.2em) rotate(8deg);
+  }
+}
+
+/* the HEROES tab makes ten: a touch tighter so they still fit beside the filter */
+.locker .locker-tabs .btn {
+  font-size: 0.9em;
+  padding-left: 0.42em;
+  padding-right: 0.42em;
+}

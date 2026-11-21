@@ -32,6 +32,8 @@ interface Look {
   /** Spin speed (degrees a second); tumble squashes it as it turns, like a flat thing flipping. */
   spin: number;
   tumble?: boolean;
+  /** Points along its flight (arrows, bolts, rockets: drawn nose to the right). */
+  point?: boolean;
   launch: string;
   impact: string;
 }
@@ -70,6 +72,14 @@ const LOOK: Record<ThrowProp, Look> = {
   coconut: { size: 80, color: 0x8a5a32, spin: 420, ...HEAVY },
   lasso: { size: 104, color: 0xc8904a, spin: 600, ...ROPE },
   skateboard: { size: 124, color: 0xff9f1c, spin: 720, tumble: true, ...DISC },
+  // hero props (src/content/props/heroes.ts)
+  wingrang: { size: 104, color: 0xffd23f, spin: 1300, ...DISC, launch: 'sfx_tossspin', impact: 'sfx_hitclang' },
+  shield: { size: 110, color: 0x3a6ad8, spin: 900, ...DISC },
+  arrow: { point: true, size: 96, color: 0x7a4a9a, spin: 0, ...TINK },
+  card: { size: 70, color: 0xff3d6e, spin: 1500, tumble: true, ...TINK },
+  bolt: { point: true, size: 72, color: 0xff7a2a, spin: 0, ...TINK, impact: 'sfx_hittink' },
+  rocket: { point: true, size: 92, color: 0x8a929e, spin: 0, ...HEAVY, impact: 'sfx_hitboom' },
+  crescent: { size: 70, color: 0xe8edf2, spin: 1200, ...TINK },
 };
 
 // sizes above are the drawing's units (src/content/props/throws.ts); on screen they show a quarter bigger,
@@ -337,13 +347,14 @@ export class Projectiles {
     const px = leg.x0 + dx * k + (-dy / len) * bow;
     const py = leg.y0 + dy * k + (dx / len) * bow - leg.arc * 4 * leg.u * (1 - leg.u);
     const moved = Math.hypot(px - s.x, py - s.y);
+    if (s.look.point && moved > 0.5) s.img.rotation = Math.atan2(py - s.y, px - s.x);
     s.x = px;
     s.y = py;
     // pop out of the peel, then spin (or roll, or tumble) on the way
     const pop = Math.min(1, s.age / 0.12);
     const sc = s.base * (0.4 + 0.6 * Phaser.Math.Easing.Back.Out(pop));
     if (s.rolling) s.img.angle += ((moved / (s.look.size / 2)) * 180) / Math.PI * Math.sign(dx || 1);
-    else s.img.angle += s.spin * dt;
+    else if (!s.look.point) s.img.angle += s.spin * dt;
     s.img.setPosition(px, py).setScale(sc, s.look.tumble ? sc * (0.45 + 0.55 * Math.abs(Math.cos(s.age * 9))) : sc);
     s.trailT -= dt;
     if (s.trailT <= 0) {

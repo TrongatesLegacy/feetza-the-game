@@ -105,6 +105,8 @@ export interface SaveData {
   specialSeen: Record<string, number>;
   /** Rare Finds that have turned up on the new-run screen (shown in the Pizzeria from then on). */
   rareSeen: string[];
+  /** Hero and god peel goals (src/game/heroGoals.ts): counters, bests and flags by key. */
+  goals: Record<string, number>;
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -170,6 +172,7 @@ const DEFAULTS: SaveData = {
   pizzasNew: [],
   specialSeen: {},
   rareSeen: [],
+  goals: {},
 };
 
 function clone<T>(v: T): T {

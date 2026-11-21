@@ -18,6 +18,7 @@ import { BACKDROPS } from '../art/backdrops';
 import { applyA11y } from './a11y';
 import { abilityFor, abilityKindLabel, describeAbility } from '../game/abilities';
 import { PEELS, buyPeel, checkPeelAchievements, equipPeel, equippedPeel, hasPeel, peelThumbURL, wearSkin, wornSkin, type PeelDef, type PeelGroup } from '../game/peels';
+import { HERO_SUBS } from '../content/heroPeels';
 
 type Attrs = Record<string, string | number | boolean | undefined>;
 
@@ -1801,7 +1802,7 @@ class UI {
   // ——— Peel Locker: every peel, the achievements that unlock them, and what you equip and wear ———
   locker(onClose: () => void, pickMode: 'ability' | 'look' | null = null): HTMLElement {
     const pick = !!pickMode;
-    type Tab = 'all' | 'goals' | 'crusts' | 'feet' | 'bosses' | 'pizzas' | 'places' | 'events' | 'shiny';
+    type Tab = 'all' | 'goals' | 'crusts' | 'feet' | 'bosses' | 'pizzas' | 'places' | 'events' | 'shiny' | 'heroes';
     const TAB_GROUPS: Record<Exclude<Tab, 'goals'>, PeelGroup[]> = {
       all: [...new Set(PEELS.map((d) => d.group))],
       crusts: ['classic', 'golden', 'jewel', 'master'],
@@ -1811,8 +1812,9 @@ class UI {
       places: ['place'],
       events: ['event'],
       shiny: ['shinyFoot', 'shinyEvent'],
+      heroes: ['hero'],
     };
-    const NAMES: Record<Tab, string> = { all: 'ALL', goals: 'GOALS', crusts: 'CRUSTS', feet: 'FEET', bosses: 'BOSSES', pizzas: 'PIZZAS', places: 'PLACES', events: 'EVENTS', shiny: 'SHINY' };
+    const NAMES: Record<Tab, string> = { all: 'ALL', goals: 'GOALS', crusts: 'CRUSTS', feet: 'FEET', bosses: 'BOSSES', pizzas: 'PIZZAS', places: 'PLACES', events: 'EVENTS', shiny: 'SHINY', heroes: 'HEROES' };
     // catch up on goals already met (older saves, bosses beaten before peels existed)
     checkPeelAchievements();
     const fresh = new Set(save.peelsNew);
@@ -2016,6 +2018,13 @@ class UI {
             ...section('SHINY FEET', ['shinyFoot'], 'Any foot can rarely turn up shiny. Defeat it for its shiny peel.', list),
             ...section('EVENT SHINIES', ['shinyEvent'], 'Rare drops from wave events, and a few extremely rare jewels.', list),
           ];
+        } else if (tab === 'heroes') {
+          // heroes, then the Greek and Norse gods, each with its own count
+          parts = HERO_SUBS.flatMap(([sub, title, note]) => {
+            const mine = list.filter((d) => d.sub === sub);
+            const shownHere = shown(mine);
+            return shownHere.length ? [h('div', { class: 'sec-head' }, `${title} · ${mine.filter((d) => hasPeel(d.id)).length}/${mine.length}`, h('span', {}, note)), grid(mine)] : [];
+          });
         } else if (tab === 'crusts') {
           parts = [grid(list.filter((d) => d.group !== 'jewel')), ...section('THE JEWELLERY BOX', ['jewel'], 'Shiny peels for serious crust savers.', list)];
         } else parts = [grid(list)];

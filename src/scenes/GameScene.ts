@@ -20,18 +20,24 @@ import { Pizza } from '../game/Pizza';
 import { Projectiles } from '../game/projectiles';
 import { LOCATION_AMBIENCE, LOCATION_MUSIC, RARITY_FROM, Run, awardMilestones, milestoneProgress, backdropFor, bestRarity, rarityOpen, specialPrice, bossMusic, isBossWave, isMiniWave, locationFor, loopOf, planWave, type WavePlan, bossFor, miniFor } from '../game/Run';
 import type { CounterSnap, RunSnapshot } from '../game/snapshot';
-import { audio, bossSfx } from '../systems/audio';
+import { audio, bossSfx, heroSfx } from '../systems/audio';
 import { pad } from '../systems/gamepad';
 import { markFootSeen, markToppingsSeen, nextLockedPizza, persist, save, updateSettings } from '../systems/save';
 import type { GoldenItem, RunSummary, ShopCard, ShopOffer, ShopPizza, ShopState, YourTopping } from '../ui/shopTypes';
 import { ui, fmtTime } from '../ui/ui';
-import { PEELS, PEEL_BY_ID, abilityPeel, applyPeelLook, hasPeel, lookPeel, checkPeelAchievements, grantShinyFoot, peelThumbURL, peelTrail, rollEventDrop, SHINY_FOOT_CHANCE, type PeelDef } from '../game/peels';
+import { PEELS, PEEL_BY_ID, abilityPeel, applyPeelLook, hasPeel, lookPeel, checkPeelAchievements, grantShinyFoot, peelCanvas, peelThumbURL, peelTrail, rollEventDrop, SHINY_FOOT_CHANCE, type PeelDef } from '../game/peels';
 import { MILESTONES } from '../data/meta';
 import { STAGES, WAVES_PER_STAGE } from '../data/stages';
 import { passiveBoost, setSlamMode } from '../game/slamMode';
 import { setRunHeat } from '../game/heatRules';
 import { abilityFor, abilityKindLabel, scaleProc, usesMeter, type Ability, type Effect, type Proc, type Target } from '../game/abilities';
 import { randomLineup } from './MenuScene';
+import { HeroDirector } from '../game/heroMoves';
+import type { HeroHost } from '../game/heroKit';
+import { HeroTracker, bestGoal, type RunView } from '../game/heroGoals';
+import { maybeSignal, sightingChance, sightingDue } from '../game/sightings';
+import { addCanvas } from '../game/assets';
+import { heroFootDmg, heroFootStomp, heroFootTick } from '../game/heroFeet';
 
 interface DamageOpts {
   source: 'smack' | 'chain' | 'cutter' | 'olive' | 'slam' | 'explode' | 'garlic' | 'burn' | 'trap' | 'splash' | 'direct' | 'ability';
@@ -95,6 +101,13 @@ export class GameScene extends Phaser.Scene implements Arena {
   private procs: { id: string; p: Proc; t: number }[] = [];
   /** Thrown props (peel abilities and topping procs). */
   private throws!: Projectiles;
+  /** Hero peels: signature moves, transformations, overlays and passives (src/game/heroMoves.ts). */
+  private heroes!: HeroDirector;
+  /** Hero and god goals: feats, counters and timings (src/game/heroGoals.ts). */
+  private tracker!: HeroTracker;
+  /** Goal bookkeeping: when the wave and the boss fight began, smacks on the boss, a stunned peel, and the
+   * plan and shop a hero showed early (Herald, From the Future). */
+  private heroT = { wave: 0, boss: 0, bossSmacks: 0, stunned: false, tick: 0, coins: 0, firstWave: 0, since: 0, bosses: 0, lost: 0, plan: null as (WavePlan & { n: number }) | null, shop: null as Upgrade[] | null };
   /** Damage dealt this run by source (dev balance tooling reads it). */
   dmgLog: Record<string, number> = {};
   /** Tips earned in each wave (wave clear bonus included), for balance tooling. */
@@ -211,12 +224,20 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.applyStomp(p, null, slices, true);
   }
   stunPeel(sec: number, label: string): void {
+    // Superpeel's Man of Steel
+    if (this.heroes.peelImmune()) {
+      this.fx.quip(this.peelPos.x, this.peelPos.y - 80, 'MAN OF STEEL', '#7fb0ff', 30);
+      return;
+    }
+    this.heroT.stunned = true;
+    this.tracker.emit('peelStunned', {});
     this.peelStunT = Math.max(this.peelStunT, sec);
     this.fx.quip(this.peelPos.x, this.peelPos.y - 80, label, '#ffd23f', 34);
     this.peel.setTint(0x9a9a9a);
     this.rumble(0.5, 200);
   }
   slowPeel(sec: number): void {
+    if (this.heroes.peelImmune()) return;
     this.peelSlowT = Math.max(this.peelSlowT, sec);
   }
   addClickable(c: Clickable): void {
@@ -354,6 +375,11 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.fx = new Fx(this, this.fxLayer);
     this.throws = new Projectiles(this, this.fxLayer, this.fx, { peel: () => this.peel, peelPos: () => this.peelPos, feet: () => this.feet });
     this.director = new BossDirector(this);
+    this.heroes = new HeroDirector(this.heroHost());
+    this.tracker = new HeroTracker(
+      () => this.runView(),
+      () => this.peelToasts(checkPeelAchievements()),
+    );
 
     const snap = this.start.snapshot;
     if (snap) this.restore(snap);
@@ -371,6 +397,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.peelTrailColor = peelTrail(look);
     this.peelShiny = !!look.shiny;
     this.peelId = peelDef.id;
+    this.heroes.setPeel(peelDef.id, peelTrail(peelDef) ?? 0xffd23f);
+    audio.preload(this, heroSfx(peelDef.id.startsWith('hero:')));
     // every peel but the Classic brings its ability (runs saved with the old Peel Slam switch keep their choice)
     const wantAbility = this.start.snapshot?.ability ?? true;
     this.ability = wantAbility && peelDef.id !== 'classic' ? abilityFor(peelDef.id) : null;
@@ -380,6 +408,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     setSlamMode(this.ability);
     this.events.once('shutdown', () => {
       this.throws.clear(false);
+      this.heroes.shutdown();
       setSlamMode(undefined);
       setRunHeat(null);
     });
@@ -404,6 +433,9 @@ export class GameScene extends Phaser.Scene implements Arena {
     // where every goal stands as the run begins, for the end-of-run summary
     if (!this.run.startPeels) this.beginRunGoals();
     this.recompute();
+    this.heroT.firstWave = snap ? snap.wave + 1 : this.start.act2 ? ACT_WAVES + 1 : (this.start.wave ?? 1);
+    this.heroT.coins = this.run.coins;
+    this.tracker.emit('runStart', {});
 
     // input
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => this.movePointer(p));
@@ -657,6 +689,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     // always-on peel abilities change stats before the caps are applied
     const extra: Record<string, number> = {};
     if (this.ability?.trigger.t === 'always') for (const e of this.ability.fx) if (e.e === 'stat') for (const [k, v] of Object.entries(e.mods)) extra[k] = (extra[k] ?? 0) + (v as number);
+    // a hero's always-on passive (its `also`) changes stats the same way
+    if (this.ability?.also?.trigger.t === 'always') for (const e of this.ability.also.fx) if (e.e === 'stat') for (const [k, v] of Object.entries(e.mods)) extra[k] = (extra[k] ?? 0) + (v as number);
     this.run.recompute(perks, extra, enhanced);
     // the Ghost's possession inverts the haunted pizza's perk
     const inv = this.possessedPizza?.perk;
@@ -704,7 +738,9 @@ export class GameScene extends Phaser.Scene implements Arena {
   private beginWave(n: number, devBoss?: { id: string; hp?: number }): void {
     if (this.over) return;
     this.run.wave = n;
-    this.plan = planWave(n, this.run.stats.luck, this.run.heat);
+    // Herald (Silver Slicer) showed this wave's feet already: use that plan
+    this.plan = this.heroT.plan && this.heroT.plan.n === n ? this.heroT.plan : planWave(n, this.run.stats.luck, this.run.heat);
+    this.heroT.plan = null;
     if (devBoss) {
       const t = FOOT_BY_ID[devBoss.id];
       if (t?.boss) this.plan.boss = devBoss.id;
@@ -750,8 +786,16 @@ export class GameScene extends Phaser.Scene implements Arena {
     // a passive on a timer gets its head start (S'mores, Pre-Heated Peel) as timer progress
     if (this.ability?.trigger.t === 'every') this.abilityT = Math.max(this.abilityT, this.ability.trigger.sec * Math.min(1, this.run.super));
     const boss = isBossWave(n);
-    this.waveEvent = boss || isMiniWave(n) ? null : rollEvent(EVENT_RATE[this.run.heat]);
+    this.waveEvent = boss || isMiniWave(n) ? null : rollEvent(EVENT_RATE[this.run.heat], sightingChance(this.run.stats));
+    // Hero Summit: a sighting every N waves, guaranteed (boss waves included)
+    if (this.waveEvent !== 'sighting' && sightingDue(this.run.stats, this.heroT.since)) this.waveEvent = 'sighting';
+    this.heroT.since = this.waveEvent === 'sighting' ? 0 : this.heroT.since + 1;
     this.eventStarted = false;
+    this.heroT.wave = this.nowT;
+    this.heroes.waveStart();
+    this.tracker.emit('waveStart', { boss, mini: isMiniWave(n) });
+    // Batpeel's Signal: sometimes, on night stages, partway through the wave
+    this.time.delayedCall(6000 + Math.random() * 8000, () => this.waveActive && maybeSignal(this, backdropFor(n), () => this.peelToasts(checkPeelAchievements())));
 
     const bd = backdropFor(n);
     const loc = locationFor(n);
@@ -842,6 +886,9 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (hpFrac) f.hp = Math.round(f.maxHp * hpFrac);
     this.bossFoot = f;
     this.bossSummonT = 4;
+    this.heroT.boss = this.nowT;
+    this.heroT.bossSmacks = 0;
+    this.heroT.stunned = false;
     this.director.attach(f);
     // phase 1 gets its own introduction: what the boss does first and how to answer it
     this.director.afterDamage(f, true);
@@ -868,6 +915,9 @@ export class GameScene extends Phaser.Scene implements Arena {
     const f = this.spawnFoot(t, target, false);
     f.maxHp = f.hp = Math.round(f.maxHp * (1 - this.run.stats.miniWeak));
     this.miniFoot = f;
+    this.heroT.boss = this.nowT;
+    this.heroT.bossSmacks = 0;
+    this.heroT.stunned = false;
     this.director.attach(f);
     audio.sfx('sfx_miniboss');
     audio.duck(0.75);
@@ -957,6 +1007,7 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   /** Per-frame trait upkeep: magnets pull the peel, medics heal, Tandoori marks. */
   private footTick(f: Foot, dt: number): void {
+    heroFootTick(this, f, dt);
     if (f.shiny && Math.random() < dt * 9) this.fx.glint(f.cx + (Math.random() - 0.5) * 90 * f.scale, f.cy + (Math.random() - 0.5) * 120 * f.scale);
     if (f.has('magnet') && (f.state === 'hover' || f.state === 'descend')) {
       const dx = f.cx - this.peelPos.x;
@@ -1334,7 +1385,9 @@ export class GameScene extends Phaser.Scene implements Arena {
           m.setState('hover');
         }
       },
+      missed: (ev) => this.tracker.emit('eventMissed', { id: ev }),
       done: (ev, x, y) => {
+        this.tracker.emit('eventDone', { id: ev });
         save.eventsDone[ev] = (save.eventsDone[ev] ?? 0) + 1;
         const drop = rollEventDrop(ev);
         if (drop) {
@@ -1389,6 +1442,8 @@ export class GameScene extends Phaser.Scene implements Arena {
   private waveClear(): void {
     this.waveActive = false;
     this.throws.clear();
+    this.heroes.waveClear();
+    this.tracker.emit('waveClear', { boss: isBossWave(this.run.wave), mini: isMiniWave(this.run.wave), secs: this.nowT - this.heroT.wave, slicesLost: this.waveSlicesLost, stageEnd: isBossWave(this.run.wave) });
     this.lockedPizzas.clear();
     this.retreat(false);
     this.minionPool = null;
@@ -1435,7 +1490,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       const weakest = [...this.alivePizzas()].sort((a, b) => a.slices / a.maxSlices - b.slices / b.maxSlices)[0];
       if (weakest) this.healPizza(weakest, 1);
     }
-    this.tickFreshness();
+    // Aqua-Toe's Tidal Calm: no pizza goes stale at the seaside
+    if (!this.heroes.keepFresh()) this.tickFreshness();
     // Quattro Stagioni turns to its next season
     for (const p of this.alivePizzas()) if (p.type.perk === 'rotate') {
       p.flags.season = (Number(p.flags.season ?? 0) + 1) % 4;
@@ -1583,8 +1639,11 @@ export class GameScene extends Phaser.Scene implements Arena {
     const exclude = tableFull ? ['helping'] : [];
     let cards = keepCards?.cards;
     let free = keepCards?.free ?? null;
+    // From the Future (Booster Gouda) showed these as the wave began
+    const future = !bossReward ? this.heroT.shop : null;
+    this.heroT.shop = null;
     if (!cards) {
-      cards = bossReward ? this.run.rollBossChoices(count, exclude) : this.run.rollChoices(count, exclude);
+      cards = future ?? (bossReward ? this.run.rollBossChoices(count, exclude) : this.run.rollChoices(count, exclude));
       // boss loot: one epic-or-better pick is free · Birthday Cake: every 5th wave a random card is free (enhanced: every 3rd)
       const every = this.run.enhancedPerks.has('freeTopping') ? 3 : 5;
       if (bossReward && cards.length) free = cards[0].id;
@@ -1700,8 +1759,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       coins: r.coins,
       crusts: save.crusts,
       cards,
-      rerollLabel: this.freeRerollsLeft > 0 ? `REROLL · ${this.freeRerollsLeft} free` : `REROLL · ${r.rerollCost}`,
-      canReroll: this.freeRerollsLeft > 0 || r.coins >= r.rerollCost,
+      rerollLabel: this.freeRerollsLeft > 0 ? `REROLL · ${this.freeRerollsLeft} free` : `REROLL · ${Math.max(0, r.rerollCost - this.heroes.rerollDiscount())}`,
+      canReroll: this.freeRerollsLeft > 0 || r.coins >= Math.max(0, r.rerollCost - this.heroes.rerollDiscount()),
       table: this.shopPizzas(),
       tableFull: this.pizzas.length >= MAX_PIZZAS,
       offers,
@@ -1794,9 +1853,11 @@ export class GameScene extends Phaser.Scene implements Arena {
   private shopReroll(): void {
     const sh = this.shop;
     if (!sh) return;
+    // Gambeet's Gambler: rerolls cost 1 less
+    const cost = Math.max(0, this.run.rerollCost - this.heroes.rerollDiscount());
     if (this.freeRerollsLeft > 0) this.freeRerollsLeft--;
-    else if (this.run.coins >= this.run.rerollCost) {
-      this.run.coins -= this.run.rerollCost;
+    else if (this.run.coins >= cost) {
+      this.run.coins -= cost;
       this.run.rerollCost = Math.round(this.run.rerollCost * 1.5 + 5);
     } else return;
     audio.sfx('sfx_boing', { volume: 0.6 });
@@ -1824,6 +1885,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       if (pool.length) fresh = [...fresh.slice(0, Math.max(0, fresh.length - 1)), Phaser.Utils.Array.GetRandom(pool)];
     }
     sh.cards = [...keep, ...fresh];
+    this.tracker.emit('reroll', { rarities: fresh.map((u) => u.rarity) });
     if (sh.free && !sh.cards.some((u) => u.id === sh.free)) sh.free = null;
     this.refreshShop();
   }
@@ -2060,9 +2122,11 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.tweens.killTweensOf(this.peel);
     this.peel.setAngle(-62).setScale(this.peelScale() * 1.12);
     this.tweens.add({ targets: this.peel, angle: -28, scale: this.peelScale(), duration: 180, ease: 'Back.Out' });
-    const r = this.run.stats.radius;
+    const r = this.run.stats.radius * this.heroes.reachMult();
+    // Dare-Dough's Fearless: phasing feet can be hit too
+    const fearless = this.heroes.fearless();
     const hits = this.feet
-      .filter((f) => f.hittable)
+      .filter((f) => f.hittable || (fearless && f.alive && f.phased && f.y > -20))
       .map((f) => ({ f, d: f.distanceTo(x, y) }))
       .filter((o) => o.d <= r)
       .sort((a, b) => a.d - b.d);
@@ -2077,6 +2141,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       return;
     }
     if (!hits.length) {
+      this.tracker.emit('smack', { hits: 0, x, y });
       if (this.run.combo >= 3) this.fx.quip(x, y - 30, 'MISS', '#ffb0a0', 32, 0);
       this.run.combo = 0;
       this.fx.puff(x, y, 4);
@@ -2084,7 +2149,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       return;
     }
     if (this.tutorial) ui.hud.tutorial(false);
-    const targets = this.run.level('peel') > 0 ? hits : hits.slice(0, 1);
+    const targets = this.heroes.smackHits(this.run.level('peel') > 0 ? hits : hits.slice(0, 1));
+    this.tracker.emit('smack', { hits: targets.length, x, y });
     for (const { f } of targets) {
       this.hitFoot(f, x, y);
       if (Math.random() < this.run.stats.doubleChance && f.alive) this.time.delayedCall(90, () => f.alive && this.hitFoot(f, x + 12, y - 12));
@@ -2094,11 +2160,18 @@ export class GameScene extends Phaser.Scene implements Arena {
   private hitFoot(f: Foot, x: number, y: number): void {
     const st = this.run.stats;
     const hpBefore = f.hp;
+    // due to stomp within 0.3 s (Spider-Pan's goal)
+    const lastMoment = f.state === 'descend' && (f.stompY - f.y) / Math.max(1, f.vy) < 0.3;
+    if (f === this.bossFoot || f === this.miniFoot) this.heroT.bossSmacks++;
     this.dealDamage(f, st.damage, { source: 'smack', canCrit: true, knock: st.knockback, x, y });
     // smack abilities only when the smack landed (not parried, guarded or dodged)
     const landed = !f.alive || f.hp < hpBefore;
     if (landed && this.ability?.trigger.t === 'smack' && Math.random() < this.ability.trigger.p * passiveBoost(st.superGain).chance) this.fireAbility({ foot: f, x: f.cx, y: f.cy });
     if (landed) this.fireProcs('smack', { foot: f, x: f.cx, y: f.cy });
+    if (landed) {
+      this.tracker.emit('hit', { foot: f, lastMoment, x });
+      this.heroes.hit(f, x, y);
+    }
     if (!f.alive) return;
     if (f.has('pinch')) this.stunPeel(0.5, 'PINCHED!');
     if (f.has('sticky')) {
@@ -2157,7 +2230,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       audio.sfx('sfx_shield');
       return;
     }
-    if (smack && f.has('guard') && f.guardOpen <= 0) {
+    if (smack && f.has('guard') && f.guardOpen <= 0 && !this.heroes.ignoreShields()) {
       f.flash(0x9ad8ff, 80);
       f.knock(80);
       this.fx.quip(f.x, f.cy - 110, 'SHIELD! Wait for it to drop', '#9ad8ff', 30);
@@ -2170,7 +2243,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.smackCount++;
       if (st.tenthCrit && this.smackCount % (this.run.enhancedPerks.has('tenthCrit') ? 7 : 10) === 0) crit = true;
     }
-    if (o.canCrit && f.has('tender')) crit = true;
+    if (o.canCrit && (f.has('tender') || this.heroes.critAlways())) crit = true;
     else if (o.canCrit && Math.random() < st.critChance) crit = true;
     if (crit) dmg *= st.critMult;
     if (f.isBossLike && (smack || o.source === 'direct') && this.director.onSmacked(f, o.x ?? f.cx, o.y ?? f.cy, dmg)) {
@@ -2179,13 +2252,16 @@ export class GameScene extends Phaser.Scene implements Arena {
       ui.hud.setBoss(f.type.name, f.hp / f.maxHp, this.director.phaseCount(f), f.phase);
       return;
     }
-    if (f.shielded) {
+    if (f.shielded && !(smack && this.heroes.ignoreShields())) {
       this.fx.quip(f.x, f.cy - 110, 'BLOCKED', '#c7ccd4', 32);
       audio.sfx('sfx_kit_shieldblock', { throttle: 150 });
       return;
     }
+    // hero passives and transformations (Binary Mode, Moonlit, I can do this all day…)
+    dmg *= this.heroes.dmgMult(f, smack ? 'smack' : o.source === 'slam' || o.source === 'ability' ? 'ability' : o.source === 'chain' ? 'chain' : o.source === 'burn' ? 'burn' : o.source === 'direct' ? 'direct' : 'other');
+    if (o.source === 'chain') this.tracker.emit('chainHit', {});
     // multipliers: overheats and marks, boss hunters, big-health hunters, stunned near Okonomiyaki
-    dmg *= f.vuln;
+    dmg *= f.vuln * heroFootDmg(f, smack);
     if (f.brain.marked) dmg *= Number(f.brain.marked) >= 3 ? 3 : 2;
     if (f.markUntil > this.nowT) dmg *= f.markMult;
     if (f.isBossLike) dmg *= 1 + st.bossDmg;
@@ -2243,7 +2319,7 @@ export class GameScene extends Phaser.Scene implements Arena {
         audio.sfx('sfx_combo', { rate: 1 + Math.min(0.6, this.run.combo / 100) });
         this.fx.quip(W / 2, 330, `${this.run.combo} COMBO!`, '#ffd23f', 56, 0);
       }
-      this.run.super = Math.min(1, this.run.super + 0.018 * st.superGain * (this.ability ? this.ability.charge : 1));
+      this.run.super = Math.min(1, this.run.super + 0.018 * st.superGain * (this.ability ? this.ability.charge : 1) * this.heroes.meterMult());
       if (st.burnDps > 0 && !f.type.traits.includes('immuneBurn')) {
         f.burnFromAbility = false;
         f.burnT = 3;
@@ -2292,7 +2368,7 @@ export class GameScene extends Phaser.Scene implements Arena {
   /** NEW PEEL toasts for freshly unlocked peels. */
   private peelToasts(list: PeelDef[]): void {
     for (const d of list) {
-      ui.hud.toast(peelThumbURL(d.id, 96), d.shiny ? 'NEW SHINY PEEL!' : 'NEW PEEL', `${d.name} · equip it in the Peel Locker`);
+      ui.hud.toast(peelThumbURL(d.id, 96), d.shiny ? 'NEW SHINY PEEL!' : d.group === 'hero' ? 'NEW HERO PEEL!' : 'NEW PEEL', `${d.name} · equip it in the Peel Locker`);
       audio.sfx('sfx_levelup', { volume: 0.5, rate: d.shiny ? 1.5 : 1.2 });
     }
   }
@@ -2324,6 +2400,10 @@ export class GameScene extends Phaser.Scene implements Arena {
     const st = this.run.stats;
     const boss = !!f.type.boss;
     const mini = !!f.type.mini;
+    if (!f.brain.echo) {
+      this.tracker.emit('kill', { foot: f, source });
+      this.heroes.kill(f);
+    }
     this.run.feetSmacked++;
     save.totalFeet++;
     // achievements count real feet only, never a Ghost echo
@@ -2354,7 +2434,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     });
     // kills charge the Peel Slam, except kills by the slam itself (it would refill its own meter)
     // the slam and abilities never refill their own meter (their burns included)
-    if (source !== 'slam' && source !== 'ability' && !(source === 'burn' && f.burnFromAbility)) this.run.super = Math.min(1, this.run.super + 0.05 * st.superGain * (this.ability ? this.ability.charge : 1));
+    if (source !== 'slam' && source !== 'ability' && !(source === 'burn' && f.burnFromAbility)) this.run.super = Math.min(1, this.run.super + 0.05 * st.superGain * (this.ability ? this.ability.charge : 1) * this.heroes.meterMult());
     if (this.ability?.trigger.t === 'kill' && source !== 'ability' && Math.random() < this.ability.trigger.p * passiveBoost(st.superGain).chance) {
       const at = { x: f.cx, y: f.cy };
       this.time.delayedCall(40, () => this.fireAbility({ x: at.x, y: at.y }));
@@ -2420,6 +2500,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     // the wave ends with the boss: no golden foot arrives afterwards
     if (!mini) this.goldenSpawned = true;
     this.run.bossesBeaten.push(f.type.id);
+    if (!mini) this.heroT.bosses++;
+    this.tracker.emit('bossDown', { foot: f, mini, secs: this.nowT - this.heroT.boss, smacks: this.heroT.bossSmacks, slicesLost: this.waveSlicesLost, peelStunned: this.heroT.stunned, abilityUsed: false });
     const firstKill = !save.bossesBeaten.includes(f.type.id);
     if (firstKill) {
       save.bossesBeaten.push(f.type.id);
@@ -2494,10 +2576,19 @@ export class GameScene extends Phaser.Scene implements Arena {
     const st = this.run.stats;
     if (f.type.stompDmg <= 0) return;
     if (this.throws.blindMiss(f)) return;
+    const blocked = (shield: boolean) => {
+      this.heroes.blocked(f, shield);
+      this.tracker.emit('stomp', { foot: f, blocked: shield ? 'shield' : 'other' });
+    };
     if (this.run.combo >= 5) this.fx.quip(W / 2, 200, 'COMBO LOST', '#ff8a6a', 40, 0);
     this.run.combo = 0;
     this.rumble(f.isBossLike ? 0.8 : 0.3, f.isBossLike ? 250 : 90);
     this.director.onStomp(f, p);
+    // hero passives can stop a stomp (Bracers, the Lasso of Truth)
+    if (this.heroes.stomp(f, p)) {
+      this.tracker.emit('stomp', { foot: f, blocked: 'other' });
+      return;
+    }
     if (this.ability?.trigger.t === 'stomp') this.fireAbility({ foot: f, x: f.cx, y: f.cy });
     this.fireProcs('stomp', { foot: f, x: f.cx, y: f.cy });
     // Graffiti Gina tags the pizza; the next foot on it stomps twice as hard
@@ -2539,6 +2630,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.dealDamage(f, 100, { source: 'trap' });
       if (f.alive) f.stun(1.5);
       this.shake(150, 0.005);
+      blocked(false);
       return;
     }
     if (p.flags.grandma && !pierce) {
@@ -2547,6 +2639,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.fx.quip(f.x, p.surfaceY - 130, "GRANDMA'S GOT YOU!", '#ffb070', 40);
       audio.sfx('sfx_shield');
       f.knock(650);
+      blocked(false);
       return;
     }
     if (p.shieldCharges > 0 && !pierce) {
@@ -2555,12 +2648,14 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.fx.quip(f.x, p.surfaceY - 130, 'BLOCKED!', '#ffe680', 48);
       audio.sfx('sfx_shield');
       f.knock(700);
+      blocked(true);
       return;
     }
     if (!pierce && Math.random() < st.shrugChance) {
       this.fx.quip(f.x, p.surfaceY - 130, 'SHRUGGED IT OFF!', '#ffffff', 40);
       audio.sfx('sfx_boing', { volume: 0.7 });
       f.knock(500);
+      blocked(false);
       return;
     }
     const big = f.isBossLike || f.type.stompDmg >= 2;
@@ -2569,6 +2664,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.fx.quip(f.x, p.surfaceY - 130, 'THICK CRUST!', '#e0a050', 40);
       audio.sfx('sfx_boing', { volume: 0.6, rate: 0.8 });
       f.knock(450);
+      blocked(false);
       return;
     }
     // Stromboli shrugs off the second half of double stomps
@@ -2589,7 +2685,9 @@ export class GameScene extends Phaser.Scene implements Arena {
       p.soggy = false;
       this.fx.quip(p.x, p.surfaceY - 150, 'SOGGY!', '#8fd3ff', 38);
     }
+    this.tracker.emit('stomp', { foot: f, blocked: null });
     this.applyStomp(p, f, dmg, big);
+    heroFootStomp(this, f, p);
     // Pizza Bianca (enhanced: its neighbours too)
     const immune = p.perk === 'immuneEffects' || this.neighbours(p).some((q) => q.perk === 'immuneEffects' && q.enhanced);
     if (f.has('soggy') && !p.dead && !immune) {
@@ -2636,9 +2734,14 @@ export class GameScene extends Phaser.Scene implements Arena {
       dmg += 1;
       this.fx.quip(p.x, p.surfaceY - 190, '+1 SLICE!', '#ff6b6b', 30);
     }
+    // Nine Lives (Cat-Toe-Woman) saves a slice now and then
+    if (f && dmg > 0) dmg = this.heroes.slices(p, dmg);
+    if (dmg <= 0) return;
     const removed = p.takeSlices(dmg, f?.x ?? p.x);
     this.waveSlicesLost += removed.length;
     this.run.slicesLost += removed.length;
+    this.heroes.stomped(f, removed.length);
+    if (removed.length) this.tracker.emit('slices', { n: removed.length });
     const y = p.surfaceY;
     this.fx.splat(p.x + ((f?.x ?? p.x) - p.x) * 0.5, y, big);
     for (let i = 0; i < removed.length; i++) this.fx.slice(`slice_${p.type.id}`, p.x, y - 10, p.s * 0.9);
@@ -2660,6 +2763,13 @@ export class GameScene extends Phaser.Scene implements Arena {
   }
 
   private pizzaDestroyed(p: Pizza): void {
+    // Mystic Shield (Doctor Strangeloaf): once a wave, a pizza is saved
+    if (this.heroes.destroyed(p) && !p.dead) {
+      this.recompute();
+      return;
+    }
+    this.heroT.lost++;
+    this.tracker.emit('pizzaLost', {});
     this.fx.puff(p.x, p.surfaceY, 14);
     this.fx.splat(p.x, p.surfaceY, true);
     this.fx.quip(p.x, p.surfaceY - 160, `${p.type.name.toUpperCase()} IS TOAST!`, '#ff6a4d', 40, 0);
@@ -2697,7 +2807,142 @@ export class GameScene extends Phaser.Scene implements Arena {
     }
   }
 
-  // ——— Peel Slam ———
+  // ——— Hero peels (src/game/heroMoves.ts) ———
+  /** The slice of the scene the hero moves may use. */
+  private heroHost(): HeroHost {
+    return {
+      scene: this,
+      fx: this.fx,
+      layers: { under: this.underLayer, pizzas: this.pizzaLayer, feet: this.feetLayer, fx: this.fxLayer, cursor: this.cursorLayer },
+      peel: () => this.peel,
+      peelPos: () => this.peelPos,
+      peelScale: () => this.basePeelScale(),
+      feet: () => this.feet,
+      live: () => this.feet.filter((f) => f.hittable && !f.phased),
+      pizzas: () => this.pizzas,
+      now: () => this.nowT,
+      stats: () => this.run.stats,
+      wave: () => this.run.wave,
+      heat: () => this.run.heat,
+      location: () => this.currentLocation,
+      backdrop: () => this.currentBackdrop,
+      inWave: () => this.waveActive && !this.over && !this.inUpgrade,
+      hurt: (f, x, o) => this.dealDamage(f, x * this.run.stats.damage, { source: o?.source ?? 'ability', knock: o?.knock ?? 120, x: f.cx, y: f.cy, quiet: o?.quiet }),
+      kill: (f) => {
+        f.wool = 0;
+        this.killFoot(f, 'ability');
+      },
+      tips: (n, x, y) => this.giveTips(n, x, y),
+      coins: () => this.run.coins,
+      spend: (n) => {
+        if (this.run.coins < n) return false;
+        this.run.coins -= n;
+        this.displayCoins = Math.min(this.displayCoins, this.run.coins);
+        return true;
+      },
+      heal: (p, n) => this.healPizza(p, n),
+      revive: (p, n) => {
+        p.revive(n);
+        this.fx.healBurst(p.x, p.surfaceY);
+        this.recompute();
+      },
+      throwAt: (e, feet, color, onHit) =>
+        this.throws.launch(
+          e,
+          feet,
+          color,
+          onHit ??
+            ((f, x) => {
+              if (x > 0) this.dealDamage(f, x * this.run.stats.damage, { source: 'ability', knock: e.knock ?? 120, x: f.cx, y: f.cy });
+              for (const r of e.on ?? []) this.applyAbilityEffect(r, { foot: f, x: f.cx, y: f.cy }, color, 'burst');
+            }),
+        ),
+      runFx: (fx, ctx, color) => this.runEffects(fx, ctx, color, 'burst'),
+      meter: () => this.run.super,
+      setMeter: (v) => (this.run.super = v),
+      swapAbility: (id) => this.swapAbility(id),
+      recompute: () => this.recompute(),
+      toast: (img, title, text) => ui.hud.toast(img, title, text),
+      coinPos: () => ui.hud.coinTarget(),
+      banner: (big, small) => ui.hud.banner(big, small, 'phase'),
+      quip: (x, y, msg, color, size) => this.fx.quip(x, y, msg, color, size),
+      shake: (ms, k) => this.shake(ms, k),
+      flash: (ms, r, g, b) => this.flash(ms, r, g, b),
+      rumble: (k, ms) => this.rumble(k, ms),
+      peekWave: (n) => {
+        const plan = { ...planWave(n, this.run.stats.luck, this.run.heat), n };
+        this.heroT.plan = plan;
+        return plan.queue.map((id) => FOOT_BY_ID[id]?.name ?? id);
+      },
+      peekShop: () => {
+        if (isBossWave(this.run.wave)) return [];
+        const tableFull = this.pizzas.length >= MAX_PIZZAS && !this.pizzas.some((p) => p.dead);
+        this.heroT.shop = this.run.rollChoices(3 + (save.meta.indecisive ? 1 : 0), tableFull ? ['helping'] : []);
+        return this.heroT.shop.map((u) => u.name);
+      },
+    };
+  }
+
+  /** What the goal trackers see of the run. */
+  private runView(): RunView {
+    const chain = Object.entries(this.run.owned).filter(([id, lvl]) => {
+      const u = UPGRADE_BY_ID[id];
+      return lvl > 0 && !!u && (/chain lightning/i.test(u.desc(1)) || !!u.proc?.fx.some((e) => e.e === 'chain'));
+    }).length;
+    return {
+      wave: this.run.wave,
+      firstWave: this.heroT.firstWave,
+      heat: this.run.heat,
+      location: this.currentLocation,
+      backdrop: this.currentBackdrop,
+      peel: this.peelId,
+      pizzasAlive: this.alivePizzas().length,
+      owned: this.run.owned,
+      chainToppings: chain,
+      bosses: this.heroT.bosses,
+      pizzasLost: this.heroT.lost,
+      victory: false,
+    };
+  }
+
+  /** Shape-Shift (Martian Mozzarella): play as another peel for a while (null: back to the hero). */
+  private swapAbility(id: string | null): void {
+    this.ability = id ? abilityFor(id) : abilityFor(this.peelId);
+    if (id) {
+      addCanvas(this, 'peel_shift', peelCanvas(id));
+      this.peel.setTexture('peel_shift');
+    } else this.peel.setTexture('peel');
+    setSlamMode(this.ability);
+    ui.hud.setSlamLabel(this.ability.name, abilityKindLabel(this.ability));
+    this.abilityT = 0;
+    this.recompute();
+    // a borrowed meter ability goes off straight away
+    if (id && usesMeter(this.ability)) this.fireAbility();
+  }
+
+  /** Every frame: the hero kit, then the goal trackers (four times a second). */
+  private heroUpdate(real: number): void {
+    this.heroes.update(real);
+    // tips earned (never spent) count towards Cat-Toe-Woman
+    const dc = this.run.coins - this.heroT.coins;
+    if (dc > 0 && !this.inUpgrade) this.tracker.tipsEarned(dc);
+    this.heroT.coins = this.run.coins;
+    this.heroT.tick += real;
+    if (this.heroT.tick < 0.25 || !this.waveActive) return;
+    this.heroT.tick = 0;
+    this.tracker.emit('tick', { feet: this.feet, now: this.nowT });
+    bestGoal('crustPeak', save.crusts);
+    // a foot knocked all the way back up to the top of its dive
+    for (const f of this.feet) {
+      if (!f.alive || f.isBossLike) continue;
+      if (f.state !== 'descend') f.brain.topped = 0;
+      else if (!f.brain.topped && f.y <= 112) {
+        f.brain.topped = 1;
+        this.tracker.emit('knockedTop', { foot: f });
+      }
+    }
+  }
+
   // ——— Peel abilities ———
   private abilityTick(dt: number): void {
     const a = this.ability;
@@ -2768,7 +3013,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     const st = this.run.stats;
     const color = a.color;
     const big = a.trigger.t === 'active' || a.trigger.t === 'auto';
-    if (big) {
+    if (big && !a.custom) {
       if (a.vfx === 'slam') {
         const sweep = this.add.image(-400, 560, 'peel').setScale(3.2).setAngle(-90).setOrigin(0.5, 100 / 360);
         this.fxLayer.add(sweep);
@@ -2780,6 +3025,9 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.rumble(0.8, 250);
       this.flash(160, (color >> 16) & 255, (color >> 8) & 255, color & 255);
       this.fx.quip(W / 2, 420, `${a.name.toUpperCase()}!`, '#' + color.toString(16).padStart(6, '0'), 72, -4);
+      this.lastSlam = this.nowT;
+    } else if (big) {
+      // hand-built moves stage their own moment
       this.lastSlam = this.nowT;
     } else if (a.trigger.t === 'every' || a.trigger.t === 'wave') {
       this.fx.quip(ctx.x ?? this.peelPos.x, (ctx.y ?? this.peelPos.y) - 90, a.name, '#' + color.toString(16).padStart(6, '0'), 30, 0);
@@ -2953,6 +3201,9 @@ export class GameScene extends Phaser.Scene implements Arena {
         break;
       case 'stat':
         break; // applied in recompute()
+      case 'move':
+        this.heroes.fire(e.id, ctx);
+        break;
     }
   }
 
@@ -2994,6 +3245,11 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   // ——— Passive weapons ———
   private peelScale(): number {
+    return this.basePeelScale() * (this.heroes?.peelSize() ?? 1);
+  }
+
+  /** The peel's size from your smack reach (before a hero grows it). */
+  private basePeelScale(): number {
     return 0.5 + (this.run.stats.radius - 26) / 130;
   }
 
@@ -3221,7 +3477,10 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.tweens.timeScale = 0.4 * this.tweenBase;
       if (this.slowMo <= 0) this.tweens.timeScale = this.tweenBase;
     }
+    // Speed Force (The Flashfoot) slows the world, not the peel
+    if (!this.paused && !this.inUpgrade) scale = Math.min(scale, this.heroes.worldScale());
     const dt = real * scale;
+    if (!this.paused && !this.over) this.heroUpdate(real);
     // peel: stunned, slowed (trails the pointer) or free
     if (this.peelStunT > 0) {
       this.peelStunT -= real;
@@ -3485,6 +3744,8 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   private gameOver(quit = false, victory = false): void {
     if (this.over) return;
+    this.tracker.emit('runEnd', { victory });
+    this.heroes.shutdown();
     this.over = true;
     this.waveActive = false;
     this.throws.clear();

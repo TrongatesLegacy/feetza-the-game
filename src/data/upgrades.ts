@@ -63,6 +63,9 @@ export interface Stats {
   footHp: number;
   /** Chance a stomp takes an extra slice (trade-off toppings). */
   stompExtra: number;
+  /** Hero sightings: chance multiplier, and a guaranteed one every N waves (0: off). */
+  sightingMult: number;
+  sightingEvery: number;
 }
 
 export function baseStats(): Stats {
@@ -121,6 +124,8 @@ export function baseStats(): Stats {
     freeTopping: false,
     footHp: 1,
     stompExtra: 0,
+    sightingMult: 1,
+    sightingEvery: 0,
   };
 }
 
