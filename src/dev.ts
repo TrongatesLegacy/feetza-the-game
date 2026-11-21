@@ -60,6 +60,7 @@ function botShop(g: AnyScene): void {
 
 export function installDevTools(game: Phaser.Game): void {
   let botOn = false;
+  void import('./devBossLab').then((m) => m.installBossLab(game));
   // ?dev&show=welcome opens a screen straight away, for headless screenshots of DOM screens
   const showParam = new URLSearchParams(location.search).get('show');
   if (showParam) {

@@ -1448,6 +1448,14 @@ const BRAINS: Record<string, () => Brain> = {
   headwaiter, doughboy, sweep, pigeonking, sandcastle, jellyfish, shortorder, milkshake, iceskate, lumberjack, ufotoe, poltergeist,
 };
 
+/** Dev boss lab: a boss's phase names and move info, without spawning it. */
+export function bossPhaseInfo(id: string): { names: string[]; info: string[] } | null {
+  const make = BRAINS[id];
+  if (!make) return null;
+  const b = make();
+  return { names: b.names, info: b.info };
+}
+
 /** Runs every boss and mini-boss on the field: phases, moves and smack/stomp hooks. */
 const ENRAGED_INFO = 'Everything it does comes faster · finish it off';
 

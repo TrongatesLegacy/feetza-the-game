@@ -1,5 +1,5 @@
-import { readdirSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { readdirSync, readFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 import { defineConfig, type Plugin } from 'vite';
 
 // Exposes the list of audio files in public/audio so the game knows what exists
@@ -62,9 +62,41 @@ function devShots(): Plugin {
   };
 }
 
+// Dev-only: the boss lab's playtest notes, saved to FEETZA_NOTES (a .json path; a .md copy sits beside it).
+function devNotes(): Plugin {
+  return {
+    name: 'dev-notes',
+    apply: 'serve',
+    configureServer(server) {
+      const file = process.env.FEETZA_NOTES;
+      server.middlewares.use('/__notes', (req, res) => {
+        if (!file) {
+          res.statusCode = 404;
+          res.end('FEETZA_NOTES not set');
+          return;
+        }
+        if (req.method === 'GET') {
+          res.setHeader('content-type', 'application/json');
+          res.end(existsSync(file) ? readFileSync(file, 'utf8') : '{}');
+          return;
+        }
+        const chunks: Buffer[] = [];
+        req.on('data', (c: Buffer) => chunks.push(c));
+        req.on('end', () => {
+          const body = JSON.parse(Buffer.concat(chunks).toString()) as { notes: unknown; md: string };
+          mkdirSync(dirname(file), { recursive: true });
+          writeFileSync(file, JSON.stringify(body.notes, null, 2));
+          writeFileSync(file.replace(/\.json$/, '') + '.md', body.md);
+          res.end('ok');
+        });
+      });
+    },
+  };
+}
+
 export default defineConfig({
   base: './',
-  plugins: [audioManifest(), devShots()],
+  plugins: [audioManifest(), devShots(), devNotes()],
   build: {
     target: 'es2022',
     assetsInlineLimit: 0,
