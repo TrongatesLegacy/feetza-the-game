@@ -1655,12 +1655,13 @@ class UI {
           seen ? h('div', { class: 'seen' }, `${fmt(p.cost)} crusts when it turns up`) : null,
         );
       });
+      // the ones you can act on first (buy with crusts, chase a goal), then what you own
       return [
-        ...section(`ON THE MENU · ${owned.length}`, 'These can turn up at the shop counter', owned.map((p) => tile(p, '', h('div', { class: 'chip', style: 'background:var(--basil-d);color:#fff' }, 'ON THE MENU')))),
-        ...section(`BUY HERE · ${shop.length}`, 'Unlock with Golden Crusts', shop),
+        ...section(`BUY WITH GOLDEN CRUSTS · ${shop.length}`, 'Unlock them here', shop),
         ...section(`MILESTONE PRIZES · ${prizes.length}`, 'Reach the goal and the pizza is yours', prizes),
         ...section(`CHEF’S SPECIALS · ${specials.length}`, 'Buy one in the shop with tips to unlock it for good', specials),
         ...section(`RARE FINDS · ${rare.length}`, 'Only by luck, on the new-run screen', rare),
+        ...section(`ON THE MENU · ${owned.length}`, 'Unlocked: these can turn up at the shop counter', owned.map((p) => tile(p, '', h('div', { class: 'chip', style: 'background:var(--basil-d);color:#fff' }, 'ON THE MENU')))),
       ];
     };
     // every topping in the game: seen ones in full, the rest as ??? in their rarity colour

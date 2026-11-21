@@ -3416,7 +3416,18 @@ body.pad :focus {
 }
 
 .tile.unowned img {
-  filter: grayscale(0.55);
+  filter: grayscale(0.85) brightness(0.8);
+  opacity: 0.6;
+}
+
+/* locked pizzas read as locked: the whole card is dimmed, the price or goal stays bright to act on */
+.tile.pz-tile.unowned {
+  background: rgba(240, 228, 205, 0.55);
+}
+
+.tile.pz-tile.unowned .nm,
+.tile.pz-tile.unowned .ds {
+  opacity: 0.7;
 }
 
 .detail .howto,
