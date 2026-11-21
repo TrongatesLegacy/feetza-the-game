@@ -7,7 +7,7 @@
 // - The Immortal Brute: THE IMMORTAL HORDE (a war horn and 4 Immortal Sandals march in; while two or more stand he
 //   can't be hurt, for 12 s at most; no new horde while any stand, and once the last falls he's open for a gap of 8 s,
 //   7 s in phase 2, 6 s in phase 3, scaled by heat and a quarter shorter in NO RETREAT, before the next; he rises to
-//   the top of a random lane and holds there while each horde marches in), DEVOUR (every 12 s while the horde stands
+//   the top of a random lane and holds there, still, while the horde marches in and for as long as any stand), DEVOUR (every 12 s while the horde stands
 //   he hooks an Immortal on his chain for 1.8 s: kill it first or he eats it for 6% of his health, 8% in phase 3,
 //   more on hotter heats), BLADE ON A CHAIN (from phase 2, every 9 s he whirls his blade over a
 //   pair of neighbouring pizzas for 2.6 s; 3 smacks snag the chain, stunning him 2 s for 5% of his health, or it slams
@@ -236,11 +236,11 @@ const immortalbrute = (): Brain => {
       });
       // the horde guards him while two or more of them stand (for a while)
       horde = horde.filter((o) => o.alive);
-      // he holds the top of the lane while the horde marches in, then fights on
-      if (pauseT > 0) {
-        pauseT -= dt;
-        if (pauseT <= 0) f.pinned = false;
-      }
+      // he holds the top of his lane, still, while the horde marches in and for as long as any Immortal stands;
+      // only once they're all down does he come for the pizzas
+      if (pauseT > 0) pauseT -= dt;
+      const hold = pauseT > 0 || standing(a) > 0;
+      if (hold !== f.pinned) f.pinned = hold;
       // killed it before he could reel it in
       if (hooked && !hooked.victim.alive) {
         hooked.end();
