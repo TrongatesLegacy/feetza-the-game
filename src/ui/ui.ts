@@ -1964,7 +1964,7 @@ class UI {
     let s: HTMLElement;
     const panel = h(
       'div',
-      { class: 'panel modal wide' },
+      { class: 'panel modal wide pedia' },
       h('div', { class: 'win-head' }, h('div', { class: 'title' }, 'PIZZAPEDIA')),
       tabs,
       detail,

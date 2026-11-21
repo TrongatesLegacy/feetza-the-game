@@ -5533,3 +5533,21 @@ body.reduced-motion *::after {
 .pz-bar {
   margin-bottom: 0.6em;
 }
+
+/* windows with tabs and filters keep one height whatever the filter shows, so switching never resizes them;
+   the list scrolls inside */
+.modal.wide.pizzeria,
+.modal.wide.pedia,
+.modal.wide.locker,
+.modal.wide.yourtops {
+  height: 94cqh;
+}
+
+.modal.wide.pizzeria .scroll,
+.modal.wide.pedia .scroll,
+.modal.wide.locker .scroll,
+.modal.wide.yourtops .scroll {
+  flex: 1 1 0;
+  min-height: 0;
+  align-self: stretch;
+}
