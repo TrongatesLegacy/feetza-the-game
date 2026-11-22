@@ -1,7 +1,7 @@
 // Props for the location kit: small things a scene sets about (bottles, lamps, flames, pots, rope and chain), each
 // one silhouette lit by the one light, with its material and one outline.
 
-import { LIGHT, spec } from '../style/kit';
+import { LIGHT, pxPerUnit, spec, texture } from '../style/kit';
 import { type Ctx, mix, rgba, shade } from '../util';
 import { type Air, type R, castShadow, ellPath, glassStreak, groundShadow, lightPool, lineAt, rim, solid, within } from './kit';
 
@@ -38,12 +38,50 @@ export function bottle(ctx: Ctx, x: number, y: number, h: number, glass: string,
     c.closePath();
   };
   const depth = o.depth ?? 0.2;
-  if (o.shadow !== false) groundShadow(ctx, x + w * 0.2, y, w * 0.7, Math.max(3, w * 0.16), 0.4);
-  solid(ctx, path, { x: x - w / 2, y: top, w, h }, 'plastic', glass, { depth, air: o.air, spec: false, formSize: w * 0.3, form: 0.7 });
+  const g0 = o.air ? mix(glass, o.air.color, Math.min(1, depth) ** 1.25 * o.air.far) : glass;
+  if (o.shadow !== false) {
+    groundShadow(ctx, x + w * 0.2, y, w * 0.7, Math.max(3, w * 0.16), 0.4);
+    // light through coloured glass lands as a tinted caustic beside its shadow
+    if (kind !== 'jar') lightPool(ctx, x + w * 0.75, y + 1, w * 0.5, Math.max(2, w * 0.1), shade(glass, 0.4), 0.35, 'screen');
+  }
+  // the glass: a cylinder of tinted glass, lit across from the left; light passing through glows in its far side
+  ctx.save();
+  path(ctx);
+  ctx.clip();
+  const cg = ctx.createLinearGradient(x - w / 2, 0, x + w / 2, 0);
+  cg.addColorStop(0, shade(g0, -0.45));
+  cg.addColorStop(0.16, shade(g0, 0.12));
+  cg.addColorStop(0.42, g0);
+  cg.addColorStop(0.7, shade(g0, -0.42));
+  cg.addColorStop(0.88, mix(shade(g0, 0.3), '#fff0c0', 0.12));
+  cg.addColorStop(1, shade(g0, -0.55));
+  ctx.fillStyle = cg;
+  ctx.fillRect(x - w, top - 4, w * 2, h + 8);
+  // the glass is thicker at the base: a darker heel, and the punt's bright ring
+  const hg = ctx.createLinearGradient(0, y - h * 0.16, 0, y);
+  hg.addColorStop(0, rgba(shade(g0, -0.6), 0));
+  hg.addColorStop(1, rgba(shade(g0, -0.6), 0.6));
+  ctx.fillStyle = hg;
+  ctx.fillRect(x - w, y - h * 0.16, w * 2, h * 0.16);
+  ctx.restore();
+  // the glass's edges are thickest seen edge-on: a dark inner band all round, the cool rim on the far side
+  innerEdgeDark(ctx, path, shade(g0, -0.7), Math.max(2, w * 0.08));
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = mix(shade(g0, -0.7), '#1a0c08', 0.4);
+  ctx.lineWidth = lineAt(depth) * 0.75;
+  path(ctx);
+  ctx.stroke();
   within(ctx, path, () => {
     // the liquid line and the darker core
     ctx.fillStyle = rgba(shade(glass, -0.5), 0.35);
     ctx.fillRect(x - w * 0.18, top + h * 0.3, w * 0.36, h * 0.7);
+    if (kind === 'wine' || kind === 'oil') {
+      const ly = top + h * (kind === 'oil' ? 0.36 : 0.4);
+      ctx.fillStyle = rgba(shade(glass, -0.35), 0.4);
+      ctx.fillRect(x - w, ly, w * 2, y - ly);
+      ctx.fillStyle = rgba(mix(glass, '#ffffff', 0.5), 0.45);
+      ctx.fillRect(x - w / 2, ly, w, 1.2);
+    }
     if (o.straw) {
       // the straw basket of a fiasco
       ctx.fillStyle = '#c89a52';
@@ -66,15 +104,30 @@ export function bottle(ctx: Ctx, x: number, y: number, h: number, glass: string,
       ctx.fillRect(x - w, y - h * 0.41, w * 2, 3);
     }
     if (o.label) {
-      ctx.fillStyle = o.label;
-      ctx.fillRect(x - w / 2, y - h * 0.36, w, h * 0.2);
-      ctx.fillStyle = rgba('#000000', 0.15);
-      ctx.fillRect(x + w * 0.1, y - h * 0.36, w * 0.4, h * 0.2);
+      // a paper label wrapped round the cylinder: lit on the left, turning into shade, a printed band and lines
+      const ly = y - h * 0.38;
+      const lh = h * 0.22;
+      const lg = ctx.createLinearGradient(x - w / 2, 0, x + w / 2, 0);
+      lg.addColorStop(0, shade(o.label, -0.15));
+      lg.addColorStop(0.25, shade(o.label, 0.08));
+      lg.addColorStop(0.6, o.label);
+      lg.addColorStop(1, mix(shade(o.label, -0.45), '#2a1a20', 0.2));
+      ctx.fillStyle = lg;
+      ctx.fillRect(x - w / 2, ly, w, lh);
+      ctx.fillStyle = rgba('#8a2a1a', 0.75);
+      ctx.fillRect(x - w / 2, ly + lh * 0.18, w, Math.max(1.5, lh * 0.14));
+      ctx.fillStyle = rgba('#3a2a20', 0.45);
+      for (let k = 0; k < 3; k++) ctx.fillRect(x - w * 0.28, ly + lh * (0.48 + k * 0.15), w * (0.56 - k * 0.12), Math.max(0.8, lh * 0.05));
+      ctx.fillStyle = rgba('#000000', 0.25);
+      ctx.fillRect(x - w / 2, ly + lh - 1, w, 1);
     }
   });
-  rim(ctx, path, 0.55, 2);
-  glassStreak(ctx, x - w * 0.28, top + h * 0.5, x - w * 0.24, y - h * 0.12, Math.max(1.2, w * 0.07), 0.6);
-  glassStreak(ctx, x - neckW * 0.2, top + 4, x - neckW * 0.2, top + h * 0.3, Math.max(1, neckW * 0.12), 0.45);
+  rim(ctx, path, 0.5, 2);
+  // the key light's reflection: a crisp streak down the left of the body and neck, and a small window glint on
+  // the right shoulder (a second light, the room's)
+  glassStreak(ctx, x - w * 0.27, top + h * 0.48, x - w * 0.25, y - h * 0.1, Math.max(1.2, w * 0.08), 0.75);
+  glassStreak(ctx, x - neckW * 0.2, top + 4, x - neckW * 0.2, top + h * 0.3, Math.max(1, neckW * 0.12), 0.55);
+  spec(ctx, x + w * 0.26, top + h * 0.58, Math.max(1.5, w * 0.06), Math.max(3, h * 0.05), 0.5, 0);
   if (o.cork) {
     ctx.beginPath();
     ctx.roundRect(x - neckW * 0.46, top - h * 0.06, neckW * 0.92, h * 0.08, 2);
@@ -84,6 +137,139 @@ export function bottle(ctx: Ctx, x: number, y: number, h: number, glass: string,
     ctx.lineWidth = lineAt(depth) * 0.6;
     ctx.stroke();
   }
+}
+
+/** A dark band inside a silhouette's edge (thick glass seen edge-on, the lip of a bowl). */
+export function innerEdgeDark(ctx: Ctx, path: (c: Ctx) => void, col: string, w: number, a = 0.6): void {
+  ctx.save();
+  path(ctx);
+  ctx.clip();
+  ctx.shadowColor = rgba(col, a);
+  ctx.shadowBlur = w * pxPerUnit(ctx);
+  path(ctx);
+  ctx.rect(-4000, -4000, 12000, 12000);
+  ctx.fillStyle = '#000';
+  ctx.fill('evenodd');
+  ctx.restore();
+}
+
+export interface DrapeOpts {
+  /** Fold spacing (px, default 22) and depth (0…1, default 0.6). */
+  fold?: number;
+  depth?: number;
+  /** Phase of the folds (so two curtains differ). */
+  phase?: number;
+  /** Folds gather towards this x at this y (a tie-back), squeezing the pattern: [x, y, strength 0…1]. */
+  gather?: [number, number, number];
+  /** Paint the cloth's pattern (called inside the clip, before the folds are shaded). */
+  pattern?: (ctx: Ctx, fold: (x: number, y: number) => number) => void;
+  /** Light glowing through the cloth from behind (a window): colour and strength. */
+  through?: [string, number];
+}
+
+/**
+ * Hanging cloth (a curtain, a towel over a rail, a banner): vertical folds, each lit on the flank that faces the
+ * key light and shaded in its valley, the valleys deepest where the cloth gathers; the pattern bends with the folds;
+ * a weave texture; light glowing through it where something bright is behind.
+ */
+export function drape(ctx: Ctx, path: (c: Ctx) => void, box: { x: number; y: number; w: number; h: number }, base: string, o: DrapeOpts = {}): void {
+  const fw = o.fold ?? 22;
+  const depth = o.depth ?? 0.6;
+  const ph = o.phase ?? 0;
+  const [gx, gy, gs] = o.gather ?? [box.x + box.w / 2, box.y + box.h, 0];
+  // how far a point sits through its fold (−1 valley … 1 crest) and the flank's slope (lit or shaded)
+  const squeeze = (x: number, y: number) => {
+    const near = Math.max(0, 1 - Math.abs(y - gy) / (box.h * 0.6));
+    return x + (gx - x) * gs * near * 0.6;
+  };
+  const fold = (x: number, y: number) => Math.sin((squeeze(x, y) - box.x) / fw * Math.PI * 2 + ph);
+  ctx.save();
+  path(ctx);
+  ctx.clip();
+  ctx.fillStyle = base;
+  ctx.fillRect(box.x, box.y, box.w, box.h);
+  o.pattern?.(ctx, fold);
+  // fold shading in vertical strips (cheap: 3 px strips, the light by the slope of the fold at mid-height and the
+  // gather near the tie)
+  for (let x = box.x; x < box.x + box.w; x += 3) {
+    for (let yi = 0; yi < 4; yi++) {
+      const y0 = box.y + (box.h * yi) / 4;
+      const ym = y0 + box.h / 8;
+      const s = Math.cos((squeeze(x, ym) - box.x) / fw * Math.PI * 2 + ph);
+      const near = gs * Math.max(0, 1 - Math.abs(ym - gy) / (box.h * 0.5));
+      const d = depth * (1 + near);
+      ctx.fillStyle = s > 0 ? rgba('#fff6e6', Math.min(0.3, s * 0.18 * d)) : rgba('#2a0a10', Math.min(0.55, -s * 0.36 * d));
+      ctx.fillRect(x, y0, 3, box.h / 4 + 1);
+    }
+  }
+  texture(ctx, 'canvas', box, 0.3, 0.9, 'overlay');
+  // the cloth's own form: lit from the top left, darker towards its foot and its far edge
+  const fg = ctx.createLinearGradient(box.x, box.y, box.x + box.w * 0.4, box.y + box.h);
+  fg.addColorStop(0, rgba(LIGHT.key, 0.12));
+  fg.addColorStop(0.5, rgba(LIGHT.key, 0));
+  fg.addColorStop(1, rgba('#2a0a10', 0.25));
+  ctx.fillStyle = fg;
+  ctx.fillRect(box.x, box.y, box.w, box.h);
+  if (o.through) {
+    ctx.globalCompositeOperation = 'screen';
+    const tg = ctx.createLinearGradient(box.x, 0, box.x + box.w, 0);
+    tg.addColorStop(0, rgba(o.through[0], 0));
+    tg.addColorStop(1, rgba(o.through[0], o.through[1]));
+    ctx.fillStyle = tg;
+    ctx.fillRect(box.x, box.y, box.w, box.h);
+  }
+  ctx.restore();
+}
+
+/** A pane of glass over what's behind it: the room's light reflected in it as soft diagonal sheen bands, a bright
+ * reflection of a lamp or window, the edge darkened where the glass meets the frame. */
+export function glassPane(ctx: Ctx, path: (c: Ctx) => void, box: { x: number; y: number; w: number; h: number }, o: { sheen?: number; tint?: string; reflect?: [number, number, number, string]; dirt?: number } = {}): void {
+  ctx.save();
+  path(ctx);
+  ctx.clip();
+  if (o.tint) {
+    ctx.fillStyle = o.tint;
+    ctx.fillRect(box.x, box.y, box.w, box.h);
+  }
+  // (plain alpha, not 'screen': a window is often baked into an overlay over a transparent canvas, where an added
+  // light has nothing to add to)
+  const a = o.sheen ?? 0.14;
+  // two broad diagonal bands and a thin one, rising to the right
+  for (const [u, bw, al] of [[0.12, 0.22, 1], [0.48, 0.08, 0.7], [0.62, 0.14, 0.5]] as const) {
+    const x0 = box.x + box.w * u;
+    const g = ctx.createLinearGradient(x0, 0, x0 + box.w * bw, 0);
+    g.addColorStop(0, 'rgba(255,255,255,0)');
+    g.addColorStop(0.5, rgba('#ffffff', a * al));
+    g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(x0, box.y + box.h);
+    ctx.lineTo(x0 + box.w * bw, box.y + box.h);
+    ctx.lineTo(x0 + box.w * bw + box.h * 0.45, box.y);
+    ctx.lineTo(x0 + box.h * 0.45, box.y);
+    ctx.closePath();
+    ctx.fill();
+  }
+  if (o.reflect) {
+    const [rx, ry, rr, col] = o.reflect;
+    const g = ctx.createRadialGradient(rx, ry, 0, rx, ry, rr);
+    g.addColorStop(0, rgba(col, 0.5));
+    g.addColorStop(0.4, rgba(col, 0.18));
+    g.addColorStop(1, rgba(col, 0));
+    ctx.fillStyle = g;
+    ctx.fillRect(rx - rr, ry - rr, rr * 2, rr * 2);
+  }
+  ctx.globalCompositeOperation = 'source-over';
+  if (o.dirt) {
+    // grime in the corners of the pane
+    const dg = ctx.createRadialGradient(box.x + box.w / 2, box.y + box.h / 2, Math.min(box.w, box.h) * 0.3, box.x + box.w / 2, box.y + box.h / 2, Math.max(box.w, box.h) * 0.75);
+    dg.addColorStop(0, 'rgba(60,40,20,0)');
+    dg.addColorStop(1, rgba('#5a4028', o.dirt));
+    ctx.fillStyle = dg;
+    ctx.fillRect(box.x, box.y, box.w, box.h);
+  }
+  ctx.restore();
+  innerEdgeDark(ctx, path, '#1a1008', 6, 0.45);
 }
 
 /** A teardrop flame (painted still; live layers use their own flickering sprites). */
