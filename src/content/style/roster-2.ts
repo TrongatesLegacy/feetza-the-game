@@ -87,6 +87,9 @@ const mound: PathFn = (c) => {
   c.bezierCurveTo(CX - 116, 214, CX - 80, 168, CX - 20, 162);
   c.bezierCurveTo(CX + 30, 156, CX + 92, 176, CX + 112, 214);
   c.bezierCurveTo(CX + 120, 232, CX + 120, 256, CX + 116, 266);
+  // a heaped base that rounds under (a ruler-flat bottom read as a crop on her peel, flipped toes-up)
+  c.bezierCurveTo(CX + 100, 278, CX + 40, 280, CX, 279);
+  c.bezierCurveTo(CX - 44, 280, CX - 104, 278, CX - 118, 266);
   c.closePath();
 };
 
@@ -115,7 +118,7 @@ registerStyle('sandy', {
       g.fillRect(CX - 104, 104, 22, 10);
     }, inkOf('#c87a4a'), { w: 3.5 });
     // the mound: damp, packed sand, darker and wetter at the bottom
-    const box = { x: CX - 122, y: 150, w: 244, h: 122 };
+    const box = { x: CX - 122, y: 150, w: 244, h: 132 };
     const toe = ell(CX + 46, 166, 20, 15, -0.3);
     prop(ctx, [mound, toe], box, (g, sil) => {
       sil.form({ base: sand, shadowTint: '#7a4a1a', ramp: 0.75, form: 0.55, formSize: 24, bevel: 0.35, rim: 0.4 });
@@ -131,7 +134,7 @@ registerStyle('sandy', {
         texture(g, 'speckle', box, 0.55, 1);
         texture(g, 'grain', box, 0.4, 1, 'soft-light');
         g.fillStyle = vgrad(g, 200, 270, [[0, rgba('#6a4010', 0)], [1, rgba('#6a4010', 0.35)]]);
-        g.fillRect(box.x, 200, box.w, 70);
+        g.fillRect(box.x, 200, box.w, 82);
         // where the ankle and toe go into the sand: soft hollows
         ao(g, CX - 8, 166, 56, 8, 0.35, 0, '#5a3008');
         ao(g, CX + 46, 178, 22, 6, 0.35, 0, '#5a3008');

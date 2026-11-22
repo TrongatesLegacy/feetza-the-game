@@ -266,7 +266,19 @@ function gWingPath(s: number, rx: number, ry: number): PathFn {
   };
 }
 
+/** The wings are drawn this much bigger than their path, round their root (they read too small in play). */
+const GWING_K = 1.45;
+
 function gWing(g: Ctx, s: number, rx: number, ry: number, stone: string, membrane: string): void {
+  g.save();
+  g.translate(rx, ry);
+  g.scale(GWING_K, GWING_K);
+  g.translate(-rx, -ry);
+  gWingAt(g, s, rx, ry, stone, membrane);
+  g.restore();
+}
+
+function gWingAt(g: Ctx, s: number, rx: number, ry: number, stone: string, membrane: string): void {
   const path = gWingPath(s, rx, ry);
   const box = { x: Math.min(rx, rx + s * 100) - 4, y: ry - 40, w: 108, h: 84 };
   prop(g, [path], box, (wg, sil) => {
@@ -408,8 +420,9 @@ function drawGarg(ctx: Ctx, art: FootArt, p: Pose, live: boolean): void {
 function gWingPart(i: number): PartDef {
   const w = GWINGS[i];
   const [rx, ry] = w.root;
-  const x = w.s < 0 ? rx - 106 : rx - 6;
-  return { box: { x, y: ry - 48, w: 112, h: 96 }, frames: 1, pivot: w.root, draw: (g, art) => gWing(g, w.s, rx, ry, art.skin, art.primary ?? '#b4603a') };
+  const k = GWING_K;
+  const x = w.s < 0 ? rx - 106 * k : rx - 6 * k;
+  return { box: { x, y: ry - 48 * k, w: 112 * k, h: 96 * k }, frames: 1, pivot: w.root, draw: (g, art) => gWing(g, w.s, rx, ry, art.skin, art.primary ?? '#b4603a') };
 }
 
 registerStyle('gargoylet', {

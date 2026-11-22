@@ -301,7 +301,8 @@ registerStyle('stan', {
 // Ectoplasm: a cold, luminous foot with a glowing core and wisps streaming off its sides. In play its core pulses and
 // it trails mist.
 
-export const GHOST: BareLook = { skin: '#cfe9ff', nails: '#8fc7ff', pores: 0.06, detail: 0.45, shadowTint: '#3a4aa8' };
+// (soft periwinkle shadows: a deep blue tint left dark bruise-like blots between the toes of the near-white foot)
+export const GHOST: BareLook = { skin: '#cfe9ff', nails: '#8fc7ff', pores: 0.06, detail: 0.35, shadowTint: '#7c94cc' };
 
 const GHOST_WISPS: [number, number, number, number, number, number][] = [
   [CX - 56, 20, Math.PI * 0.92, 40, 20, -0.9],

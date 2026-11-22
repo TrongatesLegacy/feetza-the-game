@@ -849,17 +849,26 @@ export const KELP: [number, number, number][] = [
   [CX + 54, 30, 1],
 ];
 
-const kelpPath = (i: number): PathFn => (c) => {
+/** The kelp blade's centre x, y and half width at t (0 root … 1 tip). */
+const kelpAt = (i: number, t: number): [number, number, number] => {
   const [x, y, s] = KELP[i];
+  const cx = x + s * (4 + Math.sin(t * 7.5) * 7 + t * 12);
+  // a blade: a narrow stipe at the root, widest two thirds down, ruffled all along its edges
+  const hw = (2.2 + Math.sin(Math.min(1, t * 1.25) * Math.PI * 0.85) * 9) * (1 - t * 0.25) + Math.sin(t * 46) * 1.6 * Math.min(1, t * 4);
+  return [cx, y + t * 124, Math.max(1.6, hw)];
+};
+
+const kelpPath = (i: number): PathFn => (c) => {
+  const N = 40;
   c.beginPath();
-  c.moveTo(x - 4, y);
-  for (let j = 0; j <= 10; j++) {
-    const t = j / 10;
-    c.lineTo(x + s * (6 + Math.sin(t * 9) * 6) - 5 + t * s * 10, y + t * 120);
+  for (let j = 0; j <= N; j++) {
+    const [cx, cy, hw] = kelpAt(i, j / N);
+    if (j) c.lineTo(cx - hw, cy);
+    else c.moveTo(cx - hw, cy);
   }
-  for (let j = 10; j >= 0; j--) {
-    const t = j / 10;
-    c.lineTo(x + s * (6 + Math.sin(t * 9 + 0.6) * 6) + 6 - t * 3 + t * s * 10, y + t * 120);
+  for (let j = N; j >= 0; j--) {
+    const [cx, cy, hw] = kelpAt(i, j / N);
+    c.lineTo(cx + hw * (1 + Math.sin(j * 1.9) * 0.08), cy);
   }
   c.closePath();
 };
@@ -867,22 +876,78 @@ const kelpPath = (i: number): PathFn => (c) => {
 function paintKelp(g: Ctx, i: number): void {
   const [x, y] = KELP[i];
   clip(g, kelpPath(i), () => {
-    g.fillStyle = lin(g, x - 14, y, x + 14, y, [
-      [0, '#6ac04a'],
-      [0.5, '#2f7a2a'],
-      [1, '#12401a'],
+    // olive at the stipe, through deep green, to a translucent golden tip
+    g.fillStyle = lin(g, 0, y, 0, y + 124, [
+      [0, '#4a5a22'],
+      [0.25, '#2f7a2a'],
+      [0.7, '#4f9a32'],
+      [1, '#b8c04a'],
     ]);
-    g.fillRect(x - 30, y - 4, 60, 130);
-    for (let j = 1; j < 10; j++) {
-      g.strokeStyle = rgba('#0a2a10', 0.45);
-      g.lineWidth = 1;
+    g.fillRect(x - 40, y - 4, 80, 132);
+    // across the blade: lit on the left, shaded on the right, so it reads as a curled ribbon
+    const N = 24;
+    for (let j = 0; j < N; j++) {
+      const [cx, cy, hw] = kelpAt(i, j / N);
+      const [nx, ny, nw] = kelpAt(i, (j + 1) / N);
+      const w = Math.max(hw, nw);
+      g.fillStyle = lin(g, cx - w, 0, cx + w, 0, [
+        [0, rgba('#e8ff9a', 0.35)],
+        [0.35, rgba('#ffffff', 0.05)],
+        [0.55, rgba('#000000', 0)],
+        [1, rgba('#06200a', 0.55)],
+      ]);
       g.beginPath();
-      g.moveTo(x - 20, y + j * 12);
-      g.lineTo(x + 20, y + j * 12 + 4);
+      g.moveTo(cx - hw - 1, cy);
+      g.lineTo(nx - nw - 1, ny + 0.6);
+      g.lineTo(nx + nw + 1, ny + 0.6);
+      g.lineTo(cx + hw + 1, cy);
+      g.closePath();
+      g.fill();
+    }
+    // the ruffles: fine ridges running from the midrib out to the wavy edge
+    g.lineCap = 'round';
+    for (let j = 2; j < 60; j++) {
+      const [cx, cy, hw] = kelpAt(i, j / 60);
+      for (const side of [-1, 1]) {
+        g.strokeStyle = rgba(side < 0 ? '#d8f08a' : '#0a2a10', side < 0 ? 0.22 : 0.3);
+        g.lineWidth = 0.8;
+        g.beginPath();
+        g.moveTo(cx + side * 1.2, cy);
+        g.quadraticCurveTo(cx + side * hw * 0.6, cy + 1.5, cx + side * hw, cy + 3);
+        g.stroke();
+      }
+    }
+    // the midrib: a dark groove with a lit lip down the blade
+    for (const [col, w, dx] of [['#1a3a10', 1.6, 0.6], ['#e8ffb0', 0.8, -0.6]] as const) {
+      g.strokeStyle = rgba(col, col === '#1a3a10' ? 0.6 : 0.45);
+      g.lineWidth = w;
+      g.beginPath();
+      for (let j = 0; j <= 30; j++) {
+        const [cx, cy] = kelpAt(i, j / 30);
+        if (j) g.lineTo(cx + dx, cy);
+        else g.moveTo(cx + dx, cy);
+      }
       g.stroke();
     }
-    spec(g, x - 4, y + 40, 3, 30, 0.35, 0);
+    // a wet sheen down the lit edge
+    streak(g, (cc) => {
+      for (let j = 6; j <= 30; j++) {
+        const [cx, cy, hw] = kelpAt(i, j / 34);
+        if (j > 6) cc.lineTo(cx - hw * 0.55, cy);
+        else cc.moveTo(cx - hw * 0.55, cy);
+      }
+    }, 1.2, 0.3);
   });
+  // little air bladders where the blade meets the stipe, glossy, sitting proud of it
+  for (const t of [0.1, 0.19]) {
+    const [cx, cy] = kelpAt(i, t);
+    fill(g, ell(cx, cy, 4, 4.8), rad(g, cx - 1.2, cy - 1.5, 0.3, cx, cy, 5, [
+      [0, '#f0f8b0'],
+      [0.5, '#8aa83a'],
+      [1, '#3a5a1a'],
+    ]));
+    spec(g, cx - 1.3, cy - 1.7, 1.6, 1.1, 0.8, -0.6);
+  }
 }
 
 function drawKraken(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
@@ -981,7 +1046,7 @@ registerStyle('kraken', {
   leg: { kind: 'skin', hw: 58, join: 'blend', fade: 26 },
   parts: Object.fromEntries(
     KELP.map(([x, y, s], i) => {
-      const box = { x: x - 30, y: y - 4, w: 60, h: 132 };
+      const box = { x: x - 34, y: y - 4, w: 68, h: 136 };
       return [
         `kelp${i}`,
         {
@@ -1242,19 +1307,25 @@ const yetiSki: PathFn = (c) => {
   c.closePath();
 };
 
-/** The fur ruff spilling out of the cuff: a bumpy crown of fluff. */
+/** The fur ruff spilling out of the cuff: shaggy locks hanging over the boot's top, tips pointing down. */
 const yetiRuff: PathFn = (c) => {
   c.beginPath();
   const r = rng(hashStr('yeti-ruff'));
-  c.moveTo(CX - 96, 46);
-  // a row of fluffy lobes along the cuff
-  for (let i = 0; i < 9; i++) {
-    const x = CX - 86 + i * 21.5;
-    const rr = 13 + r() * 5;
-    c.arc(x, 12 + r() * 6, rr, Math.PI * 0.95, Math.PI * 2.05);
+  // the top: a soft mound of fur round the leg
+  c.moveTo(CX - 104, 30);
+  c.bezierCurveTo(CX - 108, 6, CX - 80, -6, CX, -6);
+  c.bezierCurveTo(CX + 80, -6, CX + 110, 6, CX + 106, 30);
+  // the bottom: locks of fur, each a tapering point with a little hook, longest in the middle
+  const n = 13;
+  for (let i = n; i >= 0; i--) {
+    const x = CX - 104 + (i / n) * 210;
+    const mid = 1 - Math.abs(i / n - 0.5) * 1.2;
+    const len = 10 + mid * 12 + r() * 7;
+    const hook = (r() - 0.5) * 8;
+    // a soft, rounded clump of hair (pointed tips read as icicles)
+    c.bezierCurveTo(x + 13, 36 + len * 0.3, x + 11 + hook, 34 + len, x + 4 + hook, 34 + len);
+    c.bezierCurveTo(x - 2 + hook, 34 + len, x - 3, 38 + len * 0.45, x - 4, 36);
   }
-  c.lineTo(CX + 98, 46);
-  c.quadraticCurveTo(CX, 58, CX - 96, 46);
   c.closePath();
 };
 
@@ -1276,18 +1347,23 @@ const tuftPathY = (i: number): PathFn => {
 };
 
 function paintFluff(g: Ctx, r: () => number, area: { x: number; y: number; w: number; h: number }, white: string): void {
-  g.fillStyle = lin(g, area.x, area.y, area.x + area.w, area.y + area.h, [
-    [0, '#ffffff'],
-    [0.6, white],
-    [1, '#8a98b0'],
+  // shaggy yeti fur: ivory with warm grey-brown depths (not frost), clumped into locks that hang down
+  const ivory = mix(white, '#f4e8d0', 0.55);
+  const deep = '#7a6a58';
+  g.fillStyle = lin(g, area.x, area.y, area.x + area.w * 0.6, area.y + area.h, [
+    [0, '#fffaf0'],
+    [0.5, ivory],
+    [1, '#a49a8e'],
   ]);
   g.fillRect(area.x, area.y, area.w, area.h);
-  furCoat(g, r, area, () => Math.PI / 2 + (r() - 0.5) * 1.6, white, '#7a88a8', { n: (area.w * area.h) / 30000, len: 14 });
-  // soft shading at the bottom of each lobe
+  // the dark gaps between locks first, then strands combed down along each lock
+  furCoat(g, r, area, (x) => Math.PI / 2 + Math.sin(x * 0.29) * 0.35, ivory, deep, { n: (area.w * area.h) / 16000, len: 20, w: 1.15 });
+  furCoat(g, r, area, (x) => Math.PI / 2 + Math.sin(x * 0.29) * 0.25, mix(ivory, '#ffffff', 0.4), shade(ivory, -0.3), { n: (area.w * area.h) / 40000, len: 16 });
+  // light from the top left on the mound, shadow under the locks
   g.fillStyle = lin(g, 0, area.y, 0, area.y + area.h, [
-    [0, rgba('#ffffff', 0.2)],
-    [0.6, rgba('#ffffff', 0)],
-    [1, rgba('#3a4a6a', 0.35)],
+    [0, rgba('#ffffff', 0.25)],
+    [0.45, rgba('#ffffff', 0)],
+    [1, rgba('#4a4038', 0.45)],
   ]);
   g.fillRect(area.x, area.y, area.w, area.h);
 }
@@ -1410,7 +1486,7 @@ function drawYeti(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
     c.fill();
   }, 0.55, 3, 6);
   const r = rng(hashStr('yeti-fluff'));
-  clip(g, yetiRuff, () => paintFluff(g, r, { x: CX - 112, y: -8, w: 226, h: 66 }, white));
+  clip(g, yetiRuff, () => paintFluff(g, r, { x: CX - 112, y: -8, w: 226, h: 84 }, white));
   if (!o.live) YETI_TUFTS.forEach((_, i) => clip(g, tuftPathY(i), () => paintFluff(g, r, { x: CX - 130, y: -20, w: 262, h: 60 }, white)));
   lightAll(sil, 0.4, 20, 0.6);
   sil.finish(inkOf(red), { openTop: -2 });

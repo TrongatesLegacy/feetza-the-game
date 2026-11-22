@@ -37,6 +37,9 @@ function giantIcicles(toes: StyleToe[]): { x: number; y: number; len: number; w:
   return out;
 }
 
+/** The Frost Giant's skin in the style kit (see its draw). */
+export const FROST_GIANT_SKIN = '#7fa6d0';
+
 registerStyle('frostgiant', {
   contactY: 262,
   halfWidth: 116,
@@ -44,7 +47,9 @@ registerStyle('frostgiant', {
   leg: { kind: 'skin', hw: 58, join: 'blend', fade: 24 },
   draw(ctx, art, p, o) {
     if (o.emissive || o.heat) return;
-    const skin = art.skin;
+    // a deeper glacial blue than the data's pale skin, so the giant holds its own against the snowy Jotunheim
+    // backdrop (its leg takes the same colour: legs-final.ts)
+    const skin = FROST_GIANT_SKIN;
     const f = bareWith(ctx, { ...GIANT, skin, nails: mix(art.nails ?? '#e8f6ff', '#5aa8e0', 0.35) }, p, (g, ft) => {
       const r = rng(hashStr('giant-frost'));
       // boulder toes: a stony grain over the knuckles, deep cold in the clefts
@@ -65,8 +70,8 @@ registerStyle('frostgiant', {
         }, rgba('#3a5ac8', 0.18), 3, 1.4);
       }
       // hoarfrost: a crust on the top of the foot and over the toes, thickest where the cold settles
-      hoarfrost(g, { x: CX - 110, y: -30, w: 220, h: 120 }, r, 0.45, 93, 40, 0.2, 0.6);
-      hoarfrost(g, { x: CX - 120, y: 180, w: 240, h: 50 }, r, 0.3, 95, 30, 0.5, 0.3);
+      hoarfrost(g, { x: CX - 110, y: -30, w: 220, h: 120 }, r, 0.3, 93, 40, 0.2, 0.6);
+      hoarfrost(g, { x: CX - 120, y: 180, w: 240, h: 50 }, r, 0.22, 95, 30, 0.5, 0.3);
       // each boulder toe: cold in the clefts, a snow cap on its knuckle, lit on its crown
       for (let i = 0; i < ft.toes.length - 1; i++) {
         const a = ft.toes[i];

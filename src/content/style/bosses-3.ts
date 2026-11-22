@@ -593,32 +593,110 @@ function drawShortOrder(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
     g.fillRect(box.x, -8, box.w, 270);
     texture(g, 'rubber', box, 0.2);
     spec(g, CX - 44, 130, 60, 36, 0.45, -0.5);
-    // grease: translucent amber stains, and splashes of red sauce
-    blotches(g, box, '#c89a40', 0.16, 20, 0.6, 0.15, 105);
+    // grease: soaked-in oil stains, each a translucent amber patch with a darker tide-mark round its edge
+    blotches(g, box, '#c89a40', 0.12, 20, 0.6, 0.15, 105);
     const r = rng(hashStr('short-sauce'));
-    for (const [x, y, s] of [[CX + 30, 120, 1], [CX - 50, 200, 0.8], [CX + 60, 196, 0.6], [CX - 20, 80, 0.5]] as const) {
-      const blob: PathFn = (c) => {
+    for (const [x, y, rx, ry] of [[CX - 46, 104, 22, 15], [CX + 52, 150, 16, 12], [CX - 12, 214, 18, 9]] as const) {
+      const stain: PathFn = (c) => {
         c.beginPath();
-        for (let i = 0; i <= 14; i++) {
-          const a = (i / 14) * Math.PI * 2;
-          const rr = (i % 2 ? 9 : 14) * s * (0.8 + r() * 0.4);
-          if (i) c.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
-          else c.moveTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+        for (let i = 0; i <= 18; i++) {
+          const a = (i / 18) * Math.PI * 2;
+          const k = 0.82 + Math.sin(a * 3 + x) * 0.1 + Math.sin(a * 5 + y) * 0.06;
+          if (i) c.lineTo(x + Math.cos(a) * rx * k, y + Math.sin(a) * ry * k);
+          else c.moveTo(x + Math.cos(a) * rx * k, y + Math.sin(a) * ry * k);
         }
         c.closePath();
       };
-      fill(g, blob, rad(g, x - 4 * s, y - 4 * s, 1, x, y, 15 * s, [
-        [0, '#ff5a4a'],
-        [1, '#a80c10'],
-      ]));
-      // a drip running down from the splash
-      g.fillStyle = '#b8141a';
-      g.beginPath();
-      g.roundRect(x - 3 * s, y, 6 * s, 26 * s, 3 * s);
-      g.fill();
-      fill(g, ell(x, y + 26 * s, 4.5 * s, 5 * s), '#b8141a');
-      spec(g, x - 4 * s, y - 4 * s, 4 * s, 2.5 * s, 0.9, -0.5);
+      softFill(g, stain, rgba('#d8a040', 0.28), 2.5, 'multiply');
+      clip(g, stain, () => {
+        g.strokeStyle = rgba('#8a5a10', 0.35);
+        g.lineWidth = 2.2;
+        stain(g);
+        g.stroke();
+      });
+      spec(g, x - rx * 0.3, y - ry * 0.3, rx * 0.4, ry * 0.25, 0.25, -0.4, '#fff6d8');
     }
+    // ketchup: glossy splashes, round-lobed with flung droplets, one with a fat drip running down
+    // a splash: a round pool with a few rounded lobes run out of it (overlapping circles, one winding: a union)
+    const splash = (x: number, y: number, s: number, seed: number): PathFn => (c) => {
+      const rr = rng(seed);
+      c.beginPath();
+      c.ellipse(x, y, 11 * s, 9.5 * s, 0, 0, Math.PI * 2);
+      for (let i = 0; i < 5; i++) {
+        const a = (i / 5) * Math.PI * 2 + rr() * 0.8;
+        const d = (8 + rr() * 4) * s;
+        const lr = (4.5 + rr() * 3) * s;
+        const lx = x + Math.cos(a) * d;
+        const ly = y + Math.sin(a) * d * 0.85;
+        c.moveTo(lx + lr, ly);
+        c.ellipse(lx, ly, lr, lr * 0.9, 0, 0, Math.PI * 2);
+      }
+    };
+    const sauce = (path: PathFn, x: number, y: number, rr: number) => {
+      contact(g, (c) => {
+        path(c);
+        c.fill();
+      }, 0.3, 1.2, 1.5);
+      fill(g, path, rad(g, x - rr * 0.35, y - rr * 0.35, 1, x, y, rr * 1.2, [
+        [0, '#ff6a50'],
+        [0.5, '#e8261c'],
+        [1, '#a8120e'],
+      ]));
+    };
+    for (const [x, y, s, drip] of [[CX + 26, 112, 1.45, 1], [CX - 50, 176, 1.15, 0], [CX + 60, 200, 0.85, 1]] as const) {
+      const p = splash(x, y, s, Math.floor(x * 7 + y));
+      sauce(p, x, y, 15 * s);
+      if (drip) {
+        const len = 30 * s;
+        const d: PathFn = (c) => {
+          c.beginPath();
+          c.moveTo(x - 4 * s, y + 4 * s);
+          c.bezierCurveTo(x - 3.5 * s, y + len * 0.5, x - 2 * s, y + len * 0.8, x - 4.5 * s, y + len);
+          c.arc(x, y + len, 4.6 * s, Math.PI, 0, true);
+          c.bezierCurveTo(x + 2 * s, y + len * 0.8, x + 3.5 * s, y + len * 0.5, x + 4 * s, y + 4 * s);
+          c.closePath();
+        };
+        sauce(d, x, y + len * 0.6, 8 * s);
+        spec(g, x - 1.6 * s, y + len - 1.5 * s, 1.8 * s, 1.2 * s, 0.85, -0.5);
+      }
+      // flung droplets round the splash
+      for (let i = 0; i < 4; i++) {
+        const a = r() * Math.PI * 2;
+        const d = (19 + r() * 8) * s;
+        const dr = (2 + r() * 2.4) * s;
+        sauce(ell(x + Math.cos(a) * d, y + Math.sin(a) * d * 0.85, dr, dr * 0.85), x + Math.cos(a) * d, y + Math.sin(a) * d * 0.85, dr);
+      }
+      // the wet shine: a hot highlight and a soft one on the lit side
+      spec(g, x - 5 * s, y - 5 * s, 6 * s, 3.2 * s, 0.9, -0.5);
+      glint(g, x - 6 * s, y - 6 * s, 2.2 * s, 0.85);
+    }
+    // a zigzag of mustard where the line cook squeezed past
+    const mus = (c: Ctx) => {
+      c.moveTo(CX - 40, 60);
+      for (let i = 1; i <= 6; i++) c.quadraticCurveTo(CX - 40 + i * 9 - 4.5, 60 + (i % 2 ? -9 : 9), CX - 40 + i * 9, 60 + (i % 2 ? 5 : -2));
+    };
+    g.save();
+    g.lineCap = 'round';
+    g.lineJoin = 'round';
+    g.strokeStyle = rgba('#5a3a00', 0.3);
+    g.lineWidth = 6;
+    g.translate(1.2, 1.6);
+    g.beginPath();
+    mus(g);
+    g.stroke();
+    g.translate(-1.2, -1.6);
+    g.strokeStyle = '#e8b81a';
+    g.lineWidth = 4.6;
+    g.beginPath();
+    mus(g);
+    g.stroke();
+    g.strokeStyle = rgba('#fff4b0', 0.75);
+    g.lineWidth = 1.3;
+    g.translate(-0.8, -1);
+    g.beginPath();
+    mus(g);
+    g.stroke();
+    g.restore();
     // a char mark from the flat-top
     softFill(g, ell(CX - 60, 150, 16, 8, 0.4), rgba('#2a1a10', 0.35), 4);
     // the vents and the rolled collar
@@ -1026,7 +1104,7 @@ registerStyle('ufotoe', {
 
 // ════════════════════════════ DOUGH BOY ════════════════════════════
 
-const DOUGH_EYES = { y: 96, dx: 30, rx: 11, ry: 13 };
+const DOUGH_EYES = { y: 100, dx: 38, rx: 15, ry: 18 };
 const DOUGH_BLINK = 5;
 
 function doughEyes(g: Ctx, dough: string, blink: number): void {
@@ -1083,12 +1161,35 @@ function drawDough(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
   // a poke mark from a finger, and rosy cheeks
   softFill(g, ell(CX + 58, 160, 9, 7), rgba('#8a5010', 0.3), 3);
   spec(g, CX + 56, 164, 6, 3, 0.4, 0);
-  for (const s of [-1, 1]) softFill(g, ell(CX + s * 48, 130, 14, 8), rgba('#ff8a7a', 0.35), 5);
-  // the smile
+  for (const s of [-1, 1]) softFill(g, ell(CX + s * 60, 142, 19, 11), rgba('#ff7a6a', 0.42), 6);
+  // the smile: a big open grin pressed into the dough, a dark mouth with a soft tongue and a lit lower lip
+  const mouth: PathFn = (c) => {
+    c.beginPath();
+    c.moveTo(CX - 34, 140);
+    c.quadraticCurveTo(CX, 150, CX + 34, 140);
+    c.quadraticCurveTo(CX + 26, 178, CX, 180);
+    c.quadraticCurveTo(CX - 26, 178, CX - 34, 140);
+    c.closePath();
+  };
+  softFill(g, mouth, rgba('#6a3a10', 0.35), 4);
+  fill(g, mouth, rad(g, CX, 150, 2, CX, 162, 36, [
+    [0, '#4a1a10'],
+    [1, '#2a0a06'],
+  ]));
+  clip(g, mouth, () => {
+    fill(g, ell(CX + 4, 182, 20, 12), rad(g, CX, 176, 1, CX + 4, 182, 20, [
+      [0, '#ff8a8a'],
+      [1, '#c8404a'],
+    ]));
+  });
   crease(g, (c) => {
-    c.moveTo(CX - 24, 132);
-    c.quadraticCurveTo(CX, 154, CX + 24, 132);
-  }, 3, '#6a3a10', 0.75, 0.4);
+    c.moveTo(CX - 36, 139);
+    c.quadraticCurveTo(CX, 149, CX + 36, 139);
+  }, 3, '#6a3a10', 0.8, 0.35);
+  crease(g, (c) => {
+    c.moveTo(CX - 28, 168);
+    c.quadraticCurveTo(CX, 186, CX + 28, 168);
+  }, 2.2, '#6a3a10', 0.4, 0.55);
   if (!o.live) doughEyes(g, dough, 0);
   bareOutline(f, inkOf(shade(dough, -0.2)));
   void bareParts;

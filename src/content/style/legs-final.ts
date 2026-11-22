@@ -16,6 +16,9 @@ registerLeg('echoclown', { kind: 'plate', color: '#d6262f', accent: '#ffd400' })
 // The Valkyrie's clogs ride on copper plate with gold trim (the old leg's colour; the iron default was grey).
 registerLeg('valkyrie', { kind: 'plate', color: '#c98a3a', accent: '#f2c14e' });
 
+// The Frost Giant's skin is drawn a deeper glacial blue than its data's (acts-d-3.ts): its leg follows.
+registerLeg('frostgiant', { color: '#7fa6d0' });
+
 // Plaster of Paris with felt-tip doodles and signatures down the cast, as the old leg had.
 registerLegKind('cast', {
   tint: '#4a5070',
