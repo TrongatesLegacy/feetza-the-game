@@ -1118,7 +1118,8 @@ registerLegacyScene('kitchen', {
   draw: drawKitchen,
 });
 
-registerScene('oldtown', {
+// (redrawn with the location kit in scene-oldtown.ts; this stays for the before/after page, ?dev&stages)
+registerLegacyScene('oldtown', {
   info: {
     name: 'Old Town Rooftops',
     subtitle: 'Waves 36–39',
