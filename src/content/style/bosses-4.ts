@@ -223,7 +223,11 @@ function drawPigeon(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
     cc.fill();
   }, 0.6, 4, 6);
   paintRuff(g, slate, box);
-  // the crown round the shin
+  // the crown round the shin (a third bigger than drawn: it's what makes him the king, and read too small in play)
+  g.save();
+  g.translate(CX, 184);
+  g.scale(1.38, 1.38);
+  g.translate(-CX, -184);
   const crown: PathFn = (cc) => {
     cc.beginPath();
     cc.moveTo(CX - 30, 200);
@@ -244,6 +248,7 @@ function drawPigeon(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
       [1, shade(col, -0.5)],
     ]), 0.4);
   glint(g, CX - 22, 172, 5, 0.9);
+  g.restore();
   lightAll(sil, 0.38, 16, 0.55);
   sil.finish(inkOf(slate), { openTop: -5 });
 }

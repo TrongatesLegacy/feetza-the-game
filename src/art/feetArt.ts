@@ -1249,7 +1249,9 @@ export function styledCanvas(type: FootType, p: Pose, o: DrawOpts, band?: { y0: 
   st.draw(ctx, type.art, p, o);
   // hand the canvas back in plain texture pixels (callers cut and fade it)
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  if (!band && st.leg?.join === 'blend') fadeFootTop(c, s, PAD_Y, st.leg.fade ?? 22, CX + PAD_X, st.leg.fadeSpan ?? st.leg.hw);
+  // (the leg as drawn, with any registerLeg override, so play fades the same as the still art)
+  const leg = st.leg ? resolvedLeg(type, st.leg).spec : undefined;
+  if (!band && leg?.join === 'blend') fadeFootTop(c, s, PAD_Y, leg.fade ?? 22, CX + PAD_X, leg.fadeSpan ?? leg.hw);
   return c;
 }
 

@@ -112,7 +112,7 @@ registerLive('soleprop', {
   wiggle: true,
   rig: { swing: 0.5, squash: 0.6, breath: 1.2 },
   glow: { rate: 0.35, depth: 0.4, base: 0.45 },
-  heat: {},
+  heat: { boost: 0 },
   setup(k) {
     const key = k.sheet('lk_soleprop_coin', 44, 44, 8, (g, i) => {
       const w = Math.max(0.12, Math.abs(Math.cos((i / 8) * Math.PI)));
@@ -187,7 +187,7 @@ registerLive('ghostfuture', {
   wiggle: true,
   rig: { swing: 1.1, squash: 0.8, breath: 1.4 },
   glow: { rate: 2.4, depth: 0.25, base: 0.55 },
-  heat: {},
+  heat: { boost: 0 },
   setup(k) {
     const res = footRes(k.f.type);
     const { x, y, r } = GF_CLOCK;
@@ -278,7 +278,7 @@ registerLive('soleunbound', {
   wiggle: true,
   rig: { swing: 0.6, squash: 0.8, breath: 1.4 },
   glow: { rate: 0.8, depth: 0.45, base: 0.6 },
-  heat: {},
+  heat: { boost: 0 },
   sway: {
     chainL: { k: 30, c: 3, gain: 1.4, idle: 0.12, flop: 1, below: true },
     chainR: { k: 34, c: 3.2, gain: 1.4, idle: 0.12, flop: -1, below: true },

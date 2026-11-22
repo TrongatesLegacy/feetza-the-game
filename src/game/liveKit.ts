@@ -668,8 +668,9 @@ export interface LiveDef<S = unknown> {
   twitch?: Record<string, { every?: number }>;
   /** Add the style's emissive layer as a glow that pulses (rate Hz, depth 0…1). */
   glow?: { rate?: number; depth?: number; base?: number };
-  /** Add the style's heat layer for the overheat state; heat(f) gives the target 0…1 (default: bosses' phase/HP). */
-  heat?: { of?: (f: Foot) => number };
+  /** Add the style's heat layer for the overheat state; heat(f) gives the target 0…1 (default: bosses' phase/HP).
+   * `boost` is the second, slower pass's strength (default 1; 0 for pale or glowing art the doubled light washes out). */
+  heat?: { of?: (f: Foot) => number; boost?: number };
   /** Make textures, emitters and critters (once, on the foot's first live frame); returns the state tick gets. */
   setup?(k: LiveFoot): S;
   /** Every frame: emit, steer critters. `k.heat` is the current overheat (0…1). */
@@ -890,7 +891,7 @@ export class LiveFoot {
       // fade with the foot (hidden, glitching or phasing)
       this.heatImg.setAlpha(this.heat * flick * f.visualAlpha);
       // the second pass breathes slower, so the heat swells and ebbs
-      this.heatImg2?.setAlpha(this.heat * (0.32 + 0.2 * Math.sin(this.t * 2.3)) * f.visualAlpha);
+      this.heatImg2?.setAlpha(this.heat * (0.32 + 0.2 * Math.sin(this.t * 2.3)) * (this.def.heat?.boost ?? 1) * f.visualAlpha);
     }
     // ——— glow ———
     if (this.glowImg) {

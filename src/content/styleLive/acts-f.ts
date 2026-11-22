@@ -238,7 +238,7 @@ registerLive('zeus', {
     wingR: { k: 50, c: 3, gain: -1, idle: 0.25 },
   },
   glow: { rate: 2.6, depth: 0.6, base: 0.5 },
-  heat: {},
+  heat: { boost: 0 },
   setup: (k) => ({
     steam: steamEm(k),
     arcs: k.emitter({ frame: 'spark', add: true, drag: 1.4, max: 60 }),

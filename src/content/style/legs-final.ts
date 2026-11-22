@@ -19,6 +19,12 @@ registerLeg('valkyrie', { kind: 'plate', color: '#c98a3a', accent: '#f2c14e' });
 // The Frost Giant's skin is drawn a deeper glacial blue than its data's (acts-d-3.ts): its leg follows.
 registerLeg('frostgiant', { color: '#7fa6d0' });
 
+// Stiletto Sasha's dark tights over a bare foot: a long fade smeared them into a muddy brown; a short one is a crisp
+// stocking edge.
+registerLeg('sasha', { fade: 8 });
+// Jörmungandr's head fades into the serpent's neck over a longer run (a short one left a hard line).
+registerLeg('jormungandr', { fade: 40 });
+
 // Plaster of Paris with felt-tip doodles and signatures down the cast, as the old leg had.
 registerLegKind('cast', {
   tint: '#4a5070',

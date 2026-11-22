@@ -292,7 +292,7 @@ class Showcase extends Phaser.Scene {
       if (!f) continue;
       f.puppet = true;
       f.setState('hover');
-      f.cropLeg(((e.y + 8 - layer.y) / k - f.root.y) / f.root.scaleY);
+      f.cropLeg(((e.y + 4 - layer.y) / k - f.root.y) / f.root.scaleY);
     }
     const label = this.add.text(e.x + e.w / 2, e.y + e.h - 30, e.styled ? 'old  ·  new' : 'unchanged', { fontFamily: 'Fredoka, system-ui, sans-serif', fontSize: '15px', color: '#ffe9c7' }).setOrigin(0.5, 0).setAlpha(0.55).setDepth(-e.y + 0.5);
     e.pair = { old, neu, t: (e.y * 0.0013 + e.x * 0.002) % 3.6, layer, label, keys };
@@ -337,7 +337,7 @@ class Showcase extends Phaser.Scene {
       if (!p) continue;
       // off screen (but kept): don't animate, just keep the legs on their cards
       if (e.y > top + vh + 40 || e.y + e.h < top - 40) {
-        for (const f of [p.old, p.neu]) f?.cropLeg(((e.y + 8 - p.layer.y) / p.layer.scaleX - f.root.y) / f.root.scaleY);
+        for (const f of [p.old, p.neu]) f?.cropLeg(((e.y + 4 - p.layer.y) / p.layer.scaleX - f.root.y) / f.root.scaleY);
         continue;
       }
       p.t = (p.t + dt) % 3.6;
@@ -378,7 +378,7 @@ class Showcase extends Phaser.Scene {
         if (IMMORTAL_LIVE[f.type.id]) IMMORTAL_LIVE[f.type.id](f, dt);
         else styleLive(f, dt);
         // the leg stops at the card's top (cards above draw over anything that pokes past)
-        f.cropLeg(((e.y + 8 - p.layer.y) / k - f.root.y) / f.root.scaleY);
+        f.cropLeg(((e.y + 4 - p.layer.y) / k - f.root.y) / f.root.scaleY);
       }
     }
   }
@@ -417,8 +417,8 @@ const SHEET_CSS = `
 @media (max-width:900px){.ss-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .ss-fc{position:relative;aspect-ratio:400/380;border-radius:12px;background:radial-gradient(ellipse at 50% 35%,#3a2a44,#1d1422 75%);overflow:hidden}
 .ss-fc.boss{background:radial-gradient(ellipse at 50% 35%,#4a2630,#1d1016 75%);box-shadow:inset 0 0 0 2px #ff8a1a55}
-.ss-fc .nm{position:absolute;left:10px;top:8px;right:10px;color:#ffe9c7;font:600 14px Fredoka,system-ui,sans-serif;text-shadow:0 1px 2px #000}
-.ss-fc .tg{position:absolute;right:8px;bottom:8px;font:600 11px Fredoka,system-ui,sans-serif;color:#1d1422;background:#ffcf6a;border-radius:6px;padding:1px 6px}
+.ss-fc .nm{position:absolute;left:8px;top:6px;max-width:calc(100% - 16px);z-index:3;color:#ffe9c7;font:600 14px Fredoka,system-ui,sans-serif;background:#1d1422cc;border-radius:7px;padding:2px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ss-fc .tg{position:absolute;right:8px;bottom:8px;z-index:3;font:600 11px Fredoka,system-ui,sans-serif;color:#1d1422;background:#ffcf6a;border-radius:6px;padding:1px 6px}
 .ss-fc .tg.un{background:#9fd8ff}
 .ss-wrap.bossonly .ss-feet{display:none}
 `;
