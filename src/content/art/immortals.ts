@@ -752,7 +752,7 @@ const IMM_REST = styleToes([
 export const TOES: [number, number, number, number][] = IMM_REST.map((t) => [t.cx - CX, t.cy, t.rx, t.ry]);
 
 /** The box the Immortal's toe band covers (mock frame), with room for curl, splay and outlines. */
-export const IMM_TOE_BOX = { x: -112, y: 214, w: 224, h: 112 };
+export const IMM_TOE_BOX = { x: -122, y: 214, w: 244, h: 112 };
 
 /** Run `fn` in a toe's own frame: origin at its centre, y running from its root (−ry) to its tip (+ry). */
 function inToeFrame(x: Ctx, t: StyleToe, fn: () => void): void {
