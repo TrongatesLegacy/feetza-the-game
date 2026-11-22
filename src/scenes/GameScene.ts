@@ -86,6 +86,8 @@ type CounterOffer = CounterSnap & { kind: NonNullable<CounterSnap['kind']> };
 const EVENT_RATE: Record<HeatId, number> = { mild: 0.35, regular: 0.25, hot: 0.22, extrahot: 0.2, inferno: 0.18 };
 const EVENT_CRUST_CAP = 3;
 const FRESH_START = [10, 8, 6, 9, 7];
+/** How long a wave event can still be smacked after the wave ends (the shop waits for it). */
+const EVENT_GRACE_MS = 4000;
 
 /** Coins you have after clearing wave 1, at least: enough for a common topping (35 at wave 1). */
 const WAVE1_MIN_COINS = 35;
@@ -1768,7 +1770,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       ui.hud.tutorial(false);
     }
     this.run.combo = 0;
-    this.clickables = [];
+    // wave events (a chest that dropped right at the end) stay clickable for a moment; boss props go
+    this.clickables = this.clickables.filter((c) => c.event && c.alive());
     const perfect = this.waveSlicesLost === 0;
     let bonus = Math.round((5 + n * 2 + this.run.stats.coinsPerWave) * (perfect ? 1.5 : 1) * this.run.heatDef.tips);
     // the first shop should always offer a real choice: wave 1 tops you up to the price of a common topping
@@ -1820,7 +1823,23 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.time.delayedCall(2400, () => this.actComplete(n));
       return;
     }
-    this.time.delayedCall(boss ? 2400 : 1700, () => this.openUpgrades(boss));
+    this.afterEvents(boss ? 2400 : 1700, () => this.openUpgrades(boss));
+  }
+
+  /** After `ms`, run `then`, but give any wave event still on the table (a chest that dropped as the wave ended,
+   *  a flyer still crossing) up to EVENT_GRACE_MS more to be smacked first. */
+  private afterEvents(ms: number, then: () => void): void {
+    const t0 = this.nowT;
+    const wait = () => {
+      const live = this.clickables.some((c) => c.event && c.alive());
+      if (live && this.nowT - t0 < (ms + EVENT_GRACE_MS) / 1000 && !this.over) {
+        this.time.delayedCall(200, wait);
+        return;
+      }
+      this.clickables = this.clickables.filter((c) => !c.event);
+      then();
+    };
+    this.time.delayedCall(ms, wait);
   }
 
   /** Each wave every pizza loses a little freshness; stale pizzas lose their perk and a slice a wave. */

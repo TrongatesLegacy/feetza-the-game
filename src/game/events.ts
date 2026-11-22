@@ -116,6 +116,7 @@ export function startEvent(a: Arena, id: EventId, rw: EventRewards): void {
       return img.y;
     },
     r: 90,
+    event: true,
     alive: () => !done,
     hit: () => {
       if (done) return;
@@ -192,6 +193,7 @@ function chest(a: Arena, mimic: boolean, rw: EventRewards): void {
     x,
     y,
     r: 110,
+    event: true,
     alive: () => !done,
     hit: () => {
       if (done) return;
