@@ -201,7 +201,7 @@ export const FEET: FootType[] = [
     desc: 'Worn three days straight. Leaves pizzas soggy, so the next stomp hits harder.',
     hp: 32, speed: 0.85, armor: 0, stompDmg: 1, coins: 3, score: 120, scale: 1, minWave: 2, weight: 7,
     traits: ['soggy'],
-    art: { kind: 'sock', skin: SKIN.light, primary: '#f4f1ea', secondary: '#d8343f', leg: 'sock' },
+    art: { kind: 'sock', skin: SKIN.light, primary: '#f4f1ea', secondary: '#d8343f', leg: 'sock', legColor: '#f4f1ea' },
   },
   {
     id: 'baby',
@@ -225,7 +225,7 @@ export const FEET: FootType[] = [
     desc: 'Five toes, five colours. Sidesteps when smacked.',
     hp: 26, speed: 1.05, armor: 0, stompDmg: 1, coins: 4, score: 150, scale: 1, minWave: 3, weight: 5,
     traits: ['dodge'],
-    art: { kind: 'toesock', skin: SKIN.pale, leg: 'sock', primary: '#7b5cff', secondary: '#ffd23f' },
+    art: { kind: 'toesock', skin: SKIN.pale, leg: 'sock', primary: '#7b5cff', secondary: '#ffd23f', legColor: '#7b5cff' },
   },
   {
     id: 'harold',
@@ -273,7 +273,7 @@ export const FEET: FootType[] = [
     desc: 'Yee-haw. Weaves left and right on the way down.',
     hp: 36, speed: 1, armor: 2, stompDmg: 1, coins: 5, score: 190, scale: 1.02, minWave: 6, weight: 4,
     traits: ['zigzag'],
-    art: { kind: 'cowboy', skin: SKIN.light, primary: '#a0552a', secondary: '#f2c14e', leg: 'boot' },
+    art: { kind: 'cowboy', skin: SKIN.light, primary: '#a0552a', secondary: '#f2c14e', leg: 'boot', legColor: '#41598a' },
   },
   {
     id: 'skate',
@@ -325,7 +325,7 @@ export const FEET: FootType[] = [
     desc: 'Rocket-assisted. Descends in sudden bursts. Thick plating.',
     hp: 60, speed: 0.9, armor: 4, stompDmg: 2, coins: 9, score: 280, scale: 1.08, minWave: 11, weight: 3,
     traits: ['burst', 'immuneBurn'],
-    art: { kind: 'robot', skin: '#9aa7b5', primary: '#c3cdd8', secondary: '#33e1ff', leg: 'robot' },
+    art: { kind: 'robot', skin: '#9aa7b5', primary: '#c3cdd8', secondary: '#33e1ff', leg: 'robot', legColor: '#c3cdd8' },
   },
   {
     id: 'lava',
@@ -389,7 +389,7 @@ export const FEET: FootType[] = [
     desc: 'Fresh from a puddle. Heavy rubber boot, hard to knock back.',
     hp: 44, speed: 0.85, armor: 2, stompDmg: 1, coins: 5, score: 170, scale: 1.05, minWave: 4, weight: 4,
     traits: ['heavy'],
-    art: { kind: 'wellie', skin: SKIN.pale, primary: '#ffd000', secondary: '#1b1b1b', leg: 'boot' },
+    art: { kind: 'wellie', skin: SKIN.pale, primary: '#ffd000', secondary: '#1b1b1b', leg: 'boot', legColor: '#3d5a8a' },
   },
   {
     id: 'moe',
@@ -406,7 +406,7 @@ export const FEET: FootType[] = [
     desc: 'Clad in full plate. Barely notices weak smacks.',
     hp: 60, speed: 0.7, armor: 8, stompDmg: 2, coins: 8, score: 260, scale: 1.08, minWave: 10, weight: 3,
     traits: ['heavy'],
-    art: { kind: 'knight', skin: SKIN.light, primary: '#b9c2cc', secondary: '#c8a24a', leg: 'armor' },
+    art: { kind: 'knight', skin: SKIN.light, primary: '#b9c2cc', secondary: '#c8a24a', leg: 'armor', legColor: '#b9c2cc' },
   },
   {
     id: 'jingle',
@@ -461,7 +461,7 @@ export const FEET: FootType[] = [
     desc: 'Covered in signatures. The plaster cast is basically armour.',
     hp: 50, speed: 0.7, armor: 4, stompDmg: 1, coins: 6, score: 200, scale: 1.05, minWave: 7, weight: 3,
     traits: ['heavy'],
-    art: { kind: 'cast', skin: SKIN.light, primary: '#f5f2ea', secondary: '#3a6ad0', leg: 'cast' },
+    art: { kind: 'cast', skin: SKIN.light, primary: '#f5f2ea', secondary: '#3a6ad0', leg: 'cast', legColor: '#f5f2ea' },
   },
   {
     id: 'dad',
@@ -535,7 +535,7 @@ export const FEET: FootType[] = [
     desc: 'A gentleman\'s sock. The thick wool soaks up the first 15 damage.',
     hp: 30, speed: 0.95, armor: 0, stompDmg: 1, coins: 4, score: 140, scale: 1, minWave: 3, weight: 5,
     traits: ['woolly'],
-    art: { kind: 'sock', skin: SKIN.light, argyle: true, primary: '#2f4a7a', secondary: '#e9c46a', leg: 'sock' },
+    art: { kind: 'sock', skin: SKIN.light, argyle: true, primary: '#2f4a7a', secondary: '#e9c46a', leg: 'sock', legColor: '#2f4a7a' },
   },
   {
     id: 'sue',
