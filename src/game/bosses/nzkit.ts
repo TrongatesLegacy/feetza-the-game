@@ -219,7 +219,8 @@ export function scatter(a: Arena, x: number, y: number, key: string, n: number, 
 /** A countdown ring round a prop: it drains as `left()` falls from 1 to 0 (redrawn each frame, removed with `end`). */
 export function timerRing(a: Arena, at: () => { x: number; y: number } | null, r: number, color: number, left: () => number): () => void {
   const g = a.sc.add.graphics();
-  a.fxLayer.add(g);
+  // under everything else in the layer: a prop's hit counter must never sit behind its own ring
+  a.fxLayer.addAt(g, 0);
   const ev = a.sc.time.addEvent({
     delay: 16,
     loop: true,

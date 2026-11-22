@@ -28,6 +28,8 @@
 //
 // Gameplay rolls use the game's seeded Math.random (rnd()); everything only for show uses crand().
 
+import { FOOT_BY_ID } from '../../data/feet';
+import { warmLive } from '../liveKit';
 import Phaser from 'phaser';
 import { H, W } from '../../config';
 import { TF, titanFightArt } from '../../content/art/titanFight';
@@ -328,6 +330,8 @@ const titanking = (): Brain => {
   let letThrough = false;
   let p3: P3 | null = null;
   let wantP3 = false;
+  let spawnsHeld = false;
+  let hopT = 3;
   const pulls: Pull[] = [];
   let swing: { end: (quiet?: boolean) => void } | null = null;
   let dome: { img: Img; sheen: Img; ring: Phaser.GameObjects.Graphics; up: boolean; destroy: () => void } | null = null;
@@ -430,7 +434,7 @@ const titanking = (): Brain => {
     ensureArt(a);
     const ps = a.alivePizzas();
     // not under the hourglass; in his shield, not in the middle (he sits there)
-    let pool = ps.filter((q) => !glass || Math.abs(q.x - glass.x) > 260);
+    let pool = ps.filter((q) => !glass || Math.abs(q.x - glass.x) > 460);
     if (p3) pool = pool.filter((q) => Math.abs(q.x - SEAT[0]) > 280);
     const p = rnd(pool.length ? pool : ps);
     if (!p) return;
@@ -469,7 +473,6 @@ const titanking = (): Brain => {
     let ring: (() => void) | null = null;
     let badge: ReturnType<typeof counter> | null = null;
     let timer: Phaser.Time.TimerEvent | null = null;
-    let biting = false;
     // the jaw hangs from the head, opened by `open` px
     const placeJaw = () => {
       jaw.setPosition(head.x, head.y + T.mouthY * T.px - 8 + b.open).setRotation(head.rotation);
@@ -532,14 +535,13 @@ const titanking = (): Brain => {
         a.sc.tweens.add({ targets: b, open: 42, duration: 110, ease: 'Quad.In' });
         a.sc.time.delayedCall(110, () => {
           if (!b.live) return;
-          biting = true;
           a.sfx('sfx_titanking_chomp');
           a.shake(260, 0.01);
           a.fx.splat(p.x, mouthY + 30, true);
           const sec = wind(a, 6.5);
           const t0 = a.now();
           ring = timerRing(a, () => (b.live ? { x: head.x, y: head.y + 250 } : null), 250, 0xff8a6a, () => 1 - (a.now() - t0) / sec);
-          badge = counter(a, () => (b.live ? [head.x + (T.w * T.px) / 2 - 10, head.y + 150] : null), hits);
+          badge = counter(a, () => (b.live ? [head.x + (T.w * T.px) / 2 - 10, head.y + 150] : null), left);
           timer = a.sc.time.delayedCall(sec * 1000, () => {
             if (!b.live) return;
             b.end(false);
@@ -575,11 +577,13 @@ const titanking = (): Brain => {
         return head.y + 220;
       },
       r: 0,
-      priority: 2,
+      // (over every other prop: the head is the one thing to hit while it's up)
+      priority: 3,
       contains: (x, y) => Math.abs(x - head.x) < (T.w * T.px) / 2 - 10 && y > head.y + 30 && y < head.y + T.mouthY * T.px + 150,
-      alive: () => b.live && biting,
+      // it can be whacked from the moment it's up, not only once the chewing starts (it already looks like it's eating)
+      alive: () => b.live && head.y < H - 40,
       hit: () => {
-        if (!b.live || !biting) return;
+        if (!b.live) return;
         left--;
         badge?.set(left);
         a.fx.impact(head.x + pm() * 60, head.y + 200 + pm() * 60, left <= 0);
@@ -924,8 +928,8 @@ const titanking = (): Brain => {
     const h = heat(a);
     const x = p.x + pm() * 40;
     const ty = p.surfaceY - 46;
-    const warn = 0.55;
-    const fall = 1.45 * wind(a, 1);
+    const warn = 0.7;
+    const fall = 2.1 * wind(a, 1);
     const RS = TF.rock.px / TF.RES;
     // it cracks loose out of the roof's dark just under the HUD band, a hot rim round it
     const top = x > 440 && x < 1480 ? 300 : 210;
@@ -941,8 +945,10 @@ const titanking = (): Brain => {
     a.sc.tweens.add({ targets: sh, scale: 1, fillAlpha: 0.65, duration: (warn + fall) * 1000, ease: 'Quad.In' });
     a.sfx('sfx_titanking_rockcrack', { throttle: 150 });
     debris(a, x, top - 90, 'shard', 4, { tints: [0x4a4448], scale: 0.4, spread: 200, up: 50 });
-    let left = 3;
+    // 2 hits (1 on Mild, 3 from Extra Hot); each one holds it in the air a moment
+    let left = h.rank === 0 ? 1 : h.rank >= 3 ? 3 : 2;
     let live = true;
+    let fallTw: Phaser.Tweens.Tween | null = null;
     const end = () => {
       live = false;
       rimEv.remove();
@@ -967,7 +973,7 @@ const titanking = (): Brain => {
       if (!live) return;
       a.sfx('sfx_titanking_rockfall', { throttle: 150 });
       a.sc.tweens.add({ targets: img, angle: img.angle + pm() * 160, duration: fall * 1000 });
-      a.sc.tweens.add({
+      fallTw = a.sc.tweens.add({
         targets: img,
         y: ty,
         duration: fall * 1000,
@@ -997,7 +1003,8 @@ const titanking = (): Brain => {
       },
       r: 0,
       priority: 2,
-      contains: (px, py) => Math.abs(px - img.x) < 100 && Math.abs(py - img.y) < 110,
+      // a generous target: it's moving, and it's the point of the moment
+      contains: (px, py) => Math.abs(px - img.x) < 150 && Math.abs(py - img.y) < 160,
       alive: () => live,
       hit: () => {
         if (!live) return;
@@ -1005,10 +1012,14 @@ const titanking = (): Brain => {
         a.fx.impact(img.x, img.y, left <= 0);
         debris(a, img.x, img.y, 'shard', 3, { tints: [0x5a5258], scale: 0.4, spread: 400 });
         if (left > 0) {
-          img.setTexture(left === 2 ? 'tk_rock1' : 'tk_rock2');
+          img.setTexture(left >= 2 ? 'tk_rock1' : 'tk_rock2');
           a.sfx('sfx_titanking_jawhit', { throttle: 50 });
-          // knocked back up a little: it buys a moment
-          img.y -= 26;
+          // the blow holds it up for a moment (the fall tween owns its y, so pause it rather than nudge it)
+          if (fallTw?.isPlaying()) {
+            fallTw.pause();
+            a.sc.tweens.add({ targets: img, scale: { from: RS * 1.12, to: RS }, duration: 180 });
+            a.sc.time.delayedCall(450, () => live && fallTw?.resume());
+          }
           return;
         }
         end();
@@ -1450,6 +1461,21 @@ const titanking = (): Brain => {
       });
       // the fight's art, a texture a frame (it's big)
       if (!artReady) artReady = ensureArt(a, true);
+      // his own fight: the wave's feet never come, only his Skeleton Hoplites (and none while his head is up)
+      if (!spawnsHeld) {
+        spawnsHeld = true;
+        a.pauseSpawns(true);
+        // build the Hoplites' live art now, in idle time, so the first one doesn't build on its spawn frame
+        warmLive(a.sc, ['hoplite'], FOOT_BY_ID);
+      }
+      if (!p3 && landed) {
+        hopT -= dt;
+        if (hopT <= 0) {
+          hopT = cool(a, 4);
+          const n = a.allFeet().filter((o) => o.alive && o.type.id === 'hoplite').length;
+          if (!bite && n < HOPLITES[heat(a).rank]) a.spawn('hoplite', rnd(a.alivePizzas()) ?? null);
+        }
+      }
       if (wantP3 && landed && !p3) enterP3(f, a);
       if (!p3) return;
       // he holds his seat in the middle of the table
@@ -1581,7 +1607,7 @@ const titanking = (): Brain => {
     if (s.hopT <= 0) {
       s.hopT = cool(a, 4);
       const n = a.allFeet().filter((o) => o.alive && o.type.id === 'hoplite').length;
-      if (n < HOPLITES[h.rank]) a.spawn('hoplite', rnd(a.alivePizzas()) ?? null);
+      if (!bite && n < HOPLITES[h.rank]) a.spawn('hoplite', rnd(a.alivePizzas()) ?? null);
     }
     // a broken chain swings in, left and right in turn (not while his head is up, and not with his shield down)
     if (!swing && !bite && s.shield) {
