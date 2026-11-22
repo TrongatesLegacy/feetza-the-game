@@ -265,6 +265,23 @@ export function liveWarm(sc: Phaser.Scene, id: string): boolean {
   return !!hit && sc.textures.exists(hit.body);
 }
 
+/**
+ * Drop the live textures of feet not in `keep` that nothing on screen shows (src/game/assets.ts: texturesInUse). A
+ * foot let go builds them again the next time it's warmed or spawns. Returns the ids let go.
+ */
+export function evictLive(sc: Phaser.Scene, keep: Set<string>, inUse: Set<string>): string[] {
+  const out: string[] = [];
+  for (const [id, t] of texCache) {
+    if (keep.has(id)) continue;
+    const keys = [t.body, t.band?.key, t.glow, t.heat, ...Object.values(t.parts), `still_glow_${id}`].filter((k): k is string => !!k);
+    if (keys.some((k) => inUse.has(k))) continue;
+    for (const k of keys) if (sc.textures.exists(k)) sc.textures.remove(k);
+    texCache.delete(id);
+    out.push(id);
+  }
+  return out;
+}
+
 /** Dev: how many feet are still waiting for their live textures. */
 export function liveWarmPending(): number {
   return building.size;

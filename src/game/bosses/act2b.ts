@@ -986,6 +986,8 @@ const ECHOES: Record<string, { move: string; act: EchoMove }> = {
     },
   },
 };
+/** The bosses the Phantom King calls up as echoes (their art is kept while his stage is near: GameScene.evictArt). */
+export const ECHO_IDS = Object.keys(ECHOES);
 
 const ECHO_TINT = 0x9ad8ff;
 

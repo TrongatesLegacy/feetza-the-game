@@ -20,7 +20,7 @@ import { liveDefOf } from './liveKit';
 import { FEET, FOOT_BY_ID, type FootType } from '../data/feet';
 import { ACTS, STAGES, WAVES_PER_ACT } from '../data/stages';
 import { persist, save } from '../systems/save';
-import { addCanvas, eventCanvases, footMeta, pizzaTops } from './assets';
+import { addCanvas, ensureFootArt, eventCanvases, footMeta, pizzaTops } from './assets';
 import { PIZZAS } from '../data/pizzas';
 import type { EventId } from './events';
 import { HERO_PEELS, type HeroSub } from '../content/heroPeels';
@@ -120,10 +120,10 @@ const WIDEN = 60;
 
 /** The foot texture cropped to its visible pixels, so the emblem fills its disc. */
 export function footCrop(id: string): FootCrop | null {
-  const meta = footMeta[id];
-  if (!meta?.textures.foot) return null;
   let out = trimCache.get(id);
   if (out) return out;
+  const meta = ensureFootArt(null, id);
+  if (!meta?.textures.foot) return null;
   // a redrawn foot is drawn again with room either side: parts that reach past the play texture's frame (a bunny
   // slipper's ears) would be cut square there
   const type = FOOT_BY_ID[id];
@@ -739,6 +739,14 @@ export function applyPeelLook(scene: Phaser.Scene, d: PeelDef): PeelDef {
 export function peelTrail(d: PeelDef): number | null {
   if (d.id === 'classic') return null;
   return parseInt(d.look().trail.replace('#', ''), 16);
+}
+
+/** The foot a peel's art is drawn from (foot, boss and shiny foot peels), if any. */
+export function peelFootId(peelId: string): string | null {
+  const d = PEEL_BY_ID[peelId];
+  if (!d || !(d.group === 'foot' || d.group === 'boss' || d.group === 'shinyFoot')) return null;
+  const fid = d.foot ?? peelId.slice(peelId.indexOf(':') + 1);
+  return FOOT_BY_ID[fid] ? fid : null;
 }
 
 export function footOf(d: PeelDef): FootType | null {

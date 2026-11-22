@@ -10,7 +10,7 @@ import { RARITY_COLOR, UPGRADES, UPGRADE_BY_ID, kindOf, type Rarity } from '../d
 import { glyph, slamPrompt } from '../systems/gamepad';
 import type { RunSummary, ShopActions, ShopPizza, ShopState, SlotSymbol, YourTopping } from './shopTypes';
 import { INTROS, freshBar, pizzaThumb } from './bits';
-import { footPortraitURL, pizzaPortraitURL, textureURL } from '../game/assets';
+import { footArtAsync, footArtReady, footPortraitURL, pizzaPortraitURL, textureURL } from '../game/assets';
 import { audio } from '../systems/audio';
 import { previewSmack } from '../game/smacks';
 import { bestFor, metaRefundValue, persist, resetEverything, resetMeta, resetProgress, save, unlockPizza, updateSettings, type Settings } from '../systems/save';
@@ -21,7 +21,7 @@ import { BACKDROPS } from '../art/backdrops';
 import { applyA11y } from './a11y';
 import { abilityFor, abilityKindLabel, describeAbility } from '../game/abilities';
 import { animateLookImg, hasAnimatedLook, stopLookOverlays } from '../art/animatedLooks';
-import { GOD_PEEL, PEELS, PEEL_BY_ID, buyPeel, checkPeelAchievements, equipPeel, equippedPeel, hasPeel, peelThumbURL, wearSkin, wornSkin, type PeelDef, type PeelGroup } from '../game/peels';
+import { GOD_PEEL, PEELS, PEEL_BY_ID, buyPeel, checkPeelAchievements, equipPeel, equippedPeel, hasPeel, peelFootId, peelThumbURL, wearSkin, wornSkin, type PeelDef, type PeelGroup } from '../game/peels';
 import { HERO_SUBS } from '../content/heroPeels';
 import './gods.css';
 
@@ -1950,6 +1950,26 @@ class UI {
     const tabs = h('div', { class: 'tabs' });
     const detail = h('div', { class: 'detail' });
     const body = h('div', { class: 'scroll', style: 'max-height:40cqh' });
+    // a tile's portrait is made as it scrolls into view when its foot isn't drawn yet (feet are drawn in idle time
+    // after boot: src/game/assets.ts), so opening the book never waits on every foot at once
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting) continue;
+          const img = e.target as HTMLImageElement;
+          io.unobserve(img);
+          const id = img.dataset.foot!;
+          void footArtAsync(id).then(() => (img.src = footPortraitURL(id)));
+        }
+      },
+      { root: body, rootMargin: '200px' },
+    );
+    const footImg = (id: string) => {
+      const img = h('img', { alt: '', 'data-foot': id }) as HTMLImageElement;
+      if (footArtReady(id)) img.src = footPortraitURL(id);
+      else io.observe(img);
+      return img;
+    };
     const showFoot = (id: string) => {
       const f = FOOT_BY_ID[id];
       const seen = save.seenFeet.includes(id);
@@ -2036,6 +2056,7 @@ class UI {
       );
     };
     const render = () => {
+      io.disconnect();
       const feet = FEET.filter((f) => !f.boss && !f.mini);
       const bosses = FEET.filter((f) => f.boss || f.mini);
       tabs.replaceChildren(
@@ -2049,7 +2070,7 @@ class UI {
         const list = tab === 'feet' ? feet : bosses;
         const tiles = list.map((f) => {
           const seen = save.seenFeet.includes(f.id);
-          const t = h('div', { class: `tile${seen ? '' : ' locked'}${f.boss ? ' boss' : ''}`, tabindex: 0 }, h('img', { src: footPortraitURL(f.id), alt: '', loading: 'lazy' }), h('div', { class: 'nm' }, seen ? f.name : '???'), f.boss ? h('span', { class: 'tag' }, 'BOSS') : f.mini ? h('span', { class: 'tag' }, 'MINI') : null);
+          const t = h('div', { class: `tile${seen ? '' : ' locked'}${f.boss ? ' boss' : ''}`, tabindex: 0 }, footImg(f.id), h('div', { class: 'nm' }, seen ? f.name : '???'), f.boss ? h('span', { class: 'tag' }, 'BOSS') : f.mini ? h('span', { class: 'tag' }, 'MINI') : null);
           t.addEventListener('click', () => {
             audio.sfx('sfx_click');
             showFoot(f.id);
@@ -2086,7 +2107,7 @@ class UI {
       } else if (tab === 'places') {
         const tiles = STAGES.map((st, i) => {
           const seen = placeSeen(st);
-          const t = h('div', { class: `tile${seen ? '' : ' locked'}`, tabindex: 0 }, h('img', { src: footPortraitURL(st.boss), alt: '', loading: 'lazy' }), h('div', { class: 'nm' }, seen ? BACKDROPS[st.location as keyof typeof BACKDROPS]?.name ?? st.location : '???'), h('div', { class: 'ds' }, `Act ${actOf(i * 5 + 1)} · W${i * 5 + 1}–${i * 5 + 5}`));
+          const t = h('div', { class: `tile${seen ? '' : ' locked'}`, tabindex: 0 }, footImg(st.boss), h('div', { class: 'nm' }, seen ? BACKDROPS[st.location as keyof typeof BACKDROPS]?.name ?? st.location : '???'), h('div', { class: 'ds' }, `Act ${actOf(i * 5 + 1)} · W${i * 5 + 1}–${i * 5 + 5}`));
           t.addEventListener('click', () => {
             audio.sfx('sfx_click');
             showPlace(st);
@@ -2186,7 +2207,14 @@ class UI {
           if (!e.isIntersecting) continue;
           const img = e.target as HTMLImageElement;
           io.unobserve(img);
-          img.src = peelThumbURL(img.dataset.peel!);
+          // (a foot peel's foot may not be drawn yet: from the art cache, off the main thread)
+          const id = img.dataset.peel!;
+          const fid = peelFootId(id);
+          void (fid ? footArtAsync(fid) : Promise.resolve()).then(() => {
+            img.src = peelThumbURL(id);
+            // a living peel plays over its tile (asked only now: it needs the foot's art)
+            if (hasPeel(id) && hasAnimatedLook(id)) animateLookImg(img, id);
+          });
         }
       },
       { root: body, rootMargin: '200px' },
@@ -2285,7 +2313,7 @@ class UI {
         worn ? h('span', { class: 'tag look', title: 'Worn look' }, 'LOOK') : null,
       );
       activatable(t);
-      if (owned && hasAnimatedLook(d.id)) animateLookImg(img as HTMLImageElement, d.id);
+      // (its living look starts once the thumbnail is in: the observer above)
       t.addEventListener('click', () => {
         audio.sfx('sfx_click');
         selected = d;

@@ -115,6 +115,16 @@ export function installDevTools(game: Phaser.Game): void {
      * e.g. F.startGame({ wave: 61, kit: true }). For acts 7–10 before their stages exist, see fakeStages.
      */
     /** The balance simulator: one whole run as fast as the CPU allows (see src/devSim.ts, scripts/sim/run.mjs). */
+    /** The art cache (src/game/artCache.ts): F.artCache.stats(), F.artCache.clear() (the next load draws everything
+     * again), F.artCache.pending() (art still to draw in idle time). */
+    artCache: {
+      stats: async () => {
+        const [{ artCacheDev }, { artPending }] = await Promise.all([import('./game/artCache'), import('./game/assets')]);
+        return { ...(await artCacheDev.stats()), artPending: artPending() };
+      },
+      clear: async () => (await import('./game/artCache')).artCacheDev.clear(),
+      pending: async () => (await import('./game/assets')).artPending(),
+    },
     sim: {
       run: async (o: import('./devSim').SimOpts) => (await import('./devSim')).simRun(game, o, (opts) => api.startGame(opts)),
       ready: async () => (await import('./devSim')).simReady(),

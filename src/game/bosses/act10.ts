@@ -398,8 +398,9 @@ const mirrorpeel = (): Brain => {
 /** Survive his collection agents this long. */
 const SURVIVE_SEC = 60;
 
-/** One foot from each boss's minions (every act that's built), never his own finale feet. */
-function agents(): string[] {
+/** One foot from each boss's minions (every act that's built), never his own finale feet. (GameScene keeps and warms
+ * their art while his stage is near.) */
+export function agents(): string[] {
   const out: string[] = [];
   for (const [boss, id] of Object.entries(BOSS_MINION)) {
     if (boss === 'soleprop' || boss === 'soleunbound' || out.includes(id) || !FOOT_BY_ID[id]) continue;

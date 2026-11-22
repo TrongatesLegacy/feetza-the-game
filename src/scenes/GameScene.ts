@@ -5,13 +5,13 @@ import { BASE_SLICES, COMBO_BASE_WINDOW, H, MAX_PIZZAS, PIZZA_Y, W } from '../co
 /** Lane width: about one foot wide, so feet in neighbouring lanes don't overlap. */
 const LANE_W = 250;
 import type { HeatId } from '../data/difficulty';
-import { FOOT_BY_ID, OUCH, type FootType } from '../data/feet';
+import { FEET, FOOT_BY_ID, OUCH, type FootType } from '../data/feet';
 import { MILESTONES } from '../data/meta';
 import { PIZZAS, PIZZA_BY_ID, enhancedText } from '../data/pizzas';
 import { ACT_COUNT, BOSS_MINION, HEAT_UNLOCK_WAVE, JOURNEY_WAVES, actLabel, actName, actOf, actStartWave, isActEnd, isActStart, waveInJourney } from '../data/stages';
 import { UPGRADES, UPGRADE_BY_ID, kindOf, type Rarity, type Upgrade } from '../data/upgrades';
 import type { Arena, Clickable } from '../game/arena';
-import { footPortraitURL, pizzaPortraitURL } from '../game/assets';
+import { evictFootArt, footPortraitURL, pizzaPortraitURL, setArtWarmBusy, texturesInUse, warmFootArt } from '../game/assets';
 import { BackdropView } from '../game/BackdropView';
 import { prepareLive, releaseLive } from '../game/liveBackdrop';
 import { BossDirector } from '../game/bosses';
@@ -29,7 +29,7 @@ import { markFootSeen, markToppingsSeen, nextLockedPizza, onSettingsChange, pers
 import { peelsAnimated } from '../systems/graphics';
 import type { GoldenItem, RunSummary, ShopCard, ShopOffer, ShopPizza, ShopState, SlotSymbol, SlotsResult, YourTopping } from '../ui/shopTypes';
 import { ui, fmtTime } from '../ui/ui';
-import { PEELS, PEEL_BY_ID, abilityPeel, applyPeelLook, hasPeel, lookPeel, checkPeelAchievements, grantShinyFoot, peelCanvas, peelThumbURL, peelTrail, rollEventDrop, PEEL_HEATS, SHINY_FOOT_CHANCE, titleCase, type PeelDef } from '../game/peels';
+import { PEELS, PEEL_BY_ID, abilityPeel, applyPeelLook, hasPeel, lookPeel, checkPeelAchievements, grantShinyFoot, peelCanvas, peelFootId, peelThumbURL, peelTrail, rollEventDrop, PEEL_HEATS, SHINY_FOOT_CHANCE, titleCase, type PeelDef } from '../game/peels';
 import { STAGES, WAVES_PER_STAGE } from '../data/stages';
 import { passiveBoost, setSlamMode } from '../game/slamMode';
 import { setRunHeat } from '../game/heatRules';
@@ -42,7 +42,9 @@ import { pickWindow, rouletteWindow, slotsPrizeWindow, type PickOption } from '.
 import { abilityKey } from '../game/abilities';
 import { PizzaPerkKit } from '../game/pizzaPerks';
 import { contentFx } from '../game/contentFx';
-import { setLiveWarmBusy, styleLive, warmLive } from '../game/liveKit';
+import { evictLive, setLiveWarmBusy, styleLive, warmLive } from '../game/liveKit';
+import { ECHO_IDS } from '../game/bosses/act2b';
+import { agents as solepropAgents } from '../game/bosses/act10';
 import '../content/styleLive';
 import { playLook, type LookFx } from '../art/animatedLooks';
 import { HeroDirector } from '../game/heroMoves';
@@ -52,7 +54,7 @@ import { maybeSignal, sightingChance, sightingDue } from '../game/sightings';
 import { addCanvas } from '../game/assets';
 import { heroFootDmg, heroFootStomp, heroFootTick } from '../game/heroFeet';
 // ——— Act 10 · Finale: the buyout and the ending (src/game/finale.ts; its layers run from src/game/acts/act10.ts) ———
-import { finaleState, playEnding } from '../game/finale';
+import { finaleCast, finaleState, playEnding } from '../game/finale';
 // ——— Nemesis stages: a hero peel swaps a stage for its nemesis (src/game/nemesis.ts) ———
 import { applyNemesis, nemesisOf, setNemesisPeel } from '../game/nemesis';
 
@@ -111,6 +113,17 @@ interface SlotsTable {
 
 /** Coins you have after clearing wave 1, at least: enough for a common topping (35 at wave 1). */
 const WAVE1_MIN_COINS = 35;
+
+/** The feet each boss was seen to summon this session (some come from outside the wave's pool: the Immortal Brute's
+ * Immortals, Kronos's Hoplites): their art is kept and warmed with the boss's (GameScene.evictArt, warmFeet). */
+const SUMMONED = new Map<string, Set<string>>();
+
+/** Feet a boss brings on from outside the wave's pool: the ones its fight is known to call up (the Phantom King's
+ * echoes, the Sole Proprietor's collection agents) and any seen this session. */
+function bossSummons(boss: string): string[] {
+  const known = boss === 'phantomking' ? ECHO_IDS : boss === 'soleprop' ? solepropAgents() : [];
+  return [...known, ...(SUMMONED.get(boss) ?? [])];
+}
 
 export class GameScene extends Phaser.Scene implements Arena {
   private run!: Run;
@@ -630,7 +643,9 @@ export class GameScene extends Phaser.Scene implements Arena {
       const wave = t?.minWave ?? 5;
       this.time.delayedCall(700, () => this.beginWave(wave, this.start.boss));
     } else {
-      // the opening wave's feet start building now, in the moments before it begins
+      // the opening wave's feet start building now, in the moments before it begins (and the art the title screen
+      // made that this stage won't use goes)
+      this.evictArt(this.start.wave ?? 1);
       this.warmFeet(this.start.wave ?? 1);
       this.time.delayedCall(700, () => this.beginWave(this.start.wave ?? 1));
     }
@@ -1238,6 +1253,13 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   private spawnFoot(type: FootType, target: Pizza | null, allowElite = true, x?: number): Foot {
     const plan = this.plan!;
+    // what a boss summons is kept (and warmed) with it from then on (evictArt, warmFeet)
+    if (!type.boss && !type.mini)
+      for (const b of this.feet) if (b.alive && (b.type.boss || b.type.mini) && b.type.id !== type.id) {
+        let set = SUMMONED.get(b.type.id);
+        if (!set) SUMMONED.set(b.type.id, (set = new Set()));
+        set.add(type.id);
+      }
     const elite = allowElite && !type.boss && !type.mini && type.id !== 'golden' && Math.random() < plan.eliteChance;
     const hpMult = (type.boss || type.mini ? plan.bossHpMult : plan.hpMult) * this.run.stats.footHp;
     const f = new Foot(this, this.feetLayer, this.shadowLayer, type, x ?? target?.x ?? W / 2, {
@@ -2016,12 +2038,65 @@ export class GameScene extends Phaser.Scene implements Arena {
       // the shop has the idle time
       ids.push(...footPool(n).sort((a, b) => b.minWave - a.minWave).map((f) => f.id));
     }
-    setLiveWarmBusy(() => this.waveActive && !this.inUpgrade && this.sys.isActive());
+    const busy = () => this.waveActive && !this.inUpgrade && this.sys.isActive();
+    setLiveWarmBusy(busy);
     warmLive(this, ids, FOOT_BY_ID);
+    // their still art first (feet not drawn yet: src/game/assets.ts), then the rest of the stage's: its mini-boss,
+    // its boss and its minion, and every foot that can turn up before the stage ends
+    const art = [...ids];
+    const end = Math.ceil(n / WAVES_PER_STAGE) * WAVES_PER_STAGE;
+    for (let w = n + 1; w <= end; w++) if (isMiniWave(w)) art.push(miniFor(w));
+    if (end > n) art.push(bossFor(end), ...(BOSS_MINION[bossFor(end)] ? [BOSS_MINION[bossFor(end)]] : []));
+    // (and what its boss was seen to summon: a foot from outside the pool)
+    if (end > n) art.push(...bossSummons(bossFor(end)));
+    if (isBossWave(n)) art.push(...bossSummons(bossFor(n)));
+    art.push(...footPool(end).map((f) => f.id));
+    // the journey's last stage: the ending's parade too
+    if (waveInJourney(n) > JOURNEY_WAVES - WAVES_PER_STAGE) art.push(...finaleCast());
+    setArtWarmBusy(busy);
+    warmFootArt(art);
+  }
+
+  /**
+   * Memory: before a new stage, let go of the art (still textures and live layers) of feet that can't turn up in it
+   * or the next one: other acts' themed feet, and bosses and mini-bosses (with their minions and what they were seen
+   * to summon) of other stages, unless something on screen still shows them. Anything let go comes back through
+   * ensureFootArt and warmLive (src/game/assets.ts, src/game/liveKit.ts) when it's warmed or spawned: from the art
+   * cache, a decode rather than a redraw.
+   */
+  private evictArt(n: number): void {
+    const t0 = performance.now();
+    const keep = new Set<string>();
+    const start = (Math.ceil(n / WAVES_PER_STAGE) - 1) * WAVES_PER_STAGE + 1;
+    for (let w = n; w < start + 2 * WAVES_PER_STAGE; w++) {
+      for (const f of footPool(w)) keep.add(f.id);
+      if (isMiniWave(w)) keep.add(miniFor(w));
+      if (!isBossWave(w)) continue;
+      const b = bossFor(w);
+      keep.add(b);
+      if (BOSS_MINION[b]) keep.add(BOSS_MINION[b]);
+      for (const id of bossSummons(b)) keep.add(id);
+    }
+    // feet that only come summoned or by event (the golden foot, the mimic, the Titans): small, and any wave may
+    // bring one
+    for (const f of FEET) if (!f.boss && !f.mini && !(f.weight > 0)) keep.add(f.id);
+    if (waveInJourney(n) > JOURNEY_WAVES - WAVES_PER_STAGE) for (const id of finaleCast()) keep.add(id);
+    for (const f of this.feet) keep.add(f.type.id);
+    // the peel in hand and the look on the cursor (a living peel animates its foot's art)
+    for (const pid of [this.peelId, this.lookId]) {
+      const fid = peelFootId(pid);
+      if (fid) keep.add(fid);
+    }
+    const inUse = texturesInUse(this.game);
+    const still = evictFootArt(keep, inUse);
+    const live = evictLive(this, keep, inUse);
+    if (import.meta.env.DEV) ((window as unknown as { __evictions?: unknown[] }).__evictions ??= []).push({ wave: n, still, live, ms: Math.round(performance.now() - t0) });
   }
 
   private openUpgrades(bossReward: boolean, keepCards?: { cards: Upgrade[]; sold: Set<string>; free: string | null; goldenBought?: GoldenItem['id']; lastStand?: boolean }, title?: string): void {
     if (this.over) return;
+    // a new stage next: first let go of the art it won't need
+    if ((this.run.wave + 1 - 1) % WAVES_PER_STAGE === 0) this.evictArt(this.run.wave + 1);
     this.warmFeet(this.run.wave + 1);
     // the next stage's backdrop: build its live textures while the shop is up, not as its first wave starts
     const nextBd = backdropFor(this.run.wave + 1);

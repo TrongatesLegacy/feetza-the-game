@@ -1,5 +1,6 @@
-import { readdirSync, readFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { createHash } from 'node:crypto';
+import { readdirSync, readFileSync, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs';
+import { dirname, relative, resolve } from 'node:path';
 import { defineConfig, type Plugin } from 'vite';
 
 // Exposes the list of audio files in public/audio so the game knows what exists
@@ -22,6 +23,67 @@ function audioManifest(): Plugin {
       server.watcher.add(dir);
       server.watcher.on('all', (_e, file) => {
         if (!file.startsWith(dir)) return;
+        const mod = server.moduleGraph.getModuleById(resolved);
+        if (mod) server.moduleGraph.invalidateModule(mod);
+      });
+    },
+  };
+}
+
+// The art cache's version (src/game/artCache.ts): a hash of every source file the drawn art can depend on, so art
+// saved in the browser is never used after any of them changes. It follows the static imports (and the folders
+// import.meta.glob loads) from src/game/assets.ts, which draws everything the cache keeps; `import type` lines are
+// skipped (no runtime code). Dev recomputes it after any change under src/ (the next page load picks it up); a
+// build bakes it in.
+function artVersion(): Plugin {
+  const id = 'virtual:art-version';
+  const resolved = '\0' + id;
+  const root = resolve(__dirname, 'src');
+  const entry = resolve(root, 'game/assets.ts');
+  const importRe = /\b(?:import|export)\s+(type\s+)?(?:[\w*{}\s,$]*?\s+from\s+)?['"](\.[^'"]+)['"]|\bimport\(\s*['"](\.[^'"]+)['"]\s*\)/g;
+  // (a glob may carry a type argument: import.meta.glob<{ … }>('./dir/*.ts', …))
+  const globRe = /import\.meta\.glob\b[\s\S]{0,300}?\(\s*['"](\.[^'"]*?)\/\*\.ts['"]/g;
+  const resolveFile = (from: string, spec: string): string | null => {
+    const b = resolve(dirname(from), spec);
+    for (const c of [b, `${b}.ts`, resolve(b, 'index.ts')]) if (existsSync(c) && statSync(c).isFile()) return c;
+    return null;
+  };
+  let cached: string | null = null;
+  const compute = (): string => {
+    const seen = new Set<string>();
+    const walk = (f: string) => {
+      if (seen.has(f)) return;
+      seen.add(f);
+      const src = readFileSync(f, 'utf8');
+      for (const g of src.matchAll(globRe)) {
+        const d = resolve(dirname(f), g[1]);
+        if (existsSync(d)) for (const n of readdirSync(d).sort()) if (n.endsWith('.ts')) walk(resolve(d, n));
+      }
+      for (const m of src.matchAll(importRe)) {
+        if (m[1]) continue;
+        const r = resolveFile(f, m[2] ?? m[3]);
+        if (r) walk(r);
+      }
+    };
+    walk(entry);
+    const h = createHash('sha256');
+    for (const f of [...seen].sort()) h.update(relative(root, f)).update('\0').update(readFileSync(f)).update('\0');
+    return h.digest('hex').slice(0, 16);
+  };
+  return {
+    name: 'art-version',
+    resolveId(source) {
+      return source === id ? resolved : null;
+    },
+    load(source) {
+      if (source !== resolved) return null;
+      cached ??= compute();
+      return `export default ${JSON.stringify(cached)};`;
+    },
+    configureServer(server) {
+      server.watcher.on('all', (_e, file) => {
+        if (!file.startsWith(root)) return;
+        cached = null;
         const mod = server.moduleGraph.getModuleById(resolved);
         if (mod) server.moduleGraph.invalidateModule(mod);
       });
@@ -112,7 +174,7 @@ function devNotes(): Plugin {
 
 export default defineConfig({
   base: './',
-  plugins: [audioManifest(), devShots(), devNotes()],
+  plugins: [audioManifest(), artVersion(), devShots(), devNotes()],
   build: {
     target: 'es2022',
     assetsInlineLimit: 0,

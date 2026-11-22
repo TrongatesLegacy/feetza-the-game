@@ -59,6 +59,11 @@ export function useLegacyArt(on: boolean): void {
   legacy = on;
 }
 
+/** Is the legacy art on (feet drawn in this mode are kept out of the art cache: src/game/artCache.ts)? */
+export function legacyArt(): boolean {
+  return !!legacy;
+}
+
 export function registerStyle(id: string, d: StyleDef): void {
   styles[id] = d;
 }

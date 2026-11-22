@@ -7,6 +7,7 @@ import { FEET, FOOT_BY_ID } from '../data/feet';
 import { PIZZA_BY_ID } from '../data/pizzas';
 import { BackdropView } from '../game/BackdropView';
 import { Foot } from '../game/Foot';
+import { warmFootArt } from '../game/assets';
 import { Fx } from '../game/Fx';
 import { Pizza } from '../game/Pizza';
 import { endCrustsFor } from '../game/Run';
@@ -25,6 +26,38 @@ export function randomLineup(n: number): string[] {
     out.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
   }
   return out;
+}
+
+/** The title screen's demo foot is picked a foot ahead, so its art can be drawn before it comes on (boot draws the
+ * first one). */
+let nextDemo: string | null = null;
+
+function pickDemoFoot(): string {
+  const ok = (f: (typeof FEET)[number]) => !f.boss && !f.mini && !f.traits.includes('flee') && !f.traits.includes('invisible') && !f.traits.includes('bury');
+  const pool = save.seenFeet.length ? FEET.filter((f) => save.seenFeet.includes(f.id) && ok(f)) : FEET.filter((f) => f.minWave <= 2 && f.weight > 0);
+  return Phaser.Utils.Array.GetRandom(pool.length ? pool : FEET.slice(0, 3)).id;
+}
+
+/** The next demo foot (picked now if it isn't yet). */
+export function peekDemoFoot(): string {
+  return (nextDemo ??= pickDemoFoot());
+}
+
+/** The title screen's pizzas, picked ahead the same way (boot makes them). */
+let nextLineup: string[] | null = null;
+export function peekMenuLineup(): string[] {
+  return (nextLineup ??= randomLineup(3));
+}
+function takeMenuLineup(): string[] {
+  const ids = peekMenuLineup();
+  nextLineup = null;
+  return ids;
+}
+
+function takeDemoFoot(): string {
+  const id = peekDemoFoot();
+  nextDemo = null;
+  return id;
 }
 
 export class MenuScene extends Phaser.Scene {
@@ -57,7 +90,7 @@ export class MenuScene extends Phaser.Scene {
     this.fx = new Fx(this, fxLayer);
     // Loki's secret: he sometimes peeks out from behind the chalkboard (the Trattoria's)
     if (!save.legend) lokiPeek(this, fxLayer, () => this.showMenu());
-    const ids = randomLineup(3);
+    const ids = takeMenuLineup();
     ids.forEach((id, i) => {
       this.pizzas.push(new Pizza(this, pz, PIZZA_BY_ID[id], W / 2 + (i - 1) * 560, PIZZA_Y + 20, 0.78, 8).hideLabel());
     });
@@ -174,9 +207,9 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private spawnFoot(): void {
-    const ok = (f: (typeof FEET)[number]) => !f.boss && !f.mini && !f.traits.includes('flee') && !f.traits.includes('invisible') && !f.traits.includes('bury');
-    const pool = save.seenFeet.length ? FEET.filter((f) => save.seenFeet.includes(f.id) && ok(f)) : FEET.filter((f) => f.minWave <= 2 && f.weight > 0);
-    const type = Phaser.Utils.Array.GetRandom(pool.length ? pool : FEET.slice(0, 3));
+    const type = FOOT_BY_ID[takeDemoFoot()];
+    // the one after it is drawn in idle time while this one plays
+    warmFootArt([peekDemoFoot()]);
     const target = this.sidePizza();
     this.hits = 0;
     this.foot = new Foot(this, this.feetLayer, this.shadowLayer, type, target.x, {

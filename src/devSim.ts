@@ -11,7 +11,7 @@ import type Phaser from 'phaser';
 import type { HeatId } from './data/difficulty';
 import { META } from './data/meta';
 import { PIZZAS } from './data/pizzas';
-import { pizzaTops } from './game/assets';
+import { artBooted } from './game/assets';
 import { GameScene } from './scenes/GameScene';
 import { PEELS, PEEL_BY_ID } from './game/peels';
 import { migrate, persist, save } from './systems/save';
@@ -258,13 +258,13 @@ function smack(g: AnyScene, accuracy: number): void {
 
 /** The game's art is built (several tabs booting at once can take a while). */
 export function simReady(): boolean {
-  return !PIZZAS.some((p) => !pizzaTops[p.id]);
+  return artBooted();
 }
 
 export async function simRun(game: Phaser.Game, o: SimOpts, start: (opts: Record<string, unknown>) => void): Promise<SimResult> {
   const opts: Required<SimOpts> = { peel: 'classic', accuracy: 0.9, rate: 260, dt: 1000 / 60, profile: 'fresh', maxRealMs: 600_000, trace: 0, idleFrom: 0, shop: 'rarity', ...o };
   // the game's art must be built first (several tabs booting at once can take a while)
-  for (let i = 0; i < 600 && PIZZAS.some((p) => !pizzaTops[p.id]); i++) await new Promise((r) => setTimeout(r, 100));
+  for (let i = 0; i < 600 && !artBooted(); i++) await new Promise((r) => setTimeout(r, 100));
   // the browser's own save comes back when the run is done
   const before = JSON.stringify(save);
   setProfile(opts);

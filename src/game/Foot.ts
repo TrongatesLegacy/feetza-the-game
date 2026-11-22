@@ -3,7 +3,7 @@
 import Phaser from 'phaser';
 import { BASE_DESCEND, HOVER_Y } from '../config';
 import type { FootType } from '../data/feet';
-import { footMeta, type FootMeta } from './assets';
+import { ensureFootArt, type FootMeta } from './assets';
 import type { Pizza } from './Pizza';
 
 export type FootState = 'enter' | 'hover' | 'descend' | 'stomp' | 'lift' | 'dying' | 'gone';
@@ -216,7 +216,8 @@ export class Foot {
   constructor(scene: Phaser.Scene, layer: Phaser.GameObjects.Container, shadowLayer: Phaser.GameObjects.Container, type: FootType, x: number, opts: { hpMult: number; speedMult: number; elite: boolean; hooks: FootHooks }) {
     this.scene = scene;
     this.type = type;
-    this.meta = footMeta[type.id];
+    // drawn now if nothing warmed it first (src/game/assets.ts)
+    this.meta = ensureFootArt(scene, type.id)!;
     this.hooks = opts.hooks;
     this.elite = opts.elite;
     this.baseScale = type.scale * FOOT_DISPLAY * (opts.elite ? 1.08 : 1);

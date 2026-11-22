@@ -4,7 +4,7 @@ import Phaser from 'phaser';
 import { PIZZA_CANVAS_H, PIZZA_CANVAS_W, PIZZA_R, PIZZA_SIZE, TILT, renderPizza, sideFor, type Footprint } from '../art/pizzaArt';
 import { makeCanvas } from '../art/util';
 import { SEASONS, enhancedText, type PizzaPerk, type PizzaType } from '../data/pizzas';
-import { pizzaTops } from './assets';
+import { ensurePizzaArt, pizzaTops } from './assets';
 import { borrowLine, borrowedPerk } from './pizzaPerks';
 
 let uid = 0;
@@ -76,6 +76,8 @@ export class Pizza {
   constructor(scene: Phaser.Scene, layer: Phaser.GameObjects.Layer | Phaser.GameObjects.Container, type: PizzaType, x: number, y: number, s: number, slices: number) {
     this.scene = scene;
     this.type = type;
+    // its top and slice sprite, drawn now if nothing warmed them first (src/game/assets.ts)
+    ensurePizzaArt(type.id);
     this.x = x;
     this.y = y;
     this.s = s;
