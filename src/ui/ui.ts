@@ -1084,6 +1084,11 @@ class UI {
     let s: HTMLElement;
     const search = h('input', { class: 'yt-search', type: 'search', placeholder: 'Search your toppings', 'aria-label': 'Search your toppings' }) as HTMLInputElement;
     const body = h('div', { class: 'scroll yt-list' });
+    // rarest first, then by name; a row of rarity tabs filters them
+    const RANK: Record<string, number> = { legendary: 0, epic: 1, rare: 2, common: 3 };
+    list = [...list].sort((a, b) => (RANK[UPGRADE_BY_ID[a.id]?.rarity] ?? 9) - (RANK[UPGRADE_BY_ID[b.id]?.rarity] ?? 9) || (UPGRADE_BY_ID[a.id]?.name ?? '').localeCompare(UPGRADE_BY_ID[b.id]?.name ?? ''));
+    let rarity: string | null = null;
+    const rarTabs = h('div', { class: 'tabs locker-tabs yt-rar' });
     const rows = list.map((y) => {
       const u = UPGRADE_BY_ID[y.id];
       const k = kindOf(u);
@@ -1103,13 +1108,19 @@ class UI {
         h('div', { class: 'ic' }, u.icon),
         h('div', { class: 'tx' }, h('div', { class: 'yt-head' }, h('b', {}, u.name), h('span', { class: `rar ${u.rarity}` }, u.rarity), status), h('span', {}, u.desc(1)), more ? h('small', {}, more) : null, u.downside ? h('em', { class: 'down' }, `▼ ${u.downside}`) : null),
       );
-      return { row, text: `${u.name} ${u.desc(1)} ${u.rarity} ${u.downside ?? ''}`.toLowerCase() };
+      return { row, rarity: u.rarity as string, text: `${u.name} ${u.desc(1)} ${u.rarity} ${u.downside ?? ''}`.toLowerCase() };
     });
     const empty = h('div', { class: 'hint' }, list.length ? 'No toppings match that.' : 'No toppings yet. Buy some from the cards!');
     const filter = () => {
       const q = search.value.trim().toLowerCase();
-      const shown = rows.filter((r) => !q || r.text.includes(q));
+      const shown = rows.filter((r) => (!q || r.text.includes(q)) && (!rarity || r.rarity === rarity));
       body.replaceChildren(...shown.map((r) => r.row), ...(shown.length ? [] : [empty]));
+      const tabs: [string | null, string][] = [[null, 'ALL'], ['legendary', 'LEGENDARY'], ['epic', 'EPIC'], ['rare', 'RARE'], ['common', 'COMMON']];
+      rarTabs.replaceChildren(
+        ...tabs
+          .filter(([r]) => !r || rows.some((x) => x.rarity === r))
+          .map(([r, l]) => btn(`${l} <small>${rows.filter((x) => !r || x.rarity === r).length}</small>`, `small ${rarity === r ? 'active' : ''}`, () => ((rarity = r), filter()))),
+      );
     };
     search.addEventListener('input', filter);
     // typing in the box mustn't trigger the shop's keys (1-4 buy, R reroll, N next wave)
@@ -1121,6 +1132,7 @@ class UI {
       { class: 'panel modal wide yourtops' },
       h('div', { class: 'title' }, 'YOUR TOPPINGS'),
       h('div', { class: 'subtitle' }, `${owned} topping${owned === 1 ? '' : 's'} on your pizzas${list.length > owned ? ` · ${list.length - owned} coming back` : ''}`),
+      rarTabs,
       search,
       body,
       btn('DONE', 'green', () => this.close(s), { 'data-pad': 'back' }),
