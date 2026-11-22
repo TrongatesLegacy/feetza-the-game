@@ -5,8 +5,13 @@ import Phaser from 'phaser';
 import { W } from '../config';
 import type { Arena } from './arena';
 import { slamMode } from './slamMode';
+import { heroSighting } from './sightings';
+// ——— Act 9 · Greek myths: Charybdis, Tartarus's whirlpool ———
+import { charybdis } from './acts/act9';
 
-export type EventId = 'balloon' | 'drone' | 'moth' | 'seagull' | 'chest' | 'mimic';
+export type EventId = 'balloon' | 'drone' | 'moth' | 'seagull' | 'chest' | 'mimic' | 'sighting'
+  // Act 9 · Greek myths
+  | 'charybdis';
 
 export interface EventRewards {
   tips(n: number, x: number, y: number): void;
@@ -19,6 +24,11 @@ export interface EventRewards {
   firstSighting(id: EventId): void;
   /** The event was dealt with (popped, caught, opened, a mimic beaten in time): achievements and drops. */
   done(id: EventId, x: number, y: number): void;
+  /** Event toppings: seconds flyers stay longer, smacks fewer a chest needs, smacks a hero sighting needs (0: the usual 2), and a callback when one is missed (hero goals count streaks). */
+  flyerSec?: number;
+  chestLess?: number;
+  sightingHits?: number;
+  missed?(id: EventId): void;
 }
 
 const EVENT_NAMES: Record<EventId, string> = {
@@ -28,14 +38,20 @@ const EVENT_NAMES: Record<EventId, string> = {
   seagull: 'GOLDEN SEAGULL',
   chest: 'PIZZA BOX CHEST',
   mimic: 'PIZZA BOX CHEST',
+  sighting: 'HERO SIGHTING',
+  // Act 9 · Greek myths
+  charybdis: 'CHARYBDIS',
 };
 
 export function eventName(id: EventId): string {
   return EVENT_NAMES[id];
 }
 
-/** Pick an event for this wave, or null. Never on boss or mini-boss waves. */
-export function rollEvent(rate: number): EventId | null {
+/** Pick an event for this wave, or null. Never on boss or mini-boss waves.
+ * sighting: this wave's chance of a hero sighting (src/game/sightings.ts), rolled first.
+ * (Tartarus swaps some for Charybdis: src/game/acts/act9.ts.) */
+export function rollEvent(rate: number, sighting = 0): EventId | null {
+  if (sighting > 0 && Math.random() < sighting) return 'sighting';
   if (Math.random() > rate) return null;
   const r = Math.random();
   if (r < 0.26) return 'balloon';
@@ -49,13 +65,15 @@ export function rollEvent(rate: number): EventId | null {
 /** Start an event; it runs itself (flight path, clicks, rewards) until it leaves or pays out. */
 export function startEvent(a: Arena, id: EventId, rw: EventRewards): void {
   rw.firstSighting(id);
+  if (id === 'sighting') return heroSighting(a, rw);
   if (id === 'chest' || id === 'mimic') return chest(a, id === 'mimic', rw);
+  if (id === 'charybdis') return charybdis(a, rw);
   const cfg = {
     balloon: { key: 'ev_balloon', hits: 1, sec: 9, y: 170, sfx: 'sfx_pop' },
     drone: { key: 'ev_drone', hits: 3, sec: 4.2, y: 210, sfx: 'sfx_drone' },
     moth: { key: 'ev_moth', hits: 2, sec: 6, y: 260, sfx: 'sfx_boing' },
     seagull: { key: 'ev_seagull', hits: 2, sec: 3.6, y: 140, sfx: 'sfx_seagull' },
-  }[id];
+  }[id as 'balloon' | 'drone' | 'moth' | 'seagull'];
   const fromLeft = Math.random() < 0.5;
   const x0 = fromLeft ? -150 : W + 150;
   const x1 = fromLeft ? W + 150 : -150;
@@ -71,7 +89,7 @@ export function startEvent(a: Arena, id: EventId, rw: EventRewards): void {
   a.sc.tweens.add({
     targets: st,
     t: 1,
-    duration: cfg.sec * 1000,
+    duration: (cfg.sec + (rw.flyerSec ?? 0)) * 1000,
     onUpdate: () => {
       const k = st.t;
       img.x = x0 + (x1 - x0) * k;
@@ -83,6 +101,7 @@ export function startEvent(a: Arena, id: EventId, rw: EventRewards): void {
     onComplete: () => {
       if (!done) {
         done = true;
+        rw.missed?.(id);
         a.sc.tweens.add({ targets: [img, sh], alpha: 0, duration: 300, onComplete: () => (img.destroy(), sh.destroy()) });
       }
     },
@@ -147,7 +166,7 @@ function chest(a: Arena, mimic: boolean, rw: EventRewards): void {
     a.sfx('sfx_stomp', { volume: 0.5, rate: 1.4 });
     a.shake(120, 0.004);
   } });
-  const need = 6 + Math.floor(Math.random() * 5);
+  const need = Math.max(2, 6 + Math.floor(Math.random() * 5) - (rw.chestLess ?? 0));
   let hits = 0;
   let done = false;
   // mimic tell: it wobbles
@@ -225,6 +244,7 @@ function chest(a: Arena, mimic: boolean, rw: EventRewards): void {
     a.sc.time.delayedCall(14000, () => {
       if (done) return;
       done = true;
+      rw.missed?.('chest');
       bar.destroy();
       a.sc.tweens.add({ targets: img, alpha: 0, duration: 500, onComplete: () => img.destroy() });
     });

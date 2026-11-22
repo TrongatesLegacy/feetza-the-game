@@ -18,9 +18,58 @@ export interface FootHooks {
   onTick?(foot: Foot, dt: number): void;
   /** Lane offset (px from pizza centre) if this foot may start its dive now, or null if the pizza's lanes are full. */
   canDescend?(foot: Foot): number | null;
+  /** Move this foot to a free lane over a different pizza (switch, hop, teleport). Returns the new pizza, or null if none is free. */
+  relane?(foot: Foot): Pizza | null;
 }
 
+/** Where feet wait while every foot is pulled back to the top (a boss set-piece). */
+const PINNED_Y = 150;
+/** Where a foot with no free lane waits, off the top of the screen. */
+const HELD_Y = -260;
+
 const LEG_LEN = 1500;
+
+/** How much further down (world px) a leg's bottom edge must go to tuck inside the foot. The leg is drawn behind
+ * the foot, so its square bottom corners show wherever the foot is narrower than the leg (a boot's neck, a narrow
+ * cuff). Push the edge down until the foot is at least as wide as the leg, but no more than a third of the foot. */
+const tuckCache = new Map<string, number>();
+function legTuck(scene: Phaser.Scene, type: FootType, m: FootMeta, footTop: number): number {
+  const hit = tuckCache.get(type.id);
+  if (hit !== undefined) return hit;
+  let tuck = 0;
+  try {
+    const ft = scene.textures.get(m.footKey).getSourceImage() as HTMLCanvasElement;
+    const lt = scene.textures.get(m.legKey).getSourceImage() as HTMLCanvasElement;
+    const fw = ft.width;
+    const fh = ft.height;
+    const fd = ft.getContext('2d')!.getImageData(0, 0, fw, fh).data;
+    const ld = lt.getContext('2d')!.getImageData(0, 0, lt.width, 1).data;
+    // the leg's solid width (its canvas has a little clear padding)
+    let la = -1;
+    let lb = -1;
+    for (let x = 0; x < lt.width; x++) if (ld[x * 4 + 3] > 128) (la < 0 && (la = x), (lb = x));
+    const legSolid = la < 0 ? lt.width : lb - la + 1;
+    const rowWidth = (y: number) => {
+      let a = -1;
+      let b = -1;
+      for (let x = 0; x < fw; x++) if (fd[(y * fw + x) * 4 + 3] > 128) (a < 0 && (a = x), (b = x));
+      return a < 0 ? 0 : b - a + 1;
+    };
+    // leg bottom in the foot texture's rows (contact is at originY · height)
+    const start = Math.round((-footTop + 16 * type.scale) * ART_RES + m.originY * fh);
+    const limit = Math.min(fh - 1, start + Math.round(fh * 0.33));
+    let y = Math.max(0, start);
+    if (rowWidth(y) < legSolid - 2) {
+      while (y < limit && rowWidth(y) < legSolid - 2) y++;
+      // only tuck when it actually hides the corners; otherwise leave the leg as drawn
+      tuck = y < limit ? (y - start + 2) / ART_RES : 0;
+    }
+  } catch {
+    tuck = 0;
+  }
+  tuckCache.set(type.id, tuck);
+  return tuck;
+}
 /** Feet are drawn a touch larger than their texture so they read clearly against the busy backdrops. */
 const FOOT_DISPLAY = 1.12;
 
@@ -74,6 +123,8 @@ export class Foot {
   trapped = false;
   hitOnce = false;
   lastHitBy = 0;
+  /** Seconds before a regrowing boss starts to heal again after a hit (GameScene sets it on damage). */
+  regenHold = 0;
   golden = false; // converted by Golden Touch
   slowAbove = 0;
   /** Speed boost from a nearby Jingle Toes (0..1). */
@@ -82,10 +133,24 @@ export class Foot {
   slot = 0;
   /** A fixed screen x to hover over instead of the target pizza (King Honk's shuffle keeps each shoe in its own lane). */
   laneX: number | null = null;
-  /** True while queued above a busy pizza. */
+  /** Unused by lanes (kept for queued boss stand-ins): waits higher up. */
   waiting = false;
-  private waitT = 0;
-  private hoverOffset = (Math.random() - 0.5) * 110;
+  /** First lane this foot holds (index into the table's lanes), -1 = none. Set by the scene. */
+  laneSide = -1;
+  /** How many lanes it holds (wide feet take two). */
+  laneRow = 1;
+  /** The table layout its lane was picked for (the scene re-places it when the table changes). */
+  laneKey = '';
+  /** No free lane: waits off the top of the screen until one opens. */
+  held = false;
+  /** Pulled back to the top and paused (a boss set-piece is playing). */
+  pinned = false;
+  /** Hover time multiplier (the heat's crowd setting). */
+  hoverMul = 1;
+  /** Seconds actually on screen (not held or pinned). */
+  fleeAge = 0;
+  /** A twin that shares this foot's health: damage to this foot goes to `link` instead. */
+  link: Foot | null = null;
   glossy: boolean;
   wool: number;
   parryReady = true;
@@ -124,6 +189,11 @@ export class Foot {
   /** Hard invulnerability (stone form, decoys handled by brains). */
   shielded = false;
   private icons?: Phaser.GameObjects.Container;
+  /** Live art layered round the drawn foot (src/game/footLive.ts): images follow its tint, flashes and fades. */
+  private liveImgs: Phaser.GameObjects.Image[] = [];
+  private liveAbove = 0;
+  /** The live art's owner: told when the foot dies, escapes or is destroyed. */
+  liveHost: { die(): void; destroy(): void } | null = null;
   /** A boss brain is moving this foot by hand: skip its own movement AI. */
   puppet = false;
   /** Speed multiplier from boss roars, avalanches and enrages. */
@@ -156,7 +226,8 @@ export class Foot {
     const legTex = scene.textures.get(m.legKey).getSourceImage() as HTMLCanvasElement;
     const legW = legTex.width * k;
     const footTop = m.footHeight * type.scale; // world px from contact up to ankle
-    this.leg = scene.add.tileSprite(0, -footTop + 16 * type.scale, legW, LEG_LEN, m.legKey).setOrigin(0.5, 1).setTileScale(k, k);
+    const legBottom = -footTop + 16 * type.scale + legTuck(scene, type, m, footTop);
+    this.leg = scene.add.tileSprite(0, legBottom, legW, LEG_LEN, m.legKey).setOrigin(0.5, 1).setTileScale(k, k);
     this.img = scene.add.image(0, 0, m.footKey).setOrigin(0.5, m.originY).setScale(k);
     this.root.add([this.leg, this.img]);
     if (m.cuffKey) {
@@ -215,8 +286,14 @@ export class Foot {
   }
 
   private freshHoverTime(base: number): number {
-    if (this.has('rush')) return 0.12;
-    return base / Math.max(0.7, this.type.speed);
+    if (this.has('rush')) return 0.12 * this.hoverMul;
+    return (base / Math.max(0.7, this.type.speed)) * this.hoverMul;
+  }
+
+  /** Set the heat's hover multiplier and re-roll the first hover with it. */
+  setHoverMul(m: number): void {
+    this.hoverMul = m;
+    this.hoverTime = this.freshHoverTime(this.type.traits.includes('flee') ? 0.4 : 0.7 + Math.random() * 0.7);
   }
 
   get alive(): boolean {
@@ -324,7 +401,41 @@ export class Foot {
       this.img.setAlpha(a);
       this.leg.setAlpha(a * 0.85);
     }
+    // time on screen (golden feet flee after 7 s of it, not counting time spent waiting for a lane)
+    if (!this.held && !this.pinned) this.fleeAge += dt;
     if (this.puppet) {
+      // a boss moved by hand still comes out of a stun
+      if (this.stunT > 0) {
+        this.stunT -= dt;
+        if (this.stars) this.stars.rotation += dt * 5;
+        if (this.stunT <= 0) this.endStun();
+      }
+      this.render(dt);
+      return;
+    }
+    // no free lane: wait off the top of the screen
+    if (this.held && this.alive) {
+      this.y += (HELD_Y - this.y) * Math.min(1, dt * 4);
+      if (this.state !== 'enter') this.setState('enter');
+      this.render(dt);
+      return;
+    }
+    // a boss set-piece: every foot backs off to the top of its lane and waits
+    if (this.pinned && this.alive) {
+      // stuns still wear off while pinned (a boss holding a lane can be frozen by a slam)
+      if (this.stunT > 0) {
+        this.stunT -= dt;
+        if (this.stars) this.stars.rotation += dt * 5;
+        if (this.stunT <= 0) this.endStun();
+      }
+      if (this.state !== 'hover') this.setState('hover');
+      this.stateT = 0;
+      this.vy = 0;
+      // bosses holding a lane stay near their usual hover height, clear of the boss bar
+      const py = this.isBossLike ? (this.hoverY ?? HOVER_Y) - 40 : PINNED_Y;
+      this.y += (py - this.y) * Math.min(1, dt * 5);
+      const px = this.laneX ?? (this.target && !this.target.dead ? this.target.x : this.x);
+      this.x += (px - this.x) * Math.min(1, dt * 3);
       this.render(dt);
       return;
     }
@@ -336,7 +447,10 @@ export class Foot {
       return;
     }
 
-    if (this.has('regen') && this.alive && this.hp < this.maxHp) this.hp = Math.min(this.maxHp, this.hp + this.maxHp * 0.04 * dt);
+    if (this.regenHold > 0) this.regenHold -= dt;
+    // regrowing feet heal 4% a second; a boss (the Kraken) only 1%, and only between flurries of hits, so steady
+    // smacking always wins (at 4% its regrowth outpaced a whole Mild build and the fight could never end)
+    if (this.has('regen') && this.alive && this.hp < this.maxHp && !(this.isBossLike && this.regenHold > 0)) this.hp = Math.min(this.maxHp, this.hp + this.maxHp * (this.isBossLike ? 0.01 : 0.04) * dt);
     const slowF =
       (this.slowT > 0 && !this.type.traits.includes('immuneSlow') ? 1 - this.slowPct : 1) *
       globalSlow *
@@ -352,7 +466,7 @@ export class Foot {
         const hy = this.hoverY ?? HOVER_Y;
         this.y += (hy - 20 - this.y) * Math.min(1, dt * 4);
         if (this.laneX !== null) this.x += (this.laneX - this.x) * Math.min(1, dt * 3);
-        else if (target) this.x += (target.x - this.x) * Math.min(1, dt * 3);
+        else if (target) this.x += (target.x + this.slot - this.x) * Math.min(1, dt * 3);
         if (this.y > hy - 40) this.setState('hover');
         break;
       }
@@ -364,46 +478,32 @@ export class Foot {
           this.leg.setAlpha(this.buried ? 0.25 : 1);
           if (was && !this.buried) this.hooks.onTrait?.(this, 'surface');
         }
-        if (this.has('roll') && this.stateT < this.hoverTime) {
-          // bowling shoe: rolls sideways across the table before picking its lane
-          this.x += Math.sin(this.age * 1.6) * 260 * dt;
-          const t = this.hooks.pickTarget(this);
-          if (t && Math.abs(t.x - this.x) < 200) this.target = t;
-        }
         if (!target || target.dead) {
           this.target = this.hooks.pickTarget(this);
           if (!this.target) break;
         }
-        // queued feet wait higher up, fanned out, so they never stack on the divers below
-        const hoverX = this.laneX ?? this.target!.x + (this.waiting ? this.hoverOffset * 1.6 : this.hoverOffset);
+        // each foot hovers in its own lane; a back-row foot waits higher up the same lane
+        let hoverX = this.laneX ?? this.target!.x + this.slot;
+        // bowling shoe: sways side to side in its lane before it dives
+        if (this.has('roll') && this.stateT < this.hoverTime) hoverX += Math.sin(this.age * 3.2) * 70;
         this.x += (hoverX - this.x) * Math.min(1, dt * 3);
         const hy = this.hoverY ?? HOVER_Y;
         this.y += ((this.waiting ? hy - 170 : hy) - this.y) * Math.min(1, dt * 3);
         if (this.type.traits.includes('teleport') && this.stateT > this.hoverTime * 0.6 && Math.random() < dt * 0.8) {
-          const other = this.hooks.pickTarget(this);
-          if (other && other !== this.target) this.blinkTo(other);
+          const from = this.target;
+          const other = this.hooks.relane?.(this);
+          if (other && other !== from) this.blinkTo(other);
         }
         if (this.stateT > this.hoverTime) {
           this.buried = false;
           const lane = this.hooks.canDescend ? this.hooks.canDescend(this) : 0;
           if (lane !== null) {
             this.slot = lane;
-            this.waiting = false;
-            this.waitT = 0;
             this.vy = speed * 0.5;
             this.setState('descend');
-          } else {
-            this.waiting = true;
-            this.waitT += dt;
-            // every so often look for a pizza with a free lane
-            if (this.waitT > 1.1) {
-              this.waitT = 0;
-              const other = this.hooks.pickTarget(this);
-              if (other) this.target = other;
-            }
           }
         }
-        if (this.type.traits.includes('flee') && this.age > 7) this.escape();
+        if (this.type.traits.includes('flee') && this.fleeAge > 7) this.escape();
         break;
       }
       case 'descend': {
@@ -442,28 +542,15 @@ export class Foot {
           this.vy = Math.max(this.vy, 0);
         }
         // striker: switch pizzas once, mid-dive
-        if (this.has('switch') && this.laneX === null && !this.switched && this.y > HOVER_Y + (this.stompY - HOVER_Y) * 0.4) {
+        // (only into a free lane on another pizza, so it never lands on top of another foot)
+        if (this.has('switch') && !this.isBossLike && !this.switched && this.y > HOVER_Y + (this.stompY - HOVER_Y) * 0.4) {
           this.switched = true;
-          let other = this.hooks.pickTarget(this);
-          for (let i = 0; i < 6 && other === this.target; i++) other = this.hooks.pickTarget(this);
-          if (other && other !== this.target) {
-            const prev = this.target;
-            this.target = other;
-            const lane = this.hooks.canDescend ? this.hooks.canDescend(this) : 0;
-            if (lane === null) this.target = prev; // no room on the other pizza: stay put
-            else {
-              this.slot = lane;
-              this.hooks.onTrait?.(this, 'switch');
-            }
-          }
+          if (this.hooks.relane?.(this)) this.hooks.onTrait?.(this, 'switch');
         }
         // pogo: bounces over to another pizza once, mid-dive
         if (this.has('hop') && !this.hopped && this.y > HOVER_Y + (this.stompY - HOVER_Y) * 0.5) {
           this.hopped = true;
-          const other = this.hooks.pickTarget(this);
-          if (other && other !== this.target) {
-            this.target = other;
-            this.slot = 0;
+          if (this.hooks.relane?.(this)) {
             this.vy = -420;
             this.hooks.onTrait?.(this, 'hop');
           }
@@ -482,7 +569,7 @@ export class Foot {
           this.feinted = true;
           this.vy = -520;
         }
-        if (this.type.traits.includes('flee') && this.age > 7) this.escape();
+        if (this.type.traits.includes('flee') && this.fleeAge > 7) this.escape();
         if (this.y >= this.stompY) {
           this.y = this.stompY;
           this.vy = 0;
@@ -536,6 +623,21 @@ export class Foot {
     this.img.setAlpha(a);
     this.leg.setAlpha(a);
     this.cuff?.setAlpha(a);
+    for (const o of this.liveImgs) o.setAlpha(a);
+  }
+
+  /** Add live art round the drawn foot: `below` stacks it under the foot's art (over the leg), otherwise over it.
+   * Each call goes above the earlier ones on its side. Images are tinted, flashed and faded with the foot. */
+  addLiveArt(o: Phaser.GameObjects.GameObject, below: boolean): void {
+    const i = this.root.getIndex(this.img);
+    if (below) this.root.addAt(o, i);
+    else this.root.addAt(o, i + 1 + this.liveAbove++);
+    if (o instanceof Phaser.GameObjects.Image) this.liveImgs.push(o);
+  }
+
+  /** Draw the foot with another texture of the same frame (its live art draws the rest). */
+  setArtTexture(key: string): void {
+    this.img.setTexture(key);
   }
 
   /** Resize the whole foot (art and hit area) to `mul` of its normal size. */
@@ -569,7 +671,7 @@ export class Foot {
   }
 
   tint(color: number | null): void {
-    for (const o of [this.img, this.leg, this.cuff]) {
+    for (const o of [this.img, this.leg, this.cuff, ...this.liveImgs]) {
       if (!o) continue;
       if (color === null) o.clearTint();
       else o.setTint(color);
@@ -619,11 +721,12 @@ export class Foot {
     this.img.setTintFill(color);
     this.leg.setTintFill(color);
     this.cuff?.setTintFill(color);
+    for (const o of this.liveImgs) o.setTintFill(color);
   }
 
   clearTint(): void {
     const slowTint = this.slowT > 0 || this.frozen ? 0xa8dcff : this.burnT > 0 ? 0xffc0a0 : null;
-    for (const o of [this.img, this.leg, this.cuff]) {
+    for (const o of [this.img, this.leg, this.cuff, ...this.liveImgs]) {
       if (!o) continue;
       o.clearTint();
       if (slowTint) o.setTint(slowTint);
@@ -688,7 +791,8 @@ export class Foot {
       duration: 120,
       yoyo: true,
       onYoyo: () => {
-        this.x = p.x;
+        // reappear in the lane relane() just gave it, not on the pizza's centre (on top of the foot there)
+        this.x = this.laneX ?? p.x + this.slot;
       },
     });
   }
@@ -697,6 +801,7 @@ export class Foot {
     if (!this.alive) return;
     this.setState('dying');
     this.shadow.setVisible(false);
+    this.liveHost?.die();
     this.hooks.onEscape(this);
     this.scene.tweens.add({ targets: this.root, y: -900, duration: 700, ease: 'Back.In', onComplete: () => this.destroy() });
   }
@@ -713,6 +818,7 @@ export class Foot {
     this.auraTween?.remove();
     this.auraTween = null;
     this.setState('dying');
+    this.liveHost?.die();
     // the killing blow flashes white; make sure the flash clears since update() stops running now
     this.scene.time.delayedCall(boss ? 140 : 70, () => {
       this.flashT = 0;
@@ -746,6 +852,8 @@ export class Foot {
     this.auraTween?.remove();
     this.auraTween = null;
     this.state = 'gone';
+    this.liveHost?.destroy();
+    this.liveHost = null;
     this.root.destroy();
     this.shadow.destroy();
   }

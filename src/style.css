@@ -207,6 +207,40 @@ body {
   position: relative;
 }
 
+/* the close cross in a window's top-right corner (it presses the window's Back / Cancel / Done) */
+.x-close {
+  position: absolute;
+  top: 0.9em;
+  right: 0.9em;
+  z-index: 2;
+  width: 3em;
+  height: 3em;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--ink);
+  background: linear-gradient(180deg, #fffaf0 0%, var(--paper-d) 100%);
+  border: 0.18em solid var(--ink);
+  border-radius: 0.5em;
+  box-shadow: 0 0.18em 0 var(--ink);
+  cursor: pointer;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+
+.x-close svg {
+  width: 1.4em;
+  height: 1.4em;
+}
+
+.x-close:hover {
+  background: #fff;
+}
+
+.x-close:active {
+  transform: translateY(0.14em);
+  box-shadow: 0 0.04em 0 var(--ink);
+}
+
 .panel::before {
   content: '';
   position: absolute;
@@ -516,6 +550,16 @@ h3 {
   -webkit-text-stroke: 0.22em var(--ink);
 }
 
+.hud .runclock {
+  font: 600 1.15em 'Fredoka', sans-serif;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  opacity: 0.85;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.2em var(--ink);
+  letter-spacing: 0.02em;
+}
+
 .hud .wave small {
   color: #fff;
   font-size: 0.8em;
@@ -607,6 +651,28 @@ h3 {
 
 .combo.hot .label {
   animation: pulse 0.3s ease infinite;
+}
+
+/* a boss on screen: label and score pill side by side, the timer under them, all clear of the boss bar */
+.combo.beside-boss {
+  top: 0.5em;
+  grid-template-columns: auto auto;
+  align-items: center;
+  column-gap: 0.5em;
+}
+
+.combo.beside-boss .label {
+  font-size: 2.4em;
+}
+
+.combo.beside-boss .mult {
+  margin-top: 0;
+}
+
+.combo.beside-boss .timer {
+  grid-column: 1 / -1;
+  width: 100%;
+  margin-top: 0.2em;
 }
 
 .bossbar {
@@ -824,6 +890,13 @@ h3 {
 
 .banner.loc .small {
   color: var(--cheese);
+}
+
+/* phones: place titles ("PERSIAN WAR BAND!") stay well inside the screen instead of running to its edges */
+@container (max-width: 900px) {
+  .banner.loc .big {
+    font-size: 5.6em;
+  }
 }
 
 @keyframes bannerIn {
@@ -2502,8 +2575,40 @@ body.pad .slam .pd {
   height: 1.1em;
 }
 
-.shop-right .btn.next {
+/* Next Wave, with the square pause-menu button beside it */
+.shop-right .next-row {
   margin-top: auto;
+  display: flex;
+  gap: 0.5em;
+  align-items: stretch;
+}
+
+.next-row .btn.next {
+  flex: 1 1 auto;
+  width: auto;
+}
+
+.btn.shop-pause {
+  flex: 0 0 auto;
+  aspect-ratio: 1;
+  align-self: stretch;
+  width: auto;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 0.3em;
+  color: var(--ink);
+}
+
+.btn.shop-pause .gear {
+  width: 1.5em;
+  height: 1.5em;
+  display: block;
+}
+
+.pause-note {
+  font-size: 1em;
+  max-width: 32em;
 }
 
 .btn.next {
@@ -2939,7 +3044,7 @@ body.pad :focus {
 
 .v-choice {
   display: grid;
-  gap: 0.4em;
+  gap: 0.7em;
   justify-items: center;
   background: var(--cream);
   border: 0.22em solid var(--ink);
@@ -2947,6 +3052,132 @@ body.pad :focus {
   padding: 1em 1.4em;
   color: var(--ink);
   font-weight: 600;
+}
+
+/* ——— ACT COMPLETE (the victory screen's style, a notch smaller) ——— */
+.victory.actdone {
+  position: relative;
+  background: radial-gradient(ellipse at 50% 28%, #5e3e14 0%, #5a2216 52%, #2a1208 100%);
+  padding: 2em 3em 2.2em;
+  gap: 1em;
+}
+
+.actdone .v-title {
+  font-size: 5.6em;
+  animation: act-pop 0.7s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+
+/* one row of stats keeps the victory (now with the act medals) on screen */
+.victory .stats {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+.victory .stat b {
+  font-size: 2.2em;
+}
+
+.actdone .stats {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.actdone .stat b {
+  font-size: 2.6em;
+}
+
+.btn.act-pause {
+  position: absolute;
+  top: 0.9em;
+  right: 0.9em;
+  width: 2.8em;
+  height: 2.8em;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 0.6em;
+  color: var(--ink);
+}
+
+.btn.act-pause .gear {
+  width: 1.6em;
+  height: 1.6em;
+  display: block;
+}
+
+@keyframes act-pop {
+  0% {
+    transform: scale(0.4) rotate(-6deg);
+    opacity: 0;
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* the journey's acts as medals: done ones gold, the one just finished glowing */
+.act-track {
+  display: flex;
+  gap: 0.6em;
+  justify-content: center;
+}
+
+.act-track span {
+  width: 2.6em;
+  height: 2.6em;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 0.16em solid var(--ink);
+  background: #4a3426;
+  color: #d8c4a8;
+  font-family: 'Lilita One', sans-serif;
+  font-size: 1.3em;
+  box-shadow: 0 0.14em 0 var(--ink);
+}
+
+.act-track span.done {
+  background: radial-gradient(circle at 35% 30%, #fff4b0 0%, #ffd23f 45%, #d8901a 100%);
+  color: var(--ink);
+}
+
+.act-track span.cur {
+  transform: scale(1.22);
+  box-shadow: 0 0.14em 0 var(--ink), 0 0 0 0.2em rgba(255, 210, 63, 0.45), 0 0 1.2em rgba(255, 210, 63, 0.8);
+  animation: act-glow 1.6s ease-in-out infinite;
+}
+
+@keyframes act-glow {
+  50% {
+    box-shadow: 0 0.14em 0 var(--ink), 0 0 0 0.3em rgba(255, 210, 63, 0.25), 0 0 2em rgba(255, 210, 63, 1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .actdone .v-title,
+  .act-track span.cur {
+    animation: none;
+  }
+}
+
+/* phone: the legend victory (title, badge, medals, stats and two choices) fits without its choices running off the bottom */
+@container (max-width: 900px) {
+  .victory:not(.actdone) {
+    padding: 1.4em 2.6em 1.6em;
+    gap: 0.75em;
+  }
+
+  .victory:not(.actdone) .v-title {
+    font-size: 5.2em;
+  }
+
+  .victory:not(.actdone) .v-sub {
+    font-size: 1.5em;
+  }
+
+  .victory:not(.actdone) .v-choice {
+    padding: 0.6em 1.2em;
+    gap: 0.4em;
+  }
 }
 
 /* ——— Main menu: continue run ——— */
@@ -3035,6 +3266,7 @@ body.pad :focus {
 }
 
 .heat small {
+  margin-top: auto;
   font-weight: 700;
   font-size: 0.8em;
   color: var(--tomato-d);
@@ -3149,6 +3381,7 @@ body.pad :focus {
 }
 
 .prerun-bottom .lineup2 {
+  width: 100%;
   flex-wrap: nowrap;
   gap: 0.5em;
   justify-content: flex-start;
@@ -3161,17 +3394,18 @@ body.pad :focus {
 }
 
 .prerun-bottom .lu img {
-  width: 5.4em;
+  width: 6em;
+  flex-shrink: 0;
 }
 
 .prerun-bottom .lu b {
-  font-size: 1.3em;
+  font-size: 1.2em;
 }
 
 .prerun-bottom .lu span {
-  font-size: 0.95em;
+  font-size: 0.88em;
   white-space: normal;
-  line-height: 1.15;
+  line-height: 1.12;
 }
 
 .prerun-bottom .lu b {
@@ -3232,7 +3466,18 @@ body.pad :focus {
 }
 
 .tile.unowned img {
-  filter: grayscale(0.55);
+  filter: grayscale(0.85) brightness(0.8);
+  opacity: 0.6;
+}
+
+/* locked pizzas read as locked: the whole card is dimmed, the price or goal stays bright to act on */
+.tile.pz-tile.unowned {
+  background: rgba(240, 228, 205, 0.55);
+}
+
+.tile.pz-tile.unowned .nm,
+.tile.pz-tile.unowned .ds {
+  opacity: 0.7;
 }
 
 .detail .howto,
@@ -3422,7 +3667,8 @@ body.reduced-motion *::after {
 }
 
 .bossbar[data-phase='4'] .phase {
-  background: #c04dff;
+  /* a deeper violet so the white text clears 4.5:1 */
+  background: #8a2bc7;
   color: #fff;
 }
 
@@ -3518,13 +3764,191 @@ body.reduced-motion *::after {
   height: 1.2em;
 }
 
-.locker-tabs {
-  flex-wrap: wrap;
+/* type tabs, a dropdown on narrow screens, and the Unlocked only filter share one row */
+.locker-bar {
+  display: flex;
+  align-items: center;
   justify-content: center;
+  gap: 0.8em;
+  width: 100%;
+}
+
+.locker-tabs {
+  flex-wrap: nowrap;
+  justify-content: center;
+  gap: 0.35em;
+  min-width: 0;
+}
+
+.locker-select {
+  display: none;
+  font: 400 1.4em 'Lilita One', sans-serif;
+  color: var(--ink);
+  background: linear-gradient(180deg, #fffaf0 0%, var(--paper-d) 100%);
+  border: 0.14em solid var(--ink);
+  border-radius: 0.7em;
+  padding: 0.25em 0.6em;
+  min-width: 10em;
+  cursor: pointer;
+}
+
+.locker-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  flex-shrink: 0;
+  font: 400 1.15em 'Lilita One', sans-serif;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.6);
+  border: 0.14em solid var(--ink);
+  border-radius: 0.7em;
+  padding: 0.3em 0.7em;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.locker-filter i {
+  display: inline-grid;
+  place-items: center;
+  width: 1.05em;
+  height: 1.05em;
+  border: 0.12em solid var(--ink);
+  border-radius: 0.25em;
+  background: #fff;
+  font-style: normal;
+  font-size: 0.9em;
+  line-height: 1;
+}
+
+.locker-filter.on {
+  background: #c9efb5;
+}
+
+.locker-filter.on i {
+  background: var(--basil-d);
+  color: #fff;
+}
+
+.dt-act {
+  display: inline-flex;
+  gap: 0.4em;
+}
+
+/* the tile's LOOK tag sits opposite its ON/NEW tag */
+.tile .tag.look {
+  right: auto;
+  left: 0.4em;
+  background: #bfe6ff;
+}
+
+.look-chip {
+  background: #dff1ff !important;
+}
+
+/* on the run card the ability's description runs on after its name, small, so the card stays short */
+.peelbox .abl {
+  display: block;
+  margin-top: 0.1em;
+  font-size: 0.82em;
+  line-height: 1.25;
+}
+
+.peelbox .abl .chip {
+  font-size: 0.9em;
+  margin-right: 0.3em;
+}
+
+.peelbox .abl b {
+  font-size: 1.15em;
+  margin-right: 0.2em;
+}
+
+.pk-look {
+  font-weight: 600;
+  font-size: 0.85em;
+  color: var(--ink-soft);
+}
+
+.pk-look .linkish {
+  font: inherit;
+  font-weight: 700;
+  color: var(--tomato-d);
+  background: none;
+  border: 0;
+  padding: 0;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* phones (where the overlay scales up): the tabs become a dropdown */
+@container (max-width: 900px) {
+  .locker-tabs {
+    display: none;
+  }
+
+  .locker-select {
+    display: block;
+  }
+
+  /* and the window gets tighter so the grid keeps room to scroll */
+  .modal.wide.locker {
+    padding-top: 0.9em;
+    padding-bottom: 1em;
+    gap: 0.5em;
+  }
+
+  .modal.wide.locker .title {
+    font-size: 2.4em;
+  }
+
+  .locker .crusts {
+    font-size: 1.2em;
+  }
+
+  .locker .peel-detail {
+    grid-template-columns: 4em 1fr;
+    padding-top: 0.3em;
+    padding-bottom: 0.3em;
+  }
+
+  .locker .peel-big {
+    height: 5.5em;
+  }
+
+  .locker .btn.green:not(.small),
+  .locker .btn.cream:not(.small) {
+    font-size: 1.6em;
+  }
+
+  /* the new-run screen tightens up too, so its buttons stay on screen */
+  .modal.wide.prerun {
+    padding-top: 0.9em;
+    padding-bottom: 1.1em;
+  }
+
+  .modal.wide.prerun .title {
+    font-size: 2.4em;
+  }
+
+  .prerun .heat,
+  .prerun .act {
+    padding: 0.45em 0.7em;
+  }
+
+  .prerun .row .btn {
+    font-size: 1.6em;
+  }
+
+  .prerun .row .btn.big {
+    font-size: 2.2em;
+  }
 }
 
 .locker-tabs .btn {
-  font-size: 1.2em;
+  /* ten tabs and the filter share one row */
+  font-size: 0.94em;
+  padding-left: 0.42em;
+  padding-right: 0.42em;
 }
 
 .locker-tabs .btn small {
@@ -3556,7 +3980,8 @@ body.reduced-motion *::after {
   display: grid;
   place-items: center;
   height: 8em;
-  overflow: hidden;
+  /* visible, so an animated look's glow and bolts bleed out past the box instead of being cut flat */
+  overflow: visible;
 }
 
 .peel-big img,
@@ -3796,6 +4221,13 @@ body.reduced-motion *::after {
   margin: 0.15em 0 0 !important;
 }
 
+/* more detail on hover (Moon Knife's night stages) */
+.dt-how p.has-tip {
+  cursor: help;
+  text-decoration: underline dotted rgba(42, 24, 16, 0.45);
+  text-underline-offset: 0.2em;
+}
+
 .dt-how .pbar {
   margin-top: 0.15em;
   max-width: 16em;
@@ -3819,29 +4251,52 @@ body.reduced-motion *::after {
 }
 
 .prerun-bottom {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 31em;
-  gap: 1.4em;
   width: 100%;
-  align-items: stretch;
-}
-
-/* the lineup pills grow to the peel card's height */
-.prerun-bottom > div {
   display: flex;
   flex-direction: column;
 }
 
-.prerun-bottom .lineup2 {
-  flex: 1 1 auto;
-  align-items: stretch;
+/* your peel: the ability box and the look box side by side, where the journey used to be */
+.peel-wrap {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
-.prerun-bottom .peelcard {
+.peelboxes {
   flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 0.8em;
 }
 
-.peelcard {
+.peelbox .pk-body {
+  align-self: start;
+}
+
+.peelbox .pk-kind {
+  font-family: 'Lilita One', sans-serif;
+  font-size: 0.85em;
+  letter-spacing: 0.08em;
+  color: var(--tomato-d);
+}
+
+.peelbox.look.matching .pk-img img {
+  opacity: 0.85;
+}
+
+.peelbox .pk-desc .linkish {
+  font: inherit;
+  font-weight: 700;
+  color: var(--tomato-d);
+  background: none;
+  border: 0;
+  padding: 0;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.peelbox {
   display: grid;
   grid-template-columns: 3.6em minmax(0, 1fr);
   gap: 0.7em;
@@ -3852,7 +4307,7 @@ body.reduced-motion *::after {
   padding: 0.4em 0.8em;
 }
 
-.peelcard .pk-img {
+.peelbox .pk-img {
   position: relative;
   overflow: hidden;
   height: 6.4em;
@@ -3860,24 +4315,24 @@ body.reduced-motion *::after {
   place-items: center;
 }
 
-.peelcard .pk-img img {
+.peelbox .pk-img img {
   height: 6.4em;
   transform: rotate(-14deg);
 }
 
-.peelcard .pk-head {
+.peelbox .pk-head {
   display: flex;
   align-items: center;
   gap: 0.6em;
   flex-wrap: wrap;
 }
 
-.peelcard .pk-head .btn {
+.peelbox .pk-head .btn {
   margin-left: auto;
   font-size: 0.85em;
 }
 
-.peelcard .pk-img.shiny::after {
+.peelbox .pk-img.shiny::after {
   content: '';
   position: absolute;
   inset: -20%;
@@ -3943,4 +4398,1224 @@ body.reduced-motion *::after {
   font-weight: 700;
   color: var(--tomato-d);
   line-height: 1.1;
+}
+
+/* ——— Pizza unlock routes, enhanced pizzas, the Toppings tab and the run summary ——— */
+
+/* an enhanced perk: the line in deep gold on a gold highlighter, old numbers struck through */
+.perk-gold {
+  color: #7a4c00;
+  font-weight: 700;
+  background: linear-gradient(180deg, transparent 55%, rgba(255, 201, 58, 0.55) 55%);
+  border-radius: 0.2em;
+}
+
+.perk-gold s {
+  color: var(--ink-soft);
+  font-weight: 600;
+  text-decoration-thickness: 0.12em;
+  text-decoration-color: var(--tomato-d);
+}
+
+.perk-gold b {
+  font-weight: 800;
+  color: #6a3e00;
+}
+
+.star-badge {
+  position: absolute;
+  top: -0.55em;
+  right: -0.45em;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 1.9em;
+  height: 1.9em;
+  font-size: 1.05em;
+  line-height: 1;
+  color: #fff3b0;
+  background: radial-gradient(circle at 35% 30%, #ffe680, #e0a000 70%);
+  border: 0.14em solid var(--ink);
+  border-radius: 50%;
+  box-shadow: 0 0.15em 0 var(--ink), 0 0 0.8em rgba(255, 201, 58, 0.9);
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.12em var(--ink);
+  animation: starTwinkle 2.4s ease-in-out infinite;
+}
+
+@keyframes starTwinkle {
+  0%,
+  100% {
+    transform: rotate(-8deg) scale(1);
+  }
+  50% {
+    transform: rotate(8deg) scale(1.12);
+  }
+}
+
+.ptile.enhanced {
+  border-color: #b07800;
+  background: linear-gradient(170deg, #fffdf2, #fff1c2);
+  box-shadow: 0 0 0 0.18em #ffc93a, 0 0 1.1em rgba(255, 190, 40, 0.75);
+}
+
+.ptile.enhanced .pthumb {
+  filter: drop-shadow(0 0 0.35em rgba(255, 196, 40, 0.95));
+}
+
+.ptile .btn.reheat {
+  font-size: 0.85em;
+  width: 100%;
+  margin-top: 0.15em;
+  padding: 0.22em 0.4em 0.28em;
+  white-space: nowrap;
+}
+
+.btn s {
+  font-size: 0.8em;
+  color: rgba(255, 255, 255, 0.85);
+  -webkit-text-stroke: 0.1em var(--ink);
+  text-decoration-thickness: 0.14em;
+  text-decoration-color: var(--ink);
+}
+
+.offer-pic {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.offer-pic .star-badge {
+  top: -0.3em;
+  right: -0.4em;
+  font-size: 0.8em;
+}
+
+/* the Chef's Special: a new pizza, and the card says plainly what buying it does */
+.counter2 .offer.special {
+  grid-template-columns: 4.2em minmax(0, 1fr) auto;
+  background: linear-gradient(135deg, #fff3c4, #ffe08a);
+  border-color: var(--cheese-d);
+  row-gap: 0.15em;
+}
+
+.offer.special .unlock-note b {
+  color: var(--tomato-d);
+}
+
+.offer.special .unlock-note {
+  grid-column: 1 / -1;
+  font-weight: 700;
+  font-size: 0.85em;
+  color: #6a3e00;
+  background: rgba(255, 255, 255, 0.55);
+  border-radius: 0.6em;
+  padding: 0.1em 0.6em;
+  text-align: center;
+}
+
+.counter2 .offer.enhanced {
+  background: linear-gradient(135deg, #fffbe6, #ffe9a8);
+  border-color: #b07800;
+  box-shadow: 0 0 0.7em rgba(255, 190, 40, 0.6);
+}
+
+.offer.enhanced .tag {
+  color: #8a5a00;
+}
+
+.offer.free {
+  background: linear-gradient(135deg, #eefbe6, #cdeab9);
+  border-color: var(--basil-d);
+}
+
+.offer.free .tag {
+  color: var(--basil-d);
+}
+
+/* last pizza standing: the counter calls for attention until a pizza is added */
+.ls-banner {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+  gap: 0.2em 0.6em;
+  font-family: 'Lilita One', sans-serif;
+  color: #fff;
+  background: linear-gradient(180deg, #ff6a4d, var(--tomato-d));
+  border: 0.16em solid var(--ink);
+  border-radius: 0.7em;
+  padding: 0.25em 0.8em 0.3em;
+  text-align: center;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.14em var(--ink);
+}
+
+.ls-banner {
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.05;
+}
+
+.ls-banner b {
+  font-weight: 400;
+  font-size: 1.25em;
+}
+
+.ls-banner span {
+  font-size: 0.95em;
+}
+
+.counter2.last-stand {
+  animation: counterPulse 1.3s ease-in-out infinite;
+}
+
+@keyframes counterPulse {
+  0%,
+  100% {
+    box-shadow: 0 0.35em 0 var(--ink), 0 0 0 0 rgba(255, 106, 77, 0);
+  }
+  50% {
+    box-shadow: 0 0.35em 0 var(--ink), 0 0 0 0.35em rgba(255, 106, 77, 0.75), 0 0 1.6em rgba(255, 106, 77, 0.7);
+  }
+}
+
+.counter2.nudge {
+  animation: counterNudge 0.5s ease-in-out, counterPulse 1.3s ease-in-out 0.5s infinite;
+}
+
+@keyframes counterNudge {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20%,
+  60% {
+    transform: translateX(-0.6em);
+  }
+  40%,
+  80% {
+    transform: translateX(0.6em);
+  }
+}
+
+.btn.next.locked {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+  gap: 0.1em;
+  background: linear-gradient(180deg, #9a8a80, #6e5f56);
+}
+
+.btn.next.locked small {
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 700;
+  font-size: 0.42em;
+  letter-spacing: 0;
+  -webkit-text-stroke: 0.1em var(--ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .counter2.last-stand,
+  .counter2.nudge,
+  .star-badge {
+    animation: none;
+  }
+}
+
+/* ——— Your Toppings window ——— */
+.modal.wide.yourtops {
+  width: 72em;
+  max-height: 92cqh;
+}
+
+.yt-search {
+  font: 600 1.3em 'Fredoka', sans-serif;
+  color: var(--ink);
+  width: 100%;
+  background: #fff;
+  border: 0.14em solid var(--ink);
+  border-radius: 0.7em;
+  padding: 0.35em 0.8em;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.yt-search:focus {
+  outline: 0.18em solid var(--cheese-d);
+}
+
+.yt-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
+  gap: 0.6em;
+  width: 100%;
+}
+
+.ytop {
+  display: grid;
+  grid-template-columns: 2.6em minmax(0, 1fr);
+  align-items: center;
+  gap: 0.6em;
+  padding: 0.5em 0.8em;
+  background: rgba(255, 255, 255, 0.7);
+  border: 0.16em solid var(--ink);
+  border-left: 0.55em solid var(--rc);
+  border-radius: 0.8em;
+}
+
+.ytop.used {
+  background: rgba(230, 220, 205, 0.7);
+}
+
+.ytop .ic {
+  font-size: 2em;
+  text-align: center;
+  font-family: system-ui, 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif;
+}
+
+.ytop .tx {
+  display: grid;
+  gap: 0.1em;
+  min-width: 0;
+}
+
+.yt-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.2em 0.5em;
+}
+
+.ytop b {
+  font-family: 'Lilita One', sans-serif;
+  font-weight: 400;
+  font-size: 1.3em;
+}
+
+.ytop .rar {
+  font-family: 'Lilita One', sans-serif;
+  font-size: 0.8em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: var(--rc);
+  border: 0.1em solid var(--ink);
+  border-radius: 0.6em;
+  padding: 0 0.5em;
+}
+
+.yt-st {
+  margin-left: auto;
+  font-weight: 700;
+  font-size: 0.9em;
+  color: var(--tomato-d);
+  white-space: nowrap;
+}
+
+.yt-st.ready {
+  color: var(--basil-d);
+}
+
+.yt-st.back {
+  color: var(--ink-soft);
+}
+
+.ytop .tx > span {
+  font-weight: 600;
+  color: var(--ink-soft);
+  line-height: 1.2;
+}
+
+.ytop small {
+  font-weight: 600;
+  font-size: 0.85em;
+  color: var(--ink-soft);
+}
+
+.ytop .down {
+  font-style: normal;
+  font-weight: 700;
+  font-size: 0.9em;
+  color: var(--tomato-d);
+}
+
+/* ——— Enhance a Pizza picker (the swap picker, in gold) ——— */
+.enhance2 .incoming {
+  background: linear-gradient(160deg, #fff6d0, #ffe08a);
+  border-color: #b07800;
+  box-shadow: 0 0.35em 0 #6a4600;
+}
+
+.enhance2 .in-star {
+  font-size: 5.5em;
+  line-height: 1;
+  color: #ffd23f;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.06em var(--ink);
+  filter: drop-shadow(0 0 0.15em rgba(255, 190, 40, 0.9));
+}
+
+.enhance2 .in-text .tag {
+  background: #8a5a00;
+}
+
+.enhance2 .in-text span:last-child,
+.enhance2 .in-ask b {
+  color: #6a3e00;
+}
+
+.enhance2 .swapfoot {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.enhance2 .swapfoot > :first-child {
+  grid-column: 2;
+}
+
+.swaptile.enh.picked {
+  background: #fff3c4;
+  border-color: #d99a00;
+  box-shadow: 0 0.5em 0 #8a5a00, 0 0 1.2em rgba(255, 190, 40, 0.8);
+}
+
+.swaptile.enh.picked .pthumb {
+  opacity: 1;
+  filter: drop-shadow(0 0 0.5em rgba(255, 196, 40, 1));
+}
+
+.swaptile.enh .ds {
+  font-size: 1.25em;
+}
+
+.swaptile.enh[disabled] {
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+
+.flag.gold {
+  background: #b07800;
+}
+
+.swaptile.enh.picked .flag.gold {
+  display: block;
+}
+
+/* ——— Pizzeria: pizzas by route, and the toppings collection ——— */
+.pz-sec {
+  display: flex;
+  align-items: baseline;
+  gap: 0.8em;
+  margin: 1.2em 0 0.6em;
+  font-family: 'Lilita One', sans-serif;
+}
+
+.pz-sec:first-child {
+  margin-top: 0.2em;
+}
+
+.pz-sec b {
+  font-weight: 400;
+  font-size: 1.5em;
+  color: var(--tomato-d);
+}
+
+.pz-sec span {
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.pz-tile .route {
+  font-weight: 700;
+  font-size: 0.9em;
+  line-height: 1.15;
+  color: #6a3e00;
+}
+
+.pz-tile .seen {
+  font-weight: 600;
+  font-size: 0.85em;
+  color: var(--ink-soft);
+}
+
+.pz-tile .pbar {
+  margin-top: 0.1em;
+}
+
+.pz-tile.rare {
+  border-color: #6a3aa8;
+  background: linear-gradient(160deg, #f6efff, #e9dcff);
+}
+
+.pz-tile.rare.unseen img {
+  filter: brightness(0) opacity(0.35);
+}
+
+.pz-tile .tag.new,
+.tcard .tag.new,
+.rs-item .tag.new,
+.lu .tag.new {
+  background: var(--tomato-d);
+  color: #fff;
+}
+
+.tops-bar {
+  flex-wrap: wrap;
+  margin-bottom: 0.4em;
+}
+
+.tops-note {
+  text-align: center;
+  font-weight: 600;
+  color: var(--ink-soft);
+  margin-bottom: 0.7em;
+}
+
+.tgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(12em, 1fr));
+  gap: 0.8em;
+}
+
+.tcard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25em;
+  text-align: center;
+  padding: 0.6em 0.6em 0.7em;
+  background: linear-gradient(180deg, #fffaf0, var(--paper));
+  border: 0.18em solid var(--ink);
+  border-radius: 1em;
+  box-shadow: 0 0 0 0.22em var(--rc) inset;
+}
+
+.tcard .tc-top {
+  display: flex;
+  align-items: center;
+  gap: 0.35em;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.tcard .ic {
+  font-size: 1.7em;
+  font-family: system-ui, 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif;
+}
+
+.tcard .rarity {
+  font-family: 'Lilita One', sans-serif;
+  font-size: 0.85em;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--rc);
+  border: 0.12em solid var(--ink);
+  border-radius: 1em;
+  padding: 0 0.6em;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.16em var(--ink);
+}
+
+.tcard .kind {
+  font-size: 0.65em;
+}
+
+.tcard .nm {
+  font-family: 'Lilita One', sans-serif;
+  font-size: 1.2em;
+  line-height: 1.05;
+}
+
+.tcard .ds {
+  font-weight: 600;
+  font-size: 0.9em;
+  color: var(--ink-soft);
+  line-height: 1.2;
+}
+
+.tcard .down {
+  font-weight: 700;
+  font-size: 0.85em;
+  color: var(--tomato-d);
+}
+
+.tcard .runs {
+  margin-top: auto;
+  font-weight: 700;
+  font-size: 0.85em;
+  color: var(--basil-d);
+}
+
+.tcard .tick {
+  display: inline-grid;
+  place-items: center;
+  width: 1.3em;
+  height: 1.3em;
+  margin-right: 0.3em;
+  color: #fff;
+  background: var(--basil-d);
+  border-radius: 50%;
+  font-size: 0.9em;
+}
+
+.tcard .tag {
+  position: absolute;
+  top: -0.5em;
+  right: -0.3em;
+  font-family: 'Lilita One', sans-serif;
+  font-size: 0.85em;
+  border: 0.12em solid var(--ink);
+  border-radius: 0.6em;
+  padding: 0 0.4em;
+}
+
+.tcard.unseen {
+  justify-content: center;
+  min-height: 9em;
+  background: repeating-linear-gradient(135deg, rgba(42, 24, 16, 0.06) 0 0.6em, transparent 0.6em 1.2em), #e6d9c2;
+  box-shadow: 0 0 0 0.22em var(--rc) inset;
+  opacity: 0.8;
+}
+
+.tcard.unseen .q {
+  font-family: 'Lilita One', sans-serif;
+  font-size: 2.6em;
+  color: var(--rc);
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.08em var(--ink);
+}
+
+/* ——— Unlocked this run ——— */
+.modal.wide.runsum {
+  width: 84em;
+  max-height: 94cqh;
+}
+
+.rs-kicker {
+  font-family: 'Lilita One', sans-serif;
+  font-size: 1.3em;
+  letter-spacing: 0.15em;
+  color: var(--tomato-d);
+}
+
+.rs-body {
+  width: 100%;
+}
+
+.rs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(22em, 1fr));
+  gap: 0.6em;
+  margin-bottom: 0.6em;
+}
+
+.rs-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 5em minmax(0, 1fr);
+  align-items: center;
+  gap: 0.7em;
+  background: rgba(255, 255, 255, 0.7);
+  border: 0.16em solid var(--ink);
+  border-radius: 0.9em;
+  padding: 0.35em 0.8em 0.35em 0.35em;
+}
+
+.rs-item.pizza {
+  background: linear-gradient(135deg, #eefbe6, #d6f0c4);
+}
+
+.rs-item.shiny {
+  background: linear-gradient(135deg, #fffaf0, #fff1c8 45%, #f2e6ff);
+}
+
+.rs-art {
+  display: grid;
+  place-items: center;
+  height: 4em;
+}
+
+.rs-art img {
+  max-width: 100%;
+  max-height: 4em;
+  object-fit: contain;
+}
+
+.rs-art.peel img {
+  max-height: 4.3em;
+  transform: rotate(-20deg);
+}
+
+.rs-art.ic {
+  height: auto;
+  line-height: 1;
+  font-size: 2.6em;
+  font-family: system-ui, 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif;
+}
+
+.rs-tx {
+  display: grid;
+  gap: 0.05em;
+  min-width: 0;
+}
+
+.rs-tx b {
+  font-family: 'Lilita One', sans-serif;
+  font-weight: 400;
+  font-size: 1.25em;
+  line-height: 1.05;
+}
+
+.rs-tx span {
+  font-weight: 600;
+  font-size: 0.9em;
+  color: var(--ink-soft);
+  line-height: 1.15;
+}
+
+.rs-tx .pbar {
+  margin-top: 0.15em;
+}
+
+.rs-item .tag {
+  position: absolute;
+  top: -0.5em;
+  right: -0.3em;
+  font-family: 'Lilita One', sans-serif;
+  font-size: 0.85em;
+  border: 0.12em solid var(--ink);
+  border-radius: 0.6em;
+  padding: 0 0.4em;
+}
+
+.rs-none {
+  text-align: center;
+  font-weight: 600;
+  font-size: 1.2em;
+  color: var(--ink-soft);
+  margin: 0.6em 0 1em;
+}
+
+/* ——— Rare Find on the new-run screen ——— */
+.lu.rare {
+  position: relative;
+  overflow: hidden;
+  border-color: #6a3aa8;
+  background: linear-gradient(135deg, #f6efff, #e3d2ff);
+  box-shadow: 0 0 0 0.16em #b98aff, 0 0 1.2em rgba(176, 107, 255, 0.7);
+}
+
+.lu.rare::after {
+  content: '';
+  position: absolute;
+  inset: -20%;
+  background: linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, 0.85) 45%, rgba(255, 240, 160, 0.6) 50%, rgba(160, 220, 255, 0.5) 55%, transparent 65%);
+  mix-blend-mode: soft-light;
+  animation: peelShine 2.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.lu .rf {
+  font-family: 'Lilita One', sans-serif;
+  font-size: 0.8em;
+  letter-spacing: 0.12em;
+  color: #5a2a8a;
+}
+
+.lu.rare .btn {
+  align-self: flex-start;
+  margin-top: 0.2em;
+  font-size: 0.9em;
+  position: relative;
+  z-index: 1;
+}
+
+.lu .tag {
+  position: absolute;
+  top: 0.3em;
+  left: 0.3em;
+  z-index: 1;
+  font-family: 'Lilita One', sans-serif;
+  font-size: 0.8em;
+  border: 0.12em solid var(--ink);
+  border-radius: 0.6em;
+  padding: 0 0.4em;
+}
+
+@container (max-width: 900px) {
+  /* the shop is laid out edge to edge at 96em: on phones the UI's larger text (1.18cqw) pushed its
+     right column and Next Wave off screen, so the shop keeps the desktop scale */
+  .shop2,
+  .swap2 {
+    font-size: 0.847em;
+  }
+
+  .yt-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .modal.wide.runsum .title {
+    font-size: 2.4em;
+  }
+}
+
+/* the counter's services sit on one row, and the Golden Menu in three columns, so a full counter
+   (last pizza standing: banner, two free pizzas and the special) still leaves Next Wave on screen */
+.services {
+  display: grid;
+  grid-template-columns: auto auto auto;
+  gap: 0.4em;
+}
+
+.services .btn {
+  font-size: 0.98em;
+  letter-spacing: 0;
+  padding-left: 0.4em;
+  padding-right: 0.4em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.services .btn:only-child,
+.services .btn:first-child:nth-last-child(2) ~ .btn {
+  grid-column: span 2;
+}
+
+.gitems {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.gitems .gitem {
+  padding: 0.3em 0.45em;
+}
+
+.gitems .gitem b {
+  font-size: 0.94em;
+}
+
+.counter2 .offer {
+  padding-top: 0.15em;
+  padding-bottom: 0.15em;
+}
+
+/* ——— Shop toppings: price tags on cards, and a compact grid when a shop deals lots of cards ——— */
+.card .ptag {
+  position: absolute;
+  top: 4.6em;
+  right: 0.45em;
+  transform: rotate(8deg);
+  font-family: 'Lilita One', sans-serif;
+  font-size: 0.85em;
+  letter-spacing: 0.06em;
+  color: #fff;
+  padding: 0.1em 0.55em;
+  border: 0.14em solid var(--ink);
+  border-radius: 0.5em;
+  box-shadow: 0 0.15em 0 var(--ink);
+  white-space: nowrap;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.card .ptag.free {
+  background: var(--basil-d);
+}
+
+.card .ptag.sale {
+  background: var(--tomato-d);
+}
+
+.btn s {
+  opacity: 0.7;
+  font-size: 0.85em;
+}
+
+.shop2 .cards.row {
+  /* lots of cards (Extra Shelf, Premium Menu): one row that scrolls sideways, so the table stays in view */
+  grid-template-columns: none;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(10.8em, 1fr);
+  overflow-x: auto;
+  overflow-y: hidden;
+  gap: 0.6em;
+  padding-bottom: 0.5em;
+  scrollbar-width: thin;
+}
+
+.shop2 .cards.row .card {
+  min-width: 0;
+}
+
+.shop2 .cards.row .card .name {
+  white-space: normal;
+  font-size: 1.3em;
+}
+
+.shop2 .cards.row .card .desc,
+.shop2 .cards.row .card .down {
+  font-size: 0.95em;
+}
+
+.shop2 .cards.many .card {
+  padding: 0.7em 0.6em 0.8em;
+  gap: 0.25em;
+}
+
+.shop2 .cards.many .card .icon {
+  font-size: 2.2em;
+}
+
+.shop2 .cards.many .card .name {
+  font-size: 1.2em;
+  white-space: normal;
+}
+
+.shop2 .cards.many .card .desc {
+  font-size: 0.92em;
+}
+
+/* ——— Pick toppings and Peel Roulette ——— */
+.pickwin {
+  --rc: var(--cheese);
+  width: 76em;
+  gap: 0.9em;
+  padding-top: 2.6em;
+  position: relative;
+}
+
+.pickwin .pick-badge {
+  position: absolute;
+  top: -1.1em;
+  left: 50%;
+  transform: translateX(-50%) rotate(-2deg);
+  font-family: 'Lilita One', sans-serif;
+  font-size: 1.3em;
+  letter-spacing: 0.08em;
+  color: #fff;
+  background: var(--rc);
+  border: 0.18em solid var(--ink);
+  border-radius: 1em;
+  padding: 0.2em 1.1em;
+  white-space: nowrap;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.2em var(--ink);
+  box-shadow: 0 0.25em 0 var(--ink);
+}
+
+.pickwin .pick-cards {
+  gap: 1.4em;
+}
+
+.pickwin .pick-cards .card {
+  width: 20em;
+  min-height: 24em;
+  grid-template-rows: auto auto auto auto 1fr auto auto;
+}
+
+.pickwin .pick-cards .card .btn {
+  width: 100%;
+}
+
+.pickwin.roulette {
+  --rc: var(--grape);
+}
+
+.roul-row {
+  display: flex;
+  gap: 1.4em;
+  justify-content: center;
+  width: 100%;
+}
+
+.roul-tile {
+  position: relative;
+  flex: 1 1 0;
+  max-width: 22em;
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  justify-items: center;
+  gap: 0.5em;
+  padding: 1.1em 1em 1.2em;
+  font: inherit;
+  color: var(--ink);
+  text-align: center;
+  cursor: pointer;
+  background: linear-gradient(180deg, #fffaf0, var(--paper));
+  border: 0.28em solid var(--ink);
+  border-radius: 1.4em;
+  box-shadow: 0 0.45em 0 var(--ink), 0 0 0 0.35em var(--grape) inset, 0 1em 2.4em rgba(0, 0, 0, 0.5);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  animation: dealIn 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
+.roul-tile:nth-child(2) {
+  animation-delay: 0.08s;
+}
+
+.roul-tile:nth-child(3) {
+  animation-delay: 0.16s;
+}
+
+.roul-tile:hover,
+.roul-tile:focus-visible {
+  transform: translateY(-0.6em) rotate(-1deg) scale(1.03);
+  outline: none;
+}
+
+.roul-tile.shiny {
+  box-shadow: 0 0.45em 0 var(--ink), 0 0 0 0.35em var(--cheese) inset, 0 1em 2.4em rgba(0, 0, 0, 0.5);
+}
+
+.roul-tile .key {
+  position: absolute;
+  top: 0.7em;
+  left: 0.8em;
+  font-family: 'Lilita One', sans-serif;
+  font-size: 1.1em;
+  opacity: 0.45;
+}
+
+.roul-pic {
+  height: 13em;
+  width: 100%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.roul-pic img {
+  height: 13em;
+  max-width: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 0.3em 0.2em rgba(42, 24, 16, 0.35));
+}
+
+.roul-name {
+  font-family: 'Lilita One', sans-serif;
+  font-weight: 400;
+  font-size: 1.8em;
+  line-height: 1.05;
+}
+
+.roul-tile .abl {
+  justify-content: center;
+  font-size: 0.95em;
+  line-height: 1.25;
+  margin: 0;
+}
+
+/* the ability text gets its own line under the pill and name, so no lead-in dash */
+.roul-tile .abl > span:last-child {
+  flex-basis: 100%;
+  color: var(--ink);
+}
+
+.roul-tile .abl > span:last-child::before {
+  content: none;
+}
+
+.roul-go {
+  width: 100%;
+  pointer-events: none;
+}
+
+@container (max-width: 900px) {
+  .pickwin {
+    width: 82em;
+  }
+
+  .pickwin .pick-cards .card {
+    width: 23em;
+  }
+
+  .roul-pic,
+  .roul-pic img {
+    height: 8.5em;
+  }
+
+  /* phones: the card text was 8px; bigger, with the cards a touch wider */
+  .roul-row {
+    gap: 1em;
+  }
+
+  .roul-tile {
+    max-width: 25em;
+    padding: 0.9em 0.8em 1em;
+  }
+
+  .roul-tile .abl {
+    font-size: 1.15em;
+  }
+
+  .pickwin .pick-cards .card .desc {
+    font-size: 1.55em;
+  }
+
+  .pickwin .pick-cards .card .down {
+    font-size: 1.3em;
+  }
+}
+
+/* ——— Act 10 · Finale: the Pizza Legend title (title screen, victory) ——— */
+.menu-stats.legend {
+  align-items: center;
+  padding: 0.5em 1.1em;
+  border-radius: 1em;
+  border: 0.22em solid #ffd23f;
+  background: linear-gradient(180deg, rgba(42, 24, 16, 0.9), rgba(26, 14, 8, 0.92));
+  box-shadow: 0 0 0 0.14em var(--ink), 0 0 1.2em rgba(255, 210, 63, 0.55), inset 0 0 0.6em rgba(255, 244, 176, 0.25);
+}
+
+.legend-title {
+  font-family: 'Lilita One', sans-serif;
+  letter-spacing: 0.06em;
+  color: #ffd23f;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.12em var(--ink);
+  text-shadow: 0 0.08em 0 #8a5a10;
+}
+
+.v-legend {
+  display: grid;
+  gap: 0.2em;
+  padding: 0.5em 1.6em;
+  border-radius: 1em;
+  border: 0.2em solid #ffd23f;
+  background: rgba(26, 14, 8, 0.85);
+  box-shadow: 0 0 1em rgba(255, 210, 63, 0.5);
+  color: var(--cream);
+  font-weight: 700;
+}
+
+.v-legend b {
+  font-family: 'Lilita One', sans-serif;
+  font-size: 2.6em;
+  color: #ffd23f;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.1em var(--ink);
+}
+
+/* ——— Compact wide windows (Peel Locker, Pizzeria, Pizzapedia): more room for the scrolling list ——— */
+.modal.wide {
+  width: 92em;
+  padding: 1em 2em 1.2em;
+  gap: 0.6em;
+}
+
+/* title and crust count on one row, clear of the X in the corner */
+.win-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.2em;
+  width: 100%;
+  padding: 0 3.6em;
+  min-height: 3.4em;
+}
+
+.modal.wide .win-head .title {
+  font-size: 2.7em;
+  line-height: 1;
+}
+
+.win-head .crusts {
+  font-size: 1.35em;
+}
+
+/* the X closes these; their Done button stays in the page (hidden) so the gamepad B button still closes them */
+.modal.wide .btn.win-done {
+  display: none;
+}
+
+/* the type tabs scroll sideways rather than running into the Unlocked only filter */
+.locker-bar .locker-tabs {
+  flex: 1 1 auto;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  justify-content: flex-start;
+  padding-bottom: 0.25em;
+}
+
+.locker-bar .locker-tabs .btn {
+  flex-shrink: 0;
+}
+
+/* the peel detail: one head row (name, pills, ability), then how to get it and what the ability does */
+.locker .peel-detail {
+  grid-template-columns: 4.6em 1fr;
+  gap: 1em;
+  padding-top: 0.3em;
+  padding-bottom: 0.35em;
+}
+
+.locker .peel-big {
+  height: 5.6em;
+}
+
+/* the peel fits its (shorter) locker box whole, rather than being cut off top and bottom */
+.locker .peel-big img {
+  height: 6.4em;
+}
+
+.locker .dt-head h3 {
+  font-size: 1.5em;
+}
+
+.locker .dt-head .abl-name {
+  font-family: 'Lilita One', sans-serif;
+  font-weight: 400;
+  font-size: 1.15em;
+}
+
+.locker .dt-how p {
+  font-size: 1em;
+}
+
+.dt-desc {
+  margin: 0.1em 0 0;
+  font-size: 0.9em;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--ink-soft);
+}
+
+/* the Pizzeria's balance shrinks its own label, so the number itself needs more size in the header row */
+.pizzeria .win-head .crusts {
+  font-size: 2.1em;
+}
+
+/* phones scale the overlay up, so wide windows go back to their phone width */
+@container (max-width: 900px) {
+  .modal.wide {
+    width: 80em;
+  }
+}
+
+/* the Pizzeria's pizza filters sit in a row like the Peel Locker's */
+.pz-bar {
+  margin-bottom: 0.6em;
+}
+
+/* windows with tabs and filters keep one height whatever the filter shows, so switching never resizes them;
+   the list scrolls inside */
+.modal.wide.pizzeria,
+.modal.wide.pedia,
+.modal.wide.locker,
+.modal.wide.yourtops {
+  height: 94cqh;
+}
+
+.modal.wide.pizzeria .scroll,
+.modal.wide.pedia .scroll,
+.modal.wide.locker .scroll,
+.modal.wide.yourtops .scroll {
+  flex: 1 1 0;
+  min-height: 0;
+  align-self: stretch;
 }

@@ -4,6 +4,7 @@
 import { STORAGE_KEY } from '../config';
 import type { HeatId } from '../data/difficulty';
 import { META_COSTS_V1 } from '../data/meta';
+import { STAGES, STAGES_PER_ACT } from '../data/stages';
 import type { RunSnapshot } from '../game/snapshot';
 
 export type AimScheme = 'free' | 'lane';
@@ -20,6 +21,8 @@ export interface Settings {
   damageNumbers: boolean;
   flashes: boolean;
   showFps: boolean;
+  /** Show the run timer under the wave in the HUD. */
+  showTimer: boolean;
   // Feetza 2.0
   traitIcons: boolean;
   reducedMotion: boolean;
@@ -55,11 +58,14 @@ export interface SaveData {
   milestones: string[];
   // Feetza 2.0
   heat: HeatId;
-  /** Best score and wave per heat (Act 1 starts) and for Act 2 starts. */
+  /** Best score and wave per heat (runs from wave 1). */
   best: Partial<Record<HeatId, Best>>;
+  /** Old saves only: bests from the retired wave-31 starts. Kept as a record; nothing writes it now. */
   bestAct2: Partial<Record<HeatId, Best>>;
-  /** Heats on which wave 30 has been beaten (unlocks the next heat and Act 2 starts on it). */
+  /** Heats on which wave 30 has been beaten (unlocks the next heat). Named for when wave 30 ended Act 1. */
   act1Cleared: HeatId[];
+  /** Acts completed (their last boss beaten), on any heat: each unlocks its act peel. */
+  actsCleared: number[];
   /** Pre-2.0 best scores kept as a record when a veteran takes a fresh start. */
   oldVersionBest: Best | null;
   seenIntros: string[];
@@ -82,12 +88,37 @@ export interface SaveData {
   peelBest: Record<string, number>;
   /** Unlocked peel ids (the Classic Peel is always owned). */
   peels: string[];
-  /** Equipped peel. */
+  /** Equipped peel (its ability, and its look unless a look is worn). */
   peel: string;
-  /** Use the equipped peel's ability instead of the Peel Slam (picked on the run-start screen). */
-  useAbility: boolean;
+  /** Peel worn as a look only, over the equipped peel's own ('' = match the equipped peel). */
+  skin: string;
+  /** The last run-length choice on the new-run screen: end the run at the journey's end, or keep going (endless). */
+  endless: boolean;
   /** Peels unlocked but not yet looked at in the locker. */
   peelsNew: string[];
+  // Pizza unlock routes and the toppings collection
+  /** Toppings dealt in a shop at least once (the Pizzeria's Toppings tab). */
+  seenToppings: string[];
+  /** Runs each topping was bought in. */
+  toppingRuns: Record<string, number>;
+  /** Toppings first seen since the Toppings tab was last opened. */
+  toppingsNew: string[];
+  /** Pizzas unlocked but not yet looked at in the Pizzeria. */
+  pizzasNew: string[];
+  /** Times each locked pizza has turned up as a Chef's Special. */
+  specialSeen: Record<string, number>;
+  // ——— Act 10 · Finale ———
+  /** Beat wave 100 (the Sole Proprietor Unbound): the Pizza Legend title and gold frame on the title screen. */
+  legend: boolean;
+  /** Endless+ is unlocked (by the same win) and was the last run-length choice. */
+  endlessPlus: boolean;
+  endlessPlusPick: boolean;
+  /** Rare Finds that have turned up on the new-run screen (shown in the Pizzeria from then on). */
+  rareSeen: string[];
+  /** Milestone records for the phase 3 pizzas: bestCombo, perfectBest, fastWave (best clear in seconds), nightRuns, untouched (1 once done). */
+  pizzaGoals: Record<string, number>;
+  /** Hero and god peel goals (src/game/heroGoals.ts): counters, bests and flags by key. */
+  goals: Record<string, number>;
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -100,6 +131,7 @@ const DEFAULT_SETTINGS: Settings = {
   damageNumbers: true,
   flashes: true,
   showFps: false,
+  showTimer: true,
   traitIcons: true,
   reducedMotion: false,
   colorBlind: 'off',
@@ -130,6 +162,7 @@ const DEFAULTS: SaveData = {
   best: {},
   bestAct2: {},
   act1Cleared: [],
+  actsCleared: [],
   oldVersionBest: null,
   seenIntros: [],
   seenEvents: [],
@@ -143,8 +176,20 @@ const DEFAULTS: SaveData = {
   peelBest: {},
   peels: [],
   peel: 'classic',
-  useAbility: false,
+  skin: '',
+  endless: false,
   peelsNew: [],
+  seenToppings: [],
+  toppingRuns: {},
+  toppingsNew: [],
+  pizzasNew: [],
+  specialSeen: {},
+  rareSeen: [],
+  pizzaGoals: {},
+  goals: {},
+  legend: false,
+  endlessPlus: false,
+  endlessPlusPick: false,
 };
 
 function clone<T>(v: T): T {
@@ -174,6 +219,20 @@ export function migrate(parsed: Partial<SaveData>): SaveData {
     // the old "all 6 bosses" milestone is now "6 different bosses"
     s.milestones = s.milestones.map((m) => (m === 'allBosses' ? 'bosses6' : m));
     s.run = null;
+  }
+  // saves from before the Toppings tab: nothing was recorded, so only the run in progress counts
+  if (!parsed.seenToppings && s.run) {
+    const owned = Object.keys(s.run.owned ?? {});
+    s.seenToppings = [...new Set([...owned, ...(s.run.armed ?? []), ...(s.run.shop?.cards ?? [])])];
+    s.toppingRuns = Object.fromEntries([...new Set([...owned, ...(s.run.armed ?? [])])].map((id) => [id, 1]));
+  }
+  // saves from before acts: an act is done if the boss closing it was ever beaten (bosses only appear on their wave)
+  if (!parsed.actsCleared) {
+    s.actsCleared = [];
+    for (let a = 1; a * STAGES_PER_ACT <= STAGES.length; a++) {
+      const st = STAGES[a * STAGES_PER_ACT - 1];
+      if (!st.dev && s.bossesBeaten.includes(st.boss)) s.actsCleared.push(a);
+    }
   }
   return s;
 }
@@ -261,7 +320,28 @@ export function bestFor(heat: HeatId, act2 = false): Best {
   return (act2 ? save.bestAct2 : save.best)[heat] ?? { score: 0, wave: 0 };
 }
 
-/** Cheapest pizza not yet unlocked (or null if everything is unlocked). */
-export function nextLockedPizza<T extends { id: string; cost: number }>(all: T[]): T | null {
-  return [...all].filter((p) => !save.unlockedPizzas.includes(p.id)).sort((a, b) => a.cost - b.cost)[0] ?? null;
+/** Cheapest pizza still to buy in the Pizzeria (or null if they're all unlocked). */
+export function nextLockedPizza<T extends { id: string; cost: number; route: string }>(all: T[]): T | null {
+  return [...all].filter((p) => p.route === 'pizzeria' && !save.unlockedPizzas.includes(p.id)).sort((a, b) => a.cost - b.cost)[0] ?? null;
+}
+
+/** Unlock a pizza for good. It carries a NEW badge in the Pizzeria until that's opened. */
+export function unlockPizza(id: string): boolean {
+  if (save.unlockedPizzas.includes(id)) return false;
+  save.unlockedPizzas.push(id);
+  if (!save.pizzasNew.includes(id)) save.pizzasNew.push(id);
+  persist();
+  return true;
+}
+
+/** Record toppings dealt in a shop. New ones get a NEW badge in the Toppings tab. */
+export function markToppingsSeen(ids: string[]): void {
+  let changed = false;
+  for (const id of ids) {
+    if (save.seenToppings.includes(id)) continue;
+    save.seenToppings.push(id);
+    save.toppingsNew.push(id);
+    changed = true;
+  }
+  if (changed) persist();
 }

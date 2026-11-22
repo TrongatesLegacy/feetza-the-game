@@ -658,6 +658,9 @@ export function buildEventSprites(): Record<string, HTMLCanvasElement> {
     p_ticket: ticket(),
     p_ketchup: splatBlob('#e5402a', '#8a1a10', 200),
   };
+  // boss props from src/content/props/ (one module per batch of fights)
+  const mods = import.meta.glob<{ props: Record<string, () => HTMLCanvasElement> }>('../content/props/*.ts', { eager: true });
+  for (const k of Object.keys(mods).sort()) for (const [key, draw] of Object.entries(mods[k].props)) out[key] = draw();
   for (const [t, label] of Object.entries(TRAIT_INFO) as [FootTrait, string][]) {
     const glyph = [...label][0] === ' ' ? '?' : label.split(' ')[0];
     out[`trait_${t}`] = badge(glyph);

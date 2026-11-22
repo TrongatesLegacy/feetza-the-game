@@ -262,3 +262,10 @@ export function glyph(btn: 'A' | 'B' | 'X' | 'Y' | 'MENU' | 'LB' | 'RB'): string
 }
 
 export const pad = new Pad();
+
+/** How to fire the meter on the device in use: the slam key, the controller's slam button, or a tap on the meter. */
+export function slamPrompt(): string {
+  if (pad.active) return `Press ${glyph('X')}`;
+  if (typeof matchMedia === 'function' && matchMedia('(hover: none) and (pointer: coarse)').matches) return 'Tap the meter';
+  return 'Press Space';
+}

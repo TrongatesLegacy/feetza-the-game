@@ -13,6 +13,17 @@ const PAD_Y = 8;
 const DESIGN_W = 300;
 const DESIGN_H = 345;
 
+/** A canvas in the same frame as a foot's texture (drawFoot), for a variant of its art drawn by `draw` in design
+ * space: the in-play body of a foot whose live parts are drawn separately (src/game/footLive.ts). */
+export function footCanvas(type: FootType, draw: (ctx: Ctx) => void): HTMLCanvasElement {
+  const s = type.scale * ART_RES;
+  const [c, ctx] = makeCanvas(DESIGN_W * s, DESIGN_H * s);
+  ctx.scale(s, s);
+  ctx.translate(PAD_X, PAD_Y);
+  draw(ctx);
+  return c;
+}
+
 export interface FootTextures {
   foot: HTMLCanvasElement;
   leg: HTMLCanvasElement;
@@ -240,7 +251,7 @@ function drawClown(ctx: Ctx, art: FootArt): void {
   ctx.lineWidth = OUT;
   ctx.stroke();
   // giant bulb toe
-  ellipse(ctx, CX + 6, 214, 142, 58);
+  ellipse(ctx, CX, 214, 142, 58);
   const g = ctx.createRadialGradient(CX - 40, 186, 6, CX, 214, 150);
   g.addColorStop(0, shade(p, 0.45));
   g.addColorStop(0.45, p);
@@ -734,6 +745,8 @@ const LEG_W: Record<LegKind, number> = {
   scales: 116,
   wood: 112,
   puffy: 142,
+  chrome: 106,
+  iron: 112,
 };
 
 function drawLeg(type: FootType, s: number): HTMLCanvasElement {
@@ -957,6 +970,30 @@ function drawLeg(type: FootType, s: number): HTMLCanvasElement {
       ctx.fillRect(x0, 59, w, 3);
       break;
     }
+    case 'chrome': {
+      // the Immortal's mask metal: a polished cylinder with the mask's banded reflections
+      const light = art.legColor ?? '#c9d0da';
+      const dark = art.legAccent ?? '#3a3f47';
+      const g = ctx.createLinearGradient(x0, 0, x0 + w, 0);
+      const stops: [number, string][] = [
+        [0, dark], [0.1, shade(light, -0.2)], [0.2, '#ffffff'], [0.3, shade(light, -0.3)], [0.46, dark],
+        [0.58, shade(light, -0.1)], [0.7, '#f6f8fb'], [0.82, shade(light, -0.35)], [1, dark],
+      ];
+      for (const [k, col] of stops) g.addColorStop(k, col);
+      ctx.fillStyle = g;
+      ctx.fillRect(x0, 0, w, 66);
+      // (to 66: the canvas rounds up past 64 units, and a clear last row shows as a seam on the polished metal)
+      break;
+    }
+    case 'iron': {
+      const g = ctx.createLinearGradient(x0, 0, x0 + w, 0);
+      g.addColorStop(0, '#050407');
+      g.addColorStop(0.5, art.legColor ?? '#6c7480');
+      g.addColorStop(1, '#050407');
+      ctx.fillStyle = g;
+      ctx.fillRect(x0, 0, w, 66);
+      break;
+    }
     case 'bandage': {
       ctx.save();
       ctx.beginPath();
@@ -1045,10 +1082,11 @@ function drawLeg(type: FootType, s: number): HTMLCanvasElement {
     : ['scales', 'puffy', 'sock'].includes(art.leg)
       ? art.legColor ?? art.primary ?? base
       : base;
-  const ol = outlineOf(olBase);
+  const ol = art.leg === 'chrome' || art.leg === 'iron' ? '#1d120c' : outlineOf(olBase);
+  const metalLeg = art.leg === 'chrome' || art.leg === 'iron';
   ctx.fillStyle = ol;
-  ctx.fillRect(x0 - OUT / 2, 0, OUT, 64);
-  ctx.fillRect(x0 + w - OUT / 2, 0, OUT, 64);
+  ctx.fillRect(x0 - OUT / 2, 0, OUT, metalLeg ? 66 : 64);
+  ctx.fillRect(x0 + w - OUT / 2, 0, OUT, metalLeg ? 66 : 64);
   return c;
 }
 
@@ -1071,8 +1109,72 @@ function drawHairTile(ctx: Ctx, r: () => number, x0: number, w: number, col: str
   ctx.globalAlpha = 1;
 }
 
+/** Moon Boot Mo's puffy leg is wider than the boot's opening, so the boot gets a padded, quilted collar that is wider
+ * than the leg, cinched with an orange drawstring: the leg goes into the collar instead of showing past the boot. */
+function moonbootCollar(art: FootType['art'], s: number): HTMLCanvasElement {
+  const lw = LEG_W.puffy + 22;
+  const [c, ctx] = makeCanvas((lw + 16) * s, 108 * s);
+  ctx.scale(s, s);
+  // drawn in the lower half of a tall canvas, so (being centred on the ankle) it sits down over the boot's neck
+  ctx.translate(0, 46);
+  const x0 = 8;
+  const col = art.primary ?? '#f2f5fa';
+  const acc = art.secondary ?? '#ff5a36';
+  roundRect(ctx, x0, 0, lw, 54, 20);
+  const g = ctx.createLinearGradient(x0, 0, x0 + lw, 0);
+  g.addColorStop(0, shade(col, -0.32));
+  g.addColorStop(0.45, '#ffffff');
+  g.addColorStop(1, shade(col, -0.36));
+  ctx.fillStyle = g;
+  ctx.fill();
+  // quilted pillows: soft shading in each panel
+  ctx.save();
+  roundRect(ctx, x0, 0, lw, 54, 20);
+  ctx.clip();
+  for (let i = 1; i < 5; i++) {
+    const x = x0 + (lw * i) / 5;
+    ctx.strokeStyle = rgba('#5a6070', 0.35);
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.quadraticCurveTo(x - 3, 27, x, 54);
+    ctx.stroke();
+  }
+  const sh = ctx.createLinearGradient(0, 0, 0, 54);
+  sh.addColorStop(0, rgba('#ffffff', 0.5));
+  sh.addColorStop(0.4, rgba('#ffffff', 0));
+  sh.addColorStop(1, rgba('#3a4050', 0.3));
+  ctx.fillStyle = sh;
+  ctx.fillRect(x0, 0, lw, 54);
+  ctx.restore();
+  // drawstring across the collar with a toggle and two tails
+  ctx.strokeStyle = acc;
+  ctx.lineWidth = 3.5;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(x0 + 6, 27);
+  ctx.quadraticCurveTo(x0 + lw / 2, 32, x0 + lw - 6, 27);
+  ctx.stroke();
+  const tx = x0 + lw * 0.68;
+  ctx.beginPath();
+  ctx.moveTo(tx, 30);
+  ctx.quadraticCurveTo(tx + 4, 40, tx - 2, 50);
+  ctx.moveTo(tx + 6, 30);
+  ctx.quadraticCurveTo(tx + 12, 39, tx + 9, 49);
+  ctx.stroke();
+  roundRect(ctx, tx - 5, 24, 14, 10, 3);
+  ctx.fillStyle = '#2a2f3a';
+  ctx.fill();
+  roundRect(ctx, x0, 0, lw, 54, 20);
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = OUT;
+  ctx.stroke();
+  return c;
+}
+
 function drawCuff(type: FootType, s: number): HTMLCanvasElement | undefined {
   const art = type.art;
+  if (art.kind === 'moonboot') return moonbootCollar(art, s);
   if (!['jeans', 'suit', 'clown'].includes(art.leg)) return undefined;
   const lw = LEG_W[art.leg] + 14;
   const [c, ctx] = makeCanvas((lw + 16) * s, 40 * s);

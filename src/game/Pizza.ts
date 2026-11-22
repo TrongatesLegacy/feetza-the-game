@@ -3,10 +3,14 @@
 import Phaser from 'phaser';
 import { PIZZA_CANVAS_H, PIZZA_CANVAS_W, PIZZA_R, PIZZA_SIZE, TILT, renderPizza, sideFor, type Footprint } from '../art/pizzaArt';
 import { makeCanvas } from '../art/util';
-import type { PizzaPerk, PizzaType } from '../data/pizzas';
+import { SEASONS, enhancedText, type PizzaPerk, type PizzaType } from '../data/pizzas';
 import { pizzaTops } from './assets';
+import { borrowLine, borrowedPerk } from './pizzaPerks';
 
 let uid = 0;
+
+/** Told whenever slices grow back (heal, or a revive from dead), wherever it came from: hero goals count them. */
+export const pizzaHooks: { healed?: (p: Pizza, n: number) => void; revived?: (p: Pizza, slices: number) => void } = {};
 
 export class Pizza {
   readonly scene: Phaser.Scene;
@@ -33,9 +37,19 @@ export class Pizza {
   freshOn = true;
   /** Per-pizza flags for perks and boss effects (season, rise used, possessed…). */
   flags: Record<string, number | boolean> = {};
+  /** Seconds left with the perk switched off by a boss (sand, ink, icicles). */
+  perkFrozenT = 0;
+  private frost?: Phaser.GameObjects.Image;
+  /** Snowflake badge with the seconds left on a perk freeze. */
+  private frostBadge?: Phaser.GameObjects.Container;
+  private frostText?: Phaser.GameObjects.Text;
   /** Resting table y; `y` moves with piston lifts. */
   baseY: number;
   private freshBar: Phaser.GameObjects.Graphics;
+  /** Enhanced look: a gold rim with a warm glow, a star, and sparkles twinkling round the crust. */
+  /** A Rare Find's finish: a coloured glow under it and sparkles drifting up off it. */
+  private finishFx?: { glow: Phaser.GameObjects.Image; sparks: Phaser.GameObjects.Image[]; tweens: Phaser.Tweens.Tween[] };
+  private gold?: { rim: Phaser.GameObjects.Graphics; glow: Phaser.GameObjects.Image; badge: Phaser.GameObjects.Image; sparks: Phaser.GameObjects.Image[]; tweens: Phaser.Tweens.Tween[] };
 
   private plate: Phaser.GameObjects.Image;
   private img: Phaser.GameObjects.Image;
@@ -107,6 +121,7 @@ export class Pizza {
     this.strike = scene.add.graphics();
     this.freshBar = scene.add.graphics();
     this.root.add([this.plate, this.trapImg, this.img, this.face, this.shield, this.label, this.perkLabel, this.strike, this.freshBar]);
+    this.makeFinish();
     this.applyScale();
     this.redraw();
   }
@@ -139,6 +154,120 @@ export class Pizza {
     this.label.setY((PIZZA_R + 40) * TILT * s + 14);
     this.fitLabel();
     this.drawFresh();
+    this.drawGold();
+    this.placeFinish();
+  }
+
+  private makeFinish(): void {
+    const f = this.type.finish;
+    if (!f?.glow) return;
+    const sc = this.scene;
+    const glow = sc.add.image(0, 0, 'glow').setTint(f.glow).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.45);
+    this.root.addAt(glow, 1);
+    const tweens = [sc.tweens.add({ targets: glow, alpha: { from: 0.3, to: 0.6 }, duration: 1400, yoyo: true, repeat: -1, ease: 'Sine.InOut' })];
+    const sparks: Phaser.GameObjects.Image[] = [];
+    if (f.sparkle) {
+      for (let i = 0; i < 5; i++) {
+        const sp = sc.add.image(0, 0, 'star').setTint(f.glow).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
+        this.root.add(sp);
+        sparks.push(sp);
+        tweens.push(
+          sc.tweens.add({
+            targets: sp,
+            alpha: { from: 0, to: 0.9 },
+            scale: { from: 0.15, to: 0.6 },
+            angle: { from: 0, to: 120 },
+            duration: 700,
+            yoyo: true,
+            repeat: -1,
+            repeatDelay: 600 + i * 230,
+            delay: i * 340,
+            onRepeat: () => this.placeSparkle(sp),
+          }),
+        );
+        this.placeSparkle(sp);
+      }
+    }
+    // Pizza Fantasma drifts gently, like a ghost should
+    if (f.ghost) tweens.push(sc.tweens.add({ targets: this.img, alpha: { from: 0.75, to: 1 }, duration: 1600, yoyo: true, repeat: -1, ease: 'Sine.InOut' }));
+    this.finishFx = { glow, sparks, tweens };
+  }
+
+  private placeFinish(): void {
+    const fx = this.finishFx;
+    if (!fx) return;
+    const s = this.s;
+    const cy = -sideFor(this.type.shape) * s;
+    fx.glow.setPosition(0, cy).setScale((PIZZA_R * s * 3) / 256, (PIZZA_R * TILT * s * 3.8) / 256);
+    for (const o of [fx.glow, ...fx.sparks]) o.setVisible(!this.dead);
+  }
+
+  /** A sparkle somewhere over the pizza's surface. */
+  private placeSparkle(sp: Phaser.GameObjects.Image): void {
+    const a = Math.random() * Math.PI * 2;
+    const d = Math.sqrt(Math.random()) * 0.9;
+    const cy = -sideFor(this.type.shape) * this.s;
+    sp.setPosition(Math.cos(a) * PIZZA_R * this.s * d, cy + Math.sin(a) * PIZZA_R * TILT * this.s * d - 20 * this.s);
+  }
+
+  /** Enhanced (Golden Menu): its perk is stronger for the rest of the run. Kept in flags, so it's saved with the run. */
+  get enhanced(): boolean {
+    return !!this.flags.enhanced;
+  }
+
+  /** Gold rim, glow, star and sparkles for an enhanced pizza (made on first use). */
+  private drawGold(): void {
+    const on = this.enhanced && !this.dead;
+    if (!on && !this.gold) return;
+    if (!this.gold) {
+      const sc = this.scene;
+      const glow = sc.add.image(0, 0, 'glow').setTint(0xffc93a).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.5);
+      const rim = sc.add.graphics();
+      const badge = sc.add.image(0, 0, 'star5');
+      const sparks = Array.from({ length: 7 }, () => sc.add.image(0, 0, 'star').setTint(0xfff0a0).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0));
+      // the glow sits under the pizza, the rim on its crust, the star and sparkles over it
+      this.root.addAt(glow, 2);
+      this.root.addAt(rim, this.root.getIndex(this.img) + 1);
+      this.root.add([badge, ...sparks]);
+      const tweens = sparks.map((sp, i) =>
+        sc.tweens.add({
+          targets: sp,
+          alpha: { from: 0, to: 1 },
+          scale: { from: 0.1, to: 0.8 },
+          angle: { from: 0, to: 90 },
+          duration: 520,
+          yoyo: true,
+          repeat: -1,
+          repeatDelay: 380 + i * 170,
+          delay: i * 260,
+          onRepeat: () => this.placeSpark(sp),
+        }),
+      );
+      sparks.forEach((sp) => this.placeSpark(sp));
+      tweens.push(sc.tweens.add({ targets: glow, alpha: { from: 0.35, to: 0.6 }, duration: 1100, yoyo: true, repeat: -1, ease: 'Sine.InOut' }));
+      this.gold = { rim, glow, badge, sparks, tweens };
+    }
+    const g = this.gold;
+    for (const o of [g.rim, g.glow, g.badge, ...g.sparks]) o.setVisible(on);
+    if (!on) return;
+    const s = this.s;
+    const cy = -sideFor(this.type.shape) * s;
+    const rx = PIZZA_R * s * 1.01;
+    const ry = PIZZA_R * TILT * s * 1.01;
+    g.glow.setPosition(0, cy).setScale((rx * 2.9) / 256, (ry * 3.6) / 256);
+    // a gold band round the crust: dark outline, gold, then a bright highlight on top
+    g.rim.clear();
+    g.rim.lineStyle(20 * s, 0x2a1810, 1).strokeEllipse(0, cy, rx * 2, ry * 2);
+    g.rim.lineStyle(13 * s, 0xf2b316, 1).strokeEllipse(0, cy, rx * 2, ry * 2);
+    g.rim.lineStyle(5 * s, 0xfff0a0, 1).strokeEllipse(0, cy - 3 * s, rx * 2 - 4 * s, ry * 2 - 4 * s);
+    g.badge.setPosition(rx * 0.82, cy - ry * 0.95).setScale(Math.max(0.7, s * 1.25));
+  }
+
+  /** A sparkle somewhere on the gold rim. */
+  private placeSpark(sp: Phaser.GameObjects.Image): void {
+    const a = Math.random() * Math.PI * 2;
+    const cy = -sideFor(this.type.shape) * this.s;
+    sp.setPosition(Math.cos(a) * PIZZA_R * this.s * 1.01, cy + Math.sin(a) * PIZZA_R * TILT * this.s * 1.01);
   }
 
   /** Name and perk sit on two fixed lines and shrink to fit the plate's width instead of wrapping. */
@@ -154,12 +283,56 @@ export class Pizza {
     this.perkLabel.setScale(k).setY(this.label.y + (this.label.height - 10) * k);
     // stale: a line through the perk (it's switched off until the pizza is reheated)
     this.strike.clear();
-    if (this.stale && this.perkLabel.visible) {
+    if ((this.stale || this.perkFrozen) && this.perkLabel.visible) {
       const pw = (this.perkLabel.width - 8) * k;
       const y = this.perkLabel.y + this.perkLabel.height * k * 0.52;
       this.strike.lineStyle(6 * k, 0x2a1810, 1).lineBetween(-pw / 2 - 4, y, pw / 2 + 4, y);
       this.strike.lineStyle(3 * k, 0xff8a6a, 1).lineBetween(-pw / 2 - 3, y, pw / 2 + 3, y);
     }
+  }
+
+  get perkFrozen(): boolean {
+    return this.perkFrozenT > 0 && !this.dead;
+  }
+
+  /** Switch the perk off for `sec` (a second freeze adds to the time left, up to 15 s). */
+  freezePerk(sec: number): void {
+    // a pizza already taken off the table (swapped, or the scene torn down) has no badge left to write to: writing
+    // to its destroyed text threw inside Phaser's update and froze the game
+    if (!this.root.active) return;
+    // a second freeze extends it, up to 15 s left
+    this.perkFrozenT = Math.min(15, this.perkFrozenT > 0 ? this.perkFrozenT + sec : sec);
+    if (!this.frost) {
+      this.frost = this.scene.add.image(0, -10, 'glow').setTint(0x9ad8ff).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.55);
+      this.root.add(this.frost);
+    }
+    this.frost.setScale((PIZZA_R * 2.4) / 256, (PIZZA_R * 1.1) / 256).setVisible(true);
+    if (!this.frostBadge) {
+      const disc = this.scene.add.circle(0, 0, 30, 0x1d4a6e, 0.95).setStrokeStyle(4, 0xd8f2ff);
+      const flake = this.scene.add.text(0, -2, '❄', { fontFamily: 'Fredoka, sans-serif', fontSize: '34px', color: '#e8f8ff' }).setOrigin(0.5);
+      this.frostText = this.scene.add.text(0, 44, '', { fontFamily: 'Lilita One, Fredoka, sans-serif', fontSize: '28px', color: '#e8f8ff', stroke: '#1d4a6e', strokeThickness: 6 }).setOrigin(0.5);
+      this.frostBadge = this.scene.add.container(PIZZA_R * 0.95, -PIZZA_R * 0.55, [disc, flake, this.frostText]);
+      this.root.add(this.frostBadge);
+    }
+    this.frostBadge.setVisible(true).setScale(0.3);
+    this.scene.tweens.add({ targets: this.frostBadge, scale: 1, duration: 260, ease: 'Back.Out' });
+    this.frostText?.setText(`${Math.ceil(this.perkFrozenT)}s`);
+    this.redraw();
+  }
+
+  /** Count the freeze down (game time). Returns true the moment it ends. */
+  tickFreeze(dt: number): boolean {
+    if (this.perkFrozenT <= 0) return false;
+    this.perkFrozenT -= dt;
+    if (!this.root.active) return false;
+    if (this.frost) this.frost.setAlpha(0.55 + Math.sin(this.bob * 4) * 0.2);
+    this.frostText?.setText(`${Math.max(1, Math.ceil(this.perkFrozenT))}s`);
+    if (this.perkFrozenT > 0) return false;
+    this.perkFrozenT = 0;
+    this.frost?.setVisible(false);
+    this.frostBadge?.setVisible(false);
+    this.redraw();
+    return true;
   }
 
   get stale(): boolean {
@@ -168,16 +341,36 @@ export class Pizza {
 
   /** The perk this pizza currently grants (stale pizzas grant none; Quattro Stagioni rotates). */
   get perk(): PizzaPerk | null {
-    if (this.dead || this.stale) return null;
-    if (this.type.perk === 'rotate') return (['damage', 'coins', 'regen', 'shield'] as PizzaPerk[])[Number(this.flags.season ?? 0) % 4];
-    return this.type.perk;
+    if (this.dead || this.stale || this.perkFrozen) return null;
+    if (this.type.perk === 'rotate') return SEASONS[Number(this.flags.season ?? 0) % 4];
+    // Arcobaleno and Mystery Meat grant the perk they've borrowed
+    return borrowedPerk(this) ?? this.type.perk;
   }
 
   /** The perk's text. A stale pizza still shows it (crossed out), so you can see what reheating brings back. */
   get perkLine(): string {
     if (this.dead) return 'PERK LOST';
+    if (this.type.perk === 'rotate') {
+      const season = SEASONS[Number(this.flags.season ?? 0) % 4];
+      return this.enhanced ? enhancedText(season) : ['+10% smack damage', '+20% tips from feet', 'Regrows a slice every 20s', 'Blocks the first stomp each wave'][Number(this.flags.season ?? 0) % 4];
+    }
+    const borrowed = borrowLine(this, this.enhanced);
+    if (borrowed) return borrowed;
+    return this.enhanced ? enhancedText(this.type.perk) : this.type.perkText;
+  }
+
+  /** What the perk would read enhanced (the enhance picker previews it). */
+  get enhancedLine(): string {
+    const borrowed = borrowLine(this, true);
+    if (borrowed) return borrowed;
+    return enhancedText(this.type.perk === 'rotate' ? SEASONS[Number(this.flags.season ?? 0) % 4] : this.type.perk);
+  }
+
+  /** The plain perk text (an enhanced pizza's card shows it struck through). */
+  get basePerkLine(): string {
+    if (this.dead) return 'PERK LOST';
     if (this.type.perk === 'rotate') return ['+10% smack damage', '+20% tips from feet', 'Regrows a slice every 20s', 'Blocks the first stomp each wave'][Number(this.flags.season ?? 0) % 4];
-    return this.type.perkText;
+    return borrowLine(this, false) ?? this.type.perkText;
   }
 
   setFresh(n: number): void {
@@ -235,11 +428,15 @@ export class Pizza {
     this.perkLabel.setText(this.perkLine);
     const col = this.dead ? '#ff8a6a' : this.stale ? '#cfe0a8' : '#fff6e2';
     this.label.setColor(col).setAlpha(this.dead ? 0.75 : 0.92);
-    this.perkLabel.setColor(col).setAlpha(this.dead ? 0.75 : this.stale ? 0.8 : 0.92);
-    if (this.stale) this.img.setTint(0xc8d4a0);
+    // an enhanced perk reads in gold
+    this.perkLabel.setColor(this.enhanced && !this.dead && !this.stale ? '#ffd23f' : col).setAlpha(this.dead ? 0.75 : this.stale ? 0.8 : this.enhanced ? 1 : 0.92);
+    if (this.perkFrozen) this.img.setTint(0xb8e2ff);
+    else if (this.stale) this.img.setTint(0xc8d4a0);
     else this.img.clearTint();
     this.fitLabel();
     this.drawFresh();
+    this.drawGold();
+    this.placeFinish();
   }
 
   /** Hide the perk caption (the menu screen doesn't need it). */
@@ -289,16 +486,19 @@ export class Pizza {
       this.dead = false;
       if (this.slices >= this.maxSlices * 0.75) this.prints = this.prints.slice(-1);
       this.redraw();
+      pizzaHooks.healed?.(this, healed);
     }
     return healed;
   }
 
   revive(slices: number): void {
+    const wasDead = this.dead;
     this.revived = true;
     this.dead = false;
     this.prints = [];
     this.alive = this.alive.map((_, i) => i < slices);
     this.redraw();
+    if (wasDead) pizzaHooks.revived?.(this, this.slices);
   }
 
   addSlices(n: number): void {
@@ -353,6 +553,8 @@ export class Pizza {
   }
 
   destroy(): void {
+    this.gold?.tweens.forEach((t) => t.remove());
+    this.finishFx?.tweens.forEach((t) => t.remove());
     this.root.destroy();
     if (this.scene.textures.exists(this.texKey)) this.scene.textures.remove(this.texKey);
   }

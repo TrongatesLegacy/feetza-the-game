@@ -106,7 +106,11 @@ export type LegKind =
   | 'cast'
   | 'scales'
   | 'wood'
-  | 'puffy';
+  | 'puffy'
+  /** Polished chrome (legColor is the light, legAccent the dark): the Immortal Sandals. */
+  | 'chrome'
+  /** Dark iron (legColor): the Immortal Brute. */
+  | 'iron';
 
 export interface FootArt {
   kind: FootKind;
@@ -160,6 +164,8 @@ export interface FootType {
   /** Pizzapedia: the visible tell before its ability fires. */
   tell?: string;
   quips?: string[];
+  /** One of the Persian army (Act 9): the Kratos Peel counts their defeats, and a Satrap's Slipper armours them. */
+  persian?: boolean;
 }
 
 const SKIN = {
@@ -177,6 +183,8 @@ export const FEET: FootType[] = [
     desc: 'The classic. Hasn\'t worn shoes since 1997 and won\'t start now.',
     hp: 24, speed: 1, armor: 0, stompDmg: 1, coins: 2, score: 100, scale: 1, minWave: 1, weight: 10,
     traits: [],
+    howTo: 'A couple of smacks does it: hit him while he hovers, before the dive',
+    tell: 'Wiggles his toes, then drops straight down on the pizza below',
     art: { kind: 'bare', skin: SKIN.light, leg: 'jeans', legColor: '#3d5a8a' },
   },
   {
@@ -271,16 +279,18 @@ export const FEET: FootType[] = [
     id: 'skate',
     name: 'Ice Queen',
     desc: 'Glides in on a razor blade. Cold-blooded: immune to slows.',
-    hp: 30, speed: 1.35, armor: 1, stompDmg: 2, coins: 6, score: 200, scale: 1, minWave: 7, weight: 3,
+    hp: 30, speed: 1.35, armor: 1, stompDmg: 2, coins: 6, score: 200, scale: 1, minWave: 21, weight: 3,
     traits: ['immuneSlow'],
+    home: 'lodge',
     art: { kind: 'skate', skin: SKIN.pale, primary: '#f7f9fc', secondary: '#9fd8ff', leg: 'tights', legColor: '#bfe6ff' },
   },
   {
     id: 'flipper',
     name: 'Scuba Sam',
     desc: 'Flaps right back after a smack. Smells faintly of pool.',
-    hp: 34, speed: 1.05, armor: 0, stompDmg: 1, coins: 5, score: 190, scale: 1.05, minWave: 7, weight: 3,
+    hp: 34, speed: 1.05, armor: 0, stompDmg: 1, coins: 5, score: 190, scale: 1.05, minWave: 41, weight: 3,
     traits: ['flutter'],
+    home: 'pier',
     art: { kind: 'flipper', skin: SKIN.tan, primary: '#1fc8a6', secondary: '#0b6f73', leg: 'suit', legColor: '#1d2633' },
   },
   {
@@ -295,16 +305,18 @@ export const FEET: FootType[] = [
     id: 'ghost',
     name: 'Phantom Foot',
     desc: 'Half there. Flickers out of reality, so time your smacks.',
-    hp: 30, speed: 1.05, armor: 0, stompDmg: 1, coins: 7, score: 230, scale: 1, minWave: 9, weight: 3,
+    hp: 30, speed: 1.05, armor: 0, stompDmg: 1, coins: 7, score: 230, scale: 1, minWave: 56, weight: 3,
     traits: ['phase'],
+    home: 'cellar',
     art: { kind: 'bare', skin: '#cfe9ff', ghost: true, nails: '#8fc7ff', leg: 'skin' },
   },
   {
     id: 'zombie',
     name: 'Zombie Toes',
     desc: 'Undead and unbothered. Gets back up once after being smacked down.',
-    hp: 36, speed: 0.85, armor: 0, stompDmg: 1, coins: 7, score: 230, scale: 1.02, minWave: 10, weight: 3,
+    hp: 36, speed: 0.85, armor: 0, stompDmg: 1, coins: 7, score: 230, scale: 1.02, minWave: 56, weight: 3,
     traits: ['revive'],
+    home: 'cellar',
     art: { kind: 'bare', skin: '#9fb98a', zombie: true, nails: '#3b3b2f', leg: 'jeans', legColor: '#5b5d4a' },
   },
   {
@@ -383,8 +395,9 @@ export const FEET: FootType[] = [
     id: 'moe',
     name: 'Moon Boot Mo',
     desc: 'Low gravity. Smacks send it sky-high, but it comes down hard.',
-    hp: 46, speed: 0.75, armor: 1, stompDmg: 2, coins: 6, score: 200, scale: 1.1, minWave: 8, weight: 3,
+    hp: 46, speed: 0.75, armor: 1, stompDmg: 2, coins: 6, score: 200, scale: 1.1, minWave: 26, weight: 3,
     traits: ['floaty', 'immuneSlow'],
+    home: 'space',
     art: { kind: 'moonboot', skin: SKIN.pale, primary: '#f2f5fa', secondary: '#ff5a36', leg: 'puffy', legColor: '#f2f5fa', legAccent: '#ff5a36' },
   },
   {
@@ -399,40 +412,47 @@ export const FEET: FootType[] = [
     id: 'jingle',
     name: 'Jingle Toes',
     desc: 'Curly-toed and festive. Its jingle cheers nearby feet into moving faster.',
-    hp: 20, speed: 1.45, armor: 0, stompDmg: 1, coins: 5, score: 170, scale: 0.95, minWave: 6, weight: 4,
+    hp: 20, speed: 1.45, armor: 0, stompDmg: 1, coins: 5, score: 170, scale: 0.95, minWave: 21, weight: 4,
     traits: ['cheer'],
+    home: 'lodge',
     art: { kind: 'elf', skin: SKIN.pale, primary: '#1f9a4a', secondary: '#d81f2a', leg: 'tights', legColor: '#d81f2a', legAccent: '#ffffff' },
   },
   {
     id: 'pete',
     name: 'Peg-Leg Pete',
     desc: 'Arr! A wooden peg makes a tiny target but a mighty jab.',
-    hp: 30, speed: 1.1, armor: 2, stompDmg: 2, coins: 6, score: 200, scale: 1, minWave: 7, weight: 3,
+    hp: 30, speed: 1.1, armor: 2, stompDmg: 2, coins: 6, score: 200, scale: 1, minWave: 41, weight: 3,
     traits: ['tiny'],
+    howTo: 'Aim right at the peg: it\'s a tiny target, and it shrugs off weak hits with its armour',
+    tell: 'The peg taps twice on the table edge before it jabs',
+    home: 'pier',
     art: { kind: 'peg', skin: SKIN.tan, primary: '#8a5a32', secondary: '#c9a25a', leg: 'suit', legColor: '#3a2a4a' },
   },
   {
     id: 'dino',
     name: 'Dino Stomper',
     desc: 'Scaly, clawed and 65 million years hungry. Stomps twice before lifting off.',
-    hp: 64, speed: 0.8, armor: 2, stompDmg: 1, coins: 8, score: 240, scale: 1.12, minWave: 9, weight: 3,
+    hp: 64, speed: 0.8, armor: 2, stompDmg: 1, coins: 8, score: 240, scale: 1.12, minWave: 16, weight: 3,
     traits: ['double'],
+    home: 'diner',
     art: { kind: 'dino', skin: '#5fae4a', primary: '#5fae4a', secondary: '#f2d36b', leg: 'scales', legColor: '#5fae4a' },
   },
   {
     id: 'xeno',
     name: 'Xeno Toes',
     desc: 'Three toes, zero manners. Teleports between pizzas.',
-    hp: 32, speed: 1.05, armor: 0, stompDmg: 1, coins: 7, score: 230, scale: 1, minWave: 10, weight: 3,
+    hp: 32, speed: 1.05, armor: 0, stompDmg: 1, coins: 7, score: 230, scale: 1, minWave: 26, weight: 3,
     traits: ['teleport'],
+    home: 'space',
     art: { kind: 'alien', skin: '#9b6bff', primary: '#9b6bff', secondary: '#7dffb0', leg: 'skin' },
   },
   {
     id: 'mummy',
     name: 'Mummy Toes',
     desc: 'Wrapped for eternity. Unwraps itself and comes back once.',
-    hp: 34, speed: 0.85, armor: 1, stompDmg: 1, coins: 7, score: 230, scale: 1.02, minWave: 11, weight: 3,
+    hp: 34, speed: 0.85, armor: 1, stompDmg: 1, coins: 7, score: 230, scale: 1.02, minWave: 56, weight: 3,
     traits: ['revive'],
+    home: 'cellar',
     art: { kind: 'mummy', skin: '#e9dcb8', primary: '#e9dcb8', secondary: '#8a7d5c', leg: 'bandage' },
   },
   {
@@ -463,8 +483,9 @@ export const FEET: FootType[] = [
     id: 'disco',
     name: 'Disco Dee',
     desc: 'Platform soles and glitter. Struts in with a sidestep.',
-    hp: 30, speed: 1.1, armor: 1, stompDmg: 2, coins: 6, score: 210, scale: 1, minWave: 9, weight: 3,
+    hp: 30, speed: 1.1, armor: 1, stompDmg: 2, coins: 6, score: 210, scale: 1, minWave: 46, weight: 3,
     traits: ['dodge'],
+    home: 'rink',
     art: { kind: 'platform', skin: SKIN.dark, primary: '#c13cff', secondary: '#ffe14d', leg: 'jeans', legColor: '#f2f2f2' },
   },
   {
@@ -487,8 +508,9 @@ export const FEET: FootType[] = [
     id: 'wally',
     name: 'Werewolf Wally',
     desc: 'Only comes out at dinner time. Shaggy, clawed and quick.',
-    hp: 40, speed: 1.2, armor: 1, stompDmg: 1, coins: 6, score: 210, scale: 1.05, minWave: 8, weight: 3,
+    hp: 40, speed: 1.2, armor: 1, stompDmg: 1, coins: 6, score: 210, scale: 1.05, minWave: 56, weight: 3,
     traits: ['zigzag'],
+    home: 'cellar',
     art: { kind: 'bigfoot', skin: '#4a4a52', primary: '#7a7a86', secondary: '#2b2b30', leg: 'fur', hair: true },
   },
   {
@@ -527,8 +549,9 @@ export const FEET: FootType[] = [
     id: 'fred',
     name: 'Frosty Fred',
     desc: 'Walked here through a blizzard. Icy toes shrug off slows.',
-    hp: 34, speed: 1, armor: 1, stompDmg: 1, coins: 5, score: 180, scale: 1, minWave: 7, weight: 3,
+    hp: 34, speed: 1, armor: 1, stompDmg: 1, coins: 5, score: 180, scale: 1, minWave: 51, weight: 3,
     traits: ['immuneSlow'],
+    home: 'slopes',
     art: { kind: 'bare', skin: '#b9dcff', frost: true, nails: '#e8f6ff', leg: 'puffy', legColor: '#3a6ad0', legAccent: '#ffffff' },
   },
   {

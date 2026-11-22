@@ -4,6 +4,8 @@ import Phaser from 'phaser';
 import { BACKDROPS, type AmbientKind, type BackdropId } from '../art/backdrops';
 import { H, W } from '../config';
 import { ensureBackdrop } from './assets';
+import '../content/live';
+import { type LiveScene, startLive } from './liveBackdrop';
 
 type Emitter = Phaser.GameObjects.Particles.ParticleEmitter;
 
@@ -21,14 +23,26 @@ export class BackdropView {
   private emitters: Emitter[] = [];
   private t = 0;
   current: BackdropId | null = null;
+  // live layers (src/content/live): animated scenery that can change wave by wave
+  private liveLayer: Phaser.GameObjects.Container;
+  private live: LiveScene | null = null;
+  private wave = 1;
 
   constructor(scene: Phaser.Scene, bgLayer: Phaser.GameObjects.Container, ambientLayer: Phaser.GameObjects.Container) {
     this.scene = scene;
     this.bgA = scene.add.image(W / 2, H / 2, '__DEFAULT').setVisible(false);
     this.bgB = scene.add.image(W / 2, H / 2, '__DEFAULT').setVisible(false);
     this.glowLayer = scene.add.container(0, 0);
-    bgLayer.add([this.bgA, this.bgB, this.glowLayer]);
+    this.liveLayer = scene.add.container(0, 0);
+    bgLayer.add([this.bgA, this.bgB, this.glowLayer, this.liveLayer]);
     this.ambientLayer = ambientLayer;
+  }
+
+  /** The wave within the stage (1–5): live layers change their weather and light with it. */
+  setWave(wave: number): void {
+    if (wave === this.wave) return;
+    this.wave = wave;
+    this.live?.setWave?.(wave);
   }
 
   show(id: BackdropId, fadeMs = 0): void {
@@ -42,6 +56,7 @@ export class BackdropView {
     const parent = incoming.parentContainer;
     parent?.bringToTop(incoming);
     parent?.bringToTop(this.glowLayer);
+    parent?.bringToTop(this.liveLayer);
     this.bgA = incoming;
     this.bgB = outgoing;
     if (fadeMs) {
@@ -55,6 +70,8 @@ export class BackdropView {
     } else outgoing.setVisible(false);
     this.buildGlows(id, fadeMs);
     this.buildAmbient(id);
+    this.live?.destroy();
+    this.live = startLive(id, { sc: this.scene, layer: this.liveLayer, wave: this.wave });
   }
 
   private buildGlows(id: BackdropId, fadeMs: number): void {
@@ -168,6 +185,7 @@ export class BackdropView {
 
   update(dt: number): void {
     this.t += dt;
+    this.live?.update(dt);
     for (const g of this.glows) {
       const n = Math.sin(this.t * 7.3 + g.seed) * 0.5 + Math.sin(this.t * 13.1 + g.seed * 2) * 0.3 + Math.sin(this.t * 2.1 + g.seed) * 0.2;
       const target = g.base * (1 - g.flicker * 0.35 + n * g.flicker * 0.35);
