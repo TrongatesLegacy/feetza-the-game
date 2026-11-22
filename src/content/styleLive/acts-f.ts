@@ -162,19 +162,17 @@ registerLive('batfeet', {
       ctx.fillRect(-2.5, -1, 1.6, 1.6);
       ctx.fillRect(1, -1, 1.6, 1.6);
     });
-    return { bats: k.swarm({ key, frames: 3, count: 2, at: [CX, 90], rx: 150, ry: 110, speed: 1.8, jitter: 18, scale: 0.7 }), beat: { t: 0 } };
+    return { bats: k.swarm({ key, frames: 3, count: 2, at: [CX, 90], rx: 150, ry: 110, speed: 1.8, jitter: 18, scale: 0.7 }), beat: { t: 0 }, wl: k.swayImg('wingL'), wr: k.swayImg('wingR') };
   },
-  tick(k, dt, { bats, beat }) {
+  tick(k, dt, { bats, beat, wl, wr }) {
     const fast = k.windingUp || k.f.state === 'descend';
     bats.pace = fast ? 1.8 : 1;
     // the wings beat: slow and lazy while it hangs, hard and fast in a swoop (the springs still add the drag)
     beat.t += dt * (fast ? 16 : 5);
     const amp = (fast ? 0.32 : 0.12) * (save.settings.reducedMotion ? 0.3 : 1);
     const w = Math.sin(beat.t) * amp;
-    const l = k.swayImg('wingL');
-    const r = k.swayImg('wingR');
-    if (l) l.rotation += w;
-    if (r) r.rotation -= w;
+    if (wl) wl.rotation += w;
+    if (wr) wr.rotation -= w;
   },
 });
 

@@ -647,9 +647,10 @@ function drawCavalry(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
     }, 3, '#2a0408', 0.35, 0.2);
   });
   wovenBand(g, 26, 16, shade(red, -0.25), gold);
-  if (!o.live) paintTassels(g, gold);
   lightAll(sil, 0.3, 18, 0.55);
   sil.finish(inkOf(hide), { openTop: -6 });
+  // the tassels swing on their own in play; in a still they hang over the outline
+  if (!o.live) paintTassels(ctx, gold);
 }
 
 registerStyle('cavalry', {
@@ -818,10 +819,11 @@ function drawSatrap(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
       const y = 96 + r() * 120;
       if (Math.abs(x - CX) < 22 && Math.abs(y - 196) < 30) continue;
       const s = 0.8 + r() * 0.4;
+      const rot = r() * 6;
       const pz: PathFn = (c) => {
         c.save();
         c.translate(x, y);
-        c.rotate(r() * 6);
+        c.rotate(rot);
         c.scale(s, s);
         c.beginPath();
         c.moveTo(0, 8);
@@ -883,7 +885,8 @@ function drawSatrap(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
 registerStyle('satrap', {
   contactY: 254,
   halfWidth: 96,
-  rig: { from: 176, to: 196 },
+  // the band sits below the ruby, so its glow isn't cut off the posed band
+  rig: { from: 216, to: 236 },
   leg: { kind: 'wool', hw: 52, join: 'into' },
   draw(ctx, art, p, o) {
     drawSatrap(ctx, art, p, o);

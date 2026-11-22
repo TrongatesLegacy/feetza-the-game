@@ -235,8 +235,8 @@ registerStyle('spidersocks', {
   rig: BARE_RIG,
   leg: { kind: 'knit', hw: 50, join: 'blend', fade: 20 },
   parts: {
-    legsL: { box: { x: CX - 180, y: 40, w: 110, h: 150 }, frames: 1, pivot: SPIDER_LEGS_AT(-1), draw: (g, art) => paintSpiderLegs(g, -1, art.primary ?? '#5a2a8a') },
-    legsR: { box: { x: CX + 70, y: 40, w: 110, h: 150 }, frames: 1, pivot: SPIDER_LEGS_AT(1), draw: (g, art) => paintSpiderLegs(g, 1, art.primary ?? '#5a2a8a') },
+    legsL: { box: { x: CX - 180, y: 36, w: 110, h: 180 }, frames: 1, pivot: SPIDER_LEGS_AT(-1), draw: (g, art) => paintSpiderLegs(g, -1, art.primary ?? '#5a2a8a') },
+    legsR: { box: { x: CX + 70, y: 36, w: 110, h: 180 }, frames: 1, pivot: SPIDER_LEGS_AT(1), draw: (g, art) => paintSpiderLegs(g, 1, art.primary ?? '#5a2a8a') },
   },
   draw(ctx, art, p, o) {
     const purple = art.primary ?? '#5a2a8a';

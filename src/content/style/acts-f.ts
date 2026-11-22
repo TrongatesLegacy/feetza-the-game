@@ -150,7 +150,6 @@ function drawBunion(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
     for (const v of BUNION_VEINS) glowLine(g, v, 2.6, venom, 0.85);
     for (const h of hoses) glowLine(g, h, 2.2, venom, 0.55);
     for (const [vx, vy] of VIALS) glowDot(g, vx, vy, 26, venom, 0.45);
-    glowLine(g, [[CX - 104, 238], [CX, 244], [CX + 104, 238]], 1.6, venom, 0.6);
     glowFinish(sil);
     return;
   }

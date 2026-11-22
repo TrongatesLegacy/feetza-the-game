@@ -109,7 +109,8 @@ function drawRedSole(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
   const d = flex * 5;
   const boot = redBoot(flex);
   const sole = redSole(flex);
-  const skull = skullCap(flex);
+  // the skull cap stays put (it sits above the rig's band); only the sole flexes
+  const skull = skullCap(0);
   const box = { x: CX - 116, y: -10, w: 232, h: 282 };
   const sil = new Sil(ctx, [boot, sole], box);
   const g = sil.g;
@@ -122,7 +123,7 @@ function drawRedSole(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
     g.translate(CX, 236);
     g.scale(1.24, 1.12);
     g.translate(-CX, -236);
-    skullSockets(g, d, true, '#ff3020');
+    skullSockets(g, 0, true, '#ff3020');
     g.restore();
     glowFinish(sil);
     return;
@@ -160,7 +161,7 @@ function drawRedSole(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
       softStroke(g, (c) => wav(c, -1), rgba('#dfe6ff', a * 0.55), 2, 0.8);
     }
     // the vamp's mirror shine
-    spec(g, CX - 50, 196 - d, 30, 14, 0.45, -0.35, '#e8eeff');
+    spec(g, CX - 50, 196, 30, 14, 0.45, -0.35, '#e8eeff');
     streak(g, (c) => {
       c.moveTo(CX - 86, 210);
       c.quadraticCurveTo(CX - 84, 190, CX - 70, 178);
@@ -268,31 +269,31 @@ function drawRedSole(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
     c.fill();
   }, 0.65, 3, 4);
   clip(g, skull, () => {
-    g.fillStyle = lin(g, CX - 60, 166 - d, CX + 50, 256 - d, [
+    g.fillStyle = lin(g, CX - 60, 166, CX + 50, 256, [
       [0, shade(red, 0.4)],
       [0.35, red],
       [1, mix(shade(red, -0.6), '#1a0010', 0.3)],
     ]);
     g.fillRect(CX - 64, 160, 128, 100);
     texture(g, 'grain', { x: CX - 64, y: 160, w: 128, h: 100 }, 0.15);
-    spec(g, CX - 26, 180 - d, 22, 10, 0.65, -0.3);
+    spec(g, CX - 26, 180, 22, 10, 0.65, -0.3);
     // cheekbones and the hollow temples
     softFill(g, (c) => {
       c.beginPath();
-      c.ellipse(CX - 54, 212 - d, 10, 18, 0.2, 0, Math.PI * 2);
-      c.ellipse(CX + 54, 212 - d, 10, 18, -0.2, 0, Math.PI * 2);
+      c.ellipse(CX - 54, 212, 10, 18, 0.2, 0, Math.PI * 2);
+      c.ellipse(CX + 54, 212, 10, 18, -0.2, 0, Math.PI * 2);
     }, rgba('#1a0008', 0.45), 4);
-    skullSockets(g, d, false, red);
+    skullSockets(g, 0, false, red);
     // the nose
     g.fillStyle = '#12020a';
     g.beginPath();
-    g.moveTo(CX, 216 - d);
-    g.lineTo(CX + 6, 228 - d);
-    g.lineTo(CX - 6, 228 - d);
+    g.moveTo(CX, 216);
+    g.lineTo(CX + 6, 228);
+    g.lineTo(CX - 6, 228);
     g.closePath();
     g.fill();
     // the teeth
-    const ty = 238 - d;
+    const ty = 238;
     g.fillStyle = '#12020a';
     g.fillRect(CX - 30, ty - 2, 60, 14);
     for (let i = 0; i < 6; i++) {
