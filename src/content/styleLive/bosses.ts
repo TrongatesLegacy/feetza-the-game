@@ -8,7 +8,7 @@ import { crand } from '../../systems/cosmeticRandom';
 import { BIG_LOCKS } from '../style/bosses';
 import { drawFly } from '../style/pilot-bare';
 import { JELLY_TENTS } from '../style/bosses-4';
-import { PENNANT, TICKET, drawSaucer } from '../style/bosses-3';
+import { PENNANT, TICKET, saucerWithBeam } from '../style/bosses-3';
 import { CROC_HOLES_LIVE, CROC_NOZZLES, KELP, RINK_WHEELS, YETI_TUFTS } from '../style/bosses-2';
 
 const R = () => crand();
@@ -417,12 +417,12 @@ registerLive('ufotoe', {
   rig: { squash: 1.3 },
   heat: {},
   setup(k) {
-    const key = k.sheet('lk_saucer', 72, 40, 4, (ctx, i) => {
-      ctx.translate(36, 24);
-      drawSaucer(ctx, 1.4, i / 3);
+    const key = k.sheet('lk_saucer2', 110, 130, 4, (ctx, i) => {
+      ctx.translate(55, 30);
+      saucerWithBeam(ctx, 2.1, i / 3);
     });
     return {
-      saucer: k.swarm({ key, frames: 4, count: 1, at: [CX, 150], rx: 150, ry: 80, speed: 1.4, jitter: 12, scale: 0.75 }),
+      saucer: k.swarm({ key, frames: 4, count: 1, at: [CX, 214], rx: 132, ry: 30, speed: 1.2, jitter: 6, scale: 1, upright: 0.08 }),
       steam: steamEm(k),
       motes: k.emitter({ frame: 'mote', add: true, drag: 0.5, max: 50 }),
     };

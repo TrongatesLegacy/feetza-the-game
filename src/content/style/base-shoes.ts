@@ -765,7 +765,7 @@ registerStyle('clyde', {
 });
 
 // ════════════════════════════ WELLIE WENDY ════════════════════════════
-// Fresh from a puddle: a glossy yellow rubber wellie, a black ridged sole and collar, rain beaded all over it. In play
+// Fresh from a puddle: a glossy yellow rubber wellie (its shaft runs on up the leg), a black ridged sole, rain beaded all over it. In play
 // it drips, and every stomp splashes.
 
 const WELLIE: ShoeShape = { top: -8, topHW: 62, ballY: 160, ballHW: 100, toeY: 250, toeR: 72, box: 0.5 };
@@ -779,16 +779,8 @@ registerStyle('wendy', {
     const black = art.secondary ?? '#1b1b1b';
     const upper = shoePath(WELLIE);
     const sole = shoePath(soleOf(WELLIE, 6, 16, 150));
-    const collar = (c: Ctx) => {
-      c.beginPath();
-      c.moveTo(CX - 64, -8);
-      c.lineTo(CX + 64, -8);
-      c.lineTo(CX + 66, 18);
-      c.bezierCurveTo(CX + 30, 26, CX - 30, 26, CX - 66, 18);
-      c.closePath();
-    };
     const box = { x: CX - 116, y: -12, w: 232, h: 290 };
-    const sil = new Sil(ctx, [sole, upper, collar], box);
+    const sil = new Sil(ctx, [sole, upper], box);
     const g = sil.g;
     paintSole(g, sole, { x: CX - 108, y: 150, w: 216, h: 120 }, black, { tread: true });
     // the ridged rubber rand round the toe
@@ -815,14 +807,6 @@ registerStyle('wendy', {
     blotches(g, { x: CX - 110, y: 180, w: 220, h: 90 }, '#5a4020', 0.35, 14, 0.62, 0.1, 101, 'source-atop');
     const r = rng(hashStr('wendy-rain'));
     for (let i = 0; i < 26; i++) bead(g, CX - 80 + r() * 160, 30 + r() * 180, 1.6 + r() * 3, '#e8f4ff', 0.65);
-    raised(g, collar, box, 'rubber', black, 0.5);
-    clipTo(g, collar, () => {
-      g.fillStyle = rgba('#ffffff', 0.08);
-      for (let x = CX - 64; x < CX + 64; x += 8) g.fillRect(x, -8, 3, 30);
-      // a little yellow pull tab
-      g.fillStyle = yellow;
-      g.fillRect(CX + 44, -8, 12, 14);
-    });
     finishShoe(sil, mix(yellow, '#a08000', 0.3), { openTop: -7 });
   },
 });

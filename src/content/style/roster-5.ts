@@ -75,59 +75,103 @@ function highTop(ctx: Ctx, o: { col: string; rubber: string; lace: string; strip
 // A yellow high-top bolted to a pogo stick: a blue footplate, a chrome coil spring and a rubber tip. In play the
 // spring squashes hard on landing and bounces back (the rig), with a puff of dust; it compresses before he hops.
 
-function springPath(y0: number, y1: number): PathFn {
+/** The coil's rings between y0 and y1: each a thick ring of chrome wire round the post (a hole in the middle, so the
+ * gaps between the turns are open). */
+const COIL_RX = 38;
+const COIL_RY = 6.5;
+const COIL_W = 6;
+const COIL_N = 8;
+function coilY(y0: number, y1: number, i: number): number {
+  return y0 + 7 + ((y1 - y0 - 14) * i) / (COIL_N - 1);
+}
+function ringPath(y: number): PathFn {
   return (c) => {
     c.beginPath();
-    c.roundRect(CX - 28, y0, 56, y1 - y0, 10);
+    c.ellipse(CX, y, COIL_RX + COIL_W / 2, COIL_RY + COIL_W / 2, -0.09, 0, Math.PI * 2);
+    c.ellipse(CX, y, COIL_RX - COIL_W / 2, Math.max(1, COIL_RY - COIL_W / 2), -0.09, Math.PI * 2, 0, true);
   };
+}
+/** Half a ring: the front (lower) or back (upper) half of the wire. */
+function halfRing(g: Ctx, y: number, front: boolean, w: number): void {
+  g.beginPath();
+  g.ellipse(CX, y, COIL_RX, COIL_RY, -0.09, front ? 0 : Math.PI, front ? Math.PI : Math.PI * 2);
+  g.lineWidth = w;
+  g.stroke();
 }
 
 registerStyle('pogo', {
   contactY: 314,
-  rig: { from: 230, to: 246 },
-  leg: { kind: 'knit', hw: 50, join: 'into' },
+  rig: { from: 212, to: 220 },
+  leg: { kind: 'knit', hw: 46, join: 'into' },
   draw(ctx, art, p) {
     const yellow = art.primary ?? '#ffcf1a';
     const blue = art.secondary ?? '#2f6ad0';
     const flex = Math.max(0, p.curl);
     const squash = Math.max(0, -p.curl);
-    // the spring and tip below the shoe: shorter as the foot curls (compress) and longer as it splays (bounce)
-    const sy0 = 248;
-    const sy1 = 300 - flex * 14 + squash * 4;
-    const plate = rrect(CX - 76, 236, 152, 14, 6);
-    const spring = springPath(sy0, sy1);
-    const tip = rrect(CX - 16, sy1 - 2, 32, 16, 6);
-    const { sil, g } = highTop(ctx, { col: yellow, rubber: '#f8f6f0', lace: '#fbfaf6', stripe: blue, flex: 0, toeY: 214, extra: [plate, spring, tip] });
+    // a real length of spring under the footplate: it compresses as the foot curls (the landing squash) and
+    // stretches as it splays (the bounce)
+    const sy0 = 208;
+    const sy1 = 296 - flex * 26 + squash * 5;
+    const plate = rrect(CX - 108, 192, 216, 18, 8);
+    const post = rrect(CX - 9, sy0 - 4, 18, sy1 - sy0 + 4, 4);
+    const rings = Array.from({ length: COIL_N }, (_, i) => ringPath(coilY(sy0, sy1, i)));
+    const tip = rrect(CX - 24, sy1 - 4, 48, 22, 10);
+    const box = { x: CX - 116, y: -10, w: 232, h: 330 };
+    const { sil, g } = highTop(ctx, { col: yellow, rubber: '#f8f6f0', lace: '#fbfaf6', stripe: blue, flex: 0, toeY: 172, extra: [plate, post, ...rings, tip], box });
     // the blue side flash (the old Paul's)
-    within(g, upperPath({ topW: 58, ballW: 96, toeY: 214 }, 0), () => {
+    within(g, upperPath({ topW: 58, ballW: 96, toeY: 172 }, 0), () => {
       for (const s of [-1, 1]) {
         const fl: PathFn = (c) => {
           c.beginPath();
-          c.moveTo(CX + s * 98, 120);
-          c.quadraticCurveTo(CX + s * 64, 150, CX + s * 74, 196);
-          c.lineTo(CX + s * 104, 196);
+          c.moveTo(CX + s * 98, 96);
+          c.quadraticCurveTo(CX + s * 64, 122, CX + s * 74, 160);
+          c.lineTo(CX + s * 104, 160);
           c.closePath();
         };
-        piece(g, fl, { x: CX + (s < 0 ? -104 : 64), y: 120, w: 40, h: 76 }, 'canvas', blue, { shadow: 0.35 });
+        piece(g, fl, { x: CX + (s < 0 ? -104 : 64), y: 96, w: 40, h: 64 }, 'canvas', blue, { shadow: 0.35 });
       }
     });
-    piece(g, plate, { x: CX - 76, y: 236, w: 152, h: 14 }, 'enamel', blue, { shadow: 0.5 });
-    // the coil: chrome rings, lit on the left, shading round the right
-    within(g, spring, () => {
-      g.fillStyle = '#1a1e28';
-      g.fillRect(CX - 30, sy0, 60, sy1 - sy0);
-      const n = 7;
-      for (let i = 0; i < n; i++) {
-        const y = sy0 + 3 + ((sy1 - sy0 - 6) * (i + 0.5)) / n;
-        const h = (sy1 - sy0) / n;
-        g.fillStyle = hgrad(g, CX - 28, CX + 28, [[0, '#5a6270'], [0.25, '#f4f8fc'], [0.55, '#a8b0bc'], [1, '#3a404a']]);
-        g.beginPath();
-        g.ellipse(CX, y, 28, Math.max(2.2, h * 0.36), -0.08, 0, Math.PI * 2);
-        g.fill();
-      }
+    // the coil's back halves, in shadow behind the post
+    g.save();
+    g.lineCap = 'round';
+    for (let i = 0; i < COIL_N; i++) {
+      const y = coilY(sy0, sy1, i);
+      g.strokeStyle = hgrad(g, CX - COIL_RX, CX + COIL_RX, [[0, '#3a404c'], [0.5, '#6a7280'], [1, '#2a2e38']]);
+      halfRing(g, y, false, COIL_W);
+    }
+    g.restore();
+    // the post: a chrome tube, a bright stripe down its lit side
+    piece(g, post, { x: CX - 9, y: sy0 - 4, w: 18, h: sy1 - sy0 + 4 }, 'chrome', '#c8d0da', { shadow: 0.4 });
+    within(g, post, () => {
+      g.fillStyle = hgrad(g, CX - 9, CX + 9, [[0, '#4a525e'], [0.3, '#ffffff'], [0.5, '#b8c0ca'], [1, '#3a404a']]);
+      g.fillRect(CX - 9, sy0 - 4, 18, sy1 - sy0 + 4);
     });
-    piece(g, tip, { x: CX - 16, y: sy1 - 2, w: 32, h: 16 }, 'rubber', '#2a2a30', { shadow: 0.4 });
-    void squash;
+    // a soft shadow the front wire casts on the post
+    // the front halves: bright chrome wire, a hot highlight on the top-left of each turn
+    g.save();
+    g.lineCap = 'round';
+    for (let i = 0; i < COIL_N; i++) {
+      const y = coilY(sy0, sy1, i);
+      g.strokeStyle = rgba('#000000', 0.25);
+      g.save();
+      g.translate(1.5, 3);
+      halfRing(g, y, true, COIL_W);
+      g.restore();
+      g.strokeStyle = hgrad(g, CX - COIL_RX - 4, CX + COIL_RX + 4, [[0, '#5a6270'], [0.18, '#f6f9fc'], [0.42, '#c4ccd6'], [0.75, '#8a94a2'], [0.92, '#4a5260'], [1, '#9aa6b4']]);
+      halfRing(g, y, true, COIL_W);
+      g.strokeStyle = rgba('#ffffff', 0.85);
+      g.beginPath();
+      g.ellipse(CX, y - 1.2, COIL_RX, COIL_RY, -0.09, Math.PI * 0.62, Math.PI * 0.86);
+      g.lineWidth = 1.6;
+      g.stroke();
+    }
+    g.restore();
+    // the footplate the shoe is bolted to, its bolts catching the light
+    piece(g, plate, { x: CX - 108, y: 192, w: 216, h: 18 }, 'enamel', blue, { shadow: 0.5 });
+    within(g, plate, () => spec(g, CX - 60, 196, 50, 3, 0.55, 0));
+    for (const x of [CX - 92, CX + 92]) rivet(g, x, 201, 4.5);
+    piece(g, tip, { x: CX - 24, y: sy1 - 4, w: 48, h: 22 }, 'rubber', '#2a2a30', { shadow: 0.4 });
+    within(g, tip, () => spec(g, CX - 10, sy1 + 2, 10, 3, 0.4, 0));
     finishLight(sil, yellow, '#4a3008', 0.3);
     sil.finish(inkOf(yellow), { openTop: -5 });
   },

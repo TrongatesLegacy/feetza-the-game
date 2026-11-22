@@ -204,7 +204,7 @@ registerLive('waffle', {
       crumbs.emit(CX - 90 + R() * 180, 180 + R() * 80, { vx: pm() * 20, vy: 10, life: 0.9, r0: 3 * s, r1: 2.6 * s, a: 1, tint: R() < 0.5 ? 0xe0a046 : 0xb8742a, grav: 700, spin: 6, fade: 0.02 });
     });
     syrup.rate('syrup', 0.9, dt, () => {
-      syrup.emit(CX + 50 + pm() * 4, 200, { vy: 20, life: 0.8, r0: 5 * s, r1: 4 * s, a: 1, tint: 0xa8540e, grav: 800, fade: 0.02 });
+      syrup.emit(CX + 46 + pm() * 3, 212, { vy: 20, life: 0.8, r0: 5 * s, r1: 4 * s, a: 1, tint: 0xa8540e, grav: 800, fade: 0.02 });
     });
     if (k.landed || k.f.hp < hp.v) {
       for (let i = 0, n = k.burst(10); i < n; i++) crumbs.emit(CX - 80 + R() * 160, 150 + R() * 100, { vx: pm() * 260, vy: -60 - R() * 160, life: 0.8, r0: 3.4 * s, r1: 3 * s, a: 1, tint: 0xd8963e, grav: 800, spin: 8, fade: 0.02 });
@@ -361,6 +361,7 @@ registerLive('robosock', {
 // Comet Cora: her tail streams behind every move (world-space particles), sparkles shed off it, and it flares as she bursts.
 registerLive('comet', {
   wiggle: true,
+  sway: { tailL: { k: 34, c: 3, gain: 1.4, idle: 0.18, flop: 1 }, tailR: { k: 38, c: 3, gain: 1.4, idle: 0.18, flop: 1 } },
   glow: { rate: 1.6, depth: 0.4, base: 0.5 },
   setup: (k) => ({ tail: k.emitter({ frame: 'soft', add: true, curl: 40, drag: 0.5, max: 220 }), ice: k.emitter({ frame: 'spark', add: true, drag: 0.6, max: 40 }) }),
   tick(k, dt, { tail, ice }) {

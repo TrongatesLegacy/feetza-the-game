@@ -89,10 +89,10 @@ const ruffPath: PathFn = (c) => {
 
 const tarsus: PathFn = (c) => {
   c.beginPath();
-  c.moveTo(CX - 18, 120);
-  c.lineTo(CX - 21, 206);
-  c.quadraticCurveTo(CX, 222, CX + 21, 206);
-  c.lineTo(CX + 18, 120);
+  c.moveTo(CX - 22, 120);
+  c.lineTo(CX - 26, 206);
+  c.quadraticCurveTo(CX, 224, CX + 26, 206);
+  c.lineTo(CX + 22, 120);
   c.closePath();
 };
 
@@ -100,13 +100,13 @@ function pigeonToes(p: Pose): [number, number][][] {
   const c = Math.max(0, p.curl);
   const sp = Math.max(0, -p.curl);
   return [
-    [Math.PI * 0.72, 0.25],
+    [Math.PI * 0.8, 0.22],
     [Math.PI * 0.5, 0.05],
-    [Math.PI * 0.28, -0.25],
+    [Math.PI * 0.2, -0.22],
   ].map(([a, b], i) => {
     const w = p.wiggle[i + 1] ?? 0;
     const spread = (a - Math.PI / 2) * (1 + sp * 0.3 - c * 0.25);
-    return curve(CX, 206, Math.PI / 2 + spread, (i === 1 ? 86 : 78) * (1 - c * 0.25), b * (1 + c * 2) + w * 0.15);
+    return curve(CX, 206, Math.PI / 2 + spread, (i === 1 ? 92 : 86) * (1 - c * 0.25), b * (1 + c * 2) + w * 0.15);
   });
 }
 
@@ -180,11 +180,11 @@ function drawPigeon(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
   const gold = art.secondary ?? '#ffcf3a';
   const toes = pigeonToes(p);
   const c = Math.max(0, p.curl);
-  const toeW = (s: number) => 15 - s * 6;
+  const toeW = (s: number) => 20 - s * 8;
   const claws = toes.map((pts) => {
     const [x, y] = pts[pts.length - 1];
     const [px, py] = pts[pts.length - 2];
-    return { x, y, ang: Math.atan2(y - py, x - px), len: 20 * (1 + c * 0.4), w: 10 };
+    return { x, y, ang: Math.atan2(y - py, x - px), len: 24 * (1 + c * 0.4), w: 13 };
   });
   const box = { x: CX - 120, y: -8, w: 240, h: 316 };
   const sil = new Sil(ctx, [ruffPath, tarsus, ...toes.map((t) => limbPath(t, toeW)), ...claws.map((k) => clawPath(k.x, k.y, k.ang, k.len, k.w, 0.3))], box);
@@ -215,7 +215,7 @@ function drawPigeon(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
     // knuckle pads
     for (const j of [5, 10]) fill(g, ell(t[j][0], t[j][1], 6, 5), rgba(shade(pink, 0.2), 0.6));
   }
-  scutes(curve(CX, 122, Math.PI / 2, 86, 0, 12), () => 16);
+  scutes(curve(CX, 122, Math.PI / 2, 86, 0, 12), () => 20);
   for (const k of claws) paintClaw(g, k.x, k.y, k.ang, k.len, k.w, 0.3, '#5a5060', '#0a080e');
   // the feather ruff
   contact(g, (cc) => {
@@ -254,6 +254,7 @@ function drawPigeon(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
 }
 
 registerStyle('pigeonking', {
+  portraitLeg: 20,
   contactY: 296,
   halfWidth: 90,
   rig: { from: 196, to: 214 },

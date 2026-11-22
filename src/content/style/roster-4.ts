@@ -202,8 +202,9 @@ function pigeonToes(s: number): { path: PathFn; tip: [number, number]; root: [nu
   const out: { path: PathFn; tip: [number, number]; root: [number, number]; w: number }[] = [];
   const rx = CX;
   const ry = 160;
-  const spread = 0.42 + s * 0.12;
-  for (const [a, len, w] of [[-spread, 100, 15], [0, 110, 16], [spread, 100, 15]] as const) {
+  // splayed wide and thick, so the grip (the foot) reads as big as the old pigeon's, not a twig under the feathers
+  const spread = 0.72 + s * 0.14;
+  for (const [a, len, w] of [[-spread, 104, 21], [0, 114, 22], [spread, 104, 21]] as const) {
     const ang = Math.PI / 2 + a;
     const tx = rx + Math.cos(ang) * len;
     const ty = ry + Math.sin(ang) * len;
@@ -227,6 +228,7 @@ function pigeonToes(s: number): { path: PathFn; tip: [number, number]; root: [nu
 }
 
 registerStyle('pigeon', {
+  portraitLeg: 20,
   contactY: 276,
   halfWidth: 100,
   rig: { from: 150, to: 170 },
@@ -610,7 +612,8 @@ function claw(g: Ctx, side: -1 | 1, red: string, open: number): void {
   const [px, py] = CLAW_PIV[side < 0 ? 0 : 1];
   g.save();
   g.translate(px, py);
-  g.scale(1.3, 1.3);
+  // big enough to read as a crab at game size (the old claws were the foot's whole story)
+  g.scale(1.6, 1.6);
   g.translate(-px, -py);
   const x0 = px + side * 22;
   const arm: PathFn = (c) => {

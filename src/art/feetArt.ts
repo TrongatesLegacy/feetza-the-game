@@ -1397,7 +1397,7 @@ export function drawFoot(type: FootType, resOverride?: number, classic = false):
 /** Composite portrait (leg + foot) used by DOM menus such as the Pizzapedia. */
 export function footPortrait(type: FootType, tex: FootTextures, size = 220): string {
   const s = type.scale * tex.res;
-  const legH = 120 * s;
+  const legH = (styleFor(type.id)?.portraitLeg ?? 120) * s;
   const fw = tex.foot.width;
   const fh = tex.foot.height;
   const [c, ctx] = makeCanvas(fw, fh + legH);

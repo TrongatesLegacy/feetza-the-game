@@ -167,32 +167,36 @@ registerStyle('sandy', {
 
 /** The kelp ribbons: root (on the ankle), length, sway direction. */
 export const KELP: [number, number, number, number][] = [
-  [CX - 48, 34, 236, -1],
-  [CX - 14, 30, 214, -0.4],
-  [CX + 24, 36, 228, 0.5],
-  [CX + 56, 40, 206, 1],
+  [CX - 66, 44, 262, -1],
+  [CX - 24, 32, 244, -0.4],
+  [CX + 20, 36, 268, 0.4],
+  [CX + 62, 46, 236, 1],
 ];
 
-function kelpPath(i: number): PathFn {
+/** A ribbon's centre x, y and half width at t (0 root … 1 tip): a narrow stipe, widest two thirds down, its edges
+ * ruffled all along like real kelp. */
+function kelpAt(i: number, t: number): [number, number, number] {
   const [x, y, len, d] = KELP[i];
+  const cx = x + Math.sin(t * 5.2 + i * 1.7) * 11 * Math.min(1, t * 2.5) + d * t * t * 20;
+  const hw = (2.8 + Math.sin(Math.min(1, t * 1.15) * Math.PI * 0.85) * 17) * (1 - t * 0.2) + Math.sin(t * 24 + i) * 3.2 * Math.min(1, t * 4);
+  return [cx, y + t * len, Math.max(1.8, hw)];
+}
+
+function kelpPath(i: number): PathFn {
   return (c) => {
+    const N = 48;
     c.beginPath();
-    const n = 8;
-    const left: [number, number][] = [];
-    const right: [number, number][] = [];
-    for (let k = 0; k <= n; k++) {
-      const t = k / n;
-      const cx = x + Math.sin(t * 5 + i) * 7 + d * t * t * 12;
-      const cy = y + t * len;
-      const w = 5 + Math.sin(t * Math.PI) * 6 - t * 2;
-      left.push([cx - w, cy]);
-      right.push([cx + w, cy]);
+    for (let j = 0; j <= N; j++) {
+      const [cx, cy, hw] = kelpAt(i, j / N);
+      if (j) c.lineTo(cx - hw, cy);
+      else c.moveTo(cx - hw, cy);
     }
-    c.moveTo(left[0][0], left[0][1]);
-    for (const [px, py] of left) c.lineTo(px, py);
-    const [ex, ey] = left[n];
-    c.quadraticCurveTo(ex + 4, ey + 10, right[n][0], right[n][1]);
-    for (let k = n; k >= 0; k--) c.lineTo(right[k][0], right[k][1]);
+    const [ex, ey] = kelpAt(i, 1);
+    c.quadraticCurveTo(ex, ey + 8, ex + 2, ey);
+    for (let j = N; j >= 0; j--) {
+      const [cx, cy, hw] = kelpAt(i, j / N);
+      c.lineTo(cx + hw * (1 + Math.sin(j * 1.9 + i) * 0.1), cy);
+    }
     c.closePath();
   };
 }
@@ -200,37 +204,75 @@ function kelpPath(i: number): PathFn {
 function paintKelp(g: Ctx, i: number, dark: string, light: string): void {
   const [x, y, len] = KELP[i];
   const p = kelpPath(i);
-  const box = { x: x - 24, y: y - 4, w: 48, h: len + 20 };
+  const box = { x: x - 40, y: y - 4, w: 80, h: len + 24 };
   const s = new Sil(g, [p], box);
   const sg = s.g;
-  sg.fillStyle = hgrad(sg, x - 14, x + 14, [[0, shade(dark, 0.3)], [0.4, dark], [1, shade(dark, -0.4)]]);
+  // deep green at the stipe, through the leaf, to a thin translucent golden tip
+  const olive = mix(dark, '#7a6a1a', 0.3);
+  sg.fillStyle = vgrad(sg, y, y + len, [[0, rgba(shade(olive, -0.3), 0.96)], [0.3, rgba(olive, 0.86)], [0.72, rgba(mix(olive, light, 0.5), 0.72)], [1, rgba(mix(light, '#f0d860', 0.55), 0.55)]]);
   sg.fillRect(box.x, box.y, box.w, box.h);
-  texture(sg, 'grain', box, 0.3, 1);
-  // the midrib and a wet sheen
-  softStroke(sg, (c) => {
-    for (let k = 0; k <= 10; k++) {
-      const t = k / 10;
-      const cx = x + Math.sin(t * 5 + i) * 7 + KELP[i][3] * t * t * 12;
-      if (k) c.lineTo(cx, y + t * len);
-      else c.moveTo(cx, y);
-    }
-  }, rgba(light, 0.55), 2, 0.8);
-  spec(sg, x - 4, y + len * 0.3, 3, len * 0.2, 0.5, 0.1);
-  // air bladders
-  for (const t of [0.35, 0.62, 0.86]) {
-    const cx = x + Math.sin(t * 5 + i) * 7 + KELP[i][3] * t * t * 12 + 7;
-    const cy = y + t * len;
-    piece(sg, ell(cx, cy, 4.5, 5.5), box, 'slime', '#c8d84a', { shadow: 0.4 });
+  // across the blade: lit on the left, shaded on the right, so it reads as a curled ribbon
+  const N = 30;
+  for (let j = 0; j < N; j++) {
+    const [cx, cy, hw] = kelpAt(i, j / N);
+    const [nx, ny, nw] = kelpAt(i, (j + 1) / N);
+    const w = Math.max(hw, nw);
+    sg.fillStyle = hgrad(sg, cx - w, cx + w, [[0, rgba('#eaffa0', 0.38)], [0.35, rgba('#ffffff', 0.05)], [0.55, rgba('#000000', 0)], [1, rgba('#06200a', 0.5)]]);
+    sg.beginPath();
+    sg.moveTo(cx - hw - 1, cy);
+    sg.lineTo(nx - nw - 1, ny + 0.6);
+    sg.lineTo(nx + nw + 1, ny + 0.6);
+    sg.lineTo(cx + hw + 1, cy);
+    sg.closePath();
+    sg.fill();
   }
-  s.finish(inkOf(dark), { w: 3.6, inner: 0.4 });
+  // the ruffles: fine ridges from the midrib out to the wavy edge
+  sg.lineCap = 'round';
+  for (let j = 3; j < 46; j++) {
+    const [cx, cy, hw] = kelpAt(i, j / 46);
+    for (const side of [-1, 1]) {
+      sg.strokeStyle = rgba(side < 0 ? '#d8f08a' : '#0a2a10', side < 0 ? 0.24 : 0.3);
+      sg.lineWidth = 0.9;
+      sg.beginPath();
+      sg.moveTo(cx + side * 1.2, cy);
+      sg.quadraticCurveTo(cx + side * hw * 0.6, cy + 1.5, cx + side * hw, cy + 3.5);
+      sg.stroke();
+    }
+  }
+  // the midrib: a dark groove with a lit lip
+  for (const [col, w, dx, a] of [['#123a10', 1.8, 0.7, 0.6], [light, 0.9, -0.6, 0.55]] as const) {
+    softStroke(sg, (c) => {
+      for (let j = 0; j <= 30; j++) {
+        const [cx, cy] = kelpAt(i, (j / 30) * 0.94);
+        if (j) c.lineTo(cx + dx, cy);
+        else c.moveTo(cx + dx, cy);
+      }
+    }, rgba(col, a), w, 0.4);
+  }
+  // a wet sheen down the lit edge
+  softStroke(sg, (c) => {
+    for (let j = 4; j <= 26; j++) {
+      const [cx, cy, hw] = kelpAt(i, j / 32);
+      if (j > 4) c.lineTo(cx - hw * 0.55, cy);
+      else c.moveTo(cx - hw * 0.55, cy);
+    }
+  }, rgba('#ffffff', 0.35), 1.4, 0.8);
+  s.finish(inkOf(dark), { w: 2.6, inner: 0.25 });
+  // glossy air bladders where the blade meets the stipe, sitting proud of it
+  for (const t of [0.07, 0.15]) {
+    const [cx, cy] = kelpAt(i, t);
+    const bx = cx;
+    piece(g, ell(bx, cy, 4.6, 5.6), { x: bx - 6, y: cy - 7, w: 12, h: 14 }, 'slime', '#c8d84a', { shadow: 0.4 });
+    glint(g, bx - 1.4, cy - 2, 1.6, 0.9);
+  }
 }
 
 registerStyle('seaweed', {
   rig: BARE_RIG,
-  leg: { kind: 'skin', hw: 50, join: 'blend', fade: 24 },
+  leg: { kind: 'skin', hw: 50, join: 'blend', fade: 42 },
   parts: Object.fromEntries(KELP.map(([x, y, len], i) => [
     `kelp${i}`,
-    { box: { x: x - 28, y: y - 6, w: 56, h: len + 26 }, frames: 1, pivot: [x, y] as [number, number], draw: (g: Ctx, art: FootArt) => paintKelp(g, i, art.primary ?? '#3f8a3a', art.secondary ?? '#7cc45a') },
+    { box: { x: x - 44, y: y - 8, w: 88, h: len + 30 }, frames: 1, pivot: [x, y] as [number, number], draw: (g: Ctx, art: FootArt) => paintKelp(g, i, art.primary ?? '#3f8a3a', art.secondary ?? '#7cc45a') },
   ])),
   draw(ctx, art, p, o) {
     const dark = art.primary ?? '#3f8a3a';
@@ -597,7 +639,7 @@ registerStyle('riot', {
 // Her foot baked into a crispy waffle: deep golden pockets, a pat of butter melting on top, maple syrup running
 // over the edge. In play crumbs fall off her, and syrup drips; each crack throws a shower of crumbs.
 
-const WAF_TOP = 120;
+const WAF_TOP = 108;
 const waffle: PathFn = (c) => {
   c.beginPath();
   c.moveTo(CX - 98, WAF_TOP + 10);
@@ -620,22 +662,25 @@ registerStyle('waffle', {
     ctx.clip();
     bareWith(ctx, { skin: art.skin, nails: art.nails }, p);
     ctx.restore();
-    const box = { x: CX - 104, y: WAF_TOP - 16, w: 208, h: 152 };
-    const syrup: PathFn[] = [dripPath(CX + 50, WAF_TOP + 4, 70, 7), dripPath(CX + 74, WAF_TOP + 6, 44, 5.5), dripPath(CX - 64, WAF_TOP + 8, 28, 5)];
+    const box = { x: CX - 104, y: WAF_TOP - 16, w: 208, h: 166 };
+    const syrup: PathFn[] = [dripPath(CX + 46, WAF_TOP + 8, 92, 10), dripPath(CX + 76, WAF_TOP + 10, 60, 8), dripPath(CX + 16, WAF_TOP + 12, 40, 7), dripPath(CX - 70, WAF_TOP + 10, 34, 6.5)];
     prop(ctx, [waffle, ...syrup], { x: box.x, y: box.y, w: box.w, h: box.h + 20 }, (g, sil) => {
       sil.form({ base: gold, shadowTint: '#5a2008', ramp: 0.8, form: 0.55, formSize: 22, bevel: 0.4, rim: 0.45 });
       within(g, waffle, () => {
         texture(g, 'cast', box, 0.25, 1);
         // the grid: raised ridges, deep pockets
-        const step = 22;
-        for (let y = WAF_TOP - 8; y < 270; y += step)
-          for (let x = CX - 110; x < CX + 110; x += step) {
-            const pk = rrect(x + 4, y + 4, step - 8, step - 8, 3);
+        // big square pockets, deep enough to hold syrup: the top wall in shadow, the bottom wall lit, a crisp ridge
+        const step = 31;
+        for (let y = WAF_TOP - 6; y < 276; y += step)
+          for (let x = CX - 109; x < CX + 110; x += step) {
+            const pk = rrect(x + 6, y + 6, step - 12, step - 12, 3);
             within(g, pk, () => {
-              g.fillStyle = vgrad(g, y + 4, y + step - 4, [[0, shade(gold, -0.45)], [0.5, shade(gold, -0.15)], [1, shade(gold, 0.2)]]);
+              g.fillStyle = vgrad(g, y + 6, y + step - 6, [[0, shade(gold, -0.6)], [0.45, shade(gold, -0.3)], [1, shade(gold, 0.1)]]);
+              g.fillRect(x, y, step, step);
+              g.fillStyle = hgrad(g, x + 6, x + step - 6, [[0, rgba('#3a1004', 0.3)], [0.4, rgba('#3a1004', 0)], [1, rgba('#ffffff', 0.08)]]);
               g.fillRect(x, y, step, step);
             });
-            spec(g, x + 2, y + 2, 4, 2, 0.35, -0.6);
+            spec(g, x + 3, y + 3, 6, 2.2, 0.4, -0.6);
           }
         // toasted edges
         g.fillStyle = vgrad(g, 220, 266, [[0, rgba('#5a2008', 0)], [1, rgba('#5a2008', 0.4)]]);
@@ -643,31 +688,56 @@ registerStyle('waffle', {
       });
       // syrup: glossy amber over the waffle, pooling in the pockets
       const amber = '#a8540e';
-      softFill(g, (c) => {
+      const pool: PathFn = (c) => {
         c.beginPath();
-        c.moveTo(CX + 10, WAF_TOP + 6);
-        c.bezierCurveTo(CX + 60, WAF_TOP - 4, CX + 96, WAF_TOP + 6, CX + 92, WAF_TOP + 30);
-        c.bezierCurveTo(CX + 70, WAF_TOP + 44, CX + 30, WAF_TOP + 36, CX + 10, WAF_TOP + 6);
-      }, rgba(amber, 0.85), 1.2);
-      for (const d of syrup) within(g, d, () => {
-        g.fillStyle = vgrad(g, WAF_TOP, WAF_TOP + 90, [[0, amber], [1, shade(amber, -0.3)]]);
-        g.fillRect(box.x, WAF_TOP - 10, box.w, 110);
-      });
-      spec(g, CX + 46, WAF_TOP + 14, 18, 4, 0.8, -0.1);
-      for (const [x, y] of [[CX + 50, WAF_TOP + 70], [CX + 74, WAF_TOP + 46], [CX - 64, WAF_TOP + 32]] as const) glint(g, x - 2, y + 1, 3.4, 0.9);
-      // the butter pat, softening at the corners
-      const pat: PathFn = (c) => {
-        c.beginPath();
-        c.moveTo(CX - 40, WAF_TOP + 14);
-        c.quadraticCurveTo(CX - 10, WAF_TOP + 4, CX + 6, WAF_TOP + 14);
-        c.quadraticCurveTo(CX + 12, WAF_TOP + 34, CX - 2, WAF_TOP + 42);
-        c.quadraticCurveTo(CX - 26, WAF_TOP + 48, CX - 44, WAF_TOP + 38);
-        c.quadraticCurveTo(CX - 48, WAF_TOP + 24, CX - 40, WAF_TOP + 14);
+        c.moveTo(CX - 4, WAF_TOP + 8);
+        c.bezierCurveTo(CX + 50, WAF_TOP - 8, CX + 102, WAF_TOP + 2, CX + 96, WAF_TOP + 38);
+        c.bezierCurveTo(CX + 80, WAF_TOP + 58, CX + 30, WAF_TOP + 50, CX + 8, WAF_TOP + 34);
+        c.bezierCurveTo(CX - 6, WAF_TOP + 26, CX - 12, WAF_TOP + 14, CX - 4, WAF_TOP + 8);
         c.closePath();
       };
-      piece(g, pat, box, 'plastic', butter, { shadow: 0.5 });
-      softFill(g, ell(CX - 20, WAF_TOP + 48, 26, 6), rgba(butter, 0.6), 3);
-      spec(g, CX - 26, WAF_TOP + 18, 12, 4, 0.8, -0.2);
+      for (const d of [pool, ...syrup]) within(g, d, () => {
+        g.fillStyle = vgrad(g, WAF_TOP - 8, WAF_TOP + 100, [[0, mix(amber, '#e8902a', 0.4)], [0.5, amber], [1, shade(amber, -0.35)]]);
+        g.fillRect(box.x, WAF_TOP - 10, box.w, 120);
+        // amber glass: light comes through it on the shadow side
+        g.fillStyle = hgrad(g, CX - 100, CX + 100, [[0, rgba('#ffffff', 0.1)], [0.7, rgba('#ffb040', 0)], [1, rgba('#ffb040', 0.25)]]);
+        g.fillRect(box.x, WAF_TOP - 10, box.w, 120);
+      });
+      contact(g, (c) => {
+        pool(c);
+        c.fill();
+      }, 0.25, 2, 2);
+      spec(g, CX + 46, WAF_TOP + 16, 26, 5, 0.85, -0.1);
+      spec(g, CX + 30, WAF_TOP + 30, 10, 3, 0.6, -0.3);
+      for (const [x, y] of [[CX + 46, WAF_TOP + 92], [CX + 76, WAF_TOP + 62], [CX + 16, WAF_TOP + 44], [CX - 70, WAF_TOP + 36]] as const) glint(g, x - 3, y, 4.2, 0.95);
+      // the butter pat, softening at the corners
+      // a thick pat of butter: a soft-cornered block (lit top, shaded front), melting into a glossy puddle
+      softFill(g, ell(CX - 30, WAF_TOP + 50, 38, 9), rgba(butter, 0.7), 3);
+      const front: PathFn = (c) => {
+        c.beginPath();
+        c.moveTo(CX - 62, WAF_TOP + 22);
+        c.lineTo(CX + 2, WAF_TOP + 22);
+        c.quadraticCurveTo(CX + 4, WAF_TOP + 42, CX - 2, WAF_TOP + 48);
+        c.quadraticCurveTo(CX - 30, WAF_TOP + 54, CX - 58, WAF_TOP + 48);
+        c.quadraticCurveTo(CX - 66, WAF_TOP + 40, CX - 62, WAF_TOP + 22);
+        c.closePath();
+      };
+      const top: PathFn = (c) => {
+        c.beginPath();
+        c.moveTo(CX - 62, WAF_TOP + 24);
+        c.quadraticCurveTo(CX - 60, WAF_TOP + 4, CX - 44, WAF_TOP + 2);
+        c.lineTo(CX + 2, WAF_TOP + 4);
+        c.quadraticCurveTo(CX + 12, WAF_TOP + 10, CX + 2, WAF_TOP + 24);
+        c.closePath();
+      };
+      piece(g, front, box, 'plastic', shade(butter, -0.12), { shadow: 0.5 });
+      piece(g, top, box, 'plastic', mix(butter, '#ffffff', 0.25), { shadow: 0.2 });
+      crease(g, (c) => {
+        c.moveTo(CX - 62, WAF_TOP + 23);
+        c.lineTo(CX + 3, WAF_TOP + 23);
+      }, 1.4, shade(butter, -0.4), 0.5, 0.4);
+      spec(g, CX - 40, WAF_TOP + 10, 16, 4, 0.85, -0.1);
+      glint(g, CX - 50, WAF_TOP + 9, 3.2, 1);
     }, inkOf(gold));
   },
 });
@@ -734,22 +804,28 @@ registerStyle('ketchup', {
         g.fillRect(CX - 100, y - 1.5, 200, 3);
       }
       // the tomato on the label
-      piece(g, ell(CX - 58, 134, 17, 15), box, 'plastic', '#e5242f', { shadow: 0.35 });
+      // a big glossy tomato and a bold wordmark, sized to read at game size
+      piece(g, ell(CX - 62, 136, 22, 19), box, 'plastic', '#e5242f', { shadow: 0.35 });
+      spec(g, CX - 70, 128, 7, 4, 0.8, -0.5);
       const leaf = (c: Ctx) => {
         c.beginPath();
         for (let i = 0; i < 10; i++) {
           const a = -Math.PI / 2 + (i / 10) * Math.PI * 2;
-          const rr = i % 2 ? 3 : 9;
-          c.lineTo(CX - 58 + Math.cos(a) * rr, 121 + Math.sin(a) * rr * 0.6);
+          const rr = i % 2 ? 4 : 12;
+          c.lineTo(CX - 62 + Math.cos(a) * rr, 119 + Math.sin(a) * rr * 0.6);
         }
         c.closePath();
       };
       piece(g, leaf, box, 'plastic', '#3f9a3a', { shadow: 0.3 });
       g.save();
-      g.font = '900 20px "Arial Black", Impact, sans-serif';
+      g.font = '900 34px "Arial Black", Impact, sans-serif';
       g.textAlign = 'center';
-      g.fillStyle = shade(red, -0.1);
-      g.fillText('KETCHUP', CX + 16, 142, 116);
+      g.lineJoin = 'round';
+      g.strokeStyle = rgba('#5a0404', 0.35);
+      g.lineWidth = 3;
+      g.strokeText('KETCHUP', CX + 22, 149, 128);
+      g.fillStyle = shade(red, -0.05);
+      g.fillText('KETCHUP', CX + 22, 148, 128);
       g.restore();
       // the plastic's gloss: long vertical highlights, bright on the lit side
       spec(g, CX - 66, 60, 8, 50, 0.85, 0.05);
@@ -784,24 +860,60 @@ registerStyle('ketchup', {
 // side. In play the basket sizzles and spits grease, and a heat shimmer rises.
 
 const BASKET_TOP = 150;
+const BASKET_BOT = 258;
+/** The basket in 3D: its top rim an ellipse (we look down into it a little), tapering to a rounded bottom. */
+const BK = { rxTop: 102, ryTop: 15, rxBot: 86, ryBot: 11 };
+/** A point on the basket's wall: u round the rim (0 = left, π = right, front half), v down the wall (0 rim, 1 bottom). */
+function bkAt(u: number, v: number): [number, number] {
+  const rx = BK.rxTop + (BK.rxBot - BK.rxTop) * v;
+  const ry = BK.ryTop + (BK.ryBot - BK.ryTop) * v;
+  const y = BASKET_TOP + (BASKET_BOT - BASKET_TOP) * v;
+  return [CX - Math.cos(u) * rx, y + Math.sin(u) * ry];
+}
 const basket: PathFn = (c) => {
   c.beginPath();
-  c.moveTo(CX - 100, BASKET_TOP);
-  c.lineTo(CX + 100, BASKET_TOP);
-  c.lineTo(CX + 92, 252);
-  c.quadraticCurveTo(CX + 90, 262, CX + 78, 262);
-  c.lineTo(CX - 78, 262);
-  c.quadraticCurveTo(CX - 90, 262, CX - 92, 252);
+  c.ellipse(CX, BASKET_TOP, BK.rxTop, BK.ryTop, 0, Math.PI, Math.PI * 2);
+  c.lineTo(CX + BK.rxBot, BASKET_BOT);
+  c.ellipse(CX, BASKET_BOT, BK.rxBot, BK.ryBot, 0, 0, Math.PI);
   c.closePath();
 };
 const handle: PathFn = (c) => {
   c.beginPath();
-  c.moveTo(CX + 94, BASKET_TOP + 8);
-  c.lineTo(CX + 126, 74);
-  c.lineTo(CX + 138, 80);
-  c.lineTo(CX + 104, BASKET_TOP + 16);
+  c.moveTo(CX + 92, BASKET_TOP + 4);
+  c.lineTo(CX + 132, 62);
+  c.lineTo(CX + 146, 68);
+  c.lineTo(CX + 104, BASKET_TOP + 12);
   c.closePath();
 };
+
+/** A fry standing in the basket: a square stick with a lit face, a shaded side and a crisp brown tip. */
+function paintFry(g: Ctx, x: number, top: number, bot: number, a: number, w: number, gold: string): void {
+  g.save();
+  g.translate(x, bot);
+  g.rotate(a);
+  const h = bot - top;
+  // the shaded side face, then the lit front face
+  g.fillStyle = shade(gold, -0.35);
+  g.beginPath();
+  g.roundRect(w * 0.2, -h, w * 0.6, h, 1.5);
+  g.fill();
+  g.fillStyle = hgrad(g, -w / 2, w * 0.3, [[0, shade(gold, 0.35)], [0.5, mix(gold, '#fff4c0', 0.25)], [1, gold]]);
+  g.beginPath();
+  g.roundRect(-w / 2, -h, w * 0.8, h, 1.5);
+  g.fill();
+  // crisp brown tip and a few fried flecks
+  g.fillStyle = vgrad(g, -h, -h + 9, [[0, '#b8661a'], [1, rgba('#c8781a', 0)]]);
+  g.fillRect(-w / 2, -h, w * 1.3, 9);
+  g.fillStyle = rgba('#a85a10', 0.4);
+  for (let k = 0; k < 3; k++) g.fillRect(-w / 2 + 1 + ((k * 5) % (w - 2)), -h + 12 + k * 9, 1.6, 1.2);
+  // a grease highlight down the lit edge
+  g.fillStyle = rgba('#ffffff', 0.45);
+  g.fillRect(-w / 2 + 1.2, -h + 4, 1.3, h - 8);
+  // the dark line where the two faces meet
+  g.fillStyle = rgba('#6a3008', 0.35);
+  g.fillRect(w * 0.27, -h + 2, 0.9, h - 4);
+  g.restore();
+}
 
 registerStyle('frycook', {
   contactY: 266,
@@ -811,7 +923,7 @@ registerStyle('frycook', {
     const gold = art.secondary ?? '#ffcf3a';
     ctx.save();
     ctx.beginPath();
-    ctx.rect(-60, -40, 340, BASKET_TOP + 80);
+    ctx.rect(-60, -40, 340, BASKET_TOP + 40);
     ctx.clip();
     bareWith(ctx, { skin: art.skin, nails: art.nails }, p, (g) => {
       // greasy shine on the skin by the basket
@@ -819,101 +931,115 @@ registerStyle('frycook', {
     });
     ctx.restore();
     const r = rng(hashStr('frycook'));
-    // fries sticking up out of the basket (behind its front wires)
-    const fries: PathFn[] = [];
-    const fryData: [number, number, number, number][] = [];
-    for (let i = 0; i < 15; i++) {
-      const x = CX - 88 + i * 12.5 + (r() - 0.5) * 6;
-      const h = 22 + r() * 34;
-      const a = (r() - 0.5) * 0.5;
-      fryData.push([x, h, a, 0]);
-      fries.push((c) => {
-        c.save();
-        c.translate(x, BASKET_TOP + 10);
-        c.rotate(a);
-        c.beginPath();
-        c.roundRect(-5, -h, 10, h + 20, 2);
-        c.restore();
-      });
-    }
-    const box = { x: CX - 104, y: BASKET_TOP - 70, w: 250, h: 190 };
-    prop(ctx, [...fries, basket, handle], box, (g) => {
-      // the fries: golden, crisp at the ends
-      fries.forEach((f, i) => {
-        const [x, h] = fryData[i];
-        within(g, f, () => {
-          g.fillStyle = hgrad(g, x - 8, x + 8, [[0, shade(gold, 0.3)], [0.5, gold], [1, shade(gold, -0.35)]]);
-          g.fillRect(x - 20, BASKET_TOP - h - 20, 40, h + 40);
-          g.fillStyle = rgba('#a8580a', 0.45);
-          g.fillRect(x - 20, BASKET_TOP + 10 - h - 4, 40, 6);
-          texture(g, 'pores', box, 0.3, 1);
-        });
-        contact(g, (c) => {
-          f(c);
-          c.fill();
-        }, 0.3, 2, 2);
-      });
-      // inside the basket: more fries in a heap, behind the mesh
+    // fries heaped up out of the basket: back row shorter, front row taller, leaning every which way
+    const fries: [number, number, number, number][] = [];
+    for (let row = 0; row < 3; row++)
+      for (let i = 0; i < 9 - row; i++) {
+        const x = CX - 82 + row * 8 + i * (164 - row * 16) / (8 - row) + (r() - 0.5) * 8;
+        const top = BASKET_TOP - 20 - r() * 34 + row * 10;
+        const a = (r() - 0.5) * 0.45 + ((x - CX) / 100) * 0.2;
+        fries.push([x, top, a, row]);
+      }
+    const fryParts: PathFn[] = fries.map(([x, top, a]) => (c) => {
+      c.save();
+      c.translate(x, BASKET_TOP + 20);
+      c.rotate(a);
+      c.beginPath();
+      c.roundRect(-5.5, -(BASKET_TOP + 20 - top), 12, BASKET_TOP + 20 - top, 2);
+      c.restore();
+    });
+    const box = { x: CX - 110, y: BASKET_TOP - 100, w: 266, h: 230 };
+    prop(ctx, [...fryParts, basket, handle], box, (g) => {
+      // inside: the far wall in shadow, its mesh dim behind everything
       within(g, basket, () => {
-        g.fillStyle = vgrad(g, BASKET_TOP, 262, [[0, shade(gold, -0.1)], [1, shade(gold, -0.5)]]);
-        g.fillRect(box.x, BASKET_TOP, box.w, 120);
-        for (let i = 0; i < 40; i++) {
-          const x = CX - 90 + r() * 180;
-          const y = BASKET_TOP + 6 + r() * 100;
-          g.save();
-          g.translate(x, y);
-          g.rotate(r() * Math.PI);
-          g.fillStyle = hgrad(g, -14, 14, [[0, shade(gold, 0.2)], [1, shade(gold, -0.3)]]);
-          g.beginPath();
-          g.roundRect(-16, -4, 32, 8, 2);
-          g.fill();
-          g.restore();
-        }
-        ao(g, CX, BASKET_TOP + 6, 100, 10, 0.4, 0, '#3a1a04');
-        // the wire mesh: lit steel strands in a square weave
-        g.lineWidth = 2;
-        for (let k = -12; k <= 12; k++) {
-          for (const dir of [-1, 1]) {
-            g.strokeStyle = rgba('#2a2e36', 0.8);
-            g.lineWidth = 3;
-            g.beginPath();
-            g.moveTo(CX + k * 16, BASKET_TOP);
-            g.lineTo(CX + k * 16 + dir * 112, 262);
-            g.stroke();
-            g.strokeStyle = rgba(shade(steel, 0.3), 0.95);
-            g.lineWidth = 1.4;
-            g.stroke();
-          }
-        }
-        g.fillStyle = hgrad(g, CX - 100, CX + 100, [[0, rgba('#ffffff', 0.15)], [0.4, rgba('#ffffff', 0)], [1, rgba('#000020', 0.3)]]);
-        g.fillRect(box.x, BASKET_TOP, box.w, 120);
+        g.fillStyle = vgrad(g, BASKET_TOP - 16, BASKET_BOT + 10, [[0, '#2a1a10'], [1, '#120a06']]);
+        g.fillRect(box.x, BASKET_TOP - 20, box.w, 140);
       });
-      // the rim and frame: a rolled steel band
+      // the back half of the rim, behind the fries
       g.save();
       g.lineCap = 'round';
-      for (const [w, col] of [[8, '#2a2e36'], [5, steel], [1.6, '#ffffff']] as const) {
+      for (const [w, col] of [[6, '#2a2e36'], [3.4, shade(steel, -0.25)]] as const) {
         g.strokeStyle = col;
         g.lineWidth = w;
         g.beginPath();
-        g.moveTo(CX - 100, BASKET_TOP + (w === 1.6 ? -1 : 0));
-        g.lineTo(CX + 100, BASKET_TOP + (w === 1.6 ? -1 : 0));
+        g.ellipse(CX, BASKET_TOP, BK.rxTop, BK.ryTop, 0, Math.PI, Math.PI * 2);
         g.stroke();
       }
       g.restore();
-      // the handle: steel rod into a red grip
+      // the fries, back row first; heaped ones lying across low in the basket
+      for (let i = 0; i < 14; i++) {
+        const x = CX - 80 + r() * 160;
+        const y = BASKET_TOP + 30 + r() * 70;
+        paintFry(g, x, y - 30, y, Math.PI / 2 + (r() - 0.5) * 0.8, 10, shade(gold, -0.1));
+      }
+      for (const [x, top, a] of fries) paintFry(g, x, top, BASKET_BOT + 6, a, 11, gold);
+      // the basket: everything in it darkens with depth, the mesh catches the light
+      within(g, basket, () => {
+        g.fillStyle = vgrad(g, BASKET_TOP, BASKET_BOT + 10, [[0, rgba('#1a0a00', 0.1)], [1, rgba('#1a0a00', 0.55)]]);
+        g.fillRect(box.x, BASKET_TOP, box.w, 130);
+        ao(g, CX, BASKET_TOP + 8, 100, 12, 0.35, 0, '#2a1004');
+        // the front mesh: wires round the basket (front arcs) and down it (bunching towards the sides, so it reads round)
+        g.lineCap = 'round';
+        const wire = (pts: [number, number][]): void => {
+          for (const [w, col, dx, dy] of [[2.8, rgba('#14161c', 0.7), 0.8, 1.2], [1.6, shade(steel, 0.05), 0, 0], [0.7, rgba('#ffffff', 0.8), -0.4, -0.4]] as const) {
+            g.strokeStyle = col;
+            g.lineWidth = w;
+            g.beginPath();
+            pts.forEach(([x, y], k) => (k ? g.lineTo(x + dx, y + dy) : g.moveTo(x + dx, y + dy)));
+            g.stroke();
+          }
+        };
+        for (let v = 1; v <= 6; v++) wire(Array.from({ length: 25 }, (_, k) => bkAt((k / 24) * Math.PI, v / 6.4)));
+        for (let k = 1; k < 16; k++) {
+          const u = (k / 16) * Math.PI;
+          wire([bkAt(u, 0), bkAt(u, 0.5), bkAt(u, 1)]);
+        }
+        // a shine running round the near side, a shadow round the far
+        g.fillStyle = hgrad(g, CX - 100, CX + 100, [[0, rgba('#ffffff', 0.12)], [0.3, rgba('#ffffff', 0)], [0.8, rgba('#000020', 0.15)], [1, rgba('#000020', 0.35)]]);
+        g.fillRect(box.x, BASKET_TOP, box.w, 130);
+      });
+      // the front of the rim: a rolled steel band, lit along its top
+      g.save();
+      g.lineCap = 'round';
+      for (const [w, col, dy] of [[8, '#2a2e36', 0.6], [5, steel, 0], [1.6, '#ffffff', -1.2]] as const) {
+        g.strokeStyle = col;
+        g.lineWidth = w;
+        g.beginPath();
+        g.ellipse(CX, BASKET_TOP + dy, BK.rxTop, BK.ryTop, 0, 0, Math.PI);
+        g.stroke();
+      }
+      // the bottom rim
+      g.strokeStyle = '#2a2e36';
+      g.lineWidth = 4;
+      g.beginPath();
+      g.ellipse(CX, BASKET_BOT, BK.rxBot, BK.ryBot, 0, 0.1, Math.PI - 0.1);
+      g.stroke();
+      g.strokeStyle = shade(steel, -0.1);
+      g.lineWidth = 2.2;
+      g.stroke();
+      g.restore();
+      // the handle: a steel rod with a red rubber grip, riveted to the rim
       within(g, handle, () => {
-        g.fillStyle = hgrad(g, CX + 94, CX + 138, [[0, '#f0f4f8'], [0.5, steel], [1, '#5a6068']]);
-        g.fillRect(CX + 90, 70, 52, 100);
+        g.fillStyle = hgrad(g, CX + 94, CX + 146, [[0, '#f0f4f8'], [0.5, steel], [1, '#5a6068']]);
+        g.fillRect(CX + 88, 58, 62, 110);
         const grip: PathFn = (c) => {
           c.beginPath();
-          c.moveTo(CX + 110, 112);
-          c.lineTo(CX + 126, 74);
-          c.lineTo(CX + 138, 80);
-          c.lineTo(CX + 121, 118);
+          c.moveTo(CX + 112, 108);
+          c.lineTo(CX + 132, 62);
+          c.lineTo(CX + 146, 68);
+          c.lineTo(CX + 125, 114);
           c.closePath();
         };
         piece(g, grip, box, 'plastic', '#d8343f', { shadow: 0.4 });
+        spec(g, CX + 126, 80, 2.5, 14, 0.7, 0.42);
+        for (let k = 0; k < 4; k++) crease(g, (c) => {
+          const y = 76 + k * 9;
+          const x = CX + 129 - (y - 62) * 0.43;
+          c.moveTo(x, y);
+          c.lineTo(x + 13, y + 6);
+        }, 1, '#7a0a10', 0.3, 0.2);
       });
+      rivet(g, CX + 98, BASKET_TOP + 6, 3.6);
     }, inkOf(shade(steel, -0.2)));
   },
 });

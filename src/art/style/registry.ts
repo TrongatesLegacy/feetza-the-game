@@ -43,6 +43,9 @@ export interface StyleDef {
   parts?: Record<string, PartDef>;
   /** The leg in the kit's style, and how it joins the foot (src/art/style/legs.ts). */
   leg?: LegSpec;
+  /** How much leg (design units) the Pizzapedia portrait shows above the foot (default 120): less for a foot whose
+   * own art is already tall (a feathered ruff), so the foot fills the frame. */
+  portraitLeg?: number;
 }
 
 const styles: Record<string, StyleDef> = {};

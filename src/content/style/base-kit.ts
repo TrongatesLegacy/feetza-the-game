@@ -206,3 +206,21 @@ export function label(g: Ctx, text: string, x: number, y: number, px: number, co
   g.fillText(text, 0, 0);
   g.restore();
 }
+
+/** Carry a leg tile's cylinder shading (src/art/style/legs.ts) down onto a blended foot's top, fading out by y1, so
+ * the leg's shaded side doesn't stop in a band at the join. */
+export function legShade(g: Ctx, hw: number, y1: number, k = 1): void {
+  const x0 = CX - hw;
+  const w = hw * 2;
+  for (let y = -8; y < y1; y += 2) {
+    const a = k * Math.pow(1 - (y + 8) / (y1 + 8), 1.4);
+    const sh = g.createLinearGradient(x0, 0, x0 + w, 0);
+    sh.addColorStop(0, rgba('#000000', 0.12 * a));
+    sh.addColorStop(0.25, rgba(LIGHT.key, 0.1 * a));
+    sh.addColorStop(0.55, rgba('#000000', 0));
+    sh.addColorStop(0.9, rgba('#000000', 0.22 * a));
+    sh.addColorStop(1, rgba('#000000', 0.08 * a));
+    g.fillStyle = sh;
+    g.fillRect(x0 - 30, y, w + 60, 2);
+  }
+}

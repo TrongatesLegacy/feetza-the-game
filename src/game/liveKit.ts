@@ -554,6 +554,8 @@ export interface CritterOpts {
   jitter: number;
   /** Display scale. */
   scale: number;
+  /** Keep it upright (a saucer, a balloon) instead of facing where it flies: banks this much per pixel of speed. */
+  upright?: number;
 }
 
 interface Critter {
@@ -630,7 +632,8 @@ export class Critters {
       c.img.setPosition((ci * lx - si * ly) / r.scaleX, (si * lx + ci * ly) / r.scaleY);
       const vx = c.x - px;
       const vy = c.y - py;
-      if (Math.abs(vx) + Math.abs(vy) > 0.05) c.img.rotation = Math.atan2(vy, vx) + Math.PI / 2 - r.rotation;
+      if (this.o.upright !== undefined) c.img.rotation = Math.max(-0.35, Math.min(0.35, vx * this.o.upright)) - r.rotation;
+      else if (Math.abs(vx) + Math.abs(vy) > 0.05) c.img.rotation = Math.atan2(vy, vx) + Math.PI / 2 - r.rotation;
       // a little bigger in front, smaller behind
       c.img.setScale(this.o.scale * f.type.scale * (1 + oz * 0.12));
       c.img.setFrame(Math.floor((this.t * 38 + c.sd) % this.o.frames));

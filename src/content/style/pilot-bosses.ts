@@ -175,12 +175,19 @@ function drawSweep(ctx: Ctx, art: FootArt, p: Pose, o: { live: boolean; emissive
   g.fillRect(box.x, -10, box.w, 260);
   texture(g, 'leather', box, 0.4, 1.4);
   // soot everywhere but the high points it has rubbed off (the toe cap, the lit side of the vamp)
-  g.fillStyle = rgba(soot, 0.88);
+  g.fillStyle = rgba(soot, 0.9);
   g.fillRect(box.x, box.y, box.w, box.h);
-  blotches(g, box, '#121012', 0.6, 22, 0.48, 0.25, 9);
+  // soot is matte but the leather under it still turns: a broad lit shoulder top-left, deep shadow down the right
+  const sg2 = g.createRadialGradient(CX - 46, 70, 10, CX - 30, 90, 150);
+  sg2.addColorStop(0, rgba('#8a8488', 0.55));
+  sg2.addColorStop(0.45, rgba('#5a5458', 0.2));
+  sg2.addColorStop(1, rgba('#000000', 0.35));
+  g.fillStyle = sg2;
+  g.fillRect(box.x, box.y, box.w, box.h);
+  blotches(g, box, '#121012', 0.22, 9, 0.5, 0.3, 9);
   // where it's rubbed through: the toe cap and the lit shoulder show the leather again, scuffed
   g.save();
-  const rubZone = g.createRadialGradient(CX - 24, 204, 8, CX - 14, 206, 74);
+  const rubZone = g.createRadialGradient(CX - 30, 206, 6, CX - 22, 208, 50);
   rubZone.addColorStop(0, 'rgba(0,0,0,1)');
   rubZone.addColorStop(1, 'rgba(0,0,0,0)');
   const [rc, rx] = (() => {
@@ -263,13 +270,16 @@ function drawSweep(ctx: Ctx, art: FootArt, p: Pose, o: { live: boolean; emissive
         c.moveTo(CX - s * 26, y0 + 2);
         c.lineTo(CX + s * 26, y1 + 2);
       }, rgba('#000000', 0.5), 5, 1.5);
-      g.strokeStyle = '#1a1618';
-      g.lineWidth = 3.6;
+      g.strokeStyle = '#2a2628';
+      g.lineWidth = 5;
       g.beginPath();
       g.moveTo(CX - s * 26, y0);
       g.lineTo(CX + s * 26, y1);
       g.stroke();
-      g.strokeStyle = rgba('#8a8288', 0.6);
+      g.strokeStyle = '#b8b2b4';
+      g.lineWidth = 3.2;
+      g.stroke();
+      g.strokeStyle = rgba('#ffffff', 0.7);
       g.lineWidth = 1;
       g.beginPath();
       g.moveTo(CX - s * 26 - 0.8, y0 - 1);
@@ -296,6 +306,9 @@ function drawSweep(ctx: Ctx, art: FootArt, p: Pose, o: { live: boolean; emissive
     g.arc(CX + s * 27, y + 0.6, 1.8, 0, Math.PI * 2);
     g.fill();
   }
+  // the light catching the soot: a soft sheen down the lit shoulder and the toe cap
+  spec(g, CX - 64, 96, 12, 48, 0.32, 0.18, '#d8d4dc');
+  spec(g, CX - 44, 214, 30, 8, 0.38, 0.1, '#e8e0d8');
   // the padded collar, rolled and sooty
   const collar = g.createLinearGradient(0, -6, 0, 18);
   collar.addColorStop(0, rgba('#000000', 0.55));

@@ -5,7 +5,7 @@
 import type { FootArt } from '../../data/feet';
 import { CX } from '../../art/feetCommon';
 import { type StyleToe, onToe } from '../../art/style/anatomy';
-import { LIGHT, type PathFn, type Pose, ao, crease, glint, inkOf, pxPerUnit, softFill, softStroke, spec, texture, vnoise } from '../../art/style/kit';
+import { LIGHT, type PathFn, type Pose, ao, crease, glint, inkOf, pxPerUnit, softFill, softStroke, spec, texture } from '../../art/style/kit';
 import { Sil, lobe } from '../../art/style/sil';
 import { type PartDef, registerStyle } from '../../art/style/registry';
 import { blotches, clawPath, contact, paintClaw, rivet, stitches } from '../../art/style/details';
@@ -544,11 +544,11 @@ const THRYM_ICICLES = [-84, -62, -40, -18, 4, 26, 48, 70, 88].map((dx, i) => ({ 
 const thrymBody = (flex: number): PathFn => (c) => {
   const b = 252 - flex * 6;
   c.beginPath();
-  c.moveTo(CX - 64, -6);
-  c.bezierCurveTo(CX - 68, 60, CX - 108, 100, CX - 108, 166);
+  c.moveTo(CX - 72, 46);
+  c.bezierCurveTo(CX - 82, 74, CX - 108, 104, CX - 108, 166);
   c.bezierCurveTo(CX - 108, b - 18, CX - 70, b, CX, b);
   c.bezierCurveTo(CX + 70, b, CX + 108, b - 18, CX + 108, 166);
-  c.bezierCurveTo(CX + 108, 100, CX + 68, 60, CX + 64, -6);
+  c.bezierCurveTo(CX + 108, 104, CX + 82, 74, CX + 72, 46);
   c.closePath();
 };
 
@@ -749,16 +749,14 @@ registerStyle('thrym', {
 // flame round the top. In play flames lick up off the crown, embers stream up, heat shimmers above it and lava
 // drips off the sole; overheated, the cracks go white-hot and it throws sparks.
 
-/** Surtr's crust: basalt cracked into plates (a Voronoi of jittered seeds), the cracks a mask (0…1 per pixel) laid
- * over the boot's box at 2 design units a pixel. Wider cracks where the crust is thinnest (low down). */
+/** Surtr's crust: basalt split by a few jagged, branching fissures (random walks that fork and taper), so the crust
+ * reads as big irregular plates floating on the lava, not a cell pattern. The cracks are a mask laid over the boot's
+ * box at 1.5 design units a pixel. Wider and hotter low down, where the crust is thinnest. */
 const CRACK_BOX = { x: CX - 120, y: 40, w: 240, h: 240 };
 let crackMask: HTMLCanvasElement | null = null;
 function surtrCracks(): HTMLCanvasElement {
   if (crackMask) return crackMask;
-  const r = rng(hashStr('surtr-cracks'));
-  const seeds: [number, number][] = [];
-  for (let j = 0; j < 7; j++)
-    for (let i = 0; i < 5 + (j % 2); i++) seeds.push([CRACK_BOX.x + (i + 0.2 + r() * 0.6) * (CRACK_BOX.w / (5 + (j % 2))), CRACK_BOX.y + (j + 0.15 + r() * 0.7) * (CRACK_BOX.h / 7)]);
+  const r = rng(hashStr('surtr-fissures'));
   const k = 1.5;
   const W = Math.round(CRACK_BOX.w / k);
   const H = Math.round(CRACK_BOX.h / k);
@@ -766,27 +764,52 @@ function surtrCracks(): HTMLCanvasElement {
   c.width = W;
   c.height = H;
   const x = c.getContext('2d')!;
-  const img = x.createImageData(W, H);
-  for (let j = 0; j < H; j++)
-    for (let i = 0; i < W; i++) {
-      const px = CRACK_BOX.x + i * k;
-      const py = CRACK_BOX.y + j * k;
-      let d1 = 1e9;
-      let d2 = 1e9;
-      for (const [sx, sy] of seeds) {
-        const d = Math.hypot(px - sx, (py - sy) * 1.25);
-        if (d < d1) {
-          d2 = d1;
-          d1 = d;
-        } else if (d < d2) d2 = d;
+  x.setTransform(1 / k, 0, 0, 1 / k, -CRACK_BOX.x / k, -CRACK_BOX.y / k);
+  x.strokeStyle = '#fff';
+  x.fillStyle = '#fff';
+  x.lineCap = 'round';
+  x.lineJoin = 'miter';
+  // one fissure: a jagged walk, each kink a sharp turn, forking now and then into thinner cracks
+  const walk = (px: number, py: number, ang: number, len: number, w: number, depth: number): void => {
+    let left = len;
+    let a = ang;
+    while (left > 0 && w > 0.5) {
+      const seg = 7 + r() * 9;
+      a += (r() - 0.5) * 1.3;
+      // keep it heading roughly where it started
+      a += (ang - a) * 0.35;
+      const nx = px + Math.cos(a) * seg;
+      const ny = py + Math.sin(a) * seg;
+      const hot = 1 + Math.max(0, (ny - 120) / 160) * 0.8;
+      x.lineWidth = w * hot;
+      x.beginPath();
+      x.moveTo(px, py);
+      x.lineTo(nx, ny);
+      x.stroke();
+      // a little molten bead at the sharpest kinks
+      if (r() < 0.12) {
+        x.beginPath();
+        x.arc(nx, ny, w * hot * 0.75, 0, Math.PI * 2);
+        x.fill();
       }
-      const width = 3 + ((py - CRACK_BOX.y) / CRACK_BOX.h) * 3.5 + (vnoise(px / 14, py / 14, 5) - 0.5) * 3;
-      const v = Math.max(0, Math.min(1, 1 - (d2 - d1) / Math.max(0.6, width)));
-      const o = (j * W + i) * 4;
-      img.data[o] = img.data[o + 1] = img.data[o + 2] = 255;
-      img.data[o + 3] = Math.round(Math.pow(v, 1.5) * 255);
+      if (depth < 2 && r() < (depth === 0 ? 0.2 : 0.12)) walk(nx, ny, a + (r() < 0.5 ? -1 : 1) * (0.6 + r() * 0.6), left * (0.35 + r() * 0.3), w * 0.55, depth + 1);
+      px = nx;
+      py = ny;
+      left -= seg;
+      w *= 0.985;
     }
-  x.putImageData(img, 0, 0);
+  };
+  // the trunk fissures: down from the rim, up from the sole, in from the sides
+  walk(CX - 40, 62, Math.PI * 0.55, 150, 4.2, 0);
+  walk(CX + 30, 62, Math.PI * 0.45, 110, 3.6, 0);
+  walk(CX + 8, 280, -Math.PI * 0.52, 120, 5.2, 0);
+  walk(CX - 78, 278, -Math.PI * 0.38, 90, 4.6, 0);
+  walk(CX + 92, 262, -Math.PI * 0.7, 100, 4.8, 0);
+  walk(CX - 112, 150, -0.15, 85, 3.6, 0);
+  walk(CX + 112, 130, Math.PI + 0.25, 80, 3.4, 0);
+  walk(CX - 100, 220, 0.3, 70, 4, 0);
+  // hairline crazing on the plates
+  for (let i = 0; i < 5; i++) walk(CX - 90 + r() * 180, 90 + r() * 170, r() * Math.PI * 2, 18 + r() * 22, 1.3, 2);
   crackMask = c;
   return c;
 }
@@ -813,16 +836,16 @@ function lavaCracks(g: Ctx, col: string, a: number, blur = 0): void {
 const surtrBody = (flex: number): PathFn => (c) => {
   const b = 276 - flex * 6;
   c.beginPath();
-  c.moveTo(CX - 64, -6);
-  c.bezierCurveTo(CX - 68, 60, CX - 108, 100, CX - 108, 166);
+  c.moveTo(CX - 72, 46);
+  c.bezierCurveTo(CX - 82, 74, CX - 108, 104, CX - 108, 166);
   c.bezierCurveTo(CX - 108, b - 18, CX - 70, b, CX, b);
   c.bezierCurveTo(CX + 70, b, CX + 108, b - 18, CX + 108, 166);
-  c.bezierCurveTo(CX + 108, 100, CX + 68, 60, CX + 64, -6);
+  c.bezierCurveTo(CX + 108, 104, CX + 82, 74, CX + 72, 46);
   c.closePath();
 };
 
 /** The flame crown's tongues (rising from the rim at y 58). */
-export const SURTR_FLAMES = [-66, -44, -22, 0, 22, 44, 66].map((dx, i) => ({ x: CX + dx, h: 34 + ((i * 5) % 3) * 9 + (i === 3 ? 10 : 0) }));
+export const SURTR_FLAMES = [-72, -48, -24, 0, 24, 48, 72].map((dx, i) => ({ x: CX + dx, h: 48 + ((i * 5) % 3) * 12 + (i === 3 ? 14 : 0) }));
 
 const flameTongue = (x: number, h: number, w = 20): PathFn => (c) => {
   c.beginPath();
@@ -834,11 +857,11 @@ const flameTongue = (x: number, h: number, w = 20): PathFn => (c) => {
 
 function surtrFlames(g: Ctx, box: { x: number; y: number; w: number; h: number }): void {
   for (const f of SURTR_FLAMES) {
-    const fp = flameTongue(f.x, f.h);
+    const fp = flameTongue(f.x, f.h, 26);
     within(g, fp, () => {
       g.fillStyle = vgrad(g, 58 - f.h, 58, [[0, '#fff2a0'], [0.35, '#ffb02a'], [0.75, '#ff5a0a'], [1, '#b8200a']]);
       g.fillRect(box.x, 58 - f.h - 2, box.w, f.h + 4);
-      const inner = flameTongue(f.x + 1, f.h * 0.6, 9);
+      const inner = flameTongue(f.x + 1, f.h * 0.6, 11);
       g.fillStyle = rgba('#fffbe0', 0.85);
       inner(g);
       g.fill();
@@ -852,8 +875,8 @@ function drawSurtr(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
   const flex = Math.max(0, p.curl);
   const body = surtrBody(flex);
   const rim = rrect(CX - 84, 50, 168, 16, 6);
-  const flames = SURTR_FLAMES.map((f) => flameTongue(f.x, f.h));
-  const box = { x: CX - 120, y: -10, w: 240, h: 290 };
+  const flames = SURTR_FLAMES.map((f) => flameTongue(f.x, f.h, 26));
+  const box = { x: CX - 120, y: -30, w: 240, h: 310 };
   const parts = [body, rim, ...flames];
   if (o.emissive) {
     glowOnly(ctx, parts, box, (g) => {
@@ -887,12 +910,21 @@ function drawSurtr(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
     g.translate(-LX * 2.2, -LY * 2.2);
     lavaCracks(g, '#8a7a70', 0.35, 1.2);
     g.restore();
-    // heat glowing up through the cracks, hotter low down
-    lavaCracks(g, lava, 0.75, 5);
-    lavaCracks(g, mix(lava, '#ff3a0a', 0.3), 1, 0.6);
+    // the melt underneath: the crust warms to a dull red low down, where it's thinnest
+    const mg = g.createRadialGradient(CX + 10, 300, 10, CX + 10, 300, 170);
+    mg.addColorStop(0, rgba('#ff4a10', 0.4));
+    mg.addColorStop(1, rgba('#ff4a10', 0));
+    g.fillStyle = mg;
+    g.fillRect(box.x, box.y, box.w, box.h);
+    // heat glowing up through the fissures: a wide red bloom, an orange body, a thin yellow-white core
+    lavaCracks(g, '#ff3a0a', 0.6, 9);
+    lavaCracks(g, lava, 0.85, 3.5);
+    lavaCracks(g, mix(lava, '#ff3a0a', 0.35), 1, 0.4);
     g.save();
     g.globalCompositeOperation = 'lighter';
-    lavaCracks(g, '#ffd27a', 0.55);
+    g.translate(0.4, 0.4);
+    g.scale(1, 1);
+    lavaCracks(g, '#ffd27a', 0.35);
     g.restore();
     // a dark crust cooling round the ankle; the light catches the top-left
     g.fillStyle = vgrad(g, -6, 80, [[0, rgba(crust, 0.95)], [1, rgba(crust, 0)]]);
@@ -914,7 +946,7 @@ function drawSurtr(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
 registerStyle('surtr', {
   contactY: 278,
   halfWidth: 110,
-  leg: { kind: 'basalt', hw: 62, join: 'blend', fade: 24 },
+  leg: { kind: 'basalt', hw: 62, join: 'into', end: 58 },
   draw(ctx, art, p, o) {
     drawSurtr(ctx, art, p, o);
   },

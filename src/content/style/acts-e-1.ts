@@ -430,13 +430,13 @@ registerStyle('satyr', {
 // ════════════════════════════ CYCLOPS SANDALS ════════════════════════════
 
 /** The eye (design space): it sits where the game's eye-poke zone expects it (src/game/acts/act9.ts). */
-export const CYC_EYE = { x: CX + 2, y: 96, rx: 52, ry: 30 };
+export const CYC_EYE = { x: CX + 2, y: 102, rx: 64, ry: 37 };
 
 const CYC_LOOK = { skin: '#b8a07a', nails: undefined as string | undefined, toe: 1.1, ball: 1.05, w: 8, ankle: 54, pores: 0.3, shadowTint: '#5a2a10' };
 
 const cycPlate: PathFn = (c) => {
   c.beginPath();
-  c.ellipse(CYC_EYE.x, CYC_EYE.y, 76, 50, 0, 0, Math.PI * 2);
+  c.ellipse(CYC_EYE.x, CYC_EYE.y, 92, 60, 0, 0, Math.PI * 2);
 };
 
 const cycSole: PathFn = (c) => {
@@ -596,15 +596,15 @@ function drawCyclops(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
     cycPlate(c);
     c.fill();
   }, 0.6, 3.5, 5);
-  bronze(g, cycPlate, { x: CYC_EYE.x - 78, y: CYC_EYE.y - 52, w: 156, h: 104 }, stud, 61, 0.1, false);
+  bronze(g, cycPlate, { x: CYC_EYE.x - 94, y: CYC_EYE.y - 62, w: 188, h: 124 }, stud, 61, 0.1, false);
   const inner: PathFn = (c) => {
     c.beginPath();
-    c.ellipse(CYC_EYE.x, CYC_EYE.y, 64, 40, 0, 0, Math.PI * 2);
+    c.ellipse(CYC_EYE.x, CYC_EYE.y, 78, 48, 0, 0, Math.PI * 2);
   };
-  piece(g, inner, { x: CYC_EYE.x - 64, y: CYC_EYE.y - 40, w: 128, h: 80 }, 'leather', leather, { shadow: 0.5, size: 10 });
+  piece(g, inner, { x: CYC_EYE.x - 78, y: CYC_EYE.y - 48, w: 156, h: 96 }, 'leather', leather, { shadow: 0.5, size: 10 });
   for (let i = 0; i < 14; i++) {
     const a = (i / 14) * Math.PI * 2;
-    rivet(g, CYC_EYE.x + Math.cos(a) * 70, CYC_EYE.y + Math.sin(a) * 45, 3.6, stud);
+    rivet(g, CYC_EYE.x + Math.cos(a) * 85, CYC_EYE.y + Math.sin(a) * 54, 3.8, stud);
   }
   // the eye: deep in the plate, wet, bloodshot
   ao(g, CYC_EYE.x + 3, CYC_EYE.y + 4, CYC_EYE.rx + 6, CYC_EYE.ry + 5, 0.55, 0, '#140804');
@@ -683,10 +683,10 @@ const harpyRuff: PathFn = (c) => {
 
 const harpyTarsus: PathFn = (c) => {
   c.beginPath();
-  c.moveTo(CX - 20, 110);
-  c.lineTo(CX - 23, 204);
-  c.quadraticCurveTo(CX, 222, CX + 23, 204);
-  c.lineTo(CX + 20, 110);
+  c.moveTo(CX - 24, 110);
+  c.lineTo(CX - 27, 186);
+  c.quadraticCurveTo(CX, 206, CX + 27, 186);
+  c.lineTo(CX + 24, 110);
   c.closePath();
 };
 
@@ -694,13 +694,13 @@ function harpyToes(p: Pose): P2[][] {
   const c = Math.max(0, p.curl);
   const sp = Math.max(0, -p.curl);
   return [
-    [Math.PI * 0.74, 0.32],
+    [Math.PI * 0.8, 0.3],
     [Math.PI * 0.5, 0.06],
-    [Math.PI * 0.26, -0.32],
+    [Math.PI * 0.2, -0.3],
   ].map(([a, b], i) => {
     const w = p.wiggle[i + 1] ?? 0;
     const spread = (a - Math.PI / 2) * (1 + sp * 0.3 - c * 0.3);
-    return curveFrom(CX, 204, Math.PI / 2 + spread, (i === 1 ? 74 : 66) * (1 - c * 0.22), b * (1 + c * 2.2) + w * 0.18);
+    return curveFrom(CX, 186, Math.PI / 2 + spread, (i === 1 ? 98 : 102) * (1 - c * 0.22), b * (1 + c * 2.2) + w * 0.18);
   });
 }
 
@@ -831,11 +831,11 @@ function drawHarpy(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
     }
   const toes = harpyToes(p);
   const c = Math.max(0, p.curl);
-  const toeW = (s: number) => 13 - s * 5;
+  const toeW = (s: number) => 17 - s * 6;
   const claws = toes.map((pts) => {
     const [x, y] = pts[pts.length - 1];
     const [px, py] = pts[pts.length - 2];
-    return { x, y, ang: Math.atan2(y - py, x - px), len: 26 * (1 + c * 0.4), w: 11 };
+    return { x, y, ang: Math.atan2(y - py, x - px), len: 32 * (1 + c * 0.4), w: 14 };
   });
   const box = { x: CX - 110, y: -8, w: 220, h: 316 };
   const sil = new Sil(ctx, [harpyRuff, harpyTarsus, ...toes.map((t) => tubePath(t, toeW)), ...claws.map((k) => clawPath(k.x, k.y, k.ang, k.len, k.w, 0.35))], box);
@@ -856,10 +856,10 @@ function drawHarpy(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
     }
   };
   for (const t of toes) {
-    lobe(g, tubePath(t, toeW), box, 196, 214, '#3a1a04', 0.55, 5, 0.35);
+    lobe(g, tubePath(t, toeW), box, 178, 196, '#3a1a04', 0.55, 5, 0.35);
     scutes(t, toeW);
   }
-  scutes(curveFrom(CX, 112, Math.PI / 2, 92, 0, 14), () => 18);
+  scutes(curveFrom(CX, 112, Math.PI / 2, 92, 0, 14), () => 22);
   spec(g, CX - 9, 160, 5, 32, 0.4, 0.02);
   for (const k of claws) paintClaw(g, k.x, k.y, k.ang, k.len, k.w, 0.35, '#4a4050', '#06040a');
   // the ruff: rows of violet feathers with gilded edges, a collar of long dark quills
@@ -944,7 +944,7 @@ function drawHarpy(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
 registerStyle('harpy', {
   contactY: 296,
   halfWidth: 92,
-  rig: { from: 196, to: 214 },
+  rig: { from: 178, to: 196 },
   leg: { kind: 'fur', hw: 56, join: 'blend', fade: 26 },
   draw: drawHarpy,
 });
@@ -1461,12 +1461,13 @@ const SNAKE: P2[] = (() => {
   const n = 44;
   for (let i = 0; i <= n; i++) {
     const t = i / n;
-    const amp = 64 * Math.min(1, t * 3) * (1 - t * 0.25);
-    pts.push([CX + Math.sin(t * Math.PI * 2.5) * amp, -6 + t * 228]);
+    // it hangs off the leg and swings out in wide S-bends: three full turns, wide as the old coil
+    const amp = 78 * Math.min(1, t * 3.2) * (1 - t * 0.15);
+    pts.push([CX + Math.sin(t * Math.PI * 3) * amp, -6 + t * 222]);
   }
   return pts;
 })();
-const SNAKE_W = (s: number) => 40 - s * 16;
+const SNAKE_W = (s: number) => 50 - s * 14;
 export const SNAKE_HEAD = { x: SNAKE[SNAKE.length - 1][0] - 4, y: 238 };
 
 const snakeHead: PathFn = (c) => {
@@ -1627,7 +1628,7 @@ function drawSnake(ctx: Ctx, art: FootArt, _p: Pose, o: Opts): void {
 registerStyle('gorgonsnake', {
   contactY: 270,
   halfWidth: 96,
-  leg: { kind: 'skin', hw: 40, join: 'blend', fade: 22 },
+  leg: { kind: 'skin', hw: 48, join: 'blend', fade: 22 },
   parts: {
     tongue: { box: { x: SNAKE_HEAD.x + 8, y: SNAKE_HEAD.y + 10, w: 50, h: 50 }, frames: 2, draw: (g, _art, i) => snakeTongue(g, i) },
   },

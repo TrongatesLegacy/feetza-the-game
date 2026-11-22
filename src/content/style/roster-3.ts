@@ -12,6 +12,7 @@ import { blotches, contact, furStrands, rivet, stitches } from '../../art/style/
 import { type Ctx, hashStr, mix, rgba, rng, shade } from '../../art/util';
 import { BARE_RIG, CX, bareWith, ell, finishLight, glowDot, glowLayer, hgrad, piece, prop, rrect, upperPath, vgrad, within } from './roster-kit';
 import { starPath } from './roster-2';
+import { legShade } from './base-kit';
 
 const [LX, LY] = LIGHT.dir;
 
@@ -538,7 +539,7 @@ registerStyle('gravity', {
 // A green, slimy bulb with one big eye and four tentacle toes lined with suckers. In play the eye blinks and follows
 // your peel, the tentacles curl and sway on springs, and it drips slime; the eye bulges before it splits.
 
-export const AL_EYE = { x: CX, y: 116, r: 28 };
+export const AL_EYE = { x: CX, y: 112, r: 39 };
 const alBody: PathFn = (c) => {
   c.beginPath();
   c.moveTo(CX - 52, -6);
@@ -795,45 +796,58 @@ registerStyle('robosock', {
 // An icy rock foot (pitted blue stone, frost and ice crystals) wrapped in a blazing cyan tail that streams up its
 // sides. In play the tail streams for real behind every burst, sparkles shed off it, and it flares before a burst.
 
-function cometTail(g: Ctx, k: number, cyan: string): void {
-  for (const s of [-1, 1]) {
+function cometTail(g: Ctx, k: number, cyan: string, sides = [-1, 1], ring = true): void {
+  for (const s of sides) {
+    // a broad sheet of cyan fire hugging the foot's side, from the toes streaming up past the ankle
     const tail: PathFn = (c) => {
       c.beginPath();
-      c.moveTo(CX + s * 70, 250);
-      c.bezierCurveTo(CX + s * 118, 220, CX + s * 128, 120, CX + s * 118, 10);
-      c.bezierCurveTo(CX + s * 104, 90, CX + s * 96, 170, CX + s * 62, 220);
+      c.moveTo(CX + s * 72, 258);
+      c.bezierCurveTo(CX + s * 124, 246, CX + s * 136, 130, CX + s * 126, -10);
+      c.bezierCurveTo(CX + s * 104, 70, CX + s * 92, 150, CX + s * 84, 196);
       c.closePath();
     };
     within(g, tail, () => {
-      g.fillStyle = vgrad(g, 0, 250, [[0, rgba(cyan, 0)], [0.6, rgba(cyan, 0.7 * k)], [1, rgba('#ffffff', 0.9 * k)]]);
-      g.fillRect(CX + (s < 0 ? -140 : 50), 0, 90, 260);
+      g.fillStyle = vgrad(g, -10, 262, [[0, rgba(cyan, 0.05)], [0.3, rgba(shade(cyan, -0.1), 0.9 * k)], [0.75, rgba(mix(cyan, '#ffffff', 0.2), k)], [1, rgba('#ffffff', k)]]);
+      g.fillRect(CX + (s < 0 ? -150 : 30), -10, 120, 280);
+      // hot streaks running up the sheet
+      for (let j = 0; j < 4; j++) {
+        softStroke(g, (cc) => {
+          cc.moveTo(CX + s * (70 + j * 14), 250 - j * 6);
+          cc.bezierCurveTo(CX + s * (108 + j * 6), 200, CX + s * (118 + j * 3), 120, CX + s * (112 + j * 4), 20 + j * 20);
+        }, rgba('#ffffff', (0.35 - j * 0.06) * k), 2.4, 2);
+      }
     });
   }
-  softStroke(g, (c) => c.ellipse(CX, 252, 92, 18, 0, 0.1, Math.PI - 0.1), rgba('#ffffff', 0.8 * k), 4, 2);
+  if (ring) softStroke(g, (c) => c.ellipse(CX, 252, 92, 18, 0, 0.1, Math.PI - 0.1), rgba('#ffffff', 0.8 * k), 4, 2);
 }
 
 registerStyle('comet', {
   rig: BARE_RIG,
   contactY: 262,
-  leg: { kind: 'skin', hw: 50, join: 'blend', fade: 26 },
+  leg: { kind: 'skin', hw: 50, join: 'blend', fade: 44 },
+  // the tail's two sheets of fire are their own sprites in play, so they show whole (not cut to the toe band)
+  parts: Object.fromEntries([-1, 1].map((s) => [s < 0 ? 'tailL' : 'tailR', { box: { x: s < 0 ? CX - 140 : CX + 60, y: -14, w: 80, h: 280 }, frames: 1, pivot: [CX + s * 90, 240] as [number, number], draw: (g: Ctx, art: FootArt) => cometTail(g, 0.85, art.primary ?? '#5ad8ff', [s], false) }])),
   draw(ctx, art, p, o) {
     const cyan = art.primary ?? '#5ad8ff';
     if (o.emissive) {
-      const toes = poseToes(restToes({ toe: 1.04 }), p);
-      glowLayer(ctx, [...bareParts(toes, { toe: 1.04 }), rrect(CX - 140, 0, 280, 270, 0)], { x: CX - 140, y: 0, w: 280, h: 280 }, (g) => cometTail(g, 1, cyan));
+      const toes = poseToes(restToes({ toe: 1.12, cleft: 0.95 }), p);
+      glowLayer(ctx, [...bareParts(toes, { toe: 1.12, cleft: 0.95 }), rrect(CX - 140, 0, 280, 270, 0)], { x: CX - 140, y: 0, w: 280, h: 280 }, (g) => cometTail(g, 1, cyan, []));
       return;
     }
-    if (!o.live) cometTail(ctx, 0.8, cyan);
-    bareWith(ctx, { skin: art.skin, nails: null, shadowTint: '#102048', pores: 0, detail: 0.3, toe: 1.04 }, p, (g, f) => {
-      texture(g, 'stone', f.box, 0.5, 1.3);
+    if (!o.live) cometTail(ctx, 0.85, cyan);
+    bareWith(ctx, { skin: art.skin, nails: null, shadowTint: '#102048', pores: 0, detail: 0.3, toe: 1.12, cleft: 0.95 }, p, (g, f) => {
+      legShade(g, 50, 110);
+      texture(g, 'stone', f.box, 0.1, 1.3);
       // craters
       const r = rng(hashStr('comet'));
       for (let i = 0; i < 9; i++) {
         const x = CX - 80 + r() * 160;
         const y = 30 + r() * 170;
         const s = 6 + r() * 10;
-        ao(g, x + 2, y + 2, s, s * 0.7, 0.45, 0, '#0a1430');
-        spec(g, x + s * 0.4, y + s * 0.4, s * 0.5, s * 0.25, 0.35, -0.6, '#e8f4ff');
+        // a bowl: shadowed on its lit (upper-left) wall, a bright lip down-right where the far wall catches the light
+        softFill(g, ell(x, y, s, s * 0.75), rgba('#0a1430', 0.32), 1.2);
+        ao(g, x - s * 0.15, y - s * 0.15, s * 0.8, s * 0.55, 0.4, 0, '#0a1430');
+        softStroke(g, (c) => c.ellipse(x, y, s, s * 0.75, 0, -0.3, Math.PI * 0.75), rgba('#eaf6ff', 0.55), 1.6, 0.6);
       }
       // frost on the lit side, ice crystals
       softFill(g, ell(CX - 50, 80, 50, 70), rgba('#ffffff', 0.25), 12);
@@ -851,9 +865,14 @@ registerStyle('comet', {
         };
         piece(g, d, f.box, 'glass', '#e8f8ff', { shadow: 0.3 });
       }
+      // each toe a rounded pebble of ice: a lit knuckle, a frosted tip, a shadowed cleft
+      for (const t of f.toes) {
+        spec(g, t.cx - t.rx * 0.3, t.cy - t.ry * 0.15, t.rx * 0.45, t.ry * 0.3, 0.45, -1, '#f4fbff');
+        ao(g, t.cx + t.rx * 0.2, t.cy - t.ry * 0.75, t.rx * 0.5, t.ry * 0.18, 0.35, 0, '#0a1430');
+      }
       // hot underneath: the leading edge glows white where it burns through the air
-      g.fillStyle = vgrad(g, 210, 272, [[0, rgba('#ffffff', 0)], [1, rgba('#e8f8ff', 0.7)]]);
-      g.fillRect(f.box.x, 210, f.box.w, 62);
+      g.fillStyle = vgrad(g, 236, 274, [[0, rgba('#ffffff', 0)], [1, rgba('#e8f8ff', 0.5)]]);
+      g.fillRect(f.box.x, 236, f.box.w, 40);
     }, inkOf(mix(art.skin, '#102048', 0.4)));
   },
 });

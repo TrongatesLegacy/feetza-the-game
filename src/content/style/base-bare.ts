@@ -9,7 +9,7 @@ import { LIGHT, type PathFn, ao, crease, glint, inkOf, softFill, softStroke, spe
 import { registerStyle } from '../../art/style/registry';
 import { blotches, contact, tuftPath } from '../../art/style/details';
 import { type Ctx, hashStr, mix, rgba, rng, shade } from '../../art/util';
-import { BARE_RIG, LX, LY, bareEmissive, bead, clefts, clipTo, extendSil, label, layerOn, nailTop, strap, wetGlint } from './base-kit';
+import { BARE_RIG, LX, LY, bareEmissive, bead, clefts, clipTo, extendSil, label, layerOn, legShade, nailTop, strap, wetGlint } from './base-kit';
 
 /** Rest toe tips (design space) for a bare look, for live effects placed on the toes. */
 export function toeTips(o: Parameters<typeof restToes>[0] = {}): [number, number][] {
@@ -111,18 +111,19 @@ registerStyle('patty', {
 // Chubby, soft and rosy: big round toes, rolls at the ankle, dimpled knuckles, no tendons. In play the toes never
 // stop wriggling.
 
-export const BABY: BareLook = { skin: '#ffd2c2', w: 10, ankle: 58, toe: 1.14, toeLen: 0.8, ball: 0.98, detail: 0, pores: 0.08, shadowTint: '#c8486a' };
+export const BABY: BareLook = { skin: '#ffd2c2', w: 10, ankle: 58, toe: 1.3, toeLen: 1.1, ball: 0.98, cleft: 1.1, detail: 0, pores: 0.08, shadowTint: '#c8486a' };
 
 registerStyle('baby', {
   contactY: 262,
   rig: BARE_RIG,
-  leg: { kind: 'skin', hw: 58, join: 'blend', fade: 26 },
+  leg: { kind: 'skin', hw: 58, join: 'blend', fade: 46 },
   draw(ctx, art, p) {
     const f = paintBare(ctx, { ...BABY, skin: art.skin }, p);
     const g = f.sil.g;
     const deep = mix(shade(art.skin, -0.4), '#c8486a', 0.45);
+    legShade(g, 58, 120);
     // ankle rolls: two soft creases with a lit bulge between
-    for (const [y, w] of [[16, 60], [40, 66]] as const) {
+    for (const [y, w] of [[50, 66], [74, 74]] as const) {
       softStroke(g, (c) => {
         c.moveTo(CX - w, y + 2);
         c.quadraticCurveTo(CX, y + 12, CX + w, y);
@@ -130,13 +131,13 @@ registerStyle('baby', {
       softStroke(g, (c) => {
         c.moveTo(CX - w + 6, y + 7);
         c.quadraticCurveTo(CX, y + 17, CX + w - 6, y + 5);
-      }, rgba(LIGHT.key, 0.28), 4, 3);
+      }, rgba(LIGHT.key, 0.16), 4, 3);
     }
     // a rosy flush over the ball and the toes, a dimple at each knuckle
     softFill(g, (c) => {
       c.beginPath();
       c.ellipse(CX + 4, 190, 96, 30, 0, 0, Math.PI * 2);
-    }, rgba('#ff7a8a', 0.16), 12);
+    }, rgba('#ff7a8a', 0.1), 12);
     for (const t of f.toes) {
       const [kx, ky] = onToe(t, -Math.PI / 2);
       ao(g, kx + 1, ky + t.ry * 0.45, t.rx * 0.18, t.ry * 0.07, 0.35, 0, deep);

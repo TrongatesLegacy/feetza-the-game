@@ -245,23 +245,45 @@ function legDetail(ctx: Ctx, kind: LegStyleKind, x0: number, w: number, H: numbe
       break;
     }
     case 'fur': {
-      texture(ctx, 'grain', box, 0.3);
-      // strands flowing down, wrapped so they tile; lit tips on the left
+      texture(ctx, 'grain', box, 0.2);
+      // a coat of soft locks lying down the leg like shingles, staggered row by row: each lock dark at its root,
+      // lighter to its tip, a few strands combed into it, lit on the left of the leg. Laid out once, then drawn a
+      // tile above and below as well, so the tile wraps seamlessly.
+      const locks: [number, number, number, number, number, number][] = [];
+      const rowH = 13;
+      const rows = Math.max(1, Math.round(H / rowH));
+      const dy = H / rows;
+      const n = Math.max(3, Math.round(w / 12));
+      for (let j = 0; j < rows; j++)
+        for (let i = 0; i <= n; i++) {
+          const x = x0 + ((i + (j % 2) * 0.5 + (r() - 0.5) * 0.6) / n) * w;
+          const u = Math.min(1, Math.max(0, (x - x0) / w));
+          locks.push([x, j * dy + (r() - 0.5) * 8, u, 18 + r() * 12, 5 + r() * 3.5, (u - 0.5) * 6 + (r() - 0.5) * 5]);
+        }
       wrap(ctx, H, () => {
         ctx.lineCap = 'round';
-        for (let i = 0; i < (w * H) / 22; i++) {
-          const x = x0 + r() * w;
-          const y = r() * H;
-          const l = 8 + r() * 10;
-          const u = (x - x0) / w;
-          const t = r();
-          const col = t < 0.35 ? shade(base, -0.5) : t < 0.8 ? shade(base, -0.12) : shade(base, 0.4);
-          ctx.strokeStyle = rgba(col, (0.35 + r() * 0.45) * (col === shade(base, 0.4) ? 1 - u * 0.8 : 1));
-          ctx.lineWidth = 1 + r() * 1.4;
+        for (const [x, y, u, l, lw, bend] of locks) {
+          const lg = ctx.createLinearGradient(0, y, 0, y + l);
+          lg.addColorStop(0, rgba(shade(base, -0.45), 0.9));
+          lg.addColorStop(0.6, rgba(shade(base, -0.05 + (0.5 - u) * 0.25), 0.95));
+          lg.addColorStop(1, rgba(shade(base, 0.08 + (0.5 - u) * 0.35), 0.9));
+          ctx.fillStyle = lg;
           ctx.beginPath();
-          ctx.moveTo(x, y);
-          ctx.quadraticCurveTo(x + 2, y + l * 0.5, x + (u - 0.5) * 6, y + l);
-          ctx.stroke();
+          ctx.moveTo(x - lw, y);
+          ctx.quadraticCurveTo(x - lw * 0.8 + bend * 0.4, y + l * 0.6, x + bend, y + l);
+          ctx.quadraticCurveTo(x + lw * 0.8 + bend * 0.4, y + l * 0.6, x + lw, y);
+          ctx.closePath();
+          ctx.fill();
+          // strands combed into the lock, the lit ones on the light side
+          for (let k = -1; k <= 1; k++) {
+            const lit = k < 0 && u < 0.6;
+            ctx.strokeStyle = rgba(lit ? shade(base, 0.45) : shade(base, -0.4), lit ? 0.35 * (1 - u) : 0.3);
+            ctx.lineWidth = 0.8;
+            ctx.beginPath();
+            ctx.moveTo(x + k * lw * 0.45, y + 1);
+            ctx.quadraticCurveTo(x + k * lw * 0.4 + bend * 0.4, y + l * 0.55, x + bend + k * 0.8, y + l - 1);
+            ctx.stroke();
+          }
         }
       });
       break;

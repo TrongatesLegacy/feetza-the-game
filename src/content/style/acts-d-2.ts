@@ -907,9 +907,20 @@ function drawThan(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
       sockArea(g);
       g.clip();
       // (the toe band below the rig's top carries no heat: it ends there)
-      heatRise(g, box, 0, 160, 87, '#ff7a1a', 0.9);
+      // a titan's sock scorching: red heat on the gold (orange alone just reads as brighter gold), climbing from
+      // the hem, with the knit's wales glowing like filaments
+      heatRise(g, box, -10, 160, 87, '#ff2a0a', 1.15);
+      g.globalCompositeOperation = 'lighter';
+      for (let x = CX - 108; x < CX + 110; x += 18) {
+        softStroke(g, (c) => {
+          c.moveTo(x, 150);
+          c.lineTo(x + (x - CX) * 0.07, 60 + ((x * 7) % 40));
+        }, rgba('#ff4a12', 0.45), 3, 2.5);
+      }
+      g.globalCompositeOperation = 'source-over';
       g.restore();
-      hotLine(g, (c) => bandPath(c), '#ffc04a', 2, 0.7);
+      hotLine(g, (c) => bandPath(c), '#ff5a1a', 2.6, 0.85);
+      softStroke(g, (c) => hemCurve(c, -6), rgba('#ff3a0a', 0.8), 10, 5);
     }
     g.restore();
     sil.finish('rgba(0,0,0,0)', { w: 0.01, inner: 0 });

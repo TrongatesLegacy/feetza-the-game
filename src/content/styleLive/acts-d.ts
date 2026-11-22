@@ -248,7 +248,9 @@ registerLive('thanfoot', {
       const a = R() * Math.PI * 2;
       motes.emit(CX + Math.cos(a) * 140, 130 + Math.sin(a) * 120, { vx: -Math.sin(a) * 40, vy: Math.cos(a) * 30 - 10, life: 1.4 + R(), r0: 3 * s, r1: 1 * s, a: 0.9 * v, tint: R() < 0.5 ? 0xc88aff : R() < 0.7 ? 0xffd27a : 0x8ad0ff, fade: 0.3 });
     });
-    overheat(k, steam, embers, dt, [[CX - 90, 60], [CX + 90, 60], [CX, 30], [CX, 200]], 0xfff4e0, 0xffc040);
+    overheat(k, steam, embers, dt, [[CX - 90, 60], [CX + 90, 60], [CX, 30], [CX, 200], [CX - 60, 230], [CX + 60, 230]], 0xfff4e0, 0xff7020);
+    // a titan overheating throws more: a second, heavier plume of steam off the hem
+    if (k.heat > 0.3) steam.rate('ohhem', 10 * k.heat, dt, () => steam.emit(CX + pm() * 100, 160 + pm() * 10, { vx: pm() * 30, vy: -70 - R() * 50, life: 1.4, r0: 14 * s, r1: 50 * s, a: 0.3 * k.heat, tint: 0xffe8d8, fade: 0.2, grav: -30 }));
   },
 });
 

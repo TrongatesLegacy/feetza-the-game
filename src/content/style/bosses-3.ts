@@ -1000,6 +1000,47 @@ export function drawSaucer(g: Ctx, s: number, light: number): void {
   g.restore();
 }
 
+/** The pet saucer with its tractor beam fanning down under it (the beam drawn first, behind the hull). */
+export function saucerWithBeam(g: Ctx, s: number, light: number, lime = '#d4ff5a'): void {
+  const beam: PathFn = (c) => {
+    c.beginPath();
+    c.moveTo(-7 * s, 4 * s);
+    c.lineTo(7 * s, 4 * s);
+    c.lineTo(17 * s, 44 * s);
+    c.quadraticCurveTo(0, 48 * s, -17 * s, 44 * s);
+    c.closePath();
+  };
+  fill(g, beam, lin(g, 0, 4 * s, 0, 46 * s, [
+    [0, rgba(lime, 0.55 + light * 0.15)],
+    [0.6, rgba(lime, 0.18)],
+    [1, rgba(lime, 0)],
+  ]));
+  for (let i = 0; i < 3; i++) {
+    const y = (12 + ((i * 12 + light * 12) % 34)) * s;
+    const w = 7 + (y / s) * 0.24;
+    g.strokeStyle = rgba('#f4ffd0', 0.45 * (1 - y / (46 * s)));
+    g.lineWidth = 1.2 * s;
+    g.beginPath();
+    g.ellipse(0, y, w * s, 1.6 * s, 0, 0, Math.PI * 2);
+    g.stroke();
+  }
+  drawSaucer(g, s, light);
+}
+
+/** The pet saucer's orbit, drawn as the old art had it: a dashed ring round the foot (the back half behind it). */
+const ORBIT = { y: 196, rx: 128, ry: 26 };
+function orbitRing(g: Ctx, lime: string, front: boolean): void {
+  g.save();
+  g.setLineDash([9, 7]);
+  g.lineCap = 'round';
+  g.strokeStyle = rgba(lime, front ? 0.85 : 0.45);
+  g.lineWidth = 2.6;
+  g.beginPath();
+  g.ellipse(CX, ORBIT.y, ORBIT.rx, ORBIT.ry, -0.06, front ? 0 : Math.PI, front ? Math.PI : Math.PI * 2);
+  g.stroke();
+  g.restore();
+}
+
 function drawUfo(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
   const green = art.skin;
   const lime = art.secondary ?? '#d4ff5a';
@@ -1008,6 +1049,7 @@ function drawUfo(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
   const body = ufoBody(flex, squash * 8);
   const box = { x: CX - 110, y: -8, w: 220, h: 300 };
   const ants = o.live ? [] : [antennaPath(0), antennaPath(1)];
+  if (!o.emissive && !o.heat) orbitRing(ctx, lime, false);
   const sil = new Sil(ctx, [body, ...ants], box);
   const g = sil.g;
   const b = 280 - flex * 10;
@@ -1057,12 +1099,13 @@ function drawUfo(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
   if (!o.live) for (let i = 0; i < 2; i++) paintAntenna(g, i, green, lime);
   lightAll(sil, 0.38, 20, 0.65);
   sil.finish(inkOf(green), { openTop: -5 });
+  orbitRing(ctx, lime, true);
   if (!o.live) {
-    // still art: the pet saucer parked beside it
+    // still art: the pet saucer on its orbit, beaming down
     ctx.save();
-    ctx.translate(CX + 104, 170);
-    ctx.rotate(-0.2);
-    drawSaucer(ctx, 1.4, 0);
+    ctx.translate(CX + 96, ORBIT.y + 6);
+    ctx.rotate(-0.12);
+    saucerWithBeam(ctx, 2.1, 0.5, lime);
     ctx.restore();
   }
 }
@@ -1080,7 +1123,7 @@ registerStyle('ufotoe', {
   contactY: 284,
   halfWidth: 90,
   rig: { from: 190, to: 208 },
-  leg: { kind: 'skin', hw: 50, join: 'blend', fade: 26 },
+  leg: { kind: 'skin', hw: 50, join: 'blend', fade: 44 },
   parts: Object.fromEntries(
     ANTENNAE.map(([x0, y0, x1, y1], i) => [
       `ant${i}`,
