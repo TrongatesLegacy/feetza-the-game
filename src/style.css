@@ -5640,3 +5640,53 @@ body.reduced-motion *::after {
   min-height: 0;
   align-self: stretch;
 }
+
+/* ——— Pizza Slots: the counter's third slot when no Chef's Special turned up ——— */
+.counter2 .offer.slots {
+  grid-template-columns: 6.6em minmax(0, 1fr) auto;
+  background: linear-gradient(135deg, #fff4d6, #ffe3a3);
+  border-color: var(--cheese-d);
+}
+.offer.slots.won {
+  background: linear-gradient(135deg, #e9ffd9, #c8f2a8);
+  border-color: var(--basil-d);
+}
+.offer.slots .reels {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.18em;
+  background: var(--ink);
+  border-radius: 0.55em;
+  padding: 0.2em;
+}
+.offer.slots .reel {
+  height: 2em;
+  overflow: hidden;
+  background: #fffdf6;
+  border-radius: 0.35em;
+  box-shadow: inset 0 0.35em 0.4em -0.25em rgba(0, 0, 0, 0.35), inset 0 -0.35em 0.4em -0.25em rgba(0, 0, 0, 0.35);
+}
+.offer.slots .strip {
+  display: flex;
+  flex-direction: column;
+}
+.offer.slots .strip span {
+  height: 2em;
+  line-height: 2em;
+  text-align: center;
+  font-size: 1em;
+}
+.offer.slots .strip.spin {
+  animation: slots-spin var(--d) cubic-bezier(0.2, 0.7, 0.25, 1.05) forwards;
+}
+@keyframes slots-spin {
+  from { transform: translateY(0); }
+  to { transform: translateY(calc(var(--n) * -2em)); }
+}
+.offer.slots .pays {
+  font-size: 0.72em;
+  -webkit-line-clamp: 2;
+}
+@media (prefers-reduced-motion: reduce) {
+  .offer.slots .strip.spin { animation-duration: 0.01s; }
+}

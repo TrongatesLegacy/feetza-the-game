@@ -77,6 +77,9 @@ export interface ShopState {
   offers: ShopOffer[];
   heal: { cost: number; can: boolean };
   rebake: { cost: number; can: boolean; shown: boolean };
+  /** Pizza Slots: in the counter's third slot when no Chef's Special turned up. One pull a shop; only three of a
+   *  kind pays. `result` is the last pull (fresh: it was just pulled, so the reels spin). */
+  slots: { cost: number; can: boolean; used: boolean; result: SlotsResult | null } | null;
   /** One pizza left: a free pizza from the counter, and Next Wave waits until one is added. */
   lastStand: boolean;
   /** Toppings you own, for the Your Toppings window. */
@@ -96,7 +99,18 @@ export interface YourTopping {
   max?: number;
 }
 
+export type SlotSymbol = 'tips' | 'slices' | 'slam' | 'topping' | 'epic' | 'crust' | 'chef';
+export interface SlotsResult {
+  reels: [SlotSymbol, SlotSymbol, SlotSymbol];
+  win: boolean;
+  /** What it paid, in words ('' on a miss). */
+  prize: string;
+  fresh: boolean;
+}
+
 export interface ShopActions {
+  /** Pull Pizza Slots. */
+  slots(): void;
   buy(cardId: string): void;
   reroll(): void;
   heal(): void;

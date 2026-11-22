@@ -82,5 +82,5 @@ export interface RunSnapshot {
   counter: CounterSnap[];
   bossBonusGiven: boolean;
   /** The open shop, so a reload doesn't reroll it or undo purchases. */
-  shop?: { cards: string[]; sold: string[]; free: string | null; bossReward: boolean; freeRerolls: number; goldenBought?: 'rebake' | 'enhance' | 'reroll' | 'topping' | 'fresh'; lastStand?: boolean; lastStandDone?: boolean; boughtOut?: boolean };
+  shop?: { cards: string[]; sold: string[]; free: string | null; bossReward: boolean; freeRerolls: number; goldenBought?: 'rebake' | 'enhance' | 'reroll' | 'topping' | 'fresh'; lastStand?: boolean; lastStandDone?: boolean; boughtOut?: boolean; slotsUsed?: boolean };
 }

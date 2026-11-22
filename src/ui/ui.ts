@@ -7,7 +7,7 @@ import { PIZZAS, PIZZA_BY_ID, type PizzaRoute, type PizzaType } from '../data/pi
 import { awardMilestones, milestoneProgress } from '../game/Run';
 import { RARITY_COLOR, UPGRADES, UPGRADE_BY_ID, kindOf, type Rarity } from '../data/upgrades';
 import { glyph, slamPrompt } from '../systems/gamepad';
-import type { RunSummary, ShopActions, ShopPizza, ShopState, YourTopping } from './shopTypes';
+import type { RunSummary, ShopActions, ShopPizza, ShopState, SlotSymbol, YourTopping } from './shopTypes';
 import { INTROS, freshBar, pizzaThumb } from './bits';
 import { footPortraitURL, pizzaPortraitURL, textureURL } from '../game/assets';
 import { audio } from '../systems/audio';
@@ -173,6 +173,31 @@ export interface CounterOffer {
   perk: string;
   cost: number;
   trial: boolean;
+}
+
+/** The Pizza Slots machine's symbols and what three of each pays. */
+const SLOT_ICON: Record<SlotSymbol, string> = { tips: '🪙', slices: '🍕', slam: '⚡', topping: '🧀', epic: '💎', crust: '🥖', chef: '👨‍🍳' };
+const SLOT_PAYS: [SlotSymbol, string][] = [['tips', 'tips ×3'], ['slices', '+3 slices'], ['slam', 'full slam'], ['topping', 'topping'], ['epic', 'epic'], ['crust', '2 crusts'], ['chef', 'free special']];
+
+function slotsRow(sl: NonNullable<ShopState['slots']>, pull: () => void): HTMLElement {
+  const syms = Object.keys(SLOT_ICON) as SlotSymbol[];
+  const reels = [0, 1, 2].map((i) => {
+    const end = sl.result?.reels[i] ?? syms[(i * 3) % syms.length];
+    // a spinning strip that lands on its symbol, each reel a beat after the last
+    const strip = sl.result?.fresh ? [...Array.from({ length: 10 + i * 4 }, () => syms[Math.floor(Math.random() * syms.length)]), end] : [end];
+    return h('div', { class: 'reel' }, h('div', { class: `strip${sl.result?.fresh ? ' spin' : ''}`, style: `--n:${strip.length - 1};--d:${0.7 + i * 0.35}s` }, ...strip.map((x) => h('span', {}, SLOT_ICON[x]))));
+  });
+  const label = sl.used ? (sl.result && !sl.result.fresh ? (sl.result.win ? 'WON!' : 'NO LUCK') : 'SPINNING…') : `PULL · ${fmt(sl.cost)}`;
+  const b = btn(label, `${sl.can ? 'green' : ''} small`, pull, { 'aria-label': sl.used ? 'Pizza Slots: already pulled this shop' : `Pull Pizza Slots for ${sl.cost} tips` });
+  b.disabled = !sl.can;
+  const note = sl.result && !sl.result.fresh ? (sl.result.win ? sl.result.prize : 'Back next shop') : '3 of a kind wins';
+  return h(
+    'div',
+    { class: `offer slots${sl.result?.win && !sl.result.fresh ? ' won' : ''}` },
+    h('div', { class: 'reels', 'aria-hidden': 'true' }, ...reels),
+    h('div', { class: 'offer-text' }, h('span', { class: 'tag' }, 'PIZZA SLOTS'), h('b', {}, note), h('span', { class: 'pays', title: SLOT_PAYS.map(([k, t]) => `${SLOT_ICON[k]}×3: ${t}`).join('\n') }, sl.used ? 'One pull a shop' : SLOT_PAYS.map(([k, t]) => `${SLOT_ICON[k]} ${t}`).join(' · '))),
+    b,
+  );
 }
 
 class Hud {
@@ -957,7 +982,7 @@ class UI {
         ),
       );
       // counter + services
-      const offers = st.offers.map((o) => {
+      const offers: HTMLElement[] = st.offers.map((o) => {
         const was = o.cost < o.fullCost ? `<s>${fmt(o.fullCost)}</s> ` : '';
         const b = btn(o.cost === 0 ? 'FREE' : `BUY · ${was}${fmt(o.cost)}`, `${st.coins >= o.cost ? 'green' : ''} small`, () => act.buyPizza(o.id));
         b.disabled = st.coins < o.cost;
@@ -975,6 +1000,8 @@ class UI {
           return h('div', { class: 'offer enhanced' }, pic, h('div', { class: 'offer-text' }, h('span', { class: 'tag' }, '★ ENHANCED PIZZA'), h('b', {}, o.name), h('span', {}, perkDiff(o.basePerk ?? o.perk, o.perk))), b);
         return h('div', { class: `offer${o.cost === 0 ? ' free' : ''}` }, pic, h('div', { class: 'offer-text' }, o.cost === 0 ? h('span', { class: 'tag' }, 'ON THE HOUSE') : null, h('b', {}, o.name), h('span', {}, o.perk)), b);
       });
+      // Pizza Slots: in the third slot when no Chef's Special turned up
+      if (st.slots) offers.push(slotsRow(st.slots, act.slots));
       const svc = (label: string, s: { cost: number; can: boolean }, fn: () => void, cls: string) => {
         const b = btn(`${label} · ${fmt(s.cost)}`, `${cls} small`, fn);
         b.disabled = !s.can;
