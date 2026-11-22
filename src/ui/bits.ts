@@ -20,11 +20,6 @@ export function freshBar(fresh: number, max: number): HTMLElement {
 }
 
 export const INTROS: Record<string, { tag: string; title: string; lines: string[] }> = {
-  shop: {
-    tag: 'NEW: THE SHOP',
-    title: 'Toppings cost tips now',
-    lines: ['Buy as many toppings as you can afford between waves, or save up for a pizza at the counter.', 'Boss loot still gives you one epic pick for free.'],
-  },
   kinds: {
     tag: 'NEW: UPGRADE KINDS',
     title: 'Three kinds of topping',

@@ -1984,7 +1984,6 @@ export class GameScene extends Phaser.Scene implements Arena {
       next: () => this.shopNext(),
       pause: () => this.togglePause(),
     });
-    this.introCard('shop');
     // a Pick or Peel Roulette bought before a reload is still waiting
     if (this.run.kit.pendingPick) this.time.delayedCall(300, () => this.openPending());
     if (cards.some((u) => kindOf(u) !== 'permanent')) this.introCard('kinds');
@@ -3990,7 +3989,7 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   // ——— Onboarding ———
   /** A first-time card; `after` runs once it's closed (or straight away if it isn't shown). */
-  private introCard(id: 'shop' | 'kinds' | 'swap' | 'freshness' | 'phases' | 'mini' | 'events' | 'golden', after?: () => void): void {
+  private introCard(id: 'kinds' | 'swap' | 'freshness' | 'phases' | 'mini' | 'events' | 'golden', after?: () => void): void {
     if (save.seenIntros.includes(id) || (id === 'freshness' && this.run.heatDef.freshness <= 0)) {
       after?.();
       return;
