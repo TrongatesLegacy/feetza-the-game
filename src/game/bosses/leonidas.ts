@@ -5,7 +5,7 @@
 //
 // Choices the spec left open (numbers are Regular; heat() scales them):
 // - The Immortal Brute: THE IMMORTAL HORDE (a war horn and 4 Immortal Sandals march in; while two or more stand he
-//   can't be hurt, for 12 s at most; no new horde while any stand, and once the last falls he's open for a gap of 8 s,
+//   can't be hurt (a DENIED! breaks it for 4 s, but he calls another Immortal every ~1.2 s he goes unhit); no new horde while any stand, and once the last falls he's open for a gap of 8 s,
 //   7 s in phase 2, 6 s in phase 3, scaled by heat and a quarter shorter in NO RETREAT, before the next; he rises to
 //   the top of a random lane and holds there, still, while the horde marches in and for as long as any stand), DEVOUR (every 12 s while the horde stands
 //   he hooks an Immortal on his chain for 1.8 s: kill it first or he eats it for 6% of his health, 8% in phase 3,
@@ -46,7 +46,10 @@ const immortalbrute = (): Brain => {
   let gapT = 1.5;
   const bladeT = new Every(9, 3);
   let horde: Foot[] = [];
-  let guardFor = 0;
+  /** DENIED!: seconds his shield stays down, and how long he's gone unhit meanwhile (he calls an Immortal if too long). */
+  let exposedT = 0;
+  let idleT = 0;
+  let lastHp = 0;
   let whirling = false;
   /** Immortals were standing last frame (so the moment the last one falls opens the gap). */
   let held = false;
@@ -79,7 +82,6 @@ const immortalbrute = (): Brain => {
         if (t) horde.push(t);
       });
     }
-    guardFor = 12;
   };
 
   const whirl = (f: Foot, a: Arena) => {
@@ -236,7 +238,6 @@ const immortalbrute = (): Brain => {
         enterArena(a, 'immortalbrute');
         entrance(a, f, { sfx: 'sfx_immortalbrute_enter', quip: 'NO ONE LEAVES THE PASS.', color: '#e8e4dc', flash: [255, 150, 90], ring: 0xc9c4bc, delay: 400, ms: 800 });
       });
-      // the horde guards him while two or more of them stand (for a while)
       horde = horde.filter((o) => o.alive);
       // he holds the top of his lane, still, while the horde marches in and for as long as any Immortal stands;
       // only once they're all down does he come for the pizzas
@@ -246,10 +247,32 @@ const immortalbrute = (): Brain => {
       // killed it before he could reel it in
       if (hooked && !hooked.victim.alive) {
         hooked.end();
-        a.quip(f.x, Math.max(SAFE_TOP + 40, f.cy - 170), 'DENIED!', '#ffd23f', 40);
+        // DENIED!: his shield breaks for 4 s. He stays put and roars, and every few seconds he goes unhit (by a
+        // smack or an ability) he calls another Immortal out of the smoke
+        a.quip(f.x, Math.max(SAFE_TOP + 40, f.cy - 170), 'DENIED! SHIELD DOWN!', '#ffd23f', 40);
+        a.sfx('sfx_immortalbrute_roar');
+        a.shake(260, 0.008);
+        exposedT = 4;
+        idleT = 0;
+        lastHp = f.hp;
       }
-      guardFor = Math.max(0, guardFor - dt);
-      const want = horde.length >= 2 && guardFor > 0;
+      if (exposedT > 0) {
+        exposedT -= dt;
+        if (f.hp < lastHp) idleT = 0;
+        else idleT += dt;
+        lastHp = f.hp;
+        if (idleT >= heat(a).cooldown(1.2) && exposedT > 0) {
+          idleT = 0;
+          const t = a.spawn('immortal', rnd(a.alivePizzas()) ?? null);
+          if (t) {
+            horde.push(t);
+            a.quip(f.x, Math.max(SAFE_TOP + 40, f.cy - 190), 'RISE!', '#e8e4dc', 36);
+            a.sfx('sfx_immortalreturn', { volume: 0.8, throttle: 200 });
+          }
+        }
+      }
+      // the horde guards him while two or more of them stand (no time limit), unless a DENIED! broke the shield
+      const want = horde.length >= 2 && exposedT <= 0;
       if (want !== f.shielded && !f.puppet) shield(a, f, want);
     },
     onPhase(f, ph, a) {
@@ -285,7 +308,8 @@ const immortalbrute = (): Brain => {
           march(f, a);
         }
       }
-      if (f.phase >= 2 && !whirling) {
+      // his blade only comes once the horde is down
+      if (f.phase >= 2 && !whirling && !up) {
         bladeT.every = h.cooldown(9 * fast);
         if (bladeT.tick(dt)) whirl(f, a);
       }
