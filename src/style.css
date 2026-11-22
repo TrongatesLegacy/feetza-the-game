@@ -933,13 +933,25 @@ h3 {
   }
 }
 
+/* every notification (unlocks, new peels, prizes, a new foot's card) stacks in one place: the lower left, just above
+   the table so it never hides a pizza; the newest sits at the bottom */
 .toasts {
   position: absolute;
-  right: 1.4em;
-  top: 6.4em;
-  display: grid;
+  left: 1.4em;
+  bottom: 15.5em;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: flex-start;
   gap: 0.6em;
-  justify-items: end;
+  max-height: 60%;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.toasts.faded {
+  opacity: 0.22;
+}
+.toasts .newfoot {
+  position: static;
 }
 
 .toast {
@@ -975,14 +987,14 @@ h3 {
 
 @keyframes toastIn {
   0% {
-    transform: translateX(120%);
+    transform: translateX(-120%);
   }
   10%,
   85% {
     transform: translateX(0);
   }
   100% {
-    transform: translateX(120%);
+    transform: translateX(-120%);
   }
 }
 

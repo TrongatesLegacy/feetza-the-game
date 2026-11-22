@@ -436,7 +436,8 @@ class Hud {
 
   /** The NEW FOOT card fades while a foot is coming down through its corner. */
   setNewFootFade(on: boolean): void {
-    this.newFootEl?.classList.toggle('faded', on);
+    // the whole notification stack fades while a foot passes behind it
+    this.toasts.classList.toggle('faded', on);
   }
 
   /** NEW FOOT card on first sighting: name, abilities and how to beat it. */
@@ -457,7 +458,8 @@ class Hud {
     const wait = Math.max(0, this.bannerUntil - performance.now());
     setTimeout(() => {
       if (this.newFootEl !== el) return;
-      this.root.append(el);
+      // the new-foot card joins the one notification stack (bottom left), at its foot
+      this.toasts.prepend(el);
       setTimeout(() => {
         el.classList.add('leaving');
         setTimeout(() => el.remove(), 300);
@@ -516,7 +518,7 @@ class Hud {
   }
 
   private pumpToasts(): void {
-    while (this.toastQueue.length && this.toasts.childElementCount < 2) {
+    while (this.toastQueue.length && this.toasts.querySelectorAll('.toast').length < 2) {
       const t = this.toastQueue.shift()!;
       this.toasts.append(t);
       setTimeout(() => {
