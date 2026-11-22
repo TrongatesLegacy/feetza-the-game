@@ -21,6 +21,8 @@ export interface LiveCtx {
 export interface LiveScene {
   /** A new wave of the same stage started (weather and light may change). */
   setWave?(wave: number): void;
+  /** Something hit the table at screen x (a foot's stomp): k 0…1 (a boss's is 1). The scenery may react. */
+  impact?(x: number, k: number): void;
   update(dt: number): void;
   destroy(): void;
 }
