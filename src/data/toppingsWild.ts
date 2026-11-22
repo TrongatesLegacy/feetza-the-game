@@ -36,7 +36,7 @@ export const WILD_TOPPINGS: Upgrade[] = [
   { id: 'crustarmour', name: 'Crust Armour', icon: '🦺', rarity: 'rare', max: 2, desc: () => '+1 stomp shield on every pizza in boss waves', apply: () => {} },
 
   // ——— Epic ———
-  kit('pizzadrone', 'Pizza Drone', '🛸', 'epic', 3, (l) => (l <= 1 ? 'A little drone follows your peel, zapping a foot every 2s (1.5×)' : 'The drone zaps harder (+50%)')),
+  kit('pizzadrone', 'Pizza Drone', '🛸', 'epic', 3, (l) => (l <= 1 ? 'A little drone follows your peel, zapping a foot every 2s (1.5×), up to twice your smack reach away' : 'The drone zaps harder (+50%)')),
   kit('woodfired', 'Wood-Fired', '🏕️', 'epic', 2, (l) => (l <= 1 ? 'Every 10th smack is a fireball: 4× and it burns' : 'Every 7th smack instead')),
   kit('echochamber', 'Echo Chamber', '📣', 'epic', 2, (l) => (l <= 1 ? '20% of smacks echo: the same spot is smacked again 0.5s later' : '+10% more smacks echo')),
   kit('partypopper', 'Party Popper', '🎊', 'epic', 1, () => 'When a boss changes phase, confetti stuns every foot for 1s'),

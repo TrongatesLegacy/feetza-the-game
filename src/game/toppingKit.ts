@@ -490,7 +490,8 @@ export class ToppingKit {
     this.rotor!.setPosition(this.dronePos.x, this.dronePos.y - 75 * D_SCALE).setScale(D_SCALE * (0.7 + 0.3 * Math.abs(Math.sin(t * 40))), D_SCALE).setRotation(this.drone.rotation);
     this.droneT += dt;
     if (this.droneT < 2) return;
-    const f = this.nearest(this.dronePos.x, this.dronePos.y, 800);
+    // it reaches twice as far as your smack, measured from the peel
+    const f = this.nearest(p.x, p.y, this.h.smackRadius() * 2);
     if (!f) return;
     this.droneT = 0;
     this.h.fx.lightning(this.dronePos.x, this.dronePos.y + 45, f.cx, f.cy);
