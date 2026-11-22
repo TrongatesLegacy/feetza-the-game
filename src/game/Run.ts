@@ -301,6 +301,9 @@ export interface ActMark {
   slices: number;
 }
 
+/** Toppings that only touch freshness: never dealt where freshness is off. */
+const FRESH_ONLY = new Set(['basil', 'fridge', 'leftovers']);
+
 export class Run {
   heat: HeatId = 'regular';
   act2Start = false;
@@ -468,6 +471,8 @@ export class Run {
     if (u.needsMeter === 'tank' && this.slamless.tank) return false;
     if (u.needsEvents && (this.stats.noEvents || (this.stats.eventMult <= 0 && !this.stats.eventAlways))) return false;
     if (u.offerIf && !u.offerIf(this.env)) return false;
+    // freshness toppings do nothing where freshness is off (Mild)
+    if (FRESH_ONLY.has(u.id) && this.heatDef.freshness <= 0) return false;
     const k = kindOf(u);
     if (k === 'unique') return this.level(u.id) === 0;
     if (k === 'consumable') return !this.armed.includes(u.id) && (this.cooldowns[u.id] ?? 0) <= wave;
