@@ -125,6 +125,123 @@ registerLive('venomnom', {
   },
 });
 
+// ——— Hero feet ———
+
+// Bat Feet: the wings beat (and flare as it winds up to swoop), the toes flex their claws, and a pair of little bats
+// flit round it.
+registerLive('batfeet', {
+  wiggle: true,
+  rig: { swing: 1.4 },
+  sway: {
+    wingL: { k: 30, c: 2.2, gain: 1.4, idle: 0.22, below: true, flop: 1.4 },
+    wingR: { k: 30, c: 2.2, gain: -1.4, idle: 0.22, below: true, flop: -1.4 },
+  },
+  setup(k) {
+    const key = k.sheet('lk_af_bat', 64, 40, 3, (ctx, i) => {
+      ctx.translate(32, 20);
+      const up = [-10, 2, 10][i];
+      ctx.fillStyle = '#1a1022';
+      ctx.beginPath();
+      for (const s of [-1, 1]) {
+        ctx.moveTo(0, 0);
+        ctx.quadraticCurveTo(s * 14, up - 6, s * 28, up);
+        ctx.quadraticCurveTo(s * 20, up * 0.3 + 6, s * 14, 4);
+        ctx.quadraticCurveTo(s * 8, 8, 0, 4);
+      }
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(0, 2, 4, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ff6a8a';
+      ctx.fillRect(-2.5, -1, 1.6, 1.6);
+      ctx.fillRect(1, -1, 1.6, 1.6);
+    });
+    return { bats: k.swarm({ key, frames: 3, count: 2, at: [CX, 90], rx: 150, ry: 110, speed: 1.8, jitter: 18, scale: 0.7 }) };
+  },
+  tick(k, dt, { bats }) {
+    bats.pace = k.windingUp || k.f.state === 'descend' ? 1.8 : 1;
+    void dt;
+  },
+});
+
+// Spider Socks: the spider legs skitter, the toes wiggle, and dew glints run along the web.
+registerLive('spidersocks', {
+  wiggle: true,
+  rig: { swing: 1.1 },
+  sway: {
+    legsL: { k: 70, c: 4, gain: 1, idle: 0.16, below: true },
+    legsR: { k: 70, c: 4, gain: -1, idle: 0.16, below: true },
+  },
+  setup: (k) => ({ dew: k.emitter({ frame: 'spark', add: true, drag: 0.2, max: 10 }) }),
+  tick(k, dt, { dew }) {
+    dew.rate('dew', 1.4, dt, () => {
+      const a = R() * Math.PI * 2;
+      const r = 16 + R() * 54;
+      dew.emit(CX + 4 + Math.cos(a) * r, 112 + Math.sin(a) * r * 0.87, { life: 0.4, r0: 2, r1: 10 * k.f.type.scale, a: 0.9, tint: 0xf4f0ff, fade: 0.4 });
+    });
+  },
+});
+
+// ——— Kratos's nemeses ———
+
+// KRONOS THE TITAN KING: his chains sway and clink, his jaw creaks open (his tell), embers rise out of the Tartarus
+// cracks, gold sand trickles from the hourglass and grit crumbles off him; the eyes and cracks pulse.
+registerLive('titanking', {
+  wiggle: true,
+  rig: { swing: 0.6, squash: 1.2, breath: 1.4 },
+  sway: {
+    chainL: { k: 18, c: 1.6, gain: 1.4, idle: 0.12, flop: 1 },
+    chainR: { k: 18, c: 1.6, gain: 1.4, idle: 0.12, flop: 1 },
+  },
+  twitch: { jaw: { every: 2.4 } },
+  glow: { rate: 0.5, depth: 0.5, base: 0.45 },
+  heat: {},
+  setup: (k) => ({
+    steam: steamEm(k),
+    embers: k.emitter({ frame: 'ember', add: true, curl: 40, drag: 0.8, max: 50 }),
+    sand: k.emitter({ frame: 'mote', add: true, drag: 0.3, max: 40 }),
+    grit: k.emitter({ frame: 'flake', drag: 0.3, max: 40 }),
+    dust: k.emitter({ frame: 'puff', curl: 30, drag: 1.5, below: true, max: 80 }),
+  }),
+  tick(k, dt, { steam, embers, sand, grit, dust }) {
+    const s = k.f.type.scale;
+    embers.rate('ember', 3, dt, () => {
+      const c = [[CX - 84, 90], [CX + 78, 160], [CX - 52, 176], [CX + 50, 64]][Math.floor(R() * 4)];
+      embers.emit(c[0] + pm() * 10, c[1] + pm() * 20, { vx: pm() * 30, vy: -40 - R() * 50, life: 1.2, r0: 3 * s, r1: 1.5 * s, a: 1, tint: R() < 0.5 ? 0xff8a20 : 0xffc040, fade: 0.1 });
+    });
+    sand.rate('sand', 6, dt, () => sand.emit(CX + pm() * 3, 64, { vy: 40, life: 0.8, r0: 2 * s, r1: 1.5 * s, a: 0.9, tint: 0xf0c860, grav: 300, fade: 0.05 }));
+    grit.rate('grit', 1.5 + Math.abs(k.vx) / 60, dt, () => grit.emit(CX + pm() * 190, 60 + R() * 180, { vx: pm() * 30, life: 0.9, r0: 3 * s, r1: 2.5 * s, a: 1, tint: R() < 0.5 ? 0x8e8a84 : 0x6a665e, grav: 800, spin: 8, fade: 0.02 }));
+    landDust(k, dust, 16, [0x9a968e, 0x7a766e], 266, 110, 1.2);
+    overheat(k, steam, dt, [CX - 90, 30, 180, 200]);
+  },
+});
+
+// ZEUS: static crackles over the marble and arcs between the gold straps, the bolt on his medallion flickers like a
+// live wire, his anklet's wings flutter and his toes curl; every stomp throws a crack of lightning sparks.
+registerLive('zeus', {
+  wiggle: true,
+  rig: { swing: 0.7, squash: 1, breath: 1.2 },
+  sway: {
+    wingL: { k: 50, c: 3, gain: 1, idle: 0.25 },
+    wingR: { k: 50, c: 3, gain: -1, idle: 0.25 },
+  },
+  glow: { rate: 2.6, depth: 0.6, base: 0.5 },
+  heat: {},
+  setup: (k) => ({
+    steam: steamEm(k),
+    arcs: k.emitter({ frame: 'spark', add: true, drag: 1.4, max: 60 }),
+    motes: k.emitter({ frame: 'mote', add: true, curl: 60, drag: 1, max: 40 }),
+  }),
+  tick(k, dt, { steam, arcs, motes }) {
+    const s = k.f.type.scale;
+    const zap = (x: number, y: number, p: number) => arcs.emit(x, y, { vx: pm() * 400 * p, vy: pm() * 400 * p, life: 0.12 + R() * 0.12, r0: 2, r1: 14 * s, a: 1, tint: R() < 0.5 ? 0x9fd8ff : 0xffffff, spin: 30, fade: 0.1 });
+    arcs.rate('static', 6 + k.heat * 10, dt, () => zap(CX + pm() * 180, 40 + R() * 200, 0.4));
+    motes.rate('motes', 2, dt, () => motes.emit(CX + pm() * 160, 60 + R() * 160, { vy: -20, life: 1.4, r0: 2 * s, r1: 4 * s, a: 0.8, tint: 0xbfe6ff, fade: 0.3 }));
+    if (k.landed) for (let i = 0, n = k.burst(20); i < n; i++) zap(CX + pm() * 200, 262, 1.4);
+    overheat(k, steam, dt, [CX - 90, 30, 180, 200]);
+  },
+});
+
 // THE CHEETOE: her tail lashes, her eyes follow your peel and her whiskers twitch, cheese dust sparkles off her coat
 // and streams behind her when she runs; her claws glint before a pounce.
 registerLive('cheetoe', {
