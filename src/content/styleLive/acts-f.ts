@@ -6,18 +6,23 @@ import { CX } from '../../art/feetCommon';
 import { FLOWER, VIALS } from '../art/gotham';
 import { type LiveFoot, registerLive } from '../../game/liveKit';
 import { crand } from '../../systems/cosmeticRandom';
+import { save } from '../../systems/save';
 import { landDust, overheat } from './bosses';
 
 const R = () => crand();
 const pm = () => crand() - 0.5;
 const steamEm = (k: LiveFoot) => k.emitter({ frame: 'soft', curl: 60, drag: 1.1, max: 160 });
 
+/** The art holds still for feet whose fight or act places props on it by the foot's own coordinates (Bunion's vials
+ * in their clamps, the Chariot Wheel's spinning wheel): their life comes from everything else. */
+const STILL = { swing: 0, squash: 0, breath: 0 };
+
 // ——— Gotham ———
 
-// BUNION: the Venom veins pulse like a heartbeat, green vapour hisses from the hose couplings, venom drips off the
+// BUNION (art held still: the fight's vials sit in its clamps): the Venom veins pulse like a heartbeat, green vapour hisses from the hose couplings, venom drips off the
 // empty clamps, and every stomp throws dust and a green splash.
 registerLive('bunion', {
-  rig: { swing: 0.7, squash: 1.2, breath: 1.6 },
+  rig: STILL,
   glow: { rate: 1.1, depth: 0.55, base: 0.4 },
   heat: {},
   setup: (k) => ({
@@ -99,7 +104,8 @@ registerLive('redsole', {
 // VENOMNOM: the goo never stops moving: its tendrils whip, its eyes narrow and follow your peel, its tongue licks
 // out (its tell), drool strings off its teeth and black goo drips from the lobes under it.
 registerLive('venomnom', {
-  rig: { swing: 1.2, squash: 1.3, breath: 1.8 },
+  // a gentle swing: the fight's tongue lashes out of the mouth at NOM_MOUTH
+  rig: { swing: 0.45, squash: 1.1, breath: 1.8 },
   sway: {
     tendL: { k: 26, c: 2.6, gain: 1.6, idle: 0.3, flop: 1.2 },
     tendR: { k: 24, c: 2.4, gain: 1.6, idle: 0.3, flop: 1.2 },
@@ -156,11 +162,19 @@ registerLive('batfeet', {
       ctx.fillRect(-2.5, -1, 1.6, 1.6);
       ctx.fillRect(1, -1, 1.6, 1.6);
     });
-    return { bats: k.swarm({ key, frames: 3, count: 2, at: [CX, 90], rx: 150, ry: 110, speed: 1.8, jitter: 18, scale: 0.7 }) };
+    return { bats: k.swarm({ key, frames: 3, count: 2, at: [CX, 90], rx: 150, ry: 110, speed: 1.8, jitter: 18, scale: 0.7 }), beat: { t: 0 } };
   },
-  tick(k, dt, { bats }) {
-    bats.pace = k.windingUp || k.f.state === 'descend' ? 1.8 : 1;
-    void dt;
+  tick(k, dt, { bats, beat }) {
+    const fast = k.windingUp || k.f.state === 'descend';
+    bats.pace = fast ? 1.8 : 1;
+    // the wings beat: slow and lazy while it hangs, hard and fast in a swoop (the springs still add the drag)
+    beat.t += dt * (fast ? 16 : 5);
+    const amp = (fast ? 0.32 : 0.12) * (save.settings.reducedMotion ? 0.3 : 1);
+    const w = Math.sin(beat.t) * amp;
+    const l = k.swayImg('wingL');
+    const r = k.swayImg('wingR');
+    if (l) l.rotation += w;
+    if (r) r.rotation -= w;
   },
 });
 
@@ -322,10 +336,10 @@ registerLive('cavalry', {
   },
 });
 
-// Chariot Wheel: glints run over the bronze greave and road dust drifts off the boot (its wheel is the game's prop,
+// Chariot Wheel (art held still under the act's spinning wheel prop): glints run over the bronze greave and road dust drifts off the boot (its wheel is the game's prop,
 // which spins and kicks up its own dust).
 registerLive('chariot', {
-  rig: { swing: 0.9, squash: 1.1 },
+  rig: STILL,
   setup: (k) => ({
     glint: k.emitter({ frame: 'spark', add: true, drag: 0.2, max: 10 }),
     dust: k.emitter({ frame: 'puff', curl: 30, drag: 1.5, below: true, max: 40 }),
