@@ -706,29 +706,48 @@ registerStyle('hiking', {
     piece(g, collar, { x: CX - 64, y: -6, w: 128, h: 30 }, 'leather', shade(suede, -0.3), { shadow: 0.5 });
     finishLight(sil, suede, '#2a1008', 0.3);
     sil.finish(inkOf(suede), { openTop: -5 });
-    // the coil of rope hanging off the side
-    const coil = ell(CX + 106, 110, 22, 44);
-    prop(ctx, [coil], { x: CX + 80, y: 62, w: 52, h: 96 }, (rg) => {
-      rg.fillStyle = '#ff8a1a';
-      rg.fillRect(CX + 80, 62, 52, 96);
-      for (let k = 0; k < 7; k++) {
-        rg.strokeStyle = rgba('#7a3a08', 0.75);
-        rg.lineWidth = 2;
-        rg.beginPath();
-        rg.ellipse(CX + 106, 110, 22 - k * 0.5, 44 - k * 1.6, 0, 0, Math.PI * 2);
-        rg.stroke();
-        rg.strokeStyle = rgba('#ffd08a', 0.6);
-        rg.lineWidth = 1;
-        rg.beginPath();
-        rg.ellipse(CX + 105, 109, 20 - k * 0.5, 42 - k * 1.6, 0, Math.PI * 0.9, Math.PI * 1.5);
-        rg.stroke();
-      }
-      rg.fillStyle = '#5a2a10';
-      rg.beginPath();
-      rg.ellipse(CX + 106, 110, 10, 30, 0, 0, Math.PI * 2);
-      rg.fill();
-      spec(rg, CX + 96, 80, 6, 16, 0.5, 0);
-    }, inkOf('#ff8a1a'), { w: 3.6 });
+    // the coil of climbing rope hanging off the side: loops of kernmantle, each lit and twisted
+    const loops: [number, number, number, number][] = [
+      [CX + 104, 112, 20, 46],
+      [CX + 108, 116, 18, 44],
+      [CX + 100, 118, 21, 42],
+      [CX + 106, 110, 17, 48],
+    ];
+    ctx.save();
+    ctx.lineCap = 'round';
+    for (const [x, y, rx, ry] of loops) {
+      const loop = (c: Ctx) => c.ellipse(x, y, rx, ry, 0.08, 0, Math.PI * 2);
+      softStroke(ctx, loop, rgba('#2a1004', 0.45), 9, 3);
+      ctx.beginPath();
+      loop(ctx);
+      ctx.strokeStyle = inkOf('#ff8a1a');
+      ctx.lineWidth = 8.6;
+      ctx.stroke();
+      ctx.beginPath();
+      loop(ctx);
+      ctx.strokeStyle = '#ff8a1a';
+      ctx.lineWidth = 5.6;
+      ctx.stroke();
+      ctx.save();
+      ctx.setLineDash([2.2, 3.4]);
+      ctx.beginPath();
+      loop(ctx);
+      ctx.strokeStyle = rgba('#7a2a04', 0.7);
+      ctx.lineWidth = 5.6;
+      ctx.stroke();
+      ctx.restore();
+      ctx.beginPath();
+      ctx.ellipse(x - 1.5, y - 1, rx, ry, 0.08, Math.PI * 0.75, Math.PI * 1.45);
+      ctx.strokeStyle = rgba('#ffe0b0', 0.75);
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+    }
+    // the binding knot round the top of the coil
+    ctx.restore();
+    prop(ctx, [rrect(CX + 92, 60, 26, 14, 5)], { x: CX + 90, y: 58, w: 30, h: 18 }, (rg, rs) => {
+      rs.form({ base: '#3a6ad8', shadowTint: '#0a1040', ramp: 0.8, form: 0.5, formSize: 4, bevel: 0.4, rim: 0.5 });
+      void rg;
+    }, inkOf('#3a6ad8'), { w: 3 });
   },
 });
 

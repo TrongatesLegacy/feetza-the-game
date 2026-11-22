@@ -241,7 +241,7 @@ function flames(g: Ctx, k: number): void {
 }
 
 registerStyle('fireside', {
-  rig: BARE_RIG,
+  // no toe rig: the glow layer (the flames under the sole) must reach the toes
   contactY: 262,
   leg: { kind: 'knit', hw: 52, join: 'blend', fade: 20 },
   draw(ctx, art, p, o) {

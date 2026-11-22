@@ -94,8 +94,8 @@ registerLive('saucysal', {
 // Antenna Andy: the antennas wobble on springs and signal rings pulse off the tips.
 registerLive('antenna', {
   sway: {
-    antL: { k: 38, c: 3, gain: 1.4, idle: 0.08, flop: 1.4 },
-    antR: { k: 42, c: 3.2, gain: 1.4, idle: 0.08, flop: 1.4 },
+    antL: { k: 40, c: 4.5, gain: 1.1, idle: 0.08, flop: 1 },
+    antR: { k: 44, c: 4.6, gain: 1.1, idle: 0.08, flop: 1 },
   },
   setup: (k) => ({ rings: k.emitter({ frame: 'bubble', add: true, drag: 0, max: 40 }) }),
   tick(k, dt, { rings }) {
@@ -143,7 +143,7 @@ registerLive('sandy', {
 // Seaweed Steph: the kelp ribbons sway on their springs and seawater drips off them.
 registerLive('seaweed', {
   wiggle: true,
-  sway: Object.fromEntries([0, 1, 2, 3].map((i) => [`kelp${i}`, { k: 26 + i * 4, c: 2.6, gain: 1.8, idle: 0.12, flop: 1.6 }])),
+  sway: Object.fromEntries([0, 1, 2, 3].map((i) => [`kelp${i}`, { k: 44 + i * 5, c: 5.5, gain: 0.8, idle: 0.08, flop: 0.6 }])),
   setup: (k) => ({ drips: k.emitter({ frame: 'drop', drag: 0.1, max: 40 }) }),
   tick(k, dt, { drips }) {
     const s = k.f.type.scale;
@@ -276,7 +276,7 @@ registerLive('hottub', {
 
 // Fireside Fay: the flames under her sole flicker (glow layer), embers rise and the flames flare on a stomp.
 registerLive('fireside', {
-  wiggle: true,
+  rig: { squash: 1.1 },
   glow: { rate: 2.2, depth: 0.4, base: 0.6 },
   setup: (k) => ({ fire: k.emitter({ frame: 'soft', add: true, curl: 60, drag: 0.8, max: 140 }), embers: k.emitter({ frame: 'ember', add: true, curl: 60, drag: 0.5, max: 80 }) }),
   tick(k, dt, { fire, embers }) {
@@ -333,7 +333,7 @@ registerLive('gravity', {
 registerLive('alienal', {
   rig: { squash: 1.3 },
   blink: { eye: { every: 3, look: 5 } },
-  sway: Object.fromEntries([0, 1, 2, 3].map((i) => [`tent${i}`, { k: 34 + i * 5, c: 3, gain: i < 2 ? 1.6 : -1.6, idle: 0.14, below: true, flop: i < 2 ? 1.4 : -1.4 }])),
+  sway: Object.fromEntries([0, 1, 2, 3].map((i) => [`tent${i}`, { k: 40 + i * 5, c: 4.5, gain: i < 2 ? 1.1 : -1.1, idle: 0.12, below: true, flop: i < 2 ? 0.9 : -0.9 }])),
   setup: (k) => ({ slime: k.emitter({ frame: 'drop', drag: 0.1, max: 30 }) }),
   tick(k, dt, { slime }) {
     const s = k.f.type.scale;
@@ -656,17 +656,30 @@ registerLive('skier', {
 // ——— Cellar ———
 
 // Mime Mike: the painted eyes blink and follow your peel.
+// The live layer's images (toe band, eyes) aren't faded by the Foot's invisibility (it fades only the body, leg and
+// cuff), so the live layer keeps them in step: he must stay unseen until he stomps.
 registerLive('mime', {
   blink: { eyes: { every: 3, look: 2.5 } },
   rig: { swing: 1.2 },
+  tick(k) {
+    const f = k.f;
+    const seen = f.state === 'stomp' || f.revealT > 0 || f.state === 'lift';
+    f.setVisualAlpha(seen ? 1 : 0.07);
+  },
 });
 
 // Neon Nina: the tubes buzz and flicker; stray sparks pop off the brackets.
 registerLive('neon', {
   wiggle: true,
   glow: { rate: 3.2, depth: 0.35, base: 0.65 },
-  setup: (k) => ({ sparks: k.emitter({ frame: 'spark', add: true, drag: 0.4, max: 20 }) }),
-  tick(k, dt, { sparks }) {
+  setup: (k) => ({ sparks: k.emitter({ frame: 'spark', add: true, drag: 0.4, max: 20 }), was: { phased: false } }),
+  tick(k, dt, { sparks, was }) {
+    // phasing fades only the body and leg: fade the live layer's images (toe band, glow) with them
+    const f = k.f;
+    if (f.phased) f.setVisualAlpha(0.18 + Math.sin(f.age * 30) * 0.06);
+    else if (was.phased) f.setVisualAlpha(1);
+    was.phased = f.phased;
+    if (f.phased) return;
     sparks.rate('buzz', 1.2, dt, () => {
       sparks.emit([CX - 44, CX - 78, CX + 46, CX + 82][Math.floor(R() * 4)], 40 + R() * 80, { vx: pm() * 60, vy: -30, life: 0.25, r0: 2, r1: 10 * k.f.type.scale, a: 1, tint: R() < 0.5 ? 0xff3dc8 : 0x3df2ff, fade: 0.3 });
     });
