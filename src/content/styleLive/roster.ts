@@ -6,6 +6,7 @@ import { type LiveFoot, registerLive } from '../../game/liveKit';
 import { crand } from '../../systems/cosmeticRandom';
 import { ANT_TIPS } from '../style/roster-1';
 import { hexNut } from '../style/roster-3';
+import { drawFeather } from '../style/roster-kit';
 
 const R = () => crand();
 const pm = () => crand() - 0.5;
@@ -394,6 +395,141 @@ registerLive('starlight', {
     const s = k.f.type.scale;
     tw.rate('tw', 5, dt, () => {
       tw.emit(CX + pm() * 260, R() * 300, { vx: pm() * 10, vy: -10, life: 0.6, r0: 2, r1: 14 * s, a: 1, tint: R() < 0.5 ? 0xffe14d : 0xffffff, fade: 0.4 });
+    });
+  },
+});
+
+// ——— Kitchen ———
+
+// Thief Theo: he tiptoes (barely squashes), the loot bag swings on its cord and coins glint as it jingles.
+registerLive('thief', {
+  rig: { squash: 0.35, swing: 1.2 },
+  sway: { bag: { k: 34, c: 2.6, gain: 1.6, idle: 0.1, flop: 1.4 } },
+  setup: (k) => ({ glint: k.emitter({ frame: 'spark', add: true, drag: 0, max: 10 }) }),
+  tick(k, dt, { glint }) {
+    glint.rate('coin', k.f.state === 'hover' ? 1.4 : 0.5, dt, () => {
+      glint.emit(CX + 94 + pm() * 30, 110 + R() * 60, { life: 0.35, r0: 2, r1: 14 * k.f.type.scale, a: 1, tint: 0xffe08a, fade: 0.4 });
+    });
+  },
+});
+
+// Dough Toes: flour sifts off it and its toes wiggle; it sags and stretches as it squashes.
+registerLive('doughtoes', {
+  wiggle: true,
+  rig: { squash: 1.6, breath: 2 },
+  setup: (k) => ({ flour: k.emitter({ frame: 'mote', drag: 0.8, max: 80 }), puff: k.emitter({ frame: 'puff', curl: 20, drag: 1.4, below: true, max: 30 }) }),
+  tick(k, dt, { flour, puff }) {
+    const s = k.f.type.scale;
+    flour.rate('sift', 5, dt, () => {
+      flour.emit(30 + R() * 160, 40 + R() * 200, { vx: pm() * 14, vy: 10 + R() * 14, life: 1.4, r0: 2.4 * s, r1: 2 * s, a: 0.9, tint: 0xffffff, grav: 40, fade: 0.1 });
+    });
+    landDust(k, puff, 0xfbf6ea, 10, 260, 0.6);
+  },
+});
+
+// ——— Old Town ———
+
+// Pigeon Toes: a couple of loose feathers drift round the bird and more fall off as it flutters in.
+registerLive('pigeon', {
+  rig: { swing: 1.6, squash: 1.2 },
+  setup(k) {
+    const key = k.sheet('lk_feather', 40, 40, 1, (ctx) => {
+      ctx.translate(20, 20);
+      drawFeather(ctx, '#a8acb4');
+    });
+    return { feathers: k.swarm({ key, frames: 1, count: 2, at: [CX, 140], rx: 120, ry: 140, speed: 0.6, jitter: 30, scale: 0.7 }), fall: k.emitter({ frame: 'flake', drag: 1.6, curl: 40, max: 20 }) };
+  },
+  tick(k, dt, { fall }) {
+    fall.rate('fall', 1.2, dt, () => {
+      fall.emit(CX + pm() * 140, 120 + R() * 60, { vx: pm() * 30, vy: 20, life: 1.6, r0: 5 * k.f.type.scale, r1: 4 * k.f.type.scale, a: 0.9, tint: 0xd8dce4, grav: 40, spin: 3, fade: 0.1 });
+    });
+  },
+});
+
+// Chimney Charlie: soot puffs curl out of the chimney round his leg and soot motes sift down.
+registerLive('chimney', {
+  setup: (k) => ({ smoke: k.emitter({ frame: 'puff', curl: 70, drag: 0.9, max: 140 }), soot: k.emitter({ frame: 'mote', drag: 0.8, max: 80 }) }),
+  tick(k, dt, { smoke, soot }) {
+    const s = k.f.type.scale;
+    smoke.rate('flue', 8, dt, () => {
+      const side = R() < 0.5 ? -1 : 1;
+      smoke.emit(CX + side * (62 + R() * 26), 18, { vx: side * (20 + R() * 30), vy: -40 - R() * 40, life: 1.6 + R(), r0: 8 * s, r1: 30 * s, a: 0.5, tint: R() < 0.6 ? 0x4a4448 : 0x6a6468, grav: -16, fade: 0.12 });
+    });
+    soot.rate('sift', 5, dt, () => {
+      soot.emit(CX - 80 + R() * 160, 40 + R() * 200, { vx: pm() * 16, vy: 10 + R() * 20, life: 1.2, r0: 2.2 * s, r1: 1.6 * s, a: 0.85, tint: 0x141214, grav: 50, fade: 0.05 });
+    });
+  },
+});
+
+// Rainy Ray: rain falls off the umbrella's rim onto the pizza; he bobs as he floats.
+registerLive('rainy', {
+  wiggle: true,
+  rig: { breath: 2.5, swing: 1.3 },
+  setup: (k) => ({ rain: k.emitter({ frame: 'drop', drag: 0.05, max: 120 }) }),
+  tick(k, dt, { rain }) {
+    const s = k.f.type.scale;
+    rain.rate('rain', 26, dt, () => {
+      rain.emit(CX + pm() * 236, 92, { vy: 200 + R() * 100, life: 0.7, r0: 3.4 * s, r1: 3 * s, a: 0.75, tint: 0x9fd0ff, grav: 600, fade: 0.05 });
+    });
+  },
+});
+
+// ——— Pier ———
+
+// Gym Bro Greg: sweat drips and oil glints; the calf pumps (breathes deep) as he bulks.
+registerLive('gymbro', {
+  rig: { breath: 3, squash: 1.2 },
+  setup: (k) => ({ sweat: k.emitter({ frame: 'drop', drag: 0.1, max: 30 }), glint: k.emitter({ frame: 'spark', add: true, drag: 0, max: 10 }) }),
+  tick(k, dt, { sweat, glint }) {
+    const s = k.f.type.scale;
+    sweat.rate('sweat', 1.6, dt, () => {
+      sweat.emit(CX + pm() * 180, 60 + R() * 80, { vy: 20, life: 0.9, r0: 3.4 * s, r1: 3 * s, a: 0.8, tint: 0xe8f4ff, grav: 700, fade: 0.05 });
+    });
+    glint.rate('oil', 1.2, dt, () => {
+      glint.emit(CX - 60 + pm() * 40, 40 + R() * 60, { life: 0.35, r0: 2, r1: 16 * s, a: 1, tint: 0xffffff, fade: 0.4 });
+    });
+  },
+});
+
+// Crabby Craig: the claws snap open and shut, the eyes on their stalks blink and look about, froth bubbles up.
+registerLive('crabby', {
+  wiggle: true,
+  twitch: { clawL: { every: 1.6 }, clawR: { every: 1.9 } },
+  blink: { eyes: { every: 2.6, look: 3 } },
+  setup: (k) => ({ bubbles: k.emitter({ frame: 'bubble', curl: 20, drag: 0.6, max: 20 }) }),
+  tick(k, dt, { bubbles }) {
+    bubbles.rate('froth', 1.2, dt, () => {
+      bubbles.emit(CX + pm() * 30, 50, { vx: pm() * 20, vy: -30, life: 0.9, r0: 2.4, r1: 5 * k.f.type.scale, a: 0.8, tint: 0xffffff, fade: 0.1 });
+    });
+  },
+});
+
+// Lifeguard Lou: the whistle swings on its cord and sun glints off it.
+registerLive('lifeguard', {
+  wiggle: true,
+  sway: { whistle: { k: 40, c: 3, gain: 1.6, idle: 0.12, flop: 1.4 } },
+  setup: (k) => ({ glint: k.emitter({ frame: 'spark', add: true, drag: 0, max: 6 }) }),
+  tick(k, dt, { glint }) {
+    glint.rate('sun', 0.8, dt, () => {
+      glint.emit(CX + 56, 80, { life: 0.35, r0: 2, r1: 14 * k.f.type.scale, a: 1, tint: 0xffffff, fade: 0.4 });
+    });
+  },
+});
+
+// Surf's Up Sully: spray flicks off the board as he carves sideways and a fine mist hangs under him.
+registerLive('surfsully', {
+  wiggle: true,
+  rig: { swing: 1.6 },
+  setup: (k) => ({ spray: k.emitter({ frame: 'drop', drag: 0.4, max: 80 }), mist: k.emitter({ frame: 'soft', drag: 1, max: 40 }) }),
+  tick(k, dt, { spray, mist }) {
+    const s = k.f.type.scale;
+    const carve = Math.min(1, Math.abs(k.vx) / 300);
+    spray.rate('spray', 4 + carve * 30, dt, () => {
+      const side = k.vx > 0 ? -1 : 1;
+      spray.emit(CX + side * 100, 230 + R() * 30, { vx: side * (80 + R() * 160), vy: -100 - R() * 120, life: 0.6, r0: 3.2 * s, r1: 2.4 * s, a: 0.85, tint: R() < 0.6 ? 0xe8fbff : 0x9fe8f0, grav: 800, fade: 0.02 });
+    });
+    mist.rate('mist', 2 + carve * 8, dt, () => {
+      mist.emit(CX + pm() * 200, 250, { vx: pm() * 40, vy: -30, life: 0.8, r0: 8 * s, r1: 24 * s, a: 0.3, tint: 0xffffff, fade: 0.2 });
     });
   },
 });

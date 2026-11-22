@@ -4,8 +4,8 @@
 
 import { CX } from '../../art/feetCommon';
 import { type BareFoot, type BareLook, bareOutline, paintBare } from '../../art/style/bare';
-import { LIGHT, type Box, type PathFn, type Pose, ao, inkOf, spec } from '../../art/style/kit';
-import { type Material, MATERIALS, paint } from '../../art/style/materials';
+import { LIGHT, type Box, type PathFn, type Pose, ao, formFill, inkOf, inside, spec, texture } from '../../art/style/kit';
+import { type Material, MATERIALS } from '../../art/style/materials';
 import { Sil } from '../../art/style/sil';
 import { contact } from '../../art/style/details';
 import { type Ctx, mix, rgba, shade } from '../../art/util';
@@ -41,13 +41,24 @@ export const RMAT = {
 export type RMatId = keyof typeof RMAT;
 
 /** A lit piece inside a silhouette: its contact shadow on what's under it, then the material. */
-export function piece(g: Ctx, path: PathFn, box: Box, mat: RMatId | Material, base?: string, o: { shadow?: number; spec?: boolean; texA?: number } = {}): void {
+export function piece(g: Ctx, path: PathFn, box: Box, mat: RMatId | Material, base?: string, o: { shadow?: number; spec?: boolean; texA?: number; size?: number } = {}): void {
   if ((o.shadow ?? 0.3) > 0)
     contact(g, (c) => {
       path(c);
       c.fill();
     }, o.shadow ?? 0.3, 2.4, 3);
-  paint(g, path, box, typeof mat === 'string' ? RMAT[mat] : mat, base, { spec: o.spec, texA: o.texA });
+  const m = typeof mat === 'string' ? RMAT[mat] : mat;
+  const b = base ?? m.base;
+  // the form shadow sized for a detail, not the box it's laid out in (thin straps stay lit)
+  const fs = o.size ?? Math.min(Math.min(box.w, box.h) * 0.16, 12);
+  formFill(g, path, box, { base: b, shadowTint: m.shadowTint, ramp: m.ramp, form: m.form, bevel: m.bevel, rim: m.rim, formSize: fs });
+  inside(g, path, () => {
+    if (m.tex) texture(g, m.tex, box, o.texA ?? m.texA ?? 0.3, m.texScale ?? 1, m.texOp ?? 'overlay');
+    if (o.spec !== false && m.specA > 0) {
+      const r = Math.max(box.w, box.h) * m.specSize;
+      spec(g, box.x + box.w * 0.34, box.y + box.h * 0.3, r, r * 0.6, m.specA, -0.7);
+    }
+  });
 }
 
 /** Clip to a path and run fn. */
@@ -187,3 +198,30 @@ export function band(g: Ctx, y: number, w: number, a = 0.3, col = LIGHT.ao): voi
 
 /** The ink for a base colour. */
 export { inkOf };
+
+/** A loose feather (falling off a bird), at the origin, pointing down-right. */
+export function drawFeather(g: Ctx, col: string): void {
+  g.save();
+  g.rotate(0.6);
+  const vane: PathFn = (c) => {
+    c.beginPath();
+    c.moveTo(0, -16);
+    c.bezierCurveTo(9, -10, 8, 8, 0, 16);
+    c.bezierCurveTo(-8, 8, -8, -10, 0, -16);
+    c.closePath();
+  };
+  g.fillStyle = vgrad(g, -16, 16, [[0, shade(col, 0.3)], [1, shade(col, -0.3)]]);
+  vane(g);
+  g.fill();
+  g.strokeStyle = rgba(shade(col, -0.5), 0.8);
+  g.lineWidth = 1.4;
+  vane(g);
+  g.stroke();
+  g.strokeStyle = rgba('#ffffff', 0.8);
+  g.lineWidth = 1;
+  g.beginPath();
+  g.moveTo(0, -14);
+  g.lineTo(0, 20);
+  g.stroke();
+  g.restore();
+}
