@@ -383,6 +383,9 @@ class Showcase extends Phaser.Scene {
     const top = this.scroller.scrollTop;
     const vh = this.scroller.clientHeight;
     this.cameras.main.setScroll(0, top);
+    // the canvas lives in the scrolled content, placed where this frame's view is: between frames the browser
+    // scrolls it with the cards (on the compositor), so the feet never lag behind their cards while scrolling
+    this.game.canvas.style.top = `${top}px`;
     this.built = 0;
     // near the view: make its pair (closest first, one a frame); far from it: drop it
     const near = this.entries.filter((e) => e.card.offsetParent && e.y < top + vh + 260 && e.y + e.h > top - 260);
@@ -586,7 +589,7 @@ export function installStyleSheet(): void {
         <h3>Palette</h3><div data-palette></div>
         <h3>Materials</h3><p>Each sets a ramp, a shadow tint, a texture, a specular response and a rim (src/art/style/materials.ts).</p>
         <div class="ss-row" data-mats></div>
-      </div></div><canvas class="ss-canvas"></canvas>`;
+      <canvas class="ss-canvas"></canvas></div></div>`;
     document.body.appendChild(wrap);
     wrap.querySelector('[data-x]')!.addEventListener('click', close);
     const scroller = wrap.querySelector('.ss-scroll') as HTMLElement;
@@ -667,7 +670,6 @@ export function installStyleSheet(): void {
         e.w = r.width;
         e.h = r.height;
       }
-      canvas.style.top = `${scroller.offsetTop}px`;
     };
     layout();
     const vw = scroller.clientWidth;
