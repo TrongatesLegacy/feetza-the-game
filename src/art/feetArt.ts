@@ -4,7 +4,7 @@
 import { kindDrawer } from './registry';
 import { type DrawOpts, styleFor } from './style/registry';
 import { type Pose, REST, STYLE } from './style/kit';
-import { type LegSpec, fadeFootTop, legEnd, styledHem, styledLeg } from './style/legs';
+import { type LegPattern, type LegSpec, fadeFootTop, legEnd, legOverride, styledHem, styledLeg } from './style/legs';
 import type { FootArt, FootType, LegKind } from '../data/feet';
 import { type Ctx, ellipse, hashStr, makeCanvas, mix, rgba, rng, roundRect, shade } from './util';
 import { CX, INK, OUT, argyle, barePath, drawBare, drawBareBody, drawHair, drawSock, drawToe, glossy, laces, leatherFill, outlineOf, shoePath, skinBodyFill, toesFor } from './feetCommon';
@@ -1249,15 +1249,59 @@ export function styledCanvas(type: FootType, p: Pose, o: DrawOpts, band?: { y0: 
   st.draw(ctx, type.art, p, o);
   // hand the canvas back in plain texture pixels (callers cut and fade it)
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  if (!band && st.leg?.join === 'blend') fadeFootTop(c, s, PAD_Y, st.leg.fade ?? 22);
+  if (!band && st.leg?.join === 'blend') fadeFootTop(c, s, PAD_Y, st.leg.fade ?? 22, CX + PAD_X, st.leg.fadeSpan ?? st.leg.hw);
   return c;
 }
 
-/** The colours a styled leg takes from the foot's art. */
-function legColours(art: FootArt, spec: LegSpec): [string, string | undefined] {
-  if (spec.kind === 'fur') return [art.primary ?? art.skin, undefined];
-  if (spec.kind === 'skin' || spec.kind === 'basalt') return [art.skin, undefined];
-  return [art.legColor ?? art.skin, art.secondary];
+/** The pattern a foot's old leg had (sport-sock stripes, argyle, a toe sock's rainbow, stripy tights, clown dots,
+ * ballet ribbons, puffer quilting, bandage wraps) and its colour, so the styled leg keeps it. */
+function legacyPattern(art: FootArt): [LegPattern, string | undefined] {
+  switch (art.leg) {
+    case 'sock':
+      if (art.kind === 'toesock') return ['rainbow', '#ffffff'];
+      if (art.argyle) return ['argyle', art.secondary];
+      return ['stripes', art.legAccent ?? art.secondary];
+    case 'tights':
+      return art.legAccent ? ['hoops', art.legAccent] : ['none', undefined];
+    case 'clown':
+      return ['dots', art.legAccent];
+    case 'ribbon':
+      return ['ribbon', art.secondary];
+    case 'puffy':
+      return ['quilt', art.legAccent];
+    case 'bandage':
+      return ['bandage', art.primary];
+    default:
+      return ['none', undefined];
+  }
+}
+
+/** A styled foot's leg as drawn: its style's spec with any registerLeg override merged in, the old leg's pattern on
+ * cloth legs, nylon for old tights and polished plate for old armour, and its colours from the foot's art. */
+export function resolvedLeg(type: FootType, styleLeg: LegSpec): { spec: LegSpec; color: string; accent: string | undefined } {
+  const art = type.art;
+  const spec: LegSpec = { ...styleLeg, ...legOverride(type.id) };
+  const cloth = ['knit', 'wool', 'tights', 'denim'].includes(spec.kind);
+  if (spec.pattern === undefined) {
+    const [pat, col] = legacyPattern(art);
+    if (pat !== 'none' && col && (cloth || pat === 'bandage') && !(pat === 'bandage' && spec.kind === 'skin')) {
+      spec.pattern = pat;
+      spec.accent ??= col;
+    }
+  }
+  if (!legOverride(type.id)?.kind) {
+    if ((art.leg === 'tights' || art.leg === 'ribbon') && spec.kind === 'knit') spec.kind = 'tights';
+    if (art.leg === 'armor' && spec.kind === 'iron') spec.kind = 'plate';
+  }
+  let color: string;
+  if (spec.color) color = spec.color;
+  else if (spec.kind === 'fur') color = art.primary ?? art.skin;
+  else if (spec.kind === 'skin' || spec.kind === 'basalt') color = art.skin;
+  else if (spec.kind === 'plate') color = art.primary ?? art.legColor ?? art.skin;
+  else color = art.legColor ?? art.skin;
+  // a plate leg's trim is the armour's accent; an iron leg's service light the foot's secondary colour
+  const accent = spec.accent ?? (spec.kind === 'plate' || spec.kind === 'iron' ? art.secondary : undefined);
+  return { spec: { ...spec, color, accent }, color, accent };
 }
 
 /** A foot's textures. `classic` draws a redrawn foot's old art instead (the style sheet's before/after). */
@@ -1273,14 +1317,14 @@ export function drawFoot(type: FootType, resOverride?: number, classic = false):
   if (style) {
     style.draw(ctx, art, REST, { live: false });
     const cy = style.contactY ?? 260;
-    const spec = style.leg;
-    if (spec?.join === 'blend') fadeFootTop(c, s, PAD_Y, spec.fade ?? 22);
-    const [legCol, legAcc] = spec ? legColours(art, spec) : ['', undefined];
+    const leg = style.leg ? resolvedLeg(type, style.leg) : undefined;
+    const spec = leg?.spec;
+    if (spec?.join === 'blend') fadeFootTop(c, s, PAD_Y, spec.fade ?? 22, CX + PAD_X, spec.fadeSpan ?? spec.hw);
     return {
       res,
       foot: c,
-      leg: spec ? styledLeg(spec, legCol, legAcc, s) : drawLeg(type, s),
-      cuff: spec ? (spec.join === 'hem' ? styledHem(spec, legCol, s) : undefined) : drawCuff(type, s),
+      leg: leg && spec ? styledLeg(spec, leg.color, leg.accent, s) : drawLeg(type, s),
+      cuff: leg && spec ? (spec.join === 'hem' ? styledHem(spec, leg.color, s) : undefined) : drawCuff(type, s),
       legEnd: spec ? legEnd(spec) : undefined,
       cuffTop: spec?.join === 'hem' ? -18 : undefined,
       originY: (cy + PAD_Y) / DESIGN_H,

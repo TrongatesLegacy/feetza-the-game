@@ -9,7 +9,13 @@ import { type Ctx, makeCanvas, mix, rgba, shade } from '../util';
 import { LIGHT, STYLE, inkOf, texture } from './kit';
 import { MATERIALS } from './materials';
 
-export type LegStyleKind = 'denim' | 'wool' | 'skin' | 'basalt' | 'fur' | 'iron' | 'knit';
+/** The built-in leg materials, plus any registered with registerLegKind. 'tights' is smooth nylon with a sheen,
+ * 'plate' polished armour, 'scales' a scaly hide. */
+export type LegStyleKind = 'denim' | 'wool' | 'skin' | 'basalt' | 'fur' | 'iron' | 'knit' | 'tights' | 'plate' | 'scales' | (string & {});
+
+/** A pattern laid over a leg's material, tiling seamlessly: sport-sock stripes, wide hoops (stripy tights), argyle,
+ * polka dots, rainbow toe-sock stripes, criss-cross ballet ribbons, quilted puffer panels, bandage wraps. */
+export type LegPattern = 'none' | 'stripes' | 'hoops' | 'argyle' | 'dots' | 'rainbow' | 'ribbon' | 'quilt' | 'bandage';
 
 export interface LegSpec {
   kind: LegStyleKind;
@@ -18,8 +24,82 @@ export interface LegSpec {
   join: 'blend' | 'hem' | 'into';
   /** 'blend': how far (design units) the foot's top fades into the leg. */
   fade?: number;
+  /** 'blend': the half width the fade covers (default hw; it reaches 16 units further with a soft edge, and art
+   * beyond keeps its top). */
+  fadeSpan?: number;
   /** Design y where the leg ends inside the foot (default: by join). */
   end?: number;
+  /** The leg's colour (default: from the foot's art, as its old leg had it). */
+  color?: string;
+  /** Its accent: the pattern's colour, an iron leg's service light (default: from the foot's art). */
+  accent?: string;
+  /** A pattern over the material (default: the old leg's pattern, if it had one). */
+  pattern?: LegPattern;
+  /** Iron legs: light the accent as a glowing strip (default true). */
+  glow?: boolean;
+}
+
+/** A leg material of your own: paint its detail over the base ramp in the tile (x0…x0+w, 0…H; anything that
+ * crosses the tile's top or bottom must wrap, see wrapTile). */
+export interface LegKindDef {
+  /** The colour its shadows go to. */
+  tint: string;
+  /** How bright the lit side gets (0…1, default 0.2). */
+  sheen?: number;
+  draw(ctx: Ctx, x0: number, w: number, H: number, base: string, accent: string | undefined): void;
+}
+
+const customKinds: Record<string, LegKindDef> = {};
+
+/** Add a leg material (use it as a LegSpec kind). */
+export function registerLegKind(name: string, def: LegKindDef): void {
+  customKinds[name] = def;
+}
+
+const legOverrides: Record<string, Partial<LegSpec>> = {};
+
+/** Change one foot's styled leg (kind, colour, accent, pattern…) without touching its style: merged over its
+ * style's leg spec. */
+export function registerLeg(footId: string, o: Partial<LegSpec>): void {
+  legOverrides[footId] = { ...legOverrides[footId], ...o };
+}
+
+/** A foot's leg spec with its overrides (registerLeg) merged in. */
+export function legOverride(footId: string): Partial<LegSpec> | undefined {
+  return legOverrides[footId];
+}
+
+/** Draw `fn` three times, a tile apart, so anything crossing the tile's top or bottom wraps round (for leg kinds). */
+export function wrapTile(ctx: Ctx, H: number, fn: () => void): void {
+  wrap(ctx, H, fn);
+}
+
+/** Hue (0…360), saturation and lightness (0…1) of a #rrggbb colour. */
+function hsl(hex: string): [number, number, number] {
+  const n = parseInt(hex.slice(1, 7), 16);
+  const r = ((n >> 16) & 255) / 255;
+  const g = ((n >> 8) & 255) / 255;
+  const b = (n & 255) / 255;
+  const mx = Math.max(r, g, b);
+  const mn = Math.min(r, g, b);
+  const l = (mx + mn) / 2;
+  const d = mx - mn;
+  if (d < 1e-6) return [0, 0, l];
+  const s = d / (1 - Math.abs(2 * l - 1));
+  const h = mx === r ? ((g - b) / d + 6) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [h * 60, s, l];
+}
+
+/** Is this a human skin tone (warm orange-brown hues)? Its shadows may go subsurface red; any other colour's go
+ * to a deeper shade of itself. */
+export function humanSkin(hex: string): boolean {
+  const [h, s] = hsl(hex);
+  return h >= 8 && h <= 42 && s > 0.18 && s < 0.85;
+}
+
+/** The colour a skin-like material's shadows go to: red for human skin, otherwise its own deep shade. */
+export function skinTint(base: string): string {
+  return humanSkin(base) ? MATERIALS.skin.shadowTint : mix(shade(base, -0.55), '#1a1830', 0.25);
 }
 
 /** The leg tile's height in texture pixels: a multiple of the material textures' 128 px period, so it tiles. */
@@ -56,7 +136,7 @@ function seeded(seed: number): () => number {
   };
 }
 
-function legDetail(ctx: Ctx, kind: LegStyleKind, x0: number, w: number, H: number, base: string, accent: string | undefined): void {
+function legDetail(ctx: Ctx, kind: LegStyleKind, x0: number, w: number, H: number, base: string, accent: string | undefined, glowStrip: boolean): void {
   const r = seeded(kind.length * 977 + Math.round(w));
   const box = { x: x0, y: 0, w, h: H };
   switch (kind) {
@@ -112,14 +192,18 @@ function legDetail(ctx: Ctx, kind: LegStyleKind, x0: number, w: number, H: numbe
     }
     case 'skin': {
       texture(ctx, 'pores', box, 0.22, 1, 'soft-light');
-      // gentle tone variation, wrapped so it tiles
+      // gentle tone variation, wrapped so it tiles: a warm flush on human skin, the foot's own darker and lighter
+      // tones on anything else (stone, scales, green, blue or ghostly skins)
+      const human = humanSkin(base);
+      const warm = human ? '#ff7a6a' : shade(base, 0.25);
+      const deep = human ? '#000000' : shade(base, -0.45);
       wrap(ctx, H, () => {
         for (let i = 0; i < 6; i++) {
           const x = x0 + r() * w;
           const y = r() * H;
           const g = ctx.createRadialGradient(x, y, 0, x, y, 14 + r() * 16);
-          g.addColorStop(0, rgba(i % 2 ? '#ff7a6a' : '#000000', 0.06));
-          g.addColorStop(1, rgba('#000000', 0));
+          g.addColorStop(0, rgba(i % 2 ? warm : deep, human ? 0.06 : 0.09));
+          g.addColorStop(1, rgba(deep, 0));
           ctx.fillStyle = g;
           ctx.fillRect(x - 32, y - 32, 64, 64);
         }
@@ -203,7 +287,7 @@ function legDetail(ctx: Ctx, kind: LegStyleKind, x0: number, w: number, H: numbe
           ctx.fill();
         }
       }
-      if (accent) {
+      if (accent && glowStrip) {
         const ax = x0 + w * 0.72;
         ctx.save();
         ctx.shadowColor = accent;
@@ -216,7 +300,288 @@ function legDetail(ctx: Ctx, kind: LegStyleKind, x0: number, w: number, H: numbe
       }
       break;
     }
+    case 'tights': {
+      // smooth nylon: a faint fine grain and a long soft sheen down the lit side
+      texture(ctx, 'grain', box, 0.12, 1, 'soft-light');
+      const g = ctx.createLinearGradient(x0, 0, x0 + w, 0);
+      g.addColorStop(0, rgba('#ffffff', 0));
+      g.addColorStop(0.2, rgba('#ffffff', 0.05));
+      g.addColorStop(0.3, rgba('#ffffff', 0.26));
+      g.addColorStop(0.38, rgba('#ffffff', 0.06));
+      g.addColorStop(0.5, rgba('#ffffff', 0));
+      g.addColorStop(1, rgba('#ffffff', 0));
+      ctx.fillStyle = g;
+      ctx.fillRect(x0, 0, w, H);
+      break;
+    }
+    case 'plate': {
+      // a polished greave: banded reflections down its length, plate joints with a trim (four to a tile)
+      texture(ctx, 'brushed', box, 0.16, 1);
+      const g = ctx.createLinearGradient(x0, 0, x0 + w, 0);
+      g.addColorStop(0, rgba('#000000', 0.2));
+      g.addColorStop(0.16, rgba('#ffffff', 0.08));
+      g.addColorStop(0.27, rgba('#ffffff', 0.5));
+      g.addColorStop(0.33, rgba('#ffffff', 0.12));
+      g.addColorStop(0.55, rgba('#000000', 0.12));
+      g.addColorStop(0.7, rgba('#ffffff', 0.14));
+      g.addColorStop(0.86, rgba('#000000', 0.3));
+      g.addColorStop(1, rgba('#000000', 0.1));
+      ctx.fillStyle = g;
+      ctx.fillRect(x0, 0, w, H);
+      const n = Math.max(1, Math.round(H / 64));
+      for (let i = 0; i < n; i++) {
+        const y = ((i + 0.5) / n) * H;
+        // the joint: the plate above overlaps the one below and casts onto it
+        const sh = ctx.createLinearGradient(0, y, 0, y + 7);
+        sh.addColorStop(0, rgba('#000000', 0.4));
+        sh.addColorStop(1, rgba('#000000', 0));
+        ctx.fillStyle = sh;
+        ctx.fillRect(x0, y, w, 7);
+        if (accent) {
+          ctx.fillStyle = ramp(ctx, x0, w, accent, '#2a1408', 0.4);
+          ctx.fillRect(x0, y - 5, w, 4.5);
+          ctx.fillStyle = rgba('#fff6d8', 0.55);
+          ctx.fillRect(x0, y - 5, w, 1);
+        }
+        ctx.fillStyle = rgba(LIGHT.key, 0.45);
+        ctx.fillRect(x0, y - 0.6, w, 1.1);
+      }
+      break;
+    }
+    case 'scales': {
+      texture(ctx, 'scales', box, 0.45, 1.5);
+      // rows of lit scale edges, offset row by row, spaced to tile
+      const rows = Math.max(2, Math.round(H / 11));
+      const sp = H / rows;
+      const sw = 14;
+      ctx.lineCap = 'round';
+      for (let j = 0; j <= rows; j++) {
+        const y = j * sp;
+        const off = j % 2 ? sw / 2 : 0;
+        for (let x = x0 - sw + off; x < x0 + w + sw; x += sw) {
+          ctx.strokeStyle = rgba(shade(base, -0.5), 0.5);
+          ctx.lineWidth = 1.8;
+          ctx.beginPath();
+          ctx.arc(x, y, sw / 2, 0.15, Math.PI - 0.15);
+          ctx.stroke();
+          ctx.strokeStyle = rgba(shade(base, 0.45), 0.3);
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.arc(x - 0.6, y + 1.6, sw / 2 - 2, Math.PI * 0.75, Math.PI * 0.95);
+          ctx.stroke();
+        }
+      }
+      break;
+    }
+    default:
+      customKinds[kind]?.draw(ctx, x0, w, H, base, accent);
   }
+}
+
+/** Lay a leg's pattern in the tile, lit like the cylinder (the material's texture and shading go over it). */
+function legPattern(ctx: Ctx, pat: LegPattern, x0: number, w: number, H: number, base: string, accent: string): void {
+  // a pattern's period must divide the tile so it wraps: the nearest that does to the one wanted
+  const per = (want: number) => H / Math.max(1, Math.round(H / want));
+  const lit = (col: string) => ramp(ctx, x0, w, col, mix(shade(col, -0.5), '#1a1830', 0.3), 0.22);
+  // a band round the leg: it bows down a little in the middle, as round as the leg is
+  const band = (y: number, h: number, col: string | CanvasGradient) => {
+    const sag = 2.2;
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.moveTo(x0 - 1, y);
+    ctx.quadraticCurveTo(x0 + w / 2, y + sag * 2, x0 + w + 1, y);
+    ctx.lineTo(x0 + w + 1, y + h);
+    ctx.quadraticCurveTo(x0 + w / 2, y + h + sag * 2, x0 - 1, y + h);
+    ctx.closePath();
+    ctx.fill();
+  };
+  ctx.save();
+  switch (pat) {
+    case 'stripes': {
+      // sport-sock stripes: a broad one and a thin one to each repeat (the old legs': 16 and 6 units in 64)
+      const p = per(64);
+      const k = p / 64;
+      wrap(ctx, H, () => {
+        for (let y = 0; y < H - 0.5; y += p) {
+          band(y + 8 * k, 16 * k, lit(accent));
+          band(y + 36 * k, 6 * k, lit(accent));
+        }
+      });
+      break;
+    }
+    case 'hoops': {
+      const p = per(32);
+      wrap(ctx, H, () => {
+        for (let y = 0; y < H - 0.5; y += p) band(y, p / 2, lit(accent));
+      });
+      break;
+    }
+    case 'rainbow': {
+      const cols = ['#ff4d6d', '#ff9f1c', '#ffd23f', '#3ddc97', '#4cc9f0', '#7b5cff'];
+      const n = Math.max(6, Math.round(H / 16 / 6) * 6);
+      const p = H / n;
+      wrap(ctx, H, () => {
+        for (let i = 0; i < n; i++) band(i * p, p * 0.55, lit(cols[i % cols.length]));
+      });
+      break;
+    }
+    case 'argyle': {
+      // diamonds two across, in the accent and a deeper shade of the base, with a light overcheck
+      const dw = w / 2;
+      const dh = per(dw * 1.5);
+      const deepC = mix(shade(base, -0.35), accent, 0.15);
+      const rows = Math.round(H / dh);
+      const diamond = (cx: number, cy: number, col: string | CanvasGradient) => {
+        ctx.fillStyle = col;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - dh / 2);
+        ctx.lineTo(cx + dw / 2, cy);
+        ctx.lineTo(cx, cy + dh / 2);
+        ctx.lineTo(cx - dw / 2, cy);
+        ctx.closePath();
+        ctx.fill();
+      };
+      wrap(ctx, H, () => {
+        for (let j = 0; j < rows; j++)
+          for (let i = -1; i <= 2; i++) {
+            const off = j % 2 ? dw / 2 : 0;
+            diamond(x0 + dw / 2 + i * dw + off, j * dh + dh / 2, (i + j) % 2 ? lit(accent) : lit(deepC));
+          }
+        ctx.strokeStyle = rgba(mix(accent, '#ffffff', 0.55), 0.75);
+        ctx.lineWidth = 1.2;
+        ctx.setLineDash([3, 2.5]);
+        for (let j = 0; j < rows; j++)
+          for (let i = -2; i <= 3; i++) {
+            const x = x0 + i * dw;
+            ctx.beginPath();
+            ctx.moveTo(x, j * dh);
+            ctx.lineTo(x + dw, (j + 1) * dh);
+            ctx.moveTo(x + dw, j * dh);
+            ctx.lineTo(x, (j + 1) * dh);
+            ctx.stroke();
+          }
+        ctx.setLineDash([]);
+      });
+      break;
+    }
+    case 'dots': {
+      const p = per(Math.max(18, w * 0.42));
+      const rows = Math.round(H / p);
+      const rr = Math.min(p * 0.26, 9);
+      wrap(ctx, H, () => {
+        for (let j = 0; j < rows; j++) {
+          const off = j % 2 ? p / 2 : 0;
+          for (let x = x0 - p + off; x < x0 + w + p; x += p) {
+            const y = j * p + p / 2;
+            // a dot on a round leg narrows towards its sides
+            const u = (x - x0) / w;
+            const squeeze = Math.max(0.35, Math.sin(Math.max(0.05, Math.min(0.95, u)) * Math.PI));
+            const g = ctx.createRadialGradient(x - rr * 0.3, y - rr * 0.35, rr * 0.1, x, y, rr);
+            g.addColorStop(0, mix(accent, '#ffffff', 0.35));
+            g.addColorStop(0.7, accent);
+            g.addColorStop(1, shade(accent, -0.25));
+            ctx.fillStyle = g;
+            ctx.beginPath();
+            ctx.ellipse(x, y, rr * squeeze, rr, 0, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      });
+      break;
+    }
+    case 'ribbon': {
+      // ballet ribbons criss-crossing up the leg, lit along their edges
+      const p = per(w * 1.1);
+      const rw = 7;
+      wrap(ctx, H, () => {
+        ctx.lineCap = 'butt';
+        for (let y = 0; y < H - 0.5; y += p)
+          for (const [a, b] of [[0, 1], [1, 0]] as const) {
+            ctx.strokeStyle = rgba('#000000', 0.22);
+            ctx.lineWidth = rw + 2.5;
+            ctx.beginPath();
+            ctx.moveTo(x0 + a * w, y + 1.5);
+            ctx.lineTo(x0 + b * w, y + p + 1.5);
+            ctx.stroke();
+            ctx.strokeStyle = accent;
+            ctx.lineWidth = rw;
+            ctx.beginPath();
+            ctx.moveTo(x0 + a * w, y);
+            ctx.lineTo(x0 + b * w, y + p);
+            ctx.stroke();
+            ctx.strokeStyle = rgba(mix(accent, '#ffffff', 0.6), 0.7);
+            ctx.lineWidth = 1.4;
+            ctx.beginPath();
+            ctx.moveTo(x0 + a * w, y - rw * 0.32);
+            ctx.lineTo(x0 + b * w, y + p - rw * 0.32);
+            ctx.stroke();
+          }
+      });
+      break;
+    }
+    case 'quilt': {
+      // puffer panels: stitched seams round the leg, each panel puffed (lit at the top, shaded at its seam)
+      const p = per(30);
+      wrap(ctx, H, () => {
+        for (let y = 0; y < H - 0.5; y += p) {
+          const g = ctx.createLinearGradient(0, y, 0, y + p);
+          g.addColorStop(0, rgba('#000000', 0.22));
+          g.addColorStop(0.18, rgba('#ffffff', 0.16));
+          g.addColorStop(0.45, rgba('#ffffff', 0.06));
+          g.addColorStop(0.85, rgba('#000000', 0.1));
+          g.addColorStop(1, rgba('#000000', 0.3));
+          band(y, p, g);
+          ctx.strokeStyle = rgba(shade(base, -0.5), 0.6);
+          ctx.lineWidth = 1.2;
+          ctx.setLineDash([2.6, 2.2]);
+          ctx.beginPath();
+          ctx.moveTo(x0, y + 1);
+          ctx.quadraticCurveTo(x0 + w / 2, y + 5.4, x0 + w, y + 1);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+      });
+      if (accent && accent !== base) {
+        // the side stripe down the leg
+        const ax = x0 + w * 0.68;
+        ctx.fillStyle = lin(ctx, ax, 0, ax + 10, 0, accent);
+        ctx.fillRect(ax, 0, 10, H);
+      }
+      break;
+    }
+    case 'bandage': {
+      // linen wraps spiralling up, overlapping, each a little lighter or darker, with frayed edges
+      const p = per(15);
+      const n = Math.round(H / p);
+      wrap(ctx, H, () => {
+        for (let i = 0; i < n; i++) {
+          const y = i * p;
+          ctx.save();
+          ctx.translate(x0 + w / 2, y);
+          ctx.rotate(-0.22);
+          ctx.fillStyle = mix(base, i % 3 === 1 ? '#ffffff' : '#000000', i % 3 === 1 ? 0.12 : (i % 3) * 0.06);
+          ctx.fillRect(-w, -p * 0.55, w * 2, p * 1.1);
+          // the wrap's lower edge casts a shadow on the one below, its top edge catches the light
+          ctx.fillStyle = rgba('#3a2c18', 0.38);
+          ctx.fillRect(-w, p * 0.5, w * 2, 2);
+          ctx.fillStyle = rgba('#fffbea', 0.3);
+          ctx.fillRect(-w, -p * 0.55, w * 2, 1.2);
+          ctx.restore();
+        }
+      });
+      break;
+    }
+  }
+  ctx.restore();
+}
+
+/** A side-lit vertical strip gradient. */
+function lin(ctx: Ctx, x0: number, _y0: number, x1: number, _y1: number, col: string): CanvasGradient {
+  const g = ctx.createLinearGradient(x0, 0, x1, 0);
+  g.addColorStop(0, shade(col, -0.2));
+  g.addColorStop(0.35, shade(col, 0.25));
+  g.addColorStop(1, shade(col, -0.3));
+  return g;
 }
 
 /** Soft cloth folds across the leg (n to a tile). */
@@ -238,15 +603,25 @@ function folds(ctx: Ctx, x0: number, w: number, H: number, base: string, n: numb
   }
 }
 
-const TINT: Record<LegStyleKind, string> = {
+const TINT: Record<string, string> = {
   denim: '#101838',
   wool: '#1a1430',
   knit: MATERIALS.knit.shadowTint,
-  skin: MATERIALS.skin.shadowTint,
   basalt: '#2a0a18',
   fur: '#141428',
   iron: MATERIALS.iron.shadowTint,
+  tights: '#1a1430',
+  plate: '#10121c',
+  scales: '#102838',
 };
+
+/** Where a leg's shadows go: a skin leg's follow its own colour (skinTint), the rest their material's. */
+function tintOf(kind: LegStyleKind, base: string): string {
+  if (kind === 'skin') return skinTint(base);
+  return TINT[kind] ?? customKinds[kind]?.tint ?? '#1a1430';
+}
+
+const SHEEN: Record<string, number> = { iron: 0.35, plate: 0.45, tights: 0.3, scales: 0.25 };
 
 /** A styled leg tile at s texels per design unit: (2·hw + outline) wide, tiling downwards. */
 export function styledLeg(spec: LegSpec, base: string, accent: string | undefined, s: number): HTMLCanvasElement {
@@ -256,13 +631,17 @@ export function styledLeg(spec: LegSpec, base: string, accent: string | undefine
   ctx.scale(s, s);
   const x0 = PAD;
   const w = spec.hw * 2;
-  ctx.fillStyle = ramp(ctx, x0, w, base, TINT[spec.kind], spec.kind === 'iron' ? 0.35 : 0.2);
+  ctx.fillStyle = ramp(ctx, x0, w, base, tintOf(spec.kind, base), SHEEN[spec.kind] ?? customKinds[spec.kind]?.sheen ?? 0.2);
   ctx.fillRect(x0, 0, w, H);
   ctx.save();
   ctx.beginPath();
   ctx.rect(x0, 0, w, H);
   ctx.clip();
-  legDetail(ctx, spec.kind, x0, w, H, base, accent);
+  const acc = spec.accent ?? accent;
+  // a pattern sits in the cloth: under its texture (knit stitches, denim twill) and the cylinder's shading
+  const pat = spec.pattern ?? 'none';
+  if (pat !== 'none' && acc) legPattern(ctx, pat, x0, w, H, base, acc);
+  legDetail(ctx, spec.kind, x0, w, H, base, acc, spec.glow ?? true);
   // the cylinder's shading over the detail: light on the left, rim on the right
   const sh = ctx.createLinearGradient(x0, 0, x0 + w, 0);
   sh.addColorStop(0, rgba('#000000', 0.12));
@@ -317,9 +696,11 @@ export function styledHem(spec: LegSpec, base: string, s: number): HTMLCanvasEle
   ctx.save();
   hem(ctx);
   ctx.clip();
-  ctx.fillStyle = ramp(ctx, x0, w, base, TINT[spec.kind]);
+  ctx.fillStyle = ramp(ctx, x0, w, base, tintOf(spec.kind, base));
   ctx.fillRect(x0, 0, w, Hh);
-  legDetail(ctx, spec.kind === 'denim' ? 'denim' : 'wool', x0, w, Hh, base, undefined);
+  const pat = spec.pattern ?? 'none';
+  if (pat !== 'none' && spec.accent) legPattern(ctx, pat, x0, w, Hh, base, spec.accent);
+  legDetail(ctx, spec.kind === 'denim' ? 'denim' : 'wool', x0, w, Hh, base, undefined, false);
   // the turn-up: a fold line, lit on its lip, and the double stitch of the hem
   ctx.fillStyle = rgba('#000000', 0.25);
   ctx.beginPath();
@@ -372,21 +753,40 @@ export function styledHem(spec: LegSpec, base: string, s: number): HTMLCanvasEle
   return c;
 }
 
-/** Fade a styled foot texture's top into its leg ('blend' joins): erase from the top edge down `fade` units.
+/** Fade a styled foot texture's top into its leg ('blend' joins): erase from the top edge down `fade` units, over
+ * the leg's width (centre `cx`, half width `hw`, in texture design units from its left edge) and a margin, so art
+ * well beside the leg (wings, ears, horns, tufts) keeps its top. Without hw, the whole width.
  * The canvas is in the foot texture's frame (design y −padY at its top). */
-export function fadeFootTop(c: HTMLCanvasElement, s: number, padY: number, fade: number): void {
+export function fadeFootTop(c: HTMLCanvasElement, s: number, padY: number, fade: number, cx?: number, hw?: number): void {
   const ctx = c.getContext('2d')!;
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.globalCompositeOperation = 'destination-out';
   const y0 = (padY - 6) * s;
   const y1 = (padY - 6 + fade) * s;
-  const g = ctx.createLinearGradient(0, y0, 0, y1);
+  const [m, mx] = makeCanvas(c.width, Math.max(1, y1));
+  const g = mx.createLinearGradient(0, y0, 0, y1);
   g.addColorStop(0, 'rgba(0,0,0,1)');
   g.addColorStop(0.35, 'rgba(0,0,0,.7)');
   g.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, c.width, y1);
+  mx.fillStyle = g;
+  mx.fillRect(0, 0, m.width, m.height);
+  if (cx !== undefined && hw !== undefined) {
+    // over the leg and 16 units either side (the foot's flanks as they narrow into it), then a 12-unit soft edge
+    const soft = 12;
+    const l = (cx - hw - 16 - soft) * s;
+    const r = (cx + hw + 16 + soft) * s;
+    const h = mx.createLinearGradient(l, 0, r, 0);
+    const e = Math.min(0.49, (soft * s) / Math.max(1, r - l));
+    h.addColorStop(0, 'rgba(0,0,0,0)');
+    h.addColorStop(e, 'rgba(0,0,0,1)');
+    h.addColorStop(1 - e, 'rgba(0,0,0,1)');
+    h.addColorStop(1, 'rgba(0,0,0,0)');
+    mx.globalCompositeOperation = 'destination-in';
+    mx.fillStyle = h;
+    mx.fillRect(0, 0, m.width, m.height);
+  }
+  ctx.globalCompositeOperation = 'destination-out';
+  ctx.drawImage(m, 0, 0);
   ctx.restore();
 }
 
