@@ -333,6 +333,13 @@ export class Foot {
     return this.y - this.meta.footHeight * this.scale * 0.45;
   }
 
+  /** Where it hovers: its own or the usual height, but a boss (big, often hovering high) always low enough that the
+   *  whole foot shows below the top of the screen. */
+  hoverAt(): number {
+    const hy = this.hoverY ?? HOVER_Y;
+    return this.isBossLike ? Math.max(hy, this.meta.footHeight * this.scale + 24) : hy;
+  }
+
   setState(s: FootState): void {
     this.state = s;
     this.stateT = 0;
@@ -433,7 +440,7 @@ export class Foot {
       this.vy = 0;
       // bosses holding a lane stay near their usual hover height, clear of the boss bar
       // …low enough that the whole foot shows, up to the ankle (a big boss held at the top used to be cut off)
-      const py = Math.max(this.isBossLike ? (this.hoverY ?? HOVER_Y) - 40 : PINNED_Y, this.meta.footHeight * this.scale + 24);
+      const py = Math.max(this.isBossLike ? this.hoverAt() - 40 : PINNED_Y, this.meta.footHeight * this.scale + 24);
       this.y += (py - this.y) * Math.min(1, dt * 5);
       const px = this.laneX ?? (this.target && !this.target.dead ? this.target.x : this.x);
       this.x += (px - this.x) * Math.min(1, dt * 3);
@@ -464,7 +471,7 @@ export class Foot {
 
     switch (this.state) {
       case 'enter': {
-        const hy = this.hoverY ?? HOVER_Y;
+        const hy = this.hoverAt();
         this.y += (hy - 20 - this.y) * Math.min(1, dt * 4);
         if (this.laneX !== null) this.x += (this.laneX - this.x) * Math.min(1, dt * 3);
         else if (target) this.x += (target.x + this.slot - this.x) * Math.min(1, dt * 3);
@@ -488,7 +495,7 @@ export class Foot {
         // bowling shoe: sways side to side in its lane before it dives
         if (this.has('roll') && this.stateT < this.hoverTime) hoverX += Math.sin(this.age * 3.2) * 70;
         this.x += (hoverX - this.x) * Math.min(1, dt * 3);
-        const hy = this.hoverY ?? HOVER_Y;
+        const hy = this.hoverAt();
         this.y += ((this.waiting ? hy - 170 : hy) - this.y) * Math.min(1, dt * 3);
         if (this.type.traits.includes('teleport') && this.stateT > this.hoverTime * 0.6 && Math.random() < dt * 0.8) {
           const from = this.target;
