@@ -2439,9 +2439,9 @@ export class GameScene extends Phaser.Scene implements Arena {
     ];
   }
 
-  /** A pull costs about what a Chef's Special would (a middling one), rising with the wave. */
+  /** A pull costs about 1¼ times a pizza at the counter. */
   private slotsCost(): number {
-    return this.boughtOut(Math.round((this.pizzaPrice() * 2 + 2 * (15 + 2 * this.run.wave)) / 5) * 5);
+    return this.boughtOut(Math.round((this.pizzaPrice() * 1.25) / 5) * 5);
   }
 
   private shopSlots(pay: 'tips' | 'crusts'): void {
