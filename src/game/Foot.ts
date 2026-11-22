@@ -648,7 +648,11 @@ export class Foot {
   }
 
   /** Dev views: crop the leg so it ends at local y `top` (above the foot) instead of running off screen. */
+  /** Set once a dev view crops the leg (cropLeg): things hung from above stop at the crop instead. */
+  legCropped = false;
+
   cropLeg(top: number): void {
+    this.legCropped = true;
     const h = Math.max(1, Math.round(this.leg.y - top));
     if (Math.abs(this.leg.height - h) >= 1) this.leg.setSize(this.leg.width, h);
     // the tile pattern starts at the sprite's top: shift it so it stays fixed to the leg's bottom (the foot), as

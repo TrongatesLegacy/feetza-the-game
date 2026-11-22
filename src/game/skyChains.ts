@@ -146,6 +146,8 @@ export class SkyChains {
       y = m.applyInverse(cam.worldView.centerX, cam.worldView.y, this.pt).y;
     }
     const legTop = this.f.root.y + this.f.legTopLocal * this.f.root.scaleY;
+    // a dev view's card: hang from the card's top edge, not from above it (they'd cross the cards over it)
+    if (this.f.legCropped) return legTop;
     return Math.max(y, legTop) - ABOVE / s;
   }
 

@@ -369,12 +369,14 @@ function makeTexture(kind: TextureKind): HTMLCanvasElement {
         d[o + 3] = 255;
       }
   };
-  // tileable noise: sample on a torus by blending the four wrapped copies
+  // tileable noise: blend the noise with its copies one tile back, so each edge meets its opposite exactly (at
+  // u = 1 the blend is all n(u - 1) = n(0), what u = 0 shows). (It used u + 1, which never wrapped: every noise
+  // texture had a seam at each tile edge, a visible grid on stone.)
   const tn = (i: number, j: number, f: number, seed: number) => {
     const u = i / TEX;
     const v = j / TEX;
     const n = (a: number, b: number) => vnoise(a * f, b * f, seed);
-    return n(u, v) * (1 - u) * (1 - v) + n(u + 1, v) * u * (1 - v) + n(u, v + 1) * (1 - u) * v + n(u + 1, v + 1) * u * v;
+    return n(u, v) * (1 - u) * (1 - v) + n(u - 1, v) * u * (1 - v) + n(u, v - 1) * (1 - u) * v + n(u - 1, v - 1) * u * v;
   };
   const r = (i: number, j: number, s: number) => hash2(i, j, s);
   switch (kind) {
