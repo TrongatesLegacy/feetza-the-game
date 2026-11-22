@@ -2,13 +2,15 @@
 // src/content/style/bosses*.ts. Every one of them overheats in its later phases: the heat layer glows from the sole
 // up (automatic for bosses) and steam pours off it (overheat() below).
 
+import Phaser from 'phaser';
 import { CX } from '../../art/feetCommon';
-import { type LiveFoot, type WorldEmitter, registerLive } from '../../game/liveKit';
+import { type LiveFoot, Spring, type WorldEmitter, registerLive } from '../../game/liveKit';
+import { save } from '../../systems/save';
 import { crand } from '../../systems/cosmeticRandom';
 import { BIG_LOCKS } from '../style/bosses';
 import { drawFly } from '../style/pilot-bare';
 import { JELLY_TENTS } from '../style/bosses-4';
-import { PENNANT, TICKET, saucerWithBeam } from '../style/bosses-3';
+import { DOUGH_CONTACT, DOUGH_STRAND, PENNANT, TICKET, saucerWithBeam } from '../style/bosses-3';
 import { CROC_HOLES_LIVE, CROC_NOZZLES, KELP, RINK_WHEELS, YETI_TUFTS } from '../style/bosses-2';
 
 const R = () => crand();
@@ -437,21 +439,241 @@ registerLive('ufotoe', {
   },
 });
 
-// DOUGH BOY: squishy (big squash and stretch), its eyes blink and follow your peel, flour puffs off it and bursts
-// out when it lands. Overheated, it bakes: a golden crust glow and steam.
+// DOUGH BOY: a blob of dough on soft, under-damped springs of his own (pose). He jiggles and oozes all the time (his
+// width breathes out of step with his height); before a dive he sags and spreads, then gathers himself up and in;
+// he lands with a wide, flat splat and pulls back with an overshooting wobble (the width lags the height, and the
+// mass rocks to his heavy side); as he lifts off, a strand of dough stretches from his sole to the ground, necks
+// and snaps, the halves springing back. Flour drifts off his floury top and puffs out when he lands; his eyes blink
+// and follow your peel. Overheated, he bakes: a golden crust glow and steam.
+interface DoughStrand {
+  /** The ground end (world px) and the time since he lifted off (s). */
+  gx: number;
+  gy: number;
+  t: number;
+  /** How long it stretches before it snaps (design units), and when it did (s). */
+  reach: number;
+  snapAt: number;
+  /** Snapped: its length and direction then, in the foot's own frame (measured on the first frame drawn after). */
+  snap?: { len: number; ux: number; uy: number; measured: boolean };
+}
+
+interface DoughLive {
+  steam: WorldEmitter;
+  flour: WorldEmitter;
+  dust: WorldEmitter;
+  sy: Spring;
+  sx: Spring;
+  rock: Spring;
+  curl: number;
+  ground: [number, number] | null;
+  strand: DoughStrand | null;
+  gfx: Phaser.GameObjects.Graphics;
+  last: string;
+}
+
+const DOUGH_FILL = 0xefd3a0;
+const DOUGH_SHADE = 0xcf9f62;
+const DOUGH_LIT = 0xfff4dc;
+const DOUGH_LINE = 0x4a2610;
+const calm = () => (save.settings.reducedMotion ? 0.35 : 1);
+const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+
+/** Draw the dough strand (or its two snapped halves) in the foot's own frame. */
+function drawStrand(k: LiveFoot, st: DoughLive): void {
+  const g = st.gfx;
+  g.clear();
+  const s = st.strand;
+  if (!s) return;
+  const f = k.f;
+  const r = f.root;
+  const ci = Math.cos(-r.rotation);
+  const si = Math.sin(-r.rotation);
+  // world → the root's frame
+  const loc = (wx: number, wy: number): [number, number] => {
+    const lx = wx - r.x;
+    const ly = wy - r.y;
+    return [(ci * lx - si * ly) / r.scaleX, (si * lx + ci * ly) / r.scaleY];
+  };
+  // one design unit in the root's frame
+  const du = f.type.scale;
+  const [tx, ty] = loc(...f.styleWorld(DOUGH_STRAND[0], DOUGH_STRAND[1]));
+  const [gx, gy] = loc(s.gx, s.gy);
+  /** A tapered rope from a to b: half widths wa at a, wb at b, `neck` at its thinnest (u = at), bowed sideways. */
+  const rope = (ax: number, ay: number, bx: number, by: number, wa: number, wb: number, neck: number, at: number, bow: number, alpha: number) => {
+    const dx = bx - ax;
+    const dy = by - ay;
+    const len = Math.hypot(dx, dy) || 1;
+    const nx = -dy / len;
+    const ny = dx / len;
+    const n = 14;
+    const left: Phaser.Math.Vector2[] = [];
+    const right: Phaser.Math.Vector2[] = [];
+    const lit: Phaser.Math.Vector2[] = [];
+    const shaded: Phaser.Math.Vector2[] = [];
+    for (let i = 0; i <= n; i++) {
+      const u = i / n;
+      const b = Math.sin(u * Math.PI) * bow;
+      const cx = ax + dx * u + nx * b;
+      const cy = ay + dy * u + ny * b;
+      // thick where it pulls out of the sole and where it's stuck to the ground, necking in between
+      const w = neck + (wa - neck) * Math.exp(-(u / Math.max(0.05, at)) * 3) + (wb - neck) * Math.exp(-((1 - u) / Math.max(0.05, 1 - at)) * 3);
+      // (n points to the rope's left: the side facing the light)
+      left.push(new Phaser.Math.Vector2(cx + nx * w, cy + ny * w));
+      right.push(new Phaser.Math.Vector2(cx - nx * w, cy - ny * w));
+      lit.push(new Phaser.Math.Vector2(cx + nx * w * 0.5, cy + ny * w * 0.5));
+      shaded.push(new Phaser.Math.Vector2(cx - nx * w * 0.55, cy - ny * w * 0.55));
+    }
+    const poly = [...left, ...right.reverse()];
+    g.fillStyle(DOUGH_FILL, alpha).fillPoints(poly, true);
+    // its shaded side away from the light, and a lit line down the near side
+    g.lineStyle(Math.max(1, du * 1.6), DOUGH_SHADE, 0.7 * alpha).strokePoints(shaded);
+    g.lineStyle(Math.max(1, du * 1.1), DOUGH_LIT, 0.75 * alpha).strokePoints(lit);
+    g.lineStyle(du * 2.6, DOUGH_LINE, alpha).strokePoints(poly, true);
+  };
+  const blob = (x: number, y: number, rx: number, ry: number, alpha: number) => {
+    g.fillStyle(DOUGH_FILL, alpha).fillEllipse(x, y, rx * 2, ry * 2);
+    g.fillStyle(DOUGH_LIT, 0.7 * alpha).fillEllipse(x - rx * 0.3, y - ry * 0.35, rx * 0.8, ry * 0.5);
+    g.lineStyle(du * 2.6, DOUGH_LINE, alpha).strokeEllipse(x, y, rx * 2, ry * 2);
+  };
+  if (!s.snap) {
+    // stretching: it necks as it gets longer
+    const u = clamp01(Math.hypot(gx - tx, gy - ty) / du / s.reach);
+    const neck = Math.max(1.6, 13 * Math.pow(1 - u, 0.9)) * du;
+    rope(tx, ty, gx, gy, 24 * du, 28 * du, neck, 0.55, Math.sin(s.t * 9) * 5 * du * (1 - u), 1);
+    return;
+  }
+  // snapped: the top half springs back up into his sole, the bottom half slumps into a little puddle that fades
+  const t2 = s.t - s.snapAt;
+  const sn = s.snap;
+  if (!sn.measured) {
+    const len = Math.hypot(gx - tx, gy - ty) || 1;
+    Object.assign(sn, { len, ux: (gx - tx) / len, uy: (gy - ty) / len, measured: true });
+  }
+  const up = Math.max(0, 1 - t2 / 0.14);
+  if (up > 0) {
+    const len = sn.len * 0.55 * up * up;
+    const ex = tx + sn.ux * len;
+    const ey = ty + sn.uy * len;
+    rope(tx, ty, ex, ey, 20 * du, 5 * du, 3.5 * du, 0.6, 0, 1);
+    blob(ex, ey, 6 * du, 7 * du, 1);
+  }
+  const down = Math.max(0, 1 - t2 / 0.24);
+  const fade = Math.max(0, 1 - Math.max(0, t2 - 0.3) / 0.45);
+  if (down > 0) {
+    const len = sn.len * 0.45 * down;
+    rope(gx, gy, gx - sn.ux * len, gy - sn.uy * len, 24 * du, 4.5 * du, 3.5 * du, 0.55, 0, fade);
+    blob(gx - sn.ux * len, gy - sn.uy * len, 5.5 * du, 6.5 * du, fade);
+  }
+  // the puddle it leaves on the ground
+  if (fade > 0) blob(gx, gy - 3 * du, (18 + 10 * (1 - down)) * du, (6 + 3 * down) * du, fade);
+}
+
 registerLive('doughboy', {
   wiggle: true,
-  rig: { squash: 1.8, breath: 1.8 },
-  blink: { eyes: { every: 3, look: 3 } },
+  rig: { swing: 1, squash: 1, breath: 1 },
+  blink: { eyes: { every: 3, look: 2 } },
   heat: {},
-  setup: (k) => ({ steam: steamEm(k), flour: k.emitter({ frame: 'puff', curl: 40, drag: 1.4, max: 140 }) }),
-  tick(k, dt, { steam, flour }) {
-    const s = k.f.type.scale;
-    flour.rate('dust', 3, dt, () => {
-      flour.emit(CX - 100 + R() * 200, 40 + R() * 200, { vx: pm() * 20, vy: 10 + R() * 10, life: 1.4, r0: 4 * s, r1: 14 * s, a: 0.3, tint: 0xffffff, fade: 0.2 });
+  setup(k): DoughLive {
+    const gfx = k.sc.add.graphics();
+    k.f.addLiveFx(gfx, true);
+    return {
+      steam: steamEm(k),
+      flour: k.emitter({ frame: 'puff', curl: 40, drag: 1.4, max: 140 }),
+      dust: k.emitter({ frame: 'puff', curl: 30, drag: 1.6, below: true, max: 80 }),
+      // soft and under-damped: every move wobbles on after it
+      sy: new Spring(1, 150, 7),
+      sx: new Spring(1, 240, 12),
+      rock: new Spring(0, 80, 5),
+      curl: 0,
+      ground: null,
+      strand: null,
+      gfx,
+      last: '',
+    };
+  },
+  pose(k, dt, p, st) {
+    const f = k.f;
+    const c = calm();
+    // the constant jiggle, and the ooze: his width breathes out of step with his height
+    let syTo = 1 + (Math.sin(k.t * 1.25) * 0.016 + Math.sin(k.t * 2.9 + 1) * 0.007) * c;
+    let ooze = Math.sin(k.t * 1.05 + 2) * 0.014 * c;
+    let curlTo = 0;
+    if (k.windingUp) {
+      const u = clamp01((f.stateT - (f.hoverTime - 0.45)) / 0.45);
+      if (u < 0.5) {
+        // he sags, slumping down and out over his sole…
+        syTo = 1 - 0.2 * c;
+        ooze += 0.04 * c;
+        curlTo = -0.5;
+      } else {
+        // …then gathers himself up and in
+        syTo = 1 + 0.15 * c;
+        ooze -= 0.05 * c;
+        curlTo = 1;
+      }
+    } else if (f.state === 'descend') {
+      syTo = 1 + Math.min(0.1, Math.max(0, f.vy) / 4200) * c;
+      curlTo = 0.5;
+    } else if (f.state === 'stomp') curlTo = k.sinceLand < 0.3 ? -1 : 0;
+    else if (f.state === 'lift') {
+      // the sole sticks for a moment as he pulls away
+      syTo = 1 + (st.strand && !st.strand.snap ? 0.1 : 0.03) * c;
+      curlTo = 0.3;
+    }
+    if (k.landed) {
+      // splat: wide and flat, then the springs pull him back with an overshooting wobble
+      st.sy.v -= 7 * c;
+      st.rock.v += 0.9 * c;
+      st.curl = -1;
+    }
+    const sy = Phaser.Math.Clamp(st.sy.step(syTo, dt), 0.66, 1.22);
+    const sx = Phaser.Math.Clamp(st.sx.step(1 + (1 - sy) * 0.95 + ooze, dt), 0.85, 1.6);
+    const rock = st.rock.step(0, dt);
+    st.curl += Math.sign(curlTo - st.curl) * Math.min(Math.abs(curlTo - st.curl), (curlTo > st.curl ? 6 : 4) * dt);
+    return { swing: p.swing + rock * 0.08, sx, sy, curl: st.curl };
+  },
+  tick(k, dt, st) {
+    const f = k.f;
+    const s = f.type.scale;
+    // flour drifting off his floury top
+    st.flour.rate('dust', 1.6, dt, () => {
+      st.flour.emit(CX - 80 + R() * 170, 10 + R() * 90, { vx: pm() * 20, vy: 8 + R() * 12, life: 1.6, r0: 3 * s, r1: 12 * s, a: 0.28, tint: 0xffffff, fade: 0.2 });
     });
-    landDust(k, flour, 20, [0xffffff, 0xfff8ea], 258, 110);
-    overheat(k, steam, dt, [CX - 90, 20, 180, 220]);
+    if (k.landed) {
+      // a puff of flour off the sole, and flour shaken off his top
+      landDust(k, st.dust, 22, [0xffffff, 0xfff6e4, 0xf3e2c0], DOUGH_CONTACT, 124, 1.15);
+      for (let i = 0, n = k.burst(10); i < n; i++) st.flour.emit(CX - 70 + R() * 150, 10 + R() * 70, { vx: pm() * 160, vy: -50 - R() * 70, life: 1 + R() * 0.5, r0: 5 * s, r1: 24 * s, a: 0.34, tint: R() < 0.5 ? 0xffffff : 0xfff6e4, fade: 0.08 });
+      st.ground = f.styleWorld(DOUGH_STRAND[0], DOUGH_CONTACT);
+      st.strand = null;
+    }
+    // lifting off: a strand of dough stretches from his sole to where he stood, and snaps
+    if (f.state === 'lift' && st.last !== 'lift' && st.ground) {
+      st.strand = { gx: st.ground[0], gy: st.ground[1], t: 0, reach: 115 + R() * 30, snapAt: 0 };
+      st.ground = null;
+    }
+    if (f.state === 'descend' || f.state === 'hover') st.ground = null;
+    st.last = f.state;
+    const sd = st.strand;
+    if (sd) {
+      sd.t += dt;
+      const [tx, ty] = f.styleWorld(DOUGH_STRAND[0], DOUGH_STRAND[1]);
+      const len = Math.hypot(sd.gx - tx, sd.gy - ty) || 1;
+      // it snaps once it's stretched as far as it goes (or he's been knocked well clear)
+      if (!sd.snap && (len / (s * f.root.scaleX) >= sd.reach || sd.t > 0.7)) {
+        sd.snapAt = sd.t;
+        sd.snap = { len: 0, ux: 0, uy: 1, measured: false };
+        // a little puff of flour where it parts (about halfway down: design units below the sole)
+        const below = (len * 0.55) / (s * f.root.scaleY);
+        for (let i = 0, n = k.burst(5); i < n; i++) st.dust.emit(DOUGH_STRAND[0] + pm() * 30, DOUGH_STRAND[1] + below, { vx: pm() * 90, vy: -10 - R() * 30, life: 0.6, r0: 3 * s, r1: 12 * s, a: 0.3, tint: 0xfff6e4, fade: 0.1 });
+      }
+      if (sd.snap && sd.t - sd.snapAt > 0.8) st.strand = null;
+    }
+    drawStrand(k, st);
+    overheat(k, st.steam, dt, [CX - 90, 20, 180, 220]);
+  },
+  die(_k, st) {
+    st.strand = null;
+    st.gfx.clear();
   },
 });
 
