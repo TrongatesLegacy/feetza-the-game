@@ -184,7 +184,8 @@ registerLive('tidepool', {
 
 // ——— Diner ———
 
-// Riot Ryan: a blue glint sweeps the shield every few seconds; grit kicks up when the boot lands.
+// Riot Ryan: a blue glint sweeps the shield every few seconds while it's up (the shield is its own piece in play:
+// src/game/guardShield.ts); grit kicks up when the boot lands.
 registerLive('riot', {
   rig: { squash: 0.7, swing: 0.7 },
   setup: (k) => ({ glint: k.emitter({ frame: 'spark', add: true, drag: 0, max: 10 }), dust: k.emitter({ frame: 'puff', curl: 20, drag: 1.4, below: true, max: 40 }), t: { v: 1 } }),
@@ -192,7 +193,7 @@ registerLive('riot', {
     t.v -= dt;
     if (t.v <= 0) {
       t.v = 2.4 + R() * 1.5;
-      for (let i = 0; i < 3; i++) glint.emit(CX - 60 + i * 40, 40 + i * 50, { life: 0.5, r0: 4, r1: 30 * k.f.type.scale, a: 0.9, tint: 0x9fd0ff, fade: 0.3 });
+      if (k.f.guardUp) for (let i = 0; i < 3; i++) glint.emit(CX - 60 + i * 40, 40 + i * 50, { life: 0.5, r0: 4, r1: 30 * k.f.type.scale, a: 0.9, tint: 0x9fd0ff, fade: 0.3 });
     }
     landDust(k, dust, 0x8a8478, 10);
   },

@@ -15,6 +15,34 @@ export interface DrawOpts {
   emissive?: boolean;
   /** Draw only the overheat glow (metal heating from the sole up), for the boss heat layer. */
   heat?: boolean;
+  /** Leave out the guard shield (in play it's its own piece: StyleDef.shield, src/game/guardShield.ts). */
+  noShield?: boolean;
+}
+
+/** A guard foot's shield as a piece of its own (src/game/guardShield.ts): drawn alone, it hangs in front of the foot
+ * while it's up and swings or slides away when it drops. The still art (portraits, peels) keeps it painted on. */
+export interface ShieldDef {
+  /** Its texture's area, in design space. */
+  box: Box;
+  /** The point it turns round (a strap, a grip), in design space. */
+  pivot: [number, number];
+  /** Where it goes when it drops, to the foot's left (design units, radians; mirrored on the other side): moved by
+   * dx, dy, turned by rot, squeezed to sx across (turned edge-on). */
+  down: { dx: number; dy: number; rot: number; sx: number };
+  /** How it cracks and breaks: glass (polycarbonate: white stress lines, shards) or bronze (dents, splits, plates). */
+  material: 'glass' | 'bronze';
+  /** False if the style's still art never had the shield painted on (the play body is then the still one). */
+  painted?: boolean;
+  /** Its leg badge's kind (src/game/legBadge.ts: a riveted plate, a carved tag, a stitched patch) and the colour
+   * of its icon and strength bar. */
+  badge?: 'plate' | 'tag' | 'patch';
+  accent?: string;
+  /** Hangs from its strap: swings like a pendulum once it's down. */
+  swing?: boolean;
+  /** Draw the shield alone in design space. */
+  draw(ctx: Ctx, art: FootArt): void;
+  /** Its outline, in design space. */
+  path: (c: Ctx) => void;
 }
 
 /** A part the live layer draws as its own sprite (an eye's lids, an ear, a tuft), in design space. */
@@ -46,6 +74,8 @@ export interface StyleDef {
   /** How much leg (design units) the Pizzapedia portrait shows above the foot (default 120): less for a foot whose
    * own art is already tall (a feathered ruff), so the foot fills the frame. */
   portraitLeg?: number;
+  /** A guard foot's shield, drawn as its own piece in play. */
+  shield?: ShieldDef;
 }
 
 const styles: Record<string, StyleDef> = {};

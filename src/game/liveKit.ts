@@ -71,7 +71,8 @@ function* liveSteps(sc: Phaser.Scene, type: FootType, def: LiveDef): Generator<v
   const out: LiveTex = { body: `lk_${type.id}_body`, parts: {} };
   // the body without its live parts, cut off below the toe band (the band's frames draw the rest)
   if (!sc.textures.exists(out.body)) {
-    const body = styledCanvas(type, pose({}), { live: true });
+    // (a guard foot's shield is its own piece in play: src/game/guardShield.ts)
+    const body = styledCanvas(type, pose({}), { live: true, noShield: true });
     if (st.rig) {
       // the canvas comes back with its design transform still set: clear in texture pixels
       const ctx = body.getContext('2d')!;
@@ -95,7 +96,7 @@ function* liveSteps(sc: Phaser.Scene, type: FootType, def: LiveDef): Generator<v
     if (!sc.textures.exists(key)) {
       const frames: HTMLCanvasElement[] = [];
       for (const p of poses) {
-        const full = styledCanvas(type, p, { live: true }, { y0: from - lead, y1 });
+        const full = styledCanvas(type, p, { live: true, noShield: true }, { y0: from - lead, y1 });
         const [c, ctx] = makeCanvas(full.width, (y1 - from) * s);
         ctx.drawImage(full, 0, -lead * s);
         if (def.glow || def.heat) {

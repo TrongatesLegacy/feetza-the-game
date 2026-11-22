@@ -42,6 +42,8 @@ export interface SimOpts {
   idleFrom?: number;
   /** Dev: count random draws per wave, and list where they came from in this wave (finding non-determinism). */
   trace?: number;
+  /** Start at this wave instead of wave 1, from the shop with a starter kit sized for it (F.startGame's kit). */
+  from?: number;
 }
 
 export interface WaveRow {
@@ -75,6 +77,8 @@ export interface SimResult {
   stall?: { screen: string; detail: Record<string, unknown> };
   /** Damage dealt by source over the run. */
   damage?: Record<string, number>;
+  /** Guard feet's shields: smacks they blocked, shields broken, new ones raised. */
+  guard?: { blocked: number; broken: number; rearmed: number; soaked: number; chipSteps: number; slamSteps: number; ttk: Record<string, number[]>; stomps: Record<string, number> };
 }
 
 const STALL_MS = 120_000;
@@ -239,9 +243,10 @@ function clearWindows(g: AnyScene): boolean {
 
 function smack(g: AnyScene, accuracy: number): void {
   const prop = (g.clickables ?? []).find((c: any) => c.alive() && (c.priority ?? 0) >= 2); // eslint-disable-line @typescript-eslint/no-explicit-any
-  // the lowest foot, skipping any with a guard up (as a player would) unless that's all there is
+  // the lowest foot, skipping any with a guard up (as a player would) unless that's all there is: then it smacks the
+  // raised shield, which cracks it and in the end breaks it (src/game/guardShield.ts)
   const ts = (g.feet ?? []).filter((f: any) => f.hittable).sort((a: any, b: any) => b.y - a.y); // eslint-disable-line @typescript-eslint/no-explicit-any
-  const t = ts.find((f: any) => !f.shielded) ?? ts[0]; // eslint-disable-line @typescript-eslint/no-explicit-any
+  const t = ts.find((f: any) => !f.shielded && !f.guardUp) ?? ts.find((f: any) => !f.shielded) ?? ts[0]; // eslint-disable-line @typescript-eslint/no-explicit-any
   if (prop && Math.random() < accuracy) {
     g.pointer.x = prop.x;
     g.pointer.y = prop.y;
@@ -262,7 +267,7 @@ export function simReady(): boolean {
 }
 
 export async function simRun(game: Phaser.Game, o: SimOpts, start: (opts: Record<string, unknown>) => void): Promise<SimResult> {
-  const opts: Required<SimOpts> = { peel: 'classic', accuracy: 0.9, rate: 260, dt: 1000 / 60, profile: 'fresh', maxRealMs: 600_000, trace: 0, idleFrom: 0, shop: 'rarity', ...o };
+  const opts: Required<SimOpts> = { peel: 'classic', accuracy: 0.9, rate: 260, dt: 1000 / 60, profile: 'fresh', maxRealMs: 600_000, trace: 0, idleFrom: 0, shop: 'rarity', from: 0, ...o };
   // the game's art must be built first (several tabs booting at once can take a while)
   for (let i = 0; i < 600 && !artBooted(); i++) await new Promise((r) => setTimeout(r, 100));
   // the browser's own save comes back when the run is done
@@ -294,7 +299,7 @@ export async function simRun(game: Phaser.Game, o: SimOpts, start: (opts: Record
     }
     game.scene.add('Game', GameScene, false);
     for (const k of game.scene.getScenes(true).map((x) => x.sys.settings.key)) if (k !== 'Game') game.scene.stop(k);
-    start({ heat: opts.heat, intros: false, seed: opts.seed });
+    start({ heat: opts.heat, intros: false, seed: opts.seed, ...(opts.from ? { wave: opts.from, kit: true } : {}) });
     for (let i = 0; i < 600 && !(g?.run && (g.waveActive || g.inUpgrade)); i++) {
       step();
       g = game.scene.getScene('Game') as AnyScene;
@@ -429,7 +434,7 @@ export async function simRun(game: Phaser.Game, o: SimOpts, start: (opts: Record
               waveActive: g.waveActive,
               inUpgrade: g.inUpgrade,
               queue: g.plan?.queue?.length,
-              feet: (g.feet ?? []).filter((f: any) => f.alive).map((f: any) => `${f.type.id}:${f.state}${f.held ? ':held' : ''}${f.pinned ? ':pinned' : ''}${f.shielded ? ':shielded' : ''}`), // eslint-disable-line @typescript-eslint/no-explicit-any
+              feet: (g.feet ?? []).filter((f: any) => f.alive).map((f: any) => `${f.type.id}:${f.state}${f.held ? ':held' : ''}${f.pinned ? ':pinned' : ''}${f.shielded ? ':shielded' : ''}${f.guardBroken ? ':guardbroken' : f.guardUp ? ':guardup' : ''}`), // eslint-disable-line @typescript-eslint/no-explicit-any
               windows: [...document.querySelectorAll('.screen:not(.leaving), .modal, .pickwin, .intro')].map((e) => e.className).slice(0, 8),
               snapshot: g.inUpgrade ? save.run : null,
             },
@@ -462,6 +467,7 @@ export async function simRun(game: Phaser.Game, o: SimOpts, start: (opts: Record
     error: errors[0],
     stall,
     damage: Object.fromEntries(Object.entries(dmgBy).map(([k, v]) => [k, Math.round(v)])),
+    guard: g.guardStats ? JSON.parse(JSON.stringify(g.guardStats)) : undefined,
   };
   if (opts.trace) {
     Math.random = seeded;

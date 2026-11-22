@@ -32,7 +32,8 @@ import { ui, fmtTime } from '../ui/ui';
 import { PEELS, PEEL_BY_ID, abilityPeel, applyPeelLook, hasPeel, lookPeel, checkPeelAchievements, grantShinyFoot, peelCanvas, peelFootId, peelThumbURL, peelTrail, rollEventDrop, PEEL_HEATS, SHINY_FOOT_CHANCE, titleCase, type PeelDef } from '../game/peels';
 import { STAGES, WAVES_PER_STAGE } from '../data/stages';
 import { passiveBoost, setSlamMode } from '../game/slamMode';
-import { setRunHeat } from '../game/heatRules';
+import { guardHits, guardRearm, setRunHeat, slamSteps } from '../game/heatRules';
+import { evictShieldArt } from '../game/guardShield';
 import { abilityFor, abilityKindLabel, scaleProc, usesMeter, type Ability, type Effect, type Proc, type Target } from '../game/abilities';
 import { randomLineup } from './MenuScene';
 import { ToppingKit } from '../game/toppingKit';
@@ -72,6 +73,8 @@ interface DamageOpts {
 /** Damage sources that are always automatic: they hit without a smack (orbiting cutters, thrown toppings, the
  *  garlic aura, burns, traps). Smacks, the slam, the peel's ability and on-smack effects aren't. */
 const AUTO_SOURCES = new Set<DamageOpts['source']>(['cutter', 'olive', 'garlic', 'burn', 'trap']);
+/** How much of the automatic damage a raised guard shield soaks counts against it (a step per base smack's worth). */
+const GUARD_SOAK = 0.5;
 
 export interface GameStart {
   lineup?: string[];
@@ -436,6 +439,7 @@ export class GameScene extends Phaser.Scene implements Arena {
   // ——— Lifecycle ———
   init(data: GameStart): void {
     this.start = data ?? {};
+    this.guardStats = { blocked: 0, broken: 0, rearmed: 0, soaked: 0, chipSteps: 0, slamSteps: 0, ttk: {}, stomps: {} };
   }
 
   create(): void {
@@ -596,6 +600,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       delete own.peelSlam;
       for (const p of this.pizzas) p.destroy();
       this.pizzas = [];
+      // (feet left on screen: their shield badges' own textures go with them)
+      for (const f of this.feet) f.guardFx?.destroy();
       window.removeEventListener('keydown', this.keyHandler);
       document.removeEventListener('visibilitychange', this.visHandler);
       ui.hud.setBoss(null);
@@ -1281,6 +1287,9 @@ export class GameScene extends Phaser.Scene implements Arena {
     });
     f.target = target;
     f.setHoverMul(this.run.heatDef.crowd.hoverMul);
+    // a guard foot's shield takes more blocked smacks on hotter heats, and is replaced sooner once broken
+    f.guardMax = f.guardHp = guardHits(this.run.heat);
+    f.guardRearmAfter = guardRearm(this.run.heat);
     this.feet.push(f);
     // regular feet each take their own lane (or wait off screen until one frees up)
     if (!type.boss && !type.mini) {
@@ -1328,9 +1337,13 @@ export class GameScene extends Phaser.Scene implements Arena {
     } else if (trait === 'surface') {
       this.fx.puff(ft.x, ft.y, 10);
       this.fx.quip(ft.x, ft.cy - 120, 'SURPRISE!', '#f8dca0', 36);
-    } else if (trait === 'guardDown') {
-      this.fx.quip(ft.x, ft.cy - 140, 'SHIELD DOWN!', '#9ad8ff', 32);
-      this.fx.ring(ft.cx, ft.cy, 0x9ad8ff, 0.7, 0.8);
+    } else if (trait === 'guardBreak') {
+      this.guardStats.broken++;
+      this.fx.quip(ft.x, ft.cy - 150, 'SHIELD BROKEN!', '#ffd23f', 40);
+      this.shake(120, 0.004);
+    } else if (trait === 'guardRearm') {
+      this.guardStats.rearmed++;
+      this.fx.quip(ft.x, ft.cy - 150, 'NEW SHIELD!', '#9ad8ff', 34);
     }
   }
 
@@ -2090,6 +2103,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     const inUse = texturesInUse(this.game);
     const still = evictFootArt(keep, inUse);
     const live = evictLive(this, keep, inUse);
+    evictShieldArt(this, keep, inUse);
     if (import.meta.env.DEV) ((window as unknown as { __evictions?: unknown[] }).__evictions ??= []).push({ wave: n, still, live, ms: Math.round(performance.now() - t0) });
   }
 
@@ -3026,6 +3040,9 @@ export class GameScene extends Phaser.Scene implements Arena {
     }
   }
 
+  /** Guard shields this run: smacks blocked, shields broken, new ones raised (the balance sim reads it). */
+  guardStats = { blocked: 0, broken: 0, rearmed: 0, soaked: 0, chipSteps: 0, slamSteps: 0, ttk: {} as Record<string, number[]>, stomps: {} as Record<string, number> };
+
   private hitFoot(f: Foot, x: number, y: number): void {
     const st = this.run.stats;
     const hpBefore = f.hp;
@@ -3042,6 +3059,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.perkKit.smacked(f, x);
       this.tracker.emit('hit', { foot: f, lastMoment, x });
       this.heroes.hit(f, x, y);
+      // (Spartan Sandals: a hit in an opening slams the shield back up)
+      f.guardReact();
     }
     if (!f.alive) return;
     if (f.has('pinch')) this.stunPeel(0.5, 'PINCHED!');
@@ -3101,16 +3120,39 @@ export class GameScene extends Phaser.Scene implements Arena {
       audio.sfx('sfx_shield');
       return;
     }
-    if (smack && f.has('guard') && f.guardOpen <= 0 && !this.heroes.ignoreShields()) {
+    // a raised guard shield blocks the smack and cracks (its badge's pips show what it can still take); the last
+    // one it can take shatters it (onTrait 'guardBreak'). Other damage and a hero's bypass go straight through.
+    if (smack && f.guardUp && !this.heroes.ignoreShields()) {
       f.flash(0x9ad8ff, 80);
       f.knock(80);
-      this.fx.quip(f.x, f.cy - 110, 'SHIELD! Wait for it to drop', '#9ad8ff', 30);
-      audio.sfx('sfx_shield', { volume: 0.6 });
+      this.guardStats.blocked++;
+      // (no quip per crack: the badge's bar counts down, and quips piled up on quick smacks; one says it's nearly gone)
+      if (!f.guardBlock() && f.guardHp === 1) this.fx.quip(f.x, f.cy - 110, 'ONE MORE!', '#9ad8ff', 30);
       return;
     }
     let dmg = amount;
     // automatic damage is scaled by the heat (half on Mild, three quarters on Regular)
     if (o.auto || AUTO_SOURCES.has(o.source)) dmg *= this.run.heatDef.autoDmg;
+    // a raised guard shield takes the rest too (a hero's bypass still goes straight through). A Peel Slam or a peel
+    // ability's hit knocks a few steps off (slamSteps); automatic damage (burns, toppings, drones) is soaked at half
+    // strength, a step for every base smack's worth. Whatever smashes it carries its leftover through to the foot.
+    if (!smack && f.guardUp && !this.heroes.ignoreShields()) {
+      const was = f.guardHp;
+      // (a passive or topping proc that goes through the ability path is automatic: it's soaked like the rest)
+      if ((o.source === 'slam' || o.source === 'ability') && !o.auto) {
+        const n = slamSteps(this.run.heat);
+        const unused = f.guardKnock(n);
+        this.guardStats.slamSteps += was - f.guardHp;
+        if (unused <= 0) return;
+        dmg *= unused / n;
+      } else {
+        this.guardStats.soaked += dmg * GUARD_SOAK;
+        const carry = f.guardChip(dmg * GUARD_SOAK, st.damage);
+        this.guardStats.chipSteps += was - f.guardHp;
+        if (carry <= 0) return;
+        dmg = carry;
+      }
+    }
     let crit = false;
     if (smack) {
       this.smackCount++;
@@ -3276,6 +3318,8 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   private killFoot(f: Foot, source: DamageOpts['source']): void {
     if (!f.alive) return;
+    // (the balance sim: how long a guard foot lasts on screen)
+    if (f.type.traits.includes('guard') && !f.brain.decoy) (this.guardStats.ttk[f.type.id] ??= []).push(Math.round(f.fleeAge * 10) / 10);
     // King Honk's decoys are props: they pop without paying out (the cleanup after his death included)
     if (f.brain.decoy) {
       this.fx.puff(f.cx, f.cy, 12);
@@ -3468,6 +3512,7 @@ export class GameScene extends Phaser.Scene implements Arena {
   private onStomp(f: Foot): void {
     const p = f.target;
     if (!p || p.dead) return;
+    if (f.type.traits.includes('guard')) this.guardStats.stomps[f.type.id] = (this.guardStats.stomps[f.type.id] ?? 0) + 1;
     const st = this.run.stats;
     if (f.type.stompDmg <= 0) return;
     if (this.throws.blindMiss(f)) return;

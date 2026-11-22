@@ -34,7 +34,7 @@ import { paintSoleUnder, sandalSole } from './base-cloth';
 import { type Digit, digitPath, onDigit, poseDigits } from './base-critters';
 import { ell, piece, prop } from './roster-kit';
 
-type Opts = { live: boolean; emissive?: boolean; heat?: boolean };
+type Opts = { live: boolean; emissive?: boolean; heat?: boolean; noShield?: boolean };
 type P2 = [number, number];
 
 /** A tapered tube along points (snake bodies, talons): left side out, right side back, a round tip. */
@@ -1122,9 +1122,12 @@ function paintBone(g: Ctx, d: Digit, bone: string, box: Box): void {
   }, rgba('#fffaf0', 0.45), 2.2, 1);
 }
 
-/** The hoplon: a bronze rim with studs, the lambda on red, a polished boss. */
-function hoplon(g: Ctx, bronzeCol: string, red: string): void {
-  const { x, y, r } = HOPLITE_SHIELD;
+/** The hoplon: a bronze rim with studs, an emblem on red (the hoplite's lambda, the Spartan's black sun), a polished
+ * boss. */
+function hoplon(g: Ctx, bronzeCol: string, red: string, at = HOPLITE_SHIELD, emblem: 'lambda' | 'sun' = 'lambda'): void {
+  const { x, y } = at;
+  const r = at.r;
+  const k = r / 80;
   const disc = ell(x, y, r, r);
   contact(g, (c) => {
     disc(c);
@@ -1148,33 +1151,119 @@ function hoplon(g: Ctx, bronzeCol: string, red: string): void {
     // worn, chipped paint showing bronze through
     blotches(g, { x: x - r, y: y - r, w: r * 2, h: r * 2 }, shade(bronzeCol, -0.2), 0.7, 9, 0.74, 0.03, 83);
   });
-  // the lambda in black, painted on
-  const lam: PathFn = (c) => {
-    c.beginPath();
-    c.moveTo(x - 32, y + 38);
-    c.lineTo(x - 5, y - 40);
-    c.lineTo(x + 5, y - 40);
-    c.lineTo(x + 34, y + 38);
-    c.lineTo(x + 22, y + 38);
-    c.lineTo(x, y - 20);
-    c.lineTo(x - 20, y + 38);
-    c.closePath();
-  };
+  // the lambda (or an eight-rayed sun) in black, painted on
+  const lam: PathFn =
+    emblem === 'lambda'
+      ? (c) => {
+          c.beginPath();
+          c.moveTo(x - 32 * k, y + 38 * k);
+          c.lineTo(x - 5 * k, y - 40 * k);
+          c.lineTo(x + 5 * k, y - 40 * k);
+          c.lineTo(x + 34 * k, y + 38 * k);
+          c.lineTo(x + 22 * k, y + 38 * k);
+          c.lineTo(x, y - 20 * k);
+          c.lineTo(x - 20 * k, y + 38 * k);
+          c.closePath();
+        }
+      : (c) => {
+          c.beginPath();
+          for (let i = 0; i < 16; i++) {
+            const a = (i / 16) * Math.PI * 2 - Math.PI / 2;
+            const rr = (i % 2 ? 14 : 44) * k;
+            if (i) c.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+            else c.moveTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+          }
+          c.closePath();
+        };
   clipTo(g, face, () => fillPath(g, lam, rgba('#1a0e0a', 0.88)));
+  if (emblem === 'sun') {
+    // the sun's red heart
+    g.fillStyle = rad(g, x - 3, y - 3, 1, x, y, 10 * k, [[0, shade(red, 0.35)], [1, shade(red, -0.2)]]);
+    g.beginPath();
+    g.arc(x, y, 9 * k, 0, Math.PI * 2);
+    g.fill();
+  }
   // the rim's studs
   for (let i = 0; i < 16; i++) {
     const a = (i / 16) * Math.PI * 2;
-    rivet(g, x + Math.cos(a) * r * 0.89, y + Math.sin(a) * r * 0.89, 3.2, mix(bronzeCol, '#ffe8b0', 0.2));
+    rivet(g, x + Math.cos(a) * r * 0.89, y + Math.sin(a) * r * 0.89, 3.2 * k, mix(bronzeCol, '#ffe8b0', 0.2));
   }
   // a polished sweep across the bronze
   clipTo(g, disc, () => {
     g.strokeStyle = rgba('#fff4d0', 0.5);
-    g.lineWidth = 4;
+    g.lineWidth = 4 * k;
     g.beginPath();
     g.arc(x, y, r * 0.88, Math.PI * 1.05, Math.PI * 1.45);
     g.stroke();
   });
-  glint(g, x - r * 0.62, y - r * 0.62, 7, 0.95);
+  glint(g, x - r * 0.62, y - r * 0.62, 7 * k, 0.95);
+}
+
+/** A round shield on its own (in play the guard feet's shield is its own piece: src/game/guardShield.ts), with its
+ * own silhouette, the foot's edge light and outline. */
+function lonePlate(ctx: Ctx, bronzeCol: string, red: string, at: { x: number; y: number; r: number }, emblem: 'lambda' | 'sun'): void {
+  const disc = ell(at.x, at.y, at.r, at.r);
+  const sil = new Sil(ctx, [disc], { x: at.x - at.r - 4, y: at.y - at.r - 4, w: at.r * 2 + 8, h: at.r * 2 + 8 });
+  hoplon(sil.g, bronzeCol, red, at, emblem);
+  sil.edge(rgba('#0a0610', 0.38), 18, LX * 10, LY * 10);
+  sil.edge(rgba(LIGHT.rim, 0.55), 2.5, LX * 3, LY * 3);
+  sil.finish(inkOf(bronzeCol));
+}
+
+/** The ankle's knobbly bones under the greave (x, y, rx, ry), two rows. */
+const HOP_TARSALS = [
+  [CX - 38, 120, 20, 13],
+  [CX + 2, 124, 22, 14],
+  [CX + 42, 120, 20, 13],
+  [CX - 22, 146, 17, 11],
+  [CX + 22, 146, 17, 11],
+] as const;
+
+/** The metatarsals: short bones from the ankle's knobs to each toe's root. */
+function hopliteMetas(ds: Digit[]): Digit[] {
+  return ds.map((d, i) => {
+    const x0 = CX - 52 + i * 26;
+    const y0 = 152;
+    const dx = d.x - x0;
+    const dy = d.y - y0;
+    return { x: x0, y: y0, a: Math.atan2(dy, dx), len: Math.hypot(dx, dy), wr: 7 + i * 0.4, wt: d.wr * 0.95 };
+  });
+}
+
+/** The hoplite's foot bones where the shield used to hide them: a knob of ankle bones under the greave and five
+ * metatarsals fanning down to the toes. */
+function hopliteFootBones(g: Ctx, ds: Digit[], bone: string, box: Box): void {
+  const metas = hopliteMetas(ds);
+  // the tarsals: a cluster of knobbly bones just under the greave's rim
+  for (const [x, y, rx, ry] of HOP_TARSALS) {
+    contact(g, (c) => {
+      ell(x, y, rx, ry)(c);
+      c.fill();
+    }, 0.55, 3, 3);
+    clipTo(g, ell(x, y, rx, ry), () => {
+      g.fillStyle = rad(g, x - rx * 0.4, y - ry * 0.5, 2, x, y, rx * 1.1, [[0, shade(bone, 0.2)], [0.6, bone], [1, mix(shade(bone, -0.5), '#2a2a40', 0.3)]]);
+      g.fillRect(x - rx, y - ry, rx * 2, ry * 2);
+      texture(g, 'pores', box, 0.3, 1, 'soft-light');
+      // a joint line across the knob, and a lit ridge on its top
+      crease(g, (c) => {
+        c.moveTo(x - rx * 0.6, y + ry * 0.15);
+        c.quadraticCurveTo(x, y + ry * 0.45, x + rx * 0.6, y + ry * 0.1);
+      }, 1.2, '#3a3020', 0.5, 0.3);
+      softStroke(g, (c) => {
+        c.moveTo(x - rx * 0.55, y - ry * 0.45);
+        c.quadraticCurveTo(x, y - ry * 0.75, x + rx * 0.4, y - ry * 0.5);
+      }, rgba('#fffaf0', 0.5), 2, 1);
+    });
+  }
+  for (const d of metas) {
+    contact(g, (c) => {
+      for (const pth of bonePaths(d)) {
+        pth(c);
+        c.fill();
+      }
+    }, 0.6, 3, 3);
+    paintBone(g, d, bone, box);
+  }
 }
 
 /** The horsehair crest: a red fan of hair on a bronze stem, swaying from its root. */
@@ -1228,11 +1317,16 @@ function drawHoplite(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
   const bones = ds.flatMap(bonePaths);
   const box = { x: CX - 120, y: -8, w: 240, h: 290 };
   const disc = ell(HOPLITE_SHIELD.x, HOPLITE_SHIELD.y, HOPLITE_SHIELD.r, HOPLITE_SHIELD.r);
-  const sil = new Sil(ctx, [greavePath, ...bones, disc], box);
+  // (with its shield in play as its own piece, the foot's bones show behind it)
+  const tarsals = HOP_TARSALS.map(([x, y, rx, ry]) => ell(x, y, rx, ry));
+  const metaPaths = hopliteMetas(ds).flatMap(bonePaths);
+  const sil = new Sil(ctx, o.noShield ? [greavePath, ...bones, ...tarsals, ...metaPaths] : [greavePath, ...bones, disc], box);
   const g = sil.g;
   // the bones first: the shield hides their roots
-  g.fillStyle = '#1a1420';
-  g.fillRect(box.x, box.y, box.w, box.h);
+  if (!o.noShield) {
+    g.fillStyle = '#1a1420';
+    g.fillRect(box.x, box.y, box.w, box.h);
+  } else hopliteFootBones(g, ds, bone, box);
   for (const d of ds) {
     contact(g, (c) => {
       for (const pth of bonePaths(d)) {
@@ -1258,7 +1352,7 @@ function drawHoplite(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
       c.quadraticCurveTo(CX, y + 6, CX + 60, y);
     }, 1.6, '#3a1a08', 0.5, 0.4);
   });
-  hoplon(g, bronzeCol, red);
+  if (!o.noShield) hoplon(g, bronzeCol, red);
   sil.edge(rgba('#0a0610', 0.38), 18, LX * 10, LY * 10);
   sil.edge(rgba(LIGHT.rim, 0.55), 2.5, LX * 3, LY * 3);
   sil.finish(inkOf(bronzeCol), { openTop: -5 });
@@ -1270,6 +1364,19 @@ registerStyle('hoplite', {
   halfWidth: 104,
   rig: { from: 226, to: 240 },
   leg: { kind: 'skin', hw: 40, join: 'into' },
+  // the aspis is its own piece in play: it swings down on its arm strap to hang at the foot's side
+  shield: {
+    box: { x: HOPLITE_SHIELD.x - 88, y: HOPLITE_SHIELD.y - 88, w: 176, h: 176 },
+    // (it hangs from its strap near the top of the rim)
+    pivot: [HOPLITE_SHIELD.x, HOPLITE_SHIELD.y - 64],
+    down: { dx: -168, dy: 70, rot: 0.32, sx: 0.78 },
+    material: 'bronze',
+    swing: true,
+    badge: 'tag',
+    accent: '#c9873a',
+    draw: (g, art) => lonePlate(g, art.primary ?? '#c9873a', art.secondary ?? '#c8102e', HOPLITE_SHIELD, 'lambda'),
+    path: ell(HOPLITE_SHIELD.x, HOPLITE_SHIELD.y, HOPLITE_SHIELD.r, HOPLITE_SHIELD.r),
+  },
   parts: {
     crest: { box: { x: HOPLITE_CREST.x - 12, y: HOPLITE_CREST.y - 52, w: 124, h: 124 }, frames: 1, pivot: [HOPLITE_CREST.x + 3, HOPLITE_CREST.y + 3], draw: (g, art) => hopliteCrest(g, art.secondary ?? '#c8102e') },
   },
@@ -1863,6 +1970,7 @@ registerStyle('elephant', {
 // ════════════════════════════ SPARTAN SANDALS ════════════════════════════
 
 export const SPARTAN_CLOAK = { x: CX - 58, y: 6 };
+export const SPARTAN_SHIELD = { x: CX + 4, y: 150, r: 86 };
 
 const spartanGreave: PathFn = (c) => {
   c.beginPath();
@@ -1963,6 +2071,19 @@ registerStyle('spartan', {
   halfWidth: 104,
   rig: BARE_RIG,
   leg: { kind: 'skin', hw: 50, join: 'into' },
+  // its round bronze shield (a black sun on red) is a piece of its own in play, never part of the drawn foot
+  shield: {
+    box: { x: SPARTAN_SHIELD.x - 94, y: SPARTAN_SHIELD.y - 94, w: 188, h: 188 },
+    pivot: [SPARTAN_SHIELD.x, SPARTAN_SHIELD.y - 68],
+    down: { dx: -132, dy: 50, rot: 0.26, sx: 0.74 },
+    material: 'bronze',
+    swing: true,
+    painted: false,
+    badge: 'patch',
+    accent: '#c9873a',
+    draw: (g, art) => lonePlate(g, String(art.extra?.bronze ?? '#c9873a'), art.secondary ?? '#c8102e', SPARTAN_SHIELD, 'sun'),
+    path: ell(SPARTAN_SHIELD.x, SPARTAN_SHIELD.y, SPARTAN_SHIELD.r, SPARTAN_SHIELD.r),
+  },
   parts: {
     cloak: { box: { x: SPARTAN_CLOAK.x - 60, y: SPARTAN_CLOAK.y - 14, w: 80, h: 108 }, frames: 1, pivot: [SPARTAN_CLOAK.x + 4, SPARTAN_CLOAK.y], draw: (g, art) => spartanCloak(g, art.secondary ?? '#c8102e') },
   },

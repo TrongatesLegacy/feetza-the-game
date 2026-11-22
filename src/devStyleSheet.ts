@@ -232,7 +232,7 @@ interface Ctl {
   rest: 'hover' | 'ground';
   fx: Set<string>;
   /** Set by a button: something to do to the feet on the next frame. */
-  poke?: 'hit' | 'die' | 'escape';
+  poke?: 'hit' | 'die' | 'escape' | 'gdrop' | 'gcrack' | 'gbreak' | 'grearm';
 }
 
 const newCtl = (): Ctl => ({ move: 'loop', from: 0, to: 3.6, rest: 'hover', fx: new Set() });
@@ -350,12 +350,31 @@ class Showcase extends Phaser.Scene {
   }
 
   /** A one-off from a button: a hit (flash and a flinch), a death or an escape (the pair is made again after). */
-  private pokeFeet(e: Entry, what: 'hit' | 'die' | 'escape'): void {
+  private pokeFeet(e: Entry, what: NonNullable<Ctl['poke']>): void {
     e.ctl.poke = undefined;
     const p = e.pair;
     if (!p) return;
     for (const f of [p.old, p.neu]) {
       if (!f || !f.alive) continue;
+      // the guard shield (src/game/guardShield.ts): drop it now (a shield on a beat), a blocked smack, break it, skip to
+      // the end of the wait for a new one
+      if (what === 'gdrop') {
+        if (f.guardUp) f.guardT = Math.max(f.guardT, f.guardNext - f.guardWarnTime);
+        continue;
+      }
+      if (what === 'gcrack' || what === 'gbreak') {
+        if (f.guardBroken) continue;
+        f.guardOpen = 0;
+        do f.flash(0x9ad8ff, 80);
+        while (!f.guardBlock() && what === 'gbreak');
+        f.knock(80);
+        continue;
+      }
+      if (what === 'grearm') {
+        // skip to just before it reaches back for its new shield
+        if (f.guardBroken) f.guardIdle = Math.max(f.guardIdle, f.guardRearmAfter - 1.6);
+        continue;
+      }
       if (what === 'hit') {
         f.flash(0xffffff, 90);
         const sx = f.root.scaleX;
@@ -380,7 +399,10 @@ class Showcase extends Phaser.Scene {
   }
 
   update(_time: number, delta: number): void {
-    const dt = Math.min(0.05, delta / 1000);
+    // ?slow=0.25 plays everything at a quarter speed (frame sheets of quick moves)
+    this.tweens.timeScale = SLOW;
+    this.time.timeScale = SLOW;
+    const dt = Math.min(0.05, delta / 1000) * SLOW;
     const top = this.scroller.scrollTop;
     const vh = this.scroller.clientHeight;
     this.cameras.main.setScroll(0, top);
@@ -474,6 +496,7 @@ function controls(e: Entry, scene: () => Showcase | undefined): HTMLElement {
   const chip = (label: string, data: string, on = false) => `<button class="${on ? 'on' : ''}" data-${data}>${label}</button>`;
   box.innerHTML =
     `<div>${chip('↻ Loop', 'loop', true)}${Object.entries(MOVES).map(([k, m]) => chip(m.label, `mv="${k}"`)).join('')}${chip('Hit', 'poke="hit"')}${chip('Die', 'poke="die"')}${chip('Escape', 'poke="escape"')}</div>` +
+    (e.type.traits.includes('guard') ? `<div>${chip('🛡 Drop', 'poke="gdrop"')}${chip('🛡 Crack', 'poke="gcrack"')}${chip('🛡 Break', 'poke="gbreak"')}${chip('🛡 Re-arm', 'poke="grearm"')}</div>` : '') +
     `<div>${Object.entries(EFFECTS).map(([k, l]) => chip(l, `fx="${k}"`)).join('')}</div>`;
   const moveBtns = () => box.querySelectorAll<HTMLElement>('[data-loop],[data-mv]');
   box.addEventListener('click', (ev) => {
@@ -509,6 +532,7 @@ function controls(e: Entry, scene: () => Showcase | undefined): HTMLElement {
 
 const dpr = () => Math.min(2, window.devicePixelRatio || 1);
 const KEEP = new URLSearchParams(location.search).has('keep');
+const SLOW = Number(new URLSearchParams(location.search).get('slow') ?? 1) || 1;
 // ?elite: draw the new feet as elites (their pink glow)
 const ELITE = new URLSearchParams(location.search).has('elite');
 
