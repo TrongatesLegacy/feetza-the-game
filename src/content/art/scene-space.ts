@@ -755,7 +755,7 @@ registerKitScene(SPACE, (k, wave0) => {
   let shown = kw;
   return {
     setWave: (w) => (kw = waveK(w)),
-    impact(x, kk) {
+    impact(x, _y, kk) {
       spike = Math.max(spike, kk);
       loomSw.kick((x < SPX.loom.x ? 1 : -1) * 1.2 * kk);
       if (kk > 0.5) vent = Math.max(vent, 0.8);

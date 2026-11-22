@@ -139,8 +139,8 @@ export class KitLive {
 
 export interface KitHooks {
   setWave?(wave: number): void;
-  /** A stomp landed at screen x, k 0…1 (a boss's is 1): react (swing, rattle, sift dust, scare birds). */
-  impact?(x: number, k: number): void;
+  /** A stomp at (x, y) or a big moment shaking the room (power 0…1). */
+  impact?(x: number, y: number, power: number): void;
   /** dt and the scene's running time t (s). */
   update(dt: number, t: number): void;
   destroy?(): void;
@@ -178,7 +178,7 @@ export function registerKitScene(spec: SceneSpec, live?: (k: KitLive, wave: numb
       let t = crand() * 100;
       return {
         setWave: (w) => hooks.setWave?.(w),
-        impact: (x, kk) => hooks.impact?.(x, kk * calm()),
+        impact: (x, y, p) => hooks.impact?.(x, y, p * calm()),
         update: (dt) => hooks.update(dt, (t += dt)),
         destroy: () => {
           hooks.destroy?.();

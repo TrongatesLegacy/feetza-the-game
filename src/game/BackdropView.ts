@@ -58,9 +58,9 @@ export class BackdropView {
     if (!this.quakeAmt && !this.quakeKick) this.bgLayer.setPosition(0, 0).setScale(1);
   }
 
-  /** A stomp landed at screen x (k 0…1): a live layer may react (lamps swing, dust sifts down, birds take off). */
-  impact(x: number, k: number): void {
-    this.live?.impact?.(x, k);
+  /** A stomp or a big moment: the live layer reacts (lamps swing, dust sifts, birds take off). */
+  impact(x: number, y: number, power: number): void {
+    this.live?.impact?.(x, y, power);
   }
 
   /** The wave within the stage (1–5): live layers change their weather and light with it. */
