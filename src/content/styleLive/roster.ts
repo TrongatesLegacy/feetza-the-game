@@ -7,6 +7,7 @@ import { crand } from '../../systems/cosmeticRandom';
 import { ANT_TIPS } from '../style/roster-1';
 import { hexNut } from '../style/roster-3';
 import { drawFeather } from '../style/roster-kit';
+import { musicNote } from '../style/roster-5';
 
 const R = () => crand();
 const pm = () => crand() - 0.5;
@@ -530,6 +531,173 @@ registerLive('surfsully', {
     });
     mist.rate('mist', 2 + carve * 8, dt, () => {
       mist.emit(CX + pm() * 200, 250, { vx: pm() * 40, vy: -30, life: 0.8, r0: 8 * s, r1: 24 * s, a: 0.3, tint: 0xffffff, fade: 0.2 });
+    });
+  },
+});
+
+// ——— Rink ———
+
+// Pogo Paul: the spring squashes hard on landing and boings back (a big rig squash), with a puff of dust.
+registerLive('pogo', {
+  rig: { squash: 2, breath: 2.5 },
+  setup: (k) => ({ dust: k.emitter({ frame: 'puff', curl: 20, drag: 1.3, below: true, max: 40 }) }),
+  tick(k, _dt, { dust }) {
+    landDust(k, dust, 0xd8d0c0, 10, 312, 0.5);
+  },
+});
+
+// Graffiti Gina: paint mist hisses out of the spray can and drips run off her.
+registerLive('graffiti', {
+  setup: (k) => ({ mist: k.emitter({ frame: 'soft', curl: 40, drag: 1.2, max: 80 }), drips: k.emitter({ frame: 'drop', drag: 0.1, max: 20 }) }),
+  tick(k, dt, { mist, drips }) {
+    const s = k.f.type.scale;
+    const cols = [0xff4fa3, 0x7b5cff, 0x36d6c3, 0xffcf1a];
+    mist.rate('hiss', k.f.state === 'stomp' ? 30 : 5, dt, () => {
+      mist.emit(CX + 92, 14, { vx: 60 + R() * 60, vy: -40 + pm() * 40, life: 0.8, r0: 4 * s, r1: 22 * s, a: 0.45, tint: cols[Math.floor(R() * 4)], fade: 0.1 });
+    });
+    drips.rate('drip', 0.8, dt, () => {
+      drips.emit(CX + pm() * 150, 230, { vy: 20, life: 0.8, r0: 3.6 * s, r1: 3 * s, a: 1, tint: cols[Math.floor(R() * 4)], grav: 800, fade: 0.02 });
+    });
+  },
+});
+
+// Bowling Shoe Barry: he leans hard into his roll; the ball gleams.
+registerLive('bowling', {
+  rig: { swing: 2, squash: 1.1 },
+  setup: (k) => ({ glint: k.emitter({ frame: 'spark', add: true, drag: 0, max: 6 }), dust: k.emitter({ frame: 'puff', curl: 20, drag: 1.4, below: true, max: 30 }) }),
+  tick(k, dt, { glint, dust }) {
+    glint.rate('ball', 0.7, dt, () => {
+      glint.emit(CX - 104, 214, { life: 0.4, r0: 2, r1: 18 * k.f.type.scale, a: 1, tint: 0xd8e8ff, fade: 0.4 });
+    });
+    landDust(k, dust, 0xc8b898, 8);
+  },
+});
+
+// Jukebox Jo: the neon pulses to the beat (glow layer) and music notes float round her, quickening as she cheers.
+registerLive('jukebox', {
+  glow: { rate: 2, depth: 0.5, base: 0.5 },
+  rig: { breath: 3 },
+  setup(k) {
+    const swarms = (['#ff4fa3', '#3aa8ff', '#ffe14d'] as const).map((col, i) => {
+      const key = k.sheet(`lk_note${i}`, 44, 44, 1, (ctx) => {
+        ctx.translate(18, 22);
+        ctx.scale(1.2, 1.2);
+        musicNote(ctx, col, i === 1);
+      });
+      return k.swarm({ key, frames: 1, count: 2, at: [CX, 110], rx: 150, ry: 130, speed: 0.8 + i * 0.15, jitter: 20, scale: 0.7 });
+    });
+    return { swarms };
+  },
+  tick(k, dt, { swarms }) {
+    const hot = k.f.state === 'hover' ? 1.4 : 1;
+    for (const s of swarms) s.pace += (hot - s.pace) * Math.min(1, dt * 2);
+  },
+});
+
+// Skateboard Skye: she leans into her switch, sparks grind off the trucks when she moves fast and grit kicks up as
+// she lands.
+registerLive('skateboard', {
+  rig: { swing: 1.8 },
+  setup: (k) => ({ sparks: k.emitter({ frame: 'ember', add: true, drag: 0.3, max: 60 }), dust: k.emitter({ frame: 'puff', curl: 20, drag: 1.4, below: true, max: 30 }) }),
+  tick(k, dt, { sparks, dust }) {
+    const s = k.f.type.scale;
+    const sp = Math.abs(k.vx);
+    if (sp > 100)
+      sparks.rate('grind', Math.min(30, sp / 15), dt, () => {
+        sparks.emit(CX + (k.vx > 0 ? -1 : 1) * 73 + pm() * 30, 256, { vx: -k.vx * 0.3 + pm() * 80, vy: -40 - R() * 80, life: 0.35, r0: 2.4 * s, r1: 0.8 * s, a: 1, tint: R() < 0.5 ? 0xffd070 : 0xff8a2a, grav: 700, fade: 0.02 });
+      });
+    landDust(k, dust, 0xa8a090, 8, 274);
+  },
+});
+
+// ——— Slopes ———
+
+// Snowshoe Sven: snow sprays off the frame when he lands and flakes drift off him.
+registerLive('snowshoe', {
+  rig: { squash: 1.2, swing: 0.6 },
+  setup: (k) => ({ snow: k.emitter({ frame: 'puff', curl: 30, drag: 1.2, max: 60 }), flakes: k.emitter({ frame: 'mote', drag: 0.8, curl: 20, max: 40 }) }),
+  tick(k, dt, { snow, flakes }) {
+    const s = k.f.type.scale;
+    landDust(k, snow, 0xffffff, 18, 290, 0.7);
+    flakes.rate('flake', 4, dt, () => {
+      flakes.emit(CX + pm() * 280, 220 + R() * 60, { vx: pm() * 20, vy: 10, life: 1.2, r0: 2.6 * s, r1: 2 * s, a: 0.95, tint: 0xffffff, grav: 60, fade: 0.1 });
+    });
+  },
+});
+
+// Hiking Boot Hank: chips of suede fly off with every crack; grit kicks up when he lands.
+registerLive('hiking', {
+  rig: { squash: 1.1, swing: 0.7 },
+  setup: (k) => ({ chips: k.emitter({ frame: 'flake', drag: 0.3, max: 40 }), dust: k.emitter({ frame: 'puff', curl: 20, drag: 1.3, below: true, max: 40 }), hp: { v: k.f.hp } }),
+  tick(k, _dt, { chips, dust, hp }) {
+    const s = k.f.type.scale;
+    if (k.f.hp < hp.v)
+      for (let i = 0, n = k.burst(10); i < n; i++) chips.emit(CX + pm() * 160, 60 + R() * 160, { vx: pm() * 300, vy: -80 - R() * 160, life: 0.8, r0: 4 * s, r1: 3.4 * s, a: 1, tint: R() < 0.5 ? 0xa0743e : 0x6a4a22, grav: 800, spin: 10, fade: 0.02 });
+    hp.v = k.f.hp;
+    landDust(k, dust, 0x9a8a70, 12, 266);
+  },
+});
+
+// Skier Skip: snow sprays off the ski tip as he drops in, and powder trails off him.
+registerLive('skier', {
+  rig: { swing: 1.3 },
+  setup: (k) => ({ powder: k.emitter({ frame: 'puff', curl: 30, drag: 1, max: 100 }) }),
+  tick(k, dt, { powder }) {
+    const s = k.f.type.scale;
+    const fast = k.f.state === 'descend' ? 30 : 4;
+    powder.rate('spray', fast, dt, () => {
+      const side = R() < 0.5 ? -1 : 1;
+      powder.emit(CX + side * (40 + R() * 20), 300, { vx: side * (60 + R() * 120), vy: -40 - R() * 80, life: 0.8, r0: 6 * s, r1: 22 * s, a: 0.6, tint: 0xffffff, fade: 0.05 });
+    });
+    landDust(k, powder, 0xffffff, 14, 304, 0.7);
+  },
+});
+
+// ——— Cellar ———
+
+// Mime Mike: the painted eyes blink and follow your peel.
+registerLive('mime', {
+  blink: { eyes: { every: 3, look: 2.5 } },
+  rig: { swing: 1.2 },
+});
+
+// Neon Nina: the tubes buzz and flicker; stray sparks pop off the brackets.
+registerLive('neon', {
+  wiggle: true,
+  glow: { rate: 3.2, depth: 0.35, base: 0.65 },
+  setup: (k) => ({ sparks: k.emitter({ frame: 'spark', add: true, drag: 0.4, max: 20 }) }),
+  tick(k, dt, { sparks }) {
+    sparks.rate('buzz', 1.2, dt, () => {
+      sparks.emit([CX - 44, CX - 78, CX + 46, CX + 82][Math.floor(R() * 4)], 40 + R() * 80, { vx: pm() * 60, vy: -30, life: 0.25, r0: 2, r1: 10 * k.f.type.scale, a: 1, tint: R() < 0.5 ? 0xff3dc8 : 0x3df2ff, fade: 0.3 });
+    });
+  },
+});
+
+// ——— Rare ———
+
+// Crusty Foot: gold glints chase over it and crumbs scatter as it runs.
+registerLive('crusty', {
+  wiggle: true,
+  setup: (k) => ({ glint: k.emitter({ frame: 'spark', add: true, drag: 0.2, max: 20 }), crumbs: k.emitter({ frame: 'flake', drag: 0.3, max: 40 }) }),
+  tick(k, dt, { glint, crumbs }) {
+    const s = k.f.type.scale;
+    glint.rate('gold', 3, dt, () => {
+      glint.emit(30 + R() * 160, 20 + R() * 220, { life: 0.4, r0: 2, r1: 16 * s, a: 1, tint: 0xfff4c0, fade: 0.4 });
+    });
+    crumbs.rate('crumb', 2 + Math.min(20, Math.abs(k.vx) / 20), dt, () => {
+      crumbs.emit(CX + pm() * 150, 60 + R() * 180, { vx: pm() * 60, vy: 0, life: 0.8, r0: 3 * s, r1: 2.6 * s, a: 1, tint: R() < 0.5 ? 0xd9913a : 0xf0c070, grav: 700, spin: 8, fade: 0.02 });
+    });
+  },
+});
+
+// Mimic Foot: glints just like a Golden Foot's, and its eyes slowly open and blink in the gold.
+registerLive('mimic', {
+  wiggle: true,
+  blink: { eyes: { every: 2.4, look: 2 } },
+  setup: (k) => ({ glint: k.emitter({ frame: 'spark', add: true, drag: 0.2, max: 20 }) }),
+  tick(k, dt, { glint }) {
+    glint.rate('gold', 2.5, dt, () => {
+      glint.emit(30 + R() * 160, 20 + R() * 220, { life: 0.4, r0: 2, r1: 16 * k.f.type.scale, a: 1, tint: 0xfff4c0, fade: 0.4 });
     });
   },
 });
