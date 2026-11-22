@@ -19,7 +19,7 @@ import { Foot } from '../game/Foot';
 import { Fx } from '../game/Fx';
 import { Pizza, pizzaHooks } from '../game/Pizza';
 import { Projectiles } from '../game/projectiles';
-import { DOUBLE_CAP, endlessPlus, LOCATION_AMBIENCE, LOCATION_MUSIC, RARITY_FROM, Run, awardMilestones, milestoneProgress, backdropFor, bestRarity, rarityOpen, specialPrice, bossMusic, isBossWave, isMiniWave, locationFor, loopOf, planWave, type WavePlan, bossFor, miniFor } from '../game/Run';
+import { DOUBLE_CAP, endlessPlus, LOCATION_AMBIENCE, LOCATION_MUSIC, RARITY_FROM, Run, awardMilestones, milestoneProgress, backdropFor, bestRarity, rarityOpen, specialPrice, bossMusic, isBossWave, isMiniWave, locationFor, loopOf, planWave, footPool, type WavePlan, bossFor, miniFor } from '../game/Run';
 import type { CounterSnap, RunSnapshot } from '../game/snapshot';
 import { audio, bossSfx, heroSfx } from '../systems/audio';
 import { setRunSmack } from '../game/smacks';
@@ -2008,8 +2008,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     else {
       // no plan yet (it rolls the wave's randomness): the whole pool, newest feet first (they're the likeliest);
       // the shop has the idle time
-      const inLoop = n - loopOf(n) * JOURNEY_WAVES;
-      ids.push(...Object.values(FOOT_BY_ID).filter((f) => !f.boss && !f.mini && f.weight > 0 && (f.minWave <= inLoop || loopOf(n) > 0)).sort((a, b) => b.minWave - a.minWave).map((f) => f.id));
+      ids.push(...footPool(n).sort((a, b) => b.minWave - a.minWave).map((f) => f.id));
     }
     setLiveWarmBusy(() => this.waveActive && !this.inUpgrade && this.sys.isActive());
     warmLive(this, ids, FOOT_BY_ID);
