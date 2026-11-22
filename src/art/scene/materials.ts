@@ -551,8 +551,8 @@ export function clothDrape(ctx: Ctx, front: number, a: string, b: string, cell =
   ctx.fillRect(0, front, W, 2);
 }
 
-/** Planks running away from us on the table plane (a bar top, a deck). */
-export function planksPlane(ctx: Ctx, r: R, front: number, base: string, period = 0.32, gap = 0.012): void {
+/** Planks running away from us on the table plane (a bar top, a deck; `joints` false for full-length boards, a table top). */
+export function planksPlane(ctx: Ctx, r: R, front: number, base: string, period = 0.32, gap = 0.012, joints = true): void {
   const zf = zAt(front + 4);
   ctx.save();
   ctx.beginPath();
@@ -605,7 +605,7 @@ export function planksPlane(ctx: Ctx, r: R, front: number, base: string, period 
       ctx.fill();
     }
     // butt joints where one length of plank meets the next, each with its pair of nails
-    for (let j = 0; j < 2; j++) {
+    for (let j = 0; joints && j < 2; j++) {
       if (r() < 0.35) continue;
       const z = zf + (ZB - zf) * (0.1 + r() * 0.85);
       const y = yAt(z);
