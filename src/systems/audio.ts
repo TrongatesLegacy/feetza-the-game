@@ -4,6 +4,7 @@
 import Phaser from 'phaser';
 import manifest from 'virtual:audio-manifest';
 import { onSettingsChange, save } from './save';
+import { SMACK_TRIM } from './smackTrim';
 
 type Cat = 'music' | 'ambience';
 
@@ -16,7 +17,26 @@ interface Track {
 const AVAILABLE = new Set<string>(manifest);
 // Small files loaded at boot; everything else streams in on demand.
 // Boss move sounds (sfx_<boss>_<move>) load a wave ahead of their fight instead (see bossSfx).
-export const BOOT_AUDIO = [...AVAILABLE].filter((k) => (k.startsWith('sfx_') && isCoreSfx(k)) || k === 'music_menu' || k === 'music_gameover');
+// Peel smack sounds (sfx_smack_*) load lazily: only the families the cursor's look needs (src/game/smacks.ts).
+export const BOOT_AUDIO = [...AVAILABLE].filter((k) => (k.startsWith('sfx_') && isCoreSfx(k) && !k.startsWith('sfx_smack_')) || k === 'music_menu' || k === 'music_gameover');
+
+/** A peel's smack, resolved to files (src/game/smacks.ts). */
+export interface SmackProfile {
+  id: string;
+  family: string;
+  layerFamily: string | null;
+  /** Alternating takes, and the heavy one for crits and big hits. */
+  takes: string[];
+  heavy: string;
+  /** The peel's own pitch (1 = the family's). */
+  rate: number;
+  /** A second family under the first, quieter. */
+  layer: { takes: string[]; heavy: string; vol: number } | null;
+  /** A signature tail after the smack; `gap` is the least time between two on ordinary smacks. */
+  tail: { key: string; gap: number; vol: number } | null;
+  /** Every file it needs, to preload. */
+  keys: string[];
+}
 
 /** The original sfx all have one-word names (sfx_slap_1 has a digit); boss move sounds are sfx_<boss>_<move>. */
 function isCoreSfx(k: string): boolean {
@@ -707,9 +727,12 @@ const TRIM: Record<string, number> = {
   sfx_hero_spear: 1.09, // -12.8 dB → -12.1: King Leonidas's spear is hurled: a strong whoosh and a thunk
   sfx_hero_shieldblock: 1.13, // -11.6 dB → -10.5: a stomp clangs off a bronze shield in the shield wall
   sfx_hero_hotgates: 1.09, // -10.2 dB → -9.5: Leonidas, Hot Gates: a roaring Spartan war cry with shields beating
+  // ——— peel smacks (scripts/smack-sfx, generated into smackTrim.ts) ———
+  ...SMACK_TRIM,
 };
 
 const AMBIENCE_GAIN = 0.4;
+const SLAPS = ['sfx_slap_1', 'sfx_slap_2', 'sfx_slap_3'];
 
 class AudioManager {
   private game!: Phaser.Game;
@@ -824,9 +847,109 @@ class AudioManager {
   private lastSlap = 0;
 
   /** Round-robin through the slap variations (never the same one twice) with pitch variation. */
-  slap(intensity = 1): void {
+  private classicSlap(intensity: number): void {
     this.lastSlap = (this.lastSlap + 1 + Math.floor(Math.random() * 2)) % 3;
-    this.sfx(`sfx_slap_${this.lastSlap + 1}`, { volume: 0.8 + 0.2 * intensity, rate: 1.06 - 0.12 * intensity, throttle: 25, jitter: 0.1 });
+    this.sfx(SLAPS[this.lastSlap], { volume: 0.8 + 0.2 * intensity, rate: 1.06 - 0.12 * intensity, throttle: 25, jitter: 0.1 });
+  }
+
+  // ——— peel smacks (src/game/smacks.ts registers these) ———
+  /** The peel whose look is on the cursor. */
+  smackSource: (() => string) | null = null;
+  /** A peel's smack files (null: the classic slap). */
+  smackResolve: ((id: string) => SmackProfile | null) | null = null;
+  private smackId = '';
+  private smackProfile: SmackProfile | null = null;
+  private lastTake = 0;
+  private lastTail = 0;
+  private requestedSmack = new Set<string>();
+
+  /** The current look's smack (cached until the look changes), or null for the classic slap. */
+  private currentSmack(): SmackProfile | null {
+    if (!this.smackSource || !this.smackResolve || save.settings.peelSmacks === 'classic') return null;
+    const id = this.smackSource();
+    if (id !== this.smackId) {
+      this.smackId = id;
+      this.smackProfile = this.smackResolve(id);
+    }
+    return this.smackProfile;
+  }
+
+  /** The first active scene, to load through. */
+  anyScene(): Phaser.Scene | null {
+    return this.game?.scene.getScenes(true)[0] ?? null;
+  }
+
+  /** A smack: the peel's own sound (its look's), the classic slap, or nothing, by the "Peel smack sounds" setting.
+   *  Intensity behaves as it always has (louder and lower when harder); 1 or more counts as a big hit. */
+  slap(intensity = 1): void {
+    if (save.settings.peelSmacks === 'off') return;
+    this.smackWith(this.currentSmack(), intensity, intensity >= 1, false);
+  }
+
+  /** A critical smack: the heavy take (the classic crit for the Classic Peel). */
+  critSmack(): void {
+    if (save.settings.peelSmacks === 'off') return;
+    this.smackWith(this.currentSmack(), 1, true, false);
+  }
+
+  /** Last smack key played, for dev checks. */
+  lastSmack = '';
+
+  /** Play a smack profile. `forceTail` plays the tail whatever its gap (the locker preview). */
+  smackWith(p: SmackProfile | null, intensity: number, heavy: boolean, forceTail: boolean): void {
+    if (!this.game) return;
+    const cache = this.game.cache.audio;
+    if (p && !cache.exists(p.heavy)) {
+      // not loaded yet: start loading it and use the classic slap this once
+      this.requestSmack(p);
+      p = null;
+    }
+    if (!p) {
+      if (heavy) this.play('sfx_crit', 1, 1, 40, 0.06);
+      else this.classicSlap(intensity);
+      this.lastSmack = heavy ? 'sfx_crit' : SLAPS[this.lastSlap];
+      return;
+    }
+    // alternate takes (never the same twice), slight random pitch and volume, the peel's own pitch on top
+    this.lastTake = (this.lastTake + 1 + Math.floor(Math.random() * 2)) % p.takes.length;
+    const vol = (0.8 + 0.2 * intensity) * (0.92 + Math.random() * 0.08);
+    const rate = p.rate * (heavy ? 0.97 : 1.06 - 0.12 * intensity);
+    const key = heavy ? p.heavy : p.takes[this.lastTake];
+    this.play(key, vol, rate, heavy ? 40 : 25, 0.07);
+    this.lastSmack = key;
+    if (p.layer) {
+      const lk = heavy ? p.layer.heavy : p.layer.takes[this.lastTake % p.layer.takes.length];
+      if (cache.exists(lk)) this.play(lk, vol * p.layer.vol, rate, 25, 0.05);
+    }
+    const t = p.tail;
+    if (t && cache.exists(t.key)) {
+      const now = performance.now();
+      if (forceTail || now - this.lastTail >= (heavy ? 120 : t.gap)) {
+        this.lastTail = now;
+        this.play(t.key, t.vol * (heavy ? 1.1 : 0.95), p.rate, 60, 0.04);
+      }
+    }
+  }
+
+  private requestSmack(p: SmackProfile): void {
+    if (this.requestedSmack.has(p.id)) return;
+    this.requestedSmack.add(p.id);
+    const scene = this.anyScene();
+    // a failed or abandoned load (the scene shut down) can be asked for again
+    if (scene) void Promise.all(p.keys.map((k) => this.ensure(scene, k))).then((ok) => ok.every(Boolean) || this.requestedSmack.delete(p.id));
+    else this.requestedSmack.delete(p.id);
+  }
+
+  /** sfx() without an options object, for the smack path (it runs on every hit). */
+  private play(key: string, volume: number, rate: number, throttle: number, jitter: number): void {
+    if (!this.game.cache.audio.exists(key)) return;
+    const now = performance.now();
+    if (now - (this.lastPlayed.get(key) ?? -1e9) < throttle) return;
+    this.lastPlayed.set(key, now);
+    this.game.sound.play(key, {
+      volume: volume * (TRIM[key] ?? 1) * this.vol('sfx'),
+      rate: rate * (1 + (Math.random() * 2 - 1) * jitter),
+    });
   }
 
   /** Crossfade to the first available track among candidates. */

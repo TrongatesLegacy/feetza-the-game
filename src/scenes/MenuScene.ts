@@ -12,6 +12,8 @@ import { audio } from '../systems/audio';
 import { freshStart, persist, save } from '../systems/save';
 import { ui } from '../ui/ui';
 import { lokiPeek } from '../game/lokiSecret';
+import { lookPeel } from '../game/peels';
+import { preloadSmack } from '../game/smacks';
 
 export function randomLineup(n: number): string[] {
   const pool = [...save.unlockedPizzas];
@@ -68,6 +70,8 @@ export class MenuScene extends Phaser.Scene {
     audio.duck(1);
     // warm the gameplay tracks while the player browses the menu
     audio.preload(this, ['music_game', 'ambience_pizzeria']);
+    // and the cursor look's smack (the title screen has a foot to smack)
+    preloadSmack(this, lookPeel().id);
     ui.setPlaying(false);
     ui.showHud(false);
     this.showMenu();

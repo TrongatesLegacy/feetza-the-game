@@ -10,6 +10,8 @@ import type { RunSnapshot } from '../game/snapshot';
 export type AimScheme = 'free' | 'lane';
 export type PromptStyle = 'auto' | 'xbox' | 'playstation' | 'switch';
 export type ColorBlind = 'off' | 'redgreen' | 'blueyellow';
+/** Smack sounds: each peel's own (src/game/smacks.ts), the classic slap for every peel, or none. */
+export type PeelSmacks = 'peel' | 'classic' | 'off';
 
 export interface Settings {
   master: number;
@@ -33,6 +35,7 @@ export interface Settings {
   aimAssist: number;
   vibration: boolean;
   prompts: PromptStyle;
+  peelSmacks: PeelSmacks;
 }
 
 export interface Best {
@@ -141,6 +144,7 @@ const DEFAULT_SETTINGS: Settings = {
   aimAssist: 0.4,
   vibration: true,
   prompts: 'auto',
+  peelSmacks: 'peel',
 };
 
 const DEFAULTS: SaveData = {
