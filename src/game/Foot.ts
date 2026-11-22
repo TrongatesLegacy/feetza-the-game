@@ -643,6 +643,11 @@ export class Foot {
     this.revealT = Math.max(this.revealT, sec);
   }
 
+  /** How visible the foot's own art is now (faded by invisibility, phasing, portals and the like). */
+  get visualAlpha(): number {
+    return this.img.alpha;
+  }
+
   setVisualAlpha(a: number): void {
     this.img.setAlpha(a);
     this.leg.setAlpha(a);

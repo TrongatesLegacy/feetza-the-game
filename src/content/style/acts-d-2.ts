@@ -12,19 +12,20 @@ import { bareBox, bareParts, poseToes, restToes } from '../../art/style/anatomy'
 import { LIGHT, type PathFn, type Pose, ao, crease, glint, inkOf, softFill, softStroke, spec, texture } from '../../art/style/kit';
 import { Sil, lobe } from '../../art/style/sil';
 import { registerStyle } from '../../art/style/registry';
-import { blotches, contact, rivet, stitches } from '../../art/style/details';
+import { blotches, contact, rivet } from '../../art/style/details';
 import { tones } from '../../art/style/materials';
 import { type Ctx, hashStr, mix, rgba, rng, shade } from '../../art/util';
 import { SOCKETS } from '../art/act7';
 import { ell, finishLight, hgrad, piece, rrect, solePath, upperPath, vgrad, within } from './roster-kit';
-import { DMAT, LX, LY, glowOnly, heatRise, hotEye, hotLine, oneLight } from './acts-d-kit';
+import { DMAT, glowOnly, heatRise, hotEye, hotLine, oneLight } from './acts-d-kit';
 
 type Opts = { live: boolean; emissive?: boolean; heat?: boolean };
 
 // ════════════════════════ Ultoe and the Ultoe Drones ════════════════════════
 // A robot sneaker: a white enamel-and-chrome shell in panels, maroon lightning decals, a vented collar, an LED strip
-// along the sole and a round core port on the vamp. Ultoe's core burns red; a drone's is a dead grey lens. In play
-// the LEDs chase, the core pulses (Ultoe) or flickers (drones), and an overheated Ultoe vents steam and sparks.
+// along the sole and a round core port on the vamp. Ultoe's core burns red in his portrait and peel; in play he wears
+// a drone's dead grey lens, because his fight's own core sprite must be the only tell. In play the LEDs chase, the
+// cores flicker and static crackles off them.
 
 /** The core's centre (the fight's CORE, design space). */
 export const ROBO_CORE: [number, number] = [CX, 82];
@@ -116,7 +117,9 @@ function drawRobo(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
   const shell = art.primary ?? '#c9d0da';
   const bolt = art.secondary ?? '#7a2230';
   const coreCol = (art.extra?.core as string | undefined) ?? '#ff3a3a';
-  const drone = !!art.extra?.drone;
+  // in play Ultoe looks exactly like a drone: the fight's own core sprite is the only tell (his portrait and peel
+  // keep the burning core)
+  const drone = !!art.extra?.drone || o.live;
   const flex = Math.max(0, p.curl);
   const upper = upperPath(ROBO, flex);
   const sole = solePath(ROBO, flex, 22, 190, 4);
@@ -219,7 +222,7 @@ function drawRobo(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
     spec(g, CX - 40, 212 - flex * 5, 30, 8, 0.9, -0.1);
     glint(g, CX - 58, 208 - flex * 5, 4.5, 0.9);
   });
-  roboCore(g, coreCol, o.live, drone);
+  roboCore(g, drone ? '#7d8694' : coreCol, o.live, drone);
   // the collar: a steel ring with vents
   within(g, roboCollar, () => {
     g.fillStyle = vgrad(g, -6, 24, [[0, '#f4f8fc'], [0.4, '#a8b0bc'], [1, '#3a3e48']]);
@@ -650,7 +653,7 @@ function drawDoom(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
   }
   if (o.heat) {
     glowOnly(ctx, parts, box, (g) => {
-      heatRise(g, box, 20, 276, 79, '#ff5a1a', 0.85);
+      heatRise(g, box, 20, 196, 79, '#ff5a1a', 0.85);
       // the hide splits along cracks that glow from inside
       const r = rng(hashStr('doom-heat'));
       for (let i = 0; i < 9; i++) {
@@ -778,7 +781,7 @@ const DOOM_BLINK = 4;
 registerStyle('doomstomp', {
   contactY: 276,
   halfWidth: 118,
-  rig: { from: 206, to: 226 },
+  rig: { from: 176, to: 196 },
   leg: { kind: 'skin', hw: 70, join: 'blend', fade: 26 },
   parts: {
     eyes: {
@@ -903,10 +906,10 @@ function drawThan(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
       g.save();
       sockArea(g);
       g.clip();
-      heatRise(g, box, 0, 210, 87, '#ff7a1a', 0.9);
+      // (the toe band below the rig's top carries no heat: it ends there)
+      heatRise(g, box, 0, 160, 87, '#ff7a1a', 0.9);
       g.restore();
       hotLine(g, (c) => bandPath(c), '#ffc04a', 2, 0.7);
-      hotLine(g, (c) => hemCurve(c, -2), '#ffb04a', 2.6, 0.8);
     }
     g.restore();
     sil.finish('rgba(0,0,0,0)', { w: 0.01, inner: 0 });
@@ -1011,4 +1014,3 @@ registerStyle('thanfoot', {
   },
 });
 
-export { LX, LY, lobe, oneLight, stitches };

@@ -266,18 +266,7 @@ function gWingPath(s: number, rx: number, ry: number): PathFn {
   };
 }
 
-const GW = 1;
-
 function gWing(g: Ctx, s: number, rx: number, ry: number, stone: string, membrane: string): void {
-  g.save();
-  g.translate(rx, ry);
-  g.scale(GW, GW);
-  g.translate(-rx, -ry);
-  gWingAt(g, s, rx, ry, stone, membrane);
-  g.restore();
-}
-
-function gWingAt(g: Ctx, s: number, rx: number, ry: number, stone: string, membrane: string): void {
   const path = gWingPath(s, rx, ry);
   const box = { x: Math.min(rx, rx + s * 100) - 4, y: ry - 40, w: 108, h: 84 };
   prop(g, [path], box, (wg, sil) => {
@@ -419,8 +408,8 @@ function drawGarg(ctx: Ctx, art: FootArt, p: Pose, live: boolean): void {
 function gWingPart(i: number): PartDef {
   const w = GWINGS[i];
   const [rx, ry] = w.root;
-  const x = w.s < 0 ? rx - 106 * GW : rx - 6 * GW;
-  return { box: { x, y: ry - 48 * GW, w: 112 * GW, h: 96 * GW }, frames: 1, pivot: w.root, draw: (g, art) => gWing(g, w.s, rx, ry, art.skin, art.primary ?? '#b4603a') };
+  const x = w.s < 0 ? rx - 106 : rx - 6;
+  return { box: { x, y: ry - 48, w: 112, h: 96 }, frames: 1, pivot: w.root, draw: (g, art) => gWing(g, w.s, rx, ry, art.skin, art.primary ?? '#b4603a') };
 }
 
 registerStyle('gargoylet', {
@@ -519,7 +508,7 @@ function drawSpats(ctx: Ctx, art: FootArt, p: Pose): void {
 registerStyle('henchman', {
   contactY: 260,
   halfWidth: 94,
-  rig: { from: 196, to: 214 },
+  rig: { from: 160, to: 180 },
   leg: { kind: 'wool', hw: 54, join: 'hem' },
   draw(ctx, art, p, o) {
     if (o.emissive || o.heat) return;
@@ -606,13 +595,13 @@ function drawJet(ctx: Ctx, art: FootArt, p: Pose, o: { emissive?: boolean; heat?
   piece(g, boot, box, 'leather', olive, { shadow: 0.4, size: 16, texA: 0.16 });
   within(g, boot, () => {
     // polished toe and shin, creases at the ankle
-    spec(g, CX - 44, 220 - flex * 5, 16, 4, 0.75, -0.12);
+    spec(g, CX - 44, 220, 16, 4, 0.75, -0.12);
     spec(g, CX - 30, 40, 8, 40, 0.35, 0.05);
     for (const [y, w] of [[150, 60], [166, 70], [182, 76]] as const) {
       crease(g, (c) => {
-        c.moveTo(CX - w, y - flex * 4);
-        c.quadraticCurveTo(CX, y - 12 - flex * 8, CX + w, y - flex * 4);
-      }, 2.2 + flex, '#0a0c06', 0.35 + flex * 0.3, 0.16);
+        c.moveTo(CX - w, y);
+        c.quadraticCurveTo(CX, y - 12, CX + w, y);
+      }, 2.2, '#0a0c06', 0.35, 0.16);
     }
     blotches(g, box, '#1a1c10', 0.16, 26, 0.6, 0.3, 63);
     // the two straps with buckles
@@ -807,7 +796,7 @@ function drawGoon(ctx: Ctx, art: FootArt, p: Pose): void {
 registerStyle('goon', {
   contactY: 270,
   halfWidth: 106,
-  rig: { from: 190, to: 210 },
+  rig: { from: 150, to: 170 },
   leg: { kind: 'denim', hw: 62, join: 'into' },
   draw(ctx, art, p, o) {
     if (o.emissive || o.heat) return;

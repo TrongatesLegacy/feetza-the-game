@@ -544,7 +544,8 @@ export class Critters {
 export interface LiveDef<S = unknown> {
   /** Wiggle the toes while hovering (bare feet). */
   wiggle?: boolean;
-  /** How much the rig moves (0 turns it off): swing, squash and breath. */
+  /** How much the rig moves (0 turns it off): swing, squash and breath. All three at 0 hold the art still (a boss
+   * whose fight places things on its art by its own coordinates). */
   rig?: { swing?: number; squash?: number; breath?: number };
   /** Sway parts (names from the style's parts): spring stiffness, damping, and how hard motion pushes them. */
   sway?: Record<string, { k?: number; c?: number; gain?: number; idle?: number; below?: boolean; flop?: number }>;
@@ -570,6 +571,7 @@ export function registerLive<S>(id: string, def: LiveDef<S>): void {
 }
 
 interface SwayPart {
+  name: string;
   img: Phaser.GameObjects.Image;
   spring: Spring;
   o: NonNullable<LiveDef['sway']>[string];
@@ -644,7 +646,7 @@ export class LiveFoot {
       if (sw) {
         const [px, py] = p.pivot ?? [p.box.x, p.box.y];
         const img = place(key, px, py, !!sw.below, (px - p.box.x) / p.box.w, (py - p.box.y) / p.box.h);
-        this.sways.push({ img, spring: new Spring(0, sw.k ?? 60, sw.c ?? 6), o: sw, sd: crand() * 100 });
+        this.sways.push({ name, img, spring: new Spring(0, sw.k ?? 60, sw.c ?? 6), o: sw, sd: crand() * 100 });
         continue;
       }
       const img = place(key, p.box.x, p.box.y, false);
@@ -673,6 +675,12 @@ export class LiveFoot {
     const e = new WorldEmitter(this.sc, this.f, o);
     this.emitters.push(e);
     return e;
+  }
+
+  /** A sway part's image by its name (a def that drives the part itself, like a wing beat, sets its rotation in
+   * tick, after the spring has had its turn). */
+  swayImg(name: string): Phaser.GameObjects.Image | undefined {
+    return this.sways.find((s) => s.name === name)?.img;
   }
 
   /** Critters orbiting this foot (see CritterOpts). */
@@ -753,21 +761,24 @@ export class LiveFoot {
     const sy = this.sy.step(syTo, dt);
     const sx = 1 + (1 - sy) * 0.65;
     const swing = this.sw.step(Phaser.Math.Clamp(-this.vx * 0.00085, -0.13, 0.13) * (rigO.swing ?? 1) * calm + Math.sin(this.t * 0.9) * 0.018 * calm, dt);
-    f.setRigPose(swing, sx, sy);
+    const still = rigO.swing === 0 && rigO.squash === 0 && rigO.breath === 0;
+    if (still) f.setRigPose(0, 1, 1);
+    else f.setRigPose(swing, sx, sy);
     this.updateBand(dt, curlTo);
     // ——— heat ———
     if (this.heatImg) {
       const want = this.def.heat?.of ? this.def.heat.of(f) : bossHeat(f);
       this.heat += (want - this.heat) * Math.min(1, dt * 1.2);
       const flick = 0.82 + noise1(this.t * 3.1) * 0.1 + noise1(this.t * 11) * 0.05;
-      this.heatImg.setAlpha(this.heat * flick);
+      // fade with the foot (hidden, glitching or phasing)
+      this.heatImg.setAlpha(this.heat * flick * f.visualAlpha);
     }
     // ——— glow ———
     if (this.glowImg) {
       const g = this.def.glow!;
       const pulse = Math.sin(this.t * Math.PI * 2 * (g.rate ?? 0.6)) * 0.5 + 0.5;
       const flick = noise1(this.t * 4.3) * 0.12;
-      this.glowImg.setAlpha(Math.min(1, (g.base ?? 0.55) + (pulse * (g.depth ?? 0.4) + flick) * calm + this.heat * 0.4));
+      this.glowImg.setAlpha(Math.min(1, (g.base ?? 0.55) + (pulse * (g.depth ?? 0.4) + flick) * calm + this.heat * 0.4) * f.visualAlpha);
     }
     // ——— sway parts ———
     for (const s of this.sways) {

@@ -1,7 +1,6 @@
 // How batch D's feet move in play (src/game/liveKit.ts): Acts 1b, 2a, 7 and 8. Their art is in
 // src/content/style/acts-d-*.ts. Cosmetic randomness only through crand() (the game's seeded generator).
 
-import type Phaser from 'phaser';
 import { CX } from '../../art/feetCommon';
 import { type LiveFoot, registerLive } from '../../game/liveKit';
 import { crand } from '../../systems/cosmeticRandom';
@@ -16,16 +15,7 @@ type Em = ReturnType<LiveFoot['emitter']>;
 
 /** How visible the foot is now (bosses fade in from portals, uploads glitch it, the serpent stays hidden): effects
  * thin out with it, and stop when it's gone. */
-function shown(k: LiveFoot): number {
-  const img = (k.f as unknown as { img?: Phaser.GameObjects.Image }).img;
-  return img ? img.alpha : 1;
-}
-
-/** The live layer's sway parts, in the order the style declares them (a def that drives a part itself, like a wing
- * beat, overrides the rotation the spring gave it this frame). */
-function swayImgs(k: LiveFoot): Phaser.GameObjects.Image[] {
-  return ((k as unknown as { sways?: { img: Phaser.GameObjects.Image }[] }).sways ?? []).map((s) => s.img);
-}
+const shown = (k: LiveFoot): number => k.f.visualAlpha;
 
 /** A puff of dust thrown out sideways when the foot lands. */
 function landDust(k: LiveFoot, em: Em, tint: number, n = 10, y = 258, a = 0.45): void {
@@ -37,16 +27,16 @@ function landDust(k: LiveFoot, em: Em, tint: number, n = 10, y = 258, a = 0.45):
   }
 }
 
-/** Wings beating: each wing part swings round its root, mirrored, faster as the foot dives. */
-function beatWings(k: LiveFoot, st: { ph: number }, dt: number, hz: number, amp: number, sides: number[]): void {
+/** Wings beating: the wingL and wingR sway parts swing round their roots, mirrored, faster as the foot dives (set
+ * after the springs, so the beat rides on their sway). */
+function beatWings(k: LiveFoot, st: { ph: number }, dt: number, hz: number, amp: number): void {
   const fast = k.f.state === 'descend' || k.windingUp ? 1.8 : 1;
   st.ph += dt * hz * fast * Math.PI * 2;
-  const imgs = swayImgs(k);
   const beat = Math.sin(st.ph) * amp + Math.sin(st.ph * 2) * amp * 0.15;
-  imgs.forEach((img, i) => {
-    const s = sides[i] ?? (i % 2 ? 1 : -1);
-    img.rotation = -s * beat + img.rotation * 0.4;
-  });
+  for (const [name, s] of [['wingL', -1], ['wingR', 1]] as const) {
+    const img = k.swayImg(name);
+    if (img) img.rotation = -s * beat + img.rotation * 0.4;
+  }
 }
 
 // ════════════════════════ Act 1b · Act 2a ════════════════════════
@@ -75,11 +65,11 @@ registerLive('blacksmith', {
 // Little Gargoyle: the wings beat; grit sifts off it; moss crumbs and grit puff out when it lands.
 registerLive('gargoylet', {
   wiggle: true,
-  sway: { wingL: { k: 50, c: 5, gain: 1, idle: 0.1 }, wingR: { k: 50, c: 5, gain: 1, idle: 0.1 } },
+  sway: { wingL: { k: 50, c: 5, gain: 1, idle: 0.1, below: true }, wingR: { k: 50, c: 5, gain: 1, idle: 0.1, below: true } },
   setup: (k) => ({ grit: k.emitter({ frame: 'mote', drag: 0.3, max: 50 }), dust: k.emitter({ frame: 'puff', curl: 20, drag: 1.4, below: true, max: 30 }), wing: { ph: R() * 6 } }),
   tick(k, dt, { grit, dust, wing }) {
     const s = k.f.type.scale;
-    beatWings(k, wing, dt, 2.6, 0.42, [-1, 1]);
+    beatWings(k, wing, dt, 2.6, 0.42);
     grit.rate('grit', k.windingUp ? 18 : 4, dt, () => {
       grit.emit(CX + pm() * 160, 60 + R() * 180, { vx: pm() * 20, vy: 10, life: 0.9, r0: 2.2 * s, r1: 1.8 * s, a: 0.95, tint: R() < 0.6 ? 0xc8ab78 : 0x7fb04a, grav: 600, fade: 0.02 });
     });
@@ -101,6 +91,9 @@ registerLive('henchman', {
   },
 });
 
+/** Per-nozzle emitter rate keys (made once). */
+const JET_KEYS = JET_NOZZLES.map((_, i) => [`f${i}`, `c${i}`, `s${i}`] as const);
+
 // Jetpack Jackboots: the rockets burn, trailing flame and smoke through the world; they sputter just before it dives
 // and roar on the way down.
 registerLive('jetpack', {
@@ -117,18 +110,19 @@ registerLive('jetpack', {
     const on = !(k.windingUp && sput.t > 0);
     const roar = k.f.state === 'descend' ? 1.8 : 1;
     if (on)
-      for (const [x, y] of JET_NOZZLES) {
-        fire.rate(`f${x}`, 34 * roar, dt, () => {
+      JET_NOZZLES.forEach(([x, y], i) => {
+        fire.rate(JET_KEYS[i][0], 34 * roar, dt, () => {
           fire.emit(x + pm() * 8, y + 6, { vx: pm() * 30, vy: 300 + R() * 160, life: 0.22 + R() * 0.14, r0: 22 * s, r1: 6 * s, a: 0.9 * v, tint: R() < 0.5 ? 0xffa03a : 0xff5a1a, fade: 0.04 });
         });
-        core.rate(`c${x}`, 26 * roar, dt, () => {
+        core.rate(JET_KEYS[i][1], 26 * roar, dt, () => {
           core.emit(x + pm() * 5, y + 4, { vy: 340 + R() * 120, life: 0.12 + R() * 0.06, r0: 16 * s, r1: 8 * s, a: v, tint: 0xfff2c0, fade: 0.03 });
         });
-      }
-    for (const [x, y] of JET_NOZZLES)
-      smoke.rate(`s${x}`, (on ? 5 : 12) * roar, dt, () => {
-        smoke.emit(x + pm() * 10, y + 30, { vx: pm() * 30, vy: 80 + R() * 40, life: 1 + R() * 0.6, r0: 8 * s, r1: 34 * s, a: 0.3 * v, tint: R() < 0.5 ? 0x9a9aa0 : 0x6a6a70, fade: 0.1 });
       });
+    JET_NOZZLES.forEach(([x, y], i) =>
+      smoke.rate(JET_KEYS[i][2], (on ? 5 : 12) * roar, dt, () => {
+        smoke.emit(x + pm() * 10, y + 30, { vx: pm() * 30, vy: 80 + R() * 40, life: 1 + R() * 0.6, r0: 8 * s, r1: 34 * s, a: 0.3 * v, tint: R() < 0.5 ? 0x9a9aa0 : 0x6a6a70, fade: 0.1 });
+      }),
+    );
   },
 });
 
@@ -175,37 +169,25 @@ function ledChase(k: LiveFoot, em: Em, st: { t: number; i: number }, dt: number,
   em.emit(CX - 72 + i * 18, 252, { life: 0.22, r0: 10 * k.f.type.scale, r1: 4 * k.f.type.scale, a, tint, fade: 0.1 });
 }
 
-// Ultoe: the core pulses, a light chases along the LEDs, sparks crackle off the vents; overheated, he vents steam.
-registerLive('ultoe', {
-  glow: { rate: 1.6, depth: 0.45, base: 0.55 },
-  heat: {},
-  setup: (k) => ({ fx: k.emitter({ frame: 'mote', add: true, drag: 0, max: 30 }), sparks: k.emitter({ frame: 'spark', add: true, drag: 0.4, max: 40 }), steam: k.emitter({ frame: 'soft', curl: 40, drag: 0.8, max: 80 }), embers: k.emitter({ frame: 'ember', add: true, drag: 0.5, max: 40 }), chase: { t: 0, i: -1 } }),
-  tick(k, dt, { fx, sparks, steam, embers, chase }) {
-    const v = shown(k);
-    if (v < 0.3) return;
-    const s = k.f.type.scale;
-    ledChase(k, fx, chase, dt, 0xff4a4a, v);
-    sparks.rate('vent', 0.8 + k.heat * 6, dt, () => {
-      const side = R() < 0.5 ? -1 : 1;
-      sparks.emit(CX + side * 70, 70 + R() * 24, { vx: side * (60 + R() * 120), vy: -40 - R() * 80, life: 0.25 + R() * 0.2, r0: 2.4 * s, r1: 0.8 * s, a: v, tint: R() < 0.5 ? 0xffd0d0 : 0xff6a6a, grav: 500, fade: 0.02 });
-    });
-    overheat(k, steam, embers, dt, [[CX - 36, 6], [CX + 36, 6], [CX - 70, 80], [CX + 70, 80]], 0xf4f6fa, 0xff6a4a);
-  },
-});
+/** The fight places Ultoe's core sprite and Thanfoot's stones by the foot's own coordinates: their art holds still. */
+const STILL = { swing: 0, squash: 0, breath: 0 };
 
-// Ultoe Drones: the grey core flickers as it boots; static crackles off them now and then.
-registerLive('ultodrone', {
-  glow: { rate: 5, depth: 0.5, base: 0.15 },
-  setup: (k) => ({ fx: k.emitter({ frame: 'mote', add: true, drag: 0, max: 20 }), sparks: k.emitter({ frame: 'spark', add: true, drag: 0.4, max: 20 }), chase: { t: R() * 9, i: -1 } }),
-  tick(k, dt, { fx, sparks, chase }) {
-    const v = shown(k);
-    if (v < 0.3) return;
-    ledChase(k, fx, chase, dt, 0x8ab8d8, 0.5 * v);
-    sparks.rate('static', 0.5, dt, () => {
-      sparks.emit(ROBO_CORE[0] + pm() * 40, ROBO_CORE[1] + pm() * 40, { vx: pm() * 80, vy: pm() * 80, life: 0.15, r0: 2, r1: 10 * k.f.type.scale, a: 0.8 * v, tint: 0xbfd8ff, fade: 0.3 });
-    });
-  },
-});
+/** Ultoe and his drones look the same in play (the fight's core sprite is Ultoe's only tell): the grey cores flicker,
+ * a light chases along the LEDs, static crackles off them. */
+for (const id of ['ultoe', 'ultodrone'])
+  registerLive(id, {
+    glow: { rate: 5, depth: 0.5, base: 0.15 },
+    rig: STILL,
+    setup: (k) => ({ fx: k.emitter({ frame: 'mote', add: true, drag: 0, max: 20 }), sparks: k.emitter({ frame: 'spark', add: true, drag: 0.4, max: 20 }), chase: { t: R() * 9, i: -1 } }),
+    tick(k, dt, { fx, sparks, chase }) {
+      const v = shown(k);
+      if (v < 0.3) return;
+      ledChase(k, fx, chase, dt, 0x8ab8d8, 0.5 * v);
+      sparks.rate('static', 0.5, dt, () => {
+        sparks.emit(ROBO_CORE[0] + pm() * 40, ROBO_CORE[1] + pm() * 40, { vx: pm() * 80, vy: pm() * 80, life: 0.15, r0: 2, r1: 10 * k.f.type.scale, a: 0.8 * v, tint: 0xbfd8ff, fade: 0.3 });
+      });
+    },
+  });
 
 // Lex Lugtoe: he blinks behind the glass, the dome glints, the vents breathe green; overheated, the suit steams.
 registerLive('lexlugtoe', {
@@ -256,7 +238,7 @@ registerLive('thanfoot', {
   wiggle: true,
   glow: { rate: 0.4, depth: 0.4, base: 0.5 },
   heat: {},
-  rig: { breath: 1.4 },
+  rig: STILL,
   setup: (k) => ({ motes: k.emitter({ frame: 'mote', add: true, curl: 30, drag: 0.4, max: 70 }), steam: k.emitter({ frame: 'soft', curl: 40, drag: 0.8, max: 80 }), embers: k.emitter({ frame: 'ember', add: true, drag: 0.5, max: 40 }) }),
   tick(k, dt, { motes, steam, embers }) {
     const v = shown(k);
@@ -295,7 +277,7 @@ registerLive('frostgiant', {
 // Draugr Boots: blue grave-fire flickers in the eyelets and wisps up off them, barrow earth crumbles away, the loose
 // grave cloth swings.
 registerLive('draugr', {
-  sway: { tail: { k: 40, c: 4, gain: 1.4, idle: 0.1, flop: 1.2 } },
+  sway: { tail: { k: 40, c: 4, gain: 1.4, idle: 0.1, flop: 1.2, below: true } },
   glow: { rate: 2.6, depth: 0.45, base: 0.5 },
   setup: (k) => ({ fire: k.emitter({ frame: 'ember', add: true, curl: 40, drag: 0.6, max: 80 }), earth: k.emitter({ frame: 'mote', drag: 0.3, max: 40 }) }),
   tick(k, dt, { fire, earth }) {
@@ -341,11 +323,11 @@ registerLive('troll', {
 // Valkyrie-Cursed Clogs: the swan wings beat fast, a feather drifts loose now and then, gold motes trail it.
 registerLive('valkyrie', {
   rig: { swing: 1.4 },
-  sway: { wingL: { k: 50, c: 5, gain: 1, idle: 0.1 }, wingR: { k: 50, c: 5, gain: 1, idle: 0.1 } },
+  sway: { wingL: { k: 50, c: 5, gain: 1, idle: 0.1, below: true }, wingR: { k: 50, c: 5, gain: 1, idle: 0.1, below: true } },
   setup: (k) => ({ feathers: k.emitter({ frame: 'flake', curl: 50, drag: 0.8, max: 12 }), motes: k.emitter({ frame: 'mote', add: true, curl: 30, drag: 0.6, max: 40 }), wing: { ph: R() * 6 } }),
   tick(k, dt, { feathers, motes, wing }) {
     const s = k.f.type.scale;
-    beatWings(k, wing, dt, 4.2, 0.5, [-1, 1]);
+    beatWings(k, wing, dt, 4.2, 0.5);
     feathers.rate('feather', 0.6, dt, () => {
       const side = R() < 0.5 ? -1 : 1;
       feathers.emit(CX + side * 120, 60 + R() * 30, { vx: side * (20 + R() * 40), vy: 20, life: 2.4, r0: 6 * s, r1: 5 * s, a: 0.95, tint: 0xf8f6f0, spin: 2, grav: 30, fade: 0.1 });
@@ -441,15 +423,13 @@ registerLive('fenrir', {
 registerLive('jormungandr', {
   blink: { eyes: { every: 3.5 } },
   twitch: { tongue: { every: 1.6 } },
-  heat: {},
-  setup: (k) => ({ bubbles: k.emitter({ frame: 'bubble', drag: 0.4, max: 20 }), steam: k.emitter({ frame: 'soft', curl: 40, drag: 0.8, max: 60 }), embers: k.emitter({ frame: 'ember', add: true, drag: 0.5, max: 30 }) }),
-  tick(k, dt, { bubbles, steam, embers }) {
+  setup: (k) => ({ bubbles: k.emitter({ frame: 'bubble', drag: 0.4, max: 20 }) }),
+  tick(k, dt, { bubbles }) {
     const v = shown(k);
     if (v < 0.2) return;
     const s = k.f.type.scale;
     bubbles.rate('hiss', 1, dt, () => {
       bubbles.emit(SERP_TONGUE[0] + pm() * 60, SERP_TONGUE[1] - 10, { vx: pm() * 20, vy: -20, life: 1, r0: 3 * s, r1: 6 * s, a: 0.7 * v, tint: 0xc8ffe0, fade: 0.2 });
     });
-    overheat(k, steam, embers, dt, [[CX - 60, 160], [CX + 60, 160], [CX, 60]]);
   },
 });

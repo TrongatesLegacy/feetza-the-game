@@ -8,7 +8,7 @@ import { type StyleToe, onToe } from '../../art/style/anatomy';
 import { LIGHT, type PathFn, type Pose, ao, crease, glint, inkOf, pxPerUnit, softFill, softStroke, spec, texture, vnoise } from '../../art/style/kit';
 import { Sil, lobe } from '../../art/style/sil';
 import { type PartDef, registerStyle } from '../../art/style/registry';
-import { beadEye, blotches, clawPath, contact, paintClaw, rivet, stitches } from '../../art/style/details';
+import { blotches, clawPath, contact, paintClaw, rivet, stitches } from '../../art/style/details';
 import { type Ctx, hashStr, mix, rgba, rng, shade } from '../../art/util';
 import { lockPath as wolfLock } from './pilot-fur';
 import { BARE_RIG, bareWith, ell, finishLight, hgrad, piece, prop, rrect, vgrad, within } from './roster-kit';
@@ -93,8 +93,7 @@ registerStyle('frostgiant', {
 // blue grave-fire burning in its eyelets and a loose end of cloth trailing. In play the grave-fire flickers and
 // wisps up, earth crumbs fall, and the loose cloth swings.
 
-const DRAUGR_EYELETS: [number, number][] = [[CX - 30, 40], [CX + 30, 40], [CX - 34, 80], [CX + 34, 80], [CX - 38, 120], [CX + 38, 120]];
-export { DRAUGR_EYELETS };
+export const DRAUGR_EYELETS: [number, number][] = [[CX - 30, 40], [CX + 30, 40], [CX - 34, 80], [CX + 34, 80], [CX - 38, 120], [CX + 38, 120]];
 export const DRAUGR_TAIL: [number, number] = [CX + 96, 140];
 
 const draugrUpper = (flex: number): PathFn => (c) => {
@@ -522,7 +521,7 @@ function vWingPart(i: number): PartDef {
 registerStyle('valkyrie', {
   contactY: 263,
   halfWidth: 100,
-  rig: { from: 210, to: 228 },
+  rig: { from: 158, to: 176 },
   leg: { kind: 'iron', hw: 58, join: 'into' },
   parts: { wingL: vWingPart(0), wingR: vWingPart(1) },
   draw(ctx, art, p, o) {
@@ -807,7 +806,7 @@ function lavaCracks(g: Ctx, col: string, a: number, blur = 0): void {
 }
 
 const surtrBody = (flex: number): PathFn => (c) => {
-  const b = 272 - flex * 6;
+  const b = 276 - flex * 6;
   c.beginPath();
   c.moveTo(CX - 64, -6);
   c.bezierCurveTo(CX - 68, 60, CX - 108, 100, CX - 108, 166);
@@ -908,7 +907,7 @@ function drawSurtr(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
 }
 
 registerStyle('surtr', {
-  contactY: 274,
+  contactY: 278,
   halfWidth: 110,
   leg: { kind: 'basalt', hw: 62, join: 'blend', fade: 24 },
   draw(ctx, art, p, o) {
@@ -1231,7 +1230,6 @@ function drawSerpent(ctx: Ctx, art: FootArt, _p: Pose, o: Opts): void {
   sil.form({ base: light, shadowTint: '#06201a', ramp: 0.85, form: 0.6, formSize: 30, bevel: 0.35, rim: 0.6 });
   texture(g, 'scales', box, 0.5, 1.6);
   // the dark dorsal pattern: diamonds down the sides and across the head
-  const r = rng(hashStr('serpent'));
   for (let i = 0; i < 7; i++) {
     const y = 20 + i * 30;
     for (const s of [-1, 1]) {
@@ -1294,14 +1292,13 @@ function drawSerpent(ctx: Ctx, art: FootArt, _p: Pose, o: Opts): void {
     piece(g, fang, { x: fx - 5, y: 276, w: 10, h: 20 }, DMAT.bone, '#fffaf0', { shadow: 0.4, size: 2 });
   }
   if (!o.live) serpEyes(g, light, 0);
-  void r;
   oneLight(sil, '#02100a', 0.45, 22);
   sil.finish(inkOf(skin), { openTop: -5 });
 }
 
 const SERP_BLINK = 4;
 registerStyle('jormungandr', {
-  contactY: 300,
+  contactY: 306,
   halfWidth: 108,
   leg: { kind: 'skin', hw: 54, join: 'blend', fade: 24 },
   parts: {
@@ -1313,4 +1310,3 @@ registerStyle('jormungandr', {
   },
 });
 
-export { beadEye };
