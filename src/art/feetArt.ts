@@ -2,6 +2,8 @@
 // in a 300x340 design space (foot centre x = 150 canvas / 110 design) and scaled up for crispness.
 
 import { kindDrawer } from './registry';
+import { type DrawOpts, styleFor } from './style/registry';
+import { type Pose, REST, STYLE } from './style/kit';
 import type { FootArt, FootType, LegKind } from '../data/feet';
 import { type Ctx, ellipse, hashStr, makeCanvas, mix, rgba, rng, roundRect, shade } from './util';
 import { CX, INK, OUT, argyle, barePath, drawBare, drawBareBody, drawHair, drawSock, drawToe, glossy, laces, leatherFill, outlineOf, shoePath, skinBodyFill, toesFor } from './feetCommon';
@@ -25,6 +27,8 @@ export function footCanvas(type: FootType, draw: (ctx: Ctx) => void): HTMLCanvas
 }
 
 export interface FootTextures {
+  /** Texels per design unit at scale 1 (ART_RES, or the style kit's for redrawn feet). */
+  res: number;
   foot: HTMLCanvasElement;
   leg: HTMLCanvasElement;
   cuff?: HTMLCanvasElement;
@@ -1216,13 +1220,55 @@ function drawCuff(type: FootType, s: number): HTMLCanvasElement | undefined {
   return c;
 }
 
-export function drawFoot(type: FootType): FootTextures {
-  const s = type.scale * ART_RES;
+/** Texels per design unit (at scale 1) for a foot's textures: feet redrawn in the style kit are drawn bigger
+ * (STYLE.res), but never past STYLE.maxTexel texels per unit in all, so bosses stay affordable. */
+export function footRes(type: FootType): number {
+  return styleFor(type.id) ? Math.min(STYLE.res, Math.max(ART_RES, STYLE.maxTexel / type.scale)) : ART_RES;
+}
+
+/** The design frame's geometry, for code that places parts of a foot's art (src/game/footRig.ts). */
+export const FOOT_FRAME = { padX: PAD_X, padY: PAD_Y, w: DESIGN_W, h: DESIGN_H };
+
+/**
+ * A styled foot (src/art/style) drawn at a pose, or one of its layers, in its texture's frame. With `band`, only
+ * the design rows y0…y1 are drawn (rig frames): the canvas then starts at design y0.
+ */
+export function styledCanvas(type: FootType, p: Pose, o: DrawOpts, band?: { y0: number; y1: number }): HTMLCanvasElement {
+  const st = styleFor(type.id)!;
+  const s = type.scale * footRes(type);
+  const y0 = band ? band.y0 : -PAD_Y;
+  const h = band ? band.y1 - band.y0 : DESIGN_H;
+  const [c, ctx] = makeCanvas(DESIGN_W * s, h * s);
+  ctx.scale(s, s);
+  ctx.translate(PAD_X, -y0);
+  st.draw(ctx, type.art, p, o);
+  return c;
+}
+
+/** A foot's textures. `classic` draws a redrawn foot's old art instead (the style sheet's before/after). */
+export function drawFoot(type: FootType, resOverride?: number, classic = false): FootTextures {
+  const res = resOverride ?? (classic ? ART_RES : footRes(type));
+  const s = type.scale * res;
   const art = type.art;
   const [c, ctx] = makeCanvas(DESIGN_W * s, DESIGN_H * s);
   ctx.scale(s, s);
   ctx.translate(PAD_X, PAD_Y);
   const r = rng(hashStr(type.id));
+  const style = classic ? undefined : styleFor(type.id);
+  if (style) {
+    style.draw(ctx, art, REST, { live: false });
+    const cy = style.contactY ?? 260;
+    return {
+      res,
+      foot: c,
+      leg: drawLeg(type, s),
+      cuff: drawCuff(type, s),
+      originY: (cy + PAD_Y) / DESIGN_H,
+      footHeight: cy,
+      footHalfWidth: style.halfWidth ?? 104,
+      legWidth: LEG_W[art.leg] + OUT * 2,
+    };
+  }
   switch (art.kind) {
     case 'bare':
       drawBare(ctx, art, r);
@@ -1271,6 +1317,7 @@ export function drawFoot(type: FootType): FootTextures {
   if (art.gold) drawGoldOverlay(ctx, r);
   const cy = contactY(art);
   return {
+    res,
     foot: c,
     leg: drawLeg(type, s),
     cuff: drawCuff(type, s),
@@ -1283,7 +1330,7 @@ export function drawFoot(type: FootType): FootTextures {
 
 /** Composite portrait (leg + foot) used by DOM menus such as the Pizzapedia. */
 export function footPortrait(type: FootType, tex: FootTextures, size = 220): string {
-  const s = type.scale * ART_RES;
+  const s = type.scale * tex.res;
   const legH = 120 * s;
   const fw = tex.foot.width;
   const fh = tex.foot.height;

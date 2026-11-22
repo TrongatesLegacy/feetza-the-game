@@ -3,7 +3,7 @@
 import Phaser from 'phaser';
 import { BASE_DESCEND, HOVER_Y } from '../config';
 import type { FootType } from '../data/feet';
-import { ART_RES, footMeta, type FootMeta } from './assets';
+import { footMeta, type FootMeta } from './assets';
 import type { Pizza } from './Pizza';
 
 export type FootState = 'enter' | 'hover' | 'descend' | 'stomp' | 'lift' | 'dying' | 'gone';
@@ -56,13 +56,14 @@ function legTuck(scene: Phaser.Scene, type: FootType, m: FootMeta, footTop: numb
       return a < 0 ? 0 : b - a + 1;
     };
     // leg bottom in the foot texture's rows (contact is at originY · height)
-    const start = Math.round((-footTop + 16 * type.scale) * ART_RES + m.originY * fh);
+    const res = m.textures.res;
+    const start = Math.round((-footTop + 16 * type.scale) * res + m.originY * fh);
     const limit = Math.min(fh - 1, start + Math.round(fh * 0.33));
     let y = Math.max(0, start);
     if (rowWidth(y) < legSolid - 2) {
       while (y < limit && rowWidth(y) < legSolid - 2) y++;
       // only tuck when it actually hides the corners; otherwise leave the leg as drawn
-      tuck = y < limit ? (y - start + 2) / ART_RES : 0;
+      tuck = y < limit ? (y - start + 2) / res : 0;
     }
   } catch {
     tuck = 0;
@@ -192,6 +193,11 @@ export class Foot {
   /** Live art layered round the drawn foot (src/game/footLive.ts): images follow its tint, flashes and fades. */
   private liveImgs: Phaser.GameObjects.Image[] = [];
   private liveAbove = 0;
+  private fxAbove = 0;
+  /** The leg's rest y (the rig drops it as the foot squashes). */
+  private legY = 0;
+  /** The rig (src/game/footRig.ts): the art hangs from the ankle (swing) and squashes at the sole (squash). */
+  private rig: { swing: Phaser.GameObjects.Container; squash: Phaser.GameObjects.Container } | null = null;
   /** The live art's owner: told when the foot dies, escapes or is destroyed. */
   liveHost: { die(): void; destroy(): void } | null = null;
   /** A boss brain is moving this foot by hand: skip its own movement AI. */
@@ -219,7 +225,7 @@ export class Foot {
     this.y = -80;
 
     const m = this.meta;
-    const k = 1 / ART_RES;
+    const k = 1 / m.textures.res;
     const rel = this.scale / type.scale; // elite enlargement relative to the drawn texture
     this.root = scene.add.container(x, this.y);
     this.root.setScale(rel);
@@ -230,6 +236,7 @@ export class Foot {
     this.leg = scene.add.tileSprite(0, legBottom, legW, LEG_LEN, m.legKey).setOrigin(0.5, 1).setTileScale(k, k);
     this.img = scene.add.image(0, 0, m.footKey).setOrigin(0.5, m.originY).setScale(k);
     this.root.add([this.leg, this.img]);
+    this.legY = legBottom;
     if (m.cuffKey) {
       this.cuff = scene.add.image(0, -footTop + 4 * type.scale, m.cuffKey).setScale(k);
       this.root.add(this.cuff);
@@ -643,12 +650,73 @@ export class Foot {
   }
 
   /** Add live art round the drawn foot: `below` stacks it under the foot's art (over the leg), otherwise over it.
-   * Each call goes above the earlier ones on its side. Images are tinted, flashed and faded with the foot. */
+   * Each call goes above the earlier ones on its side. Images are tinted, flashed and faded with the foot. On a
+   * rigged foot the art goes on the rig, so it swings and squashes with the foot. */
   addLiveArt(o: Phaser.GameObjects.GameObject, below: boolean): void {
-    const i = this.root.getIndex(this.img);
-    if (below) this.root.addAt(o, i);
-    else this.root.addAt(o, i + 1 + this.liveAbove++);
+    const parent = this.img.parentContainer ?? this.root;
+    const i = parent.getIndex(this.img);
+    if (below) parent.addAt(o, i);
+    else parent.addAt(o, i + 1 + this.liveAbove++);
     if (o instanceof Phaser.GameObjects.Image) this.liveImgs.push(o);
+  }
+
+  /** Add live effects in the foot's own frame but off the rig (particle emitters that keep the layer's frame):
+   * `below` under the foot's art, otherwise over it. */
+  addLiveFx(o: Phaser.GameObjects.GameObject, below: boolean): void {
+    const at = this.rig?.swing ?? this.img;
+    const i = this.root.getIndex(at);
+    if (below) this.root.addAt(o, i);
+    else this.root.addAt(o, i + 1 + this.fxAbove++);
+  }
+
+  /** Hang the foot's art on a rig (once): a container at the ankle that swings, holding one at the sole that
+   * squashes, holding the art. Live art added after this goes on the rig too. */
+  enableRig(): void {
+    if (this.rig) return;
+    const ankle = -this.meta.footHeight * this.type.scale;
+    const swing = this.scene.add.container(0, ankle);
+    const squash = this.scene.add.container(0, -ankle);
+    swing.add(squash);
+    const i = this.root.getIndex(this.img);
+    this.root.remove(this.img);
+    this.root.addAt(swing, i);
+    squash.add(this.img);
+    this.rig = { swing, squash };
+  }
+
+  /** A point of the foot's design space (src/art/style: centre x 110, sole at its contact y) in world
+   * coordinates, following the rig and the foot's own transform. */
+  styleWorld(dx: number, dy: number): [number, number] {
+    const ts = this.type.scale;
+    let x = (dx - 110) * ts;
+    let y = (dy - this.meta.footHeight) * ts;
+    if (this.rig) {
+      const { swing, squash } = this.rig;
+      const a = swing.y;
+      const qx = x * squash.scaleX;
+      const qy = -a + y * squash.scaleY;
+      const c = Math.cos(swing.rotation);
+      const s = Math.sin(swing.rotation);
+      x = qx * c - qy * s;
+      y = qx * s + qy * c + a;
+    }
+    const r = this.root;
+    const c = Math.cos(r.rotation);
+    const s = Math.sin(r.rotation);
+    const lx = x * r.scaleX;
+    const ly = y * r.scaleY;
+    return [r.x + lx * c - ly * s, r.y + lx * s + ly * c];
+  }
+
+  /** Pose the rig: swing (radians, round the ankle) and squash (scale at the sole). The leg follows the ankle
+   * down as the foot squashes, so they never part. */
+  setRigPose(swing: number, sx: number, sy: number): void {
+    if (!this.rig) return;
+    this.rig.swing.rotation = swing;
+    this.rig.squash.setScale(sx, sy);
+    const drop = this.meta.footHeight * this.type.scale * (1 - sy);
+    this.leg.y = this.legY + drop;
+    if (this.cuff) this.cuff.y = -this.meta.footHeight * this.type.scale + 4 * this.type.scale + drop;
   }
 
   /** Draw the foot with another texture of the same frame (its live art draws the rest). */

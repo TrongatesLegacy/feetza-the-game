@@ -40,6 +40,8 @@ import { pickWindow, rouletteWindow, slotsPrizeWindow, type PickOption } from '.
 import { abilityKey } from '../game/abilities';
 import { PizzaPerkKit } from '../game/pizzaPerks';
 import { contentFx } from '../game/contentFx';
+import { styleLive } from '../game/liveKit';
+import '../content/styleLive';
 import { playLook, type LookFx } from '../art/animatedLooks';
 import { HeroDirector } from '../game/heroMoves';
 import type { HeroHost } from '../game/heroKit';
@@ -1290,6 +1292,7 @@ export class GameScene extends Phaser.Scene implements Arena {
   /** Per-frame trait upkeep: magnets pull the peel, medics heal, Tandoori marks. */
   private footTick(f: Foot, dt: number): void {
     contentFx.footTick(this, f, dt);
+    styleLive(f, dt);
     heroFootTick(this, f, dt);
     if (f.shiny && Math.random() < dt * 9) this.fx.glint(f.cx + (Math.random() - 0.5) * 90 * f.scale, f.cy + (Math.random() - 0.5) * 120 * f.scale);
     if (f.has('magnet') && (f.state === 'hover' || f.state === 'descend')) {

@@ -8,7 +8,7 @@ import { BACKDROPS, type ArenaId, type BackdropId } from '../../art/backdrops';
 import { HOVER_Y } from '../../config';
 import { audio } from '../../systems/audio';
 import type { Arena } from '../arena';
-import { ART_RES, addCanvas } from '../assets';
+import { addCanvas } from '../assets';
 import type { Foot } from '../Foot';
 import type { Pizza } from '../Pizza';
 import { LOCATION_MUSIC, bossMusic, locationFor } from '../Run';
@@ -162,7 +162,7 @@ function shardsOf(a: Arena, f: Foot, n: number): string[] {
 /** A death that lands: a slow-mo beat, a flash, and the boss bursting into pieces of itself. */
 export function shatter(a: Arena, f: Foot, o: { tint?: number; burst?: number; n?: number; sfx?: string } = {}): void {
   const keys = shardsOf(a, f, o.n ?? 9);
-  const s = f.root.scaleX / ART_RES;
+  const s = f.root.scaleX / f.meta.textures.res;
   const src = a.sc.textures.get(f.meta.footKey).getSourceImage() as HTMLCanvasElement;
   const cols = Math.ceil(Math.sqrt(keys.length));
   const rows = Math.ceil(keys.length / cols);

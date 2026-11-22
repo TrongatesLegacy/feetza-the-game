@@ -10,7 +10,7 @@
 
 import type { FootArt, FootType } from '../../data/feet';
 import { FOOT_BY_ID } from '../../data/feet';
-import { ART_RES, drawFoot } from '../../art/feetArt';
+import { drawFoot } from '../../art/feetArt';
 import { CX, INK, OUT, barePath, drawBare, outlineOf, toesFor } from '../../art/feetCommon';
 import { registerKind } from '../../art/registry';
 import { type Ctx, ellipse, makeCanvas, rgba, shade } from '../../art/util';
@@ -35,7 +35,7 @@ function srcFoot(id: string): HTMLCanvasElement | null {
   if (hit) return hit;
   const t = FOOT_BY_ID[id];
   if (!t || t.art.kind.startsWith('echo')) return null;
-  const c = drawFoot({ ...t, scale: 1 / ART_RES } as FootType).foot;
+  const c = drawFoot({ ...t, scale: 1 } as FootType, 1).foot;
   srcCache.set(id, c);
   return c;
 }

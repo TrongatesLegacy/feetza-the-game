@@ -9,7 +9,7 @@ import { HEAT_BY_ID } from '../../data/difficulty';
 import { save } from '../../systems/save';
 import { bits, enterArena, leaveArena } from '../acts/act9';
 import type { Arena } from '../arena';
-import { ART_RES, addCanvas } from '../assets';
+import { addCanvas } from '../assets';
 import type { Foot } from '../Foot';
 import type { Pizza } from '../Pizza';
 import { type Brain, type Prop, type Takeover, Every, dropOn, heat, hitProp, laneOf, mark, rnd, shield, takeLane, throwAtPeel } from './kit';
@@ -163,7 +163,7 @@ function shardsOf(a: Arena, f: Foot, n: number): string[] {
 /** A death that lands: a slow-mo beat, a flash, and the boss bursting into pieces of itself. */
 function shatter(a: Arena, f: Foot, o: { tint?: number; burst?: number; n?: number; sfx?: string } = {}): void {
   const keys = shardsOf(a, f, o.n ?? 9);
-  const s = (f.root.scaleX * 1) / ART_RES;
+  const s = f.root.scaleX / f.meta.textures.res;
   const src = a.sc.textures.get(f.meta.footKey).getSourceImage() as HTMLCanvasElement;
   const cols = Math.ceil(Math.sqrt(keys.length));
   const rows = Math.ceil(keys.length / cols);

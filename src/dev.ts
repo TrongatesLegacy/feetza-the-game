@@ -78,6 +78,7 @@ export function installDevTools(game: Phaser.Game): void {
   let botRender = true;
   void import('./devBossLab').then((m) => m.installBossLab(game));
   void import('./devLookLab').then((m) => m.installLookLab());
+  void import('./devStyleSheet').then((m) => m.installStyleSheet());
   // ?dev&show=welcome opens a screen straight away, for headless screenshots of DOM screens
   const showParam = new URLSearchParams(location.search).get('show');
   if (showParam) {

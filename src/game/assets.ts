@@ -2,6 +2,10 @@
 
 import Phaser from 'phaser';
 import '../content/art';
+import '../content/style';
+import '../content/styleLive';
+import { prewarmLive } from './liveKit';
+import { styleFor } from '../art/style/registry';
 import { drawBackdrop, type BackdropId } from '../art/backdrops';
 import { ART_RES, drawFoot, footPortrait, type FootTextures } from '../art/feetArt';
 import { drawPizzaTop, drawSliceSprite, pizzaPortrait } from '../art/pizzaArt';
@@ -80,6 +84,8 @@ export async function generateAll(scene: Phaser.Scene, progress: (p: number, lab
       },
     ]);
   }
+  // feet redrawn in the style kit: their live layers (pose frames, parts, glows) are built now, not on first spawn
+  for (const f of FEET) if (styleFor(f.id)) jobs.push([`Ironing ${f.name}`, () => prewarmLive(scene, f)]);
   jobs.push(['Lighting the oven', () => ensureBackdrop(scene, 'trattoria')]);
   let last = performance.now();
   for (let i = 0; i < jobs.length; i++) {
