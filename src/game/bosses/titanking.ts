@@ -441,6 +441,12 @@ const titanking = (): Brain => {
     // he claims its lane (not the last pizza's: other feet must still be able to reach it)
     const claim = ps.length > 1;
     if (claim) a.lockLane(p, true);
+    // his head owns that lane: any foot already in it is gone in a puff (and none are sent there while it's up)
+    for (const o of a.allFeet())
+      if (o !== f && o.alive && !o.isBossLike && (o.target === p || Math.abs((o.laneX ?? o.x) - p.x) < 170)) {
+        a.fx.puff(o.x, o.cy, 6);
+        o.die();
+      }
     // in phase 2 he holds back at the top of another lane while his head does the eating
     const held = !p3;
     const prevLane = f.laneX;
@@ -1473,7 +1479,7 @@ const titanking = (): Brain => {
         if (hopT <= 0) {
           hopT = cool(a, 4);
           const n = a.allFeet().filter((o) => o.alive && o.type.id === 'hoplite').length;
-          if (!bite && n < HOPLITES[heat(a).rank]) a.spawn('hoplite', rnd(a.alivePizzas()) ?? null);
+          if (!bite && n < HOPLITES[heat(a).rank]) a.spawn('hoplite', rnd(a.alivePizzas().filter((q) => q !== bite?.p)) ?? null);
         }
       }
       if (wantP3 && landed && !p3) enterP3(f, a);
@@ -1607,7 +1613,7 @@ const titanking = (): Brain => {
     if (s.hopT <= 0) {
       s.hopT = cool(a, 4);
       const n = a.allFeet().filter((o) => o.alive && o.type.id === 'hoplite').length;
-      if (!bite && n < HOPLITES[h.rank]) a.spawn('hoplite', rnd(a.alivePizzas()) ?? null);
+      if (!bite && n < HOPLITES[h.rank]) a.spawn('hoplite', rnd(a.alivePizzas().filter((q) => q !== bite?.p)) ?? null);
     }
     // a broken chain swings in, left and right in turn (not while his head is up, and not with his shield down)
     if (!swing && !bite && s.shield) {
