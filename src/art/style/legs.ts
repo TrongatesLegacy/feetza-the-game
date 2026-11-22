@@ -53,6 +53,8 @@ export interface LegKindDef {
   edge?(y: number, H: number): [number, number];
   /** The kind lights the leg itself (its own ramp, light and rim): skip the shared ramp and cylinder shading. */
   ownShading?: boolean;
+  /** Tile this many times the usual height (an irregular pattern that should repeat less often; default 1). */
+  tile?: number;
 }
 
 const customKinds: Record<string, LegKindDef> = {};
@@ -653,13 +655,14 @@ const SHEEN: Record<string, number> = { iron: 0.35, plate: 0.45, tights: 0.3, sc
 
 /** A styled leg tile at s texels per design unit: (2·hw + outline) wide, tiling downwards. */
 export function styledLeg(spec: LegSpec, base: string, accent: string | undefined, s: number): HTMLCanvasElement {
-  const H = TILE_PX / s;
+  const kind = customKinds[spec.kind];
+  const tilePx = Math.round(TILE_PX * (kind?.tile ?? 1));
+  const H = tilePx / s;
   const W = spec.hw * 2 + PAD * 2;
-  const [c, ctx] = makeCanvas(W * s, TILE_PX);
+  const [c, ctx] = makeCanvas(W * s, tilePx);
   ctx.scale(s, s);
   const x0 = PAD;
   const w = spec.hw * 2;
-  const kind = customKinds[spec.kind];
   const ink = inkOf(base);
   const ow = STYLE.outline * 0.62;
   // the leg's shape: a straight strip, or one whose edges wobble (a custom kind's edge()), sampled down the tile

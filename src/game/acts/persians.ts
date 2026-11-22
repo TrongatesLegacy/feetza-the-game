@@ -24,6 +24,8 @@ import type { FootFx } from '../contentFx';
 import type { Foot } from '../Foot';
 import type { Pizza } from '../Pizza';
 import { WHEEL_AT } from '../../content/art/persianFeet';
+import { CHARIOT_HUB, WHEEL_R } from '../../content/style/chariot-wheel';
+import { styleFor } from '../../art/style/registry';
 import { bruteLive, immortalLive } from '../footLive';
 
 /** The scene behind the Arena: the projectiles (for batted arrows), the smack damage and the lane hooks. */
@@ -328,12 +330,25 @@ function endGallop(f: Foot): void {
 
 const wheels = new WeakMap<Foot, Phaser.GameObjects.Image>();
 
-/** Where the wheel sits in the foot's root, over the wheel the art paints (WHEEL_AT in
- * src/content/art/persianFeet.ts: centre (176, 190) in design space, the boot's centre x 110, its sole at y 254),
- * its display size and its rim radius. */
+/** Where the wheel sits in the foot's root (its sole at y 0), its display size and its rim radius. Redrawn, the wheel
+ * is the foot's own live art (CHARIOT_HUB in src/content/style/chariot-wheel.ts, spun by its live def); with the old
+ * art it's the pa_wheel prop over the wheel the art paints (WHEEL_AT in src/content/art/persianFeet.ts: centre
+ * (176, 190) in design space, the boot's centre x 110, its sole at y 254). */
 function wheelSpot(f: Foot): { x: number; y: number; size: number; r: number } {
   const k = f.type.scale;
+  if (styleFor(f.type.id)) return { x: (CHARIOT_HUB[0] - 110) * k, y: (CHARIOT_HUB[1] - 254) * k, size: WHEEL_R * 2 * k, r: WHEEL_R * k };
   return { x: (WHEEL_AT.x + 80 - 110) * k, y: (WHEEL_AT.y + 80 - 254) * k, size: 160 * k, r: 62 * k };
+}
+
+/** The hub in the world, where it's drawn now (redrawn, it rides the foot's rig: its swing and squash). */
+function hubWorld(f: Foot): { x: number; y: number; r: number } {
+  const w = wheelSpot(f);
+  const s = f.root.scaleX || 1;
+  if (styleFor(f.type.id)) {
+    const [x, y] = f.styleWorld(...CHARIOT_HUB);
+    return { x, y, r: w.r * s };
+  }
+  return { x: f.x + w.x * s, y: f.y + w.y * s, r: w.r * s };
 }
 
 const chariot: FootFx = {
@@ -342,19 +357,22 @@ const chariot: FootFx = {
   },
   tick: (a, f, dt) => {
     const h = heat(a);
-    let img = wheels.get(f);
     const ws = wheelSpot(f);
-    if (!img) {
+    const s = f.root.scaleX || 1;
+    // the old art's wheel is a prop spun here; the redrawn one is live art that spins itself (src/content/styleLive)
+    let img = wheels.get(f);
+    if (!img && !styleFor(f.type.id)) {
       img = a.sc.add.image(ws.x, ws.y, tex(a, 'pa_wheel'));
       f.root.add(img);
       wheels.set(f, img);
     }
-    img.setDisplaySize(ws.size, ws.size).setPosition(ws.x, ws.y);
-    const s = f.root.scaleX || 1;
     const lastX = Number(f.brain.lastX ?? f.x);
     f.brain.lastX = f.x;
-    // the wheel turns with the ground it covers (and idles slowly in the air)
-    img.rotation += (f.x - lastX) / Math.max(1, ws.r * s) + (f.brain.roll ? 0 : dt * 0.6);
+    if (img) {
+      img.setDisplaySize(ws.size, ws.size).setPosition(ws.x, ws.y);
+      // the wheel turns with the ground it covers (and idles slowly in the air)
+      img.rotation += (f.x - lastX) / Math.max(1, ws.r * s) + (f.brain.roll ? 0 : dt * 0.6);
+    }
     const phase = Number(f.brain.roll ?? 0);
     if (!phase) {
       f.brain.rollCd = Number(f.brain.rollCd ?? 0) - dt;
@@ -383,7 +401,7 @@ const chariot: FootFx = {
     } else if (phase === 2) {
       // drop to the table and rev: dust, a rumble and a red line along the row
       f.y += (y - f.y) * Math.min(1, dt * 8);
-      img.rotation += dt * 18 * Math.sign(toX - fromX);
+      if (img) img.rotation += dt * 18 * Math.sign(toX - fromX);
       if (Math.random() < dt * 16) a.fx.puff(f.x - Math.sign(toX - fromX) * 60, f.y, 2);
       f.brain.rT = Number(f.brain.rT) - dt;
       drawLine(a, f, y, Number(f.brain.rT));
@@ -402,7 +420,7 @@ const chariot: FootFx = {
       const hit = chipped.get(f) ?? new Set<Pizza>();
       chipped.set(f, hit);
       for (const p of ps) {
-        if (hit.has(p) || Math.abs(p.x - (f.x + ws.x * s)) > 24) continue;
+        if (hit.has(p) || Math.abs(p.x - hubWorld(f).x) > 24) continue;
         hit.add(p);
         a.hitPizza(p, 1, 'CHIPPED!', '#ffb070');
         a.sfx('sfx_chariotchip', { volume: 0.8, throttle: 80 });
@@ -447,11 +465,7 @@ function startRoll(a: Arena, f: Foot): void {
   a.sfx('sfx_chariotrev', { volume: 0.8, throttle: 300 });
   a.quip(f.x, Math.max(220, f.cy - 150), Phaser.Utils.Array.GetRandom(f.type.quips ?? ['ROLL OUT!']), '#ffb070', 34);
   // the hub is the weak point: one smack breaks the wheel (a prop, so it beats a foot at the same spot)
-  const ws = () => {
-    const w = wheelSpot(f);
-    const s = f.root.scaleX || 1;
-    return { x: f.x + w.x * s, y: f.y + w.y * s, r: w.r * s };
-  };
+  const ws = () => hubWorld(f);
   a.addClickable({
     get x() {
       return ws().x;

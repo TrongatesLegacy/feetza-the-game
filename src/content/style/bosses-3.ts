@@ -14,13 +14,13 @@ import type { FootArt } from '../../data/feet';
 import { CX } from '../../art/feetCommon';
 import { bareOutline, paintBare } from '../../art/style/bare';
 import { onToe } from '../../art/style/anatomy';
-import { LIGHT, type PathFn, type Pose, STYLE, ao, crease, glint, inkOf, pxPerUnit, softFill, softStroke, spec, texture } from '../../art/style/kit';
-import { registerLegKind, wrapTile } from '../../art/style/legs';
+import { LIGHT, type PathFn, type Pose, ao, crease, glint, inkOf, softFill, softStroke, spec, texture } from '../../art/style/kit';
 import { Sil, lobe } from '../../art/style/sil';
 import { type PartDef, registerStyle } from '../../art/style/registry';
 import { beadEye, blotches, contact, eyelet, laceRun, rivet, stitches } from '../../art/style/details';
 import { LX, LY, clip, fill, glowDot, glowFinish, heatLayer, lightAll, lin, rad, streak } from '../../art/style/kit-bosses';
 import { type Ctx, hashStr, mix, rgba, rng, shade } from '../../art/util';
+import { type BlobDef, blister, blobShape, doughFinish, doughSkin, poke, popped, pressFold } from './dough-kit';
 
 type Opts = { live: boolean; emissive?: boolean; heat?: boolean };
 
@@ -1149,9 +1149,10 @@ registerStyle('ufotoe', {
 // ════════════════════════════ DOUGH BOY ════════════════════════════
 // A blob of misshapen dough slumping under its own weight: lopsided (the mass sags to his right), no straight edge
 // anywhere, the dough spreading over the sole in a lip, and four soft, uneven lumps for toes half sunk into it. The leg
-// is a twisted rope of the same dough. Matte, raw and floury (heavier on top), with stretched air bubbles and
-// blisters, two finger pokes, a seam where it was folded over and pressed down, and a warm glow where it's thin. His
-// little face sits off centre on the bulge: shiny eyes pressed into dimples, a soft dented smile.
+// is a hand-rolled rope of the same dough (src/content/style/dough-kit.ts). Matte, raw and floury (heavier on top),
+// with stretched air bubbles and blisters, two finger pokes, a seam where it was folded over and pressed down, and a
+// warm glow where it's thin. His little face sits off centre on the bulge: shiny eyes pressed into dimples, a soft
+// dented smile.
 
 /** Where Dough Boy's sole meets the ground (design y). */
 export const DOUGH_CONTACT = 262;
@@ -1160,139 +1161,50 @@ export const DOUGH_STRAND: [number, number] = [CX + 14, 256];
 
 const DOUGH_EYES = { y: 94, rx: 9, ry: 11, at: [CX + 34, CX + 64] as const, tilt: [1.5, -1.5] as const };
 const DOUGH_BLINK = 5;
-const DOUGH_INK = '#4a2610';
 
-/** A smooth closed curve through points (Catmull-Rom as Béziers): no corners anywhere. */
-function smoothPath(pts: [number, number][]): PathFn {
-  return (c) => {
-    const n = pts.length;
-    c.beginPath();
-    c.moveTo(pts[0][0], pts[0][1]);
-    for (let i = 0; i < n; i++) {
-      const p0 = pts[(i - 1 + n) % n];
-      const p1 = pts[i];
-      const p2 = pts[(i + 1) % n];
-      const p3 = pts[(i + 2) % n];
-      c.bezierCurveTo(p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6, p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6, p2[0], p2[1]);
-    }
-    c.closePath();
-  };
-}
-
-/** A lumpy ellipse: an ellipse whose radius wobbles (seeded, so every pose gets the same lump). */
-function lumpPath(x: number, y: number, rx: number, ry: number, rot: number, seed: number, amp = 0.09): PathFn {
-  const r = rng(seed);
-  const n = 8;
-  const pts: [number, number][] = [];
-  const c = Math.cos(rot);
-  const s = Math.sin(rot);
-  for (let i = 0; i < n; i++) {
-    const a = (i / n) * Math.PI * 2 + 0.2;
-    const k = 1 + (r() - 0.5) * 2 * amp;
-    const ex = Math.cos(a) * rx * k;
-    const ey = Math.sin(a) * ry * k;
-    pts.push([x + ex * c - ey * s, y + ex * s + ey * c]);
-  }
-  return smoothPath(pts);
-}
-
-/** The toe lumps, little to big (design units: centre x offset, radii, tilt). Uneven, and the big one leads. */
-const DOUGH_TOES = [
-  { x: -70, rx: 17, ry: 11, rot: 0.32 },
-  { x: -34, rx: 20, ry: 13, rot: 0.12 },
-  { x: 4, rx: 23, ry: 15, rot: -0.04 },
-  { x: 72, rx: 46, ry: 30, rot: -0.12 },
-];
-
-interface DoughShape {
-  body: PathFn;
-  toes: { path: PathFn; x: number; y: number; rx: number; ry: number }[];
-  /** The bulge on his right (the mass he slumps into), for its own shading. */
-  bulge: PathFn;
-}
-
-/**
- * The silhouette at a pose. Above the rig band (y < 156) it never changes; below it the curl spreads the dough out
- * and flattens the lumps (a splat, curl < 0) or gathers them in and up (curl > 0), and the wiggle makes them ooze.
- */
-function doughShape(p: Pose): DoughShape {
-  const splat = Math.max(0, -p.curl);
-  const gather = Math.max(0, p.curl);
-  const spread = 1 + splat * 0.1 - gather * 0.07;
-  // (the heavy side stays inside the texture however wide he splats)
-  const lo = (x: number, y: number): [number, number] => [CX + Math.min(144, x * spread), y + splat * 3 - gather * 4];
-  const body = smoothPath([
+/** His blob: a fat belly on his left, a soft pinch, the dough slumping out over the sole, and the heavy side (the
+ * bulge he slumps into) spilling out well past the leg line just above the sole. Uneven toe lumps; the big one leads. */
+const DOUGH_BLOB: BlobDef = {
+  contact: DOUGH_CONTACT,
+  maxSpread: 144,
+  outline: [
     // the top runs on into the leg, then rounds out into soft shoulders
-    [CX - 35, -12],
-    [CX - 37, 4],
-    [CX - 50, 24],
-    [CX - 76, 46],
-    // a fat belly on his left, a soft pinch, then the dough slumps out over the sole
-    [CX - 98, 78],
-    [CX - 106, 108],
-    [CX - 103, 136],
-    [CX - 98, 156],
-    lo(-104, 182),
-    lo(-114, 210),
-    lo(-122, 234),
-    lo(-112, 250),
-    lo(-84, 254),
-    lo(-30, 253),
-    lo(30, 252),
-    lo(104, 248),
-    // the heavy side: the bulge he slumps into, spilling out well past the leg line just above the sole
-    lo(140, 234),
-    lo(142, 198),
-    [CX + 132, 160],
-    [CX + 128, 128],
-    [CX + 114, 96],
-    [CX + 96, 66],
-    [CX + 72, 40],
-    [CX + 52, 22],
-    [CX + 39, 4],
-    [CX + 36, -12],
-  ]);
-  const toes = DOUGH_TOES.map((t, i) => {
-    const w = p.wiggle[i + 1] ?? 0;
-    const rx = t.rx * (1 + splat * 0.22 - gather * 0.1) + w * 1.2;
-    const ry = t.ry * (1 - splat * 0.3 + gather * 0.04) - w * 0.8;
-    const x = CX + t.x * (1 + splat * 0.2 - gather * 0.1) + w * 2.4;
-    const y = DOUGH_CONTACT - ry - gather * 8 + Math.abs(w) * 0.6;
-    return { path: lumpPath(x, y, rx, ry, t.rot * (1 - splat * 0.5), 7700 + i * 13), x, y, rx, ry };
-  });
-  const [bx, by] = lo(82, 192);
-  return { body, toes, bulge: lumpPath(bx, by, 52 * spread, 62, -0.2, 7801, 0.06) };
-}
-
-/** A finger poke: a deep soft dent, its upper-left wall in shadow, its lower-right wall and lip catching the light. */
-function poke(g: Ctx, x: number, y: number, r: number): void {
-  softFill(g, ell(x - LX * r * 0.2, y - LY * r * 0.2, r * 1.05, r * 0.9), rgba('#7a4414', 0.42), r * 0.3);
-  softFill(g, ell(x - LX * r * 0.3, y - LY * r * 0.3, r * 0.6, r * 0.5), rgba('#4a2008', 0.35), r * 0.25);
-  softStroke(g, (c) => c.ellipse(x, y, r * 0.78, r * 0.66, 0, -0.2, 1.9), rgba('#fff4dc', 0.75), r * 0.24, r * 0.1);
-  // the rim round it bulges up: lit where it faces the light, a soft shadow beyond it on the far side
-  softStroke(g, (c) => c.ellipse(x, y, r * 1.12, r * 1, 0, Math.PI + 0.1, Math.PI * 1.8), rgba('#fffaf0', 0.5), r * 0.22, r * 0.14);
-  softStroke(g, (c) => c.ellipse(x, y, r * 1.2, r * 1.08, 0, 0.1, 1.6), rgba('#8a4a14', 0.25), r * 0.25, r * 0.2);
-}
-
-/** A raised air bubble stretched along the ooze (a blister): lit at the top left with a glossy rim, its shadow at
- * the bottom right. */
-function blister(g: Ctx, x: number, y: number, rx: number, ry: number, rot: number): void {
-  softFill(g, ell(x - LX * 1.6, y - LY * 1.6, rx, ry, rot), rgba('#8a5018', 0.32), 1.4);
-  fill(g, ell(x, y, rx, ry, rot), rad(g, x + LX * rx * 0.4, y + LY * ry * 0.4, 0.3, x, y, Math.max(rx, ry), [
-    [0, 'rgba(255,250,236,0.9)'],
-    [0.6, 'rgba(250,232,196,0.55)'],
-    [1, 'rgba(226,184,120,0.3)'],
-  ]));
-  // a wet, glossy rim on its lit side
-  softStroke(g, (c) => c.ellipse(x, y, rx * 0.86, ry * 0.86, rot, Math.PI * 0.95, Math.PI * 1.75), rgba('#ffffff', 0.8), Math.min(rx, ry) * 0.35, 0.3);
-  spec(g, x + LX * rx * 0.35, y + LY * ry * 0.35, rx * 0.3, ry * 0.22, 0.6, rot);
-}
-
-/** A popped bubble: a little hole with a lit lower lip. */
-function popped(g: Ctx, x: number, y: number, r: number): void {
-  fill(g, ell(x, y, r, r * 0.75), rgba('#7a4414', 0.4));
-  softStroke(g, (c) => c.ellipse(x, y, r, r * 0.75, 0, 0.1, Math.PI - 0.1), rgba('#fff6e0', 0.6), r * 0.35, 0.4);
-}
+    { at: [CX - 42, -12] },
+    { at: [CX - 44, 4] },
+    { at: [CX - 55, 24] },
+    { at: [CX - 76, 46] },
+    { at: [CX - 98, 78] },
+    { at: [CX - 106, 108] },
+    { at: [CX - 103, 136] },
+    { at: [CX - 98, 156] },
+    { lo: [-104, 182] },
+    { lo: [-114, 210] },
+    { lo: [-122, 234] },
+    { lo: [-112, 250] },
+    { lo: [-84, 254] },
+    { lo: [-30, 253] },
+    { lo: [30, 252] },
+    { lo: [104, 248] },
+    { lo: [140, 234] },
+    { lo: [142, 198] },
+    { at: [CX + 132, 160] },
+    { at: [CX + 128, 128] },
+    { at: [CX + 114, 96] },
+    { at: [CX + 96, 66] },
+    { at: [CX + 72, 40] },
+    { at: [CX + 56, 22] },
+    { at: [CX + 44, 4] },
+    { at: [CX + 43, -12] },
+  ],
+  toes: [
+    { x: -70, rx: 17, ry: 11, rot: 0.32 },
+    { x: -34, rx: 20, ry: 13, rot: 0.12 },
+    { x: 4, rx: 23, ry: 15, rot: -0.04 },
+    { x: 72, rx: 46, ry: 30, rot: -0.12 },
+  ],
+  toeSeed: 7700,
+  bulge: { at: [82, 192], rx: 52, ry: 62, rot: -0.2, seed: 7801 },
+};
 
 /** The dimples his eyes are pressed into (painted on the body, under the live eyes): deep enough to read small. */
 function eyeDimples(g: Ctx): void {
@@ -1366,99 +1278,16 @@ function doughMouth(g: Ctx): void {
   for (const [cx, cy] of [[x - 15, y - 2], [x + 14, y - 4]] as const) softFill(g, ell(cx, cy, 2.6, 2.2), rgba('#7a4010', 0.45), 1);
 }
 
-/** Paint on a layer of its own, faded out from `y0` (full) to `y1` (none), then lay it on g. */
-function fadedDown(g: Ctx, y0: number, y1: number, paint: (l: Ctx) => void): void {
-  const c = document.createElement('canvas');
-  c.width = g.canvas.width;
-  c.height = g.canvas.height;
-  const l = c.getContext('2d')!;
-  l.setTransform(g.getTransform());
-  paint(l);
-  l.globalCompositeOperation = 'destination-in';
-  l.fillStyle = lin(l, 0, y0, 0, y1, [
-    [0, '#000000'],
-    [0.4, 'rgba(0,0,0,0.75)'],
-    [1, 'rgba(0,0,0,0)'],
-  ]);
-  l.fillRect(-4000, -4000, 8000, 8000);
-  g.save();
-  g.setTransform(1, 0, 0, 1, 0, 0);
-  g.drawImage(c, 0, 0);
-  g.restore();
-}
-
-/** Flour: soft drifts and speckles on the top surfaces, fading out to almost nothing down the foot (as a layer, so
- * it never stops at a line). */
-function flour(g: Ctx, box: { x: number; y: number; w: number; h: number }, seed: number): void {
-  const r = rng(seed);
-  fadedDown(g, box.y + 10, box.y + 170, (l) => {
-    blotches(l, box, '#ffffff', 0.66, 13, 0.44, 0.24, seed + 1);
-    blotches(l, box, '#fffdf6', 0.35, 7, 0.58, 0.18, seed + 2);
-    for (let i = 0; i < 260; i++) {
-      const y = box.y + Math.pow(r(), 1.6) * 170;
-      const x = box.x + r() * box.w;
-      l.fillStyle = rgba('#ffffff', 0.4 + r() * 0.55);
-      l.beginPath();
-      l.arc(x, y, 0.5 + r() * 1.2, 0, Math.PI * 2);
-      l.fill();
-    }
-  });
-}
-
-/** The fold where a flap of dough was pressed down: a soft lens-shaped ridge, tapered at both ends, its lip lit on
- * the top left and a soft shadow under it. */
-function doughFold(g: Ctx): void {
-  const pts: [number, number][] = [];
-  const n = 24;
-  for (let i = 0; i <= n; i++) {
-    const u = i / n;
-    // a gentle S down his left shoulder
-    const a = 1 - u;
-    const x = a * a * a * (CX - 66) + 3 * a * a * u * (CX - 40) + 3 * a * u * u * (CX - 32) + u * u * u * (CX - 56);
-    const y = a * a * a * 36 + 3 * a * a * u * 64 + 3 * a * u * u * 98 + u * u * u * 138;
-    pts.push([x, y]);
-  }
-  /** The lens: the curve thickened by up to `w` towards (dx, dy), tapering to nothing at both ends. */
-  const lens = (w: number, dx: number, dy: number): PathFn => (c) => {
-    c.beginPath();
-    pts.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y)));
-    for (let i = n; i >= 0; i--) {
-      const k = Math.sin((i / n) * Math.PI) * w;
-      c.lineTo(pts[i][0] + dx * k, pts[i][1] + dy * k);
-    }
-    c.closePath();
-  };
-  softFill(g, lens(7, 0.8, 0.6), rgba('#8a4a14', 0.34), 3.2);
-  softFill(g, lens(2, 0.8, 0.6), rgba('#6a3410', 0.3), 0.8);
-  softFill(g, lens(4.5, -0.8, -0.6), rgba('#fff8e8', 0.6), 1.4);
-}
-
 function drawDough(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
   const dough = art.skin;
-  const sh = doughShape(p);
+  const sh = blobShape(DOUGH_BLOB, p);
   const box = { x: CX - 150, y: -14, w: 300, h: 290 };
   const parts = [sh.body, ...sh.toes.map((t) => t.path)];
   const sil = new Sil(ctx, parts, box);
   const g = sil.g;
-  if (o.heat) {
-    // baking: a golden-brown crust glow
-    heatLayer(sil, box, { seed: 113, y0: 270, y1: 0, hot: '#ffe08a', mid: '#e8901a', deep: '#a04a08' });
-    return;
-  }
-  // raw dough: a warm cream lit from the top left, going to tan where it sags and presses on the sole
-  sil.form({ base: dough, shadowTint: '#9a5418', ramp: 0.75, form: 0.42, formSize: 36, bevel: 0.3, rim: 0 });
-  g.fillStyle = lin(g, 0, 120, 0, 268, [
-    [0, rgba('#d8a460', 0)],
-    [0.6, rgba('#d8a460', 0.18)],
-    [1, rgba('#c08848', 0.42)],
-  ]);
-  g.fillRect(box.x, box.y, box.w, box.h);
-  texture(g, 'grain', box, 0.12, 2, 'soft-light');
-  blotches(g, box, '#c8925a', 0.16, 16, 0.55, 0.25, 7811);
-  // the mass he slumps into, and the toe lumps, each with its own soft form fading into the body
-  lobe(g, sh.bulge, box, 118, 160, '#8a4a14', 0.3, 16, 0.35);
-  for (const t of sh.toes) lobe(g, t.path, { x: t.x - t.rx - 6, y: t.y - t.ry - 8, w: t.rx * 2 + 12, h: t.ry * 2 + 16 }, t.y - t.ry * 0.4, t.y + t.ry * 0.3, '#7a3c10', 0.36, 8, 0.45);
-  doughFold(g);
+  if (!doughSkin(sil, box, dough, sh, { heat: o.heat, sag: [120, 268], bulgeFade: [118, 160], seed: 7811 })) return;
+  // the fold down his left shoulder: a gentle S
+  pressFold(g, [CX - 66, 36], [CX - 40, 64], [CX - 32, 98], [CX - 56, 138]);
   // finger pokes, stretched air bubbles and blisters following the ooze, a couple popped
   poke(g, CX - 54, 146, 7);
   poke(g, CX - 46, 184, 12);
@@ -1480,146 +1309,17 @@ function drawDough(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
   for (const [x, y] of [[CX + 22, 112], [CX + 80, 106]] as const) softFill(g, ell(x, y, 9, 6), rgba('#ff8a76', 0.26), 4);
   doughMouth(g);
   if (!o.live) doughEyes(g, dough, 0);
-  flour(g, box, 7821);
-  // thin dough glows: a warm translucency just inside the far edges, then the cool rim
-  sil.edge(rgba('#ffb46a', 0.45), 6, LX * 3.5, LY * 3.5);
-  sil.edge(rgba(LIGHT.rim, 0.7), 3, LX * 2.6, LY * 2.6);
-  sil.finish(DOUGH_INK, { openTop: -4, inner: 0.35 });
   // the outline lightens to a warm tan where the dough faces the light (thin and lit there), staying dark only on
   // the shadow side
-  litOutline(ctx, sil, parts);
+  doughFinish(ctx, sil, box, parts, 7821);
 }
-
-/** Lay a warm tan over the outline on the lit (top-left) side: the parts stroked, kept outside the silhouette, faded
- * out along the light. */
-function litOutline(ctx: Ctx, sil: Sil, parts: PathFn[]): void {
-  const c = document.createElement('canvas');
-  c.width = ctx.canvas.width;
-  c.height = ctx.canvas.height;
-  const l = c.getContext('2d')!;
-  l.setTransform(ctx.getTransform());
-  l.lineJoin = 'round';
-  l.strokeStyle = '#b07a44';
-  l.lineWidth = STYLE.outline * 1.4;
-  for (const p of parts) {
-    l.beginPath();
-    p(l);
-    l.stroke();
-  }
-  l.globalCompositeOperation = 'destination-in';
-  // strongest up the left and over the shoulders, gone by the middle; never above the leg's join
-  l.fillStyle = lin(l, CX - 150, 40, CX + 20, 230, [
-    [0, 'rgba(0,0,0,0.85)'],
-    [0.5, 'rgba(0,0,0,0.5)'],
-    [1, 'rgba(0,0,0,0)'],
-  ]);
-  l.fillRect(-4000, 8, 8000, 8000);
-  l.setTransform(1, 0, 0, 1, 0, 0);
-  l.globalCompositeOperation = 'destination-out';
-  l.drawImage(sil.mask, 0, 0);
-  ctx.save();
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.drawImage(c, 0, 0);
-  ctx.restore();
-}
-
-// The rope of dough he stands on: twisted, thickening and pinching (each edge bulges and pinches on its own beat, so
-// it reads as a lumpy twist), lit from the top left with a warm tan shade and a cool rim, no dark band. Soft troughs
-// spiral round it where the strands were twisted together, unevenly spaced and of uneven depth, and it's dusted with
-// flour.
-/** How far the rope's left and right edges sit in from its full width at y (each edge's beat repeats in H). */
-function ropeEdge(y: number, H: number): [number, number] {
-  const t = (y / H) * Math.PI * 2;
-  return [Math.max(0, 7 + 5.5 * Math.sin(t * 2 + 0.4) + 2.5 * Math.sin(t * 5 + 1)), Math.max(0, 7 + 6 * Math.sin(t * 3 + 2.1) + 2 * Math.sin(t + 0.3))];
-}
-
-/** The twist's troughs: where each crosses the rope (fraction of the tile), how far it drops across it, how deep. */
-const ROPE_TWISTS: [number, number, number][] = [
-  [0.06, 26, 1],
-  [0.33, 40, 0.6],
-  [0.52, 22, 0.85],
-  [0.8, 34, 0.5],
-];
-
-registerLegKind('dough', {
-  tint: '#9a5418',
-  ownShading: true,
-  edge: ropeEdge,
-  draw(ctx, x0, w, H, base) {
-    // the light, row by row across the rope's own width (so the rim follows its wobble)
-    for (let y = 0; y < H; y += 1) {
-      const [l, r] = ropeEdge(y + 0.5, H);
-      const a = x0 + l;
-      const b = x0 + w - r;
-      const gr = ctx.createLinearGradient(a, 0, b, 0);
-      gr.addColorStop(0, shade(base, -0.04));
-      gr.addColorStop(0.2, shade(base, 0.1));
-      gr.addColorStop(0.5, base);
-      gr.addColorStop(0.8, mix(shade(base, -0.16), '#c08040', 0.22));
-      gr.addColorStop(0.92, mix(shade(base, -0.1), '#ffb46a', 0.25));
-      gr.addColorStop(1, mix(base, LIGHT.rim, 0.4));
-      ctx.fillStyle = gr;
-      ctx.fillRect(a - 1, y, b - a + 2, 1.05);
-    }
-    // (scale 1: the texture's period divides the tile, so it wraps)
-    texture(ctx, 'grain', { x: x0, y: 0, w, h: H }, 0.12, 1, 'soft-light');
-    // the twist: soft shaded troughs spiralling round, each with a lit swell above it
-    const k = pxPerUnit(ctx);
-    wrapTile(ctx, H, () => {
-      for (const [f, drop, depth] of ROPE_TWISTS) {
-        const y = f * H;
-        const trough = (dy: number) => {
-          ctx.beginPath();
-          ctx.moveTo(x0 - 2, y + dy - drop / 2);
-          ctx.bezierCurveTo(x0 + w * 0.3, y + dy - drop * 0.15, x0 + w * 0.65, y + dy + drop * 0.25, x0 + w + 2, y + dy + drop / 2);
-        };
-        ctx.save();
-        ctx.lineCap = 'round';
-        ctx.filter = `blur(${(3 * k).toFixed(1)}px)`;
-        trough(2);
-        ctx.strokeStyle = rgba('#9a5418', 0.34 * depth);
-        ctx.lineWidth = 6 + depth * 3;
-        ctx.stroke();
-        ctx.filter = `blur(${(2 * k).toFixed(1)}px)`;
-        trough(-4);
-        ctx.strokeStyle = rgba('#fff6e0', 0.4 * depth);
-        ctx.lineWidth = 3.5;
-        ctx.stroke();
-        ctx.restore();
-      }
-    });
-    // flour and a few stretched bubbles
-    const r = rng(hashStr('dough-leg'));
-    const dots: [number, number, number, number][] = [];
-    for (let i = 0; i < 90; i++) dots.push([x0 + Math.pow(r(), 1.6) * w, r() * H, 0.4 + r() * 0.9, 0.3 + r() * 0.5]);
-    const bubbles: [number, number][] = [];
-    for (let i = 0; i < 5; i++) bubbles.push([x0 + 8 + r() * (w - 16), r() * H]);
-    wrapTile(ctx, H, () => {
-      for (const [x, y, rr, a] of dots) {
-        ctx.fillStyle = rgba('#ffffff', a);
-        ctx.beginPath();
-        ctx.arc(x, y, rr, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      for (const [x, y] of bubbles) {
-        ctx.fillStyle = rgba('#8a5018', 0.22);
-        ctx.beginPath();
-        ctx.ellipse(x + 0.8, y + 1, 1.6, 3.6, 0.2, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = rgba('#fff6e2', 0.6);
-        ctx.beginPath();
-        ctx.ellipse(x, y, 1.4, 3.2, 0.2, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    });
-  },
-});
 
 registerStyle('doughboy', {
   contactY: DOUGH_CONTACT,
   halfWidth: 124,
   rig: { from: 156, to: 176 },
-  leg: { kind: 'dough', hw: 52, join: 'blend', fade: 30 },
+  // (the fade spans the whole neck, so no edge of it shows against the rope)
+  leg: { kind: 'dough', hw: 56, join: 'blend', fade: 22, fadeSpan: 42 },
   // (a shorter leg in the Pizzapedia portrait, so it fades out cleanly above him)
   portraitLeg: 60,
   parts: {

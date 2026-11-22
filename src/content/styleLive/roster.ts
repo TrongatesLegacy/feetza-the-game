@@ -2,11 +2,14 @@
 // Cosmetic randomness only through crand() (the game's seeded generator).
 
 import { CX } from '../../art/feetCommon';
-import { type LiveFoot, registerLive } from '../../game/liveKit';
+import { type LiveFoot, Spring, registerLive } from '../../game/liveKit';
 import { crand } from '../../systems/cosmeticRandom';
+import { save } from '../../systems/save';
 import { ANT_TIPS } from '../style/roster-1';
 import { hexNut } from '../style/roster-3';
 import { drawFeather } from '../style/roster-kit';
+import { DOUGHTOES_CONTACT, DOUGHTOES_STRAND } from '../style/roster-4';
+import { doughLive } from './dough';
 import { musicNote } from '../style/roster-5';
 
 const R = () => crand();
@@ -415,19 +418,11 @@ registerLive('thief', {
   },
 });
 
-// Dough Toes: flour sifts off it and its toes wiggle; it sags and stretches as it squashes.
-registerLive('doughtoes', {
-  wiggle: true,
-  rig: { squash: 1.6, breath: 2 },
-  setup: (k) => ({ flour: k.emitter({ frame: 'mote', drag: 0.8, max: 80 }), puff: k.emitter({ frame: 'puff', curl: 20, drag: 1.4, below: true, max: 30 }) }),
-  tick(k, dt, { flour, puff }) {
-    const s = k.f.type.scale;
-    flour.rate('sift', 5, dt, () => {
-      flour.emit(30 + R() * 160, 40 + R() * 200, { vx: pm() * 14, vy: 10 + R() * 14, life: 1.4, r0: 2.4 * s, r1: 2 * s, a: 0.9, tint: 0xffffff, grav: 40, fade: 0.1 });
-    });
-    landDust(k, puff, 0xfbf6ea, 10, 260, 0.6);
-  },
-});
+// Dough Toes: Dough Boy's dough, smaller (src/content/styleLive/dough.ts): it jiggles and oozes on soft springs,
+// sags then gathers before a dive, splats on landing and wobbles back, and a strand of dough stretches from its sole
+// as it lifts and snaps. Flour drifts off its top and puffs out when it lands, and a killing smack tears it in two
+// (its two little feet appear where the halves fly).
+registerLive('doughtoes', doughLive({ contact: DOUGHTOES_CONTACT, strand: DOUGHTOES_STRAND, strandW: [18, 21], reach: 105, give: 1.1, flourArea: [CX - 70, 12, 140, 80], puff: [14, 104], split: 90 }));
 
 // ——— Old Town ———
 
@@ -574,10 +569,14 @@ registerLive('bowling', {
   },
 });
 
-// Jukebox Jo: the neon pulses to the beat (glow layer) and music notes float round her, quickening as she cheers.
+// Jukebox Jo: the neon pulses to the beat (glow layer), the record turns behind the glass, music notes float round
+// her, quickening as she cheers. The cabinet hangs from the cuff (the rig pivots there, so no gap opens): it rocks
+// to the beat, and before she dives it crouches, the DJ scratches the record back and forth, then it stretches up and
+// tips forward; it lands with a squash and rocks on after it, and swings as it lifts away.
 registerLive('jukebox', {
   glow: { rate: 2, depth: 0.5, base: 0.5 },
-  rig: { breath: 3 },
+  rig: { swing: 1.5, squash: 1.3, breath: 3 },
+  sway: { record: { k: 4000, c: 120, gain: 0, idle: 0, flop: 0 } },
   setup(k) {
     const swarms = (['#ff4fa3', '#3aa8ff', '#ffe14d'] as const).map((col, i) => {
       const key = k.sheet(`lk_note${i}`, 44, 44, 1, (ctx) => {
@@ -587,11 +586,37 @@ registerLive('jukebox', {
       });
       return k.swarm({ key, frames: 1, count: 2, at: [CX, 110], rx: 150, ry: 130, speed: 0.8 + i * 0.15, jitter: 20, scale: 0.7 });
     });
-    return { swarms };
+    return { swarms, spin: { a: 0 }, rock: new Spring(0, 60, 4.5), last: '' };
   },
-  tick(k, dt, { swarms }) {
+  pose(k, dt, p, st) {
+    const f = k.f;
+    const c = save.settings.reducedMotion ? 0.35 : 1;
+    let sy = p.sy;
+    let sx = p.sx;
+    // a little rock to the beat while she hovers
+    let tilt = f.state === 'hover' ? Math.sin(k.t * Math.PI * 2) * 0.03 * c : 0;
+    if (k.windingUp) {
+      const u = Math.min(1, Math.max(0, (f.stateT - (f.hoverTime - 0.45)) / 0.45));
+      // crouch, then stretch up and tip forward into the dive
+      const e = u < 0.55 ? Math.sin((u / 0.55) * Math.PI * 0.5) : 1 - (u - 0.55) / 0.45;
+      sy *= u < 0.55 ? 1 - 0.1 * e * c : 1 + 0.08 * (1 - e) * c;
+      sx *= u < 0.55 ? 1 + 0.06 * e * c : 1 - 0.04 * (1 - e) * c;
+      tilt += (u < 0.55 ? -0.06 * e : 0.08 * (1 - e)) * c;
+    }
+    // landing and lifting kick the rock (follow-through)
+    if (k.landed) st.rock.v += 2.2 * c * (R() < 0.5 ? -1 : 1);
+    if (f.state === 'lift' && st.last !== 'lift') st.rock.v -= 1.6 * c;
+    st.last = f.state;
+    const rock = st.rock.step(0, dt);
+    return { swing: p.swing + tilt + rock * 0.12, sx, sy, curl: p.curl };
+  },
+  tick(k, dt, { swarms, spin }) {
     const hot = k.f.state === 'hover' ? 1.4 : 1;
     for (const s of swarms) s.pace += (hot - s.pace) * Math.min(1, dt * 2);
+    // 45 rpm, faster as she cheers; a scratch (wika-wika) as she winds up
+    const scratch = k.windingUp ? Math.sin(k.t * 28) * 22 * (save.settings.reducedMotion ? 0.3 : 1) : 0;
+    spin.a += (4.7 * hot + scratch) * dt;
+    k.swayImg('record')?.setRotation(spin.a);
   },
 });
 

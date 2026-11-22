@@ -4,7 +4,7 @@
 
 import { bareParts, onToe, poseToes, restToes } from '../../art/style/anatomy';
 import { type BareFoot, paintBare } from '../../art/style/bare';
-import { LIGHT, type PathFn, type Pose, ao, crease, glint, inkOf, softFill, softStroke, spec, texture } from '../../art/style/kit';
+import { LIGHT, type PathFn, type Pose, ao, crease, glint, inkOf, pxPerUnit, softFill, softStroke, spec, texture } from '../../art/style/kit';
 import { Sil, lobe } from '../../art/style/sil';
 import { registerStyle } from '../../art/style/registry';
 import { beadEye, blotches, contact, eyelet, laceRun, rivet, stitches } from '../../art/style/details';
@@ -394,18 +394,182 @@ function neonArches(g: Ctx, k: number, core: boolean): void {
   });
 }
 
+/** Where the record spins behind the glass (design units). */
+const JUKE_RECORD: [number, number] = [CX, 142];
+
+/** The jeans' cuff: the leg's own width at the top (it melts into the leg, no outline there), easing out a little
+ * and ending in a rolled hem that sits down on the cabinet's dome, following its curve just below the crown (so the
+ * leg sits on the jukebox, not above it, and the rainbow tubes stay clear). */
+const CUFF: PathFn = (c) => {
+  c.beginPath();
+  c.moveTo(CX - 58, -8);
+  c.lineTo(CX + 58, -8);
+  c.quadraticCurveTo(CX + 60, 32, CX + 66, 66);
+  c.bezierCurveTo(CX + 54, 30, CX - 54, 30, CX - 66, 66);
+  c.quadraticCurveTo(CX - 60, 32, CX - 58, -8);
+  c.closePath();
+};
+/** The hem's lower edge (the same curve), offset down by dy. */
+const cuffHem = (c: Ctx, dy = 0) => {
+  c.moveTo(CX + 66, 66 + dy);
+  c.bezierCurveTo(CX + 54, 30 + dy, CX - 54, 30 + dy, CX - 66, 66 + dy);
+};
+const DENIM = { name: 'Denim', base: '#2b2f3a', shadowTint: '#0a0e20', ramp: 0.55, form: 0.5, bevel: 0.25, rim: 0.45, tex: 'canvas' as const, texA: 0.4, texScale: 1, specA: 0.05, specSize: 0.3 };
+
+/** The jeans' cuff over the cabinet top: the denim (twill, the outseam and its stitching), soft creases where it
+ * eases out, the rolled hem (lit along its top, shaded under it, double orange stitching), and an outline open at
+ * the top where it runs on into the leg. */
+function jeansCuff(ctx: Ctx, denim: string): void {
+  const box = { x: CX - 70, y: -10, w: 140, h: 82 };
+  const sil = new Sil(ctx, [CUFF], box);
+  const g = sil.g;
+  piece(g, CUFF, box, { ...DENIM, base: denim }, denim, { shadow: 0, size: 14 });
+  within(g, CUFF, () => {
+    // the twill
+    g.strokeStyle = rgba('#ffffff', 0.06);
+    g.lineWidth = 0.8;
+    for (let i = -40; i < 70; i++) {
+      g.beginPath();
+      g.moveTo(box.x, box.y + i * 3.2);
+      g.lineTo(box.x + box.w, box.y + i * 3.2 - box.w);
+      g.stroke();
+    }
+    // soft creases where it eases out over the dome
+    for (const [x, s] of [[-34, -1], [-10, -1], [26, 1]] as const) {
+      softStroke(g, (c) => {
+        c.moveTo(CX + x, 4);
+        c.quadraticCurveTo(CX + x + s * 4, 18, CX + x + s * 8, 30);
+      }, rgba('#000000', 0.22), 3.6, 2.2);
+      softStroke(g, (c) => {
+        c.moveTo(CX + x - 3, 6);
+        c.quadraticCurveTo(CX + x - 3 + s * 4, 18, CX + x - 3 + s * 8, 28);
+      }, rgba('#a8b8e0', 0.14), 1.8, 1.2);
+    }
+    // the outseam down the right, with its stitching
+    softStroke(g, (c) => {
+      c.moveTo(CX + 50, -8);
+      c.quadraticCurveTo(CX + 53, 24, CX + 58, 44);
+    }, rgba('#000000', 0.35), 2.6, 1);
+    stitches(g, (c) => {
+      c.moveTo(CX + 46, -8);
+      c.quadraticCurveTo(CX + 49, 24, CX + 54, 42);
+    }, '#e7a94a', 1.1, 3, 2.4);
+    // the rolled hem: a round band along the bottom, the lighter inside of the denim showing, lit along its top,
+    // shaded underneath, with the double orange stitch
+    g.save();
+    g.beginPath();
+    cuffHem(g, -13);
+    g.lineTo(CX - 100, 120);
+    g.lineTo(CX + 100, 120);
+    g.closePath();
+    g.clip();
+    g.fillStyle = rgba(mix(denim, '#7a8cb8', 0.4), 0.6);
+    g.fillRect(box.x, box.y, box.w, box.h + 20);
+    g.restore();
+    softStroke(g, (c) => cuffHem(c, -14), rgba('#000000', 0.5), 3.4, 1.6);
+    softStroke(g, (c) => cuffHem(c, -10), rgba('#d8e2f8', 0.4), 2.4, 1.2);
+    softStroke(g, (c) => cuffHem(c, -1), rgba('#000000', 0.45), 4, 2);
+    stitches(g, (c) => cuffHem(c, -5), '#e7a94a', 1.2, 3, 2.4);
+    stitches(g, (c) => cuffHem(c, -8), '#e7a94a', 1, 3, 2.4);
+    // the top runs on into the leg: darker there, like the leg's own shading
+    g.fillStyle = vgrad(g, -8, 10, [[0, rgba('#000000', 0.28)], [1, rgba('#000000', 0)]]);
+    g.fillRect(box.x, -8, box.w, 18);
+  });
+  spec(g, CX - 36, 16, 10, 14, 0.12, 0.3, '#c8d4f0');
+  sil.finish(inkOf(denim), { openTop: -4, inner: 0.2 });
+}
+
+/** The cuff's shadow on the walnut, cast just below its hem (painted on the cabinet, under the cuff): a dark tight
+ * contact line and a softer spread under it. */
+function cuffShadow(g: Ctx): void {
+  const k = pxPerUnit(g);
+  for (const [dy, blur, a] of [[9, 7, 0.75], [3, 2.5, 0.85]] as const) {
+    g.save();
+    g.filter = `blur(${(blur * k).toFixed(1)}px)`;
+    g.fillStyle = rgba(LIGHT.ao, a);
+    g.beginPath();
+    cuffHem(g, dy);
+    g.lineTo(CX - 66, 20);
+    g.lineTo(CX + 66, 20);
+    g.closePath();
+    g.fill();
+    g.restore();
+  }
+}
+
+/** The record behind the glass (round JUKE_RECORD): grooves, a sheen that sits still as it turns, and a printed red
+ * label with its title lines and a hole (which do turn). */
+function paintRecord(g: Ctx, gold: string): void {
+  const [x, y] = JUKE_RECORD;
+  g.fillStyle = '#0a0a0e';
+  g.beginPath();
+  g.arc(x, y, 30, 0, Math.PI * 2);
+  g.fill();
+  for (let r = 10; r < 30; r += 2.4) {
+    g.strokeStyle = rgba(r % 4.8 < 2.4 ? '#3a3a4a' : '#24242e', 0.8);
+    g.lineWidth = 0.8;
+    g.beginPath();
+    g.arc(x, y, r, 0, Math.PI * 2);
+    g.stroke();
+  }
+  g.fillStyle = '#e8323a';
+  g.beginPath();
+  g.arc(x, y, 9, 0, Math.PI * 2);
+  g.fill();
+  // the label's print: a gold band and title lines (so it reads as turning)
+  g.strokeStyle = gold;
+  g.lineWidth = 1.2;
+  g.beginPath();
+  g.arc(x, y, 7.4, -0.4, 1.6);
+  g.stroke();
+  g.fillStyle = rgba('#ffe8e0', 0.85);
+  g.fillRect(x - 5, y - 5, 7, 1.3);
+  g.fillRect(x - 5, y - 2.6, 4, 1.1);
+  g.fillStyle = '#ffffff';
+  g.beginPath();
+  g.arc(x, y, 1.6, 0, Math.PI * 2);
+  g.fill();
+}
+
+/** The sheen on the record and the glass over it: still, whatever the record does. */
+function paintGlass(g: Ctx): void {
+  const [x, y] = JUKE_RECORD;
+  softStroke(g, (c) => c.arc(x, y, 22, Math.PI * 1.1, Math.PI * 1.45), rgba('#c8c8e8', 0.5), 3, 1.5);
+  softStroke(g, (c) => c.arc(x, y, 22, Math.PI * 0.1, Math.PI * 0.4), rgba('#c8c8e8', 0.3), 3, 1.5);
+  g.fillStyle = rgba('#ffffff', 0.12);
+  g.beginPath();
+  g.moveTo(CX - 38, 100);
+  g.lineTo(CX - 20, 80);
+  g.lineTo(CX + 10, 196);
+  g.lineTo(CX - 10, 196);
+  g.closePath();
+  g.fill();
+}
+
 registerStyle('jukebox', {
   contactY: 266,
   halfWidth: 106,
-  leg: { kind: 'denim', hw: 66, join: 'hem' },
+  // the jeans go down into their own cuff, which sits on the cabinet (the foot's art)
+  leg: { kind: 'denim', hw: 58, join: 'into', end: 30 },
+  parts: {
+    record: { box: { x: JUKE_RECORD[0] - 32, y: JUKE_RECORD[1] - 32, w: 64, h: 64 }, frames: 1, pivot: JUKE_RECORD, draw: (g, art) => paintRecord(g, art.secondary ?? '#ffcf3a') },
+    glass: { box: { x: CX - 40, y: 76, w: 80, h: 122 }, frames: 1, draw: (g) => paintGlass(g) },
+  },
   draw(ctx, art, _p, o) {
     const wood = art.primary ?? '#8a1f3a';
     const gold = art.secondary ?? '#ffcf3a';
+    const denim = art.legColor ?? '#2b2f3a';
     const box = { x: CX - 92, y: 0, w: 184, h: 270 };
     if (o.emissive) {
       glowLayer(ctx, [JUKE], box, (g) => {
         neonArches(g, 1, true);
         for (let i = 0; i < 6; i++) glowDot(g, CX - 40 + i * 16, 218, 7, gold, 0.9);
+        // (no glow over the cuff sitting on the arch)
+        g.save();
+        g.globalCompositeOperation = 'destination-out';
+        CUFF(g);
+        g.fill();
+        g.restore();
       });
       return;
     }
@@ -413,6 +577,22 @@ registerStyle('jukebox', {
     const g = sil.g;
     piece(g, JUKE, box, 'wood', wood, { shadow: 0, size: 16 });
     texture(g, 'wood', box, 0.3, 1.2);
+    // a chrome trim round the arch, just inside its edge
+    const trim = (c: Ctx) => {
+      c.moveTo(CX - 80, 262);
+      c.lineTo(CX - 80, 110);
+      c.bezierCurveTo(CX - 80, 18, CX + 80, 18, CX + 80, 110);
+      c.lineTo(CX + 80, 262);
+    };
+    softStroke(g, trim, rgba('#000000', 0.45), 6, 2);
+    g.save();
+    g.lineCap = 'round';
+    g.beginPath();
+    trim(g);
+    g.strokeStyle = hgrad(g, CX - 82, CX + 82, [[0, '#f4f8fc'], [0.25, '#8a92a0'], [0.5, '#e8eef6'], [0.8, '#5a6270'], [1, '#c8d0da']]);
+    g.lineWidth = 3.2;
+    g.stroke();
+    g.restore();
     // the window: dark glass with the record behind it
     const win: PathFn = (c) => {
       c.beginPath();
@@ -425,36 +605,13 @@ registerStyle('jukebox', {
     within(g, win, () => {
       g.fillStyle = vgrad(g, 70, 196, [[0, '#1a1020'], [1, '#2a1a30']]);
       g.fillRect(CX - 40, 60, 80, 140);
-      // the record
-      g.fillStyle = '#0a0a0e';
-      g.beginPath();
-      g.arc(CX, 142, 30, 0, Math.PI * 2);
-      g.fill();
-      for (let r = 10; r < 30; r += 3) {
-        g.strokeStyle = rgba('#3a3a4a', 0.6);
-        g.lineWidth = 0.8;
-        g.beginPath();
-        g.arc(CX, 142, r, 0, Math.PI * 2);
-        g.stroke();
+      // the turntable's glow under the record
+      softFill(g, ell(CX, 178, 30, 10), rgba('#ff6a9a', 0.25), 8);
+      // (the record and the glass over it are sprites in play: the record spins)
+      if (!o.live) {
+        paintRecord(g, gold);
+        paintGlass(g);
       }
-      spec(g, CX - 12, 130, 14, 4, 0.4, -0.8);
-      g.fillStyle = '#ff3a3a';
-      g.beginPath();
-      g.arc(CX, 142, 8, 0, Math.PI * 2);
-      g.fill();
-      g.fillStyle = '#ffffff';
-      g.beginPath();
-      g.arc(CX, 142, 1.6, 0, Math.PI * 2);
-      g.fill();
-      // reflections on the glass
-      g.fillStyle = rgba('#ffffff', 0.12);
-      g.beginPath();
-      g.moveTo(CX - 38, 100);
-      g.lineTo(CX - 20, 80);
-      g.lineTo(CX + 10, 196);
-      g.lineTo(CX - 10, 196);
-      g.closePath();
-      g.fill();
     });
     // the neon tubes in their channels
     neonArches(g, 0.85, true);
@@ -475,8 +632,10 @@ registerStyle('jukebox', {
       grille(c);
       c.fill();
     }, 0);
+    cuffShadow(g);
     finishLight(sil, wood, '#200818', 0.3);
     sil.finish(inkOf(wood), { openTop: -5 });
+    jeansCuff(ctx, denim);
   },
 });
 

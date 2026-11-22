@@ -9,18 +9,19 @@
 // - CAVALRY HOOVES: a warhorse's leg in glossy bay hide, a feathered fetlock of pale hair falling over a dark horn
 //   hoof shod in bronze, under a red saddle cloth with a gold border and swinging gold tassels.
 // - CHARIOT WHEEL: the charioteer's leather boot under a bronze greave embossed with a winged sun, a red cloth band
-//   and a curled toe. The scythed wheel is the game's spinning prop in play (WHEEL_AT); stills paint the same wheel.
+//   and a curled toe; a bronze axle arm from the greave carries a big scythed war wheel over the boot (src/content/
+//   style/chariot-wheel.ts: the wheel and its scythe spun by its live def in play, the light, arm and gold hub held
+//   still over them).
 // - SATRAP'S SLIPPER: crimson silk with gold paisley embroidery, a brocade band with a gold fringe, a strand of pearls,
 //   a ruby in a gold setting and a pearl on the curled toe.
 
 import type { FootArt } from '../../data/feet';
-import { WHEEL_AT } from '../art/persianFeet';
-import { paintWheel } from '../props/persians';
+import { AXLE_MOUNT, BLADE_REST, CHARIOT_HUB, HUB_R, WHEEL_HALF, WHEEL_R, paintAxleArm, paintHub, paintScythe, paintWarWheel, paintWheelLight } from './chariot-wheel';
 import { type StyleToe, onToe } from '../../art/style/anatomy';
 import { bareFoot, bareOutline, paintBare } from '../../art/style/bare';
 import { type PathFn, type Pose, crease, glint, inkOf, softFill, softStroke, spec, texture } from '../../art/style/kit';
 import { Sil } from '../../art/style/sil';
-import { registerStyle } from '../../art/style/registry';
+import { type PartDef, registerStyle } from '../../art/style/registry';
 import { contact, rivet, stitches } from '../../art/style/details';
 import { MATS_F } from '../../art/style/materials-acts-f';
 import { clip, furCoat, glowDot, glowFinish, heatLayer, lightAll, lin, streak } from '../../art/style/kit-bosses';
@@ -676,6 +677,7 @@ function drawChariot(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
   const flex = Math.max(0, p.curl);
   const boot = persianBoot(flex);
   const box = { x: 6, y: -10, w: 212, h: 280 };
+  const [hx, hy] = CHARIOT_HUB;
   const sil = new Sil(ctx, [boot, curlPath(flex), beadPath(flex)], box);
   const g = sil.g;
   bootBase(sil, 'suede', leather, flex);
@@ -702,26 +704,62 @@ function drawChariot(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
       c.moveTo(CX - 2, -8);
       c.lineTo(CX - 2, 100);
     }, rgba('#fff8e0', 0.4), 3, 1.5);
-    // the winged sun, raised
+    // the winged sun, raised: a rayed disc between two wings of three stacked rows of feathers, and a fanned tail
+    const sun = (c: Ctx) => {
+      c.beginPath();
+      c.arc(CX, 46, 8, 0, Math.PI * 2);
+      for (const s of [-1, 1]) {
+        [42, 34, 24].forEach((L, k) => {
+          const y = 40 + k * 5.5;
+          const x0 = CX + s * 9;
+          const x1 = CX + s * (9 + L);
+          c.moveTo(x0, y);
+          c.lineTo(x1 - s * 3, y - 1.5 + k * 0.8);
+          c.quadraticCurveTo(x1 + s * 2, y + 1.6, x1 - s * 3, y + 4.4);
+          c.lineTo(x0, y + 4.6);
+          c.closePath();
+        });
+      }
+      // the tail: three feathers fanning down
+      for (const a of [-0.35, 0, 0.35]) {
+        const tx = CX + Math.sin(a) * 18;
+        const ty = 54 + Math.cos(a) * 16;
+        c.moveTo(CX - 3, 53);
+        c.quadraticCurveTo(tx - 4, ty - 4, tx, ty);
+        c.quadraticCurveTo(tx + 4, ty - 4, CX + 3, 53);
+        c.closePath();
+      }
+    };
     const em = (dx: number, dy: number, col: string, a: number) => {
       g.save();
       g.translate(dx, dy);
       g.fillStyle = rgba(col, a);
-      g.beginPath();
-      g.arc(CX, 48, 8, 0, Math.PI * 2);
-      for (const s of [-1, 1]) {
-        g.moveTo(CX + s * 8, 46);
-        g.quadraticCurveTo(CX + s * 26, 34, CX + s * 44, 38);
-        g.quadraticCurveTo(CX + s * 32, 44, CX + s * 40, 50);
-        g.quadraticCurveTo(CX + s * 26, 50, CX + s * 34, 58);
-        g.quadraticCurveTo(CX + s * 18, 56, CX + s * 8, 52);
-      }
+      sun(g);
       g.fill();
       g.restore();
     };
     em(1.4, 1.8, '#2a1404', 0.55);
     em(-0.8, -1, '#fff4c8', 0.6);
     em(0, 0, shade(bronze, 0.15), 1);
+    // the feathers' splits and the sun's rays, cut into the raised metal
+    g.strokeStyle = rgba('#3a1a04', 0.55);
+    g.lineWidth = 0.8;
+    for (const s of [-1, 1])
+      [42, 34, 24].forEach((L, k) => {
+        for (let x = 15; x < 9 + L - 2; x += 6) {
+          g.beginPath();
+          g.moveTo(CX + s * x, 40 + k * 5.5);
+          g.lineTo(CX + s * (x + 2), 44 + k * 5.5);
+          g.stroke();
+        }
+      });
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      g.beginPath();
+      g.moveTo(CX + Math.cos(a) * 3, 46 + Math.sin(a) * 3);
+      g.lineTo(CX + Math.cos(a) * 7, 46 + Math.sin(a) * 7);
+      g.stroke();
+    }
   });
   for (const x of [34, 186]) for (const y of [14, 60]) rivet(g, x + (y > 30 ? (x < CX ? -6 : 6) : 0), y, 3, '#f0d090');
   // the red cloth band
@@ -733,22 +771,63 @@ function drawChariot(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
   }, rgba('#f0c890', 0.6), 1.4, 4, 3);
   spec(g, 66, 160, 26, 40, 0.2, -0.3, '#fff0d8');
   curlBead(g, flex, bronze);
+  // the axle's mounting plate on the greave, riveted
+  const plate: PathFn = (c) => {
+    c.beginPath();
+    c.ellipse(AXLE_MOUNT[0], AXLE_MOUNT[1], 13, 10, -0.5, 0, Math.PI * 2);
+  };
+  metal(g, plate, { x: AXLE_MOUNT[0] - 13, y: AXLE_MOUNT[1] - 10, w: 26, h: 20 }, bronze, { shadow: 0.6 });
+  rivet(g, AXLE_MOUNT[0], AXLE_MOUNT[1], 3.6, '#f0d090');
+  // the wheel's shadow on the boot (it stands just off it)
+  softFill(g, (c) => {
+    c.beginPath();
+    c.arc(hx - 6, hy + 5, WHEEL_R + 2, 0, Math.PI * 2);
+  }, rgba('#1a0800', 0.45), 10);
   lightAll(sil, 0.3, 18, 0.5);
   sil.finish(inkOf(leather), { openTop: -6 });
-  // the scythed wheel: the game's spinning prop covers it in play
+  // the scythed wheel: sprites of their own in play (the wheel and the scythe spin)
   if (!o.live) {
     ctx.save();
-    ctx.translate(WHEEL_AT.x, WHEEL_AT.y);
-    paintWheel(ctx);
+    ctx.translate(hx, hy);
+    paintWarWheel(ctx, wheelLook(art));
+    paintWheelLight(ctx);
+    paintAxleArm(ctx, CHARIOT_HUB, bronze);
+    paintScythe(ctx, BLADE_REST);
+    paintHub(ctx);
     ctx.restore();
   }
 }
+
+const wheelLook = (art: FootArt) => ({ wood: (art.extra?.wood as string) ?? '#9a5e2c', bronze: art.secondary ?? '#c9873a' });
+/** A part drawn round the hub (in a box `half` each way), turning round it when it's a spun part. */
+const hubPart = (half: number, paint: (g: Ctx, art: FootArt) => void): PartDef => ({
+  box: { x: CHARIOT_HUB[0] - half, y: CHARIOT_HUB[1] - half, w: half * 2, h: half * 2 },
+  frames: 1,
+  pivot: CHARIOT_HUB,
+  draw: (g, art) => {
+    g.save();
+    g.translate(...CHARIOT_HUB);
+    paint(g, art);
+    g.restore();
+  },
+});
 
 registerStyle('chariot', {
   contactY: 254,
   halfWidth: 96,
   rig: { from: 176, to: 196 },
   leg: { kind: 'wool', hw: 54, join: 'into' },
+  // bottom to top: the wheel and its blurred copy (spun), the still light on them, the axle arm (still), the scythe
+  // on the axle cap (spun) and the gold hub (still). (All are pivoted on the hub: the live def spins some and holds
+  // the rest still, src/content/styleLive/acts-f.ts.)
+  parts: {
+    wheel: hubPart(WHEEL_R + 4, (g, art) => paintWarWheel(g, wheelLook(art))),
+    blur: hubPart(WHEEL_R + 4, (g, art) => paintWarWheel(g, wheelLook(art), true)),
+    light: hubPart(WHEEL_R + 8, (g) => paintWheelLight(g)),
+    axle: hubPart(Math.ceil(Math.hypot(AXLE_MOUNT[0] - CHARIOT_HUB[0], AXLE_MOUNT[1] - CHARIOT_HUB[1])) + 16, (g, art) => paintAxleArm(g, CHARIOT_HUB, art.secondary ?? '#c9873a')),
+    scythe: hubPart(WHEEL_HALF, (g) => paintScythe(g, BLADE_REST)),
+    hub: hubPart(Math.ceil(HUB_R + 16), (g) => paintHub(g)),
+  },
   draw(ctx, art, p, o) {
     drawChariot(ctx, art, p, o);
   },

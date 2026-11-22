@@ -6,10 +6,11 @@ import Phaser from 'phaser';
 import { CX } from '../../art/feetCommon';
 import { footRes } from '../../art/feetArt';
 import { FLOWER, VIALS } from '../art/gotham';
-import { type LiveFoot, registerLive } from '../../game/liveKit';
+import { type LiveFoot, type WorldEmitter, registerLive } from '../../game/liveKit';
 import { crand } from '../../systems/cosmeticRandom';
 import { save } from '../../systems/save';
 import { landDust, overheat } from './bosses';
+import { BLADE_R, BLADE_REST, CHARIOT_HUB, WHEEL_R } from '../style/chariot-wheel';
 import { LX, LY } from '../style/acts-f-kit';
 import { CHAIN_LINKS, LINK_LEN, TITAN_CUT_GEO, ironLink, kickChain, linkShadow, onTitan, paintCutGlow, paintMagma, restChain, stepChain, titanChainEnds } from '../style/acts-f-3';
 
@@ -491,17 +492,127 @@ registerLive('cavalry', {
   },
 });
 
-// Chariot Wheel (art held still under the act's spinning wheel prop): glints run over the bronze greave and road dust drifts off the boot (its wheel is the game's prop,
-// which spins and kicks up its own dust).
-registerLive('chariot', {
-  rig: STILL,
+// Chariot Wheel: the war wheel is its own live art (src/content/style/chariot-wheel.ts). It idles round in the air,
+// turns faster as the foot moves and grips the ground when it lands or rolls (it turns with the ground it covers);
+// before a roll (the act's rev, src/game/acts/persians.ts) or a dive it kicks back a little, then revs up until it
+// blurs, throwing dust off its rim. The scythe on its axle cap turns with it and glints each time it sweeps past the
+// light, light runs over the bronze greave, and a killing smack breaks the wheel off its axle: it hops, bounces and
+// rolls away.
+interface ChariotLive {
+  glint: WorldEmitter;
+  dust: WorldEmitter;
+  angle: number;
+  spin: number;
+  dir: number;
+  revving: boolean;
+  glintT: number;
+}
+// (every wheel part is a sway part pivoted on the hub, held still by a stiff spring with no push: the spun ones get
+// their rotation set in tick, after the springs have had their turn)
+const ON_HUB = { k: 4000, c: 120, gain: 0, idle: 0, flop: 0 };
+const SPUN = ['wheel', 'blur', 'scythe'] as const;
+registerLive<ChariotLive>('chariot', {
+  rig: { swing: 0.5, squash: 0.45, breath: 0.6 },
+  sway: { wheel: ON_HUB, blur: ON_HUB, light: ON_HUB, axle: ON_HUB, scythe: ON_HUB, hub: ON_HUB },
   setup: (k) => ({
-    glint: k.emitter({ frame: 'spark', add: true, drag: 0.2, max: 10 }),
-    dust: k.emitter({ frame: 'puff', curl: 30, drag: 1.5, below: true, max: 40 }),
+    glint: k.emitter({ frame: 'spark', add: true, drag: 0.2, max: 16 }),
+    dust: k.emitter({ frame: 'puff', curl: 30, drag: 1.5, below: true, max: 90 }),
+    angle: 0,
+    spin: 0.9,
+    dir: 1,
+    revving: false,
+    glintT: 0,
   }),
-  tick(k, dt, { glint, dust }) {
-    glint.rate('bronze', 1.4, dt, () => glint.emit(40 + R() * 140, 4 + R() * 80, { life: 0.4, r0: 2, r1: 14 * k.f.type.scale, a: 0.9, tint: 0xfff0c0, fade: 0.4 }));
-    landDust(k, dust, 8, [0xc8a878, 0xa88a60], 254, 80);
+  tick(k, dt, st) {
+    const f = k.f;
+    const s = f.type.scale;
+    const [hx, hy] = CHARIOT_HUB;
+    const rw = WHEEL_R * s * Math.abs(f.root.scaleX || 1);
+    const roll = Number(f.brain.roll ?? 0);
+    if (Math.abs(k.vx) > 40) st.dir = Math.sign(k.vx);
+    if (roll >= 1) st.dir = Math.sign(Number(f.brain.toX) - Number(f.brain.fromX)) || st.dir;
+    const grounded = roll >= 3 || f.state === 'stomp';
+    const revving = f.stunT <= 0 && (roll === 2 || (roll === 0 && k.windingUp));
+    // the rev: a kick back first (anticipation), then it winds up
+    if (revving && !st.revving) st.spin -= 3.5 * st.dir;
+    st.revving = revving;
+    let target = 0.9 * st.dir + (k.vx / rw) * 0.6;
+    let rate = 2;
+    if (f.stunT > 0) target = 0;
+    else if (revving) {
+      target = 26 * st.dir;
+      rate = 2.6;
+    } else if (grounded) {
+      target = k.vx / rw;
+      rate = 12;
+    }
+    st.spin += (target - st.spin) * Math.min(1, dt * rate);
+    if (k.landed) st.spin += 4 * st.dir;
+    const prev = st.angle;
+    st.angle += st.spin * dt;
+    const blur = Phaser.Math.Clamp((Math.abs(st.spin) - 7) / 10, 0, 1);
+    const va = f.visualAlpha;
+    for (const n of SPUN) k.swayImg(n)?.setRotation(st.angle);
+    k.swayImg('wheel')?.setAlpha((1 - 0.75 * blur) * va);
+    k.swayImg('blur')?.setAlpha(blur * va);
+    // dust off the rim where it meets the ground (thrown back from the way it turns), as it revs and rolls
+    const fast = Math.abs(st.spin);
+    if (fast > 7 && (revving || grounded))
+      st.dust.rate('rim', Math.min(36, fast * 1.4), dt, () => {
+        st.dust.emit(hx - 10 + pm() * 30, 252, { vx: -Math.sign(st.spin) * (90 + R() * 220), vy: -30 - R() * 110, life: 0.6 + R() * 0.5, r0: 6 * s, r1: 24 * s, a: 0.42, tint: R() < 0.5 ? 0xc8a878 : 0xa88a60, fade: 0.06 });
+      });
+    // the scythe glints as it sweeps past the light (top left)
+    st.glintT -= dt;
+    const L = -Math.PI * 0.75;
+    const a0 = BLADE_REST + prev;
+    const a1 = BLADE_REST + st.angle;
+    const crossed = Math.floor((a0 - L) / (Math.PI * 2)) !== Math.floor((a1 - L) / (Math.PI * 2));
+    if (crossed && st.glintT <= 0) {
+      st.glintT = 0.14;
+      const d = BLADE_R * 0.8;
+      st.glint.emit(hx + Math.cos(a1) * d, hy + Math.sin(a1) * d, { life: 0.32, r0: 4, r1: 26 * s, a: 1, tint: 0xffffff, spin: 3, fade: 0.25 });
+    }
+    st.glint.rate('bronze', 1.2, dt, () => st.glint.emit(40 + R() * 140, 4 + R() * 80, { life: 0.4, r0: 2, r1: 14 * s, a: 0.9, tint: 0xfff0c0, fade: 0.4 }));
+    if (k.landed) for (let i = 0, n = k.burst(4); i < n; i++) st.glint.emit(hx + pm() * 40, 252, { vx: pm() * 300, vy: -60 - R() * 140, life: 0.3, r0: 2, r1: 8 * s, a: 1, tint: 0xffd27a, grav: 800, fade: 0.05 });
+    landDust(k, st.dust, 8, [0xc8a878, 0xa88a60], 254, 80);
+  },
+  die(k, st) {
+    // smacked to death: the wheel (with its scythe and hub) breaks off its axle, hops, bounces and rolls away
+    if (k.f.hp > 0) return;
+    const f = k.f;
+    const layer = f.root.parentContainer;
+    const hub = k.swayImg('hub');
+    if (!layer || !hub) return;
+    // the wheel as it's drawn now, in the layer's frame (the foot's turn, the rig's swing and squash and all)
+    const m = hub.getWorldTransformMatrix();
+    const lm = layer.getWorldTransformMatrix();
+    const [wx, wy] = f.styleWorld(...CHARIOT_HUB);
+    const sc = Math.abs(m.scaleX / lm.scaleX);
+    const wheel = k.sc.add.container(wx, wy).setRotation(m.rotation - lm.rotation);
+    layer.add(wheel);
+    for (const n of ['wheel', 'scythe', 'hub'] as const) {
+      const img = k.swayImg(n);
+      if (!img) continue;
+      wheel.add(k.sc.add.image(0, 0, img.texture.key, img.frame.name).setOrigin(img.originX, img.originY).setScale(sc).setRotation(n === 'hub' ? 0 : st.angle));
+    }
+    for (const n of [...SPUN, 'light', 'axle', 'hub'] as const) k.swayImg(n)?.setVisible(false);
+    const s = f.type.scale * Math.abs(f.root.scaleX);
+    const dir = st.dir || 1;
+    const floor = Math.max(wy, f.styleWorld(CHARIOT_HUB[0], 254)[1] - WHEEL_R * s);
+    const dist = 170 * s;
+    // it rolls the way it travels: the wheel and scythe turn, the hub doesn't
+    k.sc.tweens.add({ targets: wheel, x: wx + dir * dist, duration: 1100, ease: 'Quad.Out' });
+    k.sc.tweens.add({ targets: wheel.list.filter((_, i) => i < wheel.length - 1), rotation: `+=${(dir * dist) / Math.max(1, WHEEL_R * s)}`, duration: 1100, ease: 'Quad.Out' });
+    k.sc.tweens.chain({
+      targets: wheel,
+      tweens: [
+        { y: wy - 50 * s, rotation: wheel.rotation + dir * 0.25, duration: 180, ease: 'Quad.Out' },
+        { y: floor, rotation: wheel.rotation, duration: 260, ease: 'Quad.In' },
+        { y: floor - 20 * s, duration: 140, ease: 'Quad.Out' },
+        { y: floor, duration: 140, ease: 'Quad.In' },
+        { alpha: 0, duration: 420, ease: 'Quad.In', onComplete: () => wheel.destroy() },
+      ],
+    });
   },
 });
 

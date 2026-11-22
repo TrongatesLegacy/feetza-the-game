@@ -8,6 +8,7 @@ import { Sil, lobe } from '../../art/style/sil';
 import { registerStyle } from '../../art/style/registry';
 import { beadEye, blotches, contact, rivet, stitches } from '../../art/style/details';
 import { type Ctx, hashStr, mix, rgba, rng, shade } from '../../art/util';
+import { type BlobDef, blister, blobShape, doughFinish, doughSkin, poke, popped, pressFold } from './dough-kit';
 import { BARE_RIG, CX, SHOE_RIG, bareWith, ell, finishLight, hgrad, piece, prop, rrect, solePath, upperPath, vgrad, within } from './roster-kit';
 
 // ════════════════════════ Thief Theo ════════════════════════
@@ -125,71 +126,89 @@ registerStyle('thief', {
 });
 
 // ════════════════════════ Dough Toes ════════════════════════
-// Raw pizza dough with toes: soft, floury and lumpy, poked with finger dents, a slice of pepperoni stuck on, and a
-// strand of dough sagging off the side. In play flour sifts off it, its toes wiggle and it stretches before it splits.
+// A lump of raw pizza dough that's grown toes, in Dough Boy's language (src/content/style/dough-kit.ts) but smaller,
+// simpler and faceless: a misshapen blob that leans and slumps to its left, pinched in at the waist on the right,
+// five toe lumps half sunk into the dough (the big one leading), two finger pokes, blisters and a pressed fold, floury on top. It stands on the same hand-rolled rope of dough. In play it
+// jiggles on soft springs, splats as it lands and leaves a strand of dough as it lifts (src/content/styleLive/dough.ts),
+// and a killing smack tears it into two lumps.
+
+/** Where Dough Toes' sole meets the ground, and where the strand leaves it on lift-off (design units). */
+export const DOUGHTOES_CONTACT = 262;
+export const DOUGHTOES_STRAND: [number, number] = [CX + 10, 256];
+
+const DOUGHTOES_BLOB: BlobDef = {
+  contact: DOUGHTOES_CONTACT,
+  maxSpread: 132,
+  outline: [
+    { at: [CX - 36, -12] },
+    { at: [CX - 38, 6] },
+    { at: [CX - 50, 30] },
+    // a lump of dough bulging out of its left side, then a soft dip under it
+    { at: [CX - 76, 56] },
+    { at: [CX - 92, 86] },
+    { at: [CX - 86, 114] },
+    { at: [CX - 92, 136] },
+    { at: [CX - 100, 152] },
+    { lo: [-108, 178] },
+    { lo: [-116, 208] },
+    { lo: [-114, 236] },
+    { lo: [-100, 251] },
+    { lo: [-66, 255] },
+    { lo: [-8, 256] },
+    { lo: [52, 255] },
+    { lo: [98, 249] },
+    { lo: [116, 230] },
+    { lo: [112, 196] },
+    { at: [CX + 100, 152] },
+    { at: [CX + 92, 128] },
+    // pinched in at the waist on the right
+    { at: [CX + 76, 100] },
+    { at: [CX + 76, 76] },
+    { at: [CX + 64, 50] },
+    { at: [CX + 48, 26] },
+    { at: [CX + 38, 6] },
+    { at: [CX + 37, -12] },
+  ],
+  toes: [
+    { x: -80, rx: 13, ry: 9, rot: 0.36 },
+    { x: -52, rx: 15, ry: 10.5, rot: 0.18 },
+    { x: -22, rx: 16.5, ry: 11.5, rot: 0.05 },
+    { x: 12, rx: 18, ry: 12.5, rot: -0.04 },
+    { x: 66, rx: 36, ry: 23, rot: -0.1 },
+  ],
+  toeSeed: 7900,
+  bulge: { at: [-62, 196], rx: 46, ry: 52, rot: 0.25, seed: 7951 },
+};
 
 registerStyle('doughtoes', {
-  rig: BARE_RIG,
-  contactY: 266,
-  leg: { kind: 'skin', hw: 52, join: 'blend', fade: 26 },
-  draw(ctx, art, p) {
-    const dough = art.primary ?? '#f2e2c2';
-    const crust = art.secondary ?? '#c98a4a';
-    bareWith(ctx, { skin: dough, nails: null, shadowTint: '#9a6a3a', pores: 0.4, detail: 0, toe: 1.1, w: 6 }, p, (g, f) => {
-      texture(g, 'pores', f.box, 0.4, 1.4);
-      const r = rng(hashStr('dough'));
-      // flour dusting on top, finger-poke dents, air bubbles
-      softFill(g, ell(CX - 30, 60, 60, 40), rgba('#ffffff', 0.4), 12);
-      for (let i = 0; i < 160; i++) {
-        g.fillStyle = rgba('#ffffff', 0.4 + r() * 0.5);
-        g.beginPath();
-        g.arc(f.box.x + 20 + r() * (f.box.w - 40), r() * 160, 0.5 + r(), 0, Math.PI * 2);
-        g.fill();
-      }
-      for (const [x, y] of [[CX + 40, 120], [CX - 30, 150], [CX + 10, 70]] as const) {
-        ao(g, x + 2, y + 2, 9, 7, 0.35, 0, '#7a4a1a');
-        spec(g, x + 5, y + 6, 6, 3, 0.4, -0.3, LIGHT.key);
-      }
-      for (let i = 0; i < 10; i++) {
-        const x = CX - 80 + r() * 160;
-        const y = 40 + r() * 180;
-        const s = 2 + r() * 3.5;
-        piece(g, ell(x, y, s, s * 0.85), f.box, 'dough', shade(dough, 0.05), { shadow: 0.25 });
-        spec(g, x - s * 0.3, y - s * 0.3, s * 0.5, s * 0.3, 0.6);
-      }
-      // the toes browning a little at their tips, like a crust
-      for (const t of f.toes) {
-        const [x, y] = onToe(t, Math.PI / 2);
-        softFill(g, ell(x, y - t.ry * 0.25, t.rx * 0.8, t.ry * 0.45, t.rot), rgba(crust, 0.4), 6);
-      }
-      // the pepperoni slice
-      const pep = ell(CX - 50, 104, 17, 15, 0.2);
-      piece(g, pep, f.box, 'sauce', '#b8282a', { shadow: 0.5 });
-      within(g, pep, () => {
-        for (let i = 0; i < 8; i++) {
-          g.fillStyle = rgba('#f4c8a0', 0.7);
-          g.beginPath();
-          g.arc(CX - 60 + r() * 20, 94 + r() * 20, 1 + r() * 1.6, 0, Math.PI * 2);
-          g.fill();
-        }
-        ao(g, CX - 46, 112, 12, 6, 0.3, 0, '#3a0408');
-      });
-      glint(g, CX - 56, 98, 3, 0.9);
-    }, inkOf(mix(dough, '#8a5a2a', 0.5)));
-    // the sagging strand of dough off the outer side
-    const strand: PathFn = (c) => {
-      c.beginPath();
-      c.moveTo(CX - 92, 170);
-      c.bezierCurveTo(CX - 110, 200, CX - 108, 240, CX - 112, 262);
-      c.arc(CX - 106, 266, 8, Math.PI, 0, true);
-      c.bezierCurveTo(CX - 98, 240, CX - 94, 210, CX - 80, 192);
-      c.closePath();
-    };
-    prop(ctx, [strand], { x: CX - 122, y: 160, w: 50, h: 116 }, (g, sil) => {
-      sil.form({ base: dough, shadowTint: '#9a6a3a', ramp: 0.7, form: 0.5, formSize: 6, bevel: 0.4, rim: 0.4 });
-      texture(g, 'pores', { x: CX - 122, y: 160, w: 50, h: 116 }, 0.35, 1.2);
-      spec(g, CX - 104, 220, 3, 14, 0.5, 0.1);
-    }, inkOf(mix(dough, '#8a5a2a', 0.5)), { w: 3.6 });
+  contactY: DOUGHTOES_CONTACT,
+  halfWidth: 106,
+  rig: { from: 152, to: 172 },
+  leg: { kind: 'dough', hw: 50, join: 'blend', fade: 20, fadeSpan: 38 },
+  portraitLeg: 70,
+  draw(ctx, art, p, o) {
+    const dough = art.skin ?? '#f2e2c2';
+    const sh = blobShape(DOUGHTOES_BLOB, p);
+    const box = { x: CX - 140, y: -14, w: 280, h: 290 };
+    const parts = [sh.body, ...sh.toes.map((t) => t.path)];
+    const sil = new Sil(ctx, parts, box);
+    const g = sil.g;
+    if (!doughSkin(sil, box, dough, sh, { heat: o.heat, sag: [118, 268], bulgeFade: [120, 168], seed: 7911 })) return;
+    // a flap folded over and pressed down on its right shoulder
+    pressFold(g, [CX + 58, 46], [CX + 34, 70], [CX + 30, 98], [CX + 50, 124], 0.85);
+    poke(g, CX + 50, 168, 9);
+    poke(g, CX - 22, 196, 6.5);
+    const r = rng(hashStr('doughtoes-blisters'));
+    const blisters: [number, number, number, number, number][] = [
+      [CX - 10, 40, 4.6, 2.2, 1.35],
+      [CX - 70, 168, 6, 2.8, 1.8],
+      [CX + 86, 186, 5, 2.4, 1.25],
+      [CX + 8, 146, 3.6, 1.8, 1.5],
+    ];
+    for (const [x, y, rx, ry, rot] of blisters) blister(g, x, y, rx, ry, rot + (r() - 0.5) * 0.2);
+    popped(g, CX - 54, 84, 1.8);
+    popped(g, CX + 20, 214, 2.2);
+    doughFinish(ctx, sil, box, parts, 7921, 150, 200);
   },
 });
 
