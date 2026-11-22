@@ -344,6 +344,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     audio.sfx(key, opts);
   }
   shake(ms: number, intensity: number): void {
+    // (the scenery reacts to the big moments whatever the shake setting)
+    if (intensity >= 0.008) this.backdrop.impact(W / 2, 760, Math.min(1, intensity * 70));
     if (!save.settings.screenShake || save.settings.reducedMotion) return;
     this.cameras.main.shake(ms, intensity);
   }
@@ -3483,6 +3485,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (this.run.combo >= 5) this.fx.quip(W / 2, 200, 'COMBO LOST', '#ff8a6a', 40, 0);
     this.run.combo = 0;
     this.rumble(f.isBossLike ? 0.8 : 0.3, f.isBossLike ? 250 : 90);
+    this.backdrop.impact(p.x, p.surfaceY, f.isBossLike ? 1 : 0.45);
     this.director.onStomp(f, p);
     // hero passives can stop a stomp (Bracers, the Lasso of Truth)
     if (this.heroes.stomp(f, p)) {

@@ -59,6 +59,11 @@ export class BackdropView {
   }
 
   /** The wave within the stage (1–5): live layers change their weather and light with it. */
+  /** A stomp or a big moment: the live layer reacts (lamps swing, dust sifts, birds take off). */
+  impact(x: number, y: number, power: number): void {
+    this.live?.impact?.(x, y, power);
+  }
+
   setWave(wave: number): void {
     if (wave === this.wave) return;
     this.wave = wave;
