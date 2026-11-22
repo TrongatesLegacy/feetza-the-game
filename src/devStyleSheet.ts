@@ -327,7 +327,7 @@ class Showcase extends Phaser.Scene {
       if (e.ctl.fx.has('aura')) f.setPhaseAura(0xff2a2a);
       f.cropLeg(((e.y + 4 - layer.y) / k - f.root.y) / f.root.scaleY);
     }
-    const label = this.add.text(e.x + e.w / 2, e.y + e.h - 30, e.styled ? 'old  ·  new' : 'unchanged', { fontFamily: 'Fredoka, system-ui, sans-serif', fontSize: '15px', color: '#ffe9c7' }).setOrigin(0.5, 0).setAlpha(0.55).setDepth(-e.y + 0.5);
+    const label = this.add.text(e.x + e.w / 2, e.y + e.h - 30, e.styled ? 'old  ·  new' : IMMORTAL_LIVE[e.id] ? 'own live art' : 'unchanged', { fontFamily: 'Fredoka, system-ui, sans-serif', fontSize: '15px', color: '#ffe9c7' }).setOrigin(0.5, 0).setAlpha(0.55).setDepth(-e.y + 0.5);
     e.pair = { old, neu, t: e.ctl.move === 'loop' ? (e.y * 0.0013 + e.x * 0.002) % 3.6 : e.ctl.to, restT: e.ctl.move === 'loop' ? undefined : 0, layer, label, keys };
   }
 
@@ -615,7 +615,7 @@ export function installStyleSheet(): void {
           const styled = !!styleFor(id);
           const card = document.createElement('div');
           card.className = `ss-fc${g.bossy ? ' boss' : ''}`;
-          card.innerHTML = `<div class="nm"></div>${styled ? '' : '<span class="tg un">unchanged</span>'}${t.boss ? '<span class="tg">boss</span>' : t.mini ? '<span class="tg">mini-boss</span>' : ''}`;
+          card.innerHTML = `<div class="nm"></div>${styled ? '' : IMMORTAL_LIVE[id] ? '<span class="tg un" style="right:auto;left:8px">own live art</span>' : '<span class="tg un">unchanged</span>'}${t.boss ? '<span class="tg">boss</span>' : t.mini ? '<span class="tg">mini-boss</span>' : ''}`;
           card.querySelector('.nm')!.textContent = t.name;
           const cell = document.createElement('div');
           const ent: Entry = { id, type: t, styled, bossy: g.bossy, card, ctl: newCtl(), x: 0, y: 0, w: 0, h: 0 };

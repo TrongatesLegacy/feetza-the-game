@@ -9,7 +9,7 @@ export const feet: FootType[] = [
   {
     id: 'immortal',
     name: 'Immortal Sandals',
-    desc: 'An elite of the Persian king’s guard: a chrome war mask and a black head-scarf over a foot made of living black smoke. When one falls, another steps out of the smoke to take its place, once.',
+    desc: 'An elite of the Persian king’s guard: a scowling chrome war mask, a black head-wrap and a gorget of dark lamellar plates over a foot made of living black smoke. When one falls, another steps out of the smoke to take its place, once.',
     hp: 52, speed: 0.95, armor: 2, stompDmg: 1, coins: 16, score: 520, scale: 1.02, minWave: 81, weight: 3,
     traits: [],
     persian: true,
@@ -17,7 +17,7 @@ export const feet: FootType[] = [
     howTo: 'Set it burning before the last smack and it stays down; otherwise another Immortal takes its place',
     tell: 'Smoke streams from the mask’s eyes; when one falls, a black cloud boils up where it stood',
     quips: ['WE ARE TEN THOUSAND.', 'ANOTHER TAKES MY PLACE.', 'NEVER FEWER.'],
-    art: { kind: 'p_immortal', skin: '#c9d0da', primary: '#3a3f47', secondary: '#c9d0da', leg: 'chrome', legColor: '#c9d0da', legAccent: '#3a3f47', extra: { curl: '120,112,135' } },
+    art: { kind: 'p_immortal', skin: '#c3cbd6', primary: '#262b33', secondary: '#c3cbd6', leg: 'chrome', legColor: '#c3cbd6', legAccent: '#262b33', extra: { curl: '112,120,136' } },
   },
   {
     id: 'archer',
