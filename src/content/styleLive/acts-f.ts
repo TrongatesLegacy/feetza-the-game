@@ -266,3 +266,82 @@ registerLive('cheetoe', {
     overheat(k, steam, dt, [CX - 80, 20, 160, 200]);
   },
 });
+
+// ——— The Hot Gates and the Persian army (the Immortals keep their own live art in src/game/footLive.ts) ———
+
+// XERXES: his gold chains swing across the instep, glints chase over the gold, gold dust drifts off him like incense,
+// the ruby pulses and the toes curl in their gold caps.
+registerLive('xerxes', {
+  wiggle: true,
+  rig: { swing: 0.6, squash: 0.9, breath: 1.2 },
+  sway: { drape: { k: 22, c: 2, gain: 1.4, idle: 0.14, flop: 1.2 } },
+  glow: { rate: 0.6, depth: 0.5, base: 0.45 },
+  heat: {},
+  setup: (k) => ({
+    steam: steamEm(k),
+    glint: k.emitter({ frame: 'spark', add: true, drag: 0.2, max: 20 }),
+    dust: k.emitter({ frame: 'mote', add: true, curl: 30, drag: 0.8, max: 60 }),
+  }),
+  tick(k, dt, { steam, glint, dust }) {
+    const s = k.f.type.scale;
+    glint.rate('gold', 3.5, dt, () => {
+      const spots: [number, number][] = [[CX, 22], [CX + 4, 126], [CX - 60, 236], [CX + 80, 236], [CX - 30, 150], [CX + 40, 170]];
+      const [x, y] = spots[Math.floor(R() * spots.length)];
+      glint.emit(x + pm() * 20, y + pm() * 14, { life: 0.4, r0: 2, r1: 14 * s, a: 1, tint: 0xfff0b0, fade: 0.4 });
+    });
+    dust.rate('incense', 3, dt, () => dust.emit(CX + pm() * 200, 80 + R() * 180, { vx: pm() * 20, vy: -14 - R() * 16, life: 1.8, r0: 2 * s, r1: 3.5 * s, a: 0.7, tint: R() < 0.5 ? 0xffd870 : 0xfff4c8, fade: 0.3 }));
+    overheat(k, steam, dt, [CX - 90, 30, 180, 200]);
+  },
+});
+
+// Archer Slippers: the quiver swings at its strap and a puff of dust lifts off the soft soles.
+registerLive('archer', {
+  rig: { swing: 1.2 },
+  sway: { quiver: { k: 30, c: 2.6, gain: 1.4, idle: 0.1, below: true, flop: 1 } },
+  setup: (k) => ({ dust: k.emitter({ frame: 'puff', curl: 30, drag: 1.5, below: true, max: 40 }) }),
+  tick(k, _dt, { dust }) {
+    landDust(k, dust, 6, [0xc8a878, 0xa88a60], 254, 70, 0.7);
+  },
+});
+
+// Cavalry Hooves: the saddle-cloth tassels swing one by one, dust streams off the hoof as it gallops sideways and
+// the bronze shoe strikes sparks when it lands.
+registerLive('cavalry', {
+  rig: { swing: 1.6, squash: 1.2 },
+  sway: Object.fromEntries([0, 1, 2, 3, 4, 5, 6].map((i) => [`t${i}`, { k: 40 + i * 3, c: 2.4, gain: 1.6, idle: 0.2 }])),
+  setup: (k) => ({
+    dust: k.emitter({ frame: 'puff', curl: 40, drag: 1.4, below: true, max: 80 }),
+    sparks: k.emitter({ frame: 'spark', add: true, drag: 1.2, max: 20 }),
+  }),
+  tick(k, dt, { dust, sparks }) {
+    const s = k.f.type.scale;
+    const run = Math.abs(k.vx);
+    if (run > 120) dust.rate('gallop', Math.min(30, run / 20), dt, () => dust.emit(CX + pm() * 120, 260, { vx: -Math.sign(k.vx) * (60 + R() * 120), vy: -20 - R() * 60, life: 0.8, r0: 8 * s, r1: 26 * s, a: 0.4, tint: R() < 0.5 ? 0xc8a878 : 0xa88a60, fade: 0.08 }));
+    if (k.landed) for (let i = 0, n = k.burst(8); i < n; i++) sparks.emit(CX + pm() * 160, 262, { vx: pm() * 400, vy: -60 - R() * 160, life: 0.3, r0: 2, r1: 9 * s, a: 1, tint: 0xffd27a, grav: 800, fade: 0.05 });
+    landDust(k, dust, 10, [0xc8a878, 0xa88a60], 262, 90);
+  },
+});
+
+// Chariot Wheel: glints run over the bronze greave and road dust drifts off the boot (its wheel is the game's prop,
+// which spins and kicks up its own dust).
+registerLive('chariot', {
+  rig: { swing: 0.9, squash: 1.1 },
+  setup: (k) => ({
+    glint: k.emitter({ frame: 'spark', add: true, drag: 0.2, max: 10 }),
+    dust: k.emitter({ frame: 'puff', curl: 30, drag: 1.5, below: true, max: 40 }),
+  }),
+  tick(k, dt, { glint, dust }) {
+    glint.rate('bronze', 1.4, dt, () => glint.emit(40 + R() * 140, 4 + R() * 80, { life: 0.4, r0: 2, r1: 14 * k.f.type.scale, a: 0.9, tint: 0xfff0c0, fade: 0.4 }));
+    landDust(k, dust, 8, [0xc8a878, 0xa88a60], 254, 80);
+  },
+});
+
+// Satrap's Slipper: the ruby glows and pulses, and gold glints run over the brocade, pearls and embroidery.
+registerLive('satrap', {
+  rig: { swing: 1 },
+  glow: { rate: 0.8, depth: 0.5, base: 0.4 },
+  setup: (k) => ({ glint: k.emitter({ frame: 'spark', add: true, drag: 0.2, max: 16 }) }),
+  tick(k, dt, { glint }) {
+    glint.rate('gold', 2.5, dt, () => glint.emit(30 + R() * 160, 30 + R() * 190, { life: 0.4, r0: 2, r1: 12 * k.f.type.scale, a: 0.9, tint: R() < 0.6 ? 0xfff0b0 : 0xffffff, fade: 0.4 }));
+  },
+});
