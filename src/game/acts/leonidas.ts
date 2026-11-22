@@ -39,16 +39,26 @@ function throwSpears(k: HeroKit, n: number): void {
   pick.forEach((f, i) => k.sc.time.delayedCall(i * 140, () => f.alive && k.host.inWave() && k.host.throwAt(SPEAR, [f], BRONZE)));
 }
 
-/** The shield wall: a row of lambda shields that slams down over the table, then drops away. */
+/** Where a shield of the wall stands at x: just above the pizza under it (following it up when a pizza is lifted),
+ *  or just above the table between pizzas. */
+function wallY(k: HeroKit, x: number): number {
+  let y = TABLE_Y - 70;
+  for (const p of k.host.pizzas()) if (!p.dead && Math.abs(p.x - x) < p.radius * 1.15) y = Math.min(y, p.surfaceY - 15);
+  return y - 42;
+}
+
+/** The shield wall: a row of lambda shields that slams down just over the pizzas, then drops away. */
 function shieldWall(k: HeroKit, sec: number, shove: boolean): void {
-  const y = TABLE_Y - 150;
   const shields: Phaser.GameObjects.Image[] = [];
+  let landed = false;
   for (let x = 90, i = 0; x < W; x += 130, i++) {
+    const y = wallY(k, x) + (i % 2) * 10;
     const s = k.img('p_lx_shield', x, y + 260, 0.62);
     s.setAlpha(0);
-    k.sc.tweens.add({ targets: s, y: y + (i % 2) * 14, alpha: 1, duration: 220, delay: i * 30, ease: 'Back.Out' });
+    k.sc.tweens.add({ targets: s, y, alpha: 1, duration: 220, delay: i * 30, ease: 'Back.Out' });
     shields.push(s);
   }
+  k.sc.time.delayedCall(220 + shields.length * 30, () => (landed = true));
   k.sc.time.delayedCall(380, () => {
     k.host.shake(260, 0.01);
     k.host.rumble(0.8, 260);
@@ -61,6 +71,8 @@ function shieldWall(k: HeroKit, sec: number, shove: boolean): void {
     k,
     sec,
     (_dt, t) => {
+      // the wall rides up and down with the pizzas under it (a lifted pizza takes its shield with it)
+      if (landed) shields.forEach((s, i) => (s.y += (wallY(k, s.x) + (i % 2) * 10 - s.y) * Math.min(1, _dt * 8)));
       // the last second, the shields shudder before they drop
       if (sec - t < 1) shields.forEach((s, i) => s.setAngle(Math.sin(t * 40 + i) * 3));
     },
@@ -99,7 +111,7 @@ function king(every: number, spears: number, blockX: number): Passive {
       if (Number(k.wv.lineUntil ?? 0) <= k.host.now()) return false;
       audio.sfx('sfx_hero_shieldblock', { volume: 0.8, throttle: 80 });
       k.host.quip(f.x, f.cy - 120, 'HELD!', '#ffd890', 38);
-      k.host.fx.ring(f.x, TABLE_Y - 150, BRONZE, 0.8, 0.6);
+      k.host.fx.ring(f.x, wallY(k, f.x), BRONZE, 0.8, 0.6);
       if (blockX > 0) k.host.hurt(f, blockX, { quiet: true });
       if (f.alive) f.knock(700);
       return true;
