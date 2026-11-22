@@ -98,10 +98,27 @@ registerMoves({
   },
 });
 
+/** A foot meets the shield wall: HELD!, thrown back up (Hot Gates also hurts it). */
+function block(k: HeroKit, f: Foot): void {
+  audio.sfx('sfx_hero_shieldblock', { volume: 0.8, throttle: 80 });
+  k.host.quip(f.x, f.cy - 120, 'HELD!', '#ffd890', 38);
+  k.host.fx.ring(f.x, wallY(k, f.x), BRONZE, 0.8, 0.6);
+  const hurt = Number(k.st.blockX ?? 0);
+  if (hurt > 0) k.host.hurt(f, hurt, { quiet: true });
+  if (f.alive) {
+    f.setState('lift');
+    f.knock(700);
+  }
+}
+
 /** Both kings' passive: the spear, and the wall's block. */
 function king(every: number, spears: number, blockX: number): Passive {
   return {
     tick: (k, dt) => {
+      k.st.blockX = blockX;
+      // the wall holds: a foot coming down meets the shields and is thrown back, it never gets through to the pizza
+      if (Number(k.wv.lineUntil ?? 0) > k.host.now())
+        for (const f of k.host.live()) if ((f.state === 'descend' || f.state === 'stomp') && f.y >= wallY(k, f.x) - 20) block(k, f);
       k.st.spearT = Number(k.st.spearT ?? 0) + dt;
       if (Number(k.st.spearT) < every || !k.host.inWave()) return;
       k.st.spearT = 0;
@@ -109,11 +126,7 @@ function king(every: number, spears: number, blockX: number): Passive {
     },
     stomp: (k, f) => {
       if (Number(k.wv.lineUntil ?? 0) <= k.host.now()) return false;
-      audio.sfx('sfx_hero_shieldblock', { volume: 0.8, throttle: 80 });
-      k.host.quip(f.x, f.cy - 120, 'HELD!', '#ffd890', 38);
-      k.host.fx.ring(f.x, wallY(k, f.x), BRONZE, 0.8, 0.6);
-      if (blockX > 0) k.host.hurt(f, blockX, { quiet: true });
-      if (f.alive) f.knock(700);
+      block(k, f);
       return true;
     },
   };
