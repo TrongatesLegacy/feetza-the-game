@@ -337,7 +337,14 @@ export class Foot {
    *  whole foot shows below the top of the screen. */
   hoverAt(): number {
     const hy = this.hoverY ?? HOVER_Y;
-    return this.isBossLike ? Math.max(hy, this.meta.footHeight * this.scale + 24) : hy;
+    return this.isBossLike ? Math.max(hy, this.showAllY()) : hy;
+  }
+
+  /** Low enough that the whole foot shows below the top of the screen, but never lower than the Immortal Brute
+   *  needs (520 px tall): the biggest bosses (up to ~750 px) would otherwise hover over the pizzas, so they stay
+   *  partly cut off. */
+  showAllY(): number {
+    return Math.min(this.meta.footHeight * this.scale, 520) + 24;
   }
 
   setState(s: FootState): void {
@@ -440,7 +447,7 @@ export class Foot {
       this.vy = 0;
       // bosses holding a lane stay near their usual hover height, clear of the boss bar
       // …low enough that the whole foot shows, up to the ankle (a big boss held at the top used to be cut off)
-      const py = Math.max(this.isBossLike ? this.hoverAt() - 40 : PINNED_Y, this.meta.footHeight * this.scale + 24);
+      const py = Math.max(this.isBossLike ? this.hoverAt() - 40 : PINNED_Y, this.showAllY());
       this.y += (py - this.y) * Math.min(1, dt * 5);
       const px = this.laneX ?? (this.target && !this.target.dead ? this.target.x : this.x);
       this.x += (px - this.x) * Math.min(1, dt * 3);
