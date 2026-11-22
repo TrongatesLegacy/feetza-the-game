@@ -176,26 +176,50 @@ export function carvedRune(g: Ctx, i: number, x: number, y: number, w: number, h
   g.restore();
 }
 
-/** Hoarfrost over an area: patchy white rime and tiny feathered crystals. */
-export function hoarfrost(g: Ctx, box: Box, r: () => number, a: number, seed: number, n = 60): void {
-  blotches(g, box, '#f4fbff', 0.55 * a, 20, 0.5, 0.18, seed);
-  blotches(g, box, '#ffffff', 0.5 * a, 8, 0.62, 0.08, seed + 7);
-  g.save();
-  g.lineCap = 'round';
+/** Hoarfrost over an area: patchy white rime and tiny feathered crystals, fading out softly towards the area's top
+ * and bottom (fadeTop/fadeBottom: fractions of its height), so it never shows the box it was laid in. */
+export function hoarfrost(g: Ctx, box: Box, r: () => number, a: number, seed: number, n = 60, fadeTop = 0.45, fadeBottom = 0.2): void {
+  const c = document.createElement('canvas');
+  c.width = g.canvas.width;
+  c.height = g.canvas.height;
+  const x = c.getContext('2d')!;
+  x.setTransform(g.getTransform());
+  blotches(x, box, '#f4fbff', 0.55 * a, 20, 0.5, 0.18, seed);
+  blotches(x, box, '#ffffff', 0.5 * a, 8, 0.62, 0.08, seed + 7);
+  x.lineCap = 'round';
   for (let i = 0; i < n; i++) {
-    const x = box.x + r() * box.w;
-    const y = box.y + r() * box.h;
+    const px = box.x + r() * box.w;
+    const py = box.y + r() * box.h;
     const s = 2 + r() * 4;
-    g.strokeStyle = rgba('#ffffff', (0.4 + r() * 0.5) * a);
-    g.lineWidth = 0.8;
-    g.beginPath();
+    x.strokeStyle = rgba('#ffffff', (0.4 + r() * 0.5) * a);
+    x.lineWidth = 0.8;
+    x.beginPath();
     for (let k = 0; k < 3; k++) {
       const an = (k / 3) * Math.PI + r() * 0.3;
-      g.moveTo(x - Math.cos(an) * s, y - Math.sin(an) * s);
-      g.lineTo(x + Math.cos(an) * s, y + Math.sin(an) * s);
+      x.moveTo(px - Math.cos(an) * s, py - Math.sin(an) * s);
+      x.lineTo(px + Math.cos(an) * s, py + Math.sin(an) * s);
     }
-    g.stroke();
+    x.stroke();
   }
+  // soft edges: fade in from the top, out at the bottom, and in from the sides
+  x.globalCompositeOperation = 'destination-in';
+  const fy = x.createLinearGradient(0, box.y, 0, box.y + box.h);
+  fy.addColorStop(0, 'rgba(0,0,0,0)');
+  fy.addColorStop(fadeTop, 'rgba(0,0,0,1)');
+  fy.addColorStop(1 - fadeBottom, 'rgba(0,0,0,1)');
+  fy.addColorStop(1, 'rgba(0,0,0,0)');
+  x.fillStyle = fy;
+  x.fillRect(box.x, box.y, box.w, box.h);
+  const fx = x.createLinearGradient(box.x, 0, box.x + box.w, 0);
+  fx.addColorStop(0, 'rgba(0,0,0,0)');
+  fx.addColorStop(0.15, 'rgba(0,0,0,1)');
+  fx.addColorStop(0.85, 'rgba(0,0,0,1)');
+  fx.addColorStop(1, 'rgba(0,0,0,0)');
+  x.fillStyle = fx;
+  x.fillRect(box.x, box.y, box.w, box.h);
+  g.save();
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.drawImage(c, 0, 0);
   g.restore();
 }
 

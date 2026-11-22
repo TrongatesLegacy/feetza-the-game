@@ -7,6 +7,8 @@ import { type LiveFoot, registerLive } from '../../game/liveKit';
 import { crand } from '../../systems/cosmeticRandom';
 import { HAMMER, JET_NOZZLES } from '../style/acts-d-1';
 import { DOOM_EYES, LEX_DOME, ROBO_CORE } from '../style/acts-d-2';
+import { DRAUGR_EYELETS, FEN_RUNES, SERP_TONGUE, SURTR_FLAMES } from '../style/acts-d-3';
+import { drawFly } from '../style/pilot-bare';
 
 const R = () => crand();
 const pm = () => crand() - 0.5;
@@ -265,5 +267,189 @@ registerLive('thanfoot', {
       motes.emit(CX + Math.cos(a) * 140, 130 + Math.sin(a) * 120, { vx: -Math.sin(a) * 40, vy: Math.cos(a) * 30 - 10, life: 1.4 + R(), r0: 3 * s, r1: 1 * s, a: 0.9 * v, tint: R() < 0.5 ? 0xc88aff : R() < 0.7 ? 0xffd27a : 0x8ad0ff, fade: 0.3 });
     });
     overheat(k, steam, embers, dt, [[CX - 90, 60], [CX + 90, 60], [CX, 30], [CX, 200]], 0xfff4e0, 0xffc040);
+  },
+});
+
+// ════════════════════════ Act 8 · Norse ════════════════════════
+
+// Frost Giant Toes: freezing mist pours off the toes and sinks, snowflakes drift round it, frost glints; the toes flex.
+registerLive('frostgiant', {
+  wiggle: true,
+  rig: { breath: 0.8, squash: 0.8 },
+  setup: (k) => ({ mist: k.emitter({ frame: 'soft', curl: 24, drag: 0.8, below: true, max: 120 }), snow: k.emitter({ frame: 'flake', curl: 30, drag: 0.4, max: 50 }), glint: k.emitter({ frame: 'spark', add: true, drag: 0, max: 10 }), dust: k.emitter({ frame: 'puff', curl: 20, drag: 1.4, below: true, max: 30 }) }),
+  tick(k, dt, { mist, snow, glint, dust }) {
+    const s = k.f.type.scale;
+    mist.rate('mist', 9, dt, () => {
+      mist.emit(20 + R() * 180, 230 + R() * 30, { vx: pm() * 30, vy: 20 + R() * 20, life: 2 + R(), r0: 14 * s, r1: 54 * s, a: 0.22, tint: R() < 0.6 ? 0xe8f6ff : 0xbfe0f8, fade: 0.25, grav: 10 });
+    });
+    snow.rate('snow', 4, dt, () => {
+      snow.emit(CX + pm() * 260, -20 + R() * 200, { vx: pm() * 20, vy: 20 + R() * 20, life: 2, r0: 3 * s, r1: 2.4 * s, a: 0.9, tint: 0xffffff, spin: 3, fade: 0.2, grav: 20 });
+    });
+    glint.rate('frost', 1.2, dt, () => {
+      glint.emit(20 + R() * 180, R() < 0.5 ? R() * 60 : 190 + R() * 50, { life: 0.4, r0: 2, r1: 14 * s, a: 0.9, tint: 0xe8f8ff, fade: 0.4 });
+    });
+    landDust(k, dust, 0xf0f8ff, 14, 262, 0.6);
+  },
+});
+
+// Draugr Boots: blue grave-fire flickers in the eyelets and wisps up off them, barrow earth crumbles away, the loose
+// grave cloth swings.
+registerLive('draugr', {
+  sway: { tail: { k: 40, c: 4, gain: 1.4, idle: 0.1, flop: 1.2 } },
+  glow: { rate: 2.6, depth: 0.45, base: 0.5 },
+  setup: (k) => ({ fire: k.emitter({ frame: 'ember', add: true, curl: 40, drag: 0.6, max: 80 }), earth: k.emitter({ frame: 'mote', drag: 0.3, max: 40 }) }),
+  tick(k, dt, { fire, earth }) {
+    const s = k.f.type.scale;
+    const v = shown(k);
+    if (v < 0.15) return;
+    fire.rate('wisp', 8, dt, () => {
+      const [x, y] = DRAUGR_EYELETS[Math.floor(R() * DRAUGR_EYELETS.length)];
+      fire.emit(x + pm() * 4, y, { vx: pm() * 20, vy: -40 - R() * 40, life: 0.6 + R() * 0.4, r0: 5 * s, r1: 1.5 * s, a: 0.9 * v, tint: R() < 0.5 ? 0x7fe8ff : 0xc8faff, grav: -40, fade: 0.1 });
+    });
+    earth.rate('earth', k.windingUp ? 14 : 3, dt, () => {
+      earth.emit(CX + pm() * 190, 200 + R() * 50, { vx: pm() * 20, vy: 10, life: 0.8, r0: 2.6 * s, r1: 2 * s, a: v, tint: R() < 0.6 ? 0x5a3e28 : 0x8a8070, grav: 700, fade: 0.02 });
+    });
+  },
+});
+
+// Troll Feet: flies circle the stink, the toadstool nods, spores drift off the moss, the toes flex.
+registerLive('troll', {
+  wiggle: true,
+  sway: { shroom: { k: 50, c: 4, gain: 1.6, idle: 0.1, flop: 1.4 } },
+  setup: (k) => {
+    const key = k.sheet('lk_fly', 64, 56, 3, (ctx, i) => {
+      ctx.translate(32, 30);
+      drawFly(ctx, 1.9, [0, 0.55, 1][i]);
+    });
+    return {
+      flies: k.swarm({ key, frames: 3, count: 4, at: [CX, 120], rx: 140, ry: 130, speed: 1.4, jitter: 22, scale: 0.55 }),
+      spores: k.emitter({ frame: 'mote', add: true, curl: 30, drag: 0.6, max: 40 }),
+      dust: k.emitter({ frame: 'puff', curl: 20, drag: 1.4, below: true, max: 30 }),
+    };
+  },
+  tick(k, dt, { flies, spores, dust }) {
+    const s = k.f.type.scale;
+    const diving = k.f.state === 'descend' || k.windingUp;
+    flies.tight += ((diving ? 0.65 : 1) - flies.tight) * Math.min(1, dt * 3);
+    spores.rate('spore', 3, dt, () => {
+      spores.emit(CX - 8 + pm() * 130, 30 + pm() * 40, { vx: pm() * 20, vy: -20 - R() * 20, life: 1.6 + R(), r0: 2.4 * s, r1: 1 * s, a: 0.7, tint: R() < 0.5 ? 0xc8e88a : 0xe8f0b0, grav: -10, fade: 0.2 });
+    });
+    landDust(k, dust, 0x8a9a6a, 10, 264, 0.5);
+  },
+});
+
+// Valkyrie-Cursed Clogs: the swan wings beat fast, a feather drifts loose now and then, gold motes trail it.
+registerLive('valkyrie', {
+  rig: { swing: 1.4 },
+  sway: { wingL: { k: 50, c: 5, gain: 1, idle: 0.1 }, wingR: { k: 50, c: 5, gain: 1, idle: 0.1 } },
+  setup: (k) => ({ feathers: k.emitter({ frame: 'flake', curl: 50, drag: 0.8, max: 12 }), motes: k.emitter({ frame: 'mote', add: true, curl: 30, drag: 0.6, max: 40 }), wing: { ph: R() * 6 } }),
+  tick(k, dt, { feathers, motes, wing }) {
+    const s = k.f.type.scale;
+    beatWings(k, wing, dt, 4.2, 0.5, [-1, 1]);
+    feathers.rate('feather', 0.6, dt, () => {
+      const side = R() < 0.5 ? -1 : 1;
+      feathers.emit(CX + side * 120, 60 + R() * 30, { vx: side * (20 + R() * 40), vy: 20, life: 2.4, r0: 6 * s, r1: 5 * s, a: 0.95, tint: 0xf8f6f0, spin: 2, grav: 30, fade: 0.1 });
+    });
+    motes.rate('gold', 5, dt, () => {
+      motes.emit(CX + pm() * 220, 40 + R() * 200, { vx: pm() * 20, vy: -10 - R() * 20, life: 1 + R() * 0.6, r0: 2.4 * s, r1: 0.8 * s, a: 0.9, tint: R() < 0.6 ? 0xffd86a : 0xfff4c0, fade: 0.2 });
+    });
+  },
+});
+
+// Thrym: freezing mist pours off the boot, snow swirls round it, the ice glints and the rune breathes cold light;
+// overheated, it melts: meltwater drips off the icicles and steam rolls up.
+registerLive('thrym', {
+  glow: { rate: 0.5, depth: 0.45, base: 0.5 },
+  heat: {},
+  rig: { breath: 0.8 },
+  setup: (k) => ({ mist: k.emitter({ frame: 'soft', curl: 24, drag: 0.8, below: true, max: 140 }), snow: k.emitter({ frame: 'flake', curl: 40, drag: 0.4, max: 70 }), glint: k.emitter({ frame: 'spark', add: true, drag: 0, max: 10 }), drips: k.emitter({ frame: 'drop', drag: 0.15, max: 40 }), steam: k.emitter({ frame: 'soft', curl: 40, drag: 0.8, max: 80 }) }),
+  tick(k, dt, { mist, snow, glint, drips, steam }) {
+    const s = k.f.type.scale;
+    mist.rate('mist', 10 * (1 - k.heat * 0.6), dt, () => {
+      mist.emit(CX + pm() * 210, 250 + R() * 30, { vx: pm() * 40, vy: 20 + R() * 20, life: 2.2 + R(), r0: 14 * s, r1: 60 * s, a: 0.32, tint: R() < 0.6 ? 0xe8f6ff : 0xbfe0f8, fade: 0.25, grav: 10 });
+    });
+    snow.rate('snow', 6 * (1 - k.heat * 0.7), dt, () => {
+      const a = R() * Math.PI * 2;
+      snow.emit(CX + Math.cos(a) * 150, 140 + Math.sin(a) * 130, { vx: -Math.sin(a) * 50, vy: Math.cos(a) * 30 + 10, life: 2, r0: 3.4 * s, r1: 2.6 * s, a: 0.9, tint: 0xffffff, spin: 3, fade: 0.2 });
+    });
+    glint.rate('ice', 1.6, dt, () => {
+      glint.emit(CX + pm() * 190, 30 + R() * 230, { life: 0.4, r0: 2, r1: 18 * s, a: 0.9, tint: 0xe8f8ff, fade: 0.4 });
+    });
+    if (k.heat > 0.08) {
+      drips.rate('melt', 10 * k.heat, dt, () => {
+        drips.emit(CX - 84 + Math.floor(R() * 9) * 21.5, 270, { vy: 20, life: 0.9, r0: 4 * s, r1: 3 * s, a: 0.85, tint: 0xbfe6ff, grav: 900, fade: 0.02 });
+      });
+      steam.rate('steam', 12 * k.heat, dt, () => {
+        steam.emit(CX + pm() * 200, 60 + R() * 160, { vx: pm() * 30, vy: -50 - R() * 40, life: 1.4 + R() * 0.6, r0: 10 * s, r1: 44 * s, a: 0.35 * k.heat, tint: 0xf4f8ff, fade: 0.2, grav: -20 });
+      });
+    }
+  },
+});
+
+// Surtr: flames lick up off the crown, embers stream up, lava drips off the sole and splashes when he lands;
+// overheated, the fire roars and throws sparks.
+registerLive('surtr', {
+  glow: { rate: 0.7, depth: 0.4, base: 0.6 },
+  heat: {},
+  rig: { breath: 1.2 },
+  setup: (k) => ({ fire: k.emitter({ frame: 'soft', add: true, curl: 60, drag: 0.8, max: 160 }), embers: k.emitter({ frame: 'ember', add: true, curl: 40, drag: 0.5, max: 80 }), lava: k.emitter({ frame: 'drop', add: true, drag: 0.15, max: 40 }), smoke: k.emitter({ frame: 'puff', curl: 40, drag: 0.8, below: true, max: 60 }) }),
+  tick(k, dt, { fire, embers, lava, smoke }) {
+    const s = k.f.type.scale;
+    const roar = 1 + k.heat * 1.5;
+    fire.rate('crown', 30 * roar, dt, () => {
+      const f = SURTR_FLAMES[Math.floor(R() * SURTR_FLAMES.length)];
+      fire.emit(f.x + pm() * 10, 56 - f.h * 0.5, { vx: pm() * 30, vy: -120 - R() * 100, life: 0.4 + R() * 0.25, r0: 18 * s, r1: 4 * s, a: 0.7, tint: R() < 0.4 ? 0xffd27a : R() < 0.75 ? 0xff8a1a : 0xff4a0a, fade: 0.08 });
+    });
+    embers.rate('embers', 8 * roar, dt, () => {
+      embers.emit(CX + pm() * 200, 40 + R() * 220, { vx: pm() * 50, vy: -80 - R() * 100, life: 1 + R() * 0.8, r0: 3 * s, r1: 1 * s, a: 1, tint: R() < 0.5 ? 0xffc060 : 0xff7a2a, grav: -40, fade: 0.05 });
+    });
+    smoke.rate('smoke', 3 * roar, dt, () => {
+      smoke.emit(CX + pm() * 120, 10, { vx: pm() * 20, vy: -50 - R() * 30, life: 1.8 + R(), r0: 14 * s, r1: 50 * s, a: 0.3, tint: R() < 0.5 ? 0x3a2a26 : 0x5a4a44, fade: 0.2, grav: -20 });
+    });
+    lava.rate('drip', 1.4, dt, () => {
+      lava.emit(CX + pm() * 180, 272, { vy: 20, life: 0.8, r0: 6 * s, r1: 4 * s, a: 1, tint: R() < 0.5 ? 0xff8a1a : 0xffc04a, grav: 900, fade: 0.02 });
+    });
+    if (k.landed)
+      for (let i = 0, n = k.burst(16); i < n; i++) lava.emit(CX + pm() * 200, 270, { vx: pm() * 420, vy: -120 - R() * 260, life: 0.6, r0: 6 * s, r1: 3 * s, a: 1, tint: R() < 0.5 ? 0xff8a1a : 0xffd27a, grav: 900, fade: 0.02 });
+  },
+});
+
+// Fenrir's Paw: the shaggy locks stir, Gleipnir's runes pulse and spark, frost breath curls off it, snow flies when
+// it lands; overheated, the runes burn red and the fur steams.
+registerLive('fenrir', {
+  wiggle: true,
+  sway: { lock0: { k: 40, c: 4, gain: 1.1, idle: 0.08 }, lock1: { k: 36, c: 4, gain: 1.2, idle: 0.08 }, lock2: { k: 40, c: 4, gain: 1.1, idle: 0.08 }, lock3: { k: 36, c: 4, gain: 1.2, idle: 0.08 } },
+  glow: { rate: 0.9, depth: 0.5, base: 0.4 },
+  heat: {},
+  rig: { swing: 1.2, squash: 1.2 },
+  setup: (k) => ({ sparks: k.emitter({ frame: 'spark', add: true, drag: 0.4, max: 30 }), mist: k.emitter({ frame: 'soft', curl: 30, drag: 0.8, below: true, max: 80 }), dust: k.emitter({ frame: 'puff', curl: 20, drag: 1.4, below: true, max: 40 }), steam: k.emitter({ frame: 'soft', curl: 40, drag: 0.8, max: 80 }), embers: k.emitter({ frame: 'ember', add: true, drag: 0.5, max: 40 }) }),
+  tick(k, dt, { sparks, mist, dust, steam, embers }) {
+    const s = k.f.type.scale;
+    sparks.rate('rune', 1.4, dt, () => {
+      sparks.emit(FEN_RUNES[Math.floor(R() * FEN_RUNES.length)], 44, { vx: pm() * 60, vy: -30 - R() * 40, life: 0.35, r0: 2, r1: 10 * s, a: 1, tint: k.heat > 0.5 ? 0xff6a4a : 0x8af0ff, fade: 0.3 });
+    });
+    mist.rate('breath', 4, dt, () => {
+      mist.emit(CX + pm() * 200, 250 + R() * 30, { vx: pm() * 30, vy: 10 + R() * 10, life: 2 + R(), r0: 12 * s, r1: 46 * s, a: 0.22, tint: 0xe0ecff, fade: 0.25 });
+    });
+    landDust(k, dust, 0xf0f6ff, 14, 286, 0.6);
+    overheat(k, steam, embers, dt, [[CX - 80, 100], [CX + 80, 100], [CX, 40]]);
+  },
+});
+
+// Jörmungandr: the eyes blink and the tongue flicks (its portrait and peel); in the fight the head is drawn by the
+// arena, so nothing is emitted while the foot itself is hidden.
+registerLive('jormungandr', {
+  blink: { eyes: { every: 3.5 } },
+  twitch: { tongue: { every: 1.6 } },
+  heat: {},
+  setup: (k) => ({ bubbles: k.emitter({ frame: 'bubble', drag: 0.4, max: 20 }), steam: k.emitter({ frame: 'soft', curl: 40, drag: 0.8, max: 60 }), embers: k.emitter({ frame: 'ember', add: true, drag: 0.5, max: 30 }) }),
+  tick(k, dt, { bubbles, steam, embers }) {
+    const v = shown(k);
+    if (v < 0.2) return;
+    const s = k.f.type.scale;
+    bubbles.rate('hiss', 1, dt, () => {
+      bubbles.emit(SERP_TONGUE[0] + pm() * 60, SERP_TONGUE[1] - 10, { vx: pm() * 20, vy: -20, life: 1, r0: 3 * s, r1: 6 * s, a: 0.7 * v, tint: 0xc8ffe0, fade: 0.2 });
+    });
+    overheat(k, steam, embers, dt, [[CX - 60, 160], [CX + 60, 160], [CX, 60]]);
   },
 });
