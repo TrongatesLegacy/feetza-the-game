@@ -1233,12 +1233,12 @@ const yetiSole: PathFn = (c) => {
 
 const yetiSki: PathFn = (c) => {
   c.beginPath();
-  c.moveTo(CX - 134, 282);
-  c.quadraticCurveTo(CX - 146, 282, CX - 148, 290);
-  c.quadraticCurveTo(CX - 146, 298, CX - 134, 298);
-  c.lineTo(CX + 138, 298);
-  c.quadraticCurveTo(CX + 150, 298, CX + 150, 290);
-  c.quadraticCurveTo(CX + 150, 282, CX + 138, 282);
+  c.moveTo(CX - 120, 282);
+  c.quadraticCurveTo(CX - 132, 282, CX - 134, 290);
+  c.quadraticCurveTo(CX - 132, 298, CX - 120, 298);
+  c.lineTo(CX + 124, 298);
+  c.quadraticCurveTo(CX + 136, 298, CX + 136, 290);
+  c.quadraticCurveTo(CX + 136, 282, CX + 124, 282);
   c.closePath();
 };
 

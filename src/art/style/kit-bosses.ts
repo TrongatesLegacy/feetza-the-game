@@ -86,16 +86,19 @@ export function heatLayer(sil: Sil, box: Box, o: HeatOpts): void {
   const hot = o.hot ?? '#ffc050';
   const mid = o.mid ?? '#ff6a1a';
   const deep = o.deep ?? '#b01a08';
+  // heat rises from the sole: hottest at the bottom, fading out well below the top, so the foot keeps its form
   g.fillStyle = lin(g, 0, y0, 0, y1, [
-    [0, rgba(hot, 0.78 * a)],
-    [0.16, rgba(mid, 0.62 * a)],
-    [0.45, rgba(deep, 0.4 * a)],
-    [0.8, rgba(deep, 0.14 * a)],
+    [0, rgba(hot, 0.72 * a)],
+    [0.12, rgba(mid, 0.5 * a)],
+    [0.35, rgba(deep, 0.26 * a)],
+    [0.65, rgba(deep, 0.08 * a)],
     [1, rgba(deep, 0)],
   ]);
   g.fillRect(box.x, box.y, box.w, box.h);
-  blotches(g, box, '#000000', o.patch ?? 0.6, 26, 0.42, 0.3, o.seed, 'destination-out');
-  sil.edge(rgba(mix(mid, hot, 0.4), 0.85 * a), 9, 0, 0);
+  // patchy like real heat: a fine mottle (big patches read as shapes, not heat)
+  blotches(g, box, '#000000', o.patch ?? 0.55, 11, 0.45, 0.22, o.seed, 'destination-out');
+  // the edges glow hottest: a hot rim just inside the silhouette, all the way round
+  sil.edge(rgba(mix(mid, hot, 0.4), 0.9 * a), 7, 0, 0);
   glowFinish(sil);
 }
 
