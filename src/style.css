@@ -4108,6 +4108,14 @@ body.reduced-motion *::after {
   }
 }
 
+/* animated peels off (Settings → Graphics): the shiny sheen holds still, a band of light across the middle */
+body.still-peels .peel-tile.shiny::after,
+body.still-peels .peel-big.shiny::after,
+body.still-peels .peelbox .pk-img.shiny::after {
+  animation: none;
+  transform: translateX(-12%);
+}
+
 .shiny-chip {
   background: linear-gradient(90deg, #ffe0f0, #fff6c0, #d8f6ff) !important;
 }

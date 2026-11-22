@@ -1236,22 +1236,24 @@ export const FOOT_FRAME = { padX: PAD_X, padY: PAD_Y, w: DESIGN_W, h: DESIGN_H }
 
 /**
  * A styled foot (src/art/style) drawn at a pose, or one of its layers, in its texture's frame. With `band`, only
- * the design rows y0…y1 are drawn (rig frames): the canvas then starts at design y0.
+ * the design rows y0…y1 are drawn (rig frames): the canvas then starts at design y0. `widen` (design units) adds room
+ * either side, for art that reaches past the frame (a peel shows the whole foot): the canvas then starts at −padX − widen.
  */
-export function styledCanvas(type: FootType, p: Pose, o: DrawOpts, band?: { y0: number; y1: number }): HTMLCanvasElement {
+export function styledCanvas(type: FootType, p: Pose, o: DrawOpts, band?: { y0: number; y1: number }, scale?: number, widen = 0): HTMLCanvasElement {
   const st = styleFor(type.id)!;
-  const s = type.scale * footRes(type);
+  // (texels per design unit: the foot's own, or another for art drawn at another size, like an animated peel's)
+  const s = scale ?? type.scale * footRes(type);
   const y0 = band ? band.y0 : -PAD_Y;
   const h = band ? band.y1 - band.y0 : DESIGN_H;
-  const [c, ctx] = makeCanvas(DESIGN_W * s, h * s);
+  const [c, ctx] = makeCanvas((DESIGN_W + widen * 2) * s, h * s);
   ctx.scale(s, s);
-  ctx.translate(PAD_X, -y0);
+  ctx.translate(PAD_X + widen, -y0);
   st.draw(ctx, type.art, p, o);
   // hand the canvas back in plain texture pixels (callers cut and fade it)
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   // (the leg as drawn, with any registerLeg override, so play fades the same as the still art)
   const leg = st.leg ? resolvedLeg(type, st.leg).spec : undefined;
-  if (!band && leg?.join === 'blend') fadeFootTop(c, s, PAD_Y, leg.fade ?? 22, CX + PAD_X, leg.fadeSpan ?? leg.hw);
+  if (!band && leg?.join === 'blend') fadeFootTop(c, s, PAD_Y, leg.fade ?? 22, CX + PAD_X + widen, leg.fadeSpan ?? leg.hw);
   return c;
 }
 

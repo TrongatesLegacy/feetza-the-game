@@ -830,8 +830,9 @@ export function paintMoving(core: LookCore, calm: () => boolean, motion: Motion)
   };
 }
 
-/** Paint a look in the locker: the peel sits still at the origin of its own frame. */
-export function paintCore(core: LookCore, calm: () => boolean): Painter {
+/** Paint a look in the locker: the peel sits still at the origin of its own frame. Without `loose`, what flies
+ *  free of the peel (particles, smack rings) is left out: a still painted once keeps only what belongs on the peel. */
+export function paintCore(core: LookCore, calm: () => boolean, loose = true): Painter {
   const f: Frame = { x: 0, y: 0, rot: 0, s: 1, vx: 0, vy: 0, moved: 0, calm: false, menu: true, t: 0 };
   return (p, dt) => {
     f.calm = calm();
@@ -839,6 +840,6 @@ export function paintCore(core: LookCore, calm: () => boolean): Painter {
     core.tick(dt, f);
     if (p.back) core.back(p.back, f);
     core.front(p.front, f);
-    core.over(p.front, f, dt);
+    if (loose) core.over(p.front, f, dt);
   };
 }

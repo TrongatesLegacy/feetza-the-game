@@ -1575,6 +1575,7 @@ class UI {
           ...(['low', 'medium', 'high'] as const).map((p) =>
             btn(p.toUpperCase(), `small ${cur === p ? 'active' : 'cream'}`, () => {
               applyPreset(p);
+              applyA11y();
               audio.sfx('sfx_click');
               render();
             }),
@@ -1587,7 +1588,7 @@ class UI {
           h('div', { class: 'hint' }, 'Low: everything still. Medium: animated feet only. High: everything animated. Lower settings run smoother on older phones and laptops.'),
           h('div', { class: 'section-title' }, 'ANIMATION'),
           h('div', { class: 'toggles' }, toggle('animFeet', 'Animated feet'), toggle('animBackdrops', 'Animated stages'), toggle('animPeels', 'Animated peels')),
-          h('div', { class: 'hint' }, 'Animated feet: still feet show their full art and only move as a whole. Changes apply to feet that arrive after the change.'),
+          h('div', { class: 'hint' }, 'Animated feet: still feet show their full art and only move as a whole. Changes apply to feet that arrive after the change. Animated peels: foot peels come alive and looks glow, burn and spark; off, each peel keeps a still of its look.'),
         );
       } else if (tab === 'controls')
         body.replaceChildren(

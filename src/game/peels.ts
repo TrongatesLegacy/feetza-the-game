@@ -13,6 +13,10 @@ import type Phaser from 'phaser';
 import { BACKDROPS, type LocationId } from '../art/backdrops';
 import { drawPeelSkin, handleFrom, headFrom, PEEL_H, PEEL_W, type PeelLook, type PeelPattern, type PeelShape } from '../art/peelArt';
 import { hashStr, makeCanvas, shade } from '../art/util';
+import { FOOT_FRAME, styledCanvas } from '../art/feetArt';
+import { REST, pose } from '../art/style/kit';
+import { styleFor } from '../art/style/registry';
+import { liveDefOf } from './liveKit';
 import { FEET, FOOT_BY_ID, type FootType } from '../data/feet';
 import { ACTS, STAGES, WAVES_PER_ACT } from '../data/stages';
 import { persist, save } from '../systems/save';
@@ -103,14 +107,29 @@ const UPRIGHT = new Set(['jukebox', 'riot', 'ketchup', 'chimney', 'rover', 'milk
 const FOOT_PATTERNS: PeelPattern[] = ['spots', 'stripes', 'waves', 'checker', 'stars', 'bubbles', 'bolts', 'grain'];
 const BOSS_PATTERNS: PeelPattern[] = ['flames', 'bolts', 'scales', 'marble', 'stars'];
 
-const trimCache = new Map<string, HTMLCanvasElement>();
+/** A foot's texture cut to its visible pixels, and where the cut starts (texels from the play texture's left and top
+ * edges; negative past them): the animated peels place their layers by it (src/art/peelLive.ts). */
+export interface FootCrop {
+  art: HTMLCanvasElement;
+  x: number;
+  y: number;
+}
+const trimCache = new Map<string, FootCrop>();
+/** Room (design units) either side a redrawn foot's peel art is drawn with. */
+const WIDEN = 60;
 
 /** The foot texture cropped to its visible pixels, so the emblem fills its disc. */
-function footEmblem(id: string): CanvasImageSource | null {
-  const src = footMeta[id]?.textures.foot;
-  if (!src) return null;
+export function footCrop(id: string): FootCrop | null {
+  const meta = footMeta[id];
+  if (!meta?.textures.foot) return null;
   let out = trimCache.get(id);
   if (out) return out;
+  // a redrawn foot is drawn again with room either side: parts that reach past the play texture's frame (a bunny
+  // slipper's ears) would be cut square there
+  const type = FOOT_BY_ID[id];
+  const styled = !!type && !!styleFor(id);
+  const widen = styled ? WIDEN * type.scale * meta.textures.res : 0;
+  const src = styled ? styledStill(type, meta.textures.res) : meta.textures.foot;
   const ctx = src.getContext('2d')!;
   const { width: w, height: h } = src;
   const data = ctx.getImageData(0, 0, w, h).data;
@@ -126,11 +145,65 @@ function footEmblem(id: string): CanvasImageSource | null {
         if (y < y0) y0 = y;
         if (y > y1) y1 = y;
       }
-  if (x1 <= x0 || y1 <= y0) return src;
-  const [c, cctx] = makeCanvas(x1 - x0 + 4, y1 - y0 + 4);
-  cctx.drawImage(src, x0 - 2, y0 - 2, c.width, c.height, 0, 0, c.width, c.height);
-  out = c;
+  if (x1 <= x0 || y1 <= y0) out = { art: src, x: -widen, y: 0 };
+  else {
+    const [c, cctx] = makeCanvas(x1 - x0 + 4, y1 - y0 + 4);
+    cctx.drawImage(src, x0 - 2, y0 - 2, c.width, c.height, 0, 0, c.width, c.height);
+    out = { art: c, x: x0 - 2 - widen, y: y0 - 2 };
+  }
   trimCache.set(id, out);
+  return out;
+}
+
+/** Hand-tuned: feet whose swinging parts grow from behind the body on a peel (a bunny slipper's ears: drawn over
+ * it, their flat roots show), in the still and the living peel alike. */
+export const PARTS_BEHIND = new Set(['bunny']);
+
+/** A redrawn foot's still for its peel, drawn with room either side (parts that reach past the play texture's frame
+ * would be cut square there). PARTS_BEHIND feet hang their swinging parts behind the body, as their living peel does. */
+function styledStill(type: FootType, res: number): HTMLCanvasElement {
+  const s = type.scale * res;
+  if (!PARTS_BEHIND.has(type.id)) return styledCanvas(type, REST, { live: false }, undefined, s, WIDEN);
+  const body = styledCanvas(type, REST, { live: true }, undefined, s, WIDEN);
+  const [c, ctx] = makeCanvas(body.width, body.height);
+  const parts = Object.values(styleFor(type.id)?.parts ?? {});
+  const at = () => ctx.setTransform(s, 0, 0, s, (FOOT_FRAME.padX + WIDEN) * s, FOOT_FRAME.padY * s);
+  for (const part of parts.filter((q) => q.pivot)) {
+    at();
+    part.draw(ctx, type.art, 0);
+  }
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.drawImage(body, 0, 0);
+  for (const part of parts.filter((q) => !q.pivot)) {
+    at();
+    part.draw(ctx, type.art, 0);
+  }
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  return c;
+}
+
+function footEmblem(id: string): CanvasImageSource | null {
+  return footCrop(id)?.art ?? null;
+}
+
+const glowCache = new Map<string, { art: HTMLCanvasElement; a: number } | null>();
+
+/** Feet drawn dark under an emissive layer (neon, magma, Hyperion): that layer, cut as the foot's peel art is, and
+ * how strongly a still foot shows it (the same steady glow a still foot keeps in play: src/game/liveKit.ts). */
+function footGlow(f: FootType): { art: HTMLCanvasElement; a: number } | null {
+  if (glowCache.has(f.id)) return glowCache.get(f.id)!;
+  const def = liveDefOf(f.id);
+  const crop = footCrop(f.id);
+  let out: { art: HTMLCanvasElement; a: number } | null = null;
+  if (def?.glow && crop && styleFor(f.id)) {
+    const s = f.scale * footMeta[f.id].textures.res;
+    const em = styledCanvas(f, pose({ heat: 0 }), { live: false, emissive: true }, undefined, s, WIDEN);
+    const [c, cx] = makeCanvas(crop.art.width, crop.art.height);
+    cx.drawImage(em, -(crop.x + WIDEN * s), -crop.y);
+    out = { art: c, a: Math.min(1, (def.glow.base ?? 0.55) + (def.glow.depth ?? 0.4) * 0.5) };
+  }
+  // (not before the foot's textures are made: asked too early, it would stay dark all session)
+  if (crop || !def?.glow) glowCache.set(f.id, out);
   return out;
 }
 
@@ -181,6 +254,7 @@ function footLook(f: FootType, shiny: boolean): PeelLook {
     pattern,
     patternColor: accent,
     footArt: footEmblem(f.id) as HTMLCanvasElement | null,
+    footGlow: footGlow(f),
     footUpright: UPRIGHT.has(f.id),
     studs: f.boss ? '#ffd23f' : f.mini ? '#d7dde6' : undefined,
     metal: !!a.gold || a.leg === 'armor',

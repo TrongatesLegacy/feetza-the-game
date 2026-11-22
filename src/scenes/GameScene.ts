@@ -24,7 +24,8 @@ import type { CounterSnap, RunSnapshot } from '../game/snapshot';
 import { audio, bossSfx, heroSfx } from '../systems/audio';
 import { setRunSmack } from '../game/smacks';
 import { pad } from '../systems/gamepad';
-import { markFootSeen, markToppingsSeen, nextLockedPizza, persist, save, updateSettings } from '../systems/save';
+import { markFootSeen, markToppingsSeen, nextLockedPizza, onSettingsChange, persist, save, updateSettings } from '../systems/save';
+import { peelsAnimated } from '../systems/graphics';
 import type { GoldenItem, RunSummary, ShopCard, ShopOffer, ShopPizza, ShopState, SlotSymbol, SlotsResult, YourTopping } from '../ui/shopTypes';
 import { ui, fmtTime } from '../ui/ui';
 import { PEELS, PEEL_BY_ID, abilityPeel, applyPeelLook, hasPeel, lookPeel, checkPeelAchievements, grantShinyFoot, peelCanvas, peelThumbURL, peelTrail, rollEventDrop, PEEL_HEATS, SHINY_FOOT_CHANCE, titleCase, type PeelDef } from '../game/peels';
@@ -127,6 +128,8 @@ export class GameScene extends Phaser.Scene implements Arena {
   private peelTrailColor: number | null = null;
   /** The worn look's live effect (Zeus's lightning), if it has one (src/art/animatedLooks.ts). */
   private lookFx: LookFx | null = null;
+  /** The peel whose look the cursor peel wears (its animation follows the graphics setting). */
+  private lookId = 'classic';
   private peelShiny = false;
   /** The peel this run is played with (prestige goals count it). */
   private peelId = 'classic';
@@ -523,9 +526,20 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.run.slamless = { slam: false, meter: !!this.ability && (t0 === 'always' || t0 === 'wave' || t0 === 'stomp'), tank: !!this.ability && !usesMeter(this.ability) && t0 !== 'every' };
     ui.hud.setSlamLabel(this.ability ? this.ability.name : null, this.ability ? abilityKindLabel(this.ability) : null);
     this.peel = this.add.image(W / 2, H / 2, 'peel').setOrigin(0.5, 100 / 360).setScale(0.62).setAngle(-28).setAlpha(0.95);
-    if (this.peelShiny) this.peel.preFX?.addShine(0.6, 0.4, 3.5);
+    if (this.peelShiny && peelsAnimated()) this.peel.preFX?.addShine(0.6, 0.4, 3.5);
     this.cursorLayer.add(this.peel);
     this.setLookFx(look.id);
+    // animated peels switched on or off (Settings → Graphics) mid-run: the cursor peel follows at once
+    let peelAnim = peelsAnimated();
+    const offSettings = onSettingsChange(() => {
+      if (peelsAnimated() === peelAnim || !this.peel?.active) return;
+      peelAnim = peelsAnimated();
+      this.peel.preFX?.clear();
+      if (this.peelShiny && peelAnim) this.peel.preFX?.addShine(0.6, 0.4, 3.5);
+      this.setLookFx(this.lookId);
+      this.lookFx?.setActive(this.peel.texture.key !== 'peel_shift');
+    });
+    this.events.once('shutdown', offSettings);
 
     if (!snap) {
       // meta perks at run start
@@ -960,7 +974,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.peelShiny = !!look.shiny;
     this.peel.setTexture('peel');
     this.peel.preFX?.clear();
-    if (this.peelShiny) this.peel.preFX?.addShine(0.6, 0.4, 3.5);
+    if (this.peelShiny && peelsAnimated()) this.peel.preFX?.addShine(0.6, 0.4, 3.5);
     this.setLookFx(look.id);
     // the hero passive (and its sounds) follow the new peel
     this.heroes.setPeel(id, peelTrail(def) ?? 0xffd23f);
@@ -3162,6 +3176,7 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   /** Start the worn look's live effect (or stop the last one). */
   private setLookFx(id: string): void {
+    this.lookId = id;
     this.lookFx?.destroy();
     this.lookFx = playLook(id, { scene: this, layer: this.cursorLayer, peel: this.peel, reduced: () => save.settings.reducedMotion });
   }

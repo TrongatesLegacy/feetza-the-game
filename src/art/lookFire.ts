@@ -243,8 +243,8 @@ class FireCore implements LookCore {
       this.bits.emit(e.kind, p.x, p.y, rand(-26, 26) * S - f.vx * 0.12, -rand(0.6, 1.2) * e.rise * S - f.vy * 0.12, e.size * S * rand(0.75, 1.2), e.life * rand(0.75, 1.25), e.c0, e.c1, -e.rise * 0.25 * S, 0.6);
     }
     const acc = this.extraAcc;
-    // molten drips off the underside
-    if (st.drips) {
+    // molten drips off the underside (in play: on a peel standing still in a menu they'd only run down its handle)
+    if (st.drips && !f.menu) {
       acc[0] += dt * st.drips * (1 + moving * 0.5);
       while (acc[0] >= 1) {
         acc[0] -= 1;
