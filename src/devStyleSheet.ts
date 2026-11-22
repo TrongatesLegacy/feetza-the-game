@@ -211,6 +211,8 @@ interface Entry {
   styled: boolean;
   bossy: boolean;
   card: HTMLElement;
+  /** What the card's buttons asked for (kept when the pair is dropped and made again). */
+  ctl: Ctl;
   /** Card box in the scroller's content (css px). */
   x: number;
   y: number;
@@ -219,10 +221,37 @@ interface Entry {
   pair?: Pair;
 }
 
+/** A card's controls: the move it plays (the whole cycle, or one move and then a rest) and its effects. */
+interface Ctl {
+  /** 'loop' runs the cycle; otherwise play [from, to) of it once, then rest: on the ground after a dive or stomp,
+   * hovering otherwise. */
+  move: 'loop' | 'once';
+  from: number;
+  to: number;
+  rest: 'hover' | 'ground';
+  fx: Set<string>;
+  /** Set by a button: something to do to the feet on the next frame. */
+  poke?: 'hit' | 'die' | 'escape';
+}
+
+const newCtl = (): Ctl => ({ move: 'loop', from: 0, to: 3.6, rest: 'hover', fx: new Set() });
+
+/** The cycle's moves (seconds into it). */
+const MOVES: Record<string, { from: number; to: number; rest: 'hover' | 'ground'; label: string }> = {
+  hover: { from: 0, to: 0, rest: 'hover', label: 'Hover' },
+  windup: { from: 1.15, to: 1.7, rest: 'hover', label: 'Wind-up' },
+  dive: { from: 1.15, to: 2.05, rest: 'ground', label: 'Dive' },
+  stomp: { from: 1.7, to: 2.55, rest: 'ground', label: 'Stomp' },
+  lift: { from: 2.55, to: 3.6, rest: 'hover', label: 'Lift' },
+};
+const EFFECTS: Record<string, string> = { stun: 'Stunned', frozen: 'Frozen', slow: 'Slowed', burn: 'Burning', elite: 'Elite', shiny: 'Shiny', heat: 'Overheat', aura: 'Aura' };
+
 interface Pair {
   old?: Foot;
   neu: Foot;
   t: number;
+  /** Resting (after a single move): seconds into the rest. */
+  restT?: number;
   layer: Phaser.GameObjects.Container;
   label: Phaser.GameObjects.Text;
   keys: string[];
@@ -268,6 +297,8 @@ class Showcase extends Phaser.Scene {
   create(): void {
     const sprites = buildSprites();
     if (!this.textures.exists('shadow')) this.textures.addCanvas('shadow', sprites.shadow);
+    // the stun stars
+    if (!this.textures.exists('star5')) this.textures.addCanvas('star5', sprites.star5);
     this.cameras.main.setZoom(dpr()).setOrigin(0, 0);
   }
 
@@ -284,18 +315,53 @@ class Showcase extends Phaser.Scene {
     let old: Foot | undefined;
     if (e.styled) {
       keys.push(...registerMeta(this, `classic_${e.id}`, type, true));
-      old = new Foot(this, layer, shadowL, { ...type, id: `classic_${e.id}` }, -off, { hpMult: 1, speedMult: 1, elite: false, hooks: HOOKS });
+      old = new Foot(this, layer, shadowL, { ...type, id: `classic_${e.id}` }, -off, { hpMult: 1, speedMult: 1, elite: e.ctl.fx.has('elite'), hooks: HOOKS });
     }
     keys.push(...registerMeta(this, e.id, type, false));
-    const neu = new Foot(this, layer, shadowL, type, e.styled ? off : 0, { hpMult: 1, speedMult: 1, elite: ELITE, hooks: HOOKS });
+    const neu = new Foot(this, layer, shadowL, type, e.styled ? off : 0, { hpMult: 1, speedMult: 1, elite: ELITE || e.ctl.fx.has('elite'), hooks: HOOKS });
     for (const f of [old, neu]) {
       if (!f) continue;
       f.puppet = true;
       f.setState('hover');
+      if (e.ctl.fx.has('shiny')) f.makeShiny();
+      if (e.ctl.fx.has('aura')) f.setPhaseAura(0xff2a2a);
       f.cropLeg(((e.y + 4 - layer.y) / k - f.root.y) / f.root.scaleY);
     }
     const label = this.add.text(e.x + e.w / 2, e.y + e.h - 30, e.styled ? 'old  ·  new' : 'unchanged', { fontFamily: 'Fredoka, system-ui, sans-serif', fontSize: '15px', color: '#ffe9c7' }).setOrigin(0.5, 0).setAlpha(0.55).setDepth(-e.y + 0.5);
-    e.pair = { old, neu, t: (e.y * 0.0013 + e.x * 0.002) % 3.6, layer, label, keys };
+    e.pair = { old, neu, t: e.ctl.move === 'loop' ? (e.y * 0.0013 + e.x * 0.002) % 3.6 : e.ctl.to, restT: e.ctl.move === 'loop' ? undefined : 0, layer, label, keys };
+  }
+
+  /** Keep the feet's statuses as the card's effect buttons say (long timers, refreshed every frame). */
+  private applyFx(f: Foot, fx: Set<string>): void {
+    const stun = fx.has('stun') || fx.has('frozen');
+    if (stun) {
+      if (f.stunT < 1) f.stun(60, fx.has('frozen'));
+    } else if (f.stunT > 0) f.stunT = 0.0001;
+    const slow = fx.has('slow') ? 60 : 0;
+    const burn = fx.has('burn') ? 60 : 0;
+    if ((slow > 0) !== (f.slowT > 0) || (burn > 0) !== (f.burnT > 0)) {
+      f.slowT = slow;
+      f.burnT = burn;
+      f.burnDps = 0;
+      f.clearTint();
+    }
+  }
+
+  /** A one-off from a button: a hit (flash and a flinch), a death or an escape (the pair is made again after). */
+  private pokeFeet(e: Entry, what: 'hit' | 'die' | 'escape'): void {
+    e.ctl.poke = undefined;
+    const p = e.pair;
+    if (!p) return;
+    for (const f of [p.old, p.neu]) {
+      if (!f || !f.alive) continue;
+      if (what === 'hit') {
+        f.flash(0xffffff, 90);
+        const sx = f.root.scaleX;
+        this.tweens.add({ targets: f.root, scaleY: { from: sx * 0.86, to: sx }, scaleX: { from: sx * 1.06, to: sx }, duration: 240, ease: 'Back.Out' });
+      } else if (what === 'die') f.die(f.isBossLike);
+      else f.escape();
+    }
+    if (what !== 'hit') this.time.delayedCall(e.type.boss ? 2400 : 1500, () => this.dropPair(e));
   }
 
   dropPair(e: Entry): void {
@@ -337,16 +403,26 @@ class Showcase extends Phaser.Scene {
       if (!p) continue;
       // off screen (but kept): don't animate, just keep the legs on their cards
       if (e.y > top + vh + 40 || e.y + e.h < top - 40) {
-        for (const f of [p.old, p.neu]) f?.cropLeg(((e.y + 4 - p.layer.y) / p.layer.scaleX - f.root.y) / f.root.scaleY);
+        for (const f of [p.old, p.neu]) if (f?.alive) f.cropLeg(((e.y + 4 - p.layer.y) / p.layer.scaleX - f.root.y) / f.root.scaleY);
         continue;
       }
-      p.t = (p.t + dt) % 3.6;
+      const c = e.ctl;
+      if (c.move === 'loop') p.t = (p.t + dt) % 3.6;
+      else if (p.restT === undefined) {
+        p.t += dt;
+        if (p.t >= c.to) p.restT = 0;
+      } else p.restT += dt;
+      const resting = c.move === 'once' && p.restT !== undefined;
       const k = p.layer.scaleX;
+      if (c.poke) this.pokeFeet(e, c.poke);
+      if (!e.pair) continue;
       for (const f of [p.old, p.neu]) {
-        if (!f) continue;
+        if (!f || !f.alive) continue;
+        this.applyFx(f, c.fx);
         const x0 = !p.old ? 0 : ((f === p.old ? -1 : 1) * e.w * 0.23) / k;
         // the cycle: hover (swaying), wind up, dive, stomp, lift
-        const t = p.t;
+        // resting: a slow hover sway (never long enough to wind up), or standing on the ground
+        const t = resting ? (c.rest === 'ground' ? 2.3 : (p.restT! % 1.1)) : p.t;
         const sy = 92 / k;
         let y = 0;
         let st: Foot['state'] = 'hover';
@@ -371,9 +447,12 @@ class Showcase extends Phaser.Scene {
         }
         if (f.state !== st) f.setState(st);
         else f.stateT = st === 'hover' ? t : f.stateT + dt;
+        if (resting && c.rest === 'hover') f.x = x0 + (Math.sin(p.restT! * 2.1) * 14 * e.w) / CARD_W / k;
         f.y = y;
         f.vy = vy;
-        f.phase = this.heat && f.isBossLike ? 3 : 1;
+        const hot = this.heat || c.fx.has('heat');
+        f.phase = hot && f.isBossLike ? 3 : 1;
+        f.enraged = hot && !f.isBossLike;
         f.update(dt, 1);
         if (IMMORTAL_LIVE[f.type.id]) IMMORTAL_LIVE[f.type.id](f, dt);
         else styleLive(f, dt);
@@ -382,6 +461,46 @@ class Showcase extends Phaser.Scene {
       }
     }
   }
+}
+
+/** A card's buttons: its moves (play one, or loop them all) and effects (toggles). */
+function controls(e: Entry, scene: () => Showcase | undefined): HTMLElement {
+  const box = document.createElement('div');
+  box.className = 'ss-ctl';
+  const chip = (label: string, data: string, on = false) => `<button class="${on ? 'on' : ''}" data-${data}>${label}</button>`;
+  box.innerHTML =
+    `<div>${chip('↻ Loop', 'loop', true)}${Object.entries(MOVES).map(([k, m]) => chip(m.label, `mv="${k}"`)).join('')}${chip('Hit', 'poke="hit"')}${chip('Die', 'poke="die"')}${chip('Escape', 'poke="escape"')}</div>` +
+    `<div>${Object.entries(EFFECTS).map(([k, l]) => chip(l, `fx="${k}"`)).join('')}</div>`;
+  const moveBtns = () => box.querySelectorAll<HTMLElement>('[data-loop],[data-mv]');
+  box.addEventListener('click', (ev) => {
+    const b = (ev.target as HTMLElement).closest('button');
+    if (!b) return;
+    const c = e.ctl;
+    const p = e.pair;
+    if (b.dataset.loop !== undefined) {
+      c.move = 'loop';
+      if (p) p.restT = undefined;
+      moveBtns().forEach((x) => x.classList.toggle('on', x === b));
+    } else if (b.dataset.mv) {
+      const m = MOVES[b.dataset.mv];
+      Object.assign(c, { move: 'once', from: m.from, to: m.to, rest: m.rest });
+      if (p) {
+        p.t = m.from;
+        p.restT = m.to <= m.from ? 0 : undefined;
+      }
+      moveBtns().forEach((x) => x.classList.toggle('on', x === b));
+    } else if (b.dataset.poke) c.poke = b.dataset.poke as Ctl['poke'];
+    else if (b.dataset.fx) {
+      const k = b.dataset.fx;
+      const on = !c.fx.has(k);
+      if (on) c.fx.add(k);
+      else c.fx.delete(k);
+      b.classList.toggle('on', on);
+      // elite, shiny and the aura are set when a foot is made (shiny can't be taken off): make the pair again
+      if (['elite', 'shiny', 'aura'].includes(k)) scene()?.dropPair(e);
+    }
+  });
+  return box;
 }
 
 const dpr = () => Math.min(2, window.devicePixelRatio || 1);
@@ -422,6 +541,10 @@ const SHEET_CSS = `
 .ss-fc .nm{position:absolute;left:8px;top:6px;max-width:calc(100% - 16px);z-index:3;color:#ffe9c7;font:600 14px Fredoka,system-ui,sans-serif;background:#1d1422cc;border-radius:7px;padding:2px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ss-fc .tg{position:absolute;right:8px;bottom:8px;z-index:3;font:600 11px Fredoka,system-ui,sans-serif;color:#1d1422;background:#ffcf6a;border-radius:6px;padding:1px 6px}
 .ss-fc .tg.un{background:#9fd8ff}
+.ss-ctl{display:flex;flex-direction:column;gap:3px;margin-top:5px}
+.ss-ctl div{display:flex;flex-wrap:wrap;gap:3px}
+.ss-ctl button{background:#5a3a28;color:#ffe9c7;border:0;border-radius:6px;padding:2px 7px;font:600 11px Fredoka,system-ui,sans-serif;cursor:pointer}
+.ss-ctl button:hover{background:#7a4a30}.ss-ctl button.on{background:#ff8a1a;color:#1d1422}
 .ss-wrap.bossonly .ss-feet{display:none}
 `;
 
@@ -454,7 +577,7 @@ export function installStyleSheet(): void {
     wrap.innerHTML = `<div class="ss-head"><h2>🦶 Feet: before and after</h2><span>${all.length} feet · ${all.length - nBoss - nMini} regular · ${nBoss} bosses · ${nMini} mini-bosses · ${nStyled} redrawn · ${all.length - nStyled} unchanged · textures ${footRes(FOOT_BY_ID.bob)}× (old 1.35×)</span><span class="sp"></span><button class="ss-btn alt" data-bosses>👑 Bosses only</button><button class="ss-btn" data-heat>🔥 Overheat bosses</button><button class="ss-btn alt" data-x>✕ Close</button></div>
       <div class="ss-jump">${acts.map((a) => `<button data-act="${a}">Act ${a}</button>`).join('')}<button data-act="rules">Rules &amp; materials</button><button data-act="thumbs">Peels &amp; portraits</button></div>
       <div class="ss-scroll"><div class="ss-body">
-        <p>Every foot, boss and mini-boss in the game: its old art on the left, the redrawn one on the right, both the real Foot and live kit, puppeted through a hover (swaying), the wind-up, the dive, the stomp and the lift. Particles stay in the world, so a moving foot trails them. Only the cards on screen run.</p>
+        <p>Every foot, boss and mini-boss in the game: its old art on the left, the redrawn one on the right, both the real Foot and live kit, puppeted through a hover (swaying), the wind-up, the dive, the stomp and the lift. Particles stay in the world, so a moving foot trails them. Only the cards on screen run. The buttons under each card play one move at a time (or loop them), a hit, a death or an escape, and toggle its effects: stunned, frozen, slowed, burning, elite, shiny, overheat and a phase aura.</p>
         <div data-groups></div>
         <h3 data-sec="thumbs">Where the art shows outside play</h3><p>Peel thumbnails (the foot's own art, trimmed to fit the emblem), shiny peels, and the Pizzapedia portrait.</p>
         <div class="ss-row" data-thumbs></div>
@@ -494,8 +617,11 @@ export function installStyleSheet(): void {
           card.className = `ss-fc${g.bossy ? ' boss' : ''}`;
           card.innerHTML = `<div class="nm"></div>${styled ? '' : '<span class="tg un">unchanged</span>'}${t.boss ? '<span class="tg">boss</span>' : t.mini ? '<span class="tg">mini-boss</span>' : ''}`;
           card.querySelector('.nm')!.textContent = t.name;
-          grid.append(card);
-          entries.push({ id, type: t, styled, bossy: g.bossy, card, x: 0, y: 0, w: 0, h: 0 });
+          const cell = document.createElement('div');
+          const ent: Entry = { id, type: t, styled, bossy: g.bossy, card, ctl: newCtl(), x: 0, y: 0, w: 0, h: 0 };
+          cell.append(card, controls(ent, () => game?.scene.getScene('StyleShowcase') as Showcase | undefined));
+          grid.append(cell);
+          entries.push(ent);
         }
         sec.append(gh, grid);
         host.append(sec);
