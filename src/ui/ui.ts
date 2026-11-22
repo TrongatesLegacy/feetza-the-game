@@ -196,7 +196,7 @@ function slotsRow(sl: NonNullable<ShopState['slots']>, pull: () => void): HTMLEl
     const strip = sl.result?.fresh ? [...Array.from({ length: 10 + i * 4 }, () => syms[Math.floor(Math.random() * syms.length)]), end] : [end];
     return h('div', { class: 'reel' }, h('div', { class: `strip${sl.result?.fresh ? ' spin' : ''}`, style: `--n:${strip.length - 1};--d:${0.7 + i * 0.35}s` }, ...strip.map((x) => h('span', {}, SLOT_ICON[x]))));
   });
-  const label = sl.used ? (sl.result && !sl.result.fresh ? (sl.result.win ? 'WON!' : 'NO LUCK') : 'SPINNING…') : `PULL · ${fmt(sl.cost)}`;
+  const label = sl.used ? (!sl.result ? 'PULLED' : !sl.result.fresh ? (sl.result.win ? 'WON!' : 'NO LUCK') : 'SPINNING…') : `PULL · ${fmt(sl.cost)}`;
   const b = btn(label, `${sl.can ? 'green' : ''} small`, pull, { 'aria-label': sl.used ? 'Pizza Slots: already pulled this shop' : `Pull Pizza Slots for ${sl.cost} tips` });
   b.disabled = !sl.can;
   const note = sl.result && !sl.result.fresh ? (sl.result.win ? sl.result.prize : 'Back next shop') : '3 of a kind wins';
