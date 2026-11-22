@@ -6,6 +6,8 @@ import { H, W } from '../config';
 import { ensureBackdrop } from './assets';
 import '../content/live';
 import { type LiveScene, startLive } from './liveBackdrop';
+import { crand } from '../systems/cosmeticRandom';
+import { save } from '../systems/save';
 
 type Emitter = Phaser.GameObjects.Particles.ParticleEmitter;
 
@@ -27,6 +29,10 @@ export class BackdropView {
   private liveLayer: Phaser.GameObjects.Container;
   private live: LiveScene | null = null;
   private wave = 1;
+  /** The scenery's own quake (px of jitter), and a kick that decays on top of it. */
+  private quakeAmt = 0;
+  private quakeKick = 0;
+  private bgLayer: Phaser.GameObjects.Container;
 
   constructor(scene: Phaser.Scene, bgLayer: Phaser.GameObjects.Container, ambientLayer: Phaser.GameObjects.Container) {
     this.scene = scene;
@@ -36,6 +42,15 @@ export class BackdropView {
     this.liveLayer = scene.add.container(0, 0);
     bgLayer.add([this.bgA, this.bgB, this.glowLayer, this.liveLayer]);
     this.ambientLayer = ambientLayer;
+    this.bgLayer = bgLayer;
+  }
+
+  /** Shake the scenery itself, not the camera (the walls of Tartarus crumbling while Kronos pulls his chains):
+   * a steady jitter of `px` (0 stops it), and `kick` px more that dies away. Gentler with reduced motion. */
+  quake(px: number, kick = 0): void {
+    this.quakeAmt = Math.max(0, px);
+    this.quakeKick = Math.max(this.quakeKick, kick);
+    if (!this.quakeAmt && !this.quakeKick) this.bgLayer.setPosition(0, 0).setScale(1);
   }
 
   /** The wave within the stage (1–5): live layers change their weather and light with it. */
@@ -185,6 +200,14 @@ export class BackdropView {
 
   update(dt: number): void {
     this.t += dt;
+    if (this.quakeAmt > 0 || this.quakeKick > 0) {
+      this.quakeKick = Math.max(0, this.quakeKick - dt * 30);
+      const q = (this.quakeAmt + this.quakeKick) * (save.settings.reducedMotion ? 0.3 : 1);
+      // zoomed in just enough that the jitter never shows an edge
+      const s = 1 + (q * 2.4) / H;
+      this.bgLayer.setScale(s).setPosition((W / 2) * (1 - s) + (crand() - 0.5) * 2 * q, (H / 2) * (1 - s) + (crand() - 0.5) * 2 * q);
+      if (this.quakeAmt <= 0 && this.quakeKick <= 0) this.bgLayer.setPosition(0, 0).setScale(1);
+    }
     this.live?.update(dt);
     for (const g of this.glows) {
       const n = Math.sin(this.t * 7.3 + g.seed) * 0.5 + Math.sin(this.t * 13.1 + g.seed * 2) * 0.3 + Math.sin(this.t * 2.1 + g.seed) * 0.2;
