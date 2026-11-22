@@ -29,21 +29,25 @@ import { save } from '../systems/save';
 import { ART_RES } from './assets';
 import type { Foot } from './Foot';
 
-const DARK = 0x060509;
-const CURL = 0x464052;
-const RED = 0x780e12;
+// tints for the rimmed puff (its core is 12% grey): black smoke with a grey edge, lighter curls, a red wisp
+const DARK = 0x3a3642;
+const CURL = 0x9a90aa;
+const RED = 0xe0202a;
 /** The particle texture's radius in px. */
 const PR = 32;
 
 // ——— textures ———
 
 function smokeTexture(sc: Phaser.Scene): string {
-  const key = 'live_smoke';
+  const key = 'live_smoke_rim';
   if (sc.textures.exists(key)) return key;
   const [c, x] = makeCanvas(PR * 2, PR * 2);
+  // a near-black puff with a soft lighter rim baked in: tinted grey, its core is black and its edge a faint grey,
+  // so the smoke still reads against a dark night sky
   const g = x.createRadialGradient(PR, PR, 0, PR, PR, PR);
-  g.addColorStop(0, 'rgba(255,255,255,1)');
-  g.addColorStop(0.6, 'rgba(255,255,255,.5)');
+  g.addColorStop(0, 'rgba(30,30,30,1)');
+  g.addColorStop(0.5, 'rgba(40,40,40,.7)');
+  g.addColorStop(0.78, 'rgba(255,255,255,.32)');
   g.addColorStop(1, 'rgba(255,255,255,0)');
   x.fillStyle = g;
   x.fillRect(0, 0, PR * 2, PR * 2);

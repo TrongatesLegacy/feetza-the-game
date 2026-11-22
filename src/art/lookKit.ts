@@ -5,6 +5,7 @@
 // head radius HEAD_R, the handle running down +y. Nothing here allocates per frame: pools and typed arrays.
 
 import Phaser from 'phaser';
+import { crand } from '../systems/cosmeticRandom';
 
 /** The head's radius in the peel's frame (src/art/peelArt.ts). */
 export const HEAD_R = 86;
@@ -89,7 +90,7 @@ export function toWorld(f: Frame, lx: number, ly: number): { x: number; y: numbe
 }
 /** "Up" on screen, as an angle in the peel's turned frame (flames lick up whichever way it leans). */
 export const upAngle = (f: Frame): number => -Math.PI / 2 - f.rot;
-export const rand = (a: number, b: number): number => a + Math.random() * (b - a);
+export const rand = (a: number, b: number): number => a + crand() * (b - a);
 
 // ——— particles ———
 
@@ -180,9 +181,9 @@ export class Bits {
     this.c1[i] = c1;
     this.grav[i] = grav;
     this.drag[i] = drag;
-    this.rot[i] = Math.random() * Math.PI * 2;
-    this.spin[i] = (Math.random() * 2 - 1) * 4;
-    this.seed[i] = Math.random() * 100;
+    this.rot[i] = crand() * Math.PI * 2;
+    this.spin[i] = (crand() * 2 - 1) * 4;
+    this.seed[i] = crand() * 100;
     return i;
   }
 

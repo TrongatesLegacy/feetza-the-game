@@ -115,6 +115,7 @@ export function installDevTools(game: Phaser.Game): void {
     /** The balance simulator: one whole run as fast as the CPU allows (see src/devSim.ts, scripts/sim/run.mjs). */
     sim: {
       run: async (o: import('./devSim').SimOpts) => (await import('./devSim')).simRun(game, o, (opts) => api.startGame(opts)),
+      ready: async () => (await import('./devSim')).simReady(),
     },
     startGame(opts?: string[] | Record<string, any>): void { // eslint-disable-line @typescript-eslint/no-explicit-any
       const o = Array.isArray(opts) ? { lineup: opts } : (opts ?? {});

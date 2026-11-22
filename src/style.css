@@ -5957,3 +5957,13 @@ body.reduced-motion *::after {
   opacity: 0.75;
   vertical-align: 0.12em;
 }
+/* the sign: no bulbs, a soft gold glow round its edge that brightens while the reels spin and flashes on a win */
+.offer.slots .marquee {
+  box-shadow: inset 0 0 0 0.1em #ffd23f, 0 0 0.35em rgba(255, 210, 63, 0.45);
+  transition: box-shadow 0.3s ease;
+}
+.offer.slots.spinning .marquee { box-shadow: inset 0 0 0 0.1em #ffe68a, 0 0 0.8em rgba(255, 210, 63, 0.85); }
+.offer.slots.won .marquee { animation: slots-sign 0.35s ease-in-out 4 alternate; }
+@keyframes slots-sign {
+  to { box-shadow: inset 0 0 0 0.1em #e8ffb8, 0 0 1.1em rgba(184, 255, 122, 0.95); }
+}

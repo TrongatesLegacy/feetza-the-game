@@ -5,6 +5,7 @@
 // glows green; the Ha-Ha Funhouse's bulbs chase and its eyes flicker under the same storm.
 
 import Phaser from 'phaser';
+import { crand } from '../../systems/cosmeticRandom';
 import { makeCanvas } from '../../art/util';
 import { type LiveCtx, type LiveScene, registerLive } from '../../game/liveBackdrop';
 import { audio } from '../../systems/audio';
@@ -52,7 +53,7 @@ const boltTex = (sc: Phaser.Scene, n: number) =>
     let x = 110;
     const pts: [number, number][] = [[x, 0]];
     for (let y = 40; y <= 520; y += 40) {
-      x += (Math.sin(y * 0.07 + n * 3) + (Math.random() - 0.5)) * 34;
+      x += (Math.sin(y * 0.07 + n * 3) + (crand() - 0.5)) * 34;
       pts.push([Math.max(20, Math.min(200, x)), y]);
     }
     for (const [lw, col] of [[16, 'rgba(170,190,255,0.35)'], [7, 'rgba(220,230,255,0.9)'], [3, '#ffffff']] as const) {
@@ -132,13 +133,13 @@ class Kit {
 
 /** A strike across the sky: a bolt, a white flash over the scene, and thunder a moment later. */
 function strike(k: Kit, flash: Phaser.GameObjects.Rectangle, a: number, x0 = 160, x1 = 1760): void {
-  const im = k.img(boltTex(k.sc, Math.floor(Math.random() * 3)), x0 + Math.random() * (x1 - x0), 0, { add: true, origin: [0.5, 0], sx: 0.7 + Math.random() * 0.5 });
-  if (Math.random() < 0.5) im.setFlipX(true);
+  const im = k.img(boltTex(k.sc, Math.floor(crand() * 3)), x0 + crand() * (x1 - x0), 0, { add: true, origin: [0.5, 0], sx: 0.7 + crand() * 0.5 });
+  if (crand() < 0.5) im.setFlipX(true);
   k.sc.tweens.add({ targets: im, alpha: { from: 1, to: 0 }, duration: 420, ease: 'Quad.In', onComplete: () => im.destroy() });
   flash.setAlpha(reduced() ? a * 0.3 : a);
   k.sc.tweens.add({ targets: flash, alpha: 0, duration: 460, ease: 'Quad.Out' });
   k.later(130, () => flash.active && flash.setAlpha(Math.max(flash.alpha, a * 0.45)));
-  k.later(250 + Math.random() * 600, () => audio.sfx('sfx_thunder', { volume: 0.35 + a, throttle: 800 }));
+  k.later(250 + crand() * 600, () => audio.sfx('sfx_thunder', { volume: 0.35 + a, throttle: 800 }));
 }
 
 function rainEmitter(k: Kit, freq: number, wind: number): Emitter {
@@ -207,11 +208,11 @@ registerLive('gotham', (ctx: LiveCtx): LiveScene => {
   rains[Math.max(0, Math.min(3, w0 - 1))].fastForward(1200);
   const bats = () => {
     // a little flock across the moon
-    const n = 4 + Math.floor(Math.random() * 4);
+    const n = 4 + Math.floor(crand() * 4);
     for (let j = 0; j < n; j++) {
-      const im = k.img('livegt_bat_u', 1100 + Math.random() * 120, 150 + Math.random() * 80, { sx: 0.5 + Math.random() * 0.4 });
-      const vx = -(220 + Math.random() * 120);
-      const vy = -10 + Math.random() * 30;
+      const im = k.img('livegt_bat_u', 1100 + crand() * 120, 150 + crand() * 80, { sx: 0.5 + crand() * 0.4 });
+      const vx = -(220 + crand() * 120);
+      const vy = -10 + crand() * 30;
       let t = 0;
       const ev = k.sc.time.addEvent({
         delay: 16,
@@ -250,20 +251,20 @@ registerLive('gotham', (ctx: LiveCtx): LiveScene => {
       // the signal dims as clouds pass in front, and flickers like an old lamp
       flickT -= dt;
       const flick = flickT > 0 ? 0.4 : 1;
-      if (flickT <= -3 - Math.random() * 6) flickT = 0.12;
+      if (flickT <= -3 - crand() * 6) flickT = 0.12;
       const behind = clouds.some((c) => Math.abs(c.x - signal.x) < 160) ? 0.75 : 1;
       signal.setAlpha(beam.alpha * 1.6 * flick * behind);
       if (wave >= 3) {
         boltT -= dt;
         if (boltT <= 0) {
-          boltT = wave >= 4 ? 3 + Math.random() * 3 : 6 + Math.random() * 4;
+          boltT = wave >= 4 ? 3 + crand() * 3 : 6 + crand() * 4;
           strike(k, flash, wave >= 4 ? 0.42 : 0.3);
         }
       }
       if (wave >= 2) {
         batT -= dt;
         if (batT <= 0) {
-          batT = 14 + Math.random() * 10;
+          batT = 14 + crand() * 10;
           bats();
         }
       }
@@ -332,11 +333,11 @@ registerLive('jokester', (ctx: LiveCtx): LiveScene => {
       bulbs.forEach((b, i) => b.setAlpha((i + step) % 3 === 0 ? 0.9 : 0.25));
       winkT -= dt;
       const wink = winkT < 0 && winkT > -0.2;
-      if (winkT < -0.2) winkT = 3 + Math.random() * 5;
+      if (winkT < -0.2) winkT = 3 + crand() * 5;
       eyes.forEach((e, i) => e.setAlpha(wink && i === 1 ? 0.05 : 0.45 + Math.sin(t * 7 + i) * 0.12));
       boltT -= dt;
       if (boltT <= 0) {
-        boltT = 7 + Math.random() * 6;
+        boltT = 7 + crand() * 6;
         strike(k, flash, 0.25, 100, 600);
       }
     },

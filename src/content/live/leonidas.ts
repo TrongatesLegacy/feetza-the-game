@@ -5,6 +5,7 @@
 // mountain. The God-King's Pavilion: the braziers roar and gold motes drift under the canopy.
 
 import Phaser from 'phaser';
+import { crand } from '../../systems/cosmeticRandom';
 import { type LiveCtx, type LiveScene, registerLive } from '../../game/liveBackdrop';
 import { GP, HG, XP } from '../art/scenes-leonidas';
 import { NzKit, reduced } from './kratos';
@@ -39,13 +40,13 @@ registerLive('hotgates', (ctx: LiveCtx): LiveScene => {
   const volley = () => {
     // a dark cloud of arrows arcing from the plain over the wall
     for (let i = 0; i < 14; i++) {
-      const a = k.img('t_arrow', 900 + Math.random() * 500, 360, { sx: 0.25, tint: 0x2a1810 });
-      const dx = (Math.random() - 0.5) * 1400;
+      const a = k.img('t_arrow', 900 + crand() * 500, 360, { sx: 0.25, tint: 0x2a1810 });
+      const dx = (crand() - 0.5) * 1400;
       const st = { t: 0 };
       k.sc.tweens.add({
         targets: st,
         t: 1,
-        duration: 1300 + Math.random() * 400,
+        duration: 1300 + crand() * 400,
         delay: i * 40,
         onUpdate: () => {
           a.setPosition(1100 + dx * st.t, 360 - Math.sin(st.t * Math.PI) * 260 + st.t * 300);
@@ -69,7 +70,7 @@ registerLive('hotgates', (ctx: LiveCtx): LiveScene => {
       if (!arrows || reduced()) return;
       next -= dt;
       if (next <= 0) {
-        next = 3 + Math.random() * 3;
+        next = 3 + crand() * 3;
         volley();
       }
     },

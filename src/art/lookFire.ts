@@ -7,6 +7,7 @@
 // shorter tongues, a smaller glow, fewer embers.
 
 import { Bit, Bits, HEAD_R, INK, Rings, Trail, TrailKind, cycleC, lerpC, rand, shadeC, toWorld, upAngle, type Frame, type LookCore, type Pen, type TrailStyle } from './lookKit';
+import { crand } from '../systems/cosmeticRandom';
 
 export interface FireStyle {
   /** Tongue colours: outer (outlined), body, core. */
@@ -135,7 +136,7 @@ class FireCore implements LookCore {
   private rings = new Rings();
   private pts = new Float32Array(24);
   private ramp = new Float32Array(3);
-  private t = Math.random() * 10;
+  private t = crand() * 10;
   private emberAcc = 0;
   private extraAcc = new Float32Array(6);
   private crackleT = 0.5;
@@ -257,7 +258,7 @@ class FireCore implements LookCore {
       this.crackleT -= dt * st.crackle * (1 + moving * 0.4);
       if (this.crackleT <= 0) {
         this.crackleT = rand(0.6, 1.4);
-        const n = 3 + Math.floor(Math.random() * 3);
+        const n = 3 + Math.floor(crand() * 3);
         const ang = up + rand(-0.6, 0.6);
         const p = toWorld(f, Math.cos(ang) * HEAD_R * 0.9, Math.sin(ang) * HEAD_R * 0.9);
         const px = p.x;
@@ -294,7 +295,7 @@ class FireCore implements LookCore {
       acc[3] += dt * st.glints;
       while (acc[3] >= 1) {
         acc[3] -= 1;
-        const ang = Math.random() * Math.PI * 2;
+        const ang = crand() * Math.PI * 2;
         const rr = HEAD_R * rand(0.2, 0.85);
         const p = toWorld(f, Math.cos(ang) * rr, Math.sin(ang) * rr);
         this.bits.emit(Bit.Glint, p.x, p.y, 0, 0, 6 * S, rand(0.45, 0.7), 0xffffff, 0xffe080);

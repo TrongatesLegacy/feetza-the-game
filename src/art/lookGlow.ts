@@ -11,6 +11,7 @@
 // showpieces are hand-tuned.
 
 import type { PeelLook } from './peelArt';
+import { crand } from '../systems/cosmeticRandom';
 import { Bit, Bits, HEAD_R, Rings, Trail, TrailKind, hex, hueC, lerpC, lum, rand, shadeC, toWorld, upAngle, type Frame, type LookCore, type Pen, type TrailStyle } from './lookKit';
 
 /** One stream of particles. */
@@ -264,7 +265,7 @@ class GlowCore implements LookCore {
   private acc = new Float32Array(6);
   private pts = new Float32Array(8);
   private hp = new Float32Array(42);
-  private t = Math.random() * 10;
+  private t = crand() * 10;
   private sheenIn = rand(0.5, 1.5);
   private sheenAge = 9;
 
@@ -278,7 +279,7 @@ class GlowCore implements LookCore {
   private emit(b: BitSpec, f: Frame, S: number, at?: { x: number; y: number }): void {
     let lx = 0;
     let ly = 0;
-    const ang = b.where === 'above' ? upAngle(f) + rand(-1, 1) : Math.random() * Math.PI * 2;
+    const ang = b.where === 'above' ? upAngle(f) + rand(-1, 1) : crand() * Math.PI * 2;
     const rr = b.where === 'head' ? HEAD_R * rand(0.15, 0.8) : b.where === 'around' ? HEAD_R * rand(1.05, 1.4) : HEAD_R * rand(0.85, 1.05);
     lx = Math.cos(ang) * rr;
     ly = Math.sin(ang) * rr;
@@ -287,7 +288,7 @@ class GlowCore implements LookCore {
     const py = p.y;
     let vx = rand(-b.spread, b.spread) * S - f.vx * 0.1;
     let vy = b.vy * rand(0.7, 1.3) * S - f.vy * 0.1;
-    let rot = Math.random() * Math.PI * 2;
+    let rot = crand() * Math.PI * 2;
     if (b.kind === Bit.Streak) {
       // wind: streams back along the path when moving, else circles the head
       const sp = Math.hypot(f.vx, f.vy);
@@ -301,8 +302,8 @@ class GlowCore implements LookCore {
       }
     }
     if (b.kind === Bit.Flick) rot = ang + rand(-1.2, 1.2);
-    const c0 = b.rainbow ? hueC(Math.random(), 0.35) : b.c0;
-    const i = this.bits.emit(b.kind, px, py, vx, vy, b.size * S * rand(0.75, 1.2), b.life * rand(0.75, 1.25), c0, b.rainbow ? hueC(Math.random(), 0.1) : b.c1, b.grav * S, b.kind === Bit.Smoke ? 0.8 : 0.4);
+    const c0 = b.rainbow ? hueC(crand(), 0.35) : b.c0;
+    const i = this.bits.emit(b.kind, px, py, vx, vy, b.size * S * rand(0.75, 1.2), b.life * rand(0.75, 1.25), c0, b.rainbow ? hueC(crand(), 0.1) : b.c1, b.grav * S, b.kind === Bit.Smoke ? 0.8 : 0.4);
     this.bits.rot[i] = rot;
   }
 
@@ -434,7 +435,7 @@ class GlowCore implements LookCore {
     if (f.calm || !b) return;
     const S = f.s * PX;
     for (let q = 0; q < 6; q++) {
-      const a = Math.random() * Math.PI * 2;
+      const a = crand() * Math.PI * 2;
       this.emit(b, f, S, { x: x + Math.cos(a) * 30 * S, y: y + Math.sin(a) * 16 * S });
     }
   }

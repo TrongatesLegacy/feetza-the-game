@@ -5,6 +5,7 @@
 // across the glass.
 
 import { type LiveCtx, type LiveScene, registerLive } from '../../game/liveBackdrop';
+import { crand } from '../../systems/cosmeticRandom';
 import { NC, RB, VL } from '../art/scenes-comics';
 import { NzKit, reduced } from './kratos';
 
@@ -56,7 +57,7 @@ registerLive('venomnom', (ctx: LiveCtx): LiveScene => {
       // the strip lights stutter now and then
       flick -= dt;
       if (flick <= 0) {
-        flick = 1.5 + Math.random() * 3;
+        flick = 1.5 + crand() * 3;
         if (!reduced()) {
           dark.setAlpha(0.45);
           k.later(70, () => dark.active && dark.setAlpha(0.1));

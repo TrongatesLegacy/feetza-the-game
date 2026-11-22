@@ -197,11 +197,10 @@ function slotsRow(sl: NonNullable<ShopState['slots']>, pull: (pay: 'tips' | 'cru
       h('div', { class: `sl-strip${spinning ? ' spin' : ''}`, style: `--n:${strip.length - 3};--d:${0.8 + i * 0.38}s` }, ...strip.map((x, k) => h('span', { class: !spinning && k === 1 ? 'mid' : '' }, SLOT_ICON[x]))),
     );
   });
-  const bulbs = h('div', { class: 'bulbs', 'aria-hidden': 'true' }, ...Array.from({ length: 9 }, () => h('i')));
   const machine = h(
     'div',
     { class: 'machine', 'aria-hidden': 'true' },
-    h('div', { class: 'marquee' }, bulbs, h('span', {}, 'PIZZA SLOTS')),
+    h('div', { class: 'marquee' }, h('span', {}, 'PIZZA SLOTS')),
     h('div', { class: 'window' }, ...reels, h('i', { class: 'payline' }), h('i', { class: 'pl-l' }), h('i', { class: 'pl-r' }), h('i', { class: 'glass' })),
   );
   // pay with tips or with Golden Crusts; once pulled, one wide button says how it went
@@ -976,7 +975,8 @@ class UI {
       // only new ones (after a reroll) animate
       const cards = st.cards.map((c, i) => {
         // shop toppings: a struck-through usual price when it's cheaper today
-        const was = !c.sold && !c.free && c.was && c.was > c.price ? `<s>${fmt(c.was)}</s> ` : '';
+        // a deal's chip (HALF PRICE…) says it's cheaper today: the button shows just today's price
+        const was = '';
         const b = btn(c.sold ? 'BOUGHT' : c.free ? 'FREE' : st.coins >= c.price ? `BUY · ${was}${fmt(c.price)}` : `NEED ${was}${fmt(c.price)}`, c.sold ? 'cream small' : c.free || st.coins >= c.price ? 'green small' : 'small', () => act.buy(c.id));
         b.disabled = c.sold || (!c.free && st.coins < c.price);
         const el = h(

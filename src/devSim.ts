@@ -12,6 +12,7 @@ import type { HeatId } from './data/difficulty';
 import { META } from './data/meta';
 import { PIZZAS } from './data/pizzas';
 import { pizzaTops } from './game/assets';
+import { GameScene } from './scenes/GameScene';
 import { PEELS, PEEL_BY_ID } from './game/peels';
 import { migrate, persist, save } from './systems/save';
 
@@ -34,6 +35,8 @@ export interface SimOpts {
   profile?: 'fresh' | 'veteran';
   /** Give up after this much real time. */
   maxRealMs?: number;
+  /** Dev: count random draws per wave, and list where they came from in this wave (finding non-determinism). */
+  trace?: number;
 }
 
 export interface WaveRow {
@@ -71,7 +74,86 @@ const STALL_MS = 120_000;
 /** No single wave may take longer than this much game time. */
 const WAVE_MS = 600_000;
 
-const yieldNow = () => new Promise<void>((r) => setTimeout(r, 0));
+// The page's own timers and clock run on game time during a run, so a seed plays out the same every time: the menus'
+// timeouts, sound throttles (performance.now) and anything else that would otherwise fire (and draw random numbers)
+// on its own real-time schedule. The sim keeps the real ones for itself.
+const real = {
+  setTimeout: window.setTimeout.bind(window),
+  clearTimeout: window.clearTimeout.bind(window),
+  setInterval: window.setInterval.bind(window),
+  clearInterval: window.clearInterval.bind(window),
+  raf: window.requestAnimationFrame.bind(window),
+  caf: window.cancelAnimationFrame.bind(window),
+  now: performance.now.bind(performance),
+  dateNow: Date.now,
+};
+// during a run only microtasks get a turn (promises settle): a real timer left over from before the run firing
+// in between would draw random numbers off the seed's sequence
+const yieldNow = () => Promise.resolve();
+
+interface FakeTimer {
+  id: number;
+  at: number;
+  fn: (...a: unknown[]) => void;
+  args: unknown[];
+  every: number;
+  raf: boolean;
+}
+class GameClock {
+  ms = 0;
+  private base = real.now();
+  private dateBase = real.dateNow();
+  private timers = new Map<number, FakeTimer>();
+  private nextId = 1_000_000;
+  errors: string[] = [];
+  now(): number {
+    return this.base + this.ms;
+  }
+  install(): void {
+    const add = (fn: unknown, ms: unknown, args: unknown[], every: number, raf = false) => {
+      if (typeof fn !== 'function') return 0;
+      const id = this.nextId++;
+      this.timers.set(id, { id, at: this.ms + Math.max(0, Number(ms) || 0), fn: fn as FakeTimer['fn'], args, every, raf });
+      return id;
+    };
+    const w = window as unknown as Record<string, unknown>;
+    w.setTimeout = (fn: unknown, ms?: unknown, ...args: unknown[]) => add(fn, ms, args, 0);
+    w.setInterval = (fn: unknown, ms?: unknown, ...args: unknown[]) => add(fn, ms, args, Math.max(1, Number(ms) || 1));
+    w.clearTimeout = w.clearInterval = (id: number) => void this.timers.delete(id);
+    w.requestAnimationFrame = (fn: unknown) => add(fn, 16, [], 0, true);
+    w.cancelAnimationFrame = (id: number) => void this.timers.delete(id);
+    performance.now = () => this.now();
+    Date.now = () => this.dateBase + this.ms;
+  }
+  uninstall(): void {
+    const w = window as unknown as Record<string, unknown>;
+    w.setTimeout = real.setTimeout;
+    w.clearTimeout = real.clearTimeout;
+    w.setInterval = real.setInterval;
+    w.clearInterval = real.clearInterval;
+    w.requestAnimationFrame = real.raf;
+    w.cancelAnimationFrame = real.caf;
+    performance.now = real.now;
+    Date.now = real.dateNow;
+  }
+  /** Move game time on and run whatever timers fell due, in order. */
+  advance(dt: number): void {
+    this.ms += dt;
+    for (let guard = 0; guard < 500; guard++) {
+      let due: FakeTimer | null = null;
+      for (const t of this.timers.values()) if (t.at <= this.ms && (!due || t.at < due.at || (t.at === due.at && t.id < due.id))) due = t;
+      if (!due) return;
+      if (due.every) due.at += due.every;
+      else this.timers.delete(due.id);
+      try {
+        if (due.raf) due.fn(this.now());
+        else due.fn(...due.args);
+      } catch (e) {
+        this.errors.push(String((e as Error)?.stack ?? e).split('\n').slice(0, 3).join(' | '));
+      }
+    }
+  }
+}
 
 function setProfile(o: SimOpts): void {
   // a clean save, so every run starts the same whatever this browser has played (settings kept)
@@ -163,8 +245,13 @@ function smack(g: AnyScene, accuracy: number): void {
   if (g.run?.super >= 1 && (Math.random() < 0.05 || (g.feet ?? []).some((f: any) => f.alive && f.brain?.swordWindow))) g.peelSlam(); // eslint-disable-line @typescript-eslint/no-explicit-any
 }
 
+/** The game's art is built (several tabs booting at once can take a while). */
+export function simReady(): boolean {
+  return !PIZZAS.some((p) => !pizzaTops[p.id]);
+}
+
 export async function simRun(game: Phaser.Game, o: SimOpts, start: (opts: Record<string, unknown>) => void): Promise<SimResult> {
-  const opts: Required<SimOpts> = { peel: 'classic', accuracy: 0.9, rate: 260, dt: 1000 / 60, profile: 'fresh', maxRealMs: 600_000, ...o };
+  const opts: Required<SimOpts> = { peel: 'classic', accuracy: 0.9, rate: 260, dt: 1000 / 60, profile: 'fresh', maxRealMs: 600_000, trace: 0, ...o };
   // the game's art must be built first (several tabs booting at once can take a while)
   for (let i = 0; i < 600 && PIZZAS.some((p) => !pizzaTops[p.id]); i++) await new Promise((r) => setTimeout(r, 100));
   // the browser's own save comes back when the run is done
@@ -173,20 +260,64 @@ export async function simRun(game: Phaser.Game, o: SimOpts, start: (opts: Record
   const errors: string[] = [];
   const onErr = (e: ErrorEvent) => errors.push(`${e.message} @ ${e.filename?.split('/').pop()}:${e.lineno}`);
   window.addEventListener('error', onErr);
-  start({ heat: opts.heat, intros: false, seed: opts.seed });
-  // let the scene build
-  let g: AnyScene | null = null;
-  for (let i = 0; i < 200 && !(g?.run && (g.waveActive || g.inUpgrade)); i++) {
-    await new Promise((r) => setTimeout(r, 20));
-    g = game.scene.getScene('Game') as AnyScene;
-  }
-  if (!g?.run) throw new Error('the game scene did not start');
+  // the loop sleeps from the start and game time takes over the page's clock, so the scene is built (and every
+  // random number drawn) on the sim's own steps
   game.loop.sleep();
-  g.scene.setVisible(false);
-
-  const t0 = performance.now();
-  let now = performance.now();
+  const clock = new GameClock();
+  clock.install();
+  let g: AnyScene | null = null;
+  const t0 = real.now();
   let gameMs = 0;
+  const step = () => {
+    game.scene.update(clock.now(), opts.dt);
+    clock.advance(opts.dt);
+    gameMs += opts.dt;
+  };
+  try {
+    // a brand-new game scene each run: Phaser restarts reuse the scene object, and fields a run doesn't reset
+    // (the garlic timer…) would carry over and nudge the next run off its seed
+    const old = game.scene.getScene('Game');
+    if (old) {
+      game.scene.stop('Game');
+      game.scene.remove('Game');
+    }
+    game.scene.add('Game', GameScene, false);
+    for (const k of game.scene.getScenes(true).map((x) => x.sys.settings.key)) if (k !== 'Game') game.scene.stop(k);
+    start({ heat: opts.heat, intros: false, seed: opts.seed });
+    for (let i = 0; i < 600 && !(g?.run && (g.waveActive || g.inUpgrade)); i++) {
+      step();
+      g = game.scene.getScene('Game') as AnyScene;
+      if (i % 30 === 0) await yieldNow();
+    }
+  } catch (e) {
+    clock.uninstall();
+    throw e;
+  }
+  if (!g?.run) {
+    clock.uninstall();
+    game.loop.wake();
+    throw new Error('the game scene did not start');
+  }
+  g.scene.setVisible(false);
+  gameMs = 0;
+  // tracing: count every random draw, by wave, and where each came from in the traced wave
+  const draws: number[] = [];
+  const where: Record<string, number> = {};
+  const seq: string[] = [];
+  const seeded = Math.random;
+  if (opts.trace) {
+    Math.random = () => {
+      const w = g?.run?.wave ?? 0;
+      draws[w] = (draws[w] ?? 0) + 1;
+      if (w === opts.trace) {
+        const at = (new Error().stack ?? '').split('\n').slice(2, 5).map((l) => l.trim().replace(/^at /, '').replace(/\(?https?:\/\/[^/]+\/src\//, '').replace(/\?t=\d+/, '').replace(/\)$/, '')).join(' < ');
+        where[at] = (where[at] ?? 0) + 1;
+        if (seq.length < 30000) seq.push(`${Math.round(gameMs)}|${at}`);
+      }
+      return seeded();
+    };
+  }
+
   let actMs = 0;
   let checkMs = 0;
   let lastSig = '';
@@ -236,9 +367,8 @@ export async function simRun(game: Phaser.Game, o: SimOpts, start: (opts: Record
         }
         await yieldNow();
       }
-      game.scene.update(now, opts.dt);
-      now += opts.dt;
-      gameMs += opts.dt;
+      step();
+      if (clock.errors.length) errors.push(...clock.errors.splice(0));
       actMs += opts.dt;
       checkMs += opts.dt;
       steps++;
@@ -264,10 +394,10 @@ export async function simRun(game: Phaser.Game, o: SimOpts, start: (opts: Record
         stillMs = sig === lastSig ? stillMs + 2000 : 0;
         lastSig = sig;
         const tooLong = gameMs - waveStartMs > WAVE_MS;
-        if (stillMs >= STALL_MS || tooLong || performance.now() - t0 > opts.maxRealMs) {
+        if (stillMs >= STALL_MS || tooLong || real.now() - t0 > opts.maxRealMs) {
           outcome = 'stalled';
           stall = {
-            screen: tooLong ? `${screenOf(g)} (wave over ${WAVE_MS / 60000} min)` : performance.now() - t0 > opts.maxRealMs ? `${screenOf(g)} (real-time cap)` : screenOf(g),
+            screen: tooLong ? `${screenOf(g)} (wave over ${WAVE_MS / 60000} min)` : real.now() - t0 > opts.maxRealMs ? `${screenOf(g)} (real-time cap)` : screenOf(g),
             detail: {
               waveActive: g.waveActive,
               inUpgrade: g.inUpgrade,
@@ -285,6 +415,7 @@ export async function simRun(game: Phaser.Game, o: SimOpts, start: (opts: Record
     errors.push(String((e as Error)?.stack ?? e).split('\n').slice(0, 4).join(' | '));
   } finally {
     window.removeEventListener('error', onErr);
+    clock.uninstall();
   }
 
   const field = (g.feet ?? []).filter((f: any) => f.alive); // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -294,7 +425,7 @@ export async function simRun(game: Phaser.Game, o: SimOpts, start: (opts: Record
     outcome: outcome ?? 'error',
     wave,
     gameSec: Math.round(gameMs / 1000),
-    realMs: Math.round(performance.now() - t0),
+    realMs: Math.round(real.now() - t0),
     waves: rows,
     boss: boss?.type.id ?? null,
     field: field.map((f: any) => f.type.id), // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -304,6 +435,10 @@ export async function simRun(game: Phaser.Game, o: SimOpts, start: (opts: Record
     error: errors[0],
     stall,
   };
+  if (opts.trace) {
+    Math.random = seeded;
+    (result as unknown as Record<string, unknown>).trace = { draws, where, seq };
+  }
   // leave the game quiet for the next run, and put the browser's save back
   game.loop.wake();
   Object.assign(save, JSON.parse(before));

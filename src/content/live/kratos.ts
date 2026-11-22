@@ -5,6 +5,7 @@
 // crest pulses. NzKit is shared by the other nemesis arenas' live layers.
 
 import Phaser from 'phaser';
+import { crand } from '../../systems/cosmeticRandom';
 import { makeCanvas } from '../../art/util';
 import { type LiveCtx, type LiveScene, registerLive } from '../../game/liveBackdrop';
 import { audio } from '../../systems/audio';
@@ -34,7 +35,7 @@ export const forkTex = (sc: Phaser.Scene, n: number, tint = 'rgba(170,200,255,0.
     let x = 120;
     const pts: [number, number][] = [[x, 0]];
     for (let y = 40; y <= 560; y += 40) {
-      x += (Math.sin(y * 0.06 + n * 2.3) + (Math.random() - 0.5)) * 36;
+      x += (Math.sin(y * 0.06 + n * 2.3) + (crand() - 0.5)) * 36;
       pts.push([Math.max(20, Math.min(220, x)), y]);
     }
     for (const [lw, col] of [[18, tint], [7, 'rgba(225,238,255,0.9)'], [3, '#ffffff']] as const) {
@@ -89,12 +90,12 @@ export class NzKit {
   }
   /** A fork of lightning across the sky with a flash over the scene and thunder a moment later. */
   strike(flash: Phaser.GameObjects.Rectangle, a: number, x0: number, x1: number, y = 0, scale = 1): void {
-    const im = this.img(forkTex(this.sc, Math.floor(Math.random() * 3)), x0 + Math.random() * (x1 - x0), y, { add: true, origin: [0.5, 0], sx: scale * (0.7 + Math.random() * 0.5) });
-    if (Math.random() < 0.5) im.setFlipX(true);
+    const im = this.img(forkTex(this.sc, Math.floor(crand() * 3)), x0 + crand() * (x1 - x0), y, { add: true, origin: [0.5, 0], sx: scale * (0.7 + crand() * 0.5) });
+    if (crand() < 0.5) im.setFlipX(true);
     this.sc.tweens.add({ targets: im, alpha: { from: 1, to: 0 }, duration: 420, ease: 'Quad.In', onComplete: () => im.destroy() });
     flash.setAlpha(reduced() ? a * 0.3 : a);
     this.sc.tweens.add({ targets: flash, alpha: 0, duration: 460, ease: 'Quad.Out' });
-    this.later(250 + Math.random() * 600, () => audio.sfx('sfx_thunder', { volume: 0.3 + a, throttle: 800 }));
+    this.later(250 + crand() * 600, () => audio.sfx('sfx_thunder', { volume: 0.3 + a, throttle: 800 }));
   }
   update(dt: number): void {
     this.t += dt;
@@ -205,9 +206,9 @@ registerLive('zeus', (ctx: LiveCtx): LiveScene => {
       rift.setAlpha(0.18 + Math.sin(k.t * 0.9) * 0.06);
       next -= dt;
       if (next <= 0) {
-        next = 3 + Math.random() * 4;
+        next = 3 + crand() * 4;
         k.strike(flash, 0.22, 180, W - 180, 60, 0.9);
-        if (Math.random() < 0.4) k.later(160, () => k.strike(flash, 0.12, 180, W - 180, 60, 0.7));
+        if (crand() < 0.4) k.later(160, () => k.strike(flash, 0.12, 180, W - 180, 60, 0.7));
       }
     },
     destroy: () => k.destroy(),

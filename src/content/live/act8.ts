@@ -4,6 +4,7 @@
 // little more with every phase of the fight. The painted scenes are in src/content/art/scenes-act8.ts.
 
 import Phaser from 'phaser';
+import { crand } from '../../systems/cosmeticRandom';
 import { aurora, flame, glow } from '../../art/sceneKit';
 import { makeCanvas, rgba, rng } from '../../art/util';
 import { type LiveCtx, type LiveScene, registerLive } from '../../game/liveBackdrop';
@@ -264,8 +265,8 @@ function cloudRow(k: Kit, n: number, y0: number, y1: number, tint: number, alpha
   cloudTex(k.sc);
   const out: Img[] = [];
   for (let i = 0; i < n; i++) {
-    const im = k.img('live8_cloud', (i / n) * (W + 600) - 300 + Math.random() * 120, y0 + Math.random() * (y1 - y0), { tint, alpha, sx: scale * (0.8 + Math.random() * 0.6), sy: scale * (0.6 + Math.random() * 0.4) });
-    im.setData('v', speed * (0.7 + Math.random() * 0.6));
+    const im = k.img('live8_cloud', (i / n) * (W + 600) - 300 + crand() * 120, y0 + crand() * (y1 - y0), { tint, alpha, sx: scale * (0.8 + crand() * 0.6), sy: scale * (0.6 + crand() * 0.4) });
+    im.setData('v', speed * (0.7 + crand() * 0.6));
     out.push(im);
   }
   return out;
@@ -291,7 +292,7 @@ class Fires {
     for (const [x, y, s] of pts) {
       const gl = k.img('glow', x, y - 60 * s, { tint: 0xff6a1a, add: true, alpha: 0, sx: 1.6 * s, sy: 1.2 * s });
       const im = k.img('live8_flame', x, y, { add: true, alpha: 0, sx: s, origin: [0.5, 0.97] });
-      this.ims.push({ im, glow: gl, seed: Math.random() * 10, base: s });
+      this.ims.push({ im, glow: gl, seed: crand() * 10, base: s });
     }
   }
   show(n: number, a = 1): void {
@@ -312,10 +313,10 @@ class Fires {
 
 /** A lightning strike somewhere across the sky with a white flash. */
 function strike(k: Kit, flash: Phaser.GameObjects.Rectangle, col: string, x0 = 200, x1 = 1720, y = 120, a = 0.3): void {
-  const kk = Math.floor(Math.random() * 2);
+  const kk = Math.floor(crand() * 2);
   const key = boltTex(k.sc, kk, col);
-  const im = k.img(key, x0 + Math.random() * (x1 - x0), y, { add: true, origin: [0.5, 0], sx: 0.8 + Math.random() * 0.5 });
-  if (Math.random() < 0.5) im.setFlipX(true);
+  const im = k.img(key, x0 + crand() * (x1 - x0), y, { add: true, origin: [0.5, 0], sx: 0.8 + crand() * 0.5 });
+  if (crand() < 0.5) im.setFlipX(true);
   k.sc.tweens.add({ targets: im, alpha: { from: 1, to: 0 }, duration: 380, ease: 'Quad.In', onComplete: () => im.destroy() });
   flash.setAlpha(a);
   k.sc.tweens.add({ targets: flash, alpha: 0, duration: 420, ease: 'Quad.Out' });
@@ -376,12 +377,12 @@ registerLive('jotunheim', (ctx: LiveCtx): LiveScene => {
       if (wave >= 4) {
         gustT -= dt;
         if (gustT <= 0) {
-          gustT = 2.5 + Math.random() * 3;
+          gustT = 2.5 + crand() * 3;
           white.setAlpha(0.18);
           k.sc.tweens.add({ targets: white, alpha: 0.04, duration: 1400, ease: 'Sine.Out' });
           for (let s = 0; s < 4; s++) {
-            const st = k.img('live8_streak', -500, 120 + Math.random() * 560, { alpha: 0.7, sx: 1 + Math.random(), sy: 1 + Math.random() * 2 });
-            k.sc.tweens.add({ targets: st, x: W + 500, duration: 900 + Math.random() * 500, delay: s * 120, onComplete: () => st.destroy() });
+            const st = k.img('live8_streak', -500, 120 + crand() * 560, { alpha: 0.7, sx: 1 + crand(), sy: 1 + crand() * 2 });
+            k.sc.tweens.add({ targets: st, x: W + 500, duration: 900 + crand() * 500, delay: s * 120, onComplete: () => st.destroy() });
           }
         }
         // the red on the horizon pulses like a far fire
@@ -412,6 +413,19 @@ registerLive('bifrost', (ctx: LiveCtx): LiveScene => {
     x: { min: -200, max: W }, y: -20, lifespan: 1200, frequency: 8,
     speedY: { min: 900, max: 1200 }, speedX: { min: 140, max: 220 }, scaleX: 0.03, scaleY: { min: 0.3, max: 0.5 }, alpha: 0.35, tint: 0xc8d8ff,
   }, false, 1000);
+  // a spark of light runs up the rainbow bridge every few seconds, along its arc (brightest on a fair day)
+  const spark = k.img('glow', -100, 0, { tint: 0xffffff, add: true, alpha: 0, sx: 0.9, sy: 0.5 });
+  const sparkCore = k.img('glow', -100, 0, { tint: 0xfff6d8, add: true, alpha: 0, sx: 0.35, sy: 0.22 });
+  const arc = (t: number): [number, number] => {
+    // the middle of the bridge's bands (src/content/art/scenes-act8.ts, bridgeArc)
+    const P = [[-60, 665], [500, 490], [1000, 280], [1320, 407]];
+    const u = 1 - t;
+    const x = u * u * u * P[0][0] + 3 * u * u * t * P[1][0] + 3 * u * t * t * P[2][0] + t * t * t * P[3][0];
+    const y = u * u * u * P[0][1] + 3 * u * u * t * P[1][1] + 3 * u * t * t * P[2][1] + t * t * t * P[3][1];
+    return [x, y];
+  };
+  let sparkT = 2;
+  let sparkRun = -1;
   let wave = ctx.wave;
   let boltT = 3;
   const setWave = (w: number) => {
@@ -435,10 +449,30 @@ registerLive('bifrost', (ctx: LiveCtx): LiveScene => {
       drift(below, dt);
       drift(storm, dt * (wave >= 3 ? 2.5 : 1));
       fires.update(k.t);
+      // the spark: up the arc in 2.4 s, fading in and out, every 3-5 s; dimmer as the storm comes, gone in the fire
+      sparkT -= dt;
+      if (sparkT <= 0 && sparkRun < 0 && wave <= 3) {
+        sparkT = 3 + crand() * 2;
+        sparkRun = 0;
+      }
+      if (sparkRun >= 0) {
+        sparkRun += dt / 2.4;
+        const t = Math.min(1, sparkRun);
+        const [x, y] = arc(t);
+        const [x2, y2] = arc(Math.min(1, t + 0.01));
+        const a = Math.sin(Math.PI * t) * ([0.85, 0.55, 0.3][Math.max(0, wave - 1)] ?? 0);
+        spark.setPosition(x, y).setRotation(Math.atan2(y2 - y, x2 - x)).setAlpha(a);
+        sparkCore.setPosition(x, y).setAlpha(a);
+        if (sparkRun >= 1) {
+          sparkRun = -1;
+          spark.setAlpha(0);
+          sparkCore.setAlpha(0);
+        }
+      }
       if (wave >= 3) {
         boltT -= dt;
         if (boltT <= 0) {
-          boltT = (wave >= 4 ? 4 : 2.6) + Math.random() * 3;
+          boltT = (wave >= 4 ? 4 : 2.6) + crand() * 3;
           strike(k, flash, wave >= 4 ? '#ffb070' : '#d8e4ff', 200, 1720, 60, wave >= 4 ? 0.2 : 0.3);
         }
       }
@@ -469,9 +503,9 @@ registerLive('fenrir', (ctx: LiveCtx): LiveScene => {
       // now and then a howling wind tears across the lake
       howlT -= dt;
       if (howlT <= 0) {
-        howlT = 5 + Math.random() * 4;
+        howlT = 5 + crand() * 4;
         for (let s = 0; s < 3; s++) {
-          const st = k.img('live8_streak', -500, 300 + Math.random() * 380, { alpha: 0.25, sx: 1.4, sy: 1.5, tint: 0xc8d0ff });
+          const st = k.img('live8_streak', -500, 300 + crand() * 380, { alpha: 0.25, sx: 1.4, sy: 1.5, tint: 0xc8d0ff });
           k.sc.tweens.add({ targets: st, x: W + 500, duration: 1600, delay: s * 200, ease: 'Sine.In', onComplete: () => st.destroy() });
         }
       }
@@ -501,9 +535,9 @@ registerLive('thrym', (ctx: LiveCtx): LiveScene => {
       shafts.forEach((s, i) => s.setAlpha(0.1 + Math.sin(k.t * 0.9 + i * 2) * 0.05));
       throne.setAlpha(0.26 + Math.sin(k.t * 1.6) * 0.08);
       // icicles glint
-      if (Math.random() < dt * 3) {
-        const [x, y] = spots[Math.floor(Math.random() * spots.length)];
-        const g = k.img('star', x + (Math.random() - 0.5) * 120, y + Math.random() * 40, { add: true, alpha: 1, sx: 0 });
+      if (crand() < dt * 3) {
+        const [x, y] = spots[Math.floor(crand() * spots.length)];
+        const g = k.img('star', x + (crand() - 0.5) * 120, y + crand() * 40, { add: true, alpha: 1, sx: 0 });
         k.sc.tweens.add({ targets: g, scale: 0.4, angle: 90, duration: 260, yoyo: true, onComplete: () => g.destroy() });
       }
     },
@@ -556,7 +590,7 @@ registerLive('jormungandr', (ctx: LiveCtx): LiveScene => {
       }
       boltT -= dt;
       if (boltT <= 0) {
-        boltT = 3 + Math.random() * 4;
+        boltT = 3 + crand() * 4;
         strike(k, flash, '#d8b0ff', 200, 1720, 90, 0.25);
       }
     },
@@ -572,7 +606,7 @@ registerLive('surtr', (ctx: LiveCtx): LiveScene => {
   const smoke = cloudRow(k, 10, 60, 260, 0x1a0806, 0.6, 12, 2.4);
   // the fire spreads along the bridge's back rail, from the far left, phase by phase
   const rail: [number, number, number][] = [];
-  for (let x = 60; x < W; x += 150) rail.push([x + (Math.random() - 0.5) * 40, 700 + Math.random() * 10, 0.55 + Math.random() * 0.25]);
+  for (let x = 60; x < W; x += 150) rail.push([x + (crand() - 0.5) * 40, 700 + crand() * 10, 0.55 + crand() * 0.25]);
   const fires = new Fires(k, rail);
   // and leaps higher off the sea of fire behind it
   const sea = new Fires(k, [[200, 640, 0.8], [520, 650, 0.9], [860, 640, 0.75], [1180, 655, 0.9], [1500, 640, 0.8], [1800, 650, 0.85]]);

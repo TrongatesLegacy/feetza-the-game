@@ -9,6 +9,7 @@
 // the heroes get their family's glow and trail (lookGlow.ts). Only the equipped (or worn) look runs in play.
 
 import Phaser from 'phaser';
+import { crand } from '../systems/cosmeticRandom';
 import { ZEUS_BLADE } from './godShapes';
 import { canvasPen, css, graphicsPen, paintCore, paintMoving, playCore, type Motion, type MovingPainter, type LookCore, type LookFx, type LookHost, type Painter, type Pen } from './lookKit';
 import { FIRE_PEELS, fireCore } from './lookFire';
@@ -41,7 +42,7 @@ function jitter(off: Float32Array, rough = 0.62): void {
   let amp = 1;
   while (step > 1) {
     const half = step >> 1;
-    for (let i = half; i < n; i += step) off[i] = (off[i - half] + off[i + half]) / 2 + (Math.random() * 2 - 1) * amp;
+    for (let i = half; i < n; i += step) off[i] = (off[i - half] + off[i + half]) / 2 + (crand() * 2 - 1) * amp;
     step = half;
     amp *= rough;
   }
@@ -120,22 +121,22 @@ interface Arc {
 const newArc = (): Arc => ({ u: 0, du: 0, s0: 0, s1: 0, age: 1, life: 0, flick: 1, off: new Float32Array(SEG + 1), pts: new Float32Array((SEG + 1) * 2), bAt: 4, bAng: 0, bLen: 0, boff: new Float32Array(5), bpts: new Float32Array(10) });
 
 function spawnArc(a: Arc, long = false): void {
-  a.u = long ? 0.04 : Math.random() * 0.55;
-  a.du = long ? 0.92 : 0.2 + Math.random() * 0.22;
+  a.u = long ? 0.04 : crand() * 0.55;
+  a.du = long ? 0.92 : 0.2 + crand() * 0.22;
   // most arcs cross the blade; some hug an edge and crackle just outside it, where they show against the room
-  if (!long && Math.random() < 0.45) {
-    const side = Math.random() < 0.5 ? -1 : 1;
-    a.s0 = side * (0.9 + Math.random() * 0.3);
-    a.s1 = side * (1.15 + Math.random() * 0.45);
+  if (!long && crand() < 0.45) {
+    const side = crand() < 0.5 ? -1 : 1;
+    a.s0 = side * (0.9 + crand() * 0.3);
+    a.s1 = side * (1.15 + crand() * 0.45);
   } else {
-    a.s0 = (Math.random() * 2 - 1) * 0.85;
-    a.s1 = (Math.random() * 2 - 1) * 0.85;
+    a.s0 = (crand() * 2 - 1) * 0.85;
+    a.s1 = (crand() * 2 - 1) * 0.85;
   }
   a.age = 0;
-  a.life = long ? 0.22 : 0.35 + Math.random() * 0.45;
-  a.bAt = 2 + Math.floor(Math.random() * 5);
-  a.bAng = (Math.random() < 0.5 ? -1 : 1) * (0.5 + Math.random() * 0.7);
-  a.bLen = Math.random() < 0.75 ? 14 + Math.random() * 20 : 0;
+  a.life = long ? 0.22 : 0.35 + crand() * 0.45;
+  a.bAt = 2 + Math.floor(crand() * 5);
+  a.bAng = (crand() < 0.5 ? -1 : 1) * (0.5 + crand() * 0.7);
+  a.bLen = crand() < 0.75 ? 14 + crand() * 20 : 0;
   jitter(a.off);
   jitter(a.boff);
 }
@@ -148,7 +149,7 @@ class ZeusCore {
   forkOff = new Float32Array(5);
   forkPts = new Float32Array(10);
   regen = 0;
-  nextFlash = 1 + Math.random() * 1.5;
+  nextFlash = 1 + crand() * 1.5;
   flash = 0;
   tipAng = 0;
   pulse = 0;
@@ -173,15 +174,15 @@ class ZeusCore {
       else if (rejag) {
         jitter(a.off);
         jitter(a.boff);
-        a.flick = 0.65 + Math.random() * 0.35;
+        a.flick = 0.65 + crand() * 0.35;
       }
     }
     this.flash = Math.max(0, this.flash - dt / 0.16);
     this.nextFlash -= dt;
     if (flashes && this.nextFlash <= 0) {
-      this.nextFlash = 1.6 + Math.random() * 2.2;
+      this.nextFlash = 1.6 + crand() * 2.2;
       this.flash = 1;
-      this.tipAng = (Math.random() * 2 - 1) * 0.5;
+      this.tipAng = (crand() * 2 - 1) * 0.5;
       jitter(this.tipOff, 0.7);
       jitter(this.forkOff);
       // the whole blade lights up with one long arc
@@ -253,7 +254,7 @@ class Sparks {
     this.vx[i] = vx;
     this.vy[i] = vy;
     this.age[i] = 0;
-    this.life[i] = 0.22 + Math.random() * 0.22;
+    this.life[i] = 0.22 + crand() * 0.22;
   }
 
   tick(dt: number, pen: Pen): void {
@@ -293,7 +294,7 @@ class Bursts {
     b.x = x;
     b.y = y;
     b.age = 0;
-    b.rot = Math.random() * Math.PI * 2;
+    b.rot = crand() * Math.PI * 2;
     b.offs.forEach((o) => jitter(o));
   }
 
@@ -414,11 +415,11 @@ function playZeus(h: LookHost): LookFx {
         // sparks shed as it moves (and a stray one now and then when it's still)
         const want = moved > 5 ? Math.min(2, moved / 30) : 0.04;
         for (let k = want; k > 0; k--) {
-          if (k < 1 && Math.random() > k) break;
-          const p = bladeAt(0.15 + Math.random() * 0.85, Math.random() < 0.5 ? -1 : 1);
+          if (k < 1 && crand() > k) break;
+          const p = bladeAt(0.15 + crand() * 0.85, crand() < 0.5 ? -1 : 1);
           const w = toWorld(p.x, p.y);
-          const ang = Math.random() * Math.PI * 2;
-          const sp = 60 + Math.random() * 140;
+          const ang = crand() * Math.PI * 2;
+          const sp = 60 + crand() * 140;
           sparks.emit(w.x, w.y, Math.cos(ang) * sp - (mvx / Math.max(dt, 0.008)) * 0.12, Math.sin(ang) * sp - 80 - (mvy / Math.max(dt, 0.008)) * 0.12);
         }
         // the swept ribbon: blade-mid and tip positions, joined into a fading band of blue light
@@ -468,7 +469,7 @@ function playZeus(h: LookHost): LookFx {
         trailRegen -= dt;
         if (trailRegen <= 0) {
           trailRegen = 0.035;
-          for (let i = 0; i < tj.length; i++) tj[i] = (Math.random() * 2 - 1) * 7;
+          for (let i = 0; i < tj.length; i++) tj[i] = (crand() * 2 - 1) * 7;
         }
         const LIFE = 0.2;
         for (let k = 1; k < TN; k++) {
@@ -522,9 +523,9 @@ function paintZeus(): Painter {
     }
     core.draw(pen);
     // a stray spark now and then, falling off an edge
-    if (Math.random() < dt * 5) {
-      const p = bladeAt(0.15 + Math.random() * 0.8, Math.random() < 0.5 ? -1 : 1);
-      const ang = -Math.PI / 2 + (Math.random() * 2 - 1) * 1.3;
+    if (crand() < dt * 5) {
+      const p = bladeAt(0.15 + crand() * 0.8, crand() < 0.5 ? -1 : 1);
+      const ang = -Math.PI / 2 + (crand() * 2 - 1) * 1.3;
       sparks.emit(p.x, p.y, Math.cos(ang) * 110, Math.sin(ang) * 110);
     }
     sparks.tick(dt, pen);
@@ -622,7 +623,7 @@ function movingZeus(motion: Motion): MovingPainter {
       trailRegen -= dt;
       if (trailRegen <= 0) {
         trailRegen = 0.035;
-        for (let i = 0; i < tj.length; i++) tj[i] = (Math.random() * 2 - 1) * 7;
+        for (let i = 0; i < tj.length; i++) tj[i] = (crand() * 2 - 1) * 7;
       }
       for (let k = 1; k < TN; k++) {
         const i1 = (head + k) % TN;
@@ -640,11 +641,11 @@ function movingZeus(motion: Motion): MovingPainter {
       // sparks shed as it moves
       const want = moved > 5 ? Math.min(2, moved / 30) : 0.04;
       for (let k = want; k > 0; k--) {
-        if (k < 1 && Math.random() > k) break;
-        const p = bladeAt(0.15 + Math.random() * 0.85, Math.random() < 0.5 ? -1 : 1);
+        if (k < 1 && crand() > k) break;
+        const p = bladeAt(0.15 + crand() * 0.85, crand() < 0.5 ? -1 : 1);
         const q = toW(p.x, p.y);
-        const ang = Math.random() * Math.PI * 2;
-        const sp = 60 + Math.random() * 140;
+        const ang = crand() * Math.PI * 2;
+        const sp = 60 + crand() * 140;
         sparks.emit(q.x, q.y, Math.cos(ang) * sp - (mvx / Math.max(dt, 0.008)) * 0.12, Math.sin(ang) * sp - 80 - (mvy / Math.max(dt, 0.008)) * 0.12);
       }
     }
