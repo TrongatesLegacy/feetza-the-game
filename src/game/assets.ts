@@ -5,6 +5,7 @@ import '../content/art';
 import '../content/style';
 import '../content/styleLive';
 import { drawBackdrop, type BackdropId } from '../art/backdrops';
+import { prepareLive } from './liveBackdrop';
 import { ART_RES, drawFoot, footPortrait, type FootTextures } from '../art/feetArt';
 import { drawPizzaTop, drawSliceSprite, pizzaPortrait } from '../art/pizzaArt';
 import { buildEventSprites } from '../art/eventArt';
@@ -85,7 +86,8 @@ export async function generateAll(scene: Phaser.Scene, progress: (p: number, lab
   }
   // feet redrawn in the style kit: their live layers (pose frames, parts, glows) are built now, not on first spawn
   // (feet redrawn in the style kit build their live layers lazily, in idle time before they appear: warmLive)
-  jobs.push(['Lighting the oven', () => ensureBackdrop(scene, 'trattoria')]);
+  // (with Animated stages on the room is shown live: its live base and moving parts, not the still)
+  jobs.push(['Lighting the oven', () => void (prepareLive(scene, 'trattoria') || ensureBackdrop(scene, 'trattoria'))]);
   let last = performance.now();
   for (let i = 0; i < jobs.length; i++) {
     const [label, fn] = jobs[i];

@@ -13,13 +13,14 @@ import { UPGRADES, UPGRADE_BY_ID, kindOf, type Rarity, type Upgrade } from '../d
 import type { Arena, Clickable } from '../game/arena';
 import { footPortraitURL, pizzaPortraitURL } from '../game/assets';
 import { BackdropView } from '../game/BackdropView';
+import { prepareLive, releaseLive } from '../game/liveBackdrop';
 import { BossDirector } from '../game/bosses';
 import { eventName, startEvent, type EventId } from '../game/events';
 import { Foot } from '../game/Foot';
 import { Fx } from '../game/Fx';
 import { Pizza, pizzaHooks } from '../game/Pizza';
 import { Projectiles } from '../game/projectiles';
-import { DOUBLE_CAP, endlessPlus, LOCATION_AMBIENCE, LOCATION_MUSIC, RARITY_FROM, Run, awardMilestones, milestoneProgress, backdropFor, bestRarity, rarityOpen, specialPrice, bossMusic, isBossWave, isMiniWave, locationFor, loopOf, planWave, footPool, type WavePlan, bossFor, miniFor } from '../game/Run';
+import { DOUBLE_CAP, endlessPlus, LOCATION_AMBIENCE, LOCATION_MUSIC, RARITY_FROM, Run, awardMilestones, milestoneProgress, backdropFor, bestRarity, rarityOpen, specialPrice, bossMusic, isBossWave, isMiniWave, locationFor, loopOf, waveInStage, planWave, footPool, type WavePlan, bossFor, miniFor } from '../game/Run';
 import type { CounterSnap, RunSnapshot } from '../game/snapshot';
 import { audio, bossSfx, heroSfx } from '../systems/audio';
 import { setRunSmack } from '../game/smacks';
@@ -998,13 +999,18 @@ export class GameScene extends Phaser.Scene implements Arena {
   private showLocation(n: number, immediate: boolean): void {
     const bd = backdropFor(n);
     const loc = locationFor(n);
+    // every stage's live layer follows the wave within the stage (its weather and light change across it)
+    if (bd === this.currentBackdrop) this.backdrop.setWave(waveInStage(n));
     if (bd !== this.currentBackdrop) {
       const fade = this.currentBackdrop && !immediate ? 1600 : 0;
-      this.backdrop.show(bd, fade);
+      this.backdrop.show(bd, fade, waveInStage(n));
       this.tintGrade(BACKDROPS[bd].light, fade);
       this.currentBackdrop = bd;
     }
     if (!isBossWave(n) && this.currentLocation !== loc) {
+      // the stage left behind: free its live textures once it has faded out (the trattoria stays for the menu)
+      const prev = this.currentLocation;
+      if (prev && prev !== 'trattoria') this.time.delayedCall(2600, () => releaseLive(this, prev));
       this.currentLocation = loc;
       audio.music(this, LOCATION_MUSIC[loc], immediate ? 600 : 1800);
       audio.ambience(this, LOCATION_AMBIENCE[loc], immediate ? 800 : 2400);
@@ -2017,6 +2023,9 @@ export class GameScene extends Phaser.Scene implements Arena {
   private openUpgrades(bossReward: boolean, keepCards?: { cards: Upgrade[]; sold: Set<string>; free: string | null; goldenBought?: GoldenItem['id']; lastStand?: boolean }, title?: string): void {
     if (this.over) return;
     this.warmFeet(this.run.wave + 1);
+    // the next stage's backdrop: build its live textures while the shop is up, not as its first wave starts
+    const nextBd = backdropFor(this.run.wave + 1);
+    if (nextBd !== this.currentBackdrop) this.time.delayedCall(500, () => this.inUpgrade && prepareLive(this, nextBd));
     this.inUpgrade = true;
     ui.setPlaying(false);
     audio.duck(0.55);

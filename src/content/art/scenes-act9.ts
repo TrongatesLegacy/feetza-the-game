@@ -6,8 +6,8 @@ import Phaser from 'phaser';
 import { crand } from '../../systems/cosmeticRandom';
 import type { GlowSpot } from '../../art/backdrops';
 import type { BackdropId } from '../../art/backdrops';
-import { type SceneDef, registerScene as registerPainted } from '../../art/registry';
-import { registerLive } from '../../game/liveBackdrop';
+import { type SceneDef, registerLegacyScene, registerScene as registerPainted } from '../../art/registry';
+import { type LiveFactory, registerLegacyLive, registerLive } from '../../game/liveBackdrop';
 
 /** Moving parts of a backdrop that a painted canvas can't do (flickering flames, drifting fog, a boat on a
  * river), and lighting that changes over the stage's 5 waves. */
@@ -20,9 +20,8 @@ interface LiveLayer {
 }
 
 /** Register a painted scene and its live layer (run by src/game/liveBackdrop.ts). */
-function registerScene(id: BackdropId, def: SceneDef & { live(scene: Phaser.Scene, layer: Phaser.GameObjects.Container, wave: number): LiveLayer }): void {
-  registerPainted(id, { info: def.info, draw: def.draw });
-  registerLive(id, (ctx) => {
+function registerScene(id: BackdropId, def: SceneDef & { live(scene: Phaser.Scene, layer: Phaser.GameObjects.Container, wave: number): LiveLayer }, legacy = false): void {
+  const factory: LiveFactory = (ctx) => {
     // everything the live layer adds goes when it does (a rebuilt backdrop used to leave a second ferry behind)
     const before = new Set(ctx.layer.list);
     const l = def.live(ctx.sc, ctx.layer, ctx.wave);
@@ -36,7 +35,15 @@ function registerScene(id: BackdropId, def: SceneDef & { live(scene: Phaser.Scen
         for (const o of added) o.destroy();
       },
     };
-  });
+  };
+  if (legacy) {
+    // redrawn with the location kit (src/content/art/scene-*.ts): the old art stays for the before/after page
+    registerLegacyScene(id, { info: def.info, draw: def.draw });
+    registerLegacyLive(id, factory);
+    return;
+  }
+  registerPainted(id, { info: def.info, draw: def.draw });
+  registerLive(id, factory);
 }
 import {
   type Ctx,
@@ -951,7 +958,8 @@ registerScene('labyrinth', {
 });
 
 // =============================================================================================
-// Tartarus: a basalt cavern over the river Styx. The pit below glows redder with every wave.
+// Tartarus: a basalt cavern over the river Styx. The pit below glows redder with every wave. (The old art: Tartarus
+// is redrawn with the location kit in scene-tartarus.ts; this stays for the before/after page, ?dev&stages.)
 
 const TT = {
   river: { y0: 520, y1: 600 },
@@ -1376,7 +1384,7 @@ registerScene('tartarus', {
   },
   draw: drawTartarus,
   live: liveTartarus,
-});
+}, true);
 
 // =============================================================================================
 // Arena helpers
