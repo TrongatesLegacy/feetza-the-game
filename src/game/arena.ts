@@ -79,6 +79,9 @@ export interface Arena {
   isRetreating(): boolean;
   /** While set, the only regular feet that spawn are these ids (a boss's own kind). null = normal. */
   setMinions(ids: string[] | null): void;
+  /** While on, the wave's own feet stop arriving (and bosses' reinforcements too): only feet a boss spawns itself
+   * come in. Off again with false; it also resets at the end of every wave. */
+  pauseSpawns(on: boolean): void;
   /** Switch a pizza's perk off for `sec` (adds to a freeze already running). */
   freezePerk(p: Pizza, sec: number): void;
 }

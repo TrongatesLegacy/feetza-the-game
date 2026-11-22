@@ -198,6 +198,8 @@ export class GameScene extends Phaser.Scene implements Arena {
   private retreating = false;
   /** While set, the only regular feet that spawn (a boss's own kind). */
   private minionPool: string[] | null = null;
+  /** A boss has stopped the wave's own feet coming in (Arena.pauseSpawns). */
+  private spawnsPaused = false;
   private displayCoins = 0;
   private freeRerollsLeft = 0;
   /** The shop a Continue resumes into (cards, purchases, counter). */
@@ -376,6 +378,9 @@ export class GameScene extends Phaser.Scene implements Arena {
   }
   setMinions(ids: string[] | null): void {
     this.minionPool = ids && ids.length ? ids : null;
+  }
+  pauseSpawns(on: boolean): void {
+    this.spawnsPaused = on;
   }
   freezePerk(p: Pizza, sec: number): void {
     if (p.dead) return;
@@ -624,6 +629,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.lockedPizzas = new Set();
     this.retreating = false;
     this.minionPool = null;
+    this.spawnsPaused = false;
     this.peelStunT = 0;
     this.peelSlowT = 0;
     this.hurryT = 0;
@@ -1008,6 +1014,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.lockedPizzas.clear();
     this.retreat(false);
     this.minionPool = null;
+    this.spawnsPaused = false;
     this.thawPerks();
     this.freeRerollsLeft = this.run.stats.freeRerolls;
     this.abilityWaveStart();
@@ -1561,7 +1568,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (!plan || !this.waveActive) return;
     this.spawnT -= dt;
     const alive = this.aliveFeet().length;
-    if (this.spawnT <= 0 && plan.queue.length && alive < plan.maxAlive && !this.retreating && this.hasFreeLane()) {
+    if (this.spawnT <= 0 && plan.queue.length && alive < plan.maxAlive && !this.retreating && !this.spawnsPaused && this.hasFreeLane()) {
       // a Persian war band (Act 9): called out as it arrives, and it marches in close together
       const band = plan.band;
       const inBand = !!band && plan.queue.length <= band.at && plan.queue.length > band.at - band.size;
@@ -1618,7 +1625,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     const boss = this.bossFoot;
     if (boss && boss.alive) {
       this.bossSummonT -= dt;
-      if (this.bossSummonT <= 0 && alive < plan.maxAlive + 1 && !this.retreating && this.hasFreeLane()) {
+      if (this.bossSummonT <= 0 && alive < plan.maxAlive + 1 && !this.retreating && !this.spawnsPaused && this.hasFreeLane()) {
         this.bossSummonT = boss.brain.summonFast ? 3.2 : 6.5;
         const minion = this.minionPool ? Phaser.Utils.Array.GetRandom(this.minionPool) : (BOSS_MINION[boss.type.id] ?? 'bob');
         const t = this.pickTarget(null);
@@ -1742,6 +1749,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.lockedPizzas.clear();
     this.retreat(false);
     this.minionPool = null;
+    this.spawnsPaused = false;
     this.thawPerks();
     const n = this.run.wave;
     const stage = STAGES[Math.floor((n - 1) / WAVES_PER_STAGE) % STAGES.length];

@@ -231,6 +231,8 @@ const immortalbrute = (): Brain => {
     ],
     upkeep(f, dt, a) {
       start(() => {
+        // while he stands, the only feet that come are his own Immortals
+        a.pauseSpawns(true);
         enterArena(a, 'immortalbrute');
         entrance(a, f, { sfx: 'sfx_immortalbrute_enter', quip: 'NO ONE LEAVES THE PASS.', color: '#e8e4dc', flash: [255, 150, 90], ring: 0xc9c4bc, delay: 400, ms: 800 });
       });
@@ -290,6 +292,7 @@ const immortalbrute = (): Brain => {
     },
     onDeath(f, a) {
       hooked = null;
+      a.pauseSpawns(false);
       bin.flush();
       for (const o of horde) if (o.alive) o.die();
       horde = [];
