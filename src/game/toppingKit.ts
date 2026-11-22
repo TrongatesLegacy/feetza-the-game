@@ -346,8 +346,9 @@ export class ToppingKit {
 
   // ——— events ———
 
-  /** This wave's events (0, 1 or 2), after the event toppings. sighting: the hero sighting chance, rolled first (one a wave at most). */
-  rollEvents(rate: number, sighting = 0): EventId[] {
+  /** This wave's events (0, 1 or 2), after the event toppings. sighting: the hero sighting chance, rolled first (one a wave at most).
+   *  hurt: some pizza is missing slices; without that the delivery drone (a slice) isn't dealt. */
+  rollEvents(rate: number, sighting = 0, hurt = true): EventId[] {
     const st = this.run.stats;
     const k = this.run.kit;
     this.retried.clear();
@@ -356,7 +357,7 @@ export class ToppingKit {
       return [];
     }
     const out: EventId[] = [];
-    if (k.retry) {
+    if (k.retry && !(k.retry === 'drone' && !hurt)) {
       out.push(k.retry);
       this.retried.add(k.retry);
       k.retry = null;
@@ -372,6 +373,8 @@ export class ToppingKit {
       // two events in a wave: never two chests (they'd land on the same spot)
       const box = (x: EventId) => x === 'chest' || x === 'mimic';
       if (box(e) && out.some(box)) e = Phaser.Utils.Array.GetRandom(['balloon', 'drone', 'moth', 'seagull'] as EventId[]);
+      // the delivery drone brings a slice: only when a pizza is missing one (another flyer otherwise)
+      if (e === 'drone' && !hurt) e = Phaser.Utils.Array.GetRandom(['balloon', 'balloon', 'balloon', 'moth', 'moth', 'seagull'] as EventId[]);
       out.push(e);
     }
     return out;

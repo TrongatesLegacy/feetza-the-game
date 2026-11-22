@@ -16,6 +16,8 @@ export type EventId = 'balloon' | 'drone' | 'moth' | 'seagull' | 'chest' | 'mimi
 export interface EventRewards {
   tips(n: number, x: number, y: number): void;
   heal(slices: number): void;
+  /** Some pizza on the table is missing slices (slice rewards only come when one is). */
+  hurt(): boolean;
   slam(frac: number): void;
   /** Golden Crusts, capped per run; returns how many were actually granted. */
   crust(n: number, x: number, y: number): number;
@@ -133,8 +135,14 @@ export function startEvent(a: Arena, id: EventId, rw: EventRewards): void {
         a.sfx('sfx_pop');
         rw.tips(10 + Math.floor(Math.random() * 16), x, y);
       } else if (id === 'drone') {
-        rw.heal(1);
-        a.quip(x, y - 80, 'DELIVERY: +1 SLICE', '#7dff9a', 40);
+        // a slice only when some pizza is missing one (it can be healed back up while the drone flies)
+        if (rw.hurt()) {
+          rw.heal(1);
+          a.quip(x, y - 80, 'DELIVERY: +1 SLICE', '#7dff9a', 40);
+        } else {
+          rw.tips(15, x, y);
+          a.quip(x, y - 80, 'DELIVERY: +15 TIPS', '#ffd23f', 40);
+        }
       } else if (id === 'moth') {
         rw.slam(0.5);
         const m = slamMode();
@@ -213,6 +221,8 @@ function chest(a: Arena, mimic: boolean, rw: EventRewards): void {
       const roll = Math.random();
       if (roll < 0.45) rw.tips(25 + Math.floor(Math.random() * 30), x, y);
       else if (roll < 0.7) rw.consumable();
+      // slices only when some pizza is missing them; otherwise that share of the loot is tips
+      else if (roll < 0.93 && !rw.hurt()) rw.tips(25 + Math.floor(Math.random() * 30), x, y);
       else if (roll < 0.93) {
         rw.heal(2);
         a.quip(x, y - 140, '+2 SLICES', '#7dff9a', 44);

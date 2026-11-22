@@ -1038,7 +1038,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     const boss = isBossWave(n);
     // event toppings change the odds and can bring a second event (Grand Parade, Second Look); Four-Leaf Clover
     // raises the rate; a hero sighting (Hero Hotline makes it likelier) is rolled first
-    const evs = boss || isMiniWave(n) ? [] : this.kit.rollEvents(Math.min(0.9, EVENT_RATE[this.run.heat] * this.perkKit.eventRateMult()), sightingChance(this.run.stats));
+    const evs = boss || isMiniWave(n) ? [] : this.kit.rollEvents(Math.min(0.9, EVENT_RATE[this.run.heat] * this.perkKit.eventRateMult()), sightingChance(this.run.stats), this.alivePizzas().some((p) => p.slices < p.maxSlices));
     // Hero Summit: a sighting every N waves, guaranteed (boss waves included)
     if (!evs.includes('sighting') && !this.run.stats.noEvents && sightingDue(this.run.stats, this.heroT.since)) evs.splice(0, evs.length, 'sighting', ...evs.slice(0, 1));
     this.heroT.since = evs.includes('sighting') ? 0 : this.heroT.since + 1;
@@ -1646,6 +1646,7 @@ export class GameScene extends Phaser.Scene implements Arena {
         this.kit.eventMissed(ev);
         this.tracker.emit('eventMissed', { id: ev });
       },
+      hurt: () => this.alivePizzas().some((p) => p.slices < p.maxSlices),
       heal: (n) => {
         const ps = [...this.alivePizzas()].sort((a, b) => a.slices / a.maxSlices - b.slices / b.maxSlices);
         if (ps[0]) this.healPizza(ps[0], n);
