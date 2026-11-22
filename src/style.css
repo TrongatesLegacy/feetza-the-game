@@ -5918,3 +5918,14 @@ body.reduced-motion *::after {
 .slotswin .slots-choice { display: flex; gap: 0.8em; justify-content: center; margin-top: 0.6em; }
 .slotswin .slots-card { cursor: default; }
 .modal.slotswin { width: min(44em, 94vw); }
+/* steady bulbs (they only chase while the reels spin, and flash on a win), and a name that always fits its sign */
+.offer.slots .bulbs i { animation: none; opacity: 0.8; }
+.offer.slots.spinning .bulbs i { animation: slots-bulb 0.3s steps(1) infinite; }
+.offer.slots.won .bulbs i { animation: slots-bulb 0.5s steps(1) 4; }
+.offer.slots.spinning .bulbs i:nth-child(odd) { animation-delay: 0.15s; }
+.offer.slots .marquee span { font-size: clamp(0.5em, calc(var(--cell) * 0.34), 0.8em); white-space: nowrap; }
+.offer.slots.won .payline { animation-iteration-count: 6; }
+/* the prize list: one line a prize */
+.offer.slots .slots-info { width: max-content; max-width: min(30em, 92vw); }
+.offer.slots .slots-info .sp span:last-child { white-space: nowrap; }
+.offer.slots .slots-info small { max-width: 26em; }

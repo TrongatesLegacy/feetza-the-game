@@ -2,6 +2,7 @@
 // container query units (1em = 1% of the stage width) so it stays crisp at any size.
 
 import { FEET, FOOT_BY_ID, TRAIT_INFO, howToFor, tellFor, type FootType } from '../data/feet';
+import { crand } from '../systems/cosmeticRandom';
 import { META, MILESTONE_BY_PIZZA } from '../data/meta';
 import { PIZZAS, PIZZA_BY_ID, type PizzaRoute, type PizzaType } from '../data/pizzas';
 import { awardMilestones, milestoneProgress } from '../game/Run';
@@ -177,20 +178,9 @@ export interface CounterOffer {
 
 /** The Pizza Slots machine's symbols and what three of each pays. */
 const SLOT_ICON: Record<SlotSymbol, string> = { tips: '🪙', slices: '🍕', slam: '⚡', topping: '🧀', epic: '💎', crust: '🥖', chef: '👨‍🍳' };
-const SLOT_LONG: Partial<Record<SlotSymbol, string>> = {
-  tips: 'Two and a half times the pull in tips',
-  slices: 'Every pizza back to full slices',
-  slam: 'A full Peel Slam meter (or your ability now)',
-  topping: 'A free rare topping',
-  epic: 'A free epic topping (from wave 20, maybe legendary)',
-  crust: '+5 Golden Crusts',
-  chef: "JACKPOT: a Chef's Special on the house",
-};
-const SLOT_PAYS: [SlotSymbol, string][] = [['tips', 'tips ×2.5'], ['slices', 'full slices'], ['slam', 'full slam'], ['topping', 'rare'], ['epic', 'epic'], ['crust', '5 crusts'], ['chef', 'free special']];
-
 function slotsRow(sl: NonNullable<ShopState['slots']>, pull: (pay: 'tips' | 'crusts') => void, take: (c: 'add' | 'sell') => void): HTMLElement {
   const syms = Object.keys(SLOT_ICON) as SlotSymbol[];
-  const rnd = () => syms[Math.floor(Math.random() * syms.length)];
+  const rnd = () => syms[Math.floor(crand() * syms.length)];
   const res = sl.result;
   const spinning = !!res?.fresh;
   const won = !!res?.win && !res.fresh;
@@ -231,15 +221,15 @@ function slotsRow(sl: NonNullable<ShopState['slots']>, pull: (pay: 'tips' | 'cru
     crusts.disabled = !sl.canCrusts;
     b = h('div', { class: 'pulls' }, tips, crusts);
   }
-  const headline = res && !res.fresh ? (res.win ? res.prize : 'So close. Back next shop') : 'Three of a kind on the line wins';
+  const headline = res && !res.fresh ? (res.win ? res.prize : 'So close! Not this time') : 'Three of a kind on the line wins';
   const sub = sl.used ? 'One pull a shop' : 'One pull a shop · tap ? for the prizes';
   // the prize list sits behind a [?] button
   const info = h(
     'div',
     { class: 'slots-info', role: 'dialog', 'aria-label': 'Pizza Slots prizes' },
     h('b', {}, 'THREE OF A KIND ON THE LINE WINS'),
-    ...SLOT_PAYS.map(([k, t]) => h('div', { class: 'sp' }, h('span', {}, `${SLOT_ICON[k]}${SLOT_ICON[k]}${SLOT_ICON[k]}`), h('span', {}, SLOT_LONG[k] ?? t))),
-    h('small', {}, 'Only the middle row counts. A prize that would do nothing pays your tips back.'),
+    ...sl.pays.map(([k, t]) => h('div', { class: 'sp' }, h('span', { class: 'sp-ic' }, `${SLOT_ICON[k]}${SLOT_ICON[k]}${SLOT_ICON[k]}`), h('span', {}, t))),
+    h('small', {}, 'Only the middle row counts · this machine’s prizes change each shop · a prize that would do nothing pays you back'),
   );
   const q = h('button', { class: 'slots-q', type: 'button', 'aria-label': 'What can Pizza Slots win?', 'aria-expanded': 'false' }, '?');
   const row = h(
