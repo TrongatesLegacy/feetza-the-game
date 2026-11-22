@@ -648,6 +648,9 @@ export class Foot {
   }
 
   /** Dev views: crop the leg so it ends at local y `top` (above the foot) instead of running off screen. */
+  /** Keep the still art whatever the graphics setting (a dev view's still column). */
+  forceStill = false;
+
   /** Set once a dev view crops the leg (cropLeg): things hung from above stop at the crop instead. */
   legCropped = false;
 

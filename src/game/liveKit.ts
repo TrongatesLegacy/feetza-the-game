@@ -1068,7 +1068,7 @@ export function styleLive(f: Foot, dt: number): void {
     const def = defs[f.type.id];
     const style = styleFor(f.type.id);
     // animation off (graphics settings): the foot keeps its still art, decided once when it first ticks
-    st = def && style && !f.liveHost && feetAnimated() ? new LiveFoot(f, def, style) : null;
+    st = def && style && !f.liveHost && feetAnimated() && !f.forceStill ? new LiveFoot(f, def, style) : null;
     if (def && style && !st && !f.liveHost) stillGlow(f, def);
     lives.set(f, st);
     if (st) {

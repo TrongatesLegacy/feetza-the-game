@@ -1,12 +1,12 @@
 // Dev-only style sheet for the feet redesign (the style kit in src/art/style, the live kit in src/game/liveKit.ts):
 // the one light, the line, the palette, the shared anatomy and its rig band, every material, and each redrawn foot
-// next to its old art, alive (the real Foot and live kit, puppeted through hover, wind-up, dive, stomp and lift).
+// next to its still art, alive (the real Foot and live kit, puppeted through hover, wind-up, dive, stomp and lift).
 // Open it with the floating "🦶 Style" button or ?dev&style.
 
 import Phaser from 'phaser';
 import { overrideFeetAnim } from './systems/graphics';
 import { CX } from './art/feetCommon';
-import { FOOT_FRAME, drawFoot, footRes, resolvedLeg } from './art/feetArt';
+import { FOOT_FRAME, drawFoot, resolvedLeg } from './art/feetArt';
 import { bareParts, cleft, restToes } from './art/style/anatomy';
 import { LIGHT, STYLE, pose } from './art/style/kit';
 import { MATERIALS, type MaterialId, paint } from './art/style/materials';
@@ -314,12 +314,13 @@ class Showcase extends Phaser.Scene {
     layer.add(shadowL);
     const off = (e.w * 0.23) / k;
     let old: Foot | undefined;
-    if (e.styled) {
-      keys.push(...registerMeta(this, `classic_${e.id}`, type, true));
-      old = new Foot(this, layer, shadowL, { ...type, id: `classic_${e.id}` }, -off, { hpMult: 1, speedMult: 1, elite: e.ctl.fx.has('elite'), hooks: HOOKS });
-    }
     keys.push(...registerMeta(this, e.id, type, false));
-    const neu = new Foot(this, layer, shadowL, type, e.styled ? off : 0, { hpMult: 1, speedMult: 1, elite: ELITE || e.ctl.fx.has('elite'), hooks: HOOKS });
+    // left: the foot as the game shows it with Animated feet off (its still art); right: alive
+    if (e.styled || IMMORTAL_LIVE[e.id]) {
+      old = new Foot(this, layer, shadowL, type, -off, { hpMult: 1, speedMult: 1, elite: ELITE || e.ctl.fx.has('elite'), hooks: HOOKS });
+      old.forceStill = true;
+    }
+    const neu = new Foot(this, layer, shadowL, type, old ? off : 0, { hpMult: 1, speedMult: 1, elite: ELITE || e.ctl.fx.has('elite'), hooks: HOOKS });
     for (const f of [old, neu]) {
       if (!f) continue;
       f.puppet = true;
@@ -328,7 +329,7 @@ class Showcase extends Phaser.Scene {
       if (e.ctl.fx.has('aura')) f.setPhaseAura(0xff2a2a);
       f.cropLeg(((e.y + 4 - layer.y) / k - f.root.y) / f.root.scaleY);
     }
-    const label = this.add.text(e.x + e.w / 2, e.y + e.h - 30, e.styled ? 'old  ·  new' : IMMORTAL_LIVE[e.id] ? 'own live art' : 'unchanged', { fontFamily: 'Fredoka, system-ui, sans-serif', fontSize: '15px', color: '#ffe9c7' }).setOrigin(0.5, 0).setAlpha(0.55).setDepth(-e.y + 0.5);
+    const label = this.add.text(e.x + e.w / 2, e.y + e.h - 30, old ? 'still  ·  animated' : 'not redrawn', { fontFamily: 'Fredoka, system-ui, sans-serif', fontSize: '15px', color: '#ffe9c7' }).setOrigin(0.5, 0).setAlpha(0.55).setDepth(-e.y + 0.5);
     e.pair = { old, neu, t: e.ctl.move === 'loop' ? (e.y * 0.0013 + e.x * 0.002) % 3.6 : e.ctl.to, restT: e.ctl.move === 'loop' ? undefined : 0, layer, label, keys };
   }
 
@@ -375,7 +376,6 @@ class Showcase extends Phaser.Scene {
     for (const key of p.keys) if (this.textures.exists(key)) this.textures.remove(key);
     // the live layers' textures too (the next visit builds them again)
     for (const key of this.textures.getTextureKeys()) if (/^(body|band|glow|heat|p_.+)$/.test(key.slice(`lk_${e.id}_`.length)) && key.startsWith(`lk_${e.id}_`)) this.textures.remove(key);
-    delete footMeta[`classic_${e.id}`];
     e.pair = undefined;
   }
 
@@ -535,7 +535,7 @@ const SHEET_CSS = `
 .ss-canvas{position:absolute;left:0;pointer-events:none;z-index:2}
 .ss-jump{display:flex;gap:6px;flex-wrap:wrap;padding:8px 16px;background:#3a2418;position:relative;z-index:3}
 .ss-jump button{background:#5a3a28;color:#ffe9c7;border:0;border-radius:8px;padding:5px 10px;font:600 13px Fredoka,system-ui,sans-serif;cursor:pointer}
-.ss-jump button:hover{background:#7a4a30}
+.ss-jump button:hover{background:#7a4a30}.ss-jump button.on{background:#ff8a1a;color:#2a1810}
 .ss-act{margin:26px 0 4px;font-size:24px;border-bottom:3px solid #2a181033;padding-bottom:4px}
 .ss-grp{margin:12px 0 8px;font-size:16px;opacity:.8}
 .ss-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
@@ -575,22 +575,21 @@ export function installStyleSheet(): void {
     const all = gs.flatMap((g) => g.ids);
     const nBoss = all.filter((id) => FOOT_BY_ID[id].boss).length;
     const nMini = all.filter((id) => FOOT_BY_ID[id].mini).length;
-    const nStyled = all.filter((id) => styleFor(id)).length;
     const acts = [...new Set(gs.map((g) => g.act))];
     const wrap = document.createElement('div');
     wrap.className = 'ss-wrap';
-    wrap.innerHTML = `<div class="ss-head"><h2>🦶 Feet: before and after</h2><span>${all.length} feet · ${all.length - nBoss - nMini} regular · ${nBoss} bosses · ${nMini} mini-bosses · ${nStyled} redrawn · ${all.length - nStyled} unchanged · textures ${footRes(FOOT_BY_ID.bob)}× (old 1.35×)</span><span class="sp"></span><button class="ss-btn alt" data-bosses>👑 Bosses only</button><button class="ss-btn" data-heat>🔥 Overheat bosses</button><button class="ss-btn alt" data-still>🖼 Still feet</button><button class="ss-btn alt" data-x>✕ Close</button></div>
+    wrap.innerHTML = `<div class="ss-head"><h2>🦶 Feet: still and animated</h2><span>${all.length} feet · ${all.length - nBoss - nMini} regular · ${nBoss} bosses · ${nMini} mini-bosses</span><span class="sp"></span><button class="ss-btn alt" data-bosses>👑 Bosses only</button><button class="ss-btn" data-heat>🔥 Overheat bosses</button><button class="ss-btn alt" data-x>✕ Close</button></div>
       <div class="ss-jump">${acts.map((a) => `<button data-act="${a}">Act ${a}</button>`).join('')}<button data-act="rules">Rules &amp; materials</button><button data-act="thumbs">Peels &amp; portraits</button></div>
       <div class="ss-scroll"><div class="ss-body">
-        <p>Every foot, boss and mini-boss in the game: its old art on the left, the redrawn one on the right, both the real Foot and live kit, puppeted through a hover (swaying), the wind-up, the dive, the stomp and the lift. Particles stay in the world, so a moving foot trails them. Only the cards on screen run. The buttons under each card play one move at a time (or loop them), a hit, a death or an escape, and toggle its effects: stunned, frozen, slowed, burning, elite, shiny, overheat and a phase aura.</p>
+        <p>Every foot, boss and mini-boss in the game: its still art on the left (what the game shows with Animated feet off), alive on the right, both the real Foot and live kit, puppeted through a hover (swaying), the wind-up, the dive, the stomp and the lift. Particles stay in the world, so a moving foot trails them. Only the cards on screen run. The buttons under each card play one move at a time (or loop them), a hit, a death or an escape, and toggle its effects: stunned, frozen, slowed, burning, elite, shiny, overheat and a phase aura.</p>
         <div data-groups></div>
-        <h3 data-sec="thumbs">Where the art shows outside play</h3><p>Peel thumbnails (the foot's own art, trimmed to fit the emblem), shiny peels, and the Pizzapedia portrait.</p>
-        <div class="ss-row" data-thumbs></div>
-        <h3 data-sec="rules">The rules</h3><p>One silhouette per foot (a union of parts with one outline); materials, not flat fills; one light for the whole game; detail painted inside the silhouette; constant subtle life.</p>
+        <div class="ss-sec" data-tab="thumbs"><h3 data-sec="thumbs">Where the art shows outside play</h3><p>Peel thumbnails (the foot's own art, trimmed to fit the emblem), shiny peels, and the Pizzapedia portrait.</p>
+        <div class="ss-row" data-thumbs></div></div>
+        <div class="ss-sec" data-tab="rules"><h3 data-sec="rules">The rules</h3><p>One silhouette per foot (a union of parts with one outline); materials, not flat fills; one light for the whole game; detail painted inside the silhouette; constant subtle life.</p>
         <div class="ss-row" data-rules></div>
         <h3>Palette</h3><div data-palette></div>
         <h3>Materials</h3><p>Each sets a ramp, a shadow tint, a texture, a specular response and a rim (src/art/style/materials.ts).</p>
-        <div class="ss-row" data-mats></div>
+        <div class="ss-row" data-mats></div></div>
       <canvas class="ss-canvas"></canvas></div></div>`;
     document.body.appendChild(wrap);
     wrap.querySelector('[data-x]')!.addEventListener('click', close);
@@ -602,11 +601,15 @@ export function installStyleSheet(): void {
     const host = wrap.querySelector('[data-groups]')!;
     const entries: Entry[] = [];
     for (const a of acts) {
+      const actSec = document.createElement('div');
+      actSec.className = 'ss-sec';
+      actSec.dataset.tab = String(a);
+      host.append(actSec);
       const h = document.createElement('h3');
       h.className = 'ss-act';
       h.dataset.sec = String(a);
       h.textContent = actLabel(a);
-      host.append(h);
+      actSec.append(h);
       for (const g of gs.filter((x) => x.act === a)) {
         const sec = document.createElement('div');
         sec.className = g.bossy ? 'ss-bosses' : 'ss-feet';
@@ -629,7 +632,7 @@ export function installStyleSheet(): void {
           entries.push(ent);
         }
         sec.append(gh, grid);
-        host.append(sec);
+        actSec.append(sec);
       }
     }
     // thumbnails, made as they scroll into view
@@ -697,25 +700,36 @@ export function installStyleSheet(): void {
     addEventListener('resize', onResize);
     // fonts and thumbnails can shift the layout after the first pass
     setTimeout(relayout, 1200);
+    // tabs: one act (or the rules, or the peels) at a time; only its cards are made
+    const showTab = (t: string) => {
+      for (const el of wrap.querySelectorAll<HTMLElement>('.ss-sec')) el.hidden = el.dataset.tab !== t;
+      for (const b of wrap.querySelectorAll<HTMLElement>('.ss-jump button')) b.classList.toggle('on', b.dataset.act === t);
+      scroller.scrollTop = 0;
+      try {
+        localStorage.setItem('feetza.styleTab', t);
+      } catch {
+        /* private mode */
+      }
+      relayout();
+    };
     wrap.querySelector('.ss-jump')!.addEventListener('click', (ev) => {
-      const a = (ev.target as HTMLElement).dataset.act;
-      if (!a) return;
-      const el = wrap.querySelector(`[data-sec="${a}"]`) as HTMLElement | null;
-      if (el) scroller.scrollTo({ top: el.offsetTop - 8, behavior: 'smooth' });
+      const a = (ev.target as HTMLElement).closest('button')?.dataset.act;
+      if (a) showTab(a);
     });
+    let firstTab = String(acts[0]);
+    try {
+      const t = localStorage.getItem('feetza.styleTab');
+      if (t && wrap.querySelector(`.ss-sec[data-tab="${t}"]`)) firstTab = t;
+    } catch {
+      /* private mode */
+    }
+    showTab(firstTab);
     wrap.querySelector('[data-heat]')!.addEventListener('click', (e) => {
       const sc = game?.scene.getScene('StyleShowcase') as Showcase | undefined;
       if (!sc) return;
       sc.heat = !sc.heat;
       (e.target as HTMLElement).classList.toggle('on', sc.heat);
     });
-    // still feet: what the game shows with Animated feet off (graphics settings)
-    wrap.querySelector('[data-still]')!.addEventListener('click', (e) => {
-      const on = (e.target as HTMLElement).classList.toggle('on');
-      overrideFeetAnim(on ? false : null);
-      relayout();
-    });
-    if (new URLSearchParams(location.search).has('still')) (wrap.querySelector('[data-still]') as HTMLElement).click();
     wrap.querySelector('[data-bosses]')!.addEventListener('click', (e) => {
       const on = wrap.classList.toggle('bossonly');
       (e.target as HTMLElement).classList.toggle('on', on);

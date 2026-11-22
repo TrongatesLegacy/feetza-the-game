@@ -373,7 +373,7 @@ const bodyFrame = (k: number) => {
 const still = new WeakSet<Foot>();
 const isStill = (f: Foot): boolean => {
   if (still.has(f)) return true;
-  if (immortals.has(f) || brutes.has(f) || feetAnimated()) return false;
+  if (immortals.has(f) || brutes.has(f) || (feetAnimated() && !f.forceStill)) return false;
   still.add(f);
   return true;
 };
