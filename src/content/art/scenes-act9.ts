@@ -3,6 +3,7 @@
 // live layer (flames, fog, the Styx, Charon's boat) whose lighting moves across the stage's 5 waves.
 
 import Phaser from 'phaser';
+import { crand } from '../../systems/cosmeticRandom';
 import type { GlowSpot } from '../../art/backdrops';
 import type { BackdropId } from '../../art/backdrops';
 import { type SceneDef, registerScene as registerPainted } from '../../art/registry';
@@ -22,12 +23,18 @@ interface LiveLayer {
 function registerScene(id: BackdropId, def: SceneDef & { live(scene: Phaser.Scene, layer: Phaser.GameObjects.Container, wave: number): LiveLayer }): void {
   registerPainted(id, { info: def.info, draw: def.draw });
   registerLive(id, (ctx) => {
+    // everything the live layer adds goes when it does (a rebuilt backdrop used to leave a second ferry behind)
+    const before = new Set(ctx.layer.list);
     const l = def.live(ctx.sc, ctx.layer, ctx.wave);
+    const added = ctx.layer.list.filter((o) => !before.has(o));
     let t = 0;
     return {
       setWave: (w) => l.setWave?.(w),
       update: (dt) => l.update(dt, (t += dt)),
-      destroy: () => l.destroy(),
+      destroy: () => {
+        l.destroy();
+        for (const o of added) o.destroy();
+      },
     };
   });
 }
@@ -639,7 +646,7 @@ function fires(scene: Phaser.Scene, layer: Phaser.GameObjects.Container, key: st
   const list: Fire[] = spots.map((s, i) => {
     const img = scene.add.image(s.x, s.y, key).setOrigin(0.5, 0.97).setBlendMode(Phaser.BlendModes.ADD).setScale(s.s);
     layer.add(img);
-    return { img, base: s.s, seed: i * 1.7 + Math.random() * 3 };
+    return { img, base: s.s, seed: i * 1.7 + crand() * 3 };
   });
   return {
     tick(t, level) {
@@ -676,9 +683,9 @@ function fogDrift(scene: Phaser.Scene, layer: Phaser.GameObjects.Container, y: n
     c.restore();
   });
   const puffs = Array.from({ length: n }, () => {
-    const img = scene.add.image(Math.random() * (W + 600) - 300, y + (Math.random() - 0.5) * h, key).setTint(color).setScale(2.5 + Math.random() * 2.5, 1.2 + Math.random()).setAlpha(alpha);
+    const img = scene.add.image(crand() * (W + 600) - 300, y + (crand() - 0.5) * h, key).setTint(color).setScale(2.5 + crand() * 2.5, 1.2 + crand()).setAlpha(alpha);
     layer.add(img);
-    return { img, v: speed * (0.6 + Math.random() * 0.8), a: 0.5 + Math.random() * 0.5 };
+    return { img, v: speed * (0.6 + crand() * 0.8), a: 0.5 + crand() * 0.5 };
   });
   return {
     tick(dt, a) {
@@ -898,11 +905,11 @@ function liveLabyrinth(scene: Phaser.Scene, layer: Phaser.GameObjects.Container,
     const { left, right } = LB;
     const skyTop = (x: number) => Math.min(190, x < left.xf ? left.ytn + ((x - left.xn) * (left.ytf - left.ytn)) / (left.xf - left.xn) : x > right.xf ? right.ytn + ((x - right.xn) * (right.ytf - right.ytn)) / (right.xf - right.xn) : 190) - 14;
     for (let i = 0; i < 260; i++) {
-      const x = Math.random() * 1920;
-      const y = Math.random() * 220;
+      const x = crand() * 1920;
+      const y = crand() * 220;
       if (y > skyTop(x)) continue;
-      c.fillStyle = `rgba(255,250,230,${0.3 + Math.random() * 0.7})`;
-      const s = Math.random() < 0.1 ? 3 : 1.6;
+      c.fillStyle = `rgba(255,250,230,${0.3 + crand() * 0.7})`;
+      const s = crand() < 0.1 ? 3 : 1.6;
       c.fillRect(x, y, s, s);
     }
   });
@@ -950,6 +957,8 @@ const TT = {
   river: { y0: 520, y1: 600 },
   pit: { x: 960, y: 380 },
   boat: { y: 548 },
+  /** The top of the jetty's deck (the ferry passes behind it). */
+  jetty: 586,
   braziers: [
     { x: 250, y: 700, s: 1 },
     { x: 1670, y: 700, s: 1 },
@@ -1306,12 +1315,30 @@ function liveTartarus(scene: Phaser.Scene, layer: Phaser.GameObjects.Container, 
   const boat = scene.add.image(-200, TT.boat.y, ferryTex(scene)).setScale(0.62).setAlpha(0.95);
   layer.add(boat);
   const lantern = pulse(scene, layer, [{ x: 0, y: 0, r: 70, color: 0x9affd8 }])[0];
+  // the ferry is on the river, behind the foreground: hidden where the chained columns and the jetty stand in front
+  const clip = scene.make.graphics({}, false);
+  clip.fillStyle(0xffffff);
+  const cols = TT.pillars.map((p) => [p.x - p.w / 2 - 6, p.x + p.w / 2 + 6] as const).sort((a, b) => a[0] - b[0]);
+  let from = 0;
+  for (const [a, b] of [...cols, [W, W] as const]) {
+    if (a > from) clip.fillRect(from, 300, a - from, TT.jetty - 300);
+    from = b;
+  }
+  // below the jetty's top only the open water either side of it
+  from = 0;
+  for (const [a, b] of [...cols, [VX - 112, VX + 112] as const, [W, W] as const].sort((p, q) => p[0] - q[0])) {
+    if (a > from) clip.fillRect(from, TT.jetty, a - from, 700 - TT.jetty);
+    from = Math.max(from, b);
+  }
+  const mask = clip.createGeometryMask();
+  boat.setMask(mask);
+  lantern.setMask(mask);
   const souls = fogDrift(scene, layer, (TT.river.y0 + TT.river.y1) / 2, 40, 8, 0x8affe0, 0.16, -18);
   const fl = fires(scene, layer, flameTex(scene, 'live9_soulfire', '#1a6aff', '#4fb8ff', '#e8fbff'), TT.braziers.map((b) => ({ x: b.x, y: b.y - 92 * b.s, s: 1.05 * b.s })));
   const halos = pulse(scene, layer, TT.braziers.map((b) => ({ x: b.x, y: b.y - 120, r: 240, color: 0x4fb8ff })));
   let k = waveK(wave);
   let shown = k;
-  let bx = 200 + Math.random() * 800;
+  let bx = 200 + crand() * 800;
   return {
     setWave: (w) => (k = waveK(w)),
     update(dt, t) {
@@ -1329,7 +1356,12 @@ function liveTartarus(scene: Phaser.Scene, layer: Phaser.GameObjects.Container, 
       fl.tick(t, 1);
       halos.forEach((h, i) => h.setAlpha(0.35 + Math.sin(t * 7 + i * 3) * 0.08));
     },
-    destroy() {},
+    destroy() {
+      boat.clearMask();
+      lantern.clearMask();
+      mask.destroy();
+      clip.destroy();
+    },
   };
 }
 
