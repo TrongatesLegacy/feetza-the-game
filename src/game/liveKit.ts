@@ -71,8 +71,10 @@ function liveTextures(sc: Phaser.Scene, type: FootType, def: LiveDef): LiveTex {
   if (!sc.textures.exists(out.body)) {
     const body = styledCanvas(type, pose({}), { live: true });
     if (st.rig) {
+      // the canvas comes back with its design transform still set: clear in texture pixels
       const ctx = body.getContext('2d')!;
-      ctx.clearRect(0, (st.rig.to + FOOT_FRAME.padY) * s, body.width, body.height);
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, Math.floor((st.rig.to + FOOT_FRAME.padY) * s), body.width, body.height);
     }
     addTex(sc, out.body, body);
   }
@@ -119,6 +121,7 @@ function liveTextures(sc: Phaser.Scene, type: FootType, def: LiveDef): LiveTex {
   const offBand = (c: HTMLCanvasElement) => {
     if (!st.rig) return c;
     const ctx = c.getContext('2d')!;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalCompositeOperation = 'destination-out';
     const y0 = (st.rig.from + FOOT_FRAME.padY) * s;
     const y1 = (st.rig.to + FOOT_FRAME.padY) * s;

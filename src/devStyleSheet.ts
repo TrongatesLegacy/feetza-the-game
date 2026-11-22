@@ -9,7 +9,8 @@ import { FOOT_FRAME, drawFoot, footRes } from './art/feetArt';
 import { bareParts, cleft, restToes } from './art/style/anatomy';
 import { LIGHT, STYLE, pose } from './art/style/kit';
 import { MATERIALS, type MaterialId, paint } from './art/style/materials';
-import { styleFor, styledIds } from './art/style/registry';
+import { styleDef as styleFor, styledIds } from './art/style/registry';
+import { actOf } from './data/stages';
 import { makeCanvas, rgba } from './art/util';
 import { FOOT_BY_ID, type FootType } from './data/feet';
 import { type FootMeta, footMeta, footPortraitURL } from './game/assets';
@@ -220,13 +221,18 @@ function registerMeta(sc: Phaser.Scene, key: string, type: FootType, classic: bo
 class Showcase extends Phaser.Scene {
   pairs: Pair[] = [];
   heat = false;
+  ids: string[] = [];
   constructor() {
     super('StyleShowcase');
+  }
+  init(d: { ids: string[]; heat: boolean }): void {
+    this.ids = d.ids;
+    this.heat = d.heat;
   }
   create(): void {
     const sprites = buildSprites();
     if (!this.textures.exists('shadow')) this.textures.addCanvas('shadow', sprites.shadow);
-    const ids = styledIds();
+    const ids = this.ids;
     const cols = 4;
     const cw = 1600 / cols;
     ids.forEach((id, i) => {
@@ -237,7 +243,7 @@ class Showcase extends Phaser.Scene {
       const col = i % cols;
       const row = Math.floor(i / cols);
       // each pair in its own layer, scaled so bosses fit beside regular feet
-      const k = 0.62 / type.scale;
+      const k = 0.54 / type.scale;
       const layer = this.add.container(col * cw + cw / 2, row * 380 + 200).setScale(k);
       // each pair stays in its own cell (legs are long)
       const m = this.make.graphics({}, false);
@@ -247,8 +253,8 @@ class Showcase extends Phaser.Scene {
       cell.lineStyle(2, 0xffffff, 0.08).strokeRoundedRect(col * cw + 4, row * 380 + 4, cw - 8, 372, 10);
       const shadowL = this.add.container(0, 0);
       layer.add(shadowL);
-      const old = new Foot(this, layer, shadowL, { ...type, id: `classic_${id}` }, -cw * 0.24 / k, { hpMult: 1, speedMult: 1, elite: false, hooks: HOOKS });
-      const neu = new Foot(this, layer, shadowL, type, cw * 0.24 / k, { hpMult: 1, speedMult: 1, elite: false, hooks: HOOKS });
+      const old = new Foot(this, layer, shadowL, { ...type, id: `classic_${id}` }, -cw * 0.22 / k, { hpMult: 1, speedMult: 1, elite: false, hooks: HOOKS });
+      const neu = new Foot(this, layer, shadowL, type, cw * 0.22 / k, { hpMult: 1, speedMult: 1, elite: false, hooks: HOOKS });
       for (const f of [old, neu]) {
         f.puppet = true;
         f.setState('hover');
@@ -262,7 +268,7 @@ class Showcase extends Phaser.Scene {
     for (const p of this.pairs) {
       p.t = (p.t + dt) % 3.6;
       for (const f of [p.old, p.neu]) {
-        const x0 = f === p.old ? -400 * 0.24 / p.layer.scaleX : 400 * 0.24 / p.layer.scaleX;
+        const x0 = f === p.old ? -400 * 0.22 / p.layer.scaleX : 400 * 0.22 / p.layer.scaleX;
         // the cycle: hover (swaying), wind up, dive, stomp, lift
         const t = p.t;
         const hy = 0;
@@ -302,15 +308,47 @@ class Showcase extends Phaser.Scene {
   }
 }
 
-let game: Phaser.Game | null = null;
+/** The showcase games running now: one per group section, only while it's on screen. */
+const games = new Map<HTMLElement, Phaser.Game>();
+let heatOn = false;
+
+/** Groups of styled feet for the sheet: by act, bosses and mini-bosses apart. */
+function groups(): [string, string[]][] {
+  const out = new Map<string, string[]>();
+  const ids = styledIds().filter((id) => FOOT_BY_ID[id]);
+  ids.sort((a, b) => FOOT_BY_ID[a].minWave - FOOT_BY_ID[b].minWave);
+  for (const id of ids) {
+    const t = FOOT_BY_ID[id];
+    const key = `Act ${actOf(Math.max(1, t.minWave))} · ${t.boss || t.mini ? 'bosses and mini-bosses' : 'feet'}`;
+    if (!out.has(key)) out.set(key, []);
+    out.get(key)!.push(id);
+  }
+  return [...out.entries()];
+}
+
+function startGame(stage: HTMLElement, ids: string[]): void {
+  if (games.has(stage)) return;
+  const rows = Math.ceil(ids.length / 4);
+  const g = new Phaser.Game({ type: Phaser.AUTO, parent: stage, width: 1600, height: rows * 380 + 20, backgroundColor: '#2a1d30', scene: [], audio: { noAudio: true }, banner: false });
+  g.scene.add('StyleShowcase', Showcase, true, { ids, heat: heatOn });
+  games.set(stage, g);
+  (window as unknown as { __styleGame?: Phaser.Game }).__styleGame = g;
+}
+
+function stopGame(stage: HTMLElement): void {
+  games.get(stage)?.destroy(true);
+  games.delete(stage);
+}
+
+let io: IntersectionObserver | null = null;
 
 export function installStyleSheet(): void {
   const style = document.createElement('style');
   style.textContent = CSS;
   document.head.appendChild(style);
   const close = () => {
-    game?.destroy(true);
-    game = null;
+    io?.disconnect();
+    for (const st of [...games.keys()]) stopGame(st);
     document.querySelector('.ss-wrap')?.remove();
   };
   const open = async () => {
@@ -321,7 +359,7 @@ export function installStyleSheet(): void {
     wrap.innerHTML = `<div class="ss-head"><h2>🦶 Foot style sheet</h2><span>${styledIds().length} feet redrawn · textures at ${footRes(FOOT_BY_ID.bob)}× (old ${1.35}×)</span><span class="sp"></span><button class="ss-btn" data-heat>🔥 Overheat bosses</button><button class="ss-btn alt" data-x>✕ Close</button></div>
       <div class="ss-body">
         <h3>Alive: old and new, side by side</h3><p>The real feet and live kit, puppeted through a hover (swaying), the wind-up, the dive, the stomp and the lift. Particles stay in the world, so a moving foot trails them.</p>
-        <div class="ss-stage" data-stage></div>
+        <div data-groups></div>
         <h3>Where the art shows outside play</h3><p>Peel thumbnails (the foot's own art, trimmed to fit the emblem), shiny peels, and the Pizzapedia portrait.</p>
         <div class="ss-row" data-thumbs></div>
         <h3>The rules</h3><p>One silhouette per foot (a union of parts with one outline); materials, not flat fills; one light for the whole game; detail painted inside the silhouette; constant subtle life.</p>
@@ -355,14 +393,33 @@ export function installStyleSheet(): void {
       d.append(por);
       thumbs.append(card(t.name, 'peel · shiny peel · Pizzapedia', d));
     }
-    const rows = Math.ceil(styledIds().length / 4);
-    const stage = wrap.querySelector<HTMLElement>('[data-stage]')!;
-    game = new Phaser.Game({ type: Phaser.AUTO, parent: stage, width: 1600, height: rows * 380 + 20, backgroundColor: '#2a1d30', scene: [Showcase], audio: { noAudio: true }, banner: false });
+    // a section per group; each runs its own showcase only while it's on screen (lazy: hundreds of feet later)
+    const host = wrap.querySelector('[data-groups]')!;
+    io = new IntersectionObserver((es) => {
+      for (const e of es) {
+        const el = e.target as HTMLElement;
+        if (e.isIntersecting) startGame(el, (el.dataset.ids ?? '').split(','));
+        else stopGame(el);
+      }
+    }, { root: wrap, rootMargin: '200px' });
+    for (const [title, ids] of groups()) {
+      const h = document.createElement('h3');
+      h.textContent = `${title} (${ids.length})`;
+      const stage = document.createElement('div');
+      stage.className = 'ss-stage';
+      stage.dataset.ids = ids.join(',');
+      // reserve the stage's height so scrolling is stable before it renders
+      stage.style.aspectRatio = `1600 / ${Math.ceil(ids.length / 4) * 380 + 20}`;
+      host.append(h, stage);
+      io.observe(stage);
+    }
     wrap.querySelector('[data-heat]')!.addEventListener('click', (e) => {
-      const sc = game?.scene.getScene('StyleShowcase') as Showcase | undefined;
-      if (!sc) return;
-      sc.heat = !sc.heat;
-      (e.target as HTMLElement).classList.toggle('on', sc.heat);
+      heatOn = !heatOn;
+      for (const g of games.values()) {
+        const sc = g.scene.getScene('StyleShowcase') as Showcase | undefined;
+        if (sc) sc.heat = heatOn;
+      }
+      (e.target as HTMLElement).classList.toggle('on', heatOn);
     });
   };
   const add = () => {

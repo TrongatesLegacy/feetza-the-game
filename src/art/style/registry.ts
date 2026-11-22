@@ -47,11 +47,26 @@ export interface StyleDef {
 
 const styles: Record<string, StyleDef> = {};
 
+/** Dev: ?dev&legacyFeet plays the whole game with every foot's old art (the old drawers stay in place: a style
+ * only takes over drawFoot while one is registered and this is off). */
+let legacy = typeof location !== 'undefined' && import.meta.env?.DEV && new URLSearchParams(location.search).has('legacyFeet');
+
+/** Dev: switch the legacy art on or off (textures already made keep their art until they're made again). */
+export function useLegacyArt(on: boolean): void {
+  legacy = on;
+}
+
 export function registerStyle(id: string, d: StyleDef): void {
   styles[id] = d;
 }
 
+/** The style a foot is drawn and animated with in play (none in legacy mode). */
 export function styleFor(id: string): StyleDef | undefined {
+  return legacy ? undefined : styles[id];
+}
+
+/** A foot's registered style whatever the mode (the style sheet). */
+export function styleDef(id: string): StyleDef | undefined {
   return styles[id];
 }
 

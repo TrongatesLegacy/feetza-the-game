@@ -1247,6 +1247,8 @@ export function styledCanvas(type: FootType, p: Pose, o: DrawOpts, band?: { y0: 
   ctx.scale(s, s);
   ctx.translate(PAD_X, -y0);
   st.draw(ctx, type.art, p, o);
+  // hand the canvas back in plain texture pixels (callers cut and fade it)
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   if (!band && st.leg?.join === 'blend') fadeFootTop(c, s, PAD_Y, st.leg.fade ?? 22);
   return c;
 }
