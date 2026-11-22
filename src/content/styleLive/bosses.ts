@@ -6,6 +6,8 @@ import { CX } from '../../art/feetCommon';
 import { type LiveFoot, type WorldEmitter, registerLive } from '../../game/liveKit';
 import { crand } from '../../systems/cosmeticRandom';
 import { BIG_LOCKS } from '../style/bosses';
+import { drawFly } from '../style/pilot-bare';
+import { JELLY_TENTS } from '../style/bosses-4';
 import { PENNANT, TICKET, drawSaucer } from '../style/bosses-3';
 import { CROC_HOLES_LIVE, CROC_NOZZLES, KELP, RINK_WHEELS, YETI_TUFTS } from '../style/bosses-2';
 
@@ -450,5 +452,137 @@ registerLive('doughboy', {
     });
     landDust(k, flour, 20, [0xffffff, 0xfff8ea], 258, 110);
     overheat(k, steam, dt, [CX - 90, 20, 180, 220]);
+  },
+});
+
+// THE PIGEON KING: struts (a bobbing swing), feathers drift off its ruff, it puffs up before it swoops (the wind-up
+// stretch) and a landing throws a flurry of feathers; light glints off its crown.
+registerLive('pigeonking', {
+  wiggle: true,
+  rig: { swing: 1.4, squash: 1.2, breath: 1.6 },
+  heat: {},
+  setup: (k) => ({
+    steam: steamEm(k),
+    feathers: k.emitter({ frame: 'flake', drag: 1.6, max: 80 }),
+    glints: k.emitter({ frame: 'spark', add: true, drag: 0, max: 10 }),
+  }),
+  tick(k, dt, { steam, feathers, glints }) {
+    const s = k.f.type.scale;
+    const tint = () => (R() < 0.6 ? 0x8f93ad : R() < 0.5 ? 0x6a6e88 : 0xc8cce0);
+    feathers.rate('drift', 1.5 + (k.windingUp ? 6 : 0), dt, () => {
+      feathers.emit(CX - 90 + R() * 180, 60 + R() * 90, { vx: pm() * 40, vy: 10 + R() * 20, life: 2 + R(), r0: 6 * s, r1: 5 * s, a: 0.95, tint: tint(), grav: 40, spin: 2.5, fade: 0.1 });
+    });
+    if (k.landed)
+      for (let i = 0, n = k.burst(14); i < n; i++) feathers.emit(CX + pm() * 160, 140, { vx: pm() * 300, vy: -100 - R() * 160, life: 1.8, r0: 7 * s, r1: 6 * s, a: 1, tint: tint(), grav: 120, spin: 5, fade: 0.05 });
+    glints.rate('crown', 0.9, dt, () => glints.emit(CX - 20 + R() * 40, 170 + R() * 20, { life: 0.4, r0: 10 * s, r1: 1 * s, a: 1, tint: 0xfff2a0, spin: 2, fade: 0.3 }));
+    overheat(k, steam, dt, [CX - 80, 20, 160, 160]);
+  },
+});
+
+// JELLYFISH FLIP-FLOP: the jelly glows and pulses (brighter as it drops: its tell), the tentacles under the sole
+// sway and trail, it drips and bubbles rise off it.
+registerLive('jellyfish', {
+  wiggle: true,
+  glow: { rate: 0.5, depth: 0.5, base: 0.4 },
+  sway: Object.fromEntries(JELLY_TENTS.map((_, i) => [`tent${i}`, { k: 26 + i * 3, c: 3.2, gain: 1.4, idle: 0.16, flop: 1.2, below: true }])),
+  heat: {},
+  setup: (k) => ({
+    steam: steamEm(k),
+    drips: k.emitter({ frame: 'drop', add: true, drag: 0.2, max: 50 }),
+    bubbles: k.emitter({ frame: 'bubble', curl: 40, drag: 0.8, max: 50 }),
+    sparks: k.emitter({ frame: 'mote', add: true, drag: 0.6, max: 60 }),
+  }),
+  tick(k, dt, { steam, drips, bubbles, sparks }) {
+    const s = k.f.type.scale;
+    drips.rate('drip', 1.6, dt, () => {
+      drips.emit(CX - 100 + R() * 200, 300 + R() * 20, { vy: 30, life: 0.7, r0: 4 * s, r1: 3 * s, a: 0.9, tint: 0xff9ad8, grav: 900, fade: 0.02 });
+    });
+    bubbles.rate('bub', 2.5, dt, () => {
+      bubbles.emit(CX - 110 + R() * 220, 180 + R() * 80, { vx: pm() * 20, vy: -40 - R() * 40, life: 1.4, r0: 3 * s, r1: 5 * s, a: 0.7, tint: 0xffd0f0, fade: 0.1 });
+    });
+    sparks.rate('bio', k.windingUp || k.f.state === 'descend' ? 24 : 5, dt, () => {
+      sparks.emit(CX - 90 + R() * 180, 270 + R() * 60, { vx: pm() * 20, vy: -10 - R() * 20, life: 0.8, r0: 4 * s, r1: 1 * s, a: 0.9, tint: R() < 0.5 ? 0xff7ac8 : 0xc8a4ff, fade: 0.2 });
+    });
+    overheat(k, steam, dt, [CX - 90, 20, 180, 220]);
+  },
+});
+
+// MILKSHAKE MAX: the cherry wobbles on top (its tell), condensation runs down the glass and drips off the foot, the
+// cream oozes a little. Overheated, it melts and steams.
+registerLive('milkshake', {
+  sway: { cherry: { k: 50, c: 3, gain: 1.8, idle: 0.14, flop: 1.6 } },
+  rig: { squash: 1.2 },
+  heat: {},
+  setup: (k) => ({
+    steam: steamEm(k),
+    drips: k.emitter({ frame: 'drop', drag: 0.3, max: 60 }),
+    cream: k.emitter({ frame: 'drop', drag: 1, max: 30 }),
+  }),
+  tick(k, dt, { steam, drips, cream }) {
+    const s = k.f.type.scale;
+    drips.rate('cond', 1.8, dt, () => {
+      const side = R() < 0.5 ? -1 : 1;
+      drips.emit(CX + side * (30 + R() * 50), 120 + R() * 100, { vx: -side * 6, vy: 30, life: 1.2, r0: 3 * s, r1: 2.5 * s, a: 0.7, tint: 0xeaf6ff, grav: 260, fade: 0.05 });
+    });
+    cream.rate('ooze', 0.6 + k.heat * 4, dt, () => {
+      cream.emit(CX - 100 + R() * 200, 60, { vy: 12, life: 1.2, r0: 5 * s, r1: 4 * s, a: 1, tint: 0xfff8f4, grav: 120 + k.heat * 400, fade: 0.05 });
+    });
+    overheat(k, steam, dt, [CX - 100, 10, 200, 120]);
+  },
+});
+
+// THE LUMBERJACK: the strapped axe swings with its moves, wood chips fly as it winds up a chop and on every chop,
+// sawdust sifts off it.
+registerLive('lumberjack', {
+  sway: { axe: { k: 36, c: 4.5, gain: 1.2, idle: 0.06, below: true, flop: 0.8 } },
+  rig: { swing: 0.7, squash: 0.9 },
+  heat: {},
+  setup: (k) => ({
+    steam: steamEm(k),
+    chips: k.emitter({ frame: 'flake', drag: 0.5, max: 80 }),
+    dust: k.emitter({ frame: 'puff', curl: 30, drag: 1.5, below: true, max: 80 }),
+  }),
+  tick(k, dt, { steam, chips, dust }) {
+    const s = k.f.type.scale;
+    const chip = (x: number, y: number, p: number) =>
+      chips.emit(x, y, { vx: pm() * 320 * p, vy: -120 - R() * 200 * p, life: 0.9, r0: 5 * s, r1: 4 * s, a: 1, tint: R() < 0.5 ? 0xd8a860 : 0xb07a3a, grav: 800, spin: 10, fade: 0.02 });
+    if (k.windingUp) chips.rate('wind', 14, dt, () => chip(CX + pm() * 200, 40 + R() * 180, 0.7));
+    if (k.landed) for (let i = 0, n = k.burst(16); i < n; i++) chip(CX + pm() * 200, 266, 1.2);
+    chips.rate('saw', 1.5, dt, () => chips.emit(CX - 80 + R() * 160, 60 + R() * 150, { vx: pm() * 10, vy: 20, life: 1.2, r0: 2.5 * s, r1: 2 * s, a: 0.9, tint: 0xe8c890, grav: 200, spin: 4, fade: 0.05 }));
+    landDust(k, dust, 12, [0xb8a080, 0x9a8460], 266, 100);
+    overheat(k, steam, dt, [CX - 90, 20, 180, 220]);
+  },
+});
+
+// THE ZOMBIE LOAFER: flies buzz round it, the eyeball swings on its thread, its tongue licks its lips (its tell),
+// it drools green slime and a faint rot fog drifts off it.
+registerLive('poltergeist', {
+  rig: { swing: 1.1, squash: 1.1 },
+  sway: { eye: { k: 30, c: 3.6, gain: 1.4, idle: 0.14, flop: 1 } },
+  twitch: { tongue: { every: 1.6 } },
+  heat: {},
+  setup(k) {
+    const key = k.sheet('lk_fly', 64, 56, 3, (ctx, i) => {
+      ctx.translate(32, 30);
+      drawFly(ctx, 1.9, [0, 0.55, 1][i]);
+    });
+    return {
+      flies: k.swarm({ key, frames: 3, count: 5, at: [CX, 140], rx: 140, ry: 140, speed: 1.5, jitter: 24, scale: 0.55 }),
+      steam: steamEm(k),
+      drool: k.emitter({ frame: 'drop', drag: 0.3, max: 40 }),
+      fog: k.emitter({ frame: 'puff', curl: 24, drag: 0.8, below: true, max: 80 }),
+    };
+  },
+  tick(k, dt, { flies, steam, drool, fog }) {
+    const s = k.f.type.scale;
+    const diving = k.f.state === 'descend' || k.windingUp;
+    flies.tight += ((diving ? 0.6 : 1) - flies.tight) * Math.min(1, dt * 3);
+    drool.rate('drool', 1.4, dt, () => {
+      drool.emit(CX - 50 + R() * 100, 250, { vy: 20, life: 1, r0: 4.5 * s, r1: 3 * s, a: 0.9, tint: 0xa8d84a, grav: 600, fade: 0.03 });
+    });
+    fog.rate('rot', 4, dt, () => {
+      fog.emit(30 + R() * 160, 200 + R() * 60, { vx: pm() * 30, vy: -6 - R() * 10, life: 2.2, r0: 12 * s, r1: 44 * s, a: 0.28, tint: 0x8aa04a, fade: 0.25 });
+    });
+    overheat(k, steam, dt, [CX - 90, 10, 180, 200], 0xe0f0d0);
   },
 });
