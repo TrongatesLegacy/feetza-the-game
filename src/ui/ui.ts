@@ -11,6 +11,7 @@ import type { RunSummary, ShopActions, ShopPizza, ShopState, YourTopping } from 
 import { INTROS, freshBar, pizzaThumb } from './bits';
 import { footPortraitURL, pizzaPortraitURL, textureURL } from '../game/assets';
 import { audio } from '../systems/audio';
+import { previewSmack } from '../game/smacks';
 import { bestFor, metaRefundValue, persist, resetEverything, resetMeta, resetProgress, save, unlockPizza, updateSettings, type Settings } from '../systems/save';
 import { HEATS, HEAT_BY_ID, type HeatId } from '../data/difficulty';
 import { ACT_COUNT, JOURNEY_WAVES, STAGES, actLabel, actName, actOf } from '../data/stages';
@@ -1375,7 +1376,7 @@ class UI {
       });
       return h('label', { class: 'toggle' }, h('span', {}, label), input, h('span', { class: 'sw' }));
     };
-    const choice = <K extends 'aimScheme' | 'prompts' | 'colorBlind'>(key: K, label: string, opts: [Settings[K], string][]) => {
+    const choice = <K extends 'aimScheme' | 'prompts' | 'colorBlind' | 'peelSmacks'>(key: K, label: string, opts: [Settings[K], string][]) => {
       const row = h('div', { class: 'choice' }, h('span', {}, label));
       const seg = h('div', { class: 'seg' });
       const draw = () =>
@@ -1384,6 +1385,8 @@ class UI {
             btn(l, `small ${save.settings[key] === v ? 'active' : 'cream'}`, () => {
               updateSettings({ [key]: v } as Partial<Settings>);
               applyA11y();
+              // let the new smack setting be heard
+              if (key === 'peelSmacks') audio.slap(0.6);
               draw();
             }),
           ),
@@ -1452,6 +1455,9 @@ class UI {
           slider('music', 'Music'),
           slider('sfx', 'Sound FX'),
           slider('ambience', 'Ambience'),
+          Object.assign(choice('peelSmacks', 'Peel smack sounds', [['peel', 'PEEL SOUNDS'], ['classic', 'CLASSIC SMACK'], ['off', 'OFF']]), {
+            title: 'Peel sounds: every peel smacks like what it’s made of (a worn look brings its own). Classic smack: the original slap for every peel.',
+          }),
           h('div', { class: 'toggles' }, toggle('muted', 'Mute all'), toggle('showFps', 'Show FPS'), toggle('damageNumbers', 'Damage numbers'), toggle('showTimer', 'Run timer')),
         );
       else if (tab === 'controls')
@@ -2107,8 +2113,17 @@ class UI {
         d.shiny ? h('span', { class: 'chip shiny-chip' }, d.ultra ? '💎 Ultra rare' : '✨ Shiny') : null,
         worn ? h('span', { class: 'chip look-chip' }, '👕 Worn look') : null,
       ];
+      // hear its smack (alternate presses play the heavy, crit version)
+      let hear: HTMLElement | null = null;
+      if (!hidden(d)) {
+        hear = h('button', { class: 'btn cream small smack-play', type: 'button', title: 'Hear its smack (press again for a crit)', 'aria-label': `Hear the ${shownName(d)} smack` }, '▶');
+        hear.addEventListener('click', (e) => {
+          e.stopPropagation();
+          void previewSmack(d.id);
+        });
+      }
       detail.replaceChildren(
-        h('div', { class: `peel-big${d.shiny ? ' shiny' : ''}${hidden(d) ? ' hidden' : ''}` }, img),
+        h('div', { class: 'peel-big-wrap' }, h('div', { class: `peel-big${d.shiny ? ' shiny' : ''}${hidden(d) ? ' hidden' : ''}` }, img), hear),
         h(
           'div',
           {},

@@ -5518,5 +5518,1965 @@
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
     "notes": "Leonidas's Hot Gates: Leonidas, Hot Gates: a roaring Spartan war cry with shields beating; a synthesized massed war cry and shields beaten in time, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactPlate_heavy_001, impactMetal_heavy_003, impactPlate_heavy_002, impactMetal_heavy_004, impactPlate_heavy_003, impactMetal_heavy_000, impactPlate_heavy_004, impactMetal_heavy_001, impactPlate_heavy_000, impactMetal_heavy_002 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_smack_wood_1.mp3",
+    "title": "Impact Sounds (impactWood_medium_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the wood family, take 1; layered with Kenney Impact Sounds impactPunch_medium_000 (CC0)"
+  },
+  {
+    "file": "sfx_smack_wood_2.mp3",
+    "title": "Impact Sounds (impactWood_medium_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the wood family, take 2; layered with Kenney Impact Sounds impactPunch_medium_001 (CC0)"
+  },
+  {
+    "file": "sfx_smack_wood_3.mp3",
+    "title": "Impact Sounds (impactWood_medium_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the wood family, take 3; layered with Kenney Impact Sounds impactPunch_medium_002 (CC0)"
+  },
+  {
+    "file": "sfx_smack_wood_heavy.mp3",
+    "title": "Impact Sounds (impactWood_heavy_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the wood family, heavy take (crits); layered with Kenney Impact Sounds impactPlank_medium_003, impactPunch_heavy_003 (CC0)"
+  },
+  {
+    "file": "sfx_smack_metal_1.mp3",
+    "title": "Impact Sounds (impactMetal_light_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the metal family, take 1; layered with Kenney Impact Sounds impactPlate_medium_000, impactPunch_medium_000 (CC0) and a short synthesized ring (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_metal_2.mp3",
+    "title": "Impact Sounds (impactMetal_light_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the metal family, take 2; layered with Kenney Impact Sounds impactPlate_medium_001, impactPunch_medium_001 (CC0) and a short synthesized ring (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_metal_3.mp3",
+    "title": "Impact Sounds (impactMetal_light_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the metal family, take 3; layered with Kenney Impact Sounds impactPlate_medium_002, impactPunch_medium_002 (CC0) and a short synthesized ring (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_metal_heavy.mp3",
+    "title": "Impact Sounds (impactMetal_heavy_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the metal family, heavy take (crits); layered with Kenney Impact Sounds impactMetal_medium_002, impactPunch_heavy_003 (CC0) and a short synthesized ring (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_rubber_1.mp3",
+    "title": "Impact Sounds (impactSoft_medium_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the rubber family, take 1; layered with Kenney Impact Sounds impactPunch_medium_000 (CC0) and a synthesized rubbery bonk (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_rubber_2.mp3",
+    "title": "Impact Sounds (impactSoft_medium_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the rubber family, take 2; layered with Kenney Impact Sounds impactPunch_medium_001 (CC0) and a synthesized rubbery bonk (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_rubber_3.mp3",
+    "title": "Impact Sounds (impactSoft_medium_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the rubber family, take 3; layered with Kenney Impact Sounds impactPunch_medium_002 (CC0) and a synthesized rubbery bonk (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_rubber_heavy.mp3",
+    "title": "Impact Sounds (impactSoft_heavy_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the rubber family, heavy take (crits); layered with Kenney Impact Sounds impactPunch_heavy_003 (CC0) and a synthesized rubbery bonk (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_glass_1.mp3",
+    "title": "Impact Sounds (impactGlass_light_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the glass family, take 1; layered with Kenney Impact Sounds impactPunch_medium_000 (CC0) and a short synthesized glass ring (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_glass_2.mp3",
+    "title": "Impact Sounds (impactGlass_light_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the glass family, take 2; layered with Kenney Impact Sounds impactPunch_medium_001 (CC0) and a short synthesized glass ring (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_glass_3.mp3",
+    "title": "Impact Sounds (impactGlass_light_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the glass family, take 3; layered with Kenney Impact Sounds impactPunch_medium_002 (CC0) and a short synthesized glass ring (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_glass_heavy.mp3",
+    "title": "Impact Sounds (impactGlass_heavy_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the glass family, heavy take (crits); layered with Kenney Impact Sounds impactGlass_light_003, impactPunch_heavy_003 (CC0) and a short synthesized glass ring (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_stone_1.mp3",
+    "title": "Impact Sounds (impactMining_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the stone family, take 1; layered with Kenney Impact Sounds impactPunch_medium_000 (CC0) and a low synthesized thump (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_stone_2.mp3",
+    "title": "Impact Sounds (impactMining_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the stone family, take 2; layered with Kenney Impact Sounds impactPunch_medium_001 (CC0) and a low synthesized thump (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_stone_3.mp3",
+    "title": "Impact Sounds (impactMining_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the stone family, take 3; layered with Kenney Impact Sounds impactPunch_medium_002 (CC0) and a low synthesized thump (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_stone_heavy.mp3",
+    "title": "Impact Sounds (impactMining_003)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the stone family, heavy take (crits); layered with Kenney Impact Sounds impactPunch_heavy_003 (CC0) and a low synthesized thump (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_ceramic_1.mp3",
+    "title": "Impact Sounds (impactPlate_light_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the ceramic family, take 1; layered with Kenney Impact Sounds impactGlass_light_001, impactPunch_medium_000 (CC0)"
+  },
+  {
+    "file": "sfx_smack_ceramic_2.mp3",
+    "title": "Impact Sounds (impactPlate_light_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the ceramic family, take 2; layered with Kenney Impact Sounds impactGlass_light_002, impactPunch_medium_001 (CC0)"
+  },
+  {
+    "file": "sfx_smack_ceramic_3.mp3",
+    "title": "Impact Sounds (impactPlate_light_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the ceramic family, take 3; layered with Kenney Impact Sounds impactGlass_light_003, impactPunch_medium_002 (CC0)"
+  },
+  {
+    "file": "sfx_smack_ceramic_heavy.mp3",
+    "title": "Impact Sounds (impactPlate_heavy_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the ceramic family, heavy take (crits); layered with Kenney Impact Sounds impactPlate_light_003, impactPunch_heavy_003 (CC0)"
+  },
+  {
+    "file": "sfx_smack_fabric_1.mp3",
+    "title": "RPG Audio (cloth1)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/rpg-audio",
+    "notes": "Peel smacks: the fabric family, take 1; layered with Kenney Impact Sounds impactSoft_medium_000, impactPunch_medium_000 (CC0)"
+  },
+  {
+    "file": "sfx_smack_fabric_2.mp3",
+    "title": "RPG Audio (cloth2)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/rpg-audio",
+    "notes": "Peel smacks: the fabric family, take 2; layered with Kenney Impact Sounds impactSoft_medium_001, impactPunch_medium_001 (CC0)"
+  },
+  {
+    "file": "sfx_smack_fabric_3.mp3",
+    "title": "RPG Audio (cloth3)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/rpg-audio",
+    "notes": "Peel smacks: the fabric family, take 3; layered with Kenney Impact Sounds impactSoft_medium_002, impactPunch_medium_002 (CC0)"
+  },
+  {
+    "file": "sfx_smack_fabric_heavy.mp3",
+    "title": "Impact Sounds (impactSoft_heavy_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the fabric family, heavy take (crits); layered with Kenney RPG Audio clothBelt (CC0); Kenney Impact Sounds impactPunch_heavy_003 (CC0)"
+  },
+  {
+    "file": "sfx_smack_leather_1.mp3",
+    "title": "RPG Audio (handleSmallLeather)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/rpg-audio",
+    "notes": "Peel smacks: the leather family, take 1; layered with Kenney Impact Sounds impactPunch_medium_000 (CC0)"
+  },
+  {
+    "file": "sfx_smack_leather_2.mp3",
+    "title": "RPG Audio (handleSmallLeather2)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/rpg-audio",
+    "notes": "Peel smacks: the leather family, take 2; layered with Kenney Impact Sounds impactPunch_medium_001 (CC0)"
+  },
+  {
+    "file": "sfx_smack_leather_3.mp3",
+    "title": "RPG Audio (dropLeather)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/rpg-audio",
+    "notes": "Peel smacks: the leather family, take 3; layered with Kenney Impact Sounds impactPunch_medium_002 (CC0)"
+  },
+  {
+    "file": "sfx_smack_leather_heavy.mp3",
+    "title": "RPG Audio (dropLeather)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/rpg-audio",
+    "notes": "Peel smacks: the leather family, heavy take (crits); layered with Kenney Impact Sounds impactPunch_heavy_003 (CC0)"
+  },
+  {
+    "file": "sfx_smack_fur_1.mp3",
+    "title": "Impact Sounds (impactSoft_medium_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the fur family, take 1; layered with Kenney RPG Audio cloth1 (CC0); Kenney Impact Sounds impactPunch_medium_000 (CC0) and a soft synthesized puff (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_fur_2.mp3",
+    "title": "Impact Sounds (impactSoft_medium_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the fur family, take 2; layered with Kenney RPG Audio cloth2 (CC0); Kenney Impact Sounds impactPunch_medium_001 (CC0) and a soft synthesized puff (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_fur_3.mp3",
+    "title": "Impact Sounds (impactSoft_medium_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the fur family, take 3; layered with Kenney RPG Audio cloth3 (CC0); Kenney Impact Sounds impactPunch_medium_002 (CC0) and a soft synthesized puff (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_fur_heavy.mp3",
+    "title": "Impact Sounds (impactSoft_heavy_003)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the fur family, heavy take (crits); layered with Kenney Impact Sounds impactPunch_heavy_003 (CC0); Kenney RPG Audio cloth4 (CC0) and a soft synthesized puff (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_dough_1.mp3",
+    "title": "Impact Sounds (impactSoft_heavy_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the dough family, take 1; layered with Kenney Sci-fi Sounds slime_000 (CC0); Kenney Impact Sounds impactPunch_medium_000 (CC0) and a synthesized doughy squish (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_dough_2.mp3",
+    "title": "Impact Sounds (impactSoft_heavy_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the dough family, take 2; layered with Kenney Sci-fi Sounds slime_000 (CC0); Kenney Impact Sounds impactPunch_medium_001 (CC0) and a synthesized doughy squish (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_dough_3.mp3",
+    "title": "Impact Sounds (impactSoft_heavy_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the dough family, take 3; layered with Kenney Sci-fi Sounds slime_000 (CC0); Kenney Impact Sounds impactPunch_medium_002 (CC0) and a synthesized doughy squish (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_dough_heavy.mp3",
+    "title": "Impact Sounds (impactSoft_heavy_004)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the dough family, heavy take (crits); layered with Kenney Sci-fi Sounds slime_000 (CC0); Kenney Impact Sounds impactPunch_heavy_003 (CC0) and a synthesized doughy squish (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_crispy_1.mp3",
+    "title": "Impact Sounds (impactWood_light_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the crispy family, take 1; layered with Kenney Impact Sounds impactPunch_medium_000 (CC0) and a synthesized crust crunch (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_crispy_2.mp3",
+    "title": "Impact Sounds (impactWood_light_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the crispy family, take 2; layered with Kenney Impact Sounds impactPunch_medium_001 (CC0) and a synthesized crust crunch (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_crispy_3.mp3",
+    "title": "Impact Sounds (impactWood_light_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the crispy family, take 3; layered with Kenney Impact Sounds impactPunch_medium_002 (CC0) and a synthesized crust crunch (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_crispy_heavy.mp3",
+    "title": "Impact Sounds (impactWood_light_003)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the crispy family, heavy take (crits); layered with Kenney Impact Sounds impactPlank_medium_001, impactPunch_heavy_003 (CC0) and a synthesized crust crunch (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_sauce_1.mp3",
+    "title": "Sci-fi Sounds (slime_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "notes": "Peel smacks: the sauce family, take 1; layered with Kenney Impact Sounds impactPunch_medium_000 (CC0) and a wet synthesized splat (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_sauce_2.mp3",
+    "title": "Sci-fi Sounds (slime_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "notes": "Peel smacks: the sauce family, take 2; layered with Kenney Impact Sounds impactPunch_medium_001 (CC0) and a wet synthesized splat (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_sauce_3.mp3",
+    "title": "Sci-fi Sounds (slime_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "notes": "Peel smacks: the sauce family, take 3; layered with Kenney Impact Sounds impactPunch_medium_002 (CC0) and a wet synthesized splat (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_sauce_heavy.mp3",
+    "title": "Sci-fi Sounds (slime_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "notes": "Peel smacks: the sauce family, heavy take (crits); layered with Kenney Impact Sounds impactPunch_heavy_003 (CC0) and a wet synthesized splat (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_slime_1.mp3",
+    "title": "Sci-fi Sounds (slime_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "notes": "Peel smacks: the slime family, take 1; layered with Kenney Impact Sounds impactSoft_medium_000, impactPunch_medium_000 (CC0) and synthesized slime bubbles (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_slime_2.mp3",
+    "title": "Sci-fi Sounds (slime_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "notes": "Peel smacks: the slime family, take 2; layered with Kenney Impact Sounds impactSoft_medium_001, impactPunch_medium_001 (CC0) and synthesized slime bubbles (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_slime_3.mp3",
+    "title": "Sci-fi Sounds (slime_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "notes": "Peel smacks: the slime family, take 3; layered with Kenney Impact Sounds impactSoft_medium_002, impactPunch_medium_002 (CC0) and synthesized slime bubbles (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_slime_heavy.mp3",
+    "title": "Sci-fi Sounds (slime_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "notes": "Peel smacks: the slime family, heavy take (crits); layered with Kenney Impact Sounds impactSoft_heavy_000, impactPunch_heavy_003 (CC0) and synthesized slime bubbles (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_gold_1.mp3",
+    "title": "Impact Sounds (impactMetal_light_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the gold family, take 1; layered with Kenney Impact Sounds impactPunch_medium_000 (CC0) and a synthesized golden ring (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_gold_2.mp3",
+    "title": "Impact Sounds (impactMetal_light_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the gold family, take 2; layered with Kenney Impact Sounds impactPunch_medium_001 (CC0) and a synthesized golden ring (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_gold_3.mp3",
+    "title": "Impact Sounds (impactMetal_light_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the gold family, take 3; layered with Kenney Impact Sounds impactPunch_medium_002 (CC0) and a synthesized golden ring (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_gold_heavy.mp3",
+    "title": "Impact Sounds (impactBell_heavy_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the gold family, heavy take (crits); layered with Kenney RPG Audio handleCoins (CC0); Kenney Impact Sounds impactPunch_heavy_003 (CC0) and a synthesized golden ring (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_crystal_1.mp3",
+    "title": "Impact Sounds (impactGlass_light_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the crystal family, take 1; layered with Kenney Impact Sounds impactPunch_medium_000 (CC0) and a synthesized crystal ring (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_crystal_2.mp3",
+    "title": "Impact Sounds (impactGlass_light_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the crystal family, take 2; layered with Kenney Impact Sounds impactPunch_medium_001 (CC0) and a synthesized crystal ring (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_crystal_3.mp3",
+    "title": "Impact Sounds (impactGlass_light_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the crystal family, take 3; layered with Kenney Impact Sounds impactPunch_medium_002 (CC0) and a synthesized crystal ring (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_crystal_heavy.mp3",
+    "title": "Impact Sounds (impactGlass_medium_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the crystal family, heavy take (crits); layered with Kenney Impact Sounds impactPunch_heavy_003 (CC0) and a synthesized crystal ring (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_ice_1.mp3",
+    "title": "Impact Sounds (impactGlass_medium_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the ice family, take 1; layered with Kenney Impact Sounds impactPunch_medium_000 (CC0) and a synthesized icy crackle (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_ice_2.mp3",
+    "title": "Impact Sounds (impactGlass_medium_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the ice family, take 2; layered with Kenney Impact Sounds impactPunch_medium_001 (CC0) and a synthesized icy crackle (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_ice_3.mp3",
+    "title": "Impact Sounds (impactGlass_medium_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the ice family, take 3; layered with Kenney Impact Sounds impactPunch_medium_002 (CC0) and a synthesized icy crackle (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_ice_heavy.mp3",
+    "title": "Impact Sounds (impactGlass_heavy_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the ice family, heavy take (crits); layered with Kenney Impact Sounds impactPunch_heavy_003 (CC0) and a synthesized icy crackle (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_snow_1.mp3",
+    "title": "Impact Sounds (footstep_snow_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the snow family, take 1; layered with Kenney Impact Sounds impactSoft_medium_000, impactPunch_medium_000 (CC0)"
+  },
+  {
+    "file": "sfx_smack_snow_2.mp3",
+    "title": "Impact Sounds (footstep_snow_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the snow family, take 2; layered with Kenney Impact Sounds impactSoft_medium_001, impactPunch_medium_001 (CC0)"
+  },
+  {
+    "file": "sfx_smack_snow_3.mp3",
+    "title": "Impact Sounds (footstep_snow_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the snow family, take 3; layered with Kenney Impact Sounds impactSoft_medium_002, impactPunch_medium_002 (CC0)"
+  },
+  {
+    "file": "sfx_smack_snow_heavy.mp3",
+    "title": "Impact Sounds (footstep_snow_003)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the snow family, heavy take (crits); layered with Kenney Impact Sounds footstep_snow_004, impactSoft_heavy_001, impactPunch_heavy_003 (CC0)"
+  },
+  {
+    "file": "sfx_smack_fire_1.mp3",
+    "title": "Sci-fi Sounds (thrusterFire_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "notes": "Peel smacks: the fire family, take 1; layered with Kenney Impact Sounds impactPunch_medium_000 (CC0) and a synthesized fire crackle (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_fire_2.mp3",
+    "title": "Sci-fi Sounds (thrusterFire_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "notes": "Peel smacks: the fire family, take 2; layered with Kenney Impact Sounds impactPunch_medium_001 (CC0) and a synthesized fire crackle (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_fire_3.mp3",
+    "title": "Sci-fi Sounds (thrusterFire_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "notes": "Peel smacks: the fire family, take 3; layered with Kenney Impact Sounds impactPunch_medium_002 (CC0) and a synthesized fire crackle (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_fire_heavy.mp3",
+    "title": "Sci-fi Sounds (thrusterFire_003)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "notes": "Peel smacks: the fire family, heavy take (crits); layered with Kenney Sci-fi Sounds lowFrequency_explosion_001 (CC0); Kenney Impact Sounds impactPunch_heavy_003 (CC0) and a synthesized fire crackle (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_electric_1.mp3",
+    "title": "Digital Audio (zap1)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/digital-audio",
+    "notes": "Peel smacks: the electric family, take 1; layered with Kenney Impact Sounds impactPunch_medium_000 (CC0) and a synthesized electric crackle (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_electric_2.mp3",
+    "title": "Digital Audio (zap2)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/digital-audio",
+    "notes": "Peel smacks: the electric family, take 2; layered with Kenney Impact Sounds impactPunch_medium_001 (CC0) and a synthesized electric crackle (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_electric_3.mp3",
+    "title": "Digital Audio (zapTwoTone)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/digital-audio",
+    "notes": "Peel smacks: the electric family, take 3; layered with Kenney Impact Sounds impactPunch_medium_002 (CC0) and a synthesized electric crackle (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_electric_heavy.mp3",
+    "title": "Sci-fi Sounds (forceField_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "notes": "Peel smacks: the electric family, heavy take (crits); layered with Kenney Digital Audio zap2 (CC0); Kenney Impact Sounds impactPunch_heavy_003 (CC0) and a synthesized electric crackle (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_tech_1.mp3",
+    "title": "Sci-fi Sounds (impactMetal_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "notes": "Peel smacks: the tech family, take 1; layered with Kenney Interface Sounds click_001 (CC0); Kenney Impact Sounds impactPunch_medium_000 (CC0) and a synthesized blip (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_tech_2.mp3",
+    "title": "Sci-fi Sounds (impactMetal_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "notes": "Peel smacks: the tech family, take 2; layered with Kenney Interface Sounds click_002 (CC0); Kenney Impact Sounds impactPunch_medium_001 (CC0) and a synthesized blip (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_tech_3.mp3",
+    "title": "Sci-fi Sounds (impactMetal_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "notes": "Peel smacks: the tech family, take 3; layered with Kenney Interface Sounds click_003 (CC0); Kenney Impact Sounds impactPunch_medium_002 (CC0) and a synthesized blip (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_tech_heavy.mp3",
+    "title": "Sci-fi Sounds (impactMetal_003)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "notes": "Peel smacks: the tech family, heavy take (crits); layered with Kenney Sci-fi Sounds computerNoise_001 (CC0); Kenney Impact Sounds impactPunch_heavy_003 (CC0) and a synthesized blip (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_magic_1.mp3",
+    "title": "Impact Sounds (impactPunch_medium_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the magic family, take 1; layered with a synthesized sparkle (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_magic_2.mp3",
+    "title": "Impact Sounds (impactPunch_medium_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the magic family, take 2; layered with a synthesized sparkle (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_magic_3.mp3",
+    "title": "Impact Sounds (impactPunch_medium_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the magic family, take 3; layered with a synthesized sparkle (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_magic_heavy.mp3",
+    "title": "Impact Sounds (impactPunch_heavy_003)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the magic family, heavy take (crits); layered with a synthesized sparkle (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_cosmic_1.mp3",
+    "title": "Impact Sounds (impactPunch_medium_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the cosmic family, take 1; layered with Kenney Digital Audio phaserDown1 (CC0) and a synthesized space shimmer (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_cosmic_2.mp3",
+    "title": "Impact Sounds (impactPunch_medium_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the cosmic family, take 2; layered with Kenney Digital Audio phaserDown2 (CC0) and a synthesized space shimmer (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_cosmic_3.mp3",
+    "title": "Impact Sounds (impactPunch_medium_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the cosmic family, take 3; layered with Kenney Digital Audio phaserDown3 (CC0) and a synthesized space shimmer (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_cosmic_heavy.mp3",
+    "title": "Impact Sounds (impactPunch_heavy_003)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the cosmic family, heavy take (crits); layered with Kenney Digital Audio lowDown (CC0) and a synthesized space shimmer (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_ghost_1.mp3",
+    "title": "Impact Sounds (impactPunch_medium_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the ghost family, take 1; layered with a synthesized ghostly wail (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_ghost_2.mp3",
+    "title": "Impact Sounds (impactPunch_medium_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the ghost family, take 2; layered with a synthesized ghostly wail (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_ghost_3.mp3",
+    "title": "Impact Sounds (impactPunch_medium_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the ghost family, take 3; layered with a synthesized ghostly wail (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_ghost_heavy.mp3",
+    "title": "Impact Sounds (impactPunch_heavy_003)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the ghost family, heavy take (crits); layered with a synthesized ghostly wail (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_water_1.mp3",
+    "title": "Impact Sounds (impactPunch_medium_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the water family, take 1; layered with a synthesized splash (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_water_2.mp3",
+    "title": "Impact Sounds (impactPunch_medium_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the water family, take 2; layered with a synthesized splash (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_water_3.mp3",
+    "title": "Impact Sounds (impactPunch_medium_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the water family, take 3; layered with a synthesized splash (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_water_heavy.mp3",
+    "title": "Impact Sounds (impactPunch_heavy_003)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the water family, heavy take (crits); layered with a synthesized splash (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_bubble_1.mp3",
+    "title": "Impact Sounds (impactSoft_medium_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the bubble family, take 1; layered with Kenney Impact Sounds impactPunch_medium_000 (CC0) and synthesized bubble pops (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_bubble_2.mp3",
+    "title": "Impact Sounds (impactSoft_medium_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the bubble family, take 2; layered with Kenney Impact Sounds impactPunch_medium_001 (CC0) and synthesized bubble pops (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_bubble_3.mp3",
+    "title": "Impact Sounds (impactSoft_medium_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the bubble family, take 3; layered with Kenney Impact Sounds impactPunch_medium_002 (CC0) and synthesized bubble pops (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_bubble_heavy.mp3",
+    "title": "Impact Sounds (impactSoft_heavy_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the bubble family, heavy take (crits); layered with Kenney Impact Sounds impactPunch_heavy_003 (CC0) and synthesized bubble pops (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_bone_1.mp3",
+    "title": "Impact Sounds (impactWood_light_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the bone family, take 1; layered with Kenney Casino Audio dice-throw-1 (CC0); Kenney Impact Sounds impactPunch_medium_000 (CC0)"
+  },
+  {
+    "file": "sfx_smack_bone_2.mp3",
+    "title": "Impact Sounds (impactWood_light_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the bone family, take 2; layered with Kenney Casino Audio dice-throw-2 (CC0); Kenney Impact Sounds impactPunch_medium_001 (CC0)"
+  },
+  {
+    "file": "sfx_smack_bone_3.mp3",
+    "title": "Impact Sounds (impactWood_light_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the bone family, take 3; layered with Kenney Casino Audio dice-throw-3 (CC0); Kenney Impact Sounds impactPunch_medium_002 (CC0)"
+  },
+  {
+    "file": "sfx_smack_bone_heavy.mp3",
+    "title": "Impact Sounds (impactWood_heavy_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the bone family, heavy take (crits); layered with Kenney Casino Audio dice-shake-2 (CC0); Kenney Impact Sounds impactPunch_heavy_003 (CC0)"
+  },
+  {
+    "file": "sfx_smack_scales_1.mp3",
+    "title": "Impact Sounds (impactPunch_medium_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the scales family, take 1; layered with Kenney RPG Audio handleSmallLeather (CC0) and a synthesized scaly rasp (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_scales_2.mp3",
+    "title": "Impact Sounds (impactPunch_medium_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the scales family, take 2; layered with Kenney RPG Audio handleSmallLeather (CC0) and a synthesized scaly rasp (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_scales_3.mp3",
+    "title": "Impact Sounds (impactPunch_medium_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the scales family, take 3; layered with Kenney RPG Audio handleSmallLeather (CC0) and a synthesized scaly rasp (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_scales_heavy.mp3",
+    "title": "Impact Sounds (impactPunch_heavy_003)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the scales family, heavy take (crits); layered with Kenney RPG Audio handleSmallLeather (CC0) and a synthesized scaly rasp (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_plastic_1.mp3",
+    "title": "Impact Sounds (impactGeneric_light_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the plastic family, take 1; layered with Kenney Casino Audio chips-collide-1 (CC0); Kenney Impact Sounds impactPunch_medium_000 (CC0)"
+  },
+  {
+    "file": "sfx_smack_plastic_2.mp3",
+    "title": "Impact Sounds (impactGeneric_light_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the plastic family, take 2; layered with Kenney Casino Audio chips-collide-2 (CC0); Kenney Impact Sounds impactPunch_medium_001 (CC0)"
+  },
+  {
+    "file": "sfx_smack_plastic_3.mp3",
+    "title": "Impact Sounds (impactGeneric_light_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the plastic family, take 3; layered with Kenney Casino Audio chips-collide-3 (CC0); Kenney Impact Sounds impactPunch_medium_002 (CC0)"
+  },
+  {
+    "file": "sfx_smack_plastic_heavy.mp3",
+    "title": "Impact Sounds (impactGeneric_light_003)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the plastic family, heavy take (crits); layered with Kenney Casino Audio chips-stack-2 (CC0); Kenney Impact Sounds impactPunch_heavy_003 (CC0)"
+  },
+  {
+    "file": "sfx_smack_cardboard_1.mp3",
+    "title": "Impact Sounds (impactPlank_medium_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the cardboard family, take 1; layered with Kenney RPG Audio bookPlace1 (CC0); Kenney Impact Sounds impactPunch_medium_000 (CC0)"
+  },
+  {
+    "file": "sfx_smack_cardboard_2.mp3",
+    "title": "Impact Sounds (impactPlank_medium_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the cardboard family, take 2; layered with Kenney RPG Audio bookPlace2 (CC0); Kenney Impact Sounds impactPunch_medium_001 (CC0)"
+  },
+  {
+    "file": "sfx_smack_cardboard_3.mp3",
+    "title": "Impact Sounds (impactPlank_medium_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the cardboard family, take 3; layered with Kenney RPG Audio bookPlace3 (CC0); Kenney Impact Sounds impactPunch_medium_002 (CC0)"
+  },
+  {
+    "file": "sfx_smack_cardboard_heavy.mp3",
+    "title": "RPG Audio (bookClose)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/rpg-audio",
+    "notes": "Peel smacks: the cardboard family, heavy take (crits); layered with Kenney Impact Sounds impactPlank_medium_003, impactPunch_heavy_003 (CC0)"
+  },
+  {
+    "file": "sfx_smack_sand_1.mp3",
+    "title": "Impact Sounds (footstep_concrete_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the sand family, take 1; layered with Kenney Impact Sounds impactPunch_medium_000 (CC0) and a synthesized sandy hiss (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_sand_2.mp3",
+    "title": "Impact Sounds (footstep_concrete_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the sand family, take 2; layered with Kenney Impact Sounds impactPunch_medium_001 (CC0) and a synthesized sandy hiss (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_sand_3.mp3",
+    "title": "Impact Sounds (footstep_concrete_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the sand family, take 3; layered with Kenney Impact Sounds impactPunch_medium_002 (CC0) and a synthesized sandy hiss (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_sand_heavy.mp3",
+    "title": "Impact Sounds (footstep_grass_003)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the sand family, heavy take (crits); layered with Kenney Impact Sounds impactPunch_heavy_003 (CC0) and a synthesized sandy hiss (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_skin_1.mp3",
+    "title": "Hitting in a Face",
+    "author": "florianreichelt (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/florianreichelt/sounds/460509/",
+    "notes": "Peel smacks: the skin family, take 1; layered with Kenney Impact Sounds impactPunch_medium_000 (CC0)"
+  },
+  {
+    "file": "sfx_smack_skin_2.mp3",
+    "title": "Punch in the face",
+    "author": "Huminaatio (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Huminaatio/sounds/390462/",
+    "notes": "Peel smacks: the skin family, take 2; layered with Kenney Impact Sounds impactPunch_medium_001 (CC0)"
+  },
+  {
+    "file": "sfx_smack_skin_3.mp3",
+    "title": "Hitting in a Face",
+    "author": "florianreichelt (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/florianreichelt/sounds/460509/",
+    "notes": "Peel smacks: the skin family, take 3; layered with Kenney Impact Sounds impactPunch_medium_002 (CC0)"
+  },
+  {
+    "file": "sfx_smack_skin_heavy.mp3",
+    "title": "Hitting in a Face",
+    "author": "florianreichelt (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/florianreichelt/sounds/460509/",
+    "notes": "Peel smacks: the skin family, heavy take (crits); layered with Kenney Impact Sounds impactPunch_heavy_001 (CC0)"
+  },
+  {
+    "file": "sfx_smack_tail_thunder.mp3",
+    "title": "Sci-fi Sounds (lowFrequency_explosion_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "notes": "Peel smacks: the thunder signature tail; layered with a synthesized thunder crack and rumble (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_tail_honk.mp3",
+    "title": "RPG Audio (cloth2)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/rpg-audio",
+    "notes": "Peel smacks: the honk signature tail; layered with a synthesized bulb-horn honk (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_tail_kinghonk.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the kinghonk signature tail; a synthesized two-note royal honk, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_tail_coin.mp3",
+    "title": "RPG Audio (handleCoins)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/rpg-audio",
+    "notes": "Peel smacks: the coin signature tail; layered with a synthesized coin chime (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_tail_glint.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the glint signature tail; a synthesized sparkle glint, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_tail_ultra.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the ultra signature tail; a synthesized crystal shimmer, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_tail_crown.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the crown signature tail; a synthesized golden two-note fanfare, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_tail_trophy.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the trophy signature tail; a synthesized trophy chime, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_tail_pop.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the pop signature tail; a synthesized balloon pop, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_tail_chomp.mp3",
+    "title": "Impact Sounds (impactWood_heavy_003)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the chomp signature tail; layered with Kenney Casino Audio dice-throw-2 (CC0) and a synthesized growl under the bite (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_tail_squawk.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the squawk signature tail; a synthesized gull squawk, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_tail_jukebox.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the jukebox signature tail; a synthesized doo-wop organ arpeggio, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_tail_mirror.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the mirror signature tail; a synthesized shimmering glass ring, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_tail_bell.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the bell signature tail; a synthesized counter bell ding, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_tail_boing.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the boing signature tail; a synthesized spring boing, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_tail_pizzagods.mp3",
+    "title": "Impact Sounds (impactBell_heavy_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the pizzagods signature tail; layered with a synthesized heavenly choir chord and chimes (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_hero_superpeel.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the superpeel peel’s own smack tail; a synthesized heat-vision sizzle and cape swish, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_batpeel.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the batpeel peel’s own smack tail; a synthesized bat-wing flutter, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_wonderwedge.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the wonderwedge peel’s own smack tail; a synthesized lasso swing and bracer ping, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_flashfoot.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the flashfoot peel’s own smack tail; a synthesized lightning zip and crackle, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_aquatoe.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the aquatoe peel’s own smack tail; a synthesized splash and sonar ping, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_greenlampshade.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the greenlampshade peel’s own smack tail; a synthesized glowing construct chord, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_spiderpan.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the spiderpan peel’s own smack tail; a synthesized web thwip, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_ironpan.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the ironpan peel’s own smack tail; a synthesized repulsor whine and blast, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_captainpizzeria.mp3",
+    "title": "Impact Sounds (impactPlate_light_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the captainpizzeria peel’s own smack tail; layered with a synthesized shield ring (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_hero_incrediblebulk.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the incrediblebulk peel’s own smack tail; a synthesized growl, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_blackwindow.mp3",
+    "title": "Digital Audio (zap1)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/digital-audio",
+    "notes": "Peel smacks: the blackwindow peel’s own smack tail; layered with a synthesized electric sting (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_hero_hawkeyetalian.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the hawkeyetalian peel’s own smack tail; a synthesized bowstring twang, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_wolverpeel.mp3",
+    "title": "RPG Audio (drawKnife1)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/rpg-audio",
+    "notes": "Peel smacks: the wolverpeel peel’s own smack tail; layered with a synthesized claw ring (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_hero_stormyweather.mp3",
+    "title": "Sci-fi Sounds (lowFrequency_explosion_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "notes": "Peel smacks: the stormyweather peel’s own smack tail; layered with a synthesized gust and distant thunder (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_hero_cyclopizza.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the cyclopizza peel’s own smack tail; a synthesized optic blast, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_blackpanther.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the blackpanther peel’s own smack tail; a synthesized kinetic pulse, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_strangeloaf.mp3",
+    "title": "Interface Sounds (tick_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/interface-sounds",
+    "notes": "Peel smacks: the strangeloaf peel’s own smack tail; layered with Kenney Interface Sounds tick_002 (CC0) and a synthesized clock tick and mystic chime (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_hero_scarletpitch.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the scarletpitch peel’s own smack tail; a synthesized reversed hex swell, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_antpan.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the antpan peel’s own smack tail; a synthesized shrinking zip, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_daredough.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the daredough peel’s own smack tail; a synthesized radar ping, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_deadpeel.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the deadpeel peel’s own smack tail; a synthesized cork pop and kazoo, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_silverslicer.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the silverslicer peel’s own smack tail; a synthesized cosmic surf shimmer, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_iamcrust.mp3",
+    "title": "Interface Sounds (click_003)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/interface-sounds",
+    "notes": "Peel smacks: the iamcrust peel’s own smack tail; layered with a synthesized finger snap and echoing chime (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_hero_rocketrucola.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the rocketrucola peel’s own smack tail; a synthesized blaster double shot, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_starlard.mp3",
+    "title": "Interface Sounds (switch_003)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/interface-sounds",
+    "notes": "Peel smacks: the starlard peel’s own smack tail; layered with a synthesized tape click and bass pluck (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_hero_captainmarvellous.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the captainmarvellous peel’s own smack tail; a synthesized photon blast and sparkle, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_shazamozza.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the shazamozza peel’s own smack tail; a synthesized lightning strike and brass stab, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_cypork.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the cypork peel’s own smack tail; a synthesized boom-tube warp, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_robinpizza.mp3",
+    "title": "Impact Sounds (impactWood_light_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the robinpizza peel’s own smack tail; layered with Kenney Impact Sounds impactWood_light_002 (CC0) and a synthesized double stick clack (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_hero_cattoewoman.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the cattoewoman peel’s own smack tail; a synthesized whip crack and meow, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_martianmozzarella.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the martianmozzarella peel’s own smack tail; a synthesized shape-shift warble, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_greenpepperarrow.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the greenpepperarrow peel’s own smack tail; a synthesized twang and boxing-glove boing, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_plasticpan.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the plasticpan peel’s own smack tail; a synthesized rubber-band stretch, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_hawkcrust.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the hawkcrust peel’s own smack tail; a synthesized hawk screech, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_bluebeetroot.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the bluebeetroot peel’s own smack tail; a synthesized scarab chitter and blip, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_boostergouda.mp3",
+    "title": "RPG Audio (handleCoins)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/rpg-audio",
+    "notes": "Peel smacks: the boostergouda peel’s own smack tail; layered with Kenney Interface Sounds switch_004 (CC0) and a synthesized cash-register ka-ching (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_hero_staticcling.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the staticcling peel’s own smack tail; a synthesized static crackle, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_zatannapanna.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the zatannapanna peel’s own smack tail; a synthesized backwards chime, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_swampthincrust.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the swampthincrust peel’s own smack tail; a synthesized bog gurgle, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_nightwings.mp3",
+    "title": "Impact Sounds (impactWood_light_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the nightwings peel’s own smack tail; layered with Kenney Impact Sounds impactWood_light_002 (CC0) and a synthesized electric stick clack (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_hero_ghostroaster.mp3",
+    "title": "Impact Sounds (impactMetal_light_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the ghostroaster peel’s own smack tail; layered with Kenney Impact Sounds impactMetal_light_001, impactMetal_light_002 (CC0); Kenney Sci-fi Sounds thrusterFire_002 (CC0) and a synthesized chain rattle and hellfire whoosh (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_hero_moonknife.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the moonknife peel’s own smack tail; a synthesized crescent blade swish, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_shebulk.mp3",
+    "title": "Impact Sounds (impactWood_heavy_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the shebulk peel’s own smack tail; layered with Kenney Impact Sounds impactWood_heavy_001 (CC0) and a synthesized gavel double bang (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_hero_wasabiwasp.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the wasabiwasp peel’s own smack tail; a synthesized wasp buzz and sting, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_gambeet.mp3",
+    "title": "Casino Audio (card-place-2)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/casino-audio",
+    "notes": "Peel smacks: the gambeet peel’s own smack tail; layered with a synthesized charged card flick (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_hero_icecreamman.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the icecreamman peel’s own smack tail; a synthesized ice crack and van chime, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_humanscorch.mp3",
+    "title": "Sci-fi Sounds (thrusterFire_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "notes": "Peel smacks: the humanscorch peel’s own smack tail; layered with a synthesized flame whoosh (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_hero_mrelasticcheese.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the mrelasticcheese peel’s own smack tail; a synthesized stretchy boing, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_squirrelgourmet.mp3",
+    "title": "Impact Sounds (impactWood_light_004)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the squirrelgourmet peel’s own smack tail; layered with a synthesized squirrel chitter and nut crack (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_hero_zeus.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the zeus peel’s own smack tail; a synthesized thunderbolt crack, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_kratos.mp3",
+    "title": "Impact Sounds (impactMetal_light_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the kratos peel’s own smack tail; layered with Kenney Impact Sounds impactMetal_light_001, impactMetal_light_002 (CC0); Kenney Sci-fi Sounds thrusterFire_002 (CC0) and a synthesized blade swing and chain clank (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_hero_hera.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the hera peel’s own smack tail; a synthesized regal horn call, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_poseidon.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the poseidon peel’s own smack tail; a synthesized wave crash and trident ring, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_demeter.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the demeter peel’s own smack tail; a synthesized wheat rustle and harvest chime, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_athena.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the athena peel’s own smack tail; a synthesized owl hoot and shield ring, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_apollo.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the apollo peel’s own smack tail; a synthesized lyre strum, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_artemis.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the artemis peel’s own smack tail; a synthesized bowstring and silver moon chime, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_ares.mp3",
+    "title": "Impact Sounds (impactMetal_medium_003)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the ares peel’s own smack tail; layered with a synthesized war drum and clash (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_hero_aphrodite.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the aphrodite peel’s own smack tail; a synthesized harp glissando, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_hephaestus.mp3",
+    "title": "Impact Sounds (impactMetal_heavy_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the hephaestus peel’s own smack tail; layered with a synthesized anvil ring (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_hero_hermes.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the hermes peel’s own smack tail; a synthesized winged-sandal flutter, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_dionysus.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the dionysus peel’s own smack tail; a synthesized wine-glass clink and glug, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_hestia.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the hestia peel’s own smack tail; a synthesized hearth crackle and warm bell, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_hades.mp3",
+    "title": "Impact Sounds (impactMetal_light_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the hades peel’s own smack tail; layered with Kenney Impact Sounds impactMetal_light_001, impactMetal_light_002 (CC0) and a synthesized underworld boom and chains (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_hero_persephone.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the persephone peel’s own smack tail; a synthesized blossoming chime, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_nike.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the nike peel’s own smack tail; a synthesized victory fanfare and wing swish, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_nyx.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the nyx peel’s own smack tail; a synthesized night swell and star twinkles, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_odin.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the odin peel’s own smack tail; a synthesized raven caw and rune gong, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_thor.mp3",
+    "title": "Sci-fi Sounds (lowFrequency_explosion_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "notes": "Peel smacks: the thor peel’s own smack tail; layered with Kenney Impact Sounds impactMetal_heavy_000 (CC0) and a synthesized hammer thunder crack (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_hero_loki.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the loki peel’s own smack tail; a synthesized mischievous warble and hiss, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_frigg.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the frigg peel’s own smack tail; a synthesized spinning-wheel whirr and bell, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_freya.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the freya peel’s own smack tail; a synthesized falcon cry, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_freyr.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the freyr peel’s own smack tail; a synthesized golden boar grunt and coin, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_tyr.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the tyr peel’s own smack tail; a synthesized oath gong, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_heimdall.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the heimdall peel’s own smack tail; a synthesized horn blast, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_baldur.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the baldur peel’s own smack tail; a synthesized radiant chord, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_hel.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the hel peel’s own smack tail; a synthesized eerie half-whisper, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_njord.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the njord peel’s own smack tail; a synthesized sea wind and wave, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_skadi.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the skadi peel’s own smack tail; a synthesized ski swish and ice crack, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_idun.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the idun peel’s own smack tail; a synthesized apple crunch and chime, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_bragi.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the bragi peel’s own smack tail; a synthesized harp run, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_leonidas.mp3",
+    "title": "Impact Sounds (impactMetal_medium_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the leonidas peel’s own smack tail; layered with a synthesized shout of \"HA!\" over a spear clang (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_hero_hotgates.mp3",
+    "title": "Sci-fi Sounds (thrusterFire_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "notes": "Peel smacks: the hotgates peel’s own smack tail; layered with a synthesized war shout and fire whoosh (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_hero_darkkneader.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the darkkneader peel’s own smack tail; a synthesized dark flutter and bell toll, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_captainmarvellousendgame.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the captainmarvellousendgame peel’s own smack tail; its hero's tail and a synthesized portal ring, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_starlardendgame.mp3",
+    "title": "Interface Sounds (switch_003)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/interface-sounds",
+    "notes": "Peel smacks: the starlardendgame peel’s own smack tail; layered with its hero's tail and a synthesized portal ring (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_hero_incrediblebulkendgame.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the incrediblebulkendgame peel’s own smack tail; its hero's tail and a synthesized portal ring, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_blackwindowendgame.mp3",
+    "title": "Digital Audio (zap1)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/digital-audio",
+    "notes": "Peel smacks: the blackwindowendgame peel’s own smack tail; layered with its hero's tail and a synthesized portal ring (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_hero_hawkeyetalianendgame.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the hawkeyetalianendgame peel’s own smack tail; its hero's tail and a synthesized portal ring, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_blackpantherendgame.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the blackpantherendgame peel’s own smack tail; its hero's tail and a synthesized portal ring, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_strangeloafendgame.mp3",
+    "title": "Interface Sounds (tick_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/interface-sounds",
+    "notes": "Peel smacks: the strangeloafendgame peel’s own smack tail; layered with Kenney Interface Sounds tick_002 (CC0) and its hero's tail and a synthesized portal ring (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_hero_scarletpitchendgame.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the scarletpitchendgame peel’s own smack tail; its hero's tail and a synthesized portal ring, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_antpanendgame.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the antpanendgame peel’s own smack tail; its hero's tail and a synthesized portal ring, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_wasabiwaspendgame.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the wasabiwaspendgame peel’s own smack tail; its hero's tail and a synthesized portal ring, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_rocketrucolaendgame.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the rocketrucolaendgame peel’s own smack tail; its hero's tail and a synthesized portal ring, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_iamcrustendgame.mp3",
+    "title": "Interface Sounds (click_003)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/interface-sounds",
+    "notes": "Peel smacks: the iamcrustendgame peel’s own smack tail; layered with its hero's tail and a synthesized portal ring (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_hero_ghostofsparta.mp3",
+    "title": "Impact Sounds (impactMetal_light_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the ghostofsparta peel’s own smack tail; layered with Kenney Impact Sounds impactMetal_light_001, impactMetal_light_002 (CC0); Kenney Sci-fi Sounds thrusterFire_002 (CC0) and a synthesized ghostly echo of the Kratos blade (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_hero_superpeelprime.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the superpeelprime peel’s own smack tail; a synthesized heat-vision sizzle and choir, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_ironpaninfinity.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the ironpaninfinity peel’s own smack tail; a synthesized repulsor and infinity chime, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_thorunleashed.mp3",
+    "title": "Sci-fi Sounds (lowFrequency_explosion_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "notes": "Peel smacks: the thorunleashed peel’s own smack tail; layered with Kenney Impact Sounds impactMetal_heavy_003 (CC0) and a synthesized bigger thunder crack (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_hero_odinascended.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the odinascended peel’s own smack tail; a synthesized rune gong and choir, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_zeusunbound.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the zeusunbound peel’s own smack tail; a synthesized thunderbolt and long rumble, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_shieldofliberty.mp3",
+    "title": "Impact Sounds (impactPlate_light_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Peel smacks: the shieldofliberty peel’s own smack tail; layered with a synthesized shield ring and eagle cry (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_smack_hero_symbiotepan.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the symbiotepan peel’s own smack tail; a synthesized thwip and slimy gurgle, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_amazonqueen.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Peel smacks: the amazonqueen peel’s own smack tail; a synthesized lasso and horn call, made with ffmpeg and Python and released as CC0"
   }
 ]

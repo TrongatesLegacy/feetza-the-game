@@ -22,6 +22,7 @@ import { Projectiles } from '../game/projectiles';
 import { DOUBLE_CAP, endlessPlus, LOCATION_AMBIENCE, LOCATION_MUSIC, RARITY_FROM, Run, awardMilestones, milestoneProgress, backdropFor, bestRarity, rarityOpen, specialPrice, bossMusic, isBossWave, isMiniWave, locationFor, loopOf, planWave, type WavePlan, bossFor, miniFor } from '../game/Run';
 import type { CounterSnap, RunSnapshot } from '../game/snapshot';
 import { audio, bossSfx, heroSfx } from '../systems/audio';
+import { setRunSmack } from '../game/smacks';
 import { pad } from '../systems/gamepad';
 import { markFootSeen, markToppingsSeen, nextLockedPizza, persist, save, updateSettings } from '../systems/save';
 import type { GoldenItem, RunSummary, ShopCard, ShopOffer, ShopPizza, ShopState, YourTopping } from '../ui/shopTypes';
@@ -473,6 +474,9 @@ export class GameScene extends Phaser.Scene implements Arena {
     // the equipped peel brings the ability; a worn look (if any) only changes how it looks
     const peelDef = abilityPeel(this.start.snapshot?.peel);
     const look = applyPeelLook(this, lookPeel(peelDef));
+    // smacks sound like the look on the cursor
+    setRunSmack(this, look.id);
+    this.events.once('shutdown', () => setRunSmack(null, null));
     this.peelTrailColor = peelTrail(look);
     this.peelShiny = !!look.shiny;
     this.peelId = peelDef.id;
@@ -930,6 +934,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     // the new peel's nemesis (or none) from the next stage on, as a resumed run would see it
     setNemesisPeel(id);
     const look = applyPeelLook(this, lookPeel(def));
+    setRunSmack(this, look.id);
     this.peelTrailColor = peelTrail(look);
     this.peelShiny = !!look.shiny;
     this.peel.setTexture('peel');
@@ -2793,7 +2798,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.fx.impact(px, py, crit);
       this.fx.blush(f.root, (px - f.x) / f.root.scaleX, (py - f.y) / f.root.scaleY);
       if (crit) {
-        audio.sfx('sfx_crit', { throttle: 40 });
+        audio.critSmack();
         this.hitStop = 0.07;
         this.shake(120, 0.004);
         this.rumble(0.35, 80);
