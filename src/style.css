@@ -5658,9 +5658,9 @@ body.reduced-motion *::after {
   flex: 1 1 auto;
   min-height: 0;
 }
+/* offers only ever grow into spare room, never squeeze below their content (the Chef's Special's note) */
 .shop-right .counter2 > .offer {
-  flex: 1 1 0;
-  min-height: 0;
+  flex: 1 0 auto;
 }
 
 /* ——— Pizza Slots: the counter's third slot when no Chef's Special turned up ———
@@ -5895,7 +5895,7 @@ body.reduced-motion *::after {
   .offer.slots .bulbs i, .offer.slots.won .payline { animation: none; opacity: 1; }
 }
 /* the machine takes the biggest share of the counter's spare room */
-.shop-right .counter2 > .offer.slots { flex: 2.2 1 0; }
+.shop-right .counter2 > .offer.slots { flex: 2.2 0 auto; }
 /* --cell resolves once, on the machine's row: the symbols' own (bigger) font size mustn't rescale it */
 @property --cell {
   syntax: '<length>';
