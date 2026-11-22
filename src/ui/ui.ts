@@ -177,6 +177,15 @@ export interface CounterOffer {
 
 /** The Pizza Slots machine's symbols and what three of each pays. */
 const SLOT_ICON: Record<SlotSymbol, string> = { tips: '🪙', slices: '🍕', slam: '⚡', topping: '🧀', epic: '💎', crust: '🥖', chef: '👨‍🍳' };
+const SLOT_LONG: Partial<Record<SlotSymbol, string>> = {
+  tips: 'Three times the pull in tips',
+  slices: '+3 slices for your hungriest pizzas',
+  slam: 'A full Peel Slam meter (or your ability now)',
+  topping: 'A free common or rare topping',
+  epic: 'A free epic topping',
+  crust: '+2 Golden Crusts',
+  chef: "JACKPOT: a Chef's Special on the house",
+};
 const SLOT_PAYS: [SlotSymbol, string][] = [['tips', 'tips ×3'], ['slices', '+3 slices'], ['slam', 'full slam'], ['topping', 'topping'], ['epic', 'epic'], ['crust', '2 crusts'], ['chef', 'free special']];
 
 function slotsRow(sl: NonNullable<ShopState['slots']>, pull: () => void): HTMLElement {
@@ -191,13 +200,31 @@ function slotsRow(sl: NonNullable<ShopState['slots']>, pull: () => void): HTMLEl
   const b = btn(label, `${sl.can ? 'green' : ''} small`, pull, { 'aria-label': sl.used ? 'Pizza Slots: already pulled this shop' : `Pull Pizza Slots for ${sl.cost} tips` });
   b.disabled = !sl.can;
   const note = sl.result && !sl.result.fresh ? (sl.result.win ? sl.result.prize : 'Back next shop') : '3 of a kind wins';
-  return h(
+  // the prize list sits behind a [?] button
+  const info = h(
+    'div',
+    { class: 'slots-info', role: 'dialog', 'aria-label': 'Pizza Slots prizes' },
+    h('b', {}, 'THREE OF A KIND WINS'),
+    ...SLOT_PAYS.map(([k, t]) => h('div', { class: 'sp' }, h('span', {}, `${SLOT_ICON[k]}${SLOT_ICON[k]}${SLOT_ICON[k]}`), h('span', {}, SLOT_LONG[k] ?? t))),
+    h('small', {}, 'One pull a shop. A prize that would do nothing pays your tips back.'),
+  );
+  const q = h('button', { class: 'slots-q', type: 'button', 'aria-label': 'What can Pizza Slots win?', 'aria-expanded': 'false' }, '?');
+  const row = h(
     'div',
     { class: `offer slots${sl.result?.win && !sl.result.fresh ? ' won' : ''}` },
     h('div', { class: 'reels', 'aria-hidden': 'true' }, ...reels),
-    h('div', { class: 'offer-text' }, h('span', { class: 'tag' }, 'PIZZA SLOTS'), h('b', {}, note), h('span', { class: 'pays', title: SLOT_PAYS.map(([k, t]) => `${SLOT_ICON[k]}×3: ${t}`).join('\n') }, sl.used ? 'One pull a shop' : SLOT_PAYS.map(([k, t]) => `${SLOT_ICON[k]} ${t}`).join(' · '))),
+    h('div', { class: 'offer-text' }, h('span', { class: 'tag' }, 'PIZZA SLOTS ', q), h('b', {}, note), h('span', {}, sl.used ? 'One pull a shop' : 'Tap ? for the prizes')),
     b,
+    info,
   );
+  q.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const open = row.classList.toggle('show-info');
+    q.setAttribute('aria-expanded', String(open));
+    // a tap anywhere else closes it
+    if (open) setTimeout(() => document.addEventListener('click', () => (row.classList.remove('show-info'), q.setAttribute('aria-expanded', 'false')), { once: true }), 0);
+  });
+  return row;
 }
 
 class Hud {
