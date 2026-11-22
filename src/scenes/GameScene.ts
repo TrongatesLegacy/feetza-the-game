@@ -89,6 +89,8 @@ const EVENT_CRUST_CAP = 3;
 const FRESH_START = [10, 8, 6, 9, 7];
 /** How long a wave event can still be smacked after the wave ends (the shop waits for it). */
 const EVENT_GRACE_MS = 4000;
+/** A Pizza Slots pull paid in Golden Crusts. */
+const SLOTS_CRUSTS = 40;
 
 /** Coins you have after clearing wave 1, at least: enough for a common topping (35 at wave 1). */
 const WAVE1_MIN_COINS = 35;
@@ -2009,7 +2011,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       buy: (id) => this.shopBuy(id),
       reroll: () => this.shopReroll(),
       heal: () => this.shopHeal(),
-      slots: () => this.shopSlots(),
+      slots: (pay) => this.shopSlots(pay),
+      slotsTake: (c) => this.slotsTake(c),
       rebake: () => this.shopRebake(),
       reheat: (i) => this.shopReheat(i),
       toppings: () => this.shopToppings(),
@@ -2139,7 +2142,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       offers,
       heal: { cost: this.boughtOut(this.healCost), can: this.alivePizzas().some((p) => p.slices < p.maxSlices) && r.coins >= this.boughtOut(this.healCost) },
       rebake: { cost: this.boughtOut(this.reviveCost), can: dead.length > 0 && r.coins >= this.boughtOut(this.reviveCost), shown: this.run.heatDef.rebake },
-      slots: this.slotsShown() ? { cost: this.slotsCost(), can: !sh.slots?.used && r.coins >= this.slotsCost(), used: !!sh.slots?.used, result: sh.slots?.result ?? null } : null,
+      slots: this.slotsShown() ? { cost: this.slotsCost(), can: !sh.slots?.used && r.coins >= this.slotsCost(), crustCost: SLOTS_CRUSTS, canCrusts: !sh.slots?.used && save.crusts >= SLOTS_CRUSTS, used: !!sh.slots?.used, result: sh.slots?.result ?? null } : null,
       lastStand,
       yours: this.yourToppings(),
       golden,
@@ -2395,17 +2398,23 @@ export class GameScene extends Phaser.Scene implements Arena {
     return !sh.counter.some((o) => o.kind === 'special' || o.kind === 'enhanced') || !!sh.slots?.used;
   }
 
-  /** A pull costs about three rerolls' worth, rising with the wave. */
+  /** A pull costs about what a Chef's Special would (a middling one), rising with the wave. */
   private slotsCost(): number {
-    return this.boughtOut(Math.round((20 + this.run.wave * 1.5) / 5) * 5);
+    return this.boughtOut(Math.round((this.pizzaPrice() * 2 + 2 * (15 + 2 * this.run.wave)) / 5) * 5);
   }
 
-  private shopSlots(): void {
+  private shopSlots(pay: 'tips' | 'crusts'): void {
     const sh = this.shop;
     if (!sh || sh.slots?.used || !this.slotsShown()) return;
     const cost = this.slotsCost();
-    if (this.run.coins < cost) return;
-    this.run.coins -= cost;
+    if (pay === 'tips') {
+      if (this.run.coins < cost) return;
+      this.run.coins -= cost;
+    } else {
+      if (save.crusts < SLOTS_CRUSTS) return;
+      save.crusts -= SLOTS_CRUSTS;
+      persist();
+    }
     // the outcome is drawn first, then the reels are set to show it: a third of pulls land three of a kind
     const SYMS: SlotSymbol[] = ['tips', 'slices', 'slam', 'topping', 'epic', 'crust', 'chef'];
     const DROPS: [SlotSymbol, number][] = [['tips', 28], ['slices', 22], ['topping', 18], ['slam', 14], ['epic', 8], ['crust', 6], ['chef', 4]];
@@ -2416,7 +2425,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       let roll = Math.random() * DROPS.reduce((n, d) => n + d[1], 0);
       const sym = (DROPS.find((d) => (roll -= d[1]) < 0) ?? DROPS[0])[0];
       reels = [sym, sym, sym];
-      prize = this.slotsPrize(sym, cost);
+      prize = this.slotsPrize(sym, cost, pay);
     } else {
       // a miss: never three alike (two alike now and then, for the near miss)
       const a = Phaser.Utils.Array.GetRandom(SYMS);
@@ -2424,7 +2433,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       const c = Phaser.Utils.Array.GetRandom(SYMS.filter((x) => x !== a && x !== b));
       reels = Phaser.Utils.Array.Shuffle([a, b, c]) as [SlotSymbol, SlotSymbol, SlotSymbol];
     }
-    sh.slots = { used: true, result: { reels, win, prize, fresh: true } };
+    sh.slots = { used: true, result: { reels, win, prize, fresh: true, offer: this.slotsOffer ?? undefined } };
+    this.slotsOffer = null;
     audio.sfx('sfx_coin', { rate: 0.8 });
     this.refreshShop();
     // the reels stop one by one (ui.ts); the win lands with the last
@@ -2440,38 +2450,68 @@ export class GameScene extends Phaser.Scene implements Arena {
     }, 1500);
   }
 
-  /** Pay a Pizza Slots win; returns what it gave, in words. A prize that would do nothing pays the pull back. */
-  private slotsPrize(sym: SlotSymbol, cost: number): string {
+  /** A topping a Pizza Slots win is offering (set while the prize is drawn). */
+  private slotsOffer: NonNullable<SlotsResult['offer']> | null = null;
+
+  /** Keep the topping Pizza Slots won, or sell it for half its usual price. */
+  private slotsTake(choice: 'add' | 'sell'): void {
+    const o = this.shop?.slots?.result?.offer;
+    if (!o || o.taken) return;
+    const u = UPGRADE_BY_ID[o.id];
+    if (!u) return;
+    o.taken = choice;
+    if (choice === 'add') {
+      if (!this.run.bought.includes(u.id)) this.run.bought.push(u.id);
+      this.applyUpgrade(u);
+      ui.hud.toast(null, `PIZZA SLOTS: ${u.name.toUpperCase()}`, u.desc(this.run.level(u.id) || 1));
+      this.shop!.slots!.result!.prize = `Added: ${u.name}`;
+    } else {
+      this.run.coins += o.sell;
+      audio.sfx('sfx_coin', { rate: 1.1 });
+      this.shop!.slots!.result!.prize = `Sold ${u.name} for ${o.sell} tips`;
+    }
+    this.refreshShop();
+  }
+
+  /** Pay a Pizza Slots win; returns what it gave, in words. A prize that would do nothing pays the pull back (in
+   *  whatever it was paid with). `cost` is the pull's price in tips, which the tips prize scales from. */
+  private slotsPrize(sym: SlotSymbol, cost: number, pay: 'tips' | 'crusts'): string {
     const refund = () => {
+      if (pay === 'crusts') {
+        save.crusts += SLOTS_CRUSTS;
+        persist();
+        return `Your ${SLOTS_CRUSTS} Golden Crusts back`;
+      }
       this.run.coins += cost;
       return `Your ${cost} tips back`;
     };
+    // a topping is offered, not applied: keep it or sell it for half its usual price (slotsTake)
     const topping = (rarities: string[]) => {
       const pool = UPGRADES.filter((u) => rarities.includes(u.rarity) && !u.pick && this.run.offerable(u, this.run.wave));
       const u = pool.length ? Phaser.Utils.Array.GetRandom(pool) : null;
       if (!u) return null;
-      if (!this.run.bought.includes(u.id)) this.run.bought.push(u.id);
-      this.applyUpgrade(u);
-      return `A free ${u.rarity} topping: ${u.name}`;
+      this.slotsOffer = { id: u.id, name: u.name, rarity: u.rarity, sell: Math.max(5, Math.round(toppingPrice(this.run, u).full / 2 / 5) * 5) };
+      return `A ${u.rarity} topping: ${u.name}`;
     };
     switch (sym) {
-      case 'tips':
-        this.run.coins += cost * 3;
-        return `${cost * 3} tips`;
+      case 'tips': {
+        const n = Math.round((cost * 2.5) / 5) * 5;
+        this.run.coins += n;
+        return `${n} tips`;
+      }
       case 'slices': {
-        // three slices to the pizzas missing the most; none missing: the pull back
-        const hurt = () => this.alivePizzas().filter((p) => p.slices < p.maxSlices).sort((a, b) => a.slices / a.maxSlices - b.slices / b.maxSlices);
-        if (!hurt().length) return refund();
+        // every pizza back to full; none missing a slice: the pull back
+        const hurt = this.alivePizzas().filter((p) => p.slices < p.maxSlices);
+        if (!hurt.length) return refund();
         let n = 0;
-        for (; n < 3; n++) {
-          const p = hurt()[0];
-          if (!p) break;
-          this.healPizza(p, 1);
+        for (const p of hurt) {
+          n += p.maxSlices - p.slices;
+          this.healPizza(p, p.maxSlices - p.slices);
         }
-        return `+${n} slice${n === 1 ? '' : 's'}`;
+        return `Every pizza back to full (+${n} slice${n === 1 ? '' : 's'})`;
       }
       case 'slam': {
-        // a full Peel Slam meter (or the ability's timer run down); a peel with neither: the pull back
+        // a full Peel Slam meter (or the ability's timer run down); a peel with neither, or a full meter: the pull back
         if (this.ability?.trigger.t === 'every') {
           this.abilityT += this.ability.trigger.sec;
           return `${this.ability.name} straight away`;
@@ -2482,14 +2522,15 @@ export class GameScene extends Phaser.Scene implements Arena {
         return 'A full Peel Slam meter';
       }
       case 'topping':
-        return topping(['common', 'rare']) ?? refund();
+        return topping(['rare']) ?? topping(['common']) ?? refund();
       case 'epic':
-        return topping(['epic']) ?? topping(['rare']) ?? refund();
+        // from wave 20 the big one can be legendary
+        return (this.run.wave >= 20 && Math.random() < 0.35 ? topping(['legendary']) : null) ?? topping(['epic']) ?? topping(['rare']) ?? refund();
       case 'crust':
-        save.crusts += 2;
-        this.run.bankedCrusts += 2;
+        save.crusts += 5;
+        this.run.bankedCrusts += 5;
         persist();
-        return '+2 Golden Crusts';
+        return '+5 Golden Crusts';
       case 'chef': {
         // the jackpot: a Chef's Special on the house (or an enhanced pizza when every special is unlocked)
         const sh = this.shop!;
@@ -2506,8 +2547,8 @@ export class GameScene extends Phaser.Scene implements Arena {
           sh.counter.push({ id: e.id, name: e.name, perk: enhancedText(e.perk), cost: 0, kind: 'enhanced' });
           return `JACKPOT! An enhanced ${e.name} is on the house at the counter`;
         }
-        this.run.coins += cost * 5;
-        return `JACKPOT! ${cost * 5} tips`;
+        this.run.coins += cost * 4;
+        return `JACKPOT! ${cost * 4} tips`;
       }
     }
   }
@@ -2660,6 +2701,9 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   private shopNext(): void {
     if (!this.shop) return;
+    // a topping won on Pizza Slots and not yet chosen: it's kept
+    const won = this.shop.slots?.result?.offer;
+    if (won && !won.taken) this.slotsTake('add');
     // a bought Pick or Peel Roulette must be chosen first
     if (this.run.kit.pendingPick) {
       this.openPending();

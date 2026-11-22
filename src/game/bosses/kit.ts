@@ -161,6 +161,11 @@ export function dropOn(a: Arena, f: Foot, p: Pizza, key: string, sec: number, la
   a.sc.tweens.add({ targets: img, angle: { from: -14, to: 14 }, duration: 110, yoyo: true, repeat: Math.max(1, Math.round((warn * 1000) / 220) - 1) });
   a.sc.time.delayedCall(warn * 1000, () => {
     if (done) return;
+    if (!f.alive || !a.inWave()) {
+      finish();
+      img.destroy();
+      return;
+    }
     a.sfx(look.fallSfx ?? 'sfx_whoosh', look.fallSfx ? { throttle: 200 } : { volume: 0.5, rate: 0.7 });
     a.sc.tweens.add({
       targets: img,
@@ -168,6 +173,13 @@ export function dropOn(a: Arena, f: Foot, p: Pizza, key: string, sec: number, la
       angle: 200,
       duration: fall * 1000,
       ease: 'Linear',
+      // the boss went down (or the wave ended) mid-fall: it goes too, instead of hanging over the pizza
+      onUpdate: (tw) => {
+        if (done || (f.alive && a.inWave())) return;
+        finish();
+        tw.stop();
+        a.sc.tweens.add({ targets: img, alpha: 0, scale: img.scale * 0.6, duration: 200, onComplete: () => img.destroy() });
+      },
       onComplete: () => {
         if (done) return;
         finish();

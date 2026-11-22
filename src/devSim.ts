@@ -11,6 +11,7 @@ import type Phaser from 'phaser';
 import type { HeatId } from './data/difficulty';
 import { META } from './data/meta';
 import { PIZZAS } from './data/pizzas';
+import { pizzaTops } from './game/assets';
 import { PEELS, PEEL_BY_ID } from './game/peels';
 import { migrate, persist, save } from './systems/save';
 
@@ -164,6 +165,8 @@ function smack(g: AnyScene, accuracy: number): void {
 
 export async function simRun(game: Phaser.Game, o: SimOpts, start: (opts: Record<string, unknown>) => void): Promise<SimResult> {
   const opts: Required<SimOpts> = { peel: 'classic', accuracy: 0.9, rate: 260, dt: 1000 / 60, profile: 'fresh', maxRealMs: 600_000, ...o };
+  // the game's art must be built first (several tabs booting at once can take a while)
+  for (let i = 0; i < 600 && PIZZAS.some((p) => !pizzaTops[p.id]); i++) await new Promise((r) => setTimeout(r, 100));
   // the browser's own save comes back when the run is done
   const before = JSON.stringify(save);
   setProfile(opts);

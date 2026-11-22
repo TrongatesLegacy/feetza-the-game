@@ -178,43 +178,75 @@ export interface CounterOffer {
 /** The Pizza Slots machine's symbols and what three of each pays. */
 const SLOT_ICON: Record<SlotSymbol, string> = { tips: '🪙', slices: '🍕', slam: '⚡', topping: '🧀', epic: '💎', crust: '🥖', chef: '👨‍🍳' };
 const SLOT_LONG: Partial<Record<SlotSymbol, string>> = {
-  tips: 'Three times the pull in tips',
-  slices: '+3 slices for your hungriest pizzas',
+  tips: 'Two and a half times the pull in tips',
+  slices: 'Every pizza back to full slices',
   slam: 'A full Peel Slam meter (or your ability now)',
-  topping: 'A free common or rare topping',
-  epic: 'A free epic topping',
-  crust: '+2 Golden Crusts',
+  topping: 'A free rare topping',
+  epic: 'A free epic topping (from wave 20, maybe legendary)',
+  crust: '+5 Golden Crusts',
   chef: "JACKPOT: a Chef's Special on the house",
 };
-const SLOT_PAYS: [SlotSymbol, string][] = [['tips', 'tips ×3'], ['slices', '+3 slices'], ['slam', 'full slam'], ['topping', 'topping'], ['epic', 'epic'], ['crust', '2 crusts'], ['chef', 'free special']];
+const SLOT_PAYS: [SlotSymbol, string][] = [['tips', 'tips ×2.5'], ['slices', 'full slices'], ['slam', 'full slam'], ['topping', 'rare'], ['epic', 'epic'], ['crust', '5 crusts'], ['chef', 'free special']];
 
-function slotsRow(sl: NonNullable<ShopState['slots']>, pull: () => void): HTMLElement {
+function slotsRow(sl: NonNullable<ShopState['slots']>, pull: (pay: 'tips' | 'crusts') => void, take: (c: 'add' | 'sell') => void): HTMLElement {
   const syms = Object.keys(SLOT_ICON) as SlotSymbol[];
+  const rnd = () => syms[Math.floor(Math.random() * syms.length)];
+  const res = sl.result;
+  const spinning = !!res?.fresh;
+  const won = !!res?.win && !res.fresh;
+  // each reel shows three symbols; only the middle row (the payline) counts
   const reels = [0, 1, 2].map((i) => {
-    const end = sl.result?.reels[i] ?? syms[(i * 3) % syms.length];
-    // a spinning strip that lands on its symbol, each reel a beat after the last
-    const strip = sl.result?.fresh ? [...Array.from({ length: 10 + i * 4 }, () => syms[Math.floor(Math.random() * syms.length)]), end] : [end];
-    return h('div', { class: 'reel' }, h('div', { class: `strip${sl.result?.fresh ? ' spin' : ''}`, style: `--n:${strip.length - 1};--d:${0.7 + i * 0.35}s` }, ...strip.map((x) => h('span', {}, SLOT_ICON[x]))));
+    const mid = res?.reels[i] ?? syms[(i * 3 + 1) % syms.length];
+    const above = res ? rnd() : syms[(i * 3) % syms.length];
+    const below = res ? rnd() : syms[(i * 3 + 2) % syms.length];
+    // spinning: a long strip that lands with `mid` on the payline, each reel a beat after the last
+    const strip = spinning ? [...Array.from({ length: 12 + i * 5 }, rnd), above, mid, below] : [above, mid, below];
+    return h(
+      'div',
+      { class: 'reel' },
+      h('div', { class: `sl-strip${spinning ? ' spin' : ''}`, style: `--n:${strip.length - 3};--d:${0.8 + i * 0.38}s` }, ...strip.map((x, k) => h('span', { class: !spinning && k === 1 ? 'mid' : '' }, SLOT_ICON[x]))),
+    );
   });
-  const label = sl.used ? (!sl.result ? 'PULLED' : !sl.result.fresh ? (sl.result.win ? 'WON!' : 'NO LUCK') : 'SPINNING…') : `PULL · ${fmt(sl.cost)}`;
-  const b = btn(label, `${sl.can ? 'green' : ''} small`, pull, { 'aria-label': sl.used ? 'Pizza Slots: already pulled this shop' : `Pull Pizza Slots for ${sl.cost} tips` });
-  b.disabled = !sl.can;
-  const note = sl.result && !sl.result.fresh ? (sl.result.win ? sl.result.prize : 'Back next shop') : '3 of a kind wins';
+  const bulbs = h('div', { class: 'bulbs', 'aria-hidden': 'true' }, ...Array.from({ length: 9 }, () => h('i')));
+  const machine = h(
+    'div',
+    { class: 'machine', 'aria-hidden': 'true' },
+    h('div', { class: 'marquee' }, bulbs, h('span', {}, 'PIZZA SLOTS')),
+    h('div', { class: 'window' }, ...reels, h('i', { class: 'payline' }), h('i', { class: 'pl-l' }), h('i', { class: 'pl-r' }), h('i', { class: 'glass' })),
+  );
+  // pay with tips or with Golden Crusts; once pulled, one wide button says how it went
+  let b: HTMLElement;
+  const offer = res && !res.fresh ? res.offer : undefined;
+  if (offer && !offer.taken) {
+    // a topping won: keep it or sell it
+    b = h('div', { class: 'pulls' }, btn('ADD IT', 'green small pull', () => take('add'), { 'aria-label': `Add ${offer.name} to your toppings` }), btn(`SELL · ${fmt(offer.sell)}`, 'yellow small pull', () => take('sell'), { 'aria-label': `Sell ${offer.name} for ${offer.sell} tips` }));
+  } else if (sl.used) {
+    const done = btn(!res ? 'PULLED' : res.fresh ? 'SPINNING…' : res.win ? 'WINNER!' : 'NO LUCK', 'small pull', () => {}, { 'aria-label': 'Pizza Slots: already pulled this shop' });
+    done.disabled = true;
+    b = done;
+  } else {
+    const tips = btn(`PULL · ${fmt(sl.cost)}`, `${sl.can ? 'green' : ''} small pull`, () => pull('tips'), { 'aria-label': `Pull Pizza Slots for ${sl.cost} tips` });
+    tips.disabled = !sl.can;
+    const crusts = btn(`PULL · ${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} ${sl.crustCost}`, `${sl.canCrusts ? 'yellow' : ''} small pull`, () => pull('crusts'), { 'aria-label': `Pull Pizza Slots for ${sl.crustCost} Golden Crusts` });
+    crusts.disabled = !sl.canCrusts;
+    b = h('div', { class: 'pulls' }, tips, crusts);
+  }
+  const headline = res && !res.fresh ? (res.win ? res.prize : 'So close. Back next shop') : 'Three of a kind on the line wins';
+  const sub = sl.used ? 'One pull a shop' : 'One pull a shop · tap ? for the prizes';
   // the prize list sits behind a [?] button
   const info = h(
     'div',
     { class: 'slots-info', role: 'dialog', 'aria-label': 'Pizza Slots prizes' },
-    h('b', {}, 'THREE OF A KIND WINS'),
+    h('b', {}, 'THREE OF A KIND ON THE LINE WINS'),
     ...SLOT_PAYS.map(([k, t]) => h('div', { class: 'sp' }, h('span', {}, `${SLOT_ICON[k]}${SLOT_ICON[k]}${SLOT_ICON[k]}`), h('span', {}, SLOT_LONG[k] ?? t))),
-    h('small', {}, 'One pull a shop. A prize that would do nothing pays your tips back.'),
+    h('small', {}, 'Only the middle row counts. A prize that would do nothing pays your tips back.'),
   );
   const q = h('button', { class: 'slots-q', type: 'button', 'aria-label': 'What can Pizza Slots win?', 'aria-expanded': 'false' }, '?');
   const row = h(
     'div',
-    { class: `offer slots${sl.result?.win && !sl.result.fresh ? ' won' : ''}` },
-    h('div', { class: 'reels', 'aria-hidden': 'true' }, ...reels),
-    h('div', { class: 'offer-text' }, h('span', { class: 'tag' }, 'PIZZA SLOTS ', q), h('b', {}, note), h('span', {}, sl.used ? 'One pull a shop' : 'Tap ? for the prizes')),
-    b,
+    { class: `offer slots${won ? ' won' : ''}${spinning ? ' spinning' : ''}${sl.used && !spinning && !won ? ' spent' : ''}` },
+    machine,
+    h('div', { class: 'side' }, h('div', { class: 'side-head' }, h('span', { class: 'tag' }, 'FEELING LUCKY?'), q), h('b', { class: 'headline' }, headline), h('span', { class: 'sub' }, sub), b),
     info,
   );
   q.addEventListener('click', (e) => {
@@ -1028,7 +1060,7 @@ class UI {
         return h('div', { class: `offer${o.cost === 0 ? ' free' : ''}` }, pic, h('div', { class: 'offer-text' }, o.cost === 0 ? h('span', { class: 'tag' }, 'ON THE HOUSE') : null, h('b', {}, o.name), h('span', {}, o.perk)), b);
       });
       // Pizza Slots: in the third slot when no Chef's Special turned up
-      if (st.slots) offers.push(slotsRow(st.slots, act.slots));
+      if (st.slots) offers.push(slotsRow(st.slots, act.slots, act.slotsTake));
       const svc = (label: string, s: { cost: number; can: boolean }, fn: () => void, cls: string) => {
         const b = btn(`${label} · ${fmt(s.cost)}`, `${cls} small`, fn);
         b.disabled = !s.can;

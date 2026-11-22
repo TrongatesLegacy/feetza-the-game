@@ -102,7 +102,7 @@ export function installDevTools(game: Phaser.Game): void {
     },
     async boot(): Promise<void> {
       const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-      for (let i = 0; i < 80 && !document.querySelector('.splash-hint'); i++) await sleep(150);
+      for (let i = 0; i < 400 && !document.querySelector('.splash-hint'); i++) await sleep(150);
       document.querySelector('.screen')?.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
       await sleep(800);
     },

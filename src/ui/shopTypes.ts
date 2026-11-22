@@ -79,7 +79,7 @@ export interface ShopState {
   rebake: { cost: number; can: boolean; shown: boolean };
   /** Pizza Slots: in the counter's third slot when no Chef's Special turned up. One pull a shop; only three of a
    *  kind pays. `result` is the last pull (fresh: it was just pulled, so the reels spin). */
-  slots: { cost: number; can: boolean; used: boolean; result: SlotsResult | null } | null;
+  slots: { cost: number; can: boolean; crustCost: number; canCrusts: boolean; used: boolean; result: SlotsResult | null } | null;
   /** One pizza left: a free pizza from the counter, and Next Wave waits until one is added. */
   lastStand: boolean;
   /** Toppings you own, for the Your Toppings window. */
@@ -106,11 +106,15 @@ export interface SlotsResult {
   /** What it paid, in words ('' on a miss). */
   prize: string;
   fresh: boolean;
+  /** A topping won: keep it or sell it (half its usual price), until chosen. */
+  offer?: { id: string; name: string; rarity: string; sell: number; taken?: 'add' | 'sell' };
 }
 
 export interface ShopActions {
-  /** Pull Pizza Slots. */
-  slots(): void;
+  /** Pull Pizza Slots, paying in tips or Golden Crusts. */
+  slots(pay: 'tips' | 'crusts'): void;
+  /** A topping won on Pizza Slots: keep it, or sell it for half its usual price. */
+  slotsTake(choice: 'add' | 'sell'): void;
   buy(cardId: string): void;
   reroll(): void;
   heal(): void;
