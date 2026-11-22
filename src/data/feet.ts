@@ -608,7 +608,7 @@ export const FEET: FootType[] = [
     hp: 3200, speed: 0.55, armor: 10, stompDmg: 2, coins: 180, score: 20000, scale: 2.2, minWave: 25, weight: 0,
     traits: ['heavy', 'burst'],
     boss: true,
-    art: { kind: 'knight', skin: SKIN.light, primary: '#6d7480', secondary: '#ffcf3a', leg: 'armor' },
+    art: { kind: 'knight', skin: SKIN.light, primary: '#6d7480', secondary: '#ffcf3a', leg: 'armor', legColor: '#6d7480' },
   },
   {
     id: 'phantomking',
