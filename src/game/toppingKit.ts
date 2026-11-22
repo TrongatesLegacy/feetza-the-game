@@ -362,13 +362,15 @@ export class ToppingKit {
       this.retried.add(k.retry);
       k.retry = null;
     }
-    const chance = st.eventAlways ? 1 : Math.min(1, rate * Math.max(0, st.eventMult));
-    // Grand Parade's events are certain, but toppings that cut the event chance (Earplugs) cut the parade:
-    // each −50% is one event fewer
-    const count = st.eventAlways ? Math.round(st.eventCount * Math.min(1, Math.max(0, st.eventMult))) : st.eventCount;
-    for (let i = 0; i < count && out.length < 2; i++) {
+    // Grand Parade: each of its events turns up with your event chance (Earplugs −50%, Rubberneck +25%, up to
+    // certain), rolled one by one; otherwise the wave's chance of an event
+    const chance = st.eventAlways ? Math.min(1, Math.max(0, st.eventMult)) : Math.min(1, rate * Math.max(0, st.eventMult));
+    for (let i = 0; i < st.eventCount && out.length < 2; i++) {
       let e = rollEvent(chance, out.includes('sighting') ? 0 : sighting);
-      if (!e) break;
+      if (!e) {
+        if (st.eventAlways) continue;
+        break;
+      }
       // Bird Feeder: chests mostly become flyers
       if ((e === 'chest' || e === 'mimic') && st.flyerBias && Math.random() < 0.6) e = Phaser.Utils.Array.GetRandom(['balloon', 'balloon', 'drone', 'drone', 'moth', 'seagull'] as EventId[]);
       // Skeleton Key: fewer mimics
