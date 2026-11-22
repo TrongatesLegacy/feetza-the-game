@@ -24,7 +24,7 @@ export const EVENT_TOPPINGS: Upgrade[] = [
   ev('tipmagnet', 'Tip Jar Magnet', '💰', 'common', 3, 'Wave events pay +50% tips', (s) => { s.eventTips += 0.5; }),
   ev('slowflyers', 'Slow Flyers', '🐌', 'common', 2, 'Flyers stay on screen 1.5s longer', (s) => { s.flyerSec += 1.5; }),
   ev('luckypenny', 'Lucky Penny', '🥉', 'common', 3, '+25% chance of a rare event drop', (s) => { s.dropAdd += 0.25; }),
-  quiet('earplugs', 'Earplugs', '🔇', 'common', 2, '+5% smack damage', '−50% chance of a wave event', (s) => { s.damage *= 1.05; s.eventMult -= 0.5; }),
+  quiet('earplugs', 'Earplugs', '🔇', 'common', 2, '+5% smack damage', '−50% chance of a wave event (with Grand Parade: one event fewer)', (s) => { s.damage *= 1.05; s.eventMult -= 0.5; }),
 
   // ——— Rare ———
   ev('birdfeeder', 'Bird Feeder', '🪺', 'rare', 1, 'Events lean to flyers; golden seagulls give +1 crust', (s) => { s.flyerBias = true; s.seagullCrust += 1; }),

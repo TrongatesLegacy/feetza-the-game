@@ -363,7 +363,10 @@ export class ToppingKit {
       k.retry = null;
     }
     const chance = st.eventAlways ? 1 : Math.min(1, rate * Math.max(0, st.eventMult));
-    for (let i = 0; i < st.eventCount && out.length < 2; i++) {
+    // Grand Parade's events are certain, but toppings that cut the event chance (Earplugs) cut the parade:
+    // each −50% is one event fewer
+    const count = st.eventAlways ? Math.round(st.eventCount * Math.min(1, Math.max(0, st.eventMult))) : st.eventCount;
+    for (let i = 0; i < count && out.length < 2; i++) {
       let e = rollEvent(chance, out.includes('sighting') ? 0 : sighting);
       if (!e) break;
       // Bird Feeder: chests mostly become flyers
