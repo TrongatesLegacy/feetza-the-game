@@ -57,6 +57,8 @@ export interface SaveData {
   runs: number;
   totalFeet: number;
   bossesBeaten: string[];
+  /** Bosses and mini-bosses beaten on Hot or hotter (their peels need it). */
+  bossesBeatenHot: string[];
   tutorialDone: boolean;
   milestones: string[];
   // Feetza 2.0
@@ -160,6 +162,7 @@ const DEFAULTS: SaveData = {
   runs: 0,
   totalFeet: 0,
   bossesBeaten: [],
+  bossesBeatenHot: [],
   tutorialDone: false,
   milestones: [],
   heat: 'regular',

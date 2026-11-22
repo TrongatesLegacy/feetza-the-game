@@ -27,7 +27,7 @@ import { pad } from '../systems/gamepad';
 import { markFootSeen, markToppingsSeen, nextLockedPizza, persist, save, updateSettings } from '../systems/save';
 import type { GoldenItem, RunSummary, ShopCard, ShopOffer, ShopPizza, ShopState, SlotSymbol, SlotsResult, YourTopping } from '../ui/shopTypes';
 import { ui, fmtTime } from '../ui/ui';
-import { PEELS, PEEL_BY_ID, abilityPeel, applyPeelLook, hasPeel, lookPeel, checkPeelAchievements, grantShinyFoot, peelCanvas, peelThumbURL, peelTrail, rollEventDrop, SHINY_FOOT_CHANCE, titleCase, type PeelDef } from '../game/peels';
+import { PEELS, PEEL_BY_ID, abilityPeel, applyPeelLook, hasPeel, lookPeel, checkPeelAchievements, grantShinyFoot, peelCanvas, peelThumbURL, peelTrail, rollEventDrop, PEEL_HEATS, SHINY_FOOT_CHANCE, titleCase, type PeelDef } from '../game/peels';
 import { STAGES, WAVES_PER_STAGE } from '../data/stages';
 import { passiveBoost, setSlamMode } from '../game/slamMode';
 import { setRunHeat } from '../game/heatRules';
@@ -1716,7 +1716,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     // drop toppings and Fig & Prosciutto Rose make drops likelier
     const roll = this.kit.dropRoll(ev);
     const dropMult = this.perkKit.eventDropMult();
-    const drop = rollEventDrop(ev, () => roll() / dropMult);
+    // shiny and ultra-rare drops only on Hot or hotter
+    const drop = PEEL_HEATS.has(this.run.heat) ? rollEventDrop(ev, () => roll() / dropMult) : null;
     if (drop) {
       this.fx.glint(x, y, 30);
       this.fx.quip(x, y - 150, drop.drop!.chance < 0.01 ? 'ULTRA RARE DROP!' : 'SHINY DROP!', '#fff6c0', 50);
@@ -3240,7 +3241,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (f.shiny) {
       this.fx.glint(f.cx, f.cy, 24);
       this.fx.quip(f.x, f.cy - 170, 'SHINY DEFEATED!', '#fff6c0', 48);
-      const g = grantShinyFoot(f.type.id);
+      // shiny peels are a Hot-or-hotter prize
+      const g = PEEL_HEATS.has(this.run.heat) ? grantShinyFoot(f.type.id) : null;
       if (g) this.peelToasts([g]);
     }
     this.peelToasts(checkPeelAchievements());
@@ -3264,6 +3266,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.run.bossesBeaten.push(f.type.id);
     if (!mini) this.heroT.bosses++;
     this.tracker.emit('bossDown', { foot: f, mini, secs: this.nowT - this.heroT.boss, smacks: this.heroT.bossSmacks, slicesLost: this.waveSlicesLost, peelStunned: this.heroT.stunned, abilityUsed: this.heroT.abilityUsed });
+    // boss peels (after Act 1) need the win on Hot or hotter
+    if (PEEL_HEATS.has(this.run.heat) && !(save.bossesBeatenHot ??= []).includes(f.type.id)) save.bossesBeatenHot.push(f.type.id);
     const firstKill = !save.bossesBeaten.includes(f.type.id);
     if (firstKill) {
       save.bossesBeaten.push(f.type.id);

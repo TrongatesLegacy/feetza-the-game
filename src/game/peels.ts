@@ -368,8 +368,9 @@ function buildDefs(): PeelDef[] {
       id: `boss:${f.id}`,
       name: BOSS_PEEL_NAME[f.id] ?? peelName(titleCase(f.name)),
       group: 'boss',
-      how: `Defeat ${f.mini ? 'the mini-boss' : 'the boss'} ${titleCase(f.name)}.${nmAt}`,
-      progress: () => [save.bossesBeaten.includes(f.id) ? 1 : 0, 1],
+      // Act 1's bosses count on any heat; every later boss's peel needs the win on Hot or hotter
+      how: `Defeat ${f.mini ? 'the mini-boss' : 'the boss'} ${titleCase(f.name)}${ACT1_BOSSES.has(f.id) ? '' : ' on Hot or hotter'}.${nmAt}`,
+      progress: () => [(ACT1_BOSSES.has(f.id) ? save.bossesBeaten : save.bossesBeatenHot ?? []).includes(f.id) ? 1 : 0, 1],
       foot: f.id,
       look: () => footLook(f, false),
     });
@@ -453,7 +454,7 @@ function buildDefs(): PeelDef[] {
       id: `shiny:${f.id}`,
       name: `Shiny ${f.name} Peel`,
       group: 'shinyFoot',
-      how: `Defeat a shiny ${f.name}. Any foot has a rare chance to turn up shiny.`,
+      how: `Defeat a shiny ${f.name} on Hot or hotter. Any foot has a rare chance to turn up shiny.`,
       foot: f.id,
       shiny: true,
       look: () => footLook(f, true),
@@ -465,7 +466,7 @@ function buildDefs(): PeelDef[] {
       id: `shinyev:${ev}`,
       name: `Shiny ${label} Peel`,
       group: 'shinyEvent',
-      how: `A rare drop: ${verb.toLowerCase()} a ${label} (about 1 in 40).`,
+      how: `A rare drop on Hot or hotter: ${verb.toLowerCase()} a ${label} (about 1 in 40).`,
       drop: { event: ev, chance: EVENT_SHINY_CHANCE },
       shiny: true,
       look: () => plain(`shinyev:${ev}`, EVENT_LOOK[ev], true, eventCanvases[EVENT_KEY[ev]] ?? null)(),
@@ -477,7 +478,7 @@ function buildDefs(): PeelDef[] {
       id: `ultra:${id}`,
       name,
       group: 'shinyEvent',
-      how: `Extremely rare: ${verb.toLowerCase()} a ${label} (about 1 in ${Math.round(1 / chance)}).`,
+      how: `Extremely rare, on Hot or hotter: ${verb.toLowerCase()} a ${label} (about 1 in ${Math.round(1 / chance)}).`,
       drop: { event: ev, chance },
       shiny: true,
       ultra: true,
@@ -519,6 +520,9 @@ function buildDefs(): PeelDef[] {
 
 /** The Peel of the Pizza Gods. */
 export const GOD_PEEL = 'god:pizzagods';
+
+/** Act 1's bosses and mini-bosses: their peels count on any heat (the rest need Hot or hotter). */
+const ACT1_BOSSES = new Set(STAGES.filter((_st, i) => i * 5 < WAVES_PER_ACT).flatMap((st) => [st.boss as string, st.mini as string]));
 
 export const PEELS: PeelDef[] = buildDefs();
 export const PEEL_BY_ID: Record<string, PeelDef> = Object.fromEntries(PEELS.map((p) => [p.id, p]));
@@ -580,6 +584,8 @@ export function rollEventDrop(ev: EventId, roll: () => number = Math.random): Pe
   return null;
 }
 
+/** Heats on which boss and shiny peels can be earned. */
+export const PEEL_HEATS = new Set(['hot', 'extrahot', 'inferno']);
 export function buyPeel(id: string): boolean {
   const d = PEEL_BY_ID[id];
   if (!d?.cost || hasPeel(id) || save.crusts < d.cost) return false;
