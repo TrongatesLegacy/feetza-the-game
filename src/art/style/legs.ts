@@ -47,6 +47,12 @@ export interface LegKindDef {
   /** How bright the lit side gets (0…1, default 0.2). */
   sheen?: number;
   draw(ctx: Ctx, x0: number, w: number, H: number, base: string, accent: string | undefined): void;
+  /** A leg that isn't a clean cylinder (a twisted rope of dough): how far its left and right edges sit in from the
+   * leg's full width at design y (0…H), in design units. It must repeat every H so the tile wraps; the outline
+   * follows it. */
+  edge?(y: number, H: number): [number, number];
+  /** The kind lights the leg itself (its own ramp, light and rim): skip the shared ramp and cylinder shading. */
+  ownShading?: boolean;
 }
 
 const customKinds: Record<string, LegKindDef> = {};
@@ -653,33 +659,63 @@ export function styledLeg(spec: LegSpec, base: string, accent: string | undefine
   ctx.scale(s, s);
   const x0 = PAD;
   const w = spec.hw * 2;
-  ctx.fillStyle = ramp(ctx, x0, w, base, tintOf(spec.kind, base), SHEEN[spec.kind] ?? customKinds[spec.kind]?.sheen ?? 0.2);
-  ctx.fillRect(x0, 0, w, H);
+  const kind = customKinds[spec.kind];
+  const ink = inkOf(base);
+  const ow = STYLE.outline * 0.62;
+  // the leg's shape: a straight strip, or one whose edges wobble (a custom kind's edge()), sampled down the tile
+  const shape = (grow: number) => {
+    ctx.beginPath();
+    if (!kind?.edge) {
+      ctx.rect(x0 - grow, 0, w + grow * 2, H);
+      return;
+    }
+    const n = Math.max(8, Math.round(H));
+    for (let i = 0; i <= n; i++) {
+      const y = (i / n) * H;
+      ctx.lineTo(x0 + kind.edge(y, H)[0] - grow, y);
+    }
+    for (let i = n; i >= 0; i--) {
+      const y = (i / n) * H;
+      ctx.lineTo(x0 + w - kind.edge(y, H)[1] + grow, y);
+    }
+    ctx.closePath();
+  };
+  if (kind?.edge) {
+    // the outline: the same weight and ink as the foot's, just outside the wobbly edge
+    shape(ow);
+    ctx.fillStyle = ink;
+    ctx.fill();
+  }
   ctx.save();
-  ctx.beginPath();
-  ctx.rect(x0, 0, w, H);
+  shape(0);
   ctx.clip();
+  if (!kind?.ownShading) {
+    ctx.fillStyle = ramp(ctx, x0, w, base, tintOf(spec.kind, base), SHEEN[spec.kind] ?? kind?.sheen ?? 0.2);
+    ctx.fillRect(x0, 0, w, H);
+  }
   const acc = spec.accent ?? accent;
   // a pattern sits in the cloth: under its texture (knit stitches, denim twill) and the cylinder's shading
   const pat = spec.pattern ?? 'none';
   if (pat !== 'none' && acc) legPattern(ctx, pat, x0, w, H, base, acc);
   legDetail(ctx, spec.kind, x0, w, H, base, acc, spec.glow ?? true);
-  // the cylinder's shading over the detail: light on the left, rim on the right
-  const sh = ctx.createLinearGradient(x0, 0, x0 + w, 0);
-  sh.addColorStop(0, rgba('#000000', 0.12));
-  sh.addColorStop(0.25, rgba(LIGHT.key, 0.1));
-  sh.addColorStop(0.55, rgba('#000000', 0));
-  sh.addColorStop(0.9, rgba('#000000', 0.22));
-  sh.addColorStop(1, rgba(LIGHT.rim, 0.25));
-  ctx.fillStyle = sh;
-  ctx.fillRect(x0, 0, w, H);
+  if (!kind?.ownShading) {
+    // the cylinder's shading over the detail: light on the left, rim on the right
+    const sh = ctx.createLinearGradient(x0, 0, x0 + w, 0);
+    sh.addColorStop(0, rgba('#000000', 0.12));
+    sh.addColorStop(0.25, rgba(LIGHT.key, 0.1));
+    sh.addColorStop(0.55, rgba('#000000', 0));
+    sh.addColorStop(0.9, rgba('#000000', 0.22));
+    sh.addColorStop(1, rgba(LIGHT.rim, 0.25));
+    ctx.fillStyle = sh;
+    ctx.fillRect(x0, 0, w, H);
+  }
   ctx.restore();
-  // the outline: the same weight and ink as the foot's, just outside the leg
-  const ink = inkOf(base);
-  const ow = STYLE.outline * 0.62;
-  ctx.fillStyle = ink;
-  ctx.fillRect(x0 - ow, 0, ow, H);
-  ctx.fillRect(x0 + w, 0, ow, H);
+  if (!kind?.edge) {
+    // the outline: the same weight and ink as the foot's, just outside the leg
+    ctx.fillStyle = ink;
+    ctx.fillRect(x0 - ow, 0, ow, H);
+    ctx.fillRect(x0 + w, 0, ow, H);
+  }
   return c;
 }
 

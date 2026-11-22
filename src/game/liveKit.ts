@@ -369,7 +369,7 @@ export function liveQuality(): number {
 }
 
 /** A damped spring towards a target. */
-class Spring {
+export class Spring {
   v = 0;
   constructor(public x: number, private k: number, private c: number) {}
   step(target: number, dt: number): number {
@@ -678,6 +678,20 @@ export interface LiveDef<S = unknown> {
   setup?(k: LiveFoot): S;
   /** Every frame: emit, steer critters. `k.heat` is the current overheat (0…1). */
   tick?(k: LiveFoot, dt: number, s: S): void;
+  /** Shape the rig yourself (a foot whose body moves its own way, like a slumping blob of dough): gets the kit's
+   * swing, squash (sx, sy) and toe curl for this frame and returns the ones to use. Runs before tick. */
+  pose?(k: LiveFoot, dt: number, p: RigPose, s: S): RigPose;
+  /** The foot died, escaped or was destroyed: clear away live art of the def's own (emitters and critters are
+   * released by the kit). */
+  die?(k: LiveFoot, s: S): void;
+}
+
+/** The rig's pose for a frame: swing (radians round the ankle), squash at the sole and the toe band's curl. */
+export interface RigPose {
+  swing: number;
+  sx: number;
+  sy: number;
+  curl: number;
 }
 
 const defs: Record<string, LiveDef> = {};
@@ -883,8 +897,13 @@ export class LiveFoot {
     const sx = 1 + (1 - sy) * 0.65;
     const swing = this.sw.step(Phaser.Math.Clamp(-this.vx * 0.00085, -0.13, 0.13) * (rigO.swing ?? 1) * calm + Math.sin(this.t * 0.9) * 0.018 * calm, dt);
     const still = rigO.swing === 0 && rigO.squash === 0 && rigO.breath === 0;
+    let rp: RigPose = { swing, sx, sy, curl: this.curl };
+    if (this.def.pose) {
+      rp = this.def.pose(this, dt, rp, this.state);
+      this.curl = rp.curl;
+    }
     if (still) f.setRigPose(0, 1, 1);
-    else f.setRigPose(swing, sx, sy);
+    else f.setRigPose(rp.swing, rp.sx, rp.sy);
     this.updateBand(dt, curlTo);
     // ——— heat ———
     if (this.heatImg) {
@@ -991,6 +1010,7 @@ export class LiveFoot {
     liveSet.delete(this);
     for (const e of this.emitters) e.release();
     for (const c of this.critters) c.release();
+    this.def.die?.(this, this.state);
   }
 }
 

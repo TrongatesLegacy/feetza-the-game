@@ -97,7 +97,9 @@ const SHAPES: PeelShape[] = ['round', 'oval', 'square', 'paddle'];
 /** Feet that are really objects (or carry lettering): their peel heads stay upright. */
 const UPRIGHT = new Set(['jukebox', 'riot', 'ketchup', 'chimney', 'rover', 'milkshake',
   // Act 9 · Greek myths (the hoplite's shield has a lambda on it)
-  'hoplite']);
+  'hoplite',
+  // Dough Boy's face only reads the right way up (and his lumpy sole would make a ragged top)
+  'doughboy']);
 const FOOT_PATTERNS: PeelPattern[] = ['spots', 'stripes', 'waves', 'checker', 'stars', 'bubbles', 'bolts', 'grain'];
 const BOSS_PATTERNS: PeelPattern[] = ['flames', 'bolts', 'scales', 'marble', 'stars'];
 
