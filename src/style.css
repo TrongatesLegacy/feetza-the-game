@@ -5929,3 +5929,7 @@ body.reduced-motion *::after {
 .offer.slots .slots-info { width: max-content; max-width: min(30em, 92vw); }
 .offer.slots .slots-info .sp span:last-child { white-space: nowrap; }
 .offer.slots .slots-info small { max-width: 26em; }
+/* the two pull buttons share the side column without spilling past the card's edge */
+.offer.slots .side { overflow: hidden; padding-right: 0.15em; }
+.offer.slots .pulls { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.offer.slots .pulls .btn.pull { min-width: 0; font-size: 0.92em; }
