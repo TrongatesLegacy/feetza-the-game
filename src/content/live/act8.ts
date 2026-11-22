@@ -396,13 +396,10 @@ registerLive('jotunheim', (ctx: LiveCtx): LiveScene => {
 
 registerLive('bifrost', (ctx: LiveCtx): LiveScene => {
   const k = new Kit(ctx.sc, ctx.layer);
-  shimmerTex(k.sc);
   const below = cloudRow(k, 10, 560, 660, 0xffffff, 0.55, 14, 1.8);
   const dark = k.rect(0x30304a, 0, 0, 700, Phaser.BlendModes.MULTIPLY);
   const ember = k.rect(0xff5020, 0, 0, 700, Phaser.BlendModes.ADD);
   const storm = cloudRow(k, 11, -10, 200, 0x3a3a54, 0, 16, 2.2);
-  const shimmer = k.img('live8_shimmer', -300, 380, { add: true, alpha: 0, sx: 1, sy: 1 });
-  shimmer.rotation = 0.5;
   // Asgard catches first, then the far edge of the cloud sea
   const fires = new Fires(k, [[1300, 405, 0.45], [1560, 400, 0.5], [1720, 408, 0.4], [1420, 398, 0.35], [1880, 640, 0.6], [1100, 650, 0.55], [700, 660, 0.6], [380, 655, 0.55]]);
   const fireGlow = k.img('glow', 1500, 520, { tint: 0xff4a1a, add: true, alpha: 0, sx: 7, sy: 1.6 });
@@ -416,7 +413,6 @@ registerLive('bifrost', (ctx: LiveCtx): LiveScene => {
     speedY: { min: 900, max: 1200 }, speedX: { min: 140, max: 220 }, scaleX: 0.03, scaleY: { min: 0.3, max: 0.5 }, alpha: 0.35, tint: 0xc8d8ff,
   }, false, 1000);
   let wave = ctx.wave;
-  let shimmerT = 1;
   let boltT = 3;
   const setWave = (w: number) => {
     wave = w;
@@ -439,13 +435,6 @@ registerLive('bifrost', (ctx: LiveCtx): LiveScene => {
       drift(below, dt);
       drift(storm, dt * (wave >= 3 ? 2.5 : 1));
       fires.update(k.t);
-      // a glint of light runs along the rainbow every few seconds (brightest on a fair day)
-      shimmerT -= dt;
-      if (shimmerT <= 0 && wave <= 3) {
-        shimmerT = 3 + Math.random() * 2;
-        shimmer.setPosition(-300, 420).setAlpha([0.55, 0.35, 0.15][Math.max(0, wave - 1)] ?? 0.1);
-        k.sc.tweens.add({ targets: shimmer, x: 1500, y: 300, duration: 1800, ease: 'Sine.InOut' });
-      }
       if (wave >= 3) {
         boltT -= dt;
         if (boltT <= 0) {
