@@ -1,7 +1,8 @@
 // A descending foot: state machine, traits, status effects and its visuals (leg + foot + cuff).
 
 import Phaser from 'phaser';
-import { BASE_DESCEND, HOVER_Y } from '../config';
+import { BASE_DESCEND, GUARD_FETCH, HOVER_Y } from '../config';
+import { makeGuardFx } from './guardShield';
 import type { FootType } from '../data/feet';
 import { ensureFootArt, type FootMeta } from './assets';
 import type { Pizza } from './Pizza';
@@ -13,7 +14,7 @@ export interface FootHooks {
   pickTarget(foot: Foot): Pizza | null;
   onEscape(foot: Foot): void;
   /** Ability callouts so the scene can show text/sound. */
-  onTrait?(foot: Foot, trait: 'switch' | 'clumsy' | 'hop' | 'surface' | 'reveal' | 'guardDown'): void;
+  onTrait?(foot: Foot, trait: 'switch' | 'clumsy' | 'hop' | 'surface' | 'reveal' | 'guardDown' | 'guardBreak' | 'guardRearm'): void;
   /** Called every frame while alive (medic heals, magnet pull, roll targeting). */
   onTick?(foot: Foot, dt: number): void;
   /** Lane offset (px from pizza centre) if this foot may start its dive now, or null if the pizza's lanes are full. */
@@ -166,12 +167,48 @@ export class Foot {
   private zigBase = 0;
   private wobbleT = Math.random() * 10;
   private flashT = 0;
-  /** Riot shield is down for a moment right after a stomp. */
+  /** A guard foot with a rhythm (Spartan Sandals): its shield is down for this much longer (on its beat, or just
+   * after a stomp). */
   guardOpen = 0;
-  /** Riot shield rhythm: counts up to the next timed drop while hovering or diving. */
-  private guardT = 0;
-  private guardNext = 2.4 + Math.random() * 0.8;
-  private guardWarned = false;
+  /** The rhythm: counts up to the next drop while hovering or diving. */
+  guardT = 0;
+  guardNext = 1;
+  /** The shield is about to drop (it trembles and its rim glows): set guardWarn seconds before each drop. */
+  guardWarned = false;
+  /** Blocked smacks the shield can still take (guardMax at full strength: GameScene sets both from the heat). */
+  guardHp = 6;
+  guardMax = 6;
+  /** Its shield shattered: unguarded until it re-arms. */
+  guardBroken = false;
+  /** Automatic damage soaked by the raised shield, towards knocking its next step off (GameScene: guardChip). */
+  guardChipAcc = 0;
+  /** Its step's worth when it last soaked some (for the badge's filling step). */
+  guardChipStep = 1;
+  /** Done with shields for good (a raging Spartan threw its shield away): no rhythm, no new one. */
+  guardDone = false;
+  /** Seconds since the shield broke, and how long until a new one is raised (whatever happens meanwhile). */
+  guardIdle = 0;
+  guardRearmAfter = 9;
+  /** The new shield is being fetched (seconds into it, the last GUARD_FETCH of the wait): still unguarded. */
+  guardFetchT = -1;
+  /** The shield's moving piece and leg badge (src/game/guardShield.ts). */
+  guardFx: {
+    update(dt: number): void;
+    blocked(left: number, quiet?: boolean, steps?: number): void;
+    chipped(): void;
+    broke(): void;
+    /** A raging foot rears back with its shield (gods.ts), then throws it: where it leaves from, or null. */
+    windup(): void;
+    throwOff(): { key: string; x: number; y: number; scale: number } | null;
+    /** Done with shields: the badge says RAGE. */
+    rage(): void;
+    destroy(): void;
+  } | null = null;
+  /** Extra lean (radians) the foot's own moves add (reaching back for a new shield). */
+  leanExtra = 0;
+  /** The shield piece's containers: they follow the rig like its light twin (attachShield). */
+  private shieldSwing?: Phaser.GameObjects.Container;
+  private shieldSquash?: Phaser.GameObjects.Container;
   /** Gym Bro: armour gained while unhit. */
   bulk = 0;
   private bulkT = 0;
@@ -264,6 +301,10 @@ export class Foot {
     if (type.mini) this.root.setScale(rel);
     this.glossy = type.traits.includes('glossy');
     this.buildIcons();
+    // a guard foot's shield is a piece of its own, with a badge counting down to its drop
+    if (type.traits.includes('guard')) this.guardFx = makeGuardFx(this);
+    // (a pair with a shield beat doesn't march in lockstep)
+    if (type.guard) this.guardT = Math.random() * type.guard.up[0];
     this.wool = type.traits.includes('woolly') ? 15 : 0;
     this.hoverTime = this.freshHoverTime(type.traits.includes('flee') ? 0.4 : 0.7 + Math.random() * 0.7);
   }
@@ -279,7 +320,8 @@ export class Foot {
 
   /** Trait badges on the cuff, so players can see what a foot does before it does it. */
   private buildIcons(): void {
-    const ts = this.type.traits.filter((t) => t !== 'tiny').slice(0, 3);
+    // (a guard foot's shield badge stands in for its trait icon: src/game/guardShield.ts)
+    const ts = this.type.traits.filter((t) => t !== 'tiny' && t !== 'guard').slice(0, 3);
     if (!ts.length || this.type.boss || !this.scene.textures.exists(`trait_${ts[0]}`)) return;
     const c = this.scene.add.container(0, -this.meta.footHeight * this.type.scale - 70);
     ts.forEach((t, i) => {
@@ -360,6 +402,152 @@ export class Foot {
     return Math.min(this.meta.footHeight * this.scale, 520) + 24;
   }
 
+  /** The guard shield: up until it's smashed (Spartan Sandals alone lower and raise theirs on a rhythm: FootType.guard).
+   * Once broken, a fixed timer from the break (whatever happens meanwhile) brings a new one at full strength; the
+   * foot reaches back for it in its last GUARD_FETCH seconds. */
+  private guardTick(dt: number): void {
+    if (this.guardDone) return;
+    if (this.guardBroken) {
+      this.guardIdle += dt;
+      if (this.guardFetchT < 0 && this.guardIdle >= this.guardRearmAfter - GUARD_FETCH) this.guardFetchT = 0;
+      else if (this.guardFetchT >= 0) this.guardFetchT += dt;
+      if (this.guardIdle >= this.guardRearmAfter) this.guardRearm();
+      return;
+    }
+    const g = this.type.guard;
+    if (!g) return;
+    if (!this.has('guard') || this.guardOpen > 0 || (this.state !== 'hover' && this.state !== 'descend')) return;
+    this.guardT += dt;
+    if (!this.guardWarned && this.guardT >= this.guardNext - this.guardWarnTime) this.guardWarned = true;
+    if (this.guardT >= this.guardNext) {
+      this.guardT = 0;
+      this.guardNext = g.up[0] + Math.random() * (g.up[1] - g.up[0]);
+      this.guardWarned = false;
+      this.guardOpen = g.down;
+      this.hooks.onTrait?.(this, 'guardDown');
+    }
+  }
+
+  /** Seconds of warning before each drop. */
+  get guardWarnTime(): number {
+    return this.type.guard?.warn ?? 0.6;
+  }
+
+  /** The shield is up: a smack now is blocked (it cracks the shield). Down once it's broken (until a new one is
+   * raised) and while the foot is disarmed; a foot with a rhythm (Spartan Sandals) also lowers it on its beat, after
+   * a stomp and while stunned. */
+  get guardUp(): boolean {
+    return this.has('guard') && this.alive && !this.guardBroken && !this.guardDone && this.guardOpen <= 0 && !(this.type.guard && this.stunT > 0);
+  }
+
+  /** Seconds until the next drop on its rhythm (while the shield is up). */
+  get guardToDrop(): number {
+    return Math.max(0, this.guardNext - this.guardT);
+  }
+
+  /** A smack landed while its shield was down: a foot with `react` (Spartan Sandals) slams it straight back up and
+   * holds it for longer (one hit per opening). */
+  guardReact(): void {
+    const g = this.type.guard;
+    if (!g?.react || this.guardOpen <= 0 || this.guardBroken || this.guardDone || !this.has('guard') || this.stunT > 0 || !this.alive) return;
+    this.guardOpen = 0;
+    this.guardT = 0;
+    this.guardNext = g.up[0] * g.react;
+    this.guardWarned = false;
+  }
+
+  /** Automatic damage soaked by the raised shield: every `step` of it knocks a step off, as a smack does. Returns
+   * what's left over past the step that breaks it (it carries through to the foot), or 0. */
+  guardChip(amount: number, step: number): number {
+    this.guardChipStep = Math.max(0.01, step);
+    this.guardChipAcc += amount;
+    this.guardFx?.chipped();
+    while (this.guardChipAcc >= this.guardChipStep && !this.guardBroken) {
+      this.guardChipAcc -= this.guardChipStep;
+      // (what's past the breaking step: guardBlock clears the accumulator)
+      const left = this.guardChipAcc;
+      if (this.guardBlock(true)) return left;
+    }
+    return 0;
+  }
+
+  /** A blow worth n steps (a Peel Slam, an ability): returns the steps left unused if it smashed the shield, or 0. */
+  guardKnock(n: number): number {
+    const before = this.guardHp;
+    this.guardBlock(false, n);
+    return Math.max(0, n - before);
+  }
+
+  /** A smack bounced off the raised shield (or a blow worth n steps; or automatic damage soaked a step's worth:
+   * `quiet`): it cracks, and the last one it can take shatters it. True if it broke. */
+  guardBlock(quiet = false, n = 1): boolean {
+    this.guardHp = Math.max(0, this.guardHp - n);
+    if (this.guardHp > 0) {
+      this.guardFx?.blocked(this.guardHp, quiet, n);
+      return false;
+    }
+    this.guardChipAcc = 0;
+    this.guardBroken = true;
+    this.guardIdle = 0;
+    this.guardFetchT = -1;
+    this.guardWarned = false;
+    this.guardOpen = 0;
+    this.guardFx?.broke();
+    this.hooks.onTrait?.(this, 'guardBreak');
+    return true;
+  }
+
+  /** The new shield is raised: full strength, back on the usual rhythm. */
+  private guardRearm(): void {
+    this.guardBroken = false;
+    this.guardFetchT = -1;
+    this.guardIdle = 0;
+    this.guardHp = this.guardMax;
+    this.guardChipAcc = 0;
+    this.guardOpen = 0;
+    this.guardT = 0;
+    this.guardWarned = false;
+    const g = this.type.guard;
+    if (g) this.guardNext = g.up[0] + Math.random() * (g.up[1] - g.up[0]);
+    this.hooks.onTrait?.(this, 'guardRearm');
+  }
+
+  /** Hang a shield piece in front of the foot (a gameplay layer: it shows whatever the graphics settings). It sits
+   * over the foot's art and follows its rig. Returns the container to put it in (in the foot's own frame). */
+  attachShield(): Phaser.GameObjects.Container {
+    if (this.shieldSquash) return this.shieldSquash;
+    const ankle = -this.meta.footHeight * this.type.scale;
+    const swing = this.scene.add.container(0, ankle);
+    const squash = this.scene.add.container(0, -ankle);
+    swing.add(squash);
+    this.root.addAt(swing, this.root.getIndex(this.body) + 1);
+    this.shieldSwing = swing;
+    this.shieldSquash = squash;
+    return squash;
+  }
+
+  /** An image of the foot's that tints, flashes and fades with it (a shield piece). */
+  trackLiveImage(o: Phaser.GameObjects.Image): void {
+    this.liveImgs.push(o);
+  }
+
+  /** Put the shield piece behind the foot's art (fetching a new one from behind its back) or back in front. */
+  shieldBehind(on: boolean): void {
+    const sw = this.shieldSwing;
+    if (!sw) return;
+    if (on) {
+      // (back where it was afterwards: over the glow and effects added above the foot since)
+      this.shieldAt = this.root.getIndex(sw);
+      this.root.remove(sw);
+      this.root.addAt(sw, this.root.getIndex(this.body));
+    } else if (this.shieldAt >= 0) {
+      this.root.remove(sw);
+      this.root.addAt(sw, Math.min(this.shieldAt, this.root.length));
+      this.shieldAt = -1;
+    }
+  }
+  private shieldAt = -1;
+
   setState(s: FootState): void {
     this.state = s;
     this.stateT = 0;
@@ -383,21 +571,7 @@ export class Foot {
     }
     if (this.disarmT > 0) this.disarmT -= dt;
     if (this.guardOpen > 0) this.guardOpen -= dt;
-    // the riot shield also drops on a timer (every 2.4–3.2 s for 0.75 s), with a glint half a second before
-    if (this.has('guard') && this.alive && (this.state === 'hover' || this.state === 'descend') && this.guardOpen <= 0) {
-      this.guardT += dt;
-      if (!this.guardWarned && this.guardT >= this.guardNext - 0.5) {
-        this.guardWarned = true;
-        this.flash(0x9ad8ff, 160);
-      }
-      if (this.guardT >= this.guardNext) {
-        this.guardT = 0;
-        this.guardNext = 2.4 + Math.random() * 0.8;
-        this.guardWarned = false;
-        this.guardOpen = 0.75;
-        this.hooks.onTrait?.(this, 'guardDown');
-      }
-    }
+    if (this.type.traits.includes('guard') && this.alive) this.guardTick(dt);
     if (this.revealT > 0) this.revealT -= dt;
     // Mime: invisible (only its shadow shows) until it commits to a stomp or gets smacked
     if (this.has('invisible') && this.alive) {
@@ -603,9 +777,12 @@ export class Foot {
           this.y = this.stompY;
           this.vy = 0;
           this.setState('stomp');
-          if (this.has('guard')) {
-            this.guardOpen = 1.1;
-            this.hooks.onTrait?.(this, 'guardDown');
+          if (this.type.guard && this.has('guard') && !this.guardBroken && !this.guardDone) {
+            // (a foot with a shield rhythm lowers it for a moment after every stomp)
+            if (this.guardOpen <= 0) this.hooks.onTrait?.(this, 'guardDown');
+            this.guardOpen = Math.max(this.guardOpen, 1.2);
+            this.guardT = 0;
+            this.guardWarned = false;
           }
           this.hooks.onStomp(this);
         }
@@ -770,6 +947,10 @@ export class Foot {
     this.rig.squash.setScale(sx, sy);
     this.rig.lightSwing.rotation = swing;
     this.rig.light.setScale(sx, sy);
+    if (this.shieldSwing) {
+      this.shieldSwing.rotation = swing;
+      this.shieldSquash!.setScale(sx, sy);
+    }
     const drop = this.meta.footHeight * this.type.scale * (1 - sy);
     this.leg.y = this.legY + drop;
     if (this.cuff) this.cuff.y = -this.meta.footHeight * this.type.scale + 4 * this.type.scale + drop;
@@ -823,7 +1004,7 @@ export class Foot {
     const lean = this.state === 'descend' ? Phaser.Math.Clamp(this.vy / 2400, -0.08, 0.08) : 0;
     const wob = this.state === 'hover' ? Math.sin(this.wobbleT * 5) * 0.03 : Math.sin(this.wobbleT * 9) * 0.008;
     this.root.setPosition(this.x, this.y);
-    this.root.rotation += (wob + lean * (this.x > 960 ? -1 : 1) - this.root.rotation) * Math.min(1, dt * 10);
+    this.root.rotation += (wob + lean * (this.x > 960 ? -1 : 1) + this.leanExtra - this.root.rotation) * Math.min(1, dt * 10);
     // telegraph shadow on the target pizza
     const t = this.target;
     if (t && !t.dead && (this.state === 'descend' || this.state === 'hover' || this.state === 'stomp')) {
@@ -838,6 +1019,7 @@ export class Foot {
       this.shadow.setAlpha(Math.max(0, this.shadow.alpha - dt * 3));
     }
     this.drawHp();
+    this.guardFx?.update(dt);
   }
 
   private drawHp(): void {
@@ -942,6 +1124,8 @@ export class Foot {
     this.setState('dying');
     this.shadow.setVisible(false);
     this.liveHost?.die();
+    this.guardFx?.destroy();
+    this.guardFx = null;
     this.hooks.onEscape(this);
     this.scene.tweens.add({ targets: this.root, y: -900, duration: 700, ease: 'Back.In', onComplete: () => this.destroy() });
   }
@@ -966,6 +1150,9 @@ export class Foot {
     });
     this.hpBar.clear();
     this.icons?.setVisible(false);
+    // (the shield's badge goes; the shield itself leaves with the foot)
+    this.guardFx?.destroy();
+    this.guardFx = null;
     this.stars?.destroy();
     this.shadow.setVisible(false);
     const spin = (Math.random() < 0.5 ? -1 : 1) * (boss ? 0.15 : 0.35);
@@ -994,6 +1181,8 @@ export class Foot {
     this.state = 'gone';
     this.liveHost?.destroy();
     this.liveHost = null;
+    this.guardFx?.destroy();
+    this.guardFx = null;
     this.root.destroy();
     this.shadow.destroy();
   }

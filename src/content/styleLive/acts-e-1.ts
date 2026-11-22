@@ -204,6 +204,8 @@ registerLive('hoplite', {
   tick(k, dt, { glint, wisp, dust }) {
     const s = k.f.type.scale;
     glint.rate('rim', 1.1, dt, () => {
+      // (light off the shield's rim, while it's up in front: src/game/guardShield.ts)
+      if (!k.f.guardUp) return;
       const a = Math.PI * (1.0 + R() * 0.6);
       glint.emit(CX + Math.cos(a) * 72, 150 + Math.sin(a) * 72, { life: 0.35, r0: 12 * s, r1: 1 * s, a: 0.95, tint: 0xfff0c0, spin: 2, fade: 0.3 });
     });

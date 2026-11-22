@@ -22,12 +22,14 @@ export const feet: FootType[] = [
   {
     id: 'spartan',
     name: 'Spartan Sandals',
-    desc: 'Leather-strapped and bronze-greaved, they march in pairs behind a round bronze shield that blocks smacks for a second at a time. Bring one to a quarter of its health and it flies into a rage: faster, and quicker to stomp.',
+    desc: 'Leather-strapped and bronze-greaved, they march in pairs behind a round bronze shield that is up for a second, then swings down to their side for a moment. Land a hit while it’s down and they slam it straight back up for twice as long. Smacks on the shield crack it until it breaks (6 on Regular), and 9 seconds later (on Regular) they fetch a new one. Stunned, they drop their guard. Bring one to a quarter of its health and it flies into a rage: it hurls its shield at your peel (smack it away, or your peel is stunned), then comes on faster and quicker to stomp, with nothing left to block.',
     hp: 44, speed: 1, armor: 1, stompDmg: 1, coins: 10, score: 320, scale: 1, minWave: 81, weight: 3,
     traits: ['guard'],
+    // its shield's own rhythm: up for a second, down for 1.2 s; a hit while it's down slams it up for 2 s
+    guard: { up: [1, 1], down: 1.2, warn: 0.5, react: 2 },
     home: 'tartarus',
-    howTo: 'Smack between shield raises; burst it down from 30% so it never gets to rage, or stun it the moment it flips',
-    tell: 'The bronze shield glints as it rises; at a quarter health it flashes red and roars',
+    howTo: 'One hit per opening (OPEN! on the badge): it slams its shield up for twice as long after each hit. Or break the shield: 6 smacks (4 on Mild, 8 from Extra Hot; a Peel Slam takes 3). When it rages it throws the shield at your peel: smack it away',
+    tell: 'The shield trembles and its rim glows just before it swings down, and the badge’s blue ring runs out; at a quarter health it roars, its badge flashes RAGE and it rears back to throw',
     quips: ['SHIELDS!', 'HOLD THE LINE!', 'PHALANX!'],
     art: { kind: 'g_spartan', skin: '#d99a6c', primary: '#7a4a24', secondary: '#c8102e', leg: 'skin', legColor: '#d99a6c', extra: { bronze: '#c9873a' } },
   },

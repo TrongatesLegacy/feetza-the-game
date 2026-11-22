@@ -539,45 +539,15 @@ const shieldPath: PathFn = (c) => {
   c.roundRect(CX - 94, 26, 188, 190, 14);
 };
 
-registerStyle('riot', {
-  contactY: 266,
-  rig: { from: 216, to: 232 },
-  leg: { kind: 'wool', hw: 68, join: 'hem' },
-  draw(ctx, art, p) {
-    const black = art.primary ?? '#1d1f24';
-    const blue = art.secondary ?? '#9fc4e8';
-    const flex = Math.max(0, p.curl);
-    const upper = upperPath(RIOT, flex);
-    const sole = solePath(RIOT, flex, 24, 176, 6);
-    const box = { x: CX - 108, y: -10, w: 216, h: 280 };
-    const sil = new Sil(ctx, [sole, upper, shieldPath], box);
-    const g = sil.g;
-    // the lug sole
-    within(g, sole, () => {
-      g.fillStyle = vgrad(g, 176, 268, [[0, '#3a3c42'], [1, '#0c0c10']]);
-      g.fillRect(box.x, 170, box.w, 100);
-      texture(g, 'rubber', box, 0.35);
-      for (let x = CX - 92; x <= CX + 84; x += 16) {
-        g.fillStyle = '#08080a';
-        g.beginPath();
-        g.roundRect(x, 252 - flex * 5, 10, 14, 2);
-        g.fill();
-        g.fillStyle = rgba('#8a8e98', 0.35);
-        g.fillRect(x + 1, 252 - flex * 5, 8, 1.5);
-      }
-    });
-    // the boot: matte black leather with ballistic nylon panels
-    piece(g, upper, box, 'leather', black, { shadow: 0.4 });
-    within(g, upper, () => {
-      texture(g, 'canvas', { x: CX - 100, y: 0, w: 200, h: 120 }, 0.35, 1.2);
-      for (let i = 0; i < 6; i++) rivet(g, CX - 22 + (i % 2) * 44, 20 + Math.floor(i / 2) * 26, 3.2, '#5a5e68');
-    });
-    // the shield: polycarbonate over the boot, the boot seen through it tinted
+const RIOT_BOX = { x: CX - 108, y: -10, w: 216, h: 280 };
+
+/** The riot shield: tinted, scratched polycarbonate with a stencilled RIOT, a steel frame and bolts (design space). */
+function paintRiotShield(g: Ctx, blue: string): void {
     within(g, shieldPath, () => {
       g.fillStyle = rgba(blue, 0.38);
-      g.fillRect(box.x, 20, box.w, 200);
+      g.fillRect(RIOT_BOX.x, 20, RIOT_BOX.w, 200);
       g.fillStyle = hgrad(g, CX - 94, CX + 94, [[0, rgba('#ffffff', 0.25)], [0.3, rgba('#ffffff', 0.05)], [0.7, rgba('#000000', 0)], [1, rgba('#000020', 0.25)]]);
-      g.fillRect(box.x, 20, box.w, 200);
+      g.fillRect(RIOT_BOX.x, 20, RIOT_BOX.w, 200);
       // scratches
       const r = rng(hashStr('riot'));
       g.strokeStyle = rgba('#ffffff', 0.25);
@@ -630,6 +600,59 @@ registerStyle('riot', {
     g.stroke();
     g.restore();
     for (const [x, y] of [[CX - 86, 34], [CX + 86, 34], [CX - 86, 208], [CX + 86, 208]] as const) rivet(g, x, y, 3, '#c8ced8');
+}
+
+registerStyle('riot', {
+  contactY: 266,
+  rig: { from: 216, to: 232 },
+  leg: { kind: 'wool', hw: 68, join: 'hem' },
+  // in play the shield is its own piece (src/game/guardShield.ts): it swings down and aside when it drops
+  shield: {
+    box: { x: CX - 100, y: 20, w: 200, h: 202 },
+    pivot: [CX + 60, 150],
+    down: { dx: -150, dy: 84, rot: -0.5, sx: 0.58 },
+    material: 'glass',
+    badge: 'plate',
+    accent: '#8fc4f0',
+    draw(ctx, art) {
+      const sil = new Sil(ctx, [shieldPath], { x: CX - 100, y: 20, w: 200, h: 202 });
+      paintRiotShield(sil.g, art.secondary ?? '#9fc4e8');
+      finishLight(sil, '#2a3a50', '#101828', 0.22);
+      sil.finish(inkOf(shade(art.primary ?? '#1d1f24', 0.15)));
+    },
+    path: shieldPath,
+  },
+  draw(ctx, art, p, o) {
+    const black = art.primary ?? '#1d1f24';
+    const blue = art.secondary ?? '#9fc4e8';
+    const flex = Math.max(0, p.curl);
+    const upper = upperPath(RIOT, flex);
+    const sole = solePath(RIOT, flex, 24, 176, 6);
+    const box = RIOT_BOX;
+    const sil = new Sil(ctx, o.noShield ? [sole, upper] : [sole, upper, shieldPath], box);
+    const g = sil.g;
+    // the lug sole
+    within(g, sole, () => {
+      g.fillStyle = vgrad(g, 176, 268, [[0, '#3a3c42'], [1, '#0c0c10']]);
+      g.fillRect(box.x, 170, box.w, 100);
+      texture(g, 'rubber', box, 0.35);
+      for (let x = CX - 92; x <= CX + 84; x += 16) {
+        g.fillStyle = '#08080a';
+        g.beginPath();
+        g.roundRect(x, 252 - flex * 5, 10, 14, 2);
+        g.fill();
+        g.fillStyle = rgba('#8a8e98', 0.35);
+        g.fillRect(x + 1, 252 - flex * 5, 8, 1.5);
+      }
+    });
+    // the boot: matte black leather with ballistic nylon panels
+    piece(g, upper, box, 'leather', black, { shadow: 0.4 });
+    within(g, upper, () => {
+      texture(g, 'canvas', { x: CX - 100, y: 0, w: 200, h: 120 }, 0.35, 1.2);
+      for (let i = 0; i < 6; i++) rivet(g, CX - 22 + (i % 2) * 44, 20 + Math.floor(i / 2) * 26, 3.2, '#5a5e68');
+    });
+    // the shield: polycarbonate over the boot, the boot seen through it tinted (in play it's its own piece)
+    if (!o.noShield) paintRiotShield(g, blue);
     finishLight(sil, black, '#101828', 0.3);
     sil.finish(inkOf(shade(black, 0.15)), { openTop: -5 });
   },

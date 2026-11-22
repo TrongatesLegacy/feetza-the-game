@@ -40,7 +40,7 @@ export type FootTrait =
   | 'invisible' // unseen (only its shadow shows) until it starts its stomp
   | 'magnet' // pulls the player's aim toward it
   | 'hop' // hops to another pizza mid-descent
-  | 'guard' // front shield: only hurt in short windows (a timed drop, and just after a stomp)
+  | 'guard' // front shield: blocks smacks until enough of them smash it (a new one comes a fixed time later); FootType.guard gives it a beat instead
   | 'bulk' // gains armour for every second unhit
   | 'thief' // steals tips when it stomps
   | 'spoil' // stomps drain freshness instead of slices
@@ -166,6 +166,10 @@ export interface FootType {
   quips?: string[];
   /** One of the Persian army (Act 9): the Kratos Peel counts their defeats, and a Satrap's Slipper armours them. */
   persian?: boolean;
+  /** A guard shield that lowers and raises on a beat (without one it stays up until it's smashed): up for up[0]…up[1]
+   * s, down for `down` s, a warning `warn` s (default 0.6) before each drop. With `react`, a hit while it's down
+   * slams it straight back up for react × up[0] s. */
+  guard?: { up: [number, number]; down: number; warn?: number; react?: number };
 }
 
 const SKIN = {
@@ -667,7 +671,7 @@ export const TRAIT_INFO: Record<FootTrait, string> = {
   invisible: '👻 Invisible until it stomps',
   magnet: '🧲 Pulls your aim',
   hop: '🦘 Hops between pizzas',
-  guard: '🛡️ Front shield',
+  guard: '🛡️ Breakable shield',
   bulk: '💪 Bulks up if ignored',
   thief: '💰 Steals tips',
   spoil: '🪰 Spoils freshness',
@@ -723,7 +727,7 @@ const TRAIT_HOWTO: Partial<Record<FootTrait, [string, string]>> = {
   invisible: ['Watch for its shadow on the pizza', 'Only its shadow shows'],
   magnet: ['Fight the pull on your aim', 'Your peel drifts toward it'],
   hop: ['It hops pizzas halfway down', 'Its spring coils before the hop'],
-  guard: ['Hit it when the shield drops: every few seconds, and right after it stomps', 'It glints blue just before the shield drops'],
+  guard: ['Smash the shield (its badge’s bar is the smacks left; a Peel Slam takes several, burns and toppings wear it at half pace), then hit it hard before it re-arms', 'Its badge’s amber ring counts down to a new shield'],
   bulk: ['Hit it early before it bulks up', 'It flexes when it gains armour'],
   thief: ['Smack it to get your tips back', 'It eyes your tip jar'],
   spoil: ['Stop it: it spoils freshness', 'Flies buzz around it'],

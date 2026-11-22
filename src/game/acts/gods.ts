@@ -2,22 +2,23 @@
 //
 // - Persian Elephant Feet: when it stomps, its trunk swings down onto the pizza next to its own (the side it
 //   leans to). After every smack it raises gold-edged armour for 0.7 s: nothing hurts it until it drops.
-// - Spartan Sandals: march in pairs. A round bronze shield (the guard trait) is raised for 1 s, then lowered for
-//   1.2 s, over and over; smacks bounce off it while it's up. At a quarter of its health it enrages: a red
-//   flash and a roar, 60% faster, and it stomps 40% sooner.
+// - Spartan Sandals: march in pairs. A round bronze shield (the guard trait, on its own quicker rhythm: up for 1 s,
+//   down for 1.2 s; FootType.guard) blocks smacks while it's up, and cracks under them; enough of them shatter it
+//   until a new one comes (src/game/guardShield.ts). A hit while it's down slams it straight back up for 2 s.
+//   Stunned, it drops its guard. At a quarter of its health it enrages: a red flash and a roar, 60% faster, it
+//   stomps 40% sooner, and it hurls its shield at your peel (smack it away, or it stuns the peel); it's done with
+//   shields after that.
 
 import Phaser from 'phaser';
 import type { Arena } from '../arena';
 import type { FootFx } from '../contentFx';
 import type { Foot } from '../Foot';
+import { heat, throwAtPeel } from '../bosses/kit';
 import { takeCentre } from './persians';
 
-const SHIELD_UP = 1;
-const SHIELD_DOWN = 1.2;
 /** Seconds its armour stays up after a smack (0.7, was 1: with elephants common in Act 9 they outlasted the waves). */
 const ELEPHANT_GUARD = 0.7;
 
-const shields = new WeakMap<Foot, Phaser.GameObjects.Image>();
 const plates = new WeakMap<Foot, Phaser.GameObjects.Graphics>();
 
 /** The foot's own pizza's neighbour on the side its trunk swings to. */
@@ -94,37 +95,73 @@ function spartanSpawn(a: Arena, f: Foot): void {
   if (mate) mate.brain.pair = 2;
 }
 
-function spartanTick(a: Arena, f: Foot, dt: number): void {
-  // the shield's rhythm: up for 1 s, down for 1.2 s (its own timer replaces the guard trait's)
-  const t = (f.brain.shT = Number(f.brain.shT ?? Math.random() * 2) + dt);
-  const up = t % (SHIELD_UP + SHIELD_DOWN) < SHIELD_UP && (f.state === 'hover' || f.state === 'descend') && !f.stunT;
-  if (up) {
-    // hold the guard trait's own timer at the start, so it never opens the shield by itself
-    (f as unknown as { guardT: number }).guardT = 0;
-    if (f.guardOpen > 0.06) f.guardOpen = 0;
-  } else f.guardOpen = Math.max(f.guardOpen, 0.06);
-  if (up && !f.brain.shUp) a.sfx('sfx_bronzeshield', { volume: 0.35, throttle: 300 });
-  f.brain.shUp = up ? 1 : 0;
-  // the bronze shield prop: raised in front of the foot, or lowered to its side
-  let img = shields.get(f);
-  if (!img) {
-    img = a.sc.add.image(0, 0, a.sc.textures.exists('g_aspis') ? 'g_aspis' : 'soft');
-    f.root.add(img);
-    shields.set(f, img);
+/** Seconds the raging Spartan rears back before it throws its shield. */
+const THROW_WINDUP = 0.35;
+
+/** The raging Spartan hurls its shield at the peel: smack it in flight to deflect it, or it stuns the peel. Either
+ * way the shield is gone for good. Flight 1.2 s on Mild, 0.9 on Regular and Hot, 0.8 from Extra Hot; the stun 0.6,
+ * 1 and 1.3 s. */
+function throwShield(a: Arena, f: Foot): void {
+  const from = f.guardFx?.throwOff();
+  if (!from) {
+    // (nothing left to throw: broken in the wind-up, or no shield piece)
+    f.guardFx?.rage();
+    return;
   }
-  const h = f.meta.footHeight * f.type.scale;
-  const size = h * 0.78;
-  img.setDisplaySize(size, size);
-  const k = up ? 1 : 0;
-  const cur = Number(f.brain.shK ?? k);
-  const nk = cur + (k - cur) * Math.min(1, dt * 14);
-  f.brain.shK = nk;
-  img.setPosition(-size * 0.1 * (1 - nk) - f.meta.legWidth * f.type.scale * 0.55 * (1 - nk), -h * (0.42 - 0.08 * (1 - nk)));
-  img.setAngle(-24 * (1 - nk)).setAlpha(0.55 + 0.45 * nk);
-  if (up && Math.random() < dt * 2) a.fx.glint(f.cx - 20, f.cy - 30);
-  // the rage at a quarter health
+  const r = heat(a).rank;
+  const flight = r <= 0 ? 1.2 : r >= 3 ? 0.8 : 0.9;
+  const stun = r <= 0 ? 0.6 : r >= 3 ? 1.3 : 1;
+  a.sfx('sfx_whoosh', { volume: 0.9, rate: 0.75 });
+  // (a throw that misses a peel that's moved lands nowhere: the badge settles on RAGE either way)
+  a.sc.time.delayedCall((flight + 0.1) * 1000, () => f.guardFx?.rage());
+  throwAtPeel(
+    a,
+    from.key,
+    from,
+    flight,
+    () => {
+      f.guardFx?.rage();
+      a.sfx('sfx_shield', { volume: 1, rate: 0.7 });
+      a.sfx('sfx_bronzeshield', { volume: 0.7, rate: 0.8 });
+      a.shake(160, 0.006);
+      a.stunPeel(stun, 'SHIELD BASH!');
+    },
+    () => {
+      f.guardFx?.rage();
+      a.sfx('sfx_bronzeshield', { volume: 0.9, rate: 1.15 });
+      const p = a.peelPoint();
+      a.quip(p.x, p.y - 120, 'DEFLECTED!', '#ffd23f', 40);
+    },
+    9,
+    { scale: from.scale },
+  );
+}
+
+function spartanTick(a: Arena, f: Foot, dt: number): void {
+  // (its shield is the guard trait's, with its own rhythm: FootType.guard, the piece in src/game/guardShield.ts)
+  // rearing back with the shield, then the throw
+  if (Number(f.brain.throwT ?? 0) > 0) {
+    f.brain.throwT = Number(f.brain.throwT) - dt;
+    // it holds the shield up as it rears back (its beat stops)
+    f.guardOpen = 0;
+    f.guardT = 0;
+    f.guardWarned = false;
+    if (Number(f.brain.throwT) <= 0) {
+      if (f.alive) throwShield(a, f);
+      f.guardDone = true;
+    }
+  }
+  // the rage at a quarter health: it roars and throws its shield aside, at your peel (done with shields for good)
   if (!f.brain.raged && f.alive && f.hp > 0 && f.hp <= f.maxHp * 0.25) {
     f.brain.raged = 1;
+    if (f.guardBroken || f.guardDone || !f.guardFx) {
+      // nothing to throw: no new shield either
+      f.guardDone = true;
+      f.guardFx?.rage();
+    } else {
+      f.guardFx.windup();
+      f.brain.throwT = THROW_WINDUP;
+    }
     f.speedMul *= 1.6;
     f.hoverMul *= 0.6;
     f.flash(0xff2a1a, 260);

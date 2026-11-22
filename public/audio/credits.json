@@ -4245,6 +4245,46 @@
     "notes": "a bronze shield is raised (Spartan Sandals, Persian Elephant Feet); a synthesized bronze shield clang, made with ffmpeg and Python and released as CC0"
   },
   {
+    "file": "sfx_guardwarn.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "a guard foot's shield is about to drop (Riot Ryan, Skeleton Hoplite, Spartan Sandals); two synthesized rising metallic ticks over a little rising shimmer, made with Python and ffmpeg and released as CC0"
+  },
+  {
+    "file": "sfx_guarddrop.mp3",
+    "title": "Impact Sounds (impactMetal_light_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "a guard foot's shield swings down and aside; a synthesized falling whoosh (original, made for Feetza with Python and ffmpeg, CC0) with the Kenney impact pitched down as its clatter"
+  },
+  {
+    "file": "sfx_guardraise.mp3",
+    "title": "Impact Sounds (impactMetal_light_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "a guard foot's shield snaps back up; a synthesized rising whoosh and a ringing clank (original, made for Feetza with Python and ffmpeg, CC0) layered with the Kenney impact"
+  },
+  {
+    "file": "sfx_guardcrack.mp3",
+    "title": "Impact Sounds (impactMetal_light_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "a smack cracks a guard foot's shield; a synthesized snap, crackle and knock (original, made for Feetza with Python and ffmpeg, CC0) layered with the Kenney impact pitched up"
+  },
+  {
+    "file": "sfx_guardshatter.mp3",
+    "title": "Impact Sounds (impactGlass_heavy_003, impactGlass_medium_002, impactGlass_light_004)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "a guard foot's shield shatters; a synthesized burst, tinkling pieces and clatter (original, made for Feetza with Python and ffmpeg, CC0) layered with the Kenney glass breaks"
+  },
+  {
     "file": "music_gotham.mp3",
     "title": "Crossing the Chasm",
     "author": "Kevin MacLeod (incompetech.com)",

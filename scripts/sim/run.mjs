@@ -42,6 +42,8 @@ const quiet = !!arg('quiet', false);
 const trace = Number(arg('trace', 0));
 const idleFrom = Number(arg('idle-from', 0));
 const shopMode = String(arg('shop', 'rarity'));
+// start each run at this wave (from the shop, with a starter kit sized for it) instead of wave 1
+const from = Number(arg('from', 0));
 // a fresh page for every run (slower to start, but nothing from an earlier run can carry over)
 const freshEvery = argv.includes('--reuse') ? 8 : 1;
 
@@ -56,7 +58,7 @@ const jobs = [];
 for (const heat of heats)
   for (const peel of peels)
     for (let i = 0; i < runs; i++) {
-      const job = { seed: seedBase + i, heat, peel, waves, accuracy, dt, profile, ...(trace ? { trace } : {}), ...(idleFrom ? { idleFrom } : {}), shop: shopMode };
+      const job = { seed: seedBase + i, heat, peel, waves, accuracy, dt, profile, ...(trace ? { trace } : {}), ...(idleFrom ? { idleFrom } : {}), ...(from ? { from } : {}), shop: shopMode };
       jobs.push(job);
       if (check) jobs.push({ ...job, repeat: true });
     }
@@ -210,7 +212,9 @@ const worker = async () => {
     if (!quiet) {
       const speed = r.realMs ? Math.round((r.gameSec * 1000) / r.realMs) : 0;
       const what = r.outcome === 'dead' ? `died at wave ${r.wave}${r.boss ? ` (${r.boss})` : ''}` : r.outcome === 'reached' ? `reached wave ${waves}` : r.outcome === 'stalled' ? `STALLED at wave ${r.wave}: ${r.stall?.screen}` : `ERROR at wave ${r.wave}: ${r.error}`;
-      console.log(`[${results.length}/${jobs.length}] ${label(job)}: ${what} · ${(r.realMs / 1000).toFixed(1)} s (${speed}× real time)`);
+      // guard feet's shields: smacks they blocked, shields broken and replaced
+      const gd = r.guard?.blocked ? ` · shields: ${r.guard.blocked} blocked, ${r.guard.broken} broken, ${r.guard.rearmed} re-armed` : '';
+      console.log(`[${results.length}/${jobs.length}] ${label(job)}: ${what}${gd} · ${(r.realMs / 1000).toFixed(1)} s (${speed}× real time)`);
     }
     writeFileSync(join(out, 'results.json'), JSON.stringify(results));
   }
