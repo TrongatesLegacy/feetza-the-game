@@ -287,7 +287,7 @@ class Showcase extends Phaser.Scene {
       old = new Foot(this, layer, shadowL, { ...type, id: `classic_${e.id}` }, -off, { hpMult: 1, speedMult: 1, elite: false, hooks: HOOKS });
     }
     keys.push(...registerMeta(this, e.id, type, false));
-    const neu = new Foot(this, layer, shadowL, type, e.styled ? off : 0, { hpMult: 1, speedMult: 1, elite: false, hooks: HOOKS });
+    const neu = new Foot(this, layer, shadowL, type, e.styled ? off : 0, { hpMult: 1, speedMult: 1, elite: ELITE, hooks: HOOKS });
     for (const f of [old, neu]) {
       if (!f) continue;
       f.puppet = true;
@@ -386,6 +386,8 @@ class Showcase extends Phaser.Scene {
 
 const dpr = () => Math.min(2, window.devicePixelRatio || 1);
 const KEEP = new URLSearchParams(location.search).has('keep');
+// ?elite: draw the new feet as elites (their pink glow)
+const ELITE = new URLSearchParams(location.search).has('elite');
 
 /** Every foot in the game, grouped for the sheet: by act, then feet, then bosses and mini-bosses. */
 function groups(): { act: number; bossy: boolean; title: string; ids: string[] }[] {

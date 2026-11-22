@@ -88,6 +88,9 @@ export class Foot {
   /** Overrides where this foot hovers (contact y) before diving; null = the usual HOVER_Y. */
   hoverY: number | null = null;
   private leg: Phaser.GameObjects.TileSprite;
+  /** Leg, art and cuff together: outline glows (elite, golden, shiny, phase auras) go round this one silhouette,
+   * so they run up the leg instead of cutting across the ankle. */
+  private body: Phaser.GameObjects.Container;
   private img: Phaser.GameObjects.Image;
   private cuff?: Phaser.GameObjects.Image;
   readonly shadow: Phaser.GameObjects.Image;
@@ -236,11 +239,12 @@ export class Foot {
     const legBottom = m.textures.legEnd !== undefined ? (m.textures.legEnd - m.footHeight) * type.scale : -footTop + 16 * type.scale + legTuck(scene, type, m, footTop);
     this.leg = scene.add.tileSprite(0, legBottom, legW, LEG_LEN, m.legKey).setOrigin(0.5, 1).setTileScale(k, k);
     this.img = scene.add.image(0, 0, m.footKey).setOrigin(0.5, m.originY).setScale(k);
-    this.root.add([this.leg, this.img]);
+    this.body = scene.add.container(0, 0, [this.leg, this.img]);
+    this.root.add(this.body);
     this.legY = legBottom;
     if (m.cuffKey) {
       this.cuff = scene.add.image(0, -footTop + 4 * type.scale, m.cuffKey).setScale(k);
-      this.root.add(this.cuff);
+      this.body.add(this.cuff);
     }
     this.hpBar = scene.add.graphics();
     this.root.add(this.hpBar);
@@ -254,7 +258,7 @@ export class Foot {
       this.img.setAlpha(0.8);
     }
     if (opts.elite || type.id === 'golden') {
-      this.img.preFX?.addGlow(opts.elite ? 0xff4dd2 : 0xffe066, 4, 0, false, 0.1, 12);
+      this.body.postFX?.addGlow(opts.elite ? 0xff4dd2 : 0xffe066, 4, 0, false, 0.1, 12);
     }
     if (type.mini) this.root.setScale(rel);
     this.glossy = type.traits.includes('glossy');
@@ -647,6 +651,9 @@ export class Foot {
   cropLeg(top: number): void {
     const h = Math.max(1, Math.round(this.leg.y - top));
     if (Math.abs(this.leg.height - h) >= 1) this.leg.setSize(this.leg.width, h);
+    // the tile pattern starts at the sprite's top: shift it so it stays fixed to the leg's bottom (the foot), as
+    // an uncropped leg's does, or the foot seems to slide up and down a still leg as it moves
+    this.leg.tilePositionY = (LEG_LEN - this.leg.height) / this.leg.tileScaleY;
   }
 
   /** How visible the foot's own art is now (faded by invisibility, phasing, portals and the like). */
@@ -672,6 +679,12 @@ export class Foot {
       if (o instanceof Phaser.GameObjects.Image) this.liveImgs.push(o);
       return;
     }
+    // without a rig, additive light goes just over the body (its post-FX would break it the same way)
+    if (additive) {
+      this.root.addAt(o, this.root.getIndex(this.body) + 1 + this.fxAbove++);
+      if (o instanceof Phaser.GameObjects.Image) this.liveImgs.push(o);
+      return;
+    }
     const parent = this.img.parentContainer ?? this.root;
     const i = parent.getIndex(this.img);
     if (below) parent.addAt(o, i);
@@ -682,8 +695,10 @@ export class Foot {
   /** Add live effects in the foot's own frame but off the rig (particle emitters that keep the layer's frame):
    * `below` under the foot's art, otherwise over it. */
   addLiveFx(o: Phaser.GameObjects.GameObject, below: boolean): void {
-    if (below) this.root.addAt(o, this.root.getIndex(this.rig?.swing ?? this.img));
-    else this.root.addAt(o, this.root.getIndex(this.rig?.lightSwing ?? this.img) + 1 + this.fxAbove++);
+    // never inside the body: its outline glows would ring every particle, and additive ones would break its
+    // transparency. Below goes behind the leg and the foot, above over both.
+    if (below) this.root.addAt(o, this.root.getIndex(this.body));
+    else this.root.addAt(o, this.root.getIndex(this.rig?.lightSwing ?? this.body) + 1 + this.fxAbove++);
   }
 
   /** Hang the foot's art on a rig (once): a container at the ankle that swings, holding one at the sole that
@@ -694,26 +709,15 @@ export class Foot {
     const swing = this.scene.add.container(0, ankle);
     const squash = this.scene.add.container(0, -ankle);
     swing.add(squash);
-    const i = this.root.getIndex(this.img);
-    this.root.remove(this.img);
-    this.root.addAt(swing, i);
+    const i = this.body.getIndex(this.img);
+    this.body.remove(this.img);
+    this.body.addAt(swing, i);
     squash.add(this.img);
     const lightSwing = this.scene.add.container(0, ankle);
     const light = this.scene.add.container(0, -ankle);
     lightSwing.add(light);
-    this.root.addAt(lightSwing, i + 1);
+    this.root.addAt(lightSwing, this.root.getIndex(this.body) + 1);
     this.rig = { swing, squash, lightSwing, light };
-    // foot-wide effects drawn on the art alone would stop at the toe band's cut: move them to the whole rig
-    const fx = this.img.preFX;
-    if (fx && squash.postFX) {
-      for (const e of [...fx.list]) {
-        if (e instanceof Phaser.FX.Glow) {
-          const g = squash.postFX.addGlow(e.color, e.outerStrength, e.innerStrength, !!e.knockout, 0.1, 12);
-          if (e === this.auraFx) this.auraFx = g;
-        } else if (e instanceof Phaser.FX.Shine) squash.postFX.addShine(e.speed, e.lineWidth, e.gradient);
-      }
-      fx.clear();
-    }
   }
 
   /** A point of the foot's design space (src/art/style: centre x 110, sole at its contact y) in world
@@ -740,9 +744,9 @@ export class Foot {
     return [r.x + lx * c - ly * s, r.y + lx * s + ly * c];
   }
 
-  /** Where foot-wide FX (glows, shines, the phase aura) go: the art, or the whole rig once there is one. */
+  /** Where foot-wide FX (glows, shines, the phase aura) go: the body, leg and foot as one silhouette. */
   private fxHost(): Phaser.GameObjects.Components.FX | null {
-    return this.rig ? this.rig.squash.postFX : this.img.preFX;
+    return this.body.postFX;
   }
 
   /** Pose the rig: swing (radians, round the ankle) and squash (scale at the sole). The leg follows the ankle
@@ -780,7 +784,6 @@ export class Foot {
     this.shiny = true;
     this.fxHost()?.addGlow(0xfff6c0, 5, 0, false, 0.1, 14);
     this.fxHost()?.addShine(0.7, 0.35, 4);
-    if (this.leg) this.leg.preFX?.addShine(0.7, 0.35, 4);
   }
 
   setPhaseAura(color: number | null): void {

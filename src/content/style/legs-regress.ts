@@ -169,7 +169,8 @@ registerLegKind('saddlecloth', {
   },
 });
 
-registerLeg('cowboy', { kind: 'bootshaft', color: '#a0552a', accent: '#f2c14e', join: 'blend', fade: 18 });
+// the shaft is the boot's own width at its top (COWBOY.topHW), so the two edges meet
+registerLeg('cowboy', { kind: 'bootshaft', color: '#a0552a', accent: '#f2c14e', hw: 58, join: 'blend', fade: 18 });
 registerLeg('wendy', { kind: 'rubber', color: '#ffd000', hw: 62, join: 'blend', fade: 18 });
 registerLeg('harold', { kind: 'hairy' });
 registerLeg('cavalry', { kind: 'saddlecloth', color: '#b8202a', accent: '#e8b43a' });
