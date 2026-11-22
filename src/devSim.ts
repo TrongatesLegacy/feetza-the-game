@@ -35,6 +35,11 @@ export interface SimOpts {
   profile?: 'fresh' | 'veteran';
   /** Give up after this much real time. */
   maxRealMs?: number;
+  /** How the bot shops: 'rarity' (the rarest card it can afford) or 'auto' (automatic damage first: timed
+   *  procs, orbiting cutters, the drone, auras and burns, then rarity). */
+  shop?: 'rarity' | 'auto';
+  /** The bot stops smacking (and slamming) from this wave on: how far do the automatic toppings carry a run? */
+  idleFrom?: number;
   /** Dev: count random draws per wave, and list where they came from in this wave (finding non-determinism). */
   trace?: number;
 }
@@ -68,6 +73,8 @@ export interface SimResult {
   crusts: number;
   error?: string;
   stall?: { screen: string; detail: Record<string, unknown> };
+  /** Damage dealt by source over the run. */
+  damage?: Record<string, number>;
 }
 
 const STALL_MS = 120_000;
@@ -187,7 +194,10 @@ function screenOf(g: AnyScene): string {
 
 /** Shopping, in one go: heal when hurt, reheat stale pizzas, take a free last-stand pizza, rebake, buy the best
  *  affordable card; returns true when it did something (the bot comes back next action), false = next wave. */
-function shopOnce(g: AnyScene): boolean {
+/** Toppings that deal damage on their own (no smack needed). */
+const AUTO = /every \d+(\.\d+)?s|orbit|drone|aura|burn|zap|bounces|cutter|blade/i;
+
+function shopOnce(g: AnyScene, mode: 'rarity' | 'auto' = 'rarity'): boolean {
   const st = g.shop?.state;
   if (!st) return false;
   const hurt = st.table.some((p: any) => !p.dead && p.slices <= p.max / 2); // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -200,7 +210,8 @@ function shopOnce(g: AnyScene): boolean {
   }
   if (st.rebake.can && st.rebake.shown) return g.shopRebake(), true;
   const rank: Record<string, number> = { legendary: 4, epic: 3, rare: 2, uncommon: 1.5, common: 1 };
-  const card = st.cards.filter((c: any) => !c.sold && (c.free || st.coins >= c.price)).sort((a: any, b: any) => (rank[b.rarity] ?? 0) - (rank[a.rarity] ?? 0))[0]; // eslint-disable-line @typescript-eslint/no-explicit-any
+  const score = (c: any) => (rank[c.rarity] ?? 0) + (mode === 'auto' && AUTO.test(`${c.name} ${c.desc}`) ? 10 : 0); // eslint-disable-line @typescript-eslint/no-explicit-any
+  const card = st.cards.filter((c: any) => !c.sold && (c.free || st.coins >= c.price)).sort((a: any, b: any) => score(b) - score(a))[0]; // eslint-disable-line @typescript-eslint/no-explicit-any
   if (card) return g.shopBuy(card.id), true;
   return false;
 }
@@ -251,7 +262,7 @@ export function simReady(): boolean {
 }
 
 export async function simRun(game: Phaser.Game, o: SimOpts, start: (opts: Record<string, unknown>) => void): Promise<SimResult> {
-  const opts: Required<SimOpts> = { peel: 'classic', accuracy: 0.9, rate: 260, dt: 1000 / 60, profile: 'fresh', maxRealMs: 600_000, trace: 0, ...o };
+  const opts: Required<SimOpts> = { peel: 'classic', accuracy: 0.9, rate: 260, dt: 1000 / 60, profile: 'fresh', maxRealMs: 600_000, trace: 0, idleFrom: 0, shop: 'rarity', ...o };
   // the game's art must be built first (several tabs booting at once can take a while)
   for (let i = 0; i < 600 && PIZZAS.some((p) => !pizzaTops[p.id]); i++) await new Promise((r) => setTimeout(r, 100));
   // the browser's own save comes back when the run is done
@@ -300,6 +311,16 @@ export async function simRun(game: Phaser.Game, o: SimOpts, start: (opts: Record
   }
   g.scene.setVisible(false);
   gameMs = 0;
+  // where the damage comes from: smacks, the slam/ability, or the automatic sources (procs, cutters, burns…)
+  const dmgBy: Record<string, number> = {};
+  const deal = g.dealDamage;
+  g.dealDamage = function (this: AnyScene, f: any, amount: number, o: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    const before = f?.hp ?? 0;
+    const r = deal.call(this, f, amount, o);
+    const done = Math.max(0, before - Math.max(0, f?.hp ?? 0));
+    if (done > 0) dmgBy[o?.source ?? 'other'] = (dmgBy[o?.source ?? 'other'] ?? 0) + done;
+    return r;
+  };
   // tracing: count every random draw, by wave, and where each came from in the traced wave
   const draws: number[] = [];
   const where: Record<string, number> = {};
@@ -350,6 +371,12 @@ export async function simRun(game: Phaser.Game, o: SimOpts, start: (opts: Record
         outcome = 'error';
         break;
       }
+      // the journey's end (the ending and its victory screen): a win
+      if (g.endingShown && wave >= opts.waves) {
+        row(wave);
+        outcome = 'reached';
+        break;
+      }
       if (g.over) {
         // the second chance offer and the run-end screens: give the UI a moment, then call it
         clearWindows(g);
@@ -363,7 +390,7 @@ export async function simRun(game: Phaser.Game, o: SimOpts, start: (opts: Record
       if (g.inUpgrade || steps % 600 === 0) {
         if (!clearWindows(g) && g.inUpgrade && g.shop && actMs >= opts.rate) {
           actMs = 0;
-          if (!shopOnce(g)) g.shopNext();
+          if (!shopOnce(g, opts.shop)) g.shopNext();
         }
         await yieldNow();
       }
@@ -374,7 +401,7 @@ export async function simRun(game: Phaser.Game, o: SimOpts, start: (opts: Record
       steps++;
       if (g.waveActive && !g.over && actMs >= opts.rate) {
         actMs = 0;
-        smack(g, opts.accuracy);
+        if (!opts.idleFrom || wave < opts.idleFrom) smack(g, opts.accuracy);
       }
       const w = g.run?.wave ?? wave;
       if (w !== wave) {
@@ -434,6 +461,7 @@ export async function simRun(game: Phaser.Game, o: SimOpts, start: (opts: Record
     crusts: Math.round(typeof g.run.crustsEarned === 'function' ? g.run.crustsEarned() : 0),
     error: errors[0],
     stall,
+    damage: Object.fromEntries(Object.entries(dmgBy).map(([k, v]) => [k, Math.round(v)])),
   };
   if (opts.trace) {
     Math.random = seeded;

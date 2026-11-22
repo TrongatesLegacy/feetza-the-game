@@ -7,3 +7,6 @@ dist
 
 # personal reference material, not part of the game
 inspiration/
+
+# balance simulator output (npm run sim)
+.sim/
