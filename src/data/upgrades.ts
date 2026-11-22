@@ -367,7 +367,7 @@ export const UPGRADES: Upgrade[] = [
   },
   {
     id: 'mercy', name: 'Cutter\'s Mercy', icon: '🔪', rarity: 'rare', max: 3,
-    desc: () => 'Smacks instantly finish feet under +8% health',
+    desc: (l) => `Smacks instantly finish feet under ${8 * l}% health`,
     apply: (s) => { s.execute += 0.08; },
   },
   {

@@ -983,14 +983,14 @@ class UI {
           'div',
           { class: `card ${c.rarity}${c.sold ? ' sold' : ''}${dealt.has(c.id) ? ' dealt' : ''}`, tabindex: 0, role: 'button', 'aria-label': `${c.name}: ${c.desc}` },
           h('div', { class: 'key' }, String(i + 1)),
-          !c.sold && (c.free || c.tag) ? h('span', { class: `ptag ${c.free ? 'free' : c.tag!.kind}` }, c.free ? 'FREE' : c.tag!.text) : null,
           h('span', { class: `kind ${c.kind}` }, c.kind === 'permanent' ? 'PERMANENT' : c.kind === 'unique' ? 'ONCE PER RUN' : 'ONE USE'),
           h('div', { class: 'rarity' }, c.rarity),
           h('div', { class: 'icon' }, c.icon),
           h('div', { class: 'name' }, c.name),
           h('div', { class: 'desc' }, c.desc),
           c.downside ? h('div', { class: 'down' }, `▼ ${c.downside}`) : null,
-          h('div', { class: 'lvl' }, c.lvl),
+          // a deal (FREE, HALF PRICE…) rides on the level line, clear of everything else
+          h('div', { class: 'lvl' }, c.lvl, !c.sold && (c.free || c.tag) ? h('span', { class: `ptag ${c.free ? 'free' : c.tag!.kind}` }, c.free ? 'FREE' : c.tag!.text) : null),
           b,
         );
         el.addEventListener('click', () => !c.sold && act.buy(c.id));

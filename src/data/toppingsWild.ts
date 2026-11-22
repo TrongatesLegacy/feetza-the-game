@@ -15,7 +15,7 @@ function kit(id: string, name: string, icon: string, rarity: Rarity, max: number
 function proc(id: string, name: string, icon: string, rarity: Rarity, max: number, p: Proc, short?: string): Upgrade {
   return {
     id, name, icon, rarity, max, proc: p,
-    desc: (l) => (short ? (l <= 1 ? short : `Level ${l}: hits ${Math.round(50 * (l - 1))}% harder, more often`) : l <= 1 ? describeProc(p) : `Level ${l}: ${describeProc(scaleProc(p, l))}`),
+    desc: (l) => (short ? (l <= 1 ? short : `Hits ${Math.round(50 * (l - 1))}% harder, more often`) : l <= 1 ? describeProc(p) : `${describeProc(scaleProc(p, l))}`),
     apply: () => {},
   };
 }

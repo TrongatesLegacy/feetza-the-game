@@ -5933,3 +5933,27 @@ body.reduced-motion *::after {
 .offer.slots .side { overflow: hidden; padding-right: 0.15em; }
 .offer.slots .pulls { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .offer.slots .pulls .btn.pull { min-width: 0; font-size: 0.92em; }
+
+/* shop cards: the price tag sits on the card's top-right corner (clear of the rarity and icon), and the buy button's
+   label always fits the card, a struck-through usual price shown small */
+.shop2 .card .lvl .ptag {
+  position: static;
+  display: inline-block;
+  margin-left: 0.45em;
+  transform: rotate(-3deg);
+  font-size: 0.78em;
+  vertical-align: 0.08em;
+}
+.shop2 .card .btn {
+  min-width: 0;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  padding-left: 0.3em;
+  padding-right: 0.3em;
+}
+.shop2 .card .btn s {
+  font-size: 0.68em;
+  opacity: 0.75;
+  vertical-align: 0.12em;
+}

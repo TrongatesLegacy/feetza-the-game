@@ -22,7 +22,7 @@ function proc(id: string, name: string, icon: string, rarity: Rarity, max: numbe
     rarity,
     max,
     proc: p,
-    desc: (l) => (l <= 1 ? describeProc(p) : `Level ${l}: ${describeProc(scaleProc(p, l))}`),
+    desc: (l) => (l <= 1 ? describeProc(p) : `${describeProc(scaleProc(p, l))}`),
     apply: () => {},
   };
 }
