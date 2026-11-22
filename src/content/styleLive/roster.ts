@@ -5,6 +5,7 @@ import { CX } from '../../art/feetCommon';
 import { type LiveFoot, registerLive } from '../../game/liveKit';
 import { crand } from '../../systems/cosmeticRandom';
 import { ANT_TIPS } from '../style/roster-1';
+import { hexNut } from '../style/roster-3';
 
 const R = () => crand();
 const pm = () => crand() - 0.5;
@@ -234,6 +235,165 @@ registerLive('frycook', {
     });
     shimmer.rate('heat', 3, dt, () => {
       shimmer.emit(CX - 80 + R() * 160, 110, { vx: pm() * 10, vy: -50, life: 1.2, r0: 10 * s, r1: 28 * s, a: 0.18, tint: 0xfff8e8, fade: 0.3 });
+    });
+  },
+});
+
+// ——— Lodge ———
+
+// Moose Hoof: heavy, so it lands hard with a cloud of dust; once hurt (enraged) it snorts steam.
+registerLive('moose', {
+  rig: { squash: 1.4, swing: 0.6 },
+  setup: (k) => ({ dust: k.emitter({ frame: 'puff', curl: 20, drag: 1.2, below: true, max: 50 }), steam: k.emitter({ frame: 'soft', curl: 50, drag: 1, max: 60 }), snort: { t: 0 } }),
+  tick(k, dt, { dust, steam, snort }) {
+    const s = k.f.type.scale;
+    landDust(k, dust, 0x9a8a70, 16, 266, 0.55);
+    if (!k.f.enraged) return;
+    snort.t -= dt;
+    if (snort.t <= 0) {
+      snort.t = 1 + R() * 0.8;
+      for (const side of [-1, 1]) for (let i = 0, n = k.burst(5); i < n; i++) steam.emit(CX + side * 70, 170, { vx: side * (60 + R() * 60), vy: -30 - R() * 40, life: 0.9, r0: 8 * s, r1: 30 * s, a: 0.5, tint: 0xf4f6fa, fade: 0.06 });
+    }
+  },
+});
+
+// Hot Tub Hal: steam puffs rise off him, thicker whenever he heals; his toes wiggle.
+registerLive('hottub', {
+  wiggle: true,
+  setup: (k) => ({ steam: k.emitter({ frame: 'soft', curl: 50, drag: 0.8, max: 120 }), hp: { v: k.f.hp, heal: 0 } }),
+  tick(k, dt, { steam, hp }) {
+    const s = k.f.type.scale;
+    if (k.f.hp > hp.v) hp.heal = 1;
+    hp.v = k.f.hp;
+    hp.heal = Math.max(0, hp.heal - dt);
+    steam.rate('steam', 5 + hp.heal * 20, dt, () => {
+      steam.emit(30 + R() * 160, 40 + R() * 200, { vx: pm() * 20, vy: -40 - R() * 30, life: 1.6 + R() * 0.6, r0: 8 * s, r1: 30 * s, a: 0.35, tint: 0xfbf8ff, fade: 0.3 });
+    });
+  },
+});
+
+// Fireside Fay: the flames under her sole flicker (glow layer), embers rise and the flames flare on a stomp.
+registerLive('fireside', {
+  wiggle: true,
+  glow: { rate: 2.2, depth: 0.4, base: 0.6 },
+  setup: (k) => ({ fire: k.emitter({ frame: 'soft', add: true, curl: 60, drag: 0.8, max: 140 }), embers: k.emitter({ frame: 'ember', add: true, curl: 60, drag: 0.5, max: 80 }) }),
+  tick(k, dt, { fire, embers }) {
+    const s = k.f.type.scale;
+    fire.rate('lick', 22, dt, () => {
+      fire.emit(30 + R() * 160, 262, { vx: pm() * 30, vy: -70 - R() * 60, life: 0.5 + R() * 0.3, r0: 12 * s, r1: 4 * s, a: 0.55, tint: R() < 0.5 ? 0xff7a1a : 0xffb030, fade: 0.1 });
+    });
+    embers.rate('rise', 8, dt, () => {
+      embers.emit(30 + R() * 160, 250, { vx: pm() * 40, vy: -80 - R() * 80, life: 1 + R() * 0.6, r0: 2.6 * s, r1: 1 * s, a: 1, tint: 0xffc060, grav: -30, fade: 0.05 });
+    });
+    if (k.landed)
+      for (let i = 0, n = k.burst(16); i < n; i++) fire.emit(20 + R() * 180, 262, { vx: pm() * 300, vy: -60 - R() * 120, life: 0.6, r0: 16 * s, r1: 4 * s, a: 0.7, tint: 0xff8a1a, fade: 0.05 });
+  },
+});
+
+// ——— Space ———
+
+// Magnet Mag: the field lines pulse between the poles and stray nuts orbit it, pulled in tight as it dives.
+registerLive('magnet', {
+  glow: { rate: 1.1, depth: 0.5, base: 0.4 },
+  setup(k) {
+    const key = k.sheet('lk_nut', 48, 48, 3, (ctx, i) => {
+      ctx.translate(24, 24);
+      hexNut(ctx, 1.6, i * 1.05);
+    });
+    return { nuts: k.swarm({ key, frames: 3, count: 5, at: [CX, 220], rx: 150, ry: 120, speed: 1.1, jitter: 8, scale: 0.6 }) };
+  },
+  tick(k, dt, { nuts }) {
+    const diving = k.f.state === 'descend' || k.windingUp;
+    nuts.tight += ((diving ? 0.55 : 1) - nuts.tight) * Math.min(1, dt * 3);
+    nuts.pace += ((diving ? 2 : 1) - nuts.pace) * Math.min(1, dt * 3);
+  },
+});
+
+// Gravity Gwen: the thrusters burn (glow layer), roaring as she lifts; sparkles drift off her.
+registerLive('gravity', {
+  glow: { rate: 6, depth: 0.25, base: 0.7 },
+  rig: { swing: 0.7 },
+  setup: (k) => ({ jet: k.emitter({ frame: 'soft', add: true, drag: 0.6, max: 140 }), sparkle: k.emitter({ frame: 'spark', add: true, drag: 0.4, max: 20 }) }),
+  tick(k, dt, { jet, sparkle }) {
+    const s = k.f.type.scale;
+    const lift = k.f.state === 'lift' || k.f.state === 'hover' ? 1 : 0.4;
+    jet.rate('jet', 30 * lift, dt, () => {
+      const side = R() < 0.5 ? -1 : 1;
+      jet.emit(CX + side * 56 + pm() * 8, 270, { vx: pm() * 20, vy: 160 + R() * 120, life: 0.35 + R() * 0.2, r0: 10 * s, r1: 3 * s, a: 0.7, tint: R() < 0.6 ? 0x6ab8ff : 0xe8f4ff, fade: 0.05 });
+    });
+    sparkle.rate('twinkle', 1.5, dt, () => {
+      sparkle.emit(CX + pm() * 260, 20 + R() * 240, { life: 0.5, r0: 2, r1: 12 * s, a: 0.9, tint: 0xbfe0ff, fade: 0.4 });
+    });
+  },
+});
+
+// Alien Al: the eye blinks and follows your peel, the tentacles curl and sway, slime drips.
+registerLive('alienal', {
+  rig: { squash: 1.3 },
+  blink: { eye: { every: 3, look: 5 } },
+  sway: Object.fromEntries([0, 1, 2, 3].map((i) => [`tent${i}`, { k: 34 + i * 5, c: 3, gain: i < 2 ? 1.6 : -1.6, idle: 0.14, below: true, flop: i < 2 ? 1.4 : -1.4 }])),
+  setup: (k) => ({ slime: k.emitter({ frame: 'drop', drag: 0.1, max: 30 }) }),
+  tick(k, dt, { slime }) {
+    const s = k.f.type.scale;
+    slime.rate('slime', 1.2, dt, () => {
+      slime.emit([CX - 104, CX - 34, CX + 34, CX + 104][Math.floor(R() * 4)], 274, { vy: 20, life: 0.8, r0: 4.5 * s, r1: 3.5 * s, a: 0.9, tint: 0x8ae860, grav: 800, fade: 0.02 });
+    });
+  },
+});
+
+// Robo-Sock 9: the display and drill flutes glow; as it dives, sparks spin off the drill.
+registerLive('robosock', {
+  glow: { rate: 1.4, depth: 0.35, base: 0.55 },
+  rig: { squash: 0.6 },
+  setup: (k) => ({ sparks: k.emitter({ frame: 'ember', add: true, drag: 0.3, max: 80 }) }),
+  tick(k, dt, { sparks }) {
+    const s = k.f.type.scale;
+    const n = k.f.state === 'descend' || k.windingUp ? 40 : 3;
+    sparks.rate('drill', n, dt, () => {
+      const side = R() < 0.5 ? -1 : 1;
+      sparks.emit(CX + side * (10 + R() * 30), 240 + R() * 50, { vx: side * (100 + R() * 200), vy: -40 - R() * 120, life: 0.35 + R() * 0.25, r0: 2.4 * s, r1: 0.8 * s, a: 1, tint: R() < 0.5 ? 0xffd070 : 0xff6aa0, grav: 600, fade: 0.02 });
+    });
+  },
+});
+
+// Comet Cora: her tail streams behind every move (world-space particles), sparkles shed off it, and it flares as she bursts.
+registerLive('comet', {
+  wiggle: true,
+  glow: { rate: 1.6, depth: 0.4, base: 0.5 },
+  setup: (k) => ({ tail: k.emitter({ frame: 'soft', add: true, curl: 40, drag: 0.5, max: 220 }), ice: k.emitter({ frame: 'spark', add: true, drag: 0.6, max: 40 }) }),
+  tick(k, dt, { tail, ice }) {
+    const s = k.f.type.scale;
+    const hot = k.f.state === 'descend' || k.windingUp ? 2.2 : 1;
+    tail.rate('tail', 28 * hot, dt, () => {
+      tail.emit(20 + R() * 180, 120 + R() * 140, { vx: pm() * 30, vy: -60 - R() * 60, life: 0.7 + R() * 0.5, r0: 14 * s, r1: 4 * s, a: 0.5, tint: R() < 0.6 ? 0x5ad8ff : 0xe8fbff, fade: 0.05 });
+    });
+    ice.rate('ice', 3, dt, () => {
+      ice.emit(20 + R() * 180, 40 + R() * 220, { vx: pm() * 30, vy: -30, life: 0.5, r0: 2, r1: 12 * s, a: 0.9, tint: 0xffffff, fade: 0.4 });
+    });
+  },
+});
+
+// Mars Rover Rory: the camera mast swivels on a spring, the solar cells glint, it throws red dust when it lands.
+registerLive('rover', {
+  rig: { squash: 0.8, swing: 0.6 },
+  sway: { mast: { k: 30, c: 3, gain: 1.4, idle: 0.2, flop: 1 } },
+  setup: (k) => ({ dust: k.emitter({ frame: 'puff', curl: 20, drag: 1.2, below: true, max: 60 }), glint: k.emitter({ frame: 'spark', add: true, drag: 0, max: 8 }) }),
+  tick(k, dt, { dust, glint }) {
+    landDust(k, dust, 0xc8642a, 18, 270, 0.55);
+    glint.rate('sun', 0.6, dt, () => {
+      glint.emit(R() < 0.5 ? CX - 110 : CX + 100, 80 + R() * 40, { life: 0.4, r0: 2, r1: 18 * k.f.type.scale, a: 0.9, tint: 0xd8e8ff, fade: 0.4 });
+    });
+  },
+});
+
+// Starlight Stella: the stars twinkle (glow layer) and sparkles gather round her.
+registerLive('starlight', {
+  glow: { rate: 0.9, depth: 0.5, base: 0.45 },
+  setup: (k) => ({ tw: k.emitter({ frame: 'spark', add: true, drag: 0.5, max: 40 }) }),
+  tick(k, dt, { tw }) {
+    const s = k.f.type.scale;
+    tw.rate('tw', 5, dt, () => {
+      tw.emit(CX + pm() * 260, R() * 300, { vx: pm() * 10, vy: -10, life: 0.6, r0: 2, r1: 14 * s, a: 1, tint: R() < 0.5 ? 0xffe14d : 0xffffff, fade: 0.4 });
     });
   },
 });

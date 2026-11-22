@@ -214,7 +214,7 @@ export const feet: FootType[] = [
     home: 'space',
     howTo: 'Aim off to the side to fight the pull',
     tell: 'Field lines arc between the magnet tips',
-    art: { kind: 'r_magnet', skin: SKIN.light, primary: '#4a5568', secondary: '#e5242f', leg: 'robot' },
+    art: { kind: 'r_magnet', skin: SKIN.light, primary: '#4a5568', secondary: '#e5242f', leg: 'robot', legColor: '#4a5568' },
   },
   {
     id: 'gravity',
@@ -269,7 +269,7 @@ export const feet: FootType[] = [
     home: 'space',
     howTo: 'Focus it early: it hits three pizzas at once',
     tell: 'The camera mast swivels before it stomps',
-    art: { kind: 'r_rover', skin: SKIN.light, primary: '#e8e2d6', secondary: '#c8642a', leg: 'robot' },
+    art: { kind: 'r_rover', skin: SKIN.light, primary: '#e8e2d6', secondary: '#c8642a', leg: 'robot', legColor: '#9a968c' },
   },
   {
     id: 'starlight',
