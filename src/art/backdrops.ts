@@ -4832,7 +4832,9 @@ const REDRAWN = new Set<BackdropId>(['trattoria', 'beach', 'space',
   // redrawn with the location kit and painted frame animation: scene-kitchen.ts
   'kitchen',
   // redrawn with the location kit and painted frame animation: scene-oldtown.ts
-  'oldtown']);
+  'oldtown',
+  // redrawn with the location kit and painted frame animation: scene-diner.ts
+  'diner']);
 
 // redrawn scenes keep their old info for the before/after page (their old glows and particles with their old art)
 const LEGACY_INFO: Partial<Record<BackdropId, BackdropInfo>> = {};
