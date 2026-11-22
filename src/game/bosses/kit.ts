@@ -28,7 +28,15 @@ export interface Brain {
 }
 
 export class Every {
+  /** Set by the boss director for one update shortly after a phase begins: the first timer that first ran in this phase
+   *  and hasn't fired yet fires now (the first such one), so a phase's new move always shows up (instead of the phase being over
+   *  before its first cooldown runs out). */
+  static kick = false;
+  /** The phase the director is updating (each timer remembers the phase it first ran in). */
+  static phase = 1;
   t: number;
+  private fired = false;
+  private born = 0;
   constructor(
     public every: number,
     start = every,
@@ -36,9 +44,16 @@ export class Every {
     this.t = start;
   }
   tick(dt: number): boolean {
+    if (!this.born) this.born = Every.phase;
+    // one timer takes the kick (the first the brain runs): a phase's move, not a pile-up of every move at once
+    if (Every.kick && !this.fired && this.born === Every.phase && this.t > dt) {
+      this.t = dt;
+      Every.kick = false;
+    }
     this.t -= dt;
     if (this.t <= 0) {
       this.t += this.every;
+      this.fired = true;
       return true;
     }
     return false;

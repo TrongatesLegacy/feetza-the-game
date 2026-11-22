@@ -494,7 +494,8 @@ export class Foot {
           const other = this.hooks.relane?.(this);
           if (other && other !== from) this.blinkTo(other);
         }
-        if (this.stateT > this.hoverTime) {
+        // a boss holds its hover for a moment as a phase begins, so the phase's first move gets its chance
+        if (this.stateT > this.hoverTime && !(Number(this.brain.holdHoverT ?? 0) > 0)) {
           this.buried = false;
           const lane = this.hooks.canDescend ? this.hooks.canDescend(this) : 0;
           if (lane !== null) {

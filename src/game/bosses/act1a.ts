@@ -786,6 +786,8 @@ const bigfoot = (): Brain => {
     ],
     onPhase: (f, ph, a) => {
       f0 = f;
+      // the new phase's move comes straight after the beat, not after the last move's cooldown
+      if (!move) t = Math.min(t, 1);
       if (ph === 3 && !tw) {
         tw = twin(a, f);
         if (tw) a.sfx('sfx_bigfoot_rampage');

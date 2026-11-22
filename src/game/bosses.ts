@@ -25,7 +25,7 @@ import { brains as kratos } from './bosses/kratos';
 import { brains as comics } from './bosses/comics';
 // ——— Nemesis bosses: King Leonidas at the Hot Gates ———
 import { brains as leonidas } from './bosses/leonidas';
-import { type Brain, auraFor, hitWindup } from './bosses/kit';
+import { type Brain, Every, auraFor, hitWindup } from './bosses/kit';
 
 export type { Brain };
 
@@ -73,6 +73,9 @@ export class BossDirector {
     const n = b.phases?.(this.a) ?? (f.type.mini ? Math.max(1, this.a.bossPhases() - 1) : this.a.bossPhases());
     this.phases.set(f, n);
     f.phase = 1;
+    // its first move comes soon after it lands, whatever the move's cooldown (and it hovers to make it)
+    f.brain.kickT = 2.5;
+    f.brain.holdHoverT = 4;
     f.brain.baseSX = f.root.scaleX;
     f.brain.baseSY = f.root.scaleY;
     this.a.bossMove(f, b.names[0], b.info[0]);
@@ -106,6 +109,7 @@ export class BossDirector {
         continue;
       }
       b.upkeep?.(f, dt, this.a);
+      if (Number(f.brain.holdHoverT ?? 0) > 0) f.brain.holdHoverT = Number(f.brain.holdHoverT) - dt;
       // phase 3 and up: embers rise off the boss
       if (f.phase >= 3 && f.root.visible && Math.random() < dt * 6) this.a.fx.burn(f.x + (Math.random() - 0.5) * 120 * f.scale, f.cy + (Math.random() - 0.5) * 80 * f.scale);
       // the transform beat: the boss holds still, then gets on with its new moves
@@ -115,11 +119,23 @@ export class BossDirector {
         if (tr - dt <= 0) {
           f.puppet = false;
           if (!f.brain.wasShielded) f.shielded = false;
+          // the new phase's moves come soon after the beat, whatever their cooldowns (and it hovers to make them)
+          f.brain.kickT = 0.6;
+          f.brain.holdHoverT = 3;
         }
         continue;
       }
       if (f.stunT > 0 && !f.puppet) continue;
-      b.update?.(f, dt, this.a);
+      const kt = Number(f.brain.kickT ?? 0);
+      const kick = kt > 0 && kt - dt <= 0;
+      if (kt > 0) f.brain.kickT = kt - dt;
+      Every.phase = f.phase;
+      Every.kick = kick;
+      try {
+        b.update?.(f, dt, this.a);
+      } finally {
+        Every.kick = false;
+      }
     }
   }
 

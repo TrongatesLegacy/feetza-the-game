@@ -217,7 +217,7 @@ const doughboy = (): Brain => {
 
 const nonna = (): Brain => {
   let busy = false;
-  let next = 5; // after the phase banner has been read
+  let next = 2.5; // a moment after she lands
   let cycle = 0;
   let endRetreat: (() => void) | null = null;
   let pin: Prop | null = null;
