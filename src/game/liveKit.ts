@@ -197,6 +197,8 @@ export function prewarmLive(sc: Phaser.Scene, type: FootType): void {
 }
 
 let pumping = false;
+/** When the builder last took a step. */
+let lastStep = 0;
 const idle = (fn: (d?: IdleDeadline) => void) => {
   if (typeof requestIdleCallback === 'function') requestIdleCallback(fn, { timeout: 400 });
   else setTimeout(() => fn(), 40);
@@ -214,7 +216,10 @@ function pump(d?: IdleDeadline): void {
   // a step costs a few ms (a full redraw of the foot): take one only while the frame has room. Between waves and in
   // the shop one goes anyway when the idle wait timed out or there's no idle callback (Safari), so the queue empties;
   // in a running wave it waits for real idle time (a foot that spawns first builds its own)
-  let forced = (!d || d.didTimeout) && !busyNow();
+  // (a page drawing at a smooth 60 fps hands out idle slots of only a few ms, before the timeout: without the
+  // starved check the queue never moved on the title screen)
+  const starved = performance.now() - lastStep > 250;
+  let forced = (!d || d.didTimeout || starved) && !busyNow();
   while (building.size && (forced || (!!d && d.timeRemaining() > 8))) {
     forced = false;
     const [id, job] = building.entries().next().value!;
@@ -225,6 +230,7 @@ function pump(d?: IdleDeadline): void {
     } catch (e) {
       if (import.meta.env?.DEV) console.error('[liveKit] building', id, e);
     }
+    lastStep = performance.now();
     if (done) building.delete(id);
     if (!d) break;
   }
