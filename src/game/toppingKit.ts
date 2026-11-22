@@ -497,7 +497,8 @@ export class ToppingKit {
     this.h.fx.lightning(this.dronePos.x, this.dronePos.y + 45, f.cx, f.cy);
     this.h.fx.glint(this.dronePos.x, this.dronePos.y + 45, 3);
     audio.sfx('sfx_zap', { volume: 0.55, rate: 1.4, throttle: 80 });
-    this.h.damage(f, 1.5 * (1 + 0.5 * ticks(l)), { knock: 60 });
+    // a quarter of a smack, and another quarter each level
+    this.h.damage(f, 0.25 * l, { knock: 60 });
     this.h.sc.tweens.add({ targets: this.drone, scale: { from: D_SCALE * 1.15, to: D_SCALE }, duration: 180, ease: 'Back.Out' });
   }
 
