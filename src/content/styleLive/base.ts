@@ -1,11 +1,32 @@
 // How the base roster's styled feet move in play (src/game/liveKit.ts). Their art is in src/content/style/base-*.ts.
 // Cosmetic randomness only through crand() (the balance simulator depends on the game's seeded generator).
 
+import type Phaser from 'phaser';
 import { CX } from '../../art/feetCommon';
+import { footRes } from '../../art/feetArt';
 import { type LiveFoot, registerLive } from '../../game/liveKit';
 import { crand } from '../../systems/cosmeticRandom';
 import { drawFly } from '../style/pilot-bare';
 import { PATTY, nailTops, toeTips } from '../style/base-bare';
+import { SPUR, spurRowel } from '../style/base-shoes';
+import { RITA_WHEELS, RITA_WHEEL_R, ritaWheel } from '../style/base-gear';
+
+/** A live sprite of the foot's own (a spinning rowel, a rolling wheel): `n` frames drawn at the foot's texture
+ * resolution, `w`×`h` design units, centred on design point (dx, dy), on the rig with the foot's art. */
+function liveSprite(k: LiveFoot, name: string, w: number, h: number, n: number, draw: (ctx: CanvasRenderingContext2D, i: number) => void, dx: number, dy: number, below = false): Phaser.GameObjects.Image {
+  const f = k.f;
+  const res = footRes(f.type);
+  const s = f.type.scale * res;
+  const key = k.sheet(`lk_${f.type.id}_${name}`, Math.ceil(w * s), Math.ceil(h * s), n, (ctx, i) => {
+    ctx.scale(s, s);
+    ctx.translate(w / 2, h / 2);
+    draw(ctx, i);
+  });
+  const ts = f.type.scale;
+  const img = k.sc.add.image((dx - CX) * ts, (dy - f.meta.footHeight) * ts, key, 0).setScale(1 / res);
+  f.addLiveArt(img, below);
+  return img;
+}
 
 const R = () => crand();
 const pm = () => crand() - 0.5;
@@ -363,5 +384,263 @@ registerLive('dino', {
       landPuff(k, puff, 14, 286, 0xb8a888, 0.5, 260);
       for (let i = 0, n = k.burst(10); i < n; i++) grit.emit(CX + pm() * 220, 284, { vx: pm() * 300, vy: -160 - R() * 220, life: 0.8, r0: 4 * s, r1: 3 * s, a: 1, tint: R() < 0.5 ? 0x6a5a40 : 0x8a7a5a, spin: pm() * 10, grav: 1000, fade: 0.03 });
     }
+  },
+});
+
+// ════════════════════════════ shoes and gear ════════════════════════════
+
+/** Sparks off a hard sole or tip as it lands. */
+function sparkBurst(k: LiveFoot, e: ReturnType<LiveFoot['emitter']>, n: number, x: number, y: number, w: number, tint = 0xfff0b0): void {
+  const s = k.f.type.scale;
+  for (let i = 0, m = k.burst(n); i < m; i++) e.emit(x + pm() * w, y, { vx: pm() * 520, vy: -120 - R() * 300, life: 0.35 + R() * 0.3, r0: 7 * s, r1: 2 * s, a: 1, tint: R() < 0.6 ? tint : 0xffffff, spin: pm() * 2, grav: 900, fade: 0.02 });
+}
+
+// ——— Ballerina Bella: her ribbon tails float and sway; a little stage glitter twinkles round her. ———
+registerLive('bella', {
+  sway: {
+    tailL: { k: 28, c: 2.6, gain: 1.8, idle: 0.16, flop: 1.6 },
+    tailR: { k: 32, c: 2.8, gain: 1.8, idle: 0.16, flop: 1.6 },
+  },
+  setup: (k) => ({ glints: k.emitter({ frame: 'ember', add: true, drag: 0, max: 20 }) }),
+  tick(k, dt, { glints }) {
+    const s = k.f.type.scale;
+    glints.rate('stage', 1.6, dt, () => twinkle(glints, CX + pm() * 140, 20 + R() * 240, s, R() < 0.5 ? 0xffd0e0 : 0xffffff, 8));
+  },
+});
+
+// ——— Stiletto Sasha: the crystal and the patent glint; her toe strikes sparks. ———
+registerLive('sasha', {
+  setup: (k) => ({ glints: k.emitter({ frame: 'ember', add: true, drag: 0, max: 20 }), sparks: k.emitter({ frame: 'spark', add: true, drag: 0.3, max: 30 }) }),
+  tick(k, dt, { glints, sparks }) {
+    const s = k.f.type.scale;
+    glints.rate('crystal', 1.4, dt, () => twinkle(glints, CX - 2 + pm() * 4, 175, s, 0xe8f4ff, 11));
+    glints.rate('patent', 0.8, dt, () => twinkle(glints, CX - 60 + pm() * 20, 170 + R() * 40, s, 0xffffff, 8));
+    if (k.landed) sparkBurst(k, sparks, 10, CX, 272, 20, 0xffc0d0);
+  },
+});
+
+// ——— Steel-Toe Stomper: it clanks: sparks and dust when it lands, a glint off the steel. ———
+registerLive('boot', {
+  rig: { squash: 0.8 },
+  setup: (k) => ({ sparks: k.emitter({ frame: 'spark', add: true, drag: 0.3, max: 30 }), puff: k.emitter({ frame: 'puff', curl: 40, drag: 2, below: true, max: 30 }), glints: k.emitter({ frame: 'ember', add: true, drag: 0, max: 8 }) }),
+  tick(k, dt, { sparks, puff, glints }) {
+    const s = k.f.type.scale;
+    glints.rate('steel', 0.6, dt, () => twinkle(glints, CX - 28, 222, s, 0xffffff, 10));
+    if (k.landed) {
+      sparkBurst(k, sparks, 12, CX, 258, 80);
+      landPuff(k, puff, 10, 264, 0xa89878, 0.45);
+    }
+  },
+});
+
+// ——— Cowboy Cal: the spur's rowel spins; he kicks up trail dust as he weaves. ———
+registerLive('cowboy', {
+  setup: (k) => ({
+    rowel: liveSprite(k, 'rowel', 34, 34, 1, (ctx) => spurRowel(ctx, 0, 0, 13, 0), SPUR.x, SPUR.y),
+    dust: k.emitter({ frame: 'puff', curl: 40, drag: 1.6, below: true, max: 60 }),
+    spin: { v: 0 },
+  }),
+  tick(k, dt, { rowel, dust, spin }) {
+    const s = k.f.type.scale;
+    const speed = Math.abs(k.vx) + Math.abs(k.vy) * 0.5;
+    spin.v += (1.2 + speed * 0.02 - spin.v) * Math.min(1, dt * 3);
+    rowel.rotation += spin.v * dt;
+    if (Math.abs(k.vx) > 120) dust.rate('trail', 14, dt, () => dust.emit(CX + pm() * 120, 262, { vx: -k.vx * 0.15 + pm() * 40, vy: -20 - R() * 30, life: 0.8 + R() * 0.4, r0: 8 * s, r1: 26 * s, a: 0.35, tint: 0xc8a878, fade: 0.1 }));
+    if (k.landed) {
+      spin.v += 14;
+      landPuff(k, dust, 10, 268, 0xc8a878, 0.45);
+    }
+  },
+});
+
+// ——— Tappy Tom: every landing strikes sparks off his tap; the patent glints. ———
+registerLive('tappy', {
+  rig: { squash: 1.2 },
+  setup: (k) => ({ sparks: k.emitter({ frame: 'spark', add: true, drag: 0.3, max: 40 }), glints: k.emitter({ frame: 'ember', add: true, drag: 0, max: 10 }) }),
+  tick(k, dt, { sparks, glints }) {
+    const s = k.f.type.scale;
+    glints.rate('patent', 0.9, dt, () => twinkle(glints, CX - 34 + pm() * 20, 222 + pm() * 10, s, 0xffffff, 9));
+    if (k.landed) {
+      sparkBurst(k, sparks, 14, CX, 268, 120, 0xe8f0ff);
+      twinkle(glints, CX, 266, s, 0xffffff, 22);
+    }
+  },
+});
+
+// ——— Striker Sid: every landing kicks up turf; streaks trail him when he switches. ———
+registerLive('striker', {
+  setup: (k) => ({ turf: k.emitter({ frame: 'flake', drag: 0.4, max: 40 }), streaks: k.emitter({ frame: 'spark', add: true, drag: 0, max: 30 }) }),
+  tick(k, dt, { turf, streaks }) {
+    const s = k.f.type.scale;
+    if (Math.abs(k.vx) > 160) streaks.rate('speed', 16, dt, () => streaks.emit(CX + pm() * 160, 40 + R() * 200, { vx: -k.vx * 0.3, life: 0.25, r0: 14 * s, r1: 6 * s, a: 0.5, tint: 0xb8ffd8, fade: 0.1 }));
+    if (k.landed) {
+      for (let i = 0, n = k.burst(14); i < n; i++) turf.emit(CX + pm() * 180, 270, { vx: pm() * 320, vy: -160 - R() * 240, life: 0.9, r0: 5 * s, r1: 4 * s, a: 1, tint: R() < 0.6 ? 0x3a9a3a : 0x5a3a20, spin: pm() * 10, grav: 900, fade: 0.03 });
+    }
+  },
+});
+
+// ——— Clog Clyde: he bounces; the charms jiggle. ———
+registerLive('clyde', {
+  rig: { squash: 1.5, breath: 1.4 },
+  sway: {
+    charm0: { k: 70, c: 3, gain: 2.2, idle: 0.1, flop: 2 },
+    charm1: { k: 76, c: 3, gain: -2.2, idle: 0.1, flop: -2 },
+  },
+});
+
+// ——— Wellie Wendy: she drips, and every stomp splashes. ———
+registerLive('wendy', {
+  rig: { squash: 0.8 },
+  setup: (k) => ({ drips: k.emitter({ frame: 'drop', drag: 0.2, max: 60 }), splash: k.emitter({ frame: 'soft', curl: 30, drag: 2, below: true, max: 30 }) }),
+  tick(k, dt, { drips, splash }) {
+    const s = k.f.type.scale;
+    const drop = (x: number, y: number, vx: number, vy: number) => drips.emit(x, y, { vx, vy, life: 0.8, r0: 4.5 * s, r1: 3.5 * s, a: 0.9, tint: 0xbfe6ff, grav: 900, fade: 0.04 });
+    drips.rate('drip', 1.8, dt, () => drop(CX + pm() * 200, 250 + R() * 14, 0, 30));
+    if (k.landed) {
+      for (let i = 0, n = k.burst(16); i < n; i++) drop(CX + pm() * 220, 262, pm() * 420, -160 - R() * 220);
+      landPuff(k, splash, 8, 262, 0xcfe8ff, 0.4);
+    }
+  },
+});
+
+// ——— Jingle Toes: the bell swings and jingles out gold sparkles. ———
+registerLive('jingle', {
+  sway: { bell: { k: 44, c: 2.6, gain: 2, idle: 0.14, flop: 2 } },
+  setup: (k) => ({ glints: k.emitter({ frame: 'ember', add: true, curl: 40, drag: 0.6, max: 40 }) }),
+  tick(k, dt, { glints }) {
+    const s = k.f.type.scale;
+    glints.rate('jingle', 3.5, dt, () => glints.emit(CX + 78 + pm() * 30, 206 + pm() * 30, { vx: pm() * 60, vy: -30 - R() * 50, life: 0.6 + R() * 0.4, r0: 6 * s, r1: 1 * s, a: 1, tint: R() < 0.6 ? 0xffd84a : 0xffffff, fade: 0.2 }));
+  },
+});
+
+// ——— Ice Queen: frost mist trails off the blade, it glitters, and a landing throws ice shavings. ———
+registerLive('skate', {
+  setup: (k) => ({
+    mist: k.emitter({ frame: 'soft', curl: 30, drag: 1, below: true, max: 80 }),
+    ice: k.emitter({ frame: 'flake', drag: 0.4, max: 50 }),
+    glints: k.emitter({ frame: 'ember', add: true, drag: 0, max: 20 }),
+  }),
+  tick(k, dt, { mist, ice, glints }) {
+    const s = k.f.type.scale;
+    mist.rate('frost', 8, dt, () => mist.emit(CX + pm() * 150, 284, { vx: pm() * 50, vy: 10 + R() * 20, life: 1.4 + R(), r0: 10 * s, r1: 34 * s, a: 0.3, tint: 0xe8f6ff, fade: 0.2 }));
+    glints.rate('blade', 2, dt, () => twinkle(glints, CX - 60 + R() * 130, 286, s, 0xffffff, 9));
+    if (k.landed) for (let i = 0, n = k.burst(16); i < n; i++) ice.emit(CX + pm() * 150, 290, { vx: pm() * 460, vy: -80 - R() * 200, life: 0.7, r0: 4 * s, r1: 3 * s, a: 1, tint: R() < 0.5 ? 0xffffff : 0xcfeaff, spin: pm() * 12, grav: 700, fade: 0.03 });
+  },
+});
+
+// ——— Roller Rita: her wheels spin; she leaves a neon trail as she weaves. ———
+registerLive('rita', {
+  setup: (k) => {
+    const pink = k.f.type.art.secondary ?? '#ff4fa3';
+    const wheels = RITA_WHEELS.map(([x, y]) => liveSprite(k, 'wheel', 40, RITA_WHEEL_R * 2 + 6, 6, (ctx, i) => ritaWheel(ctx, 0, 0, pink, i / 6), x, y, true));
+    return { wheels, phase: { t: 0 }, trail: k.emitter({ frame: 'soft', add: true, drag: 0.6, below: true, max: 80 }), sparks: k.emitter({ frame: 'spark', add: true, drag: 0.3, max: 30 }) };
+  },
+  tick(k, dt, { wheels, phase, trail, sparks }) {
+    const s = k.f.type.scale;
+    phase.t += dt * (3 + Math.abs(k.vx) * 0.02 + Math.max(0, k.vy) * 0.008);
+    for (const w of wheels) w.setFrame(Math.floor(phase.t * 6) % 6);
+    if (Math.abs(k.vx) > 90) {
+      trail.rate('neon', 22, dt, () => {
+        const [x, y] = RITA_WHEELS[Math.floor(R() * 2)];
+        trail.emit(x + pm() * 10, y + 10, { vx: -k.vx * 0.1, vy: pm() * 10, life: 0.5 + R() * 0.3, r0: 9 * s, r1: 3 * s, a: 0.7, tint: R() < 0.5 ? 0xff4fa3 : 0x36d6c3, fade: 0.05 });
+      });
+    }
+    if (k.landed) sparkBurst(k, sparks, 10, CX, 292, 150, 0xffb0e0);
+  },
+});
+
+// ——— Scuba Sam: the blade flexes (the rig), bubbles stream up off it and water drips from its edge. ———
+registerLive('flipper', {
+  rig: { swing: 1.2 },
+  setup: (k) => ({ bubbles: k.emitter({ frame: 'bubble', curl: 50, drag: 0.8, max: 60 }), drips: k.emitter({ frame: 'drop', drag: 0.2, max: 40 }) }),
+  tick(k, dt, { bubbles, drips }) {
+    const s = k.f.type.scale;
+    bubbles.rate('bubbles', 5, dt, () => bubbles.emit(CX + pm() * 220, 140 + R() * 160, { vx: pm() * 20, vy: -40 - R() * 50, life: 1.2 + R() * 0.8, r0: 3 * s, r1: (5 + R() * 6) * s, a: 0.8, tint: 0xcff6ff, fade: 0.15 }));
+    const drop = (x: number, y: number, vx: number, vy: number) => drips.emit(x, y, { vx, vy, life: 0.8, r0: 4.5 * s, r1: 3.5 * s, a: 0.85, tint: 0xbfe6ff, grav: 900, fade: 0.04 });
+    drips.rate('drip', 2.4, dt, () => drop(CX + pm() * 260, 300 + R() * 8, 0, 30));
+    if (k.landed) for (let i = 0, n = k.burst(16); i < n; i++) drop(CX + pm() * 260, 308, pm() * 420, -160 - R() * 220);
+  },
+});
+
+// ——— Honk-a-Toe: the bow flops, the shoe squashes and bounces, and a landing throws confetti. ———
+const CONFETTI = [0xff3d7f, 0xffd400, 0x2fa3ff, 0x39ff88, 0xffffff, 0xff8a1a];
+registerLive('clown', {
+  rig: { squash: 1.7, swing: 1.2, breath: 1.3 },
+  sway: { bow: { k: 34, c: 2.4, gain: 1.8, idle: 0.12, flop: 2 } },
+  setup: (k) => ({ confetti: k.emitter({ frame: 'flake', curl: 80, drag: 1.4, max: 80 }) }),
+  tick(k, _dt, { confetti }) {
+    const s = k.f.type.scale;
+    if (k.landed) for (let i = 0, n = k.burst(30); i < n; i++) confetti.emit(CX + pm() * 280, 250, { vx: pm() * 600, vy: -200 - R() * 360, life: 1.4 + R() * 0.6, r0: 6 * s, r1: 5 * s, a: 1, tint: CONFETTI[Math.floor(R() * CONFETTI.length)], spin: pm() * 14, grav: 600, fade: 0.02 });
+  },
+});
+
+// ——— Robo-Stomp 3000: the lights pulse; side thrusters fire as it bursts down; sparks when it lands; vents hiss. ———
+registerLive('robo', {
+  glow: { rate: 1.4, depth: 0.35, base: 0.55 },
+  rig: { swing: 0.6, squash: 0.7 },
+  setup: (k) => ({ flame: k.emitter({ frame: 'ember', add: true, drag: 1, max: 120 }), sparks: k.emitter({ frame: 'spark', add: true, drag: 0.3, max: 40 }), vent: k.emitter({ frame: 'soft', curl: 40, drag: 1.4, max: 30 }) }),
+  tick(k, dt, { flame, sparks, vent }) {
+    const s = k.f.type.scale;
+    if (k.f.state === 'descend' && k.vy > 200) {
+      flame.rate('jets', 60, dt, () => {
+        const side = R() < 0.5 ? -1 : 1;
+        flame.emit(CX + side * 78, 52, { vx: side * (20 + R() * 40), vy: -260 - R() * 200, life: 0.25 + R() * 0.2, r0: 12 * s, r1: 3 * s, a: 1, tint: R() < 0.5 ? 0x7ff0ff : 0xffb040, fade: 0.02 });
+      });
+    }
+    vent.rate('hiss', 1.2, dt, () => {
+      const side = R() < 0.5 ? -1 : 1;
+      vent.emit(CX + side * 64, 30, { vx: side * (40 + R() * 40), vy: -30, life: 0.7, r0: 5 * s, r1: 20 * s, a: 0.35, tint: 0xeef4fa });
+    });
+    if (k.landed) sparkBurst(k, sparks, 16, CX, 252, 170, 0x9ff4ff);
+  },
+});
+
+// ——— Moon Boot Mo: moon dust floats up off it and drifts; a landing raises a slow ring of dust. ———
+registerLive('moe', {
+  rig: { squash: 0.6, breath: 1.5 },
+  setup: (k) => ({ dust: k.emitter({ frame: 'mote', curl: 20, drag: 0.4, max: 60 }), ring: k.emitter({ frame: 'puff', curl: 10, drag: 0.9, below: true, max: 40 }) }),
+  tick(k, dt, { dust, ring }) {
+    const s = k.f.type.scale;
+    dust.rate('float', 5, dt, () => dust.emit(CX + pm() * 220, 120 + R() * 160, { vx: pm() * 14, vy: -8 - R() * 14, life: 2.5 + R() * 1.5, r0: 2.6 * s, r1: 2 * s, a: 0.85, tint: R() < 0.6 ? 0xdcdcdc : 0xfff6d8, fade: 0.3 }));
+    if (k.landed) {
+      for (let i = 0, n = k.burst(16); i < n; i++) {
+        const a = (i / 16) * Math.PI * 2;
+        ring.emit(CX + Math.cos(a) * 60, 270, { vx: Math.cos(a) * 140, vy: Math.sin(a) * 30 - 20, life: 1.6 + R() * 0.6, r0: 10 * s, r1: 34 * s, a: 0.35, tint: 0xc8c8c8, fade: 0.1 });
+      }
+    }
+  },
+});
+
+// ——— Sir Stompalot: light glints along his plate; sparks fly when he lands. ———
+registerLive('stompalot', {
+  rig: { squash: 0.7, swing: 0.7 },
+  setup: (k) => ({ glints: k.emitter({ frame: 'ember', add: true, drag: 0, max: 16 }), sparks: k.emitter({ frame: 'spark', add: true, drag: 0.3, max: 40 }) }),
+  tick(k, dt, { glints, sparks }) {
+    const s = k.f.type.scale;
+    glints.rate('plate', 1.6, dt, () => twinkle(glints, CX - 60 + R() * 60, 14 + Math.floor(R() * 7) * 28, s, 0xffffff, 10));
+    if (k.landed) sparkBurst(k, sparks, 16, CX, 260, 120);
+  },
+});
+
+// ——— Peg-Leg Pete: the rope end sways; every jab splinters. ———
+registerLive('pete', {
+  sway: { rope: { k: 40, c: 3, gain: 1.6, idle: 0.12, flop: 1.6 } },
+  setup: (k) => ({ chips: k.emitter({ frame: 'flake', drag: 0.4, max: 30 }), drips: k.emitter({ frame: 'drop', drag: 0.2, max: 10 }) }),
+  tick(k, dt, { chips, drips }) {
+    const s = k.f.type.scale;
+    drips.rate('sea', 0.5, dt, () => drips.emit(CX + pm() * 20, 256, { vy: 30, life: 0.7, r0: 4 * s, r1: 3 * s, a: 0.85, tint: 0xbfe6ff, grav: 900, fade: 0.04 }));
+    if (k.landed) for (let i = 0, n = k.burst(10); i < n; i++) chips.emit(CX + pm() * 30, 254, { vx: pm() * 300, vy: -120 - R() * 200, life: 0.7, r0: 5 * s, r1: 4 * s, a: 1, tint: R() < 0.5 ? 0x8a5a32 : 0xc89a62, spin: pm() * 12, grav: 900, fade: 0.03 });
+  },
+});
+
+// ——— Disco Dee: the glitter flashes in every colour and disco light flecks sweep over her. ———
+const DISCO = [0xff4fd8, 0x4fd8ff, 0xffe14d, 0x9a4fff, 0x4fff9a];
+registerLive('disco', {
+  wiggle: true,
+  setup: (k) => ({ glints: k.emitter({ frame: 'ember', add: true, drag: 0, max: 40 }), flecks: k.emitter({ frame: 'soft', add: true, drag: 0, max: 30 }) }),
+  tick(k, dt, { glints, flecks }) {
+    const s = k.f.type.scale;
+    glints.rate('glitter', 7, dt, () => twinkle(glints, CX + pm() * 220, 140 + R() * 140, s, DISCO[Math.floor(R() * DISCO.length)], 8));
+    flecks.rate('ball', 3, dt, () => flecks.emit(CX + pm() * 220, 20 + R() * 240, { vx: 80 + R() * 60, life: 0.6, r0: 10 * s, r1: 10 * s, a: 0.35, tint: DISCO[Math.floor(R() * DISCO.length)], fade: 0.3 }));
   },
 });

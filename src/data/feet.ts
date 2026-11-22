@@ -273,7 +273,7 @@ export const FEET: FootType[] = [
     desc: 'Yee-haw. Weaves left and right on the way down.',
     hp: 36, speed: 1, armor: 2, stompDmg: 1, coins: 5, score: 190, scale: 1.02, minWave: 6, weight: 4,
     traits: ['zigzag'],
-    art: { kind: 'cowboy', skin: SKIN.light, primary: '#a0552a', secondary: '#f2c14e', leg: 'boot' },
+    art: { kind: 'cowboy', skin: SKIN.light, primary: '#a0552a', secondary: '#f2c14e', leg: 'boot', legColor: '#41598a' },
   },
   {
     id: 'skate',
@@ -325,7 +325,7 @@ export const FEET: FootType[] = [
     desc: 'Rocket-assisted. Descends in sudden bursts. Thick plating.',
     hp: 60, speed: 0.9, armor: 4, stompDmg: 2, coins: 9, score: 280, scale: 1.08, minWave: 11, weight: 3,
     traits: ['burst', 'immuneBurn'],
-    art: { kind: 'robot', skin: '#9aa7b5', primary: '#c3cdd8', secondary: '#33e1ff', leg: 'robot' },
+    art: { kind: 'robot', skin: '#9aa7b5', primary: '#c3cdd8', secondary: '#33e1ff', leg: 'robot', legColor: '#c3cdd8' },
   },
   {
     id: 'lava',
@@ -389,7 +389,7 @@ export const FEET: FootType[] = [
     desc: 'Fresh from a puddle. Heavy rubber boot, hard to knock back.',
     hp: 44, speed: 0.85, armor: 2, stompDmg: 1, coins: 5, score: 170, scale: 1.05, minWave: 4, weight: 4,
     traits: ['heavy'],
-    art: { kind: 'wellie', skin: SKIN.pale, primary: '#ffd000', secondary: '#1b1b1b', leg: 'boot' },
+    art: { kind: 'wellie', skin: SKIN.pale, primary: '#ffd000', secondary: '#1b1b1b', leg: 'boot', legColor: '#3d5a8a' },
   },
   {
     id: 'moe',
@@ -406,7 +406,7 @@ export const FEET: FootType[] = [
     desc: 'Clad in full plate. Barely notices weak smacks.',
     hp: 60, speed: 0.7, armor: 8, stompDmg: 2, coins: 8, score: 260, scale: 1.08, minWave: 10, weight: 3,
     traits: ['heavy'],
-    art: { kind: 'knight', skin: SKIN.light, primary: '#b9c2cc', secondary: '#c8a24a', leg: 'armor' },
+    art: { kind: 'knight', skin: SKIN.light, primary: '#b9c2cc', secondary: '#c8a24a', leg: 'armor', legColor: '#b9c2cc' },
   },
   {
     id: 'jingle',

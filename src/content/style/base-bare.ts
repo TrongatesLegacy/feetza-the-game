@@ -835,7 +835,7 @@ const claraCuff: PathFn = (c) => {
   c.closePath();
 };
 
-function scrunchCuff(g: Ctx, path: PathFn, col: string, y0: number, y1: number, hw: number): void {
+export function scrunchCuff(g: Ctx, path: PathFn, col: string, y0: number, y1: number, hw: number): void {
   clipTo(g, path, () => {
     const cg = g.createLinearGradient(CX - hw, 0, CX + hw, 0);
     cg.addColorStop(0, shade(col, -0.15));
