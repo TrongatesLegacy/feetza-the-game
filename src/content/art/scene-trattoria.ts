@@ -13,12 +13,10 @@ import {
   type R,
   TY,
   W,
-  beam,
   bounce,
   calmLanes,
   castShadow,
   crevice,
-
   ellPath,
   glowAt,
   gradeAll,
@@ -34,8 +32,10 @@ import {
   within,
 } from '../../art/scene/kit';
 import type { SceneSpec } from '../../art/scene/layers';
-import { board, bricks, brickPatch, broken, checkerCloth, clothDrape, grain, plaster, tableFalloff, tableSeam, woodGrain } from '../../art/scene/materials';
-import { bottle, candle, flameShape, hang, herbPot, pendantLamp, wallShadow } from '../../art/scene/props';
+import { aoHalo, bounceBand, lampOnWall, lightPatch, shaft } from '../../art/scene/light';
+import { type Reflect, board, bricks, broken, checkerCloth, clothDrape, grain, panel, plaster, tableFalloff, tableSeam, varnish, woodGrain } from '../../art/scene/materials';
+import { chips, crack, drift, grime, lay, softly, streaks } from '../../art/scene/paint';
+import { bottle, candle, drape, flameShape, glassPane, hang, herbPot, pendantLamp, wallShadow } from '../../art/scene/props';
 import { ao, spec as specHi } from '../../art/style/kit';
 import { MATERIALS } from '../../art/style/materials';
 import { makeCanvas, mix, rgba, shade } from '../../art/util';
@@ -205,42 +205,88 @@ function street(ctx: Ctx, r: R, night: boolean): void {
 // ——— the room ———
 
 function wall(ctx: Ctx, r: R): void {
-  plaster(ctx, r, { x: 0, y: 0, w: W, h: TN.wainscot }, PLASTER, { wash: 0.7, cracks: 4, seed: 9 });
-  // where the plaster has fallen away: brick (never behind the middle of the play area)
-  brickPatch(ctx, r, 1440, 110, 120, 70, BRICK, '#c9a27a', PLASTER, 56, 22);
-  brickPatch(ctx, r, 560, 120, 70, 54, BRICK, '#c9a27a', PLASTER, 56, 22);
-  brickPatch(ctx, r, 1880, 470, 90, 110, BRICK, '#c9a27a', PLASTER, 56, 22);
-  brickPatch(ctx, r, 760, 560, 90, 40, BRICK, '#c9a27a', PLASTER, 56, 22);
-  // the light: lamp pools on the wall under the shades, the oven's warmth on the left, darker towards the ceiling
-  vfill(ctx, 0, 0, W, TN.wainscot, [[0, 'rgba(40,14,4,0.62)'], [0.4, 'rgba(40,14,4,0.16)'], [1, 'rgba(40,14,4,0.26)']]);
+  const box = { x: 0, y: 0, w: W, h: TN.wainscot };
+  plaster(ctx, r, box, PLASTER, { wash: 0.7, patina: 0.55, seed: 9, grime: { top: 90, left: 60, right: 90, a: 0.4 } });
+  // years of the room: soot rising round the flue and spreading under the beam, the lamps' heat browning the
+  // plaster over each shade, damp run down from the beam and from the ends of the window sill
+  softly(ctx, { x: 0, y: 0, w: 1500, h: 420 }, (ctx) => {
+  ctx.fillStyle = 'rgba(40,20,10,0.3)';
+  ctx.beginPath();
+  ctx.ellipse(TN.flue.x + 20, TN.beam + 30, 260, 70, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // (the oven's smoke has climbed the wall over the dome for years: a tall sooty plume, darkest near the ceiling)
+  const sg = ctx.createLinearGradient(0, 0, 0, TN.oven.domeTop + 40);
+  sg.addColorStop(0, 'rgba(30,14,6,0.42)');
+  sg.addColorStop(1, 'rgba(30,14,6,0)');
+  ctx.fillStyle = sg;
+  ctx.beginPath();
+  ctx.ellipse(TN.oven.x + 10, 60, 250, 230, 0, 0, Math.PI * 2);
+  ctx.fill();
   for (const lx of TN.lamps) {
-    lightPool(ctx, lx, TN.lampY + 130, 320, 250, '#ffcf8a', 0.26);
-    // a brighter pool just under each shade, where the light hits the wall full on
-    lightPool(ctx, lx, TN.lampY + 60, 190, 110, '#ffe2b0', 0.24);
+    ctx.fillStyle = 'rgba(110,60,20,0.16)';
+    ctx.beginPath();
+    ctx.ellipse(lx, TN.lampY - 100, 60, 90, 0, 0, Math.PI * 2);
+    ctx.fill();
   }
+  }, 0.125);
+  for (const [sx, sl] of [[1600, 130], [1890, 230], [430, 90]] as const) streaks(ctx, r, sx, TN.beam, 40, sl, '#6a3a1a', 0.14, 4);
+  streaks(ctx, r, TN.win.x0 - 30, TN.win.sill + 14, 16, 70, '#6a4020', 0.18, 3);
+  streaks(ctx, r, TN.win.x1 + 30, TN.win.sill + 14, 16, 60, '#6a4020', 0.18, 3);
+  // cracks where a wall's stress gathers: off the corners of the window's arch and its sill, down from the beam
+  const cr = { col: '#5a2a10', lip: '#fff0d0', w: 1.6, a: 0.5 };
+  crack(ctx, r, TN.win.x1 + 58, TN.win.archY - winR * 0.62, -0.9, 90, cr);
+  crack(ctx, r, TN.win.x0 - 46, TN.win.sill + 18, 2.2, 70, cr);
+  crack(ctx, r, 1700, TN.beam + 4, 1.75, 110, cr);
+  crack(ctx, r, 470, TN.beam + 4, 1.4, 60, cr);
+  // the light: darker up under the ceiling, the oven's warmth on the left, the neon's pink spill
+  vfill(ctx, 0, 0, W, TN.wainscot, [[0, 'rgba(40,14,4,0.62)'], [0.35, 'rgba(40,14,4,0.26)'], [1, 'rgba(40,14,4,0.34)']]);
   lightPool(ctx, TN.oven.x + 40, 420, 520, 360, '#ff9a4a', 0.16);
-  // the neon's pink spill round its board
-  lightPool(ctx, TN.neon.x, TN.neon.y, 520, 260, '#ff5aa8', 0.12);
-  // the ceiling beam and its joists
-  crevice(ctx, 0, W, TN.beam, 70, 0.5);
+  lightPool(ctx, TN.neon.x, TN.neon.y, 520, 260, '#ff5aa8', 0.1);
+  // the lamps throw their pools down the wall (the wall above each shade stays in its shade)
+  for (const lx of TN.lamps) lampOnWall(ctx, lx, TN.lampY + 2, 72, { col: '#e8a868', a: 0.8, reach: 330, spread: 290, gap: 50, above: 0.35, op: 'lighter' });
+  // the evening light from the window warms the wall round it a little (its reveal glows)
+  lightPool(ctx, winCX, TN.win.sill - 60, 260, 200, '#ffb878', 0.08);
+  // the ceiling beam: an oak beam, sooted, its underside in shadow, its lower arris catching the lamplight
+  // the wall darkens down into the chair rail (the rail's shadow, and the dirt of hands)
+  crevice(ctx, 0, W, TN.wainscot - 10, -46, 0.32);
+  crevice(ctx, 0, W, TN.beam, 80, 0.55);
   board(ctx, r, 0, 0, W, TN.beam, '#4a2a18');
-  ctx.fillStyle = 'rgba(20,8,2,0.7)';
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, W, TN.beam);
+  ctx.clip();
+  lay(ctx, drift('#6a4028', '#1a0a06', 8, 41, 256, 16), { x: 0, y: 0, w: W, h: TN.beam }, 0.5);
+  for (const x of [TN.flue.x, ...TN.lamps]) lightPool(ctx, x, TN.beam, 200, 20, '#ffcf8a', 0.18, 'screen');
+  ctx.restore();
+  ctx.fillStyle = rgba('#ffd8a0', 0.22);
+  ctx.fillRect(0, TN.beam - 5, W, 2);
+  ctx.fillStyle = 'rgba(20,8,2,0.75)';
   ctx.fillRect(0, TN.beam - 3, W, 3);
+  // joints in the beam, and an iron strap here and there
   for (let x = 120; x < W; x += 340) {
-    ctx.fillStyle = 'rgba(20,8,2,0.35)';
-    ctx.fillRect(x - 2, 0, 3, TN.beam);
+    ctx.fillStyle = 'rgba(20,8,2,0.45)';
+    ctx.fillRect(x - 2, 0, 3, TN.beam - 3);
+    ctx.fillStyle = rgba('#ffd8a0', 0.1);
+    ctx.fillRect(x + 1, 0, 1.5, TN.beam - 3);
   }
 }
 
 function windowFrame(ctx: Ctx, r: R): void {
   const { x0, x1, sill } = TN.win;
-  // the reveal: the wall is thick, its inner faces catch the light on the right (lit from the top left)
+  // the reveal: the wall is thick; its inner face on the right catches the evening light coming in, the left one
+  // and the soffit of the arch are in shade
   ctx.save();
   ctx.beginPath();
   winPath(-16, true)(ctx);
   winPath(0, true)(ctx);
-  ctx.fillStyle = shade(PLASTER, -0.35);
-  ctx.fill('evenodd');
+  ctx.clip('evenodd');
+  const rg = ctx.createLinearGradient(x0 - 16, 0, x1 + 16, 0);
+  rg.addColorStop(0, shade(PLASTER, -0.45));
+  rg.addColorStop(0.5, shade(PLASTER, -0.3));
+  rg.addColorStop(1, shade(PLASTER, 0.05));
+  ctx.fillStyle = rg;
+  ctx.fillRect(x0 - 20, TN.win.top - 20, x1 - x0 + 40, sill - TN.win.top + 30);
+  grain(ctx, { x: x0 - 20, y: TN.win.top - 20, w: x1 - x0 + 40, h: sill - TN.win.top + 30 }, 'grain', 0.2, 1.3);
   ctx.restore();
   // painted cream frame, a cross of glazing bars
   const frameCol = '#efe2c4';
@@ -272,37 +318,39 @@ function windowFrame(ctx: Ctx, r: R): void {
   inner(ctx);
   ctx.stroke();
   ctx.restore();
-  // glazing bars and the glass's sheen
+  // the old glass over the street: the room reflected in it (soft sheen bands, the right lamp's glow), a little
+  // grime in the corners of the panes
+  glassPane(ctx, inner, { x: x0, y: TN.win.top, w: x1 - x0, h: sill - TN.win.top }, { sheen: 0.12, reflect: [TN.lamps[1] - 20, TN.lampY + 60, 90, '#ffd8a0'], dirt: 0.22 });
+  // glazing bars: each a little moulded bar, lit on its top and left, shaded on its right and bottom
   ctx.save();
   inner(ctx);
   ctx.clip();
-  for (const bx of [winCX - 3]) {
-    ctx.fillStyle = frameCol;
-    ctx.fillRect(bx, TN.win.top, 7, sill - TN.win.top);
-    ctx.fillStyle = 'rgba(40,20,8,0.4)';
-    ctx.fillRect(bx + 5, TN.win.top, 2, sill - TN.win.top);
-  }
+  const vbar = rectPath(winCX - 4, TN.win.top, 8, sill - TN.win.top);
+  castShadow(ctx, vbar, 4, 4, 0.3);
+  for (const by of [TN.win.archY, 506]) castShadow(ctx, rectPath(x0, by - 4, x1 - x0, 8), 4, 4, 0.3);
   for (const by of [TN.win.archY, 506]) {
     ctx.fillStyle = frameCol;
-    ctx.fillRect(x0, by, x1 - x0, 7);
-    ctx.fillStyle = 'rgba(40,20,8,0.4)';
-    ctx.fillRect(x0, by + 5, x1 - x0, 2);
+    ctx.fillRect(x0, by - 4, x1 - x0, 8);
+    ctx.fillStyle = rgba('#ffffff', 0.4);
+    ctx.fillRect(x0, by - 4, x1 - x0, 1.5);
+    ctx.fillStyle = 'rgba(60,30,10,0.45)';
+    ctx.fillRect(x0, by + 2.5, x1 - x0, 1.5);
   }
-  ctx.globalCompositeOperation = 'screen';
-  for (const [dx, w] of [[30, 26], [80, 10], [150, 18]] as const) {
-    ctx.fillStyle = 'rgba(255,255,255,0.08)';
-    ctx.beginPath();
-    ctx.moveTo(x0 + dx, sill);
-    ctx.lineTo(x0 + dx + w, sill);
-    ctx.lineTo(x0 + dx + w + 120, TN.win.top);
-    ctx.lineTo(x0 + dx + 120, TN.win.top);
-    ctx.fill();
-  }
+  ctx.fillStyle = frameCol;
+  ctx.fillRect(winCX - 4, TN.win.top, 8, sill - TN.win.top);
+  ctx.fillStyle = rgba('#ffffff', 0.4);
+  ctx.fillRect(winCX - 4, TN.win.top, 1.5, sill - TN.win.top);
+  ctx.fillStyle = 'rgba(60,30,10,0.45)';
+  ctx.fillRect(winCX + 2.5, TN.win.top, 1.5, sill - TN.win.top);
   ctx.restore();
-  // the sill: a stone ledge with a basil pot
-  const sillPath = rrPath(x0 - 30, sill - 4, x1 - x0 + 60, 18, 3);
-  castShadow(ctx, sillPath, 12, 12, 0.45);
-  solid(ctx, sillPath, { x: x0 - 30, y: sill - 4, w: x1 - x0 + 60, h: 18 }, 'stone', '#d8c8a8', { depth: 0.15, formSize: 6 });
+  // the sill: a stone ledge (its top lit, its front face in shade) with a basil pot, damp dark under its ends
+  const sillPath = rrPath(x0 - 30, sill - 4, x1 - x0 + 60, 20, 3);
+  castShadow(ctx, sillPath, 14, 14, 0.5);
+  solid(ctx, sillPath, { x: x0 - 30, y: sill - 4, w: x1 - x0 + 60, h: 20 }, 'stone', '#d8c8a8', { depth: 0.15, formSize: 6 });
+  vfill(ctx, x0 - 28, sill + 5, x1 - x0 + 56, 10, [[0, 'rgba(60,40,20,0.1)'], [1, 'rgba(60,40,20,0.35)']]);
+  ctx.fillStyle = rgba('#fff4dc', 0.5);
+  ctx.fillRect(x0 - 28, sill - 3, x1 - x0 + 56, 1.5);
+  chips(ctx, r, x0 - 20, x1 + 20, sill + 5, 6, '#d8c8a8', 2.5);
   herbPot(ctx, r, x0 + 40, sill - 2, 1);
 }
 
@@ -357,23 +405,29 @@ function curtains(ctx: Ctx, r: R): void {
       c.closePath();
     };
     const bx = side < 0 ? e : e - 80;
-    within(ctx, path, () => {
-      ctx.fillStyle = '#f4ecd8';
-      ctx.fillRect(bx, top, 80, sill - top);
-      ctx.fillStyle = rgba('#c0302a', 0.55);
-      for (let x = bx; x < bx + 80; x += 14) ctx.fillRect(x, top, 7, sill - top);
-      for (let y = top; y < sill; y += 14) ctx.fillRect(bx, y, 80, 7);
-      // folds running down into the tie
-      for (let x = bx; x < bx + 80; x += 2) {
-        const s2 = Math.cos((x - bx) * 0.32 + (side < 0 ? 0 : 1.4));
-        ctx.fillStyle = s2 > 0 ? rgba('#fff8e8', s2 * 0.16) : rgba('#3a0808', -s2 * 0.34);
-        ctx.fillRect(x, top, 2, sill - top);
-      }
-      grain(ctx, { x: bx, y: top, w: 80, h: sill - top }, 'canvas', 0.35, 0.8);
-      // the evening light glowing through the cloth's inner edge
-      lightPool(ctx, e + d * 60, top + 60, 40, 80, '#ffd8a0', 0.14);
-      crevice(ctx, bx, bx + 80, tieY - 4, 20, 0.35);
+    const cbox = { x: bx, y: top, w: 80, h: sill - top };
+    castShadow(ctx, path, 6, 8, 0.3);
+    drape(ctx, path, cbox, '#f4ecd8', {
+      fold: 20,
+      depth: 0.8,
+      phase: side < 0 ? 0 : 1.4,
+      gather: [e + d * 30, tieY, 0.7],
+      // the gingham, bending with the folds
+      pattern: (c, fold) => {
+        c.fillStyle = rgba('#c0302a', 0.5);
+        for (let x = bx; x < bx + 80; x += 2) {
+          for (let y = top; y < sill; y += 7) {
+            const off = fold(x, y) * 3;
+            const vOn = ((((x + off - bx) % 14) + 14) % 14) < 7;
+            const hOn = (((y - top) / 7) | 0) % 2 === 0;
+            if (vOn || hOn) c.fillRect(x, y, 2, 7);
+            if (vOn && hOn) c.fillRect(x, y, 2, 7);
+          }
+        }
+      },
+      through: ['#ffd8a0', 0.22 * (side < 0 ? 1 : 0.6)],
     });
+    within(ctx, path, () => crevice(ctx, bx, bx + 80, tieY - 4, 20, 0.35));
     rim(ctx, path, 0.35, 2);
     ctx.lineWidth = lineAt(0.12) * 0.7;
     ctx.strokeStyle = 'rgba(60,16,10,0.75)';
@@ -397,61 +451,60 @@ function curtains(ctx: Ctx, r: R): void {
 function wainscot(ctx: Ctx, r: R): void {
   const y0 = TN.wainscot;
   const y1 = TY;
+  // the frame (rails and stiles), the grain running along each piece
   board(ctx, r, 0, y0, W, y1 - y0, WALNUT);
-  // raised panels: a bevel lit on the top and left, shaded on the bottom and right
+  const reflections: Reflect[] = [
+    ...TN.lamps.map((x) => ({ x, a: 0.2, w: 34, col: '#ffe0a8' })),
+    { x: TN.oven.x + 60, a: 0.16, w: 60, col: '#ff9a50' },
+    { x: winCX, a: 0.1, w: 30, col: '#ffc890' },
+  ];
   const pw = 230;
-  for (let x = -60; x < W; x += pw + 30) {
-    const px = x + 30;
-    const py = y0 + 40;
-    const ph = y1 - y0 - 60;
-    const p = rrPath(px, py, pw, ph, 4);
-    ctx.save();
-    p(ctx);
-    ctx.clip();
-    const g = ctx.createLinearGradient(px, py, px + pw * 0.3, py + ph);
-    g.addColorStop(0, shade(WALNUT, 0.12));
-    g.addColorStop(1, shade(WALNUT, -0.08));
-    ctx.fillStyle = g;
-    ctx.fillRect(px, py, pw, ph);
-    woodGrain(ctx, r, { x: px, y: py, w: pw, h: ph }, WALNUT, false, 0.8);
-    ctx.restore();
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = rgba('#ffd8a8', 0.22);
-    ctx.beginPath();
-    ctx.moveTo(px, py + ph);
-    ctx.lineTo(px, py);
-    ctx.lineTo(px + pw, py);
-    ctx.stroke();
-    ctx.strokeStyle = 'rgba(20,8,2,0.6)';
-    ctx.beginPath();
-    ctx.moveTo(px + pw, py);
-    ctx.lineTo(px + pw, py + ph);
-    ctx.lineTo(px, py + ph);
-    ctx.stroke();
+  const gap = 30;
+  for (let x = -60 + gap; x < W; x += pw + gap) {
+    // the stile between panels: vertical grain, its own varnish
+    board(ctx, r, x - gap, y0 + 14, gap, y1 - y0 - 14, shade(WALNUT, 0.04), true);
+    panel(ctx, r, x, y0 + 36, pw, y1 - y0 - 58, WALNUT, { bevel: 16, lights: reflections, vertical: false });
   }
-  // the chair rail: a moulding that casts a shadow on the wall above? no, below (light from above)
-  const rail = rectPath(0, y0 - 8, W, 22);
-  solid(ctx, rail, { x: 0, y: y0 - 8, w: W, h: 22 }, 'wood', shade(WALNUT, 0.1), { depth: 0.2, line: false, formSize: 8 });
-  ctx.fillStyle = rgba('#ffe0b0', 0.3);
-  ctx.fillRect(0, y0 - 8, W, 2);
-  ctx.fillStyle = 'rgba(20,8,2,0.7)';
-  ctx.fillRect(0, y0 + 13, W, 2);
-  crevice(ctx, 0, W, y0 + 15, 26, 0.45);
-  // the table's back edge throws the panelling behind it into shade
-  crevice(ctx, 0, W, y1, -60, 0.33);
-  crevice(ctx, 0, W, y0 - 8, -10, 0.25);
+  varnish(ctx, { x: 0, y: y0, w: W, h: y1 - y0 }, reflections.map((l) => ({ ...l, a: (l.a ?? 0.3) * 0.5 })), { sheen: 0.05 });
+  // the chair rail: a moulding with a lit roundover on top, a cove in shadow, a fillet catching the light
+  const rail = rectPath(0, y0 - 10, W, 26);
+  solid(ctx, rail, { x: 0, y: y0 - 10, w: W, h: 26 }, 'wood', shade(WALNUT, 0.1), { depth: 0.2, line: false, formSize: 8 });
+  vfill(ctx, 0, y0 - 10, W, 26, [[0, rgba('#ffe0b0', 0.4)], [0.18, rgba('#ffe0b0', 0.08)], [0.45, 'rgba(20,8,2,0.4)'], [0.62, 'rgba(20,8,2,0.1)'], [0.7, rgba('#ffe0b0', 0.2)], [0.8, 'rgba(20,8,2,0.25)'], [1, 'rgba(20,8,2,0.6)']]);
+  varnish(ctx, { x: 0, y: y0 - 10, w: W, h: 10 }, reflections.map((l) => ({ ...l, w: (l.w ?? 50) * 2.4, a: (l.a ?? 0.3) * 1.2 })), { sheen: 0, vertical: false });
+  crevice(ctx, 0, W, y0 + 16, 28, 0.5);
+  crevice(ctx, 0, W, y0 - 10, -12, 0.25);
+  // wear: chairs scuffing the panels, darker towards the floor; the corners grimier
+  grime(ctx, { x: 0, y: y0, w: W, h: y1 - y0 }, { bottom: 90, left: 120, right: 160, a: 0.45, patchy: 0.5, seed: 13, col: '#140804' });
+  chips(ctx, r, 0, W, y0 - 9, 22, WALNUT, 2.5);
+  // the table's back edge throws the panelling behind it into shade, and the cloth bounces its warm red up
+  crevice(ctx, 0, W, y1, -70, 0.38);
+  bounceBand(ctx, 0, W, y1, -50, '#ff8a6a', 0.1);
   // the lamps reach down here too
-  for (const lx of TN.lamps) lightPool(ctx, lx, y1 - 60, 260, 90, '#ffcf8a', 0.1);
+  for (const lx of TN.lamps) lightPool(ctx, lx, y1 - 70, 280, 100, '#ffcf8a', 0.12);
 }
 
 function shelf(ctx: Ctx, r: R): void {
   const { x0, x1, y } = TN.shelf;
-  // brackets
-  for (const bx of [x0 + 20, x1 - 30]) {
-    const p = polyPath([[bx, y], [bx + 12, y], [bx + 12, y + 40], [bx, y + 14]]);
-    castShadow(ctx, p, 8, 6, 0.4);
-    solid(ctx, p, { x: bx, y, w: 12, h: 40 }, 'iron', '#3a3432', { depth: 0.2, line: 1.6 });
+  // wrought-iron brackets: a scroll under the board, fixed to the wall with a plate
+  for (const bx of [x0 + 22, x1 - 34]) {
+    const scroll = (c: Ctx) => {
+      c.beginPath();
+      c.moveTo(bx, y + 8);
+      c.lineTo(bx + 4, y + 52);
+      c.bezierCurveTo(bx + 6, y + 30, bx + 22, y + 16, bx + 34, y + 10);
+      c.bezierCurveTo(bx + 30, y + 22, bx + 14, y + 30, bx + 12, y + 46);
+      c.lineTo(bx + 10, y + 56);
+      c.closePath();
+    };
+    castShadow(ctx, scroll, 9, 7, 0.45);
+    solid(ctx, scroll, { x: bx, y, w: 36, h: 56 }, 'iron', '#3a3432', { depth: 0.2, line: 1.4, formSize: 4 });
+    ctx.beginPath();
+    ctx.arc(bx + 2, y + 54, 4, 0, Math.PI * 2);
+    ctx.fillStyle = '#2a2422';
+    ctx.fill();
   }
+  // the bottles sit in a little occlusion against the wall
+  aoHalo(ctx, rectPath(x0 + 10, y - 90, x1 - x0 - 60, 86), 18, 0.28, '#3a1a0a', 6);
   // bottles and jars, standing on the board
   const items: [number, number, string, NonNullable<Parameters<typeof bottle>[5]>][] = [
     [x0 + 28, 92, '#2a4a1a', { kind: 'wine', cork: '#c89a6a', label: '#e8dcc0' }],
@@ -462,6 +515,11 @@ function shelf(ctx: Ctx, r: R): void {
   ];
   const sh = rectPath(x0, y - 4, x1 - x0, 14);
   castShadow(ctx, sh, 14, 14, 0.5);
+  // each bottle's soft shadow on the wall behind it, thrown down and right
+  for (const [bx, h, , o] of items) {
+    const w = o.kind === 'jar' ? h * 0.62 : o.kind === 'oil' ? h * 0.3 : h * 0.26;
+    castShadow(ctx, rrPath(bx - w / 2, y - 3 - h, w, h, w * 0.3), 10, 8, 0.35);
+  }
   for (const [bx, h, col, o] of items) {
     bottle(ctx, bx, y - 3, h, col, { ...o, depth: 0.22, air: ROOM });
     if (o?.kind === 'jar') {
@@ -476,8 +534,22 @@ function shelf(ctx: Ctx, r: R): void {
       });
     }
   }
+  // the board: a thick plank, its top in the lamp's light, its front edge in its own shade, a varnish glint
   solid(ctx, sh, { x: x0, y: y - 4, w: x1 - x0, h: 14 }, 'wood', '#7a4a2a', { depth: 0.2, formSize: 5 });
+  within(ctx, sh, () => {
+    woodGrain(ctx, r, { x: x0, y: y - 4, w: x1 - x0, h: 14 }, '#7a4a2a', false, 0.8);
+    ctx.fillStyle = rgba('#ffe6b8', 0.35);
+    ctx.fillRect(x0, y - 4, x1 - x0, 3);
+    ctx.fillStyle = 'rgba(30,12,4,0.35)';
+    ctx.fillRect(x0, y + 4, x1 - x0, 6);
+    varnish(ctx, { x: x0, y: y - 4, w: x1 - x0, h: 14 }, [{ x: TN.lamps[0] + 40, a: 0.5, w: 30 }], { sheen: 0, vertical: false });
+  });
+  chips(ctx, r, x0 + 4, x1 - 4, y + 9, 5, '#7a4a2a', 1.6);
+  // the lamp's light on what stands on the shelf
+  lightPool(ctx, TN.lamps[0] + 40, y - 40, 140, 70, '#ffd89a', 0.14, 'screen');
   // garlic and chillies hanging from the brackets
+  castShadow(ctx, rrPath(x0 + 10, y + 16, 32, 100, 12), 10, 10, 0.35);
+  castShadow(ctx, rrPath(x1 - 40, y + 16, 32, 120, 12), 10, 10, 0.3);
   garlicBraid(ctx, r, x0 + 26, y + 16);
   ristra(ctx, r, x1 - 24, y + 16);
 }
@@ -854,9 +926,10 @@ function peel(ctx: Ctx, r: R): void {
 
 /** The lamps' light in the air: their cones and the glow under each shade (painted into the base, so the lamps
  * themselves can sway on their cords while the light stays put). */
-function lampLight(ctx: Ctx): void {
+function lampLight(ctx: Ctx, r: R): void {
   for (const lx of TN.lamps) {
-    beam(ctx, [lx - 66, TN.lampY + 4, lx + 66, TN.lampY + 4], [lx - 330, TY + 60, lx + 330, TY + 60], '#ffe2a8', 0.07);
+    // the cone in the air under each shade, dust turning in it
+    shaft(ctx, r, [lx - 70, TN.lampY + 4, lx + 70, TN.lampY + 4], [lx - 250, TN.wainscot, lx + 250, TN.wainscot], '#ffe2a8', 0.08, { streaks: 4, motes: 22 });
     lightPool(ctx, lx, TN.lampY + 6, 110, 40, '#ffd890', 0.55);
     lightPool(ctx, lx, TN.lampY + 4, 40, 18, '#ffffff', 0.6);
   }
@@ -871,7 +944,9 @@ function table(ctx: Ctx, r: R): void {
   // the lamps' pools, the oven's warmth on the left end, the far corners in shadow
   for (const lx of TN.lamps) lightPool(ctx, lx, 870, 460, 130, '#ffd890', 0.3);
   lightPool(ctx, TN.candle.x, TN.candle.y + 10, 200, 50, '#ffb04a', 0.18);
-  lightPool(ctx, 160, 800, 420, 120, '#ff8a3a', 0.16);
+  lightPool(ctx, 160, 800, 420, 120, '#ff8a3a', 0.22);
+  // the window's light lies across the cloth, cut by its glazing bars (soft: it's the last of the day)
+  lightPatch(ctx, [[TN.win.x0 + 20, TY + 4], [TN.win.x1 - 10, TY + 4], [TN.win.x1 + 120, 900], [TN.win.x0 + 60, 900]], { col: '#ffc890', a: 0.16, barsU: [0.5], barsV: [0.5], bar: 0.04, soft: 10, fade: 0.6 });
   ctx.restore();
   tableFalloff(ctx, TN.front, 0.42, '#1a0804');
   tableSeam(ctx, 0.55, '#2a1810', false);
@@ -913,7 +988,7 @@ function candleFlames(ctx: Ctx): void {
 }
 
 function grade(ctx: Ctx): void {
-  gradeAll(ctx, 0.06, '#ffb070', 0.08);
+  gradeAll(ctx, 0.06, '#ffb070', 0.08, { warm: '#ffbe72', cool: '#4e66b8', a: 0.24 });
 }
 
 function shadeOver(ctx: Ctx): void {
@@ -924,7 +999,7 @@ function shadeOver(ctx: Ctx): void {
 
 const OVEN_SLOT = { x: TN.oven.x - 140, y: TN.oven.archTop - 200, w: 280, h: TN.oven.mouthY - TN.oven.archTop + 210 };
 const CANDLE_SLOT = { x: TN.candle.x - 90, y: TN.candle.y - 250, w: 180, h: 200 };
-const CURTAIN_BOX = { x: TN.win.x0 - 30, y: TN.win.archY - 20, w: TN.win.x1 - TN.win.x0 + 60, h: TN.win.sill - TN.win.archY + 24 };
+const CURTAIN_BOX = { x: TN.win.x0 - 30, y: TN.win.archY - 20, w: TN.win.x1 - TN.win.x0 + 60, h: TN.win.sill - TN.win.archY + 40 };
 const LAMP_BOX = (lx: number) => ({ x: lx - 120, y: TN.beam - 6, w: 240, h: TN.lampY - TN.beam + 70 });
 
 export const TRATTORIA: SceneSpec = {
@@ -945,7 +1020,7 @@ export const TRATTORIA: SceneSpec = {
   layers: [
     { id: 'wall', box: { x: 0, y: 0, w: W, h: TN.wainscot + 20 }, draw: wall },
     { id: 'wainscot', box: { x: 0, y: TN.wainscot - 40, w: W, h: TY - TN.wainscot + 44 }, draw: wainscot },
-    { id: 'light', draw: (c) => lampLight(c) },
+    { id: 'light', draw: lampLight },
     { id: 'shelf', box: { x: TN.shelf.x0 - 30, y: TN.shelf.y - 110, w: TN.shelf.x1 - TN.shelf.x0 + 70, h: 260 }, draw: shelf },
     { id: 'sign', box: { x: TN.sign.x - 110, y: TN.sign.y - 130, w: 210, h: 250 }, draw: (c) => sign(c) },
     { id: 'board', box: { x: TN.board.x - 20, y: TN.board.y - 20, w: TN.board.w + 70, h: TN.board.h + 70 }, draw: chalkboard },

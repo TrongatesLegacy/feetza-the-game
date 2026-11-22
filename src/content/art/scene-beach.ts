@@ -1,16 +1,19 @@
-// Shack Attack Beach Bar (Act 2, waves 11–14), redrawn with the location kit (src/art/scene): a bright day on a
-// tropical beach, seen from under a thatched bar. Turquoise shallows deepening to blue, a hazy island, a sailboat on
-// the horizon, cumulus clouds, palms framing the view, a striped umbrella and a sandcastle on the sand, the bar's
-// bamboo posts, its sign, string lights, a tiki torch and a surfboard; the bar top is sun-bleached planks.
+// Shack Attack Beach Bar (Act 2, waves 11–14), redrawn with the location kit (src/art/scene): a tropical beach in
+// the warm, low light of late afternoon, seen from under a thatched bar. The sun hangs low over the sea on the left
+// (the feet's key light), gilding the clouds' edges and laying a glitter path down the water; the sea deepens from
+// the hazy horizon to clear turquoise shallows, lace foam on the wet sand; long shadows stretch across the sand from
+// the umbrella and the sandcastle; palms frame the view, backlit, their fronds glowing; the bar's bamboo posts,
+// thatch, sign, string lights, a tiki torch and a surfboard; the bar top is sun-bleached planks.
 // Live: the surf washes up the sand and back, glints dance on the water, clouds drift, palm crowns and the sign sway
-// in the breeze, gulls wheel past, the boat sails; across the stage's waves the day turns gold and then to sunset,
-// when the string lights and the torch come on.
+// in the breeze, gulls wheel past, a boat sails; across the stage's waves the afternoon turns to sunset (the lights
+// come on) and then to a violet dusk with the first stars, the torch lit.
 
 import Phaser from 'phaser';
-import { BLOCK, SLAB } from '../../art/backdrops';
+import { SLAB } from '../../art/backdrops';
 import {
   type Air,
   type Ctx,
+  type PathFn,
   type R,
   TY,
   W,
@@ -34,8 +37,11 @@ import {
   within,
 } from '../../art/scene/kit';
 import type { SceneSpec } from '../../art/scene/layers';
-import { board, broken, grain, planksPlane, sand, tableFalloff, tableSeam, water } from '../../art/scene/materials';
+import { groundCast } from '../../art/scene/light';
+import { board, foamLace, grain, planksPlane, sand, shallows, tableFalloff, tableSeam, varnish, water } from '../../art/scene/materials';
+import { drift, lay } from '../../art/scene/paint';
 import { bottle, flameShape } from '../../art/scene/props';
+import { cirrus, cloud, farLand, horizonGlow, rays, skyFill, stars, sun } from '../../art/scene/sky';
 import { ao, spec as specHi } from '../../art/style/kit';
 import { mix, rgba, shade } from '../../art/util';
 import { crand } from '../../systems/cosmeticRandom';
@@ -54,144 +60,172 @@ export const BH = {
   torch: { x: 1530, y: 760 },
   boat: { x: 1180, y: 446 },
   island: { x: 420, y: 452 },
+  /** The sun: low over the sea on the left in the afternoon; on the horizon at sunset. */
+  sun: { x: 560, y: 292, r: 40 },
+  sunset: { x: 690, y: 446, r: 50 },
 };
 
-const SEA_AIR: Air = { color: '#cfe8f4', far: 0.7 };
-const SKY_TOP = '#3d8ee2';
-const SKY_LOW = '#c4eaf8';
+/** The afternoon's air: warm haze over the sea. */
+const SEA_AIR: Air = { color: '#f0dcc0', far: 0.7 };
 
-// ——— sky ———
+// ——— the sky ———
 
-function sky(ctx: Ctx, r: R, sunset: boolean): void {
+function sky(ctx: Ctx, r: R): void {
   const h = BH.horizon;
-  if (sunset) {
-    vfill(ctx, 0, 0, W, h + 4, [[0, '#2a2a6a'], [0.35, '#8a4a8a'], [0.65, '#ff8a6a'], [0.88, '#ffc27a'], [1, '#ffe0a0']]);
-    glowAt(ctx, 760, h - 10, 420, '#ffb050', 0.6, 0.5);
-    const sun = ellPath(760, h - 34, 62, 62);
-    sun(ctx);
-    ctx.fillStyle = '#fff0b8';
-    ctx.fill();
-    glowAt(ctx, 760, h - 34, 130, '#fff0c0', 0.6);
-    // long cloud bars lit pink from below
-    for (let i = 0; i < 9; i++) {
-      const x = r() * W;
-      const y = 150 + r() * 220;
-      ctx.fillStyle = rgba(i % 2 ? '#ff9a8a' : '#c86a8a', 0.5);
-      ctx.beginPath();
-      ctx.ellipse(x, y, 140 + r() * 200, 8 + r() * 8, 0, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    return;
-  }
-  vfill(ctx, 0, 0, W, h + 4, [[0, SKY_TOP], [0.55, '#7cc0ee'], [0.9, SKY_LOW], [1, '#e8f6fa']]);
-  // the sun is high and to the left (the one light): its glare in the upper left
-  glowAt(ctx, 150, 40, 520, '#fffbe0', 0.45);
-  broken(ctx, { x: 0, y: 0, w: W, h }, 0.15, 6, 5);
-  haze(ctx, h - 80, h + 4, '#f4fbff', 0.6, 0.95);
+  const box = { x: 0, y: 0, w: W, h: h + 4 };
+  // late afternoon: a deep blue overhead, warming through a soft green-gold to the bright gold haze of the horizon
+  skyFill(ctx, box, [[0, '#2f5c9e'], [0.28, '#5a88bc'], [0.52, '#a8b8b8'], [0.72, '#f0c890'], [0.9, '#ffcc80'], [1, '#ffe0a8']]);
+  lay(ctx, drift('#ffe0b0', '#4a68a8', 3, 81, 160, 48), box, 0.16);
+  // the sun's warmth spreading through the haze round it
+  glowAt(ctx, BH.sun.x, BH.sun.y + 30, 1000, '#ffb860', 0.32, 0.6);
+  cirrus(ctx, r, { x: 0, y: 140, w: W, h: 150 }, '#ffe8c8', 0.2, -0.05, 22);
+  horizonGlow(ctx, h, 120, '#ffd8a0', 0.5);
+  // the low sun's rays fanning down through the haze
+  rays(ctx, r, BH.sun.x, BH.sun.y, 16, 520, '#fff0c8', 0.12, Math.PI * 1.5, Math.PI / 2);
+  sun(ctx, BH.sun.x, BH.sun.y, BH.sun.r, { disc: '#fffaf0', glow: '#ffc870', a: 0.9, bloom: 12, squash: 0.75 });
+  glowAt(ctx, BH.sun.x, BH.sun.y, 150, '#fff4d8', 0.35);
 }
 
-/** A cumulus cloud: lumps lit from the top left (their lit side the white of the sky's light, their shade a soft
- * blue-lavender), the base flat. */
-function cumulus(ctx: Ctx, r: R, x: number, y: number, w: number, depth: number): void {
-  const lumps: [number, number, number][] = [];
-  const n = 7 + Math.floor(r() * 4);
-  for (let i = 0; i < n; i++) {
-    const t = i / (n - 1);
-    const rr = w * (0.1 + Math.sin(t * Math.PI) * 0.16) * (0.8 + r() * 0.4);
-    lumps.push([x - w / 2 + t * w, y - rr * 0.55 - Math.sin(t * Math.PI) * w * 0.1, rr]);
+/** The sky at sunset: the sun on the horizon, the sky burning orange low and violet high. */
+function sunsetSky(ctx: Ctx, r: R): void {
+  const h = BH.horizon;
+  const box = { x: 0, y: 0, w: W, h: h + 4 };
+  skyFill(ctx, box, [[0, '#2e2c6a'], [0.28, '#6a4a8a'], [0.52, '#d0647a'], [0.74, '#ff9a5a'], [0.9, '#ffc070'], [1, '#ffd890']]);
+  lay(ctx, drift('#ffb080', '#4a3a7a', 3, 83, 160, 48), box, 0.2);
+  glowAt(ctx, BH.sunset.x, h, 1000, '#ff8a4a', 0.3, 0.35);
+  // long bars of cloud lit from below, glowing at their lower edges
+  for (let i = 0; i < 7; i++) {
+    const x = 100 + r() * 1720;
+    const y = 200 + r() * 200;
+    cloud(ctx, r, x, y, 260 + r() * 360, 26 + r() * 20, { kind: 'stratus', lit: '#ffb878', body: '#9a5a80', shadow: '#5a3a6a', sunX: BH.sunset.x, sunY: h + 60, rim: 0.7, wisp: 0.5, a: 0.85 });
   }
-  // a second row of smaller lumps on top
-  for (let i = 0; i < 3; i++) {
-    const t = 0.25 + r() * 0.5;
-    const rr = w * (0.09 + r() * 0.07);
-    lumps.push([x - w / 2 + t * w, y - w * 0.24 - rr * 0.4, rr]);
-  }
-  const union = (c: Ctx, dx = 0, dy = 0, k = 1) => {
-    c.beginPath();
-    for (const [lx, ly, lr] of lumps) {
-      c.moveTo(lx + dx + lr * k, ly + dy);
-      c.arc(lx + dx, ly + dy, lr * k, 0, Math.PI * 2);
-    }
-  };
-  const base = airMix('#ffffff', depth, SEA_AIR);
-  const shadow = airMix('#9cc0e8', depth, SEA_AIR);
+  horizonGlow(ctx, h, 140, '#ffc080', 0.6);
+  // (the afternoon's horizon banks are under this sky: it paints its own, backlit by the setting sun)
+  lowBanks(ctx, r, { lit: '#ffc890', body: '#a86a80', shadow: '#5a3a6a', sunX: BH.sunset.x, sunY: h + 40, rim: 0.8 });
+  sun(ctx, BH.sunset.x, BH.sunset.y, BH.sunset.r, { disc: '#fff0c0', glow: '#ffa050', a: 0.75, bloom: 9, squash: 0.45, clipY: h });
+}
+
+/** Dusk: the sun gone, a violet sky with an afterglow band, the first stars. */
+function duskSky(ctx: Ctx, r: R): void {
+  const h = BH.horizon;
+  const box = { x: 0, y: 0, w: W, h: h + 4 };
+  skyFill(ctx, box, [[0, '#0e1236'], [0.4, '#262a62'], [0.72, '#5a3c76'], [0.9, '#b05a6a'], [1, '#e08a6a']]);
+  lay(ctx, drift('#5a4a8a', '#0a0c28', 3, 85, 160, 48), box, 0.22);
+  stars(ctx, r, { x: 0, y: 0, w: W, h: h - 120 }, 160);
+  // a thin crescent moon, high on the right
   ctx.save();
-  // the base is flat: the lumps are cut off along it
+  ctx.fillStyle = '#fff2d8';
   ctx.beginPath();
-  ctx.rect(x - w, y - w, w * 2, w - w * 0.02);
-  ctx.clip();
-  union(ctx);
-  ctx.clip();
-  const g = ctx.createLinearGradient(0, y - w * 0.4, 0, y);
-  g.addColorStop(0, mix(base, shadow, 0.2));
-  g.addColorStop(1, shadow);
-  ctx.fillStyle = g;
-  ctx.fillRect(x - w, y - w, w * 2, w * 1.2);
-  // the lit faces: the same lumps nudged towards the light, softly
-  ctx.filter = `blur(${Math.max(2, w * 0.02).toFixed(1)}px)`;
-  ctx.fillStyle = rgba(base, 0.95);
-  union(ctx, -w * 0.025, -w * 0.04, 0.9);
-  ctx.fill('nonzero');
-  ctx.filter = 'none';
-  // the underside in its own shade
-  vfill(ctx, x - w, y - w * 0.12, w * 2, w * 0.1, [[0, rgba(shadow, 0)], [1, rgba(shade(shadow, -0.06), 0.9)]]);
+  ctx.arc(1480, 210, 18, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalCompositeOperation = 'destination-out';
+  ctx.beginPath();
+  ctx.arc(1488, 205, 17, 0, Math.PI * 2);
+  ctx.fill();
   ctx.restore();
+  glowAt(ctx, 1476, 212, 60, '#d8d8ff', 0.25);
+  horizonGlow(ctx, h, 120, '#ff9a7a', 0.4);
+  lowBanks(ctx, r, { lit: '#d08098', body: '#4a3a6a', shadow: '#24204a', sunX: BH.sunset.x, sunY: h + 80, rim: 0.5 });
+}
+
+/** The low banks on the horizon, in a given light (the sunset and dusk skies paint them over their own). */
+function lowBanks(ctx: Ctx, r: R, o: { lit: string; body: string; shadow: string; sunX: number; sunY: number; rim: number }): void {
+  cloud(ctx, r, 1440, 424, 420, 44, { ...o, kind: 'stratus', depth: 0.6, air: SEA_AIR });
+  cloud(ctx, r, 1780, 430, 300, 30, { ...o, kind: 'stratus', depth: 0.7, air: SEA_AIR });
+  cloud(ctx, r, 960, 430, 380, 34, { ...o, kind: 'stratus', depth: 0.7, air: SEA_AIR });
+  cloud(ctx, r, 340, 428, 300, 30, { ...o, kind: 'stratus', depth: 0.7, air: SEA_AIR });
 }
 
 function cloudsFar(ctx: Ctx, r: R): void {
-  cumulus(ctx, r, 1380, 380, 260, 0.85);
-  cumulus(ctx, r, 620, 398, 200, 0.9);
-  cumulus(ctx, r, 1760, 400, 180, 0.9);
+  // low banks over the horizon, gilded on their sun side, lost in haze
+  const o = { lit: '#fff0c8', body: '#e8c8b8', shadow: '#9a90b0', sunX: BH.sun.x, sunY: BH.sun.y, depth: 0.75, air: SEA_AIR, rim: 0.55 };
+  cloud(ctx, r, 1440, 424, 420, 44, { ...o, kind: 'stratus' });
+  cloud(ctx, r, 1780, 430, 300, 30, { ...o, kind: 'stratus', depth: 0.85 });
+  cloud(ctx, r, 960, 430, 380, 34, { ...o, kind: 'stratus', depth: 0.85 });
+  cloud(ctx, r, 340, 428, 300, 30, { ...o, kind: 'stratus', depth: 0.85 });
 }
 
 function cloudsNear(ctx: Ctx, r: R): void {
-  cumulus(ctx, r, 860, 300, 380, 0.55);
-  cumulus(ctx, r, 1560, 250, 300, 0.6);
+  const o = { lit: '#fff2d0', body: '#d4c4cc', shadow: '#7470a0', sunX: BH.sun.x, sunY: BH.sun.y, depth: 0.4, air: SEA_AIR, rim: 0.75, wisp: 0.25 };
+  cloud(ctx, r, 1100, 330, 400, 120, { ...o, kind: 'cumulus' });
+  cloud(ctx, r, 1560, 290, 300, 90, { ...o, kind: 'cumulus' });
 }
 
 // ——— the sea ———
 
+/** The long shadows of the late sun: thrown right and towards us per pixel of height. */
+const SHADOW = { kx: 0.8, ky: 0.3, col: '#4a3a6a' };
+
+const shoreTop = (x: number) => BH.shore + Math.sin(x * 0.006 + 1) * 8 + Math.sin(x * 0.017) * 4;
+
 function sea(ctx: Ctx, r: R): void {
   const h = BH.horizon;
   const s = BH.shore;
-  water(ctx, r, 0, W, h, s + 10, { far: '#1f6fb8', near: '#38c8c8', ripple: '#ffffff', ripples: 340, glitterX: 380, glitter: '#fffbe0', glitterA: 0.7 });
-  // the shallows over the sand: turquoise to clear, sand showing through
-  vfill(ctx, 0, s - 70, W, 80, [[0, 'rgba(90,220,210,0)'], [0.6, 'rgba(120,230,214,0.55)'], [1, 'rgba(210,236,200,0.85)']]);
-  // a reef's darker patches
-  for (let i = 0; i < 6; i++) {
-    ctx.fillStyle = rgba('#1a6a8a', 0.18);
-    ctx.beginPath();
-    ctx.ellipse(r() * W, h + 30 + r() * 60, 80 + r() * 140, 6 + r() * 6, 0, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  haze(ctx, h, h + 30, '#e8f6fa', 0.45, 0.01);
+  water(ctx, r, 0, W, h, s + 12, {
+    far: '#b8c4c8', deep: '#2a6a9a', near: '#2a9aa8', sky: '#ffe4c0', skyA: 0.55,
+    ripple: '#fff4dc', ripples: 260, swells: 9, crest: '#ffe8c4',
+    glitterX: BH.sun.x, glitter: '#fff0c0', glitterA: 0.75, glitterW: 200, seed: 31,
+  });
+  // the shallows: turquoise over the sand, the sunlight's caustic net on the bottom
+  shallows(ctx, (x) => shoreTop(x) - 70, (x) => shoreTop(x) + 4, 0, W, '#48c0b8', 0.6, '#fff4d0', 0.22, 9);
+  // the far water lost in the haze; the island's reflection
+  haze(ctx, h - 4, h + 26, '#ffe8c8', 0.5, 0.15);
+  ctx.save();
+  ctx.globalAlpha = 0.25;
+  ctx.fillStyle = airMix('#3a5a50', 0.8, SEA_AIR);
+  ctx.beginPath();
+  ctx.ellipse(BH.island.x + 10, h + 6, 200, 6, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
 }
 
-function island(ctx: Ctx): void {
+/** The sea at sunset: the burning sky mirrored along the horizon, the water darkening to violet-blue, the sun's
+ * path laid down it in orange. (Live only: it fades in over the afternoon sea.) */
+function seaEve(ctx: Ctx, r: R): void {
   const h = BH.horizon;
-  // the island: a hazy hump with palms, far left
+  const s = BH.shore;
+  water(ctx, r, 0, W, h, s + 12, {
+    far: '#ffb27a', deep: '#4a4a7a', near: '#2a5a78', sky: '#ffc890', skyA: 0.5,
+    ripple: '#ffd0a0', ripples: 240, swells: 9, crest: '#ffb080',
+    glitterX: BH.sunset.x, glitter: '#ffc070', glitterA: 0.85, glitterW: 230, seed: 33,
+  });
+  haze(ctx, h - 4, h + 26, '#ffc890', 0.5, 0.15);
+  // (it stops short of the shallows: fade its foot out)
+  ctx.save();
+  ctx.globalCompositeOperation = 'destination-out';
+  vfill(ctx, 0, SEA_EVE.y + SEA_EVE.h - 40, W, 40, [[0, 'rgba(0,0,0,0)'], [1, 'rgba(0,0,0,1)']]);
+  ctx.restore();
+  void s;
+}
+
+function island(ctx: Ctx, r: R): void {
+  const h = BH.horizon;
   const ix = BH.island.x;
-  const col = airMix('#3a7a5a', 0.85, SEA_AIR);
-  ctx.fillStyle = col;
-  ctx.beginPath();
-  ctx.moveTo(ix - 220, h + 1);
-  ctx.bezierCurveTo(ix - 140, h - 30, ix - 40, h - 46, ix + 40, h - 40);
-  ctx.bezierCurveTo(ix + 120, h - 34, ix + 180, h - 12, ix + 240, h + 1);
-  ctx.closePath();
-  ctx.fill();
-  for (const [px, ph, lean] of [[ix - 40, 70, -0.25], [ix + 10, 86, 0.1], [ix + 60, 60, 0.3]] as const) {
-    ctx.strokeStyle = col;
+  // a hazy hump with palms, its ridge catching the sun
+  const pts: [number, number][] = [[ix - 230, h + 1]];
+  for (let k = 0; k <= 16; k++) {
+    const t = k / 16;
+    const x = ix - 230 + t * 470;
+    const hump = Math.sin(t * Math.PI) ** 0.8 * 44 + Math.sin(t * 9) * 2 + (r() - 0.5) * 2;
+    pts.push([x, h - hump]);
+  }
+  pts.push([ix + 240, h + 1]);
+  const col = '#2f5a48';
+  farLand(ctx, pts, h, col, 0.78, SEA_AIR, '#ffd890', 0.45);
+  const c = airMix(col, 0.8, SEA_AIR);
+  for (const [px, ph, lean] of [[ix - 40, 64, -0.25], [ix + 10, 80, 0.1], [ix + 62, 56, 0.3]] as const) {
+    ctx.strokeStyle = c;
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.moveTo(px, h - 40);
     ctx.quadraticCurveTo(px + lean * 30, h - 40 - ph * 0.6, px + lean * 50, h - 40 - ph);
     ctx.stroke();
-    for (let k = 0; k < 6; k++) {
-      const a = -Math.PI / 2 + (k - 2.5) * 0.55;
+    for (let k = 0; k < 7; k++) {
+      const a = -Math.PI / 2 + (k - 3) * 0.5;
+      ctx.lineWidth = 3.5;
       ctx.beginPath();
       ctx.moveTo(px + lean * 50, h - 40 - ph);
       ctx.quadraticCurveTo(px + lean * 50 + Math.cos(a) * 18, h - 40 - ph + Math.sin(a) * 10 - 6, px + lean * 50 + Math.cos(a) * 30, h - 40 - ph + Math.sin(a) * 14 + 8);
-      ctx.lineWidth = 4;
       ctx.stroke();
     }
   }
@@ -199,74 +233,150 @@ function island(ctx: Ctx): void {
 
 function shore(ctx: Ctx, r: R): void {
   const s = BH.shore;
-  // the beach: dry sand up to the bar, wet sand by the water
-  const top = (x: number) => s + Math.sin(x * 0.006 + 1) * 8 + Math.sin(x * 0.017) * 4;
   const path = (c: Ctx) => {
     c.beginPath();
-    c.moveTo(-10, top(-10));
-    for (let x = 0; x <= W + 10; x += 20) c.lineTo(x, top(x));
+    c.moveTo(-10, shoreTop(-10));
+    for (let x = 0; x <= W + 10; x += 20) c.lineTo(x, shoreTop(x));
     c.lineTo(W + 10, TY + 2);
     c.lineTo(-10, TY + 2);
     c.closePath();
   };
   within(ctx, path, () => {
-    sand(ctx, r, { x: 0, y: s - 20, w: W, h: TY - s + 30 }, '#f0d6a2', { ripples: 90 });
-    // wet sand: darker, glossy, reflecting the sky
-    vfill(ctx, 0, s - 20, W, 50, [[0, 'rgba(150,120,80,0.55)'], [0.6, 'rgba(150,120,80,0.25)'], [1, 'rgba(150,120,80,0)']]);
-    vfill(ctx, 0, s - 10, W, 18, [[0, 'rgba(200,236,255,0.3)'], [1, 'rgba(200,236,255,0)']]);
-    // the light falling across the beach (bright, from the left), the bar's shade nearer us
-    lightPool(ctx, 500, 650, 900, 120, '#fff6d8', 0.18);
-    vfill(ctx, 0, TY - 80, W, 80, [[0, 'rgba(90,60,30,0)'], [1, 'rgba(90,60,30,0.32)']]);
-    // shells and a starfish
-    for (let i = 0; i < 14; i++) {
+    const box = { x: 0, y: s - 20, w: W, h: TY - s + 30 };
+    sand(ctx, r, box, '#e8c890', { ripples: 140, light: '#fff0c8', shadow: '#8a7aa8', sparkle: 0.8, seed: 43 });
+    // wet sand: darker, glossy, the sky and the sun mirrored in it
+    vfill(ctx, 0, s - 20, W, 56, [[0, 'rgba(120,90,60,0.55)'], [0.55, 'rgba(120,90,60,0.25)'], [1, 'rgba(120,90,60,0)']]);
+    vfill(ctx, 0, s - 10, W, 22, [[0, 'rgba(255,232,200,0.3)'], [1, 'rgba(255,232,200,0)']]);
+    lightPool(ctx, BH.sun.x + 30, s + 6, 220, 10, '#fff0c8', 0.4, 'screen');
+    // the low sun across the beach: warm and bright on the left, the sand cooling to the right and in the bar's
+    // shade nearer us
+    const g = ctx.createLinearGradient(0, 0, W, 0);
+    g.addColorStop(0, 'rgba(255,214,150,0.16)');
+    g.addColorStop(0.5, 'rgba(255,214,150,0)');
+    g.addColorStop(1, 'rgba(90,90,150,0.12)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, s - 20, W, TY - s + 30);
+    vfill(ctx, 0, TY - 90, W, 90, [[0, 'rgba(80,50,40,0)'], [1, 'rgba(80,50,40,0.36)']]);
+    // shells, a starfish, footprints wandering to the water
+    for (let i = 0; i < 16; i++) {
       const x = r() * W;
       const y = s + 30 + r() * (TY - s - 60);
       ctx.fillStyle = rgba(['#fff6ea', '#f8d0c0', '#e8c0a0'][i % 3], 0.9);
       ctx.beginPath();
-      ctx.ellipse(x, y, 4 + r() * 3, 2.5 + r() * 2, r() * 3, 0, Math.PI * 2);
+      ctx.ellipse(x, y, 3 + r() * 3, 2 + r() * 2, r() * 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(90,70,90,0.3)';
+      ctx.beginPath();
+      ctx.ellipse(x + 3, y + 2, 3, 1.4, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    for (let k = 0; k < 9; k++) {
+      const t = k / 8;
+      const fx = 1420 + t * 180 + (k % 2) * 14;
+      const fy = TY - 20 - t * 120;
+      const sc = 1 - t * 0.55;
+      ctx.fillStyle = 'rgba(110,80,80,0.3)';
+      ctx.beginPath();
+      ctx.ellipse(fx, fy, 7 * sc, 3.5 * sc, 0.3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,240,210,0.35)';
+      ctx.beginPath();
+      ctx.ellipse(fx + 2 * sc, fy + 2.5 * sc, 6 * sc, 1.6 * sc, 0.3, 0, Math.PI);
       ctx.fill();
     }
   });
-  // the foam where the last wave reached (live: it washes in and out)
-  foamLine(ctx, top, 1);
+  // the low sun throws everything's shadow long across the sand, towards us and to the right
+  within(ctx, path, () => {
+    for (const p of [BH.palmL, BH.palmR]) groundCast(ctx, trunkPath(p), TY, SHADOW.kx, SHADOW.ky, 0.3, 8, SHADOW.col);
+    groundCast(ctx, umbrellaShape(), BH.umbrella.y, SHADOW.kx, SHADOW.ky, 0.42, 5, SHADOW.col);
+    // (the canopy is a disc: its shadow an ellipse thrown out along the light)
+    const uh = 170;
+    ao(ctx, BH.umbrella.x + 13 + uh * SHADOW.kx, BH.umbrella.y + uh * SHADOW.ky, 120, 26, 0.36, -0.08, SHADOW.col);
+    groundCast(ctx, castleShape(), BH.castle.y, SHADOW.kx, SHADOW.ky, 0.42, 4, SHADOW.col);
+    groundCast(ctx, rectPath(BH.torch.x - 9, BH.torch.y - 360, 18, 360), BH.torch.y, SHADOW.kx, SHADOW.ky, 0.3, 5, SHADOW.col);
+  });
+  // the foam where the last wave reached (live: the surf washes in and out over it)
+  foamLace(ctx, r, (x) => shoreTop(x) + 2, -10, W + 10, 22, { a: 0.85, seed: 3 });
+  // dune grass in tufts at the sides, backlit
+  for (const [gx, gy, n] of [[200, TY - 24, 14], [420, TY - 8, 10], [1500, TY - 14, 12], [1700, TY - 30, 9]] as const) grassTuft(ctx, r, gx, gy, n);
 }
 
-function foamLine(ctx: Ctx, top: (x: number) => number, a: number): void {
-  ctx.save();
+function grassTuft(ctx: Ctx, r: R, x: number, y: number, n: number): void {
+  groundShadow(ctx, x + 26, y + 2, 34, 4, 0.28, '#6a4a60', 1.6);
   ctx.lineCap = 'round';
-  for (const [dy, w, al] of [[2, 10, 0.35], [0, 4, 0.9]] as const) {
-    ctx.strokeStyle = rgba('#ffffff', al * a);
-    ctx.lineWidth = w;
+  for (let i = 0; i < n; i++) {
+    const lean = (r() - 0.35) * 1.1;
+    const h = 28 + r() * 42;
+    const bx = x + (r() - 0.5) * 30;
+    const tx = bx + lean * h * 0.8;
+    const ty = y - h;
+    ctx.strokeStyle = mix('#6a7a3a', '#3a4a24', r());
+    ctx.lineWidth = 2.2;
     ctx.beginPath();
-    for (let x = -10; x <= W + 10; x += 12) {
-      const y = top(x) + dy + Math.sin(x * 0.07) * 2;
-      if (x === -10) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    }
+    ctx.moveTo(bx, y);
+    ctx.quadraticCurveTo(bx + lean * h * 0.2, y - h * 0.6, tx, ty);
+    ctx.stroke();
+    // the low sun through the blade
+    ctx.strokeStyle = rgba('#ffe090', 0.55);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(bx + lean * h * 0.15, y - h * 0.5);
+    ctx.quadraticCurveTo(bx + lean * h * 0.3, y - h * 0.75, tx, ty);
     ctx.stroke();
   }
-  ctx.restore();
 }
 
-/** A striped beach umbrella stuck in the sand, with its cast shadow and a towel. */
+/** The umbrella's silhouette (pole and canopy), for its shadow. */
+function umbrellaShape(): PathFn {
+  const { x, y } = BH.umbrella;
+  return (c) => {
+    c.beginPath();
+    c.moveTo(x - 3, y);
+    c.lineTo(x + 3, y);
+    c.lineTo(x + 16, y - 150);
+    c.lineTo(x + 10, y - 150);
+    c.closePath();
+    c.moveTo(x + 13, y - 196);
+    c.lineTo(x + 143, y - 140);
+    c.quadraticCurveTo(x + 13, y - 120, x - 117, y - 140);
+    c.closePath();
+  };
+}
+
+/** The sandcastle's silhouette, for its shadow. */
+function castleShape(): PathFn {
+  const { x, y } = BH.castle;
+  return (c) => {
+    c.beginPath();
+    for (const [dx, dy, w, h] of CASTLE) c.rect(x + dx, y + dy - 8, w, h + 8);
+    c.moveTo(x, y - 160);
+    c.lineTo(x + 26, y - 152);
+    c.lineTo(x, y - 144);
+    c.closePath();
+  };
+}
+
+const CASTLE: [number, number, number, number][] = [[-70, -40, 140, 40], [-60, -82, 34, 44], [26, -82, 34, 44], [-18, -112, 36, 74]];
+
+/** A striped beach umbrella stuck in the sand, its long shadow, and a towel. */
 function umbrella(ctx: Ctx, r: R): void {
   const { x, y } = BH.umbrella;
-  const s = 1;
-  // shade on the sand under it, thrown right (the sun is on the left)
-  // its shade on the sand, thrown down and to the right of the canopy (the sun is high on the left)
-  groundShadow(ctx, x + 70, y + 8, 150 * s, 22, 0.42, '#7a4a20', 1.2);
-  // a towel
   const towel = polyPath([[x - 150, y + 6], [x - 30, y + 2], [x - 20, y + 30], [x - 160, y + 34]]);
-  groundShadow(ctx, x - 82, y + 34, 76, 6, 0.3, '#7a4a20');
-  solid(ctx, towel, { x: x - 160, y, w: 140, h: 34 }, 'canvas', '#3a9ad8', { depth: 0.4, line: 1.6, formSize: 4 });
+  groundShadow(ctx, x - 70, y + 36, 80, 6, 0.28, '#5a4a7a');
+  solid(ctx, towel, { x: x - 160, y, w: 140, h: 34 }, 'canvas', '#3a9ad8', { depth: 0.4, line: 1.4, formSize: 4 });
   within(ctx, towel, () => {
     ctx.fillStyle = 'rgba(255,255,255,0.7)';
     for (let k = 0; k < 5; k++) ctx.fillRect(x - 160 + k * 30, y, 10, 40);
+    // a fold across it
+    ctx.fillStyle = 'rgba(20,40,80,0.25)';
+    ctx.fillRect(x - 160, y + 17, 150, 3);
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    ctx.fillRect(x - 160, y + 14, 150, 3);
   });
-  // the pole
   const pole = polyPath([[x - 3, y], [x + 3, y], [x + 16, y - 150], [x + 10, y - 150]]);
-  solid(ctx, pole, { x: x - 3, y: y - 150, w: 20, h: 150 }, 'wood', '#e8e0d0', { depth: 0.4, line: 1.8, formSize: 3 });
-  // the canopy: panels alternating red and white, lit on the left
+  solid(ctx, pole, { x: x - 3, y: y - 150, w: 20, h: 150 }, 'wood', '#e8e0d0', { depth: 0.4, line: 1.6, formSize: 3 });
+  // the canopy: panels alternating red and white, each a taut cloth bellying between its ribs, lit on the sun side
+  // with the sun glowing through the panels turned to it
   const cx = x + 13;
   const cy = y - 150;
   const rw = 130;
@@ -282,17 +392,27 @@ function umbrella(ctx: Ctx, r: R): void {
       c.closePath();
     };
     const lit = 1 - i / panels;
-    solid(ctx, p, { x: cx - rw, y: cy - 46, w: rw * 2, h: 64 }, 'canvas', shade(i % 2 ? '#f4f0e8' : '#e8402a', (lit - 0.5) * 0.2), { depth: 0.4, line: 1.8, formSize: 8 });
+    const base = i % 2 ? '#f4f0e8' : '#e8402a';
+    solid(ctx, p, { x: cx - rw, y: cy - 46, w: rw * 2, h: 64 }, 'canvas', shade(base, (lit - 0.5) * 0.25), { depth: 0.4, line: 1.6, formSize: 8 });
+    within(ctx, p, () => {
+      // each panel bellies: lighter in its middle, darker along its ribs
+      const mx = cx + Math.cos((a0 + a1) / 2) * rw * 0.6;
+      const g = ctx.createRadialGradient(mx, cy - 6, 2, mx, cy - 6, rw * 0.5);
+      g.addColorStop(0, rgba('#fff4e0', 0.18 * lit + 0.04));
+      g.addColorStop(1, rgba('#3a1020', 0.15));
+      ctx.fillStyle = g;
+      ctx.fillRect(cx - rw, cy - 50, rw * 2, 70);
+    });
   }
+  // the scalloped hem's shadow inside, and the sun through the cloth
+  lightPool(ctx, cx - rw * 0.5, cy - 4, 60, 18, '#ffd890', 0.2, 'screen');
   void r;
 }
 
 /** A sandcastle with a little flag (the mini-boss's home turf). */
 function sandcastle(ctx: Ctx, r: R): void {
   const { x, y } = BH.castle;
-  groundShadow(ctx, x + 30, y + 2, 90, 12, 0.3, '#8a5a30', 1.2);
-  const parts: [number, number, number, number][] = [[-70, -40, 140, 40], [-60, -82, 34, 44], [26, -82, 34, 44], [-18, -112, 36, 74]];
-  for (const [dx, dy, w, h] of parts) {
+  for (const [dx, dy, w, h] of CASTLE) {
     const p = (c: Ctx) => {
       c.beginPath();
       c.moveTo(x + dx, y + dy + h);
@@ -307,8 +427,17 @@ function sandcastle(ctx: Ctx, r: R): void {
       c.lineTo(x + dx + w, y + dy + h);
       c.closePath();
     };
-    solid(ctx, p, { x: x + dx, y: y + dy - 8, w, h: h + 8 }, 'stone', '#e8c88a', { depth: 0.38, line: 1.8, formSize: 8 });
-    within(ctx, p, () => grain(ctx, { x: x + dx, y: y + dy - 8, w, h: h + 8 }, 'speckle', 0.5, 1));
+    castShadow(ctx, p, 8, 6, 0.25, '#5a4a7a');
+    solid(ctx, p, { x: x + dx, y: y + dy - 8, w, h: h + 8 }, 'stone', '#e8c88a', { depth: 0.38, line: 1.6, formSize: 8 });
+    within(ctx, p, () => {
+      grain(ctx, { x: x + dx, y: y + dy - 8, w, h: h + 8 }, 'speckle', 0.5, 1);
+      // the sun's side gold, the far side cool
+      const g = ctx.createLinearGradient(x + dx, 0, x + dx + w, 0);
+      g.addColorStop(0, rgba('#ffe0a0', 0.25));
+      g.addColorStop(1, rgba('#6a5a8a', 0.25));
+      ctx.fillStyle = g;
+      ctx.fillRect(x + dx, y + dy - 8, w, h + 8);
+    });
   }
   ctx.fillStyle = '#3a2410';
   ctx.beginPath();
@@ -326,9 +455,9 @@ function sandcastle(ctx: Ctx, r: R): void {
   ctx.lineTo(x + 26, y - 152);
   ctx.lineTo(x, y - 144);
   ctx.fill();
-  // a bucket and spade
   const bucket = polyPath([[x + 96, y - 26], [x + 128, y - 26], [x + 124, y + 2], [x + 100, y + 2]]);
-  solid(ctx, bucket, { x: x + 96, y: y - 26, w: 32, h: 28 }, 'plastic', '#ffd23f', { depth: 0.38, line: 1.8, formSize: 6 });
+  groundShadow(ctx, x + 130, y + 4, 26, 4, 0.3, '#5a4a7a', 1.6);
+  solid(ctx, bucket, { x: x + 96, y: y - 26, w: 32, h: 28 }, 'plastic', '#ffd23f', { depth: 0.38, line: 1.6, formSize: 6 });
   void r;
 }
 
@@ -341,12 +470,15 @@ interface Palm {
   ty: number;
 }
 
-function trunk(ctx: Ctx, r: R, p: Palm): void {
+function trunkPath(p: Palm): PathFn {
+  return trunkGeom(p).path;
+}
+
+function trunkGeom(p: Palm) {
   const mx = (p.bx + p.tx) / 2 + (p.tx > p.bx ? -60 : 60);
   const my = (p.by + p.ty) / 2 + 40;
   const at = (t: number): [number, number] => [(1 - t) * (1 - t) * p.bx + 2 * (1 - t) * t * mx + t * t * p.tx, (1 - t) * (1 - t) * p.by + 2 * (1 - t) * t * my + t * t * p.ty];
   const wAt = (t: number) => 30 - t * 14;
-  // the trunk: a tapering curve, lit on the left, ringed
   const left: [number, number][] = [];
   const right: [number, number][] = [];
   for (let i = 0; i <= 24; i++) {
@@ -359,9 +491,13 @@ function trunk(ctx: Ctx, r: R, p: Palm): void {
     left.push([x + (nx / l) * wAt(t), y + (ny / l) * wAt(t)]);
     right.push([x - (nx / l) * wAt(t), y - (ny / l) * wAt(t)]);
   }
-  const path = polyPath([...left, ...right.reverse()]);
-  castShadow(ctx, path, 30, 26, 0.18, '#6a4a2a');
-  solid(ctx, path, { x: Math.min(p.bx, p.tx) - 40, y: p.ty, w: Math.abs(p.tx - p.bx) + 80, h: p.by - p.ty }, 'wood', '#a07850', { depth: 0.2, formSize: 18 });
+  return { at, wAt, path: polyPath([...left, ...right.reverse()]) };
+}
+
+function trunk(ctx: Ctx, r: R, p: Palm): void {
+  const { at, wAt, path } = trunkGeom(p);
+  const box = { x: Math.min(p.bx, p.tx) - 40, y: p.ty, w: Math.abs(p.tx - p.bx) + 80, h: p.by - p.ty };
+  solid(ctx, path, box, 'wood', '#a07850', { depth: 0.2, formSize: 18 });
   within(ctx, path, () => {
     for (let i = 1; i < 30; i++) {
       const t = i / 30;
@@ -378,18 +514,29 @@ function trunk(ctx: Ctx, r: R, p: Palm): void {
       ctx.ellipse(x, y - 3, w, 5, 0.1, Math.PI * 0.9, Math.PI * 1.4);
       ctx.stroke();
     }
-    grain(ctx, { x: Math.min(p.bx, p.tx) - 40, y: p.ty, w: Math.abs(p.tx - p.bx) + 80, h: p.by - p.ty }, 'wood', 0.3, 1.3);
+    grain(ctx, box, 'wood', 0.3, 1.3);
+    lay(ctx, drift('#d8b080', '#4a3a40', 4, 61), box, 0.3);
+    // the low sun on the trunk's left side, warm; its right side cool
+    const g = ctx.createLinearGradient(box.x, 0, box.x + box.w, 0);
+    g.addColorStop(0, rgba('#ffd890', 0.2));
+    g.addColorStop(1, rgba('#4a4a8a', 0.2));
+    ctx.fillStyle = g;
+    ctx.fillRect(box.x, box.y, box.w, box.h);
   });
   void r;
 }
 
-/** A palm crown: fronds arching out of the top of the trunk and drooping, each a rib hung with narrow leaflets (the
- * upper ones lit, the lower ones in the crown's own shade). */
+/** A palm crown: fronds arching out of the top of the trunk and drooping, each a rib hung with narrow leaflets. The
+ * low sun is behind them: the leaflets glow yellow-green where it shines through, the ones in the crown's own
+ * shade stay deep green. */
 function crown(ctx: Ctx, r: R, p: Palm, flip: number): void {
   const { tx, ty } = p;
   const fronds = [-2.95, -2.5, -2.05, -1.6, -1.2, -0.75, -0.3, 0.15, 2.75, 3.25].map((a) => a + (r() - 0.5) * 0.15);
-  // back fronds first (the ones reaching away and up), the drooping front ones last
   fronds.sort((a, b) => Math.sin(a) - Math.sin(b));
+  // towards the sun (screen direction) the leaves are backlit
+  const sdx = BH.sun.x - tx;
+  const sdy = BH.sun.y - ty;
+  const sl = Math.hypot(sdx, sdy) || 1;
   for (const a0 of fronds) {
     const a = flip > 0 ? a0 : Math.PI - a0;
     const len = 200 + r() * 60;
@@ -399,9 +546,7 @@ function crown(ctx: Ctx, r: R, p: Palm, flip: number): void {
     const cx = tx + Math.cos(a) * len * 0.55;
     const cy = ty - up * len * 0.55 - 30;
     const back = up > 0.6;
-    const leaf = back ? '#3e7c30' : '#5aa43a';
     const q = (t: number): [number, number] => [(1 - t) * (1 - t) * tx + 2 * (1 - t) * t * cx + t * t * ex, (1 - t) * (1 - t) * ty + 2 * (1 - t) * t * cy + t * t * ey];
-    // leaflets: narrow blades hanging off the rib, longest a third of the way out
     const n = 22;
     for (let side = -1; side <= 1; side += 2) {
       for (let i = 1; i <= n; i++) {
@@ -411,14 +556,17 @@ function crown(ctx: Ctx, r: R, p: Palm, flip: number): void {
         const dx = x2 - x;
         const dy = y2 - y;
         const l = Math.hypot(dx, dy) || 1;
-        // out from the rib, then hanging under gravity
         const nx = (-dy / l) * side;
         const ny = (dx / l) * side;
         const bl = (18 + Math.sin(Math.min(1, t * 1.6) * Math.PI) * 46) * (1 - t * 0.35);
         const hx = x + nx * bl * 0.6 + (dx / l) * bl * 0.45;
         const hy = y + Math.abs(ny) * bl * 0.3 + bl * 0.75;
         const lower = ny > 0;
-        const col = shade(leaf, (lower ? -0.12 : 0.08) + (r() - 0.5) * 0.08);
+        // backlight: how much this leaflet faces the sun from in front of it
+        const facing = Math.max(0, ((x - tx) * sdx + (y - ty) * sdy) / (sl * len));
+        const glow = Math.min(1, facing * 1.4) * (lower ? 0.5 : 1) * (back ? 0.6 : 1);
+        const baseCol = back ? '#24481f' : '#335e28';
+        const col = mix(shade(baseCol, (lower ? -0.2 : 0) + (r() - 0.5) * 0.1), '#b8c860', glow * 0.4);
         const blade = (c: Ctx) => {
           c.beginPath();
           c.moveTo(x - (dx / l) * 3, y - (dy / l) * 3);
@@ -427,13 +575,17 @@ function crown(ctx: Ctx, r: R, p: Palm, flip: number): void {
           c.closePath();
         };
         blade(ctx);
-        ctx.fillStyle = col;
+        const lg = ctx.createLinearGradient(x, y, hx, hy);
+        lg.addColorStop(0, shade(col, -0.18));
+        lg.addColorStop(0.6, col);
+        lg.addColorStop(1, mix(col, '#d8e090', glow * 0.2));
+        ctx.fillStyle = lg;
         ctx.fill();
-        ctx.strokeStyle = rgba('#1a3a10', 0.7);
-        ctx.lineWidth = 1.1;
+        ctx.strokeStyle = rgba('#14300c', 0.22);
+        ctx.lineWidth = 0.9;
         ctx.stroke();
         if (!lower && r() < 0.6) {
-          ctx.strokeStyle = rgba('#e8ffc0', 0.35);
+          ctx.strokeStyle = rgba('#f0ffc0', 0.25 + glow * 0.3);
           ctx.lineWidth = 1;
           ctx.beginPath();
           ctx.moveTo(x, y);
@@ -442,14 +594,13 @@ function crown(ctx: Ctx, r: R, p: Palm, flip: number): void {
         }
       }
     }
-    // the rib, lit on top
     ctx.strokeStyle = '#2a4a14';
     ctx.lineWidth = 5;
     ctx.beginPath();
     ctx.moveTo(tx, ty);
     ctx.quadraticCurveTo(cx, cy, ex, ey);
     ctx.stroke();
-    ctx.strokeStyle = '#a8c86a';
+    ctx.strokeStyle = '#b8d07a';
     ctx.lineWidth = 2;
     ctx.stroke();
   }
@@ -464,30 +615,41 @@ function crown(ctx: Ctx, r: R, p: Palm, flip: number): void {
 
 function thatch(ctx: Ctx, r: R): void {
   const h = BH.thatch;
-  // the underside of the roof: dark, warm
-  vfill(ctx, 0, 0, W, h, [[0, '#3a2412'], [1, '#5a3a1c']]);
-  // a ridge beam
+  // the underside of the roof: dark, warm, the rafters' poles running up into it
+  vfill(ctx, 0, 0, W, h, [[0, '#2a180c'], [1, '#4a301a']]);
+  lay(ctx, drift('#6a4a2a', '#140a04', 10, 71, 256, 24), { x: 0, y: 0, w: W, h }, 0.5);
+  for (let x = 140; x < W; x += 260) {
+    const p = polyPath([[x - 8, -4], [x + 8, -4], [x + 30, h - 30], [x + 14, h - 30]]);
+    solid(ctx, p, { x: x - 8, y: 0, w: 40, h: h - 30 }, 'wood', '#6a4a26', { depth: 0.2, line: 1.4, formSize: 5 });
+  }
   board(ctx, r, 0, h - 40, W, 22, '#6a4422');
   crevice(ctx, 0, W, h - 18, 14, 0.5);
-  // the fringe: bundles of dry grass hanging in layers, lit on the left, the light glowing through their tips
+  // the fringe: bundles of dry grass hanging in layers, the bright sky behind glowing through their tips
   for (let layer = 0; layer < 3; layer++) {
     const y0 = h - 70 + layer * 22;
-    for (let x = -20; x < W + 20; x += 7) {
+    for (let x = -20; x < W + 20; x += 6) {
       const len = 40 + r() * 50 + layer * 6;
-      const col = shade(['#c8a05a', '#b88a48', '#d8b46a'][Math.floor(r() * 3)], -0.15 + layer * 0.08);
-      ctx.strokeStyle = col;
+      const col = shade(['#c8a05a', '#b88a48', '#d8b46a'][Math.floor(r() * 3)], -0.3 + layer * 0.1);
+      const ex = x + (r() - 0.4) * 12;
+      const ey = y0 + len;
+      const g = ctx.createLinearGradient(0, y0, 0, ey);
+      g.addColorStop(0, shade(col, -0.35));
+      g.addColorStop(0.7, col);
+      g.addColorStop(1, mix(col, '#ffe8b0', 0.45));
+      ctx.strokeStyle = g;
       ctx.lineWidth = 2 + r() * 2;
       ctx.beginPath();
       ctx.moveTo(x, y0);
-      ctx.quadraticCurveTo(x + (r() - 0.5) * 8, y0 + len * 0.5, x + (r() - 0.4) * 12, y0 + len);
+      ctx.quadraticCurveTo(x + (r() - 0.5) * 8, y0 + len * 0.5, ex, ey);
       ctx.stroke();
     }
   }
-  // the fringe's ragged edge: a dark line of shadow, a few bright tips
+  // the fringe's edge glowing against the sky (strongest on the sun's side)
   for (let x = 0; x < W; x += 3) {
-    if (r() < 0.2) {
-      ctx.fillStyle = rgba('#fff0b0', 0.5);
-      ctx.fillRect(x, h + 4 + r() * 30, 2, 6);
+    if (r() < 0.25) {
+      const near = Math.max(0, 1 - Math.abs(x - BH.sun.x) / 900);
+      ctx.fillStyle = rgba('#fff0b0', 0.3 + near * 0.4);
+      ctx.fillRect(x, h + 4 + r() * 30, 1.6, 6);
     }
   }
   grain(ctx, { x: 0, y: 0, w: W, h: h + 60 }, 'grain', 0.25, 1.2);
@@ -512,16 +674,26 @@ function bamboo(ctx: Ctx, r: R, x: number, y0: number, y1: number, w: number): v
   solid(ctx, p, { x, y: y0, w, h: y1 - y0 }, 'wood', '#c8a060', { depth: 0.08, formSize: w * 0.35 });
   within(ctx, p, () => {
     for (let y = y0 + 60 + r() * 40; y < y1; y += 110 + r() * 40) {
+      // a node: a ridge lit on top, a groove under it
       ctx.fillStyle = 'rgba(70,40,10,0.55)';
       ctx.fillRect(x, y, w, 5);
-      ctx.fillStyle = rgba('#fff0c0', 0.35);
+      ctx.fillStyle = rgba('#fff0c0', 0.4);
       ctx.fillRect(x, y + 5, w, 2);
+      ctx.fillStyle = 'rgba(70,40,10,0.2)';
+      ctx.fillRect(x, y - 10, w, 10);
     }
-    // long fibres
     for (let fx = x + 4; fx < x + w; fx += 5 + r() * 4) {
       ctx.fillStyle = rgba(r() < 0.5 ? '#6a4a1a' : '#fff0c8', 0.12);
       ctx.fillRect(fx, y0, 1.2, y1 - y0);
     }
+    lay(ctx, drift('#e8c890', '#5a3a20', 3, Math.round(x) + 5, 32, 160), { x, y: y0, w, h: y1 - y0 }, 0.3);
+    // the polished cane: a long vertical sheen down its lit side
+    const g = ctx.createLinearGradient(x, 0, x + w, 0);
+    g.addColorStop(0.15, 'rgba(255,240,200,0)');
+    g.addColorStop(0.28, 'rgba(255,240,200,0.3)');
+    g.addColorStop(0.4, 'rgba(255,240,200,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(x, y0, w, y1 - y0);
   });
 }
 
@@ -551,15 +723,23 @@ function postR(ctx: Ctx, r: R): void {
     ctx.fillRect(-80, -292, 160, 14);
     ctx.fillStyle = 'rgba(255,255,255,0.8)';
     ctx.fillRect(-2, -500, 4, 500);
+    // the glassed finish: the sky in a long soft band down its left
+    const g = ctx.createLinearGradient(-60, 0, 60, 0);
+    g.addColorStop(0.1, 'rgba(255,240,210,0)');
+    g.addColorStop(0.25, 'rgba(255,240,210,0.35)');
+    g.addColorStop(0.36, 'rgba(255,240,210,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(-60, -500, 120, 500);
     ctx.restore();
   });
-  specHi(ctx, 1742, 420, 60, 12, 0.5, -1.4);
+  specHi(ctx, 1742, 420, 70, 10, 0.7, -1.45);
+  specHi(ctx, 1760, 300, 26, 5, 0.6, -1.45);
 }
 
 function torch(ctx: Ctx, r: R): void {
   const { x, y } = BH.torch;
   const pole = rectPath(x - 9, y - 330, 18, 330);
-  groundShadow(ctx, x + 24, y, 40, 6, 0.4, '#7a4a20', 1.4);
+  groundShadow(ctx, x + 4, y, 16, 4, 0.4, '#3a2a40');
   castShadow(ctx, pole, 20, 14, 0.25, '#4a2a10');
   solid(ctx, pole, { x: x - 9, y: y - 330, w: 18, h: 330 }, 'wood', '#8a6034', { depth: 0.12, formSize: 6 });
   const cup = polyPath([[x - 24, y - 360], [x + 24, y - 360], [x + 14, y - 322], [x - 14, y - 322]]);
@@ -608,7 +788,23 @@ function lights(ctx: Ctx, lit: boolean): void {
     ctx.stroke();
     ctx.fillStyle = 'rgba(255,255,255,0.7)';
     ctx.fillRect(x - 2.5, y - 4, 1.6, 3);
-    if (lit) glowAt(ctx, x, y, 22, c, 0.6);
+    // (lit, the bulb is just brighter here; its halo is in lightsGlow, an additive layer)
+    if (lit) {
+      ctx.fillStyle = rgba('#ffffff', 0.45);
+      b(ctx);
+      ctx.fill();
+    }
+  }
+}
+
+/** The lit bulbs' light on the bar top and the thatch's fringe (live only: added over the base at dusk). */
+function lightsGlow(ctx: Ctx): void {
+  for (const [x, y, c] of BULBS) {
+    // the bulb's own halo (kept off the sign: it would wash it out), and its spill below
+    glowAt(ctx, x, y, 30, c, 0.75);
+    glowAt(ctx, x, y, 10, '#ffffff', 0.6);
+    if (Math.abs(x - BH.sign.x) > 320) glowAt(ctx, x, y + 20, 60, c, 0.24, 1.2);
+    lightPool(ctx, x, BH.front - 160, 140, 60, mix(c, '#ffd8a0', 0.5), 0.14);
   }
 }
 
@@ -616,7 +812,6 @@ function sign(ctx: Ctx, r: R): void {
   const { x, y } = BH.sign;
   const w = 560;
   const h = 96;
-  // ropes up into the thatch
   for (const dx of [-200, 200]) {
     ctx.strokeStyle = '#6a4a24';
     ctx.lineWidth = 4;
@@ -629,26 +824,37 @@ function sign(ctx: Ctx, r: R): void {
   castShadow(ctx, p, 18, 16, 0.3, '#3a2010');
   solid(ctx, p, { x: x - w / 2, y: y - h / 2, w, h }, 'wood', '#9a6a3a', { depth: 0.1, formSize: 16 });
   within(ctx, p, () => {
+    board(ctx, r, x - w / 2, y - h / 2, w, h, '#9a6a3a');
     for (let k = 1; k < 3; k++) {
       ctx.fillStyle = 'rgba(40,20,6,0.45)';
       ctx.fillRect(x - w / 2, y - h / 2 + (k * h) / 3, w, 2);
+      ctx.fillStyle = rgba('#ffe0b0', 0.2);
+      ctx.fillRect(x - w / 2, y - h / 2 + (k * h) / 3 + 2, w, 1);
     }
-    board(ctx, r, x - w / 2, y - h / 2, w, h, '#9a6a3a');
-    ctx.globalAlpha = 1;
+    // sun-bleached, salt-weathered
+    lay(ctx, drift('#d8b080', '#3a2010', 6, 91, 160, 32), { x: x - w / 2, y: y - h / 2, w, h }, 0.3);
+    varnish(ctx, { x: x - w / 2, y: y - h / 2, w, h }, [{ x: BH.sun.x + 60, a: 0.25, w: 120 }], { sheen: 0.08, vertical: false });
   });
   ctx.lineWidth = lineAt(0.1);
   ctx.strokeStyle = '#3a1e0c';
   p(ctx);
   ctx.stroke();
-  // carved, painted letters
+  // carved, painted letters: the carving's shadow, the paint, a lit edge
   ctx.font = `64px ${SLAB}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillStyle = '#3a1e0c';
+  ctx.fillStyle = '#2a1408';
   ctx.fillText('SHACK ATTACK', x + 3, y + 5);
   ctx.fillStyle = '#ffe9b0';
   ctx.fillText('SHACK ATTACK', x, y + 2);
-  void BLOCK;
+  ctx.save();
+  ctx.globalCompositeOperation = 'source-atop';
+  const g = ctx.createLinearGradient(0, y - 30, 0, y + 34);
+  g.addColorStop(0, 'rgba(255,255,255,0.0)');
+  g.addColorStop(1, 'rgba(120,60,20,0.25)');
+  ctx.fillStyle = g;
+  ctx.fillRect(x - w / 2, y - 34, w, 68);
+  ctx.restore();
 }
 
 function table(ctx: Ctx, r: R): void {
@@ -657,10 +863,12 @@ function table(ctx: Ctx, r: R): void {
   ctx.beginPath();
   ctx.rect(0, TY, W, BH.front - TY + 4);
   ctx.clip();
+  // salt-bleached: paler towards the open side, a waxed sheen catching the low sun
+  lay(ctx, drift('#f0d8b0', '#6a4a3a', 5, 51, 256, 48), { x: 0, y: TY, w: W, h: BH.front - TY }, 0.14);
+  varnish(ctx, { x: 0, y: TY, w: W, h: BH.front - TY }, [{ x: BH.sun.x, a: 0.16, w: 160, col: '#ffe0a8' }], { sheen: 0.06 });
   // sun through the thatch: dappled light on the bar top
-  for (let i = 0; i < 30; i++) {
-    lightPool(ctx, r() * W, TY + 20 + r() * (BH.front - TY - 40), 40 + r() * 80, 10 + r() * 16, '#fff2c8', 0.05 + r() * 0.05);
-  }
+  // the low sun reaching in under the thatch: warm on the back of the bar, under the sun's side
+  lightPool(ctx, BH.sun.x + 100, TY + 30, 700, 90, '#ffd890', 0.16, 'screen');
   ctx.restore();
   tableFalloff(ctx, BH.front, 0.3, '#3a2008');
   tableSeam(ctx, 0.4, '#3a2010', false);
@@ -686,10 +894,9 @@ function table(ctx: Ctx, r: R): void {
 }
 
 function drink(ctx: Ctx): void {
-  // a coconut drink with a paper umbrella at the back left
   const cx = 150;
   const cy = 806;
-  groundShadow(ctx, cx + 10, cy + 2, 46, 8, 0.4);
+  groundShadow(ctx, cx + 16, cy + 2, 50, 8, 0.4, '#3a2010', 1.4);
   const nut = ellPath(cx, cy - 26, 36, 30);
   solid(ctx, nut, { x: cx - 36, y: cy - 56, w: 72, h: 60 }, 'wood', '#6a4422', { depth: 0.05, formSize: 12 });
   within(ctx, nut, () => grain(ctx, { x: cx - 40, y: cy - 60, w: 80, h: 70 }, 'fleece', 0.5, 1));
@@ -716,32 +923,37 @@ function drink(ctx: Ctx): void {
 }
 
 function limes(ctx: Ctx): void {
-  // a bottle and limes at the back right
   bottle(ctx, 1800, 808, 84, '#5a8a3a', { kind: 'wine', label: '#ffe0a0', cork: '#e8e0c0', depth: 0.05 });
   for (const [lx, ly] of [[1740, 806], [1764, 812], [1858, 810]] as const) {
     const lime = ellPath(lx, ly - 10, 14, 11);
+    groundShadow(ctx, lx + 6, ly, 16, 4, 0.35, '#3a2010', 1.3);
     solid(ctx, lime, { x: lx - 14, y: ly - 21, w: 28, h: 22 }, 'plastic', '#8acc3a', { depth: 0.05, line: 1.6, formSize: 4 });
   }
   ao(ctx, 1790, 812, 110, 9, 0.35);
 }
 
-
 function grade(ctx: Ctx): void {
-  gradeAll(ctx, 0.02, '#ffd8a0', 0.05);
+  gradeAll(ctx, 0.02, '#ffd09a', 0.06, { warm: '#ffc880', cool: '#5a6ac0', a: 0.2 });
 }
 
 function shadeOver(ctx: Ctx): void {
   hudCalm(ctx);
-  calmLanes(ctx, 0.08, '#2a3a5a', 140, 600);
-  vignetteAll(ctx, 0.35, '#2a1a10');
+  calmLanes(ctx, 0.06, '#4a3020', 220, 620);
+  vignetteAll(ctx, 0.4, '#2a1a20');
 }
 
-const CLOUD_FAR = { x: 300, y: 230, w: 1640, h: 210 };
-const CLOUD_NEAR = { x: 600, y: 140, w: 1180, h: 200 };
+/** The live skies stop at the horizon and the evening sea short of the sand (anything still that overlaps a
+ * moving or live-only layer has to be baked into an overlay over it). */
+const SKY_BOX = { x: 0, y: 0, w: W, h: BH.horizon };
+const SEA_BOX = { x: 0, y: BH.horizon, w: W, h: BH.shore - BH.horizon + 14 };
+const SEA_EVE = { x: 0, y: BH.horizon, w: W, h: 108 };
+const CLOUD_FAR = { x: 0, y: 330, w: W, h: 126 };
+const CLOUD_NEAR = { x: 780, y: 170, w: 1060, h: 200 };
 const PALM_L = { x: 0, y: 30, w: 600, h: 520 };
 const PALM_R = { x: 1300, y: 60, w: 620, h: 520 };
 const SIGN_BOX = { x: BH.sign.x - 300, y: BH.sign.y - 80, w: 620, h: 160 };
 const SHORE_BOX = { x: 0, y: BH.shore - 30, w: W, h: 60 };
+const GLITTER_BOX = { x: 360, y: BH.horizon + 4, w: 520, h: SEA_EVE.h - 4 };
 
 export const BEACH: SceneSpec = {
   id: 'beach',
@@ -749,38 +961,43 @@ export const BEACH: SceneSpec = {
     name: 'Shack Attack Beach Bar',
     subtitle: 'Waves 11–14',
     ambient: ['sparkle'],
-    glows: [{ x: 150, y: 60, r: 380, color: '#fff2c0', flicker: 0.03 }],
-    light: '#ffe2b0',
-    tableTint: '#fff4e0',
+    glows: [{ x: BH.sun.x, y: BH.sun.y, r: 380, color: '#ffd890', flicker: 0.03 }],
+    light: '#ffe0b0',
+    tableTint: '#fff2e0',
   },
   layers: [
-    { id: 'sky', box: { x: 0, y: 0, w: W, h: BH.horizon + 4 }, draw: (c, r) => sky(c, r, false) },
-    { id: 'sunset', box: { x: 0, y: 0, w: W, h: BH.horizon }, liveOnly: true, res: 0.5, draw: (c, r) => sky(c, r, true) },
-    { id: 'cloudsFar', box: CLOUD_FAR, motion: 'sprite', res: 0.75, draw: cloudsFar },
+    { id: 'sky', box: { ...SKY_BOX, h: BH.horizon + 4 }, draw: sky },
+    // the low banks on the horizon barely move: still, in the base (the sunset and dusk skies paint their own)
+    { id: 'cloudsFar', box: CLOUD_FAR, draw: cloudsFar },
+    { id: 'sunset', box: SKY_BOX, liveOnly: true, res: 0.5, draw: sunsetSky },
+    { id: 'dusk', box: SKY_BOX, liveOnly: true, res: 0.5, draw: duskSky },
     { id: 'cloudsNear', box: CLOUD_NEAR, motion: 'sprite', res: 0.75, draw: cloudsNear },
     { id: 'island', box: { x: BH.island.x - 240, y: BH.horizon - 150, w: 500, h: 150 }, draw: island },
-    { id: 'sea', box: { x: 0, y: BH.horizon, w: W, h: BH.shore - BH.horizon + 14 }, draw: sea },
+    { id: 'sea', box: SEA_BOX, draw: sea },
+    { id: 'seaEve', box: SEA_EVE, liveOnly: true, res: 0.75, draw: seaEve },
     // gulls and the sailboat (behind the palms and the bar's posts), and the sun's glitter on the water
     { id: 'skyLife', box: { x: 0, y: 230, w: W, h: BH.horizon - 230 + 4 }, motion: 'slot', draw: () => {} },
-    { id: 'glitter', box: { x: 280, y: BH.horizon + 4, w: 210, h: 120 }, motion: 'slot', draw: () => {} },
-    { id: 'shore', box: { x: 0, y: BH.shore - 24, w: W, h: TY - BH.shore + 28 }, draw: shore },
+    { id: 'glitter', box: GLITTER_BOX, motion: 'slot', draw: () => {} },
+    { id: 'shore', box: { x: 0, y: SEA_EVE.y + SEA_EVE.h, w: W, h: TY + 4 - SEA_EVE.y - SEA_EVE.h }, draw: shore },
     { id: 'surf', box: SHORE_BOX, motion: 'slot', draw: () => {} },
-    { id: 'castle', box: { x: BH.castle.x - 110, y: BH.castle.y - 170, w: 260, h: 190 }, draw: sandcastle },
-    { id: 'umbrella', box: { x: BH.umbrella.x - 180, y: BH.umbrella.y - 210, w: 420, h: 250 }, draw: umbrella },
+    { id: 'castle', box: { x: BH.castle.x - 110, y: BH.castle.y - 170, w: 380, h: 200 }, draw: sandcastle },
+    { id: 'umbrella', box: { x: BH.umbrella.x - 180, y: BH.umbrella.y - 210, w: 520, h: 260 }, draw: umbrella },
     { id: 'trunkL', box: { x: 0, y: 190, w: 400, h: TY - 190 }, draw: (c, r) => trunk(c, r, BH.palmL) },
     { id: 'trunkR', box: { x: 1480, y: 210, w: 440, h: TY - 210 }, draw: (c, r) => trunk(c, r, BH.palmR) },
-    { id: 'torch', box: { x: BH.torch.x - 40, y: BH.torch.y - 380, w: 110, h: 380 }, draw: torch },
+    { id: 'torch', box: { x: BH.torch.x - 40, y: BH.torch.y - 380, w: 170, h: 380 }, draw: torch },
     { id: 'palmL', box: PALM_L, motion: 'sprite', draw: (c, r) => crown(c, r, BH.palmL, 1) },
     { id: 'palmR', box: PALM_R, motion: 'sprite', draw: (c, r) => crown(c, r, BH.palmR, -1) },
     { id: 'postL', box: { x: 0, y: 0, w: 130, h: TY }, draw: (c, r) => bamboo(c, r, -10, 0, TY, 74) },
     { id: 'postR', box: { x: 1660, y: 0, w: W - 1660, h: TY }, draw: postR },
     { id: 'thatch', box: { x: 0, y: 0, w: W, h: BH.thatch + 64 }, draw: thatch },
-    { id: 'lights', box: { x: 60, y: BH.thatch, w: W - 120, h: 70 }, draw: (c) => lights(c, false) },
-    { id: 'lightsOn', box: { x: 60, y: BH.thatch, w: W - 120, h: 70 }, liveOnly: true, draw: (c) => lights(c, true) },
+    { id: 'lights', box: { x: 50, y: BH.thatch - 6, w: W - 100, h: 100 }, draw: (c) => lights(c, false) },
+    { id: 'lightsOn', box: { x: 50, y: BH.thatch - 6, w: W - 100, h: 100 }, liveOnly: true, draw: (c) => lights(c, true) },
     { id: 'sign', box: SIGN_BOX, motion: 'sprite', draw: sign },
     { id: 'table', box: { x: 0, y: TY, w: W, h: 1080 - TY }, draw: table },
-    { id: 'drink', box: { x: 60, y: TY - 120, w: 200, h: 180 }, draw: drink },
+    { id: 'drink', box: { x: 60, y: TY - 120, w: 220, h: 180 }, draw: drink },
     { id: 'limes', box: { x: 1680, y: TY - 120, w: 240, h: 180 }, draw: limes },
+    // the bulbs' light on the bar and the fringe at dusk (added: the live code sets it to ADD)
+    { id: 'lightsGlow', box: { x: 0, y: BH.thatch - 20, w: W, h: BH.front - BH.thatch + 20 }, liveOnly: true, res: 0.33, draw: lightsGlow },
     // the torch's flame: over everything
     { id: 'torchFire', motion: 'top', draw: () => {} },
   ],
@@ -792,8 +1009,10 @@ export const BEACH: SceneSpec = {
 
 registerKitScene(BEACH, (k, wave0) => {
   const sunset = k.sprite('sunset');
+  const dusk = k.sprite('dusk');
+  const seaEveS = k.sprite('seaEve');
   const lightsOn = k.sprite('lightsOn');
-  const far = k.sprite('cloudsFar');
+  const bulbGlow = k.sprite('lightsGlow').setBlendMode(Phaser.BlendModes.ADD);
   const near = k.sprite('cloudsNear');
   const palmL = k.pivot(k.sprite('palmL'), BH.palmL.tx, BH.palmL.ty);
   const palmR = k.pivot(k.sprite('palmR'), BH.palmR.tx, BH.palmR.ty);
@@ -801,19 +1020,27 @@ registerKitScene(BEACH, (k, wave0) => {
   const sea = k.slot('glitter');
   const sky = k.slot('skyLife');
   const surf = k.slot('surf');
-  // glints on the water under the sun (they slide and wink)
-  const glintX = (t: number) => Phaser.Math.Clamp(380 + (crand() - 0.5) * (80 + t * 300), 290, 480);
-  const glints = Array.from({ length: 22 }, () => {
-    const t = crand() * 0.8;
-    return { img: k.img('star', 0, 0, { into: sea, add: true, alpha: 0, scale: 0.1, tint: 0xfffbe0 }), t, x: glintX(t), seed: crand() * 20 };
+  // glints on the water under the sun (they slide and wink); the path moves with the sun as it sets
+  let sunX = BH.sun.x;
+  const glintX = (t: number) => Phaser.Math.Clamp(sunX + (crand() - 0.5) * (60 + t * 360), GLITTER_BOX.x + 10, GLITTER_BOX.x + GLITTER_BOX.w - 10);
+  const glints = Array.from({ length: 26 }, () => {
+    const t = crand() * 0.85;
+    return { img: k.img('star', 0, 0, { into: sea, add: true, alpha: 0, scale: 0.1, tint: 0xfff4d0 }), t, x: glintX(t), seed: crand() * 20 };
   });
   // the sailboat on the horizon
   const boat = k.img(k.tex('bh_boat', 60, 64, (c) => {
-    c.fillStyle = '#f8f4ec';
+    c.fillStyle = '#f8f0e0';
     c.beginPath();
     c.moveTo(30, 4);
     c.lineTo(30, 46);
     c.lineTo(6, 46);
+    c.closePath();
+    c.fill();
+    c.fillStyle = 'rgba(120,90,110,0.35)';
+    c.beginPath();
+    c.moveTo(30, 4);
+    c.lineTo(30, 46);
+    c.lineTo(22, 46);
     c.closePath();
     c.fill();
     c.fillStyle = '#ff7a5a';
@@ -832,7 +1059,6 @@ registerKitScene(BEACH, (k, wave0) => {
     c.closePath();
     c.fill();
   }), BH.boat.x, BH.horizon + 2, { into: sky, origin: [0.5, 0.95], scale: 0.55, alpha: 0.8 });
-  // gulls wheeling past now and then
   const gullTex = k.tex('bh_gull', 48, 20, (c) => {
     c.strokeStyle = '#3a3a48';
     c.lineWidth = 3;
@@ -845,70 +1071,82 @@ registerKitScene(BEACH, (k, wave0) => {
   const gulls = Array.from({ length: 3 }, (_, i) => ({ img: k.img(gullTex, -100, 0, { into: sky, alpha: 0.9, scale: 0.7 - i * 0.12 }), seed: i * 1.7 }));
   let gullT = -2;
   let gullDir = 1;
-  // the surf: a sheet of foam washing up the sand and sliding back, a darker wet line left behind
+  // the surf: a sheet of lacy foam washing up the sand and sliding back
   const foam = k.tex('bh_foam', 512, 40, (c) => {
     const g = c.createLinearGradient(0, 0, 0, 40);
     g.addColorStop(0, 'rgba(255,255,255,0)');
-    g.addColorStop(0.55, 'rgba(255,255,255,0.55)');
+    g.addColorStop(0.55, 'rgba(255,255,255,0.5)');
     g.addColorStop(0.8, 'rgba(255,255,255,0.95)');
     g.addColorStop(1, 'rgba(255,255,255,0)');
     c.fillStyle = g;
     c.fillRect(0, 0, 512, 40);
     c.globalCompositeOperation = 'destination-out';
-    for (let i = 0; i < 160; i++) {
+    for (let i = 0; i < 220; i++) {
       c.fillStyle = `rgba(0,0,0,${0.3 + crand() * 0.5})`;
       c.beginPath();
-      c.arc(crand() * 512, 10 + crand() * 26, 2 + crand() * 5, 0, Math.PI * 2);
+      c.ellipse(crand() * 512, 8 + crand() * 26, 3 + crand() * 7, 1.5 + crand() * 3, 0, 0, Math.PI * 2);
       c.fill();
     }
   });
   const sheets = [0, 1].map((i) => ({ img: k.img(foam, W / 2, BH.shore, { into: surf, sx: W / 512 + 0.1, sy: 0.8, alpha: 0 }), phase: i * 0.5 }));
-  // the torch: out by day, lit at sunset
+  // the torch: out by day, lit at dusk
   const fire = k.slot('torchFire');
   const ft = k.tex('bh_flame', 64, 128, (c) => flameShape(c, 32, 122, 46, 116, ['#ff5a10', '#ffb030', '#fff4b0']));
   const flame = k.img(ft, BH.torch.x, BH.torch.y - 358, { into: fire, add: true, origin: [0.5, 0.96], scale: 0.7, alpha: 0 });
-  const halo = k.glow(BH.torch.x, BH.torch.y - 390, 120, 0xff9a3a, 0, { into: fire });
-  // the evening light over everything
-  const warm = k.wash(0xffb070, 0, Phaser.BlendModes.MULTIPLY);
-  const lightsGlow = k.wash(0xff9a5a, 0, Phaser.BlendModes.ADD);
+  const halo = k.glow(BH.torch.x, BH.torch.y - 390, 140, 0xff9a3a, 0, { into: fire });
+  const torchPool = k.glow(BH.torch.x + 20, BH.torch.y - 20, 220, 0xff8a3a, 0, { into: fire, sy: 0.3 });
+  // the light over everything: warm at sunset, a deep blue at dusk
+  const warm = k.wash(0xffa070, 0, Phaser.BlendModes.MULTIPLY);
+  const night = k.wash(0x3a3a80, 0, Phaser.BlendModes.MULTIPLY);
   let kw = waveK(wave0);
   let shown = kw;
+  const C = Phaser.Display.Color;
+  const tint = (a: number, b: number, t: number) => {
+    const c = C.Interpolate.ColorWithColor(C.ValueToColor(a), C.ValueToColor(b), 100, Math.round(Phaser.Math.Clamp(t, 0, 1) * 100));
+    return C.GetColor(c.r, c.g, c.b);
+  };
   return {
     setWave: (w) => (kw = waveK(w)),
     update(dt, t) {
       shown += (kw - shown) * Math.min(1, dt * 0.6);
-      const eve = Phaser.Math.Clamp((shown - 0.3) / 0.7, 0, 1);
-      sunset.setAlpha(eve * eve);
-      warm.setAlpha(Math.sqrt(shown) * 0.35);
+      // 0 afternoon (wave 1) … 0.67 sunset (wave 3) … 1 dusk (wave 4)
+      const eve = Phaser.Math.Clamp(shown / 0.67, 0, 1);
+      const dk = Phaser.Math.Clamp((shown - 0.67) / 0.33, 0, 1);
+      sunset.setAlpha(Phaser.Math.Easing.Sine.InOut(eve));
+      seaEveS.setAlpha(Phaser.Math.Easing.Sine.InOut(eve));
+      dusk.setAlpha(dk);
+      warm.setAlpha(eve * 0.3 * (1 - dk * 0.5));
+      night.setAlpha(dk * 0.42);
+      sunX = Phaser.Math.Linear(BH.sun.x, BH.sunset.x, eve);
+      // clouds: gold in the afternoon, pink at sunset, slate at dusk
+      const ct = dk > 0 ? tint(0xffb0a0, 0x5a5a8a, dk) : tint(0xffffff, 0xffb0a0, eve);
+      near.setTint(ct);
       const on = Phaser.Math.Clamp((shown - 0.45) / 0.3, 0, 1);
       lightsOn.setAlpha(on * (0.85 + Math.sin(t * 3) * 0.05));
-      lightsGlow.setAlpha(on * 0.04);
-      const tl = Phaser.Math.Clamp((shown - 0.65) / 0.2, 0, 1);
+      bulbGlow.setAlpha(on * (0.5 + dk * 0.5));
+      const tl = Phaser.Math.Clamp((shown - 0.7) / 0.2, 0, 1);
       const n = flicker(t, 2);
       flame.setAlpha(tl).setScale(0.6 + n * 0.08, 0.55 + n * 0.18);
       halo.setAlpha(tl * (0.4 + n * 0.15));
-      // clouds drift on the wind (the near ones faster), palms and the sign sway in it
-      far.x = CLOUD_FAR.x + Math.sin(t * 0.02) * 60 * calm();
+      torchPool.setAlpha(tl * (0.18 + n * 0.05));
       near.x = CLOUD_NEAR.x + Math.sin(t * 0.03 + 1) * 110 * calm();
       sway(palmL, t, 0.3, 0.025, 0.7);
       sway(palmR, t, 2.1, 0.025, 0.7);
       sway(sign, t, 4.2, 0.012, 0.9);
-      // the surf: each sheet runs up the sand, thins and slides back
       for (const s of sheets) {
         const u = ((t * 0.12 + s.phase) % 1 + 1) % 1;
         const run = u < 0.45 ? Phaser.Math.Easing.Sine.Out(u / 0.45) : 1 - Phaser.Math.Easing.Sine.InOut((u - 0.45) / 0.55);
         s.img.y = BH.shore - 26 + run * 30;
-        s.img.setAlpha(u < 0.45 ? 0.2 + run * 0.7 : (1 - (u - 0.45) / 0.55) * 0.8);
+        s.img.setAlpha((u < 0.45 ? 0.2 + run * 0.7 : (1 - (u - 0.45) / 0.55) * 0.8) * (1 - dk * 0.4));
       }
-      // glints
       for (const g of glints) {
         const a = Math.max(0, Math.sin(t * 2.2 + g.seed)) ** 3;
         if (a < 0.01) g.x = glintX(g.t);
-        g.img.setPosition(g.x, BH.horizon + 6 + g.t * (BH.shore - BH.horizon - 20)).setAlpha(a * (1 - eve * 0.5)).setScale(0.05 + g.t * 0.12);
+        g.img.setPosition(g.x, BH.horizon + 6 + g.t * (BH.shore - BH.horizon - 34)).setAlpha(a * (1 - dk)).setScale(0.05 + g.t * 0.12);
       }
       boat.x = BH.boat.x + Math.sin(t * 0.015) * 300;
       boat.y = BH.horizon + 2 + Math.sin(t * 0.9) * 0.8;
-      // gulls: a loose flock crossing every so often
+      boat.setTint(tint(0xffffff, 0x8a7aa0, Math.max(eve * 0.4, dk)));
       gullT += dt;
       if (gullT > 16) {
         gullT = -crand() * 8;
@@ -919,9 +1157,8 @@ registerKitScene(BEACH, (k, wave0) => {
         const x = gullDir > 0 ? -120 + u * (W + 240) : W + 120 - u * (W + 240);
         g.img.setPosition(x - gullDir * g.seed * 60, 260 + g.seed * 26 + Math.sin(t * 0.8 + g.seed) * 20);
         g.img.scaleY = (0.7 - g.seed * 0.07) * (0.6 + Math.abs(Math.sin(t * 6 + g.seed)) * 0.6);
-        g.img.setVisible(gullT > 0 && gullT < 14);
+        g.img.setVisible(gullT > 0 && gullT < 14 && dk < 0.8);
       }
     },
   };
 });
-

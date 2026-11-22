@@ -15,9 +15,13 @@
 //   sprites for the live code (src/game/sceneLive.ts), and the still shows everything painted in place.
 //
 // Everything draws in screen space: 1920×1080, the table's back edge at TY.
+//
+// The kit's other modules: paint.ts (painterly surfaces and wear), light.ts (lamps, windows, shafts, bounce,
+// occlusion, long shadows), sky.ts (skies, sun, clouds), materials.ts (scene materials), props.ts. README.md is
+// the guide for redrawing a place: API, layer and live conventions, the quality checklist, budgets, checks.
 
 import { H, HY, TY, VX, W } from '../backdrops';
-import { type Box, type PathFn, LIGHT, STYLE, ao, inkOf, innerEdge, trace } from '../style/kit';
+import { type Box, type PathFn, LIGHT, STYLE, ao, inkOf, innerEdge, pxPerUnit, trace } from '../style/kit';
 import { type Material, type MaterialId, MATERIALS, paint } from '../style/materials';
 import { type Ctx, mix, rgba, shade } from '../util';
 
@@ -126,13 +130,22 @@ export function bounce(ctx: Ctx, path: PathFn, fromX: number, fromY: number, at:
  * blurred by `soft` (a wall a hand's width behind a sign: small dist, small soft; a lamp far from the wall: more).
  */
 export function castShadow(ctx: Ctx, path: PathFn, dist: number, soft: number, a = 0.4, col = '#1a0c14'): void {
+  // two parts, as a real shadow has: a wide soft penumbra, and a tighter, darker core near the thing casting it
+  shadowPass(ctx, path, dist, soft, a * 0.75, col);
+  shadowPass(ctx, path, dist * 0.4, soft * 0.32, a * 0.45, col);
+}
+
+function shadowPass(ctx: Ctx, path: PathFn, dist: number, soft: number, a: number, col: string): void {
+  // (canvas shadows ignore the transform: offsets and blur are in device pixels, so scale them by it; a piece
+  // baked at res < 1 gets the same shadow as the still)
+  const k = pxPerUnit(ctx);
   const OFF = 20000;
   ctx.save();
   ctx.translate(-OFF, 0);
   ctx.shadowColor = rgba(col, a);
-  ctx.shadowBlur = soft;
-  ctx.shadowOffsetX = OFF + FALL[0] * dist;
-  ctx.shadowOffsetY = FALL[1] * dist;
+  ctx.shadowBlur = soft * k;
+  ctx.shadowOffsetX = (OFF + FALL[0] * dist) * k;
+  ctx.shadowOffsetY = FALL[1] * dist * k;
   trace(ctx, path);
   ctx.fillStyle = '#000';
   ctx.fill();
@@ -249,36 +262,79 @@ export function calmLanes(ctx: Ctx, a: number, col: string, y0 = 60, y1 = TY - 2
   ctx.restore();
 }
 
+/** The warm/cool split every scene shares with the feet: warm light from the top left (the key), cool in the
+ * shadowed bottom right (the rim and the sky's fill). Strength a (0…1, about 0.2–0.4). */
+export interface Split {
+  warm: string;
+  cool: string;
+  a: number;
+}
+
+/** A warm key from the top left and a cool fill to the bottom right: the default split. */
+export const SPLIT: Split = { warm: '#ffc27a', cool: '#5a78c8', a: 0.25 };
+
 /** Desaturate and tint the whole canvas (the scene's colour grade): per pixel, whatever its alpha, so a layer
- * baked on its own gets exactly the colour it has in the still. */
-export function gradeAll(ctx: Ctx, desat: number, tint?: string, tintA = 0): void {
+ * baked on its own gets exactly the colour it has in the still. With `split`, the grade also lays the warm/cool
+ * split across the screen (by each pixel's screen position, so a baked piece matches the still). */
+export function gradeAll(ctx: Ctx, desat: number, tint?: string, tintA = 0, split?: Split): void {
   const c = ctx.canvas;
-  const img = ctx.getImageData(0, 0, c.width, c.height);
+  const cw = c.width;
+  const ch = c.height;
+  const img = ctx.getImageData(0, 0, cw, ch);
   const d = img.data;
-  const t = tint ? parseInt(tint.slice(1), 16) : 0;
-  const tc = [((t >> 16) & 255) / 255, ((t >> 8) & 255) / 255, (t & 255) / 255];
-  // soft light (W3C), mixed in by tintA
+  // soft light (W3C), mixed in by k: one 256-entry table per channel
   const soft = (b: number, s: number) => (s <= 0.5 ? b - (1 - 2 * s) * b * (1 - b) : b + (2 * s - 1) * ((b <= 0.25 ? ((16 * b - 12) * b + 4) * b : Math.sqrt(b)) - b));
-  const lut = tint && tintA > 0 ? tc.map((s) => Uint8ClampedArray.from({ length: 256 }, (_, v) => Math.round((v / 255 + (soft(v / 255, s) - v / 255) * tintA) * 255))) : null;
-  for (let i = 0; i < d.length; i += 4) {
-    if (d[i + 3] === 0) continue;
-    let r = d[i];
-    let g = d[i + 1];
-    let b = d[i + 2];
-    if (desat > 0) {
-      const l = 0.3 * r + 0.59 * g + 0.11 * b;
-      r += (l - r) * desat;
-      g += (l - g) * desat;
-      b += (l - b) * desat;
+  const rgb01 = (h: string) => {
+    const n = parseInt(h.slice(1), 16);
+    return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
+  };
+  const lutFor = (col: number[], k: number) => col.map((s) => Float32Array.from({ length: 256 }, (_, v) => (v / 255 + (soft(v / 255, s) - v / 255) * k) * 255));
+  // desaturation and tint folded into the tables where they can be (tint), per pixel where they can't (desat)
+  const lut = tint && tintA > 0 ? lutFor(rgb01(tint), tintA) : null;
+  const [tr, tg, tb] = lut ?? [null, null, null];
+  // the split: warm and cool tables as deltas, mixed per pixel by its position across the light
+  const wd = split ? lutFor(rgb01(split.warm), 1).map((t) => t.map((v, i) => v - i)) : null;
+  const cd = split ? lutFor(rgb01(split.cool), 1).map((t) => t.map((v, i) => v - i)) : null;
+  // each pixel back to screen space (a baked piece is painted translated and scaled); u runs 0 towards the key
+  // (top left) … 1 away from it (bottom right), linear in x and y, so it's stepped, not recomputed
+  const m = ctx.getTransform();
+  const ia = 1 / (m.a || 1);
+  const idd = 1 / (m.d || 1);
+  const [lx, ly] = LIGHT.dir;
+  const ku = -1 / (Math.hypot(lx, ly) * 1100);
+  const sa = split?.a ?? 0;
+  const du = ku * lx * ia;
+  for (let j = 0; j < ch; j++) {
+    const y = (j - m.f) * idd;
+    let u = 0.5 + ku * ((-m.e * ia - W / 2) * lx + (y - H / 2) * ly);
+    for (let i = 0, p = j * cw * 4; i < cw; i++, p += 4, u += du) {
+      if (d[p + 3] === 0) continue;
+      let r = d[p];
+      let g = d[p + 1];
+      let b = d[p + 2];
+      if (wd && cd) {
+        const uu = u < 0 ? 0 : u > 1 ? 1 : u;
+        const kw = sa * (1 - uu * 1.6 > 0 ? 1 - uu * 1.6 : 0);
+        const kc = sa * (uu * 1.6 - 0.6 > 0 ? uu * 1.6 - 0.6 : 0);
+        r += wd[0][r] * kw + cd[0][r] * kc;
+        g += wd[1][g] * kw + cd[1][g] * kc;
+        b += wd[2][b] * kw + cd[2][b] * kc;
+      }
+      if (desat > 0) {
+        const l = 0.3 * r + 0.59 * g + 0.11 * b;
+        r += (l - r) * desat;
+        g += (l - g) * desat;
+        b += (l - b) * desat;
+      }
+      if (tr && tg && tb) {
+        r = tr[r < 0 ? 0 : r > 255 ? 255 : (r + 0.5) | 0];
+        g = tg[g < 0 ? 0 : g > 255 ? 255 : (g + 0.5) | 0];
+        b = tb[b < 0 ? 0 : b > 255 ? 255 : (b + 0.5) | 0];
+      }
+      d[p] = r;
+      d[p + 1] = g;
+      d[p + 2] = b;
     }
-    if (lut) {
-      r = lut[0][Math.round(r)];
-      g = lut[1][Math.round(g)];
-      b = lut[2][Math.round(b)];
-    }
-    d[i] = r;
-    d[i + 1] = g;
-    d[i + 2] = b;
   }
   ctx.putImageData(img, 0, 0);
 }

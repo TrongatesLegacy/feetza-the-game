@@ -39,6 +39,8 @@ import {
 } from '../../art/scene/kit';
 import type { SceneSpec } from '../../art/scene/layers';
 import { broken, grain, planeQuad, tableFalloff, water } from '../../art/scene/materials';
+import { chips, crack, drift, grime, lay, softly, surface } from '../../art/scene/paint';
+import { cloud } from '../../art/scene/sky';
 import { flameShape, hang } from '../../art/scene/props';
 import { ao, spec as specHi } from '../../art/style/kit';
 import { MATERIALS } from '../../art/style/materials';
@@ -88,14 +90,15 @@ function abyss(ctx: Ctx, r: R): void {
   // the pit's glow on the smoke, low behind the far bank (kept below full: the live layer saves its peak for flares)
   glowAt(ctx, TA.pit.x, h, 760, '#ff4a1a', 0.3, 0.38);
   glowAt(ctx, TA.pit.x, h + 10, 280, '#ff9a40', 0.24, 0.36);
-  // banks of smoke lit from below
-  for (let i = 0; i < 16; i++) {
-    const x = r() * W;
-    const y = h - 120 - r() * 220;
-    ctx.fillStyle = rgba(mix('#5a1a24', '#ff6a3a', ((y - (h - 340)) / 340) * 0.4), 0.16);
-    ctx.beginPath();
-    ctx.ellipse(x, y, 220 + r() * 260, 26 + r() * 30, 0, 0, Math.PI * 2);
-    ctx.fill();
+  // banks of smoke rolling over the pit, lit from below: their undersides glow, their tops sink into the dark
+  for (let i = 0; i < 10; i++) {
+    const x = 300 + r() * 1320;
+    const y = h - 90 - r() * 240;
+    const low = (y - (h - 330)) / 330;
+    cloud(ctx, r, x, y, 380 + r() * 420, 60 + r() * 50, {
+      kind: 'bank', lit: mix('#a83a2a', '#ff7a40', low), body: '#3a1620', shadow: '#12080e',
+      sunX: TA.pit.x, sunY: h + 260, rim: 0.18 + low * 0.2, wisp: 0.5, a: 0.45 + low * 0.25, res: 0.6,
+    });
   }
   // three ranks of spires, each further one hazier, paler and redder; each a lit face towards the light and the
   // pit (left) and a shaded face, with a lit ridge
@@ -117,13 +120,18 @@ function abyss(ctx: Ctx, r: R): void {
       ctx.fillStyle = lit;
       polyPath([...left, [px + w * 0.05, base - hh * 0.5], [x - w * 0.1, base]])(ctx);
       ctx.fill();
+      within(ctx, polyPath([...left, ...right.slice(1)]), () => {
+        lay(ctx, drift(airMix('#6a2a24', depth, PIT), airMix('#0a0408', depth, PIT), 3, 101 + i, 32, 64), { x: x - w, y: py, w: w * 2, h: hh }, 0.45);
+        // the pit's glow climbing the spire's foot
+        vfill(ctx, x - w, base - hh * 0.5, w * 2, hh * 0.5, [[0, rgba('#ff5a2a', 0)], [1, rgba('#ff5a2a', 0.22 * (1.2 - depth))]]);
+      });
       ctx.strokeStyle = rgba('#ff8a5a', 0.25 * (1.1 - depth));
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       left.forEach(([lx, ly], k) => (k ? ctx.lineTo(lx, ly) : ctx.moveTo(lx, ly)));
       ctx.stroke();
     }
-    haze(ctx, base - 90, base + 10, '#ff5a2a', 0.16 * depth, 0.8);
+    haze(ctx, base - 110, base + 10, '#ff6a3a', 0.3 * depth, 0.8);
   }
 }
 
@@ -296,6 +304,9 @@ function cavern(ctx: Ctx, r: R): void {
   basalt(ctx, r, [[-20, -10], [560, -10], [600, 70], [640, 200], [660, 300], [700, 380], [730, 470], [770, 560], [-20, 560]], 0.55, { pitSide: 1 });
   basalt(ctx, r, [[W + 20, -10], [1360, -10], [1310, 90], [1275, 220], [1240, 330], [1215, 420], [1160, 500], [1130, 560], [W + 20, 560]], 0.55, { pitSide: -1 });
   for (const f of TA.falls) lavaFall(ctx, r, f);
+  // the falls light the cliff faces beside them
+  for (const f of TA.falls) lightPool(ctx, f.x, (f.top + f.bot) / 2, 170, 260, '#ff6a2a', 0.2, 'screen');
+  for (const b of TA.braziers) lightPool(ctx, b.x, 470, 280, 180, '#4a9aff', 0.16, 'screen');
   // nearer shelves
   basalt(ctx, r, [[-20, 250], [130, 214], [260, 260], [350, 360], [400, 470], [430, 560], [-20, 600]], 0.32, { pitSide: 1, col: '#2a2632' });
   basalt(ctx, r, [[W + 20, 236], [1780, 210], [1660, 280], [1580, 390], [1530, 480], [1500, 560], [W + 20, 600]], 0.32, { pitSide: -1, col: '#2a2632' });
@@ -385,7 +396,11 @@ function styx(ctx: Ctx, r: R): void {
     c.closePath();
   };
   within(ctx, path, () => {
-    water(ctx, r, 0, W, y0 - 20, y1 + 30, { far: '#164a52', near: '#06161e', ripple: '#9affe8', ripples: 260, glitterX: TA.pit.x, glitter: '#ffb070', glitterA: 0.35 });
+    water(ctx, r, 0, W, y0 - 20, y1 + 30, {
+      far: '#1c5058', deep: '#0e3038', near: '#06141c', sky: '#c8502a', skyA: 0.35,
+      ripple: '#9affe8', ripples: 220, swells: 7, crest: '#6affd8',
+      glitterX: TA.pit.x, glitter: '#ffb070', glitterA: 0.35, glitterW: 160, seed: 63,
+    });
     // the temple's fire and the pit, reflected and broken by the current
     for (let i = 0; i < 40; i++) {
       ctx.fillStyle = rgba('#ff7a3a', 0.12 + r() * 0.12);
@@ -429,8 +444,9 @@ function bank(ctx: Ctx, r: R): void {
   };
   solid(ctx, path, { x: 0, y: y1, w: W, h: TY - y1 }, ROCK, '#2a2430', { depth: 0.25, air: CAVE, line: false, formSize: 30 });
   within(ctx, path, () => {
-    broken(ctx, { x: 0, y: y1, w: W, h: TY - y1 }, 0.5, 10, 61);
-    grain(ctx, { x: 0, y: y1, w: W, h: TY - y1 }, 'cast', 0.35, 1.3);
+    const box = { x: 0, y: y1, w: W, h: TY - y1 };
+    surface(ctx, r, box, '#2a2430', { over: true, vary: 0.7, cells: 7, mottle: 0.6, strokes: 0.25, strokeAng: 0.05, strokeLen: 160, strokeW: 14, warm: '#5a4048', cool: '#141626', seed: 61 });
+    grain(ctx, box, 'cast', 0.35, 1.3);
     // ash drifts, lit grey on top
     for (let i = 0; i < 50; i++) {
       const x = r() * W;
@@ -453,8 +469,13 @@ function bank(ctx: Ctx, r: R): void {
     // the table's back edge throws the bank behind it into shade
     crevice(ctx, 0, W, TY, -50, 0.5, '#000000');
   });
-  // the soul-fires' blue light on the ground round the braziers
-  for (const b of TA.braziers) lightPool(ctx, b.x, b.y, 200, 40, '#4fb8ff', 0.25);
+  // the soul-fires' blue light on the ground round the braziers, reaching out over the ash
+  for (const b of TA.braziers) {
+    lightPool(ctx, b.x, b.y, 320, 60, '#3a8aff', 0.18);
+    lightPool(ctx, b.x, b.y, 160, 30, '#8ad8ff', 0.28);
+  }
+  // the pit's red on the near bank, faint, down the middle
+  lightPool(ctx, VX, 640, 700, 80, '#ff5a2a', 0.08);
   // a worn flagstone path from the jetty down to the table
   ctx.save();
   const pp = polyPath([[VX - 110, 602], [VX + 110, 602], [VX + 300, TY + 2], [VX - 300, TY + 2]]);
@@ -467,6 +488,16 @@ function bank(ctx: Ctx, r: R): void {
     for (let x = VX - 330 + (k % 2) * 40; x < VX + 330; x += 80) {
       const p = rrPath(x + 3, y + 3, 74, hgt - 5, 6);
       solid(ctx, p, { x, y, w: 80, h: hgt }, ROCK, shade('#4a4252', (r() - 0.5) * 0.2), { depth: 0.22, air: CAVE, line: 1.6, formSize: 6 });
+      within(ctx, p, () => {
+        // worn smooth in the middle of the path, the pit's red glancing off the polished tops
+        lay(ctx, drift('#6a5a70', '#141020', 2, 7 + Math.round(x), 24, 16), { x, y, w: 80, h: hgt }, 0.4);
+        const g = ctx.createLinearGradient(0, y, 0, y + hgt);
+        g.addColorStop(0, rgba('#ff6a3a', 0.12 * (1 - Math.abs(x + 40 - VX) / 400)));
+        g.addColorStop(1, rgba('#ff6a3a', 0));
+        ctx.fillStyle = g;
+        ctx.fillRect(x, y, 80, hgt);
+      });
+      chips(ctx, r, x + 6, x + 74, y + hgt - 3, 2, '#4a4252', 2);
     }
     y += hgt;
   }
@@ -494,14 +525,45 @@ const FISSURES: Fissure[] = [
   [[1250, 690], [1300, 668], [1360, 674], [1400, 650]],
 ];
 
+/** A fissure in the rock with lava in it: its heat glowing softly on the stone round it, a dark crust lip, and the
+ * molten core inside, thinning to nothing at each end. */
 function fissure(ctx: Ctx, pts: Fissure, a: number): void {
-  for (const [w, col, al] of [[14, '#ff3a0a', 0.25], [6, '#ff8a2a', 0.8], [2, '#fff0a0', 0.9]] as const) {
-    ctx.strokeStyle = rgba(col, al * a);
-    ctx.lineWidth = w;
-    ctx.beginPath();
-    pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
-    ctx.stroke();
+  const line = (c: Ctx) => {
+    c.beginPath();
+    pts.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y)));
+  };
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  // the heat on the stone
+  ctx.filter = 'blur(10px)';
+  ctx.strokeStyle = rgba('#ff4a10', 0.4 * a);
+  ctx.lineWidth = 26;
+  line(ctx);
+  ctx.stroke();
+  ctx.filter = 'none';
+  // the crust: a dark, broken lip
+  ctx.strokeStyle = rgba('#120608', 0.8 * a);
+  ctx.lineWidth = 7;
+  line(ctx);
+  ctx.stroke();
+  // the core, segment by segment: widest in the middle of the run, tapering at its ends
+  const n = pts.length - 1;
+  for (let i = 0; i < n; i++) {
+    const t = (i + 0.5) / n;
+    const w = Math.sin(t * Math.PI) ** 0.7;
+    const [x0, y0] = pts[i];
+    const [x1, y1] = pts[i + 1];
+    for (const [k, col, al] of [[4.5, '#ff7a1a', 0.85], [1.6, '#fff0a0', 0.9]] as const) {
+      ctx.strokeStyle = rgba(col, al * a);
+      ctx.lineWidth = Math.max(0.6, k * w);
+      ctx.beginPath();
+      ctx.moveTo(x0, y0);
+      ctx.lineTo(x1, y1);
+      ctx.stroke();
+    }
   }
+  ctx.restore();
 }
 
 /** A Greek column, broken off, of dark stone; the chains of bronze that bind it. */
@@ -532,15 +594,20 @@ function column(ctx: Ctx, r: R, p: (typeof TA.pillars)[number]): void {
         ctx.fillStyle = rgba('#d8d0ff', 0.1);
         ctx.fillRect(fx + 2, top, 2, p.base - top);
       }
-      // cracks
-      ctx.strokeStyle = 'rgba(0,0,0,0.55)';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      let cy = top + 20 + r() * 40;
-      let cx = x0 + p.w * 0.5;
-      ctx.moveTo(cx, cy);
-      for (let k = 0; k < 6; k++) ctx.lineTo((cx += (r() - 0.5) * 20), (cy += 20 + r() * 20));
-      ctx.stroke();
+      const cbox = { x: x0, y: top - 20, w: p.w, h: p.base - top + 20 };
+      lay(ctx, drift('#8a80a0', '#181424', 3, 17 + Math.round(p.x), 24, 96), cbox, 0.45);
+      grime(ctx, cbox, { bottom: 140, top: 30, a: 0.6, col: '#06040a', seed: 7 });
+      // cracks: down from the broken top, and one across where the chain bites
+      crack(ctx, r, x0 + p.w * 0.45, top + 10, Math.PI / 2 + 0.1, 150, { col: '#05030a', lip: '#b8b0e0', w: 1.8, a: 0.7 });
+      crack(ctx, r, x0 + 4, top + 250, 0.2, 50, { col: '#05030a', lip: '#b8b0e0', w: 1.4, a: 0.6 });
+      // the soul-fire's cold blue on the face towards its brazier
+      const bz = TA.braziers[p.x < VX ? 0 : 1];
+      const side = bz.x < p.x ? x0 : x0 + p.w;
+      const bg = ctx.createLinearGradient(side, 0, side + (bz.x < p.x ? 1 : -1) * p.w * 0.7, 0);
+      bg.addColorStop(0, rgba('#5ab8ff', 0.3));
+      bg.addColorStop(1, rgba('#5ab8ff', 0));
+      ctx.fillStyle = bg;
+      ctx.fillRect(x0, p.base - 300, p.w, 300);
       // the pit's light on the inner side, the soul-fire's blue on the outer
       const inner = p.x < VX ? 1 : -1;
       const gx = inner > 0 ? x0 + p.w : x0;
@@ -701,16 +768,42 @@ function table(ctx: Ctx, r: R): void {
   }
   // the glassy surface: the pit and the soul-fires reflected as soft streaks
   ctx.globalCompositeOperation = 'lighter';
-  for (const [x, col, a] of [[TA.pit.x, '#ff5a2a', 0.07], [TA.braziers[0].x, '#4fb8ff', 0.12], [TA.braziers[1].x, '#4fb8ff', 0.12]] as const) {
+  for (const [x, col, a] of [[TA.pit.x, '#ff5a2a', 0.045], [TA.braziers[0].x, '#4fb8ff', 0.08], [TA.braziers[1].x, '#4fb8ff', 0.08]] as const) {
     const g = ctx.createLinearGradient(0, TY, 0, f);
     g.addColorStop(0, rgba(col, a));
     g.addColorStop(1, rgba(col, 0));
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    planeQuad(ctx, (x - VX) / (FOCAL / ZB) - 0.35, (x - VX) / (FOCAL / ZB) + 0.35, ZB, zf);
-    ctx.fill();
+    softly(ctx, { x: 0, y: TY, w: W, h: f - TY + 4 }, (q) => {
+      q.fillStyle = g;
+      q.beginPath();
+      planeQuad(q, (x - VX) / (FOCAL / ZB) - 0.3, (x - VX) / (FOCAL / ZB) + 0.3, ZB, zf);
+      q.fill();
+    }, 0.125, 'lighter');
   }
   ctx.globalCompositeOperation = 'source-over';
+  // the soul-fires mirrored in the polish: long soft columns of blue straight down from each brazier, the pit's
+  // red down the middle, and the cavern's dim light as a sheen across the far edge
+  for (const b of TA.braziers) {
+    ctx.save();
+    ctx.translate(b.x, TY + 40);
+    ctx.scale(1, 5);
+    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 60);
+    g.addColorStop(0, rgba('#6ac8ff', 0.3));
+    g.addColorStop(0.4, rgba('#3a8aff', 0.12));
+    g.addColorStop(1, rgba('#3a8aff', 0));
+    ctx.fillStyle = g;
+    ctx.fillRect(-60, -60, 120, 120);
+    ctx.restore();
+  }
+  ctx.save();
+  ctx.translate(VX, TY + 10);
+  ctx.scale(1, 3);
+  const pg = ctx.createRadialGradient(0, 0, 0, 0, 0, 220);
+  pg.addColorStop(0, rgba('#ff6a3a', 0.16));
+  pg.addColorStop(1, rgba('#ff6a3a', 0));
+  ctx.fillStyle = pg;
+  ctx.fillRect(-220, -220, 440, 440);
+  ctx.restore();
+  vfill(ctx, 0, TY, W, 60, [[0, rgba('#8a80c0', 0.14)], [1, rgba('#8a80c0', 0)]]);
   // fine white veins in the glass
   for (let i = 0; i < 9; i++) {
     let x = r() * W;
@@ -758,7 +851,7 @@ function table(ctx: Ctx, r: R): void {
 const FOCAL = 1210;
 
 function grade(ctx: Ctx): void {
-  gradeAll(ctx, 0.06, '#b8a8d8', 0.06);
+  gradeAll(ctx, 0.06, '#b8a8d8', 0.06, { warm: '#ff9a70', cool: '#4a5ad0', a: 0.2 });
 }
 
 function shadeOver(ctx: Ctx): void {
@@ -794,7 +887,7 @@ export const TARTARUS: SceneSpec = {
     { id: 'bank', box: { x: 0, y: FERRY_BOX.y + FERRY_BOX.h, w: W, h: TY - FERRY_BOX.y - FERRY_BOX.h }, draw: bank },
     { id: 'jetty', box: { x: VX - 150, y: TA.jetty - 40, w: 300, h: 76 }, draw: jetty },
     { id: 'columnL', box: { x: TA.pillars[0].x - 80, y: 200, w: 220, h: 530 }, draw: (c, r) => column(c, r, TA.pillars[0]) },
-    { id: 'columnR', box: { x: TA.pillars[1].x - 150, y: 230, w: 230, h: 500 }, draw: (c, r) => column(c, r, TA.pillars[1]) },
+    { id: 'columnR', box: { x: TA.pillars[1].x - 150, y: 230, w: 250, h: 520 }, draw: (c, r) => column(c, r, TA.pillars[1]) },
     ...TA.braziers.map((b, i) => ({ id: `brazier${i}`, box: { x: b.x - 80, y: b.y - 112, w: 170, h: 124 }, draw: (c: Ctx) => brazier(c, b.x, b.y, b.s) })),
     { id: 'fire', box: FIRE_SLOT, stillOnly: true, draw: (c) => soulFireStill(c) },
     // the soul-fires (the asphodel stands in front of them)
