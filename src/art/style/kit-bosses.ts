@@ -87,11 +87,13 @@ export function heatLayer(sil: Sil, box: Box, o: HeatOpts): void {
   const mid = o.mid ?? '#ff6a1a';
   const deep = o.deep ?? '#b01a08';
   // heat rises from the sole: hottest at the bottom, fading out well below the top, so the foot keeps its form
+  // (it climbs well up the foot: the toe band only keeps it where no pose moves, so a heat that lived only at the
+  // sole read faint in play)
   g.fillStyle = lin(g, 0, y0, 0, y1, [
-    [0, rgba(hot, 0.72 * a)],
-    [0.12, rgba(mid, 0.5 * a)],
-    [0.35, rgba(deep, 0.26 * a)],
-    [0.65, rgba(deep, 0.08 * a)],
+    [0, rgba(hot, 0.85 * a)],
+    [0.2, rgba(mid, 0.62 * a)],
+    [0.5, rgba(deep, 0.34 * a)],
+    [0.8, rgba(deep, 0.12 * a)],
     [1, rgba(deep, 0)],
   ]);
   g.fillRect(box.x, box.y, box.w, box.h);

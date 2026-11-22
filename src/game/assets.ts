@@ -4,8 +4,6 @@ import Phaser from 'phaser';
 import '../content/art';
 import '../content/style';
 import '../content/styleLive';
-import { prewarmLive } from './liveKit';
-import { styleFor } from '../art/style/registry';
 import { drawBackdrop, type BackdropId } from '../art/backdrops';
 import { ART_RES, drawFoot, footPortrait, type FootTextures } from '../art/feetArt';
 import { drawPizzaTop, drawSliceSprite, pizzaPortrait } from '../art/pizzaArt';
@@ -40,6 +38,7 @@ export function addCanvas(scene: Phaser.Scene, key: string, canvas: HTMLCanvasEl
 
 /** Generate everything in small async chunks so the loading bar can animate. */
 export async function generateAll(scene: Phaser.Scene, progress: (p: number, label: string) => void): Promise<void> {
+  const t0 = performance.now();
   const jobs: [string, () => void][] = [];
   jobs.push([
     'Polishing plates',
@@ -85,7 +84,7 @@ export async function generateAll(scene: Phaser.Scene, progress: (p: number, lab
     ]);
   }
   // feet redrawn in the style kit: their live layers (pose frames, parts, glows) are built now, not on first spawn
-  for (const f of FEET) if (styleFor(f.id)) jobs.push([`Ironing ${f.name}`, () => prewarmLive(scene, f)]);
+  // (feet redrawn in the style kit build their live layers lazily, in idle time before they appear: warmLive)
   jobs.push(['Lighting the oven', () => ensureBackdrop(scene, 'trattoria')]);
   let last = performance.now();
   for (let i = 0; i < jobs.length; i++) {
@@ -98,6 +97,8 @@ export async function generateAll(scene: Phaser.Scene, progress: (p: number, lab
     }
   }
   progress(1, 'Ready!');
+  // dev: how long the art took to build (load-time budget checks)
+  if (import.meta.env.DEV) (window as unknown as { __assetMs?: number }).__assetMs = Math.round(performance.now() - t0);
 }
 
 export function backdropKey(id: BackdropId): string {

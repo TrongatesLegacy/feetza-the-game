@@ -59,14 +59,59 @@ export function pxPerUnit(ctx: Ctx): number {
   return Math.hypot(m.a, m.b) || 1;
 }
 
+/** A closed path. It should begin its own path (ctx.beginPath()); the kit's helpers begin one for it anyway, so a
+ * path that forgets doesn't pick up whatever was drawn before it. */
 export type PathFn = (ctx: Ctx) => void;
+
+/** Trace `path` as a fresh path (whether or not it begins its own). */
+export function trace(ctx: Ctx, path: PathFn): void {
+  ctx.beginPath();
+  path(ctx);
+}
 
 /** Run `fn` clipped to `path`. */
 export function inside(ctx: Ctx, path: PathFn, fn: () => void): void {
   ctx.save();
-  path(ctx);
+  trace(ctx, path);
   ctx.clip();
   fn();
+  ctx.restore();
+}
+
+/** A blank layer the size of ctx's canvas with ctx's transform (for masked painting). */
+function layerOf(ctx: Ctx): [HTMLCanvasElement, Ctx] {
+  const c = document.createElement('canvas');
+  c.width = ctx.canvas.width;
+  c.height = ctx.canvas.height;
+  const g = c.getContext('2d')!;
+  g.setTransform(ctx.getTransform());
+  g.lineJoin = 'round';
+  g.lineCap = 'round';
+  return [c, g];
+}
+
+/**
+ * Run `fn` clipped to the union of several paths. (Clipping to each path in turn keeps only where they all overlap,
+ * and tracing them into one clip path keeps only the last when each begins its own, or punches holes where opposite
+ * windings overlap.) `fn` paints on the layer it's given, which is then masked by the union and laid on ctx.
+ */
+export function insideAll(ctx: Ctx, paths: PathFn[], fn: (g: Ctx) => void): void {
+  const [c, g] = layerOf(ctx);
+  fn(g);
+  const [m, mx] = layerOf(ctx);
+  mx.fillStyle = '#000';
+  for (const p of paths) {
+    trace(mx, p);
+    mx.fill();
+  }
+  g.save();
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.globalCompositeOperation = 'destination-in';
+  g.drawImage(m, 0, 0);
+  g.restore();
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.drawImage(c, 0, 0);
   ctx.restore();
 }
 
@@ -84,7 +129,7 @@ export function inkOf(base: string): string {
 
 /** Stroke the silhouette once. */
 export function outline(ctx: Ctx, path: PathFn, col: string, w = STYLE.outline): void {
-  path(ctx);
+  trace(ctx, path);
   ctx.lineJoin = 'round';
   ctx.strokeStyle = col;
   ctx.lineWidth = w;
@@ -100,15 +145,15 @@ export function innerEdge(ctx: Ctx, path: PathFn, col: string, blur: number, dx:
   // canvas shadows ignore the transform: blur and offset are in device pixels
   const k = pxPerUnit(ctx);
   ctx.save();
-  path(ctx);
+  trace(ctx, path);
   ctx.clip();
   ctx.globalCompositeOperation = op;
   ctx.shadowColor = col;
   ctx.shadowBlur = blur * k;
   ctx.shadowOffsetX = dx * k;
   ctx.shadowOffsetY = dy * k;
-  // the path (it begins its own) plus a huge rect round it: filled even-odd, that is everything outside the path
-  path(ctx);
+  // the path plus a huge rect round it: filled even-odd, that is everything outside the path
+  trace(ctx, path);
   ctx.rect(-3000, -3000, 6000, 6000);
   ctx.fillStyle = '#000';
   ctx.fill('evenodd');
@@ -132,6 +177,12 @@ export interface FormOpts {
   ramp?: number;
 }
 
+/** The default form-shadow size for a box: a sixth of its short side (a thin part painted with a big box goes
+ * muddy: pass its own formSize). */
+export function formSizeOf(box: Box): number {
+  return Math.max(0.6, Math.min(box.w, box.h) * 0.16);
+}
+
 /** Fill a silhouette with the base colour lit by the key light: a ramp along the light, a form shadow on the far
  * edges, a bevel highlight on the near edges and the rim light. Does not stroke. */
 export function formFill(ctx: Ctx, path: PathFn, box: Box, o: FormOpts): void {
@@ -145,10 +196,10 @@ export function formFill(ctx: Ctx, path: PathFn, box: Box, o: FormOpts): void {
   g.addColorStop(0, shade(o.base, 0.22 * ramp));
   g.addColorStop(0.45, o.base);
   g.addColorStop(1, mix(shade(o.base, -0.42 * ramp), tint, 0.25 * ramp));
-  path(ctx);
+  trace(ctx, path);
   ctx.fillStyle = g;
   ctx.fill();
-  const fs = o.formSize ?? Math.min(box.w, box.h) * 0.16;
+  const fs = o.formSize ?? formSizeOf(box);
   const form = o.form ?? 0.55;
   if (form > 0) innerEdge(ctx, path, rgba(mix(shade(o.base, -0.75), tint, 0.4), form), fs, lx * fs * 0.55, ly * fs * 0.55);
   const bevel = o.bevel ?? 0.35;
@@ -252,7 +303,7 @@ export function softFill(ctx: Ctx, path: PathFn, fill: string | CanvasGradient, 
   ctx.save();
   if ('filter' in ctx) ctx.filter = `blur(${(blur * k).toFixed(1)}px)`;
   ctx.globalCompositeOperation = op;
-  path(ctx);
+  trace(ctx, path);
   ctx.fillStyle = fill;
   ctx.fill();
   ctx.restore();

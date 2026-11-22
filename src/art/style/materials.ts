@@ -62,11 +62,23 @@ export const MATERIALS = {
 
 export type MaterialId = keyof typeof MATERIALS;
 
+export interface PaintOpts {
+  /** Lay the broad specular highlight (default true). */
+  spec?: boolean;
+  /** Texture strength (default the material's). */
+  texA?: number;
+  /** Size of the form shadow in design units (default from the box: formSizeOf). Pass a small one for a thin part
+   * painted with a big box (a strap, a seam, a trim), or it goes muddy. */
+  formSize?: number;
+  /** Strength of the form shadow (default the material's). */
+  form?: number;
+}
+
 /** Fill a silhouette with a material lit by the one light (no outline: the foot strokes its silhouette once). */
-export function paint(ctx: Ctx, path: PathFn, box: Box, mat: Material | MaterialId, base?: string, o: { spec?: boolean; texA?: number } = {}): void {
+export function paint(ctx: Ctx, path: PathFn, box: Box, mat: Material | MaterialId, base?: string, o: PaintOpts = {}): void {
   const m = typeof mat === 'string' ? MATERIALS[mat] : mat;
   const b = base ?? m.base;
-  formFill(ctx, path, box, { base: b, shadowTint: m.shadowTint, ramp: m.ramp, form: m.form, bevel: m.bevel, rim: m.rim });
+  formFill(ctx, path, box, { base: b, shadowTint: m.shadowTint, ramp: m.ramp, form: o.form ?? m.form, bevel: m.bevel, rim: m.rim, formSize: o.formSize });
   inside(ctx, path, () => {
     if (m.tex) texture(ctx, m.tex, box, o.texA ?? m.texA ?? 0.3, m.texScale ?? 1, m.texOp ?? 'overlay');
     if (o.spec !== false && m.specA > 0) {

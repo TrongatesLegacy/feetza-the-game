@@ -40,7 +40,7 @@ import { pickWindow, rouletteWindow, slotsPrizeWindow, type PickOption } from '.
 import { abilityKey } from '../game/abilities';
 import { PizzaPerkKit } from '../game/pizzaPerks';
 import { contentFx } from '../game/contentFx';
-import { styleLive } from '../game/liveKit';
+import { styleLive, warmLive } from '../game/liveKit';
 import '../content/styleLive';
 import { playLook, type LookFx } from '../art/animatedLooks';
 import { HeroDirector } from '../game/heroMoves';
@@ -1008,6 +1008,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     }
     // Herald (Silver Slicer) showed this wave's feet already: use that plan
     this.plan = this.heroT.plan && this.heroT.plan.n === n ? this.heroT.plan : planWave(n, this.run.stats.luck, this.run.heat);
+    this.warmFeet(n, this.plan);
     this.heroT.plan = null;
     if (devBoss) {
       const t = FOOT_BY_ID[devBoss.id];
@@ -1977,8 +1978,28 @@ export class GameScene extends Phaser.Scene implements Arena {
     return o.kind === 'pizza' ? 0 : Math.round(cost / 2 / 5) * 5;
   }
 
+  /** Build the live art of the feet that can turn up in wave n in idle time, before they appear (the shop and the
+   * wave's opening seconds): its boss and minion, its mini-boss, its queue (or the feet likeliest in it). */
+  private warmFeet(n: number, plan?: WavePlan): void {
+    const ids: string[] = [];
+    if (isBossWave(n)) {
+      const b = bossFor(n);
+      ids.push(b);
+      if (BOSS_MINION[b]) ids.push(BOSS_MINION[b]);
+    }
+    if (isMiniWave(n)) ids.push(miniFor(n));
+    if (plan) ids.push(...plan.queue, ...(plan.golden ? ['golden'] : []));
+    else {
+      // no plan yet (it rolls the wave's randomness): the newest feet in the pool first, they're the likeliest
+      const inLoop = n - loopOf(n) * JOURNEY_WAVES;
+      ids.push(...Object.values(FOOT_BY_ID).filter((f) => !f.boss && !f.mini && f.weight > 0 && f.minWave <= inLoop).sort((a, b) => b.minWave - a.minWave).slice(0, 14).map((f) => f.id));
+    }
+    warmLive(this, ids, FOOT_BY_ID);
+  }
+
   private openUpgrades(bossReward: boolean, keepCards?: { cards: Upgrade[]; sold: Set<string>; free: string | null; goldenBought?: GoldenItem['id']; lastStand?: boolean }, title?: string): void {
     if (this.over) return;
+    this.warmFeet(this.run.wave + 1);
     this.inUpgrade = true;
     ui.setPlaying(false);
     audio.duck(0.55);

@@ -60,8 +60,9 @@ function addTex(sc: Phaser.Scene, key: string, c: HTMLCanvasElement): string {
   return key;
 }
 
-/** Build (once) the textures a styled foot needs in play. */
-function liveTextures(sc: Phaser.Scene, type: FootType, def: LiveDef): LiveTex {
+/** Build (once) the textures a styled foot needs in play, one canvas per step (so the work can be spread over idle
+ * time: warmLive). */
+function* liveSteps(sc: Phaser.Scene, type: FootType, def: LiveDef): Generator<void, LiveTex> {
   const hit = texCache.get(type.id);
   if (hit && sc.textures.exists(hit.body)) return hit;
   const st = styleFor(type.id)!;
@@ -77,7 +78,11 @@ function liveTextures(sc: Phaser.Scene, type: FootType, def: LiveDef): LiveTex {
       ctx.clearRect(0, Math.floor((st.rig.to + FOOT_FRAME.padY) * s), body.width, body.height);
     }
     addTex(sc, out.body, body);
+    yield;
   }
+  // where the toe band is covered in every pose (texture px, band rows from rig.from down): glow and heat are drawn
+  // at rest, so in the band they only show where no pose moves the art away (no second set of toes)
+  let still: HTMLCanvasElement | undefined;
   if (st.rig) {
     const { from, to } = st.rig;
     const y1 = FOOT_FRAME.h - FOOT_FRAME.padY;
@@ -87,18 +92,30 @@ function liveTextures(sc: Phaser.Scene, type: FootType, def: LiveDef): LiveTex {
     const poses = [...CURL_TRACK.map((c) => pose({ curl: c })), ...(def.wiggle ? Array.from({ length: WIGGLE_N }, (_, k) => wigglePose(k)) : [])];
     const key = `lk_${type.id}_band`;
     if (!sc.textures.exists(key)) {
-      const frames = poses.map((p) => {
+      const frames: HTMLCanvasElement[] = [];
+      for (const p of poses) {
         const full = styledCanvas(type, p, { live: true }, { y0: from - lead, y1 });
         const [c, ctx] = makeCanvas(full.width, (y1 - from) * s);
         ctx.drawImage(full, 0, -lead * s);
+        if (def.glow || def.heat) {
+          if (!still) {
+            still = makeCanvas(c.width, c.height)[0];
+            still.getContext('2d')!.drawImage(c, 0, 0);
+          } else {
+            const x = still.getContext('2d')!;
+            x.globalCompositeOperation = 'destination-in';
+            x.drawImage(c, 0, 0);
+          }
+        }
         ctx.globalCompositeOperation = 'destination-in';
         const g = ctx.createLinearGradient(0, 0, 0, (to - from) * s);
         g.addColorStop(0, 'rgba(0,0,0,0)');
         g.addColorStop(1, 'rgba(0,0,0,1)');
         ctx.fillStyle = g;
         ctx.fillRect(0, 0, c.width, c.height);
-        return c;
-      });
+        frames.push(c);
+        yield;
+      }
       addSheet(sc, key, frames);
     }
     out.band = { key, y0: from, n: poses.length, wiggle: !!def.wiggle };
@@ -114,16 +131,29 @@ function liveTextures(sc: Phaser.Scene, type: FootType, def: LiveDef): LiveTex {
         return c;
       });
       addSheet(sc, key, frames);
+      yield;
     }
     out.parts[name] = key;
   }
-  // glow and heat are drawn at rest: keep them off the toe band, where the toes move, or they'd show a second set
+  // glow and heat are drawn at rest: in the toe band they keep only where every pose covers the art (`still`), so
+  // they never show a second set of toes, yet the hot sole and the ball of the foot still glow
   const offBand = (c: HTMLCanvasElement) => {
     if (!st.rig) return c;
     const ctx = c.getContext('2d')!;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
+    const y0 = Math.round((st.rig.from + FOOT_FRAME.padY) * s);
+    if (still) {
+      // keep the band only where it's still: cut the band out, then add it back masked
+      const [b, bx] = makeCanvas(c.width, Math.max(1, c.height - y0));
+      bx.drawImage(c, 0, -y0);
+      bx.globalCompositeOperation = 'destination-in';
+      bx.drawImage(still, 0, 0);
+      ctx.clearRect(0, y0, c.width, c.height - y0);
+      ctx.drawImage(b, 0, y0);
+      return c;
+    }
+    // (the pose frames were made earlier: fade the band out instead)
     ctx.globalCompositeOperation = 'destination-out';
-    const y0 = (st.rig.from + FOOT_FRAME.padY) * s;
     const y1 = (st.rig.to + FOOT_FRAME.padY) * s;
     const g = ctx.createLinearGradient(0, y0, 0, y1);
     g.addColorStop(0, 'rgba(0,0,0,0)');
@@ -132,16 +162,87 @@ function liveTextures(sc: Phaser.Scene, type: FootType, def: LiveDef): LiveTex {
     ctx.fillRect(0, y0, c.width, c.height - y0);
     return c;
   };
-  if (def.glow) out.glow = addTex(sc, `lk_${type.id}_glow`, offBand(styledCanvas(type, pose({}), { live: true, emissive: true })));
-  if (def.heat) out.heat = addTex(sc, `lk_${type.id}_heat`, offBand(styledCanvas(type, pose({ heat: 1 }), { live: true, heat: true })));
+  for (const layer of ['glow', 'heat'] as const) {
+    if (!def[layer]) continue;
+    const key = `lk_${type.id}_${layer}`;
+    if (!sc.textures.exists(key)) {
+      addTex(sc, key, offBand(styledCanvas(type, pose({ heat: layer === 'heat' ? 1 : 0 }), { live: true, emissive: layer === 'glow', heat: layer === 'heat' })));
+      yield;
+    }
+    out[layer] = key;
+  }
   texCache.set(type.id, out);
   return out;
 }
 
-/** Build a styled foot's live textures ahead of time (call during a loading screen or idle time). */
+/** Live textures being built a step at a time (warmLive), by foot id. */
+const building = new Map<string, { sc: Phaser.Scene; gen: Generator<void, LiveTex> }>();
+
+/** A styled foot's live textures, built now if they aren't yet (finishing a warm-up in progress). */
+function liveTextures(sc: Phaser.Scene, type: FootType, def: LiveDef): LiveTex {
+  const job = building.get(type.id);
+  building.delete(type.id);
+  const gen = job && job.sc === sc ? job.gen : liveSteps(sc, type, def);
+  for (;;) {
+    const r = gen.next();
+    if (r.done) return r.value;
+  }
+}
+
+/** Build a styled foot's live textures now (play builds them lazily instead: warmLive). */
 export function prewarmLive(sc: Phaser.Scene, type: FootType): void {
   const def = defs[type.id];
   if (def && styleFor(type.id)) liveTextures(sc, type, def);
+}
+
+let pumping = false;
+const idle = (fn: (d?: IdleDeadline) => void) => {
+  if (typeof requestIdleCallback === 'function') requestIdleCallback(fn, { timeout: 400 });
+  else setTimeout(() => fn(), 40);
+};
+
+function pump(d?: IdleDeadline): void {
+  // a step costs a few ms: take one only while the frame has room (one anyway when the idle wait timed out or there
+  // is no idle callback, so the queue never stalls in a busy fight)
+  let forced = !d || d.didTimeout;
+  while (building.size && (forced || d!.timeRemaining() > 8)) {
+    forced = false;
+    const [id, job] = building.entries().next().value!;
+    let done = true;
+    try {
+      done = !job.sc.sys?.textures || !!job.gen.next().done;
+    } catch (e) {
+      if (import.meta.env?.DEV) console.error('[liveKit] building', id, e);
+    }
+    if (done) building.delete(id);
+    if (!d) break;
+  }
+  if (building.size) idle(pump);
+  else pumping = false;
+}
+
+/**
+ * Build the live textures of feet about to appear, in idle time a step at a time (so load time stays flat however
+ * many feet are redrawn). Ids already built or queued are skipped; a foot that spawns first finishes its own build.
+ */
+export function warmLive(sc: Phaser.Scene, ids: Iterable<string>, types: Record<string, FootType>): void {
+  for (const id of ids) {
+    const type = types[id];
+    const def = defs[id];
+    if (!type || !def || !styleFor(id) || building.has(id)) continue;
+    const hit = texCache.get(id);
+    if (hit && sc.textures.exists(hit.body)) continue;
+    building.set(id, { sc, gen: liveSteps(sc, type, def) });
+  }
+  if (building.size && !pumping) {
+    pumping = true;
+    idle(pump);
+  }
+}
+
+/** Dev: how many feet are still waiting for their live textures. */
+export function liveWarmPending(): number {
+  return building.size;
 }
 
 /** Effect particle textures: one atlas so every emitter batches. */
@@ -606,6 +707,7 @@ export class LiveFoot {
   private twitches: { img: Phaser.GameObjects.Image; next: number; t: number }[] = [];
   private glowImg?: Phaser.GameObjects.Image;
   private heatImg?: Phaser.GameObjects.Image;
+  private heatImg2?: Phaser.GameObjects.Image;
   // the rig
   private curl = 0;
   private sy: Spring;
@@ -662,6 +764,9 @@ export class LiveFoot {
     if (this.tex.heat) {
       this.heatImg = this.sc.add.image(0, 0, this.tex.heat).setOrigin(0.5, f.meta.originY).setScale(k).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
       f.addLiveArt(this.heatImg, false, true);
+      // a second pass of the same light, so a boss's overheat reads clearly over a busy backdrop in a real fight
+      this.heatImg2 = this.sc.add.image(0, 0, this.tex.heat).setOrigin(0.5, f.meta.originY).setScale(k).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
+      f.addLiveArt(this.heatImg2, false, true);
     }
     liveSet.add(this);
     this.state = def.setup?.(this);
@@ -772,6 +877,8 @@ export class LiveFoot {
       const flick = 0.82 + noise1(this.t * 3.1) * 0.1 + noise1(this.t * 11) * 0.05;
       // fade with the foot (hidden, glitching or phasing)
       this.heatImg.setAlpha(this.heat * flick * f.visualAlpha);
+      // the second pass breathes slower, so the heat swells and ebbs
+      this.heatImg2?.setAlpha(this.heat * (0.32 + 0.2 * Math.sin(this.t * 2.3)) * f.visualAlpha);
     }
     // ——— glow ———
     if (this.glowImg) {

@@ -5,7 +5,7 @@
 // where toes part, no seams where parts overlap, and no outline drawn over the top where the leg covers it.
 
 import { type Ctx, mix, rgba, shade } from '../util';
-import { type Box, type FormOpts, type PathFn, LIGHT, STYLE, pxPerUnit } from './kit';
+import { type Box, type FormOpts, type PathFn, LIGHT, STYLE, pxPerUnit, trace } from './kit';
 
 function layerLike(ctx: Ctx): [HTMLCanvasElement, Ctx] {
   const c = document.createElement('canvas');
@@ -31,7 +31,7 @@ export class Sil {
     const [m, mx] = layerLike(ctx);
     mx.fillStyle = '#fff';
     for (const p of parts) {
-      p(mx);
+      trace(mx, p);
       mx.fill();
     }
     this.mask = m;
@@ -43,7 +43,7 @@ export class Sil {
     const g = this.g;
     g.fillStyle = fill;
     for (const p of this.parts) {
-      p(g);
+      trace(g, p);
       g.fill();
     }
   }
@@ -167,13 +167,13 @@ export function lobe(g: Ctx, path: PathFn, clip: Box, fadeFrom: number, fadeTo: 
   const [lx, ly] = LIGHT.dir;
   // the lobe's inside edge, shaded from the outside of its path
   x.save();
-  path(x);
+  trace(x, path);
   x.clip();
   x.shadowColor = rgba(dark, darkA);
   x.shadowBlur = size * k;
   x.shadowOffsetX = lx * size * 0.6 * k;
   x.shadowOffsetY = ly * size * 0.6 * k;
-  path(x);
+  trace(x, path);
   x.rect(-3000, -3000, 6000, 6000);
   x.fillStyle = '#000';
   x.fill('evenodd');
@@ -181,7 +181,7 @@ export function lobe(g: Ctx, path: PathFn, clip: Box, fadeFrom: number, fadeTo: 
   x.shadowOffsetX = -lx * size * 0.35 * k;
   x.shadowOffsetY = -ly * size * 0.35 * k;
   x.shadowBlur = size * 1.2 * k;
-  path(x);
+  trace(x, path);
   x.rect(-3000, -3000, 6000, 6000);
   x.fill('evenodd');
   x.restore();
