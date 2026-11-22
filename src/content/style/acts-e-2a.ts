@@ -1,7 +1,8 @@
 // Act 9 (Greek myths) in the style kit, batch acts-e part 2a: the three Titans Hades frees, and the Minotaur.
-// - KRONOS: a colossal foot of weathered grey stone (lichen, chisel marks, a crack mended in gold), a carved clock dial
-//   sunk into the instep with gold Roman numerals, an hourglass strapped to the ankle and a harpe (the sickle he cut
-//   the sky with) hanging at his side. In play the hands tick backwards, sand trickles and gold motes of time drift up.
+// - KRONOS: the Titan King freed (he shares his stone, toes, shackle and clock with src/content/style/acts-f-3.ts):
+//   his shackle snapped open with a broken link dangling, his cracks glowing molten gold with sand running out of
+//   them, a clock set in the shackle and his harpe at his side. In play the clock ticks, the link swings, the gold
+//   pulses and sand trickles from the cracks.
 // - ATLAS: a huge straining bronze-skinned foot, tendons and veins standing out, beaded with sweat, the night sky
 //   inlaid on the instep as a gold armillary sphere, blue linen wrapped round the ankle and a gold band. In play he
 //   breathes hard, sweat drips, the stars twinkle and star dust drifts off the sphere.
@@ -15,9 +16,14 @@
 import type { FootArt } from '../../data/feet';
 import { CX } from '../../art/feetCommon';
 import { type BareLook, bareFoot, bareOutline, paintBare } from '../../art/style/bare';
-import { LIGHT, type PathFn, type Pose, crease, glint, inkOf, innerEdge, softFill, softStroke, spec, texture } from '../../art/style/kit';
+import { LIGHT, type PathFn, type Pose, ao, crease, glint, inkOf, innerEdge, softFill, softStroke, spec, texture } from '../../art/style/kit';
 import { Sil, lobe } from '../../art/style/sil';
 import { registerStyle } from '../../art/style/registry';
+import { extendSil } from './base-kit';
+import {
+  LINK_LEN, TITAN_LOOK, type TitanClock, clockFace, clockPath, ironLink, shackleBand, shackleClock, titanStone,
+} from './acts-f-3';
+import { metal } from './acts-f-kit';
 import { blotches, contact, rivet, tuftPath } from '../../art/style/details';
 import { LX, LY, clip, fill, furCoat, glowDot, glowFinish, goldRamp, heatLayer, lightAll, lin, panel, rad, streak } from '../../art/style/kit-bosses';
 import { type Ctx, hashStr, mix, rgba, rng, shade } from '../../art/util';
@@ -51,54 +57,90 @@ function wrapPath(y0: number, h: number, hw: number, bow: number, tilt = 0): Pat
   };
 }
 
-/** A clock hand (design units) from (x, y) along `ang` (0 = up, clockwise), drawn in gold with its own shadow. */
-export function clockHand(g: Ctx, x: number, y: number, ang: number, len: number, w: number, gold: string, shadow = true): void {
-  g.save();
-  g.translate(x, y);
-  g.rotate(ang);
-  const hand: PathFn = (c) => {
-    c.beginPath();
-    c.moveTo(-w * 0.5, 8);
-    c.lineTo(-w * 0.6, -len * 0.55);
-    // a spade tip
-    c.quadraticCurveTo(-w * 1.6, -len * 0.7, 0, -len);
-    c.quadraticCurveTo(w * 1.6, -len * 0.7, w * 0.6, -len * 0.55);
-    c.lineTo(w * 0.5, 8);
-    c.closePath();
-  };
-  if (shadow)
-    contact(g, (c) => {
-      hand(c);
-      c.fill();
-    }, 0.55, 3, 2.5);
-  fill(g, hand, lin(g, -w, 0, w, 0, [
-    [0, mix(gold, '#fffbe0', 0.55)],
-    [0.45, gold],
-    [1, shade(gold, -0.5)],
-  ]));
-  g.strokeStyle = rgba(shade(gold, -0.65), 0.9);
-  g.lineWidth = 1;
-  hand(g);
-  g.stroke();
-  g.restore();
-}
-
 // ════════════════════════════ KRONOS ════════════════════════════
+// The same Titan as Kratos's Titan King (src/content/style/acts-f-3.ts), FREED: the same weathered titan stone, the
+// same toes and stone nails, light and outline (titanStone), and the same shackle and clock, but the shackle has
+// snapped open: its left half hangs open on its hinge with one broken link dangling from it (a live part: it swings).
+// No fire: time runs in him instead, his cracks glowing molten gold with fine sand trickling out of them (sand in
+// play). The clock set in his shackle ticks; his harpe (the sickle he cut the sky with) hangs at his side.
 
-export const KRONOS_DIAL = { x: CX + 2, y: 122, r: 44 };
-export const KRONOS_GLASS = { x: CX, y: 40, s: 0.8 };
-/** Where the harpe hangs from the ankle strap (a live part: it swings). */
+export const KRONOS_CLOCK: TitanClock = { x: CX + 18, y: 42, r: 16 };
+/** Where the harpe hangs from the shackle (a live part: it swings). */
 export const KRONOS_HARPE = { x: CX + 74, y: 34 };
+/** The open half of the shackle: its hinge at the back of the ankle, and how far it has swung open (radians). */
+const KRONOS_HINGE = { x: CX - 60, y: 40, open: Math.PI - 0.5, len: 40 };
+/** A point of the open half's own frame (u from the hinge along it, v across it, down positive) in design space. */
+function hingeAt(u: number, v: number): [number, number] {
+  const { x, y, open } = KRONOS_HINGE;
+  const c = Math.cos(open);
+  const s = Math.sin(open);
+  return [x + u * c - v * s, y + u * s + v * c];
+}
+/** The iron eye at the open half's snapped end, where the broken link hangs (a live part: it swings). */
+export const KRONOS_LINK = (() => {
+  const [x, y] = hingeAt(KRONOS_HINGE.len - 6, -8);
+  return { x, y };
+})();
 
-const kronosLook = (art: FootArt): BareLook => ({ skin: art.skin, nails: null, toe: 1.05, ball: 1.03, w: 4, pores: 0.12, detail: 0.45, shadowTint: '#141834' });
+const kronosLook = (art: FootArt): BareLook => ({ ...TITAN_LOOK, skin: art.skin });
 
-const KRONOS_CRACKS: [number, number][][] = [
-  [[CX - 42, 8], [CX - 52, 40], [CX - 40, 64], [CX - 62, 104]],
-  [[CX + 78, 92], [CX + 64, 128], [CX + 80, 160], [CX + 70, 186]],
+/** His cracks, where time shows through: molten gold, sand running out of them (design space polylines). */
+export const KRONOS_CRACKS: [number, number][][] = [
+  [[CX - 40, 64], [CX - 52, 82], [CX - 40, 100], [CX - 62, 132]],
+  [[CX + 78, 92], [CX + 62, 124], [CX + 80, 156], [CX + 68, 184]],
   [[CX - 84, 150], [CX - 64, 168], [CX - 74, 196]],
+  [[CX - 6, 118], [CX - 24, 136], [CX - 14, 156], [CX - 30, 176]],
 ];
-/** The crack time has mended in gold. */
-const KRONOS_KINTSUGI: [number, number][] = [[CX - 30, 176], [CX - 18, 160], [CX - 26, 140], [CX - 8, 128]];
+
+/** A crack's jagged course: its control points subdivided and jittered (fixed per crack), with the opening's half
+ * width at each point (widest in its middle, closing to hairlines at the ends). */
+export const KRONOS_CRACK_PATHS: { pts: [number, number][]; w: number[]; branch: [number, number][] }[] = KRONOS_CRACKS.map((ctrl, ci) => {
+  const r = rng(hashStr(`kronos-crack-${ci}`));
+  const pts: [number, number][] = [];
+  for (let i = 0; i < ctrl.length - 1; i++) {
+    const [ax, ay] = ctrl[i];
+    const [bx, by] = ctrl[i + 1];
+    const n = 4;
+    for (let j = 0; j < n; j++) {
+      const t = j / n;
+      const jit = j === 0 ? 0 : 5.5;
+      pts.push([ax + (bx - ax) * t + (r() - 0.5) * jit, ay + (by - ay) * t + (r() - 0.5) * jit]);
+    }
+  }
+  pts.push(ctrl[ctrl.length - 1]);
+  // a short branch off its middle, splitting away to one side
+  const bi = Math.floor(pts.length * (0.35 + r() * 0.3));
+  const [bx, by] = pts[bi];
+  const ang = Math.atan2(pts[bi + 1][1] - by, pts[bi + 1][0] - bx) + (r() < 0.5 ? -1 : 1) * (0.7 + r() * 0.4);
+  const bl = 14 + r() * 12;
+  const branch: [number, number][] = [[bx, by], [bx + Math.cos(ang) * bl * 0.5 + (r() - 0.5) * 4, by + Math.sin(ang) * bl * 0.5 + (r() - 0.5) * 4], [bx + Math.cos(ang) * bl, by + Math.sin(ang) * bl]];
+  const w = pts.map((_, i) => {
+    const u = i / (pts.length - 1);
+    return 0.4 + 3.2 * Math.sin(u * Math.PI) ** 0.8 * (0.75 + r() * 0.5);
+  });
+  return { pts, w, branch };
+});
+
+/** A crack's opening as a closed shape, widened by `grow`. */
+function crackShape(c: { pts: [number, number][]; w: number[] }, grow = 0): PathFn {
+  return (q) => {
+    const { pts, w } = c;
+    const side = (s: number) =>
+      pts.map(([x, y], i) => {
+        const [px, py] = pts[Math.max(0, i - 1)];
+        const [nx, ny] = pts[Math.min(pts.length - 1, i + 1)];
+        const dx = nx - px;
+        const dy = ny - py;
+        const d = Math.hypot(dx, dy) || 1;
+        return [x - (dy / d) * (w[i] + grow) * s, y + (dx / d) * (w[i] + grow) * s] as [number, number];
+      });
+    const a = side(1);
+    const b = side(-1).reverse();
+    q.beginPath();
+    [...a, ...b].forEach(([x, y], i) => (i ? q.lineTo(x, y) : q.moveTo(x, y)));
+    q.closePath();
+  };
+}
 
 function harpePath(): PathFn {
   const { x, y } = KRONOS_HARPE;
@@ -215,285 +257,260 @@ function drawHarpe(g: Ctx, box: { x: number; y: number; w: number; h: number }):
 
 const HARPE_BOX = { x: KRONOS_HARPE.x - 14, y: KRONOS_HARPE.y - 16, w: 100, h: 212 };
 
-/** The hourglass at the ankle: gold caps and posts, the glass, the sand (the falling stream only when `stream`). */
-export function hourglass(g: Ctx, cx: number, cy: number, s: number, stream: boolean, sand = '#ffcf6a', gold = '#d9c27a'): void {
-  g.save();
-  g.translate(cx, cy);
-  g.scale(s, s);
-  const bulb: PathFn = (c) => {
+/** The shackle's closed half, still round his ankle: from its hinge at the back right round the front to where the
+ * clasp snapped, a jagged break left of the middle. */
+const kronosBand: PathFn = (c) => {
+  c.beginPath();
+  c.moveTo(CX - 24, 29.5);
+  c.quadraticCurveTo(CX + 22, 29, CX + 64, 22);
+  c.lineTo(CX + 68, 54);
+  c.quadraticCurveTo(CX + 22, 63, CX - 26, 61);
+  c.lineTo(CX - 21, 54);
+  c.lineTo(CX - 28, 47);
+  c.lineTo(CX - 22, 40);
+  c.lineTo(CX - 27, 34);
+  c.closePath();
+};
+
+/** The open half of the shackle, swung out on its hinge: the band's outer face, its inner face showing as a darker
+ * strip (it's open, so we see its thickness), a jagged snapped end, the hinge pin and the iron eye at its end. */
+function openShackle(g: Ctx, bronze: string): void {
+  const L = KRONOS_HINGE.len;
+  const H = 30;
+  const outer: PathFn = (c) => {
+    const pts: [number, number][] = [
+      hingeAt(0, -H / 2), hingeAt(L * 0.5, -H / 2 - 2), hingeAt(L, -H / 2 + 1),
+      hingeAt(L - 4, -H / 4), hingeAt(L + 2, 0), hingeAt(L - 5, H / 5), hingeAt(L + 1, H / 2 - 1),
+      hingeAt(L * 0.5, H / 2 + 2), hingeAt(0, H / 2),
+    ];
     c.beginPath();
-    c.moveTo(-20, -29);
-    c.bezierCurveTo(-22, -10, -6, -6, -3, 0);
-    c.bezierCurveTo(-6, 6, -22, 10, -20, 29);
-    c.lineTo(20, 29);
-    c.bezierCurveTo(22, 10, 6, 6, 3, 0);
-    c.bezierCurveTo(6, -6, 22, -10, 20, -29);
+    pts.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y)));
     c.closePath();
   };
-  // the stone shows through the glass, darker and a little blue
+  const inner: PathFn = (c) => {
+    const pts: [number, number][] = [hingeAt(0, H / 2), hingeAt(L * 0.5, H / 2 + 2), hingeAt(L + 1, H / 2 - 1), hingeAt(L - 1, H / 2 + 5), hingeAt(L * 0.5, H / 2 + 7), hingeAt(2, H / 2 + 5)];
+    c.beginPath();
+    pts.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y)));
+    c.closePath();
+  };
+  const [ax, ay] = hingeAt(0, 0);
+  const box = { x: ax - L - 10, y: ay - L - 10, w: (L + 10) * 2, h: (L + 10) * 2 };
   contact(g, (c) => {
-    bulb(c);
+    outer(c);
     c.fill();
-  }, 0.5, 3, 4);
-  fill(g, bulb, rgba('#20283a', 0.55));
-  clip(g, bulb, () => {
-    // sand: what's left on top (a dished heap) and the cone growing below
-    const top: PathFn = (c) => {
-      c.beginPath();
-      c.moveTo(-15, -15);
-      c.quadraticCurveTo(0, -8, 15, -15);
-      c.lineTo(3, -1);
-      c.lineTo(-3, -1);
-      c.closePath();
-    };
-    const pile: PathFn = (c) => {
-      c.beginPath();
-      c.moveTo(-21, 30);
-      c.quadraticCurveTo(-6, 12, 0, 9);
-      c.quadraticCurveTo(6, 12, 21, 30);
-      c.closePath();
-    };
-    for (const p of [top, pile]) fill(g, p, lin(g, -14, -20, 14, 30, [
-      [0, shade(sand, 0.35)],
-      [0.5, sand],
-      [1, shade(sand, -0.4)],
-    ]));
-    texture(g, 'speckle', { x: -24, y: -32, w: 48, h: 64 }, 0.35, 1);
-    if (stream) {
-      g.fillStyle = shade(sand, 0.15);
-      g.fillRect(-0.9, -2, 1.8, 13);
-    }
-    // the glass: a cool sheen down the left, a rim of light round the bulbs
-    g.fillStyle = lin(g, -22, 0, 22, 0, [
-      [0, rgba('#dff6ff', 0.35)],
-      [0.3, rgba('#dff6ff', 0.05)],
-      [0.8, rgba('#dff6ff', 0)],
-      [1, rgba('#dff6ff', 0.25)],
-    ]);
-    g.fillRect(-24, -32, 48, 64);
-  });
-  innerEdge(g, bulb, rgba('#e8f8ff', 0.6), 3, 1.5, 1.5);
-  g.strokeStyle = rgba('#e8f8ff', 0.5);
-  g.lineWidth = 1.2;
-  bulb(g);
-  g.stroke();
-  streak(g, (c) => {
-    c.moveTo(-15, -24);
-    c.quadraticCurveTo(-17, -14, -9, -6);
-  }, 1.8, 0.8);
-  streak(g, (c) => {
-    c.moveTo(-14, 24);
-    c.quadraticCurveTo(-16, 16, -10, 9);
-  }, 1.4, 0.55);
-  // the frame: two turned gold caps and three posts
-  for (const px of [-23, 23]) {
-    const post: PathFn = (c) => {
-      c.beginPath();
-      c.rect(px - 2.2, -32, 4.4, 64);
-    };
-    raised(g, post, goldRamp(g, px - 2.2, 0, px + 2.2, 0, gold), 0.45, 1.6);
-  }
-  for (const yy of [-35, 35]) {
-    const cap: PathFn = (c) => {
-      c.beginPath();
-      c.roundRect(-29, yy - 5.5, 58, 11, 4);
-    };
-    raised(g, cap, lin(g, 0, yy - 5.5, 0, yy + 5.5, [
-      [0, mix(gold, '#fffbe0', 0.6)],
-      [0.4, gold],
-      [1, shade(gold, -0.5)],
-    ]), 0.5, 2);
-    crease(g, (c) => {
-      c.moveTo(-26, yy + 1);
-      c.lineTo(26, yy + 1);
-    }, 1, shade(gold, -0.6), 0.5, 0.3);
-  }
-  glint(g, -18, -34, 4, 0.9);
-  g.restore();
-}
-
-function kronosDialPath(): PathFn {
-  const { x, y, r } = KRONOS_DIAL;
-  return ell(x, y, r, r * 0.94);
-}
-
-function paintKronosDial(g: Ctx, stone: string, gold: string, hands: boolean): void {
-  const { x, y, r } = KRONOS_DIAL;
-  const dial = kronosDialPath();
-  // sunk into the stone: the face is darker and smoother, shadowed under its top-left lip, lit on its bottom-right
-  fill(g, dial, rad(g, x + 8, y + 10, 4, x, y, r, [
-    [0, shade(stone, -0.08)],
-    [1, shade(stone, -0.32)],
+  }, 0.6, 3, 3.5);
+  // the inside of the band: darker, worn smooth
+  fill(g, inner, lin(g, ax, ay, ...hingeAt(L, H), [
+    [0, shade(bronze, -0.55)],
+    [1, shade(bronze, -0.75)],
   ]));
-  clip(g, dial, () => texture(g, 'stone', { x: x - r, y: y - r, w: r * 2, h: r * 2 }, 0.2, 2));
-  innerEdge(g, dial, rgba('#05060e', 0.75), 7, -LX * 5, -LY * 5);
-  innerEdge(g, dial, rgba(LIGHT.key, 0.35), 2, LX * 2, LY * 2);
-  // the gold bezel inlaid round it
-  g.save();
-  g.lineWidth = 4.2;
-  g.strokeStyle = goldRamp(g, x - r, y - r, x + r, y + r, gold);
-  g.beginPath();
-  g.ellipse(x, y, r + 1.5, r * 0.94 + 1.5, 0, 0, Math.PI * 2);
-  g.stroke();
-  g.lineWidth = 1.2;
-  g.strokeStyle = rgba(shade(gold, -0.5), 0.8);
-  g.beginPath();
-  g.ellipse(x, y, r - 9, r * 0.94 - 9, 0, 0, Math.PI * 2);
-  g.stroke();
-  g.restore();
-  // the hours: Roman numerals at the quarters, gold studs between, minute ticks round the rim
-  g.save();
-  for (let i = 0; i < 60; i++) {
-    const a = (i / 60) * Math.PI * 2;
-    if (i % 5 === 0) continue;
-    const cx = x + Math.sin(a) * (r - 4.5);
-    const cy = y - Math.cos(a) * (r - 4.5) * 0.94;
-    g.fillStyle = rgba(gold, 0.7);
+  metal(g, outer, box, bronze, { glints: false });
+  clip(g, outer, () => {
+    texture(g, 'cast', box, 0.3);
+    blotches(g, box, '#3a9a7a', 0.45, 8, 0.66, 0.08, 913);
+    // the Greek key runs on round it
+    g.strokeStyle = rgba('#3a1a04', 0.75);
+    g.lineWidth = 2;
     g.beginPath();
-    g.arc(cx, cy, 0.9, 0, Math.PI * 2);
-    g.fill();
-  }
-  g.font = 'bold 12px Georgia, "Times New Roman", serif';
-  g.textAlign = 'center';
-  g.textBaseline = 'middle';
-  const roman = ['XII', 'III', 'VI', 'IX'];
-  for (let h = 0; h < 12; h++) {
-    const a = (h / 12) * Math.PI * 2;
-    const rr = r - 16;
-    const cx = x + Math.sin(a) * rr;
-    const cy = y - Math.cos(a) * rr * 0.94;
-    if (h % 3 === 0) {
-      const t = roman[h / 3];
-      // engraved: dark under-cut, then the gold
-      g.fillStyle = rgba('#05060e', 0.7);
-      g.fillText(t, cx + 1, cy + 1.2);
-      g.fillStyle = goldRamp(g, cx - 8, cy - 6, cx + 8, cy + 6, gold);
-      g.fillText(t, cx, cy);
-    } else raised(g, ell(cx, cy, 2.6, 2.6), rad(g, cx - 0.8, cy - 0.8, 0.2, cx, cy, 3, [
-      [0, '#fff8d8'],
-      [0.5, gold],
-      [1, shade(gold, -0.5)],
-    ]), 0.5, 1.2);
+    for (let u = 4; u < L - 6; u += 14) {
+      const p = (uu: number, vv: number) => hingeAt(uu, vv);
+      g.moveTo(...p(u, 8));
+      g.lineTo(...p(u, -6));
+      g.lineTo(...p(u + 10, -6));
+      g.lineTo(...p(u + 10, 2));
+      g.lineTo(...p(u + 5, 2));
+    }
+    g.stroke();
+  });
+  g.save();
+  g.lineJoin = 'round';
+  for (const p of [inner, outer]) {
+    p(g);
+    g.strokeStyle = mix(inkOf(bronze), '#0a0c1a', 0.4);
+    g.lineWidth = 2.2;
+    g.stroke();
   }
   g.restore();
-  if (hands) {
-    clockHand(g, x, y, -Math.PI / 3, r * 0.5, 4, gold);
-    clockHand(g, x, y, Math.PI / 3, r * 0.76, 3, gold);
-  }
-  // the arbor
-  raised(g, ell(x, y, 4, 4), rad(g, x - 1, y - 1, 0.3, x, y, 4.5, [
-    [0, '#fff8d8'],
-    [0.5, gold],
-    [1, shade(gold, -0.6)],
-  ]), 0.5, 1.2);
+  // the snapped end: torn bright metal
+  streak(g, (c) => {
+    c.moveTo(...hingeAt(L - 3, -H / 2 + 3));
+    c.lineTo(...hingeAt(L + 1, 0));
+    c.lineTo(...hingeAt(L - 3, H / 2 - 4));
+  }, 1.4, 0.7, '#fff0c0');
+  // the hinge pin
+  raised(g, ell(ax, ay, 5, 5), rad(g, ax - 1.5, ay - 1.5, 0.3, ax, ay, 5.5, [
+    [0, '#fff4c8'],
+    [0.5, bronze],
+    [1, shade(bronze, -0.6)],
+  ]), 0.5, 1.5);
+  // the iron eye the broken link hangs from
+  const { x, y } = KRONOS_LINK;
+  g.save();
+  const ring: PathFn = (c) => {
+    c.beginPath();
+    c.arc(x, y, 6.5, 0, Math.PI * 2);
+    c.arc(x, y, 3, 0, Math.PI * 2, true);
+  };
+  contact(g, (c) => {
+    ring(c);
+    c.fill('evenodd');
+  }, 0.6, 2.4, 2.5);
+  ring(g);
+  g.fillStyle = lin(g, x + LX * 6, y + LY * 6, x - LX * 6, y - LY * 6, [
+    [0, '#c4c8d0'],
+    [0.35, '#55575f'],
+    [1, '#16171c'],
+  ]);
+  g.fill('evenodd');
+  g.lineWidth = 1;
+  g.strokeStyle = rgba('#0a0a0e', 0.9);
+  g.stroke();
+  g.restore();
+  glint(g, x + LX * 4, y + LY * 4, 2.2, 0.8);
+}
+
+/** The broken link hanging from the eye: one whole face-on link, and through it the top half of the next, edge-on,
+ * snapped off in a jagged break. Pivot at the eye. */
+const LINK_K = 1.8;
+const LINK_STEP = LINK_LEN * LINK_K * 0.78;
+const LINK_BOX = { x: KRONOS_LINK.x - 22, y: KRONOS_LINK.y - 8, w: 44, h: LINK_STEP * 2 + 30 };
+function drawBrokenLink(g: Ctx): void {
+  const { x, y } = KRONOS_LINK;
+  // the snapped one, under the whole one: drawn whole on a scratch layer, its lower half cut away
+  const cv = document.createElement('canvas');
+  cv.width = g.canvas.width;
+  cv.height = g.canvas.height;
+  const q = cv.getContext('2d')!;
+  q.setTransform(g.getTransform());
+  const ly = y + LINK_STEP * 1.45 + 5;
+  q.save();
+  q.translate(x, ly);
+  q.scale(LINK_K, LINK_K);
+  ironLink(q, 0, 0, Math.PI / 2 + 0.12, false, Math.PI / 2);
+  q.restore();
+  q.globalCompositeOperation = 'destination-out';
+  q.beginPath();
+  q.moveTo(x - 14, ly - 1);
+  q.lineTo(x - 3, ly + 2);
+  q.lineTo(x + 1, ly - 3);
+  q.lineTo(x + 14, ly + 1);
+  q.lineTo(x + 14, ly + 40);
+  q.lineTo(x - 14, ly + 40);
+  q.closePath();
+  q.fill();
+  g.save();
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.drawImage(cv, 0, 0);
+  g.restore();
+  // the bright torn metal at the break
+  streak(g, (c) => {
+    c.moveTo(x - 2.5, ly + 1);
+    c.lineTo(x + 2.6, ly - 1.5);
+  }, 1.6, 0.85, '#e8ecf4');
+  g.save();
+  g.translate(x, y + LINK_STEP * 0.55 + 5);
+  g.scale(LINK_K, LINK_K);
+  ironLink(g, 0, 0, Math.PI / 2, true, Math.PI / 2);
+  g.restore();
 }
 
 function drawKronos(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
   const stone = art.skin;
+  const dark = art.primary ?? '#5a5a7a';
   const gold = art.secondary ?? '#d9c27a';
+  const bronze = '#b8843a';
   const look = kronosLook(art);
+  const glowCracks = (g: Ctx, a: number) => {
+    for (const c of KRONOS_CRACK_PATHS) softFill(g, crackShape(c, 2.5), rgba('#ffd27a', a), 3);
+  };
   if (o.heat) {
     const f = bareFoot(ctx, look, p);
-    const g = f.sil.g;
-    for (const pts of KRONOS_CRACKS) softStroke(g, line(pts), rgba('#ffd27a', 0.95), 5, 2.5);
-    g.strokeStyle = rgba('#ffb040', 0.7);
-    g.lineWidth = 3;
-    kronosDialPath()(g);
-    g.stroke();
+    extendSil(f.sil, [kronosBand, clockPath(KRONOS_CLOCK)]);
+    glowCracks(f.sil.g, 0.95);
     heatLayer(f.sil, f.box, { seed: 901, y0: 268, y1: 0, patch: 0.65 });
     return;
   }
   if (o.emissive) {
-    // the gold of the dial and the sand in the glass glow faintly, like a lamp behind the hour
+    // time shows through the cracks: molten gold that pulses in play; the clock's face glows faintly
     const f = bareFoot(ctx, look, p);
+    extendSil(f.sil, [kronosBand, clockPath(KRONOS_CLOCK)]);
     const g = f.sil.g;
-    const { x, y, r } = KRONOS_DIAL;
-    g.save();
-    g.lineWidth = 5;
-    g.strokeStyle = rgba(gold, 0.55);
-    g.beginPath();
-    g.ellipse(x, y, r + 1.5, r * 0.94 + 1.5, 0, 0, Math.PI * 2);
-    g.stroke();
-    g.restore();
-    for (let h = 0; h < 12; h++) {
-      const a = (h / 12) * Math.PI * 2;
-      glowDot(g, x + Math.sin(a) * (r - 16), y - Math.cos(a) * (r - 16) * 0.94, h % 3 ? 5 : 9, gold, 0.6);
-    }
-    glowDot(g, KRONOS_GLASS.x, KRONOS_GLASS.y + 16, 18, '#ffcf6a', 0.55);
-    glowDot(g, KRONOS_GLASS.x, KRONOS_GLASS.y - 10, 12, '#ffcf6a', 0.4);
-    softStroke(g, line(KRONOS_KINTSUGI), rgba(gold, 0.6), 4, 2);
+    glowCracks(g, 0.8);
+    for (const pts of KRONOS_CRACKS) for (const [x, y] of pts) glowDot(g, x, y, 9, gold, 0.5);
+    glowDot(g, KRONOS_CLOCK.x, KRONOS_CLOCK.y, KRONOS_CLOCK.r * 1.2, gold, 0.3);
     glowFinish(f.sil);
     return;
   }
   if (!o.live) drawHarpe(ctx, HARPE_BOX);
   const f = paintBare(ctx, look, p);
+  extendSil(f.sil, [kronosBand, clockPath(KRONOS_CLOCK)]);
   const g = f.sil.g;
-  const box = f.box;
-  // stone, not skin: cast pitting and veined grain, grime in the hollows, pale lichen
-  texture(g, 'cast', box, 0.42, 1.4);
-  texture(g, 'stone', box, 0.22, 2.2);
-  blotches(g, box, shade(stone, -0.45), 0.22, 26, 0.5, 0.25, 903);
-  blotches(g, box, '#c4c8a0', 0.2, 6, 0.67, 0.05, 905);
-  blotches(g, box, '#e8ecf4', 0.12, 14, 0.62, 0.2, 907);
-  const r = rng(hashStr('kronos-stone'));
-  // rain streaks down from the ankle, chisel marks
-  for (let i = 0; i < 12; i++) {
-    const x = CX - 80 + r() * 160;
-    softStroke(g, (c) => {
-      c.moveTo(x, 4 + r() * 40);
-      c.lineTo(x + (r() - 0.5) * 6, 90 + r() * 80);
-    }, rgba('#10121c', 0.1), 3 + r() * 4, 2);
+  titanStone(f, stone, dark, p);
+  // the cracks: split deep into the stone, molten gold inside, sand spilling from them
+  // the branches first, so the main cracks cover their roots: tapering hairlines of gold splitting off
+  for (const c of KRONOS_CRACK_PATHS) {
+    const br = { pts: c.branch, w: [1.3, 0.8, 0.15] };
+    fill(g, crackShape(br, 1.6), rgba('#07060c', 0.8));
+    fill(g, crackShape(br), '#ffcf5a');
   }
-  for (let i = 0; i < 22; i++) {
-    const x = CX - 90 + r() * 180;
-    const y = 8 + r() * 200;
-    crease(g, (c) => {
-      c.moveTo(x, y);
-      c.lineTo(x + 6, y + 2.5);
-    }, 1.1, '#10121c', 0.22, 0.22);
+  for (const c of KRONOS_CRACK_PATHS) {
+    const open = crackShape(c);
+    // split into the stone: a dark, chipped lip round the opening, lit along its lower edge
+    fill(g, crackShape(c, 2.4), rgba('#07060c', 0.85));
+    g.save();
+    g.translate(-LX * 1.2, -LY * 1.2);
+    softFill(g, crackShape(c, 1.6), rgba(LIGHT.key, 0.28), 0.6);
+    g.restore();
+    fill(g, crackShape(c, 1.2), '#0c0a10');
+    // molten gold inside: hot white at the heart, deep amber at the walls
+    softFill(g, crackShape(c, 3), rgba('#ffb040', 0.4), 3);
+    fill(g, open, lin(g, c.pts[0][0], c.pts[0][1], c.pts[c.pts.length - 1][0], c.pts[c.pts.length - 1][1], [
+      [0, '#c07a18'],
+      [0.5, '#ffd56a'],
+      [1, '#c88a20'],
+    ]));
+    clip(g, open, () => {
+      g.save();
+      g.lineJoin = 'round';
+      g.lineCap = 'round';
+      g.strokeStyle = rgba('#fff8dc', 0.95);
+      g.lineWidth = 1.1;
+      g.beginPath();
+      line(c.pts)(g);
+      g.stroke();
+      g.restore();
+      innerEdge(g, open, rgba('#6a3a08', 0.7), 1.6, LX * 1.4, LY * 1.4);
+    });
+    // a little sand run down the stone from its lowest end
+    const [ex, ey] = c.pts[c.pts.length - 1];
+    const r = rng(hashStr(`kronos-sand-${ex}`));
+    for (let i = 0; i < 16; i++) {
+      g.fillStyle = rgba(i % 3 ? '#e8c060' : '#fff0b0', 0.95);
+      g.beginPath();
+      g.arc(ex + (r() - 0.5) * 3, ey + 2 + r() * 18, 0.6 + r() * 0.7, 0, Math.PI * 2);
+      g.fill();
+    }
   }
-  // cracks, and one mended in gold
-  for (const pts of KRONOS_CRACKS) crease(g, line(pts), 2.6, '#05060a', 0.85, 0.4);
-  crease(g, line(KRONOS_KINTSUGI), 3.6, '#05060a', 0.6, 0.2);
-  g.save();
-  g.lineJoin = 'round';
-  g.lineCap = 'round';
-  g.strokeStyle = goldRamp(g, CX - 30, 128, CX - 8, 176, gold);
-  g.lineWidth = 2.4;
-  g.beginPath();
-  line(KRONOS_KINTSUGI)(g);
-  g.stroke();
-  g.restore();
-  // stone toes: a carved band across each knuckle, a chipped corner on the big toe
-  for (const t of f.toes) {
-    crease(g, (c) => {
-      c.moveTo(t.cx - t.rx * 0.6, t.cy - t.ry * 0.1);
-      c.quadraticCurveTo(t.cx, t.cy + t.ry * 0.08, t.cx + t.rx * 0.6, t.cy - t.ry * 0.1);
-    }, 1.6, '#08090f', 0.45, 0.3);
-    spec(g, t.cx - t.rx * 0.3, t.cy + t.ry * 0.25, t.rx * 0.4, t.ry * 0.25, 0.18, -0.8, LIGHT.key);
-  }
-  const big = f.toes[4];
-  crease(g, line([[big.cx + big.rx * 0.2, big.cy + big.ry * 0.85], [big.cx + big.rx * 0.55, big.cy + big.ry * 0.5], [big.cx + big.rx * 0.9, big.cy + big.ry * 0.45]]), 1.8, '#05060a', 0.7, 0.4);
-  // the dial, the strap and the hourglass
-  paintKronosDial(g, stone, gold, !o.live);
-  const strap = wrapPath(26, 13, 64, 8);
-  panel(g, strap, { x: CX - 64, y: 24, w: 128, h: 26 }, 'leather', '#4a2e1a', { shadow: 0.55 });
-  for (const sx of [-1, 1]) {
-    const rx = CX + sx * 44;
-    rivet(g, rx, 32.5 + 6 * (1 - (sx * 44) ** 2 / 64 ** 2), 2.6, '#c9a24a');
-  }
-  hourglass(g, KRONOS_GLASS.x, KRONOS_GLASS.y, KRONOS_GLASS.s, !o.live, '#ffcf6a', gold);
-  lightAll(f.sil, 0.4, 22, 0.5);
+  // the shackle's closed half, and the clock set in it
+  shackleBand(g, kronosBand, bronze);
+  ao(g, CX + 20, 64, 52, 6, 0.35);
+  if (o.live) clockFace(g, KRONOS_CLOCK, bronze);
+  else shackleClock(g, KRONOS_CLOCK, bronze, gold, true);
+  lightAll(f.sil, 0.35, 22, 0.45);
   bareOutline(f, mix(inkOf(stone), '#0a0c1a', 0.4));
+  // the open half, swung out on its hinge (it stands off the silhouette), and the broken link
+  openShackle(ctx, bronze);
+  if (!o.live) drawBrokenLink(ctx);
 }
 
 registerStyle('kronos', {
-  contactY: 266,
-  halfWidth: 106,
+  contactY: 270,
+  halfWidth: 108,
   rig: { from: 140, to: 162 },
-  leg: { kind: 'skin', hw: 52, join: 'blend', fade: 24 },
+  leg: { kind: 'timestone', hw: 56, join: 'blend', fade: 18 },
   parts: {
     harpe: { box: HARPE_BOX, frames: 1, pivot: [KRONOS_HARPE.x, KRONOS_HARPE.y - 2], draw: (g) => drawHarpe(g, HARPE_BOX) },
+    link: { box: LINK_BOX, frames: 1, pivot: [KRONOS_LINK.x, KRONOS_LINK.y], draw: (g) => drawBrokenLink(g) },
   },
   draw(ctx, art, p, o) {
     drawKronos(ctx, art, p, o);

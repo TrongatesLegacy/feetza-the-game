@@ -105,7 +105,7 @@ export const feet: FootType[] = [
     howTo: 'Smash the hourglass to stop the slow, then beat him to send him back',
     tell: 'The hourglass flips and the clock ticks louder',
     quips: ['TIME IS MINE.', 'TICK. TOCK.', 'YOU ARE TOO SLOW.'],
-    art: { kind: 'm_kronos', skin: '#8a8a9a', primary: '#5a5a7a', secondary: '#d9c27a', leg: 'skin', legColor: '#7a7a8a' },
+    art: { kind: 'm_kronos', skin: '#8e8a84', primary: '#5c5852', secondary: '#d9c27a', leg: 'skin', legColor: '#7e7a74' },
   },
   {
     id: 'atlas',

@@ -10,7 +10,8 @@ import type { Foot } from '../../game/Foot';
 import { crand } from '../../systems/cosmeticRandom';
 import { save } from '../../systems/save';
 import { landDust, overheat } from './bosses';
-import { ATLAS_SPHERE, HYPERION_SUN, KRONOS_DIAL, KRONOS_GLASS, MINO_NOSTRILS, clockHand, corona } from '../style/acts-e-2a';
+import { ATLAS_SPHERE, HYPERION_SUN, KRONOS_CLOCK, KRONOS_CRACK_PATHS, MINO_NOSTRILS, corona } from '../style/acts-e-2a';
+import { liveClock } from './titanClock';
 
 const R = () => crand();
 const pm = () => crand() - 0.5;
@@ -43,74 +44,59 @@ function designSheet(k: LiveFoot, key: string, box: [number, number, number, num
   });
 }
 
-// KRONOS: his clock runs backwards: the minute hand ticks back a notch a second (overshooting and settling), the
-// hour hand creeps back with it, and both race once he overheats. Sand trickles through the hourglass, gold motes of
-// time drift up off the dial, the harpe swings at his side and stone dust and chips fly when he lands.
+// KRONOS (freed; the Titan King's stone and clock, src/content/style/acts-e-2a.ts): the clock in his snapped shackle
+// ticks (titanClock.ts), the broken link swings from the open half and the harpe at his side, the gold in his cracks
+// pulses and fine sand trickles out of them (a burst of it when he lands), now and then a mote of time drifts up, and
+// stone dust and chips fly when he lands. Hot, time races and the sand pours.
 registerLive('kronos', {
   wiggle: true,
-  rig: { swing: 0.6, squash: 0.7, breath: 1.2 },
-  glow: { rate: 1, depth: 0.3, base: 0.45 },
+  rig: { swing: 0.6, squash: 1.1, breath: 1.3 },
+  glow: { rate: 0.7, depth: 0.55, base: 0.4 },
   heat: titanHeat,
-  sway: { harpe: { k: 38, c: 3.6, gain: 1.1, idle: 0.05, below: true, flop: 0.8 } },
+  sway: {
+    harpe: { k: 38, c: 3.6, gain: 1.1, idle: 0.05, below: true, flop: 0.8 },
+    link: { k: 26, c: 2.2, gain: 1.6, idle: 0.16, flop: 1.5 },
+  },
   setup(k) {
-    const res = footRes(k.f.type);
-    const { x, y, r } = KRONOS_DIAL;
     const gold = k.f.type.art.secondary ?? '#d9c27a';
-    const hand = (name: string, len: number, w: number) => {
-      const L = len + 10;
-      const key = designSheet(k, `lk_kronos_${name}`, [x - L, y - L, L * 2, L * 2], 1, res, (g) => clockHand(g, x, y, 0, len, w, gold));
-      return rigImg(k, key, x, y, 0.5, 0.5, false, res);
-    };
-    const hour = hand('hour', r * 0.5, 4);
-    const min = hand('min', r * 0.76, 3);
-    const gx = KRONOS_GLASS.x;
-    const gy = KRONOS_GLASS.y;
-    const gs = KRONOS_GLASS.s;
-    // the falling sand: a thin stream, three frames of grains sliding down it
-    const sandKey = designSheet(k, 'lk_kronos_sand', [gx - 2, gy - 2 * gs, 4, 12 * gs], 3, res, (g, i) => {
-      g.fillStyle = 'rgba(255,214,120,0.55)';
-      g.fillRect(gx - 0.7, gy - 2 * gs, 1.4, 12 * gs);
-      g.fillStyle = '#ffe9a8';
-      for (let j = 0; j < 5; j++) {
-        const yy = gy - 2 * gs + ((j * 2.6 + i * 0.9) % (12 * gs));
-        g.fillRect(gx - 0.9, yy, 1.8, 1.4);
-      }
-    });
-    const sand = rigImg(k, sandKey, gx - 2, gy - 2 * gs, 0, 0, false, res);
+    // the cracks' segments, for sand to run from anywhere along them
+    const segs: [number, number, number, number][] = [];
+    for (const { pts } of KRONOS_CRACK_PATHS) for (let i = 1; i < pts.length; i++) segs.push([pts[i - 1][0], pts[i - 1][1], pts[i][0], pts[i][1]]);
     return {
-      hour,
-      min,
-      sand,
-      // the minute hand's angle (target and spring), and the time to the next tick
-      ang: { to: Math.PI / 3, v: 0, at: Math.PI / 3, next: 1, hour: -Math.PI / 3, sandT: 0 },
+      segs,
+      clock: liveClock(k, KRONOS_CLOCK, gold, 'kronos_clock'),
       steam: steamEm(k),
-      motes: k.emitter({ frame: 'mote', add: true, curl: 40, drag: 0.6, max: 40 }),
+      sand: k.emitter({ frame: 'flake', drag: 0.4, max: 140 }),
+      shine: k.emitter({ frame: 'mote', add: true, curl: 30, drag: 0.6, max: 50 }),
       dust: k.emitter({ frame: 'puff', curl: 30, drag: 1.5, below: true, max: 120 }),
       chips: k.emitter({ frame: 'flake', drag: 0.4, max: 60 }),
     };
   },
   tick(k, dt, s) {
     const sc = k.f.type.scale;
-    const a = s.ang;
-    // backwards, a notch a tick; much faster once he's hot
-    const pace = 1 + k.heat * 7;
-    a.next -= dt * pace;
-    if (a.next <= 0) {
-      a.next += 1;
-      a.to -= Math.PI / 30;
-      a.hour -= Math.PI / 360;
+    s.clock.update(dt);
+    const grain = (x: number, y: number, p: number) =>
+      s.sand.emit(x + pm() * 2, y + 1, { vx: pm() * 14 * p, vy: 10 + R() * 30 * p, life: 0.9 + R() * 0.5, r0: (2 + R() * 1.2) * sc, r1: 1.5 * sc, a: 1, tint: R() < 0.6 ? 0xe8c060 : R() < 0.5 ? 0xffe9a0 : 0xc89a38, grav: 520, spin: 6, fade: 0.04 });
+    const onCrack = (): [number, number] => {
+      const [x0, y0, x1, y1] = s.segs[Math.floor(R() * s.segs.length)];
+      const t = R();
+      return [x0 + (x1 - x0) * t, y0 + (y1 - y0) * t];
+    };
+    // fine sand trickles out all along them, more when he's hot
+    s.sand.rate('trickle', (14 + k.heat * 26) * calm(), dt, () => grain(...onCrack(), 1));
+    // and pours in a thin stream from each crack's lowest end
+    for (const [i, { pts }] of KRONOS_CRACK_PATHS.entries()) {
+      const [x, y] = pts[pts.length - 1];
+      s.sand.rate(`pour${i}`, (9 + k.heat * 10) * calm(), dt, () => grain(x, y, 0.4));
     }
-    // a stiff spring with a little overshoot, like a real escapement
-    a.v += ((a.to - a.at) * 900 - a.v * 26) * Math.min(dt, 1 / 30);
-    a.at += a.v * Math.min(dt, 1 / 30);
-    s.min.rotation = a.at;
-    s.hour.rotation = a.hour;
-    a.sandT += dt;
-    s.sand.setFrame(Math.floor(a.sandT / 0.08) % 3);
-    s.motes.rate('time', 3 * calm(), dt, () => {
-      const ang = R() * Math.PI * 2;
-      s.motes.emit(KRONOS_DIAL.x + Math.cos(ang) * KRONOS_DIAL.r, KRONOS_DIAL.y + Math.sin(ang) * KRONOS_DIAL.r, { vx: pm() * 20, vy: -30 - R() * 30, life: 1.4 + R(), r0: 2 * sc, r1: 5 * sc, a: 0.85, tint: R() < 0.7 ? 0xffd87a : 0xfff4d0, fade: 0.2 });
+    s.shine.rate('time', 2.5 * calm(), dt, () => {
+      const [x, y] = onCrack();
+      s.shine.emit(x, y, { vx: pm() * 16, vy: -24 - R() * 26, life: 1.3 + R(), r0: 2 * sc, r1: 4.5 * sc, a: 0.85, tint: R() < 0.7 ? 0xffd87a : 0xfff4d0, fade: 0.2 });
     });
+    if (k.landed) for (let i = 0, n = k.burst(30); i < n; i++) {
+      const [x, y] = onCrack();
+      s.sand.emit(x, y, { vx: pm() * 160, vy: -60 - R() * 140, life: 0.9, r0: 1.8 * sc, r1: 1.2 * sc, a: 1, tint: R() < 0.6 ? 0xe8c060 : 0xffe9a0, grav: 700, spin: 8, fade: 0.03 });
+    }
     landDust(k, s.dust, 18, [0x8a8a96, 0x6a6a78, 0xa8a8b4], 262, 110, 1.2);
     if (k.landed)
       for (let i = 0, n = k.burst(12); i < n; i++) s.chips.emit(CX + pm() * 190, 256, { vx: pm() * 400, vy: -180 - R() * 240, life: 0.9, r0: 5 * sc, r1: 4 * sc, a: 1, tint: R() < 0.5 ? 0x6a6a78 : 0x9a9aa8, grav: 1000, spin: 9, fade: 0.02 });
