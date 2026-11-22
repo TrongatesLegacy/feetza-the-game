@@ -1951,9 +1951,14 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (!keepCards && !this.restoredShop?.shop) this.run.kit.shop = freshKitShop();
     if (!cards) {
       cards = future ?? (bossReward ? this.run.rollBossChoices(count, exclude) : this.run.rollChoices(count, exclude));
-      // boss loot: one epic-or-better pick is free · Birthday Cake: every 5th wave a random card is free (enhanced: every 3rd)
+      // boss loot: the lowest-rarity pick dealt is free (a random one of them when several share it) ·
+      // Birthday Cake: every 5th wave a random card is free (enhanced: every 3rd)
       const every = this.run.enhancedPerks.has('freeTopping') ? 3 : 5;
-      if (bossReward && cards.length) free = cards[0].id;
+      if (bossReward && cards.length) {
+        const rank: Record<Rarity, number> = { common: 0, rare: 1, epic: 2, legendary: 3 };
+        const low = Math.min(...cards.map((u) => rank[u.rarity]));
+        free = Phaser.Utils.Array.GetRandom(cards.filter((u) => rank[u.rarity] === low)).id;
+      }
       else if (this.run.stats.freeTopping && this.run.wave % every === every - 1 && cards.length) free = Phaser.Utils.Array.GetRandom(cards).id;
     }
     if (!keepCards) this.pickClearance(cards, free, new Set());
@@ -2093,7 +2098,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     }));
     return {
       title: title ?? (lastStand ? 'ONE PIZZA LEFT' : this.shop?.bossReward ? 'BOSS LOOT!' : `WAVE ${r.wave} CLEARED!`),
-      sub: lastStand ? 'Add another pizza before the next wave: one is on the house' : sh.boughtOut ? 'The Sole Proprietor owns this shop now: everything costs double' : this.shop?.bossReward ? 'One epic pick is on the house' : 'Spend your tips on toppings and pizzas, or bank them',
+      sub: lastStand ? 'Add another pizza before the next wave: one is on the house' : sh.boughtOut ? 'The Sole Proprietor owns this shop now: everything costs double' : this.shop?.bossReward ? 'One pick is on the house' : 'Spend your tips on toppings and pizzas, or bank them',
       wave: r.wave,
       coins: r.coins,
       crusts: save.crusts,
