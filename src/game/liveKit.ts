@@ -16,6 +16,7 @@
 // emitters thin out when many live feet are on screen. Textures are built once per foot type, on its first spawn
 // (or ahead of time with prewarmLive).
 
+import { feetAnimated } from '../systems/graphics';
 import Phaser from 'phaser';
 import { CX } from '../art/feetCommon';
 import { FOOT_FRAME, footRes, styledCanvas } from '../art/feetArt';
@@ -1025,13 +1026,28 @@ export class LiveFoot {
 
 const lives = new WeakMap<Foot, LiveFoot | null>();
 
+/** A still foot (animation off) keeps its emissive art as a steady glow: some feet (neon, magma) are drawn dark
+ * underneath it, and without it they'd go dull. One canvas, built once per foot type. */
+function stillGlow(f: Foot, def: LiveDef): void {
+  if (!def.glow) return;
+  const sc = f.scene;
+  const key = `still_glow_${f.type.id}`;
+  if (!sc.textures.exists(key)) addTex(sc, key, styledCanvas(f.type, pose({ heat: 0 }), { live: false, emissive: true }));
+  const g = def.glow;
+  const img = sc.add.image(0, 0, key).setOrigin(0.5, f.meta.originY).setScale(1 / footRes(f.type)).setBlendMode(Phaser.BlendModes.ADD);
+  img.setAlpha(Math.min(1, (g.base ?? 0.55) + (g.depth ?? 0.4) * 0.5));
+  f.addLiveArt(img, false, true);
+}
+
 /** Run a styled foot's live layer for a frame (GameScene calls this for every foot; others return at once). */
 export function styleLive(f: Foot, dt: number): void {
   let st = lives.get(f);
   if (st === undefined) {
     const def = defs[f.type.id];
     const style = styleFor(f.type.id);
-    st = def && style && !f.liveHost ? new LiveFoot(f, def, style) : null;
+    // animation off (graphics settings): the foot keeps its still art, decided once when it first ticks
+    st = def && style && !f.liveHost && feetAnimated() ? new LiveFoot(f, def, style) : null;
+    if (def && style && !st && !f.liveHost) stillGlow(f, def);
     lives.set(f, st);
     if (st) {
       const s = st;

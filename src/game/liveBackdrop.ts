@@ -3,6 +3,7 @@
 // src/content/live/ (loaded by src/content/live.ts) registers its scenes here; BackdropView starts one when its backdrop shows and
 // tells it which wave of the stage it is, so weather and light can change across the stage.
 
+import { backdropsAnimated } from '../systems/graphics';
 import type Phaser from 'phaser';
 import type { BackdropId } from '../art/backdrops';
 
@@ -30,5 +31,6 @@ export function registerLive(id: BackdropId, f: LiveFactory): void {
 }
 
 export function startLive(id: BackdropId, ctx: LiveCtx): LiveScene | null {
+  if (!backdropsAnimated()) return null;
   return live[id]?.(ctx) ?? null;
 }

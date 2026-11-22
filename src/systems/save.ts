@@ -36,6 +36,13 @@ export interface Settings {
   vibration: boolean;
   prompts: PromptStyle;
   peelSmacks: PeelSmacks;
+  // graphics (src/systems/graphics.ts)
+  /** The redrawn feet's live animation (off: their still art). */
+  animFeet: boolean;
+  /** The stages' ambient animation. */
+  animBackdrops: boolean;
+  /** The peels' animation. */
+  animPeels: boolean;
 }
 
 export interface Best {
@@ -147,6 +154,9 @@ const DEFAULT_SETTINGS: Settings = {
   vibration: true,
   prompts: 'auto',
   peelSmacks: 'peel',
+  animFeet: true,
+  animBackdrops: true,
+  animPeels: true,
 };
 
 const DEFAULTS: SaveData = {

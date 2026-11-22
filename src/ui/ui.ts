@@ -14,6 +14,7 @@ import { footPortraitURL, pizzaPortraitURL, textureURL } from '../game/assets';
 import { audio } from '../systems/audio';
 import { previewSmack } from '../game/smacks';
 import { bestFor, metaRefundValue, persist, resetEverything, resetMeta, resetProgress, save, unlockPizza, updateSettings, type Settings } from '../systems/save';
+import { applyPreset, currentPreset } from '../systems/graphics';
 import { HEATS, HEAT_BY_ID, type HeatId } from '../data/difficulty';
 import { ACT_COUNT, JOURNEY_WAVES, STAGES, actLabel, actName, actOf } from '../data/stages';
 import { BACKDROPS } from '../art/backdrops';
@@ -1452,7 +1453,7 @@ class UI {
 
   // ——— Settings ———
   settings(onClose: () => void, inRun = false): HTMLElement {
-    let tab: 'audio' | 'controls' | 'access' | 'progress' = 'audio';
+    let tab: 'audio' | 'graphics' | 'controls' | 'access' | 'progress' = 'audio';
     const slider = (key: 'master' | 'music' | 'sfx' | 'ambience' | 'stickSensitivity' | 'aimAssist', label: string) => {
       const v = save.settings[key];
       const out = h('output', {}, `${Math.round(v * 100)}`);
@@ -1469,11 +1470,13 @@ class UI {
       });
       return h('label', { class: 'setting' }, h('span', {}, label), input, out);
     };
-    const toggle = (key: 'muted' | 'screenShake' | 'damageNumbers' | 'flashes' | 'showFps' | 'showTimer' | 'traitIcons' | 'reducedMotion' | 'slowNewCards' | 'vibration', label: string) => {
+    const toggle = (key: 'muted' | 'screenShake' | 'damageNumbers' | 'flashes' | 'showFps' | 'showTimer' | 'traitIcons' | 'reducedMotion' | 'slowNewCards' | 'vibration' | 'animFeet' | 'animBackdrops' | 'animPeels', label: string) => {
       const input = h('input', { type: 'checkbox' }) as HTMLInputElement;
       input.checked = save.settings[key];
       input.addEventListener('change', () => {
         updateSettings({ [key]: input.checked } as Partial<Settings>);
+        // the graphics switches move the preset (to Custom, or to the one they now match)
+        if (key.startsWith('anim')) render();
         this.hud.syncMute();
         applyA11y();
         audio.sfx('sfx_click');
@@ -1550,7 +1553,7 @@ class UI {
     const tabs = h('div', { class: 'tabs' });
     const render = () => {
       tabs.replaceChildren(
-        ...(['audio', 'controls', 'access', 'progress'] as const).map((t) => btn({ audio: 'AUDIO', controls: 'CONTROLS', access: 'ACCESSIBILITY', progress: 'PROGRESS' }[t], `small ${tab === t ? 'active' : ''}`, () => ((tab = t), render()))),
+        ...(['audio', 'graphics', 'controls', 'access', 'progress'] as const).map((t) => btn({ audio: 'AUDIO', graphics: 'GRAPHICS', controls: 'CONTROLS', access: 'ACCESSIBILITY', progress: 'PROGRESS' }[t], `small ${tab === t ? 'active' : ''}`, () => ((tab = t), render()))),
       );
       if (tab === 'audio')
         body.replaceChildren(
@@ -1564,7 +1567,29 @@ class UI {
           }),
           h('div', { class: 'toggles' }, toggle('muted', 'Mute all'), toggle('showFps', 'Show FPS'), toggle('damageNumbers', 'Damage numbers'), toggle('showTimer', 'Run timer')),
         );
-      else if (tab === 'controls')
+      else if (tab === 'graphics') {
+        const cur = currentPreset();
+        const seg = h(
+          'div',
+          { class: 'seg' },
+          ...(['low', 'medium', 'high'] as const).map((p) =>
+            btn(p.toUpperCase(), `small ${cur === p ? 'active' : 'cream'}`, () => {
+              applyPreset(p);
+              audio.sfx('sfx_click');
+              render();
+            }),
+          ),
+          cur === 'custom' ? btn('CUSTOM', 'small active', () => {}) : '',
+        );
+        body.replaceChildren(
+          h('div', { class: 'section-title' }, 'QUALITY'),
+          h('div', { class: 'choice' }, h('span', {}, 'Preset'), seg),
+          h('div', { class: 'hint' }, 'Low: everything still. Medium: animated feet only. High: everything animated. Lower settings run smoother on older phones and laptops.'),
+          h('div', { class: 'section-title' }, 'ANIMATION'),
+          h('div', { class: 'toggles' }, toggle('animFeet', 'Animated feet'), toggle('animBackdrops', 'Animated stages'), toggle('animPeels', 'Animated peels')),
+          h('div', { class: 'hint' }, 'Animated feet: still feet show their full art and only move as a whole. Changes apply to feet that arrive after the change.'),
+        );
+      } else if (tab === 'controls')
         body.replaceChildren(
           h('div', { class: 'section-title' }, 'CONTROLLER'),
           choice('aimScheme', 'Aiming', [['free', 'FREE AIM'], ['lane', 'LANE MODE']]),

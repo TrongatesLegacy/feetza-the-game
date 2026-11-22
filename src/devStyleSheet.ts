@@ -4,6 +4,7 @@
 // Open it with the floating "🦶 Style" button or ?dev&style.
 
 import Phaser from 'phaser';
+import { overrideFeetAnim } from './systems/graphics';
 import { CX } from './art/feetCommon';
 import { FOOT_FRAME, drawFoot, footRes, resolvedLeg } from './art/feetArt';
 import { bareParts, cleft, restToes } from './art/style/anatomy';
@@ -560,6 +561,7 @@ export function installStyleSheet(): void {
   document.head.appendChild(style);
   let onResize: (() => void) | null = null;
   const close = () => {
+    overrideFeetAnim(null);
     io?.disconnect();
     game?.destroy(true);
     game = null;
@@ -577,7 +579,7 @@ export function installStyleSheet(): void {
     const acts = [...new Set(gs.map((g) => g.act))];
     const wrap = document.createElement('div');
     wrap.className = 'ss-wrap';
-    wrap.innerHTML = `<div class="ss-head"><h2>🦶 Feet: before and after</h2><span>${all.length} feet · ${all.length - nBoss - nMini} regular · ${nBoss} bosses · ${nMini} mini-bosses · ${nStyled} redrawn · ${all.length - nStyled} unchanged · textures ${footRes(FOOT_BY_ID.bob)}× (old 1.35×)</span><span class="sp"></span><button class="ss-btn alt" data-bosses>👑 Bosses only</button><button class="ss-btn" data-heat>🔥 Overheat bosses</button><button class="ss-btn alt" data-x>✕ Close</button></div>
+    wrap.innerHTML = `<div class="ss-head"><h2>🦶 Feet: before and after</h2><span>${all.length} feet · ${all.length - nBoss - nMini} regular · ${nBoss} bosses · ${nMini} mini-bosses · ${nStyled} redrawn · ${all.length - nStyled} unchanged · textures ${footRes(FOOT_BY_ID.bob)}× (old 1.35×)</span><span class="sp"></span><button class="ss-btn alt" data-bosses>👑 Bosses only</button><button class="ss-btn" data-heat>🔥 Overheat bosses</button><button class="ss-btn alt" data-still>🖼 Still feet</button><button class="ss-btn alt" data-x>✕ Close</button></div>
       <div class="ss-jump">${acts.map((a) => `<button data-act="${a}">Act ${a}</button>`).join('')}<button data-act="rules">Rules &amp; materials</button><button data-act="thumbs">Peels &amp; portraits</button></div>
       <div class="ss-scroll"><div class="ss-body">
         <p>Every foot, boss and mini-boss in the game: its old art on the left, the redrawn one on the right, both the real Foot and live kit, puppeted through a hover (swaying), the wind-up, the dive, the stomp and the lift. Particles stay in the world, so a moving foot trails them. Only the cards on screen run. The buttons under each card play one move at a time (or loop them), a hit, a death or an escape, and toggle its effects: stunned, frozen, slowed, burning, elite, shiny, overheat and a phase aura.</p>
@@ -707,6 +709,13 @@ export function installStyleSheet(): void {
       sc.heat = !sc.heat;
       (e.target as HTMLElement).classList.toggle('on', sc.heat);
     });
+    // still feet: what the game shows with Animated feet off (graphics settings)
+    wrap.querySelector('[data-still]')!.addEventListener('click', (e) => {
+      const on = (e.target as HTMLElement).classList.toggle('on');
+      overrideFeetAnim(on ? false : null);
+      relayout();
+    });
+    if (new URLSearchParams(location.search).has('still')) (wrap.querySelector('[data-still]') as HTMLElement).click();
     wrap.querySelector('[data-bosses]')!.addEventListener('click', (e) => {
       const on = wrap.classList.toggle('bossonly');
       (e.target as HTMLElement).classList.toggle('on', on);

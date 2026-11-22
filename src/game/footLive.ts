@@ -20,6 +20,7 @@
 // texture is swapped for a variant without the live parts (Foot.setArtTexture); the full texture stays for the
 // Peel Locker, the Pizzapedia and the boss lab. Reduced motion and crowds of Immortals thin the smoke out.
 
+import { feetAnimated } from '../systems/graphics';
 import Phaser from 'phaser';
 import { CX } from '../art/feetCommon';
 import { footCanvas } from '../art/feetArt';
@@ -353,7 +354,17 @@ const bodyFrame = (k: number) => {
   return m < BODY_FRAMES ? m : p - m;
 };
 
+/** Feet that started with animation off (graphics settings): they keep their still art. */
+const still = new WeakSet<Foot>();
+const isStill = (f: Foot): boolean => {
+  if (still.has(f)) return true;
+  if (immortals.has(f) || brutes.has(f) || feetAnimated()) return false;
+  still.add(f);
+  return true;
+};
+
 export function immortalLive(f: Foot, dt: number): void {
+  if (isStill(f)) return;
   const st = immortals.get(f) ?? startImmortal(f);
   if (dt <= 0) return;
   st.t += dt;
@@ -460,6 +471,7 @@ function blinkAt(t: number): number {
 }
 
 export function bruteLive(f: Foot, dt: number): void {
+  if (isStill(f)) return;
   const st = brutes.get(f) ?? startBrute(f);
   if (dt <= 0) return;
   st.t += dt;
