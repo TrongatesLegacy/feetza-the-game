@@ -34,5 +34,11 @@ export function overrideFeetAnim(on: boolean | null): void {
 }
 
 export const feetAnimated = (): boolean => feetOverride ?? save.settings.animFeet !== false;
-export const backdropsAnimated = (): boolean => save.settings.animBackdrops !== false;
+/** A dev view can force the stages' animation on or off too (null follows the setting). */
+let backdropOverride: boolean | null = null;
+export function overrideBackdropAnim(on: boolean | null): void {
+  backdropOverride = on;
+}
+
+export const backdropsAnimated = (): boolean => backdropOverride ?? save.settings.animBackdrops !== false;
 export const peelsAnimated = (): boolean => save.settings.animPeels !== false;

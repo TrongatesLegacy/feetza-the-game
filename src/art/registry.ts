@@ -55,6 +55,15 @@ export function registerScene(id: BackdropId, def: SceneDef): void {
 export function sceneDef(id: BackdropId): SceneDef | undefined {
   return scenes[id];
 }
+
+/** The old art of scenes redrawn with the location kit (src/art/scene), for the before/after page. */
+const legacyScenes: Partial<Record<BackdropId, SceneDef>> = {};
+export function registerLegacyScene(id: BackdropId, def: SceneDef): void {
+  legacyScenes[id] = def;
+}
+export function legacySceneDef(id: BackdropId): SceneDef | undefined {
+  return legacyScenes[id];
+}
 export function onSceneRegistered(fn: (id: BackdropId, def: SceneDef) => void): void {
   sceneListeners.push(fn);
   for (const [id, def] of Object.entries(scenes) as [BackdropId, SceneDef][]) fn(id, def);
