@@ -343,17 +343,18 @@ function temple(ctx: Ctx, r: R): void {
   }
   // the door's fire behind the columns
   glowAt(ctx, tx, 462, 110, '#ff6a2a', 0.38, 0.9);
-  vfill(ctx, tx - 50, 428, 100, 60, [[0, '#a8320e'], [1, '#ff7a2a']]);
+  vfill(ctx, tx - 50, 428, 100, 57, [[0, '#a8320e'], [1, '#ff7a2a']]);
   ctx.fillStyle = col;
   for (let k = 0; k < 6; k++) {
     const cx = tx - 125 + k * 48;
     const top = k === 4 ? 452 : 420;
     ctx.beginPath();
-    ctx.rect(cx, top, 18, 478 - top);
+    // (down onto the top step, y 484: they used to stop short of it and float)
+    ctx.rect(cx, top, 18, 485 - top);
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = rgba('#ff7a3a', 0.25);
-    ctx.fillRect(cx + 12, top, 6, 478 - top);
+    ctx.fillRect(cx + 12, top, 6, 485 - top);
     ctx.fillStyle = col;
   }
   // entablature and a broken pediment
