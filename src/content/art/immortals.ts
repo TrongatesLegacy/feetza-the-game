@@ -15,8 +15,12 @@
 //   (src/game/footLive.ts): the body boils through pre-drawn frames and particles pour off the toes, the sides, the
 //   lamellar's edge, the eyes and the mouth.
 // - Immortal Brute: veined, wrinkled, leathery grey hide over a lumpy skull, one great deep-set eye under a furrowed,
-//   scowling brow, a maw of jagged, uneven fangs, hooked claw-nails and an iron ankle band. In play the eye looks
-//   about and blinks, and black smoke seeps from round it and from the maw (footLive.ts).
+//   scowling brow, and where a mouth would be two burst cuts set in a V: ragged, torn lips over a dark wet throat,
+//   jaws of jagged, uneven teeth inside, black drool welling over the lower lips. A mutant set of six toes, all
+//   different (a stunted nub, a withered stump tucked behind, a twisted one, a crooked one, a huge big toe), painted
+//   as one silhouette under the kit's light with cracked, yellowed claws, and an iron ankle band. In play the eye
+//   looks about and blinks, the jaws gnash, smoke seeps from the eye and the cuts, and the drool runs and drips
+//   (footLive.ts).
 //
 // The texture each kind registers is the whole foot at rest (the Peel Locker, the Pizzapedia and the boss lab show
 // it); footLive.ts draws the in-play variants (the foot minus its live parts) with the exported painters here.
@@ -26,7 +30,8 @@ import type { FootArt } from '../../data/feet';
 import { CX } from '../../art/feetCommon';
 import { registerKind } from '../../art/registry';
 import { type StyleToe, poseToes } from '../../art/style/anatomy';
-import { LIGHT, type Pose, REST } from '../../art/style/kit';
+import { LIGHT, type PathFn, type Pose, REST, ao, crease as kitCrease, innerEdge, inside, softFill, softStroke, spec, texture } from '../../art/style/kit';
+import { Sil } from '../../art/style/sil';
 import type { Ctx } from '../../art/util';
 import { mix, rgba, shade } from '../../art/util';
 
@@ -973,13 +978,6 @@ function footOutline(x: Ctx, s = 1.08): void {
 /** The eye: centre y and size in the mock frame. */
 export const EYE = { y: 124, w: 122, h: 62 };
 
-/** The maw's lips at mock x: the upper lip arches up in the middle and its corners drag down (a downturned snarl). */
-export const MAW = {
-  w: 80,
-  upper: (px: number) => 194 + 42 * Math.pow(Math.min(1, Math.abs(px) / 80), 2.2),
-  lower: (px: number) => 230 + 6 * Math.pow(Math.min(1, Math.abs(px) / 80), 2),
-};
-
 /** The vein colour: the hide's grey pulled towards a cold, bloodless blue. */
 const veinCol = (base: string) => shade(mix(base, '#3e4d6a', 0.4), -0.08);
 
@@ -1059,13 +1057,11 @@ function bruteHide(x: Ctx, base: string): void {
       crease(x, [[s * 70, y0], [s * 86, y0 - 4 + k * 4], [s * (102 + k * 2), y0 - 10 + k * 10]], 3 - k * 0.4, 0.7);
     }
     crease(x, [[s * 106, 150], [s * 90, 168], [s * 70, 160]], 3.6);
-    crease(x, [[s * 108, 194], [s * 96, 206], [s * 82, 200]], 3);
-    crease(x, [[s * 84, MAW.upper(80) - 2], [s * 96, 224], [s * 106, 214]], 2.8);
-    crease(x, [[s * 76, MAW.upper(70) - 12], [s * 88, 202], [s * 94, 188]], 2.4, 0.8);
+    crease(x, [[s * 112, 206], [s * 104, 222], [s * 108, 236]], 2.6, 0.8);
   }
   // knuckle folds where the toes leave the foot
-  crease(x, [[-74, 248], [-40, 256], [0, 258], [40, 256], [74, 248]], 4.2);
-  crease(x, [[-60, 240], [0, 247], [60, 240]], 2, 0.6);
+  crease(x, [[-108, 244], [-70, 254], [-24, 260], [30, 262], [74, 254], [108, 242]], 4.2);
+  crease(x, [[-90, 236], [-20, 248], [50, 246], [96, 232]], 2, 0.6);
   // veins: raised, branching, cold blue-grey
   const vc = veinCol(base);
   const veins: [P[], number][] = [
@@ -1077,6 +1073,8 @@ function bruteHide(x: Ctx, base: string): void {
     [[[106, 150], [96, 176], [104, 204]], 4],
   ];
   for (const [v, w] of veins) vein(x, v, w, vc);
+  // the hide round the burst cuts: swollen, bruised, stretched
+  for (const c of CUTS) cutSurround(x, c, base);
   // occlusion: under the iron band, and down at the toes
   x.fillStyle = grad(x, 0, 18, 0, 46, [[0, 'rgba(3,4,8,.6)'], [1, 'rgba(3,4,8,0)']]);
   x.fillRect(-140, 18, 280, 30);
@@ -1318,217 +1316,624 @@ function fang(x: Ctx, bx: number, by: number, len: number, wd: number, dir: numb
   x.stroke();
 }
 
-/** The maw: a wide downturned snarl across the foot under the eye, thick leathery lips, and a jumble of jagged,
- * uneven fangs (two upper canines hanging over the lower lip, two tusks jutting up). */
-function bruteMaw(x: Ctx, base: string): void {
-  const { upper, lower, w } = MAW;
+// ——— the burst cuts ———
+//
+// Where a mouth would be, two cuts burst open in the hide, set in a V: ragged, torn lips over a dark wet throat, and
+// inside each a pair of jaws of jagged, uneven teeth. Each cut is drawn in its own frame (u along it, v across it
+// towards its lower lip) at a jaw opening o (0 clenched … 1 gaping): the lips part in a lens, so in play footLive.ts
+// steps through pre-drawn openings and the jaws gnash.
+
+export interface BruteCut {
+  /** The cut's two ends (mock frame). */
+  a: P;
+  b: P;
+  /** Half its opening at the middle when it's open (mock units). */
+  h: number;
+  seed: number;
+}
+
+/** The two cuts, set in a V under the eye (the left one longer and steeper). */
+export const CUTS: BruteCut[] = [
+  { a: [-96, 164], b: [-12, 242], h: 23, seed: 5 },
+  { a: [94, 174], b: [24, 238], h: 20, seed: 9 },
+];
+
+/** A cut's own frame: its centre, unit vectors along it (d) and across it towards its lower lip (n), length, angle. */
+export interface CutAxes {
+  cx: number;
+  cy: number;
+  dx: number;
+  dy: number;
+  nx: number;
+  ny: number;
+  L: number;
+  ang: number;
+}
+
+export function cutAxes(c: BruteCut): CutAxes {
+  let dx = c.b[0] - c.a[0];
+  let dy = c.b[1] - c.a[1];
+  const L = Math.hypot(dx, dy);
+  dx /= L;
+  dy /= L;
+  // n is d turned a quarter clockwise (the canvas's +y once rotated by ang); keep it pointing down the foot
+  let nx = -dy;
+  let ny = dx;
+  if (ny < 0) {
+    dx = -dx;
+    dy = -dy;
+    nx = -nx;
+    ny = -ny;
+  }
+  return { cx: (c.a[0] + c.b[0]) / 2, cy: (c.a[1] + c.b[1]) / 2, dx, dy, nx, ny, L, ang: Math.atan2(dy, dx) };
+}
+
+/** A point of a cut's frame (u along it, v towards its lower lip) in the mock frame. */
+export function cutPt(x: CutAxes, u: number, v: number): P {
+  return [x.cx + x.dx * u + x.nx * v, x.cy + x.dy * u + x.ny * v];
+}
+
+/** The end of the cut that hangs lower on the foot (+L/2 or −L/2): where its drool gathers. */
+export function cutLowEnd(x: CutAxes): number {
+  return x.dy >= 0 ? x.L / 2 : -x.L / 2;
+}
+
+/** How far open the lens of a cut is at u (1 at the middle, 0 at the ends). */
+const lens = (x: CutAxes, u: number) => Math.pow(Math.max(0, 1 - ((2 * u) / x.L) ** 2), 1.05);
+
+/** The lips at u, as v offsets (upper negative, lower positive), at jaw opening o: a lens, torn ragged, with notches
+ * where the hide ripped. Ragged per u, so the tears stay on their lips as the jaws work. */
+export function cutLips(c: BruteCut, x: CutAxes, u: number, o: number): [number, number] {
+  const p = lens(x, u);
+  const hw = c.h * (0.5 + 0.72 * o) * p;
+  const rag = (s: number) => {
+    const n = noise(c.seed * 7.3 + s + u * 0.3) * 2.2 + noise(c.seed * 3.1 + s + u * 1.1) * 1.3;
+    // torn: a sawtooth of little rips, and now and then a deeper notch
+    const saw = Math.abs(((((u * 0.42 + c.seed + s) % 2) + 2) % 2) - 1) * 2.2;
+    const tear = noise(c.seed * 11.7 + s + u * 0.55) > 0.45 ? 3.4 : 0;
+    return (n + saw + tear) * Math.sqrt(p);
+  };
+  const up = -hw - rag(0);
+  const lo = hw + rag(40);
+  return [Math.min(up, -0.6 * p), Math.max(lo, 0.6 * p)];
+}
+
+/** A cut's box in the mock frame, roomy enough for its lips, bruise and drool at any opening. */
+export function cutBox(c: BruteCut): { x: number; y: number; w: number; h: number } {
+  const x = cutAxes(c);
+  const eu = x.L / 2 + 14;
+  const ev = c.h * 1.4 + 16;
+  const pts = [cutPt(x, -eu, -ev), cutPt(x, eu, -ev), cutPt(x, -eu, ev + 8), cutPt(x, eu, ev + 8)];
+  const xs = pts.map((p) => p[0]);
+  const ys = pts.map((p) => p[1]);
+  const x0 = Math.floor(Math.min(...xs));
+  const y0 = Math.floor(Math.min(...ys));
+  return { x: x0, y: y0, w: Math.ceil(Math.max(...xs)) - x0, h: Math.ceil(Math.max(...ys)) - y0 };
+}
+
+interface Tooth {
+  u: number;
+  len: number;
+  wd: number;
+  lean: number;
+  chip: boolean;
+}
+
+/** A cut's teeth: [upper jaw, lower jaw], jagged and uneven (a few fangs among stumps), fixed per cut. */
+const teethCache = new Map<BruteCut, [Tooth[], Tooth[]]>();
+function cutTeeth(c: BruteCut): [Tooth[], Tooth[]] {
+  const hit = teethCache.get(c);
+  if (hit) return hit;
+  const ax = cutAxes(c);
+  const rnd = seeded(c.seed * 131 + 7);
+  const jaw = (): Tooth[] => {
+    const out: Tooth[] = [];
+    for (let u = -ax.L * 0.36 + rnd() * 4; u < ax.L * 0.38; u += 9.5 + rnd() * 7) {
+      const p = lens(ax, u);
+      const fang = rnd() < 0.24;
+      out.push({ u, len: c.h * (0.32 + rnd() * 0.3) * (0.45 + 0.55 * p) * (fang ? 1.7 : 1), wd: (fang ? 11 : 6.5 + rnd() * 4) * (0.6 + 0.4 * p), lean: (rnd() - 0.5) * 0.5, chip: rnd() < 0.35 });
+    }
+    return out;
+  };
+  const t: [Tooth[], Tooth[]] = [jaw(), jaw()];
+  teethCache.set(c, t);
+  return t;
+}
+
+/** LIGHT.dir in a frame turned by `ang`. */
+function lightIn(ang: number): P {
+  const [lx, ly] = LIGHT.dir;
+  const c = Math.cos(-ang);
+  const s = Math.sin(-ang);
+  return [lx * c - ly * s, lx * s + ly * c];
+}
+
+/** The hide round a cut (drawn into the body, under the cut's frames): bruised and swollen where it burst, the skin
+ * pulled into stretch creases fanning from each end of the tear. */
+function cutSurround(x: Ctx, c: BruteCut, base: string): void {
+  const ax = cutAxes(c);
   x.save();
+  x.translate(ax.cx, ax.cy);
+  x.rotate(ax.ang);
+  // swollen: the hide bulges round the tear, lit on its top-left flank and shadowed under it
+  const [llx, lly] = lightIn(ax.ang);
+  ao(x, 0, 0, ax.L * 0.62, c.h * 2.6, 0.22, 0, '#1a0c14');
+  spec(x, llx * c.h * 1.1, lly * c.h * 1.6, ax.L * 0.42, c.h * 0.9, 0.16, 0, shade(base, 0.4));
+  ao(x, -llx * c.h * 1.2, -lly * c.h * 1.8, ax.L * 0.45, c.h * 0.8, 0.18, 0, '#05060a');
+  // stretch creases fanning out from both ends
+  for (const e of [-1, 1]) {
+    const u0 = (e * ax.L) / 2 - e * 2;
+    for (const [sp, len, w] of [[-0.45, 11, 1.6], [0.4, 9, 1.4]] as const) {
+      const a = (e > 0 ? 0 : Math.PI) + sp;
+      kitCrease(x, (g) => {
+        g.moveTo(u0, 0);
+        g.quadraticCurveTo(u0 + Math.cos(a) * len * 0.55, Math.sin(a) * len * 0.55 + 1.5, u0 + Math.cos(a) * len, Math.sin(a) * len);
+      }, w, '#05060a', 0.35, 0.12);
+    }
+  }
+  x.restore();
+}
+
+/**
+ * A burst cut at jaw opening o (0 clenched … 1 gaping), in the mock frame: a bruised halo, raised torn lips lit from
+ * the top left, raw flesh at the tear, and through it a black throat with dark wet gums, the lower jaw's teeth, the
+ * upper's over them (grinding sideways as the jaw works), strings of black ooze between them and black drool pooled
+ * on the lower lip.
+ */
+export function bruteCut(x: Ctx, c: BruteCut, base: string, o: number): void {
+  const ax = cutAxes(c);
+  const step = 2.4;
+  const up: P[] = [];
+  const lo: P[] = [];
+  for (let u = -ax.L / 2; u <= ax.L / 2 + 0.01; u += step) {
+    const [a, b] = cutLips(c, ax, u, o);
+    up.push([u, a]);
+    lo.push([u, b]);
+  }
+  const hole: PathFn = (g) => {
+    g.beginPath();
+    up.forEach(([u, v], i) => (i ? g.lineTo(u, v) : g.moveTo(u, v)));
+    for (let i = lo.length - 1; i >= 0; i--) g.lineTo(lo[i][0], lo[i][1]);
+    g.closePath();
+  };
+  const [llx, lly] = lightIn(ax.ang);
+  const h = c.h;
+  x.save();
+  x.translate(ax.cx, ax.cy);
+  x.rotate(ax.ang);
   x.lineCap = 'round';
   x.lineJoin = 'round';
-  const mouth = () => {
-    x.beginPath();
-    for (let px = -w; px <= w; px += 4) x.lineTo(px, upper(px));
-    for (let px = w; px >= -w; px -= 4) x.lineTo(px, lower(px));
-    x.closePath();
-  };
-  // the lips: a thick, lit upper lip and a heavy lower one
-  mouth();
-  x.lineWidth = 16;
-  x.strokeStyle = grad(x, 0, 182, 0, 244, [[0, shade(base, 0.12)], [0.5, shade(base, -0.2)], [1, shade(base, -0.5)]]);
-  x.stroke();
-  const up: P[] = [];
-  for (let px = -w + 6; px <= w - 6; px += 10) up.push([px, upper(px) - 8.5]);
-  line(x, up, 1.8, 'rgba(226,234,248,.35)');
-  // snarl wrinkles over the upper lip
-  for (const px of [-44, -18, 14, 40]) crease(x, [[px, upper(px) - 10], [px + (px < 0 ? -3 : 3), upper(px) - 19]], 2.4, 0.8);
-  // inside: a black throat, a gum line, a dark tongue
-  mouth();
-  const ig = x.createRadialGradient(0, 214, 2, 0, 214, 70);
-  ig.addColorStop(0, '#22080b');
-  ig.addColorStop(0.6, '#0c0305');
-  ig.addColorStop(1, '#030102');
-  x.fillStyle = ig;
-  x.fill();
+  // the bruise round the tear
+  softStroke(x, (g) => hole(g), rgba('#2a1018', 0.5), h * 0.95, 2.6);
+  // the lips: a swollen ridge of hide round the tear (fatter as the jaws clench), lit on its top-left flank
+  const ridge = h * (0.42 + (1 - o) * 0.12);
+  softStroke(x, (g) => hole(g), shade(mix(base, '#5a3c46', 0.2), -0.12), ridge, ridge * 0.22);
   x.save();
-  mouth();
-  x.clip();
-  x.fillStyle = '#3a1418';
-  x.beginPath();
-  x.ellipse(4, 236, 38, 10, 0, 0, 7);
-  x.fill();
-  const gl: P[] = [];
-  for (let px = -w; px <= w; px += 8) gl.push([px, upper(px) + 2]);
-  line(x, gl, 5, '#3b1b1e');
-  const gl2: P[] = [];
-  for (let px = -w; px <= w; px += 8) gl2.push([px, lower(px) - 2]);
-  line(x, gl2, 4, '#2e1316');
+  x.translate(llx * ridge * 0.32, lly * ridge * 0.32);
+  softStroke(x, (g) => hole(g), rgba(shade(base, 0.38), 0.5), ridge * 0.38, ridge * 0.2);
   x.restore();
-  mouth();
-  x.strokeStyle = MINK;
-  x.lineWidth = 3;
+  x.save();
+  x.translate(-llx * ridge * 0.34, -lly * ridge * 0.34);
+  softStroke(x, (g) => hole(g), 'rgba(4,5,9,.4)', ridge * 0.3, ridge * 0.2);
+  x.restore();
+  // raw flesh just inside the tear (the hole covers most of it)
+  hole(x);
+  x.lineWidth = 3.6;
+  x.strokeStyle = '#5a1e28';
   x.stroke();
-  // the fangs: [x, length, width, lean, chipped]; lower first so the upper ones hang over them
-  const lowerF: [number, number, number, number, boolean][] = [
-    [-62, 8, 8, 0.15, false], [-48, 14, 11, -0.12, true], [-31, 30, 14, 0.14, false], [-16, 10, 10, 0, true], [-3, 15, 11, -0.08, false],
-    [10, 8, 9, 0.22, true], [23, 13, 10, -0.12, false], [40, 25, 14, -0.18, false], [55, 10, 9, 0.12, true], [68, 6, 7, -0.2, false],
-  ];
-  const upperF: [number, number, number, number, boolean][] = [
-    [-68, 8, 8, -0.12, false], [-54, 28, 15, 0.08, false], [-39, 11, 10, 0.18, true], [-27, 17, 11, -0.12, false], [-14, 8, 10, 0.12, true],
-    [-1, 14, 11, -0.06, false], [12, 9, 10, 0.2, true], [27, 31, 15, -0.1, false], [42, 12, 10, 0.14, true], [58, 9, 9, -0.12, false],
-  ];
-  for (const [px, len, wd, lean, chip] of lowerF) fang(x, px, lower(px) + 1, len, wd, -1, lean, chip);
-  for (const [px, len, wd, lean, chip] of upperF) fang(x, px, upper(px) - 1, len, wd, 1, lean, chip);
+  // the throat: black, warming to a dark wet red at the gums
+  hole(x);
+  const tg = x.createRadialGradient(0, 0, 0, 0, 0, ax.L * 0.5);
+  tg.addColorStop(0, '#020102');
+  tg.addColorStop(0.7, '#0c0306');
+  tg.addColorStop(1, '#1c060b');
+  x.fillStyle = tg;
+  x.fill();
+  const [upT, loT] = cutTeeth(c);
+  inside(x, hole, () => {
+    // the gums: thick, dark and wet along each lip
+    const gum = (pts: P[], dv: number, col: string) => {
+      const g = pts.map(([u, v]) => [u, v + dv] as P);
+      line(x, g, h * 0.46, col);
+      line(x, g.map(([u, v]) => [u, v + Math.sign(dv) * h * 0.08] as P), h * 0.1, 'rgba(190,80,96,.42)', llx * 0.6, lly * 0.6);
+    };
+    gum(up, h * 0.12, '#3a0c15');
+    gum(lo, -h * 0.12, '#300a12');
+    // the lower jaw grinds sideways against the upper as it works
+    const grind = (o - 0.5) * 3.4;
+    for (const t of loT) {
+      const [, b] = cutLips(c, ax, t.u + grind, o);
+      fang(x, t.u + grind, b - h * 0.2, t.len, t.wd, -1, t.lean, t.chip);
+    }
+    for (const t of upT) {
+      const [a] = cutLips(c, ax, t.u, o);
+      fang(x, t.u, a + h * 0.2, t.len, t.wd, 1, t.lean, t.chip);
+    }
+    // wet: glints on the teeth that face the light
+    const rnd = seeded(c.seed * 17 + 3);
+    for (const [jaw, s] of [[upT, 1], [loT, -1]] as const)
+      for (const t of jaw) {
+        if (rnd() < 0.45) continue;
+        const [a, b] = cutLips(c, ax, t.u, o);
+        const v = s > 0 ? a + h * 0.2 + t.len * 0.35 : b - h * 0.2 - t.len * 0.35;
+        glint(x, t.u - t.wd * 0.18, v, 1.6 + t.wd * 0.12, 0.7);
+      }
+    // strings of black ooze between the jaws, thick when they clench, drawn thin as they part
+    for (const su of [-0.2, 0.17]) {
+      const u = su * ax.L + (c.seed % 3);
+      const [a, b] = cutLips(c, ax, u, o);
+      const w = 1.4 + (1 - o) * 2;
+      const mid = (a + b) / 2 + (b - a) * 0.12;
+      x.fillStyle = '#050407';
+      for (const [cv, r] of [[a + h * 0.18, w * 0.95], [b - h * 0.18, w * 1.1]] as const) {
+        x.beginPath();
+        x.arc(u, cv, r, 0, 7);
+        x.fill();
+      }
+      x.beginPath();
+      x.moveTo(u - w * 0.6, a + h * 0.18);
+      x.quadraticCurveTo(u - w * 0.2, mid, u - w * 0.7, b - h * 0.18);
+      x.lineTo(u + w * 0.7, b - h * 0.18);
+      x.quadraticCurveTo(u + w * 0.2, mid, u + w * 0.6, a + h * 0.18);
+      x.closePath();
+      x.fill();
+    }
+    // deep in shadow under the upper lip (it overhangs the light)
+    innerEdge(x, hole, 'rgba(0,0,0,.85)', 4, LIGHT.dir[0] * 3.6, LIGHT.dir[1] * 3.6);
+  });
+  // the upper lip rolls over the tear: a lit rim of hide along it, casting its shadow down into the throat
+  line(x, up.slice(1, -1).map(([u, v]) => [u, v - 2.6] as P), 2.4, rgba(shade(base, 0.32), 0.7));
+  hole(x);
+  x.strokeStyle = MINK;
+  x.lineWidth = 2.6;
+  x.stroke();
+  // the lower lip's torn edge faces up into the light
+  line(x, lo.slice(2, -2).map(([u, v]) => [u, v + 2.2] as P), 1.3, rgba(shade(base, 0.5), 0.55));
+  // black drool welling over the lower lip and gathering at its lower end
+  const low = cutLowEnd(ax);
+  const pr = seeded(c.seed * 37 + 5);
+  const pool: P[] = [];
+  for (let k = 0; k <= 8; k++) {
+    const u = low * (0.05 + k * 0.09);
+    pool.push([u, cutLips(c, ax, u, o)[1]]);
+  }
+  x.save();
+  x.beginPath();
+  pool.forEach(([u, v], k) => (k ? x.lineTo(u, v - 1.5) : x.moveTo(u, v - 1.5)));
+  for (let k = pool.length - 1; k >= 0; k--) {
+    const [u, v] = pool[k];
+    x.lineTo(u, v + 1.2 + Math.sin(k * 1.9 + c.seed) * 1.2 + (k / pool.length) * 3.2);
+  }
+  x.closePath();
+  x.fillStyle = '#050407';
+  x.fill();
+  x.restore();
+  line(x, pool.slice(1, -1).map(([u, v]) => [u, v - 0.6] as P), 0.8, 'rgba(210,220,240,.5)');
+  for (let k = 0; k < 2; k++) {
+    const u = low * (0.3 + k * 0.36 + pr() * 0.08);
+    const [, b] = cutLips(c, ax, u, o);
+    const r = 2.6 + pr() * 1.4 + k * 0.8;
+    inkDrop(x, u, b + r * 0.7, r * 1.25, r);
+  }
   x.restore();
 }
 
-/** The Brute's toes at rest (mock frame): thick and graduated, big toe on the right, splayed a little. */
+/** A glossy bead of black drool (centre, half width, half height): near-black, a cold specular and a faint rim. */
+export function inkDrop(x: Ctx, cx: number, cy: number, rx: number, ry: number): void {
+  x.save();
+  x.beginPath();
+  x.ellipse(cx, cy, rx, ry, 0, 0, 7);
+  const g = x.createRadialGradient(cx - rx * 0.35, cy - ry * 0.4, 0, cx, cy, Math.max(rx, ry));
+  g.addColorStop(0, '#2a2c36');
+  g.addColorStop(0.45, '#08080c');
+  g.addColorStop(1, '#010102');
+  x.fillStyle = g;
+  x.fill();
+  x.beginPath();
+  x.ellipse(cx + rx * 0.2, cy + ry * 0.25, rx * 0.85, ry * 0.8, 0, 0.2, 1.9);
+  x.strokeStyle = rgba(LIGHT.rim, 0.28);
+  x.lineWidth = Math.max(0.6, ry * 0.18);
+  x.stroke();
+  x.fillStyle = 'rgba(235,240,255,.85)';
+  x.beginPath();
+  x.ellipse(cx - rx * 0.35, cy - ry * 0.35, Math.max(0.5, rx * 0.22), Math.max(0.4, ry * 0.16), -0.5, 0, 7);
+  x.fill();
+  x.restore();
+}
+
+/** A strand of black drool hanging from (x0, y0) to a bead at (x1, y1): thick at the lip, necking thin, swelling into
+ * the bead (radius r), glossy down its lit edge. Mock frame (the still art; play draws its own live strands). */
+export function droolStrand(x: Ctx, x0: number, y0: number, x1: number, y1: number, w0: number, r: number): void {
+  const dx = x1 - x0;
+  const dy = y1 - y0;
+  const L = Math.hypot(dx, dy) || 1;
+  const nx = -dy / L;
+  const ny = dx / L;
+  const neck = Math.max(0.5, w0 * 0.3);
+  x.save();
+  x.beginPath();
+  x.moveTo(x0 + nx * w0, y0 + ny * w0);
+  x.quadraticCurveTo(x0 + dx * 0.55 + nx * neck, y0 + dy * 0.55 + ny * neck, x1 + nx * r * 0.7, y1 + ny * r * 0.7);
+  x.lineTo(x1 - nx * r * 0.7, y1 - ny * r * 0.7);
+  x.quadraticCurveTo(x0 + dx * 0.55 - nx * neck, y0 + dy * 0.55 - ny * neck, x0 - nx * w0, y0 - ny * w0);
+  x.closePath();
+  x.fillStyle = '#050508';
+  x.fill();
+  line(x, [[x0 - nx * w0 * 0.4, y0 + 1], [x0 + dx * 0.55 - nx * neck * 0.5, y0 + dy * 0.55], [x1 - nx * r * 0.5, y1 - r * 0.6]], 0.6, 'rgba(210,220,240,.5)');
+  x.restore();
+  inkDrop(x, x1, y1 + r * 0.15, r * 0.95, r * 1.1);
+}
+
+/** The still art's drool (peel, portrait): a glossy trail run down the hide from each cut's lower end, and a strand
+ * hanging off it with a bead swelling at its tip. */
+function stillDrool(x: Ctx, c: BruteCut, o: number): void {
+  const ax = cutAxes(c);
+  const u = cutLowEnd(ax) * 0.72;
+  const [, b] = cutLips(c, ax, u, o);
+  const [px, py] = cutPt(ax, u, b);
+  // the trail on the hide: a glossy black run, thinning
+  x.save();
+  x.lineCap = 'round';
+  line(x, [[px, py], [px - 1, py + 9], [px + 0.5, py + 17]], 3.4, 'rgba(5,5,8,.92)');
+  line(x, [[px - 1, py + 1], [px - 1.8, py + 9], [px - 0.6, py + 15]], 0.8, 'rgba(210,220,240,.5)');
+  x.restore();
+  droolStrand(x, px + 0.5, py + 17, px + 1.5, py + 31 + c.seed * 0.6, 2, 3.2);
+}
+
+// ——— the mutant toes ———
+//
+// Not five graduated toes: a mutant set of six, all different. A stunted nub out on the little-toe side, a medium
+// toe, a withered stump tucked behind its neighbours, a twisted one leaning over that stump, a crooked small one,
+// and a huge, swollen big toe on the right. Each is one round, weighty form under the kit's light (a lit top left, a
+// soft core shadow, a cool rim), with knuckle creases, raised veins on the big ones, and a cracked, yellowed claw
+// sized to it.
+
+/** The toes at rest (mock frame), little-toe side first: x, y, rx, ry, rot. */
 const BRUTE_REST = styleToes([
-  [-84, 272, 20, 26, 0.22],
-  [-46, 283, 22, 28, 0.1],
-  [-6, 290, 24, 30, 0.02],
-  [36, 292, 26, 31, -0.05],
-  [82, 287, 33, 35, -0.12],
+  [-106, 262, 12, 17, 0.52],
+  [-78, 275, 19, 28, 0.2],
+  [-47, 286, 13, 19, 0.04],
+  [-16, 286, 21, 32, 0.3],
+  [23, 292, 15, 23, -0.14],
+  [73, 281, 34, 45, -0.1],
 ]);
 
-/** The box the Brute's toe band covers (mock frame): the toes with their claws, curled or splayed. */
-export const BRUTE_TOE_BOX = { x: -132, y: 224, w: 264, h: 130 };
+interface ToeTrait {
+  /** Claw tip, as a multiple of the toe's half length (from its centre). */
+  claw: number;
+  /** How far the claw hooks over (fraction of the toe's half width; + to the right). */
+  hook: number;
+  /** A broken-off stump of a claw. */
+  broken?: boolean;
+  /** Raised veins down it. */
+  veins: number;
+}
+const BRUTE_TRAITS: ToeTrait[] = [
+  { claw: 1.42, hook: 0.05, broken: true, veins: 0 },
+  { claw: 1.68, hook: 0.12, veins: 1 },
+  { claw: 1.5, hook: -0.1, veins: 0 },
+  { claw: 1.74, hook: -0.34, veins: 1 },
+  { claw: 1.6, hook: 0.22, broken: true, veins: 0 },
+  { claw: 1.72, hook: 0.16, veins: 2 },
+];
+/** Back to front: the stunted ones tucked behind their neighbours. */
+const TOE_ORDER = [2, 4, 0, 1, 3, 5];
 
-/** A gnarled toe's outline in its own frame: a knuckle that bulges, a waist, a fat pad and a blunt tip. */
-function gnarledToe(x: Ctx, k: number, L: number, open = false): void {
+/** The rest toes as [x, y, rx, ry] in the mock frame. */
+export const BRUTE_TOES: [number, number, number, number][] = BRUTE_REST.map((t) => [t.cx - CX, t.cy, t.rx, t.ry]);
+
+/** The box the Brute's toe band covers (mock frame): the toes with their claws, curled or splayed. */
+export const BRUTE_TOE_BOX = { x: -142, y: 222, w: 284, h: 156 };
+
+/** A toe's outline in its own frame (y from its root −L to its tip +L): a knuckle bulging near the root, a slight
+ * waist and a fat, round pad. `open` leaves the root open (the outline stops where the toe grows from the foot). */
+function mutantToePath(x: Ctx, k: number, L: number, open = false): void {
+  // an ellipse swollen at the knuckle (θ = −π/2 is the root, π/2 the tip) and pinched a little at the waist
+  const pt = (th: number): P => {
+    const y = Math.sin(th);
+    const bulge = 1 + 0.08 * Math.exp(-(((y + 0.45) / 0.3) ** 2)) - 0.04 * Math.exp(-(((y - 0.2) / 0.2) ** 2));
+    return [Math.cos(th) * k * bulge, y * L];
+  };
+  const a0 = open ? -Math.PI / 2 - 1.32 : -Math.PI / 2;
+  const a1 = open ? -Math.PI / 2 - (Math.PI * 2 - 1.32) : -Math.PI * 2.5;
   x.beginPath();
-  x.moveTo(-k * 0.78, -L * (open ? 0.72 : 1.02));
-  x.bezierCurveTo(-k * 0.9, -L * 0.7, -k * 1.14, -L * 0.52, -k * 1.06, -L * 0.22);
-  x.bezierCurveTo(-k, 0, -k * 0.84, L * 0.12, -k * 0.88, L * 0.32);
-  x.bezierCurveTo(-k * 0.96, L * 0.5, -k * 1.02, L * 0.7, -k * 0.84, L * 0.88);
-  x.bezierCurveTo(-k * 0.6, L * 1.08, k * 0.6, L * 1.08, k * 0.84, L * 0.88);
-  x.bezierCurveTo(k * 1.02, L * 0.7, k * 0.96, L * 0.5, k * 0.88, L * 0.32);
-  x.bezierCurveTo(k * 0.84, L * 0.12, k, 0, k * 1.06, -L * 0.22);
-  x.bezierCurveTo(k * 1.14, -L * 0.52, k * 0.9, -L * 0.7, k * 0.78, -L * (open ? 0.72 : 1.02));
-  if (!open) {
-    x.quadraticCurveTo(0, -L * 1.18, -k * 0.78, -L * 1.02);
-    x.closePath();
+  const n = 40;
+  for (let i = 0; i <= n; i++) {
+    const [px, py] = pt(a0 + ((a1 - a0) * i) / n);
+    if (i) x.lineTo(px, py);
+    else x.moveTo(px, py);
   }
+  if (!open) x.closePath();
 }
 
-/** One of the Brute's toes: grey hide lit from the top left over a knobbly knuckle, wrinkled across it, a raised vein,
- * mottled leather, a cold rim; then its claw: a hooked nail of yellowed horn, dark where it grows from the toe,
- * cracked, grimed in its ridges and chipped at the edge. */
-function gnarled(x: Ctx, t: StyleToe, base: string, i: number, rnd: () => number): void {
+/** A raised vein: a soft shadow on its far side, the vein, and a lit edge on its near side (a form, not a line). */
+function raisedVein(x: Ctx, pts: P[], w: number, col: string, llx: number, lly: number): void {
+  const path = (g: Ctx) => smooth(g, pts);
+  x.save();
+  x.translate(-llx * w * 0.6, -lly * w * 0.6);
+  softStroke(x, path, 'rgba(3,4,8,.55)', w * 1.4, w * 0.4);
+  x.restore();
+  softStroke(x, path, col, w, w * 0.1);
+  x.save();
+  x.translate(-llx * w * 0.22, -lly * w * 0.22);
+  softStroke(x, path, 'rgba(3,4,8,.3)', w * 0.4, w * 0.15);
+  x.restore();
+  x.save();
+  x.translate(llx * w * 0.26, lly * w * 0.26);
+  softStroke(x, path, rgba(LIGHT.key, 0.26), w * 0.34, w * 0.12);
+  x.restore();
+}
+
+/** One of the Brute's claws, in its toe's frame: a hooked nail of yellowed horn growing dark from the toe, cracked
+ * down from its root, grimed in its growth ridges and chipped; a broken one ends in a jagged stump. */
+function bruteClaw(x: Ctx, k: number, L: number, tr: ToeTrait, i: number): void {
+  const nw = k * 0.56;
+  const top = L * 0.3;
+  const tip = L * tr.claw;
+  const hook = k * tr.hook;
+  const nail = () => {
+    x.beginPath();
+    x.moveTo(-nw, top + L * 0.08);
+    x.quadraticCurveTo(0, top - L * 0.2, nw, top + L * 0.08);
+    if (tr.broken) {
+      // snapped off: a jagged end well short of a point
+      const e = top + (tip - top) * 0.72;
+      x.bezierCurveTo(nw * 0.98, L * 0.8, nw * 0.7, e - L * 0.1, nw * 0.5 + hook, e);
+      x.lineTo(nw * 0.15 + hook, e - L * 0.07);
+      x.lineTo(-nw * 0.12 + hook, e + L * 0.04);
+      x.lineTo(-nw * 0.42 + hook, e - L * 0.05);
+      x.bezierCurveTo(-nw * 0.8, L * 0.8, -nw * 0.95, L * 0.7, -nw, top + L * 0.08);
+    } else {
+      x.bezierCurveTo(nw * 0.98, L * 0.86, nw * 0.38, (top + tip) * 0.62, hook, tip);
+      x.bezierCurveTo(-nw * 0.22, (top + tip) * 0.6, -nw * 0.92, L * 0.86, -nw, top + L * 0.08);
+    }
+    x.closePath();
+  };
+  // its shadow on the toe and the ground
+  x.save();
+  x.translate(1.6, 2.6);
+  nail();
+  x.fillStyle = 'rgba(2,3,6,.35)';
+  x.fill();
+  x.restore();
+  nail();
+  x.fillStyle = grad(x, 0, top - L * 0.1, hook, tip, [[0, '#1a1107'], [0.22, '#463416'], [0.5, '#968046'], [0.82, '#cbbb86'], [1, '#e2d8b0']]);
+  x.fill();
+  x.save();
+  nail();
+  x.clip();
+  // the far side turns away into shadow
+  x.fillStyle = 'rgba(6,5,4,.34)';
+  x.beginPath();
+  x.ellipse(nw * 0.75, (top + tip) * 0.55, nw * 0.62, tip - top, 0, 0, 7);
+  x.fill();
+  // grime in the growth ridges
+  for (const f of [0.25, 0.45, 0.68]) {
+    const y = top + (tip - top) * f;
+    line(x, [[-nw, y], [0, y + L * 0.08], [nw, y]], 1.1, 'rgba(36,24,8,.6)');
+  }
+  // a crack down from the root
+  const cx0 = -nw * 0.15 + (i % 2 ? nw * 0.3 : 0);
+  const crack: P[] = [[cx0, top], [cx0 + nw * 0.12, top + (tip - top) * 0.3], [cx0 - nw * 0.08, top + (tip - top) * 0.5], [cx0 + nw * 0.1, top + (tip - top) * 0.7]];
+  line(x, crack, 1.5, 'rgba(14,9,4,.85)');
+  line(x, crack, 0.7, 'rgba(255,248,220,.5)', -1.1, 0.4);
+  x.restore();
+  nail();
+  x.strokeStyle = MINK;
+  x.lineWidth = 2.4;
+  x.stroke();
+  // a hard light down the lit edge towards the point
+  const end = tr.broken ? top + (tip - top) * 0.66 : tip - 3;
+  line(x, [[-nw * 0.55, top + L * 0.16], [-nw * 0.45, top + (end - top) * 0.5], [hook * 0.5 - nw * 0.1, end]], 1.4, 'rgba(255,250,232,.72)');
+}
+
+/** One mutant toe's flesh, painted on the toes' silhouette layer: one round, heavy form lit from the top left with a
+ * soft core shadow on its far side, a cool rim, a lit knuckle creased across, a fat pad, leathery grit and raised
+ * veins on the big ones. Where it lies over a toe behind it, a contact shadow and a soft crease part them (inside the
+ * one silhouette, inner edges are creases, not ink). */
+function toeFlesh(x: Ctx, t: StyleToe, base: string, tr: ToeTrait, rnd: () => number): void {
   inToeFrame(x, t, () => {
     const k = t.rx;
     const L = t.ry;
-    const toe = () => gnarledToe(x, k, L);
-    // its shadow on the foot
-    x.save();
-    x.translate(3, 6);
-    toe();
-    x.fillStyle = 'rgba(2,3,6,.4)';
+    const toe: PathFn = (g) => mutantToePath(g, k, L);
+    const [llx, lly] = lightIn(t.rot);
+    const R = Math.max(k, L);
+    // its contact shadow on the toes behind it
+    softFill(x, (g) => {
+      g.save();
+      g.translate(-llx * 3, -lly * 4.5);
+      mutantToePath(g, k, L);
+      g.restore();
+    }, 'rgba(2,3,6,.6)', 2.6);
+    // the form: a ramp along the light, from the lit top left to the far side's cool dark
+    toe(x);
+    x.fillStyle = grad(x, llx * R, lly * R, -llx * R, -lly * R, [[0, shade(base, 0.16)], [0.42, shade(base, -0.06)], [0.78, mix(shade(base, -0.46), '#1c1a30', 0.3)], [1, mix(shade(base, -0.64), '#141224', 0.4)]]);
     x.fill();
-    x.restore();
-    toe();
-    const g = x.createRadialGradient(-k * 0.4, -L * 0.5, 2, 0, 0, Math.max(k, L) * 1.25);
-    g.addColorStop(0, shade(base, 0.26));
-    g.addColorStop(0.5, shade(base, -0.06));
-    g.addColorStop(1, shade(base, -0.62));
-    x.fillStyle = g;
-    x.fill();
+    inside(x, toe, () => {
+      // the same leathery hide as the foot: mottled, finely crackled and pitted
+      texture(x, 'leather', { x: -k * 1.2, y: -L * 1.2, w: k * 2.4, h: L * 2.4 }, 0.3, 0.55, 'soft-light');
+      leather(x, base, rnd, -k, -L, k * 2, L * 2, Math.round(5 + k * 0.3));
+      // occlusion where it grows from the foot
+      x.fillStyle = grad(x, 0, -L * 1.05, 0, -L * 0.4, [[0, 'rgba(2,3,6,.72)'], [0.5, 'rgba(2,3,6,.3)'], [1, 'rgba(2,3,6,0)']]);
+      x.fillRect(-k * 1.3, -L * 1.3, k * 2.6, L * 0.9);
+      // the knuckle: a lit dome near the root, creased across
+      spec(x, -k * 0.22, -L * 0.36, k * 0.78, L * 0.3, 0.28, -0.2, LIGHT.key);
+      // creased across, each toe its own way: fewer, shallower folds on the stunted ones, a deep fold and
+      // a short broken one on the big ones, all tilted and bowed a little differently
+      const n = k > 30 ? 3 : k > 18 ? 2 + Math.round(rnd()) : 1 + Math.round(rnd());
+      for (let ci = 0; ci < n; ci++) {
+        const cy = -0.52 + ci * (0.34 / Math.max(1, n - 1)) + (rnd() - 0.5) * 0.08;
+        const span = 0.3 + rnd() * 0.32;
+        const off = (rnd() - 0.5) * k * 0.3;
+        const tilt = (rnd() - 0.5) * k * 0.25;
+        const bow = k * (0.1 + rnd() * 0.18);
+        const w = (ci === 1 ? 2.4 : 1.6 + rnd() * 0.6) * Math.min(1, k / 20 + 0.3);
+        kitCrease(x, (g) => {
+          g.moveTo(off - k * span, L * cy - tilt);
+          g.quadraticCurveTo(off, L * cy + bow, off + k * span * 0.9, L * cy + tilt);
+        }, w, '#05060a', 0.45 + rnd() * 0.2, 0.28);
+      }
+      // the fat pad under the claw, and its crease
+      spec(x, -k * 0.3, L * 0.42, k * 0.5, L * 0.24, 0.14, -0.3, LIGHT.key);
+      kitCrease(x, (g) => {
+        g.moveTo(-k * 0.74, L * 0.18);
+        g.quadraticCurveTo(0, L * 0.3, k * 0.74, L * 0.18);
+      }, 1.6, '#05060a', 0.4, 0.2);
+      // raised veins over the big ones
+      const vc = shade(veinCol(base), -0.22);
+      if (tr.veins >= 1) raisedVein(x, [[-k * 0.5, -L * 1.1], [-k * 0.6, -L * 0.62], [-k * 0.42, -L * 0.2], [-k * 0.56, L * 0.2]], Math.max(3, k * 0.15), vc, llx, lly);
+      if (tr.veins >= 2) {
+        raisedVein(x, [[k * 0.3, -L * 1.1], [k * 0.18, -L * 0.7], [k * 0.38, -L * 0.28]], k * 0.12, vc, llx, lly);
+        raisedVein(x, [[-k * 0.58, -L * 0.64], [-k * 0.3, -L * 0.48], [-k * 0.04, -L * 0.56]], k * 0.09, vc, llx, lly);
+      }
+      // the core shadow on the far side, a bevel of light on the near side, and the cold rim
+      innerEdge(x, toe, rgba(mix('#05060c', '#1c1a30', 0.3), 0.92), Math.max(5, k * 0.62), LIGHT.dir[0] * k * 0.46, LIGHT.dir[1] * k * 0.46);
+      innerEdge(x, toe, rgba(LIGHT.key, 0.24), Math.max(2.4, k * 0.26), -LIGHT.dir[0] * k * 0.1, -LIGHT.dir[1] * k * 0.1);
+      innerEdge(x, toe, rgba(LIGHT.rim, 0.6), 1.6, LIGHT.dir[0] * 2, LIGHT.dir[1] * 2);
+    });
+    // its edge where it lies over the toes behind: a soft crease, not an outline (the silhouette gets the ink)
     x.save();
-    toe();
-    x.clip();
-    leather(x, base, rnd, -k, -L, k * 2, L * 2, 14);
-    // occlusion where it leaves the foot
-    x.fillStyle = grad(x, 0, -L * 1.15, 0, -L * 0.55, [[0, 'rgba(2,3,6,.5)'], [1, 'rgba(2,3,6,0)']]);
-    x.fillRect(-k * 1.2, -L * 1.2, k * 2.4, L * 0.7);
-    // the knuckle: a lit knob, wrinkled across
-    const kg = x.createRadialGradient(-k * 0.25, -L * 0.42, 1, -k * 0.1, -L * 0.32, k * 0.85);
-    kg.addColorStop(0, rgba(shade(base, 0.36), 0.85));
-    kg.addColorStop(1, rgba(base, 0));
-    x.fillStyle = kg;
-    x.beginPath();
-    x.ellipse(-k * 0.1, -L * 0.32, k * 0.9, L * 0.4, 0, 0, 7);
-    x.fill();
-    for (const [r, w, a, a0, a1] of [[0.42, 2.6, 1, 0.5, 2.5], [0.6, 2.2, 0.85, 0.3, 2.7], [0.78, 1.8, 0.65, 0.7, 2.2], [0.26, 1.6, 0.6, 0.9, 2.1]]) {
-      const pts: P[] = [];
-      const j = (rnd() - 0.5) * 0.3;
-      for (let u = a0 + j; u <= a1 + j; u += 0.25) pts.push([-k * 0.08 + Math.cos(u) * k * r * 1.1, -L * 0.42 + Math.sin(u) * L * r * 0.42 + (rnd() - 0.5) * 1.2]);
-      crease(x, pts, w, a);
-    }
-    // the pad under the tip, and the crease between it and the knuckle
-    crease(x, [[-k * 0.8, L * 0.3], [0, L * 0.38], [k * 0.8, L * 0.3]], 1.8, 0.6);
-    // a raised vein down the bigger toes
-    if (i >= 2) vein(x, [[-k * 0.55, -L * 1.05], [-k * 0.62, -L * 0.6], [-k * 0.45, -L * 0.2], [-k * 0.58, L * 0.15]], i === 4 ? 3.6 : 2.8, veinCol(base));
-    // the cold rim round the lower right
-    x.lineWidth = k * 0.34;
-    x.strokeStyle = rgba(LIGHT.rim, 0.45);
-    gnarledToe(x, k, L);
-    x.save();
-    x.clip();
-    x.beginPath();
-    x.ellipse(0, L * 0.05, k, L * 0.98, 0, -0.5, 1.5);
+    mutantToePath(x, k, L, true);
+    x.strokeStyle = 'rgba(4,5,9,.7)';
+    x.lineWidth = 1.8;
     x.stroke();
     x.restore();
-    x.restore();
-    gnarledToe(x, k, L, true);
-    x.strokeStyle = MINK;
-    x.lineWidth = 5;
-    x.stroke();
-    // the claw
-    const nw = k * 0.54;
-    const top = L * 0.3;
-    const tip = L * 1.7;
-    const hook = k * 0.14;
-    const nail = () => {
-      x.beginPath();
-      x.moveTo(-nw, top + L * 0.08);
-      x.quadraticCurveTo(0, top - L * 0.2, nw, top + L * 0.08);
-      x.bezierCurveTo(nw * 0.98, L * 0.86, nw * 0.38, L * 1.28, hook, tip);
-      x.bezierCurveTo(-nw * 0.22, L * 1.24, -nw * 0.92, L * 0.86, -nw, top + L * 0.08);
-      x.closePath();
-    };
-    nail();
-    x.fillStyle = grad(x, 0, top - L * 0.1, hook, tip, [[0, '#1d1308'], [0.22, '#4a3818'], [0.5, '#9c8648'], [0.82, '#cfc08a'], [1, '#e6dcb4']]);
-    x.fill();
-    x.save();
-    nail();
-    x.clip();
-    // the far side in shadow
-    x.fillStyle = 'rgba(6,5,4,.3)';
-    x.beginPath();
-    x.ellipse(nw * 0.7, L * 0.95, nw * 0.6, L, 0, 0, 7);
-    x.fill();
-    // grime in the growth ridges
-    for (const f of [0.52, 0.74, 0.98]) line(x, [[-nw, L * f], [0, L * (f + 0.1)], [nw, L * f]], 1.2, 'rgba(36,24,8,.6)');
-    // a crack running down from the root
-    const cx0 = -nw * 0.15 + (i % 2 ? nw * 0.25 : 0);
-    const crack: P[] = [[cx0, top], [cx0 + nw * 0.12, L * 0.56], [cx0 - nw * 0.08, L * 0.8], [cx0 + nw * 0.1, L * 1.04]];
-    line(x, crack, 1.6, 'rgba(14,9,4,.85)');
-    line(x, crack, 0.8, 'rgba(255,248,220,.5)', -1.2, 0.4);
-    // a chip out of the far edge
-    x.fillStyle = MINK;
-    x.beginPath();
-    x.moveTo(nw * 1.05, L * 0.6);
-    x.lineTo(nw * 0.55, L * 0.74);
-    x.lineTo(nw * 0.9, L * 0.9);
-    x.closePath();
-    x.fill();
-    x.restore();
-    nail();
-    x.strokeStyle = MINK;
-    x.lineWidth = 2.6;
-    x.stroke();
-    // a hard light down the lit edge to the point
-    line(x, [[-nw * 0.55, L * 0.46], [-nw * 0.45, L * 0.9], [-nw * 0.1, L * 1.28], [hook * 0.6, tip - 3]], 1.5, 'rgba(255,250,232,.75)');
   });
 }
 
-/** The Brute's toes at a pose, big toe on the right, each with its claw. Call inside mock(BRUTE). */
+/** The Brute's toes at a pose, big toe on the right: their soft shadow on the foot, the six toes painted as one
+ * silhouette (one outline round them all, open where they grow from the foot), then each claw. Call inside
+ * mock(BRUTE). */
 export function bruteToes(ctx: Ctx, base: string, p: Pose): void {
   const toes = poseToes(BRUTE_REST, p);
   const rnd = seeded(47);
+  const parts: PathFn[] = toes.map((t) => (c) => {
+    c.save();
+    c.translate(t.cx - CX, t.cy);
+    c.rotate(t.rot);
+    mutantToePath(c, t.rx, t.ry);
+    c.restore();
+  });
   ctx.save();
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
-  toes.forEach((t, i) => gnarled(ctx, t, base, i, rnd));
+  // their shadow on the sole of the foot
+  for (const part of parts) {
+    ctx.save();
+    ctx.translate(3, 6);
+    softFill(ctx, part, 'rgba(2,3,6,.42)', 4);
+    ctx.restore();
+  }
+  const sil = new Sil(ctx, parts, BRUTE_TOE_BOX);
+  for (const i of TOE_ORDER) toeFlesh(sil.g, toes[i], base, BRUTE_TRAITS[i], rnd);
+  // the roots sink into the shadow under the ball of the foot
+  {
+    const g = sil.g;
+    g.fillStyle = grad(g, 0, 232, 0, 266, [[0, 'rgba(3,4,8,.62)'], [1, 'rgba(3,4,8,0)']]);
+    g.fillRect(-150, 220, 300, 46);
+  }
+  sil.finish(MINK, { w: 6.4, openTop: 254, inner: 0.7 });
+  for (const i of TOE_ORDER) inToeFrame(ctx, toes[i], () => bruteClaw(ctx, toes[i].rx, toes[i].ry, BRUTE_TRAITS[i], i));
   ctx.restore();
 }
 
@@ -1574,17 +1979,19 @@ function ironBand(x: Ctx): void {
 
 export const bruteHideColour = (art: FootArt) => art.primary ?? '#6f7782';
 
-/** The Brute minus its live parts (the iris, the lids and the toes): what play draws under their sprites. */
+/** The Brute minus its live parts (the iris, the lids, the cuts and the toes): what play draws under their sprites. */
 export function bruteBody(ctx: Ctx, art: FootArt): void {
   const base = bruteHideColour(art);
   mock(ctx, BRUTE, () => {
     bruteHide(ctx, base);
     bruteSocket(ctx);
     lidShadow(ctx);
-    bruteMaw(ctx, base);
     ironBand(ctx);
   });
 }
+
+/** The jaw opening the still art shows its cuts at. */
+const STILL_OPEN = 0.5;
 
 function drawBrute(ctx: Ctx, art: FootArt): void {
   const base = bruteHideColour(art);
@@ -1594,8 +2001,9 @@ function drawBrute(ctx: Ctx, art: FootArt): void {
     bruteIris(ctx, 0);
     lidShadow(ctx);
     bruteLids(ctx, base, 0);
-    bruteMaw(ctx, base);
+    for (const c of CUTS) bruteCut(ctx, c, base, STILL_OPEN);
     bruteToes(ctx, base, REST);
+    for (const c of CUTS) stillDrool(ctx, c, STILL_OPEN);
     ironBand(ctx);
   });
 }

@@ -11,7 +11,7 @@ export const feet: FootType[] = [
   {
     id: 'titanking',
     name: 'KRONOS THE TITAN KING',
-    desc: 'Mini-boss. The Titan king, chained in Tartarus since the dawn of time: an ancient foot of stone split by great gashes of molten Tartarus, an hourglass at its bronze shackle and iron chains from ankle to toe. He eats time, and he eats pizza.',
+    desc: 'Mini-boss. The Titan king, chained in Tartarus since the dawn of time: an ancient foot of stone split by great gashes of molten Tartarus, a clock ticking in its bronze shackle, iron chains from ankle to toe and heavier ones holding it to the roof of Tartarus. He eats time, and he eats pizza.',
     hp: 3300, speed: 0.6, armor: 5, stompDmg: 2, coins: 170, score: 14000, scale: 1.5, minWave: 88, weight: 0,
     traits: ['heavy'],
     mini: true,

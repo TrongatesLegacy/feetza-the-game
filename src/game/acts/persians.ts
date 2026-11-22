@@ -99,7 +99,8 @@ const immortal: FootFx = {
   },
 };
 
-/** The Immortal Brute (its fight is in src/game/bosses/leonidas.ts): only its live eye and smoke here. */
+/** The Immortal Brute (its fight is in src/game/bosses/leonidas.ts): only its live art here (the eye, the gnashing
+ * cuts, the smoke and drool, the toes and the rig, src/game/footLive.ts). */
 const immortalbrute: FootFx = {
   tick: (_a, f, dt) => bruteLive(f, dt),
 };

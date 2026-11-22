@@ -11,7 +11,12 @@ import { crand } from '../../systems/cosmeticRandom';
 import { save } from '../../systems/save';
 import { landDust, overheat } from './bosses';
 import { LX, LY } from '../style/acts-f-kit';
-import { CHAIN_LINKS, LINK_LEN, TITAN_CUT_GEO, ironLink, kickChain, linkShadow, onTitan, paintCutGlow, paintMagma, restChain, stepChain, titanChainEnds } from '../style/acts-f-3';
+import {
+  CHAIN_LINKS, LINK_LEN, SKY_LINK_K, TITAN_CLOCK, TITAN_CUT_GEO, TITAN_SKY_BACK, TITAN_SKY_RING, ironLink, kickChain, linkShadow, onTitan, paintCutGlow, paintMagma,
+  restChain, stepChain, titanChainEnds,
+} from '../style/acts-f-3';
+import { SkyChains } from '../../game/skyChains';
+import { liveClock } from './titanClock';
 
 const R = () => crand();
 const pm = () => crand() - 0.5;
@@ -205,8 +210,12 @@ registerLive('spidersocks', {
 // by the foot's own moves, so they swing out behind a dash, float up as he dives, slam down and bounce when he lands
 // and draw taut and rattle as he winds up. The magma in his three gashes flows (looping frames, cross-faded), glows
 // on the rig's light twin, and every few seconds a gash swells bright and spits a spurt of molten droplets and
-// embers that arc up and fall; a landing makes all three erupt. Gold sand trickles from the hourglass, grit crumbles
+// embers that arc up and fall; a landing makes all three erupt. The clock on his shackle ticks (titanClock.ts), grit crumbles
 // off him, stone dust flies when he lands; overheated he steams and the gashes spit more often.
+// And he is chained to the sky: three heavy chains come down from above the top of the screen to the great rings on
+// his shackle (and one to its back, behind the leg), hanging slack while he hovers, pulled taut as he dives, strains
+// or stomps, swaying with him and jolting when he lands (src/game/skyChains.ts; a fight can take up their slack with
+// skyChainsOf(f).setTension). When he dies they let go and swing loose.
 const TITAN_FLOW_N = 10;
 
 registerLive('titanking', {
@@ -248,6 +257,23 @@ registerLive('titanking', {
     const edgeKey = sheet('lk_titanking_linkE', linkBox, 1, (g) => ironLink(g, 0, 0, 0, false, Math.PI / 2));
     const shadowKey = sheet('lk_titanking_linkS', linkBox, 1, (g) => linkShadow(g, 0, 0, 0));
     const sims = [-1, 1].map((s) => restChain(s, 0));
+    // the chains to the sky: bigger links, baked once
+    const skyPad = (LINK_LEN * SKY_LINK_K) / 2 + 6;
+    const skyBox = { x: -skyPad, y: -skyPad, w: skyPad * 2, h: skyPad * 2 };
+    const skyLink = (face: boolean) => (g: CanvasRenderingContext2D) => {
+      g.scale(SKY_LINK_K, SKY_LINK_K);
+      ironLink(g, 0, 0, 0, face, Math.PI / 2);
+    };
+    const sky = new SkyChains(f, [
+      { at: TITAN_SKY_RING(-1), dx: -170, behind: false },
+      { at: TITAN_SKY_RING(1), dx: 150, behind: false },
+      { at: TITAN_SKY_BACK, dx: -330, behind: true },
+    ], {
+      face: sheet('lk_titanking_skyF', skyBox, 1, skyLink(true)),
+      edge: sheet('lk_titanking_skyE', skyBox, 1, skyLink(false)),
+      pitch: LINK_LEN * SKY_LINK_K * 0.78,
+      scale: 1 / (res * ts),
+    });
     const shadows = sims.map((c) => c.p.slice(1).map(() => img(shadowKey, CX, 0, 0.5, 0.5)));
     // face-on links under the edge-on ones, so they read as threaded through each other
     const linkImgs = sims.map(() => [] as Phaser.GameObjects.Image[]);
@@ -258,6 +284,7 @@ registerLive('titanking', {
       at,
       cuts,
       sims,
+      sky,
       shadows,
       linkImgs,
       lvx: 0,
@@ -272,7 +299,7 @@ registerLive('titanking', {
       embers: k.emitter({ frame: 'ember', add: true, curl: 50, drag: 0.7, max: 80 }),
       smoke: k.emitter({ frame: 'puff', curl: 40, drag: 0.9, below: true, max: 60 }),
       sparks: k.emitter({ frame: 'spark', add: true, drag: 0.8, max: 40 }),
-      sand: k.emitter({ frame: 'mote', add: true, drag: 0.3, max: 40 }),
+      clock: liveClock(k, TITAN_CLOCK, '#e8c870', 'titanking_clock'),
       grit: k.emitter({ frame: 'flake', drag: 0.3, max: 40 }),
       dust: k.emitter({ frame: 'puff', curl: 30, drag: 1.5, below: true, max: 80 }),
     };
@@ -300,6 +327,7 @@ registerLive('titanking', {
       // winding up he strains: the chains draw taut and the links rattle
       stepChain(c, a, b, -cl(st.ax) * calm, -cl(st.ay) * calm, dt, 0.985, winding ? 0.92 : 1, winding ? () => pm() * 0.18 * calm : undefined);
     }
+    st.sky.update(dt, { windingUp: winding, landed: k.landed });
     st.sims.forEach((c, ci) => {
       for (let i = 0; i < c.p.length - 1; i++) {
         const [x0, y0] = c.p[i];
@@ -378,10 +406,13 @@ registerLive('titanking', {
       });
     });
     // ——— the rest ———
-    st.sand.rate('sand', 6, dt, () => st.sand.emit(CX + pm() * 3, 64, { vy: 40, life: 0.8, r0: 2 * s, r1: 1.5 * s, a: 0.9, tint: 0xf0c860, grav: 300, fade: 0.05 }));
+    st.clock.update(dt);
     st.grit.rate('grit', 1.2 + Math.abs(k.vx) / 60, dt, () => st.grit.emit(CX + pm() * 190, 60 + R() * 180, { vx: pm() * 30, life: 0.9, r0: 3 * s, r1: 2.5 * s, a: 1, tint: R() < 0.5 ? 0x8e8a84 : 0x6a665e, grav: 800, spin: 8, fade: 0.02 }));
     landDust(k, st.dust, 16, [0x9a968e, 0x7a766e], 266, 110, 1.2);
     overheat(k, st.steam, dt, [CX - 90, 30, 180, 200]);
+  },
+  die(_k, st) {
+    st.sky.release();
   },
 });
 

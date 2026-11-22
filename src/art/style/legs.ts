@@ -216,7 +216,10 @@ function legDetail(ctx: Ctx, kind: LegStyleKind, x0: number, w: number, H: numbe
       });
       break;
     }
-    case 'basalt': {
+    case 'basalt':
+    case 'timestone': {
+      // timestone: the freed Kronos's leg, its cracks glowing molten gold instead of magma
+      const gold = kind === 'timestone';
       texture(ctx, 'stone', box, 0.5, 1.3);
       texture(ctx, 'cast', box, 0.3, 1, 'soft-light');
       // cracks that run the leg's length (start and end at the same x, so they tile), glowing
@@ -235,15 +238,15 @@ function legDetail(ctx: Ctx, kind: LegStyleKind, x0: number, w: number, H: numbe
         ctx.strokeStyle = rgba('#120604', 0.8);
         ctx.lineWidth = 6;
         ctx.stroke();
-        ctx.shadowColor = '#ff6a10';
+        ctx.shadowColor = gold ? '#ffb030' : '#ff6a10';
         ctx.shadowBlur = 8;
         path();
-        ctx.strokeStyle = '#ff8a1a';
+        ctx.strokeStyle = gold ? '#f2b840' : '#ff8a1a';
         ctx.lineWidth = 2.4;
         ctx.stroke();
         ctx.shadowBlur = 0;
         path();
-        ctx.strokeStyle = '#ffe27a';
+        ctx.strokeStyle = gold ? '#fff2c0' : '#ffe27a';
         ctx.lineWidth = 0.9;
         ctx.stroke();
         ctx.restore();
@@ -636,6 +639,7 @@ const TINT: Record<string, string> = {
   wool: '#1a1430',
   knit: MATERIALS.knit.shadowTint,
   basalt: '#2a0a18',
+  timestone: '#1a1830',
   fur: '#141428',
   iron: MATERIALS.iron.shadowTint,
   tights: '#1a1430',

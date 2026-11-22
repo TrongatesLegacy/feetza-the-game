@@ -656,6 +656,11 @@ export class Foot {
     this.leg.tilePositionY = (LEG_LEN - this.leg.height) / this.leg.tileScaleY;
   }
 
+  /** The top of the leg in the foot's own frame (far off screen in play; the card's top when a dev view crops it). */
+  get legTopLocal(): number {
+    return this.leg.y - this.leg.height;
+  }
+
   /** How visible the foot's own art is now (faded by invisibility, phasing, portals and the like). */
   get visualAlpha(): number {
     return this.img.alpha;

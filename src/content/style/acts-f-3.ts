@@ -4,23 +4,24 @@
 // - SPIDER SOCKS: a purple knitted toe-sock with acid-green toes and cuff stripes, a white web knitted over the
 //   instep with a little spider sitting in it, and four jointed spider legs a side (they skitter in play).
 // - KRONOS THE TITAN KING (mini-boss): no face: an ancient foot of weathered titan stone, mossy and chisel-marked,
-//   split by three great gashes with magma flowing in them, a bronze shackle at the ankle with a Greek key and an
-//   hourglass of gold sand, and heavy iron chains from the shackle down to iron cuffs on the little and big toes.
+//   split by three great gashes with magma flowing in them, a bronze shackle at the ankle with a Greek key and a
+//   clock set in it, heavy iron chains from the shackle down to iron rings round the little and big toes, and
+//   two great rings on the shackle for the chains that hold him to the sky (play draws those, src/game/skyChains.ts).
 // - ZEUS (boss): a towering foot of white marble with grey-gold veins, gold sandal straps laced up to a winged gold
 //   anklet, a gold medallion of blue enamel with a crackling lightning bolt (at ZEUS_BOLT) and a gold band over the ball of the foot.
 // Parodies and myths with looks of our own (old art: src/content/art/heroFeet.ts, src/content/art/kratos.ts).
 
 import type { FootArt } from '../../data/feet';
 import { TITAN_JAW, ZEUS_BOLT } from '../art/kratos';
-import { type StyleToe, onToe, poseToes, restToes } from '../../art/style/anatomy';
-import { bareFoot, bareOutline, paintBare } from '../../art/style/bare';
-import { type Box, type PathFn, type Pose, ao, pose, pxPerUnit, crease, glint, inkOf, softFill, softStroke, spec, texture } from '../../art/style/kit';
+import { type StyleToe, cleft, onToe, poseToes, restToes } from '../../art/style/anatomy';
+import { type BareFoot, bareFoot, bareOutline, paintBare } from '../../art/style/bare';
+import { type Box, type PathFn, type Pose, LIGHT, ao, pose, pxPerUnit, crease, glint, inkOf, innerEdge, softFill, softStroke, spec, texture } from '../../art/style/kit';
 import { Sil, lobe } from '../../art/style/sil';
 import { registerStyle } from '../../art/style/registry';
 import { beadEye, blotches, clawPath, contact, paintClaw, rivet } from '../../art/style/details';
 import { MATERIALS } from '../../art/style/materials';
 import { MATS_F } from '../../art/style/materials-acts-f';
-import { clip, furCoat, glowDot, glowFinish, heatLayer, lightAll, lin, rad } from '../../art/style/kit-bosses';
+import { clip, fill, furCoat, glowDot, glowFinish, heatLayer, lightAll, lin, rad, streak } from '../../art/style/kit-bosses';
 import { type Ctx, hashStr, mix, rgba, rng, shade } from '../../art/util';
 import { BARE_RIG, clefts, extendSil, layerOn, toePath } from './base-kit';
 import { CX, LX, LY, type Opts, type Pt, gem, metal, partSil, tube } from './acts-f-kit';
@@ -355,22 +356,33 @@ registerStyle('spidersocks', {
 // ════════════════════════════ KRONOS THE TITAN KING ════════════════════════════
 // No face: a colossal foot of weathered titan stone split by three great gashes with the magma of Tartarus flowing
 // inside them (charred, cracked lips, a hot orange-to-yellow core with crust floating on it), the bronze shackle at
-// the ankle with its hourglass, and heavy iron chains from two eyes on the shackle down to iron cuffs on the little
+// the ankle with its clock, and heavy iron chains from two eyes on the shackle down to iron cuffs on the little
 // and big toes. In play the chains are simulated (src/content/styleLive/acts-f.ts) and the magma flows and spits:
 // the cuts' geometry, the magma painter, the link painter and the chain solver live here so play and the still art
 // (peel, portrait) match exactly.
 
-const TITAN_LOOK = { toe: 1.12, toeLen: 0.94, w: 6, ankle: 56, nails: null, pores: 0, detail: 0, shadowTint: '#1a1828' } as const;
-const TITAN_GLASS: Pt = [CX, 40];
+export const TITAN_LOOK = { toe: 1.12, toeLen: 0.94, w: 6, ankle: 56, nails: null, pores: 0, detail: 0, shadowTint: '#1a1828' } as const;
 /** The iron eyes on the shackle the chains hang from (s −1 left, 1 right). */
 const TITAN_EYE = (s: number): Pt => [CX + s * 46, 66];
 const TITAN_IRON = '#55575f';
 
-// ——— the toe cuffs ———
+// ——— the toe shackles ———
+//
+// Each cuffed toe wears a forged iron ring round it. Seen from above, a ring round a toe is an ellipse: its near half
+// crosses over the top of the toe, bowing towards the tip, and its far half runs under the toe, showing only where
+// it stands off the toe's sides. So the ring is painted in two halves: the far half (dark, its inside facing us)
+// outside the toe's round, then the near half over the toe as a thick round-stocked band whose top rim catches the
+// light as a pale sliver, turning away into shadow at both ends. It casts a shadow down the toe, the flesh swells a
+// little either side of it, and it carries two rivets and the iron eye the chain hooks into. Tucked behind the
+// neighbouring toe.
 
-/** Where a toe's cuff sits (toe-local v, as a fraction of its half length: negative is up towards the root). */
-const CUFF_V0 = 0.1;
-const CUFF_V1 = 0.44;
+/** The ring on a toe (toe-local, in units of the toe's half length): its centre along the toe, its depth as seen
+ * from above (the ellipse's half axis along the toe) and the width of its band. */
+const RING_V = -0.1;
+const RING_DEPTH = 0.36;
+const RING_W = 0.3;
+/** How far the ring stands off the toe's sides (in units of its half width). */
+const RING_OUT = 1.17;
 
 /** Toe-local point → design space. */
 function toeAt(t: StyleToe, u: number, v: number): Pt {
@@ -385,31 +397,35 @@ function titanCuffToes(p: Pose): [StyleToe, StyleToe] {
   return [toes[0], toes[4]];
 }
 
-/** The eye on top of a toe's cuff that the chain's last link hooks into. */
-function cuffEye(t: StyleToe): Pt {
-  return toeAt(t, 0, t.ry * CUFF_V0 - 3.2);
+/** The ring's ellipse at angle th (0 its right end, π/2 the near middle over the toe, −π/2 the far middle under it):
+ * toe-local (u, v) of its band's top edge. */
+function ringAt(t: StyleToe, th: number): [number, number] {
+  return [Math.cos(th) * t.rx * RING_OUT, t.ry * RING_V + Math.sin(th) * t.ry * RING_DEPTH];
 }
 
+/** The eye on top of a toe's ring (its near middle) that the chain's last link hooks into. */
+function cuffEye(t: StyleToe): Pt {
+  const [u, v] = ringAt(t, Math.PI / 2);
+  return toeAt(t, u, v - 3.4);
+}
 
-function cuffPath(t: StyleToe): PathFn {
+/** One half of the ring's band (near: th 0…π over the toe; far: π…2π under it), grown by `grow`. */
+function ringHalf(t: StyleToe, near: boolean, grow = 0): PathFn {
   return (c) => {
-    const w = t.rx * 1.25;
-    const y0 = t.ry * CUFF_V0;
-    const y1 = t.ry * CUFF_V1;
-    const bow = t.ry * 0.2;
-    // the band wraps round the toe: its edges bow down towards the middle (it's clipped to the toe's own round)
-    const pts: Pt[] = [];
-    const n = 12;
+    const n = 20;
+    const w = t.ry * RING_W;
+    const top: Pt[] = [];
+    const bot: Pt[] = [];
     for (let i = 0; i <= n; i++) {
-      const u = -w + (2 * w * i) / n;
-      pts.push(toeAt(t, u, y0 + bow * (1 - (u / w) ** 2)));
-    }
-    for (let i = n; i >= 0; i--) {
-      const u = -w + (2 * w * i) / n;
-      pts.push(toeAt(t, u, y1 + bow * 1.1 * (1 - (u / w) ** 2)));
+      const th = (near ? 0 : Math.PI) + (Math.PI * i) / n;
+      const [u, v] = ringAt(t, th);
+      const ug = u + Math.cos(th) * grow;
+      top.push(toeAt(t, ug, v - grow));
+      bot.push(toeAt(t, ug, v + w + grow));
     }
     c.beginPath();
-    pts.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y)));
+    top.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y)));
+    for (let i = n; i >= 0; i--) c.lineTo(bot[i][0], bot[i][1]);
     c.closePath();
   };
 }
@@ -440,74 +456,214 @@ function ironEye(g: Ctx, x: number, y: number, r: number): void {
   glint(g, x + LX * r * 0.9, y + LY * r * 0.9, 2.2, 0.8);
 }
 
-function paintCuff(g: Ctx, t: StyleToe, nb: StyleToe): void {
-  g.save();
-  // clipped to the toe's round, grown a little (the cuff stands proud of the toe), and tucked behind its neighbour
-  g.beginPath();
-  g.ellipse(t.cx, t.cy, t.rx + 2.2, t.ry + 2.2, t.rot, 0, Math.PI * 2);
-  g.clip();
-  g.beginPath();
-  g.rect(t.cx - t.rx * 3, t.cy - t.ry * 3, t.rx * 6, t.ry * 6);
-  g.ellipse(nb.cx, nb.cy, nb.rx, nb.ry, nb.rot, 0, Math.PI * 2);
-  g.clip('evenodd');
-  const band = cuffPath(t);
-  contact(g, (c) => {
-    band(c);
-    c.fill();
-  }, 0.6, 2.6, 3);
-  const [ax, ay] = toeAt(t, 0, t.ry * CUFF_V0);
-  const [bx, by] = toeAt(t, 0, t.ry * CUFF_V1 + 4);
-  clip(g, band, () => {
-    // forged iron, a cylinder round the toe: lit along its top lip, dark underneath, rust in the pits
-    g.fillStyle = lin(g, ax, ay, bx, by, [
-      [0, '#c4c8d2'],
-      [0.25, '#7a7d86'],
-      [0.6, TITAN_IRON],
-      [1, '#1a1b20'],
-    ]);
-    g.fillRect(t.cx - t.rx * 1.6, t.cy - t.ry * 1.2, t.rx * 3.2, t.ry * 2.4);
-    // the band turns away at its sides
-    const [lx, ly] = toeAt(t, -t.rx * 1.1, 0);
-    const [rx, ry] = toeAt(t, t.rx * 1.1, 0);
-    g.fillStyle = lin(g, lx, ly, rx, ry, [
-      [0, rgba('#000000', 0.55)],
-      [0.3, rgba('#000000', 0)],
-      [0.75, rgba('#000000', 0)],
-      [1, rgba('#000000', 0.5)],
-    ]);
-    g.fillRect(t.cx - t.rx * 1.6, t.cy - t.ry * 1.2, t.rx * 3.2, t.ry * 2.4);
-    texture(g, 'cast', { x: t.cx - t.rx * 1.4, y: t.cy - t.ry, w: t.rx * 2.8, h: t.ry * 2 }, 0.45, 0.8);
-    blotches(g, { x: t.cx - t.rx * 1.4, y: t.cy - t.ry, w: t.rx * 2.8, h: t.ry * 2 }, '#8a4a1e', 0.22, 5, 0.66, 0.1, 681 + Math.round(t.cx));
+/** The flesh under and round a ring (on the silhouette's paint layer, before the outline): its cast shadow down the
+ * toe and the soft swell of the toe squeezed either side of it. */
+function paintCuffBed(g: Ctx, t: StyleToe): void {
+  clip(g, (c) => {
+    c.beginPath();
+    c.ellipse(t.cx, t.cy, t.rx, t.ry, t.rot, 0, Math.PI * 2);
+  }, () => {
+    const [, vMid] = ringAt(t, Math.PI / 2);
+    for (const [dv, a] of [[-t.ry * 0.12, 0.24], [t.ry * (RING_W + 0.12), 0.18]] as const) {
+      const [x, y] = toeAt(t, -t.rx * 0.18, vMid + dv);
+      spec(g, x, y, t.rx * 0.78, t.ry * 0.09, a, t.rot, LIGHT.key);
+    }
+    g.save();
+    g.translate(-LX * 3.6, -LY * 3.6);
+    softFill(g, ringHalf(t, true), rgba('#08070c', 0.75), 2.8);
+    g.restore();
   });
-  // the lit top lip
+}
+
+/** The ring itself, over the outline (it stands off the toe's sides). `nb` is the neighbouring toe: towards it the
+ * ring runs down into the cleft between them and out of sight. */
+function paintCuff(g: Ctx, t: StyleToe, nb: StyleToe): void {
+  const W = t.ry * RING_W;
+  const [lx, ly] = toeAt(t, -t.rx * RING_OUT, 0);
+  const [rx, ry] = toeAt(t, t.rx * RING_OUT, 0);
+  const area = { x: t.cx - t.rx * 1.7, y: t.cy - t.ry * 1.3, w: t.rx * 3.4, h: t.ry * 2.6 };
+  // the cleft towards the neighbour: the ring is cut off there (it goes down between the toes)
+  const side = nb.cx > t.cx ? 1 : -1;
+  const [kx] = side > 0 ? cleft(t, nb) : cleft(nb, t);
+  const cut = kx - side * 1.5;
+  g.save();
+  g.beginPath();
+  if (side > 0) g.rect(cut - 400, t.cy - t.ry * 4, 400, t.ry * 8);
+  else g.rect(cut, t.cy - t.ry * 4, 400, t.ry * 8);
+  g.clip();
+  // the far half, under the toe: seen only past its sides, its inner face dark
+  g.save();
+  g.beginPath();
+  g.rect(area.x - 20, area.y - 20, area.w + 40, area.h + 40);
+  g.ellipse(t.cx, t.cy, t.rx + 1.5, t.ry + 1.5, t.rot, 0, Math.PI * 2);
+  g.clip('evenodd');
+  const far = ringHalf(t, false);
+  g.fillStyle = lin(g, lx, ly, rx, ry, [
+    [0, '#2a2c33'],
+    [0.5, '#121317'],
+    [1, '#24262c'],
+  ]);
+  far(g);
+  g.fill();
+  g.strokeStyle = rgba('#08080c', 0.95);
+  g.lineWidth = 1.5;
+  g.stroke();
+  g.restore();
+  // the near half over the toe
+  const near = ringHalf(t, true);
+  contact(g, (c) => {
+    near(c);
+    c.fill();
+  }, 0.7, 2.2, 2.6);
+  const [ax, ay] = toeAt(t, 0, ringAt(t, Math.PI / 2)[1]);
+  const [bx, by] = toeAt(t, 0, ringAt(t, Math.PI / 2)[1] + W);
+  clip(g, near, () => {
+    // a round stock: a dark top edge, a hot crown just above the middle, falling to a dark underside
+    g.fillStyle = lin(g, ax, ay, bx, by, [
+      [0, '#1a1b20'],
+      [0.12, '#6e727c'],
+      [0.27, '#c2c6ce'],
+      [0.4, '#6c707a'],
+      [0.7, '#3a3c44'],
+      [1, '#0e0f12'],
+    ]);
+    g.fillRect(area.x, area.y, area.w, area.h);
+    // round the toe: lit on the side towards the light, turning away into shadow at both ends
+    g.fillStyle = lin(g, lx, ly, rx, ry, [
+      [0, rgba('#000000', 0.75)],
+      [0.12, rgba('#000000', 0.25)],
+      [0.3, rgba('#ffffff', 0.1)],
+      [0.6, rgba('#000000', 0)],
+      [0.86, rgba('#000000', 0.35)],
+      [1, rgba('#000000', 0.8)],
+    ]);
+    g.fillRect(area.x, area.y, area.w, area.h);
+    texture(g, 'cast', area, 0.5, 0.7);
+    blotches(g, area, '#8a4a1e', 0.26, 4, 0.66, 0.1, 681 + Math.round(t.cx));
+    // dropping into the cleft
+    g.fillStyle = lin(g, cut, 0, cut - side * 8, 0, [
+      [0, rgba('#000000', 0.85)],
+      [1, rgba('#000000', 0)],
+    ]);
+    g.fillRect(area.x, area.y, area.w, area.h);
+  });
+  // the top rim: the band's thickness seen from above, a pale sliver along its top edge
+  const rim: Pt[] = [];
+  for (let i = 0; i <= 20; i++) {
+    const th = 0.12 + ((Math.PI - 0.24) * i) / 20;
+    const [u, v] = ringAt(t, th);
+    rim.push(toeAt(t, u, v + 1.1));
+  }
   g.save();
   g.lineCap = 'round';
   g.beginPath();
-  for (let i = 0; i <= 12; i++) {
-    const u = -t.rx * 1.25 + (2.5 * t.rx * i) / 12;
-    const [x, y] = toeAt(t, u, t.ry * CUFF_V0 + t.ry * 0.2 * (1 - (u / (t.rx * 1.25)) ** 2) + 1.2);
+  rim.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+  g.strokeStyle = lin(g, lx, ly, rx, ry, [
+    [0, rgba('#e8ecf4', 0.15)],
+    [0.3, rgba('#f2f5fb', 0.9)],
+    [0.7, rgba('#e8ecf4', 0.5)],
+    [1, rgba('#e8ecf4', 0.1)],
+  ]);
+  g.lineWidth = 2;
+  g.stroke();
+  g.restore();
+  // ink round the near half, heavier along its lower edge where it lifts off the toe
+  g.save();
+  g.lineJoin = 'round';
+  near(g);
+  g.strokeStyle = rgba('#08080c', 0.95);
+  g.lineWidth = 1.7;
+  g.stroke();
+  g.beginPath();
+  for (let i = 0; i <= 20; i++) {
+    const [u, v] = ringAt(t, (Math.PI * i) / 20);
+    const [x, y] = toeAt(t, u, v + W);
     if (i) g.lineTo(x, y);
     else g.moveTo(x, y);
   }
-  g.strokeStyle = rgba('#e4e8f0', 0.5);
-  g.lineWidth = 1.2;
+  g.lineWidth = 2.6;
   g.stroke();
   g.restore();
-  g.save();
-  g.lineJoin = 'round';
-  band(g);
-  g.strokeStyle = rgba('#08080c', 0.95);
-  g.lineWidth = 1.6;
-  g.stroke();
+  // a hard glint on the crown, on the lit side
+  {
+    const [u, v] = ringAt(t, Math.PI * 0.68);
+    const [gx, gy] = toeAt(t, u, v + W * 0.3);
+    glint(g, gx, gy, 2.8, 0.9);
+  }
   g.restore();
-  g.restore();
-  // rivets down the seam, off to one side
-  for (const u of [-0.55, 0.55]) {
-    const [x, y] = toeAt(t, t.rx * u, t.ry * (CUFF_V0 + CUFF_V1) * 0.5 + t.ry * 0.2 * (1 - 0.55 ** 2));
-    rivet(g, x, y, 2.2, '#7a7e88');
+  // rivets either side of the eye
+  for (const th of [Math.PI * 0.3, Math.PI * 0.7]) {
+    const [u, v] = ringAt(t, th);
+    const [x, y] = toeAt(t, u, v + W * 0.55);
+    rivet(g, x, y, Math.max(1.8, t.rx * 0.08), '#8a8e98');
   }
   const [ex, ey] = cuffEye(t);
   ironEye(g, ex, ey, 4.2);
+}
+
+/** A titan's toenail: a thick plate of weathered dark stone set in the toe's tip, lit on its top-left edge, with a
+ * cuticle groove, a crack, and a chip out of its free edge. */
+function titanNail(g: Ctx, t: StyleToe, stone: string, curl: number, i: number): void {
+  const nw = t.rx * 0.54;
+  const nh = t.ry * (0.4 - curl * 0.1);
+  const [x, y] = onToe(t, Math.PI / 2);
+  const col = mix(shade(stone, -0.28), '#4a4438', 0.35);
+  g.save();
+  g.translate(x, y);
+  g.rotate(t.rot);
+  g.translate(0, -t.ry * 0.22 - nh * 0.45);
+  const plate: PathFn = (c) => {
+    c.beginPath();
+    c.moveTo(-nw, -nh * 0.35);
+    c.bezierCurveTo(-nw, -nh * 0.95, nw, -nh * 0.95, nw, -nh * 0.35);
+    c.bezierCurveTo(nw * 1.02, nh * 0.45, nw * 0.6, nh * 0.85, 0, nh * 0.9);
+    c.bezierCurveTo(-nw * 0.6, nh * 0.85, -nw * 1.02, nh * 0.45, -nw, -nh * 0.35);
+    c.closePath();
+  };
+  // the groove it's set in
+  plate(g);
+  g.strokeStyle = rgba('#0a0a12', 0.5);
+  g.lineWidth = 2.6;
+  g.stroke();
+  plate(g);
+  g.fillStyle = lin(g, -nw * 0.8, -nh, nw * 0.8, nh, [
+    [0, shade(col, 0.34)],
+    [0.5, col],
+    [1, shade(col, -0.4)],
+  ]);
+  g.fill();
+  clip(g, plate, () => {
+    texture(g, 'stone', { x: -nw, y: -nh, w: nw * 2, h: nh * 2 }, 0.16, 0.6);
+    // the cuticle's shadow and a lighter free edge
+    g.fillStyle = rgba('#0a0a12', 0.4);
+    g.beginPath();
+    g.ellipse(0, -nh * 0.95, nw * 1.1, nh * 0.24, 0, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = rgba(shade(col, 0.45), 0.5);
+    g.fillRect(-nw, nh * 0.6, nw * 2, nh);
+    streak(g, (q) => {
+      q.moveTo(-nw * 0.6, nh * 0.66);
+      q.quadraticCurveTo(0, nh * 0.8, nw * 0.6, nh * 0.66);
+    }, 1.1, 0.55);
+    // a crack down from the cuticle
+    crease(g, (c) => {
+      const cx = (i % 2 ? 0.25 : -0.2) * nw;
+      c.moveTo(cx, -nh * 0.7);
+      c.lineTo(cx + nw * 0.12, -nh * 0.1);
+      c.lineTo(cx - nw * 0.06, nh * 0.5);
+    }, 1.1, '#08080e', 0.75, 0.35);
+    spec(g, -nw * 0.4, -nh * 0.2, nw * 0.45, nh * 0.2, 0.4, -0.5);
+  });
+  // a chip out of the free edge
+  g.fillStyle = rgba('#0a0a12', 0.85);
+  g.beginPath();
+  const cx = (i % 2 ? -0.35 : 0.3) * nw;
+  g.moveTo(cx - nw * 0.14, nh * 0.86);
+  g.lineTo(cx, nh * 0.66);
+  g.lineTo(cx + nw * 0.13, nh * 0.84);
+  g.closePath();
+  g.fill();
+  g.restore();
 }
 
 // ——— the cuts ———
@@ -1114,41 +1270,287 @@ function drawChain(g: Ctx, pts: Pt[]): void {
   for (const face of [true, false]) for (const l of links) if (l.face === face) ironLink(g, l.x, l.y, l.a, face);
 }
 
+// ——— the shackle clock ———
+//
+// Both Kronoses wear time on the ankle: a round bronze clock set into the shackle, a bezel of worn bronze, an aged
+// enamel face with Greek numerals at the quarters (ΙΒ, Γ, ΣΤ, Θ) and studs between, gold hands, and a glass dome over
+// it with a hard highlight. The still art shows it at ten past ten; in play its hands are live (src/content/styleLive/
+// titanClock.ts): the second hand ticks in steps with an overshoot, the minute hand creeps, the glass glints on
+// every tick. Painted in pieces so play can stack them: face (no hands), hands, glass.
+
+/** A clock on a shackle: its centre and the face's radius (design space). */
+export interface TitanClock {
+  x: number;
+  y: number;
+  r: number;
+}
+
+/** The Titan King's clock, in the middle of his shackle. */
+export const TITAN_CLOCK: TitanClock = { x: CX, y: 42, r: 18 };
+
+/** The still art's time: ten past ten, thirty-eight seconds (angles from twelve, clockwise). */
+export const CLOCK_STILL = { hour: ((10 + 10 / 60) / 12) * Math.PI * 2, min: (10 / 60) * Math.PI * 2, sec: (38 / 60) * Math.PI * 2 };
+
+/** The clock's whole outline (bezel included), for extending a silhouette. */
+export const clockPath = (c: TitanClock): PathFn => (q) => {
+  q.beginPath();
+  q.arc(c.x, c.y, c.r + 4.2, 0, Math.PI * 2);
+};
+
+/** The bezel and the face (no hands, no glass): sunk into the shackle, its shadow on the metal round it. */
+export function clockFace(g: Ctx, c: TitanClock, bronze: string): void {
+  const { x, y, r } = c;
+  const bez: PathFn = (q) => {
+    q.beginPath();
+    q.arc(x, y, r + 4.2, 0, Math.PI * 2);
+  };
+  contact(g, (q) => {
+    bez(q);
+    q.fill();
+  }, 0.65, 2.4, 3);
+  // the bezel: a turned bronze ring, bright on its top-left shoulder, knurled round its edge
+  fill(g, bez, lin(g, x + LX * r, y + LY * r, x - LX * r, y - LY * r, [
+    [0, mix(bronze, '#fff2c8', 0.55)],
+    [0.35, bronze],
+    [1, shade(bronze, -0.6)],
+  ]));
+  g.save();
+  g.strokeStyle = rgba(shade(bronze, -0.65), 0.6);
+  g.lineWidth = 0.7;
+  for (let i = 0; i < 48; i++) {
+    const a = (i / 48) * Math.PI * 2;
+    g.beginPath();
+    g.moveTo(x + Math.cos(a) * (r + 2.6), y + Math.sin(a) * (r + 2.6));
+    g.lineTo(x + Math.cos(a) * (r + 4), y + Math.sin(a) * (r + 4));
+    g.stroke();
+  }
+  g.restore();
+  // the face: aged enamel, cupped (shadowed under the bezel's top-left lip)
+  const face: PathFn = (q) => {
+    q.beginPath();
+    q.arc(x, y, r, 0, Math.PI * 2);
+  };
+  fill(g, face, rad(g, x + 3, y + 4, 1, x, y, r, [
+    [0, '#efe6cc'],
+    [0.75, '#d8caa2'],
+    [1, '#a8976c'],
+  ]));
+  clip(g, face, () => {
+    texture(g, 'speckle', { x: x - r, y: y - r, w: r * 2, h: r * 2 }, 0.25, 0.6);
+    // a hairline craze in the old enamel
+    crease(g, (q) => {
+      q.moveTo(x - r * 0.7, y + r * 0.3);
+      q.lineTo(x - r * 0.35, y + r * 0.42);
+      q.lineTo(x - r * 0.2, y + r * 0.7);
+    }, 0.5, '#5a4a2a', 0.4, 0.2);
+  });
+  innerEdge(g, face, rgba('#20140a', 0.6), 3.4, -LX * 2.4, -LY * 2.4);
+  g.save();
+  g.lineWidth = 0.9;
+  g.strokeStyle = rgba(shade(bronze, -0.5), 0.9);
+  face(g);
+  g.stroke();
+  // the minutes round the rim, studs at the hours, Greek numerals at the quarters
+  for (let i = 0; i < 60; i++) {
+    if (i % 15 === 0) continue;
+    const a = (i / 60) * Math.PI * 2;
+    const big = i % 5 === 0;
+    const r0 = r - (big ? 4.2 : 2.4);
+    g.strokeStyle = rgba('#2a1c0c', big ? 0.9 : 0.55);
+    g.lineWidth = big ? 1.4 : 0.55;
+    g.beginPath();
+    g.moveTo(x + Math.sin(a) * r0, y - Math.cos(a) * r0);
+    g.lineTo(x + Math.sin(a) * (r - 1.2), y - Math.cos(a) * (r - 1.2));
+    g.stroke();
+  }
+  g.font = `bold ${Math.round(r * 0.36 * 10) / 10}px Georgia, "Times New Roman", serif`;
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  const greek = ['ΙΒ', 'Γ', 'ΣΤ', 'Θ'];
+  for (let q = 0; q < 4; q++) {
+    const a = (q / 4) * Math.PI * 2;
+    const rr = r - 6.2;
+    const cx = x + Math.sin(a) * rr;
+    const cy = y - Math.cos(a) * rr + 0.4;
+    g.fillStyle = '#2a1608';
+    g.fillText(greek[q], cx, cy);
+  }
+  g.restore();
+}
+
+/** A clock hand from the centre along `ang` (0 up, clockwise): a tapered blade with a short counterweight tail. */
+export function clockHandShape(g: Ctx, c: TitanClock, ang: number, len: number, w: number, col: string): void {
+  g.save();
+  g.translate(c.x, c.y);
+  g.rotate(ang);
+  const hand: PathFn = (q) => {
+    q.beginPath();
+    q.moveTo(-w * 0.55, len * 0.22);
+    q.lineTo(-w * 0.5, -len * 0.62);
+    q.lineTo(0, -len);
+    q.lineTo(w * 0.5, -len * 0.62);
+    q.lineTo(w * 0.55, len * 0.22);
+    q.closePath();
+  };
+  // its shadow on the face, down and to the right
+  g.save();
+  g.translate(-LX * 1.4, -LY * 1.4);
+  softFill(g, hand, rgba('#1a1006', 0.4), 0.8);
+  g.restore();
+  fill(g, hand, lin(g, -w, 0, w, 0, [
+    [0, mix(col, '#fff6d8', 0.5)],
+    [0.5, col],
+    [1, shade(col, -0.5)],
+  ]));
+  g.strokeStyle = rgba(shade(col, -0.7), 0.9);
+  g.lineWidth = 0.6;
+  hand(g);
+  g.stroke();
+  g.restore();
+}
+
+/** The three hands at angles (hour, minute, second), the arbor over them. */
+export function clockHands(g: Ctx, c: TitanClock, gold: string, which: 'hour' | 'min' | 'sec' | 'all', ang = CLOCK_STILL): void {
+  if (which === 'hour' || which === 'all') clockHandShape(g, c, ang.hour, c.r * 0.52, 2.6, gold);
+  if (which === 'min' || which === 'all') clockHandShape(g, c, ang.min, c.r * 0.8, 1.9, gold);
+  if (which === 'sec' || which === 'all') {
+    clockHandShape(g, c, ang.sec, c.r * 0.88, 0.9, '#a8321c');
+    fill(g, (q) => {
+      q.beginPath();
+      q.arc(c.x, c.y, 1.7, 0, Math.PI * 2);
+    }, rad(g, c.x - 0.5, c.y - 0.5, 0.1, c.x, c.y, 1.9, [
+      [0, '#fff6d8'],
+      [0.5, gold],
+      [1, shade(gold, -0.6)],
+    ]));
+  }
+}
+
+/** The glass dome over the face: a faint cool tint, a hard crescent of light on its top left and a soft one opposite. */
+export function clockGlass(g: Ctx, c: TitanClock): void {
+  const { x, y, r } = c;
+  const face: PathFn = (q) => {
+    q.beginPath();
+    q.arc(x, y, r, 0, Math.PI * 2);
+  };
+  clip(g, face, () => {
+    g.fillStyle = rad(g, x + LX * r * 0.5, y + LY * r * 0.5, 0, x, y, r, [
+      [0, rgba('#e8f6ff', 0.22)],
+      [0.6, rgba('#e8f6ff', 0.04)],
+      [1, rgba('#e8f6ff', 0.16)],
+    ]);
+    g.fillRect(x - r, y - r, r * 2, r * 2);
+    // the dome's hard highlight: a crescent on the top-left
+    g.fillStyle = rgba('#ffffff', 0.62);
+    g.beginPath();
+    g.arc(x, y, r * 0.86, Math.PI * 1.05, Math.PI * 1.55);
+    g.arc(x + r * 0.12, y + r * 0.14, r * 0.74, Math.PI * 1.55, Math.PI * 1.05, true);
+    g.closePath();
+    g.fill();
+    // and a soft bounce on the bottom-right
+    spec(g, x + r * 0.45, y + r * 0.5, r * 0.3, r * 0.12, 0.3, -0.8);
+  });
+  g.save();
+  g.strokeStyle = rgba('#ffffff', 0.35);
+  g.lineWidth = 0.8;
+  g.beginPath();
+  g.arc(x, y, r - 0.6, Math.PI * 0.95, Math.PI * 1.7);
+  g.stroke();
+  g.restore();
+}
+
+/** The whole clock as the still art shows it (face, hands at ten past ten, glass). */
+export function shackleClock(g: Ctx, c: TitanClock, bronze: string, gold: string, hands: boolean): void {
+  clockFace(g, c, bronze);
+  if (hands) clockHands(g, c, gold, 'all');
+  clockGlass(g, c);
+}
+
+// ——— the chains to the sky ———
+
+/** The great rings at the shackle's ends that the sky chains hang from (s −1 left, 1 right), design space. */
+export const TITAN_SKY_RING = (s: number): Pt => [CX + s * 72, 36];
+/** Where the third sky chain holds him: an eye on the back of the shackle, hidden behind the leg. */
+export const TITAN_SKY_BACK: Pt = [CX + 26, 30];
+/** The sky chains' links are this much bigger than the toe chains'. */
+export const SKY_LINK_K = 1.7;
+
+/** A great iron ring standing off the end of the shackle, seen edge-on to the side: a thick torus, lit on its top. */
+function skyRing(g: Ctx, x: number, y: number): void {
+  const r = 9;
+  const ring: PathFn = (c) => {
+    c.beginPath();
+    c.ellipse(x, y, r * 0.62 + 3, r + 3, 0, 0, Math.PI * 2);
+    c.ellipse(x, y, r * 0.62 - 2.4, r - 2.4, 0, 0, Math.PI * 2, true);
+  };
+  contact(g, (c) => {
+    ring(c);
+    c.fill('evenodd');
+  }, 0.65, 2.6, 3);
+  g.save();
+  ring(g);
+  g.fillStyle = lin(g, x + LX * r, y + LY * r, x - LX * r, y - LY * r, [
+    [0, '#d0d4dc'],
+    [0.35, '#6a6e78'],
+    [1, '#121318'],
+  ]);
+  g.fill('evenodd');
+  g.lineWidth = 1.4;
+  g.strokeStyle = rgba('#08080c', 0.95);
+  g.stroke();
+  g.restore();
+  glint(g, x + LX * r * 0.6, y + LY * r * 0.8, 2.6, 0.85);
+}
+
+/** The still art's hint of the sky chains: the last few links rising from a ring towards the top of the frame,
+ * fading out (in play the whole chain runs off the top of the screen). */
+function skyStub(g: Ctx, s: number): void {
+  const [x, y] = TITAN_SKY_RING(s);
+  const ang = -Math.PI / 2 + s * 0.42;
+  const step = LINK_LEN * SKY_LINK_K * 0.78;
+  for (let i = 0; i < 4; i++) {
+    const d = step * (i + 0.55);
+    g.save();
+    g.globalAlpha = 1 - i * 0.24;
+    g.translate(x + Math.cos(ang) * d, y + Math.sin(ang) * d);
+    g.scale(SKY_LINK_K, SKY_LINK_K);
+    ironLink(g, 0, 0, ang, i % 2 === 0, Math.PI / 2);
+    g.restore();
+  }
+}
+
 // ——— the foot ———
 
-function drawTitan(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
-  const stone = art.skin;
-  const dark = art.primary ?? '#5c5852';
-  const bronze = art.secondary ?? '#c9873a';
-  const sand = (art.extra?.sand as string) ?? '#f0c860';
-  const look = { ...TITAN_LOOK, skin: stone };
-  const f = o.heat || o.emissive ? bareFoot(ctx, look, p) : paintBare(ctx, look, p);
+/** A bronze shackle band round a titan's ankle (its path within CX ± 68, y 22…64): cast bronze with a Greek key
+ * cut round it and verdigris in the pits. */
+export function shackleBand(g: Ctx, path: PathFn, bronze: string): void {
+  const box = { x: CX - 68, y: 22, w: 136, h: 42 };
+  metal(g, path, box, bronze, { vertical: true });
+  clip(g, path, () => {
+    texture(g, 'cast', box, 0.3);
+    g.strokeStyle = rgba('#3a1a04', 0.75);
+    g.lineWidth = 2;
+    g.beginPath();
+    for (let x = CX - 64; x < CX + 64; x += 14) {
+      g.moveTo(x, 50);
+      g.lineTo(x, 36);
+      g.lineTo(x + 10, 36);
+      g.lineTo(x + 10, 44);
+      g.lineTo(x + 5, 44);
+    }
+    g.stroke();
+    blotches(g, box, '#3a9a7a', 0.45, 8, 0.66, 0.08, 675);
+  });
+}
+
+/**
+ * A titan's foot of weathered stone (both Kronoses): the bare foot re-lit as stone, pitted and grained, grimy, mossy
+ * in the hollows, chisel-marked, and its toes as heavy rounded blocks with lit knuckles creased across, deep clefts
+ * and thick stone nails. Paints on the silhouette's layer; the caller adds its own story and the outline.
+ */
+export function titanStone(f: BareFoot, stone: string, dark: string, p: Pose): void {
   const g = f.sil.g;
   const box = f.box;
-  const bandP: PathFn = (c) => {
-    c.beginPath();
-    c.moveTo(CX - 64, 22);
-    c.quadraticCurveTo(CX, 30, CX + 64, 22);
-    c.lineTo(CX + 68, 54);
-    c.quadraticCurveTo(CX, 64, CX - 68, 54);
-    c.closePath();
-  };
-  const glassP: PathFn = (c) => {
-    const [x, y] = TITAN_GLASS;
-    c.beginPath();
-    c.roundRect(x - 15, y - 26, 30, 52, 4);
-  };
-  extendSil(f.sil, [bandP, glassP]);
-  if (o.heat) {
-    heatLayer(f.sil, box, { seed: 671, y0: 262, y1: 20 });
-    return;
-  }
-  if (o.emissive) {
-    for (const c of TITAN_CUT_GEO) paintCutGlow(g, c, 0.45);
-    glowDot(g, TITAN_GLASS[0], TITAN_GLASS[1] + 6, 20, sand, 0.6);
-    glowFinish(f.sil);
-    return;
-  }
   // re-light as weathered titan stone
   f.sil.form({ base: stone, shadowTint: MATS_F.rock.shadowTint, ramp: 0.75, form: 0.6, formSize: 32, bevel: 0.4, rim: 0.45 });
   texture(g, 'stone', box, 0.38, 1.4);
@@ -1167,77 +1569,74 @@ function drawTitan(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
       c.lineTo(x + 5, y + 2);
     }, 1, '#10121c', 0.25, 0.25);
   }
-  // the toes as boulders: lit tops, deep cracks between
+  // the toes: each a heavy rounded block of the same stone, lit on top and falling into a core shadow on its far
+  // side, with a lit knuckle creased across, deep clefts between, and a thick stone nail at the tip
   const cl = clefts(f.toes);
+  const c = Math.max(0, p.curl);
   for (const [i, t] of f.toes.entries()) {
     const xl = i > 0 ? cl[i - 1][0] : -1000;
     const xr = i < cl.length ? cl[i][0] : 1000;
     lobe(g, toePath(t), { x: xl, y: t.cy - t.ry - 4, w: xr - xl, h: t.ry * 2 + 8 }, t.cy - t.ry * 0.8, t.cy, '#0a0a14', 0.55, Math.max(7, t.rx * 0.5), 0.3);
-    crease(g, (c) => {
-      c.moveTo(t.cx - t.rx * 0.4, t.cy + t.ry * 0.25);
-      c.lineTo(t.cx - t.rx * 0.1, t.cy + t.ry * 0.5);
-      c.lineTo(t.cx + t.rx * 0.25, t.cy + t.ry * 0.43);
-    }, 1.4, '#0a0a10', 0.55, 0.3);
+    // the knuckle: a lit dome, two creases across it (deeper as the toes curl)
+    const [kx, ky] = onToe(t, -Math.PI / 2);
+    spec(g, kx - t.rx * 0.18, ky + t.ry * 0.5, t.rx * 0.62, t.ry * 0.24, 0.2 + c * 0.15, t.rot, LIGHT.key);
+    for (const [f2, w] of [[0.36, 1.8], [0.52, 1.5]] as const) {
+      const y = t.cy - t.ry * f2 + c * 4;
+      crease(g, (q) => {
+        q.moveTo(t.cx - t.rx * 0.46, y - 1.5);
+        q.quadraticCurveTo(t.cx - t.rx * 0.05, y + 3 + c * 2, t.cx + t.rx * 0.42, y - 1.2);
+      }, w, '#06060c', 0.6 + c * 0.2, 0.35);
+    }
+    // weathering: a chisel-cut chip on the lit shoulder
+    crease(g, (q) => {
+      q.moveTo(t.cx - t.rx * 0.6, t.cy - t.ry * 0.05);
+      q.lineTo(t.cx - t.rx * 0.42, t.cy + t.ry * 0.12);
+    }, 1.2, '#06060c', 0.5, 0.3);
+    titanNail(g, t, stone, c, i);
   }
+}
+
+
+function drawTitan(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
+  const stone = art.skin;
+  const dark = art.primary ?? '#5c5852';
+  const bronze = art.secondary ?? '#c9873a';
+  const sand = (art.extra?.sand as string) ?? '#f0c860';
+  const look = { ...TITAN_LOOK, skin: stone };
+  const f = o.heat || o.emissive ? bareFoot(ctx, look, p) : paintBare(ctx, look, p);
+  const g = f.sil.g;
+  const box = f.box;
+  const bandP: PathFn = (c) => {
+    c.beginPath();
+    c.moveTo(CX - 64, 22);
+    c.quadraticCurveTo(CX, 30, CX + 64, 22);
+    c.lineTo(CX + 68, 54);
+    c.quadraticCurveTo(CX, 64, CX - 68, 54);
+    c.closePath();
+  };
+  extendSil(f.sil, [bandP, clockPath(TITAN_CLOCK)]);
+  if (o.heat) {
+    heatLayer(f.sil, box, { seed: 671, y0: 262, y1: 20 });
+    return;
+  }
+  if (o.emissive) {
+    for (const c of TITAN_CUT_GEO) paintCutGlow(g, c, 0.45);
+    glowDot(g, TITAN_CLOCK.x, TITAN_CLOCK.y, TITAN_CLOCK.r * 1.1, sand, 0.35);
+    glowFinish(f.sil);
+    return;
+  }
+  titanStone(f, stone, dark, p);
+  // under the rings on the little and big toes: their cast shadows, the flesh squeezed either side
+  paintCuffBed(g, f.toes[0]);
+  paintCuffBed(g, f.toes[4]);
   // the gashes, the magma of Tartarus inside
   for (const c of TITAN_CUT_GEO) paintCut(g, c);
   // the bronze shackle with a Greek key
-  metal(g, bandP, { x: CX - 68, y: 22, w: 136, h: 42 }, bronze, { vertical: true });
-  clip(g, bandP, () => {
-    texture(g, 'cast', { x: CX - 68, y: 22, w: 136, h: 42 }, 0.3);
-    g.strokeStyle = rgba('#3a1a04', 0.75);
-    g.lineWidth = 2;
-    g.beginPath();
-    for (let x = CX - 64; x < CX + 64; x += 14) {
-      g.moveTo(x, 50);
-      g.lineTo(x, 36);
-      g.lineTo(x + 10, 36);
-      g.lineTo(x + 10, 44);
-      g.lineTo(x + 5, 44);
-    }
-    g.stroke();
-    blotches(g, { x: CX - 68, y: 22, w: 136, h: 42 }, '#3a9a7a', 0.45, 8, 0.66, 0.08, 675);
-  });
+  shackleBand(g, bandP, bronze);
   ao(g, CX, 64, 64, 6, 0.35);
-  // the hourglass of gold sand in a bronze frame
-  const [hx, hy] = TITAN_GLASS;
-  for (const dy of [-24, 22]) metal(g, (c) => {
-    c.beginPath();
-    c.roundRect(hx - 15, hy + dy - 2, 30, 6, 2);
-  }, { x: hx - 15, y: hy + dy - 2, w: 30, h: 6 }, bronze, { vertical: true, glints: false });
-  for (const s of [-1, 1]) metal(g, (c) => {
-    c.beginPath();
-    c.rect(hx + s * 12 - 1.5, hy - 22, 3, 44);
-  }, { x: hx + s * 12 - 1.5, y: hy - 22, w: 3, h: 44 }, bronze, { glints: false, shadow: 0.3 });
-  const glass: PathFn = (c) => {
-    c.beginPath();
-    c.moveTo(hx - 9, hy - 22);
-    c.lineTo(hx + 9, hy - 22);
-    c.quadraticCurveTo(hx + 9, hy - 6, hx + 1.5, hy);
-    c.quadraticCurveTo(hx + 9, hy + 6, hx + 9, hy + 22);
-    c.lineTo(hx - 9, hy + 22);
-    c.quadraticCurveTo(hx - 9, hy + 6, hx - 1.5, hy);
-    c.quadraticCurveTo(hx - 9, hy - 6, hx - 9, hy - 22);
-    c.closePath();
-  };
-  glass(g);
-  g.fillStyle = rgba('#e8f0f0', 0.25);
-  g.fill();
-  clip(g, glass, () => {
-    g.fillStyle = lin(g, 0, hy - 22, 0, hy + 22, [
-      [0, shade(sand, 0.2)],
-      [1, shade(sand, -0.3)],
-    ]);
-    g.fillRect(hx - 10, hy - 12, 20, 10);
-    g.beginPath();
-    g.moveTo(hx - 10, hy + 22);
-    g.lineTo(hx, hy + 8);
-    g.lineTo(hx + 10, hy + 22);
-    g.fill();
-    g.fillRect(hx - 0.7, hy - 2, 1.4, 12);
-    g.fillStyle = rgba('#ffffff', 0.6);
-    g.fillRect(hx - 6, hy - 20, 2, 14);
-  });
+  // the clock set into the shackle (in play its hands and glass are live, over the face)
+  if (o.live) clockFace(g, TITAN_CLOCK, bronze);
+  else shackleClock(g, TITAN_CLOCK, bronze, '#e8c870', true);
   // the shackle's iron eyes: a riveted strap down over the band's lower edge, a ring through it
   for (const s of [-1, 1]) {
     const [ex, ey] = TITAN_EYE(s);
@@ -1249,12 +1648,19 @@ function drawTitan(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
     rivet(g, ex, 46, 2.4, '#8a8e98');
     ironEye(g, ex, ey, 5);
   }
-  // the iron cuffs on the little and big toes
-  paintCuff(g, f.toes[0], f.toes[1]);
-  paintCuff(g, f.toes[4], f.toes[3]);
   lightAll(f.sil, 0.35, 22, 0.45);
   bareOutline(f);
-  // the chains (in play they're simulated and drawn live)
+  // the iron rings on the little and big toes (they stand off the silhouette, so over the outline)
+  paintCuff(ctx, f.toes[0], f.toes[1]);
+  paintCuff(ctx, f.toes[4], f.toes[3]);
+  // the great rings either side of the shackle that his chains to the sky hang from (play draws the chains; the
+  // still art shows the last links rising out of frame)
+  for (const s of [-1, 1]) {
+    const [rx, ry] = TITAN_SKY_RING(s);
+    if (!o.live) skyStub(ctx, s);
+    skyRing(ctx, rx, ry);
+  }
+  // the chains to the toes (in play they're simulated and drawn live)
   if (!o.live) for (const s of [-1, 1]) drawChain(ctx, restChain(s, p.curl).p);
 }
 
