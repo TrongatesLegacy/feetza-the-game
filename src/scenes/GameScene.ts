@@ -2423,8 +2423,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       commit(-1);
       return;
     }
-    this.introCard('swap');
-    ui.swapPicker({
+    // the swap window opens once its intro card is closed (straight away when that's been seen)
+    this.introCard('swap', () => ui.swapPicker({
       id,
       name: off.name,
       perk: off.perk,
@@ -2433,7 +2433,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       canAdd: !full,
       current: this.pizzas.map((p) => ({ id: p.type.id, name: p.type.name, perk: p.perkLine, slices: p.slices, max: p.maxSlices, dead: p.dead, stale: p.stale, fresh: p.fresh, freshOn: p.freshOn })),
       onChoose: commit,
-    });
+    }));
   }
 
   /** Enhance a pizza for the rest of the run: about +50% to its perk, or an upgraded effect. */

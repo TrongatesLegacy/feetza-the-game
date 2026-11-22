@@ -112,6 +112,10 @@ export function installDevTools(game: Phaser.Game): void {
      * kit: true starts in the shop before `wave` with 5 pizzas, toppings and tips sized for that wave,
      * e.g. F.startGame({ wave: 61, kit: true }). For acts 7–10 before their stages exist, see fakeStages.
      */
+    /** The balance simulator: one whole run as fast as the CPU allows (see src/devSim.ts, scripts/sim/run.mjs). */
+    sim: {
+      run: async (o: import('./devSim').SimOpts) => (await import('./devSim')).simRun(game, o, (opts) => api.startGame(opts)),
+    },
     startGame(opts?: string[] | Record<string, any>): void { // eslint-disable-line @typescript-eslint/no-explicit-any
       const o = Array.isArray(opts) ? { lineup: opts } : (opts ?? {});
       if (o.seed !== undefined) seed(Number(o.seed));
