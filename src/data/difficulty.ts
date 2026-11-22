@@ -17,6 +17,9 @@ export interface Heat {
   /** Freshness drain multiplier (0 = Freshness off). */
   freshness: number;
   rebake: boolean;
+  /** Automatic damage (toppings that hit on their own: timed procs, orbiting cutters, the drone, auras, burns, throws)
+   *  is scaled by this, so on the milder heats a run still needs smacking. */
+  autoDmg: number;
   /** Which heat must be beaten (wave 30, HEAT_UNLOCK_WAVE) to unlock this one. */
   unlockAfter?: HeatId;
   /** Wave crowd: how the foot count, crowding and pace grow through a run at this heat. */
@@ -61,11 +64,11 @@ const FULLER: Crowd = { ...FULL, hoverMul: 0.85, laneSwitchWave: 6 };
 const FULLEST: Crowd = { ...FULL, hoverMul: 0.75, laneSwitchWave: 4 };
 
 export const HEATS: Heat[] = [
-  { id: 'mild', name: 'Mild', chilis: 1, desc: 'Slower, softer feet. Freshness off.', hp: 0.7, speed: 0.85, count: 0.8, tips: 1.2, crusts: 0.5, bossPhases: 2, freshness: 0, rebake: true, crowd: GENTLE },
-  { id: 'regular', name: 'Regular', chilis: 2, desc: 'The game as designed.', hp: 1, speed: 1, count: 1, tips: 1, crusts: 1, bossPhases: 3, freshness: 1, rebake: true, crowd: STEADY },
-  { id: 'hot', name: 'Hot', chilis: 3, desc: 'Tougher, faster, more feet.', hp: 1.3, speed: 1.1, count: 1.15, tips: 0.9, crusts: 1.5, bossPhases: 3, freshness: 1, rebake: true, crowd: FULL },
-  { id: 'extrahot', name: 'Extra Hot', chilis: 4, desc: 'Bosses start with their extra phase.', hp: 1.7, speed: 1.2, count: 1.3, tips: 0.8, crusts: 2, bossPhases: 4, freshness: 1, rebake: true, unlockAfter: 'hot', crowd: FULLER },
-  { id: 'inferno', name: 'Inferno', chilis: 5, desc: 'No Rebake. Freshness drains faster.', hp: 2.2, speed: 1.3, count: 1.45, tips: 0.7, crusts: 3, bossPhases: 4, freshness: 1.5, rebake: false, unlockAfter: 'extrahot', crowd: FULLEST },
+  { id: 'mild', autoDmg: 0.5, name: 'Mild', chilis: 1, desc: 'Slower, softer feet. Freshness off.', hp: 0.7, speed: 0.85, count: 0.8, tips: 1.2, crusts: 0.5, bossPhases: 2, freshness: 0, rebake: true, crowd: GENTLE },
+  { id: 'regular', autoDmg: 0.75, name: 'Regular', chilis: 2, desc: 'The game as designed.', hp: 1, speed: 1, count: 1, tips: 1, crusts: 1, bossPhases: 3, freshness: 1, rebake: true, crowd: STEADY },
+  { id: 'hot', autoDmg: 1, name: 'Hot', chilis: 3, desc: 'Tougher, faster, more feet.', hp: 1.3, speed: 1.1, count: 1.15, tips: 0.9, crusts: 1.5, bossPhases: 3, freshness: 1, rebake: true, crowd: FULL },
+  { id: 'extrahot', autoDmg: 1, name: 'Extra Hot', chilis: 4, desc: 'Bosses start with their extra phase.', hp: 1.7, speed: 1.2, count: 1.3, tips: 0.8, crusts: 2, bossPhases: 4, freshness: 1, rebake: true, unlockAfter: 'hot', crowd: FULLER },
+  { id: 'inferno', autoDmg: 1, name: 'Inferno', chilis: 5, desc: 'No Rebake. Freshness drains faster.', hp: 2.2, speed: 1.3, count: 1.45, tips: 0.7, crusts: 3, bossPhases: 4, freshness: 1.5, rebake: false, unlockAfter: 'extrahot', crowd: FULLEST },
 ];
 
 export const HEAT_BY_ID: Record<HeatId, Heat> = Object.fromEntries(HEATS.map((h) => [h.id, h])) as Record<HeatId, Heat>;

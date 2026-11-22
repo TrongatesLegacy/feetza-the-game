@@ -59,7 +59,13 @@ interface DamageOpts {
   x?: number;
   y?: number;
   quiet?: boolean;
+  /** Damage a topping dealt on its own (a timed or triggered proc, the drone…): scaled by the heat's autoDmg. */
+  auto?: boolean;
 }
+
+/** Damage sources that are always automatic: they hit without a smack (orbiting cutters, thrown toppings, the
+ *  garlic aura, burns, traps). Smacks, the slam, the peel's ability and on-smack effects aren't. */
+const AUTO_SOURCES = new Set<DamageOpts['source']>(['cutter', 'olive', 'garlic', 'burn', 'trap']);
 
 export interface GameStart {
   lineup?: string[];
@@ -900,7 +906,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       now: () => this.nowT,
       inWave: () => this.waveActive && !this.over && !this.inUpgrade,
       planSize: () => this.planSize,
-      damage: (f, x, o) => this.dealDamage(f, x * this.run.stats.damage, { source: o?.chain ? 'chain' : 'ability', knock: o?.knock ?? 80, quiet: o?.quiet }),
+      damage: (f, x, o) => this.dealDamage(f, x * this.run.stats.damage, { source: o?.chain ? 'chain' : 'ability', knock: o?.knock ?? 80, quiet: o?.quiet, auto: true }),
       hitFoot: (f, x, y) => this.hitFoot(f, x, y),
       effects: (fx, ctx, color, vfx) => this.runEffects(fx, ctx, color, vfx),
       tips: (n, x, y) => this.giveTips(Math.round(n * this.run.heatDef.tips), x, y),
@@ -2978,6 +2984,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       return;
     }
     let dmg = amount;
+    // automatic damage is scaled by the heat (half on Mild, three quarters on Regular)
+    if (o.auto || AUTO_SOURCES.has(o.source)) dmg *= this.run.heatDef.autoDmg;
     let crit = false;
     if (smack) {
       this.smackCount++;
@@ -3918,7 +3926,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       case 'dmg':
         for (const f of targets(e.at)) {
           mark(f);
-          this.dealDamage(f, e.x * st.damage, { source: 'ability', knock: e.knock ?? 120, x: f.cx, y: f.cy });
+          this.dealDamage(f, e.x * st.damage, { source: 'ability', knock: e.knock ?? 120, x: f.cx, y: f.cy, auto: !fromAbility });
           // a passive ability's hits pick up Freeze Frame (chill) and Cajun Shrimp (sometimes stun)
           if (fromAbility && f.alive && this.ability && !usesMeter(this.ability)) {
             if (st.freezeSlam) {
