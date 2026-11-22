@@ -1,7 +1,9 @@
+import { immortalLive } from '../game/footLive';
+import { liveDefOf, liveWarm, styleLive, warmLive } from '../game/liveKit';
 import Phaser from 'phaser';
 import { H, PIZZA_Y, W } from '../config';
 import { HEAT_BY_ID } from '../data/difficulty';
-import { FEET } from '../data/feet';
+import { FEET, FOOT_BY_ID } from '../data/feet';
 import { PIZZA_BY_ID } from '../data/pizzas';
 import { BackdropView } from '../game/BackdropView';
 import { Foot } from '../game/Foot';
@@ -193,6 +195,8 @@ export class MenuScene extends Phaser.Scene {
     });
     this.foot.target = target;
     this.foot.hoverTime = 2.5;
+    // its live art (built in idle time; update() starts it once ready, while it's still coming down)
+    warmLive(this, [type.id], FOOT_BY_ID);
   }
 
   /** The demo foot works the outer pizzas so it isn't hidden behind the logo. */
@@ -221,6 +225,10 @@ export class MenuScene extends Phaser.Scene {
     this.backdrop.update(dt);
     if (this.foot && this.foot.alive) {
       this.foot.update(dt, 1);
+      // alive like in play: the redrawn feet's live layer, the Immortals' smoke
+      const id = this.foot.type.id;
+      if (id === 'immortal') immortalLive(this.foot, dt);
+      else if (liveWarm(this, id) || !liveDefOf(id)) styleLive(this.foot, dt);
       // keep the menu foot from ever finishing pizzas
       if (this.foot.state === 'stomp' && this.foot.stateT > 0.3) this.foot.knock(300);
     }

@@ -253,6 +253,12 @@ export function warmLive(sc: Phaser.Scene, ids: Iterable<string>, types: Record<
   }
 }
 
+/** Are a foot type's live textures built for this scene (so starting its live layer won't stall a frame)? */
+export function liveWarm(sc: Phaser.Scene, id: string): boolean {
+  const hit = texCache.get(id);
+  return !!hit && sc.textures.exists(hit.body);
+}
+
 /** Dev: how many feet are still waiting for their live textures. */
 export function liveWarmPending(): number {
   return building.size;
