@@ -110,6 +110,6 @@ export const feet: FootType[] = [
     howTo: 'Knock every stone out of the sock before he fills all six. Each one you leave in gives him its power.',
     tell: 'A stone streaks across the sky and clicks into the sock; the sock glows as the Snap winds up.',
     quips: ['I AM INEVITABLE.', 'PERFECTLY BALANCED. HALF THE SLICES.', 'DREAD IT. RUN FROM IT.'],
-    art: { kind: 'a7_thanfoot', skin: '#8a5fb0', primary: '#e3b23c', secondary: '#4a2a6a', leg: 'armor', legColor: '#6a4a8a', legAccent: '#e3b23c' },
+    art: { kind: 'a7_thanfoot', skin: '#8a5fb0', primary: '#e3b23c', secondary: '#4a2a6a', leg: 'armor', legColor: '#c9982e', legAccent: '#e3b23c' },
   },
 ];
