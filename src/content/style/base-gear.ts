@@ -270,12 +270,15 @@ function finBlade(p: Pose): PathFn {
   const W = 136 + sp * 8 - c0 * 10;
   return (c) => {
     c.beginPath();
+    // the blade's sides keep their rest shape above the rig's band (y 196); only the part below flexes
     c.moveTo(CX - 98, 120);
-    c.bezierCurveTo(CX - 110, 180, CX - W - 4, 240, CX - W, L - 6);
+    c.bezierCurveTo(CX - 104, 150, CX - 112, 176, CX - 120, 200);
+    c.bezierCurveTo(CX - 128, 222, CX - W - 2, 250, CX - W, L - 6);
     // the trailing edge: a shallow notch in the middle
     c.quadraticCurveTo(CX - W * 0.5, L + 4, CX, L - 14 - c0 * 6);
     c.quadraticCurveTo(CX + W * 0.5, L + 4, CX + W, L - 6);
-    c.bezierCurveTo(CX + W + 4, 240, CX + 112, 180, CX + 100, 120);
+    c.bezierCurveTo(CX + W + 2, 250, CX + 128, 222, CX + 120, 200);
+    c.bezierCurveTo(CX + 112, 176, CX + 104, 150, CX + 100, 120);
     c.closePath();
   };
 }
