@@ -3709,6 +3709,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.fx.splat(p.x + ((f?.x ?? p.x) - p.x) * 0.5, y, big);
     for (let i = 0; i < removed.length; i++) this.fx.slice(`slice_${p.type.id}`, p.x, y - 10, p.s * 0.9);
     audio.sfx('sfx_squish', { throttle: 60 });
+    this.backdrop.impact(f?.x ?? p.x, f?.type.boss ? 1 : big ? 0.6 : 0.3);
     if (big) {
       audio.sfx('sfx_stomp', { throttle: 120 });
       this.shake(f?.type.boss ? 420 : 220, f?.type.boss ? 0.014 : 0.007);

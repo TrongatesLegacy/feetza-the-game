@@ -4826,7 +4826,7 @@ for (const [id, from] of Object.entries(PLACEHOLDER) as [BackdropId, BackdropId]
 
 /** Locations redrawn with the location kit (src/art/scene): their registered scene replaces the built-in art here,
  * which stays for the before/after page (drawLegacyBackdrop) and for the arenas that reuse it. */
-const REDRAWN = new Set<BackdropId>(['trattoria', 'beach']);
+const REDRAWN = new Set<BackdropId>(['trattoria', 'beach', 'space']);
 
 // redrawn scenes keep their old info for the before/after page (their old glows and particles with their old art)
 const LEGACY_INFO: Partial<Record<BackdropId, BackdropInfo>> = {};
