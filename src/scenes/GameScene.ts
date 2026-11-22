@@ -40,7 +40,7 @@ import { pickWindow, rouletteWindow, slotsPrizeWindow, type PickOption } from '.
 import { abilityKey } from '../game/abilities';
 import { PizzaPerkKit } from '../game/pizzaPerks';
 import { contentFx } from '../game/contentFx';
-import { styleLive, warmLive } from '../game/liveKit';
+import { setLiveWarmBusy, styleLive, warmLive } from '../game/liveKit';
 import '../content/styleLive';
 import { playLook, type LookFx } from '../art/animatedLooks';
 import { HeroDirector } from '../game/heroMoves';
@@ -615,6 +615,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       const wave = t?.minWave ?? 5;
       this.time.delayedCall(700, () => this.beginWave(wave, this.start.boss));
     } else {
+      // the opening wave's feet start building now, in the moments before it begins
+      this.warmFeet(this.start.wave ?? 1);
       this.time.delayedCall(700, () => this.beginWave(this.start.wave ?? 1));
     }
   }
@@ -1990,10 +1992,12 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (isMiniWave(n)) ids.push(miniFor(n));
     if (plan) ids.push(...plan.queue, ...(plan.golden ? ['golden'] : []));
     else {
-      // no plan yet (it rolls the wave's randomness): the newest feet in the pool first, they're the likeliest
+      // no plan yet (it rolls the wave's randomness): the whole pool, newest feet first (they're the likeliest);
+      // the shop has the idle time
       const inLoop = n - loopOf(n) * JOURNEY_WAVES;
-      ids.push(...Object.values(FOOT_BY_ID).filter((f) => !f.boss && !f.mini && f.weight > 0 && f.minWave <= inLoop).sort((a, b) => b.minWave - a.minWave).slice(0, 14).map((f) => f.id));
+      ids.push(...Object.values(FOOT_BY_ID).filter((f) => !f.boss && !f.mini && f.weight > 0 && (f.minWave <= inLoop || loopOf(n) > 0)).sort((a, b) => b.minWave - a.minWave).map((f) => f.id));
     }
+    setLiveWarmBusy(() => this.waveActive && !this.inUpgrade && this.sys.isActive());
     warmLive(this, ids, FOOT_BY_ID);
   }
 

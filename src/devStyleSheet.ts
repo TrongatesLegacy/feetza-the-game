@@ -307,7 +307,7 @@ class Showcase extends Phaser.Scene {
     p.label.destroy();
     for (const key of p.keys) if (this.textures.exists(key)) this.textures.remove(key);
     // the live layers' textures too (the next visit builds them again)
-    for (const key of this.textures.getTextureKeys()) if (key.startsWith(`lk_${e.id}_`)) this.textures.remove(key);
+    for (const key of this.textures.getTextureKeys()) if (/^(body|band|glow|heat|p_.+)$/.test(key.slice(`lk_${e.id}_`.length)) && key.startsWith(`lk_${e.id}_`)) this.textures.remove(key);
     delete footMeta[`classic_${e.id}`];
     e.pair = undefined;
   }

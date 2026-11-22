@@ -201,16 +201,26 @@ const idle = (fn: (d?: IdleDeadline) => void) => {
   else setTimeout(() => fn(), 40);
 };
 
+/** Is the game in the thick of play (the scene says so)? Then the builder only uses real idle time. */
+let busyNow: () => boolean = () => false;
+
+/** Tell the builder when play is busy (a wave running): it then never forces a step into a frame. */
+export function setLiveWarmBusy(fn: () => boolean): void {
+  busyNow = fn;
+}
+
 function pump(d?: IdleDeadline): void {
-  // a step costs a few ms: take one only while the frame has room (one anyway when the idle wait timed out or there
-  // is no idle callback, so the queue never stalls in a busy fight)
-  let forced = !d || d.didTimeout;
-  while (building.size && (forced || d!.timeRemaining() > 8)) {
+  // a step costs a few ms (a full redraw of the foot): take one only while the frame has room. Between waves and in
+  // the shop one goes anyway when the idle wait timed out or there's no idle callback (Safari), so the queue empties;
+  // in a running wave it waits for real idle time (a foot that spawns first builds its own)
+  let forced = (!d || d.didTimeout) && !busyNow();
+  while (building.size && (forced || (!!d && d.timeRemaining() > 8))) {
     forced = false;
     const [id, job] = building.entries().next().value!;
     let done = true;
     try {
-      done = !job.sc.sys?.textures || !!job.gen.next().done;
+      // (a job whose game has gone is dropped)
+      done = !job.sc.sys?.game || !job.sc.sys.textures || !!job.gen.next().done;
     } catch (e) {
       if (import.meta.env?.DEV) console.error('[liveKit] building', id, e);
     }
@@ -229,7 +239,9 @@ export function warmLive(sc: Phaser.Scene, ids: Iterable<string>, types: Record<
   for (const id of ids) {
     const type = types[id];
     const def = defs[id];
-    if (!type || !def || !styleFor(id) || building.has(id)) continue;
+    if (!type || !def || !styleFor(id)) continue;
+    // queued for another (gone) game: start again for this one
+    if (building.get(id)?.sc === sc) continue;
     const hit = texCache.get(id);
     if (hit && sc.textures.exists(hit.body)) continue;
     building.set(id, { sc, gen: liveSteps(sc, type, def) });
