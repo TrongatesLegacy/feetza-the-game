@@ -1,10 +1,12 @@
-// Dev-only look lab: every peel with an animated look (fires, glows, trails), all playing at once, grouped by
-// family, with a notes box for each and one for overall thoughts. Open it with the floating "✨ Looks" button or
-// ?dev&looks. Notes save to the dev server beside FEETZA_NOTES (…-looks.json and .md) and to localStorage.
+// Dev-only look lab: every peel with an animated look (fires, glows, trails) and every living foot peel, all playing
+// at once (those scrolled out of view rest), grouped by family, with a notes box for each and one for overall
+// thoughts. Open it with the floating "✨ Looks" button or ?dev&looks. Notes save to the dev
+// server beside FEETZA_NOTES (…-looks.json and .md) and to localStorage.
 import { PEELS, peelThumbURL, type PeelDef } from './game/peels';
 import { LOOK_OX, LOOK_OY, animateLookImg, canvasPen, hasAnimatedLook, movingLook, stopLookOverlays } from './art/animatedLooks';
 import type { MovingPainter } from './art/lookKit';
 import { FIRE_PEELS } from './art/lookFire';
+import { hasPeelLive } from './art/peelLive';
 
 type Notes = Record<string, string>;
 const LS_KEY = 'feetza.lookLab';
@@ -40,8 +42,9 @@ function families(): [string, string, PeelDef[]][] {
     ['The God Peel', 'the final trophy: halo, turning rays and a rainbow trail', all.filter((d) => d.group === 'god')],
     ['Always aflame', 'their own fire', all.filter(fire)],
     ['Gods', 'each god’s own glow', all.filter((d) => !fire(d) && god(d) && d.group !== 'god')],
-    ['Jewellery box, masterworks and ultra-rares', 'glints, sheens and auras', all.filter((d) => !fire(d) && !god(d) && d.group !== 'hero')],
-    ['Heroes', 'a quiet glow and trail', all.filter((d) => !fire(d) && !god(d) && d.group === 'hero')],
+    ['Jewellery box, masterworks and ultra-rares', 'glints, sheens and auras', all.filter((d) => !fire(d) && !god(d) && d.group !== 'hero' && !hasPeelLive(d.id))],
+    ['Heroes', 'a glow, rim glints and a starry ribbon', all.filter((d) => !fire(d) && !god(d) && d.group === 'hero')],
+    ['Living feet', 'redrawn feet that move as their foot does: glow, blinks, sway, toes, heat and what they shed', all.filter((d) => !fire(d) && hasPeelLive(d.id))],
   ];
 }
 

@@ -7,6 +7,9 @@
 // Which peels get which look (lookOf): Zeus's lightning sword is hand-made here; the always-aflame peels burn in
 // their own style (FIRE_PEELS in lookFire.ts); the jewellery box, masterworks, ultra-rares, gods, the God Peel and
 // the heroes get their family's glow and trail (lookGlow.ts). Only the equipped (or worn) look runs in play.
+// A redrawn foot's peel also comes alive (src/art/peelLive.ts), in the same two places.
+// All of it runs only with animated peels on (Settings → Graphics): off, looks are painted once (a still) and
+// nothing runs per frame.
 
 import Phaser from 'phaser';
 import { crand } from '../systems/cosmeticRandom';
@@ -14,8 +17,13 @@ import { ZEUS_BLADE } from './godShapes';
 import { canvasPen, css, graphicsPen, paintCore, paintMoving, playCore, type Motion, type MovingPainter, type LookCore, type LookFx, type LookHost, type Painter, type Pen } from './lookKit';
 import { FIRE_PEELS, fireCore } from './lookFire';
 import { glowCore, godPeelStyle, godStyle, heroStyle, jewelStyle, masterStyle, ultraStyle, type GlowStyle } from './lookGlow';
-import { PEEL_BY_ID } from '../game/peels';
+import { PEEL_BY_ID, peelCanvas } from '../game/peels';
+import { playPeelLive } from '../game/peelLivePlay';
+import { peelsAnimated } from '../systems/graphics';
 import { save } from '../systems/save';
+import { PEEL_H, PEEL_W } from './peelArt';
+import { PeelLive, drawPeelLive, hasPeelLive, requestRig } from './peelLive';
+import { makeCanvas } from './util';
 
 export type { LookFx, LookHost } from './lookKit';
 
@@ -23,6 +31,8 @@ interface AnimatedLook {
   play(h: LookHost): LookFx;
   /** A fresh painter for one locker image: draws a frame in the peel's frame (origin at the peel's grip point). */
   painter(): Painter;
+  /** A painter for the look's still (animated peels off): only what belongs on the peel, no loose particles. */
+  still?: () => Painter;
   /** The dev look lab: a painter for the peel moving along a path (kit looks only). */
   moving?: (m: Motion) => MovingPainter;
   /** Paints behind the image too (glows and flames), on a second canvas. */
@@ -673,6 +683,7 @@ const calm = () => save.settings.reducedMotion;
 const kitLook = (make: () => LookCore, tile: boolean): AnimatedLook => ({
   play: (h) => playCore(h, make()),
   painter: () => paintCore(make(), calm),
+  still: () => paintCore(make(), calm, false),
   moving: (m) => paintMoving(make(), calm, m),
   back: true,
   tile,
@@ -702,8 +713,9 @@ function lookOf(id: string): AnimatedLook | null {
   return out;
 }
 
+/** Does this peel animate: a look of its own, or a living foot (src/art/peelLive.ts)? */
 export function hasAnimatedLook(id: string): boolean {
-  return !!lookOf(id);
+  return !!lookOf(id) || hasPeelLive(id);
 }
 
 /** The dev look lab: a painter for this peel's look moving along a path. */
@@ -712,9 +724,102 @@ export function movingLook(id: string, m: Motion): MovingPainter | null {
 }
 export { canvasPen, OX as LOOK_OX, OY as LOOK_OY };
 
-/** Start a peel's animated look on the cursor peel (null when it has none). */
+/** Two effects on one peel (a living foot that is also aflame). */
+function both(a: LookFx | null, b: LookFx | null): LookFx | null {
+  if (!a || !b) return a ?? b;
+  return {
+    ownTrail: a.ownTrail || b.ownTrail,
+    tick: (dt) => (a.tick(dt), b.tick(dt)),
+    smack: (x, y) => (a.smack(x, y), b.smack(x, y)),
+    setActive: (on) => (a.setActive(on), b.setActive(on)),
+    destroy: () => (a.destroy(), b.destroy()),
+  };
+}
+
+/** Start a peel's animation on the cursor peel: its look and, for a redrawn foot's peel, the foot coming alive
+ *  (null when it has neither). With animated peels off (Settings → Graphics) a look shows as a still instead,
+ *  baked into the peel's texture, and nothing runs per frame. */
 export function playLook(id: string, host: LookHost): LookFx | null {
-  return lookOf(id)?.play(host) ?? null;
+  if (!peelsAnimated()) return stillLookFx(id, host);
+  return both(playPeelLive(id, host), lookOf(id)?.play(host) ?? null);
+}
+
+// ——— stills: a look painted once, for when animated peels are off ———
+
+/** Room round the peel (peel units) a still look keeps: flames reach well above the head. */
+const SP = { l: 80, r: 80, t: 140, b: 40 };
+const SW = PEEL_W + SP.l + SP.r;
+const SH = PEEL_H + SP.t + SP.b;
+const stills = new Map<string, { back: HTMLCanvasElement | null; front: HTMLCanvasElement } | null>();
+
+/** A look painted once, at a good moment (its glows built up, its flames risen), behind and over the peel: canvases
+ *  SW × SH, one px per peel unit, the peel's grip point at (SP.l + OX, SP.t + OY). */
+function stillLook(id: string): { back: HTMLCanvasElement | null; front: HTMLCanvasElement } | null {
+  if (stills.has(id)) return stills.get(id)!;
+  const look = lookOf(id);
+  let out: { back: HTMLCanvasElement | null; front: HTMLCanvasElement } | null = null;
+  if (look) {
+    const [front, fctx] = makeCanvas(SW, SH);
+    const [back, bctx] = look.back ? makeCanvas(SW, SH) : [null, null];
+    const boost = { w: 1 };
+    const fpen = canvasPen(fctx, boost);
+    const bpen = bctx ? canvasPen(bctx, boost) : null;
+    const paint = look.still?.() ?? look.painter();
+    // let it run a second and a half, then keep that frame
+    for (let i = 0; i < 45; i++) {
+      for (const ctx of [fctx, bctx]) {
+        if (!ctx) continue;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, SW, SH);
+        ctx.setTransform(1, 0, 0, 1, SP.l + OX, SP.t + OY);
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+      }
+      paint({ front: fpen, fctx, back: bpen, bctx }, 1 / 30);
+    }
+    out = { back, front };
+  }
+  stills.set(id, out);
+  return out;
+}
+
+/** The cursor peel with its look as a still: one texture (the look behind, the peel, the look over it), padded
+ *  round the peel, so nothing is drawn per frame. */
+function stillLookFx(id: string, h: LookHost): LookFx | null {
+  const st = stillLook(id);
+  if (!st) return null;
+  const { scene, peel } = h;
+  const key = `peel_still_${id}`;
+  if (!scene.textures.exists(key)) {
+    const [c, ctx] = makeCanvas(SW, SH);
+    if (st.back) ctx.drawImage(st.back, 0, 0);
+    ctx.drawImage(peelCanvas(id), SP.l, SP.t);
+    ctx.drawImage(st.front, 0, 0);
+    scene.textures.addCanvas(key, c);
+  }
+  const OXF = OX / PEEL_W;
+  const OYF = OY / PEEL_H;
+  const apply = () => {
+    if (peel.texture.key !== 'peel') return;
+    peel.setTexture(key).setOrigin((SP.l + OX) / SW, (SP.t + OY) / SH);
+  };
+  apply();
+  return {
+    ownTrail: false,
+    tick() {},
+    smack() {},
+    setActive(on) {
+      if (on) apply();
+      // another peel's texture is on for a while (its own origin)
+      else if (peel.texture.key !== key) peel.setOrigin(OXF, OYF);
+    },
+    destroy() {
+      if (!peel.active) return;
+      if (peel.texture.key === key) peel.setTexture('peel');
+      peel.setOrigin(OXF, OYF);
+    },
+  };
 }
 
 // ——— the locker: canvases laid behind and over the peel's <img> ———
@@ -729,7 +834,16 @@ interface Overlay {
   bpen: Pen | null;
   /** The pens' line-width boost, set each frame from the drawn size. */
   boost: { w: number };
-  paint: Painter;
+  /** The look's painter (none on a tile whose look only plays on the big preview). */
+  paint: Painter | null;
+  /** A living foot: wanted, asked for, and running once its rig is built. */
+  foot: { live: PeelLive | null; asked: boolean } | null;
+  /** The <img> is hidden while the living foot is drawn in its place. */
+  hid: boolean;
+  /** Painted once (animated peels off): the still look. */
+  still: { back: HTMLCanvasElement | null; front: HTMLCanvasElement } | null;
+  id: string;
+  style: CSSStyleDeclaration;
   /** On screen (tiles scrolled out of view skip their frames). */
   seen: boolean;
 }
@@ -738,10 +852,79 @@ let raf = 0;
 let lastT = 0;
 // room round the image for bolts and flames that leap past the peel's edge
 const PAD = 0.14;
-// tiles only paint while on screen
+// overlays only paint while on screen
 const seen = typeof IntersectionObserver === 'undefined' ? null : new IntersectionObserver((es) => {
-  for (const e of es) for (const o of overlays) if (o.img === e.target) o.seen = e.isIntersecting;
+  for (const e of es)
+    for (const o of overlays)
+      if (o.img === e.target) {
+        o.seen = e.isIntersecting;
+        if (o.seen) wake();
+      }
 });
+// stills repaint when their image changes size (no frames run for them)
+const resized = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver((es) => {
+  for (const e of es) for (const o of overlays) if (o.img === e.target && o.still) place(o) && paintStill(o);
+});
+
+function drop(o: Overlay): void {
+  o.canvas.remove();
+  o.back?.remove();
+  seen?.unobserve(o.img);
+  resized?.unobserve(o.img);
+  if (o.hid) o.img.style.visibility = '';
+  overlays.delete(o);
+}
+
+/** Size and place an overlay's canvases over its image; false when the image has no size yet. Leaves each ctx's
+ *  transform at the peel's frame (origin at the grip point), in device pixels. */
+function place(o: Overlay): boolean {
+  const w = o.img.offsetWidth;
+  const hh = o.img.offsetHeight;
+  if (!w || !hh) return false;
+  const px = Math.round(w * PAD);
+  const py = Math.round(hh * PAD);
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const cw = Math.round((w + px * 2) * dpr);
+  const ch = Math.round((hh + py * 2) * dpr);
+  // follow the image's own tilt (the detail panel turns it), fade and filter (a locked peel's)
+  const tf = o.style.transform;
+  // object-fit: contain, so the peel sits centred in the image box
+  const k = Math.min(w / 220, hh / 360) * dpr;
+  const ox = (px + (w - 220 * (k / dpr)) / 2) * dpr;
+  const oy = (py + (hh - 360 * (k / dpr)) / 2) * dpr;
+  for (const [cv, ctx] of [[o.canvas, o.ctx], [o.back, o.bctx]] as const) {
+    if (!cv || !ctx) continue;
+    const cs = cv.style;
+    if (cv.width !== cw || cv.height !== ch) {
+      cv.width = cw;
+      cv.height = ch;
+      cs.width = `${w + px * 2}px`;
+      cs.height = `${hh + py * 2}px`;
+    }
+    cs.left = `${o.img.offsetLeft - px}px`;
+    cs.top = `${o.img.offsetTop - py}px`;
+    cs.transform = tf === 'none' ? '' : tf;
+    cs.opacity = o.style.opacity;
+    cs.filter = o.style.filter === 'none' ? '' : o.style.filter;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, cw, ch);
+    ctx.setTransform(k, 0, 0, k, ox + OX * k, oy + OY * k);
+    // menus are light: normal blending, so colour shows on cream (adding light to cream shows nothing)
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+  }
+  // about half a peel unit per css pixel or less: thicken the strokes so they don't vanish
+  o.boost.w = Math.min(2.2, Math.max(1, 0.5 / (k / dpr)));
+  return true;
+}
+
+function paintStill(o: Overlay): boolean {
+  const st = o.still!;
+  o.ctx.drawImage(st.front, -SP.l - OX, -SP.t - OY);
+  if (st.back && o.bctx) o.bctx.drawImage(st.back, -SP.l - OX, -SP.t - OY);
+  return true;
+}
 
 function frame(now: number): void {
   raf = 0;
@@ -752,57 +935,74 @@ function frame(now: number): void {
     return;
   }
   lastT = now;
+  let running = 0;
   for (const o of overlays) {
     // gone with the locker (or a re-render): clean up
     if (!o.img.isConnected || !o.canvas.isConnected) {
-      o.canvas.remove();
-      o.back?.remove();
-      seen?.unobserve(o.img);
-      overlays.delete(o);
+      drop(o);
       continue;
     }
-    if (!o.seen) continue;
-    const w = o.img.offsetWidth;
-    const hh = o.img.offsetHeight;
-    if (!w || !hh) continue;
-    const px = Math.round(w * PAD);
-    const py = Math.round(hh * PAD);
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
-    const cw = Math.round((w + px * 2) * dpr);
-    const ch = Math.round((hh + py * 2) * dpr);
-    // follow the image's own tilt (the detail panel turns it)
-    const tf = getComputedStyle(o.img).transform;
-    const op = getComputedStyle(o.img).opacity;
-    // object-fit: contain, so the peel sits centred in the image box
-    const k = Math.min(w / 220, hh / 360) * dpr;
-    const ox = (px + (w - 220 * (k / dpr)) / 2) * dpr;
-    const oy = (py + (hh - 360 * (k / dpr)) / 2) * dpr;
-    for (const [cv, ctx] of [[o.canvas, o.ctx], [o.back, o.bctx]] as const) {
-      if (!cv || !ctx) continue;
-      const cs = cv.style;
-      if (cv.width !== cw || cv.height !== ch) {
-        cv.width = cw;
-        cv.height = ch;
-        cs.width = `${w + px * 2}px`;
-        cs.height = `${hh + py * 2}px`;
-      }
-      cs.left = `${o.img.offsetLeft - px}px`;
-      cs.top = `${o.img.offsetTop - py}px`;
-      cs.transform = tf === 'none' ? '' : tf;
-      cs.opacity = op;
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.clearRect(0, 0, cw, ch);
-      ctx.setTransform(k, 0, 0, k, ox + OX * k, oy + OY * k);
-      // menus are light: normal blending, so colour shows on cream (adding light to cream shows nothing)
-      ctx.globalCompositeOperation = 'source-over';
-      ctx.lineJoin = 'round';
-      ctx.lineCap = 'round';
+    if (o.still || !o.seen) continue;
+    const f = o.foot;
+    // a living foot: its rig is built in idle time, the still image showing until it's ready
+    if (f && !f.asked) {
+      f.asked = true;
+      const big = !o.img.closest('.peel-tile');
+      requestRig(
+        o.id,
+        (rig) => {
+          if (!overlays.has(o)) return;
+          if (rig) f.live = new PeelLive(rig);
+          else o.foot = null;
+        },
+        // scrolled away before it was built: asked again when it's back in view
+        () => {
+          const want = overlays.has(o) && o.img.isConnected && o.seen;
+          if (!want) f.asked = false;
+          return want;
+        },
+        big,
+        // the big preview is drawn larger: its rig at twice the detail
+        big ? 2 : 1,
+      );
     }
-    // about half a peel unit per css pixel or less: thicken the strokes so they don't vanish
-    o.boost.w = Math.min(2.2, Math.max(1, 0.5 / (k / dpr)));
-    o.paint({ front: o.pen, fctx: o.ctx, back: o.bpen, bctx: o.bctx }, dt);
+    if (!o.paint && !o.foot) continue;
+    // (on screen with something to show, or a living foot about to be: the frames go on)
+    running++;
+    if (!o.paint && !f?.live) continue;
+    if (!place(o)) continue;
+    if (f?.live) {
+      f.live.update(dt);
+      o.ctx.save();
+      o.ctx.translate(-OX, -OY);
+      drawPeelLive(o.ctx, f.live);
+      o.ctx.restore();
+      if (!o.hid) {
+        o.hid = true;
+        o.img.style.visibility = 'hidden';
+      }
+    }
+    o.paint?.({ front: o.pen, fctx: o.ctx, back: o.bpen, bctx: o.bctx }, dt);
   }
-  if (overlays.size) raf = requestAnimationFrame(frame);
+  if (running) raf = requestAnimationFrame(frame);
+}
+
+/** Drop overlays whose image has left the page (a re-render), once the page has settled: images are often set up
+ *  before their tile is in the page. Stills have no frames to notice it themselves. */
+let sweeping = 0;
+function sweepSoon(): void {
+  if (sweeping) return;
+  sweeping = window.setTimeout(() => {
+    sweeping = 0;
+    for (const o of [...overlays]) if (!o.img.isConnected) drop(o);
+  }, 500);
+}
+
+function wake(): void {
+  if (!raf && [...overlays].some((o) => !o.still)) {
+    lastT = performance.now();
+    raf = requestAnimationFrame(frame);
+  }
 }
 
 const overlayCanvas = (z: string) => {
@@ -813,23 +1013,30 @@ const overlayCanvas = (z: string) => {
   return c;
 };
 
-/** Animate a peel's look over its <img> (in the Peel Locker). Does nothing for peels without one; on the grid's
- *  tiles only the showpieces animate (the rest play on the big preview). The overlay removes itself when the
- *  image leaves the page; stopLookOverlays() clears them all at once. */
+/** Animate a peel over its <img> (in the Peel Locker): its look, and a redrawn foot's peel coming alive. Does
+ *  nothing for peels with neither; on the grid's tiles only the showpiece looks play (the rest play on the big
+ *  preview), while living feet move on their tiles too. With animated peels off (Settings → Graphics) a look is
+ *  painted once instead, and living feet keep their still image. The overlay removes itself when the image leaves
+ *  the page; stopLookOverlays() clears them all at once. */
 export function animateLookImg(img: HTMLImageElement, id: string): void {
-  const look = lookOf(id);
   const parent = img.parentElement;
-  if (!look || !parent) return;
-  const isTile = !!img.closest('.peel-tile');
-  if (isTile && !look.tile) return;
+  if (!parent) return;
   for (const o of overlays) if (o.img === img) return;
+  sweepSoon();
+  const anim = peelsAnimated();
+  const look = lookOf(id);
+  const isTile = !!img.closest('.peel-tile');
+  const lookHere = !!look && (!isTile || look.tile);
+  const footHere = anim && hasPeelLive(id);
+  const still = !anim && lookHere ? stillLook(id) : null;
+  if (!footHere && !(anim && lookHere) && !still) return;
   if (getComputedStyle(parent).position === 'static') parent.style.position = 'relative';
   const canvas = overlayCanvas('1');
   img.after(canvas);
   const boost = { w: 1 };
   let back: HTMLCanvasElement | null = null;
   let bctx: CanvasRenderingContext2D | null = null;
-  if (look.back) {
+  if (lookHere && look!.back) {
     // glows and flames go on a canvas behind the image: positioned, it paints in page order, so the image
     // (positioned too) sits over it
     back = overlayCanvas('auto');
@@ -838,23 +1045,38 @@ export function animateLookImg(img: HTMLImageElement, id: string): void {
     bctx = back.getContext('2d')!;
   }
   const ctx = canvas.getContext('2d')!;
-  const o: Overlay = { img, canvas, ctx, pen: canvasPen(ctx, boost), back, bctx, bpen: bctx ? canvasPen(bctx, boost) : null, boost, paint: look.painter(), seen: !isTile || !seen };
+  const o: Overlay = {
+    img,
+    canvas,
+    ctx,
+    pen: canvasPen(ctx, boost),
+    back,
+    bctx,
+    bpen: bctx ? canvasPen(bctx, boost) : null,
+    boost,
+    paint: anim && lookHere ? look!.painter() : null,
+    foot: footHere ? { live: null, asked: false } : null,
+    hid: false,
+    still,
+    id,
+    style: getComputedStyle(img),
+    // (everything waits to be seen: a page of looks, like the look lab, only animates what's in view)
+    seen: !seen,
+  };
   overlays.add(o);
-  if (isTile) seen?.observe(img);
-  if (!raf) {
-    lastT = performance.now();
-    raf = requestAnimationFrame(frame);
+  if (still) {
+    // painted now if the image has its size, else when it gets it
+    if (resized) resized.observe(img);
+    else if (place(o)) paintStill(o);
+    return;
   }
+  seen?.observe(img);
+  wake();
 }
 
 /** Stop every locker overlay (the locker closed). */
 export function stopLookOverlays(): void {
-  for (const o of overlays) {
-    o.canvas.remove();
-    o.back?.remove();
-    seen?.unobserve(o.img);
-  }
-  overlays.clear();
+  for (const o of [...overlays]) drop(o);
   if (raf) cancelAnimationFrame(raf);
   raf = 0;
 }

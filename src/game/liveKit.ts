@@ -32,8 +32,8 @@ import type { Foot } from './Foot';
 
 /** Pose frames for the toe band: the curl track (splay … rest … curled), then the wiggle cycle. */
 const CURL_TRACK = [-1, -0.5, 0, 0.25, 0.5, 0.75, 1];
-const WIGGLE_N = 8;
-const wigglePose = (k: number): Pose => pose({ wiggle: [0, 1, 2, 3, 4].map((i) => Math.sin((k / WIGGLE_N) * Math.PI * 2 + i * 1.25) * 0.85) });
+export const WIGGLE_N = 8;
+export const wigglePose = (k: number): Pose => pose({ wiggle: [0, 1, 2, 3, 4].map((i) => Math.sin((k / WIGGLE_N) * Math.PI * 2 + i * 1.25) * 0.85) });
 
 interface LiveTex {
   body: string;
@@ -263,9 +263,14 @@ const FX_KEY = 'livekit_fx';
 const FX_R = 32;
 export type FxFrame = 'puff' | 'soft' | 'spark' | 'ember' | 'drop' | 'bubble' | 'mote' | 'flake';
 
-function fxAtlas(sc: Phaser.Scene): string {
-  if (sc.textures.exists(FX_KEY)) return FX_KEY;
-  const names: FxFrame[] = ['puff', 'soft', 'spark', 'ember', 'drop', 'bubble', 'mote', 'flake'];
+export const FX_FRAMES: FxFrame[] = ['puff', 'soft', 'spark', 'ember', 'drop', 'bubble', 'mote', 'flake'];
+export { FX_R };
+let fxCanvas: HTMLCanvasElement | null = null;
+
+/** The effect particles' frames side by side (FX_R × 2 square each, white, to be tinted), drawn once. */
+export function fxAtlasCanvas(): HTMLCanvasElement {
+  if (fxCanvas) return fxCanvas;
+  const names = FX_FRAMES;
   const S = FX_R * 2;
   const [c, x] = makeCanvas(S * names.length, S);
   names.forEach((n, i) => {
@@ -335,15 +340,27 @@ function fxAtlas(sc: Phaser.Scene): string {
     }
     x.restore();
   });
+  fxCanvas = c;
+  return c;
+}
+
+/** The effect particles' atlas as a texture (one, so every emitter batches). */
+export function fxAtlas(sc: Phaser.Scene): string {
+  if (sc.textures.exists(FX_KEY)) return FX_KEY;
+  const S = FX_R * 2;
+  // (a copy: a texture's canvas belongs to its game)
+  const src = fxAtlasCanvas();
+  const [c, x] = makeCanvas(src.width, src.height);
+  x.drawImage(src, 0, 0);
   const tex = sc.textures.addCanvas(FX_KEY, c)!;
-  names.forEach((n, i) => tex.add(n, 0, i * S, 0, S, S));
+  FX_FRAMES.forEach((n, i) => tex.add(n, 0, i * S, 0, S, S));
   return FX_KEY;
 }
 
 // ════════════════════════════ shared helpers ════════════════════════════
 
 /** 1D value noise in −1…1 (smooth). */
-function noise1(x: number): number {
+export function noise1(x: number): number {
   const i = Math.floor(x);
   const f = x - i;
   const h = (n: number) => {
@@ -696,6 +713,11 @@ export interface RigPose {
 }
 
 const defs: Record<string, LiveDef> = {};
+
+/** A styled foot's live behaviour, if it has one (its peel animates from it too: src/art/peelLive.ts). */
+export function liveDefOf(id: string): LiveDef | undefined {
+  return defs[id];
+}
 
 /** Declare a styled foot's live behaviour (see LiveDef). */
 export function registerLive<S>(id: string, def: LiveDef<S>): void {
