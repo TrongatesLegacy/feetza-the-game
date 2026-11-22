@@ -643,6 +643,12 @@ export class Foot {
     this.revealT = Math.max(this.revealT, sec);
   }
 
+  /** Dev views: crop the leg so it ends at local y `top` (above the foot) instead of running off screen. */
+  cropLeg(top: number): void {
+    const h = Math.max(1, Math.round(this.leg.y - top));
+    if (Math.abs(this.leg.height - h) >= 1) this.leg.setSize(this.leg.width, h);
+  }
+
   /** How visible the foot's own art is now (faded by invisibility, phasing, portals and the like). */
   get visualAlpha(): number {
     return this.img.alpha;
