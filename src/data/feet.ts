@@ -201,7 +201,7 @@ export const FEET: FootType[] = [
     desc: 'Worn three days straight. Leaves pizzas soggy, so the next stomp hits harder.',
     hp: 32, speed: 0.85, armor: 0, stompDmg: 1, coins: 3, score: 120, scale: 1, minWave: 2, weight: 7,
     traits: ['soggy'],
-    art: { kind: 'sock', skin: SKIN.light, primary: '#f4f1ea', secondary: '#d8343f', leg: 'sock' },
+    art: { kind: 'sock', skin: SKIN.light, primary: '#f4f1ea', secondary: '#d8343f', leg: 'sock', legColor: '#f4f1ea' },
   },
   {
     id: 'baby',
@@ -225,7 +225,7 @@ export const FEET: FootType[] = [
     desc: 'Five toes, five colours. Sidesteps when smacked.',
     hp: 26, speed: 1.05, armor: 0, stompDmg: 1, coins: 4, score: 150, scale: 1, minWave: 3, weight: 5,
     traits: ['dodge'],
-    art: { kind: 'toesock', skin: SKIN.pale, leg: 'sock', primary: '#7b5cff', secondary: '#ffd23f' },
+    art: { kind: 'toesock', skin: SKIN.pale, leg: 'sock', primary: '#7b5cff', secondary: '#ffd23f', legColor: '#7b5cff' },
   },
   {
     id: 'harold',
@@ -461,7 +461,7 @@ export const FEET: FootType[] = [
     desc: 'Covered in signatures. The plaster cast is basically armour.',
     hp: 50, speed: 0.7, armor: 4, stompDmg: 1, coins: 6, score: 200, scale: 1.05, minWave: 7, weight: 3,
     traits: ['heavy'],
-    art: { kind: 'cast', skin: SKIN.light, primary: '#f5f2ea', secondary: '#3a6ad0', leg: 'cast' },
+    art: { kind: 'cast', skin: SKIN.light, primary: '#f5f2ea', secondary: '#3a6ad0', leg: 'cast', legColor: '#f5f2ea' },
   },
   {
     id: 'dad',
@@ -535,7 +535,7 @@ export const FEET: FootType[] = [
     desc: 'A gentleman\'s sock. The thick wool soaks up the first 15 damage.',
     hp: 30, speed: 0.95, armor: 0, stompDmg: 1, coins: 4, score: 140, scale: 1, minWave: 3, weight: 5,
     traits: ['woolly'],
-    art: { kind: 'sock', skin: SKIN.light, argyle: true, primary: '#2f4a7a', secondary: '#e9c46a', leg: 'sock' },
+    art: { kind: 'sock', skin: SKIN.light, argyle: true, primary: '#2f4a7a', secondary: '#e9c46a', leg: 'sock', legColor: '#2f4a7a' },
   },
   {
     id: 'sue',

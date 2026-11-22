@@ -914,14 +914,14 @@ registerStyle('clara', {
 export const flipSole: PathFn = (c) => {
   c.beginPath();
   // it starts tucked under the foot's sides and swells out round the ball and the toes
-  c.moveTo(CX - 52, 10);
-  c.bezierCurveTo(CX - 66, 60, CX - 96, 96, CX - 106, 150);
+  c.moveTo(CX - 40, 30);
+  c.bezierCurveTo(CX - 56, 70, CX - 92, 100, CX - 106, 150);
   c.bezierCurveTo(CX - 114, 190, CX - 114, 212, CX - 110, 226);
   c.bezierCurveTo(CX - 102, 262, CX - 52, 276, CX + 8, 278);
   c.bezierCurveTo(CX + 72, 280, CX + 118, 268, CX + 121, 228);
   c.bezierCurveTo(CX + 124, 196, CX + 118, 160, CX + 112, 140);
-  c.bezierCurveTo(CX + 104, 96, CX + 70, 60, CX + 58, 10);
-  c.quadraticCurveTo(CX, 4, CX - 52, 10);
+  c.bezierCurveTo(CX + 98, 100, CX + 62, 70, CX + 46, 30);
+  c.quadraticCurveTo(CX, 24, CX - 40, 30);
   c.closePath();
 };
 
