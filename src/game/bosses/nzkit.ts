@@ -90,7 +90,8 @@ export function hitSoft(a: Arena, p: Pizza, n: number, label: string, color: str
 /** The boss drops in from above (or rises, with `from: 'below'`), lands with a crash and can't be hurt until it has. */
 export function entrance(a: Arena, f: Foot, o: { sfx: string; quip: string; color: string; flash: [number, number, number]; ring?: number; delay?: number; ms?: number; onLanded?: () => void }): void {
   f.puppet = true;
-  const was = f.shielded;
+  // (mid phase-change beat, a dev start at a later phase: the shield it had before the beat, not the beat's own)
+  const was = Number(f.brain.transformT ?? 0) > 0 ? !!f.brain.wasShielded : f.shielded;
   f.shielded = true;
   const hy = (f.hoverY ?? HOVER_Y) - 20;
   f.y = -480;

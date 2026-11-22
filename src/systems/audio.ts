@@ -643,6 +643,26 @@ const TRIM: Record<string, number> = {
   sfx_titanking_chainhit: 1.24, // -12.4 dB → -10.5: a smack on a locking chain: a metallic clank
   sfx_titanking_chainbreak: 1.23, // -11.3 dB → -9.5: a chain snaps and its links scatter
   sfx_titanking_death: 1.10, // -10.4 dB → -9.6: Kronos crumbles: stone collapsing, a hiss of sand and falling chains
+  sfx_titanking_strain: 1.08, // -11.7 dB → -11.0: Kronos hauls on his chains: iron chains creaking taut and a low straining titan grunt (repeats while he pulls)
+  sfx_titanking_weakhit: 1.15, // -11.7 dB → -10.5: a smack on a chain's red-hot weak link: a hot iron clang with a sizzle
+  sfx_titanking_weakbreak: 1.14, // -10.7 dB → -9.6: the weak link shatters and the chain snaps: a big metal crack, links whipping away and a rattle
+  sfx_titanking_rip: 1.11, // -10.4 dB → -9.5: Kronos rips a chain out of the wall: tearing rock, a titan roar and a massive chain rattle (tell)
+  sfx_titanking_scrape: 1.16, // -10.8 dB → -9.5: the ripped chain scrapes along the table: grinding metal on stone, sparks and crunching
+  sfx_titanking_unchained: 1.11, // -10.4 dB → -9.5: TITAN UNCHAINED: an enormous roar, broken chains rattling and a rumble
+  sfx_titanking_swing: 1.06, // -11.5 dB → -11.0: a broken chain with a blade on its end swings down: a heavy whoosh with a chain rattle (tell)
+  sfx_titanking_bladehit: 1.12, // -11.5 dB → -10.5: a smack on the chain's blade: a ringing iron clang
+  sfx_titanking_crumble: 1.05, // -12.4 dB → -12.0: the walls of Tartarus crumble: a deep rumble, stones cracking and gravel pouring (repeats)
+  sfx_titanking_rockcrack: 1.11, // -11.9 dB → -11.0: a boulder cracks loose from the roof: a sharp stone crack and grind (tell before it falls)
+  sfx_titanking_rockfall: 1.05, // -12.4 dB → -12.0: the boulder falls: a descending whoosh with tumbling grit
+  sfx_titanking_rocksmash: 1.16, // -10.8 dB → -9.5: a falling boulder is smashed apart in the air by a smack: a stone burst and scattering debris
+  sfx_titanking_rockland: 1.05, // -9.9 dB → -9.5: a boulder lands on a pizza: a heavy stone thud and crunch
+  sfx_titanking_shieldup: 1.03, // -11.3 dB → -11.0: Kronos raises his golden time-forcefield: a shimmering hum swelling with a clock-like chime (tell)
+  sfx_titanking_pierce: 1.11, // -10.4 dB → -9.5: a blade drives through the forcefield: a glassy energy shatter and an iron stab
+  sfx_titanking_shielddown: 1.06, // -12.5 dB → -12.0: the forcefield collapses: a falling sparkle and a power-down
+  sfx_titanking_rise: 1.05, // -11.5 dB → -11.1: Kronos's giant stone head rises from behind the table: grinding stone, a rumble and a low growl (tell)
+  sfx_titanking_headchew: 0.93, // -12.9 dB → -13.5: the stone head chews a pizza: a grinding stone crunch with crust crackle (repeats while it eats)
+  sfx_titanking_sink: 1.05, // -12.4 dB → -12.0: the beaten stone head sinks away: a descending grinding rumble
+  sfx_titanking_gulp: 1.06, // -10.0 dB → -9.5: Kronos swallows a mouthful of pizza: a deep cavernous gulp
   sfx_zeus_enter: 1.07, // -10.1 dB → -9.5: Zeus descends: a thunderclap, a choir swell and a marble landing
   sfx_zeus_thunder: 1.05, // -11.4 dB → -11.0: a huge rolling thunder as Zeus starts a new phase
   sfx_zeus_charge: 1.07, // -11.6 dB → -11.0: a storm cloud charges over a lane: a building crackle (tell, about 1.5 s)

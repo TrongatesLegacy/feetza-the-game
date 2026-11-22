@@ -782,6 +782,11 @@ function cutGeo(c: Cut): CutGeo {
 
 export const TITAN_CUT_GEO: CutGeo[] = TITAN_CUTS.map(cutGeo);
 
+/** A magma gash of the same make anywhere (Kronos's stone head in his fight, src/content/art/titanFight.ts): through
+ * `pts` (design units), `w` its widest half-width, `seed` its own jaggedness (use one the foot's cuts don't). */
+export const titanCut = (pts: Pt[], w: number, seed: number): CutGeo => cutGeo({ pts, w, seed });
+export type TitanCut = CutGeo;
+
 const polyPath = (pts: Pt[]): PathFn => (c) => {
   c.beginPath();
   pts.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y)));
@@ -958,7 +963,7 @@ export function paintCutGlow(g: Ctx, c: CutGeo, k = 1): void {
 
 /** A gash in the stone: scorched round its lips, hairline cracks running off them, charred walls going down into
  * the melt (lit orange from below on the lower wall), the melt itself at `phase`. */
-function paintCut(g: Ctx, c: CutGeo): void {
+export function paintCut(g: Ctx, c: CutGeo): void {
   const r = rng(hashStr(`titan-cut-lips-${c.seed}`));
   const outer = polyPath(c.outer);
   // the stone round it is scorched black and glows a dull red near the lips

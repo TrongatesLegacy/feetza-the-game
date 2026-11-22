@@ -9,7 +9,8 @@
 // textures laid along the rope, face-on and edge-on in turn.
 //
 // A fight can drive it (a later phase that holds him back): setTension(0 … 1) takes the slack out (1: hauled taut),
-// and setAnchor() pins an anchor where the fight wants it. Cosmetic randomness only through crand().
+// setAnchor() pins an anchor where the fight wants it, and setHidden() hides a chain the fight draws itself.
+// Cosmetic randomness only through crand().
 
 import Phaser from 'phaser';
 import { crand } from '../systems/cosmeticRandom';
@@ -121,6 +122,15 @@ export class SkyChains {
     if (!c) return;
     c.pinned = !!at;
     if (at) [c.ax, c.ay] = at;
+  }
+
+  /** Hide chain i (a fight draws its own in its place: Kronos's chain pull, src/game/bosses/titanking.ts) or show it
+   * again. It keeps simulating either way. */
+  setHidden(i: number, on: boolean): void {
+    const c = this.chains[i];
+    if (!c) return;
+    c.faces.setVisible(!on);
+    c.edges.setVisible(!on);
   }
 
   /** How taut chain i is now (0 slack … 1 straight). */
