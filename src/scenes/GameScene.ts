@@ -36,7 +36,7 @@ import { randomLineup } from './MenuScene';
 import { ToppingKit } from '../game/toppingKit';
 import { freshKitShop, loadKitState } from '../game/kitState';
 import { cardCount, counterFreebie, counterPrice, dealBlock, freeLunchReady, goldenPrice, happyHour, rerollPrice, toppingPrice } from '../game/shopDeals';
-import { pickWindow, rouletteWindow, type PickOption } from '../ui/pickWindows';
+import { pickWindow, rouletteWindow, slotsPrizeWindow, type PickOption } from '../ui/pickWindows';
 import { abilityKey } from '../game/abilities';
 import { PizzaPerkKit } from '../game/pizzaPerks';
 import { contentFx } from '../game/contentFx';
@@ -2442,9 +2442,16 @@ export class GameScene extends Phaser.Scene implements Arena {
     window.setTimeout(() => {
       if (this.shop !== sh || !sh.slots?.result) return;
       sh.slots.result.fresh = false;
+      const offer = sh.slots.result.offer;
       if (win) {
         audio.sfx('sfx_combo', { rate: 1.2 });
-        ui.hud.toast(null, 'PIZZA SLOTS: THREE OF A KIND!', prize);
+        // a topping: its card in a window, to add or sell; anything else is paid already
+        if (offer && !offer.taken && UPGRADE_BY_ID[offer.id]) {
+          const u = UPGRADE_BY_ID[offer.id];
+          const lvl = this.run.level(u.id);
+          const k = kindOf(u);
+          slotsPrizeWindow({ u, desc: u.desc(lvl + 1), downside: u.downside, lvl: k === 'consumable' ? 'One use, back in 3 waves' : k === 'unique' ? 'Once per run' : lvl ? `LV ${lvl} → ${lvl + 1}` : 'NEW', sell: offer.sell, onChoose: (c) => this.slotsTake(c) });
+        } else ui.hud.toast(null, 'PIZZA SLOTS: THREE OF A KIND!', prize);
       } else audio.sfx('sfx_pop', { rate: 0.7 });
       this.refreshShop();
     }, 1500);

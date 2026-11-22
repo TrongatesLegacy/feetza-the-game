@@ -5903,3 +5903,6 @@ body.reduced-motion *::after {
 .offer.slots .headline { font-size: 0.98em; }
 .offer.slots .window { flex: 0 0 auto; }
 .offer.slots .machine { justify-content: center; }
+.slotswin .slots-choice { display: flex; gap: 0.8em; justify-content: center; margin-top: 0.6em; }
+.slotswin .slots-card { cursor: default; }
+.modal.slotswin { width: min(44em, 94vw); }

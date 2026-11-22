@@ -124,3 +124,42 @@ export function rouletteWindow(o: { current: string; options: string[]; onPick: 
   setTimeout(() => tiles[0]?.focus({ preventScroll: true }), 60);
   return s;
 }
+
+/** Pizza Slots won a topping: its full card, to add to your toppings or sell for half its usual price. */
+export function slotsPrizeWindow(o: { u: Upgrade; lvl: string; desc: string; downside?: string; sell: number; onChoose: (choice: 'add' | 'sell') => void }): HTMLElement {
+  let s: HTMLElement;
+  let chosen = false;
+  const choose = (c: 'add' | 'sell') => {
+    if (chosen) return;
+    chosen = true;
+    audio.sfx(c === 'sell' ? 'sfx_coin' : 'sfx_click');
+    ui.close(s);
+    o.onChoose(c);
+  };
+  const k = kindOf(o.u);
+  const card = h(
+    'div',
+    { class: `card ${o.u.rarity} slots-card`, 'aria-label': `${o.u.name}: ${o.desc}` },
+    h('span', { class: `kind ${k}` }, k === 'permanent' ? 'PERMANENT' : k === 'unique' ? 'ONCE PER RUN' : 'ONE USE'),
+    h('div', { class: 'rarity' }, o.u.rarity),
+    h('div', { class: 'icon' }, o.u.icon),
+    h('div', { class: 'name' }, o.u.name),
+    h('div', { class: 'desc' }, o.desc),
+    o.downside ? h('div', { class: 'down' }, `▼ ${o.downside}`) : null,
+    h('div', { class: 'lvl' }, o.lvl),
+  );
+  const add = btn('ADD IT', 'green', () => choose('add'), { 'data-pad-default': '' });
+  const sell = btn(`SELL · ${o.sell} TIPS`, 'yellow', () => choose('sell'));
+  const panel = h(
+    'div',
+    { class: 'panel modal pickwin slotswin', style: `--rc:${RARITY_COLOR[o.u.rarity]}` },
+    h('div', { class: 'pick-badge' }, '🎰 PIZZA SLOTS · THREE OF A KIND'),
+    h('div', { class: 'title' }, 'YOU WON A TOPPING!'),
+    h('div', { class: 'subtitle' }, 'Add it to your toppings, or sell it for half its usual price'),
+    h('div', { class: 'cards pick-cards' }, card),
+    h('div', { class: 'row slots-choice' }, add, sell),
+  );
+  s = ui.open(panel);
+  setTimeout(() => add.focus({ preventScroll: true }), 60);
+  return s;
+}
