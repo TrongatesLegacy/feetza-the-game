@@ -732,6 +732,7 @@ export class LiveFoot {
   private lastState = '';
   private landT = 9;
   private counted = true;
+  private shownCurl = 0;
 
   constructor(readonly f: Foot, readonly def: LiveDef, readonly style: StyleDef) {
     this.sc = f.scene;
@@ -826,6 +827,12 @@ export class LiveFoot {
   get windingUp(): boolean {
     const f = this.f;
     return f.state === 'hover' && !f.held && !f.pinned && f.stateT > f.hoverTime - 0.45;
+  }
+
+  /** The toe curl the toe band is showing now (−1 splayed … 1 curled; 0 while the toes wiggle). Art that hangs
+   * off the toes (a chain on a toe cuff) follows it. */
+  get toeCurl(): number {
+    return this.shownCurl;
   }
 
   /** Seconds since it last landed a stomp. */
@@ -978,11 +985,13 @@ export class LiveFoot {
     if (idle) {
       this.wigT += dt * 9;
       a.setFrame(nCurl + (Math.floor(this.wigT) % WIGGLE_N));
+      this.shownCurl = 0;
       return;
     }
     let best = 0;
     for (let i = 1; i < nCurl; i++) if (Math.abs(CURL_TRACK[i] - this.curl) < Math.abs(CURL_TRACK[best] - this.curl)) best = i;
     a.setFrame(best);
+    this.shownCurl = CURL_TRACK[best];
   }
 
   die(): void {

@@ -2,12 +2,16 @@
 // Their art is in src/content/style/acts-f*.ts. Bosses and mini-bosses overheat in their later phases (the heat
 // layer glows from the sole up and steam pours off them). Cosmetic randomness only through crand().
 
+import Phaser from 'phaser';
 import { CX } from '../../art/feetCommon';
+import { footRes } from '../../art/feetArt';
 import { FLOWER, VIALS } from '../art/gotham';
 import { type LiveFoot, registerLive } from '../../game/liveKit';
 import { crand } from '../../systems/cosmeticRandom';
 import { save } from '../../systems/save';
 import { landDust, overheat } from './bosses';
+import { LX, LY } from '../style/acts-f-kit';
+import { CHAIN_LINKS, LINK_LEN, TITAN_CUT_GEO, ironLink, kickChain, linkShadow, onTitan, paintCutGlow, paintMagma, restChain, stepChain, titanChainEnds } from '../style/acts-f-3';
 
 const R = () => crand();
 const pm = () => crand() - 0.5;
@@ -196,35 +200,188 @@ registerLive('spidersocks', {
 
 // ——— Kratos's nemeses ———
 
-// KRONOS THE TITAN KING: his chains sway and clink, his jaw creaks open (his tell), embers rise out of the Tartarus
-// cracks, gold sand trickles from the hourglass and grit crumbles off him; the eyes and cracks pulse.
+// KRONOS THE TITAN KING (art: src/content/style/acts-f-3.ts). His chains are real chains: each one a verlet rope
+// pinned to the shackle's eye and to the iron cuff on its toe (following the toe as it curls), pulled by gravity and
+// by the foot's own moves, so they swing out behind a dash, float up as he dives, slam down and bounce when he lands
+// and draw taut and rattle as he winds up. The magma in his three gashes flows (looping frames, cross-faded), glows
+// on the rig's light twin, and every few seconds a gash swells bright and spits a spurt of molten droplets and
+// embers that arc up and fall; a landing makes all three erupt. Gold sand trickles from the hourglass, grit crumbles
+// off him, stone dust flies when he lands; overheated he steams and the gashes spit more often.
+const TITAN_FLOW_N = 10;
+
 registerLive('titanking', {
-  wiggle: true,
   rig: { swing: 0.6, squash: 1.2, breath: 1.4 },
-  sway: {
-    chainL: { k: 18, c: 1.6, gain: 1.4, idle: 0.12, flop: 1 },
-    chainR: { k: 18, c: 1.6, gain: 1.4, idle: 0.12, flop: 1 },
-  },
-  twitch: { jaw: { every: 2.4 } },
-  glow: { rate: 0.5, depth: 0.5, base: 0.45 },
+  glow: { rate: 0.5, depth: 0.4, base: 0.4 },
   heat: {},
-  setup: (k) => ({
-    steam: steamEm(k),
-    embers: k.emitter({ frame: 'ember', add: true, curl: 40, drag: 0.8, max: 50 }),
-    sand: k.emitter({ frame: 'mote', add: true, drag: 0.3, max: 40 }),
-    grit: k.emitter({ frame: 'flake', drag: 0.3, max: 40 }),
-    dust: k.emitter({ frame: 'puff', curl: 30, drag: 1.5, below: true, max: 80 }),
-  }),
-  tick(k, dt, { steam, embers, sand, grit, dust }) {
-    const s = k.f.type.scale;
-    embers.rate('ember', 3, dt, () => {
-      const c = [[CX - 84, 90], [CX + 78, 160], [CX - 52, 176], [CX + 50, 64]][Math.floor(R() * 4)];
-      embers.emit(c[0] + pm() * 10, c[1] + pm() * 20, { vx: pm() * 30, vy: -40 - R() * 50, life: 1.2, r0: 3 * s, r1: 1.5 * s, a: 1, tint: R() < 0.5 ? 0xff8a20 : 0xffc040, fade: 0.1 });
+  setup(k) {
+    const f = k.f;
+    const ts = f.type.scale;
+    const res = footRes(f.type);
+    const tex = ts * res;
+    const at = (dx: number, dy: number): [number, number] => [(dx - CX) * ts, (dy - f.meta.footHeight) * ts];
+    const sheet = (key: string, b: { x: number; y: number; w: number; h: number }, n: number, draw: (g: CanvasRenderingContext2D, i: number) => void) =>
+      k.sheet(key, Math.ceil(b.w * tex), Math.ceil(b.h * tex), n, (g, i) => {
+        g.scale(tex, tex);
+        g.translate(-b.x, -b.y);
+        draw(g, i);
+      });
+    const img = (key: string, dx: number, dy: number, ox: number, oy: number, additive = false) => {
+      const [x, y] = at(dx, dy);
+      const o = k.sc.add.image(x, y, key, 0).setOrigin(ox, oy).setScale(1 / res);
+      if (additive) o.setBlendMode(Phaser.BlendModes.ADD);
+      f.addLiveArt(o, false, additive);
+      return o;
+    };
+    // the gashes: the melt's flow frames (two images cross-fading), and the light each one throws
+    const cuts = TITAN_CUT_GEO.map((c, i) => {
+      const flowKey = sheet(`lk_titanking_flow${i}`, c.box, TITAN_FLOW_N, (g, j) => paintMagma(g, c, j / TITAN_FLOW_N));
+      const glowKey = sheet(`lk_titanking_cutglow${i}`, c.glowBox, 1, (g) => paintCutGlow(g, c));
+      const a = img(flowKey, c.box.x, c.box.y, 0, 0);
+      const b = img(flowKey, c.box.x, c.box.y, 0, 0);
+      const glow = img(glowKey, c.glowBox.x, c.glowBox.y, 0, 0, true);
+      return { c, a, b, glow, flow: R() * 10, speed: 0.8 + R() * 0.4, surge: 0, spitT: 1.2 + i * 1.3 + R() * 2.5 };
     });
-    sand.rate('sand', 6, dt, () => sand.emit(CX + pm() * 3, 64, { vy: 40, life: 0.8, r0: 2 * s, r1: 1.5 * s, a: 0.9, tint: 0xf0c860, grav: 300, fade: 0.05 }));
-    grit.rate('grit', 1.5 + Math.abs(k.vx) / 60, dt, () => grit.emit(CX + pm() * 190, 60 + R() * 180, { vx: pm() * 30, life: 0.9, r0: 3 * s, r1: 2.5 * s, a: 1, tint: R() < 0.5 ? 0x8e8a84 : 0x6a665e, grav: 800, spin: 8, fade: 0.02 }));
-    landDust(k, dust, 16, [0x9a968e, 0x7a766e], 266, 110, 1.2);
-    overheat(k, steam, dt, [CX - 90, 30, 180, 200]);
+    // the chains: baked links (face-on rings, edge-on bars) and their shadows, turned to lie along the rope
+    const pad = LINK_LEN / 2 + 4;
+    const linkBox = { x: -pad, y: -pad, w: pad * 2, h: pad * 2 };
+    const faceKey = sheet('lk_titanking_linkF', linkBox, 1, (g) => ironLink(g, 0, 0, 0, true, Math.PI / 2));
+    const edgeKey = sheet('lk_titanking_linkE', linkBox, 1, (g) => ironLink(g, 0, 0, 0, false, Math.PI / 2));
+    const shadowKey = sheet('lk_titanking_linkS', linkBox, 1, (g) => linkShadow(g, 0, 0, 0));
+    const sims = [-1, 1].map((s) => restChain(s, 0));
+    const shadows = sims.map((c) => c.p.slice(1).map(() => img(shadowKey, CX, 0, 0.5, 0.5)));
+    // face-on links under the edge-on ones, so they read as threaded through each other
+    const linkImgs = sims.map(() => [] as Phaser.GameObjects.Image[]);
+    for (const face of [true, false])
+      for (const ls of linkImgs)
+        for (let i = 0; i < CHAIN_LINKS; i++) if ((i % 2 === 0) === face) ls[i] = img(face ? faceKey : edgeKey, CX, 0, 0.5, 0.5);
+    return {
+      at,
+      cuts,
+      sims,
+      shadows,
+      linkImgs,
+      lvx: 0,
+      lvy: 0,
+      ax: 0,
+      ay: 0,
+      steam: steamEm(k),
+      // molten droplets: painted (they hold their colour over a bright backdrop), each with a halo of light
+      melt: k.emitter({ frame: 'puff', drag: 0.15, max: 160 }),
+      halo: k.emitter({ frame: 'soft', add: true, drag: 0.15, max: 120 }),
+      jet: k.emitter({ frame: 'soft', add: true, curl: 30, drag: 1.4, max: 60 }),
+      embers: k.emitter({ frame: 'ember', add: true, curl: 50, drag: 0.7, max: 80 }),
+      smoke: k.emitter({ frame: 'puff', curl: 40, drag: 0.9, below: true, max: 60 }),
+      sparks: k.emitter({ frame: 'spark', add: true, drag: 0.8, max: 40 }),
+      sand: k.emitter({ frame: 'mote', add: true, drag: 0.3, max: 40 }),
+      grit: k.emitter({ frame: 'flake', drag: 0.3, max: 40 }),
+      dust: k.emitter({ frame: 'puff', curl: 30, drag: 1.5, below: true, max: 80 }),
+    };
+  },
+  tick(k, dt, st) {
+    const f = k.f;
+    const s = f.type.scale;
+    const calm = save.settings.reducedMotion ? 0.35 : 1;
+    const vis = f.visualAlpha;
+    const winding = k.windingUp;
+    // ——— the chains ———
+    // the foot's acceleration (world px/s², from the kit's already smoothed velocity, smoothed again) in design
+    // units: the chains feel it reversed. A teleport spikes it for a frame; the clamp keeps that sane
+    const step = Math.max(dt, 1 / 240);
+    const k2 = s * Math.max(0.2, f.root.scaleX);
+    st.ax += ((k.vx - st.lvx) / step / k2 - st.ax) * 0.5;
+    st.ay += ((k.vy - st.lvy) / step / k2 - st.ay) * 0.5;
+    st.lvx = k.vx;
+    st.lvy = k.vy;
+    const cl = (v: number) => Phaser.Math.Clamp(v, -5000, 5000);
+    for (const c of st.sims) {
+      const [a, b] = titanChainEnds(c.s, k.toeCurl);
+      // he stops dead; the chains keep falling, slam onto the foot and bounce
+      if (k.landed) kickChain(c, () => c.s * 0.8 * calm, (t) => (2.2 + Math.sin(t * Math.PI) * 2.6) * calm);
+      // winding up he strains: the chains draw taut and the links rattle
+      stepChain(c, a, b, -cl(st.ax) * calm, -cl(st.ay) * calm, dt, 0.985, winding ? 0.92 : 1, winding ? () => pm() * 0.18 * calm : undefined);
+    }
+    st.sims.forEach((c, ci) => {
+      for (let i = 0; i < c.p.length - 1; i++) {
+        const [x0, y0] = c.p[i];
+        const [x1, y1] = c.p[i + 1];
+        const mx = (x0 + x1) / 2;
+        const my = (y0 + y1) / 2;
+        const ang = Math.atan2(y1 - y0, x1 - x0);
+        const [lx, ly] = st.at(mx, my);
+        st.linkImgs[ci][i].setPosition(lx, ly).setRotation(ang);
+        const [sx, sy] = st.at(mx - LX * 4, my - LY * 4);
+        st.shadows[ci][i].setPosition(sx, sy).setRotation(ang).setAlpha(onTitan(mx, my) * vis);
+      }
+    });
+    if (k.landed)
+      for (const c of st.sims) {
+        const e = c.p[c.p.length - 1];
+        for (let i = 0, m = k.burst(6); i < m; i++) st.sparks.emit(e[0] + pm() * 8, e[1] - 4, { vx: pm() * 360, vy: -80 - R() * 200, life: 0.25 + R() * 0.2, r0: 6 * s, r1: 1 * s, a: 1, tint: R() < 0.5 ? 0xfff0c0 : 0xffb050, spin: 4, grav: 600, fade: 0.02 });
+      }
+    // ——— the magma ———
+    const spurt = (cut: (typeof st.cuts)[number], big: number) => {
+      const c = cut.c;
+      for (let j = 0, m = Math.max(1, Math.round(big)); j < m; j++) {
+        // somewhere in the wide middle of the gash
+        const t = 0.22 + R() * 0.56;
+        const i = Math.min(c.mid.length - 1, Math.round(t * (c.mid.length - 1)));
+        const [x, y] = c.mid[i];
+        const [nx] = c.nrm[i];
+        const lean = nx * 160 + pm() * 120;
+        for (let q = 0, n = k.burst(11 + Math.round(big * 4)); q < n; q++) {
+          const pw = 0.55 + R() * 0.6;
+          const d = { vx: lean + pm() * 420 * pw, vy: -(420 + R() * 360) * pw * (0.8 + big * 0.2), life: 1.3 + R() * 0.6, grav: 1150, fade: 0.02 };
+          const r0 = (6 + R() * 5) * s;
+          // a droplet cools as it flies: yellow-white, orange, then dull red
+          st.melt.emit(x + pm() * 6, y, { ...d, r0, r1: r0 * 0.5, a: 1, tint: R() < 0.3 ? 0xffe890 : R() < 0.75 ? 0xff9a20 : 0xff5a10 });
+          if (q % 2 === 0) st.halo.emit(x + pm() * 6, y, { ...d, r0: r0 * 2.6, r1: r0 * 1.4, a: 0.5, tint: 0xff7a1a });
+        }
+        // a short fiery jet straight up out of the gash
+        for (let q = 0, n = k.burst(5); q < n; q++) st.jet.emit(x + pm() * 8, y - 2, { vx: lean * 0.3 + pm() * 40, vy: -(220 + R() * 160) * (0.8 + big * 0.2), life: 0.35 + R() * 0.2, r0: 12 * s, r1: 30 * s, a: 0.75, tint: R() < 0.5 ? 0xffc040 : 0xff6a14, fade: 0.05 });
+        for (let q = 0, n = k.burst(6); q < n; q++) st.embers.emit(x + pm() * 10, y - 2, { vx: pm() * 70, vy: -90 - R() * 120, life: 1 + R() * 0.8, r0: 2.6 * s, r1: 0.8 * s, a: 1, tint: R() < 0.5 ? 0xffc060 : 0xff7a2a, grav: -50, fade: 0.05 });
+        st.smoke.emit(x, y - 6, { vx: pm() * 20, vy: -50 - R() * 30, life: 1.4 + R() * 0.6, r0: 8 * s, r1: 30 * s, a: 0.28, tint: 0x2a2224, grav: -20, fade: 0.2 });
+      }
+      cut.surge = 1;
+    };
+    st.cuts.forEach((cut, i) => {
+      const c = cut.c;
+      // the melt flows (faster when he's hot), one loop frame cross-fading into the next
+      cut.flow += dt * cut.speed * (1 + k.heat * 1.2) * (0.5 + 0.5 * calm) * 6;
+      const fi = Math.floor(cut.flow) % TITAN_FLOW_N;
+      cut.a.setFrame(fi);
+      cut.b.setFrame((fi + 1) % TITAN_FLOW_N).setAlpha((cut.flow - Math.floor(cut.flow)) * vis);
+      // a spit: the gash swells and bubbles for a moment first, then throws its spurt
+      cut.spitT -= dt * (1 + k.heat * 1.5);
+      const swell = cut.spitT < 0.45 ? 1 - Math.max(0, cut.spitT) / 0.45 : 0;
+      if (swell > 0) st.sparks.rate(`bub${i}`, 14 * swell, dt, () => {
+        const p = c.mid[Math.floor((0.25 + R() * 0.5) * (c.mid.length - 1))];
+        st.sparks.emit(p[0] + pm() * 6, p[1], { vx: pm() * 50, vy: -40 - R() * 60, life: 0.25, r0: 3 * s, r1: 0.5 * s, a: 1, tint: 0xffe08a, grav: 300, fade: 0.1 });
+      });
+      if (cut.spitT <= 0) {
+        cut.spitT = 2.6 + R() * 3.4;
+        spurt(cut, 1);
+      }
+      if (k.landed) spurt(cut, 1.8);
+      cut.surge = Math.max(0, cut.surge - dt * 1.6);
+      const pulse = 0.5 + 0.5 * Math.sin(k.t * (1.6 + i * 0.37) + i * 2);
+      const glow = 0.3 + pulse * 0.16 * calm + swell * 0.35 + cut.surge * 0.5 + (winding ? 0.3 : 0) + k.heat * 0.3;
+      cut.glow.setAlpha(Math.min(1, glow) * vis);
+      // a thin rain of embers off it, and now and then a drip off its lower lip
+      st.embers.rate(`e${i}`, (1.4 + k.heat * 3) * calm, dt, () => {
+        const p = c.mid[Math.floor((0.15 + R() * 0.7) * (c.mid.length - 1))];
+        st.embers.emit(p[0] + pm() * 4, p[1] - 2, { vx: pm() * 30, vy: -40 - R() * 50, life: 1.1, r0: 2.6 * s, r1: 1 * s, a: 1, tint: R() < 0.5 ? 0xff8a20 : 0xffc040, grav: -20, fade: 0.1 });
+      });
+      st.melt.rate(`d${i}`, 0.5 + k.heat, dt, () => {
+        const j = Math.floor((0.3 + R() * 0.4) * (c.mid.length - 1));
+        const [x, y] = c.mid[j];
+        st.melt.emit(x + pm() * 4, y + c.half[j] * 0.8, { vy: 30, life: 0.9, r0: 2.6 * s, r1: 1.8 * s, a: 1, tint: 0xff8a1a, grav: 800, fade: 0.02 });
+      });
+    });
+    // ——— the rest ———
+    st.sand.rate('sand', 6, dt, () => st.sand.emit(CX + pm() * 3, 64, { vy: 40, life: 0.8, r0: 2 * s, r1: 1.5 * s, a: 0.9, tint: 0xf0c860, grav: 300, fade: 0.05 }));
+    st.grit.rate('grit', 1.2 + Math.abs(k.vx) / 60, dt, () => st.grit.emit(CX + pm() * 190, 60 + R() * 180, { vx: pm() * 30, life: 0.9, r0: 3 * s, r1: 2.5 * s, a: 1, tint: R() < 0.5 ? 0x8e8a84 : 0x6a665e, grav: 800, spin: 8, fade: 0.02 }));
+    landDust(k, st.dust, 16, [0x9a968e, 0x7a766e], 266, 110, 1.2);
+    overheat(k, st.steam, dt, [CX - 90, 30, 180, 200]);
   },
 });
 
