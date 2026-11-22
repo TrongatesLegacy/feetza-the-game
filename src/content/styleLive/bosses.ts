@@ -6,6 +6,7 @@ import { CX } from '../../art/feetCommon';
 import { type LiveFoot, type WorldEmitter, registerLive } from '../../game/liveKit';
 import { crand } from '../../systems/cosmeticRandom';
 import { BIG_LOCKS } from '../style/bosses';
+import { PENNANT, TICKET, drawSaucer } from '../style/bosses-3';
 import { CROC_HOLES_LIVE, CROC_NOZZLES, KELP, RINK_WHEELS, YETI_TUFTS } from '../style/bosses-2';
 
 const R = () => crand();
@@ -315,5 +316,139 @@ registerLive('yeti', {
         drips.emit(CX - 100 + R() * 200, 260, { vy: 30, life: 0.7, r0: 4 * s, r1: 3 * s, a: 0.8, tint: 0xbfe6ff, grav: 900, fade: 0.02 });
       });
     overheat(k, steam, dt, [CX - 100, 0, 200, 260]);
+  },
+});
+
+// THE HEAD WAITER: the tray sways on its spring (and swings up as it dives), light glints off the patent leather.
+registerLive('headwaiter', {
+  sway: { tray: { k: 46, c: 4.5, gain: -1.2, idle: 0.06, flop: -0.8 } },
+  rig: { swing: 0.8, squash: 0.8 },
+  heat: {},
+  setup: (k) => ({ steam: steamEm(k), glints: k.emitter({ frame: 'spark', add: true, drag: 0, max: 16 }) }),
+  tick(k, dt, { steam, glints }) {
+    const s = k.f.type.scale;
+    glints.rate('g', 1.4, dt, () => {
+      glints.emit(CX - 70 + R() * 90, 170 + R() * 60, { life: 0.4, r0: 10 * s, r1: 1 * s, a: 1, tint: 0xffffff, spin: 2, fade: 0.3 });
+    });
+    overheat(k, steam, dt, [CX - 90, 0, 180, 220]);
+  },
+});
+
+// SANDCASTLE SAM: the pennant flutters, sand trickles off the castle walls, landings throw up a spray of sand.
+registerLive('sandcastle', {
+  wiggle: true,
+  sway: { pennant: { k: 60, c: 3.5, gain: 1.4, idle: 0.2, flop: 1 } },
+  heat: {},
+  setup: (k) => ({
+    steam: steamEm(k),
+    sand: k.emitter({ frame: 'mote', drag: 0.4, max: 120 }),
+    spray: k.emitter({ frame: 'puff', curl: 30, drag: 1.5, below: true, max: 100 }),
+  }),
+  tick(k, dt, { steam, sand, spray }) {
+    const s = k.f.type.scale;
+    sand.rate('trickle', 8, dt, () => {
+      sand.emit(CX - 100 + R() * 200, 40 + R() * 130, { vx: pm() * 10, vy: 20, life: 1, r0: 2.2 * s, r1: 1.8 * s, a: 1, tint: R() < 0.5 ? 0xf0cf8e : 0xc8a060, grav: 500, fade: 0.05 });
+    });
+    landDust(k, spray, 18, [0xf0d8a0, 0xe0c080], 258, 100);
+    overheat(k, steam, dt, [CX - 90, 20, 180, 200]);
+    void PENNANT;
+  },
+});
+
+// SHORT-ORDER SHOE: the order ticket flaps, the grease on it sizzles off in thin smoke and spits, and it steams
+// harder when it overheats.
+registerLive('shortorder', {
+  sway: { ticket: { k: 70, c: 4, gain: 1.6, idle: 0.14, flop: 1.2 } },
+  rig: { squash: 1.1, swing: 1.1 },
+  heat: {},
+  setup: (k) => ({
+    steam: steamEm(k),
+    smoke: k.emitter({ frame: 'puff', curl: 50, drag: 1, max: 80 }),
+    spit: k.emitter({ frame: 'ember', add: true, drag: 0.4, max: 40 }),
+  }),
+  tick(k, dt, { steam, smoke, spit }) {
+    const s = k.f.type.scale;
+    smoke.rate('sizzle', 5, dt, () => {
+      smoke.emit(CX - 80 + R() * 160, 60 + R() * 160, { vx: pm() * 16, vy: -40 - R() * 30, life: 1.2 + R() * 0.6, r0: 4 * s, r1: 18 * s, a: 0.22, tint: 0xe8e4e0, fade: 0.2 });
+    });
+    spit.rate('spit', 2.5, dt, () => {
+      spit.emit(CX - 80 + R() * 160, 100 + R() * 120, { vx: pm() * 160, vy: -120 - R() * 100, life: 0.4, r0: 3 * s, r1: 1 * s, a: 1, tint: 0xffd070, grav: 600, fade: 0.02 });
+    });
+    overheat(k, steam, dt, [CX - 90, 20, 180, 220]);
+    void TICKET;
+  },
+});
+
+// ICE SKATE IVY: the blade glints and gleams (the glow), frost mist rolls off it, and landings throw ice shavings.
+registerLive('iceskate', {
+  glow: { rate: 0.9, depth: 0.6, base: 0.35 },
+  rig: { swing: 1.3 },
+  heat: {},
+  setup: (k) => ({
+    steam: steamEm(k),
+    mist: k.emitter({ frame: 'puff', curl: 20, drag: 1, below: true, max: 80 }),
+    ice: k.emitter({ frame: 'flake', add: true, drag: 0.6, max: 80 }),
+    glints: k.emitter({ frame: 'spark', add: true, drag: 0, max: 12 }),
+  }),
+  tick(k, dt, { steam, mist, ice, glints }) {
+    const s = k.f.type.scale;
+    mist.rate('mist', 4, dt, () => {
+      mist.emit(CX - 90 + R() * 180, 296, { vx: pm() * 40, vy: 10 + R() * 10, life: 1.6 + R(), r0: 8 * s, r1: 30 * s, a: 0.3, tint: 0xe8f4ff, fade: 0.25 });
+    });
+    glints.rate('g', 1.2, dt, () => {
+      glints.emit(CX - 80 + R() * 170, 288 + pm() * 8, { life: 0.4, r0: 12 * s, r1: 1 * s, a: 1, tint: 0xeaf6ff, spin: 2, fade: 0.3 });
+    });
+    if (k.landed)
+      for (let i = 0, n = k.burst(22); i < n; i++) ice.emit(CX + pm() * 180, 300, { vx: pm() * 380, vy: -100 - R() * 200, life: 0.7, r0: 3 * s, r1: 2 * s, a: 0.9, tint: 0xdff2ff, grav: 700, spin: 8, fade: 0.02 });
+    overheat(k, steam, dt, [CX - 80, 20, 160, 240]);
+  },
+});
+
+// UFO TOE: its pet saucer circles it (passing in front and behind, its lights chasing), the antennae bob, the spots
+// and nail glow, and a faint tractor shimmer hangs under it.
+registerLive('ufotoe', {
+  glow: { rate: 0.7, depth: 0.45, base: 0.4 },
+  sway: {
+    ant0: { k: 40, c: 3.5, gain: 1.4, idle: 0.14, flop: 1 },
+    ant1: { k: 44, c: 3.5, gain: 1.4, idle: 0.14, flop: 1 },
+  },
+  rig: { squash: 1.3 },
+  heat: {},
+  setup(k) {
+    const key = k.sheet('lk_saucer', 72, 40, 4, (ctx, i) => {
+      ctx.translate(36, 24);
+      drawSaucer(ctx, 1.4, i / 3);
+    });
+    return {
+      saucer: k.swarm({ key, frames: 4, count: 1, at: [CX, 150], rx: 150, ry: 80, speed: 1.4, jitter: 12, scale: 0.75 }),
+      steam: steamEm(k),
+      motes: k.emitter({ frame: 'mote', add: true, drag: 0.5, max: 50 }),
+    };
+  },
+  tick(k, dt, { saucer, steam, motes }) {
+    const s = k.f.type.scale;
+    saucer.pace += ((k.windingUp ? 2.4 : 1) - saucer.pace) * Math.min(1, dt * 3);
+    motes.rate('beam', 6, dt, () => {
+      motes.emit(CX - 50 + R() * 100, 290, { vx: pm() * 10, vy: -30 - R() * 30, life: 1.2, r0: 3 * s, r1: 1 * s, a: 0.7, tint: 0xd4ff5a, fade: 0.2 });
+    });
+    overheat(k, steam, dt, [CX - 80, 40, 160, 220]);
+  },
+});
+
+// DOUGH BOY: squishy (big squash and stretch), its eyes blink and follow your peel, flour puffs off it and bursts
+// out when it lands. Overheated, it bakes: a golden crust glow and steam.
+registerLive('doughboy', {
+  wiggle: true,
+  rig: { squash: 1.8, breath: 1.8 },
+  blink: { eyes: { every: 3, look: 3 } },
+  heat: {},
+  setup: (k) => ({ steam: steamEm(k), flour: k.emitter({ frame: 'puff', curl: 40, drag: 1.4, max: 140 }) }),
+  tick(k, dt, { steam, flour }) {
+    const s = k.f.type.scale;
+    flour.rate('dust', 3, dt, () => {
+      flour.emit(CX - 100 + R() * 200, 40 + R() * 200, { vx: pm() * 20, vy: 10 + R() * 10, life: 1.4, r0: 4 * s, r1: 14 * s, a: 0.3, tint: 0xffffff, fade: 0.2 });
+    });
+    landDust(k, flour, 20, [0xffffff, 0xfff8ea], 258, 110);
+    overheat(k, steam, dt, [CX - 90, 20, 180, 220]);
   },
 });
