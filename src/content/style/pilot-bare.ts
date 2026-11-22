@@ -14,10 +14,12 @@ import { registerStyle } from '../../art/style/registry';
 import { contact } from '../../art/style/details';
 import { type Ctx, hashStr, mix, rgba, rng, shade } from '../../art/util';
 
-const BARE_RIG = { from: 176, to: 198 };
+/** Poses only move the toes: the band starts well above the highest a curled toe reaches. */
+const BARE_RIG = { from: 140, to: 162 };
 
 registerStyle('bob', {
   rig: BARE_RIG,
+  leg: { kind: 'denim', hw: 70, join: 'hem' },
   draw(ctx, art, p) {
     bareOutline(paintBare(ctx, { skin: art.skin, nails: art.nails }, p));
   },
@@ -158,6 +160,7 @@ function fionaSkin(g: Ctx, f: BareFoot, art: FootArt): void {
 
 registerStyle('fruitfly', {
   rig: BARE_RIG,
+  leg: { kind: 'skin', hw: 50, join: 'blend', fade: 24 },
   draw(ctx, art, p, o) {
     const f = paintBare(ctx, { skin: art.skin, nails: art.nails, shadowTint: '#6a3a10', pores: 0.28 }, p);
     fionaSkin(f.sil.g, f, art);
@@ -333,6 +336,7 @@ export function drip(g: Ctx, x: number, y: number, s: number): void {
 
 registerStyle('lava', {
   rig: BARE_RIG,
+  leg: { kind: 'basalt', hw: 50, join: 'blend', fade: 24 },
   draw(ctx, art, p, o) {
     const f = paintMagma(ctx, art, p, !!o.emissive);
     if (!f || o.live) return;

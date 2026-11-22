@@ -362,7 +362,8 @@ function drawSweep(ctx: Ctx, art: FootArt, p: Pose, o: { live: boolean; emissive
 
 registerStyle('sweep', {
   contactY: 264,
-  rig: { from: 140, to: 162 },
+  rig: { from: 112, to: 134 },
+  leg: { kind: 'wool', hw: 68, join: 'hem' },
   parts: {
     brush: { box: { x: BRUSH.x - BRUSH.r - 6, y: -8, w: BRUSH.r * 2 + 64, h: BRUSH.y + BRUSH.r + 14 }, frames: 1, pivot: [BRUSH.x + 36, 0], draw: (g) => {
       const s = new Sil(g, [brushRod, brushHead], { x: BRUSH.x - 40, y: -10, w: 120, h: 100 });
@@ -733,14 +734,16 @@ function drawIronHeel(ctx: Ctx, art: FootArt, p: Pose, o: { live: boolean; emiss
   ao(g, CX, 30, 70, 6, 0.4);
   sil.edge(rgba('#06080e', 0.5), 22, LX * 12, LY * 12);
   sil.edge(rgba(LIGHT.rim, 0.6), 3, LX * 3.5, LY * 3.5);
-  sil.finish('#120c10', { openTop: -5 });
+  // the collar is a ring the leg drops into: outlined all round
+  sil.finish('#120c10');
   void amber;
 }
 
 registerStyle('ironheel', {
   contactY: 262,
   halfWidth: 110,
-  rig: { from: 166, to: 186 },
+  rig: { from: 150, to: 172 },
+  leg: { kind: 'iron', hw: 60, join: 'into' },
   draw(ctx, art, p, o) {
     drawIronHeel(ctx, art, p, o);
   },

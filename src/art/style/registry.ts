@@ -6,6 +6,7 @@
 import type { FootArt } from '../../data/feet';
 import type { Ctx } from '../util';
 import type { Box, Pose } from './kit';
+import type { LegSpec } from './legs';
 
 export interface DrawOpts {
   /** In play: leave out what the live layer draws on its own (eyes, ears, tufts, flies, glow). */
@@ -40,6 +41,8 @@ export interface StyleDef {
   rig?: { from: number; to: number; bottom?: number };
   /** Live parts drawn as their own sprites. */
   parts?: Record<string, PartDef>;
+  /** The leg in the kit's style, and how it joins the foot (src/art/style/legs.ts). */
+  leg?: LegSpec;
 }
 
 const styles: Record<string, StyleDef> = {};

@@ -4,6 +4,7 @@
 import { kindDrawer } from './registry';
 import { type DrawOpts, styleFor } from './style/registry';
 import { type Pose, REST, STYLE } from './style/kit';
+import { type LegSpec, fadeFootTop, legEnd, styledHem, styledLeg } from './style/legs';
 import type { FootArt, FootType, LegKind } from '../data/feet';
 import { type Ctx, ellipse, hashStr, makeCanvas, mix, rgba, rng, roundRect, shade } from './util';
 import { CX, INK, OUT, argyle, barePath, drawBare, drawBareBody, drawHair, drawSock, drawToe, glossy, laces, leatherFill, outlineOf, shoePath, skinBodyFill, toesFor } from './feetCommon';
@@ -29,6 +30,10 @@ export function footCanvas(type: FootType, draw: (ctx: Ctx) => void): HTMLCanvas
 export interface FootTextures {
   /** Texels per design unit at scale 1 (ART_RES, or the style kit's for redrawn feet). */
   res: number;
+  /** Design y where the leg ends inside the foot (styled legs); otherwise Foot tucks it in itself. */
+  legEnd?: number;
+  /** Design y of the cuff's top edge (styled hems), for portraits. */
+  cuffTop?: number;
   foot: HTMLCanvasElement;
   leg: HTMLCanvasElement;
   cuff?: HTMLCanvasElement;
@@ -1242,7 +1247,15 @@ export function styledCanvas(type: FootType, p: Pose, o: DrawOpts, band?: { y0: 
   ctx.scale(s, s);
   ctx.translate(PAD_X, -y0);
   st.draw(ctx, type.art, p, o);
+  if (!band && st.leg?.join === 'blend') fadeFootTop(c, s, PAD_Y, st.leg.fade ?? 22);
   return c;
+}
+
+/** The colours a styled leg takes from the foot's art. */
+function legColours(art: FootArt, spec: LegSpec): [string, string | undefined] {
+  if (spec.kind === 'fur') return [art.primary ?? art.skin, undefined];
+  if (spec.kind === 'skin' || spec.kind === 'basalt') return [art.skin, undefined];
+  return [art.legColor ?? art.skin, art.secondary];
 }
 
 /** A foot's textures. `classic` draws a redrawn foot's old art instead (the style sheet's before/after). */
@@ -1258,15 +1271,20 @@ export function drawFoot(type: FootType, resOverride?: number, classic = false):
   if (style) {
     style.draw(ctx, art, REST, { live: false });
     const cy = style.contactY ?? 260;
+    const spec = style.leg;
+    if (spec?.join === 'blend') fadeFootTop(c, s, PAD_Y, spec.fade ?? 22);
+    const [legCol, legAcc] = spec ? legColours(art, spec) : ['', undefined];
     return {
       res,
       foot: c,
-      leg: drawLeg(type, s),
-      cuff: drawCuff(type, s),
+      leg: spec ? styledLeg(spec, legCol, legAcc, s) : drawLeg(type, s),
+      cuff: spec ? (spec.join === 'hem' ? styledHem(spec, legCol, s) : undefined) : drawCuff(type, s),
+      legEnd: spec ? legEnd(spec) : undefined,
+      cuffTop: spec?.join === 'hem' ? -18 : undefined,
       originY: (cy + PAD_Y) / DESIGN_H,
       footHeight: cy,
       footHalfWidth: style.halfWidth ?? 104,
-      legWidth: LEG_W[art.leg] + OUT * 2,
+      legWidth: spec ? spec.hw * 2 + OUT * 2 : LEG_W[art.leg] + OUT * 2,
     };
   }
   switch (art.kind) {
@@ -1342,7 +1360,7 @@ export function footPortrait(type: FootType, tex: FootTextures, size = 220): str
   ctx.fillRect(0, 0, tex.leg.width, legH + 30 * s);
   ctx.restore();
   ctx.drawImage(tex.foot, 0, legH);
-  if (tex.cuff) ctx.drawImage(tex.cuff, (fw - tex.cuff.width) / 2, legH - 6 * s);
+  if (tex.cuff) ctx.drawImage(tex.cuff, (fw - tex.cuff.width) / 2, tex.cuffTop !== undefined ? legH + (PAD_Y + tex.cuffTop) * s : legH - 6 * s);
   // fade the top of the leg out
   ctx.globalCompositeOperation = 'destination-out';
   const g = ctx.createLinearGradient(0, 0, 0, legH * 0.8);

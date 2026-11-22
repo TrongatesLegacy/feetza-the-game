@@ -578,7 +578,7 @@ export function playEnding(sc: Phaser.Scene, done: () => void): void {
     const big = f.boss || f.mini;
     const img = sc.add.image(0, 0, m.footKey).setOrigin(0.5, m.originY);
     // tall feet (and bosses) are scaled down to the lane's height, so none reaches the credits
-    const s = Math.min((big ? 0.42 : 0.6) * Math.min(1.25, 1 / Math.max(0.7, f.scale)), PARADE_MAX_H / (img.height * m.originY), (spacing * 1.3) / img.width);
+    const s = Math.min((big ? 0.42 : 0.6) * Math.min(1.25, 1 / Math.max(0.7, f.scale)) * (1.35 / m.textures.res), PARADE_MAX_H / (img.height * m.originY), (spacing * 1.3) / img.width);
     img.setScale(s);
     const c = sc.add.container(W + 160 + i * spacing, lane);
     // names wrap onto two lines within the foot's own spacing, so neighbours never run together

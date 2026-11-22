@@ -47,7 +47,7 @@ registerLive('fruitfly', {
     const s = k.f.type.scale;
     // a low, heavy fog rolls off the toes and sinks; thinner wisps curl up the sides
     fogBack.rate('toes', 11, dt, () => {
-      fogBack.emit(30 + R() * 160, 236 + R() * 24, { vx: pm() * 30, vy: 6 + R() * 22, life: 2.4 + R() * 1.2, r0: 16 * s, r1: 60 * s, a: 0.5, tint: R() < 0.6 ? 0x9ab83a : 0x6f8a22, fade: 0.25 });
+      fogBack.emit(30 + R() * 160, 236 + R() * 24, { vx: pm() * 34, vy: 2 + R() * 8, life: 2.4 + R() * 1.2, r0: 16 * s, r1: 60 * s, a: 0.5, tint: R() < 0.6 ? 0x9ab83a : 0x6f8a22, fade: 0.25 });
     });
     fogFront.rate('wisps', 5, dt, () => {
       const side = R() < 0.5 ? -1 : 1;
@@ -78,8 +78,8 @@ registerLive('lava', {
       smoke.emit(40 + R() * 140, 20 + R() * 120, { vx: pm() * 10, vy: -30 - R() * 25, life: 1.8 + R(), r0: 6 * s, r1: 26 * s, a: 0.22, tint: 0x2a2224, fade: 0.25 });
     });
     // a landing throws a spray of sparks
-    if (k.sinceLand < dt * 1.5) {
-      for (let i = 0; i < 16; i++) embers.emit(40 + R() * 140, 258, { vx: pm() * 420, vy: -120 - R() * 260, life: 0.5 + R() * 0.4, r0: 3 * s, r1: 1 * s, a: 1, tint: 0xffc060, grav: 900, fade: 0.02 });
+    if (k.landed) {
+      for (let i = 0, n = k.burst(16); i < n; i++) embers.emit(40 + R() * 140, 258, { vx: pm() * 420, vy: -120 - R() * 260, life: 0.5 + R() * 0.4, r0: 3 * s, r1: 1 * s, a: 1, tint: 0xffc060, grav: 900, fade: 0.02 });
     }
   },
 });
@@ -150,7 +150,7 @@ registerLive('ironheel', {
       chuff.t = 0.95 - h * 0.5;
       STACKS.forEach(([x, y], i) => {
         const dir = i === 0 ? -1 : 1;
-        for (let j = 0; j < 4 + Math.round(h * 5); j++)
+        for (let j = 0, n = k.burst(4 + Math.round(h * 5)); j < n; j++)
           steam.emit(x, y, { vx: dir * (40 + R() * 50), vy: -110 - R() * 90 - h * 80, life: 1.1 + R() * 0.6, r0: 6 * s, r1: (22 + h * 18) * s, a: 0.5, tint: 0xeef2f6, fade: 0.06 });
       });
     }

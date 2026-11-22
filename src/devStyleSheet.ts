@@ -12,7 +12,8 @@ import { MATERIALS, type MaterialId, paint } from './art/style/materials';
 import { styleFor, styledIds } from './art/style/registry';
 import { makeCanvas, rgba } from './art/util';
 import { FOOT_BY_ID, type FootType } from './data/feet';
-import { type FootMeta, footMeta } from './game/assets';
+import { type FootMeta, footMeta, footPortraitURL } from './game/assets';
+import { PEELS, peelThumbURL } from './game/peels';
 import { Foot, type FootHooks } from './game/Foot';
 import { liveOf, styleLive } from './game/liveKit';
 import { buildSprites } from './art/sprites';
@@ -252,7 +253,7 @@ class Showcase extends Phaser.Scene {
         f.puppet = true;
         f.setState('hover');
       }
-      this.add.text(col * cw + cw / 2, row * 380 + 344, `${type.name}  ·  old | new`, { fontFamily: 'Fredoka', fontSize: '19px', color: '#ffe9c7' }).setOrigin(0.5, 0).setDepth(5);
+      this.add.text(col * cw + cw / 2, row * 380 + 344, `${type.name}  ·  old | new`, { fontFamily: 'Fredoka, system-ui, sans-serif', fontSize: '19px', color: '#ffe9c7' }).setOrigin(0.5, 0).setDepth(5);
       this.pairs.push({ id, old, neu, t: (i * 0.37) % 3.6, layer });
     });
   }
@@ -321,6 +322,8 @@ export function installStyleSheet(): void {
       <div class="ss-body">
         <h3>Alive: old and new, side by side</h3><p>The real feet and live kit, puppeted through a hover (swaying), the wind-up, the dive, the stomp and the lift. Particles stay in the world, so a moving foot trails them.</p>
         <div class="ss-stage" data-stage></div>
+        <h3>Where the art shows outside play</h3><p>Peel thumbnails (the foot's own art, trimmed to fit the emblem), shiny peels, and the Pizzapedia portrait.</p>
+        <div class="ss-row" data-thumbs></div>
         <h3>The rules</h3><p>One silhouette per foot (a union of parts with one outline); materials, not flat fills; one light for the whole game; detail painted inside the silhouette; constant subtle life.</p>
         <div class="ss-row" data-rules></div>
         <h3>Palette</h3><div data-palette></div>
@@ -333,6 +336,25 @@ export function installStyleSheet(): void {
     rules.append(lightCard(), lineCard(), anatomyCard());
     wrap.querySelector('[data-palette]')!.append(paletteRow());
     wrap.querySelector('[data-mats]')!.append(...materialCards());
+    const thumbs = wrap.querySelector('[data-thumbs]')!;
+    for (const id of styledIds()) {
+      const t = FOOT_BY_ID[id];
+      if (!t) continue;
+      const d = document.createElement('div');
+      d.style.cssText = 'display:flex;gap:6px;align-items:flex-end';
+      for (const pid of [`${t.boss || t.mini ? 'boss' : 'foot'}:${id}`, `shiny:${id}`]) {
+        if (!PEELS.some((p) => p.id === pid)) continue;
+        const img = new Image();
+        img.src = peelThumbURL(pid, 160);
+        img.style.height = '160px';
+        d.append(img);
+      }
+      const por = new Image();
+      por.src = footPortraitURL(id);
+      por.style.cssText = 'height:120px;background:#3a2a20;border-radius:10px;padding:4px';
+      d.append(por);
+      thumbs.append(card(t.name, 'peel · shiny peel · Pizzapedia', d));
+    }
     const rows = Math.ceil(styledIds().length / 4);
     const stage = wrap.querySelector<HTMLElement>('[data-stage]')!;
     game = new Phaser.Game({ type: Phaser.AUTO, parent: stage, width: 1600, height: rows * 380 + 20, backgroundColor: '#2a1d30', scene: [Showcase], audio: { noAudio: true }, banner: false });

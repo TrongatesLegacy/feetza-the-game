@@ -284,7 +284,8 @@ function lockPart(i: number): PartDef {
 registerStyle('wally', {
   contactY: 268,
   halfWidth: 108,
-  rig: { from: 168, to: 190 },
+  rig: { from: 140, to: 162 },
+  leg: { kind: 'fur', hw: 55, join: 'blend', fade: 26 },
   parts: Object.fromEntries(WALLY_LOCKS.map((_, i) => [`lock${i}`, lockPart(i)])),
   draw(ctx, art, p, o) {
     drawWally(ctx, art, p, o.live);
@@ -497,6 +498,7 @@ registerStyle('bunny', {
   contactY: 266,
   halfWidth: 108,
   rig: { from: 196, to: 214 },
+  leg: { kind: 'wool', hw: 64, join: 'hem' },
   parts: {
     earL: { box: { x: EARS[0].x - 106, y: EARS[0].y - 60, w: 118, h: 120 }, frames: 1, pivot: [EARS[0].x, EARS[0].y], draw: (g, art) => earPart(g, art, 0) },
     earR: { box: { x: EARS[1].x - 12, y: EARS[1].y - 60, w: 118, h: 120 }, frames: 1, pivot: [EARS[1].x, EARS[1].y], draw: (g, art) => earPart(g, art, 1) },

@@ -323,7 +323,8 @@ export function sneakerLaceEnds(g: Ctx, swing: number): void {
 
 registerStyle('sneaker', {
   contactY: 262,
-  rig: { from: 150, to: 172 },
+  rig: { from: 118, to: 140 },
+  leg: { kind: 'denim', hw: 70, join: 'hem' },
   parts: {
     laces: { box: { x: CX - 24, y: 18, w: 48, h: 60 }, frames: 1, pivot: [CX, 24], draw: (g) => sneakerLaceEnds(g, 0) },
   },

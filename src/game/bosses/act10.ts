@@ -634,7 +634,7 @@ const ghostfuture = (): Brain => {
     screenGlitch(a.sc, 700, 0.7);
     // it arrives as a smear of afterimages, the future catching up with the present
     for (let i = 1; i <= 4; i++) {
-      const ghost = a.sc.add.image(f.x + i * 120, 360, `foot_${f.type.id}`).setScale(f.scale / (f.type.scale * 1.35)).setAlpha(0.35 / i).setTint(0xbfe6ff);
+      const ghost = a.sc.add.image(f.x + i * 120, 360, `foot_${f.type.id}`).setScale(f.scale / (f.type.scale * f.meta.textures.res)).setAlpha(0.35 / i).setTint(0xbfe6ff);
       a.fxLayer.add(ghost);
       a.sc.tweens.add({ targets: ghost, x: f.x, alpha: 0, duration: 700 + i * 120, onComplete: () => ghost.destroy() });
     }
@@ -682,7 +682,7 @@ const ghostfuture = (): Brain => {
         done();
         if (!f.alive || !a.inWave()) return;
         // the pale foot from the future lands
-        const foot = a.sc.add.image(x, y - 420, `foot_${f.type.id}`).setOrigin(0.5, 0.85).setScale((0.7 * f.scale) / (f.type.scale * 1.35)).setAlpha(0.75).setTint(0xdff4ff);
+        const foot = a.sc.add.image(x, y - 420, `foot_${f.type.id}`).setOrigin(0.5, 0.85).setScale((0.7 * f.scale) / (f.type.scale * f.meta.textures.res)).setAlpha(0.75).setTint(0xdff4ff);
         a.fxLayer.add(foot);
         a.sc.tweens.add({
           targets: foot, y, duration: 140, ease: 'Quad.In',

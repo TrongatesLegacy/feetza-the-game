@@ -30,8 +30,8 @@ import type { Foot } from './Foot';
 // ════════════════════════════ textures ════════════════════════════
 
 /** Pose frames for the toe band: the curl track (splay … rest … curled), then the wiggle cycle. */
-const CURL_TRACK = [-1, 0, 0.35, 0.7, 1];
-const WIGGLE_N = 4;
+const CURL_TRACK = [-1, -0.5, 0, 0.25, 0.5, 0.75, 1];
+const WIGGLE_N = 8;
 const wigglePose = (k: number): Pose => pose({ wiggle: [0, 1, 2, 3, 4].map((i) => Math.sin((k / WIGGLE_N) * Math.PI * 2 + i * 1.25) * 0.85) });
 
 interface LiveTex {
@@ -115,8 +115,22 @@ function liveTextures(sc: Phaser.Scene, type: FootType, def: LiveDef): LiveTex {
     }
     out.parts[name] = key;
   }
-  if (def.glow) out.glow = addTex(sc, `lk_${type.id}_glow`, styledCanvas(type, pose({}), { live: true, emissive: true }));
-  if (def.heat) out.heat = addTex(sc, `lk_${type.id}_heat`, styledCanvas(type, pose({ heat: 1 }), { live: true, heat: true }));
+  // glow and heat are drawn at rest: keep them off the toe band, where the toes move, or they'd show a second set
+  const offBand = (c: HTMLCanvasElement) => {
+    if (!st.rig) return c;
+    const ctx = c.getContext('2d')!;
+    ctx.globalCompositeOperation = 'destination-out';
+    const y0 = (st.rig.from + FOOT_FRAME.padY) * s;
+    const y1 = (st.rig.to + FOOT_FRAME.padY) * s;
+    const g = ctx.createLinearGradient(0, y0, 0, y1);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(1, 'rgba(0,0,0,1)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, y0, c.width, c.height - y0);
+    return c;
+  };
+  if (def.glow) out.glow = addTex(sc, `lk_${type.id}_glow`, offBand(styledCanvas(type, pose({}), { live: true, emissive: true })));
+  if (def.heat) out.heat = addTex(sc, `lk_${type.id}_heat`, offBand(styledCanvas(type, pose({ heat: 1 }), { live: true, heat: true })));
   texCache.set(type.id, out);
   return out;
 }
@@ -224,12 +238,17 @@ function noise1(x: number): number {
   return h(i) * (1 - u) + h(i + 1) * u;
 }
 
-/** How many live feet are about (emitters thin out in a crowd). */
-let liveCount = 0;
+/** The live feet about (emitters thin out in a crowd). Counted by their active roots, so feet dropped without a
+ * death (a scene restart) never inflate it. */
+const liveSet = new Set<LiveFoot>();
+function liveCountNow(): number {
+  for (const l of liveSet) if (!l.f.root.active) liveSet.delete(l);
+  return liveSet.size;
+}
 const reduced = () => !!save.settings.reducedMotion;
 /** Emission multiplier: thinner with reduced motion and with many live feet about. */
 export function liveQuality(): number {
-  const q = Math.min(1, 4 / Math.max(1, liveCount));
+  const q = Math.min(1, 4 / Math.max(1, liveCountNow()));
   return Math.max(0.35, q) * (reduced() ? 0.4 : 1);
 }
 
@@ -457,10 +476,19 @@ export class Critters {
     }
   }
 
+  /** True on the one frame it lands a stomp. */
+  landed = false;
+
+  /** How many of a burst of n to emit (thinner in a crowd and with reduced motion). */
+  burst(n: number): number {
+    return Math.max(1, Math.round(n * liveQuality()));
+  }
+
   update(dt: number): void {
     const f = this.f;
     const r = f.root;
     this.t += dt;
+    this.landed = false;
     const ts = f.type.scale * r.scaleX;
     const [ax, ay] = f.styleWorld(this.o.at[0], this.o.at[1]);
     const ci = Math.cos(-r.rotation);
@@ -501,6 +529,7 @@ export class Critters {
   /** The foot is gone: the critters scatter and fade. */
   release(): void {
     for (const c of this.list) {
+      if (!c.img.active) continue;
       const a = crand() * Math.PI * 2;
       this.f.scene.tweens.add({ targets: c.img, x: c.img.x + Math.cos(a) * 260, y: c.img.y + Math.sin(a) * 200 - 120, alpha: 0, duration: 900 + crand() * 500, ease: 'Quad.In' });
     }
@@ -629,7 +658,7 @@ export class LiveFoot {
       this.heatImg = this.sc.add.image(0, 0, this.tex.heat).setOrigin(0.5, f.meta.originY).setScale(k).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
       f.addLiveArt(this.heatImg, false);
     }
-    liveCount++;
+    liveSet.add(this);
     this.state = def.setup?.(this);
   }
 
@@ -672,10 +701,19 @@ export class LiveFoot {
     return this.landT;
   }
 
+  /** True on the one frame it lands a stomp. */
+  landed = false;
+
+  /** How many of a burst of n to emit (thinner in a crowd and with reduced motion). */
+  burst(n: number): number {
+    return Math.max(1, Math.round(n * liveQuality()));
+  }
+
   update(dt: number): void {
     const f = this.f;
     const r = f.root;
     this.t += dt;
+    this.landed = false;
     this.vx = this.vx * 0.7 + ((r.x - this.lastX) / dt) * 0.3;
     this.vy = this.vy * 0.7 + ((r.y - this.lastY) / dt) * 0.3;
     this.lastX = r.x;
@@ -686,6 +724,7 @@ export class LiveFoot {
     if (f.state !== this.lastState) {
       if (f.state === 'stomp') {
         this.landT = 0;
+        this.landed = true;
         // land: squash hard and spring back (follow-through), toes splay
         this.sy.v -= 3.6 * (rigO.squash ?? 1) * calm;
         this.curl = -1;
@@ -733,7 +772,7 @@ export class LiveFoot {
       const idle = noise1(s.sd + this.t * 0.8) * (o.idle ?? 0.06) * calm;
       // sideways moves push it back, falling lifts it, landing flops it
       const push = (-this.vx * 0.0011 - Math.max(0, this.vy) * 0.0002 * (o.flop ?? 1)) * (o.gain ?? 1);
-      if (f.state === 'stomp' && this.landT < dt * 1.5) s.spring.v += 6 * (o.flop ?? 1) * (o.gain ?? 1) * calm;
+      if (this.landed) s.spring.v += 6 * (o.flop ?? 1) * (o.gain ?? 1) * calm;
       s.img.rotation = s.spring.step(Phaser.Math.Clamp(push * calm + idle, -0.6, 0.6), dt);
     }
     // ——— blinks and looks ———
@@ -797,27 +836,24 @@ export class LiveFoot {
     if (!a || !b || !this.tex.band) return;
     const nCurl = CURL_TRACK.length;
     const idle = this.tex.band.wiggle && this.f.state === 'hover' && !this.windingUp && Math.abs(this.curl) < 0.05 && Math.abs(curlTo) < 0.05 && !reduced();
+    // one frame at a time: cross-fading two poses would show both sets of toes, ghosted
+    b.setVisible(false);
     if (idle) {
-      this.wigT += dt * 2.2;
-      const pos = this.wigT % WIGGLE_N;
-      const i = Math.floor(pos);
-      a.setFrame(nCurl + i);
-      b.setFrame(nCurl + ((i + 1) % WIGGLE_N)).setAlpha((pos - i) * a.alpha);
+      this.wigT += dt * 9;
+      a.setFrame(nCurl + (Math.floor(this.wigT) % WIGGLE_N));
       return;
     }
-    const c = this.curl;
-    let i = 0;
-    while (i < nCurl - 2 && c > CURL_TRACK[i + 1]) i++;
-    const u = Phaser.Math.Clamp((c - CURL_TRACK[i]) / (CURL_TRACK[i + 1] - CURL_TRACK[i]), 0, 1);
-    a.setFrame(i);
-    b.setFrame(i + 1).setAlpha(u * a.alpha);
+    let best = 0;
+    for (let i = 1; i < nCurl; i++) if (Math.abs(CURL_TRACK[i] - this.curl) < Math.abs(CURL_TRACK[best] - this.curl)) best = i;
+    a.setFrame(best);
   }
 
   die(): void {
+    if (!this.counted) return;
+    this.counted = false;
+    liveSet.delete(this);
     for (const e of this.emitters) e.release();
     for (const c of this.critters) c.release();
-    if (this.counted) liveCount--;
-    this.counted = false;
   }
 }
 

@@ -232,7 +232,8 @@ export class Foot {
     const legTex = scene.textures.get(m.legKey).getSourceImage() as HTMLCanvasElement;
     const legW = legTex.width * k;
     const footTop = m.footHeight * type.scale; // world px from contact up to ankle
-    const legBottom = -footTop + 16 * type.scale + legTuck(scene, type, m, footTop);
+    // a styled leg ends where its join says; the others are tucked in far enough to hide their corners
+    const legBottom = m.textures.legEnd !== undefined ? (m.textures.legEnd - m.footHeight) * type.scale : -footTop + 16 * type.scale + legTuck(scene, type, m, footTop);
     this.leg = scene.add.tileSprite(0, legBottom, legW, LEG_LEN, m.legKey).setOrigin(0.5, 1).setTileScale(k, k);
     this.img = scene.add.image(0, 0, m.footKey).setOrigin(0.5, m.originY).setScale(k);
     this.root.add([this.leg, this.img]);
@@ -682,6 +683,17 @@ export class Foot {
     this.root.addAt(swing, i);
     squash.add(this.img);
     this.rig = { swing, squash };
+    // foot-wide effects drawn on the art alone would stop at the toe band's cut: move them to the whole rig
+    const fx = this.img.preFX;
+    if (fx && squash.postFX) {
+      for (const e of [...fx.list]) {
+        if (e instanceof Phaser.FX.Glow) {
+          const g = squash.postFX.addGlow(e.color, e.outerStrength, e.innerStrength, !!e.knockout, 0.1, 12);
+          if (e === this.auraFx) this.auraFx = g;
+        } else if (e instanceof Phaser.FX.Shine) squash.postFX.addShine(e.speed, e.lineWidth, e.gradient);
+      }
+      fx.clear();
+    }
   }
 
   /** A point of the foot's design space (src/art/style: centre x 110, sole at its contact y) in world
@@ -706,6 +718,11 @@ export class Foot {
     const lx = x * r.scaleX;
     const ly = y * r.scaleY;
     return [r.x + lx * c - ly * s, r.y + lx * s + ly * c];
+  }
+
+  /** Where foot-wide FX (glows, shines, the phase aura) go: the art, or the whole rig once there is one. */
+  private fxHost(): Phaser.GameObjects.Components.FX | null {
+    return this.rig ? this.rig.squash.postFX : this.img.preFX;
   }
 
   /** Pose the rig: swing (radians, round the ankle) and squash (scale at the sole). The leg follows the ankle
@@ -739,18 +756,19 @@ export class Foot {
   /** Turn this foot shiny: a white-gold glow and a sweeping shine (sparkles are emitted by the scene). */
   makeShiny(): void {
     this.shiny = true;
-    this.img.preFX?.addGlow(0xfff6c0, 5, 0, false, 0.1, 14);
-    this.img.preFX?.addShine(0.7, 0.35, 4);
+    this.fxHost()?.addGlow(0xfff6c0, 5, 0, false, 0.1, 14);
+    this.fxHost()?.addShine(0.7, 0.35, 4);
     if (this.leg) this.leg.preFX?.addShine(0.7, 0.35, 4);
   }
 
   setPhaseAura(color: number | null): void {
     this.auraTween?.remove();
     this.auraTween = null;
-    if (this.auraFx) this.img.preFX?.remove(this.auraFx);
+    if (this.auraFx) this.fxHost()?.remove(this.auraFx);
     this.auraFx = null;
-    if (color === null || !this.img.preFX) return;
-    this.auraFx = this.img.preFX.addGlow(color, 6, 0, false, 0.1, 14);
+    const host = this.fxHost();
+    if (color === null || !host) return;
+    this.auraFx = host.addGlow(color, 6, 0, false, 0.1, 14);
     this.auraTween = this.scene.tweens.add({ targets: this.auraFx, outerStrength: { from: 4, to: 10 }, duration: 650, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
   }
 
