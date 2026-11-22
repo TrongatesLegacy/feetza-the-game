@@ -5,7 +5,11 @@
 //   and stream from the mask's eyes and mouth.
 // - Immortal Brute: the eye looks side to side (an iris sprite that slides) and blinks every 3.4 s (8 pre-drawn lid
 //   frames over it), and black smoke, now and then a red wisp, seeps from round the eye, more along the lid line
-//   as it blinks.
+//   as it blinks, and curls out between the fangs of its maw.
+//
+// Both have a toe band: their toes are pre-drawn at the live kit's curl poses (src/game/liveKit.ts) and the band
+// shows the nearest one, so the toes curl on the wind-up, stay part-curled through the dive and the lift, and splay
+// for a moment on landing.
 //
 // The particles live in the feet layer's space, not the foot's, so a moving foot leaves translucent trails: above it
 // on a slam, below it as it rises. Each emitter sits inside the foot's container (so it stacks with the foot's art)
@@ -21,17 +25,20 @@ import { CX } from '../art/feetCommon';
 import { footCanvas } from '../art/feetArt';
 import { makeCanvas } from '../art/util';
 import {
-  BRUTE, EYE, IMM, IRIS_BOX, LID_BOX, MASK, type MockFrame, TOES, bruteBody, bruteHideColour, bruteIris, bruteLids,
-  immortalArmour, immortalLook, mock, noise, smokeBody,
+  BRUTE, BRUTE_TOE_BOX, EYE, IMM, IMM_TOE_BOX, IRIS_BOX, LID_BOX, MASK, MASK_HOLES, MAW, type MockFrame, TOES, bruteBody,
+  bruteHideColour, bruteIris, bruteLids, bruteToes, gorgetBottom, immortalArmour, immortalLook, immortalToes, mock, noise,
+  smokeBody,
 } from '../content/art/immortals';
+import { pose } from '../art/style/kit';
 import type { FootType } from '../data/feet';
+import { crand } from '../systems/cosmeticRandom';
 import { save } from '../systems/save';
 import { ART_RES } from './assets';
 import type { Foot } from './Foot';
 
-// tints for the rimmed puff (its core is 12% grey): black smoke with a grey edge, lighter curls, a red wisp
-const DARK = 0x3a3642;
-const CURL = 0x9a90aa;
+// tints for the rimmed puff (its core is 12% grey): black smoke with a cold grey edge, lighter curls, a red wisp
+const DARK = 0x363a44;
+const CURL = 0x8e97a8;
 const RED = 0xe0202a;
 /** The particle texture's radius in px. */
 const PR = 32;
@@ -69,23 +76,70 @@ interface Box {
   h: number;
 }
 
-/** n frames of a box of the mock frame, side by side in one texture (frames 0..n-1). */
+/** n frames of a box of the mock frame in one texture (frames 0..n-1), in rows no wider than 4096 px. */
 function frameSheet(sc: Phaser.Scene, key: string, type: FootType, F: MockFrame, box: Box, n: number, draw: (ctx: CanvasRenderingContext2D, i: number) => void): string {
   if (sc.textures.exists(key)) return key;
   const s = type.scale * ART_RES;
   const fw = Math.ceil(box.w * F.k * s);
   const fh = Math.ceil(box.h * F.k * s);
-  const [c, ctx] = makeCanvas(fw * n, fh);
+  const cols = Math.max(1, Math.min(n, Math.floor(4096 / fw)));
+  const [c, ctx] = makeCanvas(fw * cols, fh * Math.ceil(n / cols));
   for (let i = 0; i < n; i++) {
     const [fc, f] = makeCanvas(fw, fh);
     f.scale(s, s);
     f.translate(-(CX + box.x * F.k), -(F.y0 + box.y * F.k));
     mock(f, F, () => draw(f, i));
-    ctx.drawImage(fc, i * fw, 0);
+    ctx.drawImage(fc, (i % cols) * fw, Math.floor(i / cols) * fh);
   }
   const tex = sc.textures.addCanvas(key, c);
-  for (let i = 0; i < n; i++) tex?.add(i, 0, i * fw, 0, fw, fh);
+  for (let i = 0; i < n; i++) tex?.add(i, 0, (i % cols) * fw, Math.floor(i / cols) * fh, fw, fh);
   return key;
+}
+
+// ——— the toe band ———
+
+/** The live kit's curl track (src/game/liveKit.ts): splayed … rest … curled. */
+const CURL_TRACK = [-1, -0.5, 0, 0.25, 0.5, 0.75, 1];
+const REST_FRAME = CURL_TRACK.indexOf(0);
+
+/** A foot's toes as a sprite that steps through pre-drawn curl poses, timed like the live kit's rig. */
+class ToeBand {
+  readonly img: Phaser.GameObjects.Image;
+  private curl = 0;
+  private landT = 9;
+  private last = '';
+
+  constructor(sc: Phaser.Scene, private f: Foot, F: MockFrame, box: Box, below: boolean, draw: (ctx: CanvasRenderingContext2D, curl: number) => void) {
+    const key = frameSheet(sc, `live_${f.type.id}_toes`, f.type, F, box, CURL_TRACK.length, (ctx, i) => draw(ctx, CURL_TRACK[i]));
+    this.img = boxImage(sc, f, key, F, box).setFrame(REST_FRAME);
+    f.addLiveArt(this.img, below);
+  }
+
+  update(dt: number): void {
+    const f = this.f;
+    if (f.state !== this.last) {
+      // landing: the toes splay at once, then settle
+      if (f.state === 'stomp') {
+        this.landT = 0;
+        this.curl = -1;
+      }
+      this.last = f.state;
+    }
+    this.landT += dt;
+    // curled on the wind-up (the last moments of a hover), part-curled through the dive and the lift
+    const windingUp = f.state === 'hover' && !f.held && !f.pinned && f.stateT > f.hoverTime - 0.45;
+    let to = 0;
+    if (windingUp) to = 1;
+    else if (f.state === 'descend') to = 0.3;
+    else if (f.state === 'stomp') to = this.landT < 0.14 ? -1 : 0;
+    else if (f.state === 'lift') to = 0.35;
+    const rate = to > this.curl ? 7 : 4;
+    this.curl += Math.sign(to - this.curl) * Math.min(Math.abs(to - this.curl), rate * dt);
+    // one frame at a time: cross-fading two poses would show both sets of toes, ghosted
+    let best = 0;
+    for (let i = 1; i < CURL_TRACK.length; i++) if (Math.abs(CURL_TRACK[i] - this.curl) < Math.abs(CURL_TRACK[best] - this.curl)) best = i;
+    this.img.setFrame(best);
+  }
 }
 
 /** An image of a frame sheet, placed where its box sits on the foot (in the foot container's frame). */
@@ -144,7 +198,7 @@ class Smoke {
   private freed = false;
 
   constructor(sc: Phaser.Scene, private f: Foot, private F: MockFrame, below: boolean) {
-    this.seed = Math.floor(Math.random() * 2147483646) + 1;
+    this.seed = Math.floor(crand() * 2147483646) + 1;
     /* eslint-disable @typescript-eslint/no-explicit-any */
     const cfg: any = {
       emitting: false,
@@ -253,6 +307,7 @@ const BODY_STEP = 0.14;
 interface ImmortalLive {
   back: Smoke;
   front: Smoke;
+  toes: ToeBand;
   a: Phaser.GameObjects.Image;
   b: Phaser.GameObjects.Image;
   t: number;
@@ -271,6 +326,8 @@ function startImmortal(f: Foot): ImmortalLive {
   const b = boxImage(sc, f, key, IMM, BODY_BOX);
   f.addLiveArt(a, true);
   f.addLiveArt(b, true);
+  // the armoured toes over the smoke, under the lamellar
+  const toes = new ToeBand(sc, f, IMM, IMM_TOE_BOX, true, (ctx, curl) => immortalToes(ctx, o, pose({ curl })));
   const front = new Smoke(sc, f, IMM, false);
   smoky++;
   let counted = true;
@@ -284,7 +341,7 @@ function startImmortal(f: Foot): ImmortalLive {
     destroy: () => host.die(),
   };
   f.liveHost = host;
-  const st: ImmortalLive = { back, front, a, b, t: Math.random() * 10, lastY: f.root.y, host };
+  const st: ImmortalLive = { back, front, toes, a, b, t: crand() * 10, lastY: f.root.y, host };
   immortals.set(f, st);
   return st;
 }
@@ -309,15 +366,16 @@ export function immortalLive(f: Foot, dt: number): void {
   st.a.setFrame(bodyFrame(k));
   st.b.setFrame(bodyFrame(k + 1)).setAlpha((pos - k) * st.a.alpha);
   const { back, front } = st;
+  st.toes.update(dt);
   back.follow(dt);
   front.follow(dt);
   // stepping out of the smoke (the return): a cloud boils up round it
   if (f.brain.smokeIn) {
     f.brain.smokeIn = 0;
     for (let i = 0; i < 46; i++) {
-      const ang = Math.random() * Math.PI * 2;
-      const d = 40 + Math.random() * 90;
-      back.emit(Math.cos(ang) * d, 150 + Math.sin(ang) * d, Math.cos(ang) * 60, Math.sin(ang) * 40 - 30, 0, 1.2 + Math.random() * 0.8, 16, 46, 0.5, DARK);
+      const ang = crand() * Math.PI * 2;
+      const d = 40 + crand() * 90;
+      back.emit(Math.cos(ang) * d, 150 + Math.sin(ang) * d, Math.cos(ang) * 60, Math.sin(ang) * 40 - 30, 0, 1.2 + crand() * 0.8, 16, 46, 0.5, DARK);
     }
   }
   const vyw = vy * 0.15;
@@ -334,22 +392,29 @@ export function immortalLive(f: Foot, dt: number): void {
   });
   back.rate('arch', 40, dt, (rn) => {
     const px = (rn() - 0.5) * 150;
-    back.emit(px, MASK.my + 192 * MASK.ms - Math.abs(px) * 0.1, (rn() - 0.5) * 20, 20 + rn() * 20, vyw, 0.6 + rn() * 0.4, 6, 16, 0.3, DARK);
+    back.emit(px, MASK.my + gorgetBottom(px) * MASK.ms - 4, (rn() - 0.5) * 20, 20 + rn() * 20, vyw, 0.6 + rn() * 0.4, 6, 16, 0.3, DARK);
   });
   back.rate('curl', 30, dt, (rn) => {
     const T = TOES[Math.floor(rn() * 5)];
     back.emit(T[0] + (rn() - 0.5) * 30, T[1] + T[3] * 0.6, (rn() - 0.5) * 24, 8 + rn() * 14, vyw, 0.6 + rn() * 0.4, 5, 15, 0.2, CURL);
   });
+  // the armoured toes stand in the smoke: thin wisps curl up over them from the gaps between them
+  front.rate('wisp', 24, dt, (rn) => {
+    const i = Math.floor(rn() * 4);
+    const a = TOES[i];
+    const b = TOES[i + 1];
+    front.emit((a[0] + a[2] + b[0] - b[2]) / 2 + (rn() - 0.5) * 8, (a[1] + b[1]) / 2 + 6, (rn() - 0.5) * 20, -14 - rn() * 18, vyf, 0.8 + rn() * 0.5, 4, 14, 0.24, rn() < 0.3 ? CURL : DARK);
+  });
   // the face: smoke streams from the eye holes and the mouth
   for (const s of [-1, 1]) {
     front.rate(s < 0 ? 'eyeL' : 'eyeR', 46, dt, (rn) => {
-      const px = s * 42 * MASK.ms + (rn() - 0.5) * 14;
-      const py = MASK.my + 66 * MASK.ms + (rn() - 0.5) * 5;
+      const px = s * MASK_HOLES.eyeX * MASK.ms + (rn() - 0.5) * 14;
+      const py = MASK.my + MASK_HOLES.eyeY * MASK.ms + (rn() - 0.5) * 5;
       front.emit(px, py, s * (55 + rn() * 70), -40 - rn() * 50, vyf, 1.5 + rn() * 0.8, 5, 30, 0.5, rn() < 0.25 ? CURL : DARK);
     });
   }
   front.rate('mouth', 26, dt, (rn) => {
-    front.emit((rn() - 0.5) * 50 * MASK.ms, MASK.my + 160 * MASK.ms, (rn() - 0.5) * 70, -20 - rn() * 30, vyf, 1.2 + rn() * 0.5, 5, 24, 0.42, rn() < 0.25 ? CURL : DARK);
+    front.emit((rn() - 0.5) * 50 * MASK.ms, MASK.my + MASK_HOLES.mouthY * MASK.ms, (rn() - 0.5) * 70, -20 - rn() * 30, vyf, 1.2 + rn() * 0.5, 5, 24, 0.42, rn() < 0.25 ? CURL : DARK);
   });
 }
 
@@ -361,6 +426,7 @@ const BLINK_D = 0.32;
 
 interface BruteLive {
   smoke: Smoke;
+  toes: ToeBand;
   iris: Phaser.GameObjects.Image;
   lids: Phaser.GameObjects.Image;
   irisX: number;
@@ -379,9 +445,10 @@ function startBrute(f: Foot): BruteLive {
   const lids = boxImage(sc, f, lidKey, BRUTE, LID_BOX);
   f.addLiveArt(iris, false);
   f.addLiveArt(lids, false);
+  const toes = new ToeBand(sc, f, BRUTE, BRUTE_TOE_BOX, false, (ctx, curl) => bruteToes(ctx, base, pose({ curl })));
   const smoke = new Smoke(sc, f, BRUTE, false);
   f.liveHost = { die: () => smoke.release(), destroy: () => smoke.release() };
-  const st: BruteLive = { smoke, iris, lids, irisX: iris.x, t: Math.random() * BLINK_P, lastY: f.root.y };
+  const st: BruteLive = { smoke, toes, iris, lids, irisX: iris.x, t: crand() * BLINK_P, lastY: f.root.y };
   brutes.set(f, st);
   return st;
 }
@@ -403,6 +470,7 @@ export function bruteLive(f: Foot, dt: number): void {
   const look = Math.sin(st.t * 0.9) * 10;
   st.iris.x = st.irisX + look * BRUTE.k * f.type.scale;
   st.lids.setFrame(Math.round(b * (LID_FRAMES - 1)));
+  st.toes.update(dt);
   const { smoke } = st;
   smoke.follow(dt);
   const { y, w, h } = EYE;
@@ -412,5 +480,11 @@ export function bruteLive(f: Foot, dt: number): void {
     const px = Math.cos(ang) * w * 0.46;
     const py = y + Math.sin(ang) * h * 0.4 * (1 - b * 0.8);
     smoke.emit(px, py, px * 0.25 + (rn() - 0.5) * 16, -45 - rn() * 45, vy * 0.12, 1.4 + rn() * 0.8, 5, 28, 0.45, rn() < 0.06 ? RED : DARK);
+  });
+  // and it curls out between the fangs, like breath
+  smoke.rate('maw', 34, dt, (rn) => {
+    const px = (rn() - 0.5) * MAW.w * 1.4;
+    const py = (MAW.upper(px) + MAW.lower(px)) / 2;
+    smoke.emit(px, py, px * 0.3 + (rn() - 0.5) * 20, -20 - rn() * 30, vy * 0.12, 1.1 + rn() * 0.6, 4, 22, 0.36, rn() < 0.05 ? RED : DARK);
   });
 }
