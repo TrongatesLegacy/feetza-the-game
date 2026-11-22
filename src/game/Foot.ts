@@ -197,7 +197,7 @@ export class Foot {
   /** The leg's rest y (the rig drops it as the foot squashes). */
   private legY = 0;
   /** The rig (src/game/footRig.ts): the art hangs from the ankle (swing) and squashes at the sole (squash). */
-  private rig: { swing: Phaser.GameObjects.Container; squash: Phaser.GameObjects.Container } | null = null;
+  private rig: { swing: Phaser.GameObjects.Container; squash: Phaser.GameObjects.Container; lightSwing: Phaser.GameObjects.Container; light: Phaser.GameObjects.Container } | null = null;
   /** The live art's owner: told when the foot dies, escapes or is destroyed. */
   liveHost: { die(): void; destroy(): void } | null = null;
   /** A boss brain is moving this foot by hand: skip its own movement AI. */
@@ -653,7 +653,14 @@ export class Foot {
   /** Add live art round the drawn foot: `below` stacks it under the foot's art (over the leg), otherwise over it.
    * Each call goes above the earlier ones on its side. Images are tinted, flashed and faded with the foot. On a
    * rigged foot the art goes on the rig, so it swings and squashes with the foot. */
-  addLiveArt(o: Phaser.GameObjects.GameObject, below: boolean): void {
+  addLiveArt(o: Phaser.GameObjects.GameObject, below: boolean, additive = false): void {
+    // additive light (glow, overheat) rides a twin of the rig that sits over it, outside the rig's post-FX
+    // (an additive layer inside a post-FX'd container breaks its transparency: the foot turned see-through)
+    if (additive && this.rig) {
+      this.rig.light.add(o);
+      if (o instanceof Phaser.GameObjects.Image) this.liveImgs.push(o);
+      return;
+    }
     const parent = this.img.parentContainer ?? this.root;
     const i = parent.getIndex(this.img);
     if (below) parent.addAt(o, i);
@@ -664,10 +671,8 @@ export class Foot {
   /** Add live effects in the foot's own frame but off the rig (particle emitters that keep the layer's frame):
    * `below` under the foot's art, otherwise over it. */
   addLiveFx(o: Phaser.GameObjects.GameObject, below: boolean): void {
-    const at = this.rig?.swing ?? this.img;
-    const i = this.root.getIndex(at);
-    if (below) this.root.addAt(o, i);
-    else this.root.addAt(o, i + 1 + this.fxAbove++);
+    if (below) this.root.addAt(o, this.root.getIndex(this.rig?.swing ?? this.img));
+    else this.root.addAt(o, this.root.getIndex(this.rig?.lightSwing ?? this.img) + 1 + this.fxAbove++);
   }
 
   /** Hang the foot's art on a rig (once): a container at the ankle that swings, holding one at the sole that
@@ -682,7 +687,11 @@ export class Foot {
     this.root.remove(this.img);
     this.root.addAt(swing, i);
     squash.add(this.img);
-    this.rig = { swing, squash };
+    const lightSwing = this.scene.add.container(0, ankle);
+    const light = this.scene.add.container(0, -ankle);
+    lightSwing.add(light);
+    this.root.addAt(lightSwing, i + 1);
+    this.rig = { swing, squash, lightSwing, light };
     // foot-wide effects drawn on the art alone would stop at the toe band's cut: move them to the whole rig
     const fx = this.img.preFX;
     if (fx && squash.postFX) {
@@ -731,6 +740,8 @@ export class Foot {
     if (!this.rig) return;
     this.rig.swing.rotation = swing;
     this.rig.squash.setScale(sx, sy);
+    this.rig.lightSwing.rotation = swing;
+    this.rig.light.setScale(sx, sy);
     const drop = this.meta.footHeight * this.type.scale * (1 - sy);
     this.leg.y = this.legY + drop;
     if (this.cuff) this.cuff.y = -this.meta.footHeight * this.type.scale + 4 * this.type.scale + drop;

@@ -655,11 +655,11 @@ export class LiveFoot {
     }
     if (this.tex.glow) {
       this.glowImg = this.sc.add.image(0, 0, this.tex.glow).setOrigin(0.5, f.meta.originY).setScale(k).setBlendMode(Phaser.BlendModes.ADD);
-      f.addLiveArt(this.glowImg, false);
+      f.addLiveArt(this.glowImg, false, true);
     }
     if (this.tex.heat) {
       this.heatImg = this.sc.add.image(0, 0, this.tex.heat).setOrigin(0.5, f.meta.originY).setScale(k).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
-      f.addLiveArt(this.heatImg, false);
+      f.addLiveArt(this.heatImg, false, true);
     }
     liveSet.add(this);
     this.state = def.setup?.(this);
