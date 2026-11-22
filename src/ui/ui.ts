@@ -424,6 +424,20 @@ class Hud {
   }
 
   /** The NEW FOOT card fades while a foot is coming down through its corner. */
+  /** The boss bar (and its move line) fades while the peel works up near it, so it never hides a fight.
+   *  x, y: the peel in page pixels. */
+  setBossFade(x: number, y: number): void {
+    if (!this.boss.classList.contains('on')) return;
+    const r = this.boss.getBoundingClientRect();
+    const m = 70;
+    const near = x > r.left - m && x < r.right + m && y > r.top - m && y < r.bottom + m;
+    // it stays faded a moment after the peel leaves, so darting in and out doesn't make it flicker
+    const now = performance.now();
+    if (near) this.bossFadeUntil = now + 1400;
+    this.boss.classList.toggle('faded', now < this.bossFadeUntil);
+  }
+  private bossFadeUntil = 0;
+
   setNewFootFade(on: boolean): void {
     // the whole notification stack fades while a foot passes behind it
     this.toasts.classList.toggle('faded', on);

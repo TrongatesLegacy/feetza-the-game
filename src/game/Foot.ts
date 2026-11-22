@@ -432,7 +432,8 @@ export class Foot {
       this.stateT = 0;
       this.vy = 0;
       // bosses holding a lane stay near their usual hover height, clear of the boss bar
-      const py = this.isBossLike ? (this.hoverY ?? HOVER_Y) - 40 : PINNED_Y;
+      // …low enough that the whole foot shows, up to the ankle (a big boss held at the top used to be cut off)
+      const py = Math.max(this.isBossLike ? (this.hoverY ?? HOVER_Y) - 40 : PINNED_Y, this.meta.footHeight * this.scale + 24);
       this.y += (py - this.y) * Math.min(1, dt * 5);
       const px = this.laneX ?? (this.target && !this.target.dead ? this.target.x : this.x);
       this.x += (px - this.x) * Math.min(1, dt * 3);

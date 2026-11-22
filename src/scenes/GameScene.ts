@@ -4368,6 +4368,10 @@ export class GameScene extends Phaser.Scene implements Arena {
     ui.hud.setCoinFade(this.feet.some((f) => f.alive && f.x > 1460 && f.y < 520));
     // …and the NEW FOOT card (bottom-left) while one comes down over the left of the table
     // (and while a boss prop is down there, e.g. a grabbing hand or a dino)
+    {
+      const cr = this.game.canvas.getBoundingClientRect();
+      ui.hud.setBossFade(cr.left + (this.peelPos.x / W) * cr.width, cr.top + (this.peelPos.y / H) * cr.height);
+    }
     ui.hud.setNewFootFade(this.feet.some((f) => f.alive && f.x < 640 && f.y > 380) || this.clickables.some((c) => c.x < 700 && c.y > 380 && c.alive()));
     const r = this.run;
     ui.hud.setScore(r.score);
