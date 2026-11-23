@@ -99,13 +99,15 @@ export function forceRareFind(id: string): void {
   redealLineup?.();
 }
 
-/** A run time: m:ss, or h:mm:ss past an hour. */
+/** A run time to the millisecond: m:ss.mmm, or h:mm:ss.mmm past an hour (the clock itself keeps microseconds). */
 export function fmtTime(secs: number): string {
-  const s = Math.max(0, Math.floor(secs));
+  const ms = Math.max(0, Math.floor(secs * 1000));
+  const s = Math.floor(ms / 1000);
   const hrs = Math.floor(s / 3600);
   const mm = Math.floor(s / 60) % 60;
   const ss = String(s % 60).padStart(2, '0');
-  return hrs ? `${hrs}:${String(mm).padStart(2, '0')}:${ss}` : `${mm}:${ss}`;
+  const mmm = String(ms % 1000).padStart(3, '0');
+  return hrs ? `${hrs}:${String(mm).padStart(2, '0')}:${ss}.${mmm}` : `${mm}:${ss}.${mmm}`;
 }
 
 /** Enter/Space on a focusable tile acts like a click (keyboard and gamepad). */
@@ -326,10 +328,10 @@ class Hud {
 
   /** The run clock under the wave: m:ss, or h:mm:ss past an hour. */
   setTime(secs: number): void {
-    const n = Math.floor(secs);
+    const n = Math.floor(secs * 1000);
     if (n === this.lastSec) return;
     this.lastSec = n;
-    this.clock.textContent = fmtTime(n);
+    this.clock.textContent = fmtTime(secs);
   }
 
   setScore(n: number): void {

@@ -792,6 +792,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       goldenUsed: { ...r.goldenUsed },
       newUnlocks: [...r.newUnlocks],
       elapsed: r.elapsed,
+      elapsedUs: r.elapsedUs,
       endless: r.endless,
       endlessPlus: endlessPlus.on ? endlessPlus.seed : 0,
       actFrom: r.actFrom,
@@ -840,7 +841,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     r.bankedCrusts = s.bankedCrusts ?? 0;
     r.goldenUsed = { ...s.goldenUsed };
     r.newUnlocks = [...s.newUnlocks];
-    r.elapsed = s.elapsed;
+    r.elapsedUs = s.elapsedUs ?? Math.round(s.elapsed * 1e6);
+    r.elapsed = r.elapsedUs / 1e6;
     r.endless = s.endless ?? false;
     endlessPlus.on = !!s.endlessPlus;
     endlessPlus.seed = s.endlessPlus || 1;
@@ -4520,7 +4522,9 @@ export class GameScene extends Phaser.Scene implements Arena {
     ui.hud.setFps(this.game.loop.actualFps);
     // the run clock: real time (not slow-mo), and the scene doesn't update while paused or with the tab hidden
     if (!this.over && !this.timerStopped) {
-      this.run.elapsed += Math.min(0.25, deltaMs / 1000);
+      // kept in whole microseconds (the frame's timestamp has sub-millisecond precision), shown to the millisecond
+      this.run.elapsedUs += Math.round(Math.min(250, deltaMs) * 1000);
+      this.run.elapsed = this.run.elapsedUs / 1e6;
       ui.hud.setTime(this.run.elapsed);
     }
     let scale = 1;
@@ -4787,7 +4791,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       acts: ACT_COUNT,
       loop: loopOf(n),
       kicker: boss ? `${titleCase(boss.name).toUpperCase()} DEFEATED` : 'ACT COMPLETE',
-      time: fmtTime(Math.round(r.elapsed - from.elapsed)),
+      time: fmtTime(r.elapsed - from.elapsed),
       feet: r.feetSmacked - from.feet,
       slices: r.slicesLost - from.slices,
       crusts: r.crustsEarned(this.figOnTable()),
@@ -4824,7 +4828,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     audio.stop('music', 600);
     this.time.delayedCall(300, () => audio.sting('music_victory', 1));
     this.timerStopped = true;
-    const secs = Math.round(r.elapsed);
+    const secs = r.elapsed;
     const finalBoss = FOOT_BY_ID[bossFor(r.wave)];
     const el = ui.victory({
       kicker: finalBoss ? `${titleCase(finalBoss.name).toUpperCase()} DEFEATED` : 'JOURNEY COMPLETE',
@@ -4946,7 +4950,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       persist();
       return { crusts, newBest };
     };
-    const secs = Math.round(r.elapsed);
+    const secs = r.elapsed;
     this.time.delayedCall(quit ? 200 : 2000, () => {
       audio.duck(0.6);
       const restart = (data: GameStart) => {

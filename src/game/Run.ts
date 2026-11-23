@@ -370,6 +370,8 @@ export class Run {
   enhancedPerks = new Set<PizzaPerk>();
   /** Run time in seconds: counts waves and the shop, stops in the pause menu, while the tab is hidden and while away from the run. */
   elapsed = 0;
+  /** The run clock in whole microseconds (elapsed is it in seconds). */
+  elapsedUs = 0;
   /** Endless: the run carries on past the journey's end (JOURNEY_WAVES) instead of ending there. */
   endless = false;
   /** Where the current act began: its first wave and the run's clock, feet and slices lost then (for ACT COMPLETE). */

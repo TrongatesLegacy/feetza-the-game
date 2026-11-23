@@ -551,6 +551,8 @@ h3 {
 }
 
 .hud .runclock {
+  /* (fixed-width digits: the milliseconds tick every frame and shouldn't make it jitter) */
+  font-variant-numeric: tabular-nums;
   font: 600 1.15em 'Fredoka', sans-serif;
   font-variant-numeric: tabular-nums;
   color: #fff;
