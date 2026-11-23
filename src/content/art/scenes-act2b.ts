@@ -1,7 +1,7 @@
 // Feetza 2.0 locations, part 2: Roller Rink, Ski Slopes, Haunted Cellar.
 
 import type { GlowSpot } from '../../art/backdrops';
-import { registerScene } from '../../art/registry';
+import { registerLegacyScene, registerScene } from '../../art/registry';
 import {
   type Ctx,
   type R,
@@ -911,7 +911,8 @@ function mixGreen(k: number): string {
 
 // ---------------------------------------------------------------------------------------------
 
-registerScene('rink', {
+// (redrawn with the location kit in scene-rink.ts; this stays for the before/after page, ?dev&stages)
+registerLegacyScene('rink', {
   info: {
     name: 'Roller Rink',
     subtitle: 'Waves 46–49',
