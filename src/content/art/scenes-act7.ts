@@ -2,9 +2,9 @@
 // Titan's Throne (Thanfoot). Pulp-comic print: flat bold colour fields, ink outlines, halftone dot shading and
 // Ben-Day skies. Moving parts (searchlights, the blimp, rain, alarms, vat bubbles, Tesla arcs, drifting rocks)
 // are added on top by the act's effect layer in src/game/acts/act7.ts, which also changes the weather and
-// lighting from wave to wave. Metropizza Rooftops and Downtown Ruins have been redrawn with the location kit
-// (scene-metropizza.ts, scene-doomstomp.ts), which run their own moving parts; their old art below is kept for the
-// before/after page.
+// lighting from wave to wave. Metropizza Rooftops, The Doom Lab and Downtown Ruins have been redrawn with the location
+// kit (scene-metropizza.ts, scene-doomlab.ts, scene-doomstomp.ts), which run their own moving parts; their old art
+// below is kept for the before/after page.
 
 import type { GlowSpot } from '../../art/backdrops';
 import { registerLegacyScene, registerScene } from '../../art/registry';
@@ -744,7 +744,8 @@ registerLegacyScene('metropizza', {
   draw: drawMetropizza,
 });
 
-registerScene('doomlab', {
+// (redrawn with the location kit in scene-doomlab.ts; this stays for the before/after page, ?dev&stages)
+registerLegacyScene('doomlab', {
   info: {
     name: 'The Doom Lab',
     subtitle: 'Waves 66–69',

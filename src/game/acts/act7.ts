@@ -8,7 +8,9 @@
 //                        and the bolts' flash and thunder)
 //   Downtown Ruins       65 smoke and drifting embers under lightning (Doomstomp; its backdrop, scene-doomstomp.ts,
 //                        runs its fires, smoke and bolts when animated; the act keeps the bolts' flash and thunder)
-//   The Doom Lab         66 lab hum, Tesla arcs · 67 alarm beacons · 68 red alert (Ultoe) · 69 power surges
+//   The Doom Lab         66 lab hum, Tesla arcs · 67 alarm beacons · 68 red alert (Ultoe) · 69 power surges (its
+//                        backdrop, scene-doomlab.ts, runs its vats, arcs, beacons, light and surges when animated;
+//                        the act plays the arcs' zaps and the surges' sound)
 //   Titan's Throne       70 a pulsing nebula and falling stars (Thanfoot)
 //
 // Feet: Henchman Spats arrive in numbered gangs of four and dive in order; Jetpack Jackboots fly in from the
@@ -29,6 +31,7 @@ import type { Foot } from '../Foot';
 import type { Pizza } from '../Pizza';
 import { nemesisOf } from '../nemesis';
 import { bossFor, locationFor, miniFor, waveInStage, isBossWave, isMiniWave } from '../Run';
+import { DL } from '../../content/art/scene-doomlab';
 
 const FONT = 'Lilita One, Fredoka, sans-serif';
 const INK = 0x2a1810;
@@ -152,7 +155,7 @@ interface Layer {
   /** Things the place animates every frame. */
   tickers: ((dt: number, t: number) => void)[];
   rain: Phaser.GameObjects.Particles.ParticleEmitter | null;
-  /** Stops listening to the place's backdrop (Metropizza's and the Downtown Ruins' bolts). */
+  /** Stops listening to the place's backdrop (Metropizza's and the Downtown Ruins' bolts, the Doom Lab's arcs). */
   unhook: (() => void) | null;
   t: number;
   nextFlash: number;
@@ -234,46 +237,48 @@ function rain(a: Arena, layer: Layer): void {
   layer.rain = e;
 }
 
-/** Tesla arcs between the Doom Lab's coils. */
+/** Tesla arcs from the Doom Lab's coils to the vault's horns (the backdrop's DL layout; still backdrops only). */
 function arcs(a: Arena, layer: Layer, every: number): void {
   let t = 1;
   layer.tickers.push((dt) => {
     t -= dt;
     if (t > 0) return;
     t = every * (0.6 + Math.random() * 0.8);
-    const [x0, x1] = Math.random() < 0.5 ? [520, 1400] : [520 + (Math.random() < 0.5 ? 0 : 880), 960];
-    a.fx.lightning(x0, 400, x1, x1 === 960 ? 330 : 400);
+    const i = Math.random() < 0.5 ? 0 : 1;
+    const c = DL.coils[i];
+    const h = DL.horns[i];
+    a.fx.lightning(c.x + (i ? -1 : 1) * DL.toroid.rx * 0.8, c.y, h.x, h.y);
     if (Math.random() < 0.5) a.sfx('sfx_zap', { volume: 0.18, rate: 1.4, throttle: 400 });
   });
 }
 
-/** Rotating red alarm beacons on the lab walls. */
+/** The alarm beacons' red light on the lab walls (the painted beacons are the lamps; still backdrops only). */
 function beacons(a: Arena, layer: Layer): void {
   const sc = a.sc;
-  for (const x of [120, 1800]) {
-    const glow = sc.add.image(x, 230, 'glow').setTint(0xff2a2a).setBlendMode(Phaser.BlendModes.ADD).setScale(2.4, 1);
-    const lamp = sc.add.circle(x, 230, 22, 0xff3a3a).setStrokeStyle(5, INK);
-    layer.back.add([glow, lamp]);
+  for (const b of DL.beacons) {
+    const glow = sc.add.image(b.x, b.y, 'glow').setTint(0xff2a2a).setBlendMode(Phaser.BlendModes.ADD).setScale(2.4, 1);
+    layer.back.add(glow);
     layer.tickers.push((_dt, t) => {
-      const k = Math.max(0, Math.sin(t * 5 + x));
+      const k = Math.max(0, Math.sin(t * 5 + b.x));
       glow.setAlpha(0.15 + k * 0.6);
-      glow.scaleX = 2.4 * (0.4 + Math.abs(Math.cos(t * 5 + x)));
+      glow.scaleX = 2.4 * (0.4 + Math.abs(Math.cos(t * 5 + b.x)));
     });
   }
 }
 
-/** Bubbles rising in the glowing vats. */
+/** Bubbles rising in the glowing vats, from the foot of the glass to under the surface (still backdrops only). */
 function vatBubbles(a: Arena, layer: Layer): void {
   const sc = a.sc;
-  for (const [x, tint] of [
-    [260, 0xb0ffc8],
-    [1660, 0xffb0f0],
+  for (const [i, tint] of [
+    [0, 0xb0ffc8],
+    [1, 0xffb0f0],
   ] as const) {
+    const x = DL.vats[i].x;
     const e = sc.add.particles(0, 0, 'soft', {
       x: { min: x - 60, max: x + 60 },
-      y: 640,
-      lifespan: 2600,
-      speedY: { min: -150, max: -90 },
+      y: DL.vat.bottom - 10,
+      lifespan: 2000,
+      speedY: { min: -140, max: -90 },
       speedX: { min: -8, max: 8 },
       scale: { min: 0.05, max: 0.12 },
       alpha: { values: [0, 0.8, 0] },
@@ -281,7 +286,7 @@ function vatBubbles(a: Arena, layer: Layer): void {
       blendMode: 'ADD',
       frequency: 120,
     });
-    e.fastForward(2600);
+    e.fastForward(2000);
     layer.back.add(e);
   }
 }
@@ -339,8 +344,9 @@ function setup(a: Arena, layer: Layer, n: number): void {
   const ws = waveInStage(n);
   const changed = place !== layer.place;
   layer.wave = n;
-  // the redrawn backdrops (src/content/art/scene-metropizza.ts, scene-doomstomp.ts) light themselves when animated
-  const live = (place === 'metropizza' || place === 'doomstomp') && backdropsAnimated();
+  // the redrawn backdrops (src/content/art/scene-metropizza.ts, scene-doomlab.ts, scene-doomstomp.ts) light
+  // themselves when animated
+  const live = (place === 'metropizza' || place === 'doomlab' || place === 'doomstomp') && backdropsAnimated();
   const light = live ? ([0xffffff, 0] as [number, number]) : (LIGHT[place]?.[Math.min(ws, LIGHT[place].length) - 1] ?? [0xffffff, 0]);
   setLight(layer, light[0], light[1], changed ? 1 : 2000);
   // rebuild the moving parts when the place or the weather changes
@@ -365,9 +371,21 @@ function setup(a: Arena, layer: Layer, n: number): void {
       layer.unhook = () => a.sc.events.off('doomstomp:bolt', onBolt);
     } else smoke(a, layer);
   } else if (place === 'doomlab') {
-    vatBubbles(a, layer);
-    arcs(a, layer, ws >= 4 ? 1.4 : 3.2);
-    if (ws >= 2) beacons(a, layer);
+    if (live) {
+      // animated, the backdrop runs its vats, arcs, beacons and light, and its own power surges: the act plays them
+      const onArc = (strong: boolean) => (strong || Math.random() < 0.5) && a.sfx('sfx_zap', { volume: strong ? 0.3 : 0.18, rate: strong ? 1.1 : 1.4, throttle: 400 });
+      const onSurge = () => a.sfx('sfx_zap', { volume: 0.35, rate: 0.7, throttle: 500 });
+      a.sc.events.on('doomlab:arc', onArc);
+      a.sc.events.on('doomlab:surge', onSurge);
+      layer.unhook = () => {
+        a.sc.events.off('doomlab:arc', onArc);
+        a.sc.events.off('doomlab:surge', onSurge);
+      };
+    } else {
+      vatBubbles(a, layer);
+      arcs(a, layer, ws >= 4 ? 1.4 : 3.2);
+      if (ws >= 2) beacons(a, layer);
+    }
   } else if (place === 'thanfoot') {
     cosmos(a, layer);
   }
@@ -383,8 +401,8 @@ function weatherTick(a: Arena, layer: Layer, dt: number): void {
   } else if (layer.place === 'doomstomp' && !layer.unhook) {
     layer.nextFlash = 8 + Math.random() * 6;
     lightning(a, layer, false);
-  } else if (layer.place === 'doomlab' && ws >= 4) {
-    // power surge: the lights dip and come back
+  } else if (layer.place === 'doomlab' && ws >= 4 && !layer.unhook) {
+    // power surge: the lights dip and come back (an animated backdrop runs its own)
     layer.nextFlash = 6 + Math.random() * 5;
     const sc = a.sc;
     sc.tweens.add({ targets: layer.grade, alpha: { from: 0.75, to: LIGHT.doomlab[3][1] }, duration: 700, ease: 'Stepped', easeParams: [5] });

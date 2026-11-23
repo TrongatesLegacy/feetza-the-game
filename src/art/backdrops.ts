@@ -4874,6 +4874,9 @@ const REDRAWN = new Set<BackdropId>(['trattoria', 'beach', 'space',
   // Metropizza Rooftops (Stage 13, Act 7's pulp-comic print), redrawn with the location kit and painted frame
   // animation: scene-metropizza.ts
   'metropizza',
+  // The Doom Lab (Stage 14, Act 7's pulp-comic print), redrawn with the location kit and painted frame animation:
+  // scene-doomlab.ts
+  'doomlab',
   // Doomstomp's arena (Downtown Ruins, Act 7's pulp-comic print), redrawn with the location kit and painted frame
   // animation: scene-doomstomp.ts
   'doomstomp']);
