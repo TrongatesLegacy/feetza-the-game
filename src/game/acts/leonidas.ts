@@ -53,52 +53,87 @@ const walls = new WeakMap<HeroKit, { renew: (sec: number, shove: boolean) => voi
 /** The shield wall: a row of lambda shields that slams down just over the pizzas, then drops away. Raised again
  *  while it stands, it holds for the new full time (it used to raise a second wall, and the first one's end let
  *  feet through while the second still stood). */
-/** The wall renewed while it stands: the bronze is re-forged in place. A wave of heat runs along the line from the
- *  middle out, each shield flaring white-gold and cooling back through orange, with sparks spraying off its rim
- *  and falling as embers. */
+/** The wall renewed while it stands: re-forged in place. The whole line comes up glowing with forge heat (a red-hot
+ *  glow behind every shield and a hot tint), then a ripple runs out from the middle slamming each shield back down
+ *  into the line: it lifts, drops hard, and the impact shakes sparks off its glowing rim. The heat then cools off
+ *  over a few seconds. */
 function reforge(k: HeroKit, shields: Phaser.GameObjects.Image[]): void {
   k.shout('HOLD FAST!', BRONZE, 92);
   audio.sfx('sfx_hero_holdline', { volume: 0.7, rate: 1.15 });
   const mid = W / 2;
+  const HEAT_MS = 3200;
   for (const s of shields) {
-    const delay = Math.abs(s.x - mid) * 0.45;
+    if (!s.active) continue;
+    // the forge heat, all at once: a glow behind it and a hot tint that cools from white-gold through orange
+    const glow = k.img('glow', s.x, s.y, 1.25).setTint(0xff7a20).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
+    k.sc.tweens.add({ targets: glow, alpha: 0.7, duration: 180 });
+    k.sc.tweens.add({ targets: glow, alpha: 0, scale: 1.05, delay: 900, duration: HEAT_MS - 900, ease: 'Quad.In', onComplete: () => glow.destroy() });
+    const follow = k.sc.time.addEvent({ delay: 16, loop: true, callback: () => (s.active ? glow.setPosition(s.x, s.y) : follow.remove()) });
+    k.sc.time.delayedCall(HEAT_MS, () => follow.remove());
+    const heat = { k: 0 };
+    k.sc.tweens.add({
+      targets: heat,
+      k: 1,
+      duration: HEAT_MS,
+      ease: 'Sine.In',
+      onUpdate: () => {
+        if (!s.active) return;
+        const from = Phaser.Display.Color.ValueToColor(heat.k < 0.35 ? 0xfff0b0 : 0xff9a50);
+        const to = Phaser.Display.Color.ValueToColor(heat.k < 0.35 ? 0xff9a50 : 0xffffff);
+        const c = Phaser.Display.Color.Interpolate.ColorWithColor(from, to, 100, heat.k < 0.35 ? (heat.k / 0.35) * 100 : ((heat.k - 0.35) / 0.65) * 100);
+        s.setTint(Phaser.Display.Color.GetColor(c.r, c.g, c.b));
+      },
+      onComplete: () => s.active && s.clearTint(),
+    });
+    // the ripple: from the middle out, each shield lifts and slams back down into the line
+    const delay = 250 + Math.abs(s.x - mid) * 0.55;
     k.sc.time.delayedCall(delay, () => {
       if (!s.active) return;
-      // the heat: a hot glow behind it and a white-hot tint that cools
-      const glow = k.img('glow', s.x, s.y - 8, 1.1).setTint(0xffa040).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
-      k.sc.tweens.add({ targets: glow, alpha: { from: 0.95, to: 0 }, scale: { from: 0.7, to: 1.5 }, duration: 1300, ease: 'Quad.Out', onComplete: () => glow.destroy() });
-      const heat = { k: 0 };
+      const y0 = s.y;
+      s.setData('slam', 1);
       k.sc.tweens.add({
-        targets: heat,
-        k: 1,
-        duration: 1400,
-        ease: 'Quad.In',
-        onUpdate: () => {
-          if (!s.active) return;
-          // white-gold → orange → back to its own bronze
-          const c = Phaser.Display.Color.Interpolate.ColorWithColor(
-            Phaser.Display.Color.ValueToColor(heat.k < 0.4 ? 0xfff2c0 : 0xffa050),
-            Phaser.Display.Color.ValueToColor(heat.k < 0.4 ? 0xffa050 : 0xffffff),
-            100,
-            heat.k < 0.4 ? (heat.k / 0.4) * 100 : ((heat.k - 0.4) / 0.6) * 100,
-          );
-          s.setTint(Phaser.Display.Color.GetColor(c.r, c.g, c.b));
-        },
-        onComplete: () => s.active && s.clearTint(),
+        targets: s,
+        y: y0 - 34,
+        duration: 140,
+        ease: 'Quad.Out',
+        onComplete: () =>
+          k.sc.tweens.add({
+            targets: s,
+            y: y0,
+            duration: 110,
+            ease: 'Quad.In',
+            onComplete: () => {
+              if (!s.active) return;
+              s.setData('slam', 0);
+              // the slam: a squash, a thud, and sparks shaken off the hot rim, arcing up and falling as embers
+              k.sc.tweens.add({ targets: s, scaleY: { from: s.scaleX * 0.86, to: s.scaleX }, duration: 200, ease: 'Back.Out' });
+              k.host.fx.ring(s.x, s.y + s.displayHeight * 0.4, 0xffa040, 0.45, 0.35);
+              audio.sfx('sfx_hero_shieldblock', { volume: 0.35, rate: 1.2, throttle: 40 });
+              const rim = s.y - s.displayHeight * 0.45;
+              for (let i = 0; i < 9; i++) {
+                const ang = (crand() - 0.5) * 1.6;
+                const sx = s.x + Math.sin(ang) * s.displayWidth * 0.45;
+                const sp = k.img('soft', sx, rim + (1 - Math.cos(ang)) * s.displayHeight * 0.3, 0.04 + crand() * 0.05)
+                  .setTint(crand() < 0.5 ? 0xffe8a0 : 0xff8a30)
+                  .setBlendMode(Phaser.BlendModes.ADD);
+                const vx = Math.sin(ang) * (120 + crand() * 200);
+                const up = 90 + crand() * 170;
+                const dur = 650 + crand() * 550;
+                k.sc.tweens.add({ targets: sp, x: sp.x + vx, duration: dur });
+                k.sc.tweens.add({
+                  targets: sp,
+                  y: sp.y - up,
+                  duration: dur * 0.35,
+                  ease: 'Quad.Out',
+                  onComplete: () => k.sc.tweens.add({ targets: sp, y: sp.y + up * 1.8, alpha: 0, scale: sp.scale * 0.5, duration: dur * 0.65, ease: 'Quad.In', onComplete: () => sp.destroy() }),
+                });
+              }
+            },
+          }),
       });
-      k.sc.tweens.add({ targets: s, scale: { from: s.scale * 1.12, to: s.scale }, duration: 320, ease: 'Back.Out' });
-      // sparks off the rim: they leap up, arc and fall as dimming embers
-      const top = s.y - s.displayHeight * 0.42;
-      for (let i = 0; i < 7; i++) {
-        const sp = k.img('soft', s.x + (crand() - 0.5) * s.displayWidth * 0.7, top, 0.05 + crand() * 0.05).setTint(crand() < 0.5 ? 0xffe08a : 0xff8a3a).setBlendMode(Phaser.BlendModes.ADD);
-        const vx = (crand() - 0.5) * 260;
-        const up = 120 + crand() * 160;
-        const dur = 700 + crand() * 500;
-        k.sc.tweens.add({ targets: sp, x: sp.x + vx, duration: dur, ease: 'Linear' });
-        k.sc.tweens.add({ targets: sp, y: sp.y - up, duration: dur * 0.4, ease: 'Quad.Out', yoyo: false, onComplete: () => k.sc.tweens.add({ targets: sp, y: sp.y + up * 1.6, alpha: 0, duration: dur * 0.6, ease: 'Quad.In', onComplete: () => sp.destroy() }) });
-      }
     });
   }
+  k.sc.time.delayedCall(250 + (W / 2) * 0.55 + 260, () => k.host.shake(220, 0.006));
 }
 
 function shieldWall(k: HeroKit, sec: number, shove: boolean): void {
@@ -151,7 +186,7 @@ function shieldWall(k: HeroKit, sec: number, shove: boolean): void {
       if (done) return false;
       t += dt;
       // the wall rides up and down with the pizzas under it (a lifted pizza takes its shield with it)
-      if (landed) shields.forEach((s, i) => (s.y += (wallY(k, s.x) + (i % 2) * 10 - s.y) * Math.min(1, dt * 8)));
+      if (landed) shields.forEach((s, i) => !s.getData('slam') && (s.y += (wallY(k, s.x) + (i % 2) * 10 - s.y) * Math.min(1, dt * 8)));
       // the last second, the shields shudder before they drop
       if (total - t < 1) shields.forEach((s, i) => s.setAngle(Math.sin(t * 40 + i) * 3));
       if (t >= total) {
