@@ -2,10 +2,11 @@
 // Titan's Throne (Thanfoot). Pulp-comic print: flat bold colour fields, ink outlines, halftone dot shading and
 // Ben-Day skies. Moving parts (searchlights, the blimp, rain, alarms, vat bubbles, Tesla arcs, drifting rocks)
 // are added on top by the act's effect layer in src/game/acts/act7.ts, which also changes the weather and
-// lighting from wave to wave.
+// lighting from wave to wave. Metropizza Rooftops has been redrawn with the location kit (scene-metropizza.ts), which
+// runs its own moving parts; its old art below is kept for the before/after page.
 
 import type { GlowSpot } from '../../art/backdrops';
-import { registerScene } from '../../art/registry';
+import { registerLegacyScene, registerScene } from '../../art/registry';
 import {
   type Ctx,
   type R,
@@ -724,7 +725,8 @@ function drawThrone(ctx: Ctx, r: R): void {
 
 // ---------------------------------------------------------------------------------------------
 
-registerScene('metropizza', {
+// (redrawn with the location kit in scene-metropizza.ts; this stays for the before/after page, ?dev&stages)
+registerLegacyScene('metropizza', {
   info: {
     name: 'Metropizza Rooftops',
     subtitle: 'Waves 61–64',

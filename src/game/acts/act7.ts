@@ -3,7 +3,9 @@
 // The layer prints the act as a pulp comic: a halftone dot screen over the backdrop, speech-bubble quips, and
 // KRAK! / POW! impact words on big hits. It also runs each place's moving parts and changes the weather and
 // light from wave to wave:
-//   Metropizza Rooftops  61 golden hour · 62 dusk · 63 night, searchlights · 64 thunderstorm and rain
+//   Metropizza Rooftops  61 golden hour · 62 dusk · 63 night, searchlights · 64 thunderstorm and rain (its backdrop,
+//                        scene-metropizza.ts, runs the blimp, searchlights, light and bolts; the act keeps the rain
+//                        and the bolts' flash and thunder)
 //   Downtown Ruins       65 smoke and drifting embers under lightning (Doomstomp)
 //   The Doom Lab         66 lab hum, Tesla arcs · 67 alarm beacons · 68 red alert (Ultoe) · 69 power surges
 //   Titan's Throne       70 a pulsing nebula and falling stars (Thanfoot)
@@ -15,6 +17,7 @@
 import Phaser from 'phaser';
 import { H, HOVER_Y, W } from '../../config';
 import { FOOT_BY_ID, type FootType } from '../../data/feet';
+import { backdropsAnimated } from '../../systems/graphics';
 import { save } from '../../systems/save';
 import { ui } from '../../ui/ui';
 import type { Arena } from '../arena';
@@ -148,6 +151,8 @@ interface Layer {
   /** Things the place animates every frame. */
   tickers: ((dt: number, t: number) => void)[];
   rain: Phaser.GameObjects.Particles.ParticleEmitter | null;
+  /** Stops listening to the place's backdrop (Metropizza's bolts). */
+  unhook: (() => void) | null;
   t: number;
   nextFlash: number;
   lastSlam: number;
@@ -167,6 +172,8 @@ function clearPlace(layer: Layer): void {
   layer.front.add(layer.flash);
   layer.tickers = [];
   layer.rain = null;
+  layer.unhook?.();
+  layer.unhook = null;
 }
 
 function build(a: Arena): Layer {
@@ -181,7 +188,7 @@ function build(a: Arena): Layer {
   back.add([dots, grade]);
   const flash = sc.add.rectangle(W / 2, H / 2, W, H, 0xffffff, 0).setBlendMode(Phaser.BlendModes.ADD);
   front.add(flash);
-  return { back, front, grade, dots, flash, place: '', wave: 0, tickers: [], rain: null, t: 0, nextFlash: 0, lastSlam: a.slammedAt(), stage: 0 };
+  return { back, front, grade, dots, flash, place: '', wave: 0, tickers: [], rain: null, unhook: null, t: 0, nextFlash: 0, lastSlam: a.slammedAt(), stage: 0 };
 }
 
 /** Light for the place and its wave within the stage: [multiply colour, strength]. */
@@ -207,35 +214,6 @@ function setLight(layer: Layer, col: number, k: number, ms = 1800): void {
   sc.tweens.killTweensOf(layer.grade);
   layer.grade.setFillStyle(col, 1);
   sc.tweens.add({ targets: layer.grade, alpha: k, duration: ms });
-}
-
-/** Searchlights: beams that sweep the sky from a lamp. */
-function searchlights(a: Arena, layer: Layer, strength: number): void {
-  const sc = a.sc;
-  for (const [x, y, speed, ph] of [
-    [1690, 560, 0.45, 0],
-    [430, 700, 0.33, 2],
-    [1120, 720, 0.28, 4],
-  ] as const) {
-    const beam = sc.add.image(x, y, 'p_a7_searchlight').setOrigin(0.5, 1).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
-    beam.setScale(1, 1.1);
-    layer.back.add(beam);
-    sc.tweens.add({ targets: beam, alpha: 0.55 * strength, duration: 1500 });
-    layer.tickers.push((_dt, t) => {
-      beam.rotation = Math.sin(t * speed + ph) * 0.55;
-    });
-  }
-}
-
-function blimp(a: Arena, layer: Layer): void {
-  const sc = a.sc;
-  const b = sc.add.image(-260, 210, 'p_a7_blimp').setScale(0.8);
-  layer.back.add(b);
-  layer.tickers.push((dt, t) => {
-    b.x += dt * 26;
-    b.y = 210 + Math.sin(t * 0.6) * 8;
-    if (b.x > W + 260) b.x = -260;
-  });
 }
 
 function rain(a: Arena, layer: Layer): void {
@@ -361,16 +339,23 @@ function setup(a: Arena, layer: Layer, n: number): void {
   const ws = waveInStage(n);
   const changed = place !== layer.place;
   layer.wave = n;
-  const light = LIGHT[place]?.[Math.min(ws, LIGHT[place].length) - 1] ?? [0xffffff, 0];
+  // Metropizza's redrawn backdrop (src/content/art/scene-metropizza.ts) lights itself wave by wave when it's animated
+  const live = place === 'metropizza' && backdropsAnimated();
+  const light = live ? ([0xffffff, 0] as [number, number]) : (LIGHT[place]?.[Math.min(ws, LIGHT[place].length) - 1] ?? [0xffffff, 0]);
   setLight(layer, light[0], light[1], changed ? 1 : 2000);
   // rebuild the moving parts when the place or the weather changes
   clearPlace(layer);
   layer.place = place;
   layer.nextFlash = 3 + Math.random() * 3;
   if (place === 'metropizza') {
-    blimp(a, layer);
-    searchlights(a, layer, ws >= 3 ? 1 : ws === 2 ? 0.55 : 0.25);
+    // the backdrop runs its own blimp, searchlights and bolts; the act keeps the rain over the feet, and flashes
+    // the screen and thunders when one of the backdrop's bolts strikes
     if (ws >= 4) rain(a, layer);
+    if (live) {
+      const onBolt = (strong: boolean) => lightning(a, layer, strong);
+      a.sc.events.on('metropizza:bolt', onBolt);
+      layer.unhook = () => a.sc.events.off('metropizza:bolt', onBolt);
+    }
   } else if (place === 'doomstomp') {
     smoke(a, layer);
   } else if (place === 'doomlab') {
@@ -386,7 +371,7 @@ function weatherTick(a: Arena, layer: Layer, dt: number): void {
   const ws = waveInStage(layer.wave);
   layer.nextFlash -= dt;
   if (layer.nextFlash > 0) return;
-  if (layer.place === 'metropizza' && ws >= 4) {
+  if (layer.place === 'metropizza' && ws >= 4 && !layer.unhook) {
     layer.nextFlash = 5 + Math.random() * 5;
     lightning(a, layer, Math.random() < 0.4);
   } else if (layer.place === 'doomstomp') {
@@ -408,6 +393,7 @@ export const actFx: Record<number, ActFx> = {
       setup(a, L, n);
     },
     leave() {
+      L?.unhook?.();
       if (L?.back.active) {
         L.back.destroy(true);
         L.front.destroy(true);
