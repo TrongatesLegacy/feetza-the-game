@@ -77,6 +77,11 @@ export interface SimResult {
   stall?: { screen: string; detail: Record<string, unknown> };
   /** Damage dealt by source over the run. */
   damage?: Record<string, number>;
+  /** Slices lost, by 'boss|…' (a boss or mini-boss on the field) or 'wave|…', then the foot that stomped ('zombie …'
+   *  for a turned foot) or the callout of the move that took them. */
+  lostBy?: Record<string, number>;
+  /** The most turned (zombie) feet on the field at once. */
+  peakZombies?: number;
   /** Guard feet's shields: smacks they blocked, shields broken, new ones raised. */
   guard?: { blocked: number; broken: number; rearmed: number; soaked: number; chipSteps: number; slamSteps: number; ttk: Record<string, number[]>; stomps: Record<string, number> };
 }
@@ -332,6 +337,42 @@ export async function simRun(game: Phaser.Game, o: SimOpts, start: (opts: Record
     if (done > 0) dmgBy[o?.source ?? 'other'] = (dmgBy[o?.source ?? 'other'] ?? 0) + done;
     return r;
   };
+  // where the slices go: by the foot that stomped (a turned foot marked 'zombie') or the move's
+  // callout (a boss's bite, a munch…), split by whether a boss or mini-boss was on the field at the time
+  const lostBy: Record<string, number> = {};
+  let label = '';
+  const hitPizza = g.hitPizza;
+  g.hitPizza = function (this: AnyScene, p: any, n: number, l: string, c?: string) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    label = l;
+    try {
+      return hitPizza.call(this, p, n, l, c);
+    } finally {
+      label = '';
+    }
+  };
+  const applyStomp = g.applyStomp;
+  // (a stomp shared out with the neighbours calls in again: count only the outer call)
+  let depth = 0;
+  g.applyStomp = function (this: AnyScene, p: any, f: any, dmg: number, big: boolean) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    if (depth) return applyStomp.call(this, p, f, dmg, big);
+    const before = (this.pizzas ?? []).reduce((n: number, q: any) => n + (q.dead ? 0 : (q.slices ?? 0)), 0); // eslint-disable-line @typescript-eslint/no-explicit-any
+    depth++;
+    let r;
+    try {
+      r = applyStomp.call(this, p, f, dmg, big);
+    } finally {
+      depth--;
+    }
+    const lost = before - (this.pizzas ?? []).reduce((n: number, q: any) => n + (q.dead ? 0 : (q.slices ?? 0)), 0); // eslint-disable-line @typescript-eslint/no-explicit-any
+    if (lost > 0) {
+      const boss = (this.feet ?? []).some((o: any) => o.alive && o.isBossLike); // eslint-disable-line @typescript-eslint/no-explicit-any
+      const k = `${boss ? 'boss' : 'wave'}|${f ? `${f.zombified ? 'zombie ' : ''}${f.type.id}` : label || 'other'}`;
+      lostBy[k] = (lostBy[k] ?? 0) + lost;
+    }
+    return r;
+  };
+  // the most feet a boss had turned (the Zombie Loafer's zombies) at once
+  let peakZombies = 0;
   // tracing: count every random draw, by wave, and where each came from in the traced wave
   const draws: number[] = [];
   const where: Record<string, number> = {};
@@ -428,6 +469,7 @@ export async function simRun(game: Phaser.Game, o: SimOpts, start: (opts: Record
       if (checkMs >= 2000) {
         checkMs = 0;
         const boss = (g.feet ?? []).find((f: any) => f.alive && f.isBossLike); // eslint-disable-line @typescript-eslint/no-explicit-any
+        peakZombies = Math.max(peakZombies, (g.feet ?? []).filter((f: any) => f.alive && f.zombified).length); // eslint-disable-line @typescript-eslint/no-explicit-any
         const sig = [wave, g.run.feetSmacked, g.run.slicesLost, Math.round(g.run.coins ?? 0), (g.feet ?? []).filter((f: any) => f.alive).length, boss ? Math.round(boss.hp) : -1, screenOf(g)].join('|'); // eslint-disable-line @typescript-eslint/no-explicit-any
         stillMs = sig === lastSig ? stillMs + 2000 : 0;
         lastSig = sig;
@@ -474,6 +516,8 @@ export async function simRun(game: Phaser.Game, o: SimOpts, start: (opts: Record
     stall,
     damage: Object.fromEntries(Object.entries(dmgBy).map(([k, v]) => [k, Math.round(v)])),
     guard: g.guardStats ? JSON.parse(JSON.stringify(g.guardStats)) : undefined,
+    lostBy,
+    peakZombies,
   };
   if (opts.trace) {
     Math.random = seeded;
