@@ -138,6 +138,7 @@ export class GameScene extends Phaser.Scene implements Arena {
   private backdrop!: BackdropView;
   private pizzaLayer!: Phaser.GameObjects.Container;
   underLayer!: Phaser.GameObjects.Container;
+  overFeetLayer!: Phaser.GameObjects.Container;
   private shadowLayer!: Phaser.GameObjects.Container;
   private feetLayer!: Phaser.GameObjects.Container;
   fxLayer!: Phaser.GameObjects.Container;
@@ -479,6 +480,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.pizzaLayer = this.add.container(0, 0);
     this.shadowLayer = this.add.container(0, 0);
     this.feetLayer = this.add.container(0, 0);
+    this.overFeetLayer = this.add.container(0, 0);
     this.fxLayer = this.add.container(0, 0);
     // scene-light colour grade: feet + pizzas pick up each location's lighting
     this.grade = this.add.rectangle(W / 2, H / 2, W, H, 0xffffff).setBlendMode(Phaser.BlendModes.MULTIPLY).setAlpha(0.28);

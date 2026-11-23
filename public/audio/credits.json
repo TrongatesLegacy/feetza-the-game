@@ -5072,6 +5072,62 @@
     "notes": "Nemesis bosses: Kronos swallows a mouthful of pizza: a deep cavernous gulp; a synthesized deep throat gulp with a cavern echo, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactSoft_heavy_001 (CC0, kenney.nl)"
   },
   {
+    "file": "sfx_titanking_inhale.mp3",
+    "title": "Monster Inhale.wav",
+    "author": "ecfike (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/ecfike/sounds/132865/",
+    "notes": "Nemesis bosses: DEVOUR: Kronos's Titan head inhales a pizza (loops while it pulls): a long, hollow, titanic breath in with a low rumble; built from real recordings and the fight's own sounds with ffmpeg (trimmed, pitch-shifted, filtered and layered), a brown-noise rumble under it and the tail crossfaded into the head for a seamless loop. This source: the breath, 4.4 s, pitched down; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_titanking_inhale.mp3",
+    "title": "cool hollow wind cavern effect chimney fireplace air suck.flac",
+    "author": "kyles (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/kyles/sounds/453850/",
+    "notes": "Nemesis bosses: DEVOUR: Kronos's Titan head inhales a pizza (loops while it pulls). This source: the hollow rush of air into the mouth, pitched down; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_titanking_choke.mp3",
+    "title": "Zombie Choking.wav",
+    "author": "mrh4hn (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/mrh4hn/sounds/426637/",
+    "notes": "Nemesis bosses: DEVOUR: the Titan head is whacked enough to choke on its breath (CHOKED!): a stone crack, then a strangled titanic gag and a cough; built from real recordings and the fight's own sounds with ffmpeg (trimmed, pitch-shifted, filtered and layered), over sfx_titanking_jawhit (CC0, made for Feetza) and a synthesized sub thump. This source: the gag, pitched well down; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_titanking_choke.mp3",
+    "title": "Short cough / choke",
+    "author": "Breviceps (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Breviceps/sounds/444723/",
+    "notes": "Nemesis bosses: DEVOUR: the Titan head chokes (CHOKED!). This source: the closing cough, pitched down; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_titanking_lavaburst.mp3",
+    "title": "lava death",
+    "author": "MrVasLuk (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/MrVasLuk/sounds/304619/",
+    "notes": "Nemesis bosses: DEVOUR: Kronos's Titan head breaks the surface of the lava pit: a deep lava surge and splash and a hiss of steam; built from real recordings and the fight's own sounds with ffmpeg (trimmed, pitch-shifted, filtered and layered), with a synthesized sub swell. This source: the lava surge, pitched down; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_titanking_lavaburst.mp3",
+    "title": "R19-39-Steam Hiss.wav",
+    "author": "craigsmith (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/craigsmith/sounds/479296/",
+    "notes": "Nemesis bosses: DEVOUR: the Titan head breaks the surface of the lava pit. This source: the steam hiss off the hot stone; trimmed, filtered and layered"
+  },
+  {
+    "file": "sfx_titanking_lavaburst.mp3",
+    "title": "LavaSound",
+    "author": "Rickplayer (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Rickplayer/sounds/531699/",
+    "notes": "Nemesis bosses: DEVOUR: the Titan head breaks the surface of the lava pit. This source: the lava bubbling as it drains off him; trimmed, filtered and layered"
+  },
+  {
     "file": "sfx_zeus_enter.mp3",
     "title": "Original synthesized sound",
     "author": "Made for Feetza",

@@ -13,8 +13,11 @@ import type { ThrowFx } from '../abilities';
 import type { ActFx } from '../contentFx';
 import type { Foot } from '../Foot';
 import { registerMoves, registerPassives, type HeroKit, type Passive } from '../heroKit';
+import { laneObscured } from '../laneShade';
 
 const BRONZE = 0xc9873a;
+/** How far a shield fades in an obscured lane (to 18%). */
+const SHADED = 0.82;
 const SPEAR: ThrowFx = { e: 'throw', prop: 'spear', how: 'pierce', x: 3, at: { to: 'front', n: 1 } };
 
 /** The phalanx's war chant (OOOOH... OOH! OOH!, spears on shields), on every raise and renewal of the wall. It runs
@@ -76,7 +79,7 @@ function reforge(k: HeroKit, shields: Phaser.GameObjects.Image[]): void {
     const glow = k.img(s.texture.key, s.x, s.y, s.scale * 1.08).setTint(0xff6a18).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
     k.sc.tweens.add({ targets: glow, alpha: 0.85, duration: 160 });
     k.sc.tweens.add({ targets: glow, alpha: 0, delay: 900, duration: HEAT_MS - 900, ease: 'Quad.In', onComplete: () => glow.destroy() });
-    const follow = k.sc.time.addEvent({ delay: 16, loop: true, callback: () => (s.active ? glow.setPosition(s.x, s.y).setScale(s.scaleX * 1.08, s.scaleY * 1.08) : follow.remove()) });
+    const follow = k.sc.time.addEvent({ delay: 16, loop: true, callback: () => (s.active ? glow.setPosition(s.x, s.y).setScale(s.scaleX * 1.08, s.scaleY * 1.08).setVisible(laneObscured(k.sc, s.x) < 0.5) : follow.remove()) });
     k.sc.time.delayedCall(HEAT_MS, () => follow.remove());
     const heat = { k: 0 };
     k.sc.tweens.add({
@@ -119,7 +122,7 @@ function reforge(k: HeroKit, shields: Phaser.GameObjects.Image[]): void {
               audio.sfx('sfx_hero_shieldblock', { volume: 0.35, rate: 1.2, throttle: 40 });
               const rim = s.y - s.displayHeight * 0.45;
               // a hot flash in the shield's shape on impact
-              const flash = k.img(s.texture.key, s.x, s.y, s.scaleX * 1.04).setTint(0xfff0c0).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.9);
+              const flash = k.img(s.texture.key, s.x, s.y, s.scaleX * 1.04).setTint(0xfff0c0).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.9 * (1 - SHADED * laneObscured(k.sc, s.x)));
               k.sc.tweens.add({ targets: flash, alpha: 0, duration: 260, onComplete: () => flash.destroy() });
               for (let i = 0; i < 16; i++) {
                 const ang = (crand() - 0.5) * 2.2;
@@ -202,6 +205,9 @@ function shieldWall(k: HeroKit, sec: number, shove: boolean): void {
       t += dt;
       // the wall rides up and down with the pizzas under it (a lifted pizza takes its shield with it)
       if (landed) shields.forEach((s, i) => !s.getData('slam') && (s.y += (wallY(k, s.x) + (i % 2) * 10 - s.y) * Math.min(1, dt * 8)));
+      // a shield in a lane a boss's colossal prop has taken (Kronos's Titan head) steps back to a ghost of itself, so
+      // what's behind it stays clear to see and hit, and comes back when the lane is clear (src/game/laneShade.ts)
+      if (landed) shields.forEach((s) => s.setAlpha(1 - SHADED * laneObscured(k.sc, s.x)));
       // the last second, the shields shudder before they drop
       if (total - t < 1) shields.forEach((s, i) => s.setAngle(Math.sin(t * 40 + i) * 3));
       if (t >= total) {

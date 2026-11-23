@@ -670,6 +670,9 @@ const TRIM: Record<string, number> = {
   sfx_titanking_headchew: 0.93, // -12.9 dB → -13.5: the stone head chews a pizza: a grinding stone crunch with crust crackle (repeats while it eats)
   sfx_titanking_sink: 1.05, // -12.4 dB → -12.0: the beaten stone head sinks away: a descending grinding rumble
   sfx_titanking_gulp: 1.06, // -10.0 dB → -9.5: Kronos swallows a mouthful of pizza: a deep cavernous gulp
+  sfx_titanking_inhale: 1.0, // -14.9 dB: DEVOUR: the Titan head's long, hollow inhale (loops while it pulls a pizza in; sits under the hits)
+  sfx_titanking_choke: 1.0, // -10.7 dB: DEVOUR: the Titan head chokes on its breath: a stone crack, a strangled gag and a cough
+  sfx_titanking_lavaburst: 1.06, // -12.6 dB → -12.1: DEVOUR: the Titan head breaks the lava's surface: a lava surge, splash and steam hiss
   sfx_zeus_enter: 1.07, // -10.1 dB → -9.5: Zeus descends: a thunderclap, a choir swell and a marble landing
   sfx_zeus_thunder: 1.05, // -11.4 dB → -11.0: a huge rolling thunder as Zeus starts a new phase
   sfx_zeus_charge: 1.07, // -11.6 dB → -11.0: a storm cloud charges over a lane: a building crackle (tell, about 1.5 s)
@@ -1041,6 +1044,21 @@ class AudioManager {
     const out = ctx.createBuffer(buf.numberOfChannels, len, buf.sampleRate);
     for (let c = 0; c < buf.numberOfChannels; c++) out.copyToChannel(buf.getChannelData(c).subarray(lead, lead + len), c);
     (this.game.cache.audio as unknown as { entries: Phaser.Structs.Map<string, unknown> }).entries.set(key, out);
+  }
+
+  /** A sound effect's gain at the sfx volume (its trim included), for a loop whose volume is set by hand. */
+  sfxGain(key: string): number {
+    return (TRIM[key] ?? 1) * this.vol('sfx');
+  }
+
+  /** A looping sound effect (a boss's sustained move, e.g. an inhale) at the sfx volume, edges trimmed for a seamless
+   *  loop. The caller stops and destroys it. */
+  loopSfx(key: string, volume = 1): (Phaser.Sound.BaseSound & { volume: number }) | null {
+    if (!this.game || !this.game.cache.audio.exists(key)) return null;
+    this.trimForLoop(key);
+    const s = this.game.sound.add(key, { loop: true, volume: volume * (TRIM[key] ?? 1) * this.vol('sfx') }) as Phaser.Sound.BaseSound & { volume: number };
+    s.play();
+    return s;
   }
 
   /** One-shot music sting (e.g. game over) that ducks the current music. */

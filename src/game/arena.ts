@@ -30,6 +30,9 @@ export interface Arena {
   fxLayer: Phaser.GameObjects.Container;
   /** Layer behind the pizzas (pistons, tentacles rising from the table). */
   underLayer: Phaser.GameObjects.Container;
+  /** Layer over the feet but under the scene light and the fx layer: a boss's colossal prop that the other feet
+   *  pass behind (Kronos's Titan head). */
+  overFeetLayer: Phaser.GameObjects.Container;
   now(): number;
   allFeet(): Foot[];
   allPizzas(): Pizza[];
