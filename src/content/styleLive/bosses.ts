@@ -8,7 +8,7 @@ import { crand } from '../../systems/cosmeticRandom';
 import { type DoughLive, doughLive } from './dough';
 import { BIG_LOCKS } from '../style/bosses';
 import { drawFly } from '../style/pilot-bare';
-import { JELLY_TENTS } from '../style/bosses-4';
+import { JELLY_TENTS, OOZE_RUNS } from '../style/bosses-4';
 import { DOUGH_CONTACT, DOUGH_STRAND, PENNANT, TICKET, saucerWithBeam } from '../style/bosses-3';
 import { CROC_HOLES_LIVE, CROC_NOZZLES, KELP, RINK_WHEELS, YETI_TUFTS } from '../style/bosses-2';
 
@@ -554,10 +554,11 @@ registerLive('lumberjack', {
 });
 
 // THE ZOMBIE LOAFER: flies buzz round it, the eyeball swings on its thread, its tongue licks its lips (its tell),
-// it drools green slime and a faint rot fog drifts off it.
+// it drools green slime, a flap of rotted leather on its instep flops about, ooze wells up and creeps off its
+// splits and a faint rot fog drifts off it.
 registerLive('poltergeist', {
   rig: { swing: 1.1, squash: 1.1 },
-  sway: { eye: { k: 30, c: 3.6, gain: 1.4, idle: 0.14, flop: 1 } },
+  sway: { eye: { k: 30, c: 3.6, gain: 1.4, idle: 0.14, flop: 1 }, flap: { k: 44, c: 2.8, gain: 1.7, idle: 0.1, flop: 1.4 } },
   twitch: { tongue: { every: 1.6 } },
   heat: {},
   setup(k) {
@@ -569,15 +570,21 @@ registerLive('poltergeist', {
       flies: k.swarm({ key, frames: 3, count: 5, at: [CX, 140], rx: 140, ry: 140, speed: 1.5, jitter: 24, scale: 0.55 }),
       steam: steamEm(k),
       drool: k.emitter({ frame: 'drop', drag: 0.3, max: 40 }),
+      ooze: k.emitter({ frame: 'drop', drag: 2, max: 16 }),
       fog: k.emitter({ frame: 'puff', curl: 24, drag: 0.8, below: true, max: 80 }),
     };
   },
-  tick(k, dt, { flies, steam, drool, fog }) {
+  tick(k, dt, { flies, steam, drool, ooze, fog }) {
     const s = k.f.type.scale;
     const diving = k.f.state === 'descend' || k.windingUp;
     flies.tight += ((diving ? 0.6 : 1) - flies.tight) * Math.min(1, dt * 3);
     drool.rate('drool', 1.4, dt, () => {
       drool.emit(CX - 50 + R() * 100, 250, { vy: 20, life: 1, r0: 4.5 * s, r1: 3 * s, a: 0.9, tint: 0xa8d84a, grav: 600, fade: 0.03 });
+    });
+    // ooze slowly wells at the end of a run on the upper, swells and creeps down off it
+    ooze.rate('weep', 0.7, dt, () => {
+      const [x, y, len, w, lean] = OOZE_RUNS[Math.floor(R() * OOZE_RUNS.length)];
+      ooze.emit(x + lean, y + len + w * 0.4, { vy: 6, life: 2.4, r0: 1.2 * s, r1: 3.4 * s, a: 0.95, tint: 0xb8c83a, grav: 26, fade: 0.35 });
     });
     fog.rate('rot', 4, dt, () => {
       fog.emit(30 + R() * 160, 200 + R() * 60, { vx: pm() * 30, vy: -6 - R() * 10, life: 2.2, r0: 12 * s, r1: 44 * s, a: 0.28, tint: 0x8aa04a, fade: 0.25 });
