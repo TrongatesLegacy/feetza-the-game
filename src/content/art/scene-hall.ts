@@ -4,7 +4,9 @@
 // onto the night (moonlit peaks and firs, the snow driving past the leaded quarries, a drift on the outside sill);
 // an iron brazier on a tripod before each lancet, its fire lighting the reveal, the wall, the banners and the near
 // end of the table; the kings' banners (a crown over the foot) hung from crossbars on cords from iron hooks; the
-// empty throne on its dais under a navy cloth of estate and a tester on chains. An oak feasting table.
+// Colossus's throne on a rough-hewn dais, forged from the harness of the feet he has beaten: armoured legs for its
+// arms, sabatons heaped and fused under the seat, a seat-back lined with lapped greave shells, and a tall uneven fan of
+// spear heads, shield rims, broken plate, a great helm and a kettle hat. An oak feasting table.
 //
 // Live, the heroes:
 // - the braziers: fire painted tongue by tongue in soft layers at 10 phases of its cycle and played cross-faded,
@@ -15,7 +17,9 @@
 //   at 10 phases of a draught rippling down it; banner, crossbar and cord swing as one pendulum from the hook, and a
 //   stomp sets them swinging (the ripple quickening with the swing);
 // - the blizzard in the lancets: lit flakes at three depths driven by gusts, turning in the wind and kept to the
-//   glass, painted veils of blown snow sweeping across in the gusts; dust and grit sift off the wall plate at a stomp.
+//   glass, painted veils of blown snow sweeping across in the gusts; dust and grit sift off the wall plate at a stomp;
+// - the throne: each brazier's light on its iron edges flickers with that fire; a stomp swings the loose plate on its
+//   last rivet, makes the kettle hat jump and rattle on its spear, and shakes rust and soot out of the seams.
 
 import Phaser from 'phaser';
 import { footPath } from '../../art/backdrops';
@@ -27,6 +31,7 @@ import {
   type R,
   TY,
   W,
+  boxOf,
   calmLanes,
   castShadow,
   crevice,
@@ -35,6 +40,7 @@ import {
   groundShadow,
   lightPool,
   lineAt,
+  polyPath,
   rectPath,
   rim,
   rrPath,
@@ -46,10 +52,9 @@ import {
 import type { SceneSpec } from '../../art/scene/layers';
 import { aoHalo } from '../../art/scene/light';
 import { grain, planksPlane, tableFalloff, tableSeam, varnish, woodGrain } from '../../art/scene/materials';
-import { crack, drift, grime, lay, noiseMask, streaks, surface } from '../../art/scene/paint';
-import { hang } from '../../art/scene/props';
+import { chips, crack, drift, grime, lay, noiseMask, softly, streaks, surface } from '../../art/scene/paint';
 import { cloud, farLand, skyFill, stars } from '../../art/scene/sky';
-import { ashlar } from '../../art/scene/surfaces';
+import { ashlar, rivet } from '../../art/scene/surfaces';
 import { hashStr, makeCanvas, mix, rgba, rng, shade } from '../../art/util';
 import { crand } from '../../systems/cosmeticRandom';
 import { Loop, Parts, Rate, Spring, sheet } from '../../game/sceneAnim';
@@ -76,15 +81,13 @@ export const HK = {
   barY: 204,
   bannerW: 168,
   bannerH: 356,
-  /** The throne and its cloth of estate. */
-  throne: { x: 960, top: 412, seat: 600, hw: 104 },
-  dossal: { x0: 820, x1: 1100, top: 312 },
-  dais: { y: 702, hw: 230 },
+  /** The throne: its centre, the top of its fan of trophies, its seat. */
+  throne: { x: 960, top: 192, seat: 540 },
+  /** The dais: the top tread's front edge, its half width (the steps below widen). */
+  dais: { y: 658, hw: 212 },
 };
 
 const P2 = Math.PI * 2;
-/** How deep the dais's treads look, seen from just above. */
-const TREAD = 14;
 const STONE = ['#8a8174', '#7e776c', '#958b7c', '#837a6e', '#787068'];
 const STONE_MID = '#837a6e';
 const OAK = '#4e321e';
@@ -1317,297 +1320,933 @@ function bannerLight(ctx: Ctx): void {
   });
 }
 
-// ——— the throne under its cloth of estate ———
+// ——— the dais and the throne: the Colossus's war trophies forged into a seat ———
 
-function dossal(ctx: Ctx, r: R): void {
-  const { x0, x1, top } = HK.dossal;
-  const bot = HK.dais.y - TREAD;
-  const cloth = rectPath(x0, top, x1 - x0, bot - top);
-  aoHalo(ctx, cloth, 30, 0.45, '#08060a', 6);
-  castShadow(ctx, cloth, 10, 16, 0.5);
-  ctx.save();
-  cloth(ctx);
-  ctx.clip();
-  surface(ctx, r, { x: x0, y: top, w: x1 - x0, h: bot - top }, '#1e2846', { vary: 0.3, cells: 3, mottle: 0.3, strokes: 0.3, strokeAng: Math.PI / 2, strokeLen: 80, grain: 0.25, grainKind: 'canvas', seed: 81 });
-  // the diaper: small gold crowns in a lattice, worn and dim
-  for (let y = top + 30, row = 0; y < bot; y += 46, row++)
-    for (let x = x0 + 22 + (row % 2) * 30; x < x1; x += 60) {
-      ctx.fillStyle = rgba('#b08a3a', 0.14);
-      ctx.beginPath();
-      ctx.moveTo(x - 7, y + 5);
-      ctx.lineTo(x - 7, y - 3);
-      ctx.lineTo(x - 3, y + 1);
-      ctx.lineTo(x, y - 6);
-      ctx.lineTo(x + 3, y + 1);
-      ctx.lineTo(x + 7, y - 3);
-      ctx.lineTo(x + 7, y + 5);
-      ctx.closePath();
-      ctx.fill();
-    }
-  // the pleats it hangs in: soft vertical folds lit on their left
-  for (let x = x0; x < x1; x += 28) {
-    const g = ctx.createLinearGradient(x, 0, x + 28, 0);
-    g.addColorStop(0, rgba('#aab4e0', 0.07));
-    g.addColorStop(0.45, 'rgba(0,0,0,0)');
-    g.addColorStop(1, 'rgba(4,4,10,0.32)');
-    ctx.fillStyle = g;
-    ctx.fillRect(x, top, 28, bot - top);
+type Pt = [number, number];
+const TX = HK.throne.x;
+const SEAT = HK.throne.seat;
+/** The vanishing point's height: treads and the seat's top recede towards it. */
+const VY = 300;
+/** The dais, top to bottom: each step's tread front edge, its riser's height, half width, and how deep its tread
+ * looks from just above (the top one is the platform the throne stands on, deeper than the steps). */
+const STEPS = [
+  { y: HK.dais.y, h: 30, hw: HK.dais.hw, d: 22 },
+  { y: HK.dais.y + 44, h: 26, hw: HK.dais.hw + 52, d: 14 },
+  { y: HK.dais.y + 84, h: TY + 2 - (HK.dais.y + 84), hw: HK.dais.hw + 108, d: 14 },
+];
+/** Where the throne stands: part-way back on the top tread. */
+const FL = HK.dais.y - 10;
+const TIRON = '#3a3938';
+const BLADE = '#5a5c62';
+const RUST = '#8a4220';
+/** The two fires (the light the throne's edges catch). */
+const FIRE_AT: Pt[] = HK.wins.map((x) => [x, HK.brz.coalY - 50]);
+/** The fan of trophies springs from behind the seat-back. */
+const PIV: Pt = [TX, 540];
+
+/** A point `d` out from o along angle a (0 straight up, positive to the right). */
+const along = (a: number, d: number, o: Pt = PIV): Pt => [o[0] + Math.sin(a) * d, o[1] - Math.cos(a) * d];
+/** A shape drawn in its own frame (u along its axis, v across it to the right), placed at o pointing along a. */
+const placed = (o: Pt, a: number, pts: Pt[]): Pt[] => pts.map(([u, v]) => [o[0] + Math.sin(a) * u + Math.cos(a) * v, o[1] - Math.cos(a) * u + Math.sin(a) * v]);
+const mirror = (pts: Pt[]): Pt[] => pts.map(([x, y]) => [2 * TX - x, y] as Pt).reverse();
+/** A polyline's points every `step` px along a quadratic curve (for curved edges kept as points). */
+function curve(a: Pt, c: Pt, b: Pt, n = 8): Pt[] {
+  const out: Pt[] = [];
+  for (let i = 0; i <= n; i++) {
+    const t = i / n;
+    const s = 1 - t;
+    out.push([s * s * a[0] + 2 * s * t * c[0] + t * t * b[0], s * s * a[1] + 2 * s * t * c[1] + t * t * b[1]]);
   }
-  vfill(ctx, x0, top, x1 - x0, bot - top, [[0, 'rgba(4,4,10,0.65)'], [0.4, 'rgba(4,4,10,0.35)'], [1, 'rgba(4,4,10,0.5)']]);
-  // a gold border down each side
-  for (const x of [x0 + 4, x1 - 14]) {
-    ctx.fillStyle = rgba('#a07a30', 0.6);
-    ctx.fillRect(x, top, 10, bot - top);
-    ctx.fillStyle = rgba('#ffe0a0', 0.15);
-    ctx.fillRect(x, top, 2, bot - top);
-  }
-  ctx.restore();
-  // the tester over it: a shallow carved box, its valance scalloped and fringed, hung on chains from the plate
-  const tx0 = x0 - 26;
-  const tx1 = x1 + 26;
-  const ty = top - 34;
-  for (const x of [tx0 + 16, tx1 - 16]) hang(ctx, x, HK.plate.y1, x, ty + 4, 0, '#5a524c', 3.2, true);
-  const box = rectPath(tx0, ty, tx1 - tx0, 26);
-  castShadow(ctx, box, 12, 16, 0.55);
-  solid(ctx, box, { x: tx0, y: ty, w: tx1 - tx0, h: 26 }, 'wood', OAK, { depth: 0.12, line: 1.6, formSize: 6 });
-  within(ctx, box, () => {
-    woodGrain(ctx, r, { x: tx0, y: ty, w: tx1 - tx0, h: 26 }, OAK, false, 0.5);
-    // a carved run of quatrefoils, gilt worn to the wood
-    for (let x = tx0 + 18; x < tx1 - 8; x += 26) {
-      ctx.strokeStyle = rgba('#b08a40', 0.5);
-      ctx.lineWidth = 1.4;
-      for (const [dx, dy] of [[-3.5, 0], [3.5, 0], [0, -3.5], [0, 3.5]] as const) {
-        ctx.beginPath();
-        ctx.arc(x + dx, ty + 13 + dy, 3.5, 0, P2);
-        ctx.stroke();
+  return out;
+}
+const ellPts = (cx: number, cy: number, rx: number, ry: number, n = 18, a0 = 0, a1 = P2): Pt[] =>
+  Array.from({ length: n + 1 }, (_, i) => {
+    const t = a0 + ((a1 - a0) * i) / n;
+    return [cx + Math.cos(t) * rx, cy + Math.sin(t) * ry] as Pt;
+  });
+
+// ——— the trophies' shapes (screen space, fixed: the glints and the live layer use the same ones) ———
+
+/** Spear heads forged onto iron rods, fanned out behind the seat-back: angle, length; some snapped. */
+const SPEARS = [
+  { a: -0.98, len: 214, broken: true, s: 0.85, wings: false },
+  { a: -0.8, len: 290, broken: true, s: 1, wings: false },
+  { a: -0.58, len: 338, broken: false, s: 1, wings: false },
+  { a: -0.37, len: 300, broken: false, s: 1.15, wings: true },
+  { a: -0.2, len: 318, broken: true, s: 0.9, wings: false },
+  { a: 0.07, len: 322, broken: false, s: 1.2, wings: true },
+  { a: 0.23, len: 304, broken: false, s: 0.8, wings: false },
+  { a: 0.42, len: 330, broken: false, s: 1, wings: false },
+  { a: 0.6, len: 268, broken: true, s: 1.1, wings: false },
+  { a: 0.9, len: 300, broken: false, s: 0.95, wings: true },
+  { a: 1.04, len: 236, broken: false, s: 0.8, wings: false },
+];
+const BLADE_L = 54;
+type Spear = (typeof SPEARS)[number];
+/** How long a spear's head is. */
+const headL = (s: Spear) => BLADE_L * s.s;
+/** A spear head in its own frame (u from the socket to the point): a leaf blade, or one snapped off jagged; its two
+ * facets either side of the midrib. */
+function bladeOf(s: Spear): { full: Pt[]; plus: Pt[]; minus: Pt[] } {
+  const L = headL(s);
+  const w = s.s;
+  const left: Pt[] = s.broken ? [[0, -4], [L * 0.22, -9 * w], [L * 0.42, -8 * w], [L * 0.5, -3]] : [[0, -4], [L * 0.28, -9.5 * w], [L * 0.55, -7.5 * w], [L * 0.82, -3.5 * w]];
+  const tip: Pt = s.broken ? [L * 0.44, 0] : [L, 0];
+  const right: Pt[] = s.broken ? [[L * 0.56, 3], [L * 0.38, 7 * w], [L * 0.2, 9 * w], [0, 4]] : [[L * 0.82, 3.5 * w], [L * 0.55, 7.5 * w], [L * 0.28, 9.5 * w], [0, 4]];
+  return { full: [...left, tip, ...right], plus: [[0, 0], tip, ...right], minus: [[0, 0], tip, ...[...left].reverse()] };
+}
+const headAt = (s: Spear) => along(s.a, s.len - headL(s));
+const BLADES = SPEARS.map((s) => placed(headAt(s), s.a, bladeOf(s).full));
+
+/** Broken plates (greaves and breastplates hammered flat) behind the spears: the fan's jagged dark mass. */
+const SHARDS: Pt[][] = [
+  [-1.13, -0.7, 172, 216, 188],
+  [-0.76, -0.3, 206, 252, 220],
+  [-0.34, 0.1, 232, 270, 236],
+  [0.06, 0.5, 248, 230, 256],
+  [0.45, 0.9, 222, 246, 196],
+  [0.84, 1.17, 184, 164, 150],
+].map(([a0, a1, r0, rm, r1]) => {
+  const am = (a0 + a1) / 2;
+  return [along(a0, 90), along(a0, r0), along(a0 + (am - a0) * 0.5, (r0 + rm) / 2 - 14), along(am - 0.04, rm * 0.93), along(am, rm), along(am + 0.05, rm * 0.86), along(a1 - 0.08, (rm + r1) / 2 - 6), along(a1, r1), along(a1, 90)];
+});
+
+/** Rims torn off round shields: iron bands, broken off at both ends. */
+const RIMS = [
+  { cx: 892, cy: 404, r: 98, w: 13, a0: 3.55, a1: 5.15 },
+  { cx: 1036, cy: 396, r: 86, w: 12, a0: 4.2, a1: 6.05 },
+];
+function rimPts(m: (typeof RIMS)[number]): Pt[] {
+  const o = ellPts(m.cx, m.cy, m.r + m.w / 2, m.r + m.w / 2, 16, m.a0, m.a1);
+  const i = ellPts(m.cx, m.cy, m.r - m.w / 2, m.r - m.w / 2, 16, m.a0 + 0.04, m.a1 - 0.03).reverse();
+  // (the ends torn, not cut: a notch in each)
+  const end = (a: number, k: number): Pt => [m.cx + Math.cos(a) * (m.r + k), m.cy + Math.sin(a) * (m.r + k)];
+  return [...o, end(m.a1 - 0.02, 1), ...i, end(m.a0 + 0.06, -2)];
+}
+const RIM_PTS = RIMS.map(rimPts);
+
+/** A great helm impaled on a spear (the left), and a kettle hat on another (the right, loose: it rattles). */
+const HELM_L = { c: along(-0.58, 264), a: -0.58 - 0.12 };
+const HELM_R = { c: along(0.42, 252), a: 0.42 + 0.26 };
+const GREAT_HELM: Pt[] = [[-30, -25], [-12, -27.5], [10, -27], [24, -24], [29, -18], [30, 0], [29, 18], [24, 24], [10, 27], [-12, 27.5], [-30, 25], [-32, 0]];
+/** The kettle hat: a round crown over a wide brim, seen nearly edge on (u up its axis, v across). */
+const KETTLE_CROWN: Pt[] = Array.from({ length: 13 }, (_, i) => {
+  const t = (Math.PI * i) / 12;
+  return [-5 + 29 * Math.sin(t), -21 * Math.cos(t)] as Pt;
+});
+const KETTLE: Pt[] = [...KETTLE_CROWN, [-6, 26], [-8, 37], [-13, 33], [-16, 14], [-17, 0], [-16, -14], [-13, -33], [-8, -37], [-6, -26]];
+const HELM_L_PTS = placed(HELM_L.c, HELM_L.a, GREAT_HELM);
+const HELM_R_PTS = placed(HELM_R.c, HELM_R.a, KETTLE);
+
+/** The seat-back: plates fused into one jagged mass, its top broken into spikes, a crest up the middle. */
+const BACK: Pt[] = [
+  [TX - 120, SEAT - 6], [TX - 122, 404], [TX - 114, 374], [TX - 94, 362], [TX - 82, 330], [TX - 58, 350], [TX - 40, 316],
+  [TX - 18, 336], [TX, 284], [TX + 20, 334], [TX + 40, 312], [TX + 60, 346], [TX + 84, 326], [TX + 98, 362], [TX + 116, 370],
+  [TX + 122, 402], [TX + 118, SEAT - 6],
+];
+/** The hollow he leans in. */
+const PANEL: Pt[] = [[TX - 92, SEAT - 10], [TX - 92, 424], ...curve([TX - 92, 424], [TX - 88, 392], [TX, 388], 5).slice(1), ...curve([TX, 388], [TX + 88, 392], [TX + 92, 424], 5).slice(1), [TX + 92, SEAT - 10]];
+const SPINE: Pt[] = [[TX - 13, 394], [TX - 16, 334], [TX - 7, 302], [TX, 286], [TX + 7, 302], [TX + 16, 334], [TX + 13, 394]];
+/** The arms: an armoured leg (greave, knee cop, sabaton) at each front corner, an arm plate back to the seat-back. */
+const POST_X = [TX - 156, TX + 156];
+const greave = (px: number): Pt[] => [
+  [px - 17, 474], [px - 20, 500], [px - 21, 530], [px - 18, 566], [px - 14, 600], [px - 12, FL - 20],
+  [px + 12, FL - 20], [px + 14, 600], [px + 18, 566], [px + 21, 530], [px + 20, 500], [px + 17, 474],
+];
+const GREAVES = POST_X.map(greave);
+const POLEYNS = POST_X.map((px) => ellPts(px, 468, 23, 15, 16));
+const WINGS = POST_X.map((px, i): Pt[] => {
+  const s = i ? 1 : -1;
+  return [[px + s * 12, 460], [px + s * 30, 448], [px + s * 42, 456], [px + s * 42, 474], [px + s * 34, 488], [px + s * 14, 480]];
+});
+/** (each runs back from its knee cop to the seat-back, so in perspective it climbs in towards the middle) */
+const ARMS: Pt[][] = [
+  [[POST_X[0] + 6, 455], [TX - 114, 440], [TX - 112, 460], [POST_X[0] + 14, 479]],
+  mirror([[POST_X[0] + 6, 455], [TX - 114, 440], [TX - 112, 460], [POST_X[0] + 14, 479]]),
+];
+/** The seat: its top (seen from just above, running back to the seat-back) and its thick front lip. */
+const SEAT_HW = 142;
+const SEAT_BACK = SEAT_HW - (SEAT_HW * 16) / (SEAT - VY);
+const SEAT_TOP: Pt[] = [[TX - SEAT_BACK, SEAT - 16], [TX + SEAT_BACK, SEAT - 16], [TX + SEAT_HW, SEAT], [TX - SEAT_HW, SEAT]];
+const LIP: Pt[] = [
+  [TX - SEAT_HW, SEAT], [TX + SEAT_HW, SEAT], [TX + SEAT_HW + 2, SEAT + 8], [TX + SEAT_HW - 4, SEAT + 17], [TX + 70, SEAT + 15],
+  [TX + 30, SEAT + 19], [TX - 20, SEAT + 15], [TX - 76, SEAT + 18], [TX - SEAT_HW + 4, SEAT + 16], [TX - SEAT_HW - 2, SEAT + 7],
+];
+/** Under the seat: the heap of beaten sabatons, fused. */
+const HEAP: Pt[] = [
+  [TX - 134, SEAT + 12], [TX - 126, SEAT + 48], [TX - 138, FL - 10], [TX - 118, FL], [TX + 122, FL], [TX + 140, FL - 12],
+  [TX + 128, SEAT + 50], [TX + 134, SEAT + 12],
+];
+
+interface Sabaton {
+  out: Pt[];
+  lames: [Pt, Pt][];
+  cuff: [Pt, Pt];
+  toe: Pt;
+}
+/** A sabaton in profile: heel at (hx, sy) on its sole, the toe `len` away towards dir, its cuff `h` high; tilt
+ * turns it about the heel. */
+function sabaton(hx: number, sy: number, len: number, dir: 1 | -1, h: number, tilt = 0): Sabaton {
+  const ct = Math.cos(tilt);
+  const st = Math.sin(tilt);
+  const P = (u: number, v: number): Pt => [hx + dir * (u * ct + v * st), sy + (v * ct - u * st)];
+  // the ankle (the greave's foot, flared), the instep stepping down to the lames, the rounded toe cap
+  const top = [[-6, -h], [len * 0.2, -h], [len * 0.24, -h * 0.8], [len * 0.3, -h * 0.64], [len * 0.5, -h * 0.54], [len * 0.7, -h * 0.45], [len * 0.86, -h * 0.36], [len * 0.96, -h * 0.24], [len, -h * 0.1]];
+  const out: Pt[] = [P(0, 0), P(-7, -h * 0.2), P(-9, -h * 0.55), ...top.map(([u, v]) => P(u, v)), P(len * 0.98, 0), P(len * 0.5, 1.5)];
+  const topAt = (u: number) => {
+    for (let i = 1; i < top.length; i++)
+      if (u <= top[i][0]) {
+        const t = (u - top[i - 1][0]) / (top[i][0] - top[i - 1][0]);
+        return top[i - 1][1] + (top[i][1] - top[i - 1][1]) * t;
       }
-    }
-    vfill(ctx, tx0, ty, tx1 - tx0, 26, [[0, rgba('#ffd0a0', 0.12)], [0.4, 'rgba(0,0,0,0)'], [1, 'rgba(8,4,2,0.5)']]);
-  });
-  const val = (c: Ctx) => {
-    c.beginPath();
-    c.moveTo(tx0 + 2, ty + 26);
-    c.lineTo(tx1 - 2, ty + 26);
-    c.lineTo(tx1 - 2, ty + 44);
-    for (let x = tx1 - 2; x > tx0 + 2; x -= 24) c.quadraticCurveTo(x - 12, ty + 62, x - 24, ty + 44);
-    c.closePath();
+    return 0;
   };
-  castShadow(ctx, val, 8, 12, 0.5);
-  solid(ctx, val, { x: tx0, y: ty + 26, w: tx1 - tx0, h: 34 }, 'canvas', '#4a1018', { depth: 0.12, line: 1.4, formSize: 6, spec: false });
-  within(ctx, val, () => {
-    vfill(ctx, tx0, ty + 26, tx1 - tx0, 34, [[0, 'rgba(8,2,4,0.55)'], [1, 'rgba(8,2,4,0.15)']]);
-    ctx.fillStyle = rgba('#c89a3a', 0.55);
-    ctx.fillRect(tx0, ty + 28, tx1 - tx0, 3);
-  });
-  // gold fringe under the scallops
-  ctx.strokeStyle = rgba('#8a6a30', 0.55);
-  ctx.lineWidth = 1.2;
-  for (let x = tx0 + 4; x < tx1 - 4; x += 3) {
-    const u = ((x - tx0 - 2) % 24) / 24;
-    const y = ty + 44 + Math.sin(u * Math.PI) * 17;
+  const lames = [0.34, 0.46, 0.58, 0.7, 0.82].map((k): [Pt, Pt] => [P(len * k, topAt(len * k) + 1), P(len * (k + 0.06), -1)]);
+  return { out, lames, cuff: [P(-8, -h * 0.7), P(len * 0.25, -h * 0.74)], toe: P(len * 0.88, -h * 0.22) };
+}
+const FEET = POST_X.map((px, i) => sabaton(px + (i ? -12 : 12), FL, 64, i ? 1 : -1, 34, 0.02));
+const HEAP_GREAVE: Pt[] = [[TX - 120, SEAT + 20], [TX - 60, SEAT + 16], [TX + 50, SEAT + 18], [TX + 64, SEAT + 26], [TX + 52, SEAT + 37], [TX - 50, SEAT + 40], [TX - 118, SEAT + 36]];
+const HEAP_BOOTS = [sabaton(TX + 110, SEAT + 60, 112, -1, 50, 0.1), sabaton(TX - 112, FL - 2, 124, 1, 52, -0.04)];
+
+/** The loose plate: a pauldron's lame hanging from one rivet off the seat-back's right shoulder (its other rivet torn
+ * out). It swings at a stomp. */
+const LOOSE: Pt = [TX + 104, 378];
+const LOOSE_PTS: Pt[] = ([[-11, -4], [13, -7], [22, 8], [25, 38], [19, 64], [3, 72], [-12, 62], [-17, 32], [-15, 8]] as Pt[]).map(([x, y]) => [LOOSE[0] + x, LOOSE[1] + y] as Pt);
+
+/** Every part whose edges the fires catch, in the order they're painted (not the moving pieces: they carry their own). */
+const LIT_ORDER: Pt[][] = [
+  ...SHARDS, ...RIM_PTS, ...BLADES, HELM_L_PTS, BACK, SPINE, ...ARMS,
+  ...POST_X.flatMap((_, i) => [GREAVES[i], FEET[i].out, WINGS[i], POLEYNS[i]]),
+  HEAP, HEAP_GREAVE, ...HEAP_BOOTS.map((b) => b.out), LIP, SEAT_TOP,
+];
+const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+/** Where a stomp shakes rust and soot loose: the seams of the fan, the rims, the seat's lip, under the loose plate. */
+const SHAKE: Pt[] = [along(-0.7, 200), along(-0.2, 236), along(0.3, 232), along(0.8, 200), [892, 308], [1040, 312], [TX - 90, SEAT + 18], [TX + 60, SEAT + 18], [LOOSE[0] + 4, LOOSE[1] + 70], [TX, 300], [TX - 150, 452], [TX + 150, 452]];
+
+// ——— painting iron ———
+
+/**
+ * Light along a polygon's edges: every edge whose outward face turns towards `from` gets a thin bright line just
+ * inside it (and a soft one round it), the more the more it faces the light: the hard glint steel gives a fire.
+ */
+function edgeGlint(ctx: Ctx, pts: Pt[], from: Pt, col: string, a: number, w = 1.6, soft = 0.25, min = 0.15): void {
+  let area = 0;
+  for (let i = 0; i < pts.length; i++) {
+    const [x0, y0] = pts[i];
+    const [x1, y1] = pts[(i + 1) % pts.length];
+    area += x0 * y1 - x1 * y0;
+  }
+  const sg = Math.sign(area) || 1;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.lineCap = 'round';
+  for (let i = 0; i < pts.length; i++) {
+    const [x0, y0] = pts[i];
+    const [x1, y1] = pts[(i + 1) % pts.length];
+    const len = Math.hypot(x1 - x0, y1 - y0);
+    if (len < 1) continue;
+    const nx = (sg * (y1 - y0)) / len;
+    const ny = (sg * -(x1 - x0)) / len;
+    const fx = from[0] - (x0 + x1) / 2;
+    const fy = from[1] - (y0 + y1) / 2;
+    const fl = Math.hypot(fx, fy) || 1;
+    const d = (nx * fx + ny * fy) / fl;
+    if (d < min) continue;
+    const k = a * ((d - min) / (1 - min)) ** 0.8;
+    const ix = -nx * w * 0.6;
+    const iy = -ny * w * 0.6;
+    if (soft) {
+      ctx.strokeStyle = rgba(col, k * soft);
+      ctx.lineWidth = w * 4;
+      ctx.beginPath();
+      ctx.moveTo(x0 + ix, y0 + iy);
+      ctx.lineTo(x1 + ix, y1 + iy);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = rgba(col, k);
+    ctx.lineWidth = w;
     ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x, y + 6);
+    ctx.moveTo(x0 + ix, y0 + iy);
+    ctx.lineTo(x1 + ix, y1 + iy);
     ctx.stroke();
   }
+  ctx.restore();
+}
+
+/** A hammer's dent: its upper-left wall in shade, its lower-right one catching the light. */
+function dent(ctx: Ctx, x: number, y: number, s: number): void {
+  ctx.fillStyle = 'rgba(6,5,8,0.42)';
+  ctx.beginPath();
+  ctx.ellipse(x, y, s, s * 0.7, -0.5, Math.PI * 0.85, Math.PI * 1.95);
+  ctx.fill();
+  ctx.fillStyle = rgba('#ffe4c8', 0.14);
+  ctx.beginPath();
+  ctx.ellipse(x + s * 0.1, y + s * 0.1, s, s * 0.7, -0.5, -0.15, Math.PI * 0.85);
+  ctx.fill();
+}
+
+/** A weld: soot in the seam, then a bead of overlapping ripples along it, their tops lit. */
+function weld(ctx: Ctx, r: R, pts: Pt[], w = 4): void {
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = 'rgba(6,4,4,0.55)';
+  ctx.lineWidth = w + 4;
+  ctx.beginPath();
+  pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+  ctx.stroke();
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [ax, ay] = pts[i];
+    const [bx, by] = pts[i + 1];
+    const n = Math.max(1, Math.floor(Math.hypot(bx - ax, by - ay) / (w * 0.75)));
+    const ang = Math.atan2(by - ay, bx - ax);
+    for (let j = 0; j < n; j++) {
+      const t = j / n;
+      const x = ax + (bx - ax) * t + (r() - 0.5);
+      const y = ay + (by - ay) * t + (r() - 0.5);
+      ctx.fillStyle = '#2c2826';
+      ctx.beginPath();
+      ctx.ellipse(x, y, w * 0.5, w * 0.72, ang, 0, P2);
+      ctx.fill();
+      ctx.fillStyle = rgba('#e0d0c0', 0.2);
+      ctx.beginPath();
+      ctx.ellipse(x - 0.6, y - 0.9, w * 0.26, w * 0.36, ang, 0, P2);
+      ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+
+/** Rust blooming on iron: patchy, orange-brown, thickest low on the part. */
+function rust(ctx: Ctx, b: Box, a: number, seed: number): void {
+  lay(ctx, noiseMask(6, seed, { cover: 0.26, soft: 0.2, col: RUST }), b, a * 0.6);
+  lay(ctx, noiseMask(14, seed + 1, { cover: 0.2, soft: 0.1, col: '#5a2610' }), b, a * 0.6);
+}
+
+interface IronOpts {
+  base?: string;
+  dents?: number;
+  rust?: number;
+  line?: number;
+  /** The key light's glint on the upper-left edges. */
+  key?: number;
+  /** How dark the hall's air leaves it (0…1). */
+  dark?: number;
+}
+
+/** A forged iron part: the material lit by the key light, hammer dents, rust, the hall's dark over it thickest low,
+ * the key light's glint on its upper-left edges and the moon's cold rim on its far ones. */
+function iron(ctx: Ctx, r: R, pts: Pt[], o: IronOpts = {}): void {
+  const p = polyPath(pts);
+  const b = boxOf(pts);
+  solid(ctx, p, b, 'iron', o.base ?? TIRON, { depth: 0.12, line: o.line ?? 1.3, ink: '#0a0808', formSize: Math.max(3, Math.min(b.w, b.h) * 0.2), texA: 0.4, spec: false });
+  within(ctx, p, () => {
+    for (let i = 0; i < (o.dents ?? 0); i++) dent(ctx, b.x + b.w * (0.18 + r() * 0.64), b.y + b.h * (0.18 + r() * 0.64), 2.5 + r() * Math.min(6, b.w * 0.08));
+    if (o.rust) rust(ctx, b, o.rust, 3 + Math.floor(r() * 5));
+    const dk = o.dark ?? 0.3;
+    vfill(ctx, b.x, b.y, b.w, b.h, [[0, `rgba(10,8,12,${(dk * 0.3).toFixed(3)})`], [0.6, `rgba(10,8,12,${dk.toFixed(3)})`], [1, `rgba(6,5,8,${Math.min(0.8, dk + 0.25).toFixed(3)})`]]);
+  });
+  edgeGlint(ctx, pts, [b.x - 400, b.y - 500], '#f0e2cc', (o.key ?? 0.2) * 0.6, 1.1, 0, 0.6);
+}
+
+function rivets(ctx: Ctx, pts: Pt[], rad = 2.6, a = 1): void {
+  for (const [x, y] of pts) rivet(ctx, x, y, rad, '#6a6460', a);
+}
+
+/** Points every `gap` px along a polyline, inset `inset` px to its right (for a row of rivets along an edge). */
+function alongLine(pts: Pt[], gap: number, inset = 0): Pt[] {
+  const out: Pt[] = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [ax, ay] = pts[i];
+    const [bx, by] = pts[i + 1];
+    const len = Math.hypot(bx - ax, by - ay);
+    const nx = -(by - ay) / len;
+    const ny = (bx - ax) / len;
+    for (let s = gap / 2; s < len; s += gap) out.push([ax + ((bx - ax) * s) / len + nx * inset, ay + ((by - ay) * s) / len + ny * inset]);
+  }
+  return out;
+}
+
+/** A line with a dark groove and a lit lip below it (a lame's overlap, a ridge, a seam hammered in). */
+function groove(ctx: Ctx, a: Pt, b: Pt, w = 2, lip: Pt = [0.8, 1.2]): void {
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = 'rgba(8,6,8,0.7)';
+  ctx.lineWidth = w;
+  ctx.beginPath();
+  ctx.moveTo(a[0], a[1]);
+  ctx.lineTo(b[0], b[1]);
+  ctx.stroke();
+  ctx.strokeStyle = rgba('#e8d8c4', 0.2);
+  ctx.lineWidth = w * 0.6;
+  ctx.beginPath();
+  ctx.moveTo(a[0] + lip[0], a[1] + lip[1]);
+  ctx.lineTo(b[0] + lip[0], b[1] + lip[1]);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function crackOn(ctx: Ctx, r: R, x: number, y: number, ang: number, len: number): void {
+  crack(ctx, r, x, y, ang, len, { col: '#060404', lip: '#c8bcb0', w: 1.6, a: 0.7, branch: 0.2 });
+}
+
+// ——— the dais ———
+
+/** One rough-hewn step: its tread (seen from just above) and riser, the riser in blocks with wandering joints,
+ * hewing marks, its arris knocked about. */
+function roughStep(ctx: Ctx, r: R, s: (typeof STEPS)[number], top: boolean): void {
+  const { y, h, hw, d } = s;
+  const x0 = TX - hw;
+  const x1 = TX + hw;
+  const back = hw - (hw * d) / (y - VY);
+  // the joints between the riser's blocks, and the arris: not quite straight
+  const joints: number[] = [x0];
+  for (let x = x0 + 70 + r() * 50; x < x1 - 60; x += 90 + r() * 70) joints.push(x);
+  joints.push(x1);
+  const edge: Pt[] = [];
+  joints.forEach((jx, i) => {
+    edge.push([jx, y + (i === 0 || i === joints.length - 1 ? 2 : (r() - 0.5) * 3.5)]);
+    if (i < joints.length - 1) edge.push([(jx + joints[i + 1]) / 2 + (r() - 0.5) * 20, y + (r() - 0.5) * 4.5]);
+  });
+  // the riser casts its shadow on the tread below (painted first) and blocks the wall's light
+  const face = polyPath([...edge, [x1, y + h], [x0, y + h]]);
+  castShadow(ctx, face, 6, 9, 0.55, '#08060a');
+  // the tread
+  const tread = polyPath([[TX - back, y - d], [TX + back, y - d], ...[...edge].reverse()]);
+  const tb = { x: x0, y: y - d, w: hw * 2, h: d };
+  dressed(ctx, r, tread, tb);
+  within(ctx, tread, () => {
+    nightLight(ctx, tb);
+    lay(ctx, noiseMask(9, 71, { cover: 0.4, soft: 0.3, col: '#1a1416' }), tb, 0.35);
+    // its back in the shade of the riser above (or the throne), the front lit and worn smooth up the middle
+    vfill(ctx, x0, y - d, hw * 2, d, [[0, 'rgba(8,6,10,0.5)'], [0.45, rgba('#ffd8b0', 0.07)], [1, rgba('#ffe0c0', 0.22)]]);
+    lightPool(ctx, TX, y - d * 0.35, hw * 0.42, d * 0.7, '#d8c8b0', top ? 0.05 : 0.09);
+  });
+  // the riser's blocks: each its own stone, the joints wandering, the faces left rough from the axe
+  for (let i = 0; i < joints.length - 1; i++) {
+    const a = joints[i];
+    const b = joints[i + 1];
+    const ja = i ? (r() - 0.5) * 5 : 0;
+    const jb = i < joints.length - 2 ? (r() - 0.5) * 5 : 0;
+    const blk: Pt[] = [...edge.filter(([ex]) => ex >= a && ex <= b), [b + jb, y + h * 0.5], [b, y + h], [a, y + h], [a + ja, y + h * 0.5]];
+    const bp = polyPath(blk);
+    const bb = { x: a, y, w: b - a, h };
+    dressed(ctx, r, bp, bb, false);
+    within(ctx, bp, () => {
+      nightLight(ctx, bb);
+      lay(ctx, noiseMask(5, 73 + i, { cover: 0.45, soft: 0.3, col: '#120e10' }), bb, 0.4);
+      // the axe's marks: short slanting cuts, each lit on its lower lip
+      for (let k = 0; k < (b - a) / 22; k++) {
+        const cx = a + 4 + r() * (b - a - 8);
+        const cy = y + 4 + r() * (h - 8);
+        const l = 3 + r() * 3;
+        ctx.strokeStyle = 'rgba(10,8,10,0.26)';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + l * 0.5, cy + l * 0.85);
+        ctx.stroke();
+        ctx.strokeStyle = rgba('#e8d8c0', 0.1);
+        ctx.beginPath();
+        ctx.moveTo(cx + 1.2, cy + 0.4);
+        ctx.lineTo(cx + 1.2 + l * 0.5, cy + 0.4 + l * 0.85);
+        ctx.stroke();
+      }
+      vfill(ctx, a, y, b - a, h, [[0, rgba('#ffd8b0', 0.12)], [0.25, 'rgba(0,0,0,0)'], [1, 'rgba(8,6,10,0.5)']]);
+    });
+  }
+  // the arris catches the light where feet have worn it, and is chipped where things were dropped on it
+  ctx.strokeStyle = rgba('#ffe0b8', 0.32);
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  edge.forEach(([ex, ey], i) => (i ? ctx.lineTo(ex, ey - 0.8) : ctx.moveTo(ex + 2, ey - 0.8)));
+  ctx.stroke();
+  chips(ctx, r, x0 + 10, x1 - 10, y, Math.round(hw / 30), '#8a8174', 4);
+  // the corners knocked off: a spalled hollow at each end of the arris, its broken face lit from above
+  for (const sd of [-1, 1]) {
+    const cx = TX + sd * (hw - 10 - r() * 14);
+    const sp = polyPath([[cx - 9, y - 1], [cx + 9, y - 1], [cx + 5, y + 6 + r() * 4], [cx - 6, y + 5]]);
+    ctx.fillStyle = 'rgba(14,10,12,0.55)';
+    sp(ctx);
+    ctx.fill();
+    ctx.fillStyle = rgba('#e8d8c0', 0.16);
+    ctx.fillRect(cx - 6, y + 4, 10, 1.4);
+  }
+  if (!top) crack(ctx, r, x0 + hw * (0.3 + r() * 0.2), y + 2, 1.3, h * 0.9, { col: '#141010', lip: '#c8b8a0', w: 1.4, a: 0.5 });
+  crevice(ctx, TX - back, TX + back, y - d, 6, 0.55);
+}
+
+function dais(ctx: Ctx, r: R): void {
+  // bottom first: each riser's shadow falls on the tread below it
+  for (let i = STEPS.length - 1; i >= 0; i--) roughStep(ctx, r, STEPS[i], i === 0);
+  // where the dais meets the wall's plinth
+  const s = STEPS[STEPS.length - 1];
+  crevice(ctx, TX - s.hw, TX + s.hw, TY, -10, 0.5);
+}
+
+// ——— the throne ———
+
+function spear(ctx: Ctx, r: R, i: number): void {
+  const s = SPEARS[i];
+  const p0 = along(s.a, 96);
+  const p1 = along(s.a, s.len - headL(s) + 2);
+  // the rod: square iron, dark, its upper-left edge lit
+  ctx.save();
+  ctx.lineCap = 'butt';
+  ctx.strokeStyle = '#1c1a1a';
+  ctx.lineWidth = 7;
+  ctx.beginPath();
+  ctx.moveTo(p0[0], p0[1]);
+  ctx.lineTo(p1[0], p1[1]);
+  ctx.stroke();
+  const lit = Math.cos(s.a) > 0 ? -1 : 1;
+  const [nx, ny] = [Math.cos(s.a) * lit * 2, Math.sin(s.a) * lit * 2];
+  ctx.strokeStyle = rgba('#d8ccc0', 0.2);
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.moveTo(p0[0] - Math.abs(nx), p0[1] + ny);
+  ctx.lineTo(p1[0] - Math.abs(nx), p1[1] + ny);
+  ctx.stroke();
+  ctx.restore();
+  // the socket, bound with a collar; some heads have lugs (wings) at its top to stop a thrust going too deep
+  const o = headAt(s);
+  if (s.wings)
+    for (const sd of [-1, 1]) iron(ctx, r, placed(o, s.a, [[-3, sd * 5], [-9, sd * 17 * s.s], [-1, sd * 12 * s.s], [4, sd * 6]]), { base: '#34322f', line: 1.1, key: 0.25 });
+  const sock = placed(o, s.a, [[-14, -5.5], [2, -6], [2, 6], [-14, 5.5]]);
+  iron(ctx, r, sock, { base: '#2e2c2c', line: 1.2, key: 0.25 });
+  // the head: a leaf of steel, two facets either side of its midrib (the one turned from the light darker)
+  const bp = BLADES[i];
+  const bl = bladeOf(s);
+  iron(ctx, r, bp, { base: BLADE, line: 1.3, key: 0.3, rust: 0.3, dark: 0.15 });
+  // (the facet on the +v side faces the light when its normal points up-left)
+  const facesLight = Math.cos(s.a) * -0.6 + Math.sin(s.a) * -0.8 > 0;
+  within(ctx, polyPath(bp), () => {
+    ctx.fillStyle = 'rgba(8,6,10,0.4)';
+    polyPath(placed(o, s.a, facesLight ? bl.minus : bl.plus))(ctx);
+    ctx.fill();
+  });
+  groove(ctx, along(s.a, s.len - headL(s) + 2), along(s.a, s.len - (s.broken ? headL(s) * 0.55 : 6)), 1.2, [0.4, 0.6]);
+}
+
+function shard(ctx: Ctx, r: R, pts: Pt[], i: number): void {
+  iron(ctx, r, pts, { base: shade(TIRON, -0.14 + (i % 3) * 0.04), dents: 3, rust: 0.4, dark: 0.45, key: 0.16 });
+  const p = polyPath(pts);
+  within(ctx, p, () => {
+    // hammered from something: a greave's ridge or a breastplate's keel runs up some of them
+    if (i % 2 === 0) groove(ctx, pts[0], pts[4], 2.2);
+    grime(ctx, boxOf(pts), { bottom: 40, a: 0.5, seed: 41 + i, col: '#0a0808' });
+  });
+  // riveted to its neighbours along one edge
+  rivets(ctx, alongLine([pts[1], pts[0]], 26, 7), 2.4, 0.9);
+}
+
+function shieldRim(ctx: Ctx, r: R, i: number): void {
+  const m = RIMS[i];
+  const pts = RIM_PTS[i];
+  castShadow(ctx, polyPath(pts), 8, 8, 0.5, '#060406');
+  iron(ctx, r, pts, { base: shade(TIRON, 0.06), dents: 4, rust: 0.5, key: 0.28, dark: 0.3 });
+  within(ctx, polyPath(pts), () => {
+    // the rim's roll: a lit bead along its outer edge, a groove inside it
+    ctx.strokeStyle = rgba('#e8dccc', 0.16);
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(m.cx, m.cy, m.r + m.w * 0.2, m.a0, m.a1);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(6,4,6,0.5)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(m.cx, m.cy, m.r - m.w * 0.1, m.a0, m.a1);
+    ctx.stroke();
+  });
+  const rv: Pt[] = [];
+  for (let a = m.a0 + 0.12; a < m.a1 - 0.08; a += 0.26) rv.push([m.cx + Math.cos(a) * m.r, m.cy + Math.sin(a) * m.r]);
+  rivets(ctx, rv, 2.4, 0.95);
+}
+
+/** The great helm: a flat-topped iron pot, its eye slits and breaths, a cross strap riveted over the face, split
+ * by the blow that won it. */
+function greatHelm(ctx: Ctx, r: R): void {
+  const { c, a } = HELM_L;
+  const P = (pts: Pt[]) => placed(c, a, pts);
+  castShadow(ctx, polyPath(HELM_L_PTS), 10, 12, 0.6, '#060406');
+  iron(ctx, r, HELM_L_PTS, { base: '#4a4644', dents: 3, rust: 0.45, key: 0.3, dark: 0.25 });
+  within(ctx, polyPath(HELM_L_PTS), () => {
+    // the face: the slits and the breaths
+    for (const side of [-1, 1]) {
+      const sl = P([[6, side * 4], [10, side * 4], [10, side * 23], [6, side * 23]]);
+      ctx.fillStyle = '#040304';
+      polyPath(sl)(ctx);
+      ctx.fill();
+      ctx.strokeStyle = rgba('#e8dccc', 0.22);
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(sl[3][0], sl[3][1] + 1.2);
+      ctx.lineTo(sl[0][0], sl[0][1] + 1.2);
+      ctx.stroke();
+    }
+    for (let ui = 0; ui < 3; ui++)
+      for (let vi = 0; vi < 3; vi++) {
+        const [hx, hy] = P([[-10 - ui * 6, 9 + vi * 5]])[0];
+        ctx.fillStyle = '#050405';
+        ctx.beginPath();
+        ctx.arc(hx, hy, 1.3, 0, P2);
+        ctx.fill();
+      }
+    // the cross strap
+    const st = P([[26, -4], [26, 4], [-30, 4], [-30, -4]]);
+    ctx.fillStyle = rgba('#5e5a56', 0.9);
+    polyPath(st)(ctx);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(6,4,6,0.6)';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+    // the top's flat crown seen just from below: a dark band
+    const crown = P([[24, -24], [29, -18], [29, 18], [24, 24]]);
+    ctx.fillStyle = 'rgba(6,4,6,0.35)';
+    polyPath(crown)(ctx);
+    ctx.fill();
+    grime(ctx, boxOf(HELM_L_PTS), { bottom: 18, a: 0.5, seed: 47, col: '#0a0808' });
+  });
+  rivets(ctx, P([[18, 0], [0, 0], [-18, 0], [13, -14], [13, 14]]), 2, 0.95);
+  const [kx, ky] = P([[26, 10]])[0];
+  crackOn(ctx, r, kx, ky, a + Math.PI / 2 + 0.25, 30);
+}
+
+/** The kettle hat (the rattling one): a round crown with a comb, a wide brim knocked out of true, dented and split. */
+function kettleHat(ctx: Ctx, r: R): void {
+  const { c, a } = HELM_R;
+  const P = (pts: Pt[]) => placed(c, a, pts);
+  castShadow(ctx, polyPath(HELM_R_PTS), 9, 10, 0.55, '#060406');
+  iron(ctx, r, HELM_R_PTS, { base: '#4a4948', dents: 4, rust: 0.25, key: 0.3, dark: 0.22 });
+  within(ctx, polyPath(HELM_R_PTS), () => {
+    // the brim: its top surface a thin lit band, its underside in shade, the crown's foot in its shadow
+    const top = P([[-6, -37], [-4, 0], [-6, 37], [-9, 37], [-8, 0], [-9, -37]]);
+    ctx.fillStyle = rgba('#d8d0c8', 0.12);
+    polyPath(top)(ctx);
+    ctx.fill();
+    const under = P([[-10, -36], [-12, 0], [-10, 36], [-14, 33], [-17, 0], [-14, -33]]);
+    ctx.fillStyle = 'rgba(6,4,8,0.5)';
+    polyPath(under)(ctx);
+    ctx.fill();
+    groove(ctx, P([[-5, -21]])[0], P([[-5, 21]])[0], 2);
+    // the crown's comb, its round lit on the left
+    groove(ctx, P([[24, -1]])[0], P([[-3, -2]])[0], 1.6, [-1, 0]);
+    const g = ctx.createRadialGradient(...P([[12, -8]])[0], 2, ...P([[8, 0]])[0], 30);
+    g.addColorStop(0, rgba('#d8dce8', 0.14));
+    g.addColorStop(1, 'rgba(216,220,232,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(c[0] - 40, c[1] - 40, 80, 80);
+    grime(ctx, boxOf(HELM_R_PTS), { bottom: 12, a: 0.45, seed: 49, col: '#0a0808' });
+  });
+  rivets(ctx, P([[-3, -16], [-2, -6], [-2, 6], [-3, 16]]), 1.8, 0.95);
+  const [kx, ky] = P([[22, 8]])[0];
+  crackOn(ctx, r, kx, ky, a + Math.PI * 0.55, 22);
+  // its own share of the fires' light (it moves, so it isn't in the glint layers)
+  for (const f of FIRE_AT) edgeGlint(ctx, HELM_R_PTS, f, '#ffb468', 0.3, 1.4, 0.3, 0.35);
+}
+
+/** The loose plate, hanging from its last rivet. */
+function loosePlate(ctx: Ctx, r: R): void {
+  const pts = LOOSE_PTS;
+  castShadow(ctx, polyPath(pts), 6, 7, 0.55, '#060406');
+  iron(ctx, r, pts, { base: '#46423f', dents: 2, rust: 0.55, key: 0.3, dark: 0.3 });
+  within(ctx, polyPath(pts), () => {
+    // a lame's turned edges: lit bead down its outer side, overlap lines across
+    for (const yy of [22, 44]) groove(ctx, [LOOSE[0] - 16, LOOSE[1] + yy], [LOOSE[0] + 24, LOOSE[1] + yy + 4], 1.8);
+    grime(ctx, boxOf(pts), { bottom: 20, a: 0.55, seed: 51, col: '#0a0808' });
+  });
+  rivet(ctx, LOOSE[0], LOOSE[1], 3.2, '#6a6460');
+  // where the second rivet tore out: a ragged hole
+  ctx.fillStyle = '#050304';
+  ctx.beginPath();
+  ctx.ellipse(LOOSE[0] + 4, LOOSE[1] + 60, 3, 2.4, 0.4, 0, P2);
+  ctx.fill();
+  ctx.strokeStyle = rgba('#e0d4c4', 0.25);
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(LOOSE[0] + 4, LOOSE[1] + 60, 3.4, 0.2, 1.8);
+  ctx.stroke();
+  for (const f of FIRE_AT) edgeGlint(ctx, pts, f, '#ffb468', 0.3, 1.4, 0.3, 0.35);
+}
+
+function paintSabaton(ctx: Ctx, r: R, b: Sabaton, o: IronOpts = {}): void {
+  iron(ctx, r, b.out, { dents: 2, rust: 0.4, key: 0.24, ...o });
+  within(ctx, polyPath(b.out), () => {
+    for (const [p, q] of b.lames) groove(ctx, p, q, 1.8, [1.2, 0.4]);
+    groove(ctx, b.cuff[0], b.cuff[1], 2.2);
+    // the toe cap's dome catching the light
+    lightPool(ctx, b.toe[0] - 2, b.toe[1] - 2, 10, 6, '#e8dccc', 0.16);
+    grime(ctx, boxOf(b.out), { bottom: 14, a: 0.55, seed: 53, col: '#0a0808' });
+  });
+  rivets(ctx, b.lames.map(([, q]) => [q[0], q[1] - 4] as Pt), 1.7, 0.85);
+}
+
+/** The throne's shadow on the wall behind and its occlusion: every part's silhouette, pushed down-right and softened. */
+function wallShadow(ctx: Ctx): void {
+  const parts = [...SHARDS, ...RIM_PTS, BACK, HELM_L_PTS, HELM_R_PTS, ...BLADES];
+  const box = { x: TX - 300, y: 170, w: 640, h: FL - 170 };
+  softly(ctx, box, (g) => {
+    g.fillStyle = 'rgba(6,4,8,0.5)';
+    for (const pts of parts) {
+      polyPath(pts.map(([x, y]) => [x + 22, y + 26] as Pt))(g);
+      g.fill();
+    }
+    g.strokeStyle = 'rgba(6,4,8,0.5)';
+    g.lineWidth = 8;
+    for (const s of SPEARS) {
+      const [ax, ay] = along(s.a, 96);
+      const [bx, by] = headAt(s);
+      g.beginPath();
+      g.moveTo(ax + 22, ay + 26);
+      g.lineTo(bx + 22, by + 26);
+      g.stroke();
+    }
+  }, 0.12);
+  // a closer, darker occlusion round the mass where it stands nearest the wall
+  aoHalo(ctx, polyPath(BACK), 34, 0.5, '#060408', 8);
+}
+
+/**
+ * The hollow's lining: shells of greaves and sole plates beaten out and lapped like tiles, each row over the one
+ * below, no two the same size; each shell's rolled lower edge lit, a dent or two, some riveted at the top.
+ */
+function scales(ctx: Ctx, r: R, pb: Box): void {
+  const rows: number[] = [];
+  for (let y = SEAT - 34; y > pb.y - 10; y -= 24 + r() * 10) rows.push(y);
+  // bottom row first: each row above laps over it
+  rows.forEach((y, ri) => {
+    let x = pb.x - 10 - r() * 20 - (ri % 2) * 14;
+    while (x < pb.x + pb.w + 6) {
+      const w = 34 + r() * 34;
+      const x0 = x;
+      const x1 = x + w;
+      const yb = y + 26 + r() * 8;
+      const yt = y - 6;
+      const sag = 6 + r() * 6;
+      const tilt = (r() - 0.5) * 6;
+      const shell = (c: Ctx) => {
+        c.beginPath();
+        c.moveTo(x0, yt);
+        c.lineTo(x1, yt);
+        c.lineTo(x1, yb - sag + tilt);
+        c.quadraticCurveTo((x0 + x1) / 2, yb + sag, x0, yb - sag - tilt);
+        c.closePath();
+      };
+      // its shadow on the shell below
+      ctx.save();
+      ctx.translate(2, 4);
+      shell(ctx);
+      ctx.fillStyle = 'rgba(4,3,6,0.45)';
+      ctx.fill();
+      ctx.restore();
+      const tone = mix('#36332f', '#4c4844', r());
+      const g = ctx.createLinearGradient(x0, yt, x0 + w * 0.3, yb + sag);
+      g.addColorStop(0, shade(tone, 0.12));
+      g.addColorStop(0.55, tone);
+      g.addColorStop(1, mix(shade(tone, -0.35), '#0e1020', 0.25));
+      shell(ctx);
+      ctx.fillStyle = g;
+      ctx.fill();
+      within(ctx, shell, () => {
+        dent(ctx, x0 + w * (0.25 + r() * 0.5), y + 6 + r() * 12, 3 + r() * 4);
+        if (r() < 0.5) rust(ctx, { x: x0, y: yt, w, h: yb + sag - yt }, 0.35, 5 + (ri % 3));
+        // the rolled edge along its bottom, lit from above
+        ctx.strokeStyle = rgba('#e8dccc', 0.16);
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x1, yb - sag + tilt - 2.5);
+        ctx.quadraticCurveTo((x0 + x1) / 2, yb + sag - 2.5, x0, yb - sag - tilt - 2.5);
+        ctx.stroke();
+      });
+      shell(ctx);
+      ctx.strokeStyle = 'rgba(8,6,8,0.8)';
+      ctx.lineWidth = 1.4;
+      ctx.stroke();
+      if (r() < 0.45) rivets(ctx, [[x0 + 6, yt + 6], [x1 - 6, yt + 6]], 1.8, 0.85);
+      x = x1 - 4 - r() * 6;
+    }
+  });
 }
 
 function throne(ctx: Ctx, r: R): void {
-  const { x, top, seat, hw } = HK.throne;
-  const d = HK.dais;
-  /** It stands part-way back on the top tread. */
-  const fl = d.y - TREAD * 0.4;
-  // the dais: two broad steps of the same stone, the top one worn hollow in the middle
-  for (const [y, h, w] of [[d.y + 26, TY - d.y - 26 + 2, d.hw + 40], [d.y, 26, d.hw]] as const) {
-    // the tread: the step's top, seen from just above, running back to the wall
-    const tread: PathFn = (c) => {
-      c.beginPath();
-      c.moveTo(x - w, y);
-      c.lineTo(x + w, y);
-      c.lineTo(x + w - TREAD, y - TREAD);
-      c.lineTo(x - w + TREAD, y - TREAD);
-      c.closePath();
-    };
-    dressed(ctx, r, tread, { x: x - w, y: y - TREAD, w: w * 2, h: TREAD });
-    within(ctx, tread, () => {
-      nightLight(ctx, { x: x - w, y: y - TREAD, w: w * 2, h: TREAD });
-      vfill(ctx, x - w, y - TREAD, w * 2, TREAD, [[0, 'rgba(8,6,10,0.5)'], [0.5, rgba('#ffd8b0', 0.06)], [1, rgba('#ffe0c0', 0.16)]]);
-    });
-    // its worn front edge catches the light
-    ctx.fillStyle = rgba('#e8d8c0', 0.22);
-    ctx.fillRect(x - w + 2, y - 1, w * 2 - 4, 2);
-    const st = rectPath(x - w, y, w * 2, h);
-    castShadow(ctx, st, 6, 10, 0.5);
-    dressed(ctx, r, st, { x: x - w, y, w: w * 2, h });
-    within(ctx, st, () => {
-      nightLight(ctx, { x: x - w, y, w: w * 2, h });
-      // worn: the treads dished and polished where feet go
-      lightPool(ctx, x, y + 3, w * 0.5, 4, '#d8c8b0', 0.1);
-      vfill(ctx, x - w, y, w * 2, h, [[0, rgba('#ffd8b0', 0.1)], [0.2, 'rgba(0,0,0,0)'], [1, 'rgba(8,6,10,0.45)']]);
-    });
-    for (let jx = x - w + 90 + r() * 40; jx < x + w - 40; jx += 110 + r() * 60) {
-      ctx.strokeStyle = 'rgba(20,16,18,0.7)';
-      ctx.lineWidth = 1.6;
-      ctx.beginPath();
-      ctx.moveTo(jx, y + 2);
-      ctx.lineTo(jx, y + h - 2);
-      ctx.stroke();
+  dais(ctx, r);
+  wallShadow(ctx);
+  // where it stands: its weight's shadow pooled on the tread
+  groundShadow(ctx, TX + 8, FL + 1, 215, 10, 0.95, '#050305');
+  // ——— the fan: plates, shield rims, spear heads, the great helm
+  SHARDS.forEach((pts, i) => shard(ctx, r, pts, i));
+  for (let i = 0; i < RIMS.length; i++) shieldRim(ctx, r, i);
+  for (let i = 0; i < SPEARS.length; i++) spear(ctx, r, i);
+  greatHelm(ctx, r);
+  // ——— the seat-back: a jagged mass of fused plate, the hollow he leans in, a crest up the middle
+  castShadow(ctx, polyPath(BACK), 14, 16, 0.6, '#060406');
+  iron(ctx, r, BACK, { base: '#38342f', dents: 6, rust: 0.35, key: 0.22, dark: 0.35 });
+  const bb = boxOf(BACK);
+  within(ctx, polyPath(BACK), () => {
+    // the plates it was forged from: seams welded up from the hollow to the notches between the spikes
+    for (const i of [3, 5, 9, 11, 13]) {
+      const q = BACK[i];
+      const p = PANEL.reduce((m, c) => (Math.hypot(c[0] - q[0], c[1] - q[1]) < Math.hypot(m[0] - q[0], m[1] - q[1]) ? c : m));
+      weld(ctx, r, [p, [(q[0] + p[0]) / 2 + (r() - 0.5) * 8, (q[1] + p[1]) / 2], q], 3.4);
     }
-  }
-  crevice(ctx, x - d.hw + TREAD, x + d.hw - TREAD, d.y - TREAD, 8, 0.5);
-  groundShadow(ctx, x + 6, fl + 1, hw + 40, 7, 0.7);
-  // the back: a tall panel with a gable and pinnacled posts, the crimson cloth of its seat-back inside a carved frame
-  const back = (c: Ctx) => {
-    c.beginPath();
-    c.moveTo(x - hw + 18, seat);
-    c.lineTo(x - hw + 18, top + 60);
-    c.lineTo(x, top);
-    c.lineTo(x + hw - 18, top + 60);
-    c.lineTo(x + hw - 18, seat);
-    c.closePath();
-  };
-  castShadow(ctx, back, 16, 20, 0.6);
-  solid(ctx, back, { x: x - hw, y: top, w: hw * 2, h: seat - top }, 'wood', OAK, { depth: 0.14, line: 1.8, formSize: 12 });
-  within(ctx, back, () => {
-    woodGrain(ctx, r, { x: x - hw, y: top, w: hw * 2, h: seat - top }, OAK, true, 0.5);
-    const pan = (c: Ctx) => {
-      c.beginPath();
-      c.moveTo(x - hw + 40, seat - 10);
-      c.lineTo(x - hw + 40, top + 82);
-      c.quadraticCurveTo(x - hw + 40, top + 44, x, top + 36);
-      c.quadraticCurveTo(x + hw - 40, top + 44, x + hw - 40, top + 82);
-      c.lineTo(x + hw - 40, seat - 10);
-      c.closePath();
-    };
-    ctx.save();
-    pan(ctx);
-    ctx.fillStyle = '#421016';
-    ctx.fill();
-    ctx.clip();
-    surface(ctx, r, { x: x - hw, y: top, w: hw * 2, h: seat - top }, '#421016', { over: true, vary: 0.4, cells: 2, mottle: 0.4, strokes: 0, grain: 0.3, grainKind: 'fleece', seed: 83 });
-    // velvet: the nap lighter where it bellies out, gold studs in a diamond
-    const g = ctx.createRadialGradient(x - 14, top + 120, 10, x, top + 130, 120);
-    g.addColorStop(0, rgba('#a03040', 0.16));
-    g.addColorStop(1, 'rgba(10,2,4,0.35)');
+    rust(ctx, bb, 0.3, 17);
+    grime(ctx, bb, { top: 30, bottom: 50, left: 16, right: 16, a: 0.55, seed: 55, col: '#0a0808' });
+  });
+  // the hollow: dished, so its left wall is in shade and its right one lit; his back has polished its middle
+  const pp = polyPath(PANEL);
+  const pb = boxOf(PANEL);
+  aoHalo(ctx, pp, 10, 0.5, '#060406');
+  iron(ctx, r, PANEL, { base: '#34302d', dents: 4, rust: 0.2, key: 0.1, dark: 0.3, line: 2 });
+  within(ctx, pp, () => {
+    const g = ctx.createLinearGradient(pb.x, 0, pb.x + pb.w, 0);
+    g.addColorStop(0, 'rgba(6,4,8,0.55)');
+    g.addColorStop(0.3, 'rgba(6,4,8,0.08)');
+    g.addColorStop(0.8, 'rgba(255,220,180,0.04)');
+    g.addColorStop(1, rgba('#ffd8b0', 0.12));
     ctx.fillStyle = g;
-    ctx.fillRect(x - hw, top, hw * 2, seat - top);
-    for (let i = 0; i < 5; i++)
-      for (let j = 0; j < 4; j++) {
-        const px = x - 48 + j * 32 + (i % 2) * 16;
-        const py = top + 80 + i * 22;
-        if (Math.abs(px - x) > 56) continue;
-        ctx.fillStyle = '#8a6a28';
-        ctx.beginPath();
-        ctx.arc(px, py, 2.4, 0, P2);
-        ctx.fill();
-        ctx.fillStyle = rgba('#ffe0a0', 0.6);
-        ctx.fillRect(px - 1, py - 1.6, 1.2, 1);
+    ctx.fillRect(pb.x, pb.y, pb.w, pb.h);
+    scales(ctx, r, pb);
+    // polished where his back has worn it: the steel shows through, cold, with the fires' warmth in it
+    const sh = ctx.createRadialGradient(TX - 8, 470, 6, TX, 474, 70);
+    sh.addColorStop(0, rgba('#c8ccd8', 0.2));
+    sh.addColorStop(0.5, rgba('#9aa4c0', 0.08));
+    sh.addColorStop(1, 'rgba(154,164,192,0)');
+    ctx.fillStyle = sh;
+    ctx.fillRect(TX - 90, 400, 180, 140);
+    // soot settled in the top of the hollow, under the crest
+    vfill(ctx, pb.x, pb.y, pb.w, 50, [[0, 'rgba(6,4,6,0.5)'], [1, 'rgba(6,4,6,0)']]);
+  });
+  streaks(ctx, r, pb.x + 10, pb.y + 40, pb.w - 20, 120, '#5a2a14', 0.14, 6);
+  rivets(ctx, alongLine(PANEL.slice(0, 2), 26, -9).concat(alongLine(PANEL.slice(-2), 26, -9)), 2.4, 0.9);
+  // the crest: a greave hammered flat and stood on end, its ridge lit
+  iron(ctx, r, SPINE, { base: '#46413c', dents: 2, rust: 0.3, key: 0.3, dark: 0.2 });
+  groove(ctx, [TX - 1, 392], [TX - 1, 292], 1.6, [-1.2, 0]);
+  rivets(ctx, [[TX, 316], [TX, 346], [TX, 376]], 2.6, 1);
+  crackOn(ctx, r, TX + 10, 330, 1.9, 22);
+  // ——— the arms: a plate back to the seat-back, an armoured leg at each corner
+  for (const pts of ARMS) {
+    castShadow(ctx, polyPath(pts), 8, 10, 0.55, '#060406');
+    iron(ctx, r, pts, { base: '#3e3a36', dents: 1, rust: 0.3, key: 0.3 });
+    const b = boxOf(pts);
+    // its top edge polished by his hands
+    edgeGlint(ctx, pts, [b.x + b.w / 2, b.y - 200], '#c8ccd8', 0.25, 2, 0, 0.5);
+    rivets(ctx, [[b.x + b.w * 0.5, b.y + b.h * 0.55]], 2.2, 0.9);
+  }
+  POST_X.forEach((px, i) => {
+    const s = i ? 1 : -1;
+    const gp = GREAVES[i];
+    castShadow(ctx, polyPath(gp), 10, 12, 0.6, '#060406');
+    iron(ctx, r, gp, { base: '#423e3a', dents: 3, rust: 0.4, key: 0.28 });
+    within(ctx, polyPath(gp), () => {
+      // the shin's ridge, lit on its left, and the straps that held it
+      groove(ctx, [px - 2, 478], [px - 1, FL - 22], 1.8, [-1.2, 0]);
+      const rg = ctx.createLinearGradient(px - 21, 0, px + 21, 0);
+      rg.addColorStop(0, rgba('#ffd8b0', 0.08));
+      rg.addColorStop(0.45, 'rgba(0,0,0,0)');
+      rg.addColorStop(1, 'rgba(6,4,8,0.45)');
+      ctx.fillStyle = rg;
+      ctx.fillRect(px - 22, 470, 44, FL - 470);
+      for (const yy of [520, 588]) {
+        ctx.fillStyle = 'rgba(14,10,10,0.85)';
+        ctx.fillRect(px - 24, yy, 48, 7);
+        ctx.fillStyle = rgba('#d8c8b0', 0.12);
+        ctx.fillRect(px - 24, yy, 48, 1.4);
       }
-    ctx.restore();
-    ctx.strokeStyle = '#140a06';
-    ctx.lineWidth = 2;
-    pan(ctx);
-    ctx.stroke();
-    ctx.strokeStyle = rgba('#c09040', 0.35);
-    ctx.lineWidth = 1.2;
-    ctx.save();
-    ctx.translate(-1.5, -1.5);
-    pan(ctx);
-    ctx.stroke();
-    ctx.restore();
-    vfill(ctx, x - hw, top, hw * 2, seat - top, [[0, 'rgba(6,3,2,0.5)'], [1, 'rgba(6,3,2,0.15)']]);
-  });
-  // the crown carved at the gable's peak, gilt
-  const cy = top - 6;
-  const crownP = (c: Ctx) => {
-    c.beginPath();
-    c.moveTo(x - 22, cy + 12);
-    c.lineTo(x - 25, cy - 12);
-    c.lineTo(x - 12, cy - 1);
-    c.lineTo(x, cy - 20);
-    c.lineTo(x + 12, cy - 1);
-    c.lineTo(x + 25, cy - 12);
-    c.lineTo(x + 22, cy + 12);
-    c.closePath();
-  };
-  castShadow(ctx, crownP, 8, 10, 0.5);
-  solid(ctx, crownP, { x: x - 25, y: cy - 20, w: 50, h: 32 }, 'chrome', '#7a6234', { depth: 0.14, line: 1.4, formSize: 4 });
-  // the posts: square oak, pinnacles, the arms running forward
-  for (const s of [-1, 1]) {
-    const px = x + s * (hw - 10);
-    const pp = rectPath(px - 12, top + 70, 24, fl - top - 70);
-    castShadow(ctx, pp, 12, 14, 0.55);
-    solid(ctx, pp, { x: px - 12, y: top + 70, w: 24, h: fl - top - 70 }, 'wood', shade(OAK, 0.05), { depth: 0.14, line: 1.6, formSize: 5 });
-    within(ctx, pp, () => woodGrain(ctx, r, { x: px - 12, y: top + 70, w: 24, h: fl - top - 70 }, OAK, true, 0.5));
-    const pin = (c: Ctx) => {
-      c.beginPath();
-      c.moveTo(px - 13, top + 72);
-      c.lineTo(px, top + 30);
-      c.lineTo(px + 13, top + 72);
-      c.closePath();
-    };
-    solid(ctx, pin, { x: px - 13, y: top + 30, w: 26, h: 42 }, 'wood', shade(OAK, 0.05), { depth: 0.14, line: 1.4, formSize: 4 });
-    ctx.fillStyle = '#a8843a';
-    ctx.beginPath();
-    ctx.arc(px, top + 28, 4.5, 0, P2);
-    ctx.fill();
-  }
-  // the seat and its front: a box carved with blind arcading, a crimson cushion
-  const front = rectPath(x - hw + 2, seat, hw * 2 - 4, fl - seat);
-  castShadow(ctx, front, 10, 14, 0.55);
-  solid(ctx, front, { x: x - hw, y: seat, w: hw * 2, h: fl - seat }, 'wood', OAK, { depth: 0.14, line: 1.6, formSize: 8 });
-  within(ctx, front, () => {
-    woodGrain(ctx, r, { x: x - hw, y: seat, w: hw * 2, h: fl - seat }, OAK, false, 0.5);
-    for (let i = 0; i < 5; i++) {
-      const ax = x - hw + 22 + i * ((hw * 2 - 44) / 4);
-      ctx.fillStyle = 'rgba(8,4,2,0.45)';
-      ctx.beginPath();
-      ctx.moveTo(ax - 13, fl - 12);
-      ctx.lineTo(ax - 13, seat + 38);
-      ctx.quadraticCurveTo(ax - 13, seat + 20, ax, seat + 18);
-      ctx.quadraticCurveTo(ax + 13, seat + 20, ax + 13, seat + 38);
-      ctx.lineTo(ax + 13, fl - 12);
-      ctx.closePath();
-      ctx.fill();
-      ctx.strokeStyle = rgba('#d0a870', 0.18);
-      ctx.lineWidth = 1.2;
-      ctx.stroke();
-    }
-    vfill(ctx, x - hw, seat, hw * 2, fl - seat, [[0, rgba('#ffd0a0', 0.12)], [0.15, 'rgba(0,0,0,0)'], [1, 'rgba(6,3,2,0.4)']]);
-  });
-  const cush = rrPath(x - hw + 14, seat - 14, hw * 2 - 28, 18, 8);
-  solid(ctx, cush, { x: x - hw + 14, y: seat - 14, w: hw * 2 - 28, h: 18 }, 'canvas', '#7a1622', { depth: 0.14, line: 1.4, formSize: 6, spec: false });
-  for (const s of [-1, 1]) {
-    ctx.fillStyle = '#b08a3a';
-    ctx.beginPath();
-    ctx.arc(x + s * (hw - 16), seat - 2, 4, 0, P2);
-    ctx.fill();
-  }
-  // the arms, seen end on: front posts from the dais up past the seat, capped with a gilt knob
-  for (const s of [-1, 1]) {
-    const ax = x + s * (hw + 4);
-    const ap = rrPath(ax - 13, seat - 58, 26, fl - seat + 58, 5);
-    castShadow(ctx, ap, 10, 12, 0.55);
-    solid(ctx, ap, { x: ax - 13, y: seat - 58, w: 26, h: fl - seat + 58 }, 'wood', shade(OAK, 0.08), { depth: 0.13, line: 1.6, formSize: 5 });
-    within(ctx, ap, () => {
-      woodGrain(ctx, r, { x: ax - 13, y: seat - 58, w: 26, h: fl - seat + 58 }, OAK, true, 0.5);
-      vfill(ctx, ax - 13, seat - 58, 26, fl - seat + 58, [[0, rgba('#ffd0a0', 0.1)], [0.3, 'rgba(0,0,0,0)'], [1, 'rgba(6,3,2,0.45)']]);
+      grime(ctx, boxOf(gp), { bottom: 40, a: 0.55, seed: 57 + i, col: '#0a0808' });
     });
-    const knob = (c: Ctx) => {
-      c.beginPath();
-      c.ellipse(ax, seat - 62, 12, 9, 0, 0, P2);
-    };
-    solid(ctx, knob, { x: ax - 12, y: seat - 71, w: 24, h: 18 }, 'chrome', '#a8843a', { depth: 0.13, line: 1.3, formSize: 3 });
-  }
-  // where it stands: a heavy oak plinth on the tread, its shadow pooled round it
-  const plinth = rrPath(x - hw - 22, fl - 12, (hw + 22) * 2, 14, 3);
-  solid(ctx, plinth, { x: x - hw - 22, y: fl - 12, w: (hw + 22) * 2, h: 14 }, 'wood', shade(OAK, -0.1), { depth: 0.12, line: 1.6, formSize: 5 });
-  ctx.fillStyle = rgba('#ffd0a0', 0.18);
-  ctx.fillRect(x - hw - 20, fl - 12, (hw + 20) * 2, 2);
-  crevice(ctx, x - hw - 24, x + hw + 24, fl + 2, -16, 0.55);
-  // the hall's light barely reaches it: the far braziers warm its outer edges only
-  rim(ctx, back, 0.18, 3, '#ffb070');
+    rivets(ctx, [[px - 14, 523], [px + 14, 523], [px - 12, 591], [px + 12, 591]], 2.1, 0.95);
+    // its sabaton on the tread, toe turned out
+    groundShadow(ctx, px + s * 30, FL + 1, 44, 4, 0.75, '#060406');
+    paintSabaton(ctx, r, FEET[i]);
+    // the knee cop: a wing on its outer side, a domed cap catching the light
+    iron(ctx, r, WINGS[i], { base: '#3e3a36', dents: 1, rust: 0.35, key: 0.26 });
+    const w = WINGS[i];
+    groove(ctx, w[0], w[3], 1.4);
+    castShadow(ctx, polyPath(POLEYNS[i]), 6, 8, 0.55, '#060406');
+    iron(ctx, r, POLEYNS[i], { base: '#4c4844', dents: 1, rust: 0.15, key: 0.35, dark: 0.15 });
+    // (worn bright where his hands grip it)
+    lightPool(ctx, px - 6, 462, 13, 6, '#d8dce8', 0.22);
+    rivets(ctx, [[px + s * 16, 469]], 2.4, 1);
+  });
+  // ——— the heap under the seat: beaten sabatons fused into a block, deep in the seat's shadow
+  castShadow(ctx, polyPath(HEAP), 8, 10, 0.55, '#060406');
+  iron(ctx, r, HEAP, { base: '#2e2a28', dents: 3, rust: 0.3, key: 0.12, dark: 0.5 });
+  within(ctx, polyPath(HEAP), () => vfill(ctx, TX - 140, SEAT + 10, 280, 50, [[0, 'rgba(4,3,6,0.7)'], [1, 'rgba(4,3,6,0)']]));
+  // a greave lying crossways under the lip, then the boots
+  castShadow(ctx, polyPath(HEAP_GREAVE), 6, 8, 0.6, '#060406');
+  iron(ctx, r, HEAP_GREAVE, { base: '#4c4a48', dents: 3, rust: 0.35, key: 0.45, dark: 0.15 });
+  rivets(ctx, [[TX - 104, SEAT + 28], [TX + 46, SEAT + 27]], 2, 0.9);
+  groove(ctx, [TX - 100, SEAT + 27], [TX + 40, SEAT + 25], 1.6);
+  HEAP_BOOTS.forEach((b, i) => paintSabaton(ctx, r, b, { dark: i ? 0.4 : 0.6, base: '#3a3938', key: i ? 0.24 : 0.12 }));
+  // all of it deep under the seat: the lip's shadow over the top of the heap, the boots sunk in it
+  within(ctx, polyPath(HEAP), () => vfill(ctx, TX - 140, SEAT + 10, 280, FL - SEAT - 10, [[0, 'rgba(4,3,6,0.6)'], [0.45, 'rgba(4,3,6,0.25)'], [1, 'rgba(4,3,6,0.4)']]));
+  weld(ctx, r, [[TX - 126, SEAT + 40], [TX - 124, FL - 48]], 3.2);
+  weld(ctx, r, [[TX + 126, SEAT + 44], [TX + 128, FL - 44]], 3.2);
+  // ——— the seat: its top worn bright up the middle where he sits; the lip riveted, lumpy from the hammer
+  castShadow(ctx, polyPath(LIP), 6, 8, 0.6, '#060406');
+  iron(ctx, r, LIP, { base: '#3e3a36', dents: 4, rust: 0.4, key: 0.3, dark: 0.3 });
+  within(ctx, polyPath(LIP), () => grime(ctx, boxOf(LIP), { bottom: 10, a: 0.5, seed: 59, col: '#0a0808' }));
+  rivets(ctx, alongLine([[TX - SEAT_HW + 10, SEAT + 9], [TX + SEAT_HW - 10, SEAT + 9]], 30), 2.4, 1);
+  iron(ctx, r, SEAT_TOP, { base: '#4a4642', dents: 3, rust: 0.15, key: 0.35, dark: 0.1 });
+  within(ctx, polyPath(SEAT_TOP), () => {
+    vfill(ctx, TX - SEAT_HW, SEAT - 16, SEAT_HW * 2, 16, [[0, 'rgba(6,4,6,0.55)'], [1, 'rgba(6,4,6,0)']]);
+    lightPool(ctx, TX - 8, SEAT - 6, 80, 7, '#c8d0e0', 0.22);
+    lightPool(ctx, TX + 4, SEAT - 4, 40, 3, '#f4f0ff', 0.16);
+    lightPool(ctx, TX - 30, SEAT - 3, 50, 4, '#ffb070', 0.14);
+  });
+  // the edge where seat meets back: soot thick in it
+  crevice(ctx, TX - SEAT_BACK, TX + SEAT_BACK, SEAT - 16, 10, 0.6, '#060406');
+  // ——— contact: where it bears on the tread
+  crevice(ctx, TX - 190, TX + 190, FL + 1, -14, 0.6, '#060406');
+  // the hall's warmth reaches only its outer edges; the middle stays in the dark between the fires
+  ctx.save();
+  ctx.translate(TX, 420);
+  ctx.scale(1, 1.6);
+  const mg = ctx.createRadialGradient(0, 0, 30, 0, 0, 170);
+  mg.addColorStop(0, 'rgba(8,6,10,0.18)');
+  mg.addColorStop(1, 'rgba(8,6,10,0)');
+  ctx.fillStyle = mg;
+  ctx.fillRect(-180, -180, 360, 360);
+  ctx.restore();
 }
+
+/** One fire's light caught along the throne's edges, the parts in front hiding it on the parts behind (painted on its
+ * own canvas, then laid on: the still has both fires; live, each is a layer that flickers with its fire). */
+function throneLight(ctx: Ctx, fi: number, k: number, add: boolean): void {
+  const f = FIRE_AT[fi];
+  const b = GLINT_BOX;
+  const [c, g] = makeCanvas(b.w, b.h);
+  g.translate(-b.x, -b.y);
+  for (const pts of LIT_ORDER) {
+    g.save();
+    g.globalCompositeOperation = 'destination-out';
+    polyPath(pts)(g);
+    g.fill();
+    g.restore();
+    // (fainter the further the edge is from the fire)
+    const [cx, cy] = pts[0];
+    const fall = clamp01(1.25 - Math.hypot(cx - f[0], cy - f[1]) / 1000);
+    edgeGlint(g, pts, f, '#ffb468', 0.5 * k * fall, 1.4, 0.14, 0.45);
+  }
+  // the warm cast over the near side of the mass
+  const near = fi ? 1 : -1;
+  lightPool(g, TX + near * 140, 470, 110, 200, '#ff9a48', 0.06 * k);
+  ctx.save();
+  if (add) ctx.globalCompositeOperation = 'lighter';
+  ctx.drawImage(c, b.x, b.y);
+  ctx.restore();
+}
+
+const THRONE_BOX: Box = { x: TX - STEPS[2].hw - 30, y: 170, w: (STEPS[2].hw + 30) * 2, h: TY + 4 - 170 };
+const GLINT_BOX: Box = { x: TX - 250, y: 180, w: 500, h: FL + 12 - 180 };
+const HELM_BOX: Box = (() => {
+  const b = boxOf(HELM_R_PTS, 6);
+  return { x: b.x - 4, y: b.y - 4, w: b.w + 26, h: b.h + 28 };
+})();
+const PLATE_BOX: Box = (() => {
+  const b = boxOf(LOOSE_PTS, 6);
+  return { x: b.x - 4, y: b.y - 4, w: b.w + 20, h: b.h + 20 };
+})();
 
 // ——— the table ———
 
@@ -1706,8 +2345,13 @@ export const HALL: SceneSpec = {
     { id: 'frameL', box: FRAME_BOX(HK.wins[0]), draw: (c, r) => frame(c, r, HK.wins[0]) },
     { id: 'glazeR', box: GLASS_BOX(HK.wins[1]), draw: (c, r) => glazing(c, r, HK.wins[1]) },
     { id: 'frameR', box: FRAME_BOX(HK.wins[1]), draw: (c, r) => frame(c, r, HK.wins[1]) },
-    { id: 'dossal', box: { x: HK.dossal.x0 - 60, y: HK.plate.y1 - 10, w: HK.dossal.x1 - HK.dossal.x0 + 120, h: HK.dais.y - HK.plate.y1 + 40 }, draw: dossal },
-    { id: 'throne', box: { x: HK.throne.x - HK.dais.hw - 60, y: HK.throne.top - 40, w: (HK.dais.hw + 60) * 2, h: TY - HK.throne.top + 42 }, draw: throne },
+    { id: 'throne', box: THRONE_BOX, draw: throne },
+    // the fires' light on the throne's iron (each flickers with its fire), then its loose pieces (they rattle at a stomp)
+    { id: 'thrFire', box: GLINT_BOX, stillOnly: true, draw: (c) => FIRE_AT.forEach((_, i) => throneLight(c, i, 0.9, true)) },
+    { id: 'thrFireL', box: GLINT_BOX, liveOnly: true, draw: (c) => throneLight(c, 0, 1, false) },
+    { id: 'thrFireR', box: GLINT_BOX, liveOnly: true, draw: (c) => throneLight(c, 1, 1, false) },
+    { id: 'thrHelm', box: HELM_BOX, motion: 'sprite', draw: kettleHat },
+    { id: 'thrPlate', box: PLATE_BOX, motion: 'sprite', draw: loosePlate },
     { id: 'brazierL', box: BRZ_BOX(HK.wins[0]), draw: (c, r) => brazier(c, r, HK.wins[0]) },
     { id: 'brazierR', box: BRZ_BOX(HK.wins[1]), draw: (c, r) => brazier(c, r, HK.wins[1]) },
     { id: 'table', box: { x: 0, y: TY, w: W, h: 1080 - TY }, draw: table },
@@ -1888,6 +2532,7 @@ registerKitScene(HALL, (k: KitLive) => {
       bed: k.glow(x, rimY - 6, 110, 0xff5a10, 0.4, { into: top, sy: 0.3 }),
       gut: 0,
       flare: 0,
+      light: 1,
       sq: new Spring(0, 30, 5),
       rate: new Rate(),
     };
@@ -1897,6 +2542,17 @@ registerKitScene(HALL, (k: KitLive) => {
   const dust = new Parts(k, { frame: 'mote', into: hall, max: 80 });
   // the hall's light dipping when the fires are knocked down
   const dip = k.wash(0x5a4038, 0, Phaser.BlendModes.MULTIPLY, top);
+
+  // ——— the throne: each fire's light on its iron flickering with the fire; a loose plate swinging on its last
+  // rivet and a helm rattling on its spear at a stomp, rust and soot shaken out of the seams
+  const thrFire = ['thrFireL', 'thrFireR'].map((id) => k.sprite(id).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.9));
+  const plate = k.pivot(k.sprite('thrPlate'), LOOSE[0], LOOSE[1]);
+  const helm = k.pivot(k.sprite('thrHelm'), HELM_R.c[0], HELM_R.c[1]);
+  const helmY0 = helm.y;
+  const plateS = new Spring(0, 38, 1.3);
+  const helmS = new Spring(0, 520, 10);
+  const helmH = new Spring(0, 420, 12);
+  const flakes = new Parts(k, { frame: 'mote', into: hall, max: 70 });
 
   // ——— hero: the blizzard in the lancets ———
   const flakeKey = k.tex('hk_flake', 16, 16, (c) => flake(c, 8, 8, 7.5, 0.95));
@@ -1949,6 +2605,16 @@ registerKitScene(HALL, (k: KitLive) => {
             } });
         }
       }
+      // the throne: the loose plate swings, the helm jumps and rattles on its spear, rust and soot sift down
+      const q = p * calm();
+      plateS.v += (x < LOOSE[0] ? 1 : -1) * (1.4 + crand() * 0.6) * q;
+      helmS.v += (crand() < 0.5 ? -1 : 1) * (3 + crand() * 2) * q;
+      helmH.v -= (180 + crand() * 60) * q;
+      for (let i = 0; i < 10 + q * 30; i++) {
+        const [sx, sy] = SHAKE[Math.floor(crand() * SHAKE.length)];
+        const soot = crand() < 0.45;
+        flakes.spawn({ x: sx + (crand() - 0.5) * 24, y: sy + (crand() - 0.5) * 8, vx: (crand() - 0.5) * 24, vy: 6 + crand() * 30, life: 1.6 + crand() * 1.2, r0: soot ? 2.4 + crand() * 2.6 : 1.6 + crand() * 2, a: soot ? 0.6 : 0.85, tint: soot ? 0x2a2422 : 0xc0703a, grav: soot ? 50 : 180 + crand() * 140, drag: soot ? 1.4 : 0.5, floor: FL + crand() * 6, fade: 0.12 });
+      }
       // the banners swing out from the stomp, the nearer one harder
       for (const b of banners) {
         const near = 1 - Math.min(1, Math.abs(b.x - x) / 1200) * 0.6;
@@ -1979,6 +2645,7 @@ registerKitScene(HALL, (k: KitLive) => {
         f.smoke.alpha = 0.75 + g * 0.25;
         const n = flicker(t, f.x);
         const light = (1 - g * 0.5) * (1 + f.flare * 0.35) * (0.9 + n * 0.12);
+        f.light = light;
         f.halo.setAlpha(0.28 * light);
         f.wallPool.setAlpha(0.075 * light);
         f.tablePool.setAlpha(0.1 * light);
@@ -1990,6 +2657,11 @@ registerKitScene(HALL, (k: KitLive) => {
         });
       }
       dip.setAlpha(dipK * 0.1);
+      fires.forEach((f, i) => thrFire[i].setAlpha(clamp(0.9 * f.light, 0, 1)));
+      plate.setRotation(plateS.step(0, dt));
+      helm.setRotation(helmS.step(0, dt));
+      helm.y = helmY0 + Math.min(0, helmH.step(0, dt));
+      flakes.update(dt);
       embers.update(dt);
       lumps.update(dt);
       dust.update(dt);
