@@ -34,6 +34,7 @@ import { LIGHT, type PathFn, type Pose, REST, ao, crease as kitCrease, innerEdge
 import { Sil } from '../../art/style/sil';
 import type { Ctx } from '../../art/util';
 import { mix, rgba, shade } from '../../art/util';
+import { gnarledFang } from '../../art/style/teeth';
 
 /** The Immortals' ink: the kit's ink cooled towards their steel. */
 const MINK = '#0d0f14';
@@ -1287,34 +1288,7 @@ export const LID_BOX = { x: -100, y: EYE.y - EYE.h * 1.62 - 6, w: 200, h: EYE.h 
 export const IRIS_BOX = { x: -34, y: EYE.y - 28, w: 68, h: 68 };
 
 /** A fang: from (bx, by) on the gum `len` long (dir 1 down, −1 up), `wd` wide, leaning, maybe chipped. */
-function fang(x: Ctx, bx: number, by: number, len: number, wd: number, dir: number, lean: number, chipped: boolean): void {
-  const tx = bx + lean * len;
-  const ty = by + dir * len;
-  const path = () => {
-    x.beginPath();
-    x.moveTo(bx - wd / 2, by - dir * 3);
-    x.quadraticCurveTo(bx - wd * 0.55, by + dir * len * 0.5, tx - (chipped ? wd * 0.22 : 0), ty - (chipped ? dir * 2 : 0));
-    if (chipped) x.lineTo(tx + wd * 0.05, ty - dir * 4.5);
-    if (chipped) x.lineTo(tx + wd * 0.24, ty);
-    x.quadraticCurveTo(bx + wd * 0.5, by + dir * len * 0.45, bx + wd / 2, by - dir * 3);
-    x.closePath();
-  };
-  path();
-  x.fillStyle = grad(x, bx, by, tx, ty, [[0, '#4b443a'], [0.35, '#9d957f'], [0.8, '#d7d1bf'], [1, '#ebe7da']]);
-  x.fill();
-  // the far side in shadow, a hard light on the near edge
-  x.save();
-  path();
-  x.clip();
-  x.fillStyle = 'rgba(8,8,12,.32)';
-  x.fillRect(bx + wd * 0.08, Math.min(by, ty) - 4, wd, len + 8);
-  x.restore();
-  line(x, [[bx - wd * 0.3, by + dir * 2], [bx - wd * 0.3 + lean * len * 0.5, by + dir * len * 0.55], [tx - wd * 0.08, ty - dir * 3]], 1.1, 'rgba(255,255,248,.75)');
-  path();
-  x.strokeStyle = '#08080b';
-  x.lineWidth = 1.6;
-  x.stroke();
-}
+const fang = gnarledFang;
 
 // ——— the burst cuts ———
 //

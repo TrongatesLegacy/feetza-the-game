@@ -16,6 +16,7 @@ import { bareOutline, paintBare } from '../../art/style/bare';
 import { LIGHT, type PathFn, type Pose, crease, glint, inkOf, softFill, softStroke, spec, texture, vnoise } from '../../art/style/kit';
 import { Sil, lobe } from '../../art/style/sil';
 import { type PartDef, registerStyle } from '../../art/style/registry';
+import { ENAMEL, gnarledFang } from '../../art/style/teeth';
 import { beadEye, blotches, contact, eyelet, laceRun, paintClaw, clawPath, rivet, stitches } from '../../art/style/details';
 import { LX, LY, clip, fill, glowDot, glowFinish, goldRamp, heatLayer, lightAll, lin, rad, streak } from '../../art/style/kit-bosses';
 import { type Ctx, hashStr, mix, rgba, rng, shade } from '../../art/util';
@@ -913,13 +914,15 @@ function paintTongue(g: Ctx, out: number): void {
     c.closePath();
   };
   fill(g, t, lin(g, CX - 30, MOUTH_Y, CX + 40, MOUTH_Y + 40, [
-    [0, '#c86a8a'],
-    [1, '#6a2040'],
+    [0, '#8a7a7a'],
+    [0.5, '#5a4a52'],
+    [1, '#2a1e22'],
   ]));
   crease(g, (c) => {
     c.moveTo(CX - 4, MOUTH_Y + 12);
     c.quadraticCurveTo(CX + out * 18, MOUTH_Y + 20 + out * 10, CX + out * 36, MOUTH_Y + 28 + out * 12);
-  }, 1.4, '#3a0818', 0.5, 0.2);
+  }, 1.4, '#120a0c', 0.6, 0.2);
+  clip(g, t, () => blotches(g, { x: CX - 34, y: MOUTH_Y + 6, w: 96, h: 48 }, '#6a7a3a', 0.45, 3, 0.55, 0.12, 181 + Math.round(out)));
   spec(g, CX - 10 + out * 20, MOUTH_Y + 16 + out * 8, 6, 3, 0.6, -0.3);
 }
 
@@ -937,36 +940,50 @@ function drawZombie(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
     return;
   }
   sil.form({ base: green, shadowTint: '#141a08', ramp: 0.8, form: 0.6, formSize: 30, bevel: 0.3, rim: 0.45 });
-  // the jaw: the sole hanging open, a dark mouth, a row of broken teeth (old tacks and bone)
+  // the jaw: the sole hanging open on a blackened, filthy mouth, a gnarled row of rotten teeth, black drool
+  const o2 = 18 - flex * 10;
+  const loBase = (x: number) => MOUTH_Y + o2 + 34 - Math.abs(x - CX) * 0.06;
   clip(g, jaw, () => {
-    g.fillStyle = lin(g, 0, 188, 0, 280, [
-      [0, '#1a0a10'],
-      [0.6, '#3a1420'],
-      [1, '#2a2a20'],
+    // the throat: black at the back, grimy olive-brown where the lining shows at the edges
+    g.fillStyle = rad(g, CX, MOUTH_Y + 22, 4, CX, MOUTH_Y + 22, 120, [
+      [0, '#010101'],
+      [0.45, '#07060a'],
+      [0.8, '#16120a'],
+      [1, '#26220e'],
     ]);
     g.fillRect(box.x, 180, box.w, 100);
+    // filth: crusted grime and mould in the lining
+    blotches(g, { x: CX - 110, y: 186, w: 220, h: 80 }, '#2e2610', 0.55, 6, 0.55, 0.15, 151);
+    blotches(g, { x: CX - 110, y: 186, w: 220, h: 80 }, '#4a5a1c', 0.3, 4, 0.66, 0.1, 153);
     // the sole's tread at the very bottom
-    const o2 = 18 - flex * 10;
     g.fillStyle = lin(g, 0, MOUTH_Y + o2 + 30, 0, MOUTH_Y + o2 + 46, [
-      [0, '#4a4a3a'],
-      [1, '#1a1a14'],
+      [0, '#3a382a'],
+      [1, '#141410'],
     ]);
-    g.fillRect(box.x, MOUTH_Y + o2 + 32, box.w, 20);
-    for (let i = 0; i < 9; i++) {
-      const x = CX - 72 + i * 18;
-      const y = MOUTH_Y + o2 + 30 - Math.abs(i - 4) * 1.5;
-      const tooth: PathFn = (c) => {
-        c.beginPath();
-        c.moveTo(x - 6, y + 4);
-        c.lineTo(x - 2 + (i % 3) - 1, y - 10 - (i % 2) * 4);
-        c.lineTo(x + 6, y + 4);
-        c.closePath();
-      };
-      fill(g, tooth, lin(g, x, y - 12, x, y + 4, [
-        [0, '#f4eed8'],
-        [1, mix(bone, '#5a4a2a', 0.4)],
-      ]));
+    g.fillRect(box.x, MOUTH_Y + o2 + 38, box.w, 20);
+    // the gum: rotten, dark and wet along the jaw
+    g.lineCap = 'round';
+    g.strokeStyle = '#24100e';
+    g.lineWidth = 9;
+    g.beginPath();
+    for (let x = CX - 96; x <= CX + 96; x += 8) (x === CX - 96 ? g.moveTo(x, loBase(x) + 1) : g.lineTo(x, loBase(x) + 1));
+    g.stroke();
+    g.strokeStyle = rgba('#6a3a2a', 0.35);
+    g.lineWidth = 2;
+    g.stroke();
+    // the lower teeth: gnarled, uneven, stained, a few fangs among stumps and one gap gone black
+    const tr = rng(161);
+    for (let x = CX - 84 + tr() * 4; x < CX + 86; x += 14 + tr() * 7) {
+      if (tr() < 0.1) {
+        fill(g, ell(x, loBase(x) - 1, 3.5, 2.5), '#050403');
+        continue;
+      }
+      const fang = tr() < 0.25;
+      const edge = 1 - Math.abs(x - CX) / 110;
+      gnarledFang(g, x, loBase(x), (14 + tr() * 10) * (0.6 + 0.4 * edge) * (fang ? 1.6 : 1), (fang ? 15 : 10 + tr() * 5) * (0.7 + 0.3 * edge), -1, (tr() - 0.5) * 0.5, tr() < 0.4, ENAMEL.rot);
     }
+    // black rot at the roots
+    blotches(g, { x: CX - 100, y: loBase(CX) - 14, w: 200, h: 14 }, '#0a0604', 0.6, 3, 0.6, 0.1, 163);
   });
   if (!o.live) paintTongue(g, 0);
   contact(g, (c) => {
@@ -1011,6 +1028,54 @@ function drawZombie(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
     ]);
     g.fillRect(box.x, 0, box.w, 30);
   });
+  // the upper jaw's teeth hang from the lip over the throat, and black drool strings between the jaws
+  const upLip = (x: number) => MOUTH_Y + 6 - flex * 4 - ((x - CX) / 106) ** 2 * 8;
+  {
+    const tr = rng(171);
+    for (let x = CX - 80 + tr() * 5; x < CX + 82; x += 15 + tr() * 8) {
+      if (tr() < 0.12) continue;
+      const fang = tr() < 0.22;
+      const edge = 1 - Math.abs(x - CX) / 110;
+      gnarledFang(g, x, upLip(x), (13 + tr() * 9) * (0.6 + 0.4 * edge) * (fang ? 1.7 : 1), (fang ? 14 : 9.5 + tr() * 5) * (0.7 + 0.3 * edge), 1, (tr() - 0.5) * 0.5, tr() < 0.4, ENAMEL.rot);
+    }
+    // the lip's rotten underside over their roots
+    g.lineCap = 'round';
+    g.strokeStyle = '#1c0c0a';
+    g.lineWidth = 6;
+    g.beginPath();
+    for (let x = CX - 94; x <= CX + 94; x += 8) (x === CX - 94 ? g.moveTo(x, upLip(x) - 2) : g.lineTo(x, upLip(x) - 2));
+    g.stroke();
+    // strings of black drool between the jaws, sagging, a green-black sheen on them
+    for (const [x, w] of [[CX - 54, 3.2], [CX + 12, 2.4], [CX + 62, 3.6]] as const) {
+      const a = upLip(x) + 4;
+      const b = loBase(x) - 4;
+      const mid = (a + b) / 2 + (b - a) * 0.15;
+      g.fillStyle = '#141a0c';
+      g.beginPath();
+      g.moveTo(x - w, a);
+      g.quadraticCurveTo(x - w * 0.25, mid, x - w * 1.1, b);
+      g.lineTo(x + w * 1.1, b);
+      g.quadraticCurveTo(x + w * 0.25, mid, x + w, a);
+      g.closePath();
+      g.fill();
+      g.strokeStyle = rgba('#c8e890', 0.6);
+      g.lineWidth = 1.3;
+      g.beginPath();
+      g.moveTo(x - w * 0.55, a + 2);
+      g.quadraticCurveTo(x - w * 0.1, mid, x - w * 0.6, b - 2);
+      g.stroke();
+    }
+    // drool welling over the lower lip and dripping off it
+    for (const [x, r] of [[CX - 30, 3.4], [CX + 40, 4], [CX + 78, 3]] as const) {
+      const b = MOUTH_Y + o2 + 42 - Math.abs(x - CX) * 0.1;
+      fill(g, ell(x, b, r * 1.2, r * 1.5), rad(g, x - r * 0.4, b - r * 0.5, 0, x, b, r * 1.5, [
+        [0, '#2a3020'],
+        [0.5, '#08090a'],
+        [1, '#010101'],
+      ]));
+      spec(g, x - r * 0.35, b - r * 0.5, r * 0.3, r * 0.22, 0.8, -0.5);
+    }
+  }
   // the saddle strap with its penny slot, and a tarnished penny
   const strap: PathFn = (c) => {
     c.beginPath();
