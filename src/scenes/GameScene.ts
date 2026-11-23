@@ -58,6 +58,7 @@ import { heroFootDmg, heroFootStomp, heroFootTick } from '../game/heroFeet';
 import { finaleCast, finaleState, playEnding } from '../game/finale';
 // ——— Nemesis stages: a hero peel swaps a stage for its nemesis (src/game/nemesis.ts) ———
 import { applyNemesis, nemesisOf, setNemesisPeel } from '../game/nemesis';
+import { HitboxOverlay, describeNear, labelOf, record, smackLog } from '../game/smackLog';
 
 interface DamageOpts {
   source: 'smack' | 'chain' | 'cutter' | 'olive' | 'slam' | 'explode' | 'garlic' | 'burn' | 'trap' | 'splash' | 'direct' | 'ability';
@@ -191,6 +192,8 @@ export class GameScene extends Phaser.Scene implements Arena {
   /** The phase 3 pizzas' perks (src/game/pizzaPerks.ts). */
   private perkKit!: PizzaPerkKit;
   private clickables: Clickable[] = [];
+  /** Dev: the hitbox overlay (src/game/smackLog.ts). */
+  private hitboxes: HitboxOverlay | null = null;
 
   private start: GameStart = {};
   private plan: WavePlan | null = null;
@@ -672,6 +675,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.cutterCd = new WeakMap();
     this.garlicAuras = [];
     this.clickables = [];
+    this.hitboxes = null;
     this.plan = null;
     this.waveActive = false;
     this.bossPending = false;
@@ -2995,9 +2999,30 @@ export class GameScene extends Phaser.Scene implements Arena {
     pad.usedMouse();
   }
 
+  /** Dev: log a smack (src/game/smackLog.ts) and mark it on the hitbox overlay. */
+  private logSmack(x: number, y: number, blocked: string | undefined, result: string | undefined): void {
+    if (!smackLog.on) return;
+    record({
+      t: Math.round(this.nowT * 1000) / 1000,
+      wave: this.run.wave,
+      pointer: [Math.round(this.pointer.x), Math.round(this.pointer.y)],
+      peel: [Math.round(x), Math.round(y)],
+      blocked,
+      result,
+      near: describeNear(this.clickables, x, y),
+      feet: this.feet.filter((f) => f.alive && f.distanceTo(x, y) < 200).map((f) => ({ id: f.type.id, d: Math.round(f.distanceTo(x, y)) })),
+      state: { slowT: Math.round(this.peelSlowT * 100) / 100, stunT: Math.round(this.peelStunT * 100) / 100, modal: ui.modalOpen },
+    });
+    this.hitboxes?.mark(x, y, !blocked && !!result && result !== 'miss');
+  }
+
   private smack(x: number, y: number): void {
-    if (this.over || this.paused || this.inUpgrade || ui.modalOpen) return;
+    if (this.over || this.paused || this.inUpgrade || ui.modalOpen) {
+      this.logSmack(x, y, this.over ? 'over' : this.paused ? 'paused' : this.inUpgrade ? 'upgrade' : 'modal', undefined);
+      return;
+    }
     if (this.peelStunT > 0) {
+      this.logSmack(x, y, 'peel stunned', undefined);
       this.fx.quip(x, y - 40, 'PEEL STUNNED', '#ffd23f', 28);
       return;
     }
@@ -3021,9 +3046,11 @@ export class GameScene extends Phaser.Scene implements Arena {
       .filter((o) => o.d <= 0)
       .sort((a, b) => (b.c.priority ?? 0) - (a.c.priority ?? 0) || a.d - b.d)[0];
     if (click && (!hits.length || (click.c.priority ?? 0) >= 2 || hits[0].d > 18)) {
+      this.logSmack(x, y, undefined, `target:${labelOf(click.c)}`);
       click.c.hit();
       return;
     }
+    this.logSmack(x, y, undefined, hits.length ? `foot:${hits[0].f.type.id}` : 'miss');
     if (!hits.length) {
       this.tracker.emit('smack', { hits: 0, x, y });
       if (this.run.combo >= 3) this.fx.quip(x, y - 30, 'MISS', '#ffb0a0', 32, 0);
@@ -4460,6 +4487,9 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   // ——— Frame ———
   update(_time: number, deltaMs: number): void {
+    // dev: the hitbox overlay draws every live target's hit area and recent smacks
+    if (smackLog.overlay && !this.hitboxes) this.hitboxes = new HitboxOverlay(this);
+    this.hitboxes?.draw(this.clickables);
     this.frameNo++;
     const real = Math.min(0.05, deltaMs / 1000);
     this.nowT += real;

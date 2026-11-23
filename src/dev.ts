@@ -80,6 +80,26 @@ export function installDevTools(game: Phaser.Game): void {
   void import('./devLookLab').then((m) => m.installLookLab());
   void import('./devStyleSheet').then((m) => m.installStyleSheet());
   void import('./devStages').then((m) => m.installStageSheet());
+  // the smack recorder is always on in dev (what each click did goes to .dev-logs/smacks.jsonl); the 🎯 Hitboxes
+  // button (or ?dev&hitboxes) shows every target's hit area and where smacks land
+  void import('./game/smackLog').then((m) => {
+    m.startSmackLog();
+    if (new URLSearchParams(location.search).has('hitboxes')) m.smackLog.overlay = true;
+    const add = () => {
+      const fab = document.querySelector('.bl-fab');
+      if (!fab) return void setTimeout(add, 300);
+      const b = document.createElement('button');
+      const sync = () => (b.textContent = m.smackLog.overlay ? '🎯 Hitboxes on' : '🎯 Hitboxes');
+      sync();
+      b.title = 'Show every clickable target\'s hit area and where smacks land (all smacks are logged to .dev-logs/smacks.jsonl)';
+      b.addEventListener('click', () => {
+        m.smackLog.overlay = !m.smackLog.overlay;
+        sync();
+      });
+      fab.appendChild(b);
+    };
+    add();
+  });
   // ?dev&show=welcome opens a screen straight away, for headless screenshots of DOM screens
   const showParam = new URLSearchParams(location.search).get('show');
   if (showParam) {

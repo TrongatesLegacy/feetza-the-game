@@ -19,6 +19,8 @@ export interface Clickable {
   alive(): boolean;
   /** A wave event (a flyer or chest): it stays clickable for a moment after the wave ends. */
   event?: boolean;
+  /** A name for the dev smack log (src/game/smackLog.ts). */
+  label?: string;
 }
 
 export interface Arena {

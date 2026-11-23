@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { readdirSync, readFileSync, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs';
+import { readdirSync, readFileSync, existsSync, mkdirSync, statSync, writeFileSync, appendFileSync } from 'node:fs';
 import { dirname, relative, resolve } from 'node:path';
 import { defineConfig, type Plugin } from 'vite';
 
@@ -124,6 +124,31 @@ function devShots(): Plugin {
   };
 }
 
+// Dev-only: the smack recorder (src/game/smackLog.ts) appends what each click did to .dev-logs/smacks.jsonl.
+function devSmackLog(): Plugin {
+  return {
+    name: 'dev-smacklog',
+    apply: 'serve',
+    configureServer(server) {
+      const dir = resolve(__dirname, '.dev-logs');
+      server.middlewares.use('/__smacklog', (req, res) => {
+        const chunks: Buffer[] = [];
+        req.on('data', (c: Buffer) => chunks.push(c));
+        req.on('end', () => {
+          try {
+            mkdirSync(dir, { recursive: true });
+            const batch = JSON.parse(Buffer.concat(chunks).toString()) as unknown[];
+            appendFileSync(`${dir}/smacks.jsonl`, batch.map((e) => JSON.stringify(e)).join('\n') + '\n');
+          } catch {
+            /* a bad batch is dropped */
+          }
+          res.end('ok');
+        });
+      });
+    },
+  };
+}
+
 // Dev-only: the boss lab's playtest notes, saved to FEETZA_NOTES (a .json path; a .md copy sits beside it).
 function devNotes(): Plugin {
   return {
@@ -174,7 +199,7 @@ function devNotes(): Plugin {
 
 export default defineConfig({
   base: './',
-  plugins: [audioManifest(), artVersion(), devShots(), devNotes()],
+  plugins: [audioManifest(), artVersion(), devShots(), devNotes(), devSmackLog()],
   build: {
     target: 'es2022',
     assetsInlineLimit: 0,

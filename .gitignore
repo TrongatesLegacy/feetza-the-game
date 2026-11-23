@@ -10,3 +10,4 @@ inspiration/
 
 # balance simulator output (npm run sim)
 .sim/
+.dev-logs/

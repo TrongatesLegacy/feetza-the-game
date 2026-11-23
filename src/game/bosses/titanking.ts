@@ -607,6 +607,7 @@ const titanking = (): Brain => {
       r: 0,
       // (over every other prop: the head is the one thing to hit while it's up)
       priority: 3,
+      label: 'kronos head',
       // anywhere on the head, or anywhere inside its timer ring (the ring is what reads as the target)
       contains: (x, y) => (Math.abs(x - head.x) < (T.w * T.px) / 2 - 10 && y > head.y + 30 && y < head.y + T.mouthY * T.px + 150) || Math.hypot(x - head.x, y - (head.y + 250)) < 270,
       // it can be whacked from the moment it's up, not only once the chewing starts (it already looks like it's eating)
@@ -1032,6 +1033,7 @@ const titanking = (): Brain => {
       },
       r: 0,
       priority: 2,
+      label: 'falling rock',
       // a generous target: it's moving, and it's the point of the moment
       contains: (px, py) => Math.abs(px - img.x) < 150 && Math.abs(py - img.y) < 160,
       alive: () => live,
@@ -1403,6 +1405,7 @@ const titanking = (): Brain => {
       get y() {
         return mid()[1];
       },
+      label: 'chain blade',
       // the whole timer ring and a margin round it (a swinging target: the ring is what you aim at)
       r: 150,
       priority: 3,

@@ -522,6 +522,7 @@ function startRoll(a: Arena, f: Foot): void {
     get y() {
       return ws().y;
     },
+    label: 'chariot hub',
     r: 60,
     priority: 2,
     contains: (x, y) => {
