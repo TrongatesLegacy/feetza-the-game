@@ -21,7 +21,7 @@ import { type PartDef, registerStyle } from '../../art/style/registry';
 import { blotches, clawPath, contact, eyelet, laceRun, paintClaw, rivet, stitches } from '../../art/style/details';
 import { LX, LY, clip, fill, furCoat, glowDot, glowFinish, goldRamp, heatLayer, lightAll, lin, rad, streak } from '../../art/style/kit-bosses';
 import { lockPath } from './pilot-fur';
-import { type Ctx, hashStr, mix, rgba, rng, shade } from '../../art/util';
+import { type Ctx, hashStr, makeCanvas, mix, rgba, rng, shade } from '../../art/util';
 
 type Opts = { live: boolean; emissive?: boolean; heat?: boolean };
 
@@ -322,12 +322,15 @@ registerStyle('bigfoot', {
 /** The bow at the throat of the shoe (a live part: it bobs). Knot centre. */
 export const HONK_BOW = { x: CX - 4, y: 160 };
 
+/** The shaft, its foot flaring out into the bulb's shoulders (a fillet, not a corner). */
 const honkShaft: PathFn = (c) => {
   c.beginPath();
   c.moveTo(CX - 62, -6);
-  c.bezierCurveTo(CX - 64, 50, CX - 76, 110, CX - 86, 176);
-  c.lineTo(CX + 82, 176);
-  c.bezierCurveTo(CX + 74, 110, CX + 64, 50, CX + 62, -6);
+  c.bezierCurveTo(CX - 64, 50, CX - 72, 100, CX - 79, 136);
+  c.quadraticCurveTo(CX - 86, 170, CX - 122, 188);
+  c.lineTo(CX + 120, 188);
+  c.quadraticCurveTo(CX + 82, 170, CX + 76, 136);
+  c.bezierCurveTo(CX + 70, 100, CX + 64, 50, CX + 62, -6);
   c.closePath();
 };
 
@@ -508,40 +511,54 @@ function drawHonk(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
     // the toe cap seam
     stitches(g, (c) => c.ellipse(CX + 6, cy + 8, 96, 30, 0, Math.PI + 0.25, -0.2), rgba('#d8c0ff', 0.55), 1.6, 4, 3.5);
   });
-  // the shaft: patent too, with the neon lacing up the front
-  clip(g, honkShaft, () => {
-    g.fillStyle = lin(g, CX - 70, 0, CX + 70, 0, [
+  // the shaft: patent too, with the neon lacing up the front. Painted on its own layer and faded out at its foot, so
+  // it grows out of the bulb instead of sitting on it as a cut-out
+  const [lc, x] = makeCanvas(g.canvas.width, g.canvas.height);
+  x.setTransform(g.getTransform());
+  clip(x, honkShaft, () => {
+    x.fillStyle = lin(x, CX - 70, 0, CX + 70, 0, [
       [0, shade(purple, -0.15)],
       [0.25, shade(purple, 0.3)],
       [0.5, purple],
       [0.85, shade(purple, -0.45)],
       [1, shade(purple, -0.2)],
     ]);
-    g.fillRect(box.x, -8, box.w, 190);
-    streak(g, (c) => {
+    x.fillRect(box.x, -8, box.w, 190);
+    streak(x, (c) => {
       c.moveTo(CX - 44, 6);
       c.bezierCurveTo(CX - 48, 60, CX - 54, 110, CX - 62, 166);
     }, 3, 0.45);
     // the tongue under the laces
-    softFill(g, (c) => {
+    softFill(x, (c) => {
       c.beginPath();
       c.roundRect(CX - 26, -10, 52, 160, 14);
     }, rgba('#000000', 0.35), 4);
-    g.fillStyle = lin(g, CX - 24, 0, CX + 24, 0, [
+    x.fillStyle = lin(x, CX - 24, 0, CX + 24, 0, [
       [0, shade(purple, -0.05)],
       [1, shade(purple, -0.45)],
     ]);
-    g.beginPath();
-    g.roundRect(CX - 22, -10, 44, 156, 12);
-    g.fill();
+    x.beginPath();
+    x.roundRect(CX - 22, -10, 44, 156, 12);
+    x.fill();
     // collar: a padded, rolled rim
-    g.fillStyle = lin(g, 0, -8, 0, 16, [
+    x.fillStyle = lin(x, 0, -8, 0, 16, [
       [0, rgba('#000000', 0.5)],
       [0.5, rgba(shade(purple, 0.4), 0.35)],
       [1, rgba('#000000', 0)],
     ]);
-    g.fillRect(box.x, -8, box.w, 24);
+    x.fillRect(box.x, -8, box.w, 24);
   });
+  x.globalCompositeOperation = 'destination-out';
+  x.fillStyle = lin(x, 0, 132 - flex * 8, 0, 178 - flex * 8, [
+    [0, 'rgba(0,0,0,0)'],
+    [0.55, 'rgba(0,0,0,0.6)'],
+    [1, 'rgba(0,0,0,1)'],
+  ]);
+  x.fillRect(box.x, 120, box.w, 70);
+  g.save();
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.drawImage(lc, 0, 0);
+  g.restore();
   const ys = [18, 46, 74, 102, 130];
   for (let i = ys.length - 1; i > 0; i--) for (const s of [-1, 1]) laceRun(g, CX - s * 30, ys[i], CX + s * 30, ys[i - 1], green, 6);
   for (const y of ys) for (const s of [-1, 1]) eyelet(g, CX + s * 31, y, 5.2, '#e8e0ff');
