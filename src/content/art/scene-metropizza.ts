@@ -90,12 +90,12 @@ export const MP = {
 
 /** Where the city's layers stop: just under the coping's ink line, so the parapet and the table stay in the live base. */
 const CUT = MP.coping - 2;
-const INK = '#1c1024';
-const P2 = Math.PI * 2;
+export const INK = '#1c1024';
+export const P2 = Math.PI * 2;
 const SUN = '#ffcf8a';
-const SHADE = '#3a2458';
-const BLOCK = '"Impact", "Haettenschweiler", "Arial Black", sans-serif';
-const smooth = (e0: number, e1: number, x: number): number => {
+export const SHADE = '#3a2458';
+export const BLOCK = '"Impact", "Haettenschweiler", "Arial Black", sans-serif';
+export const smooth = (e0: number, e1: number, x: number): number => {
   const t = Math.max(0, Math.min(1, (x - e0) / (e1 - e0)));
   return t * t * (3 - 2 * t);
 };
@@ -103,7 +103,7 @@ const smooth = (e0: number, e1: number, x: number): number => {
 // ——— comic clouds ———
 
 /** A comic cumulus: bumps along a flat base, lit on its upper left, its shade in dots, a thin coloured ink line. */
-function comicCloud(ctx: Ctx, r: R, x: number, y: number, w: number, h: number, pal: { body: string; lit: string; shade: string; ink: string; dot: string }, a = 1): void {
+export function comicCloud(ctx: Ctx, r: R, x: number, y: number, w: number, h: number, pal: { body: string; lit: string; shade: string; ink: string; dot: string }, a = 1): void {
   const bumps: [number, number, number][] = [];
   const n = Math.max(3, Math.round(w / (h * 0.7)));
   for (let i = 0; i < n; i++) {
@@ -224,7 +224,7 @@ function stormSky(ctx: Ctx, r: R): void {
   }
 }
 
-function starField(ctx: Ctx, r: R, x: number, y: number, w: number, h: number, n: number, a: number): void {
+export function starField(ctx: Ctx, r: R, x: number, y: number, w: number, h: number, n: number, a: number): void {
   for (let i = 0; i < n; i++) {
     const sx = x + r() * w;
     const sy = y + r() * h * r();
@@ -257,7 +257,7 @@ function clouds(ctx: Ctx, r: R): void {
 
 // ——— the far city ———
 
-interface Bldg {
+export interface Bldg {
   x: number;
   w: number;
   top: number;
@@ -267,7 +267,7 @@ interface Bldg {
   seed: number;
 }
 
-const ROWS: Bldg[][] = [0, 1].map((row) => {
+export const ROWS: Bldg[][] = [0, 1].map((row) => {
   const r = rng(7301 + row * 17);
   const out: Bldg[] = [];
   let x = -40 - row * 30;
@@ -284,7 +284,7 @@ const ROWS: Bldg[][] = [0, 1].map((row) => {
   return out;
 });
 
-function bldgPath(b: Bldg): PathFn {
+export function bldgPath(b: Bldg): PathFn {
   return (c) => {
     const { x, w, top } = b;
     const base = MP.horizon + 4;
@@ -356,7 +356,7 @@ function bldgPath(b: Bldg): PathFn {
 }
 
 /** A building's windows (the same every time: the night layer lights some of them). */
-function windowsOf(b: Bldg): [number, number, number, number, number][] {
+export function windowsOf(b: Bldg): [number, number, number, number, number][] {
   const r = rng(b.seed);
   const out: [number, number, number, number, number][] = [];
   const cw = b.row ? 5 : 7;
@@ -407,16 +407,16 @@ function farCity(ctx: Ctx, r: R): void {
 // ——— the Metropizza Tower ———
 
 const TX = MP.tower.x;
-const TOWER = {
+export const TOWER = {
   shaft: [1110, 1270, 300] as const,
   set1: [1130, 1250, 236] as const,
   set2: [1148, 1232, 186] as const,
   crown: { y: 186, top: 132 },
 };
-const LIME = '#efdcb4';
+export const LIME = '#efdcb4';
 const TOWER_BOX = { x: 1060, y: 20, w: 240, h: CUT - 20 };
 
-function towerFace(ctx: Ctx, x0: number, x1: number, top: number, bottom: number, piers: number): void {
+export function towerFace(ctx: Ctx, x0: number, x1: number, top: number, bottom: number, piers: number): void {
   const face = rectPath(x0, top, x1 - x0, bottom - top);
   // the left side face, receding to the city's vanishing point (lit full by the low sun)
   const sw = (x1 - x0) * 0.12;
@@ -508,7 +508,7 @@ function tower(ctx: Ctx, r: R): void {
 
 /** The pizza globe: frame `ph` of its turn (0…1), at (cx, cy) with radius R; its ring's back half, the sphere, the
  * ring's front half. Lit from the top left, the terminator in dots. */
-function globe(c: Ctx, cx: number, cy: number, R0: number, ph: number): void {
+export function globe(c: Ctx, cx: number, cy: number, R0: number, ph: number): void {
   const tilt = -0.22;
   const ringRx = R0 * 1.5;
   const ringRy = R0 * 0.34;
@@ -820,17 +820,17 @@ function waterTank(ctx: Ctx, r: R): void {
 
 // ——— the billboard on the neighbour's roof ———
 
-const SIGN = MP.sign;
+export const SIGN = MP.sign;
 const SIGN_BOX = { x: SIGN.x0 - 60, y: SIGN.y0 - 60, w: SIGN.x1 - SIGN.x0 + 120, h: CUT - SIGN.y0 + 60 };
 const LETTERS = 'METROPIZZA';
 const NEON_RED = '#ff3a4a';
 const NEON_GOLD = '#ffd23a';
 /** Where the sign's lettering sits. */
-const TEXT = { x0: 520, x1: 792, base: 444, size: 74 };
+export const TEXT = { x0: 520, x1: 792, base: 444, size: 74 };
 const TAG = { y: 476, size: 23 };
 const SLICE = { x: 452, y: 418, s: 1 };
 
-function letterXs(ctx: Ctx): number[] {
+export function letterXs(ctx: Ctx): number[] {
   ctx.save();
   ctx.font = `${TEXT.size}px ${BLOCK}`;
   const ws = [...LETTERS].map((ch) => ctx.measureText(ch).width);
@@ -907,6 +907,44 @@ function billboard(ctx: Ctx, r: R): void {
   // the sign face's shadow on the trestle behind and the catwalk
   const face = rectPath(SIGN.x0, SIGN.y0, SIGN.x1 - SIGN.x0, SIGN.y1 - SIGN.y0);
   castShadow(ctx, face, 10, 6, 0.35, '#1a0818');
+  signFace(ctx);
+  // the board's deep shadow under its foot: a spot black over the trestle's top
+  ctx.fillStyle = rgba(INK, 0.55);
+  ctx.fillRect(SIGN.x0, cat + 4, SIGN.x1 - SIGN.x0, 14);
+  // the catwalk and its railing in front of the board's foot
+  flat(ctx, rectPath(SIGN.x0 - 20, cat - 4, SIGN.x1 - SIGN.x0 + 40, 8), '#5a5262', 2, INK);
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let x = SIGN.x0 - 16; x <= SIGN.x1 + 16; x += 32) {
+    ctx.moveTo(x, cat - 4);
+    ctx.lineTo(x, cat - 28);
+  }
+  ctx.moveTo(SIGN.x0 - 18, cat - 28);
+  ctx.lineTo(SIGN.x1 + 18, cat - 28);
+  ctx.moveTo(SIGN.x0 - 18, cat - 16);
+  ctx.lineTo(SIGN.x1 + 18, cat - 16);
+  ctx.stroke();
+  // the gooseneck lamps over the board
+  for (const lx of LAMPS) {
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(lx, SIGN.y0 + 2);
+    ctx.quadraticCurveTo(lx, SIGN.y0 - 36, lx + 26, SIGN.y0 - 34);
+    ctx.stroke();
+    ctx.strokeStyle = '#7a7080';
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
+    flat(ctx, polyPath([[lx + 18, SIGN.y0 - 40], [lx + 38, SIGN.y0 - 38], [lx + 42, SIGN.y0 - 26], [lx + 14, SIGN.y0 - 28]]), '#4a4652', 2, INK);
+  }
+  void r;
+}
+
+/** The billboard's face: the cream board in its red frame, the slice on its starburst, the lettering with its neon
+ * tubes (dark), the tagline and the marquee bulbs (dark), at the sign's place (SIGN). Downtown Ruins hangs it. */
+export function signFace(ctx: Ctx): void {
+  const face = rectPath(SIGN.x0, SIGN.y0, SIGN.x1 - SIGN.x0, SIGN.y1 - SIGN.y0);
   // the face: cream board in a red frame
   flat(ctx, face, '#f8e8c4', 0, INK);
   within(ctx, face, () => {
@@ -980,37 +1018,6 @@ function billboard(ctx: Ctx, r: R): void {
     ctx.lineWidth = 1.2;
     ctx.stroke();
   }
-  // the board's deep shadow under its foot: a spot black over the trestle's top
-  ctx.fillStyle = rgba(INK, 0.55);
-  ctx.fillRect(SIGN.x0, cat + 4, SIGN.x1 - SIGN.x0, 14);
-  // the catwalk and its railing in front of the board's foot
-  flat(ctx, rectPath(SIGN.x0 - 20, cat - 4, SIGN.x1 - SIGN.x0 + 40, 8), '#5a5262', 2, INK);
-  ctx.strokeStyle = INK;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  for (let x = SIGN.x0 - 16; x <= SIGN.x1 + 16; x += 32) {
-    ctx.moveTo(x, cat - 4);
-    ctx.lineTo(x, cat - 28);
-  }
-  ctx.moveTo(SIGN.x0 - 18, cat - 28);
-  ctx.lineTo(SIGN.x1 + 18, cat - 28);
-  ctx.moveTo(SIGN.x0 - 18, cat - 16);
-  ctx.lineTo(SIGN.x1 + 18, cat - 16);
-  ctx.stroke();
-  // the gooseneck lamps over the board
-  for (const lx of LAMPS) {
-    ctx.strokeStyle = INK;
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.moveTo(lx, SIGN.y0 + 2);
-    ctx.quadraticCurveTo(lx, SIGN.y0 - 36, lx + 26, SIGN.y0 - 34);
-    ctx.stroke();
-    ctx.strokeStyle = '#7a7080';
-    ctx.lineWidth = 1.6;
-    ctx.stroke();
-    flat(ctx, polyPath([[lx + 18, SIGN.y0 - 40], [lx + 38, SIGN.y0 - 38], [lx + 42, SIGN.y0 - 26], [lx + 14, SIGN.y0 - 28]]), '#4a4652', 2, INK);
-  }
-  void r;
 }
 
 const LAMPS = [SIGN.x0 + 60, (SIGN.x0 + SIGN.x1) / 2 - 20, SIGN.x1 - 100];
@@ -1023,7 +1030,7 @@ function bulbs(): [number, number][] {
 
 /** The neon tubes over the letters: 'off' is dark glass, 'lit' paints the lit tube with its glow (for one letter or
  * all of them; the slice's outline is index 10, the tagline's rule 11). */
-function neonTubes(c: Ctx, xs: number[], mode: 'off' | 'lit', only: number | null = null): void {
+export function neonTubes(c: Ctx, xs: number[], mode: 'off' | 'lit', only: number | null = null): void {
   c.save();
   c.font = `${TEXT.size * 0.8}px ${BLOCK}`;
   c.textAlign = 'center';

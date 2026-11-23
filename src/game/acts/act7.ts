@@ -6,7 +6,8 @@
 //   Metropizza Rooftops  61 golden hour · 62 dusk · 63 night, searchlights · 64 thunderstorm and rain (its backdrop,
 //                        scene-metropizza.ts, runs the blimp, searchlights, light and bolts; the act keeps the rain
 //                        and the bolts' flash and thunder)
-//   Downtown Ruins       65 smoke and drifting embers under lightning (Doomstomp)
+//   Downtown Ruins       65 smoke and drifting embers under lightning (Doomstomp; its backdrop, scene-doomstomp.ts,
+//                        runs its fires, smoke and bolts when animated; the act keeps the bolts' flash and thunder)
 //   The Doom Lab         66 lab hum, Tesla arcs · 67 alarm beacons · 68 red alert (Ultoe) · 69 power surges
 //   Titan's Throne       70 a pulsing nebula and falling stars (Thanfoot)
 //
@@ -151,7 +152,7 @@ interface Layer {
   /** Things the place animates every frame. */
   tickers: ((dt: number, t: number) => void)[];
   rain: Phaser.GameObjects.Particles.ParticleEmitter | null;
-  /** Stops listening to the place's backdrop (Metropizza's bolts). */
+  /** Stops listening to the place's backdrop (Metropizza's and the Downtown Ruins' bolts). */
   unhook: (() => void) | null;
   t: number;
   nextFlash: number;
@@ -205,7 +206,6 @@ const LIGHT: Record<string, [number, number][]> = {
     [0xff8080, 0.2],
     [0x6a7a90, 0.34],
   ],
-  doomstomp: [[0xff9a7a, 0.2]],
   thanfoot: [[0xc8a0ff, 0.14]],
 };
 
@@ -339,8 +339,8 @@ function setup(a: Arena, layer: Layer, n: number): void {
   const ws = waveInStage(n);
   const changed = place !== layer.place;
   layer.wave = n;
-  // Metropizza's redrawn backdrop (src/content/art/scene-metropizza.ts) lights itself wave by wave when it's animated
-  const live = place === 'metropizza' && backdropsAnimated();
+  // the redrawn backdrops (src/content/art/scene-metropizza.ts, scene-doomstomp.ts) light themselves when animated
+  const live = (place === 'metropizza' || place === 'doomstomp') && backdropsAnimated();
   const light = live ? ([0xffffff, 0] as [number, number]) : (LIGHT[place]?.[Math.min(ws, LIGHT[place].length) - 1] ?? [0xffffff, 0]);
   setLight(layer, light[0], light[1], changed ? 1 : 2000);
   // rebuild the moving parts when the place or the weather changes
@@ -357,7 +357,13 @@ function setup(a: Arena, layer: Layer, n: number): void {
       layer.unhook = () => a.sc.events.off('metropizza:bolt', onBolt);
     }
   } else if (place === 'doomstomp') {
-    smoke(a, layer);
+    // animated, the backdrop runs its own smoke columns and bolts: the act flashes and thunders when a bolt strikes;
+    // still, the act drifts its smoke over the painted ruins and flashes now and then
+    if (live) {
+      const onBolt = (strong: boolean) => lightning(a, layer, strong);
+      a.sc.events.on('doomstomp:bolt', onBolt);
+      layer.unhook = () => a.sc.events.off('doomstomp:bolt', onBolt);
+    } else smoke(a, layer);
   } else if (place === 'doomlab') {
     vatBubbles(a, layer);
     arcs(a, layer, ws >= 4 ? 1.4 : 3.2);
@@ -374,7 +380,7 @@ function weatherTick(a: Arena, layer: Layer, dt: number): void {
   if (layer.place === 'metropizza' && ws >= 4 && !layer.unhook) {
     layer.nextFlash = 5 + Math.random() * 5;
     lightning(a, layer, Math.random() < 0.4);
-  } else if (layer.place === 'doomstomp') {
+  } else if (layer.place === 'doomstomp' && !layer.unhook) {
     layer.nextFlash = 8 + Math.random() * 6;
     lightning(a, layer, false);
   } else if (layer.place === 'doomlab' && ws >= 4) {
