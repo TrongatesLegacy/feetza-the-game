@@ -21,6 +21,7 @@ export const feet: FootType[] = [
   },
   {
     id: 'echoghost',
+    undead: true,
     name: 'Echo Phantom Flipper',
     desc: 'A haunted flipper from the beach, half there and half not. It fades out of reach, then rushes in.',
     hp: 46, speed: 1.2, armor: 1, stompDmg: 1, coins: 18, score: 560, scale: 1.02, minWave: 91, weight: 4,
@@ -57,6 +58,7 @@ export const feet: FootType[] = [
   },
   {
     id: 'echodino',
+    undead: true,
     name: 'Echo Dino Hoplite',
     desc: 'A prehistoric claw in a skeleton Spartan\'s greave, from the Lost Valley and the Underworld at once. It dodges your smacks and gets furious once it\'s hurt.',
     hp: 62, speed: 1.1, armor: 1, stompDmg: 1, coins: 20, score: 600, scale: 1.04, minWave: 97, weight: 3,

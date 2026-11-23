@@ -180,7 +180,7 @@ function dawnGlow(): HTMLCanvasElement {
 
 /** Peels for the wall: the equipped one first, then bosses, acts, places, feet and the rest. */
 function wallPeels(equipped: string): string[] {
-  const order = ['boss', 'act', 'place', 'jewel', 'golden', 'master', 'foot', 'pizza', 'event', 'shinyFoot', 'shinyEvent', 'classic'];
+  const order = ['boss', 'act', 'place', 'jewel', 'golden', 'master', 'foot', 'pizza', 'event', 'shinyFoot', 'zombieFoot', 'shinyEvent', 'classic'];
   const ids = ['classic', ...save.peels].filter((id, i, a) => a.indexOf(id) === i && PEEL_BY_ID[id] && hasPeel(id));
   ids.sort((a, b) => order.indexOf(PEEL_BY_ID[a].group) - order.indexOf(PEEL_BY_ID[b].group));
   return [equipped, ...ids.filter((id) => id !== equipped)];

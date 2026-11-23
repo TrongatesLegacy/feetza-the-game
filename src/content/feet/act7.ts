@@ -46,6 +46,7 @@ export const feet: FootType[] = [
   },
   {
     id: 'ultodrone',
+    summoned: true,
     name: 'Ultoe Drone',
     desc: 'A spare robot sneaker body Ultoe can upload into. Flimsy, endless and all identical, except for one.',
     hp: 14, speed: 1.2, armor: 0, stompDmg: 1, coins: 3, score: 120, scale: 0.72, minWave: 68, weight: 0,

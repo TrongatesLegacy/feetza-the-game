@@ -798,6 +798,10 @@ class GuardFx {
     this.badge.update(dt, -f.root.rotation);
   }
 
+  setBadgeVisible(v: boolean): void {
+    this.badge.setVisible(v);
+  }
+
   destroy(): void {
     this.f.leanExtra = 0;
     this.badge.destroy();

@@ -6,6 +6,8 @@
 
 import type { Stats } from '../data/upgrades';
 import { slamPrompt } from '../systems/gamepad';
+import { runHeatRank } from './heatRules';
+import { FOOT_BY_ID, zombifiableType } from '../data/feet';
 
 export type Target =
   | { to: 'all' }
@@ -152,7 +154,29 @@ export interface Ability {
   desc?: string;
   /** Hand-built peels (heroes) stage their own big moment, so the generic flash and shout are skipped. */
   custom?: boolean;
+  /** Zombie Outbreak (the Zombie Toes peel, and every zombified foot peel on top of its foot's own ability): run by
+   * src/game/zombiePeel.ts, its numbers in ZOMBIE_PERK. */
+  zombie?: boolean;
 }
+
+/** Zombie Outbreak's numbers (src/game/zombiePeel.ts). Damage in smacks. */
+export const ZOMBIE_PERK = {
+  /** Chance a kill heals a slice on your weakest pizza. */
+  killHeal: 0.25,
+  /** Chance a smack that lands on an ordinary foot turns it into a friendly zombie. */
+  turn: 0.1,
+  /** How long a zombie looks for a foot to bite (s), and how far it reaches (px, centre to centre: the next lane over). */
+  hunt: 1,
+  reach: 380,
+  bite: 3,
+  /** Its burst: damage and radius (its own lane and its neighbours'). */
+  blast: 4,
+  radius: 260,
+  /** Zombies one smack can set off, the first included (a bitten foot that lives turns too). */
+  links: 4,
+  /** Slices it can heal in a wave, by heat rank (Mild … Inferno). */
+  heals: [10, 9, 8, 7, 6],
+};
 
 export function isPassive(a: Ability): boolean {
   return a.trigger.t !== 'active';
@@ -478,7 +502,8 @@ export const ABILITIES: Record<string, Ability> = {
   'foot:flipper': ab('Bubble Net', act, [S(0.5, 5, all), D(4, all)], CYAN, 'wind'),
   'foot:clown': ab('Honk!', act, [ST(3, all)], PINK, 'burst', 1.1),
   'foot:ghost': ab('Spooky', every(7), [M(1.6, 4, rnd(3))], PURPLE, 'ink'),
-  'foot:zombie': ab('Undead Pizza', stomp, [H(1, 'weakest'), D(2, hit(160))], GREEN, 'heal'),
+  // Zombie Outbreak: all of it is the zombie perk (src/game/zombiePeel.ts), so no effects of its own
+  'foot:zombie': { ...ab('Zombie Outbreak', always, [], GREEN, 'ink'), zombie: true },
   'foot:robo': ab('Laser Grid', every(4), [D(2, front(3))], RED, 'zap'),
   'foot:lava': ab('Magma Trail', smack(0.35), [B(1.5, 3, hit(120))], ORANGE, 'fire'),
   'foot:mitosis': ab('Seeing Double', always, [STAT({ doubleChance: 0.12 })], GREEN, 'burst'),
@@ -761,6 +786,16 @@ export const ABILITIES: Record<string, Ability> = {
   // ——— Event shinies use their event's ability (see abilityKey) ———
 };
 
+// ——— Zombified foot peels (src/game/peels.ts, group zombieFoot): each keeps its foot peel's own ability and adds
+// Zombie Outbreak on top. Built from the foot peels, so a new foot's zombified peel comes with its ability. ———
+for (const k of Object.keys(ABILITIES)) {
+  const ft = FOOT_BY_ID[k.slice(5)];
+  // (only feet that can be zombified: no bosses, boss fight pieces or undead)
+  if (!k.startsWith('foot:') || !ft || !zombifiableType(ft)) continue;
+  const base = ABILITIES[k];
+  ABILITIES[`zombie:${k.slice(5)}`] = { ...base, name: `Zombie ${base.name}`, zombie: true };
+}
+
 /** Shiny peels use their base type's ability. */
 export function abilityKey(peelId: string): string {
   if (peelId.startsWith('shiny:')) return `foot:${peelId.slice(6)}`;
@@ -975,8 +1010,33 @@ function triggerText(t: Trigger): string {
   }
 }
 
+/** Zombie Outbreak, in words (the heal cap is the current heat's). */
+export function zombiePerkText(): string {
+  const z = ZOMBIE_PERK;
+  const pct = (p: number) => `${Math.round(p * 100)}%`;
+  return (
+    `Zombie Outbreak: ${pct(z.killHeal)} of kills heal a slice on your weakest pizza. ${pct(z.turn)} of smacks turn an ordinary foot into a friendly zombie: ` +
+    `it holds still and can't be hurt, bites a foot up to a lane away for ${fmtX(z.bite)}, then bursts for ${fmtX(z.blast)} on the feet around it. ` +
+    `A bitten foot that lives turns too (${z.links} zombies at most), and a bite or burst that kills heals a slice. Up to ${z.heals[Math.max(0, Math.min(4, runHeatRank()))]} slices a wave on this heat.`
+  );
+}
+
 /** "Every 5s: hit 4 random feet for 2× smack damage." */
 export function describeAbility(a: Ability): string {
+  if (!a.zombie) return describeOwn(a);
+  // (the Zombie Toes peel is all perk; a zombified foot peel has its foot's ability, then the perk)
+  const own = a.fx.length || a.also || a.desc ? describeOwn(a) : '';
+  return own ? `${own} ${zombiePerkShort()}` : zombiePerkText();
+}
+
+/** Zombie Outbreak in brief, after a zombified foot peel's own ability (the Zombie Toes peel spells it out). */
+export function zombiePerkShort(): string {
+  const z = ZOMBIE_PERK;
+  const pct = (p: number) => `${Math.round(p * 100)}%`;
+  return `Plus Zombie Outbreak: ${pct(z.killHeal)} of kills heal a slice, and ${pct(z.turn)} of smacks turn a foot into a friendly zombie that bites (${fmtX(z.bite)}) and bursts (${fmtX(z.blast)}); its kills heal too (up to ${z.heals[Math.max(0, Math.min(4, runHeatRank()))]} slices a wave).`;
+}
+
+function describeOwn(a: Ability): string {
   if (a.desc) return a.desc.replace(/\{slam\}/g, slamPrompt());
   // merge repeated shields/heals into one phrase
   const parts: string[] = [];

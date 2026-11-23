@@ -8,6 +8,8 @@ import type { FootType } from '../../data/feet';
 export const feet: FootType[] = [
   {
     id: 'gargoylet',
+    undead: true,
+    summoned: true,
     name: 'Little Gargoyle',
     desc: 'A pocket-sized stone imp off the cathedral gutters. Flocks around the Gargoyle and guards it.',
     hp: 16, speed: 1.3, armor: 0, stompDmg: 1, coins: 4, score: 160, scale: 0.66, minWave: 40, weight: 0,

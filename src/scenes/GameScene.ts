@@ -4,7 +4,7 @@ import { BASE_SLICES, COMBO_BASE_WINDOW, H, MAX_PIZZAS, PIZZA_Y, W } from '../co
 
 /** Lane width: about one foot wide, so feet in neighbouring lanes don't overlap. */
 const LANE_W = 250;
-import type { HeatId } from '../data/difficulty';
+import { heatRank, type HeatId } from '../data/difficulty';
 import { FEET, FOOT_BY_ID, OUCH, type FootType } from '../data/feet';
 import { MILESTONES } from '../data/meta';
 import { PIZZAS, PIZZA_BY_ID, enhancedText } from '../data/pizzas';
@@ -46,6 +46,7 @@ import { PizzaPerkKit } from '../game/pizzaPerks';
 import { contentFx } from '../game/contentFx';
 import { evictLive, setLiveWarmBusy, styleLive, warmLive } from '../game/liveKit';
 import { evictZombieArt } from '../game/zombieArt';
+import { OUTBREAK_SFX, ZombieOutbreak } from '../game/zombiePeel';
 import { ECHO_IDS } from '../game/bosses/act2b';
 import { agents as solepropAgents } from '../game/bosses/act10';
 import '../content/styleLive';
@@ -165,6 +166,8 @@ export class GameScene extends Phaser.Scene implements Arena {
   private throws!: Projectiles;
   /** The event, mixed and wildcard toppings' in-play mechanics. */
   private kit!: ToppingKit;
+  /** Zombie Outbreak (the zombie peels' perk: src/game/zombiePeel.ts); runs while the ability in use has it. */
+  outbreak!: ZombieOutbreak;
   /** A Pick or Peel Roulette window is open. */
   private pickOpen = false;
   /** Hero peels: signature moves, transformations, overlays and passives (src/game/heroMoves.ts). */
@@ -347,6 +350,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     const f = this.spawnFoot(t, target ?? this.pickTarget(null), false, x);
     // a boss's own summons (flocks, waiters, blacksmiths) jump the queue for a lane
     f.brain.summoned = true;
+    // …and are fight pieces: never zombified (src/game/zombieArt.ts canZombify)
+    f.brain.bossSummon = true;
     if (f.held) this.bumpForSummon(f);
     return f;
   }
@@ -528,6 +533,34 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.throws = new Projectiles(this, this.fxLayer, this.fx, { peel: () => this.peel, peelPos: () => this.peelPos, feet: () => this.feet });
     this.director = new BossDirector(this);
     this.kit = new ToppingKit(this.kitHost());
+    this.outbreak = new ZombieOutbreak({
+      sc: this,
+      fx: this.fx,
+      fxLayer: this.fxLayer,
+      underLayer: this.underLayer,
+      feet: () => this.feet,
+      alivePizzas: () => this.alivePizzas(),
+      smack: () => this.run.stats.damage,
+      damage: (f, x, kx, ky) => {
+        const d = Math.hypot(f.cx - kx, f.cy - ky) || 1;
+        this.dealDamage(f, x, { source: 'ability', knock: 160 + 200 * Math.min(1, 120 / d), x: f.cx, y: f.cy });
+      },
+      kill: (f) => this.killFoot(f, 'ability'),
+      heal: (p, n) => {
+        const was = p.slices;
+        this.healPizza(p, n);
+        return p.slices - was;
+      },
+      heatRank: () => heatRank(this.run.heat),
+      live: () => this.waveActive && !this.over && !this.inUpgrade,
+      shake: (ms, k) => this.shake(ms, k),
+      zombieOn: () => !!this.ability?.zombie,
+      zombieDown: (f) => {
+        save.zombieKills[f.type.id] = (save.zombieKills[f.type.id] ?? 0) + 1;
+        this.peelToasts(checkPeelAchievements());
+      },
+    });
+    this.events.once('shutdown', () => this.outbreak.clear());
     this.perkKit = new PizzaPerkKit(this, {
       run: () => this.run,
       dealDamage: (f, amount, source, knock) => this.dealDamage(f, amount, { source, knock, x: f.cx, y: f.cy }),
@@ -590,6 +623,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     const wantAbility = this.start.snapshot?.ability ?? true;
     this.ability = wantAbility && peelDef.id !== 'classic' ? abilityFor(peelDef.id) : null;
     this.abilityT = 0;
+    if (this.ability?.zombie) audio.preload(this, OUTBREAK_SFX);
     // slam-related toppings and perks reword (and work) for the ability in use; meter boosts are only
     // useless for passives with no timer or chance to speed up
     setSlamMode(this.ability);
@@ -1074,6 +1108,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.ability = id !== 'classic' ? abilityFor(id) : null;
     this.abilityT = 0;
     this.run.super = 0;
+    if (this.ability?.zombie) audio.preload(this, OUTBREAK_SFX);
     setSlamMode(this.ability);
     const t0 = this.ability?.trigger.t;
     const passive = !!this.ability && !usesMeter(this.ability);
@@ -1171,6 +1206,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     // Grandma Square guards both neighbours' first stomp each wave (enhanced: itself too)
     for (const p of this.alivePizzas()) if (p.perk === 'neighbourShield') for (const q of [...this.neighbours(p), ...(p.enhanced ? [p] : [])]) q.flags.grandma = true;
     this.perkKit.waveStart(n);
+    this.outbreak.wave();
     this.run.super = Math.max(this.run.super, st.superStart);
     // a passive on a timer gets its head start (S'mores, Pre-Heated Peel) as timer progress
     if (this.ability?.trigger.t === 'every') this.abilityT = Math.max(this.abilityT, this.ability.trigger.sec * Math.min(1, this.run.super));
@@ -1422,6 +1458,11 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   /** Per-frame trait upkeep: magnets pull the peel, medics heal, Tandoori marks. */
   private footTick(f: Foot, dt: number): void {
+    // a friendly zombie only keeps its looks moving (its magnet, medic and the rest are off while it's held)
+    if (f.zombieHold) {
+      styleLive(f, dt);
+      return;
+    }
     contentFx.footTick(this, f, dt);
     styleLive(f, dt);
     heroFootTick(this, f, dt);
@@ -3155,6 +3196,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     const landed = !f.alive || f.hp < hpBefore;
     if (landed && this.ability?.trigger.t === 'smack' && Math.random() < this.ability.trigger.p * passiveBoost(st.superGain).chance) this.fireAbility({ foot: f, x: f.cx, y: f.cy });
     if (landed) this.fireProcs('smack', { foot: f, x: f.cx, y: f.cy });
+    // Zombie Outbreak: a landed smack may turn the foot into a friendly zombie
+    if (landed && this.ability?.zombie) this.outbreak.smacked(f, x);
     if (landed) {
       this.kit.onSmackLanded(f, x, y);
       this.perkKit.smacked(f, x);
@@ -3184,6 +3227,8 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   private dealDamage(f: Foot, amount: number, o: DamageOpts): void {
     if (!f.alive) return;
+    // a friendly zombie (Zombie Outbreak) takes nothing until it bursts
+    if (f.zombieHold) return;
     // twins share one health bar: a hit on either one lands on the boss (unless this one is shielded)
     if (f.link && f.link.alive && f.link !== f) {
       if (f.shielded) {
@@ -3448,6 +3493,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     save.totalFeet++;
     // achievements count real feet only, never a Ghost echo
     if (!f.brain.echo) save.kills[f.type.id] = (save.kills[f.type.id] ?? 0) + 1;
+    // a zombie foot (the Zombie Loafer's, or one a zombie peel made, burst ones included) counts towards its zombie peel
+    if (f.zombified && !f.brain.echo) save.zombieKills[f.type.id] = (save.zombieKills[f.type.id] ?? 0) + 1;
     const midas = !boss && !mini && f.type.id !== 'golden' && Math.random() < st.goldenTouch;
     // Ghost echoes copy a boss's type but are a fraction of one: they pay a tenth; so does one of several of a boss
     // while another still stands (the last of them pays for the fight)
@@ -3486,6 +3533,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       const at = { x: f.cx, y: f.cy };
       this.time.delayedCall(40, () => this.fireProcs('kill', { x: at.x, y: at.y }));
     }
+    // Zombie Outbreak: a kill may heal a slice (its own bites and bursts heal by their own rule)
+    if (this.ability?.zombie) this.outbreak.killed(f);
     this.perkKit.killed(f, coins);
     if (f.has('crusty')) {
       const cap = Math.round(EVENT_CRUST_CAP * this.run.heatDef.crusts);
@@ -4007,6 +4056,7 @@ export class GameScene extends Phaser.Scene implements Arena {
   /** Shape-Shift (Martian Mozzarella): play as another peel for a while (null: back to the hero). */
   private swapAbility(id: string | null): void {
     this.ability = id ? abilityFor(id) : abilityFor(this.peelId);
+    if (this.ability.zombie) audio.preload(this, OUTBREAK_SFX);
     if (id) {
       addCanvas(this, 'peel_shift', peelCanvas(id));
       this.peel.setTexture('peel_shift');
@@ -4712,6 +4762,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.abilityTick(dt);
       this.procTick(dt);
       this.throws.update(dt);
+      this.outbreak.update(dt);
       if (this.waveActive) this.kit.tick(dt, real);
       if (this.run.combo > 0) {
         this.run.comboTimer -= dt;

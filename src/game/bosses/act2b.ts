@@ -10,8 +10,8 @@ import type { Foot } from '../Foot';
 import type { Pizza } from '../Pizza';
 import { type Brain, type Prop, type Takeover, Every, dropOn, heat, hitProp, hitWindup, laneOf, mark, retreat, rnd, screenSplat, shield, takeLane, throwAtPeel, windup } from './kit';
 import { crand } from '../../systems/cosmeticRandom';
-import { runHeatRank } from '../heatRules';
-import { ZombieLook, prepareZombie, stepZombieBuilds } from '../zombieArt';
+import { runHeatRank, zombieRevive, zombieReviveText } from '../heatRules';
+import { ZombieLook, canZombify, prepareZombie, stepZombieBuilds } from '../zombieArt';
 
 // ——— Batch helpers ———
 
@@ -865,7 +865,11 @@ function zombify(fi: LoaferFight, o: Foot, a: Arena, side: number): Zombie {
   const native = o.type.traits.includes('revive');
   const z: Zombie = { armed: false, p: null, slices: 0, look, spreadT: SPREAD.every[heat(a).rank] * (0.6 + Math.random() * 0.4), gaveRevive: !native };
   fi.zombies.set(o, z);
+  // (defeating it counts towards its zombie peel: src/game/peels.ts)
+  o.zombified = true;
   if (z.gaveRevive) o.extraTraits.add('revive');
+  // (it gets back up with a share of its health by heat: half, three quarters on Extra Hot, all on Inferno)
+  o.reviveFrac = zombieRevive();
   o.maxHp = Math.round(o.maxHp * 1.5);
   o.hp = Math.round(o.hp * 1.5);
   o.speedMul *= 0.7;
@@ -890,7 +894,9 @@ function zombify(fi: LoaferFight, o: Foot, a: Arena, side: number): Zombie {
 
 /** The last Loafer is down: the foot comes round (its art wipes back from the middle out, with a heal burst). */
 function unzombify(o: Foot, z: Zombie, a: Arena): void {
+  o.zombified = false;
   if (z.gaveRevive) o.extraTraits.delete('revive');
+  o.reviveFrac = 0.5;
   if (!o.alive) {
     z.look.release();
     return;
@@ -912,7 +918,7 @@ function trySpread(fi: LoaferFight, o: Foot, z: Zombie, a: Arena): void {
   if (o.cy < 280 || o.stunT > 0 || Math.random() >= SPREAD.chance[r]) return;
   const near = a
     .allFeet()
-    .filter((t) => t !== o && t.alive && !t.isBossLike && !fi.zombies.has(t) && !fi.targeted.has(t) && t.cy > 280 && t.x > 140 && t.x < 1780 && Math.abs(t.x - o.x) < SPREAD_REACH)
+    .filter((t) => t !== o && canZombify(t) && !fi.zombies.has(t) && !fi.targeted.has(t) && t.cy > 280 && t.x > 140 && t.x < 1780 && Math.abs(t.x - o.x) < SPREAD_REACH)
     .sort((p, q) => Math.abs(p.x - o.x) - Math.abs(q.x - o.x))[0];
   if (!near) return;
   const t = near;
@@ -946,6 +952,8 @@ function trySpread(fi: LoaferFight, o: Foot, z: Zombie, a: Arena): void {
       if (t.alive) a.quip(t.x, Math.max(300, t.cy - 140), 'SHAKEN OFF!', '#7dff9a', 34);
       return;
     }
+    // (still an ordinary foot: a zombie peel may have turned it friendly while the mark was on)
+    if (!canZombify(t)) return;
     z.look.lunge(dir);
     zombify(fi, t, a, -dir);
     a.fx.impact(t.cx, t.cy, false);
@@ -1035,19 +1043,21 @@ const poltergeist = (): Brain => {
 
   // on Hot and up a lone Loafer's bite makes a second Loafer
   const hot = runHeatRank() >= 2;
+  // a zombie gets back up once, with a share of its health by heat
+  const up = zombieReviveText();
   const brain: Brain = {
     names: ['BITE', 'COUGH'],
     info: [
       hot
-        ? 'Bites a marked foot: alone, it turns the foot into a second Loafer; with two, a zombie that spreads · smack the marked foot first'
-        : 'Bites a marked foot: it turns zombie, tougher, gets back up once and can bite its neighbours · smack the marked foot first',
+        ? `Bites a marked foot: alone, it turns the foot into a second Loafer; with two, a zombie that gets back up once ${up} and spreads · smack the marked foot first`
+        : `Bites a marked foot: it turns zombie, tougher, gets back up once ${up} and can bite its neighbours · smack the marked foot first`,
       'Coughs on a pizza: it eats its own slices and its perk stops · click the pizza to cure it',
     ],
     cards: [
       {
         what: 'It marks a nearby foot, then lunges over and bites it',
         hit: 'Smack the marked foot down before the bite lands',
-        miss: hot ? 'Alone, it makes a second Loafer; with two, a zombie that gets back up and spreads' : 'It turns zombie: tougher, gets back up once, and its bite spreads',
+        miss: hot ? `Alone, it makes a second Loafer; with two, a zombie that gets back up ${up} and spreads` : `It turns zombie: tougher, gets back up once ${up}, and its bite spreads`,
         show: [{ key: 'p_reticle', label: 'Marked foot' }],
       },
       {
@@ -1105,7 +1115,7 @@ const poltergeist = (): Brain => {
       // ——— Bite: mark a regular foot, then swing over and bite it ———
       if (!biting && !coughing && bite.tick(dt)) {
         bite.every = h.cooldown(5);
-        const prey = a.allFeet().filter((o) => o.alive && !o.isBossLike && !F.zombies.has(o) && !F.targeted.has(o) && o.cy > 300 && o.x > 140 && o.x < 1780);
+        const prey = a.allFeet().filter((o) => canZombify(o) && !F.zombies.has(o) && !F.targeted.has(o) && o.cy > 300 && o.x > 140 && o.x < 1780);
         const o = prey.sort((p, q) => Math.abs(p.x - f.x) - Math.abs(q.x - f.x))[0];
         if (!o) bite.t = 1;
         else {
@@ -1147,7 +1157,8 @@ const poltergeist = (): Brain => {
               duration: 220,
               ease: 'Back.In',
               onComplete: () => {
-                if (f.alive && o.alive && a.inWave() && !F.zombies.has(o)) {
+                // (still an ordinary foot: a zombie peel may have made it a friendly zombie of the player's since)
+                if (f.alive && o.alive && a.inWave() && !F.zombies.has(o) && canZombify(o)) {
                   // on Hot and up, a Loafer on its own makes another (two at most)
                   const morph = h.rank >= 2 && loafersAlive(F) < 2 && !!a.spawnExtraBoss;
                   zombify(F, o, a, side);

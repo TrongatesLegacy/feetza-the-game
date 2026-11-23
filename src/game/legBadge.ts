@@ -61,6 +61,100 @@ export const ICONS: Record<string, (g: CanvasRenderingContext2D, r: number, col:
   },
 };
 
+/** A heart (the friendly zombies' mark: src/game/zombiePeel.ts), centred, r across. */
+function heart(g: CanvasRenderingContext2D, r: number, col: string, ink: string, dy = 0): void {
+  g.beginPath();
+  g.moveTo(0, r * 0.95 + dy);
+  g.bezierCurveTo(-r * 1.25, r * 0.05 + dy, -r * 0.95, -r * 1.05 + dy, 0, -r * 0.42 + dy);
+  g.bezierCurveTo(r * 0.95, -r * 1.05 + dy, r * 1.25, r * 0.05 + dy, 0, r * 0.95 + dy);
+  g.closePath();
+  const gr = g.createLinearGradient(0, -r + dy, 0, r + dy);
+  gr.addColorStop(0, mix(col, '#ffffff', 0.45));
+  gr.addColorStop(1, shade(col, -0.25));
+  g.fillStyle = gr;
+  g.fill();
+  g.lineWidth = r * 0.22;
+  g.strokeStyle = ink;
+  g.stroke();
+  g.fillStyle = rgba('#ffffff', 0.7);
+  g.beginPath();
+  g.ellipse(-r * 0.42, -r * 0.35 + dy, r * 0.2, r * 0.13, -0.6, 0, Math.PI * 2);
+  g.fill();
+}
+
+// the friendly zombies (src/game/zombiePeel.ts): a heart while it hunts, a heart with fangs as it bites, a bomb with
+// a heart on it and a lit fuse before it bursts
+ICONS.allyHeart = (g, r, col, ink) => heart(g, r, col, ink);
+// hunting: an eye peering out, with a small heart (still yours) on its lid corner
+ICONS.allyHunt = (g, r, col, ink) => {
+  g.beginPath();
+  g.moveTo(-r * 1.05, 0);
+  g.quadraticCurveTo(0, -r * 1.05, r * 1.05, 0);
+  g.quadraticCurveTo(0, r * 1.05, -r * 1.05, 0);
+  g.closePath();
+  g.fillStyle = '#f4f8e8';
+  g.fill();
+  g.lineWidth = r * 0.2;
+  g.strokeStyle = ink;
+  g.stroke();
+  // the iris looks off to the side, hunting
+  g.beginPath();
+  g.arc(r * 0.22, 0, r * 0.46, 0, Math.PI * 2);
+  g.fillStyle = col;
+  g.fill();
+  g.beginPath();
+  g.arc(r * 0.26, 0, r * 0.2, 0, Math.PI * 2);
+  g.fillStyle = '#0c1408';
+  g.fill();
+  g.fillStyle = '#ffffff';
+  g.beginPath();
+  g.arc(r * 0.12, -r * 0.14, r * 0.09, 0, Math.PI * 2);
+  g.fill();
+};
+ICONS.allyBite =(g, r, col, ink) => {
+  heart(g, r * 0.95, col, ink, -r * 0.08);
+  // two fangs off its bottom edge
+  for (const s of [-1, 1]) {
+    g.beginPath();
+    g.moveTo(s * r * 0.5, r * 0.05);
+    g.lineTo(s * r * 0.2, r * 0.05);
+    g.lineTo(s * r * 0.36, r * 0.75);
+    g.closePath();
+    g.fillStyle = '#ffffff';
+    g.fill();
+    g.lineWidth = r * 0.12;
+    g.strokeStyle = ink;
+    g.stroke();
+  }
+};
+ICONS.allyBomb = (g, r, col, ink) => {
+  const R = r * 0.78;
+  const cy = r * 0.18;
+  // the fuse and its spark
+  g.beginPath();
+  g.moveTo(R * 0.45, cy - R * 0.8);
+  g.quadraticCurveTo(R * 0.9, cy - R * 1.45, R * 1.15, cy - R * 1.2);
+  g.lineWidth = r * 0.16;
+  g.strokeStyle = '#7a5a30';
+  g.stroke();
+  g.fillStyle = '#ffd23f';
+  g.beginPath();
+  g.arc(R * 1.15, cy - R * 1.2, r * 0.2, 0, Math.PI * 2);
+  g.fill();
+  g.beginPath();
+  g.arc(0, cy, R, 0, Math.PI * 2);
+  const gr = g.createRadialGradient(-R * 0.35, cy - R * 0.35, R * 0.1, 0, cy, R);
+  gr.addColorStop(0, '#6a7a5a');
+  gr.addColorStop(1, '#232a1c');
+  g.fillStyle = gr;
+  g.fill();
+  g.lineWidth = r * 0.16;
+  g.strokeStyle = ink;
+  g.stroke();
+  // a big bright heart on it (still yours), outlined in white so it reads on the dark bomb
+  heart(g, R * 0.72, mix(col, '#ffffff', 0.25), '#ffffff', cy + R * 0.06);
+};
+
 function heater(g: CanvasRenderingContext2D, r: number, col: string, ink: string, broken: boolean): void {
   const s = r / 15;
   const path = () => {

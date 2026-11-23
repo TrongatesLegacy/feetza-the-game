@@ -40,3 +40,16 @@ export function guardRearm(h: HeatId | null = current): number {
   const r = heatRank(h ?? save.heat);
   return r <= 0 ? 12 : r >= 3 ? 7.5 : 9;
 }
+
+/** The share of its health a zombified foot gets back up with (the Zombie Loafer's zombies get back up once): half on
+ * Mild, Regular and Hot, three quarters on Extra Hot, all of it on Inferno. A foot's own revive trait stays at half. */
+export function zombieRevive(h: HeatId | null = current): number {
+  const r = heatRank(h ?? save.heat);
+  return r >= 4 ? 1 : r >= 3 ? 0.75 : 0.5;
+}
+
+/** "at half health" / "at three-quarter health" / "at full health", for the Loafer's info line and cards. */
+export function zombieReviveText(h: HeatId | null = current): string {
+  const k = zombieRevive(h);
+  return k >= 1 ? 'at full health' : k >= 0.75 ? 'at three-quarter health' : 'at half health';
+}

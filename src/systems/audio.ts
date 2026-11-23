@@ -245,6 +245,9 @@ const TRIM: Record<string, number> = {
   sfx_poltergeist_infect: 1.45, // -15.7 dB → -12.4: the bite's infection spreads over a foot
   sfx_poltergeist_turn: 0.93, // -10.4 dB → -11.0: the bitten foot groans as it turns zombie
   sfx_poltergeist_flies: 1.0, // -16.2 dB: flies find a zombie foot (sits behind)
+  // Zombie Outbreak (the Zombie Toes peel and the zombie:* peels: src/game/zombiePeel.ts)
+  sfx_zpeel_blast: 1.23, // -11.8 dB → -10.0: a friendly zombie bursts (a screen-level moment)
+  sfx_zpeel_splat: 1.75, // -16.4 dB → -11.5: its gore lands
   sfx_poltergeist_roar: 0.95, // -9.6 dB → -10.0: a bitten foot bursts into a second Zombie Loafer (a screen-level moment)
   // Phantom King
   sfx_phantomking_fade: 1.04, // -12.4 dB → -12.1: ghostly fade

@@ -8,16 +8,19 @@
 // - Shiny feet: a rare shiny foot unlocks the shiny version of that foot's peel.
 // - Event shinies: rare drops from wave events, with a few extremely rare jewels.
 // - Acts: complete the act (beat its last boss), on any heat.
+// - Zombified feet: defeat one zombified foot of that type (the Zombie Loafer's, or one a zombie peel made). Only
+//   feet that can be zombified have one (zombifiableType: no bosses, boss fight pieces or undead).
 
 import type Phaser from 'phaser';
 import { BACKDROPS, type LocationId } from '../art/backdrops';
 import { drawPeelSkin, handleFrom, headFrom, PEEL_H, PEEL_W, type PeelLook, type PeelPattern, type PeelShape } from '../art/peelArt';
-import { hashStr, makeCanvas, shade } from '../art/util';
+import { hashStr, makeCanvas, mix, shade } from '../art/util';
 import { FOOT_FRAME, styledCanvas } from '../art/feetArt';
 import { REST, pose } from '../art/style/kit';
 import { styleFor } from '../art/style/registry';
 import { liveDefOf } from './liveKit';
-import { FEET, FOOT_BY_ID, type FootType } from '../data/feet';
+import { FEET, FOOT_BY_ID, zombifiableType, type FootType } from '../data/feet';
+import { peelZombifier, readCanvas } from './zombieArt';
 import { ACTS, STAGES, WAVES_PER_ACT } from '../data/stages';
 import { persist, save } from '../systems/save';
 import { addCanvas, ensureFootArt, eventCanvases, footMeta, pizzaTops } from './assets';
@@ -28,7 +31,7 @@ import { goalProgress, heatHow } from './heroGoals';
 import { godPeelLook } from '../art/godHeads';
 import { NEMESES, nemesisOf, nemesisWaves } from './nemesis';
 
-export type PeelGroup = 'classic' | 'golden' | 'jewel' | 'foot' | 'boss' | 'place' | 'event' | 'pizza' | 'shinyFoot' | 'shinyEvent' | 'master' | 'act' | 'hero' | 'god';
+export type PeelGroup = 'classic' | 'golden' | 'jewel' | 'foot' | 'boss' | 'place' | 'event' | 'pizza' | 'shinyFoot' | 'zombieFoot' | 'shinyEvent' | 'master' | 'act' | 'hero' | 'god';
 
 export interface PeelDef {
   id: string;
@@ -44,8 +47,10 @@ export interface PeelDef {
   cost?: number;
   /** Event drop: which event and the chance per event dealt with. */
   drop?: { event: EventId; chance: number };
-  /** Shiny foot peel: which foot. */
+  /** Foot, boss, shiny and zombified foot peels: which foot. */
   foot?: string;
+  /** A zombified foot peel: its art is the foot's, rotted (src/game/zombieArt.ts). */
+  zombie?: boolean;
   shiny?: boolean;
   /** Extremely rare. */
   ultra?: boolean;
@@ -186,6 +191,31 @@ function footEmblem(id: string): CanvasImageSource | null {
   return footCrop(id)?.art ?? null;
 }
 
+/** The rot for a zombified foot peel's art (planned from the foot's peel art), or null before its art is drawn. */
+export function zombifierOf(f: FootType): ReturnType<typeof peelZombifier> | null {
+  const crop = footCrop(f.id);
+  const meta = footMeta[f.id];
+  if (!crop || !meta) return null;
+  return peelZombifier(f.id, f.art, crop, f.scale * meta.textures.res, FOOT_FRAME.padX, FOOT_FRAME.padY);
+}
+
+const zombieCache = new Map<string, HTMLCanvasElement>();
+
+/** A zombified foot peel's emblem: the foot's peel art rotted (made the first time it's shown, then kept). */
+function zombieEmblem(f: FootType): HTMLCanvasElement | null {
+  const hit = zombieCache.get(f.id);
+  if (hit) return hit;
+  const crop = footCrop(f.id);
+  const z = zombifierOf(f);
+  if (!crop || !z) return null;
+  const [c, ctx] = readCanvas(crop.art.width, crop.art.height);
+  ctx.drawImage(crop.art, 0, 0);
+  const sTex = f.scale * footMeta[f.id].textures.res;
+  z(c, (crop.x / sTex) - FOOT_FRAME.padX, (crop.y / sTex) - FOOT_FRAME.padY, sTex);
+  zombieCache.set(f.id, c);
+  return c;
+}
+
 const glowCache = new Map<string, { art: HTMLCanvasElement; a: number } | null>();
 
 /** Feet drawn dark under an emissive layer (neon, magma, Hyperion): that layer, cut as the foot's peel art is, and
@@ -233,6 +263,21 @@ export function titleCase(name: string): string {
 const BOSS_PEEL_NAME: Record<string, string> = { zeus: 'Storm Throne Zeus Peel' };
 
 const peelName = (name: string) => (/\bPeel$/.test(name) ? name : `${name} Peel`);
+
+/** A zombified foot peel: the foot's own look, its art rotted, a sickly head and drips, no glow (it's dead). */
+function zombieFootLook(f: FootType): PeelLook {
+  const l = footLook(f, false);
+  return {
+    ...l,
+    head: headFrom(mix(l.head[1], '#7f9a5a', 0.55)),
+    pattern: 'drips',
+    patternColor: '#4f6a2a',
+    footArt: zombieEmblem(f),
+    footGlow: null,
+    trail: '#8adf4a',
+    seed: `zombie:${f.id}`,
+  };
+}
 
 function footLook(f: FootType, shiny: boolean): PeelLook {
   const a = f.art;
@@ -536,6 +581,19 @@ function buildDefs(): PeelDef[] {
       look: () => footLook(f, true),
     });
   }
+  // zombified feet: one for every foot that can be zombified, for defeating one zombified foot of its kind
+  for (const f of feet.filter(zombifiableType)) {
+    defs.push({
+      id: `zombie:${f.id}`,
+      name: `Zombie ${f.name} Peel`,
+      group: 'zombieFoot',
+      how: `Defeat a zombified ${f.name}: one the Zombie Loafer bit, or one you turned with a zombie peel (when it bursts, that counts).`,
+      progress: () => [Math.min(1, save.zombieKills?.[f.id] ?? 0), 1],
+      foot: f.id,
+      zombie: true,
+      look: () => zombieFootLook(f),
+    });
+  }
   for (const ev of Object.keys(EVENT_LABEL) as EventId[]) {
     const [label, verb] = EVENT_LABEL[ev];
     defs.push({
@@ -744,7 +802,7 @@ export function peelTrail(d: PeelDef): number | null {
 /** The foot a peel's art is drawn from (foot, boss and shiny foot peels), if any. */
 export function peelFootId(peelId: string): string | null {
   const d = PEEL_BY_ID[peelId];
-  if (!d || !(d.group === 'foot' || d.group === 'boss' || d.group === 'shinyFoot')) return null;
+  if (!d || !(d.group === 'foot' || d.group === 'boss' || d.group === 'shinyFoot' || d.group === 'zombieFoot')) return null;
   const fid = d.foot ?? peelId.slice(peelId.indexOf(':') + 1);
   return FOOT_BY_ID[fid] ? fid : null;
 }

@@ -675,7 +675,7 @@ export function installStyleSheet(): void {
         io?.unobserve(d);
         const id = d.dataset.id!;
         const t = FOOT_BY_ID[id];
-        for (const pid of [`${t.boss || t.mini ? 'boss' : 'foot'}:${id}`, `shiny:${id}`]) {
+        for (const pid of [`${t.boss || t.mini ? 'boss' : 'foot'}:${id}`, `shiny:${id}`, `zombie:${id}`]) {
           if (!PEELS.some((p) => p.id === pid)) continue;
           const img = new Image();
           img.src = peelThumbURL(pid, 160);

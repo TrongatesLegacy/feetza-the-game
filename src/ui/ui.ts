@@ -2210,7 +2210,7 @@ class UI {
   // ——— Peel Locker: every peel, the achievements that unlock them, and what you equip and wear ———
   locker(onClose: () => void, pickMode: 'ability' | 'look' | null = null): HTMLElement {
     const pick = !!pickMode;
-    type Tab = 'all' | 'goals' | 'crusts' | 'feet' | 'bosses' | 'pizzas' | 'places' | 'acts' | 'events' | 'shiny' | 'heroes';
+    type Tab = 'all' | 'goals' | 'crusts' | 'feet' | 'bosses' | 'pizzas' | 'places' | 'acts' | 'events' | 'shiny' | 'zombies' | 'heroes';
     const TAB_GROUPS: Record<Exclude<Tab, 'goals'>, PeelGroup[]> = {
       all: [...new Set(PEELS.map((d) => d.group))].filter((g) => g !== 'god'),
       crusts: ['classic', 'golden', 'jewel', 'master'],
@@ -2221,9 +2221,10 @@ class UI {
       acts: ['act'],
       events: ['event'],
       shiny: ['shinyFoot', 'shinyEvent'],
+      zombies: ['zombieFoot'],
       heroes: ['hero'],
     };
-    const NAMES: Record<Tab, string> = { all: 'ALL', goals: 'GOALS', crusts: 'CRUSTS', feet: 'FEET', bosses: 'BOSSES', pizzas: 'PIZZAS', places: 'PLACES', acts: 'ACTS', events: 'EVENTS', shiny: 'SHINY', heroes: 'HEROES' };
+    const NAMES: Record<Tab, string> = { all: 'ALL', goals: 'GOALS', crusts: 'CRUSTS', feet: 'FEET', bosses: 'BOSSES', pizzas: 'PIZZAS', places: 'PLACES', acts: 'ACTS', events: 'EVENTS', shiny: 'SHINY', zombies: 'ZOMBIES', heroes: 'HEROES' };
     // catch up on goals already met (older saves, bosses beaten before peels existed)
     checkPeelAchievements();
     const fresh = new Set(save.peelsNew);
@@ -2457,6 +2458,8 @@ class UI {
             const shownHere = shown(mine);
             return shownHere.length ? [h('div', { class: 'sec-head' }, `${title} · ${mine.filter((d) => hasPeel(d.id)).length}/${mine.length}`, h('span', {}, note)), grid(mine)] : [];
           });
+        } else if (tab === 'zombies') {
+          parts = section('ZOMBIFIED FEET', ['zombieFoot'], 'Defeat a zombified foot for its peel: its own ability plus Zombie Outbreak.', list);
         } else if (tab === 'crusts') {
           parts = [grid(list.filter((d) => d.group !== 'jewel')), ...section('THE JEWELLERY BOX', ['jewel'], 'Shiny peels for serious crust savers.', list)];
         } else parts = [grid(list)];

@@ -164,6 +164,12 @@ export interface FootType {
   /** Pizzapedia: the visible tell before its ability fires. */
   tell?: string;
   quips?: string[];
+  /** Undead or not-quite-alive (ghosts, zombies, mummies, skeletons, the Immortals' smoke, a stone imp): it can never
+   * be zombified, so it has no zombified peel (zombifiableType). */
+  undead?: boolean;
+  /** Only ever a boss's fight piece (the Colossus's blacksmith, the Gargoyle's imps, Hades's Titans): never zombified,
+   * and no zombified peel. (Any foot a boss brain spawns mid-fight is marked at run time too: Foot.brain.bossSummon.) */
+  summoned?: boolean;
   /** One of the Persian army (Act 9): the Kratos Peel counts their defeats, and a Satrap's Slipper armours them. */
   persian?: boolean;
   /** A guard shield that lowers and raises on a beat (without one it stays up until it's smashed): up for up[0]…up[1]
@@ -307,6 +313,7 @@ export const FEET: FootType[] = [
   },
   {
     id: 'ghost',
+    undead: true,
     name: 'Phantom Foot',
     desc: 'Half there. Flickers out of reality, so time your smacks.',
     hp: 30, speed: 1.05, armor: 0, stompDmg: 1, coins: 7, score: 230, scale: 1, minWave: 56, weight: 3,
@@ -316,6 +323,7 @@ export const FEET: FootType[] = [
   },
   {
     id: 'zombie',
+    undead: true,
     name: 'Zombie Toes',
     desc: 'Undead and unbothered. Gets back up once after being smacked down.',
     hp: 36, speed: 0.85, armor: 0, stompDmg: 1, coins: 7, score: 230, scale: 1.02, minWave: 56, weight: 3,
@@ -452,6 +460,7 @@ export const FEET: FootType[] = [
   },
   {
     id: 'mummy',
+    undead: true,
     name: 'Mummy Toes',
     desc: 'Wrapped for eternity. Unwraps itself and comes back once.',
     hp: 34, speed: 0.85, armor: 1, stompDmg: 1, coins: 7, score: 230, scale: 1.02, minWave: 56, weight: 3,
@@ -748,4 +757,11 @@ export function howToFor(f: FootType): string | undefined {
 
 export function tellFor(f: FootType): string | undefined {
   return f.tell ?? f.traits.map((t) => TRAIT_HOWTO[t]?.[1]).find(Boolean);
+}
+
+/** Can feet of this type ever be zombified (by the Zombie Loafer's bite or the zombie peels)? Only ordinary, living
+ * feet: never a boss or mini-boss, a boss's fight piece (`summoned`) or the undead. Each such type has a zombified
+ * peel (src/game/peels.ts). A foot a boss spawned mid-fight is ruled out at run time as well (canZombify). */
+export function zombifiableType(f: FootType): boolean {
+  return !f.boss && !f.mini && !f.undead && !f.summoned;
 }

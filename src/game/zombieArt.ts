@@ -31,6 +31,7 @@ import { feetAnimated } from '../systems/graphics';
 import { crand } from '../systems/cosmeticRandom';
 import { save } from '../systems/save';
 import type { Foot } from './Foot';
+import { zombifiableType, type FootArt } from '../data/feet';
 import { Critters, Spring, WorldEmitter, liveQuality } from './liveKit';
 
 type Piece = Phaser.GameObjects.Image | Phaser.GameObjects.TileSprite;
@@ -45,6 +46,26 @@ const INFECT = 0xb6f05a;
 /** The cure's light. */
 const HEAL = 0x9dffc0;
 
+/**
+ * Can this foot be zombified right now (the Zombie Loafer's bite and its spread, the zombie peels' zombify and their
+ * bite's targets)? Only an ordinary, living foot (zombifiableType: no boss or mini-boss, no boss fight piece, nothing
+ * undead), and not one a boss spawned mid-fight, a stand-in (echo, decoy, twin) or one that's a zombie already.
+ */
+export function canZombify(f: Foot): boolean {
+  return f.alive && zombifiableType(f.type) && !f.zombified && !f.zombieHold && !f.brain.bossSummon && !f.brain.echo && !f.brain.decoy && !f.brain.twin && !f.link;
+}
+
+/** A canvas whose pixels are read back (often, in row chunks): kept on the CPU (willReadFrequently). */
+export function readCanvas(w: number, h: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.ceil(w));
+  c.height = Math.max(1, Math.ceil(h));
+  const ctx = c.getContext('2d', { willReadFrequently: true })!;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  return [c, ctx];
+}
+
 export const zombieKey = (key: string): string => (key.startsWith(PREFIX) ? key : PREFIX + key);
 const plainKey = (key: string): string => (key.startsWith(PREFIX) ? key.slice(PREFIX.length) : key);
 const reduced = () => !!save.settings.reducedMotion;
@@ -56,7 +77,7 @@ const keyOf = (p: Piece): string => (p instanceof Phaser.GameObjects.TileSprite 
  * balance simulator replays runs from it), and Phaser draws on it inside things that are only for show here: a tile
  * sprite's texture key (UUID), particle ranges. A zombie foot's looks must never move that sequence on.
  */
-function cosmetic<T>(fn: () => T): T {
+export function cosmetic<T>(fn: () => T): T {
   const was = Math.random;
   Math.random = crand;
   try {
@@ -174,7 +195,7 @@ const plans = new Map<string, Plan>();
 function pixels(sc: Phaser.Scene, key: string): { data: Uint8ClampedArray; w: number; h: number } | null {
   if (!sc.textures.exists(key)) return null;
   const src = sc.textures.get(key).getSourceImage() as CanvasImageSource & { width: number; height: number };
-  const [c, ctx] = makeCanvas(src.width, src.height);
+  const [c, ctx] = readCanvas(src.width, src.height);
   ctx.drawImage(src, 0, 0);
   return { data: ctx.getImageData(0, 0, c.width, c.height).data, w: c.width, h: c.height };
 }
@@ -184,14 +205,24 @@ function planFor(f: Foot): Plan {
   const hit = plans.get(id);
   if (hit) return hit;
   const m = f.meta;
-  const k = 1 / m.textures.res;
   const px = pixels(f.scene, m.footKey);
+  // the play texture: texel (u, v) is the foot's frame ((u − W/2)/res, (v − originY·H)/res)
+  const plan = makePlan(id, f.type.art, px, 1 / m.textures.res, 0.5 * (px?.w ?? 1), m.originY * (px?.h ?? 1));
+  plans.set(id, plan);
+  return plan;
+}
+
+/**
+ * A plan from any picture of the foot: `px` its pixels, where texel (u, v) is the frame point ((u − ox)·k, (v − oy)·k).
+ * The play foot plans in its own frame (world px); the zombie peels plan in the foot's design units (zombieCanvas).
+ */
+function makePlan(id: string, art: FootArt, px: { data: Uint8ClampedArray; w: number; h: number } | null, k: number, ox: number, oy: number): Plan {
   const W = px?.w ?? 1;
   const H = px?.h ?? 1;
   const alphaAt = (x: number, y: number): number => {
     if (!px) return 0;
-    const u = Math.round(x / k + 0.5 * W);
-    const v = Math.round(y / k + m.originY * H);
+    const u = Math.round(x / k + ox);
+    const v = Math.round(y / k + oy);
     if (u < 0 || v < 0 || u >= W || v >= H) return 0;
     return px.data[(v * W + u) * 4 + 3];
   };
@@ -204,7 +235,6 @@ function planFor(f: Foot): Plan {
     }
     return true;
   };
-  const art = f.type.art;
   const skin = refOf(art.skin);
   const others = [art.primary, art.secondary, art.legColor].map(refOf).filter((r): r is Ref => !!r && !(skin && hueDist(r.h, skin.h) < 4 && Math.abs(r.s - skin.s) < 0.04));
   const skinL = art.skin ? lum(...hex(art.skin)) : 180;
@@ -220,8 +250,8 @@ function planFor(f: Foot): Plan {
       for (let u = 0; u < W; u += 2) {
         const i = (v * W + u) * 4;
         if (px.data[i + 3] < 200) continue;
-        const x = (u - 0.5 * W) * k;
-        const y = (v - m.originY * H) * k;
+        const x = (u - ox) * k;
+        const y = (v - oy) * k;
         x0 = Math.min(x0, x);
         x1 = Math.max(x1, x);
         y0 = Math.min(y0, y);
@@ -252,8 +282,8 @@ function planFor(f: Foot): Plan {
     for (let i = 3; i < low.length - 3; i++) {
       const v = low[i];
       if (v < 0 || [1, 2, 3].some((j) => low[i - j] > v || low[i + j] > v)) continue;
-      const x = (i * step - 0.5 * W) * k;
-      const y = (v - m.originY * H) * k;
+      const x = (i * step - ox) * k;
+      const y = (v - oy) * k;
       if (x < x0 + bw * 0.12 || x > x1 - bw * 0.12) continue;
       if (tips.length && Math.abs(tips[tips.length - 1][0] - x) < bw * 0.06) continue;
       tips.push([x, y]);
@@ -299,9 +329,7 @@ function planFor(f: Foot): Plan {
     add(2, [0.1, 0.125], (x, y, rad) => ({ k: 'tear', x, y, r: rad, sd: r() * 1e6, drip: 0.6 + r() * 0.6 }), 0.12, 0.72);
     add(3, [0.02, 0.028], (x, y, rad) => ({ k: 'ooze', x, y, r: rad, len: bh * (0.06 + r() * 0.07) }), 0.05, 0.7);
   }
-  const plan: Plan = { id, seed, bare, box: { x0, y0, x1, y1 }, bw, decals, skin, skinL, others, solid };
-  plans.set(id, plan);
-  return plan;
+  return { id, seed, bare, box: { x0, y0, x1, y1 }, bw, decals, skin, skinL, others, solid };
 }
 
 /** How much a pixel reads as the foot's own skin (0…1). */
@@ -371,11 +399,15 @@ function recolour(d: Uint8ClampedArray, i: number, x: number, y: number, p: Plan
   if (s < 1) {
     // material: some colour gone, grime in patches, a sickly cast; the ink outline stays dark
     const ink = L < 48 ? 0.7 : 0;
-    const de = 0.42 * (1 - ink);
+    // strong colours (a red sneaker, rainbow stripes, neon) lose much more, so they read as rotten too, not just
+    // a little dirty
+    const sat = hsv(r, g, b)[1];
+    const loud = clamp01((sat - 0.3) / 0.45);
+    const de = (0.42 + 0.36 * loud) * (1 - ink);
     mr += (L - mr) * de;
     mg += (L - mg) * de;
     mb += (L - mb) * de;
-    const grime = clamp01((big * 0.55 + mid * 0.45 - 0.38) * 1.9) * 0.62 * (1 - ink);
+    const grime = clamp01((big * 0.55 + mid * 0.45 - 0.38) * 1.9 + loud * 0.25) * (0.62 + 0.2 * loud) * (1 - ink);
     mr *= 1 - grime * 0.3;
     mg *= 1 - grime * 0.32;
     mb *= 1 - grime * 0.52;
@@ -785,7 +817,7 @@ function* buildSteps(sc: Phaser.Scene, src: string, dst: string, m: PieceMap | n
   yield;
   const tex = sc.textures.get(src);
   const img = tex.getSourceImage() as CanvasImageSource & { width: number; height: number };
-  const [c, ctx] = makeCanvas(img.width, img.height);
+  const [c, ctx] = readCanvas(img.width, img.height);
   ctx.drawImage(img, 0, 0);
   const names = tex.getFrameNames(false);
   const frames = (names.length ? names : ['__BASE']).map((n) => {
@@ -844,6 +876,60 @@ function* buildSteps(sc: Phaser.Scene, src: string, dst: string, m: PieceMap | n
   if (sc.textures.exists(dst)) sc.textures.remove(dst);
   const out = sc.textures.addCanvas(dst, c);
   if (out && names.length) for (const fr of frames) out.add(fr.name, 0, fr.x, fr.y, fr.w, fr.h);
+}
+
+// ════════════════════════════ zombified peels ════════════════════════════
+
+/** Rots canvases of one foot drawn in its design space: pixel (u, v) of `c` is design (ox + u/sc, oy + v/sc). */
+export type Zombifier = (c: HTMLCanvasElement, ox: number, oy: number, sc: number, decals?: boolean) => void;
+
+const zombifiers = new Map<string, Zombifier>();
+
+/**
+ * The zombified foot peels' rot (src/game/peels.ts, src/art/peelLive.ts): the same recolour and decals the play foot
+ * gets, planned once per foot from its peel art (`crop`, the foot's still cut to its pixels: texel (u, v) is design
+ * ((u + crop.x)/sTex − padX, (v + crop.y)/sTex − padY)), so the still and every layer of the living peel rot alike and
+ * their decals line up. No Phaser: it works on plain canvases, so the locker can use it before any run.
+ */
+export function peelZombifier(id: string, art: FootArt, crop: { art: HTMLCanvasElement; x: number; y: number }, sTex: number, padX: number, padY: number): Zombifier {
+  const hit = zombifiers.get(id);
+  if (hit) return hit;
+  const src = crop.art;
+  const g = src.getContext('2d')!;
+  const px = { data: g.getImageData(0, 0, src.width, src.height).data, w: src.width, h: src.height };
+  // (seeded by the foot's id, as in play: the same foot always rots the same way)
+  const plan = makePlan(id, art, px, 1 / sTex, padX * sTex - crop.x, padY * sTex - crop.y);
+  const z: Zombifier = (c, ox, oy, sc, decals = true) => {
+    const ctx = c.getContext('2d')!;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    const id2 = ctx.getImageData(0, 0, c.width, c.height);
+    const d = id2.data;
+    for (let v = 0; v < c.height; v++)
+      for (let u = 0; u < c.width; u++) {
+        const i = (v * c.width + u) * 4;
+        if (d[i + 3] === 0) continue;
+        recolour(d, i, ox + (u + 0.5) / sc, oy + (v + 0.5) / sc, plan, plan.bw);
+      }
+    ctx.putImageData(id2, 0, 0);
+    if (decals) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'source-atop';
+      ctx.setTransform(sc, 0, 0, sc, -ox * sc, -oy * sc);
+      paintDecals(ctx, plan);
+      ctx.restore();
+    }
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+  };
+  zombifiers.set(id, z);
+  return z;
+}
+
+/** A zombified peel's flies: frames of a fly for the living peel's critter sheet (src/art/peelLive.ts). */
+export function drawPeelFly(ctx: CanvasRenderingContext2D, i: number): void {
+  ctx.save();
+  ctx.translate(32, 30);
+  drawFly(ctx, 1.9, [0, 0.55, 1][i] ?? 0);
+  ctx.restore();
 }
 
 const isWound = (key: string) => key.startsWith(WOUND);

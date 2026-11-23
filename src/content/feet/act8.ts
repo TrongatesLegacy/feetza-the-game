@@ -21,6 +21,7 @@ export const feet: FootType[] = [
   },
   {
     id: 'draugr',
+    undead: true,
     name: 'Draugr Boots',
     desc: 'Iron-shod boots off a barrow-wight, wrapped in grave cloth. Knock it down and it rises again, unless it was burning when it fell.',
     hp: 52, speed: 0.95, armor: 1, stompDmg: 1, coins: 20, score: 600, scale: 1.05, minWave: 72, weight: 8,

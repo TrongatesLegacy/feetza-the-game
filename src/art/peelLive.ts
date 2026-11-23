@@ -23,7 +23,8 @@ import { makeCanvas, type Ctx } from './util';
 import { PEEL_H, PEEL_W, drawFootHilt, drawInFootHead, drawPeelHandle, finishFootLayer, footHeadPlace, footHeadShadow, footSparkles, sparkleStar, type PeelLook } from './peelArt';
 import { FOOT_BY_ID, type FootType } from '../data/feet';
 import { footMeta } from '../game/assets';
-import { PARTS_BEHIND, PEEL_BY_ID, footCrop } from '../game/peels';
+import { PARTS_BEHIND, PEEL_BY_ID, footCrop, zombifierOf } from '../game/peels';
+import { drawPeelFly } from '../game/zombieArt';
 import { FX_FRAMES, FX_R, WIGGLE_N, fxAtlasCanvas, liveDefOf, noise1, wigglePose, type CritterOpts, type EmitterOpts, type FxFrame, type LiveDef } from '../game/liveKit';
 import { crand } from '../systems/cosmeticRandom';
 import { save } from '../systems/save';
@@ -81,12 +82,14 @@ export interface PeelRig {
   sparkles: (Layer & { cx: number; cy: number })[];
   /** Unique key prefix for textures made from it. */
   key: string;
+  /** A zombified foot peel: every layer rotted as the still is (src/game/zombieArt.ts), and flies round it. */
+  zombie: boolean;
 }
 
 /** The foot an animated peel shows, if its head is a redrawn foot with a live def. */
 export function liveFootOf(peelId: string): FootType | null {
   const d = PEEL_BY_ID[peelId];
-  if (!d || !(d.group === 'foot' || d.group === 'boss' || d.group === 'shinyFoot')) return null;
+  if (!d || !(d.group === 'foot' || d.group === 'boss' || d.group === 'shinyFoot' || d.group === 'zombieFoot')) return null;
   const fid = d.foot ?? peelId.slice(peelId.indexOf(':') + 1);
   const type = FOOT_BY_ID[fid];
   // (no footMeta read here: with art drawn lazily that would draw the foot just to ask; 3 s over every peel)
@@ -167,12 +170,26 @@ function* rigSteps(peelId: string, type: FootType, RR: number): Generator<void, 
   const base0 = { RR, D, flip, map, look };
   const padX = FOOT_FRAME.padX;
   const padY = FOOT_FRAME.padY;
+  // a zombified foot peel: each layer rots in the foot's design space before it's placed, as the still did
+  const zombie = !!PEEL_BY_ID[peelId].zombie;
+  const zf = zombie ? zombifierOf(type) : null;
+  if (zombie && !zf) return null;
+  const rot = (c: HTMLCanvasElement, ox: number, oy: number, decals = true) => {
+    zf?.(c, ox, oy, sc, decals);
+    return c;
+  };
   // the body without its live parts, cut off below the toe band (the band's frames draw the rest)
   const body = styledCanvas(type, pose({}), { live: true }, undefined, sc);
   if (st.rig) {
     const bx = body.getContext('2d')!;
     bx.setTransform(1, 0, 0, 1, 0, 0);
     bx.clearRect(0, Math.floor((st.rig.to + padY) * sc), body.width, body.height);
+  }
+  if (zf) {
+    // (the rot is the heaviest step: it gets one of its own)
+    yield;
+    rot(body, -padX, -padY);
+    yield;
   }
   const bodyL = toLayer(body, -padX, -padY, sc, base0);
   yield;
@@ -204,6 +221,7 @@ function* rigSteps(peelId: string, type: FootType, RR: number): Generator<void, 
       const full = styledCanvas(type, ps, { live: true }, { y0: from - lead, y1 }, sc);
       const [c, ctx] = makeCanvas(full.width, (y1 - from) * sc);
       ctx.drawImage(full, 0, -lead * sc);
+      rot(c, -padX, from);
       if (def.glow || def.heat) {
         if (!still) {
           still = makeCanvas(c.width, c.height)[0];
@@ -232,7 +250,7 @@ function* rigSteps(peelId: string, type: FootType, RR: number): Generator<void, 
       ctx.scale(sc, sc);
       ctx.translate(-part.box.x, -part.box.y);
       part.draw(ctx, type.art, i);
-      return toLayer(c, part.box.x, part.box.y, sc, base0);
+      return toLayer(rot(c, part.box.x, part.box.y), part.box.x, part.box.y, sc, base0);
     });
     const sw = def.sway?.[name];
     const bl = def.blink?.[name];
@@ -270,12 +288,13 @@ function* rigSteps(peelId: string, type: FootType, RR: number): Generator<void, 
   };
   let glow: Layer | undefined;
   let heat: Layer | undefined;
-  if (def.glow) {
-    glow = trimLayer(toLayer(offBand(styledCanvas(type, pose({ heat: 0 }), { live: true, emissive: true }, undefined, sc)), -padX, -padY, sc, base0, false), RR);
+  // (a zombified peel is dead: no glow or heat, as its still has none)
+  if (def.glow && !zombie) {
+    glow = trimLayer(toLayer(offBand(rot(styledCanvas(type, pose({ heat: 0 }), { live: true, emissive: true }, undefined, sc), -padX, -padY, false)), -padX, -padY, sc, base0, false), RR);
     yield;
   }
-  if (def.heat) {
-    heat = trimLayer(toLayer(offBand(styledCanvas(type, pose({ heat: 1 }), { live: true, heat: true }, undefined, sc)), -padX, -padY, sc, base0, false), RR);
+  if (def.heat && !zombie) {
+    heat = trimLayer(toLayer(offBand(rot(styledCanvas(type, pose({ heat: 1 }), { live: true, heat: true }, undefined, sc), -padX, -padY, false)), -padX, -padY, sc, base0, false), RR);
     yield;
   }
   // shiny: the foil's sparkles one by one, each cut to the foot's shape
@@ -299,7 +318,7 @@ function* rigSteps(peelId: string, type: FootType, RR: number): Generator<void, 
       sparkles.push({ c, x: x - R0, y: y - R0, w: R0 * 2, h: R0 * 2, cx: x, cy: y });
     }
   }
-  return { id: peelId, type, def, look, RR, D, flip, map, base: baseL, hilt: hiltL, band, wiggle: !!def.wiggle, parts, glow, heat, sparkles, key: `pl_${peelId.replace(/[^a-z0-9]/gi, '_')}_${RR}` };
+  return { id: peelId, type, def, look, RR, D, flip, map, base: baseL, hilt: hiltL, band, wiggle: !!def.wiggle, parts, glow, heat, sparkles, key: `pl_${peelId.replace(/[^a-z0-9]/gi, '_')}_${RR}`, zombie };
 }
 
 // ——— building in idle time, shared ———
@@ -807,6 +826,11 @@ export class PeelLive {
       this.state = rig.def.setup?.(k as never);
     } catch (e) {
       this.fail(e);
+    }
+    // a zombified foot peel keeps its flies, as a zombie foot does in play
+    if (rig.zombie) {
+      const key = (k as { sheet: (key: string, w: number, h: number, n: number, draw: (ctx: CanvasRenderingContext2D, i: number) => void) => string }).sheet('zb_peelfly', 64, 56, 3, drawPeelFly);
+      this.addCritters({ key, frames: 3, count: 3, at: [CX, footMeta[type.id].footHeight * 0.45], rx: 130, ry: 110, speed: 1.4, jitter: 22, scale: 0.5 });
     }
   }
 

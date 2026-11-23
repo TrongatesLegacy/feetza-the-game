@@ -6,6 +6,7 @@ import type { FootType } from '../../data/feet';
 export const feet: FootType[] = [
   {
     id: 'blacksmith',
+    summoned: true,
     name: 'Blacksmith Boot',
     desc: 'The Colossus\'s armourer. Hammers fresh plates back onto him unless you stop it first.',
     hp: 52, speed: 0.8, armor: 1, stompDmg: 1, coins: 6, score: 240, scale: 1.05, minWave: 25, weight: 0,

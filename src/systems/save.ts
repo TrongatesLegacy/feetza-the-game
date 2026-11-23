@@ -98,6 +98,8 @@ export interface SaveData {
   // Peel skins and achievements
   /** Feet defeated, per foot type. */
   kills: Record<string, number>;
+  /** Zombified feet defeated, per foot type (the Zombie Loafer's zombies and the zombie peels' own): their zombie peels. */
+  zombieKills: Record<string, number>;
   /** Waves cleared in each stage (location waves and its boss wave). */
   stageWaves: Record<string, number>;
   /** Wave events dealt with, per event. */
@@ -195,6 +197,7 @@ const DEFAULTS: SaveData = {
   welcomeBonus: 0,
   run: null,
   kills: {},
+  zombieKills: {},
   stageWaves: {},
   eventsDone: {},
   pizzaWaves: {},

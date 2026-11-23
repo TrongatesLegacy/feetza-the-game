@@ -60,6 +60,7 @@ export const feet: FootType[] = [
   // ——— Tartarus (waves 86–90) ———
   {
     id: 'hoplite',
+    undead: true,
     name: 'Skeleton Hoplite',
     desc: 'A soldier of the underworld in bronze greaves, still holding his round shield up front, and it never comes down. Smacks on the bronze dent and split it until it breaks (6 on Regular; a Peel Slam counts for 3, burns and toppings for half); 9 seconds later (on Regular) he pulls a new one from behind his back.',
     hp: 60, speed: 0.95, armor: 2, stompDmg: 1, coins: 19, score: 580, scale: 1.02, minWave: 86, weight: 4,
@@ -85,6 +86,7 @@ export const feet: FootType[] = [
   // ——— Boss adds (weight 0: they only come from their fights) ———
   {
     id: 'gorgonsnake',
+    summoned: true,
     name: 'Gorgon Snake',
     desc: 'One of Medusa\'s hair snakes, slithered loose. Quick and wiggly, but one good smack does it.',
     hp: 20, speed: 1.45, armor: 0, stompDmg: 1, coins: 6, score: 200, scale: 0.7, minWave: 85, weight: 0,
@@ -97,6 +99,7 @@ export const feet: FootType[] = [
   },
   {
     id: 'kronos',
+    summoned: true,
     name: 'Kronos',
     desc: 'The Titan of time, freed by Hades. His hourglass slows your peel to a crawl while everything else speeds up.',
     hp: 620, speed: 0.6, armor: 4, stompDmg: 2, coins: 60, score: 2400, scale: 1.6, minWave: 90, weight: 0,
@@ -109,6 +112,7 @@ export const feet: FootType[] = [
   },
   {
     id: 'atlas',
+    summoned: true,
     name: 'Atlas',
     desc: 'The Titan who held up the sky, now holding up your table. When he lifts one end, the pizzas slide.',
     hp: 680, speed: 0.6, armor: 5, stompDmg: 2, coins: 60, score: 2400, scale: 1.6, minWave: 90, weight: 0,
@@ -121,6 +125,7 @@ export const feet: FootType[] = [
   },
   {
     id: 'hyperion',
+    summoned: true,
     name: 'Hyperion',
     desc: 'The Titan of light, burning like a small sun. Sets pizzas alight with solar flares.',
     hp: 640, speed: 0.6, armor: 4, stompDmg: 2, coins: 60, score: 2400, scale: 1.6, minWave: 90, weight: 0,

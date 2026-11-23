@@ -8,6 +8,7 @@ import type { FootType } from '../../data/feet';
 export const feet: FootType[] = [
   {
     id: 'immortal',
+    undead: true,
     name: 'Immortal Sandals',
     desc: 'An elite of the Persian king’s guard: a scowling chrome war mask, a black head-wrap and a gorget of dark lamellar plates over a foot made of living black smoke. When one falls, another steps out of the smoke to take its place, once.',
     hp: 52, speed: 0.95, armor: 2, stompDmg: 1, coins: 16, score: 520, scale: 1.02, minWave: 81, weight: 3,

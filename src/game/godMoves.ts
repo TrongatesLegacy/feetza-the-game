@@ -1599,7 +1599,7 @@ const PANTHEON: ThrowFx[] = [
 ];
 
 const UNDEAD = /zombie|mummy|ghost|skelet|hoplite|draugr|poltergeist|phantom|loafer/i;
-const isUndead = (f: Foot) => UNDEAD.test(f.type.id) || UNDEAD.test(f.type.name);
+const isUndead = (f: Foot) => !!f.type.undead || UNDEAD.test(f.type.id) || UNDEAD.test(f.type.name);
 
 registerPassives(
   godPassives({

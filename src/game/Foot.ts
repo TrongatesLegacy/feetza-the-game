@@ -202,6 +202,8 @@ export class Foot {
     throwOff(): { key: string; x: number; y: number; scale: number } | null;
     /** Done with shields: the badge says RAGE. */
     rage(): void;
+    /** Hide its leg badge while another one stands in (a friendly zombie's: src/game/zombiePeel.ts). */
+    setBadgeVisible(v: boolean): void;
     destroy(): void;
   } | null = null;
   /** Extra lean (radians) the foot's own moves add (reaching back for a new shield). */
@@ -244,6 +246,13 @@ export class Foot {
   liveHost: { die(): void; destroy(): void } | null = null;
   /** A boss brain is moving this foot by hand: skip its own movement AI. */
   puppet = false;
+  /** A zombie foot (the Zombie Loafer's bite, or the zombie peels' own): defeating one counts towards its zombie peel. */
+  zombified = false;
+  /** A friendly zombie the zombie peels made (src/game/zombiePeel.ts): it holds still, takes no damage and can't be
+   * smacked or targeted until it bursts. */
+  zombieHold = false;
+  /** The share of its health it gets back up with (the revive trait: half; a Zombie Loafer's zombie by heat). */
+  reviveFrac = 0.5;
   /** Speed multiplier from boss roars, avalanches and enrages. */
   hurry = 1;
   /** A rare shiny: unlocks its shiny peel when defeated. */
@@ -361,7 +370,7 @@ export class Foot {
   }
 
   get hittable(): boolean {
-    return this.alive && !this.phased && !this.buried && this.y > -20;
+    return this.alive && !this.phased && !this.buried && this.y > -20 && !this.zombieHold;
   }
 
   get stompY(): number {
@@ -573,6 +582,13 @@ export class Foot {
     if (this.flashT > 0) {
       this.flashT -= dt;
       if (this.flashT <= 0) this.clearTint();
+    }
+    // a friendly zombie (src/game/zombiePeel.ts) is out of the fight until it bursts: none of its own abilities or
+    // timers run, only its looks (the scene's footTick keeps just the live layer going)
+    if (this.zombieHold) {
+      this.hooks.onTick?.(this, dt);
+      this.render(dt);
+      return;
     }
     if (this.disarmT > 0) this.disarmT -= dt;
     if (this.guardOpen > 0) this.guardOpen -= dt;
@@ -1026,6 +1042,19 @@ export class Foot {
     }
   }
 
+  /** Hold it as a friendly zombie (src/game/zombiePeel.ts), or let it go: held, it's fully there (a phasing or
+   * invisible foot shows itself) and out of the fight. */
+  holdAsZombie(on: boolean): void {
+    this.zombieHold = on;
+    if (!on) return;
+    this.phased = false;
+    this.vy = 0;
+    this.img.setAlpha(1);
+    this.leg.setAlpha(1);
+    this.cuff?.setAlpha(1);
+    this.icons?.setAlpha(1);
+  }
+
   render(dt: number): void {
     if (!this.alive) return;
     const lean = this.state === 'descend' ? Phaser.Math.Clamp(this.vy / 2400, -0.08, 0.08) : 0;
@@ -1159,7 +1188,7 @@ export class Foot {
 
   revive(): void {
     this.reviveUsed = true;
-    this.hp = Math.round(this.maxHp * 0.5);
+    this.hp = Math.round(this.maxHp * this.reviveFrac);
     this.stun(1.4);
     this.flash(0x7dff9a, 300);
   }

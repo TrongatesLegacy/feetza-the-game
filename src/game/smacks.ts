@@ -295,7 +295,8 @@ export function smackSpec(d: PeelDef): Spec {
     }
     case 'foot':
     case 'boss':
-    case 'shinyFoot': {
+    case 'shinyFoot':
+    case 'zombieFoot': {
       const f = d.foot ? FOOT_BY_ID[d.foot] : undefined;
       s = f ? footSpec(f) : { family: 'skin' };
       break;
