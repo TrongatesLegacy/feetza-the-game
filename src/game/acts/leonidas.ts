@@ -12,7 +12,6 @@ import type { ThrowFx } from '../abilities';
 import type { ActFx } from '../contentFx';
 import type { Foot } from '../Foot';
 import { registerMoves, registerPassives, type HeroKit, type Passive } from '../heroKit';
-import { timed } from './variants';
 
 const BRONZE = 0xc9873a;
 const SPEAR: ThrowFx = { e: 'throw', prop: 'spear', how: 'pierce', x: 3, at: { to: 'front', n: 1 } };
@@ -47,8 +46,25 @@ function wallY(k: HeroKit, x: number): number {
   return y - 42;
 }
 
-/** The shield wall: a row of lambda shields that slams down just over the pizzas, then drops away. */
+/** The wall standing now (per hero kit): a second call while it stands renews it rather than raising another. */
+const walls = new WeakMap<HeroKit, { renew: (sec: number, shove: boolean) => void }>();
+
+/** The shield wall: a row of lambda shields that slams down just over the pizzas, then drops away. Raised again
+ *  while it stands, it holds for the new full time (it used to raise a second wall, and the first one's end let
+ *  feet through while the second still stood). */
 function shieldWall(k: HeroKit, sec: number, shove: boolean): void {
+  const slam = () => {
+    k.host.shake(260, 0.01);
+    k.host.rumble(0.8, 260);
+    if (!shove || !k.host.inWave()) return;
+    for (const f of k.host.live()) k.host.hurt(f, 2, { knock: 600 });
+  };
+  const cur = walls.get(k);
+  if (cur) {
+    cur.renew(sec, shove);
+    k.sc.time.delayedCall(120, slam);
+    return;
+  }
   const shields: Phaser.GameObjects.Image[] = [];
   let landed = false;
   for (let x = 90, i = 0; x < W; x += 130, i++) {
@@ -59,28 +75,43 @@ function shieldWall(k: HeroKit, sec: number, shove: boolean): void {
     shields.push(s);
   }
   k.sc.time.delayedCall(220 + shields.length * 30, () => (landed = true));
-  k.sc.time.delayedCall(380, () => {
-    k.host.shake(260, 0.01);
-    k.host.rumble(0.8, 260);
-    if (!shove || !k.host.inWave()) return;
-    for (const f of k.host.live()) k.host.hurt(f, 2, { knock: 600 });
-  });
+  k.sc.time.delayedCall(380, slam);
+  let total = sec;
+  let t = 0;
+  let done = false;
   k.wv.lineUntil = k.host.now() + sec;
   k.wv.lineShove = shove;
-  timed(
-    k,
-    sec,
-    (_dt, t) => {
+  const finish = () => {
+    if (done) return;
+    done = true;
+    walls.delete(k);
+    k.wv.lineUntil = 0;
+    shields.forEach((s, i) => k.sc.tweens.add({ targets: s, y: s.y + 300, alpha: 0, delay: i * 20, duration: 300, ease: 'Quad.In', onComplete: () => s.destroy() }));
+  };
+  walls.set(k, {
+    renew: (more, sh) => {
+      total = t + more;
+      k.wv.lineUntil = k.host.now() + more;
+      k.wv.lineShove = !!k.wv.lineShove || sh;
+      shields.forEach((s) => s.setAngle(0));
+    },
+  });
+  k.effect({
+    update: (dt) => {
+      if (done) return false;
+      t += dt;
       // the wall rides up and down with the pizzas under it (a lifted pizza takes its shield with it)
-      if (landed) shields.forEach((s, i) => (s.y += (wallY(k, s.x) + (i % 2) * 10 - s.y) * Math.min(1, _dt * 8)));
+      if (landed) shields.forEach((s, i) => (s.y += (wallY(k, s.x) + (i % 2) * 10 - s.y) * Math.min(1, dt * 8)));
       // the last second, the shields shudder before they drop
-      if (sec - t < 1) shields.forEach((s, i) => s.setAngle(Math.sin(t * 40 + i) * 3));
+      if (total - t < 1) shields.forEach((s, i) => s.setAngle(Math.sin(t * 40 + i) * 3));
+      if (t >= total) {
+        finish();
+        return false;
+      }
+      return true;
     },
-    () => {
-      k.wv.lineUntil = 0;
-      shields.forEach((s, i) => k.sc.tweens.add({ targets: s, y: s.y + 300, alpha: 0, delay: i * 20, duration: 300, ease: 'Quad.In', onComplete: () => s.destroy() }));
-    },
-  );
+    stop: finish,
+  });
 }
 
 registerMoves({
