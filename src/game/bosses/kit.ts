@@ -448,6 +448,7 @@ export function hitProp(a: Arena, o: PropOpts): Prop {
     get y() {
       return img.y;
     },
+    label: o.key.replace(/^p_(nz_)?/, ''),
     r: o.r ?? 90,
     priority: 2,
     contains: o.contains,
