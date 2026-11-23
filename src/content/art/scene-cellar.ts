@@ -1194,7 +1194,7 @@ function barrel(ctx: Ctx, r: R): void {
 }
 
 /** A run of candle wax down a surface: a tapering rivulet, a bead at its foot, lit on its left. */
-function waxRun(ctx: Ctx, x: number, y: number, len: number, w: number): void {
+export function waxRun(ctx: Ctx, x: number, y: number, len: number, w: number): void {
   const p = (c: Ctx) => {
     c.beginPath();
     c.moveTo(x - w / 2, y);
@@ -1265,7 +1265,7 @@ const LANTERN_BOX = { x: CX.lantern.x - 40, y: CX.lantern.y0 - 4, w: 80, h: CX.l
 
 /** A cobweb strung across a corner at (x, y) between two angles: radial threads, a spiral sagging between them, a
  * few torn strands hanging, dust clumped on it. */
-function web(ctx: Ctx, r: R, x: number, y: number, rad: number, a0: number, a1: number, a = 0.3): void {
+export function web(ctx: Ctx, r: R, x: number, y: number, rad: number, a0: number, a1: number, a = 0.3): void {
   const n = 6;
   const spokes: number[] = [];
   for (let k = 0; k <= n; k++) spokes.push(a0 + ((a1 - a0) * k) / n + (k > 0 && k < n ? (r() - 0.5) * 0.12 : 0));
@@ -1317,9 +1317,9 @@ function cobwebs(ctx: Ctx, r: R): void {
 
 // ——— the candles ———
 
-const FLAME = { w: 26, h: 56 };
-const WARM: [string, string, string] = ['#d8400c', '#ffa030', '#fff4c8'];
-const COLD: [string, string, string] = ['#0a7a5a', '#4af0b8', '#e8fff4'];
+export const FLAME = { w: 26, h: 56 };
+export const WARM: [string, string, string] = ['#d8400c', '#ffa030', '#fff4c8'];
+export const COLD: [string, string, string] = ['#0a7a5a', '#4af0b8', '#e8fff4'];
 
 function flamesStill(ctx: Ctx): void {
   for (const [i, c] of CX.candles.entries()) {
@@ -1619,11 +1619,11 @@ export const CELLAR: SceneSpec = {
 // ——— live: frame painters ———
 
 /** A ghost's frame: full size GW×GH, painted at GK and drawn up. */
-const GW = 190;
-const GH = 280;
-const GK = 0.72;
-const GHOST_N = 12;
-const SHRIEK_N = 4;
+export const GW = 190;
+export const GH = 280;
+export const GK = 0.72;
+export const GHOST_N = 12;
+export const SHRIEK_N = 4;
 
 const smooth = (e0: number, e1: number, x: number): number => {
   const t = Math.max(0, Math.min(1, (x - e0) / (e1 - e0)));
@@ -1637,7 +1637,7 @@ const smooth = (e0: number, e1: number, x: number): number => {
  * body stretches up, the arms are flung up and out, the eyes flare and the mouth gapes. Pale and glowing at the top,
  * thinning to nothing down the tail, lit on its left, shaded teal on its right, a bright rim round it.
  */
-function ghostFrame(c: Ctx, ph: number, shriek: number): void {
+export function ghostFrame(c: Ctx, ph: number, shriek: number): void {
   const f = ph * P2;
   const cx = GW / 2;
   const headY = 40 - shriek * 12;
@@ -1860,10 +1860,10 @@ function ghostFrame(c: Ctx, ph: number, shriek: number): void {
 
 /** One frame of mist rolling along the floor (phase 0…1 loops): soft billows drifting one way, swelling and
  * thinning as they go, lit on their tops by the room, shaded under. Painted small and drawn up. */
-const MW = 1000;
-const MH = 220;
-const MK = 0.34;
-function mistFrame(c: Ctx, ph: number, seed: number): void {
+export const MW = 1000;
+export const MH = 220;
+export const MK = 0.34;
+export function mistFrame(c: Ctx, ph: number, seed: number): void {
   const [cv, g] = makeCanvas(Math.ceil(MW * MK), Math.ceil(MH * MK));
   g.scale(MK, MK);
   const n = 20;
@@ -1910,7 +1910,7 @@ function mistFrame(c: Ctx, ph: number, seed: number): void {
 }
 
 /** A speck of grit or dust (particles): a soft lit fleck. */
-function speckFrame(c: Ctx, s: number, i: number): void {
+export function speckFrame(c: Ctx, s: number, i: number): void {
   const r0 = s / 2;
   const g = c.createRadialGradient(r0 - 1, r0 - 1, 0, r0, r0, r0);
   g.addColorStop(0, 'rgba(255,255,255,1)');
@@ -1926,7 +1926,7 @@ const GATE_N = 10;
 const GATE_K = 0.6;
 const GATE_MIN = 20;
 const GATE_MAX = 80;
-const SMOKE = { w: 70, h: 190 };
+export const SMOKE = { w: 70, h: 190 };
 
 // ——— live ———
 

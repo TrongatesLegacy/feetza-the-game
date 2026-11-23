@@ -4867,7 +4867,10 @@ const REDRAWN = new Set<BackdropId>(['trattoria', 'beach', 'space',
   // the Yeti Ski Boot's arena (the Summit), redrawn with the location kit and painted frame animation: scene-yeti.ts
   'yeti',
   // the Haunted Cellar (Stage 12), redrawn with the location kit and painted frame animation: scene-cellar.ts
-  'cellar']);
+  'cellar',
+  // the Ghost of Feet Past's arena (the Crypt), redrawn with the location kit and painted frame animation:
+  // scene-phantomking.ts
+  'phantomking']);
 
 // redrawn scenes keep their old info for the before/after page (their old glows and particles with their old art)
 const LEGACY_INFO: Partial<Record<BackdropId, BackdropInfo>> = {};
