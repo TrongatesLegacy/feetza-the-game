@@ -64,11 +64,12 @@ function reforge(k: HeroKit, shields: Phaser.GameObjects.Image[]): void {
   const HEAT_MS = 3200;
   for (const s of shields) {
     if (!s.active) continue;
-    // the forge heat, all at once: a glow behind it and a hot tint that cools from white-gold through orange
-    const glow = k.img('glow', s.x, s.y, 1.25).setTint(0xff7a20).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
-    k.sc.tweens.add({ targets: glow, alpha: 0.7, duration: 180 });
-    k.sc.tweens.add({ targets: glow, alpha: 0, scale: 1.05, delay: 900, duration: HEAT_MS - 900, ease: 'Quad.In', onComplete: () => glow.destroy() });
-    const follow = k.sc.time.addEvent({ delay: 16, loop: true, callback: () => (s.active ? glow.setPosition(s.x, s.y) : follow.remove()) });
+    // the forge heat, all at once: each shield glows in its own shape (an additive copy of the shield, red-hot, a
+    // touch larger so it rims the bronze) and takes a hot tint that cools from white-gold through orange
+    const glow = k.img(s.texture.key, s.x, s.y, s.scale * 1.08).setTint(0xff6a18).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
+    k.sc.tweens.add({ targets: glow, alpha: 0.85, duration: 160 });
+    k.sc.tweens.add({ targets: glow, alpha: 0, delay: 900, duration: HEAT_MS - 900, ease: 'Quad.In', onComplete: () => glow.destroy() });
+    const follow = k.sc.time.addEvent({ delay: 16, loop: true, callback: () => (s.active ? glow.setPosition(s.x, s.y).setScale(s.scaleX * 1.08, s.scaleY * 1.08) : follow.remove()) });
     k.sc.time.delayedCall(HEAT_MS, () => follow.remove());
     const heat = { k: 0 };
     k.sc.tweens.add({
@@ -110,10 +111,13 @@ function reforge(k: HeroKit, shields: Phaser.GameObjects.Image[]): void {
               k.host.fx.ring(s.x, s.y + s.displayHeight * 0.4, 0xffa040, 0.45, 0.35);
               audio.sfx('sfx_hero_shieldblock', { volume: 0.35, rate: 1.2, throttle: 40 });
               const rim = s.y - s.displayHeight * 0.45;
-              for (let i = 0; i < 9; i++) {
-                const ang = (crand() - 0.5) * 1.6;
-                const sx = s.x + Math.sin(ang) * s.displayWidth * 0.45;
-                const sp = k.img('soft', sx, rim + (1 - Math.cos(ang)) * s.displayHeight * 0.3, 0.04 + crand() * 0.05)
+              // a hot flash in the shield's shape on impact
+              const flash = k.img(s.texture.key, s.x, s.y, s.scaleX * 1.04).setTint(0xfff0c0).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.9);
+              k.sc.tweens.add({ targets: flash, alpha: 0, duration: 260, onComplete: () => flash.destroy() });
+              for (let i = 0; i < 16; i++) {
+                const ang = (crand() - 0.5) * 2.2;
+                const sx = s.x + Math.sin(ang) * s.displayWidth * 0.48;
+                const sp = k.img('soft', sx, rim + (1 - Math.cos(ang)) * s.displayHeight * 0.3, 0.07 + crand() * 0.07)
                   .setTint(crand() < 0.5 ? 0xffe8a0 : 0xff8a30)
                   .setBlendMode(Phaser.BlendModes.ADD);
                 const vx = Math.sin(ang) * (120 + crand() * 200);
