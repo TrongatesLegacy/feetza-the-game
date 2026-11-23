@@ -1,9 +1,10 @@
 // A descending foot: state machine, traits, status effects and its visuals (leg + foot + cuff).
 
 import Phaser from 'phaser';
-import { BASE_DESCEND, HOVER_Y } from '../config';
+import { BASE_DESCEND, GUARD_FETCH, HOVER_Y } from '../config';
+import { makeGuardFx } from './guardShield';
 import type { FootType } from '../data/feet';
-import { ART_RES, footMeta, type FootMeta } from './assets';
+import { ensureFootArt, type FootMeta } from './assets';
 import type { Pizza } from './Pizza';
 
 export type FootState = 'enter' | 'hover' | 'descend' | 'stomp' | 'lift' | 'dying' | 'gone';
@@ -13,7 +14,7 @@ export interface FootHooks {
   pickTarget(foot: Foot): Pizza | null;
   onEscape(foot: Foot): void;
   /** Ability callouts so the scene can show text/sound. */
-  onTrait?(foot: Foot, trait: 'switch' | 'clumsy' | 'hop' | 'surface' | 'reveal' | 'guardDown'): void;
+  onTrait?(foot: Foot, trait: 'switch' | 'clumsy' | 'hop' | 'surface' | 'reveal' | 'guardDown' | 'guardBreak' | 'guardRearm'): void;
   /** Called every frame while alive (medic heals, magnet pull, roll targeting). */
   onTick?(foot: Foot, dt: number): void;
   /** Lane offset (px from pizza centre) if this foot may start its dive now, or null if the pizza's lanes are full. */
@@ -56,13 +57,14 @@ function legTuck(scene: Phaser.Scene, type: FootType, m: FootMeta, footTop: numb
       return a < 0 ? 0 : b - a + 1;
     };
     // leg bottom in the foot texture's rows (contact is at originY · height)
-    const start = Math.round((-footTop + 16 * type.scale) * ART_RES + m.originY * fh);
+    const res = m.textures.res;
+    const start = Math.round((-footTop + 16 * type.scale) * res + m.originY * fh);
     const limit = Math.min(fh - 1, start + Math.round(fh * 0.33));
     let y = Math.max(0, start);
     if (rowWidth(y) < legSolid - 2) {
       while (y < limit && rowWidth(y) < legSolid - 2) y++;
       // only tuck when it actually hides the corners; otherwise leave the leg as drawn
-      tuck = y < limit ? (y - start + 2) / ART_RES : 0;
+      tuck = y < limit ? (y - start + 2) / res : 0;
     }
   } catch {
     tuck = 0;
@@ -87,6 +89,9 @@ export class Foot {
   /** Overrides where this foot hovers (contact y) before diving; null = the usual HOVER_Y. */
   hoverY: number | null = null;
   private leg: Phaser.GameObjects.TileSprite;
+  /** Leg, art and cuff together: outline glows (elite, golden, shiny, phase auras) go round this one silhouette,
+   * so they run up the leg instead of cutting across the ankle. */
+  private body: Phaser.GameObjects.Container;
   private img: Phaser.GameObjects.Image;
   private cuff?: Phaser.GameObjects.Image;
   readonly shadow: Phaser.GameObjects.Image;
@@ -162,12 +167,50 @@ export class Foot {
   private zigBase = 0;
   private wobbleT = Math.random() * 10;
   private flashT = 0;
-  /** Riot shield is down for a moment right after a stomp. */
+  /** A guard foot with a rhythm (Spartan Sandals): its shield is down for this much longer (on its beat, or just
+   * after a stomp). */
   guardOpen = 0;
-  /** Riot shield rhythm: counts up to the next timed drop while hovering or diving. */
-  private guardT = 0;
-  private guardNext = 2.4 + Math.random() * 0.8;
-  private guardWarned = false;
+  /** The rhythm: counts up to the next drop while hovering or diving. */
+  guardT = 0;
+  guardNext = 1;
+  /** The shield is about to drop (it trembles and its rim glows): set guardWarn seconds before each drop. */
+  guardWarned = false;
+  /** Blocked smacks the shield can still take (guardMax at full strength: GameScene sets both from the heat). */
+  guardHp = 6;
+  guardMax = 6;
+  /** Its shield shattered: unguarded until it re-arms. */
+  guardBroken = false;
+  /** Automatic damage soaked by the raised shield, towards knocking its next step off (GameScene: guardChip). */
+  guardChipAcc = 0;
+  /** Its step's worth when it last soaked some (for the badge's filling step). */
+  guardChipStep = 1;
+  /** Done with shields for good (a raging Spartan threw its shield away): no rhythm, no new one. */
+  guardDone = false;
+  /** Seconds since the shield broke, and how long until a new one is raised (whatever happens meanwhile). */
+  guardIdle = 0;
+  guardRearmAfter = 9;
+  /** The new shield is being fetched (seconds into it, the last GUARD_FETCH of the wait): still unguarded. */
+  guardFetchT = -1;
+  /** The shield's moving piece and leg badge (src/game/guardShield.ts). */
+  guardFx: {
+    update(dt: number): void;
+    blocked(left: number, quiet?: boolean, steps?: number): void;
+    chipped(): void;
+    broke(): void;
+    /** A raging foot rears back with its shield (gods.ts), then throws it: where it leaves from, or null. */
+    windup(): void;
+    throwOff(): { key: string; x: number; y: number; scale: number } | null;
+    /** Done with shields: the badge says RAGE. */
+    rage(): void;
+    destroy(): void;
+  } | null = null;
+  /** Extra lean (radians) the foot's own moves add (reaching back for a new shield). */
+  leanExtra = 0;
+  /** Extra lean (radians) a boss's effect adds on top (a zombie foot's sickly sway and twitches). */
+  leanFx = 0;
+  /** The shield piece's containers: they follow the rig like its light twin (attachShield). */
+  private shieldSwing?: Phaser.GameObjects.Container;
+  private shieldSquash?: Phaser.GameObjects.Container;
   /** Gym Bro: armour gained while unhit. */
   bulk = 0;
   private bulkT = 0;
@@ -192,6 +235,11 @@ export class Foot {
   /** Live art layered round the drawn foot (src/game/footLive.ts): images follow its tint, flashes and fades. */
   private liveImgs: Phaser.GameObjects.Image[] = [];
   private liveAbove = 0;
+  private fxAbove = 0;
+  /** The leg's rest y (the rig drops it as the foot squashes). */
+  private legY = 0;
+  /** The rig (src/game/footRig.ts): the art hangs from the ankle (swing) and squashes at the sole (squash). */
+  private rig: { swing: Phaser.GameObjects.Container; squash: Phaser.GameObjects.Container; lightSwing: Phaser.GameObjects.Container; light: Phaser.GameObjects.Container } | null = null;
   /** The live art's owner: told when the foot dies, escapes or is destroyed. */
   liveHost: { die(): void; destroy(): void } | null = null;
   /** A boss brain is moving this foot by hand: skip its own movement AI. */
@@ -207,7 +255,8 @@ export class Foot {
   constructor(scene: Phaser.Scene, layer: Phaser.GameObjects.Container, shadowLayer: Phaser.GameObjects.Container, type: FootType, x: number, opts: { hpMult: number; speedMult: number; elite: boolean; hooks: FootHooks }) {
     this.scene = scene;
     this.type = type;
-    this.meta = footMeta[type.id];
+    // drawn now if nothing warmed it first (src/game/assets.ts)
+    this.meta = ensureFootArt(scene, type.id)!;
     this.hooks = opts.hooks;
     this.elite = opts.elite;
     this.baseScale = type.scale * FOOT_DISPLAY * (opts.elite ? 1.08 : 1);
@@ -219,20 +268,23 @@ export class Foot {
     this.y = -80;
 
     const m = this.meta;
-    const k = 1 / ART_RES;
+    const k = 1 / m.textures.res;
     const rel = this.scale / type.scale; // elite enlargement relative to the drawn texture
     this.root = scene.add.container(x, this.y);
     this.root.setScale(rel);
     const legTex = scene.textures.get(m.legKey).getSourceImage() as HTMLCanvasElement;
     const legW = legTex.width * k;
     const footTop = m.footHeight * type.scale; // world px from contact up to ankle
-    const legBottom = -footTop + 16 * type.scale + legTuck(scene, type, m, footTop);
+    // a styled leg ends where its join says; the others are tucked in far enough to hide their corners
+    const legBottom = m.textures.legEnd !== undefined ? (m.textures.legEnd - m.footHeight) * type.scale : -footTop + 16 * type.scale + legTuck(scene, type, m, footTop);
     this.leg = scene.add.tileSprite(0, legBottom, legW, LEG_LEN, m.legKey).setOrigin(0.5, 1).setTileScale(k, k);
     this.img = scene.add.image(0, 0, m.footKey).setOrigin(0.5, m.originY).setScale(k);
-    this.root.add([this.leg, this.img]);
+    this.body = scene.add.container(0, 0, [this.leg, this.img]);
+    this.root.add(this.body);
+    this.legY = legBottom;
     if (m.cuffKey) {
       this.cuff = scene.add.image(0, -footTop + 4 * type.scale, m.cuffKey).setScale(k);
-      this.root.add(this.cuff);
+      this.body.add(this.cuff);
     }
     this.hpBar = scene.add.graphics();
     this.root.add(this.hpBar);
@@ -246,19 +298,26 @@ export class Foot {
       this.img.setAlpha(0.8);
     }
     if (opts.elite || type.id === 'golden') {
-      this.img.preFX?.addGlow(opts.elite ? 0xff4dd2 : 0xffe066, 4, 0, false, 0.1, 12);
+      this.body.postFX?.addGlow(opts.elite ? 0xff4dd2 : 0xffe066, 4, 0, false, 0.1, 12);
     }
     if (type.mini) this.root.setScale(rel);
     this.glossy = type.traits.includes('glossy');
     this.buildIcons();
+    // a guard foot's shield is a piece of its own, with a badge counting down to its drop
+    if (type.traits.includes('guard')) this.guardFx = makeGuardFx(this);
+    // (a pair with a shield beat doesn't march in lockstep)
+    if (type.guard) this.guardT = Math.random() * type.guard.up[0];
     this.wool = type.traits.includes('woolly') ? 15 : 0;
     this.hoverTime = this.freshHoverTime(type.traits.includes('flee') ? 0.4 : 0.7 + Math.random() * 0.7);
   }
 
   has(t: FootType['traits'][number]): boolean {
     if (this.disarmT > 0) return false;
-    return this.type.traits.includes(t);
+    return this.type.traits.includes(t) || this.extraTraits.has(t);
   }
+
+  /** Traits a fight has given it on top of its type's (a zombie foot gets back up once). */
+  readonly extraTraits = new Set<FootType['traits'][number]>();
 
   get isBossLike(): boolean {
     return !!this.type.boss || !!this.type.mini;
@@ -266,7 +325,8 @@ export class Foot {
 
   /** Trait badges on the cuff, so players can see what a foot does before it does it. */
   private buildIcons(): void {
-    const ts = this.type.traits.filter((t) => t !== 'tiny').slice(0, 3);
+    // (a guard foot's shield badge stands in for its trait icon: src/game/guardShield.ts)
+    const ts = this.type.traits.filter((t) => t !== 'tiny' && t !== 'guard').slice(0, 3);
     if (!ts.length || this.type.boss || !this.scene.textures.exists(`trait_${ts[0]}`)) return;
     const c = this.scene.add.container(0, -this.meta.footHeight * this.type.scale - 70);
     ts.forEach((t, i) => {
@@ -347,6 +407,152 @@ export class Foot {
     return Math.min(this.meta.footHeight * this.scale, 520) + 24;
   }
 
+  /** The guard shield: up until it's smashed (Spartan Sandals alone lower and raise theirs on a rhythm: FootType.guard).
+   * Once broken, a fixed timer from the break (whatever happens meanwhile) brings a new one at full strength; the
+   * foot reaches back for it in its last GUARD_FETCH seconds. */
+  private guardTick(dt: number): void {
+    if (this.guardDone) return;
+    if (this.guardBroken) {
+      this.guardIdle += dt;
+      if (this.guardFetchT < 0 && this.guardIdle >= this.guardRearmAfter - GUARD_FETCH) this.guardFetchT = 0;
+      else if (this.guardFetchT >= 0) this.guardFetchT += dt;
+      if (this.guardIdle >= this.guardRearmAfter) this.guardRearm();
+      return;
+    }
+    const g = this.type.guard;
+    if (!g) return;
+    if (!this.has('guard') || this.guardOpen > 0 || (this.state !== 'hover' && this.state !== 'descend')) return;
+    this.guardT += dt;
+    if (!this.guardWarned && this.guardT >= this.guardNext - this.guardWarnTime) this.guardWarned = true;
+    if (this.guardT >= this.guardNext) {
+      this.guardT = 0;
+      this.guardNext = g.up[0] + Math.random() * (g.up[1] - g.up[0]);
+      this.guardWarned = false;
+      this.guardOpen = g.down;
+      this.hooks.onTrait?.(this, 'guardDown');
+    }
+  }
+
+  /** Seconds of warning before each drop. */
+  get guardWarnTime(): number {
+    return this.type.guard?.warn ?? 0.6;
+  }
+
+  /** The shield is up: a smack now is blocked (it cracks the shield). Down once it's broken (until a new one is
+   * raised) and while the foot is disarmed; a foot with a rhythm (Spartan Sandals) also lowers it on its beat, after
+   * a stomp and while stunned. */
+  get guardUp(): boolean {
+    return this.has('guard') && this.alive && !this.guardBroken && !this.guardDone && this.guardOpen <= 0 && !(this.type.guard && this.stunT > 0);
+  }
+
+  /** Seconds until the next drop on its rhythm (while the shield is up). */
+  get guardToDrop(): number {
+    return Math.max(0, this.guardNext - this.guardT);
+  }
+
+  /** A smack landed while its shield was down: a foot with `react` (Spartan Sandals) slams it straight back up and
+   * holds it for longer (one hit per opening). */
+  guardReact(): void {
+    const g = this.type.guard;
+    if (!g?.react || this.guardOpen <= 0 || this.guardBroken || this.guardDone || !this.has('guard') || this.stunT > 0 || !this.alive) return;
+    this.guardOpen = 0;
+    this.guardT = 0;
+    this.guardNext = g.up[0] * g.react;
+    this.guardWarned = false;
+  }
+
+  /** Automatic damage soaked by the raised shield: every `step` of it knocks a step off, as a smack does. Returns
+   * what's left over past the step that breaks it (it carries through to the foot), or 0. */
+  guardChip(amount: number, step: number): number {
+    this.guardChipStep = Math.max(0.01, step);
+    this.guardChipAcc += amount;
+    this.guardFx?.chipped();
+    while (this.guardChipAcc >= this.guardChipStep && !this.guardBroken) {
+      this.guardChipAcc -= this.guardChipStep;
+      // (what's past the breaking step: guardBlock clears the accumulator)
+      const left = this.guardChipAcc;
+      if (this.guardBlock(true)) return left;
+    }
+    return 0;
+  }
+
+  /** A blow worth n steps (a Peel Slam, an ability): returns the steps left unused if it smashed the shield, or 0. */
+  guardKnock(n: number): number {
+    const before = this.guardHp;
+    this.guardBlock(false, n);
+    return Math.max(0, n - before);
+  }
+
+  /** A smack bounced off the raised shield (or a blow worth n steps; or automatic damage soaked a step's worth:
+   * `quiet`): it cracks, and the last one it can take shatters it. True if it broke. */
+  guardBlock(quiet = false, n = 1): boolean {
+    this.guardHp = Math.max(0, this.guardHp - n);
+    if (this.guardHp > 0) {
+      this.guardFx?.blocked(this.guardHp, quiet, n);
+      return false;
+    }
+    this.guardChipAcc = 0;
+    this.guardBroken = true;
+    this.guardIdle = 0;
+    this.guardFetchT = -1;
+    this.guardWarned = false;
+    this.guardOpen = 0;
+    this.guardFx?.broke();
+    this.hooks.onTrait?.(this, 'guardBreak');
+    return true;
+  }
+
+  /** The new shield is raised: full strength, back on the usual rhythm. */
+  private guardRearm(): void {
+    this.guardBroken = false;
+    this.guardFetchT = -1;
+    this.guardIdle = 0;
+    this.guardHp = this.guardMax;
+    this.guardChipAcc = 0;
+    this.guardOpen = 0;
+    this.guardT = 0;
+    this.guardWarned = false;
+    const g = this.type.guard;
+    if (g) this.guardNext = g.up[0] + Math.random() * (g.up[1] - g.up[0]);
+    this.hooks.onTrait?.(this, 'guardRearm');
+  }
+
+  /** Hang a shield piece in front of the foot (a gameplay layer: it shows whatever the graphics settings). It sits
+   * over the foot's art and follows its rig. Returns the container to put it in (in the foot's own frame). */
+  attachShield(): Phaser.GameObjects.Container {
+    if (this.shieldSquash) return this.shieldSquash;
+    const ankle = -this.meta.footHeight * this.type.scale;
+    const swing = this.scene.add.container(0, ankle);
+    const squash = this.scene.add.container(0, -ankle);
+    swing.add(squash);
+    this.root.addAt(swing, this.root.getIndex(this.body) + 1);
+    this.shieldSwing = swing;
+    this.shieldSquash = squash;
+    return squash;
+  }
+
+  /** An image of the foot's that tints, flashes and fades with it (a shield piece). */
+  trackLiveImage(o: Phaser.GameObjects.Image): void {
+    this.liveImgs.push(o);
+  }
+
+  /** Put the shield piece behind the foot's art (fetching a new one from behind its back) or back in front. */
+  shieldBehind(on: boolean): void {
+    const sw = this.shieldSwing;
+    if (!sw) return;
+    if (on) {
+      // (back where it was afterwards: over the glow and effects added above the foot since)
+      this.shieldAt = this.root.getIndex(sw);
+      this.root.remove(sw);
+      this.root.addAt(sw, this.root.getIndex(this.body));
+    } else if (this.shieldAt >= 0) {
+      this.root.remove(sw);
+      this.root.addAt(sw, Math.min(this.shieldAt, this.root.length));
+      this.shieldAt = -1;
+    }
+  }
+  private shieldAt = -1;
+
   setState(s: FootState): void {
     this.state = s;
     this.stateT = 0;
@@ -370,21 +576,7 @@ export class Foot {
     }
     if (this.disarmT > 0) this.disarmT -= dt;
     if (this.guardOpen > 0) this.guardOpen -= dt;
-    // the riot shield also drops on a timer (every 2.4–3.2 s for 0.75 s), with a glint half a second before
-    if (this.has('guard') && this.alive && (this.state === 'hover' || this.state === 'descend') && this.guardOpen <= 0) {
-      this.guardT += dt;
-      if (!this.guardWarned && this.guardT >= this.guardNext - 0.5) {
-        this.guardWarned = true;
-        this.flash(0x9ad8ff, 160);
-      }
-      if (this.guardT >= this.guardNext) {
-        this.guardT = 0;
-        this.guardNext = 2.4 + Math.random() * 0.8;
-        this.guardWarned = false;
-        this.guardOpen = 0.75;
-        this.hooks.onTrait?.(this, 'guardDown');
-      }
-    }
+    if (this.type.traits.includes('guard') && this.alive) this.guardTick(dt);
     if (this.revealT > 0) this.revealT -= dt;
     // Mime: invisible (only its shadow shows) until it commits to a stomp or gets smacked
     if (this.has('invisible') && this.alive) {
@@ -590,9 +782,12 @@ export class Foot {
           this.y = this.stompY;
           this.vy = 0;
           this.setState('stomp');
-          if (this.has('guard')) {
-            this.guardOpen = 1.1;
-            this.hooks.onTrait?.(this, 'guardDown');
+          if (this.type.guard && this.has('guard') && !this.guardBroken && !this.guardDone) {
+            // (a foot with a shield rhythm lowers it for a moment after every stomp)
+            if (this.guardOpen <= 0) this.hooks.onTrait?.(this, 'guardDown');
+            this.guardOpen = Math.max(this.guardOpen, 1.2);
+            this.guardT = 0;
+            this.guardWarned = false;
           }
           this.hooks.onStomp(this);
         }
@@ -635,6 +830,32 @@ export class Foot {
     this.revealT = Math.max(this.revealT, sec);
   }
 
+  /** Dev views: crop the leg so it ends at local y `top` (above the foot) instead of running off screen. */
+  /** Keep the still art whatever the graphics setting (a dev view's still column). */
+  forceStill = false;
+
+  /** Set once a dev view crops the leg (cropLeg): things hung from above stop at the crop instead. */
+  legCropped = false;
+
+  cropLeg(top: number): void {
+    this.legCropped = true;
+    const h = Math.max(1, Math.round(this.leg.y - top));
+    if (Math.abs(this.leg.height - h) >= 1) this.leg.setSize(this.leg.width, h);
+    // the tile pattern starts at the sprite's top: shift it so it stays fixed to the leg's bottom (the foot), as
+    // an uncropped leg's does, or the foot seems to slide up and down a still leg as it moves
+    this.leg.tilePositionY = (LEG_LEN - this.leg.height) / this.leg.tileScaleY;
+  }
+
+  /** The top of the leg in the foot's own frame (far off screen in play; the card's top when a dev view crops it). */
+  get legTopLocal(): number {
+    return this.leg.y - this.leg.height;
+  }
+
+  /** How visible the foot's own art is now (faded by invisibility, phasing, portals and the like). */
+  get visualAlpha(): number {
+    return this.img.alpha;
+  }
+
   setVisualAlpha(a: number): void {
     this.img.setAlpha(a);
     this.leg.setAlpha(a);
@@ -643,12 +864,123 @@ export class Foot {
   }
 
   /** Add live art round the drawn foot: `below` stacks it under the foot's art (over the leg), otherwise over it.
-   * Each call goes above the earlier ones on its side. Images are tinted, flashed and faded with the foot. */
-  addLiveArt(o: Phaser.GameObjects.GameObject, below: boolean): void {
-    const i = this.root.getIndex(this.img);
-    if (below) this.root.addAt(o, i);
-    else this.root.addAt(o, i + 1 + this.liveAbove++);
+   * Each call goes above the earlier ones on its side. Images are tinted, flashed and faded with the foot. On a
+   * rigged foot the art goes on the rig, so it swings and squashes with the foot. */
+  addLiveArt(o: Phaser.GameObjects.GameObject, below: boolean, additive = false): void {
+    // additive light (glow, overheat) rides a twin of the rig that sits over it, outside the rig's post-FX
+    // (an additive layer inside a post-FX'd container breaks its transparency: the foot turned see-through)
+    if (additive && this.rig) {
+      this.rig.light.add(o);
+      if (o instanceof Phaser.GameObjects.Image) this.liveImgs.push(o);
+      return;
+    }
+    // without a rig, additive light goes just over the body (its post-FX would break it the same way)
+    if (additive) {
+      this.root.addAt(o, this.root.getIndex(this.body) + 1 + this.fxAbove++);
+      if (o instanceof Phaser.GameObjects.Image) this.liveImgs.push(o);
+      return;
+    }
+    const parent = this.img.parentContainer ?? this.root;
+    const i = parent.getIndex(this.img);
+    if (below) parent.addAt(o, i);
+    else parent.addAt(o, i + 1 + this.liveAbove++);
     if (o instanceof Phaser.GameObjects.Image) this.liveImgs.push(o);
+  }
+
+  /** Add live effects in the foot's own frame but off the rig (particle emitters that keep the layer's frame):
+   * `below` under the foot's art, otherwise over it. */
+  addLiveFx(o: Phaser.GameObjects.GameObject, below: boolean): void {
+    // never inside the body: its outline glows would ring every particle, and additive ones would break its
+    // transparency. Below goes behind the leg and the foot, above over both.
+    if (below) this.root.addAt(o, this.root.getIndex(this.body));
+    else this.root.addAt(o, this.root.getIndex(this.rig?.lightSwing ?? this.body) + 1 + this.fxAbove++);
+  }
+
+  /** Hang the foot's art on a rig (once): a container at the ankle that swings, holding one at the sole that
+   * squashes, holding the art. Live art added after this goes on the rig too. */
+  enableRig(): void {
+    if (this.rig) return;
+    const ankle = -this.meta.footHeight * this.type.scale;
+    const swing = this.scene.add.container(0, ankle);
+    const squash = this.scene.add.container(0, -ankle);
+    swing.add(squash);
+    const i = this.body.getIndex(this.img);
+    this.body.remove(this.img);
+    this.body.addAt(swing, i);
+    squash.add(this.img);
+    const lightSwing = this.scene.add.container(0, ankle);
+    const light = this.scene.add.container(0, -ankle);
+    lightSwing.add(light);
+    this.root.addAt(lightSwing, this.root.getIndex(this.body) + 1);
+    this.rig = { swing, squash, lightSwing, light };
+  }
+
+  /** A point of the foot's design space (src/art/style: centre x 110, sole at its contact y) in world
+   * coordinates, following the rig and the foot's own transform. */
+  styleWorld(dx: number, dy: number): [number, number] {
+    const ts = this.type.scale;
+    let x = (dx - 110) * ts;
+    let y = (dy - this.meta.footHeight) * ts;
+    if (this.rig) {
+      const { swing, squash } = this.rig;
+      const a = swing.y;
+      const qx = x * squash.scaleX;
+      const qy = -a + y * squash.scaleY;
+      const c = Math.cos(swing.rotation);
+      const s = Math.sin(swing.rotation);
+      x = qx * c - qy * s;
+      y = qx * s + qy * c + a;
+    }
+    const r = this.root;
+    const c = Math.cos(r.rotation);
+    const s = Math.sin(r.rotation);
+    const lx = x * r.scaleX;
+    const ly = y * r.scaleY;
+    return [r.x + lx * c - ly * s, r.y + lx * s + ly * c];
+  }
+
+  /** Where foot-wide FX (glows, shines, the phase aura) go: the body, leg and foot as one silhouette. */
+  private fxHost(): Phaser.GameObjects.Components.FX | null {
+    return this.body.postFX;
+  }
+
+  /** Pose the rig: swing (radians, round the ankle) and squash (scale at the sole). The leg follows the ankle
+   * down as the foot squashes, so they never part. */
+  setRigPose(swing: number, sx: number, sy: number): void {
+    if (!this.rig) return;
+    this.rig.swing.rotation = swing;
+    this.rig.squash.setScale(sx, sy);
+    this.rig.lightSwing.rotation = swing;
+    this.rig.light.setScale(sx, sy);
+    if (this.shieldSwing) {
+      this.shieldSwing.rotation = swing;
+      this.shieldSquash!.setScale(sx, sy);
+    }
+    const drop = this.meta.footHeight * this.type.scale * (1 - sy);
+    this.leg.y = this.legY + drop;
+    if (this.cuff) this.cuff.y = -this.meta.footHeight * this.type.scale + 4 * this.type.scale + drop;
+  }
+
+  /** The foot's painted pieces: the leg, the art, the cuff and its live images (not the additive light layers).
+   * Whole-foot re-skins (the Zombie Loafer's bite: src/game/zombieArt.ts) swap their textures. */
+  artPieces(): (Phaser.GameObjects.Image | Phaser.GameObjects.TileSprite)[] {
+    const out: (Phaser.GameObjects.Image | Phaser.GameObjects.TileSprite)[] = [this.leg, this.img];
+    if (this.cuff) out.push(this.cuff);
+    for (const o of this.liveImgs) if (o.active && o.blendMode !== Phaser.BlendModes.ADD && !out.includes(o)) out.push(o);
+    return out;
+  }
+
+  /** Squash or stretch the foot's body (leg, art and cuff) from the sole, on top of whatever its root does: an
+   * effect's own pose (a zombie foot's convulsions) that never fights the root's tweens (knocks, resizes, death). */
+  setBodyScale(sx: number, sy: number): void {
+    this.body.setScale(sx, sy);
+  }
+
+  /** Take an image added with addLiveArt off the foot again (and destroy it). */
+  removeLiveArt(o: Phaser.GameObjects.Image): void {
+    const i = this.liveImgs.indexOf(o);
+    if (i >= 0) this.liveImgs.splice(i, 1);
+    o.destroy();
   }
 
   /** Draw the foot with another texture of the same frame (its live art draws the rest). */
@@ -671,18 +1003,18 @@ export class Foot {
   /** Turn this foot shiny: a white-gold glow and a sweeping shine (sparkles are emitted by the scene). */
   makeShiny(): void {
     this.shiny = true;
-    this.img.preFX?.addGlow(0xfff6c0, 5, 0, false, 0.1, 14);
-    this.img.preFX?.addShine(0.7, 0.35, 4);
-    if (this.leg) this.leg.preFX?.addShine(0.7, 0.35, 4);
+    this.fxHost()?.addGlow(0xfff6c0, 5, 0, false, 0.1, 14);
+    this.fxHost()?.addShine(0.7, 0.35, 4);
   }
 
   setPhaseAura(color: number | null): void {
     this.auraTween?.remove();
     this.auraTween = null;
-    if (this.auraFx) this.img.preFX?.remove(this.auraFx);
+    if (this.auraFx) this.fxHost()?.remove(this.auraFx);
     this.auraFx = null;
-    if (color === null || !this.img.preFX) return;
-    this.auraFx = this.img.preFX.addGlow(color, 6, 0, false, 0.1, 14);
+    const host = this.fxHost();
+    if (color === null || !host) return;
+    this.auraFx = host.addGlow(color, 6, 0, false, 0.1, 14);
     this.auraTween = this.scene.tweens.add({ targets: this.auraFx, outerStrength: { from: 4, to: 10 }, duration: 650, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
   }
 
@@ -699,7 +1031,7 @@ export class Foot {
     const lean = this.state === 'descend' ? Phaser.Math.Clamp(this.vy / 2400, -0.08, 0.08) : 0;
     const wob = this.state === 'hover' ? Math.sin(this.wobbleT * 5) * 0.03 : Math.sin(this.wobbleT * 9) * 0.008;
     this.root.setPosition(this.x, this.y);
-    this.root.rotation += (wob + lean * (this.x > 960 ? -1 : 1) - this.root.rotation) * Math.min(1, dt * 10);
+    this.root.rotation += (wob + lean * (this.x > 960 ? -1 : 1) + this.leanExtra + this.leanFx - this.root.rotation) * Math.min(1, dt * 10);
     // telegraph shadow on the target pizza
     const t = this.target;
     if (t && !t.dead && (this.state === 'descend' || this.state === 'hover' || this.state === 'stomp')) {
@@ -714,6 +1046,7 @@ export class Foot {
       this.shadow.setAlpha(Math.max(0, this.shadow.alpha - dt * 3));
     }
     this.drawHp();
+    this.guardFx?.update(dt);
   }
 
   private drawHp(): void {
@@ -818,6 +1151,8 @@ export class Foot {
     this.setState('dying');
     this.shadow.setVisible(false);
     this.liveHost?.die();
+    this.guardFx?.destroy();
+    this.guardFx = null;
     this.hooks.onEscape(this);
     this.scene.tweens.add({ targets: this.root, y: -900, duration: 700, ease: 'Back.In', onComplete: () => this.destroy() });
   }
@@ -842,6 +1177,9 @@ export class Foot {
     });
     this.hpBar.clear();
     this.icons?.setVisible(false);
+    // (the shield's badge goes; the shield itself leaves with the foot)
+    this.guardFx?.destroy();
+    this.guardFx = null;
     this.stars?.destroy();
     this.shadow.setVisible(false);
     const spin = (Math.random() < 0.5 ? -1 : 1) * (boss ? 0.15 : 0.35);
@@ -870,6 +1208,8 @@ export class Foot {
     this.state = 'gone';
     this.liveHost?.destroy();
     this.liveHost = null;
+    this.guardFx?.destroy();
+    this.guardFx = null;
     this.root.destroy();
     this.shadow.destroy();
   }

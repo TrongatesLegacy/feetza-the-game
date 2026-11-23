@@ -4,18 +4,9 @@
 // src/content/art/scenes-kratos.ts. Hades's Kronos phase (act9.ts) is a smaller Titan with one move; this one is
 // the Titan king himself, with his own fight.
 //
+// Kronos's fight is in ./titanking.ts (its brain is registered from here).
+//
 // Choices the spec left open (numbers are Regular; heat() scales them):
-// - Kronos's phases: TIME EATER, DEVOUR and, on Hot and hotter, REIGN OF THE TITANS (2 phases on Mild and
-//   Regular, 3 from Hot). His hourglass keeps coming back in every phase.
-// - Time Eater: every 11 s (14 once he's devouring) the great hourglass flips at the back of the table. Smash it
-//   (4 smacks) in 6 s, or he eats the time: your peel slows for 4 s, every foot hurries ×1.35 and he heals 3%
-//   (not on Mild). Smashed, he's stunned for 1.8 s and takes 4% of his health.
-// - Devour: every 13 s he claims a pizza's lane, bends down and grabs it in his stone jaw; it lifts off the table
-//   while he chews. Smack the jaw 5 times in 6.5 s and he spits it out (stunned 2 s, 5% of his health), or he
-//   swallows half its slices (never its last on Mild).
-// - Reign of the Titans: every 15 s two chains crash down across lanes (three on Extra Hot and up). A chained lane
-//   is locked: every smack in it hits the chain, so its feet can't be touched until you break the shackle on it (4
-//   smacks). Chains rust away after 14 s.
 // - Zeus's phases, one Olympian each: POSEIDON'S WAVE, ARES'S WAR CRY and HERA'S CROWN (Mild has Poseidon and Hera;
 //   Extra Hot and up open with KING OF THE SKY, all lightning). Throughout, storm clouds crackle over pizzas (2
 //   smacks in 3.2 s scatters one, or it strikes for a slice) and he hurls a thunderbolt at your peel every 9 s
@@ -30,35 +21,14 @@
 //   twice as often. The crown comes back every 18 s.
 
 import Phaser from 'phaser';
-import { HOVER_Y, W } from '../../config';
+import { W } from '../../config';
 import { HEAT_BY_ID } from '../../data/difficulty';
 import { save } from '../../systems/save';
 import type { Arena } from '../arena';
 import type { Foot } from '../Foot';
-import type { Pizza } from '../Pizza';
-import { type Brain, type Prop, type Takeover, Every, heat, hitProp, rnd, shield, takeLane, throwAtPeel } from './kit';
-import { Bin, SAFE_TOP, cameo, enterArena, entrance, hitSoft, lanePizzas, leaveArena, once, scatter, shatter, timerRing } from './nzkit';
-
-/** A sand burst: golden grains fly up and fall. */
-function sandBurst(a: Arena, x: number, y: number, n = 22): void {
-  for (let i = 0; i < n; i++) {
-    const d = a.sc.add.image(x, y, 'soft').setTint(Phaser.Utils.Array.GetRandom([0xffd27a, 0xf0c860, 0xffe8a8])).setScale(0.05 + Math.random() * 0.06).setBlendMode(Phaser.BlendModes.ADD);
-    a.fxLayer.add(d);
-    const vx = (Math.random() - 0.5) * 700;
-    const vy = -200 - Math.random() * 500;
-    const st = { t: 0 };
-    a.sc.tweens.add({
-      targets: st,
-      t: 1,
-      duration: 900 + Math.random() * 400,
-      onUpdate: () => {
-        d.setPosition(x + vx * st.t, y + vy * st.t + 900 * st.t * st.t);
-        d.setAlpha(1 - st.t);
-      },
-      onComplete: () => d.destroy(),
-    });
-  }
-}
+import { type Brain, type PhaseCard, type PhaseShow, type Prop, Every, heat, hitProp, rnd, shield, throwAtPeel } from './kit';
+import { brains as titankingBrains } from './titanking';
+import { Bin, SAFE_TOP, cameo, enterArena, entrance, hitSoft, once, scatter, shatter, timerRing } from './nzkit';
 
 /** A thunderbolt from the sky down to (x, y). */
 function strikeAt(a: Arena, x: number, y: number): void {
@@ -68,336 +38,6 @@ function strikeAt(a: Arena, x: number, y: number): void {
   a.flash(90, 220, 236, 255);
   a.shake(180, 0.008);
 }
-
-// ——— KRONOS THE TITAN KING (mini-boss, wave 88) ———
-
-type KMove = 'time' | 'devour' | 'reign';
-
-interface Chain {
-  p: Pizza;
-  img: Phaser.GameObjects.Image;
-  lock: Prop;
-  live: boolean;
-  end: (broken: boolean) => void;
-}
-
-const titanking = (): Brain => {
-  const bin = new Bin();
-  const start = once();
-  const hourT = new Every(11, 3.5);
-  const devourT = new Every(13, 3);
-  const reignT = new Every(15, 2.5);
-  let glass: { prop: Prop; end: () => void } | null = null;
-  let bite: { p: Pizza; hold: Takeover | null; prop: Prop | null; end: (freed: boolean) => void } | null = null;
-  const chains: Chain[] = [];
-  let quipT = 9;
-
-  // ——— Time Eater ———
-  const flipGlass = (f: Foot, a: Arena) => {
-    const h = heat(a);
-    const sec = h.windup(6);
-    const x = Phaser.Math.Clamp(f.x < W / 2 ? f.x + 420 : f.x - 420, 240, W - 240);
-    const y = SAFE_TOP + 190;
-    a.sfx('sfx_titanking_flip');
-    a.quip(x, y - 150, 'TICK… TOCK…', '#ffd27a', 42);
-    const t0 = a.now();
-    let done = false;
-    const prop = hitProp(a, {
-      key: 'p_nz_hourglass',
-      x,
-      y,
-      scale: 0.72,
-      hits: h.hits(4),
-      r: 120,
-      sec,
-      badgeDy: -140,
-      label: 'TIME SHATTERED!',
-      hitSfx: 'sfx_titanking_jawhit',
-      clearSfx: 'sfx_titanking_shatter',
-      onClear: () => {
-        finish();
-        sandBurst(a, x, y, 30);
-        scatter(a, x, y, 'shard', 8, { scale: 0.7, tints: [0xdff0ff, 0xffd27a] });
-        if (!f.alive) return;
-        f.stun(h.stun(1.8));
-        a.damageFoot(f, f.maxHp * 0.04);
-        a.quip(f.x, Math.max(SAFE_TOP + 40, f.cy - 170), 'MY TIME!', '#ff8a6a', 40);
-      },
-      onFail: () => {
-        finish();
-        if (!a.inWave() || !f.alive) return;
-        const s = h.stun(4);
-        a.slowPeel(s);
-        a.hurry(1.35, s);
-        a.sfx('sfx_titanking_slow');
-        a.flash(320, 240, 200, 120);
-        sandBurst(a, x, y, 18);
-        const pp = a.peelPoint();
-        a.quip(pp.x, pp.y - 90, 'TIME EATEN!', '#ffd27a', 46);
-        if (h.rank > 0) f.hp = Math.min(f.maxHp, f.hp + f.maxHp * 0.03);
-      },
-    });
-    // it flips over as it arrives, then ticks; a ring of sand counts the time down
-    prop.img.setAngle(180);
-    a.sc.tweens.add({ targets: prop.img, angle: 0, duration: 520, ease: 'Back.Out' });
-    const ticks = a.sc.time.addEvent({ delay: 500, loop: true, callback: () => a.sfx('sfx_titanking_tick', { volume: 0.8, throttle: 100 }) });
-    const ring = timerRing(a, () => (done ? null : { x, y }), 140, 0xffd27a, () => 1 - (a.now() - t0) / sec);
-    const forget = bin.add(() => {
-      done = true;
-      ticks.remove();
-      ring();
-      prop.destroy();
-    });
-    const finish = () => {
-      done = true;
-      ticks.remove();
-      ring();
-      forget();
-      glass = null;
-    };
-    glass = { prop, end: forget };
-  };
-
-  // ——— Devour ———
-  const startBite = (f: Foot, a: Arena) => {
-    const h = heat(a);
-    const ps = a.alivePizzas();
-    const p = rnd(ps.filter((q) => !chains.some((c) => c.live && c.p === q))) ?? rnd(ps);
-    if (!p) return;
-    // (with one pizza left he doesn't claim its lane: the other feet must still be able to reach it)
-    const hold = ps.length > 1 ? takeLane(a, f, p) : null;
-    f.target = p;
-    a.sfx('sfx_titanking_chomp', { volume: 0.7 });
-    a.quip(p.x, p.surfaceY - 220, 'DEVOUR!', '#ff8a6a', 50);
-    let chew: Phaser.Time.TimerEvent | null = null;
-    const b = {
-      p,
-      hold,
-      prop: null as Prop | null,
-      end: (freed: boolean) => {
-        if (bite !== b) return;
-        bite = null;
-        chew?.remove();
-        b.prop?.destroy();
-        hold?.release();
-        if (!p.dead) p.setLift(0, 300);
-        if (f.alive) {
-          f.puppet = false;
-          a.sc.tweens.add({ targets: f, y: (f.hoverY ?? HOVER_Y) - 20, duration: 500, ease: 'Quad.Out' });
-          if (freed) {
-            f.stun(h.stun(2));
-            a.damageFoot(f, f.maxHp * 0.05);
-          }
-        }
-      },
-    };
-    bite = b;
-    const forget = bin.add(() => b.end(false));
-    // he glides over the pizza, then bends down and grabs it: it lifts towards his mouth while he chews
-    a.sc.time.delayedCall(900, () => {
-      if (bite !== b || !f.alive || p.dead) return void (forget(), b.end(false));
-      f.puppet = true;
-      a.sc.tweens.add({ targets: f, x: p.x, y: (f.hoverY ?? HOVER_Y) + 70, duration: 420, ease: 'Quad.In' });
-      p.setLift(-70, 420);
-      a.sfx('sfx_titanking_chomp');
-      a.shake(260, 0.01);
-      const sec = h.windup(6.5);
-      const t0 = a.now();
-      b.prop = hitProp(a, {
-        key: 'p_nz_jaw',
-        x: p.x,
-        y: p.surfaceY - 40,
-        scale: 0.7,
-        hits: h.hits(5),
-        r: 120,
-        sec,
-        badgeDy: -110,
-        label: 'SPAT OUT!',
-        hitSfx: 'sfx_titanking_jawhit',
-        clearSfx: 'sfx_titanking_freed',
-        follow: () => (bite === b ? { x: p.x, y: p.surfaceY - 40 + Math.sin(a.now() * 9) * 6 } : null),
-        onClear: () => {
-          forget();
-          b.end(true);
-          a.fx.party(p.x, p.surfaceY - 60, 16);
-          a.quip(f.x, Math.max(SAFE_TOP + 40, f.cy - 170), 'PTOO!', '#ffd27a', 40);
-        },
-        onFail: () => {
-          forget();
-          b.end(false);
-          if (!a.inWave() || p.dead) return;
-          a.sfx('sfx_titanking_chomp');
-          hitSoft(a, p, Math.ceil(p.slices / 2) + h.slices(0), 'DEVOURED!', '#ff8a6a');
-          a.shake(360, 0.012);
-        },
-      });
-      const ring = timerRing(a, () => (bite === b ? { x: p.x, y: p.surfaceY - 40 } : null), 128, 0xff8a6a, () => 1 - (a.now() - t0) / sec);
-      bin.add(ring);
-      chew = a.sc.time.addEvent({
-        delay: 650,
-        loop: true,
-        callback: () => {
-          if (bite !== b) return;
-          a.sfx('sfx_titanking_chew', { volume: 0.8, throttle: 200 });
-          a.fx.puff(p.x + (Math.random() - 0.5) * 80, p.surfaceY - 20, 3);
-          a.sc.tweens.add({ targets: f.root, angle: { from: -2, to: 2 }, duration: 110, yoyo: true });
-        },
-      });
-    });
-  };
-
-  // ——— Reign of the Titans ———
-  const dropChains = (_f: Foot, a: Arena) => {
-    const h = heat(a);
-    const free = lanePizzas(a).filter((p) => !chains.some((c) => c.live && c.p === p) && p !== bite?.p);
-    const n = Math.min(free.length, h.rank >= 3 ? 3 : 2);
-    const picks = Phaser.Utils.Array.Shuffle([...free]).slice(0, n);
-    if (!picks.length) return;
-    a.sfx('sfx_titanking_chain');
-    a.quip(W / 2, SAFE_TOP + 70, 'REIGN OF THE TITANS!', '#ffd27a', 46);
-    picks.forEach((p, i) => a.sc.time.delayedCall(i * 260, () => p.dead || !a.inWave() || chainLane(a, p)));
-  };
-
-  const chainLane = (a: Arena, p: Pizza) => {
-    const h = heat(a);
-    const bottom = p.surfaceY - 30;
-    const img = a.sc.add.image(p.x, -800, 'p_nz_chain').setOrigin(0.5, 1).setScale(0.9, 1);
-    a.fxLayer.add(img);
-    const c: Chain = { p, img, lock: null as unknown as Prop, live: true, end: () => {} };
-    a.sc.tweens.add({
-      targets: img,
-      y: bottom,
-      duration: 380,
-      ease: 'Quad.In',
-      onComplete: () => {
-        a.sfx('sfx_titanking_chainhit');
-        a.shake(240, 0.01);
-        a.fx.puff(p.x, bottom, 8);
-      },
-    });
-    // the lock on the chain: break it to break the chain
-    c.lock = hitProp(a, {
-      key: 'p_nz_shackle',
-      x: p.x,
-      y: Math.max(SAFE_TOP + 200, bottom - 300),
-      scale: 0.6,
-      hits: h.hits(4),
-      r: 80,
-      sec: 14,
-      badgeDy: -80,
-      label: 'UNCHAINED!',
-      hitSfx: 'sfx_titanking_chainhit',
-      clearSfx: 'sfx_titanking_chainbreak',
-      onClear: () => c.end(true),
-      onFail: () => c.end(false),
-    });
-    // every other smack in the lane hits the chain: its feet are locked away from you
-    a.addClickable({
-      x: p.x,
-      y: 500,
-      r: 0,
-      priority: 2,
-      contains: (x, y) => c.live && Math.abs(x - p.x) < 95 && y > 0 && y < bottom + 40,
-      alive: () => c.live,
-      hit: () => {
-        a.sfx('sfx_titanking_chainhit', { volume: 0.6, throttle: 120 });
-        a.quip(p.x, SAFE_TOP + 120, 'LOCKED!', '#c8bca8', 30);
-        a.sc.tweens.add({ targets: img, angle: { from: -2, to: 2 }, duration: 70, yoyo: true });
-      },
-    });
-    const forget = bin.add(() => c.end(false));
-    c.end = (broken) => {
-      if (!c.live) return;
-      c.live = false;
-      forget();
-      c.lock.destroy();
-      if (broken) {
-        scatter(a, img.x, img.y - 300, 'shard', 10, { scale: 0.8, tints: [0x8a7e6e, 0xc8bca8] });
-        a.sc.tweens.add({ targets: img, y: -100, alpha: 0, duration: 600, ease: 'Quad.In', onComplete: () => img.destroy() });
-      } else a.sc.tweens.add({ targets: img, alpha: 0, duration: 500, onComplete: () => img.destroy() });
-      const i = chains.indexOf(c);
-      if (i >= 0) chains.splice(i, 1);
-    };
-    chains.push(c);
-  };
-
-  const plan = (phase: number): KMove[] => (['time', 'devour', 'reign'] as KMove[]).slice(0, phase);
-
-  return {
-    names: ['TIME EATER', 'DEVOUR', 'REIGN OF THE TITANS'],
-    info: [
-      'The great hourglass flips: if its sand runs out he eats the time, slowing your peel and hurrying every foot · Smash the hourglass',
-      'He grabs a pizza in his stone jaw and chews · Smack the jaw again and again to make him spit it out',
-      'Titan chains crash down and lock lanes: smacks there hit the chain · Break the shackle on each chain',
-    ],
-    // 2 phases on Mild and Regular, 3 from Hot (the chains are a Hot-and-hotter move)
-    phases: (a) => (a ? (heat(a).rank >= 2 ? 3 : 2) : 0),
-    upkeep(f, _dt, a) {
-      start(() => {
-        enterArena(a, 'titanking');
-        entrance(a, f, {
-          sfx: 'sfx_titanking_enter',
-          quip: 'THE AGE OF TITANS RETURNS!',
-          color: '#ffd27a',
-          flash: [255, 200, 120],
-          ring: 0xffd27a,
-          delay: 400,
-          ms: 900,
-          onLanded: () => {
-            sandBurst(a, f.x, f.y - 40, 26);
-            scatter(a, f.x, f.y - 120, 'shard', 8, { scale: 0.7, tints: [0x8a7e6e] });
-          },
-        });
-      });
-      if (bite) f.puppet = true;
-    },
-    onPhase(f, ph, a) {
-      // a new phase drops what he's holding (the transform beat would let go of him anyway)
-      bite?.end(false);
-      a.sfx('sfx_titanking_roar');
-      if (ph >= 2) devourT.t = 4;
-      if (ph >= 3) reignT.t = 2;
-      void f;
-    },
-    update(f, dt, a) {
-      const h = heat(a);
-      const moves = plan(f.phase);
-      if (bite) return;
-      hourT.every = h.cooldown(f.phase >= 2 ? 14 : 11);
-      if (!glass && hourT.tick(dt)) flipGlass(f, a);
-      if (moves.includes('devour')) {
-        devourT.every = h.cooldown(13);
-        if (devourT.tick(dt)) startBite(f, a);
-      }
-      if (moves.includes('reign')) {
-        reignT.every = h.cooldown(15);
-        if (reignT.tick(dt)) dropChains(f, a);
-      }
-      quipT -= dt;
-      if (quipT <= 0) {
-        quipT = 11 + Math.random() * 6;
-        a.quip(f.x, Math.max(SAFE_TOP + 40, f.cy - 180), rnd(['TIME IS MY FOOD.', 'SPARTAN. HOW SMALL YOU ARE.', 'EVERY AGE ENDS IN MY MOUTH.'])!, '#ffd27a', 34);
-      }
-    },
-    onSmacked(f, a) {
-      // while he chews, smacks on him rattle his jaw a little too (the jaw itself is the real target)
-      if (bite?.prop?.alive()) {
-        a.quip(f.x, Math.max(SAFE_TOP + 40, f.cy - 150), 'HIT THE JAW!', '#ffd27a', 32);
-      }
-      return false;
-    },
-    onDeath(f, a) {
-      bin.flush();
-      for (const c of [...chains]) c.end(true);
-      // the Titan king crumbles: stone shards, a flood of golden sand and his chains falling away
-      shatter(a, f, { burst: 0xffd27a, tint: 0xe8dcc8, sfx: 'sfx_titanking_death', n: 12 });
-      sandBurst(a, f.cx, f.cy, 40);
-      for (let i = 0; i < 4; i++) a.sc.time.delayedCall(i * 160, () => sandBurst(a, f.cx + (Math.random() - 0.5) * 300, f.cy + (Math.random() - 0.5) * 200, 14));
-      a.quip(f.x, Math.max(SAFE_TOP + 40, f.cy - 170), 'MY… TIME… IS… UP…', '#ffd27a', 40);
-      leaveArena(a);
-    },
-  };
-};
 
 // ——— ZEUS (boss, wave 90) ———
 
@@ -417,6 +57,35 @@ const ZPLAN: Record<number, ZMove[]> = {
 };
 const zplan = (n: number): ZMove[] => ZPLAN[Math.max(2, Math.min(4, n))];
 
+const CLOUD: PhaseShow = { key: 'p_nz_cloud', label: 'Storm cloud', hits: (h) => h.hits(2) };
+
+const ZCARDS: Record<ZMove, PhaseCard> = {
+  sky: {
+    what: 'Storm clouds gather two at a time and his bolts come faster',
+    hit: 'Scatter each cloud, and bat every thunderbolt back at him',
+    miss: 'A cloud strikes its pizza for a slice; a bolt stuns your peel',
+    show: [CLOUD, { key: 'p_nz_bolt', label: 'Thunderbolt', hits: 1 }],
+  },
+  poseidon: {
+    what: 'Poseidon’s trident plunges in and a wave rears behind it',
+    hit: 'Knock the trident out before the wave breaks',
+    miss: 'The wave sweeps across: the two nearest pizzas lose a slice',
+    show: [{ key: 'p_nz_trident', label: 'Trident', hits: (h) => h.hits(4) }, { key: 'p_nz_wave', label: 'The wave', watch: true }, CLOUD],
+  },
+  ares: {
+    what: 'Ares’s war helmet lands roaring and every foot hurries',
+    hit: 'Smash the helmet to silence it and stun every foot',
+    miss: 'The war cry lands: every foot runs even faster for 6 seconds',
+    show: [{ key: 'p_nz_helm', label: 'War helmet', hits: (h) => h.hits(5) }, CLOUD],
+  },
+  hera: {
+    what: 'Hera crowns him and three peacock gems circle him',
+    hit: 'Break every gem to shatter the crown',
+    miss: 'He can’t be hurt, and his storm clouds come twice as often',
+    show: [{ key: 'p_nz_peacock', label: 'Peacock gem', hits: (h) => h.hits(2) }, CLOUD],
+  },
+};
+
 const zeus = (): Brain => {
   const bin = new Bin();
   const start = once();
@@ -433,10 +102,12 @@ const zeus = (): Brain => {
 
   const names = order.map((m) => ZINFO[m][0]);
   const info = order.map((m) => ZINFO[m][1]);
+  const cards = order.map((m) => ZCARDS[m]);
   const setPlan = (n: number) => {
     order = zplan(n);
     names.splice(0, names.length, ...order.map((m) => ZINFO[m][0]));
     info.splice(0, info.length, ...order.map((m) => ZINFO[m][1]));
+    cards.splice(0, cards.length, ...order.map((m) => ZCARDS[m]));
   };
   const moveOf = (f: Foot): ZMove => order[Math.min(order.length, f.phase) - 1] ?? 'hera';
 
@@ -760,6 +431,7 @@ const zeus = (): Brain => {
   return {
     names,
     info,
+    cards,
     upkeep(f, _dt, a) {
       start(() => {
         setPlan(a.bossPhases());
@@ -826,4 +498,4 @@ const zeus = (): Brain => {
   };
 };
 
-export const brains: Record<string, () => Brain> = { titanking, zeus };
+export const brains: Record<string, () => Brain> = { ...titankingBrains, zeus };

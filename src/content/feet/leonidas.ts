@@ -11,7 +11,7 @@ export const feet: FootType[] = [
   {
     id: 'immortalbrute',
     name: 'THE IMMORTAL BRUTE',
-    desc: 'Mini-boss. The champion of the Immortal Horde: a hulking foot of stone-grey hide with one great dark eye that never stops watching, black smoke seeping round it, and hooked claws; he swings a great blade on a chain. His horde marches first; he waits behind it.',
+    desc: 'Mini-boss. The champion of the Immortal Horde: a hulking foot of veined, wrinkled grey hide with one great deep-set eye that never stops watching under a furrowed brow, a maw of jagged fangs, black smoke seeping round them, and hooked claws; he swings a great blade on a chain. His horde marches first; he waits behind it.',
     hp: 3200, speed: 0.6, armor: 5, stompDmg: 2, coins: 170, score: 14000, scale: 1.6, minWave: 83, weight: 0,
     traits: ['heavy'],
     mini: true,
@@ -19,7 +19,7 @@ export const feet: FootType[] = [
     howTo: 'Beat his Immortals: he can’t be hurt while two or more of them march. When he whirls his blade, smack it to snag the chain before it slams down.',
     tell: 'A war horn blows before each wave of the horde; the chain whistles as the blade whirls over a pair of pizzas.',
     quips: ['NO ONE LEAVES THE PASS.', 'WE ARE MANY. YOU ARE FEW.', 'THE BLADE IS HUNGRY.', 'RRRAAAGH!'],
-    art: { kind: 'lx_brute', skin: '#7a838f', primary: '#7a838f', secondary: '#c9c4bc', leg: 'iron', legColor: '#6c7480' },
+    art: { kind: 'lx_brute', skin: '#6f7782', primary: '#6f7782', secondary: '#c9c4bc', leg: 'iron', legColor: '#5f6772' },
   },
   {
     id: 'xerxes',

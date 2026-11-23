@@ -1,7 +1,7 @@
 // Procedural 1920x1080 scene backdrops (wall + table) for every location and boss arena.
 // Everything is painted with Canvas 2D in the same bold cartoon style as the feet and pizzas.
 
-import { onSceneRegistered, sceneDef } from './registry';
+import { legacySceneDef, onSceneRegistered, sceneDef } from './registry';
 import { type Ctx, blob, ellipse, hashStr, makeCanvas, mix, rgba, rng, roundRect, shade } from './util';
 
 export type LocationId = 'trattoria' | 'rooftop' | 'beach' | 'diner' | 'lodge' | 'space' | 'kitchen' | 'oldtown' | 'pier' | 'rink' | 'slopes' | 'cellar'
@@ -4824,12 +4824,74 @@ for (const [id, from] of Object.entries(PLACEHOLDER) as [BackdropId, BackdropId]
   (BACKDROPS as Record<BackdropId, BackdropInfo>)[id] = { ...BACKDROPS[from], id, name, subtitle };
 }
 
+/** Locations redrawn with the location kit (src/art/scene): their registered scene replaces the built-in art here,
+ * which stays for the before/after page (drawLegacyBackdrop) and for the arenas that reuse it. */
+const REDRAWN = new Set<BackdropId>(['trattoria', 'beach', 'space',
+  // redrawn with the location kit and painted frame animation: scene-rooftop.ts
+  'rooftop',
+  // redrawn with the location kit and painted frame animation: scene-kitchen.ts
+  'kitchen',
+  // redrawn with the location kit and painted frame animation: scene-oldtown.ts
+  'oldtown',
+  // redrawn with the location kit and painted frame animation: scene-diner.ts
+  'diner',
+  // redrawn with the location kit and painted frame animation: scene-lodge.ts
+  'lodge',
+  // the Cosmic Croc's arena, redrawn with the location kit and painted frame animation: scene-cosmiccroc.ts
+  'cosmiccroc',
+  // Nonna's Slipper's arena, redrawn with the location kit and painted frame animation: scene-nonna.ts
+  'nonna',
+  // the Gargoyle's arena, redrawn with the location kit and painted frame animation: scene-gargoyle.ts
+  'gargoyle',
+  // the Iron Heel's arena (the Foundry), redrawn with the location kit and painted frame animation: scene-foundry.ts
+  'ironheel',
+  // T-Rex Toes' arena (Lost Valley), redrawn with the location kit and painted frame animation: scene-valley.ts
+  'trex',
+  // the Colossus's arena (the Hall of Kings), redrawn with the location kit and painted frame animation: scene-hall.ts
+  'colossus',
+  // Bigfoot's arena (the Moonlit Woods), redrawn with the location kit and painted frame animation: scene-woods.ts
+  'bigfoot']);
+
+// redrawn scenes keep their old info for the before/after page (their old glows and particles with their old art)
+const LEGACY_INFO: Partial<Record<BackdropId, BackdropInfo>> = {};
+export const legacyInfo = (id: BackdropId): BackdropInfo | undefined => {
+  const old = legacySceneDef(id);
+  return old ? { ...old.info, id } : LEGACY_INFO[id];
+};
+
 // registered scenes replace their placeholder info as soon as they load
 onSceneRegistered((id, def) => {
+  const prev = (BACKDROPS as Partial<Record<BackdropId, BackdropInfo>>)[id];
+  if (prev && REDRAWN.has(id) && !LEGACY_INFO[id]) LEGACY_INFO[id] = prev;
   (BACKDROPS as Record<BackdropId, BackdropInfo>)[id] = { ...def.info, id };
 });
 
+
 export function drawBackdrop(id: BackdropId): HTMLCanvasElement {
+  if (REDRAWN.has(id) && sceneDef(id)) {
+    const [c, ctx] = makeCanvas(W, H);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, W, H);
+    sceneDef(id)!.draw(ctx, rng(hashStr('backdrop:' + id)));
+    return c;
+  }
+  return drawBuiltIn(id);
+}
+
+/** The art a redrawn scene had before the location kit (the before/after page, ?dev&stages). */
+export function drawLegacyBackdrop(id: BackdropId): HTMLCanvasElement {
+  const old = legacySceneDef(id);
+  if (old) {
+    const [c, ctx] = makeCanvas(W, H);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, W, H);
+    old.draw(ctx, rng(hashStr('backdrop:' + id)));
+    return c;
+  }
+  return drawBuiltIn(id);
+}
+
+function drawBuiltIn(id: BackdropId): HTMLCanvasElement {
   const [c, ctx] = makeCanvas(W, H);
   const r = rng(hashStr('backdrop:' + id));
   ctx.fillStyle = '#000';
@@ -4878,7 +4940,7 @@ export function drawBackdrop(id: BackdropId): HTMLCanvasElement {
         break;
       }
       const from = PLACEHOLDER[id];
-      if (from) return drawBackdrop(from);
+      if (from) return drawBuiltIn(from);
     }
   }
   return c;
@@ -4888,6 +4950,9 @@ export function drawBackdrop(id: BackdropId): HTMLCanvasElement {
 // Shared painting kit for scenes registered from src/content/art (re-exported by sceneKit.ts).
 
 export type { R, Stop, Swag, Bulb, Band };
+/** Which backdrops have been redrawn with the location kit (and so have old art to compare with). */
+export const isRedrawn = (id: BackdropId): boolean => REDRAWN.has(id) || !!legacySceneDef(id);
+
 export {
   W, H, TY, OL, HY, VX, FOC, ZB,
   CHALK, ROUND, SCRIPT, SLAB, BLOCK,
@@ -4897,5 +4962,5 @@ export {
   checkerTop, bandsX, bandsZ, drapeColumns, clothWeave, drapeFolds, bandCloth, planksTop, woodLip,
   footPath, neonStroke, neonText, cobweb, fogBand, stars, moon, flame, logEnd, pendant, lampLight,
   brickWall, wainscot, catenaryPt, bulbsOn, drawWires, drawBulbs, pine, palm, frond, skyline, hazard, rivet,
-  terracottaPot, cloudStreak, chain, girder, starPath, gothicArch,
+  terracottaPot, cloudStreak, chain, girder, starPath, gothicArch, noFeetSign,
 };

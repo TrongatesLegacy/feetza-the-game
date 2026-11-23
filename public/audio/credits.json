@@ -1543,6 +1543,38 @@
     "notes": "The Zombie Loafer: zombie pizza munches a slice; layered with a synthesized crunch (original, made for Feetza with ffmpeg and Python, CC0)"
   },
   {
+    "file": "sfx_poltergeist_infect.mp3",
+    "title": "Slime 4.wav",
+    "author": "Archos (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Archos/sounds/433824/",
+    "notes": "The Zombie Loafer: the bite's infection spreads over a foot; trimmed, compressed and faded"
+  },
+  {
+    "file": "sfx_poltergeist_turn.mp3",
+    "title": "Mummy Zombie Groan 2",
+    "author": "Frostnox (freesound.org)",
+    "license": "CC BY 4.0",
+    "url": "https://freesound.org/people/Frostnox/sounds/796662/",
+    "notes": "The Zombie Loafer: the bitten foot groans as it turns zombie; \"Mummy Zombie Groan 2\" by Frostnox, licensed under CC BY 4.0, trimmed, compressed and faded"
+  },
+  {
+    "file": "sfx_poltergeist_flies.mp3",
+    "title": "Fly_Buzzing_Edited.wav",
+    "author": "AmberdeMeillon (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/AmberdeMeillon/sounds/443059/",
+    "notes": "The Zombie Loafer: flies find a zombie foot; trimmed, filtered, compressed and faded"
+  },
+  {
+    "file": "sfx_poltergeist_roar.mp3",
+    "title": "Mummy Zombie Groan 2",
+    "author": "Frostnox (freesound.org)",
+    "license": "CC BY 4.0",
+    "url": "https://freesound.org/people/Frostnox/sounds/796662/",
+    "notes": "The Zombie Loafer: a bitten foot bursts into a second Loafer; \"Mummy Zombie Groan 2\" by Frostnox, licensed under CC BY 4.0, pitched down and doubled an octave below, with an echo, compressed and faded"
+  },
+  {
     "file": "sfx_phantomking_fade.mp3",
     "title": "Original synthesized sound",
     "author": "Made for Feetza",
@@ -4037,6 +4069,65 @@
     "notes": "God peels: the Kratos Peel’s “This Is Spartaaa!” shout; a synthesized roaring “THIS IS SPARTAAA!” war shout, made with ffmpeg and Python and released as CC0"
   },
   {
+    "file": "sfx_hero_spartanrage.mp3",
+    "title": "grito ira.wav",
+    "author": "juliandmc4 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/juliandmc4/sounds/443653/",
+    "notes": "God peels: the Kratos Peel’s Spartan Rage roar, a bestial RAAAGH! with a burst of fire; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a man's rage scream doubled two and five semitones down, a second man's roar and a little monster roar under it, and a burst of fire as the roar opens up, with a stomp two octaves down as the thud; a short convolution room over all of it. This source: the roar (doubled, pitched down); trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_spartanrage.mp3",
+    "title": "Studio roar",
+    "author": "AugustSandberg (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/AugustSandberg/sounds/265554/",
+    "notes": "God peels: the Kratos Peel’s Spartan Rage roar, a bestial RAAAGH! with a burst of fire: the second roar; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_spartanrage.mp3",
+    "title": "Monster Roar_5.mp3",
+    "author": "mitchanary (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/mitchanary/sounds/505124/",
+    "notes": "God peels: the Kratos Peel’s Spartan Rage roar, a bestial RAAAGH! with a burst of fire: growl and weight under the roar; trimmed, pitch-shifted and layered",
+    "attribution": "\"Monster Roar_5.mp3\" by mitchanary (freesound.org), https://freesound.org/people/mitchanary/sounds/505124/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_hero_spartanrage.mp3",
+    "title": "Fire Burst Flash",
+    "author": "Za-Games (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Za-Games/sounds/539972/",
+    "notes": "God peels: the Kratos Peel’s Spartan Rage roar, a bestial RAAAGH! with a burst of fire: the burst of fire; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_spartanrage.mp3",
+    "title": "Fireball",
+    "author": "NearTheAtmoshphere (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/NearTheAtmoshphere/sounds/683179/",
+    "notes": "God peels: the Kratos Peel’s Spartan Rage roar, a bestial RAAAGH! with a burst of fire: the burst of fire; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_spartanrage.mp3",
+    "title": "Fire - Effects - Impacts - Complex 04",
+    "author": "GregorQuendel (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/GregorQuendel/sounds/421881/",
+    "notes": "God peels: the Kratos Peel’s Spartan Rage roar, a bestial RAAAGH! with a burst of fire: the burst of fire (its opening only); trimmed, pitch-shifted and layered",
+    "attribution": "\"Fire - Effects - Impacts - Complex 04\" by GregorQuendel (freesound.org), https://freesound.org/people/GregorQuendel/sounds/421881/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_hero_spartanrage.mp3",
+    "title": "Foot Stomp C.wav",
+    "author": "patchen (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/patchen/sounds/20185/",
+    "notes": "God peels: the Kratos Peel’s Spartan Rage roar, a bestial RAAAGH! with a burst of fire: the thud under the fire, two octaves down; trimmed, pitch-shifted and layered",
+    "attribution": "\"Foot Stomp C.wav\" by patchen (freesound.org), https://freesound.org/people/patchen/sounds/20185/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
     "file": "sfx_hero_rage.mp3",
     "title": "Original synthesized sound",
     "author": "Made for Feetza",
@@ -4243,6 +4334,46 @@
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
     "notes": "a bronze shield is raised (Spartan Sandals, Persian Elephant Feet); a synthesized bronze shield clang, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_guardwarn.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "a guard foot's shield is about to drop (Riot Ryan, Skeleton Hoplite, Spartan Sandals); two synthesized rising metallic ticks over a little rising shimmer, made with Python and ffmpeg and released as CC0"
+  },
+  {
+    "file": "sfx_guarddrop.mp3",
+    "title": "Impact Sounds (impactMetal_light_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "a guard foot's shield swings down and aside; a synthesized falling whoosh (original, made for Feetza with Python and ffmpeg, CC0) with the Kenney impact pitched down as its clatter"
+  },
+  {
+    "file": "sfx_guardraise.mp3",
+    "title": "Impact Sounds (impactMetal_light_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "a guard foot's shield snaps back up; a synthesized rising whoosh and a ringing clank (original, made for Feetza with Python and ffmpeg, CC0) layered with the Kenney impact"
+  },
+  {
+    "file": "sfx_guardcrack.mp3",
+    "title": "Impact Sounds (impactMetal_light_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "a smack cracks a guard foot's shield; a synthesized snap, crackle and knock (original, made for Feetza with Python and ffmpeg, CC0) layered with the Kenney impact pitched up"
+  },
+  {
+    "file": "sfx_guardshatter.mp3",
+    "title": "Impact Sounds (impactGlass_heavy_003, impactGlass_medium_002, impactGlass_light_004)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "a guard foot's shield shatters; a synthesized burst, tinkling pieces and clatter (original, made for Feetza with Python and ffmpeg, CC0) layered with the Kenney glass breaks"
   },
   {
     "file": "music_gotham.mp3",
@@ -4811,6 +4942,222 @@
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
     "notes": "Nemesis bosses: Kronos crumbles: stone collapsing, a hiss of sand and falling chains; synthesized crumbling stone, sand hiss and rumble, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactMining_002, impactMining_003, impactMining_004, impactMining_000, impactMining_001, impactMetal_light_002, impactMetal_light_000, impactTin_medium_001, impactMetal_light_004 and RPG Audio metalClick and Sci-fi Sounds lowFrequency_explosion_001 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_titanking_strain.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Nemesis bosses: Kronos hauls on his chains: iron chains creaking taut and a low straining titan grunt (repeats while he pulls); a synthesized iron chain groan and a low straining grunt, made with ffmpeg and Python and released as CC0, layered with Kenney RPG Audio creak1, metalClick and Impact Sounds impactMetal_light_002, impactTin_medium_001 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_titanking_weakhit.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Nemesis bosses: a smack on a chain's red-hot weak link: a hot iron clang with a sizzle; a synthesized iron clang ring and a hot sizzle, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactMetal_medium_000, impactMetal_heavy_002 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_titanking_weakbreak.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Nemesis bosses: the weak link shatters and the chain snaps: a big metal crack, links whipping away and a rattle; a synthesized metal snap, a whip-away whoosh, a ring and a hiss, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactMetal_heavy_003, impactTin_medium_001, impactMetal_light_000, impactMetal_light_002, impactMetal_light_004 and Sci-fi Sounds impactMetal_002 and RPG Audio metalClick (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_titanking_rip.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Nemesis bosses: Kronos rips a chain out of the wall: tearing rock, a titan roar and a massive chain rattle (tell); a synthesized rock tear, titan roar and chain rattle, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactMining_000, impactMining_001, impactMining_002, impactMining_003, impactMetal_light_000, impactMetal_light_002, impactTin_medium_001, impactMetal_light_004 and Sci-fi Sounds explosionCrunch_002 and RPG Audio metalClick (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_titanking_scrape.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Nemesis bosses: the ripped chain scrapes along the table: grinding metal on stone, sparks and crunching; a synthesized metal-on-stone screech, sparks and grit, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactMining_000, impactMining_001, impactMining_002, impactMining_003, impactMining_004, impactMetal_heavy_000, impactMetal_light_000, impactMetal_light_004, impactTin_medium_001, impactMetal_light_002 and RPG Audio metalClick (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_titanking_unchained.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Nemesis bosses: TITAN UNCHAINED: an enormous roar, broken chains rattling and a rumble; a synthesized three-voice titan roar, bursting chains and a rumble, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactMetal_heavy_004, impactMetal_heavy_001, impactTin_medium_001, impactMetal_light_002, impactMetal_light_004, impactMetal_light_000 and Sci-fi Sounds lowFrequency_explosion_000 and RPG Audio metalClick (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_titanking_swing.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Nemesis bosses: a broken chain with a blade on its end swings down: a heavy whoosh with a chain rattle (tell); a synthesized heavy swing whoosh and chain rattle, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactMetal_light_000, impactMetal_light_002, impactTin_medium_001, impactMetal_light_004 and RPG Audio metalClick (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_titanking_bladehit.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Nemesis bosses: a smack on the chain's blade: a ringing iron clang; a synthesized ringing blade overtone, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactMetal_heavy_002, impactPlate_medium_001 and RPG Audio metalClick (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_titanking_crumble.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Nemesis bosses: the walls of Tartarus crumble: a deep rumble, stones cracking and gravel pouring (repeats); a synthesized rumble, stone cracks and pouring gravel, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactMining_000, impactMining_001, impactMining_002, impactMining_003, impactMining_004 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_titanking_rockcrack.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Nemesis bosses: a boulder cracks loose from the roof: a sharp stone crack and grind (tell before it falls); a synthesized stone snap, grind and trickle of grit, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactMining_004, impactPlank_medium_002 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_titanking_rockfall.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Nemesis bosses: the boulder falls: a descending whoosh with tumbling grit; a synthesized falling whoosh and tumbling grit, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactMining_004, impactMining_003, impactMining_002, impactMining_001 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_titanking_rocksmash.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Nemesis bosses: a falling boulder is smashed apart in the air by a smack: a stone burst and scattering debris; a synthesized stone burst and scattering debris, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactMining_002, impactMining_001, impactMining_003, impactMining_004, impactMining_000 and Sci-fi Sounds explosionCrunch_000 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_titanking_rockland.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Nemesis bosses: a boulder lands on a pizza: a heavy stone thud and crunch; a synthesized heavy thud, stone and crust crunch, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactPunch_heavy_000, impactMining_003, impactMining_001, impactMining_004, impactMining_002 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_titanking_shieldup.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Nemesis bosses: Kronos raises his golden time-forcefield: a shimmering hum swelling with a clock-like chime (tell); a synthesized golden hum swell, shimmer and clock chime, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds forceField_001 and Interface Sounds tick_001, tick_002 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_titanking_pierce.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Nemesis bosses: a blade drives through the forcefield: a glassy energy shatter and an iron stab; a synthesized energy crackle, glass shards and a falling hum, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactMetal_heavy_000, impactGlass_heavy_001, impactGlass_medium_002 and Sci-fi Sounds forceField_003 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_titanking_shielddown.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Nemesis bosses: the forcefield collapses: a falling sparkle and a power-down; a synthesized falling chime sparkle and power-down sweep, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds forceField_002 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_titanking_rise.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Nemesis bosses: Kronos's giant stone head rises from behind the table: grinding stone, a rumble and a low growl (tell); a synthesized rising stone grind, rumble and low growl, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactMining_000 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_titanking_headchew.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Nemesis bosses: the stone head chews a pizza: a grinding stone crunch with crust crackle (repeats while it eats); a synthesized stone grind and crust crackle, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactWood_medium_001 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_titanking_sink.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Nemesis bosses: the beaten stone head sinks away: a descending grinding rumble; a synthesized falling stone grind and rumble, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactMining_001 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_titanking_gulp.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Nemesis bosses: Kronos swallows a mouthful of pizza: a deep cavernous gulp; a synthesized deep throat gulp with a cavern echo, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactSoft_heavy_001 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_titanking_inhale.mp3",
+    "title": "Monster Inhale.wav",
+    "author": "ecfike (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/ecfike/sounds/132865/",
+    "notes": "Nemesis bosses: DEVOUR: Kronos's Titan head inhales a pizza (loops while it pulls): a long, hollow, titanic breath in with a low rumble; built from real recordings and the fight's own sounds with ffmpeg (trimmed, pitch-shifted, filtered and layered), a brown-noise rumble under it and the tail crossfaded into the head for a seamless loop. This source: the breath, 4.4 s, pitched down; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_titanking_inhale.mp3",
+    "title": "cool hollow wind cavern effect chimney fireplace air suck.flac",
+    "author": "kyles (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/kyles/sounds/453850/",
+    "notes": "Nemesis bosses: DEVOUR: Kronos's Titan head inhales a pizza (loops while it pulls). This source: the hollow rush of air into the mouth, pitched down; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_titanking_choke.mp3",
+    "title": "Zombie Choking.wav",
+    "author": "mrh4hn (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/mrh4hn/sounds/426637/",
+    "notes": "Nemesis bosses: DEVOUR: the Titan head is whacked enough to choke on its breath (CHOKED!): a stone crack, then a strangled titanic gag and a cough; built from real recordings and the fight's own sounds with ffmpeg (trimmed, pitch-shifted, filtered and layered), over sfx_titanking_jawhit (CC0, made for Feetza) and a synthesized sub thump. This source: the gag, pitched well down; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_titanking_choke.mp3",
+    "title": "Short cough / choke",
+    "author": "Breviceps (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Breviceps/sounds/444723/",
+    "notes": "Nemesis bosses: DEVOUR: the Titan head chokes (CHOKED!). This source: the closing cough, pitched down; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_titanking_lavaburst.mp3",
+    "title": "lava death",
+    "author": "MrVasLuk (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/MrVasLuk/sounds/304619/",
+    "notes": "Nemesis bosses: DEVOUR: Kronos's Titan head breaks the surface of the lava pit: a deep lava surge and splash and a hiss of steam; built from real recordings and the fight's own sounds with ffmpeg (trimmed, pitch-shifted, filtered and layered), with a synthesized sub swell. This source: the lava surge, pitched down; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_titanking_lavaburst.mp3",
+    "title": "R19-39-Steam Hiss.wav",
+    "author": "craigsmith (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/craigsmith/sounds/479296/",
+    "notes": "Nemesis bosses: DEVOUR: the Titan head breaks the surface of the lava pit. This source: the steam hiss off the hot stone; trimmed, filtered and layered"
+  },
+  {
+    "file": "sfx_titanking_lavaburst.mp3",
+    "title": "LavaSound",
+    "author": "Rickplayer (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Rickplayer/sounds/531699/",
+    "notes": "Nemesis bosses: DEVOUR: the Titan head breaks the surface of the lava pit. This source: the lava bubbling as it drains off him; trimmed, filtered and layered"
   },
   {
     "file": "sfx_zeus_enter.mp3",
@@ -7478,5 +7825,122 @@
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
     "notes": "Peel smacks: the amazonqueen peel’s own smack tail; a synthesized lasso and horn call, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_spartanchant.mp3",
+    "title": "Group Ooh 1",
+    "author": "CHallSmith (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/CHallSmith/sounds/870650/",
+    "notes": "Leonidas's Hot Gates: King Leonidas's Hold the Line, raised or renewed: the phalanx's war chant, HOOOOH... HOO! HOO!, spears banged on bronze shields on the beats; built from real recordings with ffmpeg (scripts/real-sfx/build.py): the rising HOOOOH layered from two group \"ooh\"s and the Kingly Yell, each pitch-shifted a few semitones and offset a few ms into a phalanx; two barks layered from single and group shouts (HA!, HUH!, Whoo!, HEY); on each bark a rank of shield bashes and iron hits and a foot stamp; a short convolution room over all of it. This source: the rising HOOOOH; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_spartanchant.mp3",
+    "title": "Group Ooh 2",
+    "author": "CHallSmith (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/CHallSmith/sounds/870651/",
+    "notes": "Leonidas's Hot Gates: King Leonidas's Hold the Line, raised or renewed: the phalanx's war chant, HOOOOH... HOO! HOO!, spears banged on bronze shields on the beats: the rising HOOOOH; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_spartanchant.mp3",
+    "title": "Kingly Yell - NO reverb.wav",
+    "author": "WelvynZPorterSamples (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/WelvynZPorterSamples/sounds/623449/",
+    "notes": "Leonidas's Hot Gates: King Leonidas's Hold the Line, raised or renewed: the phalanx's war chant, HOOOOH... HOO! HOO!, spears banged on bronze shields on the beats: the held front-rank voice in the HOOOOH; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_spartanchant.mp3",
+    "title": "\"HA!\" - NO reverb.wav",
+    "author": "WelvynZPorterSamples (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/WelvynZPorterSamples/sounds/623441/",
+    "notes": "Leonidas's Hot Gates: King Leonidas's Hold the Line, raised or renewed: the phalanx's war chant, HOOOOH... HOO! HOO!, spears banged on bronze shields on the beats: the barks; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_spartanchant.mp3",
+    "title": "HUH! 01.wav",
+    "author": "sandyrb (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/sandyrb/sounds/85897/",
+    "notes": "Leonidas's Hot Gates: King Leonidas's Hold the Line, raised or renewed: the phalanx's war chant, HOOOOH... HOO! HOO!, spears banged on bronze shields on the beats: the barks; trimmed, pitch-shifted and layered",
+    "attribution": "\"HUH! 01.wav\" by sandyrb (freesound.org), https://freesound.org/people/sandyrb/sounds/85897/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_hero_spartanchant.mp3",
+    "title": "US Military Soldier Shouting \"Whoo!\"",
+    "author": "qubodup (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/qubodup/sounds/161340/",
+    "notes": "Leonidas's Hot Gates: King Leonidas's Hold the Line, raised or renewed: the phalanx's war chant, HOOOOH... HOO! HOO!, spears banged on bronze shields on the beats: the barks; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_spartanchant.mp3",
+    "title": "Men Shouting Hey.wav",
+    "author": "Jace (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Jace/sounds/57204/",
+    "notes": "Leonidas's Hot Gates: King Leonidas's Hold the Line, raised or renewed: the phalanx's war chant, HOOOOH... HOO! HOO!, spears banged on bronze shields on the beats: the barks; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_spartanchant.mp3",
+    "title": "Hey - Men Shouting together - Jewish Wedding",
+    "author": "khenshom (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/khenshom/sounds/527740/",
+    "notes": "Leonidas's Hot Gates: King Leonidas's Hold the Line, raised or renewed: the phalanx's war chant, HOOOOH... HOO! HOO!, spears banged on bronze shields on the beats: the barks; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_spartanchant.mp3",
+    "title": "Crowd Chanting HEY",
+    "author": "pipjmalt (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/pipjmalt/sounds/416507/",
+    "notes": "Leonidas's Hot Gates: King Leonidas's Hold the Line, raised or renewed: the phalanx's war chant, HOOOOH... HOO! HOO!, spears banged on bronze shields on the beats: the barks; trimmed, pitch-shifted and layered",
+    "attribution": "\"Crowd Chanting HEY\" by pipjmalt (freesound.org), https://freesound.org/people/pipjmalt/sounds/416507/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_hero_spartanchant.mp3",
+    "title": "Shield Bash Impact",
+    "author": "Hybrid_V (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/Hybrid_V/sounds/319590/",
+    "notes": "Leonidas's Hot Gates: King Leonidas's Hold the Line, raised or renewed: the phalanx's war chant, HOOOOH... HOO! HOO!, spears banged on bronze shields on the beats: spears on shields; trimmed, pitch-shifted and layered",
+    "attribution": "\"Shield Bash Impact\" by Hybrid_V (freesound.org), https://freesound.org/people/Hybrid_V/sounds/319590/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_hero_spartanchant.mp3",
+    "title": "shield guard",
+    "author": "nekoninja (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/nekoninja/sounds/370203/",
+    "notes": "Leonidas's Hot Gates: King Leonidas's Hold the Line, raised or renewed: the phalanx's war chant, HOOOOH... HOO! HOO!, spears banged on bronze shields on the beats: spears on shields; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_spartanchant.mp3",
+    "title": "Shield Breaking With Bludgeon.wav",
+    "author": "SoundFlakes (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/SoundFlakes/sounds/492237/",
+    "notes": "Leonidas's Hot Gates: King Leonidas's Hold the Line, raised or renewed: the phalanx's war chant, HOOOOH... HOO! HOO!, spears banged on bronze shields on the beats: spears on shields (the bludgeon hit only); trimmed, pitch-shifted and layered",
+    "attribution": "\"Shield Breaking With Bludgeon.wav\" by SoundFlakes (freesound.org), https://freesound.org/people/SoundFlakes/sounds/492237/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_hero_spartanchant.mp3",
+    "title": "Iron Hits.wav",
+    "author": "Mrthenoronha (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Mrthenoronha/sounds/371353/",
+    "notes": "Leonidas's Hot Gates: King Leonidas's Hold the Line, raised or renewed: the phalanx's war chant, HOOOOH... HOO! HOO!, spears banged on bronze shields on the beats: spears on shields; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_spartanchant.mp3",
+    "title": "Foot Stomp C.wav",
+    "author": "patchen (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/patchen/sounds/20185/",
+    "notes": "Leonidas's Hot Gates: King Leonidas's Hold the Line, raised or renewed: the phalanx's war chant, HOOOOH... HOO! HOO!, spears banged on bronze shields on the beats: the stamp, an octave down; trimmed, pitch-shifted and layered",
+    "attribution": "\"Foot Stomp C.wav\" by patchen (freesound.org), https://freesound.org/people/patchen/sounds/20185/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
   }
 ]

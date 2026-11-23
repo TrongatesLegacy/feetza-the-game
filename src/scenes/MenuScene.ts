@@ -1,10 +1,13 @@
+import { immortalLive } from '../game/footLive';
+import { liveDefOf, liveWarm, styleLive, warmLive } from '../game/liveKit';
 import Phaser from 'phaser';
 import { H, PIZZA_Y, W } from '../config';
 import { HEAT_BY_ID } from '../data/difficulty';
-import { FEET } from '../data/feet';
+import { FEET, FOOT_BY_ID } from '../data/feet';
 import { PIZZA_BY_ID } from '../data/pizzas';
 import { BackdropView } from '../game/BackdropView';
 import { Foot } from '../game/Foot';
+import { warmFootArt } from '../game/assets';
 import { Fx } from '../game/Fx';
 import { Pizza } from '../game/Pizza';
 import { endCrustsFor } from '../game/Run';
@@ -23,6 +26,38 @@ export function randomLineup(n: number): string[] {
     out.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
   }
   return out;
+}
+
+/** The title screen's demo foot is picked a foot ahead, so its art can be drawn before it comes on (boot draws the
+ * first one). */
+let nextDemo: string | null = null;
+
+function pickDemoFoot(): string {
+  const ok = (f: (typeof FEET)[number]) => !f.boss && !f.mini && !f.traits.includes('flee') && !f.traits.includes('invisible') && !f.traits.includes('bury');
+  const pool = save.seenFeet.length ? FEET.filter((f) => save.seenFeet.includes(f.id) && ok(f)) : FEET.filter((f) => f.minWave <= 2 && f.weight > 0);
+  return Phaser.Utils.Array.GetRandom(pool.length ? pool : FEET.slice(0, 3)).id;
+}
+
+/** The next demo foot (picked now if it isn't yet). */
+export function peekDemoFoot(): string {
+  return (nextDemo ??= pickDemoFoot());
+}
+
+/** The title screen's pizzas, picked ahead the same way (boot makes them). */
+let nextLineup: string[] | null = null;
+export function peekMenuLineup(): string[] {
+  return (nextLineup ??= randomLineup(3));
+}
+function takeMenuLineup(): string[] {
+  const ids = peekMenuLineup();
+  nextLineup = null;
+  return ids;
+}
+
+function takeDemoFoot(): string {
+  const id = peekDemoFoot();
+  nextDemo = null;
+  return id;
 }
 
 export class MenuScene extends Phaser.Scene {
@@ -55,7 +90,7 @@ export class MenuScene extends Phaser.Scene {
     this.fx = new Fx(this, fxLayer);
     // Loki's secret: he sometimes peeks out from behind the chalkboard (the Trattoria's)
     if (!save.legend) lokiPeek(this, fxLayer, () => this.showMenu());
-    const ids = randomLineup(3);
+    const ids = takeMenuLineup();
     ids.forEach((id, i) => {
       this.pizzas.push(new Pizza(this, pz, PIZZA_BY_ID[id], W / 2 + (i - 1) * 560, PIZZA_Y + 20, 0.78, 8).hideLabel());
     });
@@ -172,9 +207,9 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private spawnFoot(): void {
-    const ok = (f: (typeof FEET)[number]) => !f.boss && !f.mini && !f.traits.includes('flee') && !f.traits.includes('invisible') && !f.traits.includes('bury');
-    const pool = save.seenFeet.length ? FEET.filter((f) => save.seenFeet.includes(f.id) && ok(f)) : FEET.filter((f) => f.minWave <= 2 && f.weight > 0);
-    const type = Phaser.Utils.Array.GetRandom(pool.length ? pool : FEET.slice(0, 3));
+    const type = FOOT_BY_ID[takeDemoFoot()];
+    // the one after it is drawn in idle time while this one plays
+    warmFootArt([peekDemoFoot()]);
     const target = this.sidePizza();
     this.hits = 0;
     this.foot = new Foot(this, this.feetLayer, this.shadowLayer, type, target.x, {
@@ -193,6 +228,8 @@ export class MenuScene extends Phaser.Scene {
     });
     this.foot.target = target;
     this.foot.hoverTime = 2.5;
+    // its live art (built in idle time; update() starts it once ready, while it's still coming down)
+    warmLive(this, [type.id], FOOT_BY_ID);
   }
 
   /** The demo foot works the outer pizzas so it isn't hidden behind the logo. */
@@ -221,6 +258,10 @@ export class MenuScene extends Phaser.Scene {
     this.backdrop.update(dt);
     if (this.foot && this.foot.alive) {
       this.foot.update(dt, 1);
+      // alive like in play: the redrawn feet's live layer, the Immortals' smoke
+      const id = this.foot.type.id;
+      if (id === 'immortal') immortalLive(this.foot, dt);
+      else if (liveWarm(this, id) || !liveDefOf(id)) styleLive(this.foot, dt);
       // keep the menu foot from ever finishing pizzas
       if (this.foot.state === 'stomp' && this.foot.stateT > 0.3) this.foot.knock(300);
     }

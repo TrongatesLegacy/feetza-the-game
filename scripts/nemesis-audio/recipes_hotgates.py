@@ -3,6 +3,7 @@ the god-king (wave 85), and King Leonidas's and the Hot Gates variant's moves (s
 recipes.py (whose shared voices it reuses); build.py renders both sets.
 
   KENNEY=/path/to/kenney python3 -I build.py OUTDIR immortalbrute xerxes holdline spear shieldblock hotgates
+  (sfx_hero_spartanchant is built from recordings by scripts/real-sfx/build.py)
   python3 -I integrate_hotgates.py OUTDIR REPO"""
 import random
 
@@ -302,3 +303,9 @@ where('sfx_hero_hotgates', 'Leonidas, Hot Gates: a roaring Spartan war cry with 
 def _():
     beats = [at(bronze(131 + i, rate=0.85, db=-3), 0.9 + i * 0.28) for i in range(5)]
     return fx(mix(gain(shout(1.4, 125, 105, seed=132, voices=6), 0), *beats, gain(rumble(2.2, 50, seed=133), -10)), COMP)
+
+
+# ======================= the Spartan war chant (Hold the Line raised or renewed) =======================
+# sfx_hero_spartanchant (OOOOH... OOH! OOH!, spears on bronze shields) used to be synthesized here. It is now built
+# from real recordings (Freesound group "ooh"s, shouts, shield bashes and a stamp) by scripts/real-sfx/build.py,
+# which also says where to fetch them; its sources are credited in public/audio/CREDITS.md and credits.json.

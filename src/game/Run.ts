@@ -214,8 +214,9 @@ function actOfLocation(loc: string | undefined): number | null {
   return i < 0 ? null : Math.floor(i / STAGES_PER_ACT) + 1;
 }
 const homeAct = (f: FootType) => actOfLocation(f.home);
-/** Themed feet are common in their own act and rare anywhere else (later acts and endless loops). */
-export const THEMED_TAPER = 0.25;
+/** Themed feet (with a home location) only appear in their own act; everyday feet (no home) anywhere. So at any
+ * time the game needs only one act's feet in memory (their art is released when the act is left). */
+export const THEMED_TAPER = 0;
 /** Act 9 (Greek myths) is where Persian Elephant Feet gather (300 of them unlock the Kratos Peel). */
 const ELEPHANT_ACT = 9;
 /** Elephants' weight multiplier all through Act 9 (both stages), in place of the fresh and home bonuses: those
@@ -224,6 +225,23 @@ const ELEPHANT_ACT_MULT = 3;
 /** Chance an Act 9 location wave brings a Persian war band (a Satrap, elephants, cavalry and archers, with Spartan
  * Sandals guarding). */
 const BAND_CHANCE = 0.5;
+
+/** The act a wave's location belongs to. */
+export function actOfWave(n: number): number {
+  return actOfLocation(homeOf(locationFor(n))) ?? Math.floor(stageIndex(n) / STAGES_PER_ACT) + 1;
+}
+
+/** The regular feet that can turn up in wave n: unlocked, and either everyday feet or at home in the wave's act. */
+export function footPool(n: number): FootType[] {
+  const loop = loopOf(n);
+  const inLoop = n - loop * JOURNEY_WAVES;
+  const act = actOfWave(n);
+  return FEET.filter((f) => {
+    if (f.boss || f.mini || f.weight <= 0 || !(f.minWave <= inLoop || loop > 0)) return false;
+    const own = homeAct(f);
+    return own === null || own === act || (f.id === 'elephant' && act === ELEPHANT_ACT);
+  });
+}
 
 export function planWave(n: number, luck: number, heatId: HeatId = 'regular'): WavePlan {
   const heat = HEAT_BY_ID[heatId];
@@ -243,10 +261,10 @@ export function planWave(n: number, luck: number, heatId: HeatId = 'regular'): W
   const mini = isMiniWave(n) ? miniFor(n) : null;
   // a nemesis place still brings the regular feet of the place it stands in for
   const home = homeOf(locationFor(n));
-  const pool = FEET.filter((f) => !f.boss && !f.mini && f.weight > 0 && (f.minWave <= inLoop || loop > 0));
-  // freshly unlocked feet get the spotlight; feet at home in this location turn up 3x as often.
   // The act of this wave's location (Endless+ shuffles locations, so this follows the place, not the wave number)
-  const act = actOfLocation(home) ?? Math.floor(stageIndex(n) / STAGES_PER_ACT) + 1;
+  const act = actOfWave(n);
+  const pool = footPool(n);
+  // freshly unlocked feet get the spotlight; feet at home in this location turn up 3x as often
   const weight = (f: FootType) => {
     if (f.id === 'elephant' && act === ELEPHANT_ACT) return f.weight * ELEPHANT_ACT_MULT;
     const own = homeAct(f);
@@ -352,6 +370,8 @@ export class Run {
   enhancedPerks = new Set<PizzaPerk>();
   /** Run time in seconds: counts waves and the shop, stops in the pause menu, while the tab is hidden and while away from the run. */
   elapsed = 0;
+  /** The run clock in whole microseconds (elapsed is it in seconds). */
+  elapsedUs = 0;
   /** Endless: the run carries on past the journey's end (JOURNEY_WAVES) instead of ending there. */
   endless = false;
   /** Where the current act began: its first wave and the run's clock, feet and slices lost then (for ACT COMPLETE). */

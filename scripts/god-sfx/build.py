@@ -1,7 +1,8 @@
 """God peel SFX (src/game/godMoves.ts, src/game/acts/gods.ts): a sound for every god's signature move, the Kratos
 Peel's rage (shout, fire loop, flaming smacks, blades and the end hiss), the God Peel (Divine Feast and its reveal),
 and the two new feet (Persian Elephant Feet and Spartan Sandals). Every layer is synthesized here, so all of it is
-CC0. Built with the boss-sfx kit (../boss-sfx: dsp.py, render.py), so levels are measured the same way.
+CC0 (except the Spartan Rage roar, now built from recordings by ../real-sfx/build.py). Built with the boss-sfx kit
+(../boss-sfx: dsp.py, render.py), so levels are measured the same way.
 
   KENNEY=/none python3 -I build.py OUTDIR [key-substring ...]
   python3 -I ../hero-sfx/integrate.py OUTDIR <repo>   (or copy by hand; credits and TRIM are in the repo)
@@ -195,6 +196,11 @@ def _():
     a = shout(0.32, 160, 170, [600, 1100, 2500], rasp=0.6, seed=11)
     b = shout(1.4, 190, 150, [750, 1200, 2700], rasp=0.8, seed=12)
     return mix(a, at(gain(b, 2), 0.38), at(gain(thump(0.4, 90, 40, 0.2), -4), 0.38))
+
+
+# sfx_hero_spartanrage (the Spartan Rage roar, "RAAAGH!" with a burst of fire) used to be synthesized here. It is now
+# built from real recordings (a man's rage scream, a studio roar, a monster roar and fire bursts from Freesound) by
+# scripts/real-sfx/build.py; its sources are credited in public/audio/CREDITS.md and credits.json.
 
 
 @S('sfx_hero_rage', BED, 2.0, syn='a synthesized roaring fire loop', fade=0.01)

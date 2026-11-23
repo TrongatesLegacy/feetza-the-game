@@ -129,12 +129,12 @@ export const feet: FootType[] = [
   {
     id: 'riot',
     name: 'Riot Ryan',
-    desc: 'A tactical boot behind a riot shield. The shield drops for a moment every few seconds, and right after it stomps.',
+    desc: 'A tactical boot behind a riot shield that never comes down. Every smack on it cracks it, and enough of them (6 on Regular) shatter it; a Peel Slam takes 3 at once, and burns and toppings only wear it down at half pace. 9 seconds later (on Regular) someone tosses him a new one, good as new.',
     hp: 48, speed: 0.85, armor: 3, stompDmg: 1, coins: 8, score: 270, scale: 1.05, minWave: 16, weight: 4,
     traits: ['guard'],
     home: 'diner',
-    howTo: 'Smack it in the short window when the shield drops',
-    tell: 'It glints blue just before the shield drops',
+    howTo: 'Smash the shield: 6 smacks (4 on Mild, 8 from Extra Hot) or a Peel Slam for 3; burns and toppings wear it at half pace. Then hit him hard before he catches a new one (9 s; 12 on Mild, 7.5 from Extra Hot)',
+    tell: 'The badge on his leg: its bar is the smacks the shield can still take, and once it’s BROKEN its amber ring counts down to the new one (it glows blue as he reaches back for it)',
     art: { kind: 'r_riot', skin: SKIN.light, primary: '#1d1f24', secondary: '#9fc4e8', leg: 'suit', legColor: '#23262d' },
   },
   {
@@ -214,7 +214,7 @@ export const feet: FootType[] = [
     home: 'space',
     howTo: 'Aim off to the side to fight the pull',
     tell: 'Field lines arc between the magnet tips',
-    art: { kind: 'r_magnet', skin: SKIN.light, primary: '#4a5568', secondary: '#e5242f', leg: 'robot' },
+    art: { kind: 'r_magnet', skin: SKIN.light, primary: '#4a5568', secondary: '#e5242f', leg: 'robot', legColor: '#4a5568' },
   },
   {
     id: 'gravity',
@@ -269,7 +269,7 @@ export const feet: FootType[] = [
     home: 'space',
     howTo: 'Focus it early: it hits three pizzas at once',
     tell: 'The camera mast swivels before it stomps',
-    art: { kind: 'r_rover', skin: SKIN.light, primary: '#e8e2d6', secondary: '#c8642a', leg: 'robot' },
+    art: { kind: 'r_rover', skin: SKIN.light, primary: '#e8e2d6', secondary: '#c8642a', leg: 'robot', legColor: '#9a968c' },
   },
   {
     id: 'starlight',

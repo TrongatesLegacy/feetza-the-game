@@ -9,10 +9,10 @@ import { HEAT_BY_ID } from '../../data/difficulty';
 import { save } from '../../systems/save';
 import { bits, enterArena, leaveArena } from '../acts/act9';
 import type { Arena } from '../arena';
-import { ART_RES, addCanvas } from '../assets';
+import { addCanvas } from '../assets';
 import type { Foot } from '../Foot';
 import type { Pizza } from '../Pizza';
-import { type Brain, type Prop, type Takeover, Every, dropOn, heat, hitProp, laneOf, mark, rnd, shield, takeLane, throwAtPeel } from './kit';
+import { type Brain, type PhaseCard, type Prop, type Takeover, Every, dropOn, heat, hitProp, laneOf, mark, rnd, shield, takeLane, throwAtPeel } from './kit';
 
 // ——— Act helpers ———
 
@@ -163,7 +163,7 @@ function shardsOf(a: Arena, f: Foot, n: number): string[] {
 /** A death that lands: a slow-mo beat, a flash, and the boss bursting into pieces of itself. */
 function shatter(a: Arena, f: Foot, o: { tint?: number; burst?: number; n?: number; sfx?: string } = {}): void {
   const keys = shardsOf(a, f, o.n ?? 9);
-  const s = (f.root.scaleX * 1) / ART_RES;
+  const s = f.root.scaleX / f.meta.textures.res;
   const src = a.sc.textures.get(f.meta.footKey).getSourceImage() as HTMLCanvasElement;
   const cols = Math.ceil(Math.sqrt(keys.length));
   const rows = Math.ceil(keys.length / cols);
@@ -385,6 +385,32 @@ const minotaur = (): Brain => {
       'It charges down an open lane of the maze · pizzas behind a wall are safe; smack it while it paws the ground and it rams a wall',
       'The walls slide to new places and it charges twice in a row · watch which lanes are open',
       'Three charges in a row, and the walls move between them · interrupt the snort to stun it',
+    ],
+    cards: [
+      {
+        what: 'It paws the ground, then charges down an open lane',
+        hit: 'Smack it while it snorts: it charges blind into a wall',
+        miss: 'It gores the pizza at the end of the lane',
+        show: [{ key: '@boss', label: 'While it snorts', hits: (h) => h.hits(3) }],
+      },
+      {
+        what: 'The maze walls slide and it charges twice in a row',
+        hit: 'Interrupt the snort, and watch which lanes are open',
+        miss: 'Pizzas in open lanes get gored',
+        show: [
+          { key: '@boss', label: 'While it snorts', hits: (h) => h.hits(3) },
+          { key: 'p9_wall', label: 'Walls guard pizzas', watch: true },
+        ],
+      },
+      {
+        what: 'Three charges in a row, the walls moving between them',
+        hit: 'Smack it mid-snort to send it crashing into a wall',
+        miss: 'Each charge gores a pizza',
+        show: [
+          { key: '@boss', label: 'While it snorts', hits: (h) => h.hits(3) },
+          { key: 'p9_wall', label: 'Walls guard pizzas', watch: true },
+        ],
+      },
     ],
     upkeep: (f, _dt, a) => {
       start(() => {
@@ -690,6 +716,41 @@ const medusa = (): Brain => {
       'The snakes in her hair strike at the pizzas · smack each snake head before it bites',
       'She turns two pizzas to stone at once · use the mirror to free them',
     ],
+    cards: [
+      {
+        what: 'Her stare turns a pizza to stone: no perk, and it cracks',
+        hit: 'While her eyes glow, smack her reflection in the mirror',
+        miss: 'Stomps crack the stone pizza until it crumbles',
+        show: [
+          { key: 'p9_mirror', label: 'Mirror', hits: 3 },
+          { key: 'p9_stone', label: 'Stone pizza', watch: true },
+        ],
+      },
+      {
+        what: 'Her green stare now catches the peel too',
+        hit: 'Keep the peel out of the stare; smack the snakes',
+        miss: 'Caught in the stare: no smacks for 2 seconds',
+        show: [
+          { key: 'p9_mirror', label: 'Mirror', hits: 3 },
+          { key: '@foot:gorgonsnake', label: 'Snakes', hits: 1 },
+        ],
+      },
+      {
+        what: 'The snakes in her hair strike down at the pizzas',
+        hit: 'Smack each snake head before it bites',
+        miss: 'A bite takes a slice',
+        show: [{ key: 'p9_snakehead', label: 'Snake head', hits: 1 }],
+      },
+      {
+        what: 'She turns two pizzas to stone at once',
+        hit: 'Use the mirror: 3 hits on her reflection free a statue',
+        miss: 'Stone pizzas lose their perks and crumble',
+        show: [
+          { key: 'p9_mirror', label: 'Mirror', hits: 3 },
+          { key: 'p9_stone', label: 'Stone pizzas', watch: true },
+        ],
+      },
+    ],
     upkeep: (f, _dt, a) => {
       start(() => {
         // statues left by a run that ended mid-fight (Play Again, Save & Menu) belong to pizzas that are gone
@@ -908,6 +969,38 @@ const cerberus = (): Brain => {
       'Every 11 s the pack howls and every paw uses its temper at once · bat the shards and smash the fireballs',
       'The paws are faster and angrier · finish one paw at a time',
     ],
+    cards: [
+      {
+        what: 'Three paws share one health bar: fire, ice and poison',
+        hit: 'Beat one paw at a time, and stop what each one throws',
+        miss: 'Fireballs and poison take slices; ice slows your peel',
+        show: [
+          { key: 'p9_fireball', label: 'Fireball', hits: 1 },
+          { key: 'p9_iceshard', label: 'Ice shard', hits: 1 },
+          { key: 'p9_poison', label: 'Poison', hits: (h) => h.hits(2) },
+        ],
+      },
+      {
+        what: 'The pack howls and every paw uses its temper at once',
+        hit: 'Bat the shards and smash the fireballs and poison',
+        miss: 'Everything lands at once: slices lost, peel slowed',
+        show: [
+          { key: 'p9_fireball', label: 'Fireball', hits: 1 },
+          { key: 'p9_iceshard', label: 'Ice shard', hits: 1 },
+          { key: 'p9_poison', label: 'Poison', hits: (h) => h.hits(2) },
+        ],
+      },
+      {
+        what: 'The paws get faster and angrier',
+        hit: 'Finish one paw at a time; keep stopping their throws',
+        miss: 'Beaten paws make the others go wild',
+        show: [
+          { key: '@boss', label: 'One paw at a time' },
+          { key: 'p9_fireball', label: 'Fireball', hits: 1 },
+          { key: 'p9_iceshard', label: 'Ice shard', hits: 1 },
+        ],
+      },
+    ],
     upkeep: (f, _dt, a) => {
       start(() => {
         // the boss itself is the shared health bar: it waits off screen while its three paws fight
@@ -1025,12 +1118,49 @@ const TITAN_INFO: Record<Titan | 'hades', [string, string]> = {
   hyperion: ['HYPERION RISES', 'Hyperion sets pizzas alight with solar flares · smack out the flames, then beat him to send him back'],
   hades: ['LORD OF THE DEAD', 'Hades himself: shadows creep out of the floor to steal slices · smack each shadow before it drags a slice back to him'],
 };
+/** Each phase's card (src/ui/phaseCard.ts), in the plan's order. */
+const TITAN_CARD: Record<Titan | 'hades', PhaseCard> = {
+  kronos: {
+    what: 'Hades hides behind Kronos, whose hourglass flips over',
+    hit: 'Smash the hourglass, then beat Kronos to send him back',
+    miss: 'Sand runs out: your peel slows and every foot hurries',
+    show: [
+      { key: 'p9_hourglass', label: 'Hourglass', hits: (h) => h.hits(3) },
+      { key: '@foot:kronos', label: 'Then beat Kronos' },
+    ],
+  },
+  atlas: {
+    what: 'Atlas lifts one end of the table and the pizzas slide',
+    hit: 'Smack his hand under the table to drop it level',
+    miss: 'The lowest pizza slides into his stomp',
+    show: [
+      { key: 'p9_atlashand', label: 'His hand', hits: (h) => h.hits(3) },
+      { key: '@foot:atlas', label: 'Then beat Atlas' },
+    ],
+  },
+  hyperion: {
+    what: 'Hyperion sets pizzas alight with solar flares',
+    hit: 'Smack out the flames, then beat Hyperion',
+    miss: 'A burning pizza loses a slice every 4 seconds',
+    show: [
+      { key: 'p9_flare', label: 'Flames', hits: (h) => h.hits(3) },
+      { key: '@foot:hyperion', label: 'Then beat Hyperion' },
+    ],
+  },
+  hades: {
+    what: 'Hades himself: shadows creep out to steal slices',
+    hit: 'Smack each shadow hand before it drags a slice away',
+    miss: 'He eats the slice and heals',
+    show: [{ key: 'p9_shadowhand', label: 'Shadow hand', hits: (h) => h.hits(2) }],
+  },
+};
+
 /** A Titan's health, as a share of Hades's. */
 const TITAN_HP = [0.1, 0.12, 0.13, 0.14, 0.15];
 
-function hadesPlan(phases: number): { order: (Titan | null)[]; names: string[]; info: string[] } {
+function hadesPlan(phases: number): { order: (Titan | null)[]; names: string[]; info: string[]; cards: PhaseCard[] } {
   const order = TITANS_FOR[Math.max(1, Math.min(4, phases))];
-  return { order, names: order.map((t) => TITAN_INFO[t ?? 'hades'][0]), info: order.map((t) => TITAN_INFO[t ?? 'hades'][1]) };
+  return { order, names: order.map((t) => TITAN_INFO[t ?? 'hades'][0]), info: order.map((t) => TITAN_INFO[t ?? 'hades'][1]), cards: order.map((t) => TITAN_CARD[t ?? 'hades']) };
 }
 
 const hades = (): Brain => {
@@ -1050,12 +1180,17 @@ const hades = (): Brain => {
   const brain: Brain = {
     names: plan.names,
     info: plan.info,
+    cards: plan.cards,
+    setPhases: (n) => {
+      const p2 = hadesPlan(n);
+      order = p2.order;
+      brain.names.splice(0, brain.names.length, ...p2.names);
+      brain.info.splice(0, brain.info.length, ...p2.info);
+      brain.cards?.splice(0, brain.cards.length, ...p2.cards);
+    },
     upkeep: (f, dt, a) => {
       start(() => {
-        const p2 = hadesPlan(a.bossPhases());
-        order = p2.order;
-        brain.names.splice(0, brain.names.length, ...p2.names);
-        brain.info.splice(0, brain.info.length, ...p2.info);
+        brain.setPhases!(a.bossPhases());
         a.flash(500, 30, 50, 120);
         entrance(a, f, { sfx: 'sfx_hades_toll', quip: 'WELCOME TO THE UNDERWORLD.', color: '#8fd8ff', flash: [80, 160, 255], delay: 500, onLanded: () => a.sc.time.delayedCall(900, () => f.alive && phaseStart(f, a, 1)) });
         bin.add(() => {

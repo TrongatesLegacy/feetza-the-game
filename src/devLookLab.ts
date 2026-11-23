@@ -1,16 +1,26 @@
-// Dev-only look lab: every peel with an animated look (fires, glows, trails), all playing at once, grouped by
-// family, with a notes box for each and one for overall thoughts. Open it with the floating "✨ Looks" button or
-// ?dev&looks. Notes save to the dev server beside FEETZA_NOTES (…-looks.json and .md) and to localStorage.
+// Dev-only look lab: every peel with an animated look (fires, glows, trails) and every living foot peel, all playing
+// at once (those scrolled out of view rest), grouped by family, with a notes box for each and one for overall
+// thoughts. Open it with the floating "✨ Looks" button or ?dev&looks. Notes save to the dev
+// server beside FEETZA_NOTES (…-looks.json and .md) and to localStorage.
 import { PEELS, peelThumbURL, type PeelDef } from './game/peels';
 import { LOOK_OX, LOOK_OY, animateLookImg, canvasPen, hasAnimatedLook, movingLook, stopLookOverlays } from './art/animatedLooks';
 import type { MovingPainter } from './art/lookKit';
 import { FIRE_PEELS } from './art/lookFire';
+import { hasPeelLive } from './art/peelLive';
 
 type Notes = Record<string, string>;
 const LS_KEY = 'feetza.lookLab';
 const URL_ = '/__notes?name=looks';
 
+const PAGE = 12;
+
 const CSS = `
+.ll-pager{display:flex;gap:10px;align-items:center;margin:6px 0 10px}
+.ll-pager button{background:#5a3a28;color:#ffe9c7;border:0;border-radius:8px;padding:5px 12px;font:600 14px Fredoka,system-ui,sans-serif;cursor:pointer}
+.ll-tabs{flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px}
+.ll-tabs button{background:#5a3a28;color:#ffe9c7;border:0;border-radius:8px;padding:5px 11px;font:600 13px Fredoka,system-ui,sans-serif;cursor:pointer}
+.ll-tabs button:hover{background:#7a4a30}.ll-tabs button.on{background:#ff8a1a;color:#2a1810}
+.ll-tabs small{opacity:.7;font-weight:500}
 .ll-wrap{position:fixed;inset:0;z-index:9999;background:#efe2c8;overflow:auto;font:15px Fredoka,system-ui,sans-serif;color:#2a1810}
 .ll-head{position:sticky;top:0;z-index:2;background:#2a1810;color:#ffe9c7;display:flex;gap:12px;align-items:center;padding:10px 16px;flex-wrap:wrap}
 .ll-head h2{margin:0;font-size:20px}.ll-head .sp{flex:1}.ll-status{font-size:13px;opacity:.85;min-width:60px}
@@ -40,8 +50,10 @@ function families(): [string, string, PeelDef[]][] {
     ['The God Peel', 'the final trophy: halo, turning rays and a rainbow trail', all.filter((d) => d.group === 'god')],
     ['Always aflame', 'their own fire', all.filter(fire)],
     ['Gods', 'each god’s own glow', all.filter((d) => !fire(d) && god(d) && d.group !== 'god')],
-    ['Jewellery box, masterworks and ultra-rares', 'glints, sheens and auras', all.filter((d) => !fire(d) && !god(d) && d.group !== 'hero')],
-    ['Heroes', 'a quiet glow and trail', all.filter((d) => !fire(d) && !god(d) && d.group === 'hero')],
+    ['Jewellery box, masterworks and ultra-rares', 'glints, sheens and auras', all.filter((d) => !fire(d) && !god(d) && d.group !== 'hero' && !hasPeelLive(d.id))],
+    ['Heroes', 'a glow, rim glints and a starry ribbon', all.filter((d) => !fire(d) && !god(d) && d.group === 'hero')],
+    ['Living feet', 'redrawn feet that move as their foot does: glow, blinks, sway, toes, heat and what they shed', all.filter((d) => !fire(d) && hasPeelLive(d.id) && !d.id.startsWith('boss:'))],
+    ['Living bosses', 'the bosses and mini-bosses, alive the same way', all.filter((d) => !fire(d) && hasPeelLive(d.id) && d.id.startsWith('boss:'))],
   ];
 }
 
@@ -96,6 +108,14 @@ export function installLookLab(): void {
   };
 
   let moving = true;
+  let page = 0;
+  // one family at a time (the tabs); remembered between visits
+  let tab = '';
+  try {
+    tab = localStorage.getItem(LS_KEY + '.tab') ?? '';
+  } catch {
+    /* private mode */
+  }
   const close = () => {
     stopMoving();
     stopLookOverlays();
@@ -104,8 +124,15 @@ export function installLookLab(): void {
   const open = async () => {
     close();
     await (window as unknown as { F?: { boot?: () => Promise<void> } }).F?.boot?.();
-    const fams = families();
+    const fams = families().filter((f) => f[2].length);
     const total = fams.reduce((n, f) => n + f[2].length, 0);
+    const cur = fams.find((f) => f[0] === tab) ?? fams[0];
+    tab = cur[0];
+    // a page of cards at a time (a big family drew every thumbnail at once and froze the page for seconds)
+    const pages = Math.max(1, Math.ceil(cur[2].length / PAGE));
+    page = Math.min(Math.max(0, page), pages - 1);
+    const shown = cur[2].slice(page * PAGE, page * PAGE + PAGE);
+    const pager = pages > 1 ? `<div class="ll-pager"><button data-pg="-1">◀</button><span>Page ${page + 1} of ${pages}</span><button data-pg="1">▶</button></div>` : '';
     const art = (d: PeelDef) =>
       moving && hasMoving(d.id)
         ? `<div class="ll-stage" data-move="${esc(d.id)}"><canvas></canvas><canvas></canvas></div>`
@@ -114,11 +141,30 @@ export function installLookLab(): void {
       `<div class="ll-card${notes[d.id]?.trim() ? ' has' : ''}" data-id="${esc(d.id)}">${art(d)}<b>${esc(d.name)}</b><small>${esc(d.id)}</small><textarea data-note="${esc(d.id)}" placeholder="Notes…">${esc(notes[d.id] ?? '')}</textarea></div>`;
     const wrap = document.createElement('div');
     wrap.className = 'll-wrap';
-    wrap.innerHTML = `<div class="ll-head"><h2>✨ Peel looks</h2><span>${total} animated peels</span><span class="sp"></span><span class="ll-status"></span><button class="ll-btn" data-mode>${moving ? '⏸ Hold still' : '↔ Move them'}</button><button class="ll-btn alt" data-x>✕ Close</button></div>
+    wrap.innerHTML = `<div class="ll-head"><h2>✨ Peel looks</h2><span>${total} animated peels</span><span class="sp"></span><span class="ll-status"></span><button class="ll-btn" data-mode>${moving ? '⏸ Hold still' : '↔ Move them'}</button><button class="ll-btn alt" data-x>✕ Close</button>
+      <div class="ll-tabs">${fams.map(([t, , list]) => `<button class="${t === tab ? 'on' : ''}" data-tab="${esc(t)}">${esc(t)} <small>${list.length}</small></button>`).join('')}</div></div>
       <div class="ll-body"><div class="ll-overall"><h3>Overall notes</h3><textarea data-note="__overall" placeholder="Anything across all the looks…">${esc(notes.__overall ?? '')}</textarea></div>
-      ${fams.map(([t, sub, list]) => `<h3>${esc(t)}<small>${list.length} · ${esc(sub)}</small></h3><div class="ll-grid">${list.map(card).join('')}</div>`).join('')}</div>`;
+      <h3>${esc(cur[0])}<small>${cur[2].length} · ${esc(cur[1])}</small></h3>${pager}<div class="ll-grid">${shown.map(card).join('')}</div>${pager}</div>`;
     document.body.appendChild(wrap);
     wrap.querySelector('[data-x]')!.addEventListener('click', close);
+    wrap.querySelectorAll<HTMLElement>('[data-pg]').forEach((b) =>
+      b.addEventListener('click', () => {
+        page += Number(b.dataset.pg);
+        void open().then(() => document.querySelector('.ll-wrap')?.scrollTo(0, 0));
+      }),
+    );
+    wrap.querySelector('.ll-tabs')!.addEventListener('click', (e) => {
+      const t = (e.target as HTMLElement).closest('button')?.dataset.tab;
+      if (!t || t === tab) return;
+      tab = t;
+      page = 0;
+      try {
+        localStorage.setItem(LS_KEY + '.tab', t);
+      } catch {
+        /* private mode */
+      }
+      void open();
+    });
     wrap.querySelector('[data-mode]')!.addEventListener('click', () => {
       moving = !moving;
       try {

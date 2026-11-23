@@ -1,6 +1,6 @@
 // Hero variants' moves and passives (the peels are in src/content/peels/variants.ts). A variant keeps its base
 // hero's passive and fires its base move with a twist on top, so the base move stays the single source of truth.
-// - Kratos, Ghost of Sparta: This Is Spartaaa, but the rage leaves a fire trail on the table that burns feet
+// - Kratos, Ghost of Sparta: Spartan Rage, but the rage leaves a fire trail on the table that burns feet
 //   (1×/s for 2 s, at most every 0.5 s a foot); three blades from the start; an ember aura all the time.
 // - Superpeel Prime: Heat Vision rakes the whole screen top to bottom (×12, 1.5 s stun, burn) over 2 s.
 // - Iron Pan Mark Infinity: Suit Up, plus a second repulsor at the next-nearest foot and, as the suit ends, a

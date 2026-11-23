@@ -17,7 +17,7 @@ import { STAGES } from '../data/stages';
 import { save, persist } from '../systems/save';
 import { audio, bossSfx } from '../systems/audio';
 import { ui } from '../ui/ui';
-import { addCanvas, ensureBackdrop, footMeta } from './assets';
+import { addCanvas, ensureBackdrop, ensureFootArt } from './assets';
 import type { Foot } from './Foot';
 import { PEEL_BY_ID, hasPeel, peelCanvas } from './peels';
 import { PEEL_H, PEEL_W } from '../art/peelArt';
@@ -486,12 +486,23 @@ function creditsPlate(): HTMLCanvasElement {
   return c;
 }
 
+/** How many feet march in the ending's parade (the most recently met). */
+const PARADE_N = 48;
+
+/** The feet the ending's parade shows (GameScene warms their art through the last stage: building the parade would
+ * otherwise draw any of them that isn't drawn, all in one frame). */
+export function finaleCast(): string[] {
+  return foughtFeet()
+    .slice(-PARADE_N)
+    .map((f) => f.id);
+}
+
 /** Every foot fought so far: regular feet you've smacked, and every boss you've beaten. */
 function foughtFeet(): FootType[] {
   const ids = new Set<string>([...Object.keys(save.kills).filter((k) => (save.kills[k] ?? 0) > 0), ...save.bossesBeaten]);
   return [...ids]
     .map((id) => FOOT_BY_ID[id])
-    .filter((f): f is FootType => !!f && !!footMeta[f.id] && f.id !== 'soleunbound')
+    .filter((f): f is FootType => !!f && f.id !== 'soleunbound')
     .sort((a, b) => a.minWave - b.minWave || Number(!!a.boss || !!a.mini) - Number(!!b.boss || !!b.mini));
 }
 
@@ -567,18 +578,19 @@ export function playEnding(sc: Phaser.Scene, done: () => void): void {
   root.add(skip);
   sc.tweens.add({ targets: skip, alpha: 0.85, duration: 400, delay: 2000 });
   // the parade: every foot fought marches past along the back of the table, waving
-  const cast = foughtFeet().slice(-48);
+  const cast = foughtFeet().slice(-PARADE_N);
   const spacing = 240;
   const speed = 360;
   const lane = PARADE_LANE;
   const parade = sc.add.container(0, 0);
   root.addAt(parade, 3);
   cast.forEach((f, i) => {
-    const m = footMeta[f.id];
+    // (drawn now if the idle-time warm-up hasn't got to it: src/game/assets.ts)
+    const m = ensureFootArt(sc, f.id)!;
     const big = f.boss || f.mini;
     const img = sc.add.image(0, 0, m.footKey).setOrigin(0.5, m.originY);
     // tall feet (and bosses) are scaled down to the lane's height, so none reaches the credits
-    const s = Math.min((big ? 0.42 : 0.6) * Math.min(1.25, 1 / Math.max(0.7, f.scale)), PARADE_MAX_H / (img.height * m.originY), (spacing * 1.3) / img.width);
+    const s = Math.min((big ? 0.42 : 0.6) * Math.min(1.25, 1 / Math.max(0.7, f.scale)) * (1.35 / m.textures.res), PARADE_MAX_H / (img.height * m.originY), (spacing * 1.3) / img.width);
     img.setScale(s);
     const c = sc.add.container(W + 160 + i * spacing, lane);
     // names wrap onto two lines within the foot's own spacing, so neighbours never run together

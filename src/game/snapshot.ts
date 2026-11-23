@@ -60,6 +60,8 @@ export interface RunSnapshot {
   goldenUsed: Record<string, number>;
   newUnlocks: string[];
   elapsed: number;
+  /** The run clock in microseconds (old saves only have elapsed, in seconds). */
+  elapsedUs?: number;
   /** Endless run (older saves: ask at wave 60, as before). */
   endless?: boolean;
   /** Endless+ (Act 10): the shuffle's seed, 0 when off. */

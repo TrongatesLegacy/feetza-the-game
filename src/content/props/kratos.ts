@@ -1,6 +1,6 @@
-// Props for Kratos's nemesis fights (src/game/bosses/kratos.ts): Kronos's great hourglass, his stone jaw, the Titan
-// chains that lock a lane and the shackle on them; Zeus's storm cloud and thunderbolt, and the Olympians' gifts:
-// Poseidon's trident and his wave, Ares's crested war helmet, Hera's crown and its peacock-eye gems, and a medallion
+// Props for Kratos's nemesis fights (src/game/bosses/kratos.ts, titanking.ts): Kronos's great hourglass (the rest
+// of his fight's art, his head, the rocks and chains, is drawn on demand: src/content/art/titanFight.ts); Zeus's
+// storm cloud and thunderbolt, and the Olympians' gifts: Poseidon's trident and his wave, Ares's crested war helmet, Hera's crown and its peacock-eye gems, and a medallion
 // for each god as they're called in. Same style as src/art/eventArt.ts: thick ink outlines, gradients and a sheen,
 // lit from the top left. Every emblem is our own.
 import { type Ctx, ellipse, makeCanvas, rgba, roundRect, shade } from '../../art/util';
@@ -119,141 +119,6 @@ function hourglass(): HTMLCanvasElement {
     }
     ctx.stroke();
   }
-  return c;
-}
-
-/** Kronos's stone lower jaw: it closes over a pizza in Devour. Square stone teeth, a beard below. */
-function jaw(): HTMLCanvasElement {
-  const [c, ctx] = makeCanvas(300, 170);
-  const x = 150;
-  // the beard under the jaw
-  ctx.beginPath();
-  ctx.moveTo(30, 60);
-  ctx.quadraticCurveTo(40, 150, x, 166);
-  ctx.quadraticCurveTo(260, 150, 270, 60);
-  ctx.closePath();
-  ctx.fillStyle = lin(ctx, 0, 60, 0, 166, [
-    [0, '#7a766e'],
-    [1, '#3e3a34'],
-  ]);
-  ctx.fill();
-  stroke(ctx, 5);
-  for (let k = -4; k <= 4; k++) {
-    ctx.beginPath();
-    ctx.moveTo(x + k * 26, 70);
-    ctx.quadraticCurveTo(x + k * 30 + 8, 110, x + k * 20, 150 - Math.abs(k) * 10);
-    stroke(ctx, 2.5, rgba(INK, 0.5));
-  }
-  // the jaw: a stone crescent with a row of teeth
-  ctx.beginPath();
-  ctx.moveTo(14, 30);
-  ctx.quadraticCurveTo(x, 120, 286, 30);
-  ctx.lineTo(270, 8);
-  ctx.quadraticCurveTo(x, 84, 30, 8);
-  ctx.closePath();
-  ctx.fillStyle = lin(ctx, 0, 8, 0, 100, [
-    [0, '#b4aea4'],
-    [1, '#6a665e'],
-  ]);
-  ctx.fill();
-  stroke(ctx, 6);
-  for (let k = 0; k < 8; k++) {
-    const t = (k + 0.5) / 8;
-    const tx = 40 + t * 220;
-    const ty = 20 + Math.sin(t * Math.PI) * 44;
-    roundRect(ctx, tx - 11, ty - 26, 22, 26, 4);
-    ctx.fillStyle = lin(ctx, 0, ty - 26, 0, ty, [
-      [0, '#fbf6ea'],
-      [1, '#c8c0ae'],
-    ]);
-    ctx.fill();
-    stroke(ctx, 3);
-  }
-  // golden cracks: the Titan's light leaking through
-  ctx.beginPath();
-  ctx.moveTo(70, 60);
-  ctx.lineTo(90, 76);
-  ctx.lineTo(84, 92);
-  stroke(ctx, 6, rgba(INK, 0.8));
-  stroke(ctx, 2.5, SAND);
-  shine(ctx, 70, 34, 26, 7, 0.4, 0.3);
-  return c;
-}
-
-/** A Titan chain hanging down a lane, from the top of the screen to the table (tall, one link column). */
-function chain(): HTMLCanvasElement {
-  const [c, ctx] = makeCanvas(120, 760);
-  for (let i = 0, y = 0; y < 740; i++, y += 46) {
-    if (i % 2) {
-      roundRect(ctx, 52, y - 4, 16, 58, 8);
-      ctx.fillStyle = lin(ctx, 52, 0, 68, 0, [
-        [0, '#c8bca8'],
-        [1, '#5a5048'],
-      ]);
-      ctx.fill();
-      stroke(ctx, 5);
-    } else {
-      ellipse(ctx, 60, y + 23, 30, 34);
-      ctx.lineWidth = 22;
-      ctx.strokeStyle = INK;
-      ctx.stroke();
-      ctx.lineWidth = 13;
-      ctx.strokeStyle = lin(ctx, 30, y, 90, y + 50, [
-        [0, '#d8ccb4'],
-        [0.5, '#8a7e6e'],
-        [1, '#4a423a'],
-      ]);
-      ctx.stroke();
-      ellipse(ctx, 44, y + 10, 5, 9, 0.5);
-      ctx.fillStyle = 'rgba(255,255,255,0.45)';
-      ctx.fill();
-    }
-  }
-  return c;
-}
-
-/** The bronze shackle-lock clamped on a Titan chain: break it to break the chain. */
-function shackle(): HTMLCanvasElement {
-  const [c, ctx] = makeCanvas(170, 190);
-  ctx.beginPath();
-  ctx.arc(85, 72, 52, Math.PI, 0);
-  ctx.lineWidth = 30;
-  ctx.strokeStyle = INK;
-  ctx.stroke();
-  ctx.lineWidth = 20;
-  ctx.strokeStyle = bronze(ctx, 20, 80);
-  ctx.stroke();
-  roundRect(ctx, 22, 70, 126, 104, 18);
-  ctx.fillStyle = bronze(ctx, 70, 174);
-  ctx.fill();
-  stroke(ctx, 6);
-  // the hourglass seal of Kronos
-  ctx.beginPath();
-  ctx.moveTo(62, 96);
-  ctx.lineTo(108, 96);
-  ctx.lineTo(85, 122);
-  ctx.lineTo(108, 148);
-  ctx.lineTo(62, 148);
-  ctx.lineTo(85, 122);
-  ctx.closePath();
-  ctx.fillStyle = '#3a2410';
-  ctx.fill();
-  stroke(ctx, 3, '#3a2410');
-  ctx.beginPath();
-  ctx.moveTo(70, 140);
-  ctx.lineTo(100, 140);
-  ctx.lineTo(85, 128);
-  ctx.closePath();
-  ctx.fillStyle = SAND;
-  ctx.fill();
-  for (const [x, y] of [[36, 84], [134, 84], [36, 160], [134, 160]]) {
-    ctx.beginPath();
-    ctx.arc(x, y, 6, 0, Math.PI * 2);
-    ctx.fillStyle = '#ffe0a0';
-    ctx.fill();
-    stroke(ctx, 2.5);
-  }
-  shine(ctx, 50, 86, 16, 6, 0.5, -0.2);
   return c;
 }
 
@@ -648,9 +513,6 @@ function medallion(sym: 'trident' | 'helm' | 'peacock' | 'bolt', bg: string): ()
 
 export const props: Record<string, () => HTMLCanvasElement> = {
   p_nz_hourglass: hourglass,
-  p_nz_jaw: jaw,
-  p_nz_chain: chain,
-  p_nz_shackle: shackle,
   p_nz_cloud: stormCloud,
   p_nz_bolt: bolt,
   p_nz_trident: trident,

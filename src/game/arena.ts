@@ -19,6 +19,8 @@ export interface Clickable {
   alive(): boolean;
   /** A wave event (a flyer or chest): it stays clickable for a moment after the wave ends. */
   event?: boolean;
+  /** A name for the dev smack log (src/game/smackLog.ts). */
+  label?: string;
 }
 
 export interface Arena {
@@ -28,12 +30,19 @@ export interface Arena {
   fxLayer: Phaser.GameObjects.Container;
   /** Layer behind the pizzas (pistons, tentacles rising from the table). */
   underLayer: Phaser.GameObjects.Container;
+  /** Layer over the feet but under the scene light and the fx layer: a boss's colossal prop that the other feet
+   *  pass behind (Kronos's Titan head). */
+  overFeetLayer: Phaser.GameObjects.Container;
   now(): number;
   allFeet(): Foot[];
   allPizzas(): Pizza[];
   alivePizzas(): Pizza[];
   peelPoint(): { x: number; y: number };
   spawn(id: string, target?: Pizza | null, x?: number): Foot | null;
+  /** Another of a boss already in the fight, at (x, y) with `hpFrac` of its health (the Zombie Loafer's bite on Hot+):
+   * its own brain, phases and a second health bar. It pays a tenth and the fight's loot, banner and cleanup wait for
+   * the last of them (GameScene.killFoot). */
+  spawnExtraBoss?(id: string, x: number, y: number, hpFrac: number): Foot | null;
   /** A non-stomp ability hits a pizza: never blocked by shields, traps or thick crust. */
   hitPizza(p: Pizza, slices: number, label: string, color?: string): void;
   /** Lock the peel (no smacks) for a moment. */
@@ -44,6 +53,9 @@ export interface Arena {
   peelGuarded?(): boolean;
   addClickable(c: Clickable): void;
   banner(big: string, small: string, kind?: 'boss' | 'loc' | 'clear' | 'phase', desc?: string): void;
+  /** A boss reached a new phase: its banner, or (the first time a player meets the phase) a card that pauses the
+   *  fight to show what to hit. */
+  phaseBanner(f: Foot, name: string, info: string): void;
   /** The boss's current move and its answer, shown under the boss bar. */
   bossMove(f: Foot, name: string, info: string): void;
   /** Slow the whole game for a moment (phase changes). */
@@ -79,6 +91,8 @@ export interface Arena {
   /** Pull every regular foot back to the top and pause it (true), or let them carry on (false). No new feet spawn meanwhile. */
   retreat(on: boolean): void;
   isRetreating(): boolean;
+  /** A hero's wall stands over the pizzas (King Leonidas's Hold the Line): feet can't get through to them. */
+  heroWallUp(): boolean;
   /** While set, the only regular feet that spawn are these ids (a boss's own kind). null = normal. */
   setMinions(ids: string[] | null): void;
   /** While on, the wave's own feet stop arriving (and bosses' reinforcements too): only feet a boss spawns itself

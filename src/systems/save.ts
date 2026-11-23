@@ -7,6 +7,13 @@ import { META_COSTS_V1 } from '../data/meta';
 import { STAGES, STAGES_PER_ACT } from '../data/stages';
 import type { RunSnapshot } from '../game/snapshot';
 
+/** In `save.seenIntros`: the player turned boss phase cards off (src/game/phaseCards.ts). Reset intro cards in
+ *  Settings clears it, along with every phase seen. */
+export const PHASE_CARDS_OFF = 'phasecards-off';
+
+/** Phase cards off for this page only, never saved: the sim, the bot and dev starts with `intros: false`. */
+export const phaseCardsMuted = { on: false };
+
 export type AimScheme = 'free' | 'lane';
 export type PromptStyle = 'auto' | 'xbox' | 'playstation' | 'switch';
 export type ColorBlind = 'off' | 'redgreen' | 'blueyellow';
@@ -36,6 +43,13 @@ export interface Settings {
   vibration: boolean;
   prompts: PromptStyle;
   peelSmacks: PeelSmacks;
+  // graphics (src/systems/graphics.ts)
+  /** The redrawn feet's live animation (off: their still art). */
+  animFeet: boolean;
+  /** The stages' ambient animation. */
+  animBackdrops: boolean;
+  /** The peels' animation. */
+  animPeels: boolean;
 }
 
 export interface Best {
@@ -73,6 +87,7 @@ export interface SaveData {
   actsCleared: number[];
   /** Pre-2.0 best scores kept as a record when a veteran takes a fresh start. */
   oldVersionBest: Best | null;
+  /** Intro cards seen (ids), boss phase cards seen (`phase:<boss>:<n>`) and PHASE_CARDS_OFF. */
   seenIntros: string[];
   seenEvents: string[];
   /** Set for upgraded v1 saves until the welcome card has been answered. */
@@ -147,6 +162,9 @@ const DEFAULT_SETTINGS: Settings = {
   vibration: true,
   prompts: 'auto',
   peelSmacks: 'peel',
+  animFeet: true,
+  animBackdrops: true,
+  animPeels: true,
 };
 
 const DEFAULTS: SaveData = {

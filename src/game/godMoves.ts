@@ -6,7 +6,7 @@
 // - Home ground: a Greek god deals +10% in the Labyrinth and Tartarus (Act 9). Act 9 scales an ability's
 //   generic effects; the gods' moves are hand-built, so their bonus lives here.
 //
-// The Kratos Peel is the showpiece: a 30 s rage (This Is Spartaaa) with a flaming head, an ember stream, a fire
+// The Kratos Peel is the showpiece: a 30 s rage (Spartan Rage) with a flaming head, an ember stream, a fire
 // ribbon trail, fire rings where smacks land and a flame countdown bar; and the Spinning Blade passive, chained
 // blades that orbit the peel (one more each new act of the run, up to 5) and catch fire in the rage.
 
@@ -464,7 +464,7 @@ registerMoves({
     k.host.shake(700, 0.016);
     k.host.rumble(1, 600);
     const t = k.sc.add
-      .text(W / 2, 420, 'THIS IS SPARTAAA!', { fontFamily: '"Lilita One", sans-serif', fontSize: '132px', color: '#ffb040', stroke: '#2a1810', strokeThickness: 20 })
+      .text(W / 2, 420, 'SPARTAN RAGE!', { fontFamily: '"Lilita One", sans-serif', fontSize: '132px', color: '#ffb040', stroke: '#2a1810', strokeThickness: 20 })
       .setOrigin(0.5)
       .setScale(3)
       .setAlpha(0)
@@ -478,7 +478,7 @@ registerMoves({
       label: 'ENRAGED',
       sec: 30,
       color: FIRE,
-      sfx: 'sfx_hero_spartaaa',
+      sfx: 'sfx_hero_spartanrage',
       endSfx: 'sfx_hero_ragehiss',
       start: () => {
         k.mods.dmg = 2;
@@ -625,6 +625,7 @@ registerMoves({
           k,
           1.3,
           (dt, t) => {
+            const prevX = x;
             x += dir * (W + 400) * (dt / 1.3);
             g.clear();
             const top = H * 0.18 + Math.sin(t * 6) * 20;
@@ -650,14 +651,28 @@ registerMoves({
             g.lineTo(x + dir * 60, top + 50);
             g.strokePath();
             for (let i = 0; i < 5; i++) k.host.fx.splat(x + (Math.random() - 0.5) * 80, top + Math.random() * 60);
+            // everything the wave's face swept this frame (between where it was and where it is now, and the foot's
+            // width): checking only ±90 px of the face each frame let feet slip through on a long frame or as they moved
+            const lo = Math.min(prevX, x) - 140;
+            const hi = Math.max(prevX, x) + 140;
             for (const f of k.host.live()) {
-              if (hit.has(f) || Math.abs(f.cx - x) > 90) continue;
+              if (hit.has(f) || f.cx < lo || f.cx > hi) continue;
               hit.add(f);
               k.host.hurt(f, 7, { knock: 1200 });
               if (f.alive) k.slow(f, 0.5, 4);
             }
           },
-          () => g.destroy(),
+          () => {
+            g.destroy();
+            // the wave has crossed the whole table: anything still standing it hasn't touched (a foot that dodged
+            // sideways through it, or came down from above as it passed) is caught in its wash
+            for (const f of k.host.live()) {
+              if (hit.has(f)) continue;
+              hit.add(f);
+              k.host.hurt(f, 7, { knock: 1200 });
+              if (f.alive) k.slow(f, 0.5, 4);
+            }
+          },
         );
       },
     });

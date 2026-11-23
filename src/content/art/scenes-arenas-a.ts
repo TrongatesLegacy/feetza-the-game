@@ -1,7 +1,9 @@
-// Feetza 2.0 boss arenas, part 1: Moon Crater, Nonna's Pantry, Bell Tower.
+// Feetza 2.0 boss arenas, part 1: Moon Crater, Nonna's Pantry, Bell Tower. (All three are redrawn with the location kit
+// in scene-cosmiccroc.ts, scene-nonna.ts and scene-gargoyle.ts; their old art here stays for the before/after page,
+// ?dev&stages.)
 
 import type { GlowSpot } from '../../art/backdrops';
-import { registerScene } from '../../art/registry';
+import { registerLegacyScene } from '../../art/registry';
 import {
   type Ctx,
   type R,
@@ -917,7 +919,8 @@ function drawBellTower(ctx: Ctx, r: R): void {
 
 // ---------------------------------------------------------------------------------------------
 
-registerScene('cosmiccroc', {
+// (redrawn with the location kit in scene-cosmiccroc.ts; this stays for the before/after page, ?dev&stages)
+registerLegacyScene('cosmiccroc', {
   info: {
     name: 'Moon Crater',
     subtitle: 'Boss: COSMIC CROC',
@@ -933,7 +936,8 @@ registerScene('cosmiccroc', {
   draw: drawMoonCrater,
 });
 
-registerScene('nonna', {
+// (redrawn with the location kit in scene-nonna.ts; this stays for the before/after page, ?dev&stages)
+registerLegacyScene('nonna', {
   info: {
     name: "Nonna's Pantry",
     subtitle: "Boss: NONNA'S SLIPPER",
@@ -948,7 +952,8 @@ registerScene('nonna', {
   draw: drawPantry,
 });
 
-registerScene('gargoyle', {
+// (redrawn with the location kit in scene-gargoyle.ts; this stays for the before/after page, ?dev&stages)
+registerLegacyScene('gargoyle', {
   info: {
     name: 'Bell Tower',
     subtitle: 'Boss: THE GARGOYLE',

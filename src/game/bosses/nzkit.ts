@@ -8,7 +8,7 @@ import { BACKDROPS, type ArenaId, type BackdropId } from '../../art/backdrops';
 import { HOVER_Y } from '../../config';
 import { audio } from '../../systems/audio';
 import type { Arena } from '../arena';
-import { ART_RES, addCanvas } from '../assets';
+import { addCanvas } from '../assets';
 import type { Foot } from '../Foot';
 import type { Pizza } from '../Pizza';
 import { LOCATION_MUSIC, bossMusic, locationFor } from '../Run';
@@ -90,7 +90,8 @@ export function hitSoft(a: Arena, p: Pizza, n: number, label: string, color: str
 /** The boss drops in from above (or rises, with `from: 'below'`), lands with a crash and can't be hurt until it has. */
 export function entrance(a: Arena, f: Foot, o: { sfx: string; quip: string; color: string; flash: [number, number, number]; ring?: number; delay?: number; ms?: number; onLanded?: () => void }): void {
   f.puppet = true;
-  const was = f.shielded;
+  // (mid phase-change beat, a dev start at a later phase: the shield it had before the beat, not the beat's own)
+  const was = Number(f.brain.transformT ?? 0) > 0 ? !!f.brain.wasShielded : f.shielded;
   f.shielded = true;
   const hy = (f.hoverY ?? HOVER_Y) - 20;
   f.y = -480;
@@ -162,7 +163,7 @@ function shardsOf(a: Arena, f: Foot, n: number): string[] {
 /** A death that lands: a slow-mo beat, a flash, and the boss bursting into pieces of itself. */
 export function shatter(a: Arena, f: Foot, o: { tint?: number; burst?: number; n?: number; sfx?: string } = {}): void {
   const keys = shardsOf(a, f, o.n ?? 9);
-  const s = f.root.scaleX / ART_RES;
+  const s = f.root.scaleX / f.meta.textures.res;
   const src = a.sc.textures.get(f.meta.footKey).getSourceImage() as HTMLCanvasElement;
   const cols = Math.ceil(Math.sqrt(keys.length));
   const rows = Math.ceil(keys.length / cols);
@@ -218,7 +219,8 @@ export function scatter(a: Arena, x: number, y: number, key: string, n: number, 
 /** A countdown ring round a prop: it drains as `left()` falls from 1 to 0 (redrawn each frame, removed with `end`). */
 export function timerRing(a: Arena, at: () => { x: number; y: number } | null, r: number, color: number, left: () => number): () => void {
   const g = a.sc.add.graphics();
-  a.fxLayer.add(g);
+  // under everything else in the layer: a prop's hit counter must never sit behind its own ring
+  a.fxLayer.addAt(g, 0);
   const ev = a.sc.time.addEvent({
     delay: 16,
     loop: true,

@@ -345,6 +345,32 @@ const mirrorpeel = (): Brain => {
       'Every smack you make, a dark peel copies onto a pizza · smash the falling copies, and keep cancelling its ability',
       'Both at once, faster, two copies a smack · cancel the ability first, then smash the copies',
     ],
+    cards: [
+      {
+        what: 'It charges up your own peel ability, aimed at your pizzas',
+        hit: 'Smack it while its ring fills to cancel the ability',
+        miss: 'Your ability hits your own pizzas',
+        show: [{ key: '@boss', label: 'While its ring fills' }],
+      },
+      {
+        what: 'Every smack you make, a dark peel copies onto a pizza',
+        hit: 'Smash the falling copies, and keep cancelling its ability',
+        miss: 'A copy that lands takes a slice',
+        show: [
+          { key: 'p_echopeel', label: 'Dark copy', hits: 1 },
+          { key: '@boss', label: 'While its ring fills' },
+        ],
+      },
+      {
+        what: 'Both at once, faster: two copies for every smack',
+        hit: 'Cancel the ability first, then smash the copies',
+        miss: 'Copies take slices; the ability hits your pizzas',
+        show: [
+          { key: '@boss', label: 'While its ring fills' },
+          { key: 'p_echopeel', label: 'Dark copies', hits: 1 },
+        ],
+      },
+    ],
     upkeep: (f, _dt, a) => {
       if (!ready) setup(f, a);
     },
@@ -398,8 +424,9 @@ const mirrorpeel = (): Brain => {
 /** Survive his collection agents this long. */
 const SURVIVE_SEC = 60;
 
-/** One foot from each boss's minions (every act that's built), never his own finale feet. */
-function agents(): string[] {
+/** One foot from each boss's minions (every act that's built), never his own finale feet. (GameScene keeps and warms
+ * their art while his stage is near.) */
+export function agents(): string[] {
   const out: string[] = [];
   for (const [boss, id] of Object.entries(BOSS_MINION)) {
     if (boss === 'soleprop' || boss === 'soleunbound' || out.includes(id) || !FOOT_BY_ID[id]) continue;
@@ -465,6 +492,17 @@ const soleprop = (): Brain => {
   return {
     names: ['HOSTILE TAKEOVER'],
     info: ['He bought out your next shop (double prices) and sent his collection agents · survive 60 seconds and keep your table'],
+    cards: [
+      {
+        what: 'He bought out your next shop and sent his collection agents',
+        hit: 'Survive until his watch runs out, smacking every agent',
+        miss: 'Agents stomp your pizzas; your next shop costs double',
+        show: [
+          { key: 'p_watch', label: 'Survive 60 s', watch: true },
+          { key: 'p_sold', label: 'Shop prices doubled', watch: true },
+        ],
+      },
+    ],
     phases: () => 1,
     upkeep: (f, dt, a) => {
       t += dt;
@@ -634,7 +672,7 @@ const ghostfuture = (): Brain => {
     screenGlitch(a.sc, 700, 0.7);
     // it arrives as a smear of afterimages, the future catching up with the present
     for (let i = 1; i <= 4; i++) {
-      const ghost = a.sc.add.image(f.x + i * 120, 360, `foot_${f.type.id}`).setScale(f.scale / (f.type.scale * 1.35)).setAlpha(0.35 / i).setTint(0xbfe6ff);
+      const ghost = a.sc.add.image(f.x + i * 120, 360, `foot_${f.type.id}`).setScale(f.scale / (f.type.scale * f.meta.textures.res)).setAlpha(0.35 / i).setTint(0xbfe6ff);
       a.fxLayer.add(ghost);
       a.sc.tweens.add({ targets: ghost, x: f.x, alpha: 0, duration: 700 + i * 120, onComplete: () => ghost.destroy() });
     }
@@ -682,7 +720,7 @@ const ghostfuture = (): Brain => {
         done();
         if (!f.alive || !a.inWave()) return;
         // the pale foot from the future lands
-        const foot = a.sc.add.image(x, y - 420, `foot_${f.type.id}`).setOrigin(0.5, 0.85).setScale((0.7 * f.scale) / (f.type.scale * 1.35)).setAlpha(0.75).setTint(0xdff4ff);
+        const foot = a.sc.add.image(x, y - 420, `foot_${f.type.id}`).setOrigin(0.5, 0.85).setScale((0.7 * f.scale) / (f.type.scale * f.meta.textures.res)).setAlpha(0.75).setTint(0xdff4ff);
         a.fxLayer.add(foot);
         a.sc.tweens.add({
           targets: foot, y, duration: 140, ease: 'Quad.In',
@@ -710,6 +748,35 @@ const ghostfuture = (): Brain => {
       'It can\'t be hit where your peel is heading (the pale peel) and stomps where you\'re about to be · swing through it, never stop on it, and step off the footprints',
       'It rewinds and stamps its old footprints again · watch the replays and keep moving',
       'Footprints come three at a time · keep the pale peel away from it and swing',
+    ],
+    cards: [
+      {
+        what: 'It can’t be hit where your peel is heading, and stomps there',
+        hit: 'Swing through it, never stop on it, and step off footprints',
+        miss: 'A future stomp under your peel stuns it',
+        show: [
+          { key: '@boss', label: 'Swing through it' },
+          { key: 'p_futureprint', label: 'Future footprint', watch: true },
+        ],
+      },
+      {
+        what: 'It rewinds and stamps its old footprints again',
+        hit: 'Watch the replays and keep the peel moving',
+        miss: 'Stamped: your peel is stunned and a pizza loses a slice',
+        show: [
+          { key: '@boss', label: 'Swing through it' },
+          { key: 'p_futureprint', label: 'Replayed footprints', watch: true },
+        ],
+      },
+      {
+        what: 'Footprints come three at a time',
+        hit: 'Keep the pale peel away from it and keep swinging',
+        miss: 'Stamped: your peel is stunned and pizzas lose slices',
+        show: [
+          { key: '@boss', label: 'Swing through it' },
+          { key: 'p_futureprint', label: 'Three footprints', watch: true },
+        ],
+      },
     ],
     upkeep: (f, dt, a) => {
       if (!ready) setup(f, a);
@@ -1146,6 +1213,44 @@ const soleunbound = (): Brain => {
       'Greek: his eyes glow and he stares down a pizza · smack the mirror shield to throw the gaze back, and keep your peel out of the beam',
       'Cosmic: a black hole opens, pulls your peel and swallows slices · smack its rim until it collapses',
       'He eats every pizza but one · smack the golden peel (or press Space) to unleash every peel you own, then smack him for good',
+    ],
+    cards: [
+      {
+        what: 'Comics: a giant fist comes down a lane',
+        hit: 'Smack the fist before it lands',
+        miss: 'The fist punches a slice off that pizza',
+        show: [{ key: 'p_gauntlet', label: 'Fist', hits: (h) => h.hits(2) }],
+      },
+      {
+        what: 'Norse: he freezes one pizza and sets another alight',
+        hit: 'Smack the ice and smack out the flames',
+        miss: 'Frozen and burning pizzas lose slices',
+        show: [
+          { key: 'p_frost', label: 'Ice', hits: (h) => h.hits(3) },
+          { key: 'p_pizzaflame', label: 'Flames', hits: (h) => h.hits(3) },
+        ],
+      },
+      {
+        what: 'Greek: his eyes glow and he stares down a pizza',
+        hit: 'Smack the mirror shield to throw the gaze back',
+        miss: 'The pizza is petrified and loses a slice; the beam stuns the peel',
+        show: [{ key: 'p_mirrorshield', label: 'Mirror shield', hits: (h) => h.hits(3) }],
+      },
+      {
+        what: 'Cosmic: a black hole pulls your peel and swallows slices',
+        hit: 'Smack the black hole’s rim until it collapses',
+        miss: 'It keeps pulling the peel and eating slices',
+        show: [{ key: 'p_blackhole', label: 'Black hole', hits: (h) => h.hits(5) }],
+      },
+      {
+        what: 'He eats every pizza but one',
+        hit: 'Smack the golden peel (or press Space), then smack him',
+        miss: 'Your last pizza is all that’s left',
+        show: [
+          { key: 'p_goldpeel', label: 'Golden peel', hits: 1 },
+          { key: '@boss', label: 'Then smack him' },
+        ],
+      },
     ],
     phases: () => 5,
     upkeep: (f, dt, a) => {

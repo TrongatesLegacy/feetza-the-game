@@ -10,17 +10,20 @@ import { RARITY_COLOR, UPGRADES, UPGRADE_BY_ID, kindOf, type Rarity } from '../d
 import { glyph, slamPrompt } from '../systems/gamepad';
 import type { RunSummary, ShopActions, ShopPizza, ShopState, SlotSymbol, YourTopping } from './shopTypes';
 import { INTROS, freshBar, pizzaThumb } from './bits';
-import { footPortraitURL, pizzaPortraitURL, textureURL } from '../game/assets';
+import { phaseCardPanel } from './phaseCard';
+import type { ResolvedPhaseCard } from '../game/phaseCards';
+import { footArtAsync, footArtReady, footPortraitURL, pizzaPortraitURL, textureURL } from '../game/assets';
 import { audio } from '../systems/audio';
 import { previewSmack } from '../game/smacks';
 import { bestFor, metaRefundValue, persist, resetEverything, resetMeta, resetProgress, save, unlockPizza, updateSettings, type Settings } from '../systems/save';
+import { applyPreset, currentPreset } from '../systems/graphics';
 import { HEATS, HEAT_BY_ID, type HeatId } from '../data/difficulty';
 import { ACT_COUNT, JOURNEY_WAVES, STAGES, actLabel, actName, actOf } from '../data/stages';
 import { BACKDROPS } from '../art/backdrops';
 import { applyA11y } from './a11y';
 import { abilityFor, abilityKindLabel, describeAbility } from '../game/abilities';
 import { animateLookImg, hasAnimatedLook, stopLookOverlays } from '../art/animatedLooks';
-import { GOD_PEEL, PEELS, PEEL_BY_ID, buyPeel, checkPeelAchievements, equipPeel, equippedPeel, hasPeel, peelThumbURL, wearSkin, wornSkin, type PeelDef, type PeelGroup } from '../game/peels';
+import { GOD_PEEL, PEELS, PEEL_BY_ID, buyPeel, checkPeelAchievements, equipPeel, equippedPeel, hasPeel, peelFootId, peelThumbURL, wearSkin, wornSkin, type PeelDef, type PeelGroup } from '../game/peels';
 import { HERO_SUBS } from '../content/heroPeels';
 import './gods.css';
 
@@ -98,13 +101,15 @@ export function forceRareFind(id: string): void {
   redealLineup?.();
 }
 
-/** A run time: m:ss, or h:mm:ss past an hour. */
+/** A run time to the millisecond: m:ss.mmm, or h:mm:ss.mmm past an hour (the clock itself keeps microseconds). */
 export function fmtTime(secs: number): string {
-  const s = Math.max(0, Math.floor(secs));
+  const ms = Math.max(0, Math.floor(secs * 1000));
+  const s = Math.floor(ms / 1000);
   const hrs = Math.floor(s / 3600);
   const mm = Math.floor(s / 60) % 60;
   const ss = String(s % 60).padStart(2, '0');
-  return hrs ? `${hrs}:${String(mm).padStart(2, '0')}:${ss}` : `${mm}:${ss}`;
+  const mmm = String(ms % 1000).padStart(3, '0');
+  return hrs ? `${hrs}:${String(mm).padStart(2, '0')}:${ss}.${mmm}` : `${mm}:${ss}.${mmm}`;
 }
 
 /** Enter/Space on a focusable tile acts like a click (keyboard and gamepad). */
@@ -266,6 +271,12 @@ class Hud {
   private bossTrail = h('div', { class: 'trail' });
   private bossPhase = h('span', { class: 'phase' });
   private bossNotches = h('div', { class: 'notches' });
+  /** A second boss of the fight (a second Zombie Loafer): a slim bar under the main one. */
+  private boss2 = h('div', { class: 'boss2' });
+  private boss2Name = h('span', { class: 'n' });
+  private boss2Phase = h('span', { class: 'phase' });
+  private boss2Hp = h('div', { class: 'hp' });
+  private boss2Trail = h('div', { class: 'trail' });
   private bossMove = h('div', { class: 'move' });
   private newFootEl: HTMLElement | null = null;
   /** When the current centre banner disappears (performance.now() ms). */
@@ -286,10 +297,12 @@ class Hud {
   onSlam: () => void = () => {};
 
   constructor() {
+    window.addEventListener('resize', () => this.fitBossMove());
     this.coinPill.innerHTML = COIN_SVG;
     this.coinPill.append(this.coins);
     this.combo.append(this.comboLabel, this.comboMult, h('div', { class: 'timer' }, this.comboTimer));
-    this.boss.append(h('div', { class: 'bossname' }, this.bossName, this.bossPhase), h('div', { class: 'track' }, this.bossTrail, this.bossHp, this.bossNotches), this.bossMove);
+    this.boss2.append(h('div', { class: 'b2name' }, this.boss2Name, this.boss2Phase), h('div', { class: 'track' }, this.boss2Trail, this.boss2Hp));
+    this.boss.append(h('div', { class: 'bossname' }, this.bossName, this.bossPhase), h('div', { class: 'track' }, this.bossTrail, this.bossHp, this.bossNotches), this.boss2, this.bossMove);
     this.slam.innerHTML = '<span>PEEL<br>SLAM<small class="kb">SPACE</small><small class="pd" data-glyph="X">X</small></span>';
     this.slam.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
@@ -325,10 +338,10 @@ class Hud {
 
   /** The run clock under the wave: m:ss, or h:mm:ss past an hour. */
   setTime(secs: number): void {
-    const n = Math.floor(secs);
+    const n = Math.floor(secs * 1000);
     if (n === this.lastSec) return;
     this.lastSec = n;
-    this.clock.textContent = fmtTime(n);
+    this.clock.textContent = fmtTime(secs);
   }
 
   setScore(n: number): void {
@@ -364,11 +377,13 @@ class Hud {
   }
 
   setBoss(name: string | null, frac = 1, phases = 1, phase = 1): void {
+    const wasOn = this.boss.classList.contains('on');
     this.boss.classList.toggle('on', !!name);
     // the combo sits in one row above the boss bar, so its score pill doesn't cover the boss's name
     this.combo.classList.toggle('beside-boss', !!name);
     if (!name) {
       this.setBossMove(null);
+      this.setBoss2(null);
       return;
     }
     this.boss.dataset.phase = String(phase);
@@ -381,6 +396,19 @@ class Hud {
     const w = `${Math.max(0, frac) * 100}%`;
     this.bossHp.style.width = w;
     this.bossTrail.style.width = w;
+    if (!wasOn) requestAnimationFrame(() => this.fitBossMove());
+  }
+
+  /** The second boss's slim bar under the main one (null hides it). */
+  setBoss2(name: string | null, frac = 1, phases = 1, phase = 1): void {
+    this.boss2.classList.toggle('on', !!name);
+    if (!name) return;
+    this.boss2.dataset.phase = String(phase);
+    this.boss2Name.textContent = name;
+    this.boss2Phase.textContent = phases > 1 ? `PHASE ${phase} / ${phases}` : '';
+    const w = `${Math.max(0, frac) * 100}%`;
+    this.boss2Hp.style.width = w;
+    this.boss2Trail.style.width = w;
   }
 
   /** The slam button: the Peel Slam, or the peel ability that replaces it this run. */
@@ -503,12 +531,36 @@ class Hud {
 
   /** The boss's current move, under its health bar: name, then what to do about it. */
   setBossMove(name: string | null, info = ''): void {
+    const was = this.bossMoveName;
+    this.bossMoveName = name;
     if (!name) {
       this.bossMove.replaceChildren();
       return;
     }
-    const answer = info.split(' · ')[1] ?? info;
-    this.bossMove.replaceChildren(h('b', {}, name), h('span', {}, answer));
+    const answer = (info.split(' · ')[1] ?? info).trim();
+    const text = h('span', {}, answer.charAt(0).toUpperCase() + answer.slice(1));
+    this.bossMove.replaceChildren(h('b', {}, name), text);
+    // a new move (a phase change) pulses, so the eye goes to it
+    if (name !== was) {
+      this.bossMove.classList.remove('pulse');
+      void this.bossMove.offsetWidth;
+      this.bossMove.classList.add('pulse');
+    }
+    requestAnimationFrame(() => this.fitBossMove());
+    if (document.fonts.status !== 'loaded') document.fonts.ready.then(() => this.fitBossMove());
+  }
+  private bossMoveName: string | null = null;
+
+  /** A long answer shrinks to the boss bar's width instead of running under the HUD on either side. */
+  private fitBossMove(): void {
+    const text = this.bossMove.querySelector<HTMLElement>('span');
+    const name = this.bossMove.querySelector<HTMLElement>('b');
+    const room = this.boss.clientWidth * 1.04;
+    if (!text || !name || room <= 0) return;
+    text.style.fontSize = '';
+    // (a centred flex row spills both ways, so measure its parts rather than its scroll width)
+    const over = name.offsetWidth + parseFloat(getComputedStyle(this.bossMove).columnGap || '0') + text.offsetWidth - room;
+    if (over > 0 && text.offsetWidth > 0) text.style.fontSize = `${(Math.max(0.6, (text.offsetWidth - over) / text.offsetWidth) * parseFloat(getComputedStyle(text).fontSize)).toFixed(1)}px`;
   }
 
   private toastQueue: HTMLElement[] = [];
@@ -1348,6 +1400,25 @@ class UI {
     return s;
   }
 
+  /** A boss phase's first-time card (src/ui/phaseCard.ts). `done(off)` runs once it's closed; off: the player
+   *  turned phase cards off. Returns `ok`, which closes it as OK does (Esc in the game). */
+  phaseCard(c: ResolvedPhaseCard, done: (off: boolean) => void): { el: HTMLElement; ok: () => void } {
+    let s: HTMLElement;
+    let closed = false;
+    // a player mashing smacks when the card pops up doesn't dismiss it unread
+    const opened = performance.now();
+    const finish = (off: boolean) => {
+      if (closed || performance.now() - opened < 450) return;
+      closed = true;
+      this.close(s);
+      done(off);
+    };
+    const panel = phaseCardPanel(c, () => finish(false), () => finish(true));
+    s = this.open(panel);
+    // (Enter and Esc press OK through the game's keys; a gamepad starts on OK, its data-pad-default)
+    return { el: s, ok: () => finish(false) };
+  }
+
   // ——— Second Chance (Golden menu) on game over ———
   secondChance(o: { wave: number; cost: number; bank: number; nextCost: number; use: () => void; decline: () => void }): HTMLElement {
     const panel = h(
@@ -1406,25 +1477,9 @@ class UI {
   }
 
   // ——— Pause ———
-  pause(o: { resume: () => void; settings: () => void; quit: () => void; leave: (() => void) | null; leaveNote: string; inShop?: boolean; backLabel?: string; act?: string; owned: Record<string, number>; armed?: string[]; wave: number; score: number }): HTMLElement {
-    // your toppings live here rather than on the HUD, where they piled up over the pizzas
-    const entries = Object.entries(o.owned).filter(([id]) => UPGRADE_BY_ID[id]);
-    const list = h(
-      'div',
-      { class: 'pause-tops' },
-      ...entries.map(([id, lvl]) => {
-        const u = UPGRADE_BY_ID[id];
-        const armed = o.armed?.includes(id);
-        return h(
-          'div',
-          { class: 'ptop', style: `--rc:${RARITY_COLOR[u.rarity]}` },
-          h('div', { class: 'ic' }, u.icon),
-          h('div', { class: 'tx' }, h('b', {}, u.name, lvl > 1 ? h('span', { class: 'lv' }, `×${lvl}`) : null, armed ? h('span', { class: 'armed' }, 'READY') : null), h('span', {}, u.desc(1), u.downside ? h('em', { class: 'down' }, ` ▼ ${u.downside}`) : null)),
-        );
-      }),
-    );
-    if (!entries.length) list.append(h('span', { class: 'hint' }, 'No toppings yet. Clear a wave to buy some!'));
-    const tops = h('div', { class: 'pause-sec' }, h('div', { class: 'section-title' }, `YOUR TOPPINGS · ${entries.length}`), list);
+  pause(o: { resume: () => void; settings: () => void; quit: () => void; leave: (() => void) | null; leaveNote: string; inShop?: boolean; backLabel?: string; act?: string; toppings: () => void; toppingCount: number; wave: number; score: number }): HTMLElement {
+    // your toppings open the same window as the shop's (the full list sat here and made the menu long)
+    const tops = btn(`YOUR TOPPINGS · ${o.toppingCount}`, 'yellow', o.toppings, { title: 'Every topping you have, its level, and when used ones come back' });
     let confirmQuit = false;
     const quit = btn('QUIT RUN', 'cream', () => {
       if (!confirmQuit) {
@@ -1440,8 +1495,7 @@ class UI {
       { class: 'panel modal' },
       h('div', { class: 'title' }, 'PAUSED'),
       h('div', { class: 'subtitle' }, `Wave ${o.wave}${o.act ? ` · ${o.act}` : ''} · ${fmt(o.score)} points`),
-      tops,
-      h('div', { class: 'row' }, btn(o.backLabel ?? (o.inShop ? 'BACK TO SHOP' : 'RESUME'), 'green big', o.resume, { 'data-pad': 'menu', 'data-pad-default': '' }), btn('SETTINGS', 'yellow', o.settings)),
+      h('div', { class: 'row' }, btn(o.backLabel ?? (o.inShop ? 'BACK TO SHOP' : 'RESUME'), 'green big', o.resume, { 'data-pad': 'menu', 'data-pad-default': '' }), btn('SETTINGS', 'yellow', o.settings), tops),
       // leave keeps the run saved (Resume on the title screen); quit ends it
       h('div', { class: 'row' }, o.leave ? btn('SAVE &amp; MENU', 'cream', o.leave) : null, quit),
       h('div', { class: 'hint pause-note' }, o.leaveNote),
@@ -1452,7 +1506,7 @@ class UI {
 
   // ——— Settings ———
   settings(onClose: () => void, inRun = false): HTMLElement {
-    let tab: 'audio' | 'controls' | 'access' | 'progress' = 'audio';
+    let tab: 'audio' | 'graphics' | 'controls' | 'access' | 'progress' = 'audio';
     const slider = (key: 'master' | 'music' | 'sfx' | 'ambience' | 'stickSensitivity' | 'aimAssist', label: string) => {
       const v = save.settings[key];
       const out = h('output', {}, `${Math.round(v * 100)}`);
@@ -1469,11 +1523,13 @@ class UI {
       });
       return h('label', { class: 'setting' }, h('span', {}, label), input, out);
     };
-    const toggle = (key: 'muted' | 'screenShake' | 'damageNumbers' | 'flashes' | 'showFps' | 'showTimer' | 'traitIcons' | 'reducedMotion' | 'slowNewCards' | 'vibration', label: string) => {
+    const toggle = (key: 'muted' | 'screenShake' | 'damageNumbers' | 'flashes' | 'showFps' | 'showTimer' | 'traitIcons' | 'reducedMotion' | 'slowNewCards' | 'vibration' | 'animFeet' | 'animBackdrops' | 'animPeels', label: string) => {
       const input = h('input', { type: 'checkbox' }) as HTMLInputElement;
       input.checked = save.settings[key];
       input.addEventListener('change', () => {
         updateSettings({ [key]: input.checked } as Partial<Settings>);
+        // the graphics switches move the preset (to Custom, or to the one they now match)
+        if (key.startsWith('anim')) render();
         this.hud.syncMute();
         applyA11y();
         audio.sfx('sfx_click');
@@ -1550,7 +1606,7 @@ class UI {
     const tabs = h('div', { class: 'tabs' });
     const render = () => {
       tabs.replaceChildren(
-        ...(['audio', 'controls', 'access', 'progress'] as const).map((t) => btn({ audio: 'AUDIO', controls: 'CONTROLS', access: 'ACCESSIBILITY', progress: 'PROGRESS' }[t], `small ${tab === t ? 'active' : ''}`, () => ((tab = t), render()))),
+        ...(['audio', 'graphics', 'controls', 'access', 'progress'] as const).map((t) => btn({ audio: 'AUDIO', graphics: 'GRAPHICS', controls: 'CONTROLS', access: 'ACCESSIBILITY', progress: 'PROGRESS' }[t], `small ${tab === t ? 'active' : ''}`, () => ((tab = t), render()))),
       );
       if (tab === 'audio')
         body.replaceChildren(
@@ -1564,7 +1620,30 @@ class UI {
           }),
           h('div', { class: 'toggles' }, toggle('muted', 'Mute all'), toggle('showFps', 'Show FPS'), toggle('damageNumbers', 'Damage numbers'), toggle('showTimer', 'Run timer')),
         );
-      else if (tab === 'controls')
+      else if (tab === 'graphics') {
+        const cur = currentPreset();
+        const seg = h(
+          'div',
+          { class: 'seg' },
+          ...(['low', 'medium', 'high'] as const).map((p) =>
+            btn(p.toUpperCase(), `small ${cur === p ? 'active' : 'cream'}`, () => {
+              applyPreset(p);
+              applyA11y();
+              audio.sfx('sfx_click');
+              render();
+            }),
+          ),
+          cur === 'custom' ? btn('CUSTOM', 'small active', () => {}) : '',
+        );
+        body.replaceChildren(
+          h('div', { class: 'section-title' }, 'QUALITY'),
+          h('div', { class: 'choice' }, h('span', {}, 'Preset'), seg),
+          h('div', { class: 'hint' }, 'Low: everything still. Medium: animated feet only. High: everything animated. Lower settings run smoother on older phones and laptops.'),
+          h('div', { class: 'section-title' }, 'ANIMATION'),
+          h('div', { class: 'toggles' }, toggle('animFeet', 'Animated feet'), toggle('animBackdrops', 'Animated stages'), toggle('animPeels', 'Animated peels')),
+          h('div', { class: 'hint' }, 'Animated feet: still feet show their full art and only move as a whole. Changes apply to feet that arrive after the change. Animated peels: foot peels come alive and looks glow, burn and spark; off, each peel keeps a still of its look.'),
+        );
+      } else if (tab === 'controls')
         body.replaceChildren(
           h('div', { class: 'section-title' }, 'CONTROLLER'),
           choice('aimScheme', 'Aiming', [['free', 'FREE AIM'], ['lane', 'LANE MODE']]),
@@ -1587,7 +1666,7 @@ class UI {
             save.seenIntros = [];
             persist();
             audio.sfx('sfx_click');
-          }), h('span', {}, 'Show every how-it-works card again')),
+          }), h('span', {}, 'Show every how-it-works card and boss phase card again')),
           h('div', { class: 'reset-row' }, btn(`RESET PIZZERIA UPGRADES · +${fmt(metaRefundValue())}`, 'cream small', () => {
             const n = resetMeta();
             this.hud.toast(null, 'PIZZERIA RESET', `+${fmt(n)} Golden Crusts refunded`);
@@ -1924,6 +2003,26 @@ class UI {
     const tabs = h('div', { class: 'tabs' });
     const detail = h('div', { class: 'detail' });
     const body = h('div', { class: 'scroll', style: 'max-height:40cqh' });
+    // a tile's portrait is made as it scrolls into view when its foot isn't drawn yet (feet are drawn in idle time
+    // after boot: src/game/assets.ts), so opening the book never waits on every foot at once
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting) continue;
+          const img = e.target as HTMLImageElement;
+          io.unobserve(img);
+          const id = img.dataset.foot!;
+          void footArtAsync(id).then(() => (img.src = footPortraitURL(id)));
+        }
+      },
+      { root: body, rootMargin: '200px' },
+    );
+    const footImg = (id: string) => {
+      const img = h('img', { alt: '', 'data-foot': id }) as HTMLImageElement;
+      if (footArtReady(id)) img.src = footPortraitURL(id);
+      else io.observe(img);
+      return img;
+    };
     const showFoot = (id: string) => {
       const f = FOOT_BY_ID[id];
       const seen = save.seenFeet.includes(id);
@@ -2010,6 +2109,7 @@ class UI {
       );
     };
     const render = () => {
+      io.disconnect();
       const feet = FEET.filter((f) => !f.boss && !f.mini);
       const bosses = FEET.filter((f) => f.boss || f.mini);
       tabs.replaceChildren(
@@ -2023,7 +2123,7 @@ class UI {
         const list = tab === 'feet' ? feet : bosses;
         const tiles = list.map((f) => {
           const seen = save.seenFeet.includes(f.id);
-          const t = h('div', { class: `tile${seen ? '' : ' locked'}${f.boss ? ' boss' : ''}`, tabindex: 0 }, h('img', { src: footPortraitURL(f.id), alt: '', loading: 'lazy' }), h('div', { class: 'nm' }, seen ? f.name : '???'), f.boss ? h('span', { class: 'tag' }, 'BOSS') : f.mini ? h('span', { class: 'tag' }, 'MINI') : null);
+          const t = h('div', { class: `tile${seen ? '' : ' locked'}${f.boss ? ' boss' : ''}`, tabindex: 0 }, footImg(f.id), h('div', { class: 'nm' }, seen ? f.name : '???'), f.boss ? h('span', { class: 'tag' }, 'BOSS') : f.mini ? h('span', { class: 'tag' }, 'MINI') : null);
           t.addEventListener('click', () => {
             audio.sfx('sfx_click');
             showFoot(f.id);
@@ -2060,7 +2160,7 @@ class UI {
       } else if (tab === 'places') {
         const tiles = STAGES.map((st, i) => {
           const seen = placeSeen(st);
-          const t = h('div', { class: `tile${seen ? '' : ' locked'}`, tabindex: 0 }, h('img', { src: footPortraitURL(st.boss), alt: '', loading: 'lazy' }), h('div', { class: 'nm' }, seen ? BACKDROPS[st.location as keyof typeof BACKDROPS]?.name ?? st.location : '???'), h('div', { class: 'ds' }, `Act ${actOf(i * 5 + 1)} · W${i * 5 + 1}–${i * 5 + 5}`));
+          const t = h('div', { class: `tile${seen ? '' : ' locked'}`, tabindex: 0 }, footImg(st.boss), h('div', { class: 'nm' }, seen ? BACKDROPS[st.location as keyof typeof BACKDROPS]?.name ?? st.location : '???'), h('div', { class: 'ds' }, `Act ${actOf(i * 5 + 1)} · W${i * 5 + 1}–${i * 5 + 5}`));
           t.addEventListener('click', () => {
             audio.sfx('sfx_click');
             showPlace(st);
@@ -2160,7 +2260,14 @@ class UI {
           if (!e.isIntersecting) continue;
           const img = e.target as HTMLImageElement;
           io.unobserve(img);
-          img.src = peelThumbURL(img.dataset.peel!);
+          // (a foot peel's foot may not be drawn yet: from the art cache, off the main thread)
+          const id = img.dataset.peel!;
+          const fid = peelFootId(id);
+          void (fid ? footArtAsync(fid) : Promise.resolve()).then(() => {
+            img.src = peelThumbURL(id);
+            // a living peel plays over its tile (asked only now: it needs the foot's art)
+            if (hasPeel(id) && hasAnimatedLook(id)) animateLookImg(img, id);
+          });
         }
       },
       { root: body, rootMargin: '200px' },
@@ -2259,7 +2366,7 @@ class UI {
         worn ? h('span', { class: 'tag look', title: 'Worn look' }, 'LOOK') : null,
       );
       activatable(t);
-      if (owned && hasAnimatedLook(d.id)) animateLookImg(img as HTMLImageElement, d.id);
+      // (its living look starts once the thumbnail is in: the observer above)
       t.addEventListener('click', () => {
         audio.sfx('sfx_click');
         selected = d;

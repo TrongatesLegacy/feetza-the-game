@@ -205,6 +205,20 @@ const shortorder = (): Brain => {
   return {
     names: ['ORDER UP', 'RUSH HOUR'],
     info: ['The feet step back and a grabbing hand reaches for the marked pizza · whack the hand before it grabs a slice', 'Same hand, but it grabs two slices · whack it before it reaches the pizza'],
+    cards: [
+      {
+        what: 'The feet step back and a hand reaches for a pizza',
+        hit: 'Whack the hand before it grabs a slice',
+        miss: 'It snatches a slice to go',
+        show: [{ key: 'p_order_hand', label: 'Grabbing hand', hits: (h) => h.hits(3) }],
+      },
+      {
+        what: 'Rush hour: the hand comes back for two slices',
+        hit: 'Whack the hand before it reaches the pizza',
+        miss: 'It snatches two slices to go',
+        show: [{ key: 'p_order_hand', label: 'Grabbing hand', hits: (h) => h.hits(3) }],
+      },
+    ],
     update: (f, dt, a) => {
       if (busy || !a.inWave()) return;
       next -= dt;
@@ -481,6 +495,29 @@ const trex = (): Brain => {
       'Shakes, then swings over and eats one of his own feet to heal · it can\'t be stopped: clear the feet to starve him',
       'A deep breath, then a roar: every foot hurries and stomps twice · Peel Slam during the roar to stop it',
     ],
+    cards: [
+      {
+        what: 'Baby dinos dash along the table for marked pizzas',
+        hit: 'Whack each dino once before it gets there',
+        miss: 'It chomps a slice off that pizza',
+        show: [{ key: 'p_babydino', label: 'Baby dino', hits: 1 }],
+      },
+      {
+        what: 'He grabs one of his own feet to eat and heal',
+        hit: 'It can’t be stopped: clear his feet to starve him',
+        miss: 'Every foot he eats heals him a little',
+        show: [
+          { key: '@foot:dino', label: 'His dinos' },
+          { key: 'p_babydino', label: 'Baby dino', hits: 1 },
+        ],
+      },
+      {
+        what: 'A deep breath, then a roar: every stomp lands twice',
+        hit: 'Peel Slam during the roar to stop it',
+        miss: 'Every foot hurries and stomps twice for 3.5 seconds',
+        icon: '📣',
+      },
+    ],
     update: (f, dt, a) => {
       if (!started) {
         started = true;
@@ -695,6 +732,20 @@ const iceskate = (): Brain => {
   return {
     names: ['ICE TRAILS', 'TRIPLE AXEL'],
     info: ['Snow falls on one lane and freezes the feet in it · don\'t smack inside the snow or your peel freezes', 'Skates from lane to lane, speeding up the feet she passes · smack the fast ones first'],
+    cards: [
+      {
+        what: 'Snow falls on one lane and freezes the feet in it',
+        hit: 'Smack feet anywhere but inside the snow',
+        miss: 'Smack in the snow and your peel freezes',
+        show: [{ key: 'p_ivy_nopeel', label: 'Snowy lane', watch: true }],
+      },
+      {
+        what: 'She skates across the lanes, speeding up feet she passes',
+        hit: 'Smack the fast, glowing feet first',
+        miss: 'Sped-up feet stomp half as fast again',
+        show: [{ key: 'p_ivy_nopeel', label: 'Snowy lane', watch: true }],
+      },
+    ],
     upkeep: (_f, _dt, a) => boosts.tick(a),
     update: (f, dt, a) => {
       if (!a.inWave()) return;
@@ -1018,6 +1069,33 @@ const colossus = (): Brain => {
       'A big glint, then a shield snaps up · stop smacking while the shield is up',
       'Blacksmiths swing in to rebuild his armour · smack them first; a crit or Peel Slam knocks each plate off',
     ],
+    cards: [
+      {
+        what: 'An iron shell: small hits only chip it',
+        hit: 'Keep smacking until it breaks (crits crack it at once)',
+        miss: 'His shell soaks up your damage',
+        show: [{ key: '@boss', label: 'Iron shell' }],
+      },
+      {
+        what: 'A big glint, then a shield snaps up',
+        hit: 'Smack him, but stop while the shield is up',
+        miss: 'Smacks into the shield are parried',
+        show: [
+          { key: '@boss', label: 'Bare heel' },
+          { key: 'p_colossus_glint', label: 'Glint', watch: true },
+          { key: 'p_colossus_shield', label: 'Shield', watch: true },
+        ],
+      },
+      {
+        what: 'Blacksmiths swing in to rebuild his armour',
+        hit: 'Smack the blacksmiths before they reach him',
+        miss: 'A fresh plate goes on: only a crit or Peel Slam knocks it off',
+        show: [
+          { key: '@foot:blacksmith', label: 'Blacksmith' },
+          { key: 'p_colossus_plate', label: 'Fresh plate', watch: true },
+        ],
+      },
+    ],
     onPhase: (f, ph, a) => {
       if (ph === 2) {
         // whatever shell is left falls away; the parry takes over
@@ -1265,6 +1343,23 @@ const ufotoe = (): Brain => {
   return {
     names: ['TRACTOR BEAM', 'DOUBLE ABDUCTION'],
     info: ['Holds a lane to itself and beams a slice off the pizza below · smack the beam to break it', 'A twin saucer (same health bar) beams a second lane · break both beams'],
+    cards: [
+      {
+        what: 'The saucer takes a lane and beams up a slice',
+        hit: 'Smack the beam to break it',
+        miss: 'The slice is abducted',
+        show: [{ key: 'p_ufo_beam', label: 'Tractor beam', hits: 1 }],
+      },
+      {
+        what: 'A twin saucer joins and beams a second lane',
+        hit: 'Break both beams',
+        miss: 'Each beam left alone abducts a slice',
+        show: [
+          { key: 'p_ufo_beam', label: 'Tractor beams', hits: 1 },
+          { key: '@boss', label: 'Twin saucer', watch: true },
+        ],
+      },
+    ],
     onPhase: (f, ph, a) => {
       if (ph === 2 && !twinFoot) {
         const t = twin(a, f);
@@ -1504,6 +1599,26 @@ const cosmiccroc = (): Brain => {
       'Calls meteors onto the pizza below it · smack the meteor before it lands',
       'Turns the whole table upside down · keep smacking: your peel still hits what it\'s over',
       'Opens a black hole: the feet over that pizza get pulled down faster · smack the black hole until it closes',
+    ],
+    cards: [
+      {
+        what: 'He calls meteors down onto the pizza below him',
+        hit: 'Smack the meteor before it lands',
+        miss: 'It crashes down and takes a slice',
+        show: [{ key: 'p_meteor', label: 'Meteor', hits: 1 }],
+      },
+      {
+        what: 'The whole table turns upside down',
+        hit: 'Keep smacking: your peel still hits what it’s over',
+        miss: 'Meteors keep falling on the pizza below him',
+        show: [{ key: 'p_meteor', label: 'Meteor', hits: 1 }],
+      },
+      {
+        what: 'A black hole opens over a pizza',
+        hit: 'Smack the black hole until it closes',
+        miss: 'Feet over that pizza get pulled down faster',
+        show: [{ key: 'p_blackhole', label: 'Black hole', hits: (h) => h.hits(3) }],
+      },
     ],
     onPhase: (_f, ph, a) => {
       if (ph === 2) {

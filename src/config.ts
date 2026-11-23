@@ -13,3 +13,6 @@ export const MAX_PIZZAS = 5;
 export const BASE_SLICES = 8;
 
 export const STORAGE_KEY = 'feetza.save.v1';
+
+/** The last seconds of a guard foot's wait for a new shield, when it reaches back for it. */
+export const GUARD_FETCH = 1;

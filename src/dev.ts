@@ -2,7 +2,7 @@
 import type Phaser from 'phaser';
 import type { HeatId } from './data/difficulty';
 import type { RunSnapshot } from './game/snapshot';
-import { save } from './systems/save';
+import { phaseCardsMuted, save } from './systems/save';
 
 type AnyScene = Phaser.Scene & Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -26,7 +26,9 @@ function seed(n: number | null): void {
 }
 
 function skipIntros(): void {
-  save.seenIntros = ['shop', 'kinds', 'swap', 'freshness', 'phases', 'mini', 'events', 'golden'];
+  // (the player's own phase cards seen are kept; phase cards are muted for this page only, not saved off)
+  save.seenIntros = [...new Set([...save.seenIntros, 'shop', 'kinds', 'swap', 'freshness', 'phases', 'mini', 'events', 'golden'])];
+  phaseCardsMuted.on = true;
   save.tutorialDone = true;
 }
 
@@ -78,6 +80,28 @@ export function installDevTools(game: Phaser.Game): void {
   let botRender = true;
   void import('./devBossLab').then((m) => m.installBossLab(game));
   void import('./devLookLab').then((m) => m.installLookLab());
+  void import('./devStyleSheet').then((m) => m.installStyleSheet());
+  void import('./devStages').then((m) => m.installStageSheet());
+  // the smack recorder is always on in dev (what each click did goes to .dev-logs/smacks.jsonl); the 🎯 Hitboxes
+  // button (or ?dev&hitboxes) shows every target's hit area and where smacks land
+  void import('./game/smackLog').then((m) => {
+    m.startSmackLog();
+    if (new URLSearchParams(location.search).has('hitboxes')) m.smackLog.overlay = true;
+    const add = () => {
+      const fab = document.querySelector('.bl-fab');
+      if (!fab) return void setTimeout(add, 300);
+      const b = document.createElement('button');
+      const sync = () => (b.textContent = m.smackLog.overlay ? '🎯 Hitboxes on' : '🎯 Hitboxes');
+      sync();
+      b.title = 'Show every clickable target\'s hit area and where smacks land (all smacks are logged to .dev-logs/smacks.jsonl)';
+      b.addEventListener('click', () => {
+        m.smackLog.overlay = !m.smackLog.overlay;
+        sync();
+      });
+      fab.appendChild(b);
+    };
+    add();
+  });
   // ?dev&show=welcome opens a screen straight away, for headless screenshots of DOM screens
   const showParam = new URLSearchParams(location.search).get('show');
   if (showParam) {
@@ -102,7 +126,12 @@ export function installDevTools(game: Phaser.Game): void {
     },
     async boot(): Promise<void> {
       const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-      for (let i = 0; i < 400 && !document.querySelector('.splash-hint'); i++) await sleep(150);
+      // already past the splash (the menu or a run is up): nothing to do. It used to wait 60 s for a splash that
+      // was long gone, so every dev page (Stages, Style, Looks) took a minute to open after the first time
+      const up = () => game.scene.isActive('Menu') || game.scene.isActive('Game');
+      if (up()) return;
+      for (let i = 0; i < 400 && !document.querySelector('.splash-hint') && !up(); i++) await sleep(150);
+      if (up()) return;
       document.querySelector('.screen')?.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
       await sleep(800);
     },
@@ -113,6 +142,16 @@ export function installDevTools(game: Phaser.Game): void {
      * e.g. F.startGame({ wave: 61, kit: true }). For acts 7–10 before their stages exist, see fakeStages.
      */
     /** The balance simulator: one whole run as fast as the CPU allows (see src/devSim.ts, scripts/sim/run.mjs). */
+    /** The art cache (src/game/artCache.ts): F.artCache.stats(), F.artCache.clear() (the next load draws everything
+     * again), F.artCache.pending() (art still to draw in idle time). */
+    artCache: {
+      stats: async () => {
+        const [{ artCacheDev }, { artPending }] = await Promise.all([import('./game/artCache'), import('./game/assets')]);
+        return { ...(await artCacheDev.stats()), artPending: artPending() };
+      },
+      clear: async () => (await import('./game/artCache')).artCacheDev.clear(),
+      pending: async () => (await import('./game/assets')).artPending(),
+    },
     sim: {
       run: async (o: import('./devSim').SimOpts) => (await import('./devSim')).simRun(game, o, (opts) => api.startGame(opts)),
       ready: async () => (await import('./devSim')).simReady(),
@@ -121,6 +160,7 @@ export function installDevTools(game: Phaser.Game): void {
       const o = Array.isArray(opts) ? { lineup: opts } : (opts ?? {});
       if (o.seed !== undefined) seed(Number(o.seed));
       if (o.intros === false) skipIntros();
+      else if (!botOn) phaseCardsMuted.on = false;
       document.querySelectorAll('.screen').forEach((e) => e.remove());
       const data = { ...o };
       if (o.upgrades || o.coins !== undefined) {
@@ -163,6 +203,28 @@ export function installDevTools(game: Phaser.Game): void {
     /** Deterministic randomness for fair before/after comparisons. */
     seed,
     skipIntros,
+    /** Preview a boss phase's card (src/ui/phaseCard.ts) over whatever is on screen, e.g. F.phaseCard('titanking', 2).
+     *  `phases` defaults to the boss's phase count on that heat. Nothing is saved; OK just closes it. */
+    async phaseCard(id: string, phase = 1, heat: HeatId = 'regular', phases?: number): Promise<string> {
+      const [{ ui }, { phaseCardFor }, { bossPhaseInfo }, { HEAT_BY_ID }, { FOOT_BY_ID }] = await Promise.all([import('./ui/ui'), import('./game/phaseCards'), import('./game/bosses'), import('./data/difficulty'), import('./data/feet')]);
+      const n = phases ?? bossPhaseInfo(id)?.fixed ?? (FOOT_BY_ID[id]?.mini ? Math.max(1, HEAT_BY_ID[heat].bossPhases - 1) : HEAT_BY_ID[heat].bossPhases);
+      const c = phaseCardFor(id, phase, Math.max(n, phase), heat);
+      if (!c) return `no fight for ${id}`;
+      for (const s of document.querySelectorAll('.phasecard')) s.closest('.screen')?.remove();
+      // a fight behind it holds still while the preview is up
+      const g = game.scene.getScene('Game') as AnyScene;
+      const hold = !!g?.sys.isActive();
+      if (hold) {
+        g.scene.pause();
+        g.paused = true;
+      }
+      ui.phaseCard(c, () => {
+        if (!hold) return;
+        g.paused = false;
+        if (g.sys.isPaused()) g.scene.resume();
+      });
+      return `${c.bossName} · phase ${phase} · ${c.name}`;
+    },
     /** Peels: unlock everything, or make shiny feet common (n = chance multiplier) for testing. */
     peels: {
       unlockAll: async () => {
@@ -243,9 +305,10 @@ export function installDevTools(game: Phaser.Game): void {
           if (intro) intro.click();
           if (g.feet && !g.inUpgrade && !g.over) {
             const prop = (g.clickables ?? []).find((c: any) => c.alive() && (c.priority ?? 0) >= 2); // eslint-disable-line @typescript-eslint/no-explicit-any
-            // the lowest foot, skipping any with a guard up (as a player would) unless that's all there is
+            // the lowest foot, skipping any with a guard up (as a player would) unless that's all there is: then it smacks the
+            // raised shield, which cracks it and in the end breaks it (src/game/guardShield.ts)
             const ts = g.feet.filter((f: any) => f.hittable).sort((a: any, b: any) => b.y - a.y); // eslint-disable-line @typescript-eslint/no-explicit-any
-            const t = ts.find((f: any) => !f.shielded) ?? ts[0]; // eslint-disable-line @typescript-eslint/no-explicit-any
+            const t = ts.find((f: any) => !f.shielded && !f.guardUp) ?? ts.find((f: any) => !f.shielded) ?? ts[0]; // eslint-disable-line @typescript-eslint/no-explicit-any
             if (prop && Math.random() < accuracy) {
               g.pointer.x = prop.x;
               g.pointer.y = prop.y;

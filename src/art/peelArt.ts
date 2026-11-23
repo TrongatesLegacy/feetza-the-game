@@ -36,6 +36,8 @@ export interface PeelLook {
   emblem?: CanvasImageSource | null;
   /** Foot and boss peels: the head IS the foot (toes up, handle at the heel), patterned and foiled. */
   footArt?: HTMLCanvasElement | null;
+  /** The foot's emissive layer cut as footArt is, laid over it as a steady glow (alpha a): neon and magma feet. */
+  footGlow?: { art: HTMLCanvasElement; a: number } | null;
   /** Objects more than feet (a jukebox, a riot shield): keep them upright instead of toes-up. */
   footUpright?: boolean;
   /** Pizza peels: the head IS the pizza (drawn as-is, not flipped). */
@@ -370,11 +372,9 @@ function drawPattern(ctx: Ctx, look: PeelLook): void {
   }
 }
 
-/** Draw a peel skin onto a 220x360 canvas. */
-export function drawPeelSkin(look: PeelLook): HTMLCanvasElement {
-  const [c, ctx] = makeCanvas(PEEL_W, PEEL_H);
+/** The handle: shaft, grip wraps, the band under the head (shiny and boss peels) and the end knob. */
+export function drawPeelHandle(ctx: Ctx, look: PeelLook): void {
   const ink = look.rim ?? INK;
-  // handle
   roundRect(ctx, HX - 14, HY + R - 14, 28, 170, 12);
   const hg = ctx.createLinearGradient(HX - 14, 0, HX + 14, 0);
   hg.addColorStop(0, look.handle[1]);
@@ -406,6 +406,13 @@ export function drawPeelSkin(look: PeelLook): HTMLCanvasElement {
   ellipse(ctx, HX, HY + R + 140, 9, 6);
   ctx.fillStyle = INK;
   ctx.fill();
+}
+
+/** Draw a peel skin onto a 220x360 canvas. */
+export function drawPeelSkin(look: PeelLook): HTMLCanvasElement {
+  const [c, ctx] = makeCanvas(PEEL_W, PEEL_H);
+  const ink = look.rim ?? INK;
+  drawPeelHandle(ctx, look);
 
   if (look.custom) {
     look.custom(ctx);
@@ -522,8 +529,20 @@ export function drawPeelSkin(look: PeelLook): HTMLCanvasElement {
   return c;
 }
 
-/** A foot-shaped head: the foot's own art flipped toes-up over the handle, with the peel's pattern and foil on top. */
-function drawFootHead(ctx: Ctx, look: PeelLook): void {
+/** Where a foot head sits on the peel: the trimmed art's scale (peel units per texel), its drawn size, the shift
+ * that centres the ankle on the handle, the line the heel meets (the top of the hilt), whether it's flipped toes-up,
+ * and the ankle's width for the hilt. */
+export interface FootHeadPlace {
+  k: number;
+  w: number;
+  h: number;
+  dx: number;
+  bottom: number;
+  flip: boolean;
+  ankle: number;
+}
+
+export function footHeadPlace(look: PeelLook): FootHeadPlace {
   const art = look.footArt!;
   // fit inside the head area, the heel meeting the top of the handle
   const boxW = R * 2 + 8;
@@ -532,54 +551,119 @@ function drawFootHead(ctx: Ctx, look: PeelLook): void {
   const an = ankleOf(art);
   const halfSpan = Math.max(an.cx, art.width - an.cx);
   const k = Math.min(boxW / (halfSpan * 2), boxH / art.height);
-  const w = art.width * k;
-  const hgt = art.height * k;
-  const dx = (art.width / 2 - an.cx) * k;
-  const bottom = HY + R + 6;
-  const [t, tctx] = makeCanvas(PEEL_W, PEEL_H);
-  tctx.save();
-  tctx.translate(HX, bottom - hgt / 2);
-  if (!look.footUpright) tctx.scale(1, -1); // toes up
-  tctx.drawImage(art, -w / 2 + dx, -hgt / 2, w, hgt);
-  tctx.restore();
-  // pattern and foil only where the foot is
-  tctx.globalCompositeOperation = 'source-atop';
-  tctx.globalAlpha = 0.28;
-  drawPattern(tctx, look);
-  tctx.globalAlpha = 1;
+  return {
+    k,
+    w: art.width * k,
+    h: art.height * k,
+    dx: (art.width / 2 - an.cx) * k,
+    bottom: HY + R + 6,
+    flip: !look.footUpright,
+    ankle: (look.footUpright ? an.sole : an.w) * k,
+  };
+}
+
+/** Draw a picture in the trimmed foot art's texel frame (the foot itself, or a layer cut the same way) onto a
+ * peel-sized canvas, placed and flipped as the head is. */
+export function drawInFootHead(ctx: Ctx, img: CanvasImageSource, p: FootHeadPlace, iw: number, ih: number): void {
+  ctx.save();
+  ctx.translate(HX, p.bottom - p.h / 2);
+  if (p.flip) ctx.scale(1, -1); // toes up
+  ctx.drawImage(img, -p.w / 2 + p.dx, -p.h / 2, iw * p.k, ih * p.k);
+  ctx.restore();
+}
+
+const FOIL = ['#ff5f6d', '#ffc371', '#fff06a', '#7dff9a', '#5fd8ff', '#a77dff', '#ff7ad9'];
+
+/** The shiny foil's sparkles on a foot head, in peel units: [x, y, radius] (the animated peels twinkle them). */
+export function footSparkles(look: PeelLook): [number, number, number][] {
+  const sr = rng(hashStr(look.seed + 'sparkle'));
+  return Array.from({ length: 7 }, () => [HX - R + 14 + sr() * (R * 2 - 28), HY - R + 14 + sr() * (R * 2 - 28), 4 + sr() * 7]);
+}
+
+/** A four-point sparkle star (the shiny foil's). */
+export function sparkleStar(ctx: Ctx, x: number, y: number, r: number): void {
+  star(ctx, x, y, r, 4, 0.28, 0);
+}
+
+/**
+ * The peel's pattern and (shiny peels) rainbow foil and sparkles over a foot head, only where it is drawn. `c` is the
+ * canvas ctx draws on, its transform set to peel units (a layer of an animated peel can sit anywhere on it).
+ */
+export function finishFootLayer(c: HTMLCanvasElement, ctx: Ctx, look: PeelLook, sparkles = true): void {
+  ctx.save();
+  ctx.globalCompositeOperation = 'source-atop';
+  ctx.globalAlpha = 0.28;
+  drawPattern(ctx, look);
+  ctx.globalAlpha = 1;
   if (look.shiny) {
-    // keep a copy of the foot's shape: 'overlay' isn't clipped, so the foil is trimmed back to it afterwards
-    const [mask, mctx] = makeCanvas(PEEL_W, PEEL_H);
-    mctx.drawImage(t, 0, 0);
-    const fg = tctx.createLinearGradient(HX - R, HY - R, HX + R, HY + R);
-    const hues = ['#ff5f6d', '#ffc371', '#fff06a', '#7dff9a', '#5fd8ff', '#a77dff', '#ff7ad9'];
-    hues.forEach((hc, i) => fg.addColorStop(i / (hues.length - 1), hc));
-    tctx.globalCompositeOperation = 'overlay';
-    tctx.globalAlpha = 0.75;
-    tctx.fillStyle = fg;
-    tctx.fillRect(0, 0, PEEL_W, PEEL_H);
-    tctx.globalAlpha = 1;
-    tctx.globalCompositeOperation = 'destination-in';
-    tctx.drawImage(mask, 0, 0);
-    tctx.globalCompositeOperation = 'source-atop';
-    const sr = rng(hashStr(look.seed + 'sparkle'));
-    tctx.fillStyle = '#ffffff';
-    for (let i = 0; i < 7; i++) {
-      star(tctx, HX - R + 14 + sr() * (R * 2 - 28), HY - R + 14 + sr() * (R * 2 - 28), 4 + sr() * 7, 4, 0.28, 0);
-      tctx.fill();
+    // keep a copy of the shape: 'overlay' isn't clipped, so the foil is trimmed back to it afterwards
+    const [mask, mctx] = makeCanvas(c.width, c.height);
+    mctx.drawImage(c, 0, 0);
+    const fg = ctx.createLinearGradient(HX - R, HY - R, HX + R, HY + R);
+    FOIL.forEach((hc, i) => fg.addColorStop(i / (FOIL.length - 1), hc));
+    ctx.globalCompositeOperation = 'overlay';
+    ctx.globalAlpha = 0.75;
+    ctx.fillStyle = fg;
+    ctx.fillRect(-PEEL_W, -PEEL_H, PEEL_W * 3, PEEL_H * 3);
+    ctx.globalAlpha = 1;
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalCompositeOperation = 'destination-in';
+    ctx.drawImage(mask, 0, 0);
+    ctx.restore();
+    if (sparkles) {
+      ctx.globalCompositeOperation = 'source-atop';
+      ctx.fillStyle = '#ffffff';
+      for (const [x, y, r] of footSparkles(look)) {
+        sparkleStar(ctx, x, y, r);
+        ctx.fill();
+      }
     }
   }
-  tctx.globalCompositeOperation = 'source-over';
-  // a soft drop shadow, then the foot
+  ctx.restore();
+}
+
+/** The soft drop shadow under a foot head (the head drawn on a peel-sized canvas `t`), without the head itself.
+ * `px`: canvas pixels per peel unit (shadow sizes ignore the transform). */
+export function footHeadShadow(ctx: Ctx, t: CanvasImageSource, px = 1): void {
   ctx.save();
   ctx.shadowColor = 'rgba(0,0,0,0.3)';
-  ctx.shadowBlur = 8;
-  ctx.shadowOffsetY = 4;
-  ctx.drawImage(t, 0, 0);
+  ctx.shadowBlur = 8 * px;
+  ctx.shadowOffsetY = 4 * px;
+  // drawn far off to the left with the shadow thrown back into place: only the shadow lands
+  const far = 4000;
+  ctx.shadowOffsetX = far;
+  ctx.drawImage(t, -far / px, 0, PEEL_W, PEEL_H);
   ctx.restore();
-  // the hilt: a crossguard as wide as the ankle, so foot and handle join cleanly
-  const ankle = (look.footUpright ? an.sole : an.w) * k;
-  const gw = Math.max(56, Math.min(128, ankle + 22));
+}
+
+/** A foot-shaped head: the foot's own art flipped toes-up over the handle, with the peel's pattern and foil on top. */
+function drawFootHead(ctx: Ctx, look: PeelLook): void {
+  const art = look.footArt!;
+  const p = footHeadPlace(look);
+  const [t, tctx] = makeCanvas(PEEL_W, PEEL_H);
+  drawInFootHead(tctx, art, p, art.width, art.height);
+  // pattern and foil only where the foot is
+  finishFootLayer(t, tctx, look);
+  // feet drawn dark under an emissive layer (neon, magma) keep it as a steady glow, as a still foot does in play
+  if (look.footGlow) {
+    tctx.save();
+    tctx.globalCompositeOperation = 'lighter';
+    tctx.globalAlpha = look.footGlow.a;
+    drawInFootHead(tctx, look.footGlow.art, p, look.footGlow.art.width, look.footGlow.art.height);
+    tctx.restore();
+  }
+  // a soft drop shadow, then the foot
+  footHeadShadow(ctx, t);
+  ctx.drawImage(t, 0, 0);
+  drawFootHilt(ctx, look, p);
+}
+
+/** The hilt under a foot head: a crossguard as wide as the ankle (so foot and handle join cleanly), pommel caps,
+ * a ferrule and (bosses) a jewel. */
+export function drawFootHilt(ctx: Ctx, look: PeelLook, p: FootHeadPlace): void {
+  const bottom = p.bottom;
+  const gw = Math.max(56, Math.min(128, p.ankle + 22));
   const metal = look.studs ?? look.handle[0];
   const gg = ctx.createLinearGradient(0, bottom - 12, 0, bottom + 10);
   gg.addColorStop(0, shade(metal, 0.35));

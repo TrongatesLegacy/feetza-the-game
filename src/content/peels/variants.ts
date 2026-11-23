@@ -123,7 +123,7 @@ const ghostSparta: Ability = {
   color: 0xff3a1a,
   vfx: 'burst',
   custom: true,
-  desc: `Signature (${S}): “THIS IS SPARTAAA!”, then 30 s of rage, as the Kratos Peel’s: +100% damage, every smack hits all feet within 160 px, burns them and knocks them back. The twist: the rage leaves a trail of fire across the table wherever your peel goes, and every foot that touches it burns (1×/s for 2 s). Passive, Spinning Blades: three chained blades orbit your peel from the start (one more each new act, up to 5), and an ember aura burns round it all the time.`,
+  desc: `Signature (${S}): a bestial war roar, then 30 s of Spartan Rage, as the Kratos Peel’s: +100% damage, every smack hits all feet within 160 px, burns them and knocks them back. The twist: the rage leaves a trail of fire across the table wherever your peel goes, and every foot that touches it burns (1×/s for 2 s). Passive, Spinning Blades: three chained blades orbit your peel from the start (one more each new act, up to 5), and an ember aura burns round it all the time.`,
 };
 
 // ——— shared bits for the hero variants ———

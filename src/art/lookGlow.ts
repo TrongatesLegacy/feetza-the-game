@@ -6,7 +6,7 @@
 // - god peels: their element (Poseidon's droplets, Hades's violet smoke, Apollo's sunlight, Hermes's wind,
 //   Thor's lightning flicks …)
 // - the God Peel: a gold halo, a sunburst and a radiant prismatic trail
-// - heroes: a quiet signature glow in their suit colours (there are a lot of them)
+// - heroes: a tight signature glow in their suit colours, rim glints and a star-shedding ribbon
 // Colours come from each peel's PeelLook, so new peels in these groups get a look for free; only the
 // showpieces are hand-tuned.
 
@@ -78,18 +78,23 @@ function palette(look: PeelLook): { light: number; mid: number; trail: number; g
 
 // ——— families ———
 
-/** Heroes: a quiet glow and a slim ribbon in their colours, and a mote now and then. */
+/** Heroes: a tight glow in their colours that swells like a held breath, star glints catching on the rim, motes
+ *  rising, and a ribbon that sheds bright little stars as they swing. */
 export function heroStyle(look: PeelLook): GlowStyle {
   const p = palette(look);
   const c = glowable(p.trail);
   return {
     aura: c,
-    auraA: 0.25,
-    auraR: 1.3,
-    pulse: 0.12,
-    hz: 1.6,
-    bits: [bit(Bit.Mote, shadeC(c, 0.55), c, { rate: 0.7, move: 0.8, size: 3, life: 0.9, vy: -26 })],
-    trail: ribbon(c, 16, 0.65, 0.26),
+    auraA: 0.22,
+    auraR: 1.2,
+    pulse: 0.2,
+    hz: 1.1,
+    bits: [
+      bit(Bit.Mote, shadeC(c, 0.55), c, { rate: 1.1, move: 0.8, size: 3.2, life: 1, vy: -28 }),
+      bit(Bit.Glint, 0xffffff, c, { rate: 0.8, move: 0.5, size: 8, life: 0.55, vy: 0, spread: 0, where: 'rim' }),
+    ],
+    dust: bit(Bit.Star, shadeC(c, 0.85), shadeC(c, -0.15), { move: 2.2, size: 5.5, life: 0.75, vy: 10, grav: 40, spread: 18 }),
+    trail: ribbon(c, 17, 0.7, 0.3),
     ring: [shadeC(c, -0.4), shadeC(c, 0.4)],
   };
 }

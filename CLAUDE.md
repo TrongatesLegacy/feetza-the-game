@@ -22,3 +22,26 @@ To test peels without earning them, open the game with `?dev` and press **🔓 P
   - **Gameplay:** auto-player runs on several seeds and heats, plus a fairness check on Mild.
   - **Code:** an independent review of the diff.
 - **Feet style:** new feet should move towards one continuous silhouette, with materials, one shared light direction and a simple rig, rather than shapes stacked on shapes. This is being piloted on new content; see "Looking ahead: redesigning the feet" in the plan doc. Until a pilot is approved, match the existing style.
+
+## Keep boss info and phase cards in step with the fight
+
+Whenever a boss or mini-boss fight changes (a new phase, move, target, rule, heat difference or counter-play), update what the player is told in the same change:
+- its `howTo` and info lines (`src/content/feet/`, `info` in its brain);
+- its phase cards (`cards` in its brain in `src/game/bosses/*.ts`, shown by `src/game/phaseCards.ts`), including pictures of the right targets and wording for each heat where they differ.
+
+Check the cards by playing to each phase with `?dev`. A card that describes the old fight is a bug.
+
+## Zombies: what can be zombified, and its peels
+
+Only ordinary, living feet can be zombified, by the Zombie Loafer's bite or by the zombie peels. These are never zombified:
+- bosses and mini-bosses;
+- feet a boss summons as part of its fight (sub-boss helpers with their own role, such as the Colossus's blacksmith);
+- the undead and the not-quite-alive: the Immortals, ghosts, skeletons, mummies, zombies and the like. Mark a new undead foot as such.
+
+Keep them all out of every zombify path.
+
+Every zombifiable foot gets a zombified foot peel (group `zombieFoot`). When a new foot is added, or a foot becomes zombifiable, check in the same change that:
+- its zombified art builds and looks right;
+- its `zombie:<footId>` peel appears in the Peel Locker with its kill-one-zombified goal;
+- the peel's ability combines the foot's perk with the zombie perk.
+A foot that can't be zombified gets no zombified peel.
