@@ -92,22 +92,22 @@ export const RK = {
   farY: 528,
 };
 
-const P2 = Math.PI * 2;
-const INK = '#150c1c';
+export const P2 = Math.PI * 2;
+export const INK = '#150c1c';
 const BLOCK = '#3a2a5e';
-const MAPLE = ['#b4824e', '#a87446', '#bc8c58', '#9c6a40', '#b07c4a'];
+export const MAPLE = ['#b4824e', '#a87446', '#bc8c58', '#9c6a40', '#b07c4a'];
 /** The fluorescent pigments under blacklight. */
-const UV = ['#ff3ad8', '#3af4ff', '#f4ff3a', '#7aff3a', '#ff8a2a'];
+export const UV = ['#ff3ad8', '#3af4ff', '#f4ff3a', '#7aff3a', '#ff8a2a'];
 /** The same pigments by house light: dyed dark. */
-const DYE = ['#8a2a74', '#1e6a7a', '#8a7a20', '#3a7a2a', '#8a4a1e'];
+export const DYE = ['#8a2a74', '#1e6a7a', '#8a7a20', '#3a7a2a', '#8a4a1e'];
 
 // ——— small helpers ———
 
-type Pt = [number, number];
+export type Pt = [number, number];
 
 /** Depth along the rink floor (any unit: it only orders and spaces things). */
-const fz = (y: number) => 1 / (y - HY);
-const fy = (z: number) => HY + 1 / z;
+export const fz = (y: number) => 1 / (y - HY);
+export const fy = (z: number) => HY + 1 / z;
 
 function stroke(c: Ctx, pts: Pt[], w: number, col: string): void {
   c.strokeStyle = col;
@@ -120,7 +120,7 @@ function stroke(c: Ctx, pts: Pt[], w: number, col: string): void {
 
 // ——— the roof and the truss ———
 
-function roofDeck(ctx: Ctx): void {
+export function roofDeck(ctx: Ctx): void {
   vfill(ctx, 0, 0, W, RK.roof + 2, [[0, '#050308'], [1, '#100c18']]);
   // the deck's ribs and the purlins carrying it, catching a little of the lamps' light
   for (let x = -10; x < W; x += 46) {
@@ -134,7 +134,7 @@ function roofDeck(ctx: Ctx): void {
 }
 
 /** One steel member: ink, the painted steel, a lit top edge. */
-function member(c: Ctx, x0: number, y0: number, x1: number, y1: number, w: number): void {
+export function member(c: Ctx, x0: number, y0: number, x1: number, y1: number, w: number): void {
   c.lineCap = 'butt';
   stroke(c, [[x0, y0], [x1, y1]], w + 2.4, INK);
   stroke(c, [[x0, y0], [x1, y1]], w, '#2e2a3a');
@@ -146,7 +146,7 @@ function member(c: Ctx, x0: number, y0: number, x1: number, y1: number, w: numbe
 }
 
 /** A high-bay lamp hanging from the chord: stem, the spun-aluminium dome, its lens (lit or not). */
-function highBay(c: Ctx, x: number, lit: number): void {
+export function highBay(c: Ctx, x: number, lit: number): void {
   const y = RK.lampY;
   if (lit === 0) {
     member(c, x, RK.chord + 4, x, y - 30, 4);
@@ -203,7 +203,7 @@ function highBay(c: Ctx, x: number, lit: number): void {
 }
 
 /** A moving-head spot clamped under the chord, its lens pointing down into the rink. */
-function movingHead(c: Ctx, x: number, aim: number): void {
+export function movingHead(c: Ctx, x: number, aim: number): void {
   const y = RK.chord + 8;
   member(c, x - 14, y - 2, x + 14, y - 2, 4);
   // the yoke
@@ -226,7 +226,7 @@ function movingHead(c: Ctx, x: number, aim: number): void {
 }
 
 /** A blacklight fixture on the chord: the batten and its dark violet tube (lit, it glows). */
-function uvFixture(c: Ctx, x: number, lit: number): void {
+export function uvFixture(c: Ctx, x: number, lit: number): void {
   const y = RK.chord + 9;
   const w = 108;
   if (!lit) {
@@ -246,7 +246,7 @@ function uvFixture(c: Ctx, x: number, lit: number): void {
   c.restore();
 }
 
-function truss(ctx: Ctx, r: R): void {
+export function truss(ctx: Ctx, r: R): void {
   const top = 20;
   const bot = RK.chord;
   // the web: verticals and diagonals between the chords (behind them)
@@ -299,11 +299,11 @@ function truss(ctx: Ctx, r: R): void {
 
 // ——— the far wall ———
 
-const BW = 112;
-const BH = 50;
+export const BW = 112;
+export const BH = 50;
 
 /** Cinder block, painted: each block a cushioned face under the paint, the joints recessed. */
-function blocks(ctx: Ctx, r: R, box: { x: number; y: number; w: number; h: number }): void {
+export function blocks(ctx: Ctx, r: R, box: { x: number; y: number; w: number; h: number }): void {
   ctx.fillStyle = '#20183a';
   ctx.fillRect(box.x, box.y, box.w, box.h);
   for (let row = 0, y = RK.roof - 4; y < box.y + box.h; row++, y += BH) {
@@ -327,7 +327,7 @@ function blocks(ctx: Ctx, r: R, box: { x: number; y: number; w: number; h: numbe
 }
 
 /** The block joints (recessed: in shadow under each course, a lit lower lip), redrawable over paint. */
-function joints(ctx: Ctx, box: { x: number; y: number; w: number; h: number }, a: number): void {
+export function joints(ctx: Ctx, box: { x: number; y: number; w: number; h: number }, a: number): void {
   ctx.save();
   ctx.beginPath();
   ctx.rect(box.x, box.y, box.w, box.h);
@@ -349,11 +349,11 @@ function joints(ctx: Ctx, box: { x: number; y: number; w: number; h: number }, a
 }
 
 /** The mural's stripes: five bands sweeping across the wall like a sunset over a hill. */
-const muralY = (x: number) => 300 + Math.sin(x / 250 + 0.4) * 24 + Math.sin(x / 90) * 3 - (x - 960) * 0.035;
-const BAND = 15;
-const MURAL = ['#d8683a', '#e0a23a', '#d84a74', '#9a3a94', '#4e3aa0'];
+export const muralY = (x: number) => 300 + Math.sin(x / 250 + 0.4) * 24 + Math.sin(x / 90) * 3 - (x - 960) * 0.035;
+export const BAND = 15;
+export const MURAL = ['#d8683a', '#e0a23a', '#d84a74', '#9a3a94', '#4e3aa0'];
 
-function muralStripes(ctx: Ctx, uv: boolean): void {
+export function muralStripes(ctx: Ctx, uv: boolean): void {
   ctx.save();
   ctx.lineCap = 'butt';
   for (let i = 0; i < 5; i++) {
@@ -443,7 +443,7 @@ function marqueeBulbs(): Pt[] {
 const BULBS = marqueeBulbs();
 
 /** One marquee bulb: a frosted globe in its socket, lit or not. */
-function bulbAt(c: Ctx, x: number, y: number, lit: number): void {
+export function bulbAt(c: Ctx, x: number, y: number, lit: number): void {
   c.fillStyle = '#2a2026';
   c.beginPath();
   c.arc(x, y, 6.4, 0, P2);
@@ -628,7 +628,7 @@ function rental(ctx: Ctx, r: R): void {
 const BT = RK.booth;
 const BD = RK.board;
 
-function speaker(c: Ctx, x: number, y0: number, y1: number): void {
+export function speaker(c: Ctx, x: number, y0: number, y1: number): void {
   const w = 62;
   const box = rrPath(x - w / 2, y0, w, y1 - y0, 4);
   castShadow(c, box, 10, 12, 0.5, '#06040e');
@@ -655,7 +655,7 @@ function speaker(c: Ctx, x: number, y0: number, y1: number): void {
 }
 
 /** The letterboard on the booth's roof: a backlit face with the session spelt in plastic letters. */
-function letterboard(c: Ctx, text: string, col: string): void {
+export function letterboard(c: Ctx, text: string, col: string): void {
   const x0 = BD.x - BD.w / 2;
   const y0 = BD.y - BD.h / 2;
   // the legs on the booth's roof
@@ -692,8 +692,8 @@ function letterboard(c: Ctx, text: string, col: string): void {
  * moustache, the headphones' cup held to one ear, the other hand scratching the record on the deck, nodding on the
  * beat. `startled` (1, 2): the record skips when the ledge is hit: head up, mouth open, both hands lifted. Painted
  * in the booth's window; the console's front edge (the base's) covers the body's foot. */
-const DJ = { x: 1612, y: BT.win - 6, box: { x: 1536, y: 312, w: 156, h: 72 } };
-function djFrame(c: Ctx, ph: number, startled = 0): void {
+export const DJ = { x: 1612, y: BT.win - 6, box: { x: 1536, y: 312, w: 156, h: 72 } };
+export function djFrame(c: Ctx, ph: number, startled = 0): void {
   const x = DJ.x;
   const y = DJ.y;
   const beat = Math.sin(ph * P2 * 2);
@@ -844,7 +844,7 @@ function djFrame(c: Ctx, ph: number, startled = 0): void {
   c.restore();
 }
 
-function booth(ctx: Ctx, r: R): void {
+export function booth(ctx: Ctx, r: R, board: [string, string] = ['ALL SKATE', '#d8203a']): void {
   const { x0, x1, top, win } = BT;
   // the speakers on their stands either side, the booth between
   speaker(ctx, x0 - 42, 300, RK.wallFoot);
@@ -898,7 +898,7 @@ function booth(ctx: Ctx, r: R): void {
   // the roof's lip
   const lip = rectPath(x0 - 8, top - 8, x1 - x0 + 16, 10);
   solid(ctx, lip, { x: x0 - 8, y: top - 8, w: x1 - x0 + 16, h: 10 }, 'wood', '#3a2420', { depth: 0.15, line: 1.6, formSize: 3 });
-  letterboard(ctx, 'ALL SKATE', '#d8203a');
+  letterboard(ctx, board[0], board[1]);
 }
 
 /** The console's LEDs and the DJ (the still: the live code animates them). */
@@ -908,7 +908,7 @@ function djStill(ctx: Ctx): void {
 }
 
 /** The console's LED meter (one row of six, lit to level v). */
-function meters(c: Ctx, v: number): void {
+export function meters(c: Ctx, v: number): void {
   for (let k = 0; k < 6; k++) {
     c.fillStyle = k / 6 < v ? (k > 4 ? '#ff4a5a' : k > 3 ? '#ffd040' : '#5aff7a') : 'rgba(40,50,40,0.8)';
     c.fillRect(BT.x1 - 80 + k * 5, BT.win - 6, 4, 3);
@@ -979,7 +979,7 @@ function drawMotif(c: Ctx, m: Motif, col: string, lw: number, sy = 1): void {
 }
 
 /** Cosmic carpet over a box: black pile, the motifs in dark dyes (uv: only the motifs, fluorescing). */
-function carpet(ctx: Ctx, box: { x: number; y: number; w: number; h: number }, cell: number, seed: number, uv: number, sy = 1): void {
+export function carpet(ctx: Ctx, box: { x: number; y: number; w: number; h: number }, cell: number, seed: number, uv: number, sy = 1): void {
   ctx.save();
   ctx.beginPath();
   ctx.rect(box.x, box.y, box.w, box.h);
@@ -1249,7 +1249,7 @@ function counter(ctx: Ctx, r: R): void {
 
 /** Tokens: a short stack and a few loose, brass, the rink's star stamped in them. */
 const TOK = { x: 196, y: 836 };
-function token(c: Ctx, x: number, y: number, s: number, tilt = 0.32): void {
+export function token(c: Ctx, x: number, y: number, s: number, tilt = 0.32): void {
   c.save();
   c.translate(x, y);
   // the edge (milled), then the face
@@ -1346,10 +1346,10 @@ function cup(ctx: Ctx): void {
 }
 
 /** The rental skate on the ledge, standing on its wheels (its own sprite: it rolls when the ledge is hit). */
-const SKT = { x: 1760, y: 846 };
+export const SKT = { x: 1760, y: 846 };
 const SKATE_BOX = { x: SKT.x - 82, y: SKT.y - 104, w: 176, h: 122 };
-function skateProp(ctx: Ctx): void {
-  const { x, y } = SKT;
+export function skateProp(ctx: Ctx, at: { x: number; y: number } = SKT): void {
+  const { x, y } = at;
   groundShadow(ctx, x + 12, y + 2, 66, 9, 0.6, '#05020a');
   ctx.save();
   ctx.translate(x, y);
@@ -1433,7 +1433,7 @@ const BALL = RK.ball;
 /** Columns of facets round the ball: one turn of the loop moves it by one column, so the loop is seamless. */
 const BCOLS = 22;
 const BROWS = 16;
-const BALL_F = Math.ceil(BALL.r * 2 + 8);
+export const BALL_F = Math.ceil(BALL.r * 2 + 8);
 
 /** What a facet whose reflection leaves in direction (rx, ry) sees (screen axes, y down): the black roof and the
  * high-bay lamps above, the purple walls with the marquee, the booth's pink and the signs round the middle, the
@@ -1463,7 +1463,7 @@ function mirrored(rx: number, ry: number): string {
 /** One frame of the mirror ball turning (phase 0…1 = one column of facets), centred in a BALL_F square. Each
  * facet a little mirror: the dark roof above, the walls' colours round the middle, the warm floor below, the key
  * light's hot spot where a facet faces between it and us. */
-function ballFrame(c: Ctx, ph: number): void {
+export function ballFrame(c: Ctx, ph: number): void {
   const cx = BALL_F / 2;
   const cy = BALL_F / 2;
   const R0 = BALL.r;
@@ -1540,7 +1540,7 @@ function ballFrame(c: Ctx, ph: number): void {
 }
 
 /** The ball's chain from the motor's spindle down to its cap. */
-function ballChain(c: Ctx, x: number, y0: number, y1: number): void {
+export function ballChain(c: Ctx, x: number, y0: number, y1: number): void {
   hang(c, x, y0, x, y1, 0, '#9a98a8', 2.2, true);
   solid(c, rrPath(x - 7, y1 - 2, 14, 8, 3), { x: x - 7, y: y1 - 2, w: 14, h: 8 }, 'chrome', '#a8acb8', { depth: 0.2, line: 1.3, formSize: 3 });
 }
@@ -1674,8 +1674,8 @@ export const RINK: SceneSpec = {
 // and a recovery, the weight bobbing and shifting; clothes and hair following through. Painted at the near lane's
 // size, baked at SK.k and drawn back up.
 
-type ArmMode = 'swing' | 'speed' | 'out' | 'flair' | 'reach';
-interface Build {
+export type ArmMode = 'swing' | 'speed' | 'out' | 'flair' | 'reach';
+export interface Build {
   /** Overall size, head size (kid: big head), hip height, thigh and shin, torso length. */
   s: number;
   head: number;
@@ -1695,7 +1695,7 @@ interface Build {
   /** Skates backwards (pushes forward, travels the other way). */
   back?: boolean;
 }
-interface Look {
+export interface Look {
   skin: string;
   hair: string;
   style: 'pony' | 'afro' | 'bob' | 'helmet' | 'long';
@@ -1712,13 +1712,13 @@ interface Look {
   shades?: boolean;
 }
 
-const BUILDS: Record<string, Build> = {
+export const BUILDS: Record<string, Build> = {
   girl: { s: 1, head: 9, hip: 62, thigh: 31, shin: 30, torso: 34, w: 1, chest: 9.5, hips: 8.5, lean: 0.42, stride: 1, bounce: 1, arms: 'swing' },
   show: { s: 1.05, head: 9.2, hip: 66, thigh: 33, shin: 32, torso: 37, w: 1.08, chest: 11, hips: 8, lean: -0.08, stride: 0.75, bounce: 1.3, arms: 'flair', back: true },
   speed: { s: 1.1, head: 8.6, hip: 50, thigh: 34, shin: 33, torso: 38, w: 0.95, chest: 9, hips: 8, lean: 1.02, stride: 1.45, bounce: 0.6, arms: 'speed' },
   kid: { s: 0.72, head: 12.5, hip: 54, thigh: 27, shin: 26, torso: 30, w: 1.15, chest: 10, hips: 9, lean: 0.12, stride: 0.6, bounce: 1.6, arms: 'out' },
 };
-const LOOKS: Record<string, Look> = {
+export const LOOKS: Record<string, Look> = {
   girl: { skin: '#f0c4a0', hair: '#e8b850', style: 'long', top: '#e04a86', trim: '#fff2f6', lower: 'skirt', pants: '#e04a86', sock: '#fff6f8', boot: '#f6f2ec', wheel: '#ff6ab0' },
   show: { skin: '#8a5a3a', hair: '#2e1e16', style: 'afro', top: '#f2e8d0', trim: '#d8a030', lower: 'flares', pants: '#7a3a9a', sock: '#7a3a9a', boot: '#f6f2ec', wheel: '#ffd040', jacket: true, shades: true },
   speed: { skin: '#d8a07a', hair: '#1e1410', style: 'bob', top: '#1a7ad8', trim: '#ffd040', lower: 'suit', pants: '#1a3a8a', sock: '#1a3a8a', boot: '#2a2630', wheel: '#9aff3a' },
@@ -1726,9 +1726,9 @@ const LOOKS: Record<string, Look> = {
 };
 
 /** A skater's frame (paint size): fw × fh, the wheels' line at (ox, base), facing right; baked at k. */
-const SK = { fw: 124, fh: 150, ox: 62, base: 146, n: 10, k: 0.75 };
+export const SK = { fw: 124, fh: 150, ox: 62, base: 146, n: 10, k: 0.75 };
 
-function ik(a: Pt, b: Pt, l1: number, l2: number): Pt {
+export function ik(a: Pt, b: Pt, l1: number, l2: number): Pt {
   const dx = b[0] - a[0];
   const dy = b[1] - a[1];
   const d = Math.min(Math.hypot(dx, dy), l1 + l2 - 0.01);
@@ -1740,11 +1740,14 @@ function ik(a: Pt, b: Pt, l1: number, l2: number): Pt {
 }
 
 /** A direction from straight down (0), forward (π/2), up (π), back (−π/2). */
-const dirOf = (a: number): Pt => [Math.sin(a), Math.cos(a)];
-const along = (p: Pt, a: number, l: number): Pt => [p[0] + Math.sin(a) * l, p[1] + Math.cos(a) * l];
+export const dirOf = (a: number): Pt => [Math.sin(a), Math.cos(a)];
+export const along = (p: Pt, a: number, l: number): Pt => [p[0] + Math.sin(a) * l, p[1] + Math.cos(a) * l];
+
+/** A skater's pose: the joints (relative to the wheels' line under the body) and the stride's phase angle (w2). */
+export type Pose = ReturnType<typeof pose>;
 
 /** The stride at phase p (0…1: a push with each leg). Joints relative to the wheels' line under the body. */
-function pose(p: number, b: Build, arms: ArmMode) {
+export function pose(p: number, b: Build, arms: ArmMode) {
   const w2 = p * P2 * 2;
   // the body drops into each push and rises through the glide; the hips ride forward over the gliding skate
   const bob = -Math.cos(w2) * 2.6 * b.bounce;
@@ -1818,7 +1821,7 @@ function pose(p: number, b: Build, arms: ArmMode) {
 }
 
 /** The scene's light on a colour across a form: lit towards the top left, shaded away. */
-function lit(c: Ctx, a: Pt, b: Pt, w: number, col: string): CanvasGradient {
+export function lit(c: Ctx, a: Pt, b: Pt, w: number, col: string): CanvasGradient {
   let nx = -(b[1] - a[1]);
   let ny = b[0] - a[0];
   const l = Math.hypot(nx, ny) || 1;
@@ -1838,7 +1841,7 @@ function lit(c: Ctx, a: Pt, b: Pt, w: number, col: string): CanvasGradient {
 }
 
 /** A tapered limb segment (a round joint at each end), ink outline, lit across its form. */
-function seg(c: Ctx, a: Pt, b: Pt, wa: number, wb: number, col: string): void {
+export function seg(c: Ctx, a: Pt, b: Pt, wa: number, wb: number, col: string): void {
   const dx = b[0] - a[0];
   const dy = b[1] - a[1];
   const l = Math.hypot(dx, dy) || 1;
@@ -1861,7 +1864,7 @@ function seg(c: Ctx, a: Pt, b: Pt, wa: number, wb: number, col: string): void {
   c.fill();
 }
 
-function poly(c: Ctx, pts: Pt[], fill: string | CanvasGradient, ink = 2.2): void {
+export function poly(c: Ctx, pts: Pt[], fill: string | CanvasGradient, ink = 2.2): void {
   c.beginPath();
   c.moveTo(pts[0][0], pts[0][1]);
   for (let i = 1; i < pts.length; i++) c.lineTo(pts[i][0], pts[i][1]);
@@ -1874,7 +1877,7 @@ function poly(c: Ctx, pts: Pt[], fill: string | CanvasGradient, ink = 2.2): void
   c.fill();
 }
 
-function skate(c: Ctx, ax: number, ay: number, tilt: number, o: Look, dim: number, flip: boolean): void {
+export function skate(c: Ctx, ax: number, ay: number, tilt: number, o: Look, dim: number, flip: boolean): void {
   c.save();
   c.translate(ax, ay);
   c.rotate(tilt);
@@ -1925,7 +1928,7 @@ function skate(c: Ctx, ax: number, ay: number, tilt: number, o: Look, dim: numbe
   c.restore();
 }
 
-function head(c: Ctx, P: ReturnType<typeof pose>, b: Build, o: Look, ph: number, couple: boolean): void {
+export function head(c: Ctx, P: ReturnType<typeof pose>, b: Build, o: Look, ph: number, couple: boolean): void {
   const [hx, hy] = P.headC;
   const r = b.head;
   // hair that follows through: it lags the bob and streams back with the speed
@@ -2089,9 +2092,8 @@ function head(c: Ctx, P: ReturnType<typeof pose>, b: Build, o: Look, ph: number,
   }
 }
 
-/** One frame of a skater (phase ph of the stride), facing right. */
-function skaterFrame(c: Ctx, ph: number, b: Build, o: Look, arms: ArmMode): void {
-  const P = pose(ph, b, arms);
+/** One frame of a skater (phase ph of the stride, or a pose given), facing right. */
+export function skaterFrame(c: Ctx, ph: number, b: Build, o: Look, arms: ArmMode, P: Pose = pose(ph, b, arms)): void {
   c.save();
   c.translate(SK.ox, SK.base);
   c.lineCap = 'round';
@@ -2202,7 +2204,7 @@ function skaterFrame(c: Ctx, ph: number, b: Build, o: Look, arms: ArmMode): void
 /** One frame of fog lying on the floor (phase 0…1 loops): soft billows that swell, settle and roll over (the
  * layer itself drifts across the floor), each lit on its top; it thins out towards the floor's near edge. Painted
  * into a w×h frame (drawn up 4×), seamless left to right. */
-function fogFrame(c: Ctx, w: number, h: number, ph: number, seed: number): void {
+export function fogFrame(c: Ctx, w: number, h: number, ph: number, seed: number): void {
   const rr = rng(seed);
   for (let i = 0; i < 30; i++) {
     const x = rr() * w;
@@ -2245,7 +2247,7 @@ function fogFrame(c: Ctx, w: number, h: number, ph: number, seed: number): void 
 }
 
 /** The light specks the ball throws: little soft ovals of white and a few of the rink's colours. */
-function specksTile(c: Ctx, w: number, h: number, seed: number, sy: number): void {
+export function specksTile(c: Ctx, w: number, h: number, seed: number, sy: number): void {
   const rr = rng(seed);
   for (let i = 0; i < 70; i++) {
     const x = rr() * w;
