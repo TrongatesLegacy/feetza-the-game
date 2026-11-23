@@ -33,7 +33,12 @@ Check the cards by playing to each phase with `?dev`. A card that describes the 
 
 ## Zombies: what can be zombified, and its peels
 
-Only ordinary feet can be zombified, by the Zombie Loafer's bite or by the zombie peels. Bosses, mini-bosses and feet a boss summons as part of its fight (sub-boss helpers with their own role, such as the Colossus's blacksmith) are never zombified. Keep them out of every zombify path.
+Only ordinary, living feet can be zombified, by the Zombie Loafer's bite or by the zombie peels. These are never zombified:
+- bosses and mini-bosses;
+- feet a boss summons as part of its fight (sub-boss helpers with their own role, such as the Colossus's blacksmith);
+- the undead and the not-quite-alive: the Immortals, ghosts, skeletons, mummies, zombies and the like. Mark a new undead foot as such.
+
+Keep them all out of every zombify path.
 
 Every zombifiable foot gets a zombified foot peel (group `zombieFoot`). When a new foot is added, or a foot becomes zombifiable, check in the same change that:
 - its zombified art builds and looks right;
