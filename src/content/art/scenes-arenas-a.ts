@@ -1,8 +1,9 @@
-// Feetza 2.0 boss arenas, part 1: Moon Crater, Nonna's Pantry, Bell Tower. (Moon Crater and Nonna's Pantry are redrawn with the location
-// kit in scene-cosmiccroc.ts and scene-nonna.ts; their old art here stays for the before/after page, ?dev&stages.)
+// Feetza 2.0 boss arenas, part 1: Moon Crater, Nonna's Pantry, Bell Tower. (All three are redrawn with the location kit
+// in scene-cosmiccroc.ts, scene-nonna.ts and scene-gargoyle.ts; their old art here stays for the before/after page,
+// ?dev&stages.)
 
 import type { GlowSpot } from '../../art/backdrops';
-import { registerLegacyScene, registerScene } from '../../art/registry';
+import { registerLegacyScene } from '../../art/registry';
 import {
   type Ctx,
   type R,
@@ -951,7 +952,8 @@ registerLegacyScene('nonna', {
   draw: drawPantry,
 });
 
-registerScene('gargoyle', {
+// (redrawn with the location kit in scene-gargoyle.ts; this stays for the before/after page, ?dev&stages)
+registerLegacyScene('gargoyle', {
   info: {
     name: 'Bell Tower',
     subtitle: 'Boss: THE GARGOYLE',
