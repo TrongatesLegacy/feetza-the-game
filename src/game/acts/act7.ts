@@ -97,10 +97,12 @@ export function bubble(a: Arena, text: string, at: Foot | { x: number; y: number
 // ——— Impact words ———
 
 const WORDS = ['POW!', 'KRAK!', 'BAM!', 'WHAM!', 'THWACK!', 'KAPOW!', 'BLAM!', 'ZOK!'];
+/** Burst tint and letter colour. The letters always carry a thick dark outline, so they're never dark themselves
+ * (dark letters in a dark outline fill in and turn to a blob). */
 const PALETTE: [number, string][] = [
   [0xffd23f, '#e0202a'],
   [0xff4a3a, '#ffe44a'],
-  [0x5fd8ff, '#2a1810'],
+  [0x5fd8ff, '#ffffff'],
   [0xffffff, '#e0202a'],
 ];
 let lastWord = -9;
