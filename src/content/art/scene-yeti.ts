@@ -21,10 +21,10 @@
 // - the flags: the prayer flags and the expedition flag cracking in the wind (painted frames), whipped harder by a
 //   stomp.
 
-import { type Air, type Ctx, type PathFn, type R, TY, W, calmLanes, glowAt, gradeAll, vfill, vignetteAll, within } from '../../art/scene/kit';
+import { type Air, type Ctx, type PathFn, type R, TY, W, calmLanes, glowAt, gradeAll, polyPath, vfill, vignetteAll, within } from '../../art/scene/kit';
 import type { SceneSpec } from '../../art/scene/layers';
 import { tableFalloff, tableSeam } from '../../art/scene/materials';
-import { drift, lay, noiseMask, softly, surface } from '../../art/scene/paint';
+import { crack, drift, lay, noiseMask, softly, streaks, surface } from '../../art/scene/paint';
 import { cloud, horizonGlow, skyFill, stars } from '../../art/scene/sky';
 import { ZB, xAt, yAt, zFront } from '../../art/sceneKit';
 import { hashStr, mix, rgba, rng, shade } from '../../art/util';
@@ -224,7 +224,12 @@ const HORN: Summit[] = [
 ];
 const hornTop0 = topOf(HORN, YE.hornFoot, 8, 21);
 /** The horn's summit hooked over to the right, as it's seen from the slopes. */
-export const hornTop = (x: number): number => hornTop0(x) - Math.exp(-(((x - 1108) / 22) ** 2)) * 36 - Math.exp(-(((x - 1152) / 26) ** 2)) * 16;
+export const hornTop = (x: number): number => {
+  const y = hornTop0(x) - Math.exp(-(((x - 1108) / 22) ** 2)) * 36 - Math.exp(-(((x - 1152) / 26) ** 2)) * 16;
+  // gendarmes and notches along the ridges, more of them up high
+  const hi = Math.max(0, (YE.hornFoot - y) / 500);
+  return y - (Math.abs(Math.sin(x * 0.083 + 1)) ** 5 * 9 + Math.abs(Math.sin(x * 0.21 + 2)) ** 7 * 5) * (0.3 + hi) + Math.abs(Math.sin(x * 0.047)) ** 9 * 8 * hi;
+};
 /** The horn's summit point. */
 export const PEAK: Pt = (() => {
   let px = 1084;
@@ -232,59 +237,256 @@ export const PEAK: Pt = (() => {
   return [px, hornTop(px)];
 })();
 
-const HORN_V = { ...NIGHT, air: { color: '#1c2a58', far: 0.72 }, lit: '#dce6fa', shade: '#3e5288', rock: '#222a48' };
+/** The horn's ridge lines: each summit's arete curving down to the right to the foot (lit faces to its left), and a
+ * buttress down the main lit face. Points from the top down. */
+function hornLines(): { peaks: Pt[]; aretes: Pt[][]; buttress: Pt[] } {
+  const F = YE.hornFoot + 8;
+  const peakAt = (cx: number, span: number): Pt => {
+    let px = cx;
+    for (let x = cx - span; x < cx + span; x++) if (hornTop(x) < hornTop(px)) px = x;
+    return [px, hornTop(px)];
+  };
+  const peaks = [peakAt(770, 60), PEAK, peakAt(1402, 50)];
+  const arete = ([x, y]: Pt, reach: number, wob: number): Pt[] => {
+    const out: Pt[] = [];
+    for (let i = 0; i <= 24; i++) {
+      const t = i / 24;
+      out.push([x + reach * (t ** 1.6) + Math.sin(t * 9 + x) * wob * t, y + (F - y) * t]);
+    }
+    return out;
+  };
+  const bx = 958;
+  const buttress: Pt[] = [];
+  for (let i = 0; i <= 20; i++) {
+    const t = i / 20;
+    buttress.push([bx + 60 * t ** 1.3 + Math.sin(t * 7) * 6, hornTop(bx) + (F - hornTop(bx)) * t]);
+  }
+  return { peaks, aretes: [arete(peaks[0], 70, 4), arete(peaks[1], 170, 8), arete(peaks[2], 60, 4)], buttress };
+}
+
+/**
+ * The horn: real mountain form, lit by the moon on the left. Each summit's lit face runs back from its summit along
+ * the skyline and down to its arete; past the arete the faces turn away into blue-violet shade. A buttress splits the
+ * main face into two planes. Rock bands follow the strata across every face, snow ledges on them, couloirs of snow
+ * cutting down through them from the notches, rock ribs running down from the ridge; the ridges and the aretes
+ * catch the moon; the foot fades into the cold air of the col.
+ */
+function hornForm(ctx: Ctx): void {
+  const F = YE.hornFoot + 8;
+  const ridge = ridgePath(0, W, F, hornTop, 2);
+  const { peaks, aretes, buttress } = hornLines();
+  ridge(ctx);
+  ctx.fillStyle = '#4a5294';
+  ctx.fill();
+  within(ctx, ridge, () => {
+    // the shade faces: blue-violet, the sky's light in them, paler low down in the air
+    vfill(ctx, 0, 60, W, F - 60, [[0, '#4a4e98'], [0.45, '#363d7e'], [1, '#4a5692']]);
+    // the lit faces (left of each arete), and the main face's two planes either side of the buttress
+    const skyline = (x0: number, x1: number): Pt[] => {
+      const out: Pt[] = [];
+      const step = x1 > x0 ? 3 : -3;
+      for (let x = x0; step > 0 ? x <= x1 : x >= x1; x += step) out.push([x, hornTop(x)]);
+      return out;
+    };
+    const saddle = (a: number, b: number) => {
+      let m = a;
+      for (let x = a; x < b; x += 2) if (hornTop(x) > hornTop(m)) m = x;
+      return m;
+    };
+    const sL = [560, saddle(peaks[0][0], peaks[1][0]), saddle(peaks[1][0], peaks[2][0])];
+    const faces: PathFn[] = [];
+    for (const [i, pk] of peaks.entries()) {
+      const ar = aretes[i];
+      const pts: Pt[] = [...skyline(pk[0], sL[i]).slice(0, -1), [sL[i], F], [ar[ar.length - 1][0], F], ...[...ar].reverse()];
+      faces.push(polyPath(pts));
+    }
+    const litFace = (path: PathFn, top: string, bot: string, y0: number) => {
+      within(ctx, path, () => vfill(ctx, 0, y0, W, F - y0, [[0, top], [0.5, mix(top, bot, 0.5)], [1, bot]]));
+    };
+    litFace(faces[0], '#dfe6f8', '#9eaad6', peaks[0][1]);
+    litFace(faces[1], '#e8eefa', '#9aa8d4', peaks[1][1]);
+    litFace(faces[2], '#d4dcf2', '#94a0d0', peaks[2][1]);
+    // the plane left of the buttress turned a little from the moon
+    const bTop = buttress[0];
+    const west = polyPath([...skyline(bTop[0], sL[1]), [sL[1], F], ...[...buttress].reverse()]);
+    within(ctx, west, () => vfill(ctx, 0, bTop[1], W, F - bTop[1], [[0, 'rgba(60,70,140,0.16)'], [1, 'rgba(60,70,140,0.22)']]));
+    // the rock: drawn the same twice, in shade and then within the lit faces in the moon
+    const rockPass = (rock: string, rockEdge: string, snow: string, ledge: string) => {
+      const rr = rng(hashStr('yeti:strata'));
+      // the steep upper walls: bare rock under the ridges, snow clinging in patches and on ledges
+      const zr = rng(hashStr('yeti:walls'));
+      const depthAt = (x: number) => {
+        const h = F - hornTop(x);
+        const steep = Math.min(1, Math.abs(hornTop(x + 8) - hornTop(x - 8)) / 16);
+        return h < 80 ? 0 : h * (0.1 + steep * 0.42) * (0.6 + 0.4 * Math.sin(x * 0.037) * Math.sin(x * 0.011 + 2) + 0.3 * Math.abs(Math.sin(x * 0.09)));
+      };
+      ctx.fillStyle = rock;
+      ctx.beginPath();
+      for (let x = 560; x <= 1620; x += 3) ctx.lineTo(x, hornTop(x) - 1);
+      for (let x = 1620; x >= 560; x -= 3) ctx.lineTo(x, hornTop(x) + depthAt(x) + Math.sin(x * 0.4) * 3);
+      ctx.closePath();
+      ctx.fill();
+      for (let i = 0; i < 60; i++) {
+        const x = 600 + zr() * 1000;
+        const d = depthAt(x);
+        if (d < 14) continue;
+        const y = hornTop(x) + d * (0.2 + zr() * 0.7);
+        const w = 6 + zr() * 22;
+        const sl = (hornTop(x + 10) - hornTop(x - 10)) / 20;
+        ctx.fillStyle = snow;
+        ctx.beginPath();
+        ctx.moveTo(x - w / 2, y - sl * w * 0.3);
+        ctx.quadraticCurveTo(x, y - 3 - sl * 0, x + w / 2, y + sl * w * 0.3);
+        ctx.quadraticCurveTo(x, y + 4 + zr() * 4, x - w / 2, y - sl * w * 0.3);
+        ctx.fill();
+      }
+      // rock bands following the strata (dipping a little to the right), broken where the snow lies
+      for (let j = 0; j < 9; j++) {
+        const v = 0.08 + j * 0.085 + rr() * 0.03;
+        const thick = 9 + rr() * 16;
+        const seed = rr() * 100;
+        let on = false;
+        let pts: Pt[] = [];
+        const flush = () => {
+          if (pts.length < 3) {
+            pts = [];
+            return;
+          }
+          const top = pts;
+          const bot = top.map(([x, y], k): Pt => [x, y + thick * (0.45 + 0.35 * Math.sin(k * 0.17 + seed) + 0.2 * Math.sin(k * 0.6)) + 2]);
+          ctx.fillStyle = rock;
+          ctx.beginPath();
+          top.forEach(([x, y], k) => (k ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+          for (let k = bot.length - 1; k >= 0; k--) ctx.lineTo(bot[k][0], bot[k][1]);
+          ctx.closePath();
+          ctx.fill();
+          // the ledge of snow on top of it, and the rock's lit lip under the snow
+          ctx.strokeStyle = ledge;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          top.forEach(([x, y], k) => (k ? ctx.lineTo(x, y - 1) : ctx.moveTo(x, y - 1)));
+          ctx.stroke();
+          ctx.strokeStyle = rockEdge;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          top.forEach(([x, y], k) => (k ? ctx.lineTo(x, y + 2) : ctx.moveTo(x, y + 2)));
+          ctx.stroke();
+          pts = [];
+        };
+        for (let x = 600; x < 1600; x += 6) {
+          const ty = hornTop(x);
+          const h = F - 8 - ty;
+          if (h < 70) {
+            flush();
+            continue;
+          }
+          const show = Math.sin(x * 0.013 + seed) + Math.sin(x * 0.031 + seed * 2) * 0.6 > -0.2;
+          if (!show) {
+            flush();
+            continue;
+          }
+          on = true;
+          pts.push([x, ty + h * v + (x - 1000) * 0.03 + Math.sin(x * 0.05 + seed) * 3]);
+        }
+        if (on) flush();
+      }
+      // rock ribs down from the ridge, each tapering, a crisp edge on the side turned to the moon
+      for (let i = 0; i < 26; i++) {
+        const x = 640 + rr() * 940;
+        const ty = hornTop(x) + 4;
+        const h = F - ty;
+        if (h < 90) continue;
+        const len = h * (0.2 + rr() * 0.45);
+        const w = 4 + rr() * 9;
+        const lean = (x - 1080) * 0.04 + (rr() - 0.5) * 20;
+        ctx.fillStyle = rock;
+        ctx.beginPath();
+        ctx.moveTo(x - w, ty);
+        ctx.quadraticCurveTo(x - w * 0.4 + lean * 0.4, ty + len * 0.6, x + lean, ty + len);
+        ctx.quadraticCurveTo(x + w * 0.5 + lean * 0.5, ty + len * 0.5, x + w, ty);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = rockEdge;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(x - w, ty);
+        ctx.quadraticCurveTo(x - w * 0.4 + lean * 0.4, ty + len * 0.6, x + lean, ty + len);
+        ctx.stroke();
+      }
+      // couloirs: snow gullies down from the notches, cutting through the bands, widening as they run out
+      for (let i = 0; i < 9; i++) {
+        let x = 680 + rr() * 860;
+        for (let k = 0; k < 30; k++) if (hornTop(x + 3) > hornTop(x)) x += 3;
+        const ty = hornTop(x) + 6;
+        const h = F - ty;
+        if (h < 100) continue;
+        const len = h * (0.5 + rr() * 0.4);
+        const lean = (x - 1080) * 0.05;
+        ctx.strokeStyle = rock;
+        ctx.globalAlpha = 0.5;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x + 3, ty + 4);
+        ctx.bezierCurveTo(x + 5 + lean * 0.3, ty + len * 0.4, x + 10 + lean * 0.7, ty + len * 0.8, x + 15 + lean, ty + len);
+        ctx.stroke();
+        ctx.globalAlpha = 0.55;
+        ctx.fillStyle = snow;
+        ctx.beginPath();
+        ctx.moveTo(x - 2, ty);
+        ctx.bezierCurveTo(x - 4 + lean * 0.3, ty + len * 0.4, x - 10 + lean * 0.7, ty + len * 0.8, x - 16 + lean, ty + len);
+        ctx.lineTo(x + 14 + lean, ty + len);
+        ctx.bezierCurveTo(x + 8 + lean * 0.7, ty + len * 0.8, x + 4 + lean * 0.3, ty + len * 0.4, x + 2, ty);
+        ctx.closePath();
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+    };
+    rockPass('#20264e', 'rgba(120,130,190,0.5)', '#5a64a8', 'rgba(150,160,220,0.6)');
+    for (const [i, f] of faces.entries()) within(ctx, f, () => rockPass('#4a5078', 'rgba(230,236,255,0.7)', i === 1 ? '#e8eefa' : '#ccd4ee', 'rgba(255,255,255,0.9)'));
+    // wind-slab texture over the snow
+    lay(ctx, noiseMask(16, 51, { cover: 0.4, soft: 0.4, col: '#3e4a88', w: 320, h: 90 }), { x: 560, y: 60, w: 1060, h: F - 60 }, 0.14);
+    // the aretes and the buttress: a crisp moonlit edge on the lit side, a dark line on the shade side
+    for (const line of [...aretes, buttress]) {
+      for (const [dx, col, w] of [[2, 'rgba(14,18,50,0.55)', 2.4], [-1.2, 'rgba(246,250,255,0.75)', 1.6]] as const) {
+        ctx.strokeStyle = col;
+        ctx.lineWidth = w;
+        ctx.beginPath();
+        line.forEach(([x, y], k) => {
+          const fade = k / line.length;
+          if (fade > 0.85) return;
+          if (k) ctx.lineTo(x + dx, y);
+          else ctx.moveTo(x + dx, y);
+        });
+        ctx.stroke();
+      }
+    }
+    // the cold air of the col over the foot
+    vfill(ctx, 0, 420, W, F - 412, [[0, 'rgba(120,140,200,0)'], [0.6, 'rgba(120,140,200,0.4)'], [1, 'rgba(150,168,220,0.75)']]);
+    ctx.globalCompositeOperation = 'soft-light';
+    vfill(ctx, 0, 80, W, 300, [[0, 'rgba(80,255,170,0.16)'], [1, 'rgba(80,255,170,0)']]);
+    ctx.globalCompositeOperation = 'source-over';
+  });
+  // the ridges catching the moon where they face it
+  ctx.strokeStyle = 'rgba(248,250,255,0.85)';
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  for (let x = 560; x < 1620; x += 2) {
+    if (hornTop(x + 3) < hornTop(x - 3) && hornTop(x) < F - 30) ctx.lineTo(x, hornTop(x) + 1.2);
+    else ctx.moveTo(x, hornTop(x) + 1.2);
+  }
+  ctx.stroke();
+  ridge(ctx);
+  ctx.strokeStyle = 'rgba(14,18,46,0.55)';
+  ctx.lineWidth = 1.4;
+  ctx.stroke();
+}
 
 function horn(ctx: Ctx, clip: { x: number; y: number; w: number; h: number }): void {
   ctx.save();
   ctx.beginPath();
   ctx.rect(clip.x, clip.y, clip.w, clip.h);
   ctx.clip();
-  const rr = rng(hashStr('yeti:horn'));
-  massif(ctx, rr, hornTop, YE.hornFoot, HORN, HORN_V, 0.26, 0.5);
-  // the aurora's green on the snow faces turned up to it, faint
-  within(ctx, ridgePath(0, W, YE.hornFoot + 8, hornTop, 3), () => {
-    // the wind-slab texture over the high faces too (the massif lays it over its lower part)
-    lay(ctx, noiseMask(16, 51, { cover: 0.4, soft: 0.4, col: '#3e5288', w: 320, h: 60 }), { x: 0, y: 60, w: W, h: 250 }, 0.16);
-    // spine flutes: the steep snow carved into runnels down the fall line from the ridge, each a lit crest beside a
-    // blue groove, finer and fainter towards the foot
-    const fr = rng(hashStr('yeti:flutes'));
-    for (let x = 640; x < 1590; x += 7 + fr() * 10) {
-      const ty = hornTop(x);
-      const h = YE.hornFoot - ty;
-      if (h < 60) continue;
-      const sl = (hornTop(x + 6) - hornTop(x - 6)) / 12;
-      const y0 = ty + 10 + fr() * h * 0.1;
-      const len = h * (0.12 + fr() * 0.25);
-      const bend = sl * len * 0.25 + (fr() - 0.5) * 10;
-      for (const [dx, col, a] of [[0, '#0c1840', 0.16], [-1.8, '#f2f6ff', 0.14]] as const) {
-        ctx.strokeStyle = rgba(col, a);
-        ctx.lineWidth = 1.2 + fr() * 1.6;
-        ctx.beginPath();
-        ctx.moveTo(x + dx, y0);
-        ctx.bezierCurveTo(x + dx - bend * 0.4, y0 + len * 0.35, x + dx + bend * 0.8, y0 + len * 0.7, x + dx + bend, y0 + len);
-        ctx.stroke();
-      }
-    }
-    // the moon on the faces turned to it, the far side of the arete in deep blue
-    const [px, py] = PEAK;
-    const mg = ctx.createRadialGradient(px - 160, py + 120, 20, px - 160, py + 160, 420);
-    mg.addColorStop(0, 'rgba(240,246,255,0.34)');
-    mg.addColorStop(1, 'rgba(240,246,255,0)');
-    ctx.fillStyle = mg;
-    ctx.fillRect(0, 0, W, YE.hornFoot + 8);
-    ctx.fillStyle = 'rgba(10,18,60,0.42)';
-    ctx.beginPath();
-    ctx.moveTo(px + 2, py);
-    ctx.bezierCurveTo(px + 40, py + 160, px + 90, py + 330, px + 150, YE.hornFoot + 8);
-    ctx.lineTo(W, YE.hornFoot + 8);
-    ctx.lineTo(W, py - 40);
-    ctx.closePath();
-    ctx.fill();
-    // cold mist lying in the col at the horn's foot, the lower faces fading into it
-    vfill(ctx, 0, 420, W, YE.hornFoot - 412, [[0, 'rgba(120,140,200,0)'], [0.6, 'rgba(120,140,200,0.4)'], [1, 'rgba(150,168,220,0.75)']]);
-    ctx.globalCompositeOperation = 'soft-light';
-    vfill(ctx, 0, 80, W, 300, [[0, 'rgba(80,255,170,0.18)'], [1, 'rgba(80,255,170,0)']]);
-  });
+  hornForm(ctx);
   ctx.restore();
 }
 
@@ -401,18 +603,36 @@ function footprint(ctx: Ctx, x: number, y: number, k: number, ang: number, left:
     ctx.ellipse(px + 1.2 * k, py + 1.8 * k, ax * 1.2, ay * 1.35, 0, 0, Math.PI);
     ctx.fill();
   }
-  for (const [px, py, ax, ay] of pits) {
-    ctx.save();
+  const blob = (px: number, py: number, ax: number, ay: number, seed: number) => {
     ctx.beginPath();
-    ctx.ellipse(px, py, ax, ay, 0, 0, P2);
-    ctx.fillStyle = rgba('#3e5294', 0.6);
+    for (let i = 0; i <= 14; i++) {
+      const a = (i / 14) * P2;
+      const n = 1 + Math.sin(a * 3 + seed) * 0.12 + Math.sin(a * 5 + seed * 2) * 0.07;
+      const qx = px + Math.cos(a) * ax * n;
+      const qy = py + Math.sin(a) * ay * n;
+      if (i) ctx.lineTo(qx, qy);
+      else ctx.moveTo(qx, qy);
+    }
+    ctx.closePath();
+  };
+  for (const [i, [px, py, ax, ay]] of pits.entries()) {
+    const sd = x * 0.1 + i * 1.7;
+    ctx.save();
+    blob(px, py, ax, ay, sd);
+    ctx.fillStyle = rgba('#2e3f84', 0.62);
     ctx.fill();
     ctx.clip();
-    ctx.fillStyle = rgba('#d4e0f8', 0.4);
-    ctx.beginPath();
-    ctx.ellipse(px + ax * 0.2, py + ay * 0.75, ax * 0.9, ay * 0.8, 0, 0, P2);
+    // the floor of the hollow and its near inner wall catch a little light; the far inner wall in deep shadow
+    ctx.fillStyle = rgba('#b8c8ec', 0.45);
+    blob(px + ax * 0.15, py + ay * 0.7, ax * 0.85, ay * 0.75, sd);
     ctx.fill();
     ctx.restore();
+    // the far rim catching the moon
+    ctx.strokeStyle = rgba(SNOW.lit, 0.75);
+    ctx.lineWidth = Math.max(1, 1.4 * k);
+    ctx.beginPath();
+    ctx.ellipse(px, py - 0.6 * k, ax * 1.02, ay * 1.05, 0, Math.PI * 1.08, Math.PI * 1.92);
+    ctx.stroke();
   }
   ctx.restore();
 }
@@ -509,16 +729,16 @@ function col(ctx: Ctx, r: R): void {
       const k = kAt(y);
       const x = r() * (W + 100) - 50;
       if (x > YE.cave.x - 160 && x < 560 && y < YE.seracFoot) continue;
-      const len = (26 + r() * 70) * k;
-      const h = (3 + r() * 4) * k;
-      ctx.fillStyle = rgba('#3e5496', 0.28);
+      const len = (34 + r() * 110) * k;
+      const h = (4 + r() * 6) * k;
+      ctx.fillStyle = rgba('#34488a', 0.4);
       ctx.beginPath();
       ctx.moveTo(x, y);
       ctx.quadraticCurveTo(x + len * 0.6, y + h * 0.2, x + len, y + h * 0.9);
       ctx.quadraticCurveTo(x + len * 0.5, y + h * 1.3, x + len * 0.05, y + h * 0.4);
       ctx.closePath();
       ctx.fill();
-      ctx.fillStyle = rgba(SNOW.lit, 0.42);
+      ctx.fillStyle = rgba(SNOW.lit, 0.62);
       ctx.beginPath();
       ctx.moveTo(x, y);
       ctx.quadraticCurveTo(x + len * 0.4, y - h, x + len, y + h * 0.9);
@@ -526,29 +746,48 @@ function col(ctx: Ctx, r: R): void {
       ctx.closePath();
       ctx.fill();
     }
-    // the crevasse: a dark blue rift across the col, its far wall glowing blue, a snow bridge over it
-    const cy = (x: number) => 630 + (x - 600) * 0.03 + Math.sin(x / 40) * 1.5;
-    const cw = (x: number) => Math.max(0, Math.sin(((x - 600) / 300) * Math.PI)) ** 0.7 * 6;
+    // the crevasse: a crack across the col, the far wall's blue ice seen down inside it going dark with depth, the far
+    // lip an overhang of snow catching the moon, the near lip rounded over in shade
+    const cy = (x: number) => 628 + (x - 600) * 0.03 + Math.sin(x / 40) * 2 + Math.sin(x / 13) * 0.8;
+    const cw = (x: number) => Math.max(0, Math.sin(((x - 596) / 308) * Math.PI)) ** 0.6 * (11 + Math.sin(x / 23) * 3);
     ctx.beginPath();
-    for (let x = 600; x <= 900; x += 4) ctx.lineTo(x, cy(x));
-    for (let x = 900; x >= 600; x -= 4) ctx.lineTo(x, cy(x) + cw(x));
+    for (let x = 596; x <= 904; x += 3) ctx.lineTo(x, cy(x));
+    for (let x = 904; x >= 596; x -= 3) ctx.lineTo(x, cy(x) + cw(x));
     ctx.closePath();
-    const cg = ctx.createLinearGradient(0, 628, 0, 652);
-    cg.addColorStop(0, '#8ab4e8');
-    cg.addColorStop(0.5, '#3a64a8');
-    cg.addColorStop(1, '#1a3270');
+    const cg = ctx.createLinearGradient(0, 626, 0, 648);
+    cg.addColorStop(0, '#9cc8f4');
+    cg.addColorStop(0.35, '#4a7cc4');
+    cg.addColorStop(0.75, '#16306e');
+    cg.addColorStop(1, '#081438');
     ctx.fillStyle = cg;
     ctx.fill();
-    // the far lip, catching the moon, and the near lip's shadow edge
-    ctx.strokeStyle = rgba(SNOW.lit, 0.85);
-    ctx.lineWidth = 1.6;
+    // icy streaks down the far wall
+    for (let x = 610; x < 890; x += 7 + r() * 9) {
+      ctx.strokeStyle = rgba('#d4ecff', 0.35);
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, cy(x) + 2);
+      ctx.lineTo(x + 1, cy(x) + cw(x) * (0.4 + r() * 0.4));
+      ctx.stroke();
+    }
+    // the far lip: snow overhanging, lit, its underside's shadow on the wall below
+    ctx.fillStyle = 'rgba(10,24,70,0.5)';
     ctx.beginPath();
-    for (let x = 604; x <= 896; x += 4) ctx.lineTo(x, cy(x) - 0.6);
-    ctx.stroke();
-    ctx.strokeStyle = rgba('#2a3c78', 0.5);
-    ctx.lineWidth = 1.2;
+    for (let x = 596; x <= 904; x += 3) ctx.lineTo(x, cy(x) + 1);
+    for (let x = 904; x >= 596; x -= 3) ctx.lineTo(x, cy(x) + 1 + Math.min(cw(x), 4));
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = SNOW.lit;
     ctx.beginPath();
-    for (let x = 604; x <= 896; x += 4) ctx.lineTo(x, cy(x) + cw(x) + 0.6);
+    for (let x = 592; x <= 908; x += 3) ctx.lineTo(x, cy(x) - 2.2 - Math.abs(Math.sin(x / 17)) * 1.4);
+    for (let x = 908; x >= 592; x -= 3) ctx.lineTo(x, cy(x) + 1.2);
+    ctx.closePath();
+    ctx.fill();
+    // the near lip, rounded over in shade
+    ctx.strokeStyle = rgba('#3a4c8a', 0.7);
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    for (let x = 600; x <= 900; x += 3) ctx.lineTo(x, cy(x) + cw(x) + 1);
     ctx.stroke();
     // the furrow the giant snowball ploughed down from the buttress
     const { x: bx, y: by, r: br } = YE.ball;
@@ -683,91 +922,91 @@ function serac(ctx: Ctx, r: R): void {
   within(ctx, seracPath, () => {
     vfill(ctx, 0, 262, 580, YE.seracFoot - 258, [[0, '#a8d0f4'], [0.3, '#6a9ad4'], [0.75, '#3a64a8'], [1, '#1c3672']]);
     surface(ctx, r, box, '#5a8ccc', { over: true, vary: 0.4, cells: 5, mottle: 0.3, strokes: 0.8, strokeAng: Math.PI / 2, strokeLen: 120, strokeW: 3, grain: 0.15, seed: 71 });
-    // the towers: each slab's face lit from the top left, darker down and to the right, the fracture between it and
-    // the next a dark cleft with the next slab's edge catching the light; big conchoidal scallops in the faces
+    // glacial ice: each tower translucent, pale where it's thin at its edges and its top, deepening to a dense blue
+    // inside, darkest down its lee (right) side; blue foliation bands swirled through it by the glacier's flow
     for (const [x0, x1, tl, tr] of TOWERS) {
       const top = Math.min(tl, tr);
       const w = x1 - x0;
       const lg = ctx.createLinearGradient(x0, 0, x1, 0);
-      lg.addColorStop(0, 'rgba(226,242,255,0.22)');
-      lg.addColorStop(0.5, 'rgba(226,242,255,0)');
-      lg.addColorStop(0.8, 'rgba(10,28,80,0.14)');
-      lg.addColorStop(0.9, 'rgba(10,28,80,0.5)');
-      lg.addColorStop(1, 'rgba(6,18,60,0.62)');
+      lg.addColorStop(0, 'rgba(216,238,255,0.4)');
+      lg.addColorStop(0.14, 'rgba(216,238,255,0.04)');
+      lg.addColorStop(0.5, 'rgba(10,34,96,0.3)');
+      lg.addColorStop(0.84, 'rgba(8,26,80,0.45)');
+      lg.addColorStop(1, 'rgba(4,14,52,0.7)');
       ctx.fillStyle = lg;
       ctx.fillRect(x0, top - 20, w, YE.seracFoot - top + 24);
-      for (let i = 0; i < 2; i++) {
-        const sx = x0 + w * (0.2 + r() * 0.6);
-        const sy = top + 60 + r() * 300;
-        const rw = w * (0.25 + r() * 0.2);
-        const rh = 40 + r() * 70;
-        const sg = ctx.createLinearGradient(sx - rw, sy - rh, sx + rw, sy + rh);
-        sg.addColorStop(0, 'rgba(8,24,70,0.22)');
-        sg.addColorStop(0.5, 'rgba(8,24,70,0)');
-        sg.addColorStop(1, 'rgba(230,244,255,0.2)');
-        ctx.fillStyle = sg;
-        ctx.beginPath();
-        ctx.ellipse(sx, sy, rw, rh, 0, 0, P2);
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(236,248,255,0.16)';
-        ctx.lineWidth = 1.2;
-        ctx.beginPath();
-        ctx.ellipse(sx, sy, rw, rh, 0, Math.PI * 0.75, Math.PI * 1.25);
-        ctx.stroke();
+    }
+    softly(ctx, { x: 0, y: 270, w: 580, h: YE.seracFoot - 266 }, (g) => {
+      const fr = rng(hashStr('yeti:foliation'));
+      for (let i = 0; i < 9; i++) {
+        const y = 320 + i * 46 + fr() * 20;
+        g.strokeStyle = i % 3 ? 'rgba(20,60,150,0.45)' : 'rgba(170,220,255,0.35)';
+        g.lineWidth = 8 + fr() * 14;
+        g.beginPath();
+        g.moveTo(-20, y);
+        g.bezierCurveTo(140, y + 40 * (fr() - 0.3), 330, y - 30 * fr(), 580, y + 50 + fr() * 30);
+        g.stroke();
       }
+      // the depth's glow: a cold blue light trapped deep in the ice
+      for (let i = 0; i < 4; i++) {
+        const gx = 40 + fr() * 480;
+        const gy = 360 + fr() * 260;
+        const rg = g.createRadialGradient(gx, gy, 0, gx, gy, 70 + fr() * 50);
+        rg.addColorStop(0, 'rgba(60,150,240,0.35)');
+        rg.addColorStop(1, 'rgba(60,150,240,0)');
+        g.fillStyle = rg;
+        g.fillRect(gx - 130, gy - 130, 260, 260);
+      }
+    }, 0.25);
+    for (const [x0, x1, tl, tr] of TOWERS) {
+      const top = Math.min(tl, tr);
+      const w = x1 - x0;
       if (x0 > 0) {
-        // the fracture: a dark cleft, the lit edge of the slab beside it, wandering a little
+        // the fracture between towers: a dark cleft, the lit edge of the slab beside it, wandering a little
         const path: Pt[] = [];
         for (let y = top - 10; y < YE.seracFoot + 4; y += 24) path.push([x0 + Math.sin(y / 37 + x0) * 4, y]);
         for (const [dx, col, lw] of [[2, '#081a48', 6], [-2.5, '#061436', 2.5], [4.5, '#dcf0ff', 1.6]] as const) {
-          ctx.strokeStyle = rgba(col, col === '#dcf0ff' ? 0.55 : 0.6);
+          ctx.strokeStyle = rgba(col, col === '#dcf0ff' ? 0.65 : 0.6);
           ctx.lineWidth = lw;
           ctx.beginPath();
           path.forEach(([x, y], j) => (j ? ctx.lineTo(x + dx, y) : ctx.moveTo(x + dx, y)));
           ctx.stroke();
         }
       }
-      // a few horizontal fractures across the slab, each a dark line with a lit lip over it
-      for (let i = 0; i < 1; i++) {
-        const y = top + 90 + r() * 280;
-        const ang = (r() - 0.5) * 0.15;
-        ctx.strokeStyle = 'rgba(6,20,60,0.4)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(x0 + 4, y);
-        ctx.lineTo(x1 - 4, y + w * ang);
-        ctx.stroke();
-        ctx.strokeStyle = 'rgba(230,246,255,0.3)';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(x0 + 4, y - 2);
-        ctx.lineTo(x1 - 4, y - 2 + w * ang);
-        ctx.stroke();
-      }
-    }
-    // melt runnels down the face, each a lit edge beside a dark groove
-    for (let i = 0; i < 26; i++) {
-      const x = r() * 540;
-      const y0 = 290 + r() * 120;
-      const y1 = y0 + 120 + r() * 300;
-      ctx.lineWidth = 2 + r() * 3;
-      for (const [dx, col, a] of [[0, '#0e2458', 0.25], [-2.5, '#e8f6ff', 0.25]] as const) {
-        ctx.strokeStyle = rgba(col, a);
-        ctx.beginPath();
-        ctx.moveTo(x + dx, y0);
-        ctx.bezierCurveTo(x + dx + 6, lerp(y0, y1, 0.3), x + dx - 6, lerp(y0, y1, 0.7), x + dx + 2, y1);
-        ctx.stroke();
-      }
-    }
-    // strata: the glacier's annual layers, faint bands dipping to the right
-    for (let i = 0; i < 9; i++) {
-      const y = 330 + i * 44 + r() * 14;
-      ctx.strokeStyle = rgba(i % 2 ? '#0c1e4c' : '#cfe6fa', 0.12);
-      ctx.lineWidth = 3 + r() * 5;
+      // the moon's rim down the tower's left edge, fading downwards
+      const rg = ctx.createLinearGradient(0, top, 0, YE.seracFoot);
+      rg.addColorStop(0, 'rgba(246,252,255,0.85)');
+      rg.addColorStop(1, 'rgba(246,252,255,0.05)');
+      ctx.strokeStyle = rg;
+      ctx.lineWidth = 2.2;
       ctx.beginPath();
-      ctx.moveTo(-10, y);
-      ctx.bezierCurveTo(160, y + 10, 340, y + 4, 560, y + 30);
+      ctx.moveTo(x0 + 6.5, tl + 2);
+      for (let y = tl + 2; y < YE.seracFoot; y += 24) ctx.lineTo(x0 + 6.5 + Math.sin(y / 37 + x0) * 4, y);
       ctx.stroke();
+      // pressure cracks: wandering fractures through the ice, a white fracture plane beside a dark gap, branching
+      for (let i = 0; i < 3; i++) {
+        const cx = x0 + w * (0.15 + r() * 0.7);
+        const cy = top + 50 + r() * 320;
+        crack(ctx, r, cx, cy, Math.PI / 2 + (r() - 0.5) * 1.6, 50 + r() * 90, { col: '#0a1c50', lip: '#eaf8ff', w: 2, a: 0.7, branch: 0.3 });
+      }
+      // trapped air: strings of little bubbles rising through the deep ice
+      for (let i = 0; i < 5; i++) {
+        let bx = x0 + w * (0.2 + r() * 0.6);
+        let by = top + 80 + r() * 300;
+        const n = 3 + Math.floor(r() * 6);
+        for (let k = 0; k < n; k++) {
+          const rad = 1 + r() * 2.6;
+          ctx.strokeStyle = 'rgba(226,244,255,0.6)';
+          ctx.lineWidth = 0.9;
+          ctx.beginPath();
+          ctx.arc(bx, by, rad, 0, P2);
+          ctx.stroke();
+          ctx.fillStyle = 'rgba(255,255,255,0.7)';
+          ctx.fillRect(bx - rad * 0.5, by - rad * 0.5, 1, 1);
+          bx += (r() - 0.5) * 6;
+          by -= 4 + r() * 7;
+        }
+      }
     }
     // the moon through the thin ice round the cave's mouth: a cold glow inside the ice
     caveArch(ctx, 30);
@@ -800,14 +1039,43 @@ function serac(ctx: Ctx, r: R): void {
     ctx.stroke();
     // a deep blue light far back, where the glacier lets the moon in
     glowAt(ctx, YE.cave.x + 40, YE.cave.floor - 70, 70, '#2a6ad0', 0.35);
-    // the cave floor: trampled snow running in, dim
-    const { x, floor, hw } = YE.cave;
-    ctx.fillStyle = 'rgba(70,90,150,0.6)';
+    // the cave runs back into the glacier: its floor of trampled snow narrowing away into the dark, its walls of ice
+    // lit faintly blue from within, the far end glowing where the moon comes through the glacier
+    const { x, floor, hw, h: ch } = YE.cave;
+    const vp: Pt = [x + 26, floor - ch * 0.42];
+    const fl = ctx.createLinearGradient(0, floor, 0, vp[1]);
+    fl.addColorStop(0, 'rgba(120,146,206,0.85)');
+    fl.addColorStop(0.6, 'rgba(40,64,130,0.6)');
+    fl.addColorStop(1, 'rgba(20,40,100,0)');
+    ctx.fillStyle = fl;
     ctx.beginPath();
     ctx.moveTo(x - hw, floor + 2);
-    ctx.quadraticCurveTo(x, floor - 30, x + hw, floor + 2);
+    ctx.lineTo(vp[0] - 18, vp[1] + 6);
+    ctx.lineTo(vp[0] + 18, vp[1] + 6);
+    ctx.lineTo(x + hw, floor + 2);
     ctx.closePath();
     ctx.fill();
+    // the walls: the left one turned to the mouth's light, the right one in the dark
+    ctx.fillStyle = 'rgba(70,130,220,0.28)';
+    ctx.beginPath();
+    ctx.moveTo(x - hw, floor + 2);
+    ctx.lineTo(x - hw + 4, floor - ch * 0.7);
+    ctx.lineTo(vp[0] - 18, vp[1] - 30);
+    ctx.lineTo(vp[0] - 18, vp[1] + 6);
+    ctx.closePath();
+    ctx.fill();
+    glowAt(ctx, vp[0], vp[1] - 10, 60, '#5ab4ff', 0.5);
+    glowAt(ctx, vp[0], vp[1] - 6, 22, '#c8eeff', 0.5);
+    // tracks going in
+    for (let i = 0; i < 4; i++) {
+      const t = i / 4;
+      const px = lerp(x - 10, vp[0], t);
+      const py = lerp(floor - 4, vp[1] + 8, t);
+      ctx.fillStyle = 'rgba(30,50,110,0.5)';
+      ctx.beginPath();
+      ctx.ellipse(px + (i % 2 ? 6 : -6) * (1 - t), py, 12 * (1 - t * 0.7), 3 * (1 - t * 0.7), 0, 0, P2);
+      ctx.fill();
+    }
     // a gnawed ski and a pole in the gloom: the last skier who came this high
     ctx.save();
     ctx.translate(x + 50, floor - 18);
@@ -894,10 +1162,22 @@ export const ICICLE_SPOTS: Pt[] = Array.from({ length: 12 }, (_, i) => {
 
 // ——— the buttress and its cornice ———
 
-const BUTTRESS: Pt[] = [
-  [W + 10, YE.buttressFoot + 6], [W + 10, 280], [1862, 296], [1806, 290], [1746, 318], [1690, 326], [1630, 348], [1590, 372], [1566, 420],
-  [1552, 480], [1534, 560], [1516, 640], [1500, YE.buttressFoot], [1480, YE.buttressFoot + 6],
-];
+/** The buttress's outline: its top under the cornice, then its left edge stepping down in blocky jogs where the
+ * sheeting joints come out (generated so the edge is broken, not ruled). */
+const BUTTRESS: Pt[] = (() => {
+  const top: Pt[] = [[W + 10, YE.buttressFoot + 6], [W + 10, 280], [1862, 296], [1806, 290], [1746, 318], [1690, 326], [1630, 348], [1590, 372]];
+  const edge: Pt[] = [];
+  const rr = rng(hashStr('yeti:buttress-edge'));
+  const guide = (y: number) => lerp(1574, 1496, (y - 380) / (YE.buttressFoot - 380));
+  for (let y = 384; y < YE.buttressFoot - 60; ) {
+    const h = 30 + rr() * 50;
+    const x = guide(y) + (rr() - 0.5) * 18;
+    const jog = (rr() - 0.4) * 8;
+    edge.push([x + jog, y], [x - 2 + rr() * 4, y + h * 0.5], [x + (rr() - 0.5) * 8, y + h - 3]);
+    y += h;
+  }
+  return [...top, ...edge, [1500, YE.buttressFoot], [1480, YE.buttressFoot + 6]];
+})();
 const buttressPath: PathFn = (c) => {
   c.beginPath();
   BUTTRESS.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y)));
@@ -918,94 +1198,132 @@ function buttress(ctx: Ctx, r: R): void {
   within(ctx, buttressPath, () => {
     vfill(ctx, box.x, box.y, box.w, box.h, [[0, '#4a5470'], [0.5, '#2c3450'], [1, '#161c32']]);
     surface(ctx, r, box, '#363e5a', { over: true, vary: 0.4, cells: 5, mottle: 0.35, strokes: 0.6, strokeAng: 1.2, strokeLen: 90, strokeW: 3, grain: 0.3, grainKind: 'stone', seed: 83 });
-    // granite in courses dipping gently to the right: each block lit on its top and its moon-facing left end, its
-    // underside in shadow; vertical joints between blocks; snow lodged on the ledges along the courses
-    const dip = 0.08;
-    let y0 = 330;
-    let row = 0;
-    while (y0 < YE.buttressFoot) {
-      const h = 26 + r() * 60;
-      let x = 1480 - r() * 60;
-      while (x < W + 20) {
-        const w = 50 + r() * 170;
-        const sk = (r() - 0.5) * 30;
-        const solidJoint = r() < 0.6;
-        const yy = y0 + (x - 1500) * dip + (row % 2 ? 4 : 0);
-        const inset = (r() - 0.3) * 10;
-        const blk: Pt[] = [[x + inset, yy + (r() - 0.5) * 6], [x + w, yy + w * dip - 4 + r() * 8], [x + w + sk, yy + w * dip + h], [x + inset + 3, yy + h]];
-        ctx.beginPath();
-        blk.forEach(([px, py], j) => (j ? ctx.lineTo(px, py) : ctx.moveTo(px, py)));
-        ctx.closePath();
-        const bg = ctx.createLinearGradient(x, yy, x + w * 0.6, yy + h);
-        bg.addColorStop(0, rgba('#8a98bc', 0.42));
-        bg.addColorStop(0.35, rgba('#4a5474', 0.15));
-        bg.addColorStop(1, rgba('#06080f', 0.4));
-        ctx.fillStyle = bg;
-        ctx.fill();
-        // the joint on its right and the shadow under it
-        ctx.strokeStyle = rgba('#04060c', 0.6);
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        if (solidJoint) {
-          ctx.moveTo(blk[1][0], blk[1][1]);
-          ctx.quadraticCurveTo(blk[1][0] + sk * 0.2 + 6, (blk[1][1] + blk[2][1]) / 2, blk[2][0], blk[2][1]);
-        } else ctx.moveTo(blk[2][0], blk[2][1]);
-        ctx.lineTo(blk[3][0], blk[3][1]);
-        ctx.stroke();
-        // the lit top-left edge
-        ctx.strokeStyle = rgba('#d4e0ff', 0.55);
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(blk[3][0], blk[3][1] - 2);
-        ctx.lineTo(blk[0][0], blk[0][1] + 1);
-        ctx.lineTo(blk[1][0], blk[1][1] + 1);
-        ctx.stroke();
-        // snow on the ledge along its top, now and then
-        if (r() < 0.45) {
-          const [ax, ay] = blk[0];
-          const [bx, by] = blk[1];
+    // natural granite: sheeting joints running across the buttress at a gentle dip, cross joints at varied steep
+    // angles breaking it into slabs; each slab a plane of its own (turned to the moon and cold-lit, or turned away,
+    // or recessed under the one above it), the joints as cracks that wander, branch and die out; weathering stains
+    // down from the ledges; snow caught on the ledges along the sheeting joints
+    const X0 = 1470;
+    const sheets: ((x: number) => number)[] = [];
+    {
+      const rs = rng(hashStr('yeti:sheets'));
+      let y = 352;
+      while (y < YE.buttressFoot - 30) {
+        const y0 = y;
+        const dip = 0.06 + rs() * 0.12;
+        const ph = rs() * 10;
+        const amp = 4 + rs() * 8;
+        sheets.push((x: number) => y0 + (x - X0) * dip + Math.sin(x * 0.02 + ph) * amp + Math.sin(x * 0.07 + ph) * 2.5);
+        y += 46 + rs() * 64;
+      }
+      sheets.push(() => YE.buttressFoot + 40);
+    }
+    const slabs: { pts: Pt[]; face: number; recess: boolean }[] = [];
+    for (let j = 0; j < sheets.length - 1; j++) {
+      const top = sheets[j];
+      const bot = sheets[j + 1];
+      let x = X0 - 40 - r() * 60;
+      while (x < W + 30) {
+        const w = 50 + r() * 150;
+        const ang = (r() - 0.5) * 0.9;
+        const xa = x;
+        const xb = x + w;
+        const h = bot(xb) - top(xb);
+        const pts: Pt[] = [[xa, top(xa)], [xb, top(xb)], [xb + Math.tan(ang) * h, bot(xb + Math.tan(ang) * h)], [xa + Math.tan(ang) * h * 0.5, bot(xa)]];
+        slabs.push({ pts, face: r() * 2 - 0.6, recess: r() < 0.3 });
+        x = xb;
+      }
+    }
+    for (const sl of slabs) {
+      const [[ax, ay], [bx, by], [cx, cy], [dx, dy]] = sl.pts;
+      ctx.beginPath();
+      sl.pts.forEach(([px, py], k) => (k ? ctx.lineTo(px, py) : ctx.moveTo(px, py)));
+      ctx.closePath();
+      // the plane's light: facing the moon (face > 0) lit on its left and top, turned away darker to the right
+      const g = ctx.createLinearGradient(Math.min(ax, dx), Math.min(ay, by), Math.max(bx, cx), Math.max(cy, dy));
+      const lit = Math.max(0, sl.face);
+      g.addColorStop(0, rgba('#a8b4d8', 0.08 + lit * 0.32));
+      g.addColorStop(0.55, rgba('#5a6488', 0.04 + lit * 0.08));
+      g.addColorStop(1, rgba('#05070f', 0.18 + Math.max(0, -sl.face) * 0.35));
+      ctx.fillStyle = g;
+      ctx.fill();
+      if (sl.recess) {
+        // recessed under the slab above: a cast shadow across its top
+        const sg = ctx.createLinearGradient(0, Math.min(ay, by), 0, Math.min(ay, by) + 26);
+        sg.addColorStop(0, 'rgba(4,6,14,0.6)');
+        sg.addColorStop(1, 'rgba(4,6,14,0)');
+        ctx.save();
+        ctx.clip();
+        ctx.fillStyle = sg;
+        ctx.fillRect(ax - 40, Math.min(ay, by) - 4, bx - ax + 80, 34);
+        ctx.restore();
+      }
+      // the cross joint on its right: a wandering crack, sometimes dying out before it reaches the next sheet
+      if (r() < 0.75) crack(ctx, r, bx, by + 2, Math.atan2(cy - by, cx - bx), Math.hypot(cx - bx, cy - by) * (0.5 + r() * 0.55), { col: '#04060c', lip: '#b8c6ee', w: 2.4, a: 0.75, branch: 0.1 });
+    }
+    // the sheeting joints: long cracks across, a lit lip on the slab below, snow caught along them in places
+    for (const [j, f] of sheets.slice(0, -1).entries()) {
+      if (j === 0) continue;
+      ctx.strokeStyle = 'rgba(4,6,14,0.7)';
+      ctx.lineWidth = 2.6;
+      ctx.beginPath();
+      for (let x = X0; x <= W + 10; x += 8) ctx.lineTo(x, f(x));
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(190,204,240,0.35)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      for (let x = X0; x <= W + 10; x += 8) ctx.lineTo(x, f(x) + 2.5);
+      ctx.stroke();
+      // weathering: stains run down from the ledge
+      for (let k = 0; k < 2; k++) streaks(ctx, r, 1560 + r() * 340, f(1700) + 4, 60, 40 + r() * 50, '#05070f', 0.22, 4);
+      // snow on the ledge in runs, following the joint
+      let x = X0 + r() * 60;
+      while (x < W) {
+        const len = 30 + r() * 120;
+        if (r() < 0.6) {
           const t = 3 + r() * 4;
-          const u0 = r() * 0.3;
-          const u1 = 0.6 + r() * 0.4;
-          const sx0 = lerp(ax, bx, u0);
-          const sy0 = lerp(ay, by, u0);
-          const sx1 = lerp(ax, bx, u1);
-          const sy1 = lerp(ay, by, u1);
-          ctx.fillStyle = rgba('#04060c', 0.4);
+          ctx.fillStyle = 'rgba(4,6,14,0.4)';
           ctx.beginPath();
-          ctx.moveTo(sx0, sy0 + 1);
-          ctx.quadraticCurveTo((sx0 + sx1) / 2, (sy0 + sy1) / 2 + t * 2, sx1, sy1 + 1);
+          for (let u = 0; u <= 1.001; u += 0.1) ctx.lineTo(x + u * len, f(x + u * len) + 2);
+          for (let u = 1; u >= 0; u -= 0.1) ctx.lineTo(x + u * len, f(x + u * len) + 2 + Math.sin(u * Math.PI) * t * 2.2);
           ctx.closePath();
           ctx.fill();
           ctx.fillStyle = SNOW.body;
           ctx.beginPath();
-          ctx.moveTo(sx0 - 2, sy0 + 1);
-          ctx.quadraticCurveTo((sx0 + sx1) / 2, (sy0 + sy1) / 2 - t, sx1 + 2, sy1 + 1);
-          ctx.quadraticCurveTo((sx0 + sx1) / 2, (sy0 + sy1) / 2 + t * 0.9, sx0 - 2, sy0 + 1);
+          for (let u = 0; u <= 1.001; u += 0.1) ctx.lineTo(x + u * len, f(x + u * len) - Math.sin(u * Math.PI) * t);
+          for (let u = 1; u >= 0; u -= 0.1) ctx.lineTo(x + u * len, f(x + u * len) + 2 + Math.sin(u * Math.PI) * t * 0.6);
+          ctx.closePath();
           ctx.fill();
           ctx.strokeStyle = rgba(SNOW.lit, 0.95);
           ctx.lineWidth = 1.4;
           ctx.beginPath();
-          ctx.moveTo(sx0 - 1, sy0);
-          ctx.quadraticCurveTo((sx0 + sx1) / 2, (sy0 + sy1) / 2 - t, sx1 + 1, sy1);
+          for (let u = 0; u <= 1.001; u += 0.1) ctx.lineTo(x + u * len, f(x + u * len) - Math.sin(u * Math.PI) * t + 0.5);
           ctx.stroke();
         }
-        x += w;
+        x += len + 10 + r() * 50;
       }
-      y0 += h;
-      row++;
     }
+    // the cornice's overhang throws a shadow down the rock under it
+    softly(ctx, { x: 1460, y: 320, w: W - 1460, h: 140 }, (g2) => {
+      g2.fillStyle = 'rgba(4,6,20,0.55)';
+      g2.beginPath();
+      g2.moveTo(1540, 350);
+      g2.bezierCurveTo(1700, 372, 1820, 330, W + 10, 318);
+      g2.lineTo(W + 10, 400);
+      g2.bezierCurveTo(1800, 420, 1660, 430, 1560, 410);
+      g2.closePath();
+      g2.fill();
+    }, 0.12);
     // the moon on the buttress's left flank, fading into the rock's shade to the right
     const mlg = ctx.createLinearGradient(1500, 0, 1760, 0);
-    mlg.addColorStop(0, 'rgba(200,214,255,0.22)');
+    mlg.addColorStop(0, 'rgba(200,214,255,0.12)');
     mlg.addColorStop(1, 'rgba(200,214,255,0)');
     ctx.fillStyle = mlg;
     ctx.fillRect(1480, 280, 300, YE.buttressFoot - 270);
     // a gully of snow down from under the cornice (where the sluffs come down)
     const gg = ctx.createLinearGradient(1560, 0, 1620, 0);
-    gg.addColorStop(0, rgba('#9cb0d8', 0.75));
-    gg.addColorStop(0.6, rgba('#6a7eb4', 0.7));
-    gg.addColorStop(1, rgba('#3a4a80', 0.6));
+    gg.addColorStop(0, rgba('#9cb0d8', 0.45));
+    gg.addColorStop(0.6, rgba('#6a7eb4', 0.4));
+    gg.addColorStop(1, rgba('#3a4a80', 0.35));
     ctx.fillStyle = gg;
     ctx.beginPath();
     ctx.moveTo(1562, 380);
@@ -1040,7 +1358,7 @@ function buttress(ctx: Ctx, r: R): void {
   ctx.strokeStyle = rgba('#c8d6ff', 0.5);
   ctx.lineWidth = 5;
   ctx.beginPath();
-  BUTTRESS.slice(4, 13).forEach(([x, y], i) => (i ? ctx.lineTo(x + 2, y) : ctx.moveTo(x + 2, y)));
+  BUTTRESS.slice(6, -2).forEach(([x, y], i) => (i ? ctx.lineTo(x + 2, y) : ctx.moveTo(x + 2, y)));
   ctx.stroke();
   ctx.restore();
   // the cornice: the wind's snow built out over the edge into a curling lip
@@ -1145,12 +1463,20 @@ function pole(ctx: Ctx, r: R): void {
     ctx.fill();
   }
   // its moon shadow down the col
-  ctx.strokeStyle = 'rgba(30,44,100,0.35)';
-  ctx.lineWidth = 4;
-  ctx.beginPath();
-  ctx.moveTo(x + 4, base);
-  ctx.lineTo(x + 150, base + 26);
-  ctx.stroke();
+  softly(ctx, { x: x - 20, y: base - 20, w: 360, h: 80 }, (g) => {
+    g.fillStyle = 'rgba(22,34,90,0.5)';
+    g.beginPath();
+    g.moveTo(x - 4, base + 2);
+    g.lineTo(x + 300, base + 40);
+    g.lineTo(x + 296, base + 44);
+    g.lineTo(x + 8, base + 8);
+    g.closePath();
+    g.fill();
+    // the cairn's
+    g.beginPath();
+    g.ellipse(x + 60, base + 10, 70, 9, 0.12, 0, P2);
+    g.fill();
+  }, 0.3);
   // guy line
   ctx.strokeStyle = rgba('#202838', 0.8);
   ctx.lineWidth = 1;
@@ -1310,10 +1636,14 @@ function snowball(ctx: Ctx, r: R, x: number, y: number, rad: number): void {
 function bigBall(ctx: Ctx, r: R): void {
   const { x, y, r: br } = YE.ball;
   // its shadow down to the right on the snow
-  softly(ctx, { x: x - br * 1.4, y: y + br * 0.3, w: br * 4.6, h: br * 1.3 }, (g) => {
-    g.fillStyle = 'rgba(16,26,70,0.6)';
+  softly(ctx, { x: x - br * 1.4, y: y + br * 0.3, w: br * 6, h: br * 1.3 }, (g) => {
+    g.fillStyle = 'rgba(16,26,70,0.55)';
     g.beginPath();
-    g.ellipse(x + br * 0.7, y + br * 0.9, br * 1.6, br * 0.24, 0.04, 0, P2);
+    g.ellipse(x + br * 1.4, y + br * 0.92, br * 2.4, br * 0.22, 0.05, 0, P2);
+    g.fill();
+    g.fillStyle = 'rgba(8,14,44,0.7)';
+    g.beginPath();
+    g.ellipse(x + br * 0.15, y + br * 0.86, br * 0.95, br * 0.12, 0, 0, P2);
     g.fill();
   }, 0.3);
   // a rolled ball of packed snow: a lumpy outline where it picked up clods as it came down, opaque, lit from the top
@@ -1322,7 +1652,8 @@ function bigBall(ctx: Ctx, r: R): void {
   for (let i = 0; i < 28; i++) {
     const a = (i / 28) * P2;
     const lump = 1 + (r() - 0.5) * 0.07 + Math.max(0, Math.sin(a * 5 + 1)) * 0.03;
-    pts.push([x + Math.cos(a) * br * lump, y + Math.sin(a) * br * lump * 0.97]);
+    const sy = Math.sin(a) > 0 ? 0.86 + 0.11 * (1 - Math.sin(a)) : 0.98;
+    pts.push([x + Math.cos(a) * br * lump * (Math.sin(a) > 0.6 ? 1.04 : 1), y + Math.sin(a) * br * lump * sy]);
   }
   const path: PathFn = (c) => {
     c.beginPath();
@@ -1371,6 +1702,12 @@ function bigBall(ctx: Ctx, r: R): void {
       ctx.ellipse(x + Math.cos(a) * d, y + Math.sin(a) * d, 3 + r() * 2.5, 2.2 + r() * 1.6, r(), 0, P2);
       ctx.fill();
     }
+    // the moon catching its upper left
+    ctx.strokeStyle = rgba('#ffffff', 0.7);
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(x + 2, y + 2, br * 0.96, Math.PI * 1.02, Math.PI * 1.55);
+    ctx.stroke();
     // the snow's light bounced into its belly
     ctx.fillStyle = rgba('#a8bce8', 0.3);
     ctx.beginPath();
@@ -1396,10 +1733,18 @@ function bigBall(ctx: Ctx, r: R): void {
 function pile(ctx: Ctx, r: R): void {
   const { x, y } = YE.pile;
   const rad = 15;
-  softly(ctx, { x: x - 90, y: y - 20, w: 220, h: 40 }, (g) => {
-    g.fillStyle = 'rgba(14,24,64,0.55)';
+  // one shadow for the whole heap, thrown long to the right by the moon, darkest in the crevices under it
+  softly(ctx, { x: x - 90, y: y - 24, w: 330, h: 48 }, (g) => {
+    g.fillStyle = 'rgba(14,24,64,0.5)';
     g.beginPath();
-    g.ellipse(x + 14, y + 2, 84, 9, 0, 0, P2);
+    g.moveTo(x - 66, y);
+    g.quadraticCurveTo(x + 40, y - 6, x + 210, y + 8);
+    g.quadraticCurveTo(x + 60, y + 14, x - 60, y + 6);
+    g.closePath();
+    g.fill();
+    g.fillStyle = 'rgba(8,14,44,0.7)';
+    g.beginPath();
+    g.ellipse(x + 4, y + 1, 66, 5, 0, 0, P2);
     g.fill();
   }, 0.3);
   const rows = [4, 3, 2, 1];
@@ -1612,7 +1957,7 @@ function table(ctx: Ctx, r: R): void {
   ctx.translate(-560, -860);
   ctx.fillRect(0, 300, 1200, 1100);
   ctx.restore();
-  vfill(ctx, 0, TY + 10, W, 70, [[0, 'rgba(60,255,170,0)'], [0.5, 'rgba(60,255,170,0.05)'], [1, 'rgba(60,255,170,0)']]);
+  vfill(ctx, 0, TY + 6, W, 90, [[0, 'rgba(60,255,170,0)'], [0.35, 'rgba(60,255,170,0.08)'], [0.7, 'rgba(150,90,255,0.05)'], [1, 'rgba(150,90,255,0)']]);
   // cool on the right, out of the moon
   const lg = ctx.createLinearGradient(0, 0, W, 0);
   lg.addColorStop(0, 'rgba(230,240,255,0.06)');
@@ -1682,7 +2027,7 @@ export const SUMMIT: SceneSpec = {
     { id: 'col', box: { x: 0, y: 570, w: W, h: TY + 10 - 570 }, draw: col },
     { id: 'serac', box: { x: 0, y: 252, w: 640, h: YE.seracFoot + 30 - 250 }, draw: serac },
     { id: 'buttress', box: { x: 1390, y: 262, w: W - 1390, h: YE.buttressFoot + 30 - 262 }, draw: buttress },
-    { id: 'pole', box: { x: 1270, y: YE.pole.top - 10, w: 230, h: YE.pole.base + 16 - YE.pole.top }, draw: pole },
+    { id: 'pole', box: { x: 1260, y: YE.pole.top - 10, w: 420, h: YE.pole.base + 70 - YE.pole.top }, draw: pole },
     { id: 'flagsStill', box: FL_BOX, stillOnly: true, draw: (c) => flags(c, 0.2) },
     { id: 'flags', box: FL_BOX, motion: 'slot', draw: () => {} },
     { id: 'pourStill', box: { x: YE.lip.x - PO_SRC[0], y: YE.lip.y, w: POW, h: POH }, stillOnly: true, draw: (c) => {
@@ -1690,8 +2035,8 @@ export const SUMMIT: SceneSpec = {
       c.globalAlpha = 0.32;
       pourFrame(c, 0.4);
     } },
-    { id: 'ball', box: { x: YE.ball.x - 90, y: YE.ball.y - 72, w: 300, h: 150 }, draw: bigBall },
-    { id: 'pile', box: { x: YE.pile.x - 100, y: YE.pile.y - 80, w: 240, h: 100 }, draw: pile },
+    { id: 'ball', box: { x: YE.ball.x - 90, y: YE.ball.y - 72, w: 360, h: 150 }, draw: bigBall },
+    { id: 'pile', box: { x: YE.pile.x - 100, y: YE.pile.y - 80, w: 340, h: 110 }, draw: pile },
     { id: 'bank', box: { x: 0, y: TY - 40, w: W, h: 46 }, draw: bank },
     { id: 'sign', box: { x: YE.sign.x - 110, y: YE.sign.y - 240, w: W - YE.sign.x + 110, h: 260 }, draw: sign },
     { id: 'table', box: { x: 0, y: TY, w: W, h: 1080 - TY }, draw: table },
