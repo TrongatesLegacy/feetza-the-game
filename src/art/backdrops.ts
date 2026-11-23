@@ -4848,7 +4848,9 @@ const REDRAWN = new Set<BackdropId>(['trattoria', 'beach', 'space',
   // T-Rex Toes' arena (Lost Valley), redrawn with the location kit and painted frame animation: scene-valley.ts
   'trex',
   // the Colossus's arena (the Hall of Kings), redrawn with the location kit and painted frame animation: scene-hall.ts
-  'colossus']);
+  'colossus',
+  // Bigfoot's arena (the Moonlit Woods), redrawn with the location kit and painted frame animation: scene-woods.ts
+  'bigfoot']);
 
 // redrawn scenes keep their old info for the before/after page (their old glows and particles with their old art)
 const LEGACY_INFO: Partial<Record<BackdropId, BackdropInfo>> = {};
