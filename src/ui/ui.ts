@@ -271,6 +271,12 @@ class Hud {
   private bossTrail = h('div', { class: 'trail' });
   private bossPhase = h('span', { class: 'phase' });
   private bossNotches = h('div', { class: 'notches' });
+  /** A second boss of the fight (a second Zombie Loafer): a slim bar under the main one. */
+  private boss2 = h('div', { class: 'boss2' });
+  private boss2Name = h('span', { class: 'n' });
+  private boss2Phase = h('span', { class: 'phase' });
+  private boss2Hp = h('div', { class: 'hp' });
+  private boss2Trail = h('div', { class: 'trail' });
   private bossMove = h('div', { class: 'move' });
   private newFootEl: HTMLElement | null = null;
   /** When the current centre banner disappears (performance.now() ms). */
@@ -295,7 +301,8 @@ class Hud {
     this.coinPill.innerHTML = COIN_SVG;
     this.coinPill.append(this.coins);
     this.combo.append(this.comboLabel, this.comboMult, h('div', { class: 'timer' }, this.comboTimer));
-    this.boss.append(h('div', { class: 'bossname' }, this.bossName, this.bossPhase), h('div', { class: 'track' }, this.bossTrail, this.bossHp, this.bossNotches), this.bossMove);
+    this.boss2.append(h('div', { class: 'b2name' }, this.boss2Name, this.boss2Phase), h('div', { class: 'track' }, this.boss2Trail, this.boss2Hp));
+    this.boss.append(h('div', { class: 'bossname' }, this.bossName, this.bossPhase), h('div', { class: 'track' }, this.bossTrail, this.bossHp, this.bossNotches), this.boss2, this.bossMove);
     this.slam.innerHTML = '<span>PEEL<br>SLAM<small class="kb">SPACE</small><small class="pd" data-glyph="X">X</small></span>';
     this.slam.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
@@ -376,6 +383,7 @@ class Hud {
     this.combo.classList.toggle('beside-boss', !!name);
     if (!name) {
       this.setBossMove(null);
+      this.setBoss2(null);
       return;
     }
     this.boss.dataset.phase = String(phase);
@@ -389,6 +397,18 @@ class Hud {
     this.bossHp.style.width = w;
     this.bossTrail.style.width = w;
     if (!wasOn) requestAnimationFrame(() => this.fitBossMove());
+  }
+
+  /** The second boss's slim bar under the main one (null hides it). */
+  setBoss2(name: string | null, frac = 1, phases = 1, phase = 1): void {
+    this.boss2.classList.toggle('on', !!name);
+    if (!name) return;
+    this.boss2.dataset.phase = String(phase);
+    this.boss2Name.textContent = name;
+    this.boss2Phase.textContent = phases > 1 ? `PHASE ${phase} / ${phases}` : '';
+    const w = `${Math.max(0, frac) * 100}%`;
+    this.boss2Hp.style.width = w;
+    this.boss2Trail.style.width = w;
   }
 
   /** The slam button: the Peel Slam, or the peel ability that replaces it this run. */

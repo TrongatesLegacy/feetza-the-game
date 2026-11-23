@@ -11,6 +11,11 @@ export function setRunHeat(h: HeatId | null): void {
   current = h;
 }
 
+/** The run's heat rank (0 Mild … 4 Inferno; the saved heat outside a run): for wording that depends on it. */
+export function runHeatRank(): number {
+  return heatRank(current ?? save.heat);
+}
+
 export function freshnessOn(): boolean {
   return (HEAT_BY_ID[current ?? save.heat]?.freshness ?? 1) > 0;
 }

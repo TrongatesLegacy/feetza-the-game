@@ -39,6 +39,10 @@ export interface Arena {
   alivePizzas(): Pizza[];
   peelPoint(): { x: number; y: number };
   spawn(id: string, target?: Pizza | null, x?: number): Foot | null;
+  /** Another of a boss already in the fight, at (x, y) with `hpFrac` of its health (the Zombie Loafer's bite on Hot+):
+   * its own brain, phases and a second health bar. It pays a tenth and the fight's loot, banner and cleanup wait for
+   * the last of them (GameScene.killFoot). */
+  spawnExtraBoss?(id: string, x: number, y: number, hpFrac: number): Foot | null;
   /** A non-stomp ability hits a pizza: never blocked by shields, traps or thick crust. */
   hitPizza(p: Pizza, slices: number, label: string, color?: string): void;
   /** Lock the peel (no smacks) for a moment. */

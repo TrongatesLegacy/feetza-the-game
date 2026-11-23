@@ -272,6 +272,9 @@ export function texturesInUse(game: Phaser.Game | null = gameRef): Set<string> {
     for (const o of list) {
       const key = (o as Partial<Phaser.GameObjects.Image>).texture?.key;
       if (key) out.add(key);
+      // (a tile sprite draws its displayTexture: its own texture is a scratch canvas)
+      const shown = (o as { displayTexture?: Phaser.Textures.Texture }).displayTexture?.key;
+      if (shown) out.add(shown);
       const kids = (o as Partial<Phaser.GameObjects.Container>).list;
       if (Array.isArray(kids)) walk(kids);
     }
@@ -308,7 +311,7 @@ export function textureMemory(game: Phaser.Game | null = gameRef): Record<string
   for (const key of game.textures.getTextureKeys()) {
     let bytes = 0;
     for (const s of game.textures.get(key).source) bytes += (s.width || 0) * (s.height || 0) * 4;
-    const m = /^(lk|still_glow|foot|leg|cuff|slice|bg|p|ev|trait)_/.exec(key);
+    const m = /^(lk|still_glow|zb|foot|leg|cuff|slice|bg|p|ev|trait)_/.exec(key);
     const k = m ? m[1] : 'other';
     out[k] = (out[k] ?? 0) + bytes / 1048576;
     out.total = (out.total ?? 0) + bytes / 1048576;

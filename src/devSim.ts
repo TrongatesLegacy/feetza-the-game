@@ -247,7 +247,12 @@ function smack(g: AnyScene, accuracy: number): void {
   // the lowest foot, skipping any with a guard up (as a player would) unless that's all there is: then it smacks the
   // raised shield, which cracks it and in the end breaks it (src/game/guardShield.ts)
   const ts = (g.feet ?? []).filter((f: any) => f.hittable).sort((a: any, b: any) => b.y - a.y); // eslint-disable-line @typescript-eslint/no-explicit-any
-  const t = ts.find((f: any) => !f.shielded && !f.guardUp) ?? ts.find((f: any) => !f.shielded) ?? ts[0]; // eslint-disable-line @typescript-eslint/no-explicit-any
+  // a foot a boss has marked for a move (the Zombie Loafer's bite, a zombie's spreading bite) first, as a player would;
+  // with more than one of a boss up (a second Zombie Loafer), the weakest of them before the rest of the field
+  const marked = ts.find((f: any) => f.brain?.marked && !f.shielded); // eslint-disable-line @typescript-eslint/no-explicit-any
+  const extras = ts.filter((f: any) => f.isBossLike && !f.shielded && ts.some((o: any) => o !== f && o.type.id === f.type.id && (o.brain?.extraBoss || f.brain?.extraBoss))); // eslint-disable-line @typescript-eslint/no-explicit-any
+  const twins = extras.sort((a: any, b: any) => a.hp - b.hp)[0]; // eslint-disable-line @typescript-eslint/no-explicit-any
+  const t = marked ?? twins ?? ts.find((f: any) => !f.shielded && !f.guardUp) ?? ts.find((f: any) => !f.shielded) ?? ts[0]; // eslint-disable-line @typescript-eslint/no-explicit-any
   if (prop && Math.random() < accuracy) {
     g.pointer.x = prop.x;
     g.pointer.y = prop.y;

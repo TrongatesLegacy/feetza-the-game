@@ -9,6 +9,9 @@ import type { Arena } from '../arena';
 import type { Foot } from '../Foot';
 import type { Pizza } from '../Pizza';
 import { type Brain, type Prop, type Takeover, Every, dropOn, heat, hitProp, hitWindup, laneOf, mark, retreat, rnd, screenSplat, shield, takeLane, throwAtPeel, windup } from './kit';
+import { crand } from '../../systems/cosmeticRandom';
+import { runHeatRank } from '../heatRules';
+import { ZombieLook, prepareZombie, stepZombieBuilds } from '../zombieArt';
 
 // ——— Batch helpers ———
 
@@ -784,34 +787,236 @@ interface Zombie {
   armed: boolean;
   p: Pizza | null;
   slices: number;
+  /** Its zombie art and how it moves (src/game/zombieArt.ts). */
+  look: ZombieLook;
+  /** Seconds to its next chance to bite a neighbour (the infection spreads). */
+  spreadT: number;
+  /** It got back-up-once from the bite (it didn't have it already): taken away again on the cure. */
+  gaveRevive: boolean;
+}
+
+/** Spreading bites: how often each zombie foot gets a chance, the chance, how many can be in flight at once and the
+ * most zombie feet there can be, by heat rank (Mild … Inferno). */
+const SPREAD = {
+  every: [10, 9, 8.5, 8, 8],
+  chance: [0.12, 0.22, 0.28, 0.32, 0.36],
+  inFlight: [1, 1, 2, 2, 2],
+  cap: [3, 4, 5, 6, 6],
+};
+/** How far (centre to centre, px) a zombie foot reaches for a neighbour: the next lane over, or overlapping. */
+const SPREAD_REACH = 380;
+
+/**
+ * One Zombie Loafer fight, shared by every Loafer in it (on Hot and up a bite can make a second one). The zombie
+ * feet, the spreading bites and the Loafers themselves live here: any Loafer's bite adds to the same zombies, the
+ * first Loafer alive runs the zombies each frame, and they're cured only when the last Loafer goes down.
+ */
+interface LoaferFight {
+  loafers: Set<Foot>;
+  zombies: Map<Foot, Zombie>;
+  /** Feet a bite (a Loafer's or a spreading one) is on its way to. */
+  targeted: Set<Foot>;
+  /** Spreading bites in flight, and their marks (cleared with the fight). */
+  spreads: number;
+  /** The spreading bites' marks and the feet they follow (the first Loafer alive moves them each frame). */
+  marks: Map<Phaser.GameObjects.Image, Foot>;
+  /** A bitten foot is turning into a Loafer (it counts as one already). */
+  morphing: number;
+}
+
+const fights = new WeakMap<Phaser.Scene, LoaferFight>();
+
+/** The fight `f` is in (a new one when no Loafer of the old one is left: a scene that restarted). */
+function joinFight(a: Arena, f: Foot): LoaferFight {
+  let fi = fights.get(a.sc);
+  if (!fi || (fi.morphing === 0 && ![...fi.loafers].some((l) => l !== f && l.alive && l.root.active))) {
+    if (fi) for (const m of fi.marks.keys()) m.destroy();
+    fi = { loafers: new Set(), zombies: new Map(), targeted: new Set(), spreads: 0, marks: new Map(), morphing: 0 };
+    fights.set(a.sc, fi);
+  }
+  fi.loafers.add(f);
+  return fi;
+}
+
+const loafersAlive = (fi: LoaferFight) => [...fi.loafers].filter((l) => l.alive).length + fi.morphing;
+
+/** No Loafer left (and none on its way): the zombies come round and the fight is over. */
+function endIfOver(fi: LoaferFight, a: Arena): void {
+  if (loafersAlive(fi) > 0 || fights.get(a.sc) !== fi) return;
+  let any = false;
+  for (const [o, z] of fi.zombies) {
+    any ||= o.alive;
+    unzombify(o, z, a);
+  }
+  if (any) a.sfx('sfx_heal', { volume: 0.7 });
+  fi.zombies.clear();
+  for (const m of fi.marks.keys()) m.destroy();
+  fi.marks.clear();
+  fi.targeted.clear();
+  fi.spreads = 0;
+  fights.delete(a.sc);
+}
+
+/** The bitten foot turns into a zombie foot: its own art rots (a green infection spreads out of the bite), it
+ * convulses, a green puff and the flies arrive, and it groans. Tougher and slower from now on, and it gets back up
+ * once. */
+function zombify(fi: LoaferFight, o: Foot, a: Arena, side: number): Zombie {
+  const look = new ZombieLook(o, side, (k, op) => a.sfx(k, op));
+  const native = o.type.traits.includes('revive');
+  const z: Zombie = { armed: false, p: null, slices: 0, look, spreadT: SPREAD.every[heat(a).rank] * (0.6 + Math.random() * 0.4), gaveRevive: !native };
+  fi.zombies.set(o, z);
+  if (z.gaveRevive) o.extraTraits.add('revive');
+  o.maxHp = Math.round(o.maxHp * 1.5);
+  o.hp = Math.round(o.hp * 1.5);
+  o.speedMul *= 0.7;
+  look.bite();
+  const [wx, wy] = look.woundWorld();
+  a.fx.ring(wx, wy, ZOMBIE_GLOW, 0.7, 0.8);
+  a.sfx('sfx_poltergeist_infect', { volume: 0.85 });
+  a.sc.time.delayedCall(600, () => {
+    if (!o.alive || !fi.zombies.has(o)) return;
+    // (the puff is the look's own: Fx.stinkPuff draws on the game's random sequence)
+    look.puff();
+    a.fx.ring(o.cx, o.cy, ZOMBIE_GLOW, 1.3, 0.55);
+  });
+  a.sc.time.delayedCall(780, () => {
+    if (!o.alive || !fi.zombies.has(o)) return;
+    // (off to the far side of the foot, clear of the bite's own callouts; its tilt from the cosmetic generator)
+    a.fx.quip(o.x - side * 150, Math.max(300, o.cy - 40), 'URRRGH…', '#9be36a', 44, (crand() - 0.5) * 16);
+    a.sfx('sfx_poltergeist_turn', { volume: 0.9, rate: 0.94 + crand() * 0.12 });
+  });
+  return z;
+}
+
+/** The last Loafer is down: the foot comes round (its art wipes back from the middle out, with a heal burst). */
+function unzombify(o: Foot, z: Zombie, a: Arena): void {
+  if (z.gaveRevive) o.extraTraits.delete('revive');
+  if (!o.alive) {
+    z.look.release();
+    return;
+  }
+  o.speedMul /= 0.7;
+  o.maxHp = Math.round(o.maxHp / 1.5);
+  o.hp = Math.min(o.hp, o.maxHp);
+  const [x, y] = z.look.cure();
+  a.fx.healBurst(x, y);
+  a.fx.ring(x, y, 0x7dff9a, 1.2, 0.6);
+}
+
+/** A zombie foot may bite a neighbour (rarely): a green mark on the neighbour while the zombie rears back, then it
+ * lunges and the neighbour turns. Smacking either foot in the window shakes it off. Gameplay rng (Math.random). */
+function trySpread(fi: LoaferFight, o: Foot, z: Zombie, a: Arena): void {
+  const h = heat(a);
+  const r = h.rank;
+  if (fi.spreads >= SPREAD.inFlight[r] || fi.zombies.size + fi.spreads >= SPREAD.cap[r]) return;
+  if (o.cy < 280 || o.stunT > 0 || Math.random() >= SPREAD.chance[r]) return;
+  const near = a
+    .allFeet()
+    .filter((t) => t !== o && t.alive && !t.isBossLike && !fi.zombies.has(t) && !fi.targeted.has(t) && t.cy > 280 && t.x > 140 && t.x < 1780 && Math.abs(t.x - o.x) < SPREAD_REACH)
+    .sort((p, q) => Math.abs(p.x - o.x) - Math.abs(q.x - o.x))[0];
+  if (!near) return;
+  const t = near;
+  fi.spreads++;
+  fi.targeted.add(t);
+  const dir = Math.sign(t.x - o.x) || 1;
+  const sec = h.windup(0.8);
+  const hpO = o.hp;
+  const hpT = t.hp;
+  const revO = o.reviveUsed;
+  const mk = a.sc.add.image(t.cx, t.cy, 'p_reticle').setScale(0.6).setTint(ZOMBIE_GLOW);
+  a.fxLayer.add(mk);
+  fi.marks.set(mk, t);
+  a.sc.tweens.add({ targets: mk, scale: 0.75, angle: 45, duration: 200, yoyo: true, repeat: -1 });
+  // (marked: smack it, or the zombie, to shake the bite off; the balance sim's bot looks for this too)
+  t.brain.marked = true;
+  o.brain.marked = true;
+  z.look.windup(dir);
+  a.quip(t.x, Math.max(300, t.cy - 140), 'INFECTION!', '#9be36a', 32);
+  a.sfx('sfx_poltergeist_turn', { volume: 0.55, rate: 1.25, throttle: 300 });
+  a.sc.time.delayedCall(sec * 1000, () => {
+    t.brain.marked = false;
+    o.brain.marked = false;
+    fi.marks.delete(mk);
+    mk.destroy();
+    fi.spreads = Math.max(0, fi.spreads - 1);
+    fi.targeted.delete(t);
+    if (!fi.zombies.has(o) || !a.inWave()) return;
+    const shaken = !o.alive || !t.alive || o.hp < hpO || t.hp < hpT || o.reviveUsed !== revO;
+    if (shaken) {
+      if (t.alive) a.quip(t.x, Math.max(300, t.cy - 140), 'SHAKEN OFF!', '#7dff9a', 34);
+      return;
+    }
+    z.look.lunge(dir);
+    zombify(fi, t, a, -dir);
+    a.fx.impact(t.cx, t.cy, false);
+    a.quip(t.x, Math.max(300, t.cy - 150), 'INFECTED!', '#9be36a', 38);
+    a.sfx('sfx_poltergeist_bite', { volume: 0.7 });
+  });
+}
+
+/** On Hot and up, a lone Loafer's bite doesn't stop at a zombie: the bitten foot swells and turns into a second
+ * Zombie Loafer, its own boss with its own bar and phases. */
+function morphIntoLoafer(fi: LoaferFight, o: Foot, a: Arena): void {
+  const z = fi.zombies.get(o);
+  if (!z || !a.spawnExtraBoss) return;
+  fi.morphing++;
+  let done = false;
+  /** (the morph is over, one way or the other; with no Loafer left after all, the fight ends) */
+  const finish = () => {
+    if (done) return;
+    done = true;
+    fi.morphing = Math.max(0, fi.morphing - 1);
+    endIfOver(fi, a);
+  };
+  // the infection takes it all, then it swells…
+  a.sc.time.delayedCall(650, () => {
+    if (!o.alive || !a.inWave()) return finish();
+    a.quip(o.x, Math.max(300, o.cy - 170), 'IT’S TURNING…', '#9be36a', 40);
+    a.sfx('sfx_poltergeist_groan', { rate: 0.8 });
+    a.flash(260, 150, 255, 110);
+    a.shake(600, 0.01);
+    a.rumble(0.7, 500);
+    z.look.swell();
+    a.sc.tweens.add({ targets: o.root, scaleX: o.root.scaleX * 1.45, scaleY: o.root.scaleY * 1.3, duration: 420, ease: 'Back.In' });
+  });
+  // …and bursts into a Loafer of its own
+  a.sc.time.delayedCall(1100, () => {
+    if (!o.alive || !a.inWave()) return finish();
+    const L = a.spawnExtraBoss!('poltergeist', o.x, o.y, 0.5);
+    if (!L) return finish();
+    // (it joins this fight before the morph counts down)
+    fi.loafers.add(L);
+    finish();
+    fi.zombies.delete(o);
+    if (z.gaveRevive) o.extraTraits.delete('revive');
+    z.look.release();
+    a.sc.tweens.add({ targets: o.root, alpha: 0, duration: 120, onComplete: () => o.destroy() });
+    o.setState('dying');
+    const sx = L.root.scaleX;
+    const sy = L.root.scaleY;
+    L.root.setScale(sx * 0.55, sy * 0.45).setAlpha(0);
+    a.sc.tweens.add({ targets: L.root, scaleX: sx, scaleY: sy, alpha: 1, duration: 480, ease: 'Back.Out' });
+    a.fx.ring(o.cx, o.cy, ZOMBIE_GLOW, 2.4, 0.7);
+    a.fx.ring(o.cx, o.cy, 0xffffff, 1.6, 0.5);
+    a.flash(320, 160, 255, 120);
+    a.shake(800, 0.016);
+    a.rumble(1, 600);
+    a.dramatic(0.5);
+    a.sfx('sfx_poltergeist_roar');
+    a.quip(L.x, Math.max(300, L.cy - 200), 'ANOTHER LOAFER!', '#9be36a', 58);
+  });
 }
 
 const poltergeist = (): Brain => {
   const bin = new Bin();
   const bite = new Every(5, 3);
   const cough = new Every(11, 3);
-  const zombies = new Map<Foot, Zombie>();
+  let fi: LoaferFight | null = null;
+  const fight = (f: Foot, a: Arena) => (fi ??= joinFight(a, f));
   let biting: { o: Foot; reticle: Phaser.GameObjects.Image } | null = null;
   let coughing = false;
   let stinkT = 0;
   let sick: { p: Pizza; prop: Prop; glow: Phaser.GameObjects.Image; munch: Every } | null = null;
-
-  const zombify = (o: Foot) => {
-    zombies.set(o, { armed: false, p: null, slices: 0 });
-    // tougher and slower, with a sickly glow
-    o.maxHp = Math.round(o.maxHp * 1.5);
-    o.hp = Math.round(o.hp * 1.5);
-    o.speedMul *= 0.7;
-    o.setPhaseAura(ZOMBIE_GLOW);
-  };
-  const unzombify = (o: Foot) => {
-    if (!o.alive) return;
-    o.speedMul /= 0.7;
-    o.maxHp = Math.round(o.maxHp / 1.5);
-    o.hp = Math.min(o.hp, o.maxHp);
-    o.setPhaseAura(null);
-    o.tint(null);
-  };
   const cure = (a: Arena, quiet = false) => {
     if (!sick) return;
     const s = sick;
@@ -828,14 +1033,21 @@ const poltergeist = (): Brain => {
     cough.t = cough.every;
   };
 
-  return {
+  // on Hot and up a lone Loafer's bite makes a second Loafer
+  const hot = runHeatRank() >= 2;
+  const brain: Brain = {
     names: ['BITE', 'COUGH'],
-    info: ['Marks a foot, then bites it: zombie feet are tougher and stomp harder, and each bite heals it · smack the marked foot first', 'Coughs on a pizza: it eats its own slices and its perk stops · click the pizza to cure it'],
+    info: [
+      hot
+        ? 'Bites a marked foot: alone, it turns the foot into a second Loafer; with two, a zombie that spreads · smack the marked foot first'
+        : 'Bites a marked foot: it turns zombie, tougher, gets back up once and can bite its neighbours · smack the marked foot first',
+      'Coughs on a pizza: it eats its own slices and its perk stops · click the pizza to cure it',
+    ],
     cards: [
       {
         what: 'It marks a nearby foot, then lunges over and bites it',
         hit: 'Smack the marked foot down before the bite lands',
-        miss: 'It turns zombie: tougher, harder stomps, and the boss heals',
+        miss: hot ? 'Alone, it makes a second Loafer; with two, a zombie that gets back up and spreads' : 'It turns zombie: tougher, gets back up once, and its bite spreads',
         show: [{ key: 'p_reticle', label: 'Marked foot' }],
       },
       {
@@ -845,7 +1057,8 @@ const poltergeist = (): Brain => {
         show: [{ key: 'p_cough', label: 'Sick pizza', hits: (h) => h.hits(4) }],
       },
     ],
-    upkeep: (_f, dt, a) => {
+    upkeep: (f, dt, a) => {
+      const F = fight(f, a);
       // a whiff of green stink off every zombie foot and the sick pizza, now and then
       stinkT -= dt;
       const whiff = stinkT <= 0;
@@ -853,13 +1066,19 @@ const poltergeist = (): Brain => {
         stinkT = 0.35;
         if (sick && !sick.p.dead) a.fx.stinkPuff(sick.p.x, sick.p.surfaceY - 60);
       }
-      // ——— zombie upkeep: keep the green tint, and a landed zombie stomp bites off one more slice ———
-      for (const [o, z] of zombies) {
+      if (biting) biting.reticle.setPosition(biting.o.cx, biting.o.cy);
+      // ——— the zombies (run by the first Loafer alive): a landed zombie stomp bites off one more slice, and now and
+      // then one bites a neighbour ———
+      if ([...F.loafers].find((l) => l.alive) !== f) return;
+      for (const [m, t] of F.marks) if (t.alive) m.setPosition(t.cx, t.cy);
+      // the zombie art being built for a marked foot, a little each frame
+      stepZombieBuilds();
+      for (const [o, z] of F.zombies) {
         if (!o.alive) {
-          zombies.delete(o);
+          // (the flies scatter: its look lets go by itself)
+          F.zombies.delete(o);
           continue;
         }
-        if (!imgOf(o).tintFill) o.tint(ZOMBIE_TINT);
         if (whiff && Math.random() < 0.5) a.fx.stinkPuff(o.cx, o.cy);
         if (o.state === 'descend') {
           z.armed = true;
@@ -872,16 +1091,21 @@ const poltergeist = (): Brain => {
             a.sc.time.delayedCall(150, () => !p.dead && a.inWave() && a.hitPizza(p, 1, 'ZOMBIE BITE!', '#9be36a'));
           }
         }
+        z.spreadT -= dt;
+        if (z.spreadT <= 0 && a.inWave()) {
+          z.spreadT = SPREAD.every[heat(a).rank] * (0.9 + Math.random() * 0.2);
+          trySpread(F, o, z, a);
+        }
       }
-      if (biting) biting.reticle.setPosition(biting.o.cx, biting.o.cy);
     },
     update: (f, dt, a) => {
       const h = heat(a);
+      const F = fight(f, a);
 
       // ——— Bite: mark a regular foot, then swing over and bite it ———
       if (!biting && !coughing && bite.tick(dt)) {
         bite.every = h.cooldown(5);
-        const prey = a.allFeet().filter((o) => o.alive && !o.isBossLike && !zombies.has(o) && o.cy > 300 && o.x > 140 && o.x < 1780);
+        const prey = a.allFeet().filter((o) => o.alive && !o.isBossLike && !F.zombies.has(o) && !F.targeted.has(o) && o.cy > 300 && o.x > 140 && o.x < 1780);
         const o = prey.sort((p, q) => Math.abs(p.x - f.x) - Math.abs(q.x - f.x))[0];
         if (!o) bite.t = 1;
         else {
@@ -889,9 +1113,16 @@ const poltergeist = (): Brain => {
           a.fxLayer.add(reticle);
           a.sc.tweens.add({ targets: reticle, scale: 0.9, angle: 45, duration: 260, yoyo: true, repeat: -1 });
           biting = { o, reticle };
+          F.targeted.add(o);
+          // (marked: the balance sim's bot smacks it first, as a player would)
+          o.brain.marked = true;
+          // its zombie art starts building now, in the background, for the bite
+          prepareZombie(o);
           const forget = bin.add(() => {
             reticle.destroy();
             biting = null;
+            F.targeted.delete(o);
+            o.brain.marked = false;
           });
           a.quip(o.x, Math.max(300, o.cy - 140), 'BITE INCOMING!', '#9be36a', 36);
           a.quip(f.x, Math.max(280, f.cy - 170), 'BRAAAINS…', '#9be36a', 40);
@@ -916,10 +1147,13 @@ const poltergeist = (): Brain => {
               duration: 220,
               ease: 'Back.In',
               onComplete: () => {
-                if (f.alive && o.alive && a.inWave()) {
-                  zombify(o);
+                if (f.alive && o.alive && a.inWave() && !F.zombies.has(o)) {
+                  // on Hot and up, a Loafer on its own makes another (two at most)
+                  const morph = h.rank >= 2 && loafersAlive(F) < 2 && !!a.spawnExtraBoss;
+                  zombify(F, o, a, side);
+                  if (morph) morphIntoLoafer(F, o, a);
                   a.fx.impact(o.cx, o.cy, true);
-                  a.quip(o.x, Math.max(300, o.cy - 150), 'CHOMP! ZOMBIE!', '#9be36a', 42);
+                  a.quip(o.x, Math.max(300, o.cy - 150), morph ? 'CHOMP! IT’S TURNING!' : 'CHOMP! ZOMBIE!', '#9be36a', 42);
                   a.sfx('sfx_poltergeist_bite');
                   // each bite heals the boss a little
                   const heal = Math.min(f.maxHp - f.hp, Math.round(f.maxHp * (h.rank === 0 ? 0.03 : 0.04)));
@@ -1015,17 +1249,17 @@ const poltergeist = (): Brain => {
         }
       }
     },
-    onDeath: (_f, a) => {
+    onDeath: (f, a) => {
       bin.flush();
       cure(a, true);
-      // the zombies come round when it goes down
-      for (const o of zombies.keys()) {
-        unzombify(o);
-        if (o.alive) a.fx.healBurst(o.cx, o.cy);
-      }
-      zombies.clear();
+      const F = fi ?? fights.get(a.sc);
+      if (!F) return;
+      F.loafers.delete(f);
+      // another Loafer still standing (or on its way): the zombies stay zombies; the last one's down: they come round
+      endIfOver(F, a);
     },
   };
+  return brain;
 };
 
 // ——— 24. PHANTOM KING (boss) ———

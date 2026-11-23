@@ -206,6 +206,8 @@ export class Foot {
   } | null = null;
   /** Extra lean (radians) the foot's own moves add (reaching back for a new shield). */
   leanExtra = 0;
+  /** Extra lean (radians) a boss's effect adds on top (a zombie foot's sickly sway and twitches). */
+  leanFx = 0;
   /** The shield piece's containers: they follow the rig like its light twin (attachShield). */
   private shieldSwing?: Phaser.GameObjects.Container;
   private shieldSquash?: Phaser.GameObjects.Container;
@@ -311,8 +313,11 @@ export class Foot {
 
   has(t: FootType['traits'][number]): boolean {
     if (this.disarmT > 0) return false;
-    return this.type.traits.includes(t);
+    return this.type.traits.includes(t) || this.extraTraits.has(t);
   }
+
+  /** Traits a fight has given it on top of its type's (a zombie foot gets back up once). */
+  readonly extraTraits = new Set<FootType['traits'][number]>();
 
   get isBossLike(): boolean {
     return !!this.type.boss || !!this.type.mini;
@@ -956,6 +961,28 @@ export class Foot {
     if (this.cuff) this.cuff.y = -this.meta.footHeight * this.type.scale + 4 * this.type.scale + drop;
   }
 
+  /** The foot's painted pieces: the leg, the art, the cuff and its live images (not the additive light layers).
+   * Whole-foot re-skins (the Zombie Loafer's bite: src/game/zombieArt.ts) swap their textures. */
+  artPieces(): (Phaser.GameObjects.Image | Phaser.GameObjects.TileSprite)[] {
+    const out: (Phaser.GameObjects.Image | Phaser.GameObjects.TileSprite)[] = [this.leg, this.img];
+    if (this.cuff) out.push(this.cuff);
+    for (const o of this.liveImgs) if (o.active && o.blendMode !== Phaser.BlendModes.ADD && !out.includes(o)) out.push(o);
+    return out;
+  }
+
+  /** Squash or stretch the foot's body (leg, art and cuff) from the sole, on top of whatever its root does: an
+   * effect's own pose (a zombie foot's convulsions) that never fights the root's tweens (knocks, resizes, death). */
+  setBodyScale(sx: number, sy: number): void {
+    this.body.setScale(sx, sy);
+  }
+
+  /** Take an image added with addLiveArt off the foot again (and destroy it). */
+  removeLiveArt(o: Phaser.GameObjects.Image): void {
+    const i = this.liveImgs.indexOf(o);
+    if (i >= 0) this.liveImgs.splice(i, 1);
+    o.destroy();
+  }
+
   /** Draw the foot with another texture of the same frame (its live art draws the rest). */
   setArtTexture(key: string): void {
     this.img.setTexture(key);
@@ -1004,7 +1031,7 @@ export class Foot {
     const lean = this.state === 'descend' ? Phaser.Math.Clamp(this.vy / 2400, -0.08, 0.08) : 0;
     const wob = this.state === 'hover' ? Math.sin(this.wobbleT * 5) * 0.03 : Math.sin(this.wobbleT * 9) * 0.008;
     this.root.setPosition(this.x, this.y);
-    this.root.rotation += (wob + lean * (this.x > 960 ? -1 : 1) + this.leanExtra - this.root.rotation) * Math.min(1, dt * 10);
+    this.root.rotation += (wob + lean * (this.x > 960 ? -1 : 1) + this.leanExtra + this.leanFx - this.root.rotation) * Math.min(1, dt * 10);
     // telegraph shadow on the target pizza
     const t = this.target;
     if (t && !t.dead && (this.state === 'descend' || this.state === 'hover' || this.state === 'stomp')) {

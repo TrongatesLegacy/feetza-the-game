@@ -5980,3 +5980,44 @@ body.still-peels .peelbox .pk-img.shiny::after {
 /* the boss bar fades while the peel is up near it */
 .bossbar { transition: opacity 0.35s ease; }
 .bossbar.faded { opacity: 0.28 !important; }
+
+/* a second boss of the fight (a second Zombie Loafer): a slim bar under the main one */
+.bossbar .boss2 {
+  display: none;
+  width: 62%;
+  margin: 0.35em auto 0;
+}
+
+.bossbar .boss2.on {
+  display: block;
+  animation: popIn 0.4s ease both;
+}
+
+.bossbar .boss2 .b2name {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 0.5em;
+}
+
+.bossbar .boss2 .n {
+  font-size: 1.3em;
+  color: #ff8a6a;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.2em var(--ink);
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.bossbar .boss2 .phase {
+  font-size: 0.85em;
+}
+
+.bossbar .boss2 .track {
+  height: 0.9em;
+  border-width: 0.16em;
+}
+
+.bossbar .boss2[data-phase='2'] .phase {
+  background: #ffa53d;
+}
