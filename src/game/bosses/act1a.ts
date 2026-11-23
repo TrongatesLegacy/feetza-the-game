@@ -1609,7 +1609,9 @@ function bigSplat(a: Arena, x: number, y: number, hits: number): void {
 }
 
 const clownking = (): Brain => {
-  const decoys = new Every(9, 1);
+  /** The shuffle: right away when phase 2 begins, then 10 s after each one is solved (the real King found, the
+   * decoys gone). */
+  const decoys = new Every(10, 0);
   const pie = new Every(6, 3);
   const honk = new Every(6.5, 3);
   /** The real King and his decoys, while a shuffle is on the table. */
@@ -1714,9 +1716,27 @@ const clownking = (): Brain => {
       },
     });
   };
+  /** The shuffle is solved (the real King smacked, or every decoy popped): the decoys that are left vanish in a
+   * puff, the King is free to roam again at full size, and the next shuffle is 10 s away. */
+  const solved = (f: Foot, a: Arena) => {
+    for (const o of trio) {
+      if (o === f || !o.alive) continue;
+      a.fx.puff(o.cx, o.cy, 10);
+      o.die();
+    }
+    f.laneX = null;
+    f.hoverY = null;
+    f.setSize(1);
+    a.sc.time.delayedCall(300, () => {
+      f.brain.baseSX = f.root.scaleX;
+      f.brain.baseSY = f.root.scaleY;
+    });
+    trio = [];
+    decoys.t = decoys.every;
+  };
   return {
     names: ['HONK', 'DECOY SHOES', 'CREAM PIE'],
-    info: ['Winds up a horn blast that stuns your peel · smack it twice to stop it', 'Leaps away and drops back with two decoys in random lanes · decoys pop in one hit: find the real one', 'Throws big cream pies that cover the screen · smack the pie in flight, or wipe the splat'],
+    info: ['Winds up a horn blast that stuns your peel · smack it twice to stop it', 'Leaps away and drops back with two decoys in random lanes · smack the real one and the decoys vanish (decoys pop in one hit) · he does it again 10 s later', 'Throws big cream pies that cover the screen · smack the pie in flight, or wipe the splat'],
     cards: [
       {
         what: 'He winds up a big horn blast',
@@ -1726,8 +1746,8 @@ const clownking = (): Brain => {
       },
       {
         what: 'He leaps away and drops back with two decoy shoes',
-        hit: 'Decoys pop in one hit: find the real King',
-        miss: 'The decoys stomp just like the real thing',
+        hit: 'Smack the real King and the decoys vanish (decoys pop in one hit)',
+        miss: 'The decoys stomp just like the real thing, and he does it again 10 s after you find him',
         show: [{ key: '@boss', label: 'Which is real?' }],
       },
       {
@@ -1742,6 +1762,11 @@ const clownking = (): Brain => {
     ],
     onSmacked: (f, a) => {
       hitWindup(f, a, 1);
+      // found him: the decoys give up
+      if (trio.length > 1 && !shuffling && !f.brain.decoy && trio.includes(f)) {
+        a.quip(f.x, f.cy - 160, 'FOUND ME!', '#b06bff', 42);
+        solved(f, a);
+      }
       return false;
     },
     update: (f, dt, a) => {
@@ -1757,21 +1782,13 @@ const clownking = (): Brain => {
         });
       }
       trio = trio.filter((o) => o.alive);
-      if (trio.length && !trio.some((o) => o !== f)) {
-        // all decoys popped: the King is free to roam again, back to full size
-        f.laneX = null;
-        f.hoverY = null;
-        f.setSize(1);
-        a.sc.time.delayedCall(300, () => {
-          f.brain.baseSX = f.root.scaleX;
-          f.brain.baseSY = f.root.scaleY;
-        });
-        trio = [];
-      }
+      // all decoys popped: the shuffle is solved
+      if (trio.length && !trio.some((o) => o !== f)) solved(f, a);
       // each shoe keeps to its own lane, aiming at the pizza under it
       if (trio.length) assign(a);
-      // due every 9 s; it waits for the King to be hovering, never yanking him out of a stomp
-      if (f.phase >= 2) decoys.t -= dt;
+      // the next shuffle counts down only once this one is solved; it waits for the King to be hovering, never
+      // yanking him out of a stomp
+      if (f.phase >= 2 && !trio.length) decoys.t -= dt;
       if (f.phase >= 2 && decoys.t <= 0 && f.state === 'hover') {
         decoys.t = decoys.every;
         shuffle(f, a);
