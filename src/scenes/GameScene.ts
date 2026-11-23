@@ -4607,6 +4607,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       leaveNote,
       leave: canLeave ? () => this.leaveRun() : null,
       resume: () => this.resume(),
+      toppings: () => ui.yourToppings(this.yourToppings(), this.run.wave),
+      toppingCount: this.yourToppings().filter((y) => y.back === null).length,
       settings: () => {
         if (this.pauseEl) ui.close(this.pauseEl);
         this.pauseEl = null;
@@ -4625,8 +4627,6 @@ export class GameScene extends Phaser.Scene implements Arena {
       },
       backLabel: this.actEl && !this.shop ? 'BACK' : undefined,
       act: actName(actOf(Math.max(1, this.run.wave))),
-      owned: this.run.owned,
-      armed: this.run.armed,
       wave: this.run.wave,
       score: this.run.score,
     });

@@ -1407,25 +1407,9 @@ class UI {
   }
 
   // ——— Pause ———
-  pause(o: { resume: () => void; settings: () => void; quit: () => void; leave: (() => void) | null; leaveNote: string; inShop?: boolean; backLabel?: string; act?: string; owned: Record<string, number>; armed?: string[]; wave: number; score: number }): HTMLElement {
-    // your toppings live here rather than on the HUD, where they piled up over the pizzas
-    const entries = Object.entries(o.owned).filter(([id]) => UPGRADE_BY_ID[id]);
-    const list = h(
-      'div',
-      { class: 'pause-tops' },
-      ...entries.map(([id, lvl]) => {
-        const u = UPGRADE_BY_ID[id];
-        const armed = o.armed?.includes(id);
-        return h(
-          'div',
-          { class: 'ptop', style: `--rc:${RARITY_COLOR[u.rarity]}` },
-          h('div', { class: 'ic' }, u.icon),
-          h('div', { class: 'tx' }, h('b', {}, u.name, lvl > 1 ? h('span', { class: 'lv' }, `×${lvl}`) : null, armed ? h('span', { class: 'armed' }, 'READY') : null), h('span', {}, u.desc(1), u.downside ? h('em', { class: 'down' }, ` ▼ ${u.downside}`) : null)),
-        );
-      }),
-    );
-    if (!entries.length) list.append(h('span', { class: 'hint' }, 'No toppings yet. Clear a wave to buy some!'));
-    const tops = h('div', { class: 'pause-sec' }, h('div', { class: 'section-title' }, `YOUR TOPPINGS · ${entries.length}`), list);
+  pause(o: { resume: () => void; settings: () => void; quit: () => void; leave: (() => void) | null; leaveNote: string; inShop?: boolean; backLabel?: string; act?: string; toppings: () => void; toppingCount: number; wave: number; score: number }): HTMLElement {
+    // your toppings open the same window as the shop's (the full list sat here and made the menu long)
+    const tops = btn(`YOUR TOPPINGS · ${o.toppingCount}`, 'yellow', o.toppings, { title: 'Every topping you have, its level, and when used ones come back' });
     let confirmQuit = false;
     const quit = btn('QUIT RUN', 'cream', () => {
       if (!confirmQuit) {
@@ -1441,8 +1425,7 @@ class UI {
       { class: 'panel modal' },
       h('div', { class: 'title' }, 'PAUSED'),
       h('div', { class: 'subtitle' }, `Wave ${o.wave}${o.act ? ` · ${o.act}` : ''} · ${fmt(o.score)} points`),
-      tops,
-      h('div', { class: 'row' }, btn(o.backLabel ?? (o.inShop ? 'BACK TO SHOP' : 'RESUME'), 'green big', o.resume, { 'data-pad': 'menu', 'data-pad-default': '' }), btn('SETTINGS', 'yellow', o.settings)),
+      h('div', { class: 'row' }, btn(o.backLabel ?? (o.inShop ? 'BACK TO SHOP' : 'RESUME'), 'green big', o.resume, { 'data-pad': 'menu', 'data-pad-default': '' }), btn('SETTINGS', 'yellow', o.settings), tops),
       // leave keeps the run saved (Resume on the title screen); quit ends it
       h('div', { class: 'row' }, o.leave ? btn('SAVE &amp; MENU', 'cream', o.leave) : null, quit),
       h('div', { class: 'hint pause-note' }, o.leaveNote),
