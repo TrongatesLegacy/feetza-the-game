@@ -356,6 +356,8 @@ const titanking = (): Brain => {
     letThrough = false;
     if (f.alive && Number(f.brain.transformT ?? 0) <= 0) f.shielded = was;
   };
+  /** His forcefield is up (the shield part of TITAN UNCHAINED): only a pierced shield lets damage through. */
+  const domeUp = () => p3?.part === 'B' && p3.shield;
   const bigQuip = (a: Arena, f: Foot, msg: string, color = '#ffd27a', size = 40) => a.quip(f.x, Math.max(SAFE_TOP + 40, f.cy - 190), msg, color, size);
   const scene = (a: Arena) => a as unknown as { backdrop?: { quake?(px: number, kick?: number): void } };
   const quake = (a: Arena, px: number, kick = 0) => scene(a).backdrop?.quake?.(px, kick);
@@ -396,7 +398,9 @@ const titanking = (): Brain => {
         debris(a, x, y, 'shard', 8, { scale: 0.7, tints: [0xdff0ff, 0xffd27a] });
         if (!f.alive) return;
         f.stun(h.stun(1.8));
-        hurt(f, a, 0.04);
+        // (behind his forcefield he's only stunned: no damage gets through the dome)
+        if (domeUp()) a.quip(f.x, Math.max(SAFE_TOP + 40, f.cy - 140), 'THE SHIELD HOLDS!', '#9ad8ff', 34);
+        else hurt(f, a, 0.04);
         bigQuip(a, f, 'MY TIME!', '#ff8a6a');
       },
       onFail: () => {
@@ -629,7 +633,8 @@ const titanking = (): Brain => {
         b.end(true);
         if (!f.alive) return;
         f.stun(heat(a).stun(2));
-        hurt(f, a, 0.05);
+        if (domeUp()) a.quip(f.x, Math.max(SAFE_TOP + 40, f.cy - 140), 'THE SHIELD HOLDS!', '#9ad8ff', 34);
+        else hurt(f, a, 0.05);
         bigQuip(a, f, 'PTOO!');
       },
     });
@@ -1333,6 +1338,16 @@ const titanking = (): Brain => {
       const e = pos(st.th);
       run.lay(anc, e, 0, phase === 'hold' ? 1.5 : 0);
       bl.setPosition(e[0], e[1]).setRotation(-st.th);
+      // over a hero's shield wall raised after it (King Leonidas's Hold the Line hid the blade)
+      const fx = a.fxLayer;
+      let top = -1;
+      fx.list.forEach((o, i) => {
+        if (o instanceof Phaser.GameObjects.Image && o.texture.key === 'p_lx_shield') top = i;
+      });
+      if (top > fx.getIndex(bl)) {
+        if (run.box.parentContainer === fx) fx.moveTo(run.box, top);
+        fx.moveTo(bl, top);
+      }
     };
     let tEv = 0;
     const ev = a.sc.time.addEvent({
