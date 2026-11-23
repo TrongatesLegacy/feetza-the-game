@@ -104,7 +104,12 @@ export function installDevTools(game: Phaser.Game): void {
     },
     async boot(): Promise<void> {
       const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-      for (let i = 0; i < 400 && !document.querySelector('.splash-hint'); i++) await sleep(150);
+      // already past the splash (the menu or a run is up): nothing to do. It used to wait 60 s for a splash that
+      // was long gone, so every dev page (Stages, Style, Looks) took a minute to open after the first time
+      const up = () => game.scene.isActive('Menu') || game.scene.isActive('Game');
+      if (up()) return;
+      for (let i = 0; i < 400 && !document.querySelector('.splash-hint') && !up(); i++) await sleep(150);
+      if (up()) return;
       document.querySelector('.screen')?.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
       await sleep(800);
     },

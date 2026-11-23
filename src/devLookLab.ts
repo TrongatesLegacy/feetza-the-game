@@ -12,7 +12,11 @@ type Notes = Record<string, string>;
 const LS_KEY = 'feetza.lookLab';
 const URL_ = '/__notes?name=looks';
 
+const PAGE = 12;
+
 const CSS = `
+.ll-pager{display:flex;gap:10px;align-items:center;margin:6px 0 10px}
+.ll-pager button{background:#5a3a28;color:#ffe9c7;border:0;border-radius:8px;padding:5px 12px;font:600 14px Fredoka,system-ui,sans-serif;cursor:pointer}
 .ll-tabs{flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px}
 .ll-tabs button{background:#5a3a28;color:#ffe9c7;border:0;border-radius:8px;padding:5px 11px;font:600 13px Fredoka,system-ui,sans-serif;cursor:pointer}
 .ll-tabs button:hover{background:#7a4a30}.ll-tabs button.on{background:#ff8a1a;color:#2a1810}
@@ -104,6 +108,7 @@ export function installLookLab(): void {
   };
 
   let moving = true;
+  let page = 0;
   // one family at a time (the tabs); remembered between visits
   let tab = '';
   try {
@@ -123,6 +128,11 @@ export function installLookLab(): void {
     const total = fams.reduce((n, f) => n + f[2].length, 0);
     const cur = fams.find((f) => f[0] === tab) ?? fams[0];
     tab = cur[0];
+    // a page of cards at a time (a big family drew every thumbnail at once and froze the page for seconds)
+    const pages = Math.max(1, Math.ceil(cur[2].length / PAGE));
+    page = Math.min(Math.max(0, page), pages - 1);
+    const shown = cur[2].slice(page * PAGE, page * PAGE + PAGE);
+    const pager = pages > 1 ? `<div class="ll-pager"><button data-pg="-1">◀</button><span>Page ${page + 1} of ${pages}</span><button data-pg="1">▶</button></div>` : '';
     const art = (d: PeelDef) =>
       moving && hasMoving(d.id)
         ? `<div class="ll-stage" data-move="${esc(d.id)}"><canvas></canvas><canvas></canvas></div>`
@@ -134,13 +144,20 @@ export function installLookLab(): void {
     wrap.innerHTML = `<div class="ll-head"><h2>✨ Peel looks</h2><span>${total} animated peels</span><span class="sp"></span><span class="ll-status"></span><button class="ll-btn" data-mode>${moving ? '⏸ Hold still' : '↔ Move them'}</button><button class="ll-btn alt" data-x>✕ Close</button>
       <div class="ll-tabs">${fams.map(([t, , list]) => `<button class="${t === tab ? 'on' : ''}" data-tab="${esc(t)}">${esc(t)} <small>${list.length}</small></button>`).join('')}</div></div>
       <div class="ll-body"><div class="ll-overall"><h3>Overall notes</h3><textarea data-note="__overall" placeholder="Anything across all the looks…">${esc(notes.__overall ?? '')}</textarea></div>
-      <h3>${esc(cur[0])}<small>${cur[2].length} · ${esc(cur[1])}</small></h3><div class="ll-grid">${cur[2].map(card).join('')}</div></div>`;
+      <h3>${esc(cur[0])}<small>${cur[2].length} · ${esc(cur[1])}</small></h3>${pager}<div class="ll-grid">${shown.map(card).join('')}</div>${pager}</div>`;
     document.body.appendChild(wrap);
     wrap.querySelector('[data-x]')!.addEventListener('click', close);
+    wrap.querySelectorAll<HTMLElement>('[data-pg]').forEach((b) =>
+      b.addEventListener('click', () => {
+        page += Number(b.dataset.pg);
+        void open().then(() => document.querySelector('.ll-wrap')?.scrollTo(0, 0));
+      }),
+    );
     wrap.querySelector('.ll-tabs')!.addEventListener('click', (e) => {
       const t = (e.target as HTMLElement).closest('button')?.dataset.tab;
       if (!t || t === tab) return;
       tab = t;
+      page = 0;
       try {
         localStorage.setItem(LS_KEY + '.tab', t);
       } catch {

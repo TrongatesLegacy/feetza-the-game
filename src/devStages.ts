@@ -1,3 +1,4 @@
+// (One backdrop at a time now: picked from a list, with wave buttons; everything on screen used to run at once.)
 // Dev-only before/after page for the locations redrawn with the location kit (src/art/scene): every location and
 // arena in the game, the redrawn ones old next to new. Each card is the real BackdropView (painted backdrop, glows,
 // ambient particles and live layer) with a sample table of pizzas and a couple of feet over it, so a place is judged
@@ -29,7 +30,7 @@ const CSS = `
 .sg-head h2{margin:0;font-size:20px}.sg-head .sp{flex:1}
 .sg-btn{background:#d9442b;color:#fff;border:0;border-radius:9px;padding:7px 12px;font:600 14px Fredoka,system-ui,sans-serif;cursor:pointer}
 .sg-btn.alt{background:#5a3a28}.sg-btn.on{background:#ff8a1a;color:#1d1422}
-.sg-jump{display:flex;gap:6px;flex-wrap:wrap;padding:8px 16px;background:#3a2418;position:relative;z-index:3}
+.sg-jump{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:8px 16px;background:#3a2418;position:relative;z-index:3}
 .sg-jump button{background:#5a3a28;color:#ffe9c7;border:0;border-radius:8px;padding:5px 10px;font:600 13px Fredoka,system-ui,sans-serif;cursor:pointer}
 .sg-scroll{flex:1;overflow:auto;position:relative}
 .sg-canvas{position:absolute;left:0;pointer-events:none;z-index:2}
@@ -39,7 +40,10 @@ const CSS = `
 .sg-row{margin:0 0 22px}
 .sg-row h4{margin:6px 0;font-size:16px;display:flex;gap:10px;align-items:baseline}
 .sg-row h4 small{opacity:.65;font-weight:400}
-.sg-pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.sg-pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}.sg-pair.one{grid-template-columns:minmax(0,1100px)}
+.sg-jump select{background:#5a3a28;color:#ffe9c7;border:0;border-radius:8px;padding:5px 8px;font:600 13px Fredoka,system-ui,sans-serif;max-width:340px}
+.sg-jump .sp{flex:1}.sg-jump button.on{background:#ff8a1a;color:#1d1422}
+.sg-body h4{margin:6px 0 10px;font-size:18px}.sg-body h4 small{opacity:.65;font-weight:400;font-size:13px}
 .sg-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 @media (max-width:900px){.sg-pair,.sg-grid{grid-template-columns:1fr}}
 .sg-card{position:relative;aspect-ratio:16/9;border-radius:10px;background:#000;overflow:hidden}
@@ -206,6 +210,21 @@ function waveRange(id: BackdropId): string {
 
 let game: Phaser.Game | null = null;
 
+const lsGet = (k: string): string | null => {
+  try {
+    return localStorage.getItem(k);
+  } catch {
+    return null;
+  }
+};
+const lsSet = (k: string, v: string): void => {
+  try {
+    localStorage.setItem(k, v);
+  } catch {
+    /* private mode */
+  }
+};
+
 export function installStageSheet(): void {
   const style = document.createElement('style');
   style.textContent = CSS;
@@ -225,18 +244,22 @@ export function installStageSheet(): void {
     const all = ordered().filter((id) => !only || only.includes(id));
     const redrawn = all.filter((id) => isRedrawn(id));
     const rest = all.filter((id) => !isRedrawn(id));
+    // one backdrop at a time (old next to new when it's been redrawn): picked from the list, remembered
+    let cur: BackdropId = (q.get('only')?.split(',')[0] as BackdropId) || (lsGet('feetza.stageId') as BackdropId) || redrawn[0] || all[0];
+    if (!all.includes(cur)) cur = redrawn[0] ?? all[0];
+    const opt = (id: BackdropId) => `<option value="${id}">${BACKDROPS[id].name} (${id})</option>`;
     const wrap = document.createElement('div');
     wrap.className = 'sg-wrap';
-    wrap.innerHTML = `<div class="sg-head"><h2>🏞 Stages: before and after</h2><span>${all.length} backdrops · ${redrawn.length} redrawn with the location kit</span><span class="sp"></span><button class="sg-btn alt" data-still>🖼 Still</button><button class="sg-btn alt" data-x>✕ Close</button></div>
-      <div class="sg-jump"><button data-j="redrawn">Redrawn</button><button data-j="rest">Every other place</button></div>
-      <div class="sg-scroll"><div class="sg-body">
-        <p>Every location and arena. The redrawn ones show the old art on the left and the new on the right, both alive (the real backdrop, its glows, ambient particles and live layer), cycling through the stage's 5 waves; the light and weather change across a stage. "Still" shows them with Settings → Graphics → Animated stages off. Each card has a sample table of pizzas and two feet over it. Only the cards on screen run.</p>
-        <h3 class="sg-sec" data-sec="redrawn">Redrawn with the location kit</h3><div data-redrawn></div>
-        <h3 class="sg-sec" data-sec="rest">Every other place (unchanged)</h3><div class="sg-grid" data-rest></div>
-      <canvas class="sg-canvas"></canvas></div></div>`;
+    wrap.innerHTML = `<div class="sg-head"><h2>🏞 Stages</h2><span>${all.length} backdrops · ${redrawn.length} redrawn</span><span class="sp"></span><button class="sg-btn alt" data-still>🖼 Still</button><button class="sg-btn alt" data-x>✕ Close</button></div>
+      <div class="sg-jump"><button data-prev>◀</button><select data-pick><optgroup label="Redrawn">${redrawn.map(opt).join('')}</optgroup><optgroup label="Not redrawn yet">${rest.map(opt).join('')}</optgroup></select><button data-next>▶</button>
+        <span class="sp"></span><span data-waves>Wave: ${[1, 2, 3, 4, 5].map((w) => `<button data-w="${w}">${w}</button>`).join('')}<button data-w="0">↻ Cycle</button></span>
+        <span>Show: <button data-v="both">Old + new</button><button data-v="new">New only</button></span></div>
+      <div class="sg-scroll"><div class="sg-body"><h4 data-title></h4><div class="sg-pair" data-pair></div><canvas class="sg-canvas"></canvas></div></div>`;
     document.body.appendChild(wrap);
     wrap.querySelector('[data-x]')!.addEventListener('click', close);
     const scroller = wrap.querySelector('.sg-scroll') as HTMLElement;
+    const pick = wrap.querySelector('[data-pick]') as HTMLSelectElement;
+    let view: 'both' | 'new' = lsGet('feetza.stageView') === 'new' ? 'new' : 'both';
     const cards: Card[] = [];
     const card = (id: BackdropId, variant: 'legacy' | undefined, label: string, cls: string, cycle: boolean): HTMLElement => {
       const el = document.createElement('div');
@@ -246,23 +269,6 @@ export function installStageSheet(): void {
       cards.push({ id, variant, cycle, el, wv: el.querySelector('.wv') as HTMLElement, x: 0, y: 0, w: 0, h: 0 });
       return el;
     };
-    for (const id of redrawn) {
-      const row = document.createElement('div');
-      row.className = 'sg-row';
-      row.innerHTML = `<h4></h4><div class="sg-pair"></div>`;
-      row.querySelector('h4')!.innerHTML = `${BACKDROPS[id].name} <small>${waveRange(id)}</small>`;
-      row.querySelector('.sg-pair')!.append(card(id, 'legacy', 'old', '', true), card(id, undefined, 'new · location kit', 'new', true));
-      wrap.querySelector('[data-redrawn]')!.append(row);
-    }
-    for (const id of rest) {
-      const d = document.createElement('div');
-      d.append(card(id, undefined, BACKDROPS[id].name, '', false));
-      const cap = document.createElement('div');
-      cap.className = 'sg-cap';
-      cap.textContent = `${id} · ${waveRange(id)}`;
-      d.append(cap);
-      wrap.querySelector('[data-rest]')!.append(d);
-    }
     const canvas = wrap.querySelector('.sg-canvas') as HTMLCanvasElement;
     const layout = () => {
       const sr = scroller.getBoundingClientRect();
@@ -274,36 +280,82 @@ export function installStageSheet(): void {
         c.h = r.height;
       }
     };
-    layout();
+    const scene = () => game?.scene.getScene('StageGallery') as Gallery | undefined;
+    /** Show the picked backdrop: drop the old cards (textures and all), make the new ones. */
+    const show = () => {
+      const sc = scene();
+      if (sc) for (const c of cards) sc.drop(c);
+      cards.length = 0;
+      pick.value = cur;
+      lsSet('feetza.stageId', cur);
+      const re = isRedrawn(cur);
+      wrap.querySelector('[data-title]')!.innerHTML = `${BACKDROPS[cur].name} <small>${waveRange(cur)}</small>`;
+      const pair = wrap.querySelector('[data-pair]')!;
+      pair.replaceChildren();
+      const both = re && view === 'both';
+      pair.classList.toggle('one', !both);
+      if (both) pair.append(card(cur, 'legacy', 'old', '', true));
+      pair.append(card(cur, undefined, re ? 'new · location kit' : 'not redrawn yet', re ? 'new' : '', true));
+      for (const b of wrap.querySelectorAll<HTMLElement>('[data-v]')) b.classList.toggle('on', b.dataset.v === view);
+      layout();
+      if (sc) sc.cards = cards;
+    };
+    const syncWaves = () => {
+      const w = scene()?.holdWave ?? 0;
+      for (const b of wrap.querySelectorAll<HTMLElement>('[data-w]')) b.classList.toggle('on', Number(b.dataset.w) === w);
+    };
+    show();
     const vw = scroller.clientWidth;
     const vh = scroller.clientHeight;
     canvas.style.width = `${vw}px`;
     canvas.style.height = `${vh}px`;
     game = new Phaser.Game({ type: Phaser.WEBGL, canvas, width: vw * dpr(), height: vh * dpr(), transparent: true, scene: [], audio: { noAudio: true }, banner: false, scale: { mode: Phaser.Scale.NONE, zoom: 1 / dpr() } });
     game.scene.add('StageGallery', Gallery, true, { cards, scroller });
-    const rebuild = () => {
-      layout();
-      const sc = game?.scene.getScene('StageGallery') as Gallery | undefined;
-      if (sc) for (const c of cards) sc.drop(c);
-    };
+    syncWaves();
     onResize = () => {
       game?.scale.resize(scroller.clientWidth * dpr(), scroller.clientHeight * dpr());
       canvas.style.width = `${scroller.clientWidth}px`;
       canvas.style.height = `${scroller.clientHeight}px`;
-      rebuild();
+      show();
     };
     addEventListener('resize', onResize);
-    setTimeout(rebuild, 1200);
-    wrap.querySelector('.sg-jump')!.addEventListener('click', (ev) => {
-      const j = (ev.target as HTMLElement).dataset.j;
-      const el = j && (wrap.querySelector(`[data-sec="${j}"]`) as HTMLElement | null);
-      if (el) scroller.scrollTo({ top: el.offsetTop - 8, behavior: 'smooth' });
+    setTimeout(show, 600);
+    const step = (d: number) => {
+      const list = [...redrawn, ...rest];
+      cur = list[(list.indexOf(cur) + d + list.length) % list.length];
+      show();
+    };
+    pick.addEventListener('change', () => {
+      cur = pick.value as BackdropId;
+      show();
     });
+    wrap.querySelector('[data-prev]')!.addEventListener('click', () => step(-1));
+    wrap.querySelector('[data-next]')!.addEventListener('click', () => step(1));
+    wrap.querySelector('[data-waves]')!.addEventListener('click', (ev) => {
+      const b = (ev.target as HTMLElement).closest('button');
+      const sc = scene();
+      if (!b || !sc) return;
+      sc.holdWave = Number(b.dataset.w);
+      for (const c of cards)
+        if (c.live && sc.holdWave) {
+          c.live.wave = sc.holdWave;
+          c.live.view.setWave(sc.holdWave);
+          c.wv.textContent = `stage wave ${sc.holdWave} of ${WAVES_PER_STAGE}`;
+        }
+      syncWaves();
+    });
+    wrap.querySelectorAll<HTMLElement>('[data-v]').forEach((b) =>
+      b.addEventListener('click', () => {
+        view = b.dataset.v === 'new' ? 'new' : 'both';
+        lsSet('feetza.stageView', view);
+        show();
+      }),
+    );
     // still: what Animated stages off shows (no live layers; the painted still)
     wrap.querySelector('[data-still]')!.addEventListener('click', (e) => {
       const on = (e.target as HTMLElement).classList.toggle('on');
       overrideBackdropAnim(on ? false : null);
-      rebuild();
+      show();
     });
     if (q.has('still')) (wrap.querySelector('[data-still]') as HTMLElement).click();
     Object.assign(window, { __stageGame: game });

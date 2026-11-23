@@ -89,7 +89,8 @@ export function liveFootOf(peelId: string): FootType | null {
   if (!d || !(d.group === 'foot' || d.group === 'boss' || d.group === 'shinyFoot')) return null;
   const fid = d.foot ?? peelId.slice(peelId.indexOf(':') + 1);
   const type = FOOT_BY_ID[fid];
-  if (!type || !styleFor(fid) || !liveDefOf(fid) || !footMeta[fid]) return null;
+  // (no footMeta read here: with art drawn lazily that would draw the foot just to ask; 3 s over every peel)
+  if (!type || !styleFor(fid) || !liveDefOf(fid)) return null;
   return type;
 }
 

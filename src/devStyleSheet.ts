@@ -559,7 +559,9 @@ const SHEET_CSS = `
 .ss-canvas{position:absolute;left:0;pointer-events:none;z-index:2}
 .ss-jump{display:flex;gap:6px;flex-wrap:wrap;padding:8px 16px;background:#3a2418;position:relative;z-index:3}
 .ss-jump button{background:#5a3a28;color:#ffe9c7;border:0;border-radius:8px;padding:5px 10px;font:600 13px Fredoka,system-ui,sans-serif;cursor:pointer}
-.ss-jump button:hover{background:#7a4a30}.ss-jump button.on{background:#ff8a1a;color:#2a1810}
+.ss-jump button:hover{background:#7a4a30}
+.ss-pager{display:flex;gap:10px;align-items:center;margin:4px 0 10px}.ss-pager:empty{display:none}
+.ss-pager button{background:#5a3a28;color:#ffe9c7;border:0;border-radius:8px;padding:5px 12px;font:600 14px Fredoka,system-ui,sans-serif;cursor:pointer}.ss-jump button.on{background:#ff8a1a;color:#2a1810}
 .ss-act{margin:26px 0 4px;font-size:24px;border-bottom:3px solid #2a181033;padding-bottom:4px}
 .ss-grp{margin:12px 0 8px;font-size:16px;opacity:.8}
 .ss-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
@@ -633,7 +635,10 @@ export function installStyleSheet(): void {
       h.className = 'ss-act';
       h.dataset.sec = String(a);
       h.textContent = actLabel(a);
-      actSec.append(h);
+      const pager = document.createElement('div');
+      pager.className = 'ss-pager';
+      actSec.append(h, pager);
+      let n = 0;
       for (const g of gs.filter((x) => x.act === a)) {
         const sec = document.createElement('div');
         sec.className = g.bossy ? 'ss-bosses' : 'ss-feet';
@@ -650,6 +655,8 @@ export function installStyleSheet(): void {
           card.innerHTML = `<div class="nm"></div>${styled ? '' : IMMORTAL_LIVE[id] ? '<span class="tg un" style="right:auto;left:8px">own live art</span>' : '<span class="tg un">unchanged</span>'}${t.boss ? '<span class="tg">boss</span>' : t.mini ? '<span class="tg">mini-boss</span>' : ''}`;
           card.querySelector('.nm')!.textContent = t.name;
           const cell = document.createElement('div');
+          cell.className = 'ss-cell';
+          cell.dataset.i = String(n++);
           const ent: Entry = { id, type: t, styled, bossy: g.bossy, card, ctl: newCtl(), x: 0, y: 0, w: 0, h: 0 };
           cell.append(card, controls(ent, () => game?.scene.getScene('StyleShowcase') as Showcase | undefined));
           grid.append(cell);
@@ -725,8 +732,33 @@ export function installStyleSheet(): void {
     // fonts and thumbnails can shift the layout after the first pass
     setTimeout(relayout, 1200);
     // tabs: one act (or the rules, or the peels) at a time; only its cards are made
+    // a page of cards at a time within the tab (a whole act of live feet at once was slow to open and to scroll)
+    let page = 0;
+    const PER = 8;
+    const paginate = (t: string) => {
+      const sec = wrap.querySelector<HTMLElement>(`.ss-sec[data-tab="${t}"]`);
+      const cells = sec ? [...sec.querySelectorAll<HTMLElement>('.ss-cell')] : [];
+      const pages = Math.max(1, Math.ceil(cells.length / PER));
+      page = Math.min(Math.max(0, page), pages - 1);
+      for (const c of cells) c.hidden = Math.floor(Number(c.dataset.i) / PER) !== page;
+      // a group with no card on this page hides its heading too
+      sec?.querySelectorAll<HTMLElement>('.ss-feet,.ss-bosses').forEach((g) => (g.hidden = ![...g.querySelectorAll<HTMLElement>('.ss-cell')].some((c) => !c.hidden)));
+      const pager = sec?.querySelector<HTMLElement>('.ss-pager');
+      if (pager) pager.innerHTML = pages > 1 ? `<button data-pg="-1">◀</button><span>Page ${page + 1} of ${pages} · ${cells.length} feet</span><button data-pg="1">▶</button>` : '';
+    };
+    wrap.addEventListener('click', (ev) => {
+      const b = (ev.target as HTMLElement).closest<HTMLElement>('[data-pg]');
+      if (!b) return;
+      page += Number(b.dataset.pg);
+      const t = wrap.querySelector<HTMLElement>('.ss-sec:not([hidden])')?.dataset.tab;
+      if (t) paginate(t);
+      scroller.scrollTop = 0;
+      relayout();
+    });
     const showTab = (t: string) => {
       for (const el of wrap.querySelectorAll<HTMLElement>('.ss-sec')) el.hidden = el.dataset.tab !== t;
+      page = 0;
+      paginate(t);
       for (const b of wrap.querySelectorAll<HTMLElement>('.ss-jump button')) b.classList.toggle('on', b.dataset.act === t);
       scroller.scrollTop = 0;
       try {
