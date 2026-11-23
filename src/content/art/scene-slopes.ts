@@ -114,7 +114,7 @@ const crestY = (x: number): number => 452 + wave1(x, 3) * 6 + Math.sin(x / 640) 
 
 // ——— the far scene: sky and range, in three lights ———
 
-interface View {
+export interface View {
   sky: [number, string][];
   air: Air;
   lit: string;
@@ -157,7 +157,7 @@ const GREY: View = {
   far: '#a4acb8',
   grey: true,
 };
-const NIGHT: View = {
+export const NIGHT: View = {
   sky: [[0, '#040816'], [0.45, '#0c1634'], [0.8, '#1c2a52'], [1, '#2a3a64']],
   air: { color: '#26365e', far: 0.7 },
   lit: '#c8d6f4',
@@ -168,7 +168,7 @@ const NIGHT: View = {
 };
 
 /** A summit: its x, its height above the range's foot, its half-widths (left, right) and how concave its flanks are. */
-type Summit = [number, number, number, number, number];
+export type Summit = [number, number, number, number, number];
 const MAIN: Summit[] = [
   [292, 250, 300, 210, 1.5],
   [470, 150, 80, 120, 0.8],
@@ -195,7 +195,7 @@ const bumpOf = (x: number, [cx, h, wl, wr, p]: Summit): number => {
 /** Ridged noise: sharp crests, rounded troughs (towers and notches along a ridge). */
 const ridged = (x: number, seed: number): number =>
   (1 - Math.abs(Math.sin(x * 0.021 + seed))) * 0.5 + (1 - Math.abs(Math.sin(x * 0.053 + seed * 1.9))) * 0.3 + (1 - Math.abs(Math.sin(x * 0.13 + seed * 2.7))) * 0.2;
-const topOf = (list: Summit[], foot: number, floor: number, seed: number) => (x: number): number => {
+export const topOf = (list: Summit[], foot: number, floor: number, seed: number) => (x: number): number => {
   let h = floor + wave1(x, seed) * 14;
   let tallest = 0;
   for (const s of list) {
@@ -214,7 +214,7 @@ const mainTop = (x: number): number => mainTop0(x) - Math.exp(-(((x - 1080) / 20
 const farTop = farTop0;
 
 /** The slope's facing at x along a skyline (−1 rising to the right, i.e. facing the light on the left … +1). */
-const slopeAt = (top: (x: number) => number, x: number, d = 6): number => (top(x + d) - top(x - d)) / (2 * d);
+export const slopeAt = (top: (x: number) => number, x: number, d = 6): number => (top(x + d) - top(x - d)) / (2 * d);
 
 /**
  * A massif against the sky: snow on every face, the faces turned to the light on the left bright and warm, those
@@ -222,7 +222,7 @@ const slopeAt = (top: (x: number) => number, x: number, d = 6): number => (top(x
  * the ridge (lit on their left flank, a shadowed couloir on their right) and streaks of rock where the snow can't
  * hold, thick up high, thinning out on the gentler slopes below; the ridge's snow catching the light.
  */
-function massif(ctx: Ctx, r: R, top: (x: number) => number, foot: number, list: Summit[], v: View, depth: number, detail: number): void {
+export function massif(ctx: Ctx, r: R, top: (x: number) => number, foot: number, list: Summit[], v: View, depth: number, detail: number): void {
   const air = v.air;
   const ridge = ridgePath(0, W, foot + 8, top, 3);
   const litC = airMix(v.lit, depth, air);

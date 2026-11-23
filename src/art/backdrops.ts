@@ -4863,7 +4863,9 @@ const REDRAWN = new Set<BackdropId>(['trattoria', 'beach', 'space',
   // scene-rinkqueen.ts
   'rinkqueen',
   // the Ski Slopes (Stage 11), redrawn with the location kit and painted frame animation: scene-slopes.ts
-  'slopes']);
+  'slopes',
+  // the Yeti Ski Boot's arena (the Summit), redrawn with the location kit and painted frame animation: scene-yeti.ts
+  'yeti']);
 
 // redrawn scenes keep their old info for the before/after page (their old glows and particles with their old art)
 const LEGACY_INFO: Partial<Record<BackdropId, BackdropInfo>> = {};

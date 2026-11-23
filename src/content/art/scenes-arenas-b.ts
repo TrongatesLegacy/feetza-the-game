@@ -1,9 +1,9 @@
-// Feetza 2.0 boss arenas, part 2: Shipwreck, Skate Bowl, Summit. The Shipwreck and the Skate Bowl have been redrawn
-// with the location kit in scene-kraken.ts and scene-rinkqueen.ts; their old art here stays for the before/after page
+// Feetza 2.0 boss arenas, part 2: Shipwreck, Skate Bowl, Summit. All three have been redrawn with the location kit
+// (scene-kraken.ts, scene-rinkqueen.ts and scene-yeti.ts); their old art here stays for the before/after page
 // (?dev&stages).
 
 import type { GlowSpot } from '../../art/backdrops';
-import { registerLegacyScene, registerScene } from '../../art/registry';
+import { registerLegacyScene } from '../../art/registry';
 import {
   type Ctx,
   type R,
@@ -904,7 +904,8 @@ registerLegacyScene('rinkqueen', {
   draw: drawSkateBowl,
 });
 
-registerScene('yeti', {
+// (redrawn with the location kit in scene-yeti.ts; this stays for the before/after page, ?dev&stages)
+registerLegacyScene('yeti', {
   info: {
     name: 'Summit',
     subtitle: 'Boss: THE YETI SKI BOOT',
