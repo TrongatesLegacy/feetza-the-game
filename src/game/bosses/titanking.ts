@@ -469,8 +469,14 @@ const titanking = (): Brain => {
     // (the fx layer isn't graded by the scene's light like the head is: warm the front pieces to match)
     jaw.setTint(0xf0d8c0);
     teeth.setTint(0xf0d8c0);
+    // the head above the mouth again, in front too: over anything a hero raises in front of the pizzas (King
+    // Leonidas's shield wall hid it, and the head is the thing to hit). Below the mouth, the pizza stays in front.
+    const crown = a.sc.add.image(p.x, H + 60, 'tk_head').setOrigin(0.5, 0).setScale(sc);
+    crown.setCrop(0, 0, T.w * TF.RES, (T.mouthY - 16) * TF.RES);
+    crown.setTint(0xf0d8c0);
     a.fxLayer.addAt(jaw, 0);
     a.fxLayer.addAt(teeth, 1);
+    a.fxLayer.addAt(crown, 2);
     const b: Head = { p, head, jaw, mouthY, open: 0, live: true, end: () => {} };
     bite = b;
     const hits = HEAD_HITS[h.rank];
@@ -483,6 +489,14 @@ const titanking = (): Brain => {
     const placeJaw = () => {
       jaw.setPosition(head.x, head.y + T.mouthY * T.px - 8 + b.open).setRotation(head.rotation);
       teeth.setPosition(head.x, head.y).setRotation(head.rotation);
+      crown.setPosition(head.x, head.y).setRotation(head.rotation).setAlpha(head.alpha);
+      // keep the head's front pieces over a shield wall raised after it (a hero's props come later in the layer)
+      const fx = a.fxLayer;
+      let top = -1;
+      fx.list.forEach((o, i) => {
+        if (o instanceof Phaser.GameObjects.Image && o.texture.key === 'p_lx_shield') top = i;
+      });
+      if (crown.parentContainer === fx && top > fx.getIndex(crown)) for (const o of [jaw, teeth, crown]) fx.moveTo(o, top);
     };
     const follow = a.sc.time.addEvent({ delay: 16, loop: true, callback: placeJaw });
     const liftBy = Math.max(0, p.surfaceY - (mouthY + 34));
@@ -511,7 +525,7 @@ const titanking = (): Brain => {
       if (!p.dead) p.setLift(0, 380);
       // it falls back the way it came (behind the pizza now): a recoil if beaten, a satisfied sink if not
       a.sc.tweens.killTweensOf(head);
-      a.underLayer.add([teeth, jaw]);
+      a.underLayer.add([teeth, jaw, crown]);
       a.sc.tweens.add({ targets: b, open: freed ? 70 : 0, duration: freed ? 120 : 200 });
       if (freed) a.sc.tweens.add({ targets: head, angle: (p.x < W / 2 ? -1 : 1) * 9, y: head.y - 26, duration: 180, ease: 'Quad.Out' });
       a.sc.tweens.add({
@@ -527,6 +541,7 @@ const titanking = (): Brain => {
           head.destroy();
           jaw.destroy();
           teeth.destroy();
+          crown.destroy();
         },
       });
     };
