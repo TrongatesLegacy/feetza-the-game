@@ -13,7 +13,7 @@ import type { Foot } from '../Foot';
 import type { Pizza } from '../Pizza';
 import { LOCATION_MUSIC, bossMusic, locationFor } from '../Run';
 import { Bin, laneFall } from './act2b';
-import { type Brain, type Prop, Every, heat, hitProp, mark, rnd, shield, takeLane, throwAtPeel } from './kit';
+import { type Brain, type PhaseCard, type Prop, Every, heat, hitProp, mark, rnd, shield, takeLane, throwAtPeel } from './kit';
 
 // ——— Act helpers ———
 
@@ -235,6 +235,35 @@ const fenrir = (): Brain => {
       'Every smack strains the chain; at 3 breaks it gets loose and pounces lane to lane · smack the fallen links to bind it, then hit it while stunned',
       'Breaks free sooner, races faster and its claws freeze the perk it pounces on · bind it fast',
       'More links fall, each needs more hits · keep the links in sight',
+    ],
+    cards: [
+      {
+        what: 'Each smack strains Gleipnir; at 3 breaks the wolf runs loose',
+        hit: 'Smack the fallen links to bind it, then hit it while stunned',
+        miss: 'Loose, it pounces lane to lane, a slice off each pizza',
+        show: [
+          { key: 'p_chainlink', label: 'Fallen link', hits: (h) => h.hits(1) },
+          { key: '@boss', label: 'Then the wolf' },
+        ],
+      },
+      {
+        what: 'It breaks free sooner and races faster',
+        hit: 'Bind it fast: smack every fallen link',
+        miss: 'Its claws freeze the perk of each pizza it pounces on',
+        show: [
+          { key: 'p_chainlink', label: 'Fallen link', hits: (h) => h.hits(1) },
+          { key: '@boss', label: 'Then the wolf' },
+        ],
+      },
+      {
+        what: 'The Ragnarök howl: it breaks loose and pounces hard',
+        hit: 'Keep the links in sight and bind it again',
+        miss: 'Each pounce takes a slice and freezes that pizza’s perk',
+        show: [
+          { key: 'p_chainlink', label: 'Fallen link', hits: (h) => h.hits(1) },
+          { key: '@boss', label: 'Then the wolf' },
+        ],
+      },
     ],
     upkeep: (f, dt, a) => {
       if (!ready) setup(f, a);
@@ -567,6 +596,37 @@ const thrym = (): Brain => {
       'Hail falls on the pizzas that aren’t frozen · smack each shard as it falls',
       'The ice spreads from pizza to pizza and the walls grow two at a time · smack the ice off and keep the walls down',
     ],
+    cards: [
+      {
+        what: 'His stomp freezes pizzas while he builds an ice fortress',
+        hit: 'Smash the ice blocks before the walls meet',
+        miss: 'Sealed in, he heals and every pizza freezes: smash the keystone',
+        show: [
+          { key: 'p_iceblock', label: 'Ice block', hits: (h) => h.hits(2) },
+          { key: 'p_icecase', label: 'Frozen pizza', hits: (h) => h.hits(2) },
+          { key: 'p_keystone', label: 'Keystone', hits: (h) => h.hits(6) },
+        ],
+      },
+      {
+        what: 'Hail falls on the pizzas that aren’t frozen',
+        hit: 'Smack each hailstone before it lands',
+        miss: 'Hail takes a slice from that pizza',
+        show: [
+          { key: 'p_hail', label: 'Hailstone', hits: 1 },
+          { key: 'p_iceblock', label: 'Ice block', hits: (h) => h.hits(2) },
+        ],
+      },
+      {
+        what: 'The ice spreads and the walls grow two blocks at a time',
+        hit: 'Smack the ice off pizzas and keep the walls down',
+        miss: 'Frozen pizzas lose their perk and can’t be healed',
+        show: [
+          { key: 'p_icecase', label: 'Frozen pizza', hits: (h) => h.hits(2) },
+          { key: 'p_iceblock', label: 'Ice block', hits: (h) => h.hits(2) },
+          { key: 'p_hail', label: 'Hailstone', hits: 1 },
+        ],
+      },
+    ],
     upkeep: (f, dt, a) => {
       if (!ready) {
         ready = true;
@@ -822,6 +882,36 @@ const jormungandr = (): Brain => {
       'A coil wraps a pizza and squeezes a slice off every few seconds · make the head recoil to free it',
       'It spits venom at your peel while it’s up · bat the venom away',
     ],
+    cards: [
+      {
+        what: 'Its head rises from a gap in the coils to bite a pizza',
+        hit: 'Smack the head before it bites, never the coils',
+        miss: 'The bite takes a slice; a coil smack stuns your peel',
+        show: [
+          { key: 'p_serpenthead', label: 'Its head', hits: (h) => [2, 3, 3, 4, 4][h.rank] },
+          { key: 'p_coil', label: 'Coils', watch: true },
+        ],
+      },
+      {
+        what: 'A coil wraps a pizza and squeezes slices off it',
+        hit: 'Make the head recoil to set the pizza free',
+        miss: 'The wrapped pizza loses a slice every few seconds',
+        show: [
+          { key: 'p_serpenthead', label: 'Its head', hits: (h) => [2, 3, 3, 4, 4][h.rank] },
+          { key: 'p_constrict', label: 'Wrapped coil', watch: true },
+        ],
+      },
+      {
+        what: 'It spits venom at your peel while its head is up',
+        hit: 'Bat the venom back at it, then smack the head',
+        miss: 'Venom slows your peel for a moment',
+        show: [
+          { key: 'p_venom', label: 'Venom', hits: 1 },
+          { key: 'p_serpenthead', label: 'Its head', hits: (h) => [2, 3, 3, 4, 4][h.rank] },
+          { key: 'p_coil', label: 'Coils', watch: true },
+        ],
+      },
+    ],
     upkeep: (f, dt, a) => {
       if (!ready) setup(f, a);
       place(f);
@@ -999,6 +1089,48 @@ const SURTR_INFO: Record<string, string> = {
   'THE BRIDGE BURNS': 'Fire runs along the bridge towards a pizza and sets it alight · smack the running flame before it gets there',
   'TWILIGHT OF THE GODS': 'Fire and fireballs come faster · keep the flames out',
   'SWORD OF RAGNARÖK': 'He raises his sword to sweep the table · fire your signature move (or Peel Slam) the moment the sword flashes',
+};
+
+/** Each phase's intro card, by phase name (as the names above, so the sword is always the last card). */
+const SURTR_CARDS: Record<string, PhaseCard> = {
+  'MUSPEL FIRE': {
+    what: 'He sets a pizza alight and hurls fireballs',
+    hit: 'Smack out the flames and each fireball as it falls',
+    miss: 'A burning pizza loses a slice every 4 s; fireballs scorch one',
+    show: [
+      { key: 'p_pizzaflame', label: 'Flames', hits: (h) => h.hits(3) },
+      { key: 'p_fireball', label: 'Fireball', hits: 1 },
+    ],
+  },
+  'THE BRIDGE BURNS': {
+    what: 'Fire runs along the bridge towards a pizza',
+    hit: 'Stamp out the running flame before it gets there',
+    miss: 'It sets that pizza alight too',
+    show: [
+      { key: 'p_fuse', label: 'Running flame', hits: 1 },
+      { key: 'p_pizzaflame', label: 'Flames', hits: (h) => h.hits(3) },
+      { key: 'p_fireball', label: 'Fireball', hits: 1 },
+    ],
+  },
+  'TWILIGHT OF THE GODS': {
+    what: 'Fire and fireballs come faster',
+    hit: 'Keep the flames out and the fireballs off',
+    miss: 'Burning pizzas lose a slice every 4 s',
+    show: [
+      { key: 'p_fireball', label: 'Fireball', hits: 1 },
+      { key: 'p_fuse', label: 'Running flame', hits: 1 },
+      { key: 'p_pizzaflame', label: 'Flames', hits: (h) => h.hits(3) },
+    ],
+  },
+  'SWORD OF RAGNARÖK': {
+    what: 'He raises his sword to sweep the whole table',
+    hit: 'Fire your peel (or Peel Slam) the moment the sword flashes',
+    miss: 'The sweep takes slices from every pizza',
+    show: [
+      { key: 'p_sword', label: 'Wait for the flash', watch: true },
+      { key: 'p_pizzaflame', label: 'Flames', hits: (h) => h.hits(3) },
+    ],
+  },
 };
 
 /** Seconds the counter window stays open, by heat (Mild … Inferno). */
@@ -1188,6 +1320,9 @@ const surtr = (): Brain => {
     },
     get info() {
       return surtrNames(n).map((k) => SURTR_INFO[k]);
+    },
+    get cards() {
+      return surtrNames(n).map((k) => SURTR_CARDS[k]);
     },
     onPhase: (f, ph, a) => {
       n = a.bossPhases();

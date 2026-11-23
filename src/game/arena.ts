@@ -46,6 +46,9 @@ export interface Arena {
   peelGuarded?(): boolean;
   addClickable(c: Clickable): void;
   banner(big: string, small: string, kind?: 'boss' | 'loc' | 'clear' | 'phase', desc?: string): void;
+  /** A boss reached a new phase: its banner, or (the first time a player meets the phase) a card that pauses the
+   *  fight to show what to hit. */
+  phaseBanner(f: Foot, name: string, info: string): void;
   /** The boss's current move and its answer, shown under the boss bar. */
   bossMove(f: Foot, name: string, info: string): void;
   /** Slow the whole game for a moment (phase changes). */

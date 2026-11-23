@@ -1496,6 +1496,31 @@ const titanking = (): Brain => {
       'His giant stone head rises behind a pizza and chews on it · Whack the head again and again to make him spit it out',
       PULL_INFO,
     ],
+    cards: [
+      {
+        what: 'The great hourglass flips over beside him',
+        hit: 'Smash the hourglass before its sand runs out',
+        miss: 'He eats the time: your peel slows and every foot hurries',
+        show: [{ key: 'p_nz_hourglass', label: 'Hourglass', hits: (h) => h.hits(4) }],
+      },
+      {
+        what: 'His giant stone head rises and starts chewing a pizza',
+        hit: 'Whack the head until he spits the pizza out',
+        miss: 'He swallows half of that pizza’s slices',
+        show: [{ key: 'tk_head', label: 'Stone head', hits: (h) => HEAD_HITS[h.rank] }],
+      },
+      {
+        what: 'He hauls on two chains and Tartarus crumbles',
+        hit: 'Snap the red-hot link on each chain, and break falling rocks',
+        miss: 'Time runs out: he drags a chain across every pizza',
+        show: [
+          { key: 'tk_weak0', label: 'Red-hot link', hits: (h) => WEAK_HP[h.rank] },
+          { key: 'tk_rock0', label: 'Falling rock', hits: (h) => (h.rank === 0 ? 1 : h.rank >= 3 ? 3 : 2) },
+          { key: 'tk_blade', label: 'Then: chain blade', hits: (h) => BLADE_HITS[h.rank] },
+        ],
+      },
+    ],
+    cardArt: titanFightArt,
     // three phases on every heat: the chain pull and his shield are the climax
     phases: () => 3,
     upkeep(f, dt, a) {

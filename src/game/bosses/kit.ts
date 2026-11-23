@@ -3,7 +3,7 @@
 // shields, twins). Fights live in act1a/act1b/act2a/act2b.ts.
 
 import Phaser from 'phaser';
-import { heatRank } from '../../data/difficulty';
+import { type HeatId, heatRank } from '../../data/difficulty';
 import type { Arena } from '../arena';
 import type { Foot } from '../Foot';
 import type { Pizza } from '../Pizza';
@@ -25,6 +25,40 @@ export interface Brain {
   onDeath?(f: Foot, a: Arena): void;
   /** A fixed phase count for this fight on every heat (default: the heat's, one fewer for mini-bosses). */
   phases?(a: Arena): number;
+  /** Per phase (index 0 = phase 1): the card that pauses the fight the first time a player reaches it
+   *  (src/ui/phaseCard.ts). A phase without one gets a card made from its `info`. */
+  cards?: PhaseCard[];
+  /** Textures the fight draws only once it starts (key → draw), so its phase cards can show them before then. */
+  cardArt?(): Record<string, () => HTMLCanvasElement>;
+}
+
+/** One phase's intro card: what's happening, what to hit and what happens if you don't, with pictures of the
+ *  actual targets drawn from the fight's own textures. */
+export interface PhaseCard {
+  /** What's happening, one short plain line ("The great hourglass flips over"). */
+  what: string;
+  /** What to hit or do ("Smash the hourglass before its sand runs out"). */
+  hit: string;
+  /** What happens if you don't ("He eats the time: your peel slows down"). */
+  miss?: string;
+  /** The pictures, in order: what to hit (a HIT THIS ring and its hit count) and anything to watch out for.
+   *  '@boss' is the boss itself. With none, the card shows the boss and `icon`. */
+  show?: PhaseShow[];
+  /** A big emoji beside the boss when there's no prop to show (default ⚔️). */
+  icon?: string;
+}
+
+export interface PhaseShow {
+  /** A texture key the fight uses; '@boss' for the boss's portrait, '@foot:<id>' for a foot it brings. */
+  key: string;
+  /** A short caption under the picture ("Hourglass", "His toes"). */
+  label: string;
+  /** Hits it takes, as the fight counts them (heat-scaled the same way: `(h) => h.hits(4)`). */
+  hits?: number | ((h: HeatScale) => number);
+  /** Not a target: something to dodge or watch (a red WATCH OUT instead of HIT THIS). */
+  watch?: boolean;
+  /** Tint, as the fight draws it. */
+  tint?: number;
 }
 
 export class Every {
@@ -291,8 +325,15 @@ export function auraFor(phase: number): number | null {
 // ——— Heat scaling ———
 
 /** Default scaling for every set-piece (a fight's own numbers win where it has them). Mild … Inferno. */
-export function heat(a: Arena) {
-  const r = heatRank(a.heat());
+export function heat(a: Arena): HeatScale {
+  return heatScale(a.heat());
+}
+
+export type HeatScale = ReturnType<typeof heatScale>;
+
+/** heat()'s tables for a heat id, without an arena (phase cards, the boss lab). */
+export function heatScale(id: HeatId) {
+  const r = heatRank(id);
   return {
     /** 0 = Mild … 4 = Inferno. */
     rank: r,
@@ -424,7 +465,7 @@ export function hitProp(a: Arena, o: PropOpts): Prop {
       // the hit count stays on screen and clear of the top HUD and the boss bar, however high the prop rides
       const bx = Phaser.Math.Clamp(img.x, 50, 1870);
       const by = img.y + (o.badgeDy ?? -80) * (img.scale / scale || 1);
-      badge.setPosition(bx, Math.max(by, bx > 470 && bx < 1450 ? 250 : 165));
+      badge.setPosition(bx, Math.max(by, bx > 470 && bx < 1450 ? 268 : 165));
     },
   });
   const end = (fade = true) => {

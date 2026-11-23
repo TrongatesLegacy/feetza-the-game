@@ -24,7 +24,7 @@ import { save } from '../../systems/save';
 import type { Arena } from '../arena';
 import type { Foot } from '../Foot';
 import type { Pizza } from '../Pizza';
-import { type Brain, Every, dropOn, heat, hitProp, rnd, shield } from './kit';
+import { type Brain, type PhaseCard, Every, dropOn, heat, hitProp, rnd, shield } from './kit';
 import { Bin, SAFE_TOP, enterArena, entrance, hitSoft, lanePizzas, leaveArena, once, scatter, shatter, timerRing } from './nzkit';
 
 /** A glowing column down a pizza's lane (a charge's tell). Returns its remover. */
@@ -231,6 +231,36 @@ const immortalbrute = (): Brain => {
       'He whirls his blade on a chain over two pizzas · Smack the blade to snag the chain before it slams down',
       'The horde and the blade both come faster · Thin the horde and snag every whirl',
     ],
+    cards: [
+      {
+        what: 'Immortals march in and guard him while two or more stand',
+        hit: 'Beat his Immortals, then hit him while he’s open',
+        miss: 'He hooks an Immortal you leave standing and eats it to heal',
+        show: [
+          { key: '@foot:immortal', label: 'Immortal' },
+          { key: '@boss', label: 'Him, once open' },
+        ],
+      },
+      {
+        what: 'He whirls his blade on a chain over two pizzas',
+        hit: 'Smack the blade to snag the chain before it slams down',
+        miss: 'It slams down and both pizzas lose a slice',
+        show: [
+          { key: 'p_lx_blade', label: 'Whirling blade', hits: (h) => h.hits(3) },
+          { key: '@foot:immortal', label: 'Immortal' },
+        ],
+      },
+      {
+        what: 'The horde and the whirling blade both come faster',
+        hit: 'Thin the horde, then snag every whirl',
+        miss: 'Both pizzas under the blade lose a slice',
+        show: [
+          { key: 'p_lx_blade', label: 'Whirling blade', hits: (h) => h.hits(3) },
+          { key: '@foot:immortal', label: 'Immortal' },
+          { key: '@boss', label: 'Him, once open' },
+        ],
+      },
+    ],
     upkeep(f, dt, a) {
       start(() => {
         // while he stands, the only feet that come are his own Immortals
@@ -346,12 +376,47 @@ const XPLAN: Record<number, XMove[]> = {
 };
 const xplan = (n: number): XMove[] => XPLAN[Math.max(2, Math.min(4, n))];
 
+const XCARDS: Record<XMove, PhaseCard> = {
+  arrows: {
+    what: 'The sky goes dark and arrow volleys fall on your pizzas',
+    hit: 'Smack each volley away before it lands',
+    miss: 'Every volley that lands takes a slice',
+    show: [{ key: 'p_lx_volley', label: 'Arrow volley', hits: 1 }],
+  },
+  rhino: {
+    what: 'A war rhino paws the ground at the top of a lane',
+    hit: 'Smack the rhino until it turns and runs',
+    miss: 'It charges down the lane and tramples that pizza for 2 slices',
+    show: [{ key: 'p_lx_rhino', label: 'War rhino', hits: (h) => h.hits(3) }],
+  },
+  elephants: {
+    what: 'War elephants stomp in and a golden ward guards him',
+    hit: 'Beat the elephants, then hit him',
+    miss: 'He can’t be hurt while they stand, for up to 14 seconds',
+    show: [
+      { key: '@foot:elephant', label: 'War elephant' },
+      { key: '@boss', label: 'Him, once open' },
+    ],
+  },
+  godking: {
+    what: 'Arrows, the rhino and the elephants take turns, faster',
+    hit: 'Answer each one as it comes',
+    miss: 'Lost slices from volleys and charges, and a warded god-king',
+    show: [
+      { key: 'p_lx_volley', label: 'Arrow volley', hits: 1 },
+      { key: 'p_lx_rhino', label: 'War rhino', hits: (h) => h.hits(3) },
+      { key: '@foot:elephant', label: 'War elephant' },
+    ],
+  },
+};
+
 const xerxes = (): Brain => {
   const bin = new Bin();
   const start = once();
   let order = xplan(HEAT_BY_ID[save.heat]?.bossPhases ?? 3);
   const names = order.map((m) => XINFO[m][0]);
   const info = order.map((m) => XINFO[m][1]);
+  const cards = order.map((m) => XCARDS[m]);
   const moveT = new Every(12, 2);
   let ready = false;
   let elephants: Foot[] = [];
@@ -479,11 +544,13 @@ const xerxes = (): Brain => {
   return {
     names,
     info,
+    cards,
     upkeep(f, dt, a) {
       start(() => {
         order = xplan(a.bossPhases());
         names.splice(0, names.length, ...order.map((m) => XINFO[m][0]));
         info.splice(0, info.length, ...order.map((m) => XINFO[m][1]));
+        cards.splice(0, cards.length, ...order.map((m) => XCARDS[m]));
         a.bossMove(f, names[0], info[0]);
         enterArena(a, 'xerxes');
         entrance(a, f, {

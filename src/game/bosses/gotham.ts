@@ -32,7 +32,7 @@ import type { Arena } from '../arena';
 import type { Foot } from '../Foot';
 import type { Pizza } from '../Pizza';
 import { LOCATION_MUSIC, bossMusic, locationFor } from '../Run';
-import { type Brain, type Prop, Every, auraFor, dropOn, heat, hitProp, mark, retreat, rnd, screenSplat, shield, takeLane, throwAtPeel, type Takeover } from './kit';
+import { type Brain, type PhaseCard, type Prop, Every, auraFor, dropOn, heat, hitProp, mark, retreat, rnd, screenSplat, shield, takeLane, throwAtPeel, type Takeover } from './kit';
 
 // ——— Helpers ———
 
@@ -367,6 +367,23 @@ const bunion = (): Brain => {
       'His Venom vials fill and make him faster and harder-hitting; all three full and he surges · Smack a glowing vial to drain it',
       'He grabs a pizza to break it, then his vials fill twice as fast · Smack him again and again to make him let go',
     ],
+    cards: [
+      {
+        what: 'His three Venom vials fill up and glow, making him faster',
+        hit: 'Smack a glowing vial to drain it and wind him',
+        miss: 'All three full: he surges and stomps across your pizzas',
+        show: [{ key: 'p_gt_vial', label: 'Venom vial', hits: (h) => h.hits(2) }],
+      },
+      {
+        what: 'He grabs your fullest pizza and strains to break it',
+        hit: 'Smack him again and again to make him let go',
+        miss: 'It snaps: that pizza loses half its slices',
+        show: [
+          { key: '@boss', label: 'Him' },
+          { key: 'p_gt_vial', label: 'Then: vials', hits: (h) => h.hits(2) },
+        ],
+      },
+    ],
     // one phase on Mild, two on every other heat: the second starts with the break at half health
     phases: (a) => (a ? (heat(a).rank === 0 ? 1 : 2) : 0),
     update(f, dt, a) {
@@ -522,6 +539,48 @@ const NAMES: Record<Move, [string, string]> = {
   gauntlet: ['THE PUNCHLINE', 'Guarded, he sends a round of trick props at you · Beat each prop, then hit him while he\'s dizzy'],
 };
 
+const CARDS: Record<Move, PhaseCard> = {
+  boxes: {
+    what: 'He tosses joke boxes onto your pizzas: ticking bombs and gifts',
+    hit: 'Smack the bombs to defuse them, and leave the gifts alone',
+    miss: 'A bomb that blows takes a slice; a smacked gift breaks',
+    show: [
+      { key: 'p_gt_bomb', label: 'Bomb', hits: (h) => h.hits(2) },
+      { key: 'p_gt_gift', label: 'Gift: leave it', watch: true },
+    ],
+  },
+  gas: {
+    what: 'Laughing gas over a lane makes the feet dance out of reach',
+    hit: 'Smack a gas cloud twice to blow it away',
+    miss: 'Dancing feet can’t be hit, and the bombs keep coming',
+    show: [
+      { key: 'p_gt_gas', label: 'Gas cloud', hits: 2 },
+      { key: 'p_gt_bomb', label: 'Bomb', hits: (h) => h.hits(2) },
+      { key: 'p_gt_gift', label: 'Gift: leave it', watch: true },
+    ],
+  },
+  both: {
+    what: 'Three joke boxes at a time and two gas clouds',
+    hit: 'Defuse the bombs first, then clear the gas',
+    miss: 'Each bomb that blows takes a slice',
+    show: [
+      { key: 'p_gt_bomb', label: 'Bomb', hits: (h) => h.hits(2) },
+      { key: 'p_gt_gas', label: 'Gas cloud', hits: 2 },
+      { key: 'p_gt_gift', label: 'Gift: leave it', watch: true },
+    ],
+  },
+  gauntlet: {
+    what: 'He hides behind his guard and sends a round of trick props',
+    hit: 'Beat each prop, then hit him while he’s dizzy',
+    miss: 'Slices lost, a stunned or slowed peel, and less time to hit him',
+    show: [
+      { key: 'p_gt_jack', label: 'Jack-in-the-box', hits: (h) => h.hits(3) },
+      { key: 'p_gt_teeth', label: 'Wind-up teeth', hits: (h) => h.hits(2) },
+      { key: 'p_gt_pie', label: 'Cream pie', hits: 1 },
+    ],
+  },
+};
+
 const PLAN: Record<number, Move[]> = {
   2: ['boxes', 'gauntlet'],
   3: ['boxes', 'gas', 'gauntlet'],
@@ -551,6 +610,7 @@ const jokester = (): Brain => {
 
   const names = Object.values(NAMES).map((n) => n[0]);
   const info = Object.values(NAMES).map((n) => n[1]);
+  const cards = (Object.keys(NAMES) as Move[]).map((m) => CARDS[m]);
   const move = (f: Foot): Move => plan[Math.min(plan.length, f.phase) - 1] ?? 'boxes';
 
   // ——— joke boxes ———
@@ -1024,6 +1084,7 @@ const jokester = (): Brain => {
   return {
     names,
     info,
+    cards,
     update(f, dt, a) {
       const h = heat(a);
       if (!started) {
@@ -1033,6 +1094,7 @@ const jokester = (): Brain => {
         // the banners follow this heat's plan (the gauntlet is always last)
         names.splice(0, names.length, ...plan.map((m) => NAMES[m][0]));
         info.splice(0, info.length, ...plan.map((m) => NAMES[m][1]));
+        cards.splice(0, cards.length, ...plan.map((m) => CARDS[m]));
         a.bossMove(f, names[f.phase - 1] ?? names[0], info[f.phase - 1] ?? info[0]);
         // the entrance: a jack-in-the-box lands, winds up and he springs out of it
         f.puppet = true;

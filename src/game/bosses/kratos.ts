@@ -26,7 +26,7 @@ import { HEAT_BY_ID } from '../../data/difficulty';
 import { save } from '../../systems/save';
 import type { Arena } from '../arena';
 import type { Foot } from '../Foot';
-import { type Brain, type Prop, Every, heat, hitProp, rnd, shield, throwAtPeel } from './kit';
+import { type Brain, type PhaseCard, type PhaseShow, type Prop, Every, heat, hitProp, rnd, shield, throwAtPeel } from './kit';
 import { brains as titankingBrains } from './titanking';
 import { Bin, SAFE_TOP, cameo, enterArena, entrance, hitSoft, once, scatter, shatter, timerRing } from './nzkit';
 
@@ -57,6 +57,35 @@ const ZPLAN: Record<number, ZMove[]> = {
 };
 const zplan = (n: number): ZMove[] => ZPLAN[Math.max(2, Math.min(4, n))];
 
+const CLOUD: PhaseShow = { key: 'p_nz_cloud', label: 'Storm cloud', hits: (h) => h.hits(2) };
+
+const ZCARDS: Record<ZMove, PhaseCard> = {
+  sky: {
+    what: 'Storm clouds gather two at a time and his bolts come faster',
+    hit: 'Scatter each cloud, and bat every thunderbolt back at him',
+    miss: 'A cloud strikes its pizza for a slice; a bolt stuns your peel',
+    show: [CLOUD, { key: 'p_nz_bolt', label: 'Thunderbolt', hits: 1 }],
+  },
+  poseidon: {
+    what: 'Poseidon’s trident plunges in and a wave rears behind it',
+    hit: 'Knock the trident out before the wave breaks',
+    miss: 'The wave sweeps across: the two nearest pizzas lose a slice',
+    show: [{ key: 'p_nz_trident', label: 'Trident', hits: (h) => h.hits(4) }, { key: 'p_nz_wave', label: 'The wave', watch: true }, CLOUD],
+  },
+  ares: {
+    what: 'Ares’s war helmet lands roaring and every foot hurries',
+    hit: 'Smash the helmet to silence it and stun every foot',
+    miss: 'The war cry lands: every foot runs even faster for 6 seconds',
+    show: [{ key: 'p_nz_helm', label: 'War helmet', hits: (h) => h.hits(5) }, CLOUD],
+  },
+  hera: {
+    what: 'Hera crowns him and three peacock gems circle him',
+    hit: 'Break every gem to shatter the crown',
+    miss: 'He can’t be hurt, and his storm clouds come twice as often',
+    show: [{ key: 'p_nz_peacock', label: 'Peacock gem', hits: (h) => h.hits(2) }, CLOUD],
+  },
+};
+
 const zeus = (): Brain => {
   const bin = new Bin();
   const start = once();
@@ -73,10 +102,12 @@ const zeus = (): Brain => {
 
   const names = order.map((m) => ZINFO[m][0]);
   const info = order.map((m) => ZINFO[m][1]);
+  const cards = order.map((m) => ZCARDS[m]);
   const setPlan = (n: number) => {
     order = zplan(n);
     names.splice(0, names.length, ...order.map((m) => ZINFO[m][0]));
     info.splice(0, info.length, ...order.map((m) => ZINFO[m][1]));
+    cards.splice(0, cards.length, ...order.map((m) => ZCARDS[m]));
   };
   const moveOf = (f: Foot): ZMove => order[Math.min(order.length, f.phase) - 1] ?? 'hera';
 
@@ -400,6 +431,7 @@ const zeus = (): Brain => {
   return {
     names,
     info,
+    cards,
     upkeep(f, _dt, a) {
       start(() => {
         setPlan(a.bossPhases());

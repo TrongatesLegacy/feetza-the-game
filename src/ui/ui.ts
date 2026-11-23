@@ -10,6 +10,8 @@ import { RARITY_COLOR, UPGRADES, UPGRADE_BY_ID, kindOf, type Rarity } from '../d
 import { glyph, slamPrompt } from '../systems/gamepad';
 import type { RunSummary, ShopActions, ShopPizza, ShopState, SlotSymbol, YourTopping } from './shopTypes';
 import { INTROS, freshBar, pizzaThumb } from './bits';
+import { phaseCardPanel } from './phaseCard';
+import type { ResolvedPhaseCard } from '../game/phaseCards';
 import { footArtAsync, footArtReady, footPortraitURL, pizzaPortraitURL, textureURL } from '../game/assets';
 import { audio } from '../systems/audio';
 import { previewSmack } from '../game/smacks';
@@ -365,6 +367,7 @@ class Hud {
   }
 
   setBoss(name: string | null, frac = 1, phases = 1, phase = 1): void {
+    const wasOn = this.boss.classList.contains('on');
     this.boss.classList.toggle('on', !!name);
     // the combo sits in one row above the boss bar, so its score pill doesn't cover the boss's name
     this.combo.classList.toggle('beside-boss', !!name);
@@ -382,6 +385,7 @@ class Hud {
     const w = `${Math.max(0, frac) * 100}%`;
     this.bossHp.style.width = w;
     this.bossTrail.style.width = w;
+    if (!wasOn) requestAnimationFrame(() => this.fitBossMove());
   }
 
   /** The slam button: the Peel Slam, or the peel ability that replaces it this run. */
@@ -504,12 +508,36 @@ class Hud {
 
   /** The boss's current move, under its health bar: name, then what to do about it. */
   setBossMove(name: string | null, info = ''): void {
+    const was = this.bossMoveName;
+    this.bossMoveName = name;
     if (!name) {
       this.bossMove.replaceChildren();
       return;
     }
-    const answer = info.split(' · ')[1] ?? info;
-    this.bossMove.replaceChildren(h('b', {}, name), h('span', {}, answer));
+    const answer = (info.split(' · ')[1] ?? info).trim();
+    const text = h('span', {}, answer.charAt(0).toUpperCase() + answer.slice(1));
+    this.bossMove.replaceChildren(h('b', {}, name), text);
+    // a new move (a phase change) pulses, so the eye goes to it
+    if (name !== was) {
+      this.bossMove.classList.remove('pulse');
+      void this.bossMove.offsetWidth;
+      this.bossMove.classList.add('pulse');
+    }
+    requestAnimationFrame(() => this.fitBossMove());
+    if (document.fonts.status !== 'loaded') document.fonts.ready.then(() => this.fitBossMove());
+  }
+  private bossMoveName: string | null = null;
+
+  /** A long answer shrinks to the boss bar's width instead of running under the HUD on either side. */
+  private fitBossMove(): void {
+    const text = this.bossMove.querySelector<HTMLElement>('span');
+    const name = this.bossMove.querySelector<HTMLElement>('b');
+    const room = this.boss.clientWidth * 1.04;
+    if (!text || !name || room <= 0) return;
+    text.style.fontSize = '';
+    // (a centred flex row spills both ways, so measure its parts rather than its scroll width)
+    const over = name.offsetWidth + parseFloat(getComputedStyle(this.bossMove).columnGap || '0') + text.offsetWidth - room;
+    if (over > 0 && text.offsetWidth > 0) text.style.fontSize = `${(Math.max(0.6, (text.offsetWidth - over) / text.offsetWidth) * parseFloat(getComputedStyle(text).fontSize)).toFixed(1)}px`;
   }
 
   private toastQueue: HTMLElement[] = [];
@@ -1349,6 +1377,23 @@ class UI {
     return s;
   }
 
+  /** A boss phase's first-time card (src/ui/phaseCard.ts). `done(off)` runs once it's closed; off: the player
+   *  turned phase cards off. Returns `ok`, which closes it as OK does (Esc in the game). */
+  phaseCard(c: ResolvedPhaseCard, done: (off: boolean) => void): { el: HTMLElement; ok: () => void } {
+    let s: HTMLElement;
+    let closed = false;
+    const finish = (off: boolean) => {
+      if (closed) return;
+      closed = true;
+      this.close(s);
+      done(off);
+    };
+    const panel = phaseCardPanel(c, () => finish(false), () => finish(true));
+    s = this.open(panel);
+    // (Enter and Esc press OK through the game's keys; a gamepad starts on OK, its data-pad-default)
+    return { el: s, ok: () => finish(false) };
+  }
+
   // ——— Second Chance (Golden menu) on game over ———
   secondChance(o: { wave: number; cost: number; bank: number; nextCost: number; use: () => void; decline: () => void }): HTMLElement {
     const panel = h(
@@ -1596,7 +1641,7 @@ class UI {
             save.seenIntros = [];
             persist();
             audio.sfx('sfx_click');
-          }), h('span', {}, 'Show every how-it-works card again')),
+          }), h('span', {}, 'Show every how-it-works card and boss phase card again')),
           h('div', { class: 'reset-row' }, btn(`RESET PIZZERIA UPGRADES · +${fmt(metaRefundValue())}`, 'cream small', () => {
             const n = resetMeta();
             this.hud.toast(null, 'PIZZERIA RESET', `+${fmt(n)} Golden Crusts refunded`);

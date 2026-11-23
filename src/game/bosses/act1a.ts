@@ -417,6 +417,29 @@ const headwaiter = (): Brain => {
       'Shielded while his waiters are out · clear the waiters to drop his shield',
       'Waiters come faster and the trays are back · clear the waiters, bat the trays',
     ],
+    cards: [
+      {
+        what: 'He holds a lane and spins a silver tray at the pizza',
+        hit: 'Smack the tray to send it spinning back at him',
+        miss: 'The tray clangs down and that pizza loses a slice',
+        show: [{ key: 'p_silvertray', label: 'Silver tray', hits: 1 }],
+      },
+      {
+        what: 'He calls his waiters and hides behind a shield',
+        hit: 'Clear every waiter to drop his shield',
+        miss: 'His shield stays up while the waiters stomp',
+        show: [{ key: '@foot:waiter', label: 'Waiters' }],
+      },
+      {
+        what: 'More waiters, and the trays are back in between',
+        hit: 'Clear the waiters, then bat each tray back',
+        miss: 'He stays shielded and the trays take slices',
+        show: [
+          { key: '@foot:waiter', label: 'Waiters' },
+          { key: 'p_silvertray', label: 'Silver tray', hits: 1 },
+        ],
+      },
+    ],
     onPhase: (f, ph, a) => {
       if (ph === 2) {
         endTray(a);
@@ -784,6 +807,39 @@ const bigfoot = (): Brain => {
       'A second Bigfoot joins, sharing his health · they take turns: answer each move as it comes',
       'Both feet, every move, faster · keep answering, it is nearly down',
     ],
+    cards: [
+      {
+        what: 'He holds a lane and a ring closes on a target',
+        hit: 'Click the target while the closing ring is on the green',
+        miss: 'Two misses and he stomps down, crushing a slice',
+        show: [{ key: 'p_qte_target', label: 'Ring target', hits: (h) => [2, 2, 3, 3, 4][h.rank] }],
+      },
+      {
+        what: 'He looms over a pizza with a bear trap waiting below',
+        hit: 'Smack the trap to build it before he slams down',
+        miss: 'Ground pound: that pizza loses two slices',
+        show: [{ key: 'p_trap0', label: 'Bear trap', hits: (h) => h.hits(4) }],
+      },
+      {
+        what: 'A second Bigfoot joins him, sharing his health',
+        hit: 'They take turns: answer each ring and trap as it comes',
+        miss: 'Each missed move crushes slices off a pizza',
+        show: [
+          { key: 'p_qte_target', label: 'Ring target', hits: (h) => [2, 2, 3, 3, 4][h.rank] },
+          { key: 'p_trap0', label: 'Bear trap', hits: (h) => h.hits(4) },
+          { key: '@boss', label: 'His twin', watch: true },
+        ],
+      },
+      {
+        what: 'Both feet, every move, and faster',
+        hit: 'Keep answering the rings and traps: he’s nearly down',
+        miss: 'Each missed move crushes slices off a pizza',
+        show: [
+          { key: 'p_qte_target', label: 'Ring target', hits: (h) => [2, 2, 3, 3, 4][h.rank] },
+          { key: 'p_trap0', label: 'Bear trap', hits: (h) => h.hits(4) },
+        ],
+      },
+    ],
     onPhase: (f, ph, a) => {
       f0 = f;
       // the new phase's move comes straight after the beat, not after the last move's cooldown
@@ -860,6 +916,29 @@ const sweep = (): Brain => {
       'Soots a lane: feet inside wait at the top, safe · smack the soot to clear it, or wait it out',
       'Hops lanes without warning and keeps sooting · keep the lanes clear',
       'Faster, and chimneys push the pizzas up at the feet · clear the soot, smack the chimneys down',
+    ],
+    cards: [
+      {
+        what: 'He brushes a cloud of soot down over a lane',
+        hit: 'Smack the soot to clear it, or wait it out',
+        miss: 'Feet hide in the soot, out of your peel’s reach',
+        show: [{ key: 'p_sootcol', label: 'Soot cloud', hits: (h) => h.hits(4) }],
+      },
+      {
+        what: 'He pops out of other chimneys without warning',
+        hit: 'Keep clearing the soot from the lanes',
+        miss: 'Feet hide in the soot, out of your peel’s reach',
+        show: [{ key: 'p_sootcol', label: 'Soot cloud', hits: (h) => h.hits(4) }],
+      },
+      {
+        what: 'Chimneys grow under the pizzas, a brick at a time',
+        hit: 'Smack the chimneys down a brick, and clear the soot',
+        miss: 'The pizzas rise up to meet the feet',
+        show: [
+          { key: 'p_chimney', label: 'Chimney' },
+          { key: 'p_sootcol', label: 'Soot cloud', hits: (h) => h.hits(4) },
+        ],
+      },
     ],
     onPhase: (f, ph, a) => {
       if (ph < 3) return;
@@ -1203,6 +1282,42 @@ const ironheel = (): Brain => {
       'Pistons lift pizzas into rocket fire · smack the glowing valves to lower them',
       'Everything faster · keep the valves down, dodge the steam',
     ],
+    cards: [
+      {
+        what: 'He charges a beam over a pizza, shielded',
+        hit: 'Smack the launcher as it slides under his lane',
+        miss: 'Four passes and the blast takes a slice',
+        show: [{ key: 'p_launcher', label: 'Rocket launcher', hits: 1 }],
+      },
+      {
+        what: 'He glows red as he vents: no armour for 3 seconds',
+        hit: 'Pile on the hits while he’s red, and move off the vents',
+        miss: 'Steam bursts under your peel and scalds it',
+        show: [
+          { key: '@boss', label: 'Red-hot heel', tint: 0xff8060 },
+          { key: 'p_ventwarn', label: 'Steam vent', watch: true },
+        ],
+      },
+      {
+        what: 'Pistons lift the pizzas up into rocket fire',
+        hit: 'Smack the glowing valves to lower the pistons',
+        miss: 'Rockets hit every raised pizza for a slice',
+        show: [
+          { key: 'p_valve', label: 'Glowing valve', hits: 1 },
+          { key: 'p_rocket', label: 'Rockets', watch: true },
+          { key: 'p_ventwarn', label: 'Steam vent', watch: true },
+        ],
+      },
+      {
+        what: 'Vents, pistons and rockets, all faster',
+        hit: 'Keep the valves down and dodge the steam',
+        miss: 'Rockets hit every raised pizza for a slice',
+        show: [
+          { key: 'p_valve', label: 'Glowing valve', hits: 1 },
+          { key: 'p_ventwarn', label: 'Steam vent', watch: true },
+        ],
+      },
+    ],
     onPhase: (f, ph, a) => {
       if (ph >= 2) {
         blast?.end();
@@ -1350,6 +1465,32 @@ const sandcastle = (): Brain => {
       'Sand walls cover every lane but his: feet behind them wait, safe · smack the walls to wash them away',
       'Walls, and between them he drops sand that freezes a pizza\'s perk · smack him twice while he shakes',
       'Everything faster · clear the walls, interrupt the sand',
+    ],
+    cards: [
+      {
+        what: 'Sand walls rise over every lane but his',
+        hit: 'Smack the walls to wash them away',
+        miss: 'Feet wait behind the walls, out of your reach',
+        show: [{ key: 'p_sandcol', label: 'Sand wall', hits: (h) => h.hits(3) }],
+      },
+      {
+        what: 'Between walls, he shakes sand loose over a pizza',
+        hit: 'Smack him twice while he shakes',
+        miss: 'The sand freezes that pizza’s perk',
+        show: [
+          { key: '@boss', label: 'Shaking Sam', hits: 2, tint: 0xffb0a0 },
+          { key: 'p_sandcol', label: 'Sand wall', hits: (h) => h.hits(3) },
+        ],
+      },
+      {
+        what: 'Walls and sand, all faster',
+        hit: 'Wash the walls away and stop the sand',
+        miss: 'Hidden feet and frozen perks pile up',
+        show: [
+          { key: 'p_sandcol', label: 'Sand wall', hits: (h) => h.hits(3) },
+          { key: '@boss', label: 'Shaking Sam', hits: 2, tint: 0xffb0a0 },
+        ],
+      },
     ],
     onPhase: (f, ph) => {
       if (ph >= 3) f.enraged = true;
@@ -1576,6 +1717,29 @@ const clownking = (): Brain => {
   return {
     names: ['HONK', 'DECOY SHOES', 'CREAM PIE'],
     info: ['Winds up a horn blast that stuns your peel · smack it twice to stop it', 'Leaps away and drops back with two decoys in random lanes · decoys pop in one hit: find the real one', 'Throws big cream pies that cover the screen · smack the pie in flight, or wipe the splat'],
+    cards: [
+      {
+        what: 'He winds up a big horn blast',
+        hit: 'Smack him twice before he honks',
+        miss: 'HONK! Your peel is stunned for a second',
+        show: [{ key: '@boss', label: 'Honking King', hits: 2, tint: 0xffb0a0 }],
+      },
+      {
+        what: 'He leaps away and drops back with two decoy shoes',
+        hit: 'Decoys pop in one hit: find the real King',
+        miss: 'The decoys stomp just like the real thing',
+        show: [{ key: '@boss', label: 'Which is real?' }],
+      },
+      {
+        what: 'He lobs big cream pies at the screen',
+        hit: 'Smack the pie in flight, or wipe the splat',
+        miss: 'The splat covers the table for up to 9 seconds',
+        show: [
+          { key: 'p_pie2', label: 'Cream pie', hits: 1 },
+          { key: 'p_creamsplat', label: 'Splat', hits: 2 },
+        ],
+      },
+    ],
     onSmacked: (f, a) => {
       hitWindup(f, a, 1);
       return false;

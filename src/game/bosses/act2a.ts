@@ -191,6 +191,20 @@ const doughboy = (): Brain => {
   return {
     names: ['DOUGH BALLS', 'RISING'],
     info: ['Lobs dough balls onto the pizza below it · smack each ball as it falls', 'Rises back to health if you leave it alone · keep hitting it'],
+    cards: [
+      {
+        what: 'It lobs golden dough balls onto the pizza below it',
+        hit: 'Smack each dough ball before it lands',
+        miss: 'That pizza loses a slice',
+        show: [{ key: 'p_doughball', label: 'Dough ball', hits: 1 }],
+      },
+      {
+        what: 'It swells and heals whenever you stop hitting it',
+        hit: 'Keep hitting it, never give it a moment’s rest',
+        miss: 'It rises back towards full health',
+        show: [{ key: '@boss', label: 'Dough Boy' }],
+      },
+    ],
     update: (f, dt, a) => {
       since += dt;
       if (f.phase === 1) {
@@ -585,6 +599,26 @@ const nonna = (): Brain => {
       'Rains a big slipper onto every pizza · smack each one before it lands',
       'Hooks your peel with her spoon · pull the mouse away from her fast (or Peel Slam)',
     ],
+    cards: [
+      {
+        what: 'Feet back off and a giant rolling pin rolls down the table',
+        hit: 'Smack the rolling pin to stop it before it reaches the bottom',
+        miss: 'It flattens every pizza: each one loses a slice',
+        show: [{ key: 'p_rollpin', label: 'Rolling pin', hits: (h) => h.hits(4) }],
+      },
+      {
+        what: 'Feet back off and a big slipper drops onto every pizza',
+        hit: 'Smack each slipper before it lands',
+        miss: 'That pizza loses a slice',
+        show: [{ key: 'p_bigslipper', label: 'Slipper', hits: 1 }],
+      },
+      {
+        what: 'She hooks your peel with her wooden spoon',
+        hit: 'Pull the mouse away from her fast, or Peel Slam',
+        miss: 'She flings your peel at a pizza: it loses a slice',
+        show: [{ key: 'p_spoonbowl', label: 'Her spoon', watch: true }],
+      },
+    ],
     onPhase: () => {
       if (!busy) next = 2.5;
     },
@@ -620,6 +654,23 @@ const pigeonking = (): Brain => {
   return {
     names: ['BIRD BOMB', 'FLOCK CALL'],
     info: ['Drops bombs on the pizza below it · smack them as they fall', 'Shielded while his flock is out · clear every pigeon, then hit him'],
+    cards: [
+      {
+        what: 'He drops bird bombs on the pizza below him',
+        hit: 'Smack each bomb as it falls',
+        miss: 'That pizza loses a slice',
+        show: [{ key: 'p_cream', label: 'Bird bomb', hits: 1 }],
+      },
+      {
+        what: 'He calls a flock of pigeons and shields himself',
+        hit: 'Clear every pigeon, then hit him while he’s exposed',
+        miss: 'Smacks bounce off him while his flock is out',
+        show: [
+          { key: '@foot:pigeon', label: 'Pigeons' },
+          { key: '@boss', label: 'Then him' },
+        ],
+      },
+    ],
     update: (f, dt, a) => {
       nagT -= dt;
       if (f.phase === 1 && bomb.tick(dt)) {
@@ -806,6 +857,29 @@ const gargoyle = (): Brain => {
       'Turns to stone over the middle pizza: smacks do no damage · crack it 6 times to break it and stun it',
       "Hides behind a flock of little gargoyles and can't be hurt · clear the flock, then hit it while it's exposed",
     ],
+    cards: [
+      {
+        what: 'It swoops from pizza to pizza while it hovers',
+        hit: 'Strike when it settles over a pizza',
+        miss: 'It stomps the pizza it settles on',
+        show: [{ key: '@boss', label: 'The Gargoyle' }],
+      },
+      {
+        what: 'It turns to stone over the middle pizza',
+        hit: 'Crack the statue 6 times to break it and stun it',
+        miss: 'Smacks on the stone do no damage',
+        show: [{ key: '@boss', label: 'Stone statue', hits: CRACKS, tint: 0x9fb2d0 }],
+      },
+      {
+        what: 'It hides behind a flock of little gargoyles',
+        hit: 'Clear every little gargoyle, then hit it while it’s exposed',
+        miss: 'It can’t be hurt while the flock is out',
+        show: [
+          { key: '@foot:gargoylet', label: 'Little gargoyles' },
+          { key: '@boss', label: 'Then it' },
+        ],
+      },
+    ],
     onPhase: (f, phase, a) => {
       if (phase < 3) return;
       // leaving stone form behind
@@ -980,6 +1054,26 @@ const jellyfish = (): Brain => {
   return {
     names: ['GLOW', 'BRIGHT GLOW'],
     info: ['Stops and glows pink before it stings your peel · never hit it while it glows, strike when it dims', 'Keeps moving while it glows · wait for the dim, then strike'],
+    cards: [
+      {
+        what: 'It stops still and glows pink, crackling',
+        hit: 'Wait for it to dim, then strike',
+        miss: 'Hit it while it glows and your peel is stung',
+        show: [
+          { key: '@boss', label: 'Dim: hit it' },
+          { key: '@boss', label: 'Glowing', watch: true, tint: 0xff5ad0 },
+        ],
+      },
+      {
+        what: 'It keeps moving while it glows, and dims more briefly',
+        hit: 'Wait for the dim, then strike fast',
+        miss: 'Hit it while it glows and your peel is stung',
+        show: [
+          { key: '@boss', label: 'Dim: hit it' },
+          { key: '@boss', label: 'Glowing', watch: true, tint: 0xff5ad0 },
+        ],
+      },
+    ],
     update: (f, dt, a) => {
       t -= dt;
       if (mode === 'dim' && t <= 0 && (!still(f) || f.state === 'hover')) {
@@ -1237,6 +1331,29 @@ const kraken = (): Brain => {
       'Hurls water at the pizza below it · smack the splash before it lands',
       'A tentacle grabs a pizza to drag it under · smack the tentacle anywhere to free it',
       'Squirts ink onto a pizza, freezing its perk · smack the ink blob before it lands',
+    ],
+    cards: [
+      {
+        what: 'It hurls water at the pizza below it',
+        hit: 'Smack each splash before it lands',
+        miss: 'That pizza loses a slice and some freshness',
+        show: [{ key: 'p_snowball', label: 'Splash', hits: 1, tint: 0x5ab8ff }],
+      },
+      {
+        what: 'A huge tentacle grabs a pizza to drag it under',
+        hit: 'Smack the tentacle anywhere to free the pizza',
+        miss: 'It drags the pizza under: 2 slices lost',
+        show: [{ key: 'p_bigtentacle', label: 'Tentacle', hits: (h) => h.hits(3) }],
+      },
+      {
+        what: 'Tentacle grabs and ink squirts take turns',
+        hit: 'Smack the ink blob in the air, and free grabbed pizzas',
+        miss: 'Ink freezes that pizza’s perk for a while',
+        show: [
+          { key: 'p_inkblob', label: 'Ink blob', hits: 1 },
+          { key: 'p_bigtentacle', label: 'Tentacle', hits: (h) => h.hits(3) },
+        ],
+      },
     ],
     onPhase: () => {
       if (!busy) next = 2.5;

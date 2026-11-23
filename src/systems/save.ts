@@ -7,6 +7,10 @@ import { META_COSTS_V1 } from '../data/meta';
 import { STAGES, STAGES_PER_ACT } from '../data/stages';
 import type { RunSnapshot } from '../game/snapshot';
 
+/** In `save.seenIntros`: the player turned boss phase cards off (src/game/phaseCards.ts). Reset intro cards in
+ *  Settings clears it, along with every phase seen. */
+export const PHASE_CARDS_OFF = 'phasecards-off';
+
 export type AimScheme = 'free' | 'lane';
 export type PromptStyle = 'auto' | 'xbox' | 'playstation' | 'switch';
 export type ColorBlind = 'off' | 'redgreen' | 'blueyellow';
@@ -80,6 +84,7 @@ export interface SaveData {
   actsCleared: number[];
   /** Pre-2.0 best scores kept as a record when a veteran takes a fresh start. */
   oldVersionBest: Best | null;
+  /** Intro cards seen (ids), boss phase cards seen (`phase:<boss>:<n>`) and PHASE_CARDS_OFF. */
   seenIntros: string[];
   seenEvents: string[];
   /** Set for upgraded v1 saves until the welcome card has been answered. */

@@ -25,7 +25,7 @@ import { brains as kratos } from './bosses/kratos';
 import { brains as comics } from './bosses/comics';
 // ——— Nemesis bosses: King Leonidas at the Hot Gates ———
 import { brains as leonidas } from './bosses/leonidas';
-import { type Brain, Every, auraFor, hitWindup } from './bosses/kit';
+import { type Brain, type PhaseCard, Every, auraFor, hitWindup } from './bosses/kit';
 
 export type { Brain };
 
@@ -48,16 +48,21 @@ Object.assign(BRAINS, comics);
 Object.assign(BRAINS, leonidas);
 
 /** Dev boss lab: a boss's phase names and move info, without spawning it. */
-export function bossPhaseInfo(id: string): { names: string[]; info: string[]; fixed?: number } | null {
+export function bossPhaseInfo(id: string): { names: string[]; info: string[]; fixed?: number; cards?: PhaseCard[]; cardArt?: () => Record<string, () => HTMLCanvasElement> } | null {
   const make = BRAINS[id];
   if (!make) return null;
   const b = make();
   // a fixed phase count (Act 10's Sole Proprietor) doesn't read the arena
-  return { names: b.names, info: b.info, fixed: b.phases?.(null as never) };
+  return { names: b.names, info: b.info, fixed: b.phases?.(null as never), cards: b.cards, cardArt: b.cardArt?.bind(b) };
+}
+
+/** Every boss and mini-boss with a fight (for checks that each phase has its card). */
+export function bossIds(): string[] {
+  return Object.keys(BRAINS);
 }
 
 /** Runs every boss and mini-boss on the field: phases, moves and smack/stomp hooks. */
-const ENRAGED_INFO = 'Everything it does comes faster · finish it off';
+export const ENRAGED_INFO = 'Everything it does comes faster · finish it off';
 
 export class BossDirector {
   private brains = new Map<Foot, Brain>();
@@ -163,7 +168,8 @@ export class BossDirector {
     } else if (f.hp <= 0) f.hp = Math.max(1, Math.round(f.maxHp * 0.05)); // the final phase still gets its moment
     const name = b.names[f.phase - 1] || 'ENRAGED';
     const info = b.info[f.phase - 1] || ENRAGED_INFO;
-    this.a.banner(`PHASE ${f.phase}`, name, 'phase', info);
+    // the first time a player meets this phase, a card pauses the fight to show what to hit; otherwise the banner
+    this.a.phaseBanner(f, name, info);
     this.a.bossMove(f, name, info);
     this.a.sfx('sfx_phase');
     this.a.flash(220, 255, 220, 160);

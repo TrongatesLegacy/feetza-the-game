@@ -244,6 +244,23 @@ const milkshake = (): Brain => {
   return {
     names: ['BRAIN FREEZE', 'BOTTOMS UP'],
     info: ['Winds up a brain freeze that slows your peel · hold the peel over the hot water to melt it or stop it', 'Shielded at the top of a lane, it slurps a pizza through a straw · smack the straw before the pizza loses a slice'],
+    cards: [
+      {
+        what: 'It turns icy blue and winds up a brain freeze',
+        hit: 'Hold your peel over the hot water to melt it or stop it',
+        miss: 'Your peel is slowed for a few seconds',
+        show: [{ key: 'p_hotbowl', label: 'Hot water' }],
+      },
+      {
+        what: 'Shielded, it plants a straw in a pizza and slurps',
+        hit: 'Snap the straw before the milkshake reaches the top',
+        miss: 'That pizza loses a slice',
+        show: [
+          { key: 'p_straw', label: 'Straw', hits: (h) => h.hits(4) },
+          { key: 'p_hotbowl', label: 'Hot water' },
+        ],
+      },
+    ],
     // the bowl keeps working while the boss is stunned (its freeze timer still runs)
     upkeep: (_f, dt, a) => {
       if (!ready) setup(a);
@@ -434,6 +451,26 @@ const rinkqueen = (): Brain => {
   return {
     names: ['PUCK SHOT', 'ROLLING PIZZAS', 'SPEED DASH'],
     info: ['Shoots pucks at your peel · smack them back for damage', 'Whistles, then shuffles the pizzas around · follow the pizzas as they roll', 'Marks a line of pizzas and dashes through them · smack her 3 times during the wind-up'],
+    cards: [
+      {
+        what: 'She slaps pucks straight at your peel',
+        hit: 'Smack each puck back at her for damage',
+        miss: 'Your peel is stunned for a moment',
+        show: [{ key: 'p_puck', label: 'Puck', hits: 1 }],
+      },
+      {
+        what: 'She whistles, then the pizzas roll and swap places',
+        hit: 'Keep your eye on the pizzas as they roll',
+        miss: 'Lose track and you’ll guard the wrong pizza',
+        icon: '🔀',
+      },
+      {
+        what: 'She marks a line of pizzas and winds up a dash',
+        hit: 'Smack her 3 times during the wind-up',
+        miss: 'She dashes through the line: each pizza loses a slice',
+        show: [{ key: '@boss', label: 'Rink Queen', hits: 3 }],
+      },
+    ],
     update: (f, dt, a) => {
       const h = heat(a);
       busy -= dt;
@@ -501,6 +538,20 @@ const lumberjack = (): Brain => {
   return {
     names: ['TIMBER', 'DOUBLE CHOP'],
     info: ['Feet back off and a chainsaw comes down each lane in turn · smack each saw once before it reaches the pizza', 'Feet back off and he drops two axes in each lane he visits · smack every axe once'],
+    cards: [
+      {
+        what: 'Feet back off and a chainsaw comes down each lane in turn',
+        hit: 'Smack each chainsaw before it reaches the pizza',
+        miss: 'It saws that pizza in half',
+        show: [{ key: 'p_chainsaw', label: 'Chainsaw', hits: 1 }],
+      },
+      {
+        what: 'Feet back off and he drops two axes in each lane',
+        hit: 'Smack every axe before it lands',
+        miss: 'That pizza loses a slice',
+        show: [{ key: 'p_axe', label: 'Axe', hits: 1 }],
+      },
+    ],
     update: (f, dt, a) => {
       const h = heat(a);
       if (end || !next.tick(dt)) return;
@@ -613,6 +664,29 @@ const yeti = (): Brain => {
   return {
     names: ['ICICLES', 'SNOWBALLS', 'AVALANCHE'],
     info: ["Drops icicles on the pizza below it: a hit freezes the pizza's perk · smack them as they fall", 'Throws snowballs at your peel · smack them out of the air', 'Feet back off and big snowballs roll down every lane twice · smack each one before it lands'],
+    cards: [
+      {
+        what: 'It drops icicles on the pizza below it',
+        hit: 'Smack each icicle as it falls',
+        miss: 'That pizza’s perk freezes for a while',
+        show: [{ key: 'p_icicle', label: 'Icicle', hits: 1 }],
+      },
+      {
+        what: 'It hurls snowballs at your peel',
+        hit: 'Smack each snowball out of the air',
+        miss: 'Your peel is frozen for a moment',
+        show: [{ key: 'p_yetiball', label: 'Snowball', hits: 1 }],
+      },
+      {
+        what: 'Feet back off and big snowballs roll down every lane, twice',
+        hit: 'Smack each big snowball before it lands',
+        miss: 'That pizza loses a slice and its perk freezes',
+        show: [
+          { key: 'p_bigsnow', label: 'Big snowball', hits: 1 },
+          { key: 'p_yetiball', label: 'Snowball', hits: 1 },
+        ],
+      },
+    ],
     update: (f, dt, a) => {
       const h = heat(a);
       if (f.phase === 1 && icicle.tick(dt)) {
@@ -757,6 +831,20 @@ const poltergeist = (): Brain => {
   return {
     names: ['BITE', 'COUGH'],
     info: ['Marks a foot, then bites it: zombie feet are tougher and stomp harder, and each bite heals it · smack the marked foot first', 'Coughs on a pizza: it eats its own slices and its perk stops · click the pizza to cure it'],
+    cards: [
+      {
+        what: 'It marks a nearby foot, then lunges over and bites it',
+        hit: 'Smack the marked foot down before the bite lands',
+        miss: 'It turns zombie: tougher, harder stomps, and the boss heals',
+        show: [{ key: 'p_reticle', label: 'Marked foot' }],
+      },
+      {
+        what: 'It coughs a green cloud onto a pizza',
+        hit: 'Click the sick pizza to cure it',
+        miss: 'The pizza eats its own slices and its perk stops',
+        show: [{ key: 'p_cough', label: 'Sick pizza', hits: (h) => h.hits(4) }],
+      },
+    ],
     upkeep: (_f, dt, a) => {
       // a whiff of green stink off every zombie foot and the sick pizza, now and then
       stinkT -= dt;
@@ -1031,6 +1119,29 @@ const phantomking = (): Brain => {
   return {
     names: ['FADE', 'ECHOES', 'POSSESSION'],
     info: ['Fades out between stomps · hit it while it is solid', 'Only echoes of past bosses join it, each with one weak move · clear them fast and stop their moves', 'Possesses a pizza, then hops to another every 8 s · Peel Slam while the Ghost is solid'],
+    cards: [
+      {
+        what: 'The Ghost fades out between stomps',
+        hit: 'Hit it while it’s solid',
+        miss: 'Smacks pass straight through it while it fades',
+        show: [{ key: '@boss', label: 'Solid Ghost' }],
+      },
+      {
+        what: 'Echoes of past bosses rise, each with one weak move',
+        hit: 'Smack the echoes, and bat back anything they throw',
+        miss: 'Their moves land: lost slices, or a stunned or splatted peel',
+        show: [
+          { key: '@foot:bigfoot', label: 'Echo', tint: ECHO_TINT },
+          { key: 'p_slipper', label: 'Thrown at you', hits: 1 },
+        ],
+      },
+      {
+        what: 'The Ghost possesses a pizza and turns its perk against you',
+        hit: 'Peel Slam while the Ghost is solid to break the curse',
+        miss: 'The curse hops to another pizza every 8 s',
+        icon: '👻',
+      },
+    ],
     // the Fade: a ghostly whoosh each time he phases out (runs while stunned too, so no flip is missed)
     upkeep: (f, _dt, a) => {
       if (f.phased && !wasPhased) a.sfx('sfx_phantomking_fade', { throttle: 500 });

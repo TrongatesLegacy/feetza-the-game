@@ -522,6 +522,74 @@ export function setGame(g: Phaser.Game): void {
   gameRef = g;
 }
 
+/** A registered texture (or one drawn on demand by `lazy`), trimmed to what's drawn and fitted into a w × h
+ *  canvas, for DOM cards (phase cards). Null when there's no such texture. */
+export function textureCanvas(key: string, w: number, h: number, lazy?: () => HTMLCanvasElement, tint?: number): HTMLCanvasElement | null {
+  let src: CanvasImageSource | null = null;
+  let sx = 0;
+  let sy = 0;
+  let sw = 0;
+  let sh = 0;
+  if (gameRef?.textures.exists(key)) {
+    const tex = gameRef.textures.get(key);
+    const fr = tex.get();
+    src = tex.getSourceImage() as CanvasImageSource;
+    [sx, sy, sw, sh] = [fr.cutX, fr.cutY, fr.cutWidth, fr.cutHeight];
+  } else if (lazy) {
+    const c = lazy();
+    src = c;
+    [sw, sh] = [c.width, c.height];
+  }
+  if (!src || sw < 1 || sh < 1) return null;
+  // trim the empty margin: find what's drawn on a small copy
+  const k = Math.min(1, 256 / Math.max(sw, sh));
+  const tw = Math.max(1, Math.round(sw * k));
+  const th = Math.max(1, Math.round(sh * k));
+  const tmp = document.createElement('canvas');
+  tmp.width = tw;
+  tmp.height = th;
+  const tc = tmp.getContext('2d', { willReadFrequently: true })!;
+  tc.drawImage(src, sx, sy, sw, sh, 0, 0, tw, th);
+  const px = tc.getImageData(0, 0, tw, th).data;
+  let [x0, y0, x1, y1] = [tw, th, -1, -1];
+  for (let y = 0; y < th; y++)
+    for (let x = 0; x < tw; x++)
+      if (px[(y * tw + x) * 4 + 3] > 10) {
+        if (x < x0) x0 = x;
+        if (x > x1) x1 = x;
+        if (y < y0) y0 = y;
+        if (y > y1) y1 = y;
+      }
+  if (x1 >= x0 && y1 >= y0) {
+    const nx = sx + Math.max(0, x0 - 1) / k;
+    const ny = sy + Math.max(0, y0 - 1) / k;
+    sw = Math.min(sx + sw, sx + (x1 + 2) / k) - nx;
+    sh = Math.min(sy + sh, sy + (y1 + 2) / k) - ny;
+    sx = nx;
+    sy = ny;
+  }
+  const out = document.createElement('canvas');
+  out.width = w;
+  out.height = h;
+  const ctx = out.getContext('2d')!;
+  const f = Math.min(w / sw, h / sh);
+  const dw = sw * f;
+  const dh = sh * f;
+  const at = [sx, sy, sw, sh, (w - dw) / 2, (h - dh) / 2, dw, dh] as const;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(src, ...at);
+  if (tint !== undefined) {
+    // multiply the drawing by the tint, as Phaser's setTint does, keeping its alpha
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.fillStyle = `#${tint.toString(16).padStart(6, '0')}`;
+    ctx.fillRect(0, 0, w, h);
+    ctx.globalCompositeOperation = 'destination-in';
+    ctx.drawImage(src, ...at);
+    ctx.globalCompositeOperation = 'source-over';
+  }
+  return out;
+}
+
 /** A registered canvas texture as a data URL (for DOM menus such as the Pizzapedia). */
 export function textureURL(key: string): string {
   const k = `tex:${key}`;
