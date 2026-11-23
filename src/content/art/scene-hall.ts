@@ -83,6 +83,8 @@ export const HK = {
 };
 
 const P2 = Math.PI * 2;
+/** How deep the dais's treads look, seen from just above. */
+const TREAD = 14;
 const STONE = ['#8a8174', '#7e776c', '#958b7c', '#837a6e', '#787068'];
 const STONE_MID = '#837a6e';
 const OAK = '#4e321e';
@@ -1319,7 +1321,7 @@ function bannerLight(ctx: Ctx): void {
 
 function dossal(ctx: Ctx, r: R): void {
   const { x0, x1, top } = HK.dossal;
-  const bot = HK.dais.y;
+  const bot = HK.dais.y - TREAD;
   const cloth = rectPath(x0, top, x1 - x0, bot - top);
   aoHalo(ctx, cloth, 30, 0.45, '#08060a', 6);
   castShadow(ctx, cloth, 10, 16, 0.5);
@@ -1413,8 +1415,27 @@ function dossal(ctx: Ctx, r: R): void {
 function throne(ctx: Ctx, r: R): void {
   const { x, top, seat, hw } = HK.throne;
   const d = HK.dais;
+  /** It stands part-way back on the top tread. */
+  const fl = d.y - TREAD * 0.4;
   // the dais: two broad steps of the same stone, the top one worn hollow in the middle
   for (const [y, h, w] of [[d.y + 26, TY - d.y - 26 + 2, d.hw + 40], [d.y, 26, d.hw]] as const) {
+    // the tread: the step's top, seen from just above, running back to the wall
+    const tread: PathFn = (c) => {
+      c.beginPath();
+      c.moveTo(x - w, y);
+      c.lineTo(x + w, y);
+      c.lineTo(x + w - TREAD, y - TREAD);
+      c.lineTo(x - w + TREAD, y - TREAD);
+      c.closePath();
+    };
+    dressed(ctx, r, tread, { x: x - w, y: y - TREAD, w: w * 2, h: TREAD });
+    within(ctx, tread, () => {
+      nightLight(ctx, { x: x - w, y: y - TREAD, w: w * 2, h: TREAD });
+      vfill(ctx, x - w, y - TREAD, w * 2, TREAD, [[0, 'rgba(8,6,10,0.5)'], [0.5, rgba('#ffd8b0', 0.06)], [1, rgba('#ffe0c0', 0.16)]]);
+    });
+    // its worn front edge catches the light
+    ctx.fillStyle = rgba('#e8d8c0', 0.22);
+    ctx.fillRect(x - w + 2, y - 1, w * 2 - 4, 2);
     const st = rectPath(x - w, y, w * 2, h);
     castShadow(ctx, st, 6, 10, 0.5);
     dressed(ctx, r, st, { x: x - w, y, w: w * 2, h });
@@ -1433,7 +1454,8 @@ function throne(ctx: Ctx, r: R): void {
       ctx.stroke();
     }
   }
-  crevice(ctx, x - d.hw, x + d.hw, d.y, -10, 0.45);
+  crevice(ctx, x - d.hw + TREAD, x + d.hw - TREAD, d.y - TREAD, 8, 0.5);
+  groundShadow(ctx, x + 6, fl + 1, hw + 40, 7, 0.7);
   // the back: a tall panel with a gable and pinnacled posts, the crimson cloth of its seat-back inside a carved frame
   const back = (c: Ctx) => {
     c.beginPath();
@@ -1513,10 +1535,10 @@ function throne(ctx: Ctx, r: R): void {
   // the posts: square oak, pinnacles, the arms running forward
   for (const s of [-1, 1]) {
     const px = x + s * (hw - 10);
-    const pp = rectPath(px - 12, top + 70, 24, d.y - top - 70);
+    const pp = rectPath(px - 12, top + 70, 24, fl - top - 70);
     castShadow(ctx, pp, 12, 14, 0.55);
-    solid(ctx, pp, { x: px - 12, y: top + 70, w: 24, h: d.y - top - 70 }, 'wood', shade(OAK, 0.05), { depth: 0.14, line: 1.6, formSize: 5 });
-    within(ctx, pp, () => woodGrain(ctx, r, { x: px - 12, y: top + 70, w: 24, h: d.y - top - 70 }, OAK, true, 0.5));
+    solid(ctx, pp, { x: px - 12, y: top + 70, w: 24, h: fl - top - 70 }, 'wood', shade(OAK, 0.05), { depth: 0.14, line: 1.6, formSize: 5 });
+    within(ctx, pp, () => woodGrain(ctx, r, { x: px - 12, y: top + 70, w: 24, h: fl - top - 70 }, OAK, true, 0.5));
     const pin = (c: Ctx) => {
       c.beginPath();
       c.moveTo(px - 13, top + 72);
@@ -1531,27 +1553,27 @@ function throne(ctx: Ctx, r: R): void {
     ctx.fill();
   }
   // the seat and its front: a box carved with blind arcading, a crimson cushion
-  const front = rectPath(x - hw + 2, seat, hw * 2 - 4, d.y - seat);
+  const front = rectPath(x - hw + 2, seat, hw * 2 - 4, fl - seat);
   castShadow(ctx, front, 10, 14, 0.55);
-  solid(ctx, front, { x: x - hw, y: seat, w: hw * 2, h: d.y - seat }, 'wood', OAK, { depth: 0.14, line: 1.6, formSize: 8 });
+  solid(ctx, front, { x: x - hw, y: seat, w: hw * 2, h: fl - seat }, 'wood', OAK, { depth: 0.14, line: 1.6, formSize: 8 });
   within(ctx, front, () => {
-    woodGrain(ctx, r, { x: x - hw, y: seat, w: hw * 2, h: d.y - seat }, OAK, false, 0.5);
+    woodGrain(ctx, r, { x: x - hw, y: seat, w: hw * 2, h: fl - seat }, OAK, false, 0.5);
     for (let i = 0; i < 5; i++) {
       const ax = x - hw + 22 + i * ((hw * 2 - 44) / 4);
       ctx.fillStyle = 'rgba(8,4,2,0.45)';
       ctx.beginPath();
-      ctx.moveTo(ax - 13, d.y - 12);
+      ctx.moveTo(ax - 13, fl - 12);
       ctx.lineTo(ax - 13, seat + 38);
       ctx.quadraticCurveTo(ax - 13, seat + 20, ax, seat + 18);
       ctx.quadraticCurveTo(ax + 13, seat + 20, ax + 13, seat + 38);
-      ctx.lineTo(ax + 13, d.y - 12);
+      ctx.lineTo(ax + 13, fl - 12);
       ctx.closePath();
       ctx.fill();
       ctx.strokeStyle = rgba('#d0a870', 0.18);
       ctx.lineWidth = 1.2;
       ctx.stroke();
     }
-    vfill(ctx, x - hw, seat, hw * 2, d.y - seat, [[0, rgba('#ffd0a0', 0.12)], [0.15, 'rgba(0,0,0,0)'], [1, 'rgba(6,3,2,0.4)']]);
+    vfill(ctx, x - hw, seat, hw * 2, fl - seat, [[0, rgba('#ffd0a0', 0.12)], [0.15, 'rgba(0,0,0,0)'], [1, 'rgba(6,3,2,0.4)']]);
   });
   const cush = rrPath(x - hw + 14, seat - 14, hw * 2 - 28, 18, 8);
   solid(ctx, cush, { x: x - hw + 14, y: seat - 14, w: hw * 2 - 28, h: 18 }, 'canvas', '#7a1622', { depth: 0.14, line: 1.4, formSize: 6, spec: false });
@@ -1564,12 +1586,12 @@ function throne(ctx: Ctx, r: R): void {
   // the arms, seen end on: front posts from the dais up past the seat, capped with a gilt knob
   for (const s of [-1, 1]) {
     const ax = x + s * (hw + 4);
-    const ap = rrPath(ax - 13, seat - 58, 26, d.y - seat + 58, 5);
+    const ap = rrPath(ax - 13, seat - 58, 26, fl - seat + 58, 5);
     castShadow(ctx, ap, 10, 12, 0.55);
-    solid(ctx, ap, { x: ax - 13, y: seat - 58, w: 26, h: d.y - seat + 58 }, 'wood', shade(OAK, 0.08), { depth: 0.13, line: 1.6, formSize: 5 });
+    solid(ctx, ap, { x: ax - 13, y: seat - 58, w: 26, h: fl - seat + 58 }, 'wood', shade(OAK, 0.08), { depth: 0.13, line: 1.6, formSize: 5 });
     within(ctx, ap, () => {
-      woodGrain(ctx, r, { x: ax - 13, y: seat - 58, w: 26, h: d.y - seat + 58 }, OAK, true, 0.5);
-      vfill(ctx, ax - 13, seat - 58, 26, d.y - seat + 58, [[0, rgba('#ffd0a0', 0.1)], [0.3, 'rgba(0,0,0,0)'], [1, 'rgba(6,3,2,0.45)']]);
+      woodGrain(ctx, r, { x: ax - 13, y: seat - 58, w: 26, h: fl - seat + 58 }, OAK, true, 0.5);
+      vfill(ctx, ax - 13, seat - 58, 26, fl - seat + 58, [[0, rgba('#ffd0a0', 0.1)], [0.3, 'rgba(0,0,0,0)'], [1, 'rgba(6,3,2,0.45)']]);
     });
     const knob = (c: Ctx) => {
       c.beginPath();
@@ -1577,7 +1599,12 @@ function throne(ctx: Ctx, r: R): void {
     };
     solid(ctx, knob, { x: ax - 12, y: seat - 71, w: 24, h: 18 }, 'chrome', '#a8843a', { depth: 0.13, line: 1.3, formSize: 3 });
   }
-  crevice(ctx, x - hw, x + hw, d.y, -12, 0.5);
+  // where it stands: a heavy oak plinth on the tread, its shadow pooled round it
+  const plinth = rrPath(x - hw - 22, fl - 12, (hw + 22) * 2, 14, 3);
+  solid(ctx, plinth, { x: x - hw - 22, y: fl - 12, w: (hw + 22) * 2, h: 14 }, 'wood', shade(OAK, -0.1), { depth: 0.12, line: 1.6, formSize: 5 });
+  ctx.fillStyle = rgba('#ffd0a0', 0.18);
+  ctx.fillRect(x - hw - 20, fl - 12, (hw + 20) * 2, 2);
+  crevice(ctx, x - hw - 24, x + hw + 24, fl + 2, -16, 0.55);
   // the hall's light barely reaches it: the far braziers warm its outer edges only
   rim(ctx, back, 0.18, 3, '#ffb070');
 }
