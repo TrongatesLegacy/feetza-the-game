@@ -1305,13 +1305,55 @@ function brazier(ctx: Ctx, b: (typeof TF.braziers)[number]): void {
     // a clawed gold foot
     gold(ctx, ellPath(x1, y1 - 3, w * 1.6, w * 0.9), { x: x1 - w * 1.6, y: y1 - 3 - w, w: w * 3.2, h: w * 2 }, 1.6);
   };
-  leg(x + 6, y + 30, x + 20, foot - 14, 6, true);
-  leg(x - 20, y + 26, x - 58, foot, 8);
-  leg(x + 20, y + 26, x + 58, foot, 8);
-  // the stem and its knot
-  block(ctx, rectPath(x - 9, y + 30, 18, foot - y - 80), { x: x - 9, y: y + 30, w: 18, h: foot - y - 80 }, { bevel: 2.5, t0: 0.1, t1: 0.8, inkW: 2.2, step: 4 });
-  gold(ctx, ellPath(x, foot - 70, 18, 12), { x: x - 18, y: foot - 82, w: 36, h: 24 }, 2);
-  gold(ctx, ellPath(x, y + 46, 22, 9), { x: x - 22, y: y + 37, w: 44, h: 18 }, 2);
+  // a tripod: the back leg runs back and down behind the stand (darker, thinner, its foot further up the flags), the
+  // two front legs splay out towards us; all three meet in a gold collar under the bowl and are bound by a gold ring
+  // a little over half way down (its far half behind the front legs, its near half over them)
+  const ringY = y + 40 + (foot - y - 40) * 0.58;
+  const ringRx = 20 + 38 * 0.58;
+  const ringRy = 7;
+  const ring = (from: number, to: number) => {
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 7.5;
+    ctx.beginPath();
+    ctx.ellipse(x, ringY, ringRx, ringRy, 0, from, to);
+    ctx.stroke();
+    ctx.strokeStyle = from === 0 ? GOLD : '#7a5a1e';
+    ctx.lineWidth = 4.5;
+    ctx.stroke();
+    if (from === 0) {
+      ctx.strokeStyle = GOLD_LIT;
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.ellipse(x, ringY - 1, ringRx, ringRy, 0, Math.PI * 0.55, Math.PI * 0.95);
+      ctx.stroke();
+    }
+    ctx.restore();
+  };
+  leg(x + 4, y + 36, x + 12, foot - 30, 5, true);
+  ring(Math.PI, P2);
+  leg(x - 16, y + 36, x - 58, foot, 8);
+  leg(x + 16, y + 36, x + 58, foot, 8);
+  ring(0, Math.PI);
+  // the collar: a short gold drum the legs come out of, the bowl's foot sitting in it
+  const cTop = y + BOWL.depth - 6;
+  const cBot = y + 46;
+  const collar: PathFn = (c) => {
+    c.beginPath();
+    c.ellipse(x, cTop, 21, 5, 0, Math.PI, P2);
+    c.lineTo(x + 19, cBot);
+    c.ellipse(x, cBot, 19, 6, 0, 0, Math.PI);
+    c.closePath();
+  };
+  gold(ctx, collar, { x: x - 21, y: cTop - 5, w: 42, h: cBot - cTop + 12 }, 2);
+  ctx.save();
+  ctx.strokeStyle = rgba(GOLD_DK, 0.9);
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.ellipse(x, (cTop + cBot) / 2 + 1, 20, 5.5, 0, 0.1, Math.PI - 0.1);
+  ctx.stroke();
+  ctx.restore();
   // the bowl's back: its inner wall and the star-coals glowing in it
   const inner = ellPath(x, y, BOWL.rx - 3, BOWL.ry - 2);
   flat(ctx, inner, '#3a1a5a', 0, INK);
@@ -1707,6 +1749,14 @@ function tableProps(ctx: Ctx, r: R): void {
   ctx.stroke();
   ctx.restore();
   ink(ctx, lid, 2.2, INK, 0.4);
+  // the lid's thickness, its right edge turned to us like the box's end
+  {
+    const lx = at(bx1, top, back);
+    const edge = polyPath([[lx, back], [lx + 5, back - 2], [lx - 1, back - 53], [lx - 6, back - 50]]);
+    gold(ctx, edge, { x: lx - 6, y: back - 53, w: 11, h: 53 }, 1.4);
+    const topEdge = polyPath([[at(bx0, top, back) + 6, back - 50], [lx - 6, back - 50], [lx - 1, back - 53], [at(bx0, top, back) + 11, back - 53]]);
+    gold(ctx, topEdge, { x: bx0, y: back - 53, w: lx - bx0, h: 3 }, 1.2);
+  }
   // the box: its top (the velvet tray), its front
   const tp = topOf(bx0, bx1, top, back);
   flat(ctx, tp, '#5a1e52', 0, INK);
@@ -1714,9 +1764,9 @@ function tableProps(ctx: Ctx, r: R): void {
     for (let i = 0; i < 6; i++) {
       const row = Math.floor(i / 3);
       const col = i % 3;
-      const yy = back + 5 + row * 9;
+      const yy = back + 6.5 + row * 6.5;
       const xx = at(bx0 + 32 + col * 50, top, yy);
-      const hollow = ellPath(xx, yy, 11, 4);
+      const hollow = ellPath(xx, yy, 11, 3.2);
       flat(ctx, hollow, '#14041a', 0, INK);
       within(ctx, hollow, () => {
         const gg = ctx.createRadialGradient(xx, yy + 1, 0, xx, yy + 1, 12);
@@ -1728,6 +1778,26 @@ function tableProps(ctx: Ctx, r: R): void {
     }
   });
   ink(ctx, tp, 2, INK, 0);
+  // the walls' thickness round the tray: a rim along the front and down the right, the far walls' inner faces
+  const rim = 5;
+  const bk0 = at(bx0, top, back);
+  const bk1 = at(bx1, top, back);
+  const innerFar = polyPath([[bk0 + rim, back], [bk1 - rim, back], [bk1 - rim, back + 3], [bk0 + rim, back + 3]]);
+  flat(ctx, innerFar, '#2a1438', 0, INK);
+  const innerRight = polyPath([[bk1 - rim, back], [bk1 - rim, back + 3], [bx1 - rim, top - 1], [bx1 - rim, top - 3]]);
+  flat(ctx, innerRight, '#22102e', 0, INK);
+  const rimFront = polyPath([[bx0, top], [bx1, top], [bx1 - rim, top - 2.5], [bx0 + rim, top - 2.5]]);
+  gold(ctx, rimFront, { x: bx0, y: top - 2.5, w: bx1 - bx0, h: 2.5 }, 1.2);
+  const rimRight = polyPath([[bx1, top], [bk1, back], [bk1 - rim, back + 0.5], [bx1 - rim, top - 2.5]]);
+  gold(ctx, rimRight, { x: bx1 - rim, y: back, w: bk1 - bx1 + rim, h: top - back }, 1.2);
+  const rimLeft = polyPath([[bx0, top], [bk0, back], [bk0 + rim, back + 0.5], [bx0 + rim, top - 2.5]]);
+  gold(ctx, rimLeft, { x: bx0, y: back, w: bk0 - bx0 + rim, h: top - back }, 1.2);
+  // the right end: the casket sits left of the vanishing point, so its right side turns to us, foreshortened
+  const sk = (back - HY) / (top - HY);
+  const side = polyPath([[bx1, top], [bk1, back], [bk1, back + 34 * sk], [bx1, top + 34]]);
+  block(ctx, side, { x: bx1, y: back, w: bk1 - bx1, h: top + 34 - back }, { base: '#2a1e4a', lit: '#5a4a88', bevel: 2, t0: 0.4, t1: 0.9, inkW: 2.4, step: 4 });
+  gold(ctx, polyPath([[bx1, top + 2], [bk1, back + 2 * sk], [bk1, back + 8 * sk], [bx1, top + 8]]), { x: bx1, y: back, w: bk1 - bx1, h: top + 8 - back }, 1.2);
+  gold(ctx, polyPath([[bk1 - 3, back], [bk1 + 1, back], [bk1 + 1, back + 34 * sk], [bk1 - 3, back + 34 * sk]]), { x: bk1 - 3, y: back, w: 4, h: 34 * sk }, 1.2);
   const front = rectPath(bx0, top, bx1 - bx0, 34);
   block(ctx, front, { x: bx0, y: top, w: bx1 - bx0, h: 34 }, { base: '#3a2a5e', lit: '#7a6aa8', bevel: 3, t0: 0.05, t1: 0.7, inkW: 2.4, step: 4 });
   gold(ctx, rectPath(bx0, top + 2, bx1 - bx0, 6), { x: bx0, y: top + 2, w: bx1 - bx0, h: 6 }, 1.4);
