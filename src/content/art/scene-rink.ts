@@ -688,63 +688,158 @@ function letterboard(c: Ctx, text: string, col: string): void {
   c.stroke();
 }
 
-/** The DJ at the decks, nodding (phase 0…1 of a beat pair). Painted in the booth's window. */
-const DJ = { x: 1615, y: BT.win, box: { x: 1560, y: 318, w: 110, h: 68 } };
-function djFrame(c: Ctx, ph: number): void {
+/** The DJ at the decks (phase 0…1 of two beats): seen from the front over the console, aviator shades and a
+ * moustache, the headphones' cup held to one ear, the other hand scratching the record on the deck, nodding on the
+ * beat. `startled` (1, 2): the record skips when the ledge is hit: head up, mouth open, both hands lifted. Painted
+ * in the booth's window; the console's front edge (the base's) covers the body's foot. */
+const DJ = { x: 1612, y: BT.win - 6, box: { x: 1536, y: 312, w: 156, h: 72 } };
+function djFrame(c: Ctx, ph: number, startled = 0): void {
   const x = DJ.x;
   const y = DJ.y;
-  const nod = Math.sin(ph * P2 * 2) * 0.5 + 0.5;
-  // shoulders and the T-shirt, lit from the deck lamp at the left and the console's glow below
-  c.save();
-  const body = (g: Ctx) => {
-    g.beginPath();
-    g.moveTo(x - 34, y + 2);
-    g.quadraticCurveTo(x - 32, y - 30, x - 12, y - 34);
-    g.lineTo(x + 12, y - 34);
-    g.quadraticCurveTo(x + 32, y - 30, x + 34, y + 2);
-    g.closePath();
-  };
-  const bg = c.createLinearGradient(x - 30, 0, x + 30, 0);
-  bg.addColorStop(0, '#7a4a3a');
-  bg.addColorStop(0.5, '#3a2430');
-  bg.addColorStop(1, '#1a1220');
-  c.fillStyle = bg;
-  body(c);
+  const beat = Math.sin(ph * P2 * 2);
+  const nod = startled ? -1 : Math.max(0, beat) ** 1.5;
+  const scratch = startled ? 0 : Math.sin(ph * P2 * 4) * 7;
+  const sy = nod * 1.6;
+  // the record on its deck, on the console in front of him
+  const rx = x + 34;
+  const ry = y - 3;
+  c.fillStyle = '#2a2630';
+  c.fillRect(rx - 26, ry - 2, 52, 8);
+  c.fillStyle = INK;
+  c.beginPath();
+  c.ellipse(rx, ry - 2, 22, 5, 0, 0, P2);
   c.fill();
-  c.strokeStyle = INK;
-  c.lineWidth = 1.4;
+  c.fillStyle = '#141018';
+  c.beginPath();
+  c.ellipse(rx, ry - 2.5, 20, 4.2, 0, 0, P2);
+  c.fill();
+  c.fillStyle = '#e03a5a';
+  c.beginPath();
+  c.ellipse(rx + scratch * 0.15, ry - 2.5, 6, 1.4, 0, 0, P2);
+  c.fill();
+  c.strokeStyle = 'rgba(200,190,230,0.35)';
+  c.lineWidth = 0.8;
+  c.beginPath();
+  c.ellipse(rx, ry - 2.5, 14, 2.9, 0, Math.PI * 1.1, Math.PI * 1.7);
   c.stroke();
-  // the head, tipping forward on the beat
-  c.translate(x, y - 34);
-  c.rotate(0.12 * nod);
-  c.translate(0, -2 + nod * 2);
-  c.fillStyle = '#5a3426';
-  c.fillRect(-4, -6, 8, 8);
-  const hg = c.createRadialGradient(-5, -16, 1, 0, -14, 13);
-  hg.addColorStop(0, '#c88a68');
-  hg.addColorStop(1, '#5a3424');
+  // the shoulders, a satin shirt with a big collar, lit warm from the gooseneck lamp on the left
+  c.save();
+  c.translate(0, sy);
+  const shirt = c.createLinearGradient(x - 34, 0, x + 34, 0);
+  shirt.addColorStop(0, '#e0784a');
+  shirt.addColorStop(0.45, '#b0402e');
+  shirt.addColorStop(1, '#4a1a24');
+  poly(c, [[x - 36, y + 4], [x - 34, y - 24], [x - 16, y - 34], [x + 16, y - 34], [x + 34, y - 24], [x + 36, y + 4]], shirt, 2);
+  poly(c, [[x - 12, y - 34], [x, y - 22], [x - 4, y - 34]], '#f0c8a0', 1.2);
+  poly(c, [[x - 14, y - 34], [x - 3, y - 20], [x - 18, y - 26]], '#e8905a', 1.4);
+  poly(c, [[x + 14, y - 34], [x + 3, y - 20], [x + 18, y - 26]], '#8a2a2a', 1.4);
+  // the arms: left hand up at the headphone cup, right hand down on the record
+  const lsh: Pt = [x - 28, y - 26];
+  const rsh: Pt = [x + 28, y - 26];
+  const lel: Pt = startled ? [x - 40, y - 20] : [x - 38, y - 10];
+  const lhand: Pt = startled ? [x - 30, y - 40] : [x - 20, y - 42];
+  const rel: Pt = startled ? [x + 44, y - 18] : [x + 42, y - 8];
+  const rhand: Pt = startled ? [x + 46, y - 36] : [x + 32 + scratch, y - 6];
+  seg(c, lsh, lel, 10, 8, '#c45434');
+  seg(c, lel, lhand, 8, 6, '#a8644a');
+  seg(c, rsh, rel, 10, 8, '#7a2a2a');
+  seg(c, rel, rhand, 8, 6, '#8a5038');
+  for (const h of [lhand, rhand]) {
+    c.fillStyle = INK;
+    c.beginPath();
+    c.arc(h[0], h[1], 4.6, 0, P2);
+    c.fill();
+    c.fillStyle = '#b0704e';
+    c.beginPath();
+    c.arc(h[0], h[1], 3.4, 0, P2);
+    c.fill();
+  }
+  c.restore();
+  // the head, tipping into the nod (or snapping up)
+  c.save();
+  c.translate(x, y - 46 + sy * 1.6);
+  c.rotate(startled ? -0.08 : 0.06 * nod);
+  // big hair behind
+  c.fillStyle = INK;
+  c.beginPath();
+  c.ellipse(0, -6, 17, 15, 0, 0, P2);
+  c.fill();
+  const hg = c.createRadialGradient(-6, -14, 1, 0, -6, 17);
+  hg.addColorStop(0, '#5a3a2a');
+  hg.addColorStop(1, '#1e120e');
   c.fillStyle = hg;
   c.beginPath();
-  c.ellipse(0, -14, 10, 12, 0, 0, P2);
+  c.ellipse(0, -6, 15.6, 13.6, 0, 0, P2);
   c.fill();
+  // the face
+  c.fillStyle = INK;
+  c.beginPath();
+  c.ellipse(0, 2, 10.6, 12.4, 0, 0, P2);
+  c.fill();
+  const fg = c.createRadialGradient(-4, -2, 1, 0, 2, 12);
+  fg.addColorStop(0, '#e0a07a');
+  fg.addColorStop(1, '#8a5038');
+  c.fillStyle = fg;
+  c.beginPath();
+  c.ellipse(0, 2, 9.4, 11.2, 0, 0, P2);
+  c.fill();
+  // aviators (the room's lights in them), brows, the moustache, the mouth
+  for (const sx of [-1, 1]) {
+    c.fillStyle = '#2a1a24';
+    c.beginPath();
+    c.ellipse(sx * 4.4, 0, 4, 3.4, 0, 0, P2);
+    c.fill();
+    c.fillStyle = 'rgba(255,170,220,0.7)';
+    c.fillRect(sx * 4.4 - 2, -1.6, 2, 1);
+  }
+  c.fillStyle = '#c89a3a';
+  c.fillRect(-1, -0.6, 2, 1);
+  c.strokeStyle = '#2a160e';
+  c.lineWidth = 1.4;
+  for (const sx of [-1, 1]) {
+    c.beginPath();
+    c.moveTo(sx * 2, startled ? -7 : -4.5);
+    c.lineTo(sx * 8, startled ? -8 : -4.8);
+    c.stroke();
+  }
+  c.fillStyle = '#2a160e';
+  c.beginPath();
+  c.moveTo(-6, 6.5);
+  c.quadraticCurveTo(0, 3.5, 6, 6.5);
+  c.quadraticCurveTo(0, 6, -6, 6.5);
+  c.fill();
+  if (startled) {
+    c.fillStyle = '#4a1418';
+    c.beginPath();
+    c.ellipse(0, 9, 2.4, 2.8, 0, 0, P2);
+    c.fill();
+  } else {
+    c.strokeStyle = '#4a1418';
+    c.lineWidth = 1.2;
+    c.beginPath();
+    c.arc(0, 6.5, 3.4, 0.4, Math.PI - 0.4);
+    c.stroke();
+  }
+  // the headphones: the band over the hair, a cup on each ear (the left one held)
+  c.strokeStyle = INK;
+  c.lineWidth = 4.4;
+  c.beginPath();
+  c.arc(0, -2, 15, Math.PI * 1.08, Math.PI * 1.92);
   c.stroke();
-  // the hair, the headphones' band and cups
-  c.fillStyle = '#1a1014';
-  c.beginPath();
-  c.ellipse(0, -21, 12, 8, 0, Math.PI, P2);
-  c.fill();
-  c.strokeStyle = '#2a2a30';
-  c.lineWidth = 3;
-  c.beginPath();
-  c.arc(0, -15, 13, Math.PI * 1.05, Math.PI * 1.95);
+  c.strokeStyle = '#4a4656';
+  c.lineWidth = 2.4;
   c.stroke();
   for (const sx of [-1, 1]) {
-    c.fillStyle = '#16141a';
+    c.fillStyle = INK;
     c.beginPath();
-    c.ellipse(sx * 11.5, -13, 4, 6, 0, 0, P2);
+    c.ellipse(sx * 12.5, 1, 5, 6.6, 0, 0, P2);
     c.fill();
-    c.fillStyle = 'rgba(255,120,200,0.7)';
-    c.fillRect(sx * 11.5 - 1, -16, 2, 2);
+    c.fillStyle = sx < 0 ? '#5a5664' : '#2e2a36';
+    c.beginPath();
+    c.ellipse(sx * 12.5, 1, 3.8, 5.4, 0, 0, P2);
+    c.fill();
+    c.fillStyle = 'rgba(255,110,190,0.8)';
+    c.fillRect(sx * 12.5 - 1, -1, 2, 2);
   }
   c.restore();
 }
@@ -1571,29 +1666,67 @@ export const RINK: SceneSpec = {
 };
 
 // ——— live: the skaters ———
+//
+// Four skaters, each their own build and way of skating (not colour swaps): a tall speed skater crouched low with
+// a hand behind her back, a kid with arms out for balance, a girl in a skater dress, and a showboat skating
+// backwards with a disco point. In the couples skate the girl and the showboat take hands (their own frames), he
+// skating backwards in front of her. One rig: tapered limbs bending at knees and elbows through a push, a glide
+// and a recovery, the weight bobbing and shifting; clothes and hair following through. Painted at the near lane's
+// size, baked at SK.k and drawn back up.
 
-interface Outfit {
+type ArmMode = 'swing' | 'speed' | 'out' | 'flair' | 'reach';
+interface Build {
+  /** Overall size, head size (kid: big head), hip height, thigh and shin, torso length. */
+  s: number;
+  head: number;
+  hip: number;
+  thigh: number;
+  shin: number;
+  torso: number;
+  /** Limb thickness, chest and hip half-widths. */
+  w: number;
+  chest: number;
+  hips: number;
+  /** Torso lean (rad, forward), stride length, bounce. */
+  lean: number;
+  stride: number;
+  bounce: number;
+  arms: ArmMode;
+  /** Skates backwards (pushes forward, travels the other way). */
+  back?: boolean;
+}
+interface Look {
   skin: string;
   hair: string;
-  style: 'pony' | 'afro' | 'curls';
+  style: 'pony' | 'afro' | 'bob' | 'helmet' | 'long';
   top: string;
-  stripe: string;
-  legs: 'shorts' | 'jeans';
+  trim: string;
+  /** What's below the top: a skater dress, flared trousers, shorts and socks, a skinsuit. */
+  lower: 'skirt' | 'flares' | 'shorts' | 'suit';
   pants: string;
-  socks: string;
-  sockStripe: string;
+  sock: string;
   boot: string;
   wheel: string;
+  /** A jacket whose hem swings. */
+  jacket?: boolean;
+  shades?: boolean;
 }
-const OUTFITS: Outfit[] = [
-  { skin: '#f0c4a0', hair: '#e8c060', style: 'pony', top: '#e04a86', stripe: '#fff4f8', legs: 'shorts', pants: '#f4f0f4', socks: '#ffffff', sockStripe: '#e04a86', boot: '#f4f2ee', wheel: '#ff6ab0' },
-  { skin: '#8a5a3a', hair: '#2e1e16', style: 'afro', top: '#1a9a98', stripe: '#f0d060', legs: 'jeans', pants: '#2e3e72', socks: '#2e3e72', sockStripe: '#2e3e72', boot: '#a8743a', wheel: '#ff9a2a' },
-  { skin: '#d8a07a', hair: '#2a1a14', style: 'pony', top: '#7a4ad8', stripe: '#ffd040', legs: 'jeans', pants: '#ece4d4', socks: '#ece4d4', sockStripe: '#ece4d4', boot: '#f4f2ee', wheel: '#ffd040' },
-  { skin: '#f2c8a8', hair: '#b8482a', style: 'curls', top: '#f0be30', stripe: '#3a2a8a', legs: 'shorts', pants: '#c02a3a', socks: '#f2f0f0', sockStripe: '#3a8ad0', boot: '#2a2630', wheel: '#9aff3a' },
-];
 
-/** A skater's frame: fw × fh, the wheels' contact line at (ox, base), facing right. */
-const SK = { fw: 98, fh: 146, ox: 46, base: 142, n: 12 };
+const BUILDS: Record<string, Build> = {
+  girl: { s: 1, head: 9, hip: 62, thigh: 31, shin: 30, torso: 34, w: 1, chest: 9.5, hips: 8.5, lean: 0.42, stride: 1, bounce: 1, arms: 'swing' },
+  show: { s: 1.05, head: 9.2, hip: 66, thigh: 33, shin: 32, torso: 37, w: 1.08, chest: 11, hips: 8, lean: -0.08, stride: 0.75, bounce: 1.3, arms: 'flair', back: true },
+  speed: { s: 1.1, head: 8.6, hip: 50, thigh: 34, shin: 33, torso: 38, w: 0.95, chest: 9, hips: 8, lean: 1.02, stride: 1.45, bounce: 0.6, arms: 'speed' },
+  kid: { s: 0.72, head: 12.5, hip: 54, thigh: 27, shin: 26, torso: 30, w: 1.15, chest: 10, hips: 9, lean: 0.12, stride: 0.6, bounce: 1.6, arms: 'out' },
+};
+const LOOKS: Record<string, Look> = {
+  girl: { skin: '#f0c4a0', hair: '#e8b850', style: 'long', top: '#e04a86', trim: '#fff2f6', lower: 'skirt', pants: '#e04a86', sock: '#fff6f8', boot: '#f6f2ec', wheel: '#ff6ab0' },
+  show: { skin: '#8a5a3a', hair: '#2e1e16', style: 'afro', top: '#f2e8d0', trim: '#d8a030', lower: 'flares', pants: '#7a3a9a', sock: '#7a3a9a', boot: '#f6f2ec', wheel: '#ffd040', jacket: true, shades: true },
+  speed: { skin: '#d8a07a', hair: '#1e1410', style: 'bob', top: '#1a7ad8', trim: '#ffd040', lower: 'suit', pants: '#1a3a8a', sock: '#1a3a8a', boot: '#2a2630', wheel: '#9aff3a' },
+  kid: { skin: '#f2c8a8', hair: '#b8482a', style: 'helmet', top: '#f0be30', trim: '#e83a3a', lower: 'shorts', pants: '#2a6ad0', sock: '#f2f0f0', boot: '#e83a3a', wheel: '#f6f2ec' },
+};
+
+/** A skater's frame (paint size): fw × fh, the wheels' line at (ox, base), facing right; baked at k. */
+const SK = { fw: 124, fh: 150, ox: 62, base: 146, n: 10, k: 0.75 };
 
 function ik(a: Pt, b: Pt, l1: number, l2: number): Pt {
   const dx = b[0] - a[0];
@@ -1606,58 +1739,146 @@ function ik(a: Pt, b: Pt, l1: number, l2: number): Pt {
   return k1[0] > k2[0] ? k1 : k2;
 }
 
-/** The stride at phase p (0…1, one push with each leg): joints relative to the wheels' line under the hip. */
-function pose(p: number) {
-  const bob = -Math.cos(p * P2 * 2) * 1.8;
-  const hip: Pt = [0, -67 + bob];
-  const lean = 0.4 + Math.sin(p * P2 * 2) * 0.03;
-  const sh: Pt = [hip[0] + Math.sin(lean) * 37, hip[1] - Math.cos(lean) * 37];
-  const head: Pt = [sh[0] + 7, sh[1] - 13];
-  // a leg: pushing back along the floor (q 0…0.55), then lifted and brought through under the body
+/** A direction from straight down (0), forward (π/2), up (π), back (−π/2). */
+const dirOf = (a: number): Pt => [Math.sin(a), Math.cos(a)];
+const along = (p: Pt, a: number, l: number): Pt => [p[0] + Math.sin(a) * l, p[1] + Math.cos(a) * l];
+
+/** The stride at phase p (0…1: a push with each leg). Joints relative to the wheels' line under the body. */
+function pose(p: number, b: Build, arms: ArmMode) {
+  const w2 = p * P2 * 2;
+  // the body drops into each push and rises through the glide; the hips ride forward over the gliding skate
+  const bob = -Math.cos(w2) * 2.6 * b.bounce;
+  const shift = Math.sin(w2) * 2.5;
+  const hip: Pt = [shift, -b.hip + bob];
+  const lean = b.lean + Math.sin(w2 + 0.6) * 0.06;
+  const sh = along(hip, Math.PI - lean, b.torso);
+  const headC = along(sh, Math.PI - lean * 0.6, b.head + 5);
+  const fwd = b.back ? -1 : 1;
   const leg = (q0: number) => {
     const q = ((q0 % 1) + 1) % 1;
     let fx: number;
     let lift = 0;
     let tilt = 0;
-    if (q < 0.55) {
-      const u = q / 0.55;
-      fx = 10 - u * 42;
-    } else {
-      const u = (q - 0.55) / 0.45;
+    if (q < 0.5) {
+      // the push: the skate driven out and back (forwards for a backward skater), the leg straightening
+      const u = q / 0.5;
       const e = u * u * (3 - 2 * u);
-      fx = -32 + e * 42;
-      lift = 9 * Math.sin(Math.PI * u);
-      tilt = -0.28 * Math.sin(Math.PI * u) + 0.1 * (1 - u);
+      fx = (14 - e * 50) * b.stride * fwd;
+      tilt = fwd * -0.12 * e;
+    } else if (q < 0.62) {
+      // the toe flicks off the floor
+      const u = (q - 0.5) / 0.12;
+      fx = -36 * b.stride * fwd;
+      lift = 6 * u;
+      tilt = fwd * (-0.12 - 0.35 * u);
+    } else {
+      // the recovery: knee lifted, the skate swung through under the hips
+      const u = (q - 0.62) / 0.38;
+      const e = u * u * (3 - 2 * u);
+      fx = (-36 + e * 50) * b.stride * fwd;
+      lift = 6 + 8 * Math.sin(Math.PI * u) - 6 * u;
+      tilt = fwd * (-0.47 + 0.47 * e);
     }
-    const ankle: Pt = [fx, -16.5 - lift];
-    return { ankle, knee: ik(hip, ankle, 32, 31), fx, lift, tilt };
+    const ankle: Pt = [fx + shift * 0.3, -16.5 - lift];
+    return { ankle, knee: ik(hip, ankle, b.thigh, b.shin), tilt };
   };
-  const arm = (a: number) => {
-    const el: Pt = [sh[0] + Math.sin(a) * 21, sh[1] + Math.cos(a) * 21];
-    const fa = a + 0.5 + Math.max(0, Math.sin(a)) * 0.6;
-    const hand: Pt = [el[0] + Math.sin(fa) * 19, el[1] + Math.cos(fa) * 19];
+  // arms: upper arm angle and elbow bend
+  const s = Math.sin(p * P2 + 0.35);
+  const arm = (a: number, bend: number) => {
+    const el = along(sh, a, 20 * b.s);
+    const hand = along(el, a + bend, 18 * b.s);
     return { el, hand };
   };
-  const s = Math.sin(p * P2 + 0.35);
-  return { hip, sh, head, lean, near: leg(p), far: leg(p + 0.5), nearArm: arm(0.2 + 0.85 * s), farArm: arm(0.2 - 0.85 * s) };
+  let nearArm;
+  let farArm;
+  if (arms === 'speed') {
+    // one hand tucked on the small of her back, the other swinging long and loose
+    nearArm = arm(0.3 + 1.15 * s, 0.25 + Math.max(0, s) * 0.3);
+    farArm = arm(-lean - 0.45, 1.25);
+  } else if (arms === 'out') {
+    // the kid's arms out for balance, flapping with every wobble
+    const f = Math.sin(w2 + 1) * 0.25;
+    nearArm = arm(1.35 + f, 0.45 - f);
+    farArm = arm(1.1 - f, 0.6 + f);
+  } else if (arms === 'flair') {
+    // the showboat's disco point, the other hand out behind, both grooving
+    const g = Math.sin(w2) * 0.12;
+    // (the pointing arm is the far one, up behind his head: the silhouette reads, the face stays clear)
+    farArm = arm(2.75 + g, 0.3);
+    nearArm = arm(-1.0 - g, 0.4);
+  } else if (arms === 'reach') {
+    // a hand held out to a partner at waist height, the other arm easy
+    nearArm = arm(1.15 + Math.sin(w2) * 0.04, 0.35);
+    farArm = arm(0.2 - 0.3 * s, 0.4);
+  } else {
+    nearArm = arm(0.2 + 0.95 * s, 0.4 + Math.max(0, s) * 0.5);
+    farArm = arm(0.2 - 0.95 * s, 0.4 + Math.max(0, -s) * 0.5);
+  }
+  return { hip, sh, headC, lean, near: leg(p), far: leg(p + 0.5), nearArm, farArm, w2 };
 }
 
-/** A limb: ink, the colour, its shade side and its lit side (a soft three-tone round form). */
-function limb(c: Ctx, pts: Pt[], w: number, col: string): void {
-  c.lineCap = 'round';
+/** The scene's light on a colour across a form: lit towards the top left, shaded away. */
+function lit(c: Ctx, a: Pt, b: Pt, w: number, col: string): CanvasGradient {
+  let nx = -(b[1] - a[1]);
+  let ny = b[0] - a[0];
+  const l = Math.hypot(nx, ny) || 1;
+  nx /= l;
+  ny /= l;
+  if (nx * -0.6 + ny * -0.8 < 0) {
+    nx = -nx;
+    ny = -ny;
+  }
+  const mx = (a[0] + b[0]) / 2;
+  const my = (a[1] + b[1]) / 2;
+  const g = c.createLinearGradient(mx + nx * w, my + ny * w, mx - nx * w, my - ny * w);
+  g.addColorStop(0, shade(col, 0.22));
+  g.addColorStop(0.4, col);
+  g.addColorStop(1, mix(shade(col, -0.3), '#2a1840', 0.2));
+  return g;
+}
+
+/** A tapered limb segment (a round joint at each end), ink outline, lit across its form. */
+function seg(c: Ctx, a: Pt, b: Pt, wa: number, wb: number, col: string): void {
+  const dx = b[0] - a[0];
+  const dy = b[1] - a[1];
+  const l = Math.hypot(dx, dy) || 1;
+  const nx = -dy / l;
+  const ny = dx / l;
+  const path = (g: Ctx, e: number) => {
+    g.beginPath();
+    g.moveTo(a[0] + nx * (wa / 2 + e), a[1] + ny * (wa / 2 + e));
+    g.lineTo(b[0] + nx * (wb / 2 + e), b[1] + ny * (wb / 2 + e));
+    g.arc(b[0], b[1], wb / 2 + e, Math.atan2(ny, nx), Math.atan2(ny, nx) + Math.PI, false);
+    g.lineTo(a[0] - nx * (wa / 2 + e), a[1] - ny * (wa / 2 + e));
+    g.arc(a[0], a[1], wa / 2 + e, Math.atan2(-ny, -nx), Math.atan2(-ny, -nx) + Math.PI, false);
+    g.closePath();
+  };
+  c.fillStyle = INK;
+  path(c, 1.3);
+  c.fill();
+  c.fillStyle = lit(c, a, b, Math.max(wa, wb) / 2, col);
+  path(c, 0);
+  c.fill();
+}
+
+function poly(c: Ctx, pts: Pt[], fill: string | CanvasGradient, ink = 2.2): void {
+  c.beginPath();
+  c.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < pts.length; i++) c.lineTo(pts[i][0], pts[i][1]);
+  c.closePath();
   c.lineJoin = 'round';
-  stroke(c, pts, w + 2.6, INK);
-  stroke(c, pts, w, col);
-  const off = (dx: number, dy: number) => pts.map(([x, y]) => [x + dx, y + dy] as Pt);
-  stroke(c, off(w * 0.22, w * 0.16), w * 0.5, shade(col, -0.22));
-  stroke(c, off(-w * 0.18, -w * 0.14), w * 0.32, shade(col, 0.16));
+  c.strokeStyle = INK;
+  c.lineWidth = ink;
+  c.stroke();
+  c.fillStyle = fill;
+  c.fill();
 }
 
-function skate(c: Ctx, ax: number, ay: number, tilt: number, o: Outfit, dim: number): void {
+function skate(c: Ctx, ax: number, ay: number, tilt: number, o: Look, dim: number, flip: boolean): void {
   c.save();
   c.translate(ax, ay);
   c.rotate(tilt);
-  c.scale(0.72, 0.72);
+  c.scale(flip ? -0.72 : 0.72, 0.72);
   const boot = shade(o.boot, dim);
   const bootP = (g: Ctx) => {
     g.beginPath();
@@ -1670,31 +1891,17 @@ function skate(c: Ctx, ax: number, ay: number, tilt: number, o: Outfit, dim: num
     g.lineTo(17, 13);
     g.closePath();
   };
-  c.fillStyle = INK;
-  c.save();
-  c.translate(0, 0);
-  c.lineWidth = 2.6;
+  c.lineWidth = 3;
   c.strokeStyle = INK;
   bootP(c);
   c.stroke();
-  c.restore();
   const g = c.createLinearGradient(-10, -6, 8, 14);
-  g.addColorStop(0, shade(boot, 0.14));
+  g.addColorStop(0, shade(boot, 0.16));
   g.addColorStop(0.6, boot);
-  g.addColorStop(1, shade(boot, -0.25));
+  g.addColorStop(1, shade(boot, -0.28));
   c.fillStyle = g;
   bootP(c);
   c.fill();
-  // laces
-  c.strokeStyle = rgba(o.style === 'pony' ? '#ff6ab0' : '#f8f4ea', 0.9);
-  c.lineWidth = 0.9;
-  for (let i = 0; i < 3; i++) {
-    c.beginPath();
-    c.moveTo(2 + i * 2.6, -3 + i * 3);
-    c.lineTo(7 + i * 2.6, -1 + i * 3);
-    c.stroke();
-  }
-  // the plate, the wheels, the toe stop
   c.fillStyle = '#26222a';
   c.fillRect(-10, 13, 27, 2.4);
   c.fillStyle = INK;
@@ -1704,13 +1911,13 @@ function skate(c: Ctx, ax: number, ay: number, tilt: number, o: Outfit, dim: num
   for (const wx of [-5, 12]) {
     c.fillStyle = INK;
     c.beginPath();
-    c.arc(wx, 18, 4.6, 0, P2);
+    c.arc(wx, 18, 4.8, 0, P2);
     c.fill();
     c.fillStyle = shade(o.wheel, dim);
     c.beginPath();
-    c.arc(wx, 18, 3.5, 0, P2);
+    c.arc(wx, 18, 3.6, 0, P2);
     c.fill();
-    c.fillStyle = 'rgba(255,255,255,0.5)';
+    c.fillStyle = 'rgba(255,255,255,0.55)';
     c.beginPath();
     c.arc(wx - 1, 17, 1.1, 0, P2);
     c.fill();
@@ -1718,187 +1925,275 @@ function skate(c: Ctx, ax: number, ay: number, tilt: number, o: Outfit, dim: num
   c.restore();
 }
 
-function skaterFrame(c: Ctx, ph: number, o: Outfit): void {
-  const P = pose(ph);
-  c.save();
-  c.translate(SK.ox, SK.base - 22);
-  // (the frame's origin is the wheels' line: the skate's wheels reach 22 below the ankle frame)
-  c.translate(0, 22);
-  const legCols = (dim: number) => ({ thigh: shade(o.legs === 'jeans' ? o.pants : o.skin, dim), shin: shade(o.legs === 'jeans' ? o.pants : o.socks, dim) });
-  const drawLeg = (L: ReturnType<typeof pose>['near'], dim: number) => {
-    const cl = legCols(dim);
-    limb(c, [P.hip, L.knee], 11, cl.thigh);
-    if (o.legs === 'shorts') {
-      const mid: Pt = [P.hip[0] + (L.knee[0] - P.hip[0]) * 0.42, P.hip[1] + (L.knee[1] - P.hip[1]) * 0.42];
-      limb(c, [P.hip, mid], 13, shade(o.pants, dim));
-    }
-    limb(c, [L.knee, L.ankle], 8.5, cl.shin);
-    if (o.legs === 'shorts') {
-      // the tube socks' stripes just under the knee
-      const s0: Pt = [L.knee[0] + (L.ankle[0] - L.knee[0]) * 0.18, L.knee[1] + (L.ankle[1] - L.knee[1]) * 0.18];
-      const s1: Pt = [L.knee[0] + (L.ankle[0] - L.knee[0]) * 0.28, L.knee[1] + (L.ankle[1] - L.knee[1]) * 0.28];
-      stroke(c, [s0, s1], 7, shade(o.sockStripe, dim));
-      // the bare knee above the sock
-      limb(c, [[L.knee[0] - 0.5, L.knee[1] - 1], [L.knee[0] + (L.ankle[0] - L.knee[0]) * 0.12, L.knee[1] + (L.ankle[1] - L.knee[1]) * 0.12]], 8.5, shade(o.skin, dim));
-    } else {
-      // the jeans flare over the boot
-      c.fillStyle = shade(o.pants, dim - 0.05);
-      c.strokeStyle = INK;
-      c.lineWidth = 1.3;
-      c.beginPath();
-      c.moveTo(L.ankle[0] - 5, L.ankle[1] - 10);
-      c.lineTo(L.ankle[0] - 8, L.ankle[1] + 3);
-      c.lineTo(L.ankle[0] + 9, L.ankle[1] + 3);
-      c.lineTo(L.ankle[0] + 5, L.ankle[1] - 10);
-      c.closePath();
-      c.fill();
-      c.stroke();
-    }
-    skate(c, L.ankle[0], L.ankle[1], L.tilt, o, dim);
-  };
-  const drawArm = (A: ReturnType<typeof pose>['nearArm'], dim: number) => {
-    limb(c, [P.sh, A.el], 7.5, shade(o.top, dim));
-    limb(c, [A.el, A.hand], 6.5, shade(o.top, dim));
-    c.fillStyle = INK;
-    c.beginPath();
-    c.arc(A.hand[0], A.hand[1], 4.3, 0, P2);
-    c.fill();
-    c.fillStyle = shade(o.skin, dim);
-    c.beginPath();
-    c.arc(A.hand[0], A.hand[1], 3.1, 0, P2);
-    c.fill();
-  };
-  // far side first
-  drawArm(P.farArm, -0.3);
-  drawLeg(P.far, -0.28);
-  // the torso: the jacket, nipped at the waist, its satin catching the light
-  const ax = Math.sin(P.lean);
-  const ay = -Math.cos(P.lean);
-  const px = -ay;
-  const py = ax;
-  const at = (t: number, w: number): Pt => [P.hip[0] + ax * 37 * t + px * w, P.hip[1] + ay * 37 * t + py * w];
-  const torso = (g: Ctx) => {
-    const pts = [at(-0.05, -9), at(0.5, -10.5), at(0.92, -9), at(1.04, -4), at(1.04, 5), at(0.9, 10), at(0.5, 10), at(-0.05, 9)];
-    g.beginPath();
-    g.moveTo(pts[0][0], pts[0][1]);
-    for (let i = 1; i < pts.length; i++) g.lineTo(pts[i][0], pts[i][1]);
-    g.closePath();
-  };
-  c.lineJoin = 'round';
-  c.strokeStyle = INK;
-  c.lineWidth = 2.6;
-  torso(c);
-  c.stroke();
-  const tg = c.createLinearGradient(P.sh[0] - 12, P.sh[1] - 6, P.hip[0] + 12, P.hip[1] + 6);
-  tg.addColorStop(0, shade(o.top, 0.2));
-  tg.addColorStop(0.5, o.top);
-  tg.addColorStop(1, shade(o.top, -0.28));
-  c.fillStyle = tg;
-  torso(c);
-  c.fill();
-  within(c, torso, () => {
-    // the stripe (across the chest on the satin jackets, down the side on the track top)
-    if (o.style === 'curls') stroke(c, [at(0, 2), at(1, 2)], 3, o.stripe);
-    else stroke(c, [at(0.62, -12), at(0.62, 12)], 3.2, o.stripe);
-    // the satin's sheen
-    stroke(c, [at(0.15, -5), at(0.85, -6)], 2.2, rgba('#ffffff', 0.35));
-    // the waistband
-    stroke(c, [at(0.02, -10), at(0.02, 10)], 4, shade(o.top, -0.35));
-  });
-  drawLeg(P.near, 0);
-  // the neck and head
-  limb(c, [P.sh, [P.head[0] - 2, P.head[1] + 4]], 6, o.skin);
-  const [hx, hy] = P.head;
+function head(c: Ctx, P: ReturnType<typeof pose>, b: Build, o: Look, ph: number, couple: boolean): void {
+  const [hx, hy] = P.headC;
+  const r = b.head;
+  // hair that follows through: it lags the bob and streams back with the speed
+  const lag = Math.sin(P.w2 - 1.1);
+  const stream = b.arms === 'speed' ? 1.4 : 1;
   if (o.style === 'afro') {
-    // a round, springy mass: a ring of tufts round its edge, lit on its top left
+    const sq = 1 + lag * 0.05;
     const tufts: Pt[] = [];
-    for (let i = 0; i < 13; i++) {
-      const a = (i / 13) * P2;
-      tufts.push([hx - 3 + Math.cos(a) * 11.5, hy - 4 + Math.sin(a) * 11.5]);
+    for (let i = 0; i < 14; i++) {
+      const a = (i / 14) * P2;
+      tufts.push([hx - 3 + Math.cos(a) * r * 1.35, hy - 5 + Math.sin(a) * r * 1.3 * sq]);
     }
     c.fillStyle = INK;
     for (const [tx, ty] of tufts) {
       c.beginPath();
-      c.arc(tx, ty, 4.6, 0, P2);
+      c.arc(tx, ty, r * 0.52, 0, P2);
       c.fill();
     }
-    c.beginPath();
-    c.arc(hx - 3, hy - 4, 12, 0, P2);
-    c.fill();
-    const ag = c.createRadialGradient(hx - 9, hy - 11, 1, hx - 3, hy - 4, 16);
-    ag.addColorStop(0, shade(o.hair, 0.5));
+    const ag = c.createRadialGradient(hx - 10, hy - 14, 1, hx - 3, hy - 5, r * 1.9);
+    ag.addColorStop(0, shade(o.hair, 0.55));
     ag.addColorStop(0.5, shade(o.hair, 0.15));
     ag.addColorStop(1, o.hair);
     c.fillStyle = ag;
     for (const [tx, ty] of tufts) {
       c.beginPath();
-      c.arc(tx, ty, 3.4, 0, P2);
+      c.arc(tx, ty, r * 0.4, 0, P2);
       c.fill();
     }
     c.beginPath();
-    c.arc(hx - 3, hy - 4, 11.5, 0, P2);
+    c.arc(hx - 3, hy - 5, r * 1.3, 0, P2);
     c.fill();
+  }
+  if (o.style === 'long') {
+    // long hair lifting off her back, its ends lagging the stride
+    const tip: Pt = [hx - 20 * stream, hy + 10 + lag * 4];
+    poly(c, [[hx - 2, hy - r], [hx - r - 3, hy - 3], [hx - 14, hy + 6 + lag * 2], tip, [hx - 9, hy + 12], [hx - 3, hy + 4]], lit(c, [hx, hy - r], tip, 10, o.hair), 2);
   }
   if (o.style === 'pony') {
-    const sw = Math.sin(ph * P2 * 2 + 1) * 3;
-    c.lineCap = 'round';
-    stroke(c, [[hx - 6, hy - 4], [hx - 14, hy - 1 + sw * 0.4], [hx - 19, hy + 7 + sw]], 7.5, INK);
-    stroke(c, [[hx - 6, hy - 4], [hx - 14, hy - 1 + sw * 0.4], [hx - 19, hy + 7 + sw]], 5, o.hair);
+    const tip: Pt = [hx - 18, hy + 6 + lag * 4];
+    seg(c, [hx - r * 0.7, hy - 3], tip, 6, 3, o.hair);
   }
+  // the face (in profile), lit from the top left, a cheek of colour, the ear
   c.fillStyle = INK;
   c.beginPath();
-  c.arc(hx, hy, 9.6, 0, P2);
+  c.arc(hx, hy, r + 1.3, 0, P2);
   c.fill();
-  const fg = c.createRadialGradient(hx - 3, hy - 3, 1, hx, hy, 9);
-  fg.addColorStop(0, shade(o.skin, 0.12));
-  fg.addColorStop(1, shade(o.skin, -0.18));
+  const fg = c.createRadialGradient(hx - r * 0.35, hy - r * 0.4, 1, hx, hy, r);
+  fg.addColorStop(0, shade(o.skin, 0.14));
+  fg.addColorStop(1, shade(o.skin, -0.2));
   c.fillStyle = fg;
   c.beginPath();
-  c.arc(hx, hy, 8.4, 0, P2);
+  c.arc(hx, hy, r, 0, P2);
   c.fill();
-  // the face: nose, an eye, the ear
-  c.fillStyle = shade(o.skin, -0.05);
+  // nose and chin pushing out of the circle
+  c.fillStyle = shade(o.skin, -0.02);
+  c.strokeStyle = INK;
+  c.lineWidth = 1.2;
   c.beginPath();
-  c.moveTo(hx + 7.6, hy - 1);
-  c.lineTo(hx + 10.4, hy + 2.6);
-  c.lineTo(hx + 7.4, hy + 3.4);
+  c.moveTo(hx + r * 0.82, hy - r * 0.2);
+  c.lineTo(hx + r * 1.18, hy + r * 0.22);
+  c.lineTo(hx + r * 0.86, hy + r * 0.34);
   c.fill();
-  c.fillStyle = INK;
-  c.fillRect(hx + 4.2, hy - 2, 1.8, 2);
-  c.fillStyle = shade(o.skin, -0.25);
+  c.stroke();
+  c.fillStyle = 'rgba(230,90,110,0.35)';
   c.beginPath();
-  c.arc(hx - 1.5, hy + 1, 2.2, 0, P2);
+  c.arc(hx + r * 0.35, hy + r * 0.38, r * 0.25, 0, P2);
   c.fill();
-  // the hair on top
-  if (o.style !== 'afro') {
+  c.fillStyle = shade(o.skin, -0.28);
+  c.beginPath();
+  c.arc(hx - r * 0.18, hy + r * 0.1, r * 0.22, 0, P2);
+  c.fill();
+  // the expression: a grin (a laugh for the kid, a grin at her partner in the couples skate), eyes, a brow
+  c.strokeStyle = INK;
+  c.lineWidth = 1.3;
+  c.beginPath();
+  if (b.arms === 'out') c.arc(hx + r * 0.62, hy + r * 0.5, r * 0.2, 0, P2);
+  else c.arc(hx + r * 0.5, hy + r * 0.3, r * 0.3, 0.3, 1.5);
+  c.stroke();
+  if (b.arms === 'out') {
+    c.fillStyle = '#6a1a20';
+    c.beginPath();
+    c.arc(hx + r * 0.62, hy + r * 0.5, r * 0.15, 0, P2);
+    c.fill();
+  }
+  if (o.shades) {
+    c.fillStyle = '#1a1418';
+    c.beginPath();
+    c.ellipse(hx + r * 0.62, hy - r * 0.12, r * 0.38, r * 0.26, 0.1, 0, P2);
+    c.fill();
+    c.fillStyle = 'rgba(255,180,230,0.6)';
+    c.fillRect(hx + r * 0.5, hy - r * 0.25, r * 0.22, 1.2);
+    c.strokeStyle = '#1a1418';
+    c.beginPath();
+    c.moveTo(hx + r * 0.3, hy - r * 0.15);
+    c.lineTo(hx - r * 0.2, hy - r * 0.05);
+    c.stroke();
+  } else {
+    const blink = couple && Math.sin(ph * P2) > 0.9;
+    c.fillStyle = INK;
+    if (blink) c.fillRect(hx + r * 0.48, hy - r * 0.12, r * 0.34, 1.2);
+    else {
+      c.beginPath();
+      c.ellipse(hx + r * 0.62, hy - r * 0.12, r * 0.14, r * 0.2, 0, 0, P2);
+      c.fill();
+    }
+    c.lineWidth = 1.2;
+    c.beginPath();
+    c.moveTo(hx + r * 0.42, hy - r * 0.42);
+    c.lineTo(hx + r * 0.82, hy - r * (b.arms === 'out' ? 0.52 : 0.4));
+    c.stroke();
+  }
+  // the hair on top, a helmet for the kid
+  if (o.style === 'helmet') {
+    const hp: Pt[] = [];
+    for (let i = 0; i <= 10; i++) {
+      const a = Math.PI * (1.02 + (i / 10) * 1.0);
+      hp.push([hx + Math.cos(a) * (r + 2.5), hy - 1 + Math.sin(a) * (r + 3)]);
+    }
+    poly(c, [...hp, [hx + r + 3, hy - 1], [hx - r - 3, hy - 1]], lit(c, [hx - r, hy - r], [hx + r, hy - r], r, o.trim), 2);
+    c.fillStyle = 'rgba(255,255,255,0.6)';
+    c.beginPath();
+    c.ellipse(hx - r * 0.3, hy - r * 0.8, r * 0.4, r * 0.15, -0.3, 0, P2);
+    c.fill();
+    c.strokeStyle = INK;
+    c.lineWidth = 1;
+    c.beginPath();
+    c.moveTo(hx - r * 0.3, hy);
+    c.lineTo(hx + r * 0.2, hy + r * 0.85);
+    c.stroke();
+    // a curl escaping at the back
     c.fillStyle = o.hair;
     c.beginPath();
-    c.moveTo(hx - 8.6, hy + 2);
-    c.quadraticCurveTo(hx - 10, hy - 10, hx, hy - 9.6);
-    c.quadraticCurveTo(hx + 8, hy - 9, hx + 8.6, hy - 3);
-    c.quadraticCurveTo(hx + 2, hy - 6, hx - 3, hy - 3);
-    c.quadraticCurveTo(hx - 5, hy + 1, hx - 8.6, hy + 2);
+    c.arc(hx - r * 0.9, hy + r * 0.2, r * 0.3, 0, P2);
     c.fill();
-    if (o.style === 'curls') {
-      for (const [dx, dy] of [[-7, -6], [-3, -10], [2, -10], [6, -7], [-9, -1]] as Pt[]) {
-        c.beginPath();
-        c.arc(hx + dx, hy + dy, 3.6, 0, P2);
-        c.fill();
-      }
-      // the sweatband
-      stroke(c, [[hx - 8, hy - 3], [hx + 8, hy - 5]], 2.6, o.stripe);
-    }
-    c.fillStyle = rgba('#ffffff', 0.3);
+  } else if (o.style !== 'afro') {
+    c.fillStyle = o.hair;
     c.beginPath();
-    c.ellipse(hx - 3, hy - 7.5, 3, 1.2, -0.3, 0, P2);
+    c.moveTo(hx - r - 0.5, hy + r * 0.45);
+    c.quadraticCurveTo(hx - r * 1.15, hy - r * 1.15, hx, hy - r * 1.1);
+    c.quadraticCurveTo(hx + r * 0.95, hy - r, hx + r * 0.95, hy - r * 0.3);
+    c.quadraticCurveTo(hx + r * 0.3, hy - r * 0.6, hx - r * 0.25, hy - r * 0.3);
+    c.quadraticCurveTo(hx - r * 0.5, hy + r * 0.2, hx - r - 0.5, hy + r * 0.45);
+    c.fill();
+    if (o.style === 'bob') {
+      // a short bob flicking back with the speed
+      c.beginPath();
+      c.moveTo(hx - r * 0.4, hy - r * 0.6);
+      c.quadraticCurveTo(hx - r * 1.5 - lag * 1.5, hy, hx - r * 1.1 - lag * 2, hy + r * 0.8);
+      c.quadraticCurveTo(hx - r * 0.7, hy + r * 0.4, hx - r * 0.4, hy - r * 0.6);
+      c.fill();
+    }
+    c.fillStyle = 'rgba(255,255,255,0.35)';
+    c.beginPath();
+    c.ellipse(hx - r * 0.3, hy - r * 0.85, r * 0.35, r * 0.12, -0.3, 0, P2);
     c.fill();
   } else {
     c.fillStyle = o.hair;
     c.beginPath();
-    c.arc(hx - 4, hy - 4, 8, Math.PI * 0.8, Math.PI * 1.9);
+    c.arc(hx - 4, hy - 4, r * 0.95, Math.PI * 0.75, Math.PI * 1.95);
     c.fill();
   }
-  drawArm(P.nearArm, 0.04);
+}
+
+/** One frame of a skater (phase ph of the stride), facing right. */
+function skaterFrame(c: Ctx, ph: number, b: Build, o: Look, arms: ArmMode): void {
+  const P = pose(ph, b, arms);
+  c.save();
+  c.translate(SK.ox, SK.base);
+  c.lineCap = 'round';
+  c.lineJoin = 'round';
+  const W0 = 1.0 * b.w;
+  const drawLeg = (L: ReturnType<typeof pose>['near'], dim: number) => {
+    const thighCol = shade(o.lower === 'shorts' || o.lower === 'skirt' ? o.skin : o.pants, dim);
+    const shinCol = shade(o.lower === 'flares' || o.lower === 'suit' ? o.pants : o.sock, dim);
+    seg(c, P.hip, L.knee, 11.5 * W0, 8.5 * W0, thighCol);
+    if (o.lower === 'shorts') seg(c, P.hip, [P.hip[0] + (L.knee[0] - P.hip[0]) * 0.4, P.hip[1] + (L.knee[1] - P.hip[1]) * 0.4], 13.5 * W0, 12 * W0, shade(o.pants, dim));
+    seg(c, L.knee, L.ankle, 8.5 * W0, 6 * W0, shinCol);
+    if (o.lower === 'skirt' || o.lower === 'shorts') {
+      // socks: a stripe at the top, the kid's knee pads
+      const at = (t: number): Pt => [L.knee[0] + (L.ankle[0] - L.knee[0]) * t, L.knee[1] + (L.ankle[1] - L.knee[1]) * t];
+      c.strokeStyle = shade(o.trim, dim);
+      c.lineWidth = 7 * W0;
+      c.lineCap = 'butt';
+      c.beginPath();
+      c.moveTo(...at(0.2));
+      c.lineTo(...at(0.28));
+      c.stroke();
+      c.lineCap = 'round';
+      if (o.lower === 'shorts') seg(c, at(-0.05), at(0.12), 10, 10, shade('#3a3a44', dim));
+    }
+    if (o.lower === 'flares') {
+      // bell-bottoms flaring over the boot, swinging
+      const k0 = L.knee;
+      const a = L.ankle;
+      const fl = 9 + Math.sin(P.w2) * 1.5;
+      poly(c, [[k0[0] - 4, k0[1] + 4], [k0[0] + 4, k0[1] + 4], [a[0] + fl, a[1] + 4], [a[0] - fl, a[1] + 4]], lit(c, k0, a, 8, shade(o.pants, dim)), 2);
+    }
+    skate(c, L.ankle[0], L.ankle[1], L.tilt, o, dim, false);
+  };
+  const drawArm = (A: ReturnType<typeof pose>['nearArm'], dim: number, jacket: boolean) => {
+    const sleeve = shade(o.top, dim);
+    seg(c, P.sh, A.el, 8 * W0, 6.5 * W0, sleeve);
+    seg(c, A.el, A.hand, 6.5 * W0, 5 * W0, jacket || o.lower === 'suit' ? sleeve : shade(o.skin, dim));
+    // the hand: a mitten with a thumb
+    const d = dirOf(Math.atan2(A.hand[0] - A.el[0], A.hand[1] - A.el[1]));
+    const hc: Pt = [A.hand[0] + d[0] * 2, A.hand[1] + d[1] * 2];
+    c.fillStyle = INK;
+    c.beginPath();
+    c.ellipse(hc[0], hc[1], 4.6, 3.8, Math.atan2(d[1], d[0]), 0, P2);
+    c.fill();
+    c.fillStyle = shade(o.skin, dim);
+    c.beginPath();
+    c.ellipse(hc[0], hc[1], 3.4, 2.7, Math.atan2(d[1], d[0]), 0, P2);
+    c.fill();
+  };
+  // far side first, then the body, then the near side
+  drawArm(P.farArm, -0.3, !!o.jacket);
+  drawLeg(P.far, -0.3);
+  // the torso: shaped (chest, waist, hips), lit across
+  const ang = Math.PI - P.lean;
+  const ax = Math.sin(ang);
+  const ay = Math.cos(ang);
+  const px = -ay;
+  const py = ax;
+  const at = (t: number, wd: number): Pt => [P.hip[0] + ax * b.torso * t + px * wd, P.hip[1] + ay * b.torso * t + py * wd];
+  const tg = c.createLinearGradient(P.sh[0] - 12, P.sh[1] - 8, P.hip[0] + 12, P.hip[1] + 8);
+  tg.addColorStop(0, shade(o.top, 0.22));
+  tg.addColorStop(0.5, o.top);
+  tg.addColorStop(1, mix(shade(o.top, -0.32), '#2a1840', 0.2));
+  const body: Pt[] = [at(-0.08, -b.hips), at(0.42, -b.chest * 0.85), at(0.8, -b.chest), at(1.04, -b.chest * 0.55), at(1.06, b.chest * 0.4), at(0.8, b.chest * 0.95), at(0.45, b.hips * 0.85), at(-0.08, b.hips)];
+  if (o.lower === 'skirt') {
+    // the skater dress's skirt flaring, its hem fluttering and swinging behind the stride
+    const sw = Math.sin(P.w2 - 0.9) * 3;
+    const hb = at(-0.02, 0);
+    poly(c, [at(0.05, -b.hips), at(0.05, b.hips), [hb[0] + 14 + sw * 0.4, hb[1] + 14], [hb[0] + 4, hb[1] + 17 + sw * 0.3], [hb[0] - 8, hb[1] + 16], [hb[0] - 18 - sw, hb[1] + 11 - sw * 0.5]], lit(c, hb, [hb[0], hb[1] + 16], 14, o.pants), 2);
+  }
+  poly(c, body, tg, 2.4);
+  // the clothes' detail: a jacket's open front and swinging hem, a skinsuit's stripe, the dress's trim, a collar
+  if (o.jacket) {
+    const sw = Math.sin(P.w2 - 1) * 2.5;
+    poly(c, [at(0.05, -b.hips - 1), at(0.05, b.hips + 1), [at(-0.1, b.hips + 2)[0] + sw, at(-0.1, b.hips + 2)[1] + 4], [at(-0.1, -b.hips - 4)[0] - 4 - sw, at(-0.1, -b.hips - 4)[1] + 5]], shade(o.top, -0.12), 1.8);
+    // the wide disco collar and an open neck, a gold medallion
+    poly(c, [at(1.02, -2), at(0.86, 8), at(1.04, 6)], shade(o.top, 0.1), 1.4);
+    c.fillStyle = o.trim;
+    const m = at(0.78, 5);
+    c.beginPath();
+    c.arc(m[0], m[1], 2, 0, P2);
+    c.fill();
+  }
+  within(c, (g) => {
+    g.beginPath();
+    g.moveTo(body[0][0], body[0][1]);
+    for (const q of body) g.lineTo(q[0], q[1]);
+    g.closePath();
+  }, () => {
+    if (o.lower === 'suit') stroke(c, [at(-0.1, -2), at(1.1, -2)], 3.4, o.trim);
+    else if (!o.jacket) {
+      stroke(c, [at(0.02, -14), at(0.02, 14)], 3, o.trim);
+      stroke(c, [at(1.0, -14), at(1.0, 14)], 2.4, o.trim);
+    }
+    // a sheen
+    stroke(c, [at(0.2, -b.chest * 0.5), at(0.85, -b.chest * 0.6)], 2, rgba('#ffffff', 0.3));
+  });
+  drawLeg(P.near, 0);
+  // the neck, the head
+  seg(c, P.sh, [P.headC[0] - 2, P.headC[1] + b.head * 0.6], 5.5 * W0, 5 * W0, o.skin);
+  head(c, P, b, o, ph, arms === 'reach');
+  drawArm(P.nearArm, 0.04, !!o.jacket);
   c.restore();
 }
 
@@ -2050,12 +2345,14 @@ registerKitScene(RINK, (k: KitLive, wave0) => {
   const boardGlow = k.glow(BD.x, BD.y, 150, 0xfff0e0, 0.1, { into: fx, sy: 0.4 });
 
   // ——— the DJ, nodding; the console's meters
+  // (eight frames of the groove, then two of the record skipping)
   const DJF = 8;
-  const djKey = sheet(k, 'rk_dj', DJ.box.w, DJ.box.h, DJF, (c, ph) => {
+  const djKey = sheet(k, 'rk_dj', DJ.box.w, DJ.box.h, DJF + 2, (c, _ph, i) => {
     c.translate(-DJ.box.x, -DJ.box.y);
-    djFrame(c, ph);
+    djFrame(c, i / DJF, i >= DJF ? i - DJF + 1 : 0);
   });
   const dj = new Loop(k, djKey, DJF, DJ.box.x, DJ.box.y, { into: fx, origin: [0, 0], fps: 8.5 });
+  let skip = 0;
   const deckLamp = k.glow(BT.x0 + 60, BT.win - 16, 60, 0xffb870, 0.25, { into: fx });
   const meterKey = k.tex('rk_meter', 4, 3, (c) => {
     c.fillStyle = '#ffffff';
@@ -2141,7 +2438,12 @@ registerKitScene(RINK, (k: KitLive, wave0) => {
 
   // ——— the skaters
   const SKN = SK.n;
-  const keys = OUTFITS.map((o, i) => sheet(k, `rk_skater${i}`, SK.fw, SK.fh, SKN, (c, ph) => skaterFrame(c, ph, o)));
+  // (baked at SK.k of their painted size and drawn back up: small on screen, so the saving costs nothing)
+  const skSheet = (id: string, arms?: ArmMode) =>
+    sheet(k, `rk_sk_${id}${arms ? 'R' : ''}`, SK.fw * SK.k, SK.fh * SK.k, SKN, (c, ph) => {
+      c.scale(SK.k, SK.k);
+      skaterFrame(c, ph, BUILDS[id], LOOKS[id], arms ?? BUILDS[id].arms);
+    });
   const shadowKey = k.tex('rk_shadow', 64, 16, (c) => {
     c.save();
     c.translate(32, 8);
@@ -2170,8 +2472,13 @@ registerKitScene(RINK, (k: KitLive, wave0) => {
   const fogs = [fogBank(RK.farY + 36, 2.2, 1, 0, false, 14), fogBank(RK.rail - 2, 2.4, 0.8, 4, true, -22)];
   const FAR_S = (RK.farY - HY) / (RK.nearY - HY);
   interface Skater {
+    b: Build;
+    key: string;
+    reach?: string;
+    cur: string;
     loop: Loop;
     refl: Loop;
+    rim: Loop;
     shadow: Phaser.GameObjects.Image;
     x: number;
     side: 0 | 1;
@@ -2180,16 +2487,27 @@ registerKitScene(RINK, (k: KitLive, wave0) => {
     lean: Spring;
     hop: Spring;
   }
-  const skaters: Skater[] = [0, 1, 3, 2].map((oi, i) => {
+  // the girl and the showboat (who skate together in the couples skate), the speed skater, the kid
+  const ROSTER: [string, boolean, number, 0 | 1, number][] = [
+    ['girl', true, 300, 0, 245],
+    ['show', true, 1500, 1, 230],
+    ['speed', false, 900, 1, 330],
+    ['kid', false, -500, 0, 165],
+  ];
+  const ORIGIN: [number, number] = [SK.ox / SK.fw, SK.base / SK.fh];
+  const RIM_COLS = [0xff6ad8, 0x5ae8ff, 0xffd060, 0xb08aff];
+  const skaters: Skater[] = ROSTER.map(([id, pair, x, side, speed], i) => {
+    const key = skSheet(id);
     const shadow = k.img(shadowKey, 0, 0, { into: farC });
-    // (the reflection plays the same frames in step: same start, same steps)
+    // (the reflection and the rim light play the same frames in step: same start, same steps)
     const ph = i * 3.7;
-    const refl = new Loop(k, keys[oi], SKN, 0, 0, { into: farC, origin: [SK.ox / SK.fw, SK.base / SK.fh], fps: 11, phase: ph });
-    const loop = new Loop(k, keys[oi], SKN, 0, 0, { into: farC, origin: [SK.ox / SK.fw, SK.base / SK.fh], fps: 11, phase: ph });
-    return { loop, refl, shadow, x: [300, 1500, 900, -600][i], side: ([0, 1, 1, 0] as const)[i], speed: [250, 232, 270, 240][i], wait: 0, lean: new Spring(0, 40, 5), hop: new Spring(0, 90, 9) };
+    const refl = new Loop(k, key, SKN, 0, 0, { into: farC, origin: ORIGIN, fps: 11, phase: ph });
+    const loop = new Loop(k, key, SKN, 0, 0, { into: farC, origin: ORIGIN, fps: 11, phase: ph });
+    const rim = new Loop(k, key, SKN, 0, 0, { into: farC, origin: ORIGIN, fps: 11, phase: ph, add: true, tint: RIM_COLS[i] });
+    return { b: BUILDS[id], key, reach: pair ? skSheet(id, 'reach') : undefined, cur: key, loop, refl, rim, shadow, x, side, speed, wait: 0, lean: new Spring(0, 40, 5), hop: new Spring(0, 90, 9) };
   });
   const place = (s: Skater, into: Phaser.GameObjects.Container) => {
-    for (const o of [s.shadow, s.refl.a, s.refl.b, s.loop.a, s.loop.b]) {
+    for (const o of [s.shadow, s.refl.a, s.refl.b, s.loop.a, s.loop.b, s.rim.a, s.rim.b]) {
       if (o.parentContainer !== into) {
         o.parentContainer?.remove(o);
         into.add(o);
@@ -2230,6 +2548,7 @@ registerKitScene(RINK, (k: KitLive, wave0) => {
       }
       if (p > 0.6) flashAll = 0.25;
       flash = Math.max(flash, 0.25 * p);
+      if (p > 0.3) skip = 0.6;
       puff = Math.max(puff, p);
       void y;
     },
@@ -2280,10 +2599,17 @@ registerKitScene(RINK, (k: KitLive, wave0) => {
       mqGlow.setAlpha(0.06 + nightK * 0.08);
 
       // ——— the DJ and the meters
-      dj.step(dt, 1);
+      skip = Math.max(0, skip - dt);
+      if (skip > 0) {
+        dj.a.setFrame(DJF + (skip > 0.35 ? 0 : 1)).setAlpha(1);
+        dj.b.setAlpha(0);
+      } else dj.step(dt, 1);
       const beat = Math.max(0, Math.sin(t * P2 * 2.1));
       meterLeds.forEach((m, i) => m.setAlpha(i / 6 < 0.35 + beat * 0.55 + wander(t, i, 3) * 0.1 ? 0.95 : 0.1));
       deckLamp.setAlpha(0.22 + nightK * 0.1);
+      // (he's lit by his deck lamp and the console: dimmer, and cooler, as the room goes down)
+      const djT = C.GetColor(Math.round(255 - nightK * 90), Math.round(255 - nightK * 110), Math.round(255 - nightK * 50));
+      dj.each((im) => im.setTint(djT));
 
       // ——— the ball
       swing.update(dt, t);
@@ -2351,47 +2677,66 @@ registerKitScene(RINK, (k: KitLive, wave0) => {
       // ——— the skaters
       const pace = sess < 0.5 ? 1 : sess < 1.5 ? 1.45 : sess < 2.5 ? 0.8 : 0.95;
       const lit = C.GetColor(Math.round(255 - nightK * 60 - uvK * 30), Math.round(250 - nightK * 80 - uvK * 40), Math.round(248 - nightK * 20));
+      const couple = sess > 1.6 && sess < 2.6;
       skaters.forEach((s, i) => {
+        const loops = [s.loop, s.refl, s.rim];
         if (s.wait > 0) {
           s.wait -= dt;
-          s.loop.alpha = 0;
-          s.refl.alpha = 0;
+          for (const l of loops) {
+            l.alpha = 0;
+            l.step(0);
+          }
           s.shadow.setVisible(false);
-          s.loop.step(0);
-          s.refl.step(0);
           return;
         }
-        // the couple: the second skater keeps close behind the first while the couples skate is on
-        if (i === 1 && sess > 1.6 && sess < 2.6 && skaters[0].wait <= 0) {
+        // the couples skate: the pair take hands (their own frames), the showboat skating backwards just ahead of
+        // her, facing her
+        const want = couple && s.reach && skaters[0].wait <= 0 && skaters[1].wait <= 0 ? s.reach : s.key;
+        if (want !== s.cur) {
+          s.cur = want;
+          for (const l of loops) l.each((im) => im.setTexture(want, im.frame.name));
+        }
+        if (i === 1 && couple && skaters[0].wait <= 0) {
           s.side = skaters[0].side;
-          s.x = skaters[0].x - (s.side ? -64 : 64);
+          s.x = skaters[0].x + (s.side ? -1 : 1) * 80 * (s.side ? FAR_S : 1);
         }
         const near = s.side === 0;
         const sc0 = near ? 1 : FAR_S;
         const dir = near ? 1 : -1;
         const v = s.speed * pace * sc0;
-        s.x += dir * v * dt;
-        if (near && s.x > W + 70) {
+        // the turn: approaching the end of the straight they bank into the curve and slow a touch
+        const toEnd = near ? W - s.x : s.x;
+        const bank = clamp(1 - (toEnd + 60) / 320, 0, 1);
+        const fromEnd = near ? s.x : W - s.x;
+        const exitBank = clamp(1 - (fromEnd + 60) / 260, 0, 1);
+        const turn = Math.max(bank, exitBank);
+        s.x += dir * v * dt * (1 - turn * 0.15);
+        if (near && s.x > W + 90) {
           s.side = 1;
-          s.x = W + 50;
+          s.x = W + 60;
           s.wait = 0.8 + crand() * 0.6;
-        } else if (!near && s.x < -60) {
+        } else if (!near && s.x < -70) {
           s.side = 0;
-          s.x = -70;
+          s.x = -80;
           s.wait = 1.1 + crand() * 0.8;
         }
         place(s, near ? nearC : farC);
         const base = near ? RK.nearY : RK.farY;
         const hop = Math.min(0, s.hop.step(0, dt));
-        const lean = s.lean.step(0, dt);
+        const lean = s.lean.step(0, dt) * 0.25 + dir * turn * 0.12;
+        const face = s.b.back ? -dir : dir;
+        const k0 = sc0 / SK.k;
+        const shrink = 1 - turn * 0.06;
         s.loop.alpha = 1;
         s.refl.alpha = near ? 0.2 : 0.16;
-        const stride = (v / (240 * sc0)) * 0.95;
-        s.loop.step(dt, stride);
-        s.refl.step(dt, stride);
-        s.loop.each((im) => im.setPosition(s.x, base + hop).setScale(sc0 * dir, sc0).setRotation(lean * 0.25).setTint(lit));
-        s.refl.each((im) => im.setPosition(s.x, base + 2).setScale(sc0 * dir, -sc0 * 0.9).setRotation(-lean * 0.25).setTint(0x8a6a5a));
-        s.shadow.setVisible(true).setPosition(s.x + 4 * sc0, base + 1).setScale(sc0 * 1.1, sc0).setAlpha(0.7 + hop / 40);
+        s.rim.alpha = nightK * 0.22 + discoK * 0.08;
+        // (a longer stride turns over slower; the kid's short steps patter)
+        const cadence = (v / (240 * sc0)) * 0.95 / Math.sqrt(s.b.stride);
+        for (const l of loops) l.step(dt, cadence);
+        s.loop.each((im) => im.setPosition(s.x, base + hop).setScale(k0 * face * shrink, k0 * shrink).setRotation(lean).setTint(lit));
+        s.rim.each((im) => im.setPosition(s.x - 1.6 * dir, base + hop - 1.2).setScale(k0 * face * shrink, k0 * shrink).setRotation(lean));
+        s.refl.each((im) => im.setPosition(s.x, base + 2).setScale(k0 * face * shrink, -k0 * 0.9 * shrink).setRotation(-lean).setTint(0x8a6a5a));
+        s.shadow.setVisible(true).setPosition(s.x + 4 * sc0, base + 1).setScale(sc0 * 1.2 * s.b.s, sc0).setAlpha(0.7 + hop / 40);
       });
 
       // ——— on the ledge
