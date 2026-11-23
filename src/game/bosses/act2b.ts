@@ -814,13 +814,15 @@ const poltergeist = (): Brain => {
     a.sfx('sfx_poltergeist_infect', { volume: 0.85 });
     a.sc.time.delayedCall(600, () => {
       if (!o.alive || !zombies.has(o)) return;
-      for (let i = 0; i < 5; i++) a.fx.stinkPuff(o.cx + (crand() - 0.5) * 120, o.cy + (crand() - 0.5) * 90);
+      // (the puff is the look's own: Fx.stinkPuff draws on the game's random sequence)
+      look.puff();
       a.fx.ring(o.cx, o.cy, ZOMBIE_GLOW, 1.3, 0.55);
     });
     a.sc.time.delayedCall(780, () => {
       if (!o.alive || !zombies.has(o)) return;
       // (off to the far side of the foot, clear of the bite's own callouts)
-      a.quip(o.x - side * 150, Math.max(300, o.cy - 40), 'URRRGH…', '#9be36a', 44);
+      // (its tilt from the cosmetic generator: a.quip's default tilt draws on the game's random sequence)
+      a.fx.quip(o.x - side * 150, Math.max(300, o.cy - 40), 'URRRGH…', '#9be36a', 44, (crand() - 0.5) * 16);
       a.sfx('sfx_poltergeist_turn', { volume: 0.9, rate: 0.94 + crand() * 0.12 });
     });
   };
@@ -887,7 +889,7 @@ const poltergeist = (): Brain => {
           zombies.delete(o);
           continue;
         }
-        if (whiff && crand() < 0.5) a.fx.stinkPuff(o.cx, o.cy);
+        if (whiff && Math.random() < 0.5) a.fx.stinkPuff(o.cx, o.cy);
         if (o.state === 'descend') {
           z.armed = true;
           z.p = o.target;

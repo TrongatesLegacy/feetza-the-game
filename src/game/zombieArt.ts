@@ -31,7 +31,7 @@ import { feetAnimated } from '../systems/graphics';
 import { crand } from '../systems/cosmeticRandom';
 import { save } from '../systems/save';
 import type { Foot } from './Foot';
-import { Critters, Spring, WorldEmitter } from './liveKit';
+import { Critters, Spring, WorldEmitter, liveQuality } from './liveKit';
 
 type Piece = Phaser.GameObjects.Image | Phaser.GameObjects.TileSprite;
 type RGB = [number, number, number];
@@ -50,6 +50,21 @@ const plainKey = (key: string): string => (key.startsWith(PREFIX) ? key.slice(PR
 const reduced = () => !!save.settings.reducedMotion;
 /** The texture a piece draws (a tile sprite's own texture is a scratch canvas: its source is displayTexture). */
 const keyOf = (p: Piece): string => (p instanceof Phaser.GameObjects.TileSprite ? (p as unknown as { displayTexture: Phaser.Textures.Texture }).displayTexture.key : p.texture.key);
+
+/**
+ * Run `fn` with Math.random drawing from the cosmetic generator. Math.random is the game's seeded sequence (the
+ * balance simulator replays runs from it), and Phaser draws on it inside things that are only for show here: a tile
+ * sprite's texture key (UUID), particle ranges. A zombie foot's looks must never move that sequence on.
+ */
+function cosmetic<T>(fn: () => T): T {
+  const was = Math.random;
+  Math.random = crand;
+  try {
+    return fn();
+  } finally {
+    Math.random = was;
+  }
+}
 
 // ════════════════════════════ colour and noise ════════════════════════════
 
@@ -864,6 +879,10 @@ function queue(f: Foot): Piece[] {
 
 /** Start building a foot's zombie art in the background (the boss has marked it). */
 export function prepareZombie(f: Foot): void {
+  cosmetic(() => prepareNow(f));
+}
+
+function prepareNow(f: Foot): void {
   queue(f);
   // the wound and the flies too, each a step of its own (a first upload can be a hitch by itself)
   const sc = f.scene;
@@ -895,6 +914,10 @@ function step(k: string, j: Job): boolean {
 
 /** Take steps of the background builds for about `budgetMs` (each step is a few rows of pixels). */
 export function stepZombieBuilds(budgetMs = 4): void {
+  if (jobs.size) cosmetic(() => stepBuilds(budgetMs));
+}
+
+function stepBuilds(budgetMs: number): void {
   const t0 = performance.now();
   while (jobs.size && performance.now() - t0 < budgetMs) {
     const [k, j] = jobs.entries().next().value!;
@@ -1234,6 +1257,7 @@ export class ZombieLook {
   private wound: Phaser.GameObjects.Image | null = null;
   private flies: Critters | null = null;
   private drips: WorldEmitter | null = null;
+  private cloud: WorldEmitter | null = null;
   /** Its lean (radians) and the squash of its body (from the sole): springs its convulsions and twitches kick. */
   private lean = new Spring(0, 70, 7);
   private sqX = new Spring(1, 260, 13);
@@ -1264,6 +1288,10 @@ export class ZombieLook {
 
   /** The bite: build what's missing, wipe the zombie art in from the bite, convulse. */
   bite(): void {
+    cosmetic(() => this.biteNow());
+  }
+
+  private biteNow(): void {
     const f = this.f;
     finish(f);
     const p = this.plan;
@@ -1321,6 +1349,22 @@ export class ZombieLook {
     this.sound('sfx_poltergeist_flies', { volume: 0.55, rate: 0.95 + crand() * 0.1, throttle: 400 });
   }
 
+  /** A green puff of rot off the whole foot (its own emitter: cosmetic randomness only). */
+  puff(): void {
+    cosmetic(() => this.puffNow());
+  }
+
+  private puffNow(): void {
+    const f = this.f;
+    if (!f.alive || !f.root.active) return;
+    this.cloud ??= new WorldEmitter(f.scene, f, { frame: 'puff', curl: 30, drag: 1.1, max: 40 });
+    const s = f.type.scale;
+    const hw = this.plan.bw / s / 2;
+    for (let i = 0, n = Math.max(3, Math.round(8 * liveQuality())); i < n; i++) {
+      this.cloud.emit(CX + (crand() - 0.5) * hw * 1.6, f.meta.footHeight * (0.2 + crand() * 0.7), { vx: (crand() - 0.5) * 80, vy: -40 - crand() * 50, life: 1.1 + crand() * 0.5, r0: 14 * s, r1: 46 * s, a: 0.5, tint: [0x9fbf4a, 0x7a9a2a, 0xb8c96a][Math.floor(crand() * 3)], fade: 0.15 });
+    }
+  }
+
   /** Where the wound is in world space (for its drips and the scene's effects). */
   woundWorld(): [number, number] {
     const ts = this.f.type.scale;
@@ -1341,6 +1385,10 @@ export class ZombieLook {
   }
 
   update(dt: number): void {
+    if (!this.released) cosmetic(() => this.step(dt));
+  }
+
+  private step(dt: number): void {
     const f = this.f;
     if (this.released) return;
     if (!f.alive || !f.root.active) {
@@ -1367,6 +1415,7 @@ export class ZombieLook {
       return;
     }
     while (this.beats.length && this.age >= this.beats[0][0]) this.beats.shift()![1]();
+    this.cloud?.follow(dt);
     if (this.age > 0.6) this.swarm();
     if (this.flies) {
       this.flies.tight += (1 - this.flies.tight) * Math.min(1, dt * 2.2);
@@ -1415,6 +1464,10 @@ export class ZombieLook {
 
   /** The boss is down: wipe the original art back from the middle out. Returns where the heal burst goes. */
   cure(): [number, number] {
+    return cosmetic(() => this.cureNow());
+  }
+
+  private cureNow(): [number, number] {
     const f = this.f;
     this.cured = true;
     this.beats = [];
@@ -1433,6 +1486,8 @@ export class ZombieLook {
     this.flies = null;
     this.drips?.release();
     this.drips = null;
+    this.cloud?.release();
+    this.cloud = null;
     this.age = 0;
     const m = f.root.getWorldTransformMatrix().transformPoint(c[0], c[1]);
     return [m.x, m.y];
@@ -1440,6 +1495,10 @@ export class ZombieLook {
 
   /** The foot died or left (or came round): the flies scatter, the ooze stops, its pose lets go. */
   release(): void {
+    if (!this.released) cosmetic(() => this.releaseNow());
+  }
+
+  private releaseNow(): void {
     if (this.released) return;
     this.released = true;
     this.f.scene.events.off('postupdate', this.tick, this);
@@ -1447,8 +1506,10 @@ export class ZombieLook {
     this.wipe = null;
     this.flies?.release();
     this.drips?.release();
+    this.cloud?.release();
     this.flies = null;
     this.drips = null;
+    this.cloud = null;
     this.f.leanFx = 0;
     if (this.f.root.active) this.f.setBodyScale(1, 1);
     // (a cured foot's wound goes; a dead one's leaves with the foot)
