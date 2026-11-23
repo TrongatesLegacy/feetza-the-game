@@ -11,7 +11,8 @@
 //   The Doom Lab         66 lab hum, Tesla arcs · 67 alarm beacons · 68 red alert (Ultoe) · 69 power surges (its
 //                        backdrop, scene-doomlab.ts, runs its vats, arcs, beacons, light and surges when animated;
 //                        the act plays the arcs' zaps and the surges' sound)
-//   Titan's Throne       70 a pulsing nebula and falling stars (Thanfoot)
+//   Titan's Throne       70 a pulsing nebula and falling stars (Thanfoot; its backdrop, scene-thanfoot.ts, runs its own
+//                        nebula, energy river, shooting stars, halved world and star-fire when animated)
 //
 // Feet: Henchman Spats arrive in numbered gangs of four and dive in order; Jetpack Jackboots fly in from the
 // side; Goon Galoshes light a bomb and drop it on their pizza (smack it mid-air). Doomstomp's last life is
@@ -32,6 +33,7 @@ import type { Pizza } from '../Pizza';
 import { nemesisOf } from '../nemesis';
 import { bossFor, locationFor, miniFor, waveInStage, isBossWave, isMiniWave } from '../Run';
 import { DL } from '../../content/art/scene-doomlab';
+import { TF } from '../../content/art/scene-thanfoot';
 
 const FONT = 'Lilita One, Fredoka, sans-serif';
 const INK = 0x2a1810;
@@ -209,7 +211,7 @@ const LIGHT: Record<string, [number, number][]> = {
     [0xff8080, 0.2],
     [0x6a7a90, 0.34],
   ],
-  thanfoot: [[0xc8a0ff, 0.14]],
+  thanfoot: [[0xd8c8ff, 0.06]],
 };
 
 function setLight(layer: Layer, col: number, k: number, ms = 1800): void {
@@ -309,21 +311,24 @@ function smoke(a: Arena, layer: Layer): void {
   layer.back.add(e);
 }
 
-/** A slow nebula pulse and shooting stars over Titan's Throne. */
+/** A slow nebula pulse and falling stars over Titan's Throne (the backdrop's TF layout: the glow on its nebula's heart,
+ * the stars in its clear sky over the nebula; still backdrops only). */
 function cosmos(a: Arena, layer: Layer): void {
   const sc = a.sc;
-  const neb = sc.add.image(960, 260, 'glow').setTint(0xb04dff).setBlendMode(Phaser.BlendModes.ADD).setScale(9, 3.4).setAlpha(0.15);
+  const neb = sc.add.image(TF.nebula.x, TF.nebula.y, 'glow').setTint(0xb04dff).setBlendMode(Phaser.BlendModes.ADD).setScale(5.6, 2.6).setRotation(-0.4).setAlpha(0.12);
   layer.back.add(neb);
+  const L = TF.starLane;
   let next = 1.5;
   layer.tickers.push((dt, t) => {
-    neb.setAlpha(0.12 + Math.sin(t * 0.7) * 0.07);
+    neb.setAlpha(0.09 + Math.sin(t * 0.7) * 0.05);
     next -= dt;
     if (next > 0) return;
     next = 2 + Math.random() * 3;
-    const x = 200 + Math.random() * 1500;
-    const star = sc.add.image(x, 60, 'star').setScale(0.3).setBlendMode(Phaser.BlendModes.ADD).setTint(0xfff0c0);
+    const x = L.x0 + Math.random() * (L.x1 - L.x0);
+    const y = L.y0 + Math.random() * (L.y1 - L.y0);
+    const star = sc.add.image(x, y, 'star').setScale(0.3).setBlendMode(Phaser.BlendModes.ADD).setTint(0xfff0c0);
     layer.back.add(star);
-    sc.tweens.add({ targets: star, x: x + 380, y: 330, alpha: 0, duration: 900, ease: 'Quad.In', onComplete: () => star.destroy() });
+    sc.tweens.add({ targets: star, x: x + L.dx, y: y + L.dy, alpha: 0, duration: 900, ease: 'Quad.In', onComplete: () => star.destroy() });
   });
 }
 
@@ -344,9 +349,9 @@ function setup(a: Arena, layer: Layer, n: number): void {
   const ws = waveInStage(n);
   const changed = place !== layer.place;
   layer.wave = n;
-  // the redrawn backdrops (src/content/art/scene-metropizza.ts, scene-doomlab.ts, scene-doomstomp.ts) light
-  // themselves when animated
-  const live = (place === 'metropizza' || place === 'doomlab' || place === 'doomstomp') && backdropsAnimated();
+  // the redrawn backdrops (src/content/art/scene-metropizza.ts, scene-doomlab.ts, scene-doomstomp.ts,
+  // scene-thanfoot.ts) light themselves when animated
+  const live = (place === 'metropizza' || place === 'doomlab' || place === 'doomstomp' || place === 'thanfoot') && backdropsAnimated();
   const light = live ? ([0xffffff, 0] as [number, number]) : (LIGHT[place]?.[Math.min(ws, LIGHT[place].length) - 1] ?? [0xffffff, 0]);
   setLight(layer, light[0], light[1], changed ? 1 : 2000);
   // rebuild the moving parts when the place or the weather changes
@@ -387,7 +392,9 @@ function setup(a: Arena, layer: Layer, n: number): void {
       if (ws >= 2) beacons(a, layer);
     }
   } else if (place === 'thanfoot') {
-    cosmos(a, layer);
+    // animated, the backdrop runs its own nebula, energy river and shooting stars; still, the act keeps its nebula
+    // pulse and falling stars, placed on the painted sky
+    if (!live) cosmos(a, layer);
   }
 }
 

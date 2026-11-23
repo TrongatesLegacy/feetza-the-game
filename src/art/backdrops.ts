@@ -4879,7 +4879,10 @@ const REDRAWN = new Set<BackdropId>(['trattoria', 'beach', 'space',
   'doomlab',
   // Doomstomp's arena (Downtown Ruins, Act 7's pulp-comic print), redrawn with the location kit and painted frame
   // animation: scene-doomstomp.ts
-  'doomstomp']);
+  'doomstomp',
+  // Thanfoot's arena (Titan's Throne, Act 7's pulp-comic print), redrawn with the location kit and painted frame
+  // animation: scene-thanfoot.ts
+  'thanfoot']);
 
 // redrawn scenes keep their old info for the before/after page (their old glows and particles with their old art)
 const LEGACY_INFO: Partial<Record<BackdropId, BackdropInfo>> = {};
