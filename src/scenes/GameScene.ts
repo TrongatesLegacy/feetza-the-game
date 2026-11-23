@@ -192,6 +192,22 @@ export class GameScene extends Phaser.Scene implements Arena {
   /** The phase 3 pizzas' perks (src/game/pizzaPerks.ts). */
   private perkKit!: PizzaPerkKit;
   private clickables: Clickable[] = [];
+  /** When each target was last live (sweepClickables drops ones dead for a long while). */
+  private clickSeen = new WeakMap<Clickable, number>();
+  private sweepT = 0;
+  /** Drop targets that haven't been live for 60 s (a target can be dormant for a while and come back). */
+  private sweepClickables(dt: number): void {
+    this.sweepT += dt;
+    if (this.sweepT < 2) return;
+    this.sweepT = 0;
+    this.clickables = this.clickables.filter((c) => {
+      if (c.alive()) {
+        this.clickSeen.set(c, this.nowT);
+        return true;
+      }
+      return this.nowT - (this.clickSeen.get(c) ?? this.nowT) < 60;
+    });
+  }
   /** Dev: the hitbox overlay (src/game/smackLog.ts). */
   private hitboxes: HitboxOverlay | null = null;
 
@@ -327,6 +343,7 @@ export class GameScene extends Phaser.Scene implements Arena {
   }
   addClickable(c: Clickable): void {
     this.clickables.push(c);
+    this.clickSeen.set(c, this.nowT);
   }
   banner(big: string, small: string, kind: 'boss' | 'loc' | 'clear' | 'phase' = 'boss', desc?: string): void {
     // phase banners explain the move, so they stay up long enough to read (longer on Mild)
@@ -3040,8 +3057,11 @@ export class GameScene extends Phaser.Scene implements Arena {
       .filter((o) => o.d <= r)
       .sort((a, b) => a.d - b.d);
     // boss props and wave events: a smack goes to them only when no foot is closer
-    this.clickables = this.clickables.filter((c) => c.alive());
+    // (targets that aren't live right now are skipped, not dropped: many become live later — a head that's still
+    // rising, a blade still swinging in, a piston that unlocks — and dropping them on the first smack while they
+    // weren't live made them unclickable for good. Long-dead ones are swept in sweepClickables.)
     const click = this.clickables
+      .filter((c) => c.alive())
       .map((c) => ({ c, d: c.contains ? (c.contains(x, y) ? 0 : 1) : Math.hypot(c.x - x, c.y - y) - c.r }))
       .filter((o) => o.d <= 0)
       .sort((a, b) => (b.c.priority ?? 0) - (a.c.priority ?? 0) || a.d - b.d)[0];
@@ -4490,6 +4510,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     // dev: the hitbox overlay draws every live target's hit area and recent smacks
     if (smackLog.overlay && !this.hitboxes) this.hitboxes = new HitboxOverlay(this);
     this.hitboxes?.draw(this.clickables);
+    this.sweepClickables(Math.min(0.05, deltaMs / 1000));
     this.frameNo++;
     const real = Math.min(0.05, deltaMs / 1000);
     this.nowT += real;
