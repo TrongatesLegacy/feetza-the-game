@@ -784,9 +784,8 @@ class GuardFx {
     }
     else show = { word: 'OPEN!', icon: 'shield', bar: steps, ring: f.guardOpen > 0 ? { frac: f.guardOpen / this.openTotal, color: '#2c9a3a' } : undefined, state: 'go' };
     this.badge.set(show);
-    // on the leg just above the foot. A foot hovering high wears it lower down the leg, but never on the foot (it
-    // covered the shield): once even the ankle is off the top of the screen it sits beside the foot instead, on the
-    // side towards the middle of the table
+    // on the leg just above the foot. A foot hovering high wears it lower down the leg; once even the ankle is off
+    // the top of the screen it rides over the foot (Tron: better than floating beside it)
     const rs = f.root.scaleY || 1;
     const ankle = -f.meta.footHeight * f.type.scale;
     const want = ankle - 72;
@@ -794,11 +793,8 @@ class GuardFx {
     const lowest = ankle - 30;
     if (minY <= want) this.badge.img.setPosition(0, want);
     else if (minY <= lowest) this.badge.img.setPosition(0, minY);
-    else {
-      const side = f.x > 960 ? -1 : 1;
-      const halfBadge = (this.badge.img.displayWidth || 80) / 2;
-      this.badge.img.setPosition(side * (f.meta.halfWidth * f.type.scale + halfBadge + 12), Math.max(minY, ankle + 20));
-    }
+    // once even the ankle is off the top of the screen it sits on the foot, just under the top edge
+    else this.badge.img.setPosition(0, minY);
     this.badge.update(dt, -f.root.rotation);
   }
 
