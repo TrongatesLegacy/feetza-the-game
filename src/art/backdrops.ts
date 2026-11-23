@@ -4838,7 +4838,9 @@ const REDRAWN = new Set<BackdropId>(['trattoria', 'beach', 'space',
   // redrawn with the location kit and painted frame animation: scene-lodge.ts
   'lodge',
   // the Cosmic Croc's arena, redrawn with the location kit and painted frame animation: scene-cosmiccroc.ts
-  'cosmiccroc']);
+  'cosmiccroc',
+  // Nonna's Slipper's arena, redrawn with the location kit and painted frame animation: scene-nonna.ts
+  'nonna']);
 
 // redrawn scenes keep their old info for the before/after page (their old glows and particles with their old art)
 const LEGACY_INFO: Partial<Record<BackdropId, BackdropInfo>> = {};
