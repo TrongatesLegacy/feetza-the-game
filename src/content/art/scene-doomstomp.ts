@@ -1764,150 +1764,158 @@ export function fireFrame(c: Ctx, w: number, h: number, ph: number, seed: number
   c.restore();
 }
 
-const WATER = { body: '#72b8e4', lit: '#e8f6ff', shade: '#3474b4', ink: '#0e2450', dot: '#0e3270' };
 
 /**
- * One frame of the hydrant's geyser (phase 0…1 loops), out of the main at the bottom centre: a jet wobbling up with
- * bulges running up it, flaring at the top where it bursts into froth and spray; streams arcing off the burst on both
- * sides and falling back, broken into dashes that run down them, and drops off their ends. Inked water, a white
- * highlight down its lit side and the fire's orange on its very edge, its shade in dots.
+ * One frame of the hydrant's geyser (phase 0…1 loops), out of the broken main at the bottom centre. Only the lowest
+ * third is a solid jet: narrow, fast, streaked. Above it the water tears apart into strands that fan out as they rise,
+ * broken into dashes that race up them, then a ragged crown of spray: streaks and drops flung out, falling back in arcs
+ * on both sides, a mist of halftone dots. White-cyan streaks with a thin dark-blue ink: the street shows through the
+ * gaps everywhere above the jet.
  */
 export function geyserFrame(c: Ctx, w: number, h: number, ph: number): void {
   const cx = w / 2;
   const base = h - 4;
-  const top = 74 + Math.sin(P2 * ph) * 5;
-  const col = (y: number) => {
-    const u = (base - y) / (base - top);
-    // a jet that flares as it bursts at the top
-    let half = 10 + u * 8 + 22 * smooth(0.72, 1, u) ** 1.6;
-    for (let k = 0; k < 3; k++) {
-      const by = base - ((k / 3 + ph) % 1) * (base - top);
-      half += 2.5 * Math.exp(-(((y - by) / 14) ** 2)) * (1 - smooth(0.6, 0.9, u));
-    }
-    return half;
-  };
-  const xoff = (y: number) => Math.sin(P2 * (ph + (base - y) / 140)) * 3;
-  const colPath: PathFn = (g) => {
-    g.beginPath();
-    for (let y = base; y >= top; y -= 5) g.lineTo(cx + xoff(y) - col(y), y);
-    for (let y = top; y <= base; y += 5) g.lineTo(cx + xoff(y) + col(y), y);
-    g.closePath();
-  };
-  const kx = cx + xoff(top);
+  const top = 46 + Math.sin(P2 * ph) * 4;
+  const breakY = base - (base - top) * 0.32;
+  const r = rng(77);
   c.save();
   c.lineJoin = 'round';
   c.lineCap = 'round';
-  // the streams arcing off the burst and falling back, behind the jet: dashes running down them
+  const STREAK = '#effcff';
+  const CYAN = '#9fe2f8';
+  const INKW = '#123a66';
+  /** A water stroke: a thin ink edge, a cyan body, a white core. */
+  const stroke = (path: (g: Ctx) => void, wd: number, a = 1) => {
+    c.globalAlpha = a;
+    c.strokeStyle = INKW;
+    c.lineWidth = wd + 2.2;
+    path(c);
+    c.stroke();
+    c.strokeStyle = CYAN;
+    c.lineWidth = wd;
+    path(c);
+    c.stroke();
+    c.strokeStyle = STREAK;
+    c.lineWidth = Math.max(0.8, wd * 0.4);
+    path(c);
+    c.stroke();
+    c.globalAlpha = 1;
+  };
+  // the mist: a halftone cloud of fine dots round the crown and down the fall (the street shows between them)
+  dots(c, { x: 0, y: 0, w, h: base - 20 }, (x, y) => {
+    const crown = Math.exp(-(((x - cx) / 70) ** 2) - (((y - top - 20) / 46) ** 2));
+    const fall = Math.exp(-(((Math.abs(x - cx) - 62) / 26) ** 2)) * smooth(top, top + 80, y) * (1 - smooth(base - 80, base, y));
+    const edge = smooth(0, 24, x) * smooth(0, 24, w - x) * smooth(0, 20, y);
+    return (0.55 * crown + 0.3 * fall) * edge * (0.85 + 0.15 * Math.sin(P2 * ph + x * 0.05));
+  }, '#d8f4ff', { step: 5, angle: 0.26, max: 0.5, a: 0.75 });
+  // the falling arcs on both sides: dashed streams running down from the crown
   for (const side of [-1, 1])
-    for (let k = 0; k < 3; k++) {
-      const x0 = kx + side * (18 + k * 7);
-      const x1 = kx + side * (58 + k * 15);
-      const stream = (g: Ctx) => {
+    for (let k = 0; k < 4; k++) {
+      const x0 = cx + side * (16 + k * 8);
+      const x1 = cx + side * (44 + k * 14);
+      const y1 = base - 70 + k * 16;
+      const path = (g: Ctx) => {
         g.beginPath();
-        g.moveTo(x0, top + 2);
-        g.quadraticCurveTo(kx + side * (46 + k * 14), top - 26 + k * 6, x1, base - 60 + k * 18);
+        g.moveTo(x0, top + 6);
+        g.quadraticCurveTo(cx + side * (40 + k * 16), top - 30 + k * 8, x1, y1);
       };
-      const dash = 16 + k * 4;
-      const gap = 9;
+      const dash = 10 + k * 3;
+      const gap = 8 + k * 2;
       c.setLineDash([dash, gap]);
       c.lineDashOffset = -ph * (dash + gap) * 3;
-      c.strokeStyle = WATER.ink;
-      c.lineWidth = 6.5 - k * 1.2;
-      stream(c);
-      c.stroke();
-      c.strokeStyle = k ? mix(WATER.body, WATER.shade, 0.25) : WATER.body;
-      c.lineWidth = 3.6 - k * 0.8;
-      stream(c);
-      c.stroke();
+      stroke(path, 2.6 - k * 0.4, 0.95 - k * 0.12);
     }
   c.setLineDash([]);
-  // the jet
-  flat(c, colPath, WATER.body, 3, WATER.ink, 0.4);
-  within(c, colPath, () => {
-    c.fillStyle = rgba(WATER.lit, 0.55);
-    c.beginPath();
-    for (let y = base; y >= top; y -= 5) c.lineTo(cx + xoff(y) - col(y) * 0.75, y);
-    for (let y = top; y <= base; y += 5) c.lineTo(cx + xoff(y) - col(y) * 0.25, y);
-    c.fill();
-    c.fillStyle = rgba('#ffa060', 0.8);
-    c.beginPath();
-    for (let y = base; y >= top; y -= 5) c.lineTo(cx + xoff(y) - col(y), y);
-    for (let y = top; y <= base; y += 5) c.lineTo(cx + xoff(y) - col(y) + 3, y);
-    c.fill();
-    c.strokeStyle = 'rgba(255,255,255,0.9)';
-    c.lineWidth = 2.2;
-    c.beginPath();
-    for (let k = 0; k < 4; k++) {
-      const y0 = base - ((k / 4 + ph) % 1) * (base - top) * 0.8;
-      c.moveTo(cx + xoff(y0) - col(y0) * 0.4, y0);
-      c.lineTo(cx + xoff(y0 - 22) - col(y0 - 22) * 0.4, y0 - 22);
-    }
-    c.stroke();
-    dots(c, { x: cx - 50, y: top - 10, w: 100, h: base - top + 10 }, (x, y) => smooth(0, 1, (x - cx - xoff(y)) / col(y) + 0.1) * 0.85, WATER.dot, { step: 4, angle: 0.26 });
-  });
-  // the burst at its top: froth bubbling over the rim (white-blue lobes, inked), spray flung up off it
-  const lobes: [number, number, number][] = [];
-  const n = 7;
-  for (let i = 0; i < n; i++) {
-    const u = i / (n - 1);
-    const beat = Math.sin(P2 * (ph + i * 0.29));
-    lobes.push([kx - 34 + u * 68, top + 4 - Math.sin(Math.PI * u) * 14 + beat * 3, 9 + Math.sin(Math.PI * u) * 6 + beat * 2]);
-  }
-  const froth: PathFn = (g) => {
-    g.beginPath();
-    for (const [x, y, rr] of lobes) {
-      g.moveTo(x + rr, y);
-      g.arc(x, y, rr, 0, P2);
-    }
-  };
-  c.strokeStyle = WATER.ink;
-  c.lineWidth = 3.4;
-  froth(c);
-  c.stroke();
-  c.fillStyle = mix(WATER.body, WATER.lit, 0.55);
-  froth(c);
-  c.fill();
-  within(c, froth, () => {
-    c.fillStyle = WATER.lit;
-    c.beginPath();
-    for (const [x, y, rr] of lobes) {
-      c.moveTo(x - rr * 0.25 + rr * 0.55, y - rr * 0.3);
-      c.arc(x - rr * 0.25, y - rr * 0.3, rr * 0.55, 0, P2);
-    }
-    c.fill();
-    dots(c, { x: kx - 50, y: top - 30, w: 100, h: 50 }, linTone(kx - 10, top - 10, kx + 40, top + 14, 0, 0.7), WATER.dot, { step: 4, angle: 0.26 });
-  });
-  for (let k = 0; k < 9; k++) {
-    const u = (ph + k / 9) % 1;
-    const a = -Math.PI / 2 + (k / 8 - 0.5) * 2.4;
-    const d = 18 + u * 40;
-    const sx = kx + Math.cos(a) * d * 1.3;
-    const sy = top - 8 + Math.sin(a) * d + u * u * 36;
-    const sr = 3.6 * (1 - u * 0.6);
-    flat(c, ellPath(sx, sy, sr, sr), WATER.body, 1.2, WATER.ink, 0);
-  }
-  // drops off the streams' ends
+  // drops off the ends of the falling arcs
   for (const side of [-1, 1])
-    for (let k = 0; k < 6; k++) {
-      const u = (ph * 2 + k / 6 + (side > 0 ? 0.08 : 0)) % 1;
-      const x = kx + side * (60 + (k % 3) * 15) + side * u * 8;
-      const y = base - 60 + (k % 3) * 18 + u * 50;
+    for (let k = 0; k < 7; k++) {
+      const u = (ph * 2 + k / 7 + (side > 0 ? 0.07 : 0)) % 1;
+      const x = cx + side * (44 + (k % 4) * 14) + side * u * 6;
+      const y = base - 70 + (k % 4) * 16 + u * 60;
       if (y > base - 2) continue;
       flat(c, (g) => {
         g.beginPath();
-        g.moveTo(x, y - 6);
-        g.quadraticCurveTo(x + 3, y - 1, x, y + 3);
-        g.quadraticCurveTo(x - 3, y - 1, x, y - 6);
+        g.moveTo(x, y - 5);
+        g.quadraticCurveTo(x + 2.4, y - 1, x, y + 2.6);
+        g.quadraticCurveTo(x - 2.4, y - 1, x, y - 5);
         g.closePath();
-      }, WATER.body, 1.2, WATER.ink, 0);
+      }, STREAK, 1, INKW, 0);
     }
-  // the foam at the main where it bursts out
+  // the jet: narrow and solid only up to the break, streaked white, its edge ragged where it starts to tear
+  const half = (y: number) => 4.5 + 4.5 * (base - y) / (base - breakY) + Math.sin(P2 * (ph * 2) + y * 0.2) * 0.8;
+  const jet: PathFn = (g) => {
+    g.beginPath();
+    for (let y = base; y >= breakY; y -= 4) g.lineTo(cx - half(y), y);
+    // the torn top: ragged teeth where the column splits
+    for (let i = 0; i <= 6; i++) g.lineTo(cx - half(breakY) + (i / 6) * half(breakY) * 2, breakY - (i % 2 ? 10 + 6 * Math.sin(P2 * ph + i) : 0));
+    for (let y = breakY; y <= base; y += 4) g.lineTo(cx + half(y), y);
+    g.closePath();
+  };
+  flat(c, jet, CYAN, 2, INKW, 0.3);
+  within(c, jet, () => {
+    c.strokeStyle = STREAK;
+    c.lineWidth = 1.6;
+    c.beginPath();
+    for (let k = 0; k < 5; k++) {
+      const y0 = base - ((k / 5 + ph * 2) % 1) * (base - breakY);
+      const xo = cx - 3 + (k % 3) * 2.5;
+      c.moveTo(xo, y0);
+      c.lineTo(xo, y0 - 16);
+    }
+    c.stroke();
+    dots(c, { x: cx - 12, y: breakY - 12, w: 24, h: base - breakY + 12 }, linTone(cx, 0, cx + 9, 0, 0, 0.7), '#2a6aa8', { step: 3.5, angle: 0.26 });
+  });
+  // the strands: the jet tearing into threads that fan out as they rise, dashes racing up them
+  const N = 9;
+  for (let i = 0; i < N; i++) {
+    const u = i / (N - 1) - 0.5;
+    const sx = cx + u * 12;
+    const ex = cx + u * 120 + Math.sin(P2 * ph + i) * 4;
+    const ey = top + 8 + Math.abs(u) * 40 + r() * 10;
+    const path = (g: Ctx) => {
+      g.beginPath();
+      g.moveTo(sx, breakY + 4);
+      g.quadraticCurveTo(cx + u * 30, (breakY + ey) / 2, ex, ey);
+    };
+    const dash = 22 + (i % 3) * 6;
+    const gap = 7 + (i % 2) * 5;
+    c.setLineDash([dash, gap]);
+    c.lineDashOffset = ph * (dash + gap) * 4;
+    stroke(path, 3.4 - Math.abs(u) * 2.6, 1);
+  }
+  c.setLineDash([]);
+  // the crown: a ragged burst of short streaks and drops flung outward and up, each on its own beat
+  for (let k = 0; k < 22; k++) {
+    const q = (ph + k / 22 + r() * 0.3) % 1;
+    const a = -Math.PI / 2 + (r() - 0.5) * 2.6;
+    const d = 10 + q * (40 + r() * 30);
+    const x = cx + Math.cos(a) * d * 1.3;
+    const y = top + 14 + Math.sin(a) * d + q * q * 40;
+    const fade = 1 - smooth(0.6, 1, q);
+    if (k % 3) {
+      const l = 6 + r() * 8;
+      const vx = Math.cos(a);
+      const vy = Math.sin(a) + q * 1.4;
+      const n = Math.hypot(vx, vy) || 1;
+      stroke((g) => {
+        g.beginPath();
+        g.moveTo(x, y);
+        g.lineTo(x - (vx / n) * l, y - (vy / n) * l);
+      }, 2, fade);
+    } else {
+      const sr = 2.8 * (1 - q * 0.5);
+      c.globalAlpha = fade;
+      flat(c, ellPath(x, y, sr, sr), STREAK, 1, INKW, 0);
+      c.globalAlpha = 1;
+    }
+  }
+  // the splash at the main: drops thrown out low round the base
   for (let k = 0; k < 8; k++) {
     const a = Math.PI + (k / 7) * Math.PI;
     const u = (ph * 2 + k * 0.37) % 1;
-    const sx = cx + Math.cos(a) * (14 + u * 22);
-    const sy = base - 2 + Math.sin(a) * (4 + u * 10) - Math.sin(Math.PI * u) * 10;
-    flat(c, ellPath(sx, sy, 3 * (1 - u * 0.5), 3 * (1 - u * 0.5)), WATER.body, 1.2, WATER.ink, 0);
+    const sx = cx + Math.cos(a) * (10 + u * 20);
+    const sy = base - 2 + Math.sin(a) * (3 + u * 8) - Math.sin(Math.PI * u) * 9;
+    flat(c, ellPath(sx, sy, 2.6 * (1 - u * 0.5), 2.6 * (1 - u * 0.5)), STREAK, 1, INKW, 0);
   }
   c.restore();
 }
