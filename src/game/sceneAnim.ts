@@ -115,6 +115,9 @@ export class Swing {
 
 export interface PartOpts {
   frame: FxFrame;
+  /** The scene's own painted particles instead of the kit's frame: a sheet() of n frames, each 2·half px square
+   * (lit rock chips, leaves, glass): each particle takes one of its frames at random. */
+  sheet?: { key: string; n: number; half: number };
   add?: boolean;
   into?: Container;
   max?: number;
@@ -170,8 +173,10 @@ export class Parts {
   private free: Img[] = [];
   private key: string;
   constructor(private k: KitLive, private o: PartOpts) {
-    this.key = fxAtlas(k.sc);
+    this.key = o.sheet ? o.sheet.key : fxAtlas(k.sc);
+    this.half = o.sheet ? o.sheet.half : FX_R;
   }
+  private half: number;
   get count(): number {
     return this.ps.length;
   }
@@ -179,13 +184,14 @@ export class Parts {
     if (this.ps.length >= (this.o.max ?? 160)) return;
     const img = this.free.pop() ?? this.make();
     img.setVisible(true).setTint(s.tint);
+    if (this.o.sheet) img.setFrame(Math.floor(crand() * this.o.sheet.n) % this.o.sheet.n).setRotation(crand() * Math.PI * 2);
     this.ps.push({
       img, x: s.x, y: s.y, vx: s.vx ?? 0, vy: s.vy ?? 0, life: s.life, age: 0, r0: s.r0, r1: s.r1 ?? s.r0, a: s.a, grav: s.grav ?? 0, drag: s.drag ?? 0,
       floor: s.floor, bounce: s.bounce, onFloor: s.onFloor ? (p) => s.onFloor!(p.x, p.y, p.vx, p.vy) : undefined, streak: s.streak ?? 0, spin: s.spin ?? 0, tint: s.tint, fade: s.fade ?? 0.15,
     });
   }
   private make(): Img {
-    const im = this.k.sc.add.image(0, 0, this.key, this.o.frame);
+    const im = this.k.sc.add.image(0, 0, this.key, this.o.sheet ? 0 : this.o.frame);
     if (this.o.add) im.setBlendMode(Phaser.BlendModes.ADD);
     (this.o.into ?? this.k.root).add(im);
     return im;
@@ -220,7 +226,7 @@ export class Parts {
         }
       }
       const r = p.r0 + (p.r1 - p.r0) * Math.sqrt(t);
-      const sc = r / FX_R;
+      const sc = r / this.half;
       const sp = Math.hypot(p.vx, p.vy);
       const len = 1 + (sp * p.streak) / Math.max(1, r);
       p.img.setPosition(p.x, p.y);

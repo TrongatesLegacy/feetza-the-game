@@ -1,7 +1,8 @@
-// Feetza 2.0 boss arenas, part 1: Moon Crater, Nonna's Pantry, Bell Tower.
+// Feetza 2.0 boss arenas, part 1: Moon Crater, Nonna's Pantry, Bell Tower. (Moon Crater is redrawn with the location
+// kit in scene-cosmiccroc.ts; its old art here stays for the before/after page, ?dev&stages.)
 
 import type { GlowSpot } from '../../art/backdrops';
-import { registerScene } from '../../art/registry';
+import { registerLegacyScene, registerScene } from '../../art/registry';
 import {
   type Ctx,
   type R,
@@ -917,7 +918,8 @@ function drawBellTower(ctx: Ctx, r: R): void {
 
 // ---------------------------------------------------------------------------------------------
 
-registerScene('cosmiccroc', {
+// (redrawn with the location kit in scene-cosmiccroc.ts; this stays for the before/after page, ?dev&stages)
+registerLegacyScene('cosmiccroc', {
   info: {
     name: 'Moon Crater',
     subtitle: 'Boss: COSMIC CROC',
