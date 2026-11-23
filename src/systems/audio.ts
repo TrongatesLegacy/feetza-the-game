@@ -373,7 +373,7 @@ const TRIM: Record<string, number> = {
   sfx_hero_wings: 1.06, // -11.0 dB → -10.5
   sfx_hero_nightfall: 1.10, // -10.4 dB → -9.5
   sfx_hero_spartaaa: 1.04, // -9.8 dB → -9.5 (King Leonidas's THIS IS SPARTA! now)
-  sfx_hero_spartanrage: 1.1, // -10.3 dB → -9.5
+  sfx_hero_spartanrage: 1.11, // -10.4 dB → -9.5: real recordings (scripts/real-sfx/build.py)
   sfx_hero_rage: 0.79, // -12.5 dB → -14.5
   sfx_hero_flamesmack: 0.88, // -12.4 dB → -13.5
   sfx_hero_ragehiss: 1.04, // -12.4 dB → -12.0
@@ -755,7 +755,7 @@ const TRIM: Record<string, number> = {
   sfx_hero_spear: 1.09, // -12.8 dB → -12.1: King Leonidas's spear is hurled: a strong whoosh and a thunk
   sfx_hero_shieldblock: 1.13, // -11.6 dB → -10.5: a stomp clangs off a bronze shield in the shield wall
   sfx_hero_hotgates: 1.09, // -10.2 dB → -9.5: Leonidas, Hot Gates: a roaring Spartan war cry with shields beating
-  sfx_hero_spartanchant: 1.1, // -10.3 dB → -9.5: King Leonidas's Hold the Line, raised or renewed: the phalanx's war chant, OOOOH... OOH! OOH!, spears on bronze shields
+  sfx_hero_spartanchant: 1.11, // -10.4 dB → -9.5: King Leonidas's Hold the Line, raised or renewed: the phalanx's war chant, HOOOOH... HOO! HOO!, spears on bronze shields; real recordings (scripts/real-sfx/build.py)
   // ——— peel smacks (scripts/smack-sfx, generated into smackTrim.ts) ———
   ...SMACK_TRIM,
 };
