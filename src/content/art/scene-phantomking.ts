@@ -95,7 +95,9 @@ const SPRING = PK.spring;
 const S = PK.sarc;
 /** The box's rim and the lid's top, pushed back (the sarcophagus's depth). */
 const SARC_D = 0.93;
-const LID_T = 22;
+const LID_T = 26;
+/** How far the lid is tipped up at its left end (radians, about its right end). */
+const LID_TIP = 0.06;
 const LID_TOP_F = S.top - LID_T;
 const LID_TOP_B = at(0, LID_TOP_F, SARC_D)[1];
 const GAP_X1 = S.x0 + PK.lidShift + 2;
@@ -452,6 +454,21 @@ function pallFrame(c: Ctx, ph: number): void {
   hem.addColorStop(1, 'rgba(8,4,10,0.6)');
   c.fillStyle = hem;
   c.fillRect(0, 0, w, h);
+  // the fringe is the same cloth: purple, frayed darker towards its ends, loose threads
+  const fr = c.createLinearGradient(0, top + h - 78, 0, top + h);
+  fr.addColorStop(0, rgba('#4a2258', 0.7));
+  fr.addColorStop(1, rgba('#1e0c26', 0.85));
+  c.fillStyle = fr;
+  c.fillRect(0, top + h - 78, w, 80);
+  c.strokeStyle = rgba('#6a3a7a', 0.6);
+  c.lineWidth = 1;
+  for (let k = 0; k < 9; k++) {
+    const x = cx - bw / 2 + 8 + k * 12;
+    c.beginPath();
+    c.moveTo(x, top + h - 72);
+    c.quadraticCurveTo(x + Math.sin(f + k) * 3, top + h - 50, x + Math.sin(f * 1.3 + k * 2) * 5, top + h - 28 - (k % 3) * 8);
+    c.stroke();
+  }
   // the tomb's green light from below, the candles' warm on its left
   const gl = c.createLinearGradient(0, h, 0, h * 0.3);
   gl.addColorStop(0, rgba(GHOST, 0.08));
@@ -515,11 +532,11 @@ function tunnel(ctx: Ctx, r: R): void {
   within(ctx, tunnelPath, () => {
     ctx.fillStyle = '#0c0806';
     ctx.fillRect(t.x - t.r, t.spring - t.r, t.r * 2, sill - t.spring + t.r);
-    const RING = [1, 0.84, 0.7, 0.58, 0.48, 0.4, 0.33];
+    const RING = [1, 0.9, 0.81, 0.73, 0.66, 0.6, 0.545, 0.495, 0.45, 0.41, 0.375, 0.345, 0.32];
     for (let i = RING.length - 2; i >= 0; i--) {
       const s0 = RING[i];
       const s1 = RING[i + 1];
-      const warm = Math.max(0, (0.5 - (s0 + s1) / 2) / 0.2);
+      const warm = Math.min(1, Math.max(0, (0.72 - (s0 + s1) / 2) / 0.38)) ** 1.6;
       const sec = (s: number, begin: boolean) => (c: Ctx) => {
         const [x0, y0] = tv(t.x - t.r, sill, s);
         const [, ys] = tv(0, t.spring, s);
@@ -534,7 +551,7 @@ function tunnel(ctx: Ctx, r: R): void {
       ctx.beginPath();
       sec(s0, true)(ctx);
       sec(s1, false)(ctx);
-      ctx.fillStyle = shade(mix('#3a2218', '#7a4a28', warm), -0.3 + (1 - s0) * 0.1);
+      ctx.fillStyle = shade(mix('#2a1a14', '#9a5a2a', warm), -0.42 + warm * 0.3);
       ctx.fill('evenodd');
       // brick courses running back along it
       ctx.save();
@@ -564,12 +581,32 @@ function tunnel(ctx: Ctx, r: R): void {
         }
       }
       ctx.restore();
+      // the ring of headers at the near end of this stretch, lit a little from the far light
+      {
+        const [hx0] = tv(t.x - t.r, 0, s0);
+        const [, hys] = tv(0, t.spring, s0);
+        const [hcx] = tv(t.x, 0, s0);
+        const [, hfy] = tv(0, sill, s0);
+        ctx.strokeStyle = 'rgba(8,4,2,0.55)';
+        ctx.lineWidth = 1.4 * s0;
+        ctx.beginPath();
+        ctx.moveTo(hx0, hfy);
+        ctx.lineTo(hx0, hys);
+        ctx.arc(hcx, hys, t.r * s0, Math.PI, 0);
+        ctx.lineTo(hcx + t.r * s0, hfy);
+        ctx.stroke();
+        ctx.strokeStyle = rgba('#ffb060', 0.06 + warm * 0.18);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(hcx, hys + 1.5, t.r * s0 - 1.5, Math.PI * 1.05, Math.PI * 1.95);
+        ctx.stroke();
+      }
       // the floor of this stretch
       const [fx0, fy0] = tv(t.x - t.r, sill, s0);
       const [fx1, fy1] = tv(t.x - t.r, sill, s1);
       const [cx0] = tv(t.x, 0, s0);
       const [cx1] = tv(t.x, 0, s1);
-      ctx.fillStyle = shade(mix('#2a1a12', '#5a3a20', warm), -0.3);
+      ctx.fillStyle = shade(mix('#1e140e', '#7a4a22', warm), -0.4 + warm * 0.25);
       ctx.beginPath();
       ctx.moveTo(fx0, fy0);
       ctx.lineTo(fx1, fy1);
@@ -579,21 +616,52 @@ function tunnel(ctx: Ctx, r: R): void {
       ctx.fill();
     }
     // the far end: the tunnel turns; the cellar's candlelight round the corner
-    const [fx, fy] = tv(t.x - t.r, sill, 0.33);
-    const [, fs] = tv(0, t.spring, 0.33);
-    const [fcx] = tv(t.x, 0, 0.33);
+    const [fx, fy] = tv(t.x - t.r, sill, 0.32);
+    const [, fs] = tv(0, t.spring, 0.32);
+    const [fcx] = tv(t.x, 0, 0.32);
     ctx.fillStyle = '#4a2a16';
     ctx.beginPath();
     ctx.moveTo(fx, fy);
     ctx.lineTo(fx, fs);
-    ctx.arc(fcx, fs, t.r * 0.33, Math.PI, 0);
-    ctx.lineTo(fcx + t.r * 0.33, fy);
+    ctx.arc(fcx, fs, t.r * 0.32, Math.PI, 0);
+    ctx.lineTo(fcx + t.r * 0.32, fy);
     ctx.closePath();
     ctx.fill();
-    ctx.fillStyle = '#8a5a30';
-    ctx.fillRect(fcx - 8, fs - 10, 26, fy - fs + 10);
-    glowAt(ctx, fcx + 4, (fs + fy) / 2, 60, CANDLE, 0.4);
-    glowAt(ctx, fcx + 4, (fs + fy) / 2 + 4, 16, '#ffe0b0', 0.4);
+    // the tunnel turns right at its end: the far wall lit by the cellar's candles round the corner, the corner's
+    // edge dark against it, the light falling along the wet floor
+    const lw = ctx.createLinearGradient(fcx - t.r * 0.32, 0, fcx + t.r * 0.32, 0);
+    lw.addColorStop(0, '#5a3418');
+    lw.addColorStop(0.6, '#b07038');
+    lw.addColorStop(1, '#e0a060');
+    ctx.fillStyle = lw;
+    ctx.fillRect(fcx - t.r * 0.32, fs - t.r * 0.32, t.r * 0.64, fy - fs + t.r * 0.32);
+    ctx.fillStyle = '#2a160c';
+    ctx.fillRect(fcx + t.r * 0.12, fs - 6, 5, fy - fs + 6);
+    glowAt(ctx, fcx + t.r * 0.3, (fs + fy) / 2, 70, CANDLE, 0.35);
+    // brick courses on the lit far wall
+    ctx.strokeStyle = 'rgba(60,24,8,0.5)';
+    ctx.lineWidth = 0.8;
+    for (let y = fs - 30; y < fy; y += 6) {
+      ctx.beginPath();
+      ctx.moveTo(fcx - t.r * 0.32, y);
+      ctx.lineTo(fcx + t.r * 0.32, y);
+      ctx.stroke();
+    }
+    // the wet floor's reflection of it, smeared towards us
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const rf = ctx.createLinearGradient(0, fy, 0, sill);
+    rf.addColorStop(0, rgba(CANDLE, 0.35));
+    rf.addColorStop(1, rgba(CANDLE, 0));
+    ctx.fillStyle = rf;
+    ctx.beginPath();
+    ctx.moveTo(fcx - 6, fy);
+    ctx.lineTo(fcx + 18, fy);
+    ctx.lineTo(fcx + 40, sill);
+    ctx.lineTo(fcx - 34, sill);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
     // the warm along its wet floor
     lightPool(ctx, fcx, sill - 10, 60, 14, CANDLE, 0.18);
     vfill(ctx, t.x - t.r, t.spring - t.r, t.r * 2, sill - t.spring + t.r, [[0, 'rgba(4,2,2,0.6)'], [0.5, 'rgba(4,2,2,0.1)'], [1, 'rgba(4,2,2,0.3)']]);
@@ -625,7 +693,7 @@ function tunnel(ctx: Ctx, r: R): void {
     solid(ctx, sp, { x: t.x - t.r - 24 - ww, y: y0, w: (t.r + 24 + ww) * 2, h: y1 - y0 }, 'stone', '#3e3a34', { depth: 0.5, line: 1.2, formSize: 3 });
     within(ctx, sp, () => vfill(ctx, t.x - t.r - 30 - ww, y0, (t.r + 30 + ww) * 2, y1 - y0, [[0, rgba('#c8d8f0', 0.12 - k * 0.04)], [0.3, 'rgba(6,4,3,0.2)'], [1, 'rgba(6,4,3,0.5)']]));
   }
-  web(ctx, r, t.x + t.r - 4, t.spring + 6, 40, Math.PI * 0.55, Math.PI * 1.0, 0.22);
+  web(ctx, r, t.x + t.r - 2, t.spring - 30, 34, Math.PI * 0.5, Math.PI * 0.85, 0.26);
 }
 
 // ——— the loculi ———
@@ -636,66 +704,164 @@ const BROKEN = [false, true, false, false, false, false, true, false, false];
 
 function loculi(ctx: Ctx, r: R): void {
   const L = PK.loculi;
+  // a point of the opening pushed back into the wall (k of the recess's depth)
+  const inset = (x: number, y: number, k: number): [number, number] => [x + (VPX - x) * 0.07 * k, y + (VPY - y) * 0.07 * k];
+  const quad = (pts: [number, number][], fill: string | CanvasGradient) => {
+    ctx.fillStyle = fill;
+    ctx.beginPath();
+    pts.forEach(([x, y], k) => (k ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+    ctx.closePath();
+    ctx.fill();
+  };
   for (let row = 0; row < L.rows; row++)
     for (let col = 0; col < L.cols; col++) {
       const i = row * L.cols + col;
-      const x0 = L.x0 + col * L.cw + 8;
-      const y0 = L.y0 + row * L.rh + 6;
-      const w = L.cw - 16;
-      const h = L.rh - 22;
-      // the niche: a dark hole in the wall, its lintel and jambs
+      const x0 = L.x0 + col * L.cw + 10;
+      const y0 = L.y0 + row * L.rh + 8;
+      const w = L.cw - 20;
+      const h = L.rh - 30;
+      const x1 = x0 + w;
+      const y1 = y0 + h;
       const hole = rectPath(x0, y0, w, h);
-      ctx.fillStyle = '#060504';
-      hole(ctx);
-      ctx.fill();
-      if (BROKEN[i]) {
-        // broken open: shards of the slab left at the edges, the dark inside lit by a little cold light, rubble
-        within(ctx, hole, () => {
-          lightPool(ctx, x0 + w / 2, y0 + h * 0.6, w * 0.55, h * 0.5, GHOST, 0.14);
-          ctx.fillStyle = 'rgba(160,150,130,0.25)';
-          for (let k = 0; k < 6; k++) {
-            ctx.beginPath();
-            ctx.ellipse(x0 + 10 + r() * (w - 20), y0 + h - 4, 4 + r() * 6, 2.5 + r() * 2, 0, 0, P2);
-            ctx.fill();
+      // the stone round the opening darkened where it's been handled and damp
+      aoHalo(ctx, hole, 10, 0.4, '#040302', 0);
+      within(ctx, hole, () => {
+        // the recess: its back face in deep shadow, its right-hand side and its floor turned to the light
+        const b = [inset(x0, y0, 1), inset(x1, y0, 1), inset(x1, y1, 1), inset(x0, y1, 1)];
+        ctx.fillStyle = '#060504';
+        ctx.fillRect(x0, y0, w, h);
+        quad(b, '#14110e');
+        const jg = ctx.createLinearGradient(x1, 0, b[1][0], 0);
+        jg.addColorStop(0, '#4a453e');
+        jg.addColorStop(1, '#1e1b17');
+        quad([[x1, y0], b[1], b[2], [x1, y1]], jg);
+        const fg = ctx.createLinearGradient(0, y1, 0, b[3][1]);
+        fg.addColorStop(0, '#3e3a34');
+        fg.addColorStop(1, '#1a1714');
+        quad([[x0, y1], [x1, y1], b[2], b[3]], fg);
+        // the lintel's shadow falling into it from the top left
+        vfill(ctx, x0, y0, w, h, [[0, 'rgba(2,2,2,0.85)'], [0.35, 'rgba(2,2,2,0.3)'], [1, 'rgba(2,2,2,0)']]);
+        const lg = ctx.createLinearGradient(x0, 0, x0 + w * 0.3, 0);
+        lg.addColorStop(0, 'rgba(2,2,2,0.6)');
+        lg.addColorStop(1, 'rgba(2,2,2,0)');
+        ctx.fillStyle = lg;
+        ctx.fillRect(x0, y0, w, h);
+        if (BROKEN[i]) {
+          // broken open from inside: the void lit faintly green, a shrouded shape lying in it, rubble on its floor
+          lightPool(ctx, (b[0][0] + b[1][0]) / 2, b[2][1] - 12, w * 0.5, h * 0.4, GHOST, 0.16);
+          ctx.fillStyle = 'rgba(150,170,160,0.16)';
+          ctx.beginPath();
+          ctx.ellipse((b[0][0] + b[1][0]) / 2 + 4, b[2][1] - 7, w * 0.32, 6, -0.03, 0, P2);
+          ctx.fill();
+          // what's left of the slab: a jagged piece still set in the bottom left, cracked through
+          const sl = inset(x0, y0, 0.45);
+          const piece = polyPath([[x0 + 2, y1], [x0 + 2, sl[1] + h * 0.42], [x0 + w * 0.18, sl[1] + h * 0.5], [x0 + w * 0.3, sl[1] + h * 0.66], [x0 + w * 0.26, sl[1] + h * 0.8], [x0 + w * 0.46, y1 - 6], [x0 + w * 0.52, y1]]);
+          solid(ctx, piece, { x: x0, y: y0, w: w * 0.6, h }, 'stone', '#5e5a52', { depth: 0.4, line: 1.4, formSize: 6, texA: 0.15 });
+          within(ctx, piece, () => vfill(ctx, x0, y0, w, h, [[0, 'rgba(6,4,3,0.4)'], [1, 'rgba(6,4,3,0.15)']]));
+          // its broken edge: the fresh stone paler, lit on its top
+          ctx.strokeStyle = 'rgba(200,196,184,0.4)';
+          ctx.lineWidth = 1.4;
+          ctx.beginPath();
+          ctx.moveTo(x0 + 2, sl[1] + h * 0.42);
+          ctx.lineTo(x0 + w * 0.18, sl[1] + h * 0.5);
+          ctx.lineTo(x0 + w * 0.3, sl[1] + h * 0.66);
+          ctx.stroke();
+          crack(ctx, r, x0 + w * 0.12, y1 - 4, -1.2, 18, { col: '#0a0806', lip: '#a8a090', w: 1, a: 0.6 });
+          // chips of it lying in the niche
+          for (let k = 0; k < 5; k++) {
+            const rx = x0 + w * 0.35 + r() * w * 0.5;
+            const ry = y1 - 2 - r() * 4;
+            const rr = 1.8 + r() * 3;
+            const ch = polyPath([[rx - rr, ry + 1], [rx - rr * 0.4, ry - rr], [rx + rr * 0.8, ry - rr * 0.6], [rx + rr, ry + 1]]);
+            solid(ctx, ch, { x: rx - rr, y: ry - rr, w: rr * 2, h: rr + 1 }, 'stone', '#5a564e', { depth: 0.45, line: 0.8, formSize: 2, texA: 0.1 });
           }
-        });
-        const shard = polyPath([[x0, y0 + h], [x0, y0 + h * 0.3], [x0 + w * 0.22, y0 + h * 0.5], [x0 + w * 0.12, y0 + h * 0.8], [x0 + w * 0.34, y0 + h]]);
-        solid(ctx, shard, { x: x0, y: y0, w: w * 0.4, h }, 'stone', '#6a665e', { depth: 0.5, line: 1.2, formSize: 4 });
-        const shard2 = polyPath([[x0 + w, y0], [x0 + w * 0.7, y0], [x0 + w * 0.82, y0 + h * 0.3], [x0 + w, y0 + h * 0.45]]);
-        solid(ctx, shard2, { x: x0 + w * 0.6, y: y0, w: w * 0.4, h }, 'stone', '#6a665e', { depth: 0.5, line: 1.2, formSize: 4 });
-        // a slab fallen out on the ledge below, leaning
-        continue;
-      }
-      // the slab sealing it: a stone plaque set in, its edge in shadow, the name cut in Roman capitals
-      const slab = rectPath(x0 + 3, y0 + 3, w - 6, h - 6);
-      castShadow(ctx, slab, 3, 3, 0.6, '#040302');
-      solid(ctx, slab, { x: x0 + 3, y: y0 + 3, w: w - 6, h: h - 6 }, 'stone', NAMES[i] ? '#6e6a62' : '#5e5a52', { depth: 0.5, line: 1.4, formSize: 6, texA: 0.12 });
-      within(ctx, slab, () => {
-        lay(ctx, noiseMask(6, 300 + i, { cover: 0.45, soft: 0.25, col: '#1a1814', w: 32, h: 24 }), { x: x0, y: y0, w, h }, 0.4);
-        vfill(ctx, x0, y0, w, h, [[0, 'rgba(6,4,3,0.15)'], [1, 'rgba(6,4,3,0.45)']]);
+        }
       });
-      if (NAMES[i]) {
-        carve(ctx, NAMES[i], x0 + w / 2, y0 + h * 0.45, 11.5, 0.5);
-        // a little cut cross and the years worn away
-        carve(ctx, '· R · I · P ·', x0 + w / 2, y0 + h * 0.75, 8, 0.35);
-      } else {
-        // a cracked, nameless slab
-        crack(ctx, r, x0 + 10, y0 + 8, 0.8, 40, { col: '#0a0806', lip: '#a8a090', w: 1.2, a: 0.5 });
+      if (!BROKEN[i]) {
+        // the slab sealing it, set back in the recess: its jamb and sill still show in front of it
+        const a0 = inset(x0, y0, 0.45);
+        const a1 = inset(x1, y1, 0.45);
+        const slab = rectPath(a0[0], a0[1], a1[0] - a0[0], a1[1] - a0[1]);
+        const sb = { x: a0[0], y: a0[1], w: a1[0] - a0[0], h: a1[1] - a0[1] };
+        solid(ctx, slab, sb, 'stone', NAMES[i] ? '#686459' : '#58544d', { depth: 0.5, line: 1.2, formSize: 6, texA: 0.12 });
+        within(ctx, slab, () => {
+          lay(ctx, noiseMask(6, 300 + i, { cover: 0.45, soft: 0.25, col: '#1a1814', w: 32, h: 24 }), sb, 0.3);
+          // the lintel's shadow across its top, the light on it from the bottom right of the opening
+          vfill(ctx, sb.x, sb.y, sb.w, sb.h, [[0, 'rgba(4,3,2,0.7)'], [0.3, 'rgba(4,3,2,0.25)'], [1, 'rgba(4,3,2,0.2)']]);
+          const sg = ctx.createLinearGradient(sb.x, 0, sb.x + sb.w * 0.25, 0);
+          sg.addColorStop(0, 'rgba(4,3,2,0.45)');
+          sg.addColorStop(1, 'rgba(4,3,2,0)');
+          ctx.fillStyle = sg;
+          ctx.fillRect(sb.x, sb.y, sb.w, sb.h);
+        });
+        if (NAMES[i]) {
+          carve(ctx, NAMES[i], sb.x + sb.w / 2, sb.y + sb.h * 0.5, 12.5, 0.75);
+          carve(ctx, '✝', sb.x + sb.w / 2, sb.y + sb.h * 0.2 + 2, 9, 0.5);
+        } else {
+          crack(ctx, r, sb.x + 8, sb.y + 6, 0.8, 36, { col: '#0a0806', lip: '#a8a090', w: 1.2, a: 0.5 });
+        }
+      }
+      // the lintel over it: one long stone, standing a little proud, its shadow on the wall and the opening
+      const lt = rectPath(x0 - 8, y0 - 13, w + 16, 13);
+      castShadow(ctx, lt, 5, 5, 0.6, '#040302');
+      solid(ctx, lt, { x: x0 - 8, y: y0 - 13, w: w + 16, h: 13 }, 'stone', '#5c5850', { depth: 0.45, line: 1.3, formSize: 4, texA: 0.12 });
+      within(ctx, lt, () => vfill(ctx, x0 - 8, y0 - 13, w + 16, 13, [[0, 'rgba(200,214,232,0.12)'], [0.3, 'rgba(6,4,3,0.2)'], [1, 'rgba(6,4,3,0.55)']]));
+      // the sill under it, worn, lit on its top
+      const sl = rectPath(x0 - 5, y1, w + 10, 7);
+      castShadow(ctx, sl, 4, 4, 0.55, '#040302');
+      solid(ctx, sl, { x: x0 - 5, y: y1, w: w + 10, h: 7 }, 'stone', '#58544c', { depth: 0.45, line: 1.2, formSize: 2, texA: 0.12 });
+      ctx.fillStyle = 'rgba(200,210,220,0.16)';
+      ctx.fillRect(x0 - 4, y1, w + 8, 1.4);
+      if (BROKEN[i] && row === L.rows - 1) {
+        // rubble spilled over the sill and down the wall: lit chips of the slab, a big piece leaning below
+        for (let k = 0; k < 7; k++) {
+          const rx = x0 + 6 + r() * (w - 12);
+          const ry = y1 - 1 - r() * 3;
+          const rr = 2 + r() * 3.5;
+          const ch = polyPath([[rx - rr, ry + 1], [rx - rr * 0.5, ry - rr], [rx + rr * 0.7, ry - rr * 0.7], [rx + rr, ry + 1]]);
+          solid(ctx, ch, { x: rx - rr, y: ry - rr, w: rr * 2, h: rr + 1 }, 'stone', '#6a665c', { depth: 0.45, line: 1, formSize: 2, texA: 0.1 });
+        }
+        const fx = x0 + w * 0.55;
+        const fy = BACK_FLOOR - 30;
+        const fallen = polyPath([[fx, fy + 30], [fx + 6, fy], [fx + 34, fy + 4], [fx + 40, fy + 14], [fx + 30, fy + 30]]);
+        castShadow(ctx, fallen, 5, 5, 0.6, '#040302');
+        groundShadow(ctx, fx + 26, fy + 30, 30, 4, 0.6, '#040302');
+        solid(ctx, fallen, { x: fx, y: fy, w: 40, h: 30 }, 'stone', '#4a463f', { depth: 0.45, line: 1.3, formSize: 6, texA: 0.12 });
+        within(ctx, fallen, () => vfill(ctx, fx, fy, 40, 30, [[0, 'rgba(200,210,220,0.12)'], [1, 'rgba(6,4,3,0.45)']]));
       }
     }
-  // the ledges between the rows: a weathered stone shelf, grit on them, a candle stub on the bottom one
-  for (let row = 0; row <= L.rows; row++) {
-    const y = L.y0 + row * L.rh - 12;
-    const sh = rectPath(L.x0 - 6, y, L.cw * L.cols + 12, 8);
-    castShadow(ctx, sh, 5, 5, 0.5, '#040302');
-    solid(ctx, sh, { x: L.x0 - 6, y, w: L.cw * L.cols + 12, h: 8 }, 'stone', '#5a564e', { depth: 0.5, line: 1, formSize: 2 });
-  }
-  // bones of the old dead swept onto the bottom shelf, cobwebs over the niches
-  web(ctx, r, L.x0 + L.cw * 3 - 10, L.y0 - 6, 70, Math.PI * 0.5, Math.PI * 0.98, 0.24);
-  web(ctx, r, L.x0 + 4, L.y0 + L.rh * 2 - 4, 46, 0.02, Math.PI * 0.5, 0.2);
+  web(ctx, r, L.x0 + L.cw * 3 - 6, L.y0 - 4, 58, Math.PI * 0.52, Math.PI * 0.95, 0.2);
 }
 
 /** Letters cut into stone: the cut's shadow on its upper-left, its lit lower-right lip. */
+/** A torn web: a few threads strung between two points, sagging, one broken and hanging, dust clotted on them. */
+function strands(ctx: Ctx, r: R, x0: number, y0: number, x1: number, y1: number, n: number): void {
+  ctx.save();
+  ctx.lineWidth = 0.8;
+  for (let k = 0; k < n; k++) {
+    const a = 0.12 + r() * 0.14;
+    ctx.strokeStyle = rgba('#e4e0d4', a);
+    const sx = x0 + (r() - 0.5) * 14;
+    const sy = y0 + (r() - 0.5) * 14;
+    const ex = x1 + (r() - 0.5) * 20;
+    const ey = y1 + (r() - 0.5) * 20;
+    ctx.beginPath();
+    ctx.moveTo(sx, sy);
+    if (k === n - 1) {
+      // broken: hanging from its start, curling at the end
+      ctx.quadraticCurveTo(sx + 10, sy + 30, sx + 4, sy + 56 + r() * 20);
+    } else {
+      ctx.quadraticCurveTo((sx + ex) / 2, (sy + ey) / 2 + 14 + r() * 16, ex, ey);
+    }
+    ctx.stroke();
+    ctx.fillStyle = rgba('#d8d4c8', a * 1.6);
+    ctx.beginPath();
+    ctx.arc(sx + (ex - sx) * 0.4, sy + (ey - sy) * 0.4 + 10, 1 + r() * 1.4, 0, P2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
 function carve(ctx: Ctx, text: string, x: number, y: number, size: number, a: number): void {
   ctx.save();
   ctx.font = `600 ${size}px Georgia, "Times New Roman", serif`;
@@ -780,9 +946,9 @@ function arcade(ctx: Ctx, r: R): void {
     ctx.stroke();
   }
   // cobwebs in the arches' corners
-  web(ctx, r, 700 - 40, SPRING - 6, 92, Math.PI * 1.02, Math.PI * 1.42, 0.2);
-  web(ctx, r, 1220 + 40, SPRING - 6, 110, Math.PI * 1.58, Math.PI * 1.98, 0.22);
-  web(ctx, r, 180 + 40, SPRING - 6, 80, Math.PI * 1.58, Math.PI * 1.98, 0.18);
+  web(ctx, r, 700 - 46, SPRING - 4, 120, Math.PI * 1.08, Math.PI * 1.38, 0.17);
+  strands(ctx, r, 1220 + 70, SPRING - 120, 1220 + 150, SPRING - 210, 5);
+  web(ctx, r, 180 + 36, SPRING - 8, 64, Math.PI * 1.62, Math.PI * 1.92, 0.24);
   for (const cx of PK.cols) column(ctx, r, cx);
 }
 
@@ -924,15 +1090,36 @@ const RIM = { fl: [S.x0 + 8, S.top] as [number, number], fr: [S.x1 - 8, S.top] a
 
 /** The inside of the box seen through the gap under the shoved lid: dark, lit from within by the cold green. */
 function sarcInner(ctx: Ctx): void {
-  const p = polyPath([RIM.fl, [GAP_X1 + 4, S.top], [GAP_X1 + 4, RIM.bl[1]], RIM.bl]);
-  within(ctx, p, () => {
-    ctx.fillStyle = '#0a1a16';
-    ctx.fillRect(S.x0, RIM.bl[1] - 4, 80, 40);
-    lightPool(ctx, S.x0 + 30, S.top - 4, 40, 16, GHOST, 0.45);
-    lightPool(ctx, S.x0 + 30, S.top - 6, 18, 8, '#e0fff4', 0.3);
+  const xR = S.x1 + PK.lidShift;
+  // the void: the inside of the box, deep and dark, the green welling up from its bottom
+  const open = polyPath([RIM.fl, [xR, S.top], [xR, RIM.bl[1]], RIM.bl]);
+  within(ctx, open, () => {
+    ctx.fillStyle = '#040b0a';
+    ctx.fillRect(S.x0, RIM.bl[1] - 4, xR - S.x0, S.top - RIM.bl[1] + 8);
+    // the inside face of the back wall, going down into the dark (lit from below by the green)
+    vfill(ctx, S.x0, RIM.bl[1], xR - S.x0, S.top - RIM.bl[1], [[0, '#3a4a44'], [0.35, '#16261f'], [1, '#081410']]);
+    // the inside face of the left end wall, turned to us
+    ctx.fillStyle = '#22322c';
+    ctx.beginPath();
+    ctx.moveTo(RIM.bl[0], RIM.bl[1]);
+    ctx.lineTo(RIM.bl[0] + 10, RIM.bl[1]);
+    ctx.lineTo(S.x0 + 18, S.top);
+    ctx.lineTo(S.x0 + 8, S.top);
+    ctx.closePath();
+    ctx.fill();
+    // the back wall's top arris, catching the moon
+    ctx.fillStyle = 'rgba(200,214,232,0.35)';
+    ctx.fillRect(RIM.bl[0], RIM.bl[1], xR - RIM.bl[0], 1.4);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    lightPool(ctx, S.x0 + 30, S.top + 2, 50, 14, GHOST, 0.5);
+    lightPool(ctx, S.x0 + 30, S.top, 18, 6, '#e0fff4', 0.35);
+    lightPool(ctx, S.x0 + 120, S.top - 4, 170, 9, GHOST, 0.55);
+    lightPool(ctx, S.x0 + 70, S.top - 3, 70, 5, '#d0fff0', 0.4);
+    ctx.restore();
   });
 }
-const INNER_BOX = { x: S.x0, y: RIM.bl[1] - 6, w: 70, h: S.top - RIM.bl[1] + 10 };
+const INNER_BOX = { x: S.x0, y: RIM.bl[1] - 6, w: S.x1 - S.x0 + PK.lidShift + 4, h: S.top - RIM.bl[1] + 10 };
 
 /** The dais's steps, the sarcophagus (without its lid), the effigy's lid is a sprite of its own. */
 function dais(ctx: Ctx, r: R): void {
@@ -1063,9 +1250,11 @@ function dais(ctx: Ctx, r: R): void {
   });
   // the box's rim at the gap: the front wall's thickness, its lit top
   ctx.fillStyle = '#7a746a';
-  ctx.fillRect(S.x0, S.top - 2, GAP_X1 - S.x0 + 2, 4);
+  ctx.fillRect(S.x0, S.top - 2, S.x1 - S.x0, 4);
   ctx.fillStyle = rgba('#c8fff0', 0.5);
   ctx.fillRect(S.x0 + 2, S.top - 2, GAP_X1 - S.x0 - 2, 1.4);
+  ctx.fillStyle = rgba('#c8fff0', 0.18);
+  ctx.fillRect(GAP_X1, S.top - 2, S.x1 - GAP_X1 - 40, 1.2);
   const lw = polyPath([[S.x0, S.top], [S.x0, S.top - 2], RIM.bl, [RIM.bl[0] + 6, RIM.bl[1]], [S.x0 + 8, S.top]]);
   solid(ctx, lw, { x: S.x0, y: RIM.bl[1], w: 20, h: S.top - RIM.bl[1] }, 'stone', '#7a746a', { depth: 0.1, line: 1.6, formSize: 2 });
   // wax and dust on the steps
@@ -1091,7 +1280,7 @@ function lid(ctx: Ctx, r: R): void {
   ctx.save();
   // twisted: its left end lifted a little where it was pushed from inside
   ctx.translate(x1, fb);
-  ctx.rotate(-0.012);
+  ctx.rotate(-LID_TIP);
   ctx.translate(-x1, -fb);
   const face = rectPath(x0, ft, x1 - x0, fb - ft);
   const top = polyPath([[x0, ft], [x1, ft], [bx1 + 4, bt], [bx0 + 4, bt]]);
@@ -1128,9 +1317,33 @@ function lid(ctx: Ctx, r: R): void {
 
 function effigy(ctx: Ctx, x0: number, ly: number): void {
   const MARBLE = '#9a9286';
-  const STEP = (p: PathFn, box: { x: number; y: number; w: number; h: number }, base = MARBLE, line = 2) => {
+  // (carved bigger than life: drawn up from its pillow end)
+  ctx.save();
+  ctx.translate(x0 + 20, ly);
+  ctx.scale(1.12, 1.32);
+  ctx.translate(-(x0 + 20), -ly);
+  const STEP = (p: PathFn, box: { x: number; y: number; w: number; h: number }, base = MARBLE, line = 1.6) => {
     castShadow(ctx, p, 5, 5, 0.45, '#040302');
-    solid(ctx, p, box, 'stone', base, { depth: 0.1, line, formSize: Math.min(box.w, box.h) * 0.5, texA: 0.1 });
+    solid(ctx, p, box, 'stone', base, { depth: 0.1, line, formSize: Math.min(box.w, box.h) * 0.5, texA: 0.12 });
+    within(ctx, p, () => {
+      // the stone's own grain and pitting
+      lay(ctx, noiseMask(5, Math.round(box.x + box.w), { cover: 0.4, soft: 0.25, col: '#2a2620', w: 24, h: 16 }), box, 0.22);
+      // the moon's light from the top left catching every upper-left edge, the far side in shade
+      ctx.save();
+      ctx.translate(1.8, 1.4);
+      ctx.strokeStyle = 'rgba(214,228,246,0.42)';
+      ctx.lineWidth = 2.2;
+      p(ctx);
+      ctx.stroke();
+      ctx.restore();
+      ctx.save();
+      ctx.translate(-2, -1.2);
+      ctx.strokeStyle = 'rgba(6,4,3,0.25)';
+      ctx.lineWidth = 2.2;
+      p(ctx);
+      ctx.stroke();
+      ctx.restore();
+    });
   };
   const X = (d: number) => x0 + d;
   const Y = (d: number) => ly - d;
@@ -1150,23 +1363,23 @@ function effigy(ctx: Ctx, x0: number, ly: number): void {
     c.lineTo(X(252), Y(0));
     c.closePath();
   };
-  STEP(body, { x: X(60), y: Y(42), w: 194, h: 42 });
+  STEP(body, { x: X(60), y: Y(42), w: 194, h: 42 }, '#7c756a');
   within(ctx, body, () => {
     vfill(ctx, X(60), Y(44), 194, 44, [[0, 'rgba(255,240,220,0.1)'], [0.5, 'rgba(6,4,3,0.1)'], [1, 'rgba(6,4,3,0.5)']]);
     // the robe's folds running down the legs, the girdle
     ctx.strokeStyle = 'rgba(6,4,3,0.4)';
     ctx.lineWidth = 1.6;
-    for (const fx of [168, 186, 204, 222, 238]) {
+    for (const [fx, top, bend] of [[164, 32, 14], [190, 28, 6], [205, 26, 18], [231, 23, 8]] as const) {
       ctx.beginPath();
-      ctx.moveTo(X(fx), Y(30));
-      ctx.quadraticCurveTo(X(fx + 8), Y(16), X(fx + 4), Y(0));
+      ctx.moveTo(X(fx), Y(top));
+      ctx.bezierCurveTo(X(fx + bend), Y(top * 0.7), X(fx - 4), Y(top * 0.35), X(fx + bend * 0.6), Y(0));
       ctx.stroke();
     }
     ctx.strokeStyle = 'rgba(255,240,220,0.14)';
-    for (const fx of [176, 194, 212, 230]) {
+    for (const [fx, top, bend] of [[170, 31, 12], [212, 25, 14]] as const) {
       ctx.beginPath();
-      ctx.moveTo(X(fx), Y(28));
-      ctx.quadraticCurveTo(X(fx + 7), Y(15), X(fx + 3), Y(0));
+      ctx.moveTo(X(fx), Y(top));
+      ctx.bezierCurveTo(X(fx + bend), Y(top * 0.7), X(fx - 2), Y(top * 0.35), X(fx + bend * 0.6), Y(0));
       ctx.stroke();
     }
     ctx.strokeStyle = 'rgba(6,4,3,0.5)';
@@ -1219,42 +1432,49 @@ function effigy(ctx: Ctx, x0: number, ly: number): void {
       ctx.restore();
     });
   }
-  // the head on the pillow, face up: the brow, the nose, the beard flowing onto the breast
-  const head: PathFn = (c) => {
+  // the head on the pillow, face up: a round skull, the nose standing up off the face, the beard flowing onto the
+  // breast in a wedge of curls
+  const beard: PathFn = (c) => {
     c.beginPath();
-    c.moveTo(X(52), Y(18));
-    c.quadraticCurveTo(X(50), Y(38), X(64), Y(42));
-    // the brow, the nose's tip, the lips, the beard's point
-    c.quadraticCurveTo(X(70), Y(44), X(72), Y(48));
-    c.lineTo(X(77), Y(42));
-    c.quadraticCurveTo(X(80), Y(40), X(82), Y(41));
-    c.quadraticCurveTo(X(92), Y(40), X(104), Y(36));
-    c.quadraticCurveTo(X(92), Y(30), X(84), Y(24));
-    c.quadraticCurveTo(X(70), Y(14), X(52), Y(18));
+    c.moveTo(X(70), Y(38));
+    c.quadraticCurveTo(X(86), Y(44), X(100), Y(37));
+    c.quadraticCurveTo(X(104), Y(33), X(100), Y(29));
+    c.quadraticCurveTo(X(86), Y(24), X(72), Y(22));
     c.closePath();
   };
-  STEP(head, { x: X(50), y: Y(48), w: 56, h: 34 });
-  within(ctx, head, () => {
+  const skull = ellPath(X(63), Y(31), 16, 15);
+  STEP(skull, { x: X(47), y: Y(46), w: 32, h: 30 }, '#b4ac9c');
+  // the hollow under the jaw, the ear
+  ctx.fillStyle = 'rgba(6,4,3,0.35)';
+  ctx.beginPath();
+  ctx.ellipse(X(60), Y(27), 4, 5, 0, 0, P2);
+  ctx.fill();
+  STEP(beard, { x: X(70), y: Y(44), w: 34, h: 22 }, '#a29a8a', 1.4);
+  within(ctx, beard, () => {
     ctx.strokeStyle = 'rgba(6,4,3,0.4)';
-    ctx.lineWidth = 1.3;
+    ctx.lineWidth = 1.1;
     for (let k = 0; k < 4; k++) {
       ctx.beginPath();
-      ctx.moveTo(X(80 + k * 4), Y(38 - k));
-      ctx.quadraticCurveTo(X(88 + k * 4), Y(34 - k), X(98 + k * 2), Y(36 - k * 0.5));
+      ctx.moveTo(X(76 + k * 5), Y(40 - k * 1.5));
+      ctx.quadraticCurveTo(X(80 + k * 5), Y(34 - k), X(78 + k * 6), Y(27 - k * 0.5));
       ctx.stroke();
     }
-    // the closed eye
-    ctx.beginPath();
-    ctx.moveTo(X(66), Y(40));
-    ctx.lineTo(X(70), Y(39));
-    ctx.stroke();
   });
+  const nose = polyPath([[X(67), Y(44)], [X(71), Y(53)], [X(75), Y(44.5)]]);
+  STEP(nose, { x: X(67), y: Y(50), w: 8, h: 8 }, '#b4ac9c', 1.2);
+  // the brow's shadow over the closed eye, the lips
+  ctx.strokeStyle = 'rgba(6,4,3,0.5)';
+  ctx.lineWidth = 1.3;
+  ctx.beginPath();
+  ctx.moveTo(X(62), Y(40));
+  ctx.quadraticCurveTo(X(64), Y(42.5), X(67), Y(41));
+  ctx.stroke();
   // the crown on his head, its points towards the head of the tomb
   ctx.save();
-  ctx.translate(X(56), Y(36));
-  ctx.rotate(-1.15);
+  ctx.translate(X(54), Y(36));
+  ctx.rotate(-0.95);
   const crown = polyPath([[-12, 4], [12, 4], [13, -6], [10, -20], [6.5, -9], [0, -24], [-6.5, -9], [-10, -20], [-13, -6]]);
-  STEP(crown, { x: -14, y: -24, w: 28, h: 28 }, '#a8904e', 1.8);
+  STEP(crown, { x: -14, y: -24, w: 28, h: 28 }, '#c4a458', 1.8);
   within(ctx, crown, () => {
     ctx.fillStyle = 'rgba(6,4,3,0.3)';
     ctx.fillRect(-14, -2, 28, 6);
@@ -1263,16 +1483,28 @@ function effigy(ctx: Ctx, x0: number, ly: number): void {
   // the hands pressed together on his breast, pointing up
   const hands: PathFn = (c) => {
     c.beginPath();
-    c.moveTo(X(112), Y(38));
-    c.quadraticCurveTo(X(110), Y(56), X(118), Y(66));
-    c.quadraticCurveTo(X(124), Y(58), X(126), Y(40));
+    // two palms pressed together, the fingertips rounded together at the top
+    c.moveTo(X(111), Y(40));
+    c.quadraticCurveTo(X(109), Y(52), X(112), Y(59));
+    c.quadraticCurveTo(X(118), Y(66), X(124), Y(59));
+    c.quadraticCurveTo(X(127), Y(52), X(125), Y(40));
     c.closePath();
   };
-  STEP(hands, { x: X(110), y: Y(66), w: 18, h: 30 }, MARBLE, 1.8);
-  ctx.strokeStyle = 'rgba(6,4,3,0.4)';
-  ctx.lineWidth = 1.2;
+  // the forearms in their sleeves, rising to the hands
+  const arm: PathFn = (c) => {
+    c.beginPath();
+    c.moveTo(X(98), Y(34));
+    c.quadraticCurveTo(X(104), Y(46), X(113), Y(44));
+    c.lineTo(X(126), Y(42));
+    c.quadraticCurveTo(X(134), Y(40), X(140), Y(34));
+    c.closePath();
+  };
+  STEP(arm, { x: X(98), y: Y(48), w: 44, h: 16 }, '#8e8679', 1.4);
+  STEP(hands, { x: X(110), y: Y(66), w: 18, h: 30 }, '#b4ac9c', 1.6);
+  ctx.strokeStyle = 'rgba(6,4,3,0.5)';
+  ctx.lineWidth = 1.1;
   ctx.beginPath();
-  ctx.moveTo(X(118), Y(64));
+  ctx.moveTo(X(118), Y(65));
   ctx.lineTo(X(119), Y(42));
   ctx.stroke();
   // the tomb's green on his crown and face (out of the gap below his head), the candles warm along his robe
@@ -1280,8 +1512,9 @@ function effigy(ctx: Ctx, x0: number, ly: number): void {
   ctx.globalCompositeOperation = 'lighter';
   lightPool(ctx, X(50), Y(34), 50, 34, GHOST, 0.22);
   ctx.restore();
+  ctx.restore();
 }
-const LID_BOX = { x: S.x0 + PK.lidShift - 30, y: LID_TOP_B - 116, w: S.x1 - S.x0 + 60, h: S.top - LID_TOP_B + 132 };
+const LID_BOX = { x: S.x0 + PK.lidShift - 30, y: LID_TOP_B - 140, w: S.x1 - S.x0 + 60, h: S.top - LID_TOP_B + 156 };
 
 /** The iron prickets at the dais's corners and the votive stubs at its foot (candles unlit: their flames are live). */
 function candles(ctx: Ctx, r: R): void {
@@ -1654,7 +1887,6 @@ function flamesStill(ctx: Ctx): void {
   }
   // the ectoplasm brimming at the gap
   ctx.save();
-  ctx.globalCompositeOperation = 'lighter';
   ctx.translate(POUR_BOX.x, POUR_BOX.y);
   pourFrame(ctx, 0.2);
   ctx.restore();
@@ -1690,92 +1922,246 @@ function shadeOver(ctx: Ctx): void {
 
 // ——— the ectoplasm pour (frames) ———
 
-/** One frame of the ectoplasm brimming over the box's rim at the gap and pouring down its front and the dais's steps
- * (phase 0…1 loops): a glowing sheet along its path, gobbets of it sliding down, swelling and thinning as they fall,
- * hanging at the lip of each step before they drop; brightest at the gap. Painted small and drawn up. */
-const POUR_BOX = { x: S.x0 - 70, y: S.top - 30, w: 170, h: TY - S.top + 40 };
-const POUR_K = 0.5;
-const POUR_N = 12;
+/** One frame of the ectoplasm (phase 0…1 loops). It wells up out of the gap and sags over the box's rim in a fat
+ * lip, then clings to the stone as a glowing sheet down the box's front corner and over the dais's steps: thick
+ * gobs swell in it and slide down (the sheet bulging as they pass), it pools on each tread and gathers on each step's
+ * edge into a drop that swells, necks, lets go, falls the riser and splashes on the tread below (a crown of droplets
+ * and a ring). Glowing from within: a pale core, green body, a bright rim where it's thin. */
+const POUR_BOX = { x: S.x0 - 74, y: S.top - 30, w: 176, h: TY - S.top + 44 };
+const POUR_K = 0.6;
+const POUR_N = 16;
 function pourFrame(c: Ctx, ph: number): void {
   const { w, h } = POUR_BOX;
   const [cv, g] = makeCanvas(Math.ceil(w * POUR_K), Math.ceil(h * POUR_K));
   g.scale(POUR_K, POUR_K);
   g.translate(-POUR_BOX.x, -POUR_BOX.y);
-  // the path: out of the gap, over the rim, down the box's front-left corner, over the three steps to the floor
+  g.lineCap = 'round';
+  g.lineJoin = 'round';
+  const BODY = (a: number) => `rgba(96,236,196,${a.toFixed(3)})`;
+  const CORE = (a: number) => `rgba(226,255,246,${a.toFixed(3)})`;
+  // the run it clings to: over the rim, down the corner, along each tread to its edge and down each riser
+  const T = [STEPS[2], STEPS[1], STEPS[0]];
   const path: [number, number][] = [
-    [S.x0 + 26, S.top - 4],
-    [S.x0 + 8, S.top + 2],
-    [S.x0 - 2, S.top + 26],
-    [S.x0 - 6, S.bot - 20],
-    [S.x0 - 14, S.bot + 2],
-    [STEPS[1].x0 + 10, STEPS[1].y0 + 2],
-    [STEPS[1].x0 - 4, STEPS[0].y0 + 4],
-    [STEPS[0].x0 + 4, STEPS[0].y0 + 6],
-    [STEPS[0].x0 - 12, TY + 2],
+    [S.x0 + 26, S.top - 3],
+    [S.x0 + 18, S.top + 6],
+    [S.x0 + 15, S.top + 44],
+    [S.x0 + 12, S.bot - 4],
+    [T[0].x0 + 8, T[0].y0 + 2],
+    [T[0].x0 + 1, T[1].y0 - 2],
+    [T[1].x0 + 8, T[1].y0 + 2],
+    [T[1].x0 + 1, T[2].y0 - 2],
+    [T[2].x0 + 6, T[2].y0 + 2],
+    [T[2].x0 - 2, TY],
   ];
   const lens: number[] = [0];
   for (let i = 1; i < path.length; i++) lens.push(lens[i - 1] + Math.hypot(path[i][0] - path[i - 1][0], path[i][1] - path[i - 1][1]));
   const L = lens[lens.length - 1];
   const pt = (u: number): [number, number] => {
-    const d = u * L;
+    const d = Math.max(0, Math.min(1, u)) * L;
     let i = 1;
     while (i < lens.length - 1 && lens[i] < d) i++;
     const t = (d - lens[i - 1]) / (lens[i] - lens[i - 1]);
     return [path[i - 1][0] + (path[i][0] - path[i - 1][0]) * t, path[i - 1][1] + (path[i][1] - path[i - 1][1]) * t];
   };
-  // the sheet: a ribbon along the path, wider where it pools on the treads
-  g.lineCap = 'round';
-  g.lineJoin = 'round';
-  g.filter = 'blur(2.5px)';
-  for (const [wd, a] of [[26, 0.07], [14, 0.12], [6, 0.18]] as const) {
-    g.strokeStyle = rgba('#7af0d0', a);
-    g.lineWidth = wd;
+  // gobs travelling down the run: where one is, the sheet bulges
+  const gobs = [0, 0.27, 0.55, 0.78].map((o, i) => ({ u: (o + ph) % 1, s: 1 + 0.3 * Math.sin(i * 2.3) }));
+  const width = (u: number) => {
+    let wd = 6 - u * 2.5;
+    for (const gb of gobs) wd += 3.5 * gb.s * Math.exp(-((((u - gb.u) * L) / 12) ** 2)) * (1 - smooth(0.85, 1, gb.u));
+    return wd;
+  };
+  // the sheet: a ribbon clinging to the stone, wide down the faces and thin where it runs flat along a tread
+  const N = 90;
+  const left: [number, number][] = [];
+  const right: [number, number][] = [];
+  for (let i = 0; i <= N; i++) {
+    const u = i / N;
+    const [x, y] = pt(u);
+    const [x2, y2] = pt(u + 0.01);
+    const tl = Math.hypot(x2 - x, y2 - y) || 1;
+    const tx = (x2 - x) / tl;
+    const ty = (y2 - y) / tl;
+    const wd = width(u) * (0.45 + 0.55 * Math.abs(ty));
+    left.push([x - ty * wd, y + tx * wd]);
+    right.push([x + ty * wd, y - tx * wd]);
+  }
+  const ribbon = (k: number) => {
     g.beginPath();
-    path.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+    for (let i = 0; i <= N; i++) {
+      const [lx, ly] = left[i];
+      const [rx, ry] = right[i];
+      const [cx, cy] = [(lx + rx) / 2, (ly + ry) / 2];
+      const p: [number, number] = [cx + (lx - cx) * k, cy + (ly - cy) * k];
+      if (i) g.lineTo(p[0], p[1]);
+      else g.moveTo(p[0], p[1]);
+    }
+    for (let i = N; i >= 0; i--) {
+      const [lx, ly] = left[i];
+      const [rx, ry] = right[i];
+      const [cx, cy] = [(lx + rx) / 2, (ly + ry) / 2];
+      g.lineTo(cx + (rx - cx) * k, cy + (ry - cy) * k);
+    }
+    g.closePath();
+  };
+  g.filter = 'blur(3px)';
+  g.fillStyle = BODY(0.16);
+  ribbon(2);
+  g.fill();
+  g.filter = 'blur(0.6px)';
+  g.fillStyle = BODY(0.5);
+  ribbon(1);
+  g.fill();
+  g.fillStyle = CORE(0.42);
+  ribbon(0.35);
+  g.fill();
+  // its thin edge catching the light, brightest down its left
+  g.strokeStyle = CORE(0.5);
+  g.lineWidth = 1;
+  g.beginPath();
+  left.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+  g.stroke();
+  g.filter = 'none';
+  // the lip: a fat roll of it sagging over the rim, swelling and slumping
+  const sw = 1 + 0.25 * Math.sin(ph * P2);
+  const lip = (a: number, k: number, col: (a: number) => string) => {
+    g.fillStyle = col(a);
+    g.beginPath();
+    g.ellipse(S.x0 + 24, S.top + 2 + sw * 2, 16 * k * sw, 5 * k * sw, 0.1, 0, P2);
+    g.fill();
+  };
+  lip(0.14, 1.6, BODY);
+  lip(0.5, 1, BODY);
+  lip(0.35, 0.5, CORE);
+  // the pools on the treads, rippling, a bright meniscus round each
+  for (const [i, [x, y]] of [[T[0].x0 + 8, T[0].y0 + 2], [T[1].x0 + 8, T[1].y0 + 2], [T[2].x0 + 6, T[2].y0 + 2], [T[2].x0 - 8, TY - 1]].entries()) {
+    const rx = 15 + i * 4 + 2 * Math.sin(ph * P2 * 2 + i);
+    g.fillStyle = BODY(0.45);
+    g.beginPath();
+    g.ellipse(x - 2, y, rx, 3.2, 0, 0, P2);
+    g.fill();
+    g.strokeStyle = CORE(0.6);
+    g.lineWidth = 1.2;
+    g.beginPath();
+    g.ellipse(x - 2, y - 0.5, rx, 3, 0, Math.PI, P2);
     g.stroke();
   }
-  g.filter = 'none';
-  // the pools it leaves on each tread and the floor, rippling
-  for (const [x, y, rx] of [[S.x0 - 4, S.bot + 1, 30], [STEPS[1].x0 + 6, STEPS[1].y0 + 2, 26], [STEPS[0].x0 + 4, STEPS[0].y0 + 4, 30], [STEPS[0].x0 - 14, TY - 2, 50]] as const) {
-    const k = 1 + 0.12 * Math.sin(ph * P2 * 2 + x);
-    const pg = g.createRadialGradient(x, y, 0, x, y, rx * k);
-    pg.addColorStop(0, 'rgba(170,255,226,0.5)');
-    pg.addColorStop(1, 'rgba(90,232,192,0)');
-    g.fillStyle = pg;
-    g.beginPath();
-    g.ellipse(x, y, rx * k, 6 * k, 0, 0, P2);
-    g.fill();
+  // drops off each step's edge: swell, neck, let go, fall the riser, splash; each step on its own beat
+  const edges: [number, number, number][] = [
+    [T[0].x0 + 1, T[0].y0 + 1, T[1].y0],
+    [T[1].x0 + 1, T[1].y0 + 1, T[2].y0],
+    [T[2].x0 + 1, T[2].y0 + 1, TY],
+  ];
+  for (const [i, [ex, ey, land]] of edges.entries()) {
+    const t = (ph * (i === 3 ? 1 : 2) + i * 0.31) % 1;
+    const fallH = land - ey;
+    if (t < 0.55) {
+      // hanging and swelling, the neck stretching
+      const k = t / 0.55;
+      const rad = 2.4 + k * 3.4;
+      const hang = 1 + k * k * 6;
+      g.fillStyle = BODY(0.75);
+      g.beginPath();
+      g.moveTo(ex - 2, ey);
+      g.quadraticCurveTo(ex - rad * 0.4, ey + hang * 0.6, ex - rad, ey + hang);
+      g.arc(ex, ey + hang, rad, Math.PI, 0, true);
+      g.quadraticCurveTo(ex + rad * 0.4, ey + hang * 0.6, ex + 2, ey);
+      g.closePath();
+      g.fill();
+      g.fillStyle = CORE(0.7);
+      g.beginPath();
+      g.arc(ex - rad * 0.3, ey + hang - rad * 0.3, rad * 0.4, 0, P2);
+      g.fill();
+    } else if (t < 0.78) {
+      // falling: a teardrop stretched by its speed, a thread of it snapping back to the edge
+      const k = (t - 0.55) / 0.23;
+      const y = ey + 7 + (fallH - 7) * k * k;
+      const st = 2 + k * 5;
+      g.fillStyle = BODY(0.8);
+      g.beginPath();
+      g.ellipse(ex, y, 4, 4 + st * 0.6, 0, 0, P2);
+      g.fill();
+      g.fillStyle = CORE(0.75);
+      g.beginPath();
+      g.arc(ex - 0.8, y - 0.8, 1.3, 0, P2);
+      g.fill();
+      if (k < 0.4) {
+        g.strokeStyle = BODY(0.5 * (1 - k / 0.4));
+        g.lineWidth = 1;
+        g.beginPath();
+        g.moveTo(ex, ey);
+        g.lineTo(ex, y - 3);
+        g.stroke();
+      }
+    } else {
+      // the splash: a ring spreading on the tread, a crown of droplets thrown up and falling back
+      const k = (t - 0.78) / 0.22;
+      g.strokeStyle = CORE(0.7 * (1 - k));
+      g.lineWidth = 1.4;
+      g.beginPath();
+      g.ellipse(ex, land, 3 + k * 12, 1 + k * 2.6, 0, 0, P2);
+      g.stroke();
+      for (let d = 0; d < 5; d++) {
+        const a = Math.PI + (d / 4) * Math.PI;
+        const r0 = 3 + k * 12;
+        const dx = Math.cos(a) * r0;
+        const dy = -Math.sin(k * Math.PI) * (5 + (d % 2) * 3) + 0;
+        g.fillStyle = CORE(0.8 * (1 - k));
+        g.beginPath();
+        g.arc(ex + dx, land + dy, 1.4 * (1 - k * 0.5), 0, P2);
+        g.fill();
+      }
+    }
   }
-  // billows of it sliding down: soft overlapping volumes, each lit on its top, swelling as they fall and thinning
-  // out at the foot (blurred together into one flow)
-  g.filter = 'blur(3px)';
-  const n = 16;
-  for (let i = 0; i < n; i++) {
-    const u = (i / n + ph) % 1;
-    const [x, y] = pt(u);
-    const fade = smooth(0, 0.06, u) * (1 - smooth(0.8, 1, u));
-    const rad = (9 + 4 * Math.sin(i * 2.1 + u * 7)) * (0.8 + u * 0.7);
-    const a = 0.32 * fade;
-    const bg = g.createRadialGradient(x - rad * 0.2, y - rad * 0.35, 0, x, y, rad * 1.4);
-    bg.addColorStop(0, `rgba(220,255,244,${a.toFixed(3)})`);
-    bg.addColorStop(0.45, `rgba(130,246,210,${(a * 0.6).toFixed(3)})`);
-    bg.addColorStop(1, 'rgba(90,232,192,0)');
-    g.fillStyle = bg;
-    g.beginPath();
-    g.ellipse(x, y, rad * 1.5, rad * 1.1, 0, 0, P2);
-    g.fill();
+  // rivulets off the lip: a bead of it swelling as it slides down the box's face, a wet trail behind it, falling
+  // off the plinth onto the tread and splashing
+  for (const [k, rx, off] of [[0, S.x0 + 34, 0.1], [1, S.x0 + 48, 0.6]] as const) {
+    const t = (ph + off) % 1;
+    const y0 = S.top + 6;
+    const y1 = S.bot - 2;
+    if (t < 0.8) {
+      const q = t / 0.8;
+      const y = y0 + (y1 - y0) * q * q;
+      const rad = 2.4 + q * 2.6 + k * 0.6;
+      const tg = g.createLinearGradient(0, y0, 0, y);
+      tg.addColorStop(0, BODY(0.45));
+      tg.addColorStop(1, BODY(0.2));
+      g.strokeStyle = tg;
+      g.lineWidth = 2.2;
+      g.beginPath();
+      g.moveTo(rx - 2, y0);
+      g.quadraticCurveTo(rx + 2, (y0 + y) / 2, rx, y);
+      g.stroke();
+      g.fillStyle = BODY(0.8);
+      g.beginPath();
+      g.ellipse(rx, y, rad * 0.85, rad * 1.15, 0, 0, P2);
+      g.fill();
+      g.fillStyle = CORE(0.8);
+      g.beginPath();
+      g.arc(rx - rad * 0.3, y - rad * 0.35, rad * 0.4, 0, P2);
+      g.fill();
+    } else {
+      const q = (t - 0.8) / 0.2;
+      g.strokeStyle = CORE(0.75 * (1 - q));
+      g.lineWidth = 1.4;
+      g.beginPath();
+      g.ellipse(rx, S.bot + 2, 3 + q * 14, 1 + q * 3, 0, 0, P2);
+      g.stroke();
+      for (let d = 0; d < 6; d++) {
+        const a = Math.PI + (d / 5) * Math.PI;
+        g.fillStyle = CORE(0.85 * (1 - q));
+        g.beginPath();
+        g.arc(rx + Math.cos(a) * (3 + q * 14), S.bot + 2 - Math.sin(q * Math.PI) * (6 + (d % 2) * 4), 1.6 * (1 - q * 0.5), 0, P2);
+        g.fill();
+      }
+    }
   }
-  g.filter = 'none';
-  // brimming at the gap: a swelling meniscus over the rim
-  const sw = 1 + 0.2 * Math.sin(ph * P2);
-  const mg = g.createRadialGradient(S.x0 + 24, S.top - 2, 0, S.x0 + 24, S.top - 2, 30 * sw);
-  mg.addColorStop(0, 'rgba(230,255,248,0.7)');
-  mg.addColorStop(0.5, 'rgba(140,250,214,0.35)');
-  mg.addColorStop(1, 'rgba(90,232,192,0)');
-  g.fillStyle = mg;
+  // the wet sheen it leaves on the box's face beside the run
+  g.strokeStyle = BODY(0.16);
+  g.lineWidth = 3;
   g.beginPath();
-  g.ellipse(S.x0 + 22, S.top - 2, 30 * sw, 10 * sw, 0, 0, P2);
-  g.fill();
+  g.moveTo(S.x0 + 14, S.top + 6);
+  g.quadraticCurveTo(S.x0 + 16, S.top + 50, S.x0 + 12, S.top + 34 + 40 * ((ph * 1.3) % 1));
+  g.stroke();
   c.imageSmoothingEnabled = true;
   c.drawImage(cv, 0, 0, w, h);
 }
@@ -1818,6 +2204,9 @@ export const PHANTOM: SceneSpec = {
   grade,
   shade: shadeOver,
 };
+
+/** A loop's current frame position (to play a second copy in step). */
+const pourPh = (l: Loop): number => (l as unknown as { ph: number }).ph;
 
 // ——— live ———
 
@@ -1945,7 +2334,8 @@ registerKitScene(PHANTOM, (k) => {
     c.scale(POUR_K, POUR_K);
     pourFrame(c, ph);
   });
-  const pour = new Loop(k, pourKey, POUR_N, POUR_BOX.x, POUR_BOX.y, { into: fx, origin: [0, 0], scale: 1 / POUR_K, add: true, fps: 3 });
+  const pour = new Loop(k, pourKey, POUR_N, POUR_BOX.x, POUR_BOX.y, { into: fx, origin: [0, 0], scale: 1 / POUR_K, fps: 4 });
+  const pourGlow = new Loop(k, pourKey, POUR_N, POUR_BOX.x, POUR_BOX.y, { into: fx, origin: [0, 0], scale: 1 / POUR_K, add: true, fps: 4, phase: 0 });
   const gapGlow = k.glow(S.x0 + 26, S.top - 8, 90, 0x7af0d0, 0.3, { into: fx, sy: 0.6 });
   let surge = 0;
 
@@ -2057,8 +2447,11 @@ registerKitScene(PHANTOM, (k) => {
       }
       lidImg.setPosition(LID_HINGE.x, LID_HINGE.y + Math.min(0, ly) * 0.25).setRotation(Math.min(0, lr) * 0.12);
       // ——— the pour
-      pour.alpha = Math.min(1, 0.75 + surge * 0.3);
+      pour.alpha = Math.min(1, 0.85 + surge * 0.2);
       pour.step(dt, 1 + surge * 1.5);
+      // (its glow, added over it: the same frame)
+      pourGlow.alpha = Math.min(0.6, 0.3 + surge * 0.3);
+      pourGlow.show(pourPh(pour));
       // ——— the pall
       pallGust = Math.max(0, pallGust - dt * 0.4);
       pall.step(dt, (0.6 + pallGust * 3) * cm);
