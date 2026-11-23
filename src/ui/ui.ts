@@ -289,6 +289,7 @@ class Hud {
   onSlam: () => void = () => {};
 
   constructor() {
+    window.addEventListener('resize', () => this.fitBossMove());
     this.coinPill.innerHTML = COIN_SVG;
     this.coinPill.append(this.coins);
     this.combo.append(this.comboLabel, this.comboMult, h('div', { class: 'timer' }, this.comboTimer));
@@ -1382,8 +1383,10 @@ class UI {
   phaseCard(c: ResolvedPhaseCard, done: (off: boolean) => void): { el: HTMLElement; ok: () => void } {
     let s: HTMLElement;
     let closed = false;
+    // a player mashing smacks when the card pops up doesn't dismiss it unread
+    const opened = performance.now();
     const finish = (off: boolean) => {
-      if (closed) return;
+      if (closed || performance.now() - opened < 450) return;
       closed = true;
       this.close(s);
       done(off);

@@ -1181,13 +1181,16 @@ const hades = (): Brain => {
     names: plan.names,
     info: plan.info,
     cards: plan.cards,
+    setPhases: (n) => {
+      const p2 = hadesPlan(n);
+      order = p2.order;
+      brain.names.splice(0, brain.names.length, ...p2.names);
+      brain.info.splice(0, brain.info.length, ...p2.info);
+      brain.cards?.splice(0, brain.cards.length, ...p2.cards);
+    },
     upkeep: (f, dt, a) => {
       start(() => {
-        const p2 = hadesPlan(a.bossPhases());
-        order = p2.order;
-        brain.names.splice(0, brain.names.length, ...p2.names);
-        brain.info.splice(0, brain.info.length, ...p2.info);
-        brain.cards?.splice(0, brain.cards.length, ...p2.cards);
+        brain.setPhases!(a.bossPhases());
         a.flash(500, 30, 50, 120);
         entrance(a, f, { sfx: 'sfx_hades_toll', quip: 'WELCOME TO THE UNDERWORLD.', color: '#8fd8ff', flash: [80, 160, 255], delay: 500, onLanded: () => a.sc.time.delayedCall(900, () => f.alive && phaseStart(f, a, 1)) });
         bin.add(() => {

@@ -612,6 +612,12 @@ const jokester = (): Brain => {
   const info = Object.values(NAMES).map((n) => n[1]);
   const cards = (Object.keys(NAMES) as Move[]).map((m) => CARDS[m]);
   const move = (f: Foot): Move => plan[Math.min(plan.length, f.phase) - 1] ?? 'boxes';
+  const setPlan = (n: number) => {
+    plan = PLAN[Math.max(2, Math.min(4, n))];
+    names.splice(0, names.length, ...plan.map((m) => NAMES[m][0]));
+    info.splice(0, info.length, ...plan.map((m) => NAMES[m][1]));
+    cards.splice(0, cards.length, ...plan.map((m) => CARDS[m]));
+  };
 
   // ——— joke boxes ———
   const toss = (a: Arena, f: Foot, p: Pizza, bomb: boolean) => {
@@ -1085,16 +1091,14 @@ const jokester = (): Brain => {
     names,
     info,
     cards,
+    setPhases: setPlan,
     update(f, dt, a) {
       const h = heat(a);
       if (!started) {
         started = true;
         const n = bits(a).director.phases.get(f) ?? a.bossPhases();
-        plan = PLAN[Math.max(2, Math.min(4, n))];
         // the banners follow this heat's plan (the gauntlet is always last)
-        names.splice(0, names.length, ...plan.map((m) => NAMES[m][0]));
-        info.splice(0, info.length, ...plan.map((m) => NAMES[m][1]));
-        cards.splice(0, cards.length, ...plan.map((m) => CARDS[m]));
+        setPlan(n);
         a.bossMove(f, names[f.phase - 1] ?? names[0], info[f.phase - 1] ?? info[0]);
         // the entrance: a jack-in-the-box lands, winds up and he springs out of it
         f.puppet = true;

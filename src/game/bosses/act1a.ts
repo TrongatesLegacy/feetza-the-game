@@ -827,7 +827,7 @@ const bigfoot = (): Brain => {
         show: [
           { key: 'p_qte_target', label: 'Ring target', hits: (h) => [2, 2, 3, 3, 4][h.rank] },
           { key: 'p_trap0', label: 'Bear trap', hits: (h) => h.hits(4) },
-          { key: '@boss', label: 'His twin', watch: true },
+          { key: '@boss', label: 'His twin, too' },
         ],
       },
       {
@@ -1301,7 +1301,7 @@ const ironheel = (): Brain => {
       {
         what: 'Pistons lift the pizzas up into rocket fire',
         hit: 'Smack the glowing valves to lower the pistons',
-        miss: 'Rockets hit every raised pizza for a slice',
+        miss: 'Rockets hit the raised pizzas for a slice each',
         show: [
           { key: 'p_valve', label: 'Glowing valve', hits: 1 },
           { key: 'p_rocket', label: 'Rockets', watch: true },
@@ -1311,7 +1311,7 @@ const ironheel = (): Brain => {
       {
         what: 'Vents, pistons and rockets, all faster',
         hit: 'Keep the valves down and dodge the steam',
-        miss: 'Rockets hit every raised pizza for a slice',
+        miss: 'Rockets hit the raised pizzas for a slice each',
         show: [
           { key: 'p_valve', label: 'Glowing valve', hits: 1 },
           { key: 'p_ventwarn', label: 'Steam vent', watch: true },

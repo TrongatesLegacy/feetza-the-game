@@ -48,12 +48,13 @@ Object.assign(BRAINS, comics);
 Object.assign(BRAINS, leonidas);
 
 /** Dev boss lab: a boss's phase names and move info, without spawning it. */
-export function bossPhaseInfo(id: string): { names: string[]; info: string[]; fixed?: number; cards?: PhaseCard[]; cardArt?: () => Record<string, () => HTMLCanvasElement> } | null {
+export function bossPhaseInfo(id: string, phases?: number): { names: string[]; info: string[]; fixed?: number; cards?: PhaseCard[]; cardArt?: () => Record<string, () => HTMLCanvasElement> } | null {
   const make = BRAINS[id];
   if (!make) return null;
   const b = make();
+  if (phases) b.setPhases?.(phases);
   // a fixed phase count (Act 10's Sole Proprietor) doesn't read the arena
-  return { names: b.names, info: b.info, fixed: b.phases?.(null as never), cards: b.cards, cardArt: b.cardArt?.bind(b) };
+  return { names: [...b.names], info: [...b.info], fixed: b.phases?.(null as never), cards: b.cards && [...b.cards], cardArt: b.cardArt?.bind(b) };
 }
 
 /** Every boss and mini-boss with a fight (for checks that each phase has its card). */

@@ -14,7 +14,7 @@ import { PIZZAS } from './data/pizzas';
 import { artBooted } from './game/assets';
 import { GameScene } from './scenes/GameScene';
 import { PEELS, PEEL_BY_ID } from './game/peels';
-import { PHASE_CARDS_OFF, migrate, persist, save } from './systems/save';
+import { migrate, persist, phaseCardsMuted, save } from './systems/save';
 
 type AnyScene = Phaser.Scene & Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -171,7 +171,8 @@ function setProfile(o: SimOpts): void {
   const settings = save.settings;
   Object.assign(save, migrate({}), { settings });
   save.tutorialDone = true;
-  save.seenIntros = ['shop', 'kinds', 'swap', 'freshness', 'phases', 'mini', 'events', 'golden', PHASE_CARDS_OFF];
+  save.seenIntros = ['shop', 'kinds', 'swap', 'freshness', 'phases', 'mini', 'events', 'golden'];
+  phaseCardsMuted.on = true;
   if (o.profile === 'veteran') {
     save.meta = Object.fromEntries(META.map((m) => [m.id, m.costs.length]));
     save.unlockedPizzas = PIZZAS.map((p) => p.id);

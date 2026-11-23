@@ -11,6 +11,9 @@ import type { RunSnapshot } from '../game/snapshot';
  *  Settings clears it, along with every phase seen. */
 export const PHASE_CARDS_OFF = 'phasecards-off';
 
+/** Phase cards off for this page only, never saved: the sim, the bot and dev starts with `intros: false`. */
+export const phaseCardsMuted = { on: false };
+
 export type AimScheme = 'free' | 'lane';
 export type PromptStyle = 'auto' | 'xbox' | 'playstation' | 'switch';
 export type ColorBlind = 'off' | 'redgreen' | 'blueyellow';

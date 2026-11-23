@@ -4524,6 +4524,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     }
     this.paused = true;
     this.scene.pause();
+    audio.duck(0.45);
     let done = false;
     this.cardOk = () => {};
     this.cardOk = open(() => {
@@ -4538,7 +4539,19 @@ export class GameScene extends Phaser.Scene implements Arena {
       if (this.over) return;
       this.paused = false;
       this.scene.resume();
+      audio.duck(1);
     });
+  }
+
+  /** The run is ending with a card up (the last pizza fell on the same frame a phase card opened): forget the card
+   *  and its queue, and let the scene run again, so the game over plays out. */
+  private dropCards(): void {
+    if (!this.cardOk && !this.cardQueue.length) return;
+    this.cardOk = null;
+    this.cardQueue = [];
+    this.paused = false;
+    if (this.scene.isPaused()) this.scene.resume();
+    audio.duck(1);
   }
 
   /** A boss reached a new phase (Arena). The first time a player meets it, a card pauses the fight to show what
@@ -4557,14 +4570,14 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (save.seenIntros.includes(key)) return false;
     const card = phaseCardFor(id, phase, this.director.phaseCount(f), this.run.heat);
     if (!card) return false;
-    save.seenIntros.push(key);
-    persist();
     this.fightCard((closed) => {
-      // (a card waiting in line for a boss that has gone since: skip it)
+      // (a card waiting in line for a boss that has gone since: skip it, still unseen)
       if (!f.alive || this.over) {
         queueMicrotask(closed);
         return () => {};
       }
+      if (!save.seenIntros.includes(key)) save.seenIntros.push(key);
+      persist();
       const c = ui.phaseCard(card, (off) => {
         if (off && phaseCardsOn()) {
           save.seenIntros.push(PHASE_CARDS_OFF);
@@ -4697,7 +4710,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     // a card pausing the fight: Esc (or P) presses its OK; nothing else reaches the game
     if (this.cardOk) {
       // (Enter on a focused button already presses that button)
-      const onBtn = document.activeElement instanceof HTMLButtonElement;
+      const onBtn = document.activeElement instanceof HTMLButtonElement && !!document.activeElement.closest('.screen');
       if (k === 'escape' || k === 'p' || (k === 'enter' && !onBtn)) {
         e.preventDefault();
         this.cardOk();
@@ -4784,6 +4797,7 @@ export class GameScene extends Phaser.Scene implements Arena {
   private leaveRun(): void {
     // the shop, or ACT COMPLETE (its clock has kept running since it was saved)
     if (this.inUpgrade && (this.shop || this.actEl)) this.saveRun();
+    this.dropCards();
     this.over = true;
     this.leaving = true;
     this.tracker.flush();
@@ -4984,6 +4998,7 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   private gameOver(quit = false, victory = false, banked = false): void {
     if (this.over) return;
+    this.dropCards();
     this.actEl = null;
     this.over = true;
     this.waveActive = false;

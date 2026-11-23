@@ -12,18 +12,38 @@ import './phaseCard.css';
 /** Canvas pixels per picture (shown at about 9 em: crisp on a 2× screen at desktop size). */
 const PIC = 220;
 
+/** A foot's portrait; tinted as the fight tints it (a glowing jellyfish, a red-hot heel) on a canvas. */
+function portrait(url: string, tint?: number): HTMLElement {
+  if (tint === undefined) return h('img', { src: url, alt: '' });
+  const c = h('canvas', { width: String(PIC), height: String(PIC) });
+  const img = new Image();
+  img.onload = () => {
+    const ctx = c.getContext('2d')!;
+    const k = Math.min(PIC / img.width, PIC / img.height);
+    const at = [(PIC - img.width * k) / 2, (PIC - img.height * k) / 2, img.width * k, img.height * k] as const;
+    ctx.drawImage(img, ...at);
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.fillStyle = `#${tint.toString(16).padStart(6, '0')}`;
+    ctx.fillRect(0, 0, PIC, PIC);
+    ctx.globalCompositeOperation = 'destination-in';
+    ctx.drawImage(img, ...at);
+  };
+  img.src = url;
+  return c;
+}
+
 function picture(c: ResolvedPhaseCard, s: CardShow, i: number): HTMLElement | null {
   // '@boss': the boss itself; '@foot:<id>': a foot it brings (its portrait)
   const foot = s.key === '@boss' ? c.id : s.key.startsWith('@foot:') ? s.key.slice(6) : null;
   if (foot && !FOOT_BY_ID[foot]) return null;
-  const art = foot ? h('img', { src: footPortraitURL(foot), alt: '' }) : textureCanvas(s.key, PIC, PIC, c.art[s.key], s.tint);
+  const art = foot ? portrait(footPortraitURL(foot), s.tint) : textureCanvas(s.key, PIC, PIC, c.art[s.key], s.tint);
   if (!art) return null;
   const kind = s.watch ? 'watch' : 'hit';
   return h(
     'figure',
     { class: `pc-pic ${kind}`, style: `--i:${i}` },
     h('span', { class: 'pc-flag' }, s.watch ? 'WATCH OUT' : 'HIT THIS'),
-    h('div', { class: 'pc-well' }, h('i', { class: 'pc-ring' }), art, s.hits && !s.watch ? h('b', { class: 'pc-count', 'aria-label': `${s.hits} hits` }, `×${s.hits}`) : null),
+    h('div', { class: 'pc-well' }, h('i', { class: 'pc-ring' }), art, s.hits && s.hits > 1 && !s.watch ? h('b', { class: 'pc-count', 'aria-label': `${s.hits} hits` }, `×${s.hits}`) : null),
     h('figcaption', {}, s.label),
   );
 }

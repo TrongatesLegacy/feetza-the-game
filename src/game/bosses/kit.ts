@@ -28,6 +28,9 @@ export interface Brain {
   /** Per phase (index 0 = phase 1): the card that pauses the fight the first time a player reaches it
    *  (src/ui/phaseCard.ts). A phase without one gets a card made from its `info`. */
   cards?: PhaseCard[];
+  /** Fights whose phase list depends on the phase count (Surtr, the Jokester, Hades) set it up for `n` phases here,
+   *  so a fresh brain's names and cards match the fight's (phase cards, the boss lab). */
+  setPhases?(n: number): void;
   /** Textures the fight draws only once it starts (key → draw), so its phase cards can show them before then. */
   cardArt?(): Record<string, () => HTMLCanvasElement>;
 }

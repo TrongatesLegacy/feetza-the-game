@@ -1342,7 +1342,7 @@ const kraken = (): Brain => {
       {
         what: 'A huge tentacle grabs a pizza to drag it under',
         hit: 'Smack the tentacle anywhere to free the pizza',
-        miss: 'It drags the pizza under: 2 slices lost',
+        miss: 'It drags the pizza under: it loses 2 slices or more',
         show: [{ key: 'p_bigtentacle', label: 'Tentacle', hits: (h) => h.hits(3) }],
       },
       {

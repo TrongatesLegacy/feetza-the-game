@@ -2,7 +2,7 @@
 import type Phaser from 'phaser';
 import type { HeatId } from './data/difficulty';
 import type { RunSnapshot } from './game/snapshot';
-import { PHASE_CARDS_OFF, save } from './systems/save';
+import { phaseCardsMuted, save } from './systems/save';
 
 type AnyScene = Phaser.Scene & Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -26,7 +26,9 @@ function seed(n: number | null): void {
 }
 
 function skipIntros(): void {
-  save.seenIntros = ['shop', 'kinds', 'swap', 'freshness', 'phases', 'mini', 'events', 'golden', PHASE_CARDS_OFF];
+  // (the player's own phase cards seen are kept; phase cards are muted for this page only, not saved off)
+  save.seenIntros = [...new Set([...save.seenIntros, 'shop', 'kinds', 'swap', 'freshness', 'phases', 'mini', 'events', 'golden'])];
+  phaseCardsMuted.on = true;
   save.tutorialDone = true;
 }
 
@@ -158,6 +160,7 @@ export function installDevTools(game: Phaser.Game): void {
       const o = Array.isArray(opts) ? { lineup: opts } : (opts ?? {});
       if (o.seed !== undefined) seed(Number(o.seed));
       if (o.intros === false) skipIntros();
+      else if (!botOn) phaseCardsMuted.on = false;
       document.querySelectorAll('.screen').forEach((e) => e.remove());
       const data = { ...o };
       if (o.upgrades || o.coins !== undefined) {
@@ -209,10 +212,17 @@ export function installDevTools(game: Phaser.Game): void {
       if (!c) return `no fight for ${id}`;
       for (const s of document.querySelectorAll('.phasecard')) s.closest('.screen')?.remove();
       // a fight behind it holds still while the preview is up
-      const g = game.scene.getScene('Game');
+      const g = game.scene.getScene('Game') as AnyScene;
       const hold = !!g?.sys.isActive();
-      if (hold) g.scene.pause();
-      ui.phaseCard(c, () => hold && g.sys.isPaused() && g.scene.resume());
+      if (hold) {
+        g.scene.pause();
+        g.paused = true;
+      }
+      ui.phaseCard(c, () => {
+        if (!hold) return;
+        g.paused = false;
+        if (g.sys.isPaused()) g.scene.resume();
+      });
       return `${c.bossName} · phase ${phase} · ${c.name}`;
     },
     /** Peels: unlock everything, or make shiny feet common (n = chance multiplier) for testing. */

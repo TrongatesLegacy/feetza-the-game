@@ -1324,6 +1324,9 @@ const surtr = (): Brain => {
     get cards() {
       return surtrNames(n).map((k) => SURTR_CARDS[k]);
     },
+    setPhases: (k) => {
+      n = k;
+    },
     onPhase: (f, ph, a) => {
       n = a.bossPhases();
       // each phase sets another pizza alight

@@ -6,7 +6,7 @@
 
 import type { HeatId } from '../data/difficulty';
 import { FOOT_BY_ID } from '../data/feet';
-import { PHASE_CARDS_OFF, save } from '../systems/save';
+import { PHASE_CARDS_OFF, phaseCardsMuted, save } from '../systems/save';
 import { ENRAGED_INFO, bossPhaseInfo } from './bosses';
 import { heatScale } from './bosses/kit';
 
@@ -16,7 +16,7 @@ export { PHASE_CARDS_OFF };
 export const phaseSeenKey = (id: string, phase: number): string => `phase:${id}:${phase}`;
 
 export function phaseCardsOn(): boolean {
-  return !save.seenIntros.includes(PHASE_CARDS_OFF);
+  return !phaseCardsMuted.on && !save.seenIntros.includes(PHASE_CARDS_OFF);
 }
 
 export interface CardShow {
@@ -47,7 +47,8 @@ const clean = (s: string) => s.trim().replace(/\s+/g, ' ');
 
 /** The card for phase `phase` (of `phases`) of boss `id` on a heat, or null for a foot with no fight. */
 export function phaseCardFor(id: string, phase: number, phases: number, heat: HeatId): ResolvedPhaseCard | null {
-  const b = bossPhaseInfo(id);
+  // a fresh brain, set up for this many phases (some fights' phase lists depend on it)
+  const b = bossPhaseInfo(id, phases);
   const t = FOOT_BY_ID[id];
   if (!b || !t) return null;
   const h = heatScale(heat);
