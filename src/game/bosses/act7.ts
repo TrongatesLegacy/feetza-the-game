@@ -254,6 +254,35 @@ const lexlugtoe = (): Brain => {
       'Two pizzas at a time now · Break the locks fast, one after the other',
       'His armour is sealed while any case stands · Break every case, then hit him',
     ],
+    cards: [
+      {
+        what: 'He buys a pizza and drops a glass case over it',
+        hit: 'Smack the padlock to break the case open',
+        miss: 'That pizza’s perk stays off until the case lifts',
+        show: [
+          { key: 'p_a7_lock', label: 'Padlock', hits: (h) => h.hits(3) },
+          { key: 'p_a7_case', label: 'Glass case', watch: true },
+        ],
+      },
+      {
+        what: 'He buys two pizzas at a time now',
+        hit: 'Break each padlock fast, one after the other',
+        miss: 'Two pizzas lose their perks at once',
+        show: [
+          { key: 'p_a7_lock', label: 'Padlock', hits: (h) => h.hits(3) },
+          { key: 'p_a7_case', label: 'Glass case', watch: true },
+        ],
+      },
+      {
+        what: 'His armour is sealed while any case stands',
+        hit: 'Break every case, then hit him',
+        miss: 'Your smacks bounce off him while a case is up',
+        show: [
+          { key: 'p_a7_lock', label: 'Padlock', hits: (h) => h.hits(3) },
+          { key: '@boss', label: 'Then him' },
+        ],
+      },
+    ],
     update(f, dt, a) {
       const h = heat(a);
       if (!started) {
@@ -495,6 +524,32 @@ const doomstomp = (): Brain => {
       'Back bigger: bone spikes burst up behind pizzas · Smack each spike before it strikes',
       'Bigger again, and only your signature move can finish him · Smack him to fill your meter, then Peel Slam (or fire your peel ability)',
     ],
+    cards: [
+      {
+        what: 'He paws the table, then rampages across the pizzas',
+        hit: 'Smack him while he paws to stop the charge',
+        miss: 'He stomps across 2 pizzas, a slice off each',
+        show: [{ key: '@boss', label: 'While he paws', hits: (h) => h.hits(4) }],
+      },
+      {
+        what: 'Back bigger: bone spikes burst up behind pizzas',
+        hit: 'Snap each spike before it strikes',
+        miss: 'The spike impales that pizza: it loses a slice',
+        show: [
+          { key: 'p_a7_spike', label: 'Bone spike', hits: (h) => h.hits(2) },
+          { key: '@boss', label: 'While he paws', hits: (h) => h.hits(4) },
+        ],
+      },
+      {
+        what: 'His last life: only your signature move can finish him',
+        hit: 'Smack him to fill your meter, then Peel Slam',
+        miss: 'He stays up, dazed, until you use it (or five smacks later)',
+        show: [
+          { key: '@boss', label: 'Then Peel Slam' },
+          { key: 'p_a7_spike', label: 'Bone spike', hits: (h) => h.hits(2) },
+        ],
+      },
+    ],
     update(f, dt, a) {
       const h = heat(a);
       if (!started) {
@@ -706,6 +761,35 @@ const ultoe = (): Brain => {
       'Every few seconds he uploads into a drone body · Watch the glowing red core: that one is Ultoe',
       'Faster uploads, more drones, and the core blinks off right after a jump · Keep your eye on where he lands',
       'Drones flash fake red cores · The real core never flickers: hit the steady one',
+    ],
+    cards: [
+      {
+        what: 'He uploads himself into a drone body every few seconds',
+        hit: 'Hit the body with the glowing red core: that one is Ultoe',
+        miss: 'Smacking the wrong drone doesn’t hurt him',
+        show: [
+          { key: 'glow', label: 'Red core', tint: 0xff2a2a },
+          { key: '@foot:ultodrone', label: 'Drones', watch: true },
+        ],
+      },
+      {
+        what: 'Faster uploads, more drones, and the core blinks off',
+        hit: 'Watch where he lands, then hit the core when it’s back',
+        miss: 'Lose track of him and the drones keep stomping',
+        show: [
+          { key: 'glow', label: 'Red core', tint: 0xff2a2a },
+          { key: '@foot:ultodrone', label: 'Drones', watch: true },
+        ],
+      },
+      {
+        what: 'Drones flash fake red cores',
+        hit: 'The real core never flickers: hit the steady one',
+        miss: 'Chase a fake and Ultoe takes no damage',
+        show: [
+          { key: 'glow', label: 'Steady core', tint: 0xff2a2a },
+          { key: '@foot:ultodrone', label: 'Fake flicker', watch: true },
+        ],
+      },
     ],
     update(f, dt, a) {
       const h = heat(a);
@@ -940,6 +1024,45 @@ const thanfoot = (): Brain => {
       'Stones come faster, and one arrives straight away · Keep the sock under six: knock out the newest first',
       'Two stones at once each time now · Clear the sock; if the Snap winds up, knock out any stone',
       'Everything faster · Keep the sock empty and finish him',
+    ],
+    cards: [
+      {
+        what: 'He pulls stones into his sock, and each one gives him a power',
+        hit: 'Smack each stone out of the sock',
+        miss: 'All six in and he snaps: every pizza loses half its slices',
+        show: [
+          { key: 'p_a7_stone_power', label: 'Power Stone', hits: (h) => h.hits(3) },
+          { key: 'p_a7_stone_time', label: 'Time Stone', hits: (h) => h.hits(3) },
+          { key: 'p_a7_stone_soul', label: 'Soul Stone', hits: (h) => h.hits(3) },
+        ],
+      },
+      {
+        what: 'Stones come faster, and one arrives straight away',
+        hit: 'Keep the sock under six: knock out the newest first',
+        miss: 'Each stone left in powers him up until you knock it out',
+        show: [
+          { key: 'p_a7_stone_space', label: 'Space Stone', hits: (h) => h.hits(3) },
+          { key: 'p_a7_stone_reality', label: 'Reality Stone', hits: (h) => h.hits(3) },
+        ],
+      },
+      {
+        what: 'Two stones fly in at once each time now',
+        hit: 'Clear the sock; if the Snap winds up, knock any stone out',
+        miss: 'The Snap halves every pizza’s slices',
+        show: [
+          { key: 'p_a7_stone_mind', label: 'Mind Stone', hits: (h) => h.hits(3) },
+          { key: 'p_a7_stone_power', label: 'Power Stone', hits: (h) => h.hits(3) },
+        ],
+      },
+      {
+        what: 'Everything comes faster',
+        hit: 'Keep the sock empty and finish him',
+        miss: 'Six stones in and he snaps: every pizza loses half',
+        show: [
+          { key: 'p_a7_stone_soul', label: 'Stones', hits: (h) => h.hits(3) },
+          { key: '@boss', label: 'Thanfoot' },
+        ],
+      },
     ],
     update(f, dt, a) {
       const h = heat(a);

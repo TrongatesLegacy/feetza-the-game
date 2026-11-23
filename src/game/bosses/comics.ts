@@ -277,6 +277,32 @@ const redsole = (): Brain => {
       'Hydrant turrets rise at the table’s ends and spray your pizzas · Cap each turret before it soaks them',
       'He goose-steps across the table, stomping lane after lane · Smack him twice as his heel clicks to halt the march',
     ],
+    cards: [
+      {
+        what: 'The Cosmic Crouton floats over a lane and charges a beam',
+        hit: 'Smack the cube to make its beam backfire into him',
+        miss: 'The beam vaporises a slice and freezes that pizza’s perk',
+        show: [{ key: 'p_cm_cube', label: 'Cosmic Crouton', hits: (h) => h.hits(3) }],
+      },
+      {
+        what: 'Hydrant turrets rise at the table’s ends and spray pizzas',
+        hit: 'Cap each turret before it soaks your pizzas',
+        miss: 'Every spray takes a slice from the nearest pizza',
+        show: [
+          { key: 'p_cm_turret', label: 'Hydrant turret', hits: (h) => h.hits(4) },
+          { key: 'p_cm_cube', label: 'Cosmic Crouton', hits: (h) => h.hits(3) },
+        ],
+      },
+      {
+        what: 'He goose-steps across the table, stomping lane after lane',
+        hit: 'Smack him as his heel clicks to halt the march',
+        miss: 'Each stomp lands on a pizza',
+        show: [
+          { key: '@boss', label: 'On the heel click', hits: (h) => h.hits(2) },
+          { key: 'p_cm_turret', label: 'Hydrant turret', hits: (h) => h.hits(4) },
+        ],
+      },
+    ],
     upkeep(f, _dt, a) {
       start(() => {
         enterArena(a, 'redsole');
@@ -563,6 +589,32 @@ const venomnom = (): Brain => {
       'It drools, then its tongue lashes out to gulp a slice · Smack the tongue before it reaches the pizza',
       'Goo binds a pizza and drains it · Break the goo, and smack a sonic emitter on the wall to make it shriek',
       'It splits into two that share one health bar · A sonic pulse melts the copy back in',
+    ],
+    cards: [
+      {
+        what: 'It drools, then its tongue lashes out at a pizza',
+        hit: 'Smack the tongue before it reaches the pizza',
+        miss: 'It gulps a slice and heals',
+        show: [{ key: 'p_cm_tongue', label: 'Tongue', hits: 1 }],
+      },
+      {
+        what: 'Goo binds a pizza: no perk, and it drains slices',
+        hit: 'Break the goo, or fire a sonic emitter on the wall',
+        miss: 'The bound pizza loses a slice every few seconds',
+        show: [
+          { key: 'p_cm_goo', label: 'Goo', hits: (h) => h.hits(4) },
+          { key: 'p_cm_emitter', label: 'Sonic emitter', hits: (h) => h.hits(3) },
+        ],
+      },
+      {
+        what: 'It splits into two that share one health bar',
+        hit: 'Fire a sonic emitter to melt the copy back in',
+        miss: 'Two of it lash, drool and goo at once',
+        show: [
+          { key: 'p_cm_emitter', label: 'Sonic emitter', hits: (h) => h.hits(3) },
+          { key: 'p_cm_goo', label: 'Goo', hits: (h) => h.hits(4) },
+        ],
+      },
     ],
     upkeep(f, dt, a) {
       if (f.brain.twin) return;
@@ -860,6 +912,32 @@ const cheetoe = (): Brain => {
       'She dashes over a pizza and crouches to pounce · Smack her twice while she crouches, then smack away her claw marks',
       'Red lines flash round your peel before her claws rake them · Move your peel off the lines',
       'She hides in the leaves among the fireflies · Smack the amber eyes, not the green ones',
+    ],
+    cards: [
+      {
+        what: 'She dashes over a pizza and crouches to pounce',
+        hit: 'Smack her while she crouches, then smack away claw marks',
+        miss: 'She takes a slice, and her claw marks take another',
+        show: [
+          { key: '@boss', label: 'While she crouches', hits: (h) => h.hits(2) },
+          { key: 'p_cm_scratch', label: 'Claw marks', hits: (h) => h.hits(2) },
+        ],
+      },
+      {
+        what: 'Red lines flash round your peel, then her claws rake them',
+        hit: 'Move your peel off the red lines',
+        miss: 'Caught on a line: your peel is stunned for a second',
+        icon: '🐾',
+      },
+      {
+        what: 'She hides in the leaves among the fireflies',
+        hit: 'Smack her amber eyes, not the green fireflies',
+        miss: 'She ambushes a pizza for a slice',
+        show: [
+          { key: 'p_cm_eyes', label: 'Her amber eyes', hits: 1 },
+          { key: 'p_cm_fireflies', label: 'Just fireflies', watch: true },
+        ],
+      },
     ],
     upkeep(f, _dt, a) {
       start(() => {

@@ -17,6 +17,7 @@ type AnyScene = Phaser.Scene & Record<string, any>; // eslint-disable-line @type
 type Notes = Record<string, { general?: string; phases?: Record<string, string> }>;
 interface DevApi {
   startGame(o: Record<string, unknown>): void;
+  phaseCard(id: string, phase: number, heat: HeatId, phases?: number): Promise<string>;
 }
 
 const LS_KEY = 'feetza.bossLab';
@@ -283,7 +284,7 @@ export function installBossLab(game: Phaser.Game): void {
         const k = i + 1;
         const on = k <= n;
         const needs = on ? heat : heatFor(e.mini, k, e.id);
-        const btn = needs ? `<button class="bl-btn" data-play="${k}" data-heat="${needs}">▶ Play phase ${k}${on ? '' : ` (${HEAT_BY_ID[needs].name})`}</button>` : '';
+        const btn = needs ? `<button class="bl-btn" data-play="${k}" data-heat="${needs}">▶ Play phase ${k}${on ? '' : ` (${HEAT_BY_ID[needs].name})`}</button><button class="bl-btn alt" data-card="${k}" data-heat="${needs}" title="Preview the card this phase shows the first time a player reaches it">🂠 Card</button>` : '';
         return `<div class="bl-phase${on ? '' : ' off'}"><div class="row"><b>Phase ${k} · ${esc(p.name)}</b>${on ? '' : `<span class="tag">Not on ${HEAT_BY_ID[heat].name}</span>`}<span class="info">${esc(p.info)}</span>${btn}</div><textarea data-note="${k}" placeholder="Notes on phase ${k}…">${esc(notes[e.id]?.phases?.[k] ?? '')}</textarea></div>`;
       })
       .join('');
@@ -300,6 +301,14 @@ export function installBossLab(game: Phaser.Game): void {
       }),
     );
     wrap.querySelectorAll<HTMLElement>('[data-play]').forEach((b) => b.addEventListener('click', () => void launch(e.id, Number(b.dataset.play), b.dataset.heat as HeatId)));
+    // the phase card, shown over the game (or the menu) as a player would first meet it; OK closes it
+    wrap.querySelectorAll<HTMLElement>('[data-card]').forEach((b) =>
+      b.addEventListener('click', () => {
+        const h = b.dataset.heat as HeatId;
+        close();
+        void api().phaseCard(e.id, Number(b.dataset.card), h, phaseCount(e.mini, h, e.id));
+      }),
+    );
     wrap.querySelector('[data-close]')?.addEventListener('click', close);
     // two presses to clear every boss's notes, here, in the browser and in the notes file
     wrap.querySelector<HTMLButtonElement>('[data-clear]')?.addEventListener('click', (ev) => {

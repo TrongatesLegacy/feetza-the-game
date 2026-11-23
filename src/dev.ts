@@ -2,7 +2,7 @@
 import type Phaser from 'phaser';
 import type { HeatId } from './data/difficulty';
 import type { RunSnapshot } from './game/snapshot';
-import { save } from './systems/save';
+import { phaseCardsMuted, save } from './systems/save';
 
 type AnyScene = Phaser.Scene & Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -26,7 +26,9 @@ function seed(n: number | null): void {
 }
 
 function skipIntros(): void {
-  save.seenIntros = ['shop', 'kinds', 'swap', 'freshness', 'phases', 'mini', 'events', 'golden'];
+  // (the player's own phase cards seen are kept; phase cards are muted for this page only, not saved off)
+  save.seenIntros = [...new Set([...save.seenIntros, 'shop', 'kinds', 'swap', 'freshness', 'phases', 'mini', 'events', 'golden'])];
+  phaseCardsMuted.on = true;
   save.tutorialDone = true;
 }
 
@@ -158,6 +160,7 @@ export function installDevTools(game: Phaser.Game): void {
       const o = Array.isArray(opts) ? { lineup: opts } : (opts ?? {});
       if (o.seed !== undefined) seed(Number(o.seed));
       if (o.intros === false) skipIntros();
+      else if (!botOn) phaseCardsMuted.on = false;
       document.querySelectorAll('.screen').forEach((e) => e.remove());
       const data = { ...o };
       if (o.upgrades || o.coins !== undefined) {
@@ -200,6 +203,28 @@ export function installDevTools(game: Phaser.Game): void {
     /** Deterministic randomness for fair before/after comparisons. */
     seed,
     skipIntros,
+    /** Preview a boss phase's card (src/ui/phaseCard.ts) over whatever is on screen, e.g. F.phaseCard('titanking', 2).
+     *  `phases` defaults to the boss's phase count on that heat. Nothing is saved; OK just closes it. */
+    async phaseCard(id: string, phase = 1, heat: HeatId = 'regular', phases?: number): Promise<string> {
+      const [{ ui }, { phaseCardFor }, { bossPhaseInfo }, { HEAT_BY_ID }, { FOOT_BY_ID }] = await Promise.all([import('./ui/ui'), import('./game/phaseCards'), import('./game/bosses'), import('./data/difficulty'), import('./data/feet')]);
+      const n = phases ?? bossPhaseInfo(id)?.fixed ?? (FOOT_BY_ID[id]?.mini ? Math.max(1, HEAT_BY_ID[heat].bossPhases - 1) : HEAT_BY_ID[heat].bossPhases);
+      const c = phaseCardFor(id, phase, Math.max(n, phase), heat);
+      if (!c) return `no fight for ${id}`;
+      for (const s of document.querySelectorAll('.phasecard')) s.closest('.screen')?.remove();
+      // a fight behind it holds still while the preview is up
+      const g = game.scene.getScene('Game') as AnyScene;
+      const hold = !!g?.sys.isActive();
+      if (hold) {
+        g.scene.pause();
+        g.paused = true;
+      }
+      ui.phaseCard(c, () => {
+        if (!hold) return;
+        g.paused = false;
+        if (g.sys.isPaused()) g.scene.resume();
+      });
+      return `${c.bossName} · phase ${phase} · ${c.name}`;
+    },
     /** Peels: unlock everything, or make shiny feet common (n = chance multiplier) for testing. */
     peels: {
       unlockAll: async () => {

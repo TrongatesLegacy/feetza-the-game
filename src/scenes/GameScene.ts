@@ -15,6 +15,7 @@ import { evictFootArt, footPortraitURL, pizzaPortraitURL, setArtWarmBusy, textur
 import { BackdropView } from '../game/BackdropView';
 import { prepareLive, releaseLive } from '../game/liveBackdrop';
 import { BossDirector } from '../game/bosses';
+import { PHASE_CARDS_OFF, phaseCardFor, phaseCardsOn, phaseSeenKey } from '../game/phaseCards';
 import { eventName, startEvent, type EventId } from '../game/events';
 import { Foot } from '../game/Foot';
 import { Fx } from '../game/Fx';
@@ -701,6 +702,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.over = false;
     this.leaving = false;
     this.paused = false;
+    this.cardOk = null;
+    this.cardQueue = [];
     this.inUpgrade = false;
     this.displayCoins = 0;
     this.healCost = 30;
@@ -1253,7 +1256,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     // the current phase gets its own introduction (after the first-time phases card, if that shows)
     const mv = this.director.moveOf(f);
     this.introCard('phases', () => {
-      if (mv && f.alive) this.banner(`PHASE ${f.phase}`, mv.name, 'phase', mv.info);
+      if (mv && f.alive) this.phaseBanner(f, mv.name, mv.info);
     });
   }
 
@@ -1280,8 +1283,10 @@ export class GameScene extends Phaser.Scene implements Arena {
     const mv = this.director.moveOf(f);
     ui.hud.setBoss(t.name, 1, this.director.phaseCount(f));
     this.introCard('mini', () => {
-      if (mv && f.alive) this.banner('MINI-BOSS!', `${t.name} · ${mv.name}`, 'boss', mv.info);
-      else ui.hud.banner('MINI-BOSS!', t.name, 'boss');
+      // its first phase's card (the first time), then a short banner; or the banner that explains the move
+      if (mv && f.alive) {
+        if (!this.phaseCard(f, () => f.alive && this.banner('MINI-BOSS!', `${t.name} · ${mv.name}`, 'boss'))) this.banner('MINI-BOSS!', `${t.name} · ${mv.name}`, 'boss', mv.info);
+      } else ui.hud.banner('MINI-BOSS!', t.name, 'boss');
     });
   }
 
@@ -4493,18 +4498,99 @@ export class GameScene extends Phaser.Scene implements Arena {
     }
     save.seenIntros.push(id);
     persist();
-    const inPlay = !this.inUpgrade;
-    if (inPlay) {
-      this.paused = true;
-      this.scene.pause();
+    // in the shop nothing is running: the card just opens over it
+    if (this.inUpgrade) {
+      ui.intro(id, () => after?.());
+      return;
     }
-    ui.intro(id, () => {
-      if (inPlay) {
-        this.paused = false;
-        this.scene.resume();
-      }
-      after?.();
+    this.fightCard((closed) => {
+      const el = ui.intro(id, () => {
+        after?.();
+        closed();
+      });
+      return () => el.querySelector<HTMLButtonElement>('.row .btn')?.click();
     });
+  }
+
+  /** The card pausing the fight (an intro card or a phase card): Esc presses its OK. */
+  private cardOk: (() => void) | null = null;
+  /** Cards waiting for the one on screen to close (a mini-boss and the boss changing phase on the same smack). */
+  private cardQueue: (() => void)[] = [];
+
+  /** Pause the fight for a card, one at a time. `open` shows it, calls `closed` once it's dismissed (after its own
+   *  follow-up, so a card that leads to another keeps the fight paused) and returns a function that presses its OK. */
+  private fightCard(open: (closed: () => void) => () => void): void {
+    if (this.cardOk) {
+      this.cardQueue.push(() => this.fightCard(open));
+      return;
+    }
+    this.paused = true;
+    this.scene.pause();
+    audio.duck(0.45);
+    let done = false;
+    this.cardOk = () => {};
+    this.cardOk = open(() => {
+      if (done) return;
+      done = true;
+      this.cardOk = null;
+      const next = this.cardQueue.shift();
+      if (next) {
+        next();
+        if (this.cardOk) return;
+      }
+      if (this.over) return;
+      this.paused = false;
+      this.scene.resume();
+      audio.duck(1);
+    });
+  }
+
+  /** The run is ending with a card up (the last pizza fell on the same frame a phase card opened): forget the card
+   *  and its queue, and let the scene run again, so the game over plays out. */
+  private dropCards(): void {
+    if (!this.cardOk && !this.cardQueue.length) return;
+    this.cardOk = null;
+    this.cardQueue = [];
+    this.paused = false;
+    if (this.scene.isPaused()) this.scene.resume();
+    audio.duck(1);
+  }
+
+  /** A boss reached a new phase (Arena). The first time a player meets it, a card pauses the fight to show what
+   *  to hit, then a short banner; after that (or with phase cards off), the explained banner. */
+  phaseBanner(f: Foot, name: string, info: string): void {
+    if (!this.phaseCard(f, () => f.alive && this.banner(`PHASE ${f.phase}`, name, 'phase'))) this.banner(`PHASE ${f.phase}`, name, 'phase', info);
+  }
+
+  /** Show this boss phase's card if the player hasn't seen it (and hasn't turned the cards off). `after` runs once
+   *  it's closed. False (and `after` doesn't run) when there's no card to show. */
+  private phaseCard(f: Foot, after: () => void): boolean {
+    if (!phaseCardsOn() || this.over || !f.alive || (f !== this.bossFoot && f !== this.miniFoot)) return false;
+    const id = f.type.id;
+    const phase = f.phase;
+    const key = phaseSeenKey(id, phase);
+    if (save.seenIntros.includes(key)) return false;
+    const card = phaseCardFor(id, phase, this.director.phaseCount(f), this.run.heat);
+    if (!card) return false;
+    this.fightCard((closed) => {
+      // (a card waiting in line for a boss that has gone since: skip it, still unseen)
+      if (!f.alive || this.over) {
+        queueMicrotask(closed);
+        return () => {};
+      }
+      if (!save.seenIntros.includes(key)) save.seenIntros.push(key);
+      persist();
+      const c = ui.phaseCard(card, (off) => {
+        if (off && phaseCardsOn()) {
+          save.seenIntros.push(PHASE_CARDS_OFF);
+          persist();
+        }
+        after();
+        closed();
+      });
+      return c.ok;
+    });
+    return true;
   }
 
   // ——— Frame ———
@@ -4625,6 +4711,16 @@ export class GameScene extends Phaser.Scene implements Arena {
   private onKey(e: KeyboardEvent): void {
     const k = e.key.toLowerCase();
     pad.usedMouse();
+    // a card pausing the fight: Esc (or P) presses its OK; nothing else reaches the game
+    if (this.cardOk) {
+      // (Enter on a focused button already presses that button)
+      const onBtn = document.activeElement instanceof HTMLButtonElement && !!document.activeElement.closest('.screen');
+      if (k === 'escape' || k === 'p' || (k === 'enter' && !onBtn)) {
+        e.preventDefault();
+        this.cardOk();
+      }
+      return;
+    }
     if (k === 'escape' || k === 'p') {
       if (this.paused) this.resume();
       // in the shop, Esc opens the pause menu (unless something, like an intro card, is open over it)
@@ -4705,6 +4801,7 @@ export class GameScene extends Phaser.Scene implements Arena {
   private leaveRun(): void {
     // the shop, or ACT COMPLETE (its clock has kept running since it was saved)
     if (this.inUpgrade && (this.shop || this.actEl)) this.saveRun();
+    this.dropCards();
     this.over = true;
     this.leaving = true;
     this.tracker.flush();
@@ -4905,6 +5002,7 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   private gameOver(quit = false, victory = false, banked = false): void {
     if (this.over) return;
+    this.dropCards();
     this.actEl = null;
     this.over = true;
     this.waveActive = false;
