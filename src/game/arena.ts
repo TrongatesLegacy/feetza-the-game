@@ -79,6 +79,8 @@ export interface Arena {
   /** Pull every regular foot back to the top and pause it (true), or let them carry on (false). No new feet spawn meanwhile. */
   retreat(on: boolean): void;
   isRetreating(): boolean;
+  /** A hero's wall stands over the pizzas (King Leonidas's Hold the Line): feet can't get through to them. */
+  heroWallUp(): boolean;
   /** While set, the only regular feet that spawn are these ids (a boss's own kind). null = normal. */
   setMinions(ids: string[] | null): void;
   /** While on, the wave's own feet stop arriving (and bosses' reinforcements too): only feet a boss spawns itself

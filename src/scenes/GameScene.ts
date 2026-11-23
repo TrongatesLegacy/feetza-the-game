@@ -418,6 +418,9 @@ export class GameScene extends Phaser.Scene implements Arena {
   isRetreating(): boolean {
     return this.retreating;
   }
+  heroWallUp(): boolean {
+    return Number(this.heroes.k.wv.lineUntil ?? 0) > this.now();
+  }
   setMinions(ids: string[] | null): void {
     this.minionPool = ids && ids.length ? ids : null;
   }

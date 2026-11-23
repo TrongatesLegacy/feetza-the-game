@@ -377,11 +377,19 @@ const chariot: FootFx = {
     const phase = Number(f.brain.roll ?? 0);
     if (!phase) {
       f.brain.rollCd = Number(f.brain.rollCd ?? 0) - dt;
-      if (f.state !== 'hover' || Number(f.brain.rollCd) > 0 || f.stunT > 0 || !free(a, f) || a.alivePizzas().length < 2) return;
+      // (never under a hero's shield wall: the wall holds the table, so it waits until it's gone)
+      if (f.state !== 'hover' || Number(f.brain.rollCd) > 0 || f.stunT > 0 || !free(a, f) || a.alivePizzas().length < 2 || a.heroWallUp()) return;
       startRoll(a, f);
       return;
     }
     if (!a.inWave() || a.isRetreating() || f.pinned) {
+      endRoll(a, f, false);
+      return;
+    }
+    // a hero's shield wall comes down while it's on the table: it's held, thrown back up
+    if (phase >= 2 && a.heroWallUp()) {
+      a.quip(f.x, Math.max(220, f.cy - 140), 'HELD!', '#ffd890', 38);
+      a.fx.ring(f.x, f.y - 30, 0xc9873a, 0.9, 0.6);
       endRoll(a, f, false);
       return;
     }
@@ -398,6 +406,7 @@ const chariot: FootFx = {
       if (Math.abs(fromX - f.x) < 6) {
         f.brain.roll = 2;
         f.brain.rT = h.windup(1.2);
+        a.quip(f.x, Math.max(220, f.cy - 170), 'HIT THE HUB!', '#ffd23f', 40);
       }
     } else if (phase === 2) {
       // drop to the table and rev: dust, a rumble and a red line along the row
@@ -406,6 +415,7 @@ const chariot: FootFx = {
       if (Math.random() < dt * 16) a.fx.puff(f.x - Math.sign(toX - fromX) * 60, f.y, 2);
       f.brain.rT = Number(f.brain.rT) - dt;
       drawLine(a, f, y, Number(f.brain.rT));
+      drawHubMark(a, f, Number(f.brain.rT), true);
       if (Number(f.brain.rT) <= 0) {
         f.brain.roll = 3;
         line.get(f)?.clear();
@@ -413,6 +423,7 @@ const chariot: FootFx = {
       }
     } else {
       // roll the row, chipping each pizza once
+      drawHubMark(a, f, f.age, false);
       const sp = [300, 380, 380, 420, 460][h.rank] * dt;
       const dir = Math.sign(toX - fromX);
       f.x += dir * sp;
@@ -432,6 +443,8 @@ const chariot: FootFx = {
   },
   kill: (_a, f) => {
     line.get(f)?.clear();
+    hubMark.get(f)?.destroy();
+    hubMark.delete(f);
     f.brain.roll = 0;
     f.puppet = false;
   },
@@ -440,6 +453,36 @@ const chariot: FootFx = {
 /** The pizzas this roll has already chipped. */
 const chipped = new WeakMap<Foot, Set<Pizza>>();
 const line = new WeakMap<Foot, Phaser.GameObjects.Graphics>();
+/** The hub's target ring and the direction chevrons, over everything while it revs and rolls. */
+const hubMark = new WeakMap<Foot, Phaser.GameObjects.Graphics>();
+function drawHubMark(a: Arena, f: Foot, t: number, revving: boolean): void {
+  let g = hubMark.get(f);
+  if (!g) {
+    g = a.sc.add.graphics();
+    a.fxLayer.add(g);
+    hubMark.set(f, g);
+  }
+  const w = hubWorld(f);
+  const r = Math.max(56, w.r * 0.6);
+  const pulse = 0.5 + 0.5 * Math.sin(t * (revving ? 16 : 10));
+  g.clear();
+  // the target: the hit circle itself, pulsing, with an outer ring that breathes
+  g.lineStyle(10, 0x2a1810, 0.6).strokeCircle(w.x, w.y, r);
+  g.lineStyle(6, 0xffd23f, 0.75 + 0.25 * pulse).strokeCircle(w.x, w.y, r);
+  g.lineStyle(4, 0xff4d3d, 0.5 * (1 - pulse)).strokeCircle(w.x, w.y, r + 14 + pulse * 18);
+  if (!revving) return;
+  // chevrons along the row, the way it's about to roll
+  const dir = Math.sign(Number(f.brain.toX) - Number(f.brain.fromX)) || 1;
+  for (let i = 0; i < 3; i++) {
+    const cx = w.x + dir * (r + 40 + i * 46 + pulse * 10);
+    const cy = w.y;
+    g.lineStyle(8, 0xff4d3d, 0.9 - i * 0.25).beginPath();
+    g.moveTo(cx - dir * 14, cy - 20);
+    g.lineTo(cx + dir * 6, cy);
+    g.lineTo(cx - dir * 14, cy + 20);
+    g.strokePath();
+  }
+}
 function drawLine(a: Arena, f: Foot, y: number, left: number): void {
   let g = line.get(f);
   if (!g) {
@@ -457,9 +500,14 @@ function drawLine(a: Arena, f: Foot, y: number, left: number): void {
 
 function startRoll(a: Arena, f: Foot): void {
   // from the nearer end of the table to the far one
+  // it drops onto the table past the end pizza (clear of it, so the rev reads before anything is chipped) and
+  // rolls out past the far one
   const left = f.x < W / 2;
-  f.brain.fromX = left ? 170 : W - 170;
-  f.brain.toX = left ? W - 110 : 110;
+  const ps = row(a);
+  const lo = ps.length ? ps[0].x - ps[0].radius - 95 : 170;
+  const hi = ps.length ? ps[ps.length - 1].x + ps[ps.length - 1].radius + 95 : W - 170;
+  f.brain.fromX = left ? Math.max(80, lo) : Math.min(W - 80, hi);
+  f.brain.toX = left ? Math.min(W - 60, hi) : Math.max(60, lo);
   f.brain.roll = 1;
   chipped.delete(f);
   f.puppet = true;
@@ -501,6 +549,7 @@ function startRoll(a: Arena, f: Foot): void {
 
 function endRoll(a: Arena, f: Foot, rolled: boolean): void {
   line.get(f)?.clear();
+  hubMark.get(f)?.clear();
   if (!f.brain.roll) return;
   f.brain.roll = 0;
   f.brain.rollCd = heat(a).cooldown(11);
