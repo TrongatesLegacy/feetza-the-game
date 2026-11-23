@@ -1,6 +1,6 @@
 // Feetza 2.0 locations, part 1: Nonna's Kitchen, Old Town Rooftops, The Pier.
 
-import { registerLegacyScene, registerScene } from '../../art/registry';
+import { registerLegacyScene } from '../../art/registry';
 import {
   type Ctx,
   type R,
@@ -1135,7 +1135,8 @@ registerLegacyScene('oldtown', {
   draw: drawOldTown,
 });
 
-registerScene('pier', {
+// (redrawn with the location kit in scene-pier.ts; this stays for the before/after page, ?dev&stages)
+registerLegacyScene('pier', {
   info: {
     name: 'The Pier',
     subtitle: 'Waves 41–44',
