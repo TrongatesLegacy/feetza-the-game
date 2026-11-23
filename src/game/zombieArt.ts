@@ -1349,6 +1349,32 @@ export class ZombieLook {
     this.sound('sfx_poltergeist_flies', { volume: 0.55, rate: 0.95 + crand() * 0.1, throttle: 400 });
   }
 
+  /** It rears back from a neighbour it's about to bite (`dir`: towards the neighbour). */
+  windup(dir: number): void {
+    if (this.cured || this.released) return;
+    const calm = reduced() ? 0.4 : 1;
+    this.lean.v -= dir * 2.6 * calm;
+    this.sqY.v += 2 * calm;
+  }
+
+  /** It lunges at the neighbour and bites. */
+  lunge(dir: number): void {
+    if (this.cured || this.released) return;
+    const calm = reduced() ? 0.4 : 1;
+    this.lean.v += dir * 6 * calm;
+    this.sqX.v += 3 * calm;
+    this.sqY.v -= 3.5 * calm;
+  }
+
+  /** It swells as it turns into something worse (a second Loafer): a shudder and a heave. */
+  swell(): void {
+    if (this.cured || this.released) return;
+    const calm = reduced() ? 0.4 : 1;
+    this.sqX.v += 4 * calm;
+    this.sqY.v += 5 * calm;
+    this.lean.v += (crand() < 0.5 ? -1 : 1) * 3 * calm;
+  }
+
   /** A green puff of rot off the whole foot (its own emitter: cosmetic randomness only). */
   puff(): void {
     cosmetic(() => this.puffNow());

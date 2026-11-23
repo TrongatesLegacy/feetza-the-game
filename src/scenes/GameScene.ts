@@ -221,6 +221,8 @@ export class GameScene extends Phaser.Scene implements Arena {
   private bossPending = false;
   private bossFoot: Foot | null = null;
   private miniFoot: Foot | null = null;
+  /** A second boss of the same fight (spawnExtraBoss): the slim second health bar follows it. */
+  private bossBar2: Foot | null = null;
   private miniSpawned = false;
   private bossSummonT = 0;
   private goldenSpawned = false;
@@ -304,6 +306,39 @@ export class GameScene extends Phaser.Scene implements Arena {
   }
   peelPoint(): { x: number; y: number } {
     return this.peelPos;
+  }
+  spawnExtraBoss(id: string, x: number, y: number, hpFrac: number): Foot | null {
+    const t = FOOT_BY_ID[id];
+    if (!t || !this.plan) return null;
+    const f = this.spawnFoot(t, this.pickTarget(null), false, x);
+    f.maxHp = f.hp = Math.max(1, Math.round(f.maxHp * (1 - this.run.stats.miniWeak) * hpFrac));
+    f.y = y;
+    f.setState('hover');
+    f.brain.extraBoss = true;
+    this.director.attach(f);
+    if (!this.bossBar2) this.bossBar2 = f;
+    if (f === this.bossBar2) ui.hud.setBoss2(t.name, 1, this.director.phaseCount(f), f.phase);
+    return f;
+  }
+  /** Another boss of this one's kind still standing (only fights that add more of their boss: spawnExtraBoss). */
+  private bossTwin(f: Foot): Foot | null {
+    return this.feet.find((o) => o !== f && o.alive && o.type.id === f.type.id && !o.brain.echo && !o.brain.decoy && (!!o.brain.extraBoss || !!f.brain.extraBoss)) ?? null;
+  }
+  /** One of several of a fight's boss went down with another still standing: the fight carries on, the survivor
+   *  takes the main bar, and the banner, loot and cleanup wait for the last of them. */
+  private bossHandOver(f: Foot, twin: Foot): void {
+    if (f === this.bossFoot) this.bossFoot = twin;
+    if (f === this.miniFoot) this.miniFoot = twin;
+    if (f === this.bossBar2 || twin === this.bossBar2) this.bossBar2 = this.feet.find((o) => o !== f && o !== twin && o.alive && o.type.id === f.type.id && !!o.brain.extraBoss) ?? null;
+    const main = this.bossFoot ?? this.miniFoot;
+    if (main) ui.hud.setBoss(main.type.name, main.hp / main.maxHp, this.director.phaseCount(main), main.phase);
+    const b2 = this.bossBar2;
+    if (b2) ui.hud.setBoss2(b2.type.name, b2.hp / b2.maxHp, this.director.phaseCount(b2), b2.phase);
+    else ui.hud.setBoss2(null);
+    if (main) {
+      const mv = this.director.moveOf(main);
+      if (mv) ui.hud.setBossMove(mv.name, mv.info);
+    }
   }
   spawn(id: string, target?: Pizza | null, x?: number): Foot | null {
     const t = FOOT_BY_ID[id];
@@ -700,6 +735,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.bossPending = false;
     this.bossFoot = null;
     this.miniFoot = null;
+    this.bossBar2 = null;
     this.over = false;
     this.leaving = false;
     this.paused = false;
@@ -1109,6 +1145,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.goldenSpawned = false;
     this.miniSpawned = false;
     this.miniFoot = null;
+    this.bossBar2 = null;
     this.waveSlicesLost = 0;
     this.orders.clear();
     this.lockedPizzas.clear();
@@ -3334,6 +3371,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     }
     if (f.hp <= 0) this.killFoot(f, o.source);
     else if (f === this.bossFoot || f === this.miniFoot) ui.hud.setBoss(f.type.name, f.hp / f.maxHp, this.director.phaseCount(f), f.phase);
+    else if (f === this.bossBar2) ui.hud.setBoss2(f.type.name, f.hp / f.maxHp, this.director.phaseCount(f), f.phase);
   }
 
   private chain(from: Foot, dmg: number): void {
@@ -3409,8 +3447,10 @@ export class GameScene extends Phaser.Scene implements Arena {
     // achievements count real feet only, never a Ghost echo
     if (!f.brain.echo) save.kills[f.type.id] = (save.kills[f.type.id] ?? 0) + 1;
     const midas = !boss && !mini && f.type.id !== 'golden' && Math.random() < st.goldenTouch;
-    // Ghost echoes copy a boss's type but are a fraction of one: they pay a tenth
-    const echoCut = f.brain.echo ? 0.1 : 1;
+    // Ghost echoes copy a boss's type but are a fraction of one: they pay a tenth; so does one of several of a boss
+    // while another still stands (the last of them pays for the fight)
+    const twin = boss || mini ? this.bossTwin(f) : null;
+    const echoCut = f.brain.echo || twin ? 0.1 : 1;
     const scoreGain = Math.round(f.type.score * (f.elite ? 2 : 1) * (midas ? 2 : 1) * echoCut * this.perkKit.scoreMult(f));
     this.addScore(scoreGain, true);
     // later waves bring far more feet, so each one pays a little less after wave 10 (×0.71 at 20, ×0.5 at 35)
@@ -3476,7 +3516,10 @@ export class GameScene extends Phaser.Scene implements Arena {
       }
     }
     // echoes and decoys are boss-typed stand-ins: they never count as the boss going down
-    if ((boss || mini) && !f.brain.echo && !f.brain.decoy) this.bossDown(f);
+    if ((boss || mini) && !f.brain.echo && !f.brain.decoy) {
+      if (twin) this.bossHandOver(f, twin);
+      else this.bossDown(f);
+    }
     this.kit.onKill(f, (ev) => this.rollDrop(ev, f.cx, f.cy));
     if (f.shiny) {
       this.fx.glint(f.cx, f.cy, 24);
@@ -3500,6 +3543,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     const mini = !!f.type.mini;
     if (f === this.bossFoot) this.bossFoot = null;
     if (f === this.miniFoot) this.miniFoot = null;
+    this.bossBar2 = null;
     ui.hud.setBoss(null);
     // the wave ends with the boss: no golden foot arrives afterwards
     if (!mini) this.goldenSpawned = true;
@@ -4562,6 +4606,8 @@ export class GameScene extends Phaser.Scene implements Arena {
   /** A boss reached a new phase (Arena). The first time a player meets it, a card pauses the fight to show what
    *  to hit, then a short banner; after that (or with phase cards off), the explained banner. */
   phaseBanner(f: Foot, name: string, info: string): void {
+    // (an extra of a boss changes phase quietly: its own bar shows it)
+    if (f !== this.bossFoot && f !== this.miniFoot && f.brain.extraBoss) return;
     if (!this.phaseCard(f, () => f.alive && this.banner(`PHASE ${f.phase}`, name, 'phase'))) this.banner(`PHASE ${f.phase}`, name, 'phase', info);
   }
 
@@ -4850,6 +4896,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.director.clear();
     this.bossFoot = null;
     this.miniFoot = null;
+    this.bossBar2 = null;
     this.clickables = [];
     this.possess(null);
     this.recompute();

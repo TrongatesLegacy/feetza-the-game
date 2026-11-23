@@ -313,8 +313,11 @@ export class Foot {
 
   has(t: FootType['traits'][number]): boolean {
     if (this.disarmT > 0) return false;
-    return this.type.traits.includes(t);
+    return this.type.traits.includes(t) || this.extraTraits.has(t);
   }
+
+  /** Traits a fight has given it on top of its type's (a zombie foot gets back up once). */
+  readonly extraTraits = new Set<FootType['traits'][number]>();
 
   get isBossLike(): boolean {
     return !!this.type.boss || !!this.type.mini;

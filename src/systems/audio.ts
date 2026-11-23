@@ -245,6 +245,7 @@ const TRIM: Record<string, number> = {
   sfx_poltergeist_infect: 1.45, // -15.7 dB → -12.4: the bite's infection spreads over a foot
   sfx_poltergeist_turn: 0.93, // -10.4 dB → -11.0: the bitten foot groans as it turns zombie
   sfx_poltergeist_flies: 1.0, // -16.2 dB: flies find a zombie foot (sits behind)
+  sfx_poltergeist_roar: 0.95, // -9.6 dB → -10.0: a bitten foot bursts into a second Zombie Loafer (a screen-level moment)
   // Phantom King
   sfx_phantomking_fade: 1.04, // -12.4 dB → -12.1: ghostly fade
   sfx_phantomking_echo: 1.06, // -11.5 dB → -11.0: ghostly echo appears
