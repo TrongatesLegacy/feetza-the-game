@@ -9,6 +9,8 @@ import type { Arena } from '../arena';
 import type { Foot } from '../Foot';
 import type { Pizza } from '../Pizza';
 import { type Brain, type Prop, type Takeover, Every, dropOn, heat, hitProp, hitWindup, laneOf, mark, retreat, rnd, screenSplat, shield, takeLane, throwAtPeel, windup } from './kit';
+import { crand } from '../../systems/cosmeticRandom';
+import { ZombieLook, prepareZombie, stepZombieBuilds } from '../zombieArt';
 
 // ——— Batch helpers ———
 
@@ -784,6 +786,8 @@ interface Zombie {
   armed: boolean;
   p: Pizza | null;
   slices: number;
+  /** Its zombie art and how it moves (src/game/zombieArt.ts). */
+  look: ZombieLook;
 }
 
 const poltergeist = (): Brain => {
@@ -796,21 +800,42 @@ const poltergeist = (): Brain => {
   let stinkT = 0;
   let sick: { p: Pizza; prop: Prop; glow: Phaser.GameObjects.Image; munch: Every } | null = null;
 
-  const zombify = (o: Foot) => {
-    zombies.set(o, { armed: false, p: null, slices: 0 });
-    // tougher and slower, with a sickly glow
+  /** The bitten foot turns into a zombie foot: its own art rots (a green infection spreads out of the bite), it
+   * convulses, a green puff and the flies arrive, and it groans. Tougher and slower from now on. */
+  const zombify = (o: Foot, a: Arena, side: number) => {
+    const look = new ZombieLook(o, side, (k, op) => a.sfx(k, op));
+    zombies.set(o, { armed: false, p: null, slices: 0, look });
     o.maxHp = Math.round(o.maxHp * 1.5);
     o.hp = Math.round(o.hp * 1.5);
     o.speedMul *= 0.7;
-    o.setPhaseAura(ZOMBIE_GLOW);
+    look.bite();
+    const [wx, wy] = look.woundWorld();
+    a.fx.ring(wx, wy, ZOMBIE_GLOW, 0.7, 0.8);
+    a.sfx('sfx_poltergeist_infect', { volume: 0.85 });
+    a.sc.time.delayedCall(600, () => {
+      if (!o.alive || !zombies.has(o)) return;
+      for (let i = 0; i < 5; i++) a.fx.stinkPuff(o.cx + (crand() - 0.5) * 120, o.cy + (crand() - 0.5) * 90);
+      a.fx.ring(o.cx, o.cy, ZOMBIE_GLOW, 1.3, 0.55);
+    });
+    a.sc.time.delayedCall(780, () => {
+      if (!o.alive || !zombies.has(o)) return;
+      // (off to the far side of the foot, clear of the bite's own callouts)
+      a.quip(o.x - side * 150, Math.max(300, o.cy - 40), 'URRRGH…', '#9be36a', 44);
+      a.sfx('sfx_poltergeist_turn', { volume: 0.9, rate: 0.94 + crand() * 0.12 });
+    });
   };
-  const unzombify = (o: Foot) => {
-    if (!o.alive) return;
+  /** The boss is down: the foot comes round (its art wipes back from the middle out, with a heal burst). */
+  const unzombify = (o: Foot, z: Zombie, a: Arena) => {
+    if (!o.alive) {
+      z.look.release();
+      return;
+    }
     o.speedMul /= 0.7;
     o.maxHp = Math.round(o.maxHp / 1.5);
     o.hp = Math.min(o.hp, o.maxHp);
-    o.setPhaseAura(null);
-    o.tint(null);
+    const [x, y] = z.look.cure();
+    a.fx.healBurst(x, y);
+    a.fx.ring(x, y, 0x7dff9a, 1.2, 0.6);
   };
   const cure = (a: Arena, quiet = false) => {
     if (!sick) return;
@@ -830,12 +855,12 @@ const poltergeist = (): Brain => {
 
   return {
     names: ['BITE', 'COUGH'],
-    info: ['Marks a foot, then bites it: zombie feet are tougher and stomp harder, and each bite heals it · smack the marked foot first', 'Coughs on a pizza: it eats its own slices and its perk stops · click the pizza to cure it'],
+    info: ['Marks a foot, then bites it: the foot turns zombie, tougher and stomping harder, and each bite heals it · smack the marked foot first', 'Coughs on a pizza: it eats its own slices and its perk stops · click the pizza to cure it'],
     cards: [
       {
         what: 'It marks a nearby foot, then lunges over and bites it',
         hit: 'Smack the marked foot down before the bite lands',
-        miss: 'It turns zombie: tougher, harder stomps, and the boss heals',
+        miss: 'It turns into a zombie foot: tougher, harder stomps, and the boss heals',
         show: [{ key: 'p_reticle', label: 'Marked foot' }],
       },
       {
@@ -853,14 +878,16 @@ const poltergeist = (): Brain => {
         stinkT = 0.35;
         if (sick && !sick.p.dead) a.fx.stinkPuff(sick.p.x, sick.p.surfaceY - 60);
       }
-      // ——— zombie upkeep: keep the green tint, and a landed zombie stomp bites off one more slice ———
+      // the zombie art being built for the marked foot, a little each frame
+      stepZombieBuilds();
+      // ——— zombie upkeep: a landed zombie stomp bites off one more slice ———
       for (const [o, z] of zombies) {
         if (!o.alive) {
+          // (the flies scatter: its look lets go by itself)
           zombies.delete(o);
           continue;
         }
-        if (!imgOf(o).tintFill) o.tint(ZOMBIE_TINT);
-        if (whiff && Math.random() < 0.5) a.fx.stinkPuff(o.cx, o.cy);
+        if (whiff && crand() < 0.5) a.fx.stinkPuff(o.cx, o.cy);
         if (o.state === 'descend') {
           z.armed = true;
           z.p = o.target;
@@ -889,6 +916,8 @@ const poltergeist = (): Brain => {
           a.fxLayer.add(reticle);
           a.sc.tweens.add({ targets: reticle, scale: 0.9, angle: 45, duration: 260, yoyo: true, repeat: -1 });
           biting = { o, reticle };
+          // its zombie art starts building now, in the background, for the bite
+          prepareZombie(o);
           const forget = bin.add(() => {
             reticle.destroy();
             biting = null;
@@ -916,8 +945,8 @@ const poltergeist = (): Brain => {
               duration: 220,
               ease: 'Back.In',
               onComplete: () => {
-                if (f.alive && o.alive && a.inWave()) {
-                  zombify(o);
+                if (f.alive && o.alive && a.inWave() && !zombies.has(o)) {
+                  zombify(o, a, side);
                   a.fx.impact(o.cx, o.cy, true);
                   a.quip(o.x, Math.max(300, o.cy - 150), 'CHOMP! ZOMBIE!', '#9be36a', 42);
                   a.sfx('sfx_poltergeist_bite');
@@ -1019,10 +1048,12 @@ const poltergeist = (): Brain => {
       bin.flush();
       cure(a, true);
       // the zombies come round when it goes down
-      for (const o of zombies.keys()) {
-        unzombify(o);
-        if (o.alive) a.fx.healBurst(o.cx, o.cy);
+      let any = false;
+      for (const [o, z] of zombies) {
+        any ||= o.alive;
+        unzombify(o, z, a);
       }
+      if (any) a.sfx('sfx_heal', { volume: 0.7 });
       zombies.clear();
     },
   };

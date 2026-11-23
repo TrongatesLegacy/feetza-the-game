@@ -45,6 +45,7 @@ import { abilityKey } from '../game/abilities';
 import { PizzaPerkKit } from '../game/pizzaPerks';
 import { contentFx } from '../game/contentFx';
 import { evictLive, setLiveWarmBusy, styleLive, warmLive } from '../game/liveKit';
+import { evictZombieArt } from '../game/zombieArt';
 import { ECHO_IDS } from '../game/bosses/act2b';
 import { agents as solepropAgents } from '../game/bosses/act10';
 import '../content/styleLive';
@@ -2137,6 +2138,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     const still = evictFootArt(keep, inUse);
     const live = evictLive(this, keep, inUse);
     evictShieldArt(this, keep, inUse);
+    // (zombie feet only last a Zombie Loafer fight: their art goes whatever the next stage brings)
+    evictZombieArt(this, inUse);
     if (import.meta.env.DEV) ((window as unknown as { __evictions?: unknown[] }).__evictions ??= []).push({ wave: n, still, live, ms: Math.round(performance.now() - t0) });
   }
 

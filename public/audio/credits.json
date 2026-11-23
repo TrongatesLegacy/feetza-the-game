@@ -1543,6 +1543,30 @@
     "notes": "The Zombie Loafer: zombie pizza munches a slice; layered with a synthesized crunch (original, made for Feetza with ffmpeg and Python, CC0)"
   },
   {
+    "file": "sfx_poltergeist_infect.mp3",
+    "title": "Slime 4.wav",
+    "author": "Archos (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Archos/sounds/433824/",
+    "notes": "The Zombie Loafer: the bite's infection spreads over a foot; trimmed, compressed and faded"
+  },
+  {
+    "file": "sfx_poltergeist_turn.mp3",
+    "title": "Mummy Zombie Groan 2",
+    "author": "Frostnox (freesound.org)",
+    "license": "CC BY 4.0",
+    "url": "https://freesound.org/people/Frostnox/sounds/796662/",
+    "notes": "The Zombie Loafer: the bitten foot groans as it turns zombie; \"Mummy Zombie Groan 2\" by Frostnox, licensed under CC BY 4.0, trimmed, compressed and faded"
+  },
+  {
+    "file": "sfx_poltergeist_flies.mp3",
+    "title": "Fly_Buzzing_Edited.wav",
+    "author": "AmberdeMeillon (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/AmberdeMeillon/sounds/443059/",
+    "notes": "The Zombie Loafer: flies find a zombie foot; trimmed, filtered, compressed and faded"
+  },
+  {
     "file": "sfx_phantomking_fade.mp3",
     "title": "Original synthesized sound",
     "author": "Made for Feetza",
