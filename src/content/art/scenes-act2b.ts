@@ -929,7 +929,8 @@ registerLegacyScene('rink', {
   draw: drawRink,
 });
 
-registerScene('slopes', {
+// (redrawn with the location kit in scene-slopes.ts; this stays for the before/after page, ?dev&stages)
+registerLegacyScene('slopes', {
   info: {
     name: 'Ski Slopes',
     subtitle: 'Waves 51–54',
