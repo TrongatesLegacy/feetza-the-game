@@ -640,7 +640,7 @@ export class GameScene extends Phaser.Scene implements Arena {
         if (waveInJourney(snap.wave) === JOURNEY_WAVES) this.endingShown = true;
         this.time.delayedCall(500, () => (waveInJourney(snap.wave) === JOURNEY_WAVES ? this.victory() : this.actComplete(snap.wave)));
       } else this.time.delayedCall(500, () => this.openUpgrades(rs?.bossReward ?? isBossWave(snap.wave), keep, 'WELCOME BACK!'));
-    } else if (this.start.act2 || this.start.kit) {
+    } else if ((this.start.act2 || this.start.kit) && !this.start.boss) {
       const kw = this.kitWave();
       this.run.wave = kw - 1;
       this.showLocation(kw, true);

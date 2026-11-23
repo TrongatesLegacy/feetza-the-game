@@ -51,10 +51,10 @@ function phaseNames(id: string, mini: boolean): { name: string; info: string }[]
   return Array.from({ length: max }, (_, i) => ({ name: b?.names[i] ?? ENRAGED, info: b?.info[i] ?? 'Everything it does comes faster' }));
 }
 
-function loadLocal(): { heat: HeatId; notes: Notes } {
+function loadLocal(): { heat: HeatId; notes: Notes; kit?: boolean } {
   try {
     const v = JSON.parse(localStorage.getItem(LS_KEY) ?? '{}');
-    return { heat: v.heat ?? 'mild', notes: v.notes ?? {} };
+    return { heat: v.heat ?? 'mild', notes: v.notes ?? {}, kit: !!v.kit };
   } catch {
     return { heat: 'mild', notes: {} };
   }
@@ -93,6 +93,7 @@ const CSS = `
 .bl-head img{width:72px;height:72px;object-fit:contain}
 .bl-head h2{margin:0;font:400 28px 'Lilita One',Fredoka,sans-serif}
 .bl-head .sp{flex:1}
+.bl-kit{display:flex;gap:6px;align-items:center;font:600 14px Fredoka,sans-serif;cursor:pointer;white-space:nowrap}
 .bl-body{overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:12px}
 .bl-phase{border:2px solid #2a181022;border-radius:12px;padding:10px 12px;background:#fff}
 .bl-phase.off{background:#f3eadb}
@@ -109,6 +110,7 @@ const CSS = `
 export function installBossLab(game: Phaser.Game): void {
   const local = loadLocal();
   let heat: HeatId = local.heat;
+  let withKit = !!local.kit;
   let notes: Notes = local.notes;
   let selected = ENTRIES[0].id;
   let last: { id: string; phase: number; heat: HeatId } | null = null;
@@ -132,7 +134,7 @@ export function installBossLab(game: Phaser.Game): void {
 
   const persistLocal = () => {
     try {
-      localStorage.setItem(LS_KEY, JSON.stringify({ heat, notes }));
+      localStorage.setItem(LS_KEY, JSON.stringify({ heat, notes, kit: withKit }));
     } catch {
       /* private mode */
     }
@@ -165,7 +167,10 @@ export function installBossLab(game: Phaser.Game): void {
     const n = phaseCount(mini, h, id);
     const hp = phase > 1 ? Math.max(0.02, 1 - (phase - 1) / n - 0.02) : undefined;
     last = { id, phase, heat: h };
-    api().startGame({ heat: h, boss: { id, hp }, intros: false });
+    // with a build: the starter kit a run would have by this fight (5 pizzas, a topping per 3 waves of the right
+    // rarities, tips), straight into the fight rather than the shop
+    const wave = FOOT_BY_ID[id]?.minWave ?? 5;
+    api().startGame({ heat: h, boss: { id, hp }, intros: false, ...(withKit ? { kit: true, wave } : {}) });
   }
 
   /** The phase the boss on the field is in now, or the one last launched. */
@@ -284,6 +289,7 @@ export function installBossLab(game: Phaser.Game): void {
       .join('');
     wrap.innerHTML = `<div class="bl-panel"><div class="bl-list">${list}</div><div class="bl-main">
       <div class="bl-head"><img src="${footPortraitURL(e.id)}" alt=""><div><h2>${esc(t?.name ?? e.id)}</h2>Stage ${e.stage} ${e.mini ? 'mini-boss' : 'boss'} · ${n} phase${n > 1 ? 's' : ''} on ${HEAT_BY_ID[heat].name}</div><span class="sp"></span>
+      <label class="bl-kit" title="Start the fight with the starter kit a run would have by then: 5 pizzas, toppings and tips sized for its wave"><input type="checkbox" data-kit${withKit ? ' checked' : ''}> With a build</label>
       <select data-heat-sel>${HEATS.map((h) => `<option value="${h.id}"${h.id === heat ? ' selected' : ''}>${h.name}</option>`).join('')}</select>
       <button class="bl-btn" data-play="1" data-heat="${heat}">▶ Play</button><button class="bl-btn alt" data-clear title="Clear every boss's notes (press twice)">🗑 Clear all notes</button><button class="bl-btn alt" data-close>✕</button></div>
       <div class="bl-body"><div class="bl-phase"><div class="row"><b>Overall</b><span class="info">Arrival, look, difficulty, anything not tied to one phase</span><span class="bl-status">${status}</span></div><textarea data-note="general" placeholder="Overall notes…">${esc(notes[e.id]?.general ?? '')}</textarea></div>${cards}</div></div></div>`;
@@ -312,6 +318,10 @@ export function installBossLab(game: Phaser.Game): void {
       for (const k of Object.keys(notes)) delete notes[k];
       save();
       render();
+    });
+    wrap.querySelector<HTMLInputElement>('[data-kit]')?.addEventListener('change', (ev) => {
+      withKit = (ev.target as HTMLInputElement).checked;
+      persistLocal();
     });
     wrap.querySelector<HTMLSelectElement>('[data-heat-sel]')?.addEventListener('change', (ev) => {
       heat = (ev.target as HTMLSelectElement).value as HeatId;
