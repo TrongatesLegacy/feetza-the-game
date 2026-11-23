@@ -75,7 +75,7 @@ const CITY: Air = { color: '#e9c4a0', far: 0.78 };
 
 // ——— the city (generated once, the same for the day and night layers) ———
 
-interface Block {
+export interface Block {
   x: number;
   w: number;
   top: number;
@@ -83,7 +83,7 @@ interface Block {
   col: string;
 }
 
-const FAR: Block[] = (() => {
+export const FAR: Block[] = (() => {
   const r = rng(6061);
   const out: Block[] = [];
   let x = -30;
@@ -101,7 +101,7 @@ const FAR: Block[] = (() => {
 })();
 
 /** A tower's silhouette (setbacks, a dome, a slender spire), as a path. */
-function blockPath(b: Block): PathFn {
+export function blockPath(b: Block): PathFn {
   return (c) => {
     const { x, w, top } = b;
     const base = 620;
@@ -154,7 +154,7 @@ function blockPath(b: Block): PathFn {
 }
 
 /** Lit windows (seeded per block: the same windows light every night). */
-function windowsOf(b: Block, seed: number): [number, number, number, number, number][] {
+export function windowsOf(b: Block, seed: number): [number, number, number, number, number][] {
   const r = rng(seed);
   const out: [number, number, number, number, number][] = [];
   const cw = 9;
