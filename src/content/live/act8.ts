@@ -7,7 +7,7 @@ import Phaser from 'phaser';
 import { crand } from '../../systems/cosmeticRandom';
 import { aurora, flame, glow } from '../../art/sceneKit';
 import { makeCanvas, rgba, rng } from '../../art/util';
-import { type LiveCtx, type LiveScene, registerLive } from '../../game/liveBackdrop';
+import { type LiveCtx, type LiveScene, registerLegacyLive, registerLive } from '../../game/liveBackdrop';
 
 const W = 1920;
 
@@ -325,8 +325,10 @@ function strike(k: Kit, flash: Phaser.GameObjects.Rectangle, col: string, x0 = 2
 }
 
 // ——— Jotunheim Ice Fields ———
+// (redrawn with the location kit in src/content/art/scene-jotunheim.ts, whose own live layer runs the aurora, the
+// clouds and the weather by wave; this old layer stays for the before/after page, ?dev&stages)
 
-registerLive('jotunheim', (ctx: LiveCtx): LiveScene => {
+registerLegacyLive('jotunheim', (ctx: LiveCtx): LiveScene => {
   const k = new Kit(ctx.sc, ctx.layer);
   auroraTex(k.sc);
   streakTex(k.sc);
