@@ -4854,7 +4854,9 @@ const REDRAWN = new Set<BackdropId>(['trattoria', 'beach', 'space',
   // King Honk's arena (the Big Top), redrawn with the location kit and painted frame animation: scene-clownking.ts
   'clownking',
   // the Pier (Stage 9), redrawn with the location kit and painted frame animation: scene-pier.ts
-  'pier']);
+  'pier',
+  // Kraken Toes' arena (the Shipwreck), redrawn with the location kit and painted frame animation: scene-kraken.ts
+  'kraken']);
 
 // redrawn scenes keep their old info for the before/after page (their old glows and particles with their old art)
 const LEGACY_INFO: Partial<Record<BackdropId, BackdropInfo>> = {};

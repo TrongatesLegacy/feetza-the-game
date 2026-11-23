@@ -223,7 +223,7 @@ function cloudsDay(ctx: Ctx, r: R): void {
 // ——— the far land ———
 
 /** How far right the headland sits (clear of the hovering feet over the right lane). */
-const HX = 230;
+export const HX = 230;
 
 /** The headland's top edge (from x = 1380 + HX to the right edge). */
 const headTop = (x0: number): number => {
@@ -235,7 +235,7 @@ const headTop = (x0: number): number => {
   return HZ - 24 - t * t * (3 - 2 * t) * 64 - Math.sin(x * 0.02) * 3 - (x > 1700 ? (x - 1700) * 0.05 : 0);
 };
 
-function farLeft(ctx: Ctx, r: R): void {
+export function farLeft(ctx: Ctx, r: R): void {
   // a low far coast on the left, a town's pale smudge on it
   const pts: [number, number][] = [[-10, HZ + 1]];
   for (let x = -10; x <= 560; x += 20) pts.push([x, HZ - 10 - Math.sin(x * 0.006) * 6 - (x < 200 ? (200 - x) * 0.04 : 0) + (r() - 0.5) * 1.5 + (x > 480 ? (x - 480) * 0.14 : 0)]);
@@ -248,7 +248,7 @@ function farLeft(ctx: Ctx, r: R): void {
   }
 }
 
-function headland(ctx: Ctx, r: R): void {
+export function headland(ctx: Ctx, r: R): void {
   const pts: [number, number][] = [[1376 + HX, HZ + 1]];
   for (let x = 1380 + HX; x <= W + 10; x += 6) pts.push([x, headTop(x) + (r() - 0.5) * 1.2]);
   pts.push([W + 10, HZ + 1]);
@@ -1567,7 +1567,7 @@ const rngOf = (seed: number) => {
  * ballistic paths (a few late, so the sheet has a body), swelling and thinning as they fly and fall back, lit on
  * their upper left and shaded blue-grey below; a skirt of foam at the root early on, fine drops flung off the top.
  */
-function plumeFrame(c: Ctx, w: number, h: number, t: number): void {
+export function plumeFrame(c: Ctx, w: number, h: number, t: number): void {
   const rr = rngOf(23);
   const T = 1.7;
   const G = 2.1 * h;
@@ -1647,7 +1647,7 @@ function plumeFrame(c: Ctx, w: number, h: number, t: number): void {
 
 /** One frame of the surf at the headland's foot (phase 0 … 1 loops): a swell running up the rocks in a white
  * sheet, hanging, and draining back in lace; a puff of spray at its height. w×h, the waterline along the bottom. */
-function surfFrame(c: Ctx, w: number, h: number, ph: number): void {
+export function surfFrame(c: Ctx, w: number, h: number, ph: number): void {
   const rr = rngOf(31);
   const up = Math.sin(Math.min(1, ph / 0.45) * Math.PI * 0.5);
   const drain = ph < 0.45 ? 0 : (ph - 0.45) / 0.55;
@@ -1700,7 +1700,7 @@ function surfFrame(c: Ctx, w: number, h: number, ph: number): void {
 
 /** One swell crest (frame i of 3 variants), w×h: a dark trough under a lit back slope and a crest line broken into
  * light, its ends fading out. Drawn stretched across the sea and moved in by the live code. */
-function swellStrip(c: Ctx, w: number, h: number, i: number): void {
+export function swellStrip(c: Ctx, w: number, h: number, i: number): void {
   const rr = rngOf(41 + i * 13);
   const ph = rr() * 10;
   const f = 0.012 + rr() * 0.006;
@@ -1752,7 +1752,7 @@ function swellStrip(c: Ctx, w: number, h: number, i: number): void {
 }
 
 /** A tile of rain at one depth (it scrolls): streaks slanting with the wind, lit faintly, soft at the far depth. */
-function rainTile(c: Ctx, size: number, d: number): void {
+export function rainTile(c: Ctx, size: number, d: number): void {
   const rr = rngOf(51 + d * 7);
   const n = [220, 70][d];
   c.lineCap = 'round';
@@ -1777,7 +1777,7 @@ function rainTile(c: Ctx, size: number, d: number): void {
 
 /** One fork of lightning (frame i), w×h, striking down to (w/2 ± …, h): a jagged main channel with branches, a soft
  * violet-white glow round it and a white-hot core. */
-function boltFrame(c: Ctx, w: number, h: number, i: number): void {
+export function boltFrame(c: Ctx, w: number, h: number, i: number): void {
   const rr = rngOf(61 + i * 17);
   const paths: [number, number][][] = [];
   const walk = (x: number, y: number, ang: number, len: number, depth: number) => {
@@ -1816,7 +1816,7 @@ function boltFrame(c: Ctx, w: number, h: number, i: number): void {
 }
 
 /** The lighthouse's beam: a long cone of light from its point at the left, widening and fading out to the right. */
-function beamTex(c: Ctx, w: number, h: number): void {
+export function beamTex(c: Ctx, w: number, h: number): void {
   const g = c.createLinearGradient(0, 0, w, 0);
   g.addColorStop(0, 'rgba(255,250,224,0.95)');
   g.addColorStop(0.25, 'rgba(255,246,214,0.45)');
