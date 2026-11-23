@@ -981,7 +981,7 @@ class AudioManager {
 
   /** sfx() without an options object, for the smack path (it runs on every hit). */
   private play(key: string, volume: number, rate: number, throttle: number, jitter: number): void {
-    if (!this.game.cache.audio.exists(key)) return;
+    if (!this.game || !this.game.cache.audio.exists(key)) return;
     const now = performance.now();
     if (now - (this.lastPlayed.get(key) ?? -1e9) < throttle) return;
     this.lastPlayed.set(key, now);
@@ -1070,7 +1070,7 @@ class AudioManager {
 
   /** One-shot music sting (e.g. game over) that ducks the current music. */
   sting(key: string, volume = 1): void {
-    if (!this.game.cache.audio.exists(key)) return;
+    if (!this.game || !this.game.cache.audio.exists(key)) return;
     this.game.sound.play(key, { volume: volume * this.vol('music') });
   }
 
