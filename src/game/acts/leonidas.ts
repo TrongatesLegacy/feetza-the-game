@@ -161,7 +161,9 @@ function shieldWall(k: HeroKit, sec: number, shove: boolean): void {
     k.sc.time.delayedCall(120, slam);
     return;
   }
-  chant(1, shove ? 0.95 : 1);
+  // (Hot Gates opens with the king's THIS IS SPARTA!: the phalanx answers it a beat later)
+  if (shove) k.sc.time.delayedCall(1500, () => chant(1, 0.95));
+  else chant(1);
   const shields: Phaser.GameObjects.Image[] = [];
   let landed = false;
   for (let x = 90, i = 0; x < W; x += 130, i++) {
@@ -218,7 +220,9 @@ registerMoves({
     shieldWall(k, 10, false);
   },
   holdHotGates: (k) => {
-    k.shout('THIS IS WHERE WE HOLD!', 0xff6a2a, 96);
+    // the king's own line (it was the Kratos Peel's by mistake: Kratos roars his Spartan Rage now)
+    k.shout('THIS IS SPARTA!', 0xff6a2a, 104);
+    audio.sfx('sfx_hero_spartaaa', { volume: 0.9, throttle: 1600 });
     k.flashC(0xff6a2a, 220);
     shieldWall(k, 14, true);
   },

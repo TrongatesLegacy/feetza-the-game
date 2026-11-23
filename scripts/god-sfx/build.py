@@ -197,6 +197,16 @@ def _():
     return mix(a, at(gain(b, 2), 0.38), at(gain(thump(0.4, 90, 40, 0.2), -4), 0.38))
 
 
+@S('sfx_hero_spartanrage', SIG, 2.0, syn='a synthesized bestial war roar ("RAAAGH!") with a burst of fire', fade=0.3)
+def _():
+    # a guttural build, a huge open-throated roar (open "ah" formants, heavy grit, low and doubled), and the rage
+    # catching fire under it
+    build_ = shout(0.35, 95, 120, [650, 1080, 2450], rasp=0.9, seed=21)
+    roar = mix(shout(1.35, 135, 105, [780, 1150, 2550], rasp=1.0, seed=22), gain(shout(1.35, 68, 55, [700, 1050, 2400], rasp=1.0, seed=23), -3))
+    flame = whoosh(1.2, 600, 2400, q=0.7, color='pink', pts=((0, 0), (0.25, 1), (1, 0)))
+    return mix(gain(build_, -3), at(gain(roar, 3), 0.3), at(gain(thump(0.5, 70, 35, 0.25), -2), 0.3), at(gain(flame, -9), 0.35))
+
+
 @S('sfx_hero_rage', BED, 2.0, syn='a synthesized roaring fire loop', fade=0.01)
 def _():
     x = fire(2.2, 60)

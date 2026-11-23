@@ -4037,6 +4037,14 @@
     "notes": "God peels: the Kratos Peel’s “This Is Spartaaa!” shout; a synthesized roaring “THIS IS SPARTAAA!” war shout, made with ffmpeg and Python and released as CC0"
   },
   {
+    "file": "sfx_hero_spartanrage.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "God peels: the Kratos Peel’s Spartan Rage roar; a synthesized bestial war roar with a burst of fire, made with ffmpeg and Python and released as CC0"
+  },
+  {
     "file": "sfx_hero_rage.mp3",
     "title": "Original synthesized sound",
     "author": "Made for Feetza",

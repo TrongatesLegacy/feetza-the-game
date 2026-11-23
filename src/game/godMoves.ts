@@ -6,7 +6,7 @@
 // - Home ground: a Greek god deals +10% in the Labyrinth and Tartarus (Act 9). Act 9 scales an ability's
 //   generic effects; the gods' moves are hand-built, so their bonus lives here.
 //
-// The Kratos Peel is the showpiece: a 30 s rage (This Is Spartaaa) with a flaming head, an ember stream, a fire
+// The Kratos Peel is the showpiece: a 30 s rage (Spartan Rage) with a flaming head, an ember stream, a fire
 // ribbon trail, fire rings where smacks land and a flame countdown bar; and the Spinning Blade passive, chained
 // blades that orbit the peel (one more each new act of the run, up to 5) and catch fire in the rage.
 
@@ -464,7 +464,7 @@ registerMoves({
     k.host.shake(700, 0.016);
     k.host.rumble(1, 600);
     const t = k.sc.add
-      .text(W / 2, 420, 'THIS IS SPARTAAA!', { fontFamily: '"Lilita One", sans-serif', fontSize: '132px', color: '#ffb040', stroke: '#2a1810', strokeThickness: 20 })
+      .text(W / 2, 420, 'SPARTAN RAGE!', { fontFamily: '"Lilita One", sans-serif', fontSize: '132px', color: '#ffb040', stroke: '#2a1810', strokeThickness: 20 })
       .setOrigin(0.5)
       .setScale(3)
       .setAlpha(0)
@@ -478,7 +478,7 @@ registerMoves({
       label: 'ENRAGED',
       sec: 30,
       color: FIRE,
-      sfx: 'sfx_hero_spartaaa',
+      sfx: 'sfx_hero_spartanrage',
       endSfx: 'sfx_hero_ragehiss',
       start: () => {
         k.mods.dmg = 2;
