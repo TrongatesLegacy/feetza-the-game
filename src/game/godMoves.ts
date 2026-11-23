@@ -625,6 +625,7 @@ registerMoves({
           k,
           1.3,
           (dt, t) => {
+            const prevX = x;
             x += dir * (W + 400) * (dt / 1.3);
             g.clear();
             const top = H * 0.18 + Math.sin(t * 6) * 20;
@@ -650,14 +651,28 @@ registerMoves({
             g.lineTo(x + dir * 60, top + 50);
             g.strokePath();
             for (let i = 0; i < 5; i++) k.host.fx.splat(x + (Math.random() - 0.5) * 80, top + Math.random() * 60);
+            // everything the wave's face swept this frame (between where it was and where it is now, and the foot's
+            // width): checking only ±90 px of the face each frame let feet slip through on a long frame or as they moved
+            const lo = Math.min(prevX, x) - 140;
+            const hi = Math.max(prevX, x) + 140;
             for (const f of k.host.live()) {
-              if (hit.has(f) || Math.abs(f.cx - x) > 90) continue;
+              if (hit.has(f) || f.cx < lo || f.cx > hi) continue;
               hit.add(f);
               k.host.hurt(f, 7, { knock: 1200 });
               if (f.alive) k.slow(f, 0.5, 4);
             }
           },
-          () => g.destroy(),
+          () => {
+            g.destroy();
+            // the wave has crossed the whole table: anything still standing it hasn't touched (a foot that dodged
+            // sideways through it, or came down from above as it passed) is caught in its wash
+            for (const f of k.host.live()) {
+              if (hit.has(f)) continue;
+              hit.add(f);
+              k.host.hurt(f, 7, { knock: 1200 });
+              if (f.alive) k.slow(f, 0.5, 4);
+            }
+          },
         );
       },
     });
