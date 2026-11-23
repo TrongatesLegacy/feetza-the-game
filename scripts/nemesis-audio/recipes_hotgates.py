@@ -2,14 +2,14 @@
 the god-king (wave 85), and King Leonidas's and the Hot Gates variant's moves (sfx_hero_*). Same kit and levels as
 recipes.py (whose shared voices it reuses); build.py renders both sets.
 
-  KENNEY=/path/to/kenney python3 -I build.py OUTDIR immortalbrute xerxes holdline spear shieldblock hotgates
+  KENNEY=/path/to/kenney python3 -I build.py OUTDIR immortalbrute xerxes holdline spear shieldblock hotgates spartanchant
   python3 -I integrate_hotgates.py OUTDIR REPO"""
 import random
 
 from recipes import (COMP, HI, LOW, MID, REF, TELL, UH_VOWEL, boots, chains, choir, grunt, ha, horn, roar, rumble, stone,
                      where)
 from dsp import K, mix, at, env, shape, drive, gain, tone, sweep, glide, noise, grains, svf, formant, jitter_am, bell, whoosh, thump, fx  # noqa: F401
-from render import S
+from render import S, rms50
 
 
 # ======================= shared voices =======================
@@ -302,3 +302,96 @@ where('sfx_hero_hotgates', 'Leonidas, Hot Gates: a roaring Spartan war cry with 
 def _():
     beats = [at(bronze(131 + i, rate=0.85, db=-3), 0.9 + i * 0.28) for i in range(5)]
     return fx(mix(gain(shout(1.4, 125, 105, seed=132, voices=6), 0), *beats, gain(rumble(2.2, 50, seed=133), -10)), COMP)
+
+
+# ======================= the Spartan war chant (Hold the Line raised or renewed) =======================
+OO_CHANT = (300, 870, 2240)  # a chest-voice "oo"
+OH_CHANT = (430, 820, 2300)  # opening towards "oh" at the top of the rise
+BARK_OO = (340, 950, 2400)  # the barked HOO!, a touch brighter
+
+
+def level(x, db):
+    """set a stem's 50 ms RMS peak, so stems mix at known levels whatever their raw loudness."""
+    return gain(x, db - rms50(x))
+
+
+def hoplite(dur, pts, vowel, seed, k=2.4, grit=0.35, breath=-14, open_to=None):
+    """one soldier on the chant: a driven saw on a pitch contour through formants, with its own vibrato wobble,
+    breath and grit; open_to crossfades the vowel towards a second one over the note."""
+    r = random.Random(seed)
+    src = drive(tone(dur, glide(pts), 'saw', vib=(r.uniform(4.5, 6.5), r.uniform(1.2, 3.0)), ph=r.random()), k)
+    v = formant(src, list(vowel), q=5, amps=[1.0, 0.55, 0.3])
+    if open_to:
+        w = formant(src, list(open_to), q=5, amps=[1.0, 0.55, 0.3])
+        N = len(v)
+        v = [a * (1 - i / N) + b * (i / N) for i, (a, b) in enumerate(zip(v, w))]
+    v = jitter_am(v, r.uniform(28, 40), grit, seed=seed)
+    br = gain(svf(noise(dur, 'pink', seed=seed + 500), 1500, 0.7, 'bp'), breath)
+    return mix(v, br)
+
+
+def phalanx(dur, f0, fpk, f1, count, spread, seed, shape_pts, vowel=OO_CHANT, k=2.4, grit=0.35, h=0.05, hdb=-6, open_to=None):
+    """a block of soldiers on one syllable: detuned voices, each a little early or late, some doubled, with an "h"
+    breath onset so it reads as HOO rather than a pad."""
+    r = random.Random(seed)
+    vs = []
+    for i in range(count):
+        d = r.uniform(0.86, 1.16)
+        lag = r.uniform(0, spread)
+        L = dur * r.uniform(0.92, 1.04)
+        pts = [(0, f0 * d), (L * 0.55, fpk * d * r.uniform(0.97, 1.03)), (L, f1 * d)]
+        v = shape(hoplite(L, pts, vowel, seed + i * 7, k=k, grit=grit, open_to=open_to), shape_pts)
+        if r.random() < 0.4:  # a doubled voice: the same man slightly sharp and a breath later
+            v2 = hoplite(L, [(t, f * 1.006) for t, f in pts], vowel, seed + i * 7 + 3, k=k, grit=grit, open_to=open_to)
+            v = mix(v, at(gain(shape(v2, shape_pts), -4), 0.012))
+        aspir = env(svf(noise(h + 0.03, 'pink', seed=seed + i), 1300, 0.8, 'bp'), a=0.004, r=0.03)
+        vs.append(at(gain(mix(gain(aspir, hdb), at(v, h * 0.5)), r.uniform(-5, 0)), lag))
+    return mix(*vs)
+
+
+def spearclang(seed, db=0.0, men=5, spread=0.028):
+    """many spear shafts slammed on bronze shields at once, with a stamp: each man a bronze plate/metal hit, a
+    wooden shaft knock and a bell-like ring; a boot stamp and a deep shared thump under them."""
+    r = random.Random(seed)
+    hits = []
+    for i in range(men):
+        t = abs(r.gauss(0, spread / 2)) if i else 0.0
+        rate = r.uniform(0.82, 1.05)
+        man = mix(K('imp/impactPlate_heavy_00%d' % ((seed + i) % 5), rate=rate),
+                  gain(K('imp/impactMetal_heavy_00%d' % ((seed + i + 2) % 5), rate=rate * 0.85), -5),
+                  gain(K('imp/impactWood_heavy_00%d' % ((seed + i) % 5), rate=r.uniform(1.1, 1.35)), -7),
+                  gain(bell(0.5, 540 * rate * r.uniform(0.97, 1.03), d=0.14), -14))
+        hits.append(at(gain(env(man, a=0.0005, d=0.22, r=0.05), r.uniform(-6, 0) - (2 if i else 0)), t))
+    stamp = mix(K('imp/impactPunch_heavy_00%d' % (seed % 5), rate=0.6, db=-4), K('imp/footstep_concrete_00%d' % (seed % 5), rate=0.8, db=-6),
+                gain(thump(0.35, 120, 42, 0.09), -1))
+    return gain(mix(*hits, stamp), db)
+
+
+where('sfx_hero_spartanchant', "King Leonidas's Hold the Line, raised or renewed: the phalanx's war chant, OOOOH... OOH! OOH!, "
+      'spears banged on bronze shields on the beats')
+
+BARK1, BARK2 = 1.06, 1.42
+
+
+@S('sfx_hero_spartanchant', HI, 2.2, syn='a synthesized crowd of Spartans chanting "OOOOH... OOH! OOH!" in a short room, '
+   'spears beating bronze shields with a stamp on each bark', fade=0.3)
+def _():
+    # the long rising HOOOOH: many voices swelling up from a low chest note, opening a little at the top, cut off together
+    long_ = phalanx(0.86, 92, 128, 138, 14, 0.07, 200, [(0, 0), (0.08, 0.3), (0.45, 0.55), (0.86, 1.0), (0.94, 0.85), (1, 0)], k=2.2,
+                    grit=0.3, h=0.07, hdb=-18, open_to=OH_CHANT)
+    under = gain(phalanx(0.86, 62, 84, 90, 4, 0.05, 260, [(0, 0), (0.3, 0.6), (0.9, 1.0), (1, 0)], k=2.0, grit=0.25, hdb=-30), -6)
+    # two short barked HOO! HOO!: higher, harder, a fast fall in pitch
+    bark = [(0, 0), (0.08, 1.0), (0.4, 0.75), (1, 0)]
+    b1 = phalanx(0.22, 150, 158, 118, 14, 0.025, 300, bark, vowel=BARK_OO, k=3.2, grit=0.45, h=0.035)
+    b2 = phalanx(0.24, 156, 164, 120, 14, 0.025, 400, bark, vowel=BARK_OO, k=3.2, grit=0.45, h=0.035)
+    ROOM = 'aecho=0.8:0.55:19|31|47|67|89:0.32|0.26|0.2|0.14|0.09'
+    rise = mix(long_, under)
+    rise = svf(mix(rise, gain(fx(rise, ROOM), -5)), 5200, 0.7)
+    barks = mix(at(b1, BARK1 - 0.02), at(b2, BARK2 - 0.02))
+    barks = svf(mix(barks, gain(fx(barks, ROOM), -5)), 6000, 0.7)
+    clangs = mix(at(spearclang(210, men=6), BARK1), at(spearclang(212, men=6), BARK2))
+    clangs = mix(clangs, gain(fx(clangs, 'aecho=0.8:0.4:23|41|73:0.25|0.18|0.1'), -6))
+    # only the barks and clangs are squashed, so the long note keeps its swell; each stem is levelled on its own so
+    # the barks land a couple of dB over the top of the rise
+    hits = fx(mix(barks, gain(clangs, 4)), COMP)
+    return mix(level(rise, -12.0), level(hits, -9.5))

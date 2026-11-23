@@ -754,6 +754,7 @@ const TRIM: Record<string, number> = {
   sfx_hero_spear: 1.09, // -12.8 dB → -12.1: King Leonidas's spear is hurled: a strong whoosh and a thunk
   sfx_hero_shieldblock: 1.13, // -11.6 dB → -10.5: a stomp clangs off a bronze shield in the shield wall
   sfx_hero_hotgates: 1.09, // -10.2 dB → -9.5: Leonidas, Hot Gates: a roaring Spartan war cry with shields beating
+  sfx_hero_spartanchant: 1.1, // -10.3 dB → -9.5: King Leonidas's Hold the Line, raised or renewed: the phalanx's war chant, OOOOH... OOH! OOH!, spears on bronze shields
   // ——— peel smacks (scripts/smack-sfx, generated into smackTrim.ts) ———
   ...SMACK_TRIM,
 };

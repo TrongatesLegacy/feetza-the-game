@@ -17,6 +17,13 @@ import { registerMoves, registerPassives, type HeroKit, type Passive } from '../
 const BRONZE = 0xc9873a;
 const SPEAR: ThrowFx = { e: 'throw', prop: 'spear', how: 'pierce', x: 3, at: { to: 'front', n: 1 } };
 
+/** The phalanx's war chant (OOOOH... OOH! OOH!, spears on shields), on every raise and renewal of the wall. It runs
+ *  about 2.1 s, so the throttle keeps a spammed raise or renewal from stacking copies; Hot Gates sings it a touch
+ *  deeper. */
+function chant(volume: number, rate = 1): void {
+  audio.sfx('sfx_hero_spartanchant', { volume, rate, jitter: 0.02, throttle: 1600 });
+}
+
 /** The live feet grouped by the pizza lane they're over, busiest first; the front foot of each lane. */
 function busiestLanes(k: HeroKit, n: number): Foot[] {
   const ps = k.host.pizzas().filter((p) => !p.dead);
@@ -59,7 +66,7 @@ const walls = new WeakMap<HeroKit, { renew: (sec: number, shove: boolean) => voi
  *  over a few seconds. */
 function reforge(k: HeroKit, shields: Phaser.GameObjects.Image[]): void {
   k.shout('HOLD FAST!', BRONZE, 92);
-  audio.sfx('sfx_hero_holdline', { volume: 0.7, rate: 1.15 });
+  chant(0.85, k.wv.lineShove ? 0.95 : 1);
   const mid = W / 2;
   const HEAT_MS = 3200;
   for (const s of shields) {
@@ -142,6 +149,7 @@ function reforge(k: HeroKit, shields: Phaser.GameObjects.Image[]): void {
 
 function shieldWall(k: HeroKit, sec: number, shove: boolean): void {
   const slam = () => {
+    audio.sfx('sfx_hero_shieldblock', { volume: 0.55, rate: 0.9, throttle: 300 }); // the wall lands under the chant's swell
     k.host.shake(260, 0.01);
     k.host.rumble(0.8, 260);
     if (!shove || !k.host.inWave()) return;
@@ -153,6 +161,7 @@ function shieldWall(k: HeroKit, sec: number, shove: boolean): void {
     k.sc.time.delayedCall(120, slam);
     return;
   }
+  chant(1, shove ? 0.95 : 1);
   const shields: Phaser.GameObjects.Image[] = [];
   let landed = false;
   for (let x = 90, i = 0; x < W; x += 130, i++) {
@@ -205,13 +214,10 @@ function shieldWall(k: HeroKit, sec: number, shove: boolean): void {
 
 registerMoves({
   holdTheLine: (k) => {
-    audio.sfx('sfx_hero_holdline', { volume: 1 });
     k.shout('HOLD THE LINE!', BRONZE, 110);
     shieldWall(k, 10, false);
   },
   holdHotGates: (k) => {
-    audio.sfx('sfx_hero_hotgates', { volume: 1 });
-    audio.sfx('sfx_hero_holdline', { volume: 0.8 });
     k.shout('THIS IS WHERE WE HOLD!', 0xff6a2a, 96);
     k.flashC(0xff6a2a, 220);
     shieldWall(k, 14, true);
