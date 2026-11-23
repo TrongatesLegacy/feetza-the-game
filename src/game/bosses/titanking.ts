@@ -65,6 +65,10 @@ const HEAD_HITS = [4, 6, 6, 8, 8];
 const BLADE_HITS = [4, 5, 5, 6, 6];
 const BLADE_WINDOW = [5, 4, 4, 3.6, 3.4];
 const SWING_EVERY = [11, 9, 8.5, 8, 7.5];
+/** Seconds to pierce his raised shield before he slams the table (Mild … Inferno): about three blades' worth. */
+const SHIELD_WINDOW = [40, 32, 30, 28, 26];
+/** A blade missed (it swung away untouched): the next one comes this soon. */
+const MISS_NEXT = 2.5;
 const HOPLITES = [2, 3, 3, 4, 4];
 
 /** The Regular-normalised heat scaling: heat()'s tables put Regular at ×1.2 on cooldowns and wind-ups, so the
@@ -279,7 +283,7 @@ type PartA = {
   heaveSide: number;
   failing: boolean;
 };
-type PartB = { part: 'B'; shield: boolean; downT: number; swingT: number; nextSide: number; hopT: number };
+type PartB = { part: 'B'; shield: boolean; downT: number; swingT: number; nextSide: number; hopT: number; win: number };
 type P3 = { part: 'enter' } | PartA | PartB;
 
 interface Pull {
@@ -337,6 +341,8 @@ const titanking = (): Brain => {
   let dome: { img: Img; sheen: Img; ring: Phaser.GameObjects.Graphics; up: boolean; destroy: () => void } | null = null;
   let crumble: { stop: (fade: boolean) => void } | null = null;
   let timerUi: { update: (left: number, total: number) => void; destroy: () => void } | null = null;
+  /** The shield's countdown (part B): pierce it before it runs out or he slams the table. */
+  let shieldUi: { update: (left: number, total: number) => void; destroy: () => void } | null = null;
   let blockQuipAt = 0;
   /** Laid the pull chains over his live sky chains (hidden while the fight draws them). */
   let hidSky = false;
@@ -377,7 +383,8 @@ const titanking = (): Brain => {
       y,
       scale: 0.72,
       hits: h.hits(4),
-      r: 120,
+      // (the whole timer ring, radius 140, counts)
+      r: 160,
       sec,
       badgeDy: -140,
       label: 'TIME SHATTERED!',
@@ -600,7 +607,8 @@ const titanking = (): Brain => {
       r: 0,
       // (over every other prop: the head is the one thing to hit while it's up)
       priority: 3,
-      contains: (x, y) => Math.abs(x - head.x) < (T.w * T.px) / 2 - 10 && y > head.y + 30 && y < head.y + T.mouthY * T.px + 150,
+      // anywhere on the head, or anywhere inside its timer ring (the ring is what reads as the target)
+      contains: (x, y) => (Math.abs(x - head.x) < (T.w * T.px) / 2 - 10 && y > head.y + 30 && y < head.y + T.mouthY * T.px + 150) || Math.hypot(x - head.x, y - (head.y + 250)) < 270,
       // it can be whacked from the moment it's up, not only once the chewing starts (it already looks like it's eating)
       alive: () => b.live && head.y < H - 40,
       hit: () => {
@@ -906,12 +914,12 @@ const titanking = (): Brain => {
   };
 
   /** The pull's countdown: a stone tablet under the boss bar, a draining bar and big seconds, red near the end. */
-  const pullTimer = (a: Arena) => {
+  const pullTimer = (a: Arena, title = 'BREAK THE CHAINS') => {
     const c = a.sc.add.container(W / 2, 300);
     const w = 420;
     const plate = a.sc.add.graphics();
     const bar = a.sc.add.graphics();
-    const label = a.sc.add.text(-w / 2 + 22, -2, 'BREAK THE CHAINS', { fontFamily: 'Lilita One, Fredoka, sans-serif', fontSize: '28px', color: '#ffe8c0', stroke: '#2a1810', strokeThickness: 6 }).setOrigin(0, 0.5);
+    const label = a.sc.add.text(-w / 2 + 22, -2, title, { fontFamily: 'Lilita One, Fredoka, sans-serif', fontSize: '28px', color: '#ffe8c0', stroke: '#2a1810', strokeThickness: 6 }).setOrigin(0, 0.5);
     const num = a.sc.add.text(w / 2 - 22, -2, '30', { fontFamily: 'Lilita One, Fredoka, sans-serif', fontSize: '54px', color: '#ffd27a', stroke: '#2a1810', strokeThickness: 8 }).setOrigin(1, 0.5);
     plate.fillStyle(0x1a1210, 0.9).fillRoundedRect(-w / 2, -38, w, 76, 18).lineStyle(4, 0xc9873a, 1).strokeRoundedRect(-w / 2, -38, w, 76, 18);
     c.add([plate, bar, label, num]);
@@ -1172,7 +1180,7 @@ const titanking = (): Brain => {
     timerUi?.destroy();
     timerUi = null;
     crumble?.stop(true);
-    p3 = { part: 'B', shield: false, downT: 0, swingT: 4, nextSide: Math.random() < 0.5 ? -1 : 1, hopT: 2.5 };
+    p3 = { part: 'B', shield: false, downT: 0, swingT: 4, nextSide: Math.random() < 0.5 ? -1 : 1, hopT: 2.5, win: 0 };
     // the screen moment: he shakes, roars, the whole pit shakes with him
     a.dramatic(0.8);
     a.sfx('sfx_titanking_unchained');
@@ -1200,6 +1208,13 @@ const titanking = (): Brain => {
   const raiseShield = (f: Foot, a: Arena) => {
     if (p3?.part !== 'B') return;
     p3.shield = true;
+    p3.win = SHIELD_WINDOW[heat(a).rank];
+    shieldUi?.destroy();
+    shieldUi = pullTimer(a, 'PIERCE THE SHIELD');
+    bin.add(() => {
+      shieldUi?.destroy();
+      shieldUi = null;
+    });
     f.shielded = true;
     f.brain.wasShielded = true;
     a.sfx('sfx_titanking_shieldup');
@@ -1352,6 +1367,8 @@ const titanking = (): Brain => {
         a.sc.time.delayedCall(win * 1000, () => {
           if (phase !== 'hold') return;
           a.quip(mid()[0], mid()[1] - 100, 'TOO SLOW!', '#ffb0a0', 34);
+          // missed: another comes round soon, so a miss doesn't cost the whole window
+          if (p3?.part === 'B') p3.swingT = Math.min(p3.swingT, MISS_NEXT);
           out();
         });
       },
@@ -1386,8 +1403,9 @@ const titanking = (): Brain => {
       get y() {
         return mid()[1];
       },
-      r: 115,
-      priority: 2,
+      // the whole timer ring and a margin round it (a swinging target: the ring is what you aim at)
+      r: 150,
+      priority: 3,
       alive: () => phase === 'hold',
       hit: () => {
         if (phase !== 'hold') return;
@@ -1560,6 +1578,8 @@ const titanking = (): Brain => {
     },
     onDeath(f, a) {
       a.pauseSpawns(false);
+      shieldUi?.destroy();
+      shieldUi = null;
       crumble?.stop(true);
       // his broken chains drop away with him
       for (const p of pulls) {
@@ -1614,6 +1634,23 @@ const titanking = (): Brain => {
     }
   }
 
+  /** The shield window ran out: he brings both fists down on the table. A slice off every pizza (never the last on
+   * Mild), a big shake, and a fresh window. */
+  function titanSlam(f: Foot, a: Arena): void {
+    const h = heat(a);
+    bigQuip(a, f, 'KNEEL!', '#ff8a6a');
+    a.sfx('sfx_titanking_roar');
+    a.shake(600, 0.02);
+    a.rumble(1, 400);
+    a.flash(260, 255, 150, 90);
+    quake(a, 4, 10);
+    for (const p of a.alivePizzas()) {
+      a.fx.explosion(p.x, p.surfaceY, 90);
+      if (h.rank === 0) hitSoft(a, p, 1, 'SLAMMED!', '#ff8a6a');
+      else a.hitPizza(p, 1, 'SLAMMED!', '#ff8a6a');
+    }
+  }
+
   function updateShield(f: Foot, dt: number, a: Arena, s: PartB): void {
     const h = heat(a);
     if (!s.shield && s.downT > 0) {
@@ -1629,6 +1666,19 @@ const titanking = (): Brain => {
       s.hopT = cool(a, 4);
       const n = a.allFeet().filter((o) => o.alive && o.type.id === 'hoplite').length;
       if (!bite && n < HOPLITES[h.rank]) a.spawn('hoplite', rnd(a.alivePizzas().filter((q) => q !== bite?.p)) ?? null);
+    }
+    // the shield's window: it counts down while it's up (held while his head is up, the one thing to hit then);
+    // run out and he slams the table, then the window starts again
+    if (s.shield) {
+      if (!bite) s.win -= dt;
+      shieldUi?.update(Math.max(0, s.win), SHIELD_WINDOW[h.rank]);
+      if (s.win <= 0) {
+        s.win = SHIELD_WINDOW[h.rank];
+        titanSlam(f, a);
+      }
+    } else if (shieldUi) {
+      shieldUi.destroy();
+      shieldUi = null;
     }
     // a broken chain swings in, left and right in turn (not while his head is up, and not with his shield down)
     if (!swing && !bite && s.shield) {
