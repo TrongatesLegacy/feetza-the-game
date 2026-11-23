@@ -7,10 +7,12 @@
 // - TIME EATER: every 11 s (14 once he's devouring) the great hourglass flips. Smash it (4 smacks) in 6 s, or he eats
 //   the time: your peel slows for 4 s, every foot hurries ×1.35 and he heals 3% (not on Mild). Smashed, he's
 //   stunned 1.8 s and takes 4% of his health. It keeps coming in phase 2 and in his shield (phase 3, part B).
-// - DEVOUR (phase 2): every 13 s his colossal stone HEAD rises behind a pizza (he claims its lane), lifts it into its
-//   mouth and chews. Whack the head 6 times (Mild 4, Extra Hot and up 8) before it's done (6.5 s, heat-scaled) and it
-//   spits the pizza out: he's stunned 2 s and takes 5% of his health. Too slow and it swallows half the pizza's
-//   slices (never the last on Mild).
+// - DEVOUR (phase 2): every 13 s his one enormous stone Titan HEAD rises out of the lava pit behind a pizza (he claims
+//   its lane and holds himself over at the far side), opens its mouth at the table's back edge and inhales: the pizza
+//   slides back along the table into its mouth (./titanDevour.ts). Whack the head 6 times (Mild 4, Extra Hot and up 8)
+//   in the 6.5 s (heat-scaled) from its first breath to the gulp and it chokes: the pizza springs back, he's stunned
+//   2 s and takes 5% of his health (not through his forcefield). Too slow and it gulps half the pizza's slices (never
+//   the last on Mild) and spits the rest back.
 // - TITAN UNCHAINED (phase 3), part A, THE CHAIN PULL: the moment it starts no other feet come and those on the
 //   table flee. He plants himself in the middle of the table and hauls on two of his sky chains for 30 s (Mild 40,
 //   Hot 27, Extra Hot and up 24), no other moves, while Tartarus crumbles round him: the walls shake and crack, dust
@@ -33,6 +35,7 @@ import { warmLive } from '../liveKit';
 import Phaser from 'phaser';
 import { H, W } from '../../config';
 import { TF, titanFightArt } from '../../content/art/titanFight';
+import { buildHeadTextures } from '../../content/art/titanHead';
 import { LINK_LEN, SKY_LINK_K, TITAN_SKY_RING } from '../../content/style/acts-f-3';
 import { crand } from '../../systems/cosmeticRandom';
 import type { Arena } from '../arena';
@@ -41,6 +44,7 @@ import type { Foot } from '../Foot';
 import type { Pizza } from '../Pizza';
 import { skyChainsOf } from '../skyChains';
 import { type Brain, type Prop, Every, heat, hitProp, rnd } from './kit';
+import { HEAD_HALF, HEAD_X, startDevour, type Devour } from './titanDevour';
 import { Bin, SAFE_TOP, enterArena, entrance, hitSoft, leaveArena, once, shatter, timerRing } from './nzkit';
 
 type Pt = [number, number];
@@ -57,6 +61,13 @@ const WEAK_X = (s: number) => W / 2 + s * (W / 2 - 420);
 /** The broken chains swing from here (above the screen) and hang with their blades beside him. */
 const SWING_ANCHOR = (s: number): Pt => [W / 2 + s * 630, -420];
 const SWING_LEN = 1000;
+/** His forcefield's radius and how far above his middle it's centred: sized to his foot (255 and 60 at scale 1.5). */
+const domeR = (f: Foot) => 255 * (f.type.scale / 1.5);
+const domeDy = (f: Foot) => 60 * (f.type.scale / 1.5);
+/** Where he holds himself (phase 2) while his head is up: over at the far side of the table. */
+const HELD_X = 430;
+/** …and how low (his hover point: his sole sits just above the table's back edge). */
+const HELD_Y = 690;
 
 // ——— per-heat numbers (index: Mild, Regular, Hot, Extra Hot, Inferno) ———
 const PULL_SEC = [40, 30, 27, 24, 24];
@@ -310,14 +321,10 @@ interface Pull {
 }
 
 interface Head {
+  dev: Devour;
   p: Pizza;
-  head: Img;
-  jaw: Img;
-  /** World y of the upper teeth when risen, and how far the jaw hangs open now (px). */
-  mouthY: number;
-  open: number;
-  live: boolean;
-  end: (freed: boolean) => void;
+  /** Break it off (the head sinks, the pizza goes back). */
+  end: () => void;
 }
 
 const titanking = (): Brain => {
@@ -439,13 +446,13 @@ const titanking = (): Brain => {
     glass = { prop, x, end: forget };
   };
 
-  // ——— DEVOUR: his head rises behind a pizza and eats it ———
+  // ——— DEVOUR: his Titan head rises out of the lava behind a pizza and inhales it (./titanDevour.ts) ———
   const startBite = (f: Foot, a: Arena) => {
     const h = heat(a);
-    ensureArt(a);
     const ps = a.alivePizzas();
     // not under the hourglass; in his shield, not in the middle (he sits there)
-    let pool = ps.filter((q) => !glass || Math.abs(q.x - glass.x) > 460);
+    // (the head is ~1200 px wide: keep it clear of an hourglass that's already up)
+    let pool = ps.filter((q) => !glass || Math.abs(HEAD_X(q.x) - glass.x) > HEAD_HALF + 120);
     if (p3) pool = pool.filter((q) => Math.abs(q.x - SEAT[0]) > 280);
     const p = rnd(pool.length ? pool : ps);
     if (!p) return;
@@ -458,193 +465,59 @@ const titanking = (): Brain => {
         a.fx.puff(o.x, o.cy, 6);
         o.die();
       }
-    // in phase 2 he holds back at the top of another lane while his head does the eating
+    // in phase 2 he holds back at the top of the far side while his head does the eating
     const held = !p3;
     const prevLane = f.laneX;
+    const prevHover = f.hoverY;
     if (held) {
       f.pinned = true;
-      f.laneX = Phaser.Math.Clamp(p.x > W / 2 ? p.x - 620 : p.x + 620, 260, W - 260);
+      f.laneX = p.x > W / 2 ? HELD_X : W - HELD_X;
+      // (held low enough that the whole of his big foot shows, shackle and all, under the HUD)
+      f.hoverY = HELD_Y;
     }
-    const T = TF.head;
-    const sc = T.px / TF.RES;
-    const jsc = TF.jaw.px / TF.RES;
-    const mouthY = 700;
-    const top = mouthY - T.mouthY * T.px;
-    // the head (behind the pizza) and its jaw (in front of it)
-    const head = a.sc.add.image(p.x, H + 60, 'tk_head').setOrigin(0.5, 0).setScale(sc);
-    a.underLayer.add(head);
-    const jaw = a.sc.add.image(p.x, H + 60 + T.mouthY * T.px, 'tk_jaw').setOrigin(0.5, TF.jaw.hingeY / TF.jaw.h).setScale(jsc);
-    // its upper teeth again, in front of the pizza, so they bite into it (a strip of the same texture)
-    const teeth = a.sc.add.image(p.x, H + 60, 'tk_head').setOrigin(0.5, 0).setScale(sc);
-    teeth.setCrop(0, (T.mouthY - 16) * TF.RES, T.w * TF.RES, 30 * TF.RES);
-    // (the fx layer isn't graded by the scene's light like the head is: warm the front pieces to match)
-    jaw.setTint(0xf0d8c0);
-    teeth.setTint(0xf0d8c0);
-    // the head above the mouth again, in front too: over anything a hero raises in front of the pizzas (King
-    // Leonidas's shield wall hid it, and the head is the thing to hit). Below the mouth, the pizza stays in front.
-    const crown = a.sc.add.image(p.x, H + 60, 'tk_head').setOrigin(0.5, 0).setScale(sc);
-    crown.setCrop(0, 0, T.w * TF.RES, (T.mouthY - 16) * TF.RES);
-    crown.setTint(0xf0d8c0);
-    a.fxLayer.addAt(jaw, 0);
-    a.fxLayer.addAt(teeth, 1);
-    a.fxLayer.addAt(crown, 2);
-    const b: Head = { p, head, jaw, mouthY, open: 0, live: true, end: () => {} };
-    bite = b;
-    const hits = HEAD_HITS[h.rank];
-    let left = hits;
-    let chew: Phaser.Time.TimerEvent | null = null;
-    let ring: (() => void) | null = null;
-    let badge: ReturnType<typeof counter> | null = null;
-    let timer: Phaser.Time.TimerEvent | null = null;
-    // the jaw hangs from the head, opened by `open` px
-    const placeJaw = () => {
-      jaw.setPosition(head.x, head.y + T.mouthY * T.px - 8 + b.open).setRotation(head.rotation);
-      teeth.setPosition(head.x, head.y).setRotation(head.rotation);
-      crown.setPosition(head.x, head.y).setRotation(head.rotation).setAlpha(head.alpha);
-      // keep the head's front pieces over a shield wall raised after it (a hero's props come later in the layer)
-      const fx = a.fxLayer;
-      let top = -1;
-      fx.list.forEach((o, i) => {
-        if (o instanceof Phaser.GameObjects.Image && o.texture.key === 'p_lx_shield') top = i;
-      });
-      if (crown.parentContainer === fx && top > fx.getIndex(crown)) for (const o of [jaw, teeth, crown]) fx.moveTo(o, top);
-    };
-    const follow = a.sc.time.addEvent({ delay: 16, loop: true, callback: placeJaw });
-    const liftBy = Math.max(0, p.surfaceY - (mouthY + 34));
-    // it erupts up behind the pizza: a rumble and grit first, then the head
-    a.sfx('sfx_titanking_rise');
-    a.quip(p.x, top + 40, 'DEVOUR!', '#ff8a6a', 54);
-    a.shake(300, 0.006);
-    quake(a, 0, 6);
-    for (let i = 0; i < 8; i++) a.fx.puff(p.x + pm() * 220, H - 40 - crand() * 80, 2);
-    a.sc.tweens.add({ targets: head, y: top, duration: 950, delay: 250, ease: 'Back.Out', easeParams: [1.1] });
-    const unlist = bin.add(() => b.end(false));
-    b.end = (freed: boolean) => {
-      if (!b.live) return;
-      b.live = false;
-      if (bite === b) bite = null;
-      unlist();
-      chew?.remove();
-      timer?.remove();
-      ring?.();
-      badge?.destroy();
-      if (claim) a.lockLane(p, false);
-      if (held && f.alive) {
-        f.pinned = false;
-        f.laneX = prevLane;
-      }
-      if (!p.dead) p.setLift(0, 380);
-      // it falls back the way it came (behind the pizza now): a recoil if beaten, a satisfied sink if not
-      a.sc.tweens.killTweensOf(head);
-      a.underLayer.add([teeth, jaw, crown]);
-      a.sc.tweens.add({ targets: b, open: freed ? 70 : 0, duration: freed ? 120 : 200 });
-      if (freed) a.sc.tweens.add({ targets: head, angle: (p.x < W / 2 ? -1 : 1) * 9, y: head.y - 26, duration: 180, ease: 'Quad.Out' });
-      a.sc.tweens.add({
-        targets: head,
-        y: H + 80,
-        angle: 0,
-        delay: freed ? 260 : 380,
-        duration: 900,
-        ease: 'Quad.In',
-        onStart: () => a.sfx('sfx_titanking_sink'),
-        onComplete: () => {
-          follow.remove();
-          head.destroy();
-          jaw.destroy();
-          teeth.destroy();
-          crown.destroy();
+    let unlist = () => {};
+    const b: Head = {
+      p,
+      end: () => b.dev.abort(),
+      dev: startDevour(a, {
+        p,
+        boss: f,
+        hits: HEAD_HITS[h.rank],
+        sec: wind(a, 6.5),
+        take: () => (h.rank === 0 ? Math.min(Math.ceil(p.slices / 2) + h.slices(0), p.slices - 1) : Math.ceil(p.slices / 2) + h.slices(0)),
+        onChoked: () => {
+          if (!f.alive) return;
+          f.stun(h.stun(2));
+          // (behind his forcefield he's only stunned: no damage gets through the dome)
+          if (domeUp()) a.quip(f.x, Math.max(SAFE_TOP + 40, f.cy - 140), 'THE SHIELD HOLDS!', '#9ad8ff', 34);
+          else hurt(f, a, 0.05);
+          bigQuip(a, f, 'HKKK… PTOO!');
         },
-      });
+        onGulp: (n) => hitSoft(a, p, n, 'DEVOURED!', '#ff8a6a'),
+        onDone: () => {
+          unlist();
+          if (bite === b) bite = null;
+          if (claim) a.lockLane(p, false);
+          if (held && f.alive) {
+            f.pinned = false;
+            f.laneX = prevLane;
+            f.hoverY = prevHover;
+          }
+        },
+        counter: (at, n) => counter(a, at, n),
+        debris: (x, y) => debris(a, x, y, 'shard', 4, { scale: 0.55, tints: [0x8e8a84, 0x5c5852], layer: a.fxLayer }),
+        quake: (px, kick) => quake(a, px, kick),
+      }),
     };
-    // risen: the jaw drops open, the pizza comes up into its mouth and the jaw slams shut on it
-    a.sc.time.delayedCall(1150, () => {
-      if (!b.live) return;
-      if (!f.alive || p.dead || !a.inWave()) return b.end(false);
-      a.sc.tweens.add({ targets: b, open: 84, duration: 260, ease: 'Quad.Out' });
-      p.setLift(liftBy, 420);
-      a.sc.time.delayedCall(420, () => {
-        if (!b.live) return;
-        a.sc.tweens.add({ targets: b, open: 42, duration: 110, ease: 'Quad.In' });
-        a.sc.time.delayedCall(110, () => {
-          if (!b.live) return;
-          a.sfx('sfx_titanking_chomp');
-          a.shake(260, 0.01);
-          a.fx.splat(p.x, mouthY + 30, true);
-          const sec = wind(a, 6.5);
-          const t0 = a.now();
-          ring = timerRing(a, () => (b.live ? { x: head.x, y: head.y + 250 } : null), 250, 0xff8a6a, () => 1 - (a.now() - t0) / sec);
-          badge = counter(a, () => (b.live ? [head.x + (T.w * T.px) / 2 - 10, head.y + 150] : null), left);
-          timer = a.sc.time.delayedCall(sec * 1000, () => {
-            if (!b.live) return;
-            b.end(false);
-            if (!a.inWave() || p.dead) return;
-            a.sfx('sfx_titanking_gulp');
-            hitSoft(a, p, Math.ceil(p.slices / 2) + h.slices(0), 'DEVOURED!', '#ff8a6a');
-            a.shake(360, 0.012);
-          });
-          // he chews: the jaw grinds, the head bobs, crumbs and bits fly
-          let n = 0;
-          chew = a.sc.time.addEvent({
-            delay: 560,
-            loop: true,
-            callback: () => {
-              if (!b.live) return;
-              n++;
-              a.sfx('sfx_titanking_headchew', { throttle: 200 });
-              a.sc.tweens.add({ targets: b, open: { from: 42, to: 72 }, duration: 150, yoyo: true, ease: 'Sine.InOut' });
-              a.sc.tweens.add({ targets: head, y: top + 7, duration: 150, yoyo: true, ease: 'Sine.InOut' });
-              a.fx.splat(p.x + pm() * 90, mouthY + 40, false);
-              if (n % 3 === 0) a.fx.slice(`slice_${p.type.id}`, p.x + pm() * 60, mouthY + 20, p.s * 0.7);
-            },
-          });
-        });
-      });
-    });
-    // whack the head: anywhere on it, or its jaw
-    a.addClickable({
-      get x() {
-        return head.x;
-      },
-      get y() {
-        return head.y + 220;
-      },
-      r: 0,
-      // (over every other prop: the head is the one thing to hit while it's up)
-      priority: 3,
-      label: 'kronos head',
-      // anywhere on the head, or anywhere inside its timer ring (the ring is what reads as the target)
-      contains: (x, y) => (Math.abs(x - head.x) < (T.w * T.px) / 2 - 10 && y > head.y + 30 && y < head.y + T.mouthY * T.px + 150) || Math.hypot(x - head.x, y - (head.y + 250)) < 270,
-      // it can be whacked from the moment it's up, not only once the chewing starts (it already looks like it's eating)
-      alive: () => b.live && head.y < H - 40,
-      hit: () => {
-        if (!b.live) return;
-        left--;
-        badge?.set(left);
-        a.fx.impact(head.x + pm() * 60, head.y + 200 + pm() * 60, left <= 0);
-        debris(a, head.x + pm() * 80, head.y + 160, 'shard', 4, { scale: 0.55, tints: [0x8e8a84, 0x5c5852], layer: a.fxLayer });
-        // it reels from each blow, the jaw clacking
-        const dir = crand() < 0.5 ? -1 : 1;
-        a.sc.tweens.add({ targets: head, angle: { from: dir * 4, to: 0 }, duration: 220, ease: 'Quad.Out' });
-        a.sc.tweens.add({ targets: b, open: { from: 60, to: 42 }, duration: 160 });
-        if (left > 0) return void a.sfx('sfx_titanking_jawhit', { throttle: 60 });
-        a.sfx('sfx_titanking_freed');
-        a.quip(head.x, head.y + 60, 'SPAT OUT!', '#7dff9a', 48);
-        a.fx.party(p.x, mouthY + 20, 16);
-        b.end(true);
-        if (!f.alive) return;
-        f.stun(heat(a).stun(2));
-        if (domeUp()) a.quip(f.x, Math.max(SAFE_TOP + 40, f.cy - 140), 'THE SHIELD HOLDS!', '#9ad8ff', 34);
-        else hurt(f, a, 0.05);
-        bigQuip(a, f, 'PTOO!');
-      },
-    });
+    bite = b;
+    unlist = bin.add(() => b.end());
   };
 
   // ——— TITAN UNCHAINED, part A: the chain pull ———
   const enterP3 = (f: Foot, a: Arena) => {
     p3 = { part: 'enter' };
     ensureArt(a);
-    bite?.end(false);
+    bite?.end();
     glass?.end();
     f.target = null;
     f.pinned = false;
@@ -1225,7 +1098,8 @@ const titanking = (): Brain => {
     f.shielded = true;
     f.brain.wasShielded = true;
     a.sfx('sfx_titanking_shieldup');
-    const R = 255;
+    const R = domeR(f);
+    const DY = domeDy(f);
     if (!dome) {
       const DS = (R / 140) / 1.8;
       const img = a.sc.add.image(f.x, f.cy, 'tk_dome').setBlendMode(Phaser.BlendModes.ADD).setScale(DS * 0.4).setAlpha(0);
@@ -1240,14 +1114,14 @@ const titanking = (): Brain => {
         loop: true,
         callback: () => {
           t += 0.016;
-          img.setPosition(f.x, f.cy - 60);
-          sheen.setPosition(f.x, f.cy - 60).setAngle(30 + t * 14);
+          img.setPosition(f.x, f.cy - DY);
+          sheen.setPosition(f.x, f.cy - DY).setAngle(30 + t * 14);
           ring.clear();
           if (!dome?.up) return;
           // a band of light sweeping up the shell
           const yy = ((t * 0.5) % 1) * 2 - 1;
           const half = Math.sqrt(Math.max(0, 1 - yy * yy)) * R;
-          ring.lineStyle(4, 0xffe8b0, 0.3 * (1 - Math.abs(yy))).lineBetween(f.x - half, f.cy - 60 - yy * R, f.x + half, f.cy - 60 - yy * R);
+          ring.lineStyle(4, 0xffe8b0, 0.3 * (1 - Math.abs(yy))).lineBetween(f.x - half, f.cy - DY - yy * R, f.x + half, f.cy - DY - yy * R);
         },
       });
       dome = {
@@ -1290,8 +1164,8 @@ const titanking = (): Brain => {
     // it shatters out from where the blade went in
     for (let i = 0; i < 22; i++) {
       const ang = (i / 22) * TAU;
-      const x = f.x + Math.cos(ang) * 255;
-      const y = f.cy - 60 + Math.sin(ang) * 255;
+      const x = f.x + Math.cos(ang) * domeR(f);
+      const y = f.cy - domeDy(f) + Math.sin(ang) * domeR(f);
       const sh = a.sc.add.image(x, y, 'tk_domeshard').setBlendMode(Phaser.BlendModes.ADD).setScale(0.8 + crand() * 0.8).setAngle(crand() * 360);
       a.fxLayer.add(sh);
       a.sc.tweens.add({ targets: sh, x: x + Math.cos(ang) * (120 + crand() * 160) + (x - at[0]) * 0.2, y: y + Math.sin(ang) * 120 + 260, angle: sh.angle + pm() * 300, alpha: 0, duration: 900 + crand() * 400, ease: 'Quad.Out', onComplete: () => sh.destroy() });
@@ -1493,7 +1367,7 @@ const titanking = (): Brain => {
     names: ['TIME EATER', 'DEVOUR', 'TITAN UNCHAINED'],
     info: [
       'The great hourglass flips: if its sand runs out he eats the time, slowing your peel and hurrying every foot · Smash the hourglass',
-      'His giant stone head rises behind a pizza and chews on it · Whack the head again and again to make him spit it out',
+      'His giant Titan head rises out of the lava and inhales a pizza · Whack the head before it inhales the pizza!',
       PULL_INFO,
     ],
     cards: [
@@ -1504,10 +1378,10 @@ const titanking = (): Brain => {
         show: [{ key: 'p_nz_hourglass', label: 'Hourglass', hits: (h) => h.hits(4) }],
       },
       {
-        what: 'His giant stone head rises and starts chewing a pizza',
-        hit: 'Whack the head until he spits the pizza out',
-        miss: 'He swallows half of that pizza’s slices',
-        show: [{ key: 'tk_head', label: 'Stone head', hits: (h) => HEAD_HITS[h.rank] }],
+        what: 'His giant Titan head rises out of the lava and inhales a pizza',
+        hit: 'Whack the head until it chokes and lets the pizza go',
+        miss: 'He gulps half of that pizza’s slices',
+        show: [{ key: 'tk_bighead', label: 'Titan head', hits: (h) => HEAD_HITS[h.rank] }],
       },
       {
         what: 'He hauls on two chains and Tartarus crumbles',
@@ -1542,7 +1416,7 @@ const titanking = (): Brain => {
         });
       });
       // the fight's art, a texture a frame (it's big)
-      if (!artReady) artReady = ensureArt(a, true);
+      if (!artReady) artReady = buildHeadTextures() && ensureArt(a, true);
       // his own fight: the wave's feet never come, only his Skeleton Hoplites (and none while his head is up)
       if (!spawnsHeld) {
         spawnsHeld = true;
@@ -1555,7 +1429,7 @@ const titanking = (): Brain => {
         if (hopT <= 0) {
           hopT = cool(a, 4);
           const n = a.allFeet().filter((o) => o.alive && o.type.id === 'hoplite').length;
-          if (!bite && n < HOPLITES[heat(a).rank]) a.spawn('hoplite', rnd(a.alivePizzas().filter((q) => q !== bite?.p)) ?? null);
+          if (!bite?.dev.pulling && n < HOPLITES[heat(a).rank]) a.spawn('hoplite', rnd(a.alivePizzas().filter((q) => q !== bite?.p)) ?? null);
         }
       }
       if (wantP3 && landed && !p3) enterP3(f, a);
@@ -1569,7 +1443,7 @@ const titanking = (): Brain => {
     },
     onPhase(f, ph, a) {
       // a new phase drops what he's holding (the transform beat would let go of him anyway)
-      bite?.end(false);
+      bite?.end();
       a.sfx('sfx_titanking_roar');
       if (ph === 2) devourT.t = 4;
       if (ph >= 3 && !wantP3) {
@@ -1583,13 +1457,18 @@ const titanking = (): Brain => {
       const h = heat(a);
       // the chain pull is all he does
       if (p3 && p3.part !== 'B') return;
-      if (bite) return;
+      // (only while it's pulling: the head sinking away doesn't hold up his other moves)
+      if (bite?.dev.pulling) return;
       hourT.every = h.cooldown(f.phase >= 2 ? 14 : 11);
-      if (!glass && hourT.tick(dt)) flipGlass(f, a);
+      if (!glass && hourT.tick(dt)) {
+        // (not over his head as it sinks away: it flips the moment the head is gone)
+        if (bite) hourT.t = 0.5;
+        else flipGlass(f, a);
+      }
       if (f.phase >= 2) {
         devourT.every = h.cooldown(13);
         // (not while a broken chain hangs beside him: one thing to whack at a time there)
-        if (!swing && devourT.tick(dt)) startBite(f, a);
+        if (!swing && !bite && devourT.tick(dt)) startBite(f, a);
       }
       quipT -= dt;
       if (quipT <= 0) {
@@ -1613,7 +1492,7 @@ const titanking = (): Brain => {
         }
         return true;
       }
-      if (bite && t - blockQuipAt > 1.4) {
+      if (bite?.dev.pulling && t - blockQuipAt > 1.4) {
         blockQuipAt = t;
         a.quip(f.x, Math.max(SAFE_TOP + 40, f.cy - 150), 'HIT THE HEAD!', '#ffd27a', 32);
       }
@@ -1708,12 +1587,12 @@ const titanking = (): Brain => {
     if (s.hopT <= 0) {
       s.hopT = cool(a, 4);
       const n = a.allFeet().filter((o) => o.alive && o.type.id === 'hoplite').length;
-      if (!bite && n < HOPLITES[h.rank]) a.spawn('hoplite', rnd(a.alivePizzas().filter((q) => q !== bite?.p)) ?? null);
+      if (!bite?.dev.pulling && n < HOPLITES[h.rank]) a.spawn('hoplite', rnd(a.alivePizzas().filter((q) => q !== bite?.p)) ?? null);
     }
     // the shield's window: it counts down while it's up (held while his head is up, the one thing to hit then);
     // run out and he slams the table, then the window starts again
     if (s.shield) {
-      if (!bite) s.win -= dt;
+      if (!bite?.dev.pulling) s.win -= dt;
       shieldUi?.update(Math.max(0, s.win), SHIELD_WINDOW[h.rank]);
       if (s.win <= 0) {
         s.win = SHIELD_WINDOW[h.rank];
