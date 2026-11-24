@@ -488,8 +488,11 @@ registerLegacyLive('bifrost', (ctx: LiveCtx): LiveScene => {
 });
 
 // ——— Lyngvi Isle (Fenrir's Paw) ———
+// (redrawn with the location kit in src/content/art/scene-fenrir.ts, whose own live layer runs the aurora, the mist
+// and the glitter on the lake and the fetter on the binding stone; this old layer stays for the before/after page,
+// ?dev&stages)
 
-registerLive('fenrir', (ctx: LiveCtx): LiveScene => {
+registerLegacyLive('fenrir', (ctx: LiveCtx): LiveScene => {
   const k = new Kit(ctx.sc, ctx.layer);
   streakTex(k.sc);
   const halo = k.img('glow', 1380, 190, { tint: 0xcfe0ff, add: true, alpha: 0.25, sx: 2.6 });
