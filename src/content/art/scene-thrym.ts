@@ -2122,27 +2122,28 @@ function table(ctx: Ctx, r: R): void {
         ctx.fill();
       }
     }
-    // a plank end: a butt joint running to the hall's vanishing point, an iron strap with nails across it
+    // the boards' ends at the table's two outer edges: a butt joint running to the hall's vanishing point, an iron
+    // strap with nails across it (Tron: straps scattered over the middle of the boards read as floating plates)
     const za = lerp(zb, zf, i / nPl);
     const zc = lerp(zb, zf, (i + 1) / nPl);
-    // (somewhere on screen, by the boards' ends, clear of the middle)
-    const xm = rr() < 0.5 ? 120 + rr() * 420 : 1380 + rr() * 420;
-    const X = ((xm - 960) * (za + zc)) / 2 / F;
-    const xa = 960 + (X * F) / za;
-    const xb = 960 + (X * F) / zc;
-    ctx.strokeStyle = rgba('#030202', 0.7);
-    ctx.lineWidth = 1.8;
-    ctx.beginPath();
-    ctx.moveTo(xa, y0);
-    ctx.lineTo(xb, y1);
-    ctx.stroke();
-    ctx.strokeStyle = rgba('#8a7468', 0.14);
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(xa + 2, y0 + 1);
-    ctx.lineTo(xb + 2, y1);
-    ctx.stroke();
-    ironStrap(ctx, (xa + xb) / 2, (y0 + y1) / 2, 26 + ph * 0.5, ph * 0.38);
+    for (const xm of [70 + rr() * 50, 1850 - rr() * 50]) {
+      const X = ((xm - 960) * (za + zc)) / 2 / F;
+      const xa = 960 + (X * F) / za;
+      const xb = 960 + (X * F) / zc;
+      ctx.strokeStyle = rgba('#030202', 0.85);
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(xa, y0);
+      ctx.lineTo(xb, y1);
+      ctx.stroke();
+      ctx.strokeStyle = rgba('#8a7468', 0.22);
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(xa + 2.5, y0 + 1);
+      ctx.lineTo(xb + 2.5, y1);
+      ctx.stroke();
+      ironStrap(ctx, (xa + xb) / 2, (y0 + y1) / 2, 30 + ph * 0.5, ph * 0.5);
+    }
   }
   // the grain's long figure across the boards
   lay(ctx, drift('#3e2c22', '#120a08', 8, 107, 220, 40), box, 0.22);
