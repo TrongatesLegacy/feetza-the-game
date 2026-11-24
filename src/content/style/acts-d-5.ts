@@ -300,8 +300,8 @@ function paintRavenToe(g: Ctx, t: RToe, skin: string, r: () => number): void {
 
 /** A stolen pepperoni skewered on a talon. */
 function paintPepperoni(g: Ctx, x: number, y: number, r: number, rot: number): void {
-  const pp = ell(x, y, r, r * 0.63, rot);
-  piece(g, pp, { x: x - r, y: y - r, w: r * 2, h: r * 2 }, 'sauce', '#b8281c', { shadow: 0.6, size: 5, texA: 0.2 });
+  const pp = ell(x, y, r, r * 0.52, rot);
+  piece(g, pp, { x: x - r, y: y - r, w: r * 2, h: r * 2 }, 'sauce', '#c8402a', { shadow: 0.6, size: 5, texA: 0.2 });
   within(g, pp, () => {
     const rr = rng(hashStr('pep'));
     for (let i = 0; i < 9; i++) {
@@ -313,7 +313,7 @@ function paintPepperoni(g: Ctx, x: number, y: number, r: number, rot: number): v
       g.fill();
     }
     // the rim curls up a little and catches the light
-    softStroke(g, (c) => c.ellipse(x, y, r - 1.5, r * 0.63 - 1.5, rot, Math.PI * 0.9, Math.PI * 1.7), rgba('#ff9a7a', 0.6), 1.6, 0.8);
+    softStroke(g, (c) => c.ellipse(x, y, r - 1.5, r * 0.52 - 1.5, rot, Math.PI * 0.9, Math.PI * 1.7), rgba('#ff9a7a', 0.6), 1.6, 0.8);
     spec(g, x - r * 0.35, y - r * 0.35, r * 0.3, r * 0.18, 0.85, -0.6);
   });
 }
@@ -328,10 +328,10 @@ function drawRaven(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
   const toes = ravenToes(p);
   const talons = toes.map((t, i) => ravenTalon(t, i, curl));
   const pep = talons[2];
-  const pepAt: P2 = [pep.x + Math.cos(pep.ang) * pep.len * 0.48, pep.y + Math.sin(pep.ang) * pep.len * 0.48];
+  const pepAt: P2 = [pep.x + Math.cos(pep.ang) * pep.len * 0.34, pep.y + Math.sin(pep.ang) * pep.len * 0.34];
   const hem = RAVEN_HEM.map(([x, y, a, l, w]) => featherPath(x, y, a, l, w));
   const box = { x: CX - 140, y: -10, w: 280, h: 290 };
-  const parts = [ravenShank, ...toes.map(ravenToePath), ...talons.map((k) => clawPath(k.x, k.y, k.ang, k.len, k.w, k.hook)), ell(pepAt[0], pepAt[1], 19, 12, 0.5), ravenTrousers, ...hem];
+  const parts = [ravenShank, ...toes.map(ravenToePath), ...talons.map((k) => clawPath(k.x, k.y, k.ang, k.len, k.w, k.hook)), ell(pepAt[0], pepAt[1], 23, 12, 0.5), ravenTrousers, ...hem];
   const sil = new Sil(ctx, parts, box);
   const g = sil.g;
   const r = rng(hashStr('raven'));
@@ -347,11 +347,11 @@ function drawRaven(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
     spec(g, k.x + Math.cos(k.ang) * k.len * 0.3 - 2, k.y + Math.sin(k.ang) * k.len * 0.3, 2.2, 6, 0.6, k.ang - Math.PI / 2);
     if (i === 2) {
       // skewered: the slice over the talon, the talon's point coming out through it
-      paintPepperoni(g, pepAt[0], pepAt[1], 19, 0.5);
+      paintPepperoni(g, pepAt[0], pepAt[1], 23, 0.5);
       g.save();
       g.beginPath();
       g.rect(box.x, box.y, box.w, box.h);
-      g.ellipse(pepAt[0], pepAt[1], 19, 12, 0.5, 0, Math.PI * 2);
+      g.ellipse(pepAt[0], pepAt[1], 23, 12, 0.5, 0, Math.PI * 2);
       g.clip('evenodd');
       g.beginPath();
       g.arc(pepAt[0], pepAt[1], 60, k.ang - 1.2, k.ang + 1.2);
@@ -435,7 +435,7 @@ registerStyle('raven', {
 // ════════════════════════ Skald Slippers ════════════════════════
 // A saga-singer's soft slipper of felted wool, dyed woad blue: a turned-down cuff of fox fur at the top, a tablet-woven
 // band in madder red and gold round its throat, a knot of gold-thread embroidery on the vamp, a whip-stitched seam
-// down the toe and a bone toggle on its strap. His lyre hangs at his side on a braided cord: a round-shouldered
+// down the toe. His lyre hangs at his side on a braided cord: a round-shouldered
 // Germanic lyre of maple, six gut strings, gilt bird-head mounts. In play the lyre swings, and gold runes drift off
 // its strings as he sings.
 
@@ -660,7 +660,7 @@ function drawSkald(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
     blotches(g, box, '#0a1430', 0.3, 14, 0.55, 0.25, 501);
     blotches(g, box, '#8ab0e0', 0.12, 8, 0.66, 0.15, 503);
     // soft folds in the felt over the instep: broad shadows, no hard lines
-    for (const [y, w, a] of [[110, 70, 0.3], [130, 82, 0.26]] as const) {
+    for (const [y, w, a] of [[100, 66, 0.3], [198, 80, 0.24]] as const) {
       softStroke(g, (c) => {
         c.moveTo(CX - w, y + 8);
         c.quadraticCurveTo(CX - w * 0.35, y - 2, CX - 14, y + 4);
@@ -674,12 +674,12 @@ function drawSkald(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
     }
     // the seam down the toe, whip-stitched with red wool
     crease(g, (c) => {
-      c.moveTo(CX + 2, 150);
+      c.moveTo(CX + 2, 182);
       c.bezierCurveTo(CX + 3, 190, CX + 2, 222, CX, 248 - flex * 6);
     }, 2.6, '#0a1430', 0.6, 0.3);
     g.save();
     g.lineCap = 'round';
-    for (let y = 154; y < 244 - flex * 6; y += 7) {
+    for (let y = 186; y < 244 - flex * 6; y += 7) {
       g.strokeStyle = rgba('#3a0806', 0.5);
       g.lineWidth = 2;
       g.beginPath();
@@ -695,7 +695,7 @@ function drawSkald(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
     }
     g.restore();
     // the gold knot on the vamp
-    embroidery(g, CX - 2, 182 - flex * 3, 0.82, gold, red);
+    embroidery(g, CX - 2, 146, 0.82, gold, red);
     // the felt's light: soft, broad
     spec(g, CX - 54, 160, 22, 50, 0.16, 0.1, '#e8f0ff');
     spec(g, CX - 34, 228 - flex * 5, 26, 9, 0.18, -0.1, '#e8f0ff');
@@ -746,12 +746,6 @@ function drawSkald(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
       g.fillStyle = vgrad(g, 56, 90, [[0, rgba(LIGHT.key, 0.2)], [0.5, rgba('#000000', 0)], [1, rgba('#1a0404', 0.35)]]);
       g.fillRect(CX - 104, 52, 208, 40);
     });
-    // the strap's bone toggle on the lit side, its thong looped round it
-    const tx = CX - 74;
-    const ty = bandY(tx) + 18;
-    softStroke(g, (c) => { c.moveTo(tx + 8, bandY(tx + 8) + 6); c.quadraticCurveTo(tx + 4, ty - 2, tx, ty); }, rgba('#3a2010', 0.9), 3.2, 0.6);
-    const tog = rrect(tx - 9, ty - 3.5, 18, 7, 3.5);
-    piece(g, tog, { x: tx - 9, y: ty - 4, w: 18, h: 8 }, DMAT.bone, '#efe6cf', { shadow: 0.7, size: 3 });
   });
   // the fox-fur cuff: rust-orange, darker at its roots, cream at the tips of its hem
   piece(g, skaldCuff, box, 'fur', fox, { shadow: 0.7, size: 16 });

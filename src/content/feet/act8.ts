@@ -1,6 +1,6 @@
 // Act 8 · Norse (waves 71–80): Jotunheim Ice Fields and Bifröst Bridge. Eleven regular feet and the
 // act's four bosses. Art kinds are drawn in src/content/art/act8.ts; the feet's own behaviour (chill,
-// stone in sunlight, rising again, flying in pairs) lives in src/game/feet/act8.ts and the fights in
+// stone in sunlight, rising again, flying in pairs) lives in src/game/acts/act8.ts and the fights in
 // src/game/bosses/act8.ts.
 
 import type { FootType } from '../../data/feet';
@@ -100,7 +100,7 @@ export const feet: FootType[] = [
     id: 'raven',
     name: 'Raven Talons',
     desc: "The All-Father's ravens, sent out to watch the world and coming home with toppings. They swoop in fast, shake off a knock in a beat of the wings, and swipe your tips when they land.",
-    hp: 30, speed: 1.45, armor: 0, stompDmg: 1, coins: 14, score: 420, scale: 0.95, minWave: 72, weight: 6,
+    hp: 30, speed: 1.45, armor: 0, stompDmg: 1, coins: 14, score: 420, scale: 0.95, minWave: 72, weight: 5,
     traits: ['flutter', 'thief'],
     home: 'bifrost',
     howTo: 'Smack it before it lands to keep your tips, and again straight away: a knock barely slows it',

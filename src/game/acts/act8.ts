@@ -381,7 +381,8 @@ const skald: FootFx = {
     f.brain.songT = 0;
   },
   tick: (a, f, dt) => {
-    if (!a.inWave()) return;
+    // (no song while he's disarmed: his cheer is off then, Foot.has)
+    if (!a.inWave() || !f.has('cheer')) return;
     f.brain.songT = Number(f.brain.songT ?? 0) + dt;
     if (Number(f.brain.songT) < SONG_EVERY) return;
     // a verse only when there's someone near him to hear it

@@ -739,8 +739,8 @@ export const ABILITIES: Record<string, Ability> = {
   'foot:berserker': ab('Berserkergang', stomp, [D(3, hit(200), 700), ST(0.8, hit(200))], RED, 'fire'),
   // a shield for your weakest pizza and a shove for the front feet, on a steady beat (the skjaldborg: the shield wall)
   'foot:shieldmaiden': ab('Skjaldborg', every(9), [SH(1, 'weakest'), K(650, front(2))], 0x2a4f86, 'heal'),
-  // thought and memory: the two ravens dive on two feet and mark them, and now and then a kill brings back a stolen tip
-  'foot:raven': plus(ab('Huginn and Muninn', every(6), [D(2, rnd(2)), M(1.4, 3, rnd(2))], 0x4a5a9a, 'wind'), kill(0.25), T(2)),
+  // thought and memory: the ravens mark the two front feet and dive on them; a kill may bring back a stolen tip
+  'foot:raven': plus(ab('Huginn and Muninn', every(6), [M(1.4, 3, front(2)), D(2, front(2))], 0x4a5a9a, 'wind'), kill(0.25), T(2)),
   // the saga sings the front feet's doom: they take more from everything for a while
   'foot:skald': ab('Saga of Doom', every(8), [M(1.5, 4, front(3)), D(1, front(3))], GOLD, 'gold'),
   // a stomp on your table and the rune-ward answers: a shield on your weakest pizza, and the stomper hammered and dazed

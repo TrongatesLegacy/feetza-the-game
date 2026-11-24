@@ -1,6 +1,6 @@
 """Copy the sounds of Act 8's last four new feet into the repo, add their credits and TRIM entries.
 
-usage: python3 -I integrate_act8a.py SFX_OUTDIR REPO
+usage: python3 -I integrate_act8b.py SFX_OUTDIR REPO
 The sounds are made with:  KENNEY=/path/to/kenney RECIPES=recipes_act8b python3 -I build.py SFX_OUTDIR
 Re-running skips credits and TRIM entries that are already there."""
 import json
