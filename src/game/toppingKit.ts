@@ -32,10 +32,11 @@ export interface KitHost {
   /** Feet in this wave's plan (Delivery Rush gives big waves longer). */
   planSize(): number;
   /** Damage in smacks (× your smack damage). */
-  damage(f: Foot, smacks: number, o?: { knock?: number; quiet?: boolean; chain?: boolean }): void;
+  damage(f: Foot, smacks: number, o?: { knock?: number; quiet?: boolean; chain?: boolean; tag?: string }): void;
   /** A full smack on this foot (Fold Over, Echo Chamber). */
   hitFoot(f: Foot, x: number, y: number): void;
-  effects(fx: Effect[], ctx: { foot?: Foot; x?: number; y?: number }, color: number, vfx: Vfx): void;
+  /** tag: where the STATS tab files the damage ('kit' when unset). */
+  effects(fx: Effect[], ctx: { foot?: Foot; x?: number; y?: number }, color: number, vfx: Vfx, tag?: string): void;
   /** Tips (heat's tip rate applied by the scene). */
   tips(n: number, x: number, y: number): void;
   heal(p: Pizza, n: number): void;
@@ -498,7 +499,7 @@ export class ToppingKit {
     this.h.fx.glint(this.dronePos.x, this.dronePos.y + 45, 3);
     audio.sfx('sfx_zap', { volume: 0.55, rate: 1.4, throttle: 80 });
     // a quarter of a smack, and another quarter each level
-    this.h.damage(f, 0.25 * l, { knock: 60 });
+    this.h.damage(f, 0.25 * l, { knock: 60, tag: 'kit:drone' });
     this.h.sc.tweens.add({ targets: this.drone, scale: { from: D_SCALE * 1.15, to: D_SCALE }, duration: 180, ease: 'Back.Out' });
   }
 
@@ -601,7 +602,7 @@ export class ToppingKit {
         this.h.fx.explosion(f.cx, f.cy, 130);
         this.h.fx.quip(f.x, f.cy - 140, 'WOOD-FIRED!', '#ff9f1c', 40);
         audio.sfx('sfx_fire', { volume: 0.8 });
-        this.again(() => this.h.effects([D(4, hit()), B(1, 3, hit())], { foot: f }, 0xff7a2a, 'fire'), f);
+        this.again(() => this.h.effects([D(4, hit()), B(1, 3, hit())], { foot: f }, 0xff7a2a, 'fire', 'kit:woodfired'), f);
       },
     });
   }

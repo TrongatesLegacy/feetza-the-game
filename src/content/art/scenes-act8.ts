@@ -2,8 +2,8 @@
 // Fenrir's Paw, Thrym's Hall, the Edge of the World for Jörmungandr, the Burning Bridge for Surtr).
 // The road to Ragnarök: cold and calm at wave 71, fire by wave 80. The animated layers (aurora,
 // weather that changes wave by wave, the bridge catching fire) live in src/content/live/act8.ts; Jotunheim is
-// redrawn with the location kit (scene-jotunheim.ts), and Thrym's Hall too (scene-thrym.ts): their old art here stays
-// for the before/after page.
+// redrawn with the location kit (scene-jotunheim.ts), and Thrym's Hall (scene-thrym.ts) and Bifröst (scene-bifrost.ts)
+// too: their old art here stays for the before/after page.
 
 import type { GlowSpot } from '../../art/backdrops';
 import { registerLegacyScene, registerScene } from '../../art/registry';
@@ -1436,7 +1436,8 @@ registerLegacyScene('jotunheim', {
   draw: drawJotunheim,
 });
 
-registerScene('bifrost', {
+// (redrawn with the location kit in scene-bifrost.ts; this stays for the before/after page, ?dev&stages)
+registerLegacyScene('bifrost', {
   info: {
     name: 'Bifröst Bridge',
     subtitle: 'Waves 76–79',

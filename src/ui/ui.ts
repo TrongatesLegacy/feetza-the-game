@@ -10,6 +10,8 @@ import { RARITY_COLOR, UPGRADES, UPGRADE_BY_ID, kindOf, type Rarity } from '../d
 import { glyph, slamPrompt } from '../systems/gamepad';
 import type { RunSummary, ShopActions, ShopPizza, ShopState, SlotSymbol, YourTopping } from './shopTypes';
 import { INTROS, freshBar, pizzaThumb } from './bits';
+import { statsBody } from './statsTab';
+import type { BuildView } from '../game/buildStats';
 import { phaseCardPanel } from './phaseCard';
 import type { ResolvedPhaseCard } from '../game/phaseCards';
 import { footArtAsync, footArtReady, footPortraitURL, pizzaPortraitURL, textureURL } from '../game/assets';
@@ -86,7 +88,7 @@ export function btn(label: string, cls: string, onClick: () => void, attrs: Attr
   return b;
 }
 
-const fmt = (n: number) => Math.floor(n).toLocaleString('en-US');
+export const fmt = (n: number) => Math.floor(n).toLocaleString('en-US');
 
 /** Chance each lineup deal puts a Rare Find in one slot. */
 const RARE_FIND_CHANCE = 1 / 20;
@@ -1196,8 +1198,8 @@ class UI {
     c.classList.add('nudge');
   }
 
-  // ——— Your Toppings: everything you own, searchable ———
-  yourToppings(list: YourTopping[], wave: number): HTMLElement {
+  // ——— Your Toppings: everything you own, searchable; and the STATS tab, the build in numbers ———
+  yourToppings(list: YourTopping[], wave: number, stats?: () => BuildView, tab: 'toppings' | 'stats' = 'toppings'): HTMLElement {
     let s: HTMLElement;
     const search = h('input', { class: 'yt-search', type: 'search', placeholder: 'Search your toppings', 'aria-label': 'Search your toppings' }) as HTMLInputElement;
     const body = h('div', { class: 'scroll yt-list' });
@@ -1209,7 +1211,11 @@ class UI {
     const rows = list.map((y) => {
       const u = UPGRADE_BY_ID[y.id];
       const k = kindOf(u);
-      const more = k === 'permanent' && y.lvl > 1 && u.desc(2) !== u.desc(1) ? `Each level after the first: ${u.desc(2)}` : '';
+      // what it does at the level you have (level 1 for one-use and used ones), and what the next level brings
+      const lvl = k === 'permanent' ? Math.max(1, y.lvl) : 1;
+      const now = u.desc(lvl);
+      const cap = y.max ?? u.max;
+      const next = k === 'permanent' && y.back === null && lvl < cap ? u.desc(lvl + 1) : '';
       // cooldowns hold the first wave a used consumable may be dealt again: it's back in that wave's shop
       const status =
         y.back !== null
@@ -1223,9 +1229,9 @@ class UI {
         'div',
         { class: `ytop${y.back !== null ? ' used' : ''}`, style: `--rc:${RARITY_COLOR[u.rarity]}` },
         h('div', { class: 'ic' }, u.icon),
-        h('div', { class: 'tx' }, h('div', { class: 'yt-head' }, h('b', {}, u.name), h('span', { class: `rar ${u.rarity}` }, u.rarity), status), h('span', {}, u.desc(1)), more ? h('small', {}, more) : null, u.downside ? h('em', { class: 'down' }, `▼ ${u.downside}`) : null),
+        h('div', { class: 'tx' }, h('div', { class: 'yt-head' }, h('b', {}, u.name), h('span', { class: `rar ${u.rarity}` }, u.rarity), status), h('span', {}, now), next ? h('small', { class: 'next' }, `Next level: ${next}`) : null, u.downside ? h('em', { class: 'down' }, `▼ ${u.downside}`) : null),
       );
-      return { row, rarity: u.rarity as string, text: `${u.name} ${u.desc(1)} ${u.rarity} ${u.downside ?? ''}`.toLowerCase() };
+      return { row, rarity: u.rarity as string, text: `${u.name} ${now} ${u.rarity} ${u.downside ?? ''}`.toLowerCase() };
     });
     const empty = h('div', { class: 'hint' }, list.length ? 'No toppings match that.' : 'No toppings yet. Buy some from the cards!');
     const filter = () => {
@@ -1244,18 +1250,62 @@ class UI {
     search.addEventListener('keydown', (e) => e.stopPropagation());
     filter();
     const owned = list.filter((y) => y.back === null).length;
-    const panel = h(
+    const topsPane = h(
       'div',
-      { class: 'panel modal wide yourtops' },
-      h('div', { class: 'title' }, 'YOUR TOPPINGS'),
+      { class: 'yt-pane', id: 'yt-pane-tops', role: 'tabpanel', 'aria-labelledby': 'yt-tab-tops' },
       h('div', { class: 'subtitle' }, `${owned} topping${owned === 1 ? '' : 's'} on your pizzas${list.length > owned ? ` · ${list.length - owned} coming back` : ''}`),
       rarTabs,
       search,
       body,
+    );
+    // STATS: worked out when the tab opens (and again each time), so it always shows the build as it is
+    const statsScroll = h('div', { class: 'scroll st-scroll' });
+    const statsPane = h('div', { class: 'yt-pane', id: 'yt-pane-stats', role: 'tabpanel', 'aria-labelledby': 'yt-tab-stats', hidden: true }, statsScroll);
+    const tabTops = btn(`TOPPINGS <small>${owned}</small>`, 'small', () => show('toppings'), { role: 'tab', id: 'yt-tab-tops', 'aria-controls': 'yt-pane-tops' });
+    const tabStats = btn('📊 STATS', 'small', () => show('stats'), { role: 'tab', id: 'yt-tab-stats', 'aria-controls': 'yt-pane-stats' });
+    const show = (t: 'toppings' | 'stats') => {
+      const st = t === 'stats' && !!stats;
+      tabTops.classList.toggle('active', !st);
+      tabStats.classList.toggle('active', st);
+      tabTops.setAttribute('aria-selected', String(!st));
+      tabStats.setAttribute('aria-selected', String(st));
+      topsPane.hidden = st;
+      statsPane.hidden = !st;
+      if (st) {
+        let body: HTMLElement;
+        try {
+          body = statsBody(stats());
+        } catch (e) {
+          console.error('[stats]', e);
+          body = h('div', { class: 'hint' }, 'The stats could not be worked out just now.');
+        }
+        statsScroll.replaceChildren(body);
+        statsScroll.scrollTop = 0;
+      }
+    };
+    // left and right on a tab switch tabs (keyboard; the controller moves between them as buttons)
+    for (const b of [tabTops, tabStats])
+      b.addEventListener('keydown', (e) => {
+        if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+        e.preventDefault();
+        const to = b === tabTops ? tabStats : tabTops;
+        to.click();
+        to.focus();
+      });
+    const tabs = stats ? h('div', { class: 'tabs yt-tabs', role: 'tablist', 'aria-label': 'Your toppings or your stats' }, tabTops, tabStats) : null;
+    const panel = h(
+      'div',
+      { class: 'panel modal wide yourtops' },
+      h('div', { class: 'title' }, 'YOUR TOPPINGS'),
+      tabs,
+      topsPane,
+      statsPane,
       btn('DONE', 'green', () => this.close(s), { 'data-pad': 'back' }),
     );
     s = this.open(panel);
-    setTimeout(() => search.focus({ preventScroll: true }), 50);
+    show(tab);
+    if (tab === 'toppings') setTimeout(() => search.focus({ preventScroll: true }), 50);
+    else setTimeout(() => tabStats.focus({ preventScroll: true }), 50);
     return s;
   }
 

@@ -37,22 +37,22 @@ export const MIXED_TOPPINGS: Upgrade[] = [
   pick('pickcommon', 'Common Pick', 'common', '🎁'),
   proc('anchovytoss', 'Anchovy Toss', '🐠', 'common', 4, { trigger: every(6), fx: [TH('anchovy', 'straight', 1.5, front(1))], color: 0x8fb8d8, vfx: 'burst' }),
   proc('crustbumper', 'Crust Bumper', '🎳', 'common', 3, { trigger: stomp, fx: [K(1000, hit()), ST(0.4, hit())], color: 0xd9a066, vfx: 'wind' }),
-  kit('sparenapkin', 'Spare Napkin', '🩹', 'common', 2, (l) => (l <= 1 ? 'The first slice lost each wave grows back after it' : 'One more slice lost each wave grows back')),
-  kit('tiedlaces', 'Tied Laces', '🪢', 'common', 3, (l) => (l <= 1 ? 'Every 8s: ties 2 feet together; smack one, the other takes 0.5×' : 'Ties feet more often, and the other one takes more')),
+  kit('sparenapkin', 'Spare Napkin', '🩹', 'common', 2, (l) => (l <= 1 ? 'The first slice lost each wave grows back after it' : 'The first 2 slices lost each wave grow back after it (was 1)')),
+  kit('tiedlaces', 'Tied Laces', '🪢', 'common', 3, (l) => (l <= 1 ? 'Every 8s: ties 2 feet together; smack one, the other takes 0.5×' : `Every ${(8 / (1 + 0.2 * (l - 1))).toFixed(1)}s: ties 2 feet together; smack one, the other takes ${0.5 + 0.25 * (l - 1)}× (LV 1: every 8s, 0.5×)`)),
 
   // ——— Rare ———
   pick('pickrare', 'Rare Pick', 'rare', '🎀'),
   proc('meatballbounce', 'Meatball Bounce', '🍝', 'rare', 4, { trigger: every(6), fx: [TH('meatball', 'bounce', 2, rnd(1), { more: [1.5, 1] })], color: 0xb0603a, vfx: 'burst' }, 'Every 6s: a meatball bounces through 3 feet (2×, 1.5×, 1×)'),
   proc('pizzacutter', 'Pizza Cutter', '💿', 'rare', 4, { trigger: every(7), fx: [TH('pizzacutter', 'boomerang', 2, front(1), { more: [2] })], color: 0xc7ccd4, vfx: 'burst' }, 'Every 7s: a pizza cutter boomerang hits out and back (2× each)'),
-  kit('deliveryrush', 'Delivery Rush', '🛵', 'rare', 2, (l) => (l <= 1 ? 'Clear a wave in under 20s for +30 tips (big waves get longer)' : '+30 more tips for a quick wave')),
-  kit('foldover', 'Fold Over', '🌮', 'rare', 2, (l) => (l <= 1 ? 'Every 4th smack hits twice' : 'Every 3rd smack hits twice')),
+  kit('deliveryrush', 'Delivery Rush', '🛵', 'rare', 2, (l) => (l <= 1 ? 'Clear a wave in under 20s for +30 tips (big waves get longer)' : 'Clear a wave in under 20s for +60 tips (was +30; big waves get longer)')),
+  kit('foldover', 'Fold Over', '🌮', 'rare', 2, (l) => (l <= 1 ? 'Every 4th smack hits twice' : 'Every 3rd smack hits twice (was every 4th)')),
 
   // ——— Epic ———
   pick('pickepic', 'Epic Pick', 'epic', '🪅'),
   proc('calzonecannon', 'Calzone Cannon', '🌯', 'epic', 3, { trigger: every(9), fx: [TH('calzone', 'explode', 4, tough(1), { r: 210, splash: 2 })], color: 0xe8a040, vfx: 'burst' }, 'Every 9s: a calzone lob that explodes (4×, 2× nearby)'),
   kit('ovenmitts', 'Oven Mitts', '🥊', 'epic', 1, () => "Your peel can't be stunned, slowed, frozen or snatched"),
   kit('tipinterest', 'Tip Interest', '🏦', 'epic', 1, () => '+5% of your unspent tips after every wave (up to 40)'),
-  kit('mozzweb', 'Mozzarella Web', '🕸️', 'epic', 3, (l) => (l <= 1 ? '25% of smacks string cheese to 2 nearby feet: 50% slow, 3s' : '+10% more smacks string cheese')),
+  kit('mozzweb', 'Mozzarella Web', '🕸️', 'epic', 3, (l) => (l <= 1 ? '25% of smacks string cheese to 2 nearby feet: 50% slow, 3s' : `${25 + 10 * (l - 1)}% of smacks string cheese to 2 nearby feet: 50% slow, 3s (LV 1: 25%)`)),
 
   // ——— Legendary ———
   pick('picklegendary', 'Legendary Pick', 'legendary', '🎖️'),

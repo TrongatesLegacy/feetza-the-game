@@ -1922,10 +1922,11 @@ export function speckFrame(c: Ctx, s: number, i: number): void {
   c.fill();
 }
 
-const GATE_N = 10;
+// (16 angles over a narrower swing, shown one at a time: cross-fading two angles 7° apart showed two sets of bars)
+const GATE_N = 16;
 const GATE_K = 0.6;
-const GATE_MIN = 20;
-const GATE_MAX = 80;
+const GATE_MIN = 32;
+const GATE_MAX = 72;
 export const SMOKE = { w: 70, h: 190 };
 
 // ——— live ———
@@ -1997,11 +1998,12 @@ registerKitScene(CELLAR, (k, wave0) => {
     gate(c, ((GATE_MIN + ((GATE_MAX - GATE_MIN) * i) / (GATE_N - 1)) * Math.PI) / 180);
   });
   const gateA = k.img(gateKey, GATE_BOX.x, GATE_BOX.y, { into: deep, origin: [0, 0], scale: 1 / GATE_K });
-  const gateB = k.img(gateKey, GATE_BOX.x, GATE_BOX.y, { into: deep, origin: [0, 0], scale: 1 / GATE_K });
   const REST = (GATE_TH * 180) / Math.PI;
   const gateSp = new Spring(REST, 7, 1.0);
   let gateRest = REST;
-  let gateNext = 6 + crand() * 6;
+  let gateNext = 12 + crand() * 10;
+  /** Seconds until a stomp may swing the gate again (stomps come constantly; it should settle between them). */
+  let gateKickT = 0;
 
   const wallMist = new Loop(k, mistKey, 12, VPX, TY + 40, { into: fx, origin: [0.5, 1], sx: (2200 / MW) * mistSc, sy: 1.1 * mistSc, fps: 0.32 });
   const wallMist2 = new Loop(k, mistKey, 12, VPX + 200, TY + 30, { into: fx, origin: [0.5, 1], sx: (2400 / MW) * mistSc, sy: 0.8 * mistSc, fps: 0.22, phase: 6 });
@@ -2117,7 +2119,11 @@ registerKitScene(CELLAR, (k, wave0) => {
     },
     impact(x, _y, p) {
       // the gate swings on its hinge (away from the stomp's side), the lantern on its chain
-      gateSp.v += (x < VPX ? 1 : -1) * (40 + p * 90) * (0.7 + crand() * 0.6);
+      // (only a hard stomp, and not again for a few seconds: every stomp kept it swinging non-stop)
+      if (p > 0.5 && gateKickT <= 0) {
+        gateSp.v += (x < VPX ? 1 : -1) * (20 + p * 40) * (0.7 + crand() * 0.6);
+        gateKickT = 4 + crand() * 3;
+      }
       lanternSw.kick((x < L.x ? 1 : -1) * (0.3 + p * 0.6));
       // the candles gutter; a hard stomp snuffs the nearest, and it lights itself again a moment later
       for (const c of candles) c.lean.v += (c.c.x < x ? -1 : 1) * (2 + p * 4) * (0.6 + crand() * 0.6);
@@ -2168,12 +2174,13 @@ registerKitScene(CELLAR, (k, wave0) => {
       wisps.update(dt);
       // ——— the gate: creaks to and fro on its own, now and then a poltergeist shove, more of them as the night goes
       gateNext -= dt;
+      gateKickT -= dt;
       if (gateNext <= 0) {
-        gateNext = lerp(10, 4, shown) * (0.6 + crand() * 0.8);
-        if (crand() < 0.3 + shown * 0.4) gateSp.v += (crand() < 0.5 ? -1 : 1) * (30 + crand() * 50) * cm;
-        else gateRest = REST + (crand() - 0.5) * 16;
+        gateNext = lerp(22, 12, shown) * (0.7 + crand() * 0.6);
+        if (crand() < 0.2 + shown * 0.3) gateSp.v += (crand() < 0.5 ? -1 : 1) * (20 + crand() * 30) * cm;
+        else gateRest = REST + (crand() - 0.5) * 12;
       }
-      const ang = gateSp.step(gateRest + wander(t * 0.3, 4) * 2 * cm, dt);
+      const ang = gateSp.step(gateRest + wander(t * 0.2, 4) * cm, dt);
       if (gateSp.x < GATE_MIN + 1) {
         gateSp.x = GATE_MIN + 1;
         gateSp.v = Math.abs(gateSp.v) * 0.4;
@@ -2182,9 +2189,7 @@ registerKitScene(CELLAR, (k, wave0) => {
         gateSp.v = -Math.abs(gateSp.v) * 0.4;
       }
       const gi = ((Phaser.Math.Clamp(ang, GATE_MIN, GATE_MAX) - GATE_MIN) / (GATE_MAX - GATE_MIN)) * (GATE_N - 1);
-      const g0 = Math.min(GATE_N - 2, Math.floor(gi));
-      gateA.setFrame(g0).setAlpha(1);
-      gateB.setFrame(g0 + 1).setAlpha(gi - g0);
+      gateA.setFrame(Math.min(GATE_N - 1, Math.round(gi)));
       // ——— the lantern
       lanternSw.update(dt, t);
       const la = lanternSw.angle;

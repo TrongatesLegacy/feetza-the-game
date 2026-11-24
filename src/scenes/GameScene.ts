@@ -6,12 +6,16 @@ import { BASE_SLICES, COMBO_BASE_WINDOW, H, MAX_PIZZAS, PIZZA_Y, W } from '../co
 const LANE_W = 250;
 import { heatRank, type HeatId } from '../data/difficulty';
 import { FEET, FOOT_BY_ID, OUCH, type FootType } from '../data/feet';
-import { MILESTONES } from '../data/meta';
+import { META, MILESTONES } from '../data/meta';
+import { RUN_META } from '../game/Run';
 import { PIZZAS, PIZZA_BY_ID, enhancedText } from '../data/pizzas';
+import { perkWave, setPerkWave } from '../data/perkWave';
+import { DmgTally } from '../game/dmgTally';
+import { buildView, toneOf, topSrc, type BuildView, type Src, type TablePizza } from '../game/buildStats';
 import { ACT_COUNT, BOSS_CREW, BOSS_MINION, HEAT_UNLOCK_WAVE, MINI_ESCORT, JOURNEY_WAVES, actLabel, actName, actOf, actStartWave, isActEnd, isActStart, waveInJourney } from '../data/stages';
-import { UPGRADES, UPGRADE_BY_ID, kindOf, type Rarity, type Upgrade } from '../data/upgrades';
+import { UPGRADES, UPGRADE_BY_ID, kindOf, type Rarity, type Stats, type Upgrade } from '../data/upgrades';
 import type { Arena, Clickable } from '../game/arena';
-import { evictFootArt, footPortraitURL, pizzaPortraitURL, setArtWarmBusy, texturesInUse, warmFootArt } from '../game/assets';
+import { evictFootArt, footPortraitURL, pizzaPortraitURL, setArtWarmBusy, textureURL, texturesInUse, warmFootArt } from '../game/assets';
 import { BackdropView } from '../game/BackdropView';
 import { prepareLive, releaseLive } from '../game/liveBackdrop';
 import { BossDirector } from '../game/bosses';
@@ -72,11 +76,15 @@ interface DamageOpts {
   quiet?: boolean;
   /** Damage a topping dealt on its own (a timed or triggered proc, the drone…): scaled by the heat's autoDmg. */
   auto?: boolean;
+  /** Where the STATS tab's tally files it (a topping proc, a pizza perk, the drone…): the source when unset. */
+  tag?: string;
 }
 
 /** Damage sources that are always automatic: they hit without a smack (orbiting cutters, thrown toppings, the
  *  garlic aura, burns, traps). Smacks, the slam, the peel's ability and on-smack effects aren't. */
 const AUTO_SOURCES = new Set<DamageOpts['source']>(['cutter', 'olive', 'garlic', 'burn', 'trap']);
+/** The STATS tab's key for a topping proc's damage (a throwing peel's passive throw counts as the peel's ability). */
+const procTag = (id: string): string => (id === 'peel:also' ? 'ability' : `proc:${id}`);
 /** How much of the automatic damage a raised guard shield soaks counts against it (a step per base smack's worth). */
 const GUARD_SOAK = 0.5;
 
@@ -186,7 +194,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     return { wave: 0, boss: 0, bossSmacks: 0, stunned: false, tick: 0, coins: 0, firstWave: 0, since: 0, bosses: 0, lost: 0, abilityUsed: false, plan: null as (WavePlan & { n: number }) | null, shop: null as Upgrade[] | null };
   }
   /** Damage dealt this run by source (dev balance tooling reads it). */
-  dmgLog: Record<string, number> = {};
+  /** Damage dealt by source, the time feet were on the table and smacks landed (the STATS tab). */
+  tally = new DmgTally();
   /** Tips earned in each wave (wave clear bonus included), for balance tooling. */
   tipLog: { wave: number; earned: number; spent: number }[] = [];
   private coinsAtWaveStart = 0;
@@ -505,6 +514,13 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.recompute();
     }
   }
+  /** Perk texts that count with the wave (Tuna & Sweetcorn) follow the wave the next payout is for. */
+  private syncPerkWave(n: number): void {
+    if (perkWave() === n) return;
+    setPerkWave(n);
+    for (const p of this.pizzas) p.refreshPerkLine();
+  }
+
   damageFoot(f: Foot, amount: number, label?: string): void {
     if (label) this.fx.quip(f.x, f.cy - 130, label, '#7dff9a', 40);
     this.dealDamage(f, amount, { source: 'direct', x: f.cx, y: f.cy });
@@ -569,7 +585,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.events.once('shutdown', () => this.outbreak.clear());
     this.perkKit = new PizzaPerkKit(this, {
       run: () => this.run,
-      dealDamage: (f, amount, source, knock) => this.dealDamage(f, amount, { source, knock, x: f.cx, y: f.cy }),
+      dealDamage: (f, amount, source, knock, tag) => this.dealDamage(f, amount, { source, knock, x: f.cx, y: f.cy, tag }),
       giveTips: (n, x, y) => this.giveTips(n, x, y),
       healPizza: (p, n) => this.healPizza(p, n),
       neighbours: (p) => this.neighbours(p),
@@ -680,6 +696,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     // where every goal stands as the run begins, for the end-of-run summary
     if (!this.run.startPeels) this.beginRunGoals();
     this.recompute();
+    this.syncPerkWave(this.run.wave + 1);
+    this.events.once('shutdown', () => setPerkWave(null));
     this.heroT.firstWave = snap ? snap.wave + 1 : this.start.act2 || this.start.kit ? this.kitWave() : (this.start.wave ?? 1);
     this.heroT.coins = this.run.coins;
     this.tracker.emit('runStart', {});
@@ -763,7 +781,7 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   private resetState(): void {
     this.run = new Run();
-    this.dmgLog = {};
+    this.tally = new DmgTally();
     this.tipLog = [];
     this.pizzas = [];
     this.feet = [];
@@ -992,21 +1010,33 @@ export class GameScene extends Phaser.Scene implements Arena {
   /** Toppings owned that add chain lightning (counted in recompute, read by every goal event). */
   private chainToppings = 0;
 
-  private recompute(): void {
-    this.chainToppings = Object.entries(this.run.owned).filter(([id, lvl]) => {
-      const u = UPGRADE_BY_ID[id];
-      return lvl > 0 && !!u && (/chain lightning/i.test(u.desc(1)) || !!u.proc?.fx.some((e) => e.e === 'chain'));
-    }).length;
-    const live = this.alivePizzas().filter((p) => p !== this.possessedPizza && p.perk);
+  /** Work out the run's stats (into run.stats) from the toppings, the pizzas on the table and the peel. skip leaves
+   *  one of them out, so the STATS tab can tell what each one changes; a plain call after puts everything back. */
+  private computeStats(skip: { topping?: string; pizza?: Pizza; meta?: boolean; peel?: boolean } = {}): Stats {
+    const owned = this.run.owned;
+    if (skip.topping) {
+      const { [skip.topping]: _gone, ...rest } = owned;
+      this.run.owned = rest;
+    }
+    try {
+      return this.statsNow(skip);
+    } finally {
+      this.run.owned = owned;
+    }
+  }
+
+  private statsNow(skip: { pizza?: Pizza; meta?: boolean; peel?: boolean }): Stats {
+    const live = this.alivePizzas().filter((p) => p !== this.possessedPizza && p !== skip.pizza && p.perk);
     const perks = live.map((p) => p.perk!);
     // an enhanced pizza's perk counts half as much again
     const enhanced = [...live.filter((p) => p.enhanced).map((p) => p.perk!), ...this.perkKit.bigPerks(live)];
     // always-on peel abilities change stats before the caps are applied
     const extra: Record<string, number> = {};
-    if (this.ability?.trigger.t === 'always') for (const e of this.ability.fx) if (e.e === 'stat') for (const [k, v] of Object.entries(e.mods)) extra[k] = (extra[k] ?? 0) + (v as number);
+    const peel = skip.peel ? null : this.ability;
+    if (peel?.trigger.t === 'always') for (const e of peel.fx) if (e.e === 'stat') for (const [k, v] of Object.entries(e.mods)) extra[k] = (extra[k] ?? 0) + (v as number);
     // a hero's always-on passive (its `also`) changes stats the same way
-    if (this.ability?.also?.trigger.t === 'always') for (const e of this.ability.also.fx) if (e.e === 'stat') for (const [k, v] of Object.entries(e.mods)) extra[k] = (extra[k] ?? 0) + (v as number);
-    this.run.recompute(perks, extra, enhanced);
+    if (peel?.also?.trigger.t === 'always') for (const e of peel.also.fx) if (e.e === 'stat') for (const [k, v] of Object.entries(e.mods)) extra[k] = (extra[k] ?? 0) + (v as number);
+    this.run.recompute(perks, extra, enhanced, skip.meta);
     this.kit.afterRecompute(this.run.stats, this.alivePizzas().length);
     // the Ghost's possession inverts the haunted pizza's perk
     const inv = this.possessedPizza?.perk;
@@ -1020,6 +1050,15 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.perkKit.afterRecompute(this.run.stats, COMBO_BASE_WINDOW);
     // the perks' faster smacks land after Run's caps: cap the follow-up chance again
     this.run.stats.doubleChance = Math.min(DOUBLE_CAP, this.run.stats.doubleChance);
+    return this.run.stats;
+  }
+
+  private recompute(): void {
+    this.chainToppings = Object.entries(this.run.owned).filter(([id, lvl]) => {
+      const u = UPGRADE_BY_ID[id];
+      return lvl > 0 && !!u && (/chain lightning/i.test(u.desc(1)) || !!u.proc?.fx.some((e) => e.e === 'chain'));
+    }).length;
+    this.computeStats();
     for (const p of this.pizzas) {
       p.maxFresh = 10 + this.run.stats.freshBonus;
       if (p.fresh > p.maxFresh) p.setFresh(p.maxFresh);
@@ -1056,9 +1095,9 @@ export class GameScene extends Phaser.Scene implements Arena {
       now: () => this.nowT,
       inWave: () => this.waveActive && !this.over && !this.inUpgrade,
       planSize: () => this.planSize,
-      damage: (f, x, o) => this.dealDamage(f, x * this.run.stats.damage, { source: o?.chain ? 'chain' : 'ability', knock: o?.knock ?? 80, quiet: o?.quiet, auto: true }),
+      damage: (f, x, o) => this.dealDamage(f, x * this.run.stats.damage, { source: o?.chain ? 'chain' : 'ability', knock: o?.knock ?? 80, quiet: o?.quiet, auto: true, tag: o?.tag ?? 'kit' }),
       hitFoot: (f, x, y) => this.hitFoot(f, x, y),
-      effects: (fx, ctx, color, vfx) => this.runEffects(fx, ctx, color, vfx),
+      effects: (fx, ctx, color, vfx, tag) => this.runEffects(fx, ctx, color, vfx, false, tag ?? 'kit'),
       tips: (n, x, y) => this.giveTips(Math.round(n * this.run.heatDef.tips), x, y),
       heal: (p, n) => this.healPizza(p, n),
       charge: (frac) => this.chargeMeter(frac),
@@ -1154,6 +1193,8 @@ export class GameScene extends Phaser.Scene implements Arena {
   private beginWave(n: number, devBoss?: { id: string; hp?: number }): void {
     if (this.over) return;
     this.run.wave = n;
+    this.syncPerkWave(n);
+    this.tally.beginWave();
     // the act's stats count from its first wave (or from wherever this run joined it)
     const actFirst = actStartWave(n);
     if (!this.run.actFrom || this.run.actFrom.wave !== actFirst) {
@@ -2042,6 +2083,7 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   private waveClear(): void {
     this.waveActive = false;
+    this.tally.endWave(this.run.wave);
     this.throws.clear();
     this.heroes.waveClear();
     this.tracker.emit('waveClear', { boss: isBossWave(this.run.wave), mini: isMiniWave(this.run.wave), secs: this.nowT - this.heroT.wave, slicesLost: this.waveSlicesLost, stageEnd: isBossWave(this.run.wave) });
@@ -2099,6 +2141,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     // Aqua-Toe's Tidal Calm: no pizza goes stale at the seaside
     if (!this.heroes.keepFresh()) this.tickFreshness();
     this.perkKit.waveClear(n, perfect, this.run.coins - this.coinsAtWaveStart);
+    // Tuna & Sweetcorn has paid for this wave: its text counts the next one now
+    this.syncPerkWave(n + 1);
     // Quattro Stagioni turns to its next season
     for (const p of this.alivePizzas()) if (p.type.perk === 'rotate') {
       p.flags.season = (Number(p.flags.season ?? 0) + 1) % 4;
@@ -2334,6 +2378,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     const nextBd = backdropFor(this.run.wave + 1);
     if (nextBd !== this.currentBackdrop) this.time.delayedCall(500, () => this.inUpgrade && prepareLive(this, nextBd));
     this.inUpgrade = true;
+    // the shop's perk texts count with the wave coming up (Tuna & Sweetcorn)
+    this.syncPerkWave(this.run.wave + 1);
     ui.setPlaying(false);
     audio.duck(0.55);
     this.displayCoins = this.run.coins;
@@ -2522,6 +2568,85 @@ export class GameScene extends Phaser.Scene implements Arena {
     };
   }
 
+  /** The STATS tab: the build worked out into numbers (src/game/buildStats.ts). */
+  private statsView(): BuildView {
+    const r = this.run;
+    const st = this.computeStats();
+    const full = { ...st };
+    // what each topping, pizza, the Pizzeria's upgrades and the peel change: work the stats out without it
+    const from: Partial<Record<keyof Stats, Src[]>> = {};
+    const diff = (src: Omit<Src, 'tone'>, without: Stats) => {
+      for (const k of Object.keys(full) as (keyof Stats)[]) {
+        const a = full[k];
+        const b = without[k];
+        if (a === b || (typeof a === 'number' && typeof b === 'number' && Math.abs(a - b) < 1e-9)) continue;
+        (from[k] ??= []).push({ ...src, tone: toneOf(k, a, b) });
+      }
+    };
+    const peelDef = PEEL_BY_ID[this.peelId];
+    const peelImg = peelDef ? peelThumbURL(this.peelId, 96) : '';
+    try {
+      for (const [id, lvl] of Object.entries(r.owned)) {
+        if (!UPGRADE_BY_ID[id] || lvl <= 0) continue;
+        diff(topSrc(id, lvl), { ...this.computeStats({ topping: id }) });
+      }
+      for (const p of this.alivePizzas()) {
+        if (!p.perk || p === this.possessedPizza) continue;
+        diff({ key: `pizza:${p.type.id}`, name: p.type.name, img: pizzaPortraitURL(p.type.id), tip: p.perkLine }, { ...this.computeStats({ pizza: p }) });
+      }
+      // (the Pizzeria upgrades Run.recompute reads)
+      const metas = META.filter((m) => (save.meta[m.id] ?? 0) > 0 && RUN_META.includes(m.id));
+      if (metas.length) diff({ key: 'meta', name: 'Pizzeria upgrades', icon: '🏪', tip: metas.map((m) => `${m.name} LV${save.meta[m.id]}`).join(' · ') }, { ...this.computeStats({ meta: true }) });
+      if (this.ability) diff({ key: 'peel', name: peelDef?.name ?? this.ability.name, img: peelImg }, { ...this.computeStats({ peel: true }) });
+    } finally {
+      // everything back as it was, whatever happened
+      this.computeStats();
+    }
+    const wave = this.waveActive ? r.wave : r.wave + 1;
+    const pizzas: TablePizza[] = this.pizzas.map((p) => ({
+      id: p.type.id,
+      name: p.type.name,
+      perk: p === this.possessedPizza ? null : p.perk,
+      line: p.perkLine,
+      enhanced: p.enhanced,
+      stale: p.stale,
+      frozen: p.perkFrozen,
+      dead: p.dead,
+      slices: p.slices,
+      max: p.maxSlices,
+      pk: this.perkKit.pk(p),
+      img: pizzaPortraitURL(p.type.id),
+    }));
+    const hero = this.heroes.flatDmgMult();
+    return buildView({
+      stats: r.stats,
+      from,
+      owned: r.owned,
+      procs: Object.entries(r.owned)
+        .map(([id, lvl]) => ({ u: UPGRADE_BY_ID[id], lvl }))
+        .filter((x) => x.u?.proc && x.lvl > 0)
+        .map((x) => ({ id: x.u.id, p: scaleProc(x.u.proc!, x.lvl), lvl: x.lvl })),
+      ability: this.ability,
+      peel: { id: this.peelId, name: peelDef?.name ?? 'Classic Peel', img: peelImg },
+      pizzas,
+      heat: { name: r.heatDef.name, autoDmg: r.heatDef.autoDmg, tips: r.heatDef.tips, freshness: r.heatDef.freshness },
+      wave,
+      inWave: this.waveActive,
+      bossWave: isBossWave(wave),
+      extraDouble: this.perkKit.extraDouble(),
+      hero: { smack: hero.smack, all: hero.all, reach: this.heroes.reachMult(), crit: this.heroes.critAlways(), meter: this.heroes.meterMult() },
+      waveMult: this.perkKit.waveDmgMult(wave),
+      areaSmack: r.level('peel') > 0 || this.kit.areaSmack(),
+      c: (perk) => this.perkKit.c(perk),
+      boost: this.perkKit.boost(),
+      tally: this.tally,
+      armed: r.armed,
+      meter: r.super,
+      clearBonus: Math.round((5 + wave * 2 + r.stats.coinsPerWave) * r.heatDef.tips),
+      tex: (key) => textureURL(key),
+    });
+  }
+
   /** Every topping you own, armed consumables, and used ones waiting to come back. */
   private yourToppings(): YourTopping[] {
     const r = this.run;
@@ -2535,7 +2660,7 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   private shopToppings(): void {
     if (!this.shop) return;
-    ui.yourToppings(this.yourToppings(), this.run.wave);
+    ui.yourToppings(this.yourToppings(), this.run.wave, () => this.statsView());
   }
 
   private refreshShop(): void {
@@ -3276,6 +3401,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     // Bigger Peel (and The Last Slice) hit every foot in range
     const targets = this.heroes.smackHits(this.run.level('peel') > 0 || this.kit.areaSmack() ? hits : hits.slice(0, 1));
     this.tracker.emit('smack', { hits: targets.length, x, y });
+    if (this.waveActive) this.tally.wave.smacks++;
     // Pizza Romana's extra is worked out once a smack, and the total stays under the cap
     const double = Math.min(DOUBLE_CAP, this.run.stats.doubleChance + this.perkKit.extraDouble());
     for (const { f } of targets) {
@@ -3449,9 +3575,10 @@ export class GameScene extends Phaser.Scene implements Arena {
       if (f.wool <= 0) this.fx.quip(f.x, f.cy - 110, 'WOOL GONE!', '#e9c46a', 38);
       else if (smack) this.fx.puff(o.x ?? f.cx, o.y ?? f.cy, 3);
     }
+    // (the STATS tab's tally: what it took off, a killing blow's overkill left out)
+    this.tally.add(o.tag ?? o.source, Math.min(dealt, Math.max(0, f.hp)));
     f.hp -= dealt;
     if (dealt > 0) f.regenHold = 2;
-    this.dmgLog[o.source] = (this.dmgLog[o.source] ?? 0) + dealt;
     if (smack && f.has('crack') && f.armor > 0) {
       f.armor--;
       this.fx.quip(f.x + 60, f.cy - 60, 'CRACK!', '#c7ccd4', 30);
@@ -3592,6 +3719,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.heroes.kill(f);
     }
     this.run.feetSmacked++;
+    if (this.waveActive) this.tally.wave.kills++;
     save.totalFeet++;
     // achievements count real feet only, never a Ghost echo
     if (!f.brain.echo) save.kills[f.type.id] = (save.kills[f.type.id] ?? 0) + 1;
@@ -4312,7 +4440,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       const t = pr.p.trigger;
       if (t.t !== kind) continue;
       if ((t.t === 'smack' || t.t === 'kill') && Math.random() >= t.p) continue;
-      this.runEffects(pr.p.fx, ctx, pr.p.color, pr.p.vfx);
+      this.runEffects(pr.p.fx, ctx, pr.p.color, pr.p.vfx, false, procTag(pr.id));
     }
   }
 
@@ -4324,17 +4452,18 @@ export class GameScene extends Phaser.Scene implements Arena {
       pr.t += dt;
       if (pr.t < pr.p.trigger.sec || !any) continue;
       pr.t = 0;
-      this.runEffects(pr.p.fx, { x: this.peelPos.x, y: this.peelPos.y }, pr.p.color, pr.p.vfx);
+      this.runEffects(pr.p.fx, { x: this.peelPos.x, y: this.peelPos.y }, pr.p.color, pr.p.vfx, false, procTag(pr.id));
     }
   }
 
   /** Run a list of effects; effects that share a target hit the same feet ("…then burn them"). */
-  private runEffects(fx: Effect[], ctx: { foot?: Foot; x?: number; y?: number }, color: number, vfx: Ability['vfx'], fromAbility = false): void {
+  /** tag: where the STATS tab files the damage (a topping proc's own key; the peel's ability when unset). */
+  private runEffects(fx: Effect[], ctx: { foot?: Foot; x?: number; y?: number }, color: number, vfx: Ability['vfx'], fromAbility = false, tag?: string): void {
     const cache = new Map<string, Foot[]>();
-    for (const e of fx) this.applyAbilityEffect(e, ctx, color, vfx, cache, fromAbility);
+    for (const e of fx) this.applyAbilityEffect(e, ctx, color, vfx, cache, fromAbility, tag);
   }
 
-  private applyAbilityEffect(e: Effect, ctx: { foot?: Foot; x?: number; y?: number }, color: number, vfx: Ability['vfx'], cache?: Map<string, Foot[]>, fromAbility = false): void {
+  private applyAbilityEffect(e: Effect, ctx: { foot?: Foot; x?: number; y?: number }, color: number, vfx: Ability['vfx'], cache?: Map<string, Foot[]>, fromAbility = false, tag?: string): void {
     const st = this.run.stats;
     const targets = (t: Target): Foot[] => {
       const k = JSON.stringify(t);
@@ -4358,7 +4487,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       case 'dmg':
         for (const f of targets(e.at)) {
           mark(f);
-          this.dealDamage(f, e.x * st.damage, { source: 'ability', knock: e.knock ?? 120, x: f.cx, y: f.cy, auto: !fromAbility });
+          this.dealDamage(f, e.x * st.damage, { source: 'ability', knock: e.knock ?? 120, x: f.cx, y: f.cy, auto: !fromAbility, tag });
           // a passive ability's hits pick up Freeze Frame (chill) and Cajun Shrimp (sometimes stun)
           if (fromAbility && f.alive && this.ability && !usesMeter(this.ability)) {
             if (st.freezeSlam) {
@@ -4414,7 +4543,7 @@ export class GameScene extends Phaser.Scene implements Arena {
             .sort((a, b) => Math.hypot(a.cx - prev.cx, a.cy - prev.cy) - Math.hypot(b.cx - prev.cx, b.cy - prev.cy))[0];
           if (!next || Math.hypot(next.cx - prev.cx, next.cy - prev.cy) > 700) break;
           this.fx.lightning(prev.cx, prev.cy, next.cx, next.cy);
-          this.dealDamage(next, e.x * st.damage, { source: 'ability' });
+          this.dealDamage(next, e.x * st.damage, { source: 'ability', tag });
           done.add(next);
           prev = next;
         }
@@ -4455,8 +4584,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       case 'throw':
         // Head Chef: one more prop with every throw
         this.throws.launch(e, this.kit.extraThrow(targets(e.at)), color, (f, x) => {
-          if (x > 0) this.dealDamage(f, x * st.damage, { source: 'ability', knock: e.knock ?? 120, x: f.cx, y: f.cy });
-          for (const r of e.on ?? []) this.applyAbilityEffect(r, { foot: f, x: f.cx, y: f.cy }, color, vfx, undefined, fromAbility);
+          if (x > 0) this.dealDamage(f, x * st.damage, { source: 'ability', knock: e.knock ?? 120, x: f.cx, y: f.cy, tag });
+          for (const r of e.on ?? []) this.applyAbilityEffect(r, { foot: f, x: f.cx, y: f.cy }, color, vfx, undefined, fromAbility, tag);
         });
         break;
       case 'stat':
@@ -4860,6 +4989,12 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.feet = this.feet.filter((f) => f.state !== 'gone');
       this.feetLayer.sort('y');
       this.passives(dt);
+      // the STATS tab's pace: real seconds with a foot on the table to smack
+      if (this.waveActive) {
+        let n = 0;
+        for (const f of this.feet) if (f.hittable) n++;
+        if (n) this.tally.tick(real, n);
+      }
       this.perkKit.update(dt);
       this.abilityTick(dt);
       this.procTick(dt);
@@ -4965,7 +5100,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       leaveNote,
       leave: canLeave ? () => this.leaveRun() : null,
       resume: () => this.resume(),
-      toppings: () => ui.yourToppings(this.yourToppings(), this.run.wave),
+      toppings: () => ui.yourToppings(this.yourToppings(), this.run.wave, () => this.statsView()),
       toppingCount: this.yourToppings().filter((y) => y.back === null).length,
       settings: () => {
         if (this.pauseEl) ui.close(this.pauseEl);

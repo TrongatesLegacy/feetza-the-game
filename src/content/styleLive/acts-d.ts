@@ -340,36 +340,6 @@ registerLive('valkyrie', {
   },
 });
 
-// Thrym: freezing mist pours off the boot, snow swirls round it, the ice glints and the rune breathes cold light;
-// overheated, it melts: meltwater drips off the icicles and steam rolls up.
-registerLive('thrym', {
-  glow: { rate: 0.5, depth: 0.45, base: 0.5 },
-  heat: {},
-  rig: { breath: 0.8 },
-  setup: (k) => ({ mist: k.emitter({ frame: 'soft', curl: 24, drag: 0.8, below: true, max: 140 }), snow: k.emitter({ frame: 'flake', curl: 40, drag: 0.4, max: 70 }), glint: k.emitter({ frame: 'spark', add: true, drag: 0, max: 10 }), drips: k.emitter({ frame: 'drop', drag: 0.15, max: 40 }), steam: k.emitter({ frame: 'soft', curl: 40, drag: 0.8, max: 80 }) }),
-  tick(k, dt, { mist, snow, glint, drips, steam }) {
-    const s = k.f.type.scale;
-    mist.rate('mist', 10 * (1 - k.heat * 0.6), dt, () => {
-      mist.emit(CX + pm() * 210, 250 + R() * 30, { vx: pm() * 40, vy: 20 + R() * 20, life: 2.2 + R(), r0: 14 * s, r1: 60 * s, a: 0.32, tint: R() < 0.6 ? 0xe8f6ff : 0xbfe0f8, fade: 0.25, grav: 10 });
-    });
-    snow.rate('snow', 6 * (1 - k.heat * 0.7), dt, () => {
-      const a = R() * Math.PI * 2;
-      snow.emit(CX + Math.cos(a) * 150, 140 + Math.sin(a) * 130, { vx: -Math.sin(a) * 50, vy: Math.cos(a) * 30 + 10, life: 2, r0: 3.4 * s, r1: 2.6 * s, a: 0.9, tint: 0xffffff, spin: 3, fade: 0.2 });
-    });
-    glint.rate('ice', 1.6, dt, () => {
-      glint.emit(CX + pm() * 190, 30 + R() * 230, { life: 0.4, r0: 2, r1: 18 * s, a: 0.9, tint: 0xe8f8ff, fade: 0.4 });
-    });
-    if (k.heat > 0.08) {
-      drips.rate('melt', 10 * k.heat, dt, () => {
-        drips.emit(CX - 84 + Math.floor(R() * 9) * 21.5, 270, { vy: 20, life: 0.9, r0: 4 * s, r1: 3 * s, a: 0.85, tint: 0xbfe6ff, grav: 900, fade: 0.02 });
-      });
-      steam.rate('steam', 12 * k.heat, dt, () => {
-        steam.emit(CX + pm() * 200, 60 + R() * 160, { vx: pm() * 30, vy: -50 - R() * 40, life: 1.4 + R() * 0.6, r0: 10 * s, r1: 44 * s, a: 0.35 * k.heat, tint: 0xf4f8ff, fade: 0.2, grav: -20 });
-      });
-    }
-  },
-});
-
 // Surtr: flames lick up off the crown, embers stream up, lava drips off the sole and splashes when he lands;
 // overheated, the fire roars and throws sparks.
 registerLive('surtr', {

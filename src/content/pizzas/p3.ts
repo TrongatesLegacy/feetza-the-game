@@ -2,6 +2,7 @@
 // Their perks run in src/game/pizzaPerks.ts; their toppings are drawn in src/content/art/toppings-p3*.ts.
 // perkText must stay at 40 characters or fewer (one card line).
 import type { PizzaType } from '../../data/pizzas';
+import { tunaText } from '../../data/perkWave';
 
 export const pizzas: PizzaType[] = [
   // ——— Chef's Specials: simple, cheap, met early ———
@@ -18,7 +19,7 @@ export const pizzas: PizzaType[] = [
     shape: 'round', base: 'pesto', cheese: 0.7, toppings: ['chicken', 'sunDried', 'pineNut'], crust: '#d9a050', cost: 85, route: 'special',
   },
   {
-    id: 'tunasweetcorn', name: 'Tuna & Sweetcorn', perk: 'wave5Tips', perkText: 'Every 5th wave: +25 tips',
+    id: 'tunasweetcorn', name: 'Tuna & Sweetcorn', perk: 'wave5Tips', get perkText() { return tunaText(false); },
     shape: 'round', base: 'tomato', cheese: 0.6, toppings: ['tuna', 'sweetcorn', 'onion'], crust: '#d6a04c', cost: 45, route: 'special',
   },
   {

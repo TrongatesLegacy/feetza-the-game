@@ -396,8 +396,10 @@ registerLegacyLive('jotunheim', (ctx: LiveCtx): LiveScene => {
 });
 
 // ——— Bifröst Bridge ———
+// (redrawn with the location kit in src/content/art/scene-bifrost.ts, whose own live layer runs the bridge's light, the
+// cloud sea, the storm and the fire; this old layer stays for the before/after page, ?dev&stages)
 
-registerLive('bifrost', (ctx: LiveCtx): LiveScene => {
+registerLegacyLive('bifrost', (ctx: LiveCtx): LiveScene => {
   const k = new Kit(ctx.sc, ctx.layer);
   const below = cloudRow(k, 10, 560, 660, 0xffffff, 0.55, 14, 1.8);
   const dark = k.rect(0x30304a, 0, 0, 700, Phaser.BlendModes.MULTIPLY);

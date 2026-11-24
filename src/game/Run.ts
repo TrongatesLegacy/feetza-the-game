@@ -14,6 +14,9 @@ import { save, unlockPizza } from '../systems/save';
 /** Golden Crusts for the first time you ever beat a main boss (on top of the usual 5). */
 export const FIRST_KILL_CRUSTS = 20;
 
+/** The Pizzeria upgrades recompute reads (the STATS tab leaves them out to see what they add). */
+export const RUN_META = ['wrists', 'tips', 'apron', 'opinion'];
+
 /** The most tip boosts can add up to (see recompute). */
 export const TIP_MULT_CAP = 2.5;
 
@@ -484,14 +487,17 @@ export class Run {
   }
 
   /** extra: always-on peel ability stat changes, added before the caps. enhanced: the perks of
-   * enhanced pizzas among alivePerks, each worth 1.5 of a plain one. */
-  recompute(alivePerks: PizzaPerk[], extra: Partial<Record<keyof Stats, number>> = {}, enhanced: PizzaPerk[] = []): void {
+   * enhanced pizzas among alivePerks, each worth 1.5 of a plain one. noMeta: leave the Pizzeria's
+   * upgrades out (the STATS tab works out what they add). */
+  recompute(alivePerks: PizzaPerk[], extra: Partial<Record<keyof Stats, number>> = {}, enhanced: PizzaPerk[] = [], noMeta = false): void {
     const s = baseStats();
     // meta progression
-    s.damage *= 1 + 0.08 * this.meta('wrists');
-    s.coinMult += 0.1 * this.meta('tips');
-    s.luck += this.meta('apron');
-    s.freeRerolls += this.meta('opinion');
+    if (!noMeta) {
+      s.damage *= 1 + 0.08 * this.meta('wrists');
+      s.coinMult += 0.1 * this.meta('tips');
+      s.luck += this.meta('apron');
+      s.freeRerolls += this.meta('opinion');
+    }
     // upgrades
     for (const [id, lvl] of Object.entries(this.owned)) {
       const u = UPGRADE_BY_ID[id];

@@ -9,6 +9,7 @@
 import Phaser from 'phaser';
 import { drawChest, drawGhostRing, drawMeatball, drawMeteor } from '../art/perkProps';
 import { PIZZAS, enhancedText, type PizzaPerk } from '../data/pizzas';
+import { tunaTips } from '../data/perkWave';
 import { WAVES_PER_ACT, isActStart } from '../data/stages';
 import { save } from '../systems/save';
 import { audio } from '../systems/audio';
@@ -54,7 +55,8 @@ export function borrowLine(p: Pizza, enhanced: boolean): string | null {
 /** What the scene lends the kit (its private parts, as callbacks). */
 export interface PerkHost {
   run(): Run;
-  dealDamage(f: Foot, amount: number, source: 'explode' | 'olive' | 'cutter' | 'direct', knock?: number): void;
+  /** tag: where the STATS tab files it (each perk's own key). */
+  dealDamage(f: Foot, amount: number, source: 'explode' | 'olive' | 'cutter' | 'direct', knock?: number, tag?: string): void;
   giveTips(n: number, x: number, y: number): void;
   healPizza(p: Pizza, n: number): void;
   neighbours(p: Pizza): Pizza[];
@@ -109,7 +111,8 @@ export class PizzaPerkKit {
     return this.h.run();
   }
 
-  private boost(): number {
+  /** Napoletana's boost to every other perk. */
+  boost(): number {
     return 1 + 0.05 * (this.run.perkCounts.perkBoost ?? 0);
   }
 
@@ -233,11 +236,17 @@ export class PizzaPerkKit {
       m *= 1 + 0.2 * this.c('slayer');
     }
     if (f.type.mini) m *= 1 + 0.25 * this.c('miniDmg');
-    if (this.actStart()) m *= 1 + 0.1 * this.c('actStart');
+    return m * this.waveDmgMult(this.wave());
+  }
+
+  /** What every hit in wave n is worth, whatever the foot: Victory Lap, Night Shift, Moon Cheese. */
+  waveDmgMult(n: number): number {
+    let m = 1;
+    if (isActStart(n)) m *= 1 + 0.1 * this.c('actStart');
     // the cheap count first: the place only matters with a night pizza on the table
-    if (this.c('nightDmg') > 0 && NIGHT.has(locationFor(this.wave()))) m *= 1 + 0.2 * this.c('nightDmg');
+    if (this.c('nightDmg') > 0 && NIGHT.has(locationFor(n))) m *= 1 + 0.2 * this.c('nightDmg');
     // Moon Cheese: double damage the wave after a boss
-    if (this.wave() > 1 && isBossWave(this.wave() - 1)) m *= 1 + this.c('postBoss');
+    if (n > 1 && isBossWave(n - 1)) m *= 1 + this.c('postBoss');
     return m;
   }
 
@@ -285,7 +294,7 @@ export class PizzaPerkKit {
     a.shake(160, 0.004);
     for (const o of a.allFeet()) {
       if (!o.hittable || Math.abs(o.cx - x) > 120) continue;
-      this.h.dealDamage(o, st.damage, 'explode');
+      this.h.dealDamage(o, st.damage, 'explode', undefined, 'perk:fireLane');
       if (o.alive && !o.type.traits.includes('immuneBurn')) {
         o.burnT = Math.max(o.burnT, 3);
         o.burnDps = Math.max(o.burnDps, st.damage * 0.5);
@@ -360,7 +369,7 @@ export class PizzaPerkKit {
           onComplete: () => {
             ball.destroy();
             if (t && t.alive) {
-              this.h.dealDamage(t, this.run.stats.damage * k, 'olive', 300);
+              this.h.dealDamage(t, this.run.stats.damage * k, 'olive', 300, 'perk:meatball');
               a.fx.impact(t.cx, t.cy, false);
               a.fx.splat(t.cx, t.cy, false);
               a.quip(t.x, t.cy - 110, 'MEATBALL!', '#ff8a5a', 34);
@@ -535,7 +544,7 @@ export class PizzaPerkKit {
           bomb.destroy();
           if (!f.alive) return;
           a.fx.explosion(tx, ty, 140);
-          this.h.dealDamage(f, dmg, 'explode', 700);
+          this.h.dealDamage(f, dmg, 'explode', 700, 'perk:erupt');
           if (f.alive && !f.type.traits.includes('immuneBurn')) {
             f.burnT = Math.max(f.burnT, 4);
             f.burnDps = Math.max(f.burnDps, this.run.stats.damage);
@@ -606,11 +615,12 @@ export class PizzaPerkKit {
     // Speed Slice's goal: the time feet were on the table, on a wave of 6 or more
     if (this.waveKills >= 6) g.fastWave = Math.min(g.fastWave ?? 99, Math.round(this.footTime * 10) / 10);
     this.removeChest(true);
-    const tuna = this.c('wave5Tips');
-    if (tuna && n % 5 === 0) {
-      const p = this.with('wave5Tips')[0];
-      this.h.giveTips(Math.round(25 * tuna), p?.x ?? 960, (p?.surfaceY ?? 800) - 80);
-      if (p) a.quip(p.x, p.surfaceY - 170, 'TUNA TIME!', '#ffe08a', 34);
+    // Tuna & Sweetcorn: every wave pays 5 tips × the wave number (enhanced: 10 ×)
+    const tunas = this.with('wave5Tips').filter((p) => p !== this.a.possessed());
+    if (tunas.length) {
+      const p = tunas[0];
+      this.h.giveTips(Math.round(tunas.reduce((t, q) => t + tunaTips(n, q.enhanced), 0) * this.boost()), p.x, p.surfaceY - 80);
+      a.quip(p.x, p.surfaceY - 170, 'TUNA TIME!', '#ffe08a', 34);
     }
     const perfectK = this.c('perfectTips');
     if (perfect && perfectK && earned > 0) {
@@ -732,7 +742,7 @@ export class PizzaPerkKit {
         a.shake(180, 0.006);
         a.sfx('sfx_explosion', { volume: 0.7, throttle: 80 });
         if (f.alive) {
-          this.h.dealDamage(f, dmg, 'explode', 500);
+          this.h.dealDamage(f, dmg, 'explode', 500, 'perk:meteor');
           a.quip(f.x, f.cy - 130, 'METEOR!', '#ff9a3a', 40);
         }
       },
@@ -774,7 +784,7 @@ export class PizzaPerkKit {
         if (!f.hittable || f.distanceTo(x, y) > 70) continue;
         if ((this.ringCd.get(f) ?? 0) > a.now()) continue;
         this.ringCd.set(f, a.now() + 0.6);
-        this.h.dealDamage(f, dmg, 'cutter', 120);
+        this.h.dealDamage(f, dmg, 'cutter', 120, 'perk:orbitRing');
         a.fx.impact(x, y, false);
         a.sfx('sfx_slap_2', { volume: 0.35, rate: 1.2, throttle: 80 });
       }
