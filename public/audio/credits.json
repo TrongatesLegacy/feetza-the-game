@@ -7960,5 +7960,93 @@
     "url": "https://freesound.org/people/patchen/sounds/20185/",
     "notes": "Leonidas's Hot Gates: King Leonidas's Hold the Line, raised or renewed: the phalanx's war chant, HOOOOH... HOO! HOO!, spears banged on bronze shields on the beats: the stamp, an octave down; trimmed, pitch-shifted and layered",
     "attribution": "\"Foot Stomp C.wav\" by patchen (freesound.org), https://freesound.org/people/patchen/sounds/20185/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_wolfpupyip.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Wolf-Pup Paws: the litter yips as it arrives; three synthesized puppy yips, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_wolfpuphurt.mp3",
+    "title": "Impact Sounds (impactSoft_medium_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Wolf-Pup Paws: a pup yelps when smacked; layered with a synthesized puppy yelp (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_wolfpupdie.mp3",
+    "title": "Impact Sounds (footstep_snow_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Wolf-Pup Paws: a yelp falling to a whine (defeated); layered with Impact Sounds impactSoft_medium_003 (Kenney, CC0) and a synthesized yelp falling to a whine (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_berserkerspawn.mp3",
+    "title": "Impact Sounds (footstep_snow_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Berserker Boots: a war cry as it arrives; layered with RPG Audio cloth2 (Kenney, CC0) and a synthesized war cry (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_berserkerhurt.mp3",
+    "title": "Impact Sounds (impactPunch_medium_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Berserker Boots: a grunt when smacked; layered with a synthesized grunt (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_berserkerrage.mp3",
+    "title": "Impact Sounds (impactPunch_heavy_000)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Berserker Boots: its berserk roar and war drums (it enrages); layered with Impact Sounds impactPunch_heavy_001, impactPunch_heavy_002 (Kenney, CC0) and a synthesized berserker roar over war-drum hits (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_berserkerdie.mp3",
+    "title": "Impact Sounds (impactPunch_heavy_003)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Berserker Boots: a dying groan and a heavy fall (defeated); layered with Impact Sounds footstep_snow_004 and RPG Audio dropLeather (Kenney, CC0) and a synthesized dying groan (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_shieldmaidenspawn.mp3",
+    "title": "Impact Sounds (impactWood_heavy_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Shieldmaiden Sabatons: a shield bang, mail and a battle shout as it arrives; layered with Impact Sounds impactMetal_medium_001, impactMetal_light_003 and RPG Audio metalLatch, metalClick (Kenney, CC0) and a synthesized battle shout and mail jingle (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_shieldmaidenparry.mp3",
+    "title": "Impact Sounds (impactMetal_heavy_003)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Shieldmaiden Sabatons: the shield boss rings as it turns a smack aside; layered with Impact Sounds impactPlate_medium_002, impactWood_medium_001 (Kenney, CC0) and a synthesized ringing shield-boss clang (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_shieldmaidenhurt.mp3",
+    "title": "Impact Sounds (impactPlate_light_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Shieldmaiden Sabatons: a grunt and a rattle of mail when smacked; layered with RPG Audio metalLatch and Impact Sounds impactMetal_light_003 (Kenney, CC0) and a synthesized grunt and mail rattle (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_shieldmaidendie.mp3",
+    "title": "Impact Sounds (impactPlate_heavy_002)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "Shieldmaiden Sabatons: a gasp, armour and her shield falling (defeated); layered with RPG Audio metalClick, metalLatch and Impact Sounds impactMetal_light_003, impactMetal_light_001, impactWood_medium_003, impactWood_light_002, impactWood_light_004 (Kenney, CC0) and a synthesized gasp, armour and a falling shield (original, made for Feetza with ffmpeg and Python, CC0)"
   }
 ]

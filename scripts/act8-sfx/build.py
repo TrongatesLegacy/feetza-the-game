@@ -1,4 +1,5 @@
-"""Render the Act 8 recipes.  usage: KENNEY=... python3 -I build.py OUTDIR [key-substring ...]"""
+"""Render the Act 8 recipes.  usage: KENNEY=... [RECIPES=recipes_act8a] python3 -I build.py OUTDIR [key-substring ...]
+(RECIPES picks the recipe module: recipes_act8, the default, or recipes_act8a for the first batch of new feet.)"""
 import json
 import multiprocessing as mp
 import os
@@ -7,7 +8,9 @@ import traceback
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'boss-sfx'))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import recipes_act8  # noqa: F401  (registers)
+import importlib
+
+importlib.import_module(os.environ.get('RECIPES', 'recipes_act8'))  # registers its recipes
 from render import REG, build
 
 OUT = sys.argv[1]

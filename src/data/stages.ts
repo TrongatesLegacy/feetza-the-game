@@ -182,7 +182,8 @@ export const BOSS_CREW: Record<string, string[]> = {
   // ——— Act 7 · Comics (Thanfoot's army is new feet, still to come: he keeps the usual crowd) ———
   doomstomp: ['henchman', 'goon', 'jetpack'],
   // ——— Act 8 · Norse ———
-  thrym: ['frostgiant', 'troll'],
+  // (the giants keep Fenrir's kin: the wolf pups run in his hall)
+  thrym: ['frostgiant', 'troll', 'wolfpup'],
   surtr: ['lava', 'draugr'],
   // ——— Act 9 · Greek myths ———
   medusa: ['harpy', 'siren', 'satyr'],
@@ -199,7 +200,7 @@ export const BOSS_CREW: Record<string, string[]> = {
 /** A mini-boss's escort (regular foot ids): 2–4 of them arrive with it (ordinary wave feet, not summons), and for the
  * rest of that wave the queue leans three to one towards them (GameScene.spawnMini, leanQueue in src/game/Run.ts).
  * Minis that bring or make their own (the Pigeon King, Ultoe, the Immortal Brute, Kronos, the Zombie Loafer) and
- * the rest (Jörmungandr, the Minotaur, the comic heroes' minis, Fenrir until his Wolf-Pups land) have none. */
+ * the rest (Jörmungandr, the Minotaur, the comic heroes' minis) have none. */
 export const MINI_ESCORT: Record<string, string[]> = {
   headwaiter: ['waiter'],
   sweep: ['antenna', 'parkour'],
@@ -213,6 +214,8 @@ export const MINI_ESCORT: Record<string, string[]> = {
   lumberjack: ['hiking', 'snowshoe'],
   lexlugtoe: ['henchman'],
   cerberus: ['hoplite'],
+  // his litter tumbles in with him
+  fenrir: ['wolfpup'],
   // the Oven's echoes with the Mirror Peel; all five with the Ghost of Feet Future
   mirrorpeel: ['echobot', 'echoghost', 'echocowboy'],
   ghostfuture: ['echobot', 'echoghost', 'echocowboy', 'echoclown', 'echodino'],

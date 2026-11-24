@@ -3491,7 +3491,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       f.flash(0xd9a441, 90);
       this.fx.ring(o.x ?? f.cx, o.y ?? f.cy, 0xffd34d, 0.8, 1);
       this.fx.quip(f.x, f.cy - 110, 'PARRIED!', '#ffd34d', 42);
-      audio.sfx('sfx_shield');
+      if (!contentFx.parry(this, f)) audio.sfx('sfx_shield');
       return;
     }
     // a raised guard shield blocks the smack and cracks (its badge's pips show what it can still take); the last

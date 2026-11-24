@@ -3,6 +3,9 @@
 // - Draugr Boots rise again once (the 'revive' trait), unless they were ever set burning.
 // - Troll Feet follow your peel from pizza to pizza, and turn to stone in the sun-gap's light.
 // - Valkyrie-Cursed Clogs always fly in as a pair, swooping down from the top.
+// - Wolf-Pup Paws, Berserker Boots and Shieldmaiden Sabatons: their traits do the work (swarm and woolly, rush and
+//   enrage, parry); here they get their voices (arrival, hurt, death) and their trait moments (the litter's yips,
+//   the berserker's rage, the shield's clang, which also tells its live layer to swing the shield).
 // It also tells the Norse backdrops which wave of the stage it is (see actFx at the end).
 
 import Phaser from 'phaser';
@@ -294,6 +297,52 @@ const valkyrie: FootFx = {
   },
 };
 
+// ——— Wolf-Pup Paws, Berserker Boots, Shieldmaiden Sabatons ———
+
+/** A foot's hurt sound on a hit that didn't kill it (the killing blow gets its death sound instead). */
+const hurt = (key: string, volume = 0.7, gap = 260) => (a: Arena, f: Foot, dealt: number, source: string) => {
+  if (f.hp <= 0 || (dealt <= 0 && source !== 'smack')) return;
+  a.sfx(key, { volume, throttle: gap });
+};
+
+const wolfpup: FootFx = {
+  // the litter arrives together: one chorus of yips for the three
+  spawn: (a) => a.sfx('sfx_wolfpupyip', { volume: 0.85, throttle: 700 }),
+  hit: hurt('sfx_wolfpuphurt', 0.65, 220),
+  kill: (a, f) => {
+    a.sfx('sfx_wolfpupdie', { volume: 0.8, throttle: 150 });
+    a.fx.puff(f.cx, f.cy, 6);
+  },
+};
+
+const berserker: FootFx = {
+  spawn: (a) => a.sfx('sfx_berserkerspawn', { volume: 0.8, throttle: 500 }),
+  hit: (a, f, dealt, source) => {
+    // the moment it rages (the enrage trait set it just before this hook): a war roar, a red flash
+    if (f.enraged && !f.brain.raged && f.hp > 0) {
+      f.brain.raged = true;
+      a.sfx('sfx_berserkerrage');
+      a.fx.ring(f.cx, f.cy, 0xff3a1a, 1.1, 0.6);
+      a.shake(120, 0.003);
+      return;
+    }
+    hurt('sfx_berserkerhurt', 0.7)(a, f, dealt, source);
+  },
+  kill: (a) => a.sfx('sfx_berserkerdie', { throttle: 150 }),
+};
+
+const shieldmaiden: FootFx = {
+  spawn: (a) => a.sfx('sfx_shieldmaidenspawn', { volume: 0.75, throttle: 500 }),
+  hit: hurt('sfx_shieldmaidenhurt', 0.7),
+  parry: (a, f) => {
+    // the live layer swings the shield out when this count changes (src/content/styleLive/act8a.ts)
+    f.brain.parries = Number(f.brain.parries ?? 0) + 1;
+    a.sfx('sfx_shieldmaidenparry');
+    return true;
+  },
+  kill: (a) => a.sfx('sfx_shieldmaidendie', { throttle: 150 }),
+};
+
 export const footFx: Record<string, FootFx> = {
   frostgiant,
   draugr,
@@ -302,6 +351,9 @@ export const footFx: Record<string, FootFx> = {
     spawn: (a) => void tickSun(a, 0),
   },
   valkyrie,
+  wolfpup,
+  berserker,
+  shieldmaiden,
 };
 
 /** The act's weather: the Norse backdrops' live layers (src/content/live/act8.ts) change with the wave

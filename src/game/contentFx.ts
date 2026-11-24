@@ -29,6 +29,11 @@ export interface FootFx {
   /** Every frame it's alive (game time). */
   tick?(a: Arena, f: Foot, dt: number): void;
   kill?(a: Arena, f: Foot): void;
+  /** Damage landed on it (after armour), from any source. */
+  hit?(a: Arena, f: Foot, dealt: number, source: string): void;
+  /** Its parry turned a smack aside (the 'parry' trait). Return true if it played its own sound (then the stock
+   * shield sound is skipped). */
+  parry?(a: Arena, f: Foot): boolean;
   /** Return true to cancel a killing blow (the foot stays on 1 HP or whatever the hook sets). */
   spare?(a: Arena, f: Foot, source: string): boolean;
 }
@@ -67,6 +72,10 @@ export const contentFx = {
   },
   hit(a: Arena, f: Foot, x: number, y: number, dealt: number, crit: boolean, source: string): void {
     if (current !== null) ACTS[current]?.hit?.(a, f, x, y, dealt, crit, source);
+    FEET[f.type.id]?.hit?.(a, f, dealt, source);
+  },
+  parry(a: Arena, f: Foot): boolean {
+    return FEET[f.type.id]?.parry?.(a, f) ?? false;
   },
   kill(a: Arena, f: Foot): void {
     if (current !== null) ACTS[current]?.kill?.(a, f);

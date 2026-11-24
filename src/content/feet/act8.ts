@@ -1,4 +1,4 @@
-// Act 8 · Norse (waves 71–80): Jotunheim Ice Fields and Bifröst Bridge. Four regular feet and the
+// Act 8 · Norse (waves 71–80): Jotunheim Ice Fields and Bifröst Bridge. Seven regular feet and the
 // act's four bosses. Art kinds are drawn in src/content/art/act8.ts; the feet's own behaviour (chill,
 // stone in sunlight, rising again, flying in pairs) lives in src/game/feet/act8.ts and the fights in
 // src/game/bosses/act8.ts.
@@ -56,11 +56,49 @@ export const feet: FootType[] = [
     quips: ['HOJOTOHO!', 'TO VALHALLA!', 'WINGS OF WOOD!'],
     art: { kind: 'n_valkyrie', skin: '#f1cdb0', primary: '#c98a3a', secondary: '#f4f1e8', leg: 'armor', legColor: '#b8c2cc', legAccent: '#f2c14e' },
   },
+  // (Act 8's new Jotunheim feet, first three: art in src/content/style/acts-d-4.ts, life in play in
+  // src/content/styleLive/act8a.ts, sounds and trait moments in src/game/acts/act8.ts)
+  {
+    id: 'wolfpup',
+    name: 'Wolf-Pup Paws',
+    desc: "Fenrir's litter: fluffy, fast and always three at once. Their thick puppy fluff soaks up the first smack or two.",
+    hp: 12, speed: 1.5, armor: 0, stompDmg: 1, coins: 6, score: 220, scale: 0.62, minWave: 71, weight: 5,
+    traits: ['swarm', 'woolly'],
+    home: 'jotunheim',
+    howTo: 'Three come at once and the fluff eats the first 15 damage: sweep them with area smacks, or hit each one twice',
+    tell: 'A chorus of yips as the litter tumbles in together',
+    quips: ['YIP YIP!', 'AWOO? AWOO!', 'PIZZA IS PREY!'],
+    art: { kind: 'bigfoot', skin: '#3a3034', nails: '#a89c8c', primary: '#8a909c', secondary: '#efe6d4', leg: 'fur', legColor: '#7e8490' },
+  },
+  {
+    id: 'berserker',
+    name: 'Berserker Boots',
+    desc: 'A bear-skin warrior\'s boots, daubed in war paint. Barely pauses before it drops, and once you hurt it badly it flies into a rage and comes down faster still.',
+    hp: 56, speed: 1.15, armor: 1, stompDmg: 1, coins: 18, score: 560, scale: 1.05, minWave: 72, weight: 7,
+    traits: ['enrage', 'rush'],
+    home: 'jotunheim',
+    howTo: 'It drops almost at once: be over it as it arrives, and finish it fast once it rages (below half health it is half again as fast)',
+    tell: 'A war roar and red steam when it rages; its war paint glows',
+    quips: ['ODIN TAKE ME!', 'BLOOD AND THUNDER!', 'RAAAAGH!'],
+    art: { kind: 'boot', skin: '#d9a27a', nails: '#d8c8a8', primary: '#4e3424', secondary: '#5a3e2a', leg: 'jeans', legColor: '#7a6a56', legAccent: '#3a2618' },
+  },
+  {
+    id: 'shieldmaiden',
+    name: 'Shieldmaiden Sabatons',
+    desc: 'Steel sabatons and a painted round shield. She turns the first smack of every dive aside with it.',
+    hp: 78, speed: 0.85, armor: 3, stompDmg: 1, coins: 20, score: 600, scale: 1.1, minWave: 74, weight: 7,
+    traits: ['parry'],
+    home: 'jotunheim',
+    howTo: 'Her shield takes the first smack of each dive: tap it once to draw the block, then hit her for real',
+    tell: 'Her shield swings up with a clang and a flash of gold when it turns a smack',
+    quips: ['SHIELD WALL!', 'FOR THE HALL!', 'NOT TODAY!'],
+    art: { kind: 'knight', skin: '#f1cdb0', primary: '#a9b4c2', secondary: '#c89a3a', leg: 'armor', legColor: '#9aa4b2', legAccent: '#2a4f86' },
+  },
   // ——— Bosses ———
   {
     id: 'thrym',
     name: 'THRYM THE FROST KING',
-    desc: 'Boss. The king of the frost giants, in a boot of blue glacier ice. Freezes pizzas solid and rebuilds his ice fortress around the table. Brings his frost giants and trolls.',
+    desc: 'Boss. The king of the frost giants, in a boot of blue glacier ice. Freezes pizzas solid and rebuilds his ice fortress around the table. Brings his frost giants, trolls and their wolf pups.',
     // (6600, was 7400: the fortress, ice and hail keep the peel busy, and the fight ran 4–6 minutes on Regular)
     hp: 6600, speed: 0.5, armor: 6, stompDmg: 1, coins: 380, score: 47000, scale: 2.2, minWave: 75, weight: 0,
     traits: ['heavy', 'immuneSlow'],
@@ -89,7 +127,7 @@ export const feet: FootType[] = [
   {
     id: 'fenrir',
     name: "FENRIR'S PAW",
-    desc: 'Mini-boss. A colossal wolf paw bound by the magic chain Gleipnir. Every smack strains the chain, and three breaks set it loose.',
+    desc: 'Mini-boss. A colossal wolf paw bound by the magic chain Gleipnir. Every smack strains the chain, and three breaks set it loose. His wolf-pup litter runs in with him.',
     hp: 2700, speed: 0.8, armor: 3, stompDmg: 2, coins: 150, score: 13000, scale: 1.6, minWave: 73, weight: 0,
     traits: [],
     mini: true,

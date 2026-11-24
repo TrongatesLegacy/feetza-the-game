@@ -733,6 +733,12 @@ export const ABILITIES: Record<string, Ability> = {
   'foot:draugr': ab('Barrow Blaze', kill(0.3), [B(1.5, 3, hit(200)), D(1.5, hit(200))], GREEN, 'fire'),
   'foot:troll': ab('Sunlight', every(8), [ST(2.5, tough(1)), M(2, 3, tough(1))], GOLD, 'burst'),
   'foot:valkyrie': ab('Ride of the Valkyries', every(5), [D(2.5, rnd(2)), K(600, rnd(2))], WHITE, 'rain'),
+  // a kill sets the litter on three more feet, nipping and slowing them
+  'foot:wolfpup': ab('Pack Hunt', kill(0.35), [D(1.5, rnd(3)), S(0.3, 2, rnd(3))], 0x9aa3ad, 'wind'),
+  // a pizza hit sends you berserk: the foot that did it and its neighbours take the fury
+  'foot:berserker': ab('Berserkergang', stomp, [D(3, hit(200), 700), ST(0.8, hit(200))], RED, 'fire'),
+  // a shield for your weakest pizza and a shove for the front feet, on a steady beat
+  'foot:shieldmaiden': ab('Shield Wall', every(9), [SH(1, 'weakest'), K(650, front(2))], 0x2a4f86, 'heal'),
 
   // ——— Act 9 · Greek myths: its place, event, feet, Titans and bosses ———
   'place:labyrinth': ab('Dead End', every(7), [ST(1.5, front(3)), D(2, front(3))], BROWN, 'burst'),
