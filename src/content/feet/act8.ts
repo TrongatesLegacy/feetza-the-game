@@ -74,7 +74,7 @@ export const feet: FootType[] = [
     id: 'berserker',
     name: 'Berserker Boots',
     desc: 'A bear-skin warrior\'s boots, daubed in war paint. Barely pauses before it drops, and once you hurt it badly it flies into a rage and comes down faster still.',
-    hp: 56, speed: 1.15, armor: 1, stompDmg: 1, coins: 18, score: 560, scale: 1.05, minWave: 72, weight: 7,
+    hp: 48, speed: 1.15, armor: 1, stompDmg: 1, coins: 17, score: 540, scale: 1.05, minWave: 72, weight: 5,
     traits: ['enrage', 'rush'],
     home: 'jotunheim',
     howTo: 'It drops almost at once: be over it as it arrives, and finish it fast once it rages (below half health it is half again as fast)',

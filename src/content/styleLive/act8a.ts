@@ -5,7 +5,7 @@
 import { CX } from '../../art/feetCommon';
 import { type LiveFoot, registerLive } from '../../game/liveKit';
 import { crand } from '../../systems/cosmeticRandom';
-import { BERSERK_PAINT } from '../style/acts-d-4';
+import { BERSERK_PAINT, SHIELD } from '../style/acts-d-4';
 
 const R = () => crand();
 const pm = () => crand() - 0.5;
@@ -80,7 +80,7 @@ registerLive<{ steam: Em; embers: Em; snow: Em; hair: Em }>('berserker', {
       steam.rate('rage', 16 * h, dt, () => {
         steam.emit(CX + pm() * 200, 20 + R() * 80, { vx: pm() * 40, vy: -60 - R() * 60, life: 1 + R() * 0.6, r0: 10 * s, r1: 42 * s, a: 0.32 * h, tint: R() < 0.5 ? 0xffe4dc : 0xf4f0f0, fade: 0.2, grav: -30 });
       });
-      embers.rate('spark', 9 * h, dt, () => {
+      embers.rate('spark', 18 * h, dt, () => {
         const [x0, y0, x1, y1] = BERSERK_PAINT[Math.floor(R() * BERSERK_PAINT.length)];
         const u = R();
         embers.emit(x0 + (x1 - x0) * u, y0 + (y1 - y0) * u, { vx: pm() * 50, vy: -80 - R() * 90, life: 0.7 + R() * 0.5, r0: 2.8 * s, r1: 0.8 * s, a: 1, tint: R() < 0.5 ? 0xff5a2a : 0xffb060, grav: -40, fade: 0.05 });
@@ -107,7 +107,12 @@ registerLive<{ snow: Em; sparks: Em; seen: number; t: number }>('shieldmaiden', 
     if (parries !== st.seen) {
       st.seen = parries;
       st.t = 0;
-      for (let i = 0; i < 10; i++) st.sparks.emit(CX - 70 + pm() * 40, 120 + pm() * 50, { vx: -120 - R() * 200, vy: pm() * 260, life: 0.35, r0: 3, r1: 14 * s, a: 1, tint: R() < 0.5 ? 0xffe08a : 0xffffff, fade: 0.3 });
+      // sparks off the shield's face where it is when it snaps out (turned about its strap)
+      const [px, py] = SHIELD.pivot;
+      const a = 0.45;
+      const sx = px + (SHIELD.x - px) * Math.cos(a) - (SHIELD.y - py) * Math.sin(a);
+      const sy = py + (SHIELD.x - px) * Math.sin(a) + (SHIELD.y - py) * Math.cos(a);
+      for (let i = 0; i < 10; i++) st.sparks.emit(sx + pm() * 40, sy + pm() * 50, { vx: -120 - R() * 200, vy: pm() * 260, life: 0.35, r0: 3, r1: 14 * s, a: 1, tint: R() < 0.5 ? 0xffe08a : 0xffffff, fade: 0.3 });
     }
     st.t += dt;
     const img = k.swayImg('shield');

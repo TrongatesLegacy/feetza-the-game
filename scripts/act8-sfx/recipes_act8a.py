@@ -87,7 +87,7 @@ def _():
 
 
 # ======================= Shieldmaiden Sabatons =======================
-@S('sfx_shieldmaidenspawn', TELL, 1.0, syn='a synthesized battle shout and mail jingle')
+@S('sfx_shieldmaidenspawn', TELL, 1.0, syn='a synthesized battle shout')
 def _():
     ha = shout(0.32, [(0, 310), (0.08, 380), (0.32, 300)], [850, 1400, 2900], k=1.8, seed=21)
     ha = shape(ha, [(0, 0), (0.08, 1), (0.6, 0.8), (1, 0)])

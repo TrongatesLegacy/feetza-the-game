@@ -314,7 +314,9 @@ function queueUnits(queue: string[]): string[][] {
 export function escortArrival(queue: string[], escort: FootType[], count: number): FootType[] {
   const pick = () => escort[Math.floor(Math.random() * escort.length)];
   const now = Array.from({ length: count }, pick);
-  const rest = queueUnits(queue).slice(count).map((u) => (Math.random() < ESCORT_LEAN ? unitOf(pick()) : u));
+  // (a swarm escort is three feet a unit: it leans a third as hard, so the wave doesn't swell to two or three times its size)
+  const lean = escort.every((f) => isSwarm(f)) ? ESCORT_LEAN / 3 : ESCORT_LEAN;
+  const rest = queueUnits(queue).slice(count).map((u) => (Math.random() < lean ? unitOf(pick()) : u));
   queue.splice(0, queue.length, ...rest.flat());
   return now;
 }

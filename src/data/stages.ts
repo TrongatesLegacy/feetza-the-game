@@ -198,7 +198,7 @@ export const BOSS_CREW: Record<string, string[]> = {
 };
 
 /** A mini-boss's escort (regular foot ids): 2–4 of them arrive with it (ordinary wave feet, not summons), and for the
- * rest of that wave the queue leans three to one towards them (GameScene.spawnMini, leanQueue in src/game/Run.ts).
+ * rest of that wave the queue leans three to one towards them (a swarm escort, a third as hard: each unit is three feet) (GameScene.spawnMini, leanQueue in src/game/Run.ts).
  * Minis that bring or make their own (the Pigeon King, Ultoe, the Immortal Brute, Kronos, the Zombie Loafer) and
  * the rest (Jörmungandr, the Minotaur, the comic heroes' minis) have none. */
 export const MINI_ESCORT: Record<string, string[]> = {

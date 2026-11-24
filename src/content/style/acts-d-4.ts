@@ -331,7 +331,7 @@ function drawPup(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
   strands(g, r, { x: CX - 58, y: PUP_CORD.y - 8, w: 116, h: 8 }, 60, 9, () => Math.PI / 2, coat);
   if (!o.live) for (let i = 0; i < PUP_TUFTS.length; i++) paintPupTuft(g, i, fur, cream);
   sil.edge(rgba('#06060e', 0.4), 18, LX * 10, LY * 10);
-  sil.edge(rgba(LIGHT.rim, 0.6), 2.5, LX * 3, LY * 3);
+  sil.edge(rgba(LIGHT.rim, 0.8), 2.5, LX * 3, LY * 3);
   sil.finish(inkOf('#22222c'), { openTop: -5, inner: 0.3 });
   if (!o.live) paintPupTag(ctx);
 }
@@ -353,7 +353,7 @@ registerStyle('wolfpup', {
 
 // ════════════════════════ Berserker Boots ════════════════════════
 // A berserker's soft Norse boot of dark oiled leather (a turnshoe: one seam down the vamp, hobnails round the sole),
-// a raw-hide thong wound round it under a bear pelt: the pelt's shaggy brown fur wraps the top of the boot, and one
+// under a bear pelt: the pelt's shaggy brown fur wraps the top of the boot, and one
 // of the bear's paws hangs down its front, claws and all. Three claw-marks of red war paint are smeared across the
 // toe. His leg is wound in wool wraps, cross-gartered. Hurt it and it rages: the paint and the leather glow red hot
 // (its heat layer), and it steams.
@@ -437,6 +437,8 @@ function paintBearPaw(g: Ctx, fur: string, horn: string): void {
   within(g, pw.body, () => {
     strands(g, r, { x: x - 36, y: y - 6, w: 72, h: 102 }, 340, 12, () => Math.PI / 2, (_x, yy) => mix(fur, '#c89a6a', Math.max(0, (yy - y) / 220)));
     ao(g, x, y + 2, 26, 9, 0.55, 0, '#0a0604');
+    // a dark rim round its edge, so it stands off the pelt behind it
+    softStroke(g, (c) => pw.body(c), rgba('#120a04', 0.6), 6, 3);
   });
   // the four knuckles at its end, then the claws
   for (const [dx, rr] of [[-21, 9], [-7, 10], [7, 10], [21, 9]] as const) {
@@ -534,23 +536,6 @@ function drawBerserker(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
     }
     spec(g, CX - 54, 170, 22, 46, 0.32, 0.1);
     spec(g, CX - 32, 228 - flex * 5, 28, 9, 0.4, -0.1);
-    // a raw-hide thong wound twice round the boot, a bone toggle at the front
-    for (const y of [126, 140]) {
-      const th: PathFn = (c) => {
-        c.beginPath();
-        c.moveTo(CX - 106, y - 3);
-        c.quadraticCurveTo(CX, y + 9, CX + 106, y - 3);
-        c.lineTo(CX + 106, y + 3);
-        c.quadraticCurveTo(CX, y + 15, CX - 106, y + 3);
-        c.closePath();
-      };
-      piece(g, th, box, 'leather', '#c09060', { shadow: 0.7, size: 3, texA: 0.3 });
-    }
-    const tog = rrect(CX + 26, 134, 30, 9, 4.5);
-    piece(g, tog, { x: CX + 26, y: 134, w: 30, h: 9 }, DMAT.bone, '#e6d6b0', { shadow: 0.7, size: 3 });
-    within(g, tog, () => {
-      for (const x of [CX + 34, CX + 42, CX + 50]) crease(g, (c) => { c.moveTo(x, 134); c.lineTo(x - 2, 143); }, 1, '#5a3a20', 0.5, 0.2);
-    });
     // the war paint: three claw-marks smeared on with the fingers, dry and cracked where the leather bends
     for (const [x0, y0, x1, y1] of BERSERK_PAINT) {
       const stroke = (c: Ctx) => {
@@ -587,7 +572,14 @@ function drawBerserker(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
   fl.addColorStop(1, rgba('#0a0408', 0.4));
   g.fillStyle = fl;
   g.fillRect(box.x, box.y, box.w, 290);
-  if (!o.live) paintBearPaw(g, pawFur(bear), horn);
+  // the paw's shadow on the leather (it hangs a little off the boot)
+  ao(g, BERSERK_PAW[0] + 4, BERSERK_PAW[1] + 100, 30, 8, 0.45, 0, '#0a0604');
+  if (!o.live) {
+    paintBearPaw(g, pawFur(bear), horn);
+    // its root grows out of the pelt: the pelt's fur falls over it
+    const [px, py] = BERSERK_PAW;
+    strands(g, rng(hashStr('paw-root')), { x: px - 30, y: py - 14, w: 60, h: 16 }, 90, 14, () => Math.PI / 2, () => mix(bear, tips, 0.3));
+  }
   oneLight(sil, '#0a0406', 0.4, 18);
   sil.finish(inkOf(leather), { openTop: -5 });
 }
@@ -919,6 +911,19 @@ function drawShieldmaiden(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
     g.restore();
     hoarfrost(g, { x: CX - 100, y: 200, w: 200, h: 66 }, r, 0.22, 467, 26, 0.5, 0.15);
   });
+  // the shield's strap: a leather guige from under the mail skirt down to the grip it hangs from
+  const [sx, sy] = SHIELD.pivot;
+  const strap: PathFn = (c) => {
+    c.beginPath();
+    c.moveTo(sx - 9, 64);
+    c.quadraticCurveTo(sx - 12, (64 + sy) / 2, sx - 6, sy + 4);
+    c.lineTo(sx + 6, sy + 4);
+    c.quadraticCurveTo(sx, (64 + sy) / 2, sx + 3, 64);
+    c.closePath();
+  };
+  piece(g, strap, { x: sx - 14, y: 60, w: 22, h: sy - 56 }, 'leather', '#6a4424', { shadow: 0.7, size: 4, texA: 0.4 });
+  stitches(g, (c) => { c.moveTo(sx - 7, 68); c.quadraticCurveTo(sx - 9, (64 + sy) / 2, sx - 3, sy); }, rgba('#d8b888', 0.6), 1, 2.5, 2.5);
+  rivet(g, sx - 2, sy - 2, 3, brass);
   oneLight(sil, '#06081a', 0.42, 18);
   sil.finish(inkOf(shade(steel, -0.3)), { openTop: -5, inner: 0.35 });
   if (!o.live) paintShield(ctx, art);

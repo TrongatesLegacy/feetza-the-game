@@ -299,9 +299,13 @@ const valkyrie: FootFx = {
 
 // ——— Wolf-Pup Paws, Berserker Boots, Shieldmaiden Sabatons ———
 
+/** Hits a foot voices: your smacks, slams, abilities and direct hits (not burn, garlic, splash or chain ticks, which
+ * land several times a second). */
+const VOICED = new Set(['smack', 'slam', 'ability', 'direct']);
+
 /** A foot's hurt sound on a hit that didn't kill it (the killing blow gets its death sound instead). */
-const hurt = (key: string, volume = 0.7, gap = 260) => (a: Arena, f: Foot, dealt: number, source: string) => {
-  if (f.hp <= 0 || (dealt <= 0 && source !== 'smack')) return;
+const hurt = (key: string, volume = 0.7, gap = 260) => (a: Arena, f: Foot, _dealt: number, source: string) => {
+  if (f.hp <= 0 || !VOICED.has(source)) return;
   a.sfx(key, { volume, throttle: gap });
 };
 
