@@ -574,91 +574,157 @@ function dais(ctx: Ctx, r: R): void {
   }
 }
 
-/** The high seat's crystals: X, half width, height (top Y), lean. */
-const SPIRES: [number, number, number, number][] = [
-  [-0.66, 0.08, 2.7, -0.05],
-  [-0.5, 0.11, 2.95, -0.03],
-  [-0.3, 0.1, 2.84, 0.02],
-  [-0.14, 0.13, 3.18, -0.01],
-  [0.06, 0.15, 3.3, 0.01],
-  [0.26, 0.11, 3.0, 0.03],
-  [0.44, 0.12, 3.08, 0.02],
-  [0.62, 0.08, 2.76, 0.05],
+/** The high seat's back: crystals of ice fused into one mass (X, half width, top Y, lean), tall ones behind. */
+const CRYSTALS: [number, number, number, number][] = [
+  [-0.04, 0.17, 3.55, 0.02],
+  [-0.3, 0.14, 3.25, -0.06],
+  [0.26, 0.15, 3.35, 0.05],
+  [-0.52, 0.12, 2.95, -0.09],
+  [0.5, 0.12, 3.02, 0.08],
+  [-0.16, 0.12, 3.0, -0.02],
+  [0.12, 0.13, 3.1, 0.03],
+  [-0.66, 0.09, 2.6, -0.1],
+  [0.66, 0.09, 2.66, 0.1],
+  [-0.38, 0.11, 2.7, -0.04],
+  [0.38, 0.11, 2.75, 0.04],
 ];
 
-/** The high seat: a block of rune-cut basalt with arms, a white bear's pelt thrown over it, and its back a slab of
- * glacier ice grown up into a crown of crystals. */
+/** A beast's head carved on a post's top, a snarling wolf in profile facing `dir` (−1 left), its eye holding a
+ * spark of the runes' cold light. At (x, y) its neck's middle, s px per unit of the head's size. */
+function beastHead(ctx: Ctx, x: number, y: number, s: number, dir: number, d: number): void {
+  const p = (u: number, v: number): Pt => [x + dir * u * s, y + v * s];
+  const head = polyPath([p(-0.45, 0.5), p(-0.5, -0.1), p(-0.3, -0.55), p(-0.18, -0.95), p(-0.02, -0.6), p(0.25, -0.62), p(0.62, -0.5), p(0.95, -0.42), p(1.02, -0.3), p(0.72, -0.18), p(0.95, -0.08), p(0.9, 0.04), p(0.5, 0.05), p(0.3, 0.25), p(0.25, 0.5)]);
+  castShadow(ctx, head, 4, 4, 0.4, '#010208');
+  head(ctx);
+  ctx.fillStyle = airMix(BASALT.body, d, AIR);
+  ctx.fill();
+  within(ctx, head, () => {
+    // lit from the upper left: the brow and snout's tops, the jaw and the far side dark
+    const g = ctx.createLinearGradient(x, y - s, x, y + s * 0.5);
+    g.addColorStop(0, rgba('#a8b4d8', 0.35));
+    g.addColorStop(0.5, rgba('#000000', 0));
+    g.addColorStop(1, rgba('#02030a', 0.45));
+    ctx.fillStyle = g;
+    ctx.fillRect(x - s * 1.2, y - s * 1.1, s * 2.4, s * 1.7);
+    // the mouth's line and the fangs, the carved ruff down the neck, the eye
+    ctx.strokeStyle = rgba('#030408', 0.85);
+    ctx.lineWidth = Math.max(1, s * 0.06);
+    ctx.beginPath();
+    ctx.moveTo(...p(0.92, -0.17));
+    ctx.lineTo(...p(0.55, -0.15));
+    ctx.lineTo(...p(0.35, -0.05));
+    for (const q of [-0.3, -0.05, 0.2]) {
+      ctx.moveTo(...p(-0.35, q));
+      ctx.quadraticCurveTo(...p(-0.1, q + 0.1), ...p(0.15, q + 0.02));
+    }
+    ctx.stroke();
+    ctx.fillStyle = rgba('#e8f0ff', 0.7);
+    for (const fx of [0.62, 0.8]) {
+      ctx.beginPath();
+      ctx.moveTo(...p(fx, -0.17));
+      ctx.lineTo(...p(fx + 0.04, -0.05));
+      ctx.lineTo(...p(fx + 0.08, -0.17));
+      ctx.fill();
+    }
+    ctx.fillStyle = '#05060c';
+    ctx.beginPath();
+    ctx.ellipse(...p(0.32, -0.38), s * 0.09, s * 0.06, dir * -0.3, 0, P2);
+    ctx.fill();
+    ctx.fillStyle = rgba(RUNE, 0.55);
+    ctx.beginPath();
+    ctx.arc(...p(0.34, -0.39), Math.max(0.8, s * 0.03), 0, P2);
+    ctx.fill();
+  });
+  ctx.strokeStyle = rgba(INK, 0.85);
+  ctx.lineWidth = 1.3;
+  head(ctx);
+  ctx.stroke();
+  // frost on its brow
+  ctx.strokeStyle = rgba(ICE.rime, 0.5);
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(...p(-0.25, -0.6));
+  ctx.lineTo(...p(-0.05, -0.62));
+  ctx.lineTo(...p(0.6, -0.52));
+  ctx.stroke();
+}
+
+/** The king's high seat: a block of rune-cut basalt with carved arm posts crowned by wolves' heads, its back a mass
+ * of ice crystals fused together and lit from behind (the moonlight glowing back through the far wall), a white
+ * bear's pelt thrown over it, its head and forepaws hanging down the front. Calm in value: the boss hovers over it. */
 function seat(ctx: Ctx, r: R): void {
-  const { z, seatY, backY } = TH.seat;
-  const d = dep(z) * 0.25;
+  const { z, seatY } = TH.seat;
+  const d = dep(z) * 0.3;
   const k = F / z;
   const base = 0.45;
   const hw = 0.72;
-  const Q = (X: number, Y: number, dz = 0) => P(X, Y, z + dz);
-  // the back: a slab of ice, and its crystals
-  const back = polyPath([Q(-hw * 0.95, seatY), Q(-hw * 0.95, backY), Q(hw * 0.95, backY), Q(hw * 0.95, seatY)]);
-  const crystal = (X: number, w: number, top: number, lean: number): PathFn => polyPath([Q(X - w, backY - 0.3), Q(X - w * 0.9, top - w * 2.2), Q(X + lean, top), Q(X + w * 0.9, top - w * 2.2), Q(X + w, backY - 0.3)]);
-  const all: PathFn = (c) => {
-    back(c);
-    for (const [X, w, t, l] of SPIRES) crystal(X, w, t, l)(c);
+  const Q = (X: number, Y: number): Pt => P(X, Y, z);
+  // the cold light behind the crystals
+  const [gx, gy] = Q(0, 2.6);
+  glowAt(ctx, gx, gy, 1.6 * k, '#4a8ad8', 0.28, 1.2);
+  // the back: crystals fused into one mass, each a hexagonal prism seen from the front (a lit facet, a face, a dark
+  // facet) with a point; clear, the cold light shining through and catching their edges
+  const crystal = (X: number, w: number, top: number, lean: number): PathFn => polyPath([Q(X - w, seatY), Q(X - w + lean * 0.4, top - w * 1.4), Q(X + lean, top), Q(X + w + lean * 0.4, top - w * 1.4), Q(X + w, seatY)]);
+  const mass: PathFn = (c) => {
+    c.beginPath();
+    for (const [X, w, t, l] of CRYSTALS) {
+      const pts = [Q(X - w, seatY), Q(X - w + l * 0.4, t - w * 1.4), Q(X + l, t), Q(X + w + l * 0.4, t - w * 1.4), Q(X + w, seatY)];
+      pts.forEach(([px, py], i) => (i ? c.lineTo(px, py) : c.moveTo(px, py)));
+      c.closePath();
+    }
   };
-  castShadow(ctx, all, 14, 16, 0.5, '#010208');
-  const iceBody = (path: PathFn, X: number, w: number, top: number) => {
-    const [x0, y0] = Q(X - w, top);
-    const [x1, y1] = Q(X + w, backY - 0.3);
-    path(ctx);
-    ctx.fillStyle = airMix('#1e4a8a', d, AIR);
+  castShadow(ctx, mass, 12, 14, 0.4, '#010208');
+  for (const [X, w, t, l] of CRYSTALS) {
+    const p = crystal(X, w, t, l);
+    const [x0] = Q(X - w, seatY);
+    const [x1] = Q(X + w, seatY);
+    const [, yt] = Q(X, t);
+    const [, yb] = Q(X, seatY);
+    p(ctx);
+    ctx.fillStyle = airMix('#1a3a70', d, AIR);
     ctx.fill();
-    within(ctx, path, () => {
-      // lit facet on the left (the moon from the rift), dark facet on the right, a bright edge between them
-      const g = ctx.createLinearGradient(x0, 0, x1, 0);
-      g.addColorStop(0, airMix('#a8d4f8', d, AIR));
-      g.addColorStop(0.48, airMix('#5a96d8', d, AIR));
-      g.addColorStop(0.52, airMix('#163a78', d, AIR));
-      g.addColorStop(1, airMix('#0a1e4a', d, AIR));
-      ctx.fillStyle = g;
-      ctx.fillRect(x0 - 2, y0 - 4, x1 - x0 + 4, y1 - y0 + 8);
-      vfill(ctx, x0 - 2, y0, x1 - x0 + 4, y1 - y0, [[0, 'rgba(230,246,255,0.35)'], [0.4, 'rgba(0,0,0,0)'], [1, 'rgba(2,8,30,0.35)']]);
+    within(ctx, p, () => {
+      // three facets: lit left, the face, the dark right; the cold light through them from behind, strongest low down
+      const cx = (x0 + x1) / 2 + l * k * 0.5;
+      ctx.fillStyle = airMix('#4e7cb4', d, AIR);
+      ctx.fillRect(x0 - 4, yt - 4, cx - (x1 - x0) * 0.18 - x0 + 4, yb - yt + 8);
+      ctx.fillStyle = airMix('#0c2250', d, AIR);
+      ctx.fillRect(cx + (x1 - x0) * 0.2, yt - 4, x1 - cx, yb - yt + 8);
+      const tg = ctx.createLinearGradient(0, yt, 0, yb);
+      tg.addColorStop(0, rgba('#cfe6ff', 0.14));
+      tg.addColorStop(0.5, rgba('#4a8ad8', 0.1));
+      tg.addColorStop(1, rgba('#8ac4f4', 0.3));
+      ctx.fillStyle = tg;
+      ctx.fillRect(x0 - 4, yt - 4, x1 - x0 + 8, yb - yt + 8);
+      // the arrises between the facets, and a flaw or two inside
+      ctx.strokeStyle = rgba('#e8f4ff', 0.45);
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(cx - (x1 - x0) * 0.18, yb);
+      ctx.lineTo(cx - (x1 - x0) * 0.1, yt + (yb - yt) * 0.12);
+      ctx.stroke();
+      ctx.strokeStyle = rgba('#e8f4ff', 0.18);
+      ctx.beginPath();
+      ctx.moveTo(cx + (x1 - x0) * 0.05, yt + (yb - yt) * 0.4);
+      ctx.lineTo(cx + (x1 - x0) * 0.15, yt + (yb - yt) * 0.6);
+      ctx.stroke();
     });
-    ctx.strokeStyle = rgba(INK, 0.8);
+    // backlit: the edge catching the light behind it
+    ctx.strokeStyle = rgba('#a8d4ff', 0.55);
     ctx.lineWidth = 1.4;
-    path(ctx);
+    p(ctx);
     ctx.stroke();
-  };
-  // the crystals behind the slab first (the tall middle ones stand furthest back)
-  for (const [X, w, t, l] of [...SPIRES].sort((a, b) => b[2] - a[2])) iceBody(crystal(X, w, t, l), X, w, t);
-  // the slab: clear ice, the dais's dark through it, glowing from inside where the moonbeam strikes its foot
-  back(ctx);
-  ctx.fillStyle = airMix('#14346a', d, AIR);
-  ctx.fill();
-  const [bx0, by0] = Q(-hw, backY);
-  const [bx1, by1] = Q(hw, seatY);
-  const bbox = { x: bx0, y: by0, w: bx1 - bx0, h: by1 - by0 };
-  within(ctx, back, () => {
-    surface(ctx, r, bbox, airMix('#1a3e78', d, AIR), { over: true, vary: 0.35, cells: 3, mottle: 0.3, strokes: 2.5, strokeAng: Math.PI / 2, strokeLen: 50, strokeW: 3, grain: 0.1, seed: 61 });
-    const g = ctx.createRadialGradient(bx0 + bbox.w * 0.3, by1, 0, bx0 + bbox.w * 0.3, by1, bbox.h * 1.1);
-    g.addColorStop(0, rgba('#8ad0ff', 0.6));
-    g.addColorStop(0.5, rgba('#3a7ac8', 0.18));
-    g.addColorStop(1, rgba('#3a7ac8', 0));
-    ctx.fillStyle = g;
-    ctx.fillRect(bbox.x, bbox.y, bbox.w, bbox.h);
-    // runes cut into the ice, holding the cold light
-    const n = 5;
-    for (let i = 0; i < n; i++) carvedRune(ctx, [1, 6, 11, 4, 9][i], bx0 + bbox.w * (0.12 + i * 0.16), by0 + bbox.h * 0.16, bbox.h * 0.2, 0.8, 0.9);
-    // its edges catching the light, frost along the top
-    ctx.fillStyle = rgba('#d8ecff', 0.45);
-    ctx.fillRect(bx0, by0, bbox.w, 2);
-    ctx.fillStyle = rgba('#d8ecff', 0.25);
-    ctx.fillRect(bx0, by0, 2.5, bbox.h);
-  });
-  ctx.strokeStyle = rgba(INK, 0.85);
-  ctx.lineWidth = 1.6;
-  back(ctx);
-  ctx.stroke();
-  // the seat block and its arms: basalt, rune frieze along the front
+    ctx.strokeStyle = rgba(INK, 0.5);
+    ctx.lineWidth = 0.8;
+    p(ctx);
+    ctx.stroke();
+  }
+  // a band of runes cut across the fused base of the crystals
+  const [rx0, ry0] = Q(-0.5, seatY + 0.42);
+  for (let i = 0; i < 5; i++) carvedRune(ctx, [1, 6, 11, 4, 9][i], rx0 + i * 0.21 * k, ry0, 0.22 * k, 0.6, 0.8);
+  // the seat block: basalt, its top slab's front edge lit, a rune frieze along its front
   const block = polyPath([Q(-hw, base), Q(-hw, seatY), Q(hw, seatY), Q(hw, base)]);
-  const arm = (s: number) => polyPath([Q(s * hw * 0.82, base), Q(s * hw * 0.82, seatY + 0.42), Q(s * hw * 1.16, seatY + 0.5), Q(s * hw * 1.16, base)]);
-  for (const p of [block, arm(-1), arm(1)]) castShadow(ctx, p, 6, 8, 0.4, '#010208');
+  castShadow(ctx, block, 6, 8, 0.4, '#010208');
   block(ctx);
   ctx.fillStyle = airMix(BASALT.body, d, AIR);
   ctx.fill();
@@ -666,80 +732,184 @@ function seat(ctx: Ctx, r: R): void {
   const [kx1, ky1] = Q(hw, base);
   within(ctx, block, () => {
     surface(ctx, r, { x: kx0, y: ky0, w: kx1 - kx0, h: ky1 - ky0 }, airMix(BASALT.body, d, AIR), { over: true, vary: 0.3, cells: 3, grain: 0.3, grainKind: 'stone', seed: 63 });
-    for (let x = kx0 + 8, i = 0; x < kx1 - 10; x += 14, i++) carvedRune(ctx, i * 3 + 1, x, ky1 - 22, 14, 0.5, 0.8);
+    ctx.fillStyle = rgba('#a8b4d0', 0.35);
+    ctx.fillRect(kx0, ky0, kx1 - kx0, 2);
   });
-  for (const s of [-1, 1]) {
-    const p = arm(s);
-    p(ctx);
-    ctx.fillStyle = airMix(s < 0 ? BASALT.lit : BASALT.shade, d, AIR);
-    ctx.fill();
-    within(ctx, p, () => {
-      const [ax0, ay0] = Q(s * hw * 0.82, seatY + 0.5);
-      surface(ctx, r, { x: Math.min(ax0, ax0 + s * 0.34 * k) - 2, y: ay0, w: 0.4 * k, h: 1.2 * k }, airMix(s < 0 ? BASALT.lit : BASALT.shade, d, AIR), { over: true, vary: 0.3, cells: 2, grain: 0.3, grainKind: 'stone', seed: 65 + s });
-    });
-    ctx.strokeStyle = rgba(INK, 0.85);
-    ctx.lineWidth = 1.4;
-    p(ctx);
-    ctx.stroke();
-    // a ball of ice on the arm's end, lit top left
-    const [ox, oy] = Q(s * hw * 0.99, seatY + 0.58);
-    const or = 0.13 * k;
-    const og = ctx.createRadialGradient(ox - or * 0.4, oy - or * 0.4, 0, ox, oy, or);
-    og.addColorStop(0, '#e8f6ff');
-    og.addColorStop(0.45, '#6aa8e0');
-    og.addColorStop(1, '#14346a');
-    ctx.fillStyle = og;
-    ctx.beginPath();
-    ctx.arc(ox, oy, or, 0, P2);
-    ctx.fill();
-    ctx.strokeStyle = rgba(INK, 0.8);
-    ctx.stroke();
-  }
   ctx.strokeStyle = rgba(INK, 0.85);
-  ctx.lineWidth = 1.6;
+  ctx.lineWidth = 1.4;
   block(ctx);
   ctx.stroke();
-  // the white bear's pelt thrown over the seat and down its front: thick fur, lit on top, its paws hanging
+  // the arms: carved posts at the front corners, interlace up them, a wolf's head on each, facing out
+  for (const s of [-1, 1]) {
+    const X = s * (hw + 0.1);
+    const pw = 0.11 * k;
+    const [px, py0] = Q(X, 1.62);
+    const [, py1] = Q(X, base);
+    const postP = polyPath([[px - pw, py0], [px + pw, py0], [px + pw, py1], [px - pw, py1]]);
+    castShadow(ctx, postP, 6, 8, 0.45, '#010208');
+    postP(ctx);
+    ctx.fillStyle = airMix(s < 0 ? BASALT.lit : BASALT.body, d, AIR);
+    ctx.fill();
+    within(ctx, postP, () => {
+      surface(ctx, r, { x: px - pw, y: py0, w: pw * 2, h: py1 - py0 }, airMix(s < 0 ? BASALT.lit : BASALT.body, d, AIR), { over: true, vary: 0.3, cells: 2, grain: 0.3, grainKind: 'stone', seed: 66 + s });
+      interlace(ctx, px, pw, py0 + (py1 - py0) * 0.25, (py1 - py0) * 0.4, d, 21 + s);
+    });
+    ctx.strokeStyle = rgba(INK, 0.85);
+    ctx.lineWidth = 1.3;
+    postP(ctx);
+    ctx.stroke();
+    beastHead(ctx, px, py0 - 0.12 * k, 0.3 * k, s, d);
+  }
+  // the white bear's pelt thrown over the seat: it covers the seat's top and hangs down the front, rumpled into folds,
+  // its head resting on the left with its muzzle down, its forepaws hanging over the edge, claws dark
+  const [ax, ay] = Q(-hw * 0.95, seatY + 0.06);
+  const [bx, by] = Q(hw * 0.95, seatY + 0.04);
+  const fy = by + 0.36 * k;
   const pelt: PathFn = (c) => {
-    const [ax, ay] = Q(-hw * 0.78, seatY + 0.04);
-    const [bx, by] = Q(hw * 0.6, seatY + 0.02);
-    const fy = by + 0.3 * k;
     c.beginPath();
     c.moveTo(ax, ay);
-    c.quadraticCurveTo((ax + bx) / 2, ay - 0.08 * k, bx, by);
-    c.lineTo(bx + 0.04 * k, fy - 0.1 * k);
-    // the hem in soft tufts, a paw hanging lower on the left
-    const nT = 7;
-    let px0 = bx + 0.04 * k;
+    c.quadraticCurveTo((ax + bx) / 2, ay - 0.06 * k, bx, by);
+    c.quadraticCurveTo(bx + 0.04 * k, by + 0.15 * k, bx - 0.02 * k, fy - 0.08 * k);
+    const nT = 8;
+    let px0 = bx - 0.02 * k;
     for (let i = 1; i <= nT; i++) {
-      const px1 = lerp(bx + 0.04 * k, ax - 0.02 * k, i / nT);
-      const drop = i === 5 ? 0.14 * k : (i % 2 ? 0.02 : 0.04) * k;
-      c.quadraticCurveTo((px0 + px1) / 2, fy + drop + 0.05 * k, px1, fy + (i === 5 ? 0.06 * k : 0));
+      const px1 = lerp(bx - 0.02 * k, ax + 0.02 * k, i / nT);
+      c.quadraticCurveTo((px0 + px1) / 2, fy + (i % 2 ? 0.05 : 0.02) * k, px1, fy - (i % 3) * 0.015 * k);
       px0 = px1;
     }
+    c.quadraticCurveTo(ax - 0.04 * k, ay + 0.15 * k, ax, ay);
     c.closePath();
   };
+  castShadow(ctx, pelt, 5, 6, 0.4, '#010208');
   pelt(ctx);
-  ctx.fillStyle = airMix('#c8ccd8', d, AIR);
+  ctx.fillStyle = airMix('#b8bccc', d, AIR);
   ctx.fill();
   within(ctx, pelt, () => {
-    const [px0, py0] = Q(-hw, seatY + 0.2);
-    vfill(ctx, px0, py0, hw * 2 * k, 0.8 * k, [[0, airMix('#f2f4fa', d, AIR)], [0.4, airMix('#b8bccc', d, AIR)], [1, airMix('#5a6078', d, AIR)]]);
+    vfill(ctx, ax, ay - 6, bx - ax, fy - ay + 12, [[0, airMix('#e4e8f2', d, AIR)], [0.35, airMix('#b4b8c8', d, AIR)], [1, airMix('#5a6078', d, AIR)]]);
+    // folds: soft shadows hanging down, lit ridges between
+    for (let i = 0; i < 6; i++) {
+      const fx = lerp(ax, bx, (i + 0.5) / 6);
+      const fg = ctx.createLinearGradient(fx - 10, 0, fx + 10, 0);
+      fg.addColorStop(0, rgba('#ffffff', 0.12));
+      fg.addColorStop(0.5, rgba('#20243a', 0.22));
+      fg.addColorStop(1, rgba('#20243a', 0));
+      ctx.fillStyle = fg;
+      ctx.fillRect(fx - 10, ay + 0.1 * k, 20, fy - ay);
+    }
+    // the fur: short strokes, pale on the lit top, grey in the folds
     const rr = rng(hashStr('th:pelt'));
-    for (let i = 0; i < 90; i++) {
-      const fx = px0 + rr() * hw * 2 * k;
-      const fy = py0 + rr() * 0.8 * k;
-      ctx.strokeStyle = rgba(rr() < 0.5 ? '#ffffff' : '#4a4e60', 0.35);
+    for (let i = 0; i < 120; i++) {
+      const fx = ax + rr() * (bx - ax);
+      const fy2 = ay + rr() * (fy - ay);
+      ctx.strokeStyle = rgba(rr() < 0.5 ? '#ffffff' : '#3a3e52', 0.25);
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.moveTo(fx, fy);
-      ctx.lineTo(fx + (rr() - 0.5) * 3, fy + 4 + rr() * 6);
+      ctx.moveTo(fx, fy2);
+      ctx.lineTo(fx + (rr() - 0.5) * 3, fy2 + 3 + rr() * 5);
       ctx.stroke();
     }
   });
-  ctx.strokeStyle = rgba(INK, 0.8);
-  ctx.lineWidth = 1.4;
+  ctx.strokeStyle = rgba(INK, 0.7);
+  ctx.lineWidth = 1.2;
   pelt(ctx);
+  ctx.stroke();
+  // the forepaws hanging over the front: broad, furred, black claws
+  for (const pxu of [-0.32, 0.36]) {
+    const [pxx] = Q(pxu, 0);
+    const pw = 0.13 * k;
+    const paw = (c: Ctx) => {
+      c.beginPath();
+      c.moveTo(pxx - pw * 0.7, fy - 0.12 * k);
+      c.quadraticCurveTo(pxx - pw * 0.9, fy + 0.08 * k, pxx - pw * 0.4, fy + 0.13 * k);
+      c.quadraticCurveTo(pxx, fy + 0.17 * k, pxx + pw * 0.5, fy + 0.13 * k);
+      c.quadraticCurveTo(pxx + pw * 0.9, fy + 0.06 * k, pxx + pw * 0.7, fy - 0.12 * k);
+      c.closePath();
+    };
+    castShadow(ctx, paw, 4, 4, 0.4, '#010208');
+    paw(ctx);
+    const pg = ctx.createLinearGradient(pxx - pw, 0, pxx + pw, 0);
+    pg.addColorStop(0, airMix('#dfe3ee', d, AIR));
+    pg.addColorStop(1, airMix('#7a8098', d, AIR));
+    ctx.fillStyle = pg;
+    ctx.fill();
+    ctx.strokeStyle = rgba(INK, 0.7);
+    ctx.lineWidth = 1.1;
+    paw(ctx);
+    ctx.stroke();
+    ctx.strokeStyle = '#0a0a10';
+    ctx.lineWidth = Math.max(1.2, 0.02 * k);
+    for (let q = -1.5; q <= 1.5; q += 1) {
+      const cx2 = pxx + q * pw * 0.28;
+      ctx.beginPath();
+      ctx.moveTo(cx2, fy + 0.13 * k);
+      ctx.quadraticCurveTo(cx2 + 1, fy + 0.19 * k, cx2 - 1, fy + 0.22 * k);
+      ctx.stroke();
+    }
+  }
+  // the bear's head on the left, lying on the seat's edge, its muzzle hanging over the front
+  const [hx, hy] = Q(-hw * 0.62, seatY + 0.02);
+  const hs = 0.22 * k;
+  const headP = (c: Ctx) => {
+    c.beginPath();
+    c.moveTo(hx - hs * 0.9, hy - hs * 0.1);
+    c.quadraticCurveTo(hx - hs * 0.95, hy - hs * 0.75, hx - hs * 0.2, hy - hs * 0.7);
+    c.quadraticCurveTo(hx + hs * 0.5, hy - hs * 0.7, hx + hs * 0.7, hy - hs * 0.2);
+    c.quadraticCurveTo(hx + hs * 0.55, hy + hs * 0.55, hx + hs * 0.1, hy + hs * 1.05);
+    c.quadraticCurveTo(hx - hs * 0.15, hy + hs * 1.2, hx - hs * 0.35, hy + hs * 1.0);
+    c.quadraticCurveTo(hx - hs * 0.85, hy + hs * 0.5, hx - hs * 0.9, hy - hs * 0.1);
+    c.closePath();
+  };
+  castShadow(ctx, headP, 5, 6, 0.45, '#010208');
+  // the ears
+  for (const ex of [-0.55, 0.3]) {
+    ctx.fillStyle = airMix('#9ca2b8', d, AIR);
+    ctx.beginPath();
+    ctx.arc(hx + ex * hs, hy - hs * 0.62, hs * 0.2, 0, P2);
+    ctx.fill();
+    ctx.strokeStyle = rgba(INK, 0.7);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+  headP(ctx);
+  const hg = ctx.createRadialGradient(hx - hs * 0.4, hy - hs * 0.4, 0, hx, hy, hs * 1.2);
+  hg.addColorStop(0, airMix('#eef0f6', d, AIR));
+  hg.addColorStop(0.6, airMix('#b0b6c8', d, AIR));
+  hg.addColorStop(1, airMix('#6a7088', d, AIR));
+  ctx.fillStyle = hg;
+  ctx.fill();
+  within(ctx, headP, () => {
+    // the long muzzle running down from the brow, greyer, in its own shade; small dark eyes set high; the black nose
+    const mg = ctx.createLinearGradient(hx, hy, hx, hy + hs);
+    mg.addColorStop(0, rgba('#3a3e52', 0));
+    mg.addColorStop(1, rgba('#3a3e52', 0.35));
+    ctx.fillStyle = mg;
+    ctx.beginPath();
+    ctx.ellipse(hx - hs * 0.12, hy + hs * 0.55, hs * 0.32, hs * 0.55, 0, 0, P2);
+    ctx.fill();
+    ctx.fillStyle = '#0c0d14';
+    for (const ex of [-0.42, 0.2]) {
+      ctx.beginPath();
+      ctx.ellipse(hx + ex * hs, hy - hs * 0.2, hs * 0.07, hs * 0.05, 0, 0, P2);
+      ctx.fill();
+    }
+    ctx.strokeStyle = rgba('#14161e', 0.6);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(hx - hs * 0.12, hy + hs * 0.95);
+    ctx.lineTo(hx - hs * 0.12, hy + hs * 1.08);
+    ctx.stroke();
+    ctx.fillStyle = '#0c0d14';
+    ctx.beginPath();
+    ctx.ellipse(hx - hs * 0.12, hy + hs * 0.85, hs * 0.18, hs * 0.12, 0, 0, P2);
+    ctx.fill();
+    ctx.fillStyle = rgba('#ffffff', 0.4);
+    ctx.beginPath();
+    ctx.arc(hx - hs * 0.17, hy + hs * 0.8, hs * 0.04, 0, P2);
+    ctx.fill();
+  });
+  ctx.strokeStyle = rgba(INK, 0.75);
+  ctx.lineWidth = 1.2;
+  headP(ctx);
   ctx.stroke();
 }
 
@@ -938,113 +1108,118 @@ function interlace(ctx: Ctx, x: number, hw: number, y: number, h: number, d: num
   ctx.restore();
 }
 
-/** The ice on a post: meltwater that ran down the trunk and froze, in fluted strands, each starting at its own height
- * in a rounded tip, swelling into drip ledges, fusing low down into a sheath that flares out over the slabs; clear and
- * blue, the timber dark through it, lit down the left, rimed on the ledges. */
+/** The ice at a post's foot: meltwater that ran down the trunk's face and froze. Thin runs (clear, the wood showing
+ * through, lit along their left edges) wander down from under the iron band, swelling into frozen drips; some stop
+ * part way in an icicle's point, the rest reach the floor and fuse into a low, lumpy frozen puddle spreading over the
+ * slabs round the foot, glossy on top, its edge catching the light. No outline: it's water. */
 function sleeve(ctx: Ctx, x: number, hw: number, z: number, foot: number, d: number): void {
   const k = F / z;
-  const rr = rng(hashStr('th:sleeve' + Math.round(x)));
-  // contact: its foot sits in the slabs' rime, its shadow down and right
-  softly(ctx, { x: x - hw * 3, y: foot - 24, w: hw * 7, h: 48 }, (g) => {
-    g.fillStyle = rgba('#010208', 0.5);
-    g.beginPath();
-    g.ellipse(x + hw * 0.7, foot + 2, hw * 2.2, 0.04 * k + 3, 0, 0, P2);
-    g.fill();
-  }, 0.5);
-  const strands: { u: number; top: number; w: number; ph: number }[] = [];
-  const n = 4;
-  for (let i = 0; i < n; i++) strands.push({ u: -1 + (i + 0.5 + (rr() - 0.5) * 0.5) * (2 / n), top: sy(0.4 + rr() * 0.75, z), w: hw * (0.3 + rr() * 0.12), ph: rr() * P2 });
-  // the sheath low down where the strands have fused, flaring at the foot
-  const fuse = sy(0.32 + rr() * 0.1, z);
-  const flare = hw * 1.5;
-  const sheath: PathFn = (c) => {
-    c.beginPath();
-    c.moveTo(x - flare, foot + 1);
-    c.quadraticCurveTo(x - hw * 1.08, foot - 0.08 * k, x - hw * 1.06, fuse + 0.04 * k);
-    c.quadraticCurveTo(x, fuse - 0.05 * k, x + hw * 1.06, fuse + 0.06 * k);
-    c.quadraticCurveTo(x + hw * 1.08, foot - 0.08 * k, x + flare, foot + 1);
-    c.closePath();
-  };
-  const strandPath = (s: (typeof strands)[number]): PathFn => (c) => {
-    const cx = x + s.u * hw * 0.92;
-    const steps = 14;
+  const rr = rng(hashStr('th:melt' + Math.round(x)));
+  const fade = 1 - d * 0.5;
+  // a thin glaze over the trunk's lower face, so the timber looks wet and frozen there (barely tinting it)
+  const gTop = sy(1.2, z);
+  const glz = ctx.createLinearGradient(0, gTop, 0, foot);
+  glz.addColorStop(0, rgba('#9cc8f0', 0));
+  glz.addColorStop(1, rgba('#9cc8f0', 0.14 * fade));
+  ctx.fillStyle = glz;
+  ctx.fillRect(x - hw, gTop, hw * 2, foot - gTop);
+  // the runs
+  const n = 7;
+  for (let i = 0; i < n; i++) {
+    const u = -0.85 + (i + rr() * 0.6) * (1.7 / n);
+    const top = sy(1.25 + rr() * 0.9, z);
+    const reach = rr() < 0.35 ? lerp(top, foot, 0.35 + rr() * 0.35) : foot - 2;
+    const w = Math.max(1.6, (0.018 + rr() * 0.022) * k);
+    const ph = rr() * P2;
+    // round the trunk: runs near its sides are seen edge-on, narrower
+    const at = (yy: number) => x + Math.sin((u + Math.sin(yy / (0.3 * k) + ph) * 0.04) * Math.PI / 2) * hw;
     const L: Pt[] = [];
     const Rr: Pt[] = [];
+    const steps = 18;
     for (let j = 0; j <= steps; j++) {
       const t = j / steps;
-      const yy = lerp(s.top, foot - 0.1 * k, t);
-      // tapering to a rounded tip, swelling at the drip ledges
-      const ledge = 1 + 0.35 * Math.max(0, Math.sin(t * 9 + s.ph)) ** 6;
-      const ww = s.w * (0.35 + 0.65 * Math.sqrt(t)) * ledge;
-      const wob = Math.sin(t * 5 + s.ph) * s.w * 0.12;
-      L.push([cx - ww + wob, yy]);
-      Rr.push([cx + ww + wob, yy]);
+      const yy = lerp(top, reach, t);
+      const narrow = Math.cos(u * Math.PI / 2);
+      const bead = 1 + 0.9 * Math.max(0, Math.sin(t * 11 + ph)) ** 8;
+      const ww = w * narrow * (0.4 + 0.6 * Math.min(1, t * 4)) * bead * (reach < foot - 4 && t > 0.8 ? (1 - t) * 5 : 1);
+      L.push([at(yy) - ww / 2, yy]);
+      Rr.push([at(yy) + ww / 2, yy]);
     }
-    c.beginPath();
-    c.moveTo(L[0][0], L[0][1]);
-    c.quadraticCurveTo(cx, s.top - s.w * 0.6, Rr[0][0], Rr[0][1]);
-    for (const p of Rr) c.lineTo(...p);
-    for (let j = L.length - 1; j >= 0; j--) c.lineTo(...L[j]);
-    c.closePath();
-  };
-  const body = () => {
-    const yTop = Math.min(...strands.map((s) => s.top)) - 10;
-    const g = ctx.createLinearGradient(x - flare, 0, x + flare, 0);
-    g.addColorStop(0, rgba('#b8dcfa', 0.4 * (1 - d * 0.5)));
-    g.addColorStop(0.25, rgba('#5a96d8', 0.18));
-    g.addColorStop(0.55, rgba('#0e2654', 0.08));
-    g.addColorStop(0.85, rgba('#04102e', 0.25));
-    g.addColorStop(1, rgba('#6a9ad8', 0.4));
-    ctx.fillStyle = g;
-    ctx.fillRect(x - flare, yTop, flare * 2, foot - yTop + 2);
-    vfill(ctx, x - flare, yTop, flare * 2, foot - yTop + 2, [[0, 'rgba(40,90,160,0)'], [1, rgba('#2a62a8', 0.3)]]);
-  };
-  // each strand a rounded rod of ice: lit along its left, its own shadow on the right
-  for (const s of strands) {
-    const p = strandPath(s);
-    castShadow(ctx, p, 3, 3, 0.3, '#02040c');
-    p(ctx);
-    ctx.fillStyle = rgba(airMix('#2a5a98', d, AIR), 0.16);
+    const run = polyPath([...L, ...Rr.reverse()]);
+    run(ctx);
+    ctx.fillStyle = rgba('#a8d0f4', 0.13 * fade);
     ctx.fill();
-    within(ctx, p, () => {
-      body();
-      const cx = x + s.u * hw * 0.92;
-      const sg = ctx.createLinearGradient(cx - s.w, 0, cx + s.w, 0);
-      sg.addColorStop(0, rgba('#e8f4ff', 0.45 * (1 - d * 0.5)));
-      sg.addColorStop(0.35, rgba('#e8f4ff', 0));
-      sg.addColorStop(0.75, rgba('#020818', 0.25));
-      sg.addColorStop(1, rgba('#020818', 0.35));
-      ctx.fillStyle = sg;
-      ctx.fillRect(cx - s.w * 1.5, s.top - 10, s.w * 3, foot - s.top + 10);
-    });
-  }
-  sheath(ctx);
-  ctx.fillStyle = rgba(airMix('#2a5a98', d, AIR), 0.4);
-  ctx.fill();
-  within(ctx, sheath, () => {
-    body();
-    for (let i = 0; i < 12; i++) {
-      ctx.fillStyle = rgba('#e8f4ff', 0.3 * (1 - d));
+    within(ctx, run, () => {
+      // lit down its left edge, a cool shade down its right: a rounded rod of clear ice
+      ctx.strokeStyle = rgba('#f0f8ff', 0.32 * fade);
+      ctx.lineWidth = Math.max(0.8, w * 0.28);
       ctx.beginPath();
-      ctx.arc(x - hw + rr() * hw * 2, lerp(fuse, foot, rr()), 0.6 + rr() * 0.01 * k, 0, P2);
+      L.forEach(([px, py], j) => (j ? ctx.lineTo(px + w * 0.18, py) : ctx.moveTo(px + w * 0.18, py)));
+      ctx.stroke();
+    });
+    ctx.strokeStyle = rgba('#0a1a40', 0.18 * fade);
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    [...Rr].reverse().forEach(([px, py], j) => (j ? ctx.lineTo(px, py) : ctx.moveTo(px, py)));
+    ctx.stroke();
+    // a frozen drop hanging from the ones that stopped short
+    if (reach < foot - 4) {
+      ctx.fillStyle = rgba('#e8f4ff', 0.55 * fade);
+      ctx.beginPath();
+      ctx.arc(at(reach), reach + 1, Math.max(1, w * 0.3), 0, P2);
+      ctx.fill();
+    }
+  }
+  // the frozen puddle round the foot: lumps of ice fused together, low, spreading wider than the trunk over the slabs
+  const lumps: [number, number, number, number][] = [];
+  const nl = 9;
+  for (let i = 0; i < nl; i++) {
+    const v = (i / (nl - 1)) * 2 - 1;
+    const lx = x + v * hw * (1.9 + rr() * 0.5);
+    const rx = hw * (0.38 + rr() * 0.3) * (1.2 - Math.abs(v) * 0.4);
+    const ry = Math.max(2, (0.03 + rr() * 0.03) * k) * (1.3 - Math.abs(v) * 0.6);
+    const ly = foot + (rr() - 0.3) * 0.03 * k;
+    lumps.push([lx, ly, rx, ry]);
+  }
+  const puddle: PathFn = (c) => {
+    c.beginPath();
+    for (const [lx, ly, rx, ry] of lumps) {
+      c.moveTo(lx + rx, ly);
+      c.ellipse(lx, ly, rx, ry, 0, 0, P2);
+    }
+  };
+  // contact: a soft dark under it, thrown down and right
+  softly(ctx, { x: x - hw * 3.2, y: foot - 24, w: hw * 7.4, h: 48 }, (g) => {
+    g.fillStyle = rgba('#010208', 0.45);
+    g.beginPath();
+    g.ellipse(x + hw * 0.5, foot + 3, hw * 2.4, 0.035 * k + 3, 0, 0, P2);
+    g.fill();
+  }, 0.5);
+  puddle(ctx);
+  ctx.fillStyle = rgba(airMix('#5a8ccc', d, AIR), 0.38);
+  ctx.fill();
+  within(ctx, puddle, () => {
+    const pg = ctx.createLinearGradient(0, foot - 0.07 * k, 0, foot + 0.06 * k);
+    pg.addColorStop(0, rgba('#e0f0ff', 0.55 * fade));
+    pg.addColorStop(0.45, rgba('#7aaee6', 0.2));
+    pg.addColorStop(1, rgba('#0a1a40', 0.3));
+    ctx.fillStyle = pg;
+    ctx.fillRect(x - hw * 3, foot - 0.1 * k, hw * 6, 0.2 * k);
+    // the gloss: a streak of reflected light along the lumps' tops, brighter on the left
+    for (const [lx, ly, rx, ry] of lumps) {
+      ctx.strokeStyle = rgba('#ffffff', (lx < x ? 0.5 : 0.25) * fade);
+      ctx.lineWidth = Math.max(0.8, ry * 0.25);
+      ctx.beginPath();
+      ctx.ellipse(lx - rx * 0.1, ly - ry * 0.1, rx * 0.7, ry * 0.6, 0, Math.PI * 1.15, Math.PI * 1.7);
+      ctx.stroke();
+    }
+    for (let i = 0; i < 10; i++) {
+      ctx.fillStyle = rgba('#e8f4ff', 0.3 * fade);
+      ctx.beginPath();
+      ctx.arc(x + (rr() - 0.5) * hw * 3.4, foot + (rr() - 0.5) * 0.04 * k, 0.6 + rr() * 0.8, 0, P2);
       ctx.fill();
     }
   });
-  // rime on the sheath's top and the strands' tips, an ink edge round it all
-  ctx.strokeStyle = rgba(ICE.rime, 0.55 * (1 - d * 0.5));
-  ctx.lineWidth = Math.max(1.2, 0.016 * k);
-  for (const s of strands) {
-    const cx = x + s.u * hw * 0.92;
-    ctx.beginPath();
-    ctx.arc(cx, s.top + s.w * 0.2, s.w * 0.3, Math.PI * 1.1, Math.PI * 1.7);
-    ctx.stroke();
-  }
-  ctx.strokeStyle = rgba(INK, 0.45);
-  ctx.lineWidth = Math.max(0.8, 1.4 - d);
-  for (const p of [sheath, ...strands.map(strandPath)]) {
-    p(ctx);
-    ctx.stroke();
-  }
 }
 
 /** A tie beam across the nave at depth z (front face and underside), icicles hanging from it. */
@@ -1836,6 +2011,39 @@ function shield(ctx: Ctx, x: number, y: number, rd: number, pal: [string, string
 /** The table top in the hall's units: its height and the depths of its back and front edges. */
 const TABLE_Y = 0.9;
 const tz = (y: number) => ((EH - TABLE_Y) * F) / (y - VY);
+const tyAt = (z: number) => VY + ((EH - TABLE_Y) * F) / z;
+
+/** An iron strap with nails, centred at (x, y), w×h. */
+function ironStrap(ctx: Ctx, x: number, y: number, w: number, h: number): void {
+  ctx.fillStyle = rgba('#000000', 0.4);
+  ctx.fillRect(x - w / 2 + 2, y - h / 2 + 2, w, h);
+  const g = ctx.createLinearGradient(0, y - h / 2, 0, y + h / 2);
+  g.addColorStop(0, '#5a5e70');
+  g.addColorStop(0.35, '#2a2c36');
+  g.addColorStop(1, '#121218');
+  ctx.fillStyle = g;
+  ctx.fillRect(x - w / 2, y - h / 2, w, h);
+  // rust bleeding from it into the oak, pitting, the nails' heads lit on top
+  ctx.fillStyle = rgba('#5a2a12', 0.25);
+  ctx.fillRect(x - w / 2 - 1, y + h / 2, w + 2, 2.5);
+  ctx.strokeStyle = rgba('#05050a', 0.9);
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x - w / 2, y - h / 2, w, h);
+  for (const u of [-0.36, 0.36]) {
+    for (const v of [-0.22, 0.22]) {
+      const nx = x + u * w;
+      const ny = y + v * h;
+      const ng = ctx.createRadialGradient(nx - 0.8, ny - 0.9, 0, nx, ny, 2.6);
+      ng.addColorStop(0, '#b8c0d8');
+      ng.addColorStop(0.5, '#3a3e4c');
+      ng.addColorStop(1, '#0a0a10');
+      ctx.fillStyle = ng;
+      ctx.beginPath();
+      ctx.arc(nx, ny, 2.6, 0, P2);
+      ctx.fill();
+    }
+  }
+}
 
 function table(ctx: Ctx, r: R): void {
   const f = TH.front;
@@ -1844,78 +2052,136 @@ function table(ctx: Ctx, r: R): void {
   ctx.beginPath();
   ctx.rect(0, TY, W, f - TY + 2);
   ctx.clip();
-  vfill(ctx, 0, TY, W, f - TY, [[0, '#1a120e'], [0.5, '#261a14'], [1, '#2e2018']]);
-  surface(ctx, r, box, '#261a14', { over: true, vary: 0.25, cells: 6, mottle: 0.25, strokes: 1.2, strokeAng: 0, strokeLen: 380, strokeW: 3, grain: 0.22, grainKind: 'wood', seed: 101 });
-  // planks along the board, their seams closer together towards the back (the hall's perspective)
+  vfill(ctx, 0, TY, W, f - TY, [[0, '#18100c'], [0.5, '#221812'], [1, '#2a1e16']]);
+  surface(ctx, r, box, '#221812', { over: true, vary: 0.25, cells: 6, mottle: 0.25, strokes: 0.5, strokeAng: 0, strokeLen: 380, strokeW: 3, grain: 0.18, grainKind: 'wood', seed: 101 });
+  // the planks, running along the board, their seams closer together towards the back (the hall's perspective)
   const zb = tz(TY);
   const zf = tz(f);
   const nPl = 7;
-  for (let i = 1; i < nPl; i++) {
-    const z = lerp(zb, zf, i / nPl);
-    const y = VY + ((EH - TABLE_Y) * F) / z;
-    ctx.fillStyle = rgba('#050304', 0.65);
-    ctx.fillRect(0, y - 1, W, 2.2);
-    ctx.fillStyle = rgba('#a89ca8', 0.12);
-    ctx.fillRect(0, y + 1.2, W, 1.2);
-    // butt joints here and there, running to the hall's vanishing point, iron nails at them
+  const seams = Array.from({ length: nPl + 1 }, (_, i) => tyAt(lerp(zb, zf, i / nPl)));
+  for (let i = 0; i < nPl; i++) {
+    const y0 = seams[i];
+    const y1 = seams[i + 1];
+    const ph = y1 - y0;
     const rr = rng(hashStr('th:plank' + i));
-    const zPrev = lerp(zb, zf, (i - 1) / nPl);
-    const yPrev = VY + ((EH - TABLE_Y) * F) / zPrev;
-    for (let j = 0; j < 2; j++) {
-      const X = (rr() - 0.5) * 3.6;
-      const xa = 960 + (X * F) / zPrev;
-      const xb = 960 + (X * F) / z;
-      ctx.strokeStyle = rgba('#050304', 0.55);
-      ctx.lineWidth = 1.6;
+    // each board its own tone
+    ctx.fillStyle = rgba(rr() < 0.5 ? '#3a281c' : '#0c0806', 0.12 + rr() * 0.12);
+    ctx.fillRect(0, y0, W, ph);
+    // its grain: long lines along it, wandering and closing up round the knots, a few lit by the polish
+    const knots = Array.from({ length: 2 }, () => [rr() * W, y0 + ph * (0.25 + rr() * 0.5), 10 + rr() * 16] as const);
+    const nG = 12;
+    for (let g = 0; g < nG; g++) {
+      const v = (g + 0.5) / nG;
+      const amp = ph * (0.02 + rr() * 0.05);
+      const wl = 160 + rr() * 260;
+      const off = rr() * P2;
+      ctx.strokeStyle = rr() < 0.25 ? rgba('#7a6050', 0.09) : rgba('#060302', 0.22 + rr() * 0.12);
+      ctx.lineWidth = 0.8 + rr() * 1.2;
       ctx.beginPath();
-      ctx.moveTo(xa, yPrev);
-      ctx.lineTo(xb, y);
+      for (let x = -10; x <= W + 10; x += 14) {
+        let yy = y0 + ph * v + Math.sin(x / wl + off) * amp;
+        // the grain bends round a knot
+        for (const [kx, ky, kr] of knots) {
+          const dx = (x - kx) / (kr * 3.5);
+          const bend = Math.exp(-dx * dx) * kr * 0.5;
+          yy += (yy < ky ? -bend : bend) * Math.max(0, 1 - Math.abs(yy - ky) / (ph * 0.6));
+        }
+        if (x === -10) ctx.moveTo(x, yy);
+        else ctx.lineTo(x, yy);
+      }
       ctx.stroke();
-      for (const t of [0.25, 0.75]) {
-        ctx.fillStyle = rgba('#0a0a10', 0.8);
+    }
+    // the knots: dark rings, a check in the middle
+    for (const [kx, ky, kr] of knots) {
+      for (let q = 3; q >= 1; q--) {
+        ctx.strokeStyle = rgba('#050302', 0.18 + (3 - q) * 0.12);
+        ctx.lineWidth = 1.2;
         ctx.beginPath();
-        ctx.arc(lerp(xa, xb, t) - 5, lerp(yPrev, y, t), 2.2, 0, P2);
-        ctx.arc(lerp(xa, xb, t) + 5, lerp(yPrev, y, t), 2.2, 0, P2);
+        ctx.ellipse(kx, ky, kr * (q / 3) * 1.6, kr * (q / 3) * 0.32, 0, 0, P2);
+        ctx.stroke();
+      }
+      ctx.fillStyle = rgba('#050302', 0.6);
+      ctx.beginPath();
+      ctx.ellipse(kx, ky, kr * 0.35, kr * 0.09, 0, 0, P2);
+      ctx.fill();
+    }
+    // the seam at its far edge: a dark gap, the next board's arris worn round and catching the light, dings in it
+    if (i > 0) {
+      ctx.fillStyle = rgba('#030202', 0.75);
+      ctx.fillRect(0, y0 - 1.2, W, 2.4);
+      const wg = ctx.createLinearGradient(0, y0 + 1, 0, y0 + 5);
+      wg.addColorStop(0, rgba('#a89890', 0.18));
+      wg.addColorStop(1, rgba('#a89890', 0));
+      ctx.fillStyle = wg;
+      ctx.fillRect(0, y0 + 1, W, 4);
+      for (let q = 0; q < 14; q++) {
+        const dx = rr() * W;
+        ctx.fillStyle = rgba(rr() < 0.5 ? '#050302' : '#5a4636', 0.4);
+        ctx.beginPath();
+        ctx.ellipse(dx, y0 + 2, 3 + rr() * 6, 1.4, 0, 0, P2);
         ctx.fill();
       }
     }
+    // a plank end: a butt joint running to the hall's vanishing point, an iron strap with nails across it
+    const za = lerp(zb, zf, i / nPl);
+    const zc = lerp(zb, zf, (i + 1) / nPl);
+    // (somewhere on screen, by the boards' ends, clear of the middle)
+    const xm = rr() < 0.5 ? 120 + rr() * 420 : 1380 + rr() * 420;
+    const X = ((xm - 960) * (za + zc)) / 2 / F;
+    const xa = 960 + (X * F) / za;
+    const xb = 960 + (X * F) / zc;
+    ctx.strokeStyle = rgba('#030202', 0.7);
+    ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    ctx.moveTo(xa, y0);
+    ctx.lineTo(xb, y1);
+    ctx.stroke();
+    ctx.strokeStyle = rgba('#8a7468', 0.14);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(xa + 2, y0 + 1);
+    ctx.lineTo(xb + 2, y1);
+    ctx.stroke();
+    ironStrap(ctx, (xa + xb) / 2, (y0 + y1) / 2, 26 + ph * 0.5, ph * 0.38);
   }
-  // the grain's long figure, and the polish catching the moonbeam's pool from the left
-  lay(ctx, drift('#3e2c22', '#120a08', 8, 107, 220, 40), box, 0.3);
+  // the grain's long figure across the boards
+  lay(ctx, drift('#3e2c22', '#120a08', 8, 107, 220, 40), box, 0.22);
+  // the polish catching the moonbeam's pool from the left, the hearths' cold light on the near edge
   lightPool(ctx, 760, TY + 60, 620, 70, '#b8c8f0', 0.06);
+  for (const h of HEARTHS) lightPool(ctx, h.x + h.dir * 40, f - 30, 300, 60, '#3ab0ff', 0.12);
   // frost: thick along the back edge, creeping in from the corners in fern-like blooms
   vfill(ctx, 0, TY, W, 24, [[0, rgba('#dce8fa', 0.35)], [1, rgba('#dce8fa', 0)]]);
   for (const [cx, sd] of [[0, 1], [W, -1]] as const) {
     // a soft bloom of rime in the corner, then fronds of hoarfrost feathering in from it, thinning as they reach out
     const bg = ctx.createRadialGradient(cx, f, 0, cx, f, 200);
-    bg.addColorStop(0, 'rgba(226,238,255,0.34)');
-    bg.addColorStop(0.5, 'rgba(226,238,255,0.1)');
+    bg.addColorStop(0, 'rgba(226,238,255,0.3)');
+    bg.addColorStop(0.5, 'rgba(226,238,255,0.08)');
     bg.addColorStop(1, 'rgba(226,238,255,0)');
     ctx.fillStyle = bg;
     ctx.fillRect(sd > 0 ? 0 : W - 220, f - 220, 220, 220);
     const fr = rng(hashStr('th:frost' + sd));
     ctx.lineCap = 'round';
-    for (let i = 0; i < 70; i++) {
-      const dist = fr() ** 1.5 * 260;
+    for (let i = 0; i < 90; i++) {
+      const dist = fr() ** 1.5 * 280;
       const ang = -fr() * Math.PI * 0.5;
       let px = cx + sd * Math.cos(ang) * dist;
       let py = f + Math.sin(ang) * dist * 0.9;
       if (py < TY + 4) continue;
-      const a = 0.26 * (1 - dist / 280);
+      const a = 0.24 * (1 - dist / 300);
       let dir = ang + (fr() - 0.5) * 0.8;
-      const len = 10 + fr() * 26;
+      const len = 8 + fr() * 22;
       ctx.strokeStyle = rgba('#e8f2ff', a);
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 0.9;
       for (let sgm = 0; sgm < 3; sgm++) {
-        const nx = px + sd * Math.cos(dir) * len / 3;
-        const ny = py + Math.sin(dir) * len / 3;
+        const nx = px + (sd * Math.cos(dir) * len) / 3;
+        const ny = py + (Math.sin(dir) * len) / 3;
         ctx.beginPath();
         ctx.moveTo(px, py);
         ctx.lineTo(nx, ny);
         // barbs off each segment, the frost's feathering
         for (const b of [-1, 1]) {
           ctx.moveTo((px + nx) / 2, (py + ny) / 2);
-          ctx.lineTo((px + nx) / 2 + sd * Math.cos(dir + b * 0.9) * len * 0.18, (py + ny) / 2 + Math.sin(dir + b * 0.9) * len * 0.18);
+          ctx.lineTo((px + nx) / 2 + sd * Math.cos(dir + b * 0.9) * len * 0.16, (py + ny) / 2 + Math.sin(dir + b * 0.9) * len * 0.16);
         }
         ctx.stroke();
         px = nx;
@@ -1925,37 +2191,40 @@ function table(ctx: Ctx, r: R): void {
     }
   }
   ctx.restore();
-  // the board's front: a thick edge carved with a band of interlace
+  // the board's front: a thick edge, its arris worn pale; a border of runes carved along it between two fillets
   ctx.save();
   ctx.beginPath();
   ctx.rect(0, f, W, 1080 - f);
   ctx.clip();
-  vfill(ctx, 0, f, W, 1080 - f, [[0, '#2a2024'], [0.4, '#1a1216'], [1, '#0c080a']]);
-  surface(ctx, r, { x: 0, y: f, w: W, h: 40 }, '#1e161a', { over: true, vary: 0.3, cells: 8, grain: 0.3, grainKind: 'wood', seed: 117 });
-  const rr = rng(hashStr('th:frontKnot'));
-  for (const [ph, col, w] of [[0, 'rgba(4,2,3,0.75)', 6], [0, 'rgba(90,74,70,0.8)', 3.4], [0, 'rgba(170,160,170,0.3)', 1.1]] as const) {
-    for (let s = 0; s < 2; s++) {
-      ctx.strokeStyle = col;
-      ctx.lineWidth = w;
-      ctx.beginPath();
-      for (let x = -10; x <= W + 10; x += 6) {
-        const y = f + 20 + Math.sin(x / 34 + s * Math.PI + ph) * 9;
-        if (x === -10) ctx.moveTo(x + (w === 6 ? 1 : 0), y + (w === 6 ? 1.5 : 0));
-        else ctx.lineTo(x + (w === 6 ? 1 : 0), y + (w === 6 ? 1.5 : 0));
-      }
-      ctx.stroke();
-    }
+  vfill(ctx, 0, f, W, 1080 - f, [[0, '#2a1e18'], [0.4, '#1a120e'], [1, '#0c0806']]);
+  surface(ctx, r, { x: 0, y: f, w: W, h: 40 }, '#1e1510', { over: true, vary: 0.3, cells: 8, strokes: 1, strokeAng: 0, strokeLen: 200, strokeW: 2, grain: 0.3, grainKind: 'wood', seed: 117 });
+  // the recessed panel, and its runes cut in with a thread of cold inlay
+  ctx.fillStyle = rgba('#050302', 0.4);
+  ctx.fillRect(0, f + 7, W, 27);
+  ctx.fillStyle = rgba('#8a7468', 0.22);
+  ctx.fillRect(0, f + 34, W, 1.2);
+  ctx.fillStyle = rgba('#030202', 0.7);
+  ctx.fillRect(0, f + 6, W, 1.2);
+  for (let x = 16, i = 0; x < W - 10; x += 30, i++) carvedRune(ctx, i * 5 + (i % 4), x, f + 10, 21, 0.12, 0.7);
+  // the hearths' light catching the front where they're nearest
+  for (const h of HEARTHS) {
+    const hg = ctx.createRadialGradient(h.x, f, 0, h.x, f, 360);
+    hg.addColorStop(0, rgba('#3ab0ff', 0.14));
+    hg.addColorStop(1, rgba('#3ab0ff', 0));
+    ctx.fillStyle = hg;
+    ctx.fillRect(h.x - 360, f, 720, 1080 - f);
   }
-  void rr;
   ctx.restore();
-  ctx.fillStyle = rgba('#cfdcf4', 0.4);
-  ctx.fillRect(0, f - 2, W, 2.2);
+  // the near arris: worn pale where hands and feet have rubbed it, lit cold by the hearths, frost on it
+  const ag = ctx.createLinearGradient(0, 0, W, 0);
+  for (const [u, a] of [[0, 0.5], [HEARTHS[0].x / W, 0.6], [0.5, 0.3], [HEARTHS[1].x / W, 0.6], [1, 0.5]] as const) ag.addColorStop(u, rgba('#b8dcfa', a));
+  ctx.fillStyle = ag;
+  ctx.fillRect(0, f - 2.5, W, 2.5);
   ctx.fillStyle = rgba('#040204', 0.85);
   ctx.fillRect(0, f, W, 1.6);
-  // the board's back edge against the hall: a dark seam, the floor's rime beyond
+  // the board's back edge against the hall: a dark seam, its far arris eased and catching the light, frost on it
   ctx.fillStyle = rgba('#040204', 0.7);
   ctx.fillRect(0, TY - 1, W, 2);
-  // the board's far arris, eased and catching the light, frost on it
   vfill(ctx, 0, TY + 1, W, 7, [[0, rgba('#d8e4f8', 0.4)], [0.4, rgba('#a8b4d0', 0.16)], [1, rgba('#a8b4d0', 0)]]);
 }
 
@@ -2187,7 +2456,7 @@ export const THRYM: SceneSpec = {
     { id: 'auroraStillR', box: WIN_BOX(1), stillOnly: true, draw: (c) => windowAurora(c, 1, 0.65, 0.8) },
     { id: 'dais', box: { x: 730, y: 380, w: 460, h: 260 }, draw: dais },
     { id: 'seatPosts', box: { x: 780, y: 200, w: 360, h: 360 }, draw: seatPosts },
-    { id: 'seat', box: { x: 790, y: 150, w: 340, h: 420 }, draw: seat },
+    { id: 'seat', box: { x: 780, y: 100, w: 360, h: 470 }, draw: seat },
     { id: 'tieFar', box: { x: 0, y: 180, w: W, h: 120 }, draw: (c, r) => tieBeam(c, r, FARP) },
     { id: 'farPosts', box: { x: 640, y: 0, w: 640, h: 700 }, draw: farPosts },
     { id: 'murk', box: WALL_BOX, draw: (c) => murk(c) },
