@@ -1828,7 +1828,8 @@ registerScene('minotaur', {
 }, true);
 
 // =============================================================================================
-// Medusa's Garden
+// Medusa's Garden. (The old art: the arena is redrawn with the location kit in scene-medusa.ts; this stays for the
+// before/after page, ?dev&stages.)
 
 const MD = {
   pool: { x: 960, y: 620 },
@@ -2022,7 +2023,7 @@ registerScene('medusa', {
     [{ x: MD.shield.x - 20, y: MD.shield.y - 200, r: 70, color: 0xfff0c0, speed: 1.3, lo: 0.05, hi: 0.35 }],
     { y: 680, h: 80, n: 10, color: 0x9dff6a, a: 0.1, v: 16 },
   ),
-});
+}, true);
 
 // =============================================================================================
 // The Gates of Hades (Cerberus)
