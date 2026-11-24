@@ -75,6 +75,8 @@ export const MT = {
 };
 const RC = MT.rc;
 const WH = MT.wh;
+/** The bearing between two horns of consecration on the coping (one coping block each). */
+const HORN_STEP = 0.21;
 const COPE = 0.12;
 /** A little past the screen's edges. */
 const TH_E = Math.atan(1010 / F);
@@ -1568,7 +1570,7 @@ function wall(ctx: Ctx, r: R): void {
   shadeWith(ctx, { x: 0, y: 0, w: W, h: TY + 2 }, '#9e9cb6', (g) => {
     ringPath(th0, th1, -0.5, WH + 0.01)(g);
     g.clip();
-    for (let th = -0.2; th < TH_E; th += 0.21) {
+    for (let th = -1.05 + 4 * HORN_STEP; th < TH_E; th += HORN_STEP) {
       const Y = shadowY(th);
       const pts = HORNS.map(([u, v]) => RP(th + ((u - 0.5) * 0.6) / RC, Y - 0.05 + v * 0.24));
       polyPath(pts)(g);
@@ -1652,8 +1654,11 @@ function wall(ctx: Ctx, r: R): void {
   within(ctx, cp, () => {
     surface(ctx, r, box, '#c8b08a', { over: true, vary: 0.4, cells: 8, mottle: 0.4, grain: 0.35, grainKind: 'speckle', seed: 39 });
     // its bottom arris catching the bounce, the top weathered dark where rain sits
-    for (let a0 = th0 * RC - r() * 0.5; a0 < th1 * RC; a0 += 0.55 + r() * 0.35) {
-      const t = a0 / RC;
+    // one block per horn of consecration (they stand every HORN_STEP from -1.05), so the joints fall halfway between
+    // horns, each a hair off true like hand-cut stone
+    for (let t0 = -1.05 - HORN_STEP / 2; t0 < th1; t0 += HORN_STEP) {
+      const t = t0 + (r() - 0.5) * 0.012;
+      if (t < th0) continue;
       const [jx, jy0] = RP(t, WH, CR);
       const [, jy1] = RP(t, WH - CH, CR);
       ctx.fillStyle = rgba('#2a1e18', 0.7);
@@ -1694,7 +1699,7 @@ function wall(ctx: Ctx, r: R): void {
   ctx.restore();
   // the horns of consecration: carved stone, a thickness showing on their shaded side, a groove cut down each horn,
   // standing on the coping in their own contact shadow
-  for (let th = -1.05; th <= 1.06; th += 0.21) {
+  for (let th = -1.05; th <= 1.06; th += HORN_STEP) {
     const hr = RC - 0.04;
     const pts = HORNS.map(([u, v]) => RP(th + ((u - 0.5) * 0.34) / hr, WH - 0.02 + v * 0.22, hr));
     const k = ppu(th, hr);
