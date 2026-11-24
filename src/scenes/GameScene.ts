@@ -3942,7 +3942,7 @@ export class GameScene extends Phaser.Scene implements Arena {
         this.displayCoins = Math.min(this.displayCoins, this.run.coins);
         f.stolen += n;
         this.fx.quip(f.x, f.cy - 130, `-${n} TIPS STOLEN!`, '#ffd23f', 38);
-        audio.sfx('sfx_steal');
+        if (!contentFx.steal(this, f, n)) audio.sfx('sfx_steal');
       }
     }
     // Fruit Fly Fiona spoils freshness instead of eating slices
@@ -4040,7 +4040,7 @@ export class GameScene extends Phaser.Scene implements Arena {
         if (p.dead || this.over || !this.waveActive) return;
         for (let i = 0; i < 6; i++) this.fx.burn(p.x + (Math.random() - 0.5) * 140, p.surfaceY);
         this.fx.quip(p.x, p.surfaceY - 150, 'SCORCHED!', '#ff8a3d', 40);
-        audio.sfx('sfx_fire', { volume: 0.6 });
+        if (!contentFx.scorch(this, f)) audio.sfx('sfx_fire', { volume: 0.6 });
         const removed = p.takeSlices(1, p.x);
         this.waveSlicesLost += removed.length;
         this.run.slicesLost += removed.length;

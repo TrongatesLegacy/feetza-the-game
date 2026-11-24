@@ -182,9 +182,10 @@ export const BOSS_CREW: Record<string, string[]> = {
   // ——— Act 7 · Comics (Thanfoot's army is new feet, still to come: he keeps the usual crowd) ———
   doomstomp: ['henchman', 'goon', 'jetpack'],
   // ——— Act 8 · Norse ———
-  // (the giants keep Fenrir's kin: the wolf pups run in his hall)
-  thrym: ['frostgiant', 'troll', 'wolfpup'],
-  surtr: ['lava', 'draugr'],
+  // (the giants keep Fenrir's kin: the wolf pups run in his hall; and dwarf smiths work his forge)
+  thrym: ['frostgiant', 'troll', 'wolfpup', 'dwarfboot'],
+  // (his fire giants cross the burning bridge with him)
+  surtr: ['muspel', 'lava', 'draugr'],
   // ——— Act 9 · Greek myths ———
   medusa: ['harpy', 'siren', 'satyr'],
   hades: ['hoplite'],

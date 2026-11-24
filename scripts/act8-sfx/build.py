@@ -1,5 +1,5 @@
 """Render the Act 8 recipes.  usage: KENNEY=... [RECIPES=recipes_act8a] python3 -I build.py OUTDIR [key-substring ...]
-(RECIPES picks the recipe module: recipes_act8, the default, or recipes_act8a for the first batch of new feet.)"""
+(RECIPES picks the recipe module: recipes_act8, the default, or recipes_act8a and recipes_act8b for the new feet.)"""
 import json
 import multiprocessing as mp
 import os

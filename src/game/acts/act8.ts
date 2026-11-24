@@ -3,6 +3,10 @@
 // - Draugr Boots rise again once (the 'revive' trait), unless they were ever set burning.
 // - Troll Feet follow your peel from pizza to pizza, and turn to stone in the sun-gap's light.
 // - Valkyrie-Cursed Clogs always fly in as a pair, swooping down from the top.
+// - Raven Talons, Skald Slippers, Dwarf-Forged Boots and Muspel Fire-Feet: their traits do the work too (flutter and
+//   thief, cheer, guard, immuneBurn and scorch); here they get their voices and their trait moments (the raven's caw
+//   as it steals, the skald's song while he rallies the feet round him, the scorch's roar; the dwarf's shield rings
+//   with its own sounds: ShieldDef.sounds in src/content/style/acts-d-5.ts).
 // - Wolf-Pup Paws, Berserker Boots and Shieldmaiden Sabatons: their traits do the work (swarm and woolly, rush and
 //   enrage, parry); here they get their voices (arrival, hurt, death) and their trait moments (the litter's yips,
 //   the berserker's rage, the shield's clang, which also tells its live layer to swing the shield).
@@ -16,6 +20,7 @@ import type { Foot } from '../Foot';
 import type { ActFx, FootFx } from '../contentFx';
 import { waveInStage } from '../Run';
 import type { Pizza } from '../Pizza';
+import { crand } from '../../systems/cosmeticRandom';
 
 const onScreen = (f: Foot) => f.alive && !f.held && !f.pinned && f.y > 60 && (f.state === 'hover' || f.state === 'descend' || f.state === 'stomp');
 
@@ -347,6 +352,72 @@ const shieldmaiden: FootFx = {
   kill: (a) => a.sfx('sfx_shieldmaidendie', { throttle: 150 }),
 };
 
+// ——— Raven Talons, Skald Slippers, Dwarf-Forged Boots, Muspel Fire-Feet ———
+
+const raven: FootFx = {
+  spawn: (a) => a.sfx('sfx_ravencaw', { volume: 0.8, throttle: 600 }),
+  hit: hurt('sfx_ravenhurt', 0.65, 240),
+  // its stomp swipes tips: a gloating caw over the clink of coin
+  steal: (a) => {
+    a.sfx('sfx_ravensteal', { throttle: 300 });
+    return true;
+  },
+  kill: (a, f) => {
+    a.sfx('sfx_ravendie', { volume: 0.85, throttle: 150 });
+    for (let i = 0; i < 6; i++) a.fx.propTrail(f.cx + (crand() - 0.5) * 120, f.cy + (crand() - 0.5) * 80, 0x1a1a26, 0.5);
+  },
+};
+
+/** How far the skald's song carries (the cheer trait's reach: GameScene's footTick). */
+const SONG_REACH = 450;
+/** Seconds between his verses while there's a foot near him to rally. */
+const SONG_EVERY = 7.5;
+
+const skald: FootFx = {
+  spawn: (a, f) => {
+    a.sfx('sfx_skaldsong', { volume: 0.8, throttle: 1200 });
+    // (the live layer bursts runes off the strings when this count changes: src/content/styleLive/act8b.ts)
+    f.brain.sang = 1;
+    f.brain.songT = 0;
+  },
+  tick: (a, f, dt) => {
+    if (!a.inWave()) return;
+    f.brain.songT = Number(f.brain.songT ?? 0) + dt;
+    if (Number(f.brain.songT) < SONG_EVERY) return;
+    // a verse only when there's someone near him to hear it
+    if (!a.allFeet().some((o) => o !== f && o.alive && Math.abs(o.x - f.x) < SONG_REACH)) return;
+    f.brain.songT = 0;
+    f.brain.sang = Number(f.brain.sang ?? 0) + 1;
+    a.sfx('sfx_skaldrally', { volume: 0.75, throttle: 2500 });
+  },
+  hit: hurt('sfx_skaldhurt', 0.7),
+  kill: (a) => a.sfx('sfx_skalddie', { throttle: 150 }),
+};
+
+const dwarfboot: FootFx = {
+  spawn: (a) => a.sfx('sfx_dwarfspawn', { volume: 0.8, throttle: 500 }),
+  hit: hurt('sfx_dwarfhurt', 0.7),
+  kill: (a, f) => {
+    a.sfx('sfx_dwarfdie', { throttle: 150 });
+    a.fx.ring(f.cx, f.cy + 40, 0xffb04a, 0.8, 0.5);
+  },
+};
+
+const muspel: FootFx = {
+  spawn: (a) => a.sfx('sfx_muspelspawn', { volume: 0.8, throttle: 600 }),
+  hit: hurt('sfx_muspelhurt', 0.7),
+  // the stomped pizza bursts into flame a moment later
+  scorch: (a) => {
+    a.sfx('sfx_muspelscorch', { volume: 0.85, throttle: 300 });
+    return true;
+  },
+  kill: (a, f) => {
+    a.sfx('sfx_muspeldie', { throttle: 150 });
+    a.fx.ring(f.cx, f.cy + 40, 0xff6a1a, 1.1, 0.5);
+    a.shake(120, 0.003);
+  },
+};
+
 export const footFx: Record<string, FootFx> = {
   frostgiant,
   draugr,
@@ -358,6 +429,10 @@ export const footFx: Record<string, FootFx> = {
   wolfpup,
   berserker,
   shieldmaiden,
+  raven,
+  skald,
+  dwarfboot,
+  muspel,
 };
 
 /** The act's weather: the Norse backdrops' live layers (src/content/live/act8.ts) change with the wave

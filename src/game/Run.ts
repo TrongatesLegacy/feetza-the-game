@@ -228,11 +228,11 @@ export const EVERYDAY_WEIGHT: Record<number, number> = {
   3: 0,
   5: 0,
   6: 0,
+  8: 0,
   9: 0,
-  // Acts 4, 7 and 8 keep the everyday feet until their own new feet land (too few themed kinds yet): then 0 too
+  // Acts 4 and 7 keep the everyday feet until their own new feet land (too few themed kinds yet): then 0 too
   4: 1,
   7: 1,
-  8: 1,
 };
 const everydayWeight = (act: number): number => EVERYDAY_WEIGHT[act] ?? 1;
 /** Act 9 (Greek myths) is where Persian Elephant Feet gather (300 of them unlock the Kratos Peel). */

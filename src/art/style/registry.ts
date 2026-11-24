@@ -39,6 +39,8 @@ export interface ShieldDef {
   accent?: string;
   /** Hangs from its strap: swings like a pendulum once it's down. */
   swing?: boolean;
+  /** Its own sounds in place of the stock ones (src/game/guardShield.ts): a blocked smack's crack, the shatter. */
+  sounds?: { crack?: string; shatter?: string };
   /** Draw the shield alone in design space. */
   draw(ctx: Ctx, art: FootArt): void;
   /** Its outline, in design space. */

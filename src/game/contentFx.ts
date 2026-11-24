@@ -34,6 +34,12 @@ export interface FootFx {
   /** Its parry turned a smack aside (the 'parry' trait). Return true if it played its own sound (then the stock
    * shield sound is skipped). */
   parry?(a: Arena, f: Foot): boolean;
+  /** Its stomp swiped n tips (the 'thief' trait). Return true if it played its own sound (then the stock one is
+   * skipped). */
+  steal?(a: Arena, f: Foot, n: number): boolean;
+  /** The pizza it stomped burns another slice (the 'scorch' trait, a moment after the stomp). Return true if it played
+   * its own sound (then the stock fire sound is skipped). */
+  scorch?(a: Arena, f: Foot): boolean;
   /** Return true to cancel a killing blow (the foot stays on 1 HP or whatever the hook sets). */
   spare?(a: Arena, f: Foot, source: string): boolean;
 }
@@ -76,6 +82,12 @@ export const contentFx = {
   },
   parry(a: Arena, f: Foot): boolean {
     return FEET[f.type.id]?.parry?.(a, f) ?? false;
+  },
+  steal(a: Arena, f: Foot, n: number): boolean {
+    return FEET[f.type.id]?.steal?.(a, f, n) ?? false;
+  },
+  scorch(a: Arena, f: Foot): boolean {
+    return FEET[f.type.id]?.scorch?.(a, f) ?? false;
   },
   kill(a: Arena, f: Foot): void {
     if (current !== null) ACTS[current]?.kill?.(a, f);

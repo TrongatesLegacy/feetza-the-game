@@ -1,4 +1,4 @@
-// Act 8 · Norse (waves 71–80): Jotunheim Ice Fields and Bifröst Bridge. Seven regular feet and the
+// Act 8 · Norse (waves 71–80): Jotunheim Ice Fields and Bifröst Bridge. Eleven regular feet and the
 // act's four bosses. Art kinds are drawn in src/content/art/act8.ts; the feet's own behaviour (chill,
 // stone in sunlight, rising again, flying in pairs) lives in src/game/feet/act8.ts and the fights in
 // src/game/bosses/act8.ts.
@@ -24,7 +24,7 @@ export const feet: FootType[] = [
     undead: true,
     name: 'Draugr Boots',
     desc: 'Iron-shod boots off a barrow-wight, wrapped in grave cloth. Knock it down and it rises again, unless it was burning when it fell.',
-    hp: 52, speed: 0.95, armor: 1, stompDmg: 1, coins: 20, score: 600, scale: 1.05, minWave: 72, weight: 8,
+    hp: 52, speed: 0.95, armor: 1, stompDmg: 1, coins: 20, score: 600, scale: 1.05, minWave: 71, weight: 8,
     traits: ['revive'],
     home: 'bifrost',
     howTo: 'Burn it (a fire topping or peel) and it stays down; otherwise beat it twice',
@@ -48,7 +48,7 @@ export const feet: FootType[] = [
     id: 'valkyrie',
     name: 'Valkyrie-Cursed Clogs',
     desc: 'Winged clogs bewitched by a Valkyrie. They always fly in as a pair, fast and straight down from the sky.',
-    hp: 26, speed: 1.55, armor: 0, stompDmg: 1, coins: 12, score: 400, scale: 0.95, minWave: 73, weight: 6,
+    hp: 26, speed: 1.55, armor: 0, stompDmg: 1, coins: 12, score: 400, scale: 0.95, minWave: 71, weight: 6,
     traits: ['flutter'],
     home: 'bifrost',
     howTo: 'Two at once: smack the lower one first, then its partner',
@@ -74,7 +74,7 @@ export const feet: FootType[] = [
     id: 'berserker',
     name: 'Berserker Boots',
     desc: 'A bear-skin warrior\'s boots, daubed in war paint. Barely pauses before it drops, and once you hurt it badly it flies into a rage and comes down faster still.',
-    hp: 48, speed: 1.15, armor: 1, stompDmg: 1, coins: 17, score: 540, scale: 1.05, minWave: 72, weight: 5,
+    hp: 48, speed: 1.15, armor: 1, stompDmg: 1, coins: 17, score: 540, scale: 1.05, minWave: 71, weight: 5,
     traits: ['enrage', 'rush'],
     home: 'jotunheim',
     howTo: 'It drops almost at once: be over it as it arrives, and finish it fast once it rages (below half health it is half again as fast)',
@@ -94,11 +94,61 @@ export const feet: FootType[] = [
     quips: ['SHIELD WALL!', 'FOR THE HALL!', 'NOT TODAY!'],
     art: { kind: 'knight', skin: '#f1cdb0', primary: '#a9b4c2', secondary: '#c89a3a', leg: 'armor', legColor: '#9aa4b2', legAccent: '#2a4f86' },
   },
+  // (Act 8's new Bifröst feet, the last four: art in src/content/style/acts-d-5.ts, life in play in
+  // src/content/styleLive/act8b.ts, sounds and trait moments in src/game/acts/act8.ts)
+  {
+    id: 'raven',
+    name: 'Raven Talons',
+    desc: "The All-Father's ravens, sent out to watch the world and coming home with toppings. They swoop in fast, shake off a knock in a beat of the wings, and swipe your tips when they land.",
+    hp: 30, speed: 1.45, armor: 0, stompDmg: 1, coins: 14, score: 420, scale: 0.95, minWave: 72, weight: 6,
+    traits: ['flutter', 'thief'],
+    home: 'bifrost',
+    howTo: 'Smack it before it lands to keep your tips, and again straight away: a knock barely slows it',
+    tell: 'A harsh caw and a beat of black wings as it swoops in; a gold glint on the stolen ring',
+    quips: ['KRAAA!', 'SHINY! MINE!', 'THOUGHT AND MEMORY!'],
+    art: { kind: 'dino', skin: '#2e2c34', nails: '#141218', primary: '#17161f', secondary: '#d8a83a', leg: 'scales', legColor: '#34323a' },
+  },
+  {
+    id: 'skald',
+    name: 'Skald Slippers',
+    desc: 'A saga-singer in embroidered felt slippers, his lyre at his side. While he sings, every foot near him moves faster.',
+    hp: 56, speed: 0.95, armor: 1, stompDmg: 1, coins: 17, score: 520, scale: 1.0, minWave: 73, weight: 5,
+    traits: ['cheer'],
+    home: 'bifrost',
+    howTo: 'Silence the skald first: while he lives the feet round him come on faster',
+    tell: 'He strikes up the lyre and sings, and gold runes drift off the strings',
+    quips: ['HEAR MY SAGA!', 'SING, BROTHERS!', 'A SONG OF SLICES!'],
+    art: { kind: 'slipper', skin: '#efc0a0', nails: '#d8c8a8', primary: '#2a4a7a', secondary: '#c8302a', leg: 'jeans', legColor: '#6a2a2a', legAccent: '#c89a3a' },
+  },
+  {
+    id: 'dwarfboot',
+    name: 'Dwarf-Forged Boots',
+    desc: 'Rune-iron boots from the forges under the mountains, behind a rune-iron shield that never comes down. Every smack on it rings and dents it, and enough of them (6 on Regular) split it; a Peel Slam takes 3 at once, and burns and toppings only wear it down at half pace. 9 seconds later (on Regular) the dwarf pulls a new one from his back.',
+    hp: 90, speed: 0.7, armor: 3, stompDmg: 1, coins: 24, score: 680, scale: 1.12, minWave: 74, weight: 4,
+    traits: ['guard'],
+    home: 'bifrost',
+    howTo: 'Split the shield: 6 smacks (4 on Mild, 8 from Extra Hot) or a Peel Slam for 3; burns and toppings wear it at half pace. Then hit the boots hard before he pulls out a new one (9 s; 12 on Mild, 7.5 from Extra Hot)',
+    tell: 'The rune plate on his leg: its bar is the smacks the shield can still take; once it’s BROKEN its amber ring counts down to the new one (it glows blue as he reaches back for it)',
+    quips: ['FORGED UNDER THE MOUNTAIN!', 'STAND FAST!', 'IRON AND RUNES!'],
+    art: { kind: 'boot', skin: '#d9a27a', primary: '#3e4450', secondary: '#c8913a', leg: 'armor', legColor: '#4a505c', legAccent: '#c8913a' },
+  },
+  {
+    id: 'muspel',
+    name: 'Muspel Fire-Feet',
+    desc: "Surtr's fire giants, crossing the burning bridge on feet of cinder and flame. Fire won't hurt them, and a pizza they stomp goes on smouldering.",
+    hp: 120, speed: 0.6, armor: 3, stompDmg: 1, coins: 26, score: 720, scale: 1.4, minWave: 76, weight: 4,
+    traits: ['immuneBurn', 'scorch'],
+    home: 'bifrost',
+    howTo: "Fire won't hurt it: bring smacks, and stop it before it lands (a pizza it stomps loses another slice to the flames a moment later)",
+    tell: 'The cracks between its cinder plates flare white-hot as it drops, and its flames roar',
+    quips: ['MUSPELHEIM RISES!', 'ALL WILL BURN!', 'FEEL THE HEAT!'],
+    art: { kind: 'bare', skin: '#3a2622', nails: '#1a1014', primary: '#2a1c1a', secondary: '#ff7a1a', leg: 'skin', legColor: '#3a2622', lava: true },
+  },
   // ——— Bosses ———
   {
     id: 'thrym',
     name: 'THRYM THE FROST KING',
-    desc: 'Boss. The king of the frost giants, in a boot of blue glacier ice. Freezes pizzas solid and rebuilds his ice fortress around the table. Brings his frost giants, trolls and their wolf pups.',
+    desc: 'Boss. The king of the frost giants, in a boot of blue glacier ice. Freezes pizzas solid and rebuilds his ice fortress around the table. Brings his frost giants, trolls, their wolf pups and the dwarf smiths he keeps at his forge.',
     // (6600, was 7400: the fortress, ice and hail keep the peel busy, and the fight ran 4–6 minutes on Regular)
     hp: 6600, speed: 0.5, armor: 6, stompDmg: 1, coins: 380, score: 47000, scale: 2.2, minWave: 75, weight: 0,
     traits: ['heavy', 'immuneSlow'],
@@ -112,7 +162,7 @@ export const feet: FootType[] = [
   {
     id: 'surtr',
     name: 'SURTR THE FIRE GIANT',
-    desc: 'Boss. The fire giant of Muspelheim, a magma boot with a sword of flame. He brings Ragnarök to the bridge. Magma Toes and the draugr come with him.',
+    desc: 'Boss. The fire giant of Muspelheim, a magma boot with a sword of flame. He brings Ragnarök to the bridge. His Muspel fire giants, Magma Toes and the draugr come with him.',
     // (7800, was 8400: burning pizzas and fireballs from phase 1 wore Regular tables out before the sword)
     hp: 7800, speed: 0.55, armor: 5, stompDmg: 2, coins: 420, score: 52000, scale: 2.2, minWave: 80, weight: 0,
     traits: ['heavy', 'immuneBurn'],

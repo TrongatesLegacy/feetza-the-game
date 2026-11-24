@@ -444,6 +444,9 @@ class GuardFx {
   }
 
   private sfx(key: string, vol = 1, rate = 1): void {
+    // (a shield with its own sounds plays them at their own pitch, with a little of the stage's lift)
+    const own = key === 'sfx_guardcrack' ? this.def?.sounds?.crack : key === 'sfx_guardshatter' ? this.def?.sounds?.shatter : undefined;
+    if (own) return void audio.sfx(own, { volume: Math.min(1, vol), rate: 1 + (rate - 1) * 0.5, throttle: 60 });
     audio.sfx(key, { volume: vol, rate: rate * (this.def ? SND_RATE[this.def.material] : 1), throttle: 60 });
   }
 
