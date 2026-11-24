@@ -7,8 +7,9 @@ import { mix, rgba, shade } from '../../art/util';
 import { registerLeg, registerLegKind, wrapTile } from '../../art/style/legs';
 import { texture } from '../../art/style/kit';
 
-// Thrym's leg was icy blue; the iron default made it a pale grey strut. Ice-blue polished plate with frost-white trim.
-registerLeg('thrym', { kind: 'plate', color: '#6fb2de', accent: '#eaf8ff' });
+// Thrym's leg: the frost king's greave of rune-cut blued iron (the 'thrymgreave' kind, src/content/style/thrym.ts),
+// darker than his ice boot so the boot stands out bright under it; its runes hold a thread of cold light.
+registerLeg('thrym', { kind: 'thrymgreave', color: '#4a5c7a', accent: '#8af0ff' });
 // The Harpy stood on a scaly gold leg under her feather ruff, not a purple furry one.
 registerLeg('harpy', { kind: 'scales', color: '#d4b25a' });
 // The Echo Knight Clown's leg was the knight's red armour with a gold band, not grey trousers.
