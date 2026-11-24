@@ -24,7 +24,7 @@ export const feet: FootType[] = [
     name: 'Cyclops Sandals',
     desc: 'One giant eye on the toe cap and it never blinks. Hits hard, shrugs off knockback, but hates a poke in the eye.',
     // (90, was 110: with elephants about in Act 9, two heavies in a wave were too many for Regular)
-    hp: 90, speed: 0.8, armor: 3, stompDmg: 2, coins: 20, score: 620, scale: 1.25, minWave: 82, weight: 3,
+    hp: 90, speed: 0.8, armor: 3, stompDmg: 2, coins: 20, score: 620, scale: 1.25, minWave: 81, weight: 3,
     traits: ['heavy'],
     home: 'labyrinth',
     howTo: 'Smack the eye: it is blinded, takes double damage and its next stomp misses',
@@ -44,7 +44,7 @@ export const feet: FootType[] = [
     quips: ['MINE! MINE!', 'SKREEE!', 'FINDERS KEEPERS!'],
     art: { kind: 'm_harpy', skin: '#d6b08a', primary: '#5a4a6a', secondary: '#c9a23a', leg: 'scales', legColor: '#d9b85a' },
   },
-  // ——— Rare, any stage from wave 84 ———
+  // ——— Rare: an Act 9 foot from wave 84 (at home in Tartarus, where the Titans are kept) ———
   {
     id: 'titantoes',
     name: 'Titan Toes',
@@ -52,6 +52,7 @@ export const feet: FootType[] = [
     // (250, was 300, for the same reason)
     hp: 250, speed: 0.6, armor: 4, stompDmg: 2, coins: 40, score: 1200, scale: 1.7, minWave: 84, weight: 1,
     traits: ['heavy', 'wide'],
+    home: 'tartarus',
     howTo: 'Save your big hits for it, and keep the pizzas either side healthy',
     tell: 'The ground shakes and pebbles jump as it rises',
     quips: ['I WAS HERE FIRST.', 'BEFORE OLYMPUS, THERE WAS ME.', 'TINY TABLE.'],
@@ -153,7 +154,7 @@ export const feet: FootType[] = [
   {
     id: 'medusa',
     name: 'MEDUSA',
-    desc: 'Boss. A snake-haired sandal with a stare that turns pizzas to stone. Never look her in the eye.',
+    desc: 'Boss. A snake-haired sandal with a stare that turns pizzas to stone. Never look her in the eye. Brings harpies, sirens and satyrs with her.',
     // (6800, was 7400: Regular runs reached her already worn down by Act 9's heavies, and lost)
     hp: 6800, speed: 0.6, armor: 4, stompDmg: 3, coins: 380, score: 47000, scale: 2.2, minWave: 85, weight: 0,
     traits: [],
@@ -167,7 +168,7 @@ export const feet: FootType[] = [
   {
     id: 'cerberus',
     name: 'CERBERUS',
-    desc: 'Mini-boss. The three-headed hound of the underworld: three paws at once, one health bar and three tempers.',
+    desc: 'Mini-boss. The three-headed hound of the underworld: three paws at once, one health bar and three tempers. Arrives with skeleton hoplites.',
     hp: 3100, speed: 0.9, armor: 3, stompDmg: 2, coins: 160, score: 13600, scale: 1.4, minWave: 88, weight: 0,
     traits: [],
     mini: true,
@@ -180,7 +181,7 @@ export const feet: FootType[] = [
   {
     id: 'hades',
     name: 'HADES',
-    desc: 'Boss. Lord of the underworld, in a sandal of black iron and blue fire. Frees the Titans one by one, then comes for your slices himself.',
+    desc: 'Boss. Lord of the underworld, in a sandal of black iron and blue fire. Frees the Titans one by one, then comes for your slices himself. Brings his skeleton army.',
     // (8600, was 9600: two Titans and his shadows' healing made the longest fight of the journey)
     hp: 8600, speed: 0.6, armor: 5, stompDmg: 3, coins: 420, score: 52000, scale: 2.2, minWave: 90, weight: 0,
     traits: [],

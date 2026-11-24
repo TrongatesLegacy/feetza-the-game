@@ -24,7 +24,7 @@ export const feet: FootType[] = [
   {
     id: 'zeus',
     name: 'ZEUS',
-    desc: 'Boss. The king of Olympus, in a towering sandal of white marble and gold. He hurls thunderbolts, and phase by phase he calls in the Olympians: Poseidon’s wave, Ares’s war cry and Hera’s crown.',
+    desc: 'Boss. The king of Olympus, in a towering sandal of white marble and gold. He hurls thunderbolts, and phase by phase he calls in the Olympians: Poseidon’s wave, Ares’s war cry and Hera’s crown. Brings cyclopes, harpies and satyrs down from the mountain.',
     hp: 8900, speed: 0.6, armor: 5, stompDmg: 3, coins: 440, score: 54000, scale: 2.2, minWave: 90, weight: 0,
     traits: [],
     boss: true,

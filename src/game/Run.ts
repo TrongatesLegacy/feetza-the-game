@@ -2,10 +2,10 @@
 
 import type { ArenaId, BackdropId, LocationId } from '../art/backdrops';
 import { DEEP_FROM, DEEP_SPAN, HEAT_BY_ID, type HeatId } from '../data/difficulty';
-import { FEET, type FootType } from '../data/feet';
+import { FEET, FOOT_BY_ID, type FootType } from '../data/feet';
 import { PIZZA_BY_ID, type PizzaPerk, type PizzaType } from '../data/pizzas';
 import { MILESTONES, type Milestone } from '../data/meta';
-import { JOURNEY_WAVES, MINI_WAVE, STAGES, STAGES_PER_ACT, WAVES_PER_STAGE } from '../data/stages';
+import { BOSS_CREW, JOURNEY_WAVES, MINI_ESCORT, MINI_WAVE, STAGES, STAGES_PER_ACT, WAVES_PER_STAGE } from '../data/stages';
 import { CONSUMABLE_COOLDOWN, RARITY_WEIGHT, UPGRADES, UPGRADE_BY_ID, baseStats, kindOf, type OfferEnv, type Rarity, type Stats, type Upgrade } from '../data/upgrades';
 import { freshKitState, type KitState } from './kitState';
 import { applyNemesis, homeOf } from './nemesis';
@@ -217,6 +217,21 @@ const homeAct = (f: FootType) => actOfLocation(f.home);
 /** Themed feet (with a home location) only appear in their own act; everyday feet (no home) anywhere. So at any
  * time the game needs only one act's feet in memory (their art is released when the act is left). */
 export const THEMED_TAPER = 0;
+/** Everyday feet's (no home) weight by act. Acts 3–9 are made of their own themed feet; the everyday cast stays in
+ * Acts 1–2 and comes back at full weight in Act 10 for the reunion. At 0 they're out of the act's pool altogether
+ * (footPool), so weightedPick never sees them and their art isn't warmed or kept there (GameScene.warmFeet and
+ * evictArt both go by footPool). Acts not listed: 1. */
+export const EVERYDAY_WEIGHT: Record<number, number> = {
+  3: 0,
+  5: 0,
+  6: 0,
+  9: 0,
+  // Acts 4, 7 and 8 keep the everyday feet until their own new feet land (too few themed kinds yet): then 0 too
+  4: 1,
+  7: 1,
+  8: 1,
+};
+const everydayWeight = (act: number): number => EVERYDAY_WEIGHT[act] ?? 1;
 /** Act 9 (Greek myths) is where Persian Elephant Feet gather (300 of them unlock the Kratos Peel). */
 const ELEPHANT_ACT = 9;
 /** Elephants' weight multiplier all through Act 9 (both stages), in place of the fresh and home bonuses: those
@@ -231,19 +246,88 @@ export function actOfWave(n: number): number {
   return actOfLocation(homeOf(locationFor(n))) ?? Math.floor(stageIndex(n) / STAGES_PER_ACT) + 1;
 }
 
-/** The regular feet that can turn up in wave n: unlocked, and either everyday feet or at home in the wave's act. */
+/** The regular feet that can turn up in wave n: unlocked, and either everyday feet (where their act weight isn't 0:
+ * EVERYDAY_WEIGHT) or at home in the wave's act. (Its boss's crew and its mini-boss's escort come on top: crewOf,
+ * escortOf.) */
 export function footPool(n: number): FootType[] {
   const loop = loopOf(n);
   const inLoop = n - loop * JOURNEY_WAVES;
   const act = actOfWave(n);
-  return FEET.filter((f) => {
+  const open = FEET.filter((f) => {
     if (f.boss || f.mini || f.weight <= 0 || !(f.minWave <= inLoop || loop > 0)) return false;
     const own = homeAct(f);
     return own === null || own === act || (f.id === 'elephant' && act === ELEPHANT_ACT);
   });
+  if (everydayWeight(act) > 0) return open;
+  const themed = open.filter((f) => homeAct(f) !== null);
+  // (an act with none of its own feet unlocked yet keeps the everyday ones rather than an empty pool)
+  return themed.length ? themed : open;
 }
 
-export function planWave(n: number, luck: number, heatId: HeatId = 'regular'): WavePlan {
+/** Feet by id, as types (unknown ids, bosses and fight pieces dropped: a crew or escort is ordinary wave feet);
+ * null when there are none. */
+function feetOf(ids: string[] | undefined): FootType[] | null {
+  const feet = (ids ?? []).map((id) => FOOT_BY_ID[id]).filter((f): f is FootType => !!f && !f.boss && !f.mini && !f.summoned);
+  if (import.meta.env.DEV && feet.length !== (ids ?? []).length) console.error('[crews] unknown, boss or summoned ids in', ids);
+  return feet.length ? feet : null;
+}
+/** A boss's crew (BOSS_CREW): its boss wave's whole queued crowd. Null: no crew, the wave's usual crowd. By boss
+ * id, so it follows the boss through nemesis swaps and Endless+ deals. */
+export const crewOf = (boss: string): FootType[] | null => feetOf(BOSS_CREW[boss]);
+/** A mini-boss's escort (MINI_ESCORT): they arrive with it and the rest of the wave leans towards them. */
+export const escortOf = (mini: string): FootType[] | null => feetOf(MINI_ESCORT[mini]);
+/** How often each crew foot is picked when the crowd is filled: all alike (they're all invited), so each kind makes up
+ * about the same share of the crowd (a swarm foot, which queues three, a third as often). */
+const crewWeight = (f: FootType): number => (f.traits.includes('swarm') ? 1 / 3 : 1);
+/** Odds the rest of a mini-boss's wave leans its way: three to one towards its escort. */
+const ESCORT_LEAN = 0.75;
+/** Bosses whose fight opens with a Persian war band marching in, at the head of the boss wave's queue. */
+const BAND_BOSSES = new Set(['xerxes']);
+
+const isSwarm = (f: FootType | undefined): boolean => !!f?.traits.includes('swarm');
+/** A foot's queue entries: a swarm foot queues three. */
+const unitOf = (f: FootType): string[] => (isSwarm(f) ? [f.id, f.id, f.id] : [f.id]);
+
+/** Queue feet picked from `pool` until there are `count`. */
+function fill(queue: string[], count: number, pool: FootType[], weight: (f: FootType) => number): void {
+  while (queue.length < count) queue.push(...unitOf(weightedPick(pool, weight)));
+}
+
+/** A queue in spawn units: a swarm foot's run of up to three ids is one unit (spawnTick sends them in together). */
+function queueUnits(queue: string[]): string[][] {
+  const units: string[][] = [];
+  for (let i = 0; i < queue.length; ) {
+    let n = 1;
+    if (isSwarm(FOOT_BY_ID[queue[i]])) while (n < 3 && queue[i + n] === queue[i]) n++;
+    units.push(queue.slice(i, i + n));
+    i += n;
+  }
+  return units;
+}
+
+/** A mini-boss arrives with its escort: `count` escort feet come in place of the next `count` queued units (so the
+ * wave's size stays about the same), and the rest of the queue leans its way, each unit becoming one of the escort
+ * three times in four. Returns the escort feet to bring in now (GameScene.spawnMini). */
+export function escortArrival(queue: string[], escort: FootType[], count: number): FootType[] {
+  const pick = () => escort[Math.floor(Math.random() * escort.length)];
+  const now = Array.from({ length: count }, pick);
+  const rest = queueUnits(queue).slice(count).map((u) => (Math.random() < ESCORT_LEAN ? unitOf(pick()) : u));
+  queue.splice(0, queue.length, ...rest.flat());
+  return now;
+}
+
+/** A Persian war band, in marching order: a Satrap's Slipper leading, a pair of Spartan Sandals defending (the first
+ * brings its partner), 2 elephants in front, cavalry riding in on the flanks and an archer behind: 7 queued feet
+ * (half the time a second archer rides in place of a horse). Lanes and roles are set by the feet themselves
+ * (src/game/acts/persians.ts). Xerxes's opening band (`boss`) brings two Immortals in place of the elephants: in his
+ * fight only the elephants he calls ward him, and plain ones marching in first would read as if they did. */
+function bandIds(boss = false): string[] {
+  const beasts = boss ? ['immortal', 'immortal'] : ['elephant', 'elephant'];
+  return ['satrap', 'spartan', ...beasts, 'cavalry', ...(Math.random() < 0.5 ? ['cavalry', 'archer'] : ['archer', 'archer'])];
+}
+
+/** Wave n's plan. `bossId` puts another boss in its boss wave (the dev boss shortcut), with that boss's crew. */
+export function planWave(n: number, luck: number, heatId: HeatId = 'regular', bossId?: string): WavePlan {
   const heat = HEAT_BY_ID[heatId];
   const loop = loopOf(n);
   const inLoop = n - loop * JOURNEY_WAVES;
@@ -257,42 +341,48 @@ export function planWave(n: number, luck: number, heatId: HeatId = 'regular'): W
   const climb = (w: number) => Math.min(w - 1, 29) * 0.1 + (Math.min(w, DEEP_FROM) - Math.min(w, 30)) * 0.06 + Math.min(DEEP_SPAN, Math.max(0, w - DEEP_FROM)) * crowd.deepHp;
   const hpMult = (1 + climb(inLoop) + loop * climb(JOURNEY_WAVES)) * heat.hp;
   const speedMult = Math.min(heat.crowd.speedCap, 1 + (Math.min(eff, 40) - 1) * 0.026) * heat.speed;
-  const boss = isBossWave(n) ? bossFor(n) : null;
+  const boss = isBossWave(n) ? (bossId ?? bossFor(n)) : null;
   const mini = isMiniWave(n) ? miniFor(n) : null;
   // a nemesis place still brings the regular feet of the place it stands in for
   const home = homeOf(locationFor(n));
   // The act of this wave's location (Endless+ shuffles locations, so this follows the place, not the wave number)
   const act = actOfWave(n);
   const pool = footPool(n);
+  // (where it's 0 footPool has already taken them out; this is for weights between 0 and 1. A pool of nothing but
+  // everyday feet is footPool's fallback, at full weight.)
+  const everyday = pool.some((f) => homeAct(f) !== null) ? everydayWeight(act) : 1;
   // freshly unlocked feet get the spotlight; feet at home in this location turn up 3x as often
   const weight = (f: FootType) => {
     if (f.id === 'elephant' && act === ELEPHANT_ACT) return f.weight * ELEPHANT_ACT_MULT;
     const own = homeAct(f);
     return f.weight * (f.minWave >= inLoop - 1 && loop === 0 ? 3 : 1) * (f.home === home ? 3 : 1)
       // themed feet taper off outside their own act (an act's feet stay its own)
-      * (own !== null && own !== act ? THEMED_TAPER : 1);
+      * (own !== null && own !== act ? THEMED_TAPER : 1)
+      // and everyday feet by the act (EVERYDAY_WEIGHT)
+      * (own === null ? everyday : 1);
   };
   const loopUp = 1 + loop * 0.5;
   let count = Math.min(Math.round(crowd.countCap * loopUp * deepUp), Math.round((6 + Math.min(eff, 40) * crowd.perWave + deep * crowd.perWave * 0.25 + loop * 4) * heat.count));
   if (boss) count = Math.round(count * 0.35);
   const queue: string[] = [];
-  while (queue.length < count) {
-    const f = weightedPick(pool, weight);
-    if (f.traits.includes('swarm')) queue.push(f.id, f.id, f.id);
-    else queue.push(f.id);
-  }
-  // a Persian war band, in marching order: a Satrap's Slipper leading, a pair of Spartan Sandals defending (the
-  // first brings its partner), 2 elephants in front, cavalry riding in on the flanks and an archer behind: 7 queued
-  // feet, the old band's most (a Spartan and 4–6 elephants). It takes the place of feet already queued, so the
-  // wave's size and caps stay the same. Lanes and roles are set by the feet themselves (src/game/acts/persians.ts).
+  // a boss with a crew (BOSS_CREW) brings its crowd from that alone, whatever their minWave or home
+  const crew = boss ? crewOf(boss) : null;
+  fill(queue, count, crew ?? pool, crew ? crewWeight : weight);
+  // a Persian war band (bandIds): the old band's most was a Spartan and 4–6 elephants. It takes the place of feet
+  // already queued, so the wave's size and caps stay the same.
   let band: WavePlan['band'] = null;
   if (act === ELEPHANT_ACT && !boss && !mini && queue.length >= 16 && Math.random() < BAND_CHANCE) {
-    // (half the time a second archer rides in place of a horse)
-    const ids = ['satrap', 'spartan', 'elephant', 'elephant', 'cavalry', ...(Math.random() < 0.5 ? ['cavalry', 'archer'] : ['archer', 'archer'])];
+    const ids = bandIds();
     // somewhere in the middle of the wave, never its first or last feet
     const start = Math.floor(queue.length * (0.25 + Math.random() * 0.4));
     queue.splice(start, ids.length, ...ids);
     band = { at: queue.length - start, size: ids.length };
+  }
+  // Xerxes's fight opens with one marching in, at the head of the queue
+  if (boss && BAND_BOSSES.has(boss) && queue.length) {
+    const ids = bandIds(true);
+    queue.splice(0, ids.length, ...ids);
+    band = { at: queue.length, size: ids.length };
   }
   return {
     n,

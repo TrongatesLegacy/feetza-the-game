@@ -8,7 +8,7 @@ import { heatRank, type HeatId } from '../data/difficulty';
 import { FEET, FOOT_BY_ID, OUCH, type FootType } from '../data/feet';
 import { MILESTONES } from '../data/meta';
 import { PIZZAS, PIZZA_BY_ID, enhancedText } from '../data/pizzas';
-import { ACT_COUNT, BOSS_MINION, HEAT_UNLOCK_WAVE, JOURNEY_WAVES, actLabel, actName, actOf, actStartWave, isActEnd, isActStart, waveInJourney } from '../data/stages';
+import { ACT_COUNT, BOSS_CREW, BOSS_MINION, HEAT_UNLOCK_WAVE, MINI_ESCORT, JOURNEY_WAVES, actLabel, actName, actOf, actStartWave, isActEnd, isActStart, waveInJourney } from '../data/stages';
 import { UPGRADES, UPGRADE_BY_ID, kindOf, type Rarity, type Upgrade } from '../data/upgrades';
 import type { Arena, Clickable } from '../game/arena';
 import { evictFootArt, footPortraitURL, pizzaPortraitURL, setArtWarmBusy, texturesInUse, warmFootArt } from '../game/assets';
@@ -21,7 +21,7 @@ import { Foot } from '../game/Foot';
 import { Fx } from '../game/Fx';
 import { Pizza, pizzaHooks } from '../game/Pizza';
 import { Projectiles } from '../game/projectiles';
-import { DOUBLE_CAP, endlessPlus, LOCATION_AMBIENCE, LOCATION_MUSIC, RARITY_FROM, Run, awardMilestones, milestoneProgress, backdropFor, bestRarity, rarityOpen, specialPrice, bossMusic, isBossWave, isMiniWave, locationFor, loopOf, waveInStage, planWave, footPool, type WavePlan, bossFor, miniFor } from '../game/Run';
+import { DOUBLE_CAP, endlessPlus, LOCATION_AMBIENCE, LOCATION_MUSIC, RARITY_FROM, Run, awardMilestones, milestoneProgress, backdropFor, bestRarity, rarityOpen, specialPrice, bossMusic, isBossWave, isMiniWave, locationFor, loopOf, waveInStage, planWave, footPool, type WavePlan, bossFor, miniFor, escortOf, escortArrival } from '../game/Run';
 import type { CounterSnap, RunSnapshot } from '../game/snapshot';
 import { audio, bossSfx, heroSfx } from '../systems/audio';
 import { setRunSmack } from '../game/smacks';
@@ -125,12 +125,17 @@ const WAVE1_MIN_COINS = 35;
  * Immortals, Kronos's Hoplites): their art is kept and warmed with the boss's (GameScene.evictArt, warmFeet). */
 const SUMMONED = new Map<string, Set<string>>();
 
-/** Feet a boss brings on from outside the wave's pool: the ones its fight is known to call up (the Phantom King's
- * echoes, the Sole Proprietor's collection agents) and any seen this session. */
+/** Feet a boss or mini-boss brings on from outside the wave's pool: the ones its fight is known to call up (the
+ * Phantom King's echoes, the Sole Proprietor's collection agents), its crew or escort (BOSS_CREW, MINI_ESCORT) and
+ * any seen this session. */
 function bossSummons(boss: string): string[] {
   const known = boss === 'phantomking' ? ECHO_IDS : boss === 'soleprop' ? solepropAgents() : [];
-  return [...known, ...(SUMMONED.get(boss) ?? [])];
+  return [...known, ...(BOSS_CREW[boss] ?? []), ...(MINI_ESCORT[boss] ?? []), ...(SUMMONED.get(boss) ?? [])];
 }
+
+/** How many of its escort arrive with a mini-boss: 2 on Mild and in Act 1 (the Head Waiter and the Chimney Sweep come
+ * early, on a small table), 2–4 otherwise. */
+const escortCount = (heat: string, wave: number): number => (heat === 'mild' || waveInJourney(wave) <= 10 ? 2 : 2 + Math.floor(Math.random() * 3));
 
 export class GameScene extends Phaser.Scene implements Arena {
   private run!: Run;
@@ -1156,8 +1161,9 @@ export class GameScene extends Phaser.Scene implements Arena {
       r.actFrom = { wave: actFirst, elapsed: r.elapsed, feet: r.feetSmacked, slices: r.slicesLost };
     }
     // Herald (Silver Slicer) showed this wave's feet already: use that plan
-    this.plan = this.heroT.plan && this.heroT.plan.n === n ? this.heroT.plan : planWave(n, this.run.stats.luck, this.run.heat);
-    this.warmFeet(n, this.plan);
+    // (the dev boss shortcut plans the wave with its boss, so its crew comes too)
+    const devBossId = devBoss && FOOT_BY_ID[devBoss.id]?.boss ? devBoss.id : undefined;
+    this.plan = this.heroT.plan && this.heroT.plan.n === n && !devBossId ? this.heroT.plan : planWave(n, this.run.stats.luck, this.run.heat, devBossId);
     this.heroT.plan = null;
     if (devBoss) {
       const t = FOOT_BY_ID[devBoss.id];
@@ -1176,6 +1182,7 @@ export class GameScene extends Phaser.Scene implements Arena {
         });
       }
     }
+    this.warmFeet(n, this.plan);
     // Vow of Focus: no golden feet
     if (this.run.stats.noGolden) this.plan.golden = false;
     this.planSize = this.plan.queue.length;
@@ -1239,7 +1246,9 @@ export class GameScene extends Phaser.Scene implements Arena {
       audio.sfx('sfx_warning');
       this.flash(400, 255, 40, 20);
       this.shake(600, 0.006);
-      ui.hud.banner('BOSS INCOMING!', FOOT_BY_ID[id]?.name ?? 'BOSS', 'boss');
+      // (Xerxes's war band marches in ahead of him; see also his howTo)
+      if (this.plan.band) this.banner('BOSS INCOMING!', FOOT_BY_ID[id]?.name ?? 'BOSS', 'boss', 'His Persian war band marches in ahead of him · take out the Satrap first');
+      else ui.hud.banner('BOSS INCOMING!', FOOT_BY_ID[id]?.name ?? 'BOSS', 'boss');
       this.bossPending = true;
       this.time.delayedCall(2600, () => this.spawnBoss(id, devBoss?.hp));
       this.waveActive = true;
@@ -1349,6 +1358,17 @@ export class GameScene extends Phaser.Scene implements Arena {
     const f = this.spawnFoot(t, target, false);
     f.maxHp = f.hp = Math.round(f.maxHp * (1 - this.run.stats.miniWeak));
     this.miniFoot = f;
+    // its escort comes with it (in place of the next feet queued, so the wave's size stays the same), and the rest
+    // of the wave leans its way. They're ordinary wave feet, not summons: a Zombie Loafer or a zombie peel can turn
+    // them. As many as the table has room for come in now; the rest head the queue.
+    const escort = escortOf(id);
+    const plan = this.plan;
+    if (escort && plan) {
+      const come = escortArrival(plan.queue, escort, escortCount(this.run.heat, this.run.wave));
+      const room = Math.max(0, plan.maxAlive - this.aliveFeet().length);
+      for (const e of come.slice(0, room)) this.spawnFoot(e, this.pickTarget(null));
+      plan.queue.unshift(...come.slice(room).flatMap((e) => (e.traits.includes('swarm') ? [e.id, e.id, e.id] : [e.id])));
+    }
     this.heroT.boss = this.nowT;
     this.heroT.bossSmacks = 0;
     this.heroT.stunned = false;
@@ -1849,7 +1869,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       const band = plan.band;
       const inBand = !!band && plan.queue.length <= band.at && plan.queue.length > band.at - band.size;
       if (band && plan.queue.length === band.at && !this.minionPool) {
-        this.banner('PERSIAN WAR BAND!', 'A Satrap leads the march: take it out first', 'loc');
+        // (in a boss wave the BOSS INCOMING banner has already called it out)
+        if (!plan.boss) this.banner('PERSIAN WAR BAND!', 'A Satrap leads the march: take it out first', 'loc');
         audio.sfx('sfx_warhorn', { volume: 0.7 });
       }
       let id = plan.queue.shift()!;
@@ -2232,12 +2253,14 @@ export class GameScene extends Phaser.Scene implements Arena {
    * wave's opening seconds): its boss and minion, its mini-boss, its queue (or the feet likeliest in it). */
   private warmFeet(n: number, plan?: WavePlan): void {
     const ids: string[] = [];
+    // (the plan's own boss and mini-boss: the dev shortcut can put others in)
     if (isBossWave(n)) {
-      const b = bossFor(n);
+      const b = plan?.boss ?? bossFor(n);
       ids.push(b);
       if (BOSS_MINION[b]) ids.push(BOSS_MINION[b]);
     }
-    if (isMiniWave(n)) ids.push(miniFor(n));
+    const m = plan ? plan.mini : isMiniWave(n) ? miniFor(n) : null;
+    if (m) ids.push(m, ...(MINI_ESCORT[m] ?? []));
     if (plan) ids.push(...plan.queue, ...(plan.golden ? ['golden'] : []));
     else {
       // no plan yet (it rolls the wave's randomness): the whole pool, newest feet first (they're the likeliest);
@@ -2251,11 +2274,11 @@ export class GameScene extends Phaser.Scene implements Arena {
     // its boss and its minion, and every foot that can turn up before the stage ends
     const art = [...ids];
     const end = Math.ceil(n / WAVES_PER_STAGE) * WAVES_PER_STAGE;
-    for (let w = n + 1; w <= end; w++) if (isMiniWave(w)) art.push(miniFor(w));
+    for (let w = n + 1; w <= end; w++) if (isMiniWave(w)) art.push(miniFor(w), ...bossSummons(miniFor(w)));
     if (end > n) art.push(bossFor(end), ...(BOSS_MINION[bossFor(end)] ? [BOSS_MINION[bossFor(end)]] : []));
     // (and what its boss was seen to summon: a foot from outside the pool)
     if (end > n) art.push(...bossSummons(bossFor(end)));
-    if (isBossWave(n)) art.push(...bossSummons(bossFor(n)));
+    if (isBossWave(n)) art.push(...bossSummons(plan?.boss ?? bossFor(n)));
     art.push(...footPool(end).map((f) => f.id));
     // the journey's last stage: the ending's parade too
     if (waveInJourney(n) > JOURNEY_WAVES - WAVES_PER_STAGE) art.push(...finaleCast());
@@ -2276,7 +2299,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     const start = (Math.ceil(n / WAVES_PER_STAGE) - 1) * WAVES_PER_STAGE + 1;
     for (let w = n; w < start + 2 * WAVES_PER_STAGE; w++) {
       for (const f of footPool(w)) keep.add(f.id);
-      if (isMiniWave(w)) keep.add(miniFor(w));
+      if (isMiniWave(w)) for (const id of [miniFor(w), ...bossSummons(miniFor(w))]) keep.add(id);
       if (!isBossWave(w)) continue;
       const b = bossFor(w);
       keep.add(b);

@@ -63,7 +63,7 @@ export const feet: FootType[] = [
   {
     id: 'lexlugtoe',
     name: 'LEX LUGTOE',
-    desc: 'Mini-boss. A bald billionaire in a power-armour brogue. He buys the table: every pizza gets a price tag, and he locks the ones he acquires in glass.',
+    desc: 'Mini-boss. A bald billionaire in a power-armour brogue. He buys the table: every pizza gets a price tag, and he locks the ones he acquires in glass. Arrives with his henchmen.',
     // (2200, was 2600: the act's first fight, and the one that ended the most Regular runs)
     hp: 2200, speed: 0.8, armor: 4, stompDmg: 2, coins: 150, score: 12800, scale: 1.6, minWave: 63, weight: 0,
     traits: ['heavy'],
@@ -77,7 +77,7 @@ export const feet: FootType[] = [
   {
     id: 'doomstomp',
     name: 'DOOMSTOMP',
-    desc: 'Boss. A bone-spiked monster boot that comes back bigger every time you knock it out. Three lives, and the last one only ends with your signature move.',
+    desc: 'Boss. A bone-spiked monster boot that comes back bigger every time you knock it out. Three lives, and the last one only ends with your signature move. Brings his henchmen and goons.',
     hp: 7200, speed: 0.6, armor: 5, stompDmg: 3, coins: 380, score: 46000, scale: 1.9, minWave: 65, weight: 0,
     traits: ['heavy'],
     boss: true,

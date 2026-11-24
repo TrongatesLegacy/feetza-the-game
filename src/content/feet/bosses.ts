@@ -9,7 +9,7 @@ export const feet: FootType[] = [
   {
     id: 'cosmiccroc',
     name: 'COSMIC CROC',
-    desc: 'Boss. A rocket-boosted foam clog from beyond the stars. Smacks send it drifting into orbit.',
+    desc: 'Boss. A rocket-boosted foam clog from beyond the stars. Smacks send it drifting into orbit. Brings his crew from beyond the stars.',
     hp: 3500, speed: 0.6, armor: 4, stompDmg: 2, coins: 200, score: 23000, scale: 2.2, minWave: 30, weight: 0,
     traits: ['floaty', 'burst'],
     boss: true,
@@ -22,7 +22,7 @@ export const feet: FootType[] = [
   {
     id: 'nonna',
     name: "NONNA'S SLIPPER",
-    desc: 'Boss. The slipper every child fears. Barely hovers before it strikes, and gets angrier when hurt.',
+    desc: 'Boss. The slipper every child fears. Barely hovers before it strikes, and gets angrier when hurt. Brings the whole kitchen with her.',
     hp: 4200, speed: 0.62, armor: 3, stompDmg: 2, coins: 230, score: 27000, scale: 2.2, minWave: 35, weight: 0,
     traits: ['rush', 'enrage'],
     boss: true,
@@ -35,7 +35,7 @@ export const feet: FootType[] = [
   {
     id: 'gargoyle',
     name: 'THE GARGOYLE',
-    desc: 'Boss. Carved stone with claws and wings. Shrugs off knockback, but every smack chips its armour.',
+    desc: 'Boss. Carved stone with claws and wings. Shrugs off knockback, but every smack chips its armour. Brings the old town\'s rooftops with him: pigeons, sweeps and rain.',
     hp: 4700, speed: 0.55, armor: 7, stompDmg: 3, coins: 260, score: 31000, scale: 2.2, minWave: 40, weight: 0,
     traits: ['heavy', 'crack'],
     boss: true,
@@ -48,7 +48,7 @@ export const feet: FootType[] = [
   {
     id: 'kraken',
     name: 'KRAKEN TOES',
-    desc: 'Boss. Five tentacles, endless suckers. Squashes the neighbouring pizzas and slowly regrows.',
+    desc: 'Boss. Five tentacles, endless suckers. Squashes the neighbouring pizzas and slowly regrows. Brings a crew up from the deep.',
     hp: 5200, speed: 0.58, armor: 3, stompDmg: 2, coins: 290, score: 35000, scale: 2.2, minWave: 45, weight: 0,
     traits: ['wide', 'regen'],
     boss: true,
@@ -61,7 +61,7 @@ export const feet: FootType[] = [
   {
     id: 'rinkqueen',
     name: 'QUEEN OF THE RINK',
-    desc: 'Boss. Glitter, neon and a crown. Weaves across the table and cheers her court along.',
+    desc: 'Boss. Glitter, neon and a crown. Weaves across the table and cheers her court along. Arrives with her dancers and skaters.',
     hp: 5700, speed: 0.65, armor: 4, stompDmg: 2, coins: 320, score: 39000, scale: 2.2, minWave: 50, weight: 0,
     traits: ['zigzag', 'cheer'],
     boss: true,
@@ -74,7 +74,7 @@ export const feet: FootType[] = [
   {
     id: 'yeti',
     name: 'THE YETI SKI BOOT',
-    desc: 'Boss. A huge furry foot jammed in a ski boot. Nothing knocks it back and nothing slows it down.',
+    desc: 'Boss. A huge furry foot jammed in a ski boot. Nothing knocks it back and nothing slows it down. Brings a party down from the slopes.',
     hp: 6200, speed: 0.55, armor: 6, stompDmg: 3, coins: 350, score: 43000, scale: 2.2, minWave: 55, weight: 0,
     traits: ['heavy', 'immuneSlow'],
     boss: true,
@@ -88,7 +88,7 @@ export const feet: FootType[] = [
   {
     id: 'headwaiter',
     name: 'THE HEAD WAITER',
-    desc: 'Mini-boss. Polished, impeccable and very sniffy. Parries the first smack of every dive.',
+    desc: 'Mini-boss. Polished, impeccable and very sniffy. Parries the first smack of every dive. Arrives with his waiting staff.',
     hp: 280, speed: 0.8, armor: 1, stompDmg: 1, coins: 25, score: 1800, scale: 1.6, minWave: 3, weight: 0,
     traits: ['parry'],
     mini: true,
@@ -101,7 +101,7 @@ export const feet: FootType[] = [
   {
     id: 'sweep',
     name: 'CHIMNEY SWEEP',
-    desc: 'Mini-boss. Pops out of one chimney and into another, leaving soot all over the table.',
+    desc: 'Mini-boss. Pops out of one chimney and into another, leaving soot all over the table. Arrives with the rooftop crowd.',
     hp: 520, speed: 0.85, armor: 3, stompDmg: 2, coins: 38, score: 3000, scale: 1.6, minWave: 8, weight: 0,
     traits: ['teleport'],
     mini: true,
@@ -114,7 +114,7 @@ export const feet: FootType[] = [
   {
     id: 'sandcastle',
     name: 'SANDCASTLE SAM',
-    desc: 'Mini-boss. Builds a fortress on its own foot, then hides under the sand until it is ready.',
+    desc: 'Mini-boss. Builds a fortress on its own foot, then hides under the sand until it is ready. Arrives with a few beachcombers.',
     hp: 760, speed: 0.8, armor: 2, stompDmg: 2, coins: 50, score: 4200, scale: 1.6, minWave: 13, weight: 0,
     traits: ['bury'],
     mini: true,
@@ -127,7 +127,7 @@ export const feet: FootType[] = [
   {
     id: 'shortorder',
     name: 'SHORT-ORDER SHOE',
-    desc: 'Mini-boss. A greasy line-cook clog that stomps in fast and leaves pizzas sizzling.',
+    desc: 'Mini-boss. A greasy line-cook clog that stomps in fast and leaves pizzas sizzling. Arrives with a crew of fry cooks.',
     hp: 1040, speed: 0.95, armor: 2, stompDmg: 2, coins: 62, score: 5400, scale: 1.6, minWave: 18, weight: 0,
     traits: ['rush', 'scorch'],
     mini: true,
@@ -140,7 +140,7 @@ export const feet: FootType[] = [
   {
     id: 'iceskate',
     name: 'ICE SKATE IVY',
-    desc: 'Mini-boss. A figure skater with a gleaming blade. Weaves in and won\'t be slowed.',
+    desc: 'Mini-boss. A figure skater with a gleaming blade. Weaves in and won\'t be slowed. Arrives with an Ice Queen or two.',
     hp: 1280, speed: 0.95, armor: 3, stompDmg: 2, coins: 75, score: 6600, scale: 1.6, minWave: 23, weight: 0,
     traits: ['zigzag', 'immuneSlow'],
     mini: true,
@@ -153,7 +153,7 @@ export const feet: FootType[] = [
   {
     id: 'ufotoe',
     name: 'UFO TOE',
-    desc: 'Mini-boss. One huge alien toe and its pet saucer. Floats back up between stomps.',
+    desc: 'Mini-boss. One huge alien toe and its pet saucer. Floats back up between stomps. Arrives with an alien landing party.',
     hp: 1400, speed: 0.85, armor: 2, stompDmg: 2, coins: 82, score: 7200, scale: 1.6, minWave: 28, weight: 0,
     traits: ['antigrav'],
     mini: true,
@@ -166,7 +166,7 @@ export const feet: FootType[] = [
   {
     id: 'doughboy',
     name: 'DOUGH BOY',
-    desc: 'Mini-boss. Soft, floury and full of surprises. Smack it and it splits into little dough feet.',
+    desc: 'Mini-boss. Soft, floury and full of surprises. Smack it and it splits into little dough feet. Arrives with a batch of Dough Toes.',
     hp: 1680, speed: 0.8, armor: 1, stompDmg: 2, coins: 92, score: 8200, scale: 1.6, minWave: 33, weight: 0,
     traits: ['split'],
     mini: true,
@@ -192,7 +192,7 @@ export const feet: FootType[] = [
   {
     id: 'jellyfish',
     name: 'JELLYFISH FLIP-FLOP',
-    desc: 'Mini-boss. A wobbly jelly sandal that glows in the dark. Slippery, and it leaves pizzas soggy.',
+    desc: 'Mini-boss. A wobbly jelly sandal that glows in the dark. Slippery, and it leaves pizzas soggy. Drifts in with a few divers.',
     hp: 2080, speed: 0.9, armor: 1, stompDmg: 2, coins: 112, score: 9800, scale: 1.6, minWave: 43, weight: 0,
     traits: ['glossy', 'soggy'],
     mini: true,
@@ -205,7 +205,7 @@ export const feet: FootType[] = [
   {
     id: 'milkshake',
     name: 'MILKSHAKE MAX',
-    desc: 'Mini-boss. Extra thick, extra cream. Smacking it gums up your peel for a moment.',
+    desc: 'Mini-boss. Extra thick, extra cream. Smacking it gums up your peel for a moment. Arrives with the jukebox crowd.',
     hp: 2280, speed: 0.85, armor: 3, stompDmg: 2, coins: 122, score: 10600, scale: 1.6, minWave: 48, weight: 0,
     traits: ['sticky', 'soggy'],
     mini: true,
@@ -218,7 +218,7 @@ export const feet: FootType[] = [
   {
     id: 'lumberjack',
     name: 'THE LUMBERJACK',
-    desc: 'Mini-boss. A hobnailed work boot that chops twice. Nothing knocks it back.',
+    desc: 'Mini-boss. A hobnailed work boot that chops twice. Nothing knocks it back. Arrives with hikers and snowshoers.',
     hp: 2480, speed: 0.8, armor: 4, stompDmg: 2, coins: 132, score: 11400, scale: 1.6, minWave: 53, weight: 0,
     traits: ['heavy', 'double'],
     mini: true,

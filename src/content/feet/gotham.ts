@@ -22,7 +22,7 @@ export const feet: FootType[] = [
   {
     id: 'jokester',
     name: 'THE JOKESTER',
-    desc: 'Boss. The Clown Prince of Crust: a curly-toed winklepicker with a painted grin. His joke boxes land on your pizzas (some are gifts, some are bombs), his laughing gas makes feet dance out of reach, and his finale is a gauntlet of trick props.',
+    desc: 'Boss. The Clown Prince of Crust: a curly-toed winklepicker with a painted grin. His joke boxes land on your pizzas (some are gifts, some are bombs), his laughing gas makes feet dance out of reach, and his finale is a gauntlet of trick props. Brings his henchmen, his goons and a clown.',
     hp: 7600, speed: 0.7, armor: 4, stompDmg: 3, coins: 400, score: 48000, scale: 1.75, minWave: 65, weight: 0,
     traits: [],
     boss: true,

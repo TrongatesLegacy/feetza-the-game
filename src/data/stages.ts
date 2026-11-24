@@ -160,3 +160,60 @@ export const BOSS_MINION: Record<string, string> = {
   immortalbrute: 'immortal',
   xerxes: 'archer',
 };
+
+/** A boss's crew (regular foot ids): in its boss wave the queued crowd is picked only from these (planWave in
+ * src/game/Run.ts), whatever their own minWave or home, so a crew is the same wherever its boss turns up (an
+ * Endless+ deal, a nemesis swap). A boss with no crew keeps the wave's usual crowd. Crew feet are ordinary wave
+ * feet: they can be zombified like any other (unless undead). Its info line (desc) says who it brings. */
+export const BOSS_CREW: Record<string, string[]> = {
+  bigfoot: ['bunny', 'quack', 'harold'],
+  ironheel: ['boot', 'robo', 'parkour', 'antenna'],
+  clownking: ['clown', 'bella', 'tappy', 'clara'],
+  // (Raptor Claws joins him once it lands)
+  trex: ['dino'],
+  colossus: ['stompalot', 'gus', 'boot'],
+  cosmiccroc: ['xeno', 'alienal', 'robosock', 'comet', 'gravity', 'moe'],
+  nonna: ['doughtoes', 'garlicgary', 'saucysal', 'fruitfly'],
+  gargoyle: ['pigeon', 'chimney', 'rainy'],
+  kraken: ['flipper', 'crabby', 'pete', 'seaweed'],
+  rinkqueen: ['disco', 'jukebox', 'skateboard', 'rita'],
+  yeti: ['fred', 'snowshoe', 'skier', 'hiking'],
+  phantomking: ['ghost', 'mummy', 'zombie', 'neon'],
+  // ——— Act 7 · Comics (Thanfoot's army is new feet, still to come: he keeps the usual crowd) ———
+  doomstomp: ['henchman', 'goon', 'jetpack'],
+  // ——— Act 8 · Norse ———
+  thrym: ['frostgiant', 'troll'],
+  surtr: ['lava', 'draugr'],
+  // ——— Act 9 · Greek myths ———
+  medusa: ['harpy', 'siren', 'satyr'],
+  hades: ['hoplite'],
+  // ——— Act 10 · Finale (the Unbound keeps the usual crowd: Act 10's is already the everyday cast's reunion) ———
+  soleprop: ['echobot', 'echoghost', 'echocowboy'],
+  // ——— Nemesis bosses ———
+  jokester: ['henchman', 'goon', 'clown'],
+  zeus: ['cyclops', 'harpy', 'satyr'],
+  // (his fight also opens with a Persian war band marching in: BAND_BOSSES in src/game/Run.ts)
+  xerxes: ['satrap', 'immortal', 'archer', 'cavalry', 'chariot'],
+};
+
+/** A mini-boss's escort (regular foot ids): 2–4 of them arrive with it (ordinary wave feet, not summons), and for the
+ * rest of that wave the queue leans three to one towards them (GameScene.spawnMini, leanQueue in src/game/Run.ts).
+ * Minis that bring or make their own (the Pigeon King, Ultoe, the Immortal Brute, Kronos, the Zombie Loafer) and
+ * the rest (Jörmungandr, the Minotaur, the comic heroes' minis, Fenrir until his Wolf-Pups land) have none. */
+export const MINI_ESCORT: Record<string, string[]> = {
+  headwaiter: ['waiter'],
+  sweep: ['antenna', 'parkour'],
+  sandcastle: ['sandy', 'tidepool'],
+  shortorder: ['frycook', 'ketchup', 'waffle'],
+  iceskate: ['skate'],
+  ufotoe: ['xeno', 'alienal'],
+  doughboy: ['doughtoes'],
+  jellyfish: ['flipper'],
+  milkshake: ['jukebox', 'disco'],
+  lumberjack: ['hiking', 'snowshoe'],
+  lexlugtoe: ['henchman'],
+  cerberus: ['hoplite'],
+  // the Oven's echoes with the Mirror Peel; all five with the Ghost of Feet Future
+  mirrorpeel: ['echobot', 'echoghost', 'echocowboy'],
+  ghostfuture: ['echobot', 'echoghost', 'echocowboy', 'echoclown', 'echodino'],
+};

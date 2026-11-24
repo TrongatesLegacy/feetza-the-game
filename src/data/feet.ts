@@ -407,7 +407,7 @@ export const FEET: FootType[] = [
     id: 'moe',
     name: 'Moon Boot Mo',
     desc: 'Low gravity. Smacks send it sky-high, but it comes down hard.',
-    hp: 46, speed: 0.75, armor: 1, stompDmg: 2, coins: 6, score: 200, scale: 1.1, minWave: 26, weight: 3,
+    hp: 46, speed: 0.75, armor: 1, stompDmg: 2, coins: 6, score: 200, scale: 1.1, minWave: 21, weight: 3,
     traits: ['floaty', 'immuneSlow'],
     home: 'space',
     art: { kind: 'moonboot', skin: SKIN.pale, primary: '#f2f5fa', secondary: '#ff5a36', leg: 'puffy', legColor: '#f2f5fa', legAccent: '#ff5a36' },
@@ -521,7 +521,7 @@ export const FEET: FootType[] = [
     id: 'wally',
     name: 'Werewolf Wally',
     desc: 'Only comes out at dinner time. Shaggy, clawed and quick.',
-    hp: 40, speed: 1.2, armor: 1, stompDmg: 1, coins: 6, score: 210, scale: 1.05, minWave: 56, weight: 3,
+    hp: 40, speed: 1.2, armor: 1, stompDmg: 1, coins: 6, score: 210, scale: 1.05, minWave: 51, weight: 3,
     traits: ['zigzag'],
     home: 'cellar',
     art: { kind: 'bigfoot', skin: '#4a4a52', primary: '#7a7a86', secondary: '#2b2b30', leg: 'fur', hair: true },
@@ -579,7 +579,7 @@ export const FEET: FootType[] = [
   {
     id: 'bigfoot',
     name: 'BIGFOOT',
-    desc: 'Boss. Legendary. Hairy. Every stomp rattles the whole table and summons Baby Toes.',
+    desc: 'Boss. Legendary. Hairy. Every stomp rattles the whole table and summons Baby Toes. Brings his furry, feathery friends from the woods.',
     hp: 700, speed: 0.55, armor: 2, stompDmg: 2, coins: 60, score: 5000, scale: 2.2, minWave: 5, weight: 0,
     traits: ['immuneSlow'],
     boss: true,
@@ -588,7 +588,7 @@ export const FEET: FootType[] = [
   {
     id: 'ironheel',
     name: 'THE IRON HEEL',
-    desc: 'Boss. A foundry-forged mega boot that fires rocket stomps.',
+    desc: 'Boss. A foundry-forged mega boot that fires rocket stomps. Brings a crew of steel toes, robots and rooftop runners.',
     hp: 1300, speed: 0.6, armor: 6, stompDmg: 2, coins: 90, score: 8000, scale: 2.2, minWave: 10, weight: 0,
     traits: ['burst', 'immuneBurn'],
     boss: true,
@@ -597,7 +597,7 @@ export const FEET: FootType[] = [
   {
     id: 'clownking',
     name: 'KING HONK',
-    desc: 'Boss. The clown shoe to end all clown shoes. Squashes the whole table.',
+    desc: 'Boss. The clown shoe to end all clown shoes. Squashes the whole table. Brings his circus troupe.',
     howTo: 'Decoys pop in one hit: test each lane, then pile on the real one',
     tell: 'Leaps off screen, then three shoes drop back in a random order',
     hp: 1900, speed: 0.6, armor: 3, stompDmg: 2, coins: 120, score: 12000, scale: 2.2, minWave: 15, weight: 0,
@@ -608,7 +608,7 @@ export const FEET: FootType[] = [
   {
     id: 'trex',
     name: 'T-REX TOES',
-    desc: 'Boss. A prehistoric mega-stomp. Shrugs off knockback entirely.',
+    desc: 'Boss. A prehistoric mega-stomp. Shrugs off knockback entirely. Only his dinos come with him.',
     hp: 2600, speed: 0.6, armor: 4, stompDmg: 2, coins: 150, score: 16000, scale: 2.2, minWave: 20, weight: 0,
     traits: ['heavy', 'immuneSlow'],
     boss: true,
@@ -617,7 +617,7 @@ export const FEET: FootType[] = [
   {
     id: 'colossus',
     name: 'THE COLOSSUS',
-    desc: 'Boss. A cathedral of armour. Only massive smacks get through.',
+    desc: 'Boss. A cathedral of armour. Only massive smacks get through. Brings his knights and gladiators.',
     hp: 3200, speed: 0.55, armor: 10, stompDmg: 2, coins: 180, score: 20000, scale: 2.2, minWave: 25, weight: 0,
     traits: ['heavy', 'burst'],
     boss: true,
@@ -626,7 +626,7 @@ export const FEET: FootType[] = [
   {
     id: 'phantomking',
     name: 'GHOST OF FEET PAST',
-    desc: 'The final boss. Haunts the whole table, phasing in and out between stomps.',
+    desc: 'The final boss. Haunts the whole table, phasing in and out between stomps. Brings the spookiest feet in the cellar.',
     home: 'cellar',
     howTo: 'Hit it while solid; Peel Slam breaks possession',
     tell: 'It fades out for a moment before it vanishes',

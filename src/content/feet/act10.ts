@@ -74,7 +74,7 @@ export const feet: FootType[] = [
   {
     id: 'mirrorpeel',
     name: 'THE MIRROR PEEL',
-    desc: 'Mini-boss. A dark copy of your own peel, out of the mirror between worlds. It knows your ability, and it aims it at your pizzas.',
+    desc: 'Mini-boss. A dark copy of your own peel, out of the mirror between worlds. It knows your ability, and it aims it at your pizzas. Brings echoes out of the mirror with it.',
     hp: 2700, speed: 0.85, armor: 2, stompDmg: 2, coins: 150, score: 12800, scale: 1.6, minWave: 93, weight: 0,
     traits: [],
     mini: true,
@@ -87,7 +87,7 @@ export const feet: FootType[] = [
   {
     id: 'soleprop',
     name: 'THE SOLE PROPRIETOR',
-    desc: 'Boss. The ancient foot who owns every pizzeria in every world, and has sent every foot you\'ve ever smacked. He doesn\'t fight. He buys.',
+    desc: 'Boss. The ancient foot who owns every pizzeria in every world, and has sent every foot you\'ve ever smacked. He doesn\'t fight. He buys. This time he sends only his echoes.',
     hp: 6000, speed: 0.5, armor: 6, stompDmg: 3, coins: 360, score: 44000, scale: 2.2, minWave: 95, weight: 0,
     traits: ['heavy'],
     boss: true,
@@ -100,7 +100,7 @@ export const feet: FootType[] = [
   {
     id: 'ghostfuture',
     name: 'GHOST OF FEET FUTURE',
-    desc: 'Mini-boss. A pale foot from the future. It has already seen where you\'re about to smack, and it gets there first.',
+    desc: 'Mini-boss. A pale foot from the future. It has already seen where you\'re about to smack, and it gets there first. Brings every echo with it.',
     hp: 2800, speed: 0.9, armor: 1, stompDmg: 2, coins: 156, score: 13400, scale: 1.6, minWave: 98, weight: 0,
     traits: [],
     mini: true,
