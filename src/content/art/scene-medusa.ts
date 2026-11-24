@@ -32,7 +32,7 @@
 //   eyes flare; when the stare turns a pizza to stone, the pool flares and rings.
 
 import Phaser from 'phaser';
-import { type Air, type Ctx, type R, TY, W, airMix, calmLanes, crevice, glowAt, groundShadow, lightPool, polyPath, vfill, vignetteAll, within } from '../../art/scene/kit';
+import { type Air, type Ctx, type R, TY, W, airMix, innerEdge, calmLanes, crevice, glowAt, groundShadow, lightPool, polyPath, vfill, vignetteAll, within } from '../../art/scene/kit';
 import type { SceneSpec } from '../../art/scene/layers';
 import { grain, tableFalloff, tableSeam } from '../../art/scene/materials';
 import { chips, crack, drift, lay, noiseMask, softly, streaks, surface } from '../../art/scene/paint';
@@ -95,7 +95,7 @@ const GLOW_N = 0x8cff8a;
 /** Cretan limestone in the dusk: the walls' shade and their faint warm light. */
 const WALLC = { lit: '#b8a48c', body: '#6e6876', shade: '#4a4660', deep: '#262434' };
 /** The statues' grey stone (a cool marble gone grey with weather). */
-const STONE = { lit: '#b4ac9e', body: '#74716c', shade: '#3a3c4a', deep: '#1a1c24', warm: '#f0c09a' };
+const STONE = { lit: '#cec4b2', body: '#6c6a66', shade: '#363846', deep: '#14161e', warm: '#ffc89a' };
 const MOSS = ['#56662e', '#6e7e38', '#3e4e26', '#8a9446'];
 const LEAF = { dark: '#16241c', body: '#24382a', lit: '#3e5a3a', warm: '#6a7048' };
 /** The sun is down beyond the left-hand terrace: where its glow comes from. */
@@ -170,13 +170,13 @@ function sky(ctx: Ctx, r: R): void {
   ctx.arc(1312, 118, 2, 0, P2);
   ctx.fill();
   // long bars of cloud lit from below by the sun under the horizon: rose undersides, dusky violet tops
-  const cl = (x: number, y: number, w: number, h: number, a: number, lit: string, kind: 'bank' | 'stratus') =>
-    cloud(ctx, r, x, y, w, h, { lit, body: '#5e4a6c', shadow: '#2a2848', sunX: SUN_AT[0], sunY: SUN_AT[1] + 260, rim: 0.85, kind, wisp: 0.55, a, depth: 0.45, air: AIR, res: 0.5 });
-  cl(560, 240, 700, 70, 0.9, '#ffb890', 'bank');
-  cl(1300, 176, 560, 56, 0.75, '#f0a090', 'bank');
-  cl(260, 336, 480, 52, 0.85, '#ffc898', 'bank');
-  cl(1560, 300, 380, 34, 0.6, '#d8909a', 'stratus');
-  cl(940, 100, 480, 30, 0.4, '#c88a9a', 'stratus');
+  const cl = (x: number, y: number, w: number, h: number, a: number, lit: string, kind: 'cumulus' | 'stratus') =>
+    cloud(ctx, r, x, y, w, h, { lit, body: '#56466a', shadow: '#2c2a4c', sunX: SUN_AT[0] - 200, sunY: SUN_AT[1] + 420, rim: 0.9, kind, wisp: 0.5, a, depth: 0.4, air: AIR, res: 0.5 });
+  cl(1400, 200, 460, 120, 0.92, '#ffb48a', 'cumulus');
+  cl(620, 262, 520, 96, 0.9, '#ffbc8c', 'cumulus');
+  cl(250, 344, 380, 74, 0.85, '#ffc898', 'cumulus');
+  cl(1000, 120, 380, 64, 0.55, '#e8a0a0', 'cumulus');
+  cl(1700, 330, 300, 30, 0.6, '#d8909a', 'stratus');
   // the haze over the terraces, thick and warm near the ground
   vfill(ctx, 0, 330, W, 122, [[0, rgba('#d88a78', 0)], [0.7, rgba('#d88a78', 0.22)], [1, rgba('#c08080', 0.3)]]);
 }
@@ -245,6 +245,12 @@ function farColumn(ctx: Ctx, X: number, z: number, h: number, broken: number): v
 }
 
 function terrace(ctx: Ctx, r: R): void {
+  terraceBody(ctx, r);
+  // the evening mist gathering low over the terraces, the far things fading into it
+  vfill(ctx, 0, 300, W, 150, [[0, rgba('#8a7090', 0)], [0.7, rgba('#8a7090', 0.2)], [1, rgba('#7a6488', 0.28)]]);
+}
+
+function terraceBody(ctx: Ctx, r: R): void {
   // far shrubs along the back terrace
   shrubs(ctx, r, 520, 1420, sy(WL.h, 16) + 2, 30, 0.85);
   // the far colonnade, a stretch of it still standing, its architrave on two columns, the rest broken
@@ -389,11 +395,13 @@ const HORN = { w: 0.44, h: 0.3 };
 
 /** Rough ashlar over a wall face: bed joints along Y, head joints staggered, each block its own tone. */
 function ashlar(ctx: Ctx, r: R, map: (u: number, Y: number) => Pt, u0: number, u1: number, step: number, lit: number, base: string): void {
-  const ch = WL.h / COURSES;
+  const hs = [0.44, 0.36, 0.41, 0.33, 0.36];
+  const tot = hs.reduce((a, b) => a + b, 0);
   const dir = Math.sign(u1 - u0);
+  let Yc = 0;
   for (let c = 0; c < COURSES; c++) {
-    const Y0 = c * ch;
-    const Y1 = (c + 1) * ch;
+    const Y0 = Yc;
+    const Y1 = (Yc += (hs[c] / tot) * WL.h);
     let u = u0 - dir * r() * step * 0.8;
     while ((u1 - u) * dir > 0) {
       const len = step * (0.7 + r() * 0.6);
@@ -407,6 +415,17 @@ function ashlar(ctx: Ctx, r: R, map: (u: number, Y: number) => Pt, u0: number, u
       // each block a cushion: its top catches the light, its foot falls into the joint's shadow
       ctx.fillStyle = lin(ctx, pts[3], pts[0], [[0, rgba('#e8d8c0', 0.08 * lit)], [0.25, rgba('#e8d8c0', 0)], [0.8, rgba('#1a1828', 0)], [1, rgba('#1a1828', 0.22)]]);
       ctx.fill();
+      if (r() < 0.12) {
+        // a spalled face: the skin of the block flaked off, a paler, rougher hollow under a crisp dark edge
+        const sp = [lerp2p(pts[3], pts[2], 0.2), lerp2p(pts[3], pts[2], 0.7), lerp2p(lerp2p(pts[3], pts[0], 0.6), lerp2p(pts[2], pts[1], 0.6), 0.65), lerp2p(lerp2p(pts[3], pts[0], 0.7), lerp2p(pts[2], pts[1], 0.7), 0.25)];
+        fillPath(ctx, polyPath(sp), rgba(shade(base, 0.12), 0.5));
+        ctx.strokeStyle = rgba('#14121c', 0.5);
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(...sp[0]);
+        ctx.lineTo(...sp[1]);
+        ctx.stroke();
+      }
       // the head joint
       ctx.strokeStyle = rgba('#1a1622', 0.42);
       ctx.lineWidth = 1.4;
@@ -448,10 +467,16 @@ function ivy(ctx: Ctx, r: R, x: number, y: number, w: number, len: number, s: nu
   const body = airMix('#284a2c', depth, AIR);
   const lit = airMix('#5a7a40', depth, AIR);
   const n = Math.max(3, Math.round(w / (s * 2.2)));
+  // the back of the mass: bigger, darker leaves in the shade behind the strands
+  for (let i = 0; i < (w / s) * (len / s) * 0.12; i++) {
+    const u = r();
+    const t = Math.pow(r(), 1.5);
+    leaf(ctx, r, x - w / 2 + u * w, y + t * len * Math.sin(u * Math.PI) * 0.8, s * (1.1 + r() * 0.5), mix(dark, '#05080a', 0.4), dark, body, 0.05);
+  }
   for (let i = 0; i < n; i++) {
     const u = (i + 0.5) / n;
     const sx0 = x - w / 2 + u * w + (r() - 0.5) * s;
-    const l = len * (0.35 + 0.65 * Math.sin(u * Math.PI)) * (0.6 + r() * 0.5);
+    const l = len * (0.35 + 0.65 * Math.sin(u * Math.PI)) * (0.6 + r() * 0.5) * (r() < 0.12 ? 1.7 : 1);
     ctx.strokeStyle = rgba(dark, 0.7);
     ctx.lineWidth = Math.max(0.8, s * 0.12);
     ctx.beginPath();
@@ -480,6 +505,25 @@ function leaf(ctx: Ctx, r: R, x: number, y: number, s: number, dark: string, bod
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(a);
+  const blade = () => {
+    ctx.beginPath();
+    ctx.moveTo(0, -s * 0.5);
+    ctx.quadraticCurveTo(s * 0.55, -s * 0.55, s * 0.5, -s * 0.05);
+    ctx.quadraticCurveTo(s * 0.4, s * 0.25, s * 0.12, s * 0.2);
+    ctx.quadraticCurveTo(s * 0.1, s * 0.5, 0, s * 0.6);
+    ctx.quadraticCurveTo(-s * 0.1, s * 0.5, -s * 0.12, s * 0.2);
+    ctx.quadraticCurveTo(-s * 0.4, s * 0.25, -s * 0.5, -s * 0.05);
+    ctx.quadraticCurveTo(-s * 0.55, -s * 0.55, 0, -s * 0.5);
+    ctx.closePath();
+  };
+  if (s > 2.5) {
+    ctx.save();
+    ctx.translate(s * 0.18, s * 0.26);
+    blade();
+    ctx.fillStyle = 'rgba(6,8,10,0.35)';
+    ctx.fill();
+    ctx.restore();
+  }
   ctx.beginPath();
   ctx.moveTo(0, -s * 0.5);
   ctx.quadraticCurveTo(s * 0.55, -s * 0.55, s * 0.5, -s * 0.05);
@@ -628,6 +672,8 @@ function backWall(ctx: Ctx, r: R): void {
   ctx.moveTo(ax, ay + 2);
   ctx.lineTo(bx, ay + 2);
   ctx.stroke();
+  // the evening air thick between us and it
+  vfill(ctx, bb.x, bb.y, bb.w, bb.h, [[0, rgba(AIR.color, 0.16)], [1, rgba(AIR.color, 0.06)]]);
   // the inner corners where the side walls meet it
   for (const s of [-1, 1]) {
     const [cx, cy0] = P(s * WL.x, WL.h, z);
@@ -755,6 +801,8 @@ function ivyCurtain(ctx: Ctx, i: number): void {
 
 export const FLOOR_BOX = { x: 0, y: 526, w: W, h: TY - 526 + 2 };
 
+const lerp2p = (a: Pt, b: Pt, t: number): Pt => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+
 function floor(ctx: Ctx, r: R): void {
   const z0 = zFloor(TY + 2);
   const z1 = WL.z;
@@ -775,22 +823,83 @@ function floor(ctx: Ctx, r: R): void {
       while (Xa < X) {
         const wX = 0.9 + r() * 0.8;
         const Xb = Xa + wX;
-        const pts = [P(Xa, 0, za), P(Xb, 0, za), P(Xb, 0, zb), P(Xa, 0, zb)];
-        ctx.fillStyle = rgba(r() < 0.5 ? '#77707a' : '#3e3a4a', 0.08 + r() * 0.12);
-        polyPath(pts)(ctx);
-        ctx.fill();
-        // a dished, worn top: paler in the middle
-        if (r() < 0.5) {
-          const [cx, cy] = P((Xa + Xb) / 2, 0, (za + zb) / 2);
-          const k = ppu((za + zb) / 2);
-          lightPool(ctx, cx, cy, wX * k * 0.4, dz * k * 0.08, '#8a8494', 0.1, 'source-over');
+        const ja = za + (r() - 0.5) * 0.06;
+        const pts = [P(Xa, 0, ja), P(Xb, 0, ja + (r() - 0.5) * 0.05), P(Xb, 0, zb), P(Xa, 0, zb)];
+        const pth = polyPath(pts);
+        // its own front edge: the joint in front of it, ragged, soil and moss in it, sometimes a step up or down
+        {
+          const kk = ppu(za);
+          const step = r() < 0.3 ? (r() - 0.5) * 0.025 * kk : 0;
+          ctx.strokeStyle = rgba('#12160f', 0.62);
+          ctx.lineWidth = Math.max(1, (0.022 + r() * 0.02) * kk);
+          ctx.beginPath();
+          for (let j = 0; j <= 5; j++) {
+            const q = lerp2p(pts[0], pts[1], j / 5);
+            const jy = q[1] + (j && j < 5 ? (r() - 0.5) * 2 : 0);
+            if (j) ctx.lineTo(q[0], jy);
+            else ctx.moveTo(q[0], jy);
+          }
+          ctx.stroke();
+          if (step) {
+            ctx.fillStyle = rgba(step > 0 ? '#b0a8bc' : '#08060c', 0.35);
+            ctx.fillRect(pts[0][0], pts[0][1] + 1, pts[1][0] - pts[0][0], Math.abs(step));
+          }
         }
-        // the head joint
-        ctx.strokeStyle = rgba('#1e2418', 0.5);
-        ctx.lineWidth = Math.max(1, 0.025 * ppu(za));
+        const kz = ppu((za + zb) / 2);
+        ctx.fillStyle = rgba(r() < 0.5 ? '#77707a' : '#3e3a4a', 0.08 + r() * 0.14);
+        pth(ctx);
+        ctx.fill();
+        // each slab settled its own way: tilted (lighter where it tips up to the sky, darker where it tips away),
+        // sunk (a dark dish, a puddle in it catching the sky), or lifted at an edge by a root (a lit lip, a shadow)
+        const kind = r();
+        const [cx, cy] = P((Xa + Xb) / 2, 0, (za + zb) / 2);
+        if (kind < 0.45) {
+          const a = r() * P2;
+          const rad = Math.max(wX * kz, 20) * 0.6;
+          ctx.fillStyle = lin(ctx, [cx + Math.cos(a) * rad, cy + Math.sin(a) * rad * 0.3], [cx - Math.cos(a) * rad, cy - Math.sin(a) * rad * 0.3], [[0, rgba('#a8a0b4', 0.24)], [1, rgba('#14121c', 0.28)]]);
+          pth(ctx);
+          ctx.fill();
+        } else if (kind < 0.62) {
+          within(ctx, pth, () => {
+            lightPool(ctx, cx, cy, wX * kz * 0.5, dz * kz * 0.11, '#14121c', 0.5, 'source-over');
+            if (r() < 0.8 && kz > 55 && Math.abs((Xa + Xb) / 2) > PL.X + 0.6) {
+              // a puddle: the dusk sky lying in it, a dark rim
+              const pr = wX * kz * (0.18 + r() * 0.15);
+              ctx.fillStyle = rgba('#0c0a14', 0.4);
+              ctx.beginPath();
+              ctx.ellipse(cx + 1, cy + 1, pr * 1.06, pr * 0.24, 0, 0, P2);
+              ctx.fill();
+              ctx.fillStyle = lin(ctx, [cx, cy - pr * 0.22], [cx, cy + pr * 0.22], [[0, '#c88a84'], [1, '#5a4a70']]);
+              ctx.beginPath();
+              ctx.ellipse(cx, cy, pr, pr * 0.22, 0, 0, P2);
+              ctx.fill();
+              ctx.strokeStyle = rgba('#f0c8b0', 0.4);
+              ctx.lineWidth = 1;
+              ctx.beginPath();
+              ctx.moveTo(cx - pr * 0.5, cy - pr * 0.05);
+              ctx.lineTo(cx + pr * 0.2, cy - pr * 0.05);
+              ctx.stroke();
+            }
+          });
+        } else if (kind < 0.72) {
+          // lifted at its far edge: the lip catches the sky, the joint behind is a black gap
+          const [lx0, ly] = P(Xa, 0, zb);
+          const [lx1] = P(Xb, 0, zb);
+          ctx.fillStyle = rgba('#08060c', 0.6);
+          ctx.fillRect(lx0, ly - 0.03 * kz, lx1 - lx0, 0.03 * kz);
+          ctx.fillStyle = rgba('#b0a8bc', 0.4);
+          ctx.fillRect(lx0, ly, lx1 - lx0, Math.max(1, 0.012 * kz));
+        }
+        // the head joint: ragged, its width varying, moss and soil in it
+        ctx.strokeStyle = rgba('#141a12', 0.6);
+        ctx.lineWidth = Math.max(1, (0.02 + r() * 0.02) * ppu(za));
         ctx.beginPath();
-        ctx.moveTo(...pts[1]);
-        ctx.lineTo(...pts[2]);
+        for (let j = 0; j <= 4; j++) {
+          const q = lerp2p(pts[1], pts[2], j / 4);
+          const jx = q[0] + (j && j < 4 ? (r() - 0.5) * 3 : 0);
+          if (j) ctx.lineTo(jx, q[1]);
+          else ctx.moveTo(jx, q[1]);
+        }
         ctx.stroke();
         Xa = Xb;
       }
@@ -798,12 +907,7 @@ function floor(ctx: Ctx, r: R): void {
       const [ax, ay] = P(-X - 2, 0, za);
       const [bx] = P(X + 2, 0, za);
       const k = ppu(za);
-      ctx.strokeStyle = rgba('#1a2216', 0.55);
-      ctx.lineWidth = Math.max(1, 0.03 * k);
-      ctx.beginPath();
-      ctx.moveTo(ax, ay);
-      ctx.lineTo(bx, ay);
-      ctx.stroke();
+      void bx;
       ctx.strokeStyle = rgba(MOSS[0], 0.35);
       ctx.lineWidth = Math.max(1, 0.02 * k);
       ctx.beginPath();
@@ -814,8 +918,8 @@ function floor(ctx: Ctx, r: R): void {
       }
       ctx.stroke();
       // tufts of grass in the joints, nearer and taller
-      if (k > 55) {
-        for (let i = 0; i < 8 + r() * 10; i++) {
+      if (k > 50) {
+        for (let i = 0; i < 14 + r() * 14; i++) {
           const gx = ax + r() * (bx - ax);
           grass(ctx, r, gx, ay, k * 0.05);
         }
@@ -837,7 +941,7 @@ function floor(ctx: Ctx, r: R): void {
     // the walk to the portico, worn paler; damp round the pool
     softly(ctx, box, (g) => {
       const [cx, cy] = P(0, 0, 9.3);
-      g.fillStyle = rgba('#8a8496', 0.25);
+      g.fillStyle = rgba('#8a8496', 0.1);
       g.beginPath();
       g.ellipse(cx, cy, 160, 14, 0, 0, P2);
       g.fill();
@@ -850,7 +954,49 @@ function floor(ctx: Ctx, r: R): void {
         g.stroke();
       }
     }, 0.25);
-    // fallen cypress sprigs and dead leaves
+    // roots from the terraces heaving up through the paving along the walls
+    for (const [sg, zr] of [[-1, 4.6], [-1, 7.8], [1, 5.4], [1, 9.2]] as Pt[]) {
+      const pts2: Pt[] = [];
+      for (let t = 0; t <= 1; t += 0.1) pts2.push(P(sg * (WL.x - t * 1.6), 0.02 + Math.sin(t * Math.PI) * 0.05, zr + Math.sin(t * 5) * 0.25 - t * 0.4));
+      const kk = ppu(zr);
+      ctx.lineCap = 'round';
+      for (const [col, w, oy] of [['#08060c', 0.07, 2], ['#2e2420', 0.05, 0], ['#6a5a48', 0.015, -1.5]] as [string, number, number][]) {
+        ctx.strokeStyle = col === '#08060c' ? rgba(col, 0.45) : col;
+        ctx.lineWidth = w * kk;
+        ctx.beginPath();
+        pts2.forEach(([px, py], j) => (j ? ctx.lineTo(px, py + oy) : ctx.moveTo(px, py + oy)));
+        ctx.stroke();
+      }
+    }
+    // drifts of cypress needles blown against the walls' feet
+    for (let i = 0; i < 500; i++) {
+      const sg = r() < 0.5 ? -1 : 1;
+      const zz = z0 + r() * (z1 - z0);
+      const XX = sg * (WL.x - Math.pow(r(), 2.5) * 1.1);
+      const [x, y] = P(XX, 0, zz);
+      const k = ppu(zz);
+      ctx.strokeStyle = rgba(r() < 0.5 ? '#5a4628' : '#3a3420', 0.7);
+      ctx.lineWidth = Math.max(0.6, 0.008 * k);
+      const a = r() * P2;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + Math.cos(a) * 0.03 * k, y + Math.sin(a) * 0.01 * k);
+      ctx.stroke();
+    }
+    // fallen cypress sprigs, needles and dead leaves
+    for (let i = 0; i < 160; i++) {
+      const zz = z0 + Math.pow(r(), 0.7) * (z1 - z0);
+      const XX = (r() * 2 - 1) * X;
+      if (Math.abs(XX) < PL.X + 0.4 && zz > PL.z0 - 0.3 && zz < PL.z1 + 0.3) continue;
+      const [x, y] = P(XX, 0, zz);
+      const k = ppu(zz);
+      if (r() < 0.5) {
+        ctx.fillStyle = rgba(['#6a4a26', '#8a6a34', '#4a3a22'][Math.floor(r() * 3)], 0.75);
+        ctx.beginPath();
+        ctx.ellipse(x, y, 0.04 * k, 0.012 * k, (r() - 0.5) * 0.8, 0, P2);
+        ctx.fill();
+      }
+    }
     for (let i = 0; i < 70; i++) {
       const zz = z0 + Math.pow(r(), 0.7) * (z1 - z0);
       const XX = (r() * 2 - 1) * X;
@@ -866,7 +1012,7 @@ function floor(ctx: Ctx, r: R): void {
     }
     // the pool's green light on the floor round it, and the dusk falling off towards us
     lightPool(ctx, ...P(0, 0, 6.2), 680, 110, GLOW, 0.15);
-    lightPool(ctx, ...P(0, 0, 9.4), 340, 26, GLOW, 0.1);
+    lightPool(ctx, ...P(0, 0, 9.4), 340, 26, GLOW, 0.04);
     vfill(ctx, 0, box.y, W, box.h, [[0, rgba('#1a1828', 0.05)], [1, rgba('#1a1828', 0.22)]]);
   });
 }
@@ -994,221 +1140,197 @@ function redColumn(ctx: Ctx, r: R, X: number, z: number, Y0: number, Y1: number,
   ctx.fill();
 }
 
-/** The Gorgoneion, carved in relief, front-on: her round face, its staring eyes of green glass, the grin with its
- * tusks and lolling tongue, and her hair of snakes, two of them knotted under her chin. Paints with the face's
- * centre at (cx, cy), face radius R (px). Traces of the old paint survive: red on the tongue, blue-black on the
- * snakes. */
+/** The Gorgoneion, carved in relief out of the pediment's own stone, front-on, archaic: her broad round face, the
+ * brows knotted over staring eyes (their drilled pupils once held green glass), the flat nose, the grin stretched from
+ * cheek to cheek with its tusks and the tongue lolling over her chin, and her hair of snakes writhing out round it.
+ * Every raised form is lit on its upper left and drops a shadow to the lower right; the mouth and the eye sockets are
+ * cut in. Weathered as the pediment is: grain, chips, a crack, moss in the hollows, dark streaks. Centre (cx, cy),
+ * face radius R (px). */
 export function gorgoneion(c: Ctx, cx: number, cy: number, R: number, eyes = 0.5): void {
-  const lit = '#d8cebe';
-  const body = '#a89c8e';
-  const sh = '#5e5868';
-  const ink = '#221c24';
+  const sc = c.getTransform().a || 1;
+  const base = '#7a7290';
+  const lit = '#d8c0b8';
+  const dark = '#18141e';
+  const rr = rng(9091);
   c.save();
   c.lineCap = 'round';
   c.lineJoin = 'round';
-  // the snakes: thirteen round the top of her head, writhing outwards, each with its own head turned out
-  const snake = (a: number, len: number, wig: number, w0: number) => {
+  /** A raised form: its shadow on the ground behind, the stone, the light on its upper left, the shade on its lower right. */
+  const raised = (path: (g: Ctx) => void, h: number, col = base) => {
+    c.save();
+    c.shadowColor = rgba(dark, 0.65);
+    c.shadowBlur = h * 1.4 * sc;
+    c.shadowOffsetX = h * 0.7 * sc;
+    c.shadowOffsetY = h * 0.9 * sc;
+    path(c);
+    c.fillStyle = col;
+    c.fill();
+    c.restore();
+    innerEdge(c, path, rgba(lit, 0.75), h * 0.9, h * 0.6, h * 0.7);
+    innerEdge(c, path, rgba(dark, 0.6), h * 0.9, -h * 0.55, -h * 0.65);
+  };
+  /** A form cut into the stone: in shade on its upper left, catching the light on its lower right. */
+  const cut = (path: (g: Ctx) => void, h: number, col = '#3a3446') => {
+    path(c);
+    c.fillStyle = col;
+    c.fill();
+    innerEdge(c, path, rgba(dark, 0.85), h * 1.1, h * 0.7, h * 0.8);
+    innerEdge(c, path, rgba(lit, 0.45), h * 0.6, -h * 0.4, -h * 0.5);
+  };
+  const tube = (pts: Pt[], w0: number, w1: number) => {
+    const L: Pt[] = [];
+    const Rr: Pt[] = [];
+    pts.forEach((p, i) => {
+      const q = pts[Math.min(pts.length - 1, i + 1)];
+      const o = pts[Math.max(0, i - 1)];
+      const dx = q[0] - o[0];
+      const dy = q[1] - o[1];
+      const l = Math.hypot(dx, dy) || 1;
+      const w = w0 + (w1 - w0) * (i / (pts.length - 1));
+      L.push([p[0] - (dy / l) * w, p[1] + (dx / l) * w]);
+      Rr.push([p[0] + (dy / l) * w, p[1] - (dx / l) * w]);
+    });
+    return polyPath([...L, ...Rr.reverse()]);
+  };
+  // the snakes: thirteen writhing out from her scalp, each tapering to its tail behind its raised head
+  for (let i = 0; i < 13; i++) {
+    const a = Math.PI * (0.98 + (i / 12) * 1.04);
+    const len = 0.6 + (i % 3) * 0.12;
+    const wig = i * 1.3;
     const pts: Pt[] = [];
-    for (let i = 0; i <= 14; i++) {
-      const t = i / 14;
-      const rr = R * (0.88 + t * len);
-      const aa = a + Math.sin(t * Math.PI * 2.2 + wig) * 0.22 * t;
-      pts.push([cx + Math.cos(aa) * rr, cy + Math.sin(aa) * rr]);
+    for (let t = 0; t <= 1.0001; t += 1 / 14) {
+      const rad = R * (0.85 + t * len);
+      const aa = a + Math.sin(t * Math.PI * 2.2 + wig) * 0.2 * t;
+      pts.push([cx + Math.cos(aa) * rad, cy + Math.sin(aa) * rad]);
     }
-    // the body: a tapering stroke, lit along its upper-left
-    for (let pass = 0; pass < 3; pass++) {
-      for (let i = 0; i < pts.length - 1; i++) {
-        const t = i / (pts.length - 1);
-        const w = w0 * R * (1 - t * 0.55);
-        c.strokeStyle = pass === 0 ? ink : pass === 1 ? mix(body, '#4a5868', 0.3) : rgba(lit, 0.55);
-        c.lineWidth = pass === 0 ? w + R * 0.05 : pass === 1 ? w : w * 0.35;
-        const ox = pass === 2 ? -w * 0.22 : 0;
-        const oy = pass === 2 ? -w * 0.22 : 0;
-        c.beginPath();
-        c.moveTo(pts[i][0] + ox, pts[i][1] + oy);
-        c.lineTo(pts[i + 1][0] + ox, pts[i + 1][1] + oy);
-        c.stroke();
-      }
+    raised(tube(pts, R * 0.075, R * 0.04), R * 0.05);
+    // scales cut along the back
+    for (let j = 2; j < pts.length - 1; j += 2) {
+      c.strokeStyle = rgba(dark, 0.35);
+      c.lineWidth = R * 0.012;
+      c.beginPath();
+      c.arc(pts[j][0], pts[j][1], R * 0.035, 0, Math.PI);
+      c.stroke();
     }
-    // the head: a blunt wedge pointing on along the body, two dots of eyes
     const [hx, hy] = pts[pts.length - 1];
     const [px, py] = pts[pts.length - 2];
     const ang = Math.atan2(hy - py, hx - px);
-    c.save();
-    c.translate(hx, hy);
-    c.rotate(ang);
-    const hw = w0 * R * 0.62;
+    raised((g) => {
+      g.beginPath();
+      g.ellipse(hx + Math.cos(ang) * R * 0.05, hy + Math.sin(ang) * R * 0.05, R * 0.09, R * 0.06, ang, 0, P2);
+    }, R * 0.05);
+    c.fillStyle = dark;
     c.beginPath();
-    c.moveTo(-hw * 0.4, -hw);
-    c.quadraticCurveTo(hw * 1.6, -hw * 0.9, hw * 2.0, 0);
-    c.quadraticCurveTo(hw * 1.6, hw * 0.9, -hw * 0.4, hw);
-    c.closePath();
-    c.fillStyle = body;
+    c.arc(hx + Math.cos(ang - 0.6) * R * 0.06, hy + Math.sin(ang - 0.6) * R * 0.06, R * 0.014, 0, P2);
     c.fill();
-    c.strokeStyle = ink;
-    c.lineWidth = R * 0.035;
-    c.stroke();
-    c.fillStyle = ink;
-    c.beginPath();
-    c.arc(hw * 1.0, -hw * 0.45, R * 0.03, 0, P2);
-    c.arc(hw * 1.0, hw * 0.45, R * 0.03, 0, P2);
-    c.fill();
-    c.restore();
+  }
+  // the face: a broad, high boss of stone
+  const face = (g: Ctx) => {
+    g.beginPath();
+    g.ellipse(cx, cy, R, R * 0.97, 0, 0, P2);
   };
-  for (let i = 0; i < 13; i++) {
-    const a = Math.PI * (0.98 + (i / 12) * 1.04);
-    snake(a, 0.62 + (i % 3) * 0.12, i * 1.3, 0.13);
-  }
-  // two knotted under her chin
-  for (const s of [-1, 1]) {
-    const pts: Pt[] = [[cx + s * R * 0.55, cy + R * 0.72], [cx + s * R * 0.15, cy + R * 1.15], [cx - s * R * 0.3, cy + R * 1.05], [cx - s * R * 0.7, cy + R * 1.25]];
-    c.strokeStyle = ink;
-    c.lineWidth = R * 0.17;
-    c.beginPath();
-    c.moveTo(...pts[0]);
-    c.bezierCurveTo(...pts[1], ...pts[2], ...pts[3]);
-    c.stroke();
-    c.strokeStyle = mix(body, '#4a5868', 0.3);
-    c.lineWidth = R * 0.12;
-    c.stroke();
-    c.strokeStyle = rgba(lit, 0.45);
-    c.lineWidth = R * 0.04;
-    c.stroke();
-  }
-  // the face: broad and round, lit from the top left
+  raised(face, R * 0.12);
+  c.save();
+  face(c);
+  c.clip();
   const fg = c.createRadialGradient(cx - R * 0.35, cy - R * 0.4, R * 0.1, cx, cy, R * 1.05);
-  fg.addColorStop(0, lit);
-  fg.addColorStop(0.55, body);
-  fg.addColorStop(1, sh);
+  fg.addColorStop(0, rgba(lit, 0.35));
+  fg.addColorStop(0.6, rgba(lit, 0));
+  fg.addColorStop(1, rgba(dark, 0.25));
   c.fillStyle = fg;
-  c.beginPath();
-  c.ellipse(cx, cy, R, R * 0.96, 0, 0, P2);
-  c.fill();
-  c.strokeStyle = ink;
-  c.lineWidth = R * 0.06;
-  c.stroke();
-  // the brows: heavy ridges, knotted in a scowl
-  for (const s of [-1, 1]) {
-    c.strokeStyle = rgba(ink, 0.8);
-    c.lineWidth = R * 0.07;
+  c.fillRect(cx - R, cy - R, R * 2, R * 2);
+  c.restore();
+  // her cheeks, swelling
+  for (const sg of [-1, 1]) raised((g) => {
+    g.beginPath();
+    g.ellipse(cx + sg * R * 0.55, cy + R * 0.18, R * 0.26, R * 0.22, 0, 0, P2);
+  }, R * 0.04);
+  // the brows: heavy ridges knotted in a scowl
+  for (const sg of [-1, 1]) raised(tube([[cx + sg * R * 0.06, cy - R * 0.22], [cx + sg * R * 0.3, cy - R * 0.44], [cx + sg * R * 0.62, cy - R * 0.32]], R * 0.06, R * 0.04), R * 0.05);
+  // the eyes: deep sockets, the staring balls, the pupils drilled (the glass in them still catches a little green)
+  for (const sg of [-1, 1]) {
+    const ex = cx + sg * R * 0.35;
+    const ey = cy - R * 0.13;
+    cut((g) => {
+      g.beginPath();
+      g.ellipse(ex, ey, R * 0.21, R * 0.16, 0, 0, P2);
+    }, R * 0.05);
+    raised((g) => {
+      g.beginPath();
+      g.ellipse(ex, ey + R * 0.01, R * 0.15, R * 0.11, 0, 0, P2);
+    }, R * 0.03, '#857d98');
+    c.fillStyle = '#0c0a10';
     c.beginPath();
-    c.moveTo(cx + s * R * 0.08, cy - R * 0.26);
-    c.quadraticCurveTo(cx + s * R * 0.35, cy - R * 0.52, cx + s * R * 0.68, cy - R * 0.32);
-    c.stroke();
-    c.strokeStyle = rgba(lit, 0.6);
-    c.lineWidth = R * 0.05;
-    c.beginPath();
-    c.moveTo(cx + s * R * 0.1, cy - R * 0.32);
-    c.quadraticCurveTo(cx + s * R * 0.35, cy - R * 0.58, cx + s * R * 0.66, cy - R * 0.4);
-    c.stroke();
-    // the staring eye: a deep socket, a round eyeball, the green glass inlay
-    const ex = cx + s * R * 0.36;
-    const ey = cy - R * 0.14;
-    c.fillStyle = sh;
-    c.beginPath();
-    c.ellipse(ex, ey, R * 0.22, R * 0.18, 0, 0, P2);
+    c.arc(ex, ey + R * 0.01, R * 0.055, 0, P2);
     c.fill();
-    c.fillStyle = '#ddd4c4';
+    c.fillStyle = rgba(mix('#2a6a3a', GLOW, eyes), 0.55);
     c.beginPath();
-    c.ellipse(ex, ey, R * 0.17, R * 0.14, 0, 0, P2);
-    c.fill();
-    c.strokeStyle = ink;
-    c.lineWidth = R * 0.04;
-    c.stroke();
-    const ig = c.createRadialGradient(ex - R * 0.03, ey - R * 0.03, 0, ex, ey, R * 0.1);
-    ig.addColorStop(0, mix('#c8ffb0', GLOW, 1 - eyes));
-    ig.addColorStop(0.6, mix('#3a8a4a', GLOW, eyes * 0.4));
-    ig.addColorStop(1, '#0e2a18');
-    c.fillStyle = ig;
-    c.beginPath();
-    c.arc(ex, ey, R * 0.095, 0, P2);
-    c.fill();
-    c.fillStyle = '#05100a';
-    c.beginPath();
-    c.arc(ex, ey, R * 0.035, 0, P2);
+    c.arc(ex - R * 0.01, ey, R * 0.035, 0, P2);
     c.fill();
   }
-  // the nose: broad, flat, flared
-  c.fillStyle = rgba(sh, 0.7);
-  c.beginPath();
-  c.moveTo(cx - R * 0.06, cy - R * 0.14);
-  c.lineTo(cx - R * 0.2, cy + R * 0.18);
-  c.quadraticCurveTo(cx, cy + R * 0.26, cx + R * 0.2, cy + R * 0.18);
-  c.lineTo(cx + R * 0.06, cy - R * 0.14);
-  c.closePath();
-  c.fill();
-  c.fillStyle = rgba(lit, 0.5);
-  c.beginPath();
-  c.moveTo(cx - R * 0.05, cy - R * 0.12);
-  c.lineTo(cx - R * 0.15, cy + R * 0.15);
-  c.lineTo(cx - R * 0.02, cy + R * 0.12);
-  c.closePath();
-  c.fill();
-  for (const s of [-1, 1]) {
-    c.fillStyle = ink;
+  // the nose: broad and flat, its nostrils flared
+  raised(polyPath([[cx - R * 0.07, cy - R * 0.16], [cx + R * 0.07, cy - R * 0.16], [cx + R * 0.2, cy + R * 0.17], [cx, cy + R * 0.24], [cx - R * 0.2, cy + R * 0.17]]), R * 0.06);
+  for (const sg of [-1, 1]) {
+    c.fillStyle = rgba(dark, 0.85);
     c.beginPath();
-    c.ellipse(cx + s * R * 0.12, cy + R * 0.2, R * 0.05, R * 0.03, 0, 0, P2);
+    c.ellipse(cx + sg * R * 0.11, cy + R * 0.18, R * 0.045, R * 0.028, 0, 0, P2);
     c.fill();
   }
-  // the grin: wide from cheek to cheek, four tusks, the tongue lolling out over her chin
-  c.fillStyle = '#1a1218';
-  c.beginPath();
-  c.moveTo(cx - R * 0.62, cy + R * 0.32);
-  c.quadraticCurveTo(cx, cy + R * 0.44, cx + R * 0.62, cy + R * 0.32);
-  c.quadraticCurveTo(cx + R * 0.4, cy + R * 0.72, cx, cy + R * 0.74);
-  c.quadraticCurveTo(cx - R * 0.4, cy + R * 0.72, cx - R * 0.62, cy + R * 0.32);
-  c.closePath();
-  c.fill();
-  // teeth along the top lip
-  c.fillStyle = '#e0d8c8';
+  // the grin: cut deep from cheek to cheek
+  const mouth = (g: Ctx) => {
+    g.beginPath();
+    g.moveTo(cx - R * 0.62, cy + R * 0.3);
+    g.quadraticCurveTo(cx, cy + R * 0.42, cx + R * 0.62, cy + R * 0.3);
+    g.quadraticCurveTo(cx + R * 0.42, cy + R * 0.74, cx, cy + R * 0.76);
+    g.quadraticCurveTo(cx - R * 0.42, cy + R * 0.74, cx - R * 0.62, cy + R * 0.3);
+    g.closePath();
+  };
+  cut(mouth, R * 0.08, '#2a2434');
+  c.save();
+  mouth(c);
+  c.clip();
+  // the teeth along the top, carved
   for (let i = -3; i <= 3; i++) {
     const tx = cx + i * R * 0.12;
-    const ty = cy + R * (0.36 + Math.abs(i) * -0.003 + (1 - Math.abs(i) / 4) * 0.04);
-    c.fillRect(tx - R * 0.045, ty, R * 0.09, R * 0.07);
+    const ty = cy + R * (0.37 + (1 - Math.abs(i) / 4) * 0.04);
+    raised((g) => {
+      g.beginPath();
+      g.rect(tx - R * 0.045, ty, R * 0.09, R * 0.08);
+    }, R * 0.02, '#8a829c');
   }
-  for (const s of [-1, 1]) {
-    // the tusks: two up from the lower jaw, two down from the upper
-    c.fillStyle = '#ece4d4';
-    c.beginPath();
-    c.moveTo(cx + s * R * 0.42, cy + R * 0.38);
-    c.lineTo(cx + s * R * 0.5, cy + R * 0.66);
-    c.lineTo(cx + s * R * 0.32, cy + R * 0.4);
-    c.closePath();
-    c.fill();
-    c.beginPath();
-    c.moveTo(cx + s * R * 0.26, cy + R * 0.68);
-    c.lineTo(cx + s * R * 0.32, cy + R * 0.42);
-    c.lineTo(cx + s * R * 0.16, cy + R * 0.7);
-    c.closePath();
-    c.fill();
-    c.strokeStyle = rgba(ink, 0.7);
-    c.lineWidth = R * 0.02;
-    c.stroke();
+  c.restore();
+  // the tusks: up from the lower jaw, down from the upper
+  for (const sg of [-1, 1]) {
+    raised(polyPath([[cx + sg * R * 0.42, cy + R * 0.36], [cx + sg * R * 0.5, cy + R * 0.68], [cx + sg * R * 0.31, cy + R * 0.4]]), R * 0.03, '#8e86a0');
+    raised(polyPath([[cx + sg * R * 0.25, cy + R * 0.72], [cx + sg * R * 0.31, cy + R * 0.44], [cx + sg * R * 0.15, cy + R * 0.72]]), R * 0.03, '#8e86a0');
   }
-  // the tongue
-  c.beginPath();
-  c.moveTo(cx - R * 0.16, cy + R * 0.58);
-  c.quadraticCurveTo(cx - R * 0.2, cy + R * 0.98, cx, cy + R * 1.02);
-  c.quadraticCurveTo(cx + R * 0.2, cy + R * 0.98, cx + R * 0.16, cy + R * 0.58);
-  c.closePath();
-  c.fillStyle = mix(body, '#a83a2a', 0.55);
-  c.fill();
-  c.strokeStyle = ink;
-  c.lineWidth = R * 0.035;
-  c.stroke();
-  c.strokeStyle = rgba('#3a1010', 0.6);
-  c.lineWidth = R * 0.02;
+  // the tongue, lolling out over her chin, the old red still in its groove
+  raised((g) => {
+    g.beginPath();
+    g.moveTo(cx - R * 0.16, cy + R * 0.58);
+    g.quadraticCurveTo(cx - R * 0.2, cy + R * 0.98, cx, cy + R * 1.02);
+    g.quadraticCurveTo(cx + R * 0.2, cy + R * 0.98, cx + R * 0.16, cy + R * 0.58);
+    g.closePath();
+  }, R * 0.06, mix(base, '#8a4a40', 0.35));
+  c.strokeStyle = rgba('#5a2020', 0.5);
+  c.lineWidth = R * 0.025;
   c.beginPath();
   c.moveTo(cx, cy + R * 0.62);
   c.lineTo(cx, cy + R * 0.92);
   c.stroke();
-  // her cheeks and chin, and the weather: dark in the hollows, the stone pitted
-  c.fillStyle = rgba(sh, 0.35);
-  for (const s of [-1, 1]) {
-    c.beginPath();
-    c.ellipse(cx + s * R * 0.62, cy + R * 0.12, R * 0.16, R * 0.24, s * 0.4, 0, P2);
-    c.fill();
-  }
+  // the weather on her: grain, a crack across her brow, chips off the snakes' coils, moss in the hollows, streaks
+  const box = { x: cx - R * 1.8, y: cy - R * 1.8, w: R * 3.6, h: R * 3.6 };
+  const [sil, sg] = makeCanvas(c.canvas.width, c.canvas.height);
+  sg.drawImage(c.canvas, 0, 0);
+  grain(c, box, 'speckle', 0.35, 0.6);
+  lay(c, noiseMask(6, 9093, { cover: 0.35, soft: 0.25, col: '#2a2434', w: 40, h: 40 }), box, 0.3);
+  crack(c, rr, cx + R * 0.5, cy - R * 0.75, Math.PI * 0.62, R * 0.9, { col: '#100c14', lip: lit, w: R * 0.03, a: 0.7, branch: 0.15 });
+  for (const [mx, my] of [[cx - R * 0.5, cy - R * 0.4], [cx + R * 0.3, cy + R * 0.75], [cx - R * 0.8, cy + R * 0.1], [cx + R * 0.9, cy - R * 0.5]] as Pt[]) moss(c, rr, mx, my, R * 0.18, R * 0.08, 0.3);
+  streaks(c, rr, cx - R * 0.3, cy + R * 0.7, R * 0.4, R * 0.8, '#14101a', 0.3, 3);
+  streaks(c, rr, cx + R * 0.45, cy + R * 0.6, R * 0.3, R * 0.6, '#14101a', 0.25, 2);
+  c.setTransform(1, 0, 0, 1, 0, 0);
+  c.globalCompositeOperation = 'destination-in';
+  c.drawImage(sil, 0, 0);
   c.restore();
 }
 
@@ -1243,7 +1365,7 @@ function portico(ctx: Ctx, r: R): void {
       const bb = boxOfPts([P(-ST.X, Yt - ST.rise, za), P(ST.X, Yt, za)], 2);
       grain(ctx, bb, 'speckle', 0.25, 0.9);
       // the pool's green on the risers, strongest at the middle of the lowest
-      lightPool(ctx, 960, bb.y + bb.h / 2, 420, 40, GLOW, 0.16 + (2 - i) * 0.06);
+      lightPool(ctx, 960, bb.y + bb.h / 2, 420, 40, GLOW, 0.07 + (2 - i) * 0.03);
       // the joints of its blocks
       for (let X = -ST.X + 0.4 + r() * 0.5; X < ST.X; X += 0.9 + r() * 0.6) {
         const [jx, jy] = P(X, Yt - ST.rise, za);
@@ -1389,6 +1511,32 @@ function portico(ctx: Ctx, r: R): void {
   const hz = (u: number, Y: number) => P(u, Y, zf);
   horns(ctx, hz, 0, Y1 + PD.h + 0.12, true, 1.3);
   horns(ctx, hz, -PD.X + 0.25, Y1 + 0.12, true, 1.3);
+  // ——— the entablature's weight and weather: the soffit's deep shadow under the architrave, rain stains run down
+  // from the cornice, moss and grass on its top, chips knocked off its arrises; the steps' treads stained and mossy ———
+  const [sx0, sy0] = P(XL, Y0, zf);
+  const [sx1] = P(XR, Y0, zf);
+  vfill(ctx, sx0, sy0, sx1 - sx0, 10, [[0, rgba('#08060c', 0.55)], [1, rgba('#08060c', 0)]]);
+  for (let i = 0; i < 16; i++) {
+    const X = XL + 0.3 + r() * (XR - XL - 0.6);
+    const [x, y] = P(X, Y1 - 0.02, zf);
+    streaks(ctx, r, x, y, 14, (Y1 - Y0) * ppu(zf) * (0.6 + r() * 0.4), '#14101a', 0.22, 3);
+  }
+  const [cx0b, cyb] = P(XL - 0.12, Y1, zf - 0.1);
+  const [cx1b] = P(XR - 0.1, Y1, zf - 0.1);
+  for (let i = 0; i < 14; i++) moss(ctx, r, cx0b + r() * (cx1b - cx0b), cyb - 1, 6 + r() * 14, 2.5, 0.4);
+  for (let i = 0; i < 8; i++) grass(ctx, r, cx0b + r() * (cx1b - cx0b), cyb, 6);
+  chips(ctx, r, cx0b, cx1b, cyb + 1, 14, '#8e88a0', 2.5);
+  chips(ctx, r, sx0, sx1, sy0 - 1, 12, '#8a8296', 2.5);
+  for (let i = 0; i < 3; i++) {
+    const Yt = (i + 1) * ST.rise;
+    const [tx0, ty] = P(-ST.X, Yt, stepZ(i + 1) - 0.02);
+    const [tx1] = P(ST.X, Yt, stepZ(i + 1) - 0.02);
+    for (let j = 0; j < 10; j++) moss(ctx, r, tx0 + r() * (tx1 - tx0), ty, 8 + r() * 16, 2, 0.4);
+    for (let j = 0; j < 5; j++) grass(ctx, r, tx0 + r() * (tx1 - tx0), ty + 1, 5);
+    const [rx0, ry0] = P(-ST.X, Yt, stepZ(i));
+    const [rx1] = P(ST.X, Yt, stepZ(i));
+    for (let j = 0; j < 8; j++) streaks(ctx, r, rx0 + r() * (rx1 - rx0), ry0 + 1, 10, ST.rise * ppu(stepZ(i)) * 0.9, '#14101a', 0.25, 2);
+  }
   // ——— the ruin: the fallen drum and capital lying on the steps and the floor ———
   fallenDrum(ctx, r);
   // ivy up the first column and hanging from the entablature's left end
@@ -1403,6 +1551,12 @@ function portico(ctx: Ctx, r: R): void {
   }
   ivy(ctx, iv, ...P(XL + 0.6, Y0, zf), 46, 50, 4, 0.4, 0.4);
   ivy(ctx, iv, ...P(-2.0, Y0, zf), 24, 22, 3.5, 0.4, 0.4);
+  // the air between us and it: the portico a step back into the dusk
+  const pb = PORTICO_BOX;
+  ctx.save();
+  ctx.globalCompositeOperation = 'source-atop';
+  vfill(ctx, pb.x, pb.y, pb.w, pb.h - 30, [[0, rgba(AIR.color, 0.12)], [1, rgba(AIR.color, 0.04)]]);
+  ctx.restore();
 }
 
 /** A serpent carved in the tympanum's corner (s: -1 left, 1 right): its tail in the corner, its body coiling along
@@ -1569,6 +1723,8 @@ function fallenDrum(ctx: Ctx, r: R): void {
 // something far down glowing a sickly green. The kerb's inner faces take the green; its outer front is in the dusk.
 
 const KX = PL.X - PL.kw;
+/** The steps going down into the water at the far end (half-width). */
+const STEP_X = 1.15;
 const KZ0 = PL.z0 + PL.kw;
 const KZ1 = PL.z1 - PL.kw;
 /** Where the water line disappears behind the front kerb's top. */
@@ -1589,16 +1745,15 @@ export const waterSpan = (y: number): [number, number] => {
 function pool(ctx: Ctx, r: R): void {
   const kerbTop = '#7e788c';
   // the far kerb's inner face (above the water, facing us, lit green from the water)
-  const backIn = faceAt(-KX, KX, PL.wY, PL.kh, KZ1);
-  fillPath(ctx, backIn, mix('#4a5860', GLOW, 0.22));
+  for (const [a, b] of [[-KX, -STEP_X], [STEP_X, KX]]) fillPath(ctx, faceAt(a, b, PL.wY, PL.kh, KZ1), mix('#3a3e48', GLOW, 0.08));
   // the side kerbs' inner faces
   for (const s of [-1, 1]) {
     const f = sideAt(s * KX, KZ0, KZ1, PL.wY, PL.kh);
-    fillPath(ctx, f, mix('#4a5460', GLOW, 0.2));
+    fillPath(ctx, f, mix('#3a3e48', GLOW, 0.07));
     within(ctx, f, () => grain(ctx, boxOfPts([P(s * KX, PL.wY, KZ0), P(s * KX, PL.kh, KZ1)], 2), 'speckle', 0.25, 0.9));
   }
   // the kerb's top: back, sides, front, its blocks laid evenly
-  const tops: [number, number, number, number][] = [[-PL.X, PL.X, KZ1, PL.z1], [-PL.X, -KX, PL.z0, PL.z1], [KX, PL.X, PL.z0, PL.z1], [-PL.X, PL.X, PL.z0, KZ0]];
+  const tops: [number, number, number, number][] = [[-PL.X, -STEP_X, KZ1, PL.z1], [STEP_X, PL.X, KZ1, PL.z1], [-PL.X, -KX, PL.z0, PL.z1], [KX, PL.X, PL.z0, PL.z1], [-PL.X, PL.X, PL.z0, KZ0]];
   for (const [X0, X1, z0, z1] of tops) {
     const p = topAt(X0, X1, z0, z1, PL.kh);
     fillPath(ctx, p, kerbTop);
@@ -1621,22 +1776,33 @@ function pool(ctx: Ctx, r: R): void {
   };
   for (let X = -PL.X + 1; X < PL.X - 0.01; X += 1) {
     joint(P(X, PL.kh, PL.z0), P(X, PL.kh, KZ0));
-    joint(P(X, PL.kh, KZ1), P(X, PL.kh, PL.z1));
+    if (Math.abs(X) > STEP_X) joint(P(X, PL.kh, KZ1), P(X, PL.kh, PL.z1));
   }
   const side = (PL.z1 - PL.z0) / 5;
   for (let i = 1; i < 5; i++) {
     const z = PL.z0 + i * side;
     for (const s of [-1, 1]) joint(P(s * PL.X, PL.kh, z), P(s * KX, PL.kh, z));
   }
-  // the kerb's inner arris, catching the green
-  ctx.strokeStyle = rgba(mix('#c8e8c0', GLOW, 0.4), 0.3);
-  ctx.lineWidth = 1.1;
+  // the kerb worn round at its inner edge (a soft shade where it rolls over into the water), moss cushions along it
+  ctx.strokeStyle = rgba('#14121c', 0.3);
+  ctx.lineWidth = 4;
   ctx.beginPath();
   ctx.moveTo(...P(-KX, PL.kh, KZ0));
   ctx.lineTo(...P(-KX, PL.kh, KZ1));
+  ctx.lineTo(...P(-STEP_X, PL.kh, KZ1));
+  ctx.moveTo(...P(STEP_X, PL.kh, KZ1));
   ctx.lineTo(...P(KX, PL.kh, KZ1));
   ctx.lineTo(...P(KX, PL.kh, KZ0));
   ctx.stroke();
+  for (let i = 0; i < 46; i++) {
+    const side = r();
+    let p: Pt;
+    if (side < 0.45) p = P(-PL.X + r() * PL.X * 2, PL.kh, PL.z0 + r() * PL.kw);
+    else if (side < 0.72) p = P(-PL.X + r() * PL.kw, PL.kh, PL.z0 + r() * (PL.z1 - PL.z0));
+    else p = P(PL.X - r() * PL.kw, PL.kh, PL.z0 + r() * (PL.z1 - PL.z0));
+    const kk = ppu(zFloor(p[1] + 40));
+    moss(ctx, r, p[0], p[1], (0.06 + r() * 0.12) * kk, (0.02 + r() * 0.03) * kk, 0.1);
+  }
   // the front: the kerb's outer face, in the dusk, damp and green with algae at its foot
   const front = faceAt(-PL.X, PL.X, 0, PL.kh, PL.z0);
   const fb = boxOfPts([P(-PL.X, 0, PL.z0), P(PL.X, PL.kh, PL.z0)], 2);
@@ -1652,13 +1818,46 @@ function pool(ctx: Ctx, r: R): void {
     // a crack down one block
     crack(ctx, r, ...P(1.42, PL.kh, PL.z0), Math.PI * 0.55, 40, { col: '#141018', lip: '#a8a0b8', w: 1.4, a: 0.55 });
   });
-  // the front arris: lit, chipped
+  // the front arris: worn round (a soft light rolling over it), bitten into by broken chunks, each a dark hollow
+  // with a pale fracture and a lit lower lip
   const [ax0, ay] = P(-PL.X, PL.kh, PL.z0);
   const [ax1] = P(PL.X, PL.kh, PL.z0);
-  ctx.fillStyle = rgba('#b8b0c8', 0.4);
-  ctx.fillRect(ax0, ay - 1, ax1 - ax0, 1.6);
-  chips(ctx, r, ax0, ax1, ay, 18, '#7e788c', 3.5);
-  strokePath(ctx, front, rgba('#100e18', 0.7), 1.4);
+  vfill(ctx, ax0, ay - 3, ax1 - ax0, 7, [[0, rgba('#a8a0b8', 0)], [0.45, rgba('#a8a0b8', 0.28)], [1, rgba('#a8a0b8', 0)]]);
+  strokePath(ctx, front, rgba('#100e18', 0.55), 1.2);
+  for (let i = 0; i < 14; i++) {
+    const x = ax0 + 20 + r() * (ax1 - ax0 - 40);
+    const w = 6 + Math.pow(r(), 2) * 50;
+    const h = 2 + r() * w * 0.35;
+    const pts: Pt[] = [[x - w / 2, ay - 2]];
+    for (let j = 1; j < 6; j++) pts.push([x - w / 2 + (w * j) / 6 + (r() - 0.5) * w * 0.12, ay - 2 + h * Math.pow(Math.sin((j / 6) * Math.PI), 0.6 + r()) * (0.5 + r() * 0.7)]);
+    pts.push([x + w / 2, ay - 2]);
+    fillPath(ctx, polyPath(pts), '#2e2a38');
+    ctx.strokeStyle = rgba('#a8a0b8', 0.45);
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    pts.slice(1, -1).forEach((p2, j) => (j ? ctx.lineTo(p2[0], p2[1] + 1) : ctx.moveTo(p2[0], p2[1] + 1)));
+    ctx.stroke();
+  }
+  // the front-left corner broken off: a jagged bite out of the block, rubble at its foot
+  const [cx0, cy0] = P(-PL.X, PL.kh, PL.z0);
+  const bite: Pt[] = [[cx0 - 2, cy0 - 4], [cx0 + 46, cy0 - 3], [cx0 + 38, cy0 + 9], [cx0 + 24, cy0 + 16], [cx0 + 14, cy0 + 30], [cx0 - 2, cy0 + 36]];
+  fillPath(ctx, polyPath(bite), '#3a3644');
+  ctx.strokeStyle = rgba('#9a92a8', 0.5);
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  bite.slice(1, -1).forEach((p2, j) => (j ? ctx.lineTo(...p2) : ctx.moveTo(...p2)));
+  ctx.stroke();
+  for (let i = 0; i < 7; i++) {
+    const [px, py] = [cx0 - 20 + r() * 60, cy0 + 48 + r() * 8];
+    ctx.fillStyle = rgba('#0a0812', 0.4);
+    ctx.beginPath();
+    ctx.ellipse(px + 3, py + 2, 5 + r() * 4, 2, 0, 0, P2);
+    ctx.fill();
+    ctx.fillStyle = r() < 0.5 ? '#6e687c' : '#8a8498';
+    ctx.beginPath();
+    ctx.ellipse(px, py, 3 + r() * 4, 2 + r() * 2, r(), 0, P2);
+    ctx.fill();
+  }
   // its foot on the floor: occlusion and a damp halo
   crevice(ctx, ax0 - 6, ax1 + 6, fb.y + fb.h - 2, 10, 0.55, '#0c0a14');
   // the sides' outer arrises where they meet the floor
@@ -1673,8 +1872,8 @@ function pool(ctx: Ctx, r: R): void {
     ctx.stroke();
   }
   // the green light the water throws up over the kerb and the air above it
-  lightPool(ctx, 960, sy(PL.kh, (KZ0 + KZ1) / 2), 520, 70, GLOW, 0.14);
-  glowAt(ctx, 980, sy(0.9, 7), 600, GLOW, 0.06, 0.32);
+  lightPool(ctx, 960, sy(PL.kh, (KZ0 + KZ1) / 2), 520, 70, GLOW, 0.04);
+  glowAt(ctx, 980, sy(0.9, 7), 600, GLOW, 0.035, 0.32);
 }
 
 /** The water and all it reflects (the live layer lays a copy of it, `pad` px wider each side, over it in strips). */
@@ -1738,91 +1937,294 @@ function reflection(ctx: Ctx, r: R, pad: number): void {
       hero(ctx, ...P(st.X, 0.3, st.z), k, pose, dir, { depth: 0.6, seed: 9, simple: true });
       ctx.restore();
     }
-    // the water over it all: dark, deeper looking as we look down into it near us
-    vfill(ctx, wb.x, wb.y, wb.w, wb.h, [[0, rgba('#101a1a', 0.3)], [1, rgba('#0a1612', 0.62)]]);
-    // the glow down in the depths, and the drowned hand reaching up through it
-    lightPool(ctx, 980, wb.y + wb.h * 0.62, 360, 50, GLOW, 0.27);
-    lightPool(ctx, 1000, wb.y + wb.h * 0.66, 120, 20, '#c8ffb0', 0.16);
-    drownedHand(ctx, 1030, wb.y + wb.h * 0.7);
-    // the sheen: thin lines of sky light lying along the surface, crowding far off
-    for (let i = 0; i < 26; i++) {
+    // the steps going down into it at the far end, seen through the water: dim, then lost in the murk
+    for (const [Yt, za, zb] of [[0.06, 7.78, 8.06], [-0.06, 7.5, 7.78]] as Pt3[]) {
+      fillPath(ctx, topAt(-STEP_X, STEP_X, za, zb, Yt), '#3a3844');
+      fillPath(ctx, faceAt(-STEP_X, STEP_X, Yt - 0.12, Yt, za), '#2a2834');
+    }
+    fillPath(ctx, faceAt(-STEP_X, STEP_X, 0.06, PL.wY, 8.06), '#34323e');
+    // the water over it all: black and still, darker still as we look down into it near us
+    vfill(ctx, wb.x, wb.y, wb.w, wb.h, [[0, rgba('#0a1212', 0.45)], [0.5, rgba('#060c0c', 0.62)], [1, rgba('#040808', 0.78)]]);
+    // the glow down in the depths: murky, uneven, drifting in clouds rather than filling it
+    softly(ctx, wb, (g) => {
+      g.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < 9; i++) {
+        const cx = 900 + (r() - 0.4) * 300;
+        const cy = wb.y + wb.h * (0.45 + r() * 0.35);
+        const rad = 18 + r() * 40;
+        const gr = g.createRadialGradient(cx, cy, 0, cx, cy, rad);
+        gr.addColorStop(0, rgba(GLOW, 0.04 + r() * 0.05));
+        gr.addColorStop(1, rgba(GLOW, 0));
+        g.fillStyle = gr;
+        g.save();
+        g.translate(cx, cy);
+        g.scale(1, 0.32);
+        g.translate(-cx, -cy);
+        g.fillRect(cx - rad, cy - rad, rad * 2, rad * 2);
+        g.restore();
+      }
+    }, 0.25);
+    lay(ctx, noiseMask(5, 211, { cover: 0.4, soft: 0.3, col: '#020404', w: 60, h: 14 }), wb, 0.35);
+    // what has sunk in it: a statue's head lying face up, a hand reaching up beside it, half lost in the murk
+    drowned(ctx, 1010, wb.y + wb.h * 0.7);
+    // the sheen: a few thin lines of sky lying along the surface where it's clear
+    for (let i = 0; i < 14; i++) {
       const t = Math.pow(r(), 1.4);
       const y = wb.y + 3 + t * (wb.h - 6);
       const [x0, x1] = waterSpan(y);
-      const x = x0 + r() * (x1 - x0);
-      const l = (20 + r() * 80) * (0.4 + t);
-      ctx.strokeStyle = rgba(r() < 0.6 ? '#e8b0a0' : '#a8c8b8', 0.12 + r() * 0.12);
+      const x = x0 + 60 + r() * (x1 - x0 - 120);
+      const l = (20 + r() * 70) * (0.4 + t);
+      ctx.strokeStyle = rgba(r() < 0.6 ? '#d8a8a0' : '#a8c0b8', 0.1 + r() * 0.08);
       ctx.lineWidth = 0.8 + t;
       ctx.beginPath();
       ctx.moveTo(x, y);
       ctx.lineTo(x + l, y);
       ctx.stroke();
     }
-    // duckweed and a few lily pads gathered along the edges and in the corners
-    for (let i = 0; i < 160; i++) {
+    // the scum: a skin of green-grey gathered along the edges and in the corners, breaking up the reflection
+    const edgeScum = (x0: number, y0: number, w: number, h: number, seed: number, a: number) => lay(ctx, noiseMask(7, seed, { cover: 0.5, soft: 0.18, col: '#4a5634', w: 60, h: 24 }), { x: x0, y: y0, w, h }, a);
+    edgeScum(wb.x, wb.y, 200, wb.h, 221, 0.55);
+    edgeScum(wb.x + wb.w - 200, wb.y, 200, wb.h, 223, 0.55);
+    edgeScum(wb.x + 80, wb.y, wb.w - 160, 18, 225, 0.6);
+    edgeScum(wb.x + 200, wb.y + wb.h - 26, 300, 26, 227, 0.5);
+    lay(ctx, noiseMask(14, 229, { cover: 0.22, soft: 0.1, col: '#5a6a40', w: 120, h: 30 }), wb, 0.2);
+    // duckweed specks along the edges
+    for (let i = 0; i < 220; i++) {
       const sdir = r() < 0.5 ? -1 : 1;
       const y = wb.y + r() * wb.h;
       const [x0, x1] = waterSpan(y);
-      const x = sdir < 0 ? x0 + Math.pow(r(), 2.5) * 60 : x1 - Math.pow(r(), 2.5) * 60;
-      ctx.fillStyle = rgba(r() < 0.5 ? '#6a8a3a' : '#4a6a2a', 0.55);
+      const x = sdir < 0 ? x0 + Math.pow(r(), 2.2) * 90 : x1 - Math.pow(r(), 2.2) * 90;
+      ctx.fillStyle = rgba(r() < 0.5 ? '#7a9a44' : '#5a7a34', 0.6);
       ctx.beginPath();
-      ctx.ellipse(x, y, 1.4 + r() * 1.6, 0.6 + r() * 0.6, 0, 0, P2);
+      ctx.ellipse(x, y, 1.2 + r() * 1.6, 0.5 + r() * 0.6, 0, 0, P2);
       ctx.fill();
     }
-    for (const [lx, ly, lr] of [[1262, 640, 13], [1236, 628, 9], [640, 642, 11]] as Pt3[]) {
-      ctx.fillStyle = '#2e4a26';
+    // lily pads, a pale flower among them, and fallen leaves floating
+    for (const [lx, ly, lr] of [[1262, 640, 14], [1238, 627, 9], [1280, 622, 8], [1208, 645, 7], [640, 642, 12], [662, 630, 8], [618, 630, 7], [800, 556, 6], [1120, 560, 7]] as Pt3[]) {
+      ctx.fillStyle = rgba('#020404', 0.45);
       ctx.beginPath();
-      ctx.ellipse(lx, ly, lr, lr * 0.32, 0, 0.3, P2);
+      ctx.ellipse(lx + 2, ly + lr * 0.2, lr, lr * 0.3, 0, 0, P2);
+      ctx.fill();
+      ctx.fillStyle = '#2a4224';
+      ctx.beginPath();
+      ctx.ellipse(lx, ly, lr, lr * 0.3, 0, 0.35, P2);
       ctx.lineTo(lx, ly);
       ctx.closePath();
       ctx.fill();
-      ctx.fillStyle = rgba('#7a9a4a', 0.5);
+      ctx.fillStyle = rgba('#7a9a52', 0.45);
       ctx.beginPath();
-      ctx.ellipse(lx - lr * 0.2, ly - lr * 0.08, lr * 0.6, lr * 0.15, 0, 0, P2);
+      ctx.ellipse(lx - lr * 0.2, ly - lr * 0.08, lr * 0.6, lr * 0.14, 0, 0, P2);
       ctx.fill();
-      ctx.fillStyle = rgba('#0a120c', 0.4);
+      ctx.strokeStyle = rgba('#12200e', 0.5);
+      ctx.lineWidth = 0.8;
       ctx.beginPath();
-      ctx.ellipse(lx + 2, ly + lr * 0.3, lr, lr * 0.15, 0, 0, P2);
+      ctx.ellipse(lx, ly, lr, lr * 0.3, 0, 0.35, P2);
+      ctx.stroke();
+    }
+    for (const [fx, fy] of [[1250, 616], [652, 620]] as Pt[]) {
+      for (let j = 0; j < 6; j++) {
+        const a = (j / 6) * P2;
+        ctx.fillStyle = j % 2 ? '#d8d0c8' : '#f0e8e0';
+        ctx.beginPath();
+        ctx.ellipse(fx + Math.cos(a) * 2.6, fy - 3 + Math.sin(a) * 1, 2.6, 1.3, a, 0, P2);
+        ctx.fill();
+      }
+      ctx.fillStyle = '#d8b860';
+      ctx.beginPath();
+      ctx.arc(fx, fy - 3.4, 1.2, 0, P2);
       ctx.fill();
     }
+    for (let i = 0; i < 30; i++) {
+      const y = wb.y + r() * wb.h;
+      const [x0, x1] = waterSpan(y);
+      const x = x0 + r() * (x1 - x0);
+      const sc = 0.5 + (y - wb.y) / wb.h;
+      ctx.fillStyle = rgba(r() < 0.5 ? '#6a4a28' : '#8a6a30', 0.7);
+      ctx.beginPath();
+      ctx.ellipse(x, y, 3 * sc, 1.1 * sc, (r() - 0.5) * 0.6, 0, P2);
+      ctx.fill();
+    }
+    // the step that stands just clear of the water at the far end, wet and dark, moss on its nosing
+    fillPath(ctx, topAt(-STEP_X, STEP_X, 8.28, KZ1, 0.22), '#34323e');
+    fillPath(ctx, faceAt(-STEP_X, STEP_X, PL.wY, 0.22, 8.28), '#201e28');
+    fillPath(ctx, faceAt(-STEP_X, STEP_X, 0.22, PL.kh, KZ1), '#2a2834');
+    // the steps going down into it from the left-hand kerb: one just clear of the water, two more under it
+    for (const [X0, X1, Yt, a] of [[-KX, -2.38, 0.22, 1], [-2.38, -2.08, 0.07, 0.6], [-2.08, -1.78, -0.08, 0.35]] as [number, number, number, number][]) {
+      const za = 5.5;
+      const zb = 6.7;
+      ctx.globalAlpha = a;
+      fillPath(ctx, quad(P(X0, Yt, za), P(X1, Yt, za), P(X1, Yt, zb), P(X0, Yt, zb)), Yt > 0.17 ? '#4e4a5a' : '#3a4044');
+      fillPath(ctx, quad(P(X1, Yt, za), P(X1, Yt - 0.14, za), P(X1, Yt - 0.14, zb), P(X1, Yt, zb)), '#24222c');
+      ctx.globalAlpha = 1;
+    }
+    for (let i = 0; i < 4; i++) {
+      const [mx, my] = P(-KX + 0.05, 0.22, 5.6 + i * 0.3);
+      moss(ctx, r, mx, my, 6, 2, 0.3);
+    }
+    const [nx0, ny] = P(-STEP_X, 0.22, 8.28);
+    const [nx1] = P(STEP_X, 0.22, 8.28);
+    moss(ctx, r, (nx0 + nx1) / 2, ny, (nx1 - nx0) * 0.5, 2, 0.4);
   });
 }
 type Pt3 = [number, number, number];
 
-/** A drowned statue's hand reaching up out of the depths, its stone fingers just under the surface. */
-function drownedHand(ctx: Ctx, x: number, y: number): void {
+/** What has sunk in the pool: a statue's head lying face up just under the surface (its brow, its nose, its open
+ * mouth), a stone hand reaching up beside it; murky, the green coming up round them. */
+function drowned(ctx: Ctx, x: number, y: number): void {
   ctx.save();
-  ctx.globalAlpha = 0.38;
+  ctx.globalAlpha = 0.42;
+  const g = ctx.createRadialGradient(x - 30, y - 2, 1, x - 30, y, 22);
+  g.addColorStop(0, '#9ab8a4');
+  g.addColorStop(1, '#3a5448');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.ellipse(x - 30, y, 22, 7.5, -0.08, 0, P2);
+  ctx.fill();
+  ctx.fillStyle = '#0c1812';
+  for (const [ex, ey, rx] of [[-38, -1, 3.5], [-24, -2, 3.5], [-30, 3, 2.6]] as Pt3[]) {
+    ctx.beginPath();
+    ctx.ellipse(x + ex, y + ey, rx, rx * 0.45, 0, 0, P2);
+    ctx.fill();
+  }
+  ctx.fillStyle = '#b8d8c4';
+  ctx.fillRect(x - 32, y - 4, 4, 1.4);
+  // the hand, fingers just breaking the dark
+  ctx.globalAlpha = 0.4;
   ctx.fillStyle = '#8aa89a';
   ctx.beginPath();
-  ctx.moveTo(x - 7, y + 14);
-  ctx.lineTo(x - 5, y - 2);
+  ctx.moveTo(x + 13, y + 10);
+  ctx.lineTo(x + 15, y - 2);
   for (let i = 0; i < 4; i++) {
-    const fx = x - 5 + i * 3.6;
-    ctx.lineTo(fx, y - 9 - (i === 1 || i === 2 ? 3 : 0));
-    ctx.lineTo(fx + 2.4, y - 9 - (i === 1 || i === 2 ? 3 : 0));
-    ctx.lineTo(fx + 2.6, y - 3);
+    const fx = x + 15 + i * 3.4;
+    const up = i === 1 || i === 2 ? 3 : 0;
+    ctx.lineTo(fx, y - 8 - up);
+    ctx.lineTo(fx + 2.3, y - 8 - up);
+    ctx.lineTo(fx + 2.5, y - 3);
   }
-  ctx.lineTo(x + 10, y - 5);
-  ctx.lineTo(x + 8, y + 1);
-  ctx.lineTo(x + 6, y + 14);
+  ctx.lineTo(x + 29, y - 4);
+  ctx.lineTo(x + 27, y + 10);
   ctx.closePath();
   ctx.fill();
-  ctx.globalAlpha = 0.2;
-  ctx.fillStyle = '#d8ffc8';
-  ctx.fillRect(x - 5, y - 9, 2, 10);
   ctx.restore();
 }
 
+// ——— reeds and ferns ———
+//
+// Reeds stand in the pool's far corners, rising out of the water: tapering blades, some bent over, a few bulrush heads,
+// their reflections broken under them. Ferns crowd the near corners on the paving, their fronds arching over.
+
+/** A clump of reeds rising from (x, y), h px tall. */
+function reeds(ctx: Ctx, r: R, x: number, y: number, h: number, n: number, depth: number): void {
+  const dark = airMix('#142016', depth, AIR);
+  const body = airMix('#2e4a2a', depth, AIR);
+  const lit = airMix('#7a8a50', depth, AIR);
+  // their dark reflections in the water under them
+  ctx.fillStyle = rgba('#040806', 0.4);
+  ctx.beginPath();
+  ctx.ellipse(x, y + 2, h * 0.28, h * 0.05, 0, 0, P2);
+  ctx.fill();
+  for (let i = 0; i < n; i++) {
+    const bx = x + (r() - 0.5) * h * 0.4;
+    const hh = h * (0.5 + r() * 0.6);
+    const bend = (r() - 0.4) * hh * 0.5;
+    const tipX = bx + bend;
+    const tipY = y - hh + Math.abs(bend) * 0.3;
+    const w = Math.max(1.2, h * 0.025);
+    const k2 = r();
+    ctx.fillStyle = k2 < 0.4 ? dark : k2 < 0.8 ? body : mix(body, lit, 0.5);
+    ctx.beginPath();
+    ctx.moveTo(bx - w, y);
+    ctx.quadraticCurveTo(bx - w * 0.6, y - hh * 0.5, tipX, tipY);
+    ctx.quadraticCurveTo(bx + w * 0.6, y - hh * 0.5, bx + w, y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = rgba(lit, 0.35);
+    ctx.lineWidth = 0.7;
+    ctx.beginPath();
+    ctx.moveTo(bx - w * 0.6, y - 2);
+    ctx.quadraticCurveTo(bx - w * 0.5, y - hh * 0.5, tipX, tipY);
+    ctx.stroke();
+    if (r() < 0.22) {
+      // a bulrush head on its own stalk
+      const sx2 = bx + (r() - 0.5) * 6;
+      const st = y - hh * 1.05;
+      ctx.strokeStyle = dark;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(sx2, y);
+      ctx.lineTo(sx2 + bend * 0.2, st);
+      ctx.stroke();
+      ctx.fillStyle = airMix('#3a2618', depth, AIR);
+      ctx.beginPath();
+      ctx.ellipse(sx2 + bend * 0.2, st + h * 0.06, w * 1.6, h * 0.07, 0, 0, P2);
+      ctx.fill();
+      ctx.fillStyle = rgba(airMix('#a07a50', depth, AIR), 0.5);
+      ctx.beginPath();
+      ctx.ellipse(sx2 + bend * 0.2 - w * 0.6, st + h * 0.05, w * 0.5, h * 0.05, 0, 0, P2);
+      ctx.fill();
+    }
+  }
+}
+
+/** A fern on the paving at (x, y): fronds arching out and over, each with its leaflets, lit on their tops. */
+function fern(ctx: Ctx, r: R, x: number, y: number, s: number, depth: number): void {
+  const dark = airMix('#122014', depth, AIR);
+  const body = airMix('#2c4a28', depth, AIR);
+  const lit = airMix('#6a8a44', depth, AIR);
+  groundShadow(ctx, x + s * 0.1, y + 2, s * 0.6, s * 0.12, 0.5, '#0a0812');
+  const n = 9;
+  for (let i = 0; i < n; i++) {
+    const a = -Math.PI / 2 + (i / (n - 1) - 0.5) * 2.6 + (r() - 0.5) * 0.2;
+    const len = s * (0.7 + r() * 0.4) * (1 - Math.abs(i / (n - 1) - 0.5) * 0.5);
+    const tipX = x + Math.cos(a) * len;
+    const tipY = y + Math.sin(a) * len * 0.75 + len * 0.25;
+    const cX = x + Math.cos(a) * len * 0.55;
+    const cY = y + Math.sin(a) * len * 0.9 - len * 0.12;
+    const pts: Pt[] = [];
+    for (let j = 0; j <= 12; j++) {
+      const t = j / 12;
+      pts.push([(1 - t) * (1 - t) * x + 2 * t * (1 - t) * cX + t * t * tipX, (1 - t) * (1 - t) * y + 2 * t * (1 - t) * cY + t * t * tipY]);
+    }
+    // the leaflets along the rachis, shrinking to the tip
+    for (let j = 1; j < 12; j++) {
+      const [px, py] = pts[j];
+      const [qx, qy] = pts[j + 1];
+      const ang = Math.atan2(qy - py, qx - px);
+      const ll = s * 0.1 * (1 - j / 13);
+      for (const sg of [-1, 1]) {
+        ctx.fillStyle = sg < 0 ? mix(body, lit, 0.4) : dark;
+        ctx.beginPath();
+        ctx.ellipse(px + Math.cos(ang + sg * 1.2) * ll * 0.6, py + Math.sin(ang + sg * 1.2) * ll * 0.6, ll * 0.6, ll * 0.22, ang + sg * 1.2, 0, P2);
+        ctx.fill();
+      }
+    }
+    ctx.strokeStyle = body;
+    ctx.lineWidth = Math.max(0.8, s * 0.012);
+    ctx.beginPath();
+    pts.forEach((p, j) => (j ? ctx.lineTo(...p) : ctx.moveTo(...p)));
+    ctx.stroke();
+  }
+}
+
+const REEDS_L = P(-2.5, PL.wY, 8.35);
+const REEDS_R = P(2.48, PL.wY, 8.25);
+const FERN_L = P(-3.25, 0, 3.78);
+const FERN_R = P(3.3, 0, 3.72);
+const reedBox = (p: Pt) => ({ x: Math.floor(p[0] - 50), y: Math.floor(p[1] - 82), w: 100, h: 92 });
+const fernBox = (p: Pt) => ({ x: Math.floor(p[0] - 80), y: Math.floor(p[1] - 66), w: 160, h: 80 });
+
 // ——— the statues ———
 //
-// Each hero is posed as a skeleton (metres: u forward, v up, feet on v = 0) and painted as stone: every limb a
-// tapering capsule shaded round its axis (lit towards the top left, a cool rim on the far side, the pool's green
-// coming up the side that faces it), the torso a muscled cuirass or a belted tunic, a Corinthian helmet with its crest.
-// The parts are painted together on one canvas, then weathered as one piece of stone (grain, black rain-streaks, moss
-// in the folds and on the tops, lichen, cracks), lit along their upper-left edge by the afterglow and outlined once
-// round the whole silhouette.
+// Each hero is posed as a skeleton (metres: u forward, v up, feet on v = 0) and sculpted part by part on one canvas at
+// twice the size: every form filled with the stone and modelled by the light (a lit mass turned to the dusk on the
+// left, a core shadow, the last warm light along its upper edges, the pool's green coming up under it and along the
+// side that faces the water), every nearer part throwing a soft shadow on what's behind it. The anatomy is carved into
+// the forms (pectorals, the abdominal grid, the iliac line, knees and calves, the deltoid), the faces are cut with
+// their open mouths and raised brows, the hands have fingers, the drapery folds. Then the whole is weathered as one
+// stone: grain, black rain streaks from the shoulders, moss in the hollows, lichen on the lit side, cracks and chips
+// with lit lips, a fracture face where a limb broke off; and outlined once, thinly.
 
+type HandKind = 'open' | 'fist' | 'eyes' | 'bow';
 interface Pose {
   /** [far, near] pairs. */
   an: [Pt, Pt];
@@ -1832,65 +2234,74 @@ interface Pose {
   sh: [Pt, Pt];
   el: [Pt, Pt];
   ha: [Pt, Pt];
+  hands: [HandKind, HandKind];
   waist: Pt;
   neck: Pt;
   head: Pt;
+  /** The head's tilt (rad, + back). */
+  tilt?: number;
   helm?: 'crest' | 'cap';
-  dress: 'cuirass' | 'chiton';
+  beard?: boolean;
+  dress: 'kilt' | 'chiton';
   cloak?: Pt[];
-  /** A snapped sword (hand, broken end), a broken spear, a broken bow. */
   blade?: [Pt, Pt];
   spear?: [Pt, Pt];
   bow?: boolean;
-  /** The near or far hand broken off at the wrist. */
+  /** An arm broken off partway down the forearm (its fracture face showing). */
   stump?: 0 | 1;
   /** Hairline cracks: (u, v, angle, length m). */
   cracks?: [number, number, number, number][];
-  /** Where moss has taken hold (tops and folds). */
+  /** Moss in the hollows and on the tops. */
   moss?: Pt[];
   /** The far arm is behind the body (else in front of it). */
   farBehind?: boolean;
 }
 
 const POSE: Record<'hoplite' | 'youth' | 'archer' | 'spear' | 'fallen', Pose> = {
-  // mid-swing: striding in, the sword raised over his head to bring it down, his other hand thrown out before him
+  // mid-swing: his weight thrown onto his front leg, hip up over it, the shoulders tipped the other way; the sword up
+  // over his head to bring it down, the other hand thrown out flat before him; his face turned to her, mouth open
   hoplite: {
-    an: [[-0.37, 0.1], [0.36, 0.09]],
-    toe: [[-0.24, 0.0], [0.52, 0.02]],
-    kn: [[-0.2, 0.5], [0.33, 0.52]],
-    hip: [[-0.07, 0.95], [0.1, 0.94]],
-    waist: [0.05, 1.13],
-    sh: [[0.2, 1.46], [-0.1, 1.45]],
-    el: [[0.15, 1.78], [0.34, 1.32]],
-    ha: [[-0.1, 1.97], [0.55, 1.37]],
-    neck: [0.1, 1.56],
-    head: [0.15, 1.68],
+    an: [[-0.38, 0.12], [0.3, 0.08]],
+    toe: [[-0.27, 0.0], [0.45, 0.01]],
+    kn: [[-0.22, 0.5], [0.31, 0.52]],
+    hip: [[-0.09, 0.93], [0.09, 0.98]],
+    waist: [0.04, 1.15],
+    sh: [[0.21, 1.48], [-0.1, 1.42]],
+    el: [[0.13, 1.8], [0.33, 1.3]],
+    ha: [[-0.06, 1.98], [0.5, 1.37]],
+    hands: ['fist', 'open'],
+    neck: [0.12, 1.55],
+    head: [0.17, 1.69],
+    tilt: 0.12,
     helm: 'crest',
-    dress: 'cuirass',
-    cloak: [[0.16, 1.5], [-0.12, 1.52], [-0.3, 1.4], [-0.46, 1.14], [-0.58, 0.84], [-0.54, 0.62], [-0.42, 0.66], [-0.32, 0.6], [-0.2, 0.7], [-0.12, 0.95], [-0.02, 1.2]],
-    blade: [[-0.1, 1.97], [-0.36, 1.9]],
+    beard: true,
+    dress: 'kilt',
+    cloak: [[0.18, 1.52], [-0.08, 1.5], [-0.24, 1.38], [-0.34, 1.12], [-0.4, 0.86], [-0.43, 0.64], [-0.34, 0.6], [-0.27, 0.66], [-0.18, 0.61], [-0.13, 0.8], [-0.06, 1.1], [0.0, 1.3]],
+    blade: [[-0.06, 1.98], [-0.2, 2.08]],
     farBehind: true,
-    cracks: [[0.05, 1.3, 1.9, 0.3], [0.3, 0.4, 1.3, 0.25]],
-    moss: [[-0.1, 1.47], [0.2, 1.47], [0.15, 1.82], [0.0, 0.95], [-0.5, 0.9], [0.36, 0.12], [-0.3, 0.12]],
+    cracks: [[0.02, 1.3, 1.9, 0.22], [0.31, 0.38, 1.3, 0.18]],
+    moss: [[-0.1, 1.44], [0.2, 1.49], [0.0, 0.92], [0.35, 0.1], [-0.33, 0.11], [-0.5, 0.64], [0.06, 1.15]],
   },
-  // recoiling a step, one arm flung up over his eyes (too late), the other thrown back: its hand broken away
+  // recoiling a step, his weight back on his rear leg, one arm flung up over his eyes (too late), the other thrown back:
+  // its forearm broken away
   youth: {
-    an: [[-0.28, 0.09], [0.3, 0.15]],
+    an: [[-0.27, 0.08], [0.3, 0.14]],
     toe: [[-0.15, 0.0], [0.44, 0.01]],
-    kn: [[-0.18, 0.5], [0.2, 0.53]],
-    hip: [[-0.13, 0.95], [0.02, 0.93]],
-    waist: [-0.08, 1.12],
-    sh: [[0.04, 1.43], [-0.26, 1.45]],
-    el: [[-0.4, 1.24], [0.08, 1.56]],
-    ha: [[-0.6, 1.1], [-0.12, 1.74]],
+    kn: [[-0.2, 0.5], [0.21, 0.53]],
+    hip: [[-0.15, 0.97], [0.03, 0.92]],
+    waist: [-0.08, 1.13],
+    sh: [[0.04, 1.42], [-0.27, 1.46]],
+    el: [[-0.42, 1.24], [0.24, 1.55]],
+    ha: [[-0.62, 1.1], [0.1, 1.84]],
+    hands: ['open', 'eyes'],
     neck: [-0.08, 1.55],
-    head: [-0.05, 1.66],
+    head: [-0.04, 1.67],
+    tilt: 0.28,
     dress: 'chiton',
-    cloak: [[0.04, 1.48], [-0.26, 1.5], [-0.5, 1.42], [-0.66, 1.28], [-0.58, 1.18], [-0.44, 1.26], [-0.3, 1.2]],
     stump: 0,
     farBehind: true,
-    cracks: [[-0.05, 1.25, 2.6, 0.5], [0.1, 0.7, 1.4, 0.3]],
-    moss: [[-0.26, 1.48], [0.04, 1.45], [-0.12, 0.8], [0.3, 0.16], [-0.25, 0.1]],
+    cracks: [[-0.05, 1.25, 2.6, 0.5], [0.12, 0.7, 1.4, 0.3]],
+    moss: [[-0.27, 1.47], [0.04, 1.44], [-0.1, 0.85], [0.31, 0.16], [-0.26, 0.1], [-0.6, 1.02]],
   },
   // kneeling, drawing his bow: the bow broken across
   archer: {
@@ -1902,14 +2313,14 @@ const POSE: Record<'hoplite' | 'youth' | 'archer' | 'spear' | 'fallen', Pose> = 
     sh: [[0.14, 1.07], [-0.12, 1.08]],
     el: [[0.36, 1.1], [-0.24, 1.04]],
     ha: [[0.55, 1.1], [0.0, 1.13]],
+    hands: ['bow', 'fist'],
     neck: [0.03, 1.17],
     head: [0.05, 1.29],
     helm: 'cap',
-    dress: 'cuirass',
+    dress: 'kilt',
     bow: true,
     farBehind: false,
-    cracks: [[0.0, 0.9, 1.6, 0.2]],
-    moss: [[-0.12, 1.09], [0.14, 1.08], [0.05, 1.42], [-0.2, 0.08]],
+    moss: [[-0.12, 1.09], [0.14, 1.08], [-0.2, 0.08]],
   },
   // lunging with his spear raised over his shoulder: the shaft snapped
   spear: {
@@ -1921,15 +2332,16 @@ const POSE: Record<'hoplite' | 'youth' | 'archer' | 'spear' | 'fallen', Pose> = 
     sh: [[0.28, 1.36], [0.0, 1.38]],
     el: [[0.14, 1.62], [0.3, 1.16]],
     ha: [[0.32, 1.72], [0.5, 1.2]],
+    hands: ['fist', 'open'],
     neck: [0.2, 1.47],
     head: [0.26, 1.58],
     helm: 'crest',
-    dress: 'cuirass',
+    dress: 'kilt',
     spear: [[-0.25, 1.6], [0.62, 1.8]],
     farBehind: true,
-    moss: [[0.0, 1.4], [0.28, 1.38], [0.26, 1.72], [-0.5, 0.1]],
+    moss: [[0.0, 1.4], [0.28, 1.38], [-0.5, 0.1]],
   },
-  // the toppled one, standing as he stood (painted lying down)
+  // the toppled one, standing as he stood (painted lying down), one arm thrown up
   fallen: {
     an: [[-0.06, 0.08], [0.1, 0.08]],
     toe: [[0.06, 0.0], [0.24, 0.0]],
@@ -1939,10 +2351,12 @@ const POSE: Record<'hoplite' | 'youth' | 'archer' | 'spear' | 'fallen', Pose> = 
     sh: [[0.2, 1.45], [-0.14, 1.45]],
     el: [[0.3, 1.74], [-0.24, 1.2]],
     ha: [[0.36, 2.0], [-0.26, 0.98]],
+    hands: ['open', 'fist'],
     neck: [0.03, 1.55],
     head: [0.03, 1.67],
     helm: 'crest',
-    dress: 'cuirass',
+    beard: true,
+    dress: 'kilt',
     farBehind: true,
     moss: [[0.0, 1.2], [0.1, 0.6], [-0.14, 1.45]],
   },
@@ -1953,7 +2367,7 @@ interface HeroOpts {
   seed: number;
   /** Which side faces the pool (screen): its green comes up that side. */
   pool?: number;
-  /** A quick version (the reflections): no weathering or outline. */
+  /** A quick version (the far ones and the reflections): flat forms half-lost in the dusk, no weathering. */
   simple?: boolean;
   /** The pool's green coming up from below (0…1). */
   uplight?: number;
@@ -1969,44 +2383,32 @@ const LIGHT_V: Pt = (() => {
   return [-0.55 / l, -0.83 / l];
 })();
 
-/** A capsule from a (radius ra) to b (radius rb), swelling to rm a third of the way down (a muscle), and its lit
- * side's normal. */
-function capsule(a: Pt, b: Pt, ra: number, rb: number, rm = 0, L: Pt = LIGHT_V): { path: (c: Ctx) => void; n: Pt } {
+/** A capsule from a (radius ra) to b (radius rb), swelling to rm a third of the way down (a muscle). */
+function capsule(a: Pt, b: Pt, ra: number, rb: number, rm = 0): (c: Ctx) => void {
   const dx = b[0] - a[0];
   const dy = b[1] - a[1];
   const len = Math.hypot(dx, dy) || 1;
   const ux = dx / len;
   const uy = dy / len;
-  let nx = -uy;
-  let ny = ux;
-  if (nx * L[0] + ny * L[1] < 0) {
-    nx = -nx;
-    ny = -ny;
-  }
+  const nx = -uy;
+  const ny = ux;
   const an = Math.atan2(ny, nx);
-  const au = Math.atan2(uy, ux);
-  const ccw = Math.sin(au - an) < 0;
-  return {
-    n: [nx, ny],
-    path: (c: Ctx) => {
-      const m1: Pt = [a[0] + dx * 0.36, a[1] + dy * 0.36];
-      const m2: Pt = [a[0] + dx * 0.44, a[1] + dy * 0.44];
-      const r1 = Math.max(rm * 1.22, (ra + rb) / 2);
-      const r2 = Math.max(rm * 1.12, (ra + rb) / 2);
-      c.beginPath();
-      c.moveTo(a[0] + nx * ra, a[1] + ny * ra);
-      if (rm) c.quadraticCurveTo(m1[0] + nx * r1, m1[1] + ny * r1, b[0] + nx * rb, b[1] + ny * rb);
-      else c.lineTo(b[0] + nx * rb, b[1] + ny * rb);
-      c.arc(b[0], b[1], rb, an, an + Math.PI, ccw);
-      if (rm) c.quadraticCurveTo(m2[0] - nx * r2, m2[1] - ny * r2, a[0] - nx * ra, a[1] - ny * ra);
-      else c.lineTo(a[0] - nx * ra, a[1] - ny * ra);
-      c.arc(a[0], a[1], ra, an + Math.PI, an + P2, ccw);
-      c.closePath();
-    },
+  return (c: Ctx) => {
+    const m1: Pt = [a[0] + dx * 0.34, a[1] + dy * 0.34];
+    const m2: Pt = [a[0] + dx * 0.42, a[1] + dy * 0.42];
+    const r1 = Math.max(rm * 1.2, (ra + rb) / 2);
+    const r2 = Math.max(rm * 1.1, (ra + rb) / 2);
+    c.beginPath();
+    c.moveTo(a[0] + nx * ra, a[1] + ny * ra);
+    c.quadraticCurveTo(m1[0] + nx * r1, m1[1] + ny * r1, b[0] + nx * rb, b[1] + ny * rb);
+    c.arc(b[0], b[1], rb, an, an + Math.PI, true);
+    c.quadraticCurveTo(m2[0] - nx * r2, m2[1] - ny * r2, a[0] - nx * ra, a[1] - ny * ra);
+    c.arc(a[0], a[1], ra, an + Math.PI, an + P2, true);
+    c.closePath();
   };
 }
 
-/** A patch of moss: a dense speckle of tiny cushions, thickest in the middle, ragged at the edge, lit on top. */
+/** A patch of moss: a dense speckle of tiny cushions, thickest in the middle, ragged at the edge. */
 function moss(c: Ctx, r: R, x: number, y: number, rx: number, ry: number, depth = 0): void {
   const n = Math.round(Math.max(12, rx * ry * 0.5));
   for (let i = 0; i < n; i++) {
@@ -2014,7 +2416,7 @@ function moss(c: Ctx, r: R, x: number, y: number, rx: number, ry: number, depth 
     const d = Math.pow(r(), 0.7);
     const px = x + Math.cos(a) * d * rx;
     const py = y + Math.sin(a) * d * ry;
-    const s = Math.max(0.6, rx * (0.04 + r() * 0.06) * (1.2 - d));
+    const s = Math.max(0.5, rx * (0.04 + r() * 0.06) * (1.2 - d));
     c.fillStyle = rgba(airMix(MOSS[Math.floor(r() * 4)], depth, AIR), 0.55 + r() * 0.35);
     c.beginPath();
     c.arc(px, py, s, 0, P2);
@@ -2022,151 +2424,313 @@ function moss(c: Ctx, r: R, x: number, y: number, rx: number, ry: number, depth 
   }
 }
 
+/** Bounds of a set of points with a margin. */
+const boundsOf = (pts: Pt[], pad: number): Box => boxOfPts(pts, pad);
+
 function hero(ctx: Ctx, x: number, y: number, k: number, pose: Pose, dir: number, o: HeroOpts): void {
+  const Q = o.simple ? 1 : 2;
   const S = (p: Pt): Pt => [x + dir * p[0] * k, y - p[1] * k];
   const LV = o.light ?? LIGHT_V;
-  /** A gradient across a box from its lit corner to its shaded one. */
-  const across = (b: Box, stops: [number, string][]) => {
-    const cx = b.x + b.w / 2;
-    const cy = b.y + b.h / 2;
-    const h = Math.max(b.w, b.h) / 2;
-    return lin(g, [cx + LV[0] * h, cy + LV[1] * h], [cx - LV[0] * h, cy - LV[1] * h], stops);
-  };
   const T = (c: string) => airMix(c, o.depth, AIR);
   const lit = T(STONE.lit);
   const body = T(STONE.body);
   const shd = T(STONE.shade);
   const deep = T(STONE.deep);
-  const ink = T('#1a1820');
+  const ink = T('#16141c');
+  const warm = T(STONE.warm);
+  const detail = !o.simple;
+  const up = o.uplight ?? 0.25;
   const poolSide = o.pool ?? 0;
-  const rimCol = (n: Pt) => (poolSide && n[0] * poolSide < 0 ? mix(shd, GLOW, 0.3) : mix(shd, '#8a90c0', 0.35));
-  // the canvas: the pose's bounds
   const all: Pt[] = [...pose.an, ...pose.toe, ...pose.kn, ...pose.hip, ...pose.sh, ...pose.el, ...pose.ha, pose.head, ...(pose.cloak ?? []), ...(pose.blade ?? []), ...(pose.spear ?? [])].map(S);
-  if (pose.helm === 'crest') all.push(S([pose.head[0] - 0.25, pose.head[1] + 0.32]), S([pose.head[0] + 0.15, pose.head[1] + 0.3]));
-  const bb = boxOfPts(all, 0.2 * k);
-  const [cv, g] = makeCanvas(bb.w, bb.h);
+  all.push(S([pose.head[0] - 0.34, pose.head[1] + 0.4]), S([pose.head[0] + 0.2, pose.head[1] + 0.34]));
+  const bb = boundsOf(all, 0.2 * k);
+  const [cv, g] = makeCanvas(bb.w * Q, bb.h * Q);
+  g.scale(Q, Q);
   g.translate(-bb.x, -bb.y);
   g.lineCap = 'round';
   g.lineJoin = 'round';
-  const limb = (a: Pt, b: Pt, ra: number, rb: number, base = body, rm = 0) => {
-    const A = S(a);
-    const B = S(b);
-    const { path, n } = capsule(A, B, ra * k, rb * k, rm * k, LV);
-    const rr = Math.max(rm, (ra + rb) / 2) * k;
-    const m: Pt = [(A[0] + B[0]) / 2, (A[1] + B[1]) / 2];
-    path(g);
-    g.fillStyle = lin(g, [m[0] + n[0] * rr, m[1] + n[1] * rr], [m[0] - n[0] * rr, m[1] - n[1] * rr], [[0, mix(lit, base, 0.1)], [0.22, mix(lit, base, 0.45)], [0.5, base], [0.78, shd], [0.93, mix(shd, deep, 0.5)], [1, rimCol([-n[0], -n[1]])]]);
-    g.fill();
-    // the plane of the muscle catching the light, and the core shadow down the far side
+  const lw = Math.max(0.5, k * 0.005);
+  const rr = rng(o.seed * 13 + 5);
+
+  /** The shadow a part throws on what's already carved behind it. */
+  const throwShadow = (path: (c: Ctx) => void, d = 0.03) => {
+    if (!detail) return;
+    const OFF = 6000;
     g.save();
+    g.globalCompositeOperation = 'source-atop';
+    g.translate(-OFF, 0);
+    g.shadowColor = rgba(deep, 0.6);
+    g.shadowBlur = d * k * Q;
+    g.shadowOffsetX = (OFF - LV[0] * d * k) * Q;
+    g.shadowOffsetY = -LV[1] * d * k * Q;
     path(g);
-    g.clip();
-    g.lineCap = 'round';
-    g.strokeStyle = rgba(T('#e8dcc8'), 0.28);
-    g.lineWidth = rr * 0.35;
-    g.beginPath();
-    g.moveTo(A[0] + n[0] * rr * 0.45, A[1] + n[1] * rr * 0.45);
-    g.quadraticCurveTo(m[0] + n[0] * rr * 0.75, m[1] + n[1] * rr * 0.75, B[0] + n[0] * rr * 0.4, B[1] + n[1] * rr * 0.4);
-    g.stroke();
-    g.strokeStyle = rgba(deep, 0.3);
-    g.lineWidth = rr * 0.3;
-    g.beginPath();
-    g.moveTo(A[0] - n[0] * rr * 0.5, A[1] - n[1] * rr * 0.5);
-    g.quadraticCurveTo(m[0] - n[0] * rr * 0.55, m[1] - n[1] * rr * 0.55, B[0] - n[0] * rr * 0.45, B[1] - n[1] * rr * 0.45);
-    g.stroke();
-    g.restore();
-    g.strokeStyle = rgba(ink, 0.3);
-    g.lineWidth = Math.max(0.6, k * 0.008);
-    path(g);
-    g.stroke();
-  };
-  const foot = (an: Pt, toe: Pt) => {
-    const A = S(an);
-    const Tt = S(toe);
-    const back: Pt = [A[0] - (Tt[0] - A[0]) * 0.3, A[1] + 0.02 * k];
-    g.beginPath();
-    g.moveTo(back[0], back[1] - 0.05 * k);
-    g.quadraticCurveTo(A[0], A[1] - 0.06 * k, Tt[0], Tt[1] - 0.025 * k);
-    g.quadraticCurveTo(Tt[0] + dir * 0.03 * k, Tt[1], Tt[0], Tt[1] + 0.005 * k);
-    g.lineTo(back[0], back[1] + 0.005 * k);
-    g.closePath();
-    g.fillStyle = lin(g, [A[0], A[1] - 0.06 * k], [A[0], Tt[1]], [[0, lit], [1, shd]]);
+    g.fillStyle = '#000';
     g.fill();
-    g.strokeStyle = rgba(ink, 0.35);
-    g.lineWidth = Math.max(0.6, k * 0.008);
-    g.stroke();
+    g.restore();
   };
-  const hand = (h: Pt, from: Pt, broken: boolean) => {
-    if (broken) {
-      // the wrist's broken end: pale fresh stone
-      const [hx, hy] = S([(h[0] + from[0] * 0.3) / 1.3, (h[1] + from[1] * 0.3) / 1.3]);
-      g.fillStyle = T('#d8d2c4');
-      g.beginPath();
-      g.ellipse(hx, hy, 0.035 * k, 0.03 * k, 0, 0, P2);
+  /** Carve one form: the stone, modelled along its own contour (a broad light turned to the dusk on the upper left,
+   * the shade gathering along the far edge), the last warm light crisp on its lit edge, the pool's green under it and
+   * along the side that faces the water. */
+  const form = (path: (c: Ctx) => void, box: Box, base = body, edge = 0.025) => {
+    throwShadow(path);
+    path(g);
+    g.fillStyle = base;
+    g.fill();
+    const sz = Math.min(box.w, box.h);
+    if (!detail) {
+      path(g);
+      g.fillStyle = '#2e2c38';
       g.fill();
-      g.strokeStyle = rgba(ink, 0.5);
-      g.stroke();
+      innerEdge(g, path, rgba(T('#b8a8a8'), 0.4), sz * 0.08, -LV[0] * sz * 0.08, -LV[1] * sz * 0.08);
+      innerEdge(g, path, rgba(GLOW, 0.22 * up), sz * 0.12, 0, -sz * 0.1);
       return;
     }
-    const ang = Math.atan2(h[1] - from[1], h[0] - from[0]);
-    const tip: Pt = [h[0] + Math.cos(ang) * 0.06, h[1] + Math.sin(ang) * 0.06];
-    limb(h, tip, 0.045, 0.035);
-  };
-  const legs = (i: 0 | 1) => {
-    limb(pose.hip[i], pose.kn[i], 0.1, 0.066, body, 0.112);
-    limb(pose.kn[i], pose.an[i], 0.064, 0.04, body, 0.074);
-    foot(pose.an[i], pose.toe[i]);
-    // the knee and the greave's edge
-    const [kx, ky] = S(pose.kn[i]);
-    g.strokeStyle = rgba(ink, 0.25);
-    g.lineWidth = Math.max(0.6, k * 0.006);
-    g.beginPath();
-    g.arc(kx, ky, 0.05 * k, Math.PI * 0.9, Math.PI * 2.1);
+    const e = edge * k;
+    const m = Math.max(e * 1.6, sz * 0.32);
+    innerEdge(g, path, rgba(lit, 0.9), m * 0.55, -LV[0] * m * 0.5, -LV[1] * m * 0.5);
+    innerEdge(g, path, rgba(lit, 0.5), m * 0.25, -LV[0] * m * 0.18, -LV[1] * m * 0.18);
+    innerEdge(g, path, rgba(deep, 0.92), m * 0.55, LV[0] * m * 0.62, LV[1] * m * 0.62);
+    innerEdge(g, path, rgba(warm, 0.7), e * 0.5, -LV[0] * e * 0.5, -LV[1] * e * 0.5);
+    innerEdge(g, path, rgba(GLOW, 0.5 * up), e * 1.2, 0, -e * 0.9);
+    if (poolSide) innerEdge(g, path, rgba(mix(GLOW, '#9ad8c8', 0.4), 0.3 * up + 0.12), e * 0.9, -poolSide * e * 0.8, 0);
+    g.strokeStyle = rgba(ink, 0.22);
+    g.lineWidth = lw;
+    path(g);
     g.stroke();
   };
-  const arm = (i: 0 | 1) => {
-    limb(pose.sh[i], pose.el[i], 0.07, 0.052, body, 0.074);
-    const broken = pose.stump === i;
-    const end: Pt = broken ? [(pose.ha[i][0] * 0.85 + pose.el[i][0] * 0.15), (pose.ha[i][1] * 0.85 + pose.el[i][1] * 0.15)] : pose.ha[i];
-    limb(pose.el[i], end, 0.052, 0.034, body, 0.058);
-    hand(end, pose.el[i], broken);
-  };
-  const cloak = () => {
-    if (!pose.cloak) return;
-    const pts = pose.cloak.map(S);
-    const p = polyPath(pts);
-    p(g);
-    const cb = boxOfPts(pts, 0);
-    g.fillStyle = lin(g, [cb.x, cb.y], [cb.x + cb.w, cb.y + cb.h], [[0, mix(lit, body, 0.4)], [0.5, mix(body, shd, 0.4)], [1, deep]]);
-    g.fill();
-    // its folds: ridges lit, valleys dark, radiating from the shoulder pin
-    const pin = pts[0];
-    for (let i = 2; i < pts.length - 1; i += 1) {
-      const q = pts[i];
-      g.strokeStyle = rgba(i % 2 ? ink : lit, i % 2 ? 0.5 : 0.4);
-      g.lineWidth = Math.max(1, k * (i % 2 ? 0.016 : 0.01));
+  /** A carved line: a soft groove (dark) or a ridge catching the light. */
+  const mark = (pts: Pt[], w: number, dark: boolean, a: number) => {
+    if (!detail) return;
+    const sp = pts.map(S);
+    const col = dark ? deep : lit;
+    for (const [ww, aa] of [[w * 2.4, a * 0.35], [w, a]] as Pt[]) {
+      g.strokeStyle = rgba(col, aa);
+      g.lineWidth = ww * k;
       g.beginPath();
-      g.moveTo(pin[0] + (q[0] - pin[0]) * 0.15, pin[1] + (q[1] - pin[1]) * 0.15);
-      g.quadraticCurveTo((pin[0] + q[0]) / 2 + dir * 0.03 * k, (pin[1] + q[1]) / 2, q[0], q[1]);
+      g.moveTo(...sp[0]);
+      if (sp.length === 3) g.quadraticCurveTo(...sp[1], ...sp[2]);
+      else for (const p of sp.slice(1)) g.lineTo(...p);
       g.stroke();
     }
-    g.strokeStyle = rgba(ink, 0.4);
-    g.lineWidth = Math.max(0.6, k * 0.008);
-    p(g);
-    g.stroke();
   };
+  const blob = (c: Pt, rx: number, ry: number, col: string, a: number, rot = 0) => {
+    if (!detail) return;
+    const [cx, cy] = S(c);
+    const gr = g.createRadialGradient(cx, cy, 0, cx, cy, Math.max(rx, ry) * k);
+    gr.addColorStop(0, rgba(col, a));
+    gr.addColorStop(1, rgba(col, 0));
+    g.save();
+    g.translate(cx, cy);
+    g.rotate(rot);
+    g.scale(1, ry / rx);
+    g.translate(-cx, -cy);
+    g.fillStyle = gr;
+    g.beginPath();
+    g.arc(cx, cy, rx * k, 0, P2);
+    g.fill();
+    g.restore();
+  };
+  const limb = (a: Pt, b: Pt, ra: number, rb: number, rm: number) => {
+    const A = S(a);
+    const B = S(b);
+    const path = capsule(A, B, ra * k, rb * k, rm * k);
+    form(path, boundsOf([A, B], Math.max(ra, rm) * k * 1.2));
+  };
+  /** One continuous limb from a through the joint b to c: a smooth spine (the joint's corner rounded), its outline
+   * offset either side by width profiles (front and back, half-widths in metres over 0 … 1 of its length). */
+  const limb3 = (a: Pt, b: Pt, c: Pt, front: Pt[], back: Pt[]) => {
+    const spine: Pt[] = [];
+    const n = 28;
+    const q0 = lerp2(a, b, 0.8);
+    const q1 = lerp2(b, c, 0.2);
+    for (let i = 0; i <= n; i++) {
+      const t = i / n;
+      if (t < 0.4) spine.push(lerp2(a, q0, t / 0.4));
+      else if (t < 0.6) {
+        const u = (t - 0.4) / 0.2;
+        spine.push([(1 - u) * (1 - u) * q0[0] + 2 * u * (1 - u) * b[0] + u * u * q1[0], (1 - u) * (1 - u) * q0[1] + 2 * u * (1 - u) * b[1] + u * u * q1[1]]);
+      } else spine.push(lerp2(q1, c, (t - 0.6) / 0.4));
+    }
+    const prof = (pr: Pt[], t: number) => {
+      for (let i = 1; i < pr.length; i++) {
+        if (t <= pr[i][0]) {
+          const u = (t - pr[i - 1][0]) / (pr[i][0] - pr[i - 1][0] || 1);
+          const sm = u * u * (3 - 2 * u);
+          return pr[i - 1][1] + (pr[i][1] - pr[i - 1][1]) * sm;
+        }
+      }
+      return pr[pr.length - 1][1];
+    };
+    const F: Pt[] = [];
+    const Bk: Pt[] = [];
+    for (let i = 0; i <= n; i++) {
+      const p = spine[i];
+      const qa = spine[Math.max(0, i - 1)];
+      const qb = spine[Math.min(n, i + 1)];
+      const dx = qb[0] - qa[0];
+      const dy = qb[1] - qa[1];
+      const l = Math.hypot(dx, dy) || 1;
+      const nx = -dy / l;
+      const ny = dx / l;
+      const t = i / n;
+      const wf = prof(front, t);
+      const wb = prof(back, t);
+      F.push(S([p[0] + nx * wf, p[1] + ny * wf]));
+      Bk.push(S([p[0] - nx * wb, p[1] - ny * wb]));
+    }
+    const ea = S(a);
+    const ec = S(c);
+    const path = (cc: Ctx) => {
+      cc.beginPath();
+      F.forEach((p, i) => (i ? cc.lineTo(...p) : cc.moveTo(...p)));
+      cc.quadraticCurveTo(ec[0] + (ec[0] - S(lerp2(b, c, 0.9))[0]) * 0.6, ec[1] + (ec[1] - S(lerp2(b, c, 0.9))[1]) * 0.6, ...Bk[n]);
+      for (let i = n; i >= 0; i--) cc.lineTo(...Bk[i]);
+      cc.quadraticCurveTo(ea[0] + (ea[0] - S(lerp2(a, b, 0.1))[0]) * 0.6, ea[1] + (ea[1] - S(lerp2(a, b, 0.1))[1]) * 0.6, ...F[0]);
+      cc.closePath();
+    };
+    form(path, boundsOf([...F, ...Bk], 2), body, 0.03);
+  };
+  const lerp2 = (a: Pt, b: Pt, t: number): Pt => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+  const perp = (a: Pt, b: Pt, w: number): Pt => {
+    const dx = b[0] - a[0];
+    const dy = b[1] - a[1];
+    const l = Math.hypot(dx, dy) || 1;
+    return [(-dy / l) * w, (dx / l) * w];
+  };
+  const add = (a: Pt, b: Pt): Pt => [a[0] + b[0], a[1] + b[1]];
+
+  // ——— hands and feet ———
+  const hand = (i: 0 | 1) => {
+    const kind = pose.hands[i];
+    const el = pose.el[i];
+    const wr = pose.ha[i];
+    const dx = wr[0] - el[0];
+    const dy = wr[1] - el[1];
+    const l = Math.hypot(dx, dy) || 1;
+    const ax: Pt = [dx / l, dy / l];
+    const nx: Pt = [-ax[1], ax[0]];
+    const at = (u: number, w: number): Pt => [wr[0] + ax[0] * u + nx[0] * w, wr[1] + ax[1] * u + nx[1] * w];
+    if (kind === 'fist' || kind === 'bow') {
+      // a closed fist: the knuckles' row, the fingers curled round under it, the thumb over them
+      const pts = [at(-0.01, 0.035), at(0.06, 0.042), at(0.09, 0.02), at(0.09, -0.02), at(0.06, -0.04), at(0.0, -0.035)].map(S);
+      form(polyPath(pts), boundsOf(pts, 2), body, 0.012);
+      for (let f = 0; f < 3; f++) mark([at(0.035 + f * 0.0, -0.03 + f * 0.022), at(0.085, -0.025 + f * 0.022)], 0.004, true, 0.5);
+      mark([at(0.02, 0.035), at(0.07, 0.01)], 0.006, false, 0.45);
+      return;
+    }
+    // an open hand: the palm, four fingers spread, the thumb out to the side
+    const spread = kind === 'eyes' ? 0.18 : 0.3;
+    const palm = [at(-0.01, 0.035), at(0.075, 0.042), at(0.08, -0.04), at(-0.01, -0.032)].map(S);
+    form(polyPath(palm), boundsOf(palm, 2), body, 0.012);
+    for (let f = 0; f < 4; f++) {
+      const t = (f - 1.5) / 1.5;
+      const base = at(0.075, t * 0.03);
+      const ang = t * spread;
+      const len = 0.09 - Math.abs(t) * 0.012 - (f === 3 ? 0.014 : 0);
+      const tip: Pt = [base[0] + (ax[0] * Math.cos(ang) - nx[0] * Math.sin(ang)) * len, base[1] + (ax[1] * Math.cos(ang) - nx[1] * Math.sin(ang)) * len];
+      const p = capsule(S(base), S(tip), 0.0095 * k, 0.0075 * k);
+      form(p, boundsOf([S(base), S(tip)], 0.015 * k), body, 0.008);
+    }
+    const tb = at(0.02, 0.035);
+    const tt: Pt = add(tb, [nx[0] * 0.05 + ax[0] * 0.035, nx[1] * 0.05 + ax[1] * 0.035]);
+    const tp = capsule(S(tb), S(tt), 0.012 * k, 0.009 * k);
+    form(tp, boundsOf([S(tb), S(tt)], 0.02 * k), body, 0.008);
+  };
+  const foot = (i: 0 | 1) => {
+    const A = S(pose.an[i]);
+    const Tt = S(pose.toe[i]);
+    const back: Pt = [A[0] - (Tt[0] - A[0]) * 0.3, A[1] + 0.02 * k];
+    const fp = (c: Ctx) => {
+      c.beginPath();
+      c.moveTo(back[0], back[1] - 0.05 * k);
+      c.quadraticCurveTo(A[0], A[1] - 0.07 * k, Tt[0], Tt[1] - 0.03 * k);
+      c.quadraticCurveTo(Tt[0] + dir * 0.03 * k, Tt[1], Tt[0], Tt[1] + 0.005 * k);
+      c.lineTo(back[0], back[1] + 0.005 * k);
+      c.closePath();
+    };
+    form(fp, boundsOf([back, A, Tt], 0.05 * k), body, 0.015);
+    // the toes and the sandal's straps
+    for (let t = 0; t < 4; t++) {
+      const tx = Tt[0] - dir * t * 0.016 * k;
+      g.strokeStyle = rgba(deep, 0.45);
+      g.lineWidth = lw;
+      g.beginPath();
+      g.moveTo(tx, Tt[1] - 0.025 * k);
+      g.lineTo(tx - dir * 0.004 * k, Tt[1]);
+      g.stroke();
+    }
+    mark([pose.an[i], [pose.an[i][0] + 0.06, pose.an[i][1] - 0.04]], 0.006, true, 0.5);
+  };
+
+  // ——— legs and arms, with their anatomy ———
+  const leg = (i: 0 | 1) => {
+    const hp = pose.hip[i];
+    const kn = pose.kn[i];
+    const an = pose.an[i];
+    limb3(hp, kn, an, [[0, 0.082], [0.22, 0.085], [0.42, 0.06], [0.5, 0.05], [0.6, 0.044], [0.85, 0.032], [1, 0.027]], [[0, 0.092], [0.2, 0.075], [0.44, 0.052], [0.52, 0.05], [0.62, 0.068], [0.78, 0.045], [1, 0.03]]);
+    foot(i);
+    // the knee cap, the teardrop of the vastus above it, the shin's ridge, the calf
+    blob(lerp2(kn, hp, 0.02), 0.035, 0.03, lit, 0.45);
+    mark([lerp2(kn, hp, 0.05), add(lerp2(kn, an, 0.05), perp(kn, an, -0.02))], 0.005, true, 0.45);
+    mark([lerp2(hp, kn, 0.55), add(lerp2(hp, kn, 0.78), perp(hp, kn, 0.05)), lerp2(hp, kn, 0.92)], 0.005, true, 0.35);
+    mark([lerp2(kn, an, 0.2), lerp2(kn, an, 0.8)], 0.006, false, 0.35);
+    mark([add(lerp2(kn, an, 0.15), perp(kn, an, -0.05)), add(lerp2(kn, an, 0.4), perp(kn, an, -0.06)), lerp2(kn, an, 0.75)], 0.005, true, 0.35);
+  };
+  const arm = (i: 0 | 1) => {
+    const sh = pose.sh[i];
+    const el = pose.el[i];
+    const broken = pose.stump === i;
+    const ha = broken ? lerp2(el, pose.ha[i], 0.45) : pose.ha[i];
+    const out: Pt[] = [[0, 0.07], [0.15, 0.072], [0.32, 0.05], [0.5, 0.04], [0.62, 0.05], [0.85, 0.034], [1, broken ? 0.042 : 0.028]];
+    const inn: Pt[] = [[0, 0.06], [0.28, 0.058], [0.46, 0.042], [0.52, 0.04], [0.64, 0.046], [0.85, 0.032], [1, broken ? 0.042 : 0.026]];
+    limb3(sh, el, ha, out, inn);
+    // the deltoid's edge, the biceps' hollow, the elbow
+    mark([lerp2(sh, el, 0.05), add(lerp2(sh, el, 0.25), perp(sh, el, 0.05)), lerp2(sh, el, 0.42)], 0.005, true, 0.45);
+    mark([lerp2(sh, el, 0.5), lerp2(sh, el, 0.85)], 0.006, false, 0.3);
+    blob(el, 0.03, 0.025, deep, 0.3);
+    if (broken) {
+      // the fracture face: rough pale stone, its pits dark
+      const [fx, fy] = S(ha);
+      const ang = Math.atan2(S(ha)[1] - S(el)[1], S(ha)[0] - S(el)[0]);
+      g.save();
+      g.translate(fx, fy);
+      g.rotate(ang);
+      g.beginPath();
+      const n = 9;
+      for (let j = 0; j <= n; j++) {
+        const a = -Math.PI / 2 + (j / n) * Math.PI;
+        const rad = 0.044 * k * (0.85 + rr() * 0.3);
+        g.lineTo(Math.cos(a) * rad * 0.45 + (rr() - 0.3) * 0.01 * k, Math.sin(a) * rad);
+      }
+      g.closePath();
+      g.fillStyle = T('#c8c0b2');
+      g.fill();
+      for (let j = 0; j < 6; j++) {
+        g.fillStyle = rgba(T('#5a5660'), 0.6);
+        g.beginPath();
+        g.arc((rr() - 0.3) * 0.015 * k, (rr() - 0.5) * 0.06 * k, (0.003 + rr() * 0.005) * k, 0, P2);
+        g.fill();
+      }
+      g.strokeStyle = rgba(ink, 0.5);
+      g.lineWidth = lw;
+      g.stroke();
+      g.restore();
+      return;
+    }
+    hand(i);
+  };
+
+  // ——— the body ———
   const torso = () => {
-    const P0: Pt = [(pose.hip[0][0] + pose.hip[1][0]) / 2, (pose.hip[0][1] + pose.hip[1][1]) / 2];
+    const P0: Pt = lerp2(pose.hip[0], pose.hip[1], 0.5);
     const N0 = pose.neck;
-    // the spine's frame: s up it, n across it (towards u+ when it faces right)
     const sx0 = N0[0] - P0[0];
     const sy0 = N0[1] - P0[1];
     const sl = Math.hypot(sx0, sy0);
     const su: Pt = [sx0 / sl, sy0 / sl];
     const sn: Pt = [su[1], -su[0]];
     const at = (t: number, w: number): Pt => [P0[0] + su[0] * sl * t + sn[0] * w, P0[1] + su[1] * sl * t + sn[1] * w];
-    const W0 = pose.dress === 'chiton' ? 0.18 : 0.17;
-    const side = (sg: number) => [at(0, sg * W0), at(0.32, sg * 0.14), at(0.68, sg * 0.19), at(0.88, sg * 0.2), at(1, sg * 0.13)];
+    const side = (sg: number) => [at(-0.04, sg * 0.165), at(0.3, sg * 0.135), at(0.62, sg * 0.18), at(0.86, sg * 0.2), at(1, sg * 0.12)];
     const R = side(1).map(S);
     const L = side(-1).map(S);
     const tp = (c: Ctx) => {
@@ -2174,267 +2738,225 @@ function hero(ctx: Ctx, x: number, y: number, k: number, pose: Pose, dir: number
       c.moveTo(...L[0]);
       c.quadraticCurveTo(...L[1], ...L[2]);
       c.quadraticCurveTo(...L[3], ...L[4]);
-      c.quadraticCurveTo(...S(at(1.06, 0)), ...R[4]);
+      c.quadraticCurveTo(...S(at(1.08, 0)), ...R[4]);
       c.quadraticCurveTo(...R[3], ...R[2]);
       c.quadraticCurveTo(...R[1], ...R[0]);
+      c.quadraticCurveTo(...S(at(-0.1, 0)), ...L[0]);
       c.closePath();
     };
-    const tb = boxOfPts([...R, ...L], 0);
-    tp(g);
-    g.fillStyle = across(tb, [[0, lit], [0.35, mix(lit, body, 0.6)], [0.65, body], [1, shd]]);
-    g.fill();
-    // the cuirass's modelled muscles or the tunic's folds
-    g.save();
-    tp(g);
-    g.clip();
-    g.lineWidth = Math.max(0.7, k * 0.01);
-    if (pose.dress === 'cuirass') {
+    form(tp, boundsOf([...R, ...L], 4), body, 0.03);
+    // the anatomy: collarbones, the pectorals' lower edges and their lit masses, the sternum, the abdominal grid,
+    // the navel, the obliques and the iliac line (the chiton covers most of it on the youth)
+    if (pose.dress !== 'chiton') {
       for (const sg of [-1, 1]) {
-        const [a, b] = [S(at(0.74, sg * 0.02)), S(at(0.66, sg * 0.15))];
-        g.strokeStyle = rgba(ink, 0.3);
-        g.beginPath();
-        g.moveTo(...a);
-        g.quadraticCurveTo(...S(at(0.6, sg * 0.08)), ...b);
-        g.stroke();
+        mark([at(0.97, sg * 0.02), at(0.95, sg * 0.1), at(0.98, sg * 0.17)], 0.005, false, 0.5);
+        mark([at(0.72, sg * 0.01), at(0.66, sg * 0.1), at(0.74, sg * 0.18)], 0.008, true, 0.55);
+        blob(at(0.8, sg * 0.09), 0.07, 0.045, lit, 0.3);
+        for (const t of [0.36, 0.46, 0.56]) mark([at(t, sg * 0.01), at(t + 0.01, sg * 0.07)], 0.005, true, 0.4);
+        mark([at(0.45, sg * 0.12), at(0.25, sg * 0.14), at(0.05, sg * 0.07)], 0.006, true, 0.45);
+        blob(at(0.2, sg * 0.1), 0.05, 0.06, lit, 0.2);
       }
-      for (const t of [0.48, 0.36]) {
-        g.strokeStyle = rgba(ink, 0.18);
-        g.beginPath();
-        g.moveTo(...S(at(t, -0.09)));
-        g.quadraticCurveTo(...S(at(t - 0.03, 0)), ...S(at(t, 0.09)));
-        g.stroke();
+      mark([at(0.86, 0), at(0.28, 0)], 0.005, true, 0.45);
+      blob(at(0.3, 0), 0.012, 0.012, deep, 0.7);
+    }
+    // the neck, the sterno-mastoid's line
+    limb(N0, lerp2(N0, pose.head, 0.6), 0.058, 0.052, 0.06);
+    mark([lerp2(N0, pose.head, 0.1), add(lerp2(N0, pose.head, 0.6), [0.03, 0])], 0.005, true, 0.4);
+  };
+  const dress = () => {
+    const P0: Pt = lerp2(pose.hip[0], pose.hip[1], 0.5);
+    const W0 = pose.waist;
+    if (pose.dress === 'kilt') {
+      // a short kilt wrapped round the hips, belted, folds falling from the knot at his side
+      const pts: Pt[] = [add(W0, [-0.17, -0.02]), add(W0, [0.17, 0.0]), add(P0, [0.2, -0.24]), add(P0, [0.06, -0.28]), add(P0, [-0.08, -0.26]), add(P0, [-0.22, -0.2])];
+      const sp = pts.map(S);
+      const pth = polyPath(sp);
+      form(pth, boundsOf(sp, 2), body, 0.02);
+      g.save();
+      pth(g);
+      g.clip();
+      for (let f = 0; f < 7; f++) {
+        const t = f / 6;
+        const top = lerp2(pts[0], pts[1], 0.3 + t * 0.5);
+        const bot = lerp2(pts[5], pts[2], t);
+        mark([top, lerp2(top, bot, 0.5), bot], 0.012, f % 2 === 0, 0.4);
       }
-      g.strokeStyle = rgba(ink, 0.2);
-      g.beginPath();
-      g.moveTo(...S(at(0.72, 0)));
-      g.lineTo(...S(at(0.2, 0)));
-      g.stroke();
-      g.strokeStyle = rgba(lit, 0.3);
-      g.beginPath();
-      g.moveTo(...S(at(0.78, -0.12)));
-      g.quadraticCurveTo(...S(at(0.84, -0.04)), ...S(at(0.76, 0.02)));
-      g.stroke();
+      g.restore();
+      mark([add(W0, [-0.18, 0]), add(W0, [0.18, 0.01])], 0.018, true, 0.55);
+      mark([add(W0, [-0.17, 0.012]), add(W0, [0.17, 0.022])], 0.006, false, 0.4);
     } else {
-      for (let i = 0; i < 6; i++) {
-        const w = -0.12 + i * 0.05;
-        g.strokeStyle = rgba(i % 2 ? ink : lit, 0.22);
-        g.beginPath();
-        g.moveTo(...S(at(0.95, w * 0.6)));
-        g.quadraticCurveTo(...S(at(0.6, w * 1.1)), ...S(at(0.36, w)));
-        g.stroke();
+      // a chiton: falling from the far shoulder (the near one bare), belted, folds running down to its hem
+      const pts: Pt[] = [add(pose.sh[0], [0.03, 0.04]), add(pose.neck, [0.03, -0.03]), add(pose.sh[1], [0.09, -0.05]), add(pose.sh[1], [0.06, -0.16]), add(W0, [-0.15, 0]), add(P0, [-0.21, -0.3]), add(P0, [-0.03, -0.35]), add(P0, [0.19, -0.3]), add(W0, [0.15, 0.01]), add(pose.sh[0], [0.05, -0.14])];
+      const sp = pts.map(S);
+      const pth = polyPath(sp);
+      form(pth, boundsOf(sp, 2), mix(body, lit, 0.08), 0.025);
+      g.save();
+      pth(g);
+      g.clip();
+      for (let f = 0; f < 9; f++) {
+        const t = f / 8;
+        const top = lerp2(pts[4], pts[8], t);
+        const bot = lerp2(pts[5], pts[7], t);
+        mark([top, add(lerp2(top, bot, 0.5), [(rr() - 0.5) * 0.03, 0]), bot], 0.012, f % 2 === 1, 0.42);
+        const sh = lerp2(pts[2], pts[0], t);
+        mark([sh, lerp2(sh, top, 0.6), top], 0.008, f % 2 === 0, 0.3);
       }
+      g.restore();
+      mark([add(W0, [-0.2, 0]), add(W0, [0.19, 0.02])], 0.02, true, 0.5);
     }
-    // the belt
-    g.strokeStyle = rgba(deep, 0.55);
-    g.lineWidth = 0.035 * k;
-    g.beginPath();
-    g.moveTo(...S(at(0.3, -0.2)));
-    g.lineTo(...S(at(0.3, 0.2)));
-    g.stroke();
-    g.restore();
-    g.strokeStyle = rgba(ink, 0.35);
-    g.lineWidth = Math.max(0.6, k * 0.008);
-    tp(g);
-    g.stroke();
-    // the skirt: the pteruges' leather straps, or the tunic's hem, flaring over the thighs
-    const hemV = pose.dress === 'chiton' ? 0.3 : 0.26;
-    const sk: Pt[] = [at(0.3, -0.15), at(0.3, 0.15), at(-hemV, 0.2), at(-hemV, -0.2)];
-    const skS = sk.map(S);
-    const sp = polyPath(skS);
-    const sb = boxOfPts(skS, 0);
-    sp(g);
-    g.fillStyle = across(sb, [[0, mix(lit, body, 0.3)], [0.6, body], [1, shd]]);
-    g.fill();
+  };
+  const cloak = () => {
+    if (!pose.cloak) return;
+    const pts = pose.cloak;
+    const sp = pts.map(S);
+    const pth = polyPath(sp);
+    form(pth, boundsOf(sp, 2), mix(body, shd, 0.15), 0.025);
+    // its folds: from the pin over the shoulder down to the hem, ridges catching the light, valleys deep
     g.save();
-    sp(g);
+    pth(g);
     g.clip();
-    const strips = 7;
-    for (let i = 1; i < strips; i++) {
-      const u = -0.2 + (0.4 * i) / strips;
-      g.strokeStyle = rgba(ink, 0.35);
-      g.lineWidth = Math.max(0.6, k * 0.007);
-      g.beginPath();
-      g.moveTo(...S(at(pose.dress === 'chiton' ? 0.2 : 0.05, u * 0.75)));
-      g.lineTo(...S(at(-hemV, u)));
-      g.stroke();
-    }
-    if (pose.dress === 'cuirass') {
-      g.strokeStyle = rgba(ink, 0.3);
-      g.beginPath();
-      g.moveTo(...S(at(0.06, -0.2)));
-      g.lineTo(...S(at(0.06, 0.2)));
-      g.stroke();
+    const pin = pts[0];
+    const n = pts.length;
+    for (let i = 2; i < n - 1; i++) {
+      const q = pts[i];
+      const mid: Pt = [(pin[0] + q[0]) / 2 + 0.05, (pin[1] + q[1]) / 2];
+      mark([lerp2(pin, q, 0.1), mid, q], i % 2 ? 0.018 : 0.01, i % 2 === 1, i % 2 ? 0.5 : 0.4);
     }
     g.restore();
-    g.strokeStyle = rgba(ink, 0.35);
-    sp(g);
-    g.stroke();
-    // the neck
-    limb(pose.neck, [pose.head[0] * 0.5 + pose.neck[0] * 0.5, pose.head[1] * 0.5 + pose.neck[1] * 0.5], 0.055, 0.05);
   };
   const head = () => {
     if (o.noHead) return;
-    const H = S(pose.head);
-    const hr = 0.13 * k;
-    const f = dir;
-    if (pose.helm === 'crest' || pose.helm === 'cap') {
-      // the crest first (behind the dome): a horsehair crest on its holder, combed
-      if (pose.helm === 'crest') {
-        const c0 = S([pose.head[0] + 0.07, pose.head[1] + 0.12]);
-        const c1 = S([pose.head[0] - 0.08, pose.head[1] + 0.3]);
-        const c2 = S([pose.head[0] - 0.3, pose.head[1] + 0.1]);
-        const c3 = S([pose.head[0] - 0.24, pose.head[1] - 0.02]);
-        const cp = (c: Ctx) => {
-          c.beginPath();
-          c.moveTo(...c0);
-          c.quadraticCurveTo(c1[0] + f * 0.1 * k, c1[1] - 0.04 * k, ...c2);
-          c.quadraticCurveTo(c2[0] + f * 0.02 * k, c2[1] + 0.06 * k, ...c3);
-          c.quadraticCurveTo(c1[0] + f * 0.02 * k, c1[1] + 0.09 * k, c0[0] - f * 0.02 * k, c0[1] + 0.05 * k);
-          c.closePath();
-        };
-        cp(g);
-        g.fillStyle = lin(g, [c1[0], c1[1] - 0.05 * k], [c3[0], c3[1]], [[0, lit], [0.6, body], [1, shd]]);
-        g.fill();
+    const H = pose.head;
+    const f = 1;
+    const tilt = pose.tilt ?? 0;
+    // the head in its own frame (u to the face, v up), tilted back
+    const hp = (u: number, v: number): Pt => {
+      const c = Math.cos(tilt);
+      const s = Math.sin(tilt);
+      return [H[0] + (u * c - v * s) * f, H[1] + (u * s + v * c)];
+    };
+    const cran = (c: Ctx) => {
+      c.beginPath();
+      const n = 24;
+      for (let i = 0; i <= n; i++) {
+        const a = (i / n) * P2;
+        const p = S(hp(-0.012 + Math.cos(a) * 0.1, 0.01 + Math.sin(a) * 0.112));
+        if (i) c.lineTo(...p);
+        else c.moveTo(...p);
+      }
+      c.closePath();
+    };
+    // the face's profile: brow, nose, the open mouth, chin, jaw
+    const prof: [number, number][] = [[0.02, 0.105], [0.085, 0.06], [0.1, 0.03], [0.098, 0.012], [0.135, -0.03], [0.108, -0.045], [0.112, -0.058], [0.098, -0.07], [0.104, -0.092], [0.098, -0.118], [0.07, -0.135], [0.02, -0.125], [-0.04, -0.07], [-0.05, 0.0]];
+    const facePts = prof.map(([u, v]) => S(hp(u, v)));
+    const facePath = polyPath(facePts);
+    form(cran, boundsOf([S(hp(-0.12, -0.11)), S(hp(0.1, 0.13))], 2), body, 0.02);
+    form(facePath, boundsOf(facePts, 2), body, 0.015);
+    // the features: raised brows (terror), the socket's shadow and the blank eyeball, the nose's lit ridge and its
+    // nostril, the fold from nose to mouth, the mouth wide open, the cheekbone, the ear
+    blob(hp(0.06, 0.012), 0.03, 0.02, deep, 0.75);
+    blob(hp(0.066, 0.008), 0.016, 0.012, lit, 0.55);
+    mark([hp(0.035, 0.045), hp(0.065, 0.06), hp(0.094, 0.045)], 0.006, false, 0.7);
+    mark([hp(0.03, 0.075), hp(0.06, 0.082), hp(0.09, 0.072)], 0.003, true, 0.45);
+    mark([hp(0.1, 0.025), hp(0.13, -0.025)], 0.005, false, 0.6);
+    blob(hp(0.105, -0.035), 0.01, 0.007, deep, 0.8);
+    mark([hp(0.1, -0.04), hp(0.085, -0.06), hp(0.08, -0.085)], 0.004, true, 0.5);
+    blob(hp(0.05, -0.02), 0.035, 0.025, lit, 0.35);
+    // the mouth: a dark oval, the lit lower lip under it
+    const [mx, my] = S(hp(0.09, -0.078));
+    g.fillStyle = rgba(T('#0e0c12'), 0.9);
+    g.beginPath();
+    g.ellipse(mx, my, 0.02 * k, 0.025 * k, -tilt, 0, P2);
+    g.fill();
+    mark([hp(0.076, -0.096), hp(0.09, -0.102), hp(0.104, -0.094)], 0.005, false, 0.6);
+    // the ear
+    const [ex, ey] = S(hp(-0.02, 0.0));
+    g.strokeStyle = rgba(deep, 0.6);
+    g.lineWidth = Math.max(0.6, 0.006 * k);
+    g.beginPath();
+    g.ellipse(ex, ey, 0.016 * k, 0.026 * k, 0, -1.2, 2.4);
+    g.stroke();
+    // the hair: a cap of tight curls over the crown and the nape; the beard a mass of curls along his jaw
+    const curls = (pts: Pt[], n: number, s2: number) => {
+      const sp = pts.map((p) => S(hp(p[0], p[1])));
+      const pth = polyPath(sp);
+      form(pth, boundsOf(sp, 2), mix(body, shd, 0.1), 0.015);
+      if (!detail) return;
+      const b2 = boundsOf(sp, 0);
+      g.save();
+      pth(g);
+      g.clip();
+      for (let i = 0; i < n; i++) {
+        const cx = b2.x + rr() * b2.w;
+        const cy = b2.y + rr() * b2.h;
+        g.strokeStyle = rgba(deep, 0.55);
+        g.lineWidth = Math.max(0.5, s2 * k * 0.35);
+        g.beginPath();
+        g.arc(cx, cy, s2 * k, 0.4, 4.6);
+        g.stroke();
+        g.strokeStyle = rgba(lit, 0.45);
+        g.beginPath();
+        g.arc(cx - 0.3, cy - 0.3, s2 * k * 0.8, 3.4, 5.6);
+        g.stroke();
+      }
+      g.restore();
+    };
+    if (!pose.helm) curls([[-0.11, 0.02], [-0.1, 0.09], [-0.03, 0.125], [0.05, 0.115], [0.09, 0.085], [0.06, 0.07], [0.0, 0.08], [-0.04, 0.04], [-0.06, -0.04], [-0.1, -0.05]], 26, 0.012);
+    else curls([[-0.11, 0.04], [-0.1, -0.06], [-0.06, -0.05], [-0.04, 0.03]], 10, 0.012);
+    if (pose.beard) curls([[-0.035, -0.04], [0.0, -0.075], [0.07, -0.1], [0.095, -0.11], [0.09, -0.145], [0.04, -0.16], [-0.02, -0.12]], 18, 0.01);
+    if (pose.helm === 'crest') {
+      // a Corinthian helmet pushed up on his crown (its face-guard jutting forward over his brow), its crest arching
+      // back on a short stilt, the horsehair combed
+      const arc = (cxu: number, cyv: number, rx: number, ry: number, a0: number, a1: number, n: number) => Array.from({ length: n + 1 }, (_, i) => {
+        const a = a0 + ((a1 - a0) * i) / n;
+        return hp(cxu + Math.cos(a) * rx, cyv + Math.sin(a) * ry);
+      });
+      const outer = arc(-0.09, 0.1, 0.2, 0.19, 0.35, 2.75, 14);
+      const inner = arc(-0.09, 0.1, 0.13, 0.11, 2.75, 0.35, 14);
+      const crest = [...outer, ...inner].map(S);
+      form(polyPath(crest), boundsOf(crest, 2), mix(body, shd, 0.12), 0.02);
+      if (detail) {
         g.save();
-        cp(g);
+        polyPath(crest)(g);
         g.clip();
-        for (let i = 0; i < 16; i++) {
-          const t = i / 15;
-          const a = S([pose.head[0] + 0.06 - t * 0.34, pose.head[1] + 0.2 + Math.sin(t * Math.PI) * 0.1]);
-          g.strokeStyle = rgba(i % 2 ? ink : lit, 0.25);
-          g.lineWidth = Math.max(0.6, k * 0.006);
-          g.beginPath();
-          g.moveTo(a[0], a[1] - 0.06 * k);
-          g.lineTo(a[0] - f * 0.03 * k, a[1] + 0.1 * k);
-          g.stroke();
+        for (let i = 0; i < 22; i++) {
+          const a = 0.35 + (2.4 * i) / 21;
+          mark([hp(-0.09 + Math.cos(a) * 0.12, 0.1 + Math.sin(a) * 0.1), hp(-0.09 + Math.cos(a) * 0.21, 0.1 + Math.sin(a) * 0.2)], 0.0035, i % 2 === 0, 0.45);
         }
         g.restore();
-        g.strokeStyle = rgba(ink, 0.4);
-        g.lineWidth = Math.max(0.6, k * 0.008);
-        cp(g);
-        g.stroke();
       }
-      // the dome, the cheek guard sweeping down at the front, the neck guard flaring at the back
-      const hp = (c: Ctx) => {
-        c.beginPath();
-        c.moveTo(H[0] - f * hr * 1.0, H[1] + hr * 0.75);
-        c.quadraticCurveTo(H[0] - f * hr * 1.25, H[1] - hr * 0.2, H[0] - f * hr * 0.6, H[1] - hr * 0.95);
-        c.quadraticCurveTo(H[0] + f * hr * 0.3, H[1] - hr * 1.35, H[0] + f * hr * 0.95, H[1] - hr * 0.45);
-        if (pose.helm === 'crest') {
-          c.lineTo(H[0] + f * hr * 1.05, H[1] + hr * 0.25);
-          c.quadraticCurveTo(H[0] + f * hr * 0.95, H[1] + hr * 0.95, H[0] + f * hr * 0.35, H[1] + hr * 1.05);
-          c.lineTo(H[0] - f * hr * 0.2, H[1] + hr * 0.6);
-        } else {
-          c.lineTo(H[0] + f * hr * 1.0, H[1] - hr * 0.2);
-          c.lineTo(H[0] + f * hr * 0.9, H[1] + hr * 0.7);
-          c.lineTo(H[0], H[1] + hr * 0.85);
-        }
-        c.quadraticCurveTo(H[0] - f * hr * 0.5, H[1] + hr * 0.4, H[0] - f * hr * 1.0, H[1] + hr * 0.75);
-        c.closePath();
-      };
-      hp(g);
-      g.fillStyle = across({ x: H[0] - hr, y: H[1] - hr, w: hr * 2, h: hr * 2 }, [[0, lit], [0.45, body], [1, shd]]);
+      const dome = [...arc(0.0, 0.03, 0.115, 0.115, Math.PI * 1.0, Math.PI * 0.06, 12), hp(0.17, 0.08), hp(0.175, 0.055), hp(0.11, 0.035), hp(0.03, 0.05), hp(-0.06, 0.02), hp(-0.115, 0.0)].map(S);
+      form(polyPath(dome), boundsOf(dome, 2), body, 0.02);
+      // the eye-holes of the raised face-guard, black, and its brow ridge
+      const slot = [hp(0.11, 0.065), hp(0.165, 0.065), hp(0.16, 0.052), hp(0.11, 0.05)].map(S);
+      g.fillStyle = rgba(T('#0e0c12'), detail ? 0.85 : 0);
+      polyPath(slot)(g);
       g.fill();
-      g.strokeStyle = rgba(ink, 0.45);
-      g.lineWidth = Math.max(0.6, k * 0.009);
-      g.stroke();
-      if (pose.helm === 'crest') {
-        // the T of its opening: the eye slot and the slit down past the nose guard, black
-        g.fillStyle = T('#1c1a22');
-        g.beginPath();
-        g.moveTo(H[0] + f * hr * 0.25, H[1] - hr * 0.18);
-        g.quadraticCurveTo(H[0] + f * hr * 0.7, H[1] - hr * 0.32, H[0] + f * hr * 1.04, H[1] - hr * 0.12);
-        g.lineTo(H[0] + f * hr * 1.04, H[1] + hr * 0.02);
-        g.lineTo(H[0] + f * hr * 0.92, H[1] + hr * 0.02);
-        g.lineTo(H[0] + f * hr * 0.94, H[1] + hr * 0.75);
-        g.lineTo(H[0] + f * hr * 0.82, H[1] + hr * 0.78);
-        g.lineTo(H[0] + f * hr * 0.78, H[1] + hr * 0.0);
-        g.quadraticCurveTo(H[0] + f * hr * 0.5, H[1] - hr * 0.02, H[0] + f * hr * 0.25, H[1] - hr * 0.08);
-        g.closePath();
-        g.fill();
-        // the brow's ridge over it, catching the light
-        g.strokeStyle = rgba(lit, 0.55);
-        g.lineWidth = Math.max(0.8, k * 0.01);
-        g.beginPath();
-        g.moveTo(H[0] + f * hr * 0.2, H[1] - hr * 0.3);
-        g.quadraticCurveTo(H[0] + f * hr * 0.65, H[1] - hr * 0.48, H[0] + f * hr * 1.0, H[1] - hr * 0.3);
-        g.stroke();
-      } else {
-        g.fillStyle = T('#2a2630');
-        g.beginPath();
-        g.ellipse(H[0] + f * hr * 0.62, H[1] - hr * 0.05, hr * 0.12, hr * 0.06, 0, 0, P2);
-        g.fill();
-        g.strokeStyle = rgba(ink, 0.4);
-        g.beginPath();
-        g.moveTo(H[0] - f * hr * 1.1, H[1] - hr * 0.2);
-        g.lineTo(H[0] + f * hr * 1.0, H[1] - hr * 0.2);
-        g.stroke();
-      }
-    } else {
-      // a bare head: the face in profile under the raised arm, the curls of his hair
-      const hp = (c: Ctx) => {
-        c.beginPath();
-        c.ellipse(H[0], H[1], hr * 0.95, hr * 1.1, f * 0.15, 0, P2);
-      };
-      hp(g);
-      g.fillStyle = across({ x: H[0] - hr, y: H[1] - hr, w: hr * 2, h: hr * 2 }, [[0, lit], [0.5, body], [1, shd]]);
-      g.fill();
-      g.strokeStyle = rgba(ink, 0.4);
-      g.lineWidth = Math.max(0.6, k * 0.008);
-      g.stroke();
-      // the nose and the open mouth: his last cry
-      g.fillStyle = mix(body, lit, 0.3);
-      g.beginPath();
-      g.moveTo(H[0] + f * hr * 0.9, H[1] - hr * 0.1);
-      g.lineTo(H[0] + f * hr * 1.2, H[1] + hr * 0.25);
-      g.lineTo(H[0] + f * hr * 0.92, H[1] + hr * 0.32);
-      g.closePath();
-      g.fill();
-      g.fillStyle = T('#1c1a22');
-      g.beginPath();
-      g.ellipse(H[0] + f * hr * 0.88, H[1] + hr * 0.55, hr * 0.12, hr * 0.09, 0, 0, P2);
-      g.fill();
-      // the curls: a cap of small rings over the crown and the back
-      for (let i = 0; i < 24; i++) {
-        const a = -Math.PI * 0.95 + (i / 23) * Math.PI * 1.25;
-        const rr = hr * (0.78 + (i % 3) * 0.08);
-        const cx = H[0] - f * Math.cos(a) * rr * 0.9 + f * hr * 0.05;
-        const cy = H[1] + Math.sin(a) * rr;
-        g.fillStyle = i % 2 ? mix(lit, body, 0.4) : shd;
-        g.beginPath();
-        g.arc(cx, cy, hr * 0.16, 0, P2);
-        g.fill();
-        g.strokeStyle = rgba(ink, 0.35);
-        g.stroke();
-      }
+      mark([hp(0.0, 0.1), hp(0.08, 0.11), hp(0.16, 0.085)], 0.005, false, 0.55);
+    } else if (pose.helm === 'cap') {
+      const cpts = [hp(-0.11, 0.0), hp(-0.08, 0.1), hp(0.0, 0.14), hp(0.09, 0.1), hp(0.11, 0.05), hp(-0.1, 0.03)].map(S);
+      form(polyPath(cpts), boundsOf(cpts, 2), body, 0.02);
     }
   };
   const weapon = () => {
     if (pose.blade) {
-      // the hilt in his fist and a hand's length of blade, snapped off clean
+      // the hilt in his fist and a hand's length of blade, snapped off
       const [a, b] = pose.blade.map(S);
       const ang = Math.atan2(b[1] - a[1], b[0] - a[0]);
       const nx = -Math.sin(ang);
       const ny = Math.cos(ang);
-      g.strokeStyle = T('#5a5868');
-      g.lineWidth = 0.025 * k;
+      const w = 0.026 * k;
+      const pts: Pt[] = [[a[0] + nx * w, a[1] + ny * w], [b[0] + nx * w * 0.8, b[1] + ny * w * 0.8], [b[0] + Math.cos(ang) * w * 0.6, b[1] + Math.sin(ang) * w * 0.6], [b[0] - nx * w * 0.2, b[1] - ny * w * 0.2], [b[0] + Math.cos(ang) * w * 0.3 - nx * w * 0.8, b[1] + Math.sin(ang) * w * 0.3 - ny * w * 0.8], [a[0] - nx * w, a[1] - ny * w]];
+      form(polyPath(pts), boundsOf(pts, 2), body, 0.01);
+      const gp: Pt[] = [[a[0] + nx * 0.065 * k, a[1] + ny * 0.065 * k], [a[0] - nx * 0.065 * k, a[1] - ny * 0.065 * k]];
+      g.strokeStyle = rgba(ink, 0.6);
+      g.lineWidth = 0.028 * k;
       g.beginPath();
-      g.moveTo(a[0] + nx * 0.06 * k, a[1] + ny * 0.06 * k);
-      g.lineTo(a[0] - nx * 0.06 * k, a[1] - ny * 0.06 * k);
+      g.moveTo(...gp[0]);
+      g.lineTo(...gp[1]);
       g.stroke();
-      const w = 0.028 * k;
-      g.beginPath();
-      g.moveTo(a[0] + nx * w, a[1] + ny * w);
-      g.lineTo(b[0] + nx * w * 0.85, b[1] + ny * w * 0.85);
-      g.lineTo(b[0] + Math.cos(ang) * w * 0.6, b[1] + Math.sin(ang) * w * 0.6);
-      g.lineTo(b[0] - nx * w * 0.2, b[1] - ny * w * 0.2);
-      g.lineTo(b[0] + Math.cos(ang) * w * 0.3 - nx * w * 0.85, b[1] + Math.sin(ang) * w * 0.3 - ny * w * 0.85);
-      g.lineTo(a[0] - nx * w, a[1] - ny * w);
-      g.closePath();
-      g.fillStyle = lin(g, [a[0] + nx * w, a[1] + ny * w], [a[0] - nx * w, a[1] - ny * w], [[0, lit], [1, shd]]);
-      g.fill();
-      g.strokeStyle = rgba(ink, 0.5);
-      g.lineWidth = Math.max(0.6, k * 0.006);
+      g.strokeStyle = body;
+      g.lineWidth = 0.02 * k;
       g.stroke();
     }
     if (pose.spear) {
@@ -2448,25 +2970,8 @@ function hero(ctx: Ctx, x: number, y: number, k: number, pose: Pose, dir: number
       g.strokeStyle = body;
       g.lineWidth = 0.03 * k;
       g.stroke();
-      g.strokeStyle = rgba(lit, 0.5);
-      g.lineWidth = 0.01 * k;
-      g.beginPath();
-      g.moveTo(a[0], a[1] - 0.008 * k);
-      g.lineTo(b[0], b[1] - 0.008 * k);
-      g.stroke();
-      // its splintered end
-      g.fillStyle = T('#d8d2c4');
-      g.beginPath();
-      g.moveTo(b[0], b[1] - 0.02 * k);
-      g.lineTo(b[0] + dir * 0.04 * k, b[1] - 0.01 * k);
-      g.lineTo(b[0] + dir * 0.015 * k, b[1] + 0.005 * k);
-      g.lineTo(b[0] + dir * 0.035 * k, b[1] + 0.02 * k);
-      g.lineTo(b[0], b[1] + 0.02 * k);
-      g.closePath();
-      g.fill();
     }
     if (pose.bow) {
-      // the bow in his far hand, its upper limb snapped and hanging by the string
       const [hx, hy] = S(pose.ha[0]);
       g.strokeStyle = rgba(ink, 0.6);
       g.lineWidth = 0.035 * k;
@@ -2477,111 +2982,87 @@ function hero(ctx: Ctx, x: number, y: number, k: number, pose: Pose, dir: number
       g.strokeStyle = body;
       g.lineWidth = 0.022 * k;
       g.stroke();
-      g.strokeStyle = rgba(ink, 0.6);
-      g.lineWidth = 0.03 * k;
-      g.beginPath();
-      g.moveTo(hx, hy);
-      g.quadraticCurveTo(hx + dir * 0.1 * k, hy - 0.08 * k, hx + dir * 0.16 * k, hy - 0.1 * k);
-      g.lineTo(hx + dir * 0.22 * k, hy + 0.04 * k);
-      g.stroke();
     }
   };
-  // ——— paint: far limbs, cloak, the body, near limbs, the head ———
+
+  // ——— carve it: far limbs, the cloak behind, the body, near limbs, the head ———
   if (o.onlyHead) head();
   else {
     if (pose.farBehind) arm(0);
     cloak();
-    legs(0);
+    leg(0);
     torso();
-    legs(1);
+    leg(1);
+    dress();
     if (!pose.farBehind) arm(0);
     head();
     weapon();
     arm(1);
   }
-  if (!o.simple) {
+  if (detail) {
     // ——— weathering: one piece of stone (painted over it, then cut back to its silhouette) ———
-    const [sil, sg] = makeCanvas(bb.w, bb.h);
+    const [sil, sg] = makeCanvas(cv.width, cv.height);
     sg.drawImage(cv, 0, 0);
-    g.save();
     const box = { x: bb.x, y: bb.y, w: bb.w, h: bb.h };
-    grain(g, box, 'speckle', 0.3, 0.9);
+    grain(g, box, 'speckle', 0.32, 0.6);
     lay(g, drift(mix(lit, '#e8d8c0', 0.3), mix(deep, '#1a1c14', 0.4), 4, o.seed, 40, 60), box, 0.14);
-    lay(g, noiseMask(18, o.seed + 3, { cover: 0.2, soft: 0.05, col: deep, kind: 'web', w: 90, h: 140 }), box, 0.07);
-    const rr = rng(o.seed * 7 + 1);
-    // black streaks where the rain runs down from the crest, the shoulders and the raised arm
-    for (const p of [pose.head, pose.sh[0], pose.sh[1], pose.el[0], pose.waist]) {
+    lay(g, noiseMask(26, o.seed + 3, { cover: 0.25, soft: 0.05, col: deep, kind: 'web', w: 90, h: 160 }), box, 0.08);
+    // black streaks where the rain runs down from the head, the shoulders, the raised arm, the belt
+    for (const p of [pose.head, pose.sh[0], pose.sh[1], pose.el[0], pose.waist, lerp2(pose.hip[0], pose.kn[0], 0.3)]) {
       const [px, py] = S(p);
-      streaks(g, rr, px, py, 0.18 * k, 0.6 * k, T('#1a1c20'), 0.24, 3);
+      streaks(g, rr, px, py, 0.16 * k, 0.55 * k, T('#14161a'), 0.3, 3);
     }
-    // moss in the folds and on the tops, lichen spotting the lit side
+    // moss in the hollows and on the tops, lichen spotting the lit side
     for (const m of pose.moss ?? []) {
       const [mx, my] = S(m);
-      moss(g, rr, mx, my, 0.1 * k, 0.05 * k, o.depth);
+      moss(g, rr, mx, my, 0.07 * k, 0.04 * k, o.depth);
     }
     for (let i = 0; i < 40; i++) {
-      const px = bb.x + rr() * bb.w;
-      const py = bb.y + rr() * bb.h;
-      g.fillStyle = rgba(rr() < 0.6 ? T('#c8c890') : T('#c89a60'), 0.35);
+      const px = bb.x + rr() * bb.w * 0.7;
+      const py = bb.y + rr() * bb.h * 0.7;
+      const cl = rr() < 0.6 ? T('#c4c48a') : T('#c8945a');
+      for (let j = 0; j < 3; j++) {
+        g.fillStyle = rgba(cl, 0.3 + rr() * 0.2);
+        g.beginPath();
+        g.arc(px + (rr() - 0.5) * 0.02 * k, py + (rr() - 0.5) * 0.02 * k, (0.003 + rr() * 0.006) * k, 0, P2);
+        g.fill();
+      }
+    }
+    // the dusk settling on it: darker low down where the ground's shade reaches, the green coming up from below
+    vfill(g, bb.x, bb.y, bb.w, bb.h, [[0, rgba('#0e1018', 0)], [0.55, rgba('#0e1018', 0.06)], [1, rgba('#0a1410', 0.35)]]);
+    vfill(g, bb.x, bb.y + bb.h * 0.4, bb.w, bb.h * 0.6, [[0, rgba(GLOW, 0)], [1, rgba(GLOW, 0.22 * up)]]);
+    // cracks with a lit lip, chips knocked out of the edges
+    for (const [cu, cv2, ca, cl] of pose.cracks ?? []) crack(g, rr, ...S([cu, cv2]), ca * (dir > 0 ? 1 : -1) + (dir > 0 ? 0 : Math.PI), cl * k, { col: T('#100e14'), lip: T('#e0d8cc'), w: Math.max(0.8, k * 0.007), a: 0.75, branch: 0.12 });
+    for (const p of [pose.kn[1], pose.el[1], pose.sh[1], pose.toe[1]]) {
+      const [px, py] = S(p);
+      g.fillStyle = rgba(T('#d8d0c4'), 0.55);
       g.beginPath();
-      g.arc(px, py, (0.006 + rr() * 0.012) * k, 0, P2);
+      g.ellipse(px + 0.03 * k, py + 0.01 * k, 0.012 * k, 0.007 * k, 0.5, 0, P2);
+      g.fill();
+      g.fillStyle = rgba(deep, 0.5);
+      g.beginPath();
+      g.ellipse(px + 0.026 * k, py + 0.005 * k, 0.008 * k, 0.004 * k, 0.5, 0, P2);
       g.fill();
     }
-    // the pool's green coming up the side that faces it, strongest low down
-    if (poolSide) {
-      const gx0 = poolSide > 0 ? bb.x + bb.w : bb.x;
-      const gg = g.createLinearGradient(gx0, 0, gx0 - poolSide * bb.w * 0.7, 0);
-      gg.addColorStop(0, rgba(GLOW, 0.16));
-      gg.addColorStop(1, rgba(GLOW, 0));
-      g.fillStyle = gg;
-      g.fillRect(bb.x, bb.y, bb.w, bb.h);
-      vfill(g, bb.x, bb.y, bb.w, bb.h, [[0, rgba('#1a1c2a', 0.25)], [0.5, rgba('#1a1c2a', 0)]]);
-    }
-    // the dusk settling on it: darker low down where the ground's shade reaches, the pool's green coming up from below
-    const up = o.uplight ?? 0.2;
-    vfill(g, bb.x, bb.y, bb.w, bb.h, [[0, rgba('#0e1018', 0)], [0.55, rgba('#0e1018', 0.08)], [1, rgba('#0a1410', 0.4)]]);
-    vfill(g, bb.x, bb.y + bb.h * 0.35, bb.w, bb.h * 0.65, [[0, rgba(GLOW, 0)], [1, rgba(GLOW, 0.3 * up)]]);
-    for (const [cu, cv2, ca, cl] of pose.cracks ?? []) crack(g, rr, ...S([cu, cv2]), ca * (dir > 0 ? 1 : -1) + (dir > 0 ? 0 : Math.PI), cl * k, { col: T('#141218'), lip: T('#e0d8cc'), w: Math.max(1, k * 0.012), a: 0.75, branch: 0.25 });
-    g.restore();
     g.save();
     g.setTransform(1, 0, 0, 1, 0, 0);
     g.globalCompositeOperation = 'destination-in';
     g.drawImage(sil, 0, 0);
     g.restore();
-  }
-  // the afterglow along the upper-left edges, the cool sky along the lower-right
-  const edge = (dx: number, dy: number, col: string, a: number) => {
-    const [ec, eg] = makeCanvas(bb.w, bb.h);
-    eg.drawImage(cv, 0, 0);
-    eg.globalCompositeOperation = 'source-in';
-    eg.fillStyle = col;
-    eg.fillRect(0, 0, bb.w, bb.h);
-    eg.globalCompositeOperation = 'destination-out';
-    eg.drawImage(cv, dx, dy);
-    g.save();
-    g.setTransform(1, 0, 0, 1, 0, 0);
-    g.globalAlpha = a;
-    g.globalCompositeOperation = 'source-atop';
-    g.drawImage(ec, 0, 0);
-    g.restore();
-  };
-  if (!o.simple) {
-    const e = Math.max(1.5, k * 0.012);
-    edge(e, e, T(STONE.warm), 0.42);
-    edge(-e * 0.8, -e * 0.8, poolSide ? mix('#6a7aa8', GLOW, 0.3) : '#6a7aa8', 0.18);
-    // one outline round the whole: the silhouette in ink, a hair larger, under it
-    const [oc, og] = makeCanvas(bb.w, bb.h);
+    // one thin outline round the whole: the silhouette in ink, a hair larger, under it
+    const [oc, og] = makeCanvas(cv.width, cv.height);
     og.drawImage(cv, 0, 0);
     og.globalCompositeOperation = 'source-in';
-    og.fillStyle = ink;
-    og.fillRect(0, 0, bb.w, bb.h);
-    const lw = Math.max(1, k * 0.011);
+    og.fillStyle = rgba(ink, 0.85);
+    og.fillRect(0, 0, oc.width, oc.height);
+    const ow = Math.max(0.8, k * 0.008);
     for (let i = 0; i < 8; i++) {
       const a = (i / 8) * P2;
-      ctx.drawImage(oc, bb.x + Math.cos(a) * lw, bb.y + Math.sin(a) * lw);
+      ctx.drawImage(oc, bb.x + Math.cos(a) * ow, bb.y + Math.sin(a) * ow, bb.w, bb.h);
     }
   }
-  ctx.drawImage(cv, bb.x, bb.y);
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(cv, bb.x, bb.y, bb.w, bb.h);
 }
 
 /** A plinth (X, z its centre on the floor; w wide, h high, d deep): a block with a moulded cap and base, its front
@@ -2598,8 +3079,8 @@ function plinth(ctx: Ctx, r: R, X: number, z: number, w: number, h: number, d: n
   const base = '#7a7488';
   // its shadow on the floor (down and to the right)
   if (detail) {
-    const [fx, fy] = P(X + 0.08, 0, z + 0.1);
-    groundShadow(ctx, fx, fy, w * ppu(z) * 0.5, d * ppu(z) * 0.25, 0.5, '#0a0812', 0.7);
+    const [fx, fy] = P(X + 0.08, 0, z - d / 2 + 0.02);
+    groundShadow(ctx, fx, fy, w * ppu(z) * 0.56, d * ppu(z) * 0.18, 0.65, '#06050a', 0.6);
   }
   fillPath(ctx, sideP, mix(base, '#3a3648', 0.45));
   fillPath(ctx, front, base);
@@ -2671,7 +3152,7 @@ function plinth(ctx: Ctx, r: R, X: number, z: number, w: number, h: number, d: n
 }
 
 /** A statue on its plinth at (X, z). */
-function statueOn(ctx: Ctx, r: R, st: { X: number; z: number }, pose: Pose, dir: number, ph: number, depth: number, seed: number, uplight = 0.2): void {
+function statueOn(ctx: Ctx, r: R, st: { X: number; z: number }, pose: Pose, dir: number, ph: number, depth: number, seed: number, uplight = 0.25, simple = false): void {
   const pw = 0.95 * (ph > 0.4 ? 1 : 0.8);
   plinth(ctx, r, st.X, st.z, pw, ph, 0.75);
   const k = ppu(st.z);
@@ -2681,7 +3162,7 @@ function statueOn(ctx: Ctx, r: R, st: { X: number; z: number }, pose: Pose, dir:
   ctx.beginPath();
   ctx.ellipse(x + 0.05 * k, y + 0.02 * k, 0.45 * k, 0.06 * k, 0, 0, P2);
   ctx.fill();
-  hero(ctx, x, y, k, pose, dir, { depth, seed, pool: st.X < 0 ? 1 : -1, uplight });
+  hero(ctx, x, y, k, pose, dir, { depth, seed, pool: st.X < 0 ? 1 : -1, uplight, simple });
 }
 
 export const STAT_L_BOX = { x: 64, y: 250, w: 250, h: TY - 250 };
@@ -2754,8 +3235,8 @@ function shield(ctx: Ctx): void {
   lay(ctx, noiseMask(7, 141, { cover: 0.35, soft: 0.25, col: '#5a9a7a', w: 40, h: 20 }), { x: -rx, y: -ry, w: rx * 2, h: ry * 2 }, 0.35);
   lay(ctx, noiseMask(5, 143, { cover: 0.25, soft: 0.2, col: MOSS[2], w: 30, h: 16 }), { x: -rx, y: -ry, w: rx * 2, h: ry * 2 }, 0.4);
   // its blazon, painted in red-brown and mostly worn away: a scorpion, tail curled over its back
-  ctx.strokeStyle = rgba('#7a2a1a', 0.7);
-  ctx.fillStyle = rgba('#7a2a1a', 0.7);
+  ctx.strokeStyle = rgba('#6a3424', 0.45);
+  ctx.fillStyle = rgba('#6a3424', 0.45);
   ctx.lineWidth = 2.6;
   ctx.lineCap = 'round';
   ctx.beginPath();
@@ -2827,11 +3308,11 @@ function statueR(ctx: Ctx, r: R): void {
 
 /** The toppled one: lying on his back on the paving by the pool, broken at the waist, his feet under the plinth's
  * edge, his helmeted head rolled away to the kerb. */
-const FALL = { X: 3.32, z: 4.75, len: 1.58 };
+const FALL = { X: 3.45, z: 4.75, len: 1.58 };
 export const FALLEN_BOX = (() => {
   const k = ppu(FALL.z);
   const [x, y] = P(FALL.X, 0, FALL.z);
-  return { x: Math.floor(x - 0.6 * k), y: Math.floor(y - 0.6 * k), w: Math.ceil(2.4 * k), h: Math.ceil(0.85 * k) };
+  return { x: Math.floor(x - 0.44 * k), y: Math.floor(y - 0.6 * k), w: Math.ceil(2.2 * k), h: Math.ceil(0.85 * k) };
 })();
 
 function fallen(ctx: Ctx, r: R): void {
@@ -2853,7 +3334,7 @@ function fallen(ctx: Ctx, r: R): void {
     ctx.restore();
   };
   // the body beyond the break, a hand's width off and askew; then the legs
-  piece(feet - 0.06 * k, -Math.PI / 2 - 0.05, 1.0, 2.15);
+  piece(feet - 0.06 * k, -Math.PI / 2 - 0.05, 1.0, 2.0);
   piece(feet, -Math.PI / 2, 0, 0.99);
   // the break: pale fresh stone between the halves, chips of him scattered round it
   const bx = feet - 1.0 * k;
@@ -2887,10 +3368,10 @@ function fallen(ctx: Ctx, r: R): void {
 }
 
 function statueBL(ctx: Ctx, r: R): void {
-  statueOn(ctx, r, MD.statBL, POSE.archer, 1, 0.3, 0.45, 41, 0.9);
+  statueOn(ctx, r, MD.statBL, POSE.archer, 1, 0.3, 0.62, 41, 0.9, true);
 }
 function statueBR(ctx: Ctx, r: R): void {
-  statueOn(ctx, r, MD.statBR, POSE.spear, -1, 0.3, 0.45, 43, 0.9);
+  statueOn(ctx, r, MD.statBR, POSE.spear, -1, 0.3, 0.62, 43, 0.9, true);
 }
 
 // ——— the snakes ———
@@ -3227,7 +3708,14 @@ function shadeOver(ctx: Ctx): void {
   ctx.scale(-1, 1);
   ctx.drawImage(sc, 0, 340, SW, TY - 340);
   ctx.restore();
-  vignetteAll(ctx, 0.5, '#05060a');
+  vignetteAll(ctx, 0.74, '#05060a');
+  for (const [cx, cy] of [[0, 0], [W, 0], [0, TY], [W, TY]] as Pt[]) {
+    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, 520);
+    g.addColorStop(0, 'rgba(5,6,10,0.35)');
+    g.addColorStop(1, 'rgba(5,6,10,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(cx - 520, cy - 520, 1040, 1040);
+  }
 }
 
 // ——— frames for the live layer ———
@@ -3358,7 +3846,12 @@ export const MEDUSA: SceneSpec = {
     { id: 'statBR', box: STAT_BR_BOX, draw: statueBR },
     { id: 'pool', box: POOL_BOX, draw: pool },
     { id: 'water', box: WATER_BOX, draw: (c, r) => reflection(c, r, 0) },
+    { id: 'poolLive', box: WATER_BOX, motion: 'slot', draw: () => {} },
+    { id: 'reedsL', box: reedBox(REEDS_L), draw: (c, r) => reeds(c, r, ...REEDS_L, 70, 26, 0.45) },
+    { id: 'reedsR', box: reedBox(REEDS_R), draw: (c, r) => reeds(c, r, ...REEDS_R, 62, 22, 0.45) },
     { id: 'fallen', box: FALLEN_BOX, draw: fallen },
+    { id: 'fernL', box: fernBox(FERN_L), draw: (c, r) => fern(c, r, ...FERN_L, 62, 0.1) },
+    { id: 'fernR', box: fernBox(FERN_R), draw: (c, r) => fern(c, r, ...FERN_R, 56, 0.1) },
     { id: 'statL', box: STAT_L_BOX, draw: statueL },
     { id: 'propsL', box: PROPS_L_BOX, draw: propsL },
     { id: 'statR', box: STAT_R_BOX, draw: statueR },
@@ -3438,7 +3931,7 @@ registerKitScene(MEDUSA, (k: KitLive) => {
     grade(c);
   });
   const poolC = k.sc.add.container(0, 0);
-  under.add(poolC);
+  k.slot('poolLive').add(poolC);
   const mask = k.sc.make.graphics({}, false);
   mask.fillStyle(0xffffff, 1);
   mask.fillPoints(WATER.map(([x, y]) => new Phaser.Geom.Point(x, y)), true);
