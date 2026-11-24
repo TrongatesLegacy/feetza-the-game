@@ -71,8 +71,8 @@ const ease = (t: number) => t * t * (3 - 2 * t);
 /** How big things are on the ice at screen y (1 at the table's back edge). */
 const kAt = (y: number) => Math.max(0.1, (y - 528) / (TY - 528));
 const SNOW = { lit: '#eaf2ff', body: '#b0c2e6', shade: '#6a80ba', deep: '#3a4c8a' };
-const STONE = { lit: '#8a96b8', body: '#4c5674', shade: '#262c46', deep: '#121628' };
-const RUNE = '#7fe8ff';
+export const STONE = { lit: '#8a96b8', body: '#4c5674', shade: '#262c46', deep: '#121628' };
+export const RUNE = '#7fe8ff';
 const AIR: Air = { color: '#1e3456', far: 0.82 };
 
 // ——— the sky ———
@@ -203,7 +203,7 @@ const BANDS: Band[] = [
 /** A column of curtain light (made once): a pink fringe at the very bottom, a hot green edge, green rays rising,
  * violet at the top. */
 let auroraCol: HTMLCanvasElement | null = null;
-function auroraColumn(): HTMLCanvasElement {
+export function auroraColumn(): HTMLCanvasElement {
   if (auroraCol) return auroraCol;
   const c = document.createElement('canvas');
   c.width = 4;
@@ -1229,7 +1229,7 @@ function snowCap(ctx: Ctx, r: R, x0: number, x1: number, y: (u: number) => numbe
 
 /** A rune cut into stone or iron: the cut in shadow on its upper-left wall, its lower-right lip catching the light,
  * a cold inlay glowing faintly in it. s is its height; glow 0…1. */
-function carvedRune(ctx: Ctx, k: number, x: number, y: number, s: number, glow: number, a = 1): void {
+export function carvedRune(ctx: Ctx, k: number, x: number, y: number, s: number, glow: number, a = 1): void {
   const strokes = RUNES[((k % RUNES.length) + RUNES.length) % RUNES.length];
   const path = (dx: number, dy: number) => {
     ctx.beginPath();

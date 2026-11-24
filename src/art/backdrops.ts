@@ -4885,7 +4885,10 @@ const REDRAWN = new Set<BackdropId>(['trattoria', 'beach', 'space',
   'thanfoot',
   // Jotunheim Ice Fields (Stage 15, Act 8), redrawn with the location kit and painted frame animation:
   // scene-jotunheim.ts
-  'jotunheim']);
+  'jotunheim',
+  // Thrym the Frost King's arena (Thrym's Hall, Act 8), redrawn with the location kit and painted frame animation:
+  // scene-thrym.ts
+  'thrym']);
 
 // redrawn scenes keep their old info for the before/after page (their old glows and particles with their old art)
 const LEGACY_INFO: Partial<Record<BackdropId, BackdropInfo>> = {};

@@ -517,8 +517,10 @@ registerLive('fenrir', (ctx: LiveCtx): LiveScene => {
 });
 
 // ——— Thrym's Hall ———
+// (redrawn with the location kit in src/content/art/scene-thrym.ts, whose own live layer runs the cold fires, the snow
+// through the vault and the aurora in the ice windows; this old layer stays for the before/after page, ?dev&stages)
 
-registerLive('thrym', (ctx: LiveCtx): LiveScene => {
+registerLegacyLive('thrym', (ctx: LiveCtx): LiveScene => {
   const k = new Kit(ctx.sc, ctx.layer);
   shimmerTex(k.sc);
   // cold light falling from the two windows onto the floor
