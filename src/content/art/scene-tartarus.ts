@@ -41,7 +41,7 @@ import type { SceneSpec } from '../../art/scene/layers';
 import { grain, tableFalloff, water } from '../../art/scene/materials';
 import { crack, drift, lay, noiseMask, softly, streaks, surface } from '../../art/scene/paint';
 import { cloud } from '../../art/scene/sky';
-import { ZB, xAt, zFront } from '../../art/sceneKit';
+import { ZB, xAt, yAt, zFront } from '../../art/sceneKit';
 import { hashStr, makeCanvas, mix, rgba, rng, shade } from '../../art/util';
 import { crand } from '../../systems/cosmeticRandom';
 import { save } from '../../systems/save';
@@ -451,7 +451,7 @@ function cliff(ctx: Ctx, r: R, right: boolean): void {
     ctx.fillRect(xb - 0.5, top + td, 1.4, bot - top - td);
     if (top > HZ) {
       // below our eye its top shows: a flattened hexagon, lit by the glowing smoke over the cavern
-      const hh = Math.max(2.5, (top - HZ) * 0.045 * (w / 30));
+      const hh = Math.max(3.5, (top - HZ) * 0.08 * (w / 30));
       ctx.fillStyle = mix('#5a4652', '#b0502e', heat * 0.65);
       ctx.beginPath();
       ctx.moveTo(q.x0, top);
@@ -530,48 +530,62 @@ function cliff(ctx: Ctx, r: R, right: boolean): void {
 interface RoofEnd {
   x: number;
   w: number;
+  /** Where its broken end is (its lowest point). */
   y: number;
   back: number;
+  /** How it ends: a flat hexagonal break (its underside seen from below) or a jagged snap. */
+  jag: boolean;
+  /** The jagged end's teeth (offsets up from y, across it). */
+  teeth: number[];
+  tone: number;
   /** A stalactite off its end: where, how long, how wide, its bend. */
   drip?: [number, number, number, number];
 }
 const ROOF_X0 = 360;
 const ROOF_X1 = 1560;
-/** The roof's hanging columns (fixed: the eruption's sky is cut round them) in two ranks, the farther shorter, the
- * nearer hanging lower in clusters (a run of long ones, a gap); now and then a stalactite off one's end. */
+/** The deepest the roof may come down over the temple's pediment. */
+const roofLimit = (x: number) => (Math.abs(x - 960) < 300 ? 112 + Math.abs(x - 960) * 0.1 : 230);
+/** The roof's hanging columns (fixed: the eruption's sky is cut round them): a farther rank, short and lost in the
+ * smoke, and a nearer one in clusters (a run of long thick ones, broken ones, gaps), some snapped off jagged, some
+ * ending in a flat hexagonal break; now and then a stalactite off one's end. */
 const ROOF: RoofEnd[] = (() => {
-  const r = rng(hashStr('ta:roof'));
+  const r = rng(hashStr('ta:roof2'));
   const out: RoofEnd[] = [];
   for (const back of [1, 0]) {
-    for (let x = ROOF_X0 + back * 9; x < ROOF_X1; ) {
-      const w = 13 + r() * 20;
-      const cl = Math.sin(x * 0.011 + back * 2) * 0.5 + Math.sin(x * 0.029 + 1) * 0.3 + 0.5;
-      const len = back ? 4 + r() * 16 : Math.max(0, cl * 44 + (r() - 0.4) * 30);
-      const y = ceilY(x + w / 2) - 14 + len;
-      if (len > 2 || back) {
-        const e: RoofEnd = { x, w, y, back };
-        if (!back && r() < 0.45) {
-          const near = 1 - Math.min(1, Math.abs(x + w / 2 - 960) / 620);
-          e.drip = [x + w * (0.3 + r() * 0.4), 14 + r() * 40 * (0.5 + near * 0.5), Math.min(w * 0.5, 6 + r() * 8), (r() - 0.5) * 5];
-        }
-        out.push(e);
+    for (let x = ROOF_X0 + back * 7; x < ROOF_X1; ) {
+      const cl = clamp01(Math.sin(x * 0.0083 + back * 2.2) * 0.55 + Math.sin(x * 0.023 + 1) * 0.35 + 0.45);
+      const w = back ? 10 + r() * 22 : 8 + r() * 14 + cl * r() * 34;
+      if (!back && r() < 0.12) {
+        x += w * 0.6;
+        continue;
       }
-      x += w * (back ? 1 : 1 + (r() < 0.2 ? 0.8 : 0));
+      const len = back ? r() * 26 : cl ** 1.4 * (30 + r() * 110) + r() * 14;
+      const y = Math.min(ceilY(x + w / 2) - 12 + len, roofLimit(x + w / 2));
+      const jag = !back && r() < 0.4;
+      const teeth = Array.from({ length: 3 + Math.floor(r() * 3) }, () => r() * Math.min(18, w * 0.6));
+      const e: RoofEnd = { x, w, y, back, jag, teeth, tone: r() };
+      if (!back && !jag && r() < 0.4) {
+        const near = 1 - Math.min(1, Math.abs(x + w / 2 - 960) / 620);
+        e.drip = [x + w * (0.3 + r() * 0.4), 12 + r() * 34 * (0.5 + near * 0.5), Math.min(w * 0.45, 5 + r() * 7), (r() - 0.5) * 5];
+        if (y + e.drip[1] > roofLimit(x + w / 2) + 30) e.drip = undefined;
+      }
+      out.push(e);
+      x += w;
     }
   }
-  // draw the farther rank first, then the shorter ends before the longer
+  // the farther rank first, then the shorter ends before the longer
   return out.sort((a, b) => b.back - a.back || a.y - b.y);
 })();
 /** How far the underside of a hanging column shows (px). */
-const roofHH = (e: RoofEnd) => Math.max(3, (HZ - e.y) * 0.025 * (e.w / 24));
+const roofHH = (e: RoofEnd) => Math.max(2.5, (HZ - e.y) * 0.03 * (e.w / 24));
 /** The stalactites' tips (for the grit the live layer shakes off them). */
 const STALACTITES: Pt[] = ROOF.filter((e) => e.drip).map((e) => {
   const [dx, len, , bend] = e.drip!;
   return [dx + bend, e.y + roofHH(e) * 0.6 + len];
 });
 
-/** The roof: hanging columns broken off at their own lengths (we see their undersides, lit red from the pit below,
- * brightest over the middle), stalactites dripping from them. */
+/** The roof: the hanging columns broken off at their own lengths, the far ones fading into the smoke, the near ones'
+ * broken ends lit red from the pit below (brightest over the middle), stalactites dripping from them. */
 function roof(ctx: Ctx): void {
   ctx.fillStyle = '#0a070c';
   ctx.beginPath();
@@ -581,35 +595,76 @@ function roof(ctx: Ctx): void {
   ctx.closePath();
   ctx.fill();
   for (const e of ROOF) {
-    const { x, w, y, back, drip } = e;
-    const near = (1 - Math.min(1, Math.abs(x + w / 2 - 960) / 620)) * (back ? 0.5 : 1);
-    const xa = x + w * 0.22;
-    const xb = x + w * 0.74;
+    const { x, w, y, back, jag, drip } = e;
+    const near = (1 - Math.min(1, Math.abs(x + w / 2 - 960) / 620)) * (back ? 0.4 : 1);
+    const xa = x + w * (0.18 + e.tone * 0.1);
+    const xb = x + w * (0.68 + e.tone * 0.1);
     const hh = roofHH(e);
-    // its three faces, dark, the red from below creeping up them
-    for (const [fa, fb, col] of [[x, xa, '#0c080c'], [xa, xb, '#1c1218'], [xb, x + w, '#2a1418']] as const) {
-      const g = ctx.createLinearGradient(0, y - 60, 0, y);
-      g.addColorStop(0, col);
-      g.addColorStop(1, mix(col, '#5a2016', 0.15 + near * 0.3));
-      ctx.fillStyle = g;
-      ctx.fillRect(fa, -10, fb - fa, y + 10);
+    const smoke = back ? 0.6 : 0;
+    // its outline: a straight break, or snapped off in jagged teeth
+    const teeth: Pt[] = [[x, y - e.teeth[0]]];
+    e.teeth.forEach((t, i) => teeth.push([x + (w * (i + 0.5)) / e.teeth.length, y - t * (i % 2 ? 1 : 0.15)]));
+    teeth.push([x + w, y - e.teeth[e.teeth.length - 1] * 0.7]);
+    const body = (c: Ctx) => {
+      c.beginPath();
+      c.moveTo(x, -10);
+      c.lineTo(x + w, -10);
+      if (jag) for (let i = teeth.length - 1; i >= 0; i--) c.lineTo(teeth[i][0], teeth[i][1]);
+      else {
+        c.lineTo(x + w, y);
+        c.lineTo(x, y);
+      }
+      c.closePath();
+    };
+    within(ctx, body, () => {
+      // its three faces, dark, the red from below creeping up them
+      for (const [fa, fb, col] of [[x, xa, '#0a070a'], [xa, xb, mix('#181016', '#22161c', e.tone)], [xb, x + w, '#2c161a']] as const) {
+        const c = mix(col, '#3a1a1e', smoke);
+        const g = ctx.createLinearGradient(0, y - 70, 0, y);
+        g.addColorStop(0, c);
+        g.addColorStop(1, mix(c, '#6a2618', 0.12 + near * 0.32));
+        ctx.fillStyle = g;
+        ctx.fillRect(fa, -10, fb - fa, y + 10);
+      }
+      // its joints
+      if (!back) {
+        ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+        ctx.lineWidth = 1;
+        for (let jy = y - 18 - e.tone * 20; jy > ceilY(x) - 10; jy -= 22 + e.tone * 18) {
+          ctx.beginPath();
+          ctx.moveTo(x, jy);
+          ctx.lineTo(xa, jy + 2);
+          ctx.lineTo(xb, jy + 2);
+          ctx.lineTo(x + w, jy);
+          ctx.stroke();
+        }
+      }
+      ctx.fillStyle = 'rgba(2,1,4,0.7)';
+      ctx.fillRect(x - 0.5, -10, 1.4, y + 10);
+    });
+    if (jag) {
+      // the snapped faces of the break, hot with the pit's light
+      ctx.strokeStyle = rgba('#ff7040', 0.25 + near * 0.4);
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      teeth.forEach(([px, py], i) => (i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)));
+      ctx.stroke();
+    } else {
+      // a flat break: its underside, a flattened polygon glowing with the pit's light
+      ctx.fillStyle = mix(mix('#24100f', '#8a3420', 0.12 + near * 0.55), '#3a1a1e', smoke);
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(xa, y + hh);
+      ctx.lineTo(xb, y + hh * (0.8 + e.tone * 0.4));
+      ctx.lineTo(x + w, y);
+      ctx.lineTo(xb, y - hh * 0.5);
+      ctx.lineTo(xa, y - hh * 0.4);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(4,2,6,0.7)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
     }
-    ctx.fillStyle = 'rgba(2,1,4,0.7)';
-    ctx.fillRect(x - 0.5, -10, 1.6, y + 10);
-    // its underside: a flattened hexagon, glowing with the pit's light
-    ctx.fillStyle = mix('#24100f', '#8a3420', 0.15 + near * 0.5);
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(xa, y + hh);
-    ctx.lineTo(xb, y + hh);
-    ctx.lineTo(x + w, y);
-    ctx.lineTo(xb, y - hh * 0.5);
-    ctx.lineTo(xa, y - hh * 0.5);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(4,2,6,0.7)';
-    ctx.lineWidth = 1;
-    ctx.stroke();
     // a stalactite off its end
     if (drip) {
       const [sx2, len, sw, bend] = drip;
@@ -631,15 +686,6 @@ function roof(ctx: Ctx): void {
         g.addColorStop(1, 'rgba(200,80,50,0.45)');
         ctx.fillStyle = g;
         ctx.fillRect(sx2 - sw, y0, sw * 2, len);
-        ctx.strokeStyle = 'rgba(0,0,0,0.35)';
-        ctx.lineWidth = 1;
-        for (let k = 1; k < 4; k++) {
-          const yy = y0 + (len * k) / 4;
-          ctx.beginPath();
-          ctx.moveTo(sx2 - sw, yy);
-          ctx.quadraticCurveTo(sx2, yy + 2, sx2 + sw, yy);
-          ctx.stroke();
-        }
       });
       ctx.fillStyle = rgba('#ffb070', 0.5);
       ctx.beginPath();
@@ -656,7 +702,7 @@ function roofSil(ctx: Ctx): void {
   ctx.lineTo(ROOF_X1, -20);
   ctx.closePath();
   for (const e of ROOF) {
-    ctx.rect(e.x - 0.5, -20, e.w + 1, e.y + 26);
+    ctx.rect(e.x - 0.5, -20, e.w + 1, e.y + 22 + roofHH(e));
     if (e.drip) {
       const [dx, len, sw] = e.drip;
       ctx.rect(dx - sw / 2 - 1, e.y, sw + 2, len + 12);
@@ -2430,37 +2476,34 @@ function ferryStill(ctx: Ctx): void {
 
 // ——— the near bank ———
 
-/** A hexagonal basalt column standing on the ground at (X, z): radius rad, its top at Y (broken tops slope). */
+/** A basalt column standing on the ground at (X, z): a prism of 5 to 7 uneven sides (verts: angle and radius of each
+ * corner), broken off at Y (its top tilted a little), cracked across by its joints. */
 interface Hex {
   X: number;
   z: number;
-  rad: number;
   Y: number;
-  rot: number;
+  verts: [number, number][];
   tilt: number;
+  /** Where its joints cross it (Y), the same all round it. */
+  joints: number[];
+  /** A corner knocked off its top (index of the corner), or −1. */
+  chip: number;
+  seed: number;
 }
 
 function hexColumn(ctx: Ctx, r: R, h: Hex): void {
-  const verts = (Y: number, tilt = 0): Pt[] =>
-    Array.from({ length: 6 }, (_, i) => {
-      const a = h.rot + (i * Math.PI) / 3;
-      const X = h.X + Math.cos(a) * h.rad;
-      const z = h.z + Math.sin(a) * h.rad;
-      return P(X, Y + tilt * Math.cos(a), z);
-    });
-  const top = verts(h.Y, h.tilt);
-  const bot = verts(0);
+  const n = h.verts.length;
+  const at = (i: number, Y: number): Pt => {
+    const [a, rr] = h.verts[i % n];
+    return P(h.X + Math.cos(a) * rr, Y + h.tilt * Math.cos(a), h.z + Math.sin(a) * rr);
+  };
+  const wpt = (i: number): [number, number] => {
+    const [a, rr] = h.verts[i % n];
+    return [h.X + Math.cos(a) * rr, h.z + Math.sin(a) * rr];
+  };
   const k = pz(h.z);
-  // the faces turned to us, back to front; each shaded by the way it faces
-  const faces: { i: number; nx: number; nz: number; d: number }[] = [];
-  for (let i = 0; i < 6; i++) {
-    const am = h.rot + ((i + 0.5) * Math.PI) / 3;
-    const nx = Math.cos(am);
-    const nz = Math.sin(am);
-    const vis = nx * -h.X + nz * -h.z;
-    if (vis > 0) faces.push({ i, nx, nz, d: vis });
-  }
-  faces.sort((a, b) => a.d - b.d);
+  const inward = -Math.sign(h.X);
+  // the soul-fire beside it, and how far its light reaches
   const [bXs, bZs] = TA.braziers[h.X < 0 ? 0 : 1];
   let lx = bXs - h.X;
   let lz = bZs - h.z;
@@ -2468,78 +2511,154 @@ function hexColumn(ctx: Ctx, r: R, h: Hex): void {
   lx /= ll;
   lz /= ll;
   const reach = clamp01(1.5 - ll * 0.45);
-  groundShadow(ctx, sx(h.X, h.z) + k * 0.12, sy(0, h.z) + 2, k * h.rad * 1.6, k * h.rad * 0.4, 0.55, '#000000');
+  // the faces turned to us, back to front
+  const faces: { i: number; nx: number; nz: number; d: number }[] = [];
+  for (let i = 0; i < n; i++) {
+    const [x0, z0] = wpt(i);
+    const [x1, z1] = wpt(i + 1);
+    let nx = z1 - z0;
+    let nz = -(x1 - x0);
+    const nl = Math.hypot(nx, nz) || 1;
+    nx /= nl;
+    nz /= nl;
+    // (outward: away from the column's middle)
+    if (nx * ((x0 + x1) / 2 - h.X) + nz * ((z0 + z1) / 2 - h.z) < 0) {
+      nx = -nx;
+      nz = -nz;
+    }
+    const vis = nx * -(x0 + x1) / 2 + nz * -(z0 + z1) / 2;
+    if (vis > 0) faces.push({ i, nx, nz, d: vis });
+  }
+  faces.sort((a, b) => a.d - b.d);
+  groundShadow(ctx, sx(h.X, h.z) + k * 0.1, sy(0, h.z) + 2, k * 0.17, k * 0.045, 0.6, '#000000');
+  const faceCol: number[] = [];
   for (const f of faces) {
-    const j = (f.i + 1) % 6;
-    const quad: Pt[] = [bot[f.i], bot[j], top[j], top[f.i]];
+    const quad: Pt[] = [at(f.i, 0), at(f.i + 1, 0), at(f.i + 1, h.Y), at(f.i, h.Y)];
     const path = polyPath(quad);
-    // lit by the soul-fire beside it (cold blue on the faces turned to it), the key faint from the left
+    const fb = boxOfPts(quad, 1);
+    // dark wet basalt; the faces towards the middle lit: the soul-fire's blue, the pit's red on their edge; the key
+    // faint from the left
     const blue = clamp01(f.nx * lx + f.nz * lz) * reach;
-    const key = clamp01(-f.nx * 0.8 - f.nz * 0.4);
-    const lit = Math.max(blue, key * 0.5);
-    const col = mix(mix('#120e16', '#40587e', blue * 0.75), '#5a4248', key * 0.3);
+    const mid = clamp01(f.nx * inward);
+    const key = clamp01(-f.nx * 0.7 - f.nz * 0.5);
+    const v = 0.12 + mid * 0.25 + key * 0.2;
+    faceCol.push(v);
+    let col = mix('#0c0a0e', '#4a4250', v);
+    col = mix(col, '#3a5880', blue * 0.55);
     ctx.fillStyle = col;
     path(ctx);
     ctx.fill();
     within(ctx, path, () => {
-      const fb = boxOfPts(quad, 1);
-      // its joints across it
-      for (let Y = 0.12 + r() * 0.15; Y < h.Y - 0.05; Y += 0.14 + r() * 0.22) {
-        const a0 = P(h.X + Math.cos(h.rot + (f.i * Math.PI) / 3) * h.rad, Y, h.z + Math.sin(h.rot + (f.i * Math.PI) / 3) * h.rad);
-        const a1 = P(h.X + Math.cos(h.rot + (j * Math.PI) / 3) * h.rad, Y, h.z + Math.sin(h.rot + (j * Math.PI) / 3) * h.rad);
-        ctx.strokeStyle = 'rgba(0,0,0,0.55)';
-        ctx.lineWidth = 1.4;
+      // darker towards the ground, a wet sheen down the face, the pit's red along its inner edge
+      vfill(ctx, fb.x, fb.y, fb.w, fb.h, [[0, 'rgba(255,255,255,0.04)'], [0.6, 'rgba(0,0,0,0)'], [1, 'rgba(2,1,4,0.55)']]);
+      if (mid > 0.3) {
+        const ex = inward > 0 ? fb.x + fb.w : fb.x;
+        const g = ctx.createLinearGradient(ex, 0, ex - inward * fb.w * 0.6, 0);
+        g.addColorStop(0, rgba('#ff5a2a', 0.22 * mid));
+        g.addColorStop(1, rgba('#ff5a2a', 0));
+        ctx.fillStyle = g;
+        ctx.fillRect(fb.x, fb.y, fb.w, fb.h);
+      }
+      ctx.fillStyle = rgba('#c8d0e8', 0.05 + key * 0.08);
+      ctx.fillRect(fb.x + fb.w * (0.2 + (h.seed % 5) * 0.1), fb.y, Math.max(1, fb.w * 0.08), fb.h);
+      // the joints across it, each with a lit lip and a chip out of it here and there
+      for (const Y of h.joints) {
+        if (Y >= h.Y - 0.03) continue;
+        const a0 = at(f.i, Y);
+        const a1 = at(f.i + 1, Y);
+        ctx.strokeStyle = 'rgba(0,0,0,0.65)';
+        ctx.lineWidth = 1.6;
         ctx.beginPath();
         ctx.moveTo(a0[0], a0[1]);
         ctx.lineTo(a1[0], a1[1]);
         ctx.stroke();
-        ctx.strokeStyle = rgba('#a8909a', 0.12 + lit * 0.12);
+        ctx.strokeStyle = rgba('#b0a0b0', 0.08 + v * 0.25);
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(a0[0], a0[1] + 1.5);
-        ctx.lineTo(a1[0], a1[1] + 1.5);
+        ctx.moveTo(a0[0], a0[1] + 1.6);
+        ctx.lineTo(a1[0], a1[1] + 1.6);
         ctx.stroke();
       }
-      // the ground's dark creeping up its foot
-      vfill(ctx, fb.x, fb.y + fb.h - 30, fb.w, 30, [[0, 'rgba(4,2,6,0)'], [1, 'rgba(4,2,6,0.6)']]);
     });
-    ctx.strokeStyle = 'rgba(2,1,4,0.85)';
+    ctx.strokeStyle = 'rgba(2,1,4,0.9)';
     ctx.lineWidth = 1;
     path(ctx);
     ctx.stroke();
   }
-  // the top, when it's below our eye: a hexagon lit by the glowing smoke over the cavern, the pit's red on its far
-  // edge
+  // the arrises where a lit face turns into a darker one catch the light
+  for (let q = 1; q < faces.length; q++) {
+    const a = faces[q - 1];
+    const b = faces[q];
+    const shared = (a.i + 1) % n === b.i ? b.i : (b.i + 1) % n === a.i ? a.i : -1;
+    if (shared < 0) continue;
+    const [x0, y0] = at(shared, 0.04);
+    const [x1, y1] = at(shared, h.Y - 0.01);
+    ctx.strokeStyle = rgba('#d0c8e0', 0.08 + Math.abs(faceCol[q] - faceCol[q - 1]) * 0.6);
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(x0, y0);
+    ctx.lineTo(x1, y1);
+    ctx.stroke();
+  }
+  const top = Array.from({ length: n }, (_, i) => at(i, h.Y));
   if (h.Y < 0.97) {
+    // its top, seen from above: lit by the glowing smoke over the cavern, ash settled in it, its far edge red
     const tp = polyPath(top);
-    ctx.fillStyle = mix('#5a4652', '#7a3a34', 0.35);
+    const tb = boxOfPts(top, 1);
+    ctx.fillStyle = '#4a3c44';
     tp(ctx);
     ctx.fill();
     within(ctx, tp, () => {
-      const tb = boxOfPts(top, 1);
-      lay(ctx, drift('#8a6a70', '#2a1c24', 2, Math.round(h.X * 77 + h.z * 13), 16, 16), tb, 0.5);
+      lay(ctx, drift('#7a6268', '#241a20', 2, h.seed, 16, 16), tb, 0.55);
       const g = ctx.createLinearGradient(0, tb.y, 0, tb.y + tb.h);
-      g.addColorStop(0, 'rgba(255,110,60,0.35)');
-      g.addColorStop(1, 'rgba(255,110,60,0)');
+      g.addColorStop(0, 'rgba(255,100,50,0.3)');
+      g.addColorStop(0.6, 'rgba(255,100,50,0)');
       ctx.fillStyle = g;
       ctx.fillRect(tb.x, tb.y, tb.w, tb.h);
-      // ash lying in its pits
-      lay(ctx, noiseMask(3, Math.round(h.X * 31 + h.z * 7), { cover: 0.35, soft: 0.3, col: '#8a8088', w: 12, h: 12 }), tb, 0.35);
+      lay(ctx, noiseMask(3, h.seed + 3, { cover: 0.42, soft: 0.35, col: '#9a9298', w: 12, h: 12 }), tb, 0.55);
+      // a crack across it
+      if (h.seed % 3 === 0) {
+        const [ax, ay] = top[0];
+        const [bx, by] = top[Math.floor(n / 2)];
+        ctx.strokeStyle = 'rgba(8,4,8,0.7)';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(ax, ay);
+        ctx.lineTo((ax + bx) / 2 + (r() - 0.5) * 6, (ay + by) / 2 + (r() - 0.5) * 3);
+        ctx.lineTo(bx, by);
+        ctx.stroke();
+      }
+      // a corner knocked off, the break darker and rougher
+      if (h.chip >= 0) {
+        const c0 = top[h.chip];
+        const c1 = top[(h.chip + 1) % n];
+        const c2 = top[(h.chip + n - 1) % n];
+        ctx.fillStyle = 'rgba(20,14,18,0.85)';
+        ctx.beginPath();
+        ctx.moveTo(c0[0], c0[1]);
+        ctx.lineTo(c0[0] + (c1[0] - c0[0]) * 0.45, c0[1] + (c1[1] - c0[1]) * 0.45 + 2);
+        ctx.lineTo((c0[0] + c1[0] + c2[0]) / 3, (c0[1] + c1[1] + c2[1]) / 3 + 3);
+        ctx.lineTo(c0[0] + (c2[0] - c0[0]) * 0.45, c0[1] + (c2[1] - c0[1]) * 0.45 + 2);
+        ctx.closePath();
+        ctx.fill();
+      }
     });
-    ctx.strokeStyle = 'rgba(2,1,4,0.9)';
-    ctx.lineWidth = 1.2;
+    ctx.strokeStyle = 'rgba(2,1,4,0.95)';
+    ctx.lineWidth = 1.3;
     tp(ctx);
     ctx.stroke();
-    // its near edges catch the light
-    ctx.strokeStyle = 'rgba(200,170,180,0.25)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    for (const f of faces) {
-      const j = (f.i + 1) % 6;
-      ctx.moveTo(top[f.i][0], top[f.i][1]);
-      ctx.lineTo(top[j][0], top[j][1]);
+    // the edges towards us catch the light; the back edges glow with the pit beyond
+    for (let i = 0; i < n; i++) {
+      const [p0x, p0y] = top[i];
+      const [p1x, p1y] = top[(i + 1) % n];
+      const back = (p0y + p1y) / 2 < sy(h.Y, h.z);
+      ctx.strokeStyle = back ? 'rgba(255,110,60,0.4)' : 'rgba(210,196,210,0.22)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(p0x, p0y + (back ? 0.6 : -0.6));
+      ctx.lineTo(p1x, p1y + (back ? 0.6 : -0.6));
+      ctx.stroke();
     }
-    ctx.stroke();
   } else {
     // above our eye: a broken end against the cavern, a hot rim from the pit behind
     ctx.strokeStyle = 'rgba(255,110,50,0.35)';
@@ -2550,25 +2669,34 @@ function hexColumn(ctx: Ctx, r: R, h: Hex): void {
   }
 }
 
-/** The stepped clusters of basalt columns at either side of our bank, tall at the frame's edge, stepping down to
- * the water towards the middle. */
+/** The stepped clusters of basalt columns at either side of our bank, a causeway of them: broken off at stepped
+ * heights, tallest at the frame's edge, stepping down to the water towards the middle. */
 const HEXES: Hex[] = (() => {
   const r = rng(hashStr('ta:hexes'));
   const out: Hex[] = [];
-  const rad = 0.12;
+  const rad = 0.11;
   const rowZ = rad * Math.sqrt(3);
+  let seed = 1;
   for (const d of [-1, 1]) {
-    for (let c = 0; c < 12; c++) {
-      const X = d * (3.55 - c * rad * 1.5);
-      for (let row = 0; row < 7; row++) {
-        const z = 3.15 + row * rowZ + (c % 2) * rowZ * 0.5;
-        if (Math.abs(X) < 1.72 + (z - 3.1) * 0.25) continue;
+    for (let c = 0; c < 14; c++) {
+      for (let row = 0; row < 8; row++) {
+        const X = d * (3.55 - c * rad * 1.5) + (r() - 0.5) * 0.03;
+        const z = 3.12 + row * rowZ + (c % 2) * rowZ * 0.5 + (r() - 0.5) * 0.03;
+        if (Math.abs(X) < 1.7 + (z - 3.1) * 0.28) continue;
         const x = sx(X, z);
         if (x < -70 || x > W + 70) continue;
         const outer = clamp01((Math.abs(X) - 1.8) / 1.6);
-        let Y = 0.12 + outer ** 1.5 * 1.15 + (r() - 0.5) * 0.14 - (z - 3.15) * 0.14;
-        if (r() < 0.07) Y += 0.35;
-        out.push({ X, z, rad: rad * (0.95 + r() * 0.05), Y: Math.max(0.06, Y), rot: (r() - 0.5) * 0.12, tilt: (r() - 0.5) * 0.04 });
+        let Y = 0.08 + outer ** 1.3 * 0.62 + (r() - 0.5) * 0.14 - (z - 3.12) * 0.1;
+        if (r() < 0.06) Y += 0.4;
+        // (broken off at stepped heights: the joints are where it breaks)
+        Y = Math.max(0.06, Math.round(Y / 0.07) * 0.07);
+        const sides = 5 + Math.floor(r() * 3);
+        const rot = r() * P2;
+        const size = rad * (0.85 + r() * 0.25);
+        const verts: [number, number][] = Array.from({ length: sides }, (_, i) => [rot + ((i + (r() - 0.5) * 0.3) / sides) * P2, size * (0.88 + r() * 0.2)]);
+        const joints: number[] = [];
+        for (let jy = 0.07 + r() * 0.07; jy < Y; jy += 0.14 + r() * 0.12) joints.push(Math.round(jy / 0.07) * 0.07);
+        out.push({ X, z, Y, verts, tilt: (r() - 0.5) * 0.05, joints, chip: r() < 0.3 ? Math.floor(r() * sides) : -1, seed: seed++ });
       }
     }
   }
@@ -2576,6 +2704,8 @@ const HEXES: Hex[] = (() => {
   return out.sort((a, b) => b.z - a.z);
 })();
 
+/** Asphodel rooted in the ash between the columns (on their low tops near us). */
+const HEX_FLOWERS: Pt[] = HEXES.filter((h) => h.Y < 0.3 && h.z < 3.6 && h.seed % 4 === 1).map((h) => P(h.X, h.Y, h.z));
 function bankPath(): (c: Ctx) => void {
   return (c) => {
     c.beginPath();
@@ -2623,6 +2753,7 @@ function bank(ctx: Ctx, r: R): void {
 /** Either side of our bank: the stepped basalt columns, the broken column in its chains, asphodel and bones. */
 function side(ctx: Ctx, r: R, left: boolean): void {
   for (const h of HEXES) if (h.X < 0 === left) hexColumn(ctx, r, h);
+  for (const [x, y] of HEX_FLOWERS) if (x < 960 === left) asphodel(ctx, r, x, y, 0.9);
   pillar(ctx, left ? 0 : 1);
   ash(ctx, r, left);
 }
@@ -3253,7 +3384,7 @@ function asphodel(ctx: Ctx, r: R, x: number, y: number, s: number): void {
       const fy = y - h * t;
       const bud = f > 5;
       const fr = (bud ? 1.6 : 3.4) * s;
-      ctx.fillStyle = bud ? '#6a6a62' : mix('#a8a49c', '#cfcbc2', r());
+      ctx.fillStyle = bud ? '#5a5a54' : mix('#8a8680', '#aaa69e', r());
       ctx.beginPath();
       for (let pp = 0; pp < (bud ? 1 : 6); pp++) {
         const a = (pp / 6) * P2 + r() * 0.3;
@@ -3351,93 +3482,129 @@ function table(ctx: Ctx, r: R): void {
   const f = TA.front;
   const zf = zFront(f);
   const box = { x: 0, y: TY, w: W, h: f - TY };
+  /** A table-plane point (X across, z away) on screen. */
+  const T = (X: number, z: number): Pt => [xAt(X, z), yAt(z)];
   ctx.save();
   ctx.beginPath();
   ctx.rect(0, TY, W, f - TY + 4);
   ctx.clip();
-  vfill(ctx, 0, TY, W, f - TY + 4, [[0, '#0a080e'], [0.5, '#14101a'], [1, '#1c1622']]);
-  surface(ctx, r, box, '#14101a', { over: true, vary: 0.35, cells: 4, mottle: 0.25, strokes: 0.12, strokeAng: 0, strokeLen: 300, strokeW: 3, grain: 0.05, grainKind: 'grain', warm: '#2a1c24', cool: '#0a0c1a', seed: 91 });
+  // volcanic glass: near black, a violet cast in its depths
+  vfill(ctx, 0, TY, W, f - TY + 4, [[0, '#08070c'], [0.5, '#110e16'], [1, '#17121c']]);
+  surface(ctx, r, box, '#120e18', { over: true, vary: 0.25, cells: 4, mottle: 0.2, strokes: 0.05, strokeAng: 0, strokeLen: 300, strokeW: 3, grain: 0.03, grainKind: 'grain', warm: '#24181e', cool: '#0a0c18', seed: 91 });
+  // flow banding: the glass's layers, long faint wavy bands running across the slab in its perspective
+  ctx.lineCap = 'round';
+  for (let i = 0; i < 26; i++) {
+    const z = ZB + (zf - ZB) * (i / 26) ** 0.8 * 1.0 + (r() - 0.5) * 0.05;
+    const lighter = i % 3 === 0;
+    const amp = 0.03 + r() * 0.05;
+    const ph = r() * 9;
+    ctx.strokeStyle = lighter ? rgba('#4a3e5a', 0.12 + r() * 0.08) : rgba('#000000', 0.18 + r() * 0.1);
+    ctx.lineWidth = (1 + r() * 2.5) * (0.4 + ((z - ZB) / (zf - ZB)) * 1.2);
+    ctx.beginPath();
+    for (let X = -2.4; X <= 2.4; X += 0.08) {
+      const [x, y] = T(X, z + Math.sin(X * 2.1 + ph) * amp + Math.sin(X * 5.3 + ph * 2) * amp * 0.3);
+      if (X === -2.4) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
   // the slabs' joints, on the rim's key-pattern spacing (each slab holds a whole run of key units)
   const jointsX: number[] = [];
   for (let n = -4; n <= 4; n++) jointsX.push(960 + (n + 0.5) * KEY_U * SLAB);
   for (const xf of jointsX) {
     const X = (xf - 960) * (zf / 1210);
-    ctx.strokeStyle = 'rgba(0,0,0,0.65)';
+    ctx.strokeStyle = 'rgba(0,0,0,0.7)';
     ctx.lineWidth = 2.5;
     ctx.beginPath();
     ctx.moveTo(xAt(X, ZB), TY);
     ctx.lineTo(xAt(X, zf), f + 4);
     ctx.stroke();
-    ctx.strokeStyle = 'rgba(150,140,200,0.12)';
+    ctx.strokeStyle = 'rgba(150,140,200,0.1)';
     ctx.lineWidth = 1.2;
     ctx.beginPath();
     ctx.moveTo(xAt(X, ZB) + 2, TY);
     ctx.lineTo(xAt(X, zf) + 3, f + 4);
     ctx.stroke();
   }
-  // conchoidal fractures: shell-like ripples of glass where the slabs were knapped, near their joints and edges
-  for (let i = 0; i < 9; i++) {
-    const jx = jointsX[1 + Math.floor(r() * (jointsX.length - 2))];
-    const y = TY + 30 + r() * (f - TY - 60);
+  // its sheen: the glass mirrors the light that reaches it, soft and broken by the banding: the pit's red as a long
+  // band down the middle, the soul-fires' blue under each tripod, the cavern's dim light across its far edge
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const sheen = (x: number, col: string, a: number, wd: number) => {
+    softly(ctx, { x: x - wd * 2, y: TY, w: wd * 4, h: f - TY }, (q) => {
+      const g = q.createLinearGradient(0, TY, 0, f);
+      g.addColorStop(0, rgba(col, a));
+      g.addColorStop(0.5, rgba(col, a * 0.45));
+      g.addColorStop(1, rgba(col, 0));
+      q.fillStyle = g;
+      q.beginPath();
+      q.moveTo(x - wd * 0.3, TY);
+      q.lineTo(x + wd * 0.3, TY);
+      q.lineTo(x + wd * 1.6, f);
+      q.lineTo(x - wd * 1.6, f);
+      q.closePath();
+      q.fill();
+    }, 0.05, 'lighter');
+  };
+  sheen(960, '#ff5a2a', 0.06, 170);
+  for (const [X, z] of TA.braziers) sheen(sx(X, z), '#4aa8ff', 0.07, 70);
+  ctx.restore();
+  vfill(ctx, 0, TY, W, 50, [[0, rgba('#8a80c0', 0.1)], [1, rgba('#8a80c0', 0)]]);
+  // glints where the banding catches the light
+  for (let i = 0; i < 40; i++) {
+    const X = (r() - 0.5) * 4.2;
+    const z = ZB + (zf - ZB) * r();
+    const [x, y] = T(X, z);
     const t = (y - TY) / (f - TY);
-    const x = jx + (r() < 0.5 ? -1 : 1) * (10 + t * 20);
-    const rad = (30 + r() * 50) * (0.5 + t);
-    const a0 = r() * P2;
-    for (let k = 0; k < 5; k++) {
-      const rr = rad * (0.4 + k * 0.15);
-      ctx.strokeStyle = rgba('#000000', 0.18);
-      ctx.lineWidth = 1.4;
-      ctx.beginPath();
-      ctx.ellipse(x, y, rr, rr * (0.35 + t * 0.15), 0, a0, a0 + 1.6);
-      ctx.stroke();
-      ctx.strokeStyle = rgba('#b8b0e8', 0.06);
+    const near = Math.min(1, Math.abs(x - 960) / 600);
+    ctx.fillStyle = rgba(near < 0.4 ? '#ff9a70' : '#a8c8ff', 0.05 + r() * 0.08);
+    ctx.fillRect(x, y, (8 + r() * 30) * (0.5 + t), 1 + t);
+  }
+  // conchoidal fractures: shell-shaped scallops knapped out of the front edge, ripple lines curving in each, their
+  // ridges catching the light
+  for (let x = 20 + r() * 40; x < W - 20; x += 70 + r() * 110) {
+    const rw = 22 + r() * 34;
+    const rh = 12 + r() * 16;
+    const cy = f - 1;
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.beginPath();
+    ctx.ellipse(x, cy, rw, rh, 0, Math.PI, 0);
+    ctx.fill();
+    for (let k = 1; k <= 4; k++) {
+      const s = k / 4;
+      ctx.strokeStyle = rgba(k % 2 ? '#000000' : '#9a90c8', k % 2 ? 0.3 : 0.12);
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.ellipse(x, y - 1.5, rr, rr * (0.35 + t * 0.15), 0, a0, a0 + 1.6);
+      ctx.ellipse(x, cy, rw * s, rh * s, 0, Math.PI * 1.05, Math.PI * 1.95);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = rgba('#c8c0f0', 0.18);
+    ctx.beginPath();
+    ctx.ellipse(x, cy, rw, rh, 0, Math.PI * 1.08, Math.PI * 1.5);
+    ctx.stroke();
+  }
+  // a few further in, by the joints, smaller with distance
+  for (let i = 0; i < 6; i++) {
+    const jx = jointsX[1 + Math.floor(r() * (jointsX.length - 2))];
+    const y = TY + 40 + r() * (f - TY - 120);
+    const t = (y - TY) / (f - TY);
+    const x = jx + (r() < 0.5 ? -1 : 1) * (8 + t * 14);
+    const rad = (16 + r() * 26) * (0.5 + t);
+    const a0 = r() * P2;
+    for (let k = 0; k < 4; k++) {
+      const rr = rad * (0.4 + k * 0.2);
+      ctx.strokeStyle = rgba(k % 2 ? '#b8b0e8' : '#000000', k % 2 ? 0.05 : 0.16);
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.ellipse(x, y, rr, rr * (0.32 + t * 0.15), 0, a0, a0 + 1.5);
       ctx.stroke();
     }
   }
-  // the glass: the soul-fires and the pit mirrored in long soft streaks, the cavern's dim light as a sheen
-  for (const [X, z] of TA.braziers) {
-    const bx = sx(X, z);
-    ctx.save();
-    ctx.translate(bx, TY + 60);
-    ctx.scale(1, 5);
-    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 60);
-    g.addColorStop(0, rgba('#6ac8ff', 0.2));
-    g.addColorStop(0.4, rgba('#3a8aff', 0.08));
-    g.addColorStop(1, rgba('#3a8aff', 0));
-    ctx.fillStyle = g;
-    ctx.fillRect(-60, -60, 120, 120);
-    ctx.restore();
-  }
-  ctx.save();
-  ctx.translate(960, TY + 10);
-  ctx.scale(1, 2.6);
-  const pg = ctx.createRadialGradient(0, 0, 0, 0, 0, 260);
-  pg.addColorStop(0, rgba('#ff6a3a', 0.1));
-  pg.addColorStop(1, rgba('#ff6a3a', 0));
-  ctx.fillStyle = pg;
-  ctx.fillRect(-260, -260, 520, 520);
+  grain(ctx, box, 'stone', 0.08, 1.4);
   ctx.restore();
-  vfill(ctx, 0, TY, W, 60, [[0, rgba('#8a80c0', 0.12)], [1, rgba('#8a80c0', 0)]]);
-  // a band of glassy highlight across the slab's far third, broken by the joints: the polish
-  ctx.save();
-  ctx.globalCompositeOperation = 'lighter';
-  softly(ctx, { x: 0, y: TY, w: W, h: 90 }, (q) => {
-    const g = q.createLinearGradient(0, TY + 20, 0, TY + 70);
-    g.addColorStop(0, 'rgba(160,150,220,0)');
-    g.addColorStop(0.5, 'rgba(160,150,220,0.06)');
-    g.addColorStop(1, 'rgba(160,150,220,0)');
-    q.fillStyle = g;
-    q.fillRect(0, TY, W, 90);
-  }, 0.25, 'lighter');
-  ctx.restore();
-  grain(ctx, box, 'stone', 0.12, 1.4);
-  ctx.restore();
-  tableFalloff(ctx, f, 0.45, '#04020a');
+  tableFalloff(ctx, f, 0.4, '#04020a');
   crevice(ctx, 0, W, TY, 30, 0.6, '#000000');
-  ctx.fillStyle = 'rgba(160,150,220,0.18)';
+  ctx.fillStyle = 'rgba(160,150,220,0.16)';
   ctx.fillRect(0, TY, W, 2);
   rimBand(ctx, f);
 }
@@ -3686,9 +3853,12 @@ registerKitScene(TARTARUS, (k: KitLive, wave0: number) => {
   const horizon = [700, 1220].map((x) => k.glow(x, HZ + 6, 360, 0xff4a1a, 0, { into: farC, sy: 0.22 }));
   const flash = k.glow(960, HZ - 40, 760, 0xff7a2a, 0, { into: farC, sy: 0.45 });
   const redWash = k.wash(0xff3a1a, 0, ADD, partC);
+  // the great fountain's light thrown over the whole cavern
+  const surgeWash = k.wash(0xff7a30, 0, ADD, partC);
+  let surge = 0;
   // the roof's undersides lit red from the erupting pit
   const roofGlow = k.glow(960, 60, 700, 0xff4a1a, 0, { into: steamC, sy: 0.16 });
-  const vents = [690, 820, 1100, 1250];
+  const vents = [690, 820, 1100, 1250, 960];
   const lava = new Parts(k, { frame: 'ember', add: true, into: farC, max: 220 });
   const ventGlow = vents.map((x) => k.glow(x, HZ + 10, 90, 0xffa040, 0, { into: farC, sy: 0.6 }));
   // the jet itself: a column of glowing spray standing over the vent while it blows
@@ -3698,7 +3868,7 @@ registerKitScene(TARTARUS, (k: KitLive, wave0: number) => {
     const x = vents[i];
     ventHeat[i] = 1;
     for (let j = 0; j < 28 + p * 40; j++) {
-      const v = 420 + crand() * 300 * p;
+      const v = 420 + crand() * 300 * Math.min(1, p) + (p > 1 ? 60 : 0);
       const a = -Math.PI / 2 + (crand() - 0.5) * 0.55;
       lava.spawn({ x: x + (crand() - 0.5) * 20, y: HZ + 20, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 2.4 + crand(), r0: 3 + crand() * 2.5, r1: 1, a: 1, tint: crand() < 0.4 ? 0xffd880 : 0xff7a24, grav: 340, streak: 0.016, fade: 0.04 });
     }
@@ -3879,8 +4049,14 @@ registerKitScene(TARTARUS, (k: KitLive, wave0: number) => {
         nextErupt -= dt;
         if (nextErupt < 0) {
           erupt = 1;
-          const i = Math.floor(crand() * vents.length);
+          const i = Math.floor(crand() * 4);
           burst(i, shown);
+          // at the height of it, the great one straight behind the temple, lighting the whole cavern
+          if (shown > 0.85 && crand() < 0.45) {
+            burst(4, 1.6);
+            burst(4, 1.2);
+            surge = 1;
+          }
           if (shown > 0.85 && crand() < 0.5) burst((i + 2) % vents.length, shown * 0.7);
           nextErupt = lerp(9, 2.5, shown) + crand() * 3;
         }
@@ -3888,6 +4064,8 @@ registerKitScene(TARTARUS, (k: KitLive, wave0: number) => {
       // at the last wave the vents never quite stop
       if (shown > 0.8) for (let i = 0; i < vents.length; i++) if (crand() < dt * 3 * (shown - 0.8) * 5) lava.spawn({ x: vents[i] + (crand() - 0.5) * 10, y: HZ + 20, vx: (crand() - 0.5) * 90, vy: -200 - crand() * 220, life: 1.6, r0: 1.8, r1: 0.6, a: 0.8, tint: 0xff8a30, grav: 300, streak: 0.01, fade: 0.04 });
       erupt = Math.max(0, erupt - dt * 0.6);
+      surge = Math.max(0, surge - dt * 0.35);
+      surgeWash.setAlpha(surge * surge * (flashes() ? 0.16 : 0.06));
       flash.setAlpha(erupt * erupt * (flashes() ? 0.5 : 0.16));
       for (let i = 0; i < vents.length; i++) {
         ventHeat[i] = Math.max(0, ventHeat[i] - dt * 0.5);
