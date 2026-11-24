@@ -35,14 +35,14 @@ import { type Air, type Ctx, type R, TY, W, airMix, calmLanes, castShadow, crevi
 import type { SceneSpec } from '../../art/scene/layers';
 import { grain, tableFalloff, tableSeam, woodGrain } from '../../art/scene/materials';
 import { chips, crack, drift, lay, noiseMask, softly, streaks, surface } from '../../art/scene/paint';
-import { cirrus, cloud, skyFill } from '../../art/scene/sky';
+import { cirrus, cloud, rays, skyFill } from '../../art/scene/sky';
 import { ZB, xAt, yAt, zFront } from '../../art/sceneKit';
 import { hashStr, makeCanvas, mix, rgba, rng, shade } from '../../art/util';
 import { crand } from '../../systems/cosmeticRandom';
 import { Loop, Parts, Rate, Spring, Swing, sheet } from '../../game/sceneAnim';
 import { type KitLive, calm, flicker, registerKitScene } from '../../game/sceneLive';
 import { fireFrame, smokeFrame } from './sceneBits';
-import { BRONZE, COLUMN, FLK, FR, HORNS, LIME, SHADE, age, bull, bullHead, figure, flake, flakeFrame, hornsPaint, labrys, lily, masonMark, spirals, veined } from './scene-labyrinth';
+import { BRONZE, COLUMN, FLK, FR, HORNS, LIME, SHADE, age, bull, bullHead, flakeFrame, hornsPaint, labrys, lily, masonMark, spirals, veined } from './scene-labyrinth';
 
 type Pt = [number, number];
 type Box = { x: number; y: number; w: number; h: number };
@@ -71,7 +71,6 @@ export const MT = {
   /** The labrys's stand (bearing, distance), its socket's height, the axe head's centre. */
   labrys: { th: -1.0, r: 3.0, sock: 0.36, head: 1.48, top: 1.66 },
   /** The trough (bearings, front and back distances, rim height) and the bull's head spout over it. */
-  trough: { th0: 0.93, th1: 1.1, r0: 2.82, r1: 3.18, h: 0.42 },
   spout: { th: 1.0, Y: 1.0 },
 };
 const RC = MT.rc;
@@ -195,6 +194,8 @@ const AIR: Air = { color: '#e0c69a', far: 0.4 };
 /** The far air over the island: bleached, hot. */
 const FAR: Air = { color: '#ead8b8', far: 0.85 };
 const SHADE_FLOOR = '#6a6ca0';
+/** The wall's shade: cool, but greyer than the floor's, so the fresco under it keeps its colours. */
+const WALL_SHADE = '#72708e';
 const SUN = '#ffd89a';
 const SUN_AT: Pt = [130, -90];
 
@@ -224,24 +225,12 @@ function sky(ctx: Ctx, r: R): void {
   ctx.fillStyle = ic;
   ctx.fill();
   ctx.clip();
-  lay(ctx, drift('#f4dcb0', shade(ic, -0.2), 4, 12, 64, 24), { x: 520, y: 178, w: 1080, h: 162 }, 0.3);
+  lay(ctx, drift('#f4dcb0', shade(ic, -0.2), 3, 12, 32, 16), { x: 520, y: 178, w: 1080, h: 162 }, 0.22);
   const lg = ctx.createLinearGradient(880, 180, 1160, 320);
   lg.addColorStop(0, rgba('#f6dcb0', 0.5));
   lg.addColorStop(1, rgba('#f6dcb0', 0));
   ctx.fillStyle = lg;
   ctx.fillRect(520, 178, 1080, 162);
-  // its gullies: soft shadowed folds down its flanks
-  softly(ctx, { x: 520, y: 178, w: 1080, h: 162 }, (g) => {
-    for (let i = 0; i < 9; i++) {
-      const gx = 870 + i * 44 + r() * 14;
-      g.strokeStyle = rgba(shade(ic, -0.2), 0.12);
-      g.lineWidth = 6 + r() * 8;
-      g.beginPath();
-      g.moveTo(gx, 212 + r() * 12);
-      g.quadraticCurveTo(gx + (gx - 1000) * 0.15, 262, gx + (gx - 1000) * 0.35 + r() * 16, 320);
-      g.stroke();
-    }
-  }, 0.25);
   vfill(ctx, 520, 240, 1080, 100, [[0, rgba(FAR.color, 0)], [1, rgba(FAR.color, 0.55)]]);
   ctx.restore();
   // the palace on its hill over the maze (as the Labyrinth sees it): pale terraces, a red loggia, flat roofs
@@ -262,13 +251,27 @@ function sky(ctx: Ctx, r: R): void {
     ctx.fillRect(ppx + bx0, ppy + by0, bw * 0.35, bh);
     ctx.fillRect(ppx + bx0, ppy + by0, bw, 1);
   }
-  ctx.fillStyle = airMix('#8a2a1c', 0.82, FAR);
-  for (let i = 0; i < 5; i++) ctx.fillRect(ppx - 26 + i * 6, ppy - 12, 1.6, 7);
   // heat-hazed cumulus building over the mountain, lit from the sun's side
   cloud(ctx, r, 1340, 176, 360, 92, { lit: '#fff6e0', body: '#e2d4c2', shadow: '#a8a4ba', sunX: SUN_AT[0], sunY: SUN_AT[1], rim: 0.5, a: 0.9, kind: 'cumulus', wisp: 0.55, depth: 0.7, air: FAR, res: 0.5 });
   cloud(ctx, r, 720, 150, 260, 46, { lit: '#fff6e0', body: '#e6dac8', shadow: '#b0aac0', sunX: SUN_AT[0], sunY: SUN_AT[1], rim: 0.5, a: 0.8, kind: 'stratus', wisp: 0.6, depth: 0.75, air: FAR, res: 0.5 });
-  // the hot air shimmering over the wall tops
-  vfill(ctx, 0, 220, W, 120, [[0, rgba('#f8e6c0', 0)], [0.7, rgba('#f8e6c0', 0.3)], [1, rgba('#f8e6c0', 0.2)]]);
+  // the hot air shimmering over the wall tops: a bleached haze, its bands of rising air
+  vfill(ctx, 0, 200, W, 140, [[0, rgba('#f8e6c0', 0)], [0.6, rgba('#f8e6c0', 0.34)], [1, rgba('#f8e6c0', 0.24)]]);
+  softly(ctx, { x: 0, y: 200, w: W, h: 140 }, (g) => {
+    g.lineCap = 'round';
+    for (let i = 0; i < 26; i++) {
+      const y = 236 + r() * 90;
+      const x0 = r() * W;
+      const l = 120 + r() * 260;
+      g.strokeStyle = rgba(r() < 0.6 ? '#fff4dc' : '#d8c0a0', 0.18);
+      g.lineWidth = 3 + r() * 4;
+      g.beginPath();
+      g.moveTo(x0, y);
+      for (let x = 0; x <= l; x += 20) g.lineTo(x0 + x, y + Math.sin(x * 0.05 + i) * 2.5);
+      g.stroke();
+    }
+  }, 0.5);
+  // the high sun's glare: rays fanning down from beyond the top left
+  rays(ctx, r, SUN_AT[0], SUN_AT[1], 9, 1000, '#fff2d0', 0.12, 0.9, 0.75);
 }
 
 // ——— masonry on the ring ———
@@ -350,35 +353,459 @@ const GTH = MT.gate.hw / RC;
 const GFRAME = (MT.gate.hw + 0.26) / RC;
 let fresCache: HTMLCanvasElement | null = null;
 
-/** A Minoan jar held up as an offering: a tall belly, a narrow neck and lip, two handles, a band of paint. */
-function jar(c: Ctx, x: number, y: number, s: number, col: string): void {
-  c.save();
-  c.lineJoin = 'round';
+/** The fresco's palette: Egyptian blue, red and yellow ochre, carbon black, lime white, and the skins. */
+const PAL = { blue: '#3a6e9e', blueD: '#24486a', red: '#a8442c', redD: '#7a2a1a', ochre: '#d39a3e', ochreL: '#e8c072', black: '#231c1a', white: '#f2ead6', ground: '#efe2c2', youth: '#a8492a', maiden: '#f4e6d0' };
+
+/** A tapered limb from (ax, ay) to (bx, by), w0 wide at a and w1 at b, rounded at both ends. */
+function limb(c: Ctx, ax: number, ay: number, bx: number, by: number, w0: number, w1: number): void {
+  const a = Math.atan2(by - ay, bx - ax);
+  const nx = -Math.sin(a);
+  const ny = Math.cos(a);
   c.beginPath();
-  c.moveTo(x - s * 0.03, y - s * 0.2);
-  c.lineTo(x + s * 0.03, y - s * 0.2);
-  c.lineTo(x + s * 0.035, y - s * 0.15);
-  c.quadraticCurveTo(x + s * 0.11, y - s * 0.1, x + s * 0.09, y + s * 0.0);
-  c.quadraticCurveTo(x + s * 0.06, y + s * 0.07, x + s * 0.03, y + s * 0.08);
-  c.lineTo(x - s * 0.03, y + s * 0.08);
-  c.quadraticCurveTo(x - s * 0.06, y + s * 0.07, x - s * 0.09, y + s * 0.0);
-  c.quadraticCurveTo(x - s * 0.11, y - s * 0.1, x - s * 0.035, y - s * 0.15);
+  c.moveTo(ax + (nx * w0) / 2, ay + (ny * w0) / 2);
+  c.lineTo(bx + (nx * w1) / 2, by + (ny * w1) / 2);
+  c.arc(bx, by, w1 / 2, a + Math.PI / 2, a - Math.PI / 2, true);
+  c.lineTo(ax - (nx * w0) / 2, ay - (ny * w0) / 2);
+  c.arc(ax, ay, w0 / 2, a - Math.PI / 2, a + Math.PI / 2, true);
   c.closePath();
-  c.fillStyle = col;
-  c.fill();
-  c.strokeStyle = FR.black;
-  c.lineWidth = s * 0.018;
-  c.stroke();
-  for (const d of [-1, 1]) {
+}
+
+interface Pose {
+  /** Angles (radians, 0 hanging straight down, + towards the way the figure faces): thighs and shins of the near and
+   * far legs, upper arms and forearms of the near and far arms; the torso's lean. */
+  legN: [number, number];
+  legF: [number, number];
+  armN: [number, number];
+  armF: [number, number];
+  lean?: number;
+}
+
+/**
+ * A Minoan figure as the fresco painters drew them, at hip (x, y), s px tall, facing dir (1 right, −1 left), turned by
+ * rot about the hip: the head and legs in profile, the chest frontal and broad, the waist pinched; a big almond eye,
+ * long black locks flowing behind, a curl over the brow. Youths are red-brown in a codpiece kilt and belt; maidens
+ * white, in an open-sleeved bodice and a tiered flounced skirt. hold(x, y) paints what the near hand carries.
+ */
+function minoan(c: Ctx, x: number, y: number, s: number, dir: number, female: boolean, p: Pose, o: { rot?: number; hold?: (c: Ctx, hx: number, hy: number) => void; skirt?: string[] } = {}): void {
+  const skin = female ? PAL.maiden : PAL.youth;
+  const ink = PAL.black;
+  c.save();
+  c.translate(x, y);
+  c.rotate(o.rot ?? 0);
+  c.scale(dir, 1);
+  c.lineJoin = 'round';
+  c.lineCap = 'round';
+  const lean = p.lean ?? 0;
+  const sh: Pt = [Math.sin(lean) * s * 0.3, -Math.cos(lean) * s * 0.3];
+  const at = (ox: number, oy: number, ang: number, len: number): Pt => [ox + Math.sin(ang) * len, oy + Math.cos(ang) * len];
+  const leg = (th: number, sn: number, near: boolean) => {
+    const hx = near ? s * 0.015 : -s * 0.015;
+    const [kx, ky] = at(hx, 0, th, s * 0.25);
+    const [fx, fy] = at(kx, ky, th + sn, s * 0.24);
+    c.fillStyle = near ? skin : shade(skin, -0.18);
+    limb(c, hx, 0, kx, ky, s * 0.085, s * 0.06);
+    c.fill();
+    limb(c, kx, ky, fx, fy, s * 0.06, s * 0.035);
+    c.fill();
+    // the foot, pointed forward
     c.beginPath();
-    c.arc(x + d * s * 0.06, y - s * 0.12, s * 0.03, 0, P2);
+    c.ellipse(fx + s * 0.025, fy + s * 0.008, s * 0.035, s * 0.013, 0, 0, P2);
+    c.fill();
+    c.strokeStyle = ink;
+    c.lineWidth = s * 0.008;
+    limb(c, hx, 0, kx, ky, s * 0.085, s * 0.06);
+    c.stroke();
+    limb(c, kx, ky, fx, fy, s * 0.06, s * 0.035);
+    c.stroke();
+  };
+  const arm = (ua: number, fa: number, near: boolean): Pt => {
+    const ox = sh[0] + (near ? s * 0.06 : -s * 0.06);
+    const oy = sh[1] + s * 0.02;
+    const [ex, ey] = at(ox, oy, ua, s * 0.15);
+    const [wx, wy] = at(ex, ey, ua + fa, s * 0.14);
+    c.fillStyle = near ? skin : shade(skin, -0.18);
+    limb(c, ox, oy, ex, ey, s * 0.05, s * 0.038);
+    c.fill();
+    limb(c, ex, ey, wx, wy, s * 0.038, s * 0.026);
+    c.fill();
+    c.strokeStyle = ink;
+    c.lineWidth = s * 0.008;
+    limb(c, ox, oy, ex, ey, s * 0.05, s * 0.038);
+    c.stroke();
+    limb(c, ex, ey, wx, wy, s * 0.038, s * 0.026);
+    c.stroke();
+    // a bracelet
+    c.strokeStyle = PAL.blue;
+    c.lineWidth = s * 0.012;
+    const [bx, by] = at(ex, ey, ua + fa, s * 0.1);
+    c.beginPath();
+    c.arc(bx, by, s * 0.016, 0, P2);
+    c.stroke();
+    return [wx, wy];
+  };
+  // far arm and leg behind the body
+  arm(p.armF[0], p.armF[1], false);
+  if (!female) leg(p.legF[0], p.legF[1], false);
+  // the torso: broad shoulders, a pinched waist, the hips
+  const torso = (g: Ctx) => {
+    g.beginPath();
+    g.moveTo(-s * 0.05, s * 0.02);
+    g.quadraticCurveTo(-s * 0.035, -s * 0.08, sh[0] - s * 0.025, sh[1] + s * 0.19);
+    g.quadraticCurveTo(sh[0] - s * 0.1, sh[1] + s * 0.08, sh[0] - s * 0.085, sh[1] + s * 0.01);
+    g.quadraticCurveTo(sh[0], sh[1] - s * 0.02, sh[0] + s * 0.085, sh[1] + s * 0.01);
+    g.quadraticCurveTo(sh[0] + s * 0.11, sh[1] + s * 0.1, sh[0] + s * 0.03, sh[1] + s * 0.19);
+    g.quadraticCurveTo(s * 0.035, -s * 0.08, s * 0.05, s * 0.02);
+    g.closePath();
+  };
+  torso(c);
+  c.fillStyle = skin;
+  c.fill();
+  c.strokeStyle = ink;
+  c.lineWidth = s * 0.009;
+  c.stroke();
+  if (female) {
+    // the open bodice: short blue sleeves and a band of red at its edge
+    c.fillStyle = PAL.blue;
+    for (const d of [-1, 1]) {
+      c.beginPath();
+      c.ellipse(sh[0] + d * s * 0.075, sh[1] + s * 0.035, s * 0.035, s * 0.028, d * 0.5, 0, P2);
+      c.fill();
+    }
+    c.strokeStyle = PAL.red;
+    c.lineWidth = s * 0.014;
+    c.beginPath();
+    c.moveTo(sh[0] - s * 0.07, sh[1] + s * 0.03);
+    c.quadraticCurveTo(sh[0] - s * 0.03, sh[1] + s * 0.17, -s * 0.03, -s * 0.07);
+    c.moveTo(sh[0] + s * 0.07, sh[1] + s * 0.03);
+    c.quadraticCurveTo(sh[0] + s * 0.03, sh[1] + s * 0.17, s * 0.03, -s * 0.07);
     c.stroke();
   }
-  c.fillStyle = FR.black;
-  c.fillRect(x - s * 0.09, y - s * 0.05, s * 0.18, s * 0.02);
-  c.fillStyle = FR.red;
-  c.fillRect(x - s * 0.085, y - s * 0.02, s * 0.17, s * 0.015);
+  // the belt, rolled tight at the waist
+  c.fillStyle = PAL.ochre;
+  c.beginPath();
+  c.ellipse(Math.sin(lean) * s * 0.08, -s * 0.075, s * 0.05, s * 0.016, lean, 0, P2);
+  c.fill();
+  c.strokeStyle = ink;
+  c.lineWidth = s * 0.006;
+  c.stroke();
+  if (female) {
+    // the flounced skirt: tiers widening to the ankles, each hem scalloped, banded in the palette
+    const tiers = o.skirt ?? [PAL.blue, PAL.red, PAL.ochre, PAL.blue, PAL.red];
+    const top = -s * 0.06;
+    const bot = s * 0.5;
+    for (let j = tiers.length - 1; j >= 0; j--) {
+      const y0 = top + ((bot - top) * j) / tiers.length;
+      const y1 = top + ((bot - top) * (j + 1)) / tiers.length;
+      const w0 = s * (0.05 + (0.13 * j) / tiers.length);
+      const w1 = s * (0.05 + (0.13 * (j + 1)) / tiers.length);
+      c.beginPath();
+      c.moveTo(-w0 * 0.9, y0);
+      c.lineTo(w0 * 1.1, y0);
+      c.lineTo(w1 * 1.25, y1);
+      const n = 5;
+      for (let q = n; q >= 0; q--) {
+        const xx = -w1 * 0.95 + ((w1 * 2.2) * q) / n;
+        c.quadraticCurveTo(xx + (w1 * 1.1) / n, y1 + s * 0.022, xx, y1);
+      }
+      c.closePath();
+      c.fillStyle = tiers[j];
+      c.fill();
+      c.strokeStyle = ink;
+      c.lineWidth = s * 0.007;
+      c.stroke();
+      // a row of white dots along each flounce
+      c.fillStyle = rgba(PAL.white, 0.8);
+      for (let q = 0; q < 6; q++) {
+        c.beginPath();
+        c.arc(-w1 * 0.8 + ((w1 * 1.9) * q) / 5, y1 - s * 0.012, s * 0.006, 0, P2);
+        c.fill();
+      }
+    }
+    // her feet peeping from under it
+    c.fillStyle = skin;
+    c.beginPath();
+    c.ellipse(s * 0.06, bot + s * 0.01, s * 0.035, s * 0.012, 0, 0, P2);
+    c.fill();
+  } else {
+    // the codpiece kilt: a short patterned wrap, a sheath before
+    c.fillStyle = PAL.blue;
+    c.beginPath();
+    c.moveTo(-s * 0.05, -s * 0.07);
+    c.lineTo(s * 0.06, -s * 0.07);
+    c.lineTo(s * 0.075, s * 0.06);
+    c.quadraticCurveTo(0, s * 0.03, -s * 0.06, s * 0.05);
+    c.closePath();
+    c.fill();
+    c.strokeStyle = ink;
+    c.lineWidth = s * 0.007;
+    c.stroke();
+    c.strokeStyle = PAL.white;
+    c.lineWidth = s * 0.008;
+    for (let q = 0; q < 3; q++) {
+      c.beginPath();
+      c.moveTo(-s * 0.04, -s * 0.04 + q * s * 0.03);
+      c.lineTo(s * 0.06, -s * 0.04 + q * s * 0.03);
+      c.stroke();
+    }
+    leg(p.legN[0], p.legN[1], true);
+  }
+  // the neck and head, in profile: brow, nose, lips, chin; the eye frontal and large
+  const [hx, hy] = [sh[0] + s * 0.01, sh[1] - s * 0.1];
+  c.fillStyle = skin;
+  limb(c, sh[0], sh[1] + s * 0.01, hx, hy + s * 0.04, s * 0.04, s * 0.035);
+  c.fill();
+  const head = (g: Ctx) => {
+    g.beginPath();
+    g.moveTo(hx - s * 0.055, hy + s * 0.01);
+    g.quadraticCurveTo(hx - s * 0.06, hy - s * 0.075, hx + s * 0.005, hy - s * 0.075);
+    g.quadraticCurveTo(hx + s * 0.05, hy - s * 0.07, hx + s * 0.055, hy - s * 0.02);
+    g.lineTo(hx + s * 0.07, hy + s * 0.005);
+    g.lineTo(hx + s * 0.055, hy + s * 0.015);
+    g.quadraticCurveTo(hx + s * 0.06, hy + s * 0.035, hx + s * 0.045, hy + s * 0.045);
+    g.quadraticCurveTo(hx + s * 0.02, hy + s * 0.07, hx - s * 0.01, hy + s * 0.055);
+    g.closePath();
+  };
+  head(c);
+  c.fillStyle = skin;
+  c.fill();
+  c.strokeStyle = ink;
+  c.lineWidth = s * 0.008;
+  c.stroke();
+  // the eye: a big almond, white with a black iris
+  c.fillStyle = PAL.white;
+  c.beginPath();
+  c.ellipse(hx + s * 0.025, hy - s * 0.02, s * 0.018, s * 0.01, 0, 0, P2);
+  c.fill();
+  c.fillStyle = ink;
+  c.beginPath();
+  c.arc(hx + s * 0.03, hy - s * 0.02, s * 0.008, 0, P2);
+  c.fill();
+  // the hair: a cap of black over the crown, long locks flowing down the back, a curl over the brow
+  c.fillStyle = ink;
+  c.beginPath();
+  c.moveTo(hx - s * 0.06, hy + s * 0.02);
+  c.quadraticCurveTo(hx - s * 0.07, hy - s * 0.085, hx + s * 0.01, hy - s * 0.085);
+  c.quadraticCurveTo(hx + s * 0.045, hy - s * 0.08, hx + s * 0.04, hy - s * 0.05);
+  c.quadraticCurveTo(hx, hy - s * 0.055, hx - s * 0.02, hy - s * 0.02);
+  c.closePath();
+  c.fill();
+  c.strokeStyle = ink;
+  const locks = female ? 6 : 4;
+  for (let q = 0; q < locks; q++) {
+    c.lineWidth = s * (0.016 - q * 0.0015);
+    const len = s * (female ? 0.32 : 0.22) * (1 - q * 0.06);
+    const ox = hx - s * 0.04 - q * s * 0.006;
+    c.beginPath();
+    c.moveTo(ox, hy - s * 0.05 + q * s * 0.012);
+    c.bezierCurveTo(ox - s * 0.06, hy + len * 0.3, ox - s * 0.02 - q * s * 0.01, hy + len * 0.6, ox - s * 0.05 - q * s * 0.008, hy + len);
+    c.stroke();
+  }
+  c.lineWidth = s * 0.012;
+  c.beginPath();
+  c.arc(hx + s * 0.035, hy - s * 0.075, s * 0.018, Math.PI, P2 * 0.95);
+  c.stroke();
+  // a necklace
+  c.strokeStyle = PAL.ochre;
+  c.lineWidth = s * 0.01;
+  c.beginPath();
+  c.arc(sh[0], sh[1] - s * 0.005, s * 0.035, 0.3, Math.PI - 0.3);
+  c.stroke();
+  // the near arm, over everything, and what it carries
+  const [wx, wy] = arm(p.armN[0], p.armN[1], true);
+  o.hold?.(c, wx, wy);
   c.restore();
+}
+
+/** A tall jar, a rhyton or a folded cloth carried as a gift, painted at (x, y), s px. */
+function gift(kind: number, s: number) {
+  return (c: Ctx, x: number, y: number) => {
+    c.save();
+    c.lineWidth = s * 0.008;
+    c.strokeStyle = PAL.black;
+    if (kind === 0) {
+      // a tall jar with a black band and a red spiral
+      c.fillStyle = PAL.ochreL;
+      c.beginPath();
+      c.moveTo(x - s * 0.02, y - s * 0.14);
+      c.lineTo(x + s * 0.02, y - s * 0.14);
+      c.quadraticCurveTo(x + s * 0.06, y - s * 0.08, x + s * 0.045, y - s * 0.01);
+      c.lineTo(x - s * 0.045, y - s * 0.01);
+      c.quadraticCurveTo(x - s * 0.06, y - s * 0.08, x - s * 0.02, y - s * 0.14);
+      c.closePath();
+      c.fill();
+      c.stroke();
+      c.fillStyle = PAL.black;
+      c.fillRect(x - s * 0.05, y - s * 0.075, s * 0.1, s * 0.01);
+      c.strokeStyle = PAL.red;
+      c.beginPath();
+      c.arc(x, y - s * 0.045, s * 0.015, 0, Math.PI * 1.6);
+      c.stroke();
+    } else if (kind === 1) {
+      // a conical rhyton, held point down
+      c.fillStyle = PAL.white;
+      c.beginPath();
+      c.moveTo(x - s * 0.035, y - s * 0.1);
+      c.lineTo(x + s * 0.035, y - s * 0.1);
+      c.lineTo(x, y + s * 0.03);
+      c.closePath();
+      c.fill();
+      c.stroke();
+      c.fillStyle = PAL.red;
+      c.fillRect(x - s * 0.03, y - s * 0.085, s * 0.06, s * 0.012);
+      c.fillRect(x - s * 0.02, y - s * 0.05, s * 0.04, s * 0.01);
+    } else {
+      // a folded cloth, striped
+      c.fillStyle = PAL.blue;
+      c.fillRect(x - s * 0.05, y - s * 0.05, s * 0.1, s * 0.05);
+      c.strokeRect(x - s * 0.05, y - s * 0.05, s * 0.1, s * 0.05);
+      c.fillStyle = PAL.white;
+      for (let q = 0; q < 3; q++) c.fillRect(x - s * 0.05, y - s * 0.042 + q * s * 0.016, s * 0.1, s * 0.005);
+    }
+    c.restore();
+  };
+}
+
+/** A border of white eight-petalled rosettes with red hearts, on blue, between black rules (x0…x1, centre y, h). */
+function rosettes(c: Ctx, x0: number, x1: number, y: number, h: number): void {
+  c.fillStyle = PAL.blue;
+  c.fillRect(x0, y - h / 2, x1 - x0, h);
+  const rr = h * 0.36;
+  for (let x = x0 + h * 0.6; x < x1; x += h * 1.2) {
+    c.fillStyle = PAL.white;
+    for (let q = 0; q < 8; q++) {
+      const a = (q / 8) * P2;
+      c.beginPath();
+      c.ellipse(x + Math.cos(a) * rr * 0.55, y + Math.sin(a) * rr * 0.55, rr * 0.42, rr * 0.2, a, 0, P2);
+      c.fill();
+    }
+    c.fillStyle = PAL.red;
+    c.beginPath();
+    c.arc(x, y, rr * 0.26, 0, P2);
+    c.fill();
+    c.fillStyle = PAL.ochre;
+    c.beginPath();
+    c.arc(x, y, rr * 0.1, 0, P2);
+    c.fill();
+  }
+  c.fillStyle = PAL.black;
+  c.fillRect(x0, y - h / 2, x1 - x0, h * 0.07);
+  c.fillRect(x0, y + h / 2 - h * 0.07, x1 - x0, h * 0.07);
+}
+
+/** A border of running waves: blue breakers curling over to the left on white, a red line under them. */
+function waves(c: Ctx, x0: number, x1: number, y: number, h: number): void {
+  c.fillStyle = PAL.white;
+  c.fillRect(x0, y - h / 2, x1 - x0, h);
+  const step = h * 1.25;
+  c.fillStyle = PAL.blue;
+  c.beginPath();
+  c.moveTo(x0, y + h * 0.4);
+  for (let x = x0; x < x1 + step; x += step) {
+    c.lineTo(x, y + h * 0.1);
+    c.bezierCurveTo(x + step * 0.1, y - h * 0.35, x + step * 0.55, y - h * 0.42, x + step * 0.6, y - h * 0.08);
+    c.bezierCurveTo(x + step * 0.62, y + h * 0.08, x + step * 0.42, y + h * 0.1, x + step * 0.4, y - h * 0.04);
+    c.quadraticCurveTo(x + step * 0.55, y + h * 0.15, x + step, y + h * 0.1);
+  }
+  c.lineTo(x1 + step, y + h * 0.4);
+  c.closePath();
+  c.fill();
+  c.fillStyle = PAL.red;
+  c.fillRect(x0, y + h * 0.3, x1 - x0, h * 0.08);
+  c.fillStyle = PAL.black;
+  c.fillRect(x0, y - h / 2, x1 - x0, h * 0.07);
+  c.fillRect(x0, y + h / 2 - h * 0.07, x1 - x0, h * 0.07);
+}
+
+/** A pied bull in the flying gallop, facing left (towards the gate), its box about 1.3 units long at k px a unit,
+ * the forehooves at x: a heavy red-brown body dappled white, the head down, horns forward, tail flying. */
+function charger(c: Ctx, x: number, y: number, k: number): void {
+  c.save();
+  c.translate(x, y);
+  c.scale(-1, 1);
+  const bk = (1.1 * k) / 300;
+  c.translate(-300 * bk, 0);
+  bull(c, 0, 0, bk);
+  // more dapples over the hide, and its shading: lit along the back, dark under the belly
+  c.restore();
+}
+
+/**
+ * Cut the plaster losses into a painted panel: where the plaster has fallen the rough grey stone shows; round each loss
+ * the coarse white under-plaster shows in a ragged rim; inside, the plaster's upper-left edge throws a shadow onto the
+ * stone and its lower-right broken edge catches the light. More losses low down where damp rose.
+ */
+function losses(c: Ctx, w: number, h: number, seed: number, cover: number, keep: [number, number, number, number][] = []): void {
+  const [mc, mg] = makeCanvas(w, h);
+  mg.drawImage(noiseMask(10, seed, { cover, soft: 0.03, col: '#000000', w: Math.round(w / 3), h: Math.round(h / 3), oct: 5 }), 0, 0, w, h);
+  const [dc, dg] = makeCanvas(w, h);
+  dg.drawImage(noiseMask(16, seed + 3, { cover: 0.3, soft: 0.04, col: '#000000', w: Math.round(w / 3), h: Math.round(h / 3), oct: 5 }), 0, 0, w, h);
+  dg.globalCompositeOperation = 'destination-in';
+  const dgr = dg.createLinearGradient(0, h * 0.88, 0, h);
+  dgr.addColorStop(0, 'rgba(0,0,0,0)');
+  dgr.addColorStop(1, 'rgba(0,0,0,1)');
+  dg.fillStyle = dgr;
+  dg.fillRect(0, 0, w, h);
+  mg.drawImage(dc, 0, 0);
+  // the plaster's ragged top edge
+  mg.fillStyle = '#000';
+  mg.beginPath();
+  mg.moveTo(0, 0);
+  for (let x = 0; x <= w; x += 6) mg.lineTo(x, 2 + Math.abs(Math.sin(x * 0.05 + seed) * 5 + Math.sin(x * 0.13) * 3));
+  mg.lineTo(w, 0);
+  mg.closePath();
+  mg.fill();
+  // (the painters' best scenes survive: losses kept off them)
+  mg.globalCompositeOperation = 'destination-out';
+  for (const [kx, ky, rx, ry] of keep) {
+    const kg = mg.createRadialGradient(kx, ky, 0, kx, ky, rx);
+    kg.addColorStop(0, 'rgba(0,0,0,1)');
+    kg.addColorStop(0.75, 'rgba(0,0,0,0.9)');
+    kg.addColorStop(1, 'rgba(0,0,0,0)');
+    mg.save();
+    mg.translate(kx, ky);
+    mg.scale(1, ry / rx);
+    mg.translate(-kx, -ky);
+    mg.fillStyle = kg;
+    mg.fillRect(kx - rx, ky - rx, rx * 2, rx * 2);
+    mg.restore();
+  }
+  mg.globalCompositeOperation = 'source-over';
+  const id = mg.getImageData(0, 0, w, h);
+  for (let i = 3; i < id.data.length; i += 4) id.data[i] = id.data[i] > 110 ? 255 : 0;
+  mg.putImageData(id, 0, 0);
+  // (the fill is painted whole on its own canvas, then cut to the mask: its own compositing can't leak past it)
+  const masked = (fill: (g: Ctx) => void, dx = 0, dy = 0, cut?: [number, number]) => {
+    const [kc, kg] = makeCanvas(w, h);
+    kg.drawImage(mc, dx, dy);
+    if (cut) {
+      kg.globalCompositeOperation = 'destination-out';
+      kg.drawImage(mc, cut[0], cut[1]);
+    }
+    const [cc, cg] = makeCanvas(w, h);
+    fill(cg);
+    cg.globalCompositeOperation = 'destination-in';
+    cg.drawImage(kc, 0, 0);
+    return cc;
+  };
+  const d = Math.max(2, w / 700);
+  // the coarse under-plaster round each loss (the mask grown a little), then the stone in the loss itself
+  c.globalAlpha = 0.45;
+  for (const [ox, oy] of [[-d, 0], [d, 0], [0, -d], [0, d]] as Pt[]) c.drawImage(masked((g) => { g.fillStyle = '#3a3028'; g.fillRect(0, 0, w, h); }, ox * 0.8, oy * 0.8), 0, 0);
+  c.globalAlpha = 1;
+  const stone = masked((g) => {
+    g.fillStyle = '#8a8274';
+    g.fillRect(0, 0, w, h);
+    lay(g, drift('#a49a88', '#5e5850', 6, seed + 7, 160, 40), { x: 0, y: 0, w, h }, 0.6);
+    lay(g, noiseMask(40, seed + 9, { cover: 0.3, soft: 0.1, col: '#4a443c', w: 400, h: 90 }), { x: 0, y: 0, w, h }, 0.5);
+    grain(g, { x: 0, y: 0, w, h }, 'stone', 0.5, 1.4);
+  });
+  c.drawImage(stone, 0, 0);
+  // the shadow the plaster's upper-left edge throws in, and the lit broken lip on the lower right
+  c.globalAlpha = 0.55;
+  c.drawImage(masked((g) => { g.fillStyle = '#2a2420'; g.fillRect(0, 0, w, h); }, 0, 0, [d * 1.6, d * 1.6]), 0, 0);
+  c.globalAlpha = 0.4;
+  c.drawImage(masked((g) => { g.fillStyle = '#fff4dc'; g.fillRect(0, 0, w, h); }, d * 1.2, d * 1.2, [0, 0]), 0, 0);
+  c.globalAlpha = 1;
 }
 
 function frescoRing(): HTMLCanvasElement {
@@ -391,114 +818,72 @@ function frescoRing(): HTMLCanvasElement {
   const yOf = (Y: number) => (FY1 - Y) * k;
   const xOf = (u: number) => u * k;
   const uGate = ARC / 2;
-  c.fillStyle = FR.white;
+  c.fillStyle = PAL.ground;
   c.fillRect(0, 0, w, h);
-  // the dado: slabs of painted dark stone (porphyry and black), between black uprights
+  // the dado: slabs of painted veined stone (red ochre on dark porphyry), between black uprights
   for (let u = -0.1; u < ARC; u += 0.44) {
-    veined(c, r, xOf(u), xOf(u + 0.4), yOf(0.6), yOf(FY0), r() < 0.5 ? '#6a2e24' : '#4e2a26', ['#2a1210', '#b07a58', '#1a0c0a']);
-    c.fillStyle = FR.black;
+    veined(c, r, xOf(u), xOf(u + 0.4), yOf(0.6), yOf(FY0), r() < 0.5 ? '#6a2e24' : '#58302a', ['#2a1210', '#c08a58', '#1a0c0a', PAL.red]);
+    c.fillStyle = PAL.black;
     c.fillRect(xOf(u + 0.4), yOf(0.6), 0.04 * k, (0.6 - FY0) * k);
   }
-  for (const [y0, y1, col] of [[0.6, 0.63, FR.black], [0.63, 0.67, FR.ochre], [0.67, 0.7, FR.black]] as [number, number, string][]) {
+  for (const [y0, y1, col] of [[0.6, 0.625, PAL.black], [0.625, 0.66, PAL.ochre], [0.66, 0.685, PAL.white], [0.685, 0.7, PAL.black]] as [number, number, string][]) {
     c.fillStyle = col;
     c.fillRect(0, yOf(y1), w, (y1 - y0) * k);
   }
-  // the field: on the left a pale ground for the procession, on the right Egyptian blue for the bull
+  // the field: pale lime on the left for the procession, Egyptian blue on the right for the bull, with a wavy red
+  // ground line; then the borders: rosettes over the procession, running waves over the bull
   const fy0 = 0.7;
-  const fy1 = 1.4;
-  c.fillStyle = '#dcc79c';
+  const fy1 = 1.36;
+  c.fillStyle = PAL.ground;
   c.fillRect(0, yOf(fy1), xOf(uGate), (fy1 - fy0) * k);
-  lay(c, drift('#ead8b0', '#a88a5a', 4, 14, 120, 30), { x: 0, y: yOf(fy1), w: xOf(uGate), h: (fy1 - fy0) * k }, 0.35);
-  c.fillStyle = '#e2cc98';
+  lay(c, drift('#f6ecd0', '#c8b088', 4, 14, 120, 30), { x: 0, y: yOf(fy1), w: xOf(uGate), h: (fy1 - fy0) * k }, 0.35);
+  c.fillStyle = '#5a88b0';
   c.fillRect(xOf(uGate), yOf(fy1), w - xOf(uGate), (fy1 - fy0) * k);
-  lay(c, drift('#f0dcac', '#b8985e', 4, 18, 120, 30), { x: xOf(uGate), y: yOf(fy1), w: w - xOf(uGate), h: (fy1 - fy0) * k }, 0.35);
-  // a wavy ground line under them, red on the left, ochre on the right
-  for (const [u0, u1, col] of [[0, uGate, '#b8644a'], [uGate, ARC, '#7c98ac']] as [number, number, string][]) {
+  lay(c, drift('#7aa4c6', '#3a6488', 4, 18, 120, 30), { x: xOf(uGate), y: yOf(fy1), w: w - xOf(uGate), h: (fy1 - fy0) * k }, 0.4);
+  for (const [u0, u1, col] of [[0, uGate, PAL.red], [uGate, ARC, PAL.ochre]] as [number, number, string][]) {
     c.fillStyle = col;
     c.beginPath();
     c.moveTo(xOf(u0), yOf(fy0));
-    for (let x = xOf(u0); x <= xOf(u1); x += 8) c.lineTo(x, yOf(fy0 + 0.07 + Math.sin(x * 0.025) * 0.02));
+    for (let x = xOf(u0); x <= xOf(u1); x += 8) c.lineTo(x, yOf(fy0 + 0.05 + Math.sin(x * 0.02) * 0.015));
     c.lineTo(xOf(u1), yOf(fy0));
     c.closePath();
     c.fill();
   }
-  // the procession: youths (red) and maidens (white) walking to the gate, gifts in their hands
-  const s = 0.36 * k;
-  const gifts = [FR.ochre, '#c8743a', FR.blue, '#e8dcc0'];
-  for (let i = 0, u = 0.35; u < uGate - 0.95; u += 0.36, i++) {
-    const youth = i % 2 === 0;
-    const hx = xOf(u + (r() - 0.5) * 0.05);
-    const hy = yOf(0.98);
+  rosettes(c, 0, xOf(uGate), yOf((fy1 + FY1) / 2), (FY1 - fy1) * k);
+  waves(c, xOf(uGate), w, yOf((fy1 + FY1) / 2), (FY1 - fy1) * k);
+  // the procession: youths and maidens walking to the gate, gifts held up
+  const s = 0.6 * k;
+  const foot = yOf(fy0 + 0.04);
+  for (let i = 0, u = 0.32; u < uGate - 0.85; u += 0.37, i++) {
+    const female = i % 2 === 1;
     const step = 0.32 + r() * 0.08;
-    const armUp = 2.15 + r() * 0.3;
-    figure(c, hx, hy, s, youth ? '#b0552e' : '#f2e6d0', { body: 0.04, arms: [-0.35, armUp], legs: [step, -step * 0.9] });
-    if (!youth) {
-      // a maiden's flounced bell skirt, banded, to her ankles
-      const bands = [FR.blue, FR.red, FR.ochre, FR.blue];
-      const top = hy - s * 0.1;
-      const bot = hy + s * 0.56;
-      for (let j = bands.length - 1; j >= 0; j--) {
-        const y0 = top + ((bot - top) * j) / bands.length;
-        const y1 = top + ((bot - top) * (j + 1)) / bands.length;
-        const w0 = s * (0.09 + (0.12 * j) / bands.length);
-        const w1 = s * (0.09 + (0.12 * (j + 1)) / bands.length);
-        c.fillStyle = bands[j];
-        c.beginPath();
-        c.moveTo(hx - w0, y0);
-        c.lineTo(hx + w0, y0);
-        c.quadraticCurveTo(hx + w1 * 1.1, (y0 + y1) / 2, hx + w1, y1);
-        c.lineTo(hx - w1, y1);
-        c.quadraticCurveTo(hx - w1 * 1.1, (y0 + y1) / 2, hx - w0, y0);
-        c.closePath();
-        c.fill();
-        c.strokeStyle = FR.black;
-        c.lineWidth = s * 0.015;
-        c.stroke();
-      }
+    const hx = xOf(u);
+    if (female) {
+      minoan(c, hx, foot - s * 0.5, s, 1, true, { legN: [0, 0], legF: [0, 0], armN: [2.3 + r() * 0.2, -0.5], armF: [1.6, -0.9] }, { hold: gift(i % 3, s), skirt: i % 4 === 1 ? [PAL.blue, PAL.red, PAL.ochre, PAL.blue, PAL.red] : [PAL.red, PAL.ochre, PAL.blue, PAL.red, PAL.ochre] });
+    } else {
+      minoan(c, hx, foot - s * 0.49, s, 1, false, { legN: [step, -0.12], legF: [-step * 0.8, 0.35], armN: [2.2 + r() * 0.3, -0.6], armF: [1.3, -0.5], lean: 0.04 }, { hold: gift((i + 1) % 3, s) });
     }
-    // the gift in the raised hand
-    const ax = hx + s * 0.12 + Math.sin(armUp) * s * 0.42;
-    const ay = hy - s * 0.46 + Math.cos(armUp) * s * 0.42;
-    jar(c, ax + s * 0.02, ay - s * 0.08, s, gifts[i % 4]);
   }
-  // the bull among them, charging the gate (left), a youth tossed over its horns, one under its hooves, one running
-  const bk = (1.05 * k) / 300;
-  const bx = xOf(uGate + 1.78);
-  const by = yOf(1.3);
+  // the bull charging the gate: a leaper in mid-vault over its back, a girl clinging at its horns, one fallen under it
+  const bu = uGate + 1.75;
+  const bx = xOf(bu);
+  const by = yOf(1.22);
+  charger(c, bx, by, k);
+  minoan(c, bx + 0.55 * k, yOf(1.335), s * 0.62, -1, false, { legN: [0.5, 0.45], legF: [0.2, 0.6], armN: [Math.PI, 0], armF: [Math.PI - 0.15, 0], lean: 0 }, { rot: Math.PI * 0.95 });
+  minoan(c, bx - 0.18 * k, yOf(1.02), s * 0.95, 1, true, { legN: [0, 0], legF: [0, 0], armN: [2.4, 0.2], armF: [2.1, 0.3] }, { rot: 0.35 });
+  minoan(c, bx + 0.75 * k, yOf(0.95), s * 0.78, -1, false, { legN: [1.4, 0.4], legF: [1.1, 0.8], armN: [2.6, 0.4], armF: [2.0, 0.5] }, { rot: -Math.PI * 0.45 });
+  // a double axe either side of a bull's head further round, and a lily
+  labrys(c, xOf(uGate + 3.0), yOf(1.04), 0.32 * k, PAL.ochre);
+  lily(c, xOf(uGate + 3.62), yOf(0.94), 0.34 * k);
   c.save();
-  c.translate(bx + 300 * bk, by);
-  c.scale(-1, 1);
-  bull(c, 0, 0, bk);
-  c.restore();
-  figure(c, bx - 10 * bk, yOf(1.28), s * 0.92, '#b0552e', { body: -2.4, arms: [2.6, 2.0], legs: [-0.6, 0.4] });
-  figure(c, bx + 160 * bk, yOf(0.86), s * 0.92, '#f2e6d0', { body: Math.PI / 2, arms: [0.6, 1.6], legs: [-0.2, 0.3] });
-  figure(c, bx - 70 * bk, yOf(1.0), s * 0.92, '#b0552e', { body: -0.25, arms: [-2.6, -2.2], legs: [-0.6, 0.5] });
-  // a dropped figure-of-eight shield behind it
-  c.fillStyle = '#e8dcc0';
-  for (const [dy, rr] of [[-0.06, 0.08], [0.08, 0.09]] as Pt[]) {
-    c.beginPath();
-    c.ellipse(bx + 320 * bk, yOf(0.86 + dy), rr * k * 0.7, rr * k, 0.5, 0, P2);
-    c.fill();
-  }
-  // a double axe either side of a bull's head, a lily
-  for (const [u, sz] of [[uGate + 3.05, 0.3], [uGate + 3.55, 0.3]] as Pt[]) labrys(c, xOf(u), yOf(1.06), sz * k);
-  labrys(c, xOf(uGate + 1.0), yOf(1.06), 0.3 * k);
-  c.save();
-  c.translate(xOf(uGate + 3.3), yOf(1.04));
-  c.scale(k / 360, k / 360);
+  c.translate(xOf(uGate + 0.28), yOf(1.02));
+  c.scale(k / 330, k / 330);
   bullHead(c);
   c.restore();
-  lily(c, xOf(uGate + 1.35), yOf(0.98), 0.36 * k);
-  // the border over it: running spirals, blue on white, red at their hearts
-  const b0 = 1.4;
-  c.fillStyle = FR.white;
-  c.fillRect(0, yOf(FY1), w, (FY1 - b0) * k);
-  c.fillStyle = FR.black;
-  c.fillRect(0, yOf(b0 + 0.02), w, 0.022 * k);
-  c.fillRect(0, yOf(FY1 - 0.005), w, 0.022 * k);
-  spirals(c, -0.1 * k, w, yOf((b0 + FY1) / 2), 0.26 * k, 0.05 * k, FR.blue, FR.red, 0.022 * k);
+  labrys(c, xOf(uGate + 0.95), yOf(1.04), 0.34 * k, PAL.ochre);
+  lily(c, xOf(uGate + 0.62), yOf(0.94), 0.32 * k);
   age(c, w, h, 91);
-  flake(c, w, h, 93, 0.06);
+  losses(c, w, h, 93, 0.085, [[bx + 0.6 * k, yOf(1.05), 0.95 * k, 0.5 * k], [xOf(uGate - 1.6), yOf(1.05), 1.2 * k, 0.4 * k]]);
   fresCache = cv;
   return cv;
 }
@@ -510,16 +895,16 @@ function frescoRing(): HTMLCanvasElement {
  * stone, its upper inside in shadow and its lower lip lit. */
 function gouge(ctx: Ctx, r: R, th: number, Y: number, ang: number, len: number): void {
   const k = ppu(th);
-  for (const d of [-0.09, 0.09]) {
+  for (const d of [-0.045, 0.045]) {
     const n = 12;
     const pts: Pt[] = [];
     for (let i = 0; i <= n; i++) {
       const t = i / n;
       const u = th * RC + Math.cos(ang) * len * t - Math.sin(ang) * d;
-      const yy = Y + Math.sin(ang) * len * t + Math.cos(ang) * d + Math.sin(t * Math.PI) * 0.05;
+      const yy = Y + Math.sin(ang) * len * t + Math.cos(ang) * d;
       pts.push(RP(u / RC, yy));
     }
-    const wd = (t: number) => k * (0.016 * (1 - t) ** 0.6 + 0.003);
+    const wd = (t: number) => k * (0.012 * (1 - t) ** 0.5 + 0.004);
     const side = (sgn: number, grow: number, jag: number) => pts.map(([x, y], i) => {
       const [ax, ay] = pts[Math.max(0, i - 1)];
       const [bx, by] = pts[Math.min(n, i + 1)];
@@ -531,18 +916,26 @@ function gouge(ctx: Ctx, r: R, th: number, Y: number, ang: number, len: number):
     });
     const poly = (grow: number, jag: number) => polyPath([...side(1, grow, jag), ...side(-1, grow, jag).reverse()]);
     // the plaster torn away round it (raw stone, paler), the groove, its shadowed upper inside, its lit lower lip
-    ctx.fillStyle = rgba('#d6c29c', 0.8);
-    poly(4.2, 1.4)(ctx);
-    ctx.fillStyle = rgba('#b49a74', 0.6);
-    poly(2.2, 0.8)(ctx);
+    ctx.fillStyle = rgba('#7a6c58', 0.6);
+    poly(2.4, 0.9)(ctx);
     ctx.fill();
-    ctx.fillStyle = rgba('#2a1c16', 0.65);
+    ctx.fillStyle = rgba('#6a5c4a', 0.85);
     poly(1, 0.3)(ctx);
     ctx.fill();
+    // the dark undercut along its upper edge
     ctx.save();
     ctx.lineCap = 'round';
-    ctx.strokeStyle = rgba('#fff2d8', 0.55);
-    ctx.lineWidth = Math.max(1, k * 0.007);
+    ctx.strokeStyle = rgba('#2a1c16', 0.7);
+    ctx.lineWidth = Math.max(1, k * 0.006);
+    const up = side(ang > 0 ? 1 : -1, 1, 0);
+    ctx.beginPath();
+    up.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+    ctx.stroke();
+    ctx.restore();
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = rgba('#fff2d8', 0.35);
+    ctx.lineWidth = Math.max(0.8, k * 0.004);
     const lo = side(ang > 0 ? -1 : 1, 1.05, 0);
     ctx.beginPath();
     lo.forEach(([x, y], i) => (i ? ctx.lineTo(x, y + 1) : ctx.moveTo(x, y + 1)));
@@ -566,19 +959,19 @@ function rammed(ctx: Ctx, r: R, th: number, Y: number, s: number): void {
   }
   const path = polyPath(pts);
   // the stone showing: freshly broken, paler, its edges in the plaster's shadow on the upper left, lit lower right
-  ctx.fillStyle = '#cbb48e';
+  ctx.fillStyle = '#8e8474';
   path(ctx);
   ctx.fill();
   within(ctx, path, () => {
-    lay(ctx, noiseMask(5, Math.round(th * 100), { cover: 0.4, soft: 0.2, col: '#8a7458', w: 30, h: 30 }), boxOfPts(pts, 0), 0.5);
+    lay(ctx, noiseMask(5, Math.round(th * 100), { cover: 0.4, soft: 0.2, col: '#5a5248', w: 30, h: 30 }), boxOfPts(pts, 0), 0.5);
     ctx.strokeStyle = rgba('#3a2a20', 0.5);
     ctx.lineWidth = k * 0.03;
     ctx.translate(-k * 0.012, -k * 0.012);
     path(ctx);
     ctx.stroke();
   });
-  ctx.strokeStyle = rgba('#fff2d8', 0.5);
-  ctx.lineWidth = Math.max(1, k * 0.008);
+  ctx.strokeStyle = rgba('#fff2d8', 0.3);
+  ctx.lineWidth = Math.max(1, k * 0.005);
   ctx.save();
   ctx.translate(k * 0.008, k * 0.008);
   path(ctx);
@@ -587,13 +980,26 @@ function rammed(ctx: Ctx, r: R, th: number, Y: number, s: number): void {
   // the cracks running out of it through the stone and plaster
   for (let i = 0; i < 6; i++) {
     const a = (i / 6) * P2 + r() * 0.6;
-    crack(ctx, r, cx + Math.cos(a) * s * k * 0.4, cy + Math.sin(a) * s * k * 0.36, a, s * k * (0.8 + r() * 0.9), { col: '#2a1c14', lip: '#f4e8d0', w: Math.max(1, k * 0.01), a: 0.6, branch: 0.25 });
+    crack(ctx, r, cx + Math.cos(a) * s * k * 0.4, cy + Math.sin(a) * s * k * 0.36, a, s * k * (0.7 + r() * 0.6), { col: '#1e140e', lip: '#a89478', w: Math.max(1, k * 0.008), a: 0.55, branch: 0.25 });
+  }
+  // the plaster round it bulged and loosened: a ring of hairline cracks, a fallen flake or two still hanging
+  ctx.strokeStyle = rgba('#3a2a20', 0.22);
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 2; i++) {
+    ctx.beginPath();
+    for (let j = 0; j <= 24; j++) {
+      const a = (j / 24) * P2;
+      const rr = s * k * (1.1 + i * 0.35) * (0.9 + r() * 0.2);
+      if (j) ctx.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr * 0.85);
+      else ctx.moveTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr * 0.85);
+    }
+    ctx.stroke();
   }
   // the dust it shed, run down below it
   streaks(ctx, r, cx, cy + s * k * 0.4, s * k * 0.9, s * k * 1.4, '#e6dac4', 0.1, 4);
 }
 
-const GOUGES: [number, number, number, number][] = [[-0.9, 1.05, 0.35, 0.26], [-0.68, 0.9, -0.3, 0.3], [-0.2, 1.12, 0.25, 0.24], [0.27, 0.98, -0.35, 0.28], [0.58, 1.22, 0.3, 0.26], [0.72, 0.86, -0.2, 0.3], [0.97, 1.3, 0.35, 0.22]];
+const GOUGES: [number, number, number, number][] = [[-0.9, 1.22, 0.5, 0.14], [-0.66, 0.76, -0.45, 0.15], [-0.2, 1.2, 0.5, 0.13], [0.27, 0.8, -0.5, 0.14], [0.42, 1.3, 0.45, 0.12], [0.9, 0.78, -0.4, 0.13], [-0.5, 1.28, 0.5, 0.12]];
 const RAMS: [number, number, number][] = [[-0.34, 1.0, 0.15], [0.31, 1.12, 0.13], [-0.76, 1.18, 0.12]];
 
 // ——— the gate the youths were sent through ———
@@ -749,7 +1155,7 @@ function redColumn(ctx: Ctx, th: number, r: number, Y0: number, Y1: number, r0: 
     // horn scrapes across its lower shaft
     for (let i = 0; i < 3; i++) {
       const y = by - b.h * (0.25 + i * 0.07);
-      ctx.strokeStyle = rgba('#e8cfa8', 0.55);
+      ctx.strokeStyle = rgba('#6a3a2a', 0.5);
       ctx.lineWidth = Math.max(1, s * 0.012);
       ctx.beginPath();
       ctx.moveTo(b.x, y);
@@ -798,15 +1204,15 @@ function bucranium(ctx: Ctx, x: number, y: number, s: number): void {
     const horn = (c: Ctx) => {
       c.beginPath();
       c.moveTo(x + d * s * 0.06, y - s * 0.08);
-      c.bezierCurveTo(x + d * s * 0.24, y - s * 0.07, x + d * s * 0.34, y - s * 0.1, x + d * s * 0.33, y - s * 0.26);
-      c.quadraticCurveTo(x + d * s * 0.37, y - s * 0.1, x + d * s * 0.08, y + s * 0.0);
+      c.bezierCurveTo(x + d * s * 0.2, y - s * 0.04, x + d * s * 0.32, y - s * 0.06, x + d * s * 0.34, y - s * 0.17);
+      c.quadraticCurveTo(x + d * s * 0.3, y - s * 0.02, x + d * s * 0.08, y + s * 0.02);
       c.closePath();
     };
     castShadow(ctx, horn, 4, 5, 0.45, '#1a1018');
-    solid(ctx, horn, { x: x - s * 0.6, y: y - s * 0.4, w: s * 1.2, h: s * 0.5 }, 'stone', '#e6d6b0', { depth: 0.25, air: AIR, line: Math.max(1, s * 0.012), formSize: 4 });
+    solid(ctx, horn, { x: x - s * 0.6, y: y - s * 0.4, w: s * 1.2, h: s * 0.5 }, 'stone', '#cbb690', { depth: 0.25, air: AIR, line: Math.max(1, s * 0.012), formSize: 4 });
     ctx.fillStyle = rgba('#7a6448', 0.6);
     ctx.beginPath();
-    ctx.ellipse(x + d * s * 0.33, y - s * 0.23, s * 0.014, s * 0.03, d * -0.2, 0, P2);
+    ctx.ellipse(x + d * s * 0.335, y - s * 0.155, s * 0.012, s * 0.022, d * 0.3, 0, P2);
     ctx.fill();
   }
   const skull = (c: Ctx) => {
@@ -820,15 +1226,29 @@ function bucranium(ctx: Ctx, x: number, y: number, s: number): void {
   };
   castShadow(ctx, skull, 4, 5, 0.5, '#1a1018');
   solid(ctx, skull, { x: x - s * 0.12, y: y - s * 0.15, w: s * 0.24, h: s * 0.4 }, 'stone', '#ece0c4', { depth: 0.25, air: AIR, line: Math.max(1, s * 0.012), formSize: 5 });
-  ctx.fillStyle = '#1a1210';
+  // the eye sockets: hollows in the brow's shadow, deepest at the top; the nasal notch; the brow ridge lit
   for (const d of [-1, 1]) {
+    const eg = ctx.createRadialGradient(x + d * s * 0.055, y - s * 0.01, 0, x + d * s * 0.055, y + s * 0.005, s * 0.04);
+    eg.addColorStop(0, 'rgba(26,18,16,0.95)');
+    eg.addColorStop(0.6, 'rgba(60,44,36,0.5)');
+    eg.addColorStop(1, 'rgba(60,44,36,0)');
+    ctx.fillStyle = eg;
     ctx.beginPath();
-    ctx.ellipse(x + d * s * 0.055, y - s * 0.0, s * 0.03, s * 0.035, 0, 0, P2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(x + d * s * 0.025, y + s * 0.19, s * 0.012, s * 0.02, 0, 0, P2);
+    ctx.ellipse(x + d * s * 0.055, y, s * 0.04, s * 0.03, d * 0.4, 0, P2);
     ctx.fill();
   }
+  ctx.fillStyle = 'rgba(30,20,18,0.6)';
+  for (const d of [-1, 1]) {
+    ctx.beginPath();
+    ctx.ellipse(x + d * s * 0.018, y + s * 0.185, s * 0.01, s * 0.018, d * 0.3, 0, P2);
+    ctx.fill();
+  }
+  ctx.strokeStyle = rgba('#fff4dc', 0.4);
+  ctx.lineWidth = Math.max(1, s * 0.008);
+  ctx.beginPath();
+  ctx.moveTo(x - s * 0.085, y - s * 0.04);
+  ctx.quadraticCurveTo(x, y - s * 0.07, x + s * 0.085, y - s * 0.04);
+  ctx.stroke();
   ctx.fillStyle = BRONZE.body;
   ctx.beginPath();
   ctx.arc(x, y - s * 0.07, s * 0.018, 0, P2);
@@ -907,8 +1327,19 @@ function gate(ctx: Ctx, r: R): void {
     ringPath(l0 + 0.02, l1 + 0.04, gh - 0.14, gh)(g);
     g.fill();
   });
-  const [bx, by] = RP(0, 1.74, RC - 0.05);
-  bucranium(ctx, bx, by + 4, ppu(0, RC - 0.05) * 1.45);
+  // the great bar across the doors in its bronze brackets
+  const [, barY] = RP(0, 0.82, RC + 0.08);
+  const barH = 0.07 * ppu(0, RC + 0.08);
+  const [bx0] = RP(-GTH - 0.02, 0.82, RC + 0.08);
+  const [bx1] = RP(GTH + 0.02, 0.82, RC + 0.08);
+  const bar = polyPath([[bx0, barY - barH / 2], [bx1, barY - barH / 2], [bx1, barY + barH / 2], [bx0, barY + barH / 2]]);
+  castShadow(ctx, bar, 4, 4, 0.5, '#0e0806');
+  solid(ctx, bar, { x: bx0, y: barY - barH, w: bx1 - bx0, h: barH * 2 }, 'wood', '#6a4a2c', { depth: 0.2, line: 1.4, formSize: 4 });
+  for (const fx of [0.22, 0.78]) {
+    const xx = bx0 + (bx1 - bx0) * fx;
+    const br = polyPath([[xx - 7, barY - barH * 0.8], [xx + 7, barY - barH * 0.8], [xx + 7, barY + barH * 0.8], [xx - 7, barY + barH * 0.8]]);
+    solid(ctx, br, { x: xx - 8, y: barY - barH, w: 16, h: barH * 2 }, 'chrome', BRONZE.body, { depth: 0.2, line: 1.2, formSize: 2 });
+  }
 }
 
 // ——— the bull's-head spout over the trough ———
@@ -918,7 +1349,7 @@ function spout(ctx: Ctx): void {
   const [x, y] = RP(th, Y, RC - 0.04);
   const s = ppu(th, RC - 0.04);
   // the stain the water has left down the wall under it, green with algae at the foot
-  const [, fy] = RP(th, MT.trough.h, RC);
+  const [, fy] = RP(th, 0.32, RC);
   const sg = ctx.createLinearGradient(0, y, 0, fy);
   sg.addColorStop(0, 'rgba(60,70,60,0.35)');
   sg.addColorStop(1, 'rgba(70,96,70,0.5)');
@@ -1014,7 +1445,13 @@ function wall(ctx: Ctx, r: R): void {
     const [mx, my] = RP(th, Y);
     masonMark(ctx, mx, my, 0.06 * ppu(th), 0.5);
   }
-  // rain streaks down from the coping, lichen under it
+  // rain streaks down from the coping (green-black where water runs most), lichen under it
+  for (let i = 0; i < 26; i++) {
+    const th = th0 + r() * (th1 - th0);
+    const [x, y] = RP(th, WH - 0.12);
+    const k = ppu(th);
+    streaks(ctx, r, x, y, 0.16 * k, (0.5 + r() * 0.9) * k, r() < 0.5 ? '#2e3a2e' : '#3a2e26', 0.2, 4);
+  }
   for (let i = 0; i < 70; i++) {
     const th = th0 + r() * (th1 - th0);
     const [x, y] = RP(th, WH - COPE);
@@ -1120,20 +1557,32 @@ function wall(ctx: Ctx, r: R): void {
     g.lineTo(-20, TY + 4);
     g.closePath();
   };
-  shadeWith(ctx, { x: 0, y: 0, w: W, h: TY + 2 }, SHADE, (g) => {
+  shadeWith(ctx, { x: 0, y: 0, w: W, h: TY + 2 }, WALL_SHADE, (g) => {
     ringPath(th0, th1, -0.5, WH + 0.01)(g);
     g.clip();
     sh(g);
     g.fill();
-    // the horns along the left of the ring throw thin spikes of shadow up from the line
+  }, 0.3);
+  // the edge is the left wall's own top thrown across: each horn of consecration stands up out of it as a soft,
+  // lighter shadow (a wide U, stretched by the low angle), the coping's joints stepping it
+  shadeWith(ctx, { x: 0, y: 0, w: W, h: TY + 2 }, '#9e9cb6', (g) => {
+    ringPath(th0, th1, -0.5, WH + 0.01)(g);
+    g.clip();
     for (let th = -0.2; th < TH_E; th += 0.21) {
       const Y = shadowY(th);
-      for (const dt of [-0.012, 0.012]) {
-        polyPath([RP(th + dt - 0.006, Y - 0.02), RP(th + dt, Y + 0.1), RP(th + dt + 0.006, Y - 0.02)])(g);
-        g.fill();
-      }
+      const pts = HORNS.map(([u, v]) => RP(th + ((u - 0.5) * 0.6) / RC, Y - 0.05 + v * 0.24));
+      polyPath(pts)(g);
+      g.fill();
+      polyPath([RP(th + 0.07, Y - 0.04), RP(th + 0.07, Y + 0.03), RP(th + 0.15, Y + 0.03), RP(th + 0.15, Y - 0.04)])(g);
+      g.fill();
     }
-  }, 0.3);
+  }, 0.2);
+  // the gate's red columns again over the shade, so they keep their Minoan red (in the shade, the braziers' fire on
+  // their inner sides)
+  for (const d of [-1, 1]) {
+    const th = d * (MT.gate.hw + 0.16) / RC;
+    inShade(ctx, boxOfPts([RP(th - 0.06, MT.gate.h + 0.02, RC - 0.12), RP(th + 0.06, -0.05, RC - 0.12)], 8), (g) => redColumn(g, th, RC - 0.12, 0, MT.gate.h, 0.075, 0.3), '#b4aab4');
+  }
   // the sun's warmth on what it reaches
   ctx.save();
   ctx.beginPath();
@@ -1174,21 +1623,68 @@ function wall(ctx: Ctx, r: R): void {
   }, 0.25, 'screen');
 
   // ——— the coping and its horns ———
-  const cp = ringPath(th0, th1, WH - COPE, WH);
+  // a heavy coping course standing proud of the wall: the shadow it throws down the face under it, its underside seen
+  // from below in deep shade, its front dressed and jointed, lit in the sun on the right and rimmed on the left
+  const CR = RC - 0.07;
+  const CH = 0.17;
+  softly(ctx, box, (g) => {
+    const gp = ringPath(th0, th1, WH - CH - 0.16, WH - CH + 0.01);
+    gp(g);
+    const [, ya] = RP(0, WH - CH);
+    const [, yb] = RP(0, WH - CH - 0.16);
+    const gr = g.createLinearGradient(0, ya, 0, yb + 40);
+    gr.addColorStop(0, 'rgba(26,18,30,0.55)');
+    gr.addColorStop(1, 'rgba(26,18,30,0)');
+    g.fillStyle = gr;
+    g.fill();
+  }, 0.25);
+  const soffit = polyPath([...Array.from({ length: 61 }, (_, i) => RP(th0 + ((th1 - th0) * i) / 60, WH - CH, CR)), ...Array.from({ length: 61 }, (_, i) => RP(th1 - ((th1 - th0) * i) / 60, WH - CH, RC))]);
+  soffit(ctx);
+  ctx.fillStyle = '#3a2c34';
+  ctx.fill();
+  const cp = ringPath(th0, th1, WH - CH, WH, CR);
   const cg = ctx.createLinearGradient(760, 0, 860, 0);
-  cg.addColorStop(0, '#8e88a0');
-  cg.addColorStop(1, '#f0d6a6');
+  cg.addColorStop(0, '#8a849c');
+  cg.addColorStop(1, '#ecd2a2');
   cp(ctx);
   ctx.fillStyle = cg;
   ctx.fill();
-  ctx.fillStyle = rgba('#2a1c24', 0.6);
-  ringPath(th0, th1, WH - COPE - 0.03, WH - COPE + 0.012)(ctx);
+  within(ctx, cp, () => {
+    surface(ctx, r, box, '#c8b08a', { over: true, vary: 0.4, cells: 8, mottle: 0.4, grain: 0.35, grainKind: 'speckle', seed: 39 });
+    // its bottom arris catching the bounce, the top weathered dark where rain sits
+    for (let a0 = th0 * RC - r() * 0.5; a0 < th1 * RC; a0 += 0.55 + r() * 0.35) {
+      const t = a0 / RC;
+      const [jx, jy0] = RP(t, WH, CR);
+      const [, jy1] = RP(t, WH - CH, CR);
+      ctx.fillStyle = rgba('#2a1e18', 0.7);
+      ctx.fillRect(jx - 1, jy0, 2, jy1 - jy0);
+      ctx.fillStyle = rgba('#fff0d0', 0.3);
+      ctx.fillRect(jx + 1, jy0, 1, jy1 - jy0);
+    }
+    for (let i = 0; i < 50; i++) {
+      const t = th0 + r() * (th1 - th0);
+      const [x, y] = RP(t, WH - 0.01, CR);
+      streaks(ctx, r, x, y, 0.06 * ppu(t, CR), CH * ppu(t, CR) * (0.5 + r() * 0.6), '#3a3a30', 0.18, 2);
+    }
+  });
+  ctx.fillStyle = rgba('#fff0d0', 0.35);
+  ringPath(th0, th1, WH - CH, WH - CH + 0.012, CR)(ctx);
   ctx.fill();
+  ctx.strokeStyle = rgba('#2a1c24', 0.7);
+  ctx.lineWidth = 1.2;
+  cp(ctx);
+  ctx.stroke();
+  chips(ctx, r, 0, W, RP(0, WH - CH, CR)[1], 0, '#c8b08a', 3);
+  for (let i = 0; i < 30; i++) {
+    const t = th0 + r() * (th1 - th0);
+    const [x, y] = RP(t, WH - CH, CR);
+    chips(ctx, r, x - 3, x + 3, y - 2, 1, '#c8b08a', 2 + ppu(t) / 120);
+  }
   ctx.save();
   ctx.lineCap = 'round';
   ctx.beginPath();
   for (let i = 0; i <= 120; i++) {
-    const [x, y] = RP(th0 + ((th1 - th0) * i) / 120, WH);
+    const [x, y] = RP(th0 + ((th1 - th0) * i) / 120, WH, CR);
     if (i) ctx.lineTo(x, y);
     else ctx.moveTo(x, y);
   }
@@ -1196,12 +1692,42 @@ function wall(ctx: Ctx, r: R): void {
   ctx.lineWidth = 2.2;
   ctx.stroke();
   ctx.restore();
+  // the horns of consecration: carved stone, a thickness showing on their shaded side, a groove cut down each horn,
+  // standing on the coping in their own contact shadow
   for (let th = -1.05; th <= 1.06; th += 0.21) {
-    const pts = HORNS.map(([u, v]) => RP(th + ((u - 0.5) * 0.34) / RC, WH - 0.02 + v * 0.22));
-    const k = ppu(th);
-    const [bx0, by0] = RP(th, WH - 0.01);
-    lightPool(ctx, bx0 + k * 0.02, by0, k * 0.2, k * 0.025, '#2a1c24', 0.45, 'source-over');
-    hornsPaint(ctx, polyPath(pts), boxOfPts(pts), th > -0.3, Math.max(1, Math.min(3, k / 110)), 0.016 * k);
+    const hr = RC - 0.04;
+    const pts = HORNS.map(([u, v]) => RP(th + ((u - 0.5) * 0.34) / hr, WH - 0.02 + v * 0.22, hr));
+    const k = ppu(th, hr);
+    const lit = th > -0.3;
+    const [bx0, by0] = RP(th, WH - 0.01, hr);
+    lightPool(ctx, bx0 + k * 0.02, by0 + 1, k * 0.2, k * 0.025, '#2a1c24', 0.5, 'source-over');
+    const back = pts.map(([x, y]) => [x + k * 0.022, y + k * 0.008] as Pt);
+    polyPath(back)(ctx);
+    ctx.fillStyle = lit ? '#8a6e52' : '#3e3448';
+    ctx.fill();
+    ctx.strokeStyle = lit ? '#4a3424' : '#1e1828';
+    ctx.lineWidth = Math.max(1, k / 160);
+    ctx.stroke();
+    hornsPaint(ctx, polyPath(pts), boxOfPts(pts), lit, Math.max(1, Math.min(3, k / 110)), 0.016 * k);
+    ctx.save();
+    ctx.lineCap = 'round';
+    for (const side of [0.1, 0.9]) {
+      const g0 = RP(th + ((side - 0.5) * 0.34) / hr, WH + 0.04, hr);
+      const g1 = RP(th + ((side + (side < 0.5 ? -0.04 : 0.04) - 0.5) * 0.34) / hr, WH + 0.17, hr);
+      ctx.strokeStyle = rgba(lit ? '#6a4a30' : '#1e1828', 0.6);
+      ctx.lineWidth = Math.max(1, k / 140);
+      ctx.beginPath();
+      ctx.moveTo(...g0);
+      ctx.lineTo(...g1);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+  // the bull's skull nailed over the gate, hung on the lintel's face in front of the coping's shadow
+  {
+    const [bx, by] = RP(0, 1.6, RC - 0.22);
+    const bs = ppu(0, RC - 0.22) * 1.55;
+    inShade(ctx, { x: bx - bs * 0.5, y: by - bs * 0.45, w: bs, h: bs * 0.75 }, (g) => bucranium(g, bx, by, bs), '#c4bccc');
   }
   // the sun's bloom spilling over the left of the ring's top
   glowAt(ctx, 220, 40, 300, '#ffd89a', 0.1);
@@ -1226,7 +1752,7 @@ function wall(ctx: Ctx, r: R): void {
   void s0;
   for (const [th] of MT.braziers) {
     const [wx, wy] = RP(th, 1.15);
-    lightPool(ctx, wx, wy, ppu(th) * 0.75, ppu(th) * 0.95, '#ff9a48', 0.2);
+    lightPool(ctx, wx, wy, ppu(th) * 0.6, ppu(th) * 0.8, '#ff9a48', 0.11);
   }
   // the foot of the wall in the floor's occlusion
   softly(ctx, box, (g) => {
@@ -1259,20 +1785,32 @@ const floorPath = () => (c: Ctx) => {
 };
 
 /** A cloven hoof print in the dirt at (θ, r), turned by ang. */
+/** A cloven hoof print in the dirt at (θ, r), pointing ang: two crescent halves pressed in, each dark on its near
+ * wall and lit on its far rim, the toe's spoil kicked back. */
 function hoof(ctx: Ctx, th: number, r: number, ang: number, a: number): void {
   const [x, y] = RP(th, 0, r);
   const k = ppu(th, r);
+  const s = k * (0.018 + ((th * 97 + r * 31) % 1 + 1) % 1 * 0.008);
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(1, 0.42);
+  ctx.rotate(ang);
   for (const d of [-1, 1]) {
-    const hx = x + Math.cos(ang) * d * k * 0.022;
     ctx.fillStyle = rgba('#3a2a1e', a);
     ctx.beginPath();
-    ctx.ellipse(hx, y, k * 0.02, k * 0.012, ang, 0, P2);
+    ctx.moveTo(d * s * 0.15, -s);
+    ctx.quadraticCurveTo(d * s * 1.1, -s * 0.4, d * s * 0.9, s * 0.8);
+    ctx.quadraticCurveTo(d * s * 0.5, s * 1.05, d * s * 0.15, s * 0.7);
+    ctx.closePath();
     ctx.fill();
-    ctx.fillStyle = rgba('#e8d4b0', a * 0.6);
+    ctx.strokeStyle = rgba('#ead6b0', a * 0.7);
+    ctx.lineWidth = Math.max(0.8, s * 0.22);
     ctx.beginPath();
-    ctx.ellipse(hx + k * 0.004, y + k * 0.008, k * 0.016, k * 0.004, ang, 0, Math.PI);
-    ctx.fill();
+    ctx.moveTo(d * s * 0.2, -s * 1.05);
+    ctx.quadraticCurveTo(d * s * 1.15, -s * 0.45, d * s * 0.95, s * 0.2);
+    ctx.stroke();
   }
+  ctx.restore();
 }
 
 function floor(ctx: Ctx, r: R): void {
@@ -1293,47 +1831,126 @@ function floor(ctx: Ctx, r: R): void {
     g.fill();
   }, 0.25);
   lay(ctx, noiseMask(30, 43, { cover: 0.3, soft: 0.08, col: '#5a4432', w: 480, h: 60 }), b, 0.35);
-  for (let i = 0; i < 90; i++) {
+  for (let i = 0; i < 50; i++) {
     const th = -TH_E + r() * 2 * TH_E;
     const rr = 2.72 + r() * 0.4;
     hoof(ctx, th, rr, (r() - 0.5) * 0.6, 0.35 + r() * 0.25);
   }
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < 12; i++) {
     const th = (r() - 0.5) * 2;
     const rr = 1.6 + r() * 1.1;
     hoof(ctx, th, rr, (r() - 0.5) * 1.2, 0.25 + r() * 0.2);
   }
+  // loose sand drifted over the packed earth: paler, in soft ripples, thicker against the walls
+  lay(ctx, noiseMask(18, 47, { cover: 0.45, soft: 0.2, col: '#d8c098', w: 360, h: 40 }), b, 0.35);
+  ctx.save();
+  ctx.lineCap = 'round';
+  for (let i = 0; i < 70; i++) {
+    const th = -TH_E + r() * 2 * TH_E;
+    const rr = 1.6 + r() * 1.6;
+    const [x, y] = RP(th, 0, rr);
+    if (y > TY - 2) continue;
+    const k = ppu(th, rr);
+    ctx.strokeStyle = rgba('#e8d4ac', 0.25);
+    ctx.lineWidth = Math.max(1, k * 0.008);
+    ctx.beginPath();
+    ctx.moveTo(x - k * 0.08, y);
+    ctx.quadraticCurveTo(x, y - k * 0.012, x + k * 0.08, y);
+    ctx.stroke();
+    ctx.strokeStyle = rgba('#5a4430', 0.22);
+    ctx.beginPath();
+    ctx.moveTo(x - k * 0.08, y + k * 0.006);
+    ctx.quadraticCurveTo(x, y - k * 0.004, x + k * 0.08, y + k * 0.006);
+    ctx.stroke();
+  }
+  ctx.restore();
+  // the path trodden hard and dark from the gate to the middle of the court, where he stands to paw
+  softly(ctx, b, (g) => {
+    g.fillStyle = 'rgba(62,46,34,0.34)';
+    polyPath([P(-0.5, 0, 1.4), P(-0.3, 0, RC - 0.2), P(0.3, 0, RC - 0.2), P(0.5, 0, 1.4)])(g);
+    g.fill();
+    g.fillStyle = 'rgba(52,38,28,0.2)';
+    polyPath([P(-0.28, 0, 1.4), P(-0.16, 0, RC - 0.2), P(0.16, 0, RC - 0.2), P(0.28, 0, 1.4)])(g);
+    g.fill();
+  }, 0.25);
+  for (let i = 0; i < 22; i++) {
+    const z = 1.45 + r() * (RC - 1.7);
+    hoof(ctx, Math.atan2((r() - 0.5) * 0.6, z), Math.hypot((r() - 0.5) * 0.6, z), (r() - 0.5) * 0.5, 0.45);
+  }
+  // where he paws: the dirt raked back towards us in long curving drags (two to a hoof), the spoil heaped at their ends
+  for (const [X, z, bend] of [[-0.14, 1.66, 0.06], [0.2, 1.74, -0.05], [-0.32, 1.98, 0.08]] as [number, number, number][]) {
+    const k = pz(z);
+    for (const d of [-0.022, 0.022]) {
+      const pts: Pt[] = [];
+      for (let i = 0; i <= 10; i++) {
+        const t = i / 10;
+        pts.push(P(X + d + Math.sin(t * Math.PI) * bend, 0, z + 0.32 * t));
+      }
+      for (const [col, wd, oy] of [['#2a1c12', 0.012, 0], ['#e8d0a8', 0.005, 1]] as [string, number, number][]) {
+        ctx.strokeStyle = rgba(col, col === '#2a1c12' ? 0.45 : 0.35);
+        ctx.lineWidth = Math.max(0.8, k * wd);
+        ctx.beginPath();
+        pts.forEach(([px, py], i) => (i ? ctx.lineTo(px, py + oy) : ctx.moveTo(px, py + oy)));
+        ctx.stroke();
+      }
+    }
+    const [sx2, sy2] = P(X, 0, z - 0.03);
+    groundShadow(ctx, sx2 + k * 0.02, sy2 + k * 0.006, k * 0.07, k * 0.012, 0.45, '#1a1014');
+    const spoil = (c: Ctx) => {
+      c.beginPath();
+      c.ellipse(sx2, sy2, k * 0.07, k * 0.014, 0, Math.PI, 0);
+      c.closePath();
+    };
+    solid(ctx, spoil, { x: sx2 - k * 0.1, y: sy2 - k * 0.04, w: k * 0.2, h: k * 0.05 }, 'stone', '#7a5e42', { depth: 0.3, air: AIR, line: false, formSize: 3 });
+  }
   // the tracks of his charges from the gate towards us: the dirt torn up by his hooves in a run of divots, each a pit
-  // with its far lip lit and its clod thrown out behind it
+  // in its own shadow, its far lip lit, its clod thrown out beside it with a shadow of its own
   for (const [x0, x1, seed] of [[-0.22, -0.95, 1], [0.2, 0.8, 2], [0.04, -0.28, 3]] as [number, number, number][]) {
     const rr = rng(hashStr('mt:run' + seed));
-    for (let t = 0.04; t < 1; t += 0.05 + rr() * 0.04) {
+    for (let t = 0.04; t < 1; t += 0.06 + rr() * 0.05) {
       const z = RC - 0.3 - t * (RC - 0.3 - 1.48);
       const side = rr() < 0.5 ? -1 : 1;
       const X = x0 + (x1 - x0) * t + side * 0.05 + Math.sin(t * 5) * 0.03;
       const [px, py] = P(X, 0, z);
       const k = pz(z);
-      const l = (0.028 + rr() * 0.025) * k;
-      const ang = Math.atan2((P(x1, 0, 1.48)[1] - P(x0, 0, RC - 0.3)[1]) * 0.2, P(x1, 0, 1.48)[0] - P(x0, 0, RC - 0.3)[0]) * 0.3;
-      ctx.fillStyle = rgba('#3a2818', 0.34);
+      const l = (0.018 + rr() ** 2 * 0.04) * k;
+      ctx.fillStyle = rgba('#2a1c12', 0.45);
       ctx.beginPath();
-      ctx.ellipse(px, py, l, l * 0.3, ang, 0, P2);
+      ctx.ellipse(px, py, l, l * 0.3, (rr() - 0.5) * 0.4, Math.PI * 0.05, Math.PI * 1.05);
       ctx.fill();
-      ctx.fillStyle = rgba('#e4cca0', 0.35);
+      ctx.fillStyle = rgba('#6a5038', 0.6);
       ctx.beginPath();
-      ctx.ellipse(px + l * 0.1, py + l * 0.16, l * 0.8, l * 0.1, ang, 0, Math.PI);
+      ctx.ellipse(px, py + l * 0.08, l * 0.75, l * 0.2, 0, 0, P2);
       ctx.fill();
+      ctx.strokeStyle = rgba('#ecd6ae', 0.5);
+      ctx.lineWidth = Math.max(1, k * 0.004);
+      ctx.beginPath();
+      ctx.ellipse(px, py, l * 0.95, l * 0.3, 0, Math.PI * 1.1, Math.PI * 1.9);
+      ctx.stroke();
       const cs = (0.012 + rr() * 0.014) * k;
-      const [qx, qy] = P(X + side * 0.06, 0, z + 0.05);
-      ctx.fillStyle = rgba('#6a5038', 0.65);
+      const [qx, qy] = P(X + side * 0.07, 0, z + 0.05);
+      groundShadow(ctx, qx + cs * 0.5, qy + cs * 0.3, cs * 1.2, cs * 0.35, 0.5, '#1a1014');
+      ctx.fillStyle = rgba('#7a5c40', 0.9);
       ctx.beginPath();
-      ctx.ellipse(qx, qy, cs, cs * 0.6, 0, 0, P2);
+      ctx.ellipse(qx, qy - cs * 0.3, cs, cs * 0.6, 0, 0, P2);
       ctx.fill();
-      ctx.fillStyle = rgba('#d8c09a', 0.4);
+      ctx.fillStyle = rgba('#e0c49a', 0.55);
       ctx.beginPath();
-      ctx.ellipse(qx - cs * 0.2, qy - cs * 0.25, cs * 0.6, cs * 0.25, 0, 0, P2);
+      ctx.ellipse(qx - cs * 0.25, qy - cs * 0.55, cs * 0.55, cs * 0.25, 0, 0, P2);
       ctx.fill();
     }
+  }
+  // bones of earlier victims, half sunk in the sand about the court
+  for (const [X, z, len, ang] of [[-0.9, 2.3, 0.16, 0.4], [0.75, 2.05, 0.14, -0.7], [1.2, 2.5, 0.18, 0.2], [-0.45, 2.75, 0.12, -0.3], [0.35, 2.6, 0.15, 1.1]] as [number, number, number, number][]) {
+    bone(ctx, X, z, len, ang, 0.005);
+    const k = pz(z);
+    const [sx3, sy3] = P(X + Math.cos(ang) * len * 0.3, 0, z);
+    softly(ctx, b, (g) => {
+      g.fillStyle = 'rgba(176,146,108,0.95)';
+      g.beginPath();
+      g.ellipse(sx3, sy3, k * len * 0.38, k * 0.03, 0, Math.PI, 0);
+      g.fill();
+    }, 0.5);
   }
   // straw trodden into the dirt: thick by the trough on the right, scattered elsewhere; dung
   ctx.save();
@@ -1459,7 +2076,7 @@ function bone(ctx: Ctx, X: number, z: number, len: number, ang: number, Y = 0.02
     g.arc(x - (c * L) / 2, y - (sn * L) / 2, rr, Math.PI / 2, Math.PI * 1.5);
     g.closePath();
   };
-  solid(ctx, p, { x: x - L, y: y - rr * 2, w: L * 2, h: rr * 4 }, 'stone', '#c8bca2', { depth: 0.3, air: AIR, line: Math.max(1, k * 0.007), formSize: 2 });
+  solid(ctx, p, { x: x - L, y: y - rr * 2, w: L * 2, h: rr * 4 }, 'stone', '#c0b298', { depth: 0.3, air: AIR, line: Math.max(0.7, k * 0.004), ink: '#5a4a3c', formSize: 2 });
 }
 
 /** A skull at (X, z), its jaw gone, turned to look this way or that (lean). */
@@ -1476,7 +2093,7 @@ function skull(ctx: Ctx, X: number, z: number, Y: number, lean: number): void {
     c.quadraticCurveTo(sx0 - s * 0.8, sy0 + s * 0.7, sx0 - s, sy0 - s * 0.1);
     c.closePath();
   };
-  solid(ctx, cr, { x: sx0 - s, y: sy0 - s, w: s * 2, h: s * 2 }, 'stone', '#cdc0a6', { depth: 0.3, air: AIR, line: Math.max(1, k * 0.008), formSize: s * 0.5 });
+  solid(ctx, cr, { x: sx0 - s, y: sy0 - s, w: s * 2, h: s * 2 }, 'stone', '#c4b69c', { depth: 0.3, air: AIR, line: Math.max(0.8, k * 0.005), ink: '#5a4a3c', formSize: s * 0.5 });
   ctx.fillStyle = '#1a1210';
   for (const d of [-1, 1]) {
     ctx.beginPath();
@@ -1495,9 +2112,9 @@ function heap(ctx0: Ctx): void {
 }
 
 function heapPaint(ctx: Ctx): void {
-  const thc = -0.84;
-  const zc = 2.75 * Math.cos(thc);
-  const Xc = 2.75 * Math.sin(thc);
+  const thc = -0.85;
+  const zc = 2.8 * Math.cos(thc);
+  const Xc = 2.8 * Math.sin(thc);
   // an ox-hide figure-of-eight shield, split, fallen on its back at the heap's foot and propped on a bone (seen low
   // across the floor, foreshortened)
   const at = (u: number, v: number): Pt => RP(-0.86 + (u * 0.17 + (v - 0.5) * 0.12) / 2.9, 0.02 + v * 0.16, 2.62 + v * 0.42);
@@ -1561,36 +2178,62 @@ function heapPaint(ctx: Ctx): void {
   const mound = (c: Ctx) => {
     c.beginPath();
     c.moveTo(mx - k * 0.4, my + k * 0.02);
-    c.bezierCurveTo(mx - k * 0.3, my - k * 0.12, mx + k * 0.15, my - k * 0.16, mx + k * 0.42, my + k * 0.02);
+    c.bezierCurveTo(mx - k * 0.3, my - k * 0.16, mx + k * 0.15, my - k * 0.2, mx + k * 0.42, my + k * 0.02);
     c.closePath();
   };
   solid(ctx, mound, { x: mx - k * 0.45, y: my - k * 0.2, w: k * 0.9, h: k * 0.25 }, 'stone', '#8a7258', { depth: 0.3, air: AIR, line: false, formSize: 6 });
   const rb = rng(hashStr('mt:bones'));
-  for (let i = 0; i < 8; i++) {
-    const t = rb();
-    bone(ctx, Xc + (t - 0.5) * 0.7, zc + (rb() - 0.5) * 0.25, 0.12 + rb() * 0.16, (rb() - 0.5) * 2.6, 0.02 + Math.max(0, 0.1 - Math.abs(t - 0.45) * 0.25));
+  // the bones piled in layers, each higher and narrower than the one under it, skulls among them and one on top
+  const layers: [number, number, number][] = [[12, 0.75, 0.01], [9, 0.55, 0.05], [6, 0.38, 0.09], [3, 0.2, 0.13]];
+  for (const [li, [n, spread, Y]] of layers.entries()) {
+    // the occlusion in among this layer's bones from the ones above
+    softly(ctx, HEAP_BOX, (g) => {
+      const [ox, oy] = P(Xc, Y, zc);
+      g.fillStyle = 'rgba(30,20,24,0.4)';
+      g.beginPath();
+      g.ellipse(ox, oy, k * spread * 0.45, k * 0.03, 0, 0, P2);
+      g.fill();
+    }, 0.5);
+    for (let i = 0; i < n; i++) {
+      const t = rb() - 0.5;
+      bone(ctx, Xc + t * spread, zc + (rb() - 0.5) * 0.22 * (1 - li * 0.2), 0.1 + rb() * 0.14, (rb() - 0.5) * 2.8, Y + rb() * 0.02);
+    }
+    if (li === 1) {
+      // ribs: a curl of thin arcs
+      const [rx, ry] = P(Xc + 0.12, Y + 0.04, zc - 0.05);
+      ctx.strokeStyle = rgba('#d8ccb2', 0.9);
+      ctx.lineWidth = Math.max(1, k * 0.008);
+      for (let i = 0; i < 5; i++) {
+        ctx.beginPath();
+        ctx.ellipse(rx + i * k * 0.024, ry, k * 0.06, k * 0.02, 0, Math.PI * 1.05, Math.PI * 1.95);
+        ctx.stroke();
+      }
+    }
+    if (li === 0) {
+      skull(ctx, Xc - 0.3, zc - 0.1, 0.0, 0.5);
+      skull(ctx, Xc + 0.32, zc - 0.06, 0.0, -0.3);
+    }
+    if (li === 1) skull(ctx, Xc + 0.16, zc + 0.08, 0.05, -0.5);
   }
-  // dirt and straw drifted over them
+  skull(ctx, Xc + 0.02, zc + 0.02, 0.15, 0.1);
+  // a jawbone fallen at the foot
+  const [jx, jy] = P(Xc + 0.45, 0.01, zc - 0.25);
+  ctx.strokeStyle = rgba('#d0c4aa', 0.9);
+  ctx.lineWidth = Math.max(1.2, k * 0.012);
+  ctx.beginPath();
+  ctx.moveTo(jx - k * 0.04, jy - k * 0.01);
+  ctx.quadraticCurveTo(jx, jy + k * 0.025, jx + k * 0.045, jy - k * 0.012);
+  ctx.stroke();
+  // dirt and straw drifted over the lowest of them
   softly(ctx, HEAP_BOX, (g) => {
-    for (let i = 0; i < 7; i++) {
-      const [dx, dy] = P(Xc + (rb() - 0.5) * 0.7, 0, zc + (rb() - 0.5) * 0.2);
+    for (let i = 0; i < 9; i++) {
+      const [dx, dy] = P(Xc + (rb() - 0.5) * 0.8, 0, zc + (rb() - 0.5) * 0.2);
       g.fillStyle = 'rgba(150,122,90,0.8)';
       g.beginPath();
-      g.ellipse(dx, dy - 2, k * (0.05 + rb() * 0.06), k * 0.018, 0, Math.PI, 0);
+      g.ellipse(dx, dy - 1, k * (0.05 + rb() * 0.06), k * 0.014, 0, Math.PI, 0);
       g.fill();
     }
   }, 0.5);
-  // ribs: a curl of thin arcs
-  const [rx, ry] = P(Xc + 0.15, 0.06, zc - 0.05);
-  ctx.strokeStyle = rgba('#e0d4bc', 0.9);
-  ctx.lineWidth = Math.max(1, k * 0.009);
-  for (let i = 0; i < 5; i++) {
-    ctx.beginPath();
-    ctx.ellipse(rx + i * k * 0.028, ry, k * 0.07, k * 0.022, 0, Math.PI * 1.05, Math.PI * 1.95);
-    ctx.stroke();
-  }
-  skull(ctx, Xc - 0.12, zc - 0.08, 0.08, 0.4);
-  skull(ctx, Xc + 0.18, zc + 0.12, 0.05, -0.5);
   // a spear shaft snapped across the heap, its bronze head
   const [s0x, s0y] = P(Xc - 0.4, 0.05, zc - 0.3);
   const [s1x, s1y] = P(Xc + 0.3, 0.14, zc + 0.1);
@@ -1634,9 +2277,21 @@ function block(ctx: Ctx, th: number, r: number, ht: number, hr: number, Y0: numb
     ctx.fillStyle = col;
     ctx.fill();
   }
-  solid(ctx, front, bb, 'stone', base, { depth: 0.2, air: AIR, line: 1.3, formSize: 4 });
+  solid(ctx, front, bb, 'stone', base, { depth: 0.2, air: AIR, line: false, formSize: 4 });
   within(ctx, front, () => {
-    surface(ctx, rr, bb, base, { over: true, vary: 0.45, cells: 2, mottle: 0.4, grain: 0.3, grainKind: 'speckle', seed: Math.round(ht * 100) });
+    surface(ctx, rr, bb, base, { over: true, vary: 0.5, cells: 2, mottle: 0.5, grain: 0.4, grainKind: 'speckle', seed: Math.round(ht * 100) });
+    lay(ctx, drift('#d8c4a0', '#5a4a3a', 4, Math.round(ht * 300), 60, 20), bb, 0.45);
+    lay(ctx, noiseMask(14, Math.round(ht * 500), { cover: 0.2, soft: 0.05, col: '#3a2e24', w: 120, h: 30 }), bb, 0.35);
+    // the course's blocks: a vertical joint or two
+    for (const f of ht > 0.2 ? [-0.35, 0.3] : [0.1]) {
+      const [jx] = RP(th + f * dt, Y1, r - hr);
+      const [, jy0] = RP(th, Y1, r - hr);
+      const [, jy1] = RP(th, Y0, r - hr);
+      ctx.fillStyle = rgba('#2a1e18', 0.6);
+      ctx.fillRect(jx - 1, jy0, 2, jy1 - jy0);
+      ctx.fillStyle = rgba('#fff0d4', 0.3);
+      ctx.fillRect(jx + 1, jy0, 1, jy1 - jy0);
+    }
     const [, ya] = RP(th, Y1, r - hr);
     const [xa, yb] = RP(th - dt, Y0, r - hr);
     const [xb] = RP(th + dt, Y0, r - hr);
@@ -1650,25 +2305,58 @@ function block(ctx: Ctx, th: number, r: number, ht: number, hr: number, Y0: numb
     ctx.fillRect(bb.x, bb.y, bb.w, bb.h);
     for (let i = 0; i < 3; i++) streaks(ctx, rr, xa + rr() * (xb - xa), ya, 10, (yb - ya) * 0.8, '#4a3a2c', 0.15, 2);
   });
-  solid(ctx, top, bb, 'stone', shade(base, 0.18), { depth: 0.2, air: AIR, line: 1.3, formSize: 4 });
+  solid(ctx, top, bb, 'stone', shade(base, 0.3), { depth: 0.2, air: AIR, line: false, formSize: 4 });
+  // the riser in the shadow of the step's own lip; corners knocked off
+  const [cxa, cya] = RP(th - dt, Y1, r - hr);
+  const [cxb] = RP(th + dt, Y1, r - hr);
+  for (const cx0 of [cxa, cxb]) {
+    ctx.fillStyle = rgba('#2a2018', 0.6);
+    ctx.beginPath();
+    ctx.moveTo(cx0 + (cx0 === cxa ? 0 : -8), cya);
+    ctx.lineTo(cx0 + (cx0 === cxa ? 8 : 0), cya);
+    ctx.lineTo(cx0, cya + 7);
+    ctx.closePath();
+    ctx.fill();
+  }
   const [x0, yy] = RP(th - dt, Y1, r - hr);
   const [x1] = RP(th + dt, Y1, r - hr);
   chips(ctx, rr, x0, x1, yy, 5, base, 2.5);
   // the next step's foot in occlusion on this one's top
   crevice(ctx, x0, x1, yy - 1, -4, 0.3, '#1a1220');
+  // a rounded bead moulding along its top edge, lit on top, its shadow under it
+  const bead = ringPath(th - dt - 0.003, th + dt + 0.003, Y1 - 0.028, Y1, r - hr - 0.012);
+  softly(ctx, bb, (g) => {
+    g.fillStyle = 'rgba(20,14,24,0.4)';
+    ringPath(th - dt, th + dt, Y1 - 0.06, Y1 - 0.026, r - hr)(g);
+    g.fill();
+  }, 0.5);
+  bead(ctx);
+  ctx.fillStyle = shade(base, 0.1);
+  ctx.fill();
+  ctx.fillStyle = rgba('#fff0d4', 0.3);
+  ringPath(th - dt - 0.003, th + dt + 0.003, Y1 - 0.01, Y1, r - hr - 0.012)(ctx);
+  ctx.fill();
+  if (Y0 === 0) {
+    const [lx2, ly2] = RP(th, (Y0 + Y1) / 2 - 0.01, r - hr);
+    ctx.globalAlpha = 0.4;
+    labrys(ctx, lx2 + 1, ly2 + 1, (Y1 - Y0) * ppu(th, r - hr) * 0.75, '#fff0d4');
+    ctx.globalAlpha = 0.55;
+    labrys(ctx, lx2, ly2, (Y1 - Y0) * ppu(th, r - hr) * 0.75, '#5a4634');
+    ctx.globalAlpha = 1;
+  }
 }
 
 function stand(ctx0: Ctx): void {
-  inShade(ctx0, STAND_BOX, (ctx) => standPaint(ctx));
+  inShade(ctx0, STAND_BOX, (ctx) => standPaint(ctx), '#62669c');
 }
 
 function standPaint(ctx: Ctx): void {
   const [fx, fy] = P(LX, 0, LZ);
   const k = pz(LZ);
   groundShadow(ctx, fx + k * 0.08, fy + k * 0.02, k * 0.5, k * 0.1, 0.7, '#140c18');
-  block(ctx, LBY.th, LBY.r, 0.3, 0.3, 0, 0.12, '#9c8666');
-  block(ctx, LBY.th, LBY.r, 0.22, 0.22, 0.12, 0.24, '#a89070');
-  block(ctx, LBY.th, LBY.r, 0.14, 0.14, 0.24, LBY.sock, '#b09878');
+  block(ctx, LBY.th, LBY.r, 0.3, 0.3, 0, 0.12, '#7c6a50');
+  block(ctx, LBY.th, LBY.r, 0.22, 0.22, 0.12, 0.24, '#86725a');
+  block(ctx, LBY.th, LBY.r, 0.14, 0.14, 0.24, LBY.sock, '#8e7a60');
   // a votive cup left on the second step
   const [cx, cy] = RP(LBY.th + 0.16 / LBY.r, 0.24, LBY.r - 0.25);
   ctx.fillStyle = '#7a3a24';
@@ -1767,141 +2455,145 @@ function labrysBig(ctx: Ctx): void {
 
 // ——— the trough ———
 
-const TR = MT.trough;
+/** The trough, squared to the court (X0…X1 across, z0…z1 deep, h high, its walls t thick, its water just under the
+ * rim). */
+const TR = { X0: 2.2, X1: 2.78, z0: 1.47, z1: 1.74, h: 0.32, t: 0.05, wY: 0.29 };
 export const TROUGH_BOX = (() => {
-  const b = boxOfPts([RP(TR.th0 - 0.02, TR.h + 0.02, TR.r0), RP(TR.th1 + 0.02, 0, TR.r0), RP(TR.th0, TR.h, TR.r1)], 14);
+  const b = boxOfPts([P(TR.X0 - 0.05, TR.h + 0.02, TR.z1), P(TR.X1 + 0.1, 0, TR.z0), P(TR.X0 - 0.05, 0, TR.z0)], 14);
   return { x: b.x, y: b.y, w: Math.min(W - b.x, b.w), h: Math.min(TY + 2 - b.y, b.h) };
 })();
-
+const quad = (pts: Pt[]) => polyPath(pts);
 const troughWater = () => {
-  const { th0, th1, r0, r1, h } = TR;
-  return polyPath([...Array.from({ length: 13 }, (_, i) => RP(th0 + 0.01 + ((th1 - th0 - 0.02) * i) / 12, h - 0.02, r0 + 0.07)), ...Array.from({ length: 13 }, (_, i) => RP(th1 - 0.01 - ((th1 - th0 - 0.02) * i) / 12, h - 0.02, r1 - 0.07))]);
+  const { X0, X1, z0, z1, t, wY } = TR;
+  return quad([P(X0 + t, wY, z0 + t), P(X1 - t, wY, z0 + t), P(X1 - t, wY, z1 - t), P(X0 + t, wY, z1 - t)]);
 };
 
 function trough(ctx: Ctx, r: R): void {
-  inShade(ctx, TROUGH_BOX, (g) => troughPaint(g, r), '#5e62a8');
-  // the water's glitter (it reflects the sunlit wall)
-  const { th0, th1, r0, h } = TR;
+  inShade(ctx, TROUGH_BOX, (g) => troughPaint(g, r), '#6e72aa');
+  // the water: brimming, the sunlit wall and the sky in it (brightest at the back), rings spreading where the stream
+  // falls, glints
+  const { X0, X1, z0, z1, t, wY } = TR;
+  const wp = troughWater();
+  const [, wy0] = P(0, wY, z1 - t);
+  const [, wy1] = P(0, wY, z0 + t);
   ctx.save();
-  troughWater()(ctx);
+  wp(ctx);
   ctx.clip();
+  vfill(ctx, TROUGH_BOX.x, wy0 - 1, TROUGH_BOX.w, wy1 - wy0 + 2, [[0, '#e8cf9c'], [0.45, '#a8a49a'], [1, '#5a6478']]);
   ctx.globalCompositeOperation = 'lighter';
-  for (let i = 0; i < 14; i++) {
-    const th = th0 + r() * (th1 - th0);
-    const [x, y] = RP(th, h - 0.02, r0 + 0.1 + r() * 0.15);
-    ctx.fillStyle = rgba('#fff0c8', 0.3 + r() * 0.3);
-    ctx.fillRect(x, y, 3 + r() * 6, 1.2);
+  for (let i = 0; i < 16; i++) {
+    const X = X0 + t + r() * (X1 - X0 - 2 * t);
+    const z = z0 + t + r() * (z1 - z0 - 2 * t);
+    const [x, y] = P(X, wY, z);
+    ctx.fillStyle = rgba('#fff0c8', 0.25 + r() * 0.3);
+    ctx.fillRect(x, y, 3 + r() * 7, 1);
+  }
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.strokeStyle = rgba('#fff4dc', 0.35);
+  ctx.lineWidth = 1;
+  for (const rr of [6, 12, 19]) {
+    ctx.beginPath();
+    ctx.ellipse(STREAM.x + 2, STREAM.y1, rr, rr * 0.22, 0, 0, P2);
+    ctx.stroke();
   }
   ctx.restore();
 }
 
 function troughPaint(ctx: Ctx, r: R): void {
-  const { th0, th1, r0, r1, h } = TR;
-  const front = ringPath(th0, th1, 0, h, r0);
-  // its shadow on the floor and the wet ground round it
-  const [gx, gy] = RP((th0 + th1) / 2, 0, r0);
-  const k = ppu((th0 + th1) / 2, r0);
+  const { X0, X1, z0, z1, h, t, wY } = TR;
+  const k = pz(z0);
+  // its shadow and the wet ground round it
+  const [gx, gy] = P((X0 + X1) / 2, 0, z0);
+  groundShadow(ctx, gx + k * 0.04, gy + 3, (X1 - X0) * k * 0.6, k * 0.06, 0.9, '#0e0814');
   softly(ctx, TROUGH_BOX, (g) => {
-    g.fillStyle = 'rgba(30,24,30,0.5)';
-    floorBand(th0 - 0.01, th1 + 0.03, r0 - 0.16, r0 + 0.04)(g);
+    g.fillStyle = 'rgba(40,30,30,0.45)';
+    quad([P(X0 - 0.08, 0, z0 - 0.06), P(X1 + 0.05, 0, z0 - 0.06), P(X1 + 0.05, 0, z1), P(X0 - 0.08, 0, z1)])(g);
     g.fill();
   }, 0.25);
-  groundShadow(ctx, gx + k * 0.04, gy + 3, k * 0.5, k * 0.05, 0.7, '#120a18');
-  // the back lip and the water (brimming, the sky in it), then the front face and its lip
-  const water = troughWater();
-  const back = polyPath([...Array.from({ length: 13 }, (_, i) => RP(th0 + ((th1 - th0) * i) / 12, h, r1 - 0.07)), ...Array.from({ length: 13 }, (_, i) => RP(th1 - ((th1 - th0) * i) / 12, h, r1))]);
-  back(ctx);
-  ctx.fillStyle = '#c0a880';
-  ctx.fill();
-  water(ctx);
-  const wb = boxOfPts([RP(th0, h, r1), RP(th1, h, r0)], 2);
-  const wg = ctx.createLinearGradient(0, wb.y, 0, wb.y + wb.h);
-  wg.addColorStop(0, '#f4dcaa');
-  wg.addColorStop(1, '#8a9cac');
-  ctx.fillStyle = wg;
-  ctx.fill();
-  front(ctx);
-  ctx.fillStyle = '#b09a74';
-  ctx.fill();
-  const fb = boxOfPts([RP(th0, h, r0), RP(th1, 0, r0)], 2);
-  within(ctx, front, () => {
-    surface(ctx, r, fb, '#b09a74', { over: true, vary: 0.45, cells: 3, mottle: 0.4, grain: 0.35, grainKind: 'speckle', seed: 61 });
-    // a sunk panel carved in its face with a running spiral in low relief: the panel's upper inside edge in shadow,
-    // its lower lip lit
-    const pth0 = th0 + 0.014;
-    const pth1 = th1 - 0.014;
-    const panel = ringPath(pth0, pth1, 0.09, h - 0.1, r0);
-    panel(ctx);
-    ctx.fillStyle = rgba('#8a7458', 0.4);
+  const face = (pts: Pt[], base: string, seed: number) => {
+    const p = quad(pts);
+    const bb = boxOfPts(pts, 2);
+    p(ctx);
+    ctx.fillStyle = base;
     ctx.fill();
-    const [px0, py0] = RP(pth0, h - 0.1, r0);
-    const [, py1] = RP(pth1, 0.09, r0);
-    ctx.fillStyle = rgba('#2a1e18', 0.45);
-    ringPath(pth0, pth1, h - 0.12, h - 0.1, r0)(ctx);
-    ctx.fill();
-    ctx.fillStyle = rgba('#fff0d0', 0.35);
-    ringPath(pth0, pth1, 0.09, 0.105, r0)(ctx);
-    ctx.fill();
-    ctx.fillRect(px0, py0, 1.5, py1 - py0);
-    within(ctx, panel, () => {
-      // a double axe carved in the middle of it
-      const [lx, ly] = RP((pth0 + pth1) / 2, (h - 0.01) / 2, r0);
-      ctx.globalAlpha = 0.35;
-      labrys(ctx, lx + 1, ly + 1, (py1 - py0) * 0.8, '#fff0d0');
-      ctx.globalAlpha = 0.45;
-      labrys(ctx, lx, ly, (py1 - py0) * 0.8, '#6a5440');
-      ctx.globalAlpha = 1;
+    within(ctx, p, () => {
+      surface(ctx, r, bb, base, { over: true, vary: 0.45, cells: 3, mottle: 0.4, grain: 0.35, grainKind: 'speckle', seed });
+      for (let i = 0; i < 30; i++) {
+        const x = bb.x + r() * bb.w;
+        const y = bb.y + r() * bb.h;
+        ctx.strokeStyle = rgba(r() < 0.5 ? '#5a4836' : '#f0dcb8', 0.28);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + 4, y + 3);
+        ctx.stroke();
+      }
+      vfill(ctx, bb.x, bb.y + bb.h * 0.45, bb.w, bb.h * 0.55, [[0, 'rgba(40,34,30,0)'], [1, 'rgba(40,34,30,0.45)']]);
     });
-    // the green line where the water spills over under the spout, the damp darkening to the foot
-    const [sx0] = RP(MT.spout.th - 0.02, 0, r0);
-    const [sx1] = RP(MT.spout.th + 0.02, 0, r0);
-    vfill(ctx, sx0, fb.y, sx1 - sx0, fb.h, [[0, 'rgba(60,96,64,0.55)'], [1, 'rgba(40,60,50,0.3)']]);
-    vfill(ctx, fb.x, fb.y + fb.h * 0.5, fb.w, fb.h * 0.5, [[0, 'rgba(40,34,30,0)'], [1, 'rgba(40,34,30,0.45)']]);
-    // its ends: the left arris lit, the right in shade
-    const hg = ctx.createLinearGradient(fb.x, 0, fb.x + fb.w, 0);
-    hg.addColorStop(0, 'rgba(255,240,210,0.25)');
-    hg.addColorStop(0.06, 'rgba(255,240,210,0)');
-    hg.addColorStop(0.92, 'rgba(20,14,30,0)');
-    hg.addColorStop(1, 'rgba(20,14,30,0.35)');
-    ctx.fillStyle = hg;
-    ctx.fillRect(fb.x, fb.y, fb.w, fb.h);
-    for (let i = 0; i < 40; i++) {
-      const th = th0 + r() * (th1 - th0);
-      const [x, y] = RP(th, r() * h, r0);
-      ctx.strokeStyle = rgba(r() < 0.5 ? '#6a5640' : '#f0dcb8', 0.3);
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      ctx.lineTo(x + 4, y + 3);
-      ctx.stroke();
-    }
-  });
-  ctx.strokeStyle = '#3a2a20';
+    ctx.strokeStyle = '#3a2a20';
+    ctx.lineWidth = 1.3;
+    p(ctx);
+    ctx.stroke();
+    return bb;
+  };
+  // the left end (facing the light) and the front, with a sunk panel carved with a double axe
+  face([P(X0, 0, z0), P(X0, h, z0), P(X0, h, z1), P(X0, 0, z1)], '#bea67e', 63);
+  const fb = face([P(X0, 0, z0), P(X1, 0, z0), P(X1, h, z0), P(X0, h, z0)], '#94805e', 61);
+  const [px0, py0] = P(X0 + 0.06, h - 0.07, z0);
+  const [px1, py1] = P(X1 - 0.06, 0.07, z0);
+  ctx.fillStyle = rgba('#7a6448', 0.4);
+  ctx.fillRect(px0, py0, px1 - px0, py1 - py0);
+  ctx.fillStyle = rgba('#2a1e18', 0.45);
+  ctx.fillRect(px0, py0, px1 - px0, 2);
+  ctx.fillRect(px0, py0, 2, py1 - py0);
+  ctx.fillStyle = rgba('#fff0d0', 0.3);
+  ctx.fillRect(px0, py1 - 1.5, px1 - px0, 1.5);
+  ctx.fillRect(px1 - 1.5, py0, 1.5, py1 - py0);
+  ctx.globalAlpha = 0.35;
+  labrys(ctx, (px0 + px1) / 2 + 1, (py0 + py1) / 2 + 1, (py1 - py0) * 0.8, '#fff0d0');
+  ctx.globalAlpha = 0.5;
+  labrys(ctx, (px0 + px1) / 2, (py0 + py1) / 2, (py1 - py0) * 0.8, '#5a4634');
+  ctx.globalAlpha = 1;
+  // the green line where the water spills over under the spout, and the spill run down the face
+  const [sx0] = P(0, 0, z0);
+  void sx0;
+  const sxs = STREAM.x;
+  vfill(ctx, sxs - 12, fb.y, 24, fb.h, [[0, 'rgba(60,96,64,0.55)'], [1, 'rgba(40,60,50,0.3)']]);
+  streaks(ctx, r, sxs, fb.y + 2, 0.04 * k, fb.h * 0.9, '#3a4a40', 0.25, 3);
+  // the inner walls seen over the rim: the back one facing us, the right end
+  ctx.fillStyle = '#6a5a48';
+  quad([P(X0 + t, wY, z1 - t), P(X1 - t, wY, z1 - t), P(X1 - t, h, z1 - t), P(X0 + t, h, z1 - t)])(ctx);
+  ctx.fill();
+  ctx.fillStyle = '#5a4c3c';
+  quad([P(X1 - t, wY, z0 + t), P(X1 - t, wY, z1 - t), P(X1 - t, h, z1 - t), P(X1 - t, h, z0 + t)])(ctx);
+  ctx.fill();
+  // the rim: four lips mitred at the corners, each its own stone, lit along its outer arris, the front lip chipped
+  const o = [P(X0, h, z0), P(X1, h, z0), P(X1, h, z1), P(X0, h, z1)];
+  const i4 = [P(X0 + t, h, z0 + t), P(X1 - t, h, z0 + t), P(X1 - t, h, z1 - t), P(X0 + t, h, z1 - t)];
+  const lips: [number, string][] = [[0, '#d8c29c'], [1, '#c8b28c'], [2, '#b8a07c'], [3, '#d0ba94']];
+  for (const [j, col] of lips) {
+    const p = quad([o[j], o[(j + 1) % 4], i4[(j + 1) % 4], i4[j]]);
+    p(ctx);
+    ctx.fillStyle = col;
+    ctx.fill();
+    ctx.strokeStyle = rgba('#3a2a20', 0.55);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+  ctx.strokeStyle = rgba('#fff4dc', 0.55);
   ctx.lineWidth = 1.4;
-  front(ctx);
+  ctx.beginPath();
+  ctx.moveTo(...o[0]);
+  ctx.lineTo(...o[1]);
   ctx.stroke();
-  // the rim: a rounded lip standing proud of the face, lit along its top
-  const rim = ringPath(th0 - 0.004, th1 + 0.004, h - 0.05, h + 0.005, r0 - 0.02);
-  rim(ctx);
-  ctx.fillStyle = '#d8c09a';
-  ctx.fill();
-  within(ctx, rim, () => vfill(ctx, fb.x, RP(th0, h + 0.005, r0 - 0.02)[1], fb.w, 14, [[0, 'rgba(255,244,220,0.5)'], [1, 'rgba(60,40,30,0.3)']]));
-  ctx.stroke();
-  const lip = polyPath([...Array.from({ length: 13 }, (_, i) => RP(th0 + ((th1 - th0) * i) / 12, h, r0)), ...Array.from({ length: 13 }, (_, i) => RP(th1 - ((th1 - th0) * i) / 12, h, r0 + 0.07))]);
-  lip(ctx);
-  ctx.fillStyle = '#c4ae88';
-  ctx.fill();
-  chips(ctx, r, RP(th0, h, r0)[0], RP(th1, h, r0)[0], RP((th0 + th1) / 2, h, r0 - 0.02)[1] + 3, 6, '#d8c09a', 2.5);
-  // water spilled down its face under the spout
-  const [wx, wy] = RP(MT.spout.th, h, r0 - 0.02);
-  streaks(ctx, r, wx, wy, 0.05 * k, h * k * 0.9, '#3a4a40', 0.25, 3);
+  chips(ctx, r, o[0][0] + 6, o[1][0] - 6, o[0][1] + 2, 7, '#d8c29c', 3);
 }
 
 /** The stream, painted in the still (the live layer's moving stream replaces it). */
 export const STREAM = (() => {
   const { th, Y } = MT.spout;
   const [x, y0] = RP(th, Y - 0.095, RC - 0.05);
-  const [, y1] = RP(th, TR.h - 0.02, (TR.r0 + TR.r1) / 2);
+  const [, y1] = P(0, TR.wY, TR.z1 - TR.t - 0.03);
   return { x, y0, y1, w: 34 };
 })();
 
@@ -2135,14 +2827,14 @@ function table(ctx: Ctx, r: R): void {
   // the stone's bedding: broad strata running along the slab, cream and grey-ochre, swelling and thinning, a little
   // cross-bedded; painted soft, then a few crisp stylolite seams (the jagged dark sutures limestone grows)
   softly(ctx, box, (g) => {
-    for (let i = 0; i < 16; i++) {
+    for (let i = 0; i < 22; i++) {
       const z0 = ZB - r() * (ZB - zf);
       const y0 = yAt(z0);
       const sc = (y0 - HY0) / (TY - HY0);
       const th = (5 + r() * 16) * sc;
       const tilt = (r() - 0.5) * 0.025;
       const ph = r() * 10;
-      g.fillStyle = rgba(r() < 0.5 ? (r() < 0.5 ? '#cfbe9a' : '#b8a88e') : r() < 0.5 ? '#5c4e3e' : '#6a5a52', 0.16 + r() * 0.14);
+      g.fillStyle = rgba(r() < 0.5 ? (r() < 0.5 ? '#cfbe9a' : '#b8a88e') : r() < 0.5 ? '#5c4e3e' : '#6a5a52', 0.2 + r() * 0.16);
       g.beginPath();
       for (let x = -20; x <= W + 20; x += 40) g.lineTo(x, y0 + (x - 960) * tilt + Math.sin(x * 0.004 + ph) * 6 * sc);
       for (let x = W + 20; x >= -20; x -= 40) g.lineTo(x, y0 + (x - 960) * tilt + Math.sin(x * 0.004 + ph) * 6 * sc + th * (0.6 + 0.4 * Math.sin(x * 0.006 + ph * 2)));
@@ -2150,9 +2842,29 @@ function table(ctx: Ctx, r: R): void {
       g.fill();
     }
   }, 0.5);
+  // the bedding planes: thin crisp lines along the strata, broken here and there
+  ctx.save();
+  for (let i = 0; i < 6; i++) {
+    const z0 = ZB - r() * (ZB - zf);
+    const y0 = yAt(z0);
+    const sc = (y0 - HY0) / (TY - HY0);
+    const tilt = (r() - 0.5) * 0.02;
+    let x = -20;
+    while (x < W + 20) {
+      const l = 80 + r() * 300;
+      ctx.strokeStyle = rgba(r() < 0.6 ? '#4a3e30' : '#e0d2b6', 0.1 + r() * 0.08);
+      ctx.lineWidth = (0.8 + r() * 0.8) * sc;
+      ctx.beginPath();
+      ctx.moveTo(x, y0 + (x - 960) * tilt);
+      ctx.lineTo(x + l, y0 + (x + l - 960) * tilt + (r() - 0.5) * sc);
+      ctx.stroke();
+      x += l + 20 + r() * 120;
+    }
+  }
+  ctx.restore();
   ctx.save();
   ctx.lineJoin = 'round';
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 5; i++) {
     const z0 = ZB - (0.15 + r() * 0.75) * (ZB - zf);
     const y0 = yAt(z0);
     const sc = (y0 - HY0) / (TY - HY0);
@@ -2164,18 +2876,18 @@ function table(ctx: Ctx, r: R): void {
       x += 3 + r() * 5;
       ctx.lineTo(x, y0 + (r() - 0.5) * 3.5 * sc + Math.sin(x * 0.01) * 3 * sc);
     }
-    ctx.strokeStyle = rgba('#3a2e24', 0.22);
-    ctx.lineWidth = 1.1 * sc;
+    ctx.strokeStyle = rgba('#3a2e24', 0.32);
+    ctx.lineWidth = 1.3 * sc;
     ctx.stroke();
   }
   ctx.restore();
   // pitting: the little hollows weather opens in limestone, each a dark pit with a lit lower rim
-  for (let i = 0; i < 110; i++) {
+  for (let i = 0; i < 160; i++) {
     const x = r() * W;
     const y = TY + 8 + r() * (f - TY - 14);
     const sc = (y - HY0) / (TY - HY0);
-    const s = (1.2 + r() * 3) * sc;
-    ctx.fillStyle = rgba('#3a2e24', 0.22);
+    const s = (1.4 + r() * 3.6) * sc;
+    ctx.fillStyle = rgba('#3a2e24', 0.3);
     ctx.beginPath();
     ctx.ellipse(x, y, s * 1.3, s * 0.6, 0, 0, P2);
     ctx.fill();
@@ -2184,27 +2896,27 @@ function table(ctx: Ctx, r: R): void {
     ctx.ellipse(x + s * 0.3, y + s * 0.5, s, s * 0.3, 0, 0, Math.PI);
     ctx.fill();
   }
-  grain(ctx, box, 'speckle', 0.16, 1.3);
+  grain(ctx, box, 'speckle', 0.14, 1.1);
   // the slab's two joints with its neighbours (one great threshold stone in the middle)
-  for (const X of [-2.3, 2.35]) {
+  for (const X of [((400 - 960) * ZB) / 1210, ((1530 - 960) * ZB) / 1210]) {
     const sh = (g: Ctx) => {
       g.beginPath();
       g.moveTo(xAt(X, ZB), TY);
       g.lineTo(xAt(X, zf), f);
     };
-    ctx.strokeStyle = rgba('#2a2018', 0.5);
-    ctx.lineWidth = 2.4;
+    ctx.strokeStyle = rgba('#2a2018', 0.6);
+    ctx.lineWidth = 3;
     sh(ctx);
     ctx.stroke();
-    ctx.strokeStyle = rgba('#e8dcc4', 0.16);
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = rgba('#e8dcc4', 0.25);
+    ctx.lineWidth = 1.2;
     ctx.beginPath();
     ctx.moveTo(xAt(X, ZB) + 2, TY);
     ctx.lineTo(xAt(X, zf) + 2.5, f);
     ctx.stroke();
     // each side its own stone
     const side = X < 0 ? [-6, X] : [X, 6];
-    ctx.fillStyle = rgba(X < 0 ? '#5a4c3c' : '#a89a80', 0.08);
+    ctx.fillStyle = rgba(X < 0 ? '#5a4c3c' : '#a89a80', 0.12);
     ctx.beginPath();
     ctx.moveTo(xAt(side[0], ZB), TY);
     ctx.lineTo(xAt(side[1], ZB), TY);
@@ -2212,9 +2924,9 @@ function table(ctx: Ctx, r: R): void {
     ctx.lineTo(xAt(side[0], zf), f);
     ctx.closePath();
     ctx.fill();
-    for (let i = 0; i < 9; i++) {
+    for (let i = 0; i < 14; i++) {
       const z = ZB - r() * (ZB - zf);
-      chips(ctx, r, xAt(X, z) - 3, xAt(X, z) + 3, yAt(z), 1, '#857762', 2.5 * (yAt(z) - HY0) / (TY - HY0));
+      chips(ctx, r, xAt(X, z) - 3, xAt(X, z) + 3, yAt(z), 1, '#857762', 3.5 * (yAt(z) - HY0) / (TY - HY0));
     }
   }
   // the hollow worn down the middle by hooves and feet: smoother and paler, a soft darker rim, his scratches in it
@@ -2223,8 +2935,8 @@ function table(ctx: Ctx, r: R): void {
     g.translate(960, (TY + f) / 2 + 20);
     g.scale(1, 0.4);
     const gr = g.createRadialGradient(0, 0, 0, 0, 0, 560);
-    gr.addColorStop(0, 'rgba(232,218,190,0.22)');
-    gr.addColorStop(0.5, 'rgba(232,218,190,0.1)');
+    gr.addColorStop(0, 'rgba(236,224,198,0.3)');
+    gr.addColorStop(0.55, 'rgba(236,224,198,0.14)');
     gr.addColorStop(1, 'rgba(232,218,190,0)');
     g.fillStyle = gr;
     g.fillRect(-700, -700, 1400, 1400);
@@ -2291,7 +3003,7 @@ function table(ctx: Ctx, r: R): void {
   // a few old cracks, from the joints and the front edge where weight bore on it
   for (let i = 0; i < 5; i++) crack(ctx, r, r() * W, TY + 30 + r() * (f - TY - 60), (r() - 0.5) * 0.8, 50 + r() * 90, { col: '#4a3a2c', lip: '#efe4cc', w: 1.1, a: 0.3, branch: 0.3 });
   // chips knocked out of its back edge
-  nicks(ctx, r, 0, W, TY + 1, 30, 4, '#857762');
+  nicks(ctx, r, 0, W, TY + 1, 40, 5.5, '#857762');
   // the light: warm from the back left, falling off to the front right
   const lg = ctx.createLinearGradient(0, TY, W * 0.75, f + 200);
   lg.addColorStop(0, 'rgba(255,226,176,0.1)');
@@ -2389,10 +3101,10 @@ function vultureFrame(c: Ctx, ph: number): void {
   const flex = Math.sin(ph * P2);
   c.fillStyle = '#3a2c28';
   for (const d of [-1, 1]) {
-    const tipY = cy - 6 - flex * 7;
+    const tipY = cy - 6 - flex * 11;
     c.beginPath();
     c.moveTo(cx - d * 4, cy - 2);
-    c.quadraticCurveTo(cx + d * 20, cy - 8 - flex * 2, cx + d * 40, tipY);
+    c.quadraticCurveTo(cx + d * 20, cy - 8 - flex * 5, cx + d * (40 - Math.abs(flex) * 4), tipY);
     // the fingered primaries
     for (let j = 0; j < 5; j++) {
       const fx = cx + d * (44 - j * 2.2);
@@ -2437,6 +3149,27 @@ function vultureFrame(c: Ctx, ph: number): void {
     c.beginPath();
     c.moveTo(cx + d * 6, cy + 5);
     c.quadraticCurveTo(cx + d * 22, cy + 5 - flex, cx + d * 36, cy - 1 - flex * 3);
+    c.stroke();
+  }
+}
+
+/** One frame of heat shimmer (phase 0…1 loops): thin wavering ribbons of bright air rising and fading, w×h. */
+function heatFrame(c: Ctx, w: number, h: number, ph: number): void {
+  c.lineCap = 'round';
+  for (let j = 0; j < 9; j++) {
+    const q = (ph + j / 9) % 1;
+    const y = h - 6 - q * (h - 12);
+    const a = Math.sin(q * Math.PI) * 0.35;
+    const x0 = ((j * 0.37) % 1) * w * 0.6;
+    const l = w * (0.25 + ((j * 0.53) % 1) * 0.35);
+    c.strokeStyle = `rgba(255,244,220,${a.toFixed(3)})`;
+    c.lineWidth = 2;
+    c.beginPath();
+    for (let x = 0; x <= l; x += 8) {
+      const yy = y + Math.sin(x * 0.06 + q * P2 * 2 + j) * 2.2;
+      if (x) c.lineTo(x0 + x, yy);
+      else c.moveTo(x0 + x, yy);
+    }
     c.stroke();
   }
 }
@@ -2509,6 +3242,20 @@ registerKitScene(MINOTAUR, (k: KitLive) => {
     { cx: 1500, cy: 60, ax: 110, ay: 18, w: 0.19, ph: 2.9, s: 0.48 },
     { cx: 640, cy: 52, ax: 120, ay: 20, w: -0.14, ph: 1.3, s: 0.42 },
   ].map((v) => ({ ...v, s: v.s / 2, l: new Loop(k, vKey, 8, v.cx, v.cy, { into: top, fps: 1.2, scale: v.s / 2 }) }));
+  // their shadows, thrown by the high sun across the sunlit upper wall on the right (the rest is already in shade)
+  const shadows = vultures.slice(0, 2).map((v, i) => {
+    const im = k.sc.add.image(0, 0, vKey, 0).setTint(0x000000).setAlpha(0);
+    top.addAt(im, 0);
+    return { im, v, cx: 1440 - i * 80, cy: 300 + i * 18, ax: 300 + i * 60, ay: 26 };
+  });
+  // the heat shimmering over the far wall's top: painted ripples of bright air, drifting up and wavering
+  const HW = 560;
+  const HH = 70;
+  const heatKey = sheet(k, 'mt_heat', HW / 2, HH / 2, 6, (c, ph) => {
+    c.scale(0.5, 0.5);
+    heatFrame(c, HW, HH, ph);
+  });
+  const heat = [new Loop(k, heatKey, 6, 960, 272, { into: top, fps: 5, scale: 2, add: true }), new Loop(k, heatKey, 6, 1480, 228, { into: top, fps: 4.2, scale: 2, add: true, phase: 3 })];
 
   // ——— the braziers ———
   const FW = 150;
@@ -2517,21 +3264,21 @@ registerKitScene(MINOTAUR, (k: KitLive) => {
   const FN = 10;
   const fireKey = sheet(k, 'mt_fire', FW * RF, FH * RF, FN, (c, ph) => {
     c.scale(RF, RF);
-    fireFrame(c, FW / 2, FH - 8, FW * 0.85, FH * 0.85, ph, { tongues: 6, seed: 3, cols: ['#ff4a12', '#ffa024', '#ffe8a0'] });
+    fireFrame(c, FW / 2, FH - 8, FW * 0.85, FH * 0.85, ph, { tongues: 6, seed: 3, cols: ['#e05420', '#f0a048', '#fff0c8'] });
   });
   const SMW = 120;
   const SMH = 320;
   const RS = 0.4;
   const smokeKey = sheet(k, 'mt_smoke', SMW * RS, SMH * RS, 8, (c, ph) => {
     c.scale(RS, RS);
-    smokeFrame(c, SMW, SMH, ph, { lit: '#ffc890', body: '#7a6a62', shade: '#3a3040', wind: 0.2, lobes: 16, a: 0.34, toLight: [-0.6, -0.8], seed: 2 });
+    smokeFrame(c, SMW, SMH, ph, { lit: '#ffc890', body: '#7a6a62', shade: '#3a3040', wind: 0.2, lobes: 28, a: 0.22, toLight: [-0.6, -0.8], seed: 2 });
   });
   const fires = [0, 1].map((i) => {
     const img = k.sprite(i ? 'brazierR' : 'brazierL');
     const [X, z] = bzXZ(i);
     const kk = pz(z);
     const [x, y] = P(X, MT.bowlY, z);
-    const s = (kk * 0.4) / (FW * 0.85);
+    const s = (kk * 0.33) / (FW * 0.85);
     const wallGlow = k.glow(RP(MT.braziers[i][0], 1.2)[0], RP(MT.braziers[i][0], 1.2)[1], kk * 0.9, 0xff8a3a, 0, { into: top, sy: 1.2 });
     const glow = k.glow(x, y - kk * 0.15, kk * 0.5, 0xff8a3a, 0, { into: top });
     const smoke = new Loop(k, smokeKey, 8, x, y - kk * 0.3, { into: top, origin: [0.5, 1], scale: kk / 223 / RS, fps: 1.6, phase: i * 2.1 });
@@ -2687,7 +3434,7 @@ registerKitScene(MINOTAUR, (k: KitLive) => {
           im.setPosition(f.x + jx, f.y + f.kk * 0.01 + jy * cm);
           im.setRotation(lean * (f.x < 960 ? 1 : 1));
         });
-        f.glow.setAlpha((0.13 + 0.08 * fk) * (1 + Math.max(0, d) * 0.5));
+        f.glow.setAlpha((0.1 + 0.06 * fk) * (1 + Math.max(0, d) * 0.5));
         f.wallGlow.setAlpha((0.1 + 0.05 * fk) * (1 + Math.max(0, d) * 0.4));
         f.coal.setAlpha(0.6);
         f.coal.setPosition(f.x + jx, f.y - 2 + jy * cm);
@@ -2726,8 +3473,7 @@ registerKitScene(MINOTAUR, (k: KitLive) => {
         drops.spawn({ x: STREAM.x + 2 + (crand() - 0.5) * 6, y: STREAM.y1 - 3, vx: (crand() - 0.5) * 60, vy: -40 - crand() * 70 * (1 + slosh), life: 0.8, r0: 1.4 + crand(), a: 0.7, tint: 0xdce8f0, grav: 500, floor: STREAM.y1 + 2, fade: 0.05 });
       });
       if (crand() < dt * 1.5) {
-        const th = TR.th0 + 0.02 + crand() * (TR.th1 - TR.th0 - 0.04);
-        const [gx, gy] = RP(th, TR.h - 0.02, TR.r0 + 0.12 + crand() * 0.1);
+        const [gx, gy] = P(TR.X0 + TR.t + crand() * (TR.X1 - TR.X0 - 2 * TR.t), TR.wY, TR.z0 + TR.t + crand() * (TR.z1 - TR.z0 - 2 * TR.t));
         glints.spawn({ x: gx, y: gy, life: 0.5, r0: 3, r1: 1, a: 0.6, tint: 0xfff0c8, fade: 0.3 });
       }
 
@@ -2746,6 +3492,21 @@ registerKitScene(MINOTAUR, (k: KitLive) => {
         });
       }
 
+      for (const sh of shadows) {
+        const tt = t * sh.v.w * cm + sh.v.ph;
+        const x = sh.cx + Math.cos(tt) * sh.ax;
+        const y = sh.cy + Math.sin(tt) * sh.ay;
+        const th = thAt(x);
+        const yTop = RP(th, WH - 0.2)[1];
+        const yLine = RP(th, shadowY(th))[1];
+        const vis = clamp01((yLine - y) / 18) * clamp01((y - yTop) / 12);
+        sh.im.setPosition(x, y).setScale(sh.v.s * 2.6, sh.v.s * 2.1).setRotation(Math.sin(tt) * 0.18).setAlpha(0.2 * vis);
+        sh.im.setFrame(Math.floor(t * 9.6) % 8);
+      }
+      for (const [i, h] of heat.entries()) {
+        h.step(dt, cm);
+        h.alpha = 0.22 + 0.06 * Math.sin(t * 0.7 + i * 2);
+      }
       embers.update(dt);
       flakes.update(dt);
       grit.update(dt);
