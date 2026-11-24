@@ -1,15 +1,17 @@
-// THRYM THE FROST KING (the Act 8 boss): the king of the frost giants, in a boot carved and grown from glacier ice.
+// THRYM THE FROST KING (the Act 8 boss): the king of the frost giants, in a boot carved from glacier ice.
 //
-// - The boot is cut from one block of glacier ice: chisel facets down its flanks, a front arris, translucent depth
-//   with blue-green cores, fracture planes and trapped bubble trails inside, white rime and hoarfrost on its edges,
-//   the moon's cold rim on the right and a cold light from within. Thurisaz, the giants' rune, is cut deep up the
-//   front and breathes cold light.
-// - His kingship is a crown of ice crystals grown out of the cuff: hexagonal prisms of varied size and angle, fused
-//   at their roots in rime, each faceted and lit by the one light, with phantom growth lines inside.
-// - His giant heritage: an old band of rune-cut blued iron round the cuff, a white bear's fur where the leg goes in,
-//   an iron greave up the leg, and a broken giant's chain hanging off the band, rimed with frost (it swings in play).
-// - Underneath, a rounded toe, and a heavy rand of old compacted glacier ice wrapped round the bottom and up the
-//   sides, dark, stratified, chipped at its edge; a few irregular translucent icicles at its drip corners.
+// - A giant's boot seen front-on like every foot in the game, coming down toe first: the shaft under the fur running
+//   down to the ankle, then swelling low into a broad rounded toe box, wider than the shaft, sitting on the table.
+// - Glacier ice carved in big planes: a lit strip down the shaft, a raised tongue carved down the front, the instep's
+//   sides flaring out (the near one lit, the far one in shadow), a toe cap cut like a gem in three facets (near lit,
+//   middle, far dark), crisp edges where the planes turn. Inside them: a deep teal core, fracture sheets, cracks and trapped bubbles. Thurisaz, the
+//   giants' rune, cut deep up the shaft, breathing cold light.
+// - Armour: a rune-cut iron band across the front of the toe, riveted, rimed along its top.
+// - His crown: a ring of tall faceted ice crystals round the leg above the fur, rising from an iron circlet, tallest at
+//   the front and stepping down round the sides, varied in height and lean, lit facet by facet, glowing at the roots.
+// - A white bear's fur cuff under the crown; a broken giant's chain hanging off the circlet (it swings in play).
+// - The sole: dark compacted ice with a crisp bottom edge, frost along its welt, a few irregular translucent icicles
+//   at its ends.
 //
 // Its life in play (mist pooling off the sole, frost creeping, glints, flakes shedding; melting when overheated) is
 // in src/content/styleLive/thrym.ts. Its leg's iron greave is the 'thrymgreave' leg kind below (its colours:
@@ -53,113 +55,110 @@ const line = (pts: Pt[]) => (c: Ctx) => pts.forEach(([x, y], i) => (i ? c.lineTo
 
 // ——— the shapes ———
 
-/** The boot's body: one block of ice, its shaft cut in straight chisel facets, swelling into a rounded toe pushed out
- * to our left (the boot turned a little, its toe to the lit side), the heel side on our right straight and upright, so
- * it has a front and a back. */
-const BODY: Pt[] = [
-  [CX - 74, 52],
-  [CX - 74, 80],
-  [CX - 81, 104],
-  [CX - 95, 128],
-  [CX - 110, 156],
-  [CX - 118, 186],
-  [CX - 120, 214],
-  [CX - 114, 238],
-  [CX - 90, 254],
-  [CX - 50, 260],
-  [CX - 6, 260],
-  [CX + 36, 256],
-  [CX + 70, 248],
-  [CX + 88, 236],
-  [CX + 94, 212],
-  [CX + 95, 184],
-  [CX + 92, 156],
-  [CX + 86, 128],
-  [CX + 80, 104],
-  [CX + 76, 80],
-  [CX + 75, 52],
-];
-const bodyPath = poly(BODY);
-
-/** The sole: a heavy rand of old compacted ice wrapped round the bottom of the boot and up its sides, higher round the
- * toe than the heel, chipped along its edge: its outer edge, then its top edge (where it meets the boot) back. */
-const RAND_OUT: Pt[] = [
-  [CX - 120, 182],
-  [CX - 124, 208],
-  [CX - 125, 236],
-  [CX - 119, 256],
-  [CX - 104, 266],
-  [CX - 84, 270],
-  [CX - 79, 268],
-  [CX - 72, 271],
-  [CX - 30, 273],
-  [CX + 6, 274],
-  [CX + 40, 273],
-  [CX + 47, 271],
-  [CX + 53, 273],
-  [CX + 80, 269],
-  [CX + 94, 262],
-  [CX + 100, 250],
-  [CX + 101, 232],
-  [CX + 98, 216],
-];
-const RAND_TOP: Pt[] = [
-  [CX + 90, 218],
-  [CX + 88, 234],
-  [CX + 74, 244],
-  [CX + 40, 251],
-  [CX + 4, 254],
-  [CX - 40, 254],
-  [CX - 82, 248],
-  [CX - 106, 234],
-  [CX - 112, 210],
-  [CX - 112, 184],
-];
-const solePath = poly([...RAND_OUT, ...RAND_TOP]);
-
-/** The iron band round the cuff: it follows the boot round, so it dips at the front. */
-const bandTop = (x: number) => 34 + 8 * (1 - ((x - CX) / 90) ** 2);
-const BAND_H = 20;
-const BAND_X = 89;
-const bandPath: PathFn = (c) => {
+/** The boot, front-on: the shaft under the fur running down to the ankle, then swelling low and fast into the broad
+ * rounded toe box at the bottom. */
+const bodyPath: PathFn = (c) => {
   c.beginPath();
-  for (let x = CX - BAND_X; x <= CX + BAND_X; x += 4) (x === CX - BAND_X ? c.moveTo(x, bandTop(x)) : c.lineTo(x, bandTop(x)));
-  c.quadraticCurveTo(CX + BAND_X + 3, bandTop(CX + BAND_X) + BAND_H / 2, CX + BAND_X, bandTop(CX + BAND_X) + BAND_H);
-  for (let x = CX + BAND_X; x >= CX - BAND_X; x -= 4) c.lineTo(x, bandTop(x) + BAND_H);
-  c.quadraticCurveTo(CX - BAND_X - 3, bandTop(CX - BAND_X) + BAND_H / 2, CX - BAND_X, bandTop(CX - BAND_X));
+  c.moveTo(CX - 66, 54);
+  c.lineTo(CX - 60, 100);
+  c.lineTo(CX - 58, 136);
+  c.bezierCurveTo(CX - 58, 172, CX - 112, 170, CX - 117, 214);
+  c.bezierCurveTo(CX - 120, 242, CX - 108, 260, CX - 84, 264);
+  c.quadraticCurveTo(CX, 272, CX + 84, 264);
+  c.bezierCurveTo(CX + 108, 260, CX + 120, 242, CX + 117, 214);
+  c.bezierCurveTo(CX + 112, 170, CX + 58, 172, CX + 58, 136);
+  c.lineTo(CX + 60, 100);
+  c.lineTo(CX + 66, 54);
   c.closePath();
 };
 
-/** The white bear's fur where the leg goes in: shaggy locks hanging over the band. */
+/** The sole, front-on: a thin rand of dark compacted ice following the toe's round bottom and up its corners, a crisp
+ * bottom edge. */
+const WELT: Pt[] = [
+  [CX - 120, 236],
+  [CX - 116, 234],
+  [CX - 112, 250],
+  [CX - 98, 259],
+  [CX - 50, 265],
+  [CX, 266],
+  [CX + 50, 265],
+  [CX + 98, 259],
+  [CX + 112, 250],
+  [CX + 116, 234],
+  [CX + 120, 236],
+];
+const SOLE: Pt[] = [...WELT, [CX + 121, 252], [CX + 112, 264], [CX + 92, 271], [CX + 50, 274], [CX - 50, 274], [CX - 92, 271], [CX - 112, 264], [CX - 121, 252]];
+const solePath = poly(SOLE);
+
+/** The iron band across the front of the toe, the rim of its cap: it follows the toe box round, so it dips in the
+ * middle. */
+const bandTop = (x: number) => 180 + 22 * (1 - ((x - CX) / 108) ** 2);
+const BAND_H = 14;
+const BAND_X = 108;
+const bandPath: PathFn = (c) => {
+  c.beginPath();
+  for (let x = CX - BAND_X; x <= CX + BAND_X; x += 5) (x === CX - BAND_X ? c.moveTo(x, bandTop(x)) : c.lineTo(x, bandTop(x)));
+  c.quadraticCurveTo(CX + BAND_X + 4, bandTop(CX + BAND_X) + BAND_H / 2, CX + BAND_X + 1, bandTop(CX + BAND_X) + BAND_H);
+  for (let x = CX + BAND_X; x >= CX - BAND_X; x -= 5) c.lineTo(x, bandTop(x) + BAND_H);
+  c.quadraticCurveTo(CX - BAND_X - 4, bandTop(CX - BAND_X) + BAND_H / 2, CX - BAND_X, bandTop(CX - BAND_X));
+  c.closePath();
+};
+/** A point along the band's middle (u 0 left … 1 right). */
+const onBand = (u: number): Pt => {
+  const x = CX - BAND_X + u * BAND_X * 2;
+  return [x, bandTop(x) + BAND_H / 2];
+};
+/** The crown's iron circlet round the leg: it follows the leg round, so it dips at the front. */
+const ringTop = (x: number) => 32 + 9 * (1 - ((x - CX) / 80) ** 2);
+const RING_H = 9;
+const RING_X = 80;
+const ringPath: PathFn = (c) => {
+  c.beginPath();
+  for (let x = CX - RING_X; x <= CX + RING_X; x += 4) (x === CX - RING_X ? c.moveTo(x, ringTop(x)) : c.lineTo(x, ringTop(x)));
+  c.quadraticCurveTo(CX + RING_X + 3, ringTop(CX + RING_X) + RING_H / 2, CX + RING_X, ringTop(CX + RING_X) + RING_H);
+  for (let x = CX + RING_X; x >= CX - RING_X; x -= 4) c.lineTo(x, ringTop(x) + RING_H);
+  c.quadraticCurveTo(CX - RING_X - 3, ringTop(CX - RING_X) + RING_H / 2, CX - RING_X, ringTop(CX - RING_X));
+  c.closePath();
+};
+
+/** The white bear's fur cuff under the crown: shaggy locks hanging over the top of the boot. */
 const FUR_LOCKS = (() => {
   const r = rng(hashStr('thrym-locks'));
-  const n = 13;
-  const out: { x0: number; x1: number; tip: Pt }[] = [];
-  for (let i = 0; i < n; i++) {
-    const x0 = CX + 92 - (i * 184) / n;
-    const x1 = CX + 92 - ((i + 1) * 184) / n;
+  const out: { x0: number; x1: number; tip: Pt; point: boolean }[] = [];
+  // uneven widths, uneven lengths, some locks drawn to a point, some heavy and blunt
+  let x0 = CX + 92;
+  while (x0 > CX - 92) {
+    const x1 = Math.max(CX - 92, x0 - (14 + r() * 16));
     const mid = (x0 + x1) / 2;
     const side = (mid - CX) / 92;
-    out.push({ x0, x1, tip: [mid + side * 6 + (r() - 0.5) * 5, 29 + r() * 7 - Math.abs(side) * 3] });
+    out.push({ x0, x1, tip: [mid + side * 6 + (r() - 0.5) * 6, 62 + r() * 13 - Math.abs(side) * 4], point: r() < 0.45 });
+    x0 = x1;
   }
   return out;
 })();
 const furPath: PathFn = (c) => {
   c.beginPath();
-  c.moveTo(CX - 80, -8);
-  c.lineTo(CX + 80, -8);
-  c.bezierCurveTo(CX + 88, -2, CX + 95, 8, CX + 92, 22);
+  c.moveTo(CX - 80, 32);
+  c.quadraticCurveTo(CX, 40, CX + 80, 32);
+  c.bezierCurveTo(CX + 88, 36, CX + 93, 46, CX + 90, 58);
+  // shaggy locks: some heavy and blunt, some drawn to a point
   for (const l of FUR_LOCKS) {
-    c.quadraticCurveTo(l.x0 - 2, 26, l.tip[0], l.tip[1]);
-    c.quadraticCurveTo(l.x1 + 3, 28, l.x1, 23);
+    const [tx, ty] = l.tip;
+    const w = l.x0 - l.x1;
+    if (l.point) {
+      c.quadraticCurveTo(l.x0 - w * 0.1, ty - 6, tx, ty + 2);
+      c.quadraticCurveTo(l.x1 + w * 0.15, ty - 8, l.x1, 57);
+    } else {
+      c.bezierCurveTo(l.x0 + 1, ty - 4, tx + w * 0.45, ty + 1, tx, ty + 1);
+      c.bezierCurveTo(tx - w * 0.45, ty + 1, l.x1 - 1, ty - 4, l.x1, 57);
+    }
   }
-  c.bezierCurveTo(CX - 95, 8, CX - 88, -2, CX - 80, -8);
+  c.bezierCurveTo(CX - 93, 46, CX - 88, 36, CX - 80, 32);
   c.closePath();
 };
 
-/** The crown: crystals grown out of the cuff, varied in size and angle, the biggest in a cluster on the lit left, smaller
- * ones trailing off to the right (dx from the middle, length, width, lean in
- * radians, where the termination's point sits across the crystal, how long the termination is). Outer ones first. */
+/** A crystal of the crown (dx from the middle along the circlet, length, width, lean in radians, where its point sits
+ * across it, how long its termination is). */
 interface Crystal {
   dx: number;
   len: number;
@@ -168,24 +167,28 @@ interface Crystal {
   skew: number;
   term: number;
 }
-const CROWN: Crystal[] = [
-  { dx: -82, len: 26, w: 12, a: -1.12, skew: 0.15, term: 0.36 },
-  { dx: 80, len: 18, w: 10, a: 1.05, skew: -0.1, term: 0.4 },
-  { dx: -68, len: 34, w: 15, a: -0.8, skew: -0.1, term: 0.33 },
-  { dx: 64, len: 15, w: 9, a: 0.7, skew: 0.2, term: 0.42 },
-  { dx: -54, len: 14, w: 8, a: -0.25, skew: 0, term: 0.45 },
-  { dx: 50, len: 22, w: 11, a: 0.42, skew: 0.1, term: 0.38 },
-  { dx: -44, len: 40, w: 17, a: -0.5, skew: 0.12, term: 0.31 },
-  { dx: 36, len: 14, w: 8, a: 0.1, skew: -0.15, term: 0.42 },
-  { dx: 24, len: 28, w: 13, a: 0.32, skew: 0.15, term: 0.34 },
-  { dx: -36, len: 20, w: 9, a: 0.1, skew: -0.2, term: 0.4 },
-  { dx: -8, len: 34, w: 15, a: 0.18, skew: 0.1, term: 0.31 },
-  { dx: 8, len: 20, w: 10, a: 0.55, skew: 0.1, term: 0.36 },
-  { dx: -28, len: 46, w: 19, a: -0.3, skew: 0.08, term: 0.28 },
-  { dx: -16, len: 52, w: 23, a: -0.08, skew: 0.05, term: 0.27 },
-  { dx: -22, len: 18, w: 9, a: -0.75, skew: -0.1, term: 0.38 },
-];
-const crystalBase = (cr: Crystal): Pt => [CX + cr.dx, bandTop(CX + cr.dx) + 5];
+/** The crown: a ring of crystals round the leg, tallest at the front and stepping down round the sides, each a little
+ * different (seeded jitter on length, lean and point), small ones between; drawn back to front. */
+const CROWN: Crystal[] = (() => {
+  const r = rng(hashStr('thrym-crown'));
+  const out: Crystal[] = [];
+  // (the lit left a little taller than the right; widths vary; a few lean off true)
+  const add = (dx: number, len: number, w: number, a: number, tilt = 0) =>
+    out.push({ dx: dx + (r() - 0.5) * 2, len: len * (0.9 + r() * 0.2) * (1 - (dx / 80) * 0.14), w: w * (0.75 + r() * 0.55), a: a + tilt + (r() - 0.5) * 0.1, skew: (r() - 0.5) * 0.35, term: 0.27 + r() * 0.1 });
+  // small ones between the big ones, behind them (a gap on the right where none grew)
+  for (const [dx, len, w, a] of [[-50, 12, 7, -0.2], [-26, 18, 8, 0.1], [-10, 24, 9, 0.3], [10, 22, 9, -0.3], [50, 12, 7, 0.2]] as const) add(dx, len, w, a);
+  // the big ones, from the sides in to the front: stepping up hard to the front, a few knocked off true
+  const tilts: Record<number, number> = { [-56]: -0.22, 44: 0.24, [-31]: 0.16 };
+  for (const [dx, len, w, a] of [[77, 10, 9, 1.05], [67, 14, 11, 0.82], [56, 19, 13, 0.6], [44, 25, 15, 0.42], [31, 32, 16, 0.27], [17, 39, 18, 0.13]] as const)
+    for (const s of [-1, 1]) {
+      // a gap: one of the right side's crystals broke off
+      if (s === 1 && dx === 67) continue;
+      add(s * dx, len, w, s * a, tilts[s * dx] ?? 0);
+    }
+  out.push({ dx: 0, len: 46, w: 23, a: 0.02, skew: 0.05, term: 0.28 });
+  return out;
+})();
+const crystalBase = (cr: Crystal): Pt => [CX + cr.dx, ringTop(CX + cr.dx) + 2];
 /** A point on a crystal: s along its axis from the root, t across it. */
 function onCrystal(cr: Crystal, s: number, t: number): Pt {
   const [bx, by] = crystalBase(cr);
@@ -209,16 +212,22 @@ const crystalPath = (cr: Crystal): PathFn => {
   return poly([root[0], shoulder[0], tip, shoulder[3], root[3]]);
 };
 /** The crown's crystal tips (design space), where it glints in play. */
-export const THRYM_TIPS: Pt[] = CROWN.map((cr) => crystalGeom(cr).tip);
+export const THRYM_TIPS: Pt[] = CROWN.filter((cr) => cr.len > 20).map((cr) => crystalGeom(cr).tip);
 
-/** Icicles at the sole's drip corners: few, irregular (x, y of the root, length, width, lean). */
+/** Icicles at the sole's ends: few, irregular (x, y of the root, length, width, lean). */
 const ICICLES: [number, number, number, number, number][] = [
-  [CX - 114, 258, 27, 12, -3],
-  [CX - 96, 266, 13, 7, 1],
-  [CX + 90, 263, 23, 11, 3],
+  [CX - 108, 264, 21, 10, -3],
+  [CX - 92, 269, 10, 6, 1],
+  [CX + 106, 264, 17, 9, 2],
 ];
 /** Where meltwater drips from in play: the icicles' tips. */
 export const THRYM_DRIPS: Pt[] = ICICLES.map(([x, y, len, , lean]) => [x + lean, y + len]);
+/** Where frost creeps in play: along the circlet, the instep plate's top and the welt (x from, x to, y). */
+export const THRYM_CREEP: [number, number, number][] = [
+  [CX - 76, CX + 76, 36],
+  [CX - 96, CX + 96, 192],
+  [CX - 108, CX + 108, 262],
+];
 
 /** An icicle: thick at the root, wavering and swelling in drip rings, pulled to a fine point. */
 function iciclePts(x: number, y: number, len: number, w: number, lean: number): Pt[] {
@@ -237,12 +246,13 @@ function iciclePts(x: number, y: number, len: number, w: number, lean: number): 
 }
 const iciclePath = (ic: (typeof ICICLES)[number]): PathFn => poly(iciclePts(...ic));
 
-/** The chain: a broken giant's chain hanging from a staple on the band (its own sprite in play, so it swings). */
-export const THRYM_CHAIN = { x: CX + 66, y: 46 };
-const LINKS = 5;
+/** The chain: a broken giant's chain hanging from a staple on the circlet's right (its own sprite in play, so it
+ * swings). */
+export const THRYM_CHAIN = { x: CX + 62, y: 38 };
+const LINKS = 4;
 const LINK = 15.5;
 /** Each link's size: forged by hand, no two alike. */
-const LINK_K = [1, 1.1, 0.92, 1.14, 1.04];
+const LINK_K = [1, 1.1, 0.92, 1.06];
 function chainLinks(): { x: number; y: number; face: boolean; k: number }[] {
   const out: { x: number; y: number; face: boolean; k: number }[] = [];
   let y = THRYM_CHAIN.y + 11;
@@ -281,7 +291,7 @@ function paintChain(ctx: Ctx): void {
   for (const p of parts) softFill(ctx, p, rgba('#04102a', 0.4), 2.2);
   ctx.restore();
   prop(ctx, parts, box, (g) => {
-    // the staple through the band
+    // the staple through the circlet
     piece(g, parts[0], box, 'iron', ICE.iron, { shadow: 0.5, size: 3 });
     fillEll(g, THRYM_CHAIN.x, THRYM_CHAIN.y + 1, 3.6, 2.2, ICE.ironDark);
     links.forEach(({ x, y, face, k }, i) => {
@@ -538,147 +548,138 @@ function paintCrystal(g: Ctx, cr: Crystal): void {
   if (cr.len > 30) glint(g, tip[0] - ux * 2.5, tip[1] - uy * 2.5, cr.len * 0.09, 0.9);
 }
 
-/** The carved facets on the boot's flanks (chisel cuts): their planes, the inner edge where each turns, the light or
- * shadow each takes. */
-const FACETS: { pts: Pt[]; edge: Pt[]; tone: number }[] = [
-  { pts: [[CX - 76, 58], [CX - 40, 58], [CX - 50, 112], [CX - 82, 110]], edge: [[CX - 40, 58], [CX - 50, 112], [CX - 82, 110]], tone: 0.28 },
-  { pts: [[CX - 82, 110], [CX - 50, 112], [CX - 66, 182], [CX - 112, 196], [CX - 112, 150]], edge: [[CX - 50, 112], [CX - 66, 182]], tone: 0.12 },
-  { pts: [[CX + 44, 58], [CX + 78, 58], [CX + 82, 106], [CX + 52, 110]], edge: [[CX + 44, 58], [CX + 52, 110], [CX + 82, 106]], tone: -0.2 },
-  { pts: [[CX + 52, 110], [CX + 80, 104], [CX + 92, 150], [CX + 95, 200], [CX + 62, 188]], edge: [[CX + 52, 110], [CX + 62, 188]], tone: -0.3 },
+/** The carved planes of the boot and the light or shadow each takes (+ lit, − shaded). */
+const PLANES: { pts: Pt[]; tone: number }[] = [
+  // a lit strip down the shaft's near side, its far side turned away
+  { pts: [[CX - 66, 54], [CX - 46, 54], [CX - 42, 140], [CX - 58, 140]], tone: 0.3 },
+  { pts: [[CX + 42, 54], [CX + 66, 54], [CX + 58, 140], [CX + 42, 140]], tone: -0.4 },
+  // the tongue: a raised panel carved down the front from the fur to the toe
+  { pts: [[CX - 26, 66], [CX + 26, 66], [CX + 30, 150], [CX + 38, 204], [CX - 38, 204], [CX - 30, 150]], tone: 0.24 },
+  // the instep flaring out to the toe box: the near side lit, the far side turning into shadow
+  { pts: [[CX - 58, 136], [CX - 42, 140], [CX - 30, 150], [CX - 38, 204], [CX - 118, 192], [CX - 100, 172], [CX - 70, 162]], tone: 0.2 },
+  { pts: [[CX + 58, 136], [CX + 42, 140], [CX + 30, 150], [CX + 38, 204], [CX + 118, 192], [CX + 100, 172], [CX + 70, 162]], tone: -0.45 },
+  // the toe cap, cut like a gem in three facets running down to its front: near lit, middle, far in shadow
+  { pts: [[CX - 118, 196], [CX - 40, 212], [CX - 18, 268], [CX - 92, 262], [CX - 116, 244]], tone: 0.34 },
+  { pts: [[CX - 40, 212], [CX + 40, 212], [CX + 18, 268], [CX - 18, 268]], tone: 0.06 },
+  { pts: [[CX + 40, 212], [CX + 118, 196], [CX + 116, 244], [CX + 92, 262], [CX + 18, 268]], tone: -0.58 },
 ];
-/** The front arris running down the boot, where the lit and the shaded planes meet. */
-const ARRIS: Pt[] = [
-  [CX + 2, 60],
-  [CX + 6, 110],
-  [CX + 10, 150],
-  [CX + 8, 178],
+/** The crisp edges where the planes turn: bright where the edge catches the light, dark where it turns away. */
+const EDGES: { pts: Pt[]; lit: boolean }[] = [
+  { pts: [[CX - 46, 54], [CX - 42, 140]], lit: true },
+  { pts: [[CX + 42, 54], [CX + 42, 140]], lit: false },
+  { pts: [[CX - 26, 66], [CX - 30, 150], [CX - 38, 204]], lit: true },
+  { pts: [[CX + 26, 66], [CX + 30, 150], [CX + 38, 204]], lit: false },
+  { pts: [[CX - 40, 212], [CX - 18, 266]], lit: true },
+  { pts: [[CX + 40, 212], [CX + 18, 266]], lit: false },
 ];
 
-/** Thurisaz, the giants' rune, cut up the front. */
-const RUNE = { x: CX - 40, y: 92, w: 44, h: 84 };
+/** Thurisaz, the giants' rune, cut up the shaft. */
+const RUNE = { x: CX - 15, y: 92, w: 28, h: 50 };
 const runeStroke = (c: Ctx) => runeGlyph(c, 1, RUNE.x, RUNE.y, RUNE.w, RUNE.h);
 
 function paintBody(g: Ctx, box: { x: number; y: number; w: number; h: number }): void {
   within(g, bodyPath, () => {
-    // thick ice is deep blue-green in the middle and pale where it thins at the edges
-    const ig = g.createRadialGradient(CX + 22, 168, 6, CX + 6, 150, 132);
-    ig.addColorStop(0, mix(ICE.core, ICE.abyss, 0.5));
-    ig.addColorStop(0.3, mix(ICE.core, ICE.teal, 0.3));
-    ig.addColorStop(0.62, mix(ICE.body, ICE.teal, 0.2));
-    ig.addColorStop(0.85, ICE.body);
-    ig.addColorStop(1, mix(ICE.body, ICE.lit, 0.6));
+    // thick ice is deep blue-green inside the foot and pale where it thins at the edges
+    const ig = g.createRadialGradient(CX + 14, 210, 6, CX, 180, 140);
+    ig.addColorStop(0, mix(ICE.core, ICE.abyss, 0.55));
+    ig.addColorStop(0.32, mix(ICE.core, ICE.teal, 0.25));
+    ig.addColorStop(0.65, mix(ICE.body, ICE.teal, 0.2));
+    ig.addColorStop(1, mix(ICE.body, ICE.lit, 0.45));
     g.fillStyle = ig;
     g.fillRect(box.x, box.y, box.w, box.h);
-    // the one light across it: lit top left, cold and deep bottom right
-    const lg = g.createLinearGradient(CX - 100, 50, CX + 110, 250);
-    lg.addColorStop(0, rgba(ICE.lit, 0.32));
-    lg.addColorStop(0.45, rgba(ICE.lit, 0));
-    lg.addColorStop(1, rgba(ICE.abyss, 0.5));
-    g.fillStyle = lg;
-    g.fillRect(box.x, box.y, box.w, box.h);
-    // cores deep in the ice: blue-green clouds at different depths
+    // cores at different depths
     softFill(g, (c) => {
       c.beginPath();
-      c.ellipse(CX + 34, 178, 40, 26, 0.5, 0, Math.PI * 2);
-    }, rgba(ICE.teal, 0.4), 14);
+      c.ellipse(CX + 34, 232, 50, 22, 0.15, 0, Math.PI * 2);
+    }, rgba(ICE.abyss, 0.45), 14);
     softFill(g, (c) => {
       c.beginPath();
-      c.ellipse(CX - 54, 196, 26, 38, -0.3, 0, Math.PI * 2);
-    }, rgba(ICE.abyss, 0.35), 16);
+      c.ellipse(CX - 50, 236, 40, 16, -0.1, 0, Math.PI * 2);
+    }, rgba(ICE.teal, 0.4), 10);
     softFill(g, (c) => {
       c.beginPath();
-      c.ellipse(CX + 52, 92, 30, 18, 0.2, 0, Math.PI * 2);
-    }, rgba(ICE.teal, 0.25), 12);
+      c.ellipse(CX + 10, 100, 24, 34, 0, 0, Math.PI * 2);
+    }, rgba(ICE.core, 0.35), 12);
     // the cold light from within, behind the rune
     softFill(g, (c) => {
       c.beginPath();
-      c.ellipse(RUNE.x + RUNE.w * 0.4, RUNE.y + RUNE.h * 0.5, 36, 56, 0, 0, Math.PI * 2);
-    }, rgba(ICE.glow, 0.22), 18);
+      c.ellipse(RUNE.x + RUNE.w * 0.4, RUNE.y + RUNE.h * 0.5, 24, 32, 0, 0, Math.PI * 2);
+    }, rgba(ICE.glow, 0.22), 12);
     texture(g, 'speckle', box, 0.08, 1.2);
-    // the carved facets, with crisp edges where they turn
-    for (const f of FACETS) {
-      const p = poly(f.pts);
-      const [a, b] = [f.pts[0], f.pts[2]];
+    // the carved planes, each lit or shaded as it faces, fading across itself so it reads as a plane in light
+    for (const p of PLANES) {
+      const [a, b] = [p.pts[0], p.pts[Math.floor(p.pts.length / 2)]];
+      const col = p.tone > 0 ? mix(ICE.lit, '#ffffff', 0.3) : ICE.abyss;
       const gr = g.createLinearGradient(a[0], a[1], b[0], b[1]);
-      const col = f.tone > 0 ? ICE.lit : ICE.abyss;
-      gr.addColorStop(0, rgba(col, Math.abs(f.tone) * 1.3));
-      gr.addColorStop(1, rgba(col, Math.abs(f.tone) * 0.5));
-      p(g);
+      gr.addColorStop(0, rgba(col, Math.abs(p.tone) * 1.1));
+      gr.addColorStop(1, rgba(col, Math.abs(p.tone) * 0.55));
+      poly(p.pts)(g);
       g.fillStyle = gr;
       g.fill();
     }
+    // the toe box swells towards us: light on its near shoulder, the deep cold low down and under its far side
+    softFill(g, (c) => {
+      c.beginPath();
+      c.ellipse(CX - 74, 222, 30, 16, -0.3, 0, Math.PI * 2);
+    }, rgba(ICE.lit, 0.35), 10);
+    softFill(g, (c) => {
+      c.beginPath();
+      c.ellipse(CX + 6, 262, 110, 14, 0, 0, Math.PI * 2);
+    }, rgba(ICE.abyss, 0.45), 10);
+    softFill(g, (c) => {
+      c.beginPath();
+      c.ellipse(CX + 84, 230, 26, 30, 0, 0, Math.PI * 2);
+    }, rgba('#04102a', 0.35), 10);
+    // the edges where the planes turn: a crisp line, bright or dark, with a soft bloom
     g.save();
     g.lineCap = 'round';
     g.lineJoin = 'round';
-    for (const f of FACETS) {
-      // the inner edge of each cut: bright where it turns to the light, dark where it turns away
-      g.strokeStyle = f.tone > 0 ? rgba('#ffffff', 0.55) : rgba(ICE.abyss, 0.28);
-      g.lineWidth = 1.1;
+    for (const e of EDGES) {
+      softStroke(g, line(e.pts), e.lit ? rgba('#ffffff', 0.35) : rgba(ICE.abyss, 0.4), 4, 2);
       g.beginPath();
-      line(f.edge)(g);
+      line(e.pts)(g);
+      g.strokeStyle = e.lit ? rgba('#ffffff', 0.85) : rgba(ICE.abyss, 0.6);
+      g.lineWidth = e.lit ? 1.4 : 1.2;
       g.stroke();
     }
     g.restore();
-    // the front arris: the left plane lit, the right a little darker
-    {
-      const right: Pt[] = [...ARRIS, [CX + 62, 188], [CX + 52, 110], [CX + 44, 58]];
-      poly(right)(g);
-      g.fillStyle = rgba(ICE.abyss, 0.16);
-      g.fill();
-      softFill(g, line([[CX + 14, 70], [CX + 30, 110], [CX + 34, 176], [CX + 16, 176], [CX + 8, 110]]), rgba(ICE.abyss, 0.25), 8);
-      softStroke(g, line(ARRIS), rgba('#ffffff', 0.25), 4, 2);
-      g.save();
-      g.lineCap = 'round';
-      g.strokeStyle = rgba('#ffffff', 0.5);
-      g.lineWidth = 0.9;
-      g.beginPath();
-      line(ARRIS)(g);
-      g.stroke();
-      g.restore();
-    }
-    // fracture planes deep inside, and the cracks running off them
-    fracture(g, [[CX + 26, 100], [CX + 70, 148], [CX + 58, 166], [CX + 20, 122]], 0.9, 211);
-    fracture(g, [[CX - 96, 168], [CX - 54, 148], [CX - 50, 166], [CX - 90, 188]], 0.75, 223);
-    fracture(g, [[CX + 30, 200], [CX + 86, 186], [CX + 90, 204], [CX + 40, 214]], 0.6, 227);
+    // fracture sheets deep inside, and the cracks running off them
+    fracture(g, [[CX - 96, 172], [CX - 56, 160], [CX - 52, 174], [CX - 90, 184]], 0.75, 211);
+    fracture(g, [[CX + 50, 214], [CX + 92, 210], [CX + 94, 224], [CX + 56, 232]], 0.6, 223);
+    fracture(g, [[CX + 14, 66], [CX + 34, 96], [CX + 28, 106], [CX + 8, 80]], 0.55, 227);
     const r = rng(hashStr('thrym-ice'));
-    crackLine(g, crackWalk(r, CX - 62, 70, 1.3, 6, 9), 1.1, 0.8);
-    crackLine(g, crackWalk(r, CX + 62, 74, 1.9, 5, 9), 1, 0.6);
-    crackLine(g, crackWalk(r, CX - 20, 204, -0.6, 5, 8), 0.9, 0.55);
-    // bubbles: a few trails rising through the ice, and fine clusters low down where the ice is oldest
-    for (const [x0, y0, n, drift] of [[CX + 44, 214, 9, 6], [CX - 70, 214, 7, -4], [CX + 80, 160, 6, -3]] as const) {
+    crackLine(g, crackWalk(r, CX - 36, 62, 1.5, 4, 8), 1, 0.6);
+    crackLine(g, crackWalk(r, CX + 50, 160, 0.6, 4, 8), 0.9, 0.5);
+    crackLine(g, crackWalk(r, CX - 96, 218, 0.3, 5, 8), 0.9, 0.55);
+    // bubbles: a few trails rising through the toe, fine clusters low down where the ice is oldest
+    for (const [x0, y0, n, drift] of [[CX - 6, 254, 7, 3], [CX + 30, 252, 5, -3]] as const) {
       let y = y0;
       for (let i = 0; i < n; i++) {
         const t = i / n;
         if (r() < 0.25) continue;
-        bubble(g, x0 + Math.sin(i * 1.3) * 3 + drift * t + (r() - 0.5) * 5, y, (2.6 - t * 1.8) * (0.6 + r() * 0.7), 0.9, 1 + r() * 0.5);
-        y -= 4 + i * 1.5 + r() * 5;
+        bubble(g, x0 + Math.sin(i * 1.3) * 3 + drift * t + (r() - 0.5) * 5, y, (2.4 - t * 1.6) * (0.6 + r() * 0.7), 0.9, 1 + r() * 0.5);
+        y -= 4 + i * 1.4 + r() * 4;
       }
     }
-    for (let i = 0; i < 46; i++) {
-      const x = CX - 90 + r() * 180;
-      const y = 150 + r() ** 0.6 * 90;
-      bubble(g, x, y, 0.6 + r() * 1.5, 0.65, 1 + r() * 0.6);
-    }
-    // the rune seen again through the ice, bent by it: a faint blurred ghost of its light deeper in
+    for (let i = 0; i < 40; i++) bubble(g, CX - 104 + r() * 208, 230 + r() ** 0.6 * 28, 0.6 + r() * 1.5, 0.6, 1 + r() * 0.6);
+    // the rune: a V-cut, its far wall in shadow, its near lip lit, cold light at the bottom of the groove; its light
+    // seen again deeper in the ice, bent by it
     g.save();
-    g.translate(7, 9);
-    softStroke(g, runeStroke, rgba(ICE.glow, 0.22), 5, 3);
+    g.translate(5, 7);
+    softStroke(g, runeStroke, rgba(ICE.glow, 0.2), 5, 3);
     g.restore();
-    // the rune: a deep V-cut, its far wall in shadow, its near lip lit, cold light at the bottom of the groove
     g.save();
-    g.lineCap = 'round';
-    g.lineJoin = 'round';
-    g.translate(LX * 2, LY * 2);
-    softStroke(g, runeStroke, rgba(ICE.abyss, 0.5), 8, 1.6);
+    g.translate(LX * 1.8, LY * 1.8);
+    softStroke(g, runeStroke, rgba(ICE.abyss, 0.5), 7, 1.4);
     g.restore();
     g.save();
     g.lineCap = 'round';
     g.lineJoin = 'round';
-    g.translate(-LX * 2.2, -LY * 2.2);
+    g.translate(-LX * 2, -LY * 2);
     g.beginPath();
     runeStroke(g);
-    g.strokeStyle = rgba('#ffffff', 0.6);
-    g.lineWidth = 6;
+    g.strokeStyle = rgba('#ffffff', 0.55);
+    g.lineWidth = 5;
     g.stroke();
     g.restore();
     g.save();
@@ -687,232 +688,234 @@ function paintBody(g: Ctx, box: { x: number; y: number; w: number; h: number }):
     g.beginPath();
     runeStroke(g);
     g.strokeStyle = mix(ICE.core, ICE.abyss, 0.3);
-    g.lineWidth = 7;
+    g.lineWidth = 6;
     g.stroke();
     g.restore();
-    hotLine(g, runeStroke, ICE.glow, 2.4, 0.75);
-    // hoarfrost: thick under the band where the cold pours out, along the flanks, on the old ice at the bottom
-    hoarfrost(g, { x: CX - 104, y: 48, w: 208, h: 44 }, r, 0.75, 241, 14, 0.05, 0.6);
-    hoarfrost(g, { x: CX - 112, y: 80, w: 48, h: 150 }, r, 0.5, 243, 6, 0.2, 0.2);
-    hoarfrost(g, { x: CX + 70, y: 100, w: 44, h: 130 }, r, 0.3, 245, 4, 0.2, 0.2);
-    // the big glassy highlights, following the form
-    softStroke(g, (c) => {
-      c.moveTo(CX - 64, 92);
-      c.quadraticCurveTo(CX - 96, 150, CX - 92, 196);
-    }, rgba('#ffffff', 0.5), 7, 3);
-    spec(g, CX - 72, 122, 5, 22, 0.85, 0.35);
-    spec(g, CX + 82, 150, 3, 24, 0.45, -0.15, ICE.moon);
+    hotLine(g, runeStroke, ICE.glow, 2.2, 0.75);
+    // hoarfrost: thick under the fur where the cold pours out, on the toe's near shoulder, along the far side
+    hoarfrost(g, { x: CX - 66, y: 54, w: 132, h: 26 }, r, 0.75, 241, 8, 0.05, 0.6);
+    hoarfrost(g, { x: CX - 120, y: 200, w: 40, h: 56 }, r, 0.45, 243, 4, 0.2, 0.2);
+    hoarfrost(g, { x: CX + 84, y: 150, w: 34, h: 100 }, r, 0.3, 245, 3, 0.2, 0.2);
+    // glassy highlights following the form: down the shaft's lit strip, along the instep, on the toe's shoulder
+    softStroke(g, line([[CX - 57, 72], [CX - 52, 132]]), rgba('#ffffff', 0.5), 5, 2.5);
+    softStroke(g, line([[CX - 64, 160], [CX - 98, 182]]), rgba('#ffffff', 0.45), 5, 3);
+    spec(g, CX - 80, 218, 14, 4.5, 0.85, -0.5);
+    spec(g, CX + 110, 228, 2.6, 16, 0.5, -0.05, ICE.moon);
   });
-}
-
-function paintFore(g: Ctx): void {
-  within(g, bodyPath, () => {
-    // the toe: its far side falls into the deep cold, its thickest ice the darkest
-    softFill(g, (c) => {
-      c.beginPath();
-      c.ellipse(CX + 50, 222, 52, 30, -0.4, 0, Math.PI * 2);
-    }, rgba(ICE.abyss, 0.45), 16);
-    softFill(g, (c) => {
-      c.beginPath();
-      c.ellipse(CX - 14, 222, 62, 24, 0, 0, Math.PI * 2);
-    }, rgba(ICE.core, 0.3), 14);
-    // the toe's round top catches the light in a long curved window
-    softStroke(g, (c) => {
-      c.moveTo(CX - 112, 228);
-      c.quadraticCurveTo(CX - 98, 202, CX - 50, 196);
-    }, rgba('#ffffff', 0.45), 5, 3);
-    spec(g, CX - 78, 204, 15, 4.5, 0.75, -0.3);
-    const r = rng(hashStr('thrym-toe'));
-    for (let i = 0; i < 26; i++) bubble(g, CX - 80 + r() * 160, 228 + r() * 24, 0.6 + r() * 1.6, 0.7);
-  });
-  glint(g, CX - 82, 202, 5, 0.95);
+  glint(g, CX - 88, 213, 5, 0.95);
 }
 
 function paintSole(g: Ctx, box: { x: number; y: number; w: number; h: number }): void {
-  // the boot sits down in it: a soft shadow on the ice just above its top edge
-  within(g, bodyPath, () => {
-    g.save();
-    g.translate(0, -3);
-    softStroke(g, line(RAND_TOP), rgba(ICE.abyss, 0.55), 9, 4);
-    g.restore();
-  });
+  contact(g, (c) => {
+    solePath(c);
+    c.fill();
+  }, 0.5, 1.6, 2.5, '#04102a');
   within(g, solePath, () => {
-    // old glacier ice, pressed hard and dark, in strata
-    const sg = g.createLinearGradient(0, 200, 0, 274);
-    sg.addColorStop(0, mix(ICE.core, ICE.abyss, 0.15));
-    sg.addColorStop(0.55, ICE.abyss);
+    // old glacier ice, pressed hard and dark
+    const sg = g.createLinearGradient(0, 240, 0, 274);
+    sg.addColorStop(0, mix(ICE.core, ICE.abyss, 0.35));
+    sg.addColorStop(0.5, ICE.abyss);
     sg.addColorStop(1, '#06142a');
     g.fillStyle = sg;
-    g.fillRect(box.x, 190, box.w, 90);
-    const lg = g.createLinearGradient(CX - 120, 0, CX + 120, 0);
-    lg.addColorStop(0, rgba(ICE.lit, 0.16));
+    g.fillRect(box.x, 234, box.w, 44);
+    const lg = g.createLinearGradient(CX - 126, 0, CX + 126, 0);
+    lg.addColorStop(0, rgba(ICE.lit, 0.18));
     lg.addColorStop(0.4, rgba(ICE.lit, 0));
-    lg.addColorStop(1, rgba(ICE.abyss, 0.4));
+    lg.addColorStop(1, rgba('#000000', 0.25));
     g.fillStyle = lg;
-    g.fillRect(box.x, 190, box.w, 90);
+    g.fillRect(box.x, 234, box.w, 44);
+    // strata and grit frozen in
     const r = rng(hashStr('thrym-strata'));
-    for (let k = 0; k < 6; k++) {
-      const y0 = 244 + k * 5 + r() * 3;
-      const dark = k % 2 === 0;
-      g.strokeStyle = dark ? rgba('#0a1a30', 0.35) : rgba(ICE.lit, 0.25);
-      g.lineWidth = dark ? 1.4 : 0.9;
+    for (let k = 0; k < 2; k++) {
+      const y0 = 266 + k * 2.5 + r() * 1;
+      g.strokeStyle = k % 2 ? rgba(ICE.lit, 0.18) : rgba('#02060e', 0.4);
+      g.lineWidth = 0.9;
       g.beginPath();
-      for (let x = CX - 120; x <= CX + 120; x += 8) {
-        const y = y0 + Math.sin(x * 0.05 + k) * 1.4 + (x - CX) * 0.012 * (k - 3);
-        if (x === CX - 120) g.moveTo(x, y);
-        else g.lineTo(x, y);
-      }
+      for (let x = CX - 128; x <= CX + 128; x += 8) (x === CX - 128 ? g.moveTo(x, y0 + Math.sin(x * 0.06 + k) * 0.8) : g.lineTo(x, y0 + Math.sin(x * 0.06 + k) * 0.8));
       g.stroke();
     }
-    // grit frozen into the old ice
-    for (let i = 0; i < 40; i++) {
-      g.fillStyle = rgba('#1a2030', 0.25 + r() * 0.3);
+    for (let i = 0; i < 30; i++) {
+      g.fillStyle = rgba('#1a2030', 0.3 + r() * 0.3);
       g.beginPath();
-      g.arc(CX - 110 + r() * 220, 240 + r() * 28, 0.4 + r() * 0.8, 0, Math.PI * 2);
+      g.arc(CX - 122 + r() * 244, 258 + r() * 14, 0.4 + r() * 0.7, 0, Math.PI * 2);
       g.fill();
     }
-    texture(g, 'stone', { x: box.x, y: 228, w: box.w, h: 48 }, 0.12, 1.1);
-    // the top edge: a bevel catching the light, crusted with rime
+    // a crisp lit chamfer along its bottom edge, chips knocked out of it
+    g.save();
+    g.lineCap = 'round';
+    g.strokeStyle = rgba(ICE.lit, 0.55);
+    g.lineWidth = 1.1;
+    g.beginPath();
+    line([[CX - 110, 263], [CX - 92, 270], [CX - 50, 273], [CX + 50, 273], [CX + 92, 270], [CX + 110, 263]])(g);
+    g.stroke();
+    g.restore();
+    for (const [x, y] of [[CX - 72, 273], [CX + 60, 273], [CX - 116, 256]] as const) {
+      g.fillStyle = rgba(ICE.lit, 0.4);
+      g.beginPath();
+      g.moveTo(x - 4, y + 1);
+      g.lineTo(x, y - 4);
+      g.lineTo(x + 4, y + 1);
+      g.closePath();
+      g.fill();
+    }
+    // the welt: a bevel catching the light, crusted with frost
     g.save();
     g.lineCap = 'round';
     g.lineJoin = 'round';
     g.beginPath();
-    line(RAND_TOP)(g);
+    line(WELT)(g);
     g.strokeStyle = rgba('#ffffff', 0.75);
-    g.lineWidth = 2.4;
+    g.lineWidth = 1.8;
     g.stroke();
     g.restore();
-    softStroke(g, line(RAND_TOP), rgba(ICE.lit, 0.4), 7, 3);
-    // chips knocked out of the bottom edge show paler, fresher ice
-    for (const [x, y] of [[CX - 80, 268], [CX + 50, 271], [CX + 98, 246], [CX - 122, 232]] as const) {
-      g.fillStyle = rgba(ICE.lit, 0.45);
-      g.beginPath();
-      g.moveTo(x - 6, y + 2);
-      g.lineTo(x, y - 5);
-      g.lineTo(x + 6, y + 2);
-      g.closePath();
-      g.fill();
-    }
-    spec(g, CX + 96, 246, 3, 10, 0.5, 0, ICE.moon);
+    hoarfrost(g, { x: CX - 122, y: 232, w: 244, h: 36 }, r, 0.55, 251, 6, 0.25, 0.45);
   });
 }
 
-function paintBand(g: Ctx): void {
-  const bb = { x: CX - BAND_X - 4, y: 30, w: BAND_X * 2 + 8, h: 32 };
-  piece(g, bandPath, bb, 'iron', ICE.iron, { shadow: 0.6, size: 7, texA: 0.55 });
+function paintToeBand(g: Ctx): void {
+  const bb = { x: CX - BAND_X - 4, y: 176, w: BAND_X * 2 + 8, h: 44 };
+  contact(g, (c) => {
+    bandPath(c);
+    c.fill();
+  }, 0.65, 2.6, 3.5, '#04102a');
+  piece(g, bandPath, bb, 'iron', ICE.iron, { shadow: 0, size: 6, texA: 0.55 });
   within(g, bandPath, () => {
-    // blued iron: cold blue in the light, rust-black in the pits
+    // blued iron: cold blue where it catches the light, rust-black in the pits
     blotches(g, bb, '#2a1a14', 0.35, 4, 0.6, 0.15, 261, 'multiply');
     blotches(g, bb, '#6a8ab8', 0.25, 6, 0.55, 0.2, 263, 'screen');
-    // the lit top edge and the dark lower lip of a raised strap
+    const run = (dy: number) => (c: Ctx) => {
+      for (let x = CX - BAND_X; x <= CX + BAND_X; x += 5) (x === CX - BAND_X ? c.moveTo(x, bandTop(x) + dy) : c.lineTo(x, bandTop(x) + dy));
+    };
     g.save();
+    g.lineCap = 'round';
+    g.lineJoin = 'round';
     g.beginPath();
-    for (let x = CX - BAND_X; x <= CX + BAND_X; x += 4) (x === CX - BAND_X ? g.moveTo(x, bandTop(x) + 2) : g.lineTo(x, bandTop(x) + 2));
-    g.strokeStyle = rgba(ICE.moon, 0.6);
-    g.lineWidth = 1.4;
-    g.stroke();
-    g.beginPath();
-    for (let x = CX - BAND_X; x <= CX + BAND_X; x += 4) (x === CX - BAND_X ? g.moveTo(x, bandTop(x) + BAND_H - 2) : g.lineTo(x, bandTop(x) + BAND_H - 2));
-    g.strokeStyle = rgba('#05080e', 0.6);
+    run(1.4)(g);
+    g.strokeStyle = rgba(ICE.moon, 0.75);
     g.lineWidth = 1.6;
     g.stroke();
+    g.beginPath();
+    run(BAND_H - 1.4)(g);
+    g.strokeStyle = rgba('#03060c', 0.7);
+    g.lineWidth = 1.8;
+    g.stroke();
     g.restore();
-    // runes cut into it, squeezed towards its ends as the band turns away
-    const runes = [3, 7, 0, 2, 5, 6, 4];
-    runes.forEach((ri, i) => {
-      const u = (i - (runes.length - 1) / 2) / (runes.length / 2);
-      const x = CX + Math.sin(u * 1.2) * 82;
-      const w = 9 * Math.cos(u * 1.2);
-      if (Math.abs(x - THRYM_CHAIN.x) < 9) return;
-      const y = bandTop(x) + 3.5;
-      g.save();
-      g.lineCap = 'round';
-      g.lineJoin = 'round';
-      g.translate(-LX * 0.8, -LY * 0.8);
-      g.beginPath();
-      runeGlyph(g, ri, x - w / 2, y, w, 10);
-      g.strokeStyle = rgba(ICE.moon, 0.4);
-      g.lineWidth = 1.3;
-      g.stroke();
-      g.restore();
-      g.save();
-      g.lineCap = 'round';
-      g.lineJoin = 'round';
-      g.beginPath();
-      runeGlyph(g, ri, x - w / 2, y, w, 10);
-      g.strokeStyle = rgba('#03060c', 0.8);
-      g.lineWidth = 1.5;
-      g.stroke();
-      g.strokeStyle = rgba(ICE.glow, 0.35);
-      g.lineWidth = 0.6;
-      g.stroke();
-      g.restore();
+    // runes cut along it, a thread of cold light in each
+    [3, 0, 6, 1, 2, 5, 7].forEach((ri, i) => {
+      const u = 0.14 + i * 0.12;
+      const [x, y] = onBand(u);
+      // squeezed towards the ends as the band turns away
+      const w = 8 * Math.cos((u - 0.5) * 2.2);
+      for (const [dx, dy, col, lw] of [[-LX * 0.8, -LY * 0.8, rgba(ICE.moon, 0.45), 1.6], [0, 0, rgba('#03060c', 0.85), 1.8], [0, 0, rgba(ICE.glow, 0.5), 0.7]] as const) {
+        g.save();
+        g.lineCap = 'round';
+        g.lineJoin = 'round';
+        g.translate(dx, dy);
+        g.beginPath();
+        runeGlyph(g, ri, x - w / 2, y - 5, w, 10);
+        g.strokeStyle = col;
+        g.lineWidth = lw;
+        g.stroke();
+        g.restore();
+      }
     });
-    // rime on its upper edge
-    blotches(g, { x: bb.x, y: 30, w: bb.w, h: 9 }, ICE.rime, 0.65, 3, 0.5, 0.12, 267);
+    // frost settled along its top
+    for (let x = CX - BAND_X; x < CX + BAND_X; x += 12) blotches(g, { x, y: bandTop(x + 6) - 3, w: 12, h: 7 }, ICE.rime, 0.6, 2.6, 0.55, 0.1, 267 + x);
   });
-  for (const dx of [-84, 84]) rivet(g, CX + dx, bandTop(CX + dx) + BAND_H / 2, 2.6, '#7a8aa8');
+  for (const u of [0.03, 0.97]) {
+    const [x, y] = onBand(u);
+    rivet(g, x, y, 3, '#7a8aa8');
+  }
+}
+
+function paintRing(g: Ctx): void {
+  const rb = { x: CX - RING_X - 4, y: 30, w: RING_X * 2 + 8, h: 22 };
+  piece(g, ringPath, rb, 'iron', ICE.iron, { shadow: 0.6, size: 4, texA: 0.5 });
+  within(g, ringPath, () => {
+    blotches(g, rb, '#6a8ab8', 0.25, 5, 0.55, 0.2, 273, 'screen');
+    g.save();
+    g.beginPath();
+    for (let x = CX - RING_X; x <= CX + RING_X; x += 4) (x === CX - RING_X ? g.moveTo(x, ringTop(x) + 1.4) : g.lineTo(x, ringTop(x) + 1.4));
+    g.strokeStyle = rgba(ICE.moon, 0.7);
+    g.lineWidth = 1.2;
+    g.stroke();
+    g.restore();
+  });
+  for (const dx of [-74, 74]) rivet(g, CX + dx, ringTop(CX + dx) + RING_H / 2, 2.2, '#7a8aa8');
 }
 
 function paintFur(g: Ctx, white: string): void {
-  const fb = { x: CX - 96, y: -10, w: 192, h: 48 };
+  const fb = { x: CX - 96, y: 28, w: 192, h: 48 };
   piece(g, furPath, fb, 'plush', white, { shadow: 0.6, size: 10, texA: 0.25 });
   within(g, furPath, () => {
     const r = rng(hashStr('thrym-fur'));
-    furCoat(g, r, fb, (x) => Math.PI / 2 + (x - CX) / 260, mix(white, '#c8d8e4', 0.35), '#3a4a6a', { n: 0.32, len: 13, w: 1.1 });
+    furCoat(g, r, fb, (x) => Math.PI / 2 + (x - CX) / 260, mix(white, '#c8d8e4', 0.35), '#3a4a6a', { n: 0.3, len: 12, w: 1.1 });
     // each lock combed into its point
     g.save();
     g.lineCap = 'round';
     for (const l of FUR_LOCKS) {
       const [tx, ty] = l.tip;
-      for (let k = 0; k < 7; k++) {
-        const sx = l.x1 + (l.x0 - l.x1) * (0.15 + k * 0.12);
-        g.strokeStyle = rgba(k % 3 === 0 ? '#8a9ab8' : '#ffffff', 0.55);
-        g.lineWidth = 1.1;
+      // strands combed down into the clump, its underside in shadow
+      for (let k = 0; k < 9; k++) {
+        const sx = l.x1 + (l.x0 - l.x1) * (0.08 + k * 0.105);
+        g.strokeStyle = rgba(k % 3 === 0 ? '#8a9ab8' : '#ffffff', 0.5);
+        g.lineWidth = 1.2;
         g.beginPath();
-        g.moveTo(sx, 12);
-        g.quadraticCurveTo(sx, 24, tx + (sx - tx) * 0.2, ty - 1.5);
+        g.moveTo(sx, 46);
+        g.quadraticCurveTo(sx, 58, tx + (sx - tx) * 0.55, ty - 2);
         g.stroke();
       }
+      ao(g, tx + 2, ty - 2, (l.x0 - l.x1) * 0.5, 5, 0.45, 0, '#2a3a60');
     }
     g.restore();
-    // the leg goes in at the top: deep shadow there; the fur rolls over and catches the moon on its right
-    ao(g, CX, -6, 84, 10, 0.6, 0, '#1a2440');
-    g.fillStyle = (() => {
-      const lg = g.createLinearGradient(CX - 90, 0, CX + 95, 0);
-      lg.addColorStop(0, rgba('#ffffff', 0.15));
-      lg.addColorStop(0.5, rgba('#ffffff', 0));
-      lg.addColorStop(1, rgba('#2a3a60', 0.35));
-      return lg;
-    })();
+    // the fur's underside in cool shadow where it hangs over the ice
+    const ug = g.createLinearGradient(0, 52, 0, 76);
+    ug.addColorStop(0, rgba('#3a4a70', 0));
+    ug.addColorStop(1, rgba('#3a4a70', 0.5));
+    g.fillStyle = ug;
+    g.fillRect(fb.x, 52, fb.w, 26);
+    // shadow under the circlet; the fur rolls round and catches the moon on its right
+    ao(g, CX, 44, 84, 7, 0.5, 0, '#1a2440');
+    const lg = g.createLinearGradient(CX - 90, 0, CX + 95, 0);
+    lg.addColorStop(0, rgba('#ffffff', 0.15));
+    lg.addColorStop(0.5, rgba('#ffffff', 0));
+    lg.addColorStop(1, rgba('#2a3a60', 0.35));
+    g.fillStyle = lg;
     g.fillRect(fb.x, fb.y, fb.w, fb.h);
   });
 }
 
 function drawThrym(ctx: Ctx, art: FootArt, _p: Pose, o: Opts): void {
   const white = art.secondary ?? '#eaf8ff';
-  const box = { x: CX - 128, y: -10, w: 250, h: 300 };
+  const box = { x: CX - 130, y: -10, w: 260, h: 290 };
   const crown = CROWN.map(crystalPath);
   const icicles = ICICLES.map(iciclePath);
   const iceParts = [bodyPath, solePath, ...icicles, ...crown];
   if (o.emissive) {
-    glowOnly(ctx, [...iceParts, bandPath], box, (g) => {
-      // the rune breathing cold light, the crown glowing at its roots, light caught along the fractures
-      hotLine(g, runeStroke, ICE.glow, 4.2, 0.95);
-      g.fillStyle = (() => {
-        const gr = g.createRadialGradient(RUNE.x + RUNE.w * 0.4, RUNE.y + RUNE.h * 0.5, 4, RUNE.x + RUNE.w * 0.4, RUNE.y + RUNE.h * 0.5, 60);
-        gr.addColorStop(0, rgba(ICE.glow, 0.35));
-        gr.addColorStop(1, rgba(ICE.glow, 0));
-        return gr;
-      })();
+    glowOnly(ctx, [...iceParts, bandPath, ringPath], box, (g) => {
+      // the rune breathing cold light, the crown glowing at its roots, the plate's runes, light along the fractures
+      hotLine(g, runeStroke, ICE.glow, 4, 0.95);
+      const cx = RUNE.x + RUNE.w * 0.4;
+      const cy = RUNE.y + RUNE.h * 0.5;
+      const gr = g.createRadialGradient(cx, cy, 4, cx, cy, 50);
+      gr.addColorStop(0, rgba(ICE.glow, 0.35));
+      gr.addColorStop(1, rgba(ICE.glow, 0));
+      g.fillStyle = gr;
       g.fillRect(box.x, box.y, box.w, box.h);
       for (const cr of CROWN) {
         const [bx, by] = crystalBase(cr);
         const mid = onCrystal(cr, cr.len * 0.45, 0);
-        softStroke(g, line([[bx, by], mid]), rgba(ICE.glow, 0.5), cr.w * 0.35, cr.w * 0.25);
+        softStroke(g, line([[bx, by], mid]), rgba(ICE.glow, 0.55), cr.w * 0.35, cr.w * 0.25);
       }
-      softStroke(g, line([[CX + 26, 96], [CX + 74, 150]]), rgba(ICE.glow, 0.35), 2.5, 2);
-      softStroke(g, line([[CX - 92, 150], [CX - 50, 132]]), rgba(ICE.glow, 0.3), 2.5, 2);
+      for (let i = 0; i < 7; i++) {
+        const [x, y] = onBand(0.14 + i * 0.12);
+        softFill(g, (c) => {
+          c.beginPath();
+          c.ellipse(x, y, 5, 7, 0, 0, Math.PI * 2);
+        }, rgba(ICE.glow, 0.4), 2);
+      }
+      softStroke(g, line([[CX - 96, 172], [CX - 56, 160]]), rgba(ICE.glow, 0.35), 2.5, 2);
+      softStroke(g, line([[CX + 50, 214], [CX + 92, 210]]), rgba(ICE.glow, 0.3), 2.5, 2);
     });
     return;
   }
@@ -926,21 +929,21 @@ function drawThrym(ctx: Ctx, art: FootArt, _p: Pose, o: Opts): void {
       g.fillStyle = hg;
       g.fillRect(box.x, box.y, box.w, box.h);
       hs.edge(rgba('#ffb47a', 0.75), 6, 0, 0);
-      // wet speculars: hard bright streaks on the lit side
-      spec(g, CX - 80, 130, 4, 26, 0.6, 0.3);
-      spec(g, CX - 60, 204, 14, 3.5, 0.6, -0.25);
-      // the surface going wet and glassy: a broad sheen on the lit side
-      const sg = g.createLinearGradient(CX - 110, 0, CX + 20, 0);
+      // wet speculars: hard bright streaks on the lit planes
+      spec(g, CX - 55, 100, 3, 24, 0.6, 0);
+      spec(g, CX - 80, 174, 14, 3.5, 0.6, -0.5);
+      spec(g, CX - 80, 220, 14, 3.5, 0.6, -0.5);
+      const sg = g.createLinearGradient(CX - 125, 0, CX, 0);
       sg.addColorStop(0, rgba('#eaf8ff', 0.22));
       sg.addColorStop(1, rgba('#eaf8ff', 0));
       g.fillStyle = sg;
       g.fillRect(box.x, 40, box.w, 240);
-      // meltwater running down in wavering rivulets from under the band, a bead swelling at each one's end
+      // meltwater running down in wavering rivulets from under the fur, a bead swelling at each one's end
       const r = rng(hashStr('thrym-melt'));
-      for (let i = 0; i < 9; i++) {
-        const x0 = CX - 92 + (i + r() * 0.6) * 20;
-        const y0 = 58 + r() * 30;
-        const len = 30 + r() * 70;
+      for (let i = 0; i < 8; i++) {
+        const x0 = CX - 56 + (i + r() * 0.6) * 14;
+        const y0 = 64 + r() * 20;
+        const len = 30 + r() * 60;
         const pts: Pt[] = [[x0, y0]];
         let x = x0;
         for (let k = 1; k <= 6; k++) {
@@ -966,10 +969,9 @@ function drawThrym(ctx: Ctx, art: FootArt, _p: Pose, o: Opts): void {
     });
     return;
   }
-  const sil = new Sil(ctx, [...iceParts, bandPath, furPath], box);
+  const sil = new Sil(ctx, [...iceParts, bandPath, furPath, ringPath], box);
   const g = sil.g;
   paintBody(g, box);
-  paintFore(g);
   paintSole(g, box);
   ICICLES.forEach((ic, i) => {
     contact(g, (c) => {
@@ -978,26 +980,26 @@ function drawThrym(ctx: Ctx, art: FootArt, _p: Pose, o: Opts): void {
     }, 0.4, 1.5, 2, '#06142a');
     paintIcicle(g, ic);
   });
-  paintBand(g);
+  paintToeBand(g);
   paintFur(g, white);
+  paintRing(g);
   for (const cr of CROWN) paintCrystal(g, cr);
-  // rime fusing the crystals' roots into the band
+  // rime fusing the crystals' roots into the circlet
   {
     const r = rng(hashStr('thrym-roots'));
     for (const cr of CROWN) {
       const [bx, by] = crystalBase(cr);
       softFill(g, (c) => {
         c.beginPath();
-        c.ellipse(bx, by - 1, cr.w * 0.62, 3.2, cr.a * 0.3, 0, Math.PI * 2);
-      }, rgba(ICE.rime, 0.85), 1.2);
+        c.ellipse(bx, by - 1, cr.w * 0.6, 2.6, cr.a * 0.3, 0, Math.PI * 2);
+      }, rgba(ICE.rime, 0.5), 1.1);
     }
-    hoarfrost(g, { x: CX - 92, y: 30, w: 184, h: 18 }, r, 0.9, 271, 10, 0.3, 0.3);
+    hoarfrost(g, { x: CX - 82, y: 28, w: 164, h: 12 }, r, 0.4, 271, 6, 0.3, 0.3);
   }
   // the one light over the whole silhouette: the far side into deep cold, frost on the lit edges, the moon's rim
-  sil.edge(rgba('#04102a', 0.5), 20, LX * 11, LY * 11);
-  sil.edge(rgba(ICE.rime, 0.55), 3.5, -LX * 2.6, -LY * 2.6);
-  sil.edge(rgba(ICE.moon, 0.95), 2.4, LX * 3.2, LY * 3.2);
-  sil.edge(rgba('#7ad8ff', 0.2), 8, LX * 6, LY * 6);
+  sil.edge(rgba('#04102a', 0.5), 18, LX * 10, LY * 10);
+  sil.edge(rgba(ICE.rime, 0.55), 3.2, -LX * 2.4, -LY * 2.4);
+  sil.edge(rgba(ICE.moon, 0.9), 2.4, LX * 3, LY * 3);
   sil.finish(inkOf('#163a6a'), { openTop: -5 });
   if (!o.live) paintChain(ctx);
 }
@@ -1005,7 +1007,8 @@ function drawThrym(ctx: Ctx, art: FootArt, _p: Pose, o: Opts): void {
 registerStyle('thrym', {
   contactY: 274,
   halfWidth: 112,
-  leg: { kind: 'thrymgreave', hw: 62, join: 'into' },
+  // (the leg runs down behind the crown to the fur)
+  leg: { kind: 'thrymgreave', hw: 62, join: 'into', end: 50 },
   parts: {
     chain: {
       box: { x: THRYM_CHAIN.x - 16, y: THRYM_CHAIN.y - 10, w: 36, h: LINKS * LINK + 44 },

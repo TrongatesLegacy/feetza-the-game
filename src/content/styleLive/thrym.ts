@@ -2,7 +2,7 @@
 //
 // - Freezing mist pools under the sole and rolls off its edges, sinking; when he lands it is thrown out in a wave
 //   along the table, with chips of ice and a shake of snow off the fur.
-// - Frost creeps: tiny rime sparkles bloom and fade along the band, the crystals' roots and the sole's ledge.
+// - Frost creeps: tiny rime sparkles bloom and fade along the crown's circlet, the iron toe band and the welt.
 // - The rune breathes slow cold light (the glow layer); the crown's crystal tips glint in turn; now and then a flake
 //   of ice sheds from a crystal and tumbles down.
 // - Winding up (anticipation) he draws the cold in: the crown flares with glints and frost gathers on the sole.
@@ -13,17 +13,10 @@
 import { CX } from '../../art/feetCommon';
 import { registerLive } from '../../game/liveKit';
 import { crand } from '../../systems/cosmeticRandom';
-import { THRYM_DRIPS, THRYM_TIPS } from '../style/thrym';
+import { THRYM_CREEP, THRYM_DRIPS, THRYM_TIPS } from '../style/thrym';
 
 const R = () => crand();
 const pm = () => crand() - 0.5;
-
-/** Where frost creeps: along the band's top, the crystals' roots, the sole's ledge (design x range, y). */
-const CREEP: [number, number, number][] = [
-  [CX - 86, CX + 86, 40],
-  [CX - 104, CX + 104, 232],
-  [CX - 70, CX + 70, 60],
-];
 
 registerLive('thrym', {
   glow: { rate: 0.32, depth: 0.55, base: 0.5 },
@@ -49,12 +42,12 @@ registerLive('thrym', {
     mist.rate('pool', 7 * cold, dt, () => {
       const side = R() < 0.5 ? -1 : 1;
       const edge = R() < 0.6;
-      const x = edge ? CX + side * (96 + R() * 18) : CX + pm() * 180;
+      const x = edge ? CX + side * (110 + R() * 14) : CX + pm() * 200;
       mist.emit(x, 262 + R() * 14, { vx: (edge ? side * (25 + R() * 35) : pm() * 30), vy: 14 + R() * 18, life: 2.2 + R() * 1.2, r0: 12 * s, r1: (44 + R() * 22) * s, a: 0.3 * v, tint: R() < 0.6 ? 0xe8f6ff : 0xbfe0f8, fade: 0.3, grav: 22 });
     });
     // frost creeping: rime sparkles bloom and fade along the edges where the cold settles
     frost.rate('creep', (3 + gather * 10) * cold, dt, () => {
-      const [x0, x1, y] = CREEP[Math.floor(R() * CREEP.length)];
+      const [x0, x1, y] = THRYM_CREEP[Math.floor(R() * THRYM_CREEP.length)];
       frost.emit(x0 + R() * (x1 - x0), y + pm() * 6, { vx: pm() * 6, vy: pm() * 6, life: 0.9 + R() * 0.6, r0: 1.2 * s, r1: (3.4 + R() * 2) * s, a: 0.8 * v, tint: R() < 0.5 ? 0xffffff : 0xbff4ff, fade: 0.45 });
     });
     // the crown's tips glint in turn (more as he winds up)
@@ -87,12 +80,12 @@ registerLive('thrym', {
         drips.emit(x, y - 1, { vy: 10, life: 0.9, r0: 3.4 * s, r1: 2.6 * s, a: 0.9 * v, tint: 0xcff0ff, grav: 900, fade: 0.25 });
       });
       drips.rate('run', 5 * h, dt, () => {
-        drips.emit(CX + pm() * 180, 70 + R() * 120, { vy: 30 + R() * 30, life: 0.9 + R() * 0.5, r0: 2.2 * s, r1: 1.6 * s, a: 0.8 * v, tint: 0xe4f8ff, grav: 50, fade: 0.2 });
+        drips.emit(CX + pm() * 170, 80 + R() * 150, { vy: 30 + R() * 30, life: 0.9 + R() * 0.5, r0: 2.2 * s, r1: 1.6 * s, a: 0.8 * v, tint: 0xe4f8ff, grav: 50, fade: 0.2 });
       });
       // steam rolling up off the crown and the flanks
       steam.rate('steam', 12 * h, dt, () => {
         const top = R() < 0.5;
-        const [x, y] = top ? THRYM_TIPS[Math.floor(R() * THRYM_TIPS.length)] : [CX + (R() < 0.5 ? -1 : 1) * (80 + R() * 25), 110 + R() * 110];
+        const [x, y] = top ? THRYM_TIPS[Math.floor(R() * THRYM_TIPS.length)] : [CX + (R() < 0.5 ? -1 : 1) * (70 + R() * 40), 120 + R() * 120];
         steam.emit(x, y, { vx: pm() * 30, vy: -50 - R() * 40, life: 1.4 + R() * 0.6, r0: 10 * s, r1: 44 * s, a: 0.32 * h * v, tint: 0xf4f8ff, fade: 0.2, grav: -20 });
       });
     }
