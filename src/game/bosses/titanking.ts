@@ -1429,7 +1429,9 @@ const titanking = (): Brain => {
         if (hopT <= 0) {
           hopT = cool(a, 4);
           const n = a.allFeet().filter((o) => o.alive && o.type.id === 'hoplite').length;
-          if (!bite?.dev.pulling && n < HOPLITES[heat(a).rank]) a.spawn('hoplite', rnd(a.alivePizzas().filter((q) => q !== bite?.p)) ?? null);
+          // (never in a lane his body covers, not even over the last pizza: they'd hide behind him and pop out in
+          // front as they dive; with no lane free they wait off screen, and still count towards the cap)
+          if (!bite?.dev.pulling && n < HOPLITES[heat(a).rank]) a.spawn('hoplite', rnd(a.alivePizzas().filter((q) => q !== bite?.p)) ?? null, undefined, { offBoss: true });
         }
       }
       if (wantP3 && landed && !p3) enterP3(f, a);
@@ -1587,7 +1589,7 @@ const titanking = (): Brain => {
     if (s.hopT <= 0) {
       s.hopT = cool(a, 4);
       const n = a.allFeet().filter((o) => o.alive && o.type.id === 'hoplite').length;
-      if (!bite?.dev.pulling && n < HOPLITES[h.rank]) a.spawn('hoplite', rnd(a.alivePizzas().filter((q) => q !== bite?.p)) ?? null);
+      if (!bite?.dev.pulling && n < HOPLITES[h.rank]) a.spawn('hoplite', rnd(a.alivePizzas().filter((q) => q !== bite?.p)) ?? null, undefined, { offBoss: true });
     }
     // the shield's window: it counts down while it's up (held while his head is up, the one thing to hit then);
     // run out and he slams the table, then the window starts again
