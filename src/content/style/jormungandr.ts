@@ -1,12 +1,12 @@
 // JÖRMUNGANDR, the world serpent (Act 8's Bifröst mini-boss), in the style kit: his portrait, boss card and peel.
-// Front-on like every foot and boss in the game: his head coming at us, his neck rising behind it into the leg.
-// It's the fight's own head (src/content/art/jormungandr.ts) scaled into the foot frame: a skull of weathered stone
-// plates (lichen, barnacles, salt in the crevices, the star of cracks Thor's hammer left), its jaw a little open on
-// wet dark-pink gums and uneven teeth, two lower tusks closing outside the lip, ember eyes sunk under ledges of rock,
-// kelp caught on him. The neck is the 'serpentneck' leg kind: stone-plated hide with the pale ribbed throat down
-// its front.
+// It's the fight's own head (src/content/art/jormungandr.ts): a long wedge of a serpent's skull in three-quarter view,
+// hanging from his neck and angled down at us so the snout comes forward (feet are drawn strictly front-on; a
+// serpent's head needs the turn for its length to read). Weathered stone plates with lichen, barnacles and salt in the
+// cracks, a ridge of slabs down the top, an ember eye deep under a heavy brow, the jaw a little open on wet dark-pink
+// gums and uneven teeth, a great lower tusk, kelp caught on him. The neck rising behind into the leg is the
+// 'serpentneck' leg kind: stone-plated hide, the pale ribbed throat on its near side, the ridge down its back.
 //
-// In play (src/content/styleLive/jormungandr.ts) the stone lids blink, the embers breathe (the glow layer), the kelp
+// In play (src/content/styleLive/jormungandr.ts) the stone lids blink, the ember breathes (the glow layer), the kelp
 // sways on springs, steam curls from the nostrils and water drips off the kelp and the jaw. (In his fight the foot is
 // hidden: the arena draws his body, src/game/bosses/jormRig.ts.)
 
@@ -14,56 +14,62 @@ import { CX } from '../../art/feetCommon';
 import { registerLegKind, wrapTile } from '../../art/style/legs';
 import { type PartDef, registerStyle } from '../../art/style/registry';
 import { makeCanvas, type Ctx } from '../../art/util';
-import { EYE, JAW, KELP, KELP_F, NECK, NOSE, SK, paintEyeGlows, paintEyesAt, paintHeadStill, paintKelpAt, paintNeck, paintSkull, skullPath } from '../art/jormungandr';
+import { EYE, KELP, KELP_F, NECK, NOSES, SK, SOCKET, jawTurn, paintEyeGlows, paintEyesAt, paintHeadStill, paintKelpAt, paintNeck, paintSkull, skullPath } from '../art/jormungandr';
 
-/** Design units per skull unit, and where the skull's origin lands (its chin on the contact line). */
-const K = 0.46;
+/** Design units per skull unit, the head's turn (snout down towards us), and where its neck socket sits. */
+const K = 0.31;
+const ROT = -0.5;
 const CONTACT = 306;
-const OX = CX - SK.cx * K;
-const OY = CONTACT - 504 * K;
+const SOCK: [number, number] = [CX + 64, 205];
 /** Skull units → design units. */
-export const jormAt = (x: number, y: number): [number, number] => [OX + x * K, OY + y * K];
+export function jormAt(x: number, y: number): [number, number] {
+  const dx = (x - SOCKET.x) * K;
+  const dy = (y - SOCKET.y) * K;
+  return [SOCK[0] + dx * Math.cos(ROT) - dy * Math.sin(ROT), SOCK[1] + dx * Math.sin(ROT) + dy * Math.cos(ROT)];
+}
 const into = (g: Ctx) => {
-  g.translate(OX, OY);
+  g.translate(SOCK[0], SOCK[1]);
+  g.rotate(ROT);
   g.scale(K, K);
+  g.translate(-SOCKET.x, -SOCKET.y);
 };
 
 /** Where the live layer emits: the nostrils, the kelp tips, the chin (design units). */
-export const JORM_NOSTRILS: [number, number][] = [-1, 1].map((s) => jormAt(SK.cx + s * (SK.cx - NOSE.x), NOSE.y));
-export const JORM_DRIPS: [number, number][] = [
-  ...KELP.map((k) => {
-    const F = KELP_F[k.kind];
-    return jormAt(k.x + (k.flip ? -1 : 1) * (F.ax - F.w / 2) * 0.2, k.y + F.h - F.ay - 16);
-  }),
-  jormAt(SK.cx - 60, 500),
-  jormAt(SK.cx + 40, 504),
-];
+export const JORM_NOSTRILS: [number, number][] = NOSES.map(([x, y]) => jormAt(x, y));
+export const JORM_DRIPS: [number, number][] = [...KELP.map((k) => kelpAt(k.x, k.y)).map(([x, y], i) => [x, y + (KELP_F[KELP[i].kind].h - 40) * K] as [number, number]), jormAt(...jawTurn(140, 400, 0.15)), jormAt(...jawTurn(300, 420, 0.15))];
+
+/** A kelp anchor in design units (the kelp itself hangs straight down, not turned with the head). */
+function kelpAt(x: number, y: number): [number, number] {
+  return jormAt(x, y);
+}
 
 const stills: Record<string, HTMLCanvasElement> = {};
-/** The head as a picture at skull scale (cached): with the eyes, kelp and glow (still art), or without (in play). */
+/** The head as a picture at skull scale (cached): with the eye and glow (still art), or without (in play). */
 function still(live: boolean): HTMLCanvasElement {
   const key = live ? 'live' : 'still';
   if (stills[key]) return stills[key];
-  const [c, g] = makeCanvas(SK.w, JAW.y0 + JAW.h);
-  paintHeadStill(g, live ? { open: 0.18, eyes: false, kelp: false, glow: false } : { open: 0.18, ph: 0.3 });
+  const [c, g] = makeCanvas(SK.w, SK.h);
+  paintHeadStill(g, live ? { open: 0.15, eyes: false, kelp: false, glow: false } : { open: 0.15, kelp: false });
   stills[key] = c;
   return c;
 }
 
 function drawJorm(ctx: Ctx, o: { live: boolean; emissive?: boolean; heat?: boolean }): void {
-  ctx.save();
-  into(ctx);
   if (o.emissive) {
     // the embers in his eyes
+    ctx.save();
+    into(ctx);
     paintEyeGlows(ctx, 1);
     ctx.restore();
     return;
   }
   if (o.heat) {
     // overheated: the stone glows from the throat up through the crevices
+    ctx.save();
+    into(ctx);
     skullPath(ctx);
     ctx.clip();
-    const hg = ctx.createLinearGradient(0, 520, 0, 120);
+    const hg = ctx.createLinearGradient(0, 440, 0, 100);
     hg.addColorStop(0, 'rgba(255,150,60,0.75)');
     hg.addColorStop(0.5, 'rgba(255,90,20,0.35)');
     hg.addColorStop(1, 'rgba(255,60,10,0)');
@@ -72,36 +78,89 @@ function drawJorm(ctx: Ctx, o: { live: boolean; emissive?: boolean; heat?: boole
     ctx.restore();
     return;
   }
-  // the neck rising behind the head into the leg
-  const neck = paintNeck();
-  for (let y = 300; y > -OY / K - NECK.h; y -= NECK.h) ctx.drawImage(neck, SK.cx - NECK.w / 2, y);
+  // the neck curving down from the leg into the back of the skull
+  drawNeck(ctx);
+  ctx.save();
+  into(ctx);
   ctx.drawImage(still(o.live), 0, 0);
   ctx.restore();
+  // the kelp hangs straight down from where it's caught
+  if (!o.live) for (let i = 0; i < KELP.length; i++) drawKelp(ctx, i);
 }
 
-/** The eyes as their own part: each frame the eyes under their lids (k 0 open … 3 shut), the skull over them. */
+/** How much thicker the neck is drawn than the head's own scale (it rises close to us). */
+const NECK_K = 1.2;
+let strip: HTMLCanvasElement | null = null;
+/** The neck's tile stacked into one long strip (so slices never wrap). */
+function neckStrip(): HTMLCanvasElement {
+  if (strip) return strip;
+  const t = paintNeck();
+  const [c, g] = makeCanvas(t.width, t.height * 4);
+  for (let i = 0; i < 4; i++) g.drawImage(t, 0, i * t.height);
+  strip = c;
+  return c;
+}
+
+/** The neck: slices of the fight's neck laid along a curve from the top of the frame (where the leg goes on) down
+ * into the socket at the back of the skull. */
+function drawNeck(g: Ctx): void {
+  const tile = neckStrip();
+  const k = K * NECK_K;
+  const P0: [number, number] = [CX, -20];
+  const P1: [number, number] = [CX - 6, 90];
+  const P2: [number, number] = [SOCK[0] + 30, SOCK[1] - 110];
+  const P3: [number, number] = [SOCK[0] + 6, SOCK[1] + 4];
+  const at = (t: number): [number, number] => {
+    const u = 1 - t;
+    return [u * u * u * P0[0] + 3 * u * u * t * P1[0] + 3 * u * t * t * P2[0] + t * t * t * P3[0], u * u * u * P0[1] + 3 * u * u * t * P1[1] + 3 * u * t * t * P2[1] + t * t * t * P3[1]];
+  };
+  const N = 16;
+  let acc = 0;
+  for (let i = 0; i < N; i++) {
+    const [x0, y0] = at(i / N);
+    const [x1, y1] = at((i + 1) / N);
+    const len = Math.hypot(x1 - x0, y1 - y0);
+    const sy = acc / k;
+    const hh = Math.min((len * 1.3) / k, tile.height - sy);
+    g.save();
+    g.translate(x0, y0);
+    g.rotate(Math.atan2(-(x1 - x0), y1 - y0));
+    g.scale(k, k);
+    g.drawImage(tile, 0, sy, NECK.w, hh, -NECK.cx, 0, NECK.w, hh);
+    g.restore();
+    acc += len;
+  }
+}
+
+function drawKelp(g: Ctx, i: number): void {
+  const k = KELP[i];
+  const [x, y] = kelpAt(k.x, k.y);
+  g.save();
+  g.translate(x, y);
+  g.scale(K, K);
+  g.translate(-k.x, -k.y);
+  paintKelpAt(g, i, 0.3);
+  g.restore();
+}
+
+/** The eye as its own part: each frame the eye under its lid (k 0 open … 3 shut), the skull over it. */
 const eyeBox = (() => {
-  const [x0, y0] = jormAt(EYE.x - EYE.fw / 2, EYE.y - EYE.fh / 2);
-  const [x1, y1] = jormAt(SK.w - EYE.x + EYE.fw / 2, EYE.y + EYE.fh / 2);
-  return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+  const [x, y] = jormAt(EYE.x, EYE.y);
+  const r = EYE.fw * K * 0.6;
+  return { x: x - r, y: y - r, w: r * 2, h: r * 2 };
 })();
 
 /** A kelp strand as a part swinging from where it's caught. */
 function kelpPart(i: number): PartDef {
   const k = KELP[i];
   const F = KELP_F[k.kind];
-  const lx0 = k.flip ? k.x - (F.w - F.ax) : k.x - F.ax;
-  const [x0, y0] = jormAt(lx0, k.y - F.ay);
+  const [ax, ay] = kelpAt(k.x, k.y);
+  const lx0 = k.flip ? -(F.w - F.ax) : -F.ax;
   return {
-    box: { x: x0, y: y0, w: F.w * K, h: F.h * K },
+    box: { x: ax + lx0 * K, y: ay - F.ay * K, w: F.w * K, h: F.h * K },
     frames: 1,
-    pivot: jormAt(k.x, k.y),
-    draw: (g) => {
-      g.save();
-      into(g);
-      paintKelpAt(g, i, 0.3);
-      g.restore();
-    },
+    pivot: [ax, ay],
+    draw: (g) => drawKelp(g, i),
   };
 }
 
@@ -109,8 +168,8 @@ registerStyle('jormungandr', {
   contactY: CONTACT,
   halfWidth: 108,
   portraitLeg: 30,
-  // the neck runs down behind the crown
-  leg: { kind: 'serpentneck', hw: Math.round((NECK.w / 2) * K), join: 'into', end: Math.round(OY + 200 * K) },
+  // the neck runs down behind the back of the skull
+  leg: { kind: 'serpentneck', hw: Math.round(NECK.r * K * NECK_K), join: 'into', end: 6 },
   parts: {
     eyes: {
       box: eyeBox,
@@ -144,7 +203,7 @@ registerLegKind('serpentneck', {
     const n = Math.max(1, Math.round(H / th));
     const hh = H / n;
     wrapTile(ctx, H, () => {
-      for (let i = 0; i < n; i++) ctx.drawImage(tile, NECK.w / 2 - NECK.r, 0, NECK.r * 2, NECK.h, x0, i * hh, w, hh);
+      for (let i = 0; i < n; i++) ctx.drawImage(tile, NECK.cx - NECK.r, 0, NECK.r * 2, NECK.h, x0, i * hh, w, hh);
     });
   },
 });

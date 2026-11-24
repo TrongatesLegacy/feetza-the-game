@@ -2,19 +2,20 @@
 // the coils along the table's back edge, and the head on its neck rising out of the sea at a gap between them.
 //
 // - Painted frames, built a few at a time on the fight's first frames (build()): the coils' roll (each hump heaving,
-//   its plates rolling forward and back, water sheeting off it, foam churning), the jaw at five openings, the eyes
+//   its plates rolling forward and back, water sheeting off it, foam churning), the maw at seven openings, the eye
 //   (glaring, drawing breath, rolled up dazed), the stone lids' blink, three strands of kelp swaying, the foam collar
 //   round the neck, a splash, and the water pouring off the head as it surfaces.
-// - The head is a rig: the jaw (cross-faded between its openings, the tusks riding on it), the eyes under the skull so
-//   the lids of stone overhang them, the skull, the kelp, the embers' glow. The neck is a tiling column from the head
-//   down to the gap, water streaming down it; under the waterline both are masked off, so the head rises out of and
-//   sinks into the sea.
+// - The head is a rig, in three-quarter view, turned towards the pizza it means to bite (flipped to face right): the
+//   maw, the lower jaw swinging round its hinge (the tusk riding on it), the eye under the skull so the brow and lids of
+//   stone overhang it, the skull, the kelp, the embers' glow. The neck is slices of a tiling column laid along a curve
+//   from the water at the gap up into the back of the skull, so it rises and bends like a serpent's. Under the
+//   waterline both are masked off, so the head rises out of and sinks into the sea.
 // - Particles (steam from the nostrils, drawn in as he inhales; drips off the kelp and the chin) are its own.
 //
 // Cosmetic randomness only through crand(); the fight's rules stay in the brain.
 
 import Phaser from 'phaser';
-import { COIL, COLLAR, CASCADE, DROP, EYE, JAW, JAW_OPEN, KELP, KELP_F, NECK, NOSE, SK, SPLASH, TUSK, WRAP, coilHit, headHit, jawW, lowLipY, paintCascade, paintChip, paintCoil, paintCollar, paintEye, paintGlow, paintJaw, paintKelp, paintLid, paintNeck, paintNeckWater, paintSkull, paintSplash, paintTusk, paintWrap, wrapHit } from '../../content/art/jormungandr';
+import { CASCADE, COIL, COLLAR, EYE, FAR_EYE, HEAD_O, HINGE, JAW_MAX, KELP, KELP_F, MAW, MAW_N, NECK, NOSES, SK, SOCKET, SPLASH, TUSK, WRAP, coilHit, headHit, jawTurn, lowLipY, paintCascade, paintChip, paintCoil, paintCollar, paintEye, paintGlow, paintKelp, paintLid, paintLowerJaw, paintMaw, paintNeck, paintSkull, paintSplash, paintTusk, paintWrap, wrapHit } from '../../content/art/jormungandr';
 import { makeCanvas, type Ctx } from '../../art/util';
 import { crand } from '../../systems/cosmeticRandom';
 import type { Arena } from '../arena';
@@ -22,12 +23,13 @@ import { fxAtlas } from '../liveKit';
 
 type Img = Phaser.GameObjects.Image;
 
-/** The head on screen: its scale, and the skull point its position is (between the eyes and the nose). */
-export const HEAD_S = 0.92;
-const OY = 230;
-/** Skull y where the neck leaves the head (behind the jaw). */
-const NECK_TOP = 380;
+/** The head on screen: its scale. */
+export const HEAD_S = 0.84;
+/** The head's resting tilt (snout down towards the table). */
+export const HEAD_TILT = 0.2;
 const KELP_N = 8;
+/** Slices of the neck along its curve. */
+const NECK_N = 14;
 
 /** Coil centres along the back edge: midway between the gaps (330, 760, 1160, 1590) and out at the ends. */
 export const COIL_XS = [96, 545, 960, 1375, 1824];
@@ -77,6 +79,8 @@ export interface HeadPose {
   x: number;
   y: number;
   gap: number;
+  /** Which way the snout points: −1 left, 1 right. */
+  face: number;
   /** Shown at all (false: under the sea, waiting). */
   shown: boolean;
   /** Masked at the waterline (rising, diving, the tell); false while up, biting, dazed. */
@@ -87,7 +91,7 @@ export interface HeadPose {
   inhale: number;
   /** Dazed 0…1 (eyes rolled, sagging). */
   daze: number;
-  /** Extra scale (the lunge comes at us), tilt (radians). */
+  /** Extra scale (the lunge comes at us), tilt (radians, + snout down). */
   scale: number;
   tilt: number;
   /** The water at the gap boiling (the tell before it surfaces) 0…1. */
@@ -102,17 +106,19 @@ export class SerpentRig {
   private coilsUp = false;
   coils: { f: Fade; ph: number; spd: number; flip: boolean; s: number; x: number }[] = [];
   private coilRoot!: Phaser.GameObjects.Container;
-  private neck: Phaser.GameObjects.TileSprite | null = null;
-  private neckWater: Phaser.GameObjects.TileSprite | null = null;
+  private neck: Phaser.GameObjects.TileSprite[] = [];
   private collar: Fade | null = null;
   private head: Phaser.GameObjects.Container | null = null;
-  private jaw!: Fade;
-  private tusks: Img[] = [];
-  private eyes: { eye: Img; lid: Img; glow: Img }[] = [];
+  private maw!: Fade;
+  private jaw!: Img;
+  private tusk!: Img;
+  private eye!: Img;
+  private lid!: Img;
+  private glows: Img[] = [];
   private kelp: { f: Fade; ph: number }[] = [];
   private cascade: Img | null = null;
   private stars: Img[] = [];
-  private splashes: { img: Img; t: number }[] = [];
+  private splashes: { img: Img; t: number; spd: number }[] = [];
   private parts: Part[] = [];
   private partRoot!: Phaser.GameObjects.Container;
   private maskG: Phaser.GameObjects.Graphics;
@@ -185,7 +191,11 @@ export class SerpentRig {
     this.sheet('jsr_coil', COIL.w, COIL.h, COIL.n, (g, i) => paintCoil(g, i / COIL.n));
     this.steps.push(() => this.raiseCoils());
     this.still('jsr_skull', paintSkull);
-    this.sheet('jsr_jaw', SK.w, JAW.h, JAW_OPEN.length, (g, i) => paintJaw(g, JAW_OPEN[i]));
+    this.still('jsr_ljaw', paintLowerJaw);
+    this.sheet('jsr_maw', MAW.w, MAW.h, MAW_N, (g, i) => {
+      g.translate(-MAW.x, -MAW.y);
+      paintMaw(g, i / (MAW_N - 1));
+    }, 2);
     this.sheet('jsr_eye', EYE.fw, EYE.fh, 4, (g, i) => paintEye(g, i), 4);
     this.sheet('jsr_lid', EYE.fw, EYE.fh, 4, (g, i) => paintLid(g, i), 4);
     this.still('jsr_tusk', () => {
@@ -200,11 +210,6 @@ export class SerpentRig {
     });
     for (let k = 0; k < 3; k++) this.sheet(`jsr_kelp${k}`, KELP_F[k].w, KELP_F[k].h, KELP_N, (g, i) => paintKelp(g, k, i / KELP_N), KELP_N);
     this.still('jsr_neck', paintNeck);
-    this.still('jsr_neckw', () => {
-      const [c, g] = makeCanvas(NECK.w, 256);
-      paintNeckWater(g);
-      return c;
-    });
     this.sheet('jsr_collar', COLLAR.w, COLLAR.h, COLLAR.n, (g, i) => paintCollar(g, i / COLLAR.n), 4);
     this.sheet('jsr_splash', SPLASH.w, SPLASH.h, SPLASH.n, (g, i) => paintSplash(g, i / (SPLASH.n - 1)), 4);
     const cw = Math.ceil(SK.w * CASCADE.k);
@@ -251,42 +256,40 @@ export class SerpentRig {
   private makeHead(): void {
     const sc = this.sc;
     const root = this.a.underLayer;
-    const ox = -SK.cx;
-    const oy = -OY;
-    this.neck = sc.add.tileSprite(0, 0, NECK.w, 10, 'jsr_neck').setOrigin(0.5, 0).setVisible(false);
-    this.neckWater = sc.add.tileSprite(0, 0, NECK.w, 10, 'jsr_neckw').setOrigin(0.5, 0).setVisible(false).setAlpha(0.8);
-    root.add([this.neck, this.neckWater]);
-    this.neck.setMask(this.mask);
-    this.neckWater.setMask(this.mask);
+    const ox = -HEAD_O.x;
+    const oy = -HEAD_O.y;
+    // the neck: slices along its curve (behind the head)
+    for (let i = 0; i < NECK_N; i++) {
+      const n = sc.add.tileSprite(0, 0, NECK.w, 10, 'jsr_neck').setOrigin(NECK.cx / NECK.w, 0).setVisible(false);
+      n.setMask(this.mask);
+      root.add(n);
+      this.neck.push(n);
+    }
+    this.collar = new Fade(sc, 'jsr_collar', root, 0, 0, 0.5, COLLAR.y / COLLAR.h);
+    this.collar.each((im) => im.setVisible(false));
     const head = sc.add.container(0, 0).setVisible(false);
     this.head = head;
     root.add(head);
-    this.jaw = new Fade(sc, 'jsr_jaw', head, ox, oy + JAW.y0, 0, 0);
-    for (const s of [-1, 1]) {
-      const ex = ox + SK.cx + s * (SK.cx - EYE.x);
-      const eye = sc.add.image(ex, oy + EYE.y, 'jsr_eye', 0).setFlipX(s > 0);
-      const lid = sc.add.image(ex, oy + EYE.y, 'jsr_lid', 0).setFlipX(s > 0);
-      head.add([eye, lid]);
-      this.eyes.push({ eye, lid, glow: null as unknown as Img });
-    }
+    this.maw = new Fade(sc, 'jsr_maw', head, ox + MAW.x, oy + MAW.y, 0, 0);
+    this.jaw = sc.add.image(ox + HINGE.x, oy + HINGE.y, 'jsr_ljaw').setOrigin(HINGE.x / SK.w, HINGE.y / SK.h);
+    head.add(this.jaw);
+    this.eye = sc.add.image(ox + EYE.x, oy + EYE.y, 'jsr_eye', 0);
+    this.lid = sc.add.image(ox + EYE.x, oy + EYE.y, 'jsr_lid', 0);
+    head.add([this.eye, this.lid]);
     head.add(sc.add.image(ox, oy, 'jsr_skull').setOrigin(0, 0));
-    for (const s of [-1, 1]) {
-      const tx = SK.cx + s * (SK.cx - TUSK.x);
-      const t = sc.add.image(ox + tx, oy + lowLipY(tx) + 6, 'jsr_tusk').setOrigin(0.5, (TUSK.fh - 14) / TUSK.fh).setFlipX(s > 0);
-      this.tusks.push(t);
-      head.add(t);
-    }
+    this.tusk = sc.add.image(0, 0, 'jsr_tusk').setOrigin(0.5, (TUSK.fh - 14) / TUSK.fh);
+    head.add(this.tusk);
     KELP.forEach((k) => {
       const F = KELP_F[k.kind];
       const f = new Fade(sc, `jsr_kelp${k.kind}`, head, ox + k.x, oy + k.y, F.ax / F.w, F.ay / F.h);
       f.each((im) => im.setFlipX(k.flip));
       this.kelp.push({ f, ph: crand() * KELP_N });
     });
-    this.eyes.forEach((e, i) => {
-      const s = i ? 1 : -1;
-      e.glow = sc.add.image(ox + SK.cx + s * (SK.cx - EYE.x), oy + EYE.y, 'jsr_glow').setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.45);
-      head.add(e.glow);
-    });
+    this.glows = [
+      sc.add.image(ox + EYE.x, oy + EYE.y, 'jsr_glow').setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.45),
+      sc.add.image(ox + FAR_EYE.x, oy + FAR_EYE.y, 'jsr_glow').setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.3).setScale(0.5),
+    ];
+    head.add(this.glows);
     this.cascade = sc.add.image(ox, oy, 'jsr_cascade', 0).setOrigin(0, 0).setScale(1 / CASCADE.k).setAlpha(0);
     head.add(this.cascade);
     for (let i = 0; i < 4; i++) {
@@ -294,27 +297,42 @@ export class SerpentRig {
       this.stars.push(st);
       head.add(st);
     }
-    this.collar = new Fade(sc, 'jsr_collar', root, 0, 0, 0.5, COLLAR.y / COLLAR.h);
-    this.collar.each((im) => im.setVisible(false));
     this.partRoot = sc.add.container(0, 0);
     root.add(this.partRoot);
   }
 
-  // ——— hit shapes ———
+  // ——— the head's transform ———
 
   /** Screen point → skull units of the head as it stands now. */
   private local(px: number, py: number): [number, number] | null {
     const p = this.pose;
     if (!p || !p.shown || !this.head) return null;
     const k = HEAD_S * p.scale;
-    const c = Math.cos(-p.tilt);
-    const s = Math.sin(-p.tilt);
+    const rot = this.head.rotation;
+    const c = Math.cos(-rot);
+    const s = Math.sin(-rot);
     const dx = px - p.x;
     const dy = py - p.y;
-    return [SK.cx + (dx * c - dy * s) / k, OY + (dx * s + dy * c) / k];
+    const lx = (dx * c - dy * s) / k;
+    const ly = (dx * s + dy * c) / k;
+    return [HEAD_O.x + (p.face > 0 ? -lx : lx), HEAD_O.y + ly];
   }
 
-  /** Is a screen point on the head (its skull or its dropped jaw)? */
+  /** A point of the head (skull units) on screen. */
+  private world(lx: number, ly: number): [number, number] {
+    const p = this.pose!;
+    const k = HEAD_S * p.scale;
+    const rot = this.head?.rotation ?? 0;
+    const dx = (lx - HEAD_O.x) * k * (p.face > 0 ? -1 : 1);
+    const dy = (ly - HEAD_O.y) * k;
+    const c = Math.cos(rot);
+    const s = Math.sin(rot);
+    return [p.x + dx * c - dy * s, p.y + dx * s + dy * c];
+  }
+
+  // ——— hit shapes ———
+
+  /** Is a screen point on the head (its skull, its swung jaw, the open mouth between)? */
   headContains(px: number, py: number): boolean {
     const l = this.local(px, py);
     if (!l || !this.pose) return false;
@@ -329,23 +347,25 @@ export class SerpentRig {
     const l = this.local(px, py);
     if (!l || !this.pose) return 1e6;
     const k = HEAD_S * this.pose.scale;
-    const ex = (l[0] - SK.cx) / 270;
-    const ey = (l[1] - (300 + (DROP * this.pose.jaw) / 2)) / (250 + (DROP * this.pose.jaw) / 2);
-    const r = Math.hypot(ex, ey);
-    return Math.max(1, (r - 1) * 260 * k);
+    const ex = (l[0] - 420) / 380;
+    const ey = (l[1] - (290 + this.pose.jaw * 60)) / (170 + this.pose.jaw * 60);
+    return Math.max(1, (Math.hypot(ex, ey) - 1) * 200 * k);
   }
 
   /** Is a screen point on the neck as it stands now? */
   private neckContains(px: number, py: number): boolean {
-    const n = this.neck;
-    if (!n || !n.visible) return false;
-    const c = Math.cos(-n.rotation);
-    const s = Math.sin(-n.rotation);
-    const dx = px - n.x;
-    const dy = py - n.y;
-    const lx = dx * c - dy * s;
-    const ly = dx * s + dy * c;
-    return Math.abs(lx) < NECK.r * n.scaleX && ly > 0 && ly < n.height * n.scaleY && py < this.edgeY;
+    if (py >= this.edgeY) return false;
+    return this.neck.some((n) => {
+      if (!n.visible) return false;
+      const c = Math.cos(-n.rotation);
+      const s = Math.sin(-n.rotation);
+      const dx = px - n.x;
+      const dy = py - n.y;
+      const lx = dx * c - dy * s;
+      const ly = dx * s + dy * c;
+      const k = Math.abs(n.scaleX);
+      return Math.abs(lx) < NECK.r * k && ly > 0 && ly < n.height * n.scaleY;
+    });
   }
 
   /** Is a screen point on a coil's body (and not on the head or neck in front of it)? */
@@ -374,8 +394,7 @@ export class SerpentRig {
     if (!this.sc.textures.exists('jsr_splash')) return;
     const img = this.sc.add.image(x, this.edgeY + 2, 'jsr_splash', 0).setOrigin(0.5, SPLASH.y / SPLASH.h).setScale(scale);
     this.a.underLayer.add(img);
-    this.splashes.push({ img, t: -0.0001 / speed });
-    (img as unknown as { spd: number }).spd = speed;
+    this.splashes.push({ img, t: 0, spd: speed });
     for (let i = 0; i < 14 * scale; i++) this.part('drop', x + (crand() - 0.5) * 120 * scale, this.edgeY - 10, (crand() - 0.5) * 420, -260 - crand() * 520, 0.9 + crand() * 0.5, 5, 3, 0.9, 1300, 0.2, 0xe8f0ff, true);
   }
 
@@ -421,17 +440,6 @@ export class SerpentRig {
     this.parts.push({ x, y, vx, vy, life, age: 0, s0, s1, a, grav, drag, img, water });
   }
 
-  /** A point of the head (skull units) on screen. */
-  private world(lx: number, ly: number): [number, number] {
-    const p = this.pose!;
-    const k = HEAD_S * p.scale;
-    const dx = (lx - SK.cx) * k;
-    const dy = (ly - OY) * k;
-    const c = Math.cos(p.tilt);
-    const s = Math.sin(p.tilt);
-    return [p.x + dx * c - dy * s, p.y + dx * s + dy * c];
-  }
-
   // ——— every frame ———
 
   update(dt: number, p: HeadPose): void {
@@ -447,14 +455,14 @@ export class SerpentRig {
     this.stepParts(dt);
     for (let i = this.splashes.length - 1; i >= 0; i--) {
       const s = this.splashes[i];
-      s.t += dt * 1.3 * ((s.img as unknown as { spd: number }).spd ?? 1);
+      s.t += dt * 1.3 * s.spd;
       if (s.t >= 1) {
         s.img.destroy();
         this.splashes.splice(i, 1);
       } else s.img.setFrame(Math.min(SPLASH.n - 1, Math.floor(s.t * SPLASH.n)));
     }
     const head = this.head;
-    if (!head || !this.neck || !this.neckWater || !this.collar) return;
+    if (!head || !this.collar) return;
     head.setVisible(p.shown);
     if (p.masked !== this.masked) {
       this.masked = p.masked;
@@ -462,36 +470,50 @@ export class SerpentRig {
       else head.clearMask();
     }
     const k = HEAD_S * p.scale;
-    head.setPosition(p.x, p.y).setScale(k).setRotation(p.tilt);
+    const side = p.face > 0 ? -1 : 1;
+    head.setPosition(p.x, p.y).setScale(k * side, k).setRotation(-p.tilt * side);
     const vx = (p.x - this.lastX) / Math.max(dt, 1e-3);
     this.lastX = p.x;
-    // the neck: from under the jaw down to the gap, streaming water
-    const [nx, ny] = this.world(SK.cx, NECK_TOP);
-    const bx = p.gap;
-    const by = this.edgeY + 30;
-    const len = Math.hypot(bx - nx, by - ny);
-    const ns = HEAD_S;
-    const show = p.shown && ny < this.edgeY;
-    for (const n of [this.neck, this.neckWater]) {
-      n.setVisible(show).setPosition(nx, ny).setScale(ns).setRotation(Math.atan2(nx - bx, by - ny));
-      n.setSize(NECK.w, Math.max(10, len / ns));
+    // the neck: from the water at the gap, out behind the head and up into the back of its skull
+    const [sx, sy] = this.world(SOCKET.x, SOCKET.y);
+    const back = -side;
+    const bx = p.gap + back * 60;
+    const by = this.edgeY + 40;
+    const c1x = bx + back * 150;
+    const c1y = this.edgeY - 160;
+    const c2x = sx + back * 150;
+    const c2y = sy + 60;
+    const at = (t: number): [number, number] => {
+      const u = 1 - t;
+      return [u * u * u * sx + 3 * u * u * t * c2x + 3 * u * t * t * c1x + t * t * t * bx, u * u * u * sy + 3 * u * u * t * c2y + 3 * u * t * t * c1y + t * t * t * by];
+    };
+    const show = p.shown && sy < this.edgeY + 20;
+    let acc = 0;
+    for (let i = 0; i < NECK_N; i++) {
+      const n = this.neck[i];
+      const [x0, y0] = at(i / NECK_N);
+      const [x1, y1] = at((i + 1) / NECK_N);
+      const len = Math.hypot(x1 - x0, y1 - y0);
+      n.setVisible(show).setPosition(x0, y0).setScale(HEAD_S * side, HEAD_S).setRotation(Math.atan2(-(x1 - x0), y1 - y0));
+      n.setSize(NECK.w, Math.max(4, (len * 1.35) / HEAD_S));
+      n.tilePositionY = acc / HEAD_S;
+      acc += len;
     }
-    this.neckWater.tilePositionY -= dt * 150;
     // the foam collar where it leaves the water, or the sea boiling there before it comes
     const cAlpha = Math.max(show ? 1 : 0, p.boil);
     this.collar.each((im) => im.setVisible(cAlpha > 0.01).setPosition(bx, this.edgeY - 4).setScale(HEAD_S * (0.85 + 0.25 * p.boil)));
     this.collar.show(this.t * 9, COLLAR.n, true, cAlpha);
     if (p.boil > 0.05 && crand() < dt * 30 * p.boil) this.part('bubble', bx + (crand() - 0.5) * 200, this.edgeY - 6, (crand() - 0.5) * 30, -40 - crand() * 60, 0.6, 6, 12, 0.8, 0, 0.5, 0xd8e4ff, true);
     if (!p.shown) return;
-    // the jaw and the tusks riding on it
-    const jf = this.jawFrame(p.jaw);
-    this.jaw.show(jf, JAW_OPEN.length, false);
-    this.tusks.forEach((t, i) => {
-      const s = i ? 1 : -1;
-      const tx = SK.cx + s * (SK.cx - TUSK.x);
-      t.y = -OY + lowLipY(tx) + 6 + DROP * p.jaw * jawW(tx);
-    });
-    // the eyes: a glare; wide as he draws breath; rolled up when dazed; the stone lids blink
+    // the jaw swings round its hinge, the tusk riding on it; the maw opens behind it
+    const jawRot = -JAW_MAX * p.jaw;
+    this.jaw.setRotation(jawRot);
+    const [tx, ty] = jawTurn(TUSK.x, lowLipY(TUSK.x) + 6, p.jaw);
+    this.tusk.setPosition(tx - HEAD_O.x, ty - HEAD_O.y).setRotation(jawRot);
+    const mf = p.jaw * (MAW_N - 1);
+    this.maw.each((im) => im.setVisible(p.jaw > 0.02));
+    this.maw.show(mf, MAW_N, false);
+    // the eye: a glare; wide as he draws breath; rolled up when dazed; the stone lids blink
     this.blinkT -= dt;
     if (this.blinkT <= 0 && this.blink < 0) {
       this.blink = 0;
@@ -504,17 +526,15 @@ export class SerpentRig {
       if (this.blink >= 1) this.blink = -1;
     }
     if (p.daze > 0.3) lid = Math.max(lid, 1);
-    const roll = (k: number) => (Math.floor(this.t * 3 + k * 0.5) % 2 ? 2 : 3);
+    this.eye.setFrame(p.daze > 0.3 ? (Math.floor(this.t * 3) % 2 ? 2 : 3) : p.inhale > 0.4 ? 1 : 0);
+    this.lid.setFrame(lid).setVisible(lid > 0);
     const glow = (0.42 + 0.1 * Math.sin(this.t * 2.3)) * (1 + p.inhale * 0.9) * (1 - p.daze * 0.75);
-    this.eyes.forEach((e, k) => {
-      e.eye.setFrame(p.daze > 0.3 ? roll(k) : p.inhale > 0.4 ? 1 : 0);
-      e.lid.setFrame(lid).setVisible(lid > 0);
-      e.glow.setAlpha(Math.min(1, glow)).setScale(1 + p.inhale * 0.35);
-    });
+    this.glows[0].setAlpha(Math.min(1, glow)).setScale(1 + p.inhale * 0.35);
+    this.glows[1].setAlpha(Math.min(1, glow * 0.6)).setScale(0.5 + p.inhale * 0.2);
     // dazed: stars wheel round its crown
-    this.stars.forEach((st, k) => {
-      const a = this.t * 3.2 + (k / this.stars.length) * Math.PI * 2;
-      st.setVisible(p.daze > 0.05).setAlpha(p.daze * (0.6 + 0.4 * Math.sin(a))).setPosition(Math.cos(a) * 170, -OY + 40 + Math.sin(a) * 34).setScale(0.55 + 0.25 * Math.sin(a));
+    this.stars.forEach((st, i) => {
+      const a = this.t * 3.2 + (i / this.stars.length) * Math.PI * 2;
+      st.setVisible(p.daze > 0.05).setAlpha(p.daze * (0.6 + 0.4 * Math.sin(a))).setPosition(140 + Math.cos(a) * 150, -150 + Math.sin(a) * 30).setScale(0.55 + 0.25 * Math.sin(a));
     });
     // the kelp sways, harder as the head swings
     for (const kl of this.kelp) {
@@ -545,29 +565,24 @@ export class SerpentRig {
     // steam from the nostrils (drawn in while he inhales), drips off the kelp and the chin
     this.steamT -= dt;
     if (this.steamT <= 0 && p.y < this.edgeY - 100) {
-      this.steamT = p.inhale > 0.2 ? 0.05 : 0.22;
-      for (const s of [-1, 1]) {
-        const [sx, sy] = this.world(SK.cx + s * (SK.cx - NOSE.x), NOSE.y);
+      this.steamT = p.inhale > 0.2 ? 0.05 : 0.2;
+      for (const [nx, ny] of NOSES) {
+        const [wx, wy] = this.world(nx, ny);
         if (p.inhale > 0.2) {
           const a = crand() * Math.PI * 2;
           const d = 50 + crand() * 40;
-          this.part('soft', sx + Math.cos(a) * d, sy + Math.sin(a) * d * 0.6, -Math.cos(a) * d * 2.4, -Math.sin(a) * d * 1.4, 0.4, 22, 4, 0.22, 0, 0, 0xeef2ff, false);
-        } else this.part('soft', sx, sy - 4, s * (10 + crand() * 20), -30 - crand() * 30, 1.6, 8, 40, 0.18 * (1 - p.daze * 0.5), -10, 0.6, 0xe8eef8, false);
+          this.part('soft', wx + Math.cos(a) * d, wy + Math.sin(a) * d * 0.6, -Math.cos(a) * d * 2.4, -Math.sin(a) * d * 1.4, 0.4, 22, 4, 0.22, 0, 0, 0xeef2ff, false);
+        } else this.part('soft', wx, wy, p.face * (16 + crand() * 24), -24 - crand() * 30, 1.6, 8, 42, 0.2 * (1 - p.daze * 0.5), -10, 0.6, 0xe8eef8, false);
       }
     }
     this.dripT -= dt;
     if (this.dripT <= 0) {
-      this.dripT = this.cascadeT >= 0 ? 0.03 : 0.18;
+      this.dripT = this.cascadeT >= 0 ? 0.03 : 0.16;
       const src = crand() < 0.5 ? KELP[Math.floor(crand() * KELP.length)] : null;
-      const [lx, ly] = src ? [src.x + (src.flip ? -1 : 1) * 0, src.y + KELP_F[src.kind].h - KELP_F[src.kind].ay - 20] : [SK.cx + (crand() - 0.5) * 300, 500 + DROP * p.jaw * 0.8];
+      const [lx, ly] = src ? [src.x, src.y + KELP_F[src.kind].h - KELP_F[src.kind].ay - 20] : jawTurn(120 + crand() * 400, 420, p.jaw);
       const [dx, dy] = this.world(lx, ly);
       this.part('drop', dx, dy, (crand() - 0.5) * 20, 40, 1.2, 4, 3, 0.85, 1100, 0.1, 0xdde8ff, true);
     }
-  }
-
-  private jawFrame(o: number): number {
-    for (let i = 0; i < JAW_OPEN.length - 1; i++) if (o <= JAW_OPEN[i + 1]) return i + (o - JAW_OPEN[i]) / (JAW_OPEN[i + 1] - JAW_OPEN[i]);
-    return JAW_OPEN.length - 1;
   }
 
   private stepParts(dt: number): void {
@@ -600,7 +615,7 @@ export class SerpentRig {
   die(): void {
     if (this.dying) return;
     this.dying = true;
-    const p: HeadPose = this.pose ? { ...this.pose } : { x: 960, y: this.edgeY + 400, gap: 960, shown: false, masked: true, jaw: 0, inhale: 0, daze: 0, scale: 1, tilt: 0, boil: 0 };
+    const p: HeadPose = this.pose ? { ...this.pose } : { x: 960, y: this.edgeY + 400, gap: 960, face: -1, shown: false, masked: true, jaw: 0, inhale: 0, daze: 0, scale: 1, tilt: HEAD_TILT, boil: 0 };
     const t0 = this.t;
     let fell = false;
     this.coils.forEach((c, i) =>
@@ -613,7 +628,7 @@ export class SerpentRig {
         p.masked = true;
         p.daze = 1;
         p.jaw = Math.min(1, p.jaw + dt * 3);
-        p.tilt += dt * 0.5;
+        p.tilt += dt * 0.6;
         p.x += (p.gap - p.x) * Math.min(1, dt * 4);
         p.y += dt * (120 + u * 1400);
         if (!fell && p.y > this.edgeY - 60) {
@@ -643,8 +658,8 @@ export class SerpentRig {
     for (const q of this.parts) q.img.destroy();
     this.parts = [];
     this.head?.destroy();
-    this.neck?.destroy();
-    this.neckWater?.destroy();
+    for (const n of this.neck) n.destroy();
+    this.neck = [];
     this.collar?.each((im) => im.destroy());
     this.partRoot?.destroy();
     this.maskG.destroy();
