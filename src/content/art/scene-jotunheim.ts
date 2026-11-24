@@ -50,10 +50,10 @@ export const JH = {
   hor: 548,
   moon: { x: 318, y: 92, r: 24 },
   /** The aurora's frames cover the sky down to here. */
-  auroraH: 380,
+  auroraH: 340,
   /** The basalt cliff on the left: its foot, and the frozen falls' lip (x0…x1 at y). */
   cliffFoot: 700,
-  lip: { x0: 200, x1: 314, y: 252 },
+  lip: { x0: 176, x1: 336, y: 214 },
   /** The giant's sword stuck in the ice: where its blade goes in, its guard, its pommel. */
   sword: { x: 700, base: 616, guard: 356, pommel: 272 },
   /** The gate: the near megalith (runs out of the top), the far one (snapped off), each on its plinth. */
@@ -135,9 +135,9 @@ function cloudSky(ctx: Ctx, r: R): void {
   vfill(ctx, 0, 0, W, JH.hor, [[0, 'rgba(20,28,50,0.92)'], [0.5, 'rgba(36,48,78,0.78)'], [0.85, 'rgba(56,72,104,0.55)'], [1, 'rgba(70,88,120,0.4)']]);
   lay(ctx, noiseMask(10, 91, { cover: 0.5, soft: 0.6, col: '#3e4c70', w: 320, h: 96 }), box, 0.6);
   const o = { lit: '#8a9cc4', body: '#3e4c72', shadow: '#1a2240', sunX: JH.moon.x, sunY: JH.moon.y - 200, rim: 0.25, wisp: 0.6, a: 0.85, kind: 'stratus' as const };
-  for (let i = 0; i < 16; i++) {
-    const y = 40 + (i / 16) * 380 + r() * 30;
-    cloud(ctx, r, r() * W, y, 360 + r() * 460, 30 + r() * 30, { ...o, depth: (y / JH.hor) * 0.5, a: 0.7 - (y / JH.hor) * 0.3 });
+  for (let i = 0; i < 10; i++) {
+    const y = 40 + (i / 10) * 380 + r() * 30;
+    cloud(ctx, r, r() * W, y, 520 + r() * 600, 34 + r() * 30, { ...o, depth: (y / JH.hor) * 0.5, a: 0.7 - (y / JH.hor) * 0.3 });
   }
 }
 
@@ -147,10 +147,10 @@ function stormSky(ctx: Ctx, r: R): void {
   vfill(ctx, 0, 0, W, JH.hor, [[0, '#0a0c16'], [0.4, '#181c2c'], [0.72, '#2e2a3a'], [0.9, '#5a3438'], [1, '#7a3a30']]);
   lay(ctx, drift('#3a3448', '#0a0c16', 4, 93, 160, 48), box, 0.5);
   const o = { lit: '#7a6a7c', body: '#2a2a3c', shadow: '#0c0c18', sunX: 1200, sunY: JH.hor + 200, rim: 0.4, wisp: 0.7, a: 0.9, kind: 'bank' as const };
-  for (let i = 0; i < 18; i++) {
-    const y = 30 + (i / 18) * 440 + r() * 30;
+  for (let i = 0; i < 11; i++) {
+    const y = 30 + (i / 11) * 440 + r() * 30;
     const low = y / JH.hor;
-    cloud(ctx, r, r() * W, y, 400 + r() * 520, 40 + r() * 50, { ...o, lit: mix('#6a6478', '#e0603a', low ** 2 * 0.8), body: mix('#26283a', '#5a2c2c', low ** 2), depth: 0.2 });
+    cloud(ctx, r, r() * W, y, 580 + r() * 640, 44 + r() * 50, { ...o, lit: mix('#6a6478', '#e0603a', low ** 2 * 0.8), body: mix('#26283a', '#5a2c2c', low ** 2), depth: 0.2 });
   }
   // the underside of the cloud deck glowing red over the fire
   vfill(ctx, 0, JH.hor - 170, W, 170, [[0, 'rgba(160,50,30,0)'], [0.7, 'rgba(180,60,34,0.32)'], [1, 'rgba(220,90,40,0.5)']]);
@@ -251,34 +251,50 @@ function aurora(c: Ctx, ph: number): void {
   c.restore();
 }
 
-// ——— the far range ———
+// ——— the far ranges ———
+//
+// Three ranges stepping back through the cold air: the farthest a pale hazed wall of peaks, then the giants' peaks
+// with glaciers between them, then a nearer range modelled in the moon (lit faces, snowfields, rock bands, shadowed
+// gullies), the haze lying in the valleys between each.
 
 const FAR_VIEW: View = { ...NIGHT, air: AIR, lit: '#c6d8f2', shade: '#2e4470', rock: '#121a32', far: '#2a3e68' };
+const NEAR_VIEW: View = { ...NIGHT, air: AIR, lit: '#e4ecfc', shade: '#2c3c6c', rock: '#0e1428', far: '#2a3e68' };
+const FARTHEST: Summit[] = [
+  [90, 200, 200, 160, 1.4],
+  [420, 170, 180, 200, 1.3],
+  [760, 236, 220, 190, 1.45],
+  [1120, 190, 190, 220, 1.3],
+  [1480, 226, 230, 200, 1.4],
+  [1840, 180, 200, 180, 1.3],
+];
 const HIGHS: Summit[] = [
-  [150, 170, 250, 190, 1.3],
-  [560, 140, 200, 230, 1.25],
-  [1020, 206, 260, 200, 1.35],
-  [1420, 160, 210, 210, 1.2],
-  [1800, 196, 230, 200, 1.3],
+  [150, 150, 250, 190, 1.3],
+  [580, 124, 200, 230, 1.25],
+  [1020, 170, 260, 200, 1.35],
+  [1420, 140, 210, 210, 1.2],
+  [1800, 166, 230, 200, 1.3],
 ];
-const LOWS: Summit[] = [
-  [330, 84, 180, 150, 1.1],
-  [820, 70, 160, 170, 1],
-  [1230, 96, 190, 160, 1.15],
-  [1640, 78, 170, 160, 1.05],
+const NEARS: Summit[] = [
+  [380, 150, 210, 170, 1.15],
+  [860, 112, 180, 200, 1.05],
+  [1190, 128, 160, 210, 1.15],
+  [1580, 160, 200, 190, 1.2],
 ];
-const highTop = topOf(HIGHS, JH.hor - 14, 40, 17);
-const lowTop = topOf(LOWS, JH.hor, 18, 23);
+const farthestTop = topOf(FARTHEST, JH.hor - 26, 50, 9);
+const highTop = topOf(HIGHS, JH.hor - 12, 40, 17);
+const nearTop = topOf(NEARS, JH.hor, 22, 23);
 
 function farRange(ctx: Ctx, r: R): void {
-  massif(ctx, r, highTop, JH.hor - 14, HIGHS, { ...FAR_VIEW, lit: mix(FAR_VIEW.lit, FAR_VIEW.far, 0.35), shade: mix(FAR_VIEW.shade, '#1e3058', 0.3) }, 0.82, 0.7);
-  // glaciers pouring down between the high peaks: pale tongues in the shade
-  for (const x of [360, 790, 1230, 1610]) {
-    const y0 = highTop(x) + 20;
+  massif(ctx, r, farthestTop, JH.hor - 26, FARTHEST, { ...FAR_VIEW, lit: mix(FAR_VIEW.lit, '#5a74a8', 0.55), shade: mix(FAR_VIEW.shade, '#3a5080', 0.5) }, 0.92, 0.45);
+  vfill(ctx, 0, JH.hor - 130, W, 110, [[0, rgba('#4a6496', 0)], [1, rgba('#5a76a8', 0.55)]]);
+  massif(ctx, r, highTop, JH.hor - 12, HIGHS, { ...FAR_VIEW, lit: mix(FAR_VIEW.lit, FAR_VIEW.far, 0.25), shade: mix(FAR_VIEW.shade, '#1e3058', 0.3) }, 0.74, 0.8);
+  // glaciers pouring down between the giants' peaks: pale tongues in the shade
+  for (const x of [360, 800, 1230, 1610]) {
+    const y0 = highTop(x) + 16;
     const lg = ctx.createLinearGradient(0, y0, 0, JH.hor);
     lg.addColorStop(0, rgba('#8aa4d4', 0));
-    lg.addColorStop(0.4, rgba('#8aa4d4', 0.28));
-    lg.addColorStop(1, rgba('#9ab4e0', 0.4));
+    lg.addColorStop(0.4, rgba('#8aa4d4', 0.26));
+    lg.addColorStop(1, rgba('#9ab4e0', 0.36));
     ctx.fillStyle = lg;
     ctx.beginPath();
     ctx.moveTo(x - 10, y0);
@@ -288,11 +304,68 @@ function farRange(ctx: Ctx, r: R): void {
     ctx.closePath();
     ctx.fill();
   }
-  massif(ctx, r, lowTop, JH.hor, LOWS, { ...FAR_VIEW, lit: mix(FAR_VIEW.lit, '#9ab0dc', 0.2) }, 0.6, 0.55);
+  vfill(ctx, 0, JH.hor - 90, W, 80, [[0, rgba('#56729e', 0)], [1, rgba('#6280b0', 0.5)]]);
+  massif(ctx, r, nearTop, JH.hor, NEARS, NEAR_VIEW, 0.46, 1.1);
+  // the near range modelled: shadowed gullies cut down its faces from the notches in the ridge, each with a lit
+  // snow rib on its left; snowfields lying in the hollows under the ridges
+  const ridge = (c: Ctx) => {
+    c.beginPath();
+    c.moveTo(0, JH.hor + 2);
+    for (let x = 0; x <= W; x += 4) c.lineTo(x, nearTop(x));
+    c.lineTo(W, JH.hor + 2);
+    c.closePath();
+  };
+  within(ctx, ridge, () => {
+    const gr = rng(hashStr('jh:gullies'));
+    for (let i = 0; i < 34; i++) {
+      let x = 300 + gr() * 1500;
+      for (let k = 0; k < 20; k++) if (nearTop(x + 3) > nearTop(x)) x += 3;
+      const ty = nearTop(x);
+      const h = JH.hor - ty;
+      if (h < 50) continue;
+      const len = h * (0.45 + gr() * 0.45);
+      const lean = (gr() - 0.5) * 16 + (x - 1000) * 0.01;
+      ctx.strokeStyle = rgba(airMix('#141c3c', 0.46, AIR), 0.6);
+      ctx.lineWidth = 2 + gr() * 3;
+      ctx.beginPath();
+      ctx.moveTo(x, ty + 3);
+      ctx.bezierCurveTo(x + lean * 0.2, ty + len * 0.3, x + lean * 0.6, ty + len * 0.7, x + lean, ty + len);
+      ctx.stroke();
+      ctx.strokeStyle = rgba(airMix('#e8f0ff', 0.46, AIR), 0.55);
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(x - 3, ty + 4);
+      ctx.bezierCurveTo(x - 3 + lean * 0.2, ty + len * 0.3, x - 3 + lean * 0.6, ty + len * 0.7, x - 3 + lean, ty + len * 0.9);
+      ctx.stroke();
+    }
+    // snowfields: smooth pale aprons in the cirques under the summits
+    for (const [cx] of NEARS) {
+      const ty = nearTop(cx);
+      const y = ty + (JH.hor - ty) * 0.55;
+      const g = ctx.createRadialGradient(cx - 20, y, 0, cx - 20, y, 90);
+      g.addColorStop(0, rgba(airMix('#dfe8fa', 0.46, AIR), 0.5));
+      g.addColorStop(1, rgba(airMix('#dfe8fa', 0.46, AIR), 0));
+      ctx.save();
+      ctx.translate(cx - 20, y);
+      ctx.scale(1.6, 0.45);
+      ctx.translate(-(cx - 20), -y);
+      ctx.fillStyle = g;
+      ctx.fillRect(cx - 120, y - 90, 200, 180);
+      ctx.restore();
+    }
+  });
+  // the near ridges catching the moon hard where they face it
+  ctx.strokeStyle = rgba('#f2f6ff', 0.6);
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  for (let x = 0; x < W; x += 3) {
+    if (nearTop(x + 4) < nearTop(x - 4) && nearTop(x) < JH.hor - 30) ctx.lineTo(x, nearTop(x) + 1);
+    else ctx.moveTo(x, nearTop(x) + 1);
+  }
+  ctx.stroke();
   // the cold air lying on the ice at the range's foot
-  vfill(ctx, 0, JH.hor - 70, W, 74, [[0, rgba('#5a7aa8', 0)], [1, rgba('#6a86b4', 0.6)]]);
+  vfill(ctx, 0, JH.hor - 60, W, 64, [[0, rgba('#5a7aa8', 0)], [1, rgba('#6a86b4', 0.55)]]);
 }
-
 /** The blizzard whiting out the far range (live only). */
 function farHaze(ctx: Ctx): void {
   vfill(ctx, 0, 260, W, JH.hor - 260 + 120, [[0, 'rgba(120,128,150,0)'], [0.45, 'rgba(126,132,152,0.55)'], [0.75, 'rgba(140,144,162,0.85)'], [1, 'rgba(140,144,162,0)']]);
@@ -485,64 +558,56 @@ function plain(ctx: Ctx, r: R): void {
       ctx.closePath();
       ctx.fill();
     }
-    // a pressure ridge out on the sheet: where two floes ground together, slabs of ice shoved up on edge and leaning
-    // on each other, biggest in the middle of the ridge, snow drifted along its windward foot, its lee in shadow
-    {
-      const slabs: [number, number, number, number, number][] = [];
-      for (let i = 0; i < 9; i++) {
-        const u = (i + r() * 0.8) / 9;
-        const x = 1070 + u * 170 + (r() - 0.5) * 20;
-        const y = 606 + (r() - 0.5) * 10;
-        const k = kAt(y);
-        const env = 0.45 + 0.55 * Math.sin(u * Math.PI) ** 0.6;
-        slabs.push([x, y, (10 + r() * 22) * env * k * 2.2, (16 + r() * 22) * k * 1.6, (r() - 0.5) * 0.9]);
-      }
-      slabs.sort((a, b) => a[1] - b[1]);
-      // the lee shadow and the drift along the foot
-      ctx.fillStyle = rgba('#2a3e7a', 0.28);
-      ctx.beginPath();
-      ctx.moveTo(1060, 608);
-      ctx.quadraticCurveTo(1160, 618, 1270, 610);
-      ctx.quadraticCurveTo(1160, 628, 1066, 614);
-      ctx.closePath();
-      ctx.fill();
-      for (const [x, y, h, w, lean] of slabs) {
-        const tip: Pt = [x + lean * h * 0.8, y - h];
-        const pts: Pt[] = [[x - w / 2, y], [x - w * 0.42 + lean * h * 0.6, y - h * 0.75], tip, [x + w * 0.4 + lean * h * 0.7, y - h * 0.62], [x + w / 2, y]];
-        const path = polyPath(pts);
-        path(ctx);
-        const sg = ctx.createLinearGradient(x - w / 2, y - h, x + w / 2, y);
-        sg.addColorStop(0, '#dcecff');
-        sg.addColorStop(0.4, '#8eb2e2');
-        sg.addColorStop(1, '#2e4c8c');
-        ctx.fillStyle = sg;
-        ctx.fill();
-        // its broken edge: the face turned from the moon darker, a glint along the top
-        ctx.fillStyle = rgba('#1c3474', 0.35);
-        ctx.beginPath();
-        ctx.moveTo(tip[0], tip[1]);
-        ctx.lineTo(x + w * 0.4 + lean * h * 0.7, y - h * 0.62);
-        ctx.lineTo(x + w / 2, y);
-        ctx.lineTo(x + w * 0.05, y);
-        ctx.closePath();
-        ctx.fill();
-        path(ctx);
-        ctx.strokeStyle = rgba(INK, 0.55);
-        ctx.lineWidth = 1;
-        ctx.stroke();
-        ctx.strokeStyle = rgba('#ffffff', 0.7);
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(x - w * 0.42 + lean * h * 0.6, y - h * 0.75);
-        ctx.lineTo(tip[0], tip[1]);
-        ctx.stroke();
-        // snow heaped at its windward foot
-        ctx.fillStyle = rgba(SNOW.lit, 0.85);
-        ctx.beginPath();
-        ctx.ellipse(x - w * 0.35, y - 1, w * 0.45, Math.max(1.5, h * 0.12), 0, Math.PI, 0);
-        ctx.fill();
+    // the sheet graded in perspective: sastrugi in bands across it, the bands closing up towards the horizon, each
+    // band a run of wind-carved ridges, lit on their windward (left) faces, a blue shadow tucked under their lee
+    for (let j = 0; j < 11; j++) {
+      const t = (j + 0.5) / 11;
+      const y = JH.hor + 6 + t ** 1.8 * (TY - JH.hor - 24);
+      const k = kAt(y);
+      let x = -40 + r() * 80;
+      while (x < W + 40) {
+        const run = (120 + r() * 360) * (0.4 + k);
+        for (let xx = x; xx < x + run; xx += (14 + r() * 26) * (0.3 + k)) {
+          const len = (16 + r() * 40) * (0.25 + k);
+          const h = (2 + r() * 3.5) * (0.25 + k);
+          const yy = y + (r() - 0.5) * 6 * k;
+          ctx.fillStyle = rgba('#30467e', 0.3);
+          ctx.beginPath();
+          ctx.moveTo(xx, yy);
+          ctx.quadraticCurveTo(xx + len * 0.6, yy + h * 0.2, xx + len, yy + h * 0.9);
+          ctx.quadraticCurveTo(xx + len * 0.5, yy + h * 1.3, xx + len * 0.05, yy + h * 0.4);
+          ctx.closePath();
+          ctx.fill();
+          ctx.fillStyle = rgba(SNOW.lit, 0.5);
+          ctx.beginPath();
+          ctx.moveTo(xx, yy);
+          ctx.quadraticCurveTo(xx + len * 0.4, yy - h, xx + len, yy + h * 0.9);
+          ctx.quadraticCurveTo(xx + len * 0.55, yy + h * 0.1, xx, yy);
+          ctx.closePath();
+          ctx.fill();
+        }
+        x += run + (80 + r() * 260) * (0.4 + k);
       }
     }
+    // the moon's glare on the sheet: the polished ice under the moon's side of the sky catching it in a long bright
+    // swathe low on the left, streaked along the wind, fading out across to the right
+    lightPool(ctx, 760, JH.hor + 22, 520, 26, '#dce8ff', 0.36);
+    lightPool(ctx, 700, JH.hor + 14, 260, 9, '#f4f8ff', 0.34);
+    for (let i = 0; i < 26; i++) {
+      const x = 560 + r() ** 1.4 * 700;
+      const y = JH.hor + 6 + r() ** 1.5 * 46;
+      const len = 30 + r() * 120;
+      ctx.strokeStyle = rgba('#f4f8ff', 0.18 + r() * 0.2);
+      ctx.lineWidth = 1 + r();
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + len, y + len * 0.01);
+      ctx.stroke();
+    }
+    // the horizon fading into the cold haze at the range's foot
+    vfill(ctx, 0, JH.hor, W, 34, [[0, rgba('#7a92c0', 0.7)], [1, rgba('#7a92c0', 0)]]);
+    // and nearer, the sheet darkening a little into the night towards us before the drift at the table
+    vfill(ctx, 0, TY - 110, W, 110, [[0, 'rgba(20,32,80,0)'], [1, 'rgba(20,32,80,0.14)']]);
     // the crevasse: a crack across the sheet, the far wall's blue ice going dark with depth, the far lip catching
     // the moon, the near lip rounded over in shade
     const cy = (x: number) => 666 + (x - 980) * 0.04 + Math.sin(x / 40) * 2 + Math.sin(x / 13) * 0.8;
@@ -618,6 +683,286 @@ function plain(ctx: Ctx, r: R): void {
   ctx.beginPath();
   for (let x = 0; x <= W; x += 6) ctx.lineTo(x, plainTop(x) + 1);
   ctx.stroke();
+}
+
+// ——— the frost giant's bones ———
+
+/** A frost giant fallen out on the ice long ago and frozen in: its ribs arching up out of the sheet in a row, the
+ * spine's knobs between them, its skull sunk to the jaw at the head end, an arm bone thrust up at the other. Old ivory
+ * gone blue in the moon, lit on the left, rimed, snow lying along the tops, ice heaped round where they go in. */
+function bones(ctx: Ctx, r: R): void {
+  const d = 0.24;
+  const B = (c: string) => airMix(c, d, AIR);
+  const base = 608;
+  const BONE = { lit: B('#f4ecd8'), body: B('#cabea0'), shade: B('#7e7684'), ink: B('#141828') };
+  // their shadows thrown down the ice to the right
+  softly(ctx, { x: 900, y: base - 20, w: 520, h: 50 }, (g) => {
+    g.fillStyle = 'rgba(16,26,70,0.35)';
+    g.beginPath();
+    g.ellipse(1150, base + 7, 230, 7, 0.02, 0, P2);
+    g.fill();
+  }, 0.3);
+  /** A drift heaped where a bone goes into the ice, its contact shadow under the bone's side. */
+  const drift = (x: number, y: number, w: number) => {
+    ctx.fillStyle = 'rgba(10,18,56,0.4)';
+    ctx.beginPath();
+    ctx.ellipse(x + w * 0.25, y + 1, w * 0.9, 2.6, 0, 0, P2);
+    ctx.fill();
+    ctx.fillStyle = B('#c4d2ee');
+    ctx.beginPath();
+    ctx.ellipse(x, y, w, w * 0.32, 0, Math.PI, 0);
+    ctx.fill();
+    ctx.fillStyle = B('#f2f6ff');
+    ctx.beginPath();
+    ctx.ellipse(x - w * 0.25, y - w * 0.12, w * 0.55, w * 0.14, 0, Math.PI, 0);
+    ctx.fill();
+  };
+  /** A long bone along a curve (bezier p0..p3), tapering from w0 to w1, cut off at tEnd (jagged if broken): ivory
+   * lit on its upper left, shaded on its lower right, cracked, rime along its top. */
+  const longBone = (p: [Pt, Pt, Pt, Pt], w0: number, w1: number, tEnd: number, broken: boolean, seed: number) => {
+    const at = (t: number): Pt => {
+      const u = 1 - t;
+      return [
+        u * u * u * p[0][0] + 3 * u * u * t * p[1][0] + 3 * u * t * t * p[2][0] + t * t * t * p[3][0],
+        u * u * u * p[0][1] + 3 * u * u * t * p[1][1] + 3 * u * t * t * p[2][1] + t * t * t * p[3][1],
+      ];
+    };
+    const n = 24;
+    const L: Pt[] = [];
+    const R: Pt[] = [];
+    const rr = rng(hashStr('jh:bone' + seed));
+    for (let i = 0; i <= n; i++) {
+      const t = (i / n) * tEnd;
+      const [x, y] = at(t);
+      const [x2, y2] = at(Math.min(1, t + 0.01));
+      const [x1, y1] = at(Math.max(0, t - 0.01));
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const m = Math.hypot(dx, dy) || 1;
+      // the bone flattens and thins along its length, with a little knobbly unevenness
+      const w = lerp(w0, w1, t) * (1 + Math.sin(t * 17 + seed) * 0.08) / 2;
+      L.push([x - (dy / m) * w, y + (dx / m) * w]);
+      R.push([x + (dy / m) * w, y - (dx / m) * w]);
+    }
+    const end: Pt[] = [];
+    if (broken) {
+      // a snapped end: splintered
+      const [a, b] = [L[n], R[n]];
+      for (let k = 1; k < 4; k++) end.push([lerp(a[0], b[0], k / 4) + (rr() - 0.5) * 4, lerp(a[1], b[1], k / 4) + (k % 2 ? -5 : 2) - rr() * 4]);
+    }
+    const path = polyPath([...L, ...end, ...[...R].reverse()]);
+    path(ctx);
+    ctx.fillStyle = BONE.body;
+    ctx.fill();
+    within(ctx, path, () => {
+      // the shading across the bone: R is on its upper side for the ribs (they rise to the right then fall)
+      for (const [off, col, wd, a] of [[1, BONE.shade, 0.55, 0.7], [-1, BONE.lit, 0.4, 0.85]] as const) {
+        ctx.strokeStyle = rgba(col, a);
+        ctx.lineWidth = Math.max(1.4, w0 * wd);
+        ctx.beginPath();
+        for (let i = 0; i <= n; i++) {
+          const [lx, ly] = L[i];
+          const [rx, ry] = R[i];
+          const k = off > 0 ? 0.85 : 0.15;
+          const x = lerp(lx, rx, k);
+          const y = lerp(ly, ry, k);
+          if (i) ctx.lineTo(x, y);
+          else ctx.moveTo(x, y);
+        }
+        ctx.stroke();
+      }
+      // old cracks across it
+      for (let k = 0; k < 2; k++) {
+        const i = Math.floor((0.2 + rr() * 0.6) * n);
+        ctx.strokeStyle = rgba(BONE.ink, 0.55);
+        ctx.lineWidth = 0.9;
+        ctx.beginPath();
+        ctx.moveTo(L[i][0], L[i][1]);
+        ctx.lineTo(lerp(L[i][0], R[i][0], 0.6) + 1, lerp(L[i][1], R[i][1], 0.6) + 2);
+        ctx.stroke();
+      }
+    });
+    path(ctx);
+    ctx.strokeStyle = BONE.ink;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    // rime crusted along its upper edge where it lies most level
+    ctx.strokeStyle = B('#f8fbff');
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    let on = false;
+    for (let i = 1; i <= n; i++) {
+      const [x0, y0] = R[i - 1];
+      const [x1, y1] = R[i];
+      const level = Math.abs(y1 - y0) < Math.abs(x1 - x0) * 1.1;
+      if (level) {
+        if (!on) ctx.moveTo(x0, y0 - 1);
+        ctx.lineTo(x1, y1 - 1);
+        on = true;
+      } else on = false;
+    }
+    ctx.stroke();
+    return at(tEnd);
+  };
+  // the femur, thrust up out of a drift at the hips, its knuckled joint at the top
+  drift(934, base + 2, 22);
+  longBone([[938, base + 2], [930, base - 30], [918, base - 56], [906, base - 80]], 12, 9, 1, false, 1);
+  for (const [dx, dy, s] of [[-6, -84, 9], [5, -80, 8]] as const) {
+    ctx.fillStyle = BONE.body;
+    ctx.beginPath();
+    ctx.ellipse(906 + dx, base + dy, s, s * 0.8, -0.4, 0, P2);
+    ctx.fill();
+    ctx.strokeStyle = BONE.ink;
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+    ctx.fillStyle = BONE.lit;
+    ctx.beginPath();
+    ctx.ellipse(906 + dx - 2, base + dy - 3, s * 0.5, s * 0.3, -0.4, 0, P2);
+    ctx.fill();
+  }
+  ctx.fillStyle = B('#f8fbff');
+  ctx.beginPath();
+  ctx.ellipse(902, base - 90, 8, 2.6, -0.4, 0, P2);
+  ctx.fill();
+  // the ribs: each springing from the spine, arching up and over to the right, tapering, each its own curve and
+  // height; three of them snapped off; their far ends sunk in drifts
+  const rr = rng(hashStr('jh:ribs'));
+  const ribs: { x: number; span: number; h: number; lean: number; tEnd: number }[] = [];
+  for (let i = 0; i < 8; i++) {
+    const x = 978 + i * 27 + (rr() - 0.5) * 8;
+    const h = (96 - i * 7) * (0.8 + rr() * 0.35);
+    const span = (58 - i * 2) * (0.8 + rr() * 0.4);
+    const broken = i === 2 || i === 5 || i === 6;
+    ribs.push({ x, span, h, lean: (rr() - 0.5) * 16, tEnd: broken ? 0.42 + rr() * 0.3 : 1 });
+  }
+  for (const [i, rb] of [...ribs.entries()].reverse()) {
+    const { x, span, h, lean, tEnd } = rb;
+    longBone([[x, base - 2], [x - 8 + lean, base - h * 0.85], [x + span * 0.55 + lean, base - h * 1.05], [x + span, base + 2]], 12 - i * 0.6, 5, tEnd, tEnd < 1, 10 + i);
+    if (tEnd >= 1) drift(x + span, base + 3, 12 + rr() * 6);
+  }
+  // the spine along the ice: vertebrae half sunk, each with its spine standing up, leaning back; snow drifted
+  // between them
+  for (let i = 0; i < 10; i++) {
+    const x = 968 + i * 26;
+    const y = base - 1 + Math.sin(i * 0.7) * 2;
+    ctx.fillStyle = BONE.body;
+    ctx.beginPath();
+    ctx.moveTo(x - 5, y - 6);
+    ctx.quadraticCurveTo(x - 6, y - 12 - (i % 3) * 1.5, x - 3, y - 12 - (i % 3) * 1.5);
+    ctx.quadraticCurveTo(x + 1, y - 11, x + 3, y - 7);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = BONE.shade;
+    ctx.lineWidth = 1.1;
+    ctx.stroke();
+    ctx.fillStyle = BONE.body;
+    ctx.beginPath();
+    ctx.ellipse(x, y - 3, 9, 6, 0, Math.PI, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = BONE.ink;
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+    ctx.fillStyle = BONE.lit;
+    ctx.beginPath();
+    ctx.ellipse(x - 3, y - 6, 4, 1.6, 0, 0, P2);
+    ctx.fill();
+    drift(x + 13, y + 1, 7);
+  }
+  // a snapped-off piece of rib lying out on the ice
+  longBone([[1110, base + 12], [1130, base + 8], [1150, base + 9], [1170, base + 13]], 6, 5, 1, true, 99);
+  drift(1172, base + 14, 8);
+  // the skull, sunk to its upper teeth, looking out across the ice: cranium, brow, a deep eye socket, the nasal hole,
+  // the cheekbone, a frost cap on the crown
+  const sx = 1268;
+  const sy = base - 36;
+  const cranium: PathFn = (c) => {
+    c.beginPath();
+    c.moveTo(sx - 52, base + 1);
+    c.bezierCurveTo(sx - 60, sy - 30, sx - 20, sy - 52, sx + 14, sy - 46);
+    c.bezierCurveTo(sx + 50, sy - 40, sx + 58, sy - 6, sx + 50, sy + 14);
+    c.lineTo(sx + 44, base + 1);
+    c.closePath();
+  };
+  cranium(ctx);
+  const cg = ctx.createRadialGradient(sx - 24, sy - 30, 4, sx, sy, 70);
+  cg.addColorStop(0, B('#f6eedc'));
+  cg.addColorStop(0.5, B('#c6ba9e'));
+  cg.addColorStop(1, B('#6e6878'));
+  ctx.fillStyle = cg;
+  ctx.fill();
+  within(ctx, cranium, () => {
+    lay(ctx, noiseMask(6, 151, { cover: 0.35, soft: 0.5, col: '#4a5068', w: 64, h: 48 }), { x: sx - 60, y: sy - 52, w: 120, h: 90 }, 0.25);
+    // the cranial suture
+    ctx.strokeStyle = B('#4a5068');
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let x = sx - 30; x < sx + 30; x += 4) ctx.lineTo(x, sy - 40 + Math.sin(x * 0.9) * 2 + (x - sx) * 0.1);
+    ctx.stroke();
+    // the eye socket, deep, the brow ridge over it lit
+    ctx.fillStyle = B('#0c1024');
+    ctx.beginPath();
+    ctx.ellipse(sx - 18, sy + 2, 15, 12, 0.15, 0, P2);
+    ctx.fill();
+    ctx.fillStyle = B('#2a3456');
+    ctx.beginPath();
+    ctx.ellipse(sx - 16, sy + 6, 9, 6, 0.15, 0, P2);
+    ctx.fill();
+    ctx.strokeStyle = B('#f4f6fa');
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(sx - 18, sy + 3, 16, Math.PI * 1.08, Math.PI * 1.75);
+    ctx.stroke();
+    // the nasal hole and the cheekbone
+    ctx.fillStyle = B('#0c1024');
+    ctx.beginPath();
+    ctx.moveTo(sx - 44, sy + 12);
+    ctx.lineTo(sx - 36, sy + 26);
+    ctx.lineTo(sx - 48, sy + 26);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = B('#e4e6ec');
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(sx - 30, sy + 22);
+    ctx.quadraticCurveTo(sx - 6, sy + 18, sx + 8, sy + 26);
+    ctx.stroke();
+    // the shade side of the skull, away from the moon
+    const sg = ctx.createLinearGradient(sx - 50, 0, sx + 54, 0);
+    sg.addColorStop(0, 'rgba(255,255,255,0)');
+    sg.addColorStop(0.6, 'rgba(10,20,60,0.05)');
+    sg.addColorStop(1, 'rgba(10,20,60,0.4)');
+    ctx.fillStyle = sg;
+    ctx.fillRect(sx - 60, sy - 56, 120, 100);
+  });
+  cranium(ctx);
+  ctx.strokeStyle = B('#0a1028');
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  // the upper teeth along the ice line, the jaw under the ice
+  for (let i = 0; i < 7; i++) {
+    const tx = sx - 48 + i * 7;
+    ctx.fillStyle = B('#e2d8c0');
+    ctx.fillRect(tx, base - 8, 5.5, 8);
+    ctx.strokeStyle = B('#0a1028');
+    ctx.lineWidth = 0.9;
+    ctx.strokeRect(tx, base - 8, 5.5, 8);
+  }
+  snowCap(ctx, r, sx - 46, sx + 30, (u) => sy - 34 - Math.sin(u * Math.PI) * 14 + (u < 0.3 ? (0.3 - u) * 40 : 0), 5, d);
+  // the ice heaped round the skull where it went in
+  ctx.fillStyle = SNOW.body;
+  ctx.beginPath();
+  ctx.moveTo(sx - 72, base + 4);
+  ctx.quadraticCurveTo(sx - 40, base - 8, sx, base - 2);
+  ctx.quadraticCurveTo(sx + 40, base - 8, sx + 70, base + 4);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = rgba(SNOW.lit, 0.85);
+  ctx.beginPath();
+  ctx.moveTo(sx - 70, base + 3);
+  ctx.quadraticCurveTo(sx - 40, base - 9, sx - 6, base - 3);
+  ctx.quadraticCurveTo(sx - 40, base - 3, sx - 70, base + 3);
+  ctx.fill();
 }
 
 // ——— the giant's sword ———
@@ -893,21 +1238,28 @@ function carvedRune(ctx: Ctx, k: number, x: number, y: number, s: number, glow: 
       ctx.lineTo(x + x1 * s * 0.6 + dx, y + y1 * s + dy);
     }
   };
+  // a V-cut chiselled in: the wall under the top-left edge in shadow, the far wall below and to the right catching the
+  // light as a lit lip, the floor of the groove dark, a thread of cold inlay down its floor
   ctx.save();
-  ctx.lineCap = 'round';
-  const w = Math.max(1.6, s * 0.13);
-  path(0.8, 1);
-  ctx.strokeStyle = rgba('#c8d4f0', 0.35 * a);
+  ctx.lineCap = 'butt';
+  ctx.lineJoin = 'miter';
+  const w = Math.max(1.8, s * 0.16);
+  path(w * 0.42, w * 0.5);
+  ctx.strokeStyle = rgba('#c8d4f0', 0.42 * a);
   ctx.lineWidth = w;
   ctx.stroke();
   path(0, 0);
-  ctx.strokeStyle = rgba('#080a16', 0.8 * a);
+  ctx.strokeStyle = rgba('#05070f', 0.85 * a);
   ctx.lineWidth = w;
   ctx.stroke();
+  path(w * 0.18, w * 0.2);
+  ctx.strokeStyle = rgba('#283050', 0.9 * a);
+  ctx.lineWidth = w * 0.4;
+  ctx.stroke();
   if (glow > 0) {
-    path(0.3, 0.3);
-    ctx.strokeStyle = rgba(RUNE, glow * a);
-    ctx.lineWidth = w * 0.45;
+    path(w * 0.18, w * 0.2);
+    ctx.strokeStyle = rgba(RUNE, glow * 0.7 * a);
+    ctx.lineWidth = w * 0.26;
     ctx.stroke();
   }
   ctx.restore();
@@ -915,10 +1267,10 @@ function carvedRune(ctx: Ctx, k: number, x: number, y: number, s: number, glow: 
 
 // ——— the basalt cliff and the frozen falls ———
 
-/** The cliff's columns: x0, x1, top (the falls' notch is columns 5…7). */
+/** The cliff's columns: x0, x1, top (the falls pour over columns 4…8, their tops a little lower where the river ran). */
 const COLS: [number, number, number][] = (() => {
   const out: [number, number, number][] = [];
-  const tops = [168, 150, 178, 160, 198, 252, 254, 250, 214, 200, 232, 282, 352, 452, 560, 636];
+  const tops = [168, 150, 178, 160, 198, 212, 222, 208, 214, 200, 232, 282, 352, 452, 560, 636];
   const xs = [-12, 40, 78, 118, 160, 198, 238, 276, 316, 352, 392, 426, 458, 486, 512, 536, 560];
   for (let i = 0; i < tops.length; i++) out.push([xs[i], xs[i + 1], tops[i]]);
   return out;
@@ -938,195 +1290,277 @@ const cliffPath: PathFn = (c) => {
 };
 
 
-/** The falls' edges at y (left, right): it spreads as it falls, bellying out on the left, stepping on the right. */
-const fallL = (y: number) => {
-  const t = clamp01((y - JH.lip.y) / (JH.cliffFoot - JH.lip.y));
-  return JH.lip.x0 - 2 - 72 * t ** 1.3 - 18 * Math.sin(t * Math.PI) + Math.sin(y / 40) * 3;
-};
-const fallR = (y: number) => {
-  const t = clamp01((y - JH.lip.y) / (JH.cliffFoot - JH.lip.y));
-  return JH.lip.x1 + 2 + 92 * t ** 1.2 + 10 * Math.sin(t * P2) + Math.sin(y / 33 + 1) * 3;
-};
-const fallsPath: PathFn = (c) => {
-  c.beginPath();
-  const { y } = JH.lip;
-  c.moveTo(fallL(y), y);
-  c.lineTo(fallR(y), y);
-  for (let yy = y + 10; yy <= JH.cliffFoot; yy += 10) c.lineTo(fallR(yy), yy);
-  for (let yy = JH.cliffFoot; yy >= y + 10; yy -= 10) c.lineTo(fallL(yy), yy);
-  c.closePath();
-};
+/** The cliff's top edge at x (the columns' tops, as cliffPath draws them). */
+function cliffTopAt(x: number): number {
+  for (const [i, [x0, x1, t]] of COLS.entries()) {
+    if (x < x0 || x > x1) continue;
+    const tl = t + (i % 3) * 3;
+    return lerp(tl, t - 3, clamp01((x - x0 - 4) / Math.max(1, x1 - x0 - 10)));
+  }
+  return JH.cliffFoot;
+}
 
-/** The falls' curtains: columns of candle ice, each where a strand of the water froze, swelling into lobes where it
- * piled up over a ledge, ending in a fringe of icicles. Back to front. */
-interface Curtain {
+/** The falls' spread at y: it pours over the lip between x0 and x1 and fans a little as it comes down the face. */
+const fallL = (y: number) => JH.lip.x0 - 46 * clamp01((y - JH.lip.y) / (JH.cliffFoot - JH.lip.y)) ** 1.4;
+const fallR = (y: number) => JH.lip.x1 + 52 * clamp01((y - JH.lip.y) / (JH.cliffFoot - JH.lip.y)) ** 1.3;
+
+/** The falls' strands: where the water came over the edge, froze and kept freezing. A few thick columns that reach the
+ * foot, more medium ones, and many thin ones that stop part way down in a point; each swells into drip-ledge bulges
+ * where the water piled up. Drawn in this order (thin ones behind, a few thin ones again in front). */
+interface Strand {
   u: number;
   w: number;
   bottom: number;
-  lobes: number[];
-  back: boolean;
+  bulges: number[];
+  /** each bulge's swell (its share of the strand's width) */
+  swell: number[];
+  kind: 0 | 1 | 2;
+  front: boolean;
 }
-const CURTAINS: Curtain[] = (() => {
-  const rr = rng(hashStr('jh:curtains'));
-  const out: Curtain[] = [];
-  for (let pass = 0; pass < 2; pass++) {
-    const n = pass ? 7 : 6;
-    for (let i = 0; i < n; i++) {
-      const u = (i + (pass ? 0.5 : 0.1) + (rr() - 0.5) * 0.4) / n;
-      const lobes: number[] = [];
-      for (let y = JH.lip.y + 50 + rr() * 60; y < JH.cliffFoot - 60; y += 70 + rr() * 90) lobes.push(y);
-      out.push({ u, w: 0.9 + rr() * 0.8, bottom: JH.cliffFoot - (pass ? rr() * 150 : 0), lobes, back: !pass });
+const STRANDS: Strand[] = (() => {
+  const rr = rng(hashStr('jh:strands'));
+  const F = JH.cliffFoot;
+  const top = JH.lip.y;
+  const out: Strand[] = [];
+  const add = (kind: 0 | 1 | 2, u: number, w: number, reach: number, front = false) => {
+    const bottom = top + (F - top) * reach;
+    const bulges: number[] = [];
+    const swell: number[] = [];
+    // (some run smooth all the way down; the rest swell where the water piled up, irregularly)
+    const smooth = kind < 2 && rr() < (kind === 0 ? 0.55 : 0.3);
+    for (let y = top + 30 + rr() * 120; !smooth && y < bottom - 40; y += 40 + rr() * (kind === 2 ? 170 : 130)) {
+      bulges.push(y);
+      swell.push(0.15 + rr() * (kind === 2 ? 0.45 : 0.8));
     }
-  }
+    out.push({ u, w, bottom, bulges, swell, kind, front });
+  };
+  for (let i = 0; i < 22; i++) add(0, rr(), 3 + rr() * 5, 0.18 + rr() * 0.7);
+  for (let i = 0; i < 6; i++) add(1, 0.08 + (i / 5) * 0.84 + (rr() - 0.5) * 0.08, 11 + rr() * 8, 0.55 + rr() * 0.45);
+  for (const u of [0.2, 0.52, 0.8]) add(2, u + (rr() - 0.5) * 0.06, 28 + rr() * 14, 1);
+  for (let i = 0; i < 8; i++) add(0, rr(), 2.5 + rr() * 4, 0.12 + rr() * 0.4, true);
   return out;
 })();
-const curtainX = (c: Curtain, y: number) => lerp(fallL(y), fallR(y), c.u) + Math.sin(y / 70 + c.u * 9) * 4;
-const curtainHW = (c: Curtain, y: number) => {
-  const base = ((fallR(y) - fallL(y)) / 7) * c.w * 0.5;
-  // a drip ledge: swelling slowly to the lobe, then cut back sharply under it
-  const lobe = c.lobes.reduce((s, b) => s + Math.exp(-(((y - b) / (y < b ? 30 : 7)) ** 2)) * 0.32, 0);
-  const tip = 1 - clamp01((y - (c.bottom - 50)) / 50) * 0.75;
-  return base * (1 + lobe) * tip;
+const strandX = (s: Strand, y: number) => lerp(fallL(y), fallR(y), s.u) + Math.sin(y / 53 + s.u * 17) * (2 + s.w * 0.1);
+const strandHW = (s: Strand, y: number) => {
+  // a drip ledge: swelling slowly to the bulge, cut back sharply under it
+  const bulge = s.bulges.reduce((a, b, i) => a + Math.exp(-(((y - b) / (y < b ? 18 + s.swell[i] * 30 : 5 + s.swell[i] * 4)) ** 2)) * s.swell[i], 0);
+  const tip = s.kind === 2 ? 1 : 1 - clamp01((y - (s.bottom - 60)) / 60) ** 1.4 * 0.9;
+  // never a tube: the width wanders all the way down
+  const wob = 1 + 0.2 * Math.sin(y / 23 + s.u * 40) + 0.12 * Math.sin(y / 9 + s.u * 7);
+  return (s.w / 2) * (1 + bulge) * tip * wob;
 };
 
+
 function falls(ctx: Ctx, r: R): void {
-  const { y: ly } = JH.lip;
   const F = JH.cliffFoot;
-  // the falls' own shadow on the rock to its right
+  // the film of ice glazed over the columns behind the strands: wet blue-green over the basalt, rime in patches,
+  // the moon catching it down the left. Painted small and drawn up, so it has no edge: it fades out over the rock in
+  // runs, thickest where the strands come down
+  softly(ctx, { x: 60, y: JH.lip.y - 10, w: 420, h: F - JH.lip.y + 20 }, (g) => {
+    const gr = rng(hashStr('jh:glaze'));
+    for (let i = 0; i < 26; i++) {
+      const u = 0.05 + gr() * 0.9;
+      const len = (0.4 + gr() * 0.6) * (F - JH.lip.y);
+      g.strokeStyle = `rgba(${Math.round(90 + gr() * 60)},${Math.round(180 + gr() * 50)},${Math.round(200 + gr() * 30)},${(0.12 + gr() * 0.14).toFixed(3)})`;
+      g.lineWidth = 8 + gr() * 18;
+      g.lineCap = 'round';
+      g.beginPath();
+      for (let y = JH.lip.y + 4; y < JH.lip.y + len; y += 14) g.lineTo(lerp(fallL(y), fallR(y), u) + Math.sin(y / 37 + i) * 5, y);
+      g.stroke();
+    }
+  }, 0.12);
+  // the main body: the strands fused into one ragged sheet down the middle of the face, translucent, its edges
+  // broken where single strands stand free of it
+  const sheetEdge = (u: number, y: number, seed: number) => lerp(fallL(y), fallR(y), u) + Math.sin(y / 31 + seed) * 7 + Math.sin(y / 11 + seed * 2) * 3;
+  const sheetP: PathFn = (c) => {
+    c.beginPath();
+    for (let x = lerp(JH.lip.x0, JH.lip.x1, 0.16); x <= lerp(JH.lip.x0, JH.lip.x1, 0.86); x += 4) c.lineTo(x, cliffTopAt(x) - 2);
+    for (let y = JH.lip.y + 10; y <= F; y += 6) c.lineTo(sheetEdge(0.86, y, 1), y);
+    for (let y = F; y >= JH.lip.y + 10; y -= 6) c.lineTo(sheetEdge(0.16, y, 4), y);
+    c.closePath();
+  };
+  sheetP(ctx);
   ctx.save();
-  ctx.translate(12, 6);
-  fallsPath(ctx);
-  ctx.fillStyle = 'rgba(4,8,24,0.45)';
+  ctx.globalAlpha = 0.82;
+  const shg = ctx.createLinearGradient(fallL(F), 0, fallR(F), 0);
+  shg.addColorStop(0, '#d4f0f6');
+  shg.addColorStop(0.3, '#7cc6d8');
+  shg.addColorStop(0.7, '#3a90b0');
+  shg.addColorStop(1, '#1c5486');
+  ctx.fillStyle = shg;
   ctx.fill();
   ctx.restore();
-  // the back: ice glazed thick over the rock behind the curtains, deep blue, lit from within where it's thickest
-  fallsPath(ctx);
-  ctx.fillStyle = '#3a64a6';
-  ctx.fill();
-  within(ctx, fallsPath, () => {
-    vfill(ctx, 0, ly, 600, F - ly, [[0, '#6a9ad4'], [0.4, '#3e6aae'], [1, '#22447e']]);
-    softly(ctx, { x: 60, y: ly, w: 420, h: F - ly }, (g) => {
-      const fr = rng(hashStr('jh:channels'));
-      for (let i = 0; i < 4; i++) {
-        const gx = 230 + (fr() - 0.5) * 140;
-        const gy = 360 + fr() * 260;
-        const rg = g.createRadialGradient(gx, gy, 0, gx, gy, 90);
-        rg.addColorStop(0, 'rgba(110,200,255,0.4)');
-        rg.addColorStop(1, 'rgba(110,200,255,0)');
-        g.fillStyle = rg;
-        g.fillRect(gx - 100, gy - 100, 200, 200);
+  within(ctx, sheetP, () => {
+    softly(ctx, { x: 100, y: JH.lip.y, w: 320, h: F - JH.lip.y }, (g) => {
+      const fr = rng(hashStr('jh:sheet'));
+      for (let i = 0; i < 14; i++) {
+        const u = 0.2 + fr() * 0.62;
+        g.strokeStyle = fr() < 0.4 ? 'rgba(240,252,255,0.45)' : 'rgba(20,90,120,0.4)';
+        g.lineWidth = 3 + fr() * 8;
+        g.beginPath();
+        for (let y = JH.lip.y + 4; y < F; y += 12) g.lineTo(lerp(fallL(y), fallR(y), u) + Math.sin(y / 40 + i) * 4, y);
+        g.stroke();
       }
-    }, 0.25);
+      const rg = g.createRadialGradient(260, 470, 0, 260, 470, 160);
+      rg.addColorStop(0, 'rgba(80,220,200,0.3)');
+      rg.addColorStop(1, 'rgba(80,220,200,0)');
+      g.fillStyle = rg;
+      g.fillRect(100, 300, 320, 340);
+    }, 0.5);
   });
-  // the curtains
+  sheetP(ctx);
+  ctx.strokeStyle = rgba('#0a1e38', 0.6);
+  ctx.lineWidth = 1.4;
+  ctx.stroke();
   const ir = rng(hashStr('jh:fall-icicles'));
-  for (const c of CURTAINS) {
-    // (each spills over the rock lip at its own height, rounded over the edge)
-    const y0 = ly - 6 + ((c.u * 97) % 1) * 10;
-    const y1 = c.bottom;
-    const pts: Pt[] = [];
-    for (let y = y0; y <= y1; y += 6) pts.push([curtainX(c, y) - curtainHW(c, y), y]);
-    const tipX = curtainX(c, y1) + 1;
+  for (const s of STRANDS) {
+    const y0 = cliffTopAt(strandX(s, JH.lip.y)) + 1;
+    const y1 = s.bottom;
+    const left: Pt[] = [];
     const right: Pt[] = [];
-    for (let y = y0; y <= y1; y += 6) right.push([curtainX(c, y) + curtainHW(c, y), y]);
-    const path: PathFn = (cx) => {
-      cx.beginPath();
-      pts.forEach(([x, y], i) => (i ? cx.lineTo(x, y) : cx.moveTo(x, y)));
-      cx.quadraticCurveTo(tipX - 2, y1 + 10, tipX, y1 + 16);
-      cx.quadraticCurveTo(tipX + 2, y1 + 10, right[right.length - 1][0], right[right.length - 1][1]);
-      for (let i = right.length - 1; i >= 0; i--) cx.lineTo(right[i][0], right[i][1]);
-      cx.quadraticCurveTo(curtainX(c, y0), y0 - curtainHW(c, y0) * 1.4, pts[0][0], pts[0][1]);
-      cx.closePath();
+    for (let y = y0; y <= y1; y += 4) {
+      left.push([strandX(s, y) - strandHW(s, y), y]);
+      right.push([strandX(s, y) + strandHW(s, y), y]);
+    }
+    const tipX = strandX(s, y1);
+    const path: PathFn = (c) => {
+      c.beginPath();
+      left.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y)));
+      if (s.kind === 2) {
+        // the thick columns end where they meet the spill at the foot, flat
+        c.lineTo(right[right.length - 1][0], y1);
+      } else {
+        c.quadraticCurveTo(tipX - 1, y1 + 8, tipX, y1 + 14 + s.w);
+        c.quadraticCurveTo(tipX + 1, y1 + 8, right[right.length - 1][0], right[right.length - 1][1]);
+      }
+      for (let i = right.length - 1; i >= 0; i--) c.lineTo(right[i][0], right[i][1]);
+      // rolled over the cliff's edge
+      // (their tops run up under the rime crust draped over the lip)
+      c.closePath();
     };
+    const hw = Math.max(...left.map((p, i) => right[i][0] - p[0])) / 2;
+    const mx = strandX(s, (y0 + y1) / 2);
     path(ctx);
-    const midY = (y0 + y1) / 2;
-    const hw = curtainHW(c, midY) * 1.3;
-    const mx = curtainX(c, midY);
+    // translucent: the basalt shows faintly through the thin ones
+    ctx.save();
+    ctx.globalAlpha = s.kind === 0 ? 0.78 : s.kind === 1 ? 0.88 : 0.94;
     const g = ctx.createLinearGradient(mx - hw, 0, mx + hw, 0);
-    const dk = c.back ? 0.25 : 0;
-    g.addColorStop(0, mix('#f4fbff', '#5a86c4', dk));
-    g.addColorStop(0.28, mix('#c0e0fa', '#3a64a6', dk));
-    g.addColorStop(0.62, mix('#82b4e6', '#2a4c8c', dk));
-    g.addColorStop(1, mix('#3a68b0', '#16306a', dk));
+    g.addColorStop(0, '#f2fcff');
+    g.addColorStop(0.18, '#c4eaf2');
+    g.addColorStop(0.45, '#6cc0d4');
+    g.addColorStop(0.75, '#2e86a8');
+    g.addColorStop(1, '#1a4e80');
     ctx.fillStyle = g;
     ctx.fill();
+    ctx.restore();
     within(ctx, path, () => {
-      // flow lines frozen into it, and the lobes: a lit crown on each swell, a shaded belly under it
-      for (let k = 0; k < 3; k++) {
-        const off = (k - 1) * 0.45;
-        ctx.strokeStyle = rgba(k === 0 ? '#ffffff' : '#1e4a8e', k === 0 ? 0.35 : 0.22);
-        ctx.lineWidth = 1.2;
+      // the depth: a green-blue core deep inside the thick ice, flow lines frozen in it, trapped bubbles
+      if (s.kind > 0) {
+        ctx.strokeStyle = rgba('#1e7890', 0.35);
+        ctx.lineWidth = Math.max(2, s.w * 0.25);
         ctx.beginPath();
-        for (let y = y0; y <= y1; y += 8) ctx.lineTo(curtainX(c, y) + curtainHW(c, y) * off, y);
+        for (let y = y0 + 6; y <= y1; y += 8) ctx.lineTo(strandX(s, y) + strandHW(s, y) * 0.12, y);
         ctx.stroke();
+        for (let k = 0; k < (s.kind === 2 ? 4 : 2); k++) {
+          const off = (k / 3 - 0.4) * 1.4;
+          ctx.strokeStyle = rgba(k % 2 ? '#ffffff' : '#14506e', k % 2 ? 0.3 : 0.2);
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          for (let y = y0 + 4; y <= y1; y += 8) ctx.lineTo(strandX(s, y) + strandHW(s, y) * off, y);
+          ctx.stroke();
+        }
+        for (let i = 0; i < s.w * 0.4; i++) {
+          const y = y0 + 10 + r() * (y1 - y0 - 20);
+          ctx.strokeStyle = 'rgba(230,250,255,0.5)';
+          ctx.lineWidth = 0.8;
+          ctx.beginPath();
+          ctx.arc(strandX(s, y) + (r() - 0.5) * strandHW(s, y), y, 0.7 + r() * 1.5, 0, P2);
+          ctx.stroke();
+        }
       }
-      for (const b of c.lobes) {
-        if (b > y1 - 30) continue;
-        const bx = curtainX(c, b);
-        const bw = curtainHW(c, b);
-        ctx.fillStyle = rgba('#14306a', 0.35);
+      // the bulges: white rime crusted on the swell's top, its belly deep blue under the ledge
+      for (const b of s.bulges) {
+        if (b > y1 - 20) continue;
+        const bx = strandX(s, b);
+        const bw = strandHW(s, b);
+        ctx.fillStyle = rgba('#103c64', 0.28);
         ctx.beginPath();
-        ctx.ellipse(bx + bw * 0.1, b + 14, bw * 1.1, 7, 0, 0, P2);
+        ctx.ellipse(bx + bw * 0.2, b + 5, bw * 0.95, 3.5, 0.05, 0, P2);
         ctx.fill();
-        ctx.fillStyle = rgba('#ffffff', 0.5);
-        ctx.beginPath();
-        ctx.ellipse(bx - bw * 0.25, b - 8, bw * 0.55, 4, -0.2, 0, P2);
-        ctx.fill();
+        // ragged rime crusted on the swell's upper left, not a neat band
+        for (let k = 0; k < 4; k++) {
+          ctx.fillStyle = rgba('#ffffff', 0.35 + r() * 0.3);
+          ctx.beginPath();
+          ctx.ellipse(bx - bw * (0.55 - k * 0.25) + (r() - 0.5) * 3, b - 5 - r() * 6 + k * 1.5, Math.max(1.2, bw * (0.18 + r() * 0.15)), 1.2 + r() * 1.6, -0.3, 0, P2);
+          ctx.fill();
+        }
       }
-      // bubbles
-      for (let i = 0; i < 6; i++) {
-        const y = y0 + 20 + r() * (y1 - y0 - 40);
-        const x = curtainX(c, y) + (r() - 0.5) * curtainHW(c, y);
-        ctx.strokeStyle = 'rgba(230,246,255,0.5)';
-        ctx.lineWidth = 0.8;
-        ctx.beginPath();
-        ctx.arc(x, y, 0.8 + r() * 1.6, 0, P2);
-        ctx.stroke();
-      }
+      // rime along the side turned to the wind and the moon
+      ctx.strokeStyle = rgba('#ffffff', 0.7);
+      ctx.lineWidth = Math.max(1, s.w * 0.08);
+      ctx.beginPath();
+      left.forEach(([x, y], i) => (i % 2 ? null : i ? ctx.lineTo(x + 1.2, y) : ctx.moveTo(x + 1.2, y)));
+      ctx.stroke();
     });
     path(ctx);
-    ctx.strokeStyle = rgba(INK, c.back ? 0.6 : 0.85);
-    ctx.lineWidth = c.back ? 1.4 : 1.8;
+    ctx.strokeStyle = rgba('#0a1e38', s.kind === 0 ? 0.55 : 0.8);
+    ctx.lineWidth = s.kind === 2 ? 1.6 : s.kind === 1 ? 1.2 : 0.8;
     ctx.stroke();
-    // icicles under the lobes
-    for (const b of c.lobes) {
-      if (b > y1 - 30) continue;
-      const bw = curtainHW(c, b);
-      for (let x = curtainX(c, b) - bw * 0.9; x < curtainX(c, b) + bw * 0.9; x += 4 + ir() * 5) icicle(ctx, x, b + 12, 5 + ir() * 16, 2.5 + ir() * 2.5, c.back ? 0.8 : 1);
+    // icicles under the bigger bulges
+    if (s.kind > 0) {
+      for (const b of s.bulges) {
+        if (b > y1 - 30) continue;
+        const bw = strandHW(s, b);
+        for (let x = strandX(s, b) - bw * 0.8; x < strandX(s, b) + bw * 0.8; x += 4 + ir() * 5) if (ir() < 0.6) icicle(ctx, x, b + 4, 5 + ir() * 14, 2 + ir() * 2.5, 0.95);
+      }
     }
   }
-  // the moon down the falls' left side; the right of it turned away, into the blue
-  within(ctx, fallsPath, () => {
-    const lg = ctx.createLinearGradient(110, 0, 420, 0);
-    lg.addColorStop(0, 'rgba(240,248,255,0.26)');
-    lg.addColorStop(0.35, 'rgba(240,248,255,0)');
+  // the rime crust draped over the lip: it follows the cliff's own edge, column to column, thick and ragged, its
+  // underside dripping into the strands, lit along its top
+  const cx0 = JH.lip.x0 - 14;
+  const cx1 = JH.lip.x1 + 14;
+  const crustTop = (x: number) => cliffTopAt(x) - 5 - Math.abs(Math.sin(x / 9)) * 3 - Math.sin(x / 23) * 1.5;
+  const crustBot = (x: number) => cliffTopAt(x) + 7 + Math.max(0, Math.sin(x / 7 + 1)) ** 3 * 9 + Math.abs(Math.sin(x / 19)) * 4;
+  const crust: PathFn = (c) => {
+    c.beginPath();
+    for (let x = cx0; x <= cx1; x += 3) c.lineTo(x, crustTop(x));
+    for (let x = cx1; x >= cx0; x -= 3) c.lineTo(x, crustBot(x));
+    c.closePath();
+  };
+  crust(ctx);
+  const crg = ctx.createLinearGradient(0, JH.lip.y - 20, 0, JH.lip.y + 16);
+  crg.addColorStop(0, '#f6fbff');
+  crg.addColorStop(0.5, '#d2e8f2');
+  crg.addColorStop(1, '#8ab8d0');
+  ctx.fillStyle = crg;
+  ctx.fill();
+  within(ctx, crust, () => {
+    const lg = ctx.createLinearGradient(cx0, 0, cx1, 0);
+    lg.addColorStop(0, 'rgba(255,255,255,0.2)');
+    lg.addColorStop(1, 'rgba(20,50,110,0.3)');
     ctx.fillStyle = lg;
-    ctx.fillRect(60, ly - 30, 420, F - ly + 34);
-    ctx.globalCompositeOperation = 'multiply';
-    const mg = ctx.createLinearGradient(110, 0, 420, 0);
-    mg.addColorStop(0, '#ffffff');
-    mg.addColorStop(0.4, '#e4ecfa');
-    mg.addColorStop(0.75, '#8a9ed0');
-    mg.addColorStop(1, '#5a6eaa');
-    ctx.fillStyle = mg;
-    ctx.fillRect(60, ly - 30, 420, F - ly + 34);
-    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillRect(cx0, JH.lip.y - 30, cx1 - cx0, 60);
+    lay(ctx, noiseMask(12, 147, { cover: 0.4, soft: 0.2, col: '#ffffff', w: 96, h: 24 }), { x: cx0, y: JH.lip.y - 24, w: cx1 - cx0, h: 44 }, 0.5);
   });
-  // the icicle fringes at the curtains' tips
-  for (const c of CURTAINS) {
-    if (c.bottom > F - 20) continue;
-    const tipX = curtainX(c, c.bottom);
-    for (let i = 0; i < 4; i++) icicle(ctx, tipX + (i - 1.5) * 4, c.bottom + 4 + ir() * 6, 10 + ir() * 22, 2.5 + ir() * 2, 0.95);
-  }
+  crust(ctx);
+  ctx.strokeStyle = rgba('#0a1e38', 0.7);
+  ctx.lineWidth = 1.4;
+  ctx.stroke();
+  ctx.strokeStyle = rgba('#ffffff', 0.9);
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  for (let x = cx0 + 2; x <= cx1 - 2; x += 3) ctx.lineTo(x, crustTop(x) + 1);
+  ctx.stroke();
+  for (let x = cx0 + 4; x < cx1 - 4; x += 4 + ir() * 6) if (ir() < 0.55) icicle(ctx, x, crustBot(x) - 2, 5 + ir() * 14, 2 + ir() * 2.5);
 }
 
-/** Where the falls' icicles hang (for the ones a stomp shakes loose): under the curtains' lobes and at their tips. */
+/** Where the falls' icicles hang (for the ones a stomp shakes loose): under the bulges of the bigger strands and at
+ * the thin ones' tips. */
 export const FALL_SPOTS: Pt[] = (() => {
   const out: Pt[] = [];
-  for (const c of CURTAINS) {
-    if (c.back) continue;
-    for (const b of c.lobes) if (b < c.bottom - 30) out.push([curtainX(c, b), b + 22]);
-    if (c.bottom < JH.cliffFoot - 20) out.push([curtainX(c, c.bottom), c.bottom + 20]);
+  for (const s of STRANDS) {
+    if (s.kind > 0) for (const b of s.bulges) if (b < s.bottom - 30) out.push([strandX(s, b), b + 12]);
+    if (s.kind === 0 && !s.front && s.bottom < JH.cliffFoot - 80 && out.length < 40) out.push([strandX(s, s.bottom), s.bottom + 14]);
   }
   return out;
 })();
@@ -1285,72 +1719,127 @@ function fallsFoot(ctx: Ctx, r: R): void {
   ctx.strokeStyle = rgba(INK, 0.5);
   ctx.lineWidth = 1.6;
   ctx.stroke();
-  // blocks of fallen ice heaped at the falls' foot, each lit on its left
-  const blocks: [number, number, number][] = [];
-  for (let i = 0; i < 16; i++) blocks.push([130 + r() * 280, y0 - 30 + r() * 30, 9 + r() * 20]);
-  blocks.sort((a, b) => a[1] - b[1]);
-  for (const [bx, by, s] of blocks) {
-    const tilt = (r() - 0.5) * 0.7;
-    ctx.save();
-    ctx.translate(bx, by);
-    ctx.rotate(tilt);
-    ctx.fillStyle = 'rgba(10,20,60,0.35)';
+  // the frozen plunge pool: a basin of black-green ice under the falls, polished, the strands and the moon's light
+  // lying in it in long vertical streaks, a rim of snow round it, cracks across it
+  const pool: PathFn = (c) => {
+    c.beginPath();
+    c.ellipse(272, y0 + 14, 196, 15, 0, 0, P2);
+  };
+  ctx.fillStyle = rgba(SNOW.lit, 0.9);
+  ctx.beginPath();
+  ctx.ellipse(272, y0 + 15, 206, 19, 0, 0, P2);
+  ctx.fill();
+  pool(ctx);
+  const pg = ctx.createLinearGradient(0, y0, 0, y0 + 30);
+  pg.addColorStop(0, '#16485e');
+  pg.addColorStop(0.5, '#1e6078');
+  pg.addColorStop(1, '#3a86a0');
+  ctx.fillStyle = pg;
+  ctx.fill();
+  within(ctx, pool, () => {
+    for (let i = 0; i < 18; i++) {
+      const x = 110 + r() * 320;
+      ctx.fillStyle = rgba(i % 3 ? '#9ee0ee' : '#ffffff', 0.18 + r() * 0.2);
+      ctx.fillRect(x, y0 - 2, 2 + r() * 5, 14 + r() * 14);
+    }
+    lightPool(ctx, 200, y0 + 12, 120, 8, '#e8f6ff', 0.25);
+    for (let i = 0; i < 4; i++) crack(ctx, r, 120 + r() * 300, y0 + 6 + r() * 16, (r() - 0.5) * 0.4, 40 + r() * 70, { col: '#082838', lip: '#d8f4ff', w: 1, a: 0.5, branch: 0.2 });
+  });
+  ctx.strokeStyle = rgba(INK, 0.5);
+  ctx.lineWidth = 1.2;
+  pool(ctx);
+  ctx.stroke();
+  // the spill: ice piled where the falls came down, fused lumps of it heaped against the cliff's foot, translucent
+  // blue-green, rimed on top, spilling forward onto the pool
+  const moundTop = (x: number) => {
+    const u = clamp01((x - 112) / 300);
+    return y0 + 8 - Math.sin(u * Math.PI) ** 0.6 * 44 - Math.abs(Math.sin(x / 17)) * 7 - Math.abs(Math.sin(x / 7 + 1)) * 3;
+  };
+  const mound: PathFn = (c) => {
+    c.beginPath();
+    c.moveTo(108, y0 + 12);
+    for (let x = 112; x <= 412; x += 4) c.lineTo(x, moundTop(x));
+    c.quadraticCurveTo(420, y0 + 12, 380, y0 + 18);
+    c.quadraticCurveTo(260, y0 + 24, 108, y0 + 12);
+    c.closePath();
+  };
+  mound(ctx);
+  const mgr = ctx.createLinearGradient(0, y0 - 40, 0, y0 + 20);
+  mgr.addColorStop(0, '#d8f2f8');
+  mgr.addColorStop(0.45, '#7ec4d6');
+  mgr.addColorStop(1, '#2a6e94');
+  ctx.fillStyle = mgr;
+  ctx.fill();
+  within(ctx, mound, () => {
+    // fused lumps inside it: each a lit crest and a shaded belly, the light from the left
+    for (let i = 0; i < 24; i++) {
+      const x = 120 + r() * 284;
+      const y = moundTop(x) + 6 + r() * (y0 + 14 - moundTop(x));
+      const s = 6 + r() * 12;
+      ctx.fillStyle = rgba('#14507a', 0.25);
+      ctx.beginPath();
+      ctx.ellipse(x + s * 0.3, y + s * 0.4, s, s * 0.5, 0, 0, P2);
+      ctx.fill();
+      ctx.fillStyle = rgba('#effaff', 0.4);
+      ctx.beginPath();
+      ctx.ellipse(x - s * 0.2, y - s * 0.2, s * 0.6, s * 0.25, -0.2, 0, P2);
+      ctx.fill();
+    }
+    const lg = ctx.createLinearGradient(110, 0, 420, 0);
+    lg.addColorStop(0, 'rgba(255,255,255,0.18)');
+    lg.addColorStop(1, 'rgba(10,30,80,0.3)');
+    ctx.fillStyle = lg;
+    ctx.fillRect(100, y0 - 50, 330, 80);
+  });
+  mound(ctx);
+  ctx.strokeStyle = rgba('#0a1e38', 0.7);
+  ctx.lineWidth = 1.6;
+  ctx.stroke();
+  ctx.strokeStyle = rgba('#ffffff', 0.7);
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  for (let x = 114; x <= 300; x += 4) ctx.lineTo(x, moundTop(x) + 1.5);
+  ctx.stroke();
+  // a few broken plates lying out on the pool where they fell
+  for (let i = 0; i < 6; i++) {
+    const bx = 130 + r() * 280;
+    const by = y0 + 12 + r() * 10;
+    const s = 5 + r() * 8;
+    ctx.fillStyle = 'rgba(8,24,40,0.4)';
     ctx.beginPath();
-    ctx.ellipse(s * 0.5, 2, s * 1.2, s * 0.22, 0, 0, P2);
+    ctx.ellipse(bx + s * 0.4, by + 2, s * 1.1, s * 0.25, 0, 0, P2);
     ctx.fill();
-    const top: Pt[] = [[-s, 0], [-s * 0.8, -s * 0.9], [s * 0.2, -s * 1.1], [s * 0.9, -s * 0.6], [s, 0]];
+    ctx.fillStyle = '#b4e2ee';
     ctx.beginPath();
-    top.forEach(([px, py], j) => (j ? ctx.lineTo(px, py) : ctx.moveTo(px, py)));
-    ctx.closePath();
-    const g = ctx.createLinearGradient(-s, -s, s, 0);
-    g.addColorStop(0, '#eef8ff');
-    g.addColorStop(0.45, '#9cc6ee');
-    g.addColorStop(1, '#2e5aa0');
-    ctx.fillStyle = g;
-    ctx.fill();
-    ctx.fillStyle = rgba('#1a3a80', 0.35);
-    ctx.beginPath();
-    ctx.moveTo(s * 0.2, -s * 1.1);
-    ctx.lineTo(s * 0.9, -s * 0.6);
-    ctx.lineTo(s, 0);
-    ctx.lineTo(s * 0.1, 0);
+    ctx.moveTo(bx - s, by);
+    ctx.lineTo(bx - s * 0.4, by - s * 0.7);
+    ctx.lineTo(bx + s * 0.8, by - s * 0.4);
+    ctx.lineTo(bx + s, by + 1);
     ctx.closePath();
     ctx.fill();
-    ctx.strokeStyle = rgba(INK, 0.7);
-    ctx.lineWidth = 1.4;
-    ctx.beginPath();
-    top.forEach(([px, py], j) => (j ? ctx.lineTo(px, py) : ctx.moveTo(px, py)));
-    ctx.closePath();
+    ctx.strokeStyle = rgba(INK, 0.6);
+    ctx.lineWidth = 1;
     ctx.stroke();
-    ctx.restore();
   }
-  // the drift banked round them
-  ctx.fillStyle = SNOW.body;
-  ctx.beginPath();
-  ctx.moveTo(90, y0 + 10);
-  ctx.quadraticCurveTo(170, y0 - 14, 270, y0 - 6);
-  ctx.quadraticCurveTo(380, y0 - 16, 450, y0 + 10);
-  ctx.closePath();
-  ctx.fill();
-  ctx.fillStyle = rgba(SNOW.lit, 0.8);
-  ctx.beginPath();
-  ctx.moveTo(96, y0 + 8);
-  ctx.quadraticCurveTo(170, y0 - 14, 250, y0 - 8);
-  ctx.quadraticCurveTo(170, y0 - 4, 96, y0 + 8);
-  ctx.fill();
 }
 
 // ——— the giants' gate ———
 
-/** A megalith's outline: a rough-hewn upright, its edges broken here and there (x at its left, right, y). */
-function stonePath(x0: number, x1: number, top: number, foot: number, seed: string, broken: boolean): Pt[] {
+/** A megalith's outline: a rough-hewn upright, its edges broken here and there, bites knocked out of its arrises
+ * (x at its left, right, y). */
+function stonePath(x0: number, x1: number, top: number, foot: number, seed: string, broken: boolean): { pts: Pt[]; crown: Pt[] } {
   const rr = rng(hashStr(seed));
   const left: Pt[] = [];
   const right: Pt[] = [];
   const taper = (y: number) => ((foot - y) / (foot - top)) * 8;
   for (let y = top + 12; y <= foot; y += 26 + rr() * 30) {
-    left.push([x0 + taper(y) + (rr() - 0.5) * 6, y]);
-    right.push([x1 - taper(y) + (rr() - 0.5) * 6, y]);
+    const lx = x0 + taper(y) + (rr() - 0.5) * 6;
+    const rx = x1 - taper(y) + (rr() - 0.5) * 6;
+    // left and right lists are both top-down here (the left is reversed after)
+    if (rr() < 0.35 && y < foot - 30) left.push([lx, y], [lx + 6 + rr() * 6, y + 7], [lx + 1, y + 15]);
+    else left.push([lx, y]);
+    if (rr() < 0.3 && y < foot - 30) right.push([rx, y], [rx - 5 - rr() * 5, y + 6], [rx, y + 13]);
+    else right.push([rx, y]);
   }
   left.push([x0, foot + 6]);
   right.push([x1, foot + 6]);
@@ -1363,83 +1852,146 @@ function stonePath(x0: number, x1: number, top: number, foot: number, seed: stri
       crown.push([lerp(x0 + 6, x1 - 4, u) + (rr() - 0.5) * 6, top + u * 30 - Math.sin(u * Math.PI) * 8 + (i % 2 ? 11 : -5) * (0.5 + rr()) * (i % 3 ? 1 : 0.4)]);
     }
   } else crown.push([x0 + 6, top], [x1 - 6, top]);
-  return [...left.reverse(), ...crown, ...right];
+  return { pts: [...left.reverse(), ...crown, ...right], crown };
 }
 
-const P1_PTS = stonePath(JH.p1.x0, JH.p1.x1, -20, JH.p1.foot, 'jh:p1', false);
-const P2_PTS = stonePath(JH.p2.x0, JH.p2.x1, JH.p2.top, JH.p2.foot, 'jh:p2', true);
+const P1_PTS = stonePath(JH.p1.x0, JH.p1.x1, -20, JH.p1.foot, 'jh:p1', false).pts;
+const P2_STONE = stonePath(JH.p2.x0, JH.p2.x1, JH.p2.top, JH.p2.foot, 'jh:p2', true);
+const P2_PTS = P2_STONE.pts;
+/** The crown's points on the snapped stone (its jagged top). */
+const P2_CROWN = P2_STONE.crown;
 
 /** Where the runes run on the gate (x, y, size, glyph), for the live glow too. */
 export const GATE_RUNES: [number, number, number, number][] = (() => {
   const out: [number, number, number, number][] = [];
-  const cx1 = (JH.p1.x0 + JH.p1.x1) / 2 - 10;
+  const cx1 = (JH.p1.x0 + JH.p1.x1) / 2 - 22;
   for (let i = 0; i < 5; i++) out.push([cx1, 196 + i * 46, 34, i * 3 + 1]);
   for (let i = 0; i < 4; i++) out.push([cx1, 474 + i * 46, 34, i * 2 + 5]);
-  const cx2 = (JH.p2.x0 + JH.p2.x1) / 2 - 9;
+  const cx2 = (JH.p2.x0 + JH.p2.x1) / 2 - 18;
   for (let i = 0; i < 4; i++) out.push([cx2, 396 + i * 42, 30, i * 3 + 2]);
   return out;
 })();
 
-function megalith(ctx: Ctx, r: R, pts: Pt[], box: { x: number; y: number; w: number; h: number }, seed: number, bands: number[]): void {
+/**
+ * A megalith, carved as real stone under the moon: a broad front face lit from the left and a narrow side face turned
+ * away into shadow, a crisp arris between; bites chipped out of its edges showing paler fresh stone; its runes cut in
+ * recessed panels; mouldings wrapping round both faces with snow on them; crusts of lichen low down and on the
+ * sheltered side, frost blooming high up, cracks where the frost has worked in, rime feathered on the windward edge.
+ */
+function megalith(ctx: Ctx, r: R, pts: Pt[], box: { x: number; y: number; w: number; h: number }, seed: number, bands: number[], sideW: number): void {
   const path = polyPath(pts);
+  const xa = box.x + box.w - 4 - sideW;
   path(ctx);
   ctx.fillStyle = STONE.body;
   ctx.fill();
   within(ctx, path, () => {
-    vfill(ctx, box.x, box.y, box.w, box.h, [[0, '#4a5474'], [0.6, '#363e5c'], [1, '#1e243c']]);
-    surface(ctx, r, box, '#424a6a', { over: true, vary: 0.4, cells: 4, mottle: 0.4, strokes: 0.7, strokeAng: Math.PI / 2 + 0.2, strokeLen: 80, strokeW: 4, grain: 0.14, seed });
-    // the tooling of a giant's chisel: broad shallow scallops across the face, each lit along its lower lip
-    for (let y = box.y + 10; y < box.y + box.h; y += 18 + r() * 16) {
-      for (let x = box.x + r() * 30 - 20; x < box.x + box.w; x += 30 + r() * 30) {
+    // the front face: lit from the top left, cooling and darkening down and to the right
+    const fg = ctx.createLinearGradient(box.x, box.y, xa, box.y + box.h);
+    fg.addColorStop(0, '#6e7aa2');
+    fg.addColorStop(0.45, '#4c5678');
+    fg.addColorStop(1, '#2e3654');
+    ctx.fillStyle = fg;
+    ctx.fillRect(box.x, box.y, box.w, box.h);
+    surface(ctx, r, box, '#4c5678', { over: true, vary: 0.45, cells: 4, mottle: 0.45, strokes: 0.6, strokeAng: Math.PI / 2 + 0.2, strokeLen: 80, strokeW: 4, grain: 0.2, grainKind: 'speckle', seed });
+    // the giant's chisel: broad shallow scallops across the face, each shadowed above and lit along its lower lip
+    for (let y = box.y + 10; y < box.y + box.h; y += 20 + r() * 16) {
+      for (let x = box.x + r() * 30 - 20; x < xa; x += 30 + r() * 30) {
         const w = 26 + r() * 30;
-        ctx.strokeStyle = rgba('#0a0c1c', 0.16);
+        ctx.strokeStyle = rgba('#0a0c1c', 0.14);
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.arc(x + w / 2, y - w * 0.6, w * 0.7, Math.PI * 0.3, Math.PI * 0.7);
         ctx.stroke();
-        ctx.strokeStyle = rgba('#a8b4d8', 0.08);
+        ctx.strokeStyle = rgba('#c0cae8', 0.1);
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.arc(x + w / 2, y - w * 0.6 + 2, w * 0.7, Math.PI * 0.3, Math.PI * 0.7);
         ctx.stroke();
       }
     }
-    // the moon on the left of the stone, the right in shade
-    const lg = ctx.createLinearGradient(box.x, 0, box.x + box.w, 0);
-    lg.addColorStop(0, 'rgba(200,214,255,0.22)');
-    lg.addColorStop(0.3, 'rgba(200,214,255,0.04)');
-    lg.addColorStop(0.7, 'rgba(4,6,20,0.12)');
-    lg.addColorStop(1, 'rgba(4,6,20,0.5)');
-    ctx.fillStyle = lg;
-    ctx.fillRect(box.x, box.y, box.w, box.h);
+    // lichen: crusts of it low down and in the lee, sage and old gold, speckled at their edges
+    lay(ctx, noiseMask(22, seed + 3, { cover: 0.2, soft: 0.04, col: '#b6c0a4', w: 96, h: 240 }), { x: box.x, y: box.y + box.h * 0.45, w: box.w, h: box.h * 0.55 }, 0.24);
+    lay(ctx, noiseMask(26, seed + 5, { cover: 0.14, soft: 0.04, col: '#cfc096', w: 96, h: 240 }), { x: box.x, y: box.y + box.h * 0.35, w: box.w, h: box.h * 0.65 }, 0.2);
+    for (let i = 0; i < 70; i++) {
+      ctx.fillStyle = rgba(r() < 0.5 ? '#a4b48a' : '#c4aa6e', 0.35);
+      ctx.fillRect(box.x + r() * box.w, box.y + box.h * (0.4 + r() * 0.6), 1.5 + r() * 2, 1.5 + r() * 2);
+    }
+    // frost blooming over the upper stone
+    lay(ctx, noiseMask(10, seed + 7, { cover: 0.35, soft: 0.4, col: '#e8f2ff', w: 64, h: 160 }), { x: box.x, y: box.y, w: box.w, h: box.h * 0.5 }, 0.22);
     // cracks where the frost has worked into it
-    for (let i = 0; i < 4; i++) crack(ctx, r, box.x + box.w * (0.2 + r() * 0.6), box.y + r() * box.h, Math.PI / 2 + (r() - 0.5) * 1.2, 40 + r() * 100, { col: '#05070f', lip: '#9aa8d0', w: 1.8, a: 0.7, branch: 0.25 });
-    // carved bands: a raised moulding with a chevron cut along it, snow on its top
+    for (let i = 0; i < 5; i++) crack(ctx, r, box.x + box.w * (0.15 + r() * 0.6), box.y + r() * box.h, Math.PI / 2 + (r() - 0.5) * 1.2, 40 + r() * 110, { col: '#05070f', lip: '#a8b4d8', w: 1.8, a: 0.75, branch: 0.3 });
+    // the side face: turned away from the moon, dark, the snow's light bounced faintly into its foot; a crisp
+    // arris between the faces, lit
+    const sg = ctx.createLinearGradient(xa, 0, box.x + box.w, 0);
+    sg.addColorStop(0, '#20263e');
+    sg.addColorStop(1, '#10142a');
+    ctx.fillStyle = sg;
+    ctx.fillRect(xa, box.y, box.x + box.w - xa + 6, box.h);
+    lay(ctx, noiseMask(6, seed + 9, { cover: 0.3, soft: 0.3, col: '#4a5070', w: 32, h: 160 }), { x: xa, y: box.y, w: sideW + 6, h: box.h }, 0.3);
+    vfill(ctx, xa, box.y + box.h - 120, sideW + 6, 120, [[0, 'rgba(90,110,170,0)'], [1, 'rgba(90,110,170,0.25)']]);
+    ctx.strokeStyle = rgba('#b8c4e8', 0.55);
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(xa, box.y);
+    ctx.lineTo(xa, box.y + box.h);
+    ctx.stroke();
+    // chips knocked off the arris: a bite of paler fresh stone, its shadow under it
+    for (let y = box.y + 30 + r() * 40; y < box.y + box.h - 40; y += 50 + r() * 90) {
+      const s = 4 + r() * 6;
+      ctx.fillStyle = rgba('#6a76a0', 0.85);
+      ctx.beginPath();
+      ctx.moveTo(xa - s * 0.8, y);
+      ctx.lineTo(xa + s * 0.3, y - s * 0.2 + (r() - 0.5) * 3);
+      ctx.lineTo(xa + s * 0.3, y + s);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = rgba('#05070f', 0.7);
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(xa - s * 0.8, y);
+      ctx.lineTo(xa + s * 0.3, y + s);
+      ctx.stroke();
+    }
+    // the runes' panels: recessed into the face, shadowed along their top and left inside edges, lit along their
+    // bottom and right
+    const runes = GATE_RUNES.filter(([x]) => x > box.x && x < box.x + box.w);
+    for (const seg of [runes.filter(([, y]) => y < 440 || box.y > 200), runes.filter(([, y]) => y >= 440 && box.y <= 200)]) {
+      if (!seg.length) continue;
+      const s = seg[0][2];
+      const px = seg[0][0] - s * 0.45;
+      const pw = s * 1.5;
+      const py = seg[0][1] - s * 0.35;
+      const ph = seg[seg.length - 1][1] + s * 1.35 - py;
+      ctx.fillStyle = rgba('#141a30', 0.35);
+      ctx.fillRect(px, py, pw, ph);
+      ctx.fillStyle = rgba('#05070f', 0.6);
+      ctx.fillRect(px, py, pw, 3);
+      ctx.fillRect(px, py, 3, ph);
+      ctx.fillStyle = rgba('#b8c4e8', 0.4);
+      ctx.fillRect(px, py + ph - 2, pw, 2);
+      ctx.fillRect(px + pw - 2, py, 2, ph);
+    }
+    // carved bands: a raised moulding wrapping round both faces, a chevron cut along it
     for (const by of bands) {
       ctx.fillStyle = 'rgba(4,6,16,0.45)';
       ctx.fillRect(box.x, by + 22, box.w, 7);
-      ctx.fillStyle = rgba('#5a6488', 0.9);
-      ctx.fillRect(box.x, by, box.w, 22);
-      ctx.fillStyle = rgba('#a8b4d8', 0.3);
-      ctx.fillRect(box.x, by, box.w, 3);
-      ctx.strokeStyle = rgba('#080a18', 0.6);
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      for (let x = box.x; x <= box.x + box.w; x += 16) {
-        ctx.lineTo(x, by + 5);
-        ctx.lineTo(x + 8, by + 17);
+      ctx.fillStyle = rgba('#5e6890', 0.95);
+      ctx.fillRect(box.x, by, xa - box.x, 22);
+      ctx.fillStyle = rgba('#262c46', 0.95);
+      ctx.fillRect(xa, by, box.x + box.w - xa, 22);
+      ctx.fillStyle = rgba('#b4c0e4', 0.35);
+      ctx.fillRect(box.x, by, xa - box.x, 3);
+      for (const [dx, col, w] of [[0, rgba('#080a18', 0.65), 2], [1.2, rgba('#c0cae8', 0.28), 1]] as const) {
+        ctx.strokeStyle = col;
+        ctx.lineWidth = w;
+        ctx.beginPath();
+        for (let x = box.x; x <= xa; x += 16) {
+          ctx.lineTo(x + dx, by + 5 + dx);
+          ctx.lineTo(x + 8 + dx, by + 17 + dx);
+        }
+        ctx.stroke();
       }
-      ctx.stroke();
-      ctx.strokeStyle = rgba('#b8c4e8', 0.25);
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      for (let x = box.x; x <= box.x + box.w; x += 16) {
-        ctx.lineTo(x + 1, by + 7);
-        ctx.lineTo(x + 9, by + 19);
-      }
-      ctx.stroke();
-      // the moulding's shadow under it, wet streaks running down
-      for (let k = 0; k < 2; k++) streaks(ctx, r, box.x + box.w * (0.2 + r() * 0.6), by + 28, 40, 30 + r() * 50, '#04060e', 0.18, 3);
+      for (let k = 0; k < 2; k++) streaks(ctx, r, box.x + box.w * (0.2 + r() * 0.5), by + 28, 40, 30 + r() * 50, '#04060e', 0.2, 3);
     }
     // rime grown on the windward (left) edge: white feathers pointing into the wind
     softly(ctx, { x: box.x, y: box.y, w: 60, h: box.h }, (g) => {
@@ -1458,8 +2010,24 @@ function megalith(ctx: Ctx, r: R, pts: Pt[], box: { x: number; y: number; w: num
       }
     }, 0.5);
     // darker and colder low down, the snow's light bounced into its foot
-    vfill(ctx, box.x, box.y + box.h - 160, box.w, 160, [[0, 'rgba(4,6,20,0)'], [0.7, 'rgba(4,6,20,0.3)'], [1, 'rgba(120,140,200,0.18)']]);
+    vfill(ctx, box.x, box.y + box.h - 160, box.w, 160, [[0, 'rgba(4,6,20,0)'], [0.7, 'rgba(4,6,20,0.25)'], [1, 'rgba(120,140,200,0.18)']]);
   });
+  // the chips bitten out of the left edge: paler fracture facets inside the bites
+  for (let i = 1; i < pts.length - 1; i++) {
+    const [x, y] = pts[i];
+    const [px] = pts[i - 1];
+    const [nx] = pts[i + 1];
+    if (x < box.x + box.w * 0.4 && x > px + 4 && x > nx + 4) {
+      ctx.fillStyle = '#8692b8';
+      ctx.beginPath();
+      ctx.moveTo(pts[i - 1][0], pts[i - 1][1]);
+      ctx.lineTo(x, y);
+      ctx.lineTo(pts[i + 1][0], pts[i + 1][1]);
+      ctx.lineTo(x - 3, y + 2);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
   path(ctx);
   ctx.strokeStyle = INK;
   ctx.lineWidth = 2.6;
@@ -1467,7 +2035,7 @@ function megalith(ctx: Ctx, r: R, pts: Pt[], box: { x: number; y: number; w: num
   ctx.save();
   path(ctx);
   ctx.clip();
-  ctx.strokeStyle = rgba('#c8d6ff', 0.4);
+  ctx.strokeStyle = rgba('#c8d6ff', 0.45);
   ctx.lineWidth = 5;
   ctx.beginPath();
   const half = pts.slice(0, Math.floor(pts.length / 2));
@@ -1513,9 +2081,9 @@ function gate(ctx: Ctx, r: R): void {
   }, 0.12);
   // the far stone, snapped off
   plinth(ctx, r, p2.x0, p2.x1, p2.foot);
-  megalith(ctx, r, P2_PTS, { x: p2.x0 - 4, y: p2.top - 20, w: p2.x1 - p2.x0 + 8, h: p2.foot - p2.top + 28 }, 51, [560]);
+  megalith(ctx, r, P2_PTS, { x: p2.x0 - 4, y: p2.top - 20, w: p2.x1 - p2.x0 + 8, h: p2.foot - p2.top + 28 }, 51, [560], 20);
   // its fracture: a fresh, paler face, and the snow on it
-  const crown = P2_PTS.slice((P2_PTS.length - 7) / 2, (P2_PTS.length + 7) / 2);
+  const crown = P2_CROWN;
   snowCap(ctx, r, crown[0][0], crown[crown.length - 1][0], (u) => {
     const i = Math.min(crown.length - 2, Math.floor(u * (crown.length - 1)));
     const f = u * (crown.length - 1) - i;
@@ -1523,7 +2091,7 @@ function gate(ctx: Ctx, r: R): void {
   }, 8);
   // the near stone, running up out of the picture
   plinth(ctx, r, p1.x0, p1.x1, p1.foot);
-  megalith(ctx, r, P1_PTS, { x: p1.x0 - 4, y: -20, w: p1.x1 - p1.x0 + 8, h: p1.foot + 28 }, 53, [140, 420]);
+  megalith(ctx, r, P1_PTS, { x: p1.x0 - 4, y: -20, w: p1.x1 - p1.x0 + 8, h: p1.foot + 28 }, 53, [140, 420], 26);
   for (const [x, y, s, g] of GATE_RUNES) carvedRune(ctx, g, x, y, s, 0.6);
   // snow on the mouldings and icicles under them
   const ir = rng(hashStr('jh:gate-icicles'));
@@ -1560,8 +2128,8 @@ function gate(ctx: Ctx, r: R): void {
 function lintelPiece(ctx: Ctx, r: R, len: number, h: number, D: number, breakL: boolean, breakR: boolean, seed: number): void {
   const rr = rng(hashStr('jh:lintel' + seed));
   const jag = (n: number, amp: number) => Array.from({ length: n + 1 }, (_, i) => (i === 0 || i === n ? 0 : (rr() - 0.5) * amp));
-  const jr = jag(5, breakR ? 16 : 0);
-  const jl = jag(5, breakL ? 14 : 0);
+  const jr = jag(5, breakR ? 26 : 0);
+  const jl = jag(5, breakL ? 24 : 0);
   const dy = -D * 0.7;
   const front: Pt[] = [[jl[0], 0], [len + jr[0], 0], ...jr.map((o, i): Pt => [len + o - (breakR ? 6 * Math.sin((i / 5) * Math.PI) : 0), (h * i) / 5]), [0, h], ...jl.map((o, i): Pt => [o, h - (h * i) / 5])];
   const top: Pt[] = [[0, 0], [D, dy], [len + D - (breakR ? 10 : 0), dy], [len + jr[0], 0]];
@@ -1618,9 +2186,9 @@ function lintelPiece(ctx: Ctx, r: R, len: number, h: number, D: number, breakL: 
       // the fracture's edge spalled: chips gone off the corner
       ctx.fillStyle = rgba('#8692b6', 0.9);
       ctx.beginPath();
-      ctx.moveTo(len - 18, 0);
+      ctx.moveTo(len - 36, 0);
       ctx.lineTo(len, 0);
-      ctx.lineTo(len - 4, 12);
+      ctx.lineTo(len - 10, 22);
       ctx.closePath();
       ctx.fill();
     }
@@ -1693,7 +2261,7 @@ function lintel(ctx: Ctx, r: R): void {
   ctx.save();
   ctx.translate(x0, y0);
   ctx.rotate(slope);
-  lintelPiece(ctx, r, breakX - x0, h, 22, false, true, 1);
+  lintelPiece(ctx, r, breakX - x0, h, 22, true, true, 1);
   ctx.restore();
   rubble(4, breakX + 20, 40);
   crevice(ctx, x0, x1, y1 + h - 4, 10, 0.4, '#0a1440');
@@ -2081,7 +2649,7 @@ function plumeFrame(c: Ctx, ph: number, seed: string): void {
 
 /** The plumes' sources: the falls' lip and the broken megalith's top. */
 const PLUMES: { x: number; y: number; s: number; seed: string }[] = [
-  { x: JH.lip.x1 - 50, y: 216, s: 1, seed: 'jh:plumeA' },
+  { x: 250, y: 204, s: 1, seed: 'jh:plumeA' },
 
   { x: JH.p2.x0 + 40, y: JH.p2.top - 2, s: 0.8, seed: 'jh:plumeB' },
 ];
@@ -2093,7 +2661,7 @@ const SNAKE_BANDS: { y: number; h: number; k: number; v: number }[] = [
   { y: 600, h: 70, k: 0.55, v: 110 },
   { y: 668, h: 96, k: 0.9, v: 220 },
 ];
-const SNAKE_TW = 1024;
+const SNAKE_TW = 512;
 /** The open ice the snakes can be seen on (x0, y0, x1, y1): between the cliff and the gate, round the sword's blade,
  * over the lintel, between the stones, and along the near drift either side of the helm. */
 const SNAKE_OPEN: [number, number, number, number][] = [
@@ -2192,11 +2760,12 @@ function runeGlow(ctx: Ctx): void {
 const HOR = JH.hor;
 const SKY_BOX = { x: 0, y: 0, w: W, h: HOR };
 const AURORA_BOX = { x: 0, y: 0, w: W, h: JH.auroraH };
-const FAR_BOX = { x: 0, y: 290, w: W, h: HOR - 290 };
+const FAR_BOX = { x: 0, y: 262, w: W, h: HOR - 262 };
+const BONES_BOX = { x: 880, y: 500, w: 460, h: 130 };
 const PLAIN_BOX = { x: 0, y: HOR, w: W, h: TY + 12 - HOR };
 const SWORD_BOX = { x: 586, y: JH.sword.pommel - 16, w: 440, h: JH.sword.base + 50 - JH.sword.pommel };
 const CLIFF_BOX = { x: 0, y: 132, w: 580, h: JH.cliffFoot + 14 - 132 };
-const FALLS_BOX = { x: 70, y: JH.lip.y - 30, w: 380, h: JH.cliffFoot + 40 - JH.lip.y };
+const FALLS_BOX = { x: 96, y: 160, w: 330, h: JH.cliffFoot + 10 - 160 };
 const FOOT_BOX = { x: 0, y: 620, w: 600, h: TY - 620 };
 const GATE_BOX = { x: 1290, y: 0, w: W - 1290, h: JH.p1.foot + 30 };
 const LINTEL_BOX = { x: 1240, y: 660, w: W - 1240, h: TY - 660 };
@@ -2237,8 +2806,8 @@ export const JOTUNHEIM: SceneSpec = {
   },
   layers: [
     { id: 'sky', box: SKY_BOX, draw: sky },
-    { id: 'cloudSky', box: SKY_BOX, liveOnly: true, res: 0.3, draw: cloudSky },
-    { id: 'stormSky', box: SKY_BOX, liveOnly: true, res: 0.3, draw: stormSky },
+    { id: 'cloudSky', box: SKY_BOX, liveOnly: true, res: 0.25, draw: cloudSky },
+    { id: 'stormSky', box: SKY_BOX, liveOnly: true, res: 0.25, draw: stormSky },
     { id: 'redGlow', box: { x: 0, y: 300, w: W, h: HOR - 300 }, liveOnly: true, res: 0.25, draw: (c) => redGlow(c) },
     { id: 'auroraStill', box: AURORA_BOX, stillOnly: true, draw: (c) => aurora(c, 0.15) },
     { id: 'aurora', box: AURORA_BOX, motion: 'slot', draw: () => {} },
@@ -2251,6 +2820,7 @@ export const JOTUNHEIM: SceneSpec = {
     { id: 'farHaze', box: { x: 0, y: 240, w: W, h: HOR - 240 }, liveOnly: true, res: 0.25, draw: (c) => farHaze(c) },
     { id: 'plain', box: PLAIN_BOX, draw: plain },
     ...halves([
+      ['bones', BONES_BOX, bones],
       ['sword', SWORD_BOX, sword, { x: 592, w: 210 }],
       ['cliff', CLIFF_BOX, cliff],
       ['falls', FALLS_BOX, falls],
@@ -2273,7 +2843,7 @@ export const JOTUNHEIM: SceneSpec = {
     { id: 'bank', box: { x: 0, y: TY - 40, w: W, h: 46 }, draw: bank },
     { id: 'table', box: { x: 0, y: TY, w: W, h: 1080 - TY }, draw: table },
     // (the runes' cold light goes over everything it touches: last, so nothing has to be baked over it)
-    { id: 'runeGlow', box: RUNE_BOX, liveOnly: true, res: 0.33, draw: (c) => runeGlow(c) },
+    { id: 'runeGlow', box: RUNE_BOX, liveOnly: true, res: 0.25, draw: (c) => runeGlow(c) },
     { id: 'top', motion: 'top', draw: () => {} },
   ],
   grade,
@@ -2286,6 +2856,11 @@ export const JOTUNHEIM: SceneSpec = {
 function shardFrame(c: Ctx, half: number, i: number): void {
   const rr = rng(hashStr('jh:shard' + i));
   const len = half * (0.9 + rr() * 0.5);
+  // (a dark edge, so it shows against the pale falls as it drops)
+  c.shadowColor = 'rgba(6,14,36,0.85)';
+  c.shadowBlur = 2;
+  c.shadowOffsetX = 1;
+  c.shadowOffsetY = 1;
   icicle(c, half, half - len / 2, len, 4 + rr() * 4);
 }
 
@@ -2299,8 +2874,8 @@ registerKitScene(JOTUNHEIM, (k: KitLive, wave0: number) => {
   const runeS = k.sprite('runeGlow').setBlendMode(Phaser.BlendModes.ADD);
 
   // ——— hero: the aurora ———
-  const RA = 0.22;
-  const AN = 10;
+  const RA = 0.2;
+  const AN = 9;
   const AH = JH.auroraH;
   const aKey = sheet(k, 'jh_aurora', W * RA, AH * RA, AN, (c, ph) => {
     c.scale(RA, RA);
@@ -2327,7 +2902,7 @@ registerKitScene(JOTUNHEIM, (k: KitLive, wave0: number) => {
   });
 
   // ——— hero: the wind and the snow ———
-  const RP = 0.35;
+  const RP = 0.25;
   const PN = 10;
   const plumes = PLUMES.map((p, i) => {
     const key = sheet(k, 'jh_plume' + i, PLW * RP, PLH * RP, PN, (c, ph) => {
@@ -2391,11 +2966,12 @@ registerKitScene(JOTUNHEIM, (k: KitLive, wave0: number) => {
     for (let i = 0; i < n; i++) powder.spawn({ x: x + (crand() - 0.5) * 40 * big, y: y - crand() * 10, vx: (crand() - 0.3) * 80 * big, vy: -20 - crand() * 50 * big, life: 1.4 + crand(), r0: 10 * big, r1: (36 + crand() * 30) * big, a: 0.35, tint: 0xdce6fa, drag: 1.2, fade: 0.15 });
   };
   const burst = (x: number, y: number) => {
-    for (let i = 0; i < 7; i++) motes.spawn({ x, y, vx: (crand() - 0.5) * 140, vy: -60 - crand() * 120, life: 0.6, r0: 3, r1: 1.5, a: 0.9, tint: 0xe4f2ff, grav: 700, fade: 0.05 });
+    puff(x, y, 1, 0.45);
+    for (let i = 0; i < 10; i++) motes.spawn({ x, y, vx: (crand() - 0.5) * 160, vy: -70 - crand() * 140, life: 0.7, r0: 4, r1: 1.5, a: 0.9, tint: 0xe4f2ff, grav: 700, fade: 0.05 });
     glints.spawn({ x, y: y - 4, life: 0.25, r0: 10, r1: 2, a: 0.8, tint: 0xd8f0ff, fade: 0.2 });
   };
   const dropIcicle = (sx: number, sy: number, floor: number) => {
-    shards.spawn({ x: sx, y: sy, vx: (crand() - 0.5) * 20, vy: 10, life: 2.4, r0: 12 + crand() * 7, a: 1, tint: 0xffffff, grav: 1400, floor, onFloor: (x, y) => burst(x, y), spin: (crand() - 0.5) * 2 });
+    shards.spawn({ x: sx, y: sy, vx: (crand() - 0.5) * 20, vy: 10, life: 2.4, r0: 16 + crand() * 8, a: 1, tint: 0xffffff, grav: 900, floor, onFloor: (x, y) => burst(x, y), spin: (crand() - 0.5) * 2, fade: 0.02 });
   };
   const sift = (x0: number, x1: number, y: number, floor: number, n: number) => {
     for (let i = 0; i < n; i++) motes.spawn({ x: x0 + crand() * (x1 - x0), y, vx: 6 + crand() * 20, vy: 10 + crand() * 30, life: 2.4, r0: 2 + crand() * 2.5, a: 0.85, tint: 0xeef4ff, grav: 260, drag: 0.6, floor, fade: 0.05 });
