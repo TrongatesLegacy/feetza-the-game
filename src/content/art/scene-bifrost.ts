@@ -29,7 +29,7 @@
 import Phaser from 'phaser';
 import { type Air, type Ctx, type R, TY, W, airMix, calmLanes, castShadow, crevice, glowAt, gradeAll, lightPool, polyPath, vfill, vignetteAll, within } from '../../art/scene/kit';
 import type { SceneSpec } from '../../art/scene/layers';
-import { grain, tableFalloff, tableSeam, water } from '../../art/scene/materials';
+import { grain, tableFalloff, tableSeam, water, woodGrain } from '../../art/scene/materials';
 import { hang } from '../../art/scene/props';
 import { crack, drift, lay, noiseMask, softly, streaks, surface } from '../../art/scene/paint';
 import { cloud, horizonGlow, rays, skyFill, sun } from '../../art/scene/sky';
@@ -41,7 +41,7 @@ import { Loop, Parts, Rate, Swing, sheet } from '../../game/sceneAnim';
 import { type KitLive, calm, lerp, registerKitScene, waveK } from '../../game/sceneLive';
 import { clothFrame, fireFrame } from './sceneBits';
 import type { Pt } from './scene-rink';
-import { carvedRune } from './scene-jotunheim';
+import { STONE, carvedRune } from './scene-jotunheim';
 
 // ——— layout ———
 
@@ -58,7 +58,7 @@ export const BF = {
   beam: { x0: 196, x1: 356, y: 372 },
   hinge: { x: 292, y: 384 },
   /** The abutment the bridge springs from: its top-left, its end. */
-  abut: { x0: 190, x1: 446, top: 598 },
+  abut: { x0: 190, x1: 448, top: 598, farY0: 548, nearY0: 672 },
   /** The rune stone on the terrace's far corner and its fire basket. */
   stone: { x0: 1728, x1: 1872, top: 446 },
   basket: { x: 1800, y: 414 },
@@ -104,10 +104,11 @@ const specHex = (v: number): string => '#' + specAt(v).map((c) => Math.round(c).
 
 // ——— the bridge's curve ———
 //
-// The bridge springs from the abutment (t = 0) and lands at the citadel's gate (t = 1). Its deck is a ribbon seen from
-// a little above: deckW(t) high on screen, narrowing with distance; under it the slab's edge, fasciaH(t).
+// The bridge springs from the abutment (t = 0) and lands at the citadel's gate (t = 1): a causeway of crystal light,
+// below eye level all the way, so its deck is seen from above, broad at the abutment and narrowing as it goes off into
+// the distance (deckW(t) high on screen), its near side face under it (fasciaH(t)).
 
-const BP: Pt[] = [[440, 542], [680, 436], [1000, 384], [BF.gate.x, BF.gate.y]];
+const BP: Pt[] = [[446, 600], [720, 514], [1030, 466], [BF.gate.x, BF.gate.y]];
 export function bz(t: number): Pt {
   const u = 1 - t;
   const a = u * u * u;
@@ -122,8 +123,9 @@ export function bzAng(t: number): number {
   const [x1, y1] = bz(Math.min(1, t + 0.004));
   return Math.atan2(y1 - y0, x1 - x0);
 }
-export const deckW = (t: number) => 6 + 72 * (1 - t) ** 1.25;
-const fasciaH = (t: number) => 3 + 24 * (1 - t) ** 1.3;
+/** The deck's top seen from above (its width foreshortened, narrowing into the distance) and its side face's height. */
+export const deckW = (t: number) => 7 + 124 * (1 - t) ** 1.5;
+const fasciaH = (t: number) => 3 + 40 * (1 - t) ** 1.5;
 export const deckTop = (t: number) => bz(t)[1] - deckW(t) / 2;
 const deckBot = (t: number) => bz(t)[1] + deckW(t) / 2;
 /** How far along the bridge t is in its own length (perspective: the far half is much longer than it looks). */
@@ -385,7 +387,7 @@ function cloudDeck(ctx: Ctx, r: R): void {
     g.closePath();
     g.fill();
   }, 0.25);
-  const o = { lit: '#fffaf0', body: '#c8d2e8', shadow: '#6c7eb2', sunX: BF.sun.x - 600, sunY: -600, rim: 0.4, wisp: 0.3, kind: 'cumulus' as const, a: 0.98 };
+  const o = { lit: '#eef0f4', body: '#b8c4de', shadow: '#5e70a6', sunX: BF.sun.x - 600, sunY: -600, rim: 0.4, wisp: 0.3, kind: 'cumulus' as const, a: 0.98 };
   for (let x = -60; x < W + 60; ) {
     const w = 150 + r() * 190;
     const cx = x + w / 2;
@@ -501,97 +503,141 @@ function cloudSea(ctx: Ctx): void {
 // ——— the gods' citadel ———
 
 const CAIR: Air = { color: '#c8d8ec', far: 0.9 };
-const CD = 0.62;
+const CD = 0.68;
 
-/** A hall seen a little from the left: its gable end towards us, a roof of golden shields, gold-lit windows. */
-function hall(ctx: Ctx, r: R, x: number, base: number, w: number, wallH: number, roofH: number, side: number, d = CD): void {
+/**
+ * A longhouse of the gods seen from the front left: its gable end turned to the sun (lit stone, timber gable boards
+ * crossed into gilt finials), its long wall running back to the right with gold-lit windows, a steep roof of golden
+ * shields (lit on its near plane), a ridge with finials at both ends, a thread of hearth smoke rising off the ridge.
+ * x0 is the gable's left corner on the ground, len the hall's length.
+ */
+function longhouse(ctx: Ctx, x0: number, base: number, len: number, wallH: number, roofH: number, d = CD, smoke = true): void {
   const a = (c: string) => airMix(c, d, CAIR);
-  const gx0 = x - w / 2;
-  const gx1 = x + w / 2;
+  const ga = (c: string) => airMix(c, d * 0.5, CAIR);
+  const gw = Math.max(14, len * 0.3);
+  const rise = -0.14;
+  const back = (x: number, y: number): Pt => [x + len, y + len * rise];
   const eave = base - wallH;
-  // the long side running back to the right, in the light's shade
-  ctx.fillStyle = a('#9a8c98');
+  const peak: Pt = [x0 + gw / 2, eave - roofH];
+  // its terrace: a wall of dressed stone under it, down to the crag
+  const ter = polyPath([[x0 - 5, base + 1], back(x0 + gw + 5, base + 1), [x0 + gw + len + 5, base + len * rise + 34], [x0 - 5, base + 34]]);
+  ter(ctx);
+  const tg = ctx.createLinearGradient(x0, 0, x0 + gw + len, 0);
+  tg.addColorStop(0, a('#d8c8bc'));
+  tg.addColorStop(1, a('#7c7a94'));
+  ctx.fillStyle = tg;
+  ctx.fill();
+  ctx.fillStyle = a('#f4ece0');
   ctx.beginPath();
-  ctx.moveTo(gx1, base);
-  ctx.lineTo(gx1 + side, base - side * 0.35);
-  ctx.lineTo(gx1 + side, eave - side * 0.35);
-  ctx.lineTo(gx1, eave);
+  ctx.moveTo(x0 - 5, base + 1);
+  const [tx, ty] = back(x0 + gw + 5, base + 1);
+  ctx.lineTo(tx, ty);
+  ctx.lineTo(tx, ty + 2);
+  ctx.lineTo(x0 - 5, base + 3);
   ctx.closePath();
   ctx.fill();
-  // the roof's long plane: rows of shields, gold catching the sun
-  ctx.beginPath();
-  ctx.moveTo(x, eave - roofH);
-  ctx.lineTo(x + side, eave - roofH - side * 0.35);
-  ctx.lineTo(gx1 + side + 3, eave - side * 0.35 + 2);
-  ctx.lineTo(gx1 + 3, eave + 2);
-  ctx.closePath();
-  const ga = (c: string) => airMix(c, d * 0.55, CAIR);
-  const rg = ctx.createLinearGradient(x, eave - roofH, gx1, eave);
-  rg.addColorStop(0, ga('#ffe08a'));
-  rg.addColorStop(1, ga('#b07418'));
+  // the long wall, in the light but turned from it a little
+  const wall = polyPath([[x0 + gw, base], back(x0 + gw, base), back(x0 + gw, eave), [x0 + gw, eave]]);
+  wall(ctx);
+  ctx.fillStyle = a('#c4b4b0');
+  ctx.fill();
+  // its windows and door, lit gold from inside
+  const n = Math.max(2, Math.round(len / 16));
+  for (let i = 0; i < n; i++) {
+    const u = (i + 0.6) / (n + 0.4);
+    const wx = x0 + gw + u * len;
+    const wy = base + u * len * rise - wallH * 0.68;
+    ctx.fillStyle = ga('#ffcc58');
+    ctx.fillRect(wx - 1.2, wy, 2.6, wallH * 0.36);
+  }
+  // the roof's long plane: rows of shields, lit near the ridge, warm gold
+  const roofP = polyPath([peak, back(peak[0], peak[1]), back(x0 + gw + 3, eave + 2), [x0 + gw + 3, eave + 2]]);
+  roofP(ctx);
+  const rg = ctx.createLinearGradient(0, peak[1], 0, eave);
+  rg.addColorStop(0, ga('#ffe690'));
+  rg.addColorStop(1, ga('#b8781c'));
   ctx.fillStyle = rg;
   ctx.fill();
   ctx.save();
+  roofP(ctx);
   ctx.clip();
-  for (let k = 0; k < 7; k++) {
-    const u = k / 7;
-    for (let j = 0; j < 9; j++) {
-      const v = j / 9;
-      const px = lerp(x, gx1, u) + v * side;
-      const py = lerp(eave - roofH, eave, u) - v * side * 0.35;
-      ctx.fillStyle = ga(j % 2 ? '#f8d060' : '#c88c28');
+  const rows = Math.max(3, Math.round(roofH / 4));
+  const cols = Math.max(4, Math.round(len / 5));
+  const sr = Math.max(1.1, len / cols / 2);
+  for (let j = 0; j < rows; j++) {
+    const v = (j + 0.5) / rows;
+    for (let i = 0; i < cols; i++) {
+      const u = (i + (j % 2) * 0.5) / cols;
+      const px = lerp(peak[0], x0 + gw, v) + u * len;
+      const py = lerp(peak[1], eave, v) + u * len * rise;
+      ctx.fillStyle = ga((i + j) % 2 ? '#f6cc5a' : '#c88a26');
       ctx.beginPath();
-      ctx.arc(px, py + 1, Math.max(1.2, w * 0.035), 0, Math.PI);
+      ctx.arc(px, py, sr, 0, Math.PI);
       ctx.fill();
     }
   }
   ctx.restore();
-  // the gable end: pale stone, lit
-  const gp = polyPath([[gx0, base], [gx0, eave], [x, eave - roofH], [gx1, eave], [gx1, base]]);
+  // the gable end, lit
+  const gp = polyPath([[x0, base], [x0, eave], peak, [x0 + gw, eave], [x0 + gw, base]]);
   gp(ctx);
-  const fg = ctx.createLinearGradient(gx0, 0, gx1, 0);
-  fg.addColorStop(0, a('#f4ece0'));
-  fg.addColorStop(1, a('#cabcb4'));
+  const fg = ctx.createLinearGradient(x0, 0, x0 + gw, 0);
+  fg.addColorStop(0, a('#fff2e0'));
+  fg.addColorStop(1, a('#e0d0c0'));
   ctx.fillStyle = fg;
   ctx.fill();
-  // timber gable boards and the crossed finials (dragon heads) at its peak
-  ctx.strokeStyle = a('#6a4a2a');
-  ctx.lineWidth = Math.max(1, w * 0.04);
+  // its door, and the timber of its gable, a sun-disc over the door
+  ctx.fillStyle = a('#4a2e1a');
+  const dw = gw * 0.26;
+  ctx.fillRect(x0 + gw / 2 - dw / 2, base - wallH * 0.6, dw, wallH * 0.6);
+  ctx.fillStyle = ga('#ffd468');
   ctx.beginPath();
-  ctx.moveTo(gx0 - 2, eave + 1);
-  ctx.lineTo(x, eave - roofH);
-  ctx.lineTo(gx1 + 2, eave + 1);
-  ctx.stroke();
-  ctx.strokeStyle = a('#f4c860');
-  ctx.lineWidth = Math.max(1, w * 0.03);
-  ctx.beginPath();
-  ctx.moveTo(x - w * 0.06, eave - roofH + w * 0.06);
-  ctx.quadraticCurveTo(x + w * 0.08, eave - roofH - w * 0.12, x + w * 0.16, eave - roofH - w * 0.06);
-  ctx.moveTo(x + w * 0.06, eave - roofH + w * 0.06);
-  ctx.quadraticCurveTo(x - w * 0.08, eave - roofH - w * 0.12, x - w * 0.16, eave - roofH - w * 0.06);
-  ctx.stroke();
-  // the door and the windows, gold-lit
-  const dw = w * 0.18;
-  ctx.fillStyle = a('#5a3a1a');
-  ctx.beginPath();
-  ctx.moveTo(x - dw / 2, base);
-  ctx.lineTo(x - dw / 2, base - wallH * 0.55);
-  ctx.arc(x, base - wallH * 0.55, dw / 2, Math.PI, 0);
-  ctx.lineTo(x + dw / 2, base);
+  ctx.arc(x0 + gw / 2, eave - roofH * 0.36, Math.max(1.2, gw * 0.07), 0, P2);
   ctx.fill();
-  ctx.fillStyle = airMix('#ffd060', d * 0.4, CAIR);
-  for (const u of [0.22, 0.78]) {
-    ctx.fillRect(gx0 + w * u - 1.5, base - wallH * 0.7, 3, wallH * 0.3);
+  ctx.strokeStyle = a('#6a4426');
+  ctx.lineWidth = Math.max(1, gw * 0.06);
+  ctx.beginPath();
+  ctx.moveTo(x0 - 2, eave + 1);
+  ctx.lineTo(peak[0], peak[1]);
+  ctx.lineTo(x0 + gw + 2, eave + 1);
+  ctx.stroke();
+  // the ridge and its finials, gilt, crossed at both ends
+  ctx.strokeStyle = ga('#f8d060');
+  ctx.lineWidth = Math.max(1, gw * 0.05);
+  const [bx, by] = back(peak[0], peak[1]);
+  ctx.beginPath();
+  ctx.moveTo(peak[0], peak[1]);
+  ctx.lineTo(bx, by);
+  for (const [fx, fy] of [peak, [bx, by] as Pt]) {
+    const f = gw * 0.22;
+    ctx.moveTo(fx - f * 0.5, fy + f * 0.4);
+    ctx.quadraticCurveTo(fx + f * 0.2, fy - f * 1.1, fx + f * 0.8, fy - f * 0.6);
+    ctx.moveTo(fx + f * 0.5, fy + f * 0.4);
+    ctx.quadraticCurveTo(fx - f * 0.2, fy - f * 1.1, fx - f * 0.8, fy - f * 0.6);
   }
-  for (let k = 0; k < 3; k++) ctx.fillRect(gx1 + side * (0.25 + k * 0.25) - 1, base - wallH * 0.62 - side * (0.25 + k * 0.25) * 0.35, 2.4, wallH * 0.28);
-  // shading under the eaves
-  ctx.fillStyle = rgba('#3a2a40', 0.25 * (1 - d * 0.5));
-  ctx.fillRect(gx0, eave, w, 3);
-  ctx.strokeStyle = rgba(airMix(INK, d, CAIR), 0.6);
+  ctx.stroke();
+  // shade under the eaves, a line of ink
+  ctx.fillStyle = rgba('#2a2040', 0.22);
+  ctx.fillRect(x0, eave, gw, 2);
+  ctx.strokeStyle = rgba(airMix(INK, d, CAIR), 0.55);
   ctx.lineWidth = 1;
   gp(ctx);
   ctx.stroke();
-  void r;
+  roofP(ctx);
+  ctx.stroke();
+  // a thread of hearth smoke off the ridge, leaning on the wind
+  if (smoke) {
+    const sx = lerp(peak[0], bx, 0.45);
+    const sy = lerp(peak[1], by, 0.45);
+    ctx.lineCap = 'round';
+    for (const [w, al] of [[5, 0.12], [2, 0.3]] as const) {
+      ctx.strokeStyle = rgba(airMix('#f4f0f4', d * 0.4, CAIR), al * 1.6);
+      ctx.lineWidth = w;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.bezierCurveTo(sx - 4, sy - 18, sx + 10, sy - 30, sx + 26, sy - 46);
+      ctx.stroke();
+    }
+  }
 }
 
 /** A slim round tower with a gilded cone. */
@@ -636,7 +682,7 @@ function citadel(out: Ctx, r: R): void {
   citadelPaint(ctx, r);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.globalCompositeOperation = 'destination-out';
-  const fg = ctx.createLinearGradient(0, HOR + 34 - B.y, 0, B.h);
+  const fg = ctx.createLinearGradient(0, HOR + 66 - B.y, 0, B.h);
   fg.addColorStop(0, 'rgba(0,0,0,0)');
   fg.addColorStop(1, 'rgba(0,0,0,1)');
   ctx.fillStyle = fg;
@@ -786,14 +832,17 @@ function citadelPaint(ctx: Ctx, r: R): void {
   wall(1500, 258, 1640, 256, 8);
   wall(1690, 302, 1740, 352, 8);
   // the halls, far to near
-  spire(ctx, 1580, 236, 60, 9, 0.66);
-  hall(ctx, r, 1546, 252, 116, 26, 44, 60, 0.64);
-  spire(ctx, 1488, 258, 46, 8);
-  spire(ctx, 1630, 254, 40, 7);
-  hall(ctx, r, 1700, 306, 56, 16, 24, 30);
-  hall(ctx, r, 1412, 380, 48, 15, 22, 26);
-  hall(ctx, r, 1460, 350, 40, 12, 18, 22);
-  spire(ctx, 1742, 354, 34, 7);
+  // the longhouses stepping up the crag from the gate to the great hall on the summit, far to near
+  spire(ctx, 1640, 240, 54, 8, 0.66);
+  // the great hall: long, its roof tall and steep, finials at both ends
+  longhouse(ctx, 1488, 254, 130, 24, 58, 0.62);
+  spire(ctx, 1480, 258, 44, 8);
+  longhouse(ctx, 1676, 304, 62, 14, 24);
+  longhouse(ctx, 1452, 300, 44, 11, 18, CD, false);
+  longhouse(ctx, 1412, 362, 54, 13, 20);
+  longhouse(ctx, 1374, 404, 50, 12, 18, CD, false);
+  longhouse(ctx, 1704, 352, 46, 11, 16, CD, false);
+  spire(ctx, 1752, 352, 30, 7);
   // the gate the bridge lands at: two towers flanking it, its arch full of the bridge's light
   // (in the citadel's own frame: BF.gate less the shift)
   const gx = BF.gate.x - CDX;
@@ -829,132 +878,145 @@ function citadelPaint(ctx: Ctx, r: R): void {
   ctx.fillRect(gx - 30, gy - 24, 64, 3);
   spire(ctx, gx - 34, gy + 12, 46, 12, CD - 0.08);
   spire(ctx, gx + 38, gy + 10, 44, 12, CD - 0.08);
-  // the citadel's gold catching the sun: small hard glints on the roofs and finials
-  for (const [x, y] of [[1530, 212], [1560, 216], [1580, 164], [1488, 194], [1630, 210], [1700, 286], [1412, 361], [1284, 377], [1330, 380], [1742, 306]] as const) {
-    ctx.fillStyle = rgba('#fffcf0', 0.85);
-    ctx.beginPath();
-    ctx.arc(x, y, 1.3, 0, P2);
-    ctx.fill();
-  }
 }
 
 // ——— the bridge ———
 
 const DSW = 1024;
-const DSH = 48;
+const DSH = 64;
+const frac = (v: number) => v - Math.floor(v);
+const hash2 = (a: number, b: number) => frac(Math.sin(a * 127.1 + b * 311.7) * 43758.5453);
 
-/** The deck painted flat: the spectrum across it, the slabs' seams in perspective, light threads running its length,
- * the sun's sheen on its near part. Width runs t 0…1, height the far edge (0) to the near edge. */
+/** The deck's top painted flat (its width running t 0…1 along the bridge, its height the far kerb (0) to the near
+ * kerb (1)): a pavement of crystal, each facet of it its own tone, its edges catching the light, the spectrum refracted
+ * up through it in soft blended bands, a bright core of light down its middle, a kerb of pale gold glass along each
+ * side, paling into the air with distance. */
 let deckCache: HTMLCanvasElement | null = null;
 function deckStrip(): HTMLCanvasElement {
   if (deckCache) return deckCache;
   const r = rng(hashStr('bf:deck'));
   const [c, g] = makeCanvas(DSW, DSH);
-  const lg = g.createLinearGradient(0, 0, 0, DSH);
-  SPEC.forEach((col, i) => lg.addColorStop(i / (SPEC.length - 1), col));
-  g.fillStyle = lg;
-  g.fillRect(0, 0, DSW, DSH);
-  // the glass's body: deeper, richer colour at its edges (the slab's thickness), a pale core of light
-  const eg = g.createLinearGradient(0, 0, 0, DSH);
-  eg.addColorStop(0, 'rgba(40,20,110,0.5)');
-  eg.addColorStop(0.2, 'rgba(40,20,90,0)');
-  eg.addColorStop(0.8, 'rgba(90,10,40,0)');
-  eg.addColorStop(1, 'rgba(110,10,40,0.45)');
-  g.fillStyle = eg;
-  g.fillRect(0, 0, DSW, DSH);
-  g.save();
-  g.globalCompositeOperation = 'lighter';
-  const cg = g.createLinearGradient(0, 0, 0, DSH);
-  cg.addColorStop(0.22, 'rgba(255,255,255,0)');
-  cg.addColorStop(0.4, 'rgba(255,252,240,0.3)');
-  cg.addColorStop(0.47, 'rgba(255,255,250,0.55)');
-  cg.addColorStop(0.54, 'rgba(255,252,240,0.3)');
-  cg.addColorStop(0.72, 'rgba(255,255,255,0)');
-  g.fillStyle = cg;
-  g.fillRect(0, 0, DSW, DSH);
-  // long soft streaks of brighter light running its length (no seams: it is one body of light)
-  for (let i = 0; i < 6; i++) {
-    const y = 6 + r() * (DSH - 12);
-    const lg2 = g.createLinearGradient(0, y - 3, 0, y + 3);
-    lg2.addColorStop(0, 'rgba(255,255,255,0)');
-    lg2.addColorStop(0.5, rgba('#ffffff', 0.08 + r() * 0.08));
-    lg2.addColorStop(1, 'rgba(255,255,255,0)');
-    g.fillStyle = lg2;
-    g.fillRect(0, y - 3, DSW, 6);
+  const img = g.createImageData(DSW, DSH);
+  const d = img.data;
+  for (let x = 0; x < DSW; x++) {
+    const t = x / DSW;
+    const U = G(t) * 15;
+    // (the facets shrink into the distance: they fade before they get too small to see)
+    const lat = clamp01((0.82 - t) / 0.3);
+    const air = 0.4 * t ** 1.4;
+    for (let y = 0; y < DSH; y++) {
+      const v = y / DSH;
+      // pale crystal, cool white-cyan, lit; the spectrum refracted out only along its edges
+      const [sr, sg, sb] = specAt(0.04 + v * 0.92);
+      const edge = Math.max(clamp01((0.3 - v) / 0.22), clamp01((v - 0.7) / 0.22));
+      const m = 0.82 * edge ** 1.3;
+      const core = Math.exp(-(((v - 0.48) / 0.16) ** 2));
+      let cr = (206 + 30 * core) * (1 - m) + sr * m;
+      let cg = (226 + 24 * core) * (1 - m) + sg * m;
+      let cb = (246 + 9 * core) * (1 - m) + sb * m;
+      let k = 1;
+      // the facets: a lattice of crystal lozenges laid in perspective
+      const V = v * 3.4;
+      const a = U + V;
+      const b = U - V;
+      const fa = frac(a);
+      const fb = frac(b);
+      k += (hash2(Math.floor(a), Math.floor(b)) - 0.5) * 0.22 * lat;
+      const e = Math.min(fa, fb);
+      const e2 = Math.min(1 - fa, 1 - fb);
+      if (e < 0.06) k += 0.3 * lat * (1 - e / 0.06);
+      else if (e2 < 0.06) k -= 0.2 * lat * (1 - e2 / 0.06);
+      // the kerbs: pale gold glass, a dark line where each meets the deck, its outer arris lit
+      let kr = -1;
+      if (v < 0.08) kr = v / 0.08;
+      else if (v > 0.92) kr = (1 - v) / 0.08;
+      if (kr >= 0) {
+        cr = 255;
+        cg = 238;
+        cb = 196;
+        k = kr < 0.25 ? 1.05 : kr > 0.82 ? 0.62 : 0.92 - (kr - 0.25) * 0.2;
+      }
+      cr = Math.min(255, cr * k);
+      cg = Math.min(255, cg * k);
+      cb = Math.min(255, cb * k);
+      const i = (y * DSW + x) * 4;
+      d[i] = cr * (1 - air) + 232 * air;
+      d[i + 1] = cg * (1 - air) + 238 * air;
+      d[i + 2] = cb * (1 - air) + 248 * air;
+      d[i + 3] = 255;
+    }
   }
-  // the sun's sheen on the near slabs (the deck turned to it there)
-  const sg = g.createRadialGradient(150, DSH * 0.3, 0, 150, DSH * 0.3, 160);
-  sg.addColorStop(0, 'rgba(255,250,236,0.2)');
-  sg.addColorStop(1, 'rgba(255,250,236,0)');
-  g.fillStyle = sg;
-  g.save();
-  g.translate(150, DSH * 0.3);
-  g.scale(1, 0.18);
-  g.translate(-150, -DSH * 0.3);
-  g.fillRect(-20, -200, 360, 400);
-  g.restore();
-  g.restore();
-  // tiny crystals catching the light
-  for (let i = 0; i < 40; i++) {
-    const x = r() ** 1.4 * DSW;
-    const y = r() * DSH;
-    const s = 2 + r() * 3 * (1 - x / DSW);
-    g.fillStyle = rgba('#ffffff', 0.6);
-    g.fillRect(x - s, y - 0.4, s * 2, 0.8);
-    g.fillRect(x - 0.4, y - s, 0.8, s * 2);
+  g.putImageData(img, 0, 0);
+  // sparks of light where facets catch the sun
+  for (let i = 0; i < 70; i++) {
+    const x = r() ** 1.3 * DSW * 0.85;
+    const y = DSH * (0.12 + r() * 0.76);
+    const sz = (2 + r() * 4) * (1 - x / DSW);
+    g.fillStyle = rgba('#ffffff', 0.75);
+    g.fillRect(x - sz, y - 0.5, sz * 2, 1);
+    g.fillRect(x - 0.5, y - sz, 1, sz * 2);
   }
-  // further off the deck pales into the air
-  const ag = g.createLinearGradient(0, 0, DSW, 0);
-  ag.addColorStop(0, 'rgba(230,238,250,0)');
-  ag.addColorStop(0.5, 'rgba(230,238,250,0.08)');
-  ag.addColorStop(1, 'rgba(230,238,250,0.4)');
-  g.fillStyle = ag;
-  g.fillRect(0, 0, DSW, DSH);
   deckCache = c;
   return c;
 }
 
-/** The slab's edge under the deck: a lit arris, then the spectrum refracted back the other way, darker and deeper,
- * facets cut down it, a dark keel. */
+/** The causeway's side face under its near kerb, painted flat: a lit arris, then the glass's depth, the spectrum
+ * refracted through it richer and darker than on the deck, light caught in its facets, a dark keel. */
 let fasciaCache: HTMLCanvasElement | null = null;
 function fasciaStrip(): HTMLCanvasElement {
   if (fasciaCache) return fasciaCache;
-  const FH = 24;
-  const r = rng(hashStr('bf:fascia'));
-  const [c, g] = makeCanvas(DSW, FH);
-  const lg = g.createLinearGradient(0, 0, 0, FH);
-  lg.addColorStop(0, '#fffaf0');
-  lg.addColorStop(0.1, '#fff0d0');
-  for (let i = 0; i < SPEC.length; i++) lg.addColorStop(0.16 + (i / (SPEC.length - 1)) * 0.66, mix(SPEC[SPEC.length - 1 - i], '#24165a', 0.5));
-  lg.addColorStop(0.9, '#1e1450');
-  lg.addColorStop(1, '#120c34');
-  g.fillStyle = lg;
-  g.fillRect(0, 0, DSW, FH);
-  // the glass's depth: light caught inside it in soft vertical veils
-  for (let i = 0; i < 40; i++) {
-    const x = r() * DSW;
-    const w = 6 + r() * 30;
-    const vg = g.createLinearGradient(x, 0, x + w, 0);
-    vg.addColorStop(0, 'rgba(255,255,255,0)');
-    vg.addColorStop(0.5, rgba('#ffffff', 0.05 + r() * 0.07));
-    vg.addColorStop(1, 'rgba(255,255,255,0)');
-    g.fillStyle = vg;
-    g.fillRect(x, FH * 0.15, w, FH * 0.7);
+  const FW = 1024;
+  const FH = 32;
+  const [c, g] = makeCanvas(FW, FH);
+  const img = g.createImageData(FW, FH);
+  const d = img.data;
+  for (let x = 0; x < FW; x++) {
+    const t = x / FW;
+    const U = G(t) * 15;
+    const air = 0.45 * t ** 1.4;
+    const lat = clamp01((0.85 - t) / 0.3);
+    for (let y = 0; y < FH; y++) {
+      const v = y / FH;
+      let cr: number;
+      let cg: number;
+      let cb: number;
+      if (v < 0.09) {
+        [cr, cg, cb] = [255, 246, 222];
+      } else if (v > 0.9) {
+        [cr, cg, cb] = [26, 18, 62];
+      } else {
+        const q = (v - 0.09) / 0.81;
+        [cr, cg, cb] = specAt(1 - q);
+        const dk = 0.12 + 0.42 * q;
+        cr = cr * (1 - dk) + 36 * dk;
+        cg = cg * (1 - dk) + 22 * dk;
+        cb = cb * (1 - dk) + 92 * dk;
+        // facets: light caught along slanting planes in the glass
+        const f = frac(U * 0.5 + q * 0.6);
+        if (f < 0.07) {
+          const kk = 0.35 * lat * (1 - f / 0.07);
+          cr += (255 - cr) * kk;
+          cg += (255 - cg) * kk;
+          cb += (255 - cb) * kk;
+        }
+      }
+      const i = (y * FW + x) * 4;
+      d[i] = cr * (1 - air) + 200 * air;
+      d[i + 1] = cg * (1 - air) + 212 * air;
+      d[i + 2] = cb * (1 - air) + 238 * air;
+      d[i + 3] = 255;
+    }
   }
-  const ag = g.createLinearGradient(0, 0, DSW, 0);
-  ag.addColorStop(0, 'rgba(220,230,248,0)');
-  ag.addColorStop(1, 'rgba(220,230,248,0.45)');
-  g.fillStyle = ag;
-  g.fillRect(0, 0, DSW, FH);
+  g.putImageData(img, 0, 0);
   fasciaCache = c;
   return c;
 }
 
-/** The bridge: its deck of light, the slab's edge under it, a bright arris along its far edge. */
+/** The bridge: the causeway's side face, its deck over it, a fine dark line under the keel and along the far kerb so
+ * it holds against the bright cloud. */
 function bridge(ctx: Ctx): void {
   mapStrip(ctx, fasciaStrip(), deckBot, fasciaH);
   mapStrip(ctx, deckStrip(), deckTop, deckW);
-  // the arrises: the far edge bright, the keel dark
   ctx.lineCap = 'round';
   const edge = (y: (t: number) => number, col: string, w: (t: number) => number, a: (t: number) => number) => {
     for (let i = 0; i < 120; i++) {
@@ -968,8 +1030,8 @@ function bridge(ctx: Ctx): void {
       ctx.stroke();
     }
   };
-  edge((t) => deckBot(t) + fasciaH(t), '#1e1446', (t) => 0.8 + (1 - t) * 1.6, (t) => 0.7 * bridgeA(t));
-  edge(deckTop, '#fffef4', (t) => 0.8 + (1 - t) * 2, (t) => 0.85 * bridgeA(t));
+  edge((t) => deckBot(t) + fasciaH(t), '#1a1040', (t) => 0.8 + (1 - t) * 2, (t) => 0.8 * bridgeA(t));
+  edge((t) => deckTop(t) - 0.5, '#3a2c70', (t) => 0.6 + (1 - t) * 1.4, (t) => 0.6 * bridgeA(t));
 }
 
 // ——— the bridge's light (added): its bloom in the air and the curtain of colour it throws down into the drop ———
@@ -978,65 +1040,64 @@ function bridgeLight(ctx: Ctx, op: GlobalCompositeOperation = 'source-over'): vo
   const box = LIGHT_BOX;
   softly(ctx, box, (g) => {
     g.globalCompositeOperation = 'lighter';
-    // the curtain: light falling through the prism, dispersed into colours that run along the bridge
-    for (let i = 0; i < 260; i++) {
-      const t = i / 260;
+    // the glow under it: light leaking out of the glass's underside, coloured, fading downward
+    for (let i = 0; i < 220; i++) {
+      const t = i / 220;
       const [x] = bz(t);
-      const [x1] = bz((i + 1) / 260);
+      const [x1] = bz((i + 1) / 220);
       const y0 = deckBot(t) + fasciaH(t) - 2;
-      const len = 50 + 190 * (1 - t) ** 1.2;
+      const len = 26 + 90 * (1 - t) ** 1.2;
       const col = specHex((t * 3.4 + 0.1) % 1);
-      const a = 0.075 * bridgeA(t) * (0.75 + 0.25 * Math.sin(t * 90));
+      const a = 0.11 * bridgeA(t);
       const lg = g.createLinearGradient(0, y0, 0, y0 + len);
       lg.addColorStop(0, rgba(col, a));
-      lg.addColorStop(0.35, rgba(col, a * 0.45));
       lg.addColorStop(1, rgba(col, 0));
       g.fillStyle = lg;
       g.fillRect(x, y0, x1 - x + 1, Math.min(len, PAR - y0));
     }
-    // its colours pooled on the cloud tops and the sea far beneath it
-    for (let i = 0; i <= 30; i++) {
-      const t = 0.04 + (i / 30) * 0.8;
-      const [x] = bz(t);
-      const y = Math.min(PAR - 30, deckBot(t) + 70 + 150 * (1 - t));
-      const rad = 30 + 70 * (1 - t);
-      const col = specHex((t * 3.4 + 0.1) % 1);
+    // its light spilled on the cloud tops far beneath it
+    for (let i = 0; i <= 12; i++) {
+      const t = (i / 12) * 0.85 + Math.sin(i * 7.3) * 0.02;
+      const [x, by] = bz(t);
+      const y = Math.min(PAR - 22, by + 60 + 130 * (1 - t));
+      const rad = 34 + 80 * (1 - t);
+      const col = specHex((t * 2.6 + 0.3) % 1);
       g.save();
-      g.translate(x + 16, y);
-      g.scale(1.6, 0.4);
+      g.translate(x + 24, y);
+      g.scale(1.7, 0.36);
       const rg = g.createRadialGradient(0, 0, 0, 0, 0, rad);
-      rg.addColorStop(0, rgba(col, 0.07 * bridgeA(t)));
+      rg.addColorStop(0, rgba(col, 0.12 * bridgeA(t)));
+      rg.addColorStop(0.5, rgba(col, 0.04 * bridgeA(t)));
       rg.addColorStop(1, rgba(col, 0));
       g.fillStyle = rg;
       g.fillRect(-rad, -rad, rad * 2, rad * 2);
       g.restore();
     }
-    // the glow along its edges
-    for (let i = 0; i <= 80; i++) {
-      const t = i / 80;
-      const [x] = bz(t);
-      for (const [y, a] of [[deckTop(t), 0.06], [deckBot(t) + fasciaH(t), 0.035]] as const) {
-        const rad = 8 + 26 * (1 - t);
-        const rg = g.createRadialGradient(x, y, 0, x, y, rad);
-        rg.addColorStop(0, rgba('#fff6e4', a * bridgeA(t)));
-        rg.addColorStop(1, 'rgba(255,246,228,0)');
-        g.fillStyle = rg;
-        g.fillRect(x - rad, y - rad, rad * 2, rad * 2);
-      }
+    // and pooled on the cloud deck under the near half of it
+    for (const [x, y, rad, ci] of [[560, 676, 120, 0.85], [700, 668, 140, 0.6], [850, 662, 140, 0.35], [1000, 656, 120, 0.15]] as const) {
+      g.save();
+      g.translate(x, y);
+      g.scale(1.9, 0.3);
+      const rg = g.createRadialGradient(0, 0, 0, 0, 0, rad);
+      rg.addColorStop(0, rgba(specHex(ci), 0.2));
+      rg.addColorStop(1, rgba(specHex(ci), 0));
+      g.fillStyle = rg;
+      g.fillRect(-rad, -rad, rad * 2, rad * 2);
+      g.restore();
     }
-    // the bloom round the deck
-    for (let i = 0; i <= 40; i++) {
-      const t = i / 40;
+    // a soft bloom over the deck, and the glow along its kerbs
+    for (let i = 0; i <= 60; i++) {
+      const t = i / 60;
       const [x, y] = bz(t);
-      const rad = 30 + 70 * (1 - t);
+      const rad = 20 + 60 * (1 - t);
       const rg = g.createRadialGradient(x, y, 0, x, y, rad);
-      rg.addColorStop(0, rgba('#fff4dc', 0.035 * bridgeA(t)));
+      rg.addColorStop(0, rgba('#fff4dc', 0.018 * bridgeA(t)));
       rg.addColorStop(1, 'rgba(255,244,220,0)');
       g.fillStyle = rg;
       g.fillRect(x - rad, y - rad, rad * 2, rad * 2);
     }
-    // where it springs from the abutment, and where it lands in the gate
-    for (const [x, y, rad, a] of [[BF.head.x1 + 6, 570, 70, 0.32], [BF.gate.x, BF.gate.y - 4, 22, 0.25]] as const) {
+    // where it springs from the bridge-head, and where it lands in the gate
+    for (const [x, y, rad, a] of [[bz(0)[0] + 10, bz(0)[1], 70, 0.12], [BF.gate.x, BF.gate.y - 4, 22, 0.25]] as const) {
       const rg = g.createRadialGradient(x, y, 0, x, y, rad);
       rg.addColorStop(0, rgba('#fff8e8', a));
       rg.addColorStop(1, 'rgba(255,248,232,0)');
@@ -1081,12 +1142,12 @@ function causticStrip(ph: number): HTMLCanvasElement {
 }
 
 /** The deck's box (for the caustic frames). */
-const DECK_BOX = { x: 400, y: 360, w: 920, h: 280 };
+const DECK_BOX = { x: 420, y: 400, w: 960, h: 260 };
 function causticFrame(c: Ctx, ph: number, res: number): void {
   c.save();
   c.scale(res, res);
   c.translate(-DECK_BOX.x, -DECK_BOX.y);
-  mapStrip(c, causticStrip(ph), deckTop, deckW, bridgeA, 400);
+  mapStrip(c, causticStrip(ph), (t) => deckTop(t) + deckW(t) * 0.08, (t) => deckW(t) * 0.84, bridgeA, 400);
   c.restore();
 }
 
@@ -1096,24 +1157,33 @@ const T = BF.tower;
 /** The shaft's left and right edges at y (a slight batter). */
 const tL = (y: number) => T.xl - (y - T.gal) * 0.018;
 const tR = (y: number) => T.xr + (y - T.gal) * 0.014;
-const SIDE = 34;
+const SIDE = 46;
 
 function tower(ctx: Ctx, r: R): void {
   // the shaft: rune-cut stone, its front face to the sun, a narrow side face turned away
   const shaft = polyPath([[tL(T.gal), T.gal], [tR(T.gal), T.gal], [tR(PAR), PAR + 2], [tL(PAR), PAR + 2]]);
-  castShadow(ctx, shaft, 16, 24, 0.25, '#1a2850');
+  castShadow(ctx, shaft, 22, 26, 0.4, '#101a44');
   within(ctx, shaft, () => {
     const box = { x: 0, y: T.gal, w: 240, h: PAR - T.gal + 4 };
-    ashlar(ctx, r, box, ['#b4b0bc', '#a6a2b2', '#bcb6c0', '#9a96aa', '#aaa4b0'], '#5c586e', { rowH: 34, minW: 46, maxW: 96, weather: 0.6, moss: '#8a9a6a', mossA: 0.3, seed: 7 });
-    // the light: warm from the upper left, falling off down and to the right
-    const lg = ctx.createLinearGradient(0, T.gal, 240, PAR);
-    lg.addColorStop(0, 'rgba(255,236,200,0.18)');
-    lg.addColorStop(0.5, 'rgba(60,50,90,0.05)');
-    lg.addColorStop(1, 'rgba(30,24,60,0.35)');
-    ctx.fillStyle = lg;
-    ctx.fillRect(box.x, box.y, box.w, box.h);
+    basalt(ctx, r, box, 7, 34);
+    // the chisel: broad shallow scallops across the blocks, shadowed above, lit along their lower lip
+    for (let y = T.gal + 14; y < PAR; y += 18 + r() * 10) {
+      for (let x = 10 + r() * 20; x < 170; x += 24 + r() * 20) {
+        const w = 18 + r() * 18;
+        ctx.strokeStyle = rgba('#080a1c', 0.16);
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.arc(x + w / 2, y - w * 0.6, w * 0.7, Math.PI * 0.3, Math.PI * 0.7);
+        ctx.stroke();
+        ctx.strokeStyle = rgba('#e8ecff', 0.12);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(x + w / 2, y - w * 0.6 + 1.6, w * 0.7, Math.PI * 0.3, Math.PI * 0.7);
+        ctx.stroke();
+      }
+    }
     // the side face, in shade, the sky's blue in it
-    ctx.fillStyle = 'rgba(34,36,74,0.62)';
+    ctx.fillStyle = 'rgba(10,12,36,0.72)';
     ctx.beginPath();
     ctx.moveTo(tR(T.gal) - SIDE, T.gal);
     ctx.lineTo(tR(T.gal) + 2, T.gal);
@@ -1134,15 +1204,20 @@ function tower(ctx: Ctx, r: R): void {
       const xa = tR(by) - SIDE - (by - T.gal) * 0.008;
       ctx.fillStyle = 'rgba(14,12,30,0.4)';
       ctx.fillRect(x0, by + 30, tR(by) - x0 + 4, 6);
-      ctx.fillStyle = '#a29eb2';
+      ctx.fillStyle = '#7c84a4';
       ctx.fillRect(x0, by, xa - x0, 30);
-      ctx.fillStyle = '#4a4864';
+      ctx.fillStyle = '#343a58';
       ctx.fillRect(xa, by, tR(by) + 4 - xa, 30);
       ctx.fillStyle = rgba('#fff4e0', 0.45);
       ctx.fillRect(x0, by, xa - x0, 2.5);
       ctx.fillStyle = 'rgba(14,12,30,0.35)';
       ctx.fillRect(x0, by + 27, tR(by) + 4 - x0, 3);
       for (let x = x0 + 8, i = 0; x < xa - 14; x += 19, i++) carvedRune(ctx, Math.floor(r() * 10), x, by + 5, 20, 0.35);
+      // rime lingering along the moulding's top in the high cold air, moss tucked under it
+      ctx.fillStyle = rgba('#f0f6ff', 0.6);
+      for (let x = x0; x < tR(by); x += 3) ctx.fillRect(x, by - 1.5 - r() * 2, 2, 2 + r() * 1.5);
+      ctx.fillStyle = rgba('#7a8a5a', 0.5);
+      for (let x = x0; x < tR(by); x += 5) if (r() < 0.5) ctx.fillRect(x, by + 35, 4, 1.5 + r() * 2.5);
       // a band of gilt bronze under it
       ctx.fillStyle = GOLD.body;
       ctx.fillRect(x0, by + 30, xa - x0, 5);
@@ -1215,7 +1290,7 @@ function lookout(ctx: Ctx, r: R): void {
     for (let k = 0; k < 3; k++) {
       const w = 22 - k * 6;
       const y = g0 + 14 + k * 9;
-      ctx.fillStyle = k === 0 ? '#aaa6b6' : k === 1 ? '#9894a8' : '#868298';
+      ctx.fillStyle = k === 0 ? '#848ca8' : k === 1 ? '#727a98' : '#626a88';
       ctx.fillRect(cx - w / 2, y, w, 9);
       ctx.fillStyle = rgba('#fff2dc', 0.4);
       ctx.fillRect(cx - w / 2, y, w, 1.6);
@@ -1230,10 +1305,10 @@ function lookout(ctx: Ctx, r: R): void {
   // the gallery's floor slab
   const slab = polyPath([[x0, g0 - 2], [x1, g0 - 2], [x1, g0 + 14], [x0, g0 + 14]]);
   slab(ctx);
-  ctx.fillStyle = '#9e9aac';
+  ctx.fillStyle = '#7c84a2';
   ctx.fill();
   within(ctx, slab, () => {
-    surface(ctx, r, { x: x0, y: g0 - 2, w: x1 - x0, h: 16 }, '#9e9aac', { over: true, vary: 0.3, cells: 3, grain: 0.3, grainKind: 'stone', seed: 21 });
+    surface(ctx, r, { x: x0, y: g0 - 2, w: x1 - x0, h: 16 }, '#7c84a2', { over: true, vary: 0.3, cells: 3, grain: 0.3, grainKind: 'stone', seed: 21 });
     ctx.fillStyle = rgba('#fff4e0', 0.5);
     ctx.fillRect(x0, g0 - 2, x1 - x0, 3);
     for (let x = x0 + 8, i = 0; x < x1 - 10; x += 14, i++) carvedRune(ctx, i * 5, x, g0 + 2, 10, 0.25, 0.7);
@@ -1277,6 +1352,7 @@ function lookout(ctx: Ctx, r: R): void {
   rg.addColorStop(1, '#5a3e24');
   ctx.fillStyle = rg;
   ctx.fill();
+  within(ctx, rail, () => woodGrain(ctx, r, { x: x0, y: g0 - 36, w: x1 - x0, h: 12 }, '#8a643c', false, 1));
   ctx.strokeStyle = rgba('#2a180c', 0.6);
   ctx.lineWidth = 1.2;
   ctx.beginPath();
@@ -1301,6 +1377,10 @@ function lookout(ctx: Ctx, r: R): void {
     pg.addColorStop(1, '#3a2614');
     ctx.fillStyle = pg;
     ctx.fill();
+    within(ctx, pp, () => {
+      woodGrain(ctx, r, { x, y: T.eaves, w: 12, h: g0 - T.eaves }, '#7a5634', true, 1);
+      woodGrain(ctx, r, { x, y: T.eaves, w: 12, h: g0 - T.eaves }, '#5a3a20', true, 1);
+    });
     ctx.strokeStyle = INK;
     ctx.lineWidth = 1.6;
     ctx.stroke();
@@ -1359,6 +1439,7 @@ function roof(ctx: Ctx, r: R): void {
   ctx.fill();
   within(ctx, gable, () => {
     surface(ctx, r, { x: ex0, y: T.peak, w: ex1 - ex0, h: e - T.peak }, '#9a7a58', { over: true, vary: 0.4, cells: 3, strokes: 1, strokeAng: Math.PI / 2, strokeLen: 60, strokeW: 3, grain: 0.3, grainKind: 'wood', seed: 23 });
+    woodGrain(ctx, r, { x: ex0, y: T.peak, w: ex1 - ex0, h: e - T.peak }, '#8a6a48', true, 1);
     for (let x = ex0 + 10; x < ex1; x += 13) {
       ctx.fillStyle = 'rgba(30,18,10,0.45)';
       ctx.fillRect(x, T.peak, 1.6, e - T.peak);
@@ -1473,6 +1554,7 @@ function beam(ctx: Ctx): void {
   ctx.fillStyle = g;
   ctx.fill();
   within(ctx, bp, () => {
+    woodGrain(ctx, rng(hashStr('bf:beam')), { x: x0 - 6, y: y - 8, w: x1 - x0 + 14, h: 20 }, '#8a6238', false, 1);
     ctx.strokeStyle = rgba('#2a180a', 0.35);
     ctx.lineWidth = 1;
     for (let k = 0; k < 4; k++) {
@@ -1648,136 +1730,184 @@ function horn(ctx: Ctx): void {
 // ——— the abutment ———
 
 function abutment(ctx: Ctx, r: R): void {
-  const { x0, x1, top } = BF.abut;
-  const endW = 18;
-  // the top: a dressed walkway sloping a little up to where the light begins
-  const topP = polyPath([[x0, top + 2], [x1 - 6, top - 8], [x1 + endW - 6, top - 4], [x0 + 20, top + 10]]);
-  const front = polyPath([[x0, top + 2], [x0 + 20, top + 10], [x1 + endW - 6, top - 4], [x1 + endW - 6, PAR + 2], [x0, PAR + 2]]);
-  castShadow(ctx, front, 14, 20, 0.25, '#14204a');
+  const { x0, x1 } = BF.abut;
+  const far = (x: number) => lerp(BF.abut.farY0, deckTop(0) + 2, (x - x0) / (x1 - x0));
+  const near = (x: number) => lerp(BF.abut.nearY0, deckBot(0) - 1, (x - x0) / (x1 - x0));
+  const topP = polyPath([[x0, far(x0)], [x1, far(x1)], [x1, near(x1)], [x0, near(x0)]]);
+  const front = polyPath([[x0, near(x0)], [x1, near(x1)], [x1 + 4, PAR + 2], [x0, PAR + 2]]);
+  // the front face: basalt ashlar, lit from the upper left
   front(ctx);
-  ctx.fillStyle = DAY.body;
+  ctx.fillStyle = STONE.body;
   ctx.fill();
   within(ctx, front, () => {
-    ashlar(ctx, r, { x: x0, y: top - 10, w: x1 + endW - x0, h: PAR - top + 14 }, ['#aaa6b6', '#9e9aae', '#b2acba', '#9692a8'], '#58546c', { rowH: 30, minW: 50, maxW: 110, weather: 0.6, moss: '#8a9a6a', mossA: 0.35, seed: 31 });
-    const lg = ctx.createLinearGradient(x0, top, x1, PAR);
-    lg.addColorStop(0, 'rgba(255,236,200,0.14)');
-    lg.addColorStop(1, 'rgba(30,24,64,0.3)');
-    ctx.fillStyle = lg;
-    ctx.fillRect(x0, top - 10, x1 + endW - x0, PAR - top + 14);
-    // its end face, turned from the sun: the bridge's colours bounced up into it
-    ctx.fillStyle = 'rgba(36,34,80,0.55)';
-    ctx.fillRect(x1 - 8, top - 10, endW + 4, PAR - top + 14);
-    const bg = ctx.createLinearGradient(0, top, 0, top + 90);
-    bg.addColorStop(0, 'rgba(255,210,150,0.3)');
-    bg.addColorStop(0.5, 'rgba(160,120,255,0.12)');
-    bg.addColorStop(1, 'rgba(160,120,255,0)');
+    const box = { x: x0, y: near(x1) - 4, w: x1 - x0 + 6, h: PAR - near(x1) + 8 };
+    basalt(ctx, r, box, 31);
+    // a rune frieze along it
+    const fy = near(x0) + 8;
+    ctx.fillStyle = 'rgba(8,10,24,0.35)';
+    ctx.fillRect(x0, fy, x1 - x0, 26);
+    ctx.fillStyle = rgba('#dfe4f4', 0.3);
+    ctx.fillRect(x0, fy + 25, x1 - x0, 1.6);
+    for (let x = x0 + 12; x < x1 - 16; x += 20) carvedRune(ctx, Math.floor(r() * 10), x, fy + 4, 19, 0.5);
+    // the causeway's colours bounced into its end
+    const bg = ctx.createLinearGradient(x1 - 40, 0, x1, 0);
+    bg.addColorStop(0, 'rgba(255,220,170,0)');
+    bg.addColorStop(1, 'rgba(255,220,170,0.25)');
     ctx.fillStyle = bg;
-    ctx.fillRect(x1 - 8, top - 10, endW + 4, 100);
-    // a rune frieze along its face
-    ctx.fillStyle = 'rgba(20,16,40,0.3)';
-    ctx.fillRect(x0, top + 30, x1 - 8 - x0, 32);
-    ctx.fillStyle = rgba('#fff2dc', 0.35);
-    ctx.fillRect(x0, top + 61, x1 - 8 - x0, 2);
-    for (let x = x0 + 14, i = 0; x < x1 - 24; x += 22, i++) carvedRune(ctx, i * 7 + 2, x, top + 34, 24, 0.4);
-    for (let k = 0; k < 6; k++) streaks(ctx, r, x0 + r() * (x1 - x0 - 40), top + 64, 30, 30 + r() * 40, '#1a1428', 0.2, 3);
-    vfill(ctx, x0, PAR - 60, x1 + endW - x0, 62, [[0, 'rgba(20,16,40,0)'], [0.6, 'rgba(20,16,40,0.25)'], [1, 'rgba(12,10,28,0.6)']]);
+    ctx.fillRect(x1 - 40, near(x1), 46, PAR - near(x1));
+    vfill(ctx, x0, PAR - 40, x1 - x0 + 6, 42, [[0, 'rgba(8,10,24,0)'], [1, 'rgba(8,10,24,0.6)']]);
   });
   front(ctx);
   ctx.strokeStyle = INK;
   ctx.lineWidth = 2.6;
   ctx.stroke();
-  // the walkway's top, lit, a gilt sill where the bridge's light begins
+  // the walkway: dressed flags seen from above, a gilt inlay running out along it into the light
   topP(ctx);
-  const tg = ctx.createLinearGradient(x0, 0, x1, 0);
-  tg.addColorStop(0, '#d4d0d8');
-  tg.addColorStop(1, '#f4ecdc');
-  ctx.fillStyle = tg;
+  ctx.fillStyle = '#9aa0bc';
   ctx.fill();
+  within(ctx, topP, () => {
+    const box = { x: x0, y: far(x1) - 2, w: x1 - x0, h: near(x0) - far(x1) + 4 };
+    const tg = ctx.createLinearGradient(x0, 0, x1, 0);
+    tg.addColorStop(0, '#5a6282');
+    tg.addColorStop(0.6, '#7880a0');
+    tg.addColorStop(1, '#a4a6c0');
+    ctx.fillStyle = tg;
+    ctx.fillRect(box.x, box.y, box.w, box.h);
+    surface(ctx, r, box, '#7880a0', { over: true, vary: 0.35, cells: 3, mottle: 0.3, strokes: 0, grain: 0.35, grainKind: 'speckle', seed: 33 });
+    // (the joints run back into the picture: towards the vanishing point)
+    for (let xn = x0 + 10; xn < x1 + 60; xn += 44) {
+      const yn = near(xn);
+      const k = (yn - far(xn)) / (yn - 300);
+      const xf = xn + (960 - xn) * k;
+      for (const [dx, col, w] of [[0, 'rgba(10,12,30,0.55)', 1.8], [2, 'rgba(220,226,250,0.22)', 1]] as const) {
+        ctx.strokeStyle = col;
+        ctx.lineWidth = w;
+        ctx.beginPath();
+        ctx.moveTo(xn + dx, yn);
+        ctx.lineTo(xf + dx, far(xf));
+        ctx.stroke();
+      }
+    }
+    for (const u of [0.33, 0.66]) {
+      ctx.strokeStyle = 'rgba(16,18,40,0.3)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(x0, lerp(far(x0), near(x0), u));
+      ctx.lineTo(x1, lerp(far(x1), near(x1), u));
+      ctx.stroke();
+    }
+    // each flag its own stone
+    for (let xn = x0 + 10; xn < x1; xn += 44) {
+      for (const [u0, u1] of [[0, 0.33], [0.33, 0.66], [0.66, 1]] as const) {
+        ctx.fillStyle = rgba(r() < 0.5 ? '#9aa2c4' : '#3a4060', 0.12 + r() * 0.14);
+        ctx.beginPath();
+        ctx.moveTo(xn, lerp(far(xn), near(xn), u0));
+        ctx.lineTo(xn + 44, lerp(far(xn + 44), near(xn + 44), u0));
+        ctx.lineTo(xn + 44, lerp(far(xn + 44), near(xn + 44), u1));
+        ctx.lineTo(xn, lerp(far(xn), near(xn), u1));
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+    // the gilt inlay down its middle
+    ctx.strokeStyle = GOLD.body;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(x0, lerp(far(x0), near(x0), 0.5));
+    ctx.lineTo(x1, lerp(far(x1), near(x1), 0.5));
+    ctx.stroke();
+    ctx.strokeStyle = rgba(GOLD.lit, 0.9);
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(x0, lerp(far(x0), near(x0), 0.5) - 1.5);
+    ctx.lineTo(x1, lerp(far(x1), near(x1), 0.5) - 1.5);
+    ctx.stroke();
+    // the tower's shadow thrown across it, down and to the right
+    ctx.fillStyle = 'rgba(14,16,44,0.45)';
+    ctx.beginPath();
+    ctx.moveTo(x0 - 4, far(x0) - 4);
+    ctx.lineTo(x0 + 34, far(x0) - 4);
+    ctx.lineTo(x0 + 80, near(x0) + 4);
+    ctx.lineTo(x0 - 4, near(x0) + 4);
+    ctx.closePath();
+    ctx.fill();
+    // the causeway's light washing over its far end
+    const lg = ctx.createLinearGradient(x1 - 90, 0, x1, 0);
+    lg.addColorStop(0, 'rgba(255,240,210,0)');
+    lg.addColorStop(1, 'rgba(255,240,210,0.4)');
+    ctx.fillStyle = lg;
+    ctx.fillRect(x1 - 90, box.y, 90, box.h);
+  });
+  topP(ctx);
   ctx.strokeStyle = INK;
   ctx.lineWidth = 2;
   ctx.stroke();
-  const sill = polyPath([[x1 - 14, top - 7], [x1 + endW - 6, top - 4], [x1 + endW - 6, top + 4], [x1 - 14, top + 2]]);
-  sill(ctx);
-  ctx.fillStyle = GOLD.body;
-  ctx.fill();
-  ctx.fillStyle = rgba(GOLD.lit, 0.9);
-  ctx.fillRect(x1 - 14, top - 7, endW + 8, 2);
-  sill(ctx);
-  ctx.strokeStyle = INK;
-  ctx.lineWidth = 1.6;
-  ctx.stroke();
-  bridgeHead(ctx, r);
+  ctx.fillStyle = rgba('#f4f0ff', 0.5);
+  ctx.fillRect(x0, near(x0) - 1, x1 - x0, 1.4);
+  // the bridge-head: a gilt-capped post of the basalt either side of where the light begins
+  headPost(ctx, r, x1 - 14, far(x1) + 1, 18, 62);
+  headPost(ctx, r, x1 - 20, near(x1) + 2, 28, 96);
 }
 
-/** The bridge-head: a block of the rune-cut stone on the abutment's end, the bridge springing out of a lit, gilt-lined
- * notch in its end face. */
-function bridgeHead(ctx: Ctx, r: R): void {
-  const { x0, x1, top } = BF.head;
-  const base = BF.abut.top - 4;
-  const endW = 16;
-  const front = polyPath([[x0, top + 8], [x1, top], [x1, base], [x0, base + 4]]);
-  const end = polyPath([[x1, top], [x1 + endW, top + 4], [x1 + endW, base + 2], [x1, base]]);
-  const topP = polyPath([[x0, top + 8], [x0 + 12, top + 2], [x1 + endW - 2, top + 3], [x1, top]]);
-  castShadow(ctx, front, 10, 14, 0.3, '#14204a');
-  front(ctx);
-  ctx.fillStyle = '#a6a2b4';
+/** A rune-cut post at the bridge-head: basalt, lit on its left, a gilt cap with a ball finial, a rune glowing in it. */
+function headPost(ctx: Ctx, r: R, x: number, base: number, w: number, h: number): void {
+  const p = polyPath([[x - w / 2, base], [x - w / 2, base - h], [x + w / 2, base - h], [x + w / 2, base]]);
+  castShadow(ctx, p, 8, 10, 0.3, '#14204a');
+  p(ctx);
+  const g = ctx.createLinearGradient(x - w / 2, 0, x + w / 2, 0);
+  g.addColorStop(0, STONE.lit);
+  g.addColorStop(0.55, STONE.body);
+  g.addColorStop(1, STONE.deep);
+  ctx.fillStyle = g;
   ctx.fill();
-  within(ctx, front, () => {
-    const box = { x: x0, y: top, w: x1 - x0, h: base - top + 6 };
-    ashlar(ctx, r, box, ['#b4b0bc', '#a8a4b4', '#bab4c2'], '#5c586e', { rowH: 30, minW: 40, maxW: 70, weather: 0.5, seed: 41 });
-    const lg = ctx.createLinearGradient(x0, top, x1, base);
-    lg.addColorStop(0, 'rgba(255,236,200,0.16)');
-    lg.addColorStop(1, 'rgba(30,24,64,0.28)');
-    ctx.fillStyle = lg;
-    ctx.fillRect(box.x, box.y, box.w, box.h);
-    // one big rune cut in its face, its inlay alight
-    carvedRune(ctx, 4, x0 + 24, top + 22, 34, 0.7);
-    vfill(ctx, x0, base - 20, x1 - x0, 24, [[0, 'rgba(14,10,30,0)'], [1, 'rgba(14,10,30,0.4)']]);
+  within(ctx, p, () => {
+    grain(ctx, { x: x - w / 2, y: base - h, w, h }, 'speckle', 0.35, 1);
+    carvedRune(ctx, 4, x - w * 0.22, base - h * 0.72, h * 0.32, 0.8);
+    // the causeway's light on its right side
+    ctx.fillStyle = 'rgba(255,236,200,0.35)';
+    ctx.fillRect(x + w / 2 - 3, base - h, 3, h);
   });
-  front(ctx);
-  ctx.strokeStyle = INK;
-  ctx.lineWidth = 2.4;
-  ctx.stroke();
-  // the end face: in shade, washed with the bridge's colours; the notch the light pours out of
-  end(ctx);
-  const eg = ctx.createLinearGradient(0, top, 0, base);
-  eg.addColorStop(0, '#5a5478');
-  eg.addColorStop(1, '#3a3458');
-  ctx.fillStyle = eg;
-  ctx.fill();
-  within(ctx, end, () => {
-    const d0 = deckTop(0) - 3;
-    const d1 = deckBot(0) + fasciaH(0) * 0.6;
-    for (let i = 0; i < SPEC.length; i++) {
-      ctx.fillStyle = rgba(SPEC[i], 0.35);
-      ctx.fillRect(x1, lerp(d0, d1, i / SPEC.length), endW + 2, (d1 - d0) / SPEC.length + 1);
-    }
-    ctx.fillStyle = rgba('#fff8e8', 0.55);
-    ctx.fillRect(x1, d0 + (d1 - d0) * 0.35, endW + 2, (d1 - d0) * 0.2);
-    // gilt lining the notch
-    ctx.fillStyle = GOLD.lit;
-    ctx.fillRect(x1, d0 - 4, endW + 2, 3);
-    ctx.fillStyle = GOLD.shade;
-    ctx.fillRect(x1, d1 + 1, endW + 2, 3);
-  });
-  end(ctx);
+  p(ctx);
   ctx.strokeStyle = INK;
   ctx.lineWidth = 2;
   ctx.stroke();
-  topP(ctx);
-  ctx.fillStyle = '#e8e2e4';
-  ctx.fill();
+  // the cap
+  const cg = ctx.createLinearGradient(x - w, 0, x + w, 0);
+  cg.addColorStop(0, GOLD.lit);
+  cg.addColorStop(0.6, GOLD.body);
+  cg.addColorStop(1, GOLD.shade);
+  ctx.fillStyle = cg;
+  ctx.fillRect(x - w / 2 - 3, base - h - 6, w + 6, 7);
   ctx.strokeStyle = INK;
-  ctx.lineWidth = 1.8;
+  ctx.lineWidth = 1.4;
+  ctx.strokeRect(x - w / 2 - 3, base - h - 6, w + 6, 7);
+  ctx.beginPath();
+  ctx.arc(x, base - h - 6 - w * 0.32, w * 0.32, 0, P2);
+  ctx.fillStyle = cg;
+  ctx.fill();
   ctx.stroke();
-  // a gilt cap band along its top
-  ctx.fillStyle = GOLD.body;
-  ctx.fillRect(x0, top + 9, x1 - x0, 4);
-  ctx.fillStyle = rgba(GOLD.lit, 0.9);
-  ctx.fillRect(x0, top + 9, x1 - x0, 1.3);
-  // the bridge's light washing up its front edge and the walkway beside it
-  ctx.fillStyle = 'rgba(255,236,200,0.3)';
-  ctx.fillRect(x1 - 5, top + 2, 5, base - top - 4);
+  ctx.fillStyle = rgba('#fffaf0', 0.8);
+  ctx.beginPath();
+  ctx.arc(x - w * 0.1, base - h - 6 - w * 0.42, w * 0.08, 0, P2);
+  ctx.fill();
+  void r;
+}
+
+/** Dressed basalt (the giants' rune-cut stone of Jotunheim and Thrym's Hall) in the noon sun: courses of blocks, each
+ * its own stone, lit on top and left and shadowed under, chisel-tooled, the light falling off down and to the right,
+ * lichen low, rime lingering in the shaded joints, weather streaks. */
+function basalt(ctx: Ctx, r: R, box: { x: number; y: number; w: number; h: number }, seed: number, rowH = 30): void {
+  ashlar(ctx, r, box, ['#7880a0', '#6c7494', '#808aa8', '#646c8c', '#727a9a'], '#22263c', { rowH, minW: 40, maxW: 96, weather: 0.7, moss: '#8a9a70', mossA: 0.4, seed });
+  const lg = ctx.createLinearGradient(box.x, box.y, box.x + box.w * 0.9, box.y + box.h);
+  lg.addColorStop(0, 'rgba(255,232,196,0.2)');
+  lg.addColorStop(0.45, 'rgba(60,60,100,0)');
+  lg.addColorStop(1, 'rgba(8,10,30,0.42)');
+  ctx.fillStyle = lg;
+  ctx.fillRect(box.x, box.y, box.w, box.h);
+  // rime in the shaded joints, lichen crusts low down
+  lay(ctx, noiseMask(18, seed + 5, { kind: 'web', cover: 0.3, soft: 0.1, col: '#e8f0ff', w: 64, h: 160 }), box, 0.12);
+  lay(ctx, noiseMask(24, seed + 7, { cover: 0.16, soft: 0.06, col: '#a8b48a', w: 96, h: 200 }), { x: box.x, y: box.y + box.h * 0.5, w: box.w, h: box.h * 0.5 }, 0.22);
+  for (let k = 0; k < Math.round(box.w / 40); k++) streaks(ctx, r, box.x + r() * box.w, box.y + r() * box.h * 0.6, 30, 30 + r() * 50, '#0a0c1e', 0.18, 3);
 }
 
 // ——— the rune stone and its fire basket ———
@@ -1796,12 +1926,13 @@ function runeStone(ctx: Ctx, r: R): void {
   within(ctx, path, () => {
     const box = { x: x0 - 10, y: top - 10, w: x1 - x0 + 20, h: PAR - top + 14 };
     const fg = ctx.createLinearGradient(x0, top, xa, PAR);
-    fg.addColorStop(0, '#c2bec8');
-    fg.addColorStop(0.5, '#948fa4');
-    fg.addColorStop(1, '#646078');
+    fg.addColorStop(0, '#9aa2c0');
+    fg.addColorStop(0.5, '#6c7494');
+    fg.addColorStop(1, '#3e4462');
     ctx.fillStyle = fg;
     ctx.fillRect(box.x, box.y, box.w, box.h);
-    surface(ctx, r, box, '#948fa4', { over: true, vary: 0.45, cells: 4, mottle: 0.45, strokes: 0.6, strokeAng: Math.PI / 2 + 0.2, strokeLen: 80, strokeW: 4, grain: 0.22, grainKind: 'speckle', seed: 51 });
+    lay(ctx, noiseMask(14, 59, { kind: 'web', cover: 0.3, soft: 0.1, col: '#e8f0ff', w: 48, h: 160 }), { x: box.x, y: box.y, w: box.w, h: box.h * 0.5 }, 0.12);
+    surface(ctx, r, box, '#6c7494', { over: true, vary: 0.45, cells: 4, mottle: 0.45, strokes: 0.6, strokeAng: Math.PI / 2 + 0.2, strokeLen: 80, strokeW: 4, grain: 0.22, grainKind: 'speckle', seed: 51 });
     // the chisel's scallops
     for (let y = top + 10; y < PAR; y += 20 + r() * 14) {
       for (let x = x0 + r() * 20 - 14; x < xa; x += 26 + r() * 24) {
@@ -1852,8 +1983,8 @@ function runeStone(ctx: Ctx, r: R): void {
     for (let i = 0; i < 3; i++) crack(ctx, r, x0 + 20 + r() * 80, top + 40 + r() * 180, Math.PI / 2 + (r() - 0.5), 30 + r() * 60, { col: '#120e20', lip: '#efe8ee', w: 1.4, a: 0.6, branch: 0.3 });
     // the side face, in shade
     const sg = ctx.createLinearGradient(xa, 0, x1 + 6, 0);
-    sg.addColorStop(0, '#3e3c5a');
-    sg.addColorStop(1, '#24223e');
+    sg.addColorStop(0, '#262c48');
+    sg.addColorStop(1, '#141830');
     ctx.fillStyle = sg;
     ctx.fillRect(xa, top - 10, x1 + 10 - xa, PAR - top + 14);
     lay(ctx, noiseMask(6, 57, { cover: 0.3, soft: 0.3, col: '#5a5878', w: 32, h: 160 }), { x: xa, y: top, w: side + 10, h: PAR - top }, 0.3);
@@ -2018,7 +2149,7 @@ function bannerFrame(c: Ctx, ph: number, gust = 1): void {
 }
 
 /** The pennant on the tower's finial: a long red tongue with a gilt border, streaming out on the wind. */
-const PEN = { w: 280, h: 96, root: 40, n: 12 };
+const PEN = { w: 280, h: 96, root: 40, n: 8 };
 /** The pennant's root on the finial pole (kept clear of the top-left corner's HUD). */
 const PEN_Y = BF.tower.peak - 12;
 function pennantFrame(out: Ctx, ph: number): void {
@@ -2162,7 +2293,7 @@ function table(ctx: Ctx, r: R): void {
     const z1 = rows[j + 1];
     const off = j % 2 ? 0.55 : 0;
     for (let X = -3.2 + off; X < 3.2; X += 1.1) {
-      ctx.fillStyle = rgba(r() < 0.5 ? '#787488' : '#3e3a50', 0.08 + r() * 0.1);
+      ctx.fillStyle = rgba(r() < 0.5 ? '#6e7088' : '#2e2c40', 0.12 + r() * 0.14);
       ctx.beginPath();
       ctx.moveTo(xAt(X, z0), yAt(z0));
       ctx.lineTo(xAt(X + 1.1, z0), yAt(z0));
@@ -2170,12 +2301,18 @@ function table(ctx: Ctx, r: R): void {
       ctx.lineTo(xAt(X, z1), yAt(z1));
       ctx.closePath();
       ctx.fill();
-      // the joint along its left edge
-      ctx.strokeStyle = rgba('#12101e', 0.4);
-      ctx.lineWidth = 1.6;
+      // the joint along its left edge, a lit lip beside it
+      ctx.strokeStyle = rgba('#0c0a18', 0.5);
+      ctx.lineWidth = 1.8;
       ctx.beginPath();
       ctx.moveTo(xAt(X, z0), yAt(z0));
       ctx.lineTo(xAt(X, z1), yAt(z1));
+      ctx.stroke();
+      ctx.strokeStyle = rgba('#c8cce0', 0.12);
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(xAt(X, z0) + 2, yAt(z0));
+      ctx.lineTo(xAt(X, z1) + 2.5, yAt(z1));
       ctx.stroke();
     }
     const y = yAt(z1);
@@ -2184,7 +2321,12 @@ function table(ctx: Ctx, r: R): void {
     ctx.fillStyle = rgba('#e4dee8', 0.16);
     ctx.fillRect(0, y + 1, W, 1.2);
   }
-  // worn smooth along the middle where feet have crossed it, the sun's sheen on the polish from the left
+  // the stone's own grain: feldspar flecks and darker pitting through it, finer into the distance; a few old cracks
+  grain(ctx, box, 'speckle', 0.55, 1.1);
+  for (let i = 0; i < 9; i++) crack(ctx, r, r() * W, TY + 30 + r() * (f - TY - 60), (r() - 0.5) * 0.8, 40 + r() * 90, { col: '#0c0a18', lip: '#9a98b4', w: 1.2, a: 0.45, branch: 0.3 });
+  grain(ctx, { x: 0, y: TY + 60, w: W, h: f - TY - 60 }, 'stone', 0.1, 0.6);
+  // the sky's light on the far flags (cool), the sun's sheen on the polish from the left
+  vfill(ctx, 0, TY, W, 60, [[0, 'rgba(160,186,236,0.16)'], [1, 'rgba(160,186,236,0)']]);
   lightPool(ctx, 420, TY + 110, 820, 140, '#fff0d8', 0.07);
   // worn: the flags' arrises chipped and rounded along the joints, pale where they're knocked
   for (let i = 0; i < 70; i++) {
@@ -2195,7 +2337,7 @@ function table(ctx: Ctx, r: R): void {
     const y = yAt(z);
     const sc = (1210 / z) / 460;
     const w = (6 + r() * 16) * sc;
-    ctx.fillStyle = rgba('#8a8698', 0.35);
+    ctx.fillStyle = rgba('#8a8698', 0.5);
     ctx.beginPath();
     ctx.ellipse(x, y + 1.5 * sc, w, 2 * sc, 0, 0, P2);
     ctx.fill();
@@ -2351,12 +2493,12 @@ function rainTile(c: Ctx, s: number): void {
 // the table stay in the base.
 
 const SKY_BOX = { x: 0, y: 0, w: W, h: HOR };
-const BRIDGE_BOX = { x: 396, y: 360, w: 940, h: 304 };
+const BRIDGE_BOX = { x: 420, y: 400, w: 980, h: PAR - 400 };
 const LIGHT_BOX = { x: 360, y: 330, w: 1080, h: PAR - 330 };
 const TOWER_BOX = { x: 0, y: 0, w: 252, h: PAR };
 const BEAM_BOX = { x: 186, y: BF.beam.y - 14, w: 186, h: 100 };
 const HORN_BOX = { x: 196, y: BF.beam.y + 6, w: 214, h: 128 };
-const ABUT_BOX = { x: 170, y: BF.head.top - 30, w: 320, h: PAR - BF.head.top + 30 };
+const ABUT_BOX = { x: 170, y: 480, w: 320, h: PAR - 480 };
 const STONE_BOX = { x: BF.banner.x - 20, y: BF.basket.y - 30, w: W - BF.banner.x + 20, h: PAR - BF.basket.y + 30 };
 const parCut = (draw: (c: Ctx, r: R) => void) => (c: Ctx, r: R) => {
   c.beginPath();
@@ -2378,25 +2520,25 @@ export const BIFROST: SceneSpec = {
   },
   layers: [
     { id: 'sky', box: { x: 0, y: 0, w: W, h: HOR + 4 }, draw: sky },
-    { id: 'hazeSky', box: SKY_BOX, liveOnly: true, res: 0.25, draw: hazeSky },
-    { id: 'stormSky', box: SKY_BOX, liveOnly: true, res: 0.25, draw: stormSky },
-    { id: 'fireSky', box: SKY_BOX, liveOnly: true, res: 0.25, draw: (c) => fireSky(c) },
+    { id: 'hazeSky', box: SKY_BOX, liveOnly: true, res: 0.18, draw: hazeSky },
+    { id: 'stormSky', box: SKY_BOX, liveOnly: true, res: 0.18, draw: stormSky },
+    { id: 'fireSky', box: SKY_BOX, liveOnly: true, res: 0.15, draw: (c) => fireSky(c) },
     { id: 'skyLive', box: SKY_BOX, motion: 'slot', draw: () => {} },
     { id: 'sea', box: { x: 0, y: HOR, w: W, h: PAR - HOR }, draw: sea },
     { id: 'seaStorm', box: { x: 0, y: HOR, w: W, h: PAR - HOR }, liveOnly: true, res: 0.25, draw: (c) => seaStorm(c) },
     { id: 'seaFire', box: { x: 0, y: HOR, w: W, h: 150 }, liveOnly: true, res: 0.25, draw: seaFire },
     { id: 'citadel', box: CIT_BOX, draw: citadel },
     // (the citadel under the storm: the same painting, gone dark and cold, faded in over it)
-    { id: 'citadelStorm', box: CIT_BOX, liveOnly: true, res: 0.35, draw: (c) => {
+    { id: 'citadelStorm', box: CIT_BOX, liveOnly: true, res: 0.3, draw: (c) => {
       citadel(c, rng(hashStr('scene:bifrost:citadel')));
       c.globalCompositeOperation = 'source-atop';
-      c.fillStyle = 'rgba(52,58,84,0.72)';
+      c.fillStyle = 'rgba(52,58,84,0.55)';
       c.fillRect(CIT_BOX.x, CIT_BOX.y, CIT_BOX.w, CIT_BOX.h);
     } },
     { id: 'cloudSea', box: { x: 0, y: HOR - 40, w: W, h: PAR - HOR + 40 }, motion: 'slot', draw: () => {} },
     { id: 'cloudSeaStill', box: { x: 0, y: HOR - 40, w: W, h: PAR - HOR + 40 }, stillOnly: true, draw: (c) => cloudSea(c) },
     { id: 'bridge', box: BRIDGE_BOX, draw: (c) => bridge(c) },
-    { id: 'bridgeDark', box: BRIDGE_BOX, liveOnly: true, res: 0.35, draw: (c) => {
+    { id: 'bridgeDark', box: BRIDGE_BOX, liveOnly: true, res: 0.25, draw: (c) => {
       bridge(c);
       c.globalCompositeOperation = 'source-atop';
       const g = c.createLinearGradient(BRIDGE_BOX.x, 0, BRIDGE_BOX.x + BRIDGE_BOX.w, 0);
@@ -2409,7 +2551,7 @@ export const BIFROST: SceneSpec = {
     { id: 'bridgeLive', box: BRIDGE_BOX, motion: 'slot', draw: () => {} },
     { id: 'shimmerStill', box: BRIDGE_BOX, stillOnly: true, draw: (c) => {
       c.globalCompositeOperation = 'lighter';
-      c.globalAlpha = 0.6;
+      c.globalAlpha = 0.35;
       c.translate(DECK_BOX.x, DECK_BOX.y);
       causticFrame(c, 0.2, 1);
     } },
@@ -2485,19 +2627,19 @@ registerKitScene(BIFROST, (k: KitLive, wave0: number) => {
   const FLW = 640;
   const FLH = 56;
   const RF = 0.5;
-  const flKey = sheet(k, 'bf_fireline', FLW * RF, FLH * RF, 8, (c, ph) => {
+  const flKey = sheet(k, 'bf_fireline', FLW * RF, FLH * RF, 6, (c, ph) => {
     c.scale(RF, RF);
     fireLine(c, FLW, FLH, ph, 1);
   });
-  const fireLines = [0, 1, 2].map((i) => new Loop(k, flKey, 8, i * FLW - 20 * i, HOR + 3, { into: skyS, origin: [0, 1], scale: 1 / RF, add: true, fps: 7, phase: i * 2.7 }));
+  const fireLines = [0, 1, 2].map((i) => new Loop(k, flKey, 6, i * FLW - 20 * i, HOR + 3, { into: skyS, origin: [0, 1], scale: 1 / RF, add: true, fps: 7, phase: i * 2.7 }));
 
   // ——— the cloud sea, drifting far below ———
   const glints = new Parts(k, { frame: 'spark', add: true, into: cloudS, max: 40 });
   const glintRate = new Rate();
   const clouds = CLOUDS.map((c, i) => {
     const cv = cloudCanvas(c.kind);
-    const key = k.tex('bf_cloud' + c.kind, Math.ceil(cv.width / 2), Math.ceil(cv.height / 2), (g) => g.drawImage(cv, 0, 0, cv.width / 2, cv.height / 2));
-    const im = k.img(key, c.x, c.y, { into: cloudS, scale: c.s * 2, origin: [0.5, CBY(c.kind) / cv.height] });
+    const key = k.tex('bf_cloud' + c.kind, Math.ceil(cv.width * 0.4), Math.ceil(cv.height * 0.4), (g) => g.drawImage(cv, 0, 0, cv.width * 0.4, cv.height * 0.4));
+    const im = k.img(key, c.x, c.y, { into: cloudS, scale: c.s / 0.4, origin: [0.5, CBY(c.kind) / cv.height] });
     im.setData('v', c.v);
     im.setData('i', i);
     return im;
@@ -2537,7 +2679,7 @@ registerKitScene(BIFROST, (k: KitLive, wave0: number) => {
     pennantFrame(c, ph);
   });
   const pennant = new Loop(k, penKey, PEN.n, T.px - 4, PEN_Y, { into: top, origin: [0, 0.5], scale: 1 / RP, fps: 6 });
-  const RN = 1;
+  const RN = 0.8;
   const banKey = sheet(k, 'bf_banner', BNF.w * RN, BNF.h * RN, BNF.n, (c, ph) => {
     c.scale(RN, RN);
     bannerFrame(c, ph, 1);
@@ -2547,12 +2689,12 @@ registerKitScene(BIFROST, (k: KitLive, wave0: number) => {
   // ——— the watch-fire on the rune stone ———
   const BW2 = 90;
   const BH2 = 120;
-  const RW = 1;
-  const wfKey = sheet(k, 'bf_watchfire', BW2 * RW, BH2 * RW, 12, (c, ph) => {
+  const RW = 0.9;
+  const wfKey = sheet(k, 'bf_watchfire', BW2 * RW, BH2 * RW, 8, (c, ph) => {
     c.scale(RW, RW);
     fireFrame(c, BW2 / 2, BH2 - 4, BW2 * 0.8, BH2 * 0.85, ph, { tongues: 5, seed: 5 });
   });
-  const watch = new Loop(k, wfKey, 12, BF.basket.x, BF.basket.y - 8, { into: top, origin: [0.5, 1], scale: 1 / RW, fps: 11 });
+  const watch = new Loop(k, wfKey, 8, BF.basket.x, BF.basket.y - 8, { into: top, origin: [0.5, 1], scale: 1 / RW, fps: 11 });
   const watchGlow = k.glow(BF.basket.x, BF.basket.y - 30, 200, 0xff9a40, 0, { into: top });
   const embers = new Parts(k, { frame: 'ember', add: true, into: top, max: 140 });
   const emberRate = new Rate();
@@ -2563,7 +2705,7 @@ registerKitScene(BIFROST, (k: KitLive, wave0: number) => {
   const rain = k.sc.add.tileSprite(0, 0, W, TY + 4, k.tex('bf_rain', RT, RT, (c) => rainTile(c, RT))).setOrigin(0, 0).setAlpha(0);
   const rain2 = k.sc.add.tileSprite(0, 0, W, TY + 4, 'bf_rain').setOrigin(0, 0).setAlpha(0).setTileScale(1.8, 1.8);
   top.add([rain, rain2]);
-  const warm = k.wash(0xffdcaa, 0, Phaser.BlendModes.MULTIPLY, top);
+  const warm = k.wash(0xffd8c8, 0, Phaser.BlendModes.MULTIPLY, top);
   const dim = k.wash(0x6a7090, 0, Phaser.BlendModes.MULTIPLY, top);
   const ember = k.glow(960, PAR + 60, 1200, 0xff5a20, 0, { into: top, sy: 0.35 });
   const flash = k.wash(0xd8d4ff, 0, Phaser.BlendModes.ADD, top);
@@ -2653,8 +2795,8 @@ registerKitScene(BIFROST, (k: KitLive, wave0: number) => {
       }
       // the cloud sea: drifting, gold in the veil, dark under the storm, lit red by the fire
       const cr = Math.round(255 - stormK * 125 + fireK * 25);
-      const cgc = Math.round(255 - veilK * 20 - stormK * 120 - fireK * 20);
-      const cb = Math.round(255 - veilK * 55 - stormK * 100 - fireK * 30);
+      const cgc = Math.round(255 - veilK * 26 - stormK * 120 - fireK * 20);
+      const cb = Math.round(255 - veilK * 38 - stormK * 100 - fireK * 30);
       const ctint = Phaser.Display.Color.GetColor(Math.min(255, cr), Math.max(0, cgc), Math.max(0, cb));
       for (const c of clouds) {
         c.x += Number(c.getData('v')) * (0.6 + wind * 0.6) * dt * cm;
