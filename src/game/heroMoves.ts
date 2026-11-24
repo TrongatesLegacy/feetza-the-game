@@ -2094,6 +2094,18 @@ export class HeroDirector {
     return this.k.mods.crit;
   }
 
+  /** The STATS tab: the passive's multiplier on every hit (none of them looks at the foot) and the smack's own. */
+  flatDmgMult(): { all: number; smack: number } {
+    let all = 1;
+    // (a few gods' passives do look at the foot: Tyr's and Hel's. Those have no flat part to show.)
+    try {
+      all = this.passive?.dmgMult?.(this.k, undefined as unknown as Foot, 'other') ?? 1;
+    } catch {
+      all = 1;
+    }
+    return { all: Number.isFinite(all) ? all : 1, smack: this.k.mods.dmg };
+  }
+
   worldScale(): number {
     return this.k.mods.world;
   }

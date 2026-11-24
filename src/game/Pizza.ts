@@ -441,6 +441,15 @@ export class Pizza {
     this.placeFinish();
   }
 
+  /** Re-read the perk's line (perks whose text counts with the wave, like Tuna & Sweetcorn's), without a redraw. */
+  refreshPerkLine(): void {
+    if (!this.root.active || !this.perkLabel.visible) return;
+    const line = this.perkLine;
+    if (line === this.perkLabel.text) return;
+    this.perkLabel.setText(line);
+    this.fitLabel();
+  }
+
   /** Hide the perk caption (the menu screen doesn't need it). */
   hideLabel(): this {
     this.label.setVisible(false);

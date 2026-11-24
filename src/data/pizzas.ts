@@ -2,6 +2,7 @@
 
 import { meterBoostText, slamStunText, superStartText } from '../game/slamMode';
 import { CONTENT_PIZZAS } from '../content/pizzaData';
+import { tunaText } from './perkWave';
 
 export type Topping =
   | 'pepperoni'
@@ -300,7 +301,7 @@ export const ENHANCED_PERK: Record<PizzaPerk, string | (() => string)> = {
   tipsAbove: '+2 tips for every foot defeated above it',
   nearDmg: 'Smacks near it deal +15% damage',
   slowWait: 'Hovering feet slow 15% more per second',
-  wave5Tips: 'Every 5th wave: +38 tips',
+  wave5Tips: () => tunaText(true),
   fullSpeed: 'Smacks 15% faster with all slices left',
   stompMeter: 'Stomps on it charge your meter 8%',
   meatball: 'Kills above it roll a meatball (×1.5)',
