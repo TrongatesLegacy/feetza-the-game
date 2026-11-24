@@ -1486,7 +1486,8 @@ registerScene('jormungandr', {
   draw: drawEdge,
 });
 
-registerScene('surtr', {
+// (redrawn with the location kit in scene-surtr.ts; this stays for the before/after page, ?dev&stages)
+registerLegacyScene('surtr', {
   info: {
     name: 'The Burning Bridge',
     subtitle: 'Boss: SURTR THE FIRE GIANT',

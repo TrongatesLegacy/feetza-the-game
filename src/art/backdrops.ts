@@ -4890,7 +4890,10 @@ const REDRAWN = new Set<BackdropId>(['trattoria', 'beach', 'space',
   // scene-thrym.ts
   'thrym',
   // Bifröst Bridge (Stage 16, Act 8), redrawn with the location kit and painted frame animation: scene-bifrost.ts
-  'bifrost']);
+  'bifrost',
+  // Surtr the Fire Giant's arena (the Burning Bridge, Act 8), redrawn with the location kit and painted frame
+  // animation: scene-surtr.ts
+  'surtr']);
 
 // redrawn scenes keep their old info for the before/after page (their old glows and particles with their old art)
 const LEGACY_INFO: Partial<Record<BackdropId, BackdropInfo>> = {};

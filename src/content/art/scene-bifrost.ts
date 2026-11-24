@@ -69,8 +69,8 @@ export const BF = {
   /** The bridge-head: the stone block on the abutment's end the bridge springs out of. */
   head: { x0: 356, x1: 448, top: 494 },
 };
-const CDX = 70;
-const CDY = 24;
+export const CDX = 70;
+export const CDY = 24;
 
 const P2 = Math.PI * 2;
 const INK = '#14102a';
@@ -125,16 +125,16 @@ export function bzAng(t: number): number {
 }
 /** The deck's top seen from above (its width foreshortened, narrowing into the distance) and its side face's height. */
 export const deckW = (t: number) => 7 + 124 * (1 - t) ** 1.5;
-const fasciaH = (t: number) => 3 + 40 * (1 - t) ** 1.5;
+export const fasciaH = (t: number) => 3 + 40 * (1 - t) ** 1.5;
 export const deckTop = (t: number) => bz(t)[1] - deckW(t) / 2;
-const deckBot = (t: number) => bz(t)[1] + deckW(t) / 2;
+export const deckBot = (t: number) => bz(t)[1] + deckW(t) / 2;
 /** How far along the bridge t is in its own length (perspective: the far half is much longer than it looks). */
 const G = (t: number) => 1 / (1 - 0.8 * t) - 1;
 /** The bridge's fade as it lands (it ends in the gate's light). */
 const bridgeA = (t: number) => (t < 0.97 ? 1 : clamp01((1 - t) / 0.03)) * (1 - t * 0.12);
 
 /** Map a strip painted flat (its width running t0…t1 along the bridge, its height across) onto the curve. */
-function mapStrip(ctx: Ctx, strip: HTMLCanvasElement, top: (t: number) => number, h: (t: number) => number, alpha: (t: number) => number = bridgeA, N = 700): void {
+export function mapStrip(ctx: Ctx, strip: HTMLCanvasElement, top: (t: number) => number, h: (t: number) => number, alpha: (t: number) => number = bridgeA, N = 700): void {
   const sw = strip.width;
   const sh = strip.height;
   // (the slices overlap a little so no gaps show; drawn opaque on their own canvas, then faded along the bridge once,
@@ -436,16 +436,16 @@ interface CloudDef {
   /** Drift speed (px/s). */
   v: number;
 }
-const CK = [
+export const CK = [
   { w: 420, h: 100, kind: 'cumulus' as const },
   { w: 520, h: 80, kind: 'bank' as const },
   { w: 340, h: 110, kind: 'cumulus' as const },
   { w: 600, h: 70, kind: 'stratus' as const },
 ];
 /** A cloud's canvas: the cloud (its base at (CW/2, by)) and its shadow on the sea below it. */
-const CW = (i: number) => Math.ceil(CK[i].w * 1.7);
-const CH = (i: number) => Math.ceil(CK[i].h * 2.6);
-const CBY = (i: number) => Math.ceil(CK[i].h * 1.75);
+export const CW = (i: number) => Math.ceil(CK[i].w * 1.7);
+export const CH = (i: number) => Math.ceil(CK[i].h * 2.6);
+export const CBY = (i: number) => Math.ceil(CK[i].h * 1.75);
 const cloudCache = new Map<number, HTMLCanvasElement>();
 function cloudCanvas(i: number): HTMLCanvasElement {
   const hit = cloudCache.get(i);
@@ -672,7 +672,7 @@ function spire(ctx: Ctx, x: number, base: number, h: number, w: number, d = CD):
 
 /** The crag the citadel stands on, rising out of the cloud sea: its outline (top edge, left to right). */
 const CRAG: Pt[] = [[1100, 520], [1130, 490], [1160, 474], [1200, 458], [1250, 448], [1290, 440], [1352, 436], [1368, 412], [1384, 396], [1404, 386], [1418, 360], [1432, 328], [1446, 300], [1462, 268], [1490, 256], [1530, 254], [1610, 252], [1640, 252], [1662, 276], [1690, 300], [1716, 312], [1740, 340], [1762, 382], [1782, 422], [1800, 460], [1820, 500]];
-const CIT_BOX = { x: 1096 + CDX, y: 150 + CDY, w: 734, h: 380 };
+export const CIT_BOX = { x: 1096 + CDX, y: 150 + CDY, w: 734, h: 380 };
 
 function citadel(out: Ctx, r: R): void {
   // (painted on its own canvas, so its foot can melt away into the haze over the sea)
@@ -690,7 +690,7 @@ function citadel(out: Ctx, r: R): void {
   out.drawImage(cc, B.x, B.y);
 }
 
-function citadelPaint(ctx: Ctx, r: R): void {
+export function citadelPaint(ctx: Ctx, r: R): void {
   // a far peak behind the citadel, very hazy
   ctx.fillStyle = airMix('#8a96b8', 0.86, CAIR);
   ctx.beginPath();
@@ -892,7 +892,7 @@ const hash2 = (a: number, b: number) => frac(Math.sin(a * 127.1 + b * 311.7) * 4
  * up through it in soft blended bands, a bright core of light down its middle, a kerb of pale gold glass along each
  * side, paling into the air with distance. */
 let deckCache: HTMLCanvasElement | null = null;
-function deckStrip(): HTMLCanvasElement {
+export function deckStrip(): HTMLCanvasElement {
   if (deckCache) return deckCache;
   const r = rng(hashStr('bf:deck'));
   const [c, g] = makeCanvas(DSW, DSH);
@@ -963,7 +963,7 @@ function deckStrip(): HTMLCanvasElement {
 /** The causeway's side face under its near kerb, painted flat: a lit arris, then the glass's depth, the spectrum
  * refracted through it richer and darker than on the deck, light caught in its facets, a dark keel. */
 let fasciaCache: HTMLCanvasElement | null = null;
-function fasciaStrip(): HTMLCanvasElement {
+export function fasciaStrip(): HTMLCanvasElement {
   if (fasciaCache) return fasciaCache;
   const FW = 1024;
   const FH = 32;
@@ -1142,8 +1142,8 @@ function causticStrip(ph: number): HTMLCanvasElement {
 }
 
 /** The deck's box (for the caustic frames). */
-const DECK_BOX = { x: 420, y: 400, w: 960, h: 260 };
-function causticFrame(c: Ctx, ph: number, res: number): void {
+export const DECK_BOX = { x: 420, y: 400, w: 960, h: 260 };
+export function causticFrame(c: Ctx, ph: number, res: number): void {
   c.save();
   c.scale(res, res);
   c.translate(-DECK_BOX.x, -DECK_BOX.y);
@@ -1156,10 +1156,10 @@ function causticFrame(c: Ctx, ph: number, res: number): void {
 const T = BF.tower;
 /** The shaft's left and right edges at y (a slight batter). */
 const tL = (y: number) => T.xl - (y - T.gal) * 0.018;
-const tR = (y: number) => T.xr + (y - T.gal) * 0.014;
+export const tR = (y: number) => T.xr + (y - T.gal) * 0.014;
 const SIDE = 46;
 
-function tower(ctx: Ctx, r: R): void {
+export function tower(ctx: Ctx, r: R): void {
   // the shaft: rune-cut stone, its front face to the sun, a narrow side face turned away
   const shaft = polyPath([[tL(T.gal), T.gal], [tR(T.gal), T.gal], [tR(PAR), PAR + 2], [tL(PAR), PAR + 2]]);
   castShadow(ctx, shaft, 22, 26, 0.4, '#101a44');
@@ -1532,7 +1532,7 @@ function roof(ctx: Ctx, r: R): void {
 // ——— the horn and its beam ———
 
 /** The beam the horn hangs from: a timber arm out of the tower, a strut under it, iron straps. */
-function beam(ctx: Ctx): void {
+export function beam(ctx: Ctx): void {
   const { x0, x1, y } = BF.beam;
   // its shadow on the tower
   ctx.fillStyle = 'rgba(20,18,50,0.3)';
@@ -1593,7 +1593,7 @@ function hornAt(t: number): [number, number, number] {
 
 /** The great horn, hung on two chains: aurochs horn, ivory going to brown at the tip, bound with gilt bands cut with
  * runes, a gold bell rim, lit from the upper left. */
-function horn(ctx: Ctx): void {
+export function horn(ctx: Ctx): void {
   // the chains, from the beam's rings to the bands
   const [ax, ay, ar] = hornAt(0.3);
   const [bx, by, br] = hornAt(0.8);
@@ -1729,7 +1729,7 @@ function horn(ctx: Ctx): void {
 
 // ——— the abutment ———
 
-function abutment(ctx: Ctx, r: R): void {
+export function abutment(ctx: Ctx, r: R): void {
   const { x0, x1 } = BF.abut;
   const far = (x: number) => lerp(BF.abut.farY0, deckTop(0) + 2, (x - x0) / (x1 - x0));
   const near = (x: number) => lerp(BF.abut.nearY0, deckBot(0) - 1, (x - x0) / (x1 - x0));
@@ -1914,7 +1914,7 @@ function basalt(ctx: Ctx, r: R, box: { x: number; y: number; w: number; h: numbe
 
 const STONE_PTS: Pt[] = [[BF.stone.x0, PAR + 2], [BF.stone.x0 + 4, 560], [BF.stone.x0 - 2, 500], [BF.stone.x0 + 6, 462], [BF.stone.x0 + 22, BF.stone.top + 4], [1790, BF.stone.top - 4], [1846, BF.stone.top], [BF.stone.x1 - 4, 470], [BF.stone.x1 + 4, 540], [BF.stone.x1, PAR + 2]];
 
-function runeStone(ctx: Ctx, r: R): void {
+export function runeStone(ctx: Ctx, r: R): void {
   const path = polyPath(STONE_PTS);
   const { x0, x1, top } = BF.stone;
   const side = 30;
@@ -2036,7 +2036,7 @@ function runeStone(ctx: Ctx, r: R): void {
 }
 
 /** The iron fire basket on the stone's top: three legs, a bowl of bars with last night's charcoal in it. */
-function basket(ctx: Ctx): void {
+export function basket(ctx: Ctx): void {
   const { x, y } = BF.basket;
   const top = BF.stone.top;
   ctx.strokeStyle = INK;
@@ -2137,8 +2137,8 @@ function bannerCloth(c: Ctx, w: number, h: number): void {
   c.lineTo(w * 0.7, h * 0.42);
   c.stroke();
 }
-const BNF = { w: BF.banner.w + 20, h: BF.banner.h + 10, n: 8 };
-function bannerFrame(c: Ctx, ph: number, gust = 1): void {
+export const BNF = { w: BF.banner.w + 20, h: BF.banner.h + 10, n: 8 };
+export function bannerFrame(c: Ctx, ph: number, gust = 1): void {
   c.translate(10, 2);
   clothFrame(c, 0, 0, BF.banner.w, BF.banner.h, ph, bannerCloth, { amp: 5 * gust, waves: 1.2, tail: 'swallow', light: '#fff0d8', dark: '#0a0818' });
   // the rod across its top
@@ -2149,10 +2149,10 @@ function bannerFrame(c: Ctx, ph: number, gust = 1): void {
 }
 
 /** The pennant on the tower's finial: a long red tongue with a gilt border, streaming out on the wind. */
-const PEN = { w: 280, h: 96, root: 40, n: 8 };
+export const PEN = { w: 280, h: 96, root: 40, n: 8 };
 /** The pennant's root on the finial pole (kept clear of the top-left corner's HUD). */
-const PEN_Y = BF.tower.peak - 12;
-function pennantFrame(out: Ctx, ph: number): void {
+export const PEN_Y = BF.tower.peak - 12;
+export function pennantFrame(out: Ctx, ph: number): void {
   const { w, h, root } = PEN;
   // (painted on its own canvas: the cut back to the cloth below would wipe whatever it's drawn over)
   const [pc, c] = makeCanvas(w, h);
@@ -2215,7 +2215,7 @@ function pennantFrame(out: Ctx, ph: number): void {
 
 // ——— the parapet ———
 
-function parapet(ctx: Ctx, r: R): void {
+export function parapet(ctx: Ctx, r: R): void {
   const y0 = PAR;
   const ct = 12;
   // the coping's top, in the sun
@@ -2272,7 +2272,7 @@ function chipsAt(ctx: Ctx, r: R, x: number, y: number): void {
 
 // ——— the table: the terrace's threshold, dressed stone flags ———
 
-function table(ctx: Ctx, r: R): void {
+export function table(ctx: Ctx, r: R): void {
   const f = BF.front;
   const box = { x: 0, y: TY, w: W, h: f - TY };
   ctx.save();
@@ -2493,14 +2493,14 @@ function rainTile(c: Ctx, s: number): void {
 // the table stay in the base.
 
 const SKY_BOX = { x: 0, y: 0, w: W, h: HOR };
-const BRIDGE_BOX = { x: 420, y: 400, w: 980, h: PAR - 400 };
+export const BRIDGE_BOX = { x: 420, y: 400, w: 980, h: PAR - 400 };
 const LIGHT_BOX = { x: 360, y: 330, w: 1080, h: PAR - 330 };
-const TOWER_BOX = { x: 0, y: 0, w: 252, h: PAR };
-const BEAM_BOX = { x: 186, y: BF.beam.y - 14, w: 186, h: 100 };
-const HORN_BOX = { x: 196, y: BF.beam.y + 6, w: 214, h: 128 };
-const ABUT_BOX = { x: 170, y: 480, w: 320, h: PAR - 480 };
-const STONE_BOX = { x: BF.banner.x - 20, y: BF.basket.y - 30, w: W - BF.banner.x + 20, h: PAR - BF.basket.y + 30 };
-const parCut = (draw: (c: Ctx, r: R) => void) => (c: Ctx, r: R) => {
+export const TOWER_BOX = { x: 0, y: 0, w: 252, h: PAR };
+export const BEAM_BOX = { x: 186, y: BF.beam.y - 14, w: 186, h: 100 };
+export const HORN_BOX = { x: 196, y: BF.beam.y + 6, w: 214, h: 128 };
+export const ABUT_BOX = { x: 170, y: 480, w: 320, h: PAR - 480 };
+export const STONE_BOX = { x: BF.banner.x - 20, y: BF.basket.y - 30, w: W - BF.banner.x + 20, h: PAR - BF.basket.y + 30 };
+export const parCut = (draw: (c: Ctx, r: R) => void) => (c: Ctx, r: R) => {
   c.beginPath();
   c.rect(0, -40, W, PAR + 40);
   c.clip();

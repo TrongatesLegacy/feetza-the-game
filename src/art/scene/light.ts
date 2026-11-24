@@ -340,3 +340,103 @@ export function dapple(ctx: Ctx, box: Box, col: string, a: number, cells = 14, s
   ctx.drawImage(m, box.x, box.y, box.w, box.h);
   ctx.restore();
 }
+
+// ——— relighting ———
+
+/** A light reaching a relit painting (see relight). */
+export interface RelightLight {
+  /** Where it is (screen px), its colour and strength. */
+  x: number;
+  y: number;
+  col: string;
+  a: number;
+  /** How far its light carries (px): the faces near it are lit most. */
+  reach: number;
+  /** A rim on the edges turned to it (0…1) and the rim's width (px, default 3). */
+  rim?: number;
+  rimW?: number;
+}
+
+export interface RelightOpts {
+  /** The light the painting is left in: multiplied over it, a colour at the top of its box and one at the bottom. */
+  dim: [string, string];
+  /** Lights reaching it: each lights the painting by its own colour (the painted surface times the light, so dark
+   * things stay dark), strongest near it, and rims the edges that face it. */
+  lights?: RelightLight[];
+  /** A cut (screen y) below which no rim is drawn: where the thing goes on behind something in front of it. */
+  cut?: number;
+}
+
+/**
+ * Paint something lit for one light and show it in another: the same painting at night, under a storm or by a fire.
+ * `paint` draws it in screen coordinates inside `box`; the result is dimmed to the light it's now left in, then lit
+ * again by each new light (the painting's own colours times the light's, falling off with distance, plus a rim on the
+ * edges facing it), and drawn back into `box`. Its shape and alpha are kept exactly.
+ */
+export function relight(ctx: Ctx, box: Box, paint: (c: Ctx) => void, o: RelightOpts): void {
+  const m = ctx.getTransform();
+  const k = Math.min(1, Math.hypot(m.a, m.b));
+  const w = Math.max(1, Math.ceil(box.w * k));
+  const h = Math.max(1, Math.ceil(box.h * k));
+  const [src, sg] = makeCanvas(w, h);
+  sg.scale(k, k);
+  sg.translate(-box.x, -box.y);
+  sg.lineJoin = 'round';
+  sg.lineCap = 'round';
+  paint(sg);
+  // the dimmed painting
+  const [out, og] = makeCanvas(w, h);
+  og.drawImage(src, 0, 0);
+  og.globalCompositeOperation = 'multiply';
+  const dg = og.createLinearGradient(0, 0, 0, h);
+  dg.addColorStop(0, o.dim[0]);
+  dg.addColorStop(1, o.dim[1]);
+  og.fillStyle = dg;
+  og.fillRect(0, 0, w, h);
+  og.globalCompositeOperation = 'destination-in';
+  og.drawImage(src, 0, 0);
+  for (const L of o.lights ?? []) {
+    const lx = (L.x - box.x) * k;
+    const ly = (L.y - box.y) * k;
+    const reach = L.reach * k;
+    // the light on the faces: the painting times the light's colour, falling off with distance
+    const [f, fg] = makeCanvas(w, h);
+    fg.drawImage(src, 0, 0);
+    fg.globalCompositeOperation = 'multiply';
+    const rg = fg.createRadialGradient(lx, ly, 0, lx, ly, reach);
+    rg.addColorStop(0, L.col);
+    rg.addColorStop(1, '#000000');
+    fg.fillStyle = rg;
+    fg.fillRect(0, 0, w, h);
+    // the rim: the shape less itself moved away from the light
+    if (L.rim) {
+      const dx = lx - w / 2;
+      const dy = ly - h / 2;
+      const l = Math.hypot(dx, dy) || 1;
+      const d = (L.rimW ?? 3) * k;
+      const [rc, rgc] = makeCanvas(w, h);
+      rgc.drawImage(src, 0, 0);
+      rgc.globalCompositeOperation = 'source-in';
+      const rr = rgc.createRadialGradient(lx, ly, 0, lx, ly, reach * 1.4);
+      rr.addColorStop(0, rgba(L.col, Math.min(1, L.rim / Math.max(0.01, L.a))));
+      rr.addColorStop(1, rgba(L.col, 0));
+      rgc.fillStyle = rr;
+      rgc.fillRect(0, 0, w, h);
+      rgc.globalCompositeOperation = 'destination-out';
+      rgc.drawImage(src, (-dx / l) * d, (-dy / l) * d);
+      if (o.cut !== undefined) rgc.clearRect(0, (o.cut - box.y) * k - d * 2, w, h);
+      fg.globalCompositeOperation = 'lighter';
+      fg.drawImage(rc, 0, 0);
+    }
+    fg.globalCompositeOperation = 'destination-in';
+    fg.drawImage(src, 0, 0);
+    og.globalCompositeOperation = 'lighter';
+    og.globalAlpha = Math.min(1, L.a);
+    og.drawImage(f, 0, 0);
+    og.globalAlpha = 1;
+  }
+  ctx.save();
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(out, box.x, box.y, box.w, box.h);
+  ctx.restore();
+}

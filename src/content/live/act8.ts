@@ -605,8 +605,10 @@ registerLive('jormungandr', (ctx: LiveCtx): LiveScene => {
 });
 
 // ——— The Burning Bridge (Surtr) ———
+// (redrawn with the location kit in src/content/art/scene-surtr.ts, whose own live layer burns the bridge and breaks
+// it up by the fight's phase; this old layer stays for the before/after page, ?dev&stages)
 
-registerLive('surtr', (ctx: LiveCtx): LiveScene => {
+registerLegacyLive('surtr', (ctx: LiveCtx): LiveScene => {
   const k = new Kit(ctx.sc, ctx.layer);
   const sky = k.rect(0xff3a10, 0.05, 0, 700, Phaser.BlendModes.ADD);
   const smoke = cloudRow(k, 10, 60, 260, 0x1a0806, 0.6, 12, 2.4);
