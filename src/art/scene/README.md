@@ -76,8 +76,7 @@ Every stage is a location (waves 1–4, the mini-boss arrives in wave 3) and an 
 Arenas use this same kit and the same rules. An arena is its own place, not a reskin of the location; while it
 waits for its art, `PLACEHOLDER` in `src/art/backdrops.ts` lends it another place's. Boss fights drive their
 arenas through their own files (`src/game/bosses/*`): don't edit those. If a fight uses the backdrop (it calls
-`quake` or hides parts), keep the ids and layout constants it relies on (Tartarus keeps its river, jetty, braziers
-and columns where the old art had them).
+`quake` or hides parts), keep the ids and layout constants it relies on where the old art had them.
 
 To redraw a place: write `src/content/art/scene-<id>.ts` with a `SceneSpec` and `registerKitScene`. Keep the old art
 for the before/after page: built-in art in `backdrops.ts` goes in `REDRAWN`; a painted content module registers its
@@ -118,9 +117,9 @@ Each place is painted while the shop is open (the still, or the live base and it
 desktop Chrome:
 
 - Paint: the still and the live bake each under about 200 ms (references: Trattoria ~150 ms still / ~175 ms bake,
-  Beach ~100 / ~180, Tartarus ~140 / ~175; about a third of a bake is `gradeAll`).
+  Beach ~100 / ~180, Tartarus ~75 cold; about a third of a bake is `gradeAll`).
 - Texture memory: the live base is always 7.9 MB (1920×1080); keep the base plus every piece under about 16 MB,
-  24 MB at most for a place with a lot moving (Trattoria 10.8 MB, Tartarus 14.3 MB, Beach 21.2 MB with its three
+  24 MB at most for a place with a lot moving (Trattoria 10.8 MB, Tartarus 16.1 MB, Beach 21.2 MB with its three
   skies and two seas).
 - Cheap: `lay()` of cached noise fields, gradients, paths. Costly: big `ctx.filter` blurs (use `softly()`, or blur a
   small offscreen canvas as `cloud()` and `lampOnWall()` do), thousands of strokes with their own gradients, and
