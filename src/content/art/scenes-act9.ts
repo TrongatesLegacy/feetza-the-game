@@ -711,7 +711,8 @@ const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const waveK = (w: number) => Phaser.Math.Clamp((w - 1) / 4, 0, 1);
 
 // =============================================================================================
-// The Labyrinth: inside the maze at dusk; night falls and the braziers take over across the stage.
+// The Labyrinth: inside the maze at dusk; night falls and the braziers take over across the stage. (The old art: the
+// Labyrinth is redrawn with the location kit in scene-labyrinth.ts; this stays for the before/after page, ?dev&stages.)
 
 const LB = {
   far: { x0: 700, x1: 1220, top: 300, bot: 520 },
@@ -955,7 +956,7 @@ registerScene('labyrinth', {
   },
   draw: drawLabyrinth,
   live: liveLabyrinth,
-});
+}, true);
 
 // =============================================================================================
 // Tartarus: a basalt cavern over the river Styx. The pit below glows redder with every wave. (The old art: Tartarus
