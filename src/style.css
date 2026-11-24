@@ -2328,9 +2328,17 @@ body.pad .slam .pd {
   font-size: 1.05em;
 }
 
+/* the level line wraps on a narrow card (four or more toppings): a long line like "One use, back in 3 waves" with a
+   deal's chip (HALF PRICE) beside it was wider than the card and pushed the text and the buy button past its edge;
+   the chip drops under the words instead */
 .shop2 .card .lvl {
   font-size: 0.95em;
-  white-space: nowrap;
+  flex-wrap: wrap;
+  justify-content: center;
+  row-gap: 0.25em;
+  text-align: center;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .shop2 .card .btn {
