@@ -1,10 +1,11 @@
 // Act 8 · Norse: Jotunheim Ice Fields and Bifröst Bridge, plus the four fight arenas (Lyngvi Isle for
 // Fenrir's Paw, Thrym's Hall, the Edge of the World for Jörmungandr, the Burning Bridge for Surtr).
 // The road to Ragnarök: cold and calm at wave 71, fire by wave 80. The animated layers (aurora,
-// weather that changes wave by wave, the bridge catching fire) live in src/content/live/act8.ts.
+// weather that changes wave by wave, the bridge catching fire) live in src/content/live/act8.ts; Jotunheim is
+// redrawn with the location kit (scene-jotunheim.ts) and its old art here stays for the before/after page.
 
 import type { GlowSpot } from '../../art/backdrops';
-import { registerScene } from '../../art/registry';
+import { registerLegacyScene, registerScene } from '../../art/registry';
 import {
   type Ctx,
   type R,
@@ -63,8 +64,8 @@ const FRONT = 1040;
 // ---------------------------------------------------------------------------------------------
 // Shared Norse kit: runes, ice, clouds, flames
 
-/** A few Elder Futhark runes as strokes in a 0..1 box. */
-const RUNES: number[][][] = [
+/** A few Elder Futhark runes as strokes in a 0..1 box (shared with the redrawn Act 8 scenes: scene-jotunheim.ts). */
+export const RUNES: number[][][] = [
   [[0.3, 0, 0.3, 1], [0.3, 0.15, 0.8, 0], [0.3, 0.42, 0.8, 0.25]], // fehu
   [[0.2, 1, 0.2, 0], [0.2, 0, 0.8, 0.3], [0.8, 0.3, 0.8, 1]], // uruz
   [[0.3, 0, 0.3, 1], [0.3, 0.25, 0.75, 0.5], [0.75, 0.5, 0.3, 0.75]], // thurisaz
@@ -1421,7 +1422,8 @@ void blob;
 
 // ---------------------------------------------------------------------------------------------
 
-registerScene('jotunheim', {
+// (redrawn with the location kit in scene-jotunheim.ts; this stays for the before/after page, ?dev&stages)
+registerLegacyScene('jotunheim', {
   info: {
     name: 'Jotunheim Ice Fields',
     subtitle: 'Waves 71–74',
