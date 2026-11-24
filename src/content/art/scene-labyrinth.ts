@@ -144,7 +144,7 @@ function mapToWall(ctx: Ctx, src: HTMLCanvasElement, s: number, z0: number, z1: 
 }
 
 /** The horns of consecration in their own unit square (0…1 across, 0 at the foot … 1 at the tips). */
-const HORNS: Pt[] = [[0, 0], [1, 0], [1, 0.16], [0.95, 0.3], [0.955, 0.55], [0.99, 0.8], [1.05, 1], [0.93, 0.97], [0.85, 0.72], [0.79, 0.47], [0.71, 0.32], [0.6, 0.255], [0.5, 0.24], [0.4, 0.255], [0.29, 0.32], [0.21, 0.47], [0.15, 0.72], [0.07, 0.97], [-0.05, 1], [0.01, 0.8], [0.045, 0.55], [0.05, 0.3], [0, 0.16]];
+export const HORNS: Pt[] = [[0, 0], [1, 0], [1, 0.16], [0.95, 0.3], [0.955, 0.55], [0.99, 0.8], [1.05, 1], [0.93, 0.97], [0.85, 0.72], [0.79, 0.47], [0.71, 0.32], [0.6, 0.255], [0.5, 0.24], [0.4, 0.255], [0.29, 0.32], [0.21, 0.47], [0.15, 0.72], [0.07, 0.97], [-0.05, 1], [0.01, 0.8], [0.045, 0.55], [0.05, 0.3], [0, 0.16]];
 /** Horns on a side wall's top at depth zc, facing down the passage (their width across the wall's thickness). */
 const hornsOnWall = (s: number, zc: number, len: number, h: number, Y0 = WH): Pt[] => HORNS.map(([u, v]) => P(s * (XW + 0.02 + (u - 0.5) * len), Y0 - 0.02 + v * h, zc));
 /** Horns on the façade's top, centred at X, `w` wide and `h` high. */
@@ -163,14 +163,14 @@ const AIR: Air = { color: '#e2c79a', far: 0.42 };
 /** The far air over the island: pale blue-gold. */
 const FAR: Air = { color: '#d8d2c0', far: 0.8 };
 /** Limestone in the sun, and the multiply that puts it in the cool shade (lit only by the sky). */
-const LIME = { lit: '#f2d49c', body: '#d8b884', dark: '#a48862', deep: '#5a4634' };
-const SHADE = '#5a5ea6';
+export const LIME = { lit: '#f2d49c', body: '#d8b884', dark: '#a48862', deep: '#5a4634' };
+export const SHADE = '#5a5ea6';
 const SHADE_FLOOR = '#646aa0';
 const SUN = '#ffd89a';
 /** The frescoes' paint: Minoan red, ochre, Egyptian blue, black, lime white, green. */
-const FR = { red: '#b2432c', ochre: '#d6a243', blue: '#3e7aa8', black: '#2b2320', white: '#efe4cc', green: '#6e8a4c', pink: '#d88a6a' };
-const BRONZE = { lit: '#f0c070', body: '#b47a34', shade: '#6a4220', deep: '#2e1a0c' };
-const COLUMN = { lit: '#d4543a', body: '#a5301f', shade: '#5e1a14', cap: '#2a1f1c' };
+export const FR = { red: '#b2432c', ochre: '#d6a243', blue: '#3e7aa8', black: '#2b2320', white: '#efe4cc', green: '#6e8a4c', pink: '#d88a6a' };
+export const BRONZE = { lit: '#f0c070', body: '#b47a34', shade: '#6a4220', deep: '#2e1a0c' };
+export const COLUMN = { lit: '#d4543a', body: '#a5301f', shade: '#5e1a14', cap: '#2a1f1c' };
 
 // ——— the sky over the maze ———
 
@@ -448,7 +448,7 @@ function masonry(ctx: Ctx, r: R, map: (a: number, Y: number) => Pt, a0: number, 
 }
 
 /** A mason's mark cut in a block: a little double axe, its cuts dark with a lit lip. */
-function masonMark(ctx: Ctx, x: number, y: number, s: number, a = 0.5): void {
+export function masonMark(ctx: Ctx, x: number, y: number, s: number, a = 0.5): void {
   ctx.save();
   ctx.lineCap = 'round';
   for (const [dx, dy, col, al] of [[0.8, 0.8, '#fff0d0', a * 0.5], [0, 0, '#2a1e18', a]] as const) {
@@ -715,7 +715,7 @@ const PANEL_R = { a0: 1.0, a1: 4.1, R: 280 };
 const fresCache = new Map<string, HTMLCanvasElement>();
 
 /** Bold wavy veins of an imitation stone (the Minoan dado), over a slab x0…x1 from y0 to y1. */
-function veined(c: Ctx, r: R, x0: number, x1: number, y0: number, y1: number, base: string, veins: string[]): void {
+export function veined(c: Ctx, r: R, x0: number, x1: number, y0: number, y1: number, base: string, veins: string[]): void {
   c.fillStyle = base;
   c.fillRect(x0, y0, x1 - x0, y1 - y0);
   c.save();
@@ -741,7 +741,7 @@ function veined(c: Ctx, r: R, x0: number, x1: number, y0: number, y1: number, ba
 }
 
 /** A row of running spirals (linked S-curves) along y, each `step` apart, radius rad. */
-function spirals(c: Ctx, x0: number, x1: number, y: number, step: number, rad: number, col: string, dot: string, w: number): void {
+export function spirals(c: Ctx, x0: number, x1: number, y: number, step: number, rad: number, col: string, dot: string, w: number): void {
   c.save();
   c.lineCap = 'round';
   c.strokeStyle = col;
@@ -769,7 +769,7 @@ function spirals(c: Ctx, x0: number, x1: number, y: number, step: number, rad: n
 }
 
 /** The double axe (the labrys): a shaft and two pairs of curved blades, gilt, outlined in black. */
-function labrys(c: Ctx, x: number, y: number, s: number, gold = '#e4b24c'): void {
+export function labrys(c: Ctx, x: number, y: number, s: number, gold = '#e4b24c'): void {
   c.save();
   c.lineJoin = 'round';
   // the shaft
@@ -804,7 +804,7 @@ function labrys(c: Ctx, x: number, y: number, s: number, gold = '#e4b24c'): void
 }
 
 /** A sacred lily: three stems out of a calyx, the flowers curling over, red stamens. */
-function lily(c: Ctx, x: number, y: number, s: number): void {
+export function lily(c: Ctx, x: number, y: number, s: number): void {
   c.save();
   c.lineCap = 'round';
   c.strokeStyle = FR.white;
@@ -840,7 +840,7 @@ function lily(c: Ctx, x: number, y: number, s: number): void {
 
 /** A Minoan figure in a fresco: wasp-waisted, long black locks, a kilt; skin red (a youth) or white (a girl). A pose
  * gives the angles (radians) of the body, the arms and the legs. */
-function figure(c: Ctx, x: number, y: number, s: number, skin: string, pose: { body: number; arms: [number, number]; legs: [number, number] }): void {
+export function figure(c: Ctx, x: number, y: number, s: number, skin: string, pose: { body: number; arms: [number, number]; legs: [number, number] }): void {
   c.save();
   c.translate(x, y);
   c.rotate(pose.body);
@@ -910,7 +910,7 @@ function figure(c: Ctx, x: number, y: number, s: number, skin: string, pose: { b
 }
 
 /** A pied bull in the flying gallop, facing right: its box is 300×170 at scale 1, the forehooves at the right. */
-function bull(c: Ctx, x: number, y: number, k: number): void {
+export function bull(c: Ctx, x: number, y: number, k: number): void {
   c.save();
   c.translate(x, y);
   c.scale(k, k);
@@ -1006,7 +1006,7 @@ function bull(c: Ctx, x: number, y: number, k: number): void {
 
 /** Cut the flaking into a painted panel: holes where the plaster has gone (more of them low down where damp rose and
  * at the ragged ends), each hole's upper-left edge throwing a sliver of shadow into it, its lower-right edge lit. */
-function flake(c: Ctx, w: number, h: number, seed: number, cover: number): void {
+export function flake(c: Ctx, w: number, h: number, seed: number, cover: number): void {
   const [mc, mg] = makeCanvas(w, h);
   mg.drawImage(noiseMask(9, seed, { cover, soft: 0.035, col: '#000000', w: Math.round(w / 2.5), h: Math.round(h / 2.5), oct: 5 }), 0, 0, w, h);
   // the damp line: losses climbing up from the foot
@@ -1072,7 +1072,7 @@ function flake(c: Ctx, w: number, h: number, seed: number, cover: number): void 
 }
 
 /** Age a painted panel: faded patches, grime, a web of fine crazing. */
-function age(c: Ctx, w: number, h: number, seed: number): void {
+export function age(c: Ctx, w: number, h: number, seed: number): void {
   lay(c, drift('#f4ead4', '#6a5040', 5, seed, 120, 90), { x: 0, y: 0, w, h }, 0.32);
   lay(c, noiseMask(6, seed + 1, { cover: 0.35, soft: 0.3, col: '#f2e8d2', w: 80, h: 60 }), { x: 0, y: 0, w, h }, 0.35);
   lay(c, noiseMask(22, seed + 2, { cover: 0.5, soft: 0.05, col: '#3a2a20', kind: 'web', w: 300, h: 240 }), { x: 0, y: 0, w, h }, 0.22);
@@ -1157,7 +1157,7 @@ function frescoLeft(): HTMLCanvasElement {
 }
 
 /** A bull's head (a rhyton's), front on, at the origin, about 120 px high: horns, the curly forelock, a rosette. */
-function bullHead(c: Ctx): void {
+export function bullHead(c: Ctx): void {
   c.save();
   c.lineJoin = 'round';
   c.beginPath();
@@ -1542,7 +1542,7 @@ function wall(ctx: Ctx, r: R, s: number): void {
 
 /** Horns of consecration: stone, lit by the sun (the right wall's) or against it (the left's: in their own shade, their
  * sky-facing edges rimmed in gold). */
-function hornsPaint(ctx: Ctx, path: (c: Ctx) => void, bb: { x: number; y: number; w: number; h: number }, lit: boolean, lw: number, rimW: number): void {
+export function hornsPaint(ctx: Ctx, path: (c: Ctx) => void, bb: { x: number; y: number; w: number; h: number }, lit: boolean, lw: number, rimW: number): void {
   const g = ctx.createLinearGradient(bb.x, bb.y, bb.x + bb.w, bb.y + bb.h);
   if (lit) {
     g.addColorStop(0, '#f4e2c0');
@@ -2531,8 +2531,8 @@ function mistFrame(c: Ctx, ph: number, seed: number): void {
 
 /** A fragment of painted plaster (frame i): an irregular flake, its painted face (red, blue, ochre or white, with a
  * stripe or the edge of a spiral), the white lime of its broken edge below, lit from the top left. */
-const FLK = 14;
-function flakeFrame(c: Ctx, i: number): void {
+export const FLK = 14;
+export function flakeFrame(c: Ctx, i: number): void {
   const rr = rng(hashStr('lb:flk' + i));
   const n = 6 + Math.floor(rr() * 3);
   const pts: Pt[] = [];

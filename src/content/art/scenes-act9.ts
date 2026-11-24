@@ -1660,7 +1660,8 @@ function liveArena(spots: { x: number; y: number; s: number; key: string; cols: 
 const FIRE: [string, string, string] = ['#ff5a1a', '#ffa83a', '#fff2b0'];
 
 // =============================================================================================
-// The Heart of the Maze (The Minotaur)
+// The Heart of the Maze (The Minotaur). (The old art: the arena is redrawn with the location kit in
+// scene-minotaur.ts; this stays for the before/after page, ?dev&stages.)
 
 const MT = {
   braziers: [
@@ -1824,7 +1825,7 @@ registerScene('minotaur', {
     [],
     { y: 720, h: 50, n: 8, color: 0xf0c890, a: 0.14, v: 30 },
   ),
-});
+}, true);
 
 // =============================================================================================
 // Medusa's Garden
