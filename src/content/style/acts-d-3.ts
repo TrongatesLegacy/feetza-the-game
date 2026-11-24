@@ -1,18 +1,18 @@
 // Batch D, part 3: Act 8 (Norse): Frost Giant Toes, Draugr Boots, Troll Feet, Valkyrie-Cursed Clogs and the act's
-// bosses (Surtr the Fire Giant, Fenrir's Paw, Jörmungandr), redrawn in the style kit. Life in play:
+// bosses (Surtr the Fire Giant, Fenrir's Paw), redrawn in the style kit. Life in play:
 // src/content/styleLive/acts-d.ts. Thrym the Frost King has his own file (thrym.ts).
 
 import type { FootArt } from '../../data/feet';
 import { CX } from '../../art/feetCommon';
 import { type StyleToe, onToe } from '../../art/style/anatomy';
-import { LIGHT, type PathFn, type Pose, ao, crease, glint, inkOf, pxPerUnit, softFill, softStroke, spec, texture } from '../../art/style/kit';
+import { LIGHT, type PathFn, type Pose, ao, crease, inkOf, pxPerUnit, softFill, softStroke, spec, texture } from '../../art/style/kit';
 import { Sil, lobe } from '../../art/style/sil';
 import { type PartDef, registerStyle } from '../../art/style/registry';
 import { blotches, clawPath, contact, paintClaw, rivet, stitches } from '../../art/style/details';
 import { type Ctx, hashStr, mix, rgba, rng, shade } from '../../art/util';
 import { lockPath as wolfLock } from './pilot-fur';
 import { BARE_RIG, bareWith, ell, finishLight, hgrad, piece, prop, rrect, vgrad, within } from './roster-kit';
-import { DMAT, LX, LY, carvedRune, furCoat, glowOnly, heatRise, hoarfrost, iciclePath, oneLight, paintIcicle } from './acts-d-kit';
+import { LX, LY, carvedRune, furCoat, glowOnly, heatRise, hoarfrost, iciclePath, oneLight, paintIcicle } from './acts-d-kit';
 
 type Opts = { live: boolean; emissive?: boolean; heat?: boolean };
 
@@ -942,198 +942,3 @@ registerStyle('fenrir', {
     drawFenrir(ctx, art, p, o);
   },
 });
-
-// ════════════════════════ JÖRMUNGANDR ════════════════════════
-// The world serpent's head, pointing down: a long neck with cream belly scutes, a broad scaled head with a dark
-// dorsal pattern, heavy brows over slit yellow eyes, fangs and a flicking forked tongue. In play (its Pizzapedia and
-// peel art; the fight draws its own head over the gaps) the eyes blink and the tongue flicks.
-
-const SERP = { eyeY: 214, eyeDx: 48 };
-export const SERP_TONGUE: [number, number] = [CX, 292];
-
-const serpHead: PathFn = (c) => {
-  c.beginPath();
-  c.moveTo(CX - 54, -6);
-  c.bezierCurveTo(CX - 56, 80, CX - 70, 130, CX - 100, 180);
-  c.bezierCurveTo(CX - 112, 206, CX - 104, 240, CX - 72, 262);
-  c.bezierCurveTo(CX - 46, 282, CX - 20, 292, CX, 292);
-  c.bezierCurveTo(CX + 20, 292, CX + 46, 282, CX + 72, 262);
-  c.bezierCurveTo(CX + 104, 240, CX + 112, 206, CX + 100, 180);
-  c.bezierCurveTo(CX + 70, 130, CX + 56, 80, CX + 54, -6);
-  c.closePath();
-};
-
-function serpEyes(g: Ctx, skin: string, lid: number): void {
-  for (const s of [-1, 1]) {
-    const x = CX + s * SERP.eyeDx;
-    const y = SERP.eyeY;
-    g.save();
-    g.translate(x, y);
-    g.rotate(s * 0.35);
-    const eye: PathFn = (c) => {
-      c.beginPath();
-      c.ellipse(0, 0, 16, 11, 0, 0, Math.PI * 2);
-    };
-    ao(g, 0, 2, 22, 16, 0.55, 0, '#06140c');
-    within(g, eye, () => {
-      const ig = g.createRadialGradient(-3, -3, 1, 0, 0, 16);
-      ig.addColorStop(0, '#fff6a0');
-      ig.addColorStop(0.55, '#e8c020');
-      ig.addColorStop(1, '#7a5a08');
-      g.fillStyle = ig;
-      g.fillRect(-17, -12, 34, 24);
-      g.fillStyle = '#0a0804';
-      g.beginPath();
-      g.ellipse(0, 0, 2.6, 10, 0, 0, Math.PI * 2);
-      g.fill();
-      if (lid > 0) {
-        g.fillStyle = shade(skin, -0.15);
-        g.fillRect(-17, -12, 34, 24 * lid);
-        g.strokeStyle = rgba('#06140c', 0.8);
-        g.lineWidth = 1.4;
-        g.beginPath();
-        g.moveTo(-16, -12 + 24 * lid);
-        g.lineTo(16, -12 + 24 * lid);
-        g.stroke();
-      }
-    });
-    g.strokeStyle = '#06140c';
-    g.lineWidth = 2;
-    eye(g);
-    g.stroke();
-    if (lid < 0.5) {
-      spec(g, -5, -4, 4, 3, 0.95, -0.4);
-      glint(g, -6, -5, 3, 0.9);
-    }
-    g.restore();
-    // the heavy brow scale over each eye
-    const brow: PathFn = (c) => {
-      c.beginPath();
-      c.moveTo(x - s * 24, y - 6);
-      c.quadraticCurveTo(x, y - 28, x + s * 26, y - 6);
-      c.quadraticCurveTo(x, y - 16, x - s * 24, y - 6);
-      c.closePath();
-    };
-    piece(g, brow, { x: x - 26, y: y - 28, w: 52, h: 24 }, 'scales', shade(skin, 0.05), { shadow: 0.6, size: 5, texA: 0.2 });
-  }
-}
-
-function serpTongue(g: Ctx, out: number): void {
-  const [x, y] = SERP_TONGUE;
-  const len = 10 + out * 30;
-  const t: PathFn = (c) => {
-    c.beginPath();
-    c.moveTo(x - 3, y - 6);
-    c.lineTo(x - 3, y + len * 0.7);
-    c.lineTo(x - 10, y + len);
-    c.lineTo(x - 5, y + len * 0.72);
-    c.lineTo(x, y + len * 0.6);
-    c.lineTo(x + 5, y + len * 0.72);
-    c.lineTo(x + 10, y + len);
-    c.lineTo(x + 3, y + len * 0.7);
-    c.lineTo(x + 3, y - 6);
-    c.closePath();
-  };
-  prop(g, [t], { x: x - 12, y: y - 8, w: 24, h: len + 10 }, (tg) => {
-    tg.fillStyle = vgrad(tg, y, y + len, [[0, '#a8102a'], [1, '#e83a4a']]);
-    tg.fillRect(x - 12, y - 8, 24, len + 10);
-    spec(tg, x - 1, y + len * 0.3, 1.4, len * 0.2, 0.7, 0);
-  }, '#3a0410', { w: 1.6 });
-}
-
-function drawSerpent(ctx: Ctx, art: FootArt, _p: Pose, o: Opts): void {
-  const skin = art.primary ?? '#2f6e56';
-  const light = art.skin;
-  const belly = art.secondary ?? '#e8d36a';
-  const box = { x: CX - 120, y: -10, w: 240, h: 310 };
-  if (o.emissive) return;
-  if (o.heat) {
-    glowOnly(ctx, [serpHead], box, (g) => heatRise(g, box, 40, 296, 171, '#ff6a2a', 0.7));
-    return;
-  }
-  if (!o.live) serpTongue(ctx, 0.7);
-  const sil = new Sil(ctx, [serpHead], box);
-  const g = sil.g;
-  sil.form({ base: light, shadowTint: '#06201a', ramp: 0.85, form: 0.6, formSize: 30, bevel: 0.35, rim: 0.6 });
-  texture(g, 'scales', box, 0.5, 1.6);
-  // the dark dorsal pattern: diamonds down the sides and across the head
-  for (let i = 0; i < 7; i++) {
-    const y = 20 + i * 30;
-    for (const s of [-1, 1]) {
-      const x = CX + s * (40 + i * 6);
-      softFill(g, (c) => {
-        c.beginPath();
-        c.moveTo(x, y - 12);
-        c.lineTo(x + 12, y);
-        c.lineTo(x, y + 12);
-        c.lineTo(x - 12, y);
-        c.closePath();
-      }, rgba(shade(skin, -0.4), 0.7), 1.5);
-    }
-  }
-  softFill(g, (c) => {
-    c.beginPath();
-    c.moveTo(CX, 170);
-    c.lineTo(CX + 50, 200);
-    c.lineTo(CX, 236);
-    c.lineTo(CX - 50, 200);
-    c.closePath();
-  }, rgba(shade(skin, -0.25), 0.6), 4);
-  // the belly scutes down the throat, overlapping plates
-  for (let i = 0; i < 11; i++) {
-    const y = -4 + i * 14;
-    const w = 30 - i * 0.5;
-    const sc: PathFn = (c) => {
-      c.beginPath();
-      c.moveTo(CX - w, y + 2);
-      c.quadraticCurveTo(CX, y - 3, CX + w, y + 2);
-      c.quadraticCurveTo(CX + w * 0.9, y + 15, CX, y + 17);
-      c.quadraticCurveTo(CX - w * 0.9, y + 15, CX - w, y + 2);
-      c.closePath();
-    };
-    piece(g, sc, { x: CX - w, y: y - 3, w: w * 2, h: 20 }, DMAT.bone, mix(mix(belly, light, 0.3), '#ffffff', 0.1 - i * 0.008), { shadow: 0.6, size: 4, texA: 0.15, spec: false });
-  }
-  // scales catching the light on the crown, nostrils, the mouth line
-  spec(g, CX - 40, 196, 30, 16, 0.35, -0.3);
-  for (const s of [-1, 1]) {
-    g.fillStyle = '#06140c';
-    g.beginPath();
-    g.ellipse(CX + s * 14, 270, 4, 2.6, s * 0.5, 0, Math.PI * 2);
-    g.fill();
-  }
-  crease(g, (c) => {
-    c.moveTo(CX - 92, 220);
-    c.bezierCurveTo(CX - 80, 266, CX - 40, 282, CX, 284);
-    c.bezierCurveTo(CX + 40, 282, CX + 80, 266, CX + 92, 220);
-  }, 2.4, '#06140c', 0.7, 0.3);
-  // fangs under the lip
-  for (const s of [-1, 1]) {
-    const fx = CX + s * 26;
-    const fang: PathFn = (c) => {
-      c.beginPath();
-      c.moveTo(fx - 4, 276);
-      c.quadraticCurveTo(fx - 3, 288, fx + s * 1, 296);
-      c.quadraticCurveTo(fx + 3, 286, fx + 4, 276);
-      c.closePath();
-    };
-    piece(g, fang, { x: fx - 5, y: 276, w: 10, h: 20 }, DMAT.bone, '#fffaf0', { shadow: 0.4, size: 2 });
-  }
-  if (!o.live) serpEyes(g, light, 0);
-  oneLight(sil, '#02100a', 0.45, 22);
-  sil.finish(inkOf(skin), { openTop: -5 });
-}
-
-const SERP_BLINK = 4;
-registerStyle('jormungandr', {
-  contactY: 306,
-  halfWidth: 108,
-  leg: { kind: 'skin', hw: 54, join: 'blend', fade: 24 },
-  parts: {
-    eyes: { box: { x: CX - SERP.eyeDx - 30, y: SERP.eyeY - 30, w: SERP.eyeDx * 2 + 60, h: 52 }, frames: SERP_BLINK, draw: (g, art, i) => serpEyes(g, art.skin, i / (SERP_BLINK - 1)) },
-    tongue: { box: { x: SERP_TONGUE[0] - 14, y: SERP_TONGUE[1] - 10, w: 28, h: 56 }, frames: 2, draw: (g, _a, i) => serpTongue(g, i ? 1 : 0) },
-  },
-  draw(ctx, art, p, o) {
-    drawSerpent(ctx, art, p, o);
-  },
-});
-

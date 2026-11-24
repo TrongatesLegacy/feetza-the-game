@@ -6,7 +6,7 @@ import { type LiveFoot, registerLive } from '../../game/liveKit';
 import { crand } from '../../systems/cosmeticRandom';
 import { HAMMER, JET_NOZZLES } from '../style/acts-d-1';
 import { DOOM_EYES, LEX_DOME, ROBO_CORE } from '../style/acts-d-2';
-import { DRAUGR_EYELETS, FEN_RUNES, SERP_TONGUE, SURTR_FLAMES } from '../style/acts-d-3';
+import { DRAUGR_EYELETS, FEN_RUNES, SURTR_FLAMES } from '../style/acts-d-3';
 import { drawFly } from '../style/pilot-bare';
 
 const R = () => crand();
@@ -387,21 +387,5 @@ registerLive('fenrir', {
     });
     landDust(k, dust, 0xf0f6ff, 14, 286, 0.6);
     overheat(k, steam, embers, dt, [[CX - 80, 100], [CX + 80, 100], [CX, 40]]);
-  },
-});
-
-// Jörmungandr: the eyes blink and the tongue flicks (its portrait and peel); in the fight the head is drawn by the
-// arena, so nothing is emitted while the foot itself is hidden.
-registerLive('jormungandr', {
-  blink: { eyes: { every: 3.5 } },
-  twitch: { tongue: { every: 1.6 } },
-  setup: (k) => ({ bubbles: k.emitter({ frame: 'bubble', drag: 0.4, max: 20 }) }),
-  tick(k, dt, { bubbles }) {
-    const v = shown(k);
-    if (v < 0.2) return;
-    const s = k.f.type.scale;
-    bubbles.rate('hiss', 1, dt, () => {
-      bubbles.emit(SERP_TONGUE[0] + pm() * 60, SERP_TONGUE[1] - 10, { vx: pm() * 20, vy: -20, life: 1, r0: 3 * s, r1: 6 * s, a: 0.7 * v, tint: 0xc8ffe0, fade: 0.2 });
-    });
   },
 });
