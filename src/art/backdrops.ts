@@ -4896,7 +4896,10 @@ const REDRAWN = new Set<BackdropId>(['trattoria', 'beach', 'space',
   'surtr',
   // Fenrir's Paw's arena (Lyngvi Isle, Act 8), redrawn with the location kit and painted frame animation:
   // scene-fenrir.ts
-  'fenrir']);
+  'fenrir',
+  // Jörmungandr's arena (the Edge of the World, Act 8), redrawn with the location kit and painted frame animation:
+  // scene-jormungandr.ts
+  'jormungandr']);
 
 // redrawn scenes keep their old info for the before/after page (their old glows and particles with their old art)
 const LEGACY_INFO: Partial<Record<BackdropId, BackdropInfo>> = {};

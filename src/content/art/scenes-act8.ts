@@ -3,11 +3,11 @@
 // The road to Ragnarök: cold and calm at wave 71, fire by wave 80. The animated layers (aurora,
 // weather that changes wave by wave, the bridge catching fire) live in src/content/live/act8.ts; Jotunheim is
 // redrawn with the location kit (scene-jotunheim.ts), and Thrym's Hall (scene-thrym.ts), Bifröst (scene-bifrost.ts),
-// the Burning Bridge (scene-surtr.ts) and Lyngvi Isle (scene-fenrir.ts) too: their old art here stays for the
-// before/after page.
+// the Burning Bridge (scene-surtr.ts), Lyngvi Isle (scene-fenrir.ts) and the Edge of the World (scene-jormungandr.ts)
+// too: their old art here stays for the before/after page.
 
 import type { GlowSpot } from '../../art/backdrops';
-import { registerLegacyScene, registerScene } from '../../art/registry';
+import { registerLegacyScene } from '../../art/registry';
 import {
   type Ctx,
   type R,
@@ -1476,7 +1476,8 @@ registerLegacyScene('thrym', {
   draw: drawThrymHall,
 });
 
-registerScene('jormungandr', {
+// (redrawn with the location kit in scene-jormungandr.ts; this stays for the before/after page, ?dev&stages)
+registerLegacyScene('jormungandr', {
   info: {
     name: 'Edge of the World',
     subtitle: 'Mini-boss: JÖRMUNGANDR',

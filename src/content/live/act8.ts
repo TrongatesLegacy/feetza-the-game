@@ -7,7 +7,7 @@ import Phaser from 'phaser';
 import { crand } from '../../systems/cosmeticRandom';
 import { aurora, flame, glow } from '../../art/sceneKit';
 import { makeCanvas, rgba, rng } from '../../art/util';
-import { type LiveCtx, type LiveScene, registerLegacyLive, registerLive } from '../../game/liveBackdrop';
+import { type LiveCtx, type LiveScene, registerLegacyLive } from '../../game/liveBackdrop';
 
 const W = 1920;
 
@@ -555,8 +555,11 @@ registerLegacyLive('thrym', (ctx: LiveCtx): LiveScene => {
 });
 
 // ——— Edge of the World (Jörmungandr) ———
+// (redrawn with the location kit in src/content/art/scene-jormungandr.ts, whose own live layer runs the mist off the
+// world's edge, the swell and the spray on the stacks, the far coils and the lightning; this old layer stays for the
+// before/after page, ?dev&stages)
 
-registerLive('jormungandr', (ctx: LiveCtx): LiveScene => {
+registerLegacyLive('jormungandr', (ctx: LiveCtx): LiveScene => {
   const k = new Kit(ctx.sc, ctx.layer);
   coilTex(k.sc);
   waveTex(k.sc);
