@@ -344,12 +344,13 @@ export class GameScene extends Phaser.Scene implements Arena {
       if (mv) ui.hud.setBossMove(mv.name, mv.info);
     }
   }
-  spawn(id: string, target?: Pizza | null, x?: number): Foot | null {
+  spawn(id: string, target?: Pizza | null, x?: number, o?: { offBoss?: boolean }): Foot | null {
     const t = FOOT_BY_ID[id];
     if (!t || !this.plan) return null;
     const f = this.spawnFoot(t, target ?? this.pickTarget(null), false, x);
     // a boss's own summons (flocks, waiters, blacksmiths) jump the queue for a lane
     f.brain.summoned = true;
+    if (o?.offBoss) f.brain.offBoss = true;
     // …and are fight pieces: never zombified (src/game/zombieArt.ts canZombify)
     f.brain.bossSummon = true;
     if (f.held) this.bumpForSummon(f);
@@ -1501,6 +1502,7 @@ export class GameScene extends Phaser.Scene implements Arena {
   private frameNo = 0;
   private laneFrame = -1;
   private blockedCache: { frame: number; set: Set<number> } = { frame: -1, set: new Set() };
+  private bossLaneCache: { frame: number; set: Set<number> } = { frame: -1, set: new Set() };
 
   /** The table's lanes, left to right. */
   private lanes(): { x: number; p: Pizza }[] {
@@ -1535,28 +1537,68 @@ export class GameScene extends Phaser.Scene implements Arena {
     return f.meta.halfWidth * 2 * f.scale > this.laneSpacing() * 1.3 ? 2 : 1;
   }
 
-  /** Lanes nobody may use: covered by a boss (or its stand-ins) or locked by a boss move.
-   * `ignoreBosses` leaves out boss-covered and locked lanes (a boss's own summons may use them when nothing else is free). */
-  private blockedLanes(except?: Foot, ignoreBosses = false): Set<number> {
-    const cacheable = !ignoreBosses && (!except || !except.isBossLike);
-    if (cacheable && this.blockedCache.frame === this.frameNo) return this.blockedCache.set;
+  /** Where a boss's (or stand-in's) body is and where it's headed (its lane, or its pizza): the centres, and the
+   *  stretch of table between them that its body covers. Where it is now only counts while it's on screen. */
+  private bossReach(o: Foot): { lo: number; hi: number; xs: number[] } {
+    const half = o.meta.halfWidth * o.scale;
+    const to = o.laneX ?? o.target?.x ?? o.x;
+    const xs = o.y > -20 && o.root.visible ? [o.x, to] : [to];
+    return { lo: Math.min(...xs) - half, hi: Math.max(...xs) + half, xs };
+  }
+
+  /** Is x in a lane a boss's body covers, or is on its way across? */
+  private bossCovers(x: number, except?: Foot): boolean {
+    const m = this.laneSpacing() * 0.35;
+    return this.feet.some((o) => o !== except && o.alive && o.isBossLike && ((r) => x > r.lo - m && x < r.hi + m)(this.bossReach(o)));
+  }
+
+  /** Lanes a boss's body covers, or is on its way across. No other foot may be in them, not even its own summons:
+   *  a foot there is hidden behind it (or pops out in front of it as it dives past). */
+  private bossLanes(except?: Foot): Set<number> {
+    const cacheable = !except || !except.isBossLike;
+    if (cacheable && this.bossLaneCache.frame === this.frameNo) return this.bossLaneCache.set;
     const out = new Set<number>();
-    const lanes = this.lanes();
-    const sp = this.laneSpacing();
-    for (const o of this.feet) {
-      if (ignoreBosses || o === except || !o.alive || !o.isBossLike) continue;
-      const half = o.meta.halfWidth * o.scale;
-      const cx = o.laneX ?? o.target?.x ?? o.x;
-      lanes.forEach((l, i) => {
-        if (Math.abs(l.x - cx) < half + sp * 0.35) out.add(i);
-      });
-    }
-    // (a boss's summons with nowhere else to go may use locked lanes too, or a held last pizza would shut them out for good)
-    if (!ignoreBosses) {
-      lanes.forEach((l, i) => {
-        if (this.lockedPizzas.has(l.p)) out.add(i);
-      });
-    }
+    this.lanes().forEach((l, i) => {
+      if (this.bossCovers(l.x, except)) out.add(i);
+    });
+    if (cacheable) this.bossLaneCache = { frame: this.frameNo, set: out };
+    return out;
+  }
+
+  /** Would a foot on screen moving across to x pass behind a boss (over the middle of where it is or is headed)? */
+  private crossesBoss(f: Foot, x: number): boolean {
+    const a = Math.min(f.x, x);
+    const b = Math.max(f.x, x);
+    return this.feet.some((o) => o !== f && o.alive && o.isBossLike && this.bossReach(o).xs.some((c) => c > a && c < b));
+  }
+
+  /** A boss's summons may share a lane its body covers only as a last resort: when it covers every lane on the table
+   *  (one big boss over the last pizza), and the fight didn't ask for its summons to keep off it (`offBoss`). Fights
+   *  that ward or pin until their summons are cleared would otherwise stall with nothing on screen to hit. */
+  private sharesBoss(f: Foot): boolean {
+    const n = this.lanes().length;
+    return !!f.brain.summoned && !f.brain.offBoss && n > 0 && this.bossLanes(f).size >= n;
+  }
+
+  /** A foot on screen slides across to a new lane (one off the top drops straight into it). */
+  private slides(f: Foot): boolean {
+    return !f.isBossLike && !f.held && f.y > -20;
+  }
+
+  /** Lanes nobody may use: covered by a boss (or its stand-ins) or locked by a boss move.
+   * `share`: a boss's own summons with nowhere else to go may use locked lanes ('locked'), and when a boss covers the
+   * whole table, any lane ('all': see sharesBoss). */
+  private blockedLanes(except?: Foot, share: 'none' | 'locked' | 'all' = 'none'): Set<number> {
+    if (share === 'all') return new Set();
+    const body = this.bossLanes(except);
+    // (a boss's summons with nowhere else to go may use locked lanes, or a held last pizza would shut them out for good)
+    if (share === 'locked') return body;
+    const cacheable = !except || !except.isBossLike;
+    if (cacheable && this.blockedCache.frame === this.frameNo) return this.blockedCache.set;
+    const out = new Set(body);
+    this.lanes().forEach((l, i) => {
+      if (this.lockedPizzas.has(l.p)) out.add(i);
+    });
     if (cacheable) this.blockedCache = { frame: this.frameNo, set: out };
     return out;
   }
@@ -1571,15 +1613,19 @@ export class GameScene extends Phaser.Scene implements Arena {
     return out;
   }
 
-  /** Free lanes (start indices) for a foot of this span. `avoid` skips lanes over one pizza (a foot switching away from it). */
-  private freeLanes(span = 1, except?: Foot, avoid?: Pizza | null, ignoreBosses = false): number[] {
+  /** Free lanes (start indices) for a foot of this span. `avoid` skips lanes over one pizza (a foot switching away from it).
+   * `share`: see blockedLanes. A foot on screen only gets a lane it can slide across to without passing behind a boss
+   * (or it goes off the top and drops in from there). */
+  private freeLanes(span = 1, except?: Foot, avoid?: Pizza | null, share: 'none' | 'locked' | 'all' = 'none'): number[] {
     const lanes = this.lanes();
-    const blocked = this.blockedLanes(except, ignoreBosses);
+    const blocked = this.blockedLanes(except, share);
     const used = this.usedLanes(except);
+    const slides = !!except && share !== 'all' && this.slides(except);
     const out: number[] = [];
     for (let i = 0; i + span <= lanes.length; i++) {
       let ok = true;
       for (let k = 0; k < span; k++) if (blocked.has(i + k) || used.has(i + k) || lanes[i + k].p === avoid) ok = false;
+      if (ok && slides && this.crossesBoss(except, this.laneCentre(i, span))) ok = false;
       if (ok) out.push(i);
     }
     return out;
@@ -1599,17 +1645,21 @@ export class GameScene extends Phaser.Scene implements Arena {
       free = this.freeLanes(1, f, avoid);
       useSpan = 1;
     }
-    // a boss's own summons (a flock it hides behind) first take a hovering foot's lane (it waits off screen),
-    // and only share the boss's lanes when there's nobody to bump
+    // a boss's own summons (a flock it hides behind) first take a hovering foot's lane (it waits off screen), then
+    // a lane a boss move has locked; a lane a boss's body covers only when it covers them all (sharesBoss), and
+    // otherwise they wait off screen too
     if (!free.length && f.brain.summoned && !avoid) {
-      const v = this.feet.find((o) => o !== f && o.alive && !o.isBossLike && !o.held && !o.brain.summoned && o.state === 'hover');
+      // (only a foot whose lane it can take: not one across the boss from it)
+      const v = this.feet.find((o) => o !== f && o.alive && !o.isBossLike && !o.held && !o.brain.summoned && o.state === 'hover' && !(this.slides(f) && this.crossesBoss(f, o.laneX ?? o.x)));
       if (v) {
         v.held = true;
         v.laneSide = -1;
         v.laneX = null;
         free = this.freeLanes(1, f);
       }
-      if (!free.length) free = this.freeLanes(1, f, avoid, true);
+      if (!free.length) free = this.freeLanes(1, f, avoid, 'locked');
+      if (!free.length && this.sharesBoss(f)) free = this.freeLanes(1, f, avoid, 'all');
+      useSpan = 1;
     }
     if (!free.length) {
       if (!avoid) {
@@ -1667,6 +1717,9 @@ export class GameScene extends Phaser.Scene implements Arena {
       if (!f.alive || f.isBossLike) continue;
       f.pinned = this.retreating;
       if (f.held) {
+        // (a foot sent off its lane goes off the top first and drops into its new one from there: it never jumps
+        // across the screen; a foot a fight moves by hand is the fight's to place)
+        if (!f.puppet && f.y > -60) continue;
         if (this.assignLane(f)) f.laneKey = key;
         else if (f.brain.summoned) this.bumpForSummon(f);
         continue;
@@ -1674,6 +1727,32 @@ export class GameScene extends Phaser.Scene implements Arena {
       const busy = f.state === 'descend' || f.state === 'stomp';
       const i = f.laneSide;
       const valid = i >= 0 && i + f.laneRow <= lanes.length && f.laneKey === key;
+      // a boss's body covers its lane, or is on its way across it: it gets out of the way, even mid-dive, or it
+      // would be hidden behind the boss (and pop out in front of it on the way down)
+      let covered = false;
+      if (valid) {
+        const bl = this.bossLanes(f);
+        for (let k = 0; k < f.laneRow; k++) if (bl.has(i + k)) covered = true;
+      } else covered = i >= 0 && this.bossCovers(f.laneX ?? f.x, f);
+      if (covered && !(busy && f.puppet) && !this.sharesBoss(f)) {
+        if (busy) {
+          // it backs off the top and drops into a free lane from there
+          f.held = true;
+          f.laneSide = -1;
+          f.laneX = null;
+        } else {
+          // (one a fight moves by hand only switches to a free lane, and keeps its own if there's none)
+          const keep = { laneSide: f.laneSide, laneRow: f.laneRow, laneX: f.laneX, target: f.target };
+          if (this.assignLane(f, valid ? null : f.target)) f.laneKey = key;
+          else if (f.puppet) Object.assign(f, keep, { held: false });
+        }
+        continue;
+      }
+      // a foot put on screen away from its lane (a fight placing it by hand) never slides across behind a boss to it
+      if (valid && !busy && !f.puppet && f.laneX !== null && this.slides(f) && Math.abs(f.x - f.laneX) > this.laneSpacing() / 2 && this.crossesBoss(f, f.laneX) && !this.sharesBoss(f)) {
+        if (this.assignLane(f, f.target)) f.laneKey = key;
+        continue;
+      }
       if (!valid) {
         // the table changed (a pizza died, moved or was added): find a lane again
         if (!busy || !f.target || f.target.dead) {
