@@ -277,8 +277,10 @@ registerLegacyLive('gotham', (ctx: LiveCtx): LiveScene => {
 });
 
 // ——— The Pit (Bunion) ———
+// (redrawn with the location kit in src/content/art/scene-bunion.ts, whose own live layer boils the Venom, runs the
+// rain down the shaft and swings the chains; this old layer stays for the before/after page, ?dev&stages)
 
-registerLive('bunion', (ctx: LiveCtx): LiveScene => {
+registerLegacyLive('bunion', (ctx: LiveCtx): LiveScene => {
   const k = new Kit(ctx.sc, ctx.layer);
   // dust drifting down the light shaft from the opening
   k.emitter('soft', {

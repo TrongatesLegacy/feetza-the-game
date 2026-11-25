@@ -1933,10 +1933,10 @@ function veilTile(c: Ctx, w: number, h: number, slant: number): void {
   }
 }
 
-const SPLASH = { w: 40, h: 26, n: 8 };
+export const SPLASH = { w: 40, h: 26, n: 8 };
 /** A raindrop's crown on wet stone (frame i, played once): a cup rising and breaking into droplets, a ring spreading.
  * The surface at (w/2, h - 5). */
-function splashFrame(c: Ctx, i: number): void {
+export function splashFrame(c: Ctx, i: number): void {
   const u = (i + 0.5) / SPLASH.n;
   const cx = SPLASH.w / 2;
   const sy = SPLASH.h - 5;
@@ -1971,7 +1971,7 @@ function splashFrame(c: Ctx, i: number): void {
 }
 
 /** A ripple ring on a puddle (the live code scales and fades it). */
-function ringTex(c: Ctx): void {
+export function ringTex(c: Ctx): void {
   c.strokeStyle = 'rgba(200,214,250,0.8)';
   c.lineWidth = 2;
   c.beginPath();

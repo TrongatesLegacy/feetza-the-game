@@ -4927,7 +4927,10 @@ const REDRAWN = new Set<BackdropId>(['trattoria', 'beach', 'space',
   'soleunbound',
   // Goth-Ham Rooftops (Batpeel's nemesis stage, in place of Stage 12), redrawn with the location kit and painted frame
   // animation: scene-gotham.ts
-  'gotham']);
+  'gotham',
+  // Bunion's arena (The Pit, the mini-boss of Batpeel's nemesis stage), redrawn with the location kit and painted frame
+  // animation: scene-bunion.ts
+  'bunion']);
 
 // redrawn scenes keep their old info for the before/after page (their old glows and particles with their old art)
 const LEGACY_INFO: Partial<Record<BackdropId, BackdropInfo>> = {};

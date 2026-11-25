@@ -171,6 +171,8 @@ const bunion = (): Brain => {
     v.level = 0;
     v.prop?.clear();
     v.prop = null;
+    // (the Pit, src/content/art/scene-bunion.ts, listens: its Venom glow gutters)
+    a.sc.events.emit('bunion-drain', full());
     a.sfx('sfx_bunion_drain', { throttle: 120 });
     a.fx.puff(v.glass.x, v.glass.y, 10);
     for (let i = 0; i < 6; i++) {
@@ -211,12 +213,15 @@ const bunion = (): Brain => {
     });
     const prop = v.prop;
     bin.add(() => prop.destroy());
+    // the Pit's tanks boil hard, their glow flares and the tubes pulse
+    a.sc.events.emit('bunion-pump', full());
   };
 
   /** All three vials full: he roars, then rampages (unless a vial is drained first). */
   const surge = (a: Arena, f: Foot) => {
     const h = heat(a);
     surging = true;
+    a.sc.events.emit('bunion-surge');
     a.sfx('sfx_bunion_surge');
     a.banner('VENOM SURGE!', 'Drain a vial to stop it', 'phase');
     bubble(a, 'THE OVEN RISES!', f, 1600);
@@ -258,6 +263,7 @@ const bunion = (): Brain => {
         v.level = 0;
       }
       a.quip(f.x, f.cy - 200, 'VENOM SPENT', '#c8ffb0', 36);
+      a.sc.events.emit('bunion-spent');
     };
     const hop = () => {
       if (!f.alive || !a.inWave()) return done();
@@ -309,6 +315,7 @@ const bunion = (): Brain => {
     f.shielded = false;
     for (const v of vials) v.prop?.destroy();
     for (const v of vials) v.prop = null;
+    a.sc.events.emit('bunion-break');
     a.sfx('sfx_bunion_grab');
     a.bossMove(f, 'THE BREAK', 'He grabs a pizza to break it · Smack him again and again to make him let go');
     a.banner('THE BREAK!', 'Smack him to make him let go', 'phase');
