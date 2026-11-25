@@ -4934,6 +4934,9 @@ const REDRAWN = new Set<BackdropId>(['trattoria', 'beach', 'space',
   // the Goat Path (the Immortal Brute's arena, the mini-boss of the Hot Gates), redrawn with the location kit and painted
   // frame animation: scene-immortalbrute.ts
   'immortalbrute',
+  // the God-King's Pavilion (Xerxes's arena, the boss of the Hot Gates), redrawn with the location kit and painted
+  // frame animation: scene-xerxes.ts
+  'xerxes',
   // Bunion's arena (The Pit, the mini-boss of Batpeel's nemesis stage), redrawn with the location kit and painted frame
   // animation: scene-bunion.ts
   'bunion',

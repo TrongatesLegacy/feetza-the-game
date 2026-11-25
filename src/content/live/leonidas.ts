@@ -6,7 +6,7 @@
 
 import Phaser from 'phaser';
 import { crand } from '../../systems/cosmeticRandom';
-import { type LiveCtx, type LiveScene, registerLegacyLive, registerLive } from '../../game/liveBackdrop';
+import { type LiveCtx, type LiveScene, registerLegacyLive } from '../../game/liveBackdrop';
 import { GP, HG, XP } from '../art/scenes-leonidas';
 import { NzKit, reduced } from './kratos';
 
@@ -101,7 +101,9 @@ registerLegacyLive('immortalbrute', (ctx: LiveCtx): LiveScene => {
   };
 });
 
-registerLive('xerxes', (ctx: LiveCtx): LiveScene => {
+// (redrawn with the location kit in src/content/art/scene-xerxes.ts, whose own live layer runs the braziers, the
+// incense, the cloth and the fight's cues; this old layer stays for the before/after page, ?dev&stages)
+registerLegacyLive('xerxes', (ctx: LiveCtx): LiveScene => {
   const k = new NzKit(ctx.sc, ctx.layer);
   for (const b of XP.braziers) {
     k.emitter('soft', {

@@ -851,7 +851,7 @@ export const SMOKES: Pt[] = [[736, 421], [884, 420], [1030, 421], [1166, 422]];
 const hostDepth = (y: number) => clamp01(1 - (y - HZ) / 72) * 0.7;
 const bannerDims = (s: number) => ({ bw: s * 2.6, bh: s * 2.2, top: s * 6.8 });
 
-function figure(ctx: Ctx, x: number, y: number, s: number, tunic: string, depth: number, spear: boolean, shieldF: boolean): void {
+export function figure(ctx: Ctx, x: number, y: number, s: number, tunic: string, depth: number, spear: boolean, shieldF: boolean): void {
   const dark = airMix('#2a1e1a', depth, { color: DUST, far: 0.7 });
   const tun = airMix(tunic, depth, { color: DUST, far: 0.7 });
   ctx.fillStyle = dark;
@@ -884,7 +884,7 @@ function figure(ctx: Ctx, x: number, y: number, s: number, tunic: string, depth:
 }
 
 /** A gilt standard: a sun disc with rays on a pole (our own device). */
-function standard(ctx: Ctx, x: number, y: number, s: number, depth: number): void {
+export function standard(ctx: Ctx, x: number, y: number, s: number, depth: number): void {
   ctx.strokeStyle = airMix('#3a2a20', depth, AIR);
   ctx.lineWidth = Math.max(0.8, s * 0.18);
   ctx.beginPath();
@@ -955,7 +955,7 @@ function chariot(ctx: Ctx, x: number, y: number, s: number, dir: number, depth: 
   ctx.fillRect(x - s * 0.7, y - s * 2, s * 0.3, s * 1.1);
 }
 
-function elephant(ctx: Ctx, x: number, y: number, s: number, depth: number): void {
+export function elephant(ctx: Ctx, x: number, y: number, s: number, depth: number): void {
   const body = airMix('#7a7078', depth, AIR);
   const lit = airMix('#e0c4b4', depth, AIR);
   ctx.fillStyle = body;
@@ -1098,7 +1098,7 @@ const jitterHex = (hex: string, r: R) => shade(hex, (r() - 0.5) * 0.3);
 
 /** A cloth banner of the host (our own devices): 0 crimson with a gilt sun disc, 1 purple swallowtail with a gold
  * zigzag, 2 saffron with three blue bars. Painted flat, w×h. */
-function bannerCloth(c: Ctx, w: number, h: number, kind: number): void {
+export function bannerCloth(c: Ctx, w: number, h: number, kind: number): void {
   if (kind === 0) {
     c.fillStyle = '#9a2228';
     c.fillRect(0, 0, w, h);
@@ -2920,8 +2920,8 @@ function gullsStill(ctx: Ctx): void {
 
 /** A cloud of arrows in flight (its own frame: flying towards +x), fluttering at phase ph: shafts, fletching, the
  * odd glint on a head; a faint blur of their speed behind them. */
-const VOL = { w: 240, h: 90 };
-function volleyFrame(c: Ctx, ph: number, seed: number): void {
+export const VOL = { w: 240, h: 90 };
+export function volleyFrame(c: Ctx, ph: number, seed: number): void {
   const rr = rng(hashStr('hg:vol' + seed));
   c.lineCap = 'round';
   for (let i = 0; i < 70; i++) {
