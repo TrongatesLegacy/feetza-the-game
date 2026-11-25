@@ -4,22 +4,24 @@
 //
 // Built at a Titan's scale (Kronos's stone head, rising out of the lava in the fight, is some 1200 px across): a
 // chasm of black columnar basalt a couple of hundred metres across, filled with a lake of lava. Its walls are cliffs
-// of jointed prisms rising sheer out of the frame and lost in smoke and dark hundreds of metres up, overhanging at the
-// top corners; there is no roof to see. Things a man's size give the scale: a stair cut into the left cliff, its
+// of jointed prisms rising sheer out of the frame and lost in smoke and dark hundreds of metres up, great buttresses
+// standing out of them lit red from the lake, overhanging at the top corners; there is no roof to see. Things a man's size give the scale: a stair cut into the left cliff, its
 // steps a few pixels high, climbing in switchbacks out of the frame past doorways with a lamp burning in one, a bronze
 // ring for a Titan set in the rock beside them, and two galleries of cell doors cut in the right cliff, chain rings
 // beside them.
 //
-// Across the lake, some two hundred metres off and veiled in haze and smoke, the far wall: the prison's great dial cut
-// into it, half sunk in the lava (a stone ring of twelve moons, new at the top and full under the lava, a band of
-// running waves, a bronze pin at its hub and one hand left, a sickle, the other snapped off; cracked right through,
+// Across the lake, some two hundred metres off and veiled in haze and smoke, the far wall, and leaning against it the
+// prison's great dial, a colossal carved disc tilted over and half sunk in the lava (a stone ring of twelve moons,
+// new at the top and full under the lava, lit red from below, a band of running waves, a bronze pin at its hub and one hand left, a sickle, the other snapped off; cracked right through,
 // a piece of the ring fallen out), and before it, either side, a Titan sunk to the waist in the lava, hunched, head
 // bowed between his shoulders, his arms hanging, chained at the wrists down into the lava: huge, dim shapes in the
 // haze, backlit by its smoke. Golden sand pours in four streams (stolen time) into the lava, hissing and glittering
 // where it lands: two near us out of cracks in the overhangs, two far off beside the Titans, out of the dark.
-// The lava is a lake of crust: black plates riding on it, split by glowing seams, smaller and dimmer far off. On the
-// left a colossal fluted column stands broken in the lava, a bronze band round its foot and a drum fallen beside it;
-// on the right a Titan's statue has toppled, all but its foot, still standing in its sandal on the plinth, broken off
+// The lava is a molten lake under a cooling crust broken into drifting rafts and floes, wide rivers of bright lava
+// between them, a glossy hot rim on every edge, slow flow lines on the open melt; the crust thicker far off, the melt
+// brightest along our lip and where the sand falls. On the left a colossal fluted column stands broken in the lava,
+// weathered and chipped, its top a ragged fracture, a bronze band round its foot and a drum fallen beside it; on the
+// right a Titan's statue has toppled, all but its foot, still standing in its sandal on a carved plinth, broken off
 // at the shin, pieces of the rest half sunk round the plinth. Talus of fallen blocks slopes into the lava at the
 // cliffs' feet, and each cliff is broken by a tier of fanned, crooked columns over its lower colonnade. Our side is a ledge of basalt, the columns' hexagonal tops worn into a pavement, its lip hot where the lava
 // laps it (the lip follows titanDevour.ts's RIDGE exactly: the Titan's head rises out of the lava behind it). The
@@ -49,13 +51,14 @@ import Phaser from 'phaser';
 import { type Ctx, type R, TY, W, calmLanes, crevice, lightPool, polyPath, vfill, vignetteAll, within } from '../../art/scene/kit';
 import type { SceneSpec } from '../../art/scene/layers';
 import { grain, tableFalloff } from '../../art/scene/materials';
-import { crack, drift, lay, noiseMask, softly, streaks } from '../../art/scene/paint';
+import { chips, crack, drift, lay, noiseMask, softly, streaks } from '../../art/scene/paint';
 import { ZB, xAt, yAt, zFront } from '../../art/sceneKit';
 import { hashStr, makeCanvas, mix, rgba, rng } from '../../art/util';
 import { crand } from '../../systems/cosmeticRandom';
 import { Loop, Parts, Rate, sheet } from '../../game/sceneAnim';
 import { type KitLive, calm, flicker, registerKitScene } from '../../game/sceneLive';
 import { ridgeAt } from '../../game/bosses/titanDevour';
+import { crPath } from './titanHead';
 import { BRZ, KEY_U, SLAB, chain, rimBand } from './scene-tartarus';
 
 type Pt = [number, number];
@@ -120,7 +123,7 @@ const lipY = (x: number) => ridgeAt(Math.max(0, Math.min(W, x))) - 3;
 export const TK = {
   front: 1040,
   /** The dial cut in the far wall: its centre and radius (screen px), half sunk in the lava. */
-  dial: { x: 960, y: 456, r: 236 },
+  dial: { x: 960, y: 452, r: 214 },
   /** The sand streams: X and z where they pour into the lava (out of the dark above), and how thick (units). */
   sand: [
     { X: -13.4, z: 20.5, w: 0.34 },
@@ -130,8 +133,8 @@ export const TK = {
   ],
   /** The far Titans chained to the far wall, sunk to the waist in the lava: X, z, size. */
   titans: [
-    { X: -13.6, z: 56, s: 1.2, lean: -0.05 },
-    { X: 13.8, z: 56.5, s: 1.15, lean: 0.06 },
+    { X: -16.4, z: 58, s: 0.98, lean: -0.04 },
+    { X: 16.6, z: 58.5, s: 0.94, lean: 0.05 },
   ],
 };
 /** The lip of the overhanging cliffs at the top corners (screen y at screen x, 0 where they end). */
@@ -149,7 +152,6 @@ const STREAMS = TK.sand.map((s) => {
 // ——— colours and light ———
 
 const BAS = { deep: '#060408', body: '#141018', mid: '#221c28', lit: '#3a3244', cool: '#525a78' };
-const LAVA = { crust: '#140605', deep: '#5a1206', body: '#c8401a', hot: '#ff9a3a' };
 const GOLD = { deep: '#6a4410', body: '#d8a040', lit: '#ffe08a', white: '#fff8e0' };
 /** The chasm's air at height Y: smoke lit red low over the lava, grey-blue haze higher up. */
 const hazeAt = (Y: number) => mix('#4a1a14', '#2a2a38', clamp01(Y / 16));
@@ -458,6 +460,30 @@ function dialPath(): (c: Ctx) => void {
 
 function dial(ctx: Ctx, r: R): void {
   const { x, y, r: R0 } = TK.dial;
+  // a colossal disc of carved stone, half sunk, tilted over and leaning back against the wall: its shadow thrown up
+  // the wall by the lava's light, then its thickness, then its face
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(-0.09);
+  ctx.scale(1, 0.9);
+  ctx.translate(-x, -y);
+  softly(ctx, { x: x - R0 - 80, y: y - R0 - 100, w: R0 * 2 + 160, h: R0 + 120 }, (q) => {
+    q.fillStyle = 'rgba(2,1,3,0.6)';
+    q.beginPath();
+    q.arc(x + 18, y - 30, R0 + 8, Math.PI, 0);
+    q.fill();
+  }, 0.25);
+  for (let i = 16; i > 0; i -= 2) {
+    ctx.fillStyle = mix('#0e0a0c', '#3a1a14', clamp01(1 - i / 16) * 0.4);
+    ctx.beginPath();
+    ctx.arc(x - i * 0.5, y - i, R0, 0, P2);
+    ctx.fill();
+  }
+  ctx.strokeStyle = rgba('#a87a70', 0.12);
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.arc(x - 8, y - 16, R0, Math.PI * 1.05, Math.PI * 1.75);
+  ctx.stroke();
   const disc = dialPath();
   // the recess: cut flat across the columns, smoother and a shade paler, the columns' seams still in it
   ctx.save();
@@ -508,10 +534,10 @@ function dial(ctx: Ctx, r: R): void {
   ctx.arc(x, y, r1, 0, P2);
   ctx.arc(x, y, r2, 0, P2, true);
   const gr = ctx.createLinearGradient(0, y - r1, 0, y + r1);
-  gr.addColorStop(0, '#120e12');
-  gr.addColorStop(0.5, '#241c22');
-  gr.addColorStop(0.85, '#4a2018');
-  gr.addColorStop(1, '#6a2a16');
+  gr.addColorStop(0, '#221c22');
+  gr.addColorStop(0.5, '#3a2e32');
+  gr.addColorStop(0.85, '#7a3420');
+  gr.addColorStop(1, '#a8441e');
   ctx.fillStyle = gr;
   ctx.fill('evenodd');
   ctx.strokeStyle = 'rgba(2,1,3,0.7)';
@@ -544,7 +570,7 @@ function dial(ctx: Ctx, r: R): void {
   const rm = (r1 + r2) / 2 + 4;
   for (let h = 0; h < 12; h++) {
     const a = hourA(h);
-    moon(ctx, x + Math.cos(a) * rm, y + Math.sin(a) * rm, 15, h, r() < 0.3 ? 0.4 + r() * 0.4 : 0);
+    moon(ctx, x + Math.cos(a) * rm, y + Math.sin(a) * rm, 18, h, r() < 0.3 ? 0.4 + r() * 0.4 : 0);
   }
   // the band of running waves inside it
   const rw = r2 - 26;
@@ -695,13 +721,26 @@ function dial(ctx: Ctx, r: R): void {
   ctx.stroke();
   // grime: soot run down from the roof over it, darker towards its top
   for (let i = 0; i < 12; i++) streaks(ctx, r, x - R0 + r() * R0 * 2, y - R0 + r() * 40, 10 + r() * 30, 80 + r() * 160, '#020102', 0.14, 3);
-  within(ctx, disc, () => vfill(ctx, x - R0 - 10, y - R0 - 10, R0 * 2 + 20, R0, [[0, 'rgba(3,1,3,0.6)'], [1, 'rgba(3,1,3,0)']]));
+  within(ctx, disc, () => {
+    vfill(ctx, x - R0 - 10, y - R0 - 10, R0 * 2 + 20, R0, [[0, 'rgba(3,1,3,0.35)'], [1, 'rgba(3,1,3,0)']]);
+    // the lava's red climbing its face from below, strongest on the moons near the lava
+    ctx.globalCompositeOperation = 'lighter';
+    vfill(ctx, x - R0, y - R0 * 0.5, R0 * 2, R0 * 1.5, [[0, 'rgba(255,90,40,0)'], [1, 'rgba(255,90,40,0.38)']]);
+    ctx.globalCompositeOperation = 'source-over';
+    lay(ctx, noiseMask(5, 233, { cover: 0.4, soft: 0.4, col: '#040204', w: 40, h: 40 }), { x: x - R0, y: y - R0, w: R0 * 2, h: R0 * 2 }, 0.35);
+  });
+  ctx.restore();
 }
 
 /** The dial's moons and the sickle's gilding in gold (live only: the live layer flashes it when the hourglass
  * flips). */
 function dialGlint(ctx: Ctx): void {
   const { x, y, r: R0 } = TK.dial;
+  // (the same tilt as the dial)
+  ctx.translate(x, y);
+  ctx.rotate(-0.09);
+  ctx.scale(1, 0.9);
+  ctx.translate(-x, -y);
   const rm = (R0 - 14 + R0 - 66) / 2 + 4;
   for (let h = 0; h < 12; h++) {
     const a = hourA(h);
@@ -759,175 +798,102 @@ function farWall(ctx: Ctx, r: R): void {
 
 // ——— the far Titans, chained to the far wall ———
 
-/** A Titan sunk to the waist in the lava, his arms dragged up by chains into the dark, his head bowed: a huge dim
- * shape in the haze (u across, v up, in his own units). */
+/** A Titan sunk to the waist in the lava, hunched and slumped in his chains: his shoulders and back heaved up round
+ * his bowed head, matted hair hanging over his face and a beard on his chest, his huge arms hanging, shackled at the
+ * wrists by chains that run down into the lava. Stone and flesh at once, like the head that rises in the fight: a
+ * rough-hewn mass, cracked, the magma's glow in its cracks, lit red from the lava below. Painted on its own canvas.
+ * (u across, v up from the lava, in his own units.) */
 function titan(ctx: Ctx, t: (typeof TK.titans)[number], side: -1 | 1): void {
-  const k = pz(t.z) * t.s * 0.95;
+  const k = pz(t.z) * t.s;
   const [x, yl] = P(t.X, 0, t.z);
-  const L = (u: number, v: number): Pt => [x + (u + v * t.lean) * k, yl - v * k];
-  const lineK = (pts: Pt[]) => (c: Ctx) => {
+  const rr = rng(hashStr('tk:titan' + side));
+  const L = (u: number, v: number): Pt => [x + (u * side + v * t.lean) * k, yl - v * k];
+  // (a rough edge: each point nudged, so his outline is hewn, not drawn)
+  const rough = (pts: [number, number][], amt = 0.18): Pt[] => pts.map(([u, v]) => L(u + (rr() - 0.5) * amt, v + (rr() - 0.5) * amt));
+  // his trunk: waist, flanks, the great slope of his back and shoulders heaved up round his head
+  const trunk = rough([[-3.8, -0.8], [-3.6, 2.4], [-4.4, 5.2], [-5.6, 8.2], [-6.6, 10.8], [-6.4, 12.6], [-5.2, 13.6], [-3.4, 13.4], [-2.2, 12.2], [-1.2, 11.2], [1.2, 11.2], [2.2, 12.2], [3.4, 13.4], [5.2, 13.6], [6.4, 12.6], [6.6, 10.8], [5.6, 8.2], [4.4, 5.2], [3.6, 2.4], [3.8, -0.8]]);
+  // his arms hanging, a little bent, their hands in the shackles just above the lava
+  const arm = (s2: -1 | 1): Pt[] => rough([[s2 * 5.2, 12.4], [s2 * 7.4, 11.6], [s2 * 8.3, 8.4], [s2 * 8.4, 5.6], [s2 * 8.0, 2.4], [s2 * 7.9, 0.6], [s2 * 6.1, 0.6], [s2 * 6.2, 3], [s2 * 6.4, 5.8], [s2 * 6.0, 8.6], [s2 * 5.4, 10.4]], 0.14);
+  const arms = [arm(-1), arm(1)];
+  // his head, bowed so low its crown sits between his shoulders: the mass of his hair
+  const head = rough([[-1.9, 10.4], [-2.2, 11.6], [-1.6, 12.8], [0, 13.3], [1.6, 12.8], [2.2, 11.6], [1.9, 10.4], [1.2, 8.8], [0, 7.4], [-1.2, 8.8]], 0.12);
+  const path = (c: Ctx) => {
     c.beginPath();
-    pts.forEach(([px, py], i) => (i ? c.lineTo(px, py) : c.moveTo(px, py)));
-  };
-  // his arms: shoulder, elbow, wrist (each side), thick, raised up and out
-  const arms = ([-1, 1] as const).map((s) => [L(s * 4.5, 9.8), L(s * 6.1, 6.1), L(s * 6.5, 2.4)] as Pt[]);
-  // the torso: waist, flanks flaring to the ribs and the lats, the shoulders hunched up by the raised arms
-  const torso: Pt[] = [];
-  const outline: [number, number][] = [[-3.4, -1], [-3.2, 2.5], [-3.7, 5], [-4.5, 7.4], [-5.1, 9.2], [-4.6, 10.5], [-3.2, 11.3], [-1.6, 11.0], [0, 10.6], [1.6, 11.0], [3.2, 11.3], [4.6, 10.5], [5.1, 9.2], [4.5, 7.4], [3.7, 5], [3.2, 2.5], [3.4, -1]];
-  for (const [u, v] of outline) torso.push(L(u, v));
-  // (a smooth outline through its points: the body rounded, not cut)
-  const tp = (c: Ctx) => {
-    c.beginPath();
-    const n = torso.length;
-    c.moveTo(torso[0][0], torso[0][1]);
-    for (let i = 1; i < n - 1; i++) {
-      const [x1, y1] = torso[i];
-      const [x2, y2] = torso[i + 1];
-      c.quadraticCurveTo(x1, y1, i === n - 2 ? x2 : (x1 + x2) / 2, i === n - 2 ? y2 : (y1 + y2) / 2);
+    crPath(c, trunk);
+    c.closePath();
+    for (const a of arms) {
+      crPath(c, a);
+      c.closePath();
     }
+    crPath(c, head);
     c.closePath();
   };
-  const head = (c: Ctx) => {
-    const [hx, hy] = L(0.35 * side, 10.7);
-    c.beginPath();
-    c.ellipse(hx, hy, 1.45 * k, 1.6 * k, 0.15 * side, 0, P2);
-  };
-  // the chains from his wrists up into the dark, and from his manacles back to rings in the wall
-  for (const a of arms) {
-    const [wx, wy] = a[2];
-    const s = 0.42 * k;
-    // (from the manacle down into the lava, where it's fixed: no chain hangs over the middle)
-    chain(ctx, [[wx, wy], [wx + Math.sign(wx - x) * 0.4 * k, yl + 4]], s * 0.75, 0.25);
-  }
-  // the body: dark stone-grey skin, lit red from below, a cool rim from the left
-  const body = (c: Ctx) => {
-    tp(c);
-    c.fill();
-    head(c);
-    c.fill();
-    c.lineCap = 'round';
-    c.lineJoin = 'round';
-    for (const [ai, a] of arms.entries()) {
-      // the shoulder's round
-      c.beginPath();
-      c.arc(a[0][0], a[0][1] - 0.2 * k, 1.75 * k, 0, P2);
-      c.fill();
-      for (const [seg, wd] of [[0, 2.9], [1, 2.2]] as const) {
-        c.lineWidth = wd * k;
-        c.beginPath();
-        c.moveTo(a[seg][0], a[seg][1]);
-        c.lineTo(a[seg + 1][0], a[seg + 1][1]);
-        c.stroke();
-      }
-      void ai;
-    }
-  };
-  ctx.fillStyle = '#15111a';
-  ctx.strokeStyle = '#15111a';
-  body(ctx);
-  const bb = boxOfPts([...torso, ...arms.flat()], 3 * k);
+  // the body: dark stone-grey flesh
+  ctx.fillStyle = '#2c2629';
+  path(ctx);
+  ctx.fill('nonzero');
+  const bb = boxOfPts([...trunk, ...arms.flat(), ...head], 2 * k);
   ctx.save();
-  // (paint only where he is: he's on his own canvas)
   ctx.globalCompositeOperation = 'source-atop';
-  // his form: the chest's round catching the light in its middle, his flanks turning away into shade
-  const [cx0, cy0] = L(0.6, 7);
-  const rg = ctx.createRadialGradient(cx0, cy0, 0, cx0, cy0, 6.5 * k);
-  rg.addColorStop(0, 'rgba(120,110,130,0.22)');
-  rg.addColorStop(0.6, 'rgba(0,0,0,0)');
-  rg.addColorStop(1, 'rgba(6,4,10,0.45)');
-  ctx.fillStyle = rg;
-  ctx.fillRect(bb.x, bb.y, bb.w, bb.h);
-  // his arms round: the side away from the light in shade, a lit edge on the other
-  ctx.lineCap = 'round';
-  for (const a of arms) {
-    const out = Math.sign(a[2][0] - x);
-    for (const [seg, wd] of [[0, 2.7], [1, 2.1]] as const) {
-      const [ax, ay] = a[seg];
-      const [bx, by] = a[seg + 1];
-      const l = Math.hypot(bx - ax, by - ay) || 1;
-      const nx = (-(by - ay) / l) * out;
-      const ny = ((bx - ax) / l) * out;
-      const off = wd * 0.32 * k;
-      ctx.strokeStyle = 'rgba(6,4,10,0.45)';
-      ctx.lineWidth = wd * 0.4 * k;
-      ctx.beginPath();
-      ctx.moveTo(ax + nx * off, ay + ny * off);
-      ctx.lineTo(bx + nx * off, by + ny * off);
-      ctx.stroke();
-      ctx.strokeStyle = 'rgba(150,140,170,0.12)';
-      ctx.lineWidth = wd * 0.18 * k;
-      ctx.beginPath();
-      ctx.moveTo(ax - nx * off * 1.1, ay - ny * off * 1.1);
-      ctx.lineTo(bx - nx * off * 1.1, by - ny * off * 1.1);
-      ctx.stroke();
-    }
-  }
-  // lit from the lava below, the warm climbing his chest
-  vfill(ctx, bb.x, bb.y, bb.w, bb.h, [[0, 'rgba(0,0,0,0)'], [0.5, 'rgba(0,0,0,0)'], [0.82, rgba('#6a2416', 0.5)], [1, rgba('#d8582a', 0.7)]]);
-  // his muscles, faint: the chest, the line down his belly, the ribs
-  ctx.strokeStyle = 'rgba(0,0,0,0.3)';
-  ctx.lineWidth = Math.max(1, k * 0.18);
-  const [c0x, c0y] = L(0, 8.6);
-  ctx.beginPath();
-  ctx.moveTo(...L(-3.6, 8.4));
-  ctx.quadraticCurveTo(c0x - 1.6 * k, c0y + 1.4 * k, c0x, c0y);
-  ctx.quadraticCurveTo(c0x + 1.6 * k, c0y + 1.4 * k, ...L(3.6, 8.4));
-  ctx.moveTo(...L(0, 8.2));
-  ctx.lineTo(...L(0.1, 1));
-  for (const v of [6.4, 5.2]) {
-    ctx.moveTo(...L(-3.5, v));
-    ctx.lineTo(...L(-2.4, v - 0.6));
-    ctx.moveTo(...L(3.5, v));
-    ctx.lineTo(...L(2.4, v - 0.6));
-  }
-  ctx.stroke();
-  // the hair falling forward over his bowed head, his beard on his chest
-  ctx.fillStyle = 'rgba(4,2,6,0.5)';
-  const [hx, hy] = L(0.35 * side, 10.7);
-  ctx.beginPath();
-  ctx.ellipse(hx, hy - 0.6 * k, 1.6 * k, 1.2 * k, 0, Math.PI, 0);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.moveTo(hx - 1.1 * k, hy + 0.6 * k);
-  ctx.quadraticCurveTo(hx, hy + 3.4 * k, hx + 1.1 * k, hy + 0.6 * k);
-  ctx.fill();
-  // a cool rim along his left side and arms, the warm along his right (the lava's glow off the far shore)
-  ctx.restore();
-  ctx.save();
-  ctx.strokeStyle = rgba('#9aa0c0', 0.22);
-  ctx.lineWidth = Math.max(1, k * 0.16);
-  lineK([L(-4.9, 9.6), L(-4.4, 7.6), L(-3.6, 5), L(-3.1, 2.5)])(ctx);
-  ctx.stroke();
-  ctx.strokeStyle = rgba('#ff7a3a', 0.3);
-  lineK([L(4.9, 9.6), L(4.4, 7.6), L(3.6, 5), L(3.1, 2.5), L(3.3, 0)])(ctx);
-  ctx.stroke();
-  // his bowed head: the crown of it catching a cool rim, his brow lit faintly from below
-  {
-    const [hx, hy] = L(0.35 * side, 10.7);
-    ctx.strokeStyle = rgba('#9aa0c0', 0.28);
-    ctx.lineWidth = Math.max(1, k * 0.14);
-    ctx.beginPath();
-    ctx.ellipse(hx, hy, 1.55 * k, 1.85 * k, 0.15 * side, Math.PI * 1.1, Math.PI * 1.9);
-    ctx.stroke();
-    ctx.strokeStyle = rgba('#ff7a3a', 0.2);
-    ctx.beginPath();
-    ctx.ellipse(hx, hy, 1.55 * k, 1.85 * k, 0.15 * side, Math.PI * 0.25, Math.PI * 0.75);
-    ctx.stroke();
-  }
-  // the manacles
-  for (const a of arms) {
-    const [wx, wy] = a[2];
-    ctx.fillStyle = mix('#1a1410', BRZ.green, 0.2);
-    ctx.beginPath();
-    ctx.ellipse(wx, wy + 0.2 * k, 0.8 * k, 0.45 * k, 0, 0, P2);
+  // hewn planes: the great forms of chest, shoulders and arms as broad facets, light and dark
+  for (const [u0, v0, u1, v1, u2, v2, col, a] of [
+    [-6.4, 12.4, -2.4, 11.8, -4.6, 7.6, '#4a4048', 0.35],
+    [6.4, 12.4, 2.4, 11.8, 4.6, 7.6, '#0a0608', 0.4],
+    [-4.4, 7.4, 0, 9.2, -0.6, 3.2, '#3a3238', 0.3],
+    [4.4, 7.4, 0, 9.2, 0.6, 3.2, '#0c080a', 0.3],
+    [-8.4, 8.4, -6.2, 8.8, -7.4, 3.2, '#4a4048', 0.3],
+    [8.4, 8.4, 6.2, 8.8, 7.4, 3.2, '#08060a', 0.35],
+  ] as const) {
+    ctx.fillStyle = rgba(col, a);
+    polyPath([L(u0, v0), L(u1, v1), L(u2, v2)])(ctx);
     ctx.fill();
-    ctx.strokeStyle = rgba('#c88a50', 0.18);
-    ctx.lineWidth = 1;
+  }
+  lay(ctx, drift('#4a3e44', '#06040a', 4, 301 + side, 40, 50), bb, 0.5);
+  lay(ctx, noiseMask(6, 307 + side, { cover: 0.42, soft: 0.3, col: '#000000', w: 40, h: 50 }), bb, 0.35);
+  grain(ctx, bb, 'stone', 0.4, 1.1);
+  // cracks over him, the magma's glow in a few
+  for (let i = 0; i < 7; i++) {
+    const [cx0, cy0] = L((rr() - 0.5) * 9, 2 + rr() * 10);
+    crack(ctx, rr, cx0, cy0, rr() * P2, (1.2 + rr() * 2.5) * k, { w: Math.max(1, k * 0.08), a: 0.7, col: i < 3 ? '#ff6a1a' : '#050304', lip: '#8a7a80' });
+  }
+  // his matted hair hanging over his face, his beard on his chest
+  ctx.lineCap = 'round';
+  for (let i = 0; i < 34; i++) {
+    const u = (rr() - 0.5) * 3.8;
+    const [hx0, hy0] = L(u * 0.8, 12.6 - Math.abs(u) * 0.4);
+    const [hx1, hy1] = L(u * 1.05 + (rr() - 0.5) * 0.6, 8.2 - rr() * 1.4 + Math.abs(u) * 0.8);
+    ctx.strokeStyle = rr() < 0.12 ? rgba('#4a3c42', 0.45) : rgba('#050306', 0.6);
+    ctx.lineWidth = Math.max(1, k * (0.16 + rr() * 0.2));
+    ctx.beginPath();
+    ctx.moveTo(hx0, hy0);
+    ctx.quadraticCurveTo((hx0 + hx1) / 2 + (rr() - 0.5) * k * 0.6, (hy0 + hy1) / 2, hx1, hy1);
     ctx.stroke();
   }
+  // lit from the lava below: red climbing his chest and arms; the cool of the smoke on his shoulders and crown
+  vfill(ctx, bb.x, bb.y, bb.w, bb.h, [[0, 'rgba(120,120,150,0.14)'], [0.3, 'rgba(0,0,0,0)'], [0.62, rgba('#5a1e14', 0.35)], [1, rgba('#e0602a', 0.75)]]);
   ctx.restore();
-  // where he stands in the lava: it glows round his waist
-  lightPool(ctx, x, yl, 5 * k, 0.6 * k, '#ff7a2a', 0.45);
+  // (cut everything to his shape)
+  ctx.save();
+  ctx.globalCompositeOperation = 'destination-in';
+  ctx.fillStyle = '#000';
+  path(ctx);
+  ctx.fill('nonzero');
+  ctx.restore();
+  // the chains from his shackles down into the lava (short: nothing hangs over the middle)
+  for (const s2 of [-1, 1] as const) {
+    const [wx, wy] = L(s2 * 7, 0.8);
+    chain(ctx, [[wx, wy], [wx + s2 * side * 0.3 * k, yl + 4]], 0.32 * k, 0.25);
+  }
+  // the shackles round his wrists
+  for (const s2 of [-1, 1] as const) {
+    const [wx, wy] = L(s2 * 7, 1.6);
+    ctx.fillStyle = mix('#2a1c10', BRZ.green, 0.2);
+    ctx.fillRect(wx - 1.3 * k, wy - 0.45 * k, 2.6 * k, 0.9 * k);
+    ctx.fillStyle = rgba('#ff9a5a', 0.3);
+    ctx.fillRect(wx - 1.3 * k, wy + 0.3 * k, 2.6 * k, 0.15 * k);
+  }
+  // where he stands in the lava: it glows round his waist and wrists
+  lightPool(ctx, x, yl, 6 * k, 0.6 * k, '#ff7a2a', 0.45);
 }
 
 const TITANS_BOX: Box = { x: 300, y: 0, w: W - 600, h: Math.ceil(SHORE_FAR + 16) };
@@ -1120,6 +1086,87 @@ function overhang(ctx: Ctx, r: R, s: -1 | 1): void {
   ctx.stroke();
 }
 
+/** A buttress: a great mass of the cliff standing d out of it from z0 to z1, rising out of the frame. Its face to
+ * the lake lit red from below and fading into the smoke above; its end towards us in shadow; columns' joints and
+ * striations across it at a Titan's scale; a ragged fracture down its edge. */
+function buttress(ctx: Ctx, r: R, s: -1 | 1, z0: number, z1: number, d: number): void {
+  const Xb = s * (XW - 1);
+  const Xf = s * (XW - 1 - d);
+  const top = 70;
+  const face: Pt[] = [P(Xf, -0.5, z0), P(Xf, -0.5, z1), P(Xf, top, z1), P(Xf, top, z0)];
+  const end: Pt[] = [P(Xb, -0.5, z0), P(Xf, -0.5, z0), P(Xf, top, z0), P(Xb, top, z0)];
+  const yb = (face[0][1] + face[1][1]) / 2;
+  // its shadow on the wall beyond it (the light comes from the lake: it falls back along the wall)
+  softly(ctx, boxOfPts([...face, P(Xb, -0.5, z1 + 4), P(Xb, top, z1 + 4)], 10), (q) => {
+    q.fillStyle = 'rgba(2,1,3,0.55)';
+    polyPath([P(Xf, -0.5, z1), P(Xb, -0.5, z1 + 3.5), P(Xb, top, z1 + 3.5), P(Xf, top, z1)])(q);
+    q.fill();
+  }, 0.25);
+  // its face
+  let g = ctx.createLinearGradient(0, 0, 0, yb);
+  g.addColorStop(0, '#0a0709');
+  g.addColorStop(0.45, '#1e161a');
+  g.addColorStop(0.75, '#4a2016');
+  g.addColorStop(1, '#b0461e');
+  ctx.fillStyle = g;
+  polyPath(face)(ctx);
+  ctx.fill();
+  within(ctx, polyPath(face), () => {
+    const fb = boxOfPts(face, 0);
+    // the columns of it: wide vertical prisms, their arrises lit low down, their joints across them
+    const n = Math.max(3, Math.round((z1 - z0) / 1.1));
+    for (let i = 1; i < n; i++) {
+      const z = z0 + ((z1 - z0) * (i + (r() - 0.5) * 0.4)) / n;
+      const a = P(Xf, -0.5, z);
+      const b = P(Xf, 40, z);
+      const lg = ctx.createLinearGradient(0, b[1], 0, a[1]);
+      lg.addColorStop(0, 'rgba(0,0,0,0.5)');
+      lg.addColorStop(0.75, 'rgba(0,0,0,0.5)');
+      lg.addColorStop(1, 'rgba(255,120,60,0.3)');
+      ctx.strokeStyle = lg;
+      ctx.lineWidth = Math.max(1, pz(z) * 0.05);
+      ctx.beginPath();
+      ctx.moveTo(a[0], a[1]);
+      ctx.lineTo(b[0], b[1]);
+      ctx.stroke();
+    }
+    for (let Y = 1.5 + r() * 2; Y < 30; Y += 2.5 + r() * 4) {
+      const za = z0 + r() * (z1 - z0) * 0.4;
+      const zb = za + (z1 - z0) * (0.3 + r() * 0.5);
+      line(ctx, P(Xf, Y, za), P(Xf, Y + (r() - 0.5) * 0.6, Math.min(z1, zb)), 'rgba(2,1,3,0.6)', 1.4);
+      line(ctx, P(Xf, Y - 0.12, za), P(Xf, Y - 0.12, Math.min(z1, zb)), rgba('#ff7a3a', 0.12 * Math.exp(-Y / 6)), 1);
+    }
+    lay(ctx, noiseMask(5, 401 + Math.round(z0), { cover: 0.42, soft: 0.4, col: '#030103', w: 30, h: 80 }), fb, 0.4);
+    grain(ctx, fb, 'stone', 0.3, 1.3);
+  });
+  // its end towards us: in its own shadow, faintly warm at its foot
+  g = ctx.createLinearGradient(0, 0, 0, end[0][1]);
+  g.addColorStop(0, '#030204');
+  g.addColorStop(0.75, '#0c080a');
+  g.addColorStop(1, '#4a1a10');
+  ctx.fillStyle = g;
+  polyPath(end)(ctx);
+  ctx.fill();
+  // the arris between them, ragged, lit low down by the lava
+  const ar: Pt[] = [];
+  for (let Y = -0.5; Y <= 40; Y += 1.2) {
+    const [ax, ay] = P(Xf, Y, z0);
+    ar.push([ax + (r() - 0.5) * 3, ay]);
+  }
+  const ag = ctx.createLinearGradient(0, ar[ar.length - 1][1], 0, ar[0][1]);
+  ag.addColorStop(0, 'rgba(255,120,60,0)');
+  ag.addColorStop(0.7, 'rgba(255,120,60,0.06)');
+  ag.addColorStop(1, 'rgba(255,140,80,0.5)');
+  ctx.strokeStyle = ag;
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ar.forEach(([px, py], i) => (i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)));
+  ctx.stroke();
+  // where it stands in the lava
+  const [fx, fy] = P(Xf, 0, (z0 + z1) / 2);
+  lightPool(ctx, fx, fy, Math.abs(face[1][0] - face[0][0]) * 0.7, pz((z0 + z1) / 2) * 0.3, '#ff7a2a', 0.4);
+}
+
 /** A tier of a cliff: the band between the lower colonnade and the upper one, where the columns break up into thin
  * crooked prisms fanning every way, lit only along its ragged underside by the lava far below. */
 function tier(ctx: Ctx, r: R, s: -1 | 1): void {
@@ -1193,6 +1240,8 @@ function walls(ctx: Ctx, r: R): void {
       for (let i = 0; i < 26; i++) streaks(ctx, r, wb.x + r() * wb.w, 20 + r() * 300, 8 + r() * 20, 60 + r() * 200, '#030103', 0.15, 3);
     });
   }
+  // the buttresses: great masses of the cliff standing out of it, their faces turned to the lake lit red from below
+  for (const [sd, z0, z1, d] of [[-1, 20.5, 25.5, 3.2], [-1, 31, 34.5, 2.2], [-1, 41.5, 44.5, 1.8], [-1, 53, 56, 1.3], [1, 22.5, 28, 3.4], [1, 36, 39.5, 2.4], [1, 47.5, 51, 1.7], [1, 56.5, 59, 1.2]] as const) buttress(ctx, r, sd, z0, z1, d);
   // the cliffs' tiers: a band of broken, fanned columns over the lower colonnade, its underside lit from below
   for (const s of [-1, 1] as const) tier(ctx, r, s);
   // what gives the scale: a stair cut in the left cliff climbing out of the frame, doorways on its landings (a lamp
@@ -1367,84 +1416,186 @@ function plateScreen(p: Plate, g: number): Pt[] {
     return P(cx + dx * k, 0, cz + dz * k);
   });
 }
-/** How hot the lava runs at screen x (calmer behind the middle lanes). */
-const hotAt = (x: number) => 0.45 + 0.45 * smooth(160, 600, Math.abs(x - 960));
+
+/** Smooth value noise (0…1) on a lattice, seeded. */
+function vn(x: number, y: number, seed: number): number {
+  const xi = Math.floor(x);
+  const yi = Math.floor(y);
+  const xf = x - xi;
+  const yf = y - yi;
+  const h = (i: number, j: number) => {
+    let n = (Math.imul(i, 374761393) + Math.imul(j, 668265263) + Math.imul(seed, 1442695041)) | 0;
+    n = Math.imul(n ^ (n >>> 13), 1274126177);
+    return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
+  };
+  const u = xf * xf * (3 - 2 * xf);
+  const v = yf * yf * (3 - 2 * yf);
+  const a = h(xi, yi);
+  const b = h(xi + 1, yi);
+  const c = h(xi, yi + 1);
+  const d = h(xi + 1, yi + 1);
+  return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+}
+const fbm = (x: number, y: number, seed: number) => vn(x, y, seed) * 0.55 + vn(x * 2.1, y * 2.1, seed + 7) * 0.3 + vn(x * 4.3, y * 4.3, seed + 13) * 0.15;
+
+/** The crust on the lake at (X, z): rafts of it drifting on the molten lava, broken into big slabs and small floes,
+ * thicker and more whole away from the heat; open rivers of molten lava between them, widest along our lip (where the
+ * head comes up) and round the sand's falls. Crust where it's above 0. */
+function crustAt(X: number, z: number): number {
+  // (stretched across the flow: the rafts drift side to side, so they're longer than they are deep)
+  let n = fbm(X * 0.13 + 3.1, z * 0.32 + 1.7, 41) - 0.39;
+  n += (vn(X * 0.55, z * 1.2, 53) - 0.5) * 0.2;
+  n -= Math.exp(-(((z - 10) / 1.6) ** 2)) * 0.22;
+  for (const s of TK.sand) n -= Math.exp(-(((X - s.X) / (s.z * 0.12)) ** 2 + ((z - s.z) / (s.z * 0.14)) ** 2)) * 0.35;
+  n += clamp01((z - 16) / 36) * 0.2 + smooth(4, 14, Math.abs(X)) * 0.06;
+  // far off the detail is lost in the smoke: it settles to a crust seamed with thin bright lines
+  const far = clamp01((z - 34) / 24);
+  return n * (1 - far * 0.6) + far * 0.05;
+}
+
+/** The lake's masks on screen (made once): the crust's cover, the hot rim of molten lava along every raft's edge and
+ * its glossy meniscus, at half the width (upscaled soft). */
+const LAKE = { y0: Math.floor(SHORE_FAR - 2), y1: 712, k: 0.5 };
+let lakeMasks: { crust: HTMLCanvasElement; rim: HTMLCanvasElement; gloss: HTMLCanvasElement } | null = null;
+function lakeMaskCanvases() {
+  if (lakeMasks) return lakeMasks;
+  const w = Math.round(W * LAKE.k);
+  const h = LAKE.y1 - LAKE.y0;
+  const [cc, cq] = makeCanvas(w, h);
+  const [rc, rq] = makeCanvas(w, h);
+  const [gc, gq] = makeCanvas(w, h);
+  const ci = cq.createImageData(w, h);
+  const ri = rq.createImageData(w, h);
+  const gi = gq.createImageData(w, h);
+  for (let j = 0; j < h; j++) {
+    const y = LAKE.y0 + j + 0.5;
+    const z = zAtY(y);
+    for (let i = 0; i < w; i++) {
+      const x = (i + 0.5) / LAKE.k;
+      const X = ((x - 960) * z) / F;
+      const n = crustAt(X, z);
+      const o = (j * w + i) * 4;
+      // the crust: a soft-edged cover (its edge sharper near us)
+      const e = 0.012 + clamp01((z - 10) / 50) * 0.02;
+      ci.data[o + 3] = Math.round(255 * smooth(-e, e, n));
+      // the hot rim on the molten side of every edge, and the bright gloss right at it
+      const rim = n < 0 ? Math.exp(-((n / 0.07) ** 2)) : Math.exp(-((n / 0.012) ** 2));
+      ri.data[o] = 255;
+      ri.data[o + 1] = 120;
+      ri.data[o + 2] = 40;
+      ri.data[o + 3] = Math.round(255 * rim * 0.8);
+      const gl = n < 0 ? Math.exp(-(((n + 0.008) / 0.012) ** 2)) : 0;
+      gi.data[o] = 255;
+      gi.data[o + 1] = 226;
+      gi.data[o + 2] = 160;
+      gi.data[o + 3] = Math.round(255 * gl * 0.85 * (1 - clamp01((z - 30) / 30)));
+    }
+  }
+  cq.putImageData(ci, 0, 0);
+  rq.putImageData(ri, 0, 0);
+  gq.putImageData(gi, 0, 0);
+  lakeMasks = { crust: cc, rim: rc, gloss: gc };
+  return lakeMasks;
+}
 
 function lava(ctx: Ctx, r: R): void {
+  const m = lakeMaskCanvases();
+  const LB: Box = { x: 0, y: LAKE.y0, w: W, h: LAKE.y1 - LAKE.y0 };
+  const draw = (c: Ctx, cv: HTMLCanvasElement, op: GlobalCompositeOperation = 'source-over', a = 1) => {
+    c.save();
+    c.globalCompositeOperation = op;
+    c.globalAlpha = a;
+    c.imageSmoothingEnabled = true;
+    c.imageSmoothingQuality = 'high';
+    c.drawImage(cv, LB.x, LB.y, LB.w, LB.h);
+    c.restore();
+  };
   ctx.save();
   within(ctx, lavaPath, () => {
-    // the molten body under the crust: deep red far off in the smoke, hotter towards us
-    vfill(ctx, 0, SHORE_FAR - 4, W, 290, [[0, '#4a1408'], [0.18, '#641a08'], [0.5, '#982c10'], [0.8, '#c03e18'], [1, '#cc481a']]);
-    lay(ctx, noiseMask(9, 251, { cover: 0.42, soft: 0.5, col: '#ffa040', w: 180, h: 30 }), { x: 0, y: SHORE_FAR, w: W, h: 290 }, 0.32);
-    // the crust: plates riding on it, split by seams
-    const plates = new Path2D();
-    const shapes: { sp: Pt[]; p: Plate }[] = [];
-    for (const p of PLATES) {
-      if (p.open) continue;
-      const [sx0] = P(p.site[0], 0, p.site[1]);
-      const sp = plateScreen(p, p.gap * (0.5 + 0.5 * hotAt(sx0)));
-      if (sp.every(([, y]) => y > 740) || sp.every(([x]) => x < -20) || sp.every(([x]) => x > W + 20)) continue;
-      shapes.push({ sp, p });
-      sp.forEach(([x, y], i) => (i ? plates.lineTo(x, y) : plates.moveTo(x, y)));
-      plates.closePath();
-    }
-    ctx.fillStyle = LAVA.crust;
-    ctx.fill(plates);
-    ctx.save();
-    ctx.clip(plates);
-    lay(ctx, drift('#341410', '#0a0303', 9, 257, 180, 30), { x: 0, y: SHORE_FAR, w: W, h: 290 }, 0.85);
-    lay(ctx, noiseMask(16, 263, { cover: 0.35, soft: 0.25, col: '#4a1e16', w: 280, h: 40 }), { x: 0, y: SHORE_FAR, w: W, h: 290 }, 0.5);
-    // each plate: thinner crust round its rim glowing red through, its edge lit by the seam, a faint key on its top
-    for (const { sp, p } of shapes) {
-      const my = sp.reduce((a, b) => a + b[1], 0) / sp.length;
-      const mx = sp.reduce((a, b) => a + b[0], 0) / sp.length;
-      const k = pz(zAtY(my));
-      const h = hotAt(mx) * (0.35 + 0.65 * clamp01((my - SHORE_FAR) / 190));
-      const path = polyPath(sp);
-      ctx.strokeStyle = rgba('#d8401a', 0.28 * h);
-      ctx.lineWidth = Math.max(1.5, k * 0.2);
-      path(ctx);
-      ctx.stroke();
-      ctx.strokeStyle = rgba('#ffa050', 0.25 * h);
-      ctx.lineWidth = Math.max(0.7, k * 0.05);
-      ctx.stroke();
-      if (p.tone > 0.75) {
-        ctx.fillStyle = rgba('#5a1a0e', 0.4);
-        path(ctx);
-        ctx.fill();
-      }
-      if (k > 60 && p.tone < 0.4) {
-        const a = sp[Math.floor(p.tone * 10) % sp.length];
-        line(ctx, a, [mx + (p.tone - 0.2) * k * 0.6, my], rgba('#ff7a2a', 0.3 * h), Math.max(1, k * 0.012));
-      }
-      ctx.fillStyle = rgba('#8a7a88', 0.04);
+    // the molten lava: deep red off in the smoke, orange and then near-yellow towards us, mottled with hotter and
+    // cooler currents
+    vfill(ctx, 0, SHORE_FAR - 4, W, 290, [[0, '#5a1608'], [0.15, '#7a240a'], [0.45, '#b03a14'], [0.8, '#d4521a'], [1, '#e4661e']]);
+    lay(ctx, noiseMask(10, 251, { cover: 0.45, soft: 0.6, col: '#ffb040', w: 200, h: 26 }), { x: 0, y: SHORE_FAR, w: W, h: 290 }, 0.45);
+    lay(ctx, noiseMask(14, 252, { cover: 0.4, soft: 0.6, col: '#8a1a08', w: 260, h: 30 }), { x: 0, y: SHORE_FAR, w: W, h: 290 }, 0.4);
+    // slow flow lines: long ribbons of brighter and darker melt drifting across the lake, in its perspective
+    ctx.lineCap = 'round';
+    for (let i = 0; i < 70; i++) {
+      const z = 10 + (r() ** 1.6) * 40;
+      const k = pz(z);
+      const X0 = (r() - 0.5) * 2 * ((960 * z) / F) * 1.1;
+      const len = (3 + r() * 9) * (z / 14);
+      const ph = r() * 9;
+      const hot = r() < 0.5;
+      ctx.strokeStyle = hot ? rgba('#ffc860', 0.1 + r() * 0.12) : rgba('#6a1406', 0.12 + r() * 0.12);
+      ctx.lineWidth = Math.max(0.8, k * (0.03 + r() * 0.05));
       ctx.beginPath();
-      ctx.ellipse(mx - k * 0.1, my - k * 0.02, k * 0.18, k * 0.035, 0, 0, P2);
-      ctx.fill();
+      for (let t = 0; t <= 1.001; t += 0.05) {
+        const X = X0 + len * t;
+        const zz = z + Math.sin(t * 5 + ph) * 0.25 * (z / 14);
+        const [px, py] = P(X, 0, zz);
+        if (t === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
     }
-    ctx.restore();
-    // open pools glowing
+    // the heat's bloom over the open lava: along our lip and round the sand's falls
+    lightPool(ctx, 960, 676, 980, 46, '#ffb050', 0.22);
+    for (const st of STREAMS) lightPool(ctx, st.x, st.bot, 140 * st.k, 26 * st.k, '#ffc060', 0.3);
+
+    // the crust: its own layer, cut to the rafts
+    const [cc, cq] = makeCanvas(LB.w, LB.h);
+    cq.translate(-LB.x, -LB.y);
+    vfill(cq, 0, LB.y, W, LB.h, [[0, '#1c0c0c'], [0.3, '#1e0b09'], [1, '#2a0e0a']]);
+    lay(cq, drift('#3a1610', '#070203', 9, 257, 180, 30), LB, 0.85);
+    lay(cq, noiseMask(18, 263, { cover: 0.38, soft: 0.25, col: '#4a1e16', w: 300, h: 40 }), LB, 0.5);
+    // its cracks: the old plates' seams, glowing faint red through the cooling skin
+    cq.lineJoin = 'round';
+    // (only some of each plate's edges, each bent: cracks wander, they don't tile)
     for (const p of PLATES) {
-      if (!p.open) continue;
-      const sp = plateScreen(p, p.gap * 0.5);
-      const bb = boxOfPts(sp, 0);
-      lightPool(ctx, bb.x + bb.w / 2, bb.y + bb.h / 2, bb.w * 0.6, bb.h * 0.6, '#ffc060', 0.28 * hotAt(bb.x));
+      const sp = plateScreen(p, 0);
+      if (sp.every(([, y]) => y > LB.y + LB.h || y < LB.y)) continue;
+      const my = sp.reduce((a2, b2) => a2 + b2[1], 0) / sp.length;
+      const k = pz(zAtY(my));
+      const near = 0.4 + 0.6 * clamp01((my - SHORE_FAR) / 160);
+      for (let e = 0; e < sp.length; e++) {
+        if (r() < 0.5) continue;
+        const [ax, ay] = sp[e];
+        const [bx, by] = sp[(e + 1) % sp.length];
+        const hot = r() < 0.25;
+        cq.strokeStyle = rgba(hot ? '#ff7a2a' : '#8a280c', (hot ? 0.32 : 0.2) * near);
+        cq.lineWidth = Math.max(0.6, k * (hot ? 0.03 : 0.02));
+        cq.beginPath();
+        cq.moveTo(ax, ay);
+        cq.quadraticCurveTo((ax + bx) / 2 + (r() - 0.5) * k * 0.3, (ay + by) / 2 + (r() - 0.5) * k * 0.06, bx, by);
+        cq.stroke();
+      }
     }
-    // the far lava lost in its own smoke
-    vfill(ctx, 0, SHORE_FAR - 4, W, 110, [[0, rgba('#5a1e16', 0.85)], [0.4, rgba('#4a1a12', 0.45)], [1, 'rgba(74,26,18,0)']]);
+    // the faint gleam of the cooling skin, lit from the lava round it, and its pocks
+    vfill(cq, 0, LB.y, W, LB.h, [[0, 'rgba(90,40,40,0)'], [1, 'rgba(255,120,60,0.08)']]);
+    cq.setTransform(1, 0, 0, 1, 0, 0);
+    cq.globalCompositeOperation = 'destination-in';
+    cq.imageSmoothingEnabled = true;
+    cq.imageSmoothingQuality = 'high';
+    cq.drawImage(m.crust, 0, 0, LB.w, LB.h);
+    ctx.drawImage(cc, LB.x, LB.y);
+    // the molten rim along every raft and floe, its glossy meniscus
+    draw(ctx, m.rim, 'lighter', 0.55);
+    draw(ctx, m.gloss, 'lighter', 0.7);
+
+    // the far lake lost in its own smoke
+    vfill(ctx, 0, SHORE_FAR - 4, W, 110, [[0, rgba('#5a1e16', 0.8)], [0.4, rgba('#4a1a12', 0.4)], [1, 'rgba(74,26,18,0)']]);
     // calm over the middle, behind the lanes
     const c = ctx.createRadialGradient(960, 590, 0, 960, 590, 560);
-    c.addColorStop(0, 'rgba(16,5,4,0.4)');
+    c.addColorStop(0, 'rgba(16,5,4,0.32)');
     c.addColorStop(1, 'rgba(16,5,4,0)');
     ctx.fillStyle = c;
     ctx.fillRect(0, SHORE_FAR, W, 300);
     // where the sand pours in: a gold-white flare in the lava
-    for (const s of STREAMS) {
-      lightPool(ctx, s.x, s.bot, 70 * s.k, 14 * s.k, '#ffb040', 0.4);
-      lightPool(ctx, s.x, s.bot, 22 * s.k, 5 * s.k, '#fff0c0', 0.55);
+    for (const st of STREAMS) {
+      lightPool(ctx, st.x, st.bot, 70 * st.k, 14 * st.k, '#ffb040', 0.4);
+      lightPool(ctx, st.x, st.bot, 22 * st.k, 5 * st.k, '#fff0c0', 0.55);
     }
     // the meniscus along our lip: lava lapping hot against the rock
-    ctx.lineCap = 'round';
     for (const [w, col] of [[10, rgba('#ff7a2a', 0.35)], [4, rgba('#ffc060', 0.5)], [1.6, rgba('#fff0c0', 0.55)]] as const) {
       ctx.strokeStyle = col;
       ctx.lineWidth = w;
@@ -1573,12 +1724,12 @@ function column(ctx: Ctx, r: R): void {
   const yt = sy(COL.top * COL.sc, COL.z);
   // its broken top: jagged, higher at the back left
   const jag: Pt[] = [];
-  const nj = 9;
+  const nj = 15;
   for (let i = 0; i <= nj; i++) {
     const t = i / nj;
     const bx = x - rad + t * rad * 2;
-    const bump = Math.sin(t * 7.3 + 1) * 0.12 + Math.sin(t * 17) * 0.05 + (1 - t) * 0.35;
-    jag.push([bx, yt - bump * k + (r() - 0.5) * 4]);
+    const bump = Math.sin(t * 7.3 + 1) * 0.16 + Math.sin(t * 17) * 0.08 + (1 - t) ** 1.5 * 0.9 + (i % 2 ? 0.12 : -0.05);
+    jag.push([bx, yt - bump * k + (r() - 0.5) * 8]);
   }
   const shaft: Pt[] = [[x - rad, yb], ...jag, [x + rad, yb]];
   const path = polyPath(shaft);
@@ -1645,6 +1796,23 @@ function column(ctx: Ctx, r: R): void {
     ctx.globalCompositeOperation = 'source-over';
     // a crack up it from the break
     crack(ctx, r, x - rad * 0.2, yt + 6, 1.7, (yb - yt) * 0.45, { w: 2, a: 0.7, col: '#030103', lip: '#ff7a3a' });
+    crack(ctx, r, x + rad * 0.5, yt + 30, 1.9, (yb - yt) * 0.3, { w: 1.6, a: 0.6, col: '#030103', lip: '#ff7a3a' });
+    // weathering: the flutes' ridges worn and chipped, stains run down from the break, pocks of fallen fragments
+    for (let i = 0; i < 26; i++) {
+      const cx2 = x - rad + r() * rad * 2;
+      const cy2 = yt + r() * (yb - yt) * 0.9;
+      const cs = (0.04 + r() * 0.1) * k;
+      ctx.fillStyle = 'rgba(4,2,4,0.55)';
+      ctx.beginPath();
+      ctx.moveTo(cx2 - cs, cy2);
+      ctx.lineTo(cx2 + cs * 0.4, cy2 - cs * 0.8);
+      ctx.lineTo(cx2 + cs, cy2 + cs * 0.3);
+      ctx.lineTo(cx2, cy2 + cs * 0.6);
+      ctx.closePath();
+      ctx.fill();
+      line(ctx, [cx2 - cs, cy2 + 1], [cx2, cy2 + cs * 0.6 + 1], rgba('#ff8a5a', 0.18), 1);
+    }
+    for (let i = 0; i < 10; i++) streaks(ctx, r, x - rad + r() * rad * 2, yt + r() * 40, 6 + r() * 14, (yb - yt) * (0.2 + r() * 0.4), '#050204', 0.2, 3);
   });
   ctx.strokeStyle = 'rgba(2,1,3,0.9)';
   ctx.lineWidth = 1.6;
@@ -1771,6 +1939,28 @@ function statue(ctx: Ctx, r: R): void {
     ctx.stroke();
     polyPath(lside)(ctx);
     ctx.stroke();
+    // its face: worn stone, a band of running waves carved along it, cracked, the lava's red rising on it
+    within(ctx, polyPath(front), () => {
+      const fb = boxOfPts(front, 0);
+      lay(ctx, drift('#3a2a2a', '#080406', 3, 331, 40, 16), fb, 0.5);
+      grain(ctx, fb, 'stone', 0.35, 1.1);
+      const wy = (fy0 + fy1) / 2;
+      const amp = (fy0 - fy1) * 0.16;
+      ctx.strokeStyle = 'rgba(4,2,4,0.6)';
+      ctx.lineWidth = Math.max(1.2, amp * 0.35);
+      ctx.beginPath();
+      for (let xx = fx0; xx <= fx1; xx += 2) {
+        const tt = (xx - fx0) / Math.max(1, amp * 3);
+        const yy = wy + Math.sin(tt * P2) * amp;
+        if (xx === fx0) ctx.moveTo(xx, yy);
+        else ctx.lineTo(xx, yy);
+      }
+      ctx.stroke();
+      line(ctx, [fx0, wy - amp * 1.8], [fx1, wy - amp * 1.8], 'rgba(4,2,4,0.5)', 1.2);
+      line(ctx, [fx0, wy + amp * 1.8], [fx1, wy + amp * 1.8], 'rgba(4,2,4,0.5)', 1.2);
+      crack(ctx, r, fx0 + (fx1 - fx0) * 0.7, fy1 + 2, 1.9, (fy0 - fy1) * 1.2, { w: 1.6, a: 0.7, col: '#040203', lip: '#ff8a5a' });
+      chips(ctx, r, fx0, fx1, fy1 + 1, 8, '#040203', 3);
+    });
     // a moulding: a lit line under the top's edge
     line(ctx, [fx0, fy1 + 3], [fx1, fy1 + 3], rgba('#ff9a5a', 0.25), 1.2);
   }
@@ -2096,114 +2286,100 @@ function bubbleFrame(c: Ctx, ph: number, seed: number): void {
   const x0 = w / 2;
   const y0 = h - 18;
   const rr = rng(hashStr('tk:bub' + seed));
-  const swell = smooth(0.0, 0.55, ph) * (1 - smooth(0.55, 0.6, ph));
-  const burst = smooth(0.55, 0.6, ph) * (1 - smooth(0.62, 0.95, ph));
-  const heal = smooth(0.6, 1, ph);
-  // the glow under it, brightest as it bursts
-  const glow = 0.25 + swell * 0.35 + burst * 0.9;
-  let g = c.createRadialGradient(x0, y0, 0, x0, y0, 46);
-  g.addColorStop(0, rgba('#ffb040', 0.45 * glow));
-  g.addColorStop(0.5, rgba('#ff6a1a', 0.2 * glow));
+  // the cycle: the crust bulges into a dome (0 … 0.55), tears open along its crown (… 0.68), slumps and spills
+  // (… 0.85), and the skin closes over the spill (… 1)
+  const swell = smooth(0, 0.55, ph);
+  const tear = smooth(0.5, 0.68, ph);
+  const slump = smooth(0.62, 0.9, ph);
+  const heal = smooth(0.8, 1, ph);
+  const hgt = (3 + swell * 17) * (1 - slump * 0.85);
+  const rw = (10 + swell * 24) * (1 + slump * 0.25);
+  // the glow under it: the lava pushing up, brightest as it tears
+  const gl = 0.2 + swell * 0.3 + tear * (1 - heal) * 0.7;
+  let g = c.createRadialGradient(x0, y0, 0, x0, y0, rw * 1.5);
+  g.addColorStop(0, rgba('#ffb040', 0.5 * gl));
+  g.addColorStop(0.5, rgba('#ff6a1a', 0.22 * gl));
   g.addColorStop(1, 'rgba(255,100,30,0)');
   c.save();
   c.translate(x0, y0);
-  c.scale(1, 0.32);
+  c.scale(1, 0.3);
   c.fillStyle = g;
-  c.fillRect(-46, -46, 92, 92);
+  c.fillRect(-rw * 1.5, -rw * 1.5, rw * 3, rw * 3);
   c.restore();
-  // rings spreading after it bursts
-  if (ph > 0.6) {
-    const q = (ph - 0.6) / 0.4;
-    for (const d of [0, 0.3]) {
-      const qq = q - d;
-      if (qq <= 0) continue;
-      c.strokeStyle = rgba('#ffa040', 0.35 * (1 - qq));
-      c.lineWidth = 1.6;
-      c.beginPath();
-      c.ellipse(x0, y0, 12 + qq * 36, (12 + qq * 36) * 0.28, 0, 0, P2);
-      c.stroke();
-    }
-  }
-  if (swell > 0.02) {
-    // the dome: dark crust, lit at its rim, its seams opening as it swells
-    const rw = 6 + swell * 26;
-    const rh = 2 + swell * 15;
-    c.fillStyle = '#ff7a2a';
-    c.beginPath();
-    c.ellipse(x0, y0, rw + 2, rh + 2, 0, Math.PI, 0);
-    c.ellipse(x0, y0, rw + 2, (rw + 2) * 0.28, 0, 0, Math.PI);
-    c.fill();
-    g = c.createLinearGradient(0, y0 - rh, 0, y0);
-    g.addColorStop(0, '#3a1610');
-    g.addColorStop(0.7, '#1e0a08');
-    g.addColorStop(1, '#5a1a0c');
-    c.fillStyle = g;
-    c.beginPath();
-    c.ellipse(x0, y0, rw, rh, 0, Math.PI, 0);
-    c.ellipse(x0, y0, rw, rw * 0.26, 0, 0, Math.PI);
-    c.fill();
-    // its seams: cracks over the dome, wider and hotter as it swells
+  // the dome of crust: dark on its crown, its skin thinning and red where it stretches, a hot fringe at its foot
+  const dome = (c2: Ctx) => {
+    c2.beginPath();
+    c2.moveTo(x0 - rw, y0);
+    c2.bezierCurveTo(x0 - rw * 0.75, y0 - hgt * 0.9, x0 - rw * 0.3, y0 - hgt, x0, y0 - hgt);
+    c2.bezierCurveTo(x0 + rw * 0.3, y0 - hgt, x0 + rw * 0.75, y0 - hgt * 0.9, x0 + rw, y0);
+    c2.bezierCurveTo(x0 + rw * 0.6, y0 + rw * 0.16, x0 - rw * 0.6, y0 + rw * 0.16, x0 - rw, y0);
+    c2.closePath();
+  };
+  g = c.createLinearGradient(0, y0 - hgt, 0, y0 + 4);
+  g.addColorStop(0, mix('#2a0e0a', '#5a1a0c', swell * 0.5));
+  g.addColorStop(0.6, mix('#1c0907', '#8a2a0c', swell * 0.6));
+  g.addColorStop(1, '#c8461a');
+  c.fillStyle = g;
+  dome(c);
+  c.fill();
+  within(c, dome, () => {
+    // stretch cracks glowing through the skin as it swells
     c.lineCap = 'round';
-    for (let i = 0; i < 5; i++) {
-      const a = -Math.PI * (0.15 + (i / 4) * 0.7) + (rr() - 0.5) * 0.3;
-      const x1 = x0 + Math.cos(a) * rw * 0.95;
-      const y1 = y0 + Math.sin(a) * rh * 0.95;
-      c.strokeStyle = rgba(swell > 0.7 ? '#ffd070' : '#ff7a2a', 0.4 + swell * 0.6);
-      c.lineWidth = 0.6 + swell * 2.2;
+    for (let i = 0; i < 6; i++) {
+      const a = -Math.PI * (0.12 + (i / 5) * 0.76) + (rr() - 0.5) * 0.3;
+      c.strokeStyle = rgba(swell > 0.75 ? '#ffc060' : '#ff6a1a', (0.25 + swell * 0.5) * (1 - slump * 0.6));
+      c.lineWidth = 0.6 + swell * 1.6;
       c.beginPath();
-      c.moveTo(x0 + (rr() - 0.5) * 4, y0 - rh * 0.7);
-      c.quadraticCurveTo((x0 + x1) / 2 + (rr() - 0.5) * 6, (y0 - rh + y1) / 2, x1, y1);
+      c.moveTo(x0 + (rr() - 0.5) * 4, y0 - hgt * 0.8);
+      c.quadraticCurveTo(x0 + Math.cos(a) * rw * 0.5 + (rr() - 0.5) * 5, y0 + Math.sin(a) * hgt * 0.6, x0 + Math.cos(a) * rw, y0 + Math.sin(a) * hgt * 0.15);
       c.stroke();
     }
-    // the key's faint glint on its crown
-    c.fillStyle = rgba('#d8a890', 0.15 * swell);
+    // the faint key on its crown
+    c.fillStyle = rgba('#c89a8a', 0.12 * swell);
     c.beginPath();
-    c.ellipse(x0 - rw * 0.3, y0 - rh * 0.75, rw * 0.25, rh * 0.15, -0.3, 0, P2);
+    c.ellipse(x0 - rw * 0.3, y0 - hgt * 0.8, rw * 0.3, hgt * 0.18, -0.3, 0, P2);
     c.fill();
-  }
-  if (burst > 0.02 || (ph > 0.58 && ph < 1)) {
-    // the opening: molten, glowing, crusting over as it heals
-    const ow = 26 * (1 - heal * 0.6);
-    const oh = ow * 0.3;
-    const hot = clamp01(burst * 1.4 + (1 - heal) * 0.4);
-    g = c.createRadialGradient(x0, y0, 0, x0, y0, ow);
-    g.addColorStop(0, mix('#5a1a0c', '#fff0c0', hot));
-    g.addColorStop(0.5, mix('#3a120a', '#ffa040', hot));
-    g.addColorStop(1, mix('#1e0a08', '#d8461a', hot * 0.8));
-    c.fillStyle = g;
-    c.beginPath();
-    c.ellipse(x0, y0, ow, oh, 0, 0, P2);
-    c.fill();
-    // the torn crust round it, folded back
-    c.strokeStyle = rgba('#2a0e08', 0.85);
-    c.lineWidth = 3 * (1 - heal * 0.5);
-    c.beginPath();
-    c.ellipse(x0, y0, ow + 2, oh + 1.5, 0, 0, P2);
-    c.stroke();
-    // crust re-forming over it: dark skins drifting in from the edge
-    if (heal > 0.2) {
-      c.fillStyle = rgba('#1e0a08', clamp01((heal - 0.2) * 1.4));
-      for (let i = 0; i < 4; i++) {
-        const a = (i / 4) * P2 + seed;
-        c.beginPath();
-        c.ellipse(x0 + Math.cos(a) * ow * 0.5, y0 + Math.sin(a) * oh * 0.5, ow * 0.55 * heal, oh * 0.55 * heal, a, 0, P2);
-        c.fill();
-      }
-    }
-  }
-  if (burst > 0.05) {
-    // spatter: blobs of lava thrown up, falling back
-    const q = (ph - 0.55) / 0.3;
-    for (let i = 0; i < 10; i++) {
-      const vx = (rr() - 0.5) * 80;
-      const vy = -60 - rr() * 70;
-      const x = x0 + vx * q;
-      const y = y0 + vy * q + 160 * q * q;
-      if (y > y0 + 1 || q > 1) continue;
-      const s = 1.2 + rr() * 2.4;
-      c.fillStyle = rgba(q < 0.4 ? '#fff0c0' : '#ffa040', 0.95 * (1 - q * 0.5));
+    // the tear: a bright split opening along its crown, the molten lava welling out of it
+    if (tear > 0.02) {
+      const tw = rw * 0.9 * tear * (1 - heal * 0.7);
+      const th = Math.max(1.2, hgt * 0.35 * tear * (1 - slump * 0.5));
+      g = c.createRadialGradient(x0, y0 - hgt * 0.75, 0, x0, y0 - hgt * 0.75, tw);
+      g.addColorStop(0, rgba('#fff2c0', 0.95 * (1 - heal)));
+      g.addColorStop(0.4, rgba('#ffb040', 0.9 * (1 - heal * 0.6)));
+      g.addColorStop(1, rgba('#d8461a', 0));
+      c.fillStyle = g;
       c.beginPath();
-      c.ellipse(x, y, s * 1.3, s, Math.atan2(vy + 320 * q, vx), 0, P2);
+      c.ellipse(x0, y0 - hgt * 0.72, tw, th, 0, 0, P2);
+      c.fill();
+    }
+  });
+  // the spill: molten lava slumping out over the crust round it, skinning over again
+  if (slump > 0.02) {
+    const sw = rw * (0.8 + slump * 0.6);
+    g = c.createRadialGradient(x0, y0, 0, x0, y0, sw);
+    g.addColorStop(0, rgba(mix('#ffc060', '#5a1a0c', heal), 0.8 * (1 - heal * 0.7)));
+    g.addColorStop(0.7, rgba(mix('#ff7a2a', '#2a0e0a', heal), 0.5 * (1 - heal * 0.5)));
+    g.addColorStop(1, 'rgba(60,16,10,0)');
+    c.save();
+    c.translate(x0, y0);
+    c.scale(1, 0.26);
+    c.fillStyle = g;
+    c.fillRect(-sw, -sw, sw * 2, sw * 2);
+    c.restore();
+  }
+  // spatter thrown up as it tears
+  if (tear > 0.05 && slump < 0.9) {
+    const q = clamp01((ph - 0.55) / 0.3);
+    for (let i = 0; i < 9; i++) {
+      const vx = (rr() - 0.5) * 70;
+      const vy = -50 - rr() * 60;
+      const x = x0 + vx * q;
+      const y = y0 - hgt * 0.7 + vy * q + 150 * q * q;
+      if (y > y0 + 1) continue;
+      const sz = 1 + rr() * 1.8;
+      c.fillStyle = rgba(q < 0.4 ? '#fff0c0' : '#ff9a3a', 0.9 * (1 - q * 0.6));
+      c.beginPath();
+      c.ellipse(x, y, sz * 1.3, sz, Math.atan2(vy + 300 * q, vx), 0, P2);
       c.fill();
     }
   }
