@@ -7,7 +7,7 @@
 import Phaser from 'phaser';
 import { crand } from '../../systems/cosmeticRandom';
 import { makeCanvas } from '../../art/util';
-import { type LiveCtx, type LiveScene, registerLive } from '../../game/liveBackdrop';
+import { type LiveCtx, type LiveScene, registerLegacyLive, registerLive } from '../../game/liveBackdrop';
 import { audio } from '../../systems/audio';
 import { save } from '../../systems/save';
 import { ST, TP } from '../art/scenes-kratos';
@@ -110,7 +110,9 @@ export class NzKit {
 
 // ——— The Titans' Prison ———
 
-registerLive('titanking', (ctx: LiveCtx): LiveScene => {
+// (redrawn with the location kit in src/content/art/scene-titanking.ts, whose own live layer runs the sand, the lava,
+// the chains and the fight's cues; this old layer stays for the before/after page, ?dev&stages)
+registerLegacyLive('titanking', (ctx: LiveCtx): LiveScene => {
   const k = new NzKit(ctx.sc, ctx.layer);
   const C = TP.clock;
   // the abyss glow breathing under the ledge

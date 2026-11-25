@@ -4937,6 +4937,9 @@ const REDRAWN = new Set<BackdropId>(['trattoria', 'beach', 'space',
   // the God-King's Pavilion (Xerxes's arena, the boss of the Hot Gates), redrawn with the location kit and painted
   // frame animation: scene-xerxes.ts
   'xerxes',
+  // the Titans' Prison (Kronos the Titan King's arena, the Kratos nemesis's mini-boss in Tartarus), redrawn with the
+  // location kit and painted frame animation: scene-titanking.ts
+  'titanking',
   // Bunion's arena (The Pit, the mini-boss of Batpeel's nemesis stage), redrawn with the location kit and painted frame
   // animation: scene-bunion.ts
   'bunion',

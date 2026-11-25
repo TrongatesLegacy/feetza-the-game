@@ -1,7 +1,8 @@
 // Kronos the Titan King (mini-boss, wave 88, Tartarus; met with the Kratos peel: src/game/nemesis.ts). His foot is
 // src/content/feet/kratos.ts (art src/content/style/acts-f-3.ts, live art src/content/styleLive/acts-f.ts with his
 // chains to the sky, src/game/skyChains.ts); this fight's own art is src/content/art/titanFight.ts. Zeus's fight and
-// the rest of the Tartarus set are in ./kratos.ts.
+// the rest of the Tartarus set are in ./kratos.ts. His arena, the Titans' Prison (src/content/art/scene-titanking.ts),
+// answers his moves: see the scene events below ('titanking-glass', '-devour', '-pull', '-shield').
 //
 // Three phases on every heat (numbers are Regular; Mild is gentler, Hot and up harsher):
 // - TIME EATER: every 11 s (14 once he's devouring) the great hourglass flips. Smash it (4 smacks) in 6 s, or he eats
@@ -383,6 +384,8 @@ const titanking = (): Brain => {
     const x = Phaser.Math.Clamp(f.x + side * 420, 240, W - 240);
     const y = SAFE_TOP + 190;
     a.sfx('sfx_titanking_flip');
+    // (the arena's great dial glints: its moons light up gold)
+    a.sc.events.emit('titanking-glass');
     a.quip(x, y - 150, 'TICK… TOCK…', '#ffd27a', 42);
     const t0 = a.now();
     let done = false;
@@ -456,6 +459,8 @@ const titanking = (): Brain => {
     if (p3) pool = pool.filter((q) => Math.abs(q.x - SEAT[0]) > 280);
     const p = rnd(pool.length ? pool : ps);
     if (!p) return;
+    // (the arena's lava surges and boils where the head comes up)
+    a.sc.events.emit('titanking-devour', HEAD_X(p.x));
     // he claims its lane (not the last pizza's: other feet must still be able to reach it)
     const claim = ps.length > 1;
     if (claim) a.lockLane(p, true);
@@ -706,6 +711,8 @@ const titanking = (): Brain => {
   const startCrumble = (a: Arena) => {
     if (crumble) return;
     quake(a, 2.5, 6);
+    // (the arena's sand pours thick and stones rain out of the dark while he hauls)
+    a.sc.events.emit('titanking-pull', 1);
     const g = a.sc.add.graphics();
     a.underLayer.addAt(g, 0);
     const motes = a.sc.add.container(0, 0);
@@ -777,6 +784,7 @@ const titanking = (): Brain => {
       a.sc.events.off('update', tick);
       a.sc.events.off('shutdown', halt);
       quake(a, 0);
+      a.sc.events.emit('titanking-pull', 0);
       crumble = null;
       const done = () => {
         g.destroy();
@@ -1061,7 +1069,8 @@ const titanking = (): Brain => {
     timerUi = null;
     crumble?.stop(true);
     p3 = { part: 'B', shield: false, downT: 0, swingT: 4, nextSide: Math.random() < 0.5 ? -1 : 1, hopT: 2.5, win: 0 };
-    // the screen moment: he shakes, roars, the whole pit shakes with him
+    // the screen moment: he shakes, roars, the whole pit shakes with him (and the arena's lava flares)
+    a.sc.events.emit('titanking-shield');
     a.dramatic(0.8);
     a.sfx('sfx_titanking_unchained');
     a.flash(300, 255, 220, 140);

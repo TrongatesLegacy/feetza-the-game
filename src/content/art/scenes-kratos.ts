@@ -2,14 +2,15 @@
 // - The Titans' Prison (Kronos the Titan King, wave 88): the deepest pit of Tartarus. A colossal clock face is carved
 //   into the rock behind him, Titan chains as thick as pillars hang out of the dark, broken columns lean in from the
 //   sides and streams of golden sand (stolen time) pour down into the abyss. The clock's hands, the sand, the swaying
-//   chains and the ember glow are live (src/content/live/kratos.ts).
+//   chains and the ember glow are live (src/content/live/kratos.ts). Redrawn with the location kit in
+//   scene-titanking.ts: its old art here stays for the before/after page (TP stays exported for the old live layer).
 // - The Storm Throne (Zeus, wave 90): Olympus, torn up and dragged down to the gates of Tartarus. A white-marble
 //   colonnade on a sea of storm cloud, Zeus's golden throne under a split in the sky, braziers of blue lightning-fire.
 //   The lightning, drifting cloud and brazier flames are live.
 // Every emblem is our own.
 
 import type { GlowSpot } from '../../art/backdrops';
-import { registerScene } from '../../art/registry';
+import { registerLegacyScene, registerScene } from '../../art/registry';
 import {
   type Ctx,
   type R,
@@ -490,7 +491,8 @@ function drawStormThrone(ctx: Ctx, r: R): void {
   vignette(ctx, 0.7, '#0a0c20', 0.55);
 }
 
-registerScene('titanking', {
+// (redrawn with the location kit in scene-titanking.ts; this stays for the before/after page, ?dev&stages)
+registerLegacyScene('titanking', {
   info: {
     name: 'The Titans’ Prison',
     subtitle: 'Mini-boss: KRONOS THE TITAN KING',
