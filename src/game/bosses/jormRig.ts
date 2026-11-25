@@ -20,6 +20,7 @@ import { makeCanvas, type Ctx } from '../../art/util';
 import { crand } from '../../systems/cosmeticRandom';
 import type { Arena } from '../arena';
 import { fxAtlas } from '../liveKit';
+import { texturesInUse } from '../assets';
 
 type Img = Phaser.GameObjects.Image;
 
@@ -136,6 +137,7 @@ export class SerpentRig {
   private fx: string;
 
   constructor(private a: Arena, private edgeY: number) {
+    SerpentRig.alive++;
     this.sc = a.sc;
     this.fx = fxAtlas(this.sc);
     this.maskG = this.sc.make.graphics({}, false);
@@ -649,7 +651,11 @@ export class SerpentRig {
     this.sc.events.once('shutdown', end);
   }
 
+  private destroyed = false;
+
   destroy(): void {
+    if (this.destroyed) return;
+    this.destroyed = true;
     for (const c of this.coils) c.f.each((im) => im.destroy());
     this.coils = [];
     this.coilRoot.destroy();
@@ -664,7 +670,26 @@ export class SerpentRig {
     this.partRoot?.destroy();
     this.maskG.destroy();
     this.head = null;
+    SerpentRig.alive--;
     // his textures (about 25 MB) go with him: a later meeting paints them again
-    for (const key of this.sc.textures.getTextureKeys()) if (key.startsWith('jsr_')) this.sc.textures.remove(key);
+    SerpentRig.dropTextures(this.sc.game);
+  }
+
+  /** Rigs alive now: their textures are never dropped from under them. */
+  private static alive = 0;
+
+  /** Remove the jsr_ textures nothing shows any more. Some outlive the rig (the stone chips its death throws into the
+   * fx layer fly on under the death's slow motion; removing their texture under them crashed the renderer), so the
+   * ones still on screen are retried a moment later, unless a new rig has come along and taken them over. */
+  private static dropTextures(game: Phaser.Game, tries = 10): void {
+    if (SerpentRig.alive > 0) return;
+    const inUse = texturesInUse(game);
+    let left = false;
+    for (const key of game.textures.getTextureKeys()) {
+      if (!key.startsWith('jsr_')) continue;
+      if (inUse.has(key)) left = true;
+      else game.textures.remove(key);
+    }
+    if (left && tries > 0) setTimeout(() => SerpentRig.dropTextures(game, tries - 1), 1000);
   }
 }
