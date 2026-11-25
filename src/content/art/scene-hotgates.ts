@@ -83,7 +83,7 @@ const VPX = 1040;
 const CLIFF_SKY: Pt[] = [[1352, -6], [1344, 30], [1349, 58], [1334, 84], [1337, 118], [1322, 150], [1318, 194], [1305, 214], [1301, 248], [1286, 276], [1279, 312], [1264, 342], [1255, 372], [1238, 398], [1228, 416], [1220, 428]];
 const CLIFF_FOOT: Pt[] = [[1220, 428], [1252, 446], [1300, 480], [1360, 526], [1420, 580], [1478, 634], [1526, 682], [1562, 700], [1640, 707], [1760, 711], [1930, 715]];
 const CLIFF: Pt[] = [...CLIFF_SKY, ...CLIFF_FOOT.slice(1), [1930, -6]];
-const SHORE: Pt[] = [[766, 419], [722, 422], [676, 426], [634, 432], [598, 440], [570, 450], [548, 459], [526, 470], [510, 481], [492, 494], [478, 508], [462, 522], [448, 538], [436, 556], [424, 576], [412, 598], [402, 620], [394, 644], [386, 668], [380, 690], [364, 712], [346, 734], [322, 764]];
+const SHORE: Pt[] = [[766, 419], [730, 421], [700, 424], [688, 428], [660, 430], [630, 434], [612, 440], [596, 444], [580, 452], [566, 456], [552, 464], [530, 472], [520, 480], [506, 488], [498, 498], [486, 506], [470, 516], [462, 528], [452, 540], [446, 552], [432, 566], [426, 580], [414, 600], [408, 620], [398, 642], [390, 664], [380, 690], [364, 712], [346, 734], [322, 764]];
 const shoreX = (y: number) => along(SHORE, y, 1);
 const cliffX = (y: number) => along(CLIFF_FOOT, y, 1);
 /** The wall: its ends, its base, its top (irregular), the gap in it. */
@@ -115,7 +115,9 @@ const WALL_TOP: Pt[] = (() => {
     const g = clamp01(1 - Math.abs(x - (GAP.x0 + GAP.x1) / 2) / ((GAP.x1 - GAP.x0) / 2 + 26));
     y = y + (GAP.low - WL.top) * ease(Math.min(1, g * 1.5)) + (wallR() - 0.5) * 6 * g;
     // the left end stepped down to the rocks
-    if (x < WL.x0 + 60) y += (WL.x0 + 60 - x) * 0.9;
+    // the left end broken off ragged, in steps, over the rocks
+    if (x < WL.x0 + 10) y += 38 + wallR() * 8;
+    else if (x < WL.x0 + 24) y += 14 + wallR() * 6;
     pts.push([x, y]);
   }
   return pts;
@@ -363,17 +365,25 @@ function sea(ctx: Ctx, r: R): void {
     waterPaint(ctx, r);
     // the shallows over the rocky shelf along the shore: paler, greener
     softly(ctx, SEA_BOX, (c) => {
-      c.strokeStyle = rgba('#8aa8a0', 0.24);
       c.lineCap = 'round';
-      c.lineJoin = 'round';
-      c.lineWidth = 56;
-      c.beginPath();
-      SHORE.forEach(([x, y], i) => (i ? c.lineTo(x - 8, y) : c.moveTo(x - 8, y)));
-      c.stroke();
-    }, 0.25);
+      for (let i = 0; i < SHORE.length - 1; i++) {
+        const [x0, y0] = SHORE[i];
+        const [x1, y1] = SHORE[i + 1];
+        const k = 0.3 + ((y0 + y1) / 2 - HZ) / 300;
+        // sand showing through the shallows, fading out into the deep
+        for (const [off, w, a] of [[3, 8, 0.45], [10, 14, 0.25], [22, 24, 0.12]] as const) {
+          c.strokeStyle = rgba('#b0a88a', a);
+          c.lineWidth = w * k;
+          c.beginPath();
+          c.moveTo(x0 - off * k, y0);
+          c.lineTo(x1 - off * k, y1);
+          c.stroke();
+        }
+      }
+    }, 0.33);
   });
   // the shore's lace
-  foamAlong(ctx, r, 0.7);
+  foamAlong(ctx, r, 0.5);
 }
 
 function waterPaint(ctx: Ctx, r: R): void {
@@ -425,7 +435,7 @@ function foamAlong(ctx: Ctx, r: R, a: number): void {
     let on = false;
     for (let y = 422; y < 760; y += 3) {
       const x = shoreX(y) - 3 - i * (3 + (y - 420) * 0.03) + Math.sin(y * 0.2 + i * 2) * (1 + (y - 420) * 0.01);
-      const vis = Math.sin(y * 0.09 + i * 3) + Math.sin(y * 0.031 + i) > -0.6 + i * 0.4;
+      const vis = Math.sin(y * 0.09 + i * 3) + Math.sin(y * 0.031 + i) > -0.1 + i * 0.35;
       if (vis && !on) ctx.moveTo(x, y);
       else if (vis) ctx.lineTo(x, y);
       on = vis;
@@ -669,7 +679,7 @@ const OLIVES: [number, number, number, number][] = [[620, 468, 0.6, 0.55], [1196
 
 function plain(ctx: Ctx, r: R): void {
   within(ctx, polyPath(PLAIN_PTS), () => {
-    vfill(ctx, 370, HZ, 1200, 280, [[0, '#d6b8a8'], [0.1, '#c8a48a'], [0.4, '#ac8a6a'], [1, '#927254']]);
+    vfill(ctx, 370, HZ, 1200, 280, [[0, '#dcc2b2'], [0.12, '#c8a68c'], [0.4, '#a6825e'], [0.75, '#8e6a4a'], [1, '#7a5a40']]);
     surface(ctx, r, PLAIN_BOX, '#ac8866', { over: true, vary: 0.4, cells: 6, mottle: 0.35, strokes: 0.6, strokeAng: 0, strokeLen: 140, strokeW: 6, grain: 0.18, grainKind: 'speckle', seed: 51 });
     // the lie of the land: long low swells, lit on their sunward slopes, the hollows shaded, crowding into the
     // distance
@@ -724,23 +734,29 @@ function plain(ctx: Ctx, r: R): void {
     // the shore: wet sand at the water, a pale shingle beach, then a marshy strip of reeds and rushes
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    const band = (off: number, w: number, col: string, a: number) => {
-      ctx.strokeStyle = rgba(col, a);
-      ctx.beginPath();
-      SHORE.forEach(([x, y], i) => {
-        const k = 0.3 + (y - HZ) / 300;
-        ctx.lineWidth = w * k;
-        if (i) ctx.lineTo(x + off * k, y);
-        else ctx.moveTo(x + off * k, y);
-      });
-      ctx.stroke();
-    };
-    band(46, 40, '#6a6a40', 0.5);
-    band(40, 22, '#4e5a34', 0.45);
-    band(14, 22, '#e2ccaa', 0.6);
-    band(4, 6, '#7a6a5a', 0.3);
+    softly(ctx, PLAIN_BOX, (c) => {
+      c.lineCap = 'round';
+      const band = (off: number, w: number, col: string, a: number) => {
+        for (let i = 0; i < SHORE.length - 1; i++) {
+          const [x0, y0] = SHORE[i];
+          const [x1, y1] = SHORE[i + 1];
+          const k = 0.3 + ((y0 + y1) / 2 - HZ) / 300;
+          c.strokeStyle = rgba(col, a);
+          c.lineWidth = w * k;
+          c.beginPath();
+          c.moveTo(x0 + off * k, y0);
+          c.lineTo(x1 + off * k, y1);
+          c.stroke();
+        }
+      };
+      band(30, 34, '#626a40', 0.38);
+      band(12, 16, '#b8a68a', 0.32);
+      band(3, 8, '#5e5a58', 0.5);
+      band(0, 4, '#8a9a94', 0.4);
+    }, 0.33);
     for (let i = 0; i < 300; i++) {
       const y = HZ + 6 + r() ** 0.8 * 280;
+      if (Math.sin(y * 0.15) + Math.sin(y * 0.047 + 1) < -0.2) continue;
       const k = 0.3 + (y - HZ) / 300;
       const x = shoreX(y) + (30 + r() * 34) * k;
       ctx.strokeStyle = rgba(r() < 0.5 ? '#4a5a2c' : '#a8a060', 0.7);
@@ -1240,7 +1256,7 @@ const BUTTS = (() => {
   let x = 1236;
   while (x < 1930) {
     const near = clamp01((x - 1220) / 700);
-    const w = (rr() < 0.3 ? 0.5 : 1.2) * (30 + near * 110 + rr() * (30 + near * 120));
+    const w = [0.3, 0.6, 1, 1.7, 2.4][Math.floor(rr() * 5)] * (30 + near * 90 + rr() * (20 + near * 60));
     const x1 = Math.min(1940, x + w);
     const top = x < 1345 ? along([...CLIFF_SKY].reverse(), x + w * 0.4, 0) + 10 : -20;
     out.push({ x0: x, x1, top, arris: 0.3 + rr() * 0.25, seed: Math.floor(rr() * 1e6) });
@@ -1367,6 +1383,77 @@ function cliff(ctx: Ctx, r: R): void {
       polyPath([...left.slice(0, -1)])(ctx);
       ctx.stroke();
     }
+    // a great fault running down across the face, the rock beyond it slipped and in shade
+    softly(ctx, CLIFF_BOX, (c) => {
+      c.fillStyle = rgba('#241c34', 0.42);
+      c.beginPath();
+      c.moveTo(1392, 40);
+      c.lineTo(1430, 40);
+      c.lineTo(1660, 520);
+      c.lineTo(1610, 520);
+      c.closePath();
+      c.fill();
+    }, 0.33);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    const fault: Pt[] = [];
+    for (let t = 0; t <= 1; t += 0.05) fault.push([1394 + t * 236 + Math.sin(t * 23) * 5, 40 + t * 480]);
+    ctx.strokeStyle = rgba('#140e1a', 0.75);
+    ctx.lineWidth = 3.2;
+    polyPath(fault)(ctx);
+    ctx.beginPath();
+    fault.forEach(([x, y], k) => (k ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+    ctx.stroke();
+    ctx.strokeStyle = rgba('#fff0d4', 0.4);
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    fault.forEach(([x, y], k) => (k ? ctx.lineTo(x - 3, y) : ctx.moveTo(x - 3, y)));
+    ctx.stroke();
+    // a great overhang: a lip of rock standing out, the face under it in deep shadow
+    softly(ctx, CLIFF_BOX, (c) => {
+      c.fillStyle = rgba('#18121e', 0.55);
+      c.beginPath();
+      c.moveTo(1488, 236);
+      c.bezierCurveTo(1560, 226, 1660, 222, 1756, 236);
+      c.lineTo(1750, 300);
+      c.bezierCurveTo(1660, 280, 1570, 276, 1500, 262);
+      c.closePath();
+      c.fill();
+    }, 0.33);
+    // (its lip: the sun along its top edge, an ink line under it where the shadow starts)
+    ctx.strokeStyle = rgba('#fff0d4', 0.55);
+    ctx.lineWidth = 2.4;
+    ctx.beginPath();
+    ctx.moveTo(1490, 234);
+    ctx.bezierCurveTo(1560, 224, 1660, 220, 1754, 232);
+    ctx.stroke();
+    ctx.strokeStyle = rgba('#1a121e', 0.7);
+    ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    ctx.moveTo(1490, 238);
+    ctx.bezierCurveTo(1560, 229, 1660, 225, 1754, 237);
+    ctx.stroke();
+    // a deep gully cut into the face, its walls in shadow; scree and maquis climbing up into its mouth
+    const gully: Pt[] = [[1632, 300], [1664, 296], [1690, 380], [1704, 480], [1722, 600], [1740, 700], [1616, 700], [1630, 600], [1636, 480], [1628, 380]];
+    softly(ctx, CLIFF_BOX, (c) => {
+      polyPath(gully)(c);
+      c.fillStyle = rgba('#120e18', 0.62);
+      c.fill();
+    }, 0.33);
+    const cone = smoothPath([[1590, 708], [1626, 650], [1656, 604], [1680, 612], [1716, 662], [1748, 708]]);
+    within(ctx, cone, () => {
+      vfill(ctx, 1590, 600, 160, 110, [[0, '#7a6c66'], [1, '#a8947e']]);
+      for (let i = 0; i < 120; i++) {
+        const y = 560 + r() * 144;
+        const x = 1610 + r() * 120;
+        const sz = 1 + (y - 560) / 40;
+        ctx.fillStyle = rgba('#2a2026', 0.3);
+        ctx.fillRect(x + sz * 0.4, y + sz * 0.5, sz * 2, sz * 0.5);
+        ctx.fillStyle = r() < 0.5 ? '#e8d6bc' : '#8a7868';
+        ctx.fillRect(x, y, sz * 1.8, sz);
+      }
+    });
+    for (const [mx, my, ms] of [[1650, 606, 10], [1688, 640, 12], [1630, 660, 13], [1712, 672, 12], [1664, 690, 14]] as [number, number, number][]) scrub(ctx, r, mx, my, ms, 0.1);
     // the beds breaking across them: long shelves running down the pass, here and there, a shadow under each
     for (const [yR, xs, xe] of [[90, 1300, 1560], [330, 1420, 1760], [610, 1280, 1500]] as [number, number, number][]) {
       const yAtX = (x: number) => yR + (BED_VP[1] - yR) * ((1920 - x) / (1920 - BED_VP[0]));
