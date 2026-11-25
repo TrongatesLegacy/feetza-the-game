@@ -2208,7 +2208,8 @@ registerScene('cerberus', {
 }, true);
 
 // =============================================================================================
-// Throne of the Underworld (Hades)
+// Throne of the Underworld (Hades). (The old art: the arena is redrawn with the location kit in scene-hades.ts; this
+// stays for the before/after page, ?dev&stages.)
 
 const HD = {
   chasm: { x: 960, y: 420 },
@@ -2420,4 +2421,4 @@ registerScene('hades', {
   },
   draw: drawHadesArena,
   live: liveHades,
-});
+}, true);

@@ -1275,6 +1275,8 @@ const hades = (): Brain => {
     });
     a.sfx('sfx_hades_rise');
     a.sfx('sfx_hades_chains');
+    // (the arena answers: the chasm behind the throne flares, its chains strain; scene-hades.ts listens)
+    a.sc.events.emit('hades-titan', kind);
     a.shake(900, 0.01);
     a.rumble(1, 600);
     // (the phase banner already names the Titan: no second banner over the action)
@@ -1312,6 +1314,8 @@ const hades = (): Brain => {
     if (tt.f.alive) tt.f.die();
     if (!beaten || !f.alive) return;
     a.sfx('sfx_hades_banish');
+    // (the arena's chasm dims and its soul-fires gutter: scene-hades.ts listens)
+    a.sc.events.emit('hades-banish', tt.kind);
     a.flash(200, 255, 220, 140);
     a.quip(tt.f.x, Math.max(SAFE_TOP + 60, tt.f.cy - 160), 'SENT BACK TO TARTARUS!', '#7dff9a', 44);
     // Hades is out in the open until the next phase
