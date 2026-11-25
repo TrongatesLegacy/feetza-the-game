@@ -35,11 +35,10 @@ function audioManifest(): Plugin {
 // import.meta.glob loads) from src/game/assets.ts, which draws everything the cache keeps; `import type` lines are
 // skipped (no runtime code). Dev recomputes it after any change under src/ (the next page load picks it up); a
 // build bakes it in.
-function artVersion(): Plugin {
-  const id = 'virtual:art-version';
+function artVersion(id = 'virtual:art-version', from = 'game/assets.ts'): Plugin {
   const resolved = '\0' + id;
   const root = resolve(__dirname, 'src');
-  const entry = resolve(root, 'game/assets.ts');
+  const entry = resolve(root, from);
   const importRe = /\b(?:import|export)\s+(type\s+)?(?:[\w*{}\s,$]*?\s+from\s+)?['"](\.[^'"]+)['"]|\bimport\(\s*['"](\.[^'"]+)['"]\s*\)/g;
   // (a glob may carry a type argument: import.meta.glob<{ … }>('./dir/*.ts', …))
   const globRe = /import\.meta\.glob\b[\s\S]{0,300}?\(\s*['"](\.[^'"]*?)\/\*\.ts['"]/g;
@@ -71,7 +70,7 @@ function artVersion(): Plugin {
     return h.digest('hex').slice(0, 16);
   };
   return {
-    name: 'art-version',
+    name: id.replace('virtual:', ''),
     resolveId(source) {
       return source === id ? resolved : null;
     },
@@ -199,7 +198,7 @@ function devNotes(): Plugin {
 
 export default defineConfig({
   base: './',
-  plugins: [audioManifest(), artVersion(), devShots(), devNotes(), devSmackLog()],
+  plugins: [audioManifest(), artVersion(), artVersion('virtual:peel-version', 'game/peels.ts'), devShots(), devNotes(), devSmackLog()],
   build: {
     target: 'es2022',
     assetsInlineLimit: 0,

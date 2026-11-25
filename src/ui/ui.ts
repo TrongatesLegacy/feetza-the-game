@@ -25,7 +25,7 @@ import { BACKDROPS } from '../art/backdrops';
 import { applyA11y } from './a11y';
 import { abilityFor, abilityKindLabel, describeAbility } from '../game/abilities';
 import { animateLookImg, hasAnimatedLook, stopLookOverlays } from '../art/animatedLooks';
-import { GOD_PEEL, PEELS, PEEL_BY_ID, buyPeel, checkPeelAchievements, equipPeel, equippedPeel, hasPeel, peelFootId, peelThumbURL, wearSkin, wornSkin, type PeelDef, type PeelGroup } from '../game/peels';
+import { GOD_PEEL, PEELS, PEEL_BY_ID, buyPeel, checkPeelAchievements, equipPeel, equippedPeel, hasPeel, peelThumbAsync, peelThumbReady, peelThumbURL, wearSkin, wornSkin, type PeelDef, type PeelGroup } from '../game/peels';
 import { HERO_SUBS } from '../content/heroPeels';
 import './gods.css';
 
@@ -2304,22 +2304,52 @@ class UI {
     const inTab = (t: Exclude<Tab, 'goals'>) => PEELS.filter((d) => TAB_GROUPS[t].includes(d.group));
     const shown = (list: PeelDef[]) => (unlockedOnly ? list.filter((d) => hasPeel(d.id)) : list);
     const tabsShown = () => (Object.keys(NAMES) as Tab[]).filter((t) => !(t === 'goals' && unlockedOnly));
-    // thumbnails are drawn lazily as tiles scroll into view
+    // thumbnails are made lazily as tiles scroll into view, a few per frame (from the art cache where it has them,
+    // drawn otherwise), so the window keeps scrolling while they fill in; tiles on screen go first
+    const thumbQ: HTMLImageElement[] = [];
+    let pumping = false;
+    const onScreen = (img: HTMLImageElement) => {
+      const b = body.getBoundingClientRect();
+      const r = img.getBoundingClientRect();
+      return r.bottom > b.top && r.top < b.bottom;
+    };
+    const fillThumb = async (img: HTMLImageElement) => {
+      const id = img.dataset.peel!;
+      img.src = await peelThumbAsync(id);
+      // a living peel plays over its tile (asked only now: it needs the foot's art)
+      if (img.isConnected && hasPeel(id) && hasAnimatedLook(id)) animateLookImg(img, id);
+    };
+    const pumpThumbs = async () => {
+      if (pumping) return;
+      pumping = true;
+      let t0 = performance.now();
+      while (thumbQ.length) {
+        // (a re-render drops the old tiles)
+        for (let i = thumbQ.length - 1; i >= 0; i--) if (!thumbQ[i].isConnected) thumbQ.splice(i, 1);
+        if (!thumbQ.length) break;
+        // thumbnails already made or in the art cache are only decodes: ask for them all at once
+        for (let i = thumbQ.length - 1; i >= 0; i--) if (peelThumbReady(thumbQ[i].dataset.peel!)) void fillThumb(thumbQ.splice(i, 1)[0]);
+        if (!thumbQ.length) break;
+        // the rest are drawn, one at a time
+        const at = thumbQ.findIndex(onScreen);
+        await fillThumb(thumbQ.splice(Math.max(0, at), 1)[0]);
+        // give the frame back once this one has had ~8 ms of thumbnail work
+        if (performance.now() - t0 > 8) {
+          await new Promise<void>((r) => requestAnimationFrame(() => r()));
+          t0 = performance.now();
+        }
+      }
+      pumping = false;
+    };
     const io = new IntersectionObserver(
       (entries) => {
         for (const e of entries) {
           if (!e.isIntersecting) continue;
           const img = e.target as HTMLImageElement;
           io.unobserve(img);
-          // (a foot peel's foot may not be drawn yet: from the art cache, off the main thread)
-          const id = img.dataset.peel!;
-          const fid = peelFootId(id);
-          void (fid ? footArtAsync(fid) : Promise.resolve()).then(() => {
-            img.src = peelThumbURL(id);
-            // a living peel plays over its tile (asked only now: it needs the foot's art)
-            if (hasPeel(id) && hasAnimatedLook(id)) animateLookImg(img, id);
-          });
+          thumbQ.push(img);
         }
+        void pumpThumbs();
       },
       { root: body, rootMargin: '200px' },
     );

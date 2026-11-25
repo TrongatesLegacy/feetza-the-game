@@ -23,7 +23,9 @@ import { FEET, FOOT_BY_ID, zombifiableType, type FootType } from '../data/feet';
 import { peelZombifier, readCanvas } from './zombieArt';
 import { ACTS, STAGES, WAVES_PER_ACT } from '../data/stages';
 import { persist, save } from '../systems/save';
-import { addCanvas, ensureFootArt, eventCanvases, footMeta, pizzaTops } from './assets';
+import { addCanvas, ensureFootArt, eventCanvases, footArtAsync, footMeta, pizzaTops } from './assets';
+import { bitmapCanvas, cachedArt, readArt, writeArt } from './artCache';
+import PEEL_VERSION from 'virtual:peel-version';
 import { PIZZAS } from '../data/pizzas';
 import type { EventId } from './events';
 import { HERO_PEELS, type HeroSub } from '../content/heroPeels';
@@ -762,7 +764,11 @@ export function peelCanvas(id: string): HTMLCanvasElement {
   return drawPeelSkin((PEEL_BY_ID[id] ?? PEEL_BY_ID.classic).look());
 }
 
-/** A small data URL for menus, cached. */
+/** A thumbnail's key in the art cache: versioned by the peels' own source hash (the cache's own version only
+ * follows the feet's art), so editing how any peel is drawn draws its thumbnails again. */
+const thumbKey = (id: string, h: number) => `thumb:${PEEL_VERSION}:${id}@${h}`;
+
+/** A small data URL for menus, cached (and saved to the art cache, so the next visit only decodes it). */
 export function peelThumbURL(id: string, h = 180): string {
   const k = `${id}@${h}`;
   let url = thumbCache.get(k);
@@ -774,8 +780,39 @@ export function peelThumbURL(id: string, h = 180): string {
     ctx.drawImage(big, 0, 0, w, h);
     url = c.toDataURL('image/png');
     thumbCache.set(k, url);
+    writeArt(thumbKey(id, h), [c], null, true);
   }
   return url;
+}
+
+/** Is this thumbnail made already, or in the art cache (so getting it is a decode, not a draw)? */
+export function peelThumbReady(id: string, h = 180): boolean {
+  return thumbCache.has(`${id}@${h}`) || cachedArt(thumbKey(id, h));
+}
+
+/** peelThumbURL for pages that can wait a moment (the Peel Locker): from the art cache when it has it (decoded off
+ * the main thread), otherwise drawn once its foot's art is in (itself from the cache where it can be). */
+export async function peelThumbAsync(id: string, h = 180): Promise<string> {
+  const k = `${id}@${h}`;
+  const have = thumbCache.get(k);
+  if (have) return have;
+  const key = thumbKey(id, h);
+  if (cachedArt(key)) {
+    const r = await readArt(key, 1500);
+    const got = thumbCache.get(k);
+    if (got) {
+      r?.bitmaps.forEach((b) => b.close());
+      return got;
+    }
+    if (r) {
+      const url = bitmapCanvas(r.bitmaps[0]).toDataURL('image/png');
+      thumbCache.set(k, url);
+      return url;
+    }
+  }
+  const fid = peelFootId(id);
+  if (fid) await footArtAsync(fid);
+  return peelThumbURL(id, h);
 }
 
 let appliedPeel = 'classic';

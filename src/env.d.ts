@@ -10,3 +10,9 @@ declare module 'virtual:art-version' {
   const version: string;
   export default version;
 }
+
+/** The same for the peels' art (everything src/game/peels.ts draws with): the cached peel thumbnails' version. */
+declare module 'virtual:peel-version' {
+  const version: string;
+  export default version;
+}
