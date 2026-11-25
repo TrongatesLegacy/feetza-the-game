@@ -1,7 +1,7 @@
 // Boss brains for King Leonidas's nemesis at the Hot Gates (src/game/nemesis.ts): the Immortal Brute (mini, wave 83)
 // and Xerxes (wave 85), met only with King Leonidas (or Leonidas, Hot Gates) equipped. Shared helpers are in ./nzkit.ts
-// and ./kit.ts; props are in src/content/props/leonidas.ts and the arenas in src/content/art/scenes-leonidas.ts and
-// scene-immortalbrute.ts (the Brute's arena, which answers his moves: see the scene events below). The horde's adds
+// and ./kit.ts; props are in src/content/props/leonidas.ts and the arenas in src/content/art/scene-immortalbrute.ts
+// (the Brute's) and scene-xerxes.ts (Xerxes's), which answer their moves: see the scene events below. The horde's adds
 // are the Persian army's own Immortal Sandals and the war elephants are Persian Elephant Feet.
 //
 // Choices the spec left open (numbers are Regular; heat() scales them):
@@ -436,6 +436,9 @@ const xerxes = (): Brain => {
     const h = heat(a);
     a.sfx('sfx_xerxes_arrows');
     a.quip(f.x, Math.max(SAFE_TOP + 40, f.cy - 190), 'MY ARROWS WILL BLOT OUT THE SUN!', '#ffd23f', 36);
+    // (the God-King's Pavilion, src/content/art/scene-xerxes.ts, listens: volleys cross the sky outside, the sun is
+    // blotted out, the braziers gutter)
+    a.sc.events.emit('xerxes-volley');
     // the sky goes dark
     const dark = a.sc.add.rectangle(960, 540, 1920, 1080, 0x0a0610, 0).setDepth(-1);
     a.underLayer.addAt(dark, 0);
@@ -460,6 +463,8 @@ const xerxes = (): Brain => {
     const sec = h.windup(2.8);
     const t0 = a.now();
     a.sfx('sfx_xerxes_rhino');
+    // (the pavilion feels it pawing the ground)
+    a.sc.events.emit('xerxes-rhino', 0.35);
     const unCol = laneColumn(a, p, y, 0xff5a3a);
     let live = true;
     const prop = hitProp(a, {
@@ -486,6 +491,8 @@ const xerxes = (): Brain => {
         end();
         if (!a.inWave()) return;
         a.sfx('sfx_xerxes_charge');
+        // (the pavilion shakes: dust from the roof, the parasol shudders, the tribute jingles and a coin rolls)
+        a.sc.events.emit('xerxes-rhino', 1);
         const img = a.sc.add.image(x, y, 'p_lx_rhino').setScale(0.6);
         a.fxLayer.add(img);
         a.shake(700, 0.016);
@@ -526,6 +533,8 @@ const xerxes = (): Brain => {
     const h = heat(a);
     a.sfx('sfx_xerxes_elephants');
     a.quip(f.x, Math.max(SAFE_TOP + 40, f.cy - 190), 'BRING THE ELEPHANTS!', '#ffd23f', 40);
+    // (the pavilion shakes to their footfalls)
+    a.sc.events.emit('xerxes-elephants');
     const n = h.rank >= 3 ? 3 : 2;
     for (let i = 0; i < n; i++) {
       a.sc.time.delayedCall(i * 500, () => {
@@ -569,6 +578,8 @@ const xerxes = (): Brain => {
           delay: 500,
           ms: 900,
           onLanded: () => {
+            // (I AM GENEROUS.: the pavilion's gold glints)
+            a.sc.events.emit('xerxes-bribe');
             scatter(a, f.x, f.y - 60, 'confetti', 20, { scale: 1, tints: [0xffd23f, 0xc8102e, 0x7a1a3a] });
             a.sc.time.delayedCall(900, () => (ready = true));
           },
@@ -606,7 +617,10 @@ const xerxes = (): Brain => {
       if (quipT <= 0) {
         quipT = 12 + Math.random() * 6;
         a.sfx('sfx_xerxes_laugh', { volume: 0.7 });
-        a.quip(f.x, Math.max(SAFE_TOP + 40, f.cy - 190), rnd(['KNEEL, AND YOU MAY KEEP YOUR PIZZA.', 'A GOD-KING DOES NOT BLEED.', 'I AM GENEROUS.'])!, '#ffd23f', 34);
+        const line = rnd(['KNEEL, AND YOU MAY KEEP YOUR PIZZA.', 'A GOD-KING DOES NOT BLEED.', 'I AM GENEROUS.'])!;
+        a.quip(f.x, Math.max(SAFE_TOP + 40, f.cy - 190), line, '#ffd23f', 34);
+        // (a bribe: the pavilion's gold glints and coin spills from the tribute)
+        if (line !== 'A GOD-KING DOES NOT BLEED.') a.sc.events.emit('xerxes-bribe');
       }
     },
     onDeath(f, a) {
