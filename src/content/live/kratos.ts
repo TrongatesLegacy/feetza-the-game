@@ -7,7 +7,7 @@
 import Phaser from 'phaser';
 import { crand } from '../../systems/cosmeticRandom';
 import { makeCanvas } from '../../art/util';
-import { type LiveCtx, type LiveScene, registerLegacyLive, registerLive } from '../../game/liveBackdrop';
+import { type LiveCtx, type LiveScene, registerLegacyLive } from '../../game/liveBackdrop';
 import { audio } from '../../systems/audio';
 import { save } from '../../systems/save';
 import { ST, TP } from '../art/scenes-kratos';
@@ -181,7 +181,9 @@ registerLegacyLive('titanking', (ctx: LiveCtx): LiveScene => {
 
 // ——— The Storm Throne ———
 
-registerLive('zeus', (ctx: LiveCtx): LiveScene => {
+// (redrawn with the location kit in src/content/art/scene-zeus.ts, whose own live layer runs the lightning, the fires,
+// the cloud sea and the fight's cues; this old layer stays for the before/after page, ?dev&stages)
+registerLegacyLive('zeus', (ctx: LiveCtx): LiveScene => {
   const k = new NzKit(ctx.sc, ctx.layer);
   const flash = k.rect(0xdde8ff, 0);
   // cloud wisps drifting across the colonnade

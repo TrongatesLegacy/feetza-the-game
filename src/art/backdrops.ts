@@ -4940,6 +4940,9 @@ const REDRAWN = new Set<BackdropId>(['trattoria', 'beach', 'space',
   // the Titans' Prison (Kronos the Titan King's arena, the Kratos nemesis's mini-boss in Tartarus), redrawn with the
   // location kit and painted frame animation: scene-titanking.ts
   'titanking',
+  // the Storm Throne (Zeus's arena, the boss of Tartarus with the Kratos nemesis), redrawn with the location kit and
+  // painted frame animation: scene-zeus.ts
+  'zeus',
   // Bunion's arena (The Pit, the mini-boss of Batpeel's nemesis stage), redrawn with the location kit and painted frame
   // animation: scene-bunion.ts
   'bunion',

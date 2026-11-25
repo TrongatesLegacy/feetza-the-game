@@ -6,11 +6,12 @@
 //   scene-titanking.ts: its old art here stays for the before/after page (TP stays exported for the old live layer).
 // - The Storm Throne (Zeus, wave 90): Olympus, torn up and dragged down to the gates of Tartarus. A white-marble
 //   colonnade on a sea of storm cloud, Zeus's golden throne under a split in the sky, braziers of blue lightning-fire.
-//   The lightning, drifting cloud and brazier flames are live.
+//   The lightning, drifting cloud and brazier flames are live. Redrawn with the location kit in scene-zeus.ts: its
+//   old art here stays for the before/after page (ST stays exported for the old live layer).
 // Every emblem is our own.
 
 import type { GlowSpot } from '../../art/backdrops';
-import { registerLegacyScene, registerScene } from '../../art/registry';
+import { registerLegacyScene } from '../../art/registry';
 import {
   type Ctx,
   type R,
@@ -504,7 +505,8 @@ registerLegacyScene('titanking', {
   draw: drawTitansPrison,
 });
 
-registerScene('zeus', {
+// (redrawn with the location kit in scene-zeus.ts; this stays for the before/after page, ?dev&stages)
+registerLegacyScene('zeus', {
   info: {
     name: 'The Storm Throne',
     subtitle: 'Boss: ZEUS',

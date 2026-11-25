@@ -1,7 +1,7 @@
 // Boss brains for Kratos's nemesis bosses (src/game/nemesis.ts): Kronos the Titan King (mini, wave 88) and Zeus
 // (wave 90), met in Tartarus only with the Kratos Peel (or Kratos, Ghost of Sparta) equipped. Shared helpers are in
 // ./nzkit.ts and ./kit.ts; props are drawn in src/content/props/kratos.ts and the arenas in
-// src/content/art/scenes-kratos.ts. Hades's Kronos phase (act9.ts) is a smaller Titan with one move; this one is
+// src/content/art/scene-titanking.ts and scene-zeus.ts (the old ones are kept in scenes-kratos.ts). Hades's Kronos phase (act9.ts) is a smaller Titan with one move; this one is
 // the Titan king himself, with his own fight.
 //
 // Kronos's fight is in ./titanking.ts (its brain is registered from here).
@@ -16,6 +16,10 @@
 //   the feet in its path back up but taking a slice from the two pizzas nearest that side.
 // - Ares: his war helmet lands roaring: every foot hurries ×1.3 while it does. Smash it (5 smacks in 6.5 s) to
 //   silence it and stun every foot for 1.5 s; leave it and the war cry lands (×1.5 for 6 s).
+// - His arena, the Storm Throne (src/content/art/scene-zeus.ts), answers the fight: 'zeus-bolt' (x) on every
+//   thunderbolt (a fork pours out of the rift and the hall lights white), 'zeus-olympian' with the Olympian when one is
+//   called (the cloud sea heaves for Poseidon, the braziers flare red for Ares, the gold shimmers for Hera) and
+//   'zeus-crown' (1 when Hera's crown settles, 0 when it goes).
 // - Hera: her crown settles on Zeus and makes him untouchable while three peacock-eye gems circle him (2 smacks
 //   each). Break all three and the crown shatters: he's stunned 2.5 s and takes 4%. While crowned, his clouds come
 //   twice as often. The crown comes back every 18 s.
@@ -37,6 +41,8 @@ function strikeAt(a: Arena, x: number, y: number): void {
   a.fx.ring(x, y, 0x9fd8ff, 1.2, 0.4);
   a.flash(90, 220, 236, 255);
   a.shake(180, 0.008);
+  // (the arena's rift pours a fork of its own and the hall lights white)
+  a.sc.events.emit('zeus-bolt', x);
 }
 
 // ——— ZEUS (boss, wave 90) ———
@@ -197,6 +203,8 @@ const zeus = (): Brain => {
     const h = heat(a);
     const side: 1 | -1 = f.x < W / 2 ? 1 : -1;
     cameo(a, 'p_nz_medal_poseidon', side, SAFE_TOP + 120, 'POSEIDON!', '#7fe0ff', 'sfx_zeus_poseidon');
+    // (the arena's cloud sea heaves)
+    a.sc.events.emit('zeus-olympian', 'poseidon');
     a.sc.time.delayedCall(800, () => {
       if (!f.alive || !a.inWave()) return;
       const x = side > 0 ? W - 250 : 250;
@@ -293,6 +301,8 @@ const zeus = (): Brain => {
     const h = heat(a);
     const side: 1 | -1 = f.x < W / 2 ? 1 : -1;
     cameo(a, 'p_nz_medal_ares', side, SAFE_TOP + 120, 'ARES!', '#ff6a4a', 'sfx_zeus_ares');
+    // (the arena's braziers flare red)
+    a.sc.events.emit('zeus-olympian', 'ares');
     a.sc.time.delayedCall(800, () => {
       if (!f.alive || !a.inWave()) return;
       const x = Phaser.Math.Clamp(f.x + side * 520, 260, W - 260);
@@ -355,9 +365,12 @@ const zeus = (): Brain => {
     const h = heat(a);
     const side: 1 | -1 = f.x < W / 2 ? 1 : -1;
     cameo(a, 'p_nz_medal_hera', side, SAFE_TOP + 120, 'HERA!', '#5fd0c0', 'sfx_zeus_hera');
+    // (the arena's gold shimmers)
+    a.sc.events.emit('zeus-olympian', 'hera');
     a.sc.time.delayedCall(700, () => {
       if (!f.alive || !a.inWave() || crowned) return;
       shield(a, f, true);
+      a.sc.events.emit('zeus-crown', 1);
       const top = () => ({ x: f.x, y: Math.max(SAFE_TOP + 40, f.y - f.meta.footHeight * f.type.scale * f.root.scaleY - 30) });
       const crown = a.sc.add.image(top().x, -200, 'p_nz_crown').setScale(0.5);
       a.fxLayer.add(crown);
@@ -382,6 +395,7 @@ const zeus = (): Brain => {
           forget();
           for (const g of gems) g.destroy();
           shield(a, f, false);
+          a.sc.events.emit('zeus-crown', 0);
           if (broken) {
             a.sfx('sfx_zeus_crown');
             scatter(a, crown.x, crown.y, 'shard', 12, { scale: 0.8, tints: [0xffd23f, 0x5fd0c0, 0x7a5aff] });
