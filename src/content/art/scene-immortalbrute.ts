@@ -365,11 +365,13 @@ function far(ctx: Ctx, r: R): void {
     }
     ctx.restore();
     // the mist lying in the fold below it
-    const mg = ctx.createLinearGradient(0, base - 40, 0, base + 10);
+    // (fading out again below the fold: a band that stopped at full strength left a hard horizontal edge, Tron)
+    const mg = ctx.createLinearGradient(0, base - 40, 0, base + 50);
     mg.addColorStop(0, rgba('#6a7cb8', 0));
-    mg.addColorStop(1, rgba('#6a7cb8', 0.4));
+    mg.addColorStop(0.45, rgba('#6a7cb8', 0.4));
+    mg.addColorStop(1, rgba('#6a7cb8', 0));
     ctx.fillStyle = mg;
-    ctx.fillRect(280, base - 40, 860, 50);
+    ctx.fillRect(280, base - 40, 860, 90);
   }
   // the valley mist, lit by the moon, filling the gorge's floor
   vfill(ctx, 280, 520, 860, LIP + 2 - 520, [[0, rgba('#8090c8', 0)], [0.35, rgba('#8090c8', 0.36)], [1, rgba('#8090c8', 0.18)]]);
