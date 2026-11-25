@@ -2,7 +2,8 @@
 // printed like the rest of Act 7 with Ben-Day dots:
 // - The HYDRANT Bunker (the Red Sole, wave 68 with Captain Pizzeria): a concrete bunker under the Doom Lab, crimson
 //   banners with HYDRANT's tentacled hydrant, a war map, and the empty cradle the Cosmic Crouton was stolen from.
-//   Alarm beacons turn and the cradle's glow pulses (src/content/live/comics.ts).
+//   Alarm beacons turn and the cradle's glow pulses (src/content/live/comics.ts). Redrawn with the location kit in
+//   scene-redsole.ts: this stays for the before/after page.
 // - The Symbiote Lab (Venomnom, wave 68 with Spider-Pan): a wrecked lab, its containment tank smashed and black goo
 //   oozing across the floor, two sonic emitters on the back wall. The lights flicker and the goo drips.
 // - The Night Conservatory (the Cheetoe, wave 63 with Wonder Wedge): a glass dome on a Metropizza rooftop, overgrown
@@ -10,7 +11,7 @@
 // Every emblem is our own.
 
 import type { GlowSpot } from '../../art/backdrops';
-import { registerScene } from '../../art/registry';
+import { registerLegacyScene, registerScene } from '../../art/registry';
 import {
   type Ctx,
   type R,
@@ -512,7 +513,8 @@ function drawConservatory(ctx: Ctx, r: R): void {
   vignette(ctx, 0.8, '#060a14', 0.55);
 }
 
-registerScene('redsole', {
+// (redrawn with the location kit in scene-redsole.ts; this stays for the before/after page, ?dev&stages)
+registerLegacyScene('redsole', {
   info: {
     name: 'The HYDRANT Bunker',
     subtitle: 'Mini-boss: THE RED SOLE',

@@ -10,6 +10,9 @@
 //   HAIL HYDRANT (every 16 s two hydrant turrets rise at the table's ends and spray their nearest pizza every 4.5 s
 //   for a slice, until capped with 4 smacks; they rust shut after 18 s) and SKULL BLITZ (every 14 s he goose-steps
 //   across up to 3 lanes, a 1.1 s heel-click before each stomp; 2 smacks on any stomp halt the march and stun him 2 s).
+//   His arena answers (src/content/art/scene-redsole.ts): the brain emits 'redsole-cube' (x, y) and 'redsole-cube-end',
+//   'redsole-backfire' (x, y), 'redsole-beam' (x), 'redsole-turret', 'redsole-capped' (x), 'redsole-march' and
+//   'redsole-blitz' (x) on the scene's events.
 // - Venomnom: WE ARE HUNGRY (every 7 s it drools, then its tongue lashes at a pizza over 1.3 s; smack the tongue to
 //   cut it short for 2% and a stun, or it gulps a slice and heals 2%, not on Mild), SYMBIOTE SPREAD (every 12 s goo
 //   binds a pizza: no perk, and a slice drained every 3.5 s until 4 smacks break it; two sonic emitters on the lab
@@ -84,6 +87,7 @@ const redsole = (): Brain => {
     const sec = h.windup(3.5);
     const t0 = a.now();
     a.sfx('sfx_redsole_cube');
+    a.sc.events.emit('redsole-cube', x, y);
     const unCol = laneColumn(a, p, y, 0x5fb8ff);
     let live = true;
     const done = () => {
@@ -108,6 +112,7 @@ const redsole = (): Brain => {
       onClear: () => {
         done();
         if (!f.alive) return;
+        a.sc.events.emit('redsole-backfire', x, y);
         // the beam backfires straight into him
         beamFx(a, x, y, f.cx, f.cy, 0x5fb8ff);
         a.fx.explosion(f.cx, f.cy, 140);
@@ -119,6 +124,7 @@ const redsole = (): Brain => {
         done();
         if (!a.inWave() || p.dead || !f.alive) return;
         a.sfx('sfx_redsole_beam');
+        a.sc.events.emit('redsole-beam', p.x);
         beamFx(a, x, y, p.x, p.surfaceY - 20, 0x5fb8ff, 60);
         a.shake(300, 0.01);
         hitSoft(a, p, h.slices(1), 'VAPORISED!', '#5fb8ff');
@@ -130,6 +136,7 @@ const redsole = (): Brain => {
     const forget = bin.add(() => {
       live = false;
       cubeUp = false;
+      a.sc.events.emit('redsole-cube-end');
       unCol();
       ring();
       prop.destroy();
@@ -140,6 +147,7 @@ const redsole = (): Brain => {
     const h = heat(a);
     a.quip(W / 2, SAFE_TOP + 70, 'HAIL HYDRANT!', '#ff5a4a', 50);
     bubble(a, 'CUT OFF ONE SLICE… TWO MORE SHALL TAKE ITS PLACE!', f, 2200);
+    a.sc.events.emit('redsole-turret');
     for (const side of [-1, 1] as const) {
       const x = side < 0 ? 170 : W - 170;
       const y = 660;
@@ -166,7 +174,10 @@ const redsole = (): Brain => {
         label: 'CAPPED!',
         hitSfx: 'sfx_redsole_cubehit',
         clearSfx: 'sfx_redsole_cap',
-        onClear: end,
+        onClear: () => {
+          a.sc.events.emit('redsole-capped', x);
+          end();
+        },
         onFail: end,
       });
       if (side > 0) prop.img.setFlipX(true);
@@ -244,9 +255,11 @@ const redsole = (): Brain => {
         onComplete: () => {
           if (!blitzing || !f.alive) return;
           a.sfx('sfx_redsole_march');
+          a.sc.events.emit('redsole-march');
           windup(a, f, '', h.windup(1.1), 'STOMP!', h.hits(2), () => {
             if (!blitzing) return;
             a.sfx('sfx_redsole_stomp');
+            a.sc.events.emit('redsole-blitz', p.x);
             a.shake(300, 0.012);
             a.sc.tweens.add({ targets: f, y: p.surfaceY - 30, duration: 110, yoyo: true, ease: 'Quad.In' });
             impactWord(a, p.x, p.surfaceY - 160, 1.3, 'KRUNCH!');

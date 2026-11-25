@@ -4,14 +4,16 @@
 // sonic emitters' lamps blink. The Night Conservatory: fireflies drift through the leaves and moonbeams slowly shift
 // across the glass.
 
-import { type LiveCtx, type LiveScene, registerLive } from '../../game/liveBackdrop';
+import { type LiveCtx, type LiveScene, registerLegacyLive, registerLive } from '../../game/liveBackdrop';
 import { crand } from '../../systems/cosmeticRandom';
 import { NC, RB, VL } from '../art/scenes-comics';
 import { NzKit, reduced } from './kratos';
 
 // ——— The HYDRANT Bunker ———
+// (redrawn with the location kit in src/content/art/scene-redsole.ts, whose own live layer turns the beacons, crackles
+// the cradle and stirs the banners; this stays for the before/after page)
 
-registerLive('redsole', (ctx: LiveCtx): LiveScene => {
+registerLegacyLive('redsole', (ctx: LiveCtx): LiveScene => {
   const k = new NzKit(ctx.sc, ctx.layer);
   const beams = RB.beacons.map((b) => k.img('p_a7_searchlight', b.x, b.y - 10, { add: true, origin: [0.5, 1], alpha: 0.35, sx: 0.8, sy: 0.9, tint: 0xff3a2a }));
   const lamps = RB.beacons.map((b) => k.img('glow', b.x, b.y - 14, { tint: 0xff3a2a, add: true, alpha: 0.6, sx: 0.9 }));

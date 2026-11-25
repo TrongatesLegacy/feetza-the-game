@@ -4948,7 +4948,10 @@ const REDRAWN = new Set<BackdropId>(['trattoria', 'beach', 'space',
   'bunion',
   // the Jokester's arena (Ha-Ha Funhouse, the boss of Batpeel's nemesis stage), redrawn with the location kit and painted
   // frame animation: scene-jokester.ts
-  'jokester']);
+  'jokester',
+  // the Red Sole's arena (the HYDRANT Bunker, Captain Pizzeria's nemesis mini-boss in place of Ultoe), redrawn with the
+  // location kit and painted frame animation: scene-redsole.ts
+  'redsole']);
 
 // redrawn scenes keep their old info for the before/after page (their old glows and particles with their old art)
 const LEGACY_INFO: Partial<Record<BackdropId, BackdropInfo>> = {};
