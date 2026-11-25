@@ -736,7 +736,7 @@ const TRAIT_HOWTO: Partial<Record<FootTrait, [string, string]>> = {
   invisible: ['Watch for its shadow on the pizza', 'Only its shadow shows'],
   magnet: ['Fight the pull on your aim', 'Your peel drifts toward it'],
   hop: ['It hops pizzas halfway down', 'Its spring coils before the hop'],
-  guard: ['Smash the shield (its badge’s bar is the smacks left; a Peel Slam takes several, burns and toppings wear it at half pace), then hit it hard before it re-arms', 'Its badge’s amber ring counts down to a new shield'],
+  guard: ['Smash the shield (its badge’s bar is the smacks left; a Peel Slam takes several; burns, toppings, drones and chain lightning glance off it, and a chain stops there), then hit it hard before it re-arms', 'Its badge’s amber ring counts down to a new shield'],
   bulk: ['Hit it early before it bulks up', 'It flexes when it gains armour'],
   thief: ['Smack it to get your tips back', 'It eyes your tip jar'],
   spoil: ['Stop it: it spoils freshness', 'Flies buzz around it'],

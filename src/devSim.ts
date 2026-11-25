@@ -83,7 +83,7 @@ export interface SimResult {
   /** The most turned (zombie) feet on the field at once. */
   peakZombies?: number;
   /** Guard feet's shields: smacks they blocked, shields broken, new ones raised. */
-  guard?: { blocked: number; broken: number; rearmed: number; soaked: number; chipSteps: number; slamSteps: number; ttk: Record<string, number[]>; stomps: Record<string, number> };
+  guard?: { blocked: number; broken: number; rearmed: number; soaked: number; deflected: number; chipSteps: number; slamSteps: number; ttk: Record<string, number[]>; stomps: Record<string, number> };
 }
 
 const STALL_MS = 120_000;

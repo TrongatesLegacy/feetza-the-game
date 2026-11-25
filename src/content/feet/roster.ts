@@ -129,11 +129,11 @@ export const feet: FootType[] = [
   {
     id: 'riot',
     name: 'Riot Ryan',
-    desc: 'A tactical boot behind a riot shield that never comes down. Every smack on it cracks it, and enough of them (6 on Regular) shatter it; a Peel Slam takes 3 at once, and burns and toppings only wear it down at half pace. 9 seconds later (on Regular) someone tosses him a new one, good as new.',
+    desc: 'A tactical boot behind a riot shield that never comes down. Every smack on it cracks it, and enough of them (6 on Regular) shatter it; a Peel Slam takes 3 at once, and burns, toppings, drones and chain lightning just glance off it. 9 seconds later (on Regular) someone tosses him a new one, good as new.',
     hp: 48, speed: 0.85, armor: 3, stompDmg: 1, coins: 8, score: 270, scale: 1.05, minWave: 16, weight: 4,
     traits: ['guard'],
     home: 'diner',
-    howTo: 'Smash the shield: 6 smacks (4 on Mild, 8 from Extra Hot) or a Peel Slam for 3; burns and toppings wear it at half pace. Then hit him hard before he catches a new one (9 s; 12 on Mild, 7.5 from Extra Hot)',
+    howTo: 'Smash the shield: 6 smacks (4 on Mild, 8 from Extra Hot) or a Peel Slam for 3; burns, toppings, drones and chains glance off it. Then hit him hard before he catches a new one (9 s; 12 on Mild, 7.5 from Extra Hot)',
     tell: 'The badge on his leg: its bar is the smacks the shield can still take, and once it’s BROKEN its amber ring counts down to the new one (it glows blue as he reaches back for it)',
     art: { kind: 'r_riot', skin: SKIN.light, primary: '#1d1f24', secondary: '#9fc4e8', leg: 'suit', legColor: '#23262d' },
   },

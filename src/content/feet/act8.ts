@@ -123,11 +123,11 @@ export const feet: FootType[] = [
   {
     id: 'dwarfboot',
     name: 'Dwarf-Forged Boots',
-    desc: 'Rune-iron boots from the forges under the mountains, behind a rune-iron shield that never comes down. Every smack on it rings and dents it, and enough of them (6 on Regular) split it; a Peel Slam takes 3 at once, and burns and toppings only wear it down at half pace. 9 seconds later (on Regular) the dwarf pulls a new one from his back.',
+    desc: 'Rune-iron boots from the forges under the mountains, behind a rune-iron shield that never comes down. Every smack on it rings and dents it, and enough of them (6 on Regular) split it; a Peel Slam takes 3 at once, and burns, toppings, drones and chain lightning just glance off it. 9 seconds later (on Regular) the dwarf pulls a new one from his back.',
     hp: 90, speed: 0.7, armor: 3, stompDmg: 1, coins: 24, score: 680, scale: 1.12, minWave: 74, weight: 4,
     traits: ['guard'],
     home: 'bifrost',
-    howTo: 'Split the shield: 6 smacks (4 on Mild, 8 from Extra Hot) or a Peel Slam for 3; burns and toppings wear it at half pace. Then hit the boots hard before he pulls out a new one (9 s; 12 on Mild, 7.5 from Extra Hot)',
+    howTo: 'Split the shield: 6 smacks (4 on Mild, 8 from Extra Hot) or a Peel Slam for 3; burns, toppings, drones and chains glance off it. Then hit the boots hard before he pulls out a new one (9 s; 12 on Mild, 7.5 from Extra Hot)',
     tell: 'The rune plate on his leg: its bar is the smacks the shield can still take; once it’s BROKEN its amber ring counts down to the new one (it glows blue as he reaches back for it)',
     quips: ['FORGED UNDER THE MOUNTAIN!', 'STAND FAST!', 'IRON AND RUNES!'],
     art: { kind: 'boot', skin: '#d9a27a', primary: '#3e4450', secondary: '#c8913a', leg: 'armor', legColor: '#4a505c', legAccent: '#c8913a' },

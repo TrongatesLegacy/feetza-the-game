@@ -180,7 +180,8 @@ export class Foot {
   guardMax = 6;
   /** Its shield shattered: unguarded until it re-arms. */
   guardBroken = false;
-  /** Automatic damage soaked by the raised shield, towards knocking its next step off (GameScene: guardChip). */
+  /** Knock-on damage (chains, splashes, blasts) soaked by the raised shield, towards knocking its next step off
+   * (GameScene: guardChip). Automatic damage glances off it and doesn't count. */
   guardChipAcc = 0;
   /** Its step's worth when it last soaked some (for the badge's filling step). */
   guardChipStep = 1;
@@ -196,6 +197,8 @@ export class Foot {
     update(dt: number): void;
     blocked(left: number, quiet?: boolean, steps?: number): void;
     chipped(): void;
+    /** Automatic damage glanced off the raised shield: true if it showed (a ting and a shiver, throttled). */
+    deflected(): boolean;
     broke(): void;
     /** A raging foot rears back with its shield (gods.ts), then throws it: where it leaves from, or null. */
     windup(): void;
@@ -470,7 +473,7 @@ export class Foot {
     this.guardWarned = false;
   }
 
-  /** Automatic damage soaked by the raised shield: every `step` of it knocks a step off, as a smack does. Returns
+  /** Knock-on damage soaked by the raised shield: every `step` of it knocks a step off, as a smack does. Returns
    * what's left over past the step that breaks it (it carries through to the foot), or 0. */
   guardChip(amount: number, step: number): number {
     this.guardChipStep = Math.max(0.01, step);

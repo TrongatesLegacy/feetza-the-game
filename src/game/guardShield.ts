@@ -406,6 +406,7 @@ class GuardFx {
   private mode: 'shield' | 'windup' | 'flight' | 'rage' = 'shield';
   /** The badge's wearing step flashes for this long after automatic damage soaks in. */
   private chipT = 0;
+  private deflectAt = -1;
   private modeT = 0;
 
   constructor(readonly f: Foot) {
@@ -651,9 +652,19 @@ class GuardFx {
     this.chips(quiet ? 2 : 3 + stage + (steps - 1) * 4);
   }
 
-  /** Automatic damage soaking into it: the step it's wearing down flashes on the badge. */
+  /** Knock-on damage soaking into it: the step it's wearing down flashes on the badge. */
   chipped(): void {
     this.chipT = 0.12;
+  }
+
+  /** Automatic damage glancing off it: a light ting and a small shiver, at most a few times a second (a garlic aura
+   * or a burn ticks fast). True if it showed. */
+  deflected(): boolean {
+    if (this.t - this.deflectAt < 0.3) return false;
+    this.deflectAt = this.t;
+    this.hitT = Math.max(this.hitT, 0.07);
+    this.sfx('sfx_guardcrack', 0.28, 1.7);
+    return true;
   }
 
   /** A few small bits knocked off by a blocked smack. */

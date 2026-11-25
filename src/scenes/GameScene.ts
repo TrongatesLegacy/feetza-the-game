@@ -85,7 +85,7 @@ interface DamageOpts {
 const AUTO_SOURCES = new Set<DamageOpts['source']>(['cutter', 'olive', 'garlic', 'burn', 'trap']);
 /** The STATS tab's key for a topping proc's damage (a throwing peel's passive throw counts as the peel's ability). */
 const procTag = (id: string): string => (id === 'peel:also' ? 'ability' : `proc:${id}`);
-/** How much of the automatic damage a raised guard shield soaks counts against it (a step per base smack's worth). */
+/** How much of a smack's knock-on damage (chains, splashes, blasts) a raised guard shield soaks counts against it (a step per base smack's worth). */
 const GUARD_SOAK = 0.5;
 
 export interface GameStart {
@@ -529,7 +529,7 @@ export class GameScene extends Phaser.Scene implements Arena {
   // ——— Lifecycle ———
   init(data: GameStart): void {
     this.start = data ?? {};
-    this.guardStats = { blocked: 0, broken: 0, rearmed: 0, soaked: 0, chipSteps: 0, slamSteps: 0, ttk: {}, stomps: {} };
+    this.guardStats = { blocked: 0, broken: 0, rearmed: 0, soaked: 0, deflected: 0, chipSteps: 0, slamSteps: 0, ttk: {}, stomps: {} };
   }
 
   create(): void {
@@ -3411,7 +3411,7 @@ export class GameScene extends Phaser.Scene implements Arena {
   }
 
   /** Guard shields this run: smacks blocked, shields broken, new ones raised (the balance sim reads it). */
-  guardStats = { blocked: 0, broken: 0, rearmed: 0, soaked: 0, chipSteps: 0, slamSteps: 0, ttk: {} as Record<string, number[]>, stomps: {} as Record<string, number> };
+  guardStats = { blocked: 0, broken: 0, rearmed: 0, soaked: 0, deflected: 0, chipSteps: 0, slamSteps: 0, ttk: {} as Record<string, number[]>, stomps: {} as Record<string, number> };
 
   private hitFoot(f: Foot, x: number, y: number): void {
     const st = this.run.stats;
@@ -3505,15 +3505,20 @@ export class GameScene extends Phaser.Scene implements Arena {
       return;
     }
     let dmg = amount;
+    const auto = o.auto || AUTO_SOURCES.has(o.source);
     // automatic damage is scaled by the heat (half on Mild, three quarters on Regular)
-    if (o.auto || AUTO_SOURCES.has(o.source)) dmg *= this.run.heatDef.autoDmg;
-    // a raised guard shield takes the rest too (a hero's bypass still goes straight through). A Peel Slam or a peel
-    // ability's hit knocks a few steps off (slamSteps); automatic damage (burns, toppings, drones) is soaked at half
-    // strength, a step for every base smack's worth. Whatever smashes it carries its leftover through to the foot.
-    if (!smack && f.guardUp && !this.heroes.ignoreShields()) {
+    if (auto) dmg *= this.run.heatDef.autoDmg;
+    // a raised guard shield takes the rest too (a hero's bypass still goes straight through). Automatic damage (burns,
+    // toppings, drones, a passive's procs) and chain lightning glance off it entirely: only the player's own blows
+    // break a held shield. A Peel Slam or a peel ability's hit knocks a few steps off (slamSteps); the rest of what a
+    // smack sets off (splashes, blasts) is soaked at half strength, a step for every base smack's worth. Whatever smashes it carries its
+    // leftover through to the foot.
+    if (!smack && this.guardBlocks(f)) {
+      // (a chain's jump counts as automatic: chains also stop at a held shield, see chain() and the 'chain' effect)
+      if (auto || o.source === 'chain') return this.glance(f, o.x, o.y, o.quiet);
       const was = f.guardHp;
       // (a passive or topping proc that goes through the ability path is automatic: it's soaked like the rest)
-      if ((o.source === 'slam' || o.source === 'ability') && !o.auto) {
+      if (o.source === 'slam' || o.source === 'ability') {
         const n = slamSteps(this.run.heat);
         const unused = f.guardKnock(n);
         this.guardStats.slamSteps += was - f.guardHp;
@@ -3650,6 +3655,20 @@ export class GameScene extends Phaser.Scene implements Arena {
     else if (f === this.bossBar2) ui.hud.setBoss2(f.type.name, f.hp / f.maxHp, this.director.phaseCount(f), f.phase);
   }
 
+  /** A raised guard shield in the way (a hero's bypass ignores it). */
+  private guardBlocks(f: Foot): boolean {
+    return f.guardUp && !this.heroes.ignoreShields();
+  }
+
+  /** Automatic damage or a chain's jump glancing off a raised guard shield: it does nothing, with a light ting and a
+   * small ring (throttled per shield). */
+  private glance(f: Foot, x?: number, y?: number, quiet?: boolean): void {
+    this.guardStats.deflected++;
+    if (f.guardFx?.deflected() && !quiet) this.fx.ring(x ?? f.cx, y ?? f.cy, 0x9ad8ff, 0.35, 0.5);
+  }
+
+  /** A smack's chain lightning: it jumps to the nearest feet in turn, and a held guard shield takes the jump and
+   * stops it there. */
   private chain(from: Foot, dmg: number): void {
     const targets = this.feet
       .filter((o) => o !== from && o.hittable)
@@ -3662,6 +3681,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     let prev = from;
     for (const { o } of targets) {
       this.fx.lightning(prev.cx, prev.cy, o.cx, o.cy);
+      if (this.guardBlocks(o)) return this.glance(o);
       this.dealDamage(o, dmg, { source: 'chain' });
       prev = o;
     }
@@ -4532,8 +4552,9 @@ export class GameScene extends Phaser.Scene implements Arena {
         }
         break;
       case 'chain': {
+        // (a held guard shield stops the chain: it doesn't start from one, and one it jumps to takes it)
         const from = targets(e.at)[0];
-        if (!from) break;
+        if (!from || this.guardBlocks(from)) break;
         let prev = from;
         const done = new Set<Foot>([from]);
         audio.sfx('sfx_zap', { throttle: 60 });
@@ -4543,6 +4564,10 @@ export class GameScene extends Phaser.Scene implements Arena {
             .sort((a, b) => Math.hypot(a.cx - prev.cx, a.cy - prev.cy) - Math.hypot(b.cx - prev.cx, b.cy - prev.cy))[0];
           if (!next || Math.hypot(next.cx - prev.cx, next.cy - prev.cy) > 700) break;
           this.fx.lightning(prev.cx, prev.cy, next.cx, next.cy);
+          if (this.guardBlocks(next)) {
+            this.glance(next);
+            break;
+          }
           this.dealDamage(next, e.x * st.damage, { source: 'ability', tag });
           done.add(next);
           prev = next;
