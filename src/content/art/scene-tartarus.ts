@@ -115,7 +115,7 @@ export const farEdge = (x: number) => 508 + Math.sin(x * 0.0063 + 0.7) * 3 + Mat
 /** The abyss's air (smoke lit red from below) and the cavern's (cold and dark). */
 const PIT: Air = { color: '#4a1a1c', far: 0.7 };
 const CAVE: Air = { color: '#1c1424', far: 0.55 };
-const BRZ = { lit: '#e8b46a', body: '#a8742e', shade: '#5a3a1c', deep: '#24140a', green: '#4a8a72' };
+export const BRZ = { lit: '#e8b46a', body: '#a8742e', shade: '#5a3a1c', deep: '#24140a', green: '#4a8a72' };
 const SOUL = { deep: '#1640c8', body: '#3a98f0', core: '#9ad4ff' };
 
 // ——— the cavern's mouth: the cliffs' inner edges ———
@@ -3003,7 +3003,7 @@ function jetty(ctx: Ctx, r: R): void {
 // ——— the broken columns in chains ———
 
 /** A link of a heavy bronze chain at (x, y) along direction ang: face-on (a ring) or edge-on (a bar). */
-function link(ctx: Ctx, x: number, y: number, ang: number, s: number, face: boolean, lit = 1, squash = 1): void {
+export function link(ctx: Ctx, x: number, y: number, ang: number, s: number, face: boolean, lit = 1, squash = 1): void {
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(ang);
@@ -3043,7 +3043,7 @@ function link(ctx: Ctx, x: number, y: number, ang: number, s: number, face: bool
 }
 
 /** A chain of real links along a curve given as points (squash(t): how foreshortened the links are along it). */
-function chain(ctx: Ctx, pts: Pt[], s: number, lit = 1, squash: (t: number) => number = () => 1): void {
+export function chain(ctx: Ctx, pts: Pt[], s: number, lit = 1, squash: (t: number) => number = () => 1): void {
   const seg: number[] = [0];
   for (let i = 1; i < pts.length; i++) seg.push(seg[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
   const total = seg[seg.length - 1];
@@ -3060,7 +3060,7 @@ function chain(ctx: Ctx, pts: Pt[], s: number, lit = 1, squash: (t: number) => n
     d += s * 1.5 * Math.max(0.35, q);
   }
 }
-const sag = (x0: number, y0: number, x1: number, y1: number, s: number, n = 24): Pt[] =>
+export const sag = (x0: number, y0: number, x1: number, y1: number, s: number, n = 24): Pt[] =>
   Array.from({ length: n + 1 }, (_, i) => {
     const t = i / n;
     return [x0 + (x1 - x0) * t, y0 + (y1 - y0) * t + Math.sin(t * Math.PI) * s] as Pt;
@@ -3212,8 +3212,8 @@ function pillar(ctx: Ctx, i: number): void {
 }
 const inkOfStone = '#0e0a14';
 /** Cast bronze: duller than the kit's chrome, its highlights warm. */
-const BRONZE_M = { name: 'Bronze', base: BRZ.body, shadowTint: '#1a0c08', ramp: 0.8, form: 0.6, bevel: 0.45, rim: 0.5, tex: 'cast' as const, texA: 0.3, texScale: 1.2, specA: 0.35, specSize: 0.14 };
-const ROCK = { name: 'Basalt', base: '#2e2a36', shadowTint: '#0c0818', ramp: 0.6, form: 0.6, bevel: 0.4, rim: 0.5, tex: 'cast' as const, texA: 0.35, texScale: 1.3, specA: 0.05, specSize: 0.2 };
+export const BRONZE_M = { name: 'Bronze', base: BRZ.body, shadowTint: '#1a0c08', ramp: 0.8, form: 0.6, bevel: 0.45, rim: 0.5, tex: 'cast' as const, texA: 0.3, texScale: 1.2, specA: 0.35, specSize: 0.14 };
+export const ROCK = { name: 'Basalt', base: '#2e2a36', shadowTint: '#0c0818', ramp: 0.6, form: 0.6, bevel: 0.4, rim: 0.5, tex: 'cast' as const, texA: 0.35, texScale: 1.3, specA: 0.05, specSize: 0.2 };
 
 // ——— the soul-fire tripods ———
 
@@ -3354,7 +3354,7 @@ function soulFireStill(ctx: Ctx): void {
 
 // ——— asphodel, bones ———
 
-function asphodel(ctx: Ctx, r: R, x: number, y: number, s: number): void {
+export function asphodel(ctx: Ctx, r: R, x: number, y: number, s: number): void {
   // a tuft of narrow leaves
   ctx.lineCap = 'round';
   for (let i = 0; i < 9; i++) {
@@ -3399,7 +3399,7 @@ function asphodel(ctx: Ctx, r: R, x: number, y: number, s: number): void {
   }
 }
 
-function skull(ctx: Ctx, x: number, y: number, s: number, turn = 0): void {
+export function skull(ctx: Ctx, x: number, y: number, s: number, turn = 0): void {
   const cr = (c: Ctx) => {
     c.beginPath();
     c.ellipse(x, y - 8 * s, 15 * s, 13 * s, 0, Math.PI * 0.9, Math.PI * 2.1);
@@ -3439,7 +3439,7 @@ function skull(ctx: Ctx, x: number, y: number, s: number, turn = 0): void {
   }
 }
 
-function bone(ctx: Ctx, x: number, y: number, len: number, ang: number): void {
+export function bone(ctx: Ctx, x: number, y: number, len: number, ang: number): void {
   const c = Math.cos(ang);
   const s = Math.sin(ang);
   const p = (g: Ctx) => {
@@ -3475,8 +3475,8 @@ function ash(ctx: Ctx, r: R, left: boolean): void {
 // ——— the table: an obsidian slab, a bronze key-pattern rim ———
 
 /** The key pattern's unit at the rim (px) and the slab joints, every SLAB units, centred on the middle. */
-const KEY_U = 48;
-const SLAB = 8;
+export const KEY_U = 48;
+export const SLAB = 8;
 
 function table(ctx: Ctx, r: R): void {
   const f = TA.front;
@@ -3611,7 +3611,7 @@ function table(ctx: Ctx, r: R): void {
 
 /** The bronze rim along the table's front: a running key pattern, one unit every KEY_U px from the middle, a bronze
  * boss on each slab joint (between two runs, so each slab's run of the pattern sits centred on it). */
-function rimBand(ctx: Ctx, f: number): void {
+export function rimBand(ctx: Ctx, f: number): void {
   const h = 1080 - f;
   const g = ctx.createLinearGradient(0, f, 0, 1080);
   g.addColorStop(0, '#c08a40');

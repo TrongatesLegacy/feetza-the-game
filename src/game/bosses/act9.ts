@@ -894,6 +894,8 @@ const cerberus = (): Brain => {
     a.quip(t.x, Math.max(SAFE_TOP + 40, t.cy - 150), c.word, c.css, 36);
     a.sc.time.delayedCall(650, () => {
       if (!t.alive || !f.alive || !a.inWave()) return;
+      // (the arena's tripod of this temper roars: scene-cerberus.ts listens)
+      a.sc.events.emit('cerberus-temper', hd.temper);
       const p = (t.target && !t.target.dead ? t.target : null) ?? laneOf(a, t);
       if (hd.temper === 'fire') {
         if (!p) return;
@@ -1077,6 +1079,8 @@ const cerberus = (): Brain => {
       if (f.phase >= 2 && howl.tick(dt)) {
         a.sfx('sfx_cerberus_howl');
         a.quip(W / 2, SAFE_TOP + 60, 'THE PACK HOWLS!', '#ff8a5a', 48);
+        // (the arena answers: its fires flare, the doors shudder; scene-cerberus.ts listens)
+        a.sc.events.emit('cerberus-howl');
         alive().forEach((hd, i) => {
           hd.every.t = hd.every.every;
           a.sc.time.delayedCall(400 + i * 380, () => f.alive && !hd.down && act(hd, f, a));
