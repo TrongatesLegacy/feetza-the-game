@@ -10,20 +10,22 @@
 // leather punch bag hung from the walkway on a chain, and a tally of days scratched on the wall. Rusted iron walkways
 // spiral up the wall (the turn across the back has fallen, its ends hanging), with ladders between, barred cell doors
 // set into the stone at their level, and two long chains hanging from rings in the dome. On the left a hand-cranked
-// winch on a timber frame hauls a rope up to a davit on the walkway; a caged work lamp under the walkway throws its
-// amber on the wall. At the sides stands his Venom rig: two tall glass tanks of glowing green Venom with steel bands,
-// pressure dials and valve wheels, their tubes snaking up the walls into the dark. Green glow against cold blue stone.
-// Everything here is our own.
+// winch on a timber trestle hauls a rope up to a jib on the walkway; caged work lamps under the walkways throw their
+// amber on the wall. At the sides stands his Venom rig: two squat riveted iron vats on cradles, the Venom seen only as
+// a murky olive sludge through a bolted porthole in each, with pressure gauges, valve wheels on pipes into the wall,
+// and tubes snaking up the walls into the dark. They are scenery and must never read as the vials on his boot that
+// the fight says to smack: the bright saturated green is the vials' alone; the vats stay dull and their glow stays
+// small, at the porthole and the lid's seams. Everything here is our own.
 //
 // Live (the heroes):
-// - the Venom: painted at 12 phases boiling in its tanks (volumes churning, dark tendrils turning as they rise, bubbles
-//   swelling, a frothing surface), its glow on the walls breathing, its tubes carrying pulses of green up the walls;
+// - the Venom: painted at 12 phases churning behind each porthole (dark clots turning, slow fat bubbles, scum on its
+//   surface), its dim glow breathing at the porthole, faint pulses running up the tubes;
 // - the rain: drops falling down the shaft from the grille, lit where they cross the moonlight, splashing in painted
-//   crowns on the floor and the table's puddles; drips off the walkways, the pipes and the tank caps;
+//   crowns on the floor and the table's puddles; drips off the walkways, the pipes and the vats' lids;
 // - the chains: links on a hanging rope with physics (and the punch bag on its spring) that swing and clank.
 // The fight drives it (the bunion brain in src/game/bosses/gotham.ts emits these): 'bunion-pump' (a vial fills: the
-// tanks boil hard, the glow flares, the tubes pulse and the dials kick), 'bunion-surge' (all three full: the tanks
-// roar, everything strobes green, the chains rattle), 'bunion-drain' (a vial drained: the glow gutters),
+// sludge churns hard, the portholes and lid seams flare, the tubes pulse and the gauges kick), 'bunion-surge' (all
+// three full: the portholes and seams strobe, the chains rattle), 'bunion-drain' (a vial drained: the glow gutters),
 // 'bunion-spent' (the Venom spent or the vials lost: the glow sinks low) and 'bunion-break' (THE BREAK: the chains
 // jump). Lightning over the mouth now and then blazes the sky behind the grille and flashes down the shaft. The
 // caged lamp flickers; the dials' needles twitch with the pressure and kick at a pump. A stomp sends dust and grit
@@ -76,10 +78,11 @@ export const PT = {
   sky: { x: 960, y: 150, rx: 300, ry: 86 },
   /** Where the straight wall ends and the dome begins (in shaft height, 0 floor … 1 mouth). */
   u1: 0.35,
-  /** The Venom tanks (centre x): keep them at the sides. */
+  /** The Venom vats (centre x): keep them at the sides. */
   tanks: [250, 1670],
-  /** A tank's glass (half width, top, bottom), its cap's crown, its plinth's top and foot. */
-  tank: { rx: 84, top: 404, bottom: 684, cap: 352, plinth: 700, foot: 748 },
+  /** A vat's half width, its shoulder (where the lid meets the body) and crown, the top of its stand and its foot,
+   * and its porthole (centre y, radius). */
+  tank: { rx: 116, shoulder: 452, crown: 404, plinth: 712, foot: 748, port: { y: 576, r: 32 } },
   winch: { x: 700, y: 736 },
   gym: { x: 1222, y: 744 },
   front: 1040,
@@ -89,9 +92,8 @@ const INK = '#0a0e1a';
 const P2 = Math.PI * 2;
 const SODIUM = '#ffb45a';
 const MOONLIT = '#c8d6f0';
-const VENOM = '#7dff6a';
-const VENOM_HOT = '#e0ffc0';
-const VENOM_DEEP = '#0c3a14';
+/** The Venom as the scenery shows it: a dull olive sludge (the bright #7dff6a green is his vials' alone). */
+const SLUDGE = '#8aa83a';
 const smooth = (e0: number, e1: number, x: number): number => {
   const t = Math.max(0, Math.min(1, (x - e0) / (e1 - e0)));
   return t * t * (3 - 2 * t);
@@ -490,9 +492,9 @@ function grille(ctx: Ctx): void {
 const BEAM_TOP: [number, number, number, number] = [800, 196, 1050, 226];
 const BEAM_BOT: [number, number, number, number] = [1110, 742, 1520, 742];
 function moonShaft(ctx: Ctx, r: R): void {
-  // the damp hanging low in the pit, cold; green round the tanks
+  // the damp hanging low in the pit, cold; a murky olive round the vats
   haze(ctx, 520, TY + 6, '#5a6a84', 0.16, 0.75);
-  for (const x of PT.tanks) lightPool(ctx, x, 690, 300, 90, '#3a6a40', 0.1, 'source-over');
+  for (const x of PT.tanks) lightPool(ctx, x, 690, 240, 70, '#3a4a28', 0.08, 'source-over');
   shaft(ctx, r, BEAM_TOP, BEAM_BOT, MOONLIT, 0.09, { streaks: 7, motes: 0 });
   // its pool on the floor round the gym, and where it grazes the wall behind
   lightPool(ctx, 1260, 734, 300, 34, MOONLIT, 0.16);
@@ -933,14 +935,18 @@ function pipe(ctx: Ctx, pts: [number, number][], w: number, base: string, flange
   ctx.restore();
 }
 
-// ——— the Venom rig: tanks and tubes ———
+// ——— the Venom rig: riveted vats and their tubes ———
+//
+// The vats are scenery, never mistaken for the vials on his boot that the fight says to smack: squat riveted iron
+// boilers, dull and dark, the Venom only seen as a murky olive sludge through one small porthole each, and their
+// glow kept to that porthole and the seams where the tubes join. (His vials keep the bright #7dff6a green.)
 
-/** The tubes up the walls from each tank's cap (left; the right ones are mirrored): screen points. */
+/** The tubes up the walls from the unions on each vat's lid (left; the right ones are mirrored): screen points. */
 const TUBES_L: [number, number][][] = [
-  [[222, 354], [200, 300], [178, 240], [140, 176], [90, 120], [30, 74], [-30, 36]],
-  [[278, 354], [306, 296], [340, 236], [356, 170], [346, 104], [318, 40], [296, -20]],
+  [[208, 412], [194, 350], [174, 282], [140, 204], [90, 132], [30, 76], [-30, 36]],
+  [[292, 412], [314, 342], [344, 262], [358, 182], [346, 108], [318, 40], [296, -20]],
 ];
-export const TUBES: [number, number][][] = [...TUBES_L, ...TUBES_L.map((t) => t.map(([x, y]) => [1920 - x + (PT.tanks[1] - (1920 - PT.tanks[0])), y] as [number, number]))];
+export const TUBES: [number, number][][] = [...TUBES_L, ...TUBES_L.map((t) => t.map(([x, y]) => [1920 - x, y] as [number, number]))];
 
 function tubePath(c: Ctx, pts: [number, number][]): void {
   c.beginPath();
@@ -954,7 +960,7 @@ function tubePath(c: Ctx, pts: [number, number][]): void {
   c.lineTo(l[0], l[1]);
 }
 
-/** A Venom tube: thick dark rubber, its liquid showing green through a glass sight band, clamped to the wall. */
+/** A Venom tube: thick dark rubber, the sludge just showing dull through a thin sight line, clamped to the wall. */
 function tube(ctx: Ctx, pts: [number, number][], w: number): void {
   ctx.save();
   ctx.lineCap = 'round';
@@ -969,18 +975,15 @@ function tube(ctx: Ctx, pts: [number, number][], w: number): void {
   ctx.lineWidth = w + 3;
   tubePath(ctx, pts);
   ctx.stroke();
-  ctx.strokeStyle = '#1a2a1e';
+  ctx.strokeStyle = '#1c2218';
   ctx.lineWidth = w;
   ctx.stroke();
-  ctx.strokeStyle = mix(VENOM, VENOM_DEEP, 0.7);
-  ctx.lineWidth = w * 0.42;
+  ctx.strokeStyle = rgba(SLUDGE, 0.28);
+  ctx.lineWidth = w * 0.22;
   ctx.stroke();
-  ctx.strokeStyle = rgba(VENOM, 0.35);
-  ctx.lineWidth = w * 0.14;
-  ctx.stroke();
-  ctx.strokeStyle = rgba('#dfffd0', 0.35);
+  ctx.strokeStyle = rgba(MOONLIT, 0.22);
   ctx.lineWidth = Math.max(1, w * 0.1);
-  ctx.translate(-w * 0.2, -w * 0.2);
+  ctx.translate(-w * 0.25, -w * 0.25);
   tubePath(ctx, pts);
   ctx.stroke();
   ctx.restore();
@@ -995,267 +998,275 @@ function tube(ctx: Ctx, pts: [number, number][], w: number): void {
     ctx.moveTo(x - Math.cos(a) * w, y - Math.sin(a) * w);
     ctx.lineTo(x + Math.cos(a) * w, y + Math.sin(a) * w);
     ctx.stroke();
-    ctx.strokeStyle = '#6a707c';
+    ctx.strokeStyle = '#5a606c';
     ctx.lineWidth = 3;
     ctx.stroke();
   }
 }
 
 const T = PT.tank;
-const TANK_BOX = (x: number): Box => ({ x: x - 210, y: T.cap - 60, w: 450, h: T.foot + 30 - (T.cap - 60) });
-/** The glass and its fittings (above the plinth: it must end above the table, or the table bakes into an overlay). */
-const TANK_FRONT_BOX = (x: number): Box => ({ x: x - 130, y: T.cap - 60, w: 260, h: T.bottom + 12 - (T.cap - 60) });
-/** The liquid's frame: the glass's inside. */
-export const LIQ = { w: T.rx * 2, h: T.bottom - T.top };
-export const LIQ_BOX = (x: number): Box => ({ x: x - T.rx, y: T.top, w: LIQ.w, h: LIQ.h });
+/** Everything a vat paints (its stand's shadows reach out). */
+const TANK_BOX = (x: number): Box => ({ x: x - 220, y: T.crown - 40, w: 460, h: T.foot + 30 - (T.crown - 40) });
+/** The vat itself (it must end above the table, or the table bakes into an overlay). */
+const TANK_FRONT_BOX = (x: number): Box => ({ x: x - 165, y: T.crown - 40, w: 330, h: T.plinth + 2 - (T.crown - 40) });
+/** The sludge's frame: the porthole's inside. */
+export const LIQ = { w: T.port.r * 2 + 4, h: T.port.r * 2 + 4 };
+export const LIQ_BOX = (x: number): Box => ({ x: x - LIQ.w / 2, y: T.port.y - LIQ.h / 2, w: LIQ.w, h: LIQ.h });
+/** Where the tubes join the lid (the seams that leak a little glow). */
+export const SEAMS = (x: number): [number, number][] => [[x - 42, T.crown + 8], [x + 42, T.crown + 8]];
+const dirOf = (x: number) => (x < 960 ? 1 : -1);
 
-/** Behind the liquid: the plinth, the shadows, the base ring, the dark of the glass's back. */
+/** The vat's body: a squat riveted boiler, its sides bowed a little, a shallow domed lid. */
+const vatBody = (x: number): PathFn => (c) => {
+  const { rx, shoulder, crown, plinth } = T;
+  c.beginPath();
+  c.moveTo(x - rx + 4, plinth);
+  c.bezierCurveTo(x - rx - 8, plinth - 70, x - rx - 8, shoulder + 60, x - rx, shoulder);
+  c.bezierCurveTo(x - rx + 10, crown + 4, x + rx - 10, crown + 4, x + rx, shoulder);
+  c.bezierCurveTo(x + rx + 8, shoulder + 60, x + rx + 8, plinth - 70, x + rx - 4, plinth);
+  c.closePath();
+};
+
+/** Behind the vat: its stand, its shadows on the wall and floor, the dark behind the porthole. */
 function tankBack(ctx: Ctx, x: number): void {
-  const dir = x < 960 ? 1 : -1;
-  groundShadow(ctx, x + 18, T.foot - 2, 150, 16, 0.65, '#02040a', 1.4);
-  castShadow(ctx, rectPath(x - T.rx - 20, T.cap, (T.rx + 20) * 2, T.foot - T.cap - 30), 26, 22, 0.4, '#02040a');
-  // the plinth: a squat iron stand on four feet, a pump body bolted on its front
-  const pl = polyPath([[x - 108, T.plinth], [x + 108, T.plinth], [x + 116, T.foot - 10], [x + 122, T.foot], [x - 122, T.foot], [x - 116, T.foot - 10]]);
-  solid(ctx, pl, { x: x - 112, y: T.plinth, w: 224, h: T.foot - T.plinth }, IRON, '#3a414e', { line: 2.2, formSize: 10 });
+  const dir = dirOf(x);
+  groundShadow(ctx, x + 20, T.foot - 2, 170, 18, 0.7, '#02040a', 1.4);
+  castShadow(ctx, vatBody(x), 30, 26, 0.5, '#02040a');
+  // the stand: a squat iron cradle on four feet
+  const pl = polyPath([[x - 112, T.plinth - 6], [x + 112, T.plinth - 6], [x + 120, T.foot - 10], [x + 128, T.foot], [x - 128, T.foot], [x - 120, T.foot - 10]]);
+  solid(ctx, pl, { x: x - 128, y: T.plinth - 6, w: 256, h: T.foot - T.plinth + 6 }, IRON, '#30363f', { line: 2.2, formSize: 10 });
   within(ctx, pl, () => {
     ctx.fillStyle = rgba(RUST, 0.35);
-    ctx.fillRect(x - 110, T.foot - 16, 220, 16);
-    dots(ctx, { x: x - 112, y: T.plinth, w: 224, h: T.foot - T.plinth }, linTone(x - 60, 0, x + 110, 0, 0.05, 0.7), '#02040a', { step: 4, angle: 0.79, a: 0.6 });
+    ctx.fillRect(x - 128, T.foot - 16, 256, 16);
+    dots(ctx, { x: x - 128, y: T.plinth - 6, w: 256, h: T.foot - T.plinth + 6 }, linTone(x - 60, 0, x + 128, 0, 0.05, 0.7), '#02040a', { step: 4, angle: 0.79, a: 0.6 });
   });
-  // a hand pump's crank on the plinth's outer side
-  const hx = x - dir * 100;
-  ctx.strokeStyle = INK;
-  ctx.lineWidth = 6;
-  ctx.lineCap = 'round';
+  // a drain cock on the outer side, its stain on the floor
+  const cx = x - dir * 96;
+  pipe(ctx, [[cx, T.plinth - 20], [cx - dir * 26, T.plinth - 20], [cx - dir * 26, T.plinth + 2]], 7, '#3e4450');
+  lightPool(ctx, cx - dir * 26, T.foot - 2, 30, 6, '#2a3a14', 0.5, 'source-over');
+  ctx.fillStyle = '#05080a';
   ctx.beginPath();
-  ctx.moveTo(hx, T.plinth + 18);
-  ctx.lineTo(hx - dir * 30, T.plinth - 8);
-  ctx.stroke();
-  ctx.strokeStyle = '#7a808c';
-  ctx.lineWidth = 3;
-  ctx.stroke();
-  // the base ring and the back of the glass
-  const ring0 = rrPath(x - T.rx - 14, T.bottom - 6, T.rx * 2 + 28, T.plinth - T.bottom + 8, 5);
-  solid(ctx, ring0, { x: x - T.rx - 14, y: T.bottom - 6, w: T.rx * 2 + 28, h: 30 }, IRON, '#5a6270', { line: 2, formSize: 6 });
-  ctx.fillStyle = mix(VENOM_DEEP, '#000000', 0.5);
-  ctx.fillRect(x - T.rx, T.top, T.rx * 2, T.bottom - T.top);
+  ctx.arc(x, T.port.y, T.port.r + 1, 0, P2);
+  ctx.fill();
 }
 
-/** One frame of the Venom boiling in its tank (phase 0…1 loops), in a LIQ frame: a glowing column, bright through its
- * middle and deep at its edges, volumes churning up it, bubbles swelling as they rise (each one rises one place per
- * loop, so the loop is seamless), dark sediment settled at the bottom, a frothing surface. */
+/** One frame of the Venom churning behind the porthole (phase 0…1 loops), in a LIQ frame: a dull olive sludge, thick
+ * and murky, a scummy surface near the top of the glass, dark clots turning in it, slow fat bubbles rising (each one
+ * rises one place per loop: the loop is seamless), a dim glow deep in the middle. */
 export function venomFrame(c: Ctx, ph: number, seed = 1): void {
   const { w, h } = LIQ;
   const cx = w / 2;
-  const surf = 24 + Math.sin(ph * P2) * 2.4;
+  const surf = h * 0.24 + Math.sin(ph * P2) * 1.6;
   const r = rng(seed);
-  // the headspace over the surface: dark, the glow's haze in it
-  c.fillStyle = '#0a1a0e';
+  // the headspace: dark, a little haze
+  c.fillStyle = '#0c1006';
   c.fillRect(0, 0, w, h);
-  const hg = c.createLinearGradient(0, 0, 0, surf + 6);
-  hg.addColorStop(0, 'rgba(40,90,40,0.2)');
-  hg.addColorStop(1, 'rgba(120,255,100,0.35)');
-  c.fillStyle = hg;
-  c.fillRect(0, 0, w, surf + 6);
-  const top = (x: number) => surf + Math.sin(x * 0.1 + ph * P2) * 2.6 + Math.sin(x * 0.23 - ph * P2 * 2) * 1.6;
+  const top = (x: number) => surf + Math.sin(x * 0.14 + ph * P2) * 1.8 + Math.sin(x * 0.31 - ph * P2 * 2) * 0.9;
   const body: PathFn = (g) => {
     g.beginPath();
     g.moveTo(0, h);
-    for (let x = 0; x <= w; x += 4) g.lineTo(x, top(x));
+    for (let x = 0; x <= w; x += 3) g.lineTo(x, top(x));
     g.lineTo(w, h);
     g.closePath();
   };
   c.save();
   body(c);
   c.clip();
-  // the column: deep at the edges, hot in its middle (more light passes through more Venom there)
-  const cg = c.createLinearGradient(0, 0, w, 0);
-  cg.addColorStop(0, '#082e12');
-  cg.addColorStop(0.3, '#1f7a26');
-  cg.addColorStop(0.5, '#4cc23e');
-  cg.addColorStop(0.7, '#1f7a26');
-  cg.addColorStop(1, '#062610');
-  c.fillStyle = cg;
+  const bg = c.createRadialGradient(cx, h * 0.55, 2, cx, h * 0.55, w * 0.62);
+  bg.addColorStop(0, '#6e8a2c');
+  bg.addColorStop(0.5, '#3e5018');
+  bg.addColorStop(1, '#161e08');
+  c.fillStyle = bg;
   c.fillRect(0, 0, w, h);
-  // the churn: soft volumes rising and turning, lighter on their upper left
-  for (let k = 0; k < 7; k++) {
-    const u = (k / 7 + ph) % 1;
-    const y = h - 20 - u * (h - surf);
-    const x = cx + Math.sin(u * 7 + k * 2.1) * w * 0.22;
-    const rad = w * (0.2 + 0.12 * Math.sin(k * 1.7 + 0.5));
-    const a = Math.sin(u * Math.PI) * 0.5;
-    const g = c.createRadialGradient(x - rad * 0.3, y - rad * 0.3, 0, x, y, rad);
-    g.addColorStop(0, `rgba(220,255,180,${a.toFixed(3)})`);
-    g.addColorStop(1, 'rgba(120,255,100,0)');
+  // dark clots turning in it
+  for (let k = 0; k < 5; k++) {
+    const u = (k / 5 + ph) % 1;
+    const a = u * P2 + k * 1.3;
+    const x = cx + Math.cos(a) * w * 0.24;
+    const y = h * 0.6 + Math.sin(a) * h * 0.2 - u * 4;
+    const rad = w * (0.12 + 0.05 * Math.sin(k * 2.1));
+    const g = c.createRadialGradient(x, y, 0, x, y, rad);
+    g.addColorStop(0, 'rgba(12,18,4,0.55)');
+    g.addColorStop(1, 'rgba(12,18,4,0)');
     c.fillStyle = g;
     c.fillRect(x - rad, y - rad, rad * 2, rad * 2);
   }
-  // dark tendrils of thicker Venom turning as they rise (each one rises a third of the way per loop, the next one
-  // taking its place: seamless), a bright filament along each one's lit edge
+  // paler swirls dragged round with them
+  c.strokeStyle = 'rgba(150,176,80,0.22)';
+  c.lineWidth = 2;
   c.lineCap = 'round';
-  for (let k = 0; k < 4; k++) {
-    const u0 = (k + ph) / 4;
-    const y0 = h - u0 * (h - surf) * 1.1 + 30;
-    const sw = (u: number) => Math.sin(u * 5 + k * 2.4 + ph * P2 * 0.25) * w * 0.22;
-    c.strokeStyle = 'rgba(6,46,14,0.2)';
-    c.lineWidth = 10;
-    c.beginPath();
-    for (let j = 0; j <= 10; j++) {
-      const yy = y0 - j * 9;
-      const xx = cx + sw(j * 0.12 + u0) + (k - 1.5) * w * 0.12;
-      if (j) c.lineTo(xx, yy);
-      else c.moveTo(xx, yy);
-    }
-    c.stroke();
-    c.strokeStyle = 'rgba(210,255,180,0.16)';
-    c.lineWidth = 1.4;
-    c.beginPath();
-    for (let j = 0; j <= 10; j++) {
-      const yy = y0 - j * 9 - 3;
-      const xx = cx + sw(j * 0.12 + u0) + (k - 1.5) * w * 0.12 - 2;
-      if (j) c.lineTo(xx, yy);
-      else c.moveTo(xx, yy);
-    }
-    c.stroke();
-  }
-  // light bands drifting up the column
   for (let k = 0; k < 3; k++) {
-    const yb = h - ((k + ph) / 3) * (h - surf + 30) + 6;
-    c.fillStyle = 'rgba(210,255,170,0.18)';
+    const a0 = ph * P2 + (k * P2) / 3;
     c.beginPath();
-    c.moveTo(0, yb);
-    for (let x = 0; x <= w; x += 8) c.lineTo(x, yb + Math.sin(x * 0.08 + k * 2 + ph * P2) * 4);
-    for (let x = w; x >= 0; x -= 8) c.lineTo(x, yb + 6 + Math.sin(x * 0.08 + k * 2 + 0.7 + ph * P2) * 3);
-    c.closePath();
-    c.fill();
+    c.arc(cx, h * 0.6, w * (0.16 + k * 0.08), a0, a0 + 1.4);
+    c.stroke();
   }
-  // sediment settled at the bottom (keeps the tank's foot dark behind the play area)
-  const sg = c.createLinearGradient(0, h - 90, 0, h);
-  sg.addColorStop(0, 'rgba(6,30,10,0)');
-  sg.addColorStop(1, 'rgba(6,24,8,0.85)');
-  c.fillStyle = sg;
-  c.fillRect(0, h - 90, w, 90);
-  // the cylinder's shade in dots, more on the right (away from the key) and at the bottom
-  dots(c, { x: 0, y: 0, w, h }, (x, y) => {
-    const e = (x - cx) / (w / 2);
-    return 0.75 * Math.abs(e) ** 2.4 * (e > 0 ? 1.2 : 0.8) + 0.3 * smooth(h * 0.65, h, y);
-  }, VENOM_DEEP, { step: 4, angle: 0.26, a: 0.7 });
-  // bubble streams: each bubble rises one place in its stream per loop
-  const streams = [cx - w * 0.3, cx - w * 0.04, cx + w * 0.22, cx + w * 0.36];
-  for (const [si, sx] of streams.entries()) {
-    const n = 8 - si;
+  // slow fat bubbles
+  for (let si = 0; si < 3; si++) {
+    const sx = cx + (si - 1) * w * 0.26;
+    const n = 4;
     const so = r();
     for (let b = 0; b < n; b++) {
       const u = (b + ph + so) / n;
-      const by = h - 30 - u * (h - surf - 30);
-      const br = 2.2 + u * (4.6 + (si % 2) * 2);
-      const bx = sx + Math.sin(u * 9 + si * 2) * (2 + u * 5);
+      const by = h - 6 - u * (h - surf - 6);
+      const br = 1.6 + u * 3.4;
       if (by < surf + br) continue;
-      c.strokeStyle = 'rgba(230,255,200,0.75)';
-      c.lineWidth = 1.2;
+      c.strokeStyle = 'rgba(180,200,110,0.55)';
+      c.lineWidth = 1;
       c.beginPath();
-      c.arc(bx, by, br, 0, P2);
+      c.arc(sx + Math.sin(u * 6 + si) * 3, by, br, 0, P2);
       c.stroke();
-      c.fillStyle = 'rgba(170,255,140,0.25)';
-      c.fill();
-      c.fillStyle = '#ffffff';
-      c.beginPath();
-      c.arc(bx - br * 0.35, by - br * 0.35, Math.max(0.7, br * 0.28), 0, P2);
-      c.fill();
     }
   }
+  dots(c, { x: 0, y: 0, w, h }, (x, y) => 0.2 + 0.55 * smooth(w * 0.2, w * 0.55, Math.hypot(x - cx, y - h * 0.55)), '#0a1004', { step: 3.5, angle: 0.26, a: 0.6 });
   c.restore();
-  // the surface: a bright meniscus, froth churning along it
-  c.save();
-  c.strokeStyle = 'rgba(230,255,200,0.9)';
-  c.lineWidth = 1.6;
+  // the scum on the surface
+  c.strokeStyle = 'rgba(160,180,90,0.7)';
+  c.lineWidth = 1.4;
   c.beginPath();
-  for (let x = 0; x <= w; x += 4) (x ? c.lineTo(x, top(x)) : c.moveTo(x, top(x)));
+  for (let x = 0; x <= w; x += 3) (x ? c.lineTo(x, top(x)) : c.moveTo(x, top(x)));
   c.stroke();
-  for (let k = 0; k < 10; k++) {
-    const fx = ((k + 0.5) / 10) * w + Math.sin(ph * P2 + k) * 3;
-    const fr = 2.4 + 2 * (0.5 + 0.5 * Math.sin(ph * P2 * 2 + k * 1.7));
-    const fy = top(fx) - fr * 0.3;
-    c.fillStyle = 'rgba(200,255,170,0.85)';
+  for (let k = 0; k < 6; k++) {
+    const fx = ((k + 0.5) / 6) * w + Math.sin(ph * P2 + k) * 2;
+    const fr = 1.6 + 1.2 * (0.5 + 0.5 * Math.sin(ph * P2 * 2 + k * 1.7));
+    c.fillStyle = 'rgba(130,150,70,0.7)';
     c.beginPath();
-    c.arc(fx, fy, fr, 0, P2);
+    c.arc(fx, top(fx) - fr * 0.3, fr, 0, P2);
     c.fill();
-    c.strokeStyle = 'rgba(20,70,24,0.8)';
-    c.lineWidth = 0.9;
-    c.stroke();
   }
-  c.restore();
 }
 
 function venomStill(ctx: Ctx, x: number, i: number): void {
   ctx.save();
-  ctx.translate(x - T.rx, T.top);
+  const b = LIQ_BOX(x);
+  ctx.beginPath();
+  ctx.arc(x, T.port.y, T.port.r, 0, P2);
+  ctx.clip();
+  ctx.translate(b.x, b.y);
   venomFrame(ctx, 0.25 + i * 0.4, 51 + i);
   ctx.restore();
 }
 
-/** Over the liquid: the glass (thick tinted edges, reflections, the shaft's window glint), three steel bands with
- * rivets, the pressure dial on the middle band, the cap with its flange, gland and tube unions, a valve wheel. */
-export const DIAL = (x: number) => ({ x: x + (x < 960 ? 1 : -1) * 44, y: T.top + 112, r: 20 });
+/** A gauge on the vat's shoulder. */
+export const DIAL = (x: number) => ({ x: x + dirOf(x) * 74, y: T.shoulder + 30, r: 18 });
+
+/** The vat over its porthole: riveted iron plates (seams across and up, rust bled from the rivets), the shallow lid
+ * with its manway and the tube unions, a pressure gauge, a valve wheel on a pipe into the wall, and the porthole: a
+ * bolted bezel round thick dirty glass. */
 function tankFront(ctx: Ctx, x: number): void {
-  const glass = rectPath(x - T.rx, T.top, T.rx * 2, T.bottom - T.top);
-  within(ctx, glass, () => {
-    const eg = ctx.createLinearGradient(x - T.rx, 0, x + T.rx, 0);
-    eg.addColorStop(0, 'rgba(4,20,8,0.6)');
-    eg.addColorStop(0.12, 'rgba(4,20,8,0)');
-    eg.addColorStop(0.86, 'rgba(4,20,8,0)');
-    eg.addColorStop(1, 'rgba(2,12,6,0.7)');
-    ctx.fillStyle = eg;
-    ctx.fillRect(x - T.rx, T.top, T.rx * 2, T.bottom - T.top);
-    ctx.fillStyle = 'rgba(230,255,230,0.26)';
-    ctx.fillRect(x - T.rx + 10, T.top, 12, T.bottom - T.top);
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
-    ctx.fillRect(x - T.rx + 28, T.top, 3, T.bottom - T.top);
-    ctx.fillStyle = rgba(MOONLIT, 0.2);
-    ctx.fillRect(x + T.rx - 18, T.top + 16, 5, T.bottom - T.top - 32);
-    // grime crept up the glass from the foot
-    lay(ctx, noiseMask(6, 660 + x, { cover: 0.5, soft: 0.3, col: '#0a140c' }), { x: x - T.rx, y: T.bottom - 70, w: T.rx * 2, h: 70 }, 0.6);
-  });
-  ink(ctx, glass, 2.6, INK, 0.6);
-  // the iron cage the glass stands in: four flat straps up it, riveted to the bands
-  for (const f of [-0.98, -0.42, 0.42, 0.98]) {
-    const sx = x + f * T.rx;
-    const strap = rectPath(sx - 5, T.top, 10, T.bottom - T.top);
-    castShadow(ctx, strap, 6, 5, 0.45, '#02040a');
-    solid(ctx, strap, { x: sx - 5, y: T.top, w: 10, h: T.bottom - T.top }, IRON, mix('#4a525e', RUST, 0.2), { line: 1.6, formSize: 3 });
-    ctx.fillStyle = rgba(MOONLIT, 0.28);
-    ctx.fillRect(sx - 4, T.top, 1.4, T.bottom - T.top);
+  const dir = dirOf(x);
+  const { rx, shoulder, crown, plinth } = T;
+  const P = T.port;
+  // the pipe from the vat's outer side into the wall, with a valve wheel on it
+  const px0 = x - dir * (rx - 4);
+  const px1 = x - dir * (rx + 44);
+  pipe(ctx, [[px0, 520], [px1, 520], [px1, 470]], 12, '#3a404c', [1]);
+  const vx = px1;
+  const vy = 486;
+  // the body, with the porthole cut out of it
+  const body = vatBody(x);
+  ctx.save();
+  body(ctx);
+  ctx.arc(x, P.y, P.r, 0, P2, true);
+  ctx.clip('evenodd');
+  solid(ctx, body, { x: x - rx - 8, y: crown, w: rx * 2 + 16, h: plinth - crown }, IRON, '#30353d', { line: false, formSize: 40 });
+  // plate seams: across at the shoulder and twice below, up between the plates; rivets along them
+  ctx.strokeStyle = 'rgba(4,6,10,0.7)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (const sy of [shoulder, 540, 630]) {
+    ctx.moveTo(x - rx - 10, sy);
+    ctx.lineTo(x + rx + 10, sy);
   }
-  // the steel bands
-  for (const by of [T.top + 4, T.top + 104, T.bottom - 40]) {
-    const bandP = rrPath(x - T.rx - 6, by, T.rx * 2 + 12, 16, 3);
-    solid(ctx, bandP, { x: x - T.rx - 6, y: by, w: T.rx * 2 + 12, h: 16 }, IRON, '#6a7280', { line: 1.8, formSize: 4 });
-    ctx.fillStyle = rgba(MOONLIT, 0.35);
-    ctx.fillRect(x - T.rx - 4, by + 1, T.rx * 2 + 8, 1.4);
-    for (let k = 0; k < 6; k++) {
-      const rx = x - T.rx + 4 + (k * (T.rx * 2 - 8)) / 5;
+  for (const sx of [-0.62, 0.62]) {
+    ctx.moveTo(x + sx * rx, shoulder);
+    ctx.lineTo(x + sx * rx, plinth);
+  }
+  ctx.stroke();
+  ctx.fillStyle = rgba(MOONLIT, 0.16);
+  for (const sy of [shoulder, 540, 630]) ctx.fillRect(x - rx - 10, sy + 1.5, rx * 2 + 20, 1.2);
+  for (const sy of [shoulder + 7, 540 + 7, 630 + 7])
+    for (let k = -8; k <= 8; k++) {
+      const rxp = x + (k / 8.4) * rx;
       ctx.fillStyle = '#0a0c12';
       ctx.beginPath();
-      ctx.arc(rx + 0.6, by + 9, 2.4, 0, P2);
+      ctx.arc(rxp + 0.6, sy + 0.8, 2.2, 0, P2);
       ctx.fill();
-      ctx.fillStyle = '#a8b0bc';
+      ctx.fillStyle = '#7a828e';
       ctx.beginPath();
-      ctx.arc(rx, by + 8, 1.8, 0, P2);
+      ctx.arc(rxp, sy, 1.6, 0, P2);
       ctx.fill();
     }
+  // rust bled down from the seams, grime up from the foot, the cold light on its lit flank
+  for (let k = 0; k < 9; k++) {
+    const sx = x - rx + 14 + k * ((rx * 2 - 28) / 8);
+    const sy = [shoulder, 540, 630][k % 3] + 8;
+    const g = ctx.createLinearGradient(0, sy, 0, sy + 40);
+    g.addColorStop(0, rgba(RUST, 0.45));
+    g.addColorStop(1, rgba(RUST, 0));
+    ctx.fillStyle = g;
+    ctx.fillRect(sx - 3, sy, 6 + (k % 2) * 3, 40);
   }
-  // the pressure dial on the middle band's bracket
+  lay(ctx, noiseMask(8, 670 + x, { cover: 0.45, soft: 0.3, col: '#0a0c08' }), { x: x - rx - 10, y: plinth - 80, w: rx * 2 + 20, h: 80 }, 0.6);
+  ctx.fillStyle = rgba(MOONLIT, 0.16);
+  ctx.fillRect(x - rx * 0.7, shoulder + 4, 6, plinth - shoulder - 10);
+  dots(ctx, { x: x - rx - 10, y: crown, w: rx * 2 + 20, h: plinth - crown }, linTone(x - rx * 0.3, 0, x + rx, 0, 0.05, 0.75), '#02040a', { step: 4.5, angle: 0.79, a: 0.55 });
+  ctx.restore();
+  ink(ctx, body, 2.8, INK, 0.6);
+  // the lid's manway: a riveted hatch on top, the tube unions either side
+  const mw = ellPath(x, crown + 18, 26, 8);
+  solid(ctx, mw, { x: x - 26, y: crown + 10, w: 52, h: 16 }, IRON, '#4a515c', { line: 1.8, formSize: 5 });
+  for (const [ux, uy] of SEAMS(x)) {
+    const un = rrPath(ux - 10, uy - 6, 20, 16, 3);
+    solid(ctx, un, { x: ux - 10, y: uy - 6, w: 20, h: 16 }, IRON, '#5a626e', { line: 1.6, formSize: 4 });
+  }
+  // the porthole: a bolted bezel round thick, dirty glass
+  const bez = ellPath(x, P.y, P.r + 12, P.r + 12);
+  ctx.save();
+  bez(ctx);
+  ctx.arc(x, P.y, P.r, 0, P2, true);
+  ctx.clip('evenodd');
+  solid(ctx, bez, { x: x - P.r - 12, y: P.y - P.r - 12, w: (P.r + 12) * 2, h: (P.r + 12) * 2 }, 'chrome', '#7a7458', { line: false, formSize: 10 });
+  ctx.restore();
+  ink(ctx, bez, 2.2, INK, 0.5);
+  ink(ctx, ellPath(x, P.y, P.r, P.r), 2, INK, 0);
+  for (let k = 0; k < 8; k++) {
+    const a = (k / 8) * P2 + 0.2;
+    const bx = x + Math.cos(a) * (P.r + 6);
+    const by = P.y + Math.sin(a) * (P.r + 6);
+    ctx.fillStyle = '#0a0c12';
+    ctx.beginPath();
+    ctx.arc(bx + 0.6, by + 0.8, 2.6, 0, P2);
+    ctx.fill();
+    ctx.fillStyle = '#b8b098';
+    ctx.beginPath();
+    ctx.arc(bx, by, 2, 0, P2);
+    ctx.fill();
+  }
+  within(ctx, ellPath(x, P.y, P.r, P.r), () => {
+    // the glass: grimy at its rim, a dull reflection across it
+    const g = ctx.createRadialGradient(x, P.y, P.r * 0.5, x, P.y, P.r);
+    g.addColorStop(0, 'rgba(10,14,6,0)');
+    g.addColorStop(1, 'rgba(10,14,6,0.6)');
+    ctx.fillStyle = g;
+    ctx.fillRect(x - P.r, P.y - P.r, P.r * 2, P.r * 2);
+    ctx.strokeStyle = 'rgba(220,230,240,0.28)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(x, P.y, P.r * 0.72, Math.PI * 1.1, Math.PI * 1.45);
+    ctx.stroke();
+  });
+  // the gauge on the shoulder
   const d = DIAL(x);
   castShadow(ctx, ellPath(d.x, d.y, d.r + 4, d.r + 4), 6, 6, 0.5, '#02040a');
   const bezel = ellPath(d.x, d.y, d.r + 4, d.r + 4);
-  solid(ctx, bezel, { x: d.x - d.r - 4, y: d.y - d.r - 4, w: d.r * 2 + 8, h: d.r * 2 + 8 }, 'chrome', '#9aa2ae', { line: 2, formSize: 6 });
-  ctx.fillStyle = '#e8e4d4';
+  solid(ctx, bezel, { x: d.x - d.r - 4, y: d.y - d.r - 4, w: d.r * 2 + 8, h: d.r * 2 + 8 }, 'chrome', '#8a8e96', { line: 2, formSize: 6 });
+  ctx.fillStyle = '#c8c2ae';
   ctx.beginPath();
   ctx.arc(d.x, d.y, d.r, 0, P2);
   ctx.fill();
-  // its scale: ticks round, the red zone at the top of the sweep
-  ctx.strokeStyle = '#c8202a';
-  ctx.lineWidth = 4;
+  ctx.strokeStyle = '#9a2026';
+  ctx.lineWidth = 3.4;
   ctx.beginPath();
   ctx.arc(d.x, d.y, d.r - 4, -0.2, 0.75);
   ctx.stroke();
@@ -1265,68 +1276,44 @@ function tankFront(ctx: Ctx, x: number): void {
   for (let k = 0; k <= 8; k++) {
     const a = Math.PI * 0.75 + (k / 8) * Math.PI * 1.5;
     ctx.moveTo(d.x + Math.cos(a) * (d.r - 2), d.y + Math.sin(a) * (d.r - 2));
-    ctx.lineTo(d.x + Math.cos(a) * (d.r - 7), d.y + Math.sin(a) * (d.r - 7));
+    ctx.lineTo(d.x + Math.cos(a) * (d.r - 6), d.y + Math.sin(a) * (d.r - 6));
   }
   ctx.stroke();
-  ctx.fillStyle = 'rgba(255,255,255,0.35)';
-  ctx.beginPath();
-  ctx.ellipse(d.x - 6, d.y - 7, 9, 4, -0.5, 0, P2);
-  ctx.fill();
-  // the cap: a domed lid on a flange, the tube unions, a gland
-  const fl = rrPath(x - T.rx - 14, T.top - 16, T.rx * 2 + 28, 20, 5);
-  solid(ctx, fl, { x: x - T.rx - 14, y: T.top - 16, w: T.rx * 2 + 28, h: 20 }, IRON, '#606876', { line: 2.2, formSize: 5 });
-  const dome: PathFn = (c) => {
-    c.beginPath();
-    c.moveTo(x - T.rx - 6, T.top - 15);
-    c.bezierCurveTo(x - T.rx + 4, T.cap - 8, x + T.rx - 4, T.cap - 8, x + T.rx + 6, T.top - 15);
-    c.closePath();
-  };
-  solid(ctx, dome, { x: x - T.rx - 6, y: T.cap - 10, w: T.rx * 2 + 12, h: T.top - T.cap }, IRON, '#4e5664', { line: 2.2, formSize: 12 });
-  within(ctx, dome, () => dots(ctx, { x: x - T.rx - 6, y: T.cap - 10, w: T.rx * 2 + 12, h: T.top - T.cap }, linTone(x - 20, T.cap, x + T.rx, T.top, 0, 0.8), '#02040a', { step: 4, angle: 0.79, a: 0.5 }));
-  for (const dx of [-24, 24]) {
-    const un = rrPath(x + dx - 9, T.cap - 2, 18, 16, 3);
-    solid(ctx, un, { x: x + dx - 9, y: T.cap - 2, w: 18, h: 16 }, 'chrome', '#8a929e', { line: 1.6, formSize: 4 });
-  }
-  // a valve wheel on the side of the cap
-  const vx = x + (x < 960 ? -1 : 1) * (T.rx + 24);
-  const vy = T.top - 26;
-  pipe(ctx, [[x + (x < 960 ? -1 : 1) * (T.rx - 4), T.top - 8], [vx, T.top - 8], [vx, vy]], 7, '#4a505c');
+  // the valve wheel on the wall pipe
   ctx.strokeStyle = INK;
   ctx.lineWidth = 6;
   ctx.beginPath();
-  ctx.ellipse(vx, vy, 13, 13, 0, 0, P2);
+  ctx.ellipse(vx, vy, 14, 14, 0, 0, P2);
   ctx.stroke();
-  ctx.strokeStyle = '#a02a22';
+  ctx.strokeStyle = '#7a2a22';
   ctx.lineWidth = 3.4;
   ctx.stroke();
   ctx.lineWidth = 2.4;
   ctx.beginPath();
   for (let k = 0; k < 3; k++) {
     const a = (k / 3) * Math.PI;
-    ctx.moveTo(vx - Math.cos(a) * 12, vy - Math.sin(a) * 12);
-    ctx.lineTo(vx + Math.cos(a) * 12, vy + Math.sin(a) * 12);
+    ctx.moveTo(vx - Math.cos(a) * 13, vy - Math.sin(a) * 13);
+    ctx.lineTo(vx + Math.cos(a) * 13, vy + Math.sin(a) * 13);
   }
   ctx.stroke();
 }
 
-/** The green light the Venom throws (k = how strong; the live layer flares and gutters its own copy): on the wall
- * behind each tank, up its tubes, on the floor round it and the undersides of the iron nearby. */
-const VGLOW_BOX = (x: number): Box => ({ x: Math.max(0, x - 420), y: 0, w: Math.min(W, x + 420) - Math.max(0, x - 420), h: TY + 60 });
+/** The Venom's light (k = how strong; the live layer flares and gutters its own copy): only a dim olive glow round
+ * the porthole, a little at the lid's seams and a faint pool on the floor in front; the tubes barely lit. */
+const VGLOW_BOX = (x: number): Box => ({ x: x - 200, y: 0, w: 400, h: TY + 40 });
 function venomLight(ctx: Ctx, x: number, k: number): void {
-  lightPool(ctx, x, 540, 300, 280, VENOM, 0.13 * k);
-  lightPool(ctx, x, 520, 150, 180, VENOM_HOT, 0.06 * k);
-  lightPool(ctx, x, T.foot + 4, 260, 34, VENOM, 0.22 * k);
+  lightPool(ctx, x, T.port.y, 90, 90, SLUDGE, 0.16 * k);
+  lightPool(ctx, x, T.port.y, 46, 46, '#c8d880', 0.08 * k);
+  for (const [sx, sy] of SEAMS(x)) lightPool(ctx, sx, sy, 34, 22, SLUDGE, 0.14 * k);
+  lightPool(ctx, x, T.foot + 6, 150, 18, SLUDGE, 0.08 * k);
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   for (const t of TUBES.filter((q) => Math.abs(q[0][0] - x) < 200)) {
-    ctx.strokeStyle = rgba(VENOM, 0.12 * k);
-    ctx.lineWidth = 26;
+    ctx.strokeStyle = rgba(SLUDGE, 0.05 * k);
+    ctx.lineWidth = 16;
     tubePath(ctx, t);
-    ctx.stroke();
-    ctx.strokeStyle = rgba(VENOM, 0.14 * k);
-    ctx.lineWidth = 9;
     ctx.stroke();
   }
   ctx.restore();
@@ -1334,7 +1321,7 @@ function venomLight(ctx: Ctx, x: number, k: number): void {
 
 /** The live glow is painted this much stronger than the still's, so the live layer can flare it (alpha 1) and
  * gutter it (low alpha); at alpha 1 / VGLOW_K it matches the still. */
-const VGLOW_K = 1.7;
+const VGLOW_K = 1.8;
 
 /** The mouth lit by lightning (live only): the cloud's underside blazing, the grille black against it. */
 function skyLit(ctx: Ctx): void {
@@ -1947,13 +1934,13 @@ function table(ctx: Ctx, r: R): void {
       ellPath(px, py, rx * 0.92, ry * 0.92)(ctx);
       ctx.clip();
       ctx.globalCompositeOperation = 'lighter';
-      const col = tank !== undefined ? VENOM : SODIUM;
+      const col = tank !== undefined ? SLUDGE : SODIUM;
       const cx = tank ?? lampAbove!.x;
-      const hw = tank !== undefined ? T.rx * 0.9 : 10;
+      const hw = tank !== undefined ? T.port.r * 0.8 : 10;
       for (let k = 0; k < 7; k++) {
         const yy = py - ry + k * ((ry * 2) / 7);
         const wob = (r() - 0.5) * 8;
-        ctx.fillStyle = rgba(col, (tank !== undefined ? 0.14 : 0.2) * (1 - k / 9));
+        ctx.fillStyle = rgba(col, (tank !== undefined ? 0.08 : 0.2) * (1 - k / 9));
         ctx.fillRect(cx - hw + wob, yy, hw * 2, ry * 0.18);
       }
       ctx.restore();
@@ -1995,8 +1982,8 @@ function table(ctx: Ctx, r: R): void {
   }
   // the moon's pool reaching the back of the slab at the right, the Venom's green at the sides
   lightPool(ctx, 1320, TY + 20, 300, 30, MOONLIT, 0.05);
-  lightPool(ctx, PT.tanks[0], TY + 26, 260, 40, VENOM, 0.05);
-  lightPool(ctx, PT.tanks[1], TY + 26, 260, 40, VENOM, 0.05);
+  lightPool(ctx, PT.tanks[0], TY + 26, 200, 30, SLUDGE, 0.025);
+  lightPool(ctx, PT.tanks[1], TY + 26, 200, 30, SLUDGE, 0.025);
   dots(ctx, { x: 0, y: TY, w: W, h: zf - TY }, (x, y) => 0.25 * smooth(zf - 200, zf, y) + 0.15 * (1 - smooth(TY, TY + 60, y)) + (0.12 * Math.abs(x - 960)) / 960, '#02040c', { step: 8, angle: 0.79, a: 0.3, floor: 0.06 });
   ctx.restore();
   tableFalloff(ctx, zf, 0.45, '#02040a');
@@ -2287,20 +2274,23 @@ registerKitScene(BUNION, (k) => {
     venomFrame(c, ph, 51);
   });
   const liquids = PT.tanks.map((x, i) => {
-    const l = new Loop(k, venKey, 12, x - T.rx, T.top, { into: k.slot(i ? 'liquidR' : 'liquidL'), origin: [0, 0], scale: 1 / VR, fps: 7, phase: i * 5 });
+    const b = LIQ_BOX(x);
+    const l = new Loop(k, venKey, 12, b.x, b.y, { into: k.slot(i ? 'liquidR' : 'liquidL'), origin: [0, 0], scale: 1 / VR, fps: 5, phase: i * 5 });
     if (i) l.each((im) => im.setFlipX(true));
     return l;
   });
   const glows = [k.sprite('venomL'), k.sprite('venomR')].map((s) => s.setBlendMode(B.ADD));
-  const cores = PT.tanks.map((x) => k.glow(x, (T.top + T.bottom) / 2, 150, 0x9aff7a, 0, { into: fx, sy: 1.9 }));
-  const bubbles = new Parts(k, { frame: 'bubble', into: fx, add: true, max: 120 });
+  // the flare: out of the porthole and the lid's seams, never the whole vat
+  const cores = PT.tanks.map((x) => k.glow(x, T.port.y, 70, 0xb8d060, 0, { into: fx }));
+  const seamGlows = PT.tanks.flatMap((x) => SEAMS(x).map(([sx, sy]) => k.glow(sx, sy, 26, 0xb8d060, 0, { into: fx, sy: 0.7 })));
+  const bubbles = new Parts(k, { frame: 'bubble', into: fx, max: 60 });
   const bubRate = PT.tanks.map(() => new Rate());
   const tubes = TUBES.map(sampleTube);
   type Pulse = { tb: number; d: number; v: number; imgs: Phaser.GameObjects.Image[]; a: number };
   const pulses: Pulse[] = [];
   const pulseFree: Phaser.GameObjects.Image[][] = [];
   const pulse = (tb: number, a = 1) => {
-    const imgs = pulseFree.pop() ?? [0, 1, 2].map((j) => k.glow(0, 0, 22 - j * 5, j ? 0x7dff6a : 0xd8ffb0, 0, { into: fx }));
+    const imgs = pulseFree.pop() ?? [0, 1, 2].map((j) => k.glow(0, 0, 18 - j * 4, j ? 0x8aa83a : 0xb8c870, 0, { into: fx }));
     pulses.push({ tb, d: 0, v: 260 + crand() * 120, imgs, a });
   };
   const pulseRate = TUBES.map(() => new Rate());
@@ -2344,7 +2334,7 @@ registerKitScene(BUNION, (k) => {
   const rainLit = new Parts(k, { frame: 'drop', into: fx, add: true, max: 90 });
   const rainRate = new Rate();
   const drops = new Parts(k, { frame: 'drop', into: fx, max: 80 });
-  const greenDrops = new Parts(k, { frame: 'drop', into: fx, add: true, max: 30 });
+  const greenDrops = new Parts(k, { frame: 'drop', into: fx, max: 30 });
   const dripRate = new Rate();
   const splashKey = sheet(k, 'bu_splash', SPLASH.w, SPLASH.h, SPLASH.n, (c, _p, i) => splashFrame(c, i));
   type Spl = { img: Phaser.GameObjects.Image; t: number; dur: number };
@@ -2377,7 +2367,7 @@ registerKitScene(BUNION, (k) => {
       if (pt[0] > 20 && pt[0] < W - 20) wetDrips.push(pt);
     }
   wetDrips.push(at(0.1, 0.16, 0.99), at(0.1, 0.41, 0.99), at(0.1, 0.66, 0.99), DOWNPIPE[3], DOWNPIPE[6]);
-  const venomDrips: Pt[] = PT.tanks.map((x) => [x + (x < 960 ? 24 : -24), T.cap + 14]);
+  const venomDrips: Pt[] = PT.tanks.map((x) => SEAMS(x)[x < 960 ? 1 : 0]).map(([x, y]) => [x + 8, y + 8] as Pt);
 
   // ——— grit and dust off the walls at a stomp ———
   const grit = new Parts(k, { frame: 'mote', into: fx, max: 120 });
@@ -2403,11 +2393,13 @@ registerKitScene(BUNION, (k) => {
   let boltT = -1;
   let boltP: number[] = [];
 
+  /** A bubble rising behind the porthole's glass to the sludge's surface. */
   function spawnBubble(x: number, burst = false): void {
-    const y0 = T.bottom - 30 - crand() * 40;
-    const vy = -(70 + crand() * 90) * (burst ? 1.8 : 1);
-    const life = (y0 - (T.top + 28)) / -vy;
-    bubbles.spawn({ x: x + (crand() - 0.5) * T.rx * 1.5, y: y0, vx: (crand() - 0.5) * 10, vy, life, r0: 1.6 + crand() * 1.8, r1: 3 + crand() * 3.5, a: 0.75, tint: 0xd0ffb8, fade: 0.08 });
+    const P = T.port;
+    const y0 = P.y + P.r * (0.5 + crand() * 0.3);
+    const vy = -(30 + crand() * 30) * (burst ? 1.8 : 1);
+    const life = (y0 - (P.y - P.r * 0.45)) / -vy;
+    bubbles.spawn({ x: x + (crand() - 0.5) * P.r * 1.1, y: y0, vx: (crand() - 0.5) * 6, vy, life, r0: 1.4 + crand() * 1.2, r1: 2.4 + crand() * 2, a: 0.45, tint: 0xc0d080, fade: 0.1 });
   }
 
   // ——— the fight, heard (src/game/bosses/gotham.ts, the bunion brain) ———
@@ -2426,7 +2418,7 @@ registerKitScene(BUNION, (k) => {
       k.sc.time.delayedCall(140 + crand() * 120, () => pulse(i, 0.8));
     });
     kickNeedles(4);
-    for (const x of PT.tanks) for (let j = 0; j < 14; j++) spawnBubble(x, true);
+    for (const x of PT.tanks) for (let j = 0; j < 6; j++) spawnBubble(x, true);
   };
   const onSurge = () => {
     level = 1;
@@ -2494,7 +2486,7 @@ registerKitScene(BUNION, (k) => {
         }
       }
       // the Venom slops and a burst of bubbles
-      for (const tx of PT.tanks) for (let j = 0; j < 4 + p * 8; j++) spawnBubble(tx, true);
+      for (const tx of PT.tanks) for (let j = 0; j < 2 + p * 3; j++) spawnBubble(tx, true);
       kickNeedles(1.5 * p);
       if (!inFight && p >= 0.95) onPump();
     },
@@ -2518,16 +2510,17 @@ registerKitScene(BUNION, (k) => {
       const breathe = 0.92 + 0.08 * Math.sin(t * 1.4) + 0.03 * wander(t, 2, 2);
       const I = Phaser.Math.Clamp((0.34 + 0.4 * shownLevel) * breathe * (1 + 0.8 * flare + strobe) * gut, 0, 1);
       glows.forEach((g, i) => g.setAlpha(Phaser.Math.Clamp(I * (1 + 0.04 * Math.sin(t * 3 + i * 2)), 0, 1)));
-      cores.forEach((c) => c.setAlpha(0.05 + 0.25 * flare + strobe * 0.4));
+      cores.forEach((c) => c.setAlpha(0.04 + 0.3 * flare + strobe * 0.4));
+      seamGlows.forEach((c, i) => c.setAlpha((0.25 * flare + strobe * 0.5) * (0.8 + 0.2 * Math.sin(t * 19 + i * 2))));
       // ——— the boiling: faster with the level, hard after a pump, roaring in a surge, sluggish when guttered
       const sp = (0.6 + 0.6 * shownLevel + 2.2 * boil) * (1 - 0.6 * gutter) * cm;
-      const lum = Math.round(150 + 105 * Math.min(1, I * 1.3));
+      const lum = Math.round(170 + 85 * Math.min(1, I * 1.3));
       liquids.forEach((l) => {
         l.step(dt, sp);
         l.alpha = 0.75 + 0.25 * Phaser.Math.Clamp(I * 1.4, 0, 1);
         l.each((im) => im.setTint(Phaser.Display.Color.GetColor(lum, 255, lum)));
       });
-      PT.tanks.forEach((x, i) => bubRate[i].tick((2 + 6 * shownLevel + 30 * boil) * (1 - 0.8 * gutter) * cm, dt, () => spawnBubble(x)));
+      PT.tanks.forEach((x, i) => bubRate[i].tick((0.6 + 2 * shownLevel + 10 * boil) * (1 - 0.8 * gutter) * cm, dt, () => spawnBubble(x)));
       // ——— the tubes: pulses up them, more often the fuller he is
       TUBES.forEach((_, i) => pulseRate[i].tick((0.08 + 0.35 * shownLevel + 2.5 * (surgeT > 0 ? 1 : 0)) * (1 - gutter) * cm, dt, () => pulse(i, 0.6)));
       for (let i = pulses.length - 1; i >= 0; i--) {
@@ -2544,7 +2537,7 @@ registerKitScene(BUNION, (k) => {
         const fade = Math.min(1, q.d / 40) * (1 - smooth(L * 0.6, L, q.d));
         q.imgs.forEach((im, j) => {
           const [x, y] = alongTube(tb, Math.max(0, q.d - j * 14));
-          im.setPosition(x, y).setAlpha(fade * q.a * (j ? 0.5 : 0.85));
+          im.setPosition(x, y).setAlpha(fade * q.a * (j ? 0.22 : 0.4));
         });
       }
       // ——— the dials
@@ -2602,7 +2595,7 @@ registerKitScene(BUNION, (k) => {
       dripRate.tick(3 * cm, dt, () => {
         if (crand() < 0.2) {
           const [x, y] = venomDrips[Math.floor(crand() * venomDrips.length)];
-          greenDrops.spawn({ x, y, vx: 0, vy: 0, life: 2, r0: 2, a: 0.85, tint: 0x9aff7a, grav: 900, streak: 0.012, floor: T.foot - 4, onFloor: (sx, sy) => splash(sx, sy, 0.8, 0xa8ff90) });
+          greenDrops.spawn({ x, y, vx: 0, vy: 0, life: 2, r0: 2, a: 0.6, tint: 0x8aa83a, grav: 900, streak: 0.012, floor: T.plinth - 2, onFloor: (sx, sy) => splash(sx, sy, 0.6, 0x9ab860) });
           return;
         }
         const [x, y] = wetDrips[Math.floor(crand() * wetDrips.length)];
