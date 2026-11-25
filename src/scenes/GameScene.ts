@@ -78,6 +78,9 @@ interface DamageOpts {
   auto?: boolean;
   /** Where the STATS tab's tally files it (a topping proc, a pizza perk, the drone…): the source when unset. */
   tag?: string;
+  /** It fired by itself (a timed or on-hit peel ability, a hero's passive), not as the player's own move: it glances
+   * off a held guard shield like automatic damage, without the heat's automatic scaling. */
+  passive?: boolean;
 }
 
 /** Damage sources that are always automatic: they hit without a smack (orbiting cutters, thrown toppings, the
@@ -1097,7 +1100,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       planSize: () => this.planSize,
       damage: (f, x, o) => this.dealDamage(f, x * this.run.stats.damage, { source: o?.chain ? 'chain' : 'ability', knock: o?.knock ?? 80, quiet: o?.quiet, auto: true, tag: o?.tag ?? 'kit' }),
       hitFoot: (f, x, y) => this.hitFoot(f, x, y),
-      effects: (fx, ctx, color, vfx, tag) => this.runEffects(fx, ctx, color, vfx, false, tag ?? 'kit'),
+      effects: (fx, ctx, color, vfx, tag) => this.runEffects(fx, ctx, color, vfx, false, tag ?? 'kit', true),
       tips: (n, x, y) => this.giveTips(Math.round(n * this.run.heatDef.tips), x, y),
       heal: (p, n) => this.healPizza(p, n),
       charge: (frac) => this.chargeMeter(frac),
@@ -3515,7 +3518,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     // leftover through to the foot.
     if (!smack && this.guardBlocks(f)) {
       // (a chain's jump counts as automatic: chains also stop at a held shield, see chain() and the 'chain' effect)
-      if (auto || o.source === 'chain') return this.glance(f, o.x, o.y, o.quiet);
+      if (auto || o.passive || o.source === 'chain') return this.glance(f, o.x, o.y, o.quiet);
       const was = f.guardHp;
       // (a passive or topping proc that goes through the ability path is automatic: it's soaked like the rest)
       if (o.source === 'slam' || o.source === 'ability') {
@@ -4220,7 +4223,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       location: () => this.currentLocation,
       backdrop: () => this.currentBackdrop,
       inWave: () => this.waveActive && !this.over && !this.inUpgrade,
-      hurt: (f, x, o) => this.dealDamage(f, x * this.run.stats.damage, { source: o?.source ?? 'ability', knock: o?.knock ?? 120, x: f.cx, y: f.cy, quiet: o?.quiet }),
+      hurt: (f, x, o) => this.dealDamage(f, x * this.run.stats.damage, { source: o?.source ?? 'ability', knock: o?.knock ?? 120, x: f.cx, y: f.cy, quiet: o?.quiet, passive: this.heroes.passiveNow }),
       kill: (f) => {
         f.wool = 0;
         this.killFoot(f, 'ability');
@@ -4239,18 +4242,18 @@ export class GameScene extends Phaser.Scene implements Arena {
         this.fx.healBurst(p.x, p.surfaceY);
         this.recompute();
       },
-      throwAt: (e, feet, color, onHit) =>
-        this.throws.launch(
-          e,
-          feet,
-          color,
+      // (a throw a passive launched still counts as the passive's when it lands: Mjölnir's boomerang)
+      throwAt: (e, feet, color, onHit) => {
+        const passive = this.heroes.passiveNow;
+        const hit =
           onHit ??
-            ((f, x) => {
-              if (x > 0) this.dealDamage(f, x * this.run.stats.damage, { source: 'ability', knock: e.knock ?? 120, x: f.cx, y: f.cy });
-              for (const r of e.on ?? []) this.applyAbilityEffect(r, { foot: f, x: f.cx, y: f.cy }, color, 'burst');
-            }),
-        ),
-      runFx: (fx, ctx, color) => this.runEffects(fx, ctx, color, 'burst'),
+          ((f: Foot, x: number) => {
+            if (x > 0) this.dealDamage(f, x * this.run.stats.damage, { source: 'ability', knock: e.knock ?? 120, x: f.cx, y: f.cy, passive });
+            for (const r of e.on ?? []) this.applyAbilityEffect(r, { foot: f, x: f.cx, y: f.cy }, color, 'burst', undefined, false, undefined, passive);
+          });
+        this.throws.launch(e, feet, color, (f, x) => this.heroes.asPassive(passive, () => hit(f, x)));
+      },
+      runFx: (fx, ctx, color) => this.runEffects(fx, ctx, color, 'burst', false, undefined, this.heroes.passiveNow),
       meter: () => this.run.super,
       setMeter: (v) => (this.run.super = v),
       combo: () => this.run.combo,
@@ -4439,7 +4442,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     } else if (a.trigger.t === 'every' || a.trigger.t === 'wave') {
       this.fx.quip(ctx.x ?? this.peelPos.x, (ctx.y ?? this.peelPos.y) - 90, a.name, '#' + color.toString(16).padStart(6, '0'), 30, 0);
     }
-    this.runEffects(a.fx, ctx, color, a.vfx, true);
+    // (an ability that fires itself on a timer or a hit is passive: it glances off held shields like a topping)
+    this.runEffects(a.fx, ctx, color, a.vfx, true, undefined, !usesMeter(a));
     // Freeze Frame and Cajun Shrimp work on a meter ability the way they do on the Peel Slam
     if (big && (st.freezeSlam || st.slamStun)) {
       for (const f of this.feet) {
@@ -4460,7 +4464,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       const t = pr.p.trigger;
       if (t.t !== kind) continue;
       if ((t.t === 'smack' || t.t === 'kill') && Math.random() >= t.p) continue;
-      this.runEffects(pr.p.fx, ctx, pr.p.color, pr.p.vfx, false, procTag(pr.id));
+      this.runEffects(pr.p.fx, ctx, pr.p.color, pr.p.vfx, false, procTag(pr.id), true);
     }
   }
 
@@ -4472,18 +4476,20 @@ export class GameScene extends Phaser.Scene implements Arena {
       pr.t += dt;
       if (pr.t < pr.p.trigger.sec || !any) continue;
       pr.t = 0;
-      this.runEffects(pr.p.fx, { x: this.peelPos.x, y: this.peelPos.y }, pr.p.color, pr.p.vfx, false, procTag(pr.id));
+      this.runEffects(pr.p.fx, { x: this.peelPos.x, y: this.peelPos.y }, pr.p.color, pr.p.vfx, false, procTag(pr.id), true);
     }
   }
 
   /** Run a list of effects; effects that share a target hit the same feet ("…then burn them"). */
   /** tag: where the STATS tab files the damage (a topping proc's own key; the peel's ability when unset). */
-  private runEffects(fx: Effect[], ctx: { foot?: Foot; x?: number; y?: number }, color: number, vfx: Ability['vfx'], fromAbility = false, tag?: string): void {
+  /** passive: it fired by itself (a timed or on-hit ability, a topping proc, a hero's passive), so its hits glance off
+   * held guard shields. */
+  private runEffects(fx: Effect[], ctx: { foot?: Foot; x?: number; y?: number }, color: number, vfx: Ability['vfx'], fromAbility = false, tag?: string, passive = false): void {
     const cache = new Map<string, Foot[]>();
-    for (const e of fx) this.applyAbilityEffect(e, ctx, color, vfx, cache, fromAbility, tag);
+    for (const e of fx) this.applyAbilityEffect(e, ctx, color, vfx, cache, fromAbility, tag, passive);
   }
 
-  private applyAbilityEffect(e: Effect, ctx: { foot?: Foot; x?: number; y?: number }, color: number, vfx: Ability['vfx'], cache?: Map<string, Foot[]>, fromAbility = false, tag?: string): void {
+  private applyAbilityEffect(e: Effect, ctx: { foot?: Foot; x?: number; y?: number }, color: number, vfx: Ability['vfx'], cache?: Map<string, Foot[]>, fromAbility = false, tag?: string, passive = false): void {
     const st = this.run.stats;
     const targets = (t: Target): Foot[] => {
       const k = JSON.stringify(t);
@@ -4507,7 +4513,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       case 'dmg':
         for (const f of targets(e.at)) {
           mark(f);
-          this.dealDamage(f, e.x * st.damage, { source: 'ability', knock: e.knock ?? 120, x: f.cx, y: f.cy, auto: !fromAbility, tag });
+          this.dealDamage(f, e.x * st.damage, { source: 'ability', knock: e.knock ?? 120, x: f.cx, y: f.cy, auto: !fromAbility, tag, passive });
           // a passive ability's hits pick up Freeze Frame (chill) and Cajun Shrimp (sometimes stun)
           if (fromAbility && f.alive && this.ability && !usesMeter(this.ability)) {
             if (st.freezeSlam) {
@@ -4609,8 +4615,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       case 'throw':
         // Head Chef: one more prop with every throw
         this.throws.launch(e, this.kit.extraThrow(targets(e.at)), color, (f, x) => {
-          if (x > 0) this.dealDamage(f, x * st.damage, { source: 'ability', knock: e.knock ?? 120, x: f.cx, y: f.cy, tag });
-          for (const r of e.on ?? []) this.applyAbilityEffect(r, { foot: f, x: f.cx, y: f.cy }, color, vfx, undefined, fromAbility, tag);
+          if (x > 0) this.dealDamage(f, x * st.damage, { source: 'ability', knock: e.knock ?? 120, x: f.cx, y: f.cy, tag, passive });
+          for (const r of e.on ?? []) this.applyAbilityEffect(r, { foot: f, x: f.cx, y: f.cy }, color, vfx, undefined, fromAbility, tag, passive);
         });
         break;
       case 'stat':

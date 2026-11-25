@@ -2012,6 +2012,8 @@ registerPassives({
 export class HeroDirector {
   readonly k: HeroKit;
   private passive: Passive | null = null;
+  /** True while the passive (or a per-smack hook) is running: its hits glance off held guard shields (GameScene). */
+  passiveNow = false;
 
   constructor(host: HeroHost) {
     this.k = new HeroKit(host);
@@ -2031,14 +2033,25 @@ export class HeroDirector {
     m(this.k, ctx);
   }
 
+  /** Run fn with passiveNow set when `on` (restored after). */
+  asPassive<T>(on: boolean, fn: () => T): T {
+    const was = this.passiveNow;
+    this.passiveNow = was || on;
+    try {
+      return fn();
+    } finally {
+      this.passiveNow = was;
+    }
+  }
+
   update(dt: number): void {
-    if (this.k.host.inWave()) this.passive?.tick?.(this.k, dt);
+    if (this.k.host.inWave()) this.asPassive(true, () => this.passive?.tick?.(this.k, dt));
     this.k.update(dt);
   }
 
   waveStart(): void {
     this.k.wv = {};
-    this.passive?.waveStart?.(this.k);
+    this.asPassive(true, () => this.passive?.waveStart?.(this.k));
   }
 
   waveClear(): void {
@@ -2054,12 +2067,15 @@ export class HeroDirector {
 
   // ——— hooks the scene calls ———
   hit(f: Foot, x: number, y: number): void {
-    this.k.onHit?.(f, x, y);
-    this.passive?.hit?.(this.k, f, x, y);
+    // (what a smack sets off, a running move's per-smack hook included, is passive, as a chain is)
+    this.asPassive(true, () => {
+      this.k.onHit?.(f, x, y);
+      this.passive?.hit?.(this.k, f, x, y);
+    });
   }
 
   kill(f: Foot): void {
-    this.passive?.kill?.(this.k, f);
+    this.asPassive(true, () => this.passive?.kill?.(this.k, f));
   }
 
   /** A foot is about to stomp: true stops it. */
