@@ -83,8 +83,7 @@ const VPX = 1040;
 const CLIFF_SKY: Pt[] = [[1352, -6], [1344, 30], [1349, 58], [1334, 84], [1337, 118], [1322, 150], [1318, 194], [1305, 214], [1301, 248], [1286, 276], [1279, 312], [1264, 342], [1255, 372], [1238, 398], [1228, 416], [1220, 428]];
 const CLIFF_FOOT: Pt[] = [[1220, 428], [1252, 446], [1300, 480], [1360, 526], [1420, 580], [1478, 634], [1526, 682], [1562, 700], [1640, 707], [1760, 711], [1930, 715]];
 const CLIFF: Pt[] = [...CLIFF_SKY, ...CLIFF_FOOT.slice(1), [1930, -6]];
-/** The shore, far to near (the sea is to its left). */
-const SHORE: Pt[] = [[724, 420], [684, 424], [644, 431], [610, 434], [566, 450], [540, 458], [504, 478], [486, 488], [458, 514], [446, 530], [427, 554], [418, 572], [404, 602], [398, 622], [389, 648], [386, 668], [380, 690], [366, 708], [352, 730], [330, 748], [316, 764]];
+const SHORE: Pt[] = [[766, 419], [722, 422], [676, 426], [634, 432], [598, 440], [570, 450], [548, 459], [526, 470], [510, 481], [492, 494], [478, 508], [462, 522], [448, 538], [436, 556], [424, 576], [412, 598], [402, 620], [394, 644], [386, 668], [380, 690], [364, 712], [346, 734], [322, 764]];
 const shoreX = (y: number) => along(SHORE, y, 1);
 const cliffX = (y: number) => along(CLIFF_FOOT, y, 1);
 /** The wall: its ends, its base, its top (irregular), the gap in it. */
@@ -103,7 +102,7 @@ export const HG = {
   springs: { x0: 1640, x1: 1920, y0: 700, y1: 762 },
   host: { x0: 600, x1: 1252, y0: 418, y1: 478 },
   /** Where the volleys come down: the strip of plain between the host and the wall. */
-  land: { x0: 560, x1: 1240, y0: 488, y1: 548 },
+  land: { x0: 560, x1: 1240, y0: 506, y1: 550 },
 };
 const WL = HG.wall;
 const GAP = HG.gap;
@@ -151,7 +150,6 @@ const HILLS = ridge(560, 1300, HZ + 2, [[760, 16, 70], [960, 22, 90], [1130, 26,
 /** The dawn air: far things go to a rosy haze. */
 const AIR: Air = { color: '#d8b4aa', far: 0.62 };
 const SUN_AT: Pt = [232, 350];
-const LIME = { lit: '#ecd2ae', body: '#b8a088', dark: '#7c6a5e', deep: '#3e3430', warm: '#ffcf9a', cool: '#6a6a96' };
 const CLOAK = { lit: '#c8463a', body: '#8e1e1e', dark: '#4a0c12' };
 const SEA = { far: '#c8a6b4', deep: '#3c5e82', near: '#244668' };
 
@@ -365,10 +363,10 @@ function sea(ctx: Ctx, r: R): void {
     waterPaint(ctx, r);
     // the shallows over the rocky shelf along the shore: paler, greener
     softly(ctx, SEA_BOX, (c) => {
-      c.strokeStyle = rgba('#7aa2a0', 0.22);
+      c.strokeStyle = rgba('#8aa8a0', 0.24);
       c.lineCap = 'round';
       c.lineJoin = 'round';
-      c.lineWidth = 22;
+      c.lineWidth = 56;
       c.beginPath();
       SHORE.forEach(([x, y], i) => (i ? c.lineTo(x - 8, y) : c.moveTo(x - 8, y)));
       c.stroke();
@@ -478,11 +476,27 @@ function roadStill(ctx: Ctx, r: R): void {
   within(ctx, polyPath(SEA_PTS), () => sunRoad(ctx, r, SUN_AT[0], '#ffd2a0', 1));
 }
 
+/** A rounded outline through points (midpoint quadratics): wave-worn stone, flowstone lobes. */
+function smoothPath(pts: Pt[]): (c: Ctx) => void {
+  return (c: Ctx) => {
+    const n = pts.length;
+    const mid = (a: Pt, b: Pt): Pt => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+    c.beginPath();
+    const m0 = mid(pts[n - 1], pts[0]);
+    c.moveTo(m0[0], m0[1]);
+    for (let i = 0; i < n; i++) {
+      const m = mid(pts[i], pts[(i + 1) % n]);
+      c.quadraticCurveTo(pts[i][0], pts[i][1], m[0], m[1]);
+    }
+    c.closePath();
+  };
+}
+
 const ROCKS_NEAR: Pt[][] = [
-  [[104, 586], [110, 570], [122, 562], [130, 552], [142, 550], [150, 543], [163, 547], [172, 556], [186, 558], [196, 568], [204, 586]],
-  [[-14, 728], [-14, 640], [4, 626], [18, 606], [34, 600], [48, 588], [66, 592], [80, 580], [96, 586], [112, 598], [128, 596], [146, 612], [160, 626], [176, 632], [192, 652], [204, 672], [212, 700], [208, 728]],
-  [[196, 740], [198, 712], [210, 690], [222, 676], [236, 670], [248, 656], [262, 660], [276, 652], [290, 664], [302, 676], [310, 694], [316, 716], [312, 740]],
-  [[318, 750], [318, 700], [326, 676], [340, 662], [352, 646], [368, 640], [382, 630], [396, 638], [410, 648], [420, 664], [428, 690], [430, 720], [420, 748]],
+  [[100, 590], [106, 572], [120, 560], [134, 548], [152, 542], [170, 548], [188, 560], [204, 576], [210, 590]],
+  [[-20, 732], [-20, 646], [-4, 622], [22, 604], [46, 598], [62, 586], [88, 580], [108, 586], [124, 600], [146, 606], [172, 624], [194, 650], [208, 686], [214, 732]],
+  [[192, 742], [196, 712], [206, 686], [222, 668], [240, 664], [258, 652], [282, 650], [300, 664], [312, 690], [318, 742]],
+  [[314, 752], [318, 704], [328, 676], [346, 654], [370, 640], [396, 636], [416, 648], [428, 676], [432, 720], [428, 752]],
 ];
 const ROCKS_FAR: Pt[][] = [
   [[470, 520], [488, 506], [512, 508], [526, 522], [520, 532], [474, 534]],
@@ -491,12 +505,12 @@ const ROCKS_FAR: Pt[][] = [
 ];
 export const ROCKS_BOX: Box = { x: 0, y: 470, w: 600, h: 296 };
 
+/** A wave-worn rock standing in the sea: rounded, lit on its crown from the top left, dark and wet below its tide
+ * line, a band of weed and barnacles at the water, foam lying round its foot. */
 function rock(ctx: Ctx, r: R, pts: Pt[], depth: number, wet: number): void {
-  const path = polyPath(pts);
+  const path = smoothPath(pts);
   const bb = boxOfPts(pts, 0);
-  const lit = airMix('#cfae92', depth, AIR);
-  const body = airMix('#5e5056', depth, AIR);
-  const dark = airMix('#221e28', depth, AIR);
+  const air = (c: string) => airMix(c, depth, AIR);
   const base = bb.y + bb.h;
   // the wash round its foot, behind it
   ctx.save();
@@ -505,91 +519,89 @@ function rock(ctx: Ctx, r: R, pts: Pt[], depth: number, wet: number): void {
     ctx.strokeStyle = rgba('#fbf6f2', (0.5 - k * 0.11) * (1 - depth * 0.4));
     ctx.lineWidth = 3 - k * 0.6;
     ctx.beginPath();
-    for (let x = bb.x - 14; x <= bb.x + bb.w + 14; x += 5) {
+    for (let x = bb.x - 16; x <= bb.x + bb.w + 16; x += 5) {
       const y = base - 3 + k * 4 + Math.sin(x * 0.11 + k * 2) * 2;
-      if (x === bb.x - 14) ctx.moveTo(x, y);
+      if (x === bb.x - 16) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     }
     ctx.stroke();
   }
   ctx.restore();
   within(ctx, path, () => {
-    const g = ctx.createLinearGradient(bb.x, bb.y, bb.x + bb.w * 0.7, bb.y + bb.h);
-    g.addColorStop(0, lit);
-    g.addColorStop(0.35, body);
-    g.addColorStop(1, dark);
+    // the body: a dome of grey limestone, its crown to the light
+    ctx.fillStyle = air('#5c5058');
+    ctx.fillRect(bb.x, bb.y, bb.w, bb.h);
+    const g = ctx.createRadialGradient(bb.x + bb.w * 0.32, bb.y + bb.h * 0.12, 0, bb.x + bb.w * 0.4, bb.y + bb.h * 0.3, Math.max(bb.w, bb.h) * 0.95);
+    g.addColorStop(0, air('#d6b496'));
+    g.addColorStop(0.3, air('#9a8480'));
+    g.addColorStop(0.65, air('#5a4e58'));
+    g.addColorStop(1, air('#2a2432'));
     ctx.fillStyle = g;
     ctx.fillRect(bb.x, bb.y, bb.w, bb.h);
-    surface(ctx, r, bb, body, { over: true, vary: 0.45, cells: 3, mottle: 0.55, strokes: 1.6, strokeAng: 1.3, strokeLen: 26, strokeW: 4, grain: 0.3, grainKind: 'speckle', seed: 41 + Math.floor(r() * 9) });
-    // the planes it's broken into: each peak's sunward slope lit, its far slope in shade
-    for (let i = 1; i < pts.length - 1; i++) {
-      const [px, py] = pts[i];
-      if (py > base - bb.h * 0.35) continue;
-      const w = bb.w * (0.12 + r() * 0.16);
-      ctx.fillStyle = rgba(lit, 0.28 + r() * 0.2);
-      ctx.beginPath();
-      ctx.moveTo(px, py);
-      ctx.lineTo(px - w * 0.7, py + w * 0.9);
-      ctx.lineTo(px - w * 0.1, py + w * 1.3);
-      ctx.closePath();
-      ctx.fill();
-      ctx.fillStyle = rgba(dark, 0.3 + r() * 0.2);
-      ctx.beginPath();
-      ctx.moveTo(px + 1, py);
-      ctx.lineTo(px + w * 0.8, py + w * 1.1);
-      ctx.lineTo(px + w * 0.1, py + w * 1.4);
-      ctx.closePath();
-      ctx.fill();
-    }
-    // pits and grooves the sea has cut in it (karst), each with its lit lower lip
-    for (let i = 0; i < bb.w * bb.h / 500; i++) {
-      const x = bb.x + r() * bb.w;
-      const y = bb.y + r() * bb.h * 0.8;
-      const s = 1.5 + r() * 3.5;
-      ctx.fillStyle = rgba(dark, 0.5);
-      ctx.beginPath();
-      ctx.ellipse(x, y, s, s * (0.6 + r()), 0, 0, P2);
-      ctx.fill();
-      ctx.fillStyle = rgba(lit, 0.35);
-      ctx.fillRect(x - s * 0.6, y + s * 0.7, s * 1.4, 1);
-    }
-    for (let i = 0; i < 3; i++) crack(ctx, r, bb.x + r() * bb.w, bb.y + r() * bb.h * 0.6, 1.2 + r() * 0.6, 12 + r() * 30, { col: dark, lip: lit, w: 1.1, a: 0.55, branch: 0.25 });
-    // wet below the tide line: dark and cool, the sky's sheen running down it; weed and barnacles at the water
+    surface(ctx, r, bb, '#6a5c62', { over: true, vary: 0.4, cells: 3, mottle: 0.5, strokes: 1.2, strokeAng: 0.15, strokeLen: 40, strokeW: 5, grain: 0.22, grainKind: 'speckle', seed: 41 + Math.floor(r() * 9) });
+    // the sea has worn it smooth in rounded bands, each with a soft lit lip
+    softly(ctx, { x: bb.x - 10, y: bb.y - 10, w: bb.w + 20, h: bb.h + 20 }, (c) => {
+      c.lineCap = 'round';
+      for (let k = 0; k < 4; k++) {
+        const y = bb.y + bb.h * (0.25 + k * 0.17);
+        c.strokeStyle = rgba('#241e2a', 0.22);
+        c.lineWidth = 3 + k;
+        c.beginPath();
+        c.moveTo(bb.x, y + 4);
+        c.quadraticCurveTo(bb.x + bb.w * 0.5, y - 6 + (r() - 0.5) * 8, bb.x + bb.w, y + 6);
+        c.stroke();
+        c.strokeStyle = rgba('#e8c8a8', 0.14 * (1 - k * 0.2));
+        c.lineWidth = 2;
+        c.beginPath();
+        c.moveTo(bb.x, y);
+        c.quadraticCurveTo(bb.x + bb.w * 0.5, y - 10, bb.x + bb.w, y + 2);
+        c.stroke();
+      }
+    }, 0.5);
+    for (let i = 0; i < 2; i++) crack(ctx, r, bb.x + bb.w * (0.3 + r() * 0.5), bb.y + bb.h * (0.2 + r() * 0.3), 1.3 + r() * 0.5, 10 + r() * 22, { col: '#1e1820', lip: '#e0c0a0', w: 1, a: 0.45, branch: 0.2 });
+    // wet below the tide line: dark and cool, the sky's sheen running down it
     const wy = base - bb.h * wet;
-    vfill(ctx, bb.x, wy - 6, bb.w, bb.h, [[0, rgba('#1a1c2a', 0)], [0.1, rgba('#1a1c2a', 0.5)], [1, rgba('#10121c', 0.72)]]);
-    ctx.strokeStyle = rgba('#f0d0c8', 0.2);
-    ctx.lineWidth = 1.2;
-    for (let i = 0; i < bb.w / 10; i++) {
+    vfill(ctx, bb.x, wy - 8, bb.w, bb.h, [[0, rgba('#141824', 0)], [0.12, rgba('#141824', 0.55)], [1, rgba('#0c0e18', 0.75)]]);
+    ctx.strokeStyle = rgba('#e8d0d0', 0.18);
+    ctx.lineWidth = 1.4;
+    for (let i = 0; i < bb.w / 9; i++) {
       const x = bb.x + r() * bb.w;
       ctx.beginPath();
       ctx.moveTo(x, wy + r() * 6);
-      ctx.lineTo(x + (r() - 0.5) * 3, wy + 6 + r() * bb.h * wet * 0.6);
+      ctx.lineTo(x + (r() - 0.5) * 2, wy + 6 + r() * bb.h * wet * 0.7);
       ctx.stroke();
     }
-    ctx.fillStyle = rgba('#34442a', 0.6);
-    for (let i = 0; i < bb.w / 2.5; i++) ctx.fillRect(bb.x + r() * bb.w, base - 8 + (r() - 0.5) * 6, 2 + r() * 3, 1.5 + r() * 2);
-    // the dawn on its sunward shoulder
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    const sg = ctx.createRadialGradient(bb.x + bb.w * 0.25, bb.y, 0, bb.x + bb.w * 0.25, bb.y, bb.w * 0.6);
-    sg.addColorStop(0, rgba('#ffb07a', 0.22 * (1 - depth)));
-    sg.addColorStop(1, rgba('#ffb07a', 0));
-    ctx.fillStyle = sg;
-    ctx.fillRect(bb.x, bb.y, bb.w, bb.h);
-    ctx.restore();
+    // the weed and barnacle band at the water: green-brown weed hanging, white barnacle specks above it
+    ctx.fillStyle = rgba('#2e3a22', 0.75);
+    ctx.beginPath();
+    ctx.moveTo(bb.x, base - 10);
+    for (let x = bb.x; x <= bb.x + bb.w; x += 4) ctx.lineTo(x, base - 12 - Math.sin(x * 0.4) * 2 + (r() < 0.3 ? 4 : 0));
+    ctx.lineTo(bb.x + bb.w, base + 2);
+    ctx.lineTo(bb.x, base + 2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = rgba('#e8e0d4', 0.55);
+    for (let i = 0; i < bb.w / 1.6; i++) ctx.fillRect(bb.x + r() * bb.w, base - 14 - r() * 10, 1.4, 1.2);
+    // the lit crown: dawn on its top, a soft shine where it's still wet from the last wave
+    lightPool(ctx, bb.x + bb.w * 0.35, bb.y + bb.h * 0.15, bb.w * 0.3, bb.h * 0.12, '#ffc090', 0.3 * (1 - depth));
+    ctx.strokeStyle = rgba('#ffe0c0', 0.45 * (1 - depth * 0.5));
+    ctx.lineWidth = 2.5;
+    ctx.translate(1.5, 2);
+    path(ctx);
+    ctx.stroke();
   });
-  ctx.strokeStyle = airMix('#1a141c', depth, AIR);
-  ctx.lineWidth = 1.6 - depth * 0.8;
-  ctx.lineJoin = 'round';
+  ctx.strokeStyle = air('#1a141c');
+  ctx.lineWidth = 1.5 - depth * 0.6;
   path(ctx);
   ctx.stroke();
   // foam lying against its foot, in front
-  ctx.strokeStyle = rgba('#fbf6f2', 0.7 * (1 - depth * 0.4));
-  ctx.lineWidth = 2;
+  ctx.strokeStyle = rgba('#fbf6f2', 0.75 * (1 - depth * 0.4));
+  ctx.lineWidth = 2.2;
+  ctx.lineCap = 'round';
   ctx.beginPath();
   let on = false;
   for (let x = bb.x + 2; x <= bb.x + bb.w - 2; x += 4) {
-    const vis = Math.sin(x * 0.2) + Math.sin(x * 0.07 + 1) > -0.4;
+    const vis = Math.sin(x * 0.2) + Math.sin(x * 0.07 + 1) > -0.6;
     const y = base - 1 + Math.sin(x * 0.3) * 1.2;
     if (vis && !on) ctx.moveTo(x, y);
     else if (vis) ctx.lineTo(x, y);
@@ -599,8 +611,8 @@ function rock(ctx: Ctx, r: R, pts: Pt[], depth: number, wet: number): void {
 }
 
 function rocks(ctx: Ctx, r: R): void {
-  for (const p of ROCKS_FAR) rock(ctx, r, p, 0.55, 0.3);
-  for (const [i, p] of ROCKS_NEAR.entries()) rock(ctx, r, p, i === 0 ? 0.3 : 0.08, i === 3 ? 0.25 : 0.4);
+  for (const p of ROCKS_FAR) rock(ctx, r, p, 0.55, 0.35);
+  for (const [i, p] of ROCKS_NEAR.entries()) rock(ctx, r, p, i === 0 ? 0.3 : 0.06, i === 3 ? 0.3 : 0.42);
 }
 
 // ——— the plain beyond the wall ———
@@ -653,32 +665,54 @@ function olive(ctx: Ctx, r: R, x: number, y: number, s: number, depth: number): 
   ctx.restore();
 }
 
-const OLIVES: [number, number, number, number][] = [[560, 470, 0.7, 0.5], [1206, 458, 0.55, 0.62], [1330, 528, 1.05, 0.32], [512, 532, 1.1, 0.3], [700, 446, 0.45, 0.7]];
+const OLIVES: [number, number, number, number][] = [[620, 468, 0.6, 0.55], [1196, 462, 0.55, 0.6], [1330, 528, 1.05, 0.32], [540, 528, 1.1, 0.3], [760, 446, 0.4, 0.72]];
 
 function plain(ctx: Ctx, r: R): void {
   within(ctx, polyPath(PLAIN_PTS), () => {
-    vfill(ctx, 370, HZ, 1200, 280, [[0, '#d8b4a0'], [0.12, '#c8a084'], [0.45, '#ac8866'], [1, '#927052']]);
-    surface(ctx, r, PLAIN_BOX, '#ac8866', { over: true, vary: 0.35, cells: 5, mottle: 0.3, strokes: 0.5, strokeAng: 0, strokeLen: 120, strokeW: 5, grain: 0.18, grainKind: 'speckle', seed: 51 });
-    // the lie of the land: long low swells, lit on their sunward slopes, shaded beyond
+    vfill(ctx, 370, HZ, 1200, 280, [[0, '#d6b8a8'], [0.1, '#c8a48a'], [0.4, '#ac8a6a'], [1, '#927254']]);
+    surface(ctx, r, PLAIN_BOX, '#ac8866', { over: true, vary: 0.4, cells: 6, mottle: 0.35, strokes: 0.6, strokeAng: 0, strokeLen: 140, strokeW: 6, grain: 0.18, grainKind: 'speckle', seed: 51 });
+    // the lie of the land: long low swells, lit on their sunward slopes, the hollows shaded, crowding into the
+    // distance
     softly(ctx, PLAIN_BOX, (c) => {
-      for (let i = 0; i < 14; i++) {
-        const y = HZ + 10 + (i / 14) ** 1.3 * 270;
-        const t = (y - HZ) / 280;
-        c.strokeStyle = rgba(i % 2 ? '#e8c8a0' : '#6a4a34', 0.16 + t * 0.12);
-        c.lineWidth = 6 + t * 22;
+      for (let i = 0; i < 18; i++) {
+        const t = (i / 18) ** 1.6;
+        const y = HZ + 6 + t * 270;
+        c.strokeStyle = rgba(i % 2 ? '#ecd0a8' : '#5e4232', 0.12 + t * 0.16);
+        c.lineWidth = 4 + t * 26;
         c.beginPath();
         c.moveTo(370, y + (r() - 0.5) * 10);
-        c.bezierCurveTo(700, y + (r() - 0.5) * 24, 1100, y + (r() - 0.5) * 24, 1560, y + (r() - 0.5) * 10);
+        c.bezierCurveTo(650, y + (r() - 0.5) * 30, 1050, y + (r() - 0.5) * 30, 1560, y + (r() - 0.5) * 12);
         c.stroke();
       }
+      // fields of darker scrub and paler dry grass lying across it
+      for (let i = 0; i < 26; i++) {
+        const y = HZ + 8 + r() ** 1.2 * 260;
+        const t = (y - HZ) / 270;
+        const x = 480 + r() * 900;
+        c.fillStyle = rgba(r() < 0.5 ? '#6a6438' : '#d8bc88', 0.18 + t * 0.12);
+        c.beginPath();
+        c.ellipse(x, y, 30 + t * 140, 3 + t * 14, 0, 0, P2);
+        c.fill();
+      }
     }, 0.25);
-    // dry grass in patches
-    lay(ctx, noiseMask(10, 53, { cover: 0.35, soft: 0.15, col: '#c8a860', w: 200, h: 40 }), { x: 370, y: HZ + 40, w: 1200, h: 240 }, 0.35);
-    lay(ctx, noiseMask(14, 55, { cover: 0.25, soft: 0.12, col: '#6a5232', w: 200, h: 40 }), { x: 370, y: HZ + 30, w: 1200, h: 250 }, 0.25);
+    // a dry stream bed winding down to the sea
+    ctx.strokeStyle = rgba('#5e4636', 0.35);
+    ctx.lineCap = 'round';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(900, HZ + 4);
+    ctx.bezierCurveTo(820, 440, 700, 452, 560, 470);
+    ctx.stroke();
+    ctx.strokeStyle = rgba('#e8d4b4', 0.35);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(900, HZ + 3);
+    ctx.bezierCurveTo(820, 439, 700, 451, 560, 469);
+    ctx.stroke();
     // the road down the pass: a paler worn band from the plain to the gap in the wall, ruts in it
     const gx = (GAP.x0 + GAP.x1) / 2;
     softly(ctx, PLAIN_BOX, (c) => {
-      c.fillStyle = rgba('#e8caa0', 0.4);
+      c.fillStyle = rgba('#e8caa0', 0.32);
       c.beginPath();
       c.moveTo(VPX - 8, HZ + 6);
       c.lineTo(VPX + 8, HZ + 6);
@@ -687,36 +721,43 @@ function plain(ctx: Ctx, r: R): void {
       c.closePath();
       c.fill();
     }, 0.25);
-    ctx.strokeStyle = rgba('#6a4a34', 0.22);
-    for (const d of [-24, 22]) {
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(VPX + d * 0.06, HZ + 8);
-      ctx.lineTo(gx + d, 700);
-      ctx.stroke();
-    }
-    // the beach: wet shingle along the sea, dry pebbles above it
+    // the shore: wet sand at the water, a pale shingle beach, then a marshy strip of reeds and rushes
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    for (const [w, col, a] of [[22, '#e0c8a8', 0.5], [9, '#5a4a44', 0.5], [3, '#3a3036', 0.5]] as const) {
+    const band = (off: number, w: number, col: string, a: number) => {
       ctx.strokeStyle = rgba(col, a);
       ctx.beginPath();
       SHORE.forEach(([x, y], i) => {
-        const k = 0.4 + (y - HZ) / 300;
+        const k = 0.3 + (y - HZ) / 300;
         ctx.lineWidth = w * k;
-        if (i) ctx.lineTo(x + 2 + w * k * 0.3, y);
-        else ctx.moveTo(x + 2, y);
+        if (i) ctx.lineTo(x + off * k, y);
+        else ctx.moveTo(x + off * k, y);
       });
       ctx.stroke();
+    };
+    band(46, 40, '#6a6a40', 0.5);
+    band(40, 22, '#4e5a34', 0.45);
+    band(14, 22, '#e2ccaa', 0.6);
+    band(4, 6, '#7a6a5a', 0.3);
+    for (let i = 0; i < 300; i++) {
+      const y = HZ + 6 + r() ** 0.8 * 280;
+      const k = 0.3 + (y - HZ) / 300;
+      const x = shoreX(y) + (30 + r() * 34) * k;
+      ctx.strokeStyle = rgba(r() < 0.5 ? '#4a5a2c' : '#a8a060', 0.7);
+      ctx.lineWidth = Math.max(0.6, k);
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + (r() - 0.4) * 3 * k, y - (3 + r() * 6) * k);
+      ctx.stroke();
     }
-    // scrub (dry kermes oak, thyme) and stones, each with its shadow, scattered thicker towards the cliff and the shore
-    for (let i = 0; i < 260; i++) {
-      const y = HZ + 6 + (r() ** 0.8) * 280;
-      const xl = shoreX(Math.min(698, y)) + 14;
-      const xr = cliffX(Math.min(698, y)) - 6;
+    // scrub (kermes oak, thyme) and stones, each with its shadow
+    for (let i = 0; i < 240; i++) {
+      const y = HZ + 8 + (r() ** 0.8) * 280;
+      const xl = shoreX(Math.min(698, y)) + 60 * (0.3 + (y - HZ) / 300);
+      const xr = cliffX(Math.min(698, y)) - 30;
       if (xr <= xl) continue;
       const u = r();
-      const edge = r() < 0.55 ? (r() < 0.5 ? u * 0.25 : 1 - u * 0.25) : u;
+      const edge = r() < 0.5 ? (r() < 0.5 ? u * 0.25 : 1 - u * 0.25) : u;
       const x = xl + edge * (xr - xl);
       const s = 0.5 + (y - HZ) / 70;
       const depth = 1 - (y - HZ) / 300;
@@ -737,21 +778,44 @@ function plain(ctx: Ctx, r: R): void {
         ctx.fillRect(x + s * 0.4, y, s * 3, s * 0.5);
         ctx.fillStyle = airMix('#e2cbb0', depth, AIR);
         ctx.fillRect(x, y - s, s * 1.6, s);
-        ctx.fillStyle = airMix('#8a7262', depth, AIR);
-        ctx.fillRect(x + s * 0.9, y - s, s * 0.7, s);
+      }
+    }
+    // the open ground short of the wall: tussocks, thistles and stones, each with its shadow thrown right by the sun
+    for (let i = 0; i < 90; i++) {
+      const y = 490 + r() * 62;
+      const x = 520 + r() * 820;
+      const s = 1.4 + (y - 480) / 30;
+      ctx.fillStyle = rgba('#3a2a1c', 0.3);
+      ctx.beginPath();
+      ctx.ellipse(x + s * 4, y + s * 0.4, s * 5, s * 0.7, 0, 0, P2);
+      ctx.fill();
+      if (r() < 0.65) {
+        for (let k = 0; k < 6; k++) {
+          ctx.strokeStyle = k % 2 ? '#b8a060' : '#6a6a38';
+          ctx.lineWidth = Math.max(0.8, s * 0.35);
+          ctx.beginPath();
+          ctx.moveTo(x + (k - 3) * s * 0.4, y);
+          ctx.lineTo(x + (k - 3) * s * 0.9, y - s * (1.8 + (k % 3) * 0.6));
+          ctx.stroke();
+        }
+      } else {
+        const g = ctx.createLinearGradient(x - s, y - s * 1.5, x + s, y);
+        g.addColorStop(0, '#e8d4b6');
+        g.addColorStop(1, '#7a6656');
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.ellipse(x, y - s * 0.6, s * 1.6, s * 0.9, 0, 0, P2);
+        ctx.fill();
       }
     }
     for (const [x, y, s, d] of OLIVES) olive(ctx, r, x, y, s, d);
-    // the haze lying on the far plain, and the scree along the cliff's foot
-    vfill(ctx, 370, HZ, 1200, 60, [[0, rgba('#e8c4b0', 0.6)], [1, rgba('#e8c4b0', 0)]]);
-    for (let i = 0; i < 110; i++) {
-      const y = HZ + 12 + r() * 270;
-      const x = cliffX(y) - r() * (8 + (y - HZ) * 0.15);
-      const s = 0.6 + (y - HZ) / 90;
-      ctx.fillStyle = rgba(r() < 0.5 ? '#e8d4b8' : '#8a7262', 0.5);
-      ctx.fillRect(x, y, s * 2.4, s * 1.2);
-    }
+    // the distance: the plain melting into the haze towards the hills, no edge to it
+    vfill(ctx, 370, HZ - 2, 1200, 90, [[0, rgba('#e2c4b8', 0.85)], [0.35, rgba('#e2c4b8', 0.4)], [1, rgba('#e2c4b8', 0)]]);
   });
+  // the hills' feet lost in the same haze, over the plain's far edge
+  softly(ctx, { x: 560, y: HZ - 30, w: 760, h: 60 }, (c) => {
+    vfillC(c, 560, HZ - 30, 760, 60, [[0, rgba('#e2c4b8', 0)], [0.5, rgba('#e2c4b8', 0.7)], [1, rgba('#e2c4b8', 0)]]);
+  }, 0.25);
 }
 
 // ——— the Persian host ———
@@ -761,13 +825,14 @@ const DUST = '#d8b496';
 const TUNIC = ['#8a2e2a', '#2e4a7a', '#c89a3a', '#e8dcc4', '#5a3a6a', '#3a6a5a', '#a8562a', '#6a5a3a'];
 /** The host's standards that ripple: x, the foot of the pole, the cloth's design, size. */
 export const BANNERS: [number, number, number, number][] = [
-  [688, 472, 0, 6.6], [782, 476, 1, 7.2], [872, 468, 2, 6.2], [1062, 470, 1, 6.6], [1150, 474, 2, 7], [968, 476, 0, 7.4],
-  [742, 452, 2, 4.6], [918, 450, 1, 4.6], [1012, 447, 2, 4.2], [1104, 452, 0, 4.6], [828, 440, 0, 3.6], [1186, 444, 1, 3.8],
+  [655, 490, 0, 7.6], [842, 496, 1, 8], [1040, 492, 2, 7.8], [1196, 488, 0, 7.4],
+  [742, 464, 2, 5.6], [918, 460, 1, 5.6], [1104, 464, 0, 5.6], [990, 454, 2, 5],
+  [828, 440, 0, 3.6], [1186, 444, 1, 3.8], [700, 438, 1, 3.4], [1060, 440, 2, 3.6],
 ];
 /** The camp's fires (lit at dusk) and the smoke over them. */
 export const FIRES: Pt[] = [[700, 421], [736, 420], [776, 423], [850, 420], [884, 422], [940, 421], [1000, 423], [1030, 420], [1080, 424], [1126, 421], [1166, 423], [1196, 420], [744, 436], [930, 440], [1110, 438], [690, 462], [868, 458], [1020, 464], [1180, 460], [806, 486], [972, 490], [1140, 488]];
 export const SMOKES: Pt[] = [[736, 421], [884, 420], [1030, 421], [1166, 422]];
-const hostDepth = (y: number) => clamp01(1 - (y - HZ) / 72) * 0.85;
+const hostDepth = (y: number) => clamp01(1 - (y - HZ) / 72) * 0.7;
 const bannerDims = (s: number) => ({ bw: s * 2.6, bh: s * 2.2, top: s * 6.8 });
 
 function figure(ctx: Ctx, x: number, y: number, s: number, tunic: string, depth: number, spear: boolean, shieldF: boolean): void {
@@ -902,6 +967,9 @@ function elephant(ctx: Ctx, x: number, y: number, s: number, depth: number): voi
   ctx.fillRect(x - s * 1.9, y - s * 4.2, s * 0.5, s * 0.9);
 }
 
+/** The nearer regiments, standing apart on the plain: x, front rank's y, width. */
+const GROUPS: [number, number, number][] = [[610, 488, 90], [800, 494, 80], [1000, 490, 110], [1170, 486, 70]];
+
 function host(ctx: Ctx, r: R): void {
   within(ctx, polyPath(PLAIN_PTS), () => {
     // the camp, far back: tents and pavilions in the haze
@@ -929,32 +997,50 @@ function host(ctx: Ctx, r: R): void {
       ctx.fillStyle = rgba('#5a4a5a', 0.35);
       ctx.fillRect(x, y - s * 0.9, s, s * 0.9);
     }
-    vfill(ctx, 590, HZ - 4, 680, 18, [[0, rgba('#e8c4b0', 0.2)], [1, rgba('#e8c4b0', 0.55)]]);
-    // elephants at the back of the host
     elephant(ctx, 1000, 434, 2.2, 0.62);
     elephant(ctx, 1046, 436, 2, 0.64);
-    // the host: rank on rank of men, regiments in their own colours, spears up, the front rank behind wicker shields
-    const rows = [430, 436, 442, 449, 456, 463, 470, 477];
+    // far off, the host fills the plain from side to side: rank on rank, dense, in the dust
+    const regiment = (y0: number, x0: number, x1: number, s: number, depth: number, front: boolean, gapK: number) => {
+      let x = x0;
+      while (x < x1) {
+        const bw = (50 + r() * 120) * (0.6 + s * 0.08);
+        const tunic = TUNIC[Math.floor(r() * TUNIC.length)];
+        const spears = r() < 0.75;
+        for (let fx = x; fx < Math.min(x1, x + bw); fx += s * (0.82 + r() * 0.2)) {
+          figure(ctx, fx, y0 + (r() - 0.5) * s * 0.5, s, r() < 0.15 ? jitterHex(tunic, r) : tunic, depth, spears && r() < 0.7, front && r() < 0.8);
+        }
+        x += bw + (r() < gapK ? s * (8 + r() * 24) : s * 0.8);
+      }
+    };
+    const rows = [429, 434, 439, 444, 450];
     for (const [ri, y0] of rows.entries()) {
       const s = 1.5 + (y0 - 428) * 0.115;
       const depth = hostDepth(y0);
-      const xl = shoreX(y0) + 24 + r() * 20;
-      const xr = cliffX(y0) - 18 - r() * 20;
-      let x = xl;
+      regiment(y0, shoreX(y0) + 40 + r() * 20, cliffX(y0) - 30 - r() * 20, s, depth, false, 0.15 + ri * 0.05);
+      vfill(ctx, 590, y0 - s * 1.4, 680, s * 1.8, [[0, rgba(DUST, 0)], [1, rgba(DUST, 0.24)]]);
+      if (ri % 2 === 1) for (let k = 0; k < 3; k++) standard(ctx, 640 + r() * 560, y0, s * 1.1, depth);
+    }
+    // the middle distance: regiments marching up apart, gaps of open ground between them
+    for (const y0 of [457, 465, 472]) {
+      const s = 1.5 + (y0 - 428) * 0.115;
+      const depth = hostDepth(y0);
+      let x = shoreX(y0) + 70 + r() * 60;
+      const xr = cliffX(y0) - 50;
       while (x < xr) {
-        const bw = (60 + r() * 140) * (0.6 + s * 0.08);
-        const tunic = TUNIC[Math.floor(r() * TUNIC.length)];
-        const spears = r() < 0.75;
-        const front = ri >= rows.length - 3;
-        for (let fx = x; fx < Math.min(xr, x + bw); fx += s * (0.82 + r() * 0.2)) {
-          figure(ctx, fx, y0 + (r() - 0.5) * s * 0.5, s, r() < 0.15 ? jitterHex(tunic, r) : tunic, depth, spears && r() < 0.7, front && r() < 0.8);
-        }
-        x += bw + (r() < 0.35 ? s * (3 + r() * 6) : s * 0.8);
+        const w = 40 + r() * 90;
+        if (r() < 0.6) regiment(y0, x, Math.min(xr, x + w), s, depth, y0 > 470, 0);
+        x += w + 30 + r() * 80;
       }
-      // the dust kicked up round their feet
-      vfill(ctx, 590, y0 - s * 1.2, 680, s * 1.6, [[0, rgba(DUST, 0)], [1, rgba(DUST, 0.32 * (1 - depth * 0.5))]]);
-      // standards among them
-      if (ri % 2 === 1) for (let k = 0; k < 3; k++) standard(ctx, xl + 40 + r() * (xr - xl - 80), y0, s * 1.1, depth);
+      vfill(ctx, 590, y0 - s * 1.2, 680, s * 1.6, [[0, rgba(DUST, 0)], [1, rgba(DUST, 0.3)]]);
+    }
+    // and nearer, a few regiments standing apart under their standards, the front rank behind wicker shields
+    for (const [gx, gy, gw] of GROUPS) {
+      for (let k = 0; k < 3; k++) {
+        const y0 = gy - (2 - k) * 6;
+        const s = 1.5 + (y0 - 428) * 0.115;
+        regiment(y0, gx + k * 3, gx + gw - k * 4, s, hostDepth(y0), k === 2, 0);
+      }
+      groundShadow(ctx, gx + gw * 0.55, gy + 2, gw * 0.55, 3, 0.25, '#3a2a1c');
     }
     // the poles and crossbars of the cloth banners (the cloths are painted, and move, on their own)
     for (const [x, y, , s] of BANNERS) {
@@ -973,18 +1059,18 @@ function host(ctx: Ctx, r: R): void {
       ctx.arc(x, y - top - s * 1.05, s * 0.32, 0, P2);
       ctx.fill();
     }
-    // chariots on the flanks
-    chariot(ctx, 628, 482, 5, 1, 0.26);
-    chariot(ctx, 690, 479, 4.6, 1, 0.3);
-    chariot(ctx, 1200, 478, 4.8, -1, 0.3);
-    // the dust they raise, hanging over the front
+    // chariots on the flanks, out ahead
+    chariot(ctx, 560, 500, 5, 1, 0.24);
+    chariot(ctx, 730, 498, 4.6, 1, 0.26);
+    chariot(ctx, 1230, 496, 4.8, -1, 0.26);
+    // the dust they raise, hanging over all of it, thickest far off
     softly(ctx, HOST_BOX, (c) => {
-      for (let i = 0; i < 40; i++) {
-        const x = 610 + r() * 640;
-        const y = 440 + r() * 44;
-        const rad = 20 + r() * 50;
+      for (let i = 0; i < 56; i++) {
+        const y = 420 + r() ** 1.4 * 74;
+        const x = 600 + r() * 660;
+        const rad = 24 + r() * 60;
         const g = c.createRadialGradient(x, y, 0, x, y, rad);
-        g.addColorStop(0, rgba(DUST, 0.32));
+        g.addColorStop(0, rgba(DUST, 0.24 * (1 - (y - 420) / 120)));
         g.addColorStop(1, rgba(DUST, 0));
         c.fillStyle = g;
         c.fillRect(x - rad, y - rad, rad * 2, rad * 2);
@@ -1085,180 +1171,228 @@ const faceDepth = (x: number) => clamp01((1920 - x) / 700) ** 1.4 * 0.9;
 /** The beds' vanishing point (a little above the pass's: they dip towards us). */
 const BED_VP: Pt = [VPX, 372];
 
-/** A clump of scrub clinging to a ledge: small leaf masses, dark below, lit on the upper left, its shadow on the rock. */
+/** A clump of maquis clinging to the rock: small leathery leaf masses, dark below, lit on the upper left, its shadow
+ * on the stone. */
 function scrub(ctx: Ctx, r: R, x: number, y: number, s: number, depth: number): void {
-  ctx.fillStyle = rgba('#1e1a22', 0.3);
+  ctx.fillStyle = rgba('#1e1a22', 0.32);
   ctx.beginPath();
-  ctx.ellipse(x + s * 1.2, y + s * 0.6, s * 2, s * 0.8, 0.2, 0, P2);
+  ctx.ellipse(x + s * 1.2, y + s * 0.7, s * 1.8, s * 0.9, 0.3, 0, P2);
   ctx.fill();
-  for (let i = 0; i < 14; i++) {
-    const u = i / 14;
-    const lx = x + (r() - 0.5) * s * 2.8;
-    const ly = y - u * s * 1.4 + (r() - 0.5) * s * 0.6;
-    const litK = clamp01(u * 0.8 + (x - lx) / (s * 3));
-    ctx.fillStyle = airMix(mixHex('#22301c', '#8a8a4a', litK), depth, AIR);
+  const n = 10 + Math.floor(r() * 10);
+  for (let i = 0; i < n; i++) {
+    const u = i / n;
+    const a = r() * P2;
+    const d = r() ** 0.6 * s;
+    const lx = x + Math.cos(a) * d * 1.4;
+    const ly = y - u * s * 1.1 + Math.sin(a) * d * 0.5;
+    const litK = clamp01(u * 0.7 + (x - lx) / (s * 3) + 0.1);
+    ctx.fillStyle = airMix(mixHex('#1e2a1a', '#8a8a4a', litK), depth, AIR);
     ctx.beginPath();
-    ctx.ellipse(lx, ly, s * (0.5 + r() * 0.35), s * (0.35 + r() * 0.25), r() * 3, 0, P2);
+    ctx.ellipse(lx, ly, s * (0.32 + r() * 0.3), s * (0.24 + r() * 0.2), r() * 3, 0, P2);
     ctx.fill();
   }
 }
 
+/** An Aleppo pine leaning out of a crevice: a crooked trunk and flat, layered crowns lit on their tops. */
+function pine(ctx: Ctx, r: R, x: number, y: number, s: number, lean: number, depth: number): void {
+  const air = (c: string) => airMix(c, depth, AIR);
+  ctx.lineCap = 'round';
+  const tx = x + lean * s * 30;
+  const ty = y - s * 34;
+  ctx.strokeStyle = air('#3a2a22');
+  ctx.lineWidth = s * 2.4;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.quadraticCurveTo(x + lean * s * 8, y - s * 18, tx, ty);
+  ctx.stroke();
+  ctx.strokeStyle = rgba(air('#c8a080'), 0.5);
+  ctx.lineWidth = s * 0.7;
+  ctx.beginPath();
+  ctx.moveTo(x - s * 0.6, y);
+  ctx.quadraticCurveTo(x + lean * s * 8 - s * 0.6, y - s * 18, tx - s * 0.6, ty);
+  ctx.stroke();
+  for (let k = 0; k < 3; k++) {
+    const cx = tx + (k - 1) * s * 7 + lean * s * 4;
+    const cy = ty - k * s * 3 + (k === 1 ? -s * 4 : 0);
+    const w = s * (12 - k * 2);
+    ctx.fillStyle = rgba('#141a14', 0.35);
+    ctx.beginPath();
+    ctx.ellipse(cx + s * 2, cy + s * 3, w, s * 3, 0, 0, P2);
+    ctx.fill();
+    for (let i = 0; i < 16; i++) {
+      const a = r() * Math.PI;
+      const d = r() ** 0.5;
+      const lx = cx - Math.cos(a) * w * d;
+      const ly = cy - Math.sin(a) * s * 3.5 * d;
+      const litK = clamp01(0.3 + (cx - lx) / w * 0.4 + (cy - ly) / (s * 4) * 0.4);
+      ctx.fillStyle = air(mixHex('#1c2a1c', '#6a7a40', litK));
+      ctx.beginPath();
+      ctx.ellipse(lx, ly, s * (1.6 + r() * 1.4), s * (1 + r() * 0.6), 0, 0, P2);
+      ctx.fill();
+    }
+  }
+}
+
+/** The massif's buttresses, far to near: each a tower of rock standing out of the face. */
+const BUTTS = (() => {
+  const rr = rng(hashStr('hg:butts'));
+  const out: { x0: number; x1: number; top: number; arris: number; seed: number }[] = [];
+  let x = 1236;
+  while (x < 1930) {
+    const near = clamp01((x - 1220) / 700);
+    const w = (rr() < 0.3 ? 0.5 : 1.2) * (30 + near * 110 + rr() * (30 + near * 120));
+    const x1 = Math.min(1940, x + w);
+    const top = x < 1345 ? along([...CLIFF_SKY].reverse(), x + w * 0.4, 0) + 10 : -20;
+    out.push({ x0: x, x1, top, arris: 0.3 + rr() * 0.25, seed: Math.floor(rr() * 1e6) });
+    if (x1 >= 1930) break;
+    x = x1 - w * (0.1 + rr() * 0.15);
+  }
+  return out;
+})();
+
+const footY = (x: number) => along(CLIFF_FOOT, Math.max(1220, x), 0);
+
 function cliff(ctx: Ctx, r: R): void {
   const path = polyPath(CLIFF);
-  const bedAt = (yR: number, t: number): Pt => [1920 + (BED_VP[0] - 1920) * t * 0.8, yR + (BED_VP[1] - yR) * t * 0.8];
   within(ctx, path, () => {
-    // the face, lit by the low sun along the pass, the far end lost in the haze
-    const g = ctx.createLinearGradient(1210, 0, 1920, 0);
-    g.addColorStop(0, airMix('#d8bc9c', 0.85, AIR));
-    g.addColorStop(0.3, airMix('#d0b494', 0.45, AIR));
-    g.addColorStop(0.7, '#a89280');
-    g.addColorStop(1, '#76665e');
-    ctx.fillStyle = g;
-    ctx.fillRect(1208, 0, 712, 720);
-    surface(ctx, r, CLIFF_BOX, '#a89280', { over: true, vary: 0.55, cells: 5, mottle: 0.5, strokes: 0.8, strokeAng: 1.45, strokeLen: 120, strokeW: 12, grain: 0.2, grainKind: 'speckle', seed: 61 });
-    // its big planes: broad facets of the rock, each turned to the sun or away from it, painted soft
-    softly(ctx, CLIFF_BOX, (c) => {
-      for (let i = 0; i < 46; i++) {
-        const t = r() ** 0.8 * 0.95;
-        const near = 1 - t * 0.8;
-        const [cx, cy] = bedAt(-200 + r() * 1000, t);
-        const s = (50 + r() * 90) * near;
-        const n = 5 + Math.floor(r() * 3);
-        const pts: Pt[] = [];
-        for (let k = 0; k < n; k++) {
-          const a = (k / n) * P2 + r() * 0.5;
-          pts.push([cx + Math.cos(a) * s * (0.6 + r() * 0.5) * 0.7, cy + Math.sin(a) * s * (0.6 + r() * 0.6)]);
+    // the recesses between the buttresses: deep cool shade
+    vfill(ctx, 1208, 0, 712, 720, [[0, '#585262'], [0.6, '#48424e'], [1, '#383240']]);
+    // the buttresses, far to near: each a tower lit warm on its sunward face, its front in cool shade, an ink edge
+    for (const b of BUTTS) {
+      const br = rng(b.seed);
+      const near = clamp01((b.x0 - 1220) / 700);
+      const depth = (1 - near) * 0.85;
+      const bot = footY(b.x1) + 4;
+      const left: Pt[] = [];
+      const right: Pt[] = [];
+      for (let y = b.top; y <= bot; y += 18 + br() * 26) {
+        left.push([b.x0 + (br() - 0.5) * 8 * (0.4 + near) + (y - b.top) * 0.02, y]);
+        right.push([b.x1 + (br() - 0.5) * 10 * (0.4 + near), y]);
+      }
+      left.push([b.x0, bot]);
+      right.push([b.x1, bot]);
+      const top: Pt[] = [];
+      for (let k = 0; k <= 4; k++) top.push([b.x1 + ((b.x0 - b.x1) * k) / 4, b.top - br() * 12]);
+      const outline: Pt[] = [...left, ...right.reverse(), ...top];
+      const bp = polyPath(outline);
+      castShadow(ctx, bp, 10 + near * 20, 12 + near * 14, 0.35, '#1e1828');
+      const ax = b.x0 + (b.x1 - b.x0) * b.arris;
+      within(ctx, bp, () => {
+        // the sunward face and the shaded front, the arris between them broken
+        const lit = airMix('#e6c6a0', depth, AIR);
+        const sh = airMix('#76686e', depth * 0.8, AIR);
+        ctx.fillStyle = sh;
+        ctx.fillRect(b.x0 - 10, b.top - 20, b.x1 - b.x0 + 20, bot - b.top + 30);
+        ctx.fillStyle = lit;
+        ctx.beginPath();
+        ctx.moveTo(b.x0 - 10, b.top - 20);
+        let xx = ax;
+        ctx.lineTo(xx, b.top - 20);
+        for (let y = b.top; y <= bot + 10; y += 14) {
+          xx += (br() - 0.5) * 10 * (0.4 + near);
+          ctx.lineTo(xx, y);
         }
-        const litF = r() < 0.5;
-        c.fillStyle = litF ? rgba('#fff0d8', 0.18 + r() * 0.18) : rgba(r() < 0.6 ? '#3a3050' : '#5a4650', 0.2 + r() * 0.22);
-        polyPath(pts)(c);
-        c.fill();
-      }
-      // buttresses and bays: lit sunward edges, cool hollows
-      let x = 1900;
-      while (x > 1250) {
-        const near = 1 - faceDepth(x);
-        const w = (x - VPX) * (0.18 + r() * 0.18);
-        const lg = c.createLinearGradient(x - w, 0, x, 0);
-        lg.addColorStop(0, rgba('#fff0d4', 0));
-        lg.addColorStop(0.3, rgba('#fff0d4', 0.16 * near + 0.04));
-        lg.addColorStop(0.6, rgba('#fff0d4', 0));
-        lg.addColorStop(0.8, rgba(LIME.cool, 0.24 * near + 0.06));
-        lg.addColorStop(1, rgba(LIME.cool, 0.36 * near + 0.08));
-        c.fillStyle = lg;
-        c.fillRect(x - w, 0, w, 720);
-        x -= w;
-      }
-    }, 0.25);
-    // ledges: short runs of the bedding standing out, a lit top, a soft shadow under the overhang
-    const ledges: Pt[][] = [];
-    for (let i = 0; i < 18; i++) {
-      const t0 = r() ** 0.9 * 0.9;
-      const t1 = Math.min(1, t0 + 0.06 + r() * 0.2);
-      const yR = -160 + r() * 900;
-      const pts: Pt[] = [];
-      for (let k = 0; k <= 10; k++) {
-        const t = t0 + ((t1 - t0) * k) / 10;
-        const [x, y] = bedAt(yR, t);
-        pts.push([x, y + (r() - 0.5) * 4 * (1 - t * 0.8)]);
-      }
-      ledges.push(pts);
-    }
-    softly(ctx, CLIFF_BOX, (c) => {
-      c.lineCap = 'round';
-      for (const pts of ledges) {
-        const near = 1 - faceDepth(pts[0][0]);
-        c.strokeStyle = rgba('#241c30', 0.5);
-        c.lineWidth = 6 + near * 16;
-        c.beginPath();
-        pts.forEach(([x, y], k) => (k ? c.lineTo(x, y + 4 + near * 8) : c.moveTo(x, y + 4 + near * 8)));
-        c.stroke();
-      }
-    }, 0.33);
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    for (const pts of ledges) {
-      const near = 1 - faceDepth(pts[0][0]);
-      ctx.strokeStyle = rgba('#2a2230', 0.45);
-      ctx.lineWidth = 1.2 + near * 1.6;
-      ctx.beginPath();
-      pts.forEach(([x, y], k) => (k ? ctx.lineTo(x, y + 1.5) : ctx.moveTo(x, y + 1.5)));
+        ctx.lineTo(b.x0 - 10, bot + 10);
+        ctx.closePath();
+        ctx.fill();
+        const bx = { x: b.x0 - 10, y: Math.max(0, b.top - 20), w: b.x1 - b.x0 + 20, h: bot - Math.max(0, b.top - 20) + 10 };
+        surface(ctx, r, bx, '#a89280', { over: true, vary: 0.5, cells: 3, mottle: 0.5, strokes: 1.4, strokeAng: 1.5, strokeLen: 60 + near * 80, strokeW: 4 + near * 8, grain: 0.18, grainKind: 'speckle', seed: 61 + (b.seed % 13) });
+        // fractured planes: a few big facets of lighter and darker rock
+        for (let i = 0; i < 3 + near * 5; i++) {
+          const fx = b.x0 + br() * (b.x1 - b.x0);
+          const fy = b.top + br() * (bot - b.top);
+          const fs = (20 + br() * 60) * (0.5 + near);
+          ctx.fillStyle = br() < 0.5 ? rgba('#fff0d8', 0.12 + br() * 0.1) : rgba('#2e2840', 0.14 + br() * 0.14);
+          ctx.beginPath();
+          ctx.moveTo(fx, fy);
+          ctx.lineTo(fx + fs * (0.3 + br() * 0.5), fy + fs * (0.2 + br() * 0.3));
+          ctx.lineTo(fx + fs * (0.1 + br() * 0.3), fy + fs * (0.8 + br() * 0.6));
+          ctx.lineTo(fx - fs * 0.2, fy + fs * 0.5);
+          ctx.closePath();
+          ctx.fill();
+        }
+        // a short bedding crack or two, at their own heights, and an overhang with its shadow
+        for (let i = 0; i < 1 + near * 3; i++) {
+          const cy = b.top + 40 + br() * (bot - b.top - 60);
+          const x0 = b.x0 + br() * (b.x1 - b.x0) * 0.4;
+          const x1 = x0 + (b.x1 - b.x0) * (0.3 + br() * 0.5);
+          const sl = (cy - BED_VP[1]) * -0.04;
+          if (br() < 0.45) {
+            ctx.fillStyle = rgba('#1e1828', 0.4);
+            ctx.beginPath();
+            ctx.moveTo(x0, cy);
+            ctx.lineTo(x1, cy + sl);
+            ctx.lineTo(x1 - 4, cy + sl + 6 + near * 12);
+            ctx.lineTo(x0 + 6, cy + 4 + near * 8);
+            ctx.closePath();
+            ctx.fill();
+          }
+          ctx.strokeStyle = rgba('#241c2c', 0.5);
+          ctx.lineWidth = 1 + near * 1.4;
+          ctx.beginPath();
+          ctx.moveTo(x0, cy);
+          ctx.lineTo((x0 + x1) / 2, cy + sl * 0.5 + (br() - 0.5) * 4);
+          ctx.lineTo(x1, cy + sl);
+          ctx.stroke();
+          ctx.strokeStyle = rgba('#fff0d4', 0.35);
+          ctx.lineWidth = 0.8 + near;
+          ctx.beginPath();
+          ctx.moveTo(x0, cy - 1.5);
+          ctx.lineTo(x1, cy + sl - 1.5);
+          ctx.stroke();
+        }
+        // a vertical fissure down it
+        if (br() < 0.7) {
+          let fx = b.x0 + (b.x1 - b.x0) * (0.45 + br() * 0.4);
+          ctx.strokeStyle = rgba('#18121e', 0.55);
+          ctx.lineWidth = 1 + near * 2;
+          ctx.beginPath();
+          let fy = b.top + br() * 80;
+          ctx.moveTo(fx, fy);
+          while (fy < bot - 20) {
+            fy += 12;
+            fx += (br() - 0.5) * 6;
+            ctx.lineTo(fx, fy);
+          }
+          ctx.stroke();
+        }
+        // rust and grey stains run down it
+        for (let i = 0; i < 1 + near * 2; i++) streaks(ctx, r, b.x0 + br() * (b.x1 - b.x0), b.top + br() * (bot - b.top) * 0.5, 10 + near * 24, 80 + near * 200, br() < 0.5 ? '#9a5a34' : '#3e3a44', 0.12 + near * 0.1, 3);
+        // its foot in shadow, its upper reaches into the morning haze
+        vfill(ctx, b.x0 - 10, bot - 80, b.x1 - b.x0 + 20, 90, [[0, rgba('#2a2238', 0)], [1, rgba('#2a2238', 0.4)]]);
+      });
+      ctx.strokeStyle = airMix('#2a1e26', depth, AIR);
+      ctx.lineWidth = lineAtD(depth);
+      ctx.lineJoin = 'round';
+      polyPath([...left.slice(0, -1)])(ctx);
       ctx.stroke();
-      ctx.strokeStyle = rgba('#fff0d4', 0.4);
-      ctx.lineWidth = 1 + near * 1.4;
+    }
+    // the beds breaking across them: long shelves running down the pass, here and there, a shadow under each
+    for (const [yR, xs, xe] of [[90, 1300, 1560], [330, 1420, 1760], [610, 1280, 1500]] as [number, number, number][]) {
+      const yAtX = (x: number) => yR + (BED_VP[1] - yR) * ((1920 - x) / (1920 - BED_VP[0]));
+      const pts: Pt[] = [];
+      for (let x = xs; x <= xe; x += 12) pts.push([x, yAtX(x) + (r() - 0.5) * 4]);
+      softly(ctx, { x: xs - 20, y: Math.min(yAtX(xs), yAtX(xe)) - 20, w: xe - xs + 40, h: Math.abs(yAtX(xs) - yAtX(xe)) + 70 }, (c) => {
+        c.strokeStyle = rgba('#1e1828', 0.45);
+        c.lineCap = 'round';
+        c.lineJoin = 'round';
+        c.lineWidth = 12;
+        c.beginPath();
+        pts.forEach(([x, y], k) => (k ? c.lineTo(x, y + 8) : c.moveTo(x, y + 8)));
+        c.stroke();
+      }, 0.33);
+      ctx.strokeStyle = rgba('#fff0d4', 0.42);
+      ctx.lineWidth = 1.6;
       ctx.beginPath();
       pts.forEach(([x, y], k) => (k ? ctx.lineTo(x, y - 1) : ctx.moveTo(x, y - 1)));
       ctx.stroke();
-    }
-    // fractures: jagged, mostly upright, wedging open; each a dark crack with a lit lip on its sunward side
-    for (let i = 0; i < 20; i++) {
-      const tt = r() ** 1.2 * 0.9;
-      const near = 1 - tt * 0.8;
-      let [x, y] = bedAt(760 - r() * 900, tt);
-      const len = (60 + r() * 200) * near;
-      const pts: Pt[] = [[x, y]];
-      for (let s = 0; s < len; s += 10) {
-        x += (r() - 0.5) * 8 * near;
-        y -= 10;
-        pts.push([x, y]);
-      }
-      const w = 1 + near * 3 * r();
-      ctx.fillStyle = rgba('#1e1620', 0.55);
+      ctx.strokeStyle = rgba('#241c2c', 0.5);
+      ctx.lineWidth = 1.4;
       ctx.beginPath();
-      pts.forEach(([px, py], j) => {
-        const ww = w * Math.sin((j / (pts.length - 1)) * Math.PI) + 0.6;
-        if (j) ctx.lineTo(px + ww, py);
-        else ctx.moveTo(px + ww, py);
-      });
-      for (let j = pts.length - 1; j >= 0; j--) {
-        const ww = w * Math.sin((j / (pts.length - 1)) * Math.PI) + 0.6;
-        ctx.lineTo(pts[j][0] - ww, pts[j][1]);
-      }
-      ctx.closePath();
-      ctx.fill();
-      ctx.strokeStyle = rgba('#fff0d8', 0.25);
-      ctx.lineWidth = 0.8 + near * 0.6;
-      ctx.beginPath();
-      pts.forEach(([px, py], j) => (j ? ctx.lineTo(px - w - 1.2, py) : ctx.moveTo(px - w - 1.2, py)));
+      pts.forEach(([x, y], k) => (k ? ctx.lineTo(x, y + 1.5) : ctx.moveTo(x, y + 1.5)));
       ctx.stroke();
     }
-    // stains running down from the ledges: rust and grey
-    for (const pts of ledges) {
-      const near = 1 - faceDepth(pts[0][0]);
-      const [sx, sy] = pts[Math.floor(r() * pts.length)];
-      streaks(ctx, r, sx, sy + 2, 12 + near * 30, 50 + near * 180, r() < 0.5 ? '#9a5a34' : '#3e3a44', 0.14 + near * 0.12, 3);
-    }
-    // fresh scars where rock has fallen: pale, angular, a shaded underside
-    for (let i = 0; i < 6; i++) {
-      const sx = 1340 + r() * 400;
-      const sy = 140 + r() * 380;
-      const near = 1 - faceDepth(sx);
-      const s = 10 + near * 24;
-      ctx.fillStyle = rgba('#f4e2c8', 0.32);
-      ctx.beginPath();
-      ctx.moveTo(sx, sy);
-      ctx.lineTo(sx + s * 0.9, sy + s * 0.1);
-      ctx.lineTo(sx + s * 0.7, sy + s * 0.9);
-      ctx.lineTo(sx + s * 0.1, sy + s * 1.2);
-      ctx.closePath();
-      ctx.fill();
-      ctx.fillStyle = rgba('#2a2230', 0.3);
-      ctx.beginPath();
-      ctx.moveTo(sx + s * 0.1, sy + s * 1.2);
-      ctx.lineTo(sx + s * 0.7, sy + s * 0.9);
-      ctx.lineTo(sx + s * 0.8, sy + s * 1.15);
-      ctx.lineTo(sx + s * 0.2, sy + s * 1.4);
-      ctx.closePath();
-      ctx.fill();
-    }
-    // scrub on the ledges
-    for (let i = 0; i < 26; i++) {
-      const pts = ledges[Math.floor(r() * ledges.length)];
-      const [sx, sy] = pts[Math.floor(r() * pts.length)];
-      if (sy < 40 || sy > 690) continue;
-      scrub(ctx, r, sx, sy - 1, 2 + (1 - faceDepth(sx)) * 8, faceDepth(sx));
-    }
-    // the near buttress: a spur of the mountain standing out of the face, its front turned to us in shade
+    // the near spur, its front to us in shade
     const bp = polyPath(BUTTRESS);
     castShadow(ctx, bp, 30, 30, 0.35, '#2a2238');
     within(ctx, bp, () => {
@@ -1269,7 +1403,7 @@ function cliff(ctx: Ctx, r: R): void {
           const cx = 1760 + r() * 170;
           const cy = r() * 720;
           const s = 30 + r() * 50;
-          c.fillStyle = r() < 0.5 ? rgba('#c8a898', 0.18) : rgba('#241c24', 0.22);
+          c.fillStyle = r() < 0.5 ? rgba('#c8a898', 0.2) : rgba('#241c24', 0.24);
           c.beginPath();
           c.moveTo(cx - s * 0.5, cy - s * 0.3);
           c.lineTo(cx + s * 0.6, cy - s * 0.1);
@@ -1279,25 +1413,17 @@ function cliff(ctx: Ctx, r: R): void {
           c.fill();
         }
       }, 0.33);
-      let by = 10;
-      while (by < 700) {
-        const h = 40 + r() * 60;
-        ctx.strokeStyle = rgba('#241c24', 0.4);
+      let fy = 30 + r() * 40;
+      while (fy < 680) {
+        const h = 50 + r() * 110;
+        ctx.strokeStyle = rgba('#241c24', 0.42);
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.moveTo(1750, by + h);
-        ctx.lineTo(1840, by + h + 8 + (r() - 0.5) * 8);
-        ctx.lineTo(1930, by + h + 16 + (r() - 0.5) * 8);
+        ctx.moveTo(1760 + r() * 30, fy + h);
+        ctx.lineTo(1850 + r() * 40, fy + h + 8 + (r() - 0.5) * 10);
         ctx.stroke();
-        ctx.strokeStyle = rgba('#d8b8a0', 0.25);
-        ctx.lineWidth = 1.2;
-        ctx.beginPath();
-        ctx.moveTo(1750, by + h - 2);
-        ctx.lineTo(1930, by + h + 14);
-        ctx.stroke();
-        by += h;
+        fy += h;
       }
-      for (let i = 0; i < 8; i++) scrub(ctx, r, 1790 + r() * 120, 80 + r() * 560, 7 + r() * 4, 0.05);
       // its sunward edge catches the dawn
       ctx.strokeStyle = rgba('#ffc896', 0.45);
       ctx.lineWidth = 6;
@@ -1305,129 +1431,169 @@ function cliff(ctx: Ctx, r: R): void {
       BUTTRESS.slice(0, 8).forEach(([px, py], i) => (i ? ctx.lineTo(px + 3, py) : ctx.moveTo(px + 3, py)));
       ctx.stroke();
     });
-    // shade high up (the HUD's corner) and the cool of the shadowed foot
-    vfill(ctx, 1208, 0, 712, 260, [[0, rgba('#2a2238', 0.5)], [1, rgba('#2a2238', 0)]]);
-    vfill(ctx, 1208, 540, 712, 180, [[0, rgba('#3a3050', 0)], [1, rgba('#3a3050', 0.38)]]);
+    // what grows in the crevices, at its own odd spots: maquis, a wild olive, pines leaning out
+    const SPOTS: [number, number, number][] = [[1296, 296, 5], [1322, 470, 7], [1378, 210, 8], [1408, 524, 10], [1474, 384, 11], [1544, 612, 14], [1596, 252, 12], [1632, 476, 15], [1712, 560, 16], [1834, 330, 16], [1880, 604, 17]];
+    for (const [sx, sy, s] of SPOTS) scrub(ctx, r, sx, sy, s, faceDepth(sx));
+    pine(ctx, r, 1452, 306, 1.5, -0.6, faceDepth(1452));
+    pine(ctx, r, 1700, 426, 2.1, -0.45, faceDepth(1700));
+    olive(ctx, r, 1566, 176, 1.3, faceDepth(1566));
+    // the upper reaches fading into the sky's haze, and shade in the top corner (the HUD's)
+    vfill(ctx, 1208, 0, 712, 300, [[0, rgba('#8a84a8', 0.45)], [1, rgba('#8a84a8', 0)]]);
+    vfill(ctx, 1600, 0, 320, 140, [[0, rgba('#241e34', 0.4)], [1, rgba('#241e34', 0)]]);
+    vfill(ctx, 1208, 560, 712, 160, [[0, rgba('#3a3050', 0)], [1, rgba('#3a3050', 0.32)]]);
   });
   // the silhouette's lit edge against the sky
   ctx.save();
   ctx.lineCap = 'round';
-  ctx.strokeStyle = rgba('#ffd8b0', 0.5);
+  ctx.strokeStyle = rgba('#ffd8b0', 0.45);
   ctx.lineWidth = 2.5;
   ctx.beginPath();
   CLIFF_SKY.forEach(([x, y], i) => (i ? ctx.lineTo(x + 1.5, y) : ctx.moveTo(x + 1.5, y)));
   ctx.stroke();
-  ctx.strokeStyle = airMix('#3a2a2e', 0.4, AIR);
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  CLIFF_SKY.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
-  ctx.stroke();
   ctx.restore();
+  // the scree at its foot: a talus of broken stone, fallen blocks lying out on the plain
+  const talus: Pt[] = [];
+  for (const [x, y] of CLIFF_FOOT.slice(0, 7)) talus.push([x + 2, y]);
+  for (const [x, y] of [...CLIFF_FOOT.slice(0, 7)].reverse()) talus.push([x - 6 - (y - HZ) * 0.16, y + 2]);
+  const tp = smoothPath(talus);
+  within(ctx, tp, () => {
+    vfill(ctx, 1210, HZ, 340, 290, [[0, airMix('#c8b8a8', 0.6, AIR)], [1, '#a89480']]);
+    for (let i = 0; i < 260; i++) {
+      const y = HZ + 8 + r() * 274;
+      const x = cliffX(y) - r() * (8 + (y - HZ) * 0.18);
+      const s = 0.6 + (y - HZ) / 80;
+      ctx.fillStyle = rgba('#2a2026', 0.3);
+      ctx.fillRect(x + s * 0.4, y + s * 0.5, s * 2.2, s * 0.6);
+      ctx.fillStyle = r() < 0.5 ? '#e8d6bc' : '#8a7868';
+      ctx.fillRect(x, y, s * 2, s * 1.1);
+    }
+  });
+  const BLOCKS: [number, number, number][] = [[1306, 492, 9], [1352, 532, 12], [1388, 566, 15], [1436, 610, 18], [1470, 648, 16]];
+  for (const [bx, by, s] of BLOCKS) {
+    groundShadow(ctx, bx + s * 0.6, by + 1, s * 1.1, s * 0.25, 0.5, '#2a1e1c');
+    const st = smoothPath([[bx - s, by], [bx - s * 0.9, by - s * 0.8], [bx - s * 0.1, by - s * 1.1], [bx + s * 0.9, by - s * 0.7], [bx + s * 1.1, by]]);
+    const g = ctx.createLinearGradient(bx - s, by - s, bx + s, by);
+    g.addColorStop(0, '#e8d0b0');
+    g.addColorStop(0.5, '#a8927e');
+    g.addColorStop(1, '#5e5060');
+    st(ctx);
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.strokeStyle = '#2a1e22';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+  }
 }
 
 // ——— the hot springs at the cliff's foot ———
 
-export const SPRINGS_BOX: Box = { x: 1600, y: 590, w: 320, h: 176 };
-const APRON: Pt[] = [[1640, 768], [1652, 736], [1682, 702], [1712, 668], [1744, 638], [1774, 614], [1822, 604], [1880, 610], [1930, 620], [1930, 768]];
+const lineAtD = (depth: number) => Math.max(1, 2.4 * (1 - depth * 0.7));
 
-/** The rimstone terraces, back to front: each a shallow pool held behind a curved dam (its middle x, the y of its
- * lip's middle, its width). */
-const TERRACES: [number, number, number][] = [[1830, 632, 116], [1778, 654, 150], [1872, 666, 120], [1748, 682, 170], [1868, 700, 140], [1724, 716, 190], [1850, 734, 190]];
+export const SPRINGS_BOX: Box = { x: 1600, y: 590, w: 320, h: 176 };
+const APRON: Pt[] = [[1640, 768], [1650, 744], [1664, 720], [1690, 700], [1708, 676], [1736, 652], [1768, 628], [1800, 612], [1846, 604], [1892, 610], [1930, 620], [1930, 768]];
+
 /** The vents the steam rises from. */
-export const VENTS: Pt[] = [[1812, 612], [1750, 660], [1890, 634]];
+/** The rim pools, back to front: middle, size (w, h), water in it or dry crust. */
+const POOLS: [number, number, number, number, boolean][] = [[1846, 626, 70, 12, true], [1790, 648, 54, 10, false], [1890, 652, 60, 11, true], [1756, 676, 76, 13, true], [1836, 684, 46, 9, false], [1904, 694, 40, 9, false], [1716, 708, 58, 11, false], [1806, 714, 92, 15, true], [1690, 738, 46, 9, false], [1872, 742, 70, 12, false]];
+
+export const VENTS: Pt[] = [[1830, 612], [1752, 664], [1896, 640], [1800, 700]];
 
 function springs(ctx: Ctx, r: R): void {
-  const ap = polyPath(APRON);
+  const ap = smoothPath(APRON);
   castShadow(ctx, ap, 6, 10, 0.3, '#2a2030');
   within(ctx, ap, () => {
-    // flowstone: cream mineral laid down over the rock in rounded bulges, stained orange where the water runs
-    vfill(ctx, 1600, 600, 320, 168, [[0, '#d4c2a4'], [0.5, '#bca482'], [1, '#9a8064']]);
-    surface(ctx, r, SPRINGS_BOX, '#c0a888', { over: true, vary: 0.45, cells: 3, mottle: 0.5, strokes: 1.2, strokeAng: 1.5, strokeLen: 30, strokeW: 4, grain: 0.18, grainKind: 'speckle', seed: 71 });
+    // the crust: creamy travertine laid down over the rock in rounded lobes, ochre where the water runs
+    vfill(ctx, 1600, 600, 320, 168, [[0, '#e2d4ba'], [0.5, '#d0bc98'], [1, '#a89070']]);
+    surface(ctx, r, SPRINGS_BOX, '#d4c09e', { over: true, vary: 0.45, cells: 3, mottle: 0.5, strokes: 1, strokeAng: 1.5, strokeLen: 30, strokeW: 4, grain: 0.16, grainKind: 'speckle', seed: 71 });
+    // lobes of flowstone bulging down the slope, each lit on its top left
+    for (let i = 0; i < 26; i++) {
+      const x = 1660 + r() * 270;
+      const y = 620 + r() * 140;
+      const s = 8 + r() * 16;
+      const g = ctx.createRadialGradient(x - s * 0.3, y - s * 0.3, 0, x, y, s);
+      g.addColorStop(0, rgba('#fff6e6', 0.35));
+      g.addColorStop(0.6, rgba('#e8d8bc', 0.12));
+      g.addColorStop(1, rgba('#8a6a4a', 0.2));
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.ellipse(x, y, s * 1.4, s, 0, 0, P2);
+      ctx.fill();
+    }
+    // streaks where the water runs: ochre, rust, and the sulphur's yellow by the vents
     ctx.lineCap = 'round';
-    for (let i = 0; i < 80; i++) {
-      const x = 1650 + r() * 280;
-      const y = 610 + r() * 130;
-      ctx.strokeStyle = rgba(r() < 0.6 ? '#b8682e' : '#6a4430', 0.18 + r() * 0.25);
+    for (let i = 0; i < 70; i++) {
+      const x = 1660 + r() * 270;
+      const y = 612 + r() * 130;
+      const k = r();
+      ctx.strokeStyle = rgba(k < 0.45 ? '#c8843e' : k < 0.75 ? '#8a5a3a' : '#e2cc4a', 0.2 + r() * 0.25);
       ctx.lineWidth = 1.5 + r() * 4;
       ctx.beginPath();
       ctx.moveTo(x, y);
-      ctx.lineTo(x + (r() - 0.5) * 6, y + 10 + r() * 30);
+      ctx.bezierCurveTo(x + (r() - 0.5) * 6, y + 10, x + (r() - 0.5) * 8, y + 20, x + (r() - 0.5) * 6, y + 14 + r() * 30);
       ctx.stroke();
     }
     crevice(ctx, 1600, 1930, 604, 16, 0.4, '#2a2030');
-    for (const [cx, ly, w] of TERRACES) {
-      const hw = w / 2;
-      const lip = (x: number) => ly - ((x - cx) / hw) ** 2 * 8;
-      const x0 = cx - hw;
-      const x1 = cx + hw;
-      const dam = (x: number) => 15 + (1 - ((x - cx) / hw) ** 2) * 7 + Math.sin(x * 0.31) * 2.5;
-      // the dam's face below the lip: travertine bulging in rounded lobes, cream at the lip, stained orange and rust
-      // below, wet where the water slips over it
-      const face = (c: Ctx) => {
-        c.beginPath();
-        c.moveTo(x0, lip(x0));
-        for (let x = x0; x <= x1; x += 5) c.lineTo(x, lip(x));
-        for (let x = x1; x >= x0; x -= 5) c.lineTo(x, lip(x) + dam(x));
-        c.closePath();
-      };
-      castShadow(ctx, face, 5, 6, 0.35, '#2a1a18');
-      const lg = ctx.createLinearGradient(0, ly - 6, 0, ly + 22);
-      lg.addColorStop(0, '#e6d8bc');
-      lg.addColorStop(0.35, '#c8a87a');
-      lg.addColorStop(0.75, '#9a6a46');
-      lg.addColorStop(1, '#5e4232');
-      face(ctx);
-      ctx.fillStyle = lg;
+    // the rim pools: each held behind a rounded, scalloped lip of crust
+    for (const [cx, cy, w, h, wet] of POOLS) {
+      const rp = rng(hashStr('hg:pool' + cx));
+      const rim: Pt[] = [];
+      for (let k = 0; k < 14; k++) {
+        const a = (k / 14) * P2;
+        const wob = 1 + (rp() - 0.5) * 0.22;
+        rim.push([cx + Math.cos(a) * w * wob, cy + Math.sin(a) * h * wob]);
+      }
+      const rimP = smoothPath(rim);
+      // its lip's outer face below it: crust bulging over, stained ochre, darker where wet
+      ctx.save();
+      ctx.translate(0, h * 0.5);
+      castShadow(ctx, rimP, 4, 6, 0.3, '#3a2418');
+      rimP(ctx);
+      const fg = ctx.createLinearGradient(0, cy - h, 0, cy + h * 1.4);
+      fg.addColorStop(0, '#efe2c6');
+      fg.addColorStop(0.6, '#d8b888');
+      fg.addColorStop(1, wet ? '#a8784e' : '#b89060');
+      ctx.fillStyle = fg;
       ctx.fill();
-      within(ctx, face, () => {
-        // the lobes: rounded bulges, each lit on its left, shaded on its right
-        for (let x = x0 + 4; x < x1; x += 9 + r() * 6) {
-          const g = ctx.createLinearGradient(x - 5, 0, x + 5, 0);
-          g.addColorStop(0, rgba('#fff0d8', 0.3));
-          g.addColorStop(0.5, rgba('#fff0d8', 0));
-          g.addColorStop(1, rgba('#3a2018', 0.3));
-          ctx.fillStyle = g;
-          ctx.fillRect(x - 5, lip(x), 10, dam(x) + 2);
-        }
-        ctx.strokeStyle = rgba('#e8fff8', 0.4);
-        ctx.lineWidth = 1;
-        for (let x = x0 + 6; x < x1; x += 7 + r() * 12) {
-          ctx.beginPath();
-          ctx.moveTo(x, lip(x));
-          ctx.lineTo(x + (r() - 0.5) * 2, lip(x) + 6 + r() * 12);
-          ctx.stroke();
-        }
-      });
-      // the pool on top: a thin sheet of milky water seen at a low angle, the dawn in it
-      const pool = (c: Ctx) => {
-        c.beginPath();
-        c.moveTo(x0 + 4, lip(x0 + 4) - 1);
-        for (let x = x0 + 4; x <= x1 - 4; x += 5) c.lineTo(x, lip(x) - 1.5);
-        for (let x = x1 - 4; x >= x0 + 4; x -= 5) c.lineTo(x, lip(x) - 1.5 - (1 - ((x - cx) / hw) ** 2) * 7);
-        c.closePath();
-      };
-      const pg = ctx.createLinearGradient(0, ly - 10, 0, ly);
-      pg.addColorStop(0, '#d8d8cc');
-      pg.addColorStop(0.5, '#8ec4bc');
-      pg.addColorStop(1, '#5a9a9c');
-      pool(ctx);
-      ctx.fillStyle = pg;
+      ctx.restore();
+      // the rim's lit top edge and the pool inside it
+      rimP(ctx);
+      ctx.fillStyle = '#f4ead6';
       ctx.fill();
-      ctx.strokeStyle = rgba('#fffaf0', 0.6);
-      ctx.lineWidth = 1.3;
-      ctx.beginPath();
-      for (let x = x0; x <= x1; x += 5) (x === x0 ? ctx.moveTo(x, lip(x) - 0.5) : ctx.lineTo(x, lip(x) - 0.5));
+      const inner = smoothPath(rim.map(([x, y]) => [cx + (x - cx) * 0.84, cy + (y - cy) * 0.74 + 1] as Pt));
+      inner(ctx);
+      if (wet) {
+        const pg = ctx.createLinearGradient(0, cy - h, 0, cy + h);
+        pg.addColorStop(0, '#d8e4dc');
+        pg.addColorStop(0.45, '#8ccac2');
+        pg.addColorStop(1, '#4e9a9e');
+        ctx.fillStyle = pg;
+        ctx.fill();
+        within(ctx, inner, () => {
+          lightPool(ctx, cx - w * 0.3, cy - h * 0.3, w * 0.4, h * 0.3, '#ffe0c8', 0.35);
+          ctx.fillStyle = rgba('#ffffff', 0.4);
+          for (let i = 0; i < 4; i++) ctx.fillRect(cx - w * 0.6 + rp() * w * 1.2, cy - h * 0.4 + rp() * h * 0.8, 4 + rp() * 10, 1);
+        });
+      } else {
+        const pg = ctx.createLinearGradient(0, cy - h, 0, cy + h);
+        pg.addColorStop(0, '#b89868');
+        pg.addColorStop(1, '#d8c098');
+        ctx.fillStyle = pg;
+        ctx.fill();
+      }
+      ctx.strokeStyle = rgba('#6a5038', 0.45);
+      ctx.lineWidth = 1;
+      rimP(ctx);
       ctx.stroke();
     }
-    // the vents: dark mouths in the cliff's foot, the mineral bright round them
+    // the vents: dark mouths, the sulphur's yellow crusted round them
     for (const [vx, vy] of VENTS) {
-      lightPool(ctx, vx, vy + 2, 26, 8, '#fff8e8', 0.3, 'source-over');
+      lightPool(ctx, vx, vy + 2, 22, 7, '#f0d850', 0.35, 'source-over');
       ctx.fillStyle = '#24323a';
       ctx.beginPath();
-      ctx.ellipse(vx, vy, 8, 3, 0, 0, P2);
+      ctx.ellipse(vx, vy, 7, 2.6, 0, 0, P2);
       ctx.fill();
     }
-    vfill(ctx, 1600, 700, 320, 68, [[0, rgba('#1e1828', 0)], [1, rgba('#1e1828', 0.3)]]);
+    vfill(ctx, 1600, 700, 320, 68, [[0, rgba('#1e1828', 0)], [1, rgba('#1e1828', 0.28)]]);
   });
 }
 
@@ -2378,7 +2544,7 @@ function shadeOver(ctx: Ctx): void {
 // ——— frames for the live layer ———
 
 const ROCK_PATHS = ROCKS_NEAR.map((p) => polyPath(p));
-const BURSTS: [number, number, number, number][] = [[152, 546, 78, 0.36], [80, 584, 112, 0.44], [262, 656, 84, 0.54]];
+const BURSTS: [number, number, number, number][] = [[156, 548, 78, 0.36], [84, 586, 112, 0.44], [262, 660, 84, 0.54]];
 const RS = 0.5;
 
 /** A heap of foam (its blobs: x, y, radius, alpha): one soft white mass, blue-grey in its lower right shade. */
@@ -2493,7 +2659,7 @@ function surfFrame(c: Ctx, ph: number): void {
         const y = by + 10 - s * bh * rise;
         const x = bx - 10 + (br() - 0.5) * (30 + s * bh * 1.1 * (0.4 + u)) + s * bh * 0.35 * (0.3 + u);
         const rad = (5 + br() * 10) * (0.8 + s * 0.7) * (0.6 + u) * (bh / 120);
-        blobs.push([x, y, rad, fade * (0.75 - s * 0.45) * (0.6 + br() * 0.4)]);
+        blobs.push([x, y, rad, fade * (0.62 - s * 0.38) * (0.6 + br() * 0.4)]);
       }
       for (let k = 0; k < 16; k++) {
         const x = bx + (br() - 0.5) * 110 * (0.5 + u * 0.7);
@@ -2509,7 +2675,7 @@ function surfFrame(c: Ctx, ph: number): void {
         for (let j = 0; j < 6; j++) {
           const f0 = j / 6;
           const f1 = (j + 1) / 6;
-          c.strokeStyle = rgba('#ffffff', fade * 0.55 * (1 - f0));
+          c.strokeStyle = rgba('#ffffff', fade * 0.4 * (1 - f0));
           c.lineWidth = (7 - f0 * 6) * (bh / 120);
           c.beginPath();
           c.moveTo(x0 + Math.cos(ang) * len * f0, y0 + Math.sin(ang) * len * f0 + f0 * f0 * u * 30);
@@ -2875,7 +3041,7 @@ registerKitScene(HOTGATES, (k: KitLive, wave0: number) => {
       c.scale(STM_R, STM_R);
       steamPuffs(c, STEAM_F.w, STEAM_F.h, ph, i);
     });
-    return new Loop(k, key, 10, x, y + 6, { into: top, origin: [0.5, 1], scale: 1 / STM_R, fps: 1.2 + i * 0.25, phase: (i * 0.37 + 0.2) * 10 });
+    return new Loop(k, key, 10, x, y + 6, { into: top, origin: [0.5, 1], scale: 1.15 / STM_R, fps: 1.2 + i * 0.25, phase: (i * 0.37 + 0.2) * 10 });
   });
 
   // ——— the arrows: a cloud of them in flight, single arrows coming down, arrows stuck in the plain ———
@@ -3193,7 +3359,7 @@ registerKitScene(HOTGATES, (k: KitLive, wave0: number) => {
       // the springs' steam: thick in the cool of dawn and dusk, thin in the noon heat
       for (const st of steams) {
         st.step(dt, (1 + gust * 0.3) * cm);
-        st.alpha = 0.9 - noonK * 0.45 - arrowK * 0.2;
+        st.alpha = 0.95 - noonK * 0.55 - arrowK * 0.25;
         st.each((im) => im.setTint(lightTint));
       }
 
