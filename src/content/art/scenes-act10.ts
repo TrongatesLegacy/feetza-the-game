@@ -5,7 +5,7 @@
 
 import type { GlowSpot } from '../../art/backdrops';
 import { drawBackdrop } from '../../art/backdrops';
-import { registerScene } from '../../art/registry';
+import { registerLegacyScene, registerScene } from '../../art/registry';
 import {
   type Ctx,
   type R,
@@ -238,7 +238,8 @@ function starCounter(ctx: Ctx, r: R, f: number, base: string, gold: string): voi
 }
 
 // ---------------------------------------------------------------------------------------------
-// 19. The Oven Between Worlds
+// 19. The Oven Between Worlds. (The old art: the stage is redrawn with the location kit in scene-oven.ts; this stays
+// for the before/after page, ?dev&stages. FIN.portal above is still the layout the new art and finale.ts share.)
 
 function ovenMouth(ctx: Ctx, r: R, inner: () => void): void {
   const { x, y, rx, ry } = FIN.portal;
@@ -806,7 +807,7 @@ function drawDawnOfTime(ctx: Ctx, r: R): void {
 
 // ---------------------------------------------------------------------------------------------
 
-registerScene('oven', {
+registerLegacyScene('oven', {
   info: {
     name: 'The Oven Between Worlds',
     subtitle: 'Waves 91–94',

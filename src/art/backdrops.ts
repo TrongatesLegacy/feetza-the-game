@@ -4912,7 +4912,10 @@ const REDRAWN = new Set<BackdropId>(['trattoria', 'beach', 'space',
   'cerberus',
   // Hades's arena (the Throne of the Underworld, Act 9), redrawn with the location kit and painted frame animation:
   // scene-hades.ts
-  'hades']);
+  'hades',
+  // the Oven Between Worlds (Stage 19, Act 10), redrawn with the location kit and painted frame animation:
+  // scene-oven.ts
+  'oven']);
 
 // redrawn scenes keep their old info for the before/after page (their old glows and particles with their old art)
 const LEGACY_INFO: Partial<Record<BackdropId, BackdropInfo>> = {};

@@ -245,12 +245,14 @@ export class Finale {
     return this.bg;
   }
 
-  /** Keep a layer of ours just above the backdrop images (and under its light glows). */
-  private place(o: Phaser.GameObjects.GameObject): void {
+  /** Keep a layer of ours just above the backdrop images (and under its light glows). With `over`, over the
+   * whole backdrop, its live layer too (a memory hides the Oven's moving parts until it flickers back to them). */
+  private place(o: Phaser.GameObjects.GameObject, over = false): void {
     const bg = this.layer();
     if (!bg) return;
     if (!bg.exists(o)) bg.add(o);
-    bg.moveBelow(o as never, bits(this.sc).backdrop.glowLayer as never);
+    if (over) bg.bringToTop(o as never);
+    else bg.moveBelow(o as never, bits(this.sc).backdrop.glowLayer as never);
   }
 
   /** Called when each wave begins (after the backdrop is set). */
@@ -284,8 +286,8 @@ export class Finale {
       this.memImg = this.sc.add.image(W / 2, H / 2, '__DEFAULT').setAlpha(0);
       if (!this.sc.textures.exists('fin_memframe')) addCanvas(this.sc, 'fin_memframe', memFrame());
       this.memFrameImg = this.sc.add.image(W / 2, H / 2, 'fin_memframe').setAlpha(0);
-      this.place(this.memImg);
-      this.place(this.memFrameImg);
+      this.place(this.memImg, true);
+      this.place(this.memFrameImg, true);
       this.memFx = glitchOn(this.sc, this.memImg);
     }
     const img = this.memImg;
