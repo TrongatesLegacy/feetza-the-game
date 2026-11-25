@@ -4918,7 +4918,10 @@ const REDRAWN = new Set<BackdropId>(['trattoria', 'beach', 'space',
   'oven',
   // the Sole Proprietor's arena (the Proprietor's Office, Act 10), redrawn with the location kit and painted frame
   // animation: scene-soleprop.ts
-  'soleprop']);
+  'soleprop',
+  // the First Pizzeria (Stage 20, Act 10's last stage), redrawn with the location kit and painted frame animation:
+  // scene-firstpizzeria.ts
+  'firstpizzeria']);
 
 // redrawn scenes keep their old info for the before/after page (their old glows and particles with their old art)
 const LEGACY_INFO: Partial<Record<BackdropId, BackdropInfo>> = {};

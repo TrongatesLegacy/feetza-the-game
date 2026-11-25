@@ -165,16 +165,32 @@ function memFrame(): HTMLCanvasElement {
   return c;
 }
 
-/** The dawn creeping up the First Pizzeria's sky, wave by wave. */
+/** The dawn creeping up the First Pizzeria's sky, wave by wave: warmest on the horizon where the sun is coming up
+ * (FIN.sun), rose higher up, a little warmth over the land and the wall below it, gone by the table. */
 function dawnGlow(): HTMLCanvasElement {
   const [c, ctx] = makeCanvas(W, 780);
+  const hy = FIN.sun.y / 780;
   const g = ctx.createLinearGradient(0, 0, 0, 780);
   g.addColorStop(0, 'rgba(90,120,220,0)');
-  g.addColorStop(0.45, 'rgba(140,120,220,0.25)');
-  g.addColorStop(0.75, 'rgba(255,150,100,0.75)');
-  g.addColorStop(1, 'rgba(255,210,140,0.9)');
+  g.addColorStop(hy * 0.45, 'rgba(150,120,220,0.14)');
+  g.addColorStop(hy * 0.85, 'rgba(255,150,120,0.42)');
+  g.addColorStop(hy, 'rgba(255,190,130,0.52)');
+  g.addColorStop(hy + 0.12, 'rgba(255,180,120,0.26)');
+  g.addColorStop(1, 'rgba(255,170,110,0)');
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, W, 780);
+  // brighter towards the sunrise
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.translate(FIN.sun.x, FIN.sun.y);
+  ctx.scale(1, 0.3);
+  const s = ctx.createRadialGradient(0, 0, 0, 0, 0, 1000);
+  s.addColorStop(0, 'rgba(255,200,140,0.24)');
+  s.addColorStop(0.4, 'rgba(255,170,120,0.14)');
+  s.addColorStop(1, 'rgba(255,160,120,0)');
+  ctx.fillStyle = s;
+  ctx.fillRect(-1000, -1000, 2000, 2000);
+  ctx.restore();
   return c;
 }
 

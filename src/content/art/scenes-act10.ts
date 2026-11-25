@@ -57,6 +57,8 @@ export const FIN = {
   wall: { x0: 230, x1: 1400, y0: 450, y1: 740 },
   /** The beehive oven at the First Pizzeria (its mouth glows), in front of the wall's right end. */
   hive: { x: 1665, y: 570, r: 210 },
+  /** Where the sun comes up over the First Pizzeria's horizon (its dawn glow is shaped round it). */
+  sun: { x: 640, y: 318 },
   front: 1036,
 };
 
@@ -572,7 +574,8 @@ function drawOffice(ctx: Ctx, r: R): void {
 }
 
 // ---------------------------------------------------------------------------------------------
-// 20. The First Pizzeria
+// 20. The First Pizzeria. (The old art: the stage is redrawn with the location kit in scene-firstpizzeria.ts; this
+// stays for the before/after page, ?dev&stages. Its sky, hills, wall and oven are still the Dawn of Time's, below.)
 
 /** The night sky at the dawn of time: a huge Milky Way. `torn` opens a rift for the final fight. */
 function dawnSky(ctx: Ctx, r: R, torn: boolean): void {
@@ -832,7 +835,7 @@ registerLegacyScene('soleprop', {
   draw: drawOffice,
 });
 
-registerScene('firstpizzeria', {
+registerLegacyScene('firstpizzeria', {
   info: {
     name: 'The First Pizzeria',
     subtitle: 'Waves 96–99',
