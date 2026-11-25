@@ -80,7 +80,9 @@ registerLegacyLive('hotgates', (ctx: LiveCtx): LiveScene => {
   };
 });
 
-registerLive('immortalbrute', (ctx: LiveCtx): LiveScene => {
+// (redrawn with the location kit in src/content/art/scene-immortalbrute.ts, whose own live layer marches the torch
+// column up the switchbacks and drifts the mist; this old layer stays for the before/after page, ?dev&stages)
+registerLegacyLive('immortalbrute', (ctx: LiveCtx): LiveScene => {
   const k = new NzKit(ctx.sc, ctx.layer);
   const flames = GP.torches.map(([x, y]) => k.img('glow', x, y - 6, { tint: 0xff9a3a, add: true, alpha: 0.6, sx: 0.5 }));
   for (const [x, y] of GP.torches) {

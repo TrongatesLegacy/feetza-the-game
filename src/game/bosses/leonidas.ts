@@ -1,7 +1,8 @@
 // Boss brains for King Leonidas's nemesis at the Hot Gates (src/game/nemesis.ts): the Immortal Brute (mini, wave 83)
 // and Xerxes (wave 85), met only with King Leonidas (or Leonidas, Hot Gates) equipped. Shared helpers are in ./nzkit.ts
-// and ./kit.ts; props are in src/content/props/leonidas.ts and the arenas in src/content/art/scenes-leonidas.ts. The
-// horde's adds are the Persian army's own Immortal Sandals and the war elephants are Persian Elephant Feet.
+// and ./kit.ts; props are in src/content/props/leonidas.ts and the arenas in src/content/art/scenes-leonidas.ts and
+// scene-immortalbrute.ts (the Brute's arena, which answers his moves: see the scene events below). The horde's adds
+// are the Persian army's own Immortal Sandals and the war elephants are Persian Elephant Feet.
 //
 // Choices the spec left open (numbers are Regular; heat() scales them):
 // - The Immortal Brute: THE IMMORTAL HORDE (a war horn and 4 Immortal Sandals march in; while two or more stand he
@@ -64,6 +65,8 @@ const immortalbrute = (): Brain => {
   const march = (f: Foot, a: Arena) => {
     const h = heat(a);
     a.sfx('sfx_immortalbrute_horde');
+    // (the Goat Path, src/content/art/scene-immortalbrute.ts, listens: the torch column surges, the horn echoes)
+    a.sc.events.emit('brute-horde');
     a.quip(f.x, Math.max(SAFE_TOP + 40, f.cy - 180), 'THE HORDE MARCHES!', '#e8e4dc', 44);
     const n = f.phase >= 2 ? h.adds(2) : h.adds(3);
     // he rises to the top of a lane and holds there, horn up, while they march in
@@ -96,6 +99,8 @@ const immortalbrute = (): Brain => {
     const t0 = a.now();
     whirling = true;
     a.sfx('sfx_immortalbrute_whirl');
+    // (the Goat Path's trees thrash)
+    a.sc.events.emit('brute-whirl', x);
     a.quip(x, y - 140, 'WHIRL!', '#c9c4bc', 40);
     const chain = a.sc.add.graphics();
     a.fxLayer.add(chain);
@@ -170,6 +175,8 @@ const immortalbrute = (): Brain => {
     const sec = h.windup(1.8);
     const t0 = a.now();
     a.sfx('sfx_immortalbrute_roar', { rate: 0.8 });
+    // (a cold gust through the Goat Path: the moonlight dims, the torches gutter, the sentry's embers flare)
+    a.sc.events.emit('brute-feed');
     a.quip(f.x, Math.max(SAFE_TOP + 40, f.cy - 180), 'FEED ME!', '#ff6a5a', 42);
     a.quip(victim.x, Math.max(SAFE_TOP + 40, victim.cy - 150), 'SMACK IT!', '#ffd23f', 32);
     victim.brain.hooked = 1;

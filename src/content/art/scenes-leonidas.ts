@@ -8,8 +8,8 @@
 //   winding up it.
 // - The God-King's Pavilion (Xerxes, wave 85): a golden canopy over a towering throne on a stepped platform, braziers
 //   and the banners of the whole empire behind it.
-// Every emblem is our own. The Hot Gates is redrawn with the location kit (scene-hotgates.ts): its old art here stays
-// for the before/after page.
+// Every emblem is our own. The Hot Gates and the Goat Path are redrawn with the location kit (scene-hotgates.ts,
+// scene-immortalbrute.ts): their old art here stays for the before/after page.
 
 import type { GlowSpot } from '../../art/backdrops';
 import { registerLegacyScene, registerScene } from '../../art/registry';
@@ -419,7 +419,8 @@ registerLegacyScene('hotgates', {
   draw: drawHotGates,
 });
 
-registerScene('immortalbrute', {
+// (redrawn with the location kit in scene-immortalbrute.ts; this stays for the before/after page, ?dev&stages)
+registerLegacyScene('immortalbrute', {
   info: {
     name: 'The Goat Path',
     subtitle: 'Mini-boss: THE IMMORTAL BRUTE',

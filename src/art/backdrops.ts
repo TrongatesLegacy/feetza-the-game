@@ -4931,6 +4931,9 @@ const REDRAWN = new Set<BackdropId>(['trattoria', 'beach', 'space',
   // the Hot Gates (King Leonidas's nemesis stage, in place of the Labyrinth), redrawn with the location kit and painted
   // frame animation: scene-hotgates.ts
   'hotgates',
+  // the Goat Path (the Immortal Brute's arena, the mini-boss of the Hot Gates), redrawn with the location kit and painted
+  // frame animation: scene-immortalbrute.ts
+  'immortalbrute',
   // Bunion's arena (The Pit, the mini-boss of Batpeel's nemesis stage), redrawn with the location kit and painted frame
   // animation: scene-bunion.ts
   'bunion',
