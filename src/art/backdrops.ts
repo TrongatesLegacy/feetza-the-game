@@ -16,7 +16,7 @@ export type LocationId = 'trattoria' | 'rooftop' | 'beach' | 'diner' | 'lodge' |
   | 'tartarus'
   // Act 10 · Finale (src/content/art/scenes-act10.ts)
   | 'oven' | 'firstpizzeria'
-  // ——— Nemesis stages (src/game/nemesis.ts; scenes in src/content/art/scenes-gotham.ts) ———
+  // ——— Nemesis stages (src/game/nemesis.ts; scenes in src/content/art/scenes-gotham.ts and scene-gotham.ts) ———
   | 'gotham'
   // King Leonidas's Hot Gates (src/content/art/scenes-leonidas.ts)
   | 'hotgates';
@@ -4924,7 +4924,10 @@ const REDRAWN = new Set<BackdropId>(['trattoria', 'beach', 'space',
   'firstpizzeria',
   // the Sole Proprietor Unbound's arena (the Dawn of Time, Act 10, the last fight: the First Pizzeria torn apart),
   // redrawn with the location kit and painted frame animation: scene-soleunbound.ts
-  'soleunbound']);
+  'soleunbound',
+  // Goth-Ham Rooftops (Batpeel's nemesis stage, in place of Stage 12), redrawn with the location kit and painted frame
+  // animation: scene-gotham.ts
+  'gotham']);
 
 // redrawn scenes keep their old info for the before/after page (their old glows and particles with their old art)
 const LEGACY_INFO: Partial<Record<BackdropId, BackdropInfo>> = {};

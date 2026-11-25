@@ -3,10 +3,11 @@
 // wave 65). A gothic night city in cold blues under a storm, still printed like the act's pulp comic. Rain, the
 // drifting cloud over the moon, the searchlight and its pizza-slice signal, lightning, dripping gargoyles and the
 // funhouse bulbs are live layers on top (src/content/live/gotham.ts), and the weather worsens wave by wave.
-// Every emblem and sign is our own.
+// Every emblem and sign is our own. Goth-Ham Rooftops is redrawn with the location kit (scene-gotham.ts): its old art
+// here stays for the before/after page.
 
 import type { GlowSpot } from '../../art/backdrops';
-import { registerScene } from '../../art/registry';
+import { registerLegacyScene, registerScene } from '../../art/registry';
 import {
   type Ctx,
   type R,
@@ -612,7 +613,8 @@ function drawFunhouse(ctx: Ctx, r: R): void {
 
 // ---------------------------------------------------------------------------------------------
 
-registerScene('gotham', {
+// (redrawn with the location kit in scene-gotham.ts; this stays for the before/after page, ?dev&stages)
+registerLegacyScene('gotham', {
   info: {
     name: 'Goth-Ham Rooftops',
     subtitle: 'Waves 61–64 · with Batpeel',

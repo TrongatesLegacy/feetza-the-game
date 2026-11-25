@@ -7,7 +7,7 @@
 import Phaser from 'phaser';
 import { crand } from '../../systems/cosmeticRandom';
 import { makeCanvas } from '../../art/util';
-import { type LiveCtx, type LiveScene, registerLive } from '../../game/liveBackdrop';
+import { type LiveCtx, type LiveScene, registerLegacyLive, registerLive } from '../../game/liveBackdrop';
 import { audio } from '../../systems/audio';
 import { save } from '../../systems/save';
 
@@ -165,8 +165,11 @@ function runWave(sc: Phaser.Scene): number {
 }
 
 // ——— Goth-Ham Rooftops ———
+// (redrawn with the location kit in src/content/art/scene-gotham.ts, whose own live layer runs the rain, the
+// searchlight and its signal, the lightning, the gargoyles' spouts and the storm by wave; this old layer stays for
+// the before/after page, ?dev&stages)
 
-registerLive('gotham', (ctx: LiveCtx): LiveScene => {
+registerLegacyLive('gotham', (ctx: LiveCtx): LiveScene => {
   const k = new Kit(ctx.sc, ctx.layer);
   batTex(k.sc, true);
   batTex(k.sc, false);

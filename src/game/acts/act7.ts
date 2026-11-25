@@ -11,6 +11,8 @@
 //   The Doom Lab         66 lab hum, Tesla arcs · 67 alarm beacons · 68 red alert (Ultoe) · 69 power surges (its
 //                        backdrop, scene-doomlab.ts, runs its vats, arcs, beacons, light and surges when animated;
 //                        the act plays the arcs' zaps and the surges' sound)
+//   Goth-Ham Rooftops (Batpeel's nemesis stage in place of Metropizza: its backdrop, scene-gotham.ts, runs its own
+//                        storm, rain and bolts when animated; the act keeps the bolts' flash and thunder)
 //   Titan's Throne       70 a pulsing nebula and falling stars (Thanfoot; its backdrop, scene-thanfoot.ts, runs its own
 //                        nebula, energy river, shooting stars, halved world and star-fire when animated)
 //
@@ -350,8 +352,8 @@ function setup(a: Arena, layer: Layer, n: number): void {
   const changed = place !== layer.place;
   layer.wave = n;
   // the redrawn backdrops (src/content/art/scene-metropizza.ts, scene-doomlab.ts, scene-doomstomp.ts,
-  // scene-thanfoot.ts) light themselves when animated
-  const live = (place === 'metropizza' || place === 'doomlab' || place === 'doomstomp' || place === 'thanfoot') && backdropsAnimated();
+  // scene-thanfoot.ts, and Batpeel's Goth-Ham Rooftops, scene-gotham.ts) light themselves when animated
+  const live = (place === 'metropizza' || place === 'doomlab' || place === 'doomstomp' || place === 'thanfoot' || place === 'gotham') && backdropsAnimated();
   const light = live ? ([0xffffff, 0] as [number, number]) : (LIGHT[place]?.[Math.min(ws, LIGHT[place].length) - 1] ?? [0xffffff, 0]);
   setLight(layer, light[0], light[1], changed ? 1 : 2000);
   // rebuild the moving parts when the place or the weather changes
@@ -390,6 +392,13 @@ function setup(a: Arena, layer: Layer, n: number): void {
       vatBubbles(a, layer);
       arcs(a, layer, ws >= 4 ? 1.4 : 3.2);
       if (ws >= 2) beacons(a, layer);
+    }
+  } else if (place === 'gotham') {
+    // animated, the backdrop runs its own storm and bolts: the act flashes the screen and thunders when a bolt strikes
+    if (live) {
+      const onBolt = (strong: boolean) => lightning(a, layer, strong);
+      a.sc.events.on('gotham:bolt', onBolt);
+      layer.unhook = () => a.sc.events.off('gotham:bolt', onBolt);
     }
   } else if (place === 'thanfoot') {
     // animated, the backdrop runs its own nebula, energy river and shooting stars; still, the act keeps its nebula
