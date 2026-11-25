@@ -4906,7 +4906,10 @@ const REDRAWN = new Set<BackdropId>(['trattoria', 'beach', 'space',
   // scene-minotaur.ts
   'minotaur',
   // Medusa's arena (Medusa's Garden, Act 9), redrawn with the location kit and painted frame animation: scene-medusa.ts
-  'medusa']);
+  'medusa',
+  // Cerberus's arena (the Gates of Hades, Act 9), redrawn with the location kit and painted frame animation:
+  // scene-cerberus.ts
+  'cerberus']);
 
 // redrawn scenes keep their old info for the before/after page (their old glows and particles with their old art)
 const LEGACY_INFO: Partial<Record<BackdropId, BackdropInfo>> = {};

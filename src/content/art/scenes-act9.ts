@@ -2026,7 +2026,8 @@ registerScene('medusa', {
 }, true);
 
 // =============================================================================================
-// The Gates of Hades (Cerberus)
+// The Gates of Hades (Cerberus). (The old art: the arena is redrawn with the location kit in scene-cerberus.ts; this
+// stays for the before/after page, ?dev&stages.)
 
 const CB = {
   gate: { x0: 640, x1: 1280, top: 170, bot: 640 },
@@ -2204,7 +2205,7 @@ registerScene('cerberus', {
     CB.braziers.map((b) => ({ x: b.x, y: b.y - 92 * b.s, s: b.s, key: TEMPER[b.col].key, cols: TEMPER[b.col].cols, halo: TEMPER[b.col].halo })),
     [{ x: (CB.gate.x0 + CB.gate.x1) / 2, y: CB.gate.bot - 10, r: 360, color: 0xff4a2a, sy: 0.25, speed: 1.1, lo: 0.15, hi: 0.4 }],
   ),
-});
+}, true);
 
 // =============================================================================================
 // Throne of the Underworld (Hades)
