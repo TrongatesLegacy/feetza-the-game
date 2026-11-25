@@ -196,7 +196,7 @@ export const feet: FootType[] = [
     mini: true,
     home: 'bifrost',
     howTo: 'Smack the head when it surfaces. Never smack the coils: they bounce your smack back and stun your peel.',
-    tell: 'The sea boils at a gap in the coils and the crown of its head breaks the surface just before it rises; before it bites it rears back and draws a deep breath, jaws parting.',
+    tell: 'The sea boils at a gap in the coils and the crown of its head breaks the surface just before it rises; before it bites it cocks its head back, draws a deep breath and gapes its jaws wide.',
     quips: ['SSSSURROUNDED.', 'I HOLD THE WORLD.', 'HISSSS!'],
     art: { kind: 'n_jormungandr', skin: '#3f8a6a', primary: '#2f6e56', secondary: '#e8d36a', leg: 'scales', legColor: '#2f6e56' },
   },

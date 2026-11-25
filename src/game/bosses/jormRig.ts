@@ -6,16 +6,23 @@
 //   (glaring, drawing breath, rolled up dazed), the stone lids' blink, three strands of kelp swaying, the foam collar
 //   round the neck, a splash, and the water pouring off the head as it surfaces.
 // - The head is a rig, in three-quarter view, turned towards the pizza it means to bite (flipped to face right): the
-//   maw, the lower jaw swinging round its hinge (the tusk riding on it), the eye under the skull so the brow and lids of
-//   stone overhang it, the skull, the kelp, the embers' glow. The neck is slices of a tiling column laid along a curve
-//   from the water at the gap up into the back of the skull, so it rises and bends like a serpent's. Under the
-//   waterline both are masked off, so the head rises out of and sinks into the sea.
+//   maw, the lower jaw swinging round its hinge (the tusk riding on it, its near teeth standing in front of the upper
+//   lip), the eye under the skull so the brow and lids of stone overhang it, the skull, the kelp (hanging straight down
+//   whichever way the head points), the embers' glow. A smack knocks the snout up and it swings back on its neck.
+// - The body is ONE tube (a Rope: the hide strip laid along a spine, by arc length) from inside the back of the skull,
+//   through the neck's S, down into the sea behind the coils. Its last stretch runs along the head's own axis, so the
+//   head always carries straight on out of it and points the way the body goes (a snake, not a head on a column). It
+//   is slimmest just behind the jaw and thickens into the body; its back is on the outside of the curves and its belly
+//   on the inside; where it bends tighter than it's thick its inner side is gathered in so it never folds. It comes
+//   out of the water behind the head, wherever the head has swum to, with a foam ring where it breaks the surface.
+//   Under the waterline the head and body are masked off, so they rise out of and sink into the sea. (Without WebGL,
+//   which a Rope needs, slices of the neck's tile are laid along the same spine.)
 // - Particles (steam from the nostrils, drawn in as he inhales; drips off the kelp and the chin) are its own.
 //
 // Cosmetic randomness only through crand(); the fight's rules stay in the brain.
 
 import Phaser from 'phaser';
-import { CASCADE, COIL, COLLAR, EYE, FAR_EYE, HEAD_O, HINGE, JAW_MAX, KELP, KELP_F, MAW, MAW_N, NECK, NOSES, SK, SOCKET, SPLASH, TUSK, WRAP, coilHit, headHit, jawTurn, lowLipY, paintCascade, paintChip, paintCoil, paintCollar, paintEye, paintGlow, paintKelp, paintLid, paintLowerJaw, paintMaw, paintNeck, paintSkull, paintSplash, paintTusk, paintWrap, wrapHit } from '../../content/art/jormungandr';
+import { CASCADE, COIL, COLLAR, EYE, FAR_EYE, HEAD_O, HINGE, JAW_MAX, KELP, KELP_F, MAW, MAW_N, BODY, MOUTH_PT, NECK, NECK_AT_HEAD, NOSES, SK, SOCKET, SPLASH, TUSK, WRAP, coilHit, headHit, jawTurn, lowLipY, paintCascade, paintChip, paintCoil, paintCollar, paintEye, paintGlow, paintKelp, paintLid, paintLowerJaw, paintLowerTeeth, paintMaw, paintNape, paintNeck, paintBodyStrip, paintSkull, paintSplash, paintTusk, paintWrap, wrapHit } from '../../content/art/jormungandr';
 import { makeCanvas, type Ctx } from '../../art/util';
 import { crand } from '../../systems/cosmeticRandom';
 import type { Arena } from '../arena';
@@ -27,10 +34,29 @@ type Img = Phaser.GameObjects.Image;
 /** The head on screen: its scale. */
 export const HEAD_S = 0.84;
 /** The head's resting tilt (snout down towards the table). */
-export const HEAD_TILT = 0.2;
+export const HEAD_TILT = 0.35;
 const KELP_N = 8;
-/** Slices of the neck along its curve. */
-const NECK_N = 14;
+/** Slices of the neck along its curve (only without WebGL: with it the body is one tube, a Rope of BODY_N points). */
+const NECK_N = 32;
+const BODY_N = 96;
+/** How thick the body is (against its tile) where it's thickest, low down towards the water. */
+const BODY_W = 1.2;
+
+/** Where the mouth is from the head's middle (screen px) for a head facing `face`, tilted by `tilt`, at extra scale
+ * `scale`: so the brain can aim the bite and spit from the mouth. */
+export function mouthOffset(face: number, tilt: number, scale = 1): [number, number] {
+  const k = HEAD_S * scale;
+  const side = face > 0 ? -1 : 1;
+  const rot = -tilt * side;
+  const dx = (MOUTH_PT[0] - HEAD_O.x) * k * side;
+  const dy = (MOUTH_PT[1] - HEAD_O.y) * k;
+  return [dx * Math.cos(rot) - dy * Math.sin(rot), dx * Math.sin(rot) + dy * Math.cos(rot)];
+}
+
+/** The tilt that points the snout from (x, y) at (tx, ty) for a head facing `face` (radians, + snout down). */
+export function aimTilt(face: number, x: number, y: number, tx: number, ty: number): number {
+  return Math.atan2(ty - y, Math.max(1, face * (tx - x)));
+}
 
 /** Coil centres along the back edge: midway between the gaps (330, 760, 1160, 1590) and out at the ends. */
 export const COIL_XS = [96, 545, 960, 1375, 1824];
@@ -108,10 +134,13 @@ export class SerpentRig {
   coils: { f: Fade; ph: number; spd: number; flip: boolean; s: number; x: number }[] = [];
   private coilRoot!: Phaser.GameObjects.Container;
   private neck: Phaser.GameObjects.TileSprite[] = [];
+  /** The body: one tube from inside the back of the skull, through the neck's curve, down under the sea (WebGL). */
+  private tube: Phaser.GameObjects.Rope | null = null;
   private collar: Fade | null = null;
   private head: Phaser.GameObjects.Container | null = null;
   private maw!: Fade;
   private jaw!: Img;
+  private lteeth!: Img;
   private tusk!: Img;
   private eye!: Img;
   private lid!: Img;
@@ -194,6 +223,7 @@ export class SerpentRig {
     this.steps.push(() => this.raiseCoils());
     this.still('jsr_skull', paintSkull);
     this.still('jsr_ljaw', paintLowerJaw);
+    this.still('jsr_lteeth', paintLowerTeeth);
     this.sheet('jsr_maw', MAW.w, MAW.h, MAW_N, (g, i) => {
       g.translate(-MAW.x, -MAW.y);
       paintMaw(g, i / (MAW_N - 1));
@@ -212,6 +242,12 @@ export class SerpentRig {
     });
     for (let k = 0; k < 3; k++) this.sheet(`jsr_kelp${k}`, KELP_F[k].w, KELP_F[k].h, KELP_N, (g, i) => paintKelp(g, k, i / KELP_N), KELP_N);
     this.still('jsr_neck', paintNeck);
+    this.still('jsr_body', paintBodyStrip);
+    this.still('jsr_nape', () => {
+      const [c, g] = makeCanvas(SK.w, SK.h);
+      paintNape(g);
+      return c;
+    });
     this.sheet('jsr_collar', COLLAR.w, COLLAR.h, COLLAR.n, (g, i) => paintCollar(g, i / COLLAR.n), 4);
     this.sheet('jsr_splash', SPLASH.w, SPLASH.h, SPLASH.n, (g, i) => paintSplash(g, i / (SPLASH.n - 1)), 4);
     const cw = Math.ceil(SK.w * CASCADE.k);
@@ -260,18 +296,31 @@ export class SerpentRig {
     const root = this.a.underLayer;
     const ox = -HEAD_O.x;
     const oy = -HEAD_O.y;
-    // the neck: slices along its curve (behind the head)
-    for (let i = 0; i < NECK_N; i++) {
-      const n = sc.add.tileSprite(0, 0, NECK.w, 10, 'jsr_neck').setOrigin(NECK.cx / NECK.w, 0).setVisible(false);
-      n.setMask(this.mask);
-      root.add(n);
-      this.neck.push(n);
-    }
+    // the body: one tube along its spine, behind the head and behind the coils (it rises out of the sea beyond them);
+    // without WebGL, slices of the neck's tile along it
+    const behind = root.getIndex(this.coilRoot);
+    if (sc.sys.renderer.type === Phaser.WEBGL) {
+      // (a count of points is a valid argument at run time, though the typings only allow an array)
+      const tube = sc.add.rope(0, 0, 'jsr_body', undefined, BODY_N as unknown as Phaser.Types.Math.Vector2Like[]).setVisible(false);
+      tube.setMask(this.mask);
+      root.addAt(tube, behind);
+      this.tube = tube;
+    } else
+      for (let i = 0; i < NECK_N; i++) {
+        const n = sc.add.tileSprite(0, 0, NECK.w, 10, 'jsr_neck').setOrigin(NECK.cx / NECK.w, 0).setVisible(false);
+        n.setMask(this.mask);
+        root.addAt(n, behind + i);
+        this.neck.push(n);
+      }
     this.collar = new Fade(sc, 'jsr_collar', root, 0, 0, 0.5, COLLAR.y / COLLAR.h);
+    // (its foam ring is behind the coils too)
+    this.collar.each((im) => root.moveTo(im, root.getIndex(this.coilRoot)));
     this.collar.each((im) => im.setVisible(false));
     const head = sc.add.container(0, 0).setVisible(false);
     this.head = head;
     root.add(head);
+    // the shadow the back of the skull throws on the neck running in under it
+    head.add(sc.add.image(ox, oy, 'jsr_nape').setOrigin(0, 0).setAlpha(0.7));
     this.maw = new Fade(sc, 'jsr_maw', head, ox + MAW.x, oy + MAW.y, 0, 0);
     this.jaw = sc.add.image(ox + HINGE.x, oy + HINGE.y, 'jsr_ljaw').setOrigin(HINGE.x / SK.w, HINGE.y / SK.h);
     head.add(this.jaw);
@@ -279,6 +328,9 @@ export class SerpentRig {
     this.lid = sc.add.image(ox + EYE.x, oy + EYE.y, 'jsr_lid', 0);
     head.add([this.eye, this.lid]);
     head.add(sc.add.image(ox, oy, 'jsr_skull').setOrigin(0, 0));
+    // the near lower teeth ride on the jaw but stand in front of the upper lip
+    this.lteeth = sc.add.image(ox + HINGE.x, oy + HINGE.y, 'jsr_lteeth').setOrigin(HINGE.x / SK.w, HINGE.y / SK.h);
+    head.add(this.lteeth);
     this.tusk = sc.add.image(0, 0, 'jsr_tusk').setOrigin(0.5, (TUSK.fh - 14) / TUSK.fh);
     head.add(this.tusk);
     KELP.forEach((k) => {
@@ -349,30 +401,14 @@ export class SerpentRig {
     const l = this.local(px, py);
     if (!l || !this.pose) return 1e6;
     const k = HEAD_S * this.pose.scale;
-    const ex = (l[0] - 420) / 380;
-    const ey = (l[1] - (290 + this.pose.jaw * 60)) / (170 + this.pose.jaw * 60);
+    const ex = (l[0] - 410) / 380;
+    const ey = (l[1] - (290 + this.pose.jaw * 110)) / (170 + this.pose.jaw * 110);
     return Math.max(1, (Math.hypot(ex, ey) - 1) * 200 * k);
   }
 
-  /** Is a screen point on the neck as it stands now? */
-  private neckContains(px: number, py: number): boolean {
-    if (py >= this.edgeY) return false;
-    return this.neck.some((n) => {
-      if (!n.visible) return false;
-      const c = Math.cos(-n.rotation);
-      const s = Math.sin(-n.rotation);
-      const dx = px - n.x;
-      const dy = py - n.y;
-      const lx = dx * c - dy * s;
-      const ly = dx * s + dy * c;
-      const k = Math.abs(n.scaleX);
-      return Math.abs(lx) < NECK.r * k && ly > 0 && ly < n.height * n.scaleY;
-    });
-  }
-
-  /** Is a screen point on a coil's body (and not on the head or neck in front of it)? */
+  /** Is a screen point on a coil's body (and not on the head in front of it; the body rises behind the coils)? */
   coilContains(px: number, py: number): boolean {
-    if (this.headContains(px, py) || this.neckContains(px, py)) return false;
+    if (this.headContains(px, py)) return false;
     return this.coils.some((c) => {
       const im = c.f.a;
       if (!im.visible || im.alpha < 0.3) return false;
@@ -430,10 +466,12 @@ export class SerpentRig {
     }
   }
 
-  /** A smack landed on the head. */
+  /** A smack landed on the head: it flashes pale and its snout is knocked up, swinging back on its neck. */
   flash(): void {
     this.flashT = 0.12;
+    this.kickT = 0;
   }
+  private kickT = -1;
 
   private part(frame: string, x: number, y: number, vx: number, vy: number, life: number, s0: number, s1: number, a: number, grav: number, drag: number, tint: number, water: boolean): void {
     if (this.parts.length > 160 || !this.partRoot) return;
@@ -473,43 +511,153 @@ export class SerpentRig {
     }
     const k = HEAD_S * p.scale;
     const side = p.face > 0 ? -1 : 1;
-    head.setPosition(p.x, p.y).setScale(k * side, k).setRotation(-p.tilt * side);
+    // a smack knocks the snout up, and it swings back on its neck
+    let kick = 0;
+    if (this.kickT >= 0) {
+      this.kickT += dt;
+      kick = Math.exp(-5 * this.kickT) * Math.cos(11 * this.kickT);
+      if (this.kickT > 1.2) this.kickT = -1;
+    }
+    head.setPosition(p.x, p.y).setScale(k * side, k).setRotation(-(p.tilt - 0.24 * kick) * side);
     const vx = (p.x - this.lastX) / Math.max(dt, 1e-3);
     this.lastX = p.x;
-    // the neck: from the water at the gap, out behind the head and up into the back of its skull
+    // the body: one spine from under the sea at the gap, up through the neck's curve and on into the back of the skull.
+    // Its last stretch runs along the head's own axis, so the head carries straight on out of it (no kink at the join)
+    // and always points the way the body is going. It rises out of the water leaning, swings back, arches over and
+    // comes forward into the skull: one S. The tube is thickest low down, slimmest just behind the jaw (the skull
+    // swells again past it), and runs on in under the skull's last plates.
     const [sx, sy] = this.world(SOCKET.x, SOCKET.y);
-    const back = -side;
-    const bx = p.gap + back * 60;
-    const by = this.edgeY + 40;
-    const c1x = bx + back * 150;
-    const c1y = this.edgeY - 160;
-    const c2x = sx + back * 150;
-    const c2y = sy + 60;
+    const rot = head.rotation;
+    const ax = side * Math.cos(rot);
+    const ay = side * Math.sin(rot);
+    const back = -p.face;
+    // (it comes out of the water behind its head: where it surfaced, and then wherever it has swum to, to strike)
+    const bx = Math.max(40, Math.min(1880, sx + back * 250));
+    const by = this.edgeY + 90;
+    const breath = Math.sin(this.t * 1.7);
+    // (low down, as it surfaces or dives, the curve shrinks with it, so it never bends tighter than it's thick)
+    const high = Math.max(0, by - sy);
+    const reach = Math.min((290 + 12 * breath) * HEAD_S * p.scale, Math.max(40, high * 0.7));
+    const rise = Math.max(Math.min(200, high * 0.5), high * 0.6);
+    // (it leans forward as it leaves the water, an S up to the head; under the surface it runs back, the way the body
+    // lies)
+    const P = [sx, sy, sx + ax * reach, sy + ay * reach, bx - back * 40, by - rise, bx + back * 60, by];
     const at = (t: number): [number, number] => {
       const u = 1 - t;
-      return [u * u * u * sx + 3 * u * u * t * c2x + 3 * u * t * t * c1x + t * t * t * bx, u * u * u * sy + 3 * u * u * t * c2y + 3 * u * t * t * c1y + t * t * t * by];
+      const a0 = u * u * u;
+      const a1 = 3 * u * u * t;
+      const a2 = 3 * u * t * t;
+      const a3 = t * t * t;
+      return [a0 * P[0] + a1 * P[2] + a2 * P[4] + a3 * P[6], a0 * P[1] + a1 * P[3] + a2 * P[5] + a3 * P[7]];
+    };
+    // (by arc length along it, so the plates never stretch where it bends)
+    const SAMP = 60;
+    const arc: number[] = [0];
+    const pts: [number, number][] = [at(0)];
+    for (let i = 1; i <= SAMP; i++) {
+      pts.push(at(i / SAMP));
+      arc.push(arc[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+    }
+    const L = arc[SAMP];
+    /** A point d along the spine from the socket: x, y and the way it runs (towards the water). Before the socket it
+     * carries straight on into the skull. */
+    const along = (d: number): [number, number, number, number] => {
+      if (d < 0) {
+        const [x0, y0] = pts[0];
+        const [x1, y1] = pts[1];
+        const l = Math.hypot(x1 - x0, y1 - y0) || 1;
+        return [x0 + ((x1 - x0) / l) * d, y0 + ((y1 - y0) / l) * d, (x1 - x0) / l, (y1 - y0) / l];
+      }
+      const dd = Math.max(0, Math.min(L - 0.01, d));
+      let j = 0;
+      while (j < SAMP - 1 && arc[j + 1] < dd) j++;
+      const f = (dd - arc[j]) / Math.max(1e-3, arc[j + 1] - arc[j]);
+      const [x0, y0] = pts[j];
+      const [x1, y1] = pts[j + 1];
+      const l = Math.hypot(x1 - x0, y1 - y0) || 1;
+      return [x0 + (x1 - x0) * f, y0 + (y1 - y0) * f, (x1 - x0) / l, (y1 - y0) / l];
     };
     const show = p.shown && sy < this.edgeY + 20;
-    let acc = 0;
-    for (let i = 0; i < NECK_N; i++) {
-      const n = this.neck[i];
-      const [x0, y0] = at(i / NECK_N);
-      const [x1, y1] = at((i + 1) / NECK_N);
-      const len = Math.hypot(x1 - x0, y1 - y0);
-      n.setVisible(show).setPosition(x0, y0).setScale(HEAD_S * side, HEAD_S).setRotation(Math.atan2(-(x1 - x0), y1 - y0));
-      n.setSize(NECK.w, Math.max(4, (len * 1.35) / HEAD_S));
-      n.tilePositionY = acc / HEAD_S;
-      acc += len;
+    const w0 = NECK_AT_HEAD * p.scale;
+    const widthAt = (d: number) => (w0 + (BODY_W - w0) * Math.min(1, Math.max(0, d / (520 * HEAD_S))) ** 1.2) * (1 + 0.012 * breath);
+    const lead = 100 * HEAD_S * p.scale;
+    // where it leaves the water (for the foam collar)
+    let wx = show ? bx : p.gap;
+    let ww = BODY_W;
+    if (this.tube) {
+      const tube = this.tube;
+      tube.setVisible(show);
+      const vt = tube.vertices;
+      const uv = tube.uv;
+      const fr = tube.frame;
+      const total = lead + L;
+      let found = false;
+      const ds = total / (BODY_N - 1);
+      for (let i = 0; i < BODY_N; i++) {
+        const d = -lead + ds * i;
+        const [x, y, tx, ty] = along(d);
+        const w = widthAt(d);
+        const kw = HEAD_S * w;
+        // its back on the outside of the crown's curve (mirrored with the head)
+        const nx = side * ty;
+        const ny = -side * tx;
+        let up = BODY.yc * kw;
+        let dn = (BODY.h - BODY.yc) * kw;
+        // where it bends tighter than it's thick, its inner side is gathered in (it never folds over itself)
+        const [, , ux0, uy0] = along(d - ds);
+        const [, , ux1, uy1] = along(d + ds);
+        const kx = ux1 - ux0;
+        const ky = uy1 - uy0;
+        const curv = Math.hypot(kx, ky) / (2 * ds);
+        if (curv > 1e-4) {
+          const lim = 0.92 / curv;
+          if (kx * nx + ky * ny > 0) up = Math.min(up, lim);
+          else dn = Math.min(dn, lim);
+        }
+        vt[i * 4] = x + nx * up;
+        vt[i * 4 + 1] = y + ny * up;
+        vt[i * 4 + 2] = x - nx * dn;
+        vt[i * 4 + 3] = y - ny * dn;
+        const u = fr.u0 + (fr.u1 - fr.u0) * Math.min(1, (d + lead) / HEAD_S / BODY.len);
+        uv[i * 4] = u;
+        uv[i * 4 + 1] = fr.v0;
+        uv[i * 4 + 2] = u;
+        uv[i * 4 + 3] = fr.v1;
+        if (!found && d > 0 && y > this.edgeY - 4) {
+          found = true;
+          wx = x;
+          ww = w;
+        }
+      }
+      tube.dirty = false;
+    } else {
+      // (no WebGL: slices of the neck's tile along the spine, overlapping more where it bends)
+      const seg = L / NECK_N;
+      for (let i = 0; i < NECK_N; i++) {
+        const n = this.neck[i];
+        const d0 = i * seg;
+        const [, , ax0, ay0] = along(d0);
+        const [, , ax1, ay1] = along(d0 + seg);
+        const dr = Math.abs(Math.atan2(ax0 * ay1 - ay0 * ax1, ax0 * ax1 + ay0 * ay1));
+        const w = widthAt(d0);
+        const extra = dr * NECK.r * HEAD_S * w + 8;
+        const start = i === 0 ? -lead : d0 - extra / 2;
+        const [x, y, tx, ty] = along(start);
+        n.setVisible(show).setPosition(x, y).setScale(HEAD_S * side * w, HEAD_S).setRotation(Math.atan2(-tx, ty));
+        n.setSize(NECK.w, Math.max(4, (d0 + seg + extra / 2 - start) / HEAD_S));
+        n.tilePositionY = start / HEAD_S;
+      }
     }
     // the foam collar where it leaves the water, or the sea boiling there before it comes
     const cAlpha = Math.max(show ? 1 : 0, p.boil);
-    this.collar.each((im) => im.setVisible(cAlpha > 0.01).setPosition(bx, this.edgeY - 4).setScale(HEAD_S * (0.85 + 0.25 * p.boil)));
+    this.collar.each((im) => im.setVisible(cAlpha > 0.01).setPosition(show ? wx : bx, this.edgeY - 4).setScale(HEAD_S * (show ? ww * 0.95 : 0.85 + 0.25 * p.boil)));
     this.collar.show(this.t * 9, COLLAR.n, true, cAlpha);
     if (p.boil > 0.05 && crand() < dt * 30 * p.boil) this.part('bubble', bx + (crand() - 0.5) * 200, this.edgeY - 6, (crand() - 0.5) * 30, -40 - crand() * 60, 0.6, 6, 12, 0.8, 0, 0.5, 0xd8e4ff, true);
     if (!p.shown) return;
     // the jaw swings round its hinge, the tusk riding on it; the maw opens behind it
     const jawRot = -JAW_MAX * p.jaw;
     this.jaw.setRotation(jawRot);
+    this.lteeth.setRotation(jawRot);
     const [tx, ty] = jawTurn(TUSK.x, lowLipY(TUSK.x) + 6, p.jaw);
     this.tusk.setPosition(tx - HEAD_O.x, ty - HEAD_O.y).setRotation(jawRot);
     const mf = p.jaw * (MAW_N - 1);
@@ -538,10 +686,13 @@ export class SerpentRig {
       const a = this.t * 3.2 + (i / this.stars.length) * Math.PI * 2;
       st.setVisible(p.daze > 0.05).setAlpha(p.daze * (0.6 + 0.4 * Math.sin(a))).setPosition(140 + Math.cos(a) * 150, -150 + Math.sin(a) * 30).setScale(0.55 + 0.25 * Math.sin(a));
     });
-    // the kelp sways, harder as the head swings
+    // the kelp hangs straight down from where it's caught, whichever way the head points, and sways, harder (and
+    // trailing) as the head swings
+    const hang = p.tilt - 0.24 * kick - Math.max(-0.3, Math.min(0.3, vx * 0.0006)) * side;
     for (const kl of this.kelp) {
       kl.ph += dt * (2.4 + Math.min(6, Math.abs(vx) * 0.012));
       kl.f.show(kl.ph, KELP_N);
+      kl.f.each((im) => im.setRotation(hang));
     }
     // the water pouring off it after it surfaces
     if (this.cascade) {
@@ -666,6 +817,8 @@ export class SerpentRig {
     this.head?.destroy();
     for (const n of this.neck) n.destroy();
     this.neck = [];
+    this.tube?.destroy();
+    this.tube = null;
     this.collar?.each((im) => im.destroy());
     this.partRoot?.destroy();
     this.maskG.destroy();

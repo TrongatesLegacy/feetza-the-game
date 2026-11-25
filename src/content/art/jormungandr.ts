@@ -4,10 +4,14 @@
 // kelp caught on him. Where the flesh shows it's alive: a wet, dark-pink mouth, gums and tongue, and a pale ribbed
 // throat and belly. His eyes are embers sunk deep under ledges of rock.
 //
-// His head is a long, heavy wedge of a serpent's skull seen in three-quarter view, turned and angled down so its snout
-// projects towards us: great crown plates down its top and a ridge of slabs running back onto the neck, heavy brows
-// over deep-set eyes on the sides of the skull, nostrils at the tip of the snout, big lip scales along the jaws, the
-// jaw line running back to its hinge behind the eye, the lower jaw narrower than the skull. His own marks: a great
+// His head is a long, heavy wedge of a serpent's skull seen in three-quarter view, turned a little towards us so we look
+// down on the top of the skull and both brows (the far eye's ember just showing): great crown plates down its top and a
+// ridge of slabs running back onto the neck, heavy brows over deep-set eyes on the sides of the skull, nostrils at the
+// tip of the snout, big lip scales along the jaws, the jaw line running back to its hinge behind the eye, the lower jaw
+// narrower than the skull. Its axis runs straight back into the neck (SOCKET): the neck carries on out of the back of
+// the skull, a little narrower than the jowls. Shut, the mouth is one lip line, the upper teeth hanging over the lower
+// lip and the lower ones standing in front of the upper; open, we see into it: the ridged roof, the far rows of teeth
+// and gum in shadow, the tongue lying in the floor of the mouth, the dark throat, the corner of the mouth stretched. His own marks: a great
 // lower tusk that closes up outside his lip; the cracks Thor's hammer split across his brow; the old tear where the
 // god's hook ripped out of the corner of his mouth, healed in a pale seam.
 //
@@ -49,16 +53,22 @@ export const SK = { w: 780, h: 540 };
 export const HEAD_O = { x: 390, y: 260 };
 /** The lower jaw's hinge (it swings round it) and how far it swings at its widest (radians). */
 export const HINGE = { x: 604, y: 368 };
-export const JAW_MAX = 0.5;
+export const JAW_MAX = 0.62;
 /** The maw's frames (the mouth's inside, one per opening). */
-export const MAW_N = 7;
+export const MAW_N = 9;
 /** The near eye (its centre, half sizes, the slant along the head, the frame size) and the far eye's ember. */
 export const EYE = { x: 394, y: 236, rx: 34, ry: 16, tilt: -0.24, fw: 120, fh: 96 };
-export const FAR_EYE = { x: 266, y: 214 };
+export const FAR_EYE = { x: 274, y: 206 };
 /** The nostrils at the snout's tip (near, far). */
 export const NOSES: Pt[] = [[98, 300], [74, 286]];
-/** Where the neck leaves the skull. */
-export const SOCKET = { x: 664, y: 300 };
+/** Where the neck's middle line meets the back of the skull. The head's axis runs along +x here (back towards the neck),
+ * so a neck that arrives along +x carries straight on into the skull with no kink. */
+export const SOCKET = { x: 700, y: 272 };
+/** How wide the neck is where it meets the skull, against its tile (a snake's neck is a little narrower than its jowls). */
+export const NECK_AT_HEAD = 0.78;
+/** The far side of the mouth in the three-quarter view: how far its rows show forward of and above the near ones at the
+ * back of the jaw (they meet the near ones at the chin, as the two halves of the lower jaw do). */
+const FAR_OFF: Pt = [-22, -58];
 /** The lower tusk (on the lower jaw near the chin): its root, and its frame. */
 export const TUSK = { x: 150, len: 70, fw: 60, fh: 130 };
 /** Kelp hanging off him: where each strand is caught (skull units), which kind, flipped. */
@@ -76,7 +86,7 @@ export const KELP_F: { w: number; h: number; ax: number; ay: number }[] = [
 
 /** The top of the head from the tip of the snout back over the brows and the crown to the neck. */
 const DORSAL: Pt[] = [
-  [64, 300], [78, 268], [124, 248], [194, 232], [240, 216], [268, 202], [300, 204], [346, 180], [392, 154], [430, 150],
+  [64, 300], [78, 268], [124, 248], [192, 230], [228, 212], [252, 192], [282, 184], [314, 190], [346, 178], [392, 154], [430, 150],
   [462, 156], [520, 132], [590, 118], [660, 124], [730, 146], [766, 176],
 ];
 /** The upper lip's edge (where the stone of the upper jaw ends and the gum starts), from the tip back to the corner of
@@ -85,10 +95,12 @@ export function gapeY(x: number): number {
   const t = Math.max(0, Math.min(1, (x - 84) / (560 - 84)));
   return 338 + 14 * t + 10 * Math.sin(t * Math.PI) - 18 * Math.pow(1 - t, 6);
 }
-/** The lower lip's edge (closed). */
-export const lowLipY = (x: number): number => gapeY(x) + 8;
+/** The lower lip's edge (closed): tucked just under the upper lip, so the closed mouth is one lip line, no gum showing. */
+export const lowLipY = (x: number): number => gapeY(x) - 3;
 /** The corner of the mouth. */
 export const MOUTH_C: Pt = [560, gapeY(560)];
+/** Where it bites: between the jaws near the front of the mouth. */
+export const MOUTH_PT: Pt = [220, 380];
 
 function linePts(x0: number, x1: number, n: number, f: (x: number) => number, dy = 0): Pt[] {
   const out: Pt[] = [];
@@ -478,7 +490,7 @@ function skullForm(dome: Float32Array, ridge: Float32Array, w: number): (x: numb
     const i = y * w + x;
     let H = dome[i] * 64 + ridge[i] * 34;
     // the brow ridges: a heavy ledge over the near eye, a lesser one over the far
-    H += bump(x, y, EYE.x + 4, EYE.y - 40, 82, 26, 30) + bump(x, y, FAR_EYE.x, FAR_EYE.y - 8, 40, 20, 18);
+    H += bump(x, y, EYE.x + 4, EYE.y - 40, 82, 26, 30) + bump(x, y, FAR_EYE.x + 6, FAR_EYE.y - 16, 46, 22, 26);
     // the near eye sinks deep under its ledge
     H += bump(x, y, EYE.x, EYE.y + 4, 60, 34, -40);
     // the jowl over the hinge, and the cheek under the eye
@@ -570,7 +582,7 @@ function dorsalRidge(g: Ctx): void {
   const r = rngOf(171);
   for (let i = 0; i < 7; i++) {
     const t = i / 6;
-    const k = Math.floor(6 + t * (DORSAL.length - 7));
+    const k = Math.floor(8 + t * (DORSAL.length - 9));
     const [x0, y0] = DORSAL[k];
     const [x1, y1] = DORSAL[Math.min(DORSAL.length - 1, k + 1)];
     const f = r() * 0.6 + 0.2;
@@ -736,36 +748,49 @@ export function paintSkull(): HTMLCanvasElement {
   g.lineWidth = 1.6;
   g.stroke();
   g.restore();
-  // the far eye: an ember just showing under its brow beyond the bridge of the snout
+  // the far eye: an ember just showing under its brow beyond the bridge of the snout (the head is turned a little
+  // towards us, so we look down on the top of the skull and both brows)
   g.save();
   g.translate(FAR_EYE.x, FAR_EYE.y);
-  g.rotate(-0.3);
+  g.rotate(-0.36);
   g.beginPath();
-  g.ellipse(0, 0, 11, 5, 0, 0, P2);
+  g.ellipse(0, 0, 15, 7, 0, 0, P2);
   g.fillStyle = '#1a0806';
   g.fill();
   g.beginPath();
-  g.ellipse(-1, 1, 8, 3, 0, 0, P2);
-  const fe = g.createRadialGradient(-1, 1, 0, -1, 1, 8);
-  fe.addColorStop(0, '#ffd070');
-  fe.addColorStop(0.6, '#e07018');
+  g.ellipse(-1, 1.5, 11.5, 4.6, 0, 0, P2);
+  const fe = g.createRadialGradient(-2, 1, 0, -1, 1.5, 11);
+  fe.addColorStop(0, '#ffe090');
+  fe.addColorStop(0.5, '#f08020');
   fe.addColorStop(1, '#5a1a04');
   g.fillStyle = fe;
   g.fill();
+  g.beginPath();
+  g.ellipse(0, 1.5, 1.6, 4, 0, 0, P2);
+  g.fillStyle = '#100204';
+  g.fill();
   g.restore();
-  // the gum along the upper lip, the upper teeth hanging from it
-  const top = linePts(92, 556, 46, gapeY, -1);
-  gum(g, top, 22, 1, UPPER_TEETH.map(([x]) => x));
+  farBrow(g);
+  // the upper lip's row of big scales meets the lower lip in one line; the upper teeth hang from just inside it, over
+  // the lower lip (the gums are inside the mouth: they show only as the jaw drops, ./paintMaw)
   for (const [x, len, tw, bend, broken] of UPPER_TEETH) {
-    const k = (1 - ((x - 100) / 440) * 0.4) * 1.15;
-    tooth(g, x, gapeY(x) + 15, len * k, tw * k, 1, bend, 300 + x, broken);
+    const k = (1 - ((x - 100) / 440) * 0.4) * 1.05;
+    tooth(g, x, gapeY(x) - 1, len * k, tw * k, 1, bend, 300 + x, broken);
   }
+  g.save();
+  g.lineCap = 'round';
+  g.beginPath();
+  linePts(86, MOUTH_C[0], 40, gapeY, -5).forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+  g.strokeStyle = 'rgba(232,240,220,0.22)';
+  g.lineWidth = 2;
+  g.stroke();
+  g.restore();
   // the ridge of plates down the top
   dorsalRidge(g);
-  // where the neck goes in, the back of the skull fades into it (no seam)
+  // where the neck runs in under it, the back of the skull's last plates thin out over it (no seam)
   g.save();
   g.globalCompositeOperation = 'destination-out';
-  const fade = g.createRadialGradient(SOCKET.x + 70, SOCKET.y + 20, 20, SOCKET.x + 70, SOCKET.y + 20, 130);
+  const fade = g.createRadialGradient(SOCKET.x + 96, SOCKET.y, 10, SOCKET.x + 96, SOCKET.y, 130);
   fade.addColorStop(0, 'rgba(0,0,0,0.85)');
   fade.addColorStop(0.55, 'rgba(0,0,0,0.35)');
   fade.addColorStop(1, 'rgba(0,0,0,0)');
@@ -856,6 +881,40 @@ function browLedge(g: Ctx): void {
   g.beginPath();
   g.ellipse(436, 192, 12, 4, 0, 0, P2);
   g.fill();
+}
+
+/** The far brow: a lesser ledge of stone along the top of the skull over the far eye, lit along its crest, its shadow on
+ * the eye (it's what tells us we're looking down on the head, turned a little towards us). */
+function farBrow(g: Ctx): void {
+  const pts: Pt[] = [[234, 208], [252, 194], [282, 187], [312, 192], [332, 202]];
+  const under: Pt[] = [[322, 206], [296, 202], [268, 204], [246, 212]];
+  soft(g, SK.w, SK.h, (x) => {
+    x.beginPath();
+    under.forEach(([px, py], i) => (i ? x.lineTo(px, py + 6) : x.moveTo(px, py + 6)));
+    x.lineTo(250, 226);
+    x.lineTo(310, 218);
+    x.closePath();
+    x.fillStyle = 'rgba(30,24,70,0.8)';
+    x.fill();
+  }, 'multiply', 10);
+  g.beginPath();
+  pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+  under.forEach(([x, y]) => g.lineTo(x, y));
+  g.closePath();
+  const lg = g.createLinearGradient(0, 186, 0, 210);
+  lg.addColorStop(0, '#b4baa8');
+  lg.addColorStop(0.55, '#6c7272');
+  lg.addColorStop(1, '#2c3040');
+  g.fillStyle = lg;
+  g.fill();
+  g.strokeStyle = INK;
+  g.lineWidth = 2.4;
+  g.stroke();
+  g.beginPath();
+  pts.forEach(([x, y], i) => (i ? g.lineTo(x, y + 2) : g.moveTo(x, y + 2)));
+  g.strokeStyle = 'rgba(236,244,214,0.6)';
+  g.lineWidth = 1.8;
+  g.stroke();
 }
 
 /** The cracks Thor's hammer split across the near brow: three runs from where it struck, forking, flakes knocked out. */
@@ -1028,135 +1087,372 @@ export function paintLowerJaw(): HTMLCanvasElement {
   g.strokeStyle = rgbaOf('#c4b6ff', 0.55);
   g.stroke();
   g.restore();
-  // the tongue lying back along the jaw, its fork forward between the teeth (it shows as the jaw drops)
-  const tongue = (cx: Ctx) => {
-    cx.beginPath();
-    cx.moveTo(560, lowLipY(560) - 2);
-    cx.bezierCurveTo(460, lowLipY(460) - 40, 300, lowLipY(300) - 42, 200, lowLipY(200) - 20);
-    cx.lineTo(176, lowLipY(176) - 26);
-    cx.lineTo(186, lowLipY(186) - 10);
-    cx.lineTo(168, lowLipY(168) - 6);
-    cx.lineTo(200, lowLipY(200) - 2);
-    cx.bezierCurveTo(300, lowLipY(300) + 2, 460, lowLipY(460) + 2, 560, lowLipY(560) + 4);
-    cx.closePath();
-  };
-  tongue(g);
-  const tg = g.createLinearGradient(0, 300, 0, 370);
-  tg.addColorStop(0, '#a83c50');
-  tg.addColorStop(1, '#4a1020');
-  g.fillStyle = tg;
-  g.fill();
-  g.strokeStyle = 'rgba(20,2,8,0.8)';
-  g.lineWidth = 2;
-  g.stroke();
-  g.beginPath();
-  g.moveTo(520, lowLipY(520) - 12);
-  g.bezierCurveTo(440, lowLipY(440) - 24, 320, lowLipY(320) - 26, 220, lowLipY(220) - 14);
-  g.strokeStyle = 'rgba(255,214,224,0.55)';
-  g.lineWidth = 2;
-  g.stroke();
-  // the lower gum along the lip, the lower teeth standing up out of it
-  const top = linePts(100, 560, 46, lowLipY, 1);
-  gum(g, top, 17, -1, LOWER_TEETH.map(([x]) => x));
-  for (const [x, len, tw, bend] of LOWER_TEETH) {
-    const k = 1 - ((x - 100) / 440) * 0.4;
-    tooth(g, x, lowLipY(x) - 8, len * k, tw * k, -1, bend, 500 + x);
-  }
+  // inside the lip (under the upper lip while the mouth is shut, showing as the jaw drops): the floor of the mouth back
+  // to the far half of the jaw, its gum and teeth, the tongue lying in it, the near gum (the near teeth: paintLowerTeeth)
+  mouthFloor(g);
   jawCache = c;
   return c;
 }
 
-/** A frame of the maw (skull coordinates, SK.w × SK.h): the mouth's wet inside as the jaw drops by o, filling the
- * wedge between the upper lip and the dropped lower lip: a ridged palate under the upper jaw, the dark throat at the
- * back by the hinge, the inside of the far jaw, strings of spit mid-gape. */
+/** The far half of the lower jaw's lip, seen across the open mouth (closed-jaw coordinates): it meets the near lip at
+ * the chin and runs back a little forward of and above it, as the two halves of a snake's jaw do. */
+function farLip(x: number): Pt {
+  const k = 0.2 + 0.8 * clamp01((x - 96) / 464);
+  return [x + FAR_OFF[0] * k, lowLipY(x) + FAR_OFF[1] * k];
+}
+
+/** Paint something in shadow across the mouth: drawn on its own, then laid down darkened. */
+function dimmed(g: Ctx, k: number, draw: (c: Ctx) => void): void {
+  const [c, x] = makeCanvas(g.canvas.width, g.canvas.height);
+  x.setTransform(g.getTransform());
+  draw(x);
+  g.save();
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.filter = `brightness(${k}) saturate(0.85)`;
+  g.drawImage(c, 0, 0);
+  g.restore();
+}
+
+function mouthFloor(g: Ctx): void {
+  const near = linePts(100, 566, 40, lowLipY, 2);
+  const far = near.map(([x]) => farLip(x));
+  // the floor: wet flesh between the two halves of the jaw, darkening back towards the throat, folded along its length
+  g.save();
+  g.beginPath();
+  near.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+  for (let i = far.length - 1; i >= 0; i--) g.lineTo(far[i][0], far[i][1] + 6);
+  g.closePath();
+  const fg = g.createLinearGradient(100, 0, 580, 0);
+  fg.addColorStop(0, '#5a1a2a');
+  fg.addColorStop(0.5, '#2e0812');
+  fg.addColorStop(1, '#0a0105');
+  g.fillStyle = fg;
+  g.fill();
+  g.clip();
+  for (let k = 1; k < 4; k++) {
+    g.beginPath();
+    near.forEach(([x, y], i) => {
+      const [fx, fy] = far[i];
+      const xx = x + ((fx - x) * k) / 4;
+      const yy = y + ((fy - y) * k) / 4;
+      if (i) g.lineTo(xx, yy);
+      else g.moveTo(xx, yy);
+    });
+    g.strokeStyle = 'rgba(16,2,6,0.35)';
+    g.lineWidth = 3;
+    g.stroke();
+  }
+  g.restore();
+  // the far gum and its teeth, smaller and in shadow across the mouth
+  dimmed(g, 0.78, (x) => {
+    gum(x, far, 9, 1, LOWER_TEETH.map(([tx]) => farLip(tx)[0]));
+    for (const [tx, len, tw, bend] of LOWER_TEETH) {
+      const [fx, fy] = farLip(tx);
+      const k = (1 - ((tx - 100) / 440) * 0.4) * 0.85;
+      tooth(x, fx, fy + 3, len * k, tw * k, -1, bend, 700 + tx);
+    }
+  });
+  // the tongue lying along the floor, its fork forward between the jaws
+  const mid = (x: number): Pt => {
+    const [fx, fy] = farLip(x);
+    // (it lifts a little towards its tip, as if about to flick)
+    const lift = 20 * smooth(360, 150, x);
+    return [(x + fx) / 2, (lowLipY(x) + fy) / 2 - 2 - lift];
+  };
+  const spine: Pt[] = [];
+  for (let i = 0; i <= 20; i++) spine.push(mid(548 - i * 19));
+  const left: Pt[] = [];
+  const right: Pt[] = [];
+  spine.forEach(([x, y], i) => {
+    const [ax, ay] = spine[Math.max(0, i - 1)];
+    const [bx, by] = spine[Math.min(spine.length - 1, i + 1)];
+    const l = Math.hypot(bx - ax, by - ay) || 1;
+    const nx = -(by - ay) / l;
+    const ny = (bx - ax) / l;
+    const hw = 19 - i * 0.55;
+    left.push([x + nx * hw, y + ny * hw]);
+    right.push([x - nx * hw, y - ny * hw]);
+  });
+  const [ex, ey] = spine[spine.length - 1];
+  g.beginPath();
+  left.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+  // the fork: two prongs, tapering to points
+  g.quadraticCurveTo(ex - 22, ey + 7, ex - 46, ey + 12);
+  g.quadraticCurveTo(ex - 22, ey + 3, ex - 10, ey);
+  g.quadraticCurveTo(ex - 22, ey - 4, ex - 42, ey - 11);
+  g.quadraticCurveTo(ex - 20, ey - 8, right[right.length - 1][0], right[right.length - 1][1]);
+  for (let i = right.length - 1; i >= 0; i--) g.lineTo(right[i][0], right[i][1]);
+  g.closePath();
+  const tg = g.createLinearGradient(560, 0, 140, 0);
+  tg.addColorStop(0, '#3a0a18');
+  tg.addColorStop(0.4, '#b03c58');
+  tg.addColorStop(1, '#e27890');
+  g.fillStyle = tg;
+  g.fill();
+  g.strokeStyle = 'rgba(20,2,8,0.85)';
+  g.lineWidth = 2;
+  g.stroke();
+  g.save();
+  g.lineCap = 'round';
+  g.beginPath();
+  spine.slice(2).forEach(([x, y], i) => (i ? g.lineTo(x, y + 1) : g.moveTo(x, y + 1)));
+  g.strokeStyle = 'rgba(40,4,14,0.6)';
+  g.lineWidth = 2.4;
+  g.stroke();
+  g.beginPath();
+  for (let i = 4; i < 19; i++) {
+    const [sx, sy] = spine[i];
+    const [lx, ly] = left[i];
+    const px = sx + (lx - sx) * 0.5;
+    const py = sy + (ly - sy) * 0.5;
+    if (i > 4) g.lineTo(px, py);
+    else g.moveTo(px, py);
+  }
+  g.strokeStyle = 'rgba(255,214,226,0.6)';
+  g.lineWidth = 2;
+  g.stroke();
+  g.restore();
+  // the near gum, a roll of wet flesh just inside the lip, swollen round the teeth's roots
+  gum(g, linePts(100, 562, 46, lowLipY, 2), 10, -1, LOWER_TEETH.map(([x]) => x));
+}
+
+let lteethCache: HTMLCanvasElement | null = null;
+
+/** The near lower teeth (cached, skull coordinates, swung with the jaw): they stand up from just inside the lower lip,
+ * so with the mouth shut they rise in front of the upper lip, between the upper teeth hanging over the lower lip. */
+export function paintLowerTeeth(): HTMLCanvasElement {
+  if (lteethCache) return lteethCache;
+  const [c, g] = makeCanvas(SK.w, SK.h);
+  for (const [x, len, tw, bend] of LOWER_TEETH) {
+    const k = (1 - ((x - 100) / 440) * 0.4) * 1.05;
+    g.beginPath();
+    g.ellipse(x, lowLipY(x) + 7, tw * k * 0.62, 4, 0, 0, P2);
+    g.fillStyle = 'rgba(40,6,14,0.85)';
+    g.fill();
+    tooth(g, x, lowLipY(x) + 6, len * k, tw * k, -1, bend, 500 + x);
+  }
+  lteethCache = c;
+  return c;
+}
+
+/** A frame of the maw (skull coordinates): the inside of the mouth as the jaw drops by o, filling the gape between
+ * the upper lip and the dropped lower lip. Seen a little from the front, as the head aims at us: the roof of the mouth
+ * running from the near upper lip across to the far one, ridged, a row of small palate teeth down it; the far upper
+ * gum and teeth hanging from its far edge, in shadow; the dark throat at the back; the near upper gum along the lip;
+ * the skin at the corner of the mouth stretched back to the hinge; strings of spit. (The floor of the mouth, the
+ * tongue and the far lower teeth ride on the lower jaw: paintLowerJaw.) */
 export function paintMaw(g: Ctx, o: number): void {
   if (o <= 0.01) return;
-  const upper = linePts(92, 590, 30, gapeY, 4);
-  const lower = linePts(590, 92, 30, lowLipY, -4).map(([x, y]) => jawTurn(x, y, o));
-  const path = (c: Ctx) => {
-    c.beginPath();
-    upper.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y)));
-    c.lineTo(HINGE.x + 6, HINGE.y + 4);
-    lower.forEach(([x, y]) => c.lineTo(x, y));
-    c.closePath();
+  const xc = MOUTH_C[0];
+  const upper = linePts(84, xc, 32, gapeY, -3);
+  const lowT = (x: number): Pt => jawTurn(x, lowLipY(x), o);
+  const lower = linePts(xc, 92, 32, lowLipY, 0).map(([x, y]) => jawTurn(x, y, o));
+  const hinge: Pt = [HINGE.x - 4, HINGE.y - 8];
+  // the roof's far edge (the far upper lip, seen across the mouth): nearer the near lip at the snout, where the jaws
+  // narrow, further across towards the back
+  const palF = (x: number) => 0.3 + 0.16 * clamp01((x - 84) / (xc - 84));
+  const mid = (x: number, f: number): Pt => {
+    const [lx, ly] = lowT(x);
+    const y0 = gapeY(x);
+    return [x + (lx - x) * f, y0 + (ly - y0) * f];
   };
+  const farUp = (x: number): Pt => {
+    const [px, py] = mid(x, palF(x));
+    return [px + FAR_OFF[0] * 0.5, py];
+  };
+  // the front of the mouth: the far lips curving round from the snout to the chin, bowed back into the mouth (there's
+  // only air between the tips of the jaws in front of it)
+  const [cx0, cy0] = lower[lower.length - 1];
+  const [ux0, uy0] = upper[0];
+  const bowF: Pt = [(cx0 + ux0) / 2 + 30 + 50 * o, (cy0 + uy0) / 2];
   g.save();
-  path(g);
-  const bg = g.createRadialGradient(HINGE.x - 40, HINGE.y - 6, 4, HINGE.x - 120, HINGE.y + 20, 520);
-  bg.addColorStop(0, '#000000');
-  bg.addColorStop(0.25, '#0c0206');
-  bg.addColorStop(0.55, '#3e0e1a');
-  bg.addColorStop(1, '#7a2636');
+  g.beginPath();
+  upper.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+  g.lineTo(hinge[0], hinge[1]);
+  lower.forEach(([x, y]) => g.lineTo(x, y));
+  g.quadraticCurveTo(bowF[0], bowF[1], ux0, uy0);
+  g.closePath();
+  // the cavity: wet and dark, darkest at the back
+  const bg = g.createLinearGradient(110, 0, HINGE.x, 0);
+  bg.addColorStop(0, '#2e0a14');
+  bg.addColorStop(0.35, '#12030a');
+  bg.addColorStop(1, '#000000');
   g.fillStyle = bg;
   g.fill();
   g.clip();
-  // the palate: ridges running with the upper jaw, lit along their crests
-  for (let k = 1; k <= 4; k++) {
+  // the throat: the way in, a dark tunnel at the back of the mouth between the rows, opening as the jaw drops
+  const [tx, ty] = mid(470, 0.5);
+  const tr = 40 + 170 * o;
+  const thg = g.createRadialGradient(tx + 24, ty, 2, tx + 24, ty, tr);
+  thg.addColorStop(0, 'rgba(0,0,0,1)');
+  thg.addColorStop(0.45, 'rgba(6,0,3,0.85)');
+  thg.addColorStop(1, 'rgba(20,4,10,0)');
+  g.fillStyle = thg;
+  g.fillRect(0, 0, SK.w, SK.h + 260);
+  g.beginPath();
+  g.ellipse(tx + 30, ty + 4, tr * 0.42, tr * 0.22, -0.5, 0, P2);
+  g.strokeStyle = `rgba(150,50,70,${0.3 * o})`;
+  g.lineWidth = 2;
+  g.stroke();
+  // the roof of the mouth: from the near lip across to the far one, ridged, lit at the front
+  const roofFar = linePts(84, xc, 30, gapeY).map(([x]) => farUp(x));
+  g.save();
+  g.beginPath();
+  upper.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+  g.lineTo(hinge[0] - 20, hinge[1] + 6);
+  for (let i = roofFar.length - 1; i >= 0; i--) g.lineTo(roofFar[i][0], roofFar[i][1]);
+  g.closePath();
+  const rg = g.createLinearGradient(100, 0, xc + 20, 0);
+  rg.addColorStop(0, '#c4687c');
+  rg.addColorStop(0.5, '#8a3448');
+  rg.addColorStop(1, '#2a0812');
+  g.fillStyle = rg;
+  g.fill();
+  g.clip();
+  // the ridges across it, chevrons pointing to the snout, fading into the dark at the back
+  for (let i = 0; i < 11; i++) {
+    const x = 104 + i * 42;
+    const a = Math.max(0, 1 - i / 11);
+    const [x1, y1] = farUp(x + 6);
+    const y0 = gapeY(x) + 2;
+    const cx = (x + x1) / 2 - 16;
+    const cy = (y0 + y1) / 2;
     g.beginPath();
-    upper.forEach(([x, y], i) => {
-      const yy = y + k * 12 * (0.4 + o);
-      if (i) g.lineTo(x, yy);
-      else g.moveTo(x, yy);
-    });
-    g.strokeStyle = 'rgba(30,4,12,0.55)';
+    g.moveTo(x, y0);
+    g.quadraticCurveTo(cx, cy, x1, y1);
+    g.strokeStyle = `rgba(36,4,12,${0.6 * a + 0.2})`;
     g.lineWidth = 5;
     g.stroke();
-    g.strokeStyle = `rgba(230,130,146,${0.5 - k * 0.08})`;
+    g.beginPath();
+    g.moveTo(x + 4, y0);
+    g.quadraticCurveTo(cx + 4, cy, x1 + 4, y1);
+    g.strokeStyle = `rgba(255,190,204,${0.55 * a})`;
     g.lineWidth = 1.6;
     g.stroke();
   }
-  // the palate's wet sheen catching the light near the front
+  // the palate's teeth: a row of small hooked teeth down the middle of the roof
+  for (let i = 0; i < 9; i++) {
+    const x = 150 + i * 40;
+    const [px, py] = mid(x, palF(x) * 0.5);
+    tooth(g, px, py - 2, 14 - i * 0.7, 7 - i * 0.3, 1, -0.5, 820 + i);
+  }
+  // its wet sheen at the front
   g.beginPath();
-  upper.slice(2, 14).forEach(([x, y], i) => (i ? g.lineTo(x, y + 30 * (0.4 + o)) : g.moveTo(x, y + 30 * (0.4 + o))));
-  g.strokeStyle = 'rgba(255,220,228,0.4)';
+  linePts(110, 330, 12, gapeY).forEach(([x], i) => {
+    const [px, py] = mid(x, palF(x) * 0.3);
+    if (i) g.lineTo(px, py);
+    else g.moveTo(px, py);
+  });
+  g.strokeStyle = 'rgba(255,226,234,0.45)';
   g.lineWidth = 3;
+  g.lineCap = 'round';
   g.stroke();
-  // the far side's gum and teeth, seen across the mouth
+  g.restore();
+  // the far upper gum along the roof's far edge, its teeth hanging into the mouth, in shadow
+  dimmed(g, 0.72, (x) => {
+    gum(x, roofFar, 8, 1, UPPER_TEETH.map(([ux]) => farUp(ux)[0]));
+    for (const [ux, len, tw, bend, broken] of UPPER_TEETH) {
+      const [fx, fy] = farUp(ux);
+      const k = (1 - ((ux - 100) / 440) * 0.4) * 0.7;
+      tooth(x, fx, fy + 4, len * k, tw * k, 1, bend, 760 + ux, broken);
+    }
+  });
+  // the far lips round the front: a roll of wet gum along the front of the mouth, lit on its crest
+  {
+    const front = (c: Ctx) => {
+      c.beginPath();
+      c.moveTo(cx0, cy0);
+      c.quadraticCurveTo(bowF[0], bowF[1], ux0, uy0);
+    };
+    g.save();
+    g.lineCap = 'round';
+    front(g);
+    g.strokeStyle = '#5a1828';
+    g.lineWidth = 22;
+    g.stroke();
+    front(g);
+    g.strokeStyle = 'rgba(200,96,116,0.8)';
+    g.lineWidth = 9;
+    g.stroke();
+    front(g);
+    g.strokeStyle = 'rgba(255,220,228,0.5)';
+    g.lineWidth = 2;
+    g.stroke();
+    g.restore();
+  }
+  // the near upper gum: a roll of wet flesh just inside the lip, where the near teeth hang from (they're on the skull)
+  gum(g, linePts(88, xc - 4, 44, gapeY, -3), 11, 1, UPPER_TEETH.map(([x]) => x));
+  // the corner of the mouth: skin stretched back from the lips to the hinge, creased with the stretch
+  const A: Pt = [xc - 6, gapeY(xc) - 1];
+  const B = lowT(xc - 6);
+  const C: Pt = [hinge[0] + 6, hinge[1] + 8];
+  const bow: Pt = [(A[0] + B[0]) / 2 + 26 + 40 * o, (A[1] + B[1]) / 2];
   g.beginPath();
-  for (let i = 0; i <= 20; i++) {
-    const x = 120 + i * 22;
-    const [fx, fy] = jawTurn(x, lowLipY(x) - 30, o * 0.92);
-    if (i) g.lineTo(fx, fy);
-    else g.moveTo(fx, fy);
-  }
-  g.strokeStyle = 'rgba(150,50,66,0.8)';
-  g.lineWidth = 10;
-  g.stroke();
-  for (let i = 0; i < 10; i++) {
-    const x = 140 + i * 40;
-    const [fx, fy] = jawTurn(x, lowLipY(x) - 34, o * 0.92);
+  g.moveTo(A[0], A[1]);
+  g.quadraticCurveTo(bow[0], bow[1], B[0], B[1]);
+  g.lineTo(C[0] + 30, C[1] + 30);
+  g.lineTo(C[0] + 30, A[1] - 10);
+  g.closePath();
+  const sg = g.createLinearGradient(bow[0] - 20, 0, C[0], 0);
+  sg.addColorStop(0, '#7a5c68');
+  sg.addColorStop(1, '#3a2836');
+  g.fillStyle = sg;
+  g.fill();
+  g.save();
+  g.lineCap = 'round';
+  for (let k = 1; k < 6; k++) {
+    const t = k / 6;
+    const u = 1 - t;
+    const ex = u * u * A[0] + 2 * u * t * bow[0] + t * t * B[0];
+    const ey = u * u * A[1] + 2 * u * t * bow[1] + t * t * B[1];
     g.beginPath();
-    g.moveTo(fx - 4, fy);
-    g.lineTo(fx + ((i * 7) % 5) - 2, fy - 8 - ((i * 13) % 11));
-    g.lineTo(fx + 4, fy);
-    g.closePath();
-    g.fillStyle = 'rgba(210,196,160,0.75)';
-    g.fill();
+    g.moveTo(ex + 3, ey);
+    g.lineTo(C[0], C[1] - 4 + (t - 0.5) * 12);
+    g.strokeStyle = 'rgba(20,10,20,0.45)';
+    g.lineWidth = 1.4;
+    g.stroke();
   }
-  // the throat: the dark way in, at the back by the hinge
-  const tg = g.createRadialGradient(HINGE.x - 60, HINGE.y + 10, 2, HINGE.x - 60, HINGE.y + 10, 140 * o + 30);
-  tg.addColorStop(0, 'rgba(0,0,2,0.98)');
-  tg.addColorStop(0.6, 'rgba(10,2,6,0.7)');
-  tg.addColorStop(1, 'rgba(20,4,10,0)');
-  g.fillStyle = tg;
-  g.fillRect(0, 0, SK.w, SK.h);
-  // strings of spit between the jaws, mid-gape
-  if (o > 0.15 && o < 0.85) {
-    const r = rngOf(Math.round(o * 100));
-    const a = 1 - Math.abs(o - 0.45) / 0.45;
-    for (let k = 0; k < 4; k++) {
-      const x = 160 + r() * 300;
-      const y0 = gapeY(x) + 14;
-      const [lx, ly] = jawTurn(x, lowLipY(x) - 10, o);
+  g.beginPath();
+  g.moveTo(A[0], A[1]);
+  g.quadraticCurveTo(bow[0], bow[1], B[0], B[1]);
+  g.strokeStyle = 'rgba(10,2,8,0.9)';
+  g.lineWidth = 2.4;
+  g.stroke();
+  g.beginPath();
+  g.moveTo(A[0] + 3, A[1] + 4);
+  g.quadraticCurveTo(bow[0] + 3, bow[1], B[0] + 3, B[1] - 4);
+  g.strokeStyle = 'rgba(255,210,220,0.4)';
+  g.lineWidth = 1.4;
+  g.stroke();
+  g.restore();
+  // strings of spit from the upper gum down to the floor of the mouth, stretching as it opens
+  if (o > 0.12) {
+    const r = rngOf(77);
+    const a = Math.min(1, (o - 0.12) * 3) * (o > 0.9 ? 0.7 : 1);
+    for (let k = 0; k < 6; k++) {
+      const x = 150 + r() * 330;
+      const x0 = x + (r() - 0.5) * 10;
+      const y0 = gapeY(x0) + 12;
+      const [lx, ly] = jawTurn(x + 10 + r() * 20, lowLipY(x) - 22, o);
+      const cx = (x0 + lx) / 2 + 10;
+      const cy = (y0 + ly) / 2 + 10 + r() * 16;
       g.beginPath();
-      g.moveTo(x, y0);
-      g.quadraticCurveTo((x + lx) / 2 + (r() - 0.5) * 12, (y0 + ly) / 2 + 12, lx, ly);
-      g.strokeStyle = `rgba(236,214,226,${0.55 * a})`;
-      g.lineWidth = 1.6 + r() * 1.2;
+      g.moveTo(x0, y0);
+      g.quadraticCurveTo(cx, cy, lx, ly);
+      g.strokeStyle = `rgba(226,206,222,${0.55 * a})`;
+      g.lineWidth = 2 + r() * 1.6;
       g.stroke();
-      g.strokeStyle = `rgba(255,255,255,${0.7 * a})`;
-      g.lineWidth = 0.7;
+      g.strokeStyle = `rgba(255,255,255,${0.75 * a})`;
+      g.lineWidth = 0.8;
       g.stroke();
+      // a bead sliding down it
+      const q = 0.35 + r() * 0.3;
+      const bx = (1 - q) * (1 - q) * x0 + 2 * (1 - q) * q * cx + q * q * lx;
+      const by = (1 - q) * (1 - q) * y0 + 2 * (1 - q) * q * cy + q * q * ly;
+      g.beginPath();
+      g.ellipse(bx, by, 2.6, 3.4, 0, 0, P2);
+      g.fillStyle = `rgba(240,236,248,${0.8 * a})`;
+      g.fill();
     }
   }
   g.restore();
@@ -1347,7 +1643,7 @@ export function paintGlow(g: Ctx, s: number): void {
  * of the middle), the stone-plated back on the right. The fight lays slices of it along a curve. */
 export const NECK = { w: 340, h: 200, r: 130, cx: 150 };
 /** The throat's middle, in unrolled units from the neck's middle. */
-const THROAT_U = -52;
+const THROAT_U = -82;
 
 let neckCache: HTMLCanvasElement | null = null;
 
@@ -1385,9 +1681,9 @@ export function paintNeck(): HTMLCanvasElement {
     box: { x: 0, y: 0, w: span, h },
     cell: 32,
     wrapH: h,
-    flesh: (_x, _y, u) => smooth(66, 50, Math.abs(u - span / 2 - THROAT_U)),
+    flesh: (_x, _y, u) => smooth(54, 40, Math.abs(u - span / 2 - THROAT_U)),
     ribs: (x, y) => {
-      const f = scuteAt(y - 8 * (1 - ((unroll(x) - THROAT_U) / 66) ** 2));
+      const f = scuteAt(y - 8 * (1 - ((unroll(x) - THROAT_U) / 54) ** 2));
       return 2 * smooth(0, 0.85, f) - smooth(0.85, 1, f);
     },
     crevice: 1.8,
@@ -1406,14 +1702,14 @@ export function paintNeck(): HTMLCanvasElement {
     for (const off of [-h, 0, h]) {
       const y = bounds[k] + off;
       g.beginPath();
-      g.moveTo(tx - 62, y - 1);
-      g.quadraticCurveTo(tx, y + 14, tx + 56, y - 1);
+      g.moveTo(tx - 46, y - 1);
+      g.quadraticCurveTo(tx, y + 12, tx + 46, y - 1);
       g.strokeStyle = 'rgba(50,30,60,0.4)';
       g.lineWidth = 2;
       g.stroke();
       g.beginPath();
-      g.moveTo(tx - 56, y - 3.5);
-      g.quadraticCurveTo(tx, y + 10, tx + 50, y - 3.5);
+      g.moveTo(tx - 42, y - 3.5);
+      g.quadraticCurveTo(tx, y + 8, tx + 40, y - 3.5);
       g.strokeStyle = 'rgba(255,240,236,0.2)';
       g.lineWidth = 1.2;
       g.stroke();
@@ -1433,15 +1729,37 @@ export function paintNeck(): HTMLCanvasElement {
   sh.addColorStop(1, 'rgba(110,100,170,1)');
   g.fillStyle = sh;
   g.fillRect(0, 0, w, h);
-  const th = g.createLinearGradient(tx - 70, 0, tx + 70, 0);
+  const th = g.createLinearGradient(tx - 56, 0, tx + 56, 0);
   th.addColorStop(0, 'rgba(255,255,255,1)');
   th.addColorStop(0.2, 'rgba(184,166,194,1)');
   th.addColorStop(0.8, 'rgba(160,142,180,1)');
   th.addColorStop(1, 'rgba(255,255,255,1)');
   g.fillStyle = th;
-  g.fillRect(tx - 70, 0, 140, h);
+  g.fillRect(tx - 56, 0, 112, h);
   g.restore();
   wetRuns(g, [[tx - 30, 20, 60], [tx + 10, 110, 50], [cx + 50, 40, 70], [cx + 80, 140, 50], [cx - 100, 80, 60]], 61, 0.45);
+  // it's round: the body turns away into shadow at both edges, a soft wet sheen runs along it a third of the way
+  // from its back, the belly turns away under it
+  g.save();
+  g.beginPath();
+  g.rect(cx - r, 0, r * 2, h);
+  g.clip();
+  const turn = g.createLinearGradient(cx - r, 0, cx + r, 0);
+  turn.addColorStop(0, 'rgba(14,10,30,0.7)');
+  turn.addColorStop(0.16, 'rgba(14,10,30,0.22)');
+  turn.addColorStop(0.32, 'rgba(14,10,30,0)');
+  turn.addColorStop(0.7, 'rgba(14,10,30,0)');
+  turn.addColorStop(0.88, 'rgba(14,10,30,0.3)');
+  turn.addColorStop(1, 'rgba(14,10,30,0.72)');
+  g.fillStyle = turn;
+  g.fillRect(cx - r, 0, r * 2, h);
+  const sheen = g.createLinearGradient(cx + r * 0.1, 0, cx + r * 0.62, 0);
+  sheen.addColorStop(0, 'rgba(220,230,236,0)');
+  sheen.addColorStop(0.5, 'rgba(220,230,236,0.14)');
+  sheen.addColorStop(1, 'rgba(220,230,236,0)');
+  g.fillStyle = sheen;
+  g.fillRect(cx - r, 0, r * 2, h);
+  g.restore();
   g.fillStyle = INK;
   g.fillRect(cx - r - 3, 0, 4, h);
   g.fillRect(cx + r - 1, 0, 4, h);
@@ -1460,6 +1778,104 @@ export function paintNeck(): HTMLCanvasElement {
   g.restore();
   neckCache = c;
   return c;
+}
+
+/** The body's hide as one long strip for the fight's tube (./jormRig.ts lays it along the serpent's spine): the neck's
+ * tile turned to run along x, repeated BODY.len long; its back (the ridge) along the top, its belly along the bottom,
+ * the middle of the body BODY.yc down from the top. */
+export const BODY = { len: 2000, h: NECK.w, yc: NECK.w - NECK.cx };
+
+let bodyCache: HTMLCanvasElement | null = null;
+export function paintBodyStrip(): HTMLCanvasElement {
+  if (bodyCache) return bodyCache;
+  const tile = paintNeck();
+  const [c, g] = makeCanvas(BODY.len, BODY.h);
+  for (let x0 = 0; x0 < BODY.len; x0 += NECK.h) {
+    // tile (x across, y along) → strip (along x, its back at the top)
+    g.setTransform(0, -1, 1, 0, x0, NECK.w);
+    g.drawImage(tile, 0, 0);
+  }
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  bodyCache = c;
+  return c;
+}
+
+/** The shadow the back of the skull throws on the neck where it overlaps it (skull units, SK.w × SK.h): drawn under
+ * the skull, over the neck, so the neck reads as running in under the skull's last plates, not butted onto it. */
+export function paintNape(g: Ctx): void {
+  soft(g, SK.w, SK.h, (x) => {
+    x.beginPath();
+    x.moveTo(720, 150);
+    x.bezierCurveTo(790, 170, 800, 300, 730, 360);
+    x.lineTo(700, 380);
+    x.strokeStyle = 'rgba(6,4,16,0.85)';
+    x.lineWidth = 46;
+    x.lineCap = 'round';
+    x.stroke();
+  }, 'source-over', 22);
+}
+
+/**
+ * The neck painted along a cubic curve (for the still art: the fight lays the body strip along its spine as a tube,
+ * ./jormRig.ts): P is the
+ * curve's four points as x, y pairs, from the socket at the back of the skull (P[0], P[1]), arriving along the head's
+ * axis, out to its far end (P[6], P[7]). k is canvas px per neck unit along it; across, it thickens from kHead at the
+ * head to kFar. Slices of the tile overlap more where it bends, so the plates run on unbroken round the curve.
+ */
+export function drawNeckAlong(g: Ctx, P: number[], k: number, kHead: number, kFar: number): void {
+  const pat = g.createPattern(paintNeck(), 'repeat');
+  if (!pat) return;
+  const at = (t: number): Pt => {
+    const u = 1 - t;
+    const a = [u * u * u, 3 * u * u * t, 3 * u * t * t, t * t * t];
+    return [a[0] * P[0] + a[1] * P[2] + a[2] * P[4] + a[3] * P[6], a[0] * P[1] + a[1] * P[3] + a[2] * P[5] + a[3] * P[7]];
+  };
+  const S = 60;
+  const pts: Pt[] = [at(0)];
+  const arc = [0];
+  for (let i = 1; i <= S; i++) {
+    pts.push(at(i / S));
+    arc.push(arc[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+  }
+  const L = arc[S];
+  const along = (d: number): [number, number, number] => {
+    // (before the socket it carries straight on into the skull, under its faded back)
+    if (d < 0) {
+      const [x0, y0] = pts[0];
+      const [x1, y1] = pts[1];
+      const l = Math.hypot(x1 - x0, y1 - y0) || 1;
+      return [x0 + ((x1 - x0) / l) * d, y0 + ((y1 - y0) / l) * d, Math.atan2(-(x1 - x0), y1 - y0)];
+    }
+    const dd = Math.max(0, Math.min(L - 0.01, d));
+    let j = 0;
+    while (j < S - 1 && arc[j + 1] < dd) j++;
+    const f = (dd - arc[j]) / Math.max(1e-3, arc[j + 1] - arc[j]);
+    const [x0, y0] = pts[j];
+    const [x1, y1] = pts[j + 1];
+    return [x0 + (x1 - x0) * f, y0 + (y1 - y0) * f, Math.atan2(-(x1 - x0), y1 - y0)];
+  };
+  const N = 30;
+  const seg = L / N;
+  for (let i = 0; i < N; i++) {
+    const d0 = i * seg;
+    const [, , r0] = along(d0);
+    const [, , r1] = along(d0 + seg);
+    let dr = Math.abs(r1 - r0);
+    if (dr > Math.PI) dr = Math.PI * 2 - dr;
+    const kx = kHead + (kFar - kHead) * Math.min(1, d0 / L / 0.6);
+    const extra = dr * NECK.r * kx + 2;
+    const start = i === 0 ? -90 * k : d0 - extra / 2;
+    const [x, y, r] = along(start);
+    const len = d0 + seg + extra / 2 - start;
+    g.save();
+    g.translate(x, y);
+    g.rotate(r);
+    g.scale(kx, k);
+    g.translate(-NECK.cx, -start / k);
+    g.fillStyle = pat;
+    g.fillRect(0, start / k, NECK.w, len / k);
+    g.restore();
+  }
 }
 
 // ——— kelp ———
@@ -2159,7 +2575,7 @@ export { clamp01, smooth, STONE };
 // ——— the whole head, and where it is ———
 
 /** The maw's frames cover this box of the skull (the widest gape fits in it). */
-export const MAW = { x: 70, y: 296, w: 560, h: 330 };
+export const MAW = { x: 70, y: 290, w: 560, h: 400 };
 
 /** Is a point of the head (skull units) on it, with the jaw open by `open`? (The skull, or the lower jaw swung down.) */
 export function headHit(lx: number, ly: number, open: number): boolean {
@@ -2206,6 +2622,12 @@ export function paintHeadStill(g: Ctx, o: StillOpts = {}): void {
   g.restore();
   if (o.eyes !== false) paintEyesAt(g, o.eye ?? 0, o.lid ?? 0);
   g.drawImage(paintSkull(), 0, 0);
+  g.save();
+  g.translate(HINGE.x, HINGE.y);
+  g.rotate(-JAW_MAX * open);
+  g.translate(-HINGE.x, -HINGE.y);
+  g.drawImage(paintLowerTeeth(), 0, 0);
+  g.restore();
   const [tc, tg] = makeCanvas(TUSK.fw, TUSK.fh);
   paintTusk(tg);
   const [tx, ty] = jawTurn(TUSK.x, lowLipY(TUSK.x) + 6, open);

@@ -14,8 +14,8 @@ import type { Foot } from '../Foot';
 import type { Pizza } from '../Pizza';
 import { LOCATION_MUSIC, bossMusic, locationFor } from '../Run';
 import { Bin, laneFall } from './act2b';
-import { COIL, SK, WRAP, paintCoil, paintHeadStill, paintWrap } from '../../content/art/jormungandr';
-import { HEAD_TILT, SerpentRig } from './jormRig';
+import { COIL, KELP, NECK_AT_HEAD, SK, SOCKET, WRAP, drawNeckAlong, paintCoil, paintHeadStill, paintKelpAt, paintWrap } from '../../content/art/jormungandr';
+import { HEAD_TILT, SerpentRig, aimTilt, mouthOffset } from './jormRig';
 import { type Brain, type PhaseCard, type Prop, Every, heat, hitProp, mark, rnd, shield, takeLane, throwAtPeel } from './kit';
 
 // ——— Act helpers ———
@@ -775,14 +775,17 @@ const EDGE_Y = 772;
 /** Gaps in the coils, where the head can surface. */
 const GAPS = [330, 760, 1160, 1590];
 /** Where the head stands when it's up (its middle, between the eyes and the nose), and where it waits under the sea. */
-const HEAD_UP = 404;
+const HEAD_UP = 480;
 const HEAD_DOWN = EDGE_Y + 420;
 /** The tell: only the crown of the head breaks the surface. */
 const HEAD_TELL = EDGE_Y + 100;
-/** How far the head stands out in front of its neck (towards the way it faces), and where its mouth is from its middle. */
+/** How far the head stands out in front of its gap (towards the way it faces) as it surfaces. */
 const HEAD_FWD = 150;
-const MOUTH_DX = 160;
-const MOUTH_DY = 85;
+/** Once up, how far back from its pizza the head poises (so the line it strikes along runs down through the pizza),
+ * and how far in from the screen's edges it keeps (so its body, arching behind it, stays in view). */
+const STRIKE_DX = 330;
+const HEAD_X_MIN = 420;
+const HEAD_X_MAX = 1500;
 
 /** The serpent's art for the phase cards (the fight's own textures are built in the fight: ./jormRig.ts). */
 function jormCardArt(): Record<string, () => HTMLCanvasElement> {
@@ -794,9 +797,39 @@ function jormCardArt(): Record<string, () => HTMLCanvasElement> {
     return c;
   };
   return {
-    p_serpenthead: card(SK.w / 2, SK.h / 2, (g) => {
-      g.scale(0.5, 0.5);
-      paintHeadStill(g, { open: 0.25 });
+    // the head poised on its neck, aimed down, jaws parted on the inside of its mouth
+    p_serpenthead: card(440, 400, (g) => {
+      const k = 0.46;
+      const rot = -0.38;
+      const sx = 330;
+      const sy = 168;
+      const reach = 110 * k;
+      drawNeckAlong(g, [sx, sy, sx + Math.cos(rot) * reach, sy + Math.sin(rot) * reach, 420, 300, 410, 430], k, k * NECK_AT_HEAD, k * 1.05);
+      const [c, hg] = (() => {
+        const cv = document.createElement('canvas');
+        cv.width = SK.w;
+        cv.height = SK.h + 200;
+        return [cv, cv.getContext('2d')!];
+      })();
+      paintHeadStill(hg, { open: 0.55, kelp: false });
+      g.save();
+      g.translate(sx, sy);
+      g.rotate(rot);
+      g.scale(k, k);
+      g.translate(-SOCKET.x, -SOCKET.y);
+      g.drawImage(c, 0, 0);
+      g.restore();
+      // the kelp hangs straight down from where it's caught
+      KELP.forEach((kl, i) => {
+        const dx = (kl.x - SOCKET.x) * k;
+        const dy = (kl.y - SOCKET.y) * k;
+        g.save();
+        g.translate(sx + dx * Math.cos(rot) - dy * Math.sin(rot), sy + dx * Math.sin(rot) + dy * Math.cos(rot));
+        g.scale(k, k);
+        g.translate(-kl.x, -kl.y);
+        paintKelpAt(g, i, 0.3);
+        g.restore();
+      });
     }),
     p_coil: card(COIL.w, COIL.h, (g) => paintCoil(g, 0.2)),
     // the wrap round a pizza (a plain one, so the coil is what reads)
@@ -830,7 +863,8 @@ const jormungandr = (): Brain => {
   const H = { x: 960, y: HEAD_DOWN, gap: 960, face: -1, up: false, jaw: 0, inhale: 0, daze: 0, scale: 1, tilt: HEAD_TILT, boil: 0, plunged: true };
   /** Where the head stands over its gap (in front of its neck). */
   const homeX = () => H.gap + H.face * HEAD_FWD;
-  let cycle: { stage: 'wait' | 'tell' | 'rise' | 'up' | 'dazed' | 'bite' | 'dive'; t: number; p: Pizza | null; hits: number; venom: boolean; t0?: number } = { stage: 'wait', t: 2.2, p: null, hits: 0, venom: false };
+  // (the bite's strike: where the head starts, its line (tilt), and where it ends with its mouth on the pizza)
+  let cycle: { stage: 'wait' | 'tell' | 'rise' | 'up' | 'dazed' | 'bite' | 'dive'; t: number; p: Pizza | null; hits: number; venom: boolean; t0?: number; hx?: number; strike?: { x: number; y: number; tilt: number; tx: number; ty: number } } = { stage: 'wait', t: 2.2, p: null, hits: 0, venom: false };
   let lastGap = -1;
   let squeeze: { p: Pizza; img: Phaser.GameObjects.Image; t: number; tw: Phaser.Tweens.Tween } | null = null;
   const constrict = new Every(9, 6);
@@ -906,7 +940,8 @@ const jormungandr = (): Brain => {
     releaseSqueeze(a);
     // reeling, it stays up for a moment before it dives: a window to pile on hits (without it the head took only
     // 2–4 smacks a surfacing and the fight ran three or four minutes)
-    cycle = { stage: 'dazed', t: [2, 1.6, 1.4, 1.2, 1][heat(a).rank], p: null, hits: 0, venom: true };
+    const t = [2, 1.6, 1.4, 1.2, 1][heat(a).rank];
+    cycle = { stage: 'dazed', t, t0: t, hx: H.x, p: null, hits: 0, venom: true };
     f.stun(0.4);
   };
 
@@ -984,7 +1019,8 @@ const jormungandr = (): Brain => {
       let daze = 0;
       let scale = 1;
       let boil = 0;
-      let tilt = HEAD_TILT + ((H.x - homeX()) / 900) * H.face;
+      let tilt = HEAD_TILT;
+      let tiltRate = 6;
       if (c.stage === 'wait' && c.t <= 0) {
         // bubbles at the next gap, then the head rises there
         const choices = GAPS.filter((_g, i) => i !== lastGap);
@@ -994,6 +1030,9 @@ const jormungandr = (): Brain => {
         // it turns towards the pizza nearest its gap (the one it will bite)
         const near = a.alivePizzas().reduce<Pizza | null>((b, p) => (!b || Math.abs(p.x - g) < Math.abs(b.x - g) ? p : b), null);
         H.face = near && near.x > g ? 1 : -1;
+        // (if poising on that side of it would put the head, or the body arching behind it, off the screen, it comes
+        // at the pizza from the other side)
+        if (near && Math.abs(near.x - H.face * STRIKE_DX - (HEAD_X_MIN + HEAD_X_MAX) / 2) > (HEAD_X_MAX - HEAD_X_MIN) / 2) H.face = -H.face;
         H.x = homeX();
         H.y = HEAD_DOWN;
         c.stage = 'tell';
@@ -1006,6 +1045,8 @@ const jormungandr = (): Brain => {
         // the sea boils at the gap and the crown of its head breaks the surface
         const u = 1 - c.t / (c.t0 ?? 1);
         boil = Math.min(1, u * 2);
+        // (snout up, the way it will burst out)
+        tilt = -0.35;
         H.y = ease(H.y, HEAD_TELL + Math.sin(a.now() * 20) * 3, 6, dt);
         H.x = homeX() + Math.sin(a.now() * 13) * 3;
         if (c.t <= 0) {
@@ -1023,6 +1064,7 @@ const jormungandr = (): Brain => {
         H.y = ease(H.y, HEAD_UP, 9, dt);
         boil = 0.6;
         jaw = 0.12;
+        tilt = -0.15;
         if (c.t <= 0) {
           c.stage = 'up';
           H.up = true;
@@ -1039,7 +1081,8 @@ const jormungandr = (): Brain => {
             a.sc.time.delayedCall(500, () => {
               if (!f.alive || cycle.stage !== 'up') return;
               a.sfx('sfx_jormungandr_venom');
-              throwAtPeel(a, 'p_venom', { x: H.x, y: H.y + 150 }, 1.2, () => {
+              const [mx, my] = mouthOffset(H.face, H.tilt, H.scale);
+              throwAtPeel(a, 'p_venom', { x: H.x + mx, y: H.y + my }, 1.2, () => {
                 a.slowPeel(h.stun(2.2));
                 a.quip(a.peelPoint().x, a.peelPoint().y - 70, 'VENOM!', '#7dffb0', 36);
               }, () => a.damageFoot(f, Math.round(f.maxHp * 0.02), 'BATTED BACK!'), 8, { scale: 0.75 });
@@ -1047,20 +1090,32 @@ const jormungandr = (): Brain => {
           }
         }
       } else if (c.stage === 'up') {
-        // sways, glaring; at the end it draws a deep breath, rearing back, its jaws parting
+        // poised over the curve of its neck, swaying, its snout aimed down at the pizza it means to bite; at the end it
+        // draws a deep breath and cocks its head back (still aimed), its jaws gaping wide
         const breath = Math.min(0.8, (c.t0 ?? 1) * 0.4);
         const u = Math.max(0, 1 - c.t / breath);
         inhale = u;
-        jaw = 0.1 + u * u * 0.35;
+        jaw = 0.08 + Math.pow(u, 1.4) * 0.68;
         scale = 1 + u * 0.04;
-        H.x = homeX() + Math.sin(a.now() * 2.6) * 50 * (1 - u * 0.7) - H.face * u * 40;
-        H.y = HEAD_UP + Math.sin(a.now() * 3.3) * 14 - u * 34;
-        tilt -= u * 0.12;
+        // (from where it surfaced it glides back and up from its pizza, its body swimming round behind it, until the
+        // line it will strike along runs down through the pizza; it keeps its aim on it as it sways)
+        const want = c.p && !c.p.dead ? Math.max(HEAD_X_MIN, Math.min(HEAD_X_MAX, c.p.x - H.face * STRIKE_DX)) : homeX();
+        c.hx = ease(c.hx ?? H.x, want, 3, dt);
+        H.x = c.hx + Math.sin(a.now() * 2.6) * 30 * (1 - u * 0.7) - H.face * u * 60;
+        H.y = HEAD_UP + Math.sin(a.now() * 3.3) * 10 - u * 30;
+        const [amx, amy] = mouthOffset(H.face, H.tilt, H.scale);
+        const aim = c.p && !c.p.dead ? Math.max(0.35, Math.min(1.1, aimTilt(H.face, H.x + amx, H.y + amy, c.p.x, c.p.surfaceY))) : HEAD_TILT;
+        tilt = aim + Math.sin(a.now() * 2.1) * 0.03;
         if (c.t <= 0) {
           if (!c.p || c.p.dead || !a.inWave()) {
             cycle = { stage: 'dive', t: 0.3, p: null, hits: 0, venom: false };
             return;
           }
+          // it strikes along the line from its mouth to the pizza, the neck uncoiling behind it
+          const [mx, my] = mouthOffset(H.face, H.tilt, H.scale);
+          const st = Math.max(0.3, Math.min(1, aimTilt(H.face, H.x + mx, H.y + my, c.p.x, c.p.surfaceY - 20)));
+          const [ex, ey] = mouthOffset(H.face, st, 1.06);
+          c.strike = { x: H.x, y: H.y, tilt: st, tx: c.p.x - ex, ty: c.p.surfaceY - 20 - ey };
           c.stage = 'bite';
           c.t = 0.22;
           a.sfx('sfx_jormungandr_bite');
@@ -1069,25 +1124,29 @@ const jormungandr = (): Brain => {
         // reeling: it wobbles where it is, eyes rolling, the head sagging, the jaw slack; then dives
         daze = 1;
         jaw = 0.42 + Math.sin(a.now() * 5) * 0.07;
-        tilt += 0.2 + Math.sin(a.now() * 4.2) * 0.14;
-        H.x = homeX() + Math.sin(a.now() * 9) * 24;
-        H.y = HEAD_UP + 70 + Math.sin(a.now() * 7) * 10;
+        // (the smack throws its head back and up, the neck kinking back behind it; then it sags)
+        const jolt = Math.exp(-5 * ((c.t0 ?? c.t) - c.t));
+        tilt += 0.15 - 0.55 * jolt + Math.sin(a.now() * 4.2) * 0.1;
+        tiltRate = 14;
+        H.x = (c.hx ?? homeX()) - H.face * 90 * jolt + Math.sin(a.now() * 9) * 20;
+        H.y = HEAD_UP + 70 - 80 * jolt + Math.sin(a.now() * 7) * 10;
         if (c.t <= 0) {
           cycle = { stage: 'dive', t: 0.3, p: null, hits: 0, venom: false };
           a.sfx('sfx_jormungandr_dive');
         }
       } else if (c.stage === 'bite') {
-        // the lunge: jaws flung wide, coming at us, then snapping shut on the pizza
+        // the strike: along its line, faster and faster, jaws flung wide, snapping shut on the pizza
         const p = c.p!;
-        const u = 1 - c.t / 0.22;
-        jaw = u < 0.7 ? 0.8 : Math.max(0, 0.8 - (u - 0.7) / 0.3);
-        // (it strikes down: the snout dips onto the pizza and the back of its head lifts away from the next lane)
-        scale = 1 - u * 0.06;
+        const u = Math.min(1, 1 - c.t / 0.22);
+        jaw = u < 0.7 ? 1 : Math.max(0, 1 - (u - 0.7) / 0.25);
+        scale = 1 + u * 0.06;
         inhale = 0.6;
-        // its mouth comes down onto the pizza
-        H.x += (p.x - H.face * MOUTH_DX - H.x) * Math.min(1, dt * 14);
-        H.y += (p.surfaceY - MOUTH_DY - 110 - H.y) * Math.min(1, dt * 14);
-        tilt += 0.3 * u;
+        const s = c.strike!;
+        const e = Math.min(1, u / 0.75) ** 2;
+        H.x = s.x + (s.tx - s.x) * e;
+        H.y = s.y + (s.ty - s.y) * e;
+        tilt = s.tilt;
+        tiltRate = 30;
         if (c.t <= 0) {
           if (!p.dead && a.inWave()) {
             a.hitPizza(p, 1, 'BITTEN!', '#7dffb0');
@@ -1099,18 +1158,20 @@ const jormungandr = (): Brain => {
       } else if (c.stage === 'dive') {
         // it pulls back up from the table, then plunges into its gap with a splash
         H.up = false;
-        H.x = ease(H.x, homeX(), 8, dt);
         if (c.t > 0) {
+          H.x = ease(H.x, Math.max(HEAD_X_MIN - 100, Math.min(HEAD_X_MAX + 100, homeX())), 8, dt);
           H.y = ease(H.y, Math.min(H.y, HEAD_UP + 40), 12, dt);
-          tilt -= 0.05;
+          tilt = 0.25;
         } else {
+          // snout first into the sea in front of its gap, the neck arching over after it
+          H.x = ease(H.x, H.gap + H.face * 120, 6, dt);
+          tilt = 1.25;
           if (!H.plunged) {
             H.plunged = true;
             rig.plunge(H.gap);
             a.fx.puff(H.gap, EDGE_Y, 8);
           }
           H.y = ease(H.y, HEAD_DOWN, 6, dt);
-          tilt += 0.06;
           if (H.y > EDGE_Y + 260) {
             f.phased = true;
             cycle = { stage: 'wait', t: h.cooldown(1.6), p: null, hits: 0, venom: false };
@@ -1121,7 +1182,7 @@ const jormungandr = (): Brain => {
       H.inhale = ease(H.inhale, inhale, 8, dt);
       H.daze = ease(H.daze, daze, 6, dt);
       H.scale = ease(H.scale, scale, 12, dt);
-      H.tilt = ease(H.tilt, tilt, 6, dt);
+      H.tilt = ease(H.tilt, tilt, tiltRate, dt);
       H.boil = ease(H.boil, boil, 4, dt);
 
       // ——— Constrict: a coil wraps a pizza until the head recoils ———

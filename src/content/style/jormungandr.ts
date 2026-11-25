@@ -1,7 +1,9 @@
 // JÖRMUNGANDR, the world serpent (Act 8's Bifröst mini-boss), in the style kit: his portrait, boss card and peel.
 // It's the fight's own head (src/content/art/jormungandr.ts): a long wedge of a serpent's skull in three-quarter view,
-// hanging from his neck and angled down at us so the snout comes forward (feet are drawn strictly front-on; a
-// serpent's head needs the turn for its length to read). Weathered stone plates with lichen, barnacles and salt in the
+// turned a little towards us (the top of the skull and both brows show) and aimed down, carried on its neck the way a
+// snake's is: the neck comes down from the leg, swings out in a curve and runs straight on into the back of the skull,
+// so head and neck are one line (feet are drawn strictly front-on; a serpent's head needs the turn for its length to
+// read). Weathered stone plates with lichen, barnacles and salt in the
 // cracks, a ridge of slabs down the top, an ember eye deep under a heavy brow, the jaw a little open on wet dark-pink
 // gums and uneven teeth, a great lower tusk, kelp caught on him. The neck rising behind into the leg is the
 // 'serpentneck' leg kind: stone-plated hide, the pale ribbed throat on its near side, the ridge down its back.
@@ -14,13 +16,13 @@ import { CX } from '../../art/feetCommon';
 import { registerLegKind, wrapTile } from '../../art/style/legs';
 import { type PartDef, registerStyle } from '../../art/style/registry';
 import { makeCanvas, type Ctx } from '../../art/util';
-import { EYE, KELP, KELP_F, NECK, NOSES, SK, SOCKET, jawTurn, paintEyeGlows, paintEyesAt, paintHeadStill, paintKelpAt, paintNeck, paintSkull, skullPath } from '../art/jormungandr';
+import { EYE, KELP, KELP_F, NECK, NECK_AT_HEAD, NOSES, SK, SOCKET, drawNeckAlong, jawTurn, paintEyeGlows, paintEyesAt, paintHeadStill, paintKelpAt, paintNeck, paintSkull, skullPath } from '../art/jormungandr';
 
 /** Design units per skull unit, the head's turn (snout down towards us), and where its neck socket sits. */
 const K = 0.31;
 const ROT = -0.5;
 const CONTACT = 306;
-const SOCK: [number, number] = [CX + 64, 205];
+const SOCK: [number, number] = [CX + 78, 176];
 /** Skull units → design units. */
 export function jormAt(x: number, y: number): [number, number] {
   const dx = (x - SOCKET.x) * K;
@@ -88,48 +90,17 @@ function drawJorm(ctx: Ctx, o: { live: boolean; emissive?: boolean; heat?: boole
   if (!o.live) for (let i = 0; i < KELP.length; i++) drawKelp(ctx, i);
 }
 
-/** How much thicker the neck is drawn than the head's own scale (it rises close to us). */
-const NECK_K = 1.2;
-let strip: HTMLCanvasElement | null = null;
-/** The neck's tile stacked into one long strip (so slices never wrap). */
-function neckStrip(): HTMLCanvasElement {
-  if (strip) return strip;
-  const t = paintNeck();
-  const [c, g] = makeCanvas(t.width, t.height * 4);
-  for (let i = 0; i < 4; i++) g.drawImage(t, 0, i * t.height);
-  strip = c;
-  return c;
-}
+/** How thick the neck is where it comes down from the leg (against the head's own scale). */
+const NECK_TOP = 1.05;
 
-/** The neck: slices of the fight's neck laid along a curve from the top of the frame (where the leg goes on) down
- * into the socket at the back of the skull. */
+/** The neck: from the top of the frame (where the leg goes on) it swings out to the right in a curve and comes down
+ * into the socket along the head's own axis, so it carries straight on into the back of the skull. */
 function drawNeck(g: Ctx): void {
-  const tile = neckStrip();
-  const k = K * NECK_K;
-  const P0: [number, number] = [CX, -20];
-  const P1: [number, number] = [CX - 6, 90];
-  const P2: [number, number] = [SOCK[0] + 30, SOCK[1] - 110];
-  const P3: [number, number] = [SOCK[0] + 6, SOCK[1] + 4];
-  const at = (t: number): [number, number] => {
-    const u = 1 - t;
-    return [u * u * u * P0[0] + 3 * u * u * t * P1[0] + 3 * u * t * t * P2[0] + t * t * t * P3[0], u * u * u * P0[1] + 3 * u * u * t * P1[1] + 3 * u * t * t * P2[1] + t * t * t * P3[1]];
-  };
-  const N = 16;
-  let acc = 0;
-  for (let i = 0; i < N; i++) {
-    const [x0, y0] = at(i / N);
-    const [x1, y1] = at((i + 1) / N);
-    const len = Math.hypot(x1 - x0, y1 - y0);
-    const sy = acc / k;
-    const hh = Math.min((len * 1.3) / k, tile.height - sy);
-    g.save();
-    g.translate(x0, y0);
-    g.rotate(Math.atan2(-(x1 - x0), y1 - y0));
-    g.scale(k, k);
-    g.drawImage(tile, 0, sy, NECK.w, hh, -NECK.cx, 0, NECK.w, hh);
-    g.restore();
-    acc += len;
-  }
+  // the head's axis back towards the neck, as turned in the frame
+  const bx = Math.cos(ROT);
+  const by = Math.sin(ROT);
+  const reach = 210 * K;
+  drawNeckAlong(g, [SOCK[0], SOCK[1], SOCK[0] + bx * reach, SOCK[1] + by * reach, CX, 70, CX, -24], K, K * NECK_AT_HEAD, K * NECK_TOP);
 }
 
 function drawKelp(g: Ctx, i: number): void {
@@ -169,7 +140,7 @@ registerStyle('jormungandr', {
   halfWidth: 108,
   portraitLeg: 30,
   // the neck runs down behind the back of the skull
-  leg: { kind: 'serpentneck', hw: Math.round(NECK.r * K * NECK_K), join: 'into', end: 6 },
+  leg: { kind: 'serpentneck', hw: Math.round(NECK.r * K * NECK_TOP), join: 'into', end: 6 },
   parts: {
     eyes: {
       box: eyeBox,
