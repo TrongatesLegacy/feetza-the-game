@@ -4951,7 +4951,10 @@ const REDRAWN = new Set<BackdropId>(['trattoria', 'beach', 'space',
   'jokester',
   // the Red Sole's arena (the HYDRANT Bunker, Captain Pizzeria's nemesis mini-boss in place of Ultoe), redrawn with the
   // location kit and painted frame animation: scene-redsole.ts
-  'redsole']);
+  'redsole',
+  // Venomnom's arena (the Symbiote Lab, Spider-Pan's nemesis mini-boss in place of Ultoe), redrawn with the location
+  // kit and painted frame animation: scene-venomnom.ts
+  'venomnom']);
 
 // redrawn scenes keep their old info for the before/after page (their old glows and particles with their old art)
 const LEGACY_INFO: Partial<Record<BackdropId, BackdropInfo>> = {};

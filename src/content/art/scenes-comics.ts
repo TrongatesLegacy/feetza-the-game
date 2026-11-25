@@ -5,7 +5,9 @@
 //   Alarm beacons turn and the cradle's glow pulses (src/content/live/comics.ts). Redrawn with the location kit in
 //   scene-redsole.ts: this stays for the before/after page.
 // - The Symbiote Lab (Venomnom, wave 68 with Spider-Pan): a wrecked lab, its containment tank smashed and black goo
-//   oozing across the floor, two sonic emitters on the back wall. The lights flicker and the goo drips.
+//   oozing across the floor, two sonic emitters on the back wall. The lights flicker and the goo drips. Redrawn with the
+//   location kit in scene-venomnom.ts: this stays for the before/after page (VL stays here: the fight places its
+//   emitters at VL.emitters).
 // - The Night Conservatory (the Cheetoe, wave 63 with Wonder Wedge): a glass dome on a Metropizza rooftop, overgrown
 //   with jungle, the moon and the city through the panes. Fireflies drift and moonbeams shift.
 // Every emblem is our own.
@@ -526,7 +528,8 @@ registerLegacyScene('redsole', {
   draw: drawBunker,
 });
 
-registerScene('venomnom', {
+// (redrawn with the location kit in scene-venomnom.ts; this stays for the before/after page, ?dev&stages)
+registerLegacyScene('venomnom', {
   info: {
     name: 'The Symbiote Lab',
     subtitle: 'Mini-boss: VENOMNOM',

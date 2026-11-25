@@ -37,8 +37,10 @@ registerLegacyLive('redsole', (ctx: LiveCtx): LiveScene => {
 });
 
 // ——— The Symbiote Lab ———
+// (redrawn with the location kit in src/content/art/scene-venomnom.ts, whose own live layer oozes the goo, stutters the
+// strip lights and answers the fight; this stays for the before/after page)
 
-registerLive('venomnom', (ctx: LiveCtx): LiveScene => {
+registerLegacyLive('venomnom', (ctx: LiveCtx): LiveScene => {
   const k = new NzKit(ctx.sc, ctx.layer);
   const dark = k.rect(0x05060a, 0, 0);
   const lamps = VL.emitters.map((e) => k.img('glow', e.x + 60, e.y - 70, { tint: 0x7dff9a, add: true, alpha: 0.5, sx: 0.3 }));

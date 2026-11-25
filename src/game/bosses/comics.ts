@@ -18,7 +18,9 @@
 //   binds a pizza: no perk, and a slice drained every 3.5 s until 4 smacks break it; two sonic emitters on the lab
 //   wall take 3 smacks each to fire: the pulse dissolves all goo, stuns it 3 s and doubles the damage it takes for 4
 //   s, and the emitter recharges for 12 s) and WE ARE VENOMNOM (a goo twin that shares its health; a sonic pulse
-//   melts it back in).
+//   melts it back in). Its arena answers (src/content/art/scene-venomnom.ts): the brain emits 'venomnom-lash' (x, y),
+//   'venomnom-bind' (x, y), 'venomnom-split' (x), 'venomnom-pulse' (x, y) and 'venomnom-emitter' (i, mounted) on the
+//   scene's events.
 // - The Cheetoe: POUNCE (every 7 s she dashes over a pizza and crouches 1.2 s; 2 smacks spoil it, or she takes a
 //   slice and leaves claw marks that take another in 4 s unless smacked twice), CLAW FRENZY (every 9 s three red
 //   lines flash across the screen round your peel for 0.9 s, then her claws rake them: a 1 s peel stun if it's on a
@@ -454,6 +456,7 @@ const venomnom = (): Brain => {
       if (state !== 'wait' || !f.alive || !a.inWave() || p.dead) return void forget();
       state = 'out';
       a.sfx('sfx_venomnom_tongue');
+      a.sc.events.emit('venomnom-lash', p.x, p.surfaceY);
       a.sc.tweens.add({
         targets: st,
         u: 1,
@@ -498,6 +501,7 @@ const venomnom = (): Brain => {
     const p = rnd(a.alivePizzas().filter((q) => !goos.has(q)));
     if (!p) return;
     a.sfx('sfx_venomnom_goo');
+    a.sc.events.emit('venomnom-bind', p.x, p.surfaceY);
     a.quip(p.x, p.surfaceY - 200, 'BOUND!', '#b8b8ff', 40);
     const drain = a.sc.time.addEvent({
       delay: h.cooldown(3.5) * 1000,
@@ -557,17 +561,20 @@ const venomnom = (): Brain => {
       clearSfx: 'sfx_venomnom_sonic',
       onClear: () => {
         slot.prop = null;
+        a.sc.events.emit('venomnom-emitter', i, false);
         pulse(f, a, e.x, e.y);
         // it recharges
         const again = a.sc.time.delayedCall(12000, () => f.alive && a.inWave() && placeEmitter(f, a, i));
         bin.add(() => again.remove());
       },
     });
+    a.sc.events.emit('venomnom-emitter', i, true);
     bin.add(() => slot.prop?.destroy());
   };
 
   const pulse = (f: Foot, a: Arena, x: number, y: number) => {
     const h = heat(a);
+    a.sc.events.emit('venomnom-pulse', x, y);
     // rings of sound across the screen
     for (let k = 0; k < 4; k++) a.sc.time.delayedCall(k * 120, () => a.fx.ring(x, y, 0x9ff0ff, 4 + k, 0.6));
     a.flash(200, 200, 240, 255);
@@ -593,7 +600,10 @@ const venomnom = (): Brain => {
     a.sfx('sfx_venomnom_split');
     bubble(a, 'WE ARE VENOMNOM!', f, 1600);
     const t = twin(a, f);
-    if (t) copy = t;
+    if (t) {
+      copy = t;
+      a.sc.events.emit('venomnom-split', f.x);
+    }
   };
 
   return {
