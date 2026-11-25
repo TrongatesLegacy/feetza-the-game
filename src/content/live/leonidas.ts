@@ -6,7 +6,7 @@
 
 import Phaser from 'phaser';
 import { crand } from '../../systems/cosmeticRandom';
-import { type LiveCtx, type LiveScene, registerLive } from '../../game/liveBackdrop';
+import { type LiveCtx, type LiveScene, registerLegacyLive, registerLive } from '../../game/liveBackdrop';
 import { GP, HG, XP } from '../art/scenes-leonidas';
 import { NzKit, reduced } from './kratos';
 
@@ -20,7 +20,9 @@ const LIGHT: [number, number, boolean][] = [
   [0xc8301a, 0.22, true],
 ];
 
-registerLive('hotgates', (ctx: LiveCtx): LiveScene => {
+// (redrawn with the location kit in src/content/art/scene-hotgates.ts, whose own live layer runs the surf, the host,
+// the volleys and the light by wave; this old layer stays for the before/after page, ?dev&stages)
+registerLegacyLive('hotgates', (ctx: LiveCtx): LiveScene => {
   const k = new NzKit(ctx.sc, ctx.layer);
   const tint = k.rect(0xffffff, 0, Phaser.BlendModes.MULTIPLY);
   // surf on the rocks

@@ -8,10 +8,11 @@
 //   winding up it.
 // - The God-King's Pavilion (Xerxes, wave 85): a golden canopy over a towering throne on a stepped platform, braziers
 //   and the banners of the whole empire behind it.
-// Every emblem is our own.
+// Every emblem is our own. The Hot Gates is redrawn with the location kit (scene-hotgates.ts): its old art here stays
+// for the before/after page.
 
 import type { GlowSpot } from '../../art/backdrops';
-import { registerScene } from '../../art/registry';
+import { registerLegacyScene, registerScene } from '../../art/registry';
 import {
   type Ctx,
   type R,
@@ -405,7 +406,8 @@ function drawPavilion(ctx: Ctx, r: R): void {
   vignette(ctx, 0.75, '#1a0610', 0.55);
 }
 
-registerScene('hotgates', {
+// (redrawn with the location kit in scene-hotgates.ts; this stays for the before/after page, ?dev&stages)
+registerLegacyScene('hotgates', {
   info: {
     name: 'The Hot Gates',
     subtitle: 'Waves 81–84 · with King Leonidas',

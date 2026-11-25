@@ -18,7 +18,7 @@ export type LocationId = 'trattoria' | 'rooftop' | 'beach' | 'diner' | 'lodge' |
   | 'oven' | 'firstpizzeria'
   // ——— Nemesis stages (src/game/nemesis.ts; scenes in src/content/art/scenes-gotham.ts and scene-gotham.ts) ———
   | 'gotham'
-  // King Leonidas's Hot Gates (src/content/art/scenes-leonidas.ts)
+  // King Leonidas's Hot Gates (src/content/art/scenes-leonidas.ts and scene-hotgates.ts)
   | 'hotgates';
 export type ArenaId = 'bigfoot' | 'ironheel' | 'clownking' | 'trex' | 'colossus' | 'phantomking' | 'cosmiccroc' | 'nonna' | 'gargoyle' | 'kraken' | 'rinkqueen' | 'yeti'
   // ——— Act 7 · Comics ———
@@ -4928,6 +4928,9 @@ const REDRAWN = new Set<BackdropId>(['trattoria', 'beach', 'space',
   // Goth-Ham Rooftops (Batpeel's nemesis stage, in place of Stage 12), redrawn with the location kit and painted frame
   // animation: scene-gotham.ts
   'gotham',
+  // the Hot Gates (King Leonidas's nemesis stage, in place of the Labyrinth), redrawn with the location kit and painted
+  // frame animation: scene-hotgates.ts
+  'hotgates',
   // Bunion's arena (The Pit, the mini-boss of Batpeel's nemesis stage), redrawn with the location kit and painted frame
   // animation: scene-bunion.ts
   'bunion',
