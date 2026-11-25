@@ -537,7 +537,7 @@ function forestTree(ctx: Ctx, r: R, x: number, y: number, s: number, moonLeft: b
     polyPath(pts)(ctx);
     ctx.fill();
     // the moon down its moonward side
-    if (s > 9 && r() < 0.5) {
+    if (moonA > 0.2 && r() < 0.5) {
       ctx.strokeStyle = rgba(MOON, moonA * 0.6);
       ctx.lineWidth = 0.8;
       ctx.beginPath();
@@ -560,11 +560,10 @@ function forestTree(ctx: Ctx, r: R, x: number, y: number, s: number, moonLeft: b
       ctx.ellipse(x + Math.cos(a) * s * 0.5, y - s * 0.6 + Math.sin(a) * s * 0.35, rr * 0.6, rr * 0.5, 0, 0, P2);
     }
     ctx.fill();
-    ctx.strokeStyle = rgba(MOON, moonA * 0.8);
-    ctx.lineWidth = 1;
+    ctx.fillStyle = rgba(MOON, moonA * 0.35);
     ctx.beginPath();
-    ctx.arc(x + d * s * 0.2, y - s * 0.6, s * 0.9, moonLeft ? Math.PI * 1.1 : Math.PI * 1.55, moonLeft ? Math.PI * 1.45 : Math.PI * 1.9);
-    ctx.stroke();
+    ctx.ellipse(x + d * s * 0.25, y - s * 1.05, s * 0.5, s * 0.16, 0, 0, P2);
+    ctx.fill();
     if (warm > 0.02) {
       ctx.fillStyle = rgba('#e0803a', warm * 0.45);
       ctx.beginPath();
@@ -723,7 +722,7 @@ function mountain(ctx: Ctx, r: R): void {
       const [pk, side] = nearPath(x, y, 40);
       // the path's own strip stays open (a cut in the slope)
       if (pk > 0.8) continue;
-      forestTree(ctx, r, x, y, s, true, 0.06 + r() * 0.08 + clamp01(1 - (x - 900) / 900) * 0.08, pk * pk * 0.8, side);
+      forestTree(ctx, r, x, y, s, true, 0.06 + r() * 0.08 + clamp01(1 - (x - 900) / 900) * 0.08, 0, side);
     }
     lay(ctx, drift('#2a3658', '#020308', 5, 357, 160, 70), { x: 850, y: 320, w: 1080, h: 330 }, 0.4);
     for (const [mx, my, mw] of [[1500, 470, 300], [1700, 560, 260], [1180, 600, 240], [1640, 380, 200]] as const) {
@@ -738,7 +737,9 @@ function mountain(ctx: Ctx, r: R): void {
       ctx.fillRect(mx - mw, my - mw, mw * 2, mw * 2);
       ctx.restore();
     }
-    // the path: a narrow track cut into the slope, its bank above it pale, its outer lip dark
+    // the canopy: masses of oak and pine standing up the slope from the path and away from it
+    canopyBehind(ctx);
+    // the path: a narrow track cut into the slope, its outer lip dark; the torches' light defines it
     const p = IB.path;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
@@ -748,20 +749,16 @@ function mountain(ctx: Ctx, r: R): void {
     };
     for (let j = 1; j < p.length; j++) {
       const s = colScale(p[j][1]);
-      ctx.strokeStyle = '#1c1c28';
-      ctx.lineWidth = 10 * s;
+      ctx.strokeStyle = rgba('#16161f', 0.55);
+      ctx.lineWidth = 8 * s;
       ctx.beginPath();
       ctx.moveTo(p[j - 1][0], p[j - 1][1]);
       ctx.lineTo(p[j][0], p[j][1]);
       ctx.stroke();
     }
-    ctx.strokeStyle = rgba('#02030a', 0.7);
-    ctx.lineWidth = 2;
-    trace(4);
-    ctx.stroke();
-    ctx.strokeStyle = rgba('#6a6a7a', 0.2);
+    ctx.strokeStyle = rgba('#02030a', 0.45);
     ctx.lineWidth = 1.6;
-    trace(-3);
+    trace(4);
     ctx.stroke();
   });
   // the skyline, rimmed by the moon along its crest
@@ -797,7 +794,7 @@ function mountain(ctx: Ctx, r: R): void {
   softly(ctx, { x: 560, y: 352, w: 920, h: 289 }, (g) => {
     g.lineCap = 'round';
     g.lineJoin = 'round';
-    for (const [wd, a] of [[30, 0.07], [12, 0.1], [5, 0.16]] as const) {
+    for (const [wd, a] of [[26, 0.05], [10, 0.05]] as const) {
       g.strokeStyle = rgba('#ff8a34', a);
       g.lineWidth = wd;
       g.beginPath();
@@ -807,103 +804,130 @@ function mountain(ctx: Ctx, r: R): void {
   }, 0.25, 'lighter');
 }
 
-// ——— the trees on the slope that the column passes behind ———
+// ——— the forest on the switchback slope: masses of oak and pine canopy the column threads through ———
 
 export const TREES_BOX: Box = { x: 880, y: 300, w: 560, h: LIP - 10 - 300 };
-/** Where they stand: (x, base y, height, kind 0 pine / 1 oak, seed). Their bases sit just below a stretch of path, so
- * their trunks and crowns stand in front of it. */
-const SLOPE_TREES: [number, number, number, number][] = (() => {
-  const rr = rng(hashStr('ib:slopetrees'));
-  const out: [number, number, number, number][] = [];
-  const p = IB.path;
-  for (let i = 1; i < p.length; i++) {
-    const [ax, ay] = p[i - 1];
-    const [bx, by] = p[i];
-    const len = Math.hypot(bx - ax, by - ay);
-    if (len < 60) continue;
-    for (let d = 20 + rr() * 30; d < len - 16; d += 46 + rr() * 64) {
-      const t = d / len;
-      const x = ax + (bx - ax) * t;
-      const y = ay + (by - ay) * t + 10 + rr() * 22;
-      if (x < mtX(y) + 14 || x > TREES_BOX.x + TREES_BOX.w - 30 || y > LIP - 16) continue;
-      const s = colScale(y);
-      out.push([x, y, (80 + rr() * 70) * s * 1.5, rr() < 0.5 ? 0 : 1]);
+
+/** A mass of canopy: several trees' crowns run together, standing on the slope at (x, base). */
+interface Clump { x: number; base: number; w: number; h: number; kind: number; seed: number; front: boolean; warm: number }
+
+/** Size on the slope at a height: smaller up the slope, farther off. */
+const slopeK = (y: number) => 0.55 + clamp01((y - 340) / 290) * 0.6;
+
+const CLUMPS: Clump[] = (() => {
+  const rr = rng(hashStr('ib:clumps'));
+  const out: Clump[] = [];
+  for (let base = 352; base < LIP - 10; base += 15 + rr() * 10) {
+    const k = slopeK(base);
+    let x = mtX(base) + 10 + rr() * 30;
+    while (x < 1900) {
+      const w = (50 + rr() * 90) * k;
+      const h = (34 + rr() * 40) * k;
+      // a gap now and then: a glade, a rock, the path's own cut
+      const gap = rr() < 0.22;
+      const cx = x + w / 2;
+      // in front of the path when it would hide a stretch of it
+      let front = false;
+      for (let s = 0; s < PATH_LEN; s += 8) {
+        const p = pathAt(s);
+        if (Math.abs(p.x - cx) < w * 0.45 && p.y > base - h * 0.85 && p.y < base - 4) {
+          front = true;
+          break;
+        }
+      }
+      const fits = cx - w * 0.8 > TREES_BOX.x && cx + w * 0.8 < TREES_BOX.x + TREES_BOX.w && base - h * 1.5 > TREES_BOX.y;
+      // keep the column glimpsed: only some of the masses that would hide it stand in front
+      if (!gap && (!front || (fits && rr() < 0.62))) {
+        const [pk0] = nearPath(cx, base - h * 0.4, 60);
+        const pk = pk0 * pk0;
+        out.push({ x: cx, base, w, h, kind: rr() < 0.5 ? 0 : 1, seed: Math.floor(rr() * 1e6), front, warm: pk });
+      }
+      x += w * (0.55 + rr() * 0.5) + (gap ? w * 0.6 : 0);
     }
   }
   return out;
 })();
 
-function slopeTree(ctx: Ctx, r: R, x: number, y: number, h: number, kind: number): void {
-  const s = h / 100;
-  const lean = (r() - 0.5) * 0.16;
-  const tw = (kind ? 4.6 : 3.4) * s + 0.8;
-  groundShadow(ctx, x + 3, y + 1, tw * 2.6, 2.5, 0.5, '#020306');
-  // the trunk (an oak's forks into limbs; a pine's runs up crooked to its flat crown), black, backlit by the torches
-  // behind it: warm along both edges
-  const limbs: [Pt, Pt, number][] = [];
-  const forkY = y - h * (kind ? 0.32 : 0.62);
-  const forkX = x + lean * h * 0.5;
-  limbs.push([[x, y + 1], [forkX, forkY], tw]);
-  const tips: Pt[] = [];
-  const nl = kind ? 3 : 2;
-  for (let i = 0; i < nl; i++) {
-    const a = -Math.PI / 2 + (i - (nl - 1) / 2) * (kind ? 0.75 : 0.5) + (r() - 0.5) * 0.3;
-    const l = h * (kind ? 0.32 : 0.26) * (0.8 + r() * 0.4);
-    const tip: Pt = [forkX + Math.cos(a) * l, forkY + Math.sin(a) * l];
-    limbs.push([[forkX, forkY], tip, tw * 0.6]);
-    tips.push(tip);
-  }
+/** One mass: its leaves painted on their own canvas, then lit there: the moon along its top, the column's warmth
+ * underneath (a mass above the path) or on its upper edge (one in front of it, the torches behind it); a trunk or two
+ * showing under it, warm-edged near the torches. */
+function clump(ctx: Ctx, c: Clump): void {
+  const r = rng(c.seed);
+  const k = slopeK(c.base);
+  // the trunks under it
   ctx.lineCap = 'round';
-  for (const [[ax, ay], [bx, by], w] of limbs) {
-    ctx.strokeStyle = '#07060a';
-    ctx.lineWidth = w * 2;
+  const nt = 1 + Math.floor(r() * 3);
+  for (let i = 0; i < nt; i++) {
+    const tx = c.x + (r() - 0.5) * c.w * 0.6;
+    const tw = (2 + r() * 2) * k;
+    ctx.strokeStyle = '#040408';
+    ctx.lineWidth = tw;
     ctx.beginPath();
-    ctx.moveTo(ax, ay);
-    ctx.lineTo(bx, by);
+    ctx.moveTo(tx, c.base);
+    ctx.lineTo(tx + (r() - 0.5) * 4, c.base - c.h * 0.45);
     ctx.stroke();
-  }
-  for (const d of [-1, 1]) {
-    const [[ax, ay], [bx, by], w] = limbs[0];
-    ctx.strokeStyle = rgba('#ff8a3a', 0.22);
-    ctx.lineWidth = Math.max(0.8, w * 0.3);
-    ctx.beginPath();
-    ctx.moveTo(ax + d * w * 0.85, ay - 2);
-    ctx.lineTo(bx + d * w * 0.55, by + 4);
-    ctx.stroke();
-  }
-  // the crown: clumps at the limbs' tips (a pine's flat and spread, an oak's rounded), a warm fringe where the column's
-  // light comes round them from behind, a thread of moon on their tops
-  const blobs: [number, number, number][] = [];
-  for (const [tx, ty] of tips) {
-    if (kind === 0) {
-      const half = s * (16 + r() * 10);
-      for (let j = -2; j <= 2; j++) blobs.push([tx + (j / 2) * half + (r() - 0.5) * 3 * s, ty + Math.abs(j) * s * 1.6 - s * 2, s * (7 - Math.abs(j) * 1.2)]);
-    } else {
-      const cr = h * 0.17;
-      for (let j = 0; j < 4; j++) {
-        const a = r() * P2;
-        blobs.push([tx + Math.cos(a) * cr * 0.6, ty - cr * 0.3 + Math.sin(a) * cr * 0.4, cr * (0.55 + r() * 0.3)]);
-      }
+    if (c.warm > 0.1) {
+      ctx.strokeStyle = rgba('#ff8a3a', c.warm * 0.35);
+      ctx.lineWidth = Math.max(0.8, tw * 0.3);
+      ctx.beginPath();
+      ctx.moveTo(tx + tw * 0.4, c.base);
+      ctx.lineTo(tx + tw * 0.4, c.base - c.h * 0.4);
+      ctx.stroke();
     }
   }
-  ctx.save();
-  // (only their undersides, which face the torches on the path below and behind them)
-  for (const [bx, by, br] of blobs) {
-    const g = ctx.createRadialGradient(bx, by + br * 0.75, 0, bx, by + br * 0.75, br * 0.9 + 2 * s);
-    g.addColorStop(0, rgba('#ff8a3a', 0.22));
-    g.addColorStop(1, rgba('#ff8a3a', 0));
-    ctx.fillStyle = g;
-    ctx.fillRect(bx - br - 8, by - 4, br * 2 + 16, br * 2 + 8);
+  groundShadow(ctx, c.x + 4, c.base, c.w * 0.4, 3 * k, 0.45, '#020306');
+  // the crowns: a mound of irregular clusters (pines flat and layered, oaks heaped)
+  const centres: [number, number, number, number][] = [];
+  const n = 2 + Math.floor(c.w / (26 * k));
+  for (let i = 0; i < n; i++) {
+    const u = n > 1 ? i / (n - 1) - 0.5 : 0;
+    const top = c.base - c.h * (0.55 + (1 - Math.abs(u) * 1.4) * 0.3 + (r() - 0.5) * 0.25);
+    centres.push([c.x + u * c.w * 0.8 + (r() - 0.5) * 8 * k, top + (c.kind ? 0 : -4 * k), (c.kind ? 26 : 30) * k, Math.round(c.kind ? 9 : 8)]);
   }
-  ctx.restore();
-  leafMass(ctx, r, blobs, { dark: '#030406', mid: '#090d12', lit: '#243042', rim: '#a8603a', rimA: 0.3, size: Math.max(2, s * (kind ? 3 : 2.4)), density: 1, shape: kind ? 'leaf' : 'needle', toLight: [-0.6, -0.8], angle: kind ? undefined : (_px, _py, rr) => (rr() - 0.5) * 1.2 + (rr() < 0.5 ? 0 : Math.PI) });
+  const blobs = scatter(r, centres, [5 * k, 9 * k]).map(([x, y, rad]) => [x, c.kind ? y : y * 0.6 + (c.base - c.h * 0.6) * 0.4, rad] as [number, number, number]);
+  const pad = 6;
+  let x0 = Infinity;
+  let y0 = Infinity;
+  let x1 = -Infinity;
+  let y1 = -Infinity;
+  for (const [x, y, rad] of blobs) {
+    x0 = Math.min(x0, x - rad * 1.6);
+    y0 = Math.min(y0, y - rad * 1.6);
+    x1 = Math.max(x1, x + rad * 1.6);
+    y1 = Math.max(y1, y + rad * 1.6);
+  }
+  const bx = Math.floor(x0 - pad);
+  const by = Math.floor(y0 - pad);
+  const bw = Math.ceil(x1 - x0 + pad * 2);
+  const bh = Math.ceil(y1 - y0 + pad * 2);
+  const [cv, g] = makeCanvas(bw, bh);
+  g.translate(-bx, -by);
+  leafMass(g, r, blobs, { dark: '#020308', mid: '#070b12', lit: '#1c2638', size: Math.max(2.8, 3.8 * k), density: 1, shape: c.kind ? 'needle' : 'leaf', toLight: [-0.6, -0.8], angle: c.kind ? (_px, _py, q) => (q() - 0.5) * 1 + (q() < 0.5 ? 0 : Math.PI) : undefined });
+  g.globalCompositeOperation = 'source-atop';
+  const lg = g.createLinearGradient(0, by + pad * 0.5, 0, by + bh);
+  lg.addColorStop(0, rgba('#a8b8e8', 0.26));
+  lg.addColorStop(0.22, rgba('#a8b8e8', 0.04));
+  lg.addColorStop(0.5, 'rgba(0,0,0,0)');
+  lg.addColorStop(1, 'rgba(0,0,0,0.2)');
+  g.fillStyle = lg;
+  g.fillRect(bx, by, bw, bh);
+  if (c.warm > 0.05) {
+    const wg = c.front ? g.createLinearGradient(0, by + pad, 0, by + pad + c.h * 0.3) : g.createLinearGradient(0, by + bh - pad * 0.5, 0, by + bh - pad - c.h * 0.32);
+    wg.addColorStop(0, rgba('#ff8a3a', c.warm * (c.front ? 0.2 : 0.3)));
+    wg.addColorStop(1, rgba('#ff8a3a', 0));
+    g.fillStyle = wg;
+    g.fillRect(bx, by, bw, bh);
+  }
+  ctx.drawImage(cv, bx, by);
 }
 
-function slopeTrees(ctx: Ctx, r: R): void {
-  const sorted = [...SLOPE_TREES].sort((a, b) => a[1] - b[1]);
-  for (const [x, y, h, kind] of sorted) slopeTree(ctx, r, x, y, h, kind);
-  // where the path passes out of sight at the top: a thicket closing over it
-  for (const [x, y, h] of [[1428, 404, 70], [1402, 412, 56], [1448, 398, 80]] as const) slopeTree(ctx, r, x, y, h, 0);
+/** The masses behind the path (up the slope from it, and away from it): painted with the mountain, under the column. */
+function canopyBehind(ctx: Ctx): void {
+  for (const c of CLUMPS) if (!c.front) clump(ctx, c);
+}
+
+function slopeTrees(ctx: Ctx): void {
+  for (const c of CLUMPS) if (c.front) clump(ctx, c);
 }
 
 // ——— our ledge ———
@@ -964,50 +988,195 @@ const ellPathR = (x: number, y: number, rx: number, ry: number, rot: number) => 
   c.ellipse(x, y, rx, ry, rot, 0, P2);
 };
 
+/** The goat track along the ledge: its middle line (x → y) and half-width at x (wider where it's trodden flat). */
+const trackY = (x: number) => 700 + Math.sin(x * 0.0042 + 0.6) * 12 + Math.sin(x * 0.011) * 4;
+const trackW = (x: number) => 20 + Math.sin(x * 0.007 + 1.3) * 6;
+
+/** A cushion of thyme or a clump of grass on the ledge: a low mound of tiny leaves, its top in the moon, a few pale
+ * flowers on the thyme. */
+function thyme(ctx: Ctx, r: R, x: number, y: number, s: number, warm: number): void {
+  groundShadow(ctx, x + s * 2, y + 1, s * 7, s * 1.6, 0.5, '#020306');
+  for (let i = 0; i < 46; i++) {
+    const a = r() * Math.PI;
+    const d = r() ** 0.6;
+    const lx = x + Math.cos(a) * d * s * 7;
+    const ly = y - Math.sin(a) * d * s * 4;
+    const lit = clamp01((y - ly) / (s * 4) * 0.7 + (x - lx) / (s * 14) + 0.2);
+    ctx.fillStyle = mix(mix('#141a1c', '#4a5668', lit), '#c0743a', warm * 0.5 * (1 - lit));
+    ctx.fillRect(lx - s * 0.6, ly - s * 0.5, s * 1.3, s);
+  }
+  for (let i = 0; i < 6; i++) {
+    ctx.fillStyle = rgba('#9a8ab4', 0.4);
+    ctx.fillRect(x + (r() - 0.5) * s * 9, y - r() * s * 4, 1.1, 1.1);
+  }
+}
+
+/** A root snaking over the ground from a tree: a tapering dark stroke, its top catching the moon, a shadow under it. */
+function root(ctx: Ctx, r: R, x0: number, y0: number, dir: number, len: number, w0: number): void {
+  const pts: Pt[] = [];
+  let x = x0;
+  let y = y0;
+  let a = dir > 0 ? 0.12 : Math.PI - 0.12;
+  for (let i = 0; i <= 10; i++) {
+    pts.push([x, y]);
+    a += (r() - 0.5) * 0.5;
+    x += Math.cos(a) * len / 10;
+    y += Math.sin(a) * len / 10 * 0.35 + 0.6;
+  }
+  ctx.lineCap = 'round';
+  for (let i = 1; i < pts.length; i++) {
+    const w = w0 * (1 - i / pts.length) + 1;
+    ctx.strokeStyle = rgba('#020306', 0.45);
+    ctx.lineWidth = w + 2;
+    ctx.beginPath();
+    ctx.moveTo(pts[i - 1][0] + 2, pts[i - 1][1] + 2);
+    ctx.lineTo(pts[i][0] + 2, pts[i][1] + 2);
+    ctx.stroke();
+    ctx.strokeStyle = '#1e1816';
+    ctx.lineWidth = w;
+    ctx.beginPath();
+    ctx.moveTo(...pts[i - 1]);
+    ctx.lineTo(...pts[i]);
+    ctx.stroke();
+    ctx.strokeStyle = rgba(MOON, 0.2);
+    ctx.lineWidth = Math.max(0.8, w * 0.25);
+    ctx.beginPath();
+    ctx.moveTo(pts[i - 1][0], pts[i - 1][1] - w * 0.35);
+    ctx.lineTo(pts[i][0], pts[i][1] - w * 0.35);
+    ctx.stroke();
+  }
+}
+
 function ledge(ctx: Ctx, r: R): void {
   const ground: Pt[] = [...LIP_PTS, [1930, TY + 2], [-10, TY + 2]];
   const gp = polyPath(ground);
+  const [fx, fy] = IB.fire;
+  const warmAt = (x: number, y: number) => clamp01(1 - Math.hypot(x - fx, (y - fy) * 2.6) / 300);
   gp(ctx);
-  ctx.fillStyle = '#20263a';
+  ctx.fillStyle = '#24242e';
   ctx.fill();
   within(ctx, gp, () => {
-    surface(ctx, r, LEDGE_BOX, '#232a40', { over: true, vary: 0.4, cells: 5, mottle: 0.4, strokes: 1.5, strokeAng: 0, strokeLen: 120, strokeW: 6, grain: 0.25, grainKind: 'speckle', seed: 371 });
-    // the worn track along it: a paler, smoother band, hoof-scuffed
-    vfill(ctx, 0, LIP + 10, W, 60, [[0, 'rgba(90,100,130,0)'], [0.5, 'rgba(90,100,130,0.18)'], [1, 'rgba(90,100,130,0)']]);
-    // bedrock breaking through, its top edges catching the moon
-    for (let i = 0; i < 26; i++) {
+    // goat-trodden earth: stony, a little warmer than the rock, drifting in tone
+    surface(ctx, r, LEDGE_BOX, '#262630', { over: true, vary: 0.45, cells: 6, mottle: 0.45, strokes: 0.8, strokeAng: 0, strokeLen: 90, strokeW: 5, grain: 0.3, grainKind: 'speckle', seed: 371, warm: '#4a4448', cool: '#141826' });
+    // the track worn into it: trodden flat and pale, its edges cut a little lower, hoof marks pressed into it
+    const top: Pt[] = [];
+    const bot: Pt[] = [];
+    for (let x = -10; x <= 1930; x += 20) {
+      top.push([x, trackY(x) - trackW(x)]);
+      bot.push([x, trackY(x) + trackW(x)]);
+    }
+    const tp = polyPath([...top, ...[...bot].reverse()]);
+    within(ctx, tp, () => {
+      ctx.fillStyle = rgba('#5a5c6c', 0.32);
+      ctx.fillRect(0, LIP, W, TY - LIP);
+      lay(ctx, drift('#6a6c7c', '#1a1c26', 14, 373, 320, 40), { x: 0, y: 660, w: W, h: 90 }, 0.35);
+      for (let i = 0; i < 160; i++) {
+        const x = r() * W;
+        const y = trackY(x) + (r() - 0.5) * trackW(x) * 1.6;
+        ctx.strokeStyle = rgba('#0c0e16', 0.35);
+        ctx.lineWidth = 1.1;
+        for (const d of [-1, 1]) {
+          ctx.beginPath();
+          ctx.arc(x + d * 1.8, y, 1.8, Math.PI * 0.1, Math.PI * 0.9);
+          ctx.stroke();
+        }
+      }
+    });
+    ctx.strokeStyle = rgba('#0a0c14', 0.4);
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    top.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+    ctx.stroke();
+    ctx.strokeStyle = rgba(MOON, 0.08);
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    bot.forEach(([x, y], i) => (i ? ctx.lineTo(x, y + 1) : ctx.moveTo(x, y + 1)));
+    ctx.stroke();
+    // bedrock breaking through: humps of grey limestone, their tops in the moon (warm near the fire), their faces
+    // towards us in shade, a crevice where they meet the earth, a crack or two
+    for (let i = 0; i < 22; i++) {
       const x = r() * W;
-      const y = LIP + 14 + r() * 90;
-      const w = 30 + r() * 90;
-      const h = 4 + r() * 7;
-      const slab = polyPath(rough(r, [[x, y], [x + w * 0.3, y - h], [x + w, y - h * 0.6], [x + w * 1.05, y + 2], [x, y + 3]], 0.1, 3));
-      slab(ctx);
-      ctx.fillStyle = rgba('#2e3550', 0.45);
+      const y = LIP + 16 + r() * 96;
+      if (x > fx - 120 && x < fx + 90 && Math.abs(y - fy) < 30) continue;
+      const w = 30 + r() * 100;
+      const h = 8 + r() * 14;
+      const pts = rough(r, [[x, y], [x + w * 0.12, y - h * 0.7], [x + w * 0.35, y - h], [x + w * 0.7, y - h * 0.9], [x + w * 0.9, y - h * 0.5], [x + w, y + 1], [x + w * 0.5, y + 3]], 0.12, 3);
+      const rock = smoothPath(pts);
+      crevice(ctx, x, x + w, y + 1, 5, 0.4, '#04060c');
+      rock(ctx);
+      const g = ctx.createLinearGradient(0, y - h, 0, y + 3);
+      g.addColorStop(0, '#565e78');
+      g.addColorStop(0.35, '#383e54');
+      g.addColorStop(1, '#1a1e2c');
+      ctx.fillStyle = g;
       ctx.fill();
-      ctx.strokeStyle = rgba(MOON, 0.09);
-      ctx.lineWidth = 1;
+      const wk = warmAt(x + w / 2, y);
+      within(ctx, rock, () => {
+        lay(ctx, noiseMask(5, 375 + i, { cover: 0.35, soft: 0.15, col: '#0c0e16', w: 40, h: 16 }), { x, y: y - h, w, h: h + 4 }, 0.4);
+        if (wk > 0.02) {
+          const wg = ctx.createLinearGradient(fx, 0, x + w / 2, 0);
+          wg.addColorStop(0, rgba('#ff8a3a', wk * 0.55));
+          wg.addColorStop(1, rgba('#ff8a3a', wk * 0.15));
+          ctx.fillStyle = wg;
+          ctx.fillRect(x, y - h, w, h + 4);
+        }
+        ctx.strokeStyle = rgba('#06080e', 0.5);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x + w * (0.3 + r() * 0.3), y - h);
+        ctx.lineTo(x + w * (0.3 + r() * 0.4), y + 2);
+        ctx.stroke();
+      });
+      // the moon along its crown only
+      ctx.strokeStyle = rgba(MOON, 0.2);
+      ctx.lineWidth = 1.2;
       ctx.beginPath();
-      ctx.moveTo(x, y);
-      ctx.lineTo(x + w * 0.3, y - h);
-      ctx.lineTo(x + w, y - h * 0.6);
+      let on = false;
+      for (const [px, py] of pts) {
+        if (py > y - h * 0.35) {
+          on = false;
+          continue;
+        }
+        if (on) ctx.lineTo(px, py + 0.8);
+        else ctx.moveTo(px, py + 0.8);
+        on = true;
+      }
       ctx.stroke();
     }
-    // needles and oak leaves blown along it, dark, a few catching the light
-    for (let i = 0; i < 260; i++) {
+    // roots: the old oak's out over the earth from the fold, the big pine's in from the right
+    root(ctx, r, 140, 708, 1, 220, 9);
+    root(ctx, r, 120, 724, 1, 150, 7);
+    root(ctx, r, 1840, 744, -1, 260, 11);
+    root(ctx, r, 1820, 730, -1, 160, 8);
+    // the needles and leaves blown along it, gathered at the track's edges and against the rocks
+    for (let i = 0; i < 420; i++) {
       const x = r() * W;
-      const y = LIP + 6 + r() * (TY - LIP);
-      ctx.fillStyle = rgba(r() < 0.25 ? '#5a4a3a' : '#0c0e14', 0.5);
+      const edge = r() < 0.5;
+      const y = edge ? trackY(x) + (r() < 0.5 ? -1 : 1) * trackW(x) * (0.9 + r() * 0.3) : LIP + 6 + r() * (TY - LIP);
       ctx.save();
       ctx.translate(x, y);
       ctx.rotate(r() * P2);
-      ctx.fillRect(-3, -0.6, 6, 1.2);
+      if (r() < 0.7) {
+        ctx.strokeStyle = rgba(r() < 0.6 ? '#4a3a2a' : '#141210', 0.6);
+        ctx.lineWidth = 0.9;
+        ctx.beginPath();
+        ctx.moveTo(-3.5, 0);
+        ctx.lineTo(3.5, 0.6);
+        ctx.stroke();
+      } else {
+        ctx.fillStyle = rgba(r() < 0.5 ? '#4a3420' : '#2e2618', 0.75);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 4, 2, 0, 0, P2);
+        ctx.fill();
+        ctx.fillStyle = rgba(MOON, 0.12);
+        ctx.fillRect(-3, -1.4, 6, 0.8);
+      }
       ctx.restore();
     }
     // the near edge, falling into shade before the table
-    vfill(ctx, 0, TY - 60, W, 62, [[0, 'rgba(4,6,12,0)'], [1, 'rgba(4,6,12,0.55)']]);
+    vfill(ctx, 0, TY - 50, W, 52, [[0, 'rgba(4,6,12,0)'], [1, 'rgba(4,6,12,0.5)']]);
     // the sentry's embers' light on the ground round them
-    const [fx, fy] = IB.fire;
-    lightPool(ctx, fx, fy, 260, 58, '#ff7a2a', 0.32);
+    lightPool(ctx, fx, fy, 270, 60, '#ff7a2a', 0.32);
     lightPool(ctx, fx, fy, 120, 28, '#ffb060', 0.3);
   });
   // the lip: dark against the drop, tufts and stones rimmed by the moon
@@ -1025,11 +1194,18 @@ function ledge(ctx: Ctx, r: R): void {
       tuft(ctx, r, x, along(LIP_PTS, x, 0) + 3 + r() * 6, 0.5 + r() * 0.9);
     }
   }
-  for (let i = 0; i < 50; i++) {
+  // thyme cushions and grass along the track's edges and between the rocks
+  for (let i = 0; i < 26; i++) {
+    const x = 380 + r() * 1400;
+    const y = r() < 0.6 ? trackY(x) + (r() < 0.5 ? -1 : 1) * (trackW(x) + 6 + r() * 10) : LIP + 14 + r() * 100;
+    if (Math.hypot(x - fx, (y - fy) * 2) < 90) continue;
+    if (r() < 0.55) thyme(ctx, r, x, y, 1.2 + r() * 0.8, warmAt(x, y));
+    else tuft(ctx, r, x, y, 0.6 + r() * 0.6);
+  }
+  for (let i = 0; i < 60; i++) {
     const x = r() * W;
     const y = LIP + 12 + r() ** 1.4 * (TY - LIP - 14);
-    const d = Math.hypot(x - IB.fire[0], (y - IB.fire[1]) * 3);
-    pebble(ctx, r, x, y, 2 + r() * 5, clamp01(1 - d / 260));
+    pebble(ctx, r, x, y, 1.6 + r() * 4.5, warmAt(x, y));
   }
 }
 
@@ -2403,7 +2579,7 @@ function table(ctx: Ctx, r: R): void {
     ctx.stroke();
   }
   // cracks with needles and oak leaves lodged in them; small hoof scuffs; lichen in from the sides
-  for (let i = 0; i < 8; i++) crack(ctx, r, r() * W, TY + 20 + r() * (f - TY - 40), (r() - 0.5) * 0.6, 50 + r() * 120, { col: '#0e1018', lip: '#8a96b8', w: 1.2, a: 0.32, branch: 0.35 });
+  for (let i = 0; i < 6; i++) crack(ctx, r, 120 + r() * (W - 240), TY + 30 + r() * (f - TY - 60), (r() - 0.5) * 0.6, 70 + r() * 140, { col: '#0a0c14', lip: '#8a96b8', w: 1.3, a: 0.3, branch: 0.35 });
   for (let i = 0; i < 70; i++) {
     const x = r() * W;
     const y = TY + 8 + r() ** 1.3 * (f - TY - 12);
@@ -2453,7 +2629,7 @@ function table(ctx: Ctx, r: R): void {
     ctx.fillRect(0, y - 40, W, 90);
   }
   ctx.restore();
-  for (let i = 0; i < 700; i++) {
+  for (let i = 0; i < 320; i++) {
     const x = r() * W;
     const y = TY + 4 + r() ** 1.2 * (f - TY - 6);
     const k = 0.6 + ((y - TY) / (f - TY)) * 0.9;
@@ -2461,10 +2637,12 @@ function table(ctx: Ctx, r: R): void {
     ctx.fillRect(x, y, (0.8 + r() * 1.6) * k, (0.6 + r()) * k * 0.7);
   }
   // lichen: small crisp rosettes, grey-green and a few rust, thickest at the sides
-  for (let i = 0; i < 160; i++) {
-    const side = r() < 0.5;
-    const x = side ? r() ** 2 * 420 : W - r() ** 2 * 420;
-    const y = TY + 6 + r() * (f - TY - 12);
+  for (let i = 0; i < 150; i++) {
+    const [px, py, pr] = r() < 0.6 ? [230, 960, 120] : [1720, 800, 80];
+    const a = r() * P2;
+    const d = r() ** 0.7 * pr;
+    const x = px + Math.cos(a) * d;
+    const y = py + Math.sin(a) * d * 0.35;
     const k = 0.6 + ((y - TY) / (f - TY)) * 0.8;
     ctx.fillStyle = rgba(r() < 0.8 ? '#6a7a6a' : '#8a6a4a', 0.12 + r() * 0.14);
     ctx.beginPath();
