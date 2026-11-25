@@ -2,12 +2,13 @@
 // src/content/art/scenes-gotham.ts). The storm builds over the stage: wave 61 a drizzle under a half-hidden moon,
 // 62 rain and bats across the moon, 63 a downpour with lightning, 64 a full storm with wind-driven rain. The
 // searchlight on the right roof throws its pizza-slice signal onto the clouds on every wave. The Pit drips and
-// glows green; the Ha-Ha Funhouse's bulbs chase and its eyes flicker under the same storm.
+// glows green; the Ha-Ha Funhouse's bulbs chase and its eyes flicker under the same storm. (All three are redrawn with
+// the location kit, src/content/art/scene-*.ts: these old layers stay for the before/after page.)
 
 import Phaser from 'phaser';
 import { crand } from '../../systems/cosmeticRandom';
 import { makeCanvas } from '../../art/util';
-import { type LiveCtx, type LiveScene, registerLegacyLive, registerLive } from '../../game/liveBackdrop';
+import { type LiveCtx, type LiveScene, registerLegacyLive } from '../../game/liveBackdrop';
 import { audio } from '../../systems/audio';
 import { save } from '../../systems/save';
 
@@ -311,8 +312,10 @@ registerLegacyLive('bunion', (ctx: LiveCtx): LiveScene => {
 });
 
 // ——— Ha-Ha Funhouse (the Jokester) ———
+// (redrawn with the location kit in src/content/art/scene-jokester.ts, whose own live layer chases and pops the bulbs,
+// turns the carousel and rings the strength tester; this old layer stays for the before/after page, ?dev&stages)
 
-registerLive('jokester', (ctx: LiveCtx): LiveScene => {
+registerLegacyLive('jokester', (ctx: LiveCtx): LiveScene => {
   const k = new Kit(ctx.sc, ctx.layer);
   const flash = k.rect(0xe6dcff, 0);
   const rain = rainEmitter(k, 14, 160);

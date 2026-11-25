@@ -689,6 +689,8 @@ const jokester = (): Brain => {
       onFail: () => {
         cleanup();
         if (!f.alive || p.dead) return;
+        // (Ha-Ha Funhouse, src/content/art/scene-jokester.ts, listens: the face's eyes flare, the laugh box lights)
+        a.sc.events.emit('jokester-bomb', p.x);
         a.sfx('sfx_jokester_boom');
         a.fx.explosion(p.x, p.surfaceY - 30, 140);
         a.fx.party(p.x, p.surfaceY - 40, 20);
@@ -1122,6 +1124,7 @@ const jokester = (): Brain => {
         } });
         a.sc.time.delayedCall(2000, () => {
           a.sfx('sfx_jokester_enter');
+          a.sc.events.emit('jokester-phase', 1);
           a.flash(180, 220, 200, 255);
           a.fx.party(W / 2, TABLE_Y - 160, 50);
           scatter(a, W / 2, TABLE_Y - 160, 'p_gt_card', 10, { scale: 0.6, spread: 1600 });
@@ -1198,7 +1201,8 @@ const jokester = (): Brain => {
     onPhase(f, phase, a) {
       // the transform beat restores the shield state; the gauntlet sets its own
       if (move(f) === 'gauntlet') a.sfx('sfx_jokester_laugh');
-      void phase;
+      // the funhouse goes wild: its bulbs strobe, the carousel lurches, the coaster car is sent round
+      a.sc.events.emit('jokester-phase', phase);
     },
     onDeath(f, a) {
       for (const c of [...clouds]) endCloud(a, c, false);
