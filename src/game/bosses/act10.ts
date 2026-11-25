@@ -910,6 +910,9 @@ const soleunbound = (): Brain => {
     screenGlitch(a.sc, 1000, 1);
     a.quip(960, 300, 'YOUR TABLE IS MINE.', '#ffd23f', 60);
     a.sc.time.delayedCall(1200, () => f.alive && comic(a, 760, 420, 'ACT I: COMICS', '#ffd23f'));
+    // (the Dawn of Time answers each phase: the tear in the sky, frost, stone, the pull of the hole, the frozen sun
+    // straining; scene-soleunbound.ts listens)
+    a.sc.events.emit('soleunbound-phase', f.phase);
   };
 
   // ——— Phase 1: the gauntlet ———
@@ -1075,11 +1078,14 @@ const soleunbound = (): Brain => {
     });
     hole = { x, y, prop, img, swallowT: [5, 4, 4, 3.5, 3][h.rank] };
     phaseBin.add(() => closeHole(a, false));
+    // (everything floating in the arena is dragged towards it: scene-soleunbound.ts listens)
+    a.sc.events.emit('soleunbound-hole', x, y);
   };
   const closeHole = (a: Arena, collapsed: boolean) => {
     if (!hole) return;
     const o = hole;
     hole = null;
+    a.sc.events.emit('soleunbound-hole-closed');
     o.prop.destroy();
     a.sc.tweens.killTweensOf(o.img);
     a.sc.tweens.add({ targets: o.img, scale: 0, angle: o.img.angle + 540, duration: 400, ease: 'Back.In', onComplete: () => o.img.destroy() });
@@ -1338,6 +1344,7 @@ const soleunbound = (): Brain => {
     onPhase: (f, phase, a) => {
       phaseBin.flush();
       closeHole(a, false);
+      a.sc.events.emit('soleunbound-phase', phase);
       if (phase === 2) {
         a.flash(300, 160, 220, 255);
         comic(a, 960, 420, 'ACT II: FROST AND FIRE', '#9ad8ff');
@@ -1355,6 +1362,8 @@ const soleunbound = (): Brain => {
       closeHole(a, false);
       if (!ready) return;
       ready = false;
+      // (the tear in the sky seals and the sun breaks free: scene-soleunbound.ts listens)
+      a.sc.events.emit('soleunbound-beaten');
       // the sole cracks open into light, and the pizzas he ate come flying back out
       a.sfx('sfx_soleunbound_crack');
       audio.stop('music', 1500);

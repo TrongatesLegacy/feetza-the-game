@@ -2735,6 +2735,15 @@ export const FIRSTPIZZERIA: SceneSpec = {
   shade: shadeOver,
 };
 
+/** The place's layout and painters, shared with the Dawn of Time (scene-soleunbound.ts: the Sole Proprietor
+ * Unbound's arena is this same place, torn apart: the same wall, oven, larder, table and horizon). */
+export const FP = {
+  SUN, HOR, WALL, HIVE, PLAT, DOME_R, CROWN, MOUTH, HOLE, FIRE, ROOF, POSTS, JARS, JAR_FOOT, FERN_TOP, FERNS_R, VOL, VOL_PTS,
+  FAR_RANGE, NEAR_HILLS, RIVER_C, STRATUS, SMOKE, PLUME, AIR, FIREC, STONE, FRONT,
+  wallPathTop, domePath, mouthPath, riverPath, roofWhole, jarPath, jarBox, logEnd, ridge, smoothLine, leaf,
+  boxes: { OVEN_BOX, MOUTH_BOX, SMOKE_BOX, PLUME_BOX, QUERN_BOX, CROWN_BOX, FERNS_BOX, COPE_BOX, OVEN_DAWN_BOX, ROOF_DAWN_BOX, LIMB_BOX },
+};
+
 // ——— live ———
 
 type Img = Phaser.GameObjects.Image;

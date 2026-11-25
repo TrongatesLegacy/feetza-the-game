@@ -4921,7 +4921,10 @@ const REDRAWN = new Set<BackdropId>(['trattoria', 'beach', 'space',
   'soleprop',
   // the First Pizzeria (Stage 20, Act 10's last stage), redrawn with the location kit and painted frame animation:
   // scene-firstpizzeria.ts
-  'firstpizzeria']);
+  'firstpizzeria',
+  // the Sole Proprietor Unbound's arena (the Dawn of Time, Act 10, the last fight: the First Pizzeria torn apart),
+  // redrawn with the location kit and painted frame animation: scene-soleunbound.ts
+  'soleunbound']);
 
 // redrawn scenes keep their old info for the before/after page (their old glows and particles with their old art)
 const LEGACY_INFO: Partial<Record<BackdropId, BackdropInfo>> = {};

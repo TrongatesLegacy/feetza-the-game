@@ -5,7 +5,7 @@
 
 import type { GlowSpot } from '../../art/backdrops';
 import { drawBackdrop } from '../../art/backdrops';
-import { registerLegacyScene, registerScene } from '../../art/registry';
+import { registerLegacyScene } from '../../art/registry';
 import {
   type Ctx,
   type R,
@@ -786,6 +786,8 @@ function drawFirstPizzeria(ctx: Ctx, r: R): void {
   vignette(ctx, 0.8, '#05040c', 0.55);
 }
 
+// The Dawn of Time (the old art: the arena is redrawn with the location kit in scene-soleunbound.ts; this stays for the
+// before/after page, ?dev&stages).
 function drawDawnOfTime(ctx: Ctx, r: R): void {
   dawnSky(ctx, r, true);
   primeval(ctx, r, true);
@@ -847,7 +849,7 @@ registerLegacyScene('firstpizzeria', {
   draw: drawFirstPizzeria,
 });
 
-registerScene('soleunbound', {
+registerLegacyScene('soleunbound', {
   info: {
     name: 'The Dawn of Time',
     subtitle: 'Wave 100',

@@ -165,6 +165,21 @@ function memFrame(): HTMLCanvasElement {
   return c;
 }
 
+/** The ending's morning sky, laid over the First Pizzeria's night one: a soft wash that hides the moon and the stars
+ * (stronger up high, thinning to nothing at the horizon so the mountains and the sunrise stay). */
+function endSky(): HTMLCanvasElement {
+  const h = FIN.sun.y + 10;
+  const [c, ctx] = makeCanvas(W, h);
+  const g = ctx.createLinearGradient(0, 0, 0, h);
+  g.addColorStop(0, 'rgba(70,64,120,0.9)');
+  g.addColorStop(0.45, 'rgba(120,96,150,0.75)');
+  g.addColorStop(0.8, 'rgba(210,140,140,0.35)');
+  g.addColorStop(1, 'rgba(240,170,130,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, h);
+  return c;
+}
+
 /** The dawn creeping up the First Pizzeria's sky, wave by wave: warmest on the horizon where the sun is coming up
  * (FIN.sun), rose higher up, a little warmth over the land and the wall below it, gone by the table. */
 function dawnGlow(): HTMLCanvasElement {
@@ -573,9 +588,15 @@ export function playEnding(sc: Phaser.Scene, done: () => void): void {
   const key = ensureBackdrop(sc, 'firstpizzeria');
   const scene = sc.add.image(W / 2, H / 2, key).setDisplaySize(W, H);
   if (!sc.textures.exists('fin_dawn')) addCanvas(sc, 'fin_dawn', dawnGlow());
+  // the morning sky over its night one (the moon and the stars gone in the light)
+  if (!sc.textures.exists('fin_endsky')) addCanvas(sc, 'fin_endsky', endSky());
+  const sky = sc.add.image(W / 2, 0, 'fin_endsky').setOrigin(0.5, 0);
   const sun = sc.add.image(W / 2, 0, 'fin_dawn').setOrigin(0.5, 0).setBlendMode(Phaser.BlendModes.SCREEN).setAlpha(0.85);
-  const shade = sc.add.rectangle(W / 2, H / 2, W, H, 0x05040c, 0.35);
-  root.add([scene, sun, shade]);
+  const shade = sc.add.rectangle(W / 2, H / 2, W, H, 0x05040c, 0.22);
+  // the new sun, broken free on the horizon (the Dawn of Time's last moment: it carries on from there)
+  const sunGlow = sc.add.image(FIN.sun.x, FIN.sun.y, 'glow').setTint(0xffb860).setBlendMode(Phaser.BlendModes.ADD).setScale(9, 2.6).setAlpha(0.55);
+  const sunCore = sc.add.image(FIN.sun.x, FIN.sun.y - 6, 'glow').setTint(0xfff0c0).setBlendMode(Phaser.BlendModes.ADD).setScale(1.1, 0.7).setAlpha(0.9);
+  root.add([scene, sky, sun, shade, sunGlow, sunCore]);
   // rays of the new sun from the oven's mouth
   const rays = sc.add.graphics().setBlendMode(Phaser.BlendModes.ADD);
   root.add(rays);
@@ -601,7 +622,7 @@ export function playEnding(sc: Phaser.Scene, done: () => void): void {
   const speed = 360;
   const lane = PARADE_LANE;
   const parade = sc.add.container(0, 0);
-  root.addAt(parade, 3);
+  root.addAt(parade, 6);
   cast.forEach((f, i) => {
     // (drawn now if the idle-time warm-up hasn't got to it: src/game/assets.ts)
     const m = ensureFootArt(sc, f.id)!;
@@ -644,7 +665,7 @@ export function playEnding(sc: Phaser.Scene, done: () => void): void {
     roll.add(rows);
     if (!sc.textures.exists('fin_creditsplate')) addCanvas(sc, 'fin_creditsplate', creditsPlate());
     const band = sc.add.image(W / 2, (CREDITS_TOP + CREDITS_BOTTOM) / 2, 'fin_creditsplate').setAlpha(0);
-    root.addAt(band, 3);
+    root.addAt(band, 6);
     sc.tweens.add({ targets: band, alpha: 1, duration: 900, delay: 3200 });
     // lines fade in at the bottom of the band and out at the top, instead of being cut by a hard edge
     const FADE = 70;
