@@ -543,6 +543,8 @@ const soleprop = (): Brain => {
                 a.rumble(1, 300);
                 a.banner('SHOP BOUGHT OUT!', 'The next shop: every price doubled', 'boss');
                 finaleState.buyout = true;
+                // (the office answers: the ticker spikes, papers burst off the desk; scene-soleprop.ts listens)
+                a.sc.events.emit('soleprop-sold');
               },
             });
             a.sc.tweens.add({ targets: [deed, stamp], alpha: 0, duration: 400, delay: 2000, onComplete: () => { deed.destroy(); stamp.destroy(); } });
@@ -580,6 +582,8 @@ const soleprop = (): Brain => {
       if (s !== lastSec) {
         lastSec = s;
         secs?.setText(String(s));
+        // (the grandfather clock in his office ticks the shift round with it: scene-soleprop.ts listens)
+        a.sc.events.emit('soleprop-tick', s);
         if (s <= 10 && s > 0) {
           a.sfx('sfx_soleprop_clock', { volume: 0.9 });
           if (secs) a.sc.tweens.add({ targets: secs, scale: { from: 1.4, to: 1 }, duration: 200 });
@@ -616,6 +620,8 @@ const soleprop = (): Brain => {
         stage = 3;
         a.sfx('sfx_soleprop_bell');
         a.banner('SHIFT OVER!', 'He\'ll see you at the First Pizzeria', 'clear');
+        // (his clock strikes twelve, the ticker reads it, papers burst off the desk: scene-soleprop.ts listens)
+        a.sc.events.emit('soleprop-shift-over');
         f.shielded = false;
         f.brain.wasShielded = false;
         f.hp = 1;

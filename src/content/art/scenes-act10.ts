@@ -420,7 +420,8 @@ function drawOven(ctx: Ctx, r: R): void {
 }
 
 // ---------------------------------------------------------------------------------------------
-// The Sole Proprietor's office (wave 95)
+// The Sole Proprietor's office (wave 95). (The old art: the arena is redrawn with the location kit in
+// scene-soleprop.ts; this stays for the before/after page, ?dev&stages.)
 
 function frame(ctx: Ctx, x: number, y: number, w: number, h: number, pic: HTMLCanvasElement | null): void {
   roundRect(ctx, x - 16, y - 16, w + 32, h + 32, 6);
@@ -819,7 +820,7 @@ registerLegacyScene('oven', {
   draw: drawOven,
 });
 
-registerScene('soleprop', {
+registerLegacyScene('soleprop', {
   info: {
     name: "The Proprietor's Office",
     subtitle: 'Wave 95',

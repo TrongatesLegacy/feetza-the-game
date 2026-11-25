@@ -4915,7 +4915,10 @@ const REDRAWN = new Set<BackdropId>(['trattoria', 'beach', 'space',
   'hades',
   // the Oven Between Worlds (Stage 19, Act 10), redrawn with the location kit and painted frame animation:
   // scene-oven.ts
-  'oven']);
+  'oven',
+  // the Sole Proprietor's arena (the Proprietor's Office, Act 10), redrawn with the location kit and painted frame
+  // animation: scene-soleprop.ts
+  'soleprop']);
 
 // redrawn scenes keep their old info for the before/after page (their old glows and particles with their old art)
 const LEGACY_INFO: Partial<Record<BackdropId, BackdropInfo>> = {};
