@@ -80,7 +80,9 @@ export type Temper = 'fire' | 'ice' | 'poison';
 export const CB = {
   front: 1040,
   /** The doors' plane, half the opening's width, the doors' height, the sill they stand on. */
-  gate: { z: 31, hw: 8.6, h: 12.5, sill: 0.35 },
+  gate: { z: 33.5, hw: 8.6, h: 12.5, sill: 0.9 },
+  /** The steps up to the threshold: how many, each one's rise and tread, from the piers' front forward. */
+  steps: { n: 3, rise: 0.3, tread: 0.7, hw: 8.25 },
   /** The piers' front face, their inner and outer X. */
   pier: { z: 28.6, x0: 8.6, x1: 11.2 },
   /** The lintel's half width and its bottom and top. */
@@ -91,19 +93,19 @@ export const CB = {
   /** The three tempers' tripods (X, z) and the height of their bowls. */
   braziers: [
     { X: -9.6, z: 13.6, t: 'fire' as Temper },
-    { X: 19.8, z: 24, t: 'ice' as Temper },
+    { X: 18.2, z: 24, t: 'ice' as Temper },
     { X: 9.0, z: 13.4, t: 'poison' as Temper },
   ],
   bowlY: 2.2,
   /** The rings in the doors (X, Y on the doors' plane) and the rings in the rock the chains run to (X, z). */
   rings: [-1.45, 1.45],
-  ringY: 2.75,
+  ringY: 1.8,
   anchors: [
     [-11.9, 26.6],
     [11.9, 26.6],
   ] as Pt[],
   /** The dog's hollow: its middle and radii (X, z). */
-  hollow: { X: 0, z: 21, rx: 8.4, rz: 5.4 },
+  hollow: { X: 0, z: 19.8, rx: 8.4, rz: 4.8 },
 };
 const G = CB.gate;
 const PR = CB.pier;
@@ -208,11 +210,11 @@ const FAR_BANK: Col[] = (() => {
   for (let z = 36; z < 120; ) {
     if (left-- <= 0) {
       left = 2 + Math.floor(r() * 4);
-      groupY = r() < 0.25 ? 4 + r() * 4 : 9 + r() * 12;
+      groupY = r() < 0.3 ? 0.6 + r() * 1.2 : 1.6 + r() * 3.2;
     }
     const rad = 0.8 + r() * 0.3;
     for (const dX of [0, -1.5]) {
-      const Y1 = Math.max(2, groupY + (r() - 0.5) * 2 + (dX ? 3 : 0));
+      const Y1 = Math.max(0.5, groupY + (r() - 0.5) * 1.2 + (dX ? 1.4 : 0));
       out.push({ X: FAR_X + dX + (r() - 0.5) * 0.3, z: z + (dX ? 0.8 : 0), Y0: -0.5, Y1, verts: colVerts(r, rad), tilt: (r() - 0.5) * 1.6, joints: colJoints(r, 0, Y1, 2.2), chip: -1, seed: seed++ });
     }
     z += rad * 1.7 * (1 + (z - 36) / 60);
@@ -378,7 +380,7 @@ function column(ctx: Ctx, h: Col, o: { dim?: number; air?: number; shadow?: bool
     const top = Array.from({ length: n }, (_, i) => at(i, h.Y1));
     const tp = polyPath(top);
     const tb = boxOfPts(top, 1);
-    fillPath(ctx, tp, mix(lit('#363036', h.X, h.Y1, h.z, [0, 1, 0], { key: 0.45, fire: 0.45, reach: 4 }), BASALT.dark, dim));
+    fillPath(ctx, tp, mix(mix(lit('#363036', h.X, h.Y1, h.z, [0, 1, 0], { key: 0.45, fire: 0.45, reach: 4 }), '#b8401c', clamp01((-h.X - 11) / 9) * 0.45), BASALT.dark, dim));
     within(ctx, tp, () => {
       lay(ctx, drift('#7a6a70', '#20181e', 2, h.seed, 16, 16), tb, 0.45);
       lay(ctx, noiseMask(3, h.seed + 3, { cover: 0.42, soft: 0.35, col: '#8a8288', w: 12, h: 12 }), tb, 0.45);
@@ -457,9 +459,22 @@ const CLIFF: Col[] = (() => {
     const fromEnd = X - CB.cliffEnd;
     if (r() < 0.3) stepY = 8 + r() * 9;
     let Y1 = beside ? 60 : stepY + (r() - 0.5) * 1.2;
-    if (fromEnd < 5) Y1 = Math.min(Y1, 1.6 + fromEnd * 2.4 + r() * 2);
+    if (fromEnd < 8) Y1 = Math.min(Y1, 2.4 + fromEnd * 1.3 + r() * 1.2);
     out.push({ X, z, Y0: 0, Y1, verts: colVerts(r, rad), tilt: (r() - 0.5) * 0.06, joints: colJoints(r, 0, Y1, 2.2), chip: r() < 0.4 ? Math.floor(r() * 5) : -1, seed: seed++ });
     X += rad * 1.62 + (r() - 0.5) * 0.2;
+  }
+  // the headland: the cliff's broken end stepping down into the river, a cluster of columns broken off lower and
+  // lower towards the water, their tops catching the abyss's red
+  for (let row = 0; row < 5; row++) {
+    for (let c = 0; c < 8; c++) {
+      const X = CB.cliffEnd + 1.2 - c * 0.85 + (row % 2) * 0.42 + (r() - 0.5) * 0.06;
+      const z = CB.cliffZ - 0.4 - row * 0.75 + (r() - 0.5) * 0.06;
+      const t = clamp01((X - (CB.cliffEnd - 5.5)) / 6.7);
+      let Y1 = 0.25 + t ** 1.3 * 2.6 + (r() - 0.5) * 0.35 - row * 0.12;
+      if (r() < 0.12) Y1 *= 0.5;
+      Y1 = Math.max(0.15, Math.round(Y1 / 0.2) * 0.2);
+      out.push({ X, z, Y0: -0.6, Y1, verts: colVerts(r, 0.5 * (0.9 + r() * 0.15)), tilt: (r() - 0.5) * 0.1, joints: Y1 > 1.4 ? [Y1 * (0.4 + r() * 0.3)] : [], chip: r() < 0.4 ? Math.floor(r() * 5) : -1, seed: seed++ });
+    }
   }
   // a front rank, nearer, at the cliff's foot on the right: broken off at stepped heights
   const rad0 = 0.6;
@@ -478,7 +493,7 @@ const CLIFF: Col[] = (() => {
 })();
 
 /** Where the gateway is cut through the cliff (the piers and the lintel stand in it). */
-const cutPath = () => polyPath([P(-PR.x1, 40, PR.z), P(PR.x1, 40, PR.z), P(PR.x1, 0, PR.z), P(-PR.x1, 0, PR.z)]);
+const cutPath = () => polyPath([P(-PR.x1, 40, PR.z), P(PR.x1, 40, PR.z), P(PR.x1, G.sill, G.z), P(-PR.x1, G.sill, G.z)]);
 
 export const CLIFF_BOX: Box = { x: 0, y: 0, w: W, h: 612 };
 
@@ -517,6 +532,85 @@ function cliff(ctx: Ctx, r: R): void {
   ctx.fillStyle = g;
   ctx.fillRect(920, oy0, 80, oy1 - oy0);
   ctx.restore();
+}
+
+// ——— the overhang, and the near columns at the screen's edges ———
+
+/** The cliff overhanging the gateway: a dark mass of rock in the top corners, its underside broken into the stubs of
+ * hanging columns, faintly lit from below by the fires (orange on the left, green on the right). */
+export const OVER_L: Box = { x: 0, y: 0, w: 660, h: 300 };
+export const OVER_R: Box = { x: 1260, y: 0, w: 660, h: 300 };
+function overhang(ctx: Ctx, r: R, side: -1 | 1): void {
+  const b = side < 0 ? OVER_L : OVER_R;
+  const under = (x: number) => {
+    const d = side < 0 ? x / b.w : 1 - (x - b.x) / b.w;
+    return 14 + (1 - d) ** 1.5 * 250 + Math.sin(x * 0.05) * 6;
+  };
+  const pts: Pt[] = [];
+  for (let x = b.x; x <= b.x + b.w; x += 10) pts.push([x, under(x)]);
+  const mass = (c: Ctx) => {
+    c.beginPath();
+    c.moveTo(b.x, 0);
+    c.lineTo(b.x + b.w, 0);
+    for (let i = pts.length - 1; i >= 0; i--) c.lineTo(pts[i][0], pts[i][1]);
+    c.closePath();
+  };
+  fillPath(ctx, mass, '#08060a');
+  within(ctx, mass, () => {
+    surface(ctx, r, b, '#08060a', { over: true, vary: 0.4, cells: 3, mottle: 0.3, strokes: 0.1, strokeAng: 0, strokeLen: 200, strokeW: 8, grain: 0.1, warm: '#1e1418', cool: '#040208', seed: side < 0 ? 401 : 402 });
+  });
+  // the stubs of hanging columns along its underside, each a faceted prism, lit along one edge from below
+  const col = side < 0 ? TEMPER.fire.cols[1] : TEMPER.poison.cols[1];
+  for (let x = b.x + 8; x < b.x + b.w - 8; x += 22 + r() * 26) {
+    const y0 = under(x) - 4;
+    const w = 16 + r() * 22;
+    const len = 12 + r() * 46 * (y0 > 60 ? 1 : 0.4);
+    const stub = polyPath([[x, y0], [x + w, y0], [x + w * (0.85 + r() * 0.1), y0 + len * (0.7 + r() * 0.3)], [x + w * 0.5, y0 + len], [x + w * (0.05 + r() * 0.1), y0 + len * (0.6 + r() * 0.3)]]);
+    fillPath(ctx, stub, mix('#16121a', '#2a2430', r()));
+    within(ctx, stub, () => {
+      ctx.fillStyle = 'rgba(0,0,0,0.4)';
+      ctx.fillRect(x + w * 0.55, y0, w, len + 2);
+    });
+    ctx.strokeStyle = rgba(col, 0.35);
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(x + w * 0.5, y0 + len);
+    ctx.lineTo(x + w * (side < 0 ? 0.85 : 0.1), y0 + len * 0.75);
+    ctx.stroke();
+  }
+}
+
+/** The near columns at the screen's edges: a tall column of basalt and a broken one behind it, framing the scene. */
+const NEAR: Col[][] = (() => {
+  const r = rng(hashStr('cb:near'));
+  return ([-1, 1] as const).map((d) => [
+    { X: d * 12.9, z: 14.6, Y0: -0.3, Y1: 4.4, verts: colVerts(r, 0.7), tilt: 0.1, joints: colJoints(r, 0, 4.4, 0.9), chip: 2, seed: 900 + d },
+    { X: d * 11.15, z: 12.9, Y0: -0.3, Y1: 60, verts: colVerts(r, 0.85), tilt: 0, joints: colJoints(r, 0, 60, 1.4), chip: -1, seed: 910 + d },
+  ]);
+})();
+const nearBox = (i: number): Box => {
+  const hs = NEAR[i];
+  const xs = hs.flatMap((h) => [sx(h.X - 1.05, h.z), sx(h.X + 1.05, h.z)]);
+  const x0 = Math.max(0, Math.floor(Math.min(...xs)));
+  const x1 = Math.min(W, Math.ceil(Math.max(...xs)));
+  return { x: x0, y: 0, w: x1 - x0, h: TY };
+};
+function nearCols(ctx: Ctx, i: number): void {
+  const bz = CB.braziers[i === 0 ? 0 : 2];
+  const [fx, fy] = P(bz.X, CB.bowlY + 0.5, bz.z);
+  for (const h of NEAR[i]) {
+    column(ctx, h, { dim: 0.1 });
+    // the fire beside it lights the faces turned to it, strongest at the bowl's height
+    const xa = sx(h.X, h.z);
+    const xb = sx(h.X + (i === 0 ? 1 : -1) * 0.95, h.z);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(Math.min(xa, xb), 0, Math.abs(xb - xa), sy(Math.max(h.Y0, 0), h.z));
+    ctx.clip();
+    ctx.globalCompositeOperation = 'lighter';
+    glowAt(ctx, fx, fy, 260, TEMPER[bz.t].cols[1], 0.3, 1.4);
+    ctx.restore();
+  }
 }
 
 // ——— the gate's frame: black marble piers with bronze capitals, the lintel carved in relief ———
@@ -642,71 +736,107 @@ function houndHead(ctx: Ctx, x: number, y: number, s: number, turn: number, col:
   ctx.restore();
 }
 
-/** A shade of the dead in the procession: hooded, stooped, a long robe, one hand held out with the ferryman's coin.
- * (x, y) its feet, h its height, dir the way it walks. */
-function shadeFigure(ctx: Ctx, x: number, y: number, h: number, dir: number, stoop: number, col: string, k: number, kind: number): void {
+/** One of the dead, carved in relief, walking (dir) on a ground line at y, h tall: a cloak over the shoulders, a
+ * stride, and a pose: 0 holding out his coin, 1 pleading with both arms out, 2 looking back over his shoulder,
+ * 3 carrying another on his shoulders, 4 hooded and stooped on a staff, 5 bare-headed, her face in her hands. */
+function figure(ctx: Ctx, x: number, y: number, h: number, dir: number, pose: number, col: string, k: number): void {
   const s = h;
   const X = (v: number) => x + v * s * dir;
-  const lean = stoop * 0.12;
-  // a cloak from the trailing hem up the bowed back to a rounded hood (its brim over the face), down the chest
-  // to the arm held out; kind: 0 a coin held out, 1 leaning on a staff, 2 a bundle on the back, 3 hands clasped
-  const fig = (c: Ctx) => {
+  const stoop = pose === 4 ? 0.1 : pose === 5 ? 0.05 : 0;
+  const b: Box = { x: x - s * 0.4, y: y - s, w: s * 0.8, h: s };
+  const part = (path: (c: Ctx) => void, c2 = col, kk = k) => carve(ctx, path, b, c2, kk, { shadow: 0.5, lip: 0.15 });
+  const limb = (x0: number, y0: number, x1: number, y1: number, w: number) =>
+    polyPath([[x0 - w * 0.5, y0], [x0 + w * 0.5, y0], [x1 + w * 0.35, y1], [x1 - w * 0.35, y1]]);
+  // the legs, in stride, the back one first
+  part(limb(X(-0.02), y - s * 0.45, X(-0.13), y, s * 0.07), shade(col, -0.1));
+  part(limb(X(0.03), y - s * 0.45, X(0.15), y, s * 0.075));
+  // the far arm, behind the body
+  if (pose === 1) part(limb(X(0.06 + stoop), y - s * 0.74, X(0.36), y - s * 0.8, s * 0.05), shade(col, -0.1));
+  if (pose === 2) part(limb(X(-0.04), y - s * 0.74, X(-0.3), y - s * 0.6, s * 0.05), shade(col, -0.1));
+  // the body: a cloak from the shoulders, falling to the knees, swinging back with the stride
+  const body = (c: Ctx) => {
     c.beginPath();
-    c.moveTo(X(-0.18), y);
-    c.quadraticCurveTo(X(-0.17), y - s * 0.42, X(-0.11 + lean * 0.4), y - s * 0.7);
-    c.bezierCurveTo(X(-0.1 + lean), y - s * 0.95, X(0.06 + lean), y - s * 1.02, X(0.11 + lean), y - s * 0.9);
-    c.quadraticCurveTo(X(0.12 + lean), y - s * 0.84, X(0.08 + lean), y - s * 0.8);
-    c.quadraticCurveTo(X(0.1 + lean * 0.6), y - s * 0.75, X(0.12 + lean * 0.4), y - s * 0.72);
-    if (kind === 0) {
-      c.lineTo(X(0.27 + lean * 0.3), y - s * 0.62);
-      c.lineTo(X(0.31 + lean * 0.3), y - s * 0.63);
-      c.lineTo(X(0.3 + lean * 0.3), y - s * 0.58);
-      c.lineTo(X(0.13 + lean * 0.2), y - s * 0.6);
-    } else if (kind === 1) {
-      c.lineTo(X(0.22 + lean * 0.3), y - s * 0.6);
-      c.lineTo(X(0.25 + lean * 0.3), y - s * 0.57);
-      c.lineTo(X(0.14 + lean * 0.2), y - s * 0.56);
-    } else {
-      c.quadraticCurveTo(X(0.17 + lean * 0.3), y - s * 0.6, X(0.14), y - s * 0.52);
-    }
-    c.quadraticCurveTo(X(0.16), y - s * 0.3, X(0.21), y - s * 0.04);
-    c.lineTo(X(0.25), y);
+    c.moveTo(X(-0.09 + stoop), y - s * 0.8);
+    c.quadraticCurveTo(X(-0.17), y - s * 0.55, X(-0.2), y - s * 0.3);
+    c.lineTo(X(0.1), y - s * 0.34);
+    c.quadraticCurveTo(X(0.13 + stoop * 0.5), y - s * 0.6, X(0.1 + stoop), y - s * 0.8);
     c.closePath();
   };
-  carve(ctx, fig, { x: x - s * 0.3, y: y - s, w: s * 0.6, h: s }, col, k, { shadow: 0.55, lip: 0.16 });
-  if (kind === 1) {
-    // the staff, planted ahead of him
-    strokePath(ctx, (c) => {
+  part(body);
+  // the head: bare or hooded, turned back for one
+  const hx = X(0.01 + stoop * 1.3 + (pose === 2 ? -0.03 : 0));
+  const hy = y - s * (0.89 - stoop * 0.6);
+  if (pose === 4) {
+    const hood = (c: Ctx) => {
       c.beginPath();
-      c.moveTo(X(0.26 + lean * 0.3), y - s * 0.7);
-      c.lineTo(X(0.34), y);
-    }, shade(col, 0.2), 2 * k);
-  } else if (kind === 2) {
-    // a bundle on his back
-    const bun = (c: Ctx) => {
-      c.beginPath();
-      c.ellipse(X(-0.14 + lean * 0.5), y - s * 0.68, s * 0.09, s * 0.12, dir * 0.4, 0, P2);
+      c.moveTo(X(-0.1 + stoop), y - s * 0.78);
+      c.quadraticCurveTo(X(-0.08 + stoop), y - s * 0.98, X(0.06 + stoop * 1.3), y - s * 0.94);
+      c.quadraticCurveTo(X(0.12 + stoop * 1.3), y - s * 0.86, X(0.08 + stoop), y - s * 0.78);
+      c.closePath();
     };
-    carve(ctx, bun, { x: x - s * 0.3, y: y - s * 0.85, w: s * 0.3, h: s * 0.3 }, shade(col, 0.06), k, { shadow: 0.5, lip: 0.14 });
-  }
-  // the face lost in the hood's shadow, the folds down the cloak, the coin
-  ctx.fillStyle = 'rgba(0,0,0,0.65)';
-  ctx.beginPath();
-  ctx.ellipse(X(0.07 + lean), y - s * 0.86, s * 0.035, s * 0.05, dir * 0.3, 0, P2);
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(0,0,0,0.4)';
-  ctx.lineWidth = 0.9 * k;
-  for (const f of [-0.1, -0.02, 0.07]) {
+    part(hood);
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
     ctx.beginPath();
-    ctx.moveTo(X(f + lean * 0.5), y - s * 0.62);
-    ctx.quadraticCurveTo(X(f + 0.01), y - s * 0.3, X(f + 0.03), y - 1);
-    ctx.stroke();
+    ctx.ellipse(X(0.07 + stoop * 1.3), y - s * 0.86, s * 0.025, s * 0.04, 0, 0, P2);
+    ctx.fill();
+  } else {
+    const head = (c: Ctx) => {
+      c.beginPath();
+      c.arc(hx, hy, s * 0.068, 0, P2);
+    };
+    part(head);
+    // the face's profile: the nose to the way he looks
+    const look = pose === 2 ? -1 : 1;
+    fillPath(ctx, polyPath([[X(0.01 * look) + look * dir * s * 0.06, hy - s * 0.02], [X(0.01 * look) + look * dir * s * 0.09, hy + s * 0.01], [X(0.01 * look) + look * dir * s * 0.06, hy + s * 0.02]]), shade(col, 0.1));
+    // hair
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.beginPath();
+    ctx.arc(hx - look * dir * s * 0.015, hy - s * 0.02, s * 0.06, Math.PI, P2);
+    ctx.fill();
   }
-  if (kind === 0) {
+  // the near arm, by pose
+  if (pose === 0) {
+    part(limb(X(0.06), y - s * 0.75, X(0.32), y - s * 0.62, s * 0.05));
     ctx.fillStyle = rgba(BRZ.lit, 0.5);
     ctx.beginPath();
-    ctx.arc(X(0.315 + lean * 0.3), y - s * 0.6, Math.max(1, s * 0.022), 0, P2);
+    ctx.arc(X(0.34), y - s * 0.62, Math.max(1, s * 0.022), 0, P2);
     ctx.fill();
+  } else if (pose === 1) {
+    part(limb(X(0.06), y - s * 0.75, X(0.34), y - s * 0.72, s * 0.05));
+  } else if (pose === 3) {
+    // the one he carries: lying across his shoulders, head forward, legs hanging behind
+    const carried = (c: Ctx) => {
+      c.beginPath();
+      c.ellipse(X(-0.02), y - s * 0.86, s * 0.22, s * 0.06, 0, 0, P2);
+    };
+    part(carried, shade(col, 0.06));
+    const ch = (c: Ctx) => {
+      c.beginPath();
+      c.arc(X(0.21), y - s * 0.9, s * 0.055, 0, P2);
+    };
+    part(ch, shade(col, 0.06));
+    part(limb(X(-0.2), y - s * 0.86, X(-0.24), y - s * 0.66, s * 0.04), shade(col, 0.02));
+    part(limb(X(0.04), y - s * 0.78, X(0.14), y - s * 0.88, s * 0.045));
+  } else if (pose === 4) {
+    part(limb(X(0.1), y - s * 0.72, X(0.24), y - s * 0.58, s * 0.045));
+    strokePath(ctx, (c) => {
+      c.beginPath();
+      c.moveTo(X(0.25), y - s * 0.72);
+      c.lineTo(X(0.31), y);
+    }, shade(col, 0.2), 1.8 * k);
+  } else if (pose === 5) {
+    part(limb(X(0.06), y - s * 0.74, X(0.1), y - s * 0.86, s * 0.05));
+  } else {
+    part(limb(X(0.02), y - s * 0.74, X(0.06), y - s * 0.46, s * 0.05));
+  }
+  // the cloak's folds
+  ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+  ctx.lineWidth = 0.9 * k;
+  for (const fo of [-0.08, 0.02]) {
+    ctx.beginPath();
+    ctx.moveTo(X(fo + stoop * 0.5), y - s * 0.74);
+    ctx.quadraticCurveTo(X(fo - 0.02), y - s * 0.5, X(fo - 0.05), y - s * 0.34);
+    ctx.stroke();
   }
 }
 
@@ -833,34 +963,25 @@ function lintel(ctx: Ctx, r: R): void {
         ctx.stroke();
       }
     }
-    // the ruff: one shaggy mass of fur the three necks rise from, carved in locks, its edge ragged
+    // the ruff: one mass of fur locks the three necks rise from, rows of them overlapping down to the ground line
     const ruffTop = sideCollar - pm * 0.12;
-    const ruff = (c: Ctx) => {
-      c.beginPath();
-      c.moveTo(960 - pm * 2.0, ground - pm * 0.02);
-      for (let i = 0; i <= 16; i++) {
-        const t = i / 16;
-        const x = 960 - pm * 2.0 + t * pm * 4.0;
-        const y = ruffTop + Math.sin(t * Math.PI) * -pm * 0.12 + (i % 2 ? pm * 0.09 : 0);
-        c.lineTo(x, y);
+    for (let row = 0; row < 4; row++) {
+      const yy = ruffTop + row * (ground - ruffTop) * 0.24;
+      const half = pm * (1.6 + row * 0.12);
+      const n = 9 + row;
+      for (let i = 0; i < n; i++) {
+        const lx = 960 - half + ((i + (row % 2) * 0.5) / n) * half * 2;
+        const lh = (ground - ruffTop) * (0.42 - row * 0.04);
+        const lw = (half * 2) / n * 0.75;
+        const lock = (c: Ctx) => {
+          c.beginPath();
+          c.moveTo(lx - lw, yy);
+          c.quadraticCurveTo(lx - lw * 0.9, yy + lh * 0.6, lx + lw * 0.15, yy + lh);
+          c.quadraticCurveTo(lx + lw * 0.8, yy + lh * 0.5, lx + lw, yy);
+          c.closePath();
+        };
+        carve(ctx, lock, { x: lx - lw, y: yy, w: lw * 2, h: lh }, shade(relief, -0.1 + ((i * 7) % 5) * 0.03), k * 0.7, { shadow: 0.5, lip: 0.12 });
       }
-      c.lineTo(960 + pm * 2.0, ground - pm * 0.02);
-      for (let i = 12; i >= 0; i--) {
-        const t = i / 12;
-        c.lineTo(960 - pm * 2.0 + t * pm * 4.0, ground - pm * 0.02 + (i % 2 ? -pm * 0.07 : 0));
-      }
-      c.closePath();
-    };
-    carve(ctx, ruff, { x: 960 - pm * 2, y: ruffTop - pm * 0.2, w: pm * 4, h: ground - ruffTop + pm * 0.2 }, shade(relief, -0.14), k, { lip: 0.12 });
-    ctx.strokeStyle = 'rgba(0,0,0,0.38)';
-    ctx.lineWidth = 1 * k;
-    for (let i = 0; i < 14; i++) {
-      const fx = 960 - pm * 1.8 + (i / 13) * pm * 3.6;
-      const fy = ruffTop + pm * (0.1 + (i % 3) * 0.12);
-      ctx.beginPath();
-      ctx.moveTo(fx, fy);
-      ctx.quadraticCurveTo(fx + pm * 0.07, fy + pm * 0.12, fx - pm * 0.02, fy + pm * 0.26);
-      ctx.stroke();
     }
     // the heads, then a spiked collar round each neck
     for (const [x, y, w, turn] of heads) houndHead(ctx, x, y, w, turn, shade(relief, turn ? 0 : 0.08));
@@ -881,14 +1002,15 @@ function lintel(ctx: Ctx, r: R): void {
         fillPath(ctx, polyPath([[sxp - 1.8 * k, syp], [sxp + 1.8 * k, syp], [sxp, syp + w * 0.2]]), shade(relief, 0.3));
       }
     }
-    // the dead in procession towards him, from both ends, each with his coin
-    const fr = rng(hashStr('cb:shades'));
-    for (const d of [-1, 1]) {
+    // the dead in procession towards him from both ends: bare heads and hoods, one holding out his coin, one
+    // pleading, one looking back, one carried on another's shoulders, one with her face in her hands
+    const poses = [[0, 4, 2, 3, 1], [1, 5, 3, 0, 2]];
+    for (const [di, d] of [-1, 1].entries()) {
       for (let j = 0; j < 5; j++) {
-        const X = d * (BLOCK + (j - 2) * 1.45) + (fr() - 0.5) * 0.2;
-        const hgt = pm * (1.4 + fr() * 0.45);
+        const X = d * (BLOCK + (j - 2) * 1.45);
+        const hgt = pm * (1.62 + ((j * 3 + di) % 3) * 0.08);
         const [fx] = P(X, 0, z);
-        shadeFigure(ctx, fx, ground, hgt, -d, 0.2 + fr() * 0.8, shade(relief, (fr() - 0.5) * 0.1), k, (j + (d > 0 ? 2 : 0)) % 4);
+        figure(ctx, fx, ground, hgt, -d, poses[di][j], shade(relief, ((j * 5 + di) % 3 - 1) * 0.05), k);
       }
     }
     // wear: soot from the fires below up the face, a crack from each joint
@@ -934,12 +1056,43 @@ function pier(ctx: Ctx, r: R, side: -1 | 1): void {
   // the reveal: the pier's inner face, back to the doors, in its own shade
   const rev = sideAt(xi, z, G.z, 0, LT.Y0);
   const rb = boxOfPts([P(xi, LT.Y0, z), P(xi, 0, G.z)], 1);
-  marble(ctx, rev, lit(MARBLE.body, xi, 5, (z + G.z) / 2, [-side, 0, 0], { key: 0.3, pit: 0.5, fire: 0.5 }), rb, 70 + side, 0.2);
+  marble(ctx, rev, lit(side > 0 ? MARBLE.lit : MARBLE.body, xi, 5, (z + G.z) / 2, [-side, 0, 0], { key: 0.5, pit: 0.5, fire: 0.4 }), rb, 70 + side, 0.25);
   within(ctx, rev, () => {
-    vfill(ctx, rb.x, rb.y, rb.w, rb.h, [[0, 'rgba(0,0,0,0.5)'], [0.6, 'rgba(0,0,0,0.15)'], [1, 'rgba(0,0,0,0.4)']]);
-    ctx.fillStyle = side < 0 ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.45)';
-    ctx.fillRect(rb.x, rb.y, rb.w, rb.h);
+    vfill(ctx, rb.x, rb.y, rb.w, rb.h, [[0, 'rgba(0,0,0,0.55)'], [0.5, 'rgba(0,0,0,0.05)'], [1, 'rgba(0,0,0,0.3)']]);
+    if (side < 0) {
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.fillRect(rb.x, rb.y, rb.w, rb.h);
+    } else {
+      // the key light raking along it, and the seam's red low down at its back
+      ctx.fillStyle = lin(ctx, [rb.x + rb.w, 0], [rb.x, 0], [[0, rgba('#d8a890', 0.16)], [1, 'rgba(0,0,0,0)']]);
+      ctx.fillRect(rb.x, rb.y, rb.w, rb.h);
+    }
+    // its joints: a course every metre and a half, in the marble
+    for (let Y = 1.5; Y < LT.Y0; Y += 1.5) {
+      const [ax, ay] = P(xi, Y, z);
+      const [bx, by] = P(xi, Y, G.z);
+      ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(ax, ay);
+      ctx.lineTo(bx, by);
+      ctx.stroke();
+    }
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const [gx, gy] = P(xi, G.sill + 0.5, G.z - 0.3);
+    glowAt(ctx, gx, gy, 90, '#ff4a1c', 0.16, 1.6);
+    ctx.restore();
   });
+  // the arris where the reveal turns into the front: a worn bright edge on the lit side
+  const [ex0, ey0] = P(xi, LT.Y0 - 0.1, z);
+  const [, ey1] = P(xi, 0.1, z);
+  ctx.strokeStyle = rgba('#c8b0b8', side > 0 ? 0.35 : 0.12);
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.moveTo(ex0, ey0);
+  ctx.lineTo(ex0, ey1);
+  ctx.stroke();
   // the front face
   const face = faceAt(X0, X1, 0, LT.Y0, z);
   const fb = boxOfPts([P(X0, LT.Y0, z), P(X1, 0, z)], 0);
@@ -949,7 +1102,10 @@ function pier(ctx: Ctx, r: R, side: -1 | 1): void {
     ctx.fillStyle = lin(ctx, [fb.x, 0], [fb.x + fb.w, 0], [[0, rgba('#d8a88a', 0.1)], [0.4, 'rgba(0,0,0,0)'], [1, 'rgba(0,0,0,0.3)']]);
     ctx.fillRect(fb.x, fb.y, fb.w, fb.h);
     const fireCol = side < 0 ? TEMPER.fire.cols[1] : TEMPER.poison.cols[1];
-    vfill(ctx, fb.x, fb.y + fb.h * 0.55, fb.w, fb.h * 0.45, [[0, rgba(fireCol, 0)], [1, rgba(fireCol, 0.16)]]);
+    vfill(ctx, fb.x, fb.y + fb.h * 0.6, fb.w, fb.h * 0.4, [[0, rgba(fireCol, 0)], [1, rgba(fireCol, 0.14)]]);
+    const rx0 = side < 0 ? fb.x : fb.x + fb.w;
+    ctx.fillStyle = lin(ctx, [rx0, 0], [rx0 - side * fb.w * 0.14, 0], [[0, rgba(fireCol, 0.22)], [1, rgba(fireCol, 0)]]);
+    ctx.fillRect(fb.x, fb.y + fb.h * 0.35, fb.w, fb.h * 0.65);
     // the sunk panel and its torch
     const pX0 = X0 + 0.42;
     const pX1 = X1 - 0.42;
@@ -1081,8 +1237,8 @@ function pier(ctx: Ctx, r: R, side: -1 | 1): void {
   const [, ry1] = P(rimX, 0.1, z);
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
-  ctx.fillStyle = lin(ctx, [0, ry0], [0, ry1], [[0, 'rgba(0,0,0,0)'], [1, rgba(side < 0 ? TEMPER.fire.cols[1] : TEMPER.poison.cols[1], 0.3)]]);
-  ctx.fillRect(rx0 - (side < 0 ? 0 : 3), ry0, 3, ry1 - ry0);
+  ctx.fillStyle = lin(ctx, [0, ry0], [0, ry1], [[0, 'rgba(0,0,0,0)'], [1, rgba(side < 0 ? TEMPER.fire.cols[1] : TEMPER.poison.cols[1], 0.6)]]);
+  ctx.fillRect(rx0 - (side < 0 ? 0 : 4), ry0, 4, ry1 - ry0);
   ctx.restore();
 }
 
@@ -1099,10 +1255,15 @@ export const leafBox = (side: -1 | 1): Box => {
   const x1 = Math.round(Math.max(xa, xb));
   return { x: x0, y: Math.floor(ya), w: x1 - x0, h: Math.ceil(yb) - Math.floor(ya) };
 };
-/** The iron straps across the leaves (their middles); rivets one per unit along them, each leaf 11 units wide. */
-const STRAPS = [1.0, 3.9, 6.8, 9.7, 12.05];
-const STRAP_H = 0.5;
-const D_UNIT = G.hw / 11;
+/** Each leaf: a raised border BORDER wide round it and a rail across its middle (RAIL_Y0…RAIL_Y1), studded with bosses
+ * one per unit (UNIT_D, the same up and across, each boss centred on its unit); two sunk panels, the hound's head
+ * above, the dead turned back below. */
+const BORDER = 0.62;
+const RAIL_Y0 = 6.1;
+const RAIL_Y1 = 7.05;
+const UNIT_D = 0.66;
+/** The bar across the meeting leaves, in its staples. */
+export const BAR = { X: 3.3, Y0: 6.3, Y1: 6.85 };
 /** Where the leaves are dented outwards (X, Y, radius) by blows from inside. */
 const DENTS: [number, number, number][] = [
   [-5.2, 8.3, 1.25], [-2.3, 10.9, 0.9], [-6.4, 5.3, 0.8], [3.4, 8.2, 1.35], [6.3, 5.3, 1.0], [2.0, 5.6, 0.7], [-2.6, 2.5, 0.75], [5.4, 10.9, 0.8],
@@ -1141,27 +1302,44 @@ function leaf(ctx: Ctx, r: R, side: -1 | 1): void {
     const shx = side < 0 ? b.x + b.w * 0.3 : b.x + b.w * 0.22;
     ctx.fillStyle = lin(ctx, [shx - b.w * 0.18, 0], [shx + b.w * 0.18, 0], [[0, 'rgba(0,0,0,0)'], [0.5, rgba('#c88a4a', 0.1)], [1, 'rgba(0,0,0,0)']]);
     ctx.fillRect(b.x, b.y, b.w, b.h);
-    // the plates: one broad cast plate between each pair of straps, a raised rim round it (lit along its top and
-    // left, shaded along its foot and right)
-    for (let i = 0; i < STRAPS.length - 1; i++) {
-      const [ax, ay] = D(X0 + 0.55, STRAPS[i + 1] - STRAP_H / 2 - 0.25);
-      const [bx, by] = D(X1 - 0.55, STRAPS[i] + STRAP_H / 2 + 0.25);
-      const bw = 0.3 * DK;
-      ctx.fillStyle = 'rgba(0,0,0,0.12)';
-      ctx.fillRect(ax + bw, ay + bw, bx - ax - 2 * bw, by - ay - 2 * bw);
-      ctx.strokeStyle = rgba('#d8a060', 0.16);
-      ctx.lineWidth = 2 * k;
-      ctx.beginPath();
-      ctx.moveTo(ax + bw, by - bw);
-      ctx.lineTo(ax + bw, ay + bw);
-      ctx.lineTo(bx - bw, ay + bw);
-      ctx.stroke();
-      ctx.strokeStyle = 'rgba(0,0,0,0.4)';
-      ctx.beginPath();
-      ctx.moveTo(bx - bw, ay + bw);
-      ctx.lineTo(bx - bw, by - bw);
-      ctx.lineTo(ax + bw, by - bw);
-      ctx.stroke();
+    // the panels, sunk in the casting: their grounds darker, verdigris settled in them, their reliefs; the border
+    // and the rail stand proud round them
+    const PX0 = X0 + BORDER;
+    const PX1 = X1 - BORDER;
+    const panels: [number, number][] = [[G.sill + BORDER + 0.9, RAIL_Y0], [RAIL_Y1, G.h - BORDER]];
+    for (const [pi, [Y0, Y1]] of panels.entries()) {
+      const pp = faceAt(PX0, PX1, Y0, Y1, G.z);
+      const pbx = boxOfPts([D(PX0, Y1), D(PX1, Y0)], 0);
+      fillPath(ctx, pp, 'rgba(0,0,0,0.22)');
+      within(ctx, pp, () => {
+        lay(ctx, noiseMask(7, 90 + pi + side * 3, { cover: 0.36, soft: 0.25, col: '#4a7a62', w: 60, h: 50 }), pbx, 0.2);
+        // the border's shadow thrown into it along its top and its left
+        vfill(ctx, pbx.x, pbx.y, pbx.w, DK * 0.4, [[0, 'rgba(0,0,0,0.55)'], [1, 'rgba(0,0,0,0)']]);
+        ctx.fillStyle = lin(ctx, [pbx.x, 0], [pbx.x + DK * 0.4, 0], [[0, 'rgba(0,0,0,0.45)'], [1, 'rgba(0,0,0,0)']]);
+        ctx.fillRect(pbx.x, pbx.y, pbx.w, pbx.h);
+        const relief = lit('#7a5428', side * 4, (Y0 + Y1) / 2, G.z, [0, 0, -1], { key: 0.5, fire: 0.15 });
+        const kk = DK / 38;
+        if (pi === 1) {
+          // the hound's head in a roundel, turned towards the seam
+          const [cx, cy] = D((PX0 + PX1) / 2, (Y0 + Y1) / 2);
+          const ring = (c: Ctx) => {
+            c.beginPath();
+            c.arc(cx, cy, DK * 2.05, 0, P2);
+            c.arc(cx, cy, DK * 1.8, 0, P2, true);
+          };
+          carve(ctx, ring, pbx, relief, kk, { lip: 0.25 });
+          houndHead(ctx, cx, cy - DK * 0.35, DK * 0.95, -side * 0.6, relief);
+        } else {
+          // the dead turned back from the doors: walking away from the seam, one looking back, one pleading
+          const gy = D(0, Y0 + 0.15)[1];
+          for (const [j, pose] of [2, 1, 4].entries()) {
+            const Xf = side < 0 ? -(1.5 + j * 2.1) : 1.5 + j * 2.1;
+            figure(ctx, D(Xf, 0)[0], gy, DK * 2.3, side, pose, shade(relief, (j - 1) * 0.05), kk);
+          }
+          ctx.fillStyle = 'rgba(0,0,0,0.35)';
+          ctx.fillRect(pbx.x + 6, gy, pbx.w - 12, 2);
+        }
+      });
     }
     // the dents: the bronze pushed out towards us from inside, domes lit on their upper left, each throwing a
     // soft shadow off its lower right onto the plate; the metal round them stretched, its rim lines bent
@@ -1199,44 +1377,77 @@ function leaf(ctx: Ctx, r: R, side: -1 | 1): void {
         ctx.stroke();
       }
     }
-    // the iron straps across, rivets on them one per unit; the iron stiles up both edges and the muntin
-    const strap = (Y: number) => {
-      const [ax, ay] = D(X0, Y + STRAP_H / 2);
-      const [bx, by] = D(X1, Y - STRAP_H / 2);
-      ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    // the border and the rail: proud bands of bronze, lit along their top and left edges, a boss on every unit
+    const bands: [number, number, number, number][] = [
+      [X0, X1, G.h - BORDER, G.h], [X0, X1, G.sill, G.sill + BORDER], [X0, X0 + BORDER, G.sill, G.h], [X1 - BORDER, X1, G.sill, G.h], [X0, X1, RAIL_Y0, RAIL_Y1],
+    ];
+    for (const [a0, a1, b0, b1] of bands) {
+      const [ax, ay] = D(a0, b1);
+      const [bx, by] = D(a1, b0);
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
       ctx.fillRect(ax + 2, ay + 3, bx - ax, by - ay);
-      ctx.fillStyle = lin(ctx, [0, ay], [0, by], [[0, IRON.lit], [0.25, IRON.body], [1, IRON.shade]]);
+      ctx.fillStyle = lin(ctx, [ax, ay], [bx, by], [[0, rgba('#c08848', 0.4)], [0.5, rgba('#6a4820', 0.15)], [1, 'rgba(0,0,0,0.25)']]);
       ctx.fillRect(ax, ay, bx - ax, by - ay);
-      lay(ctx, noiseMask(4, Math.round(Y * 10) + side, { cover: 0.4, soft: 0.3, col: IRON.rust, w: 80, h: 6 }), { x: ax, y: ay, w: bx - ax, h: by - ay }, 0.5);
-      ctx.fillStyle = 'rgba(0,0,0,0.6)';
-      ctx.fillRect(ax, by - 1.4, bx - ax, 1.4);
-      for (let i = 0; i < 11; i++) {
-        const X = X0 + (i + 0.5) * D_UNIT;
-        const [rx, ry] = D(X, Y);
-        ctx.fillStyle = 'rgba(0,0,0,0.6)';
-        ctx.beginPath();
-        ctx.arc(rx + 1.2, ry + 1.4, 3.4 * k, 0, P2);
-        ctx.fill();
-        ctx.fillStyle = IRON.body;
-        ctx.beginPath();
-        ctx.arc(rx, ry, 3.2 * k, 0, P2);
-        ctx.fill();
-        ctx.fillStyle = rgba('#b8b8c8', 0.4);
-        ctx.beginPath();
-        ctx.arc(rx - 0.9, ry - 1, 1.4 * k, 0, P2);
-        ctx.fill();
-      }
-    };
-    for (const [i, X] of [X0, X1].entries()) {
-      const w = 0.42;
-      const xa = i === 0 ? X : X - w;
-      const [ax, ay] = D(xa, G.h);
-      const [bx, by] = D(xa + w, G.sill);
-      ctx.fillStyle = lin(ctx, [ax, 0], [bx, 0], [[0, IRON.lit], [0.3, IRON.body], [1, IRON.shade]]);
-      ctx.fillRect(ax, ay, bx - ax, by - ay);
-      lay(ctx, noiseMask(4, Math.round(X * 10) + 3, { cover: 0.4, soft: 0.3, col: IRON.rust, w: 6, h: 80 }), { x: ax, y: ay, w: bx - ax, h: by - ay }, 0.45);
+      ctx.fillStyle = rgba('#f0c888', 0.3);
+      ctx.fillRect(ax, ay, bx - ax, 1.2);
+      ctx.fillRect(ax, ay, 1.2, by - ay);
     }
-    for (const Y of STRAPS) strap(Y);
+    const boss = (X: number, Y: number) => {
+      const [bx, by] = D(X, Y);
+      const br = DK * 0.17;
+      ctx.fillStyle = 'rgba(0,0,0,0.55)';
+      ctx.beginPath();
+      ctx.arc(bx + 1.5, by + 1.8, br, 0, P2);
+      ctx.fill();
+      const g = ctx.createRadialGradient(bx - br * 0.35, by - br * 0.4, 0, bx, by, br);
+      g.addColorStop(0, '#f8d898');
+      g.addColorStop(0.35, '#a87838');
+      g.addColorStop(1, '#3a2410');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(bx, by, br, 0, P2);
+      ctx.fill();
+      ctx.strokeStyle = rgba('#4a7a62', 0.5);
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    };
+    const nAcross = Math.round((X1 - X0) / UNIT_D);
+    const uA = (X1 - X0) / nAcross;
+    for (let i = 0; i < nAcross; i++) {
+      const X = X0 + (i + 0.5) * uA;
+      boss(X, G.h - BORDER / 2);
+      boss(X, G.sill + BORDER / 2);
+      boss(X, (RAIL_Y0 + RAIL_Y1) / 2);
+    }
+    for (const [Ya, Yb] of [[G.sill + BORDER, RAIL_Y0], [RAIL_Y1, G.h - BORDER]]) {
+      const n = Math.max(1, Math.round((Yb - Ya) / UNIT_D));
+      const u = (Yb - Ya) / n;
+      for (let i = 0; i < n; i++) {
+        boss(X0 + BORDER / 2, Ya + (i + 0.5) * u);
+        boss(X1 - BORDER / 2, Ya + (i + 0.5) * u);
+      }
+    }
+    // the bronze rubbed bright where hands have pushed and claws have scraped: round the ring, along the rail by the
+    // seam, low down
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const rub = (X: number, Y: number, rx: number, ry: number, a: number) => {
+      const [cx, cy] = D(X, Y);
+      const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, rx * DK);
+      g.addColorStop(0, rgba('#e0a050', a));
+      g.addColorStop(1, rgba('#e0a050', 0));
+      ctx.fillStyle = g;
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.scale(1, ry / rx);
+      ctx.translate(-cx, -cy);
+      ctx.fillRect(cx - rx * DK, cy - rx * DK, rx * DK * 2, rx * DK * 2);
+      ctx.restore();
+    };
+    rub(CB.rings[side < 0 ? 0 : 1], CB.ringY + 0.4, 1.6, 1.2, 0.14);
+    rub(side * 0.9, (RAIL_Y0 + RAIL_Y1) / 2, 1.4, 0.5, 0.12);
+    rub(side * 4, 1.8, 3.2, 0.9, 0.08);
+    ctx.restore();
     // the claw marks, low where a paw reaches: sets of tapering gouges, a dark groove, a bright lip of torn bronze
     // curled up along one side
     for (const [x0, y0, x1, y1, n] of CLAWS) {
@@ -1273,7 +1484,7 @@ function leaf(ctx: Ctx, r: R, side: -1 | 1): void {
     vfill(ctx, b.x, fy - DK * 1.6, b.w, DK * 1.6, [[0, 'rgba(0,0,0,0)'], [1, 'rgba(10,6,4,0.55)']]);
     // darker towards the meeting edge, where the opening's red leaks through
     const ex = side < 0 ? b.x + b.w : b.x;
-    ctx.fillStyle = lin(ctx, [ex, 0], [ex - side * DK * 1.2, 0], [[0, 'rgba(0,0,0,0.35)'], [1, 'rgba(0,0,0,0)']]);
+    ctx.fillStyle = lin(ctx, [ex, 0], [ex + side * DK * 1.2, 0], [[0, 'rgba(0,0,0,0.35)'], [1, 'rgba(0,0,0,0)']]);
     ctx.fillRect(b.x, b.y, b.w, b.h);
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
@@ -1285,7 +1496,7 @@ function leaf(ctx: Ctx, r: R, side: -1 | 1): void {
   });
   // the hound's-head boss and its ring, on the inner panel
   const RX = CB.rings[side < 0 ? 0 : 1];
-  const [hx, hy] = D(RX, CB.ringY + 0.95);
+  const [hx, hy] = D(RX, CB.ringY + 0.85);
   const hs = DK * 0.62;
   const plate = (c: Ctx) => {
     c.beginPath();
@@ -1338,6 +1549,40 @@ function leaf(ctx: Ctx, r: R, side: -1 | 1): void {
   ctx.stroke();
   ctx.restore();
   strokePath(ctx, body, 'rgba(4,2,2,0.9)', 1.6);
+}
+
+/** The bar across the leaves: a beam of cast bronze in a staple on each leaf, its ends capped with hounds' heads. */
+export const barBox = (): Box => boxOfPts([D(-BAR.X - 0.6, BAR.Y1 + 0.5), D(BAR.X + 0.6, BAR.Y0 - 0.5)], 10);
+function bar(ctx: Ctx): void {
+  const z = G.z - 0.25;
+  const k = pz(z) / 38;
+  // the staples, one on each leaf
+  for (const X of [-BAR.X + 0.9, BAR.X - 0.9]) {
+    const st = faceAt(X - 0.32, X + 0.32, BAR.Y0 - 0.32, BAR.Y1 + 0.32, z + 0.1);
+    const sb = boxOfPts([P(X - 0.32, BAR.Y1 + 0.32, z), P(X + 0.32, BAR.Y0 - 0.32, z)], 0);
+    castShadow(ctx, st, 6, 4, 0.6, '#000000');
+    solid(ctx, st, sb, BRONZE_M, lit(BRZ.shade, X, 6, z, [0, 0, -1], { key: 0.5 }), { depth: 0.45, air: CAVE, line: 1.2, formSize: 5 });
+  }
+  const beam = faceAt(-BAR.X, BAR.X, BAR.Y0, BAR.Y1, z);
+  const bb = boxOfPts([P(-BAR.X, BAR.Y1, z), P(BAR.X, BAR.Y0, z)], 0);
+  castShadow(ctx, beam, 10, 6, 0.7, '#000000');
+  solid(ctx, beam, bb, BRONZE_M, lit(BRZ.body, 0, 6.5, z, [0, 0, -1], { key: 0.5, fire: 0.2 }), { depth: 0.45, air: CAVE, line: 1.4, formSize: 8 });
+  within(ctx, beam, () => {
+    lay(ctx, noiseMask(5, 444, { cover: 0.35, soft: 0.25, col: '#4a7a62', w: 60, h: 6 }), bb, 0.35);
+    vfill(ctx, bb.x, bb.y, bb.w, bb.h, [[0, rgba('#ffe0a0', 0.4)], [0.3, 'rgba(0,0,0,0)'], [1, 'rgba(0,0,0,0.45)']]);
+    // worn bright along its top where it's been drawn and shot a thousand times
+    ctx.fillStyle = rgba('#f8d8a0', 0.35);
+    ctx.fillRect(bb.x + bb.w * 0.2, bb.y + 1.5, bb.w * 0.6, 1.5);
+  });
+  // its capped ends
+  for (const d of [-1, 1]) {
+    const [cx, cy] = P(d * BAR.X, (BAR.Y0 + BAR.Y1) / 2, z);
+    const cap = (c: Ctx) => {
+      c.beginPath();
+      c.ellipse(cx, cy, 6 * k * 1.6, 11 * k * 1.6, 0, 0, P2);
+    };
+    solid(ctx, cap, { x: cx - 12, y: cy - 20, w: 24, h: 40 }, BRONZE_M, lit(BRZ.body, d * BAR.X, 6.5, z, [d, 0, -1], { key: 0.5 }), { depth: 0.45, air: CAVE, line: 1.2, formSize: 5 });
+  }
 }
 
 /** Where a chain hangs from a door's ring (screen px: the ring's foot). */
@@ -1558,20 +1803,68 @@ function floor(ctx: Ctx, r: R): void {
   ctx.beginPath();
   SHORE.forEach(([x, y], i) => (i ? ctx.lineTo(x, y + 1) : ctx.moveTo(x, y + 1)));
   ctx.stroke();
-  // the sill the doors stand on: a long black-marble step, scuffed
-  const sill = faceAt(-G.hw, G.hw, 0, G.sill, PR.z);
-  const top = topAt(-G.hw, G.hw, PR.z, G.z, G.sill);
-  fillPath(ctx, top, lit('#2a2028', 0, G.sill, G.z - 1, [0, 1, 0], { key: 0.5, fire: 0.6 }));
-  within(ctx, top, () => {
-    const [x0, y0] = P(-G.hw, G.sill, G.z);
-    vfill(ctx, x0, y0, 620, 8, [[0, 'rgba(0,0,0,0.55)'], [1, 'rgba(0,0,0,0)']]);
-    ctx.fillStyle = lin(ctx, [940, 0], [980, 0], [[0, 'rgba(255,80,30,0)'], [0.5, 'rgba(255,80,30,0.3)'], [1, 'rgba(255,80,30,0)']]);
-    ctx.fillRect(900, y0, 120, 10);
+  // the steps up to the threshold: black marble, their noses worn round and dished in the middle where the dead
+  // have climbed them, chipped at their ends; the seam's red spilling down them
+  const st = CB.steps;
+  const z0 = PR.z - st.n * st.tread;
+  // the threshold, back to the doors
+  const thr = topAt(-st.hw, st.hw, PR.z, G.z, G.sill);
+  fillPath(ctx, thr, lit('#241c22', 0, G.sill, G.z - 1, [0, 1, 0], { key: 0.5, fire: 0.4 }));
+  within(ctx, thr, () => {
+    const [x0, y0] = P(-st.hw, G.sill, G.z);
+    vfill(ctx, x0, y0, 620, 12, [[0, 'rgba(0,0,0,0.6)'], [1, 'rgba(0,0,0,0)']]);
   });
-  const sb = boxOfPts([P(-G.hw, G.sill, PR.z), P(G.hw, 0, PR.z)], 0);
-  marble(ctx, sill, lit(MARBLE.body, 0, 0.2, PR.z, [0, 0, -1], { key: 0.4, fire: 0.5 }), sb, 99, 0.25);
-  within(ctx, sill, () => vfill(ctx, sb.x, sb.y, sb.w, sb.h, [[0, rgba('#b8a0a8', 0.15)], [0.2, 'rgba(0,0,0,0)'], [1, 'rgba(0,0,0,0.5)']]));
-  strokePath(ctx, sill, 'rgba(2,1,4,0.9)', 1.2);
+  for (let i = st.n - 1; i >= 0; i--) {
+    const zf = z0 + i * st.tread;
+    const Yt = (i + 1) * st.rise;
+    const hw = st.hw + (st.n - 1 - i) * 0.18;
+    const tread = topAt(-hw, hw, zf, zf + st.tread, Yt);
+    fillPath(ctx, tread, lit('#2e242c', 0, Yt, zf, [0, 1, 0], { key: 0.55, fire: 0.55 }));
+    const tb = boxOfPts([P(-hw, Yt, zf + st.tread), P(hw, Yt, zf)], 0);
+    within(ctx, tread, () => {
+      lay(ctx, drift('#5a4a52', '#120c10', 3, 200 + i, 64, 8), tb, 0.35);
+      // worn into a dish down the middle
+      const g = ctx.createRadialGradient(960, tb.y + tb.h / 2, 0, 960, tb.y + tb.h / 2, tb.w * 0.3);
+      g.addColorStop(0, rgba('#b8a0a8', 0.12));
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(tb.x, tb.y, tb.w, tb.h);
+    });
+    const riser = faceAt(-hw, hw, Yt - st.rise, Yt, zf);
+    const rbx = boxOfPts([P(-hw, Yt, zf), P(hw, Yt - st.rise, zf)], 0);
+    marble(ctx, riser, lit(MARBLE.body, 0, Yt, zf, [0, 0, -1], { key: 0.4, fire: 0.5 }), rbx, 210 + i, 0.25);
+    within(ctx, riser, () => {
+      vfill(ctx, rbx.x, rbx.y, rbx.w, rbx.h, [[0, rgba('#d0b8c0', 0.2)], [0.25, 'rgba(0,0,0,0)'], [1, 'rgba(0,0,0,0.5)']]);
+      // the nose's wear: lower in the middle
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.beginPath();
+      ctx.ellipse(960, rbx.y, rbx.w * 0.22, 2.5, 0, 0, Math.PI);
+      ctx.fill();
+      // chips off its ends
+      for (const e of [rbx.x + 4, rbx.x + rbx.w - 14]) {
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.fillRect(e + r() * 6, rbx.y, 5 + r() * 6, 2 + r() * 3);
+      }
+    });
+    // the nose's bright worn edge
+    const [n0x, n0y] = P(-hw, Yt, zf);
+    const [n1x] = P(hw, Yt, zf);
+    ctx.strokeStyle = rgba('#f0d0c0', 0.75);
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(n0x + 6, n0y + 0.5);
+    ctx.lineTo(n1x - 6, n0y + 0.5);
+    ctx.stroke();
+    strokePath(ctx, riser, 'rgba(2,1,4,0.8)', 1);
+  }
+  // the seam's red spilling out under the doors, down the steps and across the floor before them
+  ctx.save();
+  const [, sy0] = P(0, G.sill, G.z);
+  const [, syb] = P(0, 0, z0);
+  lightPool(ctx, 960, sy0 + 4, 70, 8, '#ff5a2a', 0.55);
+  lightPool(ctx, 960, (sy0 + syb) / 2, 160, 26, '#ff4a1c', 0.22);
+  lightPool(ctx, 960, syb + 14, 330, 40, '#ff3a14', 0.16);
+  ctx.restore();
   // the cliff's foot: occlusion along it
   crevice(ctx, 0, W, sy(0, CB.cliffZ + 0.3), 10, 0.6, '#000000');
 }
@@ -2372,7 +2665,7 @@ function grade(ctx: Ctx): void {
 
 function shadeOver(ctx: Ctx): void {
   calmLanes(ctx, 0.2, '#06030a', 120, 640);
-  vignetteAll(ctx, 0.72, '#040208');
+  vignetteAll(ctx, 0.6, '#040208');
   vfill(ctx, 0, 0, W, 150, [[0, 'rgba(2,1,6,0.5)'], [1, 'rgba(2,1,6,0)']]);
   // the upper corners deep in the dark, so the gate is what the eye finds
   for (const cx of [0, W]) {
@@ -2432,7 +2725,7 @@ function ironLink(ctx: Ctx, x: number, y: number, ang: number, s: number, face: 
 const CHAINS = [
   { a: () => ringFoot(0), b: () => anchorTop(0), slack: 1.05, s: 17, n: 18 },
   { a: () => ringFoot(1), b: () => anchorTop(1), slack: 1.05, s: 17, n: 18 },
-  { a: () => ringFoot(0), b: () => ringFoot(1), slack: 1.3, s: 14, n: 9 },
+  { a: () => ringFoot(0), b: () => ringFoot(1), slack: 1.12, s: 13, n: 9 },
 ];
 const GRAV = 900;
 
@@ -2716,7 +3009,10 @@ export const CERBERUS: SceneSpec = {
     { id: 'cliff', box: CLIFF_BOX, draw: cliff },
     { id: 'doorL', box: leafBox(-1), motion: 'sprite', draw: (c, r) => leaf(c, r, -1) },
     { id: 'doorR', box: leafBox(1), motion: 'sprite', draw: (c, r) => leaf(c, r, 1) },
+    { id: 'bar', box: barBox(), motion: 'sprite', draw: (c) => bar(c) },
     { id: 'lintel', box: LINTEL_BOX, draw: lintel },
+    { id: 'overL', box: OVER_L, draw: (c, r) => overhang(c, r, -1) },
+    { id: 'overR', box: OVER_R, draw: (c, r) => overhang(c, r, 1) },
     { id: 'pierL', box: FRAME_L, draw: (c, r) => pier(c, r, -1) },
     { id: 'pierR', box: FRAME_R, draw: (c, r) => pier(c, r, 1) },
     { id: 'lair', box: { ...LAIR_BOX, y: leafBox(-1).y + leafBox(-1).h, h: LAIR_BOX.y + LAIR_BOX.h - (leafBox(-1).y + leafBox(-1).h) }, draw: lair },
@@ -2727,6 +3023,8 @@ export const CERBERUS: SceneSpec = {
     { id: 'tripod0', box: tripodBox(0), motion: 'sprite', draw: (c) => tripod(c, 0) },
     { id: 'tripod1', box: tripodBox(1), motion: 'sprite', draw: (c) => tripod(c, 1) },
     { id: 'tripod2', box: tripodBox(2), motion: 'sprite', draw: (c) => tripod(c, 2) },
+    { id: 'nearL', box: nearBox(0), draw: (c) => nearCols(c, 0) },
+    { id: 'nearR', box: nearBox(1), draw: (c) => nearCols(c, 1) },
     { id: 'firesStill', box: FIRES_BOX, stillOnly: true, draw: (c) => firesStill(c) },
     { id: 'table', box: TABLE_BOX, draw: table },
     { id: 'top', motion: 'top', draw: () => {} },
@@ -2736,23 +3034,6 @@ export const CERBERUS: SceneSpec = {
 };
 
 // ——— live ———
-
-/** The fight's sounds, heard by the backdrop: the game scene's sfx is wrapped once, and listeners come and go. */
-const HOOK = '__cbSfxListeners';
-function sfxListeners(sc: Phaser.Scene): Set<(key: string) => void> | null {
-  const s = sc as unknown as Record<string, unknown> & { sfx?: (key: string, o?: unknown) => void };
-  if (typeof s.sfx !== 'function') return null;
-  if (!s[HOOK]) {
-    const set = new Set<(key: string) => void>();
-    const prev = s.sfx;
-    s.sfx = function (this: unknown, key: string, o?: unknown) {
-      for (const f of set) f(key);
-      return prev.call(this, key, o);
-    };
-    s[HOOK] = set;
-  }
-  return s[HOOK] as Set<(key: string) => void>;
-}
 
 registerKitScene(CERBERUS, (k: KitLive) => {
   const top = k.slot('top');
@@ -2767,6 +3048,8 @@ registerKitScene(CERBERUS, (k: KitLive) => {
     k.pivot(img, hx, b.y + b.h);
     return { img, side, x0: img.x, y0: img.y };
   });
+  const barImg = k.sprite('bar');
+  const bar0 = { x: barImg.x, y: barImg.y };
   const lb = leafBox(-1);
   const seam = k.glow(960, lb.y + lb.h / 2, 26, 0xff4a20, 0.12, { into: gate, sy: lb.h / 2 / 26 });
   const seamFoot = k.glow(960, lb.y + lb.h + 16, 240, 0xff4a20, 0.08, { into: gate, sy: 0.14 });
@@ -2899,7 +3182,6 @@ registerKitScene(CERBERUS, (k: KitLive) => {
   const mists = MISTS.map((m) => ({ m, l: new Loop(k, mistKey, 8, m.x, m.y, { into: shoreC, origin: [0.5, 0.6], scale: m.s / MIST_RES, fps: m.fps * 8, phase: m.ph }) }));
 
   // ——— the fight, heard ———
-  const listeners = sfxListeners(k.sc);
   let howlAt = -9;
   let tNow = 0;
   const howl = () => {
@@ -2917,15 +3199,25 @@ registerKitScene(CERBERUS, (k: KitLive) => {
         dust.spawn({ x: cx + Math.cos(a) * rad * DK, y: cy + Math.sin(a) * rad * DK, vx: Math.cos(a) * 40, vy: Math.sin(a) * 40 + 10, life: 1.4 + crand(), r0: 4, r1: 16 + crand() * 10, a: 0.28, tint: 0x7a6a70, grav: 30, drag: 1.6, fade: 0.1 });
       }
     }
-    for (const c of chains) wave(c.rope, (crand() - 0.5) * 40, -26 - crand() * 10);
+    for (const c of chains) wave(c.rope, (crand() - 0.5) * 28, -14 - crand() * 6);
   };
-  const onSfx = (key: string) => {
-    if (key === 'sfx_cerberus_howl') howl();
-    else if (key === 'sfx_cerberus_fire') fires[0].roar = 1;
-    else if (key === 'sfx_cerberus_ice') fires[1].roar = 1;
-    else if (key === 'sfx_cerberus_poison') fires[2].roar = 1;
+  // the cerberus brain (src/game/bosses/act9.ts) tells the scene when the pack howls and when a paw uses its temper
+  const ev = k.sc.events;
+  const onHowl = () => howl();
+  const onTemper = (t: Temper) => {
+    const f = fires.find((q) => q.bz.t === t);
+    if (f) f.roar = 1;
   };
-  listeners?.add(onSfx);
+  ev.on('cerberus-howl', onHowl);
+  ev.on('cerberus-temper', onTemper);
+  const unlisten = () => {
+    ev.off('cerberus-howl', onHowl);
+    ev.off('cerberus-temper', onTemper);
+    ev.off(Phaser.Scenes.Events.SHUTDOWN, unlisten);
+  };
+  ev.once(Phaser.Scenes.Events.SHUTDOWN, unlisten);
+  /** In a fight (the game scene has its boss slots), or on the stages page. */
+  const inFight = 'miniFoot' in (k.sc as object);
 
   return {
     impact(x, _y, p) {
@@ -2935,7 +3227,7 @@ registerKitScene(CERBERUS, (k: KitLive) => {
       for (const c of chains) wave(c.rope, (x < 960 ? 1 : -1) * (6 + crand() * 8) * p, -(8 + crand() * 8) * p);
       if (p > 0.5) shudder = Math.max(shudder, 0.25 * p);
       // (on the stages page, with no fight to hear, the biggest blows stand in for the howl)
-      if (!listeners && p >= 0.95) howl();
+      if (!inFight && p >= 0.95) howl();
     },
     update(dt, t) {
       tNow = t;
@@ -2950,6 +3242,7 @@ registerKitScene(CERBERUS, (k: KitLive) => {
         d.img.setRotation(Math.sin(t * 43 + d.side) * sh * 0.004);
         d.img.setScale(1 + sh * 0.012 * (0.6 + 0.4 * Math.sin(t * 31 + d.side)));
       }
+      barImg.setPosition(bar0.x + (doors[0].img.x - doors[0].x0 + doors[1].img.x - doors[1].x0) / 2, bar0.y + Math.abs(Math.sin(t * 37)) * -sh * 3.5);
       seam.setAlpha(0.12 + 0.05 * flicker(t * 0.8, 3) + sh * 0.9 + flare * 0.25);
       seamFoot.setAlpha(0.08 + sh * 0.5 + flare * 0.15);
       // dust pouring off the lintel while they shudder
@@ -3060,7 +3353,7 @@ registerKitScene(CERBERUS, (k: KitLive) => {
       ash.update(dt);
     },
     destroy() {
-      listeners?.delete(onSfx);
+      unlisten();
     },
   };
 });
