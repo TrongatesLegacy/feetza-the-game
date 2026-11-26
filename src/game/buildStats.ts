@@ -228,19 +228,20 @@ function fxDamage(fx: Effect[], dmg: number, auto: number, fromAbility: boolean)
     if ('at' in e && !who) who = whoShort(e.at);
     switch (e.e) {
       case 'dmg':
-        // topping procs are automatic damage (the heat scales them); the peel's own ability isn't
-        hit += e.x * dmg * reach(e.at) * (fromAbility ? 1 : auto);
+        // (only what hits by itself comes through here, topping procs and the peel's timed or on-hit ability: the heat
+        // scales all of it)
+        hit += e.x * dmg * reach(e.at) * auto;
         break;
       case 'burn':
         burn = Math.max(burn, e.x * dmg * auto * reach(e.at));
         burnSec = Math.max(burnSec, e.sec);
         break;
       case 'chain':
-        hit += e.x * dmg * jumpsAround(e.jumps);
+        hit += e.x * dmg * jumpsAround(e.jumps) * auto;
         break;
       case 'throw': {
         const n = Math.min(throwCount(e), Math.max(1, feetAround));
-        hit += (e.x + (e.more ?? []).reduce((a, b) => a + b, 0)) * dmg * n + (e.splash ?? 0) * dmg;
+        hit += ((e.x + (e.more ?? []).reduce((a, b) => a + b, 0)) * dmg * n + (e.splash ?? 0) * dmg) * auto;
         for (const r of e.on ?? []) {
           const sub = fxDamage([r], dmg, auto, fromAbility);
           hit += sub.hit * n;

@@ -74,13 +74,16 @@ interface DamageOpts {
   x?: number;
   y?: number;
   quiet?: boolean;
-  /** Damage a topping dealt on its own (a timed or triggered proc, the drone…): scaled by the heat's autoDmg. */
+  /** Damage a topping dealt on its own (a timed or triggered proc, the drone…): scaled by the heat's autoDmg (as is a
+   * peel's passive hit: `passive` without `hero`). */
   auto?: boolean;
   /** Where the STATS tab's tally files it (a topping proc, a pizza perk, the drone…): the source when unset. */
   tag?: string;
   /** It fired by itself (a timed or on-hit peel ability, a hero's passive), not as the player's own move: it glances
    * off a held guard shield like automatic damage, without the heat's automatic scaling. */
   passive?: boolean;
+  /** A hero's passive (src/game/heroMoves.ts): passive for shields, but not scaled by the heat's autoDmg. */
+  hero?: boolean;
 }
 
 /** Damage sources that are always automatic: they hit without a smack (orbiting cutters, thrown toppings, the
@@ -3509,8 +3512,9 @@ export class GameScene extends Phaser.Scene implements Arena {
     }
     let dmg = amount;
     const auto = o.auto || AUTO_SOURCES.has(o.source);
-    // automatic damage is scaled by the heat (half on Mild, three quarters on Regular)
-    if (auto) dmg *= this.run.heatDef.autoDmg;
+    // what hits by itself is scaled right down by the heat (autoDmg: 0.2 on Mild to 0.35 from Extra Hot), toppings and
+    // a peel's timed or on-hit ability alike, so smacking stays the main damage; hero passives aren't
+    if (auto || (o.passive && !o.hero)) dmg *= this.run.heatDef.autoDmg;
     // a raised guard shield takes the rest too (a hero's bypass still goes straight through). What fires by itself
     // (toppings, drones, procs, a peel's timed or on-hit ability, hero passives) and chain lightning only wear it down
     // at the heat's rate (guardAutoWear) and never take its last step: only the player's own blow smashes a held
@@ -4232,7 +4236,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       location: () => this.currentLocation,
       backdrop: () => this.currentBackdrop,
       inWave: () => this.waveActive && !this.over && !this.inUpgrade,
-      hurt: (f, x, o) => this.dealDamage(f, x * this.run.stats.damage, { source: o?.source ?? 'ability', knock: o?.knock ?? 120, x: f.cx, y: f.cy, quiet: o?.quiet, passive: this.heroes.passiveNow }),
+      hurt: (f, x, o) => this.dealDamage(f, x * this.run.stats.damage, { source: o?.source ?? 'ability', knock: o?.knock ?? 120, x: f.cx, y: f.cy, quiet: o?.quiet, passive: this.heroes.passiveNow, hero: true }),
       kill: (f) => {
         f.wool = 0;
         this.killFoot(f, 'ability');
@@ -4257,7 +4261,7 @@ export class GameScene extends Phaser.Scene implements Arena {
         const hit =
           onHit ??
           ((f: Foot, x: number) => {
-            if (x > 0) this.dealDamage(f, x * this.run.stats.damage, { source: 'ability', knock: e.knock ?? 120, x: f.cx, y: f.cy, passive });
+            if (x > 0) this.dealDamage(f, x * this.run.stats.damage, { source: 'ability', knock: e.knock ?? 120, x: f.cx, y: f.cy, passive, hero: true });
             for (const r of e.on ?? []) this.applyAbilityEffect(r, { foot: f, x: f.cx, y: f.cy }, color, 'burst', undefined, false, undefined, passive);
           });
         this.throws.launch(e, feet, color, (f, x) => this.heroes.asPassive(passive, () => hit(f, x)));
