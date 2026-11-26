@@ -1568,7 +1568,7 @@
     "author": "Uzbazur (freesound.org)",
     "license": "CC-BY 4.0",
     "url": "https://freesound.org/people/Uzbazur/sounds/330585/",
-    "notes": "The Gargoyle: stony wing swoop; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a swan's beating wings and a large bird's flutter, pitched down, under the old synthesized swoop. This source: the wingbeats; trimmed, pitch-shifted and layered",
+    "notes": "The Gargoyle: stony wing swoop; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a swan's beating wings and satin cloth flapped like big wings (foley), pitched down, under the old synthesized swoop. This source: the wingbeats; trimmed, pitch-shifted and layered",
     "attribution": "\"Beating Wings Dry Sound.wav\" by Uzbazur (freesound.org), https://freesound.org/people/Uzbazur/sounds/330585/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
   },
   {
@@ -1577,7 +1577,7 @@
     "author": "anebulafont (freesound.org)",
     "license": "CC0 1.0",
     "url": "https://freesound.org/people/anebulafont/sounds/651753/",
-    "notes": "The Gargoyle: stony wing swoop: the flutter; trimmed, pitch-shifted and layered"
+    "notes": "The Gargoyle: stony wing swoop: the flutter (satin-cloth foley); trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_gargoyle_swoop.mp3",
@@ -1635,16 +1635,15 @@
     "author": "Mish7913 (freesound.org)",
     "license": "CC0 1.0",
     "url": "https://freesound.org/people/Mish7913/sounds/741365/",
-    "notes": "The Gargoyle: mini-gargoyle screech chorus; built from real recordings with ffmpeg (scripts/real-sfx/build.py): hooded crows cawing in panic and a hawk's screech, pitched up into a chorus of mini-gargoyles. This source: the crows; trimmed, pitch-shifted and layered"
+    "notes": "The Gargoyle: mini-gargoyle screech chorus; built from real recordings with ffmpeg (scripts/real-sfx/build.py): hooded crows cawing in panic and a red-tailed hawk's cry, pitched up into a chorus of mini-gargoyles. This source: the crows; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_gargoyle_storm.mp3",
-    "title": "BIRDPrey-Blue Snowball Microphone, CU_Hawk Screech, Acme Windmaster_Nicholas Judy_TDC",
-    "author": "designerschoice (freesound.org)",
-    "license": "CC-BY 4.0",
-    "url": "https://freesound.org/people/designerschoice/sounds/804810/",
-    "notes": "The Gargoyle: mini-gargoyle screech chorus: the hawk; trimmed, pitch-shifted and layered",
-    "attribution": "\"BIRDPrey-Blue Snowball Microphone, CU_Hawk Screech, Acme Windmaster_Nicholas Judy_TDC\" by designerschoice (freesound.org), https://freesound.org/people/designerschoice/sounds/804810/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+    "title": "Red Tailed Hawk Cry",
+    "author": "loganzsound (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/loganzsound/sounds/774252/",
+    "notes": "The Gargoyle: mini-gargoyle screech chorus: the hawk; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_jellyfish_charge.mp3",
@@ -1862,15 +1861,7 @@
     "author": "ZHRØ (freesound.org)",
     "license": "CC0 1.0",
     "url": "https://freesound.org/people/ZHR%C3%98/sounds/514162/",
-    "notes": "The Lumberjack: spinning axe; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a stick swung like an axe six times round as it spins, a rope swung under it. This source: the swings; trimmed, pitch-shifted and layered"
-  },
-  {
-    "file": "sfx_lumberjack_axe.mp3",
-    "title": "Whip woosh",
-    "author": "ErikCruzDev (freesound.org)",
-    "license": "CC0 1.0",
-    "url": "https://freesound.org/people/ErikCruzDev/sounds/735907/",
-    "notes": "The Lumberjack: spinning axe: the rope; trimmed, pitch-shifted and layered"
+    "notes": "The Lumberjack: spinning axe; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a stick swung like an axe, six times round as it spins. This source: the swings; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_lumberjack_thunk.mp3",
@@ -1910,7 +1901,7 @@
     "author": "blaukreuz (freesound.org)",
     "license": "CC0 1.0",
     "url": "https://freesound.org/people/blaukreuz/sounds/162674/",
-    "notes": "The Yeti Ski Boot: avalanche rumble (tell); built from real recordings with ffmpeg (scripts/real-sfx/build.py): two stone avalanches, pitched down and swelling, over the old rumble's low end. This source: the avalanche; trimmed, pitch-shifted and layered"
+    "notes": "The Yeti Ski Boot: avalanche rumble (tell); built from real recordings with ffmpeg (scripts/real-sfx/build.py): two stone avalanches, pitched down and swelling, with the old rumble's low end under them. This source: the avalanche; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_yeti_avalanche.mp3",
@@ -2479,7 +2470,7 @@
     "author": "DasWaff (freesound.org)",
     "license": "CC0 1.0",
     "url": "https://freesound.org/people/DasWaff/sounds/721601/",
-    "notes": "Act 7: each RAMPAGE stomp lands on a pizza (and his entrance); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a giant's footstep and a stamp, pitched down, over the old synthesized sub. This source: the footstep; trimmed, pitch-shifted and layered"
+    "notes": "Act 7: each RAMPAGE stomp lands on a pizza (and his entrance); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a giant's footstep and a stamp, pitched down, over the old synthesized sub (only its low end is kept). This source: the footstep; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_doomstomp_stomp.mp3",
@@ -2570,7 +2561,7 @@
     "author": "celldroid (freesound.org)",
     "license": "CC0 1.0",
     "url": "https://freesound.org/people/celldroid/sounds/763026/",
-    "notes": "Act 7: he gets back up, bigger; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a black bear's growl and a lion, pitched down, swelling under the old synthesized growl. This source: the growl; trimmed, pitch-shifted and layered"
+    "notes": "Act 7: he gets back up, bigger; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a black bear's growl and a lion, pitched down, swelling up under the old synthesized growl, which is kept whole. This source: the growl; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_doomstomp_rise.mp3",

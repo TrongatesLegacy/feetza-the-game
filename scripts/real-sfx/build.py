@@ -19,8 +19,8 @@ and, for the audio pass's batch 1 (docs/audio-audit.md):
 (it also uses 20185 and 371353 from the first set), and for batch 2:
 
   node scripts/sfx-fetch/freesound.mjs get 94162 346373 684459 433829 426208 637533 655040 423778 403915 539819 \\
-       719766 649390 330585 651753 760672 578490 29986 741365 804810 442773 867457 553954 847049 539822 529295 \\
-       568036 379329 431742 340664 514162 735907 162674 162668 445993 457449 383783 80595 196720 329519 505113 \\
+       719766 649390 330585 651753 760672 578490 29986 741365 774252 442773 867457 553954 847049 539822 529295 \\
+       568036 379329 431742 340664 514162 162674 162668 445993 457449 383783 80595 196720 329519 505113 \\
        672776 805168 534856 316682 160797 143129 241258 789609 584168 869002 263115 222521 199803 66951 164483 \\
        477528 177495 --out SRC_DIR
 
@@ -572,7 +572,7 @@ def hitbonk():
     return layer([
         L('old:sfx_hitbonk', 0.0, 0.28, 0.0, 0.0, 0, fin=0.001, fout=0.05),
         L(655040, 0.420, 0.22, 0.000, -2.0, -8, fin=0.001, fout=0.08, fx='lowpass=f=3500'),           # a beach ball on wood
-        L(423778, 0.080, 0.20, 0.002, 0.0, 1, fin=0.001, fout=0.08),           # a big rubber ball
+        L(423778, 0.080, 0.20, 0.002, 0.0, 6, fin=0.001, fout=0.08),           # a big rubber ball
     ])
 
 
@@ -588,10 +588,12 @@ def doughrise():
 
 # --- Nonna's Slipper: a wooden rolling pin rolled on a board, a second pass under it ---
 def nonnapin():
+    # pushed back and forth: a surge on each roll (and the old rumble was as punchy, on both loudness measures)
+    ROLL = "lowpass=f=3000,asetnsamples=n=64,volume='0.12+0.88*pow(abs(sin(3.14159*t*2.5)),4)':eval=frame"
     return layer([
-        L(719766, 2.500, 1.60, 0.000, -3.0, 0, fin=0.02, fout=0.2, fx='lowpass=f=4000'),             # a rolling pin on a board
-        L(719766, 5.600, 1.30, 0.250, -5.0, -5, fin=0.05, fout=0.2, fx='lowpass=f=4000'),            # and again, lower
-        L('old:sfx_nonna_pin', 0.0, 1.60, 0.0, 0.0, 5, fin=0.01, fout=0.2, fx='lowpass=f=250'),  # the old rumble's low end
+        L(719766, 2.500, 1.60, 0.000, -3.0, 5, fin=0.02, fout=0.2, fx=ROLL),    # a rolling pin on a board
+        L(719766, 5.600, 1.30, 0.250, -5.0, 0, fin=0.05, fout=0.2, fx=ROLL),    # and again, lower
+        L('old:sfx_nonna_pin', 0.0, 1.60, 0.0, 0.0, 1, fin=0.01, fout=0.2, fx='lowpass=f=250'),  # the old rumble's low end
     ])
 
 
@@ -608,7 +610,7 @@ def gargswoop():
     return layer([
         L('old:sfx_gargoyle_swoop', 0.0, 0.74, 0.0, 0.0, -1, fin=0.002, fout=0.08),
         L(330585, 2.320, 0.74, 0.000, -4.0, -9, fin=0.02, fout=0.2),            # a swan's beating wings, lower
-        L(651753, 1.900, 0.70, 0.030, -3.0, 2, fin=0.05, fout=0.2),           # a large bird's flutter
+        L(651753, 1.900, 0.70, 0.030, -3.0, 2, fin=0.05, fout=0.2),           # satin cloth flapped like big wings (foley)
     ])
 
 
@@ -627,7 +629,7 @@ def gargstorm():
         L(741365, 0.080, 0.74, 0.000, 4.0, 0, fin=0.01, fout=0.1),              # hooded crows cawing in panic
         L(741365, 1.050, 0.58, 0.220, 6.0, -2, fin=0.01, fout=0.1),
         L(741365, 2.770, 0.55, 0.420, 3.0, -2, fin=0.01, fout=0.12),
-        L(804810, 0.040, 0.95, 0.040, 3.0, -13, fin=0.02, fout=0.15),            # a hawk's screech
+        L(774252, 0.040, 0.70, 0.100, 2.0, 16, fin=0.01, fout=0.15),             # a red-tailed hawk's cry
     ])
 
 
@@ -674,7 +676,7 @@ def rinkdash():
 def chainsaw():
     return layer([
         L(431742, 4.000, 1.25, 0.000, 0.0, 0, fin=0.02, fout=0.1),              # a chainsaw, running hard
-        L(340664, 0.300, 1.20, 0.020, 0.0, -6, fin=0.05, fout=0.1),             # revving high
+        L(340664, 0.300, 1.20, 0.020, 0.0, 0, fin=0.05, fout=0.1),             # revving high
     ])
 
 
@@ -682,16 +684,16 @@ def axe():
     # a stick swung like an axe, six times round as it spins, each a little different
     sw = [L(514162, 0.180, 0.11, t, s, d, fin=0.005, fout=0.05) for t, s, d in
           ((0.000, 0.0, 0), (0.080, 1.0, -1), (0.160, 0.0, 0), (0.240, 1.0, -1), (0.320, 0.0, -1), (0.400, -1.0, -2))]
-    return layer(sw + [L(735907, 0.020, 0.34, 0.100, -2.0, -8, fin=0.01, fout=0.1)])  # a rope swung, under it
+    return layer(sw)
 
 
 # --- the Yeti's avalanche: real stone avalanches, lower, swelling ---
 def avalanche():
     return layer([
-        L(162674, 1.600, 1.92, 0.000, -4.0, 0, fin=0.1, fout=0.3),              # a stone avalanche, lower
-        L(162668, 1.500, 1.92, 0.000, -7.0, -3, fin=0.1, fout=0.3),             # another, lower still
-        L('old:sfx_yeti_avalanche', 0.0, 1.92, 0.0, 0.0, 0, fin=0.05, fout=0.3, fx='lowpass=f=300'),  # the old rumble's low end
-    ], post="lowpass=f=4000,asetnsamples=n=64,volume='0.4+0.6*min(1,t/1.2)':eval=frame")
+        L(162674, 1.600, 1.92, 0.000, -4.0, 6, fin=0.1, fout=0.3),              # a stone avalanche, lower
+        L(162668, 1.500, 1.92, 0.000, -7.0, 4, fin=0.1, fout=0.3),             # another, lower still
+        L('old:sfx_yeti_avalanche', 0.0, 1.92, 0.0, 0.0, -6, fin=0.05, fout=0.3, fx='lowpass=f=300'),  # the old rumble's low end
+    ], post="lowpass=f=2500,asetnsamples=n=64,volume='0.4+0.6*min(1,t/1.2)':eval=frame")
 
 
 # --- the Zombie Loafer: a groan, a coughing fit, and the gurgle and groan of a pizza turning ---
@@ -749,7 +751,7 @@ def bombboom():
     return layer([
         L('old:sfx_bombboom', 0.0, 1.20, 0.0, 0.0, -1, fin=0.001, fout=0.15),
         L(160797, 0.000, 1.20, 0.000, -2.0, -8, fin=0.001, fout=0.4),           # dynamite going off
-        L(143129, 0.640, 0.60, 0.005, 0.0, -16, fin=0.001, fout=0.25),          # a gas flare-up's crack
+        L(143129, 0.640, 0.60, 0.005, 0.0, -10, fin=0.001, fout=0.25),          # a gas flare-up's crack
     ])
 
 
@@ -789,7 +791,7 @@ def quake():
     return layer([
         L('old:sfx_doomstomp_quake', 0.0, 1.39, 0.0, 0.0, 0, fin=0.002, fout=0.15),
         L(222521, 2.000, 1.39, 0.000, -2.0, -10, fin=0.05, fout=0.25),           # earth cracking open
-        L(199803, 2.000, 1.39, 0.000, 0.0, 19, fin=0.1, fout=0.25),             # a window shaking in a quake
+        L(199803, 2.000, 1.39, 0.000, 0.0, 24, fin=0.1, fout=0.25),             # a window shaking in a quake
     ])
 
 
@@ -805,11 +807,13 @@ def ko():
 
 
 def doomrise():
-    return layer([
-        L('old:sfx_doomstomp_rise', 0.0, 1.28, 0.0, 0.0, 0, fin=0.002, fout=0.1),
+    # the old growl kept whole; the real ones swell up under it as he gets up
+    real = layer([
         L(763026, 2.760, 1.28, 0.000, -5.0, 3, fin=0.1, fout=0.2),             # a black bear's growl, lower
         L(869002, 3.900, 1.20, 0.080, -6.0, -13, fin=0.2, fout=0.2),             # a lion, lower
-    ], post="asetnsamples=n=64,volume='0.45+0.55*min(1,t/1.1)':eval=frame")    # swelling, as he gets up
+    ], post="asetnsamples=n=64,volume='0.45+0.55*min(1,t/1.1)':eval=frame")
+    old = layer([L('old:sfx_doomstomp_rise', 0.0, 1.28, 0.0, 0.0, 0, fin=0.002, fout=0.1)])
+    return mixw([(old, 0.0), (real, 0.0)])
 
 
 def dazed():
@@ -870,7 +874,7 @@ RECIPES = {
     'meteor': ('sfx_cosmiccroc_meteor', meteor, 1.40, -12.9, 0.1),
     'hitbonk': ('sfx_hitbonk', hitbonk, 0.28, -13.2, 0.06),
     'doughrise': ('sfx_doughboy_rise', doughrise, 0.68, -13.0, 0.08),
-    'nonnapin': ('sfx_nonna_pin', nonnapin, 1.60, -14.2, 0.2),
+    'nonnapin': ('sfx_nonna_pin', nonnapin, 1.60, -14.3, 0.2),
     'coo': ('sfx_pigeonking_coo', coo, 0.61, -11.8, 0.06),
     'gargswoop': ('sfx_gargoyle_swoop', gargswoop, 0.74, -12.9, 0.15),
     'gargstone': ('sfx_gargoyle_stone', gargstone, 1.10, -10.8, 0.12),
@@ -882,7 +886,7 @@ RECIPES = {
     'rinkdash': ('sfx_rinkqueen_dash', rinkdash, 0.75, -12.2, 0.2),
     'chainsaw': ('sfx_lumberjack_chainsaw', chainsaw, 1.25, -13.2, 0.1),
     'axe': ('sfx_lumberjack_axe', axe, 0.53, -10.9, 0.08),
-    'avalanche': ('sfx_yeti_avalanche', avalanche, 1.92, -12.2, 0.3),
+    'avalanche': ('sfx_yeti_avalanche', avalanche, 1.92, -12.6, 0.3),
     'groan': ('sfx_poltergeist_groan', groan, 1.24, -9.6, 0.2),
     'cough': ('sfx_poltergeist_cough', cough, 0.62, -12.1, 0.08),
     'sick': ('sfx_poltergeist_sick', sick, 0.78, -12.7, 0.12),

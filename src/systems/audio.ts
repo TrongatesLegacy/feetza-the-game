@@ -188,7 +188,7 @@ const TRIM: Record<string, number> = {
   sfx_doughboy_splat: 1.05, // -11.4 dB → -11.0: dough splat
   sfx_doughboy_rise: 0.77, // -13.0 dB → -15.3: yeasty bubbling rise, sits under
   // Nonna's Slipper
-  sfx_nonna_pin: 1.05, // -14.1 dB → -13.7: rolling pin rumble
+  sfx_nonna_pin: 1.05, // -14.4 dB → -14.0: rolling pin rumble
   sfx_nonna_pinsmash: 1.1, // -10.3 dB → -9.5: rolling pin crashes into the pizzas
   sfx_nonna_slippers: 1.13, // -13.1 dB → -12.0: slippers flap (tell)
   sfx_nonna_slipper: 1.05, // -10.9 dB → -10.5: slipper thwack
@@ -203,7 +203,7 @@ const TRIM: Record<string, number> = {
   sfx_gargoyle_stone: 1.1, // -10.7 dB → -9.9: turns to stone (grind)
   sfx_gargoyle_stonecrack: 0.89, // -12.4 dB → -13.4: stone cracks under a smack
   sfx_gargoyle_stonebreak: 1.05, // -10.0 dB → -9.6: stone crumbles
-  sfx_gargoyle_storm: 1.05, // -11.0 dB → -10.6: mini-gargoyle screech chorus
+  sfx_gargoyle_storm: 1.05, // -11.1 dB → -10.7: mini-gargoyle screech chorus
   // Jellyfish Flip-Flop
   sfx_jellyfish_charge: 1.27, // -14.1 dB → -12.0: jelly charge hum
   sfx_jellyfish_sting: 1.05, // -10.9 dB → -10.5: jelly zap on the peel
@@ -226,7 +226,7 @@ const TRIM: Record<string, number> = {
   sfx_rinkqueen_dash: 1.22, // -12.3 dB → -10.6: speed-dash swish and ice spray
   // The Lumberjack
   sfx_lumberjack_timber: 1.05, // -11.4 dB → -11.0: tree creak and crack (tell)
-  sfx_lumberjack_chainsaw: 1.05, // -13.2 dB → -12.7: chainsaw revs
+  sfx_lumberjack_chainsaw: 1.05, // -13.3 dB → -12.8: chainsaw revs
   sfx_lumberjack_sawbite: 1.1, // -11.3 dB → -10.5: chainsaw bites a pizza
   sfx_lumberjack_axe: 1.05, // -11.0 dB → -10.6: spinning axe
   sfx_lumberjack_thunk: 1.21, // -12.2 dB → -10.5: axe thunks into the table
@@ -234,7 +234,7 @@ const TRIM: Record<string, number> = {
   sfx_yeti_icicle: 1.11, // -12.9 dB → -12.0: icicle forms and cracks loose
   sfx_yeti_iciclehit: 1.3, // -12.8 dB → -10.5: icicle shatters on a pizza
   sfx_yeti_snowball: 1.09, // -12.7 dB → -12.0: snowball packed and thrown
-  sfx_yeti_avalanche: 1.08, // -12.1 dB → -11.4: avalanche rumble (tell)
+  sfx_yeti_avalanche: 1.08, // -12.6 dB → -11.9: avalanche rumble (tell)
   sfx_yeti_bigball: 1.08, // -11.7 dB → -11.0: big snowball lands
   // The Zombie Loafer
   sfx_poltergeist_groan: 1.05, // -9.7 dB → -9.2: zombie groan (tell)
@@ -291,7 +291,7 @@ const TRIM: Record<string, number> = {
   sfx_doomstomp_spike: 1.07, // -12.5 dB → -11.9: a bone spike bursts up behind a pizza
   sfx_doomstomp_bonebreak: 0.89, // -12.5 dB → -13.5: smack on a bone spike (it snaps on the last)
   sfx_doomstomp_ko: 1.05, // -11.3 dB → -10.9: he's knocked out (a life lost) and his death
-  sfx_doomstomp_rise: 1.63, // -14.9 dB → -10.6: he gets back up, bigger
+  sfx_doomstomp_rise: 1.63, // -14.9 dB → -10.7: he gets back up, bigger
   sfx_doomstomp_dazed: 1.05, // -12.8 dB → -12.3: LAST LIFE: he slumps, dazed (finish him)
   sfx_ultoe_upload: 0.79, // -12.4 dB → -14.4: UPLOAD tell: the UPLOADING bar fills
   sfx_ultoe_glitch: 1.05, // -10.9 dB → -10.5: he jumps bodies: every drone glitches
