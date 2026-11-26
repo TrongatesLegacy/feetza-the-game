@@ -5400,7 +5400,7 @@
     "author": "JacquesLabuschagne242028 (freesound.org)",
     "license": "CC-BY 4.0",
     "url": "https://freesound.org/people/JacquesLabuschagne242028/sounds/765844/",
-    "notes": "God peels: Hades’s Underworld; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a rock smashed twice, lower, as the ground cracks, heavy stone grinding, lower, as it splits open, and a man's long groan and a monster's moan (a voice), both far lower. This source: the cracks; trimmed, pitch-shifted and layered",
+    "notes": "God peels: Hades’s Underworld; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a rock smashed twice, lower, as the ground cracks, heavy stone grinding, lower, as it splits open, and a man's long groan and a monster's moan, both far lower. This source: the cracks; trimmed, pitch-shifted and layered",
     "attribution": "\"Smash rock (Version 1)\" by JacquesLabuschagne242028 (freesound.org), https://freesound.org/people/JacquesLabuschagne242028/sounds/765844/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
   },
   {
@@ -5683,7 +5683,7 @@
     "author": "kirmm (freesound.org)",
     "license": "CC0 1.0",
     "url": "https://freesound.org/people/kirmm/sounds/392180/",
-    "notes": "God peels: Odin’s Allfather; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a battle horn blown, an octave lower, with a cow horn (or a conch, its recordist says), far lower, over it, a raven's caw twice, lower, and a big gong struck, far lower and damped, as the eye opens. This source: the horn; trimmed, pitch-shifted and layered"
+    "notes": "God peels: Odin’s Allfather; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a battle horn blown, an octave lower, with a cow horn (or a conch, its recordist says), far lower, over it, a raven's caw twice, lower, and a big gong struck, lower and damped, as the eye opens. This source: the horn; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_hero_allfather.mp3",
@@ -5748,7 +5748,7 @@
     "author": "Joao_Janz (freesound.org)",
     "license": "CC0 1.0",
     "url": "https://freesound.org/people/Joao_Janz/sounds/485245/",
-    "notes": "God peels: Thor’s hammer thrown; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a heavy swing, lower, eight times as the hammer spins past, over a super-heavy swoosh, far lower and slower. This source: the spinning swings; trimmed, pitch-shifted and layered"
+    "notes": "God peels: Thor’s hammer thrown; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a heavy swing, lower, eight times as the hammer spins past, over a super-heavy swoosh, lower and slower. This source: the spinning swings; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_hero_mjolnir.mp3",

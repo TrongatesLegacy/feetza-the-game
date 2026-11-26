@@ -395,14 +395,14 @@ const TRIM: Record<string, number> = {
   sfx_hero_zeus: 1.10, // -11.0 dB → -10.1
   sfx_hero_decree: 1.10, // -10.3 dB → -9.5
   sfx_hero_earthshaker: 1.05, // -11.2 dB → -10.8
-  sfx_hero_harvest: 1.08, // -11.1 dB → -10.4
+  sfx_hero_harvest: 1.08, // -11.1 dB → -10.5
   sfx_hero_aegis: 1.09, // -10.7 dB → -10.0
   sfx_hero_chariot: 1.10, // -11.3 dB → -10.5
   sfx_hero_moon: 1.10, // -11.4 dB → -10.5
   sfx_hero_warcry: 1.08, // -10.2 dB → -9.5
   sfx_hero_charm: 1.11, // -10.7 dB → -9.8
   sfx_hero_forge: 1.10, // -11.7 dB → -10.8
-  sfx_hero_spark: 0.89, // -14.0 dB → -15.0
+  sfx_hero_spark: 0.89, // -13.9 dB → -14.9
   sfx_hero_messenger: 1.12, // -10.6 dB → -9.6
   sfx_hero_dart: 0.90, // -12.6 dB → -13.5
   sfx_hero_revel: 1.06, // -12.3 dB → -11.8

@@ -2947,7 +2947,7 @@ def harvest():
     return layer([
         L('old:sfx_hero_harvest', 0.0, 1.16, 0.0, 0.0, 0, fin=0.002, fout=0.2),
         L(178615, 0.050, 1.05, 0.000, -2.0, 25, fin=0.15, fout=0.4),            # a bush (bamboo) shaken, a little lower
-        L(396013, 0.000, 0.55, 0.150, -2.0, 21, fin=0.05, fout=0.2),            # and grass rustling
+        L(396013, 0.000, 0.55, 0.150, -2.0, 24, fin=0.05, fout=0.2),            # and grass rustling
     ])
 
 
@@ -2995,7 +2995,7 @@ def forge():
 def spark():
     return layer([
         L('old:sfx_hero_spark', 0.0, 0.35, 0.0, 0.0, 0, fin=0.002, fout=0.08),
-        L(386125, 0.000, 0.14, 0.000, 2.0, -6, fin=0.0005, fout=0.08),          # a hot hit on an anvil, a little higher
+        L(386125, 0.000, 0.14, 0.000, 2.0, -3, fin=0.0005, fout=0.08),          # a hot hit on an anvil, a little higher
     ])
 
 
@@ -3099,7 +3099,7 @@ def allfather():
         L(479998, 0.250, 1.20, 0.020, -9.0, 0, fin=0.05, fout=0.35),            # a cow horn, far lower, over it
         L(827424, 0.030, 0.25, 0.600, -3.0, -2, fin=0.005, fout=0.08),          # a raven's caw, lower,
         L(827424, 0.340, 0.30, 0.900, -4.0, 1, fin=0.005, fout=0.1),            # and another
-        L(853153, 0.040, 0.50, 1.180, -5.0, -6, fin=0.002, fout=0.25, fx='lowpass=f=800,' + DECAY % 6),  # a big gong, far lower,
+        L(853153, 0.040, 0.50, 1.180, -5.0, -6, fin=0.002, fout=0.25, fx='lowpass=f=800,' + DECAY % 6),  # a big gong, lower,
         # damped: the eye opens
     ])
 
@@ -3117,7 +3117,7 @@ def mjolnir():
     sw = [L(485245, 0.020, 0.15, t, -3.0, d + 16, fin=0.005, fout=0.06) for t, d in
           ((0.00, -6), (0.07, -6), (0.14, -3), (0.21, -1), (0.28, 0), (0.35, 0), (0.42, -1), (0.49, -4))]
     return layer(sw + [L(475131, 0.000, 0.55, 0.050, -5.0, -7, fin=0.1, fout=0.2, keep=False)])  # a heavy swing, lower, eight
-    # times as it spins past, over a super-heavy swoosh, far lower and slower
+    # times as it spins past, over a super-heavy swoosh, lower and slower
 
 
 def mischief():
