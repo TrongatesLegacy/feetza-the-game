@@ -33,7 +33,7 @@ so it paints the same alone as in the still.
 - **`motion: 'slot'`**: not painted; the live code adds objects at that point in the stack (`k.slot(id)`). Keep its
   box tight: every still layer after it that overlaps the box becomes an overlay.
 - **`motion: 'top'`**: the live code's objects go over everything (flames, sparkles, birds); its container comes
-  from `k.slot(id)` too (Trattoria's `candlesLive`, Beach's `torchFire`). Free: prefer it.
+  from `k.slot(id)` too (Trattoria's `fx`, Beach's `torchFire`). Free: prefer it.
 - **`liveOnly`**: painted only when live, as a sprite starting at alpha 0 (a night sky, a sunset sea, string-light
   glows). The live code fades it in.
 - **`stillOnly`**: painted only in the still (painted flames the live code replaces with moving ones).
@@ -116,10 +116,10 @@ The bar is the redrawn feet (`?dev&style`). Before calling a place done:
 Each place is painted while the shop is open (the still, or the live base and its pieces). Measured warm in
 desktop Chrome:
 
-- Paint: the still and the live bake each under about 200 ms (references: Trattoria ~150 ms still / ~175 ms bake,
+- Paint: the still and the live bake each under about 200 ms (references: Trattoria ~180 ms still / ~220 ms bake with its frame-loop pass,
   Beach ~100 / ~180, Tartarus ~75 cold; about a third of a bake is `gradeAll`).
 - Texture memory: the live base is always 7.9 MB (1920×1080); keep the base plus every piece under about 16 MB,
-  24 MB at most for a place with a lot moving (Trattoria 10.8 MB, Tartarus 16.1 MB, Beach 21.2 MB with its three
+  24 MB at most for a place with a lot moving (Trattoria 16.4 MB with its frame sheets, Tartarus 16.1 MB, Beach 21.2 MB with its three
   skies and two seas).
 - Cheap: `lay()` of cached noise fields, gradients, paths. Costly: big `ctx.filter` blurs (use `softly()`, or blur a
   small offscreen canvas as `cloud()` and `lampOnWall()` do), thousands of strokes with their own gradients, and

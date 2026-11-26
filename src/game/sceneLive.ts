@@ -8,10 +8,10 @@
 
 import Phaser from 'phaser';
 import { type SceneSpec, bakePiece, paintLiveBase, paintShade, paintStill, planLive } from '../art/scene/layers';
-import { registerScene } from '../art/registry';
+import { registerLegacyScene, registerScene } from '../art/registry';
 import { crand } from '../systems/cosmeticRandom';
 import { save } from '../systems/save';
-import { type LiveCtx, registerLive } from './liveBackdrop';
+import { type LiveCtx, registerLegacyLive, registerLive } from './liveBackdrop';
 
 type Img = Phaser.GameObjects.Image;
 type Container = Phaser.GameObjects.Container;
@@ -32,11 +32,11 @@ export class KitLive {
   private slots = new Map<string, Container>();
   private extra: Phaser.GameObjects.GameObject[] = [];
 
-  constructor(spec: SceneSpec, ctx: LiveCtx) {
+  constructor(spec: SceneSpec, ctx: LiveCtx, tag = spec.id as string) {
     this.sc = ctx.sc;
     this.root = ctx.layer;
     this.spec = spec;
-    const keys = bake(ctx.sc, spec);
+    const keys = bake(ctx.sc, spec, tag);
     ctx.setBase?.(keys.base);
     for (const [i, p] of keys.plan.pieces.entries()) {
       if (p.kind === 'slot') {
@@ -149,43 +149,53 @@ export interface KitHooks {
 /** Make (once per game) the live base and every baked piece of a scene. */
 const SHADE_K = 4;
 
-function bake(sc: Phaser.Scene, spec: SceneSpec): { base: string; pieces: string[]; plan: ReturnType<typeof planLive>; shade: string | null } {
+function bake(sc: Phaser.Scene, spec: SceneSpec, tag: string = spec.id): { base: string; pieces: string[]; plan: ReturnType<typeof planLive>; shade: string | null } {
   const plan = planLive(spec);
-  let shade: string | null = `bgk_${spec.id}_shade`;
+  let shade: string | null = `bgk_${tag}_shade`;
   if (!sc.textures.exists(shade)) {
     const c = paintShade(spec, SHADE_K);
     if (c) sc.textures.addCanvas(shade, c);
     else shade = null;
   }
-  const base = `bgk_${spec.id}_base`;
+  const base = `bgk_${tag}_base`;
   if (!sc.textures.exists(base)) sc.textures.addCanvas(base, paintLiveBase(spec, plan.base));
   const pieces = plan.pieces.map((p, i) => {
-    const key = `bgk_${spec.id}_${i}_${p.kind === 'overlay' ? 'ov' : p.layer.id}`;
+    const key = `bgk_${tag}_${i}_${p.kind === 'overlay' ? 'ov' : p.layer.id}`;
     if (p.kind !== 'slot' && !sc.textures.exists(key)) sc.textures.addCanvas(key, bakePiece(spec, p));
     return key;
   });
   return { base, pieces, plan, shade };
 }
 
-/** Register a scene painted with the location kit: its still, and its live layer. */
-export function registerKitScene(spec: SceneSpec, live?: (k: KitLive, wave: number) => KitHooks): void {
-  registerScene(spec.id, { info: spec.info, draw: (ctx) => paintStill(spec, ctx) });
+/** Register a scene painted with the location kit: its still, and its live layer. `legacy`: a kit scene that has
+ * been painted again (a bar-raise) keeps its earlier version for the before/after page (?dev&stages); its baked
+ * textures get their own keys, so the two can show side by side. */
+export function registerKitScene(spec: SceneSpec, live?: (k: KitLive, wave: number) => KitHooks, o: { legacy?: boolean } = {}): void {
+  const tag = o.legacy ? `${spec.id}_legacy` : spec.id;
+  const def = { info: spec.info, draw: (ctx: CanvasRenderingContext2D) => paintStill(spec, ctx) };
+  const factory = (ctx: LiveCtx) => {
+    const k = new KitLive(spec, ctx, tag);
+    const hooks = live?.(k, ctx.wave) ?? { update: () => {} };
+    let t = crand() * 100;
+    return {
+      setWave: (w: number) => hooks.setWave?.(w),
+      impact: (x: number, y: number, p: number) => hooks.impact?.(x, y, p * calm()),
+      update: (dt: number) => hooks.update(dt, (t += dt)),
+      destroy: () => {
+        hooks.destroy?.();
+        k.destroy();
+      },
+    };
+  };
+  if (o.legacy) {
+    registerLegacyScene(spec.id, def);
+    registerLegacyLive(spec.id, factory);
+    return;
+  }
+  registerScene(spec.id, def);
   registerLive(
     spec.id,
-    (ctx) => {
-      const k = new KitLive(spec, ctx);
-      const hooks = live?.(k, ctx.wave) ?? { update: () => {} };
-      let t = crand() * 100;
-      return {
-        setWave: (w) => hooks.setWave?.(w),
-        impact: (x, y, p) => hooks.impact?.(x, y, p * calm()),
-        update: (dt) => hooks.update(dt, (t += dt)),
-        destroy: () => {
-          hooks.destroy?.();
-          k.destroy();
-        },
-      };
-    },
+    factory,
     (sc) => void bake(sc, spec),
     (sc) => {
       for (const key of sc.textures.getTextureKeys()) if (key.startsWith(`bgk_${spec.id}_`)) sc.textures.remove(key);

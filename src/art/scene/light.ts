@@ -111,6 +111,9 @@ export interface PatchOpts {
   soft?: number;
   /** The patch fades from its first edge (pts[0]→pts[1], the window side) to the opposite one (0…1, default 0.4). */
   fade?: number;
+  /** How it's laid on (default 'screen'; 'source-over' for a layer baked to a sprite, where screen has nothing under
+   * it to lift). */
+  op?: GlobalCompositeOperation;
 }
 
 /**
@@ -163,7 +166,7 @@ export function lightPatch(ctx: Ctx, pts: [number, number][], o: PatchOpts = {})
     g.fill();
   }
   ctx.save();
-  ctx.globalCompositeOperation = 'screen';
+  ctx.globalCompositeOperation = o.op ?? 'screen';
   ctx.drawImage(c, box.x, box.y);
   ctx.restore();
 }

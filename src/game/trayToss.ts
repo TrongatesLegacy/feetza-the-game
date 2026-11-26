@@ -156,6 +156,8 @@ export function tossTray(a: Arena, f: Foot, snap: GuardSnap, p: Pizza, o: TrayTo
       if (k >= 1) {
         a.fx.impact(img.x, img.y, false);
         a.sfx(o.sfx?.land ?? 'sfx_trayclatter');
+        // (the room hears it: the Trattoria's oven flares and its lamps swing, src/content/art/scene-trattoria.ts)
+        sc.events.emit('tray-clang', img.x, img.y, 1);
         finish(false);
         clatter();
         if (!p.dead) a.hitPizza(p, o.slices, 'TRAYED!');
@@ -184,6 +186,7 @@ export function tossTray(a: Arena, f: Foot, snap: GuardSnap, p: Pizza, o: TrayTo
       sc.time.delayedCall(90, () => img.active && img.clearTint());
       a.fx.impact(img.x, img.y, true);
       a.sfx(o.sfx?.bat ?? 'sfx_hitclang');
+      sc.events.emit('tray-clang', img.x, img.y, 0.6);
       a.quip(img.x, img.y - 70, 'BATTED!', '#7dff9a', 38);
     },
   });
