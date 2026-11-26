@@ -21,7 +21,7 @@ replace, read from git at OLD_REV, so they need the repo's history (a shallow cl
 
 OUT_DIR defaults to public/audio. Names (default: all): spartanchant spartanrage, then the batch-1 names in RECIPES
 (service sweephop ... tailboing). Each sound is cut, pitched,
-layered and placed by the recipe below, given a short room, then levelled to a 50 ms RMS peak (the same measure
+layered and placed by the recipe below (the Spartan sounds are also given a short convolution room), then levelled to a 50 ms RMS peak (the same measure
 as the TRIM table in src/systems/audio.ts), limited under -1.5 dBFS, faded, and saved as 44.1 kHz mono 96 kbps
 MP3. Every source used is credited in public/audio/CREDITS.md and public/audio/credits.json.
 
@@ -47,7 +47,7 @@ PAD = 3.0  # every layer is padded to this length so amix sums the same samples 
 
 # The synthesized sounds some recipes keep a layer of (L('old:<key>', ...)): each file as it was before the real
 # recordings replaced it, read from git at this commit, so a rebuild never layers a real sound over itself.
-OLD_REV = '7c1a840'
+OLD_REV = '7c1a840a061796e1fb680e67fb7b8fe72363b37e'
 
 
 def src(fid):
@@ -450,7 +450,7 @@ def snowgust():
 # --- Act 1 · Bigfoot: the big step, and the second Bigfoot arriving (two steps and a roar) ---
 def bigstep():
     return layer([
-        L(721601, 0.690, 0.80, 0.000, -2.0, 0, fin=0.002, fout=0.3),            # a giant's footstep
+        L(721601, 0.690, 0.80, 0.000, -2.0, 0, fin=0.002, fout=0.3, fx='lowpass=f=1500'),  # a giant's footstep
         L(20185, 0.000, 0.50, 0.000, -7.0, -4, fin=0.001, fout=0.25, keep=False, fx='lowpass=f=1200'),  # a stomp, lower
         L('old:sfx_bigfoot_bigstep', 0.0, 0.8, 0.0, 0.0, -5, fin=0.002, fout=0.25, fx='lowpass=f=140'),  # the old sub
     ])
@@ -458,10 +458,10 @@ def bigstep():
 
 def rampage():
     return layer([
-        L(721601, 0.690, 0.40, 0.000, -1.0, 0, fin=0.002, fout=0.2),            # step
-        L(721601, 0.690, 0.40, 0.280, -3.0, 0, fin=0.002, fout=0.2),            # step
-        L(397054, 0.140, 0.95, 0.300, -3.0, -3, fin=0.03, fout=0.3),            # an alpha gorilla's roar, lower
-        L(763026, 3.000, 0.95, 0.320, -4.0, -8, fin=0.05, fout=0.3),            # a bear's growl under it
+        L(721601, 0.690, 0.40, 0.000, -1.0, 0, fin=0.002, fout=0.2, fx='lowpass=f=1000'),  # step: its thud, not its branches
+        L(721601, 0.690, 0.40, 0.280, -3.0, 0, fin=0.002, fout=0.2, fx='lowpass=f=1000'),  # step
+        L(397054, 0.140, 0.95, 0.300, -3.0, -9, fin=0.03, fout=0.3),            # an alpha gorilla's roar, lower
+        L(763026, 3.000, 0.95, 0.320, -4.0, -14, fin=0.05, fout=0.3),           # a bear's growl under it
     ])
 
 
@@ -552,7 +552,7 @@ RECIPES = {
     'axel': ('sfx_iceskate_axel', axel, 0.96, -11.6, 0.2),
     'snowgust': ('sfx_iceskate_snow', snowgust, 1.22, -12.4, 0.3),
     'bigstep': ('sfx_bigfoot_bigstep', bigstep, 0.80, -11.7, 0.25),
-    'rampage': ('sfx_bigfoot_rampage', rampage, 1.24, -13.2, 0.25),
+    'rampage': ('sfx_bigfoot_rampage', rampage, 1.24, -12.5, 0.25),
     'hitsplat': ('sfx_hitsplat', hitsplat, 0.25, -14.8, 0.08),
     'hitsqueak': ('sfx_hitsqueak', hitsqueak, 0.24, -12.6, 0.05),
     'rollrumble': ('sfx_rollrumble', rollrumble, 0.65, -13.4, 0.15),

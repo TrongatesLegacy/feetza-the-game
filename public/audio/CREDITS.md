@@ -1141,5 +1141,5 @@ Files were trimmed, converted to MP3 (44.1 kHz) and loudness-normalised for the 
 
 CC0 sounds need no attribution; they are credited here as a courtesy.
 Files credited as "Original synthesized sound" (and the synthesized layers noted on others) were made for Feetza with ffmpeg and Python (generators in `scripts/boss-sfx/`, `scripts/throw-sfx/`, `scripts/smack-sfx/`, `scripts/act8-sfx/` and `scripts/finale-audio/`) and are released as CC0.
-Some sounds are built from several Freesound recordings by `scripts/real-sfx/build.py` (trimmed, pitch-shifted, layered and given a short room with ffmpeg); each source has its own row above, and the CC-BY ones are credited with their attribution.
+Some sounds are built from several Freesound recordings by `scripts/real-sfx/build.py` (trimmed, pitch-shifted and layered with ffmpeg, the Spartan sounds also given a short room); each source has its own row above, and the CC-BY ones are credited with their attribution.
 Kenney asset packs: https://kenney.nl (CC0). Freesound: https://freesound.org.

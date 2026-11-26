@@ -115,11 +115,11 @@ const TRIM: Record<string, number> = {
   // Bigfoot
   sfx_bigfoot_ring: 1.05, // -12.4 dB → -12.0: QTE ring appears
   sfx_bigfoot_ringok: 1.05, // -11.4 dB → -11.0: good QTE click
-  sfx_bigfoot_bigstep: 1.05, // -11.7 dB → -11.3: the big step lands
+  sfx_bigfoot_bigstep: 1.05, // -11.6 dB → -11.2: the big step lands
   sfx_bigfoot_trapbuild: 1.21, // -15.2 dB → -13.5: bear trap ratchets together
   sfx_bigfoot_trapsnap: 1.5, // -13.0 dB → -9.5: bear trap snaps shut
   sfx_bigfoot_pound: 1.07, // -10.1 dB → -9.5: ground pound crashes down
-  sfx_bigfoot_rampage: 1.05, // -13.1 dB → -12.7: second Bigfoot arrives
+  sfx_bigfoot_rampage: 1.05, // -12.4 dB → -11.9: second Bigfoot arrives
   // Chimney Sweep
   sfx_sweep_brush: 1.09, // -12.7 dB → -12.0: chimney brush scrubbing (tell)
   sfx_sweep_soot: 1.06, // -12.9 dB → -12.4: soot column whoomph

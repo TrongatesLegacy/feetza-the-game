@@ -41,7 +41,8 @@ async function call(path, params = {}) {
     const r = await fetch(u);
     // the API allows 60 requests a minute: wait and try again rather than fail half way through a batch
     if (r.status === 429 && tries < 6) {
-      await new Promise((ok) => setTimeout(ok, 10000));
+      const wait = Number(r.headers.get('retry-after')) || 10; // seconds, if the server says; else 10
+      await new Promise((ok) => setTimeout(ok, Math.min(60, wait) * 1000));
       continue;
     }
     if (!r.ok) throw new Error(`${r.status} ${await r.text()}`);
@@ -90,11 +91,15 @@ if (cmd === 'search') {
     const ext = src.endsWith('.mp3') ? 'mp3' : 'ogg';
     const file = `${s.id}-${slug(s.name)}.${ext}`;
     const r = await fetch(src);
+    if (!r.ok) {
+      console.log(`skip ${id}: preview download failed (${r.status})`);
+      continue;
+    }
     writeFileSync(join(out, file), Buffer.from(await r.arrayBuffer()));
     credits.push({ file, id: s.id, title: s.name, author: s.username, license: licName(s.license), url: s.url, duration: s.duration });
     console.log(`got ${file} (${licName(s.license)}, ${s.username})`);
   }
   writeFileSync(join(out, 'credits.json'), JSON.stringify(credits, null, 2));
 } else {
-  console.log('usage: freesound.mjs search "<query>" [--max N] [--min s] [--maxdur s] | get <id> ... --out DIR');
+  console.log('usage: freesound.mjs search "<query>" [--max N] [--min s] [--maxdur s] | info <id> ... | get <id> ... --out DIR');
 }

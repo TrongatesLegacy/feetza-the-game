@@ -15,12 +15,12 @@ Sounds are built with `scripts/real-sfx/build.py` from Freesound HQ previews fet
 | Verdict | Count | By priority |
 |---|---|---|
 | replace | 288 | P2 88, P3 171, done 29 |
-| layer | 83 | P1 2, P2 33, P3 45, done 3 |
+| layer | 83 | P1 4, P2 31, P3 45, done 3 |
 | keep | 146 | – |
 
 ## Batch 1 (done)
 
-The P1 sounds: 32 files, replaced or layered from real recordings. Each keeps its name, length, attack and place in the mix; its level sits halfway between the old file's 50 ms RMS peak and the level matching its momentary loudness (EBU R128, loudest 400 ms), within about 2 dB of the old file on both, so the TRIM table in `src/systems/audio.ts` still holds (the five smack tails' trims in `src/systems/smackTrim.ts` were re-measured by the smack rule). The batch-1 files are skipped by `scripts/boss-sfx/integrate.py`, `scripts/throw-sfx/integrate.py` and `scripts/smack-sfx/integrate.py`, so re-running the old generators does not put the synth back.
+The P1 sounds: 32 files, replaced or layered from real recordings. Each keeps its name, attack and place in the mix, and its length to within about 0.1 s (trailing silence is trimmed); its level sits halfway between the old file's 50 ms RMS peak and the level matching its momentary loudness (EBU R128, loudest 400 ms), within about 2 dB of the old file on both (the table below has the numbers), so the TRIM table in `src/systems/audio.ts` still holds (the five smack tails' trims in `src/systems/smackTrim.ts` were re-measured by the smack rule). The batch-1 files are skipped by `scripts/boss-sfx/integrate.py`, `scripts/throw-sfx/integrate.py` and `scripts/smack-sfx/integrate.py`, so re-running the old generators does not put the synth back.
 
 | File | Now | Sources (Freesound) | Length old → new | 50 ms RMS peak old → new | Max momentary LUFS old → new |
 |---|---|---|---|---|---|
@@ -35,8 +35,8 @@ The P1 sounds: 32 files, replaced or layered from real recordings. Each keeps it
 | `sfx_smack_tail_bell` | a small reception bell | [ding.wav](https://freesound.org/people/Dr.%20Macak/sounds/434627/) by Dr. Macak (CC0 1.0) | 0.60 → 0.52 s | -14.0 → -14.1 dB | -15.5 → -15.4 |
 | `sfx_smack_tail_boing` | a jaw harp's boing over a real spring | [Boing 1](https://freesound.org/people/magnuswaker/sounds/540788/) by magnuswaker (CC0 1.0); [battery compartment spring 01.wav](https://freesound.org/people/denalwa/sounds/472478/) by denalwa (CC0 1.0) | 0.40 → 0.39 s | -12.0 → -13.2 dB | -17.8 → -16.3 |
 | `sfx_headwaiter_service` | a real desk bell struck twice, a second bell shimmering on the second strike | [desk bell center.mp3](https://freesound.org/people/tonmayster/sounds/685111/) by tonmayster (CC0 1.0); [Ringing bell - happy.wav](https://freesound.org/people/domrodrig/sounds/116779/) by domrodrig (CC0 1.0) | 0.97 → 0.90 s | -11.4 → -12.7 dB | -12.9 → -11.8 |
-| `sfx_bigfoot_bigstep` | a giant's footstep and a stamp, pitched down, over the old synthesized sub | [Giant step](https://freesound.org/people/DasWaff/sounds/721601/) by DasWaff (CC0 1.0); [Foot Stomp C.wav](https://freesound.org/people/patchen/sounds/20185/) by patchen (CC-BY 4.0) | 0.80 → 0.74 s | -9.9 → -11.7 dB | -17.6 → -15.4 |
-| `sfx_bigfoot_rampage` | two giant footsteps, then an alpha gorilla's roar pitched down with a black bear's growl under it | [Giant step](https://freesound.org/people/DasWaff/sounds/721601/) by DasWaff (CC0 1.0); [Gorillaschrei.wav](https://freesound.org/people/J0ck0/sounds/397054/) by J0ck0 (CC0 1.0); [Bear Angry Growl](https://freesound.org/people/celldroid/sounds/763026/) by celldroid (CC0 1.0) | 1.24 → 1.24 s | -10.9 → -13.1 dB | -18.2 → -15.4 |
+| `sfx_bigfoot_bigstep` | a giant's footstep and a stamp, pitched down, over the old synthesized sub | [Giant step](https://freesound.org/people/DasWaff/sounds/721601/) by DasWaff (CC0 1.0); [Foot Stomp C.wav](https://freesound.org/people/patchen/sounds/20185/) by patchen (CC-BY 4.0) | 0.80 → 0.74 s | -9.9 → -11.6 dB | -17.6 → -15.9 |
+| `sfx_bigfoot_rampage` | two giant footsteps, then an alpha gorilla's roar pitched down with a black bear's growl under it | [Giant step](https://freesound.org/people/DasWaff/sounds/721601/) by DasWaff (CC0 1.0); [Gorillaschrei.wav](https://freesound.org/people/J0ck0/sounds/397054/) by J0ck0 (CC0 1.0); [Bear Angry Growl](https://freesound.org/people/celldroid/sounds/763026/) by celldroid (CC0 1.0) | 1.24 → 1.24 s | -10.9 → -12.4 dB | -18.2 → -16.6 |
 | `sfx_sweep_soot` | a smoke bomb and a pillow poof, pitched down, over a stamp an octave down | [Smoke Bomb](https://freesound.org/people/vckhaze/sounds/332602/) by vckhaze (CC0 1.0); [Poof of Smoke](https://freesound.org/people/Planman/sounds/208111/) by Planman (CC0 1.0); [Foot Stomp C.wav](https://freesound.org/people/patchen/sounds/20185/) by patchen (CC-BY 4.0) | 0.90 → 0.84 s | -11.0 → -12.9 dB | -18.0 → -16.4 |
 | `sfx_sweep_hop` | a champagne cork popping, a little lower, and a puff of smoke | [Champagne Cork](https://freesound.org/people/KenRT/sounds/392624/) by KenRT (CC0 1.0); [Puff of Smoke](https://freesound.org/people/qubodup/sounds/714257/) by qubodup (CC0 1.0) | 0.30 → 0.30 s | -12.4 → -13.8 dB | -20.2 → -20.1 |
 | `sfx_ironheel_hiss` | a real steam release, rising, with a steam trap behind it | [Steam/hiss](https://freesound.org/people/wubitog/sounds/234782/) by wubitog (CC0 1.0); [Steam_trap_short_burst.wav](https://freesound.org/people/Engineer_815/sounds/520071/) by Engineer_815 (CC0 1.0) | 1.29 → 1.29 s | -12.4 → -12.8 dB | -10.0 → -9.9 |
@@ -59,7 +59,7 @@ The P1 sounds: 32 files, replaced or layered from real recordings. Each keeps it
 
 ## Up next (batch 2)
 
-The two P1 sounds left (the Head Waiter's tray toss and King Honk's pie, both **layer**), then the P2 animals, voices and real-world props of Acts 4–10 (pigeon coos, gargoyle screeches, wolf howls, the Minotaur, Cerberus, the Act 7–9 feet), the Act 8 and Act 10 ambience loops, and the hero and god smack tails with real-world content (thunder, gongs, bird calls, whip, harp). P3 (hero and god peel moves, nemesis stages, sightings) after that.
+The four P1 sounds left, all **layer** (the Head Waiter's tray toss, King Honk's pie, the Cosmic Croc's meteor and the thrown props' rubbery bonk), then the P2 animals, voices and real-world props of Acts 4–10 (pigeon coos, gargoyle screeches, wolf howls, the Minotaur, Cerberus, the Act 7–9 feet), the Act 8 and Act 10 ambience loops, and the hero and god smack tails with real-world content (thunder, gongs, bird calls, whip, harp). P3 (hero and god peel moves, nemesis stages, sightings) after that.
 
 ## The sounds
 
@@ -73,7 +73,7 @@ The two P1 sounds left (the Head Waiter's tray toss and King Honk's pie, both **
 | `sfx_tossheavy` | Thrown props: a heavy prop is heaved (dumbbell, cannonball, bowling ball, coconut, can, grenade); a low synthesized heave and swish | projectiles | 0.32 s | constant: every throw (peel abilities, toppings) | **replace** | done | batch 1: a super-heavy swoosh and a heavy swing |
 | `sfx_tossrope` | Thrown props: a life ring or lasso is swung; a synthesized lasso swing (+ Kenney) | projectiles, toppingKit | 0.44 s | constant: every throw (peel abilities, toppings) | **replace** | done | batch 1: a lasso: one last swing round and the throw |
 | `sfx_hitsplat` | Thrown props: a soft prop splats on a foot; a wet synthesized splat (+ Kenney) | projectiles, toppingKit, act1a | 0.25 s | constant: every throw (peel abilities, toppings) | **replace** | done | batch 1: a wet cloth slapped into water and a soaked towel against a wall |
-| `sfx_hitbonk` | Thrown props: a rubbery prop bonks a foot; a rubbery synthesized bonk (+ Kenney) | projectiles | 0.28 s | constant: every throw (peel abilities, toppings) | **layer** | P2 | a real rubber ball / toy bonk under the synth |
+| `sfx_hitbonk` | Thrown props: a rubbery prop bonks a foot; a rubbery synthesized bonk (+ Kenney) | projectiles | 0.28 s | constant: every throw (peel abilities, toppings) | **layer** | P1 | a real rubber ball / toy bonk under the synth |
 | `sfx_hitsqueak` | Thrown props: a rubber duck squeaks off a foot; a synthesized rubber-duck squeak (+ Kenney) | projectiles | 0.24 s | constant: every throw (peel abilities, toppings) | **replace** | done | batch 1: a rubber duck squeezed, with a soft bump |
 | `sfx_rollrumble` | Thrown props: a bowling ball or pineapple ring rolls along a lane; a synthesized rolling rumble (+ Kenney) | projectiles | 0.65 s | constant: every throw (peel abilities, toppings) | **replace** | done | batch 1: a bowling ball rolling down an alley |
 
@@ -143,7 +143,7 @@ The two P1 sounds left (the Head Waiter's tray toss and King Honk's pie, both **
 | `sfx_iceskate_axel` | Ice Skate Ivy: triple skate swish; synthesized skate swishes and an ice scrape | act1b | 0.96 s | Act 3: a mini-boss move (every run that gets there) | **replace** | done | batch 1: three skate-blade strokes on ice, each brighter, into an ice-hockey stop |
 | `sfx_ufotoe_beam` | UFO Toe: tractor beam hum; a synthesized warbling beam hum (+ Kenney) | act1b | 1.54 s | Act 3: a mini-boss move (every run that gets there) | **keep** | – | a sci-fi tractor beam |
 | `sfx_ufotoe_twin` | UFO Toe: second saucer warbles in; a synthesized theremin warble (+ Kenney) | act1b | 1.05 s | Act 3: a mini-boss move (every run that gets there) | **keep** | – | a theremin warble: the saucer is a 50s B-movie |
-| `sfx_cosmiccroc_meteor` | Cosmic Croc: meteor falling whistle; a synthesized falling whistle and burn (+ Kenney) | act1b, act2b | 1.40 s | Act 3: a boss move (every run that gets there) | **layer** | P2 | a real falling whistle / fireball whoosh under the burn |
+| `sfx_cosmiccroc_meteor` | Cosmic Croc: meteor falling whistle; a synthesized falling whistle and burn (+ Kenney) | act1b, act2b | 1.40 s | Act 3: a boss move (every run that gets there) | **layer** | P1 | a real falling whistle / fireball whoosh under the burn |
 | `sfx_cosmiccroc_flip` | Cosmic Croc: gravity warp; a synthesized gravity-warp sweep | act1b | 1.33 s | Act 3: a boss move (every run that gets there) | **keep** | – | a gravity-warp sweep |
 | `sfx_cosmiccroc_blackhole` | Cosmic Croc: black hole opens; a synthesized swirling suction and sub (+ Kenney) | act1b | 1.58 s | Act 3: a boss move (every run that gets there) | **keep** | – | a black hole |
 | `sfx_cosmiccroc_holeclose` | Cosmic Croc: black hole implodes; a synthesized implosion (+ Kenney) | act1b | 0.52 s | Act 3: a boss move (every run that gets there) | **keep** | – | an implosion, already layered with Kenney glass |
