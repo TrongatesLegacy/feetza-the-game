@@ -17,6 +17,7 @@ import { drawPizzaTop, drawSliceSprite, pizzaPortrait } from '../art/pizzaArt';
 import { buildEventSprites } from '../art/eventArt';
 import { buildSprites } from '../art/sprites';
 import { legacyArt } from '../art/style/registry';
+import { scrollingNow } from '../art/scrolling';
 import { FOOT_BY_ID } from '../data/feet';
 import { PIZZA_BY_ID } from '../data/pizzas';
 import { bitmapCanvas, cachedArt, openArtCache, readArt, writeArt } from './artCache';
@@ -83,12 +84,19 @@ function metaOf(id: string, t: FootTextures): FootMeta {
   };
 }
 
+/** A foot's canvas as a plain texture: addCanvas makes a CanvasTexture, which reads every pixel back as it's made
+ * (getImageData, a GPU readback: 10–30 ms a foot, most of a cold Peel Locker's hitches). Nothing reads a foot
+ * texture's pixels through Phaser or redraws it (code that needs them reads the source canvas). */
+function addFootTex(tm: Phaser.Textures.TextureManager, key: string, c: HTMLCanvasElement): void {
+  if (!tm.exists(key)) tm.addImage(key, c as unknown as HTMLImageElement);
+}
+
 function registerFoot(tm: Phaser.Textures.TextureManager | undefined, m: FootMeta): void {
   if (!tm) return;
   const t = m.textures;
-  if (!tm.exists(m.footKey)) tm.addCanvas(m.footKey, t.foot);
-  if (!tm.exists(m.legKey)) tm.addCanvas(m.legKey, t.leg);
-  if (m.cuffKey && t.cuff && !tm.exists(m.cuffKey)) tm.addCanvas(m.cuffKey, t.cuff);
+  addFootTex(tm, m.footKey, t.foot);
+  addFootTex(tm, m.legKey, t.leg);
+  if (m.cuffKey && t.cuff) addFootTex(tm, m.cuffKey, t.cuff);
 }
 
 /** What a foot's cache entry keeps besides its images. */
@@ -101,7 +109,9 @@ function drawFootNow(id: string): void {
   registerFoot(gameRef?.textures, m);
   if (cacheable()) {
     const data: FootData = { res: t.res, legEnd: t.legEnd, cuffTop: t.cuffTop, originY: t.originY, footHeight: t.footHeight, footHalfWidth: t.footHalfWidth, legWidth: t.legWidth, cuff: !!t.cuff };
-    writeArt(`foot:${id}`, t.cuff ? [t.foot, t.leg, t.cuff] : [t.foot, t.leg], data, busyNow());
+    // (its pixels read back in idle time, never in the frame that drew it: a foot drawn on the spot is a busy frame
+    // already, in play or in the Peel Locker)
+    writeArt(`foot:${id}`, t.cuff ? [t.foot, t.leg, t.cuff] : [t.foot, t.leg], data, true);
   }
 }
 
@@ -143,7 +153,7 @@ function drawPizzaNow(id: string): void {
   const slice = drawSliceSprite(p, top);
   drawnTops[id] = top;
   if (gameRef && !gameRef.textures.exists(`slice_${id}`)) gameRef.textures.addCanvas(`slice_${id}`, slice);
-  writeArt(`pizza:${id}`, [top, slice], null, busyNow());
+  writeArt(`pizza:${id}`, [top, slice], null, true);
 }
 
 function pizzaFromCache(id: string, bitmaps: ImageBitmap[]): boolean {
@@ -325,9 +335,11 @@ export function artPending(): number {
   return new Set([...soonQ, ...laterQ].filter((k) => !artDrawn(k))).size + loading.size;
 }
 
+// (the warmer holds back while the player scrolls a page, the Peel Locker's grid: src/art/scrolling.ts)
 const idleArt = (fn: (d?: IdleDeadline) => void): void => {
-  if (typeof requestIdleCallback === 'function') requestIdleCallback(fn, { timeout: 500 });
-  else setTimeout(() => fn(), 40);
+  const go = (d?: IdleDeadline) => (scrollingNow() ? setTimeout(() => idleArt(fn), 120) : fn(d));
+  if (typeof requestIdleCallback === 'function') requestIdleCallback(go, { timeout: 500 });
+  else setTimeout(() => go(), 40);
 };
 
 function pumpArt(): void {

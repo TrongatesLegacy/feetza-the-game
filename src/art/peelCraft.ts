@@ -34,6 +34,7 @@
 // in play (src/game/peelCraftPlay.ts) the surface is a texture stamped flexed into the cursor peel's own texture
 // and the sprites live in the play field. Everything cosmetic uses crand(). Only runs while animated peels are on.
 
+import { scrollingNow } from './scrolling';
 import { PEEL_HEAD, PEEL_H, PEEL_W, drawPeelHandle, headPath, sparkleStar, type CraftKind, type PeelLook } from './peelArt';
 import {
   PIVOT,
@@ -264,9 +265,11 @@ interface Job {
 }
 const jobs: Job[] = [];
 let pumping = false;
-const idle = (fn: (d?: IdleDeadline) => void) => {
-  if (typeof requestIdleCallback === 'function') requestIdleCallback(fn, { timeout: 120 });
-  else setTimeout(() => fn(), 16);
+// (held back while the player scrolls: src/art/scrolling.ts)
+const idle = (fn: (d?: IdleDeadline) => void): void => {
+  const go = (d?: IdleDeadline) => (scrollingNow() ? setTimeout(() => idle(fn), 90) : fn(d));
+  if (typeof requestIdleCallback === 'function') requestIdleCallback(go, { timeout: 120 });
+  else setTimeout(() => go(), 16);
 };
 
 function keep(key: string, rig: CraftRig | null): void {

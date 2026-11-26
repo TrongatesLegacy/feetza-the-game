@@ -18,6 +18,7 @@
 // art's size) are painted once a step at a time in idle time and saved to the art cache, so the next visit decodes
 // them; a rig draws them down to its size. Everything cosmetic uses crand().
 
+import { scrollingNow } from './scrolling';
 import {
   PEEL_HEAD,
   PIZZA_BOARD_R,
@@ -351,9 +352,11 @@ interface PaintJob {
 }
 const queue: PaintJob[] = [];
 let pumping = false;
-const idle = (fn: (d?: IdleDeadline) => void) => {
-  if (typeof requestIdleCallback === 'function') requestIdleCallback(fn, { timeout: 200 });
-  else setTimeout(() => fn(), 16);
+// (held back while the player scrolls: src/art/scrolling.ts)
+const idle = (fn: (d?: IdleDeadline) => void): void => {
+  const go = (d?: IdleDeadline) => (scrollingNow() ? setTimeout(() => idle(fn), 90) : fn(d));
+  if (typeof requestIdleCallback === 'function') requestIdleCallback(go, { timeout: 200 });
+  else setTimeout(() => go(), 16);
 };
 
 function pumpPaint(d?: IdleDeadline): void {

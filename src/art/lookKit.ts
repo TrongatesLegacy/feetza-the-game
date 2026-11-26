@@ -21,8 +21,9 @@ export interface Pen {
   poly(pts: Float32Array, n: number, color: number, a: number, lw: number, lc: number, la: number): void;
   /** A stroked ellipse. */
   ring(x: number, y: number, rx: number, ry: number, w: number, color: number, a: number): void;
-  /** A soft radial glow (an ellipse turned by rot). */
-  glow(x: number, y: number, rx: number, ry: number, rot: number, color: number, a: number): void;
+  /** A soft radial glow (an ellipse turned by rot). `add`: light, added over what's behind where it can be (in play);
+   *  over a light menu it is the same soft tint (light added to cream shows nothing). */
+  glow(x: number, y: number, rx: number, ry: number, rot: number, color: number, a: number, add?: boolean): void;
   /** Drawing over a light menu with normal blending: bolts get a crisper, deeper edge. */
   light?: boolean;
   /** How much line widths are boosted because the peel is drawn small (1: not at all; a locker tile: about 2). */
@@ -121,6 +122,8 @@ export const enum Bit {
   Ash,
   /** A soul wisp: a pale head and a wavering tail. */
   Wisp,
+  /** A soft haze of coloured light that swells as it fades (never a dark body: light, not smoke). */
+  Haze,
   /** A bubble ring. */
   Bubble,
   /** A molten drip: a hot outlined blob that falls. */
@@ -271,6 +274,14 @@ export class Bits {
           }
           pen.poly(sp, 8, c0, 0.9 * a, Math.max(1.4, r * 0.4), shadeC(c1, -0.5), 0.8 * a);
           pen.dot(x - r * 0.3, y - r * 0.3, r * 0.35, 0xffffff, 0.85 * a);
+          break;
+        }
+        case Bit.Haze: {
+          // coloured light: a wide soft wash and a paler heart, no darker body
+          const rr = r * (0.8 + 1.2 * k);
+          const sa = Math.sin(Math.PI * k);
+          pen.glow(x, y, rr * 1.5, rr * 1.4, 0, c1, 0.42 * sa, true);
+          pen.glow(x, y - rr * 0.1, rr * 0.8, rr * 0.75, 0, c0, 0.5 * sa, true);
           break;
         }
         case Bit.Smoke: {
@@ -499,10 +510,12 @@ export class GlowPool {
   end(): void {
     for (let i = this.used; i < this.imgs.length; i++) this.imgs[i].setVisible(false);
   }
-  put(x: number, y: number, rx: number, ry: number, rot: number, color: number, a: number): void {
+  put(x: number, y: number, rx: number, ry: number, rot: number, color: number, a: number, add = false): void {
     const im = this.imgs[this.used];
     if (!im) return;
     this.used++;
+    const mode = add ? Phaser.BlendModes.ADD : Phaser.BlendModes.NORMAL;
+    if (im.blendMode !== mode) im.setBlendMode(mode);
     // the texture's soft edge reaches about half its width, so scale to twice the radius
     im.setVisible(a > 0.005).setPosition(x, y).setRotation(rot).setScale((rx * 2) / 256, (ry * 2) / 256).setTint(color).setAlpha(Math.min(1, a));
   }
@@ -548,14 +561,14 @@ export function graphicsPen(g: Phaser.GameObjects.Graphics, pool?: GlowPool, fra
       g.lineStyle(w, color, a);
       g.strokeEllipse(x, y, rx * 2, ry * 2);
     },
-    glow(x, y, rx, ry, rot, color, a) {
+    glow(x, y, rx, ry, rot, color, a, add) {
       if (a <= 0.005) return;
       if (pool && frame) {
         const f = frame();
         if (local) {
           const p = toWorld(f, x, y);
-          pool.put(p.x, p.y, rx * f.s, ry * f.s, rot + f.rot, color, a);
-        } else pool.put(x, y, rx, ry, rot, color, a);
+          pool.put(p.x, p.y, rx * f.s, ry * f.s, rot + f.rot, color, a, add);
+        } else pool.put(x, y, rx, ry, rot, color, a, add);
         return;
       }
       // stacked discs, thinning outwards

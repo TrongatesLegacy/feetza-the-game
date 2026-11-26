@@ -954,7 +954,7 @@ export function immortalArmour(ctx: Ctx, o: ImmortalLook): void {
   headWrap(ctx, SCARF.top, SCARF.h, SCARF.w, SCARF.wraps);
 }
 
-function drawImmortal(ctx: Ctx, art: FootArt): void {
+export function drawImmortal(ctx: Ctx, art: FootArt): void {
   const o = immortalLook(art);
   mock(ctx, IMM, () => {
     smokeBody(ctx, 0, o);
@@ -1640,7 +1640,7 @@ export function droolStrand(x: Ctx, x0: number, y0: number, x1: number, y1: numb
 
 /** The still art's drool (peel, portrait): a glossy trail run down the hide from each cut's lower end, and a strand
  * hanging off it with a bead swelling at its tip. */
-function stillDrool(x: Ctx, c: BruteCut, o: number): void {
+export function stillDrool(x: Ctx, c: BruteCut, o: number): void {
   const ax = cutAxes(c);
   const u = cutLowEnd(ax) * 0.72;
   const [, b] = cutLips(c, ax, u, o);
@@ -1965,9 +1965,9 @@ export function bruteBody(ctx: Ctx, art: FootArt): void {
 }
 
 /** The jaw opening the still art shows its cuts at. */
-const STILL_OPEN = 0.5;
+export const STILL_OPEN = 0.5;
 
-function drawBrute(ctx: Ctx, art: FootArt): void {
+export function drawBrute(ctx: Ctx, art: FootArt): void {
   const base = bruteHideColour(art);
   mock(ctx, BRUTE, () => {
     bruteHide(ctx, base);

@@ -41,6 +41,9 @@ export interface PeelLook {
   footGlow?: { art: HTMLCanvasElement; a: number } | null;
   /** Objects more than feet (a jukebox, a riot shield): keep them upright instead of toes-up. */
   footUpright?: boolean;
+  /** Places on a foot head the peel's pattern stays off (an eye: stars over it read as dirt), as ellipses
+   * [x, y, rx, ry] in the foot art's pixels. */
+  patternHoles?: [number, number, number, number][];
   /** Pizza peels: the head IS the pizza (drawn as-is, not flipped). */
   pizzaArt?: HTMLCanvasElement | null;
   /** Round pizzas sit on a wooden board; square ones and calzones stand on their own. */
@@ -629,6 +632,20 @@ export function sparkleStar(ctx: Ctx, x: number, y: number, r: number): void {
  */
 export function finishFootLayer(c: HTMLCanvasElement, ctx: Ctx, look: PeelLook, sparkles = true): void {
   ctx.save();
+  if (look.patternHoles?.length && look.footArt) {
+    // keep the pattern off them: clip to everything but the holes, placed as the foot is on the head
+    const p = footHeadPlace(look);
+    const sg = p.flip ? -1 : 1;
+    ctx.beginPath();
+    ctx.rect(-PEEL_W, -PEEL_H, PEEL_W * 3, PEEL_H * 3);
+    for (const [x, y, rx, ry] of look.patternHoles) {
+      const px = HX - p.w / 2 + p.dx + x * p.k;
+      const py = p.bottom - p.h / 2 + sg * (-p.h / 2 + y * p.k);
+      ctx.moveTo(px + rx * p.k, py);
+      ctx.ellipse(px, py, rx * p.k, ry * p.k, 0, 0, Math.PI * 2);
+    }
+    ctx.clip('evenodd');
+  }
   ctx.globalCompositeOperation = 'source-atop';
   ctx.globalAlpha = 0.28;
   drawPattern(ctx, look);
@@ -895,7 +912,19 @@ function visibleEdge(art: HTMLCanvasElement, bottom: boolean): number {
   return bottom ? hit[1] : hit[0];
 }
 
-const ankleCache = new WeakMap<HTMLCanvasElement, { w: number; cx: number; sole: number }>();
+/** Where a foot's main body is in its peel art (texels): its centre, the ankle's and the sole's widths. */
+export interface FootAnkle {
+  w: number;
+  cx: number;
+  sole: number;
+}
+const ankleCache = new WeakMap<HTMLCanvasElement, FootAnkle>();
+
+/** Give a foot's art the ankle it was measured to have (art decoded from the art cache: measuring it again would
+ * read its pixels back). */
+export function primeAnkle(art: HTMLCanvasElement, a: FootAnkle): void {
+  ankleCache.set(art, a);
+}
 
 /** Longest run of opaque pixels in a row: [start, end] or null. */
 function longestRun(data: Uint8ClampedArray, w: number, y: number): [number, number] | null {
@@ -921,7 +950,7 @@ const median = (xs: number[]) => {
  * Where the handle should go: the centre of the foot's main body (the longest opaque run in each row,
  * so accessories like a spray can or a bowling ball beside it don't count), and the ankle's width.
  */
-function ankleOf(art: HTMLCanvasElement): { w: number; cx: number; sole: number } {
+export function ankleOf(art: HTMLCanvasElement): FootAnkle {
   const hit = ankleCache.get(art);
   if (hit) return hit;
   const ctx = art.getContext('2d')!;

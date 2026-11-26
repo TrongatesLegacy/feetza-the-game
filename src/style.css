@@ -4266,8 +4266,7 @@ body.reduced-motion *::after {
 }
 
 /* shiny: a rainbow sheen sweeping across, masked to the peel */
-.peel-tile.shiny,
-.peel-big.shiny {
+.peel-tile.shiny {
   overflow: hidden;
 }
 
@@ -4287,6 +4286,24 @@ body.reduced-motion *::after {
   pointer-events: none;
 }
 
+/* the big preview isn't clipped (an animated look's flames and glow reach past its box): its sheen sweeps inside the
+   box by moving its gradient instead */
+.peel-big.shiny::after {
+  inset: 0;
+  background-size: 300% 100%;
+  animation-name: peelShineBg;
+}
+
+@keyframes peelShineBg {
+  0% {
+    background-position: 100% 0;
+  }
+  60%,
+  100% {
+    background-position: 0% 0;
+  }
+}
+
 @keyframes peelShine {
   0% {
     transform: translateX(-70%);
@@ -4303,6 +4320,11 @@ body.still-peels .peel-big.shiny::after,
 body.still-peels .peelbox .pk-img.shiny::after {
   animation: none;
   transform: translateX(-12%);
+}
+
+body.still-peels .peel-big.shiny::after {
+  transform: none;
+  background-position: 56% 0;
 }
 
 .shiny-chip {

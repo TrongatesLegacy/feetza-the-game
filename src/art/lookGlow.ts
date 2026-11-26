@@ -53,6 +53,9 @@ export interface GlowStyle {
   halo?: number;
   /** Light rays turning slowly behind the head. */
   rays?: { c: number; n: number; a: number; len: number };
+  /** The aura is light, not a halo with an edge: no darker rim (it read as grime round a dark-coloured god on the
+   *  locker's cream tiles), a soft coloured wash with a paler heart, added as light in play. */
+  light?: boolean;
   /** No ring on a smack (the gem peels send their own through their facets). */
   noRing?: boolean;
   /** The smack ring's colours. */
@@ -197,6 +200,8 @@ const embers = (c: number): Partial<GlowStyle> => ({ bits: [bit(Bit.Ember, shade
 const petals = (c: number, c2 = c): Partial<GlowStyle> => ({ bits: [bit(Bit.Petal, shadeC(c, 0.3), c2, { rate: 1.8, move: 1.5, size: 7, life: 1.4, vy: 24, grav: 26, spread: 34 })] });
 const glints = (c: number): Partial<GlowStyle> => ({ bits: [bit(Bit.Glint, 0xffffff, c, { rate: 3, move: 1.5, size: 7, life: 0.6, vy: 0, spread: 0, where: 'head' }), bit(Bit.Mote, shadeC(c, 0.5), c, { rate: 1.2, size: 3, life: 1, vy: -20 })] });
 const stars = (c: number): Partial<GlowStyle> => ({ bits: [bit(Bit.Star, 0xffffff, c, { rate: 2.4, move: 1.5, size: 7, life: 0.8, vy: -14, where: 'around' })] });
+/** Coloured light drifting off the head (the god's power as a glow, not smoke): c the light, pale its heart. */
+const haze = (c: number, pale = shadeC(c, 0.55), extra?: BitSpec): Partial<GlowStyle> => ({ light: true, bits: [bit(Bit.Haze, pale, c, { rate: 4, move: 2.5, size: 16, life: 1.3, vy: -36, spread: 22, where: 'around' }), ...(extra ? [extra] : [])] });
 const both = (a: Partial<GlowStyle>, b: Partial<GlowStyle>): Partial<GlowStyle> => ({ ...a, ...b, bits: [...(a.bits ?? []), ...(b.bits ?? [])] });
 
 const GODS: Record<string, [number, Partial<GlowStyle>]> = {
@@ -212,19 +217,23 @@ const GODS: Record<string, [number, Partial<GlowStyle>]> = {
   'hero:athena': [0x8aa8ff, glints(0x8aa8ff)],
   'hero:apollo': [0xffb020, sun(0xffb020)],
   'hero:artemis': [0xd8e4f0, both(stars(0xb8d0ff), { bits: [bit(Bit.Mote, 0xffffff, 0xb8d0ff, { rate: 1.5, size: 3, life: 1, vy: -18 })] })],
-  'hero:ares': [0xe0402a, both(embers(0xe0402a), smoke(0x5a3a36, 0x2a1a18))],
+  // Ares: war's heat, embers in a red-orange haze
+  'hero:ares': [0xe8402a, both(embers(0xe0402a), haze(0xff6a3a, 0xffc08a))],
   'hero:aphrodite': [0xff7ab8, petals(0xff7ab8)],
   'hero:hermes': [0x7be0a0, wind(0x7be0a0)],
   'hero:dionysus': [0x9a4ad0, { bits: [bit(Bit.Bubble, 0xe8c8ff, 0x9a4ad0, { rate: 3, move: 1.5, size: 5, life: 1.1, vy: -46, spread: 16 })] }],
-  'hero:hades': [0x7a5aff, smoke(0x8a6aff, 0x3a2a7a, bit(Bit.Ember, 0xd8c8ff, 0x7a5aff, { rate: 1.2, size: 3, life: 0.9, vy: -40 }))],
+  // Hades: violet soul-fire light, pale sparks of it rising
+  'hero:hades': [0x8a5aff, haze(0x8a5aff, 0xd8c8ff, bit(Bit.Ember, 0xe8dcff, 0x8a6aff, { rate: 1.2, size: 3, life: 0.9, vy: -40 }))],
   'hero:persephone': [0xff5a7a, petals(0xff5a7a)],
   'hero:nike': [0xffd23f, both(wind(0xffd23f), glints(0xffd23f))],
   'hero:nyx': [0xa08aff, smoke(0x5a4a9a, 0x1a1438, bit(Bit.Star, 0xffffff, 0xa08aff, { rate: 1.6, size: 6, life: 0.8, vy: -10, where: 'around' }))],
-  'hero:odin': [0x7ab8ff, both(glints(0x7ab8ff), smoke(0x9aa8c0, 0x4a5468))],
+  // Odin: the Allfather's cold blue wisdom, glints in a pale blue haze
+  'hero:odin': [0x5aa2ff, { ...both(glints(0x7ab8ff), haze(0x5aa2ff, 0xc8e2ff)), auraA: 0.46 }],
   'hero:odinascended': [0xffd23f, both(stars(0xffd23f), glints(0x7ab8ff))],
   'hero:thor': [0x9fd8ff, bolt(0x6cc4ff)],
   'hero:thorunleashed': [0xffe680, bolt(0xffd23f)],
-  'hero:loki': [0x7be04a, smoke(0x7be04a, 0x2a5a1a)],
+  // Loki: green trickster light
+  'hero:loki': [0x5fd83a, haze(0x5fd83a, 0xc8ffa8)],
   'hero:frigg': [0xc8b0ff, both(glints(0xc8b0ff), smoke(0xe0d4ff, 0x8a7ab8))],
   'hero:freya': [0xffb0d8, both(petals(0xffb0d8), glints(0xffb0d8))],
   'hero:freyr': [0xffd23f, sun(0xffd23f)],
@@ -310,7 +319,7 @@ class GlowCore implements LookCore {
     }
     if (b.kind === Bit.Flick) rot = ang + rand(-1.2, 1.2);
     const c0 = b.rainbow ? hueC(crand(), 0.35) : b.c0;
-    const i = this.bits.emit(b.kind, px, py, vx, vy, b.size * S * rand(0.75, 1.2), b.life * rand(0.75, 1.25), c0, b.rainbow ? hueC(crand(), 0.1) : b.c1, b.grav * S, b.kind === Bit.Smoke ? 0.8 : 0.4);
+    const i = this.bits.emit(b.kind, px, py, vx, vy, b.size * S * rand(0.75, 1.2), b.life * rand(0.75, 1.25), c0, b.rainbow ? hueC(crand(), 0.1) : b.c1, b.grav * S, b.kind === Bit.Smoke || b.kind === Bit.Haze ? 0.8 : 0.4);
     this.bits.rot[i] = rot;
   }
 
@@ -372,9 +381,15 @@ class GlowCore implements LookCore {
     const pulse = 1 - st.pulse + st.pulse * (0.5 + 0.5 * Math.sin(this.t * st.hz * Math.PI * 2 * 0.5));
     // a glow's radius is where it fades out, so it reaches well past the head
     const R = HEAD_R * st.auraR * 1.6;
-    // a darker, wider edge so the aura reads on bright backdrops, then the colour
-    pen.glow(0, 0, R * 1.15, R * 1.2, 0, shadeC(st.aura, -0.35), st.auraA * 0.9 * pulse);
-    pen.glow(0, 0, R, R * 1.05, 0, st.aura, st.auraA * 1.5 * pulse);
+    if (st.light) {
+      // light: a soft wash of the colour and a paler heart, no edge
+      pen.glow(0, 0, R * 1.05, R * 1.1, 0, st.aura, st.auraA * 1.2 * pulse, true);
+      pen.glow(0, 0, R * 0.62, R * 0.66, 0, shadeC(st.aura, 0.5), st.auraA * 1.1 * pulse, true);
+    } else {
+      // a darker, wider edge so the aura reads on bright backdrops, then the colour
+      pen.glow(0, 0, R * 1.15, R * 1.2, 0, shadeC(st.aura, -0.35), st.auraA * 0.9 * pulse);
+      pen.glow(0, 0, R, R * 1.05, 0, st.aura, st.auraA * 1.5 * pulse);
+    }
     if (st.rays) {
       const p = this.pts;
       const n = st.rays.n;

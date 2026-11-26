@@ -15,17 +15,18 @@
 //   the peel's world (the peel's frame in the locker, the play field in a run) at the peel's scale.
 // Everything cosmetic uses crand(). Only drawn while animated peels are on (Settings → Graphics).
 
+import { scrollingNow } from './scrolling';
 import { FOOT_FRAME, styledCanvas } from './feetArt';
 import { CX } from './feetCommon';
 import { pose, type Pose } from './style/kit';
-import { styleFor, type StyleDef } from './style/registry';
+import { peelStyleFor, type StyleDef } from './style/registry';
 import { makeCanvas, type Ctx } from './util';
 import { PEEL_H, PEEL_W, drawFootHilt, drawInFootHead, drawPeelHandle, finishFootLayer, footHeadPlace, footHeadShadow, footSparkles, sparkleStar, type PeelLook } from './peelArt';
 import { FOOT_BY_ID, type FootType } from '../data/feet';
 import { footMeta } from '../game/assets';
-import { PARTS_BEHIND, PEEL_BY_ID, footCrop, zombifierOf } from '../game/peels';
+import { PARTS_BEHIND, PEEL_BY_ID, footCrop, footPeelIsReady, footPeelReady, zombifierOf } from '../game/peels';
 import { drawPeelFly } from '../game/zombieArt';
-import { FX_FRAMES, FX_R, WIGGLE_N, fxAtlasCanvas, liveDefOf, noise1, wigglePose, type CritterOpts, type EmitterOpts, type FxFrame, type LiveDef } from '../game/liveKit';
+import { FX_FRAMES, FX_R, WIGGLE_N, fxAtlasCanvas, noise1, peelLiveDefOf, wigglePose, type CritterOpts, type EmitterOpts, type FxFrame, type LiveDef } from '../game/liveKit';
 import { crand } from '../systems/cosmeticRandom';
 import { save } from '../systems/save';
 
@@ -93,7 +94,7 @@ export function liveFootOf(peelId: string): FootType | null {
   const fid = d.foot ?? peelId.slice(peelId.indexOf(':') + 1);
   const type = FOOT_BY_ID[fid];
   // (no footMeta read here: with art drawn lazily that would draw the foot just to ask; 3 s over every peel)
-  if (!type || !styleFor(fid) || !liveDefOf(fid)) return null;
+  if (!type || !peelStyleFor(fid) || !peelLiveDefOf(fid)) return null;
   return type;
 }
 
@@ -125,10 +126,13 @@ function toLayer(src: HTMLCanvasElement, ox: number, oy: number, sc: number, rig
   return { c, x, y, w: c.width / rig.RR, h: c.height / rig.RR };
 }
 
-/** A layer cut down to its drawn pixels (and a pixel round them): smaller, and no blank edges to composite. */
-function trimLayer(l: Layer, RR: number): Layer {
-  const { width: w, height: h } = l.c;
-  const d = l.c.getContext('2d')!.getImageData(0, 0, w, h).data;
+/** A trim's box (canvas pixels, inclusive). */
+type Trim = [number, number, number, number];
+
+/** A layer's drawn pixels' box (and a pixel round them), or null when it's blank. Reads the pixels back. */
+function trimBox(c: HTMLCanvasElement): Trim | null {
+  const { width: w, height: h } = c;
+  const d = c.getContext('2d')!.getImageData(0, 0, w, h).data;
   let x0 = w;
   let y0 = h;
   let x1 = -1;
@@ -141,11 +145,16 @@ function trimLayer(l: Layer, RR: number): Layer {
         if (y < y0) y0 = y;
         if (y > y1) y1 = y;
       }
-  if (x1 < 0) return { c: makeCanvas(1, 1)[0], x: l.x, y: l.y, w: 1 / RR, h: 1 / RR };
-  x0 = Math.max(0, x0 - 1);
-  y0 = Math.max(0, y0 - 1);
-  x1 = Math.min(w - 1, x1 + 1);
-  y1 = Math.min(h - 1, y1 + 1);
+  if (x1 < 0) return null;
+  return [Math.max(0, x0 - 1), Math.max(0, y0 - 1), Math.min(w - 1, x1 + 1), Math.min(h - 1, y1 + 1)];
+}
+
+/** A layer cut down to its drawn pixels (and a pixel round them): smaller, and no blank edges to composite. `box`:
+ * a box found already (the toe band's poses share one, grown to fit them all: reading each pose's pixels back was
+ * a GPU stall per frame drawn). */
+function trimLayer(l: Layer, RR: number, box: Trim | null = trimBox(l.c)): Layer {
+  if (!box) return { c: makeCanvas(1, 1)[0], x: l.x, y: l.y, w: 1 / RR, h: 1 / RR };
+  const [x0, y0, x1, y1] = box;
   const [c, ctx] = makeCanvas(x1 - x0 + 1, y1 - y0 + 1);
   ctx.drawImage(l.c, -x0, -y0);
   return { c, x: l.x + x0 / RR, y: l.y + y0 / RR, w: c.width / RR, h: c.height / RR };
@@ -153,8 +162,8 @@ function trimLayer(l: Layer, RR: number): Layer {
 
 /** Build a peel's rig, one canvas per step (rigs are built in idle time: requestRig). */
 function* rigSteps(peelId: string, type: FootType, RR: number): Generator<void, PeelRig | null> {
-  const def = liveDefOf(type.id)!;
-  const st: StyleDef = styleFor(type.id)!;
+  const def = peelLiveDefOf(type.id)!;
+  const st: StyleDef = peelStyleFor(type.id)!;
   const look = PEEL_BY_ID[peelId].look();
   const crop = footCrop(type.id);
   if (!look.footArt || !crop) return null;
@@ -211,6 +220,7 @@ function* rigSteps(peelId: string, type: FootType, RR: number): Generator<void, 
   yield;
   // the toe band's poses
   const band: Layer[] = [];
+  let bandBox: Trim | null = null;
   let still: HTMLCanvasElement | undefined;
   if (st.rig) {
     const { from, to } = st.rig;
@@ -238,7 +248,15 @@ function* rigSteps(peelId: string, type: FootType, RR: number): Generator<void, 
       g.addColorStop(1, 'rgba(0,0,0,1)');
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, c.width, c.height);
-      band.push(trimLayer(toLayer(c, -padX, from, sc, base0), RR));
+      const l = toLayer(c, -padX, from, sc, base0);
+      // the first pose is measured; the rest share its box grown by a margin (curled or splayed toes reach a little
+      // further), kept inside the layer
+      if (!bandBox) {
+        const b = trimBox(l.c);
+        const m = Math.ceil(Math.max(l.c.width, l.c.height) * 0.08);
+        bandBox = b ? [Math.max(0, b[0] - m), Math.max(0, b[1] - m), Math.min(l.c.width - 1, b[2] + m), Math.min(l.c.height - 1, b[3] + m)] : null;
+      }
+      band.push(trimLayer(l, RR, bandBox));
       yield;
     }
   }
@@ -333,9 +351,11 @@ interface Job {
 const jobs: Job[] = [];
 let pumping = false;
 
-const idle = (fn: (d?: IdleDeadline) => void) => {
-  if (typeof requestIdleCallback === 'function') requestIdleCallback(fn, { timeout: 120 });
-  else setTimeout(() => fn(), 16);
+// (held back while the player scrolls: src/art/scrolling.ts)
+const idle = (fn: (d?: IdleDeadline) => void): void => {
+  const go = (d?: IdleDeadline) => (scrollingNow() ? setTimeout(() => idle(fn), 90) : fn(d));
+  if (typeof requestIdleCallback === 'function') requestIdleCallback(go, { timeout: 120 });
+  else setTimeout(() => go(), 16);
 };
 
 function pump(d?: IdleDeadline): void {
@@ -403,6 +423,13 @@ export function requestRig(peelId: string, done: (r: PeelRig | null) => void, wa
   }
   const type = liveFootOf(peelId);
   if (!type) return done(null);
+  // the foot's crop (a zombie's rot) first, from the art cache where it can be (made in the first step, 25–100 ms)
+  if (!footPeelIsReady(peelId)) {
+    void footPeelReady(peelId).then(() => {
+      if (wanted()) requestRig(peelId, done, wanted, urgent, RR);
+    });
+    return;
+  }
   let job = jobs.find((j) => j.key === key);
   if (!job) {
     job = { key, gen: rigSteps(peelId, type, RR), waiters: [] };
@@ -648,6 +675,9 @@ export class PeelLive {
   band = -1;
   /** Per part: frame, offset (peel units) and swing (radians, peel space). */
   pf: Int16Array;
+  /** Per part: a second frame faded in over the first, and how far (a def's cross-fade: see partFrame). */
+  pf2: Int16Array;
+  pmix: Float32Array;
   pox: Float32Array;
   poy: Float32Array;
   prot: Float32Array;
@@ -684,6 +714,8 @@ export class PeelLive {
   constructor(readonly rig: PeelRig, readonly world: PeelWorld = PEEL_FRAME_WORLD) {
     const n = rig.parts.length;
     this.pf = new Int16Array(n);
+    this.pf2 = new Int16Array(n);
+    this.pmix = new Float32Array(n);
     this.pox = new Float32Array(n);
     this.poy = new Float32Array(n);
     this.prot = new Float32Array(n);
@@ -769,7 +801,7 @@ export class PeelLive {
         textures: lenient({ exists: (key: string) => SHEETS.has(key) }),
       }),
       def: rig.def,
-      style: styleFor(type.id),
+      style: peelStyleFor(type.id),
       get t() {
         return live.t;
       },
@@ -803,6 +835,17 @@ export class PeelLive {
             }),
           );
         return key;
+      },
+      // a peel-only def (src/content/styleLive/immortals.ts) steps a still part through its frames itself: frame i,
+      // with frame `next` faded in over it by `mix` (a boiling body, chewing jaws, curling toes)
+      partFrame: (name: string, i: number, next = i, mix = 0) => {
+        const j = rig.parts.findIndex((p) => p.name === name);
+        if (j < 0) return;
+        const n = rig.parts[j].frames.length;
+        const clamp = (f: number) => Math.max(0, Math.min(n - 1, Math.round(f)));
+        this.pf[j] = clamp(i);
+        this.pf2[j] = clamp(next);
+        this.pmix[j] = Math.max(0, Math.min(1, mix));
       },
       swayImg: (name: string) => {
         const i = rig.parts.findIndex((p) => p.name === name && p.kind === 'sway');
@@ -1244,7 +1287,17 @@ export function drawPeelBody(ctx: Ctx, live: PeelLive): void {
       ctx.rotate(live.prot[i]);
       ctx.drawImage(l.c, l.x - p.px, l.y - p.py, l.w, l.h);
       ctx.restore();
-    } else ctx.drawImage(l.c, l.x + live.pox[i], l.y + live.poy[i], l.w, l.h);
+    } else {
+      ctx.drawImage(l.c, l.x + live.pox[i], l.y + live.poy[i], l.w, l.h);
+      // (a def's cross-fade to its next frame)
+      const m = live.pmix[i];
+      if (m > 0.01 && live.pf2[i] !== live.pf[i]) {
+        const l2 = p.frames[live.pf2[i]];
+        ctx.globalAlpha = m;
+        ctx.drawImage(l2.c, l2.x + live.pox[i], l2.y + live.poy[i], l2.w, l2.h);
+        ctx.globalAlpha = 1;
+      }
+    }
   };
   for (let i = 0; i < parts.length; i++) if (parts[i].below) part(i);
   drawSprites(ctx, live, true);

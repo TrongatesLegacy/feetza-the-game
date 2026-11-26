@@ -51,13 +51,15 @@ function addSheet(sc: Phaser.Scene, key: string, frames: HTMLCanvasElement[]): s
   const fh = frames[0].height;
   const [c, ctx] = makeCanvas(fw * frames.length, fh);
   frames.forEach((f, i) => ctx.drawImage(f, i * fw, 0));
-  const tex = sc.textures.addCanvas(key, c);
+  // (a plain texture, not a CanvasTexture: that reads every pixel back as it's made, a GPU readback of up to 600 ms
+  // for a big sheet; nothing reads these textures' pixels through Phaser)
+  const tex = sc.textures.addImage(key, c as unknown as HTMLImageElement);
   frames.forEach((_, i) => tex?.add(i, 0, i * fw, 0, fw, fh));
   return key;
 }
 
 function addTex(sc: Phaser.Scene, key: string, c: HTMLCanvasElement): string {
-  if (!sc.textures.exists(key)) sc.textures.addCanvas(key, c);
+  if (!sc.textures.exists(key)) sc.textures.addImage(key, c as unknown as HTMLImageElement);
   return key;
 }
 
@@ -752,6 +754,19 @@ export function liveDefOf(id: string): LiveDef | undefined {
 /** Declare a styled foot's live behaviour (see LiveDef). */
 export function registerLive<S>(id: string, def: LiveDef<S>): void {
   defs[id] = def as LiveDef;
+}
+
+const peelDefs: Record<string, LiveDef> = {};
+
+/** Declare how a foot's peel moves when the foot has a live layer of its own in play (the Immortals: a peel-only
+ * style, src/art/style/registry.ts registerPeelStyle). Play never runs it. */
+export function registerPeelLive<S>(id: string, def: LiveDef<S>): void {
+  peelDefs[id] = def as LiveDef;
+}
+
+/** The live def a foot's living peel runs: its play def, else a peel-only one. */
+export function peelLiveDefOf(id: string): LiveDef | undefined {
+  return defs[id] ?? peelDefs[id];
 }
 
 interface SwayPart {

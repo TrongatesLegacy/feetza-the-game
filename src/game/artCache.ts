@@ -8,6 +8,7 @@
 // misses and the art is drawn as before. Reads race a timeout, a bad entry is deleted, and writes go in idle time.
 
 import ART_VERSION from 'virtual:art-version';
+import { scrollingNow } from '../art/scrolling';
 
 /** Bump when the stored layout changes. */
 const FORMAT = 1;
@@ -148,6 +149,25 @@ export async function readArt(key: string, ms = 4000): Promise<{ bitmaps: ImageB
   }
 }
 
+/** An entry's stored PNGs as they are (no decode): for images shown as they were saved (a peel's thumbnail, served
+ * as a blob URL: decoding it to redraw and re-encode it as a data URL was a 40–90 ms task per batch of tiles). Null on
+ * a miss, an error or a slow read. */
+export async function readArtBlobs(key: string, ms = 1500): Promise<Blob[] | null> {
+  const meta = index.get(key);
+  if (!meta) return null;
+  const db = await openArtCache();
+  if (!db) return null;
+  try {
+    const blobs = await timeout(req(db.transaction(BLOBS).objectStore(BLOBS).get(key)) as Promise<Blob[] | undefined>, ms, undefined);
+    if (!blobs || blobs.length !== meta.dims.length) return null;
+    stats.hits++;
+    return blobs;
+  } catch (e) {
+    fail(e);
+    return null;
+  }
+}
+
 /** A decoded image back as a canvas (the game reads its pixels and draws it as any other texture). */
 export function bitmapCanvas(b: ImageBitmap): HTMLCanvasElement {
   const c = document.createElement('canvas');
@@ -230,9 +250,11 @@ function pumpWrites(): void {
   idle(step);
 }
 
+// (writes wait while the player scrolls a page: reading a canvas back for its PNG can stall a frame)
 const idle = (fn: () => void): void => {
-  if (typeof requestIdleCallback === 'function') requestIdleCallback(fn, { timeout: 2000 });
-  else setTimeout(fn, 50);
+  const go = () => (scrollingNow() ? setTimeout(() => idle(fn), 150) : fn());
+  if (typeof requestIdleCallback === 'function') requestIdleCallback(go, { timeout: 2000 });
+  else setTimeout(go, 50);
 };
 
 async function deleteArt(key: string): Promise<void> {

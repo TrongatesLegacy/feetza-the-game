@@ -2,7 +2,7 @@
 // in a 300x340 design space (foot centre x = 150 canvas / 110 design) and scaled up for crispness.
 
 import { kindDrawer } from './registry';
-import { type DrawOpts, styleFor } from './style/registry';
+import { type DrawOpts, peelStyleFor, styleFor } from './style/registry';
 import { type Pose, REST, STYLE } from './style/kit';
 import { type LegPattern, type LegSpec, fadeFootTop, legEnd, legOverride, styledHem, styledLeg } from './style/legs';
 import type { FootArt, FootType, LegKind } from '../data/feet';
@@ -1240,7 +1240,8 @@ export const FOOT_FRAME = { padX: PAD_X, padY: PAD_Y, w: DESIGN_W, h: DESIGN_H }
  * either side, for art that reaches past the frame (a peel shows the whole foot): the canvas then starts at −padX − widen.
  */
 export function styledCanvas(type: FootType, p: Pose, o: DrawOpts, band?: { y0: number; y1: number }, scale?: number, widen = 0): HTMLCanvasElement {
-  const st = styleFor(type.id)!;
+  // (a peel-only style too: the Immortals' living peels)
+  const st = peelStyleFor(type.id)!;
   // (texels per design unit: the foot's own, or another for art drawn at another size, like an animated peel's)
   const s = scale ?? type.scale * footRes(type);
   const y0 = band ? band.y0 : -PAD_Y;

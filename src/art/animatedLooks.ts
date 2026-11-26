@@ -874,6 +874,8 @@ interface Overlay {
   style: CSSStyleDeclaration;
   /** On screen (tiles scrolled out of view skip their frames). */
   seen: boolean;
+  /** Room round the image for what leaps past the peel's edge (a share of its size). */
+  pad: number;
 }
 /** A living peel drawn in place of its image: a redrawn foot or a crafted peel. */
 interface Living {
@@ -940,6 +942,7 @@ let raf = 0;
 let lastT = 0;
 // room round the image for bolts and flames that leap past the peel's edge
 const PAD = 0.14;
+const PAD_BIG = 0.26;
 // overlays only paint while on screen
 const seen = typeof IntersectionObserver === 'undefined' ? null : new IntersectionObserver((es) => {
   for (const e of es)
@@ -947,8 +950,25 @@ const seen = typeof IntersectionObserver === 'undefined' ? null : new Intersecti
       if (o.img === e.target) {
         o.seen = e.isIntersecting;
         if (o.seen) wake();
+        else if (!o.still) shed(o);
       }
 });
+
+/** An overlay scrolled out of view lets its canvases' pixels go (place() sizes them again when it's back): a
+ *  locker scrolled end to end held hundreds of them, and the page slowed to 50–70 ms a frame with the GPU memory
+ *  they kept. */
+function shed(o: Overlay): void {
+  for (const cv of [o.canvas, o.back]) {
+    if (!cv) continue;
+    cv.width = 0;
+    cv.height = 0;
+  }
+  for (const [c] of o.mips) {
+    c.width = 0;
+    c.height = 0;
+  }
+  o.mips = [];
+}
 // stills repaint when their image changes size (no frames run for them)
 const resized = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver((es) => {
   for (const e of es) for (const o of overlays) if (o.img === e.target && o.still) place(o) && paintStill(o);
@@ -963,19 +983,43 @@ function drop(o: Overlay): void {
   overlays.delete(o);
 }
 
-/** Size and place an overlay's canvases over its image; false when the image has no size yet. Leaves each ctx's
- *  transform at the peel's frame (origin at the grip point), in device pixels. */
-function place(o: Overlay): boolean {
+/** Where an overlay's image is this frame: its layout box and the tilt, fade and filter it's drawn with. */
+interface Geom {
+  w: number;
+  h: number;
+  left: number;
+  top: number;
+  tf: string;
+  opacity: string;
+  filter: string;
+}
+
+/** Read where an overlay's image is (layout and computed style only, no writes: see frame()). Null when the image
+ *  has no size yet. */
+function measure(o: Overlay): Geom | null {
   const w = o.img.offsetWidth;
-  const hh = o.img.offsetHeight;
-  if (!w || !hh) return false;
-  const px = Math.round(w * PAD);
-  const py = Math.round(hh * PAD);
+  const h = o.img.offsetHeight;
+  if (!w || !h) return null;
+  return { w, h, left: o.img.offsetLeft, top: o.img.offsetTop, tf: o.style.transform, opacity: o.style.opacity, filter: o.style.filter };
+}
+
+/** Size and place an overlay's canvases over its image; false when the image has no size yet. Leaves each ctx's
+ *  transform at the peel's frame (origin at the grip point), in device pixels. `g`: the image's box, measured
+ *  beforehand (frame() measures every overlay before it moves any: reading the layout after a write would lay out
+ *  the whole locker again, once per tile). */
+function place(o: Overlay, g: Geom | null = measure(o)): boolean {
+  if (!g) return false;
+  const { w, h: hh } = g;
+  const px = Math.round(w * o.pad);
+  const py = Math.round(hh * o.pad);
   const dpr = Math.min(2, window.devicePixelRatio || 1);
   const cw = Math.round((w + px * 2) * dpr);
   const ch = Math.round((hh + py * 2) * dpr);
   // follow the image's own tilt (the detail panel turns it), fade and filter (a locked peel's)
-  const tf = o.style.transform;
+  const tf = g.tf === 'none' ? '' : g.tf;
+  const filter = g.filter === 'none' ? '' : g.filter;
+  const left = `${g.left - px}px`;
+  const top = `${g.top - py}px`;
   // object-fit: contain, so the peel sits centred in the image box
   const k = Math.min(w / 220, hh / 360) * dpr;
   const ox = (px + (w - 220 * (k / dpr)) / 2) * dpr;
@@ -989,11 +1033,12 @@ function place(o: Overlay): boolean {
       cs.width = `${w + px * 2}px`;
       cs.height = `${hh + py * 2}px`;
     }
-    cs.left = `${o.img.offsetLeft - px}px`;
-    cs.top = `${o.img.offsetTop - py}px`;
-    cs.transform = tf === 'none' ? '' : tf;
-    cs.opacity = o.style.opacity;
-    cs.filter = o.style.filter === 'none' ? '' : o.style.filter;
+    // (only what changed: a style write, even of the same value, can send the page back to style and layout)
+    if (cs.left !== left) cs.left = left;
+    if (cs.top !== top) cs.top = top;
+    if (cs.transform !== tf) cs.transform = tf;
+    if (cs.opacity !== g.opacity) cs.opacity = g.opacity;
+    if (cs.filter !== filter) cs.filter = filter;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, cw, ch);
     ctx.setTransform(k, 0, 0, k, ox + OX * k, oy + OY * k);
@@ -1025,6 +1070,10 @@ function frame(now: number): void {
   }
   lastT = now;
   let running = 0;
+  // every overlay's image measured first, then each one moved and drawn (reads and writes interleaved laid the
+  // whole locker out again for every tile drawn: 70–170 ms a frame on the ALL tab)
+  const geoms = new Map<Overlay, Geom | null>();
+  for (const o of overlays) if (!o.still && o.seen && o.img.isConnected && (o.paint || o.foot)) geoms.set(o, measure(o));
   for (const o of overlays) {
     // gone with the locker (or a re-render): clean up
     if (!o.img.isConnected || !o.canvas.isConnected) {
@@ -1073,7 +1122,7 @@ function frame(now: number): void {
     // (on screen with something to show, or a living foot about to be: the frames go on)
     running++;
     if (!o.paint && !f?.live) continue;
-    if (!place(o)) continue;
+    if (!place(o, geoms.get(o) ?? null)) continue;
     if (f?.live) {
       f.live.update(dt);
       drawLiving(o, f.live);
@@ -1130,7 +1179,9 @@ export function animateLookImg(img: HTMLImageElement, id: string): void {
   const footHere = anim && (hasPeelLive(id) || hasPeelCraft(id));
   const still = !anim && lookHere ? stillLook(id) : null;
   if (!footHere && !(anim && lookHere) && !still) return;
-  if (getComputedStyle(parent).position === 'static') parent.style.position = 'relative';
+  // (a locker tile is positioned by its stylesheet and its image isn't: reading the computed style here, once per
+  // tile as the grid fills, sent the page back to style each time)
+  if (!isTile && getComputedStyle(parent).position === 'static') parent.style.position = 'relative';
   const canvas = overlayCanvas('1');
   img.after(canvas);
   const boost = { w: 1 };
@@ -1141,7 +1192,7 @@ export function animateLookImg(img: HTMLImageElement, id: string): void {
     // (positioned too) sits over it
     back = overlayCanvas('auto');
     img.before(back);
-    if (getComputedStyle(img).position === 'static') img.style.position = 'relative';
+    if (isTile ? !img.style.position : getComputedStyle(img).position === 'static') img.style.position = 'relative';
     bctx = back.getContext('2d')!;
   }
   const ctx = canvas.getContext('2d')!;
@@ -1164,6 +1215,8 @@ export function animateLookImg(img: HTMLImageElement, id: string): void {
     style: getComputedStyle(img),
     // (everything waits to be seen: a page of looks, like the look lab, only animates what's in view)
     seen: !seen,
+    // (the big preview's flames stand taller than a tile's and it is tilted: more room, or their tips are cut flat)
+    pad: isTile ? PAD : PAD_BIG,
   };
   overlays.add(o);
   if (still) {

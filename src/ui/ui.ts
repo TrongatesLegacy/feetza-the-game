@@ -2514,6 +2514,9 @@ class UI {
       const list = PEELS.filter((d) => groups.includes(d.group));
       return `${list.filter((d) => hasPeel(d.id)).length}/${list.length}`;
     };
+    // a tab's count: ALL counts the God Peel too (pinned in its slot above the tabs rather than on the grid), so it
+    // agrees with the header's count of every peel
+    const tabCount = (t: Exclude<Tab, 'goals'>) => count(t === 'all' ? [...TAB_GROUPS.all, 'god'] : TAB_GROUPS[t]);
     const setTab = (t: Tab) => {
       tab = t;
       // keep the selected peel if it's on this tab, otherwise show the equipped one or the tab's first
@@ -2524,7 +2527,7 @@ class UI {
     };
     const render = () => {
       if (!tabsShown().includes(tab)) setTab('all');
-      const label = (t: Tab) => (t === 'goals' ? NAMES[t] : `${NAMES[t]} <small>${count(TAB_GROUPS[t])}</small>`);
+      const label = (t: Tab) => (t === 'goals' ? NAMES[t] : `${NAMES[t]} <small>${tabCount(t)}</small>`);
       tabs.replaceChildren(
         ...tabsShown().map((t) =>
           btn(label(t), `small ${tab === t ? 'active' : ''}`, () => {
@@ -2536,7 +2539,7 @@ class UI {
       // narrow screens: the same tabs as a dropdown
       tabSelect.replaceChildren(
         ...tabsShown().map((t) => {
-          const o = h('option', { value: t }, t === 'goals' ? 'Goals' : `${NAMES[t][0]}${NAMES[t].slice(1).toLowerCase()} · ${count(TAB_GROUPS[t])}`) as HTMLOptionElement;
+          const o = h('option', { value: t }, t === 'goals' ? 'Goals' : `${NAMES[t][0]}${NAMES[t].slice(1).toLowerCase()} · ${tabCount(t)}`) as HTMLOptionElement;
           o.selected = tab === t;
           return o;
         }),

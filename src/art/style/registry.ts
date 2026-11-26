@@ -115,6 +115,22 @@ export function styleFor(id: string): StyleDef | undefined {
   return legacy ? undefined : styles[id];
 }
 
+const peelStyles: Record<string, StyleDef> = {};
+
+/**
+ * A style a foot's peel is drawn and animated with (src/art/peelLive.ts) while the foot itself keeps its own art and
+ * its own live layer in play: the Immortals, whose smoke, eye, jaws and drool play from src/game/footLive.ts. Its
+ * still must match the foot's own art.
+ */
+export function registerPeelStyle(id: string, d: StyleDef): void {
+  peelStyles[id] = d;
+}
+
+/** The style a foot's living peel is built from: its play style, else a peel-only one (none in legacy mode). */
+export function peelStyleFor(id: string): StyleDef | undefined {
+  return legacy ? undefined : styles[id] ?? peelStyles[id];
+}
+
 /** A foot's registered style whatever the mode (the style sheet). */
 export function styleDef(id: string): StyleDef | undefined {
   return styles[id];

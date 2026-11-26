@@ -36,12 +36,12 @@ Priorities: **P1** the most seen (everyone's first peel, the first peels bought,
 | Heroes | 67 | glow (2 fire), preview only → **the hero alive from its own parts, its power round the head (batch 6)**; the two fire heroes keep their fire | goals across the game | **P3, done** |
 | Gods (Greek 22, Norse 16) | 38 | element glow (Zeus hand-made lightning; Hestia, Hephaestus fire) → **the symbol alive from its own parts, its domain round it (batch 7)**; both Zeuses keep their living blade, Hestia and Hephaestus their fire | goals across the late game | **P3, done** |
 | The God Peel | 1 | gold halo, rays, prism trail → **its halo, sunburst, rays and crown of tiny peels alive, a ring of light, a prism sweep (batch 7)**, inside its halo, rays and prism trail | the final trophy | **P3, done** |
-| Feet | 134 | living (Lava, Fireside, Hyperion also fire) | very often: the first kill goals | done (the Immortal: see below) |
-| Bosses and mini-bosses | 49 | living (Surtr also fire) | often | done (the Immortal Brute: see below) |
+| Feet | 134 | living (Lava, Fireside, Hyperion also fire) | very often: the first kill goals | done (the Immortal in batch 8) |
+| Bosses and mini-bosses | 49 | living (Surtr also fire) | often | done (the Immortal Brute in batch 8) |
 | Shiny feet | 134 | living, foil twinkles | rare | done |
 | Zombified feet | 118 | living, rotted, flies | mid-game | done |
 
-Two foot peels and one boss peel aren't living: `foot:immortal`, `shiny:immortal` and `boss:immortalbrute` (no live def for the Immortal's redrawn style). They should get one when that foot is next touched.
+Two foot peels and one boss peel weren't living: `foot:immortal`, `shiny:immortal` and `boss:immortalbrute` (no live def for the Immortals' own art). Batch 8 gave them peel-only defs.
 
 ## The groups
 
@@ -530,3 +530,46 @@ Carved parts that turn (Baldur's rays, Skadi's snowflake) rock and spring back r
 2. The Immortal's and Immortal Brute's living defs (`foot:immortal`, `shiny:immortal`, `boss:immortalbrute`).
 3. The fire looks' big-preview and in-play shapes (the Ruby Crown's, the Fire Opal's, the Scorch's, Ghost Roaster's, Hestia's and Hephaestus's among them).
 4. Zeus's blade could join the god kind (its gold catching the light, the eagle's feathers stirring) when it's next touched.
+
+## Batch 8: the leftovers (done)
+
+**The ALL tab's first open.** Profiled again on a fresh page load with the art cache filled, the first scroll passes' hitches were mostly not the foot peels' art at all:
+
+- **Layout thrash in the locker's frame loop** (`src/art/animatedLooks.ts`). Every frame, each living tile read its image's layout and computed style and then wrote its canvases' position, so the whole grid of 735 tiles was laid out again once per tile drawn: 70–170 ms a frame once a screenful of tiles was alive, steady, not only on the first pass. The frame now measures every overlay first and then moves and draws them, and only writes a style that changed. Tiles no longer read their computed style as the grid fills (a tile is positioned by the stylesheet).
+- **Overlays scrolled out of view kept their canvases** (hundreds after a scroll end to end, with their halving canvases). They now let their pixels go and are sized again when they come back.
+- **Rig and art builders stepping into scroll frames.** The idle queues (living foot rigs, crafted rigs, pizza paint, the art warmer, the art cache's writes) were forced into busy frames by their idle timeouts. They now hold back while the player is scrolling (`src/art/scrolling.ts`: a scroll, wheel or touch in the last quarter second) and pick up as soon as it settles; tiles show their stills meanwhile and come alive when the scroll stops.
+- **The foot peels' first-time art work**, as batch 2 found: Phaser registering foot textures (a `CanvasTexture` reads every pixel back as it's made: feet and the live kit's sheets are now plain textures, as nothing reads their pixels through Phaser), cropping each foot's art for its emblem (now saved to the art cache, `crop:` entries with the ankle's measurements, and loaded off the main thread before the thumbnail or the rig needs it; the crop is kept on a CPU canvas so its ankle is measured without a readback), the zombified emblems' rot (saved too, `zemb:` entries), trimming the toe band's poses (the first pose is measured and the rest share its box, grown a little, instead of a readback per pose), and cached thumbnails decoded and re-encoded as data URLs (now served as blob URLs of the stored PNG). Feet and pizza tops drawn on the spot have their pixels read for the cache in idle time, never in the frame that drew them.
+
+Measured the same way before and after (headless Chrome, the machine busy: load average 5–9 with other apps running; art cache filled by scrolling the tab slowly three times; then a fresh page load, the ALL tab opened and scrolled top to bottom and back three times, twice):
+
+| | Pass | Long tasks (over 50 ms) | Their total | Max frame | Frame p95 |
+|---|---|---|---|---|---|
+| Before | first | 14, 15 | 1.25 s, 1.39 s | 270, 246 ms | 82, 65 ms |
+| | second | 12, 11 | 1.21 s, 1.02 s | 245, 188 ms | 43, 30 ms |
+| | third | 12, 5 | 0.69 s, 0.32 s | 88, 98 ms | 53, 35 ms |
+| After | first | 4, 3 | 0.31 s, 0.18 s | 97, 74 ms | 21, 21 ms |
+| | second | 1, 0 | 0.06 s, 0 | 71, 24 ms | 20, 20 ms |
+| | third | 0, 0 | 0 | 22, 36 ms | 20, 20 ms |
+
+The few left on the first pass (52–87 ms) are the tab opening itself and the first tiles' first draws. Left alone on the tab afterwards, no long tasks at the top, middle or bottom of the list (before, 50–60 ms frames among the ultra-rares and gods). Not changed: the title screen's own warm-up (the trattoria's live backdrop sheets) before the locker opens.
+
+**The Immortals come alive** (`src/content/styleLive/immortals.ts`). The Immortal Sandals and the Immortal Brute keep their own art and their own live layer in play (`src/game/footLive.ts`, unchanged); their peels get peel-only styles and defs on the same system as every other foot peel (`registerPeelStyle`, `registerPeelLive`), cut from the same painters, so play never runs them twice. A peel's def can step a part through its frames itself, cross-fading into the next (`partFrame`), so each moving piece takes the peel's pattern and foil as the still does.
+
+- **Immortal Sandals** (and the shiny): the body of black smoke boils under the mask (twelve pre-drawn frames, back and forth, cross-faded), smoke streams from the mask's eyes and mouth and curls off the toes and from under the lamellar (see-through charcoal with a paler rim, swelling as it rises), the chrome catches the light (a glint runs over a ridge of the mask every second or so), the armoured toes curl every couple of seconds. A smack: the chrome flashes (glints all over the mask, a burst of light over it), the eyes blast smoke, a ring of smoke bursts out, the body boils hard, the toes splay.
+- **Immortal Brute**: the eye looks about and blinks, a red glint in it now and then, smoke seeping round it; the two burst cuts chew (open slowly, snap shut, grind), smoke seeping out of them, black drool dropping off their lower ends; the mutant toes curl every couple of seconds. A smack: the eye flashes red-hot with sparks flying off it, the jaws snap shut and gape in a roar, smoke coughs out of the cuts, drool is flung, the toes splay. The peel's pattern stays off the eye and its lids (`patternHoles`: stars over it read as dirt), on the still as well as the living peel.
+
+At rest the live peel matches the still. Cursor peel in play: 0.22–0.24 ms a frame for the look (p95 0.4–0.5 ms), frame p95 18–19 ms, no long frames.
+
+**The fire's shape everywhere** (`src/art/lookFire.ts`). The big preview and the cursor in play now burn with the tiles' lower, fuller fire: it burns all round the head (the underside's tongues short), the inner rings tall enough that the orange and yellow show, tongues wide enough to make one body of fire; in play it is lower than before (0.8 of a tongue's length where it was 1.15) with a lighter outline (it read as a crown of spikes), and Diavola's horns are shorter. Diavola's and Surtr's ramps are warmer (red outside, orange and yellow within: Surtr's black-tipped ramp read as a spiky black crest), Surtr burns lower. The big preview has more room round it for flames, and a shiny peel's preview is no longer clipped to its box (its sheen sweeps by moving its gradient), which had cut the Ruby Crown's flames flat. Loose licks still break off in play; in the locker they're specks and stay off. The per-style `cut` (where the underside stopped burning) is gone.
+
+**The god auras on cream** (`src/art/lookGlow.ts`). Ares's, Odin's, Hades's and Loki's element glows were a dark-rimmed aura and dark smoke puffs, which read as grime on the locker's cream tiles. Their aura is now light (a soft coloured wash with a paler heart and no darker rim; added as light in play), and their smoke is a new particle, haze: coloured light that swells as it fades, never a dark body. Ares: embers in a red-orange haze; Odin: glints in a pale blue haze, a little stronger (on cream it only just read); Hades: violet soul-light with pale sparks; Loki: green trickster light. Glows can now be drawn as added light in play (`Pen.glow`'s `add`).
+
+**The locker's counts.** The header counted 736 peels and the ALL tab 735: ALL left out the God Peel, which sits in its slot above the tabs rather than on the grid. ALL now counts it too, so both say 736.
+
+**Review.** One independent visual review; what it raised and what changed: the Immortals' smoke read as grey smudges (now see-through charcoal with a pale rim, fewer side puffs, more from the face), only the smoke moved (chrome glints and more frequent toe curls), their smacks didn't show at cursor size and the Brute's red smoke read as blood (a chrome flash; a red-hot eye flash with sparks, no red smoke), stars over the Brute's eye (pattern holes), Diavola and Surtr still a crown in play (warmer ramps, lower), the Ruby Crown's preview flames cut flat (the shiny clip), Odin's aura faint (stronger). Not changed: the thin dark line over Odin is his raven flying past (batch 7), and Ares's glow over the top of the handle is his aura's paler heart.
+
+`F.contrast()` and `F.layout()` report nothing on the ALL tab at desktop and at phone size (844 × 390).
+
+Not done: Zeus's hand-made blade stays in `animatedLooks.ts` (it already has its own tile loop, trail and smack; moving it into the god kind isn't a cheap change).
+
+**Where it stopped.** The audit's leftovers are done. Worth a look next: the ALL tab's ultra-rares and gods, a screenful of the richest living tiles at once, draw at 18–25 ms a frame on a busy machine; if that shows on slower devices, a lower frame rate for tiles when many are alive would be the cheap fix.

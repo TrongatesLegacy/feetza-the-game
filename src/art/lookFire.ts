@@ -18,9 +18,6 @@ export interface FireStyle {
   height: number;
   /** How much of that length the underside keeps, 0–1. */
   under: number;
-  /** Below this (the dot of a tongue's spot with up, -1…1) nothing burns: tongues rising up from the bottom of a
-   *  narrow head (a foot) would show across it like teeth. -1 burns all round. */
-  cut?: number;
   /** Tongues in the outer ring. */
   count: number;
   /** Flicker speed (rad/s). */
@@ -77,15 +74,15 @@ export const FIRE: Record<string, FireStyle> = {
   // Fireside Fay: a cosy campfire, crackling sparks and a warm glow
   fireside: { ...BASE, ramp: [0xc8401a, 0xff8a2a, 0xffe080], outline: INK, glow: 0xffa040, glowA: 0.4, height: 96, under: 0.22, flicker: 8, crackle: 1.3, ember: ember(0xfff2b0, 0xff6a1a, 3, 3, 0.9), trail: ribbon(0xa8300e, 0xff8a2a, 0xfff0c0, 26) },
   // Human Scorch: the whole head ablaze, a bright white-hot core
-  humanscorch: { ...BASE, ramp: [0xe8401a, 0xffa030, 0xfff6c0], outline: 0x5a1a0a, glow: 0xffb040, glowA: 0.4, height: 128, under: 0.78, cut: -1.1, count: 15, flicker: 9, sway: 0.24, core: 0xfff8e0, rim: 0xffffff, ember: ember(0xffffff, 0xff8a1a, 7, 3.6, 0.7), trail: ribbon(0xc8301a, 0xffa030, 0xffffff, 36, 0.42) },
+  humanscorch: { ...BASE, ramp: [0xe8401a, 0xffa030, 0xfff6c0], outline: 0x5a1a0a, glow: 0xffb040, glowA: 0.4, height: 128, under: 0.78, count: 15, flicker: 9, sway: 0.24, core: 0xfff8e0, rim: 0xffffff, ember: ember(0xffffff, 0xff8a1a, 7, 3.6, 0.7), trail: ribbon(0xc8301a, 0xffa030, 0xffffff, 36, 0.42) },
   // Ghost Roaster: ghostly blue-green hellfire with soul wisps
   ghostroaster: { ...BASE, ramp: [0x0a7a7a, 0x3ae0c0, 0xd8fff4], outline: 0x06302e, glow: 0x3ae0c0, glowA: 0.34, height: 120, flicker: 6, sway: 0.3, wisps: 0.9, rim: 0xd8fff4, ember: ember(0xe8fff8, 0x2ab8a0, 3.5, 3.2, 1), trail: ribbon(0x065a58, 0x2ad0b0, 0xe8fff8, 30, 0.45) },
   // Hyperion: a solar corona with rotating rays
-  hyperion: { ...BASE, ramp: [0xe8742a, 0xffb030, 0xfff2a8], outline: 0x6a2a08, glow: 0xffc040, glowA: 0.38, height: 70, under: 0.85, cut: -1.1, count: 16, flicker: 6, corona: 0xffd23f, ember: ember(0xfff8c0, 0xffb030, 3, 3, 1, Bit.Mote, 40), trail: ribbon(0xd8741a, 0xffd23f, 0xffffff, 34) },
-  // Surtr: black-red Ragnarök fire with ash
-  surtr: { ...BASE, ramp: [0x2a0806, 0xb81a0c, 0xff6a1a], outline: 0x000000, glow: 0xb81a0c, glowA: 0.36, height: 132, count: 14, flicker: 6.5, sway: 0.26, ash: 3.5, rim: 0xff8a3a, ember: ember(0xffb040, 0xb81a0c, 3, 3.4, 0.9), trail: ribbon(0x1a0604, 0xa8160c, 0xff8a3a, 36, 0.45) },
-  // Diavola: devil-red, with flickering horn-like tongues
-  diavola: { ...BASE, ramp: [0xa80a12, 0xe8281a, 0xffa040], outline: 0x3a0606, glow: 0xe8281a, height: 92, count: 12, flicker: 10, sway: 0.16, horns: true, ember: ember(0xffd080, 0xd8201a, 4), trail: ribbon(0x8a0a0a, 0xe8281a, 0xffc080) },
+  hyperion: { ...BASE, ramp: [0xe8742a, 0xffb030, 0xfff2a8], outline: 0x6a2a08, glow: 0xffc040, glowA: 0.38, height: 70, under: 0.85, count: 16, flicker: 6, corona: 0xffd23f, ember: ember(0xfff8c0, 0xffb030, 3, 3, 1, Bit.Mote, 40), trail: ribbon(0xd8741a, 0xffd23f, 0xffffff, 34) },
+  // Surtr: Ragnarök fire, deep red to gold (a black-tipped ramp read as a spiky black crest), lower, with ash
+  surtr: { ...BASE, ramp: [0x9a1408, 0xe8401a, 0xffb040], outline: 0x2a0604, glow: 0xd8301a, glowA: 0.38, height: 110, count: 15, flicker: 6.5, sway: 0.26, ash: 3.5, rim: 0xff8a3a, ember: ember(0xffb040, 0xb81a0c, 3, 3.4, 0.9), trail: ribbon(0x1a0604, 0xa8160c, 0xff8a3a, 36, 0.45) },
+  // Diavola: devil-red outside, orange and yellow within, with flickering horn-like tongues
+  diavola: { ...BASE, ramp: [0xc8181a, 0xff6a1a, 0xffd050], outline: 0x3a0606, glow: 0xe8401a, height: 88, count: 14, flicker: 10, sway: 0.16, horns: true, ember: ember(0xffd080, 0xd8201a, 4), trail: ribbon(0x8a0a0a, 0xe8281a, 0xffc080) },
   // Tarte Flambée: a blue alcohol flame that flares orange now and then
   flambee: { ...BASE, ramp: [0x1a4ad8, 0x4aa0ff, 0xdff4ff], outline: 0x0a1a5a, glow: 0x4a9aff, glowA: 0.3, height: 98, under: 0.3, flicker: 5, sway: 0.28, flare: [0xd8401a, 0xff8a2a, 0xffe8a0], ember: ember(0xdff4ff, 0x4a9aff, 2.5, 3, 0.7, Bit.Mote, 60), trail: ribbon(0x1a3ab8, 0x4aa0ff, 0xffffff, 28) },
   // ——— other fiery peels ———
@@ -338,7 +335,7 @@ class FireCore implements LookCore {
     const n = 2 * m - 1;
     // (drawn small, on a locker tile, the outline stays fine: boosted to tile size, a thick dark edge round every
     // tongue turned the fire into a spiky hat)
-    pen.poly(p, n, col, 1, outline ? (this.small ? 4.5 / (pen.boost ?? 1) + 0.6 : 4.5) : 0, this.st.outline, this.small ? 0.5 : 0.9);
+    pen.poly(p, n, col, 1, outline ? (this.small ? 4.5 / (pen.boost ?? 1) + 0.6 : 2.6) : 0, this.st.outline, this.small ? 0.5 : 0.7);
     if (facets && !outline) {
       // a light facet line from base to tip
       pen.seg(bx, by, p[(m - 1) * 2], p[(m - 1) * 2 + 1], 2.4, 0xffffff, 0.45);
@@ -357,8 +354,8 @@ class FireCore implements LookCore {
       const cx = Math.cos(ang);
       const cy = Math.sin(ang);
       const dot = cx * ux + cy * uy;
-      // (on a tile it burns all the way round: a band only over the top read as a hat)
-      const cut = this.small ? -1.1 : st.cut ?? -0.25;
+      // it burns all the way round (a band only over the top read as a spiky hat), the underside's tongues short
+      const cut = -1.1;
       if (dot < cut) continue;
       const lean = Math.max(0, dot);
       // tongues near the cut die down to nothing rather than stopping short
@@ -372,8 +369,8 @@ class FireCore implements LookCore {
       const m = Math.hypot(dx, dy) || 1;
       dx /= m;
       dy /= m;
-      // wide enough to overlap: one body of fire, not a ring of spikes (fuller still when drawn small)
-      const w = ((Math.PI * 2 * rad) / n) * (st.facets ? 0.95 : 1.15) * (this.small ? 1.3 : 1);
+      // wide enough to overlap: one full body of fire, not a ring of spikes
+      const w = ((Math.PI * 2 * rad) / n) * (st.facets ? 0.95 : 1.15) * 1.3;
       this.tongue(pen, cx * rad, cy * rad, dx, dy, l, w, Math.sin(t * 7 + i * 2.1) * l * st.sway * calm, this.col(k, i, n), k === 0);
     }
   }
@@ -392,17 +389,18 @@ class FireCore implements LookCore {
     pen.glow(ux * 20, uy * 20, HEAD_R * 1.8, HEAD_R * 1.9, 0, glowC, st.glowA * 1.5 * pulse);
     if (st.core) pen.glow(0, 0, HEAD_R * 1.6, HEAD_R * 1.6, 0, st.core, 0.75 * pulse);
     if (st.corona) this.drawCorona(pen, st.corona);
-    // in the locker the flames stay inside the image's margin (and clear of the tile's edge); on a tile, lower and
-    // fuller, so they read as a fire round the head rather than a crown of spikes over it
+    // one shape everywhere (a locker tile, the big preview, the cursor in play): low and full, the inner rings tall
+    // enough that the orange and yellow show, so it reads as a fire round the head rather than a crown of spikes
+    // over it (in the locker the flames also stay inside the image's margin). Drawn small, the outline is finer.
     this.small = f.menu && (pen.boost ?? 1) > 1.45;
-    const H = st.height * (f.menu ? (this.small ? 0.44 : 0.6) : 1.15) * (1 + 0.45 * this.amt);
+    const H = st.height * (f.menu ? 0.44 : 0.8) * (1 + 0.45 * this.amt);
     this.ringOf(pen, 0, 78, st.count, H, st.flicker, 0, f);
-    this.ringOf(pen, 1, 75, st.count - 1, H * (this.small ? 0.9 : 0.72), st.flicker * 1.3, 0.2, f);
-    this.ringOf(pen, 2, 70, st.count - 3, H * (this.small ? 0.66 : 0.44), st.flicker * 1.7, 0.45, f);
+    this.ringOf(pen, 1, 75, st.count - 1, H * 0.9, st.flicker * 1.3, 0.2, f);
+    this.ringOf(pen, 2, 70, st.count - 3, H * 0.66, st.flicker * 1.7, 0.45, f);
     // the horns stand out of the fire, darker than it
     if (st.horns) this.drawHorns(pen, f, H);
-    // loose licks breaking away (not on a tile: there they're specks)
-    for (let i = 0; i < (this.small ? 0 : LICKS); i++) {
+    // loose licks breaking away (in play only: in the locker they're specks)
+    for (let i = 0; i < (f.menu ? 0 : LICKS); i++) {
       if (this.lt[i] >= this.ll[i]) continue;
       const k = 1 - this.lt[i] / this.ll[i];
       const a = up + this.la[i];
@@ -444,7 +442,7 @@ class FireCore implements LookCore {
       // horns lean out a little and curl back in at the tip
       const da = up + side * 0.5;
       const flick = 0.9 + 0.1 * Math.sin(t * 11 + side * 2) + (f.calm ? 0 : 0.06 * Math.sin(t * 23 + side));
-      const l = H * (this.small ? 1.05 : 1.35) * flick;
+      const l = H * 0.85 * flick;
       this.tongue(pen, bx, by, Math.cos(da), Math.sin(da), l, 52, -side * l * 0.42, HORN, true);
       this.tongue(pen, bx, by, Math.cos(da), Math.sin(da), l * 0.8, 30, -side * l * 0.34, this.ramp[0], false);
       this.tongue(pen, bx, by, Math.cos(da), Math.sin(da), l * 0.45, 14, -side * l * 0.18, this.ramp[1], false);

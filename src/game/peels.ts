@@ -13,7 +13,7 @@
 
 import type Phaser from 'phaser';
 import { BACKDROPS, type LocationId } from '../art/backdrops';
-import { drawPeelSkin, handleFrom, headFrom, PEEL_H, PEEL_W, type CraftKind, type PeelLook, type PeelPattern, type PeelShape } from '../art/peelArt';
+import { ankleOf, drawPeelSkin, handleFrom, headFrom, primeAnkle, PEEL_H, PEEL_W, type CraftKind, type FootAnkle, type PeelLook, type PeelPattern, type PeelShape } from '../art/peelArt';
 import { paintCraftHead } from '../art/peelCraftArt';
 import { hasPlaceWindow, placeBaseAsync } from '../art/peelPlace';
 import { actPrepAsync, medalHooks } from '../art/peelMedal';
@@ -21,14 +21,14 @@ import { EVENT_SCENES } from '../art/peelEventDefs';
 import { hashStr, makeCanvas, mix, shade } from '../art/util';
 import { FOOT_FRAME, styledCanvas } from '../art/feetArt';
 import { REST, pose } from '../art/style/kit';
-import { styleFor } from '../art/style/registry';
+import { legacyArt, styleFor } from '../art/style/registry';
 import { liveDefOf } from './liveKit';
 import { FEET, FOOT_BY_ID, zombifiableType, type FootType } from '../data/feet';
 import { peelZombifier, readCanvas } from './zombieArt';
 import { ACTS, STAGES, WAVES_PER_ACT } from '../data/stages';
 import { persist, save } from '../systems/save';
 import { addCanvas, ensureFootArt, eventCanvases, footArtAsync, footArtReady, footMeta, pizzaTops } from './assets';
-import { bitmapCanvas, cachedArt, readArt, writeArt } from './artCache';
+import { bitmapCanvas, cachedArt, readArt, readArtBlobs, writeArt } from './artCache';
 import PEEL_VERSION from 'virtual:peel-version';
 import { PIZZAS, type PizzaType } from '../data/pizzas';
 import type { EventId } from './events';
@@ -133,7 +133,18 @@ const trimCache = new Map<string, FootCrop>();
 /** Room (design units) either side a redrawn foot's peel art is drawn with. */
 const WIDEN = 60;
 
-/** The foot texture cropped to its visible pixels, so the emblem fills its disc. */
+/** A foot's crop in the art cache (versioned by the peels' source too: the crop is made here). */
+const cropKey = (id: string) => `crop:${PEEL_VERSION}:${id}`;
+/** What a crop's cache entry keeps besides its image. */
+interface CropData {
+  x: number;
+  y: number;
+  ankle: FootAnkle;
+}
+
+/** The foot texture cropped to its visible pixels, so the emblem fills its disc. Made the first time it's asked for
+ * (a redraw of the foot and a read of its pixels: 25–100 ms) and saved to the art cache; footCropAsync gets it from
+ * there instead, decoded off the main thread. */
 export function footCrop(id: string): FootCrop | null {
   let out = trimCache.get(id);
   if (out) return out;
@@ -162,12 +173,54 @@ export function footCrop(id: string): FootCrop | null {
       }
   if (x1 <= x0 || y1 <= y0) out = { art: src, x: -widen, y: 0 };
   else {
-    const [c, cctx] = makeCanvas(x1 - x0 + 4, y1 - y0 + 4);
+    // (a canvas whose pixels stay on the CPU: the ankle is measured from them next, at no readback)
+    const [c, cctx] = readCanvas(x1 - x0 + 4, y1 - y0 + 4);
     cctx.drawImage(src, x0 - 2, y0 - 2, c.width, c.height, 0, 0, c.width, c.height);
     out = { art: c, x: x0 - 2 - widen, y: y0 - 2 };
+    if (!legacyArt()) {
+      const d: CropData = { x: out.x, y: out.y, ankle: ankleOf(c) };
+      writeArt(cropKey(id), [c], d, true);
+    }
   }
   trimCache.set(id, out);
   return out;
+}
+
+const cropLoads = new Map<string, Promise<void>>();
+
+/** Is this foot's crop made (footCrop is then free)? */
+export function footCropReady(id: string): boolean {
+  return trimCache.has(id);
+}
+
+/** footCrop for pages that can wait a moment (the Peel Locker): from the art cache when it has it (decoded off the
+ * main thread, with its ankle measured), otherwise made once the foot's art is in (itself from the cache where it
+ * can be). */
+export function footCropAsync(id: string): Promise<void> {
+  if (trimCache.has(id) || !FOOT_BY_ID[id]) return Promise.resolve();
+  let p = cropLoads.get(id);
+  if (!p) {
+    p = (async () => {
+      const key = cropKey(id);
+      if (!legacyArt() && cachedArt(key)) {
+        const r = await readArt(key, 1500);
+        const d = r?.data as CropData | null | undefined;
+        if (trimCache.has(id)) r?.bitmaps.forEach((b) => b.close());
+        else if (r && d && typeof d.x === 'number' && typeof d.y === 'number' && d.ankle && r.bitmaps.length === 1) {
+          const art = bitmapCanvas(r.bitmaps[0]);
+          primeAnkle(art, d.ankle);
+          trimCache.set(id, { art, x: d.x, y: d.y });
+          // (its foot's metrics are read beside it: in from the cache too, not drawn on the spot)
+          await footArtAsync(id);
+          return;
+        } else r?.bitmaps.forEach((b) => b.close());
+      }
+      await footArtAsync(id);
+      footCrop(id);
+    })().finally(() => cropLoads.delete(id));
+    cropLoads.set(id, p);
+  }
+  return p;
 }
 
 /** Hand-tuned: feet whose swinging parts grow from behind the body on a peel (a bunny slipper's ears: drawn over
@@ -223,7 +276,51 @@ function zombieEmblem(f: FootType): HTMLCanvasElement | null {
   const sTex = f.scale * footMeta[f.id].textures.res;
   z(c, (crop.x / sTex) - FOOT_FRAME.padX, (crop.y / sTex) - FOOT_FRAME.padY, sTex);
   zombieCache.set(f.id, c);
+  if (!legacyArt()) writeArt(zombieKey(f.id), [c], { ankle: ankleOf(c) }, true);
   return c;
+}
+
+/** A zombified foot's emblem in the art cache (the rot is 20–60 ms a foot). */
+const zombieKey = (id: string) => `zemb:${PEEL_VERSION}:${id}`;
+const zombieLoads = new Map<string, Promise<void>>();
+
+/** zombieEmblem for pages that can wait (the Peel Locker): from the art cache when it has it, with its ankle
+ * measured; otherwise its foot's crop first (from the cache too), and the rot made then. */
+export function zombieEmblemAsync(id: string): Promise<void> {
+  const f = FOOT_BY_ID[id];
+  if (!f || zombieCache.has(id)) return Promise.resolve();
+  let p = zombieLoads.get(id);
+  if (!p) {
+    p = (async () => {
+      await footCropAsync(id);
+      const key = zombieKey(id);
+      if (zombieCache.has(id) || legacyArt() || !cachedArt(key)) return;
+      const r = await readArt(key, 1500);
+      const d = r?.data as { ankle?: FootAnkle } | null | undefined;
+      if (r && !zombieCache.has(id) && d?.ankle && r.bitmaps.length === 1) {
+        const art = bitmapCanvas(r.bitmaps[0]);
+        primeAnkle(art, d.ankle);
+        zombieCache.set(id, art);
+      } else r?.bitmaps.forEach((b) => b.close());
+    })().finally(() => zombieLoads.delete(id));
+    zombieLoads.set(id, p);
+  }
+  return p;
+}
+
+/** Everything a foot-based peel's look needs (its foot's crop; a zombified one's rot), loaded ahead where it can
+ * be: drawing it is then quick. */
+export function footPeelReady(peelId: string): Promise<void> {
+  const fid = peelFootId(peelId);
+  if (!fid) return Promise.resolve();
+  return PEEL_BY_ID[peelId]?.zombie ? zombieEmblemAsync(fid) : footCropAsync(fid);
+}
+
+/** Is everything footPeelReady loads in? */
+export function footPeelIsReady(peelId: string): boolean {
+  const fid = peelFootId(peelId);
+  if (!fid) return true;
+  return PEEL_BY_ID[peelId]?.zombie ? zombieCache.has(fid) : footCropReady(fid);
 }
 
 const glowCache = new Map<string, { art: HTMLCanvasElement; a: number } | null>();
@@ -289,6 +386,22 @@ function zombieFootLook(f: FootType): PeelLook {
   };
 }
 
+/** Hand-tuned: places on a foot's peel its pattern keeps off, as design-space ellipses [x, y, rx, ry] (the Immortal
+ * Brute's great eye and its lids: stars over it read as dirt). */
+const PATTERN_HOLES: Record<string, [number, number, number, number][]> = {
+  immortalbrute: [[110, 106, 64, 50]],
+};
+
+/** A foot's pattern holes in its peel art's pixels. */
+function patternHoles(f: FootType): [number, number, number, number][] | undefined {
+  const holes = PATTERN_HOLES[f.id];
+  const crop = holes && footCrop(f.id);
+  if (!holes || !crop) return undefined;
+  const s = f.scale * footMeta[f.id].textures.res;
+  const widen = styleFor(f.id) ? WIDEN : 0;
+  return holes.map(([x, y, rx, ry]) => [(x + FOOT_FRAME.padX + widen) * s - (crop.x + widen * s), (y + FOOT_FRAME.padY) * s - crop.y, rx * s, ry * s]);
+}
+
 function footLook(f: FootType, shiny: boolean): PeelLook {
   const a = f.art;
   const h = hashStr(f.id);
@@ -311,6 +424,7 @@ function footLook(f: FootType, shiny: boolean): PeelLook {
     footArt: footEmblem(f.id) as HTMLCanvasElement | null,
     footGlow: footGlow(f),
     footUpright: UPRIGHT.has(f.id),
+    patternHoles: patternHoles(f),
     studs: f.boss ? '#ffd23f' : f.mini ? '#d7dde6' : undefined,
     metal: !!a.gold || a.leg === 'armor',
     shiny,
@@ -843,20 +957,18 @@ export async function peelThumbAsync(id: string, h = 180): Promise<string> {
   if (have) return have;
   const key = thumbKey(id, h);
   if (cachedArt(key)) {
-    const r = await readArt(key, 1500);
+    // the saved PNG itself, as a blob URL (kept for the session, as the data URLs are)
+    const b = await readArtBlobs(key);
     const got = thumbCache.get(k);
-    if (got) {
-      r?.bitmaps.forEach((b) => b.close());
-      return got;
-    }
-    if (r) {
-      const url = bitmapCanvas(r.bitmaps[0]).toDataURL('image/png');
+    if (got) return got;
+    if (b?.[0]?.size) {
+      const url = URL.createObjectURL(b[0]);
       thumbCache.set(k, url);
       return url;
     }
   }
   const fid = peelFootId(id);
-  if (fid) await footArtAsync(fid);
+  if (fid) await footPeelReady(id);
   await placePeelReady(id);
   return peelThumbURL(id, h);
 }

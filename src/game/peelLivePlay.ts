@@ -141,7 +141,15 @@ export function playPeelLive(id: string, h: LookHost): LookFx | null {
     const l = p.frames[f];
     const key = keys.parts[i][f];
     if (p.kind === 'sway') tex!.stamp(key, undefined, p.px, p.py, { originX: (p.px - l.x) / l.w, originY: (p.py - l.y) / l.h, rotation: L.prot[i], scale: 1 / r.RR, skipBatch: true });
-    else tex!.stamp(key, undefined, l.x + L.pox[i], l.y + L.poy[i], { originX: 0, originY: 0, scale: 1 / r.RR, skipBatch: true });
+    else {
+      tex!.stamp(key, undefined, l.x + L.pox[i], l.y + L.poy[i], { originX: 0, originY: 0, scale: 1 / r.RR, skipBatch: true });
+      // (a def's cross-fade to its next frame: drawPeelBody)
+      const f2 = Math.max(0, Math.min(p.frames.length - 1, L.pf2[i]));
+      if (L.pmix[i] > 0.01 && f2 !== f) {
+        const l2 = p.frames[f2];
+        tex!.stamp(keys.parts[i][f2], undefined, l2.x + L.pox[i], l2.y + L.poy[i], { originX: 0, originY: 0, scale: 1 / r.RR, skipBatch: true, alpha: L.pmix[i] });
+      }
+    }
   };
 
   const effects = () => {
