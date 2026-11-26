@@ -2766,11 +2766,59 @@
   },
   {
     "file": "ambience_jotunheim.mp3",
-    "title": "Original synthesized ambience",
-    "author": "Made for Feetza",
+    "title": "mountain wind heavy strong gusts Swiss Alps.flac",
+    "author": "kyles (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Jotunheim Ice Fields: howling glacier wind, creaking ice and the distant groans of the ice; synthesized with Python and ffmpeg (scripts/act8-sfx/ambience.py), 50 s crossfaded loop"
+    "url": "https://freesound.org/people/kyles/sounds/454092/",
+    "notes": "Jotunheim Ice Fields: howling glacier wind, creaking ice and the distant groans of the ice; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a heavy mountain gale in the Swiss Alps and wind howling over a mountain top for the glacier wind, a frozen lake's ice cracking and booming, lower, for the distant groans of the ice, and ice crackling under pressure now and then; 50 s crossfaded loop. This source: the gale; trimmed, levelled and layered into a 50 s crossfaded loop"
+  },
+  {
+    "file": "ambience_jotunheim.mp3",
+    "title": "Wind blowing into some cactus spine, on the top of the mountain, in the desert of Atacama (Chile).",
+    "author": "felix.blume (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/felix.blume/sounds/156414/",
+    "notes": "Jotunheim Ice Fields: howling glacier wind, creaking ice and the distant groans of the ice: the howling wind; trimmed, levelled and layered into a 50 s crossfaded loop"
+  },
+  {
+    "file": "ambience_jotunheim.mp3",
+    "title": "Ice - Lake fractures",
+    "author": "Vrymaa (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Vrymaa/sounds/737896/",
+    "notes": "Jotunheim Ice Fields: howling glacier wind, creaking ice and the distant groans of the ice: the lake ice's groans, lower; trimmed, pitch-shifted, levelled and layered into a 50 s crossfaded loop"
+  },
+  {
+    "file": "ambience_jotunheim.mp3",
+    "title": "Ice crackles under pressure",
+    "author": "Wigglesworth (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Wigglesworth/sounds/838106/",
+    "notes": "Jotunheim Ice Fields: howling glacier wind, creaking ice and the distant groans of the ice: the ice crackling; trimmed, pitch-shifted, levelled and layered into a 50 s crossfaded loop"
+  },
+  {
+    "file": "ambience_bifrost.mp3",
+    "title": "mountain wind heavy strong gusts Swiss Alps.flac",
+    "author": "kyles (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/kyles/sounds/454092/",
+    "notes": "Bifröst Bridge: thin high-altitude wind, a soft crystalline shimmer, distant rolling thunder and faint crackling fire; built from real recordings with ffmpeg (scripts/real-sfx/build.py): real thin high wind and two distant thunders over the old synthesized bed, the thunders where its own roll; 50 s crossfaded loop. This source: the high wind (a mountain gale, high-passed and pitched up); trimmed, pitch-shifted, levelled and layered into a 50 s crossfaded loop"
+  },
+  {
+    "file": "ambience_bifrost.mp3",
+    "title": "Distant Thunder 3",
+    "author": "Fission9 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Fission9/sounds/581124/",
+    "notes": "Bifröst Bridge: thin high-altitude wind, a soft crystalline shimmer, distant rolling thunder and faint crackling fire: the first thunder; trimmed, pitch-shifted, levelled and layered into a 50 s crossfaded loop"
+  },
+  {
+    "file": "ambience_bifrost.mp3",
+    "title": "Distant thunder in suburban area",
+    "author": "csengeri (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/csengeri/sounds/238743/",
+    "notes": "Bifröst Bridge: thin high-altitude wind, a soft crystalline shimmer, distant rolling thunder and faint crackling fire: the second thunder (low-passed); trimmed, pitch-shifted, levelled and layered into a 50 s crossfaded loop"
   },
   {
     "file": "ambience_bifrost.mp3",
@@ -2778,7 +2826,7 @@
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Bifröst Bridge: thin high-altitude wind, a soft crystalline shimmer, distant rolling thunder and faint crackling fire; synthesized with Python and ffmpeg (scripts/act8-sfx/ambience.py), 50 s crossfaded loop"
+    "notes": "Bifröst Bridge: thin high-altitude wind, a soft crystalline shimmer, distant rolling thunder and faint crackling fire: the old synthesized version, of which all is kept (its shimmer, thin wind, thunder and fire), the real recordings layered with it; synthesized with Python and ffmpeg (scripts/act8-sfx/ambience.py), 50 s crossfaded loop"
   },
   {
     "file": "sfx_fenrir_strain.mp3",
@@ -2798,11 +2846,11 @@
   },
   {
     "file": "sfx_fenrir_howl.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Howling wolves",
+    "author": "Kingcornz (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Fenrir's Paw: wolf howl (entrance, loose); a synthesized wolf howl, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/Kingcornz/sounds/378334/",
+    "notes": "Fenrir's Paw: wolf howl (entrance, loose); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a real wolf's howl, pitched down for a giant wolf, with the same howl an octave under it. This source: the howl; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_fenrir_pounce.mp3",
@@ -2838,11 +2886,19 @@
   },
   {
     "file": "sfx_fenrir_death.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Malinois Dog Whining",
+    "author": "qubodup (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Fenrir's Paw: whimpering howl (death); a synthesized whimpering howl, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/qubodup/sounds/752093/",
+    "notes": "Fenrir's Paw: whimpering howl (death); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a dog whimpering, then a wolf's howl falling away, both pitched down. This source: the whimper; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_fenrir_death.mp3",
+    "title": "Howling wolves",
+    "author": "Kingcornz (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Kingcornz/sounds/378334/",
+    "notes": "Fenrir's Paw: whimpering howl (death): the falling howl; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_thrym_enter.mp3",
@@ -2910,11 +2966,19 @@
   },
   {
     "file": "sfx_thrym_blizzard.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "mountain wind heavy strong gusts Swiss Alps.flac",
+    "author": "kyles (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Thrym the Frost King: blizzard gust; a synthesized wind gust, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/kyles/sounds/454092/",
+    "notes": "Thrym the Frost King: blizzard gust; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a heavy mountain gale, pitched up and brightened, and wind howling over a mountain top, swelling and dying away. This source: the gale; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_thrym_blizzard.mp3",
+    "title": "Wind blowing into some cactus spine, on the top of the mountain, in the desert of Atacama (Chile).",
+    "author": "felix.blume (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/felix.blume/sounds/156414/",
+    "notes": "Thrym the Frost King: blizzard gust: the howl; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_thrym_hail.mp3",
@@ -2926,11 +2990,19 @@
   },
   {
     "file": "sfx_thrym_spread.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Ice crackles under pressure",
+    "author": "Wigglesworth (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Thrym the Frost King: ice creeps to the next pizza; a synthesized creeping crackle, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/Wigglesworth/sounds/838106/",
+    "notes": "Thrym the Frost King: ice creeps to the next pizza; built from real recordings with ffmpeg (scripts/real-sfx/build.py): ice crackling under pressure and ice cracking as it melts, creeping up. This source: the crackle; trimmed and layered"
+  },
+  {
+    "file": "sfx_thrym_spread.mp3",
+    "title": "Ice Crack 3",
+    "author": "j_p_higgins (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/j_p_higgins/sounds/262633/",
+    "notes": "Thrym the Frost King: ice creeps to the next pizza: the cracks; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_thrym_death.mp3",
@@ -2942,27 +3014,67 @@
   },
   {
     "file": "sfx_jormungandr_enter.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Crashing Waves into Rocks 1",
+    "author": "amholma (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Jörmungandr: deep sea surge (entrance); a synthesized sea surge and roar, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/amholma/sounds/376799/",
+    "notes": "Jörmungandr: deep sea surge (entrance); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a big wave crashing on rocks and the sea surging under water, pitched down, with a lion's roar far lower under them. This source: the wave; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_jormungandr_enter.mp3",
+    "title": "Sea waves underwater, back and forth, close to the rocks with water bubbles",
+    "author": "felix.blume (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/felix.blume/sounds/705058/",
+    "notes": "Jörmungandr: deep sea surge (entrance): the surge (an underwater recording); trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_jormungandr_enter.mp3",
+    "title": "Lions Roaring 2",
+    "author": "Filmscore (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Filmscore/sounds/869003/",
+    "notes": "Jörmungandr: deep sea surge (entrance): the roar; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_jormungandr_surface.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Sea waves underwater, back and forth, close to the rocks with water bubbles",
+    "author": "felix.blume (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Jörmungandr: the head rises from the water; a synthesized water surge, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/felix.blume/sounds/705058/",
+    "notes": "Jörmungandr: the head rises from the water; built from real recordings with ffmpeg (scripts/real-sfx/build.py): the sea surging up and a wave breaking, then water falling back (a rock's splash, lower). This source: the surge (an underwater recording); trimmed and layered"
+  },
+  {
+    "file": "sfx_jormungandr_surface.mp3",
+    "title": "Crashing Waves into Rocks 1",
+    "author": "amholma (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/amholma/sounds/376799/",
+    "notes": "Jörmungandr: the head rises from the water: the wave; trimmed and layered"
+  },
+  {
+    "file": "sfx_jormungandr_surface.mp3",
+    "title": "Rock Splash",
+    "author": "Fission9 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Fission9/sounds/583348/",
+    "notes": "Jörmungandr: the head rises from the water: the water falling back; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_jormungandr_hiss.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Angry snake hissing. OWI.wav",
+    "author": "JesterWhoo (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Jörmungandr: serpent hiss (tell); a synthesized serpent hiss, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/JesterWhoo/sounds/706977/",
+    "notes": "Jörmungandr: serpent hiss (tell); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a real snake's angry hiss with a cat's hiss under it, both pitched down. This source: the snake; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_jormungandr_hiss.mp3",
+    "title": "catHisses1.wav",
+    "author": "Zabuhailo (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Zabuhailo/sounds/146963/",
+    "notes": "Jörmungandr: serpent hiss (tell): the cat; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_jormungandr_bite.mp3",
@@ -3054,11 +3166,27 @@
   },
   {
     "file": "sfx_surtr_fuse.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "fire-whoosh.wav",
+    "author": "hnhnh (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Surtr: fire runs along the bridge; a synthesized running fire, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/hnhnh/sounds/244926/",
+    "notes": "Surtr: fire runs along the bridge; built from real recordings with ffmpeg (scripts/real-sfx/build.py): diesel thrown on a fire and gas flames bursting along it, held steady. This source: the fire; trimmed and layered"
+  },
+  {
+    "file": "sfx_surtr_fuse.mp3",
+    "title": "flame burst ignite bbq barbecue.flac",
+    "author": "kyles (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/kyles/sounds/637533/",
+    "notes": "Surtr: fire runs along the bridge: the flames bursting; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_surtr_raise.mp3",
+    "title": "fire-whoosh.wav",
+    "author": "hnhnh (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/hnhnh/sounds/244926/",
+    "notes": "Surtr: sword raised (riser, tell); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a real fire swelling up under the old synthesized riser. This source: the fire; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_surtr_raise.mp3",
@@ -3066,7 +3194,7 @@
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Surtr: sword raised (riser, tell); a synthesized rising riser and flame swell, made with ffmpeg and Python and released as CC0"
+    "notes": "Surtr: sword raised (riser, tell): the old synthesized version, of which all is kept, the real recordings layered with it; a synthesized rising riser and flame swell, made with ffmpeg and Python and released as CC0"
   },
   {
     "file": "sfx_surtr_window.mp3",
@@ -3094,11 +3222,19 @@
   },
   {
     "file": "sfx_surtr_roar.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Lions Roaring 2",
+    "author": "Filmscore (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Surtr: giant roar; a synthesized giant roar, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/Filmscore/sounds/869003/",
+    "notes": "Surtr: giant roar; built from real recordings with ffmpeg (scripts/real-sfx/build.py): caged lions roaring, pitched down, with fire under them. This source: the roars; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_surtr_roar.mp3",
+    "title": "fire-whoosh.wav",
+    "author": "hnhnh (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/hnhnh/sounds/244926/",
+    "notes": "Surtr: giant roar: the fire; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_surtr_death.mp3",
@@ -3110,11 +3246,27 @@
   },
   {
     "file": "sfx_frostchill.mp3",
+    "title": "Ice crackles under pressure",
+    "author": "Wigglesworth (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Wigglesworth/sounds/838106/",
+    "notes": "Frost Giant Toes: frost creeps over a pizza; built from real recordings with ffmpeg (scripts/real-sfx/build.py): ice crackling and a crack under the old synthesized frost shimmer. This source: the crackle; trimmed and layered"
+  },
+  {
+    "file": "sfx_frostchill.mp3",
+    "title": "Ice Crack 1",
+    "author": "j_p_higgins (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/j_p_higgins/sounds/262635/",
+    "notes": "Frost Giant Toes: frost creeps over a pizza: the crack; trimmed and layered"
+  },
+  {
+    "file": "sfx_frostchill.mp3",
     "title": "Original synthesized sound",
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Frost Giant Toes: frost creeps over a pizza; a synthesized frost creep shimmer, made with ffmpeg and Python and released as CC0"
+    "notes": "Frost Giant Toes: frost creeps over a pizza: the old synthesized version, of which all is kept, the real recordings layered with it; a synthesized frost creep shimmer, made with ffmpeg and Python and released as CC0"
   },
   {
     "file": "sfx_trollstone.mp3",
@@ -3838,19 +3990,67 @@
   },
   {
     "file": "sfx_minotaur_bellow.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "ANMLFarm_Kuh-Bulle-Agressiv 12_IOKA_NONE_Hofefeld.wav",
+    "author": "JakobGille (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "The Minotaur: bull bellow (entrance and phase roar); a synthesized bull bellow (pitched-down formant voice) and chest rumble, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactSoft_heavy_002 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/JakobGille/sounds/610794/",
+    "notes": "The Minotaur: bull bellow (entrance and phase roar); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a real bull bellowing, pitched down, a second bull lower still, and a horse's snort to end it. This source: the bellow; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_minotaur_bellow.mp3",
+    "title": "ANMLFarm_Kuh-Bulle-Agressiv 21_IOKA_NONE_Hofefeld.wav",
+    "author": "JakobGille (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/JakobGille/sounds/610789/",
+    "notes": "The Minotaur: bull bellow (entrance and phase roar): the second bull; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_minotaur_bellow.mp3",
+    "title": "Horse(snort)_1.wav",
+    "author": "o_ciz (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/o_ciz/sounds/475480/",
+    "notes": "The Minotaur: bull bellow (entrance and phase roar): the snort; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_minotaur_snort.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Horse(snort)_1.wav",
+    "author": "o_ciz (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "The Minotaur: pawing and steam snort (tell); synthesized steam snorts and a hoof scrape, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds footstep_concrete_002, footstep_concrete_004 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/o_ciz/sounds/475480/",
+    "notes": "The Minotaur: pawing and steam snort (tell); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a horse snorting twice, pitched down, then a hoof scraping stone (granite on granite) and hooves striking stone. This source: the first snort; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_minotaur_snort.mp3",
+    "title": "Horse(snort)_2.wav",
+    "author": "o_ciz (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/o_ciz/sounds/475479/",
+    "notes": "The Minotaur: pawing and steam snort (tell): the second snort; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_minotaur_snort.mp3",
+    "title": "Stone,Block,Drag,Wood,Grind.wav",
+    "author": "Mediaman57 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Mediaman57/sounds/347149/",
+    "notes": "The Minotaur: pawing and steam snort (tell): the scrape; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_minotaur_snort.mp3",
+    "title": "clatter of hooves.wav",
+    "author": "specrad1 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/specrad1/sounds/571296/",
+    "notes": "The Minotaur: pawing and steam snort (tell): the hooves; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_minotaur_charge.mp3",
+    "title": "clatter of hooves.wav",
+    "author": "specrad1 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/specrad1/sounds/571296/",
+    "notes": "The Minotaur: hooves thunder into a charge; built from real recordings with ffmpeg (scripts/real-sfx/build.py): real hooves striking stone, pitched down, on each beat of the old synthesized gallop. This source: the hooves; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_minotaur_charge.mp3",
@@ -3858,7 +4058,7 @@
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "The Minotaur: hooves thunder into a charge; synthesized galloping hoof thunder, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds footstep_concrete_000, footstep_concrete_001, footstep_concrete_002, footstep_concrete_003, footstep_concrete_004 (CC0, kenney.nl)"
+    "notes": "The Minotaur: hooves thunder into a charge: the old synthesized version, of which all is kept, the real recordings layered with it; synthesized galloping hoof thunder, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds footstep_concrete_000, footstep_concrete_001, footstep_concrete_002, footstep_concrete_003, footstep_concrete_004 (CC0, kenney.nl)"
   },
   {
     "file": "sfx_minotaur_gore.mp3",
@@ -3878,11 +4078,36 @@
   },
   {
     "file": "sfx_minotaur_walls.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "stone1.wav",
+    "author": "novino (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "The Minotaur: maze walls grind and shift; synthesized heavy stone blocks grinding into place, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactMining_004 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/novino/sounds/52603/",
+    "notes": "The Minotaur: maze walls grind and shift; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a concrete block dragged and granite grinding on granite, pitched down, settling with a thud (a stamp, far lower). This source: the block; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_minotaur_walls.mp3",
+    "title": "Stone,Block,Drag,Wood,Grind.wav",
+    "author": "Mediaman57 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Mediaman57/sounds/347149/",
+    "notes": "The Minotaur: maze walls grind and shift: the grind; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_minotaur_walls.mp3",
+    "title": "Foot Stomp C.wav",
+    "author": "patchen (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/patchen/sounds/20185/",
+    "notes": "The Minotaur: maze walls grind and shift: the thud; trimmed, pitch-shifted and layered",
+    "attribution": "\"Foot Stomp C.wav\" by patchen (freesound.org), https://freesound.org/people/patchen/sounds/20185/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_medusa_glow.mp3",
+    "title": "Angry snake hissing. OWI.wav",
+    "author": "JesterWhoo (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/JesterWhoo/sounds/706977/",
+    "notes": "Medusa: eyes glow (tell); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a real snake's hiss rising under the old synthesized shimmer. This source: the hiss; trimmed and layered"
   },
   {
     "file": "sfx_medusa_glow.mp3",
@@ -3890,15 +4115,31 @@
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Medusa: eyes glow (tell); a synthesized eerie rising shimmer and a snake hiss, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds forceField_002 (CC0, kenney.nl)"
+    "notes": "Medusa: eyes glow (tell): the old synthesized version, of which all is kept, the real recordings layered with it; a synthesized eerie rising shimmer and a snake hiss, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds forceField_002 (CC0, kenney.nl)"
   },
   {
     "file": "sfx_medusa_petrify.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "stone1.wav",
+    "author": "novino (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Medusa: a pizza turns to stone; synthesized stone grinding over a crackle of frost-like grit, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactMining_002 and Sci-fi Sounds forceField_004 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/novino/sounds/52603/",
+    "notes": "Medusa: a pizza turns to stone; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a concrete block grinding, rock crumbling for the grit, and granite scraping as it sets. This source: the grind; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_medusa_petrify.mp3",
+    "title": "PiedraDesmoronandose.wav",
+    "author": "Trancox (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Trancox/sounds/391919/",
+    "notes": "Medusa: a pizza turns to stone: the grit; trimmed and layered"
+  },
+  {
+    "file": "sfx_medusa_petrify.mp3",
+    "title": "Stone,Block,Drag,Wood,Grind.wav",
+    "author": "Mediaman57 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Mediaman57/sounds/347149/",
+    "notes": "Medusa: a pizza turns to stone: the scrape; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_medusa_crack.mp3",
@@ -3942,11 +4183,27 @@
   },
   {
     "file": "sfx_medusa_hiss.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Angry snake hissing. OWI.wav",
+    "author": "JesterWhoo (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Medusa: snakes hiss; synthesized layered snake hisses and a rattle, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/JesterWhoo/sounds/706977/",
+    "notes": "Medusa: snakes hiss; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a real snake's hiss, a cat's hiss a little higher and a rattlesnake's rattle. This source: the snake; trimmed and layered"
+  },
+  {
+    "file": "sfx_medusa_hiss.mp3",
+    "title": "catHisses.wav",
+    "author": "Zabuhailo (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Zabuhailo/sounds/146960/",
+    "notes": "Medusa: snakes hiss: the cat; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_medusa_hiss.mp3",
+    "title": "Reptiles - Snake; Timber Rattlesnake, Rattle, Close Perspective",
+    "author": "TheKingOfGeeks360 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/TheKingOfGeeks360/sounds/855914/",
+    "notes": "Medusa: snakes hiss: the rattle; trimmed and layered"
   },
   {
     "file": "sfx_medusa_gaze.mp3",
@@ -3958,27 +4215,76 @@
   },
   {
     "file": "sfx_cerberus_bark.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Large Dog Barking",
+    "author": "Sheyvan (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Cerberus: triple bark (entrance); three synthesized barks at three pitches and a growl, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/Sheyvan/sounds/522921/",
+    "notes": "Cerberus: triple bark (entrance); built from real recordings with ffmpeg (scripts/real-sfx/build.py): two large dogs barking, three barks at three pitches, with a growl under them. This source: the first and third barks; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_cerberus_bark.mp3",
+    "title": "Dog Bark 9",
+    "author": "AleXZavesa (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/AleXZavesa/sounds/853723/",
+    "notes": "Cerberus: triple bark (entrance): the second bark; trimmed, pitch-shifted and layered",
+    "attribution": "\"Dog Bark 9\" by AleXZavesa (freesound.org), https://freesound.org/people/AleXZavesa/sounds/853723/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_cerberus_bark.mp3",
+    "title": "Animal Dog Growl 01.wav",
+    "author": "abhisheky948 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/abhisheky948/sounds/625500/",
+    "notes": "Cerberus: triple bark (entrance): the growl; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_cerberus_growl.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Low dog growl",
+    "author": "randbsoundbites (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Cerberus: triple growl (tell); a synthesized triple-throat growl, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/randbsoundbites/sounds/829986/",
+    "notes": "Cerberus: triple growl (tell); built from real recordings with ffmpeg (scripts/real-sfx/build.py): two dogs' low growls, one doubled far lower: three throats. This source: the low growl, twice; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_cerberus_growl.mp3",
+    "title": "Animal Dog Growl 01.wav",
+    "author": "abhisheky948 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/abhisheky948/sounds/625500/",
+    "notes": "Cerberus: triple growl (tell): the second growl; trimmed and layered"
   },
   {
     "file": "sfx_cerberus_fire.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "fire-whoosh.wav",
+    "author": "hnhnh (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Cerberus: fire breath; a synthesized fire-breath roar, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds thrusterFire_001 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/hnhnh/sounds/244926/",
+    "notes": "Cerberus: fire breath; built from real recordings with ffmpeg (scripts/real-sfx/build.py): diesel flaring up on a fire and a burst of gas flame, with a snarl behind them. This source: the fire; trimmed and layered"
+  },
+  {
+    "file": "sfx_cerberus_fire.mp3",
+    "title": "Fire Burst Flash",
+    "author": "Za-Games (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Za-Games/sounds/539972/",
+    "notes": "Cerberus: fire breath: the burst; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_cerberus_fire.mp3",
+    "title": "Low dog growl",
+    "author": "randbsoundbites (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/randbsoundbites/sounds/829986/",
+    "notes": "Cerberus: fire breath: the snarl; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_cerberus_ice.mp3",
+    "title": "Ice Crack 1",
+    "author": "j_p_higgins (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/j_p_higgins/sounds/262635/",
+    "notes": "Cerberus: frost blast; built from real recordings with ffmpeg (scripts/real-sfx/build.py): real ice cracking under the old synthesized frost blast. This source: the crack; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_cerberus_ice.mp3",
@@ -3986,7 +4292,7 @@
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Cerberus: frost blast; a synthesized frost blast and crystal tinkle, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactGlass_medium_003 (CC0, kenney.nl)"
+    "notes": "Cerberus: frost blast: the old synthesized version, of which all is kept, the real recordings layered with it; a synthesized frost blast and crystal tinkle, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactGlass_medium_003 (CC0, kenney.nl)"
   },
   {
     "file": "sfx_cerberus_poison.mp3",
@@ -3998,19 +4304,35 @@
   },
   {
     "file": "sfx_cerberus_howl.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "bsperan-&-pete668__Jake_the_Puppy__pup.wav",
+    "author": "bsperan (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Cerberus: a head beaten, the others go wild; synthesized two-voice howls rising over a yelp, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/bsperan/sounds/110816/",
+    "notes": "Cerberus: a head beaten, the others go wild; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a puppy's yelp, pitched down, then a wolf's howl, doubled a little higher. This source: the yelp; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_cerberus_howl.mp3",
+    "title": "Howling wolves",
+    "author": "Kingcornz (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Kingcornz/sounds/378334/",
+    "notes": "Cerberus: a head beaten, the others go wild: the howls; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_hades_toll.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "TollBell.wav",
+    "author": "daytripper (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Hades and the Titans: death bell (entrance); a synthesized deep funeral bell toll, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactBell_heavy_003 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/daytripper/sounds/73678/",
+    "notes": "Hades and the Titans: death bell (entrance); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a very large bell struck, pitched down, with its hum doubled deeper. This source: the bell; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hades_rise.mp3",
+    "title": "RATTLING CHAIN.wav",
+    "author": "genel (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/genel/sounds/611669/",
+    "notes": "Hades and the Titans: a Titan rises from the floor; built from real recordings with ffmpeg (scripts/real-sfx/build.py): heavy chains rattling, pitched down, under the old synthesized rumble as the chains snap. This source: the chains; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_hades_rise.mp3",
@@ -4018,7 +4340,7 @@
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Hades and the Titans: a Titan rises from the floor; a synthesized earth-splitting rumble and chains snapping, made with ffmpeg and Python and released as CC0, layered with Kenney RPG Audio metalLatch and Impact Sounds impactMetal_light_003, impactMetal_heavy_003 and Sci-fi Sounds lowFrequency_explosion_001 (CC0, kenney.nl)"
+    "notes": "Hades and the Titans: a Titan rises from the floor: the old synthesized version, of which all is kept, the real recordings layered with it; a synthesized earth-splitting rumble and chains snapping, made with ffmpeg and Python and released as CC0, layered with Kenney RPG Audio metalLatch and Impact Sounds impactMetal_light_003, impactMetal_heavy_003 and Sci-fi Sounds lowFrequency_explosion_001 (CC0, kenney.nl)"
   },
   {
     "file": "sfx_hades_chains.mp3",
@@ -4062,11 +4384,19 @@
   },
   {
     "file": "sfx_hades_slide.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "plate slide over table.wav",
+    "author": "hinzebeat (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Hades and the Titans: pizzas slide; a synthesized plates-sliding scrape, made with ffmpeg and Python and released as CC0, layered with Kenney Casino Audio card-slide-3 and Impact Sounds impactPlate_light_003 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/hinzebeat/sounds/275584/",
+    "notes": "Hades and the Titans: pizzas slide; built from real recordings with ffmpeg (scripts/real-sfx/build.py): two plates sliding over a table, held on as they scrape along. This source: the plates; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hades_flare.mp3",
+    "title": "Fire Explosion",
+    "author": "qubodup (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/qubodup/sounds/855898/",
+    "notes": "Hades and the Titans: Hyperion solar flare; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a fireball, pitched down, as the old synthesized solar flare lands. This source: the fireball; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_hades_flare.mp3",
@@ -4074,7 +4404,7 @@
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Hades and the Titans: Hyperion solar flare; a synthesized solar-flare whoosh and roar, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds thrusterFire_003 (CC0, kenney.nl)"
+    "notes": "Hades and the Titans: Hyperion solar flare: the old synthesized version, of which all is kept, the real recordings layered with it; a synthesized solar-flare whoosh and roar, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds thrusterFire_003 (CC0, kenney.nl)"
   },
   {
     "file": "sfx_hades_douse.mp3",
@@ -4110,19 +4440,37 @@
   },
   {
     "file": "sfx_sirensong.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
-    "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Act 9 feet and events: Siren Slippers sing, sits under; a synthesized wordless siren phrase, made with ffmpeg and Python and released as CC0"
+    "title": "tiny wordless female vocal",
+    "author": "womb_affliction / Katarina Rose (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/womb_affliction/sounds/462870/",
+    "notes": "Act 9 feet and events: Siren Slippers sing, sits under; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a woman singing a wordless phrase, a little higher, doubled a third above for two sirens, in a soft hall. This source: the voice; trimmed, pitch-shifted and layered",
+    "attribution": "\"tiny wordless female vocal\" by womb_affliction / Katarina Rose (freesound.org), https://freesound.org/people/womb_affliction/sounds/462870/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
   },
   {
     "file": "sfx_harpy.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Bird, Peacock Call",
+    "author": "Kinoton (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Act 9 feet and events: Harpy Talons screech and flap; a synthesized harpy screech and wing flaps, made with ffmpeg and Python and released as CC0, layered with Kenney RPG Audio cloth1, cloth2, cloth3, cloth4 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/Kinoton/sounds/688203/",
+    "notes": "Act 9 feet and events: Harpy Talons screech and flap; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a peacock's call, pitched up, a red kite's territorial call and a duck flapping its wings. This source: the screech; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_harpy.mp3",
+    "title": "Birds of Prey: Red Kite, loud territorial call",
+    "author": "MichiJung (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/MichiJung/sounds/868738/",
+    "notes": "Act 9 feet and events: Harpy Talons screech and flap: the second call; trimmed and layered",
+    "attribution": "\"Birds of Prey: Red Kite, loud territorial call\" by MichiJung (freesound.org), https://freesound.org/people/MichiJung/sounds/868738/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed and layered into this sound"
+  },
+  {
+    "file": "sfx_harpy.mp3",
+    "title": "Duck Flapping Wings",
+    "author": "OwennewO (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/OwennewO/sounds/719107/",
+    "notes": "Act 9 feet and events: Harpy Talons screech and flap: the wings; trimmed and layered"
   },
   {
     "file": "sfx_eyepoke.mp3",
@@ -4134,19 +4482,43 @@
   },
   {
     "file": "sfx_whirlpool.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Storm Drain.wav",
+    "author": "RoofDog (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Act 9 feet and events: Charybdis whirlpool opens; a synthesized swirling whirlpool roar, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds forceField_001 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/RoofDog/sounds/79873/",
+    "notes": "Act 9 feet and events: Charybdis whirlpool opens; built from real recordings with ffmpeg (scripts/real-sfx/build.py): rain rushing down a storm drain, far lower, and the sea surging under water. This source: the drain; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_whirlpool.mp3",
+    "title": "Sea waves underwater, back and forth, close to the rocks with water bubbles",
+    "author": "felix.blume (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/felix.blume/sounds/705058/",
+    "notes": "Act 9 feet and events: Charybdis whirlpool opens: the surge (an underwater recording); trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_gulp.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Gulp - Hard Swallow",
+    "author": "magnuswaker (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Act 9 feet and events: Charybdis swallows; a synthesized deep watery gulp, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds slime_001 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/magnuswaker/sounds/531755/",
+    "notes": "Act 9 feet and events: Charybdis swallows; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a hard swallow far lower and slower, a gulp, and water churning. This source: the swallow; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_gulp.mp3",
+    "title": "Swallow Gulp Sound",
+    "author": "haus.the.child (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/haus.the.child/sounds/829847/",
+    "notes": "Act 9 feet and events: Charybdis swallows: the gulp; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_gulp.mp3",
+    "title": "Sea waves underwater, back and forth, close to the rocks with water bubbles",
+    "author": "felix.blume (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/felix.blume/sounds/705058/",
+    "notes": "Act 9 feet and events: Charybdis swallows: the water; trimmed and layered"
   },
   {
     "file": "music_oven.mp3",
@@ -8633,11 +9005,20 @@
   },
   {
     "file": "sfx_wolfpupyip.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Small Dog Bark 02",
+    "author": "noctaro (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/noctaro/sounds/242413/",
+    "notes": "Wolf-Pup Paws: the litter yips as it arrives; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a small dog's yips and a puppy's yelp, four of them in a row. This source: the yips; trimmed, pitch-shifted and layered",
+    "attribution": "\"Small Dog Bark 02\" by noctaro (freesound.org), https://freesound.org/people/noctaro/sounds/242413/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_wolfpupyip.mp3",
+    "title": "bsperan-&-pete668__Jake_the_Puppy__pup.wav",
+    "author": "bsperan (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Wolf-Pup Paws: the litter yips as it arrives; three synthesized puppy yips, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/bsperan/sounds/110816/",
+    "notes": "Wolf-Pup Paws: the litter yips as it arrives: the yelp; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_wolfpuphurt.mp3",
@@ -8753,19 +9134,35 @@
   },
   {
     "file": "sfx_skaldsong.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Lyre.flac",
+    "author": "Hedmarking (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Skald Slippers: a lyre strum and a sung saga phrase as he arrives; a synthesized lyre and a sung saga phrase, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/Hedmarking/sounds/191883/",
+    "notes": "Skald Slippers: a lyre strum and a sung saga phrase as he arrives; built from real recordings with ffmpeg (scripts/real-sfx/build.py): an iron-age lyre strummed twice (its plucks stacked into chords) and a man singing \"hey\", cut into a three-note saga phrase on the lyre's notes, in a short hall. This source: the lyre; trimmed and layered"
+  },
+  {
+    "file": "sfx_skaldsong.mp3",
+    "title": "man hey sing loud.flac",
+    "author": "befreezz (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/befreezz/sounds/403908/",
+    "notes": "Skald Slippers: a lyre strum and a sung saga phrase as he arrives: the voice; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_skaldrally.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Lyre.flac",
+    "author": "Hedmarking (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Skald Slippers: a lyre run and a sung shout as he rallies the feet round him; a synthesized lyre run and a sung shout, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/Hedmarking/sounds/191883/",
+    "notes": "Skald Slippers: a lyre run and a sung shout as he rallies the feet round him; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a rising run on an iron-age lyre and a man's sung \"HEY!\", in a short hall. This source: the lyre; trimmed and layered"
+  },
+  {
+    "file": "sfx_skaldrally.mp3",
+    "title": "man hey sing loud.flac",
+    "author": "befreezz (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/befreezz/sounds/403908/",
+    "notes": "Skald Slippers: a lyre run and a sung shout as he rallies the feet round him: the shout; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_skaldhurt.mp3",
@@ -8841,11 +9238,27 @@
   },
   {
     "file": "sfx_muspelscorch.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Fire Explosion",
+    "author": "qubodup (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Muspel Fire-Feet: flames burst up off the pizza it stomped (its scorch); a synthesized burst of flame, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/qubodup/sounds/855898/",
+    "notes": "Muspel Fire-Feet: flames burst up off the pizza it stomped (its scorch); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a fireball going up, a burst of gas flame and the flames fluttering, pitched down. This source: the fireball; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_muspelscorch.mp3",
+    "title": "Fire Burst Flash",
+    "author": "Za-Games (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Za-Games/sounds/539972/",
+    "notes": "Muspel Fire-Feet: flames burst up off the pizza it stomped (its scorch): the burst; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_muspelscorch.mp3",
+    "title": "flame burst ignite bbq barbecue.flac",
+    "author": "kyles (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/kyles/sounds/637533/",
+    "notes": "Muspel Fire-Feet: flames burst up off the pizza it stomped (its scorch): the flutter; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_muspeldie.mp3",

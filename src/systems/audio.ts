@@ -316,7 +316,7 @@ const TRIM: Record<string, number> = {
   sfx_fenrir_claw: 1.08, // -12.6 dB → -11.9: frost claw swipe
   sfx_fenrir_link: 1.06, // -12.5 dB → -12.0: a fallen chain link is smacked
   sfx_fenrir_bind: 1.15, // -10.7 dB → -9.5: the chain re-forms
-  sfx_fenrir_death: 1.05, // -10.9 dB → -10.5: whimpering howl (death)
+  sfx_fenrir_death: 1.05, // -10.3 dB → -9.8: whimpering howl (death)
   // Thrym the Frost King
   sfx_thrym_enter: 1.14, // -10.7 dB → -9.6: ice cracks and a giant rumble (entrance)
   sfx_thrym_freeze: 1.11, // -11.4 dB → -10.5: a pizza freezes solid
@@ -326,14 +326,14 @@ const TRIM: Record<string, number> = {
   sfx_thrym_shatter: 1.1, // -11.3 dB → -10.5: ice block broken
   sfx_thrym_close: 1.05, // -9.9 dB → -9.5: the fortress walls meet
   sfx_thrym_keystone: 1.05, // -12.4 dB → -12.0: keystone takes a hit
-  sfx_thrym_blizzard: 1.1, // -11.8 dB → -11.0: blizzard gust
+  sfx_thrym_blizzard: 1.1, // -10.9 dB → -10.1: blizzard gust
   sfx_thrym_hail: 1.05, // -12.4 dB → -12.0: falling ice shard
-  sfx_thrym_spread: 0.88, // -12.4 dB → -13.5: ice creeps to the next pizza
+  sfx_thrym_spread: 0.88, // -13.0 dB → -14.1: ice creeps to the next pizza
   sfx_thrym_death: 1.08, // -10.1 dB → -9.4: huge shatter and collapse (death)
   // Jörmungandr
   sfx_jormungandr_enter: 1.13, // -10.5 dB → -9.4: deep sea surge (entrance)
-  sfx_jormungandr_surface: 1.08, // -11.7 dB → -11.0: the head rises from the water
-  sfx_jormungandr_hiss: 1.14, // -12.2 dB → -11.1: serpent hiss (tell)
+  sfx_jormungandr_surface: 1.08, // -11.3 dB → -10.6: the head rises from the water
+  sfx_jormungandr_hiss: 1.14, // -11.7 dB → -10.6: serpent hiss (tell)
   sfx_jormungandr_bite: 1.17, // -11.9 dB → -10.5: snapping lunge
   sfx_jormungandr_reflect: 1.07, // -11.1 dB → -10.5: a smack bounces off the coils
   sfx_jormungandr_constrict: 1.11, // -12.9 dB → -12.0: coils squeeze a pizza
@@ -346,22 +346,22 @@ const TRIM: Record<string, number> = {
   sfx_surtr_impact: 1.05, // -10.9 dB → -10.5: fireball lands
   sfx_surtr_ignite: 1.06, // -11.0 dB → -10.5: a pizza bursts into flame
   sfx_surtr_douse: 1.1, // -12.8 dB → -12.0: flames smacked out
-  sfx_surtr_fuse: 0.89, // -12.5 dB → -13.5: fire runs along the bridge
-  sfx_surtr_raise: 1.07, // -11.5 dB → -10.9: sword raised (riser, tell)
+  sfx_surtr_fuse: 0.89, // -11.1 dB → -12.1: fire runs along the bridge
+  sfx_surtr_raise: 1.07, // -10.7 dB → -10.1: sword raised (riser, tell)
   sfx_surtr_window: 1.09, // -11.3 dB → -10.6: the sword flashes: the timing window
   sfx_surtr_sweep: 1.1, // -10.3 dB → -9.5: flaming sword sweeps the table
   sfx_surtr_parry: 1.04, // -9.9 dB → -9.6: perfect counter: the sweep is cancelled
-  sfx_surtr_roar: 1.05, // -11.0 dB → -10.6: giant roar
+  sfx_surtr_roar: 1.05, // -10.3 dB → -9.8: giant roar
   sfx_surtr_death: 1.08, // -10.2 dB → -9.5: collapse as the fire dies (death)
   // Norse feet
-  sfx_frostchill: 0.88, // -12.4 dB → -13.5: frost creeps over a pizza
+  sfx_frostchill: 0.88, // -13.2 dB → -14.3: frost creeps over a pizza
   sfx_trollstone: 1.05, // -10.9 dB → -10.5: a troll turns to stone
   sfx_draugrrise: 1.05, // -11.4 dB → -11.0: the dead rise again
   sfx_valkyrieswoop: 1.21, // -13.6 dB → -11.9: a pair of clogs swoops in
   sfx_sungap: 1.13, // -12.1 dB → -11.0: the clouds part
   // Act 8, new Jotunheim feet (scripts/act8-sfx/recipes_act8a.py): arrivals and trait moments as tells, hurt
   // sounds low (they play on many smacks), deaths at the slap.
-  sfx_wolfpupyip: 1.05, // -12.4 dB → -12.0: the litter yips as it arrives
+  sfx_wolfpupyip: 1.05, // -11.7 dB → -11.2: the litter yips as it arrives
   sfx_wolfpuphurt: 0.89, // -12.5 dB → -13.5: a pup yelps when smacked
   sfx_wolfpupdie: 1.05, // -12.4 dB → -12.0: a yelp falling to a whine (defeated)
   sfx_berserkerspawn: 1.09, // -11.7 dB → -11.0: a war cry as it arrives
@@ -378,8 +378,8 @@ const TRIM: Record<string, number> = {
   sfx_ravensteal: 1.06, // -11.5 dB → -11.0: a gloating caw over the clink of stolen coin (it swipes your tips)
   sfx_ravenhurt: 0.88, // -12.4 dB → -13.5: a squawk when smacked
   sfx_ravendie: 1.06, // -11.0 dB → -10.5: a caw falling away and a flurry of wings (defeated)
-  sfx_skaldsong: 1.05, // -11.4 dB → -11.0: a lyre strum and a sung saga phrase as he arrives
-  sfx_skaldrally: 1.04, // -12.3 dB → -12.0: a lyre run and a sung shout as he rallies the feet round him
+  sfx_skaldsong: 1.05, // -11.0 dB → -10.6: a lyre strum and a sung saga phrase as he arrives
+  sfx_skaldrally: 1.04, // -12.3 dB → -11.9: a lyre run and a sung shout as he rallies the feet round him
   sfx_skaldhurt: 0.82, // -11.8 dB → -13.5: a grunt and a jangled string when smacked
   sfx_skalddie: 1.05, // -11.0 dB → -10.6: a string snapping and a last sung note falling away (defeated)
   sfx_dwarfspawn: 1.05, // -11.4 dB → -11.0: an anvil ring, a stamp and a shout as it arrives
@@ -389,7 +389,7 @@ const TRIM: Record<string, number> = {
   sfx_dwarfdie: 1.05, // -10.9 dB → -10.5: a groan, falling armour and a dying anvil ring (defeated)
   sfx_muspelspawn: 1.05, // -11.4 dB → -11.0: a roar of flame and a fire giant's growl as it arrives
   sfx_muspelhurt: 0.88, // -12.4 dB → -13.5: cinder cracking and a hiss when smacked
-  sfx_muspelscorch: 1.05, // -12.4 dB → -12.0: flames burst up off the pizza it stomped (its scorch)
+  sfx_muspelscorch: 1.05, // -12.3 dB → -11.9: flames burst up off the pizza it stomped (its scorch)
   sfx_muspeldie: 1.05, // -10.9 dB → -10.5: a dying roar, the fire guttering out and a hiss of steam (defeated)
   // ——— god peels and their feet (generated by scripts/god-sfx/integrate.py) ———
   sfx_hero_zeus: 1.10, // -10.3 dB → -9.5
@@ -546,49 +546,49 @@ const TRIM: Record<string, number> = {
   // ——— Act 9 · Greek myths (made by scripts/act9-audio/, same levels as the boss kit above: tells and hits near the
   // slap, signature hits a little over it, repeated ones under it). Feet and Charybdis sounds are core (load at boot).
   // The Minotaur
-  sfx_minotaur_bellow: 1.05, // -9.9 dB → -9.5: bull bellow (entrance and phase roar)
+  sfx_minotaur_bellow: 1.05, // -9.0 dB → -8.5: bull bellow (entrance and phase roar)
   sfx_minotaur_snort: 1.11, // -11.9 dB → -11.0: pawing and steam snort (tell)
-  sfx_minotaur_charge: 1.05, // -10.0 dB → -9.6: hooves thunder into a charge
+  sfx_minotaur_charge: 1.05, // -10.7 dB → -10.3: hooves thunder into a charge
   sfx_minotaur_gore: 1.1, // -11.3 dB → -10.5: horns hit a pizza
   sfx_minotaur_crash: 1.09, // -10.2 dB → -9.5: slams into a stone wall
-  sfx_minotaur_walls: 1.06, // -12.5 dB → -12.0: maze walls grind and shift
+  sfx_minotaur_walls: 1.06, // -14.1 dB → -13.6: maze walls grind and shift
   // Medusa
-  sfx_medusa_glow: 1.04, // -11.3 dB → -11.0: eyes glow (tell)
-  sfx_medusa_petrify: 1.05, // -10.9 dB → -10.5: a pizza turns to stone
+  sfx_medusa_glow: 1.04, // -11.5 dB → -11.2: eyes glow (tell)
+  sfx_medusa_petrify: 1.05, // -11.2 dB → -10.8: a pizza turns to stone
   sfx_medusa_crack: 0.89, // -12.5 dB → -13.5: a statue cracks under a stomp
   sfx_medusa_crumble: 1.05, // -10.0 dB → -9.6: a statue crumbles
   sfx_medusa_mirror: 1.06, // -12.5 dB → -12.0: mirror shield appears
   sfx_medusa_reflect: 1.11, // -11.4 dB → -10.5: smack on her reflection
   sfx_medusa_cure: 1.1, // -11.4 dB → -10.6: curse broken on a statue
-  sfx_medusa_hiss: 1.01, // -12.1 dB → -12.0: snakes hiss
+  sfx_medusa_hiss: 1.01, // -11.9 dB → -11.8: snakes hiss
   sfx_medusa_gaze: 1.05, // -11.0 dB → -10.6: the peel caught by her stare
   // Cerberus
-  sfx_cerberus_bark: 1.1, // -10.3 dB → -9.5: triple bark (entrance)
-  sfx_cerberus_growl: 1.06, // -11.5 dB → -11.0: triple growl (tell)
-  sfx_cerberus_fire: 1.1, // -11.3 dB → -10.5: fire breath
+  sfx_cerberus_bark: 1.1, // -10.6 dB → -9.7: triple bark (entrance)
+  sfx_cerberus_growl: 1.06, // -11.3 dB → -10.8: triple growl (tell)
+  sfx_cerberus_fire: 1.1, // -9.9 dB → -9.0: fire breath
   sfx_cerberus_ice: 1.13, // -11.6 dB → -10.5: frost blast
   sfx_cerberus_poison: 1.08, // -11.2 dB → -10.5: poison spit
-  sfx_cerberus_howl: 1.1, // -10.3 dB → -9.5: a head beaten, the others go wild
+  sfx_cerberus_howl: 1.1, // -9.1 dB → -8.2: a head beaten, the others go wild
   // Hades and the Titans
-  sfx_hades_toll: 1.05, // -10.0 dB → -9.6: death bell (entrance)
-  sfx_hades_rise: 1.05, // -10.0 dB → -9.6: a Titan rises from the floor
+  sfx_hades_toll: 1.05, // -10.7 dB → -10.2: death bell (entrance)
+  sfx_hades_rise: 1.05, // -11.0 dB → -10.6: a Titan rises from the floor
   sfx_hades_chains: 1.11, // -12.9 dB → -12.0: chains rattle
   sfx_hades_tick: 1.08, // -14.1 dB → -13.4: Kronos clock tick, sits under
   sfx_hades_slow: 1.05, // -11.4 dB → -11.0: time slows (tell)
   sfx_hades_shatter: 1.31, // -12.8 dB → -10.5: hourglass smashed
   sfx_hades_tilt: 0.99, // -10.9 dB → -11.0: Atlas tilts the table (tell)
-  sfx_hades_slide: 1.06, // -12.5 dB → -12.0: pizzas slide
-  sfx_hades_flare: 1.1, // -11.3 dB → -10.5: Hyperion solar flare
+  sfx_hades_slide: 1.06, // -11.5 dB → -11.0: pizzas slide
+  sfx_hades_flare: 1.1, // -11.9 dB → -11.1: Hyperion solar flare
   sfx_hades_douse: 1.09, // -12.7 dB → -12.0: flames smacked out
   sfx_hades_banish: 1.05, // -10.0 dB → -9.6: a Titan sent back
   sfx_hades_shadow: 1.06, // -12.5 dB → -12.0: shadow creeps out
   sfx_hades_grab: 1.08, // -11.2 dB → -10.5: shadow steals a slice
   // Act 9 feet and events
-  sfx_sirensong: 0.89, // -12.5 dB → -13.5: Siren Slippers sing, sits under
-  sfx_harpy: 1.05, // -11.4 dB → -11.0: Harpy Talons screech and flap
+  sfx_sirensong: 0.89, // -11.3 dB → -12.3: Siren Slippers sing, sits under
+  sfx_harpy: 1.05, // -12.9 dB → -12.5: Harpy Talons screech and flap
   sfx_eyepoke: 1.05, // -10.9 dB → -10.5: Cyclops Sandals poked in the eye
-  sfx_whirlpool: 1.11, // -11.9 dB → -11.0: Charybdis whirlpool opens
-  sfx_gulp: 1.05, // -10.9 dB → -10.5: Charybdis swallows
+  sfx_whirlpool: 1.11, // -11.2 dB → -10.3: Charybdis whirlpool opens
+  sfx_gulp: 1.05, // -11.5 dB → -11.0: Charybdis swallows
   // Stings are normalised to the music loudness (-16.4 LUFS, like music_gameover). audio.sting() plays
   // them at music volume and does not read TRIM; these gains apply if they're played through sfx().
   music_victory: 2.04, // -15.7 dB → -9.5: the 60-wave finish, a little over the slap

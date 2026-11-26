@@ -115,8 +115,18 @@ KENNEY_FIRST = {'sfx_hades_chains', 'sfx_medusa_crack', 'sfx_medusa_reflect', 's
 
 rep = json.load(open(os.path.join(out, 'report.json')))
 assert {d['key'] for d in rep} == set(WHAT), set(WHAT) ^ {d['key'] for d in rep}
+# Files since re-made from real recordings by scripts/real-sfx/build.py (the audio pass, docs/audio-audit.md): not
+# copied over, so running this again doesn't put the synthesized versions back (their credits and TRIM entries are
+# only ever added when missing, so they are left as they are too).
+REAL = {
+    'sfx_minotaur_bellow', 'sfx_minotaur_snort', 'sfx_minotaur_charge', 'sfx_minotaur_walls', 'sfx_medusa_glow',
+    'sfx_medusa_petrify', 'sfx_medusa_hiss', 'sfx_cerberus_bark', 'sfx_cerberus_growl', 'sfx_cerberus_fire',
+    'sfx_cerberus_ice', 'sfx_cerberus_howl', 'sfx_hades_toll', 'sfx_hades_rise', 'sfx_hades_slide', 'sfx_hades_flare',
+    'sfx_sirensong', 'sfx_harpy', 'sfx_whirlpool', 'sfx_gulp',
+}
 for d in rep:
-    shutil.copy(os.path.join(out, d['key'] + '.mp3'), os.path.join(AUD, d['key'] + '.mp3'))
+    if d['key'] not in REAL:
+        shutil.copy(os.path.join(out, d['key'] + '.mp3'), os.path.join(AUD, d['key'] + '.mp3'))
 for f, _, _ in MUSIC:
     shutil.copy(os.path.join(mdir, f), os.path.join(AUD, f))
 for a in AMB:
