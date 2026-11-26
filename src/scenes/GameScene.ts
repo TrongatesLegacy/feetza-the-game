@@ -3518,7 +3518,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     // off (slamSteps); the rest of what a smack sets off (splashes, blasts) is soaked at half strength, a step for every base smack's worth. Whatever smashes it carries its
     // leftover through to the foot.
     if (!smack && this.guardBlocks(f)) {
-      // (a chain's jump counts as automatic: chains also stop at a held shield, see chain() and the 'chain' effect)
+      // (a chain's jump counts as automatic: it spends that jump on the shield and goes on from there)
       if (auto || o.passive || o.source === 'chain') {
         if (o.source === 'burn' || f.guardHp <= 1) return this.glance(f, o.x, o.y, o.quiet);
         const was = f.guardHp;
@@ -3680,8 +3680,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (f.guardFx?.deflected() && !quiet) this.fx.ring(x ?? f.cx, y ?? f.cy, 0x9ad8ff, 0.35, 0.5);
   }
 
-  /** A smack's chain lightning: it jumps to the nearest feet in turn, and a held guard shield takes the jump and
-   * stops it there. */
+  /** A smack's chain lightning: it jumps to the nearest feet in turn. A held guard shield takes one of its jumps (it
+   * only wears the shield down) and the chain goes on from there. */
   private chain(from: Foot, dmg: number): void {
     const targets = this.feet
       .filter((o) => o !== from && o.hittable)
@@ -3694,7 +3694,6 @@ export class GameScene extends Phaser.Scene implements Arena {
     let prev = from;
     for (const { o } of targets) {
       this.fx.lightning(prev.cx, prev.cy, o.cx, o.cy);
-      if (this.guardBlocks(o)) return this.glance(o);
       this.dealDamage(o, dmg, { source: 'chain' });
       prev = o;
     }
@@ -4568,9 +4567,9 @@ export class GameScene extends Phaser.Scene implements Arena {
         }
         break;
       case 'chain': {
-        // (a held guard shield stops the chain: it doesn't start from one, and one it jumps to takes it)
+        // (a held guard shield it jumps to takes that jump, worn down as by what fires by itself, and it goes on)
         const from = targets(e.at)[0];
-        if (!from || this.guardBlocks(from)) break;
+        if (!from) break;
         let prev = from;
         const done = new Set<Foot>([from]);
         audio.sfx('sfx_zap', { throttle: 60 });
@@ -4580,11 +4579,7 @@ export class GameScene extends Phaser.Scene implements Arena {
             .sort((a, b) => Math.hypot(a.cx - prev.cx, a.cy - prev.cy) - Math.hypot(b.cx - prev.cx, b.cy - prev.cy))[0];
           if (!next || Math.hypot(next.cx - prev.cx, next.cy - prev.cy) > 700) break;
           this.fx.lightning(prev.cx, prev.cy, next.cx, next.cy);
-          if (this.guardBlocks(next)) {
-            this.glance(next);
-            break;
-          }
-          this.dealDamage(next, e.x * st.damage, { source: 'ability', tag });
+          this.dealDamage(next, e.x * st.damage, { source: 'ability', tag, passive: passive || this.guardBlocks(next) });
           done.add(next);
           prev = next;
         }
