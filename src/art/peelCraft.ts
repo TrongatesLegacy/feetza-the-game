@@ -13,6 +13,8 @@
 //   from the pads.
 // - obsidian: light moves slowly through its violet flow bands (the glass's inner fire), and now and then their
 //   sheen flashes across it as the light catches them; a smack lights a fracture through the glass from where it landed, and dark shards fly off.
+// - place (the place peels): a window in the head onto the location, its hero motion playing in it and its own smack
+//   (src/art/peelPlace.ts, src/art/peelPlaceDefs.ts).
 //
 // It is built as the living foot peels are (src/art/peelLive.ts): the rig (CraftRig: the head's layers, cut to the
 // head's box, and the handle) is built a step at a time in idle time and shared; the motion (CraftLive) is one per
@@ -48,6 +50,7 @@ import { noise1 } from '../game/liveKit';
 import { crand } from '../systems/cosmeticRandom';
 import { save } from '../systems/save';
 import { PEEL_FRAME_WORLD, type PeelWorld } from './peelLive';
+import { PlaceLive, placeBaseAsync, placeBaseReady, placeMiniSteps, placeOver, placeUnder, type PlaceEmit, type PlaceMini, type PlaceSpr } from './peelPlace';
 
 const { x: HX, y: HY, r: R } = PEEL_HEAD;
 
@@ -77,6 +80,8 @@ export interface CraftRig {
   reflect: HTMLCanvasElement | null;
   lit: HTMLCanvasElement | null;
   lit2: HTMLCanvasElement | null;
+  /** A place peel: its window's base and loops (src/art/peelPlace.ts). */
+  place: PlaceMini | null;
   key: string;
 }
 
@@ -95,6 +100,21 @@ function* rigSteps(peelId: string, kind: CraftKind, RR: number): Generator<void,
   drawPeelHandle(hctx, look);
   craftHandle(hctx, look);
   yield;
+  const key = `pc_${peelId.replace(/[^a-z0-9]/gi, '_')}_${RR}`;
+  if (kind === 'place') {
+    // a place peel: the head round its window, the bezel over it, and the window's mini (its base and loops)
+    const under = boxLayer(RR, (ctx) => placeUnder(ctx, look));
+    const over = boxLayer(RR, (ctx) => placeOver(ctx, look));
+    yield;
+    const inner = boxLayer(RR, (ctx) => {
+      headPath(ctx, look.shape);
+      ctx.fillStyle = '#000';
+      ctx.fill();
+    });
+    const place = look.place ? yield* placeMiniSteps(look.place, look.shape, RR) : null;
+    if (!place) return null;
+    return { id: peelId, kind, look, RR, handle, under, over, inner, reflect: null, lit: null, lit2: null, place, key };
+  }
   const under = boxLayer(RR, (ctx) => {
     headPath(ctx, look.shape);
     ctx.clip();
@@ -124,7 +144,7 @@ function* rigSteps(peelId: string, kind: CraftKind, RR: number): Generator<void,
     lit = boxLayer(RR, obsidianFlowLit);
     lit2 = boxLayer(RR, obsidianSheen);
   }
-  return { id: peelId, kind, look, RR, handle, under, over, inner, reflect, lit, lit2, key: `pc_${peelId.replace(/[^a-z0-9]/gi, '_')}_${RR}` };
+  return { id: peelId, kind, look, RR, handle, under, over, inner, reflect, lit, lit2, place: null, key };
 }
 
 // ——— building in idle time, shared ———
@@ -190,6 +210,13 @@ export function requestCraftRig(peelId: string, done: (r: CraftRig | null) => vo
   }
   const kind = craftOf(peelId);
   if (!kind) return done(null);
+  // a place peel's window base comes from the art cache (decoded off the main thread) or is painted a layer per idle
+  // moment first: its rig only draws it down and paints its loops
+  const look = kind === 'place' ? PEEL_BY_ID[peelId].look() : null;
+  if (look?.place && !placeBaseReady(look.place)) {
+    void placeBaseAsync(look.place, look.shape).then(() => wanted() && requestCraftRig(peelId, done, wanted, urgent, RR));
+    return;
+  }
   let job = jobs.find((j) => j.key === key);
   if (!job) {
     job = { key, gen: rigSteps(peelId, kind, RR), waiters: [] };
@@ -235,7 +262,38 @@ export const enum Spr {
   Glint,
   RingO,
   Mote,
+  // the place peels' (src/art/peelPlaceDefs.ts)
+  Ember,
+  SparkB,
+  SparkG,
+  SparkV,
+  Flake,
+  Drop,
+  Feather,
+  Smoke,
+  Confetti,
+  Steam,
+  Sauce,
 }
+
+/** A place's names for the sprites it throws. */
+const PLACE_SPR: Record<PlaceSpr, Spr> = {
+  ember: Spr.Ember,
+  spark: Spr.SparkC,
+  sparkB: Spr.SparkB,
+  sparkG: Spr.SparkG,
+  sparkV: Spr.SparkV,
+  flake: Spr.Flake,
+  drop: Spr.Drop,
+  feather: Spr.Feather,
+  smoke: Spr.Smoke,
+  dust: Spr.Dust,
+  glint: Spr.Glint,
+  mote: Spr.Mote,
+  confetti: Spr.Confetti,
+  steam: Spr.Steam,
+  sauce: Spr.Sauce,
+};
 interface SprDef {
   /** Frame size (px) and how many; `anim`: the frames play through its life (else one is picked per particle). */
   w: number;
@@ -316,6 +374,41 @@ function spark(edge: string, body: string, hot: string, glow = false) {
     ctx.moveTo(8, 6);
     ctx.lineTo(44, 6);
     ctx.stroke();
+  };
+}
+
+/** A glowing mote, round: a hot core in its own soft light (an ember, a spark of soul-fire), filled, no outline. */
+function mote(body: string, hot: string) {
+  return (ctx: Ctx) => {
+    const g = ctx.createRadialGradient(12, 12, 0, 12, 12, 12);
+    g.addColorStop(0, hot);
+    g.addColorStop(0.22, hot);
+    g.addColorStop(0.42, rgba(body, 0.85));
+    g.addColorStop(0.7, rgba(body, 0.25));
+    g.addColorStop(1, rgba(body, 0));
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 24, 24);
+  };
+}
+
+/** A round drop, lit from the top left: a soft body, a darker rim on its lower right, a white glint (water, sauce). */
+function blob(cols: [string, string, string]) {
+  return (ctx: Ctx, i: number) => {
+    const r = 6 + i * 1.2;
+    const g = ctx.createRadialGradient(10, 10, 0, 12, 12, r + 1.5);
+    g.addColorStop(0, rgba(cols[2], 0.95));
+    g.addColorStop(0.5, rgba(cols[1], 0.85));
+    g.addColorStop(0.85, rgba(cols[0], 0.7));
+    g.addColorStop(1, rgba(cols[0], 0));
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(12, 12, r + 1.5, 0, Math.PI * 2);
+    ctx.fill();
+    const w = ctx.createRadialGradient(9.5, 9.5, 0, 9.5, 9.5, 2.6);
+    w.addColorStop(0, 'rgba(255,255,255,0.95)');
+    w.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = w;
+    ctx.fillRect(6, 6, 7, 7);
   };
 }
 
@@ -460,7 +553,75 @@ const SPR: Record<Spr, SprDef> = {
       ctx.fillRect(0, 0, 24, 24);
     },
   },
+  [Spr.Ember]: { w: 24, h: 24, n: 1, anim: false, draw: mote('#ff7a1a', '#fff4c8') },
+  [Spr.SparkB]: { w: 24, h: 24, n: 1, anim: false, draw: mote('#3a98f0', '#eaf8ff') },
+  [Spr.SparkG]: { w: 24, h: 24, n: 1, anim: false, draw: mote('#3dff7a', '#f0fff0') },
+  [Spr.SparkV]: { w: 24, h: 24, n: 1, anim: false, draw: mote('#b070ff', '#fff4ff') },
+  [Spr.Flake]: { w: 20, h: 20, n: 3, anim: false, draw: flake },
+  [Spr.Drop]: { w: 24, h: 24, n: 3, anim: false, draw: blob(['#4a8ab8', '#bfe6fa', '#f4fcff']) },
+  [Spr.Feather]: { w: 24, h: 24, n: 2, anim: false, draw: feather },
+  [Spr.Smoke]: { w: 64, h: 64, n: 8, anim: true, draw: puff('#d8d0ca', '#8e8680', '#4e4844') },
+  [Spr.Confetti]: { w: 16, h: 16, n: 4, anim: false, draw: confetti },
+  [Spr.Steam]: { w: 64, h: 64, n: 8, anim: true, draw: puff('#ffffff', '#f2eeea', '#b8b0b4') },
+  [Spr.Sauce]: { w: 24, h: 24, n: 3, anim: false, draw: blob(['#6a0c02', '#c8301a', '#ff9a7a']) },
 };
+
+/** A soft lit flake (snow): a white disc, lit on its top left, a faint cool shade under. */
+function flake(ctx: Ctx, i: number): void {
+  const rr = 5 + i;
+  const g = ctx.createRadialGradient(9, 9, 0, 10, 10, rr + 2);
+  g.addColorStop(0, 'rgba(255,255,255,1)');
+  g.addColorStop(0.55, 'rgba(240,246,255,0.9)');
+  g.addColorStop(0.8, 'rgba(190,210,240,0.45)');
+  g.addColorStop(1, 'rgba(190,210,240,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 20, 20);
+}
+
+/** A small feather: a quill, a soft vane lit on its top, darker at its tip. */
+function feather(ctx: Ctx, i: number): void {
+  ctx.save();
+  ctx.translate(12, 12);
+  ctx.rotate(i ? 0.5 : -0.3);
+  ctx.beginPath();
+  ctx.moveTo(-9, 1);
+  ctx.quadraticCurveTo(-2, -6, 9, -2);
+  ctx.quadraticCurveTo(2, 5, -9, 1);
+  ctx.closePath();
+  const g = ctx.createLinearGradient(0, -6, 0, 5);
+  g.addColorStop(0, '#ffffff');
+  g.addColorStop(0.6, i ? '#d8d8dc' : '#e8e6e0');
+  g.addColorStop(1, i ? '#8a8e98' : '#a8a49a');
+  ctx.fillStyle = g;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(60,60,70,0.55)';
+  ctx.lineWidth = 0.9;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(-10, 1.5);
+  ctx.quadraticCurveTo(0, -1, 9, -2);
+  ctx.strokeStyle = 'rgba(120,110,100,0.8)';
+  ctx.lineWidth = 0.8;
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** A scrap of confetti: a lit card in one of four colours. */
+function confetti(ctx: Ctx, i: number): void {
+  const col = ['#ff4f7a', '#ffd23f', '#3ae8ff', '#7dff9a'][i];
+  ctx.save();
+  ctx.translate(8, 8);
+  ctx.rotate(0.4 + i);
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.fillRect(-4.4, -2.2, 9.6, 5.2);
+  const g = ctx.createLinearGradient(-5, -3, 5, 3);
+  g.addColorStop(0, '#ffffff');
+  g.addColorStop(0.35, col);
+  g.addColorStop(1, col);
+  ctx.fillStyle = g;
+  ctx.fillRect(-5, -2.6, 9.6, 5.2);
+  ctx.restore();
+}
 
 let sprites: HTMLCanvasElement[][] | null = null;
 /** Every sprite's frames, painted once. */
@@ -535,6 +696,7 @@ const FEEL: Record<CraftKind, { squash: number; k: number; c: number; wob: numbe
   copper: { squash: 0.05, k: 700, c: 20, wob: 0.015, shake: 0, vib: 0.04, sway: 0.3, wk: 260, wc: 16 },
   neon: { squash: 0.07, k: 520, c: 16, wob: 0.025, shake: 0.9, vib: 0, sway: 0.45, wk: 200, wc: 12 },
   obsidian: { squash: 0.035, k: 900, c: 28, wob: 0.01, shake: 1.8, vib: 0, sway: 0.18, wk: 360, wc: 26 },
+  place: { squash: 0.06, k: 560, c: 17, wob: 0.022, shake: 1, vib: 0, sway: 0.4, wk: 220, wc: 14 },
 };
 
 const reduced = () => !!save.settings.reducedMotion;
@@ -620,6 +782,13 @@ export class CraftLive {
   private pt2: Pt = [0, 0];
   private lastSpeed = 0;
   private shedAcc = 0;
+  /** A place peel's window. */
+  readonly place: PlaceLive | null;
+  private placeEmit: PlaceEmit = (spr, sx, sy, vx, vy, s0, s1, life, o) => {
+    const [lx, ly] = this.place!.toPeel(sx, sy);
+    const m = this.menu ? 0.6 : 1;
+    this.emit(PLACE_SPR[spr], lx, ly, vx * m, vy * m, s0, this.menu ? s1 * 0.8 : s1, life, o);
+  };
 
   constructor(
     readonly rig: CraftRig,
@@ -628,6 +797,7 @@ export class CraftLive {
   ) {
     [this.surface, this.sctx] = makeCanvas(SB.w * rig.RR, SB.h * rig.RR);
     this.feel = FEEL[rig.kind];
+    this.place = rig.place ? new PlaceLive(rig.place) : null;
     const traces = rig.kind === 'neon' ? neonGeo(rig.look.shape).traces : [];
     this.padFlash = new Float32Array(traces.length);
     if (traces.length) for (let i = 0; i < 3; i++) this.pulses.push({ tr: Math.floor(crand() * traces.length), d: crand() * 40, wait: i * 0.4 });
@@ -734,6 +904,9 @@ export class CraftLive {
         });
         break;
       }
+      case 'place':
+        this.place?.smack(this.placeEmit);
+        break;
       case 'obsidian': {
         for (let i = 0; i < Math.round(6 * n); i++) {
           const a = crand() * Math.PI * 2;
@@ -797,6 +970,9 @@ export class CraftLive {
         break;
       case 'obsidian':
         this.obsidianTick(dt);
+        break;
+      case 'place':
+        this.place?.update(dt);
         break;
     }
     this.bits.tick(dt);
@@ -1024,6 +1200,9 @@ export class CraftLive {
     const s = this.sm;
     const u = this.runT;
     switch (rig.kind) {
+      case 'place':
+        this.place?.draw(ctx);
+        break;
       case 'wood': {
         if (u >= 0) {
           // the sheen runs over the varnish, the grain catching it

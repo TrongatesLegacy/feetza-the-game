@@ -1238,9 +1238,9 @@ function ladderStill(ctx: Ctx): void {
 
 // ——— the vats ———
 
-const VB = (i: number) => DL.vats[i].x;
+export const VB = (i: number) => DL.vats[i].x;
 /** The liquid's frame: the glass's inside. */
-const LIQ = { w: DL.vat.rx * 2, h: DL.vat.bottom - DL.vat.top };
+export const LIQ = { w: DL.vat.rx * 2, h: DL.vat.bottom - DL.vat.top };
 const VAT_SLOT = (i: number): Box => ({ x: VB(i) - DL.vat.rx, y: DL.vat.top, w: LIQ.w, h: LIQ.h });
 const VAT_BOX = (i: number): Box => ({ x: VB(i) - 140, y: DL.vat.cap - 70, w: 300, h: DL.vat.foot + 26 - (DL.vat.cap - 70) });
 
@@ -1287,7 +1287,7 @@ function vatBack(ctx: Ctx, i: number): void {
 
 /** One frame of a vat's liquid (phase 0…1 loops) in a LIQ frame: flat glowing colour modelled as a cylinder in dots, a
  * hot core, light bands drifting up, three streams of inked bubbles swelling as they rise, the surface churning. */
-function liquidFrame(c: Ctx, ph: number, col: string, deep: string, seed: number): void {
+export function liquidFrame(c: Ctx, ph: number, col: string, deep: string, seed: number): void {
   const { w, h } = LIQ;
   const cx = w / 2;
   const surf = 22 + Math.sin(ph * P2) * 2;
@@ -1384,8 +1384,8 @@ function liquidFrame(c: Ctx, ph: number, col: string, deep: string, seed: number
 
 /** The specimens' frames: a clone foot (green vat) and the Ultoe prototype (magenta vat), seen from above as the game's
  * feet are, hanging ankle-up from their cables, tinted by the liquid; `ph` (0…1 loops) wiggles the toes: they twitch. */
-const SPEC = { w: 140, h: 300, hang: 70 };
-const SPEC_N = 8;
+export const SPEC = { w: 140, h: 300, hang: 70 };
+export const SPEC_N = 8;
 
 /** Rotate a point about a pivot. */
 const rot = (x: number, y: number, px: number, py: number, a: number): [number, number] => [px + (x - px) * Math.cos(a) - (y - py) * Math.sin(a), py + (x - px) * Math.sin(a) + (y - py) * Math.cos(a)];
@@ -1418,7 +1418,7 @@ function toeSpots(cx: number, yToe: number, wBall: number, ph: number): [number,
   return out;
 }
 
-function cloneFoot(c: Ctx, col: string, deep: string, ph = 0): void {
+export function cloneFoot(c: Ctx, col: string, deep: string, ph = 0): void {
   const cx = SPEC.w / 2;
   const skin = mix('#f0c8a8', col, 0.4);
   const lite = mix('#fff2e4', col, 0.25);
@@ -1554,7 +1554,7 @@ function robotFoot(c: Ctx, col: string, deep: string, ph = 0): void {
 /** Where the robot's core sits in its frame. */
 const CORE_AT = { x: SPEC.w / 2 + 4, y: SPEC.hang + 16 + 76 };
 
-const SPEC_AT = (i: number) => ({ x: VB(i) + (i ? 4 : -4), y: DL.vat.top - SPEC.hang + 22 });
+export const SPEC_AT = (i: number) => ({ x: VB(i) + (i ? 4 : -4), y: DL.vat.top - SPEC.hang + 22 });
 
 function vatStill(ctx: Ctx, i: number): void {
   const v = DL.vats[i];

@@ -9,6 +9,7 @@ How a peel can look today:
 - **fire**: always aflame in its own style (`src/art/lookFire.ts`).
 - **living**: the redrawn foot moves on the peel as it does in play (`src/art/peelLive.ts`): blinks, sway, toes that curl and splay on a smack, its own emitters and critters.
 - **crafted** (new in batch 1): painted as its material and alive as it (`src/art/peelCraftArt.ts`, `src/art/peelCraft.ts`).
+- **window** (new in batch 2, a crafted kind): a place peel's head with a living miniature of its location set into it (`src/art/peelPlace.ts`, `src/art/peelPlaceDefs.ts`).
 
 Priorities: **P1** the most seen (everyone's first peel, the first peels bought, what most players own early); **P2** owned early or often by most players, still a still today; **P3** rare or late, or already animated (a glow or a fire) and wanting a signature motion of its own.
 
@@ -19,8 +20,8 @@ Priorities: **P1** the most seen (everyone's first peel, the first peels bought,
 | Classic | 1 | still → **crafted (batch 1)** | every player, from the first run; the default cursor | **P1, done** |
 | Golden Crusts | 4 | still → **crafted (batch 1)** | the first things players buy (400–1,200 crusts) | **P1, done** |
 | Mastered (of the Classic and the Golden Crusts) | 5 | glow → **crafted + glow (batch 1)** | wave 60 with the peel equipped | done with their bases |
-| Places | 22 | still | the Trattoria's after two early runs; one per stage after | **P2** (next) |
-| Pizzas | 113 | still (5 fire) | Margherita's and the starters' within the first few hours | **P2** |
+| Places | 22 | still → **a living window onto the place (batch 2)** | the Trattoria's after two early runs; one per stage after | **P2, done** |
+| Pizzas | 113 | still (5 fire) | Margherita's and the starters' within the first few hours | **P2** (next) |
 | Events | 8 | still | balloon, drone and moth peels early | **P2** |
 | Acts | 10 | still | Act 1's after the first act; one per act | **P2** |
 | Jewellery box | 8 | glow (Ruby: fire), preview only | bought late (800–5,000 crusts) | P3 |
@@ -45,7 +46,7 @@ The Classic is the peel every player starts with and plays most of their first h
 
 Each is now painted as its material and lives as that material does (details below, under Batch 1). Their mastered versions use the same paint and motion with their gold studs and foil, plus the masterwork glow on the big preview and in play.
 
-### Places (22): P2, next
+### Places (22): batch 2, done
 
 Earned by clearing 10 waves at a location: the Trattoria's comes after a player's first couple of runs, then one per stage, so most players own several early. Today each is a still in its place's colours and a pattern (`PLACE_LOOK`).
 
@@ -54,6 +55,8 @@ Every location now has a redrawn, painted backdrop with frame loops (`src/conten
 - Trattoria: the wood oven's fire through its mouth; Rooftop: string lights swaying, chimney smoke; Beach: surf rolling in; Diner: the neon sign's stutter; Lodge: the fire and falling snow; Space: a turning planet and stars; Kitchen: steam off the pots; Old Town: the bell tower and pigeons; Pier: water lapping, a gull; Rink: the mirror ball's light; Slopes: snow drifting off the peaks; Cellar: candle flames and dripping; Metro-Pizza: searchlights over the skyline; Doom Lab: bubbling tubes and arcs; Jotunheim: blowing snow; Bifrost: the bridge's light running; Labyrinth: torchlight on the walls; Tartarus: the chains and the blue fire; the Oven: the cosmic fire; the First Pizzeria: the first oven's glow; Goth-Ham: rain and the signal in the clouds; the Hot Gates: embers over the pass.
 - Build: reuse each scene's own paint code at the peel's size (the scene's frame-loop painters already take a phase), bake a small loop per place (8–12 frames, about 120 px across) once in idle time, and play it inside the head's mask with the crafted peels' rig (surface repainted, flexed head, its own smack: a gust of the place's weather, a puff of oven smoke).
 - One agent per few places, as the location pass did; the Trattoria, Rooftop and Beach first (most seen).
+
+Done in batch 2, all 22 (below).
 
 ### Pizzas (113): P2
 
@@ -113,3 +116,45 @@ Already living at the feet's bar, by `src/art/peelLive.ts`. Batch 1 adds one thi
 **Review fixes.** One independent visual review; everything it raised was fixed: the locker preview's outline was stair-stepped (drawn straight down from 2× detail to a tenth of it: now halved down step by step); the Classic's flour read as mould and its smack as cotton balls (now a fine dusting low on the head and a quick, thin drift that leaves past the rim), its cathedral figure was an even ladder lit by the sheen (now unevenly spaced, V-tipped and tapering, left unlit, the sheen one broad band) and its scorch barely showed (stronger); Marble's chips were hollow and its dust lumpy (solid lit stone thrown past the rim, a soft haze), its veins read as cracks (wider, softer, cloudy, few branches, and drawn as one filled outline so they don't bead) and its gold flood was too faint at play size (brighter and longer); Neon's ring read as a force field (gone: a white flash on the glass) and its sparks were hairlines (glowing, bigger); Obsidian's shards were grey squares (glossy black slivers with a violet edge) and its sheen flashed like neon strips (muted, kept inside the bands); the mastered peels' foil went khaki on wood (a lighter overlay with a screened shine) and their studs sat on the rim of the narrow oval and paddle heads (now set in from each head's own edge); Copper's highlight swing and Neon's pulses were too small to see (wider, bigger). The reviewer's "no peel mid-swing" was the screenshot's crop (the swing carried it out of frame), not the game. Still to come, as the audit says: the Golden Crusts' neighbours in the locker (the jewellery box, the masterworks of the jewels) now look flat beside them.
 
 **Where it stopped.** The whole P1 group is done: the Classic, the four Golden Crusts and the five mastered versions. Next, in order: the place peels (P2, by most seen: Trattoria, Rooftop, Beach first), then the pizza peels' shared rig, the event peels, the act peels; then the P3 families (gems, heroes, gods).
+
+## Batch 2: the place peels (done)
+
+**What changed.** Every place peel (all 22) keeps its shape, colours, pattern, studs and handle, and now has a window set into its head onto its location: a bezel in the place's own metal, wood or stone, lit from the top left and throwing a soft shadow on the head, the head's edge shadowing into the recessed glass, a faint reflection on it. Through it, a corner of the location's redrawn backdrop, painted by the scene's own layers at the window's size, with the place's hero motion playing over it from the scene's own frame painters (exported from the scene files, nothing repainted), and a reaction when a smack lands:
+
+| Place | In the window | Smack |
+|---|---|---|
+| Trattoria Nonna | the wood oven's mouth, its fire rolling across the vault, smoke curling up the dome | the fire flares, embers kicked out of the mouth |
+| Rooftop Slice | the chimney stack, its smoke billowing and leaning on the breeze, the festoon bulbs over the skyline | a burst of smoke out of the pots, sparks, the bulbs jolt |
+| Shack Attack Beach Bar | the surf rolling up the sand under the sun, glitter on the sea, the sandcastle's flag | a surge up the beach, the foam flashes, spray |
+| Neon Diner '86 | the jukebox: its bubbling arch tubes and pilasters, the record spinning, the colour wheel | the needle skips (the record jerks back), the tubes surge, glints |
+| Alpine Lodge | the hearth fire licking up behind the andirons | it flares, embers up the chimney |
+| Orbital Pizzeria | the porthole: the moon, the planet's limb, stars scintillating, a satellite tumbling past, a meteor now and then | a meteor shower |
+| Nonna's Kitchen | the pot of sauce rolling and bubbling on its blue gas ring, steam into the hood | it boils up, steam bursts, sauce spits |
+| Old Town Rooftops | the campanile at dusk, the washing flapping on its line | lightning forks behind the tower, the sky flashes, a gust takes the washing, rain |
+| The Pier | the gull on its post over the rail, breathing, tilting its head, now and then calling | it squawks, spray over the rail, a feather |
+| Roller Rink | the mirror ball turning on its chain, flecks of light wheeling round the walls | it swings, the flecks flare, glints |
+| Ski Slopes | the Summit's horn, spindrift streaming off its top | a slough of powder down the face, snow off the peel |
+| Haunted Cellar | the arch behind its gate, a candle on the wine rack; now and then a ghost drifts up in the arch | a ghost shrieks out of the arch, the candle gutters |
+| Metropizza Rooftops | the tower's crown, its pizza globe turning, the needle's light blinking | the globe spins, the floodlights flash, confetti |
+| The Doom Lab | the green vat, its liquid churning round the clone foot on its cable, bubbles | it boils, the foot swings, green sparks off the coil |
+| Jotunheim Ice Fields | the giant's sword in the ice under the aurora, snow blowing low | the aurora flares, snow thrown off the ice |
+| Bifröst Bridge | the bridge springing out over the world-sea, light running out along it, glints | a bright pulse races along it |
+| The Labyrinth | the near brazier and a far one down the corridor | the fire roars, embers |
+| Tartarus | a soul-fire burning blue by the Styx | it roars, blue sparks rise |
+| The Oven Between Worlds | the cosmic vortex turning in the broken arch | it pulses, violet sparks fly |
+| The First Pizzeria | the first oven's fire breathing in its mouth | it flares, embers |
+| Goth-Ham Rooftops | the clock tower and the slice signal on the storm clouds, rain driving through | lightning forks behind the spires, the sky flashes, rain |
+| The Hot Gates | the sea at the foot of the pass, surf breaking on the rocks | a big wave crashes in, spray |
+
+**How it's built.** On the crafted peels' system (batch 1), as a new kind, `place` (`src/art/peelCraft.ts`): the rig's layers are the head round the window and the bezel over it (`placeUnder`, `placeOver`), and the window's mini (`src/art/peelPlace.ts`). A place's window base is painted once by `paintCropSteps` (`src/art/scene/layers.ts`): only the scene layers that reach the window, clipped to it, at twice the window's size, a layer per idle step, with any layers that stand in front of the motion painted on their own (`front`, `frontFrom`); never a whole backdrop. The base, the front and the window at rest are saved to the art cache, so the next visit only decodes them, and a thumbnail is one draw. The rig then draws the base down to its size and paints each loop's frames (8–16 per loop, at the window's size) a step at a time in idle time. Each frame the window is composed (the base, the loops cross-faded, the place's own touches: glows, rain, spindrift, flecks, bubbles, lightning) and drawn into the head's surface, which flexes about the neck as the crafted heads do; what flies off (embers, spray, sauce, feathers, flakes, glints, confetti, sparks in the place's colours) is the crafted peels' sprite pool, with new glowing sprites that read over a bright window and on cream. In play the window plays on the cursor peel the same way. A run warms its location's window a few waves before its peel unlocks, so the unlock's toast is a quick draw. Settings → Graphics "animated peels" off leaves the stills; reduced motion calms the swings and slows the loops.
+
+**Performance** (headless Chrome on the dev machine):
+
+- Cursor peel in play (Trattoria, swinging and smacking): the look's tick costs 0.37–0.38 ms a frame on average (p50 0.3, p95 0.8–0.9, max 1.1–1.2 ms); frame p95 18.7 ms, no frame over 50 ms.
+- Painting a place's window base cold (no art cache): 14–80 ms in all, in 6–54 idle steps, the longest step 37 ms (the Labyrinth; most under 25 ms). Once cached, a rig's loop frames cost 0–5 ms in all (the Beach's surf 41 ms over 14 steps).
+- The locker, PLACES tab (22 living windows): scrolling it top to bottom and back, frame p95 19–20 ms, max 20 ms, no long tasks.
+- The locker, ALL tab, fresh page load, three passes, side by side with the place windows switched off in the same build: first pass max 173–220 ms with them against 229 ms without, second 145–193 against 88, third 55–73 against 55; the same warm-up as before. A profile of the first pass puts it in the foot peels' first-time art work, not the places: Phaser registering foot textures (getImageData, ~0.6 s across the pass), cropping each foot's art for its emblem (~0.6 s) and trimming the living feet's layers (~0.25 s). Spreading those is the next cheap win for the first open (each foot's crop could be kept in the art cache with its thumbnail); serving cached thumbnails straight from their stored PNGs (no decode and re-encode) was tried and made no measurable difference, so it was left out.
+
+**Review fixes.** One independent visual review; everything it raised was fixed: spray, sauce, embers and sparks drawn as streaks read as scribbles, wire or chain links (they are now round, lit drops and filled glowing motes, short-lived, and the big splashes are foam and droplets inside the window); rain, snow and most sparks flew loose past the head (now drawn inside the window, which clips them; only embers, smoke, a few drops, feathers, motes and confetti leave it, and fade within a short way); the Doom Lab's coil sparks crossed the bezel (now inside); the oven's burst read as an asterisk (a soft ring of light from the eye); embers in the lodge and labyrinth started inside the flames (now above them); the head's flat gloss lay over the window as a hard-edged oval (gone over the window; the glass has its own soft sheen and a fine lit edge); the Hot Gates now shows the shield wall at the sea's edge with embers rising, Goth-Ham more skyline with the clock inside and the signal drawn live, Bifröst a tighter crop with its bands lifted, the Rooftop and the Pier tighter crops, the First Pizzeria its dome under the stars (so it is no longer the trattoria's darker twin); idle motion added where it was faint (glints and a swell on the pier's sea, bigger flecks in the rink, stars and a gustier wash in Old Town, meteors every few seconds and a shorter satellite pass in space); every window flashes as a smack lands (stronger on the places whose reaction was faint: Bifröst, Metropizza, Jotunheim, space), so the smack reads at the cursor's size; the lightning's frame is faded at its edges (it showed as a pale box).
+
+**Where it stopped.** All 22 places are done. Up next, in order: the pizza peels' shared rig (P2: the pie on its board, steam, glistening toppings, a bounce on a smack), the event peels and the act peels (P2), then the P3 families (gems, heroes, gods). The foot peels' first-open warm-up above is worth a look alongside.

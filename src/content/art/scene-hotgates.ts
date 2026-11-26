@@ -2667,7 +2667,7 @@ function foam(c: Ctx, blobs: [number, number, number, number][], box: Box): void
  * and falling, spray thrown in arcs, lit on their tops, blue-grey in their shade); then pouring off the rocks in
  * sheets and spreading as lace round their feet, fading as the next swell comes.
  */
-function surfFrame(c: Ctx, ph: number): void {
+export function surfFrame(c: Ctx, ph: number): void {
   const B = HG.surf;
   c.save();
   c.translate(-B.x, -B.y);

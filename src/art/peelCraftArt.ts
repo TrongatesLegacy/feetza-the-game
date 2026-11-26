@@ -13,6 +13,7 @@
 // (not the peel), so a mastered peel shows the same wood, stone or circuit as its base, gold-trimmed and foiled.
 
 import { INK } from './feetCommon';
+import { paintPlaceHead } from './peelPlace';
 import { PEEL_HEAD, headPath, sparkleStar, type CraftKind, type PeelLook, type PeelShape } from './peelArt';
 import { ellipse, hashStr, makeCanvas, mix, rgba, rng, roundRect, shade, type Ctx } from './util';
 
@@ -1168,6 +1169,7 @@ export function craftHandle(ctx: Ctx, look: PeelLook): void {
 export function paintCraftHead(ctx: Ctx, look: PeelLook): void {
   if (!look.craft) return;
   craftHandle(ctx, look);
+  if (look.craft === 'place') return paintPlaceHead(ctx, look);
   ctx.save();
   headPath(ctx, look.shape);
   ctx.clip();

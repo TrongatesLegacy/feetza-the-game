@@ -1092,8 +1092,8 @@ function fireStill(ctx: Ctx): void {
 }
 
 /** The hearth fire's frame size (its live sheet and the still). */
-const FIRE_W = 230;
-const FIRE_H = 190;
+export const FIRE_W = 230;
+export const FIRE_H = 190;
 
 /** Split wood stacked beside the hearth: rounds, halves and quarters end-on, bark on their curved sides, the split
  * faces pale with their rings, each sitting on the ones below. */
@@ -1688,7 +1688,7 @@ function snowTile(c: Ctx, size: number, d: number): void {
  * white-hot core low down (each layer painted small and drawn up, so its edges are soft, the core crisper). A loose
  * tongue breaks off the top in only one part of the cycle. `low` (0…1) flattens and widens it (the guttering cycle).
  */
-function hearthFrame(c: Ctx, w: number, h: number, ph: number, o: { tongues?: number; low?: number; seed?: number } = {}): void {
+export function hearthFrame(c: Ctx, w: number, h: number, ph: number, o: { tongues?: number; low?: number; seed?: number } = {}): void {
   const n = o.tongues ?? 7;
   const low = o.low ?? 0;
   const s = o.seed ?? 1;

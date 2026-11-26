@@ -1839,12 +1839,12 @@ export function beamTex(c: Ctx, w: number, h: number): void {
   c.fillRect(0, 0, w, h);
 }
 
-const GULL_FW = 120;
-const GULL_FH = 104;
+export const GULL_FW = 120;
+export const GULL_FH = 104;
 /** The standing gull's frames: 0–5 idle (breathing, a tilt of the head), 6–11 the long call, 12 crouched to leap. */
-const GULL_IDLE = 6;
-const GULL_CALL = 6;
-function gullStandFrame(c: Ctx, i: number): void {
+export const GULL_IDLE = 6;
+export const GULL_CALL = 6;
+export function gullStandFrame(c: Ctx, i: number): void {
   const fx = GULL_FW * 0.42;
   const fy = GULL_FH - 4;
   if (i < GULL_IDLE) {
@@ -1857,9 +1857,9 @@ function gullStandFrame(c: Ctx, i: number): void {
     gullStanding(c, fx, fy, 1.2, { stretch: Math.min(1, k * 1.3), back: Math.max(0, Math.sin(Math.min(1, u * 1.4) * Math.PI)), open: Math.min(1, k * 1.5), tilt: 0, breath: 1, crouch: 0 });
   } else gullStanding(c, fx, fy, 1.2, { stretch: 0, back: 0, open: 0.2, tilt: -0.3, breath: 0.2, crouch: 1 });
 }
-const FLY_FW = 124;
-const FLY_FH = 150;
-const FLY_N = 8;
+export const FLY_FW = 124;
+export const FLY_FH = 150;
+export const FLY_N = 8;
 
 // ——— live ———
 

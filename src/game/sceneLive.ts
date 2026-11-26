@@ -7,7 +7,7 @@
 // (boats, clouds, gulls), flicker (flames, neon), and soft glows; plus the stage's wave as 0 (first wave) … 1 (boss).
 
 import Phaser from 'phaser';
-import { type SceneSpec, bakePiece, paintLiveBase, paintShade, paintStill, planLive } from '../art/scene/layers';
+import { type SceneSpec, bakePiece, keepSpec, paintLiveBase, paintShade, paintStill, planLive } from '../art/scene/layers';
 import { registerLegacyScene, registerScene } from '../art/registry';
 import { crand } from '../systems/cosmeticRandom';
 import { save } from '../systems/save';
@@ -193,6 +193,7 @@ export function registerKitScene(spec: SceneSpec, live?: (k: KitLive, wave: numb
     return;
   }
   registerScene(spec.id, def);
+  keepSpec(spec);
   registerLive(
     spec.id,
     factory,

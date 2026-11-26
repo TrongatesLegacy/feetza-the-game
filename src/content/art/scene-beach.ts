@@ -91,7 +91,7 @@ const SEA_AIR: Air = { color: '#f0dcc0', far: 0.7 };
 
 /** The beach's edge: gentle cusps every 640 px (so the surf's frames, painted for one cusp, fit every one of them;
  * symmetric about each cusp's middle, so a segment can be mirrored). */
-const CUSP = 640;
+export const CUSP = 640;
 const shoreTop = (x: number) => {
   const u = ((x - CUSP / 2) / CUSP) * P2;
   return BH.shore + 7 * Math.cos(u) + 2.5 * Math.cos(u * 2);
@@ -951,7 +951,7 @@ function sandcastle(ctx: Ctx, r: R): void {
 }
 
 /** One frame of the sandcastle's little flag fluttering (phase 0…1 loops), 44×26, the pole's top at (2, 2). */
-function flagFrame(c: Ctx, ph: number): void {
+export function flagFrame(c: Ctx, ph: number): void {
   const L = 34;
   const top: [number, number][] = [];
   const bot: [number, number][] = [];
@@ -2228,7 +2228,7 @@ function lightsGlow(ctx: Ctx): void {
   lightPool(ctx, BH.torch.x + 20, TY + 50, 340, 80, '#ff9a4a', 0.3);
 }
 
-function grade(ctx: Ctx): void {
+export function grade(ctx: Ctx): void {
   gradeAll(ctx, 0.02, '#ffd09a', 0.06, { warm: '#ffc880', cool: '#5a6ac0', a: 0.2 });
 }
 
@@ -2242,7 +2242,7 @@ function shadeOver(ctx: Ctx): void {
 
 /** The surf's frames cover one cusp of the beach (with overlaps that feather into the next): SURF.w wide from the
  * still water out past the swash's highest reach. */
-const SURF = { w: 920, n: 14, res: 0.5, y0: BH.shore - 72, h: 140 };
+export const SURF = { w: 920, n: 14, res: 0.5, y0: BH.shore - 72, h: 140 };
 const SURF_X0 = 960 - SURF.w / 2;
 /** The phase of the wave at x: it breaks first off the cusps' horns and peels into the bays. */
 const surfPhase = (x: number, ph: number) => (((ph - 0.045 * Math.cos(((x - CUSP / 2) / CUSP) * P2)) % 1) + 1) % 1;
@@ -2269,7 +2269,7 @@ function sheetEdge(x: number, p: number): number {
 /** One frame of the surf on a cusp (phase 0…1 loops), in screen coordinates for the middle cusp: the wet sand's
  * sheen, the swash's thin sheet with its lace, the foam rushing up and left stranded at its reach, the next wave
  * rising, cresting white and breaking with a puff of spray, its foam drifting in the shallows. */
-function surfFrame(c: Ctx, ph: number): void {
+export function surfFrame(c: Ctx, ph: number): void {
   const X0 = SURF_X0;
   const X1 = X0 + SURF.w;
   const step = 5;
@@ -2476,7 +2476,7 @@ function surfFrame(c: Ctx, ph: number): void {
 }
 
 /** The three cusps' frames: where each sits, mirrored or not, and how far its wave is behind the first. */
-const CUSPS = [
+export const CUSPS = [
   { dx: -CUSP, flip: false, lag: 0, still: 0.5 },
   { dx: 0, flip: true, lag: 0.07, still: 0.46 },
   { dx: CUSP, flip: false, lag: 0.14, still: 0.54 },
@@ -2498,11 +2498,11 @@ function surfStill(ctx: Ctx): void {
 }
 
 /** The glitter's frames: the light's path on the swell, GLIT.w wide at its near end, from the horizon down. */
-const GLIT = { w: 640, h: BH.shore - 20 - BH.horizon, n: 10, res: 0.45 };
+export const GLIT = { w: 640, h: BH.shore - 20 - BH.horizon, n: 10, res: 0.45 };
 
 /** One frame of the glitter on the water (phase 0…1 loops), the path's centre at x = GLIT.w / 2: glints winking on
  * the faces of the swells as the swells run in, sliding with the water; wider and longer nearer us. */
-function glitterFrame(c: Ctx, ph: number): void {
+export function glitterFrame(c: Ctx, ph: number): void {
   const r = rng(301);
   const cx = GLIT.w / 2;
   const h = GLIT.h;
@@ -2953,7 +2953,7 @@ const SEA_LIFE = { x: 0, y: 380, w: W, h: SAND_Y - 380 };
 const SURF_BOX = { x: 0, y: SURF.y0, w: W, h: SURF.h };
 const CROWN_BOX = { x: 0, y: 0, w: W, h: 500 };
 const SIGN_BOX = { x: BH.sign.x - 300, y: SIGN.ropeTop - 6, w: 600, h: BH.sign.y + SIGN.h / 2 + 24 - SIGN.ropeTop + 6 };
-const FLAG = { w: 44, h: 26, n: 8, x: BH.castle.x, y: BH.castle.y - 162 };
+export const FLAG = { w: 44, h: 26, n: 8, x: BH.castle.x, y: BH.castle.y - 162 };
 const FLAG_BOX = { x: FLAG.x - 2, y: FLAG.y - 4, w: FLAG.w + 4, h: FLAG.h + 6 };
 const BAR_BOX = { x: 0, y: TY, w: W, h: BH.front - TY };
 

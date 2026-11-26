@@ -77,7 +77,7 @@ export const sx = (X: number, z: number) => 960 + (F * X) / z;
 export const sy = (Y: number, z: number) => HZ + (F * (1 - Y)) / z;
 export const P = (X: number, Y: number, z: number): Pt => [sx(X, z), sy(Y, z)];
 /** Screen px per unit at depth z. */
-const pz = (z: number) => F / z;
+export const pz = (z: number) => F / z;
 /** The depth of the water (or level ground) at screen y. */
 const zAtY = (y: number) => F / Math.max(1, y - HZ);
 
@@ -116,7 +116,7 @@ export const farEdge = (x: number) => 508 + Math.sin(x * 0.0063 + 0.7) * 3 + Mat
 const PIT: Air = { color: '#4a1a1c', far: 0.7 };
 const CAVE: Air = { color: '#1c1424', far: 0.55 };
 export const BRZ = { lit: '#e8b46a', body: '#a8742e', shade: '#5a3a1c', deep: '#24140a', green: '#4a8a72' };
-const SOUL = { deep: '#1640c8', body: '#3a98f0', core: '#9ad4ff' };
+export const SOUL = { deep: '#1640c8', body: '#3a98f0', core: '#9ad4ff' };
 
 // ——— the cavern's mouth: the cliffs' inner edges ———
 

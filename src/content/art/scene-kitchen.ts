@@ -82,7 +82,7 @@ const ENAMEL = '#eee4cc';
 const CU = { ...MATERIALS.chrome, name: 'Copper', shadowTint: '#3a0c04', ramp: 0.85, tex: 'brushed' as const, texA: 0.12, specA: 0.55, rim: 0.45 };
 
 /** Gas flames: a deep blue edge, a blue body, a pale (not white) core. */
-const GAS: [string, string, string] = ['#1030b0', '#3a6ee0', '#9ec0f8'];
+export const GAS: [string, string, string] = ['#1030b0', '#3a6ee0', '#9ec0f8'];
 
 const WIN = KN.win;
 const WIN_BOX = { x: WIN.x0, y: WIN.y0, w: WIN.x1 - WIN.x0, h: WIN.y1 - WIN.y0 };
@@ -634,7 +634,7 @@ function pots(ctx: Ctx, r: R): void {
 }
 
 /** The wooden spoon leaning in the sauce: worn pale where it's held, stained red where it's been stirring. */
-function spoon(ctx: Ctx): void {
+export function spoon(ctx: Ctx): void {
   const p = KN.pot;
   const y = p.y - p.h;
   const a = [p.x - 14, y + 2];
@@ -671,7 +671,7 @@ function spoon(ctx: Ctx): void {
   });
   ctx.restore();
 }
-const SPOON_BOX = { x: KN.pot.x - 30, y: KN.pot.y - KN.pot.h - 90, w: 180, h: 104 };
+export const SPOON_BOX = { x: KN.pot.x - 30, y: KN.pot.y - KN.pot.h - 90, w: 180, h: 104 };
 
 /** Polished metal round a cylinder: dark at the turning edges, a hot band of the room's light on the lit side, a
  * dark band of the room's shadow beside it, the warm bounce of the stove low on the far side. */
@@ -696,7 +696,7 @@ function cylinderBands(ctx: Ctx, x: number, y: number, w: number, h: number, lit
 /** The sauce's surface at a bubbling phase (0…1, loops): a deep red pool turning slowly, oil gathering in amber
  * beads that ride the current; bubbles that dome up glossy, stretch thin and pop, throwing a crown of drops and
  * leaving a crater that heals in a ring. */
-function sauceSurface(ctx: Ctx, phase: number): void {
+export function sauceSurface(ctx: Ctx, phase: number): void {
   const p = KN.pot;
   const cx = p.x;
   const cy = p.y - p.h;
@@ -830,7 +830,7 @@ function sauceSurface(ctx: Ctx, phase: number): void {
   }
   ctx.restore();
 }
-const SAUCE_BOX = { x: KN.pot.x - KN.pot.w / 2 - 6, y: KN.pot.y - KN.pot.h - 40, w: KN.pot.w + 12, h: 62 };
+export const SAUCE_BOX = { x: KN.pot.x - KN.pot.w / 2 - 6, y: KN.pot.y - KN.pot.h - 40, w: KN.pot.w + 12, h: 62 };
 
 /** The small pot's lid (live: it rattles). */
 function lid(ctx: Ctx): void {

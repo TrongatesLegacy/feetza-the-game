@@ -2076,7 +2076,7 @@ function beamTex(c: Ctx, w: number, h: number, spread: number): void {
 }
 
 /** The signal: a disc of light thrown on the cloud base, broken by the cloud, with the slice silhouetted in it. */
-function signalTex(c: Ctx, w: number, h: number): void {
+export function signalTex(c: Ctx, w: number, h: number): void {
   const cx = w / 2;
   const cy = h / 2;
   c.save();

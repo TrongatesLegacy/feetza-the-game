@@ -711,7 +711,7 @@ const SWAGS: [number, number, number, number, number][] = [
   [RT.posts[0], RT.postTop + 14, RT.posts[1], RT.postTop + 14, 120],
   [RT.posts[0], RT.postTop + 64, RT.posts[1], RT.postTop + 64, 70],
 ];
-const BULBS: [number, number][] = SWAGS.flatMap(([x0, y0, x1, y1, sag], i) => swag(x0 + 30, y0, x1 - 30, y1, sag, i ? 22 : 26));
+export const BULBS: [number, number][] = SWAGS.flatMap(([x0, y0, x1, y1, sag], i) => swag(x0 + 30, y0, x1 - 30, y1, sag, i ? 22 : 26));
 
 function post(ctx: Ctx, r: R, px: number): void {
   {

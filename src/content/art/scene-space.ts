@@ -881,7 +881,7 @@ registerKitScene(SPACE, (k, wave0) => {
 });
 
 /** One turn of the satellite (phase 0…1): a gold-foil body, two solar wings foreshortened as it tumbles. */
-function satellite(c: Ctx, p: number): void {
+export function satellite(c: Ctx, p: number): void {
   const cx = 75;
   const cy = 35;
   const ang = p * Math.PI * 2;

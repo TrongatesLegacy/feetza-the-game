@@ -73,8 +73,8 @@ const archPt = (th: number, a: number, b: number): Pt => [P.x + a * Math.cos(th)
 const GAP_IN: Pt = [1.12, 2.02];
 const GAP_OUT: Pt = [1.05, 2.09];
 /** The vortex's disc (inside the mouth). */
-const VC = { x: P.x, y: 432 };
-const VR = 292;
+export const VC = { x: P.x, y: 432 };
+export const VR = 292;
 
 /** A broken edge from a to b: jagged, stepping square where it runs along the courses of brick. */
 function jagLine(a: Pt, b: Pt, n: number, amp: number, seed: number): Pt[] {
@@ -1133,7 +1133,7 @@ function sack(ctx: Ctx, r: R, x: number, base: number, w: number, h: number, lea
  * The vortex on a disc of radius R at (cx, cy), added: a body of violet light white-hot at the eye, four arms winding
  * in (a quarter turn per loop, so the loop closes), and filaments riding the flow, the inner ones faster.
  */
-function vortexPaint(c: Ctx, cx: number, cy: number, R: number, phase: number): void {
+export function vortexPaint(c: Ctx, cx: number, cy: number, R: number, phase: number): void {
   c.save();
   c.globalCompositeOperation = 'lighter';
   const body = c.createRadialGradient(cx, cy, 0, cx, cy, R);

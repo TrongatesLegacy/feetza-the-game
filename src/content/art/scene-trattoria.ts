@@ -2244,12 +2244,12 @@ function ovenInner(ctx: Ctx, r: R): void {
 
 // ——— the fire (painted frames) ———
 
-const FIRE = { x: TN.oven.x - TN.oven.mouthHalf, y: TN.oven.archTop, w: TN.oven.mouthHalf * 2, h: TN.oven.mouthY - TN.oven.archTop, n: 16 };
+export const FIRE = { x: TN.oven.x - TN.oven.mouthHalf, y: TN.oven.archTop, w: TN.oven.mouthHalf * 2, h: TN.oven.mouthY - TN.oven.archTop, n: 16 };
 
 /** One frame of the oven's fire at phase ph (0…1 loops), in the mouth's own coordinates (its top-left at FIRE): a
  * bed of tongues licking up off the logs on the left, the flame rolling across the vault towards the right, tips
  * pinching off and rising, the coals breathing. Painted with added light (it goes over the dark mouth). */
-function fireFrame(c: Ctx, ph: number): void {
+export function fireFrame(c: Ctx, ph: number): void {
   const R0 = TN.oven.mouthHalf;
   const cx = R0;
   const cy = R0;

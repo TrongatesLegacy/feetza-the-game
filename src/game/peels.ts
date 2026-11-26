@@ -15,6 +15,7 @@ import type Phaser from 'phaser';
 import { BACKDROPS, type LocationId } from '../art/backdrops';
 import { drawPeelSkin, handleFrom, headFrom, PEEL_H, PEEL_W, type CraftKind, type PeelLook, type PeelPattern, type PeelShape } from '../art/peelArt';
 import { paintCraftHead } from '../art/peelCraftArt';
+import { hasPlaceWindow, placeBaseAsync } from '../art/peelPlace';
 import { hashStr, makeCanvas, mix, shade } from '../art/util';
 import { FOOT_FRAME, styledCanvas } from '../art/feetArt';
 import { REST, pose } from '../art/style/kit';
@@ -387,6 +388,14 @@ const EVENT_LOOK: Record<EventId, Plain> = {
 
 /** Crafted peels: painted as their material, and alive as it (src/art/peelCraftArt.ts, src/art/peelCraft.ts). */
 export const CRAFT: Record<string, CraftKind> = { classic: 'wood', marble: 'marble', copper: 'copper', neon: 'neon', obsidian: 'obsidian' };
+// the place peels with a window onto their location (src/art/peelPlace.ts)
+for (const loc of Object.keys(PLACE_LOOK) as LocationId[]) if (hasPlaceWindow(loc)) CRAFT[`place:${loc}`] = 'place';
+
+/** A place peel's look: its window onto the place where it has one. */
+function placeLook(loc: LocationId): () => PeelLook {
+  const base = plain(`place:${loc}`, PLACE_LOOK[loc]);
+  return () => crafted(hasPlaceWindow(loc) ? { ...base(), craft: 'place', place: loc } : base());
+}
 
 /** A look painted as its material, if it has one (its `custom` paints it, so a mastered peel's foil and studs come
  *  along). */
@@ -519,7 +528,7 @@ function buildDefs(): PeelDef[] {
       group: 'place',
       how: `Clear 10 waves at ${name} (stage ${i + 1}, boss wave included).`,
       progress: () => [Math.min(10, save.stageWaves[st.location] ?? 0), 10],
-      look: plain(`place:${st.location}`, PLACE_LOOK[st.location]),
+      look: placeLook(st.location),
     });
   });
   // nemesis places: they take over a stage only while their hero's peel is equipped
@@ -534,7 +543,7 @@ function buildDefs(): PeelDef[] {
       group: 'place',
       how: `Clear 10 waves at ${name} (boss wave included). It only appears with ${nm.hero} equipped, in place of stage ${nm.stage + 1} (waves ${w.first}–${w.boss}).`,
       progress: () => [Math.min(10, save.stageWaves[loc] ?? 0), 10],
-      look: plain(`place:${loc}`, PLACE_LOOK[loc]),
+      look: placeLook(loc),
     });
   }
   for (const ev of Object.keys(EVENT_LABEL) as EventId[]) {
@@ -824,7 +833,16 @@ export async function peelThumbAsync(id: string, h = 180): Promise<string> {
   }
   const fid = peelFootId(id);
   if (fid) await footArtAsync(fid);
+  await placePeelReady(id);
   return peelThumbURL(id, h);
+}
+
+/** A place peel's window, painted (in idle time) or decoded from the art cache, so drawing the peel is quick. */
+export function placePeelReady(id: string): Promise<void> {
+  const d = PEEL_BY_ID[id];
+  if (!d || d.group !== 'place') return Promise.resolve();
+  const loc = id.slice(6) as LocationId;
+  return hasPlaceWindow(loc) ? placeBaseAsync(loc, PLACE_LOOK[loc].shape) : Promise.resolve();
 }
 
 let appliedPeel = 'classic';

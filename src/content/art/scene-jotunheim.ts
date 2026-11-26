@@ -229,7 +229,7 @@ export function auroraColumn(): HTMLCanvasElement {
 const calmMid = (x: number) => 1 - 0.6 * Math.exp(-(((x - 960) / 360) ** 2));
 
 /** The aurora at phase ph (0…1 loops): folded curtains whose folds travel along them, rays running through. */
-function aurora(c: Ctx, ph: number): void {
+export function aurora(c: Ctx, ph: number): void {
   const T = P2 * ph;
   const col = auroraColumn();
   c.save();

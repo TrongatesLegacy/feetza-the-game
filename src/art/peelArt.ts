@@ -1,6 +1,7 @@
 // Peel skins: every cosmetic peel is drawn from parts (head shape, material, pattern, emblem, studs, foil),
 // so ~240 skins share one drawing routine. Canvas is 220x360 with the hotspot at (110, 100), same as the classic peel.
 
+import type { LocationId } from './backdrops';
 import { INK } from './feetCommon';
 import { ellipse, makeCanvas, mix, rgba, rng, hashStr, roundRect, shade, type Ctx } from './util';
 
@@ -65,10 +66,13 @@ export interface PeelLook {
   /** Crafted peels (the Classic and the Golden Crust set, src/art/peelCraftArt.ts): the head is painted as this
    * material (and comes alive as it: src/art/peelCraft.ts). Its `custom` paints it. */
   craft?: CraftKind;
+  /** Place peels (src/art/peelPlace.ts, craft 'place'): the location whose living miniature shows in the head's
+   * window. */
+  place?: LocationId;
 }
 
-/** The materials a crafted peel is made of. */
-export type CraftKind = 'wood' | 'marble' | 'copper' | 'neon' | 'obsidian';
+/** The materials a crafted peel is made of ('place': a place peel's head with a window onto its location). */
+export type CraftKind = 'wood' | 'marble' | 'copper' | 'neon' | 'obsidian' | 'place';
 
 export const PEEL_W = 220;
 export const PEEL_H = 360;
@@ -417,7 +421,6 @@ export function drawPeelHandle(ctx: Ctx, look: PeelLook): void {
 /** Draw a peel skin onto a 220x360 canvas. */
 export function drawPeelSkin(look: PeelLook): HTMLCanvasElement {
   const [c, ctx] = makeCanvas(PEEL_W, PEEL_H);
-  const ink = look.rim ?? INK;
   drawPeelHandle(ctx, look);
 
   if (look.custom) {
@@ -432,7 +435,16 @@ export function drawPeelSkin(look: PeelLook): HTMLCanvasElement {
     drawPizzaHead(ctx, look);
     return c;
   }
-  // head
+  plainHeadUnder(ctx, look, () => {
+    if (look.emblem) stampEmblem(ctx, look);
+  });
+  plainHeadOver(ctx, look);
+  return c;
+}
+
+/** A plain head's material (inside its outline, clipped): the fill, pattern, metal sheen, foil and the flour's gloss.
+ *  `mid` paints between the metal sheen and the foil, still clipped (the stamped emblem, a place peel's window). */
+export function plainHeadUnder(ctx: Ctx, look: PeelLook, mid?: () => void): void {
   headPath(ctx, look.shape);
   const g = ctx.createRadialGradient(HX - 30, HY - 36, 10, HX, HY, R * 1.15);
   g.addColorStop(0, look.head[0]);
@@ -454,33 +466,7 @@ export function drawPeelSkin(look: PeelLook): HTMLCanvasElement {
     ctx.fillStyle = mg;
     ctx.fillRect(HX - R - 10, HY - R - 10, R * 2 + 20, R * 2 + 30);
   }
-  // emblem: a stamped disc with the picture
-  if (look.emblem) {
-    const er = R * 0.56;
-    const ey = HY + 4;
-    ellipse(ctx, HX, ey + 4, er, er);
-    ctx.fillStyle = 'rgba(0,0,0,0.18)';
-    ctx.fill();
-    ellipse(ctx, HX, ey, er, er);
-    const eg = ctx.createRadialGradient(HX - 12, ey - 14, 4, HX, ey, er);
-    eg.addColorStop(0, shade(look.head[0], 0.75));
-    eg.addColorStop(1, shade(look.head[0], 0.35));
-    ctx.fillStyle = eg;
-    ctx.fill();
-    ctx.save();
-    ellipse(ctx, HX, ey, er - 4, er - 4);
-    ctx.clip();
-    const img = look.emblem as HTMLCanvasElement;
-    const iw = img.width;
-    const ih = img.height;
-    const k = Math.min(((er - 8) * 2) / iw, ((er - 8) * 2) / ih);
-    ctx.drawImage(img, HX - (iw * k) / 2, ey - (ih * k) / 2, iw * k, ih * k);
-    ctx.restore();
-    ellipse(ctx, HX, ey, er, er);
-    ctx.strokeStyle = ink;
-    ctx.lineWidth = 4;
-    ctx.stroke();
-  }
+  mid?.();
   // shiny: rainbow foil, then sparkles
   if (look.shiny) {
     const fg = ctx.createLinearGradient(HX - R, HY - R, HX + R, HY + R);
@@ -507,6 +493,11 @@ export function drawPeelSkin(look: PeelLook): HTMLCanvasElement {
     ctx.fill();
   }
   ctx.restore();
+}
+
+/** Over a plain head: its studs, outline and (unless gloss is false) the gloss. */
+export function plainHeadOver(ctx: Ctx, look: PeelLook, gloss = true): void {
+  const ink = look.rim ?? INK;
   // studs
   if (look.studs) {
     const n = 12;
@@ -529,10 +520,39 @@ export function drawPeelSkin(look: PeelLook): HTMLCanvasElement {
   ctx.strokeStyle = ink;
   ctx.lineWidth = 6;
   ctx.stroke();
+  if (!gloss) return;
   ellipse(ctx, HX - 30, HY - 40, 26, 12, -0.6);
   ctx.fillStyle = rgba('#ffffff', look.metal ? 0.45 : 0.3);
   ctx.fill();
-  return c;
+}
+
+/** The emblem: a stamped disc with the picture. */
+function stampEmblem(ctx: Ctx, look: PeelLook): void {
+  const ink = look.rim ?? INK;
+  const er = R * 0.56;
+  const ey = HY + 4;
+  ellipse(ctx, HX, ey + 4, er, er);
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  ctx.fill();
+  ellipse(ctx, HX, ey, er, er);
+  const eg = ctx.createRadialGradient(HX - 12, ey - 14, 4, HX, ey, er);
+  eg.addColorStop(0, shade(look.head[0], 0.75));
+  eg.addColorStop(1, shade(look.head[0], 0.35));
+  ctx.fillStyle = eg;
+  ctx.fill();
+  ctx.save();
+  ellipse(ctx, HX, ey, er - 4, er - 4);
+  ctx.clip();
+  const img = look.emblem as HTMLCanvasElement;
+  const iw = img.width;
+  const ih = img.height;
+  const k = Math.min(((er - 8) * 2) / iw, ((er - 8) * 2) / ih);
+  ctx.drawImage(img, HX - (iw * k) / 2, ey - (ih * k) / 2, iw * k, ih * k);
+  ctx.restore();
+  ellipse(ctx, HX, ey, er, er);
+  ctx.strokeStyle = ink;
+  ctx.lineWidth = 4;
+  ctx.stroke();
 }
 
 /** Where a foot head sits on the peel: the trimmed art's scale (peel units per texel), its drawn size, the shift

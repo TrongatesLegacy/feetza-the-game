@@ -82,7 +82,7 @@ const MOUTH = { x: HIVE.x, half: 90, spring: 666, rise: 74 };
 /** The smoke hole's collar at the crown. */
 const HOLE = { x: HIVE.x - 4, y: CROWN - 8, rx: 24, ry: 7 };
 /** The fire inside (its base at the back of the floor). */
-const FIRE = { x: HIVE.x + 14, y: PLAT - 20, w: 132, h: 108 };
+export const FIRE = { x: HIVE.x + 14, y: PLAT - 20, w: 132, h: 108 };
 /** The awning (the larder at the wall's left end): the back edge of its thatch, the front eave, its posts. */
 const ROOF = { back: 300, eave: 392, x0: -40, x1: 286 };
 const POSTS = [{ x: 30, w: 15 }, { x: 214, w: 16 }];
@@ -1495,7 +1495,7 @@ const DOME_PTS: Pt[] = (() => {
 })();
 const domePath = polyPath(DOME_PTS);
 
-const mouthPath = (pad = 0): PathFn => (c) => {
+export const mouthPath = (pad = 0): PathFn => (c) => {
   c.beginPath();
   c.moveTo(MOUTH.x - MOUTH.half - pad, PLAT + 1);
   c.lineTo(MOUTH.x - MOUTH.half - pad, MOUTH.spring);

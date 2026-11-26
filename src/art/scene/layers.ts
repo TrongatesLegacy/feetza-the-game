@@ -171,3 +171,46 @@ export function bakeLayer(spec: SceneSpec, id: string): { canvas: HTMLCanvasElem
   const b = boxOf(l);
   return { canvas: bakePiece(spec, { kind: 'sprite', layer: l, box: b }), box: b };
 }
+
+// ——— a window onto the place (the place peels: src/art/peelPlace.ts) ———
+
+const specs = new Map<BackdropId, SceneSpec>();
+/** Keep a kit scene's spec (registerKitScene does), for what paints a corner of it elsewhere. */
+export function keepSpec(spec: SceneSpec): void {
+  specs.set(spec.id, spec);
+}
+export const kitSpec = (id: BackdropId): SceneSpec | undefined => specs.get(id);
+
+/**
+ * A box of a scene (`crop`, screen px) as its still shows it, painted onto a canvas `px` wide, a layer per step (a
+ * generator, for idle time): the layers that overlap it (only those in `only`, if given), less any in `skip` (what
+ * the caller animates itself) and the live-only, slot and top layers; then the grade. Nothing outside the box is
+ * kept. `clear`: on a transparent canvas (layers to lay over something), not black.
+ */
+export function* paintCropSteps(spec: SceneSpec, crop: Box, px: number, o: { skip?: ReadonlySet<string>; only?: ReadonlySet<string>; clear?: boolean } = {}): Generator<void, HTMLCanvasElement> {
+  const k = px / crop.w;
+  const [c, ctx] = makeCanvas(px, crop.h * k);
+  if (!o.clear) {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, c.width, c.height);
+  }
+  for (const l of spec.layers) {
+    if (l.liveOnly || l.motion === 'slot' || l.motion === 'top' || o.skip?.has(l.id) || (o.only && !o.only.has(l.id))) continue;
+    if (!overlaps(boxOf(l), crop)) continue;
+    ctx.save();
+    ctx.setTransform(k, 0, 0, k, -crop.x * k, -crop.y * k);
+    ctx.beginPath();
+    ctx.rect(crop.x, crop.y, crop.w, crop.h);
+    ctx.clip();
+    paintLayer(ctx, spec, l);
+    ctx.restore();
+    yield;
+  }
+  if (spec.grade) {
+    ctx.save();
+    ctx.setTransform(k, 0, 0, k, -crop.x * k, -crop.y * k);
+    spec.grade(ctx);
+    ctx.restore();
+  }
+  return c;
+}

@@ -1027,7 +1027,7 @@ function booth(ctx: Ctx, r: R, x0: number, x1: number): void {
 
 // ——— the jukebox ———
 
-const JK = (() => {
+export const JK = (() => {
   const { x, top, w } = DN.juke;
   const R0 = w / 2;
   const cy = top + R0;
@@ -1042,10 +1042,10 @@ const ARCH: { rr: number; col: string; lit: string }[] = [
 ];
 const TUBE_W = 14;
 /** The arch tubes run down the sides to here. */
-const ARCH_FOOT = JK.cy + 70;
+export const ARCH_FOOT = JK.cy + 70;
 
 /** The arch tubes lit, bubbles rising up both legs and round over the top (phase 0…1 loops). In screen coords. */
-function archFrame(c: Ctx, ph: number): void {
+export function archFrame(c: Ctx, ph: number): void {
   for (const [ti, t] of ARCH.entries()) {
     const path = (cc: Ctx) => {
       cc.beginPath();
@@ -1112,8 +1112,8 @@ function archFrame(c: Ctx, ph: number): void {
 }
 
 /** The pilaster tubes either side of the grille (frame painted in screen coords). */
-const PIL = { y0: JK.grille.y - 6, y1: JK.y1 - 40, xs: [JK.x0 + 20, JK.x1 - 32], w: 12 };
-function pilasterFrame(c: Ctx, ph: number, only?: number): void {
+export const PIL = { y0: JK.grille.y - 6, y1: JK.y1 - 40, xs: [JK.x0 + 20, JK.x1 - 32], w: 12 };
+export function pilasterFrame(c: Ctx, ph: number, only?: number): void {
   const h = PIL.y1 - PIL.y0;
   for (const [pi, px] of PIL.xs.entries()) {
     if (only !== undefined && only !== pi) continue;
@@ -1144,8 +1144,8 @@ function pilasterFrame(c: Ctx, ph: number, only?: number): void {
 
 /** The record on its turntable in the dome, seen from above the front: the label's print turning (phase 0…1 per
  * turn). Painted in screen coords. */
-const REC = { x: JK.x, y: JK.dome.cy + 26, rx: 44, ry: 13 };
-function recordFrame(c: Ctx, ph: number): void {
+export const REC = { x: JK.x, y: JK.dome.cy + 26, rx: 44, ry: 13 };
+export function recordFrame(c: Ctx, ph: number): void {
   const { x, y, rx, ry } = REC;
   // the platter's rim under it, then the vinyl, its grooves catching the dome light in two fixed arcs
   c.fillStyle = '#3a3a40';
@@ -1194,7 +1194,7 @@ function recordFrame(c: Ctx, ph: number): void {
 
 /** The tonearm, its pivot at the right of the dome, the head resting on the record's edge. */
 const ARM = { px: JK.x + 52, py: JK.dome.cy + 14 };
-function tonearm(c: Ctx): void {
+export function tonearm(c: Ctx): void {
   const { px, py } = ARM;
   c.strokeStyle = '#1a1c20';
   c.lineWidth = 4;
@@ -1340,7 +1340,7 @@ function jukeLitStill(ctx: Ctx): void {
 }
 
 /** The dome's curved glass over the record: a highlight down its left, the room in it. */
-function domeGlass(ctx: Ctx): void {
+export function domeGlass(ctx: Ctx): void {
   const { x, dome } = JK;
   ctx.save();
   ctx.beginPath();

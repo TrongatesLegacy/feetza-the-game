@@ -97,7 +97,7 @@ const WP = (s: number, Y: number, z: number): Pt => P(s * XW, Y, z);
 /** The depth of a side wall at screen x. */
 const zAtX = (x: number) => (XW * F) / Math.max(1, Math.abs(x - 960));
 /** Screen px per unit at depth z. */
-const ppu = (z: number) => F / z;
+export const ppu = (z: number) => F / z;
 /** The height on the right wall (or anywhere) below which the left wall's shadow falls, at X. */
 export const shadowY = (X: number) => WH - LB.drop * (X + XW);
 /** Where the slab of sun through the left turning crosses the floor and the right wall, at X: z from…to. */

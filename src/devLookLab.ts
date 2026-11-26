@@ -51,7 +51,7 @@ function families(): [string, string, PeelDef[]][] {
     ['The God Peel', 'the final trophy: halo, turning rays and a rainbow trail', all.filter((d) => d.group === 'god')],
     ['Always aflame', 'their own fire', all.filter(fire)],
     ['Gods', 'each god’s own glow', all.filter((d) => !fire(d) && god(d) && d.group !== 'god')],
-    ['Crafted: the Classic and the Golden Crusts', 'alive as their material: wood, marble, copper, neon and obsidian (mastered ones too)', all.filter((d) => hasPeelCraft(d.id))],
+    ['Crafted: the Classic, the Golden Crusts and the places', 'alive as their material (wood, marble, copper, neon, obsidian; mastered ones too), and the places with a living window', all.filter((d) => hasPeelCraft(d.id))],
     ['Jewellery box, masterworks and ultra-rares', 'glints, sheens and auras', all.filter((d) => !fire(d) && !god(d) && d.group !== 'hero' && !hasPeelLive(d.id) && !hasPeelCraft(d.id))],
     ['Heroes', 'a glow, rim glints and a starry ribbon', all.filter((d) => !fire(d) && !god(d) && d.group === 'hero')],
     ['Living feet', 'redrawn feet that move as their foot does: glow, blinks, sway, toes, heat and what they shed', all.filter((d) => !fire(d) && hasPeelLive(d.id) && !d.id.startsWith('boss:'))],

@@ -34,7 +34,7 @@ import { markFootSeen, markToppingsSeen, nextLockedPizza, onSettingsChange, pers
 import { peelsAnimated } from '../systems/graphics';
 import type { GoldenItem, RunSummary, ShopCard, ShopOffer, ShopPizza, ShopState, SlotSymbol, SlotsResult, YourTopping } from '../ui/shopTypes';
 import { ui, fmtTime } from '../ui/ui';
-import { PEELS, PEEL_BY_ID, abilityPeel, applyPeelLook, hasPeel, lookPeel, checkPeelAchievements, grantShinyFoot, peelCanvas, peelFootId, peelThumbURL, peelTrail, rollEventDrop, PEEL_HEATS, SHINY_FOOT_CHANCE, titleCase, type PeelDef } from '../game/peels';
+import { PEELS, PEEL_BY_ID, abilityPeel, applyPeelLook, hasPeel, lookPeel, checkPeelAchievements, grantShinyFoot, peelCanvas, peelFootId, peelThumbURL, placePeelReady, peelTrail, rollEventDrop, PEEL_HEATS, SHINY_FOOT_CHANCE, titleCase, type PeelDef } from '../game/peels';
 import { STAGES, WAVES_PER_STAGE } from '../data/stages';
 import { passiveBoost, setSlamMode } from '../game/slamMode';
 import { guardAutoWear, guardHits, guardRearm, setRunHeat, slamSteps } from '../game/heatRules';
@@ -2112,6 +2112,9 @@ export class GameScene extends Phaser.Scene implements Arena {
     // a nemesis stage counts for its own place, not the one it stands in for
     const where = stage ? applyNemesis(stage).location : null;
     if (where) save.stageWaves[where] = (save.stageWaves[where] ?? 0) + 1;
+    // its place peel is near: have its window painted (or read from the art cache) in idle moments, so the unlock's
+    // toast is a quick draw
+    if (where && !hasPeel(`place:${where}`) && (save.stageWaves[where] ?? 0) >= 6) void placePeelReady(`place:${where}`);
     for (const p of this.alivePizzas()) save.pizzaWaves[p.type.id] = (save.pizzaWaves[p.type.id] ?? 0) + 1;
     const eqId = this.peelId;
     save.peelBest[eqId] = Math.max(save.peelBest[eqId] ?? 0, n);

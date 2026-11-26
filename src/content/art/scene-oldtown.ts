@@ -768,7 +768,7 @@ function lampFlameStill(ctx: Ctx): void {
 
 // ——— the washing ———
 
-interface Garment {
+export interface Garment {
   kind: 'shirt' | 'trousers' | 'sheet' | 'sock';
   x: number;
   w: number;
@@ -777,7 +777,7 @@ interface Garment {
   /** Its pattern's colour (stripes on the sheet, the shirt's placket, the sock's heel and toe). */
   trim: string;
 }
-const WASH: Garment[] = [
+export const WASH: Garment[] = [
   { kind: 'shirt', x: 316, w: 84, h: 80, col: '#ece6da', trim: '#b8b0a4' },
   { kind: 'sheet', x: 440, w: 130, h: 116, col: '#a8c4e0', trim: '#5a7ab0' },
   { kind: 'trousers', x: 594, w: 58, h: 104, col: '#8a6a5a', trim: '#5a4036' },
@@ -786,13 +786,13 @@ const WASH: Garment[] = [
   { kind: 'sock', x: 838, w: 18, h: 38, col: '#3a5a9a', trim: '#e8e0d0' },
 ];
 /** The line's height at x (the same parabola the rope is drawn with). */
-const lineY = (x: number): number => {
+export const lineY = (x: number): number => {
   const l = OTX.line;
   const t = (x - l.x0) / (l.x1 - l.x0);
   return l.y + 4 * t * (1 - t) * l.sag;
 };
 /** A garment's frame: its size, and where its pegs' line point sits in it (left of centre: the wind blows right). */
-const gFrame = (g: Garment): { gw: number; gh: number; cx: number; top: number } => ({ gw: Math.ceil(g.w * 1.24 + 52), gh: Math.ceil(g.h + 36), cx: 18 + g.w * 0.62, top: 10 });
+export const gFrame = (g: Garment): { gw: number; gh: number; cx: number; top: number } => ({ gw: Math.ceil(g.w * 1.24 + 52), gh: Math.ceil(g.h + 36), cx: 18 + g.w * 0.62, top: 10 });
 
 /**
  * One garment on the line at a phase of its flapping (wind 0…1), drawn with its pegs' line point at (cx, top) of its

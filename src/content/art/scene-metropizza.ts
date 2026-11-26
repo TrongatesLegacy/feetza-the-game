@@ -635,7 +635,7 @@ export function globe(c: Ctx, cx: number, cy: number, R0: number, ph: number): v
   ring(true);
 }
 
-const GLOBE_F = { w: 160, h: 120 };
+export const GLOBE_F = { w: 160, h: 120 };
 function globeStill(ctx: Ctx): void {
   globe(ctx, MP.globe.x, MP.globe.y, MP.globe.r, 0);
 }
