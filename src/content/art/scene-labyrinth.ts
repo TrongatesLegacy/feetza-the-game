@@ -145,8 +145,10 @@ function mapToWall(ctx: Ctx, src: HTMLCanvasElement, s: number, z0: number, z1: 
 
 /** The horns of consecration in their own unit square (0…1 across, 0 at the foot … 1 at the tips). */
 export const HORNS: Pt[] = [[0, 0], [1, 0], [1, 0.16], [0.95, 0.3], [0.955, 0.55], [0.99, 0.8], [1.05, 1], [0.93, 0.97], [0.85, 0.72], [0.79, 0.47], [0.71, 0.32], [0.6, 0.255], [0.5, 0.24], [0.4, 0.255], [0.29, 0.32], [0.21, 0.47], [0.15, 0.72], [0.07, 0.97], [-0.05, 1], [0.01, 0.8], [0.045, 0.55], [0.05, 0.3], [0, 0.16]];
-/** Horns on a side wall's top at depth zc, facing down the passage (their width across the wall's thickness). */
-const hornsOnWall = (s: number, zc: number, len: number, h: number, Y0 = WH): Pt[] => HORNS.map(([u, v]) => P(s * (XW + 0.02 + (u - 0.5) * len), Y0 - 0.02 + v * h, zc));
+/** Horns on a side wall's top at depth zc, facing down the passage (their width across the wall's thickness). They
+ * stand wholly on the wall, from just past its inner edge outwards: centred on the edge, half of each pair hung over the
+ * passage and, seen from below, floated in the sky clear of the wall. */
+const hornsOnWall = (s: number, zc: number, len: number, h: number, Y0 = WH): Pt[] => HORNS.map(([u, v]) => P(s * (XW + 0.03 + u * len), Y0 - 0.02 + v * h, zc));
 /** Horns on the façade's top, centred at X, `w` wide and `h` high. */
 const hornsOnFace = (Xc: number, w: number, h: number, Y0 = LB.farH, z = FZ): Pt[] => HORNS.map(([u, v]) => P(Xc + (u - 0.5) * w, Y0 + v * h, z));
 /** Where the horns stand along the wall tops (depths). */
