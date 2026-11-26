@@ -14,6 +14,7 @@
 
 import { INK } from './feetCommon';
 import { paintPlaceHead } from './peelPlace';
+import { paintPizzaHead } from './peelPizza';
 import { PEEL_HEAD, headPath, sparkleStar, type CraftKind, type PeelLook, type PeelShape } from './peelArt';
 import { ellipse, hashStr, makeCanvas, mix, rgba, rng, roundRect, shade, type Ctx } from './util';
 
@@ -469,7 +470,9 @@ function inHandle(ctx: Ctx, draw: () => void): void {
 
 // ════════════════════════════ wood ════════════════════════════
 
-function woodUnder(ctx: Ctx, look: PeelLook): void {
+/** `board`: a pizza peel's board (src/art/peelPizza.ts), turned round and not scorched: the pie hides its middle, so only
+ *  its pale rim shows. */
+export function woodUnder(ctx: Ctx, look: PeelLook, board = false): void {
   const g = woodGeo();
   const base = look.head[1];
   const edges = [HX - R - 10, ...g.seams, HX + R + 10];
@@ -538,8 +541,28 @@ function woodUnder(ctx: Ctx, look: PeelLook): void {
   }
   // light pooling in the top left, the wood curving away at the rim
   dab(ctx, HX - 30, HY - 36, R * 1.05, '#fff0d0', 0.3);
-  rimShade(ctx, '#4a2208', 0.42, 0.5);
-  // the front edge scorched from the oven: darkest at the rim, fading down the sides
+  rimShade(ctx, '#4a2208', board ? 0.2 : 0.42, 0.5);
+  if (!board) woodScorch(ctx, g);
+  // a dusting of flour and semolina where the pies sit
+  for (const [x, y, rr, a] of g.blobs) dab(ctx, x, y, rr, '#fffaf0', a);
+  for (const [x, y, rr, a] of g.specks) {
+    ellipse(ctx, x, y, rr, rr);
+    ctx.fillStyle = rgba('#fffbf2', a);
+    ctx.fill();
+  }
+  for (const [x, y, rot] of g.grits) {
+    ellipse(ctx, x + 0.3, y + 0.4, 1.5, 0.9, rot);
+    ctx.fillStyle = rgba('#8a5a22', 0.35);
+    ctx.fill();
+    ellipse(ctx, x, y, 1.4, 0.85, rot);
+    ctx.fillStyle = rgba('#f4dca0', 0.9);
+    ctx.fill();
+  }
+  foil(ctx, look);
+}
+
+/** The Classic's front edge scorched from the oven: darkest at the rim, fading down the sides, flecked with char. */
+function woodScorch(ctx: Ctx, g: WoodGeo): void {
   const [sc, sx] = makeCanvas(220, 220);
   const rg = sx.createRadialGradient(HX, HY, R * 0.6, HX, HY, R * 1.0);
   rg.addColorStop(0, 'rgba(90,40,12,0)');
@@ -561,22 +584,6 @@ function woodUnder(ctx: Ctx, look: PeelLook): void {
     ctx.fillStyle = rgba('#1e0a02', 0.7);
     ctx.fill();
   }
-  // a dusting of flour and semolina where the pies sit
-  for (const [x, y, rr, a] of g.blobs) dab(ctx, x, y, rr, '#fffaf0', a);
-  for (const [x, y, rr, a] of g.specks) {
-    ellipse(ctx, x, y, rr, rr);
-    ctx.fillStyle = rgba('#fffbf2', a);
-    ctx.fill();
-  }
-  for (const [x, y, rot] of g.grits) {
-    ellipse(ctx, x + 0.3, y + 0.4, 1.5, 0.9, rot);
-    ctx.fillStyle = rgba('#8a5a22', 0.35);
-    ctx.fill();
-    ellipse(ctx, x, y, 1.4, 0.85, rot);
-    ctx.fillStyle = rgba('#f4dca0', 0.9);
-    ctx.fill();
-  }
-  foil(ctx, look);
 }
 
 /** The straight grain caught by the light, faintly, under the sheen sweeping the varnish (src/art/peelCraft.ts). */
@@ -1152,7 +1159,7 @@ export function craftOver(ctx: Ctx, look: PeelLook): void {
 
 /** On the handle (drawn before the head): the material's touches, and the head's contact shadow on it. */
 export function craftHandle(ctx: Ctx, look: PeelLook): void {
-  if (look.craft === 'wood') woodHandle(ctx, look);
+  if (look.craft === 'wood' || look.craft === 'pizza') woodHandle(ctx, look);
   if (look.craft === 'copper') copperHandle(ctx, look);
   if (look.craft === 'neon') neonHandle(ctx);
   inHandle(ctx, () => {
@@ -1170,6 +1177,7 @@ export function paintCraftHead(ctx: Ctx, look: PeelLook): void {
   if (!look.craft) return;
   craftHandle(ctx, look);
   if (look.craft === 'place') return paintPlaceHead(ctx, look);
+  if (look.craft === 'pizza') return paintPizzaHead(ctx, look);
   ctx.save();
   headPath(ctx, look.shape);
   ctx.clip();

@@ -16,9 +16,9 @@ export function sideFor(shape: PizzaType['shape']): number {
   return shape === 'deep' ? 46 : shape === 'square' ? 26 : shape === 'calzone' ? 30 : SIDE;
 }
 
-const CALZONE_CY = PIZZA_SIZE / 2 - PIZZA_R * 0.36;
+export const CALZONE_CY = PIZZA_SIZE / 2 - PIZZA_R * 0.36;
 
-const SAUCE: Record<PizzaType['base'], string> = {
+export const SAUCE: Record<PizzaType['base'], string> = {
   tomato: '#c22f1c',
   pesto: '#4d8a2a',
   bbq: '#6a2812',
@@ -557,7 +557,19 @@ function drawTopping(ctx: Ctx, t: Topping, x: number, y: number, rand: () => num
   ctx.restore();
 }
 
-function drawToppings(ctx: Ctx, p: PizzaType, rand: () => number): void {
+/** Where each topping piece goes, as it's drawn: `draw` paints it on the ctx given (exactly once, in order, so the
+ *  pizza's randomness stays the same). The pizza peels (src/art/peelPizza.ts) lift some pieces onto their own layer. */
+export type ToppingHook = (t: Topping, x: number, y: number, count: number, draw: (ctx: Ctx) => void) => void;
+
+/** Draw order: bigger/base toppings first, garnish last. */
+function toppingOrderAll(): Topping[] {
+  const order: Topping[] = ['mozzarella', 'tomato', 'ham', 'bacon', 'pepperoni', 'salami', 'chicken', 'sausage', 'mushroom', 'pineapple', 'greenPepper', 'redPepper', 'jalapeno', 'onion', 'olive', 'blueCheese', 'strawberry', 'truffle', 'chili', 'parmesan', 'chocolate', 'arugula', 'basil', 'goldLeaf'];
+  order.splice(4, 0, ...EXTRA_ORDER.slice(0, 5));
+  order.splice(order.indexOf('olive') + 1, 0, ...EXTRA_ORDER.slice(5));
+  return order;
+}
+
+function drawToppings(ctx: Ctx, p: PizzaType, rand: () => number, each?: ToppingHook): void {
   const r = PIZZA_R * 0.72;
   const counts: Partial<Record<Topping, number>> = {
     pepperoni: 13, salami: 9, mushroom: 13, olive: 12, greenPepper: 8, redPepper: 7, onion: 9, pineapple: 14, ham: 12,
@@ -566,22 +578,26 @@ function drawToppings(ctx: Ctx, p: PizzaType, rand: () => number): void {
   };
   Object.assign(counts, EXTRA_COUNTS);
   const per = p.toppings.length > 3 ? 0.6 : p.toppings.length > 2 ? 0.7 : 1;
-  // draw order: bigger/base toppings first, garnish last
-  const order: Topping[] = ['mozzarella', 'tomato', 'ham', 'bacon', 'pepperoni', 'salami', 'chicken', 'sausage', 'mushroom', 'pineapple', 'greenPepper', 'redPepper', 'jalapeno', 'onion', 'olive', 'blueCheese', 'strawberry', 'truffle', 'chili', 'parmesan', 'chocolate', 'arugula', 'basil', 'goldLeaf'];
-  order.splice(4, 0, ...EXTRA_ORDER.slice(0, 5));
-  order.splice(order.indexOf('olive') + 1, 0, ...EXTRA_ORDER.slice(5));
+  const order = toppingOrderAll();
   for (const t of order) {
     if (!p.toppings.includes(t)) continue;
     const n = Math.round((counts[t] ?? 8) * per);
     const pts = scatter(p.shape, r, n, t === 'chili' || t === 'parmesan' || t === 'goldLeaf' ? 14 : t === 'pepperoni' || t === 'salami' ? 44 : 28, rand);
-    for (const [x, y] of pts) drawTopping(ctx, t, x, y, rand);
+    for (const [x, y] of pts) {
+      if (each) each(t, x, y, n, (c) => drawTopping(c, t, x, y, rand));
+      else drawTopping(ctx, t, x, y, rand);
+    }
   }
   // Feetza 2.0 toppings registered by content modules, drawn after the built-in ones
   for (const t of p.toppings) {
     const d = toppingDrawer(t);
     if (!d || order.includes(t)) continue;
-    const pts = scatter(p.shape, r, Math.round((d.count ?? 8) * per), d.minDist ?? 28, rand);
-    for (const [x, y] of pts) drawTopping(ctx, t, x, y, rand);
+    const n = Math.round((d.count ?? 8) * per);
+    const pts = scatter(p.shape, r, n, d.minDist ?? 28, rand);
+    for (const [x, y] of pts) {
+      if (each) each(t, x, y, n, (c) => drawTopping(c, t, x, y, rand));
+      else drawTopping(ctx, t, x, y, rand);
+    }
   }
   drawDrizzles(ctx, p.toppings, PIZZA_SIZE);
   if (p.toppings.includes('bbq')) {
@@ -710,9 +726,19 @@ function drawFrico(ctx: Ctx, p: PizzaType, rand: () => number): void {
   void p;
 }
 
-export function drawPizzaTop(p: PizzaType): HTMLCanvasElement {
-  const [c, ctx] = makeCanvas(PIZZA_SIZE, PIZZA_SIZE);
+/** A pizza's top painted in layers (the pizza peels animate them: src/art/peelPizza.ts): the crust and sauce (and a
+ *  calzone whole) on `base`, the cheese on `cheese`, the toppings and the warm gloss on `tops`, each piece through
+ *  `each` if given. Drawn on one ctx it is the pizza's top. Yields between the layers. */
+export interface PizzaLayers {
+  base: Ctx;
+  cheese: Ctx;
+  tops: Ctx;
+  each?: ToppingHook;
+}
+
+export function* pizzaTopSteps(p: PizzaType, L: PizzaLayers): Generator<void, void> {
   const rand = rng(hashStr(p.id));
+  const ctx = L.base;
   if (p.shape === 'calzone') {
     drawCalzone(ctx, p, rand);
     // phase 3 calzones paint their overlays (lava, cracks) over the folded crust
@@ -721,26 +747,50 @@ export function drawPizzaTop(p: PizzaType): HTMLCanvasElement {
       toppingDrawer(t)?.draw(ctx, rand);
       ctx.restore();
     }
-    return c;
+    return;
   }
   drawCrust(ctx, p, rand);
   if (p.shape === 'deep') drawDeepFilling(ctx, p, rand);
   else drawSauce(ctx, p, rand);
   if (p.toppings.includes('redStripes')) drawFrico(ctx, p, rand);
-  drawCheese(ctx, p, rand);
-  drawToppings(ctx, p, rand);
-  // warm gloss
+  yield;
+  drawCheese(L.cheese, p, rand);
+  yield;
+  drawToppings(L.tops, p, rand, L.each);
+  // warm gloss (over everything: on the top layer, it composites the same)
+  const t = L.tops;
   const c0 = PIZZA_SIZE / 2;
-  const g = ctx.createRadialGradient(c0 - 60, c0 - 70, 10, c0 - 40, c0 - 40, PIZZA_R);
+  const g = t.createRadialGradient(c0 - 60, c0 - 70, 10, c0 - 40, c0 - 40, PIZZA_R);
   g.addColorStop(0, rgba('#fff2d0', 0.22));
   g.addColorStop(1, rgba('#fff2d0', 0));
-  ctx.save();
-  shapePath(ctx, p.shape, PIZZA_R);
-  ctx.clip();
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, PIZZA_SIZE, PIZZA_SIZE);
-  ctx.restore();
+  t.save();
+  shapePath(t, p.shape, PIZZA_R);
+  t.clip();
+  t.fillStyle = g;
+  t.fillRect(0, 0, PIZZA_SIZE, PIZZA_SIZE);
+  t.restore();
+}
+
+export function drawPizzaTop(p: PizzaType): HTMLCanvasElement {
+  const [c, ctx] = makeCanvas(PIZZA_SIZE, PIZZA_SIZE);
+  const gen = pizzaTopSteps(p, { base: ctx, cheese: ctx, tops: ctx });
+  while (!gen.next().done);
   return c;
+}
+
+/** The calzone's three vents (top-down px, and each one's turn). */
+export const CALZONE_VENTS: [number, number, number][] = [
+  [PIZZA_SIZE / 2 - 70, CALZONE_CY + 70, -0.3],
+  [PIZZA_SIZE / 2, CALZONE_CY + 80, 0],
+  [PIZZA_SIZE / 2 + 70, CALZONE_CY + 70, 0.3],
+];
+
+/** The order toppings are drawn in (the pizza peels lift the last-drawn pieces). */
+export function toppingOrder(p: PizzaType): Topping[] {
+  const order = toppingOrderAll();
+  const out = order.filter((t) => p.toppings.includes(t));
+  for (const t of p.toppings) if (toppingDrawer(t) && !order.includes(t)) out.push(t);
+  return out;
 }
 
 /** Path for slice i of n in top-down coords. */

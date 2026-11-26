@@ -69,10 +69,13 @@ export interface PeelLook {
   /** Place peels (src/art/peelPlace.ts, craft 'place'): the location whose living miniature shows in the head's
    * window. */
   place?: LocationId;
+  /** Pizza peels (src/art/peelPizza.ts, craft 'pizza'): the pizza whose pie sits on the head. */
+  pizza?: string;
 }
 
-/** The materials a crafted peel is made of ('place': a place peel's head with a window onto its location). */
-export type CraftKind = 'wood' | 'marble' | 'copper' | 'neon' | 'obsidian' | 'place';
+/** The materials a crafted peel is made of ('place': a place peel's head with a window onto its location; 'pizza': a
+ *  pizza peel's living pie on its board). */
+export type CraftKind = 'wood' | 'marble' | 'copper' | 'neon' | 'obsidian' | 'place' | 'pizza';
 
 export const PEEL_W = 220;
 export const PEEL_H = 360;
@@ -742,55 +745,60 @@ export function drawFootHilt(ctx: Ctx, look: PeelLook, p: FootHeadPlace): void {
   }
 }
 
-/** A pizza-shaped head: the whole pie on a wooden disc, with a hilt. */
-function drawPizzaHead(ctx: Ctx, look: PeelLook): void {
-  const art = look.pizzaArt!;
-  const r = R + 2;
-  let bottom: number;
+/** Where a pizza peel's pie sits on the head (peel units): the art (a 400 px top) drawn at scale k into the box x, y,
+ *  w, h (mirrored top to bottom for a calzone, so its flat edge sits on the hilt), and where the hilt meets it. */
+export interface PizzaPlace {
+  k: number;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  flip: boolean;
+  /** Round pies (and deep dish) sit on a wooden board. */
+  round: boolean;
+  bottom: number;
+}
+
+/** The board's radius (peel units). */
+export const PIZZA_BOARD_R = R + 2;
+
+export function pizzaPlacement(look: Pick<PeelLook, 'pizzaRound' | 'pizzaFlip'>, art: HTMLCanvasElement): PizzaPlace {
+  const r = PIZZA_BOARD_R;
   if (look.pizzaRound !== false) {
-    // the wooden board under the pie
-    ellipse(ctx, HX, HY + 4, r, r);
-    ctx.fillStyle = 'rgba(0,0,0,0.2)';
-    ctx.fill();
-    ellipse(ctx, HX, HY, r, r);
-    const g = ctx.createRadialGradient(HX - 30, HY - 36, 10, HX, HY, r * 1.1);
-    g.addColorStop(0, '#f6cf94');
-    g.addColorStop(1, '#a8703a');
-    ctx.fillStyle = g;
-    ctx.fill();
-    ctx.strokeStyle = look.rim ?? INK;
-    ctx.lineWidth = 5;
-    ctx.stroke();
     const k = ((r - 8) * 2) / Math.max(art.width, art.height);
-    ctx.drawImage(art, HX - (art.width * k) / 2, HY - (art.height * k) / 2, art.width * k, art.height * k);
-    bottom = HY + r - 2;
-  } else {
-    // square pizzas and calzones: just the pie, with a soft shadow
-    const k = (r * 2) / Math.max(art.width, art.height);
     const w = art.width * k;
-    const hh = art.height * k;
-    ctx.save();
-    ctx.shadowColor = 'rgba(0,0,0,0.3)';
-    ctx.shadowBlur = 8;
-    ctx.shadowOffsetY = 4;
-    if (look.pizzaFlip) {
-      // the dome up, the flat edge down; the art's empty top half becomes empty space above
-      const top = visibleEdge(art, false) * k; // empty rows above the pie in the art
-      const vis = visibleEdge(art, true) * k - top; // the pie's own height
-      const y0 = HY + vis / 2 + 6; // where the flat edge lands
-      ctx.translate(HX, y0 + top);
-      ctx.scale(1, -1);
-      ctx.drawImage(art, -w / 2, 0, w, hh);
-      ctx.restore();
-      bottom = y0 - 2;
-    } else {
-      ctx.drawImage(art, HX - w / 2, HY - hh / 2, w, hh);
-      ctx.restore();
-      // the hilt meets the pie's visible bottom edge
-      bottom = HY - hh / 2 + visibleEdge(art, true) * k - 4;
-    }
+    const h = art.height * k;
+    return { k, x: HX - w / 2, y: HY - h / 2, w, h, flip: false, round: true, bottom: HY + r - 2 };
   }
-  // a stem down to the handle when the pie ends high (calzones)
+  const k = (r * 2) / Math.max(art.width, art.height);
+  const w = art.width * k;
+  const h = art.height * k;
+  if (look.pizzaFlip) {
+    // the dome up, the flat edge down; the art's empty top half becomes empty space above
+    const top = visibleEdge(art, false) * k; // empty rows above the pie in the art
+    const vis = visibleEdge(art, true) * k - top; // the pie's own height
+    const y0 = HY + vis / 2 + 6; // where the flat edge lands
+    return { k, x: HX - w / 2, y: y0 + top - h, w, h, flip: true, round: false, bottom: y0 - 2 };
+  }
+  // the hilt meets the pie's visible bottom edge
+  return { k, x: HX - w / 2, y: HY - h / 2, w, h, flip: false, round: false, bottom: HY - h / 2 + visibleEdge(art, true) * k - 4 };
+}
+
+/** Draw a canvas in a pizza's box (mirrored for a calzone). */
+export function drawInPlace(ctx: Ctx, img: CanvasImageSource, pl: Pick<PizzaPlace, 'x' | 'y' | 'w' | 'h' | 'flip'>): void {
+  if (!pl.flip) {
+    ctx.drawImage(img, pl.x, pl.y, pl.w, pl.h);
+    return;
+  }
+  ctx.save();
+  ctx.translate(pl.x, pl.y + pl.h);
+  ctx.scale(1, -1);
+  ctx.drawImage(img, 0, 0, pl.w, pl.h);
+  ctx.restore();
+}
+
+/** The hilt a pizza peel's pie sits on, and a stem down to the handle when the pie ends high (calzones). */
+export function drawPizzaHilt(ctx: Ctx, look: PeelLook, bottom: number): void {
   const handleTop = HY + R - 14;
   if (bottom + 6 < handleTop + 4) {
     roundRect(ctx, HX - 14, bottom, 28, handleTop - bottom + 8, 6);
@@ -804,10 +812,14 @@ function drawPizzaHead(ctx: Ctx, look: PeelLook): void {
     ctx.lineWidth = 5;
     ctx.stroke();
   }
-  // hilt
+  // the hilt, lit along its top
   const metal = look.handle[0];
   roundRect(ctx, HX - 30, bottom - 8, 60, 16, 8);
-  ctx.fillStyle = metal;
+  const hg = ctx.createLinearGradient(0, bottom - 8, 0, bottom + 8);
+  hg.addColorStop(0, shade(metal, 0.22));
+  hg.addColorStop(0.5, metal);
+  hg.addColorStop(1, shade(metal, -0.3));
+  ctx.fillStyle = hg;
   ctx.fill();
   ctx.strokeStyle = look.rim ?? INK;
   ctx.lineWidth = 3.5;
@@ -815,6 +827,39 @@ function drawPizzaHead(ctx: Ctx, look: PeelLook): void {
   roundRect(ctx, HX - 22, bottom - 5, 44, 3.5, 2);
   ctx.fillStyle = 'rgba(255,255,255,0.45)';
   ctx.fill();
+}
+
+/** A pizza-shaped head: the whole pie on a wooden disc, with a hilt (the plain still; the pizza peels are painted and
+ *  come alive in src/art/peelPizza.ts). */
+function drawPizzaHead(ctx: Ctx, look: PeelLook): void {
+  const art = look.pizzaArt!;
+  const pl = pizzaPlacement(look, art);
+  if (pl.round) {
+    // the wooden board under the pie
+    const r = PIZZA_BOARD_R;
+    ellipse(ctx, HX, HY + 4, r, r);
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.fill();
+    ellipse(ctx, HX, HY, r, r);
+    const g = ctx.createRadialGradient(HX - 30, HY - 36, 10, HX, HY, r * 1.1);
+    g.addColorStop(0, '#f6cf94');
+    g.addColorStop(1, '#a8703a');
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.strokeStyle = look.rim ?? INK;
+    ctx.lineWidth = 5;
+    ctx.stroke();
+    drawInPlace(ctx, art, pl);
+  } else {
+    // square pizzas and calzones: just the pie, with a soft shadow
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.3)';
+    ctx.shadowBlur = 8;
+    ctx.shadowOffsetY = 4;
+    drawInPlace(ctx, art, pl);
+    ctx.restore();
+  }
+  drawPizzaHilt(ctx, look, pl.bottom);
 }
 
 const edgeCache = new WeakMap<HTMLCanvasElement, [number, number]>();

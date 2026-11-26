@@ -10,6 +10,7 @@ How a peel can look today:
 - **living**: the redrawn foot moves on the peel as it does in play (`src/art/peelLive.ts`): blinks, sway, toes that curl and splay on a smack, its own emitters and critters.
 - **crafted** (new in batch 1): painted as its material and alive as it (`src/art/peelCraftArt.ts`, `src/art/peelCraft.ts`).
 - **window** (new in batch 2, a crafted kind): a place peel's head with a living miniature of its location set into it (`src/art/peelPlace.ts`, `src/art/peelPlaceDefs.ts`).
+- **pie** (new in batch 3, a crafted kind): a pizza peel's pie, built from the pizza's own art in layers, alive on its board (`src/art/peelPizza.ts`).
 
 Priorities: **P1** the most seen (everyone's first peel, the first peels bought, what most players own early); **P2** owned early or often by most players, still a still today; **P3** rare or late, or already animated (a glow or a fire) and wanting a signature motion of its own.
 
@@ -21,8 +22,8 @@ Priorities: **P1** the most seen (everyone's first peel, the first peels bought,
 | Golden Crusts | 4 | still → **crafted (batch 1)** | the first things players buy (400–1,200 crusts) | **P1, done** |
 | Mastered (of the Classic and the Golden Crusts) | 5 | glow → **crafted + glow (batch 1)** | wave 60 with the peel equipped | done with their bases |
 | Places | 22 | still → **a living window onto the place (batch 2)** | the Trattoria's after two early runs; one per stage after | **P2, done** |
-| Pizzas | 113 | still (5 fire) | Margherita's and the starters' within the first few hours | **P2** (next) |
-| Events | 8 | still | balloon, drone and moth peels early | **P2** |
+| Pizzas | 113 | still (5 fire) → **a living pie on its board (batch 3)**; the five fire pizzas keep their fire | Margherita's and the starters' within the first few hours | **P2, done** |
+| Events | 8 | still | balloon, drone and moth peels early | **P2** (next) |
 | Acts | 10 | still | Act 1's after the first act; one per act | **P2** |
 | Jewellery box | 8 | glow (Ruby: fire), preview only | bought late (800–5,000 crusts) | P3 |
 | Mastered (of the jewels) | 8 | glow | late | P3 |
@@ -58,12 +59,14 @@ Every location now has a redrawn, painted backdrop with frame loops (`src/conten
 
 Done in batch 2, all 22 (below).
 
-### Pizzas (113): P2
+### Pizzas (113): batch 3, done
 
 Earned by clearing 20 waves with a pizza on the table, so the starter pizzas' peels (Margherita, Pepperoni, Funghi …) come early. Today the head is the pizza's own art on a wooden board (a still); five hot pizzas burn (`FIRE_PEELS`).
 
 - Toppings sizzling and glistening (a moving specular glint on oil and cheese), steam curling off the pie (a painted steam loop, shared by every pizza), the cheese stretching off the board's edge when the peel swings, and on a smack a slice-sized jump: the pie bounces on the board and a few toppings hop.
 - One shared rig (pie layer, a cheese-pull mesh along the rim, the steam loop) with per-pizza tints from its toppings data, so 113 peels cost one piece of work; the five fire pizzas keep their fire over it.
+
+Done in batch 3, all 113 (below).
 
 ### Events (8): P2
 
@@ -158,3 +161,77 @@ Already living at the feet's bar, by `src/art/peelLive.ts`. Batch 1 adds one thi
 **Review fixes.** One independent visual review; everything it raised was fixed: spray, sauce, embers and sparks drawn as streaks read as scribbles, wire or chain links (they are now round, lit drops and filled glowing motes, short-lived, and the big splashes are foam and droplets inside the window); rain, snow and most sparks flew loose past the head (now drawn inside the window, which clips them; only embers, smoke, a few drops, feathers, motes and confetti leave it, and fade within a short way); the Doom Lab's coil sparks crossed the bezel (now inside); the oven's burst read as an asterisk (a soft ring of light from the eye); embers in the lodge and labyrinth started inside the flames (now above them); the head's flat gloss lay over the window as a hard-edged oval (gone over the window; the glass has its own soft sheen and a fine lit edge); the Hot Gates now shows the shield wall at the sea's edge with embers rising, Goth-Ham more skyline with the clock inside and the signal drawn live, Bifröst a tighter crop with its bands lifted, the Rooftop and the Pier tighter crops, the First Pizzeria its dome under the stars (so it is no longer the trattoria's darker twin); idle motion added where it was faint (glints and a swell on the pier's sea, bigger flecks in the rink, stars and a gustier wash in Old Town, meteors every few seconds and a shorter satellite pass in space); every window flashes as a smack lands (stronger on the places whose reaction was faint: Bifröst, Metropizza, Jotunheim, space), so the smack reads at the cursor's size; the lightning's frame is faded at its edges (it showed as a pale box).
 
 **Where it stopped.** All 22 places are done. Up next, in order: the pizza peels' shared rig (P2: the pie on its board, steam, glistening toppings, a bounce on a smack), the event peels and the act peels (P2), then the P3 families (gems, heroes, gods). The foot peels' first-open warm-up above is worth a look alongside.
+
+## Batch 3: the pizza peels (done)
+
+**What changed.** All 113 pizza peels have a living pie, built from the pizza's own art (`src/art/pizzaArt.ts`, the drawing the table's pizzas use: nothing repainted per pizza). `pizzaTopSteps` paints a pizza's top in layers, the crust and sauce, the cheese and the toppings, through a hook that sees every topping piece as it's drawn, so the pizza's randomness and the table's top are unchanged. A few pieces of the last kinds drawn that are big enough to read (up to five, spread out) are lifted onto a layer of their own so they can hop. A light map comes from the layers: the cheese's highlights, the shine and oil on the toppings (more on the fatty ones), wet sauce, and a little on the crust's puffed rim. Points where the cheese (or, on a pie without cheese, the sauce) can bubble come from the same pass. Round pies and deep dish now sit on a board of the Classic's beech, turned round, with its edge chamfered and lit from the top left, not scorched, and a soft shadow under it. Every pie throws a soft contact shadow on its board (square pies and calzones on whatever is behind them). The hilt is lit along its top.
+
+Every pizza, idle: the light pools on the pie and drifts, and the cheese and the oil on the toppings glisten under it; every few seconds the light sweeps across it. The cheese blisters: bubbles swell, lit on their top left with a glint, then pop into a spreading ring and a browned spot. A pie without cheese bubbles its sauce, or its chocolate. Fat sizzles on the cured meats as tiny bright pops. Steam wisps curl up off the pie's upper half. These come from a painted, curling steam loop that every pizza shares. In play the pie slides on its board as the peel is swung, then springs back. A smack bounces it on the board: the pie lifts, so it grows and its shadow spreads and drops away, then lands with two small rebounds. The lifted toppings hop, each to its own height and at its own moment, with a shadow where they sat. On a cheesy pie, cheese stretches after them in two strands that snap. Crumbs of crust fly off the rim and a breath of steam rises.
+
+What a pizza's family adds comes from its data (`PizzaTraits`), not a recipe per pizza:
+
+| Family | Which (from the data) | Idle | Smack |
+|---|---|---|---|
+| Spicy | chili, jalapeño, hot sauce, nduja and other hot toppings, or a burning perk; the five fire pizzas at full heat | the pie shimmers: it is drawn in bands, each nudged by a wave running up it. A warm glow breathes over it and the crust glows hot round its edge | the shimmer and the glow surge; embers rise |
+| Cold | a chilling or freezing perk (Frutti di Mare, Smoked Salmon, Ragnarök) | the crust is rimed with frost crystals in a pale blue haze, and feathers of frost creep in over the cheese and back again. A cold mist spills off its lower edge instead of steam. Frost glints | mist bursts, flakes fly |
+| Sweet | a chocolate base (chocolate), a honey drizzle (honey), sweet toppings on a pie without cheese (strawberry) | two drips of syrup run from the pie's lower edge down the board, either side of the hilt. Each swells a bead and lets a drop fall | syrup drops fly; sprinkles and candy throw confetti |
+| Gold | gold leaf, pearls, a gold rim, a crown, a halo | glints twinkle on the gold | glints burst off it |
+| Rare Finds | a `finish` | the table's coloured glow breathes under the peel, sparkles in its colour twinkle on the pie, and Pizza Fantasma breathes see-through | motes in its colour |
+| Calzones | the shape | steam rises from the vents, and sauce bubbles in them | it puffs; steam jets from the vents, sauce spits |
+| Deep dish, squares | the shape | (as every pizza) | they land heavier |
+
+The five fire pizzas (Diavola, Tarte Flambée, Inferno Calzone, Volcano Calzone, Dragon Fruit Flambé) keep their own fire (`src/art/lookFire.ts`) over all of it.
+
+**How it's built.** A new crafted kind, `pizza`, on the batch-1 system (`src/art/peelCraft.ts`):
+
+- **The rig** (`PizzaMini`) holds the pie (with the lifted pieces out), its light map at half the rig's detail, its contact shadow, the lifted pieces, the bubbling, oily and gold points, and, on cold pies, the frost. The board and the handle are painted once per detail and shared by every pizza.
+- **Painting a pizza's layers** (`paintSteps`) takes about 15 ms in all, spread over 7 idle steps. The longest step is about 9 ms: drawing the toppings, or half the light map. The layers are read back from canvases kept in memory, not on the GPU, because reading a GPU canvas stalled whole frames. Pizzas are painted one at a time from a single queue, skipping any that have scrolled away, and the result is saved to the art cache (`pzpeel:` entries), so the next visit decodes it off the main thread.
+- **Each frame** the pie and what moves on it are drawn straight into the head's surface, with no mask pass. The surface flexes as the crafted heads do; what flies off (crumbs, specks, steam wisps, mist, flakes, embers, syrup drops, confetti, glints, motes) uses the crafted peels' sprite pool, which gains crumbs, a steam wisp, mist and three syrup drops.
+- **The still** (thumbnails, the toast, animated peels off) is the same board, shadow, frost, drips and hilt over the table's own top, so a tile shows no jump when its living pie takes over.
+- **Reduced motion** halves the bounce and the hops, calms the slide and the steam and switches the shimmer off.
+
+**Performance** (headless Chrome on the dev machine):
+
+- **Cursor peel in play**, swinging and smacking: the look's tick costs 0.39 ms a frame on average for Pepperoni and Smoked Salmon, 0.47 ms for Choco-Berry (p95 1.0–1.1 ms, max 1.3 ms). Frame p95 is 19 ms, with no frame over 50 ms.
+- **Locker, PIZZAS tab, cold art cache**, scrolled top to bottom and back:
+
+  | Pass | Frame p95 | Max |
+  |---|---|---|
+  | First | 19.7 ms | 29.7 ms |
+  | Second | 19.8 ms | 21.5 ms |
+  | Third | 20.3 ms | 20.8 ms |
+
+  No frame was over 50 ms, and all 113 pies were alive by the end of the first pass. With the living pizzas switched off on the same build: p95 17.6–17.9 ms, max 43.8 ms on the first pass.
+- **Before the one-at-a-time queue**, painting dozens of pizzas side by side in their own idle chains gave the first pass six frames over 50 ms (max 120 ms). Reading GPU canvases cost about 1.1 s across the pass. Both are fixed above.
+- **Locker, ALL tab**, fresh page load, three passes:
+
+  | Pass | Max frame with the living pizzas | Max frame without |
+  |---|---|---|
+  | First | 233 ms | 285 ms |
+  | Second | 135 ms | 170 ms |
+  | Third | 55 ms | 57 ms |
+
+  This is the same first-open warm-up batch 2 profiled to the foot peels.
+- **`F.contrast()` and `F.layout()`** report nothing on the PIZZAS tab, at desktop and at phone size.
+
+**Review fixes.** One independent visual review. What it raised and what changed:
+
+- **The smack's steam** read as a grey haze hanging beside the cursor in play. It is now a few short, white wisps close over the pie, gone in under half a second; a calzone's are thin and short, rising off its vents.
+- **Smoked Salmon** washed out to a pale disc. Its frost is now a narrower, bluer rime with fewer, shorter feathers.
+- **Chocolate pies** sank into the wood. The board is now lighter, unscorched beech, and chocolate is glossier under the light.
+- **Drops** fell far past the handle as stray specks. They now fade within a short fall, and the drips start clear of the hilt.
+- **The heat on spicy pies** didn't show. The shimmer is twice as strong, the glow over the pie is warmer, and the crust glows hot round its edge.
+- **Pizza Fantasma** barely let the board through. It now breathes further, down to 70 %.
+- **Crumbs** lingered like dirt. They now go within about half a second.
+- **The board** read as a frying pan. Its chamfer is wider and lighter.
+- **Not changed:** the reviewer found the Diavola's fire too spiky and red at tile size. That is the fire look from before this pass (`src/art/lookFire.ts`, shared by the five fire pizzas and others), and it is left for when the fire looks are next touched.
+
+**Note for players' caches.** `src/art/pizzaArt.ts` changed (the layered painting), so the art cache's version moves and every foot and pizza is drawn again once on the next visit, as after any art change.
+
+**Where it stopped.** All 113 pizza peels are done. Up next, in order:
+
+1. The event peels (P2: each event's own motion in its disc, its answer on a smack).
+2. The act peels (P2: the number's gold catching a sweep of light, studs glinting in turn, each act's motif).
+3. The P3 families: gems, then heroes, then gods.
+
+The foot peels' first-open warm-up (batch 2) and the fire looks' tile-size read (above) are worth a look alongside.

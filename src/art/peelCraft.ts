@@ -51,6 +51,9 @@ import { crand } from '../systems/cosmeticRandom';
 import { save } from '../systems/save';
 import { PEEL_FRAME_WORLD, type PeelWorld } from './peelLive';
 import { PlaceLive, placeBaseAsync, placeBaseReady, placeMiniSteps, placeOver, placeUnder, type PlaceEmit, type PlaceMini, type PlaceSpr } from './peelPlace';
+import { PizzaLive, pizzaBoard, pizzaMiniSteps, pizzaPaintAsync, pizzaPaintReady, type PizzaEmit, type PizzaMini, type PizzaSpr } from './peelPizza';
+import { pizzaPeelLook } from '../game/peels';
+import { PIZZA_BY_ID } from '../data/pizzas';
 
 const { x: HX, y: HY, r: R } = PEEL_HEAD;
 
@@ -82,7 +85,34 @@ export interface CraftRig {
   lit2: HTMLCanvasElement | null;
   /** A place peel: its window's base and loops (src/art/peelPlace.ts). */
   place: PlaceMini | null;
+  /** A pizza peel: its pie's layers (src/art/peelPizza.ts). */
+  pizza: PizzaMini | null;
   key: string;
+}
+
+/** The handle every pizza peel shares, per rig detail. */
+const pizzaHandles = new Map<number, HTMLCanvasElement>();
+const EMPTY = makeCanvas(1, 1)[0];
+
+function* pizzaRigSteps(peelId: string, RR: number): Generator<void, CraftRig | null> {
+  const pid = peelId.slice('pizza:'.length);
+  const pz = PIZZA_BY_ID[pid];
+  if (!pz) return null;
+  // (no top: the rig paints the pizza's own layers)
+  const look = pizzaPeelLook(pz, false);
+  let handle = pizzaHandles.get(RR);
+  if (!handle) {
+    const [h, hctx] = makeCanvas(PEEL_W * RR, PEEL_H * RR);
+    hctx.scale(RR, RR);
+    drawPeelHandle(hctx, look);
+    craftHandle(hctx, look);
+    pizzaHandles.set(RR, (handle = h));
+  }
+  const pizza = yield* pizzaMiniSteps(pid, look, RR);
+  if (!pizza) return null;
+  const under = pizza.pl.round ? pizzaBoard(look, RR) : EMPTY;
+  const key = `pc_${peelId.replace(/[^a-z0-9]/gi, '_')}_${RR}`;
+  return { id: peelId, kind: 'pizza', look, RR, handle, under, over: EMPTY, inner: EMPTY, reflect: null, lit: null, lit2: null, place: null, pizza, key };
 }
 
 function boxLayer(RR: number, draw: (ctx: Ctx) => void): HTMLCanvasElement {
@@ -93,6 +123,7 @@ function boxLayer(RR: number, draw: (ctx: Ctx) => void): HTMLCanvasElement {
 }
 
 function* rigSteps(peelId: string, kind: CraftKind, RR: number): Generator<void, CraftRig | null> {
+  if (kind === 'pizza') return yield* pizzaRigSteps(peelId, RR);
   const look = PEEL_BY_ID[peelId].look();
   if (!look.craft) return null;
   const [handle, hctx] = makeCanvas(PEEL_W * RR, PEEL_H * RR);
@@ -113,7 +144,7 @@ function* rigSteps(peelId: string, kind: CraftKind, RR: number): Generator<void,
     });
     const place = look.place ? yield* placeMiniSteps(look.place, look.shape, RR) : null;
     if (!place) return null;
-    return { id: peelId, kind, look, RR, handle, under, over, inner, reflect: null, lit: null, lit2: null, place, key };
+    return { id: peelId, kind, look, RR, handle, under, over, inner, reflect: null, lit: null, lit2: null, place, pizza: null, key };
   }
   const under = boxLayer(RR, (ctx) => {
     headPath(ctx, look.shape);
@@ -144,7 +175,7 @@ function* rigSteps(peelId: string, kind: CraftKind, RR: number): Generator<void,
     lit = boxLayer(RR, obsidianFlowLit);
     lit2 = boxLayer(RR, obsidianSheen);
   }
-  return { id: peelId, kind, look, RR, handle, under, over, inner, reflect, lit, lit2, place: null, key };
+  return { id: peelId, kind, look, RR, handle, under, over, inner, reflect, lit, lit2, place: null, pizza: null, key };
 }
 
 // ——— building in idle time, shared ———
@@ -217,6 +248,12 @@ export function requestCraftRig(peelId: string, done: (r: CraftRig | null) => vo
     void placeBaseAsync(look.place, look.shape).then(() => wanted() && requestCraftRig(peelId, done, wanted, urgent, RR));
     return;
   }
+  // a pizza peel's layers likewise (from the art cache, or painted a layer per idle moment)
+  const pid = kind === 'pizza' ? peelId.slice('pizza:'.length) : '';
+  if (pid && !pizzaPaintReady(pid)) {
+    void pizzaPaintAsync(pid, wanted).then(() => wanted() && requestCraftRig(peelId, done, wanted, urgent, RR));
+    return;
+  }
   let job = jobs.find((j) => j.key === key);
   if (!job) {
     job = { key, gen: rigSteps(peelId, kind, RR), waiters: [] };
@@ -274,7 +311,35 @@ export const enum Spr {
   Confetti,
   Steam,
   Sauce,
+  // the pizza peels' (src/art/peelPizza.ts)
+  Crumb,
+  Wisp,
+  Mist,
+  Choc,
+  Honey,
+  Syrup,
 }
+
+/** A pizza's names for the sprites it throws. */
+const PIZZA_SPR: Record<PizzaSpr, Spr> = {
+  crumb: Spr.Crumb,
+  speck: Spr.Speck,
+  wisp: Spr.Wisp,
+  steam: Spr.Steam,
+  mist: Spr.Mist,
+  flake: Spr.Flake,
+  ember: Spr.Ember,
+  glint: Spr.Glint,
+  sauce: Spr.Sauce,
+  choc: Spr.Choc,
+  honey: Spr.Honey,
+  syrup: Spr.Syrup,
+  confetti: Spr.Confetti,
+  sparkB: Spr.SparkB,
+  sparkG: Spr.SparkG,
+  sparkV: Spr.SparkV,
+  mote: Spr.Mote,
+};
 
 /** A place's names for the sprites it throws. */
 const PLACE_SPR: Record<PlaceSpr, Spr> = {
@@ -564,7 +629,75 @@ const SPR: Record<Spr, SprDef> = {
   [Spr.Confetti]: { w: 16, h: 16, n: 4, anim: false, draw: confetti },
   [Spr.Steam]: { w: 64, h: 64, n: 8, anim: true, draw: puff('#ffffff', '#f2eeea', '#b8b0b4') },
   [Spr.Sauce]: { w: 24, h: 24, n: 3, anim: false, draw: blob(['#6a0c02', '#c8301a', '#ff9a7a']) },
+  [Spr.Crumb]: { w: 16, h: 16, n: 3, anim: false, draw: crumb },
+  [Spr.Wisp]: { w: 40, h: 80, n: 8, anim: true, draw: wisp },
+  [Spr.Mist]: { w: 64, h: 64, n: 8, anim: true, draw: puff('#ffffff', '#e4eef8', '#9fb6cc') },
+  [Spr.Choc]: { w: 24, h: 24, n: 3, anim: false, draw: blob(['#2a1006', '#5c2c12', '#c88a5a']) },
+  [Spr.Honey]: { w: 24, h: 24, n: 3, anim: false, draw: blob(['#7a3c02', '#e09a1e', '#fff0b0']) },
+  [Spr.Syrup]: { w: 24, h: 24, n: 3, anim: false, draw: blob(['#8a1e4a', '#ee6a9e', '#ffe0ee']) },
 };
+
+/** A crumb of baked crust: an uneven lump, golden on its lit top left, browned under, a pore or two. */
+function crumb(ctx: Ctx, i: number): void {
+  const r = rng(71 + i);
+  const pts: Pt[] = [];
+  const n = 6 + i;
+  for (let k = 0; k < n; k++) {
+    const a = (k / n) * Math.PI * 2 + r() * 0.5;
+    const d = 3.6 + r() * 2.6;
+    pts.push([8 + Math.cos(a) * d, 8 + Math.sin(a) * d * 0.85]);
+  }
+  ctx.save();
+  ctx.translate(0.8, 1.1);
+  polyPts(ctx, pts);
+  ctx.fillStyle = 'rgba(60,24,4,0.45)';
+  ctx.fill();
+  ctx.restore();
+  polyPts(ctx, pts);
+  const g = ctx.createLinearGradient(3, 3, 13, 13);
+  g.addColorStop(0, '#f8d898');
+  g.addColorStop(0.45, i === 2 ? '#c8803a' : '#dc9a4a');
+  g.addColorStop(1, '#7a4012');
+  ctx.fillStyle = g;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(70,30,6,0.85)';
+  ctx.lineWidth = 0.9;
+  ctx.stroke();
+  for (let k = 0; k < 2; k++) {
+    ellipse(ctx, 6 + r() * 5, 6 + r() * 5, 0.8, 0.6);
+    ctx.fillStyle = 'rgba(90,40,8,0.7)';
+    ctx.fill();
+  }
+  ellipse(ctx, 6, 5.6, 1.3, 0.8, -0.5);
+  ctx.fillStyle = 'rgba(255,244,214,0.8)';
+  ctx.fill();
+}
+
+/** A wisp of steam rising: a curling ribbon of soft dabs, faint at its foot and its tip; frame i of 8 curls more and
+ *  spreads thinner. Lit on its left, a breath of grey on its right so it reads on cream. */
+function wisp(ctx: Ctx, i: number): void {
+  const p = i / 7;
+  const A = 3 + 7 * p;
+  const ph = p * 2.4;
+  for (let y = 74; y >= 6; y -= 2.2) {
+    const u = (74 - y) / 68;
+    const x = 20 + A * Math.sin(u * 5.2 + ph) * (0.25 + 0.75 * u);
+    const env = Math.pow(Math.sin(Math.PI * Math.min(1, u * 1.15)), 0.9);
+    const rr = (2.6 + 2.6 * p) * (0.7 + 0.5 * u);
+    const a = 0.2 * (1 - 0.55 * p) * env;
+    if (a <= 0.005) continue;
+    const sg = ctx.createRadialGradient(x + rr * 0.35, y + 0.6, 0, x + rr * 0.35, y + 0.6, rr * 1.2);
+    sg.addColorStop(0, rgba('#a8a2ac', a * 0.35));
+    sg.addColorStop(1, rgba('#a8a2ac', 0));
+    ctx.fillStyle = sg;
+    ctx.fillRect(x - rr, y - rr, rr * 3, rr * 3);
+    const g = ctx.createRadialGradient(x - rr * 0.2, y, 0, x, y, rr);
+    g.addColorStop(0, rgba('#ffffff', a));
+    g.addColorStop(1, rgba('#ffffff', 0));
+    ctx.fillStyle = g;
+    ctx.fillRect(x - rr, y - rr, rr * 2, rr * 2);
+  }
+}
 
 /** A soft lit flake (snow): a white disc, lit on its top left, a faint cool shade under. */
 function flake(ctx: Ctx, i: number): void {
@@ -697,6 +830,7 @@ const FEEL: Record<CraftKind, { squash: number; k: number; c: number; wob: numbe
   neon: { squash: 0.07, k: 520, c: 16, wob: 0.025, shake: 0.9, vib: 0, sway: 0.45, wk: 200, wc: 12 },
   obsidian: { squash: 0.035, k: 900, c: 28, wob: 0.01, shake: 1.8, vib: 0, sway: 0.18, wk: 360, wc: 26 },
   place: { squash: 0.06, k: 560, c: 17, wob: 0.022, shake: 1, vib: 0, sway: 0.4, wk: 220, wc: 14 },
+  pizza: { squash: 0.025, k: 900, c: 26, wob: 0.012, shake: 0.6, vib: 0, sway: 0.3, wk: 300, wc: 20 },
 };
 
 const reduced = () => !!save.settings.reducedMotion;
@@ -789,6 +923,9 @@ export class CraftLive {
     const m = this.menu ? 0.6 : 1;
     this.emit(PLACE_SPR[spr], lx, ly, vx * m, vy * m, s0, this.menu ? s1 * 0.8 : s1, life, o);
   };
+  /** A pizza peel's pie. */
+  readonly pizza: PizzaLive | null;
+  private pizzaEmit: PizzaEmit = (spr, lx, ly, vx, vy, s0, s1, life, o) => this.emit(PIZZA_SPR[spr], lx, ly, vx, vy, s0, s1, life, o);
 
   constructor(
     readonly rig: CraftRig,
@@ -798,6 +935,14 @@ export class CraftLive {
     [this.surface, this.sctx] = makeCanvas(SB.w * rig.RR, SB.h * rig.RR);
     this.feel = FEEL[rig.kind];
     this.place = rig.place ? new PlaceLive(rig.place) : null;
+    this.pizza = rig.pizza ? new PizzaLive(rig.pizza) : null;
+    if (this.pizza) {
+      this.pizza.emit = this.pizzaEmit;
+      this.pizza.menu = this.menu;
+      // a Rare Find's finish: its coloured glow under it, as on the table
+      const glow = rig.pizza!.tr.glow;
+      if (glow !== null) this.glows = [{ x: HX, y: HY, rx: R * 1.2, ry: R * 1.2, color: glow, a: 0 }];
+    }
     const traces = rig.kind === 'neon' ? neonGeo(rig.look.shape).traces : [];
     this.padFlash = new Float32Array(traces.length);
     if (traces.length) for (let i = 0; i < 3; i++) this.pulses.push({ tr: Math.floor(crand() * traces.length), d: crand() * 40, wait: i * 0.4 });
@@ -809,7 +954,7 @@ export class CraftLive {
 
   /** Shed a sprite from (lx, ly) in the peel's frame, moving (lvx, lvy) peel units/s in it; sizes in peel units,
    *  gravity in world units/s² (down the screen, whichever way the peel leans). */
-  private emit(spr: Spr, lx: number, ly: number, lvx: number, lvy: number, s0: number, s1: number, life: number, o: { grav?: number; drag?: number; a?: number; fin?: number; spin?: number } = {}): void {
+  private emit(spr: Spr, lx: number, ly: number, lvx: number, lvy: number, s0: number, s1: number, life: number, o: { grav?: number; drag?: number; a?: number; fin?: number; spin?: number; rot?: number } = {}): void {
     const b = this.bits;
     const i = b.next;
     b.next = (i + 1) % b.n;
@@ -823,7 +968,7 @@ export class CraftLive {
     b.vy[i] = (ey - wy) * 100;
     b.grav[i] = (o.grav ?? 0) * k;
     b.drag[i] = o.drag ?? 0;
-    b.rot[i] = crand() * Math.PI * 2;
+    b.rot[i] = o.rot ?? crand() * Math.PI * 2;
     b.spin[i] = o.spin ?? (crand() - 0.5) * 6;
     b.s0[i] = s0 * k;
     b.s1[i] = s1 * k;
@@ -907,6 +1052,9 @@ export class CraftLive {
       case 'place':
         this.place?.smack(this.placeEmit);
         break;
+      case 'pizza':
+        this.pizza?.smack();
+        break;
       case 'obsidian': {
         for (let i = 0; i < Math.round(6 * n); i++) {
           const a = crand() * Math.PI * 2;
@@ -973,6 +1121,12 @@ export class CraftLive {
         break;
       case 'place':
         this.place?.update(dt);
+        break;
+      case 'pizza':
+        if (this.pizza) {
+          this.pizza.update(dt, vx, vy);
+          if (this.glows[0]) this.glows[0].a = this.pizza.glowA;
+        }
         break;
     }
     this.bits.tick(dt);
@@ -1124,6 +1278,14 @@ export class CraftLive {
     c.globalCompositeOperation = 'source-over';
     c.clearRect(0, 0, this.surface.width, this.surface.height);
     c.drawImage(rig.under, 0, 0);
+    if (this.pizza) {
+      // a pizza peel: the board, then the pie and all on it (it keeps itself where it belongs: no mask)
+      c.setTransform(RR, 0, 0, RR, -SB.x * RR, -SB.y * RR);
+      this.pizza.draw(c);
+      c.setTransform(1, 0, 0, 1, 0, 0);
+      c.globalAlpha = 1;
+      return;
+    }
     const [ac, ax] = scratch(RR, 0);
     ax.setTransform(1, 0, 0, 1, 0, 0);
     ax.globalAlpha = 1;

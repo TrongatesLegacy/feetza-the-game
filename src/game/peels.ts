@@ -28,7 +28,7 @@ import { persist, save } from '../systems/save';
 import { addCanvas, ensureFootArt, eventCanvases, footArtAsync, footMeta, pizzaTops } from './assets';
 import { bitmapCanvas, cachedArt, readArt, writeArt } from './artCache';
 import PEEL_VERSION from 'virtual:peel-version';
-import { PIZZAS } from '../data/pizzas';
+import { PIZZAS, type PizzaType } from '../data/pizzas';
 import type { EventId } from './events';
 import { HERO_PEELS, type HeroSub } from '../content/heroPeels';
 import { goalProgress, heatHow } from './heroGoals';
@@ -391,6 +391,16 @@ export const CRAFT: Record<string, CraftKind> = { classic: 'wood', marble: 'marb
 // the place peels with a window onto their location (src/art/peelPlace.ts)
 for (const loc of Object.keys(PLACE_LOOK) as LocationId[]) if (hasPlaceWindow(loc)) CRAFT[`place:${loc}`] = 'place';
 
+// the pizza peels: the pie on its board, alive (src/art/peelPizza.ts)
+for (const pz of PIZZAS) CRAFT[`pizza:${pz.id}`] = 'pizza';
+
+/** A pizza peel's look: its pie on the Classic's wood. `art`: with the pizza's top, which the still paints (the
+ *  living rig paints the pizza's own layers, so it asks for none). */
+export function pizzaPeelLook(pz: PizzaType, art = true): PeelLook {
+  const base = plain(`pizza:${pz.id}`, { shape: 'round', base: '#d9a066', pattern: 'plain', pc: '#7a4a22', handle: '#8a5a2b', trail: '#ffb347' })();
+  return crafted({ ...base, pizzaArt: art ? pizzaTops[pz.id] ?? null : null, pizzaRound: pz.shape === 'round' || pz.shape === 'deep', pizzaFlip: pz.shape === 'calzone', craft: 'pizza', pizza: pz.id });
+}
+
 /** A place peel's look: its window onto the place where it has one. */
 function placeLook(loc: LocationId): () => PeelLook {
   const base = plain(`place:${loc}`, PLACE_LOOK[loc]);
@@ -590,7 +600,7 @@ function buildDefs(): PeelDef[] {
       group: 'pizza',
       how: `Clear ${PIZZA_WAVES} waves with ${pz.name} on the table.`,
       progress: () => [Math.min(PIZZA_WAVES, save.pizzaWaves[pz.id] ?? 0), PIZZA_WAVES],
-      look: () => ({ ...plain(`pizza:${pz.id}`, { shape: 'round', base: '#d9a066', pattern: 'plain', pc: '#7a4a22', handle: '#8a5a2b', trail: '#ffb347' })(), pizzaArt: pizzaTops[pz.id] ?? null, pizzaRound: pz.shape === 'round' || pz.shape === 'deep', pizzaFlip: pz.shape === 'calzone' }),
+      look: () => pizzaPeelLook(pz),
     });
   }
   for (const f of feet) {

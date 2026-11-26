@@ -203,7 +203,7 @@ function baseNow(loc: LocationId, shape: PeelShape): Painted | null {
 }
 
 /** A canvas drawn down to w × h, halved step by step first so it stays smooth. */
-function downTo(src: HTMLCanvasElement, w: number, h: number): HTMLCanvasElement {
+export function downTo(src: HTMLCanvasElement, w: number, h: number): HTMLCanvasElement {
   if (src.width === w && src.height === h) return src;
   while (src.width / 2 >= w * 1.4) {
     const [c, cx] = makeCanvas(Math.ceil(src.width / 2), Math.ceil(src.height / 2));
