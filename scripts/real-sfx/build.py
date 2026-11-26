@@ -61,7 +61,16 @@ the earlier sets), and for batch 6:
 337845, 346373, 349225, 352198, 371094, 381853, 391919, 392180, 392624, 396013, 406197, 413203, 433829, 454092, 475131,
 479998, 495117, 495118, 505113, 520071, 529295, 531755, 553954, 568036, 581124, 637533, 655040, 680135, 695376, 703247,
 703248, 719129, 753310, 763026, 765844, 788212, 816237, 827424, 829847, 853153, 869002 and 869003 from the earlier sets;
-batch 6's previews were saved from each sound's Freesound page, the same HQ ogg files the helper downloads). Some recipes in
+batch 6's previews were saved from each sound's Freesound page, the same HQ ogg files the helper downloads), and batch 7
+fetched nothing new (Freesound's API had no requests left that day): it uses only sounds the earlier sets fetched,
+
+  node scripts/sfx-fetch/freesound.mjs get 20185 30158 38244 153277 164483 178615 180818 186316 188767 191883 208111 \\
+       234782 235597 244926 262633 262635 271370 276600 319590 321952 330585 337845 368817 376799 382616 386105 386111 \\
+       386125 392180 396013 413203 438861 440035 449915 454092 457449 475131 479998 480805 484267 485245 505113 510735 \\
+       539972 571296 577768 590147 594961 623449 643766 651753 672776 684459 693938 744100 760672 764221 765844 784152 \\
+       827424 838106 842313 850718 853153 867997 871034 --out SRC_DIR
+
+(30158, 178615, 276600, 484267, 590147 and 850718 of them from batch 6's saved previews). Some recipes in
 every batch keep a layer of the synthesized file they replace, read from git at OLD_REV, so they need the repo's
 history (a shallow clone won't do).
 
@@ -72,7 +81,8 @@ unbounddouse, the hero and god smack tails hbatpeel ... hamazonqueen, three Endg
 hincrediblebulkendgame ... hwasabiwaspendgame) and its loop (firstpizzeria), then batch 5's (the Kratos Peel's
 Tartarus, tkenter ... zeusdeath, and Leonidas's Hot Gates, trumpet ... herohotgates) and its loop (hotgates), then batch 6's
 (Batpeel's Goth-Ham, bunionenter ... darkfalls, the comics villains, redsoleenter ... cheetoedeath, and the hero variants,
-ghostsparta ... amazon) and its loop (gotham). Each sound is
+ghostsparta ... amazon) and its loop (gotham), then batch 7's (the god peels' charged moves, herozeus ... verse) and the
+Kratos Peel's fire loop (rage, LOOPS: a 2 s mono loop the game plays on repeat, made by loop_master()). Each sound is
 cut, pitched, layered and placed by the recipe below (the Spartan, Skald and Siren sounds, and batch 5's Spartan roar,
 King Leonidas's Hot Gates war cry and Kronos's gulp, are also given a short convolution room, and Xerxes's laugh a hall),
 then levelled to a 50 ms RMS peak (the same measure
@@ -2900,6 +2910,343 @@ def gothamloop():
     ], post='acompressor=threshold=-30dB:ratio=2.5:attack=40:release=500:knee=6')
 
 
+# =============================== Audio pass, batch 7: the god peels' charged moves ===================================
+# As batches 1–6: each replaces (or layers with) a synthesized file under the same name, on the old file's beats, and
+# its level (RECIPES) sits halfway between the old file's 50 ms RMS peak and the level matching its momentary loudness.
+# Freesound's API had no requests left for the day, so every source here is one an earlier batch fetched (and read the
+# description of): thunder, a trumpet, waves, shields and metal, anvils, fire, horses, horns, real birds, a lyre, a harp,
+# men's war cries, a crowd, wind, ice, rock and voices. The Kratos Peel's fire loop is made by loop_master() (LOOPS).
+
+# --- Greek gods ---
+def herozeus():
+    return layer([
+        L(188767, 0.170, 1.40, 0.000, -2.0, 0, fin=0.002, fout=0.5),            # a real crack of thunder, a little lower
+        L(672776, 0.380, 1.55, 0.060, -3.0, -3, fin=0.08, fout=0.6),            # a clap of thunder rolling on, lower
+        L(38244, 1.560, 1.05, 0.480, -2.0, -4, fin=0.002, fout=0.5),            # and a second crack, a little lower
+    ], post='lowpass=f=4500')
+
+
+def decree():
+    return layer([
+        L('old:sfx_hero_decree', 0.0, 1.23, 0.0, 0.0, 0, fin=0.002, fout=0.2),
+        L(413203, 2.000, 0.24, 0.000, 2.0, 14, fin=0.01, fout=0.06),            # a real trumpet's fanfare: its F, up to a G,
+        L(413203, 2.250, 0.45, 0.330, 2.0, 4, fin=0.01, fout=0.15),             # then its top B flat, up to a C,
+        L(413203, 0.250, 0.62, 0.360, 2.0, 14, fin=0.03, fout=0.2),             # over its low B flat, up to a C, held
+    ])
+
+
+def earthshaker():
+    return layer([
+        L('old:sfx_hero_earthshaker', 0.0, 1.61, 0.0, 0.0, 0, fin=0.002, fout=0.2),
+        L(784152, 0.000, 0.80, 0.000, -5.0, 1, fin=0.001, fout=0.3),            # a thick metal plate struck, lower: the trident
+        L(376799, 0.450, 1.45, 0.120, -2.0, -4, fin=0.2, fout=0.5),             # large waves crashing into rocks, a little lower
+    ])
+
+
+def harvest():
+    return layer([
+        L('old:sfx_hero_harvest', 0.0, 1.16, 0.0, 0.0, 0, fin=0.002, fout=0.2),
+        L(178615, 0.050, 1.05, 0.000, -2.0, 25, fin=0.15, fout=0.4),            # a bush (bamboo) shaken, a little lower
+        L(396013, 0.000, 0.55, 0.150, -2.0, 21, fin=0.05, fout=0.2),            # and grass rustling
+    ])
+
+
+def aegis():
+    return layer([
+        L('old:sfx_hero_aegis', 0.0, 1.44, 0.0, 0.0, 0, fin=0.002, fout=0.2),
+        L(319590, 0.070, 0.90, 0.000, -3.0, -9, fin=0.002, fout=0.4),           # a shield bashed, lower
+        L(337845, 0.080, 1.35, 0.000, -5.0, 2, fin=0.002, fout=0.6),            # a metal shed door struck, ringing, lower
+    ])
+
+
+def chariot():
+    return layer([
+        L('old:sfx_hero_chariot', 0.0, 1.60, 0.0, 0.0, 0, fin=0.002, fout=0.2),
+        L(321952, 0.150, 1.60, 0.000, 0.0, 15, fin=0.02, fout=0.4, fx='highpass=f=80'),  # a horse galloping in towards the mic
+        L(244926, 0.150, 1.55, 0.000, -2.0, -8, fin=0.1, fout=0.4),             # diesel thrown on a fire, a little lower
+    ])
+
+
+def warcry():
+    return layer([
+        L(392180, 0.050, 1.30, 0.000, -7.0, 6, fin=0.01, fout=0.4),             # a battle horn blown, lower,
+        L(392180, 0.050, 1.30, 0.010, -12.0, 1, fin=0.01, fout=0.4),            # and lower still under it
+        L(440035, 0.600, 1.05, 0.300, -2.0, -5, fin=0.02, fout=0.3),            # a man's war cry, "YEAH!", a little lower
+        L(480805, 0.200, 1.05, 0.320, 0.0, 9, fin=0.02, fout=0.3),              # and a small group of men shouting
+    ])
+
+
+def charm():
+    return layer([
+        L(594961, 0.450, 1.25, 0.000, 0.0, 0, fin=0.01, fout=0.45, fx='highpass=f=250'),  # a harp glissando
+        L(30158, 0.000, 0.45, 0.520, 7.0, 2, fin=0.005, fout=0.2),              # a small bell shaken, higher: the sparkle
+    ])
+
+
+def forge():
+    return layer([
+        L(850718, 0.040, 0.60, 0.000, -5.0, 20, fin=0.001, fout=0.3, fx='lowpass=f=3000'),  # a 20 lb weight dropped on concrete,
+        # lower: the anvil lands
+        L(386105, 0.000, 1.15, 0.120, -2.0, 0, fin=0.0005, fout=0.35, fx='lowpass=f=4000'),  # an anvil hammered on its back, ringing
+        L(386111, 0.000, 0.80, 0.400, 0.0, -6, fin=0.0005, fout=0.3, fx='lowpass=f=5000'),  # and a hammer on steel on an anvil
+    ])
+
+
+def spark():
+    return layer([
+        L('old:sfx_hero_spark', 0.0, 0.35, 0.0, 0.0, 0, fin=0.002, fout=0.08),
+        L(386125, 0.000, 0.14, 0.000, 2.0, -6, fin=0.0005, fout=0.08),          # a hot hit on an anvil, a little higher
+    ])
+
+
+def messenger():
+    w = 'highpass=f=400'
+    return layer([
+        L(153277, 0.200, 0.85, 0.000, 2.0, 0, fin=0.02, fout=0.25, fx=w),       # a pigeon's wingbeats, a little higher
+        L(651753, 1.000, 0.85, 0.020, 2.0, 18, fin=0.05, fout=0.25, fx=w),      # satin cloth flapped like big wings, higher (foley)
+        L(684459, 0.750, 0.45, 0.420, 2.0, 24, fin=0.01, fout=0.15, fx='highpass=f=300'),  # and a whoosh, something thrown
+    ], post='acompressor=threshold=-26dB:ratio=4:attack=5:release=80:knee=6')
+
+
+def revel():
+    tune = [lyre('E4', 0.40, 0.40, -2, 3.0), lyre('F#4', 0.54, 0.40, -2, 3.0), lyre('A4', 0.68, 0.40, -2, 3.0),
+            lyre('F#4', 0.82, 0.40, -2, 3.0), lyre('E4', 0.96, 0.40, -2, 3.0), lyre('E4', 1.10, 0.30, -2, 0.0)]
+    return layer([
+        L(484267, 0.080, 0.55, 0.000, 0.0, 0, fin=0.005, fout=0.12, fx=DECAY % 4),            # a party horn blown
+        L(449915, 0.800, 1.20, 0.150, 0.0, -12, fin=0.1, fout=0.4),             # a crowd cheering at a gig
+    ] + tune)                                                                  # and a tune on the iron-age lyre, a little higher
+
+
+def hearth():
+    return layer([
+        L('old:sfx_hero_hearth', 0.0, 1.50, 0.0, 0.0, 0, fin=0.002, fout=0.2),
+        L(382616, 9.250, 1.50, 0.000, 0.0, 10, fin=0.05, fout=0.4),             # a fire crackling in a fireplace
+    ])
+
+
+def underworld():
+    return layer([
+        L(765844, 0.020, 0.40, 0.000, -6.0, 8, fin=0.001, fout=0.2, fx=STONE),  # a rock smashed, lower: the ground cracks
+        L(765844, 1.020, 0.35, 0.300, -8.0, 6, fin=0.001, fout=0.2, fx=STONE),  # and again, lower still
+        L(760672, 1.000, 1.50, 0.050, -5.0, -4, fin=0.05, fout=0.5),            # heavy stone grinding, lower: it splits open
+        L(457449, 0.100, 1.40, 0.100, -10.0, -2, fin=0.1, fout=0.4),            # a man's long groan, far lower
+        L(643766, 0.100, 1.45, 0.150, -7.0, 1, fin=0.1, fout=0.4),              # and a monster's moan, far lower: the underworld
+    ])
+
+
+def spring():
+    ch = [(2.190, 2.0, 0), (2.500, 3.0, -4), (2.790, 1.0, -4), (3.110, 3.0, -9), (3.400, 2.0, -6)]
+    return layer([L(164483, s, 0.20, 0.13 * i, p, d, fin=0.005, fout=0.05, fx='highpass=f=1200') for i, (s, p, d) in enumerate(ch)] + [
+        L(744100, 0.150, 0.32, 0.650, 0.0, -4, fin=0.005, fout=0.06),           # a baby robin's chirps
+        L(577768, 0.020, 0.16, 0.800, 0.0, -6, fin=0.003, fout=0.05),           # a lovebird's chirp
+        L(594961, 0.400, 0.90, 0.200, 12.0, -6, fin=0.02, fout=0.4, fx='highpass=f=500'),  # a harp's glissando, an octave up: the bloom
+    ])                                                                          # (a bird's song cut into its chirps, first)
+
+
+def wings():
+    beats = [L(330585, s, 0.35, t, -3.0, d, fin=0.005, fout=0.12) for s, t, d in ((0.100, 0.00, -10), (1.150, 0.28, -5), (2.280, 0.56, -7), (3.380, 0.84, -8))]
+    return layer([L('old:sfx_hero_wings', 0.0, 1.27, 0.0, 0.0, 0, fin=0.002, fout=0.2)] + beats)  # a swan's wings, lower
+
+
+# --- the Kratos Peel ---
+def spartaaa():
+    return layer([
+        L('old:sfx_hero_spartaaa', 0.0, 1.78, 0.0, 0.0, 0, fin=0.002, fout=0.2),
+        L(623449, 0.480, 1.35, 0.380, -3.0, 4, fin=0.05, fout=0.35, fx='lowpass=f=3500'),  # a kingly yell's held vowel, lower,
+        L(623449, 0.480, 1.35, 0.395, -7.0, 4, fin=0.05, fout=0.35, fx='lowpass=f=2500'),  # doubled lower still: SPARTAAA
+        L(480805, 0.200, 1.35, 0.400, 0.0, 12, fin=0.03, fout=0.35),            # a small group of men shouting
+        L(20185, 0.000, 0.40, 0.380, -12.0, -6, fin=0.001, fout=0.2, keep=False, fx='lowpass=f=500'),  # a massed stomp, far
+        # lower: the thump
+    ])
+
+
+def ragefire():
+    return layer([
+        L(244926, 0.400, 2.30, 0.000, -2.0, 0, fin=0.01, fout=0.01),            # diesel thrown on a fire, roaring, a little lower
+        L(186316, 20.000, 2.30, 0.000, 0.0, 17, fin=0.01, fout=0.01),           # a pine-wood bonfire's crackle
+        L(382616, 9.000, 2.30, 0.000, 0.0, 9, fin=0.01, fout=0.01),             # and a fireplace's
+    ])
+
+
+def flamesmack():
+    return layer([
+        L(276600, 0.190, 0.18, 0.000, -4.0, 3, fin=0.001, fout=0.08),           # a gloved hand's thud on a helmet, lower: the smack
+        L(20185, 0.000, 0.25, 0.000, -12.0, -6, fin=0.001, fout=0.12, keep=False, fx='lowpass=f=500'),  # a massed stomp, far lower
+        L(539972, 0.000, 0.40, 0.010, -2.0, -2, fin=0.002, fout=0.2, fx=DECAY % 8),  # a burst of gas flame, a little lower
+    ], post=DAMP % (14, 0.18))
+
+
+def ragehiss():
+    return layer([
+        L(234782, 0.550, 1.00, 0.000, 0.0, 0, fin=0.005, fout=0.6),             # a steam release hissing out
+        L(235597, 0.640, 1.05, 0.000, 0.0, 10, fin=0.005, fout=0.5),             # water sizzling on a hot stove
+        L(208111, 0.180, 0.55, 0.000, -5.0, 12, fin=0.005, fout=0.3, fx='highpass=f=300'),  # two pillows touched together, lower: the puff
+    ])
+
+
+def blade():
+    return layer([
+        L(475131, 0.030, 0.25, 0.000, 4.0, 0, fin=0.003, fout=0.08),            # a super-heavy swoosh, higher: the slash
+        L(180818, 0.150, 0.22, 0.020, 0.0, -3, fin=0.001, fout=0.1, fx=DECAY % 12),  # real swords clashing: the blade's ring
+        L(871034, 0.030, 0.22, 0.030, 0.0, -2, fin=0.002, fout=0.08),           # a small chain dropped: the rattle
+    ])
+
+
+# --- Norse gods ---
+def allfather():
+    return layer([
+        L(392180, 0.050, 1.25, 0.000, -12.0, 0, fin=0.03, fout=0.35),          # a battle horn blown, an octave lower,
+        L(479998, 0.250, 1.20, 0.020, -9.0, 0, fin=0.05, fout=0.35),            # a cow horn, far lower, over it
+        L(827424, 0.030, 0.25, 0.600, -3.0, -2, fin=0.005, fout=0.08),          # a raven's caw, lower,
+        L(827424, 0.340, 0.30, 0.900, -4.0, 1, fin=0.005, fout=0.1),            # and another
+        L(853153, 0.040, 0.50, 1.180, -5.0, -6, fin=0.002, fout=0.25, fx='lowpass=f=800,' + DECAY % 6),  # a big gong, far lower,
+        # damped: the eye opens
+    ])
+
+
+def thundergod():
+    return layer([
+        L('old:sfx_hero_thundergod', 0.0, 1.73, 0.0, 0.0, 0, fin=0.002, fout=0.2),
+        L(672776, 0.050, 0.55, 0.000, -3.0, -6, fin=0.3, fout=0.1),             # thunder rising, lower, as the hammer's raised
+        L(188767, 0.150, 0.80, 0.450, -3.0, -4, fin=0.002, fout=0.3),           # a real crack of thunder, lower
+        L(505113, 0.720, 1.20, 0.500, -2.0, -2, fin=0.02, fout=0.4),            # and a close clap rolling on
+    ])
+
+
+def mjolnir():
+    sw = [L(485245, 0.020, 0.15, t, -3.0, d + 16, fin=0.005, fout=0.06) for t, d in
+          ((0.00, -6), (0.07, -6), (0.14, -3), (0.21, -1), (0.28, 0), (0.35, 0), (0.42, -1), (0.49, -4))]
+    return layer(sw + [L(475131, 0.000, 0.55, 0.050, -5.0, -7, fin=0.1, fout=0.2, keep=False)])  # a heavy swing, lower, eight
+    # times as it spins past, over a super-heavy swoosh, far lower and slower
+
+
+def mischief():
+    syl = ((1.145, 0.120, 0), (1.285, 0.110, 0), (2.645, 0.120, 0), (2.805, 0.100, 7))  # (the last is quieter)
+    giggle = [L(693938, syl[i % 4][0], syl[i % 4][1], 0.09 * i, p, d + syl[i % 4][2], fin=0.004, fout=0.03, keep=False, fx='highpass=f=180')
+              for i, (p, d) in enumerate(((3, 0), (4, -1), (3, 0), (5, -1), (4, 0), (3, -2), (2, -4)))]
+    giggle += [L(693938, syl[(i + 2) % 4][0], syl[(i + 2) % 4][1], 0.045 + 0.09 * i, p, d - 3 + syl[(i + 2) % 4][2], fin=0.004, fout=0.03, keep=False,
+                 fx='highpass=f=180') for i, (p, d) in enumerate(((1, 0), (2, -1), (1, 0), (3, -1), (2, -1), (1, -3)))]  # doubled
+    return layer(giggle + [                                                     # a man's sly laugh cut into a "heh-heh-heh", higher
+        L(208111, 0.180, 0.50, 0.600, -2.0, 10, fin=0.005, fout=0.2, fx='highpass=f=500'),  # two pillows touched together: a poof,
+        L(208111, 0.180, 0.45, 0.760, 1.0, 7, fin=0.005, fout=0.2, fx='highpass=f=500'),  # another
+        L(208111, 0.180, 0.40, 0.900, 3.0, 4, fin=0.005, fout=0.2, fx='highpass=f=500'),  # and another
+    ], post='acompressor=threshold=-28dB:ratio=5:attack=3:release=60:knee=6')
+
+
+def falcon():
+    return layer([
+        L(867997, 0.550, 0.32, 0.000, 0.0, 0, fin=0.005, fout=0.08, fx='highpass=f=400'),  # a gyrfalcon's call,
+        L(867997, 1.420, 0.30, 0.200, 0.0, -2, fin=0.005, fout=0.08, fx='highpass=f=400'),  # and again
+        L(684459, 0.700, 0.45, 0.380, -2.0, 18, fin=0.05, fout=0.15),           # a whoosh as it dives
+    ])
+
+
+def boar():
+    hooves = [L(571296, s, 0.08, 0.30 + 0.09 * i, -6.0, 20 + (6 if i == 7 else 0), fin=0.002, fout=0.04, fx='lowpass=f=4000') for i, s in
+              enumerate((2.900, 3.150, 3.400, 3.650, 3.900, 4.150, 4.400, 4.650, 4.950, 5.200))]
+    return layer([
+        L(842313, 0.050, 0.45, 0.000, -3.0, 0, fin=0.005, fout=0.12),           # a pig's growling grunt, lower: the boar
+        L(510735, 0.540, 0.85, 0.800, 0.0, 6, fin=0.002, fout=0.3),             # a coin dropped on a table
+    ] + hooves)                                                                # hooves clattering, lower: the charge
+
+
+def oath():
+    return layer([
+        L('old:sfx_hero_oath', 0.0, 1.70, 0.0, 0.0, 0, fin=0.002, fout=0.2),
+        L(853153, 0.040, 1.65, 0.000, -3.0, -2, fin=0.002, fout=0.6),           # a big gong struck with a felt mallet, lower
+    ])
+
+
+def gjallarhorn():
+    mix = layer([
+        L(392180, 0.050, 1.30, 0.000, -5.0, 0, fin=0.03, fout=0.35),            # a battle horn blown, lower,
+        L(392180, 0.050, 1.30, 0.000, -17.0, -3, fin=0.03, fout=0.35),          # over itself far lower
+    ])
+    return reverb(mix, rt60=1.4, wet_db=-6.0, seed=31)  # in a long echo, as if across the sky
+
+
+def radiance():
+    c = 'highpass=f=100,lowpass=f=6000'
+    return layer([
+        L('old:sfx_hero_radiance', 0.0, 1.60, 0.0, 0.0, 0, fin=0.002, fout=0.2),
+        L(764221, 2.400, 1.55, 0.000, -5.0, 10, fin=0.35, fout=0.5, fx=c),       # a crowd singing "ah": C
+        L(764221, 3.400, 1.55, 0.010, -1.0, 12, fin=0.35, fout=0.5, fx=c),       # E
+        L(764221, 4.400, 1.55, 0.020, 2.0, 12, fin=0.35, fout=0.5, fx=c),        # G
+        L(271370, 0.020, 1.40, 0.100, 12.0, 12, fin=0.002, fout=0.6),            # a singing bowl struck, an octave up: the bell
+    ])
+
+
+def halfdeath():
+    return layer([
+        L('old:sfx_hero_halfdeath', 0.0, 1.39, 0.0, 0.0, 0, fin=0.002, fout=0.2),
+        L(438861, 2.000, 1.40, 0.000, -2.0, 7, fin=0.3, fout=0.5, fx='lowpass=f=2500'),  # howling wind, a little lower
+    ])
+
+
+def seawind():
+    return layer([
+        L(438861, 8.300, 1.47, 0.000, 0.0, 0, fin=0.3, fout=0.4),               # howling wind gusting
+        L(454092, 142.50, 1.47, 0.000, 0.0, 5, fin=0.4, fout=0.4, fx='highpass=f=200'),  # a mountain gale
+        L(590147, 0.300, 0.65, 0.500, -4.0, -9, fin=0.05, fout=0.2),            # creaking wood, lower: the rigging
+    ])
+
+
+def winterhunt():
+    return layer([
+        L(454092, 142.50, 1.30, 0.000, 3.0, 10, fin=0.05, fout=0.4, fx='highpass=f=300,treble=g=6:f=3000'),  # a mountain gale,
+        # higher and brighter: the icy wind
+        L(838106, 1.350, 0.90, 0.050, 0.0, 4, fin=0.01, fout=0.2, fx='highpass=f=1500'),  # ice crackling under pressure
+        L(262633, 0.300, 0.80, 0.300, 2.0, 14, fin=0.01, fout=0.2),             # and ice cracking as it melts
+    ])
+
+
+def freeze():
+    return layer([
+        L(262635, 0.120, 0.30, 0.000, 0.0, 0, fin=0.001, fout=0.1),             # ice cracking
+        L(838106, 1.380, 0.30, 0.010, 0.0, 0, fin=0.002, fout=0.1, fx='highpass=f=1200'),  # and crackling under pressure
+    ])
+
+
+def saga():
+    return layer([pluck('E3', 0.000, 1.3, -2), pluck('A3', 0.040, 1.3), pluck('E4', 0.080, 1.3, -1), pluck('A4', 0.120, 1.3, -2),
+                  L(368817, 1.450, 0.85, 0.250, 0.0, 7, fin=0.15, fout=0.3)])  # the iron-age lyre strummed and a man humming
+
+
+def verse():
+    return layer([lyre('A4', 0.000, 0.45, -1, 0.0), lyre('F#4', 0.060, 0.45, -1, 0.0), lyre('E4', 0.120, 0.45, 0, 0.0),
+                  lyre('A3', 0.180, 0.40, 0, 0.0)])  # a falling run on the iron-age lyre
+
+
+def loop_master(name, p, dur, level, xf=0.25, limit=0.84, comp='acompressor=threshold=-20dB:ratio=2.5:attack=6:release=90:knee=4'):
+    """a mono one-shot that the game loops (the Kratos Peel's fire): <dur> s from <xf> s into the render, its last <xf> s
+    crossfaded (equal power) into the first <xf> s, so its end runs on into its start; levelled to a 50 ms RMS peak of
+    <level> dB as master() does, three copies end to end through the compressor and limiter and the middle one kept, so no
+    filter edge touches the seam."""
+    x = read(p)
+    n, X = int(dur * SR), int(xf * SR)
+    one = x[X:X + n]
+    for i in range(X):
+        k = i / X
+        j = n - X + i
+        one[j] = one[j] * math.cos(k * math.pi / 2) + x[i] * math.sin(k * math.pi / 2)
+    raw = tmp('f32')
+    open(raw, 'wb').write(array.array('f', one * 3).tobytes())
+    out = os.path.join(OUT, name + '.mp3')
+    g = level - rms50(one)
+    for _ in range(8):
+        p3 = subprocess.run(['ffmpeg', '-v', 'error', '-f', 'f32le', '-ar', str(SR), '-ac', '1', '-i', raw, '-af',
+                             'highpass=f=40,%s,volume=%.2fdB,alimiter=limit=%.2f:attack=1.5:release=60:level=0:latency=1' % (comp, g, limit),
+                             '-f', 'f32le', '-'], capture_output=True, check=True).stdout
+        subprocess.run(['ffmpeg', '-v', 'error', '-y', '-f', 'f32le', '-ar', str(SR), '-ac', '1', '-i', '-', '-c:a', 'libmp3lame', '-b:a', '96k', out],
+                       input=p3[n * 4:2 * n * 4], check=True)
+        got = rms50(read(out))
+        if abs(got - level) < 0.15:
+            break
+        g += 1.3 * (level - got)
+    x = read(out)
+    print('%s: %.2f s loop, 50 ms RMS peak %.1f dB, sample peak %.1f dBFS' % (out, len(x) / SR, rms50(x), peak(x)))
+
+
 AMB = {'jotunheim': ('ambience_jotunheim', lambda: wrap(jotunheim())), 'bifrost': ('ambience_bifrost', bifrost),
        'firstpizzeria': ('ambience_firstpizzeria', lambda: wrap(firstpizzeria()), dict(limit=0.62)),
        'hotgates': ('ambience_hotgates', lambda: wrap(hotgatesloop())),
@@ -3212,7 +3559,46 @@ RECIPES = {
     'unbound': ('sfx_hero_unbound', unbound, 1.87, -11.2, 0.37),
     'tendril': ('sfx_hero_tendril', tendril, 0.60, -11.7, 0.12),
     'amazon': ('sfx_hero_amazon', amazon, 1.30, -10.8, 0.26, 0.65),
+    # batch 7 (the same rule for the level)
+    'herozeus': ('sfx_hero_zeus', herozeus, 1.63, -11.1, 0.33),
+    'decree': ('sfx_hero_decree', decree, 1.23, -10.3, 0.25),
+    'earthshaker': ('sfx_hero_earthshaker', earthshaker, 1.61, -11.3, 0.32),
+    'harvest': ('sfx_hero_harvest', harvest, 1.16, -11.0, 0.23),
+    'aegis': ('sfx_hero_aegis', aegis, 1.44, -10.7, 0.29),
+    'chariot': ('sfx_hero_chariot', chariot, 1.60, -11.2, 0.32),
+    'warcry': ('sfx_hero_warcry', warcry, 1.39, -10.3, 0.28),
+    'charm': ('sfx_hero_charm', charm, 1.28, -10.8, 0.26),
+    'forge': ('sfx_hero_forge', forge, 1.20, -11.6, 0.24),
+    'spark': ('sfx_hero_spark', spark, 0.35, -13.9, 0.07),
+    'messenger': ('sfx_hero_messenger', messenger, 0.89, -10.1, 0.18),
+    'revel': ('sfx_hero_revel', revel, 1.40, -12.4, 0.28),
+    'hearth': ('sfx_hero_hearth', hearth, 1.50, -10.6, 0.30),
+    'underworld': ('sfx_hero_underworld', underworld, 1.60, -10.2, 0.32),
+    'spring': ('sfx_hero_spring', spring, 1.12, -10.8, 0.22),
+    'wings': ('sfx_hero_wings', wings, 1.27, -11.0, 0.25),
+    'spartaaa': ('sfx_hero_spartaaa', spartaaa, 1.78, -9.3, 0.36),
+    'flamesmack': ('sfx_hero_flamesmack', flamesmack, 0.40, -13.0, 0.08),
+    'ragehiss': ('sfx_hero_ragehiss', ragehiss, 1.09, -13.6, 0.22, 0.75),
+    'blade': ('sfx_hero_blade', blade, 0.25, -12.6, 0.05),
+    'allfather': ('sfx_hero_allfather', allfather, 1.69, -10.8, 0.34),
+    'thundergod': ('sfx_hero_thundergod', thundergod, 1.73, -11.2, 0.35),
+    'mjolnir': ('sfx_hero_mjolnir', mjolnir, 0.59, -11.6, 0.12),
+    'mischief': ('sfx_hero_mischief', mischief, 1.15, -9.8, 0.23),
+    'falcon': ('sfx_hero_falcon', falcon, 0.80, -11.5, 0.16),
+    'boar': ('sfx_hero_boar', boar, 1.52, -9.4, 0.30),
+    'oath': ('sfx_hero_oath', oath, 1.70, -10.0, 0.34),
+    'gjallarhorn': ('sfx_hero_gjallarhorn', gjallarhorn, 1.78, -9.9, 0.36),
+    'radiance': ('sfx_hero_radiance', radiance, 1.60, -11.4, 0.32),
+    'halfdeath': ('sfx_hero_halfdeath', halfdeath, 1.39, -10.3, 0.28),
+    'seawind': ('sfx_hero_seawind', seawind, 1.47, -10.2, 0.29),
+    'winterhunt': ('sfx_hero_winterhunt', winterhunt, 1.30, -10.1, 0.26),
+    'freeze': ('sfx_hero_freeze', freeze, 0.30, -14.3, 0.06),
+    'saga': ('sfx_hero_saga', saga, 1.40, -10.7, 0.28),
+    'verse': ('sfx_hero_verse', verse, 0.55, -13.1, 0.11),
 }
+
+# the one-shots the game loops (batch 7): name -> (file, render, loop length s, 50 ms RMS peak dB); see loop_master()
+LOOPS = {'rage': ('sfx_hero_rage', ragefire, 2.00, -11.6)}
 
 if __name__ == '__main__':
     args = sys.argv[1:]
@@ -3220,15 +3606,19 @@ if __name__ == '__main__':
         sys.exit(__doc__)
     SRC = os.path.abspath(args.pop(0))
     OUT = os.path.join(ROOT, 'public', 'audio')
-    if args and args[0] not in RECIPES and args[0] not in AMB and (os.sep in args[0] or os.path.isdir(args[0])):
+    if args and args[0] not in RECIPES and args[0] not in AMB and args[0] not in LOOPS and (os.sep in args[0] or os.path.isdir(args[0])):
         OUT = os.path.abspath(args.pop(0))
-    bad = [a for a in args if a not in RECIPES and a not in AMB]
+    bad = [a for a in args if a not in RECIPES and a not in AMB and a not in LOOPS]
     if bad:
-        sys.exit('unknown sound(s) %s; known: %s (an OUT_DIR must exist or contain a /)' % (' '.join(bad), ' '.join(list(RECIPES) + list(AMB))))
+        sys.exit('unknown sound(s) %s; known: %s (an OUT_DIR must exist or contain a /)' % (' '.join(bad), ' '.join(list(RECIPES) + list(AMB) + list(LOOPS))))
     os.makedirs(OUT, exist_ok=True)
     TMP = tempfile.mkdtemp(prefix='real-sfx-')
     try:
-        for nm in args or list(RECIPES) + list(AMB):
+        for nm in args or list(RECIPES) + list(AMB) + list(LOOPS):
+            if nm in LOOPS:
+                key, fn, dur, level = LOOPS[nm]
+                loop_master(key, fn(), dur, level)
+                continue
             if nm in AMB:
                 amb_loop(AMB[nm][0], AMB[nm][1](), **(AMB[nm][2] if len(AMB[nm]) > 2 else {}))
                 continue

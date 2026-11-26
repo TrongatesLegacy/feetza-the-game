@@ -5094,11 +5094,35 @@
   },
   {
     "file": "sfx_hero_zeus.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Thunder (Kraków, Poland, 20.05.2013)",
+    "author": "vonz (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "God peels: Zeus’s Wrath of Olympus; a synthesized sky-splitting thunder crack and rolling rumble, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/vonz/sounds/188767/",
+    "notes": "God peels: Zeus’s Wrath of Olympus; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a real crack of thunder, a little lower, a clap of thunder rolling on, lower, and a second crack, a little lower, half a second in. This source: the first crack; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_zeus.mp3",
+    "title": "Thunder Clap",
+    "author": "DaniloSFX (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/DaniloSFX/sounds/672776/",
+    "notes": "God peels: Zeus’s Wrath of Olympus: the roll; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_zeus.mp3",
+    "title": "thunder1.wav",
+    "author": "nednednerb (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/nednednerb/sounds/38244/",
+    "notes": "God peels: Zeus’s Wrath of Olympus: the second crack; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_decree.mp3",
+    "title": "Clean and Pompous Fanfare Trumpet.mp3",
+    "author": "joepayne (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/joepayne/sounds/413203/",
+    "notes": "God peels: Hera’s Queen’s Decree; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a real trumpet's fanfare, two notes a fourth apart (G, then C over a held low C), with the old synthesized royal brass fanfare and crown chime. This source: the trumpet; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_hero_decree.mp3",
@@ -5106,7 +5130,23 @@
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "God peels: Hera’s Queen’s Decree; a synthesized royal brass fanfare and a glittering crown chime, made with ffmpeg and Python and released as CC0"
+    "notes": "God peels: Hera’s Queen’s Decree: the old synthesized version, of which all is kept, the real recordings layered with it; a synthesized royal brass fanfare and a glittering crown chime, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_earthshaker.mp3",
+    "title": "Metal Plate Hit 1",
+    "author": "loganzsound (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/loganzsound/sounds/784152/",
+    "notes": "God peels: Poseidon’s Earthshaker; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a thick metal plate struck, lower, for the trident, and large waves crashing into rocks, a little lower, with the old synthesized trident strike and crashing wave. This source: the trident; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_earthshaker.mp3",
+    "title": "Crashing Waves into Rocks 1",
+    "author": "amholma (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/amholma/sounds/376799/",
+    "notes": "God peels: Poseidon’s Earthshaker: the wave; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_hero_earthshaker.mp3",
@@ -5114,7 +5154,23 @@
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "God peels: Poseidon’s Earthshaker; a synthesized trident strike and a crashing wave, made with ffmpeg and Python and released as CC0"
+    "notes": "God peels: Poseidon’s Earthshaker: the old synthesized version, of which all is kept, the real recordings layered with it; a synthesized trident strike and a crashing wave, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_harvest.mp3",
+    "title": "The Rustle of a Bush",
+    "author": "Montacue (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Montacue/sounds/178615/",
+    "notes": "God peels: Demeter’s Harvest; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a bush (bamboo, its recordist says) shaken and grass rustling, both a little lower, for the wheat, with the old synthesized rustle and warm rising chime. This source: the bush; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_harvest.mp3",
+    "title": "Rustling Grass 2.wav",
+    "author": "morganpurkis (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/morganpurkis/sounds/396013/",
+    "notes": "God peels: Demeter’s Harvest: the grass; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_hero_harvest.mp3",
@@ -5122,7 +5178,24 @@
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "God peels: Demeter’s Harvest; a synthesized rustle of wheat and a warm rising chime, made with ffmpeg and Python and released as CC0"
+    "notes": "God peels: Demeter’s Harvest: the old synthesized version, of which all is kept, the real recordings layered with it; a synthesized rustle of wheat and a warm rising chime, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_aegis.mp3",
+    "title": "Shield Bash Impact",
+    "author": "Hybrid_V (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/Hybrid_V/sounds/319590/",
+    "notes": "God peels: Athena’s Aegis; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a shield bashed and a metal shed door struck and ringing, both lower, with the old synthesized great shield clang and protective hum. This source: the shield; trimmed, pitch-shifted and layered",
+    "attribution": "\"Shield Bash Impact\" by Hybrid_V (freesound.org), https://freesound.org/people/Hybrid_V/sounds/319590/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_hero_aegis.mp3",
+    "title": "small-metal-hit-05.wav",
+    "author": "newagesoup (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/newagesoup/sounds/337845/",
+    "notes": "God peels: Athena’s Aegis: the ring; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_hero_aegis.mp3",
@@ -5130,7 +5203,24 @@
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "God peels: Athena’s Aegis; a synthesized great shield clang and a protective hum, made with ffmpeg and Python and released as CC0"
+    "notes": "God peels: Athena’s Aegis: the old synthesized version, of which all is kept, the real recordings layered with it; a synthesized great shield clang and a protective hum, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_chariot.mp3",
+    "title": "Horse_Gallop_And_Slide 01 .wav",
+    "author": "n_audioman (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/n_audioman/sounds/321952/",
+    "notes": "God peels: Apollo’s Sun Chariot; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a horse galloping in towards the mic and diesel thrown on a fire, a little lower, with the old synthesized fire roar, hooves and whoosh. This source: the gallop; trimmed and layered",
+    "attribution": "\"Horse_Gallop_And_Slide 01 .wav\" by n_audioman (freesound.org), https://freesound.org/people/n_audioman/sounds/321952/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed and layered into this sound"
+  },
+  {
+    "file": "sfx_hero_chariot.mp3",
+    "title": "fire-whoosh.wav",
+    "author": "hnhnh (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/hnhnh/sounds/244926/",
+    "notes": "God peels: Apollo’s Sun Chariot: the fire; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_hero_chariot.mp3",
@@ -5138,7 +5228,7 @@
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "God peels: Apollo’s Sun Chariot; a synthesized blazing chariot: fire roar, galloping hooves and a whoosh, made with ffmpeg and Python and released as CC0"
+    "notes": "God peels: Apollo’s Sun Chariot: the old synthesized version, of which all is kept, the real recordings layered with it; a synthesized blazing chariot: fire roar, galloping hooves and a whoosh, made with ffmpeg and Python and released as CC0"
   },
   {
     "file": "sfx_hero_moon.mp3",
@@ -5150,27 +5240,78 @@
   },
   {
     "file": "sfx_hero_warcry.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Battle_horn_1.wav",
+    "author": "kirmm (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "God peels: Ares’s War Cry; a synthesized bronze war horn blast and a battle shout, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/kirmm/sounds/392180/",
+    "notes": "God peels: Ares’s War Cry; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a battle horn blown, lower, over itself lower still, then a man's war cry, \"YEAH!\", a little lower, and a small group of men shouting. This source: the horn; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_warcry.mp3",
+    "title": "YEAH! - Warcry, British Male",
+    "author": "theuncertainman (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/theuncertainman/sounds/440035/",
+    "notes": "God peels: Ares’s War Cry: the war cry; trimmed, pitch-shifted and layered",
+    "attribution": "\"YEAH! - Warcry, British Male\" by theuncertainman (freesound.org), https://freesound.org/people/theuncertainman/sounds/440035/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_hero_warcry.mp3",
+    "title": "R15-73-Small Group of Men Shouting.wav",
+    "author": "craigsmith (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/craigsmith/sounds/480805/",
+    "notes": "God peels: Ares’s War Cry: the men; trimmed and layered"
   },
   {
     "file": "sfx_hero_charm.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
-    "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "God peels: Aphrodite’s Charm; a synthesized harp glissando and sparkling hearts, made with ffmpeg and Python and released as CC0"
+    "title": "Harp Glissando",
+    "author": "everythingsounds (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/everythingsounds/sounds/594961/",
+    "notes": "God peels: Aphrodite’s Charm; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a real harp glissando, and a small bell shaken, higher, for the sparkle. This source: the harp; trimmed and layered",
+    "attribution": "\"Harp Glissando\" by everythingsounds (freesound.org), https://freesound.org/people/everythingsounds/sounds/594961/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed and layered into this sound"
+  },
+  {
+    "file": "sfx_hero_charm.mp3",
+    "title": "BellLittleShakeShort.wav",
+    "author": "HerbertBoland (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/HerbertBoland/sounds/30158/",
+    "notes": "God peels: Aphrodite’s Charm: the sparkle; trimmed, pitch-shifted and layered",
+    "attribution": "\"BellLittleShakeShort.wav\" by HerbertBoland (freesound.org), https://freesound.org/people/HerbertBoland/sounds/30158/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
   },
   {
     "file": "sfx_hero_forge.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "20lb Weight Impacts Concrete",
+    "author": "loganzsound (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "God peels: Hephaestus’s Forge; a synthesized anvil drop and a ringing hammer clang, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/loganzsound/sounds/850718/",
+    "notes": "God peels: Hephaestus’s Forge; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a 20 lb weight dropped on concrete, lower, as the anvil lands, then an anvil hammered on its back, ringing, a little lower, and a hammer on steel on an anvil. This source: the drop; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_forge.mp3",
+    "title": "Anvil - Lokomo A 100 kg - Hammer on back 1 time and bright",
+    "author": "ldezem (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/ldezem/sounds/386105/",
+    "notes": "God peels: Hephaestus’s Forge: the ringing clang; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_forge.mp3",
+    "title": "Anvil - Lokomo 125 kg - Hammer on 3mm steel 1 time",
+    "author": "ldezem (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/ldezem/sounds/386111/",
+    "notes": "God peels: Hephaestus’s Forge: the second clang; trimmed and layered"
+  },
+  {
+    "file": "sfx_hero_spark.mp3",
+    "title": "Anvil - Lokomo A 100 kg - Repeat 4 hot hits",
+    "author": "ldezem (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/ldezem/sounds/386125/",
+    "notes": "God peels: a spark off Hephaestus’s anvil; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a hot hit on an anvil, a little higher, with the old synthesized hammer ping and spark crackle. This source: the ping; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_hero_spark.mp3",
@@ -5178,15 +5319,31 @@
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "God peels: a spark off Hephaestus’s anvil; a synthesized hammer ping and a spark crackle, made with ffmpeg and Python and released as CC0"
+    "notes": "God peels: a spark off Hephaestus’s anvil: the old synthesized version, of which all is kept, the real recordings layered with it; a synthesized hammer ping and a spark crackle, made with ffmpeg and Python and released as CC0"
   },
   {
     "file": "sfx_hero_messenger.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Beating wings of a pigeon",
+    "author": "gerardcatala (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "God peels: Hermes’s Messenger; a synthesized wing flutter and a quick whoosh, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/gerardcatala/sounds/153277/",
+    "notes": "God peels: Hermes’s Messenger; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a pigeon's wingbeats and satin cloth flapped like big wings (foley), both a little higher, and a whoosh as he's off. This source: the wingbeats; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_messenger.mp3",
+    "title": "Large bird wing flutter.wav",
+    "author": "anebulafont (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/anebulafont/sounds/651753/",
+    "notes": "God peels: Hermes’s Messenger: the flutter; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_messenger.mp3",
+    "title": "Whoosh.wav",
+    "author": "gbnelso (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/gbnelso/sounds/684459/",
+    "notes": "God peels: Hermes’s Messenger: the whoosh; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_hero_dart.mp3",
@@ -5198,11 +5355,36 @@
   },
   {
     "file": "sfx_hero_revel.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Party Pack, Horn Coil 01, Long, 01.wav",
+    "author": "InspectorJ (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/InspectorJ/sounds/484267/",
+    "notes": "God peels: Dionysus’s Revel; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a party horn blown, a crowd cheering at a gig, and a little tune on an iron-age lyre, mostly a little higher. This source: the party horn; trimmed and layered",
+    "attribution": "\"Party Pack, Horn Coil 01, Long, 01.wav\" by InspectorJ (freesound.org), https://freesound.org/people/InspectorJ/sounds/484267/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed and layered into this sound"
+  },
+  {
+    "file": "sfx_hero_revel.mp3",
+    "title": "crowd roar.WAV",
+    "author": "jonsept (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "God peels: Dionysus’s Revel; a synthesized party horn, cheers and a wobbly lute, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/jonsept/sounds/449915/",
+    "notes": "God peels: Dionysus’s Revel: the cheers; trimmed and layered"
+  },
+  {
+    "file": "sfx_hero_revel.mp3",
+    "title": "Lyre.flac",
+    "author": "Hedmarking (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Hedmarking/sounds/191883/",
+    "notes": "God peels: Dionysus’s Revel: the tune; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_hearth.mp3",
+    "title": "Fire crackling in fireplace",
+    "author": "Davor (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Davor/sounds/382616/",
+    "notes": "God peels: Hestia’s Hearth; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a fire crackling in a fireplace, with the old synthesized crackling fire and soft major chord. This source: the fire; trimmed and layered"
   },
   {
     "file": "sfx_hero_hearth.mp3",
@@ -5210,23 +5392,84 @@
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "God peels: Hestia’s Hearth; a synthesized warm crackling fire and a soft major chord, made with ffmpeg and Python and released as CC0"
+    "notes": "God peels: Hestia’s Hearth: the old synthesized version, of which all is kept, the real recordings layered with it; a synthesized warm crackling fire and a soft major chord, made with ffmpeg and Python and released as CC0"
   },
   {
     "file": "sfx_hero_underworld.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Smash rock (Version 1)",
+    "author": "JacquesLabuschagne242028 (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/JacquesLabuschagne242028/sounds/765844/",
+    "notes": "God peels: Hades’s Underworld; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a rock smashed twice, lower, as the ground cracks, heavy stone grinding, lower, as it splits open, and a man's long groan and a monster's moan (a voice), both far lower. This source: the cracks; trimmed, pitch-shifted and layered",
+    "attribution": "\"Smash rock (Version 1)\" by JacquesLabuschagne242028 (freesound.org), https://freesound.org/people/JacquesLabuschagne242028/sounds/765844/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_hero_underworld.mp3",
+    "title": "Guterton - Heavy Stone Grind",
+    "author": "guterton.wav (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/guterton.wav/sounds/760672/",
+    "notes": "God peels: Hades’s Underworld: the grinding; trimmed, pitch-shifted and layered",
+    "attribution": "\"Guterton - Heavy Stone Grind\" by guterton.wav (freesound.org), https://freesound.org/people/guterton.wav/sounds/760672/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_hero_underworld.mp3",
+    "title": "Male long groan.mp3",
+    "author": "Ivan_Bjorkman (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "God peels: Hades’s Underworld; a synthesized ground-splitting crack and a deep underworld groan, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/Ivan_Bjorkman/sounds/457449/",
+    "notes": "God peels: Hades’s Underworld: the groan; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_underworld.mp3",
+    "title": "Monster Moan Groan Growl.mp3",
+    "author": "SnowFightStudios (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/SnowFightStudios/sounds/643766/",
+    "notes": "God peels: Hades’s Underworld: the moan; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_hero_spring.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Birdsong single isolated.wav",
+    "author": "deleted_user_2104797 (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "God peels: Persephone’s Spring Returns; synthesized birdsong chirps and a blooming chime, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/deleted_user_2104797/sounds/164483/",
+    "notes": "God peels: Persephone’s Spring Returns; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a bird's song cut into its chirps, a baby robin's chirps and a lovebird's chirp, and a harp's glissando, an octave up, for the bloom. This source: the birdsong; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_spring.mp3",
+    "title": "Baby Robin Chirping",
+    "author": "DrinkingWindGames (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/DrinkingWindGames/sounds/744100/",
+    "notes": "God peels: Persephone’s Spring Returns: the robin; trimmed and layered",
+    "attribution": "\"Baby Robin Chirping\" by DrinkingWindGames (freesound.org), https://freesound.org/people/DrinkingWindGames/sounds/744100/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed and layered into this sound"
+  },
+  {
+    "file": "sfx_hero_spring.mp3",
+    "title": "Lovebird Chirpping.WAV",
+    "author": "bowlingballout (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/bowlingballout/sounds/577768/",
+    "notes": "God peels: Persephone’s Spring Returns: the lovebird; trimmed and layered"
+  },
+  {
+    "file": "sfx_hero_spring.mp3",
+    "title": "Harp Glissando",
+    "author": "everythingsounds (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/everythingsounds/sounds/594961/",
+    "notes": "God peels: Persephone’s Spring Returns: the bloom; trimmed, pitch-shifted and layered",
+    "attribution": "\"Harp Glissando\" by everythingsounds (freesound.org), https://freesound.org/people/everythingsounds/sounds/594961/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_hero_wings.mp3",
+    "title": "Beating Wings Dry Sound.wav",
+    "author": "Uzbazur (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/Uzbazur/sounds/330585/",
+    "notes": "God peels: Nike’s Victory Wings; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a swan's wings beating four times, lower, swelling, with the old synthesized wingbeat swell and victory chime. This source: the wingbeats; trimmed, pitch-shifted and layered",
+    "attribution": "\"Beating Wings Dry Sound.wav\" by Uzbazur (freesound.org), https://freesound.org/people/Uzbazur/sounds/330585/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
   },
   {
     "file": "sfx_hero_wings.mp3",
@@ -5234,7 +5477,7 @@
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "God peels: Nike’s Victory Wings; a synthesized great wingbeat swell and a victory chime, made with ffmpeg and Python and released as CC0"
+    "notes": "God peels: Nike’s Victory Wings: the old synthesized version, of which all is kept, the real recordings layered with it; a synthesized great wingbeat swell and a victory chime, made with ffmpeg and Python and released as CC0"
   },
   {
     "file": "sfx_hero_nightfall.mp3",
@@ -5246,11 +5489,36 @@
   },
   {
     "file": "sfx_hero_spartaaa.mp3",
+    "title": "Kingly Yell - NO reverb.wav",
+    "author": "WelvynZPorterSamples (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/WelvynZPorterSamples/sounds/623449/",
+    "notes": "God peels: the Kratos Peel’s “This Is Spartaaa!” shout; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a kingly yell's held vowel, lower and doubled lower still, a small group of men shouting and a massed stomp on a plywood floor, far lower, under the old synthesized \"THIS IS SPARTAAA!\". This source: the held yell; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_spartaaa.mp3",
+    "title": "R15-73-Small Group of Men Shouting.wav",
+    "author": "craigsmith (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/craigsmith/sounds/480805/",
+    "notes": "God peels: the Kratos Peel’s “This Is Spartaaa!” shout: the men; trimmed and layered"
+  },
+  {
+    "file": "sfx_hero_spartaaa.mp3",
+    "title": "Foot Stomp C.wav",
+    "author": "patchen (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/patchen/sounds/20185/",
+    "notes": "God peels: the Kratos Peel’s “This Is Spartaaa!” shout: the thump; trimmed, pitch-shifted and layered",
+    "attribution": "\"Foot Stomp C.wav\" by patchen (freesound.org), https://freesound.org/people/patchen/sounds/20185/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_hero_spartaaa.mp3",
     "title": "Original synthesized sound",
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "God peels: the Kratos Peel’s “This Is Spartaaa!” shout; a synthesized roaring “THIS IS SPARTAAA!” war shout, made with ffmpeg and Python and released as CC0"
+    "notes": "God peels: the Kratos Peel’s “This Is Spartaaa!” shout: the old synthesized version, of which all is kept, the real recordings layered with it; a synthesized roaring “THIS IS SPARTAAA!” war shout, made with ffmpeg and Python and released as CC0"
   },
   {
     "file": "sfx_hero_spartanrage.mp3",
@@ -5313,43 +5581,158 @@
   },
   {
     "file": "sfx_hero_rage.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "fire-whoosh.wav",
+    "author": "hnhnh (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "God peels: the Kratos Peel’s roaring fire loop while enraged; a synthesized roaring fire loop, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/hnhnh/sounds/244926/",
+    "notes": "God peels: the Kratos Peel’s roaring fire loop while enraged; built from real recordings with ffmpeg (scripts/real-sfx/build.py): diesel thrown on a fire, roaring, a little lower, over a pine-wood bonfire's crackle and a fireplace's, a 2 s loop. This source: the roar; trimmed, pitch-shifted and layered into a 2 s crossfaded loop"
+  },
+  {
+    "file": "sfx_hero_rage.mp3",
+    "title": "Nighttime Bonfire 1",
+    "author": "samararaine (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/samararaine/sounds/186316/",
+    "notes": "God peels: the Kratos Peel’s roaring fire loop while enraged: the bonfire; trimmed and layered into a 2 s crossfaded loop"
+  },
+  {
+    "file": "sfx_hero_rage.mp3",
+    "title": "Fire crackling in fireplace",
+    "author": "Davor (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Davor/sounds/382616/",
+    "notes": "God peels: the Kratos Peel’s roaring fire loop while enraged: the fireplace; trimmed and layered into a 2 s crossfaded loop"
   },
   {
     "file": "sfx_hero_flamesmack.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "body_hit.wav",
+    "author": "insanity54 (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "God peels: an enraged, flaming smack (the Kratos Peel); a synthesized heavy smack with a whoosh of flame, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/insanity54/sounds/276600/",
+    "notes": "God peels: an enraged, flaming smack (the Kratos Peel); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a gloved hand's thud on a helmet (it sounds like a punch), lower, a massed stomp on a plywood floor, far lower, and a burst of gas flame, a little lower, damped. This source: the smack; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_flamesmack.mp3",
+    "title": "Foot Stomp C.wav",
+    "author": "patchen (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/patchen/sounds/20185/",
+    "notes": "God peels: an enraged, flaming smack (the Kratos Peel): the weight; trimmed, pitch-shifted and layered",
+    "attribution": "\"Foot Stomp C.wav\" by patchen (freesound.org), https://freesound.org/people/patchen/sounds/20185/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_hero_flamesmack.mp3",
+    "title": "Fire Burst Flash",
+    "author": "Za-Games (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Za-Games/sounds/539972/",
+    "notes": "God peels: an enraged, flaming smack (the Kratos Peel): the flame; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_hero_ragehiss.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Steam/hiss",
+    "author": "wubitog (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "God peels: the Kratos Peel’s rage hisses out; a synthesized hiss of dying flames and a smoke puff, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/wubitog/sounds/234782/",
+    "notes": "God peels: the Kratos Peel’s rage hisses out; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a steam release hissing out, water sizzling on a hot stove, and two pillows touched together, lower, for the puff of smoke. This source: the hiss; trimmed and layered"
+  },
+  {
+    "file": "sfx_hero_ragehiss.mp3",
+    "title": "Water_Sizzle_TwoDrops.wav",
+    "author": "tcrocker68 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/tcrocker68/sounds/235597/",
+    "notes": "God peels: the Kratos Peel’s rage hisses out: the sizzle; trimmed and layered"
+  },
+  {
+    "file": "sfx_hero_ragehiss.mp3",
+    "title": "Poof of Smoke",
+    "author": "Planman (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Planman/sounds/208111/",
+    "notes": "God peels: the Kratos Peel’s rage hisses out: the puff; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_hero_blade.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "FX - Swoosh - Super Heavy (for swords, sticks, punches, etc)",
+    "author": "bolkmar (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "God peels: the Kratos Peel’s Spinning Blade hits; a synthesized blade slash and a chain rattle, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/bolkmar/sounds/475131/",
+    "notes": "God peels: the Kratos Peel’s Spinning Blade hits; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a super-heavy swoosh, higher, for the slash, real swords clashing, damped, for the ring, and a small chain dropped for the rattle. This source: the slash; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_blade.mp3",
+    "title": "SwordClash03",
+    "author": "32cheeseman32 (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/32cheeseman32/sounds/180818/",
+    "notes": "God peels: the Kratos Peel’s Spinning Blade hits: the ring; trimmed and layered",
+    "attribution": "\"SwordClash03\" by 32cheeseman32 (freesound.org), https://freesound.org/people/32cheeseman32/sounds/180818/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed and layered into this sound"
+  },
+  {
+    "file": "sfx_hero_blade.mp3",
+    "title": "metal_chain_drop2",
+    "author": "funkysandwich (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/funkysandwich/sounds/871034/",
+    "notes": "God peels: the Kratos Peel’s Spinning Blade hits: the rattle; trimmed and layered"
   },
   {
     "file": "sfx_hero_allfather.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Battle_horn_1.wav",
+    "author": "kirmm (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "God peels: Odin’s Allfather; a synthesized deep horn call, an eye opening and raven caws, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/kirmm/sounds/392180/",
+    "notes": "God peels: Odin’s Allfather; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a battle horn blown, an octave lower, with a cow horn (or a conch, its recordist says), far lower, over it, a raven's caw twice, lower, and a big gong struck, far lower and damped, as the eye opens. This source: the horn; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_allfather.mp3",
+    "title": "R12-46-Blowing Note on Cow Horn.wav",
+    "author": "craigsmith (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/craigsmith/sounds/479998/",
+    "notes": "God peels: Odin’s Allfather: the second horn; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_allfather.mp3",
+    "title": "BIRDCrow_Raven Caw Close 03_KVV AUDIO_FREE",
+    "author": "KVV_Audio (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/KVV_Audio/sounds/827424/",
+    "notes": "God peels: Odin’s Allfather: the raven; trimmed, pitch-shifted and layered",
+    "attribution": "\"BIRDCrow_Raven Caw Close 03_KVV AUDIO_FREE\" by KVV_Audio (freesound.org), https://freesound.org/people/KVV_Audio/sounds/827424/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_hero_allfather.mp3",
+    "title": "gong_brown_80cm_felt_mallet",
+    "author": "glenm8 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/glenm8/sounds/853153/",
+    "notes": "God peels: Odin’s Allfather: the eye; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_thundergod.mp3",
+    "title": "Thunder Clap",
+    "author": "DaniloSFX (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/DaniloSFX/sounds/672776/",
+    "notes": "God peels: Thor’s Thunder God; built from real recordings with ffmpeg (scripts/real-sfx/build.py): thunder rising, a real crack of thunder and a close clap rolling on, all lower, with the old synthesized raised-hammer rumble and lightning crack. This source: the rising thunder; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_thundergod.mp3",
+    "title": "Thunder (Kraków, Poland, 20.05.2013)",
+    "author": "vonz (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/vonz/sounds/188767/",
+    "notes": "God peels: Thor’s Thunder God: the crack; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_thundergod.mp3",
+    "title": "Thunder, Close",
+    "author": "Fission9 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Fission9/sounds/505113/",
+    "notes": "God peels: Thor’s Thunder God: the roll; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_hero_thundergod.mp3",
@@ -5357,23 +5740,39 @@
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "God peels: Thor’s Thunder God; a synthesized raised-hammer rumble and a chained lightning crack, made with ffmpeg and Python and released as CC0"
+    "notes": "God peels: Thor’s Thunder God: the old synthesized version, of which all is kept, the real recordings layered with it; a synthesized raised-hammer rumble and a chained lightning crack, made with ffmpeg and Python and released as CC0"
   },
   {
     "file": "sfx_hero_mjolnir.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Heavy Swing 1_2",
+    "author": "Joao_Janz (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "God peels: Thor’s hammer thrown; a synthesized spinning hammer whoosh, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/Joao_Janz/sounds/485245/",
+    "notes": "God peels: Thor’s hammer thrown; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a heavy swing, lower, eight times as the hammer spins past, over a super-heavy swoosh, far lower and slower. This source: the spinning swings; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_mjolnir.mp3",
+    "title": "FX - Swoosh - Super Heavy (for swords, sticks, punches, etc)",
+    "author": "bolkmar (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/bolkmar/sounds/475131/",
+    "notes": "God peels: Thor’s hammer thrown: the swoosh; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_hero_mischief.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "man laugh.wav",
+    "author": "tadiyan (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "God peels: Loki’s Mischief; a synthesized sly giggle and a puff of trickery, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/tadiyan/sounds/693938/",
+    "notes": "God peels: Loki’s Mischief; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a man's sly laugh cut into a \"heh-heh-heh\", higher and doubled, and two pillows touched together three times for the puffs of trickery. This source: the laugh; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_mischief.mp3",
+    "title": "Poof of Smoke",
+    "author": "Planman (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Planman/sounds/208111/",
+    "notes": "God peels: Loki’s Mischief: the puffs; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_hero_foresight.mp3",
@@ -5385,19 +5784,52 @@
   },
   {
     "file": "sfx_hero_falcon.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Birds of Prey: Gyrfalcon Anticipation calls",
+    "author": "MichiJung (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/MichiJung/sounds/867997/",
+    "notes": "God peels: Freya’s Falcon Cloak; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a gyrfalcon's call twice, and a whoosh, a little lower, as it dives. This source: the falcon; trimmed and layered",
+    "attribution": "\"Birds of Prey: Gyrfalcon Anticipation calls\" by MichiJung (freesound.org), https://freesound.org/people/MichiJung/sounds/867997/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed and layered into this sound"
+  },
+  {
+    "file": "sfx_hero_falcon.mp3",
+    "title": "Whoosh.wav",
+    "author": "gbnelso (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "God peels: Freya’s Falcon Cloak; a synthesized falcon screech and a diving whoosh, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/gbnelso/sounds/684459/",
+    "notes": "God peels: Freya’s Falcon Cloak: the dive; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_hero_boar.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Swine - Pig; Dinosaur-like Grunt",
+    "author": "TheKingOfGeeks360 (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "God peels: Freyr’s Golden Boar; a synthesized boar grunt, a charge of hooves and a jingle of coins, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/TheKingOfGeeks360/sounds/842313/",
+    "notes": "God peels: Freyr’s Golden Boar; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a pig's growling grunt, lower, for the golden boar, hooves clattering, lower, for its charge, and a coin dropped on a table. This source: the grunt; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_boar.mp3",
+    "title": "clatter of hooves.wav",
+    "author": "specrad1 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/specrad1/sounds/571296/",
+    "notes": "God peels: Freyr’s Golden Boar: the hooves; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_boar.mp3",
+    "title": "Coin dropped on table 5",
+    "author": "HoseNoseSounds (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/HoseNoseSounds/sounds/510735/",
+    "notes": "God peels: Freyr’s Golden Boar: the coin; trimmed and layered"
+  },
+  {
+    "file": "sfx_hero_oath.mp3",
+    "title": "gong_brown_80cm_felt_mallet",
+    "author": "glenm8 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/glenm8/sounds/853153/",
+    "notes": "God peels: Tyr’s Oath; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a big gong struck with a felt mallet, lower, with the old synthesized solemn gong and low oath hum. This source: the gong; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_hero_oath.mp3",
@@ -5405,15 +5837,31 @@
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "God peels: Tyr’s Oath; a synthesized solemn gong and a low oath hum, made with ffmpeg and Python and released as CC0"
+    "notes": "God peels: Tyr’s Oath: the old synthesized version, of which all is kept, the real recordings layered with it; a synthesized solemn gong and a low oath hum, made with ffmpeg and Python and released as CC0"
   },
   {
     "file": "sfx_hero_gjallarhorn.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Battle_horn_1.wav",
+    "author": "kirmm (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "God peels: Heimdall’s Gjallarhorn; a synthesized mighty horn blast echoing across the sky, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/kirmm/sounds/392180/",
+    "notes": "God peels: Heimdall’s Gjallarhorn; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a battle horn blown, lower, over itself far lower, in a long echo as if across the sky. This source: the horn; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_radiance.mp3",
+    "title": "CRWDSing_Ahh Vowel Sung Near F 02_ShaneVincent_GSC24_MSDEC-MKH435-Spirit.wav",
+    "author": "ShangusBurger (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/ShangusBurger/sounds/764221/",
+    "notes": "God peels: Baldur’s Radiance; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a crowd singing \"ah\" as a low C major chord and a singing bowl struck, an octave up, for the bell of light, with the old synthesized choir chord and bell. This source: the choir; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_radiance.mp3",
+    "title": "singing bowl strike sound",
+    "author": "inoshirodesign (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/inoshirodesign/sounds/271370/",
+    "notes": "God peels: Baldur’s Radiance: the bell; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_hero_radiance.mp3",
@@ -5421,7 +5869,15 @@
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "God peels: Baldur’s Radiance; a synthesized shining choir chord and a bell of light, made with ffmpeg and Python and released as CC0"
+    "notes": "God peels: Baldur’s Radiance: the old synthesized version, of which all is kept, the real recordings layered with it; a synthesized shining choir chord and a bell of light, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_hero_halfdeath.mp3",
+    "title": "G55-07-Howling wind.wav",
+    "author": "craigsmith (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/craigsmith/sounds/438861/",
+    "notes": "God peels: Hel’s Half-Death; built from real recordings with ffmpeg (scripts/real-sfx/build.py): howling wind, a little lower, with the old synthesized eerie half-chord and cold wind. This source: the wind; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_hero_halfdeath.mp3",
@@ -5429,31 +5885,71 @@
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "God peels: Hel’s Half-Death; a synthesized eerie half-chord and a cold wind, made with ffmpeg and Python and released as CC0"
+    "notes": "God peels: Hel’s Half-Death: the old synthesized version, of which all is kept, the real recordings layered with it; a synthesized eerie half-chord and a cold wind, made with ffmpeg and Python and released as CC0"
   },
   {
     "file": "sfx_hero_seawind.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "G55-07-Howling wind.wav",
+    "author": "craigsmith (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "God peels: Njord’s Sea Wind; a synthesized rising gale with a creak of rigging, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/craigsmith/sounds/438861/",
+    "notes": "God peels: Njord’s Sea Wind; built from real recordings with ffmpeg (scripts/real-sfx/build.py): howling wind gusting and a mountain gale for the rising wind, and creaking wood, lower, for the rigging. This source: the wind; trimmed and layered"
+  },
+  {
+    "file": "sfx_hero_seawind.mp3",
+    "title": "mountain wind heavy strong gusts Swiss Alps.flac",
+    "author": "kyles (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/kyles/sounds/454092/",
+    "notes": "God peels: Njord’s Sea Wind: the gale; trimmed and layered"
+  },
+  {
+    "file": "sfx_hero_seawind.mp3",
+    "title": "Creaking Wood 12.wav",
+    "author": "Greg_Surr (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Greg_Surr/sounds/590147/",
+    "notes": "God peels: Njord’s Sea Wind: the rigging; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_hero_winterhunt.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "mountain wind heavy strong gusts Swiss Alps.flac",
+    "author": "kyles (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "God peels: Skadi’s Winter Hunt; a synthesized icy wind and tinkling frost, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/kyles/sounds/454092/",
+    "notes": "God peels: Skadi’s Winter Hunt; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a mountain gale, higher and brighter, for the icy wind, ice crackling under pressure and ice cracking as it melts, a little higher, for the tinkling frost. This source: the wind; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_winterhunt.mp3",
+    "title": "Ice crackles under pressure",
+    "author": "Wigglesworth (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Wigglesworth/sounds/838106/",
+    "notes": "God peels: Skadi’s Winter Hunt: the crackle; trimmed and layered"
+  },
+  {
+    "file": "sfx_hero_winterhunt.mp3",
+    "title": "Ice Crack 3",
+    "author": "j_p_higgins (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/j_p_higgins/sounds/262633/",
+    "notes": "God peels: Skadi’s Winter Hunt: the cracks; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_hero_freeze.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Ice Crack 1",
+    "author": "j_p_higgins (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "God peels: a Winter Hunt smack freezes a foot; a synthesized ice crackle, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/j_p_higgins/sounds/262635/",
+    "notes": "God peels: a Winter Hunt smack freezes a foot; built from real recordings with ffmpeg (scripts/real-sfx/build.py): ice cracking and ice crackling under pressure. This source: the crack; trimmed and layered"
+  },
+  {
+    "file": "sfx_hero_freeze.mp3",
+    "title": "Ice crackles under pressure",
+    "author": "Wigglesworth (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Wigglesworth/sounds/838106/",
+    "notes": "God peels: a Winter Hunt smack freezes a foot: the crackle; trimmed and layered"
   },
   {
     "file": "sfx_hero_apples.mp3",
@@ -5465,19 +5961,27 @@
   },
   {
     "file": "sfx_hero_saga.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Lyre.flac",
+    "author": "Hedmarking (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "God peels: Bragi’s Saga; a synthesized harp strum and a bard’s hum, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/Hedmarking/sounds/191883/",
+    "notes": "God peels: Bragi’s Saga; built from real recordings with ffmpeg (scripts/real-sfx/build.py): an iron-age lyre strummed (an open A chord) and a man humming. This source: the lyre; trimmed and layered"
+  },
+  {
+    "file": "sfx_hero_saga.mp3",
+    "title": "male_hum.wav",
+    "author": "mahakush (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/mahakush/sounds/368817/",
+    "notes": "God peels: Bragi’s Saga: the hum; trimmed and layered"
   },
   {
     "file": "sfx_hero_verse.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Lyre.flac",
+    "author": "Hedmarking (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "God peels: Bragi’s Skald verse; a synthesized short harp flourish, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/Hedmarking/sounds/191883/",
+    "notes": "God peels: Bragi’s Skald verse; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a falling run of four notes on an iron-age lyre. This source: the lyre; trimmed and layered"
   },
   {
     "file": "sfx_divinefeast.mp3",

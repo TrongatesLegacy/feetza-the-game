@@ -40,6 +40,14 @@ rep = [d for d in json.load(open(os.path.join(out, 'report.json'))) if 'error' n
 # doesn't put the synthesized versions back or replace their credits.
 REAL = {
     'sfx_trumpet', 'sfx_spartanroar', 'sfx_bronzeshield',
+    # batch 7: the god peels' charged moves
+    'sfx_hero_zeus', 'sfx_hero_decree', 'sfx_hero_earthshaker', 'sfx_hero_harvest', 'sfx_hero_aegis',
+    'sfx_hero_chariot', 'sfx_hero_warcry', 'sfx_hero_charm', 'sfx_hero_forge', 'sfx_hero_spark', 'sfx_hero_messenger',
+    'sfx_hero_revel', 'sfx_hero_hearth', 'sfx_hero_underworld', 'sfx_hero_spring', 'sfx_hero_wings',
+    'sfx_hero_spartaaa', 'sfx_hero_rage', 'sfx_hero_flamesmack', 'sfx_hero_ragehiss', 'sfx_hero_blade',
+    'sfx_hero_allfather', 'sfx_hero_thundergod', 'sfx_hero_mjolnir', 'sfx_hero_mischief', 'sfx_hero_falcon',
+    'sfx_hero_boar', 'sfx_hero_oath', 'sfx_hero_gjallarhorn', 'sfx_hero_radiance', 'sfx_hero_halfdeath',
+    'sfx_hero_seawind', 'sfx_hero_winterhunt', 'sfx_hero_freeze', 'sfx_hero_saga', 'sfx_hero_verse',
 }
 rep = [d for d in rep if d['key'] not in REAL]
 for d in rep:
