@@ -61,8 +61,9 @@ import { HeroTracker, bestGoal, type RunView } from '../game/heroGoals';
 import { maybeSignal, sightingChance, sightingDue } from '../game/sightings';
 import { addCanvas } from '../game/assets';
 import { heroFootDmg, heroFootStomp, heroFootTick } from '../game/heroFeet';
-// ——— Act 10 · Finale: the buyout and the ending (src/game/finale.ts; its layers run from src/game/acts/act10.ts) ———
-import { finaleCast, finaleState, playEnding } from '../game/finale';
+// ——— Act 10 · Finale: the buyout (src/game/finale.ts; its layers run from src/game/acts/act10.ts) and the ending (src/game/ending.ts) ———
+import { finaleState } from '../game/finale';
+import { finaleCast, playEnding } from '../game/ending';
 // ——— Nemesis stages: a hero peel swaps a stage for its nemesis (src/game/nemesis.ts) ———
 import { applyNemesis, nemesisOf, setNemesisPeel } from '../game/nemesis';
 import { HitboxOverlay, describeNear, labelOf, record, smackLog } from '../game/smackLog';

@@ -1,7 +1,7 @@
 // Boss brains, Act 10 · Finale: the Mirror Peel (mini, wave 93), the Sole Proprietor's first meeting
 // (wave 95), the Ghost of Feet Future (mini, wave 98) and the Sole Proprietor Unbound (wave 100, five
 // phases on every heat). Shared helpers and the heat scaling live in ./kit.ts; this act's props are drawn
-// in src/content/props/act10.ts, its runtime layers (glitch, wall of peels, ending) in src/game/finale.ts.
+// in src/content/props/act10.ts, its runtime layers (glitch, wall of peels) in src/game/finale.ts, the ending in src/game/ending.ts.
 
 import Phaser from 'phaser';
 import { BOSS_MINION } from '../../data/stages';

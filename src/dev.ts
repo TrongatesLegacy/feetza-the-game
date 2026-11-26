@@ -200,6 +200,33 @@ export function installDevTools(game: Phaser.Game): void {
       const { forceRareFind } = await import('./ui/ui');
       forceRareFind(id);
     },
+    /**
+     * Jump straight to the ending (src/game/ending.ts): over the running game (its play held while it runs), or a
+     * new run at wave 99 when none is up. Nothing is saved (no Pizza Legend title, no Endless+). `all` (default)
+     * marches every foot of the journey, as if all had been fought; `all: false` uses this save's fought feet.
+     */
+    async ending(o: { all?: boolean } = {}): Promise<string> {
+      const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+      let g = game.scene.getScene('Game') as AnyScene;
+      if (!g?.sys.isActive()) {
+        await api.boot();
+        api.startGame({ wave: 99, intros: false });
+        for (let i = 0; i < 100 && !(game.scene.getScene('Game') as AnyScene)?.sys.isActive(); i++) await sleep(100);
+        await sleep(2500);
+        g = game.scene.getScene('Game') as AnyScene;
+      }
+      const [{ playEnding }, { ui }] = await Promise.all([import('./game/ending'), import('./ui/ui')]);
+      const held = { inUpgrade: g.inUpgrade, timerStopped: g.timerStopped };
+      g.inUpgrade = true;
+      g.timerStopped = true;
+      ui.setPlaying(false);
+      playEnding(g, () => {
+        g.inUpgrade = held.inUpgrade;
+        g.timerStopped = held.timerStopped;
+        ui.setPlaying(!held.inUpgrade);
+      }, { preview: true, all: o.all ?? true });
+      return 'ending';
+    },
     /** Deterministic randomness for fair before/after comparisons. */
     seed,
     skipIntros,
