@@ -89,7 +89,7 @@ export const DEEP_FROM = 60;
 /** Waves over which the deep ramp reaches its full value (wave 100). */
 export const DEEP_SPAN = 40;
 
-const GENTLE: Crowd = { perWave: 1.1, countCap: 40, aliveCap: 6, intervalFloor: 0.8, speedCap: 1.4, eliteCap: 0.1, hoverMul: 1.35, laneSwitchWave: 0, deepGrowth: 0.2, deepHp: 0.03 };
+const GENTLE: Crowd = { perWave: 1.1, countCap: 40, aliveCap: 6, intervalFloor: 0.8, speedCap: 1.4, eliteCap: 0.1, hoverMul: 1.35, laneSwitchWave: 0, deepGrowth: 0.2, deepHp: 0.1 };
 // (Regular's deep health ramp is 0.04 a wave, was 0.05: Act 9's tougher feet already made waves 81–90 the wall)
 const STEADY: Crowd = { perWave: 1.6, countCap: 60, aliveCap: 9, intervalFloor: 0.5, speedCap: 1.65, eliteCap: 0.2, hoverMul: 1.15, laneSwitchWave: 20, deepGrowth: 0.35, deepHp: 0.04 };
 // lanes cap how many feet are on screen, so the hotter heats get their pressure from tempo instead
