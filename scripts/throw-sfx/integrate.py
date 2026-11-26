@@ -38,7 +38,15 @@ SYN_PRIMARY = {'sfx_tosssoft', 'sfx_tossflick', 'sfx_tossspin', 'sfx_tossheavy',
 
 out, repo = sys.argv[1], sys.argv[2]
 rep = json.load(open(os.path.join(out, 'report.json')))
+# Files since re-made from real recordings by scripts/real-sfx/build.py (the audio pass, docs/audio-audit.md): not
+# copied over, so running this again doesn't put the synthesized versions back.
+REAL = {
+    'sfx_hitsplat', 'sfx_hitsqueak', 'sfx_rollrumble', 'sfx_tossrope',
+    'sfx_tossheavy',
+}
 for d in rep:
+    if d['key'] in REAL:
+        continue
     shutil.copy(os.path.join(out, d['key'] + '.mp3'), os.path.join(repo, 'public/audio', d['key'] + '.mp3'))
 
 

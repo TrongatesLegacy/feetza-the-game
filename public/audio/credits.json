@@ -672,11 +672,19 @@
   },
   {
     "file": "sfx_headwaiter_service.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "desk bell center.mp3",
+    "author": "tonmayster (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Head Waiter: desk-bell double ding; a synthesized desk-bell double ding, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactMetal_light_000 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/tonmayster/sounds/685111/",
+    "notes": "Head Waiter: desk-bell double ding; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a real desk bell struck twice, a second bell shimmering on the second strike. This source: the desk bell, struck twice; trimmed and layered"
+  },
+  {
+    "file": "sfx_headwaiter_service.mp3",
+    "title": "Ringing bell - happy.wav",
+    "author": "domrodrig (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/domrodrig/sounds/116779/",
+    "notes": "Head Waiter: desk-bell double ding: the second bell under the second strike; trimmed and layered"
   },
   {
     "file": "sfx_bigfoot_ring.mp3",
@@ -696,11 +704,28 @@
   },
   {
     "file": "sfx_bigfoot_bigstep.mp3",
+    "title": "Giant step",
+    "author": "DasWaff (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/DasWaff/sounds/721601/",
+    "notes": "Bigfoot: the big step lands; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a giant's footstep and a stamp, pitched down, over the old synthesized sub. This source: the footstep; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_bigfoot_bigstep.mp3",
+    "title": "Foot Stomp C.wav",
+    "author": "patchen (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/patchen/sounds/20185/",
+    "notes": "Bigfoot: the big step lands: the stamp; trimmed, pitch-shifted and layered",
+    "attribution": "\"Foot Stomp C.wav\" by patchen (freesound.org), https://freesound.org/people/patchen/sounds/20185/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_bigfoot_bigstep.mp3",
     "title": "Original synthesized sound",
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Bigfoot: the big step lands; a synthesized sub-bass thud and rumble, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactWood_heavy_001 and Sci-fi Sounds lowFrequency_explosion_001 (CC0, kenney.nl)"
+    "notes": "Bigfoot: the big step lands: the old synthesized version, of which its sub (lowpassed) is kept under the real recordings; a synthesized sub-bass thud and rumble, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactWood_heavy_001 and Sci-fi Sounds lowFrequency_explosion_001 (CC0, kenney.nl)"
   },
   {
     "file": "sfx_bigfoot_trapbuild.mp3",
@@ -728,11 +753,27 @@
   },
   {
     "file": "sfx_bigfoot_rampage.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Giant step",
+    "author": "DasWaff (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Bigfoot: second Bigfoot arrives; synthesized double thuds and a low growl, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactWood_heavy_000 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/DasWaff/sounds/721601/",
+    "notes": "Bigfoot: second Bigfoot arrives; built from real recordings with ffmpeg (scripts/real-sfx/build.py): two giant footsteps, then an alpha gorilla's roar pitched down with a black bear's growl under it. This source: the two footsteps; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_bigfoot_rampage.mp3",
+    "title": "Gorillaschrei.wav",
+    "author": "J0ck0 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/J0ck0/sounds/397054/",
+    "notes": "Bigfoot: second Bigfoot arrives: the roar; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_bigfoot_rampage.mp3",
+    "title": "Bear Angry Growl",
+    "author": "celldroid (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/celldroid/sounds/763026/",
+    "notes": "Bigfoot: second Bigfoot arrives: the growl under it; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_sweep_brush.mp3",
@@ -744,19 +785,44 @@
   },
   {
     "file": "sfx_sweep_soot.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Smoke Bomb",
+    "author": "vckhaze (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Chimney Sweep: soot column whoomph; a synthesized soot whoomph, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds explosionCrunch_000 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/vckhaze/sounds/332602/",
+    "notes": "Chimney Sweep: soot column whoomph; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a smoke bomb and a pillow poof, pitched down, over a stamp an octave down. This source: the soot column; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_sweep_soot.mp3",
+    "title": "Poof of Smoke",
+    "author": "Planman (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Planman/sounds/208111/",
+    "notes": "Chimney Sweep: soot column whoomph: the poof; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_sweep_soot.mp3",
+    "title": "Foot Stomp C.wav",
+    "author": "patchen (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/patchen/sounds/20185/",
+    "notes": "Chimney Sweep: soot column whoomph: the thump under it, an octave down; trimmed, pitch-shifted and layered",
+    "attribution": "\"Foot Stomp C.wav\" by patchen (freesound.org), https://freesound.org/people/patchen/sounds/20185/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
   },
   {
     "file": "sfx_sweep_hop.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Champagne Cork",
+    "author": "KenRT (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Chimney Sweep: pops out of one chimney into another; a synthesized cork pop and puff, made with ffmpeg and Python and released as CC0, layered with Kenney Interface Sounds drop_003 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/KenRT/sounds/392624/",
+    "notes": "Chimney Sweep: pops out of one chimney into another; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a champagne cork popping, a little lower, and a puff of smoke. This source: the cork; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_sweep_hop.mp3",
+    "title": "Puff of Smoke",
+    "author": "qubodup (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/qubodup/sounds/714257/",
+    "notes": "Chimney Sweep: pops out of one chimney into another: the puff of soot; trimmed and layered"
   },
   {
     "file": "sfx_sweep_brick.mp3",
@@ -808,19 +874,44 @@
   },
   {
     "file": "sfx_ironheel_hiss.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Steam/hiss",
+    "author": "wubitog (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Iron Heel: steam warning hiss, sits under; a synthesized rising steam hiss, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/wubitog/sounds/234782/",
+    "notes": "Iron Heel: steam warning hiss, sits under; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a real steam release, rising, with a steam trap behind it. This source: the hiss; trimmed and layered"
+  },
+  {
+    "file": "sfx_ironheel_hiss.mp3",
+    "title": "Steam_trap_short_burst.wav",
+    "author": "Engineer_815 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Engineer_815/sounds/520071/",
+    "notes": "Iron Heel: steam warning hiss, sits under: the steam behind it; trimmed and layered"
   },
   {
     "file": "sfx_ironheel_steam.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Steam",
+    "author": "Aiwha (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/Aiwha/sounds/250703/",
+    "notes": "Iron Heel: steam burst; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a jet of steam and a steam trap blowing off, with a valve clank. This source: the jet of steam; trimmed, pitch-shifted and layered",
+    "attribution": "\"Steam\" by Aiwha (freesound.org), https://freesound.org/people/Aiwha/sounds/250703/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_ironheel_steam.mp3",
+    "title": "Steam_trap_short_burst.wav",
+    "author": "Engineer_815 (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Iron Heel: steam burst; a synthesized steam burst, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds thrusterFire_002, doorOpen_002 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/Engineer_815/sounds/520071/",
+    "notes": "Iron Heel: steam burst: the burst; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_ironheel_steam.mp3",
+    "title": "Iron Hits.wav",
+    "author": "Mrthenoronha (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Mrthenoronha/sounds/371353/",
+    "notes": "Iron Heel: steam burst: the valve clank (one hit, pitched down); trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_ironheel_press.mp3",
@@ -840,27 +931,68 @@
   },
   {
     "file": "sfx_sandcastle_shovel.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Digging in wet course sand (2)",
+    "author": "f3bbbo (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Sandcastle Sam: shovel scrape (tell); a synthesized sand scrape, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds footstep_snow_001, impactMetal_light_003 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/f3bbbo/sounds/651293/",
+    "notes": "Sandcastle Sam: shovel scrape (tell); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a plastic hand shovel into wet sand, with a deeper scrape. This source: the shovel; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_sandcastle_shovel.mp3",
+    "title": "Dig wet sand-04.wav",
+    "author": "RUncELL (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/RUncELL/sounds/349459/",
+    "notes": "Sandcastle Sam: shovel scrape (tell): the scrape under it; trimmed and layered"
   },
   {
     "file": "sfx_sandcastle_walls.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Digging in wet course sand (1)",
+    "author": "f3bbbo (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Sandcastle Sam: sand walls rise; a synthesized sand pour, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactSoft_heavy_001, footstep_snow_004 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/f3bbbo/sounds/651292/",
+    "notes": "Sandcastle Sam: sand walls rise; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a shovel slapping sand in and a packed thump, then sand streaming down. This source: the shovel slap; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_sandcastle_walls.mp3",
+    "title": "Foot Stomp C.wav",
+    "author": "patchen (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/patchen/sounds/20185/",
+    "notes": "Sandcastle Sam: sand walls rise: the packed-sand thump; trimmed, pitch-shifted and layered",
+    "attribution": "\"Foot Stomp C.wav\" by patchen (freesound.org), https://freesound.org/people/patchen/sounds/20185/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_sandcastle_walls.mp3",
+    "title": "sandfall5.wav",
+    "author": "Wagna (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Wagna/sounds/326304/",
+    "notes": "Sandcastle Sam: sand walls rise: the sand streaming down; trimmed and layered"
+  },
+  {
+    "file": "sfx_sandcastle_walls.mp3",
+    "title": "Sand slidding out of shovel slowly.wav",
+    "author": "XfiXy8 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/XfiXy8/sounds/467301/",
+    "notes": "Sandcastle Sam: sand walls rise: sand sliding off the shovel; trimmed and layered"
   },
   {
     "file": "sfx_sandcastle_pour.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "sand pour on slate FF672.aif",
+    "author": "martinimeniscus (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Sandcastle Sam: sand pour; a synthesized sand pour, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/martinimeniscus/sounds/199325/",
+    "notes": "Sandcastle Sam: sand pour; built from real recordings with ffmpeg (scripts/real-sfx/build.py): sand poured onto slate and a longer fall of sand. This source: the pour; trimmed and layered"
+  },
+  {
+    "file": "sfx_sandcastle_pour.mp3",
+    "title": "sandfall3.wav",
+    "author": "Wagna (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Wagna/sounds/326301/",
+    "notes": "Sandcastle Sam: sand pour: the fall; trimmed and layered"
   },
   {
     "file": "sfx_sandcastle_sandland.mp3",
@@ -872,35 +1004,69 @@
   },
   {
     "file": "sfx_clownking_honkwind.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Squeaky Toy 2",
+    "author": "qubodup (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "King Honk: bulb-horn squeeze wind-up; synthesized rubber-bulb squeaks, made with ffmpeg and Python and released as CC0, layered with Kenney RPG Audio handleSmallLeather (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/qubodup/sounds/861820/",
+    "notes": "King Honk: bulb-horn squeeze wind-up; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a rubber squeaker squeezed three times, each higher. This source: the first squeeze; trimmed and pitch-shifted"
+  },
+  {
+    "file": "sfx_clownking_honkwind.mp3",
+    "title": "Squeaky Toy 1",
+    "author": "qubodup (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/qubodup/sounds/861819/",
+    "notes": "King Honk: bulb-horn squeeze wind-up: the second; trimmed and pitch-shifted"
+  },
+  {
+    "file": "sfx_clownking_honkwind.mp3",
+    "title": "Squeaky Toy 3",
+    "author": "qubodup (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/qubodup/sounds/861821/",
+    "notes": "King Honk: bulb-horn squeeze wind-up: the third; trimmed and pitch-shifted"
   },
   {
     "file": "sfx_clownking_honk.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Clown Horn (Single Honk).wav",
+    "author": "Gimp_Revival (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "King Honk: clown horn blast; a synthesized bulb-horn blast, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/Gimp_Revival/sounds/588570/",
+    "notes": "King Honk: clown horn blast; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a clown horn held down, a second horn on its attack, and the first again far lower under it. This source: the held honk, and again far lower under it; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_clownking_honk.mp3",
+    "title": "Clown_Horn.mp3",
+    "author": "inplay (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/inplay/sounds/251611/",
+    "notes": "King Honk: clown horn blast: the attack; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_clownking_leap.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
-    "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "King Honk: slide-whistle leap away; a synthesized slide whistle, made with ffmpeg and Python and released as CC0"
+    "title": "slide_whistle_up_fast_01.wav",
+    "author": "joedeshon (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/joedeshon/sounds/79678/",
+    "notes": "King Honk: slide-whistle leap away; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a real slide whistle sliding up. This source: the slide whistle; trimmed",
+    "attribution": "\"slide_whistle_up_fast_01.wav\" by joedeshon (freesound.org), https://freesound.org/people/joedeshon/sounds/79678/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed into this sound"
   },
   {
     "file": "sfx_clownking_decoydrop.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "slide_whistle_down_fast_01.wav",
+    "author": "joedeshon (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/joedeshon/sounds/79672/",
+    "notes": "King Honk: slide-whistle drop; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a real slide whistle sliding down onto a soft landing. This source: the slide whistle; trimmed and layered",
+    "attribution": "\"slide_whistle_down_fast_01.wav\" by joedeshon (freesound.org), https://freesound.org/people/joedeshon/sounds/79672/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed and layered into this sound"
+  },
+  {
+    "file": "sfx_clownking_decoydrop.mp3",
+    "title": "Poof of Smoke",
+    "author": "Planman (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "King Honk: slide-whistle drop; a synthesized falling slide whistle, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactSoft_medium_001 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/Planman/sounds/208111/",
+    "notes": "King Honk: slide-whistle drop: the soft landing; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_clownking_pie.mp3",
@@ -920,11 +1086,12 @@
   },
   {
     "file": "sfx_shortorder_bell.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
-    "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Short-Order Shoe: order bell ding; a synthesized service-bell ring, made with ffmpeg and Python and released as CC0, layered with Kenney Casino Audio card-slide-2 and Impact Sounds impactBell_heavy_002 (CC0, kenney.nl)"
+    "title": "Bell, Counter, A.wav",
+    "author": "InspectorJ (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/InspectorJ/sounds/415510/",
+    "notes": "Short-Order Shoe: order bell ding; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a real shop counter bell. This source: the bell; trimmed",
+    "attribution": "\"Bell, Counter, A.wav\" by InspectorJ (freesound.org), https://freesound.org/people/InspectorJ/sounds/415510/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed into this sound"
   },
   {
     "file": "sfx_shortorder_grab.mp3",
@@ -944,19 +1111,37 @@
   },
   {
     "file": "sfx_shortorder_rush.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Bell, Counter, A.wav",
+    "author": "InspectorJ (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/InspectorJ/sounds/415510/",
+    "notes": "Short-Order Shoe: rush-hour triple bell and ticket chatter; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a shop counter bell rung three times over a receipt printer. This source: the three dings; trimmed, pitch-shifted and layered",
+    "attribution": "\"Bell, Counter, A.wav\" by InspectorJ (freesound.org), https://freesound.org/people/InspectorJ/sounds/415510/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_shortorder_rush.mp3",
+    "title": "Receipt Printer 01.wav",
+    "author": "thepodcastdoctor (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Short-Order Shoe: rush-hour triple bell and ticket chatter; synthesized triple bell dings and ticket-printer chatter, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/thepodcastdoctor/sounds/476011/",
+    "notes": "Short-Order Shoe: rush-hour triple bell and ticket chatter: the ticket printer; trimmed and layered"
   },
   {
     "file": "sfx_trex_dinosqueak.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Baby Robin Chirping",
+    "author": "DrinkingWindGames (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/DrinkingWindGames/sounds/744100/",
+    "notes": "T-Rex Toes: baby dino squeak; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a baby robin's two chirps pitched down to a bigger chick, a lovebird's chirp under the first. This source: the chirps; trimmed, pitch-shifted and layered",
+    "attribution": "\"Baby Robin Chirping\" by DrinkingWindGames (freesound.org), https://freesound.org/people/DrinkingWindGames/sounds/744100/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_trex_dinosqueak.mp3",
+    "title": "Lovebird Chirpping.WAV",
+    "author": "bowlingballout (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "T-Rex Toes: baby dino squeak; synthesized baby-dino chirps, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/bowlingballout/sounds/577768/",
+    "notes": "T-Rex Toes: baby dino squeak: the chirp under the first; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_trex_dinorun.mp3",
@@ -968,11 +1153,19 @@
   },
   {
     "file": "sfx_trex_growl.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Bear Angry Growl",
+    "author": "celldroid (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "T-Rex Toes: snack-time growl (tell); a synthesized rumbling growl, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/celldroid/sounds/763026/",
+    "notes": "T-Rex Toes: snack-time growl (tell); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a real black bear's growl, pitched down and doubled lower, the beast's breath through it. This source: the growl; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_trex_growl.mp3",
+    "title": "Dino Hiss Dragon Roar",
+    "author": "999999990 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/999999990/sounds/320345/",
+    "notes": "T-Rex Toes: snack-time growl (tell): the breath; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_trex_snack.mp3",
@@ -984,11 +1177,44 @@
   },
   {
     "file": "sfx_trex_breath.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Deep Inhale & Exhale 1.wav",
+    "author": "EverydayEldritch (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "T-Rex Toes: deep breath in (tell); a synthesized deep inhale, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/EverydayEldritch/sounds/615047/",
+    "notes": "T-Rex Toes: deep breath in (tell); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a deep breath in, pitched down to a big chest and doubled lower, with a beast breathing. This source: the breath in; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_trex_breath.mp3",
+    "title": "Dino Hiss Dragon Roar",
+    "author": "999999990 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/999999990/sounds/320345/",
+    "notes": "T-Rex Toes: deep breath in (tell): the beast breathing; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_trex_roar.mp3",
+    "title": "Dino Hiss Dragon Roar",
+    "author": "999999990 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/999999990/sounds/320345/",
+    "notes": "T-Rex Toes: the roar; built from real recordings with ffmpeg (scripts/real-sfx/build.py): built as film dinosaurs are: a big designed beast roar for the body, a real tiger roar lower under it and a real elephant trumpet in the top end, over the old synthesized sub. This source: the roar; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_trex_roar.mp3",
+    "title": "tiger roar",
+    "author": "videog (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/videog/sounds/149190/",
+    "notes": "T-Rex Toes: the roar: the tiger under it; trimmed, pitch-shifted and layered",
+    "attribution": "\"tiger roar\" by videog (freesound.org), https://freesound.org/people/videog/sounds/149190/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_trex_roar.mp3",
+    "title": "Elephant sound",
+    "author": "ikbenraar (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/ikbenraar/sounds/819668/",
+    "notes": "T-Rex Toes: the roar: the elephant trumpet on top; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_trex_roar.mp3",
@@ -996,7 +1222,15 @@
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "T-Rex Toes: the roar; a synthesized roar (formant-filtered saw, rasp and sub), made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds lowFrequency_explosion_001 (CC0, kenney.nl)"
+    "notes": "T-Rex Toes: the roar: the old synthesized version, of which its sub (lowpassed) is kept under the real recordings; a synthesized roar (formant-filtered saw, rasp and sub), made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds lowFrequency_explosion_001 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_iceskate_snow.mp3",
+    "title": "wind_gust_short_sqeeeek.wav",
+    "author": "sqeeeek (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/sqeeeek/sounds/381853/",
+    "notes": "Ice Skate Ivy: snow cloud gust (tell); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a real gust of wind with the old synthesized ice tinkles over it. This source: the gust; trimmed and layered"
   },
   {
     "file": "sfx_iceskate_snow.mp3",
@@ -1004,7 +1238,7 @@
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Ice Skate Ivy: snow cloud gust (tell); a synthesized wind gust and ice tinkles, made with ffmpeg and Python and released as CC0"
+    "notes": "Ice Skate Ivy: snow cloud gust (tell): the old synthesized version, of which its ice tinkles (highpassed) are kept over the real gust; a synthesized wind gust and ice tinkles, made with ffmpeg and Python and released as CC0"
   },
   {
     "file": "sfx_iceskate_freeze.mp3",
@@ -1024,11 +1258,20 @@
   },
   {
     "file": "sfx_iceskate_axel.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Skates on Ice.wav",
+    "author": "Rehanjo (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Ice Skate Ivy: triple skate swish; synthesized skate swishes and an ice scrape, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/Rehanjo/sounds/593623/",
+    "notes": "Ice Skate Ivy: triple skate swish; built from real recordings with ffmpeg (scripts/real-sfx/build.py): three skate-blade strokes on ice, each brighter, into an ice-hockey stop. This source: the three strokes; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_iceskate_axel.mp3",
+    "title": "Ice Hockey Sound Library_LR Strides with stop",
+    "author": "AudioAlchemyDesigns (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/AudioAlchemyDesigns/sounds/826196/",
+    "notes": "Ice Skate Ivy: triple skate swish: the stop and its ice spray; trimmed and layered",
+    "attribution": "\"Ice Hockey Sound Library_LR Strides with stop\" by AudioAlchemyDesigns (freesound.org), https://freesound.org/people/AudioAlchemyDesigns/sounds/826196/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed and layered into this sound"
   },
   {
     "file": "sfx_colossus_clang.mp3",
@@ -1658,27 +1901,43 @@
   },
   {
     "file": "sfx_tossheavy.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "FX - Swoosh - Super Heavy (for swords, sticks, punches, etc)",
+    "author": "bolkmar (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Thrown props: a heavy prop is heaved (dumbbell, cannonball, bowling ball, coconut, can, grenade); a low synthesized heave and swish, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/bolkmar/sounds/475131/",
+    "notes": "Thrown props: a heavy prop is heaved (dumbbell, cannonball, bowling ball, coconut, can, grenade); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a super-heavy swoosh and a heavy swing. This source: the swoosh; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_tossheavy.mp3",
+    "title": "Heavy Swing 1_2",
+    "author": "Joao_Janz (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Joao_Janz/sounds/485245/",
+    "notes": "Thrown props: a heavy prop is heaved (dumbbell, cannonball, bowling ball, coconut, can, grenade): the swing under it; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_tossrope.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Lasso rope being spun, spinning through air then throw",
+    "author": "zapsplat.com (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Thrown props: a life ring or lasso is swung; a synthesized lasso swing, made with ffmpeg and Python and released as CC0, layered with Kenney RPG Audio beltHandle1 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/zapsplat.com/sounds/719638/",
+    "notes": "Thrown props: a life ring or lasso is swung; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a lasso: one last swing round and the throw. This source: the lasso; trimmed"
   },
   {
     "file": "sfx_hitsplat.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Wet Splat 2.mp3",
+    "author": "nebulasnails (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Thrown props: a soft prop splats on a foot; a wet synthesized splat, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactSoft_medium_000 and Sci-fi Sounds slime_000 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/nebulasnails/sounds/495117/",
+    "notes": "Thrown props: a soft prop splats on a foot; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a wet cloth slapped into water and a soaked towel against a wall. This source: the splat; trimmed and layered"
+  },
+  {
+    "file": "sfx_hitsplat.mp3",
+    "title": "Splat 1",
+    "author": "sebastientate (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/sebastientate/sounds/719129/",
+    "notes": "Thrown props: a soft prop splats on a foot: the second splat under it; trimmed and layered"
   },
   {
     "file": "sfx_hittink.mp3",
@@ -1738,11 +1997,19 @@
   },
   {
     "file": "sfx_hitsqueak.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "rubber duck -CsG-.wav",
+    "author": "csaszi (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Thrown props: a rubber duck squeaks off a foot; a synthesized rubber-duck squeak, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactSoft_medium_000 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/csaszi/sounds/350917/",
+    "notes": "Thrown props: a rubber duck squeaks off a foot; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a rubber duck squeezed, with a soft bump. This source: the squeak; trimmed and layered"
+  },
+  {
+    "file": "sfx_hitsqueak.mp3",
+    "title": "Poof of Smoke",
+    "author": "Planman (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Planman/sounds/208111/",
+    "notes": "Thrown props: a rubber duck squeaks off a foot: the bump; trimmed and layered"
   },
   {
     "file": "sfx_hitrattle.mp3",
@@ -1754,11 +2021,19 @@
   },
   {
     "file": "sfx_rollrumble.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Bowling Ball.wav",
+    "author": "driftworks (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Thrown props: a bowling ball or pineapple ring rolls along a lane; a synthesized rolling rumble, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactWood_medium_000 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/driftworks/sounds/128969/",
+    "notes": "Thrown props: a bowling ball or pineapple ring rolls along a lane; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a bowling ball rolling down an alley. This source: the roll; trimmed and layered"
+  },
+  {
+    "file": "sfx_rollrumble.mp3",
+    "title": "bowling_roll-nofadeout.ogg",
+    "author": "qubodup (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/qubodup/sounds/125744/",
+    "notes": "Thrown props: a bowling ball or pineapple ring rolls along a lane: a second roll under it; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_beam.mp3",
@@ -6918,11 +7193,11 @@
   },
   {
     "file": "sfx_smack_tail_kinghonk.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Clown Horn (Single Honk).wav",
+    "author": "Gimp_Revival (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the kinghonk signature tail; a synthesized two-note royal honk, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/Gimp_Revival/sounds/588570/",
+    "notes": "Peel smacks: the kinghonk signature tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a clown horn honked twice, a fourth apart. This source: both honks; trimmed and pitch-shifted"
   },
   {
     "file": "sfx_smack_tail_coin.mp3",
@@ -6966,11 +7241,11 @@
   },
   {
     "file": "sfx_smack_tail_pop.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Balloon-Burst-04-edit2.wav",
+    "author": "Gniffelbaf (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the pop signature tail; a synthesized balloon pop, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/Gniffelbaf/sounds/82115/",
+    "notes": "Peel smacks: the pop signature tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a real balloon bursting. This source: the pop; trimmed"
   },
   {
     "file": "sfx_smack_tail_chomp.mp3",
@@ -6982,11 +7257,11 @@
   },
   {
     "file": "sfx_smack_tail_squawk.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "seagull1.mp3",
+    "author": "Joker313 (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the squawk signature tail; a synthesized gull squawk, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/Joker313/sounds/683400/",
+    "notes": "Peel smacks: the squawk signature tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a real seagull's call. This source: the call; trimmed"
   },
   {
     "file": "sfx_smack_tail_jukebox.mp3",
@@ -7006,19 +7281,27 @@
   },
   {
     "file": "sfx_smack_tail_bell.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "ding.wav",
+    "author": "Dr. Macak (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the bell signature tail; a synthesized counter bell ding, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/Dr.%20Macak/sounds/434627/",
+    "notes": "Peel smacks: the bell signature tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a small reception bell. This source: the ding; trimmed"
   },
   {
     "file": "sfx_smack_tail_boing.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Boing 1",
+    "author": "magnuswaker (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the boing signature tail; a synthesized spring boing, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/magnuswaker/sounds/540788/",
+    "notes": "Peel smacks: the boing signature tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a jaw harp's boing over a real spring. This source: the boing; trimmed and layered"
+  },
+  {
+    "file": "sfx_smack_tail_boing.mp3",
+    "title": "battery compartment spring 01.wav",
+    "author": "denalwa (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/denalwa/sounds/472478/",
+    "notes": "Peel smacks: the boing signature tail: the spring under it; trimmed and layered"
   },
   {
     "file": "sfx_smack_tail_pizzagods.mp3",

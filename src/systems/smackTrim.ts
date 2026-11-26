@@ -130,19 +130,19 @@ export const SMACK_TRIM: Record<string, number> = {
   sfx_smack_skin_heavy: 0.94, // -9.3 dB, -17.5 LUFS → -8.5, -18.0
   sfx_smack_tail_thunder: 0.72, // -12.0 dB, -17.1 LUFS → -12.0, -20.0
   sfx_smack_tail_honk: 0.45, // -12.0 dB, -13.0 LUFS → -12.0, -20.0
-  sfx_smack_tail_kinghonk: 0.41, // -12.1 dB, -12.3 LUFS → -12.0, -20.0
+  sfx_smack_tail_kinghonk: 0.45, // -11.5 dB, -13.0 LUFS → -12.0, -20.0
   sfx_smack_tail_coin: 0.43, // -14.0 dB, -15.1 LUFS → -14.0, -22.5
   sfx_smack_tail_glint: 0.42, // -15.0 dB, -16.5 LUFS → -15.0, -24.0
   sfx_smack_tail_ultra: 0.34, // -13.9 dB, -13.1 LUFS → -14.0, -22.5
   sfx_smack_tail_crown: 0.51, // -14.0 dB, -16.6 LUFS → -14.0, -22.5
   sfx_smack_tail_trophy: 0.44, // -14.0 dB, -15.3 LUFS → -14.0, -22.5
-  sfx_smack_tail_pop: 1.19, // -13.5 dB, -21.8 LUFS → -12.0, -20.0
+  sfx_smack_tail_pop: 1.14, // -14.0 dB, -21.1 LUFS → -12.0, -20.0
   sfx_smack_tail_chomp: 0.77, // -13.9 dB, -20.2 LUFS → -14.0, -22.5
-  sfx_smack_tail_squawk: 0.40, // -14.0 dB, -14.5 LUFS → -14.0, -22.5
+  sfx_smack_tail_squawk: 0.42, // -13.3 dB, -15.0 LUFS → -14.0, -22.5
   sfx_smack_tail_jukebox: 0.40, // -14.0 dB, -14.6 LUFS → -14.0, -22.5
   sfx_smack_tail_mirror: 0.62, // -14.0 dB, -18.4 LUFS → -14.0, -22.5
-  sfx_smack_tail_bell: 0.45, // -14.0 dB, -15.5 LUFS → -14.0, -22.5
-  sfx_smack_tail_boing: 0.78, // -12.0 dB, -17.8 LUFS → -12.0, -20.0
+  sfx_smack_tail_bell: 0.44, // -14.1 dB, -15.4 LUFS → -14.0, -22.5
+  sfx_smack_tail_boing: 0.65, // -13.2 dB, -16.3 LUFS → -12.0, -20.0
   sfx_smack_tail_pizzagods: 0.47, // -12.0 dB, -13.5 LUFS → -12.0, -20.0
   sfx_smack_hero_superpeel: 0.53, // -14.8 dB, -16.5 LUFS → -13.5, -22.0
   sfx_smack_hero_batpeel: 0.87, // -13.6 dB, -20.8 LUFS → -13.5, -22.0

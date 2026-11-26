@@ -4,6 +4,7 @@
 // https://freesound.org/apiv2/apply after signing in).
 //
 //   node scripts/sfx-fetch/freesound.mjs search "war chant crowd" [--max 12] [--min 0.5] [--maxdur 8]
+//   node scripts/sfx-fetch/freesound.mjs info <id> [<id> ...]   (description, tags, format)
 //   node scripts/sfx-fetch/freesound.mjs get <id> [<id> ...] --out DIR
 //
 // search prints matches (id, name, author, licence, duration, downloads, rating, page). get downloads each sound's
@@ -36,9 +37,16 @@ async function call(path, params = {}) {
   const u = new URL(API + path);
   for (const [k, v] of Object.entries(params)) u.searchParams.set(k, String(v));
   u.searchParams.set('token', key());
-  const r = await fetch(u);
-  if (!r.ok) throw new Error(`${r.status} ${await r.text()}`);
-  return r.json();
+  for (let tries = 0; ; tries++) {
+    const r = await fetch(u);
+    // the API allows 60 requests a minute: wait and try again rather than fail half way through a batch
+    if (r.status === 429 && tries < 6) {
+      await new Promise((ok) => setTimeout(ok, 10000));
+      continue;
+    }
+    if (!r.ok) throw new Error(`${r.status} ${await r.text()}`);
+    return r.json();
+  }
 }
 
 const licName = (l) => (/zero|publicdomain/.test(l) ? 'CC0 1.0' : /by\/4/.test(l) ? 'CC BY 4.0' : /by\/3/.test(l) ? 'CC BY 3.0' : l);
@@ -58,6 +66,15 @@ if (cmd === 'search') {
   const res = await call('/search/text/', { query: q, filter: `${LICENCE} duration:[${min} TO ${maxdur}]`, fields: FIELDS, page_size: Number(opt('max', 12)), sort: opt('sort', 'score') });
   for (const s of res.results) console.log(`${s.id}\t${s.duration.toFixed(1)}s\t${licName(s.license)}\t↓${s.num_downloads}\t★${(s.avg_rating ?? 0).toFixed(1)}\t${s.username}\t${s.name}`);
   console.log(`(${res.count} matches)`);
+} else if (cmd === 'info') {
+  // what a sound is before you fetch it: its description, tags and how it was recorded
+  for (const id of argv.slice(1)) {
+    const s = await call(`/sounds/${id}/`, { fields: `${FIELDS},description,samplerate,channels,type` });
+    const desc = (s.description ?? '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+    console.log(`${s.id}\t${s.name}\t${s.username}\t${licName(s.license)}\t${s.duration.toFixed(2)}s\t${s.type} ${s.samplerate} Hz ${s.channels}ch\t↓${s.num_downloads}\t★${(s.avg_rating ?? 0).toFixed(1)}`);
+    console.log(`  tags: ${(s.tags ?? []).join(' ')}`);
+    console.log(`  ${desc.slice(0, 400)}`);
+  }
 } else if (cmd === 'get') {
   const out = resolve(opt('out', '.'));
   mkdirSync(out, { recursive: true });

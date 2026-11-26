@@ -35,7 +35,19 @@ rep = json.load(open(os.path.join(out, 'report.json')))
 assert set(M) == {d['key'] for d in rep}, set(M) ^ {d['key'] for d in rep}
 
 # ---- files
+# Files since re-made from real recordings by scripts/real-sfx/build.py (the audio pass, docs/audio-audit.md): not
+# copied over, so running this again doesn't put the synthesized versions back.
+REAL = {
+    'sfx_headwaiter_service', 'sfx_sweep_hop', 'sfx_sweep_soot', 'sfx_ironheel_hiss',
+    'sfx_ironheel_steam', 'sfx_sandcastle_shovel', 'sfx_sandcastle_walls', 'sfx_sandcastle_pour',
+    'sfx_clownking_honkwind', 'sfx_clownking_honk', 'sfx_clownking_leap', 'sfx_clownking_decoydrop',
+    'sfx_shortorder_bell', 'sfx_shortorder_rush', 'sfx_trex_roar', 'sfx_trex_growl',
+    'sfx_trex_breath', 'sfx_trex_dinosqueak', 'sfx_iceskate_axel', 'sfx_iceskate_snow',
+    'sfx_bigfoot_bigstep', 'sfx_bigfoot_rampage',
+}
 for d in rep:
+    if d['key'] in REAL:
+        continue
     shutil.copy(os.path.join(out, d['key'] + '.mp3'), os.path.join(repo, 'public/audio', d['key'] + '.mp3'))
 
 

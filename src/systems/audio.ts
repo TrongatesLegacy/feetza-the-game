@@ -111,19 +111,19 @@ const TRIM: Record<string, number> = {
   sfx_headwaiter_traytoss: 1.13, // -12.0 dB → -10.9: tray thrown, spinning
   sfx_headwaiter_traybat: 1.27, // -12.5 dB → -10.4: tray batted back
   sfx_headwaiter_trayclang: 1.17, // -11.8 dB → -10.4: tray crashes on a pizza
-  sfx_headwaiter_service: 1.05, // -11.4 dB → -11.0: desk-bell double ding
+  sfx_headwaiter_service: 1.05, // -12.7 dB → -12.3: desk-bell double ding
   // Bigfoot
   sfx_bigfoot_ring: 1.05, // -12.4 dB → -12.0: QTE ring appears
   sfx_bigfoot_ringok: 1.05, // -11.4 dB → -11.0: good QTE click
-  sfx_bigfoot_bigstep: 1.05, // -9.9 dB → -9.5: the big step lands
+  sfx_bigfoot_bigstep: 1.05, // -11.7 dB → -11.3: the big step lands
   sfx_bigfoot_trapbuild: 1.21, // -15.2 dB → -13.5: bear trap ratchets together
   sfx_bigfoot_trapsnap: 1.5, // -13.0 dB → -9.5: bear trap snaps shut
   sfx_bigfoot_pound: 1.07, // -10.1 dB → -9.5: ground pound crashes down
-  sfx_bigfoot_rampage: 1.05, // -10.9 dB → -10.5: second Bigfoot arrives
+  sfx_bigfoot_rampage: 1.05, // -13.1 dB → -12.7: second Bigfoot arrives
   // Chimney Sweep
   sfx_sweep_brush: 1.09, // -12.7 dB → -12.0: chimney brush scrubbing (tell)
-  sfx_sweep_soot: 1.06, // -11.0 dB → -10.5: soot column whoomph
-  sfx_sweep_hop: 1.18, // -12.4 dB → -11.0: pops out of one chimney into another
+  sfx_sweep_soot: 1.06, // -12.9 dB → -12.4: soot column whoomph
+  sfx_sweep_hop: 1.18, // -13.8 dB → -12.4: pops out of one chimney into another
   sfx_sweep_brick: 1.05, // -12.4 dB → -12.0: chimney brick laid (enraged)
   // Iron Heel
   sfx_ironheel_charge: 0.79, // -12.4 dB → -14.4: power-blast charge riser, sits under
@@ -131,39 +131,39 @@ const TRIM: Record<string, number> = {
   sfx_ironheel_rocket: 1.05, // -10.9 dB → -10.5: rocket launches
   sfx_ironheel_blast: 1.08, // -10.2 dB → -9.5: power blast fires
   sfx_ironheel_vent: 1.03, // -11.3 dB → -11.0: armour vents open
-  sfx_ironheel_hiss: 0.88, // -12.4 dB → -13.5: steam warning hiss, sits under
-  sfx_ironheel_steam: 1.07, // -11.1 dB → -10.5: steam burst
+  sfx_ironheel_hiss: 0.88, // -12.8 dB → -13.9: steam warning hiss, sits under
+  sfx_ironheel_steam: 1.07, // -11.2 dB → -10.6: steam burst
   sfx_ironheel_press: 1.18, // -11.9 dB → -10.5: hydraulic press stamps
   sfx_ironheel_valve: 1.05, // -11.4 dB → -11.0: valve wheel locks
   // Sandcastle Sam
-  sfx_sandcastle_shovel: 1.13, // -13.0 dB → -11.9: shovel scrape (tell)
-  sfx_sandcastle_walls: 1.05, // -10.9 dB → -10.5: sand walls rise
-  sfx_sandcastle_pour: 1.09, // -12.8 dB → -12.1: sand pour
+  sfx_sandcastle_shovel: 1.13, // -12.0 dB → -10.9: shovel scrape (tell)
+  sfx_sandcastle_walls: 1.05, // -10.0 dB → -9.6: sand walls rise
+  sfx_sandcastle_pour: 1.09, // -12.4 dB → -11.6: sand pour
   sfx_sandcastle_sandland: 1.09, // -11.7 dB → -11.0: wet sand lands on a pizza
   // King Honk
-  sfx_clownking_honkwind: 1.05, // -11.4 dB → -11.0: bulb-horn squeeze wind-up
-  sfx_clownking_honk: 1.04, // -9.9 dB → -9.6: clown horn blast
-  sfx_clownking_leap: 1.05, // -11.4 dB → -11.0: slide-whistle leap away
-  sfx_clownking_decoydrop: 1.05, // -12.4 dB → -12.0: slide-whistle drop
+  sfx_clownking_honkwind: 1.05, // -11.2 dB → -10.8: bulb-horn squeeze wind-up
+  sfx_clownking_honk: 1.04, // -8.7 dB → -8.4: clown horn blast
+  sfx_clownking_leap: 1.05, // -9.7 dB → -9.2: slide-whistle leap away
+  sfx_clownking_decoydrop: 1.05, // -11.6 dB → -11.1: slide-whistle drop
   sfx_clownking_pie: 1.06, // -12.5 dB → -12.0: wobbly pie throw
   sfx_clownking_piesplat: 1.1, // -10.3 dB → -9.5: big cream-pie splat
   // Short-Order Shoe
   sfx_shortorder_bell: 1.1, // -11.4 dB → -10.6: order bell ding
   sfx_shortorder_grab: 1.09, // -11.7 dB → -11.0: grabbing hand lunges in
   sfx_shortorder_togo: 1.11, // -11.9 dB → -11.0: hand snatches a slice
-  sfx_shortorder_rush: 1.05, // -10.9 dB → -10.5: rush-hour triple bell and ticket chatter
+  sfx_shortorder_rush: 1.05, // -10.8 dB → -10.4: rush-hour triple bell and ticket chatter
   // T-Rex Toes
-  sfx_trex_dinosqueak: 1.05, // -12.4 dB → -12.0: baby dino squeak
+  sfx_trex_dinosqueak: 1.05, // -12.9 dB → -12.5: baby dino squeak
   sfx_trex_dinorun: 1.07, // -14.1 dB → -13.5: baby dino pitter-patter
-  sfx_trex_growl: 1.05, // -11.4 dB → -11.0: snack-time growl (tell)
+  sfx_trex_growl: 1.05, // -11.5 dB → -11.0: snack-time growl (tell)
   sfx_trex_snack: 1.08, // -11.2 dB → -10.5: jaws snap on a foot
-  sfx_trex_breath: 0.91, // -12.7 dB → -13.5: deep breath in (tell)
-  sfx_trex_roar: 1.05, // -9.9 dB → -9.5: the roar
+  sfx_trex_breath: 0.91, // -11.5 dB → -12.4: deep breath in (tell)
+  sfx_trex_roar: 1.05, // -9.2 dB → -8.8: the roar
   // Ice Skate Ivy
-  sfx_iceskate_snow: 1.02, // -12.2 dB → -12.0: snow cloud gust (tell)
+  sfx_iceskate_snow: 1.02, // -12.5 dB → -12.3: snow cloud gust (tell)
   sfx_iceskate_freeze: 1.28, // -12.6 dB → -10.5: lane freezes over
   sfx_iceskate_frostbite: 1.12, // -12.0 dB → -11.0: peel stung in the snow
-  sfx_iceskate_axel: 1.09, // -11.7 dB → -11.0: triple skate swish
+  sfx_iceskate_axel: 1.09, // -11.7 dB → -10.9: triple skate swish
   // The Colossus
   sfx_colossus_clang: 1.13, // -14.6 dB → -13.5: small hit chips the shell
   sfx_colossus_crack: 1.13, // -11.6 dB → -10.5: armour cracks
@@ -260,9 +260,9 @@ const TRIM: Record<string, number> = {
   sfx_tosssoft: 0.79, // -12.4 dB → -14.5: soft prop leaves the peel
   sfx_tossflick: 0.81, // -12.7 dB → -14.5: small prop flicked
   sfx_tossspin: 0.84, // -13.0 dB → -14.5: spinning disc thrown
-  sfx_tossheavy: 0.78, // -12.4 dB → -14.5: heavy prop heaved
-  sfx_tossrope: 0.82, // -12.8 dB → -14.5: ring or lasso swung
-  sfx_hitsplat: 1.06, // -13.0 dB → -12.5: soft prop splats
+  sfx_tossheavy: 0.78, // -12.9 dB → -15.0: heavy prop heaved
+  sfx_tossrope: 0.82, // -13.2 dB → -14.9: ring or lasso swung
+  sfx_hitsplat: 1.06, // -14.9 dB → -14.4: soft prop splats
   sfx_hittink: 1.22, // -14.2 dB → -12.5: small hard prop ticks off
   sfx_hitcoin: 0.99, // -12.4 dB → -12.5: coin bonk
   sfx_hitclang: 1.15, // -13.7 dB → -12.5: plate, can or board clangs
@@ -270,9 +270,9 @@ const TRIM: Record<string, number> = {
   sfx_hitthud: 0.99, // -12.4 dB → -12.5: heavy prop lands
   sfx_hitboom: 1.05, // -11.5 dB → -11.0: cannonball or grenade explodes
   sfx_hitrope: 1.02, // -12.7 dB → -12.5: rope snaps tight
-  sfx_hitsqueak: 0.99, // -12.4 dB → -12.5: rubber duck squeak
+  sfx_hitsqueak: 0.99, // -12.7 dB → -12.8: rubber duck squeak
   sfx_hitrattle: 1.26, // -14.5 dB → -12.5: rattle shakes
-  sfx_rollrumble: 0.99, // -12.4 dB → -12.5: ball rolls along a lane
+  sfx_rollrumble: 0.99, // -13.4 dB → -13.4: ball rolls along a lane
   sfx_beam: 1.0, // -12.5 dB → -12.5: beam fires
   // ——— Act 7 · Comics (scripts/act7-audio): the act's weather and villain feet, then each boss's moves ———
   sfx_thunder: 1.05, // -11.4 dB → -11.0: Act 7 weather: thunder after a lightning flash

@@ -9,7 +9,18 @@ Fetch the whole set with:
   node scripts/sfx-fetch/freesound.mjs get 870650 870651 623449 623441 85897 57204 527740 416507 161340 \\
        319590 370203 492237 371353 20185 443653 265554 505124 539972 683179 421881 --out SRC_DIR
 
-OUT_DIR defaults to public/audio. Names (default: all): spartanchant spartanrage. Each sound is cut, pitched,
+and, for the audio pass's batch 1 (docs/audio-audit.md):
+
+  node scripts/sfx-fetch/freesound.mjs get 685111 116779 392624 714257 332602 208111 234782 520071 250703 \\
+       651293 349459 651292 326304 467301 199325 326301 861820 861819 861821 588570 251611 79678 79672 415510 \\
+       476011 320345 149190 819668 763026 615047 744100 577768 593623 826196 381853 721601 397054 495117 \\
+       719129 350917 128969 125744 719638 475131 485245 82115 683400 434627 540788 472478 --out SRC_DIR
+
+(it also uses 20185 and 371353 from the first set). A few batch-1 recipes keep a layer of the synthesized file they
+replace, read from git at OLD_REV, so they need the repo's history (a shallow clone won't do).
+
+OUT_DIR defaults to public/audio. Names (default: all): spartanchant spartanrage, then the batch-1 names in RECIPES
+(service sweephop ... tailboing). Each sound is cut, pitched,
 layered and placed by the recipe below, given a short room, then levelled to a 50 ms RMS peak (the same measure
 as the TRIM table in src/systems/audio.ts), limited under -1.5 dBFS, faded, and saved as 44.1 kHz mono 96 kbps
 MP3. Every source used is credited in public/audio/CREDITS.md and public/audio/credits.json.
@@ -34,7 +45,19 @@ TMP = None  # made in main
 PAD = 3.0  # every layer is padded to this length so amix sums the same samples every run (see layer())
 
 
+# The synthesized sounds some recipes keep a layer of (L('old:<key>', ...)): each file as it was before the real
+# recordings replaced it, read from git at this commit, so a rebuild never layers a real sound over itself.
+OLD_REV = '7c1a840'
+
+
 def src(fid):
+    if isinstance(fid, str) and fid.startswith('old:'):
+        key = fid[4:]
+        out = os.path.join(TMP, 'old-%s.mp3' % key)
+        if not os.path.exists(out):
+            blob = subprocess.run(['git', '-C', ROOT, 'show', '%s:public/audio/%s.mp3' % (OLD_REV, key)], capture_output=True, check=True).stdout
+            open(out, 'wb').write(blob)
+        return out
     hits = glob.glob(os.path.join(SRC, '%d-*.ogg' % fid)) + glob.glob(os.path.join(SRC, '%d-*.mp3' % fid))
     if not hits:
         sys.exit('missing Freesound %d in %s (fetch it with scripts/sfx-fetch/freesound.mjs get %d --out %s)' % (fid, SRC, fid, SRC))
@@ -261,9 +284,285 @@ def rage():
     return reverb(mix, rt60=0.6, wet_db=-14.0, seed=23)
 
 
+# =============================== Audio pass, batch 1: the sounds heard most (docs/audio-audit.md, P1) ===============
+# Each replaces a synthesized file under the same name, on the same beats as the old one (its onsets measured from
+# the old file), and keeps the old file's TRIM entry: its level (RECIPES) lands within about 2 dB of the old file on
+# both the 50 ms RMS peak and the momentary loudness. 'old:<key>' layers keep a part of the old synth where it did
+# something a recording can't (a sub under a footstep, ice tinkles over a gust).
+
+# --- Act 1 · Trattoria Nonna: the Head Waiter rings for service (the same desk bell struck twice) ---
+def service():
+    b = 'highpass=f=300'
+    return layer([
+        L(685111, 0.803, 0.95, 0.000, 0.0, 0, fin=0.001, fout=0.3, fx=b),      # a desk bell, struck
+        L(685111, 0.803, 0.80, 0.150, 0.0, -1.5, fin=0.001, fout=0.3, fx=b),   # and again
+        L(116779, 0.300, 0.80, 0.152, 0.0, -9, fin=0.001, fout=0.3, fx=b),     # a second bell's shimmer on the second
+    ])
+
+
+# --- Act 1 · Rooftop: the Chimney Sweep pops out of a chimney (a cork and a puff of soot) ---
+def sweephop():
+    return layer([
+        L(392624, 0.135, 0.30, 0.000, -2.0, 0, fin=0.001, fout=0.12),            # champagne cork, a little lower
+        L(714257, 0.000, 0.30, 0.015, 0.0, -5, fin=0.002, fout=0.12),            # puff of smoke
+    ])
+
+
+# --- ... and his soot column: a pillow poof and a smoke bomb, with a thump under them ---
+def sweepsoot():
+    return layer([
+        L(332602, 0.080, 0.90, 0.000, -3.0, 0, fin=0.002, fout=0.4, fx='lowpass=f=6000'),   # smoke bomb, darker
+        L(208111, 0.320, 0.60, 0.005, -2.0, -2, fin=0.003, fout=0.3),                       # pillow poof
+        L(20185, 0.000, 0.35, 0.000, -12.0, -6, fin=0.001, fout=0.2, keep=False, fx='lowpass=f=500'),  # thump
+    ])
+
+
+# --- Act 1 · Iron Heel: the steam warning hiss (rising) and the steam burst ---
+def heelhiss():
+    return layer([
+        L(234782, 0.02, 1.30, 0.000, 0.0, 0, fin=0.08, fout=0.1),               # a steam release
+        L(520071, 0.45, 1.30, 0.000, 0.0, -8, fin=0.3, fout=0.1, fx='highpass=f=400'),  # a steam trap, behind
+    ], post="asetnsamples=n=64,volume='0.35+0.65*min(1,t/1.0)':eval=frame")  # rising, as the old one did
+
+
+def heelsteam():
+    return layer([
+        L(250703, 0.225, 0.48, 0.000, -1.0, 0, fin=0.002, fout=0.25),           # a jet of steam
+        L(520071, 0.62, 0.90, 0.010, -1.0, -3, fin=0.01, fout=0.5),             # a steam trap blowing off
+        L(371353, 1.812, 0.40, 0.000, -9.0, -10, fin=0.001, fout=0.25, fx='lowpass=f=3000'),  # the valve's clank
+    ])
+
+
+# --- Act 2 · Beach: Sandcastle Sam's shovel, his walls going up, and his sand pour ---
+def shovel():
+    return layer([
+        L(651293, 0.000, 0.49, 0.000, -1.0, 0, fin=0.002, fout=0.12),           # a hand shovel into wet sand
+        L(349459, 0.270, 0.40, 0.040, 0.0, -6, fin=0.01, fout=0.15),            # a deeper scrape under it
+    ])
+
+
+def sandwalls():
+    return layer([
+        L(651292, 0.000, 0.37, 0.000, -2.0, 0, fin=0.002, fout=0.15),           # the shovel slaps the sand in
+        L(20185, 0.000, 0.40, 0.000, -6.0, -6, fin=0.001, fout=0.2, keep=False, fx='lowpass=f=900'),  # packed thump
+        L(326304, 1.400, 1.00, 0.020, 0.0, 9, fin=0.03, fout=0.5, fx='lowpass=f=9000'),  # sand streaming down the walls
+        L(467301, 1.700, 0.90, 0.060, 0.0, 14, fin=0.05, fout=0.45, fx='lowpass=f=9000'),  # and sliding off the shovel
+    ])
+
+
+def sandpour():
+    return layer([
+        L(199325, 0.300, 1.29, 0.000, 0.0, 0, fin=0.12, fout=0.2),              # sand poured onto slate
+        L(326301, 0.600, 1.29, 0.000, 0.0, -2, fin=0.2, fout=0.25),             # and a longer fall
+    ], post='lowpass=f=10000')
+
+
+# --- Act 2 · King Honk: the bulb-horn wind-up (three squeezes, rising), the honk, the slide whistles ---
+def honkwind():
+    return layer([
+        L(861820, 0.000, 0.20, 0.000, -1.0, 0, fin=0.003, fout=0.06),           # a rubber squeaker, squeezed
+        L(861819, 0.150, 0.20, 0.320, 1.0, 0, fin=0.003, fout=0.06),            # again, higher
+        L(861821, 0.085, 0.20, 0.640, 3.0, 1, fin=0.003, fout=0.06),            # and again, higher still
+    ], post='highpass=f=200')
+
+
+def honk():
+    return layer([
+        L(588570, 0.020, 0.62, 0.000, -2.0, 0, fin=0.004, fout=0.12),           # a clown horn held down
+        L(251611, 0.120, 0.55, 0.000, -2.0, -5, fin=0.002, fout=0.2),           # a second horn on its attack
+        L(588570, 0.020, 0.62, 0.012, -14.0, -8, fin=0.004, fout=0.12, fx='lowpass=f=900'),  # far lower under it: a king's horn
+    ])
+
+
+def leap():
+    return layer([L(79678, 0.000, 0.48, 0.000, 0.0, 0, fin=0.004, fout=0.06)])  # slide whistle, up
+
+
+def decoydrop():
+    return layer([
+        L(79672, 0.000, 0.46, 0.000, 0.0, 0, fin=0.004, fout=0.08),             # slide whistle, down
+        L(208111, 0.320, 0.30, 0.380, -5.0, -3, fin=0.003, fout=0.15),          # landing on something soft
+    ])
+
+
+# --- Act 2 · Diner: the Short-Order Shoe's order bell, and the rush hour (three dings over the ticket printer) ---
+def orderbell():
+    return layer([L(415510, 0.462, 0.96, 0.030, 0.0, 0, fin=0.002, fout=0.25)])  # a shop counter bell
+
+
+def rush():
+    bell = [L(415510, 0.462, 0.70, t, s, d, fin=0.002, fout=0.25) for t, s, d in ((0.0, 0, 0), (0.12, 0.0, -0.5), (0.24, 0.4, 0.5))]
+    return layer(bell + [L(476011, 1.880, 0.72, 0.010, 0.0, -2, fin=0.02, fout=0.2, fx='highpass=f=500')])  # receipt printer
+
+
+# --- Act 2 · T-Rex Toes: the roar, the snack-time growl, the deep breath in, and a baby dino's squeak ---
+# Built as film dinosaurs are: a big designed roar (999999990, CC0) for the body, a real tiger's roar under it, and
+# a real elephant's trumpet in the top end for the scream; the growl is a real black bear's, pitched down.
+def roar():
+    return layer([
+        L(320345, 2.940, 1.45, 0.000, -2.0, 0, fin=0.03, fout=0.35),            # the beast's roar
+        L(149190, 5.880, 0.62, 0.120, -5.0, -9, fin=0.06, fout=0.25, fx='lowpass=f=2500'),  # a tiger's, lower
+        L(819668, 0.020, 0.66, 0.050, -3.0, -10, fin=0.05, fout=0.25, fx='highpass=f=500'),  # an elephant's trumpet
+        L('old:sfx_trex_roar', 0.0, 1.44, 0.0, 0.0, -6, fin=0.01, fout=0.3, fx='lowpass=f=160'),  # the old sub, under
+    ])
+
+
+def growl():
+    return layer([
+        L(763026, 2.760, 1.23, 0.000, -3.0, 0, fin=0.1, fout=0.25),             # a black bear's growl, lower
+        L(763026, 2.760, 1.23, 0.015, -8.0, -6, fin=0.1, fout=0.25, fx='lowpass=f=1200'),  # and an octave-ish under
+        L(320345, 0.170, 0.60, 0.550, -4.0, -10, fin=0.1, fout=0.3),            # the beast's breath through it
+    ])
+
+
+def breath():
+    return layer([
+        L(615047, 0.040, 1.02, 0.000, -6.0, 0, fin=0.08, fout=0.06),            # a deep breath in, a big chest
+        L(615047, 0.040, 1.02, 0.010, -11.0, -4, fin=0.08, fout=0.06, fx='lowpass=f=1500'),
+        L(320345, 0.200, 0.55, 0.420, -3.0, -8, fin=0.15, fout=0.1),            # the beast's breathing
+    ])
+
+
+def dinosqueak():
+    return layer([
+        L(744100, 0.205, 0.30, 0.000, -4.0, 0, fin=0.003, fout=0.06),           # a baby robin's two chirps, a bigger chick
+        L(577768, 0.020, 0.16, 0.000, -5.0, -6, fin=0.003, fout=0.05),          # a lovebird under the first
+    ], post='highpass=f=600')
+
+
+# --- Act 3 · Ice Skate Ivy: the triple skate swish into an ice-spray stop; the snow cloud gust ---
+def axel():
+    return layer([
+        L(593623, 0.400, 0.18, 0.000, 1.0, 0, fin=0.01, fout=0.06),             # three blade strokes, each a little
+        L(593623, 2.200, 0.18, 0.210, 2.0, 0, fin=0.01, fout=0.06),             # brighter than the last
+        L(593623, 4.880, 0.18, 0.420, 3.0, 1, fin=0.01, fout=0.06),
+        L(826196, 4.150, 0.36, 0.600, 0.0, 2, fin=0.02, fout=0.2),              # a hockey stop: the ice spray
+    ])
+
+
+def snowgust():
+    return layer([
+        L(381853, 0.450, 1.22, 0.000, 0.0, 0, fin=0.1, fout=0.3),               # a real gust of wind
+        L('old:sfx_iceskate_snow', 0.0, 1.22, 0.0, 0.0, -4, fin=0.01, fout=0.2, fx='highpass=f=3500'),  # the old ice tinkles
+    ])
+
+
+# --- Act 1 · Bigfoot: the big step, and the second Bigfoot arriving (two steps and a roar) ---
+def bigstep():
+    return layer([
+        L(721601, 0.690, 0.80, 0.000, -2.0, 0, fin=0.002, fout=0.3),            # a giant's footstep
+        L(20185, 0.000, 0.50, 0.000, -7.0, -4, fin=0.001, fout=0.25, keep=False, fx='lowpass=f=1200'),  # a stomp, lower
+        L('old:sfx_bigfoot_bigstep', 0.0, 0.8, 0.0, 0.0, -5, fin=0.002, fout=0.25, fx='lowpass=f=140'),  # the old sub
+    ])
+
+
+def rampage():
+    return layer([
+        L(721601, 0.690, 0.40, 0.000, -1.0, 0, fin=0.002, fout=0.2),            # step
+        L(721601, 0.690, 0.40, 0.280, -3.0, 0, fin=0.002, fout=0.2),            # step
+        L(397054, 0.140, 0.95, 0.300, -3.0, -3, fin=0.03, fout=0.3),            # an alpha gorilla's roar, lower
+        L(763026, 3.000, 0.95, 0.320, -4.0, -8, fin=0.05, fout=0.3),            # a bear's growl under it
+    ])
+
+
+# --- thrown props (heard whenever a peel or topping throws): splat, rubber duck, bowling ball, rope, heave ---
+def hitsplat():
+    return layer([
+        L(495117, 0.010, 0.25, 0.000, 0.0, 0, fin=0.001, fout=0.1, fx='lowpass=f=6000'),  # a wet cloth slapped into water
+        L(719129, 0.030, 0.25, 0.004, 0.0, -5, fin=0.001, fout=0.1, fx='lowpass=f=6000'),  # a soaked towel against a wall
+    ])
+
+
+def hitsqueak():
+    return layer([
+        L(350917, 0.090, 0.24, 0.000, 0.0, 0, fin=0.003, fout=0.06),            # a rubber duck, squeezed
+        L(208111, 0.330, 0.15, 0.000, 0.0, -10, fin=0.002, fout=0.08),          # its soft bump
+    ])
+
+
+def rollrumble():
+    return layer([
+        L(128969, 0.300, 0.65, 0.000, 0.0, 0, fin=0.03, fout=0.15),             # a bowling ball down the alley
+        L(125744, 0.300, 0.65, 0.000, -2.0, -5, fin=0.03, fout=0.15),
+    ])
+
+
+def tossrope():
+    return layer([L(719638, 1.250, 0.44, 0.000, 0.0, 0, fin=0.01, fout=0.08, fx='highpass=f=80')])  # a lasso: one last swing round, and the throw
+
+
+def tossheavy():
+    return layer([
+        L(475131, 0.000, 0.32, 0.000, -1.0, 0, fin=0.005, fout=0.1),            # a super-heavy swoosh
+        L(485245, 0.010, 0.30, 0.010, -2.0, -4, fin=0.005, fout=0.1),           # a heavy swing
+    ])
+
+
+# --- peel smack tails (on every smack with that peel): the balloon pop, the gull, the counter bell, the royal
+# honk, the pogo boing ---
+def tailpop():
+    return layer([L(82115, 0.070, 0.10, 0.000, 0.0, 0, fin=0.001, fout=0.04)])  # a balloon bursting
+
+
+def tailsquawk():
+    return layer([L(683400, 0.110, 0.36, 0.000, 0.0, 0, fin=0.005, fout=0.1, fx='highpass=f=400')])  # a seagull's call
+
+
+def tailbell():
+    return layer([L(434627, 0.000, 0.60, 0.000, 0.0, 0, fin=0.001, fout=0.2)])  # a small reception bell
+
+
+def kinghonk():
+    return layer([
+        L(588570, 0.020, 0.24, 0.000, -2.0, 0, fin=0.003, fout=0.04),           # the clown horn, twice: a fourth up
+        L(588570, 0.020, 0.30, 0.260, 3.0, 0, fin=0.003, fout=0.1),             # for the king
+    ])
+
+
+def tailboing():
+    return layer([
+        L(540788, 0.000, 0.40, 0.000, 0.0, 0, fin=0.002, fout=0.12),            # a jaw harp's boing
+        L(472478, 0.000, 0.40, 0.000, 0.0, -8, fin=0.001, fout=0.15, fx='lowpass=f=3000'),  # a real spring under it
+    ])
+
+
 RECIPES = {
     'spartanchant': ('sfx_hero_spartanchant', chant, 2.25, -10.3, 0.3),
     'spartanrage': ('sfx_hero_spartanrage', rage, 1.9, -10.3, 0.45),
+    # batch 1. Level: halfway between the old file's 50 ms RMS peak and the level that matches its loudest 400 ms of
+    # momentary loudness (EBU R128), so a recording that's denser or brighter than the synth doesn't come out louder.
+    'service': ('sfx_headwaiter_service', service, 0.97, -12.9, 0.3),
+    'sweephop': ('sfx_sweep_hop', sweephop, 0.30, -13.6, 0.1),
+    'sweepsoot': ('sfx_sweep_soot', sweepsoot, 0.90, -12.8, 0.3),
+    'heelhiss': ('sfx_ironheel_hiss', heelhiss, 1.29, -12.6, 0.08),
+    'heelsteam': ('sfx_ironheel_steam', heelsteam, 0.90, -11.2, 0.35),
+    'shovel': ('sfx_sandcastle_shovel', shovel, 0.49, -12.1, 0.1),
+    'sandwalls': ('sfx_sandcastle_walls', sandwalls, 1.00, -9.8, 0.35),
+    'sandpour': ('sfx_sandcastle_pour', sandpour, 1.29, -12.5, 0.25),
+    'honkwind': ('sfx_clownking_honkwind', honkwind, 0.84, -11.0, 0.05),
+    'honk': ('sfx_clownking_honk', honk, 0.69, -8.6, 0.12),
+    'leap': ('sfx_clownking_leap', leap, 0.48, -9.8, 0.05),
+    'decoydrop': ('sfx_clownking_decoydrop', decoydrop, 0.54, -11.7, 0.1),
+    'orderbell': ('sfx_shortorder_bell', orderbell, 0.96, -11.3, 0.25),
+    'rush': ('sfx_shortorder_rush', rush, 0.74, -10.7, 0.2),
+    'roar': ('sfx_trex_roar', roar, 1.44, -9.1, 0.3),
+    'growl': ('sfx_trex_growl', growl, 1.23, -11.6, 0.2),
+    'breath': ('sfx_trex_breath', breath, 1.02, -11.4, 0.06),
+    'dinosqueak': ('sfx_trex_dinosqueak', dinosqueak, 0.30, -12.8, 0.05),
+    'axel': ('sfx_iceskate_axel', axel, 0.96, -11.6, 0.2),
+    'snowgust': ('sfx_iceskate_snow', snowgust, 1.22, -12.4, 0.3),
+    'bigstep': ('sfx_bigfoot_bigstep', bigstep, 0.80, -11.7, 0.25),
+    'rampage': ('sfx_bigfoot_rampage', rampage, 1.24, -13.2, 0.25),
+    'hitsplat': ('sfx_hitsplat', hitsplat, 0.25, -14.8, 0.08),
+    'hitsqueak': ('sfx_hitsqueak', hitsqueak, 0.24, -12.6, 0.05),
+    'rollrumble': ('sfx_rollrumble', rollrumble, 0.65, -13.4, 0.15),
+    'tossrope': ('sfx_tossrope', tossrope, 0.44, -13.3, 0.08),
+    'tossheavy': ('sfx_tossheavy', tossheavy, 0.32, -12.8, 0.08),
+    'tailpop': ('sfx_smack_tail_pop', tailpop, 0.10, -14.1, 0.03),
+    'tailsquawk': ('sfx_smack_tail_squawk', tailsquawk, 0.36, -13.4, 0.08),
+    'tailbell': ('sfx_smack_tail_bell', tailbell, 0.60, -14.2, 0.15),
+    'kinghonk': ('sfx_smack_tail_kinghonk', kinghonk, 0.56, -11.4, 0.08),
+    'tailboing': ('sfx_smack_tail_boing', tailboing, 0.40, -13.3, 0.1),
 }
 
 if __name__ == '__main__':
