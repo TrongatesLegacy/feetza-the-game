@@ -23,7 +23,7 @@ import { beadEye, blotches, contact, eyelet, laceRun, rivet, stitches } from '..
 import { LX, LY, clip, fill, glowDot, glowFinish, heatLayer, lightAll, lin, rad, streak } from '../../art/style/kit-bosses';
 import { type Ctx, hashStr, mix, rgba, rng, shade } from '../../art/util';
 import { type BlobDef, blister, blobShape, doughFinish, doughSkin, poke, popped, pressFold } from './dough-kit';
-import { paintSalver, paintSalverBack, salverPath, salverShadow } from './salver';
+import { GRAND_SALVER, paintSalver, paintSalverBack, salverPath, salverShadow } from './salver';
 
 type Opts = { live: boolean; emissive?: boolean; heat?: boolean; noShield?: boolean };
 
@@ -60,11 +60,11 @@ function soloPart(box: { x: number; y: number; w: number; h: number }, pivot: [n
 
 /** His grand salver, held up in front of the shoe as his shield (the bow tie, the spat's top and the napkin over his
  * arm show round it). */
-export const HW_TRAY = { x: CX + 4, y: 152, r: 98 };
+export const HW_TRAY = { x: CX + 6, y: 142, r: 84 };
 const hwTrayPath = salverPath(HW_TRAY.x, HW_TRAY.y, HW_TRAY.r);
 const HW_TRAY_BOX = { x: HW_TRAY.x - HW_TRAY.r - 2, y: HW_TRAY.y - HW_TRAY.r - 2, w: HW_TRAY.r * 2 + 4, h: HW_TRAY.r * 2 + 4 };
 /** The grand salver's look: gadrooned rim, the monogram engraved in its well. */
-export const HW_SALVER = { rim: 'gadroon', n: 40, monogram: true, well: 0.8 } as const;
+export const HW_SALVER = GRAND_SALVER;
 
 /** The grand salver alone, as its own silhouette. */
 function drawHwTray(ctx: Ctx): void {

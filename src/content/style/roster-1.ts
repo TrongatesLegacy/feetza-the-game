@@ -21,7 +21,7 @@ import { paintSalver, paintSalverBack, salverPath, salverShadow } from './salver
 
 const WAITER = { topW: 58, ballW: 98, toeY: 238 };
 /** His tray: a round salver held up in front of the shoe, over the toe (the bow tie and laces show above it). */
-const WALT_TRAY = { x: CX + 2, y: 160, r: 80 };
+const WALT_TRAY = { x: CX - 4, y: 132, r: 68 };
 const waltTrayPath = salverPath(WALT_TRAY.x, WALT_TRAY.y, WALT_TRAY.r);
 const WALT_TRAY_BOX = { x: WALT_TRAY.x - WALT_TRAY.r - 2, y: WALT_TRAY.y - WALT_TRAY.r - 2, w: WALT_TRAY.r * 2 + 4, h: WALT_TRAY.r * 2 + 4 };
 
@@ -29,7 +29,7 @@ const WALT_TRAY_BOX = { x: WALT_TRAY.x - WALT_TRAY.r - 2, y: WALT_TRAY.y - WALT_
 function drawWaltTray(ctx: Ctx): void {
   const { x, y, r } = WALT_TRAY;
   const sil = new Sil(ctx, [waltTrayPath], WALT_TRAY_BOX);
-  paintSalver(sil.g, x, y, r, { rim: 'beads', n: 36, well: 0.8 });
+  paintSalver(sil.g, x, y, r, { rim: 'beads', n: 40, well: 0.82 });
   finishLight(sil, '#9aa3b0', '#1a2030', 0.22);
   sil.finish(inkOf('#6a7280'));
 }
@@ -62,12 +62,14 @@ function paintNapkinTail(g: Ctx, linen: string, stripe: string): void {
   });
 }
 
+/** The napkin folded over the outer side of the shoe (his tray is held up in front of the rest). */
 const napkinPath = (flex: number): PathFn => (c) => {
   c.beginPath();
-  c.moveTo(CX - 104, 116);
-  c.bezierCurveTo(CX - 50, 104, CX + 40, 118, CX + 102, 132);
+  c.moveTo(CX + 22, 112);
+  c.bezierCurveTo(CX + 50, 112, CX + 80, 122, CX + 102, 132);
   c.lineTo(CX + 106, 156);
-  c.bezierCurveTo(CX + 60, 176 - flex * 4, CX - 30, 172 - flex * 4, CX - 106, 176);
+  c.bezierCurveTo(CX + 84, 170 - flex * 4, CX + 52, 176 - flex * 4, CX + 26, 178 - flex * 4);
+  c.bezierCurveTo(CX + 18, 156, CX + 16, 130, CX + 22, 112);
   c.closePath();
 };
 
@@ -156,7 +158,7 @@ function drawWaiter(ctx: Ctx, art: FootArt, p: Pose, live: boolean): void {
   // the napkin: starched linen draped over the vamp, a red stripe at the hem
   piece(g, napkin, box, 'linen', linen, { shadow: 0.55 });
   within(g, napkin, () => {
-    for (const [x0, a] of [[-60, 0.3], [-10, 0.22], [44, 0.26]] as const) {
+    for (const [x0, a] of [[48, 0.3], [80, 0.24]] as const) {
       softStroke(g, (c) => {
         c.moveTo(CX + x0, 112);
         c.quadraticCurveTo(CX + x0 + 8, 140, CX + x0 + 2, 176);
@@ -169,10 +171,10 @@ function drawWaiter(ctx: Ctx, art: FootArt, p: Pose, live: boolean): void {
     g.strokeStyle = rgba(red, 0.85);
     g.lineWidth = 2.2;
     g.beginPath();
-    g.moveTo(CX - 106, 168);
-    g.bezierCurveTo(CX - 30, 164 - flex * 4, CX + 60, 168 - flex * 4, CX + 106, 148);
+    g.moveTo(CX + 24, 168 - flex * 4);
+    g.bezierCurveTo(CX + 50, 168 - flex * 4, CX + 80, 162 - flex * 4, CX + 106, 148);
     g.stroke();
-    spec(g, CX - 50, 124, 40, 8, 0.45, -0.05);
+    spec(g, CX + 50, 124, 24, 6, 0.45, -0.1);
   });
   if (!live) paintNapkinTail(g, linen, red);
   // the bow tie on the tongue: red satin

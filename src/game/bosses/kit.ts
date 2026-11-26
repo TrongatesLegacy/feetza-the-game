@@ -42,8 +42,9 @@ export interface PhaseCard {
   what: string;
   /** What to hit or do ("Smash the hourglass before its sand runs out"). */
   hit: string;
-  /** What happens if you don't ("He eats the time: your peel slows down"). */
-  miss?: string;
+  /** What happens if you don't ("He eats the time: your peel slows down"); a function for wording that depends on the
+   *  card's heat (a number that changes with it). */
+  miss?: string | ((heat: HeatId) => string);
   /** The pictures, in order: what to hit (a HIT THIS ring and its hit count) and anything to watch out for.
    *  '@boss' is the boss itself. With none, the card shows the boss and `icon`. */
   show?: PhaseShow[];

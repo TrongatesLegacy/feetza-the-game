@@ -27,6 +27,7 @@ import Phaser from 'phaser';
 import { CX } from '../art/feetCommon';
 import { blob, hashStr, makeCanvas, rng } from '../art/util';
 import { drawFly } from '../content/style/pilot-bare';
+import { styleDef } from '../art/style/registry';
 import { feetAnimated } from '../systems/graphics';
 import { crand } from '../systems/cosmeticRandom';
 import { save } from '../systems/save';
@@ -207,7 +208,8 @@ function planFor(f: Foot): Plan {
   const m = f.meta;
   const px = pixels(f.scene, m.footKey);
   // the play texture: texel (u, v) is the foot's frame ((u − W/2)/res, (v − originY·H)/res)
-  const plan = makePlan(id, f.type.art, px, 1 / m.textures.res, 0.5 * (px?.w ?? 1), m.originY * (px?.h ?? 1));
+  const ts = f.type.scale;
+  const plan = makePlan(id, f.type.art, px, 1 / m.textures.res, 0.5 * (px?.w ?? 1), m.originY * (px?.h ?? 1), (x, y) => [x / ts + CX, y / ts + m.footHeight]);
   plans.set(id, plan);
   return plan;
 }
@@ -216,7 +218,17 @@ function planFor(f: Foot): Plan {
  * A plan from any picture of the foot: `px` its pixels, where texel (u, v) is the frame point ((u − ox)·k, (v − oy)·k).
  * The play foot plans in its own frame (world px); the zombie peels plan in the foot's design units (zombieCanvas).
  */
-function makePlan(id: string, art: FootArt, px: { data: Uint8ClampedArray; w: number; h: number } | null, k: number, ox: number, oy: number): Plan {
+function makePlan(id: string, art: FootArt, px: { data: Uint8ClampedArray; w: number; h: number } | null, k: number, ox: number, oy: number, toDesign: (x: number, y: number) => [number, number] = (x, y) => [x, y]): Plan {
+  // a guard foot's shield (Waiter Walt's silver tray) takes the grime and the sickly cast but no wounds: tears, rot and
+  // ooze belong on the foot, so no decal is planned over it
+  const sh = styleDef(id)?.shield?.box;
+  const onShield = (x: number, y: number, rad: number): boolean => {
+    if (!sh) return false;
+    const [dx, dy] = toDesign(x, y);
+    const rr = Math.min(sh.w, sh.h) / 2;
+    const sc = Math.abs(toDesign(1, 0)[0] - toDesign(0, 0)[0]) || 1;
+    return Math.hypot(dx - (sh.x + sh.w / 2), dy - (sh.y + sh.h / 2)) < rr + rad * sc;
+  };
   const W = px?.w ?? 1;
   const H = px?.h ?? 1;
   const alphaAt = (x: number, y: number): number => {
@@ -298,7 +310,7 @@ function makePlan(id: string, art: FootArt, px: { data: Uint8ClampedArray; w: nu
     for (let i = 0; i < 80; i++) {
       const x = x0 + r() * bw;
       const y = y0 + (v0 + r() * (v1 - v0)) * bh;
-      if (solid(x, y, rad * 0.8)) return [x, y];
+      if (solid(x, y, rad * 0.8) && !onShield(x, y, rad)) return [x, y];
     }
     return null;
   };

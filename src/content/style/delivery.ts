@@ -1,12 +1,13 @@
 // The Head Waiter's delivery waiter (Delivery Del), in the style kit, of a piece with Waiter Walt (roster-1.ts): the
-// same black trouser leg and red satin bow tie, but on insulated kitchen boots, glossy black rubber pull-ons with a
-// white rubber toe bumper, a thick honey gum sole over a cream insulating band and a cobalt enamel badge with a
-// lightning bolt on the vamp (nothing elemental gets through them). He carries the Head Waiter's new tray at his side,
-// a cloche over the dish and steam curling from under its lip: in play the tray is a picture of its own the fight
-// moves (src/game/bosses/act1a.ts), so the still art alone paints it. His life in play is in styleLive/roster.ts.
+// same black trouser leg and red satin bow tie, but on insulated kitchen boots: thick glossy black rubber pull-ons with
+// a quilted aluminium heat-shield toe cap, a deep lugged sole over an amber insulating band, a yellow pull tab and a big
+// cobalt enamel badge with a lightning bolt (nothing elemental gets through them). He carries the Head Waiter's new
+// salver flat at his side, balanced on a folded napkin, a cloche over the dish and steam curling from under its lip: in
+// play the tray is a picture of its own the fight moves (src/game/bosses/act1a.ts), so the still art alone paints it.
+// His life in play is in styleLive/roster.ts.
 
 import type { FootArt } from '../../data/feet';
-import { type PathFn, type Pose, crease, glint, inkOf, softStroke, spec, texture } from '../../art/style/kit';
+import { type PathFn, type Pose, crease, glint, inkOf, softFill, softStroke, spec, texture } from '../../art/style/kit';
 import { Sil } from '../../art/style/sil';
 import { registerStyle } from '../../art/style/registry';
 import { stitches } from '../../art/style/details';
@@ -18,16 +19,28 @@ const BOOT = { topY: 4, topW: 62, ballY: 170, ballW: 100, toeY: 236 };
 
 /** Where his tray rides, at his outer side (the middle of its top face) and its size: the fight's picture of it is
  * drawn the same (DELIVERY_TRAY in the props). */
-export const DEL_TRAY = { x: CX + 98, y: 104, rx: 72, ry: 27 };
+export const DEL_TRAY = { x: CX + 104, y: 90, rx: 82, ry: 29 };
 
-/** The toe bumper: white rubber wrapped round the front of the toe. */
+/** The folded napkin his tray rides on, over the outer side of the boot. */
+const napkinPad: PathFn = (c) => {
+  c.beginPath();
+  c.moveTo(CX + 50, 100);
+  c.bezierCurveTo(CX + 78, 94, CX + 104, 96, CX + 118, 104);
+  c.lineTo(CX + 112, 168);
+  c.bezierCurveTo(CX + 104, 160, CX + 96, 158, CX + 88, 164);
+  c.lineTo(CX + 82, 132);
+  c.bezierCurveTo(CX + 70, 128, CX + 58, 120, CX + 50, 100);
+  c.closePath();
+};
+
+/** The heat-shield toe cap: quilted aluminium wrapped round the front of the toe. */
 const bumperPath = (flex: number): PathFn => (c) => {
   const b = BOOT.toeY - flex * 6;
   c.beginPath();
-  c.moveTo(CX - 98, 196 - flex * 3);
-  c.bezierCurveTo(CX - 60, 182 - flex * 4, CX + 60, 182 - flex * 4, CX + 99, 196 - flex * 3);
-  c.bezierCurveTo(CX + 100, b - 12, CX + 56, b + 2, CX, b + 2);
-  c.bezierCurveTo(CX - 56, b + 2, CX - 99, b - 12, CX - 98, 196 - flex * 3);
+  c.moveTo(CX - 99, 184 - flex * 3);
+  c.bezierCurveTo(CX - 60, 160 - flex * 4, CX + 60, 160 - flex * 4, CX + 100, 184 - flex * 3);
+  c.bezierCurveTo(CX + 101, b - 12, CX + 56, b + 2, CX, b + 2);
+  c.bezierCurveTo(CX - 56, b + 2, CX - 100, b - 12, CX - 99, 184 - flex * 3);
   c.closePath();
 };
 
@@ -69,39 +82,39 @@ function badge(g: Ctx, x: number, y: number, r: number): void {
 function drawDelivery(ctx: Ctx, art: FootArt, p: Pose, o: { live: boolean; noShield?: boolean }): void {
   const black = art.primary ?? '#14141a';
   const red = '#c8232c';
-  const gum = art.secondary ?? '#c98a2e';
+  const amber = art.secondary ?? '#c98a2e';
   const flex = Math.max(0, p.curl);
   const upper = upperPath(BOOT, flex);
-  const sole = solePath(BOOT, flex, 30, 176, 6);
+  const sole = solePath(BOOT, flex, 40, 168, 9);
   const bumper = bumperPath(flex);
-  const box = { x: CX - 116, y: -10, w: 232, h: 284 };
-  const sil = new Sil(ctx, [sole, upper, bumper], box);
+  const box = { x: CX - 118, y: -10, w: 236, h: 296 };
+  const sil = new Sil(ctx, [sole, upper, bumper, napkinPad], box);
   const g = sil.g;
-  // the gum sole: thick honey rubber, deep tread blocks along its edge, and a cream insulating band over it
-  g.fillStyle = shade(gum, -0.2);
+  // the sole: deep charcoal rubber with chunky lugs, an amber insulating band laminated over it
+  g.fillStyle = '#121112';
   sole(g);
   g.fill();
   within(g, sole, () => {
-    g.fillStyle = vgrad(g, 176, 272, [[0, '#f3e6c4'], [0.2, '#efe0bc'], [0.24, shade(gum, 0.15)], [0.6, gum], [1, shade(gum, -0.45)]]);
-    g.fillRect(box.x, 170, box.w, 110);
-    texture(g, 'rubber', box, 0.3);
-    // the tread: chunky blocks showing at the toe
-    for (let x = CX - 92; x <= CX + 84; x += 15) {
-      const y = 256 - flex * 5 - Math.abs(x - CX) * 0.06;
-      g.fillStyle = rgba('#3a1e04', 0.55);
+    g.fillStyle = vgrad(g, 168, 284, [[0, shade(amber, 0.25)], [0.16, amber], [0.2, shade(amber, -0.35)], [0.22, '#3a3634'], [0.6, '#1e1c1c'], [1, '#060606']]);
+    g.fillRect(box.x, 160, box.w, 130);
+    texture(g, 'rubber', box, 0.35);
+    // the lugs: deep blocks along the toe's edge, lit on their tops
+    for (let x = CX - 96; x <= CX + 88; x += 16) {
+      const y = 258 - flex * 5 - Math.abs(x - CX) * 0.06;
+      g.fillStyle = '#050505';
       g.beginPath();
-      g.roundRect(x, y, 9, 14, 2);
+      g.roundRect(x, y, 11, 20, 2.5);
       g.fill();
-      g.fillStyle = rgba('#ffe2a8', 0.35);
-      g.fillRect(x + 1, y, 7, 1.4);
+      g.fillStyle = rgba('#8a8680', 0.4);
+      g.fillRect(x + 1, y, 9, 1.6);
     }
-    spec(g, CX - 54, 248 - flex * 5, 36, 5, 0.35, 0.02);
+    spec(g, CX - 54, 244 - flex * 5, 36, 5, 0.3, 0.02);
   });
   stitches(g, (c) => {
     c.moveTo(CX - 102, 214);
     c.bezierCurveTo(CX - 96, 236 - flex * 4, CX - 40, 242 - flex * 5, CX, 242 - flex * 5);
     c.bezierCurveTo(CX + 40, 242 - flex * 5, CX + 96, 236 - flex * 4, CX + 102, 214);
-  }, rgba('#8a6a3a', 0.6), 1.2, 3, 3);
+  }, rgba(shade(amber, 0.4), 0.7), 1.2, 3, 3);
   // the boot: glossy black rubber, the kitchen's lights mirrored down it
   piece(g, upper, box, 'patent', black, { shadow: 0.5 });
   within(g, upper, () => {
@@ -124,34 +137,78 @@ function drawDelivery(ctx: Ctx, art: FootArt, p: Pose, o: { live: boolean; noShi
       c.moveTo(CX - 66, 36);
       c.lineTo(CX + 66, 36);
     }, 1.6, '#000000', 0.6, 0.3);
-    // ribbed flex lines over the instep
-    for (let i = 0; i < 4; i++) crease(g, (c) => {
-      const y = 112 + i * 12;
+    // ribbed flex lines up the shaft
+    for (let i = 0; i < 3; i++) crease(g, (c) => {
+      const y = 58 + i * 10;
       c.moveTo(CX - 52 + i * 3, y);
       c.quadraticCurveTo(CX, y - 8, CX + 52 - i * 3, y);
     }, 1.4, '#000000', 0.55, 0.22);
   });
-  // the chrome pull ring
-  g.strokeStyle = '#2a2e36';
-  g.lineWidth = 5;
-  g.beginPath();
-  g.ellipse(CX - 58, 22, 9, 11, -0.2, 0, Math.PI * 2);
-  g.stroke();
-  g.strokeStyle = '#e8eef6';
-  g.lineWidth = 2.6;
-  g.stroke();
-  // the white rubber toe bumper
-  piece(g, bumper, { x: CX - 100, y: 180, w: 200, h: 62 }, 'rubber', '#f4f2ec', { shadow: 0.55 });
+  // the yellow pull tab at the collar
+  const tab: PathFn = (c) => {
+    c.beginPath();
+    c.roundRect(CX - 66, 4, 16, 30, 4);
+  };
+  piece(g, tab, { x: CX - 66, y: 4, w: 16, h: 30 }, 'rubber', '#f2c23a', { shadow: 0.5 });
+  // the heat-shield toe cap: quilted aluminium, lit on its upper left, riveted along its top edge
   within(g, bumper, () => {
-    for (let i = 0; i < 9; i++) {
-      const x = CX - 72 + i * 18;
-      g.fillStyle = rgba('#9a9aae', 0.35);
-      g.fillRect(x, 200 - flex * 3, 2, 30);
+    g.fillStyle = vgrad(g, 160 - flex * 4, 240, [[0, '#f4f6f8'], [0.35, '#c4cad2'], [0.7, '#8a929e'], [1, '#4a525e']]);
+    g.fillRect(box.x, 150, box.w, 100);
+    g.fillStyle = rgba('#ff9a4a', 0.18);
+    g.fillRect(box.x, 200, 60, 50);
+    texture(g, 'brushed', box, 0.35);
+    // the quilting: a diamond grid of stitched seams, each pad catching the light on its upper left
+    g.lineWidth = 1.4;
+    for (let k = -8; k <= 8; k++) {
+      for (const d of [1, -1]) {
+        g.strokeStyle = rgba('#3a4250', 0.45);
+        g.beginPath();
+        g.moveTo(CX + k * 22, 150);
+        g.lineTo(CX + k * 22 + d * 100, 250);
+        g.stroke();
+        g.strokeStyle = rgba('#ffffff', 0.45);
+        g.beginPath();
+        g.moveTo(CX + k * 22 + 1.4, 151);
+        g.lineTo(CX + k * 22 + d * 100 + 1.4, 251);
+        g.stroke();
+      }
     }
-    spec(g, CX - 40, 204 - flex * 4, 26, 6, 0.6, -0.15);
+    spec(g, CX - 44, 190 - flex * 4, 30, 8, 0.75, -0.15);
   });
-  // the badge on the vamp
-  badge(g, CX, 158 - flex * 2, 19);
+  // its rivets, on one spacing along the cap's edge
+  for (let i = 0; i <= 8; i++) {
+    const t = i / 8;
+    const x = CX - 88 + t * 176;
+    const y = 186 - flex * 3 - Math.sin(t * Math.PI) * 18;
+    g.fillStyle = rgba('#000000', 0.4);
+    g.beginPath();
+    g.arc(x + 0.8, y + 1, 3, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = '#e8ecf0';
+    g.beginPath();
+    g.arc(x, y, 2.6, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = '#ffffff';
+    g.beginPath();
+    g.arc(x - 0.8, y - 0.8, 1, 0, Math.PI * 2);
+    g.fill();
+  }
+  // the badge on the vamp, big enough to read: a bolt in cobalt enamel
+  badge(g, CX - 20, 128 - flex * 2, 25);
+  // the folded napkin his tray rides on
+  piece(g, napkinPad, { x: CX + 50, y: 94, w: 70, h: 76 }, 'linen', '#f7f5ef', { shadow: 0.6 });
+  within(g, napkinPad, () => {
+    softStroke(g, (c) => {
+      c.moveTo(CX + 92, 104);
+      c.quadraticCurveTo(CX + 100, 130, CX + 98, 160);
+    }, rgba('#6a6a9a', 0.3), 5, 3);
+    g.strokeStyle = rgba(red, 0.85);
+    g.lineWidth = 2;
+    g.beginPath();
+    g.moveTo(CX + 116, 112);
+    g.lineTo(CX + 110, 160);
+    g.stroke();
+  });
   // the bow tie on the collar: red satin, as Walt's
   const bow: PathFn = (c) => {
     c.beginPath();
@@ -176,6 +233,11 @@ function drawDelivery(ctx: Ctx, art: FootArt, p: Pose, o: { live: boolean; noShi
 /** His tray with the cloche on it, as its own silhouette, and the steam over it. */
 export function drawDeliveryTray(ctx: Ctx, at = DEL_TRAY): void {
   const { x, y, rx, ry } = at;
+  // its shadow on the napkin and boot under it (away from the light)
+  softFill(ctx, (c) => {
+    c.beginPath();
+    c.ellipse(x + rx * 0.06, y + ry * 0.75, rx * 0.92, ry * 0.7, 0, 0, Math.PI * 2);
+  }, rgba('#0a0c14', 0.45), 5);
   const paths = clocheTrayPaths(x, y, rx, ry);
   const sil = new Sil(ctx, paths, { x: x - rx - 4, y: y - rx * 0.9, w: rx * 2 + 8, h: rx * 0.9 + ry + 12 });
   paintClocheTray(sil.g, x, y, rx, ry);
@@ -184,7 +246,7 @@ export function drawDeliveryTray(ctx: Ctx, at = DEL_TRAY): void {
 }
 
 registerStyle('deliverywaiter', {
-  contactY: 270,
+  contactY: 278,
   rig: SHOE_RIG,
   leg: { kind: 'wool', hw: 70, join: 'hem' },
   draw(ctx, art, p, o) {

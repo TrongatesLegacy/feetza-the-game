@@ -19,6 +19,9 @@ export interface SalverLook {
   well?: number;
 }
 
+/** The Head Waiter's grand salver: gadrooned rim, his monogram engraved in the well. */
+export const GRAND_SALVER: SalverLook = { rim: 'gadroon', n: 40, monogram: true, well: 0.8 };
+
 export const salverPath = (cx: number, cy: number, r: number): PathFn => (c) => {
   c.beginPath();
   c.arc(cx, cy, r, 0, Math.PI * 2);
@@ -33,15 +36,34 @@ function mirror(g: Ctx, cx: number, cy: number, r: number, shift = 0): CanvasGra
   const dx = Math.sin(a) * r;
   const dy = Math.cos(a) * r;
   const gr = g.createLinearGradient(cx + dx, cy - dy + shift, cx - dx, cy + dy + shift);
-  gr.addColorStop(0, '#3a3330');
-  gr.addColorStop(0.22, '#5e5652');
-  gr.addColorStop(0.38, '#9a9796');
-  gr.addColorStop(0.43, '#f4f8ff');
+  // the trattoria mirrored: its dark beams, the neon sign's pink, the warm wall, the window, the pale cloth, the floor
+  gr.addColorStop(0, '#2e2220');
+  gr.addColorStop(0.14, '#5a3a32');
+  gr.addColorStop(0.24, '#a4707c');
+  gr.addColorStop(0.3, '#7a5650');
+  gr.addColorStop(0.39, '#d6c6b6');
+  gr.addColorStop(0.44, '#fffaf0');
   gr.addColorStop(0.5, '#ffffff');
-  gr.addColorStop(0.55, '#bcc4d0');
-  gr.addColorStop(0.8, '#e2e6ec');
-  gr.addColorStop(1, '#5e6674');
+  gr.addColorStop(0.55, '#b8b6ba');
+  gr.addColorStop(0.72, '#efe8e0');
+  gr.addColorStop(0.86, '#a89c98');
+  gr.addColorStop(1, '#3e3434');
   return gr;
+}
+
+/** The room's warm lights over the mirror: the oven's orange glow low on the left, the neon's pink high on the right. */
+function roomGlow(g: Ctx, cx: number, cy: number, r: number): void {
+  const ov = g.createRadialGradient(cx - r * 0.62, cy + r * 0.18, 0, cx - r * 0.62, cy + r * 0.18, r * 0.62);
+  ov.addColorStop(0, 'rgba(255,150,60,0.55)');
+  ov.addColorStop(0.5, 'rgba(255,120,40,0.22)');
+  ov.addColorStop(1, 'rgba(255,120,40,0)');
+  g.fillStyle = ov;
+  g.fillRect(cx - r, cy - r, r * 2, r * 2);
+  const ne = g.createRadialGradient(cx + r * 0.5, cy - r * 0.5, 0, cx + r * 0.5, cy - r * 0.5, r * 0.5);
+  ne.addColorStop(0, 'rgba(255,110,190,0.3)');
+  ne.addColorStop(1, 'rgba(255,110,190,0)');
+  g.fillStyle = ne;
+  g.fillRect(cx - r, cy - r, r * 2, r * 2);
 }
 
 /** A bright four-point star (the sun caught on the metal). */
@@ -65,6 +87,7 @@ export function paintSalver(g: Ctx, cx: number, cy: number, r: number, look: Sal
   // the whole face mirrors the room
   g.fillStyle = mirror(g, cx, cy, r);
   g.fillRect(cx - r - 2, cy - r - 2, r * 2 + 4, r * 2 + 4);
+  roomGlow(g, cx, cy, r);
   // the raised rim: lit along its upper left, falling dark on its lower right
   g.save();
   g.beginPath();
@@ -155,6 +178,7 @@ export function paintSalver(g: Ctx, cx: number, cy: number, r: number, look: Sal
   g.clip();
   g.fillStyle = mirror(g, cx, cy, well, 6 * u);
   g.fillRect(cx - well, cy - well, well * 2, well * 2);
+  roomGlow(g, cx, cy, well);
   const ao = g.createRadialGradient(cx, cy, well * 0.7, cx, cy, well);
   ao.addColorStop(0, 'rgba(20,26,38,0)');
   ao.addColorStop(1, 'rgba(20,26,38,0.28)');
@@ -184,6 +208,18 @@ export function paintSalver(g: Ctx, cx: number, cy: number, r: number, look: Sal
     c.quadraticCurveTo(cx - r * 0.55, cy - r * 0.6, cx + r * 0.05, cy - r * 0.8);
   }, rgba('#ffffff', 0.55), 6 * u, 4 * u);
   spec(g, cx - r * 0.42, cy - r * 0.5, 16 * u, 5 * u, 0.7, -0.75);
+  // the outer edge: a crisp highlight along its lit upper left, a dark bevel turning away on its lower right
+  g.lineCap = 'round';
+  g.strokeStyle = rgba('#0c1018', 0.55);
+  g.lineWidth = 4 * u;
+  g.beginPath();
+  g.arc(cx, cy, r - 2.4 * u, -0.35, Math.PI * 0.85);
+  g.stroke();
+  g.strokeStyle = rgba('#ffffff', 0.95);
+  g.lineWidth = 1.8 * u;
+  g.beginPath();
+  g.arc(cx, cy, r - 1.6 * u, Math.PI * 1.02, Math.PI * 1.62);
+  g.stroke();
   star(g, cx - r * 0.62, cy - r * 0.58, 9 * u, 0.95);
   star(g, cx + r * 0.58, cy + r * 0.62, 4.5 * u, 0.6);
 }
@@ -245,47 +281,77 @@ function monogram(g: Ctx, cx: number, cy: number, s: number, u: number): void {
 /** A salver's underside (a tumbling tray shows it): duller and darker, the raised foot ring and a hallmark. */
 export function paintSalverBack(g: Ctx, cx: number, cy: number, r: number): void {
   const u = r / 80;
+  // satin-finished underneath: duller than the face, the room's warmth faint in it
   const gr = g.createLinearGradient(cx + LX * r, cy + LY * r, cx - LX * r, cy - LY * r);
-  gr.addColorStop(0, '#d4d9e0');
-  gr.addColorStop(0.5, '#8e97a4');
-  gr.addColorStop(1, '#3e4654');
+  gr.addColorStop(0, '#e2e4e8');
+  gr.addColorStop(0.45, '#9ea4ae');
+  gr.addColorStop(1, '#3c4250');
   g.fillStyle = gr;
   g.fillRect(cx - r - 2, cy - r - 2, r * 2 + 4, r * 2 + 4);
+  roomGlow(g, cx, cy, r * 0.9);
+  // radial brushing from the centre out, as it was spun and polished
   const rr = rng(Math.round(cx * 3 + r));
-  for (let k = 0; k < 18; k++) {
-    g.strokeStyle = rgba(rr() < 0.5 ? '#ffffff' : '#1a2030', 0.06 + rr() * 0.05);
-    g.lineWidth = 0.8 * u;
+  g.lineCap = 'round';
+  for (let k = 0; k < 90; k++) {
+    const a = rr() * Math.PI * 2;
+    const r0 = r * (0.1 + rr() * 0.4);
+    const r1 = r0 + r * (0.2 + rr() * 0.4);
+    g.strokeStyle = rgba(rr() < 0.5 ? '#ffffff' : '#1a2030', 0.06 + rr() * 0.08);
+    g.lineWidth = (0.5 + rr() * 0.6) * u;
     g.beginPath();
-    g.arc(cx, cy, r * (0.1 + 0.85 * rr()), 0, Math.PI * 2);
+    g.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0);
+    g.lineTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1);
     g.stroke();
   }
-  // the foot ring: a raised band, lit on its upper left
-  for (const [w, col, dx] of [[7, rgba('#1a2030', 0.55), 1.2], [3, rgba('#ffffff', 0.6), -1.2]] as const) {
-    g.strokeStyle = col;
-    g.lineWidth = w * u;
-    g.beginPath();
-    g.arc(cx + dx * u * LX * -1, cy + dx * u * LY * -1, r * 0.58, 0, Math.PI * 2);
-    g.stroke();
-  }
+  // the rim's thickness: a rolled band round the edge, lit on its upper left, its lip dark on the lower right
+  const band = g.createLinearGradient(cx + LX * r, cy + LY * r, cx - LX * r, cy - LY * r);
+  band.addColorStop(0, '#ffffff');
+  band.addColorStop(0.5, '#7c8490');
+  band.addColorStop(1, '#262c38');
+  g.strokeStyle = band;
+  g.lineWidth = 11 * u;
+  g.beginPath();
+  g.arc(cx, cy, r - 5.5 * u, 0, Math.PI * 2);
+  g.stroke();
+  g.strokeStyle = rgba('#10141c', 0.6);
+  g.lineWidth = 1.6 * u;
+  g.beginPath();
+  g.arc(cx, cy, r - 11 * u, 0, Math.PI * 2);
+  g.stroke();
+  // the foot ring: a raised band with its shadow thrown off it (away from the light) and its lit upper edge
+  g.strokeStyle = rgba('#10141c', 0.45);
+  g.lineWidth = 6 * u;
+  g.beginPath();
+  g.arc(cx - LX * 3 * u, cy - LY * 3 * u, r * 0.56, 0, Math.PI * 2);
+  g.stroke();
+  const fr = g.createLinearGradient(cx + LX * r * 0.6, cy + LY * r * 0.6, cx - LX * r * 0.6, cy - LY * r * 0.6);
+  fr.addColorStop(0, '#ffffff');
+  fr.addColorStop(0.5, '#a8aeb8');
+  fr.addColorStop(1, '#4a5260');
+  g.strokeStyle = fr;
+  g.lineWidth = 5 * u;
+  g.beginPath();
+  g.arc(cx, cy, r * 0.56, 0, Math.PI * 2);
+  g.stroke();
   // a hallmark: three small struck marks in a row
   for (let i = 0; i < 3; i++) {
-    const x = cx - 10 * u + i * 10 * u;
-    g.fillStyle = rgba('#20283a', 0.55);
+    const x = cx - 11 * u + i * 11 * u;
+    g.fillStyle = rgba('#20283a', 0.6);
     g.beginPath();
-    g.roundRect(x - 3.5 * u, cy - 3 * u, 7 * u, 6 * u, 1.2 * u);
+    g.roundRect(x - 4 * u, cy - 3.5 * u, 8 * u, 7 * u, 1.4 * u);
     g.fill();
-    g.fillStyle = rgba('#ffffff', 0.4);
-    g.fillRect(x - 3 * u, cy + 2.2 * u, 6 * u, 0.8 * u);
+    g.fillStyle = rgba('#ffffff', 0.5);
+    g.fillRect(x - 3.4 * u, cy + 2.6 * u, 6.8 * u, 0.9 * u);
   }
-  spec(g, cx - r * 0.4, cy - r * 0.45, 18 * u, 5 * u, 0.35, -0.75);
+  spec(g, cx - r * 0.4, cy - r * 0.45, 20 * u, 5 * u, 0.4, -0.75);
 }
 
 /** The soft shadow a held tray casts on the foot behind it (offset away from the light), drawn outside its disc. */
 export function salverShadow(g: Ctx, cx: number, cy: number, r: number): void {
   softFill(g, (c) => {
     c.beginPath();
-    c.ellipse(cx - LX * r * 0.08, cy - LY * r * 0.1, r * 1.0, r * 0.98, 0, 0, Math.PI * 2);
-  }, rgba('#0a0c14', 0.38), r * 0.09);
+    c.ellipse(cx - LX * r * 0.1, cy - LY * r * 0.12, r * 1.0, r * 0.98, 0, 0, Math.PI * 2);
+  }, rgba('#0a0c14', 0.55), r * 0.08);
 }
 
 
@@ -301,7 +367,7 @@ export function clocheTrayPaths(x: number, y: number, rx: number, ry: number): P
   return [
     (c) => {
       c.beginPath();
-      c.ellipse(x, y + 2.5 * u, rx, ry + 2.5 * u, 0, 0, Math.PI * 2);
+      c.ellipse(x, y + 3 * u, rx, ry + 3 * u, 0, 0, Math.PI * 2);
     },
     (c) => {
       c.beginPath();
@@ -320,38 +386,24 @@ export function clocheTrayPaths(x: number, y: number, rx: number, ry: number): P
 /** Paint the carried tray and its cloche (on a Sil's layer clipped to clocheTrayPaths). */
 export function paintClocheTray(g: Ctx, x: number, y: number, rx: number, ry: number): void {
   const u = rx / 80;
-  // the tray's edge (its thickness) under the face
-  g.fillStyle = '#4a5260';
+  // the tray's edge (its thickness) under the face, lit along its near rim
+  const edge = g.createLinearGradient(x - rx, 0, x + rx, 0);
+  edge.addColorStop(0, '#c8ccd4');
+  edge.addColorStop(0.5, '#6a7280');
+  edge.addColorStop(1, '#2c323e');
+  g.fillStyle = edge;
   g.beginPath();
-  g.ellipse(x, y + 5 * u, rx, ry, 0, 0, Math.PI * 2);
+  g.ellipse(x, y + 6 * u, rx, ry, 0, 0, Math.PI * 2);
   g.fill();
-  const face = g.createLinearGradient(x - rx, y - ry, x + rx * 0.6, y + ry);
-  face.addColorStop(0, '#ffffff');
-  face.addColorStop(0.3, '#b8c0cc');
-  face.addColorStop(0.45, '#f4f6fa');
-  face.addColorStop(0.7, '#8a929e');
-  face.addColorStop(1, '#4e5664');
-  g.fillStyle = face;
+  // the face: the Head Waiter's own salver (gadroons, monogram), seen from a little above
+  g.save();
   g.beginPath();
   g.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
-  g.fill();
-  // its gadrooned rim, on one spacing round the ellipse (the near side lit, the far side darker)
-  const n = 32;
-  for (let i = 0; i < n; i++) {
-    const a = (i / n) * Math.PI * 2;
-    const bx = x + Math.cos(a) * rx * 0.9;
-    const by = y + Math.sin(a) * ry * 0.8;
-    const lit = 0.5 + 0.5 * Math.sin(a);
-    g.fillStyle = lit > 0.5 ? rgba('#ffffff', 0.85) : rgba('#3a4250', 0.5);
-    g.beginPath();
-    g.ellipse(bx, by, 4.2 * u, 1.8 * u, a + Math.PI / 2, 0, Math.PI * 2);
-    g.fill();
-  }
-  g.strokeStyle = rgba('#1a2030', 0.45);
-  g.lineWidth = 1.6 * u;
-  g.beginPath();
-  g.ellipse(x, y, rx * 0.8, ry * 0.68, 0, Math.PI * 1.05, Math.PI * 1.95);
-  g.stroke();
+  g.clip();
+  g.translate(x, y);
+  g.scale(1, ry / rx);
+  paintSalver(g, 0, 0, rx, GRAND_SALVER);
+  g.restore();
   // the cloche: a tall polished dome on a rolled band
   const { dw, dh, by } = dome(x, y, rx, ry);
   g.fillStyle = rgba('#0a0c14', 0.3);

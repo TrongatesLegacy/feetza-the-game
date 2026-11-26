@@ -63,6 +63,7 @@ export function tossTray(a: Arena, f: Foot, snap: GuardSnap, p: Pizza, o: TrayTo
     if (over) return;
     over = true;
     tick.remove();
+    f.leanExtra = 0;
     reticle.destroy();
     sc.tweens.add({ targets: shadow, alpha: 0, duration: 200, onComplete: () => shadow.destroy() });
     o.done?.(batted);
@@ -79,7 +80,8 @@ export function tossTray(a: Arena, f: Foot, snap: GuardSnap, p: Pizza, o: TrayTo
     delay: 16,
     loop: true,
     callback: () => {
-      const dt = 0.016;
+      // (the frame's real time, so a tray flies as fast at 30 fps as at 120)
+      const dt = Math.min(0.05, (sc.game.loop.delta / 1000) * sc.time.timeScale);
       if (over) return;
       if (!a.inWave()) {
         finish(false);
@@ -116,14 +118,23 @@ export function tossTray(a: Arena, f: Foot, snap: GuardSnap, p: Pizza, o: TrayTo
         return;
       }
       if (t < o.tell) {
-        // the tell: it rises a touch at his side and wobbles, ready to go
+        // he went down before he could throw it: it clatters away
+        if (!f.alive) {
+          finish(false);
+          clatter();
+          return;
+        }
+        // the tell: it swings up and clear of him, over his shoulder, wobbling, as he leans back into the throw
         const k = t / o.tell;
         const e = Phaser.Math.Easing.Back.Out(Math.min(1, k * 1.4));
-        img.setPosition(f.x + sx0 + side * 30 * e, f.y + sy0 - 40 * e);
-        img.rotation = snap.rot + Math.sin(t * 22) * 0.08 * k + side * 0.3 * e;
+        const lift = f.meta.footHeight * f.scale * 0.35;
+        img.setPosition(f.x + sx0 + side * (f.meta.halfWidth * f.scale * 0.7) * e, f.y + sy0 - lift * e);
+        img.rotation = snap.rot + Math.sin(t * 22) * 0.08 * k - side * 0.5 * e;
+        f.leanExtra = -side * 0.14 * e;
         shadow.setAlpha(0.08 + 0.12 * k).setScale(0.35);
         from = { x: img.x, y: img.y };
         if (t + dt >= o.tell) {
+          f.leanExtra = 0;
           // it's off: the shout goes up from the tray
           a.sfx(o.sfx?.toss ?? 'sfx_whoosh', { volume: 0.7, rate: 1.1 });
           if (o.shout) a.quip(img.x, Math.max(200, img.y - 90), o.shout, '#ffffff', 40);

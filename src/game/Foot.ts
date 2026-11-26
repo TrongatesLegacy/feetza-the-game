@@ -226,7 +226,7 @@ export class Foot {
     /** The shield leaves the foot whole (guardAway): where it is and how it looks, or null. */
     away(): GuardSnap | null;
     /** A new shield is handed over from (x, y) on screen (guardRestore), or just raised. */
-    receive(from?: { x: number; y: number }): void;
+    receive(from?: { x: number; y: number; k?: number }): void;
     /** A raging foot rears back with its shield (gods.ts), then throws it: where it leaves from, or null. */
     windup(): void;
     throwOff(): { key: string; x: number; y: number; scale: number } | null;
@@ -572,7 +572,7 @@ export class Foot {
 
   /** A new shield handed over (a delivery waiter's tray): at full strength at once, swung into place from `from` (a
    * point on screen). */
-  guardRestore(from?: { x: number; y: number }): void {
+  guardRestore(from?: { x: number; y: number; k?: number }): void {
     if (!this.guardBroken || this.guardDone || !this.alive) return;
     this.guardRearm();
     this.guardFx?.receive(from);

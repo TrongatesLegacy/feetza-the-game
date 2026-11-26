@@ -537,8 +537,9 @@ class GuardFx {
   private host?: Phaser.GameObjects.Container;
   /** A silver tray's bright ring as it blocks a blow (seconds left). */
   private ringT = 0;
-  /** A new tray swinging in from where it was handed over (in the host's frame), or null. */
-  private recv: { t: number; x: number; y: number } | null = null;
+  /** A new tray swinging in from where it was handed over (in the host's frame; its size there, against its own), or
+   * null. */
+  private recv: { t: number; x: number; y: number; k: number } | null = null;
   /** 0 up … 1 down (springs past both). */
   private k = { x: 0, v: 0 };
   /** The hanging aspis's swing (radians). */
@@ -699,7 +700,7 @@ class GuardFx {
     }
     if (this.rim) {
       // (a silver tray's ring as it blocks: a white flash of its rim)
-      if (this.ringT > 0) this.rim.setTint(0xffffff).setAlpha(Math.min(1, this.ringT / 0.12));
+      if (this.ringT > 0) this.rim.setTint(0xffffff).setAlpha(0.55 * Math.min(1, this.ringT / 0.12));
       else {
         this.rim.setTint(0xffd84a);
         this.rim.setAlpha(warn ? 0.45 + 0.55 * Math.abs(Math.sin(this.t * 13)) : Math.max(0, this.rim.alpha - 0.12));
@@ -817,7 +818,7 @@ class GuardFx {
     else this.sfx('sfx_guardcrack', Math.min(1.3, 0.8 + 0.1 * stage + 0.15 * (steps - 1)), (1 + 0.06 * stage) * (steps > 1 ? 0.85 : 1));
     if (this.def?.material === 'silver') {
       // a tray rings bright and throws sparks
-      this.ringT = quiet ? 0.08 : 0.18;
+      this.ringT = quiet ? 0.06 : 0.12;
       this.sparks(quiet ? 2 : 5 + stage + (steps - 1) * 3);
     } else this.chips(quiet ? 2 : 3 + stage + (steps - 1) * 4);
   }
@@ -952,12 +953,17 @@ class GuardFx {
       g.drawImage(fr.source.image as HTMLCanvasElement, fr.cutX, fr.cutY, fr.cutWidth, fr.cutHeight, 0, 0, fr.cutWidth, fr.cutHeight);
       this.sc.textures.addCanvas(key, c);
     };
+    // (keyed by the texture it's on: a zombified foot's piece is its own rotted copy)
     const fr = this.img!.frame;
-    const key = `${this.tex.sheet}_s${fr.name}`;
+    const key = `${fr.texture.key}_s${fr.name}`;
     cut(fr, key);
-    // (a style with no underside shows its whole face there)
-    cut(this.img!.texture.get(0), this.tex.back);
-    return { key, back: this.tex.back, x: p.x, y: p.y, scale: Math.hypot(m.a, m.b) / this.tex.res, rot: m.rotation };
+    // the underside: the style's own, or (with none) its whole face
+    let back = this.tex.back;
+    if (!this.def.back) {
+      back = `${fr.texture.key}_s0`;
+      cut(fr.texture.get(0), back);
+    }
+    return { key, back, x: p.x, y: p.y, scale: Math.hypot(m.a, m.b) / this.tex.res, rot: m.rotation };
   }
 
   /** Knocked off with nothing to catch it: it spins up and away whole, tumbling face over underside, and drops off. */
@@ -994,7 +1000,7 @@ class GuardFx {
   }
 
   /** A new one handed over from a point on screen: it swings in on an arc, spinning, and clanks into place. */
-  receive(from?: { x: number; y: number }): void {
+  receive(from?: { x: number; y: number; k?: number }): void {
     if (this.fetching) this.endFetch();
     this.img?.setFrame(0);
     this.piece?.setVisible(true).setAlpha(1);
@@ -1003,13 +1009,18 @@ class GuardFx {
     this.wasUp = true;
     this.k.x = 0;
     this.k.v = 0;
-    if (!from || !this.host || !this.piece) {
+    if (!from || !this.host || !this.piece || !this.def) {
       this.onRaise();
       this.pose();
       return;
     }
     const p = this.host.getWorldTransformMatrix().applyInverse(from.x, from.y);
-    this.recv = { t: 0, x: p.x, y: p.y };
+    // (`from` is where the tray's middle is: the piece hangs from its pivot, so start that far off it)
+    const k = from.k ?? 0.55;
+    const ts = this.f.type.scale;
+    const ox = (this.def.box.x + this.def.box.w / 2 - this.def.pivot[0]) * ts;
+    const oy = (this.def.box.y + this.def.box.h / 2 - this.def.pivot[1]) * ts;
+    this.recv = { t: 0, x: p.x - ox * k, y: p.y - oy * k * 0.36, k };
     this.sfx('sfx_whoosh', 0.4, 1.2);
   }
 
@@ -1023,8 +1034,9 @@ class GuardFx {
     const [px, py] = this.pivotLocal();
     const x = r.x + (px - r.x) * e;
     const y = r.y + (py - r.y) * e - Math.sin(u * Math.PI) * 70 * this.f.type.scale;
-    const sc = 0.55 + 0.45 * e;
-    this.piece.setPosition(x, y).setRotation((1 - e) * Math.PI * 2 * (r.x < px ? 1 : -1)).setScale(sc, sc * (0.35 + 0.65 * e));
+    // (it starts as it was carried: that size, held flat, and swings up face-on as it grows)
+    const sc = r.k + (1 - r.k) * e;
+    this.piece.setPosition(x, y).setRotation((1 - e) * 0.6 * (r.x < px ? 1 : -1)).setScale(sc, sc * (0.36 + 0.64 * e));
     if (u >= 1) {
       this.recv = null;
       this.onRaise();
@@ -1066,7 +1078,7 @@ class GuardFx {
     this.piece.setVisible(false);
     // a texture of its own for the frame it's on (as cracked as it is), for a plain image to fly
     const fr = this.img!.frame;
-    const key = `${this.tex.sheet}_s${fr.name}`;
+    const key = `${fr.texture.key}_s${fr.name}`;
     if (!this.sc.textures.exists(key)) {
       const [c, g] = makeCanvas(fr.cutWidth, fr.cutHeight);
       g.drawImage(fr.source.image as HTMLCanvasElement, fr.cutX, fr.cutY, fr.cutWidth, fr.cutHeight, 0, 0, fr.cutWidth, fr.cutHeight);

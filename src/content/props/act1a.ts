@@ -587,8 +587,8 @@ function silverTray(under: boolean): () => HTMLCanvasElement {
 /** The tray a delivery waiter brings the Head Waiter (a cloche over the dish), as his still art paints it: the picture
  * the fight moves with him (DEL_TRAY_ORIGIN is where the tray's middle sits in it). */
 export const DEL_TRAY_K = 3;
-export const DEL_TRAY_BOX = { w: 172, h: 164 };
-export const DEL_TRAY_ORIGIN = { x: 86, y: 130 };
+export const DEL_TRAY_BOX = { w: 192, h: 190 };
+export const DEL_TRAY_ORIGIN = { x: 96, y: 140 };
 function deliveryTray(): HTMLCanvasElement {
   const [c, ctx] = makeCanvas(DEL_TRAY_BOX.w * DEL_TRAY_K, DEL_TRAY_BOX.h * DEL_TRAY_K);
   ctx.scale(DEL_TRAY_K, DEL_TRAY_K);

@@ -22,7 +22,7 @@ export const feet: FootType[] = [
     // a light guard: his tray takes 2 smacks on Mild and Regular, 3 from Hot up
     guardHits: [2, 2, 3, 3, 3],
     home: 'trattoria',
-    howTo: 'Knock the tray off with 2 smacks (3 from Hot; a Peel Slam does it at once up to Hot), then smack the flung tray back at him for a big hit and a stun, and smack him before a fresh tray comes (12 s on Mild, 9 s on Regular and Hot)',
+    howTo: 'Knock the tray off with 2 smacks (3 from Hot; a Peel Slam does it at once up to Hot), then smack the flung tray back at him for a big hit and a stun, and smack him before a fresh tray comes (12 s on Mild, 9 s on Regular and Hot, 7.5 s from Extra Hot)',
     tell: 'The badge on his leg: TRAY with a bar of the smacks it can still take, then KNOCKED OFF and a ring counting down to his fresh one. A red reticle and the tray’s shadow on the pizza show where his fling will land',
     art: { kind: 'r_waiter', skin: SKIN.light, primary: '#16161c', secondary: '#f7f5ef', leg: 'suit', legColor: '#1a1a22' },
   },

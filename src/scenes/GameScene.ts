@@ -3521,7 +3521,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     // a raised guard shield blocks the smack and cracks (its badge's pips show what it can still take); the last
     // one it can take shatters it (onTrait 'guardBreak'). Other damage and a hero's bypass go straight through.
     if (smack && f.guardUp && !this.heroes.ignoreShields()) {
-      f.flash(0x9ad8ff, 80);
+      // (a silver tray rings and sparks on its own: a flash of the whole foot would wipe out the silver)
+      if (shieldDefOf(f.type)?.material !== 'silver') f.flash(0x9ad8ff, 80);
       f.knock(80);
       this.guardStats.blocked++;
       // (no quip per crack: the badge's bar counts down, and quips piled up on quick smacks; one says it's nearly gone)
