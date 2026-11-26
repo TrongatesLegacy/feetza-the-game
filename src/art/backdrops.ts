@@ -4954,7 +4954,10 @@ const REDRAWN = new Set<BackdropId>(['trattoria', 'beach', 'space',
   'redsole',
   // Venomnom's arena (the Symbiote Lab, Spider-Pan's nemesis mini-boss in place of Ultoe), redrawn with the location
   // kit and painted frame animation: scene-venomnom.ts
-  'venomnom']);
+  'venomnom',
+  // the Cheetoe's arena (the Night Conservatory, Wonder Wedge's nemesis mini-boss in place of Lex Lugtoe), redrawn with
+  // the location kit and painted frame animation: scene-cheetoe.ts
+  'cheetoe']);
 
 // redrawn scenes keep their old info for the before/after page (their old glows and particles with their old art)
 const LEGACY_INFO: Partial<Record<BackdropId, BackdropInfo>> = {};

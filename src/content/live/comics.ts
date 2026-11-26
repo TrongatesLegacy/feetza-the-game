@@ -4,7 +4,7 @@
 // sonic emitters' lamps blink. The Night Conservatory: fireflies drift through the leaves and moonbeams slowly shift
 // across the glass.
 
-import { type LiveCtx, type LiveScene, registerLegacyLive, registerLive } from '../../game/liveBackdrop';
+import { type LiveCtx, type LiveScene, registerLegacyLive } from '../../game/liveBackdrop';
 import { crand } from '../../systems/cosmeticRandom';
 import { NC, RB, VL } from '../art/scenes-comics';
 import { NzKit, reduced } from './kratos';
@@ -75,8 +75,10 @@ registerLegacyLive('venomnom', (ctx: LiveCtx): LiveScene => {
 });
 
 // ——— The Night Conservatory ———
+// (redrawn with the location kit in src/content/art/scene-cheetoe.ts, whose own live layer bends the leaves in the
+// draught, slides the moonlight and answers the fight; this stays for the before/after page)
 
-registerLive('cheetoe', (ctx: LiveCtx): LiveScene => {
+registerLegacyLive('cheetoe', (ctx: LiveCtx): LiveScene => {
   const k = new NzKit(ctx.sc, ctx.layer);
   const rays = [0, 1, 2].map((i) => k.img('p_a7_searchlight', NC.moon.x - 200 + i * 160, 0, { add: true, origin: [0.5, 0], alpha: 0.12, sx: 1.4, sy: 1.6, tint: 0xd8e8ff }));
   rays.forEach((r) => r.setFlipY(true));
