@@ -137,6 +137,8 @@ export interface SaveData {
   endlessPlusPick: boolean;
   /** Rare Finds that have turned up on the new-run screen (shown in the Pizzeria from then on). */
   rareSeen: string[];
+  /** Lineup shuffles bought since the last run started (each costs more Golden Crusts; back to the first price when a run starts). */
+  shuffles: number;
   /** Milestone records for the phase 3 pizzas: bestCombo, perfectBest, fastWave (best clear in seconds), nightRuns, untouched (1 once done). */
   pizzaGoals: Record<string, number>;
   /** Hero and god peel goals (src/game/heroGoals.ts): counters, bests and flags by key. */
@@ -213,6 +215,7 @@ const DEFAULTS: SaveData = {
   pizzasNew: [],
   specialSeen: {},
   rareSeen: [],
+  shuffles: 0,
   pizzaGoals: {},
   goals: {},
   legend: false,

@@ -31,6 +31,11 @@ import './gods.css';
 
 type Attrs = Record<string, string | number | boolean | undefined>;
 
+/** Golden Crusts for the next lineup shuffle after `n` this time round: 10, 20, 35, 55, 80… */
+export function shuffleCrusts(n: number): number {
+  return 10 + (5 * n * (n + 3)) / 2;
+}
+
 export function h<K extends keyof HTMLElementTagNameMap>(tag: K, attrs: Attrs = {}, ...children: (Node | string | null | undefined | false)[]): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs)) {
@@ -889,6 +894,9 @@ class UI {
       save.endlessPlusPick = plus;
       persist();
       redealLineup = null;
+      // starting a run puts the lineup shuffle back to its first price
+      save.shuffles = 0;
+      persist();
       onStart(heat, endless, startIds());
     });
     const render = () => {
@@ -1012,7 +1020,7 @@ class UI {
               { class: `lu rare${r.bought ? ' bought' : ''}` },
               h('span', { class: 'tag new' }, r.bought ? 'YOURS' : 'NEW'),
               h('img', { src: pizzaPortraitURL(p.id), alt: p.name }),
-              h('div', {}, h('span', { class: 'rf' }, 'RARE FIND'), h('b', {}, p.name), h('span', {}, r.bought ? p.perkText : `${p.perkText} · gone if you shuffle`), buy),
+              h('div', {}, h('span', { class: 'rf' }, 'RARE FIND'), h('b', {}, p.name), h('span', { title: r.bought ? p.perkText : `${p.perkText} · gone if you shuffle or start without buying it` }, p.perkText), buy),
             );
           }
           const p = PIZZA_BY_ID[id];
@@ -1030,6 +1038,27 @@ class UI {
       if (rare) cur = cur.map((id, i) => (i === rare!.slot ? rare!.id : id));
       renderLineup();
     };
+    // shuffling the lineup costs Golden Crusts, more each time, back to the first price when a run starts
+    const shuffleCost = () => shuffleCrusts(save.shuffles);
+    const shuffleBtn = btn('', 'yellow', () => {
+      const cost = shuffleCost();
+      if (save.crusts < cost) return;
+      save.crusts -= cost;
+      save.shuffles++;
+      persist();
+      // a bought Rare Find is unlocked already; an unbought one is gone
+      cur = shuffle();
+      deal();
+      if (rare) cur = cur.map((id, i) => (i === rare!.slot ? rare!.id : id));
+      renderLineup();
+      renderShuffle();
+    }, { 'data-pad': 'y' });
+    const renderShuffle = () => {
+      const cost = shuffleCost();
+      shuffleBtn.innerHTML = `SHUFFLE · ${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} ${fmt(cost)}`;
+      shuffleBtn.disabled = save.crusts < cost;
+    };
+    renderShuffle();
     const panel = h(
       'div',
       { class: 'panel modal wide prerun' },
@@ -1041,13 +1070,7 @@ class UI {
       h('div', { class: 'row' }, btn('BACK', 'cream', () => {
         redealLineup = null;
         onBack();
-      }, { 'data-pad': 'back' }), btn('SHUFFLE', 'yellow', () => {
-        // a bought Rare Find is unlocked already; an unbought one is gone
-        cur = shuffle();
-        deal();
-        if (rare) cur = cur.map((id, i) => (i === rare!.slot ? rare!.id : id));
-        renderLineup();
-      }, { 'data-pad': 'y' }), startBtn),
+      }, { 'data-pad': 'back' }), shuffleBtn, startBtn),
     );
     return this.open(panel);
   }

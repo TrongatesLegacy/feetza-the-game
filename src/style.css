@@ -6259,3 +6259,16 @@ body.still-peels .peel-big.shiny::after {
 @media (prefers-reduced-motion: reduce) {
   .offer.slots .pull-result.win { animation: none; }
 }
+
+/* the Rare Find's tile keeps the lineup's height: its perk on one line (full text on hover), the BUY button beside it */
+.prerun-bottom .lu.rare > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: 'rf btn' 'name btn' 'perk perk';
+  align-items: center;
+  column-gap: 0.5em;
+}
+.prerun-bottom .lu.rare .rf { grid-area: rf; }
+.prerun-bottom .lu.rare b { grid-area: name; }
+.prerun-bottom .lu.rare span:not(.rf):not(.tag) { grid-area: perk; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.prerun-bottom .lu.rare .btn { grid-area: btn; align-self: center; margin-top: 0; }
