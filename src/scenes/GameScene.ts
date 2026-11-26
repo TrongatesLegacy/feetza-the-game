@@ -2571,7 +2571,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       crusts: save.crusts,
       cards,
       rerollLabel: this.freeRerollsLeft > 0 ? `REROLL · ${this.freeRerollsLeft} free` : `REROLL · ${this.rerollCost()}`,
-      canReroll: this.freeRerollsLeft > 0 || r.coins >= this.rerollCost(),
+      // (nothing left to reroll once every card on the counter has been bought)
+      canReroll: sh.cards.some((u) => !sh.sold.has(u.id)) && (this.freeRerollsLeft > 0 || r.coins >= this.rerollCost()),
       table: this.shopPizzas(),
       tableFull: this.pizzas.length >= MAX_PIZZAS,
       offers,
@@ -2865,7 +2866,8 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   private shopReroll(): void {
     const sh = this.shop;
-    if (!sh) return;
+    // (every card bought: nothing to reroll, and the key mustn't spend a reroll either)
+    if (!sh || !sh.cards.some((u) => !sh.sold.has(u.id))) return;
     const cost = this.rerollCost();
     if (this.freeRerollsLeft > 0) this.freeRerollsLeft--;
     else if (this.run.coins >= cost) {
