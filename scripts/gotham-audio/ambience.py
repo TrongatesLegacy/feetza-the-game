@@ -250,5 +250,8 @@ def render(name, fn, outdir):
 
 if __name__ == '__main__':
     od = sys.argv[1]
+    if os.path.realpath(od) == os.path.realpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'public', 'audio')):
+        sys.exit('ambience_gotham.mp3 is now made from real recordings by scripts/real-sfx/build.py (the audio pass, '
+                 'docs/audio-audit.md); render this synthesized version somewhere else')
     os.makedirs(od, exist_ok=True)
     render('ambience_gotham', gotham, od)

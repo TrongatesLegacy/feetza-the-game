@@ -287,7 +287,7 @@ const TRIM: Record<string, number> = {
   sfx_lexlugtoe_tags: 1.06, // -12.5 dB → -12.0: his entrance: price tags and coins flutter in
   sfx_doomstomp_roar: 2.02, // -15.8 dB → -9.7: RAMPAGE tell: he roars and paws the table
   sfx_doomstomp_stomp: 1.05, // -11.3 dB → -10.8: each RAMPAGE stomp lands on a pizza (and his entrance)
-  sfx_doomstomp_quake: 1.08, // -12.4 dB → -11.7: BONE QUAKE tell: the table shudders
+  sfx_doomstomp_quake: 1.08, // -12.6 dB → -11.9: BONE QUAKE tell: the table shudders
   sfx_doomstomp_spike: 1.07, // -12.5 dB → -11.9: a bone spike bursts up behind a pizza
   sfx_doomstomp_bonebreak: 0.89, // -12.5 dB → -13.5: smack on a bone spike (it snaps on the last)
   sfx_doomstomp_ko: 1.05, // -11.3 dB → -10.9: he's knocked out (a life lost) and his death
@@ -644,39 +644,39 @@ const TRIM: Record<string, number> = {
   sfx_finale_glitch: 0.89, // -12.5 dB → -13.5: glitching echo foot blip
   sfx_finale_peelwall: 0.89, // -12.5 dB → -13.5: peel on the wall lights up: chime
   // ——— Batpeel's Gotham (nemesis stage, scripts/gotham-audio): Bunion and the Jokester's moves, the Dark Kneader ———
-  sfx_bunion_enter: 1.05, // -10.0 dB → -9.6: Bunion drops in: a heavy crunching landing and a low grunt
-  sfx_bunion_pump: 1.06, // -12.5 dB → -12.0: a venom tube fills to full: pump gurgle and hiss (tell)
-  sfx_bunion_surge: 1.13, // -12.1 dB → -11.0: VENOM SURGE tell: a monstrous roar with bubbling
-  sfx_bunion_smash: 1.09, // -10.2 dB → -9.5: the VENOM SURGE stomp lands on a pizza
-  sfx_bunion_tubehit: 0.89, // -12.4 dB → -13.4: smack on a venom tube: a thick rubber and glass thunk with a slosh
-  sfx_bunion_drain: 1.04, // -10.9 dB → -10.6: a venom tube is drained: a glugging hiss, deflating
-  sfx_bunion_grab: 1.08, // -11.7 dB → -11.0: THE BREAK starts: he grabs a pizza (leather creak and a grunt)
-  sfx_bunion_strain: 1.16, // -14.8 dB → -13.5: the crust creaks under the strain (repeats)
-  sfx_bunion_break: 1.16, // -10.8 dB → -9.5: the pizza breaks: a big crunchy crack
-  sfx_bunion_saved: 1.09, // -11.2 dB → -10.5: you foil THE BREAK: he's shoved back (thud and whoosh)
-  sfx_bunion_death: 1.11, // -10.4 dB → -9.5: his tubes burst and he deflates (hiss, splatter, thud)
-  sfx_jokester_enter: 1.20, // -11.1 dB → -9.5: the Jokester's entrance: a jack-in-the-box spring BOING and a confetti pop
-  sfx_jokester_laugh: 1.05, // -11.5 dB → -11.1: his manic cackle "ha-ha-ha-HA" (tell)
-  sfx_jokester_toss: 1.13, // -13.1 dB → -12.0: a joke box is tossed (whoosh and a ribbon jingle)
+  sfx_bunion_enter: 1.05, // -11.2 dB → -10.8: Bunion drops in: a heavy crunching landing and a low grunt
+  sfx_bunion_pump: 1.06, // -13.6 dB → -13.1: a venom tube fills to full: pump gurgle and hiss (tell)
+  sfx_bunion_surge: 1.13, // -12.3 dB → -11.2: VENOM SURGE tell: a monstrous roar with bubbling
+  sfx_bunion_smash: 1.09, // -10.7 dB → -9.9: the VENOM SURGE stomp lands on a pizza
+  sfx_bunion_tubehit: 0.89, // -13.4 dB → -14.4: smack on a venom tube: a thick rubber and glass thunk with a slosh
+  sfx_bunion_drain: 1.04, // -11.6 dB → -11.3: a venom tube is drained: a glugging hiss, deflating
+  sfx_bunion_grab: 1.08, // -10.7 dB → -10.1: THE BREAK starts: he grabs a pizza (leather creak and a grunt)
+  sfx_bunion_strain: 1.16, // -14.9 dB → -13.6: the crust creaks under the strain (repeats)
+  sfx_bunion_break: 1.16, // -12.1 dB → -10.8: the pizza breaks: a big crunchy crack
+  sfx_bunion_saved: 1.09, // -11.3 dB → -10.6: you foil THE BREAK: he's shoved back (thud and whoosh)
+  sfx_bunion_death: 1.11, // -11.3 dB → -10.4: his tubes burst and he deflates (hiss, splatter, thud)
+  sfx_jokester_enter: 1.20, // -11.3 dB → -9.7: the Jokester's entrance: a jack-in-the-box spring BOING and a confetti pop
+  sfx_jokester_laugh: 1.05, // -11.9 dB → -11.5: his manic cackle "ha-ha-ha-HA" (tell)
+  sfx_jokester_toss: 1.13, // -12.9 dB → -11.8: a joke box is tossed (whoosh and a ribbon jingle)
   sfx_jokester_land: 1.10, // -12.9 dB → -12.1: a joke box lands on a pizza (cardboard thud)
-  sfx_jokester_tick: 1.08, // -14.2 dB → -13.5: a bomb box ticks (about 1 s)
+  sfx_jokester_tick: 1.08, // -15.1 dB → -14.5: a bomb box ticks (about 1 s)
   sfx_jokester_boom: 1.05, // -10.9 dB → -10.5: a bomb box blows (cartoon blast with a party-horn tail)
-  sfx_jokester_defuse: 1.13, // -11.5 dB → -10.4: a smack defuses a bomb box (snip and fizzle)
-  sfx_jokester_gift: 1.05, // -12.4 dB → -12.0: a gift box opens itself (sparkle chime and party blower)
-  sfx_jokester_gas: 1.10, // -11.8 dB → -11.0: laughing gas puffs out (hiss and pfft)
-  sfx_jokester_clear: 1.11, // -11.4 dB → -10.5: the laughing gas is blown away (whoosh)
-  sfx_jokester_giggle: 0.89, // -12.5 dB → -13.5: feet giggle in the laughing gas (little high giggles)
-  sfx_jokester_jack: 1.05, // -11.4 dB → -11.0: THE GAUNTLET: the jack-in-the-box crank tune winds up (music-box notes, tell)
-  sfx_jokester_spring: 1.09, // -11.3 dB → -10.6: the jack springs out (BOING and slap)
-  sfx_jokester_pie: 1.05, // -12.4 dB → -12.0: a cream pie is thrown (whoosh)
-  sfx_jokester_splat: 1.05, // -10.9 dB → -10.5: the cream pie splats
-  sfx_jokester_teeth: 1.19, // -13.5 dB → -12.0: wind-up chattering teeth clatter (about 1.2 s)
-  sfx_jokester_weight: 1.05, // -12.5 dB → -12.1: a cartoon weight falls (the whistle, about 1.8 s)
-  sfx_jokester_thud: 1.06, // -10.0 dB → -9.5: the falling weight lands (big clank and thud)
-  sfx_jokester_bang: 1.07, // -11.1 dB → -10.5: the BANG! flag gun pops (pop and a cloth snap)
-  sfx_jokester_window: 1.15, // -12.2 dB → -11.0: the punchline window opens: he's dizzy (a sad trombone "wah-wah")
-  sfx_jokester_death: 1.09, // -10.2 dB → -9.5: his death: a last laugh fading into a big confetti bang
-  sfx_hero_darkfalls: 1.05, // -10.0 dB → -9.6: the Dark Kneader's darkness falls: a heavy low boom, a wing whoosh and a sub tail
+  sfx_jokester_defuse: 1.13, // -12.0 dB → -10.9: a smack defuses a bomb box (snip and fizzle)
+  sfx_jokester_gift: 1.05, // -12.6 dB → -12.2: a gift box opens itself (sparkle chime and party blower)
+  sfx_jokester_gas: 1.10, // -12.8 dB → -12.0: laughing gas puffs out (hiss and pfft)
+  sfx_jokester_clear: 1.11, // -10.1 dB → -9.1: the laughing gas is blown away (whoosh)
+  sfx_jokester_giggle: 0.89, // -12.4 dB → -13.4: feet giggle in the laughing gas (little high giggles)
+  sfx_jokester_jack: 1.05, // -10.8 dB → -10.3: THE GAUNTLET: the jack-in-the-box crank tune winds up (music-box notes, tell)
+  sfx_jokester_spring: 1.09, // -10.9 dB → -10.1: the jack springs out (BOING and slap)
+  sfx_jokester_pie: 1.05, // -11.2 dB → -10.8: a cream pie is thrown (whoosh)
+  sfx_jokester_splat: 1.05, // -12.6 dB → -12.2: the cream pie splats
+  sfx_jokester_teeth: 1.19, // -13.8 dB → -12.3: wind-up chattering teeth clatter (about 1.2 s)
+  sfx_jokester_weight: 1.05, // -12.0 dB → -11.5: a cartoon weight falls (the whistle, about 1.8 s)
+  sfx_jokester_thud: 1.06, // -10.9 dB → -10.4: the falling weight lands (big clank and thud)
+  sfx_jokester_bang: 1.07, // -10.9 dB → -10.3: the BANG! flag gun pops (pop and a cloth snap)
+  sfx_jokester_window: 1.15, // -11.4 dB → -10.2: the punchline window opens: he's dizzy (a sad trombone "wah-wah")
+  sfx_jokester_death: 1.09, // -11.7 dB → -10.9: his death: a last laugh fading into a big confetti bang
+  sfx_hero_darkfalls: 1.05, // -10.0 dB → -9.5: the Dark Kneader's darkness falls: a heavy low boom, a wing whoosh and a sub tail
   sfx_hero_split: 1.10, // -12.8 dB → -12.0: a Dark Kneader wing-boomerang splits in two on impact (a metallic shing)
   // ——— Nemesis bosses and hero variants (scripts/nemesis-audio): Kronos the Titan King, Zeus, the Red Sole, Venomnom, the Cheetoe, and the upgraded hero peels ———
   sfx_titanking_enter: 1.05, // -10.8 dB → -10.4: Kronos lands: a colossal stone foot, rattling chains and a deep rumble
@@ -733,51 +733,51 @@ const TRIM: Record<string, number> = {
   sfx_zeus_peacock: 1.15, // -11.7 dB → -10.5: a smack on a peacock-eye gem in Hera's crown: a glassy ping
   sfx_zeus_crown: 1.15, // -10.6 dB → -9.3: Hera's crown breaks: a shatter of gold
   sfx_zeus_death: 1.11, // -9.4 dB → -8.5: Zeus falls: fading thunder, cracking marble and a choir cut short
-  sfx_redsole_enter: 1.08, // -10.2 dB → -9.5: the Red Sole marches in: jackboots and a sinister laugh
-  sfx_redsole_laugh: 1.04, // -11.4 dB → -11.1: the Red Sole's villain laugh (tell)
+  sfx_redsole_enter: 1.08, // -8.8 dB → -8.2: the Red Sole marches in: jackboots and a sinister laugh
+  sfx_redsole_laugh: 1.04, // -9.8 dB → -9.5: the Red Sole's villain laugh (tell)
   sfx_redsole_cube: 1.08, // -11.6 dB → -10.9: the cosmic cube hums as it charges (tell, about 2 s)
   sfx_redsole_beam: 1.16, // -10.8 dB → -9.5: the cube fires an energy beam down a lane
   sfx_redsole_misfire: 1.05, // -10.0 dB → -9.6: the cube backfires on him: an overload zap and a boom
   sfx_redsole_cubehit: 1.11, // -11.4 dB → -10.5: a smack on the cosmic cube: a crystal thunk
   sfx_redsole_turret: 1.05, // -11.5 dB → -11.1: a hydrant turret rises from the table edge: a mechanical clunk and hiss
-  sfx_redsole_spray: 1.02, // -12.2 dB → -12.0: a hydrant turret sprays: a pressurised burst
-  sfx_redsole_cap: 1.03, // -10.8 dB → -10.5: a turret is capped: a metal clang as the hiss dies
+  sfx_redsole_spray: 1.02, // -10.8 dB → -10.6: a hydrant turret sprays: a pressurised burst
+  sfx_redsole_cap: 1.03, // -11.9 dB → -11.7: a turret is capped: a metal clang as the hiss dies
   sfx_redsole_march: 1.17, // -12.3 dB → -10.9: the Skull Blitz: his goose-step heel clicks (tell)
-  sfx_redsole_stomp: 1.05, // -9.9 dB → -9.5: a heavy jackboot stomp lands
-  sfx_redsole_death: 1.07, // -10.1 dB → -9.5: the Red Sole goes down: his skull mask cracks, an alarm whoops and the bunker blows
-  sfx_venomnom_enter: 1.12, // -10.5 dB → -9.5: Venomnom splats down: wet goo and a deep, double-voiced growl
+  sfx_redsole_stomp: 1.05, // -10.1 dB → -9.6: a heavy jackboot stomp lands
+  sfx_redsole_death: 1.07, // -11.0 dB → -10.4: the Red Sole goes down: his skull mask cracks, an alarm whoops and the bunker blows
+  sfx_venomnom_enter: 1.12, // -11.6 dB → -10.6: Venomnom splats down: wet goo and a deep, double-voiced growl
   sfx_venomnom_growl: 1.20, // -12.6 dB → -11.0: Venomnom's wet growl (tell)
-  sfx_venomnom_tongue: 1.07, // -12.6 dB → -12.0: his long tongue lashes out: a wet whip
-  sfx_venomnom_snatch: 1.05, // -10.9 dB → -10.5: a slice is gulped down
-  sfx_venomnom_cut: 1.04, // -10.9 dB → -10.6: his tongue is smacked: a slap and a yelp
-  sfx_venomnom_goo: 1.08, // -12.7 dB → -12.0: a tendril binds a pizza: a sticky stretching squelch
-  sfx_venomnom_drain: 1.10, // -12.8 dB → -12.0: the bound pizza is slurped: a slice drains away
+  sfx_venomnom_tongue: 1.07, // -11.8 dB → -11.2: his long tongue lashes out: a wet whip
+  sfx_venomnom_snatch: 1.05, // -12.6 dB → -12.1: a slice is gulped down
+  sfx_venomnom_cut: 1.04, // -10.9 dB → -10.5: his tongue is smacked: a slap and a yelp
+  sfx_venomnom_goo: 1.08, // -12.2 dB → -11.6: a tendril binds a pizza: a sticky stretching squelch
+  sfx_venomnom_drain: 1.10, // -12.2 dB → -11.3: the bound pizza is slurped: a slice drains away
   sfx_venomnom_tendril: 1.13, // -11.5 dB → -10.4: a smack on a goo tendril: a rubbery thwack
   sfx_venomnom_sonic: 1.08, // -10.2 dB → -9.5: a sonic emitter fires a piercing pulse
-  sfx_venomnom_shriek: 1.14, // -12.1 dB → -11.0: the sound hurts him: Venomnom shrieks
-  sfx_venomnom_split: 1.06, // -12.5 dB → -12.0: the goo tears into copies of him
-  sfx_venomnom_death: 1.23, // -11.3 dB → -9.5: Venomnom melts: a sonic shriek, then goo dissolving and splattering
-  sfx_cheetoe_enter: 1.07, // -10.1 dB → -9.5: the Cheetoe leaps in: a big-cat roar and a landing
-  sfx_cheetoe_dash: 1.05, // -12.5 dB → -12.1: she dashes from lane to lane: a fast whoosh
-  sfx_cheetoe_crouch: 1.27, // -13.1 dB → -11.0: she crouches to pounce: a low growl (tell)
-  sfx_cheetoe_pounce: 1.07, // -10.1 dB → -9.5: the pounce lands: a thump and a snarl
-  sfx_cheetoe_slash: 1.03, // -12.3 dB → -12.0: a claw swipe
-  sfx_cheetoe_scratch: 1.11, // -11.4 dB → -10.5: claws rake a pizza
-  sfx_cheetoe_hiss: 1.17, // -13.4 dB → -12.0: the Cheetoe hisses
-  sfx_cheetoe_rustle: 0.90, // -12.6 dB → -13.5: the jungle leaves rustle where she hides
-  sfx_cheetoe_flush: 1.04, // -10.9 dB → -10.6: she's flushed out of the leaves: a yowl and a burst of foliage
-  sfx_cheetoe_death: 1.12, // -10.5 dB → -9.5: the Cheetoe is beaten: a defeated yowl and a collapse
-  sfx_hero_ghostsparta: 1.10, // -10.3 dB → -9.5: Kratos, Ghost of Sparta: a deeper, distorted war shout and a whoosh of fire
-  sfx_hero_firetrail: 0.88, // -12.4 dB → -13.5: Ghost of Sparta's rage leaves fire on the table: a short fire whoosh (repeats)
+  sfx_venomnom_shriek: 1.14, // -12.2 dB → -11.1: the sound hurts him: Venomnom shrieks
+  sfx_venomnom_split: 1.06, // -11.7 dB → -11.2: the goo tears into copies of him
+  sfx_venomnom_death: 1.23, // -11.2 dB → -9.4: Venomnom melts: a sonic shriek, then goo dissolving and splattering
+  sfx_cheetoe_enter: 1.07, // -10.9 dB → -10.3: the Cheetoe leaps in: a big-cat roar and a landing
+  sfx_cheetoe_dash: 1.05, // -13.4 dB → -13.0: she dashes from lane to lane: a fast whoosh
+  sfx_cheetoe_crouch: 1.27, // -14.0 dB → -11.9: she crouches to pounce: a low growl (tell)
+  sfx_cheetoe_pounce: 1.07, // -10.7 dB → -10.1: the pounce lands: a thump and a snarl
+  sfx_cheetoe_slash: 1.03, // -12.5 dB → -12.2: a claw swipe
+  sfx_cheetoe_scratch: 1.11, // -12.0 dB → -11.1: claws rake a pizza
+  sfx_cheetoe_hiss: 1.17, // -12.2 dB → -10.9: the Cheetoe hisses
+  sfx_cheetoe_rustle: 0.90, // -12.3 dB → -13.2: the jungle leaves rustle where she hides
+  sfx_cheetoe_flush: 1.04, // -9.5 dB → -9.2: she's flushed out of the leaves: a yowl and a burst of foliage
+  sfx_cheetoe_death: 1.12, // -10.3 dB → -9.3: the Cheetoe is beaten: a defeated yowl and a collapse
+  sfx_hero_ghostsparta: 1.10, // -11.2 dB → -10.3: Kratos, Ghost of Sparta: a deeper, distorted war shout and a whoosh of fire
+  sfx_hero_firetrail: 0.88, // -11.3 dB → -12.4: Ghost of Sparta's rage leaves fire on the table: a short fire whoosh (repeats)
   sfx_hero_primebeam: 1.24, // -11.4 dB → -9.5: Superpeel Prime: Heat Vision sweeps the whole screen
   sfx_hero_infinity: 1.11, // -10.4 dB → -9.5: Iron Pan Mark Infinity: a cosmic charge and the sweeping Infinity Beam
-  sfx_hero_endgame: 1.09, // -10.3 dB → -9.6: an Endgame variant's move: portals open and a heroic brass stab
-  sfx_hero_unleashed: 1.10, // -10.3 dB → -9.5: Thor, Thunder Unleashed: a massive rolling thunderstorm
-  sfx_hero_ascended: 1.11, // -10.4 dB → -9.5: Odin Allfather Ascended: a deep horn and raven caws
-  sfx_hero_unbound: 1.05, // -10.0 dB → -9.6: Zeus, King Unbound: an overcharged lightning-sword blast
+  sfx_hero_endgame: 1.09, // -10.5 dB → -9.7: an Endgame variant's move: portals open and a heroic brass stab
+  sfx_hero_unleashed: 1.10, // -10.6 dB → -9.7: Thor, Thunder Unleashed: a massive rolling thunderstorm
+  sfx_hero_ascended: 1.11, // -9.8 dB → -8.9: Odin Allfather Ascended: a deep horn and raven caws
+  sfx_hero_unbound: 1.05, // -11.1 dB → -10.6: Zeus, King Unbound: an overcharged lightning-sword blast
   sfx_hero_liberty: 1.10, // -12.8 dB → -12.0: Shield of Liberty: a bright shield ricochet ping
-  sfx_hero_tendril: 1.10, // -12.8 dB → -12.0: Symbiote Pan: a web tendril snatches a foot (a sticky squelch)
-  sfx_hero_amazon: 1.10, // -10.3 dB → -9.5: Amazon Queen: a golden lasso crack and a war cry
+  sfx_hero_tendril: 1.10, // -11.8 dB → -11.0: Symbiote Pan: a web tendril snatches a foot (a sticky squelch)
+  sfx_hero_amazon: 1.10, // -11.6 dB → -10.8: Amazon Queen: a golden lasso crack and a war cry
   // ——— Leonidas's nemesis, the Hot Gates (scripts/nemesis-audio/recipes_hotgates.py): the Immortal Brute, Xerxes, King Leonidas and the Hot Gates variant ———
   sfx_immortalbrute_enter: 1.05, // -11.6 dB → -11.1: the Immortal Brute lands: a hulking crash, chain rattle and a roar behind his mask
   sfx_immortalbrute_horde: 1.06, // -11.4 dB → -10.9: a horde wave of Immortals comes: a Persian war horn over marching feet (tell)

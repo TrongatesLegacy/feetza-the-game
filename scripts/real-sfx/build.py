@@ -49,7 +49,19 @@ and, for the audio pass's batch 1 (docs/audio-audit.md):
 (it also uses 20185, 29986, 38244, 57204, 93100, 149190, 162674, 188767, 234782, 235597, 244926, 263115, 326304, 334969,
 337845, 347149, 384916, 391919, 392180, 394180, 416507, 442773, 457449, 475131, 475480, 505113, 527740, 531755, 534094,
 539972, 571296, 578490, 611669, 705058, 760672, 763026, 764221, 819668, 829847, 853153, 867549, 869002 and 869003 from
-the earlier sets). Some recipes in
+the earlier sets), and for batch 6:
+
+  node scripts/sfx-fetch/freesound.mjs get 19841 30154 82123 82124 108641 131933 146968 163280 175409 178615 180480 \\
+       221544 235165 244976 261296 276600 319565 361771 362330 372515 383181 386432 406555 422110 427573 427574 433823 \\
+       433836 451068 484267 498842 509881 515619 527499 530959 536727 539163 547206 547446 558856 575836 587886 590147 \\
+       615667 617440 618541 637123 652260 661242 682078 682079 712594 726312 734599 764275 792463 800073 811042 811043 \\
+       811445 830466 850718 862443 --out SRC_DIR
+
+(it also uses 20185, 26349, 38244, 81458, 93100, 146960, 146963, 160797, 178658, 188767, 208111, 234782, 244926, 263115,
+337845, 346373, 349225, 352198, 371094, 381853, 391919, 392180, 392624, 396013, 406197, 413203, 433829, 454092, 475131,
+479998, 495117, 495118, 505113, 520071, 529295, 531755, 553954, 568036, 581124, 637533, 655040, 680135, 695376, 703247,
+703248, 719129, 753310, 763026, 765844, 788212, 816237, 827424, 829847, 853153, 869002 and 869003 from the earlier sets;
+batch 6's previews were saved from each sound's Freesound page, the same HQ ogg files the helper downloads). Some recipes in
 every batch keep a layer of the synthesized file they replace, read from git at OLD_REV, so they need the repo's
 history (a shallow clone won't do).
 
@@ -58,18 +70,22 @@ OUT_DIR defaults to public/audio. Names (default: all): spartanchant spartanrage
 batch 3's (fenrirhowl ... gulp) and its two ambience loops (jotunheim bifrost), then batch 4's (solepropenter ...
 unbounddouse, the hero and god smack tails hbatpeel ... hamazonqueen, three Endgame variants' tails
 hincrediblebulkendgame ... hwasabiwaspendgame) and its loop (firstpizzeria), then batch 5's (the Kratos Peel's
-Tartarus, tkenter ... zeusdeath, and Leonidas's Hot Gates, trumpet ... herohotgates) and its loop (hotgates). Each sound is
+Tartarus, tkenter ... zeusdeath, and Leonidas's Hot Gates, trumpet ... herohotgates) and its loop (hotgates), then batch 6's
+(Batpeel's Goth-Ham, bunionenter ... darkfalls, the comics villains, redsoleenter ... cheetoedeath, and the hero variants,
+ghostsparta ... amazon) and its loop (gotham). Each sound is
 cut, pitched, layered and placed by the recipe below (the Spartan, Skald and Siren sounds, and batch 5's Spartan roar,
 King Leonidas's Hot Gates war cry and Kronos's gulp, are also given a short convolution room, and Xerxes's laugh a hall),
 then levelled to a 50 ms RMS peak (the same measure
 as the TRIM table in src/systems/audio.ts), limited under -1.5 dBFS (a recipe may set a lower limit, for a bright
-transient that MP3 encoding would push past it), faded, and saved as 44.1 kHz mono 96 kbps
+transient that MP3 encoding would push past it, and its own compressor, LIGHT, for a hit the usual one would flatten),
+faded, and saved as 44.1 kHz mono 96 kbps
 MP3. The ambience loops are 50 s stereo beds instead: their take runs 5 s past the loop, and that tail is crossfaded
 (equal power) into the head, then the loop is levelled to -16.5 LUFS like the other beds and saved as 96 kbps stereo
 MP3 (see amb_loop). Every source used is credited in public/audio/CREDITS.md and public/audio/credits.json.
 
 Only the Python standard library and ffmpeg are needed. Pitch shifts keep a layer's length (asetrate + atempo),
-unless keep=False, which lets a bark run a little shorter or longer like a different man's voice would.
+unless keep=False, which lets a bark run a little shorter or longer like a different man's voice would; tempo() speeds a
+layer up without changing its pitch (a music box cranked faster, a slide whistle's fall).
 """
 import array
 import glob
@@ -823,7 +839,12 @@ def doomstep():
 def quake():
     return layer([
         L('old:sfx_doomstomp_quake', 0.0, 1.39, 0.0, 0.0, 0, fin=0.002, fout=0.15),
-        L(222521, 2.000, 1.39, 0.000, -2.0, -10, fin=0.05, fout=0.25),           # earth cracking open
+        # (batch 6: the earth cracking open is now a rock smashed three times and rock crumbling, both real recordings, where
+        # batch 2 used a designed earthquake crack that is mixed partly from a synthesized rumble)
+        L(765844, 0.020, 0.30, 0.000, -5.0, 14, fin=0.002, fout=0.15, fx=STONE),  # a rock smashed, lower: the bone cracks
+        L(765844, 1.020, 0.30, 0.450, -6.0, 12, fin=0.002, fout=0.15, fx=STONE),
+        L(765844, 1.890, 0.30, 0.900, -5.0, 11, fin=0.002, fout=0.15, fx=STONE),
+        L(391919, 0.000, 1.39, 0.000, -4.0, 14, fin=0.02, fout=0.25),           # rock crumbling, lower: the table splitting
         L(199803, 2.000, 1.39, 0.000, 0.0, 24, fin=0.1, fout=0.25),             # a window shaking in a quake
     ])
 
@@ -2322,9 +2343,567 @@ def hotgatesloop():
     ] + drums + horns, post='acompressor=threshold=-32dB:ratio=3:attack=40:release=500:knee=6')  # the big breakers held in
 
 
+# =============================== Audio pass, batch 6: the rest of the nemesis stages (Goth-Ham, the comics villains, the
+# hero variants) and the bone quake's crack =============================================================================
+# As batches 1–5: each replaces (or layers with) a synthesized file under the same name, on the old file's beats, and
+# its level (RECIPES) sits halfway between the old file's 50 ms RMS peak and the level matching its momentary loudness.
+# Each stage shares one kit: for Bunion, a massed stomp, a crash of debris, crunching toast, a hand sprayer's water,
+# bottle glugs, a deflating balloon and an air release; for the Jokester, two real jack-in-the-boxes, a spring door stop,
+# a party popper and a party horn, a man's joker-like laugh and real cartoon props (a wooden slide whistle, wind-up
+# chattering teeth, a sad trombone); for the comics villains, boots, a man's deep laugh, water and steam, wet foley
+# (washcloths, a sponge, a rubber stress ball, tape), a man's scream and real cats; the hero variants reuse the earlier
+# batches' thunder, fire, horns and raven, with a woman's shout and a trumpet's fanfare note.
+LIGHT = 'acompressor=threshold=-8dB:ratio=2:attack=6:release=90:knee=4'  # a lighter master compressor (RECIPES), for the
+# hits that the usual one (from -20 dB) would flatten: their attacks stay sharp, as the synth's were
+
+
+def tempo(r):
+    return 'atempo=%.4f' % r  # a layer sped up (or slowed) without changing its pitch
+
+
+# --- Batpeel's Goth-Ham Rooftops · Bunion, the venom-pumped wrestler ---
+def bunionenter():
+    return layer([
+        L(20185, 0.040, 0.70, 0.000, -10.0, 0, fin=0.001, fout=0.3, fx='lowpass=f=400'),  # a massed stomp, far lower: he lands
+        L(703247, 0.020, 1.95, 0.000, -5.0, 9, fin=0.001, fout=0.3, fx=STONE + ',' + DAMP % (12, 0.12)),  # a crash of debris, lower
+        L(816237, 0.020, 0.30, 0.010, -5.0, -4, fin=0.001, fout=0.1),           # a crunch of toast, lower: the crunch
+        L(661242, 0.040, 0.70, 0.280, -6.0, -8, fin=0.02, fout=0.25, keep=False, fx='lowpass=f=1800'),  # a warrior's grunt, far lower
+    ])
+
+
+def bunionpump():
+    return layer([
+        L(361771, 0.100, 1.24, 0.000, -3.0, 0, fin=0.01, fout=0.2),             # a hand sprayer pumped, water bubbling, lower
+        L(234782, 0.050, 0.55, 0.700, 0.0, 3, fin=0.25, fout=0.1),              # a steam hiss rising: the pressure
+    ])
+
+
+def bunionsurge():
+    return layer([
+        L(869002, 0.800, 1.15, 0.000, -8.0, 0, fin=0.05, fout=0.35, keep=False),  # caged lions roaring, far lower and slower
+        L(763026, 2.900, 1.80, 0.000, -6.0, 4, fin=0.1, fout=0.4, fx='lowpass=f=1500'),  # a black bear's growl, lower
+        L(19841, 4.700, 1.80, 0.050, -5.0, 2, fin=0.2, fout=0.4),               # a pot boiling hard, lower: the venom bubbling
+    ], post=T0 + swell(1.50, 1.80, 0.35))
+
+
+def bunionsmash():
+    return layer([
+        L(20185, 0.040, 0.80, 0.000, -10.0, 2, fin=0.001, fout=0.35, fx='lowpass=f=450'),  # a massed stomp, far lower
+        L(703248, 0.020, 1.30, 0.000, -5.0, 10, fin=0.001, fout=0.6, fx=STONE + ',' + DAMP % (6, 0.2)),  # a crash of debris
+        L(816237, 0.020, 0.35, 0.010, -4.0, -3, fin=0.001, fout=0.12),          # crispy toast crunched: the pizza
+    ], post='lowpass=f=3500')
+
+
+def buniontubehit():
+    return layer([
+        L(655040, 13.760, 0.40, 0.000, -3.0, 0, fin=0.001, fout=0.2, fx=DAMP % (12, 0.2)),  # a beach ball's thick rubber bounce, lower
+        L(386432, 0.700, 0.40, 0.030, -3.0, 6, fin=0.005, fout=0.15),           # water sloshing in a glass bottle, lower
+    ])
+
+
+def buniondrain():
+    return layer([
+        L(553954, 0.080, 0.40, 0.330, -4.0, 0, fin=0.005, fout=0.1),            # a bottle glugging, lower
+        L(553954, 0.580, 0.40, 0.700, -5.0, -3, fin=0.005, fout=0.15),
+        L(553954, 1.150, 0.30, 0.040, -3.0, -10, fin=0.005, fout=0.1),
+        L(82124, 0.020, 1.25, 0.000, 0.0, -9, fin=0.08, fout=0.5),             # a balloon deflating: the hiss and squeal
+    ])
+
+
+def buniongrab():
+    return layer([
+        L(734599, 0.280, 0.34, 0.000, -2.0, 0, fin=0.01, fout=0.1),             # a leather biker jacket creaking
+        L(680135, 2.770, 0.46, 0.110, -5.0, 0, fin=0.03, fout=0.15, keep=False, fx='lowpass=f=2500'),  # a man grunting with effort,
+                                                                                # lower and slower
+    ])
+
+
+def bunionstrain():
+    return layer([
+        L(590147, 0.280, 0.34, 0.000, -2.0, 0, fin=0.01, fout=0.06),            # creaking wood, a little lower
+        L(753310, 0.120, 0.22, 0.060, -3.0, -8, fin=0.003, fout=0.06),          # a corn chip cracking: the crust
+    ])
+
+
+def bunionbreak():
+    return layer([
+        L(352198, 0.860, 0.90, 0.000, -4.0, 0, fin=0.001, fout=0.35, fx=DAMP % (8, 0.2)),  # a wooden fence panel snapped, lower
+        L(178658, 0.020, 1.10, 0.020, -2.0, 7, fin=0.002, fout=0.3),            # a plank breaking, splinter by splinter
+        L(816237, 0.020, 0.38, 0.000, -2.0, 0, fin=0.001, fout=0.1),            # crispy toast crunched: the crust
+        L(753310, 0.030, 0.38, 0.300, -3.0, 2, fin=0.002, fout=0.1),            # a corn chip bitten
+    ])
+
+
+def bunionsaved():
+    return layer([
+        L(276600, 0.170, 0.40, 0.000, -4.0, 0, fin=0.001, fout=0.15),           # a gloved hand's thud, lower: the shove
+        L(475131, 0.000, 0.55, 0.030, -5.0, -3, fin=0.03, fout=0.15),          # a super-heavy swoosh, lower: he's thrown back
+        L(261296, 0.520, 0.60, 0.300, -3.0, -4, fin=0.002, fout=0.3),           # a body falling to the floor
+    ])
+
+
+def buniondeath():
+    return layer([
+        L(371094, 0.190, 0.80, 0.000, -5.0, -4, fin=0.001, fout=0.3),           # a large glass bottle shattering, lower: the tubes
+        L(131933, 0.330, 1.40, 0.000, -2.0, -8, fin=0.002, fout=0.5),          # compressed air released: the venom bursting out
+        L(495117, 0.010, 0.40, 0.050, -3.0, -2, fin=0.001, fout=0.15),          # a wet cloth slapped: the splatter
+        L(82123, 0.150, 1.20, 0.250, -2.0, 3, fin=0.05, fout=0.3),            # a balloon deflating: he goes down
+        L(20185, 0.040, 0.80, 1.400, -10.0, -3, fin=0.001, fout=0.4, fx='lowpass=f=450'),  # a massed stomp, far lower: the thud
+        L(703248, 0.020, 1.10, 1.400, -6.0, 6, fin=0.001, fout=0.3, fx=STONE + ',' + DAMP % (8, 0.15)),  # a crash of debris, lower
+    ])
+
+
+# --- Batpeel's Goth-Ham Rooftops · the Jokester ---
+def jokesterenter():
+    return layer([
+        L(811042, 0.090, 0.55, 0.000, 0.0, 0, fin=0.002, fout=0.2),             # a real jack-in-the-box popping open
+        L(81458, 0.060, 1.05, 0.030, 0.0, -3, fin=0.002, fout=0.3),            # a spring door stop twanged: the BOING
+        L(26349, 0.040, 0.55, 0.200, 0.0, -4, fin=0.002, fout=0.2),            # a party popper: the confetti
+    ])
+
+
+def jokesterlaugh():
+    return layer([L(427574, 0.050, 1.18, 0.000, 1.0, 0, fin=0.01, fout=0.2)])  # a man's joker-like laugh, a little higher
+
+
+def jokestertoss():
+    return layer([
+        L(346373, 0.060, 0.26, 0.010, 0.0, 0, fin=0.005, fout=0.1),             # a metal stick whipped through the air
+        L(30154, 0.000, 0.60, 0.050, 0.0, -2, fin=0.003, fout=0.2),            # a small jingle bell shaken: the ribbon bells
+    ])
+
+
+def jokestertick():
+    ticks = [L(372515, s, 0.16, 0.2 * i, 0.0, 0, fin=0.001, fout=0.08) for i, s in
+             enumerate((1.080, 1.330, 1.555, 1.800, 2.025, 2.270))]
+    return layer(ticks, post='highpass=f=300,' + PEAKS)                        # a kitchen timer ticking, tick, tock
+
+
+def jokesterboom():
+    return layer([
+        L(587886, 0.000, 1.25, 0.000, 0.0, 0, fin=0.001, fout=0.5, fx=DAMP % (9, 0.2)),  # a big blast (a firecracker, pitched down)
+        L(26349, 0.040, 0.55, 0.050, -2.0, -6, fin=0.002, fout=0.2),           # a party popper: the confetti
+        L(484267, 0.150, 0.80, 0.350, -2.0, -9, fin=0.02, fout=0.4),            # a party horn blown, a little lower: the tail
+    ])
+
+
+def jokesterdefuse():
+    return layer([
+        L('old:sfx_jokester_defuse', 0.0, 0.66, 0.0, 0.0, 0, fin=0.002, fout=0.1),
+        L(800073, 0.000, 0.27, 0.000, 0.0, 0, fin=0.001, fout=0.05),            # real scissors: snip, snip
+    ])
+
+
+def jokestergift():
+    return layer([
+        L('old:sfx_jokester_gift', 0.0, 0.95, 0.0, 0.0, 0, fin=0.002, fout=0.1),
+        L(484267, 0.150, 0.55, 0.400, 0.0, -4, fin=0.02, fout=0.2),            # a real party horn blown
+    ])
+
+
+def jokestergas():
+    return layer([
+        L(208111, 0.180, 0.17, 0.000, 0.0, 0, fin=0.002, fout=0.08),            # two pillows touched together: the pfft
+        L(615667, 1.400, 0.90, 0.030, 0.0, 12, fin=0.06, fout=0.4),             # gas leaking: the hiss
+    ])
+
+
+def jokesterclear():
+    return layer([
+        L(381853, 0.450, 0.90, 0.000, 0.0, 5, fin=0.08, fout=0.3),              # a short gust of wind
+        L(726312, 0.050, 0.90, 0.000, 0.0, 0, fin=0.1, fout=0.3),              # wind blown across a microphone's windscreen
+    ], post=T0 + 'highpass=f=450,' + swell(0.25, 0.85, 0.55) + ',acompressor=threshold=-30dB:ratio=4:attack=20:release=150:knee=6')
+
+
+def jokestergiggle():
+    return layer([
+        L(235165, 0.060, 0.40, 0.000, 4.0, 0, fin=0.01, fout=0.08),            # a woman's giggle, higher: a little foot's
+        L(235165, 0.390, 0.30, 0.130, 6.0, -3, fin=0.01, fout=0.08),           # and again, higher still: another's
+        L(764275, 0.650, 0.42, 0.000, 5.0, 5, fin=0.03, fout=0.1),            # a crowd giggling, higher: the others
+    ], post=PEAKS)
+
+
+def jokesterjack():
+    return layer([L(811043, 0.000, 2.60, 0.000, 0.0, 0, fin=0.01, fout=0.3, fx=tempo(1.53))])  # a jack-in-the-box cranked, playing
+                                                                                # "Pop Goes the Weasel", sped up
+
+
+def jokesterspring():
+    return layer([
+        L(712594, 6.020, 0.50, 0.000, 0.0, 0, fin=0.002, fout=0.15),            # an old jack-in-the-box: the jack pops out
+        L(81458, 0.060, 0.80, 0.010, 0.0, 3, fin=0.002, fout=0.3),             # a spring door stop twanged: the BOING
+    ])
+
+
+def jokesterpie():
+    return layer([
+        L(475131, 0.000, 0.50, 0.040, 3.0, 0, fin=0.12, fout=0.15),             # a super-heavy swoosh, higher: the pie flies
+        L(346373, 0.030, 0.30, 0.170, -2.0, -4, fin=0.01, fout=0.1),            # a stick whipped through the air
+    ])
+
+
+def jokestersplat():
+    return layer([
+        L(495117, 0.010, 0.45, 0.000, -2.0, 0, fin=0.001, fout=0.15, fx=DAMP % (20, 0.12)),  # a wet cloth slapped into water, lower
+        L(719129, 0.030, 0.55, 0.010, -2.0, -2, fin=0.001, fout=0.2, fx=DAMP % (20, 0.12)),  # a soaked towel against a wall
+        L(433829, 0.380, 0.84, 0.080, -3.0, 0, fin=0.01, fout=0.15),           # a rubber stress ball squished: the cream
+    ])
+
+
+def jokesterteeth():
+    return layer([
+        L(383181, 0.020, 0.53, 0.000, 0.0, 0, fin=0.005, fout=0.03),  # a wind-up chattering teeth toy
+        L(383181, 0.020, 0.53, 0.53, 0.0, -1, fin=0.005, fout=0.03),
+        L(383181, 0.020, 0.30, 1.06, 0.0, -2, fin=0.005, fout=0.1),
+    ], post=PEAKS)
+
+
+def jokesterweight():
+    return layer([L(422110, 0.050, 2.40, 0.000, 0.0, 0, fin=0.03, fout=0.2, fx=tempo(1.34))],  # a wooden slide whistle falling
+                 post=T0 + swell(1.60, 1.79, 0.3))
+
+
+def jokesterthud():
+    return layer([
+        L(850718, 4.890, 0.60, 0.000, -3.0, 9, fin=0.001, fout=0.3),            # a 20 lb weight dropped on concrete, lower
+        L(853153, 0.040, 1.45, 0.000, -12.0, -7, fin=0.002, fout=0.4, fx='lowpass=f=700'),  # a big gong, an octave lower: the ring
+        L(20185, 0.040, 0.90, 0.000, -10.0, 0, fin=0.001, fout=0.4, fx='lowpass=f=400'),  # a massed stomp, far lower: the thud
+    ])
+
+
+def jokesterbang():
+    return layer([
+        L(392624, 0.120, 0.30, 0.000, 0.0, 0, fin=0.001, fout=0.1),             # a champagne cork popping: BANG
+        L(244976, 0.000, 0.70, 0.030, 0.0, -2, fin=0.002, fout=0.3),            # cloth flapped: the flag snaps out
+    ], post=PEAKS)
+
+
+def jokesterwindow():
+    return layer([
+        L(175409, 0.220, 0.38, 0.000, 0.0, 0, fin=0.01, fout=0.06),             # a trombone's sad "wah...
+        L(175409, 1.060, 0.38, 0.390, 0.0, 0, fin=0.01, fout=0.06),             # ...wah...
+        L(175409, 1.980, 0.38, 0.780, 0.0, 0, fin=0.01, fout=0.06),             # ...wah...
+        L(175409, 2.840, 1.05, 1.170, 0.0, 0, fin=0.02, fout=0.3),              # ...wahhh"
+    ])
+
+
+def jokesterdeath():
+    return layer([
+        L(427573, 0.520, 1.35, 0.000, 0.0, 0, fin=0.01, fout=0.15, fx="asetnsamples=n=64,volume='1-0.55*t/1.35':eval=frame"),
+        # (a man's joker-like laugh, fading)
+        L(587886, 0.000, 1.00, 1.350, 0.0, 2, fin=0.001, fout=0.5, fx=DECAY % 3),  # a big blast
+        L(26349, 0.040, 0.55, 1.370, 0.0, -2, fin=0.002, fout=0.2),            # a party popper: the confetti
+        L(30154, 0.000, 0.85, 1.450, 0.0, -2, fin=0.003, fout=0.3),            # a small jingle bell shaken
+    ])
+
+
+# --- the Dark Kneader's darkness falls ---
+def darkfalls():
+    return layer([
+        L(160797, 0.000, 2.10, 0.000, -10.0, 0, fin=0.002, fout=0.4, fx='lowpass=f=600'),  # dynamite going off in a valley, far
+        # lower: the boom, and its echo off the mountains for the tail
+        L(349225, 0.080, 1.40, 0.300, -5.0, -4, fin=0.05, fout=0.4),           # an umbrella flapped like bat wings, lower
+        L(475131, 0.000, 0.55, 0.150, -6.0, 3, fin=0.05, fout=0.2, keep=False),  # a super-heavy swoosh, far lower: the wing
+    ])
+
+
+# --- the comics villains · the Red Sole ---
+def redsoleenter():
+    steps = [L(558856, s, 0.22, t, -2.0, d, fin=0.002, fout=0.12) for s, t, d in
+             ((0.180, 0.00, 7), (0.860, 0.24, 8), (1.540, 0.48, 7), (2.220, 0.72, 8))]  # boots stomping, a little lower
+    return layer(steps + [
+        L(617440, 0.090, 0.50, 0.950, -3.0, 8, fin=0.001, fout=0.2),            # a foot stomped on the floor, lower: the halt
+        L(20185, 0.040, 0.60, 0.950, -10.0, -6, fin=0.001, fout=0.3, fx='lowpass=f=400'),  # a massed stomp, far lower, under it
+        L(362330, 0.330, 1.40, 1.050, -2.0, -2, fin=0.02, fout=0.3),           # a man's deep evil laugh, a little lower
+    ])
+
+
+def redsolelaugh():
+    return layer([L(362330, 0.580, 1.42, 0.000, -2.0, 0, fin=0.02, fout=0.25)])  # a man's deep evil laugh, a little lower
+
+
+def redsoleturret():
+    return layer([
+        L(180480, 0.050, 0.80, 0.000, -2.0, 17, fin=0.01, fout=0.2),            # an office chair's hydraulic piston, lower
+        L(520071, 0.380, 0.55, 0.000, 0.0, 0, fin=0.005, fout=0.25),            # a steam trap's short burst: the hiss
+        L(406197, 0.290, 0.45, 0.450, -3.0, 0, fin=0.001, fout=0.2),            # a big metal door slammed, lower: the clunk
+    ])
+
+
+def redsolespray():
+    return layer([
+        L(811445, 0.200, 0.90, 0.000, 0.0, 0, fin=0.01, fout=0.25),             # a water hose's jet
+        L(637123, 0.200, 0.90, 0.000, 0.0, -3, fin=0.01, fout=0.25),            # a fire hydrant flushing into the street
+        L(520071, 0.330, 0.30, 0.000, 0.0, -6, fin=0.005, fout=0.15),           # a steam trap's burst: the pressure
+    ])
+
+
+def redsolecap():
+    return layer([
+        L(406555, 0.000, 0.55, 0.000, -2.0, 0, fin=0.0005, fout=0.2),           # a metal pipe struck: the clang
+        L(337845, 0.150, 0.45, 0.000, -4.0, -6, fin=0.0005, fout=0.2),          # a metal shed door struck, lower
+        L(234782, 0.600, 0.60, 0.030, 0.0, -4, fin=0.005, fout=0.4),            # a steam hiss, dying away
+    ], post=T0 + "asetnsamples=n=64,volume='max(0.08,1-t/0.6)':eval=frame")
+
+
+def redsolestomp():
+    return layer([
+        L(617440, 0.100, 0.55, 0.000, -4.0, 0, fin=0.001, fout=0.25),           # a foot stomped on the floor, lower
+        L(558856, 0.000, 0.25, 0.000, -4.0, -6, fin=0.001, fout=0.1),            # a boot stomped: the heel
+        L(20185, 0.040, 0.60, 0.000, -10.0, -2, fin=0.001, fout=0.3, fx='lowpass=f=400'),  # a massed stomp, far lower: the weight
+    ])
+
+
+def redsoledeath():
+    whoop = [L(536727, 0.850, 0.80, t, 0.0, 6, fin=0.05, fout=0.1, fx=tempo(1.75)) for t in (0.25, 0.75, 1.25)]
+    return layer([
+        L('old:sfx_redsole_death', 0.0, 2.63, 0.0, 0.0, 0, fin=0.002, fout=0.3),
+        L(108641, 0.100, 1.25, 1.380, -3.0, -6, fin=0.001, fout=0.5),           # an explosion close by, debris flying, lower
+    ] + whoop)                                                                  # a tornado siren winding up, three times
+
+
+# --- the comics villains · Venomnom ---
+def venomnomenter():
+    return layer([
+        L(495117, 0.010, 0.45, 0.000, -4.0, 0, fin=0.001, fout=0.2),            # a wet cloth slapped down, lower: the goo lands
+        L(547446, 0.080, 0.45, 0.020, -3.0, 6, fin=0.005, fout=0.2),            # a sodden sponge squelched
+        L(763026, 2.900, 1.80, 0.300, -6.0, 0, fin=0.1, fout=0.5, fx='lowpass=f=1800'),  # a black bear's growl, lower
+        L(869003, 0.900, 1.30, 0.320, -9.0, -6, fin=0.1, fout=0.5, keep=False),  # caged lions roaring, far lower: the second voice
+    ])
+
+
+def venomnomgrowl():
+    return layer([
+        L(763026, 2.950, 1.30, 0.000, -5.0, 0, fin=0.06, fout=0.3, fx='lowpass=f=2000'),  # a black bear's growl, lower
+        L(869003, 1.000, 0.95, 0.000, -8.0, -5, fin=0.06, fout=0.3, keep=False),  # caged lions, far lower: the second voice
+        L(547446, 3.500, 1.20, 0.050, -4.0, -6, fin=0.05, fout=0.3),            # a sodden sponge squelched: wet
+    ], post='acompressor=threshold=-24dB:ratio=3:attack=10:release=120:knee=6')
+
+
+def venomnomtongue():
+    return layer([
+        L(475131, 0.000, 0.45, 0.000, 2.0, 0, fin=0.15, fout=0.1),              # a super-heavy swoosh, higher: the tongue lashes out
+        L(346373, 0.030, 0.30, 0.120, -3.0, -4, fin=0.01, fout=0.08),           # a metal stick whipped through the air, lower
+        L(93100, 0.180, 0.35, 0.240, -4.0, -6, fin=0.002, fout=0.15, fx='lowpass=f=3500'),  # a whip cracked, lower and damped
+        L(495118, 0.010, 0.40, 0.300, -2.0, -3, fin=0.001, fout=0.15),          # a wet splat: the tongue lands
+    ])
+
+
+def venomnomsnatch():
+    return layer([
+        L(515619, 0.010, 0.40, 0.000, -2.0, 0, fin=0.001, fout=0.15),           # wet paper towels squished
+        L(531755, 0.150, 0.40, 0.020, -5.0, 0, fin=0.005, fout=0.12, keep=False),  # a hard swallow, lower and slower
+        L(829847, 0.240, 0.40, 0.400, -5.0, -6, fin=0.005, fout=0.15),          # a gulp, lower
+        L(433836, 2.300, 0.60, 0.300, -4.0, 2, fin=0.01, fout=0.3),             # a rubber stress ball squished: the slime going down
+    ])
+
+
+def venomnomcut():
+    return layer([
+        L(539163, 0.150, 0.30, 0.000, -2.0, 0, fin=0.001, fout=0.1),            # a slap
+        L(163280, 0.180, 0.40, 0.040, -5.0, -2, fin=0.005, fout=0.2),           # a Labrador's yelp, lower...
+        L(163280, 0.180, 0.26, 0.040, -10.0, -5, fin=0.005, fout=0.2, keep=False),  # ...and far lower and slower: the double voice
+        L(547206, 0.020, 0.25, 0.050, -6.0, -8, fin=0.005, fout=0.08),          # a man's pained grunt, far lower
+    ])
+
+
+def venomnomgoo():
+    return layer([
+        L(618541, 1.130, 0.95, 0.000, -6.0, 0, fin=0.03, fout=0.2),             # tape peeled off, far lower: the goo stretching
+        L(792463, 0.080, 0.50, 0.150, -5.0, -4, fin=0.02, fout=0.15),           # rubber stretched, lower
+        L(433836, 2.300, 0.70, 0.250, -3.0, -4, fin=0.01, fout=0.2),            # a rubber stress ball squished: the squelch
+    ])
+
+
+def venomnomdrain():
+    return layer([
+        L(529295, 0.500, 0.90, 0.000, -3.0, 0, fin=0.05, fout=0.15),            # a straw slurped, lower
+        L(568036, 0.100, 0.80, 0.050, -5.0, -6, fin=0.05, fout=0.15),           # coffee slurped, lower
+    ])
+
+
+def venomnomshriek():
+    return layer([
+        L(221544, 0.380, 1.20, 0.000, 2.0, 0, fin=0.02, fout=0.25),             # a wounded man screaming, a little higher...
+        L(221544, 0.380, 1.20, 0.000, -6.0, -4, fin=0.02, fout=0.25),           # ...and lower: the double voice
+        L(788212, 0.250, 1.20, 0.000, 0.0, -8, fin=0.03, fout=0.25),            # an inhaled screech: the monster in it
+    ], post='acompressor=threshold=-24dB:ratio=3:attack=10:release=120:knee=6')
+
+
+def venomnomsplit():
+    return layer([
+        L(618541, 1.130, 0.50, 0.000, -4.0, 0, fin=0.02, fout=0.05),            # tape peeled off, lower: the goo stretches...
+        L(618541, 2.880, 0.35, 0.420, -4.0, 2, fin=0.002, fout=0.15),           # ...and rips
+        L(495117, 0.010, 0.45, 0.450, -3.0, -2, fin=0.001, fout=0.2),           # a wet cloth slapped: it tears apart
+        L(433823, 3.800, 0.50, 0.500, -3.0, 0, fin=0.01, fout=0.1),             # a rubber stress ball squished
+    ])
+
+
+def venomnomdeath():
+    return layer([
+        L(221544, 0.380, 1.20, 0.000, 2.0, 0, fin=0.02, fout=0.3),              # a wounded man screaming, a little higher...
+        L(221544, 0.380, 1.20, 0.000, -6.0, -4, fin=0.02, fout=0.3),            # ...and lower: the shriek
+        L(862443, 0.300, 2.00, 0.800, -3.0, 0, fin=0.2, fout=0.3),              # boiling water spilling, sizzling: he melts
+        L(495117, 0.010, 0.45, 1.000, -4.0, -2, fin=0.001, fout=0.2),           # a wet cloth slapped: the splatter
+        L(547446, 3.500, 1.20, 1.050, -3.0, -4, fin=0.01, fout=0.4),            # a sodden sponge squelched
+    ])
+
+
+# --- the comics villains · the Cheetoe ---
+def cheetoeenter():
+    return layer([
+        L(20185, 0.040, 0.50, 0.000, -8.0, -4, fin=0.001, fout=0.2, fx='lowpass=f=600'),  # a massed stomp, lower: she lands
+        L(263115, 1.450, 1.20, 0.120, -2.0, 0, fin=0.03, fout=0.4),            # a tiger's roar, a little lower
+    ])
+
+
+def cheetoedash():
+    return layer([
+        L(475131, 0.000, 0.55, 0.000, 5.0, 0, fin=0.05, fout=0.12, keep=False),  # a super-heavy swoosh, higher and faster
+        L(575836, 0.330, 0.30, 0.040, 2.0, -6, fin=0.03, fout=0.12),            # a fast swoosh, higher
+        L(396013, 0.000, 0.40, 0.000, 0.0, 6, fin=0.02, fout=0.15),            # grass rustling: her feet
+    ], post='acompressor=threshold=-26dB:ratio=4:attack=5:release=80:knee=6')
+
+
+def cheetoecrouch():
+    return layer([
+        L(146968, 0.100, 1.10, 0.000, -9.0, 6, fin=0.05, fout=0.3),             # a cat growling, far lower
+        L(869003, 1.700, 0.85, 0.000, -6.0, -6, fin=0.1, fout=0.3, keep=False, fx='lowpass=f=1200'),  # a lion's rumble, lower
+    ], post='acompressor=threshold=-24dB:ratio=3:attack=10:release=120:knee=6')
+
+
+def cheetoepounce():
+    return layer([
+        L(276600, 0.170, 0.35, 0.000, -4.0, 0, fin=0.001, fout=0.12),           # a gloved hand's thud, lower: she lands
+        L(20185, 0.040, 0.45, 0.000, -8.0, -4, fin=0.001, fout=0.2, fx='lowpass=f=600'),  # a massed stomp, lower
+        L(530959, 0.720, 0.50, 0.030, -4.0, 0, fin=0.01, fout=0.15),            # an angry cat's snarl, lower
+    ])
+
+
+def cheetoeslash():
+    return layer([
+        L(475131, 0.000, 0.55, 0.000, 7.0, 0, fin=0.05, fout=0.12, keep=False),  # a super-heavy swoosh, higher and faster: the swipe
+        L(830466, 0.330, 0.25, 0.140, 0.0, 8, fin=0.003, fout=0.1),             # claws on wood
+    ], post='acompressor=threshold=-26dB:ratio=4:attack=5:release=80:knee=6')
+
+
+def cheetoescratch():
+    return layer([
+        L(830466, 0.750, 0.25, 0.000, 0.0, 14, fin=0.003, fout=0.08),           # clawing at wood, twice: the rake
+        L(830466, 3.950, 0.25, 0.050, 0.0, 13, fin=0.003, fout=0.08),
+        L(498842, 4.100, 0.38, 0.020, 0.0, 20, fin=0.003, fout=0.15),           # a cat scratching a wooden floor
+    ], post='highpass=f=1200')
+
+
+def cheetoehiss():
+    return layer([
+        L(146963, 0.400, 0.80, 0.000, -2.0, 0, fin=0.02, fout=0.25),            # a cat hissing, a little lower
+        L(146960, 1.000, 0.80, 0.000, -2.0, -4, fin=0.02, fout=0.25),
+    ])
+
+
+def cheetoerustle():
+    return layer([
+        L(178615, 0.050, 0.76, 0.000, 0.0, 0, fin=0.01, fout=0.2),              # a bush shaken
+        L(396013, 0.000, 0.60, 0.150, 0.0, -2, fin=0.02, fout=0.2),            # grass rustling
+    ])
+
+
+def cheetoeflush():
+    return layer([
+        L(178615, 0.050, 0.45, 0.000, 0.0, 8, fin=0.005, fout=0.15),            # a bush shaken hard: the leaves burst
+        L(682079, 0.020, 0.70, 0.060, 0.0, 0, fin=0.01, fout=0.2),              # a cat yowling
+    ], post='acompressor=threshold=-24dB:ratio=3:attack=10:release=120:knee=6')
+
+
+def cheetoedeath():
+    return layer([
+        L(682078, 0.100, 0.75, 0.000, -3.0, 0, fin=0.02, fout=0.3, keep=False),  # a cat yowling, lower and slower, falling
+        L(261296, 0.520, 0.62, 1.000, -3.0, 0, fin=0.002, fout=0.2),            # a body falling to the floor: she collapses
+        L(178615, 0.050, 0.62, 1.000, 0.0, 6, fin=0.01, fout=0.15),             # a bush shaken: the leaves
+    ])
+
+
+# --- the hero variants (the upgraded hero peels on their nemesis stages) ---
+def ghostsparta():
+    return layer([
+        L(695376, 0.200, 0.76, 0.000, -5.0, 0, fin=0.02, fout=0.15, keep=False, fx='acrusher=bits=9:mix=0.25'),  # a man's battle cry,
+        L(695376, 0.200, 0.76, 0.000, -12.0, 3, fin=0.02, fout=0.15, keep=False, fx='acrusher=bits=9:mix=0.25'),  # lower and
+        # slower, and far lower under it: a deeper, distorted shout
+        L(244926, 0.150, 2.40, 0.050, -3.0, -4, fin=0.02, fout=0.4),            # diesel thrown on a fire, lower: the fire
+        L(20185, 0.040, 0.60, 0.000, -10.0, -6, fin=0.001, fout=0.3, fx='lowpass=f=400'),  # a massed stomp, far lower: the thump
+    ])
+
+
+def firetrail():
+    return layer([L(637533, 0.020, 0.50, 0.000, -2.0, 0, fin=0.03, fout=0.2)])  # a barbecue's flame bursting alight, lower
+
+
+def heroendgame():
+    stab = [L(413203, 2.270, 0.95, 0.400, s, d, fin=0.01, fout=0.4) for s, d in ((-3.0, 0), (1.0, -1), (4.0, 1))]
+    return layer([L('old:sfx_hero_endgame', 0.0, 1.46, 0.0, 0.0, 0, fin=0.002, fout=0.2)] + stab)  # a real trumpet's note, three
+    # times over as a G major chord: the brass stab
+
+
+def unleashed():
+    return layer([
+        L(188767, 0.150, 1.00, 0.000, -2.0, 0, fin=0.002, fout=0.4),            # a crack of thunder, a little lower
+        L(505113, 0.700, 1.90, 0.050, 0.0, 0, fin=0.05, fout=0.6),             # a close clap of thunder rolling
+        L(188767, 0.150, 1.00, 0.800, -4.0, -3, fin=0.002, fout=0.4),           # another crack, lower
+        L(38244, 0.000, 1.80, 0.800, -2.0, -6, fin=0.1, fout=0.6),             # thunder rolling on, a little lower
+    ])
+
+
+def ascended():
+    caws = [L(827424, s, 0.24, t, -2.0, d, fin=0.005, fout=0.08) for s, t, d in ((1.820, 0.90, 0), (3.420, 1.18, -1), (5.150, 1.46, 0))]
+    return layer([
+        L(392180, 0.080, 1.40, 0.000, -12.0, 0, fin=0.06, fout=0.3),           # a battle horn blown, an octave lower
+        L(479998, 0.150, 1.40, 0.000, -10.0, 0, fin=0.08, fout=0.3),           # a cow horn blown, far lower, under it
+    ] + caws)                                                                  # and a raven cawing three times, a little lower
+
+
+def unbound():
+    return layer([
+        L('old:sfx_hero_unbound', 0.0, 1.87, 0.0, 0.0, 0, fin=0.002, fout=0.3),
+        L(188767, 0.150, 1.60, 0.200, -2.0, -2, fin=0.002, fout=0.5),           # a real crack of thunder, a little lower
+    ])
+
+
+def tendril():
+    return layer([
+        L(346373, 0.030, 0.30, 0.000, 0.0, 0, fin=0.01, fout=0.1),              # a metal stick whipped through the air: it lashes out
+        L(618541, 2.880, 0.35, 0.200, -3.0, -2, fin=0.005, fout=0.12),          # tape peeled off, lower: it sticks
+        L(433836, 2.300, 0.40, 0.200, -2.0, 0, fin=0.005, fout=0.15),           # a rubber stress ball squished: the squelch
+        L(547446, 3.520, 0.40, 0.180, -2.0, -2, fin=0.01, fout=0.15),           # a sodden sponge squelched
+    ], post='acompressor=threshold=-26dB:ratio=4:attack=5:release=80:knee=6')
+
+
+def amazon():
+    return layer([
+        L('old:sfx_hero_amazon', 0.0, 1.30, 0.0, 0.0, 0, fin=0.002, fout=0.2),
+        L(93100, 0.180, 0.35, 0.230, 0.0, -6, fin=0.002, fout=0.15),           # a real whip crack: the golden lasso
+        L(509881, 0.300, 0.90, 0.400, 0.0, -2, fin=0.01, fout=0.25),           # a woman shouting: the war cry
+    ])
+
+
+# --- the Goth-Ham Rooftops ambience: heavy rain on the roof, a gutter running and dripping, wind, two distant thunders and
+# once a siren far across the city (the take starts XF s before the loop, so the thunders at 17.5 and 40 s and the siren
+# at 27 s in it land where the old bed's did, at 12.5, 35 and 22 s; a thunder's loudest moment comes about a second in) ---
+def gothamloop():
+    return layer2([
+        Ls(527499, 3.000, LOOP + XF, 0.0, 0.0, 4, fin=0.01, fout=0.01),          # heavy rain on a large plastic shed roof
+        Ls(652260, 20.000, LOOP + XF, 0.0, 0.0, 7, fin=0.01, fout=0.01, fx='highpass=f=150'),  # rain running in a gutter
+        Ls(454092, 61.000, LOOP + XF, 0.0, 0.0, 20, fin=0.01, fout=0.01, fx='lowpass=f=1500'),  # strong gusts of wind, far off
+        Ls(581124, 0.300, 7.80, 17.5, -2.0, 16, fin=0.3, fout=2.5, fx='lowpass=f=1000'),  # distant thunder rolling, a little lower
+        Ls(319565, 39.000, 7.00, 39.6, -2.0, 4, fin=0.3, fout=2.5, fx='lowpass=f=1000'),  # a distant thunderstorm, a little lower
+        Ls(451068, 0.100, 3.80, 27.0, 0.0, 17, fin=1.2, fout=1.5, fx='lowpass=f=2500'),  # an ambulance's siren far off, echoing
+    ], post='acompressor=threshold=-30dB:ratio=2.5:attack=40:release=500:knee=6')
+
+
 AMB = {'jotunheim': ('ambience_jotunheim', lambda: wrap(jotunheim())), 'bifrost': ('ambience_bifrost', bifrost),
        'firstpizzeria': ('ambience_firstpizzeria', lambda: wrap(firstpizzeria()), dict(limit=0.62)),
-       'hotgates': ('ambience_hotgates', lambda: wrap(hotgatesloop()))}
+       'hotgates': ('ambience_hotgates', lambda: wrap(hotgatesloop())),
+       'gotham': ('ambience_gotham', lambda: wrap(gothamloop()))}
 
 RECIPES = {
     'spartanchant': ('sfx_hero_spartanchant', chant, 2.25, -10.3, 0.3),
@@ -2565,6 +3144,74 @@ RECIPES = {
     'holdline': ('sfx_hero_holdline', holdline, 1.07, -10.4, 0.21, 0.70),
     'spear': ('sfx_hero_spear', spear, 0.59, -12.0, 0.12),
     'herohotgates': ('sfx_hero_hotgates', hotgates, 2.40, -9.9, 0.40),
+    # batch 6 (the same rule for the level)
+    'bunionenter': ('sfx_bunion_enter', bunionenter, 1.80, -11.1, 0.36, 0.84, LIGHT),
+    'bunionpump': ('sfx_bunion_pump', bunionpump, 1.24, -13.7, 0.25),
+    'bunionsurge': ('sfx_bunion_surge', bunionsurge, 1.80, -12.4, 0.36),
+    'bunionsmash': ('sfx_bunion_smash', bunionsmash, 1.17, -10.8, 0.23, 0.84, LIGHT),
+    'buniontubehit': ('sfx_bunion_tubehit', buniontubehit, 0.41, -13.5, 0.08, 0.84, LIGHT),
+    'buniondrain': ('sfx_bunion_drain', buniondrain, 1.19, -11.6, 0.24, 0.84, LIGHT),
+    'buniongrab': ('sfx_bunion_grab', buniongrab, 0.74, -10.7, 0.15),
+    'bunionstrain': ('sfx_bunion_strain', bunionstrain, 0.34, -14.9, 0.07),
+    'bunionbreak': ('sfx_bunion_break', bunionbreak, 1.00, -12.1, 0.20, 0.75, LIGHT),
+    'bunionsaved': ('sfx_bunion_saved', bunionsaved, 0.76, -11.4, 0.15, 0.84, LIGHT),
+    'buniondeath': ('sfx_bunion_death', buniondeath, 2.40, -11.4, 0.40, 0.84, LIGHT),
+    'jokesterenter': ('sfx_jokester_enter', jokesterenter, 1.08, -11.1, 0.22),
+    'jokesterlaugh': ('sfx_jokester_laugh', jokesterlaugh, 1.18, -11.8, 0.24),
+    'jokestertoss': ('sfx_jokester_toss', jokestertoss, 0.70, -13.0, 0.14),
+    'jokestertick': ('sfx_jokester_tick', jokestertick, 1.06, -14.6, 0.21, 0.70),
+    'jokesterboom': ('sfx_jokester_boom', jokesterboom, 1.23, -10.8, 0.25, 0.84, LIGHT),
+    'jokesterdefuse': ('sfx_jokester_defuse', jokesterdefuse, 0.66, -11.9, 0.13, 0.62),
+    'jokestergift': ('sfx_jokester_gift', jokestergift, 0.95, -12.6, 0.19),
+    'jokestergas': ('sfx_jokester_gas', jokestergas, 0.92, -12.9, 0.18),
+    'jokesterclear': ('sfx_jokester_clear', jokesterclear, 0.79, -10.0, 0.16),
+    'jokestergiggle': ('sfx_jokester_giggle', jokestergiggle, 0.40, -12.3, 0.08),
+    'jokesterjack': ('sfx_jokester_jack', jokesterjack, 1.70, -10.7, 0.34),
+    'jokesterspring': ('sfx_jokester_spring', jokesterspring, 0.81, -10.9, 0.16),
+    'jokesterpie': ('sfx_jokester_pie', jokesterpie, 0.54, -11.1, 0.11, 0.75),
+    'jokestersplat': ('sfx_jokester_splat', jokestersplat, 0.90, -12.4, 0.18, 0.84, LIGHT),
+    'jokesterteeth': ('sfx_jokester_teeth', jokesterteeth, 1.19, -13.7, 0.24, 0.70),
+    'jokesterweight': ('sfx_jokester_weight', jokesterweight, 1.79, -12.1, 0.36),
+    'jokesterthud': ('sfx_jokester_thud', jokesterthud, 1.40, -10.9, 0.28, 0.84, LIGHT),
+    'jokesterbang': ('sfx_jokester_bang', jokesterbang, 0.61, -10.8, 0.12, 0.70),
+    'jokesterwindow': ('sfx_jokester_window', jokesterwindow, 2.17, -11.5, 0.40),
+    'jokesterdeath': ('sfx_jokester_death', jokesterdeath, 2.36, -11.7, 0.40),
+    'darkfalls': ('sfx_hero_darkfalls', darkfalls, 2.00, -10.1, 0.40),
+    'redsoleenter': ('sfx_redsole_enter', redsoleenter, 2.40, -8.7, 0.40),
+    'redsolelaugh': ('sfx_redsole_laugh', redsolelaugh, 1.30, -9.7, 0.26),
+    'redsoleturret': ('sfx_redsole_turret', redsoleturret, 0.77, -11.4, 0.15),
+    'redsolespray': ('sfx_redsole_spray', redsolespray, 0.90, -10.5, 0.18),
+    'redsolecap': ('sfx_redsole_cap', redsolecap, 0.62, -11.4, 0.12, 0.70),
+    'redsolestomp': ('sfx_redsole_stomp', redsolestomp, 0.60, -10.2, 0.12, 0.84, LIGHT),
+    'redsoledeath': ('sfx_redsole_death', redsoledeath, 2.63, -10.9, 0.40),
+    'venomnomenter': ('sfx_venomnom_enter', venomnomenter, 2.20, -11.7, 0.40),
+    'venomnomgrowl': ('sfx_venomnom_growl', venomnomgrowl, 1.30, -12.7, 0.26),
+    'venomnomtongue': ('sfx_venomnom_tongue', venomnomtongue, 0.71, -11.7, 0.14, 0.75),
+    'venomnomsnatch': ('sfx_venomnom_snatch', venomnomsnatch, 0.90, -12.7, 0.18, 0.84, LIGHT),
+    'venomnomcut': ('sfx_venomnom_cut', venomnomcut, 0.53, -11.0, 0.11),
+    'venomnomgoo': ('sfx_venomnom_goo', venomnomgoo, 0.99, -12.2, 0.20),
+    'venomnomdrain': ('sfx_venomnom_drain', venomnomdrain, 0.90, -12.3, 0.18),
+    'venomnomshriek': ('sfx_venomnom_shriek', venomnomshriek, 1.20, -12.3, 0.24),
+    'venomnomsplit': ('sfx_venomnom_split', venomnomsplit, 0.95, -11.6, 0.19),
+    'venomnomdeath': ('sfx_venomnom_death', venomnomdeath, 2.80, -11.3, 0.40),
+    'cheetoeenter': ('sfx_cheetoe_enter', cheetoeenter, 1.32, -11.0, 0.26),
+    'cheetoedash': ('sfx_cheetoe_dash', cheetoedash, 0.40, -12.8, 0.08, 0.60),
+    'cheetoecrouch': ('sfx_cheetoe_crouch', cheetoecrouch, 1.10, -14.1, 0.22),
+    'cheetoepounce': ('sfx_cheetoe_pounce', cheetoepounce, 0.53, -10.8, 0.11),
+    'cheetoeslash': ('sfx_cheetoe_slash', cheetoeslash, 0.39, -12.2, 0.08, 0.75),
+    'cheetoescratch': ('sfx_cheetoe_scratch', cheetoescratch, 0.42, -11.6, 0.08, 0.75),
+    'cheetoehiss': ('sfx_cheetoe_hiss', cheetoehiss, 0.80, -12.2, 0.16),
+    'cheetoerustle': ('sfx_cheetoe_rustle', cheetoerustle, 0.76, -12.3, 0.15),
+    'cheetoeflush': ('sfx_cheetoe_flush', cheetoeflush, 0.76, -9.5, 0.15),
+    'cheetoedeath': ('sfx_cheetoe_death', cheetoedeath, 1.59, -10.4, 0.32),
+    'ghostsparta': ('sfx_hero_ghostsparta', ghostsparta, 2.40, -11.1, 0.40),
+    'firetrail': ('sfx_hero_firetrail', firetrail, 0.50, -11.4, 0.10),
+    'heroendgame': ('sfx_hero_endgame', heroendgame, 1.46, -10.4, 0.29),
+    'unleashed': ('sfx_hero_unleashed', unleashed, 2.60, -10.5, 0.40),
+    'ascended': ('sfx_hero_ascended', ascended, 1.67, -9.9, 0.33),
+    'unbound': ('sfx_hero_unbound', unbound, 1.87, -11.2, 0.37),
+    'tendril': ('sfx_hero_tendril', tendril, 0.60, -11.7, 0.12),
+    'amazon': ('sfx_hero_amazon', amazon, 1.30, -10.8, 0.26, 0.65),
 }
 
 if __name__ == '__main__':
@@ -2586,6 +3233,7 @@ if __name__ == '__main__':
                 amb_loop(AMB[nm][0], AMB[nm][1](), **(AMB[nm][2] if len(AMB[nm]) > 2 else {}))
                 continue
             key, fn, dur, level, fade = RECIPES[nm][:5]
-            master(fn(), key, dur, level, fade, limit=RECIPES[nm][5] if len(RECIPES[nm]) > 5 else 0.84)
+            extra = dict(comp=RECIPES[nm][6]) if len(RECIPES[nm]) > 6 else {}  # (a recipe may set its own compressor)
+            master(fn(), key, dur, level, fade, limit=RECIPES[nm][5] if len(RECIPES[nm]) > 5 else 0.84, **extra)
     finally:
         shutil.rmtree(TMP, ignore_errors=True)

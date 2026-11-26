@@ -39,7 +39,8 @@ MUSIC = [
 # Files since re-made from real recordings by scripts/real-sfx/build.py (the audio pass, docs/audio-audit.md): not
 # copied over, so running this again doesn't put the synthesized versions back (their credits and TRIM entries are
 # only ever added when missing, so they are left as they are too).
-# (all of Tartarus and the Hot Gates: build.py with no selection renders every recipe file into one report)
+# (all of Tartarus, the Hot Gates, the comics villains and the hero variants: build.py with no selection renders every
+# recipe file into one report)
 REAL = {
     'sfx_titanking_enter', 'sfx_titanking_roar', 'sfx_titanking_flip', 'sfx_titanking_tick',
     'sfx_titanking_shatter', 'sfx_titanking_chomp', 'sfx_titanking_chew', 'sfx_titanking_jawhit',
@@ -55,6 +56,14 @@ REAL = {
     'sfx_immortalbrute_death', 'sfx_xerxes_enter', 'sfx_xerxes_laugh', 'sfx_xerxes_arrows', 'sfx_xerxes_volley',
     'sfx_xerxes_rhino', 'sfx_xerxes_charge', 'sfx_xerxes_turn', 'sfx_xerxes_elephants', 'sfx_xerxes_death',
     'sfx_hero_holdline', 'sfx_hero_spear', 'sfx_hero_hotgates',
+    # batch 6: the comics villains (the Red Sole, Venomnom, the Cheetoe) and the hero variants
+    'sfx_redsole_enter', 'sfx_redsole_laugh', 'sfx_redsole_turret', 'sfx_redsole_spray', 'sfx_redsole_cap',
+    'sfx_redsole_stomp', 'sfx_redsole_death', 'sfx_venomnom_enter', 'sfx_venomnom_growl', 'sfx_venomnom_tongue',
+    'sfx_venomnom_snatch', 'sfx_venomnom_cut', 'sfx_venomnom_goo', 'sfx_venomnom_drain', 'sfx_venomnom_shriek',
+    'sfx_venomnom_split', 'sfx_venomnom_death', 'sfx_cheetoe_enter', 'sfx_cheetoe_dash', 'sfx_cheetoe_crouch',
+    'sfx_cheetoe_pounce', 'sfx_cheetoe_slash', 'sfx_cheetoe_scratch', 'sfx_cheetoe_hiss', 'sfx_cheetoe_rustle',
+    'sfx_cheetoe_flush', 'sfx_cheetoe_death', 'sfx_hero_ghostsparta', 'sfx_hero_firetrail', 'sfx_hero_endgame',
+    'sfx_hero_unleashed', 'sfx_hero_ascended', 'sfx_hero_unbound', 'sfx_hero_tendril', 'sfx_hero_amazon',
 }
 for d in rep:
     if d['key'] not in REAL:

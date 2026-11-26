@@ -2491,11 +2491,20 @@
   },
   {
     "file": "sfx_doomstomp_quake.mp3",
-    "title": "Cracking Earthquake (cracking soil, cracking stone)",
-    "author": "uagadugu (freesound.org)",
+    "title": "Smash rock (Version 1)",
+    "author": "JacquesLabuschagne242028 (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/JacquesLabuschagne242028/sounds/765844/",
+    "notes": "Act 7: BONE QUAKE tell: the table shudders; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a rock smashed three times and rock crumbling, both lower, and a window shaking in a quake, under the old synthesized rumble. This source: the cracks; trimmed, pitch-shifted and layered",
+    "attribution": "\"Smash rock (Version 1)\" by JacquesLabuschagne242028 (freesound.org), https://freesound.org/people/JacquesLabuschagne242028/sounds/765844/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_doomstomp_quake.mp3",
+    "title": "PiedraDesmoronandose.wav",
+    "author": "Trancox (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://freesound.org/people/uagadugu/sounds/222521/",
-    "notes": "Act 7: BONE QUAKE tell: the table shudders; built from real recordings with ffmpeg (scripts/real-sfx/build.py): earth cracking open and a window shaking in a quake, under the old synthesized rumble. This source: the earth cracking; trimmed, pitch-shifted and layered"
+    "url": "https://freesound.org/people/Trancox/sounds/391919/",
+    "notes": "Act 7: BONE QUAKE tell: the table shudders: the crumbling; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_doomstomp_quake.mp3",
@@ -5621,115 +5630,325 @@
   },
   {
     "file": "sfx_bunion_enter.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Foot Stomp C.wav",
+    "author": "patchen (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/patchen/sounds/20185/",
+    "notes": "Batpeel's Gotham: Bunion drops in: a heavy crunching landing and a low grunt; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a massed stomp on a plywood floor, far lower, and a crash of tiles, stone and metal, lower, as he lands, a bite of crispy toast, lower, for the crunch, and a warrior's grunt, far lower and slower. This source: the stomp; trimmed, pitch-shifted and layered",
+    "attribution": "\"Foot Stomp C.wav\" by patchen (freesound.org), https://freesound.org/people/patchen/sounds/20185/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_bunion_enter.mp3",
+    "title": "Big falling debris (crash)",
+    "author": "xkeril (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Batpeel's Gotham: Bunion drops in: a heavy crunching landing and a low grunt; a synthesized sub landing and a low grunt, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactMining_001, impactPunch_heavy_001 and Sci-fi Sounds explosionCrunch_003 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/xkeril/sounds/703247/",
+    "notes": "Batpeel's Gotham: Bunion drops in: a heavy crunching landing and a low grunt: the crash; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_bunion_enter.mp3",
+    "title": "Crunch",
+    "author": "qubodup (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/qubodup/sounds/816237/",
+    "notes": "Batpeel's Gotham: Bunion drops in: a heavy crunching landing and a low grunt: the crunch; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_bunion_enter.mp3",
+    "title": "Swing grunt.mp3",
+    "author": "DeqstersLab (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/DeqstersLab/sounds/661242/",
+    "notes": "Batpeel's Gotham: Bunion drops in: a heavy crunching landing and a low grunt: the grunt; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_bunion_pump.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Hand Pump",
+    "author": "Jofae (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Batpeel's Gotham: a venom tube fills to full: pump gurgle and hiss (tell); a synthesized pump stroke, gurgle and pressure hiss, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds slime_000 and Impact Sounds impactGlass_light_001 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/Jofae/sounds/361771/",
+    "notes": "Batpeel's Gotham: a venom tube fills to full: pump gurgle and hiss (tell); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a hand sprayer pumped, its water bubbling under the pressure, a little lower, and a steam hiss rising. This source: the pump; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_bunion_pump.mp3",
+    "title": "Steam/hiss",
+    "author": "wubitog (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/wubitog/sounds/234782/",
+    "notes": "Batpeel's Gotham: a venom tube fills to full: pump gurgle and hiss (tell): the hiss; trimmed and layered"
   },
   {
     "file": "sfx_bunion_surge.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Lions Roaring 1",
+    "author": "Filmscore (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Batpeel's Gotham: VENOM SURGE tell: a monstrous roar with bubbling; a synthesized monster roar over boiling bubbles, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds slime_001 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/Filmscore/sounds/869002/",
+    "notes": "Batpeel's Gotham: VENOM SURGE tell: a monstrous roar with bubbling; built from real recordings with ffmpeg (scripts/real-sfx/build.py): caged lions roaring, far lower and slower, a black bear's growl, lower, and a pot of spaghetti boiling, lower, for the bubbling, swelling to the end. This source: the lions; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_bunion_surge.mp3",
+    "title": "Bear Angry Growl",
+    "author": "celldroid (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/celldroid/sounds/763026/",
+    "notes": "Batpeel's Gotham: VENOM SURGE tell: a monstrous roar with bubbling: the bear; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_bunion_surge.mp3",
+    "title": "boiling bubbles 1.wav",
+    "author": "Jace (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/Jace/sounds/19841/",
+    "notes": "Batpeel's Gotham: VENOM SURGE tell: a monstrous roar with bubbling: the boiling; trimmed, pitch-shifted and layered",
+    "attribution": "\"boiling bubbles 1.wav\" by Jace (freesound.org), https://freesound.org/people/Jace/sounds/19841/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
   },
   {
     "file": "sfx_bunion_smash.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Foot Stomp C.wav",
+    "author": "patchen (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/patchen/sounds/20185/",
+    "notes": "Batpeel's Gotham: the VENOM SURGE stomp lands on a pizza; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a massed stomp on a plywood floor, far lower, a crash of tiles, stone and metal, lower, and a bite of crispy toast, lower, as the pizza crunches. This source: the stomp; trimmed, pitch-shifted and layered",
+    "attribution": "\"Foot Stomp C.wav\" by patchen (freesound.org), https://freesound.org/people/patchen/sounds/20185/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_bunion_smash.mp3",
+    "title": "Fall debris (crash)",
+    "author": "xkeril (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Batpeel's Gotham: the VENOM SURGE stomp lands on a pizza; a synthesized sub stomp, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactPunch_heavy_003, impactMining_004, impactWood_heavy_002 and Sci-fi Sounds lowFrequency_explosion_000 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/xkeril/sounds/703248/",
+    "notes": "Batpeel's Gotham: the VENOM SURGE stomp lands on a pizza: the crash; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_bunion_smash.mp3",
+    "title": "Crunch",
+    "author": "qubodup (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/qubodup/sounds/816237/",
+    "notes": "Batpeel's Gotham: the VENOM SURGE stomp lands on a pizza: the crunch; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_bunion_tubehit.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Beach Ball Bouncing.wav",
+    "author": "juanstrydom2002 (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Batpeel's Gotham: smack on a venom tube: a thick rubber and glass thunk with a slosh; a synthesized slosh, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactSoft_medium_002, impactGlass_medium_001 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/juanstrydom2002/sounds/655040/",
+    "notes": "Batpeel's Gotham: smack on a venom tube: a thick rubber and glass thunk with a slosh; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a beach ball's thick rubber bounce on a wooden floor, damped, and water sloshing in a glass bottle, both a little lower. This source: the bounce; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_bunion_tubehit.mp3",
+    "title": "Water + glass bottle, sloshing 4",
+    "author": "giddster (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/giddster/sounds/386432/",
+    "notes": "Batpeel's Gotham: smack on a venom tube: a thick rubber and glass thunk with a slosh: the slosh; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_bunion_drain.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "bottle-glugs.wav",
+    "author": "isbeorn (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Batpeel's Gotham: a venom tube is drained: a glugging hiss, deflating; synthesized glugs, a falling hiss and a deflating squeal, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds slime_000 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/isbeorn/sounds/553954/",
+    "notes": "Batpeel's Gotham: a venom tube is drained: a glugging hiss, deflating; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a bottle glugging three times, lower, and a balloon deflating, hissing. This source: the glugs; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_bunion_drain.mp3",
+    "title": "Balloon-Deflate-03.wav",
+    "author": "Gniffelbaf (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Gniffelbaf/sounds/82124/",
+    "notes": "Batpeel's Gotham: a venom tube is drained: a glugging hiss, deflating: the balloon; trimmed and layered"
   },
   {
     "file": "sfx_bunion_grab.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Belt buckle - Leather jacket",
+    "author": "Vrymaa (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Batpeel's Gotham: THE BREAK starts: he grabs a pizza (leather creak and a grunt); a synthesized effort grunt, made with ffmpeg and Python and released as CC0, layered with Kenney RPG Audio handleSmallLeather, creak2, dropLeather (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/Vrymaa/sounds/734599/",
+    "notes": "Batpeel's Gotham: THE BREAK starts: he grabs a pizza (leather creak and a grunt); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a leather biker jacket creaking, a little lower, and a man grunting with effort, lower and slower. This source: the leather; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_bunion_grab.mp3",
+    "title": "Grunting effort pushing something.wav",
+    "author": "DeqstersLab (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/DeqstersLab/sounds/680135/",
+    "notes": "Batpeel's Gotham: THE BREAK starts: he grabs a pizza (leather creak and a grunt): the grunt; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_bunion_strain.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Creaking Wood 12.wav",
+    "author": "Greg_Surr (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Batpeel's Gotham: the crust creaks under the strain (repeats); a synthesized stick-slip crust creak, made with ffmpeg and Python and released as CC0, layered with Kenney RPG Audio creak1 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/Greg_Surr/sounds/590147/",
+    "notes": "Batpeel's Gotham: the crust creaks under the strain (repeats); built from real recordings with ffmpeg (scripts/real-sfx/build.py): creaking wood and a corn chip cracking, both a little lower. This source: the creak; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_bunion_strain.mp3",
+    "title": "Biting Corn Chip 04",
+    "author": "HECKFRICKER (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/HECKFRICKER/sounds/753310/",
+    "notes": "Batpeel's Gotham: the crust creaks under the strain (repeats): the crack; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_bunion_break.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Snapping, Wooden Fence, R.wav",
+    "author": "InspectorJ (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/InspectorJ/sounds/352198/",
+    "notes": "Batpeel's Gotham: the pizza breaks: a big crunchy crack; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a wooden fence panel snapped, lower, and a plank breaking splinter by splinter, a bite of crispy toast and a corn chip bitten, all a little lower, for the crust. This source: the snap; trimmed, pitch-shifted and layered",
+    "attribution": "\"Snapping, Wooden Fence, R.wav\" by InspectorJ (freesound.org), https://freesound.org/people/InspectorJ/sounds/352198/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_bunion_break.mp3",
+    "title": "Breaking wood",
+    "author": "jorickhoofd (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/jorickhoofd/sounds/178658/",
+    "notes": "Batpeel's Gotham: the pizza breaks: a big crunchy crack: the splinters; trimmed, pitch-shifted and layered",
+    "attribution": "\"Breaking wood\" by jorickhoofd (freesound.org), https://freesound.org/people/jorickhoofd/sounds/178658/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_bunion_break.mp3",
+    "title": "Crunch",
+    "author": "qubodup (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Batpeel's Gotham: the pizza breaks: a big crunchy crack; a synthesized crust crunch, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactWood_heavy_001, impactPlank_medium_000, impactWood_medium_003 and Sci-fi Sounds explosionCrunch_001 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/qubodup/sounds/816237/",
+    "notes": "Batpeel's Gotham: the pizza breaks: a big crunchy crack: the toast; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_bunion_break.mp3",
+    "title": "Biting Corn Chip 04",
+    "author": "HECKFRICKER (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/HECKFRICKER/sounds/753310/",
+    "notes": "Batpeel's Gotham: the pizza breaks: a big crunchy crack: the chip; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_bunion_saved.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "body_hit.wav",
+    "author": "insanity54 (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Batpeel's Gotham: you foil THE BREAK: he's shoved back (thud and whoosh); a synthesized whoosh, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactPunch_heavy_000, impactSoft_heavy_001 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/insanity54/sounds/276600/",
+    "notes": "Batpeel's Gotham: you foil THE BREAK: he's shoved back (thud and whoosh); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a gloved hand's thud on a helmet (it sounds like a punch), a super-heavy swoosh as he's thrown back and a body falling heavily to the floor, all lower. This source: the shove; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_bunion_saved.mp3",
+    "title": "FX - Swoosh - Super Heavy (for swords, sticks, punches, etc)",
+    "author": "bolkmar (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/bolkmar/sounds/475131/",
+    "notes": "Batpeel's Gotham: you foil THE BREAK: he's shoved back (thud and whoosh): the swoosh; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_bunion_saved.mp3",
+    "title": "Body falling to floor 7",
+    "author": "JakLocke (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/JakLocke/sounds/261296/",
+    "notes": "Batpeel's Gotham: you foil THE BREAK: he's shoved back (thud and whoosh): the fall; trimmed, pitch-shifted and layered",
+    "attribution": "\"Body falling to floor 7\" by JakLocke (freesound.org), https://freesound.org/people/JakLocke/sounds/261296/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
   },
   {
     "file": "sfx_bunion_death.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Glass Break 1.wav",
+    "author": "mccormick_iain (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Batpeel's Gotham: his tubes burst and he deflates (hiss, splatter, thud); a synthesized burst hiss, splatter and deflating squeal, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactSoft_heavy_003, impactGlass_heavy_000, impactPunch_heavy_004 and Sci-fi Sounds slime_001 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/mccormick_iain/sounds/371094/",
+    "notes": "Batpeel's Gotham: his tubes burst and he deflates (hiss, splatter, thud); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a large glass bottle shattering as the tubes burst, compressed air released (from machinery on an oil rig) for the venom spraying out, a wet washcloth slapped into water for the splatter and a balloon deflating as he goes down, all lower, then a massed stomp on a plywood floor and a crash of tiles, stone and metal, both far lower, as he hits the floor. This source: the tubes; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_bunion_death.mp3",
+    "title": "Slips air release v2",
+    "author": "mcpable (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/mcpable/sounds/131933/",
+    "notes": "Batpeel's Gotham: his tubes burst and he deflates (hiss, splatter, thud): the burst; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_bunion_death.mp3",
+    "title": "Wet Splat 2.mp3",
+    "author": "nebulasnails (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/nebulasnails/sounds/495117/",
+    "notes": "Batpeel's Gotham: his tubes burst and he deflates (hiss, splatter, thud): the splatter; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_bunion_death.mp3",
+    "title": "Balloon-Deflate-02.wav",
+    "author": "Gniffelbaf (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Gniffelbaf/sounds/82123/",
+    "notes": "Batpeel's Gotham: his tubes burst and he deflates (hiss, splatter, thud): the balloon; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_bunion_death.mp3",
+    "title": "Foot Stomp C.wav",
+    "author": "patchen (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/patchen/sounds/20185/",
+    "notes": "Batpeel's Gotham: his tubes burst and he deflates (hiss, splatter, thud): the stomp; trimmed, pitch-shifted and layered",
+    "attribution": "\"Foot Stomp C.wav\" by patchen (freesound.org), https://freesound.org/people/patchen/sounds/20185/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_bunion_death.mp3",
+    "title": "Fall debris (crash)",
+    "author": "xkeril (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/xkeril/sounds/703248/",
+    "notes": "Batpeel's Gotham: his tubes burst and he deflates (hiss, splatter, thud): the crash; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_jokester_enter.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "TOYMisc-Samsung Galaxy Smartphone, CU_Jack In The Box, Pop Open_Nicholas Judy_TDC",
+    "author": "designerschoice (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/designerschoice/sounds/811042/",
+    "notes": "Batpeel's Gotham: the Jokester's entrance: a jack-in-the-box spring BOING and a confetti pop; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a real jack-in-the-box popping open, a spring door stop twanged for the BOING and a party popper for the confetti. This source: the box; trimmed and layered",
+    "attribution": "\"TOYMisc-Samsung Galaxy Smartphone, CU_Jack In The Box, Pop Open_Nicholas Judy_TDC\" by designerschoice (freesound.org), https://freesound.org/people/designerschoice/sounds/811042/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed and layered into this sound"
+  },
+  {
+    "file": "sfx_jokester_enter.mp3",
+    "title": "spring_door_stop_01.wav",
+    "author": "joedeshon (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/joedeshon/sounds/81458/",
+    "notes": "Batpeel's Gotham: the Jokester's entrance: a jack-in-the-box spring BOING and a confetti pop: the boing; trimmed and layered",
+    "attribution": "\"spring_door_stop_01.wav\" by joedeshon (freesound.org), https://freesound.org/people/joedeshon/sounds/81458/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed and layered into this sound"
+  },
+  {
+    "file": "sfx_jokester_enter.mp3",
+    "title": "partypopper.flac",
+    "author": "Streety (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Batpeel's Gotham: the Jokester's entrance: a jack-in-the-box spring BOING and a confetti pop; a synthesized spring boing and confetti pop, made with ffmpeg and Python and released as CC0, layered with Kenney RPG Audio metalLatch (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/Streety/sounds/26349/",
+    "notes": "Batpeel's Gotham: the Jokester's entrance: a jack-in-the-box spring BOING and a confetti pop: the popper; trimmed and layered"
   },
   {
     "file": "sfx_jokester_laugh.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Joker Laugh 1",
+    "author": "BrainClaim (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Batpeel's Gotham: his manic cackle \"ha-ha-ha-HA\" (tell); a synthesized manic cackle, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/BrainClaim/sounds/427574/",
+    "notes": "Batpeel's Gotham: his manic cackle \"ha-ha-ha-HA\" (tell); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a man's joker-like laugh, a little higher. This source: the laugh; trimmed and pitch-shifted"
   },
   {
     "file": "sfx_jokester_toss.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Throwing / Whip Effect",
+    "author": "denao270 (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Batpeel's Gotham: a joke box is tossed (whoosh and a ribbon jingle); a synthesized whoosh and ribbon bells, made with ffmpeg and Python and released as CC0, layered with Kenney RPG Audio cloth2 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/denao270/sounds/346373/",
+    "notes": "Batpeel's Gotham: a joke box is tossed (whoosh and a ribbon jingle); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a metal stick whipped through the air and a small bronze jingle bell shaken for the ribbon bells. This source: the throw; trimmed and layered"
+  },
+  {
+    "file": "sfx_jokester_toss.mp3",
+    "title": "BellLittleMediumShakeShort.wav",
+    "author": "HerbertBoland (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/HerbertBoland/sounds/30154/",
+    "notes": "Batpeel's Gotham: a joke box is tossed (whoosh and a ribbon jingle): the bells; trimmed and layered",
+    "attribution": "\"BellLittleMediumShakeShort.wav\" by HerbertBoland (freesound.org), https://freesound.org/people/HerbertBoland/sounds/30154/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed and layered into this sound"
   },
   {
     "file": "sfx_jokester_land.mp3",
@@ -5741,19 +5960,44 @@
   },
   {
     "file": "sfx_jokester_tick.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "kitchen timer ticking",
+    "author": "dawidwmika (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Batpeel's Gotham: a bomb box ticks (about 1 s); a synthesized woody tick-tock body under the ticks, made with ffmpeg and Python and released as CC0, layered with Kenney Interface Sounds tick_001, tick_002 and RPG Audio metalClick (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/dawidwmika/sounds/372515/",
+    "notes": "Batpeel's Gotham: a bomb box ticks (about 1 s); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a kitchen timer ticking, six of its ticks set 0.2 s apart. This source: the ticks; trimmed and layered"
   },
   {
     "file": "sfx_jokester_boom.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Explosion large",
+    "author": "SamsterBirdies (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Batpeel's Gotham: a bomb box blows (cartoon blast with a party-horn tail); a synthesized blast thump and a deflating party-horn tail, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds explosionCrunch_002 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/SamsterBirdies/sounds/587886/",
+    "notes": "Batpeel's Gotham: a bomb box blows (cartoon blast with a party-horn tail); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a large explosion (a firecracker in a garage, pitched down and layered by its recordist), damped, a party popper for the confetti and a party horn blown, both a little lower, for the tail. This source: the blast; trimmed and layered"
+  },
+  {
+    "file": "sfx_jokester_boom.mp3",
+    "title": "partypopper.flac",
+    "author": "Streety (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Streety/sounds/26349/",
+    "notes": "Batpeel's Gotham: a bomb box blows (cartoon blast with a party-horn tail): the popper; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_jokester_boom.mp3",
+    "title": "Party Pack, Horn Coil 01, Long, 01.wav",
+    "author": "InspectorJ (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/InspectorJ/sounds/484267/",
+    "notes": "Batpeel's Gotham: a bomb box blows (cartoon blast with a party-horn tail): the horn; trimmed, pitch-shifted and layered",
+    "attribution": "\"Party Pack, Horn Coil 01, Long, 01.wav\" by InspectorJ (freesound.org), https://freesound.org/people/InspectorJ/sounds/484267/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_jokester_defuse.mp3",
+    "title": "Scissor Foley Snips and Cuts 10.wav",
+    "author": "CVLTIV8R (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/CVLTIV8R/sounds/800073/",
+    "notes": "Batpeel's Gotham: a smack defuses a bomb box (snip and fizzle); built from real recordings with ffmpeg (scripts/real-sfx/build.py): real scissors snipping twice, with the old synthesized snip and fizzle. This source: the snips; trimmed and layered"
   },
   {
     "file": "sfx_jokester_defuse.mp3",
@@ -5761,7 +6005,16 @@
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Batpeel's Gotham: a smack defuses a bomb box (snip and fizzle); a synthesized scissor snip and fizzle, made with ffmpeg and Python and released as CC0, layered with Kenney RPG Audio metalClick (CC0, kenney.nl)"
+    "notes": "Batpeel's Gotham: a smack defuses a bomb box (snip and fizzle): the old synthesized version, of which all is kept, the real recordings layered with it; a synthesized scissor snip and fizzle, made with ffmpeg and Python and released as CC0, layered with Kenney RPG Audio metalClick (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_jokester_gift.mp3",
+    "title": "Party Pack, Horn Coil 01, Long, 01.wav",
+    "author": "InspectorJ (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/InspectorJ/sounds/484267/",
+    "notes": "Batpeel's Gotham: a gift box opens itself (sparkle chime and party blower); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a real party horn (a plastic folding coil) blown, with the old synthesized sparkle arpeggio and party blower. This source: the horn; trimmed and layered",
+    "attribution": "\"Party Pack, Horn Coil 01, Long, 01.wav\" by InspectorJ (freesound.org), https://freesound.org/people/InspectorJ/sounds/484267/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed and layered into this sound"
   },
   {
     "file": "sfx_jokester_gift.mp3",
@@ -5769,119 +6022,246 @@
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Batpeel's Gotham: a gift box opens itself (sparkle chime and party blower); a synthesized sparkle arpeggio and party blower, made with ffmpeg and Python and released as CC0, layered with Kenney Casino Audio cards-pack-open-1 (CC0, kenney.nl)"
+    "notes": "Batpeel's Gotham: a gift box opens itself (sparkle chime and party blower): the old synthesized version, of which all is kept, the real recordings layered with it; a synthesized sparkle arpeggio and party blower, made with ffmpeg and Python and released as CC0, layered with Kenney Casino Audio cards-pack-open-1 (CC0, kenney.nl)"
   },
   {
     "file": "sfx_jokester_gas.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Poof of Smoke",
+    "author": "Planman (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Batpeel's Gotham: laughing gas puffs out (hiss and pfft); a synthesized gas hiss and puff, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds slime_000 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/Planman/sounds/208111/",
+    "notes": "Batpeel's Gotham: laughing gas puffs out (hiss and pfft); built from real recordings with ffmpeg (scripts/real-sfx/build.py): two pillows touched together for the pfft and gas leaking for the hiss. This source: the pfft; trimmed and layered"
+  },
+  {
+    "file": "sfx_jokester_gas.mp3",
+    "title": "FOL-gas-leak-02.wav",
+    "author": "henrikcederblad (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/henrikcederblad/sounds/615667/",
+    "notes": "Batpeel's Gotham: laughing gas puffs out (hiss and pfft): the hiss; trimmed and layered"
   },
   {
     "file": "sfx_jokester_clear.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "wind_gust_short_sqeeeek.wav",
+    "author": "sqeeeek (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Batpeel's Gotham: the laughing gas is blown away (whoosh); a synthesized gust whoosh, made with ffmpeg and Python and released as CC0, layered with Kenney RPG Audio cloth3 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/sqeeeek/sounds/381853/",
+    "notes": "Batpeel's Gotham: the laughing gas is blown away (whoosh); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a short gust of wind and wind blown across a recorder's windscreen, gusting up. This source: the gust; trimmed and layered"
+  },
+  {
+    "file": "sfx_jokester_clear.mp3",
+    "title": "wind 1",
+    "author": "ZIP.Creates (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/ZIP.Creates/sounds/726312/",
+    "notes": "Batpeel's Gotham: the laughing gas is blown away (whoosh): the wind; trimmed and layered"
   },
   {
     "file": "sfx_jokester_giggle.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "giggle4.wav",
+    "author": "Reitanna (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Batpeel's Gotham: feet giggle in the laughing gas (little high giggles); synthesized little high giggles, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/Reitanna/sounds/235165/",
+    "notes": "Batpeel's Gotham: feet giggle in the laughing gas (little high giggles); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a woman's giggle, higher, twice, and a crowd giggling, higher. This source: the giggle; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_jokester_giggle.mp3",
+    "title": "CRWDLaff_Crowd Giggling_ShaneVincent_GSC24_SpacedOmni-MK012.wav",
+    "author": "ShangusBurger (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/ShangusBurger/sounds/764275/",
+    "notes": "Batpeel's Gotham: feet giggle in the laughing gas (little high giggles): the crowd; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_jokester_jack.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
-    "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Batpeel's Gotham: THE GAUNTLET: the jack-in-the-box crank tune winds up (music-box notes, tell); a synthesized music-box crank tune (the traditional \"Pop Goes the Weasel\"), made with ffmpeg and Python and released as CC0, layered with Kenney Interface Sounds click_002 (CC0, kenney.nl)"
+    "title": "TOYMisc-Samsung Galaxy Smartphone, CU_Jack In The Box, Wind Up, Musical Chimes, Pops Up_Nicholas Judy_TDC",
+    "author": "designerschoice (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/designerschoice/sounds/811043/",
+    "notes": "Batpeel's Gotham: THE GAUNTLET: the jack-in-the-box crank tune winds up (music-box notes, tell); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a real jack-in-the-box cranked, its music box playing \"Pop Goes the Weasel\", sped up. This source: the jack-in-the-box; trimmed and sped up",
+    "attribution": "\"TOYMisc-Samsung Galaxy Smartphone, CU_Jack In The Box, Wind Up, Musical Chimes, Pops Up_Nicholas Judy_TDC\" by designerschoice (freesound.org), https://freesound.org/people/designerschoice/sounds/811043/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed and sped up into this sound"
   },
   {
     "file": "sfx_jokester_spring.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "old_jack_in_the_box_jack_popping_out",
+    "author": "TheEpicFaceManBFY (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Batpeel's Gotham: the jack springs out (BOING and slap); a synthesized spring boing, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactPunch_medium_001 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/TheEpicFaceManBFY/sounds/712594/",
+    "notes": "Batpeel's Gotham: the jack springs out (BOING and slap); built from real recordings with ffmpeg (scripts/real-sfx/build.py): an old jack-in-the-box's jack popping out and a spring door stop twanged for the BOING. This source: the jack; trimmed and layered"
+  },
+  {
+    "file": "sfx_jokester_spring.mp3",
+    "title": "spring_door_stop_01.wav",
+    "author": "joedeshon (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/joedeshon/sounds/81458/",
+    "notes": "Batpeel's Gotham: the jack springs out (BOING and slap): the boing; trimmed and layered",
+    "attribution": "\"spring_door_stop_01.wav\" by joedeshon (freesound.org), https://freesound.org/people/joedeshon/sounds/81458/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed and layered into this sound"
   },
   {
     "file": "sfx_jokester_pie.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "FX - Swoosh - Super Heavy (for swords, sticks, punches, etc)",
+    "author": "bolkmar (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Batpeel's Gotham: a cream pie is thrown (whoosh); a synthesized whoosh, made with ffmpeg and Python and released as CC0, layered with Kenney RPG Audio cloth1 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/bolkmar/sounds/475131/",
+    "notes": "Batpeel's Gotham: a cream pie is thrown (whoosh); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a super-heavy swoosh, higher, and a metal stick whipped through the air, lower, as the pie flies. This source: the swoosh; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_jokester_pie.mp3",
+    "title": "Throwing / Whip Effect",
+    "author": "denao270 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/denao270/sounds/346373/",
+    "notes": "Batpeel's Gotham: a cream pie is thrown (whoosh): the throw; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_jokester_splat.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Wet Splat 2.mp3",
+    "author": "nebulasnails (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Batpeel's Gotham: the cream pie splats; a synthesized wet splat, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactSoft_heavy_002 and Sci-fi Sounds slime_001 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/nebulasnails/sounds/495117/",
+    "notes": "Batpeel's Gotham: the cream pie splats; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a wet washcloth slapped into water and a soaked towel pressed against a wall, both a little lower and damped, and a rubber stress ball squished, lower, for the cream. This source: the splat; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_jokester_splat.mp3",
+    "title": "Splat 1",
+    "author": "sebastientate (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/sebastientate/sounds/719129/",
+    "notes": "Batpeel's Gotham: the cream pie splats: the towel; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_jokester_splat.mp3",
+    "title": "Slime 5.wav",
+    "author": "Archos (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Archos/sounds/433829/",
+    "notes": "Batpeel's Gotham: the cream pie splats: the cream; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_jokester_teeth.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
-    "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Batpeel's Gotham: wind-up chattering teeth clatter (about 1.2 s); a synthesized wind-up whirr under the clatter, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactPlate_light_000, impactPlate_light_002 and Casino Audio chips-collide-1 (CC0, kenney.nl)"
+    "title": "chattering teeth - medium speed",
+    "author": "ChrisReierson (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/ChrisReierson/sounds/383181/",
+    "notes": "Batpeel's Gotham: wind-up chattering teeth clatter (about 1.2 s); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a real wind-up chattering teeth toy, chattering three times over. This source: the teeth; trimmed and layered",
+    "attribution": "\"chattering teeth - medium speed\" by ChrisReierson (freesound.org), https://freesound.org/people/ChrisReierson/sounds/383181/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed and layered into this sound"
   },
   {
     "file": "sfx_jokester_weight.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
-    "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Batpeel's Gotham: a cartoon weight falls (the whistle, about 1.8 s); a synthesized falling whistle, made with ffmpeg and Python and released as CC0"
+    "title": "Wood slide whistle - cartoon fall.wav",
+    "author": "casemundy (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/casemundy/sounds/422110/",
+    "notes": "Batpeel's Gotham: a cartoon weight falls (the whistle, about 1.8 s); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a small wooden slide whistle falling, sped up a little, swelling as the weight nears. This source: the whistle; trimmed and sped up",
+    "attribution": "\"Wood slide whistle - cartoon fall.wav\" by casemundy (freesound.org), https://freesound.org/people/casemundy/sounds/422110/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed and sped up into this sound"
   },
   {
     "file": "sfx_jokester_thud.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "20lb Weight Impacts Concrete",
+    "author": "loganzsound (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Batpeel's Gotham: the falling weight lands (big clank and thud); a synthesized sub thud, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactMetal_heavy_002, impactBell_heavy_001, impactMining_002 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/loganzsound/sounds/850718/",
+    "notes": "Batpeel's Gotham: the falling weight lands (big clank and thud); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a 20 lb weight dropped on concrete, lower, for the clank, a big stainless-steel gong, an octave lower, for the ring, and a massed stomp on a plywood floor, far lower, for the thud. This source: the weight; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_jokester_thud.mp3",
+    "title": "gong_brown_80cm_felt_mallet",
+    "author": "glenm8 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/glenm8/sounds/853153/",
+    "notes": "Batpeel's Gotham: the falling weight lands (big clank and thud): the gong; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_jokester_thud.mp3",
+    "title": "Foot Stomp C.wav",
+    "author": "patchen (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/patchen/sounds/20185/",
+    "notes": "Batpeel's Gotham: the falling weight lands (big clank and thud): the stomp; trimmed, pitch-shifted and layered",
+    "attribution": "\"Foot Stomp C.wav\" by patchen (freesound.org), https://freesound.org/people/patchen/sounds/20185/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
   },
   {
     "file": "sfx_jokester_bang.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Champagne Cork",
+    "author": "KenRT (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Batpeel's Gotham: the BANG! flag gun pops (pop and a cloth snap); a synthesized cork pop, made with ffmpeg and Python and released as CC0, layered with Kenney RPG Audio cloth4, clothBelt (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/KenRT/sounds/392624/",
+    "notes": "Batpeel's Gotham: the BANG! flag gun pops (pop and a cloth snap); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a champagne cork popping, and a flapping sound made for wing flaps (it suits a flag, its maker says) as the flag snaps out. This source: the pop; trimmed and layered"
+  },
+  {
+    "file": "sfx_jokester_bang.mp3",
+    "title": "Wing Flap (Flag Flapping) 4a",
+    "author": "ani_music (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/ani_music/sounds/244976/",
+    "notes": "Batpeel's Gotham: the BANG! flag gun pops (pop and a cloth snap): the flag; trimmed and layered"
   },
   {
     "file": "sfx_jokester_window.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "wah wah sad trombone.wav",
+    "author": "kirbydx (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Batpeel's Gotham: the punchline window opens: he's dizzy (a sad trombone \"wah-wah\"); a synthesized sad trombone \"wah-wah-wah-wahhh\", made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/kirbydx/sounds/175409/",
+    "notes": "Batpeel's Gotham: the punchline window opens: he's dizzy (a sad trombone \"wah-wah\"); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a trombone's sad \"wah-wah-wah-wahhh\", its first three notes cut short. This source: the trombone; trimmed and layered"
   },
   {
     "file": "sfx_jokester_death.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Joker Laugh 2",
+    "author": "BrainClaim (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Batpeel's Gotham: his death: a last laugh fading into a big confetti bang; a synthesized fading laugh, a blast and a confetti burst, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds explosionCrunch_000 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/BrainClaim/sounds/427573/",
+    "notes": "Batpeel's Gotham: his death: a last laugh fading into a big confetti bang; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a man's joker-like laugh, fading, then a large explosion (a firecracker, pitched down and layered by its recordist), a party popper and a small jingle bell shaken. This source: the laugh; trimmed and layered"
+  },
+  {
+    "file": "sfx_jokester_death.mp3",
+    "title": "Explosion large",
+    "author": "SamsterBirdies (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/SamsterBirdies/sounds/587886/",
+    "notes": "Batpeel's Gotham: his death: a last laugh fading into a big confetti bang: the blast; trimmed and layered"
+  },
+  {
+    "file": "sfx_jokester_death.mp3",
+    "title": "partypopper.flac",
+    "author": "Streety (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Streety/sounds/26349/",
+    "notes": "Batpeel's Gotham: his death: a last laugh fading into a big confetti bang: the popper; trimmed and layered"
+  },
+  {
+    "file": "sfx_jokester_death.mp3",
+    "title": "BellLittleMediumShakeShort.wav",
+    "author": "HerbertBoland (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/HerbertBoland/sounds/30154/",
+    "notes": "Batpeel's Gotham: his death: a last laugh fading into a big confetti bang: the bells; trimmed and layered",
+    "attribution": "\"BellLittleMediumShakeShort.wav\" by HerbertBoland (freesound.org), https://freesound.org/people/HerbertBoland/sounds/30154/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed and layered into this sound"
   },
   {
     "file": "sfx_hero_darkfalls.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "120527 05 Dynamite 1.WAV",
+    "author": "Evan Cruder (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Batpeel's Gotham: the Dark Kneader's darkness falls: a heavy low boom, a wing whoosh and a sub tail; a synthesized low boom, a bat-wing whoosh and a sub tail, made with ffmpeg and Python and released as CC0, layered with Kenney Interface Sounds switch_007 and Impact Sounds impactPlate_heavy_001 and Sci-fi Sounds lowFrequency_explosion_001 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/Evan%20Cruder/sounds/160797/",
+    "notes": "Batpeel's Gotham: the Dark Kneader's darkness falls: a heavy low boom, a wing whoosh and a sub tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): dynamite going off in a mountain valley, far lower, for the boom, its echo for the tail, an umbrella flapped like bat wings (foley), lower, and a super-heavy swoosh, far lower and slower, for the wing. This source: the boom; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_darkfalls.mp3",
+    "title": "Bat Wings (Fast)",
+    "author": "Natty23 (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/Natty23/sounds/349225/",
+    "notes": "Batpeel's Gotham: the Dark Kneader's darkness falls: a heavy low boom, a wing whoosh and a sub tail: the wings; trimmed, pitch-shifted and layered",
+    "attribution": "\"Bat Wings (Fast)\" by Natty23 (freesound.org), https://freesound.org/people/Natty23/sounds/349225/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_hero_darkfalls.mp3",
+    "title": "FX - Swoosh - Super Heavy (for swords, sticks, punches, etc)",
+    "author": "bolkmar (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/bolkmar/sounds/475131/",
+    "notes": "Batpeel's Gotham: the Dark Kneader's darkness falls: a heavy low boom, a wing whoosh and a sub tail: the swoosh; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_hero_split.mp3",
@@ -5893,11 +6273,51 @@
   },
   {
     "file": "ambience_gotham.mp3",
-    "title": "Original synthesized ambience",
-    "author": "Made for Feetza",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Batpeel's Gotham: Goth-Ham Rooftops: steady rain on the rooftop, drips from the gutters, gusts of wind, two distant thunder rolls and a faint far-off siren; synthesized with Python and ffmpeg (scripts/gotham-audio/ambience.py), 50 s crossfaded loop",
-    "license": "CC0 1.0"
+    "title": "Rain on Shed Roof",
+    "author": "timothyd4y (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/timothyd4y/sounds/527499/",
+    "notes": "Batpeel's Gotham: Goth-Ham Rooftops: steady rain on the rooftop, drips from the gutters, gusts of wind, two distant thunder rolls and a faint far-off siren; built from real recordings with ffmpeg (scripts/real-sfx/build.py): heavy rain on a large plastic shed roof, rain running in a house's gutter, strong mountain gusts of wind, far off and darkened, two distant thunders, both a little lower, and once an ambulance's siren far off, echoing; 50 s crossfaded loop. This source: the rain on the roof; trimmed, levelled and layered into a 50 s crossfaded loop"
+  },
+  {
+    "file": "ambience_gotham.mp3",
+    "title": "Rain gutter zleb 003.wav",
+    "author": "frenkfurth (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/frenkfurth/sounds/652260/",
+    "notes": "Batpeel's Gotham: Goth-Ham Rooftops: steady rain on the rooftop, drips from the gutters, gusts of wind, two distant thunder rolls and a faint far-off siren: the gutter; trimmed, levelled and layered into a 50 s crossfaded loop"
+  },
+  {
+    "file": "ambience_gotham.mp3",
+    "title": "mountain wind heavy strong gusts Swiss Alps.flac",
+    "author": "kyles (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/kyles/sounds/454092/",
+    "notes": "Batpeel's Gotham: Goth-Ham Rooftops: steady rain on the rooftop, drips from the gutters, gusts of wind, two distant thunder rolls and a faint far-off siren: the wind; trimmed, levelled and layered into a 50 s crossfaded loop"
+  },
+  {
+    "file": "ambience_gotham.mp3",
+    "title": "Distant Thunder 3",
+    "author": "Fission9 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Fission9/sounds/581124/",
+    "notes": "Batpeel's Gotham: Goth-Ham Rooftops: steady rain on the rooftop, drips from the gutters, gusts of wind, two distant thunder rolls and a faint far-off siren: the first thunder; trimmed, pitch-shifted, levelled and layered into a 50 s crossfaded loop"
+  },
+  {
+    "file": "ambience_gotham.mp3",
+    "title": "distant storm 4.WAV",
+    "author": "Soojay (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Soojay/sounds/319565/",
+    "notes": "Batpeel's Gotham: Goth-Ham Rooftops: steady rain on the rooftop, drips from the gutters, gusts of wind, two distant thunder rolls and a faint far-off siren: the second thunder; trimmed, pitch-shifted, levelled and layered into a 50 s crossfaded loop"
+  },
+  {
+    "file": "ambience_gotham.mp3",
+    "title": "siren ambulance european distant echo nice with steps to clean.wav",
+    "author": "kyles (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/kyles/sounds/451068/",
+    "notes": "Batpeel's Gotham: Goth-Ham Rooftops: steady rain on the rooftop, drips from the gutters, gusts of wind, two distant thunder rolls and a faint far-off siren: the siren; trimmed, levelled and layered into a 50 s crossfaded loop"
   },
   {
     "file": "sfx_immortalreturn.mp3",
@@ -7163,19 +7583,44 @@
   },
   {
     "file": "sfx_redsole_enter.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Stomping boots.mp3",
+    "author": "DigPro120 (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Nemesis bosses: the Red Sole marches in: jackboots and a sinister laugh; a synthesized sinister laugh over boot steps, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds footstep_concrete_000, footstep_concrete_001, footstep_concrete_002, footstep_concrete_003, impactPunch_heavy_004 and RPG Audio metalClick (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/DigPro120/sounds/558856/",
+    "notes": "Nemesis bosses: the Red Sole marches in: jackboots and a sinister laugh; built from real recordings with ffmpeg (scripts/real-sfx/build.py): boots stomping four times and a foot stomped on the floor as he halts, both a little lower, over a massed stomp on a plywood floor, far lower, then a man's deep evil laugh, a little lower. This source: the boots; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_redsole_enter.mp3",
+    "title": "MUS136_YSwanson+ARaneses_Week2 Stomping.wav",
+    "author": "araneses (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/araneses/sounds/617440/",
+    "notes": "Nemesis bosses: the Red Sole marches in: jackboots and a sinister laugh: the halt; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_redsole_enter.mp3",
+    "title": "Foot Stomp C.wav",
+    "author": "patchen (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/patchen/sounds/20185/",
+    "notes": "Nemesis bosses: the Red Sole marches in: jackboots and a sinister laugh: the weight; trimmed, pitch-shifted and layered",
+    "attribution": "\"Foot Stomp C.wav\" by patchen (freesound.org), https://freesound.org/people/patchen/sounds/20185/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_redsole_enter.mp3",
+    "title": "Evil Laugh",
+    "author": "balloonhead (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/balloonhead/sounds/362330/",
+    "notes": "Nemesis bosses: the Red Sole marches in: jackboots and a sinister laugh: the laugh; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_redsole_laugh.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Evil Laugh",
+    "author": "balloonhead (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Nemesis bosses: the Red Sole's villain laugh (tell); a synthesized low villain laugh, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/balloonhead/sounds/362330/",
+    "notes": "Nemesis bosses: the Red Sole's villain laugh (tell); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a man's deep evil laugh, a little lower. This source: the laugh; trimmed and pitch-shifted"
   },
   {
     "file": "sfx_redsole_cube.mp3",
@@ -7211,27 +7656,77 @@
   },
   {
     "file": "sfx_redsole_turret.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "chair hydraulic.wav",
+    "author": "tim.kahn (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/tim.kahn/sounds/180480/",
+    "notes": "Nemesis bosses: a hydrant turret rises from the table edge: a mechanical clunk and hiss; built from real recordings with ffmpeg (scripts/real-sfx/build.py): an office chair's hydraulic piston, a little lower, as it rises, a steam trap's short burst for the hiss and a big heavy metal door slammed, lower, for the clunk. This source: the piston; trimmed, pitch-shifted and layered",
+    "attribution": "\"chair hydraulic.wav\" by tim.kahn (freesound.org), https://freesound.org/people/tim.kahn/sounds/180480/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_redsole_turret.mp3",
+    "title": "Steam_trap_short_burst.wav",
+    "author": "Engineer_815 (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Nemesis bosses: a hydrant turret rises from the table edge: a mechanical clunk and hiss; a synthesized hydraulic hiss, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds doorOpen_001 and Impact Sounds impactMetal_heavy_002 and RPG Audio metalLatch (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/Engineer_815/sounds/520071/",
+    "notes": "Nemesis bosses: a hydrant turret rises from the table edge: a mechanical clunk and hiss: the hiss; trimmed and layered"
+  },
+  {
+    "file": "sfx_redsole_turret.mp3",
+    "title": "door metal big heavy close kinda slam thud echo offmic.wav",
+    "author": "kyles (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/kyles/sounds/406197/",
+    "notes": "Nemesis bosses: a hydrant turret rises from the table edge: a mechanical clunk and hiss: the clunk; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_redsole_spray.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "WATRSpray-Samsung Galaxy Smartphone, MCU_Water Hose, Jet Mode_Nicholas Judy_TDC",
+    "author": "designerschoice (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/designerschoice/sounds/811445/",
+    "notes": "Nemesis bosses: a hydrant turret sprays: a pressurised burst; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a water hose's jet and a fire hydrant flushing into the street, with a steam trap's burst at the start for the pressure. This source: the hose; trimmed and layered",
+    "attribution": "\"WATRSpray-Samsung Galaxy Smartphone, MCU_Water Hose, Jet Mode_Nicholas Judy_TDC\" by designerschoice (freesound.org), https://freesound.org/people/designerschoice/sounds/811445/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed and layered into this sound"
+  },
+  {
+    "file": "sfx_redsole_spray.mp3",
+    "title": "WATRFlow_ Fire Hydrant Flushing to street MS RAW 03.wav",
+    "author": "jdr3productions (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Nemesis bosses: a hydrant turret sprays: a pressurised burst; a synthesized pressurised water spray, made with ffmpeg and Python and released as CC0, layered with Kenney RPG Audio metalClick (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/jdr3productions/sounds/637123/",
+    "notes": "Nemesis bosses: a hydrant turret sprays: a pressurised burst: the hydrant; trimmed and layered"
+  },
+  {
+    "file": "sfx_redsole_spray.mp3",
+    "title": "Steam_trap_short_burst.wav",
+    "author": "Engineer_815 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Engineer_815/sounds/520071/",
+    "notes": "Nemesis bosses: a hydrant turret sprays: a pressurised burst: the burst; trimmed and layered"
   },
   {
     "file": "sfx_redsole_cap.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "hit - metallic - metal pipe 02.wav",
+    "author": "Anthousai (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Nemesis bosses: a turret is capped: a metal clang as the hiss dies; a synthesized dying hiss, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactMetal_medium_004, impactTin_medium_003 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/Anthousai/sounds/406555/",
+    "notes": "Nemesis bosses: a turret is capped: a metal clang as the hiss dies; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a metal pipe struck with a wooden rod and a metal shed door struck, both lower, for the clang, and a steam hiss dying away. This source: the pipe; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_redsole_cap.mp3",
+    "title": "small-metal-hit-05.wav",
+    "author": "newagesoup (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/newagesoup/sounds/337845/",
+    "notes": "Nemesis bosses: a turret is capped: a metal clang as the hiss dies: the door; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_redsole_cap.mp3",
+    "title": "Steam/hiss",
+    "author": "wubitog (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/wubitog/sounds/234782/",
+    "notes": "Nemesis bosses: a turret is capped: a metal clang as the hiss dies: the hiss; trimmed and layered"
   },
   {
     "file": "sfx_redsole_march.mp3",
@@ -7243,11 +7738,45 @@
   },
   {
     "file": "sfx_redsole_stomp.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "MUS136_YSwanson+ARaneses_Week2 Stomping.wav",
+    "author": "araneses (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Nemesis bosses: a heavy jackboot stomp lands; a synthesized sub stomp, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactPunch_heavy_003, footstep_concrete_004, impactPlate_heavy_000 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/araneses/sounds/617440/",
+    "notes": "Nemesis bosses: a heavy jackboot stomp lands; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a foot stomped on the floor and a boot stomped, both lower, over a massed stomp on a plywood floor, far lower. This source: the stomp; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_redsole_stomp.mp3",
+    "title": "Stomping boots.mp3",
+    "author": "DigPro120 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/DigPro120/sounds/558856/",
+    "notes": "Nemesis bosses: a heavy jackboot stomp lands: the boot; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_redsole_stomp.mp3",
+    "title": "Foot Stomp C.wav",
+    "author": "patchen (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/patchen/sounds/20185/",
+    "notes": "Nemesis bosses: a heavy jackboot stomp lands: the weight; trimmed, pitch-shifted and layered",
+    "attribution": "\"Foot Stomp C.wav\" by patchen (freesound.org), https://freesound.org/people/patchen/sounds/20185/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_redsole_death.mp3",
+    "title": "AirRaid.ogg",
+    "author": "egomassive (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/egomassive/sounds/536727/",
+    "notes": "Nemesis bosses: the Red Sole goes down: his skull mask cracks, an alarm whoops and the bunker blows; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a tornado siren winding up, sped up, three times, and an explosion close by with debris flying, lower, with the old synthesized mask crack, alarm whoops and blast. This source: the siren; trimmed, sped up and layered"
+  },
+  {
+    "file": "sfx_redsole_death.mp3",
+    "title": "Nearby explosion with debris.wav",
+    "author": "juskiddink (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/juskiddink/sounds/108641/",
+    "notes": "Nemesis bosses: the Red Sole goes down: his skull mask cracks, an alarm whoops and the bunker blows: the explosion; trimmed, pitch-shifted and layered",
+    "attribution": "\"Nearby explosion with debris.wav\" by juskiddink (freesound.org), https://freesound.org/people/juskiddink/sounds/108641/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
   },
   {
     "file": "sfx_redsole_death.mp3",
@@ -7255,63 +7784,193 @@
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Nemesis bosses: the Red Sole goes down: his skull mask cracks, an alarm whoops and the bunker blows; a synthesized alarm whoop and blast, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactMining_003, impactMining_002 and Sci-fi Sounds explosionCrunch_002, lowFrequency_explosion_001 (CC0, kenney.nl)"
+    "notes": "Nemesis bosses: the Red Sole goes down: his skull mask cracks, an alarm whoops and the bunker blows: the old synthesized version, of which all is kept, the real recordings layered with it; a synthesized alarm whoop and blast, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactMining_003, impactMining_002 and Sci-fi Sounds explosionCrunch_002, lowFrequency_explosion_001 (CC0, kenney.nl)"
   },
   {
     "file": "sfx_venomnom_enter.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Wet Splat 2.mp3",
+    "author": "nebulasnails (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Nemesis bosses: Venomnom splats down: wet goo and a deep, double-voiced growl; a synthesized goo splat and a double-voiced growl, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactSoft_heavy_003 and Sci-fi Sounds slime_001 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/nebulasnails/sounds/495117/",
+    "notes": "Nemesis bosses: Venomnom splats down: wet goo and a deep, double-voiced growl; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a wet washcloth slapped into water and a sodden sponge squelched, both lower, as the goo lands, then a black bear's growl, lower, and caged lions roaring, far lower and slower, for the double voice. This source: the splat; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_venomnom_enter.mp3",
+    "title": "squelching.mp3",
+    "author": "tiddles451 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/tiddles451/sounds/547446/",
+    "notes": "Nemesis bosses: Venomnom splats down: wet goo and a deep, double-voiced growl: the squelch; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_venomnom_enter.mp3",
+    "title": "Bear Angry Growl",
+    "author": "celldroid (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/celldroid/sounds/763026/",
+    "notes": "Nemesis bosses: Venomnom splats down: wet goo and a deep, double-voiced growl: the bear; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_venomnom_enter.mp3",
+    "title": "Lions Roaring 2",
+    "author": "Filmscore (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Filmscore/sounds/869003/",
+    "notes": "Nemesis bosses: Venomnom splats down: wet goo and a deep, double-voiced growl: the lions; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_venomnom_growl.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Bear Angry Growl",
+    "author": "celldroid (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Nemesis bosses: Venomnom's wet growl (tell); a synthesized wet double-voiced growl, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/celldroid/sounds/763026/",
+    "notes": "Nemesis bosses: Venomnom's wet growl (tell); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a black bear's growl, lower, and caged lions, far lower and slower, for the second voice, over a sodden sponge squelched, lower. This source: the bear; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_venomnom_growl.mp3",
+    "title": "Lions Roaring 2",
+    "author": "Filmscore (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Filmscore/sounds/869003/",
+    "notes": "Nemesis bosses: Venomnom's wet growl (tell): the lions; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_venomnom_growl.mp3",
+    "title": "squelching.mp3",
+    "author": "tiddles451 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/tiddles451/sounds/547446/",
+    "notes": "Nemesis bosses: Venomnom's wet growl (tell): the squelch; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_venomnom_tongue.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "FX - Swoosh - Super Heavy (for swords, sticks, punches, etc)",
+    "author": "bolkmar (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Nemesis bosses: his long tongue lashes out: a wet whip; a synthesized wet whip, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds slime_000 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/bolkmar/sounds/475131/",
+    "notes": "Nemesis bosses: his long tongue lashes out: a wet whip; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a super-heavy swoosh, higher, and a metal stick whipped through the air, lower, as the tongue lashes out, a whip cracked, lower and damped, and a washcloth dropped into water, a little lower, as it lands. This source: the swoosh; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_venomnom_tongue.mp3",
+    "title": "Throwing / Whip Effect",
+    "author": "denao270 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/denao270/sounds/346373/",
+    "notes": "Nemesis bosses: his long tongue lashes out: a wet whip: the lash; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_venomnom_tongue.mp3",
+    "title": "Whip Crack 01.wav",
+    "author": "CGEffex (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/CGEffex/sounds/93100/",
+    "notes": "Nemesis bosses: his long tongue lashes out: a wet whip: the whip; trimmed, pitch-shifted and layered",
+    "attribution": "\"Whip Crack 01.wav\" by CGEffex (freesound.org), https://freesound.org/people/CGEffex/sounds/93100/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_venomnom_tongue.mp3",
+    "title": "Wet Splat 1.mp3",
+    "author": "nebulasnails (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/nebulasnails/sounds/495118/",
+    "notes": "Nemesis bosses: his long tongue lashes out: a wet whip: the splat; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_venomnom_snatch.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Splat/Squish 2",
+    "author": "mrickey13 (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Nemesis bosses: a slice is gulped down; a synthesized gulp, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds slime_001 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/mrickey13/sounds/515619/",
+    "notes": "Nemesis bosses: a slice is gulped down; built from real recordings with ffmpeg (scripts/real-sfx/build.py): wet paper towels and a wet towel dropped and squished, a little lower, a hard swallow, lower and slower, a gulp, lower, and a rubber stress ball squished, lower, as the slice goes down. This source: the squish; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_venomnom_snatch.mp3",
+    "title": "Gulp - Hard Swallow",
+    "author": "magnuswaker (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/magnuswaker/sounds/531755/",
+    "notes": "Nemesis bosses: a slice is gulped down: the swallow; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_venomnom_snatch.mp3",
+    "title": "Swallow Gulp Sound",
+    "author": "haus.the.child (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/haus.the.child/sounds/829847/",
+    "notes": "Nemesis bosses: a slice is gulped down: the gulp; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_venomnom_snatch.mp3",
+    "title": "Slime 25.wav",
+    "author": "Archos (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Archos/sounds/433836/",
+    "notes": "Nemesis bosses: a slice is gulped down: the slime; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_venomnom_cut.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Slap hit on the face or shoulder",
+    "author": "khenshom (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Nemesis bosses: his tongue is smacked: a slap and a yelp; a synthesized yelp, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactPunch_medium_000 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/khenshom/sounds/539163/",
+    "notes": "Nemesis bosses: his tongue is smacked: a slap and a yelp; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a slap, a little lower, a Labrador's yelp, lower, and again far lower and slower for the double voice, and a man's pained grunt, far lower. This source: the slap; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_venomnom_cut.mp3",
+    "title": "DogYelp.wav",
+    "author": "TobiasKosmos (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/TobiasKosmos/sounds/163280/",
+    "notes": "Nemesis bosses: his tongue is smacked: a slap and a yelp: the yelp; trimmed, pitch-shifted and layered",
+    "attribution": "\"DogYelp.wav\" by TobiasKosmos (freesound.org), https://freesound.org/people/TobiasKosmos/sounds/163280/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_venomnom_cut.mp3",
+    "title": "Voice_AdultMale_PainGrunts_06.wav",
+    "author": "MrFossy (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/MrFossy/sounds/547206/",
+    "notes": "Nemesis bosses: his tongue is smacked: a slap and a yelp: the grunt; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_venomnom_goo.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Peeling and Ripping Off Tape",
+    "author": "Jarebear1223 (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Nemesis bosses: a tendril binds a pizza: a sticky stretching squelch; a synthesized sticky stretch, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds slime_000 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/Jarebear1223/sounds/618541/",
+    "notes": "Nemesis bosses: a tendril binds a pizza: a sticky stretching squelch; built from real recordings with ffmpeg (scripts/real-sfx/build.py): tape peeled off, far lower, for the goo stretching, rubber stretched and a rubber stress ball squished, both lower. This source: the tape; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_venomnom_goo.mp3",
+    "title": "Rubber sound",
+    "author": "hz37 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/hz37/sounds/792463/",
+    "notes": "Nemesis bosses: a tendril binds a pizza: a sticky stretching squelch: the rubber; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_venomnom_goo.mp3",
+    "title": "Slime 25.wav",
+    "author": "Archos (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Archos/sounds/433836/",
+    "notes": "Nemesis bosses: a tendril binds a pizza: a sticky stretching squelch: the squelch; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_venomnom_drain.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "straw slurp.wav",
+    "author": "dreamstobecome (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Nemesis bosses: the bound pizza is slurped: a slice drains away; a synthesized slurp, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds slime_001 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/dreamstobecome/sounds/529295/",
+    "notes": "Nemesis bosses: the bound pizza is slurped: a slice drains away; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a straw slurped and coffee slurped, both lower. This source: the straw; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_venomnom_drain.mp3",
+    "title": "coffee slurp 4",
+    "author": "benkenart (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/benkenart/sounds/568036/",
+    "notes": "Nemesis bosses: the bound pizza is slurped: a slice drains away: the coffee; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_venomnom_tendril.mp3",
@@ -7331,123 +7990,297 @@
   },
   {
     "file": "sfx_venomnom_shriek.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Wounded man scream",
+    "author": "joseppujol (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Nemesis bosses: the sound hurts him: Venomnom shrieks; a synthesized double-voiced shriek, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/joseppujol/sounds/221544/",
+    "notes": "Nemesis bosses: the sound hurts him: Venomnom shrieks; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a wounded man screaming, a little higher and lower at once, for the double voice, and a man's inhaled screech. This source: the scream; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_venomnom_shriek.mp3",
+    "title": "Screech",
+    "author": "Phorgador (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Phorgador/sounds/788212/",
+    "notes": "Nemesis bosses: the sound hurts him: Venomnom shrieks: the screech; trimmed and layered"
   },
   {
     "file": "sfx_venomnom_split.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Peeling and Ripping Off Tape",
+    "author": "Jarebear1223 (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Nemesis bosses: the goo tears into copies of him; a synthesized wet tear, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds slime_000 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/Jarebear1223/sounds/618541/",
+    "notes": "Nemesis bosses: the goo tears into copies of him; built from real recordings with ffmpeg (scripts/real-sfx/build.py): tape peeled off and ripped, lower, as the goo stretches and tears, a wet washcloth slapped into water and a rubber stress ball squished, both lower. This source: the tape; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_venomnom_split.mp3",
+    "title": "Wet Splat 2.mp3",
+    "author": "nebulasnails (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/nebulasnails/sounds/495117/",
+    "notes": "Nemesis bosses: the goo tears into copies of him: the splat; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_venomnom_split.mp3",
+    "title": "Slime 30.wav",
+    "author": "Archos (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Archos/sounds/433823/",
+    "notes": "Nemesis bosses: the goo tears into copies of him: the squelch; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_venomnom_death.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Wounded man scream",
+    "author": "joseppujol (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Nemesis bosses: Venomnom melts: a sonic shriek, then goo dissolving and splattering; a synthesized shriek, sonic tone and melting goo, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactSoft_heavy_004 and Sci-fi Sounds slime_001 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/joseppujol/sounds/221544/",
+    "notes": "Nemesis bosses: Venomnom melts: a sonic shriek, then goo dissolving and splattering; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a wounded man screaming, a little higher and lower at once, then boiling water spilling onto a hot stove and sizzling, lower, as he melts, a wet washcloth slapped into water and a sodden sponge squelched, both lower. This source: the scream; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_venomnom_death.mp3",
+    "title": "Hot Water Spilling out while Boiling Eggs",
+    "author": "bassimat (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/bassimat/sounds/862443/",
+    "notes": "Nemesis bosses: Venomnom melts: a sonic shriek, then goo dissolving and splattering: the sizzle; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_venomnom_death.mp3",
+    "title": "Wet Splat 2.mp3",
+    "author": "nebulasnails (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/nebulasnails/sounds/495117/",
+    "notes": "Nemesis bosses: Venomnom melts: a sonic shriek, then goo dissolving and splattering: the splat; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_venomnom_death.mp3",
+    "title": "squelching.mp3",
+    "author": "tiddles451 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/tiddles451/sounds/547446/",
+    "notes": "Nemesis bosses: Venomnom melts: a sonic shriek, then goo dissolving and splattering: the squelch; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_cheetoe_enter.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Foot Stomp C.wav",
+    "author": "patchen (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/patchen/sounds/20185/",
+    "notes": "Nemesis bosses: the Cheetoe leaps in: a big-cat roar and a landing; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a massed stomp on a plywood floor, lower, as she lands, and a tiger's roar, a little lower. This source: the landing; trimmed, pitch-shifted and layered",
+    "attribution": "\"Foot Stomp C.wav\" by patchen (freesound.org), https://freesound.org/people/patchen/sounds/20185/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_cheetoe_enter.mp3",
+    "title": "Tiger Roar",
+    "author": "lauramellis (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Nemesis bosses: the Cheetoe leaps in: a big-cat roar and a landing; a synthesized big-cat roar and landing, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactSoft_heavy_001 and RPG Audio cloth2 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/lauramellis/sounds/263115/",
+    "notes": "Nemesis bosses: the Cheetoe leaps in: a big-cat roar and a landing: the roar; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_cheetoe_dash.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "FX - Swoosh - Super Heavy (for swords, sticks, punches, etc)",
+    "author": "bolkmar (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Nemesis bosses: she dashes from lane to lane: a fast whoosh; a synthesized fast whoosh, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds footstep_grass_001 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/bolkmar/sounds/475131/",
+    "notes": "Nemesis bosses: she dashes from lane to lane: a fast whoosh; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a super-heavy swoosh, higher and faster, a fast swoosh, higher, and grass rustling under her feet. This source: the swoosh; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_cheetoe_dash.mp3",
+    "title": "swoosh.wav",
+    "author": "Garysguff (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Garysguff/sounds/575836/",
+    "notes": "Nemesis bosses: she dashes from lane to lane: a fast whoosh: the dash; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_cheetoe_dash.mp3",
+    "title": "Rustling Grass 2.wav",
+    "author": "morganpurkis (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/morganpurkis/sounds/396013/",
+    "notes": "Nemesis bosses: she dashes from lane to lane: a fast whoosh: the grass; trimmed and layered"
   },
   {
     "file": "sfx_cheetoe_crouch.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "catGrowls.wav",
+    "author": "Zabuhailo (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Nemesis bosses: she crouches to pounce: a low growl (tell); a synthesized low cat growl, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/Zabuhailo/sounds/146968/",
+    "notes": "Nemesis bosses: she crouches to pounce: a low growl (tell); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a cat growling, far lower, and a caged lion's rumble, lower and slower. This source: the cat; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_cheetoe_crouch.mp3",
+    "title": "Lions Roaring 2",
+    "author": "Filmscore (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Filmscore/sounds/869003/",
+    "notes": "Nemesis bosses: she crouches to pounce: a low growl (tell): the lion; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_cheetoe_pounce.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "body_hit.wav",
+    "author": "insanity54 (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Nemesis bosses: the pounce lands: a thump and a snarl; a synthesized snarl, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactPunch_heavy_001 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/insanity54/sounds/276600/",
+    "notes": "Nemesis bosses: the pounce lands: a thump and a snarl; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a gloved hand's thud on a helmet and a massed stomp on a plywood floor, both lower, as she lands, and an angry cat's snarl, lower. This source: the thud; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_cheetoe_pounce.mp3",
+    "title": "Foot Stomp C.wav",
+    "author": "patchen (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/patchen/sounds/20185/",
+    "notes": "Nemesis bosses: the pounce lands: a thump and a snarl: the stomp; trimmed, pitch-shifted and layered",
+    "attribution": "\"Foot Stomp C.wav\" by patchen (freesound.org), https://freesound.org/people/patchen/sounds/20185/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_cheetoe_pounce.mp3",
+    "title": "Angry Cat",
+    "author": "TimoSchmied (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/TimoSchmied/sounds/530959/",
+    "notes": "Nemesis bosses: the pounce lands: a thump and a snarl: the snarl; trimmed, pitch-shifted and layered",
+    "attribution": "\"Angry Cat\" by TimoSchmied (freesound.org), https://freesound.org/people/TimoSchmied/sounds/530959/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
   },
   {
     "file": "sfx_cheetoe_slash.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "FX - Swoosh - Super Heavy (for swords, sticks, punches, etc)",
+    "author": "bolkmar (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Nemesis bosses: a claw swipe; a synthesized swipe, made with ffmpeg and Python and released as CC0, layered with Kenney RPG Audio drawKnife2 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/bolkmar/sounds/475131/",
+    "notes": "Nemesis bosses: a claw swipe; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a super-heavy swoosh, higher and faster, and claws scratching at wood. This source: the swipe; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_cheetoe_slash.mp3",
+    "title": "Clawing or Scratching at wood",
+    "author": "Wigglesworth (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Wigglesworth/sounds/830466/",
+    "notes": "Nemesis bosses: a claw swipe: the claws; trimmed and layered"
   },
   {
     "file": "sfx_cheetoe_scratch.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Clawing or Scratching at wood",
+    "author": "Wigglesworth (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Nemesis bosses: claws rake a pizza; a synthesized triple scratch, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactWood_light_001 and RPG Audio knifeSlice (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/Wigglesworth/sounds/830466/",
+    "notes": "Nemesis bosses: claws rake a pizza; built from real recordings with ffmpeg (scripts/real-sfx/build.py): clawing at a wooden wall, twice, and a cat scratching a wooden floor, brightened. This source: the clawing; trimmed and layered"
+  },
+  {
+    "file": "sfx_cheetoe_scratch.mp3",
+    "title": "cat_scratching_wooden_floor.wav",
+    "author": "16FPanskaRollerova_Adriena (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/16FPanskaRollerova_Adriena/sounds/498842/",
+    "notes": "Nemesis bosses: claws rake a pizza: the cat; trimmed and layered"
   },
   {
     "file": "sfx_cheetoe_hiss.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "catHisses1.wav",
+    "author": "Zabuhailo (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Nemesis bosses: the Cheetoe hisses; a synthesized cat hiss, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/Zabuhailo/sounds/146963/",
+    "notes": "Nemesis bosses: the Cheetoe hisses; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a cat hissing, twice over, a little lower. This source: the hiss; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_cheetoe_hiss.mp3",
+    "title": "catHisses.wav",
+    "author": "Zabuhailo (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Zabuhailo/sounds/146960/",
+    "notes": "Nemesis bosses: the Cheetoe hisses: the second hiss; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_cheetoe_rustle.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "The Rustle of a Bush",
+    "author": "Montacue (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Nemesis bosses: the jungle leaves rustle where she hides; synthesized rustling leaves, made with ffmpeg and Python and released as CC0, layered with Kenney RPG Audio cloth2 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/Montacue/sounds/178615/",
+    "notes": "Nemesis bosses: the jungle leaves rustle where she hides; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a bush (bamboo, its recordist says) shaken and grass rustling. This source: the bush; trimmed and layered"
+  },
+  {
+    "file": "sfx_cheetoe_rustle.mp3",
+    "title": "Rustling Grass 2.wav",
+    "author": "morganpurkis (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/morganpurkis/sounds/396013/",
+    "notes": "Nemesis bosses: the jungle leaves rustle where she hides: the grass; trimmed and layered"
   },
   {
     "file": "sfx_cheetoe_flush.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "The Rustle of a Bush",
+    "author": "Montacue (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Nemesis bosses: she's flushed out of the leaves: a yowl and a burst of foliage; a synthesized yowl and leaf burst, made with ffmpeg and Python and released as CC0, layered with Kenney RPG Audio cloth2 and Impact Sounds impactPunch_medium_004 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/Montacue/sounds/178615/",
+    "notes": "Nemesis bosses: she's flushed out of the leaves: a yowl and a burst of foliage; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a bush shaken hard as the leaves burst, and a cat yowling. This source: the leaves; trimmed and layered"
+  },
+  {
+    "file": "sfx_cheetoe_flush.mp3",
+    "title": "Cat Yowl 2.wav",
+    "author": "HenKonen (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/HenKonen/sounds/682079/",
+    "notes": "Nemesis bosses: she's flushed out of the leaves: a yowl and a burst of foliage: the yowl; trimmed and layered"
   },
   {
     "file": "sfx_cheetoe_death.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Cat Yowl 1.wav",
+    "author": "HenKonen (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Nemesis bosses: the Cheetoe is beaten: a defeated yowl and a collapse; a synthesized falling yowl and collapse, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactSoft_heavy_002 and RPG Audio cloth2 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/HenKonen/sounds/682078/",
+    "notes": "Nemesis bosses: the Cheetoe is beaten: a defeated yowl and a collapse; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a cat yowling, lower and slower, falling, then a body falling heavily to the floor, lower, and a bush shaken as she collapses. This source: the yowl; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_cheetoe_death.mp3",
+    "title": "Body falling to floor 7",
+    "author": "JakLocke (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/JakLocke/sounds/261296/",
+    "notes": "Nemesis bosses: the Cheetoe is beaten: a defeated yowl and a collapse: the fall; trimmed, pitch-shifted and layered",
+    "attribution": "\"Body falling to floor 7\" by JakLocke (freesound.org), https://freesound.org/people/JakLocke/sounds/261296/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_cheetoe_death.mp3",
+    "title": "The Rustle of a Bush",
+    "author": "Montacue (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Montacue/sounds/178615/",
+    "notes": "Nemesis bosses: the Cheetoe is beaten: a defeated yowl and a collapse: the leaves; trimmed and layered"
   },
   {
     "file": "sfx_hero_ghostsparta.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Male Attack Cry 1.wav",
+    "author": "F.M.Audio (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/F.M.Audio/sounds/695376/",
+    "notes": "Nemesis bosses: Kratos, Ghost of Sparta: a deeper, distorted war shout and a whoosh of fire; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a man's battle cry, lower and slower, doubled far lower, both distorted, diesel thrown on a fire, lower, and a massed stomp on a plywood floor, far lower, for the thump. This source: the shout; trimmed, pitch-shifted, distorted and layered",
+    "attribution": "\"Male Attack Cry 1.wav\" by F.M.Audio (freesound.org), https://freesound.org/people/F.M.Audio/sounds/695376/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted, distorted and layered into this sound"
+  },
+  {
+    "file": "sfx_hero_ghostsparta.mp3",
+    "title": "fire-whoosh.wav",
+    "author": "hnhnh (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Nemesis bosses: Kratos, Ghost of Sparta: a deeper, distorted war shout and a whoosh of fire; a synthesized distorted war shout and fire whoosh, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/hnhnh/sounds/244926/",
+    "notes": "Nemesis bosses: Kratos, Ghost of Sparta: a deeper, distorted war shout and a whoosh of fire: the fire; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_ghostsparta.mp3",
+    "title": "Foot Stomp C.wav",
+    "author": "patchen (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/patchen/sounds/20185/",
+    "notes": "Nemesis bosses: Kratos, Ghost of Sparta: a deeper, distorted war shout and a whoosh of fire: the thump; trimmed, pitch-shifted and layered",
+    "attribution": "\"Foot Stomp C.wav\" by patchen (freesound.org), https://freesound.org/people/patchen/sounds/20185/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
   },
   {
     "file": "sfx_hero_firetrail.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "flame burst ignite bbq barbecue.flac",
+    "author": "kyles (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Nemesis bosses: Ghost of Sparta's rage leaves fire on the table: a short fire whoosh (repeats); a synthesized short fire whoosh, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/kyles/sounds/637533/",
+    "notes": "Nemesis bosses: Ghost of Sparta's rage leaves fire on the table: a short fire whoosh (repeats); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a barbecue's flames bursting alight, a little lower. This source: the fire; trimmed and pitch-shifted"
   },
   {
     "file": "sfx_hero_primebeam.mp3",
@@ -7467,27 +8300,76 @@
   },
   {
     "file": "sfx_hero_endgame.mp3",
+    "title": "Clean and Pompous Fanfare Trumpet.mp3",
+    "author": "joepayne (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/joepayne/sounds/413203/",
+    "notes": "Nemesis bosses: an Endgame variant's move: portals open and a heroic brass stab; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a real trumpet's last fanfare note, three times over as a G major chord, for the brass stab, with the old synthesized portal swirls and heroic brass chord. This source: the brass; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_endgame.mp3",
     "title": "Original synthesized sound",
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Nemesis bosses: an Endgame variant's move: portals open and a heroic brass stab; synthesized portal swirls and a heroic brass chord, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactPunch_heavy_000 (CC0, kenney.nl)"
+    "notes": "Nemesis bosses: an Endgame variant's move: portals open and a heroic brass stab: the old synthesized version, of which all is kept, the real recordings layered with it; synthesized portal swirls and a heroic brass chord, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactPunch_heavy_000 (CC0, kenney.nl)"
   },
   {
     "file": "sfx_hero_unleashed.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Thunder (Kraków, Poland, 20.05.2013)",
+    "author": "vonz (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Nemesis bosses: Thor, Thunder Unleashed: a massive rolling thunderstorm; synthesized thunder rolls and lightning cracks, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds lowFrequency_explosion_000 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/vonz/sounds/188767/",
+    "notes": "Nemesis bosses: Thor, Thunder Unleashed: a massive rolling thunderstorm; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a crack of thunder twice, lower, a close clap of thunder rolling, and thunder rolling on, a little lower. This source: the cracks; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_unleashed.mp3",
+    "title": "Thunder, Close",
+    "author": "Fission9 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Fission9/sounds/505113/",
+    "notes": "Nemesis bosses: Thor, Thunder Unleashed: a massive rolling thunderstorm: the clap; trimmed and layered"
+  },
+  {
+    "file": "sfx_hero_unleashed.mp3",
+    "title": "thunder1.wav",
+    "author": "nednednerb (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/nednednerb/sounds/38244/",
+    "notes": "Nemesis bosses: Thor, Thunder Unleashed: a massive rolling thunderstorm: the roll; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_hero_ascended.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Battle_horn_1.wav",
+    "author": "kirmm (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Nemesis bosses: Odin Allfather Ascended: a deep horn and raven caws; a synthesized deep horn and raven caws, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/kirmm/sounds/392180/",
+    "notes": "Nemesis bosses: Odin Allfather Ascended: a deep horn and raven caws; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a battle horn blown, an octave lower, over a note blown on a cow horn (or a conch, its recordist says), far lower, and a raven cawing three times, a little lower. This source: the horn; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_ascended.mp3",
+    "title": "R12-46-Blowing Note on Cow Horn.wav",
+    "author": "craigsmith (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/craigsmith/sounds/479998/",
+    "notes": "Nemesis bosses: Odin Allfather Ascended: a deep horn and raven caws: the low horn; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_ascended.mp3",
+    "title": "BIRDCrow_Raven Caw Close 03_KVV AUDIO_FREE",
+    "author": "KVV_Audio (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/KVV_Audio/sounds/827424/",
+    "notes": "Nemesis bosses: Odin Allfather Ascended: a deep horn and raven caws: the raven; trimmed, pitch-shifted and layered",
+    "attribution": "\"BIRDCrow_Raven Caw Close 03_KVV AUDIO_FREE\" by KVV_Audio (freesound.org), https://freesound.org/people/KVV_Audio/sounds/827424/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_hero_unbound.mp3",
+    "title": "Thunder (Kraków, Poland, 20.05.2013)",
+    "author": "vonz (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/vonz/sounds/188767/",
+    "notes": "Nemesis bosses: Zeus, King Unbound: an overcharged lightning-sword blast; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a real crack of thunder, a little lower, with the old synthesized overcharged zap, sword ring and thunder. This source: the thunder; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_hero_unbound.mp3",
@@ -7495,7 +8377,7 @@
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Nemesis bosses: Zeus, King Unbound: an overcharged lightning-sword blast; a synthesized overcharged zap, sword ring and thunder, made with ffmpeg and Python and released as CC0, layered with Kenney RPG Audio drawKnife3 and Sci-fi Sounds lowFrequency_explosion_000 (CC0, kenney.nl)"
+    "notes": "Nemesis bosses: Zeus, King Unbound: an overcharged lightning-sword blast: the old synthesized version, of which all is kept, the real recordings layered with it; a synthesized overcharged zap, sword ring and thunder, made with ffmpeg and Python and released as CC0, layered with Kenney RPG Audio drawKnife3 and Sci-fi Sounds lowFrequency_explosion_000 (CC0, kenney.nl)"
   },
   {
     "file": "sfx_hero_liberty.mp3",
@@ -7507,11 +8389,52 @@
   },
   {
     "file": "sfx_hero_tendril.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Throwing / Whip Effect",
+    "author": "denao270 (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Nemesis bosses: Symbiote Pan: a web tendril snatches a foot (a sticky squelch); a synthesized sticky snatch, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds slime_000 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/denao270/sounds/346373/",
+    "notes": "Nemesis bosses: Symbiote Pan: a web tendril snatches a foot (a sticky squelch); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a metal stick whipped through the air as the tendril lashes out, then tape peeled off, a rubber stress ball squished and a sodden sponge squelched, all a little lower, for the sticky snatch. This source: the lash; trimmed and layered"
+  },
+  {
+    "file": "sfx_hero_tendril.mp3",
+    "title": "Peeling and Ripping Off Tape",
+    "author": "Jarebear1223 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Jarebear1223/sounds/618541/",
+    "notes": "Nemesis bosses: Symbiote Pan: a web tendril snatches a foot (a sticky squelch): the tape; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_tendril.mp3",
+    "title": "Slime 25.wav",
+    "author": "Archos (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Archos/sounds/433836/",
+    "notes": "Nemesis bosses: Symbiote Pan: a web tendril snatches a foot (a sticky squelch): the squelch; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_tendril.mp3",
+    "title": "squelching.mp3",
+    "author": "tiddles451 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/tiddles451/sounds/547446/",
+    "notes": "Nemesis bosses: Symbiote Pan: a web tendril snatches a foot (a sticky squelch): the sponge; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_hero_amazon.mp3",
+    "title": "Whip Crack 01.wav",
+    "author": "CGEffex (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/CGEffex/sounds/93100/",
+    "notes": "Nemesis bosses: Amazon Queen: a golden lasso crack and a war cry; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a real whip crack for the golden lasso and a woman shouting for the war cry, with the old synthesized whip crack, shimmer and war cry. This source: the lasso; trimmed and layered",
+    "attribution": "\"Whip Crack 01.wav\" by CGEffex (freesound.org), https://freesound.org/people/CGEffex/sounds/93100/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed and layered into this sound"
+  },
+  {
+    "file": "sfx_hero_amazon.mp3",
+    "title": "female_shout_02.wav",
+    "author": "slamaxu (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/slamaxu/sounds/509881/",
+    "notes": "Nemesis bosses: Amazon Queen: a golden lasso crack and a war cry: the war cry; trimmed and layered"
   },
   {
     "file": "sfx_hero_amazon.mp3",
@@ -7519,7 +8442,7 @@
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Nemesis bosses: Amazon Queen: a golden lasso crack and a war cry; a synthesized whip crack, shimmer and war cry, made with ffmpeg and Python and released as CC0"
+    "notes": "Nemesis bosses: Amazon Queen: a golden lasso crack and a war cry: the old synthesized version, of which all is kept, the real recordings layered with it; a synthesized whip crack, shimmer and war cry, made with ffmpeg and Python and released as CC0"
   },
   {
     "file": "music_hotgates.mp3",

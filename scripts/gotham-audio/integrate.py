@@ -37,8 +37,21 @@ AMB = [
                'thunder rolls and a faint far-off siren; synthesized with Python and ffmpeg (scripts/gotham-audio/ambience.py), 50 s crossfaded loop'),
 ]
 
+# Files since re-made from real recordings by scripts/real-sfx/build.py (the audio pass, docs/audio-audit.md): not
+# copied over, so running this again doesn't put the synthesized versions back (their credits and TRIM entries are
+# only ever added when missing, so they are left as they are too; ambience.py refuses to render into public/audio).
+REAL = {
+    'sfx_bunion_enter', 'sfx_bunion_pump', 'sfx_bunion_surge', 'sfx_bunion_smash', 'sfx_bunion_tubehit',
+    'sfx_bunion_drain', 'sfx_bunion_grab', 'sfx_bunion_strain', 'sfx_bunion_break', 'sfx_bunion_saved',
+    'sfx_bunion_death', 'sfx_jokester_enter', 'sfx_jokester_laugh', 'sfx_jokester_toss', 'sfx_jokester_tick',
+    'sfx_jokester_boom', 'sfx_jokester_defuse', 'sfx_jokester_gift', 'sfx_jokester_gas', 'sfx_jokester_clear',
+    'sfx_jokester_giggle', 'sfx_jokester_jack', 'sfx_jokester_spring', 'sfx_jokester_pie', 'sfx_jokester_splat',
+    'sfx_jokester_teeth', 'sfx_jokester_weight', 'sfx_jokester_thud', 'sfx_jokester_bang', 'sfx_jokester_window',
+    'sfx_jokester_death', 'sfx_hero_darkfalls',
+}
 for d in rep:
-    shutil.copy(os.path.join(out, d['key'] + '.mp3'), os.path.join(repo, 'public/audio', d['key'] + '.mp3'))
+    if d['key'] not in REAL:
+        shutil.copy(os.path.join(out, d['key'] + '.mp3'), os.path.join(repo, 'public/audio', d['key'] + '.mp3'))
 
 
 def sfx_credit(d):
