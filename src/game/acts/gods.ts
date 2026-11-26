@@ -1,8 +1,9 @@
 // What the Kratos Peel's two feet do (data in src/content/feet/gods.ts), through the contentFx foot hooks.
 //
 // - Persian Elephant Feet: when it stomps, its trunk swings down onto the pizza next to its own (the side it
-//   leans to). After every smack it raises gold-rimmed bronze lamellar plates over the foot for 0.7 s: nothing hurts
-//   it until they fold away.
+//   leans to). After every blow of the player's own (a smack, the Peel Slam, a charged ability) it raises gold-rimmed
+//   bronze lamellar plates over the foot for 0.7 s: nothing hurts it until they fold away. Toppings, burns and
+//   passives don't raise them.
 // - Spartan Sandals: march in pairs. A round bronze shield (the guard trait, on its own quicker rhythm: up for 1 s,
 //   down for 1.2 s; FootType.guard) blocks smacks while it's up, and cracks under them; enough of them shatter it
 //   until a new one comes (src/game/guardShield.ts). A hit while it's down slams it straight back up for 2 s.
@@ -152,11 +153,15 @@ function elephantTick(a: Arena, f: Foot, dt: number): void {
     }
   }
   if (f.state !== 'stomp') f.brain.trunked = 0;
-  // shields up for a second after every smack (any damage that got through)
+  // armour up after the player's own blow gets through (a smack, the Peel Slam, a charged ability: GameScene sets
+  // brain.blow); toppings, burns, procs and passives chip it without raising it, so they never put it up in the way
+  // of a smack
   const hp = Number(f.brain.lastHp ?? f.hp);
+  const blow = f.brain.blow === 1;
+  f.brain.blow = 0;
   if (Number(f.brain.guardCd ?? 0) > 0) f.brain.guardCd = Number(f.brain.guardCd) - dt;
   // (after a guard drops it stays open a moment: the gap to land the next smack in)
-  if (f.hp < hp - 0.01 && !f.shielded && f.alive && !(Number(f.brain.guardCd ?? 0) > 0)) {
+  if (blow && f.hp < hp - 0.01 && !f.shielded && f.alive && !(Number(f.brain.guardCd ?? 0) > 0)) {
     f.shielded = true;
     f.brain.guardT = ELEPHANT_GUARD;
     a.sfx('sfx_bronzeshield', { volume: 0.5, throttle: 200 });

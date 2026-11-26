@@ -3600,6 +3600,9 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.tally.add(o.tag ?? o.source, Math.min(dealt, Math.max(0, f.hp)));
     f.hp -= dealt;
     if (dealt > 0) f.regenHold = 2;
+    // the player's own blow (a smack, the Peel Slam, a charged ability's hit), not what fires by itself: the Persian
+    // Elephant's armour answers only these (src/game/acts/gods.ts)
+    if (dealt > 0 && (smack || o.source === 'slam' || (o.source === 'ability' && !auto && !o.passive))) f.brain.blow = 1;
     if (smack && f.has('crack') && f.armor > 0) {
       f.armor--;
       this.fx.quip(f.x + 60, f.cy - 60, 'CRACK!', '#c7ccd4', 30);
