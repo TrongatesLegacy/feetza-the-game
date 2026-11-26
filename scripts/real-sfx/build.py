@@ -840,7 +840,7 @@ def quake():
     return layer([
         L('old:sfx_doomstomp_quake', 0.0, 1.39, 0.0, 0.0, 0, fin=0.002, fout=0.15),
         # (batch 6: the earth cracking open is now a rock smashed three times and rock crumbling, both real recordings, where
-        # batch 2 used a designed earthquake crack that is mixed partly from a synthesized rumble)
+        # batch 2 used a designed earthquake crack, a composite of other uploads, one since deleted, its licence unverifiable)
         L(765844, 0.020, 0.30, 0.000, -5.0, 14, fin=0.002, fout=0.15, fx=STONE),  # a rock smashed, lower: the bone cracks
         L(765844, 1.020, 0.30, 0.450, -6.0, 12, fin=0.002, fout=0.15, fx=STONE),
         L(765844, 1.890, 0.30, 0.900, -5.0, 11, fin=0.002, fout=0.15, fx=STONE),
@@ -2349,9 +2349,9 @@ def hotgatesloop():
 # its level (RECIPES) sits halfway between the old file's 50 ms RMS peak and the level matching its momentary loudness.
 # Each stage shares one kit: for Bunion, a massed stomp, a crash of debris, crunching toast, a hand sprayer's water,
 # bottle glugs, a deflating balloon and an air release; for the Jokester, two real jack-in-the-boxes, a spring door stop,
-# a party popper and a party horn, a man's joker-like laugh and real cartoon props (a wooden slide whistle, wind-up
-# chattering teeth, a sad trombone); for the comics villains, boots, a man's deep laugh, water and steam, wet foley
-# (washcloths, a sponge, a rubber stress ball, tape), a man's scream and real cats; the hero variants reuse the earlier
+# a party popper and a party horn, a joker-like laugh and real cartoon props (a wooden slide whistle, wind-up
+# chattering teeth, a sad trombone); for the comics villains, boots, a deep evil laugh, water and steam, wet foley
+# (washcloths, a sponge, a rubber stress ball, tape), a wounded man's scream and real cats; the hero variants reuse the earlier
 # batches' thunder, fire, horns and raven, with a woman's shout and a trumpet's fanfare note.
 LIGHT = 'acompressor=threshold=-8dB:ratio=2:attack=6:release=90:knee=4'  # a lighter master compressor (RECIPES), for the
 # hits that the usual one (from -20 dB) would flatten: their attacks stay sharp, as the synth's were
@@ -2446,7 +2446,7 @@ def buniondeath():
     return layer([
         L(371094, 0.190, 0.80, 0.000, -5.0, -4, fin=0.001, fout=0.3),           # a large glass bottle shattering, lower: the tubes
         L(131933, 0.330, 1.40, 0.000, -2.0, -8, fin=0.002, fout=0.5),          # compressed air released: the venom bursting out
-        L(495117, 0.010, 0.40, 0.050, -3.0, -2, fin=0.001, fout=0.15),          # a wet cloth slapped: the splatter
+        L(495117, 0.010, 0.40, 0.050, -3.0, 1, fin=0.001, fout=0.15),           # a wet washcloth slapped into water: the splatter
         L(82123, 0.150, 1.20, 0.250, -2.0, 3, fin=0.05, fout=0.3),            # a balloon deflating: he goes down
         L(20185, 0.040, 0.80, 1.400, -10.0, -3, fin=0.001, fout=0.4, fx='lowpass=f=450'),  # a massed stomp, far lower: the thud
         L(703248, 0.020, 1.10, 1.400, -6.0, 6, fin=0.001, fout=0.3, fx=STONE + ',' + DAMP % (8, 0.15)),  # a crash of debris, lower
@@ -2463,7 +2463,7 @@ def jokesterenter():
 
 
 def jokesterlaugh():
-    return layer([L(427574, 0.050, 1.18, 0.000, 1.0, 0, fin=0.01, fout=0.2)])  # a man's joker-like laugh, a little higher
+    return layer([L(427574, 0.050, 1.18, 0.000, 1.0, 0, fin=0.01, fout=0.2)])  # a joker-like laugh, a little higher
 
 
 def jokestertoss():
@@ -2590,9 +2590,9 @@ def jokesterwindow():
 def jokesterdeath():
     return layer([
         L(427573, 0.520, 1.35, 0.000, 0.0, 0, fin=0.01, fout=0.15, fx="asetnsamples=n=64,volume='1-0.55*t/1.35':eval=frame"),
-        # (a man's joker-like laugh, fading)
+        # (a joker-like laugh, fading)
         L(587886, 0.000, 1.00, 1.350, 0.0, 2, fin=0.001, fout=0.5, fx=DECAY % 3),  # a big blast
-        L(26349, 0.040, 0.55, 1.370, 0.0, -2, fin=0.002, fout=0.2),            # a party popper: the confetti
+        L(26349, 0.040, 0.55, 1.370, 0.0, 1, fin=0.002, fout=0.2),             # a party popper: the confetti
         L(30154, 0.000, 0.85, 1.450, 0.0, -2, fin=0.003, fout=0.3),            # a small jingle bell shaken
     ])
 
@@ -2614,12 +2614,12 @@ def redsoleenter():
     return layer(steps + [
         L(617440, 0.090, 0.50, 0.950, -3.0, 8, fin=0.001, fout=0.2),            # a foot stomped on the floor, lower: the halt
         L(20185, 0.040, 0.60, 0.950, -10.0, -6, fin=0.001, fout=0.3, fx='lowpass=f=400'),  # a massed stomp, far lower, under it
-        L(362330, 0.330, 1.40, 1.050, -2.0, -2, fin=0.02, fout=0.3),           # a man's deep evil laugh, a little lower
+        L(362330, 0.330, 1.40, 1.050, -2.0, -2, fin=0.02, fout=0.3),           # a deep evil laugh, a little lower
     ])
 
 
 def redsolelaugh():
-    return layer([L(362330, 0.580, 1.42, 0.000, -2.0, 0, fin=0.02, fout=0.25)])  # a man's deep evil laugh, a little lower
+    return layer([L(362330, 0.580, 1.42, 0.000, -2.0, 0, fin=0.02, fout=0.25)])  # a deep evil laugh, a little lower
 
 
 def redsoleturret():
@@ -2649,7 +2649,7 @@ def redsolecap():
 def redsolestomp():
     return layer([
         L(617440, 0.100, 0.55, 0.000, -4.0, 0, fin=0.001, fout=0.25),           # a foot stomped on the floor, lower
-        L(558856, 0.000, 0.25, 0.000, -4.0, -6, fin=0.001, fout=0.1),            # a boot stomped: the heel
+        L(558856, 0.000, 0.25, 0.000, -4.0, 1, fin=0.001, fout=0.1),             # a boot stomped: the heel
         L(20185, 0.040, 0.60, 0.000, -10.0, -2, fin=0.001, fout=0.3, fx='lowpass=f=400'),  # a massed stomp, far lower: the weight
     ])
 
@@ -2726,7 +2726,7 @@ def venomnomshriek():
     return layer([
         L(221544, 0.380, 1.20, 0.000, 2.0, 0, fin=0.02, fout=0.25),             # a wounded man screaming, a little higher...
         L(221544, 0.380, 1.20, 0.000, -6.0, -4, fin=0.02, fout=0.25),           # ...and lower: the double voice
-        L(788212, 0.250, 1.20, 0.000, 0.0, -8, fin=0.03, fout=0.25),            # an inhaled screech: the monster in it
+        L(788212, 0.250, 1.20, 0.000, 0.0, -8, fin=0.03, fout=0.25),            # an inhaled screech (a voice): the monster in it
     ], post='acompressor=threshold=-24dB:ratio=3:attack=10:release=120:knee=6')
 
 
@@ -2896,7 +2896,7 @@ def gothamloop():
         Ls(454092, 61.000, LOOP + XF, 0.0, 0.0, 20, fin=0.01, fout=0.01, fx='lowpass=f=1500'),  # strong gusts of wind, far off
         Ls(581124, 0.300, 7.80, 17.5, -2.0, 16, fin=0.3, fout=2.5, fx='lowpass=f=1000'),  # distant thunder rolling, a little lower
         Ls(319565, 39.000, 7.00, 39.6, -2.0, 4, fin=0.3, fout=2.5, fx='lowpass=f=1000'),  # a distant thunderstorm, a little lower
-        Ls(451068, 0.100, 3.80, 27.0, 0.0, 17, fin=1.2, fout=1.5, fx='lowpass=f=2500'),  # an ambulance's siren far off, echoing
+        Ls(451068, 4.000, 3.60, 27.0, 0.0, 3, fin=0.8, fout=1.2, fx='lowpass=f=3500'),  # an ambulance's siren far off, echoing
     ], post='acompressor=threshold=-30dB:ratio=2.5:attack=40:release=500:knee=6')
 
 
@@ -3155,7 +3155,7 @@ RECIPES = {
     'bunionstrain': ('sfx_bunion_strain', bunionstrain, 0.34, -14.9, 0.07),
     'bunionbreak': ('sfx_bunion_break', bunionbreak, 1.00, -12.1, 0.20, 0.75, LIGHT),
     'bunionsaved': ('sfx_bunion_saved', bunionsaved, 0.76, -11.4, 0.15, 0.84, LIGHT),
-    'buniondeath': ('sfx_bunion_death', buniondeath, 2.40, -11.4, 0.40, 0.84, LIGHT),
+    'buniondeath': ('sfx_bunion_death', buniondeath, 2.40, -11.6, 0.40, 0.84, LIGHT),
     'jokesterenter': ('sfx_jokester_enter', jokesterenter, 1.08, -11.1, 0.22),
     'jokesterlaugh': ('sfx_jokester_laugh', jokesterlaugh, 1.18, -11.8, 0.24),
     'jokestertoss': ('sfx_jokester_toss', jokestertoss, 0.70, -13.0, 0.14),

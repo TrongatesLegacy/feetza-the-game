@@ -6,6 +6,8 @@ The music and ambience are made straight into public/audio (no TRIM: they're lev
   python3 -I loops.py music "Metalmania.mp3" REPO/public/audio/music_boss_bunion.mp3 48.0 18 4
   python3 -I loops.py music "Carnivale Intrigue.mp3" REPO/public/audio/music_boss_jokester.mp3 60.63 20 6
   python3 -I ambience.py REPO/public/audio
+(ambience_gotham.mp3 is now made from real recordings by scripts/real-sfx/build.py, so ambience.py refuses to render into
+public/audio; the sound effects it lists in REAL below are skipped the same way.)
 (sources: https://incompetech.com/music/royalty-free/mp3-royaltyfree/<Title>.mp3)"""
 import json
 import math

@@ -654,7 +654,7 @@ const TRIM: Record<string, number> = {
   sfx_bunion_strain: 1.16, // -14.9 dB → -13.6: the crust creaks under the strain (repeats)
   sfx_bunion_break: 1.16, // -12.1 dB → -10.8: the pizza breaks: a big crunchy crack
   sfx_bunion_saved: 1.09, // -11.3 dB → -10.6: you foil THE BREAK: he's shoved back (thud and whoosh)
-  sfx_bunion_death: 1.11, // -11.3 dB → -10.4: his tubes burst and he deflates (hiss, splatter, thud)
+  sfx_bunion_death: 1.11, // -11.7 dB → -10.8: his tubes burst and he deflates (hiss, splatter, thud)
   sfx_jokester_enter: 1.20, // -11.3 dB → -9.7: the Jokester's entrance: a jack-in-the-box spring BOING and a confetti pop
   sfx_jokester_laugh: 1.05, // -11.9 dB → -11.5: his manic cackle "ha-ha-ha-HA" (tell)
   sfx_jokester_toss: 1.13, // -12.9 dB → -11.8: a joke box is tossed (whoosh and a ribbon jingle)
@@ -675,7 +675,7 @@ const TRIM: Record<string, number> = {
   sfx_jokester_thud: 1.06, // -10.9 dB → -10.4: the falling weight lands (big clank and thud)
   sfx_jokester_bang: 1.07, // -10.9 dB → -10.3: the BANG! flag gun pops (pop and a cloth snap)
   sfx_jokester_window: 1.15, // -11.4 dB → -10.2: the punchline window opens: he's dizzy (a sad trombone "wah-wah")
-  sfx_jokester_death: 1.09, // -11.7 dB → -10.9: his death: a last laugh fading into a big confetti bang
+  sfx_jokester_death: 1.09, // -11.8 dB → -11.0: his death: a last laugh fading into a big confetti bang
   sfx_hero_darkfalls: 1.05, // -10.0 dB → -9.5: the Dark Kneader's darkness falls: a heavy low boom, a wing whoosh and a sub tail
   sfx_hero_split: 1.10, // -12.8 dB → -12.0: a Dark Kneader wing-boomerang splits in two on impact (a metallic shing)
   // ——— Nemesis bosses and hero variants (scripts/nemesis-audio): Kronos the Titan King, Zeus, the Red Sole, Venomnom, the Cheetoe, and the upgraded hero peels ———
@@ -743,7 +743,7 @@ const TRIM: Record<string, number> = {
   sfx_redsole_spray: 1.02, // -10.8 dB → -10.6: a hydrant turret sprays: a pressurised burst
   sfx_redsole_cap: 1.03, // -11.9 dB → -11.7: a turret is capped: a metal clang as the hiss dies
   sfx_redsole_march: 1.17, // -12.3 dB → -10.9: the Skull Blitz: his goose-step heel clicks (tell)
-  sfx_redsole_stomp: 1.05, // -10.1 dB → -9.6: a heavy jackboot stomp lands
+  sfx_redsole_stomp: 1.05, // -10.1 dB → -9.7: a heavy jackboot stomp lands
   sfx_redsole_death: 1.07, // -11.0 dB → -10.4: the Red Sole goes down: his skull mask cracks, an alarm whoops and the bunker blows
   sfx_venomnom_enter: 1.12, // -11.6 dB → -10.6: Venomnom splats down: wet goo and a deep, double-voiced growl
   sfx_venomnom_growl: 1.20, // -12.6 dB → -11.0: Venomnom's wet growl (tell)

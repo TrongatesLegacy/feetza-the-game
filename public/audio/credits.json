@@ -5931,7 +5931,7 @@
     "author": "BrainClaim (freesound.org)",
     "license": "CC0 1.0",
     "url": "https://freesound.org/people/BrainClaim/sounds/427574/",
-    "notes": "Batpeel's Gotham: his manic cackle \"ha-ha-ha-HA\" (tell); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a man's joker-like laugh, a little higher. This source: the laugh; trimmed and pitch-shifted"
+    "notes": "Batpeel's Gotham: his manic cackle \"ha-ha-ha-HA\" (tell); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a joker-like laugh (its recordist's own), a little higher. This source: the laugh; trimmed and pitch-shifted"
   },
   {
     "file": "sfx_jokester_toss.mp3",
@@ -6062,7 +6062,7 @@
     "author": "Reitanna (freesound.org)",
     "license": "CC0 1.0",
     "url": "https://freesound.org/people/Reitanna/sounds/235165/",
-    "notes": "Batpeel's Gotham: feet giggle in the laughing gas (little high giggles); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a woman's giggle, higher, twice, and a crowd giggling, higher. This source: the giggle; trimmed, pitch-shifted and layered"
+    "notes": "Batpeel's Gotham: feet giggle in the laughing gas (little high giggles); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a female voice giggling, higher, twice, and a crowd giggling, higher. This source: the giggle; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_jokester_giggle.mp3",
@@ -6211,7 +6211,7 @@
     "author": "BrainClaim (freesound.org)",
     "license": "CC0 1.0",
     "url": "https://freesound.org/people/BrainClaim/sounds/427573/",
-    "notes": "Batpeel's Gotham: his death: a last laugh fading into a big confetti bang; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a man's joker-like laugh, fading, then a large explosion (a firecracker, pitched down and layered by its recordist), a party popper and a small jingle bell shaken. This source: the laugh; trimmed and layered"
+    "notes": "Batpeel's Gotham: his death: a last laugh fading into a big confetti bang; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a joker-like laugh (its recordist's own), fading, then a large explosion (a firecracker, pitched down and layered by its recordist), a party popper and a small jingle bell shaken. This source: the laugh; trimmed and layered"
   },
   {
     "file": "sfx_jokester_death.mp3",
@@ -7587,7 +7587,7 @@
     "author": "DigPro120 (freesound.org)",
     "license": "CC0 1.0",
     "url": "https://freesound.org/people/DigPro120/sounds/558856/",
-    "notes": "Nemesis bosses: the Red Sole marches in: jackboots and a sinister laugh; built from real recordings with ffmpeg (scripts/real-sfx/build.py): boots stomping four times and a foot stomped on the floor as he halts, both a little lower, over a massed stomp on a plywood floor, far lower, then a man's deep evil laugh, a little lower. This source: the boots; trimmed, pitch-shifted and layered"
+    "notes": "Nemesis bosses: the Red Sole marches in: jackboots and a sinister laugh; built from real recordings with ffmpeg (scripts/real-sfx/build.py): boots stomping four times and a foot stomped on the floor as he halts, both a little lower, over a massed stomp on a plywood floor, far lower, then a deep evil laugh (its recordist's own voice, unprocessed), a little lower. This source: the boots; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_redsole_enter.mp3",
@@ -7620,7 +7620,7 @@
     "author": "balloonhead (freesound.org)",
     "license": "CC0 1.0",
     "url": "https://freesound.org/people/balloonhead/sounds/362330/",
-    "notes": "Nemesis bosses: the Red Sole's villain laugh (tell); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a man's deep evil laugh, a little lower. This source: the laugh; trimmed and pitch-shifted"
+    "notes": "Nemesis bosses: the Red Sole's villain laugh (tell); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a deep evil laugh (its recordist's own voice, unprocessed), a little lower. This source: the laugh; trimmed and pitch-shifted"
   },
   {
     "file": "sfx_redsole_cube.mp3",
@@ -7994,7 +7994,7 @@
     "author": "joseppujol (freesound.org)",
     "license": "CC0 1.0",
     "url": "https://freesound.org/people/joseppujol/sounds/221544/",
-    "notes": "Nemesis bosses: the sound hurts him: Venomnom shrieks; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a wounded man screaming, a little higher and lower at once, for the double voice, and a man's inhaled screech. This source: the scream; trimmed, pitch-shifted and layered"
+    "notes": "Nemesis bosses: the sound hurts him: Venomnom shrieks; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a wounded man screaming, a little higher and lower at once, for the double voice, and an inhaled screech. This source: the scream; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_venomnom_shriek.mp3",
