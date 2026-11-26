@@ -12,14 +12,23 @@ const r1 = (n: number) => (Math.round(n * 10) / 10).toLocaleString('en-US', { ma
 const r2 = (n: number) => (Math.round(n * 100) / 100).toLocaleString('en-US', { maximumFractionDigits: 2 });
 
 /** A number the way its tile shows it (whole numbers through the game's fmt). */
+/** A big number kept short so it fits its tile: 9,950 stays, 12,400 → 12.4k, 3,127,358 → 3.13M. */
+function big(n: number): string {
+  const a = Math.abs(n);
+  if (a >= 1e9) return `${(n / 1e9).toFixed(a >= 1e10 ? 1 : 2)}B`;
+  if (a >= 1e6) return `${(n / 1e6).toFixed(a >= 1e7 ? 1 : 2)}M`;
+  if (a >= 1e4) return `${(n / 1e3).toFixed(a >= 1e5 ? 0 : 1)}k`;
+  return fmt(Math.round(n));
+}
+
 function show(n: number, f: NumFmt): string {
   switch (f) {
     case 'int':
-      return Math.abs(n) < 10 && Math.round(n) !== n ? r1(n) : fmt(Math.round(n));
+      return Math.abs(n) < 10 && Math.round(n) !== n ? r1(n) : big(n);
     case 'dec':
       return r1(n);
     case 'pct':
-      return `${fmt(Math.round(n))}%`;
+      return `${big(Math.round(n))}%`;
     case 'x':
       return `×${r2(n)}`;
     case 'sec':
@@ -30,7 +39,7 @@ function show(n: number, f: NumFmt): string {
 }
 
 /** DPS: a decimal under 10, whole numbers above. */
-const dps = (n: number) => (n < 10 ? r1(n) : fmt(Math.round(n)));
+const dps = (n: number) => (n < 10 ? r1(n) : big(n));
 
 function still(): boolean {
   return save.settings.reducedMotion || (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -132,7 +141,7 @@ function tile(t: Tile, i: number): HTMLElement {
       : counter(t.num, (v) => `${t.pre ?? ''}${show(v, t.fmt)}${t.post ?? ''}`);
   // a longer value (+6 slices, every 20s) gets a smaller size so it fits beside its icon, clear of the i button
   const said = t.fmt === 'text' ? (t.text ?? '') : `${t.pre ?? ''}${show(t.num, t.fmt)}${t.post ?? ''}`;
-  const len = said.length > 9 ? ' xlong' : said.length > 5 ? ' long' : '';
+  const len = said.length > 8 ? ' xlong' : said.length > 4 ? ' long' : '';
   return h(
     'div',
     { class: `st-tile ${t.tone}${t.big ? ' big' : ''}${t.from.length ? ' has-from' : ''}${len}`, style: `--i:${i}` },
@@ -154,7 +163,7 @@ function autoTile(t: AutoTile, i: number): HTMLElement {
     'div',
     { class: `st-auto${t.from.length ? ' has-from' : ''}`, style: `--i:${i};--ac:${t.color}` },
     h('div', { class: 'st-aic' }, t.img ? h('img', { src: t.img, alt: '' }) : t.icon),
-    h('b', { class: 'st-aname' }, t.label),
+    h('b', { class: 'st-aname', title: t.label }, t.label),
     h('span', { class: 'st-aval' }, value, h('small', {}, t.dps !== null ? per : ''), t.measured !== null ? h('span', { class: 'st-meas' }, `measured ${dps(t.measured)}/s`) : null),
     h('div', { class: 'st-abar' }, h('i', { style: `width:${Math.round(t.share * 100)}%` })),
     fromPop(t.from),
