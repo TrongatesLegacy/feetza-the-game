@@ -33,7 +33,7 @@ so it paints the same alone as in the still.
 - **`motion: 'slot'`**: not painted; the live code adds objects at that point in the stack (`k.slot(id)`). Keep its
   box tight: every still layer after it that overlaps the box becomes an overlay.
 - **`motion: 'top'`**: the live code's objects go over everything (flames, sparkles, birds); its container comes
-  from `k.slot(id)` too (Trattoria's `fx`, Beach's `torchFire`). Free: prefer it.
+  from `k.slot(id)` too (Trattoria's `fx`, Beach's `fx`). Free: prefer it.
 - **`liveOnly`**: painted only when live, as a sprite starting at alpha 0 (a night sky, a sunset sea, string-light
   glows). The live code fades it in.
 - **`stillOnly`**: painted only in the still (painted flames the live code replaces with moving ones).
@@ -45,7 +45,7 @@ Rules that keep memory down:
   that only adds over the table *after* the table.
 - Light that adds (`'lighter'`, `'screen'`: pools, beams, glows, glass sheen) belongs in still layers that stay in
   the base: in a sprite or an overlay it's baked over a transparent canvas and reads as fog. Put it in a
-  live-only layer the live code sets to `ADD` (Beach's `lightsGlow` holds the bulbs' halos) or paint it with plain
+  live-only layer the live code sets to `ADD` (Beach's `lightsGlow` holds the bulbs' pools on the bar) or paint it with plain
   alpha (`glassPane`).
 - Shadows (`castShadow`, `aoHalo`) scale with the transform, so they bake correctly at `res < 1`.
 - `grade` (colour, pixel-local: `gradeAll` with a `Split`) runs over every baked piece too, by screen position, so
@@ -60,12 +60,12 @@ A location covers waves 1–4 of its stage; wave 5 is the boss's arena. `waveK(w
 1 on the last. Ease towards it (`shown += (kw - shown) * Math.min(1, dt * 0.6)`) so a wave change is a slow
 shift, not a cut. Progression is done live with layers, never by repainting:
 
-- `liveOnly` sprites crossfading over the base (Beach: `sunset` sky and `seaEve` from wave 2, `dusk` sky at wave 4;
+- `liveOnly` sprites crossfading over the base (Beach: `sunset` sky and `seaEve` from wave 2, `dusk` sky at wave 3, darkened to night with live stars and moon at wave 4;
   Trattoria: `streetNight` in the window).
-- `k.wash(colour, alpha, MULTIPLY)` over the stack for the light's colour (Beach's warm sunset and blue dusk),
+- `k.wash(colour, alpha, MULTIPLY)` over the stack for the light's colour (Beach's warm sunset, violet dusk and blue night),
   `ADD` washes and glows for fire (Tartarus's pit).
-- `setTint` on moving sprites so they follow the light (Beach's clouds: gold, then pink, then slate).
-- Lights coming on (Beach's string lights and torch at sunset, Trattoria's candle brighter at night) and events
+- `setTint` on moving sprites so they follow the light (Beach's surf: cooler after sunset).
+- Lights coming on (Beach's string lights flickering on one by one at sunset and its torch at dusk, Trattoria's candle brighter at night) and events
   getting stronger (Tartarus's eruptions from the third wave).
 
 With Animated stages off nothing here runs: the still is wave 1 and must look complete on its own.
@@ -117,10 +117,10 @@ Each place is painted while the shop is open (the still, or the live base and it
 desktop Chrome:
 
 - Paint: the still and the live bake each under about 200 ms (references: Trattoria ~180 ms still / ~220 ms bake with its frame-loop pass,
-  Beach ~100 / ~180, Tartarus ~75 cold; about a third of a bake is `gradeAll`).
+  Beach ~115 / ~170 with its frame-loop pass, Tartarus ~75 cold; about a third of a bake is `gradeAll`).
 - Texture memory: the live base is always 7.9 MB (1920×1080); keep the base plus every piece under about 16 MB,
-  24 MB at most for a place with a lot moving (Trattoria 16.4 MB with its frame sheets, Tartarus 16.1 MB, Beach 21.2 MB with its three
-  skies and two seas).
+  24 MB at most for a place with a lot moving (Trattoria 16.4 MB with its frame sheets, Tartarus 16.1 MB, Beach 21.1 MB with its frame sheets, two
+  skies and a sunset sea).
 - Cheap: `lay()` of cached noise fields, gradients, paths. Costly: big `ctx.filter` blurs (use `softly()`, or blur a
   small offscreen canvas as `cloud()` and `lampOnWall()` do), thousands of strokes with their own gradients, and
   pixel loops (`gradeAll` runs once per piece: keep pieces few and tight).
