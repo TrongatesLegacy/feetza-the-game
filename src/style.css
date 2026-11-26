@@ -6284,3 +6284,16 @@ body.still-peels .peel-big.shiny::after {
   padding: 0.2em 0.8em 0.25em;
   min-width: 0;
 }
+/* (centred on the title's text: the title's own bottom margin and dashed underline sit below the shared line) */
+.prerun .lineup-head {
+  align-items: center;
+  margin-bottom: 0.35em;
+}
+.prerun .lineup-head .section-title {
+  align-self: center;
+  margin-bottom: 0;
+}
+.prerun .lineup-head .btn {
+  align-self: center;
+  margin-bottom: 0.2em;
+}
