@@ -88,6 +88,13 @@ Existing pizzas that move route (players who own them keep them):
 
 Existing pizzas are re-priced into their tier's band. A few weak but expensive Pizzeria pizzas (Wagyu & Truffle, Gold Leaf Margherita, Lobster Thermidor) drop in price, or get a small buff if they feel bad at their new tier.
 
+### Rebake and reheat, on the pizza itself
+
+- **Rebake is an overlay on the dead pizza** in the shop's table view: it shows charred and cracked, with a glowing oven door and its price over it; tap it to rebake that pizza (back at half its slices, fully fresh, with a puff of oven heat). You choose which dead pizza to save.
+- **Its price comes from the pizza:** 1.5× what that pizza costs at the counter right now (its tier's price, at this wave) for the first rebake in a run, and 2× for every rebake after. A dead legendary is a real decision; a dead common is cheap to bring back. Still off on Inferno.
+- **Reheat** is a small "REHEAT · price" chip on each stale pizza, in the same place.
+- **Heal** stays one button for the whole table (or optionally a small "+slices" chip per damaged pizza).
+
 ### Legendary unlock gates
 
 - **Pizzeria legendaries:** buyable once you've beaten that act's boss on **Hot or hotter**.
