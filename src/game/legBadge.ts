@@ -204,6 +204,52 @@ function heater(g: CanvasRenderingContext2D, r: number, col: string, ink: string
   g.restore();
 }
 
+/** A round silver tray seen face-on, or (off) knocked flying: tilted edge-on with speed lines behind it. */
+function salverIcon(g: CanvasRenderingContext2D, r: number, ink: string, off: boolean): void {
+  g.save();
+  if (off) {
+    // speed lines trailing off to the lower left
+    g.lineCap = 'round';
+    g.strokeStyle = ink;
+    g.lineWidth = r * 0.16;
+    for (const [dx, dy, l] of [[-0.95, 0.2, 0.5], [-0.8, 0.55, 0.4]] as const) {
+      g.beginPath();
+      g.moveTo(r * dx, r * dy);
+      g.lineTo(r * (dx - l), r * (dy + l * 0.45));
+      g.stroke();
+    }
+    g.translate(r * 0.15, -r * 0.1);
+    g.rotate(-0.55);
+    g.scale(1, 0.45);
+  }
+  const R = r * 0.98;
+  const gr = g.createLinearGradient(-R, -R, R, R);
+  gr.addColorStop(0, '#ffffff');
+  gr.addColorStop(0.45, '#c8d0da');
+  gr.addColorStop(0.6, '#eef2f6');
+  gr.addColorStop(1, '#6a7482');
+  g.beginPath();
+  g.arc(0, 0, R, 0, Math.PI * 2);
+  g.fillStyle = gr;
+  g.fill();
+  g.lineWidth = r * 0.2;
+  g.strokeStyle = ink;
+  g.stroke();
+  // the well inside the rim, and a sheen across it
+  g.beginPath();
+  g.arc(0, 0, R * 0.66, 0, Math.PI * 2);
+  g.lineWidth = r * 0.1;
+  g.strokeStyle = 'rgba(40,48,62,0.55)';
+  g.stroke();
+  g.beginPath();
+  g.ellipse(-R * 0.32, -R * 0.34, R * 0.42, R * 0.14, -0.75, 0, Math.PI * 2);
+  g.fillStyle = 'rgba(255,255,255,0.85)';
+  g.fill();
+  g.restore();
+}
+ICONS.tray = (g, r, _col, ink) => salverIcon(g, r, ink, false);
+ICONS.trayOff = (g, r, _col, ink) => salverIcon(g, r, ink, true);
+
 /** Perceived lightness of a hex colour, 0…1. */
 function light(hex: string): number {
   const n = parseInt(hex.slice(1), 16);

@@ -110,7 +110,9 @@ const UPRIGHT = new Set(['jukebox', 'riot', 'ketchup', 'chimney', 'rover', 'milk
   // Act 9 · Greek myths (the hoplite's shield has a lambda on it)
   'hoplite',
   // Dough Boy's face only reads the right way up (and his lumpy sole would make a ragged top)
-  'doughboy']);
+  'doughboy',
+  // the Head Waiter's monogrammed salver, and the covered dish a delivery waiter carries
+  'headwaiter', 'deliverywaiter']);
 const FOOT_PATTERNS: PeelPattern[] = ['spots', 'stripes', 'waves', 'checker', 'stars', 'bubbles', 'bolts', 'grain'];
 const BOSS_PATTERNS: PeelPattern[] = ['flames', 'bolts', 'scales', 'marble', 'stars'];
 

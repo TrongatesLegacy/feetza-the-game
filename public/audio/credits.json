@@ -4394,6 +4394,30 @@
     "notes": "a guard foot's shield shatters; a synthesized burst, tinkling pieces and clatter (original, made for Feetza with Python and ffmpeg, CC0) layered with the Kenney glass breaks"
   },
   {
+    "file": "sfx_traydent.mp3",
+    "title": "Impact Sounds (impactMetal_light_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "a smack dents a waiter's silver tray (Waiter Walt, the Head Waiter); layered with Impact Sounds impactBell_heavy_001 pitched up as its ring and impactPlate_light_002 (Kenney, CC0)"
+  },
+  {
+    "file": "sfx_trayknock.mp3",
+    "title": "Impact Sounds (impactPlate_heavy_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "a waiter's silver tray is knocked off whole; layered with Impact Sounds impactBell_heavy_001 pitched up and impactMetal_light_003 (Kenney, CC0)"
+  },
+  {
+    "file": "sfx_trayclatter.mp3",
+    "title": "Impact Sounds (impactTin_medium_001)",
+    "author": "Kenney (kenney.nl)",
+    "license": "CC0 1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "notes": "a silver tray clatters down on the table (a flung tray, a delivery waiter's dropped tray); layered with Impact Sounds impactPlate_medium_002, impactTin_medium_003 and impactMetal_light_003 (Kenney, CC0)"
+  },
+  {
     "file": "music_gotham.mp3",
     "title": "Crossing the Chasm",
     "author": "Kevin MacLeod (incompetech.com)",

@@ -322,9 +322,8 @@ registerLive('yeti', {
   },
 });
 
-// THE HEAD WAITER: the tray sways on its spring (and swings up as it dives), light glints off the patent leather.
+// THE HEAD WAITER: light glints off the patent leather (his salver is a guard shield piece: src/game/guardShield.ts).
 registerLive('headwaiter', {
-  sway: { tray: { k: 46, c: 4.5, gain: -1.2, idle: 0.06, flop: -0.8 } },
   rig: { swing: 0.8, squash: 0.8 },
   heat: {},
   setup: (k) => ({ steam: steamEm(k), glints: k.emitter({ frame: 'spark', add: true, drag: 0, max: 16 }) }),

@@ -11,12 +11,28 @@ import { contact, eyelet, laceRun, stitches } from '../../art/style/details';
 import { tones } from '../../art/style/materials';
 import { type Ctx, hashStr, mix, rgba, rng, shade } from '../../art/util';
 import { BARE_RIG, CX, RMAT, SHOE_RIG, bareWith, dripPath, ell, finishLight, piece, prop, solePath, upperPath, vgrad, within } from './roster-kit';
+import { paintSalver, paintSalverBack, salverPath, salverShadow } from './salver';
 
 // ════════════════════════ Waiter Walt ════════════════════════
 // A black patent oxford polished to a mirror, a crisp linen napkin draped over the toe and a red bow tie on the
-// tongue. In play the napkin's corner swings and the patent toe throws glints.
+// tongue, and his round silver tray held up face-on in front of the shoe as a shield (a beaded rim, the room mirrored
+// in it). In play the tray is its own piece (src/game/guardShield.ts: it dents, and it's knocked off whole); the
+// napkin's corner swings and the patent toe throws glints.
 
 const WAITER = { topW: 58, ballW: 98, toeY: 238 };
+/** His tray: a round salver held up in front of the shoe, over the toe (the bow tie and laces show above it). */
+const WALT_TRAY = { x: CX + 2, y: 160, r: 80 };
+const waltTrayPath = salverPath(WALT_TRAY.x, WALT_TRAY.y, WALT_TRAY.r);
+const WALT_TRAY_BOX = { x: WALT_TRAY.x - WALT_TRAY.r - 2, y: WALT_TRAY.y - WALT_TRAY.r - 2, w: WALT_TRAY.r * 2 + 4, h: WALT_TRAY.r * 2 + 4 };
+
+/** Walt's tray alone: its own silhouette over whatever's behind it. */
+function drawWaltTray(ctx: Ctx): void {
+  const { x, y, r } = WALT_TRAY;
+  const sil = new Sil(ctx, [waltTrayPath], WALT_TRAY_BOX);
+  paintSalver(sil.g, x, y, r, { rim: 'beads', n: 36, well: 0.8 });
+  finishLight(sil, '#9aa3b0', '#1a2030', 0.22);
+  sil.finish(inkOf('#6a7280'));
+}
 
 /** The napkin's loose corner (a live part; the body draws it in still art). */
 const NAPKIN_TAIL: PathFn = (c) => {
@@ -190,6 +206,26 @@ registerStyle('waiter', {
   contactY: 264,
   rig: SHOE_RIG,
   leg: { kind: 'wool', hw: 68, join: 'hem' },
+  // in play the tray is its own piece (src/game/guardShield.ts): dented by blocked smacks, knocked off whole
+  shield: {
+    box: { x: WALT_TRAY_BOX.x - 6, y: WALT_TRAY_BOX.y - 6, w: WALT_TRAY_BOX.w + 18, h: WALT_TRAY_BOX.h + 20 },
+    pivot: [WALT_TRAY.x + 34, WALT_TRAY.y + 46],
+    down: { dx: -150, dy: 84, rot: -0.5, sx: 0.58 },
+    material: 'silver',
+    badge: 'plate',
+    accent: '#cfd8e4',
+    words: { up: 'TRAY', off: 'KNOCKED', offSub: 'OFF!', rearm: 'NEW TRAY', icon: 'tray', offIcon: 'trayOff' },
+    sounds: { crack: 'sfx_traydent', shatter: 'sfx_trayknock' },
+    draw: (ctx) => drawWaltTray(ctx),
+    back(ctx) {
+      const { x, y, r } = WALT_TRAY;
+      const sil = new Sil(ctx, [waltTrayPath], WALT_TRAY_BOX);
+      paintSalverBack(sil.g, x, y, r);
+      sil.finish(inkOf('#6a7280'));
+    },
+    shadow: (ctx) => salverShadow(ctx, WALT_TRAY.x, WALT_TRAY.y, WALT_TRAY.r),
+    path: waltTrayPath,
+  },
   parts: {
     napkin: {
       box: { x: CX + 78, y: 128, w: 60, h: 92 },
@@ -204,6 +240,11 @@ registerStyle('waiter', {
   },
   draw(ctx, art, p, o) {
     drawWaiter(ctx, art, p, o.live);
+    // the still art keeps his tray held up in front (in play it's its own piece)
+    if (!o.noShield) {
+      salverShadow(ctx, WALT_TRAY.x, WALT_TRAY.y, WALT_TRAY.r);
+      drawWaltTray(ctx);
+    }
   },
 });
 

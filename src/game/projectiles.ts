@@ -77,6 +77,7 @@ const LOOK: Record<ThrowProp, Look> = {
   pizzacutter: { size: 96, color: 0xc7ccd4, spin: 1300, ...DISC },
   calzone: { size: 100, color: 0xe8a040, spin: 320, ...HEAVY, impact: 'sfx_hitboom' },
   napkin: { size: 76, color: 0xfff4e0, spin: 600, tumble: true, ...SOFT },
+  cloche: { size: 92, color: 0xe8edf2, spin: 260, ...DISC },
   wheelcutter: { size: 100, color: 0xc7ccd4, spin: 0, ...DISC },
   // hero props (src/content/props/heroes.ts)
   wingrang: { size: 104, color: 0xffd23f, spin: 1300, ...DISC, launch: 'sfx_tossspin', impact: 'sfx_hitclang' },

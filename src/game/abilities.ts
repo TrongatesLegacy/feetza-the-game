@@ -107,6 +107,7 @@ export const THROW_PROPS = {
   pizzacutter: ['pizza cutter', 'pizza cutters'],
   calzone: ['calzone', 'calzones'],
   napkin: ['napkin', 'napkins'],
+  cloche: ['covered dish', 'covered dishes'],
   wheelcutter: ['rolling cutter', 'rolling cutters'],
   // hero props (src/content/props/heroes.ts)
   wingrang: ['wing-boomerang', 'wing-boomerangs'],
@@ -534,6 +535,9 @@ export const ABILITIES: Record<string, Ability> = {
   'foot:fred': ab('Frostbite', smack(0.3), [S(0.5, 3, hit(140))], CYAN, 'frost'),
   'foot:golden': ab('Gold Rush', always, [STAT({ coinMult: 0.25, goldenTouch: 0.03 })], GOLD, 'gold'),
   'foot:waiter': plus(ab('Table Service', every(10), [H(1, 'weakest')], WHITE, 'heal'), every(7), TH('plate', 'ricochet', 2, rnd(1), { more: [2, 2] })),
+  // Delivery Del (the Head Waiter's runner): a covered dish flung like the Head Waiter's tray, out to the toughest foot
+  // and back like a batted tray (plain hits: nothing elemental, as his boots shrug that off)
+  'foot:deliverywaiter': ab('Room Service', every(8), [TH('cloche', 'boomerang', 4, tough(1), { more: [2] })], WHITE, 'burst'),
   'foot:garlicgary': ab('Garlic Aura', always, [STAT({ garlicDps: 8 })], GREEN, 'ink'),
   'foot:espresso': ab('Double Shot', always, [STAT({ superGain: 0.4, doubleChance: 0.05 })], BROWN, 'burst'),
   'foot:saucysal': ab('Sauce Splash', kill(0.4), [D(1.6, hit(170)), S(0.25, 2, hit(170))], RED, 'burst'),

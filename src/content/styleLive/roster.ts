@@ -9,6 +9,7 @@ import { ANT_TIPS } from '../style/roster-1';
 import { hexNut } from '../style/roster-3';
 import { drawFeather } from '../style/roster-kit';
 import { DOUGHTOES_CONTACT, DOUGHTOES_STRAND } from '../style/roster-4';
+import { DEL_TRAY } from '../style/delivery';
 import { doughLive } from './dough';
 import { musicNote } from '../style/roster-5';
 
@@ -37,6 +38,22 @@ registerLive('waiter', {
     glint.rate('shine', 0.5, dt, () => {
       glint.emit(CX - 44 + pm() * 20, 204, { life: 0.35, r0: 2, r1: 16 * k.f.type.scale, a: 0.9, tint: 0xffffff, fade: 0.4 });
     });
+  },
+});
+
+// Delivery Del (the Head Waiter's runner): his rubber boots throw glints, and while he carries the tray (the fight's
+// own picture: src/game/bosses/act1a.ts) steam curls up off the dish under the cloche.
+registerLive('deliverywaiter', {
+  setup: (k) => ({ glint: k.emitter({ frame: 'spark', add: true, drag: 0, max: 6 }), steam: k.emitter({ frame: 'soft', curl: 40, drag: 0.9, max: 40 }) }),
+  tick(k, dt, { glint, steam }) {
+    const s = k.f.type.scale;
+    glint.rate('shine', 0.6, dt, () => {
+      glint.emit(CX - 40 + pm() * 30, 110 + pm() * 60, { life: 0.35, r0: 2, r1: 15 * s, a: 0.9, tint: 0xffffff, fade: 0.4 });
+    });
+    if (k.f.brain.carrying)
+      steam.rate('dish', 5, dt, () => {
+        steam.emit(DEL_TRAY.x + pm() * 60, DEL_TRAY.y - 6, { vx: pm() * 14, vy: -36 - R() * 24, life: 1 + R() * 0.5, r0: 4 * s, r1: 16 * s, a: 0.35, tint: 0xffffff, fade: 0.3 });
+      });
   },
 });
 

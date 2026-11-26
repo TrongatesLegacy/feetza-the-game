@@ -29,8 +29,10 @@ export interface ShieldDef {
   /** Where it goes when it drops, to the foot's left (design units, radians; mirrored on the other side): moved by
    * dx, dy, turned by rot, squeezed to sx across (turned edge-on). */
   down: { dx: number; dy: number; rot: number; sx: number };
-  /** How it cracks and breaks: glass (polycarbonate: white stress lines, shards) or bronze (dents, splits, plates). */
-  material: 'glass' | 'bronze';
+  /** How it cracks and breaks: glass (polycarbonate: white stress lines, shards), bronze (dents, splits, plates) or
+   * silver (a polished tray: blows dent and scratch it with a bright ring, and its last one knocks it off whole, spinning,
+   * or into the foot's own throw: Foot.guardCatch). */
+  material: 'glass' | 'bronze' | 'silver';
   /** False if the style's still art never had the shield painted on (the play body is then the still one). */
   painted?: boolean;
   /** Its leg badge's kind (src/game/legBadge.ts: a riveted plate, a carved tag, a stitched patch) and the colour
@@ -39,8 +41,16 @@ export interface ShieldDef {
   accent?: string;
   /** Hangs from its strap: swings like a pendulum once it's down. */
   swing?: boolean;
-  /** Its own sounds in place of the stock ones (src/game/guardShield.ts): a blocked smack's crack, the shatter. */
+  /** Its own sounds in place of the stock ones (src/game/guardShield.ts): a blocked smack's crack, the shatter (a
+   * silver tray's knock-off). */
   sounds?: { crack?: string; shatter?: string };
+  /** Its leg badge's words in place of SHIELD, BROKEN and RE-ARM (a tray: TRAY, KNOCKED / OFF!, NEW TRAY), and its icons. */
+  words?: { up: string; off: string; offSub?: string; rearm?: string; icon?: string; offIcon?: string };
+  /** Draw its underside alone in design space, in the same box (a tray tumbling through the air shows it). */
+  back?(ctx: Ctx, art: FootArt): void;
+  /** Draw the soft shadow it casts on the foot behind it while it's held, in the same box (its own layer: a thrown
+   * piece leaves it behind). */
+  shadow?(ctx: Ctx, art: FootArt): void;
   /** Draw the shield alone in design space. */
   draw(ctx: Ctx, art: FootArt): void;
   /** Its outline, in design space. */

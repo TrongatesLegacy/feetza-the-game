@@ -2,7 +2,7 @@
 
 import Phaser from 'phaser';
 import { BASE_DESCEND, GUARD_FETCH, HOVER_Y } from '../config';
-import { makeGuardFx } from './guardShield';
+import { type GuardSnap, makeGuardFx } from './guardShield';
 import type { FootType } from '../data/feet';
 import { ensureFootArt, type FootMeta } from './assets';
 import type { Pizza } from './Pizza';
@@ -112,12 +112,26 @@ export class Foot {
   stateT = 0;
   age = 0;
   hoverTime = 1;
-  burnT = 0;
+  /** Seconds of burn left (an insulated foot never catches: the setter keeps it at 0). */
+  get burnT(): number {
+    return this.burnLeft;
+  }
+  set burnT(v: number) {
+    this.burnLeft = v > 0 && this.insulated ? 0 : v;
+  }
+  private burnLeft = 0;
   burnDps = 0;
   burnAcc = 0;
   /** The current burn came from a peel ability (its kills don't charge the meter). */
   burnFromAbility = false;
-  slowT = 0;
+  /** Seconds of slow left (an insulated foot never slows: the setter keeps it at 0). */
+  get slowT(): number {
+    return this.slowLeft;
+  }
+  set slowT(v: number) {
+    this.slowLeft = v > 0 && this.insulated ? 0 : v;
+  }
+  private slowLeft = 0;
   slowPct = 0;
   stunT = 0;
   frozen = false;
@@ -191,6 +205,16 @@ export class Foot {
   guardRearmAfter = 9;
   /** The new shield is being fetched (seconds into it, the last GUARD_FETCH of the wait): still unguarded. */
   guardFetchT = -1;
+  /** No re-arm timer: once it's gone, a new shield comes only when a fight hands one over (guardRestore: the Head
+   * Waiter's tray, brought by a delivery waiter). */
+  guardManual = false;
+  /** A new shield on its way to a manual guard (0…1 of the way, for the badge's ring), or -1. */
+  guardIncoming = -1;
+  /** The shield left the foot whole (thrown: guardAway), not smashed or knocked off (the badge says so). */
+  guardThrown = false;
+  /** Takes a silver tray knocked off whole (its texture and where it is on screen) for the foot's own throw (Waiter
+   * Walt's fling, the Head Waiter's toss). Without one it just flies off. */
+  guardCatch: ((snap: GuardSnap) => void) | null = null;
   /** The shield's moving piece and leg badge (src/game/guardShield.ts). */
   guardFx: {
     update(dt: number): void;
@@ -199,6 +223,10 @@ export class Foot {
     /** Automatic damage glanced off the raised shield: true if it showed (a ting and a shiver, throttled). */
     deflected(): boolean;
     broke(): void;
+    /** The shield leaves the foot whole (guardAway): where it is and how it looks, or null. */
+    away(): GuardSnap | null;
+    /** A new shield is handed over from (x, y) on screen (guardRestore), or just raised. */
+    receive(from?: { x: number; y: number }): void;
     /** A raging foot rears back with its shield (gods.ts), then throws it: where it leaves from, or null. */
     windup(): void;
     throwOff(): { key: string; x: number; y: number; scale: number } | null;
@@ -330,6 +358,11 @@ export class Foot {
   /** Traits a fight has given it on top of its type's (a zombie foot gets back up once). */
   readonly extraTraits = new Set<FootType['traits'][number]>();
 
+  /** Insulated boots (the delivery waiter's): no burns, freezes, slows or lightning. */
+  get insulated(): boolean {
+    return this.type?.traits.includes('insulated') ?? false;
+  }
+
   get isBossLike(): boolean {
     return !!this.type.boss || !!this.type.mini;
   }
@@ -425,6 +458,8 @@ export class Foot {
     if (this.guardDone) return;
     if (this.guardBroken) {
       this.guardIdle += dt;
+      // (a manual guard waits for its fight to hand it a new one)
+      if (this.guardManual) return;
       if (this.guardFetchT < 0 && this.guardIdle >= this.guardRearmAfter - GUARD_FETCH) this.guardFetchT = 0;
       else if (this.guardFetchT >= 0) this.guardFetchT += dt;
       if (this.guardIdle >= this.guardRearmAfter) this.guardRearm();
@@ -511,6 +546,7 @@ export class Foot {
     }
     this.guardChipAcc = 0;
     this.guardBroken = true;
+    this.guardThrown = false;
     this.guardIdle = 0;
     this.guardFetchT = -1;
     this.guardWarned = false;
@@ -520,9 +556,33 @@ export class Foot {
     return true;
   }
 
+  /** The shield leaves the foot whole (the Head Waiter throws his tray): it's open as if the shield had gone, without a
+   * break. Returns where the piece was and how it looked (for the throw), or null if it had none up. */
+  guardAway(): GuardSnap | null {
+    if (!this.has('guard') || this.guardBroken || this.guardDone || !this.alive) return null;
+    this.guardChipAcc = 0;
+    this.guardBroken = true;
+    this.guardThrown = true;
+    this.guardIdle = 0;
+    this.guardFetchT = -1;
+    this.guardWarned = false;
+    this.guardOpen = 0;
+    return this.guardFx?.away() ?? null;
+  }
+
+  /** A new shield handed over (a delivery waiter's tray): at full strength at once, swung into place from `from` (a
+   * point on screen). */
+  guardRestore(from?: { x: number; y: number }): void {
+    if (!this.guardBroken || this.guardDone || !this.alive) return;
+    this.guardRearm();
+    this.guardFx?.receive(from);
+  }
+
   /** The new shield is raised: full strength, back on the usual rhythm. */
   private guardRearm(): void {
     this.guardBroken = false;
+    this.guardThrown = false;
+    this.guardIncoming = -1;
     this.guardFetchT = -1;
     this.guardIdle = 0;
     this.guardHp = this.guardMax;
@@ -686,7 +746,7 @@ export class Foot {
     const slowF =
       (this.slowT > 0 && !this.type.traits.includes('immuneSlow') ? 1 - this.slowPct : 1) *
       globalSlow *
-      (1 - this.slowAbove) *
+      (1 - (this.insulated ? 0 : this.slowAbove)) *
       (1 + this.cheer) *
       (this.enraged ? 1.5 : 1) *
       this.hurry;
@@ -1149,6 +1209,8 @@ export class Foot {
 
   stun(sec: number, frozen = false): void {
     if (!this.alive) return;
+    // (insulated boots: frost slides off, the freeze never takes)
+    if (frozen && this.insulated) return;
     this.stunT = Math.max(this.stunT, sec);
     this.frozen = frozen;
     if (frozen) this.clearTint();
