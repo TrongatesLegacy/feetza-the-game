@@ -299,13 +299,11 @@ export function simReady(): boolean {
 
 export async function simRun(game: Phaser.Game, o: SimOpts, start: (opts: Record<string, unknown>) => void): Promise<SimResult> {
   const opts: Required<SimOpts> = { peel: 'classic', accuracy: 0.9, rate: 260, dt: 1000 / 60, profile: 'fresh', maxRealMs: 600_000, trace: 0, idleFrom: 0, shop: 'rarity', from: 0, bot: 'full', lightRate: 2000, momentum: {}, ...o };
-  // momentum overrides, put back when the run is done
+  // momentum overrides: set once the run has started (a run that fails to start throws before them), and put back
+  // when it's done
   const heatMo = HEAT_BY_ID[opts.heat].momentum;
   const moBefore = { heat: { ...heatMo }, shared: { ...MOMENTUM } };
   const { smackGain, slamGain, ...perHeat } = opts.momentum;
-  Object.assign(heatMo, perHeat);
-  if (smackGain !== undefined) MOMENTUM.smackGain = smackGain;
-  if (slamGain !== undefined) MOMENTUM.slamGain = slamGain;
   const actRate = opts.bot === 'light' ? opts.lightRate : opts.rate;
   // the game's art must be built first (several tabs booting at once can take a while)
   for (let i = 0; i < 600 && !artBooted(); i++) await new Promise((r) => setTimeout(r, 100));
@@ -354,6 +352,10 @@ export async function simRun(game: Phaser.Game, o: SimOpts, start: (opts: Record
     throw new Error('the game scene did not start');
   }
   g.scene.setVisible(false);
+  // (the start loop above may have begun the first wave: only its grace came from the unchanged numbers)
+  Object.assign(heatMo, perHeat);
+  if (smackGain !== undefined) MOMENTUM.smackGain = smackGain;
+  if (slamGain !== undefined) MOMENTUM.slamGain = slamGain;
   gameMs = 0;
   // where the damage comes from: smacks, the slam/ability, or the automatic sources (procs, cutters, burns…)
   const dmgBy: Record<string, number> = {};

@@ -729,6 +729,8 @@ h3 {
 
 .slam {
   position: absolute;
+  /* (its own stacking context: the furnace and label layers stay inside the button) */
+  isolation: isolate;
   right: 1.4em;
   bottom: 1.4em;
   width: 8em;
@@ -774,7 +776,8 @@ h3 {
 }
 
 .slam .fz-level {
-  transform: translateY(calc((1 - var(--m, 1)) * 80px));
+  /* (full leaves the top of the disc empty so the wavy top shows; empty sinks it to an ember line) */
+  transform: translateY(calc(12px + (1 - var(--m, 1)) * 70px));
   transition: transform 0.35s ease-out;
 }
 
@@ -837,9 +840,9 @@ h3 {
 .slam .fz-icon {
   position: absolute;
   left: 50%;
-  bottom: 0.12em;
-  width: 0.9em;
-  height: 1.08em;
+  bottom: 0.06em;
+  width: 0.8em;
+  height: 0.96em;
   transform: translateX(-50%);
   filter: drop-shadow(0 0 0.15em rgba(255, 140, 40, calc(0.2 + 0.7 * var(--m, 1))));
 }

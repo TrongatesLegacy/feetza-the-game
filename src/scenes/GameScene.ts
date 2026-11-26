@@ -3415,7 +3415,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       .sort((a, b) => (b.c.priority ?? 0) - (a.c.priority ?? 0) || a.d - b.d)[0];
     if (click && (!hits.length || (click.c.priority ?? 0) >= 2 || hits[0].d > 18)) {
       this.logSmack(x, y, undefined, `target:${labelOf(click.c)}`);
-      // (smacking a boss's prop is the fight: it keeps the oven hot)
+      // (any target counts on purpose: a boss's prop or a wave event's target is the player swinging, so it keeps the
+      // oven hot like a smack on a foot)
       this.momentum.hit();
       click.c.hit();
       return;
@@ -4416,8 +4417,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (!a || !this.waveActive) return;
     if (a.trigger.t === 'auto' && this.run.super >= 1 && this.feet.some((f) => f.hittable)) {
       this.run.super = 0;
-      // (a charged ability is the player's own smacking paid out: the oven's full)
-      this.momentum.hit(true);
+      // (no momentum: it fires by itself, and kills by automatic damage charge the meter too, so an idle player's
+      // toppings would keep refilling their own oven. Only a pressed slam or ability fills it, in peelSlam.)
       this.fireAbility();
     } else if (a.trigger.t === 'every') {
       this.abilityT += dt * passiveBoost(this.run.stats.superGain).timer;
@@ -4858,7 +4859,7 @@ export class GameScene extends Phaser.Scene implements Arena {
         }
       }
     }
-    for (const g of this.garlicAuras) g.setAlpha((0.18 + Math.sin(this.nowT * 3) * 0.07) * glow * glow);
+    for (const g of this.garlicAuras) g.setAlpha((0.18 + Math.sin(this.nowT * 3) * 0.07) * glow);
     for (const p of this.alivePizzas()) {
       if (p.perk !== 'regen') continue;
       p.regenTimer += dt;
@@ -5098,7 +5099,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       }
       // momentum drains only while there's a foot the player could be smacking (not between spawns, in a wave's
       // tail, with a boss out of reach, behind a window or with the peel stunned)
-      this.momentum.tick(real, n > 0 && !ui.modalOpen && this.peelStunT <= 0);
+      // (and it holds through slow-mo and hit-stop, when feet barely move and there's less to smack)
+      this.momentum.tick(real, n > 0 && !ui.modalOpen && this.peelStunT <= 0 && this.slowMo <= 0 && this.hitStop <= 0);
       this.momentumTip();
       this.perkKit.update(dt);
       this.abilityTick(dt);

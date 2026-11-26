@@ -32,8 +32,9 @@ export interface Heat {
 /** Momentum (src/game/momentum.ts): a hidden 0..1 per run. Automatic damage is multiplied by
  *  `floor + (1 − floor) × momentum` on top of autoDmg, so a stacked build can't clear waves on its own while the player
  *  stops smacking. An active player holds it at full easily:
- *  - a smack that connects (with a foot, or a boss's prop) adds MOMENTUM.smackGain: one brings it most of the way back,
- *    two fill it; the Peel Slam and a charged ability fill it;
+ *  - a smack that connects (with a foot, a boss's prop or a wave event's target) adds MOMENTUM.smackGain: one brings it
+ *    most of the way back, two fill it; pressing the Peel Slam or a charged ability fills it (an ability that fires by
+ *    itself when charged doesn't: kills by automatic damage charge the meter too);
  *  - after each one it holds for `grace` seconds before it drains at all, then falls from full to its floor over
  *    `drain` seconds;
  *  - it only drains while there's a foot on the table the player could be smacking: between spawns, in a wave's tail,
@@ -53,7 +54,7 @@ export interface MomentumHeat {
 export const MOMENTUM = {
   /** Added by each smack that connects (0..1): one brings it most of the way back, two fill it. */
   smackGain: 0.6,
-  /** Added by the Peel Slam or a charged ability (1 = full). */
+  /** Added by pressing the Peel Slam or a charged ability (1 = full). */
   slamGain: 1,
   /** The one-off tip shows the first time it falls below this (with automatic damage worth mentioning). */
   tipBelow: 0.35,

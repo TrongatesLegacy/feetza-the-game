@@ -183,11 +183,13 @@ export interface CounterOffer {
   trial: boolean;
 }
 
-/** The Pizza Slots machine's symbols and what three of each pays. */
 /** The slam button's furnace: a fire with a wavy top (two layers drifting opposite ways), sparks over it, a glowing
  *  bed of embers and a small flame at its base. Its level is --m (0..1), set by Hud.setMomentum. */
+let furnaces = 0;
 function furnaceEl(): HTMLElement {
   const el = h('div', { class: 'furnace', 'aria-hidden': 'true' });
+  // (its gradients' ids are unique, so a second furnace, a copy of the button, can't borrow this one's)
+  const id = `fz${++furnaces}`;
   // a wave two tiles wide (each tile 100 wide), drifting by one tile: the top never runs out
   const wave = (amp: number, y: number) => {
     let d = `M0 ${y}`;
@@ -196,14 +198,14 @@ function furnaceEl(): HTMLElement {
   };
   el.innerHTML = `<svg viewBox="0 0 100 100" preserveAspectRatio="none">
 <defs>
-<linearGradient id="fz-fire" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe27a"/><stop offset="0.22" stop-color="#ffb12e"/><stop offset="0.55" stop-color="#f2591b"/><stop offset="1" stop-color="#9c1a0c"/></linearGradient>
-<linearGradient id="fz-back" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff8a2a"/><stop offset="1" stop-color="#7a120a"/></linearGradient>
-<radialGradient id="fz-bed" cx="0.5" cy="1" r="0.75"><stop offset="0" stop-color="#ff6a1f" stop-opacity="0.95"/><stop offset="0.5" stop-color="#c2260f" stop-opacity="0.55"/><stop offset="1" stop-color="#5a0d06" stop-opacity="0"/></radialGradient>
+<linearGradient id="${id}-fire" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe27a"/><stop offset="0.22" stop-color="#ffb12e"/><stop offset="0.55" stop-color="#f2591b"/><stop offset="1" stop-color="#9c1a0c"/></linearGradient>
+<linearGradient id="${id}-back" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff8a2a"/><stop offset="1" stop-color="#7a120a"/></linearGradient>
+<radialGradient id="${id}-bed" cx="0.5" cy="1" r="0.75"><stop offset="0" stop-color="#ff6a1f" stop-opacity="0.95"/><stop offset="0.5" stop-color="#c2260f" stop-opacity="0.55"/><stop offset="1" stop-color="#5a0d06" stop-opacity="0"/></radialGradient>
 </defs>
-<rect class="fz-bed" x="0" y="40" width="100" height="60" fill="url(#fz-bed)"/>
+<rect class="fz-bed" x="0" y="40" width="100" height="60" fill="url(#${id}-bed)"/>
 <g class="fz-level">
-<g class="fz-back"><path d="${wave(14, 10)}" fill="url(#fz-back)"/></g>
-<g class="fz-front"><path d="${wave(10, 16)}" fill="url(#fz-fire)"/></g>
+<g class="fz-back"><path d="${wave(14, 10)}" fill="url(#${id}-back)"/></g>
+<g class="fz-front"><path d="${wave(10, 16)}" fill="url(#${id}-fire)"/></g>
 <g class="fz-sparks"><circle cx="24" cy="6" r="1.6"/><circle cx="58" cy="2" r="1.3"/><circle cx="78" cy="8" r="1.5"/><circle cx="40" cy="12" r="1.1"/></g>
 </g>
 <g class="fz-embers"><circle cx="22" cy="93" r="2"/><circle cx="38" cy="96" r="1.6"/><circle cx="63" cy="95" r="1.8"/><circle cx="80" cy="92" r="1.5"/></g>
@@ -211,6 +213,7 @@ function furnaceEl(): HTMLElement {
   return el;
 }
 
+/** The Pizza Slots machine's symbols and what three of each pays. */
 const SLOT_ICON: Record<SlotSymbol, string> = { tips: '🪙', slices: '🍕', slam: '⚡', topping: '🧀', epic: '💎', crust: '🥖', chef: '👨‍🍳' };
 function slotsRow(sl: NonNullable<ShopState['slots']>, pull: (pay: 'tips' | 'crusts') => void, take: (c: 'add' | 'sell') => void): HTMLElement {
   const syms = Object.keys(SLOT_ICON) as SlotSymbol[];
