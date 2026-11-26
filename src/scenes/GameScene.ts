@@ -2912,7 +2912,11 @@ export class GameScene extends Phaser.Scene implements Arena {
       if (newOnes.length) pool.splice(0, pool.length, ...newOnes);
       if (pool.length) fresh = [...fresh.slice(0, Math.max(0, fresh.length - 1)), Phaser.Utils.Array.GetRandom(pool)];
     }
-    sh.cards = [...keep, ...fresh];
+    // bought cards stay where they were: only the unbought slots are dealt new cards (in order), so a reroll never
+    // shuffles what you've already bought
+    const queue = [...fresh];
+    const placed = sh.cards.map((u) => (sh.sold.has(u.id) ? u : queue.shift())).filter((u): u is Upgrade => !!u);
+    sh.cards = [...placed, ...queue];
     this.tracker.emit('reroll', { rarities: fresh.map((u) => u.rarity) });
     if (sh.free && !sh.cards.some((u) => u.id === sh.free)) sh.free = null;
     this.pickClearance(sh.cards, sh.free, sh.sold);
