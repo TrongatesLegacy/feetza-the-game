@@ -108,7 +108,7 @@ const TRIM: Record<string, number> = {
   sfx_kit_lane: 1.05, // -12.5 dB → -12.1: boss takes over a lane
   sfx_kit_retreat: 1.1, // -12.8 dB → -12.0: feet scurry back ("STAND BACK!")
   // Head Waiter
-  sfx_headwaiter_traytoss: 1.13, // -12.0 dB → -10.9: tray thrown, spinning
+  sfx_headwaiter_traytoss: 1.13, // -12.1 dB → -11.0: tray thrown, spinning
   sfx_headwaiter_traybat: 1.27, // -12.5 dB → -10.4: tray batted back
   sfx_headwaiter_trayclang: 1.17, // -11.8 dB → -10.4: tray crashes on a pizza
   sfx_headwaiter_service: 1.05, // -12.7 dB → -12.3: desk-bell double ding
@@ -145,7 +145,7 @@ const TRIM: Record<string, number> = {
   sfx_clownking_honk: 1.04, // -8.7 dB → -8.4: clown horn blast
   sfx_clownking_leap: 1.05, // -9.7 dB → -9.2: slide-whistle leap away
   sfx_clownking_decoydrop: 1.05, // -11.6 dB → -11.1: slide-whistle drop
-  sfx_clownking_pie: 1.06, // -12.5 dB → -12.0: wobbly pie throw
+  sfx_clownking_pie: 1.06, // -12.8 dB → -12.3: wobbly pie throw
   sfx_clownking_piesplat: 1.1, // -10.3 dB → -9.5: big cream-pie splat
   // Short-Order Shoe
   sfx_shortorder_bell: 1.1, // -11.4 dB → -10.6: order bell ding
@@ -178,7 +178,7 @@ const TRIM: Record<string, number> = {
   sfx_ufotoe_abduct: 1.05, // -11.4 dB → -11.0: slice beamed up
   sfx_ufotoe_twin: 1.05, // -11.5 dB → -11.1: second saucer warbles in
   // Cosmic Croc
-  sfx_cosmiccroc_meteor: 1.06, // -12.5 dB → -12.0: meteor falling whistle
+  sfx_cosmiccroc_meteor: 1.06, // -12.8 dB → -12.3: meteor falling whistle
   sfx_cosmiccroc_impact: 1.11, // -11.4 dB → -10.5: meteor impact
   sfx_cosmiccroc_flip: 1.03, // -11.3 dB → -11.0: gravity warp
   sfx_cosmiccroc_blackhole: 1.02, // -11.2 dB → -11.0: black hole opens
@@ -186,61 +186,61 @@ const TRIM: Record<string, number> = {
   // Dough Boy
   sfx_doughboy_ball: 1.05, // -12.5 dB → -12.1: dough ball blorps out
   sfx_doughboy_splat: 1.05, // -11.4 dB → -11.0: dough splat
-  sfx_doughboy_rise: 0.77, // -12.2 dB → -14.5: yeasty bubbling rise, sits under
+  sfx_doughboy_rise: 0.77, // -13.0 dB → -15.3: yeasty bubbling rise, sits under
   // Nonna's Slipper
-  sfx_nonna_pin: 1.05, // -12.4 dB → -12.0: rolling pin rumble
+  sfx_nonna_pin: 1.05, // -14.1 dB → -13.7: rolling pin rumble
   sfx_nonna_pinsmash: 1.1, // -10.3 dB → -9.5: rolling pin crashes into the pizzas
   sfx_nonna_slippers: 1.13, // -13.1 dB → -12.0: slippers flap (tell)
   sfx_nonna_slipper: 1.05, // -10.9 dB → -10.5: slipper thwack
   sfx_nonna_spoon: 1.1, // -11.8 dB → -11.0: wooden spoon swings and grabs
   sfx_nonna_tug: 1.04, // -13.8 dB → -13.5: tug-of-war creak, sits under
   // The Pigeon King
-  sfx_pigeonking_coo: 1.05, // -12.4 dB → -12.0: pigeon coo
+  sfx_pigeonking_coo: 1.05, // -11.7 dB → -11.2: pigeon coo
   sfx_pigeonking_splat: 1.08, // -11.6 dB → -10.9: bird bomb splat
   sfx_pigeonking_flock: 1.05, // -11.4 dB → -11.0: flock flutters in
   // The Gargoyle
-  sfx_gargoyle_swoop: 1.02, // -12.2 dB → -12.0: stony wing swoop
-  sfx_gargoyle_stone: 1.1, // -11.8 dB → -11.0: turns to stone (grind)
+  sfx_gargoyle_swoop: 1.02, // -12.8 dB → -12.6: stony wing swoop
+  sfx_gargoyle_stone: 1.1, // -10.7 dB → -9.9: turns to stone (grind)
   sfx_gargoyle_stonecrack: 0.89, // -12.4 dB → -13.4: stone cracks under a smack
   sfx_gargoyle_stonebreak: 1.05, // -10.0 dB → -9.6: stone crumbles
-  sfx_gargoyle_storm: 1.05, // -11.4 dB → -11.0: mini-gargoyle screech chorus
+  sfx_gargoyle_storm: 1.05, // -11.0 dB → -10.6: mini-gargoyle screech chorus
   // Jellyfish Flip-Flop
   sfx_jellyfish_charge: 1.27, // -14.1 dB → -12.0: jelly charge hum
   sfx_jellyfish_sting: 1.05, // -10.9 dB → -10.5: jelly zap on the peel
   sfx_jellyfish_bright: 1.06, // -11.5 dB → -11.0: bright-glow crackle
   // Kraken Toes
-  sfx_kraken_splash: 1.1, // -11.3 dB → -10.5: water splash
+  sfx_kraken_splash: 1.1, // -12.8 dB → -12.0: water splash
   sfx_kraken_tentacle: 1.05, // -11.4 dB → -11.0: tentacle squelches up
-  sfx_kraken_drag: 1.06, // -11.5 dB → -11.0: dragged under, gurgling
+  sfx_kraken_drag: 1.06, // -12.4 dB → -11.9: dragged under, gurgling
   sfx_kraken_squirt: 1.13, // -12.1 dB → -11.0: ink squirt
   sfx_kraken_inked: 1.05, // -11.5 dB → -11.1: ink splats on a pizza
   // Milkshake Max
   sfx_milkshake_freeze: 1.05, // -11.5 dB → -11.1: brain-freeze chime (tell)
   sfx_milkshake_frozen: 1.12, // -11.5 dB → -10.5: brain freeze lands on the peel
   sfx_milkshake_straw: 1.05, // -12.4 dB → -12.0: straw plonks in
-  sfx_milkshake_slurp: 0.89, // -12.5 dB → -13.5: slurp, sits under
+  sfx_milkshake_slurp: 0.89, // -11.4 dB → -12.4: slurp, sits under
   sfx_milkshake_snap: 1.33, // -13.0 dB → -10.5: straw snaps
   // Queen of the Rink
   sfx_rinkqueen_puck: 1.17, // -11.9 dB → -10.5: slapshot
-  sfx_rinkqueen_roll: 1.01, // -12.1 dB → -12.0: pizzas glide across the ice
-  sfx_rinkqueen_dash: 1.22, // -12.2 dB → -10.5: speed-dash swish and ice spray
+  sfx_rinkqueen_roll: 1.01, // -12.6 dB → -12.5: pizzas glide across the ice
+  sfx_rinkqueen_dash: 1.22, // -12.3 dB → -10.6: speed-dash swish and ice spray
   // The Lumberjack
   sfx_lumberjack_timber: 1.05, // -11.4 dB → -11.0: tree creak and crack (tell)
-  sfx_lumberjack_chainsaw: 1.05, // -12.5 dB → -12.1: chainsaw revs
+  sfx_lumberjack_chainsaw: 1.05, // -13.2 dB → -12.7: chainsaw revs
   sfx_lumberjack_sawbite: 1.1, // -11.3 dB → -10.5: chainsaw bites a pizza
-  sfx_lumberjack_axe: 1.05, // -12.4 dB → -12.0: spinning axe
+  sfx_lumberjack_axe: 1.05, // -11.0 dB → -10.6: spinning axe
   sfx_lumberjack_thunk: 1.21, // -12.2 dB → -10.5: axe thunks into the table
   // The Yeti Ski Boot
   sfx_yeti_icicle: 1.11, // -12.9 dB → -12.0: icicle forms and cracks loose
   sfx_yeti_iciclehit: 1.3, // -12.8 dB → -10.5: icicle shatters on a pizza
   sfx_yeti_snowball: 1.09, // -12.7 dB → -12.0: snowball packed and thrown
-  sfx_yeti_avalanche: 1.08, // -11.2 dB → -10.5: avalanche rumble (tell)
+  sfx_yeti_avalanche: 1.08, // -12.1 dB → -11.4: avalanche rumble (tell)
   sfx_yeti_bigball: 1.08, // -11.7 dB → -11.0: big snowball lands
   // The Zombie Loafer
-  sfx_poltergeist_groan: 1.05, // -11.4 dB → -11.0: zombie groan (tell)
+  sfx_poltergeist_groan: 1.05, // -9.7 dB → -9.2: zombie groan (tell)
   sfx_poltergeist_bite: 1.33, // -13.0 dB → -10.5: zombie bite
-  sfx_poltergeist_cough: 1.21, // -12.7 dB → -11.0: coughing fit
-  sfx_poltergeist_sick: 1.05, // -12.5 dB → -12.1: pizza turns zombie
+  sfx_poltergeist_cough: 1.21, // -12.0 dB → -10.4: coughing fit
+  sfx_poltergeist_sick: 1.05, // -12.6 dB → -12.1: pizza turns zombie
   sfx_poltergeist_munch: 1.11, // -12.9 dB → -12.0: zombie pizza munches a slice
   sfx_poltergeist_infect: 1.45, // -15.7 dB → -12.4: the bite's infection spreads over a foot
   sfx_poltergeist_turn: 0.93, // -10.4 dB → -11.0: the bitten foot groans as it turns zombie
@@ -251,7 +251,7 @@ const TRIM: Record<string, number> = {
   sfx_poltergeist_roar: 0.95, // -9.6 dB → -10.0: a bitten foot bursts into a second Zombie Loafer (a screen-level moment)
   // Phantom King
   sfx_phantomking_fade: 1.04, // -12.4 dB → -12.1: ghostly fade
-  sfx_phantomking_echo: 1.06, // -11.5 dB → -11.0: ghostly echo appears
+  sfx_phantomking_echo: 1.06, // -12.3 dB → -11.8: ghostly echo appears
   sfx_phantomking_stir: 1.07, // -12.6 dB → -12.0: curse stirs (tell)
   sfx_phantomking_curse: 1.09, // -11.7 dB → -11.0: curse jumps pizzas
   sfx_phantomking_exorcise: 1.05, // -10.9 dB → -10.5: exorcism chime
@@ -266,7 +266,7 @@ const TRIM: Record<string, number> = {
   sfx_hittink: 1.22, // -14.2 dB → -12.5: small hard prop ticks off
   sfx_hitcoin: 0.99, // -12.4 dB → -12.5: coin bonk
   sfx_hitclang: 1.15, // -13.7 dB → -12.5: plate, can or board clangs
-  sfx_hitbonk: 1.0, // -12.5 dB → -12.5: rubbery bonk
+  sfx_hitbonk: 1.0, // -13.2 dB → -13.2: rubbery bonk
   sfx_hitthud: 0.99, // -12.4 dB → -12.5: heavy prop lands
   sfx_hitboom: 1.05, // -11.5 dB → -11.0: cannonball or grenade explodes
   sfx_hitrope: 1.02, // -12.7 dB → -12.5: rope snaps tight
@@ -275,24 +275,24 @@ const TRIM: Record<string, number> = {
   sfx_rollrumble: 0.99, // -13.4 dB → -13.4: ball rolls along a lane
   sfx_beam: 1.0, // -12.5 dB → -12.5: beam fires
   // ——— Act 7 · Comics (scripts/act7-audio): the act's weather and villain feet, then each boss's moves ———
-  sfx_thunder: 1.05, // -11.4 dB → -11.0: Act 7 weather: thunder after a lightning flash
-  sfx_jetpack: 1.09, // -12.8 dB → -12.1: Jetpack Jackboots fly in from the side
-  sfx_bombfuse: 1.31, // -14.4 dB → -12.1: Goon Galoshes light a fuse (tell); also a defused bomb
-  sfx_bombboom: 1.05, // -10.9 dB → -10.5: a Goon's bomb lands on a pizza
-  sfx_gang: 1.05, // -12.4 dB → -12.0: a gang of Henchman Spats arrives
-  sfx_lexlugtoe_cash: 1.05, // -11.4 dB → -11.0: HOSTILE TAKEOVER: a pizza is acquired (SOLD!), cash register
+  sfx_thunder: 1.05, // -12.7 dB → -12.3: Act 7 weather: thunder after a lightning flash
+  sfx_jetpack: 1.09, // -12.3 dB → -11.5: Jetpack Jackboots fly in from the side
+  sfx_bombfuse: 1.31, // -14.6 dB → -12.2: Goon Galoshes light a fuse (tell); also a defused bomb
+  sfx_bombboom: 1.05, // -11.6 dB → -11.2: a Goon's bomb lands on a pizza
+  sfx_gang: 1.05, // -12.0 dB → -11.5: a gang of Henchman Spats arrives
+  sfx_lexlugtoe_cash: 1.05, // -12.1 dB → -11.7: HOSTILE TAKEOVER: a pizza is acquired (SOLD!), cash register
   sfx_lexlugtoe_glass: 1.26, // -14.0 dB → -12.0: the glass case drops over the pizza
   sfx_lexlugtoe_lock: 0.88, // -12.4 dB → -13.5: smack on the case's lock
   sfx_lexlugtoe_shatter: 1.26, // -12.5 dB → -10.5: the case breaks open (and his death)
   sfx_lexlugtoe_tags: 1.06, // -12.5 dB → -12.0: his entrance: price tags and coins flutter in
-  sfx_doomstomp_roar: 2.02, // -17.1 dB → -11.0: RAMPAGE tell: he roars and paws the table
-  sfx_doomstomp_stomp: 1.05, // -9.9 dB → -9.5: each RAMPAGE stomp lands on a pizza (and his entrance)
-  sfx_doomstomp_quake: 1.08, // -11.7 dB → -11.0: BONE QUAKE tell: the table shudders
+  sfx_doomstomp_roar: 2.02, // -15.8 dB → -9.7: RAMPAGE tell: he roars and paws the table
+  sfx_doomstomp_stomp: 1.05, // -11.3 dB → -10.8: each RAMPAGE stomp lands on a pizza (and his entrance)
+  sfx_doomstomp_quake: 1.08, // -12.4 dB → -11.7: BONE QUAKE tell: the table shudders
   sfx_doomstomp_spike: 1.07, // -12.5 dB → -11.9: a bone spike bursts up behind a pizza
   sfx_doomstomp_bonebreak: 0.89, // -12.5 dB → -13.5: smack on a bone spike (it snaps on the last)
-  sfx_doomstomp_ko: 1.05, // -9.9 dB → -9.5: he's knocked out (a life lost) and his death
-  sfx_doomstomp_rise: 1.63, // -15.2 dB → -11.0: he gets back up, bigger
-  sfx_doomstomp_dazed: 1.05, // -12.4 dB → -12.0: LAST LIFE: he slumps, dazed (finish him)
+  sfx_doomstomp_ko: 1.05, // -11.3 dB → -10.9: he's knocked out (a life lost) and his death
+  sfx_doomstomp_rise: 1.63, // -14.9 dB → -10.6: he gets back up, bigger
+  sfx_doomstomp_dazed: 1.05, // -12.8 dB → -12.3: LAST LIFE: he slumps, dazed (finish him)
   sfx_ultoe_upload: 0.79, // -12.4 dB → -14.4: UPLOAD tell: the UPLOADING bar fills
   sfx_ultoe_glitch: 1.05, // -10.9 dB → -10.5: he jumps bodies: every drone glitches
   sfx_ultoe_boot: 0.89, // -12.5 dB → -13.5: a drone boots up (and his entrance)
@@ -302,7 +302,7 @@ const TRIM: Record<string, number> = {
   sfx_thanfoot_stonehit: 0.93, // -12.9 dB → -13.5: smack on a stone in the sock
   sfx_thanfoot_stoneout: 1.11, // -11.4 dB → -10.5: a stone is knocked out of the sock
   sfx_thanfoot_snapwind: 1.10, // -15.3 dB → -14.5: THE SNAP winds up (all six stones in)
-  sfx_thanfoot_snap: 1.05, // -9.9 dB → -9.5: THE SNAP lands (and his death)
+  sfx_thanfoot_snap: 1.05, // -10.4 dB → -10.0: THE SNAP lands (and his death)
   sfx_thanfoot_portal: 1.06, // -12.5 dB → -12.0: his entrance and the SPACE stone's blinks
   sfx_thanfoot_power: 1.04, // -12.4 dB → -12.1: a stone power fires (POWER, REALITY, TIME)
   // ——— Act 8 · Norse ———

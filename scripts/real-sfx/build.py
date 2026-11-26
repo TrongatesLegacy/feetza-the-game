@@ -16,13 +16,23 @@ and, for the audio pass's batch 1 (docs/audio-audit.md):
        476011 320345 149190 819668 763026 615047 744100 577768 593623 826196 381853 721601 397054 495117 \\
        719129 350917 128969 125744 719638 475131 485245 82115 683400 434627 540788 472478 --out SRC_DIR
 
-(it also uses 20185 and 371353 from the first set). A few batch-1 recipes keep a layer of the synthesized file they
-replace, read from git at OLD_REV, so they need the repo's history (a shallow clone won't do).
+(it also uses 20185 and 371353 from the first set), and for batch 2:
+
+  node scripts/sfx-fetch/freesound.mjs get 94162 346373 684459 433829 426208 637533 655040 423778 403915 539819 \\
+       719766 649390 330585 651753 760672 578490 29986 741365 804810 442773 867457 553954 847049 539822 529295 \\
+       568036 379329 431742 340664 514162 735907 162674 162668 445993 457449 383783 80595 196720 329519 505113 \\
+       672776 805168 534856 316682 160797 143129 241258 789609 584168 869002 263115 222521 199803 66951 164483 \\
+       477528 177495 --out SRC_DIR
+
+(it also uses 593623, 826196, 763026 and 721601 from batch 1 and 20185 from the first set). Some batch-1 and batch-2
+recipes keep a layer of the synthesized file they replace, read from git at OLD_REV, so they need the repo's history
+(a shallow clone won't do).
 
 OUT_DIR defaults to public/audio. Names (default: all): spartanchant spartanrage, then the batch-1 names in RECIPES
-(service sweephop ... tailboing). Each sound is cut, pitched,
+(service sweephop ... tailboing), then batch 2's (traytoss pie ... snap). Each sound is cut, pitched,
 layered and placed by the recipe below (the Spartan sounds are also given a short convolution room), then levelled to a 50 ms RMS peak (the same measure
-as the TRIM table in src/systems/audio.ts), limited under -1.5 dBFS, faded, and saved as 44.1 kHz mono 96 kbps
+as the TRIM table in src/systems/audio.ts), limited under -1.5 dBFS (a recipe may set a lower limit, for a bright
+transient that MP3 encoding would push past it), faded, and saved as 44.1 kHz mono 96 kbps
 MP3. Every source used is credited in public/audio/CREDITS.md and public/audio/credits.json.
 
 Only the Python standard library and ffmpeg are needed. Pitch shifts keep a layer's length (asetrate + atempo),
@@ -175,7 +185,7 @@ def peak(x):
     return 20 * math.log10(max(abs(v) for v in x) or 1e-9)
 
 
-def master(p, name, dur, level, fade, comp='acompressor=threshold=-20dB:ratio=2.5:attack=6:release=90:knee=4'):
+def master(p, name, dur, level, fade, comp='acompressor=threshold=-20dB:ratio=2.5:attack=6:release=90:knee=4', limit=0.84):
     """level a mix to a 50 ms RMS peak of <level> dB (before TRIM), limited under -1.5 dBFS, cut to <dur> with a
     <fade> s fade-out, trailing silence trimmed, saved as MP3. (Leading silence is left alone: the recipes start
     on their first sound, and the beats are placed in absolute time.)"""
@@ -185,7 +195,7 @@ def master(p, name, dur, level, fade, comp='acompressor=threshold=-20dB:ratio=2.
     g = level - rms50(read(pre))
     out = os.path.join(OUT, name + '.mp3')
     for _ in range(8):  # level the encoded file itself: MP3 framing moves the 50 ms grid a little
-        lim = fx(pre, 'volume=%.2fdB,alimiter=limit=0.84:attack=1.5:release=60:level=0:latency=1,afade=t=in:d=0.003' % g)
+        lim = fx(pre, 'volume=%.2fdB,alimiter=limit=%.2f:attack=1.5:release=60:level=0:latency=1,afade=t=in:d=0.003' % (g, limit))
         ff(['-i', lim, '-ac', '1', '-ar', str(SR), '-c:a', 'libmp3lame', '-b:a', '96k', out])
         got = rms50(read(out))
         if abs(got - level) < 0.15:
@@ -526,6 +536,297 @@ def tailboing():
     ])
 
 
+# =============================== Audio pass, batch 2: the last P1 layers, then Acts 4–7 (docs/audio-audit.md) =====
+# As batch 1: each replaces (or layers under) a synthesized file under the same name, on the old file's beats, and its
+# level (RECIPES) sits halfway between the old file's 50 ms RMS peak and the level matching its momentary loudness.
+
+# --- the Head Waiter's tray, thrown spinning: a thin metal disc spinning, lower, under the old whirr ---
+def traytoss():
+    return layer([
+        L('old:sfx_headwaiter_traytoss', 0.0, 0.67, 0.0, 0.0, 0, fin=0.002, fout=0.06),
+        L(94162, 1.000, 0.67, 0.000, -3.0, 3, fin=0.01, fout=0.08, fx='highpass=f=250'),  # a metal disc spinning
+    ])
+
+
+# --- King Honk's wobbly pie: a real throw and a squelch of cream over the old wobble ---
+def pie():
+    return layer([
+        L('old:sfx_clownking_pie', 0.0, 0.55, 0.0, 0.0, -1, fin=0.002, fout=0.08),
+        L(346373, 0.080, 0.25, 0.020, -2.0, -2, fin=0.005, fout=0.08),           # a stick whipped through the air
+        L(684459, 0.700, 0.32, 0.180, 0.0, 19, fin=0.01, fout=0.1),             # something thrown
+        L(433829, 0.250, 0.40, 0.100, -3.0, 12, fin=0.03, fout=0.12, fx='lowpass=f=5000'),  # the cream wobbling
+    ])
+
+
+# --- the Cosmic Croc's meteor: a flaming torch whooshing, slowed and lowered into a roar, under the old whistle ---
+def meteor():
+    return layer([
+        L('old:sfx_cosmiccroc_meteor', 0.0, 1.40, 0.0, 0.0, 0, fin=0.002, fout=0.08),
+        L(426208, 0.300, 0.82, 0.280, -5.0, -11, fin=0.15, fout=0.2, keep=False, fx='lowpass=f=6000'),  # the burn
+        L(637533, 0.000, 0.60, 0.800, -4.0, 1, fin=0.1, fout=0.2),            # flames bursting as it comes in
+    ])
+
+
+# --- the thrown props' rubbery bonk: a beach ball and a rubber ball bouncing, under the old bonk ---
+def hitbonk():
+    return layer([
+        L('old:sfx_hitbonk', 0.0, 0.28, 0.0, 0.0, 0, fin=0.001, fout=0.05),
+        L(655040, 0.420, 0.22, 0.000, -2.0, -8, fin=0.001, fout=0.08, fx='lowpass=f=3500'),           # a beach ball on wood
+        L(423778, 0.080, 0.20, 0.002, 0.0, 1, fin=0.001, fout=0.08),           # a big rubber ball
+    ])
+
+
+# --- Act 4 · Dough Boy rising: real pizza dough kneaded, and bubbles, lower, for the yeast ---
+def doughrise():
+    return layer([
+        L(403915, 12.300, 0.68, 0.000, -2.0, 20, fin=0.01, fout=0.08),           # pizza dough, kneaded
+        L(403915, 9.330, 0.20, 0.050, -2.0, 24, fin=0.005, fout=0.08),
+        L(403915, 12.960, 0.12, 0.560, -2.0, 20, fin=0.005, fout=0.06),
+        L(539819, 1.250, 0.68, 0.000, -4.0, -2, fin=0.05, fout=0.1),            # bubbles, lower
+    ])
+
+
+# --- Nonna's Slipper: a wooden rolling pin rolled on a board, a second pass under it ---
+def nonnapin():
+    return layer([
+        L(719766, 2.500, 1.60, 0.000, -3.0, 0, fin=0.02, fout=0.2, fx='lowpass=f=4000'),             # a rolling pin on a board
+        L(719766, 5.600, 1.30, 0.250, -5.0, -5, fin=0.05, fout=0.2, fx='lowpass=f=4000'),            # and again, lower
+        L('old:sfx_nonna_pin', 0.0, 1.60, 0.0, 0.0, 5, fin=0.01, fout=0.2, fx='lowpass=f=250'),  # the old rumble's low end
+    ])
+
+
+# --- the Pigeon King: a real pigeon's coo-roo, and the same lower for a king's chest ---
+def coo():
+    return layer([
+        L(649390, 1.520, 0.61, 0.000, 0.0, 0, fin=0.01, fout=0.06),             # a male pigeon's territorial coo
+        L(649390, 1.520, 0.61, 0.008, -5.0, -8, fin=0.01, fout=0.06),
+    ])
+
+
+# --- the Gargoyle's stony wing swoop: real wingbeats, lower, under the old swoop ---
+def gargswoop():
+    return layer([
+        L('old:sfx_gargoyle_swoop', 0.0, 0.74, 0.0, 0.0, -1, fin=0.002, fout=0.08),
+        L(330585, 2.320, 0.74, 0.000, -4.0, -9, fin=0.02, fout=0.2),            # a swan's beating wings, lower
+        L(651753, 1.900, 0.70, 0.030, -3.0, 2, fin=0.05, fout=0.2),           # a large bird's flutter
+    ])
+
+
+# --- the Gargoyle turning to stone: heavy stone grinding and a slab dragged, settling with a knock ---
+def gargstone():
+    return layer([
+        L(760672, 3.000, 1.00, 0.000, -2.0, 0, fin=0.01, fout=0.12),            # heavy stone grinding
+        L(578490, 5.000, 1.00, 0.000, -3.0, 9, fin=0.02, fout=0.15),           # a stone slab sliding
+        L(29986, 0.300, 0.30, 0.880, -3.0, -3, fin=0.003, fout=0.15),           # stone on stone: it settles
+    ])
+
+
+# --- the Gargoyle's storm: a chorus of crows, a hawk and a bat, pitched up for mini-gargoyles ---
+def gargstorm():
+    return layer([
+        L(741365, 0.080, 0.74, 0.000, 4.0, 0, fin=0.01, fout=0.1),              # hooded crows cawing in panic
+        L(741365, 1.050, 0.58, 0.220, 6.0, -2, fin=0.01, fout=0.1),
+        L(741365, 2.770, 0.55, 0.420, 3.0, -2, fin=0.01, fout=0.12),
+        L(804810, 0.040, 0.95, 0.040, 3.0, -13, fin=0.02, fout=0.15),            # a hawk's screech
+    ])
+
+
+# --- Act 5 · Kraken Toes: a big splash; a pizza dragged under (big glugs, a sink vortex, bubbles) ---
+def krakensplash():
+    return layer([
+        L(442773, 0.000, 0.58, 0.000, -1.0, 0, fin=0.002, fout=0.15),           # a big water splash
+        L(867457, 0.020, 0.56, 0.010, -2.0, 0, fin=0.002, fout=0.15),
+    ])
+
+
+def krakendrag():
+    return layer([
+        L(553954, 0.100, 1.00, 0.000, -6.0, 0, fin=0.005, fout=0.12),           # a bottle glugging, far lower
+        L(847049, 2.000, 1.00, 0.000, -3.0, 0, fin=0.05, fout=0.15),           # water vortexing down a sink
+        L(539822, 4.680, 0.90, 0.080, -4.0, 7, fin=0.03, fout=0.15),           # bubbles
+    ])
+
+
+# --- Milkshake Max's slurp: a straw slurped hard, a coffee slurp under it ---
+def slurp():
+    return layer([
+        L(529295, 0.600, 0.65, 0.000, 0.0, 0, fin=0.01, fout=0.08),             # a straw slurp
+        L(568036, 0.100, 0.65, 0.000, 0.0, -8, fin=0.02, fout=0.08),
+    ])
+
+
+# --- the Queen of the Rink: pizzas gliding on the ice; her speed-dash into a hockey stop ---
+def rinkroll():
+    return layer([
+        L(379329, 2.000, 1.08, 0.000, 0.0, 0, fin=0.06, fout=0.2),              # skating
+        L(593623, 0.300, 1.08, 0.000, 1.0, -4, fin=0.06, fout=0.2),             # skates on ice
+    ])
+
+
+def rinkdash():
+    return layer([
+        L(593623, 2.150, 0.26, 0.000, 2.0, 0, fin=0.01, fout=0.06),             # a hard stroke
+        L(826196, 4.100, 0.50, 0.230, 0.0, 15, fin=0.01, fout=0.25),             # a hockey stop: the ice spray
+    ])
+
+
+# --- Act 6 · the Lumberjack: a two-stroke chainsaw revving; the spinning axe ---
+def chainsaw():
+    return layer([
+        L(431742, 4.000, 1.25, 0.000, 0.0, 0, fin=0.02, fout=0.1),              # a chainsaw, running hard
+        L(340664, 0.300, 1.20, 0.020, 0.0, -6, fin=0.05, fout=0.1),             # revving high
+    ])
+
+
+def axe():
+    # a stick swung like an axe, six times round as it spins, each a little different
+    sw = [L(514162, 0.180, 0.11, t, s, d, fin=0.005, fout=0.05) for t, s, d in
+          ((0.000, 0.0, 0), (0.080, 1.0, -1), (0.160, 0.0, 0), (0.240, 1.0, -1), (0.320, 0.0, -1), (0.400, -1.0, -2))]
+    return layer(sw + [L(735907, 0.020, 0.34, 0.100, -2.0, -8, fin=0.01, fout=0.1)])  # a rope swung, under it
+
+
+# --- the Yeti's avalanche: real stone avalanches, lower, swelling ---
+def avalanche():
+    return layer([
+        L(162674, 1.600, 1.92, 0.000, -4.0, 0, fin=0.1, fout=0.3),              # a stone avalanche, lower
+        L(162668, 1.500, 1.92, 0.000, -7.0, -3, fin=0.1, fout=0.3),             # another, lower still
+        L('old:sfx_yeti_avalanche', 0.0, 1.92, 0.0, 0.0, 0, fin=0.05, fout=0.3, fx='lowpass=f=300'),  # the old rumble's low end
+    ], post="lowpass=f=4000,asetnsamples=n=64,volume='0.4+0.6*min(1,t/1.2)':eval=frame")
+
+
+# --- the Zombie Loafer: a groan, a coughing fit, and the gurgle and groan of a pizza turning ---
+def groan():
+    return layer([
+        L(445993, 0.070, 1.24, 0.000, -1.0, 0, fin=0.02, fout=0.2),             # a zombie's moan
+        L(457449, 0.020, 1.20, 0.020, -4.0, -7, fin=0.05, fout=0.2),            # a man's long groan, lower
+    ])
+
+
+def cough():
+    c = 'acompressor=threshold=-34dB:ratio=6:attack=1:release=40:makeup=4'  # held up: a rasping fit, not three ticks
+    return layer([
+        L(383783, 2.290, 0.18, 0.000, -2.0, 0, fin=0.003, fout=0.06, fx=c),     # a man coughing, three times
+        L(383783, 2.685, 0.19, 0.200, -2.0, 0, fin=0.003, fout=0.06, fx=c),
+        L(383783, 3.020, 0.20, 0.420, -2.0, 0, fin=0.003, fout=0.08, fx=c),
+    ])
+
+
+def sick():
+    return layer([
+        L(80595, 0.070, 0.30, 0.000, -3.0, 0, fin=0.003, fout=0.08),            # a drain gurgling, lower
+        L(196720, 0.230, 0.57, 0.190, -2.0, 4, fin=0.02, fout=0.12),            # a zombie's groan
+    ])
+
+
+# --- Phantom King: a real ghost's moan under the old echoes ---
+def phantomecho():
+    return layer([
+        L('old:sfx_phantomking_echo', 0.0, 1.05, 0.0, 0.0, 0, fin=0.002, fout=0.1),
+        L(329519, 0.300, 1.00, 0.020, 2.0, -9, fin=0.1, fout=0.3, fx='highpass=f=150'),  # a ghost's moan
+    ])
+
+
+# --- Act 7 · the weather and the villain feet: thunder, a jetpack, a fuse and a bomb, the henchmen's whistle ---
+def thunder():
+    return layer([
+        L(505113, 0.760, 3.00, 0.000, 0.0, 0, fin=0.005, fout=0.6),             # a close clap of thunder
+        L(672776, 0.300, 3.00, 0.200, 0.0, -5, fin=0.1, fout=0.6),              # and its roll
+    ])
+
+
+def jetpack():
+    return layer([
+        L(805168, 1.250, 1.30, 0.000, 2.0, 0, fin=0.08, fout=0.2),              # a jet flying by, a little higher
+        L(534856, 3.000, 1.30, 0.000, 3.0, -19, fin=0.2, fout=0.3),              # a jet engine's roar
+    ])
+
+
+def bombfuse():
+    return layer([L(316682, 10.000, 0.90, 0.000, 0.0, 0, fin=0.02, fout=0.05)])  # a sparkler fuse fizzing
+
+
+def bombboom():
+    return layer([
+        L('old:sfx_bombboom', 0.0, 1.20, 0.0, 0.0, -1, fin=0.001, fout=0.15),
+        L(160797, 0.000, 1.20, 0.000, -2.0, -8, fin=0.001, fout=0.4),           # dynamite going off
+        L(143129, 0.640, 0.60, 0.005, 0.0, -16, fin=0.001, fout=0.25),          # a gas flare-up's crack
+    ])
+
+
+def gang():
+    return layer([
+        L(241258, 0.860, 0.28, 0.000, 0.0, 0, fin=0.01, fout=0.05),             # a whistle: whee...
+        L(241258, 1.240, 0.38, 0.270, 0.0, 0, fin=0.01, fout=0.08),             # ...whoo
+        L(789609, 0.560, 0.16, 0.520, -2.0, -2, fin=0.003, fout=0.06),          # footsteps
+        L(789609, 1.520, 0.14, 0.640, -2.0, -3, fin=0.003, fout=0.06),
+        L(789609, 0.560, 0.14, 0.760, -2.5, -5, fin=0.003, fout=0.06),
+    ])
+
+
+# --- Lex Lugtoe's cash register: an old register's clatter and bing ---
+def cash():
+    return layer([L(584168, 2.150, 0.90, 0.000, 0.0, 0, fin=0.002, fout=0.25)])  # an old cash register's bing
+
+
+# --- Doomstomp: his roar, his stomp, the bone quake, the knock-out bell, getting up, and dazed ---
+def doomroar():
+    return layer([
+        L(869002, 0.880, 1.27, 0.000, -4.0, 0, fin=0.03, fout=0.25),            # lions roaring, lower
+        L(263115, 1.030, 1.14, 0.080, -5.0, 3, fin=0.05, fout=0.25),           # a tiger's roar, lower
+        L(763026, 2.760, 1.20, 0.040, -4.0, 5, fin=0.1, fout=0.25),            # a black bear's growl
+    ])
+
+
+def doomstep():
+    return layer([
+        L(721601, 0.690, 0.64, 0.000, -3.0, -3, fin=0.002, fout=0.25, fx='lowpass=f=1500'),  # a giant's footstep
+        L(20185, 0.000, 0.45, 0.000, -8.0, -8, fin=0.001, fout=0.2, keep=False, fx='lowpass=f=1000'),  # a stamp, lower
+        L('old:sfx_doomstomp_stomp', 0.0, 0.64, 0.0, 0.0, 0, fin=0.002, fout=0.2, fx='lowpass=f=160'),  # the old sub
+    ])
+
+
+def quake():
+    return layer([
+        L('old:sfx_doomstomp_quake', 0.0, 1.39, 0.0, 0.0, 0, fin=0.002, fout=0.15),
+        L(222521, 2.000, 1.39, 0.000, -2.0, -10, fin=0.05, fout=0.25),           # earth cracking open
+        L(199803, 2.000, 1.39, 0.000, 0.0, 19, fin=0.1, fout=0.25),             # a window shaking in a quake
+    ])
+
+
+def ko():
+    # the bell is damped (a hand on it) so its ring doesn't outweigh the thud: the old file's loudness, on both measures
+    damp = "treble=g=-4:f=3500,asetnsamples=n=64,volume='exp(-%.1f*t)':eval=frame"
+    return layer([
+        L(66951, 0.030, 0.28, 0.000, 0.0, -3, fin=0.001, fout=0.03, fx=damp % 5),       # a boxing bell: ding...
+        L(66951, 0.555, 1.35, 0.330, 0.0, -3, fin=0.001, fout=0.3, fx=damp % 2.5),      # ...ding
+        L(20185, 0.000, 0.14, 0.000, -10.0, -2, fin=0.001, fout=0.25, keep=False, fx='lowpass=f=350'),  # he hits the deck
+        L('old:sfx_doomstomp_ko', 0.0, 1.55, 0.0, 0.0, 6, fin=0.002, fout=0.4, fx='lowpass=f=200'),  # the old file's sub
+    ])
+
+
+def doomrise():
+    return layer([
+        L('old:sfx_doomstomp_rise', 0.0, 1.28, 0.0, 0.0, 0, fin=0.002, fout=0.1),
+        L(763026, 2.760, 1.28, 0.000, -5.0, 3, fin=0.1, fout=0.2),             # a black bear's growl, lower
+        L(869002, 3.900, 1.20, 0.080, -6.0, -13, fin=0.2, fout=0.2),             # a lion, lower
+    ], post="asetnsamples=n=64,volume='0.45+0.55*min(1,t/1.1)':eval=frame")    # swelling, as he gets up
+
+
+def dazed():
+    # a real bird's song cut into its chirps, five of them circling round his head
+    ch = [(2.190, 2.0, 8), (2.500, 3.0, 3), (2.790, 1.0, 3), (3.110, 3.0, -3), (3.400, 2.0, 0)]
+    return layer([L(164483, s, 0.23, 0.24 * i, p, d, fin=0.005, fout=0.05) for i, (s, p, d) in enumerate(ch)], post='highpass=f=1200')
+
+
+# --- Thanfoot's snap: real finger snaps at the front of the old dust swell ---
+def snap():
+    return layer([
+        L('old:sfx_thanfoot_snap', 0.0, 2.03, 0.0, 0.0, 0, fin=0.001, fout=0.3),
+        L(477528, 0.000, 0.25, 0.000, -2.0, 14, fin=0.001, fout=0.1),            # a finger snap
+        L(177495, 0.000, 0.25, 0.002, -3.0, 9, fin=0.001, fout=0.1),            # and another, lower
+    ])
+
+
 RECIPES = {
     'spartanchant': ('sfx_hero_spartanchant', chant, 2.25, -10.3, 0.3),
     'spartanrage': ('sfx_hero_spartanrage', rage, 1.9, -10.3, 0.45),
@@ -563,6 +864,43 @@ RECIPES = {
     'tailbell': ('sfx_smack_tail_bell', tailbell, 0.60, -14.2, 0.15),
     'kinghonk': ('sfx_smack_tail_kinghonk', kinghonk, 0.56, -11.4, 0.08),
     'tailboing': ('sfx_smack_tail_boing', tailboing, 0.40, -13.3, 0.1),
+    # batch 2 (the same rule for the level)
+    'traytoss': ('sfx_headwaiter_traytoss', traytoss, 0.67, -12.0, 0.06),
+    'pie': ('sfx_clownking_pie', pie, 0.55, -12.9, 0.08),
+    'meteor': ('sfx_cosmiccroc_meteor', meteor, 1.40, -12.9, 0.1),
+    'hitbonk': ('sfx_hitbonk', hitbonk, 0.28, -13.2, 0.06),
+    'doughrise': ('sfx_doughboy_rise', doughrise, 0.68, -13.0, 0.08),
+    'nonnapin': ('sfx_nonna_pin', nonnapin, 1.60, -14.2, 0.2),
+    'coo': ('sfx_pigeonking_coo', coo, 0.61, -11.8, 0.06),
+    'gargswoop': ('sfx_gargoyle_swoop', gargswoop, 0.74, -12.9, 0.15),
+    'gargstone': ('sfx_gargoyle_stone', gargstone, 1.10, -10.8, 0.12),
+    'gargstorm': ('sfx_gargoyle_storm', gargstorm, 1.00, -11.0, 0.12),
+    'krakensplash': ('sfx_kraken_splash', krakensplash, 0.58, -12.9, 0.15),
+    'krakendrag': ('sfx_kraken_drag', krakendrag, 1.00, -12.4, 0.12),
+    'slurp': ('sfx_milkshake_slurp', slurp, 0.65, -11.5, 0.08),
+    'rinkroll': ('sfx_rinkqueen_roll', rinkroll, 1.08, -12.7, 0.2),
+    'rinkdash': ('sfx_rinkqueen_dash', rinkdash, 0.75, -12.2, 0.2),
+    'chainsaw': ('sfx_lumberjack_chainsaw', chainsaw, 1.25, -13.2, 0.1),
+    'axe': ('sfx_lumberjack_axe', axe, 0.53, -10.9, 0.08),
+    'avalanche': ('sfx_yeti_avalanche', avalanche, 1.92, -12.2, 0.3),
+    'groan': ('sfx_poltergeist_groan', groan, 1.24, -9.6, 0.2),
+    'cough': ('sfx_poltergeist_cough', cough, 0.62, -12.1, 0.08),
+    'sick': ('sfx_poltergeist_sick', sick, 0.78, -12.7, 0.12),
+    'phantomecho': ('sfx_phantomking_echo', phantomecho, 1.05, -12.3, 0.2),
+    'thunder': ('sfx_thunder', thunder, 3.00, -12.8, 0.6),
+    'jetpack': ('sfx_jetpack', jetpack, 1.30, -12.4, 0.2),
+    # (a sixth value is the limiter's ceiling: the fuse's fizz and the register's bing peak past -0.8 dBFS once encoded)
+    'bombfuse': ('sfx_bombfuse', bombfuse, 0.90, -14.1, 0.05, 0.70),
+    'bombboom': ('sfx_bombboom', bombboom, 1.20, -11.7, 0.3),
+    'gang': ('sfx_gang', gang, 0.87, -12.1, 0.08),
+    'cash': ('sfx_lexlugtoe_cash', cash, 0.90, -12.0, 0.25, 0.70),
+    'doomroar': ('sfx_doomstomp_roar', doomroar, 1.27, -15.9, 0.25),
+    'doomstep': ('sfx_doomstomp_stomp', doomstep, 0.64, -11.4, 0.2),
+    'quake': ('sfx_doomstomp_quake', quake, 1.39, -12.5, 0.25),
+    'ko': ('sfx_doomstomp_ko', ko, 1.55, -11.2, 0.5),
+    'doomrise': ('sfx_doomstomp_rise', doomrise, 1.28, -14.8, 0.1),
+    'dazed': ('sfx_doomstomp_dazed', dazed, 1.18, -12.9, 0.05),
+    'snap': ('sfx_thanfoot_snap', snap, 2.03, -10.5, 0.3),
 }
 
 if __name__ == '__main__':
@@ -580,7 +918,7 @@ if __name__ == '__main__':
     TMP = tempfile.mkdtemp(prefix='real-sfx-')
     try:
         for nm in args or list(RECIPES):
-            key, fn, dur, level, fade = RECIPES[nm]
-            master(fn(), key, dur, level, fade)
+            key, fn, dur, level, fade = RECIPES[nm][:5]
+            master(fn(), key, dur, level, fade, limit=RECIPES[nm][5] if len(RECIPES[nm]) > 5 else 0.84)
     finally:
         shutil.rmtree(TMP, ignore_errors=True)

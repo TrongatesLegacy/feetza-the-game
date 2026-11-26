@@ -44,6 +44,13 @@ REAL = {
     'sfx_shortorder_bell', 'sfx_shortorder_rush', 'sfx_trex_roar', 'sfx_trex_growl',
     'sfx_trex_breath', 'sfx_trex_dinosqueak', 'sfx_iceskate_axel', 'sfx_iceskate_snow',
     'sfx_bigfoot_bigstep', 'sfx_bigfoot_rampage',
+    # batch 2
+    'sfx_headwaiter_traytoss', 'sfx_clownking_pie', 'sfx_cosmiccroc_meteor', 'sfx_doughboy_rise',
+    'sfx_nonna_pin', 'sfx_pigeonking_coo', 'sfx_gargoyle_swoop', 'sfx_gargoyle_stone',
+    'sfx_gargoyle_storm', 'sfx_kraken_splash', 'sfx_kraken_drag', 'sfx_milkshake_slurp',
+    'sfx_rinkqueen_roll', 'sfx_rinkqueen_dash', 'sfx_lumberjack_chainsaw', 'sfx_lumberjack_axe',
+    'sfx_yeti_avalanche', 'sfx_poltergeist_groan', 'sfx_poltergeist_cough', 'sfx_poltergeist_sick',
+    'sfx_phantomking_echo',
 }
 for d in rep:
     if d['key'] in REAL:

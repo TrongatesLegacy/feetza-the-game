@@ -34,7 +34,18 @@ AMB = [
          notes='The Doom Lab; layered with "Bubbling beaker.wav" by Melthurian, https://freesound.org/people/Melthurian/sounds/319384/, and "Electricity Ambience 2" by PureAudioNinja, https://freesound.org/people/PureAudioNinja/sounds/341617/ (both CC0); 50 s crossfaded loop'),
 ]
 
+# Files since re-made from real recordings by scripts/real-sfx/build.py (the audio pass, docs/audio-audit.md): not
+# copied over, so running this again doesn't put the synthesized versions back (their credits and TRIM entries are
+# only ever added when missing, so they are left as they are too).
+REAL = {
+    'sfx_thunder', 'sfx_jetpack', 'sfx_bombfuse', 'sfx_bombboom',
+    'sfx_gang', 'sfx_lexlugtoe_cash', 'sfx_doomstomp_roar', 'sfx_doomstomp_stomp',
+    'sfx_doomstomp_quake', 'sfx_doomstomp_ko', 'sfx_doomstomp_rise', 'sfx_doomstomp_dazed',
+    'sfx_thanfoot_snap',
+}
 for d in rep:
+    if d['key'] in REAL:
+        continue
     shutil.copy(os.path.join(out, d['key'] + '.mp3'), os.path.join(repo, 'public/audio', d['key'] + '.mp3'))
 
 

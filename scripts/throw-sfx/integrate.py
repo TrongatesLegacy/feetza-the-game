@@ -42,7 +42,7 @@ rep = json.load(open(os.path.join(out, 'report.json')))
 # copied over, so running this again doesn't put the synthesized versions back.
 REAL = {
     'sfx_hitsplat', 'sfx_hitsqueak', 'sfx_rollrumble', 'sfx_tossrope',
-    'sfx_tossheavy',
+    'sfx_tossheavy', 'sfx_hitbonk',
 }
 for d in rep:
     if d['key'] in REAL:
