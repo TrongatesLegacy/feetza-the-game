@@ -7,10 +7,11 @@
 //   stars going out as the sun clears the range), the sun climbs out from behind the far range with its rays turning
 //   slowly, its light rakes across the table, and warm beams spill from the oven's mouth with motes in them;
 // - every foot fought marches past along the table in the order they were met, act by act, each act led by its
-//   pennant. Every foot hops on its own step: a crouch before take-off, a stretch in the air, a squash on landing
-//   with its contact shadow squashing with it and dust puffing off the sandstone, and a waddle from side to side.
-//   Each one waves as it passes the middle; mini-bosses leap, bow and say their piece on the move; bosses stop the
-//   parade for their moment (a crouch, a leap, a landing that shakes the place, their own roar and quip, a bow);
+//   pennant. Every foot marches the old dance: a bob and a rock on staggered beats, its contact shadow squashing with
+//   the bob and the odd puff of dust off the sandstone. Every name sits on one line under the parade (a boss's or
+//   mini-boss's billing over it, in the same block), set to fit its room, and bosses get room either side. Each foot
+//   waves as it passes the middle; mini-bosses leap, bow and say their piece on the move; bosses stop the parade for
+//   their moment (a dip, a leap, a landing that shakes the place, their own roar and quip, a bow), all above the line;
 // - the credits roll up the sky in their own band, set as credits: roles in small caps over names, the music and the
 //   ambience per track (where it plays, its title, author and licence, from public/audio/credits.json), the sound
 //   effects' sources and licences, the fonts; then AND STARRING YOU;
@@ -736,7 +737,7 @@ interface Marcher {
   c: Box;
   shadow?: Img;
   body?: Img;
-  /** The foot's display scale (before squash). */
+  /** The foot's display scale. */
   s?: number;
   /** Its height on screen (px), and its width. */
   h: number;
@@ -744,13 +745,18 @@ interface Marcher {
   label?: Box;
   f?: FootType;
   big: 0 | 1 | 2;
-  // the step
+  // the march: a bob (its clock and height) and a rock (its clock and lean, in radians), on staggered beats
   ph: number;
   rate: number;
   hop: number;
-  squash: number;
-  side: number;
-  steps: number;
+  rk: number;
+  rockAt: number;
+  /** Half its room in the line for its label, and half its body's width as it rocks (or waves, or leans). */
+  half: number;
+  bodyHalf: number;
+  /** Its label's width at rest (game px), and its room for it. */
+  labelW?: number;
+  slot?: number;
   // a moment (a wave, a mini-boss's leap and bow, a boss's stop)
   act: 'none' | 'wave' | 'mini' | 'boss';
   actT: number;
@@ -817,16 +823,19 @@ function quipOf(f: FootType): string | null {
   return q.reduce((a, b) => (b.length < a.length ? b : a));
 }
 
-/** A foot's pose in its moment: lifted by y, squashed by q (stretched below 0), turned by rot, scaled by k (nearer),
- * and turn (its width, for a pirouette: 1 facing out, −1 mirrored half way round). */
+/** A foot's pose in its moment: lifted by y (never below the table), its height scaled by sy (a dip below 1, rearing
+ * up above it; its width never grows, so it never pushes into a neighbour), turned by rot, and turn (its width, for a
+ * pirouette: 1 facing out, −1 mirrored half way round). */
 interface Pose {
   y: number;
-  q: number;
+  sy: number;
   rot: number;
-  k: number;
   turn: number;
   end: boolean;
 }
+
+/** The march's beat: a bob every 0.36 s (up and down), a rock from one side to the other every 0.36 s. */
+const BOB_T = 0.36;
 
 // ——— the ending ———
 
@@ -1052,20 +1061,32 @@ export function playEnding(sc: Phaser.Scene, done: () => void, o: EndingOpts = {
     let x0 = 0;
     let lastAct = -1;
     // (wider apart on a phone, where the names are set bigger)
+    // (each foot's room for its label: a boss's and a mini-boss's wider, for their bigger names)
     const SPACING = [236, 330, 390].map((v) => Math.round(v * (small ? 1.22 : 1)));
     const labelK = small ? Math.max(1, MIN_PX / ((sc.scale.displaySize.width / W) * 19)) : 1;
+    // its labels on one shared line: every name's baseline here (under the sole), the billing on its own line over it
+    const NAME_Y = 24 + 60 * labelK;
+    // (a foot is placed far enough from the last that their labels can't meet, nor a boss's body its neighbour's)
+    let prev: Marcher | null = null;
+    let idx = 0;
     for (const f of cast) {
       const act = actOf(f.minWave);
       if (act !== lastAct) {
         lastAct = act;
-        items.push(pennant(act, x0));
-        x0 += 400;
+        if (prev) x0 += Math.max(prev.half, prev.big ? prev.bodyHalf : 0) + 160;
+        prev = pennant(act, x0);
+        items.push(prev);
       }
       const big = rank(f) as 0 | 1 | 2;
-      const m = foot(f, big, x0);
+      const m = foot(f, big, idx);
       if (m) {
+        if (prev?.kind === 'pennant') x0 += 400 + Math.max(0, Math.max(m.half, m.big ? m.bodyHalf : 0) - SPACING[0] / 2);
+        // (labels never meet; next to a boss or mini-boss, nor do bodies, at their widest rock)
+        else if (prev) x0 += Math.max(prev.half + m.half, prev.big || m.big ? prev.bodyHalf + m.bodyHalf + 24 : 0);
+        m.x0 = x0;
         items.push(m);
-        x0 += SPACING[big];
+        prev = m;
+        idx++;
       }
     }
 
@@ -1089,10 +1110,10 @@ export function playEnding(sc: Phaser.Scene, done: () => void, o: EndingOpts = {
       shadows.add(shadow);
       c.addAt(pole, 0);
       marchers.add(c);
-      return { kind: 'pennant', x0: at, c, shadow, h: 360, w: FLAG_W, big: 0, ph: crand(), rate: 1.7, hop: 10, squash: 0, side: 1, steps: 0, act: 'none', actT: 0, done: false, quipped: false, landed: false, rope, flag, pole, act0: act };
+      return { kind: 'pennant', x0: at, c, shadow, h: 360, w: FLAG_W, big: 0, ph: crand(), rate: 1.7, hop: 10, rk: 0, rockAt: 0, half: 0, bodyHalf: 0, act: 'none', actT: 0, done: false, quipped: false, landed: false, rope, flag, pole, act0: act };
     }
 
-    function foot(f: FootType, big: 0 | 1 | 2, at: number): Marcher | null {
+    function foot(f: FootType, big: 0 | 1 | 2, i: number): Marcher | null {
       // (drawn now if the idle-time warm-up hasn't got to it: src/game/assets.ts)
       const m = ensureFootArt(sc, f.id);
       if (!m) return null;
@@ -1106,29 +1127,50 @@ export function playEnding(sc: Phaser.Scene, done: () => void, o: EndingOpts = {
       c.add(body);
       const shadow = sc.add.image(0, LANE + 2, shadowKey).setAlpha(0.6);
       shadows.add(shadow);
-      // its name under it (bosses and mini-bosses get their billing in small caps over it)
-      const label = sc.add.container(0, 24).setScale(labelK);
-      // its name on one line, set smaller to fit if it must (two lines only for a name too long even then)
-      const room = (SPACING[big] - 20) / labelK;
+      // its label: one block under the sole, the same height for every foot, scaled about its name's baseline (so a
+      // pop never moves the line); a boss's or mini-boss's billing over its name, the name on one line, set a little
+      // smaller to fit its room, and a long name given more room (rather than set too small to read)
+      const label = sc.add.container(0, NAME_Y).setScale(labelK);
       const nameSt: StyleDef = { font: BODY, weight: 700, size: big ? 28 : 25, color: '', stroke: 6, ls: 0, lh: 1.15 };
-      while (nameSt.size > 19 && measure(f.name, nameSt) > room) nameSt.size--;
+      while (nameSt.size > 21 && measure(f.name, nameSt) > (SPACING[big] - 40) / labelK) nameSt.size--;
+      const slotW = Math.max(SPACING[big], Math.ceil(measure(f.name, nameSt) * labelK) + 40);
+      const room = (slotW - 40) / labelK;
       const nameT = sc.add
-        .text(0, big ? 24 : 0, f.name, { fontFamily: BODY, fontStyle: '700', fontSize: `${nameSt.size}px`, color: big ? '#ffe08a' : '#fff6e2', stroke: '#1c0c06', strokeThickness: 6, align: 'center', wordWrap: { width: room } })
+        .text(0, 0, f.name, { fontFamily: BODY, fontStyle: '700', fontSize: `${nameSt.size}px`, color: big ? '#ffe08a' : '#fff6e2', stroke: '#1c0c06', strokeThickness: 6, align: 'center' })
         .setOrigin(0.5, 0)
         .setShadow(0, 2, 'rgba(10,4,2,0.6)', 3, true, true);
+      onBaseline(nameT, 0, room);
       label.add(nameT);
       if (big) {
         const tag = sc.add.text(0, 0, big === 2 ? 'BOSS' : 'MINI-BOSS', { fontFamily: BODY, fontStyle: '700', fontSize: '19px', color: '#ffc98e', stroke: '#1c0c06', strokeThickness: 5 }).setOrigin(0.5, 0).setLetterSpacing(5);
+        onBaseline(tag, -32, room);
         label.add(tag);
       }
       c.add(label);
       marchers.add(c);
-      const rate = big === 2 ? 1.25 : big === 1 ? 1.45 : 1.6 + crand() * 0.25;
+      // the march: bosses lean the least (they're the tallest); calm keeps it small
+      const rk = ((big === 2 ? 6 : big === 1 ? 9 : 12) * Math.PI) / 180 * (calm ? 0.4 : 1);
+      const hop = (big === 2 ? 18 : big === 1 ? 22 : 26) * (calm ? 0.4 : 1);
+      // (its room: its label's, and its body's as it rocks at its widest, a wave's wiggle or a mini-boss's lean on it)
+      const w = body.width * s;
+      const half = slotW / 2;
+      const bodyHalf = (w * Math.cos(rk + 0.12) + body.height * s * Math.sin(rk + 0.12)) / 2;
       return {
-        kind: 'foot', x0: at, c, shadow, body, s, h: tall * s, w: body.width * s, label, f, big,
-        ph: crand(), rate, hop: (big === 2 ? 20 : big === 1 ? 26 : 30) * (calm ? 0.4 : 1), squash: big === 2 ? 0.26 : 0.21, side: crand() < 0.5 ? 1 : -1, steps: 0,
+        kind: 'foot', x0: 0, c, shadow, body, s, h: tall * s, w, label, f, big,
+        // (staggered as the old dance's tweens were: a bob 70 ms behind the last foot's, a rock 110 ms)
+        ph: -((i * 0.07) % BOB_T), rate: 1, hop, rk, rockAt: -((i * 0.11) % (BOB_T * 2)), half, bodyHalf,
+        labelW: Math.max(...label.list.map((t) => (t as Txt).displayWidth)) * labelK, slot: slotW - 20,
         act: 'none', actT: 0, done: false, quipped: false, landed: false,
       };
+    }
+
+    /** Sets a text's baseline at y in its block (its padding, stroke and the font's ascent measured), one line, and
+     * squeezes it to its room if it's still too wide. */
+    function onBaseline(t: Txt, y: number, room: number): void {
+      const k = Math.min(1, room / Math.max(1, t.width));
+      t.setScale(k);
+      const asc = t.getTextMetrics().ascent;
+      t.y = y - ((t.padding.top ?? 0) + t.style.strokeThickness / 2 + asc) * k;
     }
 
     audio.preload(sc, items.flatMap((it) => (it.big && it.f ? [voiceOf(it.f.id)].filter((v): v is string => !!v) : [])).concat(['sfx_bigfoot_bigstep', 'sfx_godreveal', 'sfx_upgrade']));
@@ -1255,8 +1297,6 @@ export function playEnding(sc: Phaser.Scene, done: () => void, o: EndingOpts = {
     // ——— everything moves on one update ———
     let legend = false;
     let dawned = false;
-    let lastPx = W + 240;
-    let pace = 0;
     const endT = (): number => Math.max(paradeEnd - 1.2, rollSeg.t1 + CODA_HOLD);
     tick = () => {
       if (finished || !root.active) return;
@@ -1299,9 +1339,6 @@ export function playEnding(sc: Phaser.Scene, done: () => void, o: EndingOpts = {
       motes.update(dt);
       // the parade
       const px = paradeX(T);
-      // (steps quicken while the parade moves, and slow to marking time while a boss has the floor)
-      pace += (clamp01((lastPx - px) / dt / V) - pace) * Math.min(1, dt * 4);
-      lastPx = px;
       const hold = holdAt(T);
       for (const it of items) {
         const x = px + it.x0;
@@ -1346,7 +1383,21 @@ export function playEnding(sc: Phaser.Scene, done: () => void, o: EndingOpts = {
     };
     sc.events.on('update', tick);
     // (dev: the shot scripts read the timeline)
-    if (import.meta.env.DEV) (window as unknown as { __ending?: unknown }).__ending = { t: () => elapsed, end: endT, parade: paradeEnd };
+    if (import.meta.env.DEV) (window as unknown as { __ending?: unknown }).__ending = {
+        t: () => elapsed,
+        end: endT,
+        parade: paradeEnd,
+        // the labels and bodies on screen: their boxes (screen px of the game) and each name's baseline
+        feet: () =>
+          items.filter((it) => it.kind === 'foot' && it.c.visible).map((it) => {
+            const lb = it.label!;
+            const nm = lb.list[0] as Txt;
+            const base = it.c.y + lb.y + (nm.y + ((nm.padding.top ?? 0) + nm.style.strokeThickness / 2 + nm.getTextMetrics().ascent) * nm.scaleY) * lb.scaleY;
+            const r = lb.getBounds();
+            const b = it.body!.getBounds();
+            return { id: it.f!.id, big: it.big, x: it.c.x, base, label: [r.x, r.y, r.width, r.height], body: [b.x, b.y, b.width, b.height] };
+          }),
+      };
 
     function march(it: Marcher, x: number, dt: number, T: number, hold: Marcher | undefined): void {
       it.c.x = x;
@@ -1382,73 +1433,69 @@ export function playEnding(sc: Phaser.Scene, done: () => void, o: EndingOpts = {
         else if (it.big === 0 && x < HOLD_X + 30) begin(it, 'wave');
       }
       let y = 0;
-      let q = 0;
+      let sy = 1;
       let rot = 0;
-      let extra = 1;
       let turn = 1;
       if (it.act === 'boss' || it.act === 'mini') {
         it.actT += dt;
         const r = it.act === 'boss' ? bossMoment(it, it.actT, x) : miniMoment(it, it.actT, x);
-        y = r.y;
-        q = r.q;
+        y = Math.min(0, r.y);
+        sy = r.sy;
         rot = r.rot;
-        extra = r.k;
         turn = r.turn;
         if (r.end) {
           it.act = 'none';
           it.done = true;
-          it.ph = 0;
         }
       } else {
-        // the step: a crouch, a stretch into the air, a waddle to one side, a squash on landing
+        // the old dance: a bob (up and down every beat) and a rock from side to side, each on its own staggered clock
         const prev = it.ph;
-        it.ph += dt * it.rate * (0.7 + 0.5 * pace);
-        if (Math.floor(it.ph) !== Math.floor(prev)) land(it, x);
-        const ph = it.ph % 1;
-        const AIR0 = 0.32;
-        if (ph < 0.14) q = it.squash * (1 - ph / 0.14) ** 1.5;
-        else if (ph < AIR0) q = it.squash * 0.7 * Math.sin(((ph - 0.14) / (AIR0 - 0.14)) * Math.PI * 0.5);
-        if (ph >= AIR0) {
-          const a = (ph - AIR0) / (1 - AIR0);
-          y = -Math.sin(a * Math.PI) * it.hop;
-          q = a < 0.3 ? -0.11 * (1 - a / 0.3) - 0.02 : a > 0.7 ? -0.08 * ((a - 0.7) / 0.3) : -0.02;
-          rot = it.side * 0.07 * Math.sin(a * Math.PI) * (calm ? 0.4 : 1);
-        }
+        it.ph += dt;
+        it.rockAt += dt;
+        if (Math.floor(it.ph / BOB_T) !== Math.floor(prev / BOB_T)) land(it, x);
+        y = -Math.abs(Math.sin((Math.max(0, it.ph) / BOB_T) * Math.PI)) * it.hop;
+        rot = -Math.cos((Math.max(0, it.rockAt) / BOB_T) * Math.PI) * it.rk;
         if (it.act === 'wave') {
-          // a wave as it passes the middle: rocking side to side with a happy bounce, its name popping
+          // a wave as it passes the middle: a quicker wiggle on its rock and a higher bob, its name popping
           it.actT += dt;
           const k = it.actT / 1.1;
           if (k >= 1) {
             it.act = 'none';
             it.done = true;
           } else {
-            rot += Math.sin(it.actT * Math.PI * 2 * 2.6) * 0.16 * Math.sin(k * Math.PI) * (calm ? 0.4 : 1);
+            rot += Math.sin(it.actT * Math.PI * 2 * 2.6) * 0.1 * Math.sin(k * Math.PI) * (calm ? 0.4 : 1);
             y *= 1 + 0.6 * Math.sin(k * Math.PI);
           }
         }
       }
-      body.setScale(s * (1 + q * 0.75) * extra * turn, s * (1 - q) * extra).setRotation(rot).setY(y);
+      body.setScale(s * turn, s * sy).setRotation(rot).setY(y);
       // the contact shadow tightens and fades as the foot lifts, spreads as it lands
-      const air = Math.min(1, -y / 160);
-      if (it.shadow) it.shadow.setPosition(x, LANE + 2).setScale((it.w / 104) * (1 + q * 0.9) * (1 - 0.4 * air), 0.8 * (1 + q * 0.6) * (1 - 0.25 * air)).setAlpha(0.95 * (1 - 0.55 * air));
+      const air = Math.min(1, -y / 70);
+      if (it.shadow) it.shadow.setPosition(x, LANE + 2).setScale((it.w / 104) * (1 - 0.3 * air), 0.8 * (1 - 0.3 * air)).setAlpha(0.95 * (1 - 0.55 * air));
     }
 
     function land(it: Marcher, x: number): void {
-      it.side = -it.side;
-      it.steps++;
-      if (x < -60 || x > W + 60) return;
-      const n = it.big ? 4 : 2;
+      // (the odd puff of dust off the sandstone as a foot comes down: not every step)
+      if (x < -60 || x > W + 60 || calm || crand() > (it.big ? 0.35 : 0.12)) return;
+      const n = it.big ? 3 : 2;
       for (let i = 0; i < n; i++) {
         const dir = i % 2 ? 1 : -1;
-        dust.spawn({ x: x + dir * it.w * (0.3 + crand() * 0.12), y: LANE - 4, vx: dir * (50 + crand() * 60), vy: -12 - crand() * 22, life: 0.55 + crand() * 0.3, r0: 7, r1: 18 + crand() * 10 + it.big * 6, a: 0.5, tint: 0xeadcc4, drag: 2.6, fade: 0.05, spin: (crand() - 0.5) * 2 });
+        dust.spawn({ x: x + dir * it.w * (0.3 + crand() * 0.12), y: LANE - 4, vx: dir * (50 + crand() * 60), vy: -12 - crand() * 22, life: 0.55 + crand() * 0.3, r0: 7, r1: 16 + crand() * 10 + it.big * 6, a: 0.42, tint: 0xeadcc4, drag: 2.6, fade: 0.05, spin: (crand() - 0.5) * 2 });
       }
+    }
+
+    /** A label's pop (its name brightening for a beat), never wider than its room. */
+    function pop(it: Marcher, k: number, ms: number, hold = 0): void {
+      if (!it.label || !it.labelW || !it.slot) return;
+      const to = it.label.scale * Math.min(k, it.slot / it.labelW);
+      sc.tweens.add({ targets: it.label, scale: to, duration: ms, yoyo: true, hold, ease: 'Quad.Out' });
     }
 
     function begin(it: Marcher, act: Marcher['act']): void {
       it.act = act;
       it.actT = 0;
       if (act === 'wave') {
-        it.label && sc.tweens.add({ targets: it.label, scale: it.label.scale * 1.18, duration: 160, yoyo: true, ease: 'Quad.Out' });
+        pop(it, 1.18, 160);
         return;
       }
     }
@@ -1500,22 +1547,20 @@ export function playEnding(sc: Phaser.Scene, done: () => void, o: EndingOpts = {
       sc.time.delayedCall(ms, gone);
     }
 
-    /** A boss's stop: it settles, crouches deep, leaps, lands with a quake and its roar and line, then bows. */
+    /** A boss's stop: it settles, dips, leaps, lands with a quake and its roar and line, then bows (never below the
+     * table, never wider than it stands). */
     function bossMoment(it: Marcher, u: number, x: number): Pose {
-      const CROUCH = 0.42;
+      const DIP = 0.42;
       const AIR = 0.62;
-      const LAND = CROUCH + AIR;
+      const LAND = DIP + AIR;
       let y = 0;
-      let q = 0;
-      let k = 1;
-      let rot = 0;
+      let sy = 1;
       const lift = calm ? 60 : 150;
-      if (u < CROUCH) q = 0.3 * smooth(u / CROUCH);
+      if (u < DIP) sy = 1 - 0.09 * smooth(u / DIP);
       else if (u < LAND) {
-        const a = (u - CROUCH) / AIR;
+        const a = (u - DIP) / AIR;
         y = -Math.sin(a * Math.PI) * lift;
-        q = a < 0.35 ? -0.18 * (1 - a / 0.35) : a > 0.7 ? -0.12 * ((a - 0.7) / 0.3) : 0;
-        k = 1 + 0.06 * Math.sin(a * Math.PI);
+        sy = 1 - 0.09 * (1 - smooth(Math.min(1, a / 0.3)));
       } else {
         if (!it.landed) {
           it.landed = true;
@@ -1523,41 +1568,35 @@ export function playEnding(sc: Phaser.Scene, done: () => void, o: EndingOpts = {
           const v = voiceOf(it.f!.id);
           if (v) audio.sfx(v, { volume: 0.8 });
           say(it, x, 2100);
-          if (it.label) sc.tweens.add({ targets: it.label, scale: it.label.scale * 1.22, duration: 200, yoyo: true, hold: 500, ease: 'Back.Out' });
+          pop(it, 1.22, 200, 500);
         }
         const w = u - LAND;
-        // the squash rings out
-        q = 0.34 * Math.exp(-w * 7) * Math.cos(w * 22);
-        // then the bow: dipping its top towards you, a little nearer
-        const b = Math.sin(clamp01((w - 0.55) / 0.85) * Math.PI);
-        q += 0.13 * b;
-        k = 1 + 0.05 * b;
-        y += 6 * b;
+        // it settles from the landing, then bows: its top dipping towards you
+        sy = 1 - 0.06 * Math.exp(-w * 8) - 0.1 * Math.sin(clamp01((w - 0.55) / 0.85) * Math.PI);
       }
-      return { y, q, rot, k, turn: 1, end: u > HOLD - 0.05 };
+      return { y, sy, rot: 0, turn: 1, end: u > HOLD - 0.05 };
     }
 
-    /** A mini-boss's moment on the move: a crouch, a leap with a twirl, a landing, a bow and its line. */
+    /** A mini-boss's moment on the move: a dip, a leap with a twirl, a landing, a bow and its line. */
     function miniMoment(it: Marcher, u: number, x: number): Pose {
       if (it.f?.id === 'jormungandr') return serpentMoment(it, u, x);
-      const CROUCH = 0.28;
+      const DIP = 0.28;
       const AIR = 0.55;
-      const LAND = CROUCH + AIR;
+      const LAND = DIP + AIR;
       let y = 0;
-      let q = 0;
+      let sy = 1;
       let rot = 0;
-      let k = 1;
       let turn = 1;
-      if (u < CROUCH) q = 0.24 * smooth(u / CROUCH);
+      if (u < DIP) sy = 1 - 0.08 * smooth(u / DIP);
       else if (u < LAND) {
         // a hop with a pirouette: it turns on the spot in the air (still facing out at the top of the turn), a lean
-        // into it, and comes down where it went up (its sole never drops below the table)
-        const a = (u - CROUCH) / AIR;
+        // into it, and comes down where it went up
+        const a = (u - DIP) / AIR;
         y = -Math.sin(a * Math.PI) * (calm ? 50 : 110);
-        q = a < 0.35 ? -0.14 * (1 - a / 0.35) : 0;
+        sy = 1 - 0.08 * (1 - smooth(Math.min(1, a / 0.3)));
         if (!calm) {
           turn = Math.cos(smooth(a) * Math.PI * 2);
-          rot = Math.sin(a * Math.PI) * 0.12 * it.side;
+          rot = Math.sin(a * Math.PI) * 0.12;
         }
       } else {
         if (!it.landed) {
@@ -1568,26 +1607,20 @@ export function playEnding(sc: Phaser.Scene, done: () => void, o: EndingOpts = {
           say(it, x, 1500);
         }
         const w = u - LAND;
-        q = 0.26 * Math.exp(-w * 8) * Math.cos(w * 24);
-        const b = Math.sin(clamp01((w - 0.3) / 0.7) * Math.PI);
-        q += 0.11 * b;
-        k = 1 + 0.04 * b;
+        sy = 1 - 0.05 * Math.exp(-w * 9) - 0.09 * Math.sin(clamp01((w - 0.3) / 0.7) * Math.PI);
       }
-      return { y, q, rot, k, turn, end: u > LAND + 1.05 };
+      return { y, sy, rot, turn, end: u > LAND + 1.05 };
     }
 
-    /** Jörmungandr's moment (its art is a serpent's head turned three-quarters): it rears up towards you, sways, and
-     * strikes at the air with its hiss, then settles. */
+    /** Jörmungandr's moment (its art is a serpent's head turned three-quarters): it rears up, sways, and strikes at the
+     * air with its hiss, then settles. */
     function serpentMoment(it: Marcher, u: number, x: number): Pose {
       const REAR = 0.45;
-      let q = 0;
-      let k = 1;
+      let sy = 1;
       let rot = 0;
       let y = 0;
-      if (u < REAR) {
-        q = -0.12 * smooth(u / REAR);
-        k = 1 + 0.08 * smooth(u / REAR);
-      } else {
+      if (u < REAR) sy = 1 + 0.1 * smooth(u / REAR);
+      else {
         const w = u - REAR;
         if (!it.landed) {
           it.landed = true;
@@ -1596,14 +1629,13 @@ export function playEnding(sc: Phaser.Scene, done: () => void, o: EndingOpts = {
           if (v) audio.sfx(v, { volume: 0.6 });
           say(it, x, 1500);
         }
-        // the strike: a snap nearer and back, then the sway, settling
+        // the strike: a snap up and back, then the sway, settling
         const strike = Math.exp(-w * 6) * Math.sin(Math.min(w * 14, Math.PI));
-        k = 1.08 + 0.1 * strike - 0.08 * smooth((w - 0.6) / 0.6);
-        q = -0.12 * (1 - smooth((w - 0.6) / 0.6));
-        rot = (calm ? 0.3 : 1) * Math.sin(w * 7) * 0.1 * (1 - smooth((w - 0.4) / 0.9));
-        y = -8 * strike;
+        sy = 1 + 0.1 * (1 - smooth((w - 0.6) / 0.6)) + 0.06 * strike;
+        rot = (calm ? 0.3 : 1) * Math.sin(w * 7) * 0.08 * (1 - smooth((w - 0.4) / 0.9));
+        y = -10 * strike;
       }
-      return { y, q, rot, k, turn: 1, end: u > REAR + 1.4 };
+      return { y, sy, rot, turn: 1, end: u > REAR + 1.4 };
     }
   }
 }
