@@ -11,4 +11,7 @@ inspiration/
 # balance simulator output (npm run sim)
 .sim/
 .dev-logs/
+
+# Python bytecode from the audio build scripts
 __pycache__/
+*.pyc

@@ -2770,7 +2770,7 @@
     "author": "kyles (freesound.org)",
     "license": "CC0 1.0",
     "url": "https://freesound.org/people/kyles/sounds/454092/",
-    "notes": "Jotunheim Ice Fields: howling glacier wind, creaking ice and the distant groans of the ice; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a heavy mountain gale in the Swiss Alps and wind howling over a mountain top for the glacier wind, a frozen lake's ice cracking and booming, lower, for the distant groans of the ice, and ice crackling under pressure now and then; 50 s crossfaded loop. This source: the gale; trimmed, levelled and layered into a 50 s crossfaded loop"
+    "notes": "Jotunheim Ice Fields: howling glacier wind, creaking ice and the distant groans of the ice; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a heavy mountain gale in the Swiss Alps and wind blowing into cactus spines on a mountain top for the glacier wind, a frozen lake's ice cracking and booming, lower, for the distant groans of the ice, and ice crackling under pressure now and then; 50 s crossfaded loop. This source: the gale; trimmed, levelled and layered into a 50 s crossfaded loop"
   },
   {
     "file": "ambience_jotunheim.mp3",
@@ -2850,7 +2850,7 @@
     "author": "Kingcornz (freesound.org)",
     "license": "CC0 1.0",
     "url": "https://freesound.org/people/Kingcornz/sounds/378334/",
-    "notes": "Fenrir's Paw: wolf howl (entrance, loose); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a real wolf's howl, pitched down for a giant wolf, with the same howl an octave under it. This source: the howl; trimmed, pitch-shifted and layered"
+    "notes": "Fenrir's Paw: wolf howl (entrance, loose); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a howl cut from a recording of howling wolves, pitched down for a giant wolf, with the same howl an octave under it. This source: the howl; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_fenrir_pounce.mp3",
@@ -2970,7 +2970,7 @@
     "author": "kyles (freesound.org)",
     "license": "CC0 1.0",
     "url": "https://freesound.org/people/kyles/sounds/454092/",
-    "notes": "Thrym the Frost King: blizzard gust; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a heavy mountain gale, pitched up and brightened, and wind howling over a mountain top, swelling and dying away. This source: the gale; trimmed, pitch-shifted and layered"
+    "notes": "Thrym the Frost King: blizzard gust; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a heavy mountain gale, pitched up and brightened, and wind blowing into cactus spines on a mountain top, swelling and dying away. This source: the gale; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_thrym_blizzard.mp3",
@@ -4018,7 +4018,7 @@
     "author": "o_ciz (freesound.org)",
     "license": "CC0 1.0",
     "url": "https://freesound.org/people/o_ciz/sounds/475480/",
-    "notes": "The Minotaur: pawing and steam snort (tell); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a horse snorting twice, pitched down, then a hoof scraping stone (granite on granite) and hooves striking stone. This source: the first snort; trimmed, pitch-shifted and layered"
+    "notes": "The Minotaur: pawing and steam snort (tell); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a horse snorting twice, pitched down, then a hoof scraping stone (granite on granite) and hooves clattering. This source: the first snort; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_minotaur_snort.mp3",
@@ -4050,7 +4050,7 @@
     "author": "specrad1 (freesound.org)",
     "license": "CC0 1.0",
     "url": "https://freesound.org/people/specrad1/sounds/571296/",
-    "notes": "The Minotaur: hooves thunder into a charge; built from real recordings with ffmpeg (scripts/real-sfx/build.py): real hooves striking stone, pitched down, on each beat of the old synthesized gallop. This source: the hooves; trimmed, pitch-shifted and layered"
+    "notes": "The Minotaur: hooves thunder into a charge; built from real recordings with ffmpeg (scripts/real-sfx/build.py): real hooves clattering, pitched down, on each beat of the old synthesized gallop. This source: the hooves; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_minotaur_charge.mp3",
@@ -4441,11 +4441,11 @@
   {
     "file": "sfx_sirensong.mp3",
     "title": "tiny wordless female vocal",
-    "author": "womb_affliction / Katarina Rose (freesound.org)",
+    "author": "womb_affliction (freesound.org)",
     "license": "CC-BY 4.0",
     "url": "https://freesound.org/people/womb_affliction/sounds/462870/",
     "notes": "Act 9 feet and events: Siren Slippers sing, sits under; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a woman singing a wordless phrase, a little higher, doubled a third above for two sirens, in a soft hall. This source: the voice; trimmed, pitch-shifted and layered",
-    "attribution": "\"tiny wordless female vocal\" by womb_affliction / Katarina Rose (freesound.org), https://freesound.org/people/womb_affliction/sounds/462870/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+    "attribution": "\"tiny wordless female vocal\" by womb_affliction (freesound.org), https://freesound.org/people/womb_affliction/sounds/462870/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
   },
   {
     "file": "sfx_harpy.mp3",

@@ -855,7 +855,7 @@ def swell(t_peak, d, lo=0.0):
 # --- Act 8 · Fenrir's Paw: a real wolf's howl, lower for a giant wolf, and his whimpering death howl ---
 def fenrirhowl():
     return layer([
-        L(378334, 0.300, 2.33, 0.000, -3.0, 0, fin=0.15, fout=0.45),             # a wolf howling, lower
+        L(378334, 0.300, 2.33, 0.000, -3.0, 0, fin=0.15, fout=0.45),             # a howl from a recording of howling wolves, lower
         L(378334, 0.300, 2.33, 0.012, -15.0, -6, fin=0.2, fout=0.45, fx='lowpass=f=900'),  # an octave under: a giant's chest
     ])
 
@@ -882,7 +882,7 @@ def wolfpupyip():
 def thrymblizzard():
     return layer([
         L(454092, 142.50, 1.48, 0.000, 3.0, 0, fin=0.05, fout=0.2, fx='highpass=f=300,treble=g=6:f=3000'),  # a mountain gale
-        L(156414, 24.000, 1.48, 0.000, 2.0, 0, fin=0.05, fout=0.2, fx='highpass=f=200'),  # wind howling in cactus spines
+        L(156414, 24.000, 1.48, 0.000, 2.0, 0, fin=0.05, fout=0.2, fx='highpass=f=200'),  # wind blowing into cactus spines on a mountain top
     ], post=swell(0.66, 1.62, 0.05))
 
 
@@ -1003,7 +1003,7 @@ def mintsnort():
         L(475480, 0.030, 0.30, 0.000, -4.0, 0, fin=0.004, fout=0.08),           # a horse's snort, lower
         L(475479, 0.010, 0.32, 0.300, -5.0, 5, fin=0.004, fout=0.08),           # and another
         L(347149, 0.100, 0.35, 0.620, -5.0, -10, fin=0.01, fout=0.12),           # a hoof scraping stone (granite on granite)
-        L(571296, 3.155, 0.12, 0.620, -6.0, 12, fin=0.002, fout=0.05),          # hooves on stone, lower
+        L(571296, 3.155, 0.12, 0.620, -6.0, 12, fin=0.002, fout=0.05),          # hooves clattering, lower
         L(571296, 3.918, 0.12, 0.820, -7.0, 14, fin=0.002, fout=0.05),
     ])
 
@@ -1069,7 +1069,7 @@ def cerbfire():
     return layer([
         L(244926, 0.150, 1.00, 0.000, 0.0, 0, fin=0.03, fout=0.35),             # diesel flaring up on a fire
         L(539972, 0.000, 0.60, 0.000, -2.0, 1, fin=0.002, fout=0.25),          # a burst of gas flame
-        L(829986, 0.060, 0.40, 0.000, -4.0, 8, fin=0.02, fout=0.15),          # a snarl behind it
+        L(829986, 0.060, 0.55, 0.080, -4.0, 14, fin=0.02, fout=0.15),         # a snarl behind it
     ], post='acompressor=threshold=-30dB:ratio=4:attack=10:release=150:makeup=6')  # a held breath of fire
 
 
@@ -1221,8 +1221,8 @@ def amb_loop(name, loop, target=-16.5):
 
 
 def jotunheim():
-    # glacier wind: a heavy mountain gale in the Swiss Alps for the body, wind howling over a mountain top (in cactus
-    # spines) for the howl; a frozen lake's ice cracking and booming under it, lower, for the giants' ice groaning, and
+    # glacier wind: a heavy mountain gale in the Swiss Alps for the body, wind blowing into cactus spines on a mountain
+    # top for the howl; a frozen lake's ice cracking and booming under it, lower, for the giants' ice groaning, and
     # ice crackling under pressure, now and then
     creaks = [Ls(838106, 0.40, 2.0, t, s, d, fin=0.1, fout=0.4, fx='highpass=f=500') for t, s, d in
               ((6.0, -3.0, 5), (17.5, -5.0, 3), (29.0, -2.0, 5), (41.5, -4.0, 4), (52.0, -3.0, 3))]
@@ -1348,7 +1348,7 @@ RECIPES = {
     'medusahiss': ('sfx_medusa_hiss', medusahiss, 0.75, -11.9, 0.1),
     'cerbbark': ('sfx_cerberus_bark', cerbbark, 1.09, -10.7, 0.2),
     'cerbgrowl': ('sfx_cerberus_growl', cerbgrowl, 1.09, -11.3, 0.12),
-    'cerbfire': ('sfx_cerberus_fire', cerbfire, 1.00, -10.0, 0.3),
+    'cerbfire': ('sfx_cerberus_fire', cerbfire, 1.00, -10.1, 0.3),
     'cerbice': ('sfx_cerberus_ice', cerbice, 0.80, -11.7, 0.15),
     'cerbhowl': ('sfx_cerberus_howl', cerbhowl, 1.75, -9.2, 0.25),
     'hadestoll': ('sfx_hades_toll', hadestoll, 2.30, -10.8, 0.5),

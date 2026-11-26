@@ -565,7 +565,7 @@ const TRIM: Record<string, number> = {
   // Cerberus
   sfx_cerberus_bark: 1.1, // -10.6 dB → -9.7: triple bark (entrance)
   sfx_cerberus_growl: 1.06, // -11.3 dB → -10.8: triple growl (tell)
-  sfx_cerberus_fire: 1.1, // -9.9 dB → -9.0: fire breath
+  sfx_cerberus_fire: 1.1, // -10.0 dB → -9.2: fire breath
   sfx_cerberus_ice: 1.13, // -11.6 dB → -10.5: frost blast
   sfx_cerberus_poison: 1.08, // -11.2 dB → -10.5: poison spit
   sfx_cerberus_howl: 1.1, // -9.1 dB → -8.2: a head beaten, the others go wild
