@@ -1,6 +1,6 @@
 // Momentum: automatic damage runs on the player's smacking (the rules and numbers are in src/data/difficulty.ts,
 // MomentumHeat and MOMENTUM). A hidden 0..1 per run: smacks that connect fill it, it holds for a grace after each, then
-// drains to the heat's floor, and only while there's a foot the player could be smacking. The scene multiplies every
+// drains to the heat's floor through the wave (held only while the player can't smack: a window open, the peel stunned). The scene multiplies every
 // automatic hit by mult(); the HUD's PEEL SLAM button shows it as the furnace's fire, and the table's automatic
 // attacks cool with it (glow()).
 

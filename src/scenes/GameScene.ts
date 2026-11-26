@@ -3843,7 +3843,10 @@ export class GameScene extends Phaser.Scene implements Arena {
     });
     // kills charge the Peel Slam, except kills by the slam itself (it would refill its own meter)
     // the slam and abilities never refill their own meter (their burns included)
-    if (source !== 'slam' && source !== 'ability' && !(source === 'burn' && f.burnFromAbility)) this.run.super = Math.min(1, this.run.super + 0.05 * st.superGain * (this.ability ? this.ability.charge : 1) * this.heroes.meterMult());
+    // (kills by automatic damage charge it on momentum too: fully while the player is smacking, at the heat's floor when
+    // they've gone idle, so toppings can't fill the slam for an idle player)
+    const autoKill = AUTO_SOURCES.has(source) ? this.momentum.mult() : 1;
+    if (source !== 'slam' && source !== 'ability' && !(source === 'burn' && f.burnFromAbility)) this.run.super = Math.min(1, this.run.super + 0.05 * autoKill * st.superGain * (this.ability ? this.ability.charge : 1) * this.heroes.meterMult());
     if (this.ability?.trigger.t === 'kill' && source !== 'ability' && Math.random() < this.ability.trigger.p * passiveBoost(st.superGain).chance) {
       const at = { x: f.cx, y: f.cy };
       this.time.delayedCall(40, () => this.fireAbility({ x: at.x, y: at.y }));
@@ -5101,10 +5104,11 @@ export class GameScene extends Phaser.Scene implements Arena {
         for (const f of this.feet) if (f.hittable) n++;
         if (n) this.tally.tick(real, n);
       }
-      // momentum drains only while there's a foot the player could be smacking (not between spawns, in a wave's
-      // tail, with a boss out of reach, behind a window or with the peel stunned)
-      // (and it holds through slow-mo and hit-stop, when feet barely move and there's less to smack)
-      this.momentum.tick(real, n > 0 && !ui.modalOpen && this.peelStunT <= 0 && this.slowMo <= 0 && this.hitStop <= 0);
+      // momentum drains through the whole wave unless the player can't smack (a window open, the peel stunned): it used
+      // to hold whenever no foot was hittable and through every kill's hit-stop, and a stacked build kills so fast that
+      // it barely ever drained. A gap with nothing on the table costs nothing (there's nothing for the toppings to hit),
+      // and one smack when feet arrive brings it back.
+      this.momentum.tick(real, this.waveActive && !this.over && !ui.modalOpen && this.peelStunT <= 0);
       this.momentumTip();
       this.perkKit.update(dt);
       this.abilityTick(dt);
