@@ -230,14 +230,14 @@ export const SMACK_TRIM: Record<string, number> = {
   sfx_smack_hero_darkkneader: 0.67, // -14.4 dB, -18.5 LUFS → -13.5, -22.0
   sfx_smack_hero_captainmarvellousendgame: 0.40, // -13.5 dB, -14.0 LUFS → -13.5, -22.0
   sfx_smack_hero_starlardendgame: 0.45, // -13.4 dB, -15.1 LUFS → -13.5, -22.0
-  sfx_smack_hero_incrediblebulkendgame: 0.42, // -13.5 dB, -14.5 LUFS → -13.5, -22.0
+  sfx_smack_hero_incrediblebulkendgame: 0.40, // -13.6 dB, -14.1 LUFS → -13.5, -22.0
   sfx_smack_hero_blackwindowendgame: 0.45, // -13.5 dB, -15.0 LUFS → -13.5, -22.0
-  sfx_smack_hero_hawkeyetalianendgame: 0.38, // -13.4 dB, -13.7 LUFS → -13.5, -22.0
+  sfx_smack_hero_hawkeyetalianendgame: 0.38, // -14.0 dB, -13.7 LUFS → -13.5, -22.0
   sfx_smack_hero_blackpantherendgame: 0.64, // -13.5 dB, -18.1 LUFS → -13.5, -22.0
   sfx_smack_hero_strangeloafendgame: 0.35, // -13.6 dB, -13.0 LUFS → -13.5, -22.0
   sfx_smack_hero_scarletpitchendgame: 0.62, // -13.7 dB, -17.8 LUFS → -13.5, -22.0
   sfx_smack_hero_antpanendgame: 0.67, // -13.5 dB, -18.5 LUFS → -13.5, -22.0
-  sfx_smack_hero_wasabiwaspendgame: 0.42, // -13.4 dB, -14.4 LUFS → -13.5, -22.0
+  sfx_smack_hero_wasabiwaspendgame: 0.39, // -13.8 dB, -13.9 LUFS → -13.5, -22.0
   sfx_smack_hero_rocketrucolaendgame: 0.57, // -13.5 dB, -17.1 LUFS → -13.5, -22.0
   sfx_smack_hero_iamcrustendgame: 0.45, // -13.4 dB, -15.0 LUFS → -13.5, -22.0
   sfx_smack_hero_ghostofsparta: 0.40, // -13.7 dB, -14.1 LUFS → -13.5, -22.0

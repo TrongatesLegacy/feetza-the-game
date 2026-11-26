@@ -46,7 +46,8 @@ history (a shallow clone won't do).
 OUT_DIR defaults to public/audio. Names (default: all): spartanchant spartanrage, then the batch-1 names in RECIPES
 (service sweephop ... tailboing), then batch 2's (traytoss pie ... snap), then
 batch 3's (fenrirhowl ... gulp) and its two ambience loops (jotunheim bifrost), then batch 4's (solepropenter ...
-unbounddouse, the hero and god smack tails hbatpeel ... hamazonqueen) and its loop (firstpizzeria). Each sound is
+unbounddouse, the hero and god smack tails hbatpeel ... hamazonqueen, three Endgame variants' tails
+hincrediblebulkendgame ... hwasabiwaspendgame) and its loop (firstpizzeria). Each sound is
 cut, pitched, layered and placed by the recipe below (the Spartan, Skald and Siren sounds are also given a short
 convolution room),
 then levelled to a 50 ms RMS peak (the same measure
@@ -1355,7 +1356,7 @@ def unboundfire():
 
 def unbounddouse():
     return layer([
-        L(20185, 0.070, 0.07, 0.000, -3.0, 0, fin=0.001, fout=0.04, fx='lowpass=f=1500'),  # the flame smacked out: a stamp
+        L(20185, 0.070, 0.07, 0.000, -3.0, 0, fin=0.001, fout=0.04, fx='lowpass=f=1500'),  # the flame smacked out: a stomp on plywood
         L(495117, 0.010, 0.20, 0.000, -3.0, 0, fin=0.001, fout=0.1, fx='lowpass=f=3000'),  # and a washcloth slapped into water
         L(235597, 0.660, 0.70, 0.010, 0.0, 2, fin=0.002, fout=0.45),            # water sizzling on a hot stove
         L(234782, 0.550, 0.70, 0.020, 0.0, -16, fin=0.01, fout=0.5, fx='highpass=f=2000'),  # and a steam release
@@ -1632,6 +1633,41 @@ def hamazonqueen():
     ])
 
 
+# --- the Endgame variants whose hero's tail is now real: that tail, and the old synthesized portal ring on top, at
+# 0.12 s, its level against the tail as it was in the old file (scripts/smack-sfx/build.py: its hero's tail and portal()) ---
+def portal_ring():
+    """the Endgame portal ring, rendered by scripts/smack-sfx/build.py's portal() in a fresh process (its noise comes
+    from a seeded generator, so it is the same every run), padded to PAD s."""
+    out = os.path.join(TMP, 'portal.wav')
+    if not os.path.exists(out):
+        raw = out[:-4] + '.f32'
+        code = ('import array, importlib.util, sys; sys.path.insert(0, %r); '
+                's = importlib.util.spec_from_file_location("smackbuild", %r); m = importlib.util.module_from_spec(s); '
+                's.loader.exec_module(m); open(%r, "wb").write(array.array("f", m.portal()).tobytes())') % (
+            os.path.join(ROOT, 'scripts', 'boss-sfx'), os.path.join(ROOT, 'scripts', 'smack-sfx', 'build.py'), raw)
+        subprocess.run([sys.executable, '-I', '-c', code], check=True, env=dict(os.environ, KENNEY=os.environ.get('KENNEY', '/none')))
+        ff(['-f', 'f32le', '-ar', str(SR), '-ac', '1', '-i', raw, '-af', 'adelay=120,apad=whole_dur=%.1f' % PAD, '-c:a', 'pcm_f32le', out])
+    return out
+
+
+def endgame(base, rel_db):
+    """<base>'s recipe with the portal ring <rel_db> dB from it on the 50 ms RMS peak, as in the old file."""
+    b, p = base(), portal_ring()
+    return mixw([(b, 0.0), (p, rms50(read(b)) + rel_db - rms50(read(p)))])
+
+
+def hincrediblebulkendgame():
+    return endgame(hincrediblebulk, -2.3)
+
+
+def hhawkeyetalianendgame():
+    return endgame(hhawkeyetalian, -2.6)
+
+
+def hwasabiwaspendgame():
+    return endgame(hwasabiwasp, 5.5)
+
+
 # --- Act 10 · the First Pizzeria: crickets at night, a pine-wood bonfire crackling, a fire in a fireplace, and a
 # gentle breeze; 50 s crossfaded loop ---
 def firstpizzeria():
@@ -1807,6 +1843,9 @@ RECIPES = {
     'hzeusunbound': ('sfx_smack_hero_zeusunbound', hzeusunbound, 0.74, -13.9, 0.08),
     'hsymbiotepan': ('sfx_smack_hero_symbiotepan', hsymbiotepan, 0.45, -13.9, 0.08),
     'hamazonqueen': ('sfx_smack_hero_amazonqueen', hamazonqueen, 0.49, -13.8, 0.08),
+    'hincrediblebulkendgame': ('sfx_smack_hero_incrediblebulkendgame', hincrediblebulkendgame, 0.65, -13.7, 0.08),
+    'hhawkeyetalianendgame': ('sfx_smack_hero_hawkeyetalianendgame', hhawkeyetalianendgame, 0.65, -14.0, 0.08, 0.70),
+    'hwasabiwaspendgame': ('sfx_smack_hero_wasabiwaspendgame', hwasabiwaspendgame, 0.65, -13.9, 0.08),
 }
 
 if __name__ == '__main__':

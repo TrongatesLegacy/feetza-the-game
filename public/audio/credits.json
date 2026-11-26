@@ -4952,7 +4952,7 @@
     "author": "patchen (freesound.org)",
     "license": "CC-BY 4.0",
     "url": "https://freesound.org/people/patchen/sounds/20185/",
-    "notes": "Sole Proprietor Unbound: flame smacked out: hiss; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a foot stamp and a washcloth slapped into water, both lower, as the flame is smacked out, then water sizzling on a hot stove and a steam release. This source: the stamp; trimmed, pitch-shifted and layered",
+    "notes": "Sole Proprietor Unbound: flame smacked out: hiss; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a stomp on a plywood floor and a washcloth slapped into water, both lower, as the flame is smacked out, then water sizzling on a hot stove and a steam release. This source: the stomp; trimmed, pitch-shifted and layered",
     "attribution": "\"Foot Stomp C.wav\" by patchen (freesound.org), https://freesound.org/people/patchen/sounds/20185/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
   },
   {
@@ -9114,11 +9114,27 @@
   },
   {
     "file": "sfx_smack_hero_incrediblebulkendgame.mp3",
+    "title": "Bear Angry Growl",
+    "author": "celldroid (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/celldroid/sounds/763026/",
+    "notes": "Peel smacks: the incrediblebulkendgame peel’s own smack tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a black bear's growl and a tiger's roar, both pitched down (its hero's real tail), with the old synthesized portal ring. This source: the bear; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_smack_hero_incrediblebulkendgame.mp3",
+    "title": "Tiger Roar",
+    "author": "lauramellis (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/lauramellis/sounds/263115/",
+    "notes": "Peel smacks: the incrediblebulkendgame peel’s own smack tail: the tiger; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_smack_hero_incrediblebulkendgame.mp3",
     "title": "Original synthesized sound",
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the incrediblebulkendgame peel’s own smack tail; its hero's tail and a synthesized portal ring, made with ffmpeg and Python and released as CC0"
+    "notes": "Peel smacks: the incrediblebulkendgame peel’s own smack tail: the old synthesized portal ring, rendered as before by scripts/smack-sfx/build.py, layered over its hero's real tail; a synthesized portal ring, made with ffmpeg and Python and released as CC0"
   },
   {
     "file": "sfx_smack_hero_blackwindowendgame.mp3",
@@ -9130,11 +9146,27 @@
   },
   {
     "file": "sfx_smack_hero_hawkeyetalianendgame.mp3",
+    "title": "Bow Release (Bow and Arrow) 2",
+    "author": "Ali_6868 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Ali_6868/sounds/384916/",
+    "notes": "Peel smacks: the hawkeyetalianendgame peel’s own smack tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a bow released and an arrow flying off (its hero's real tail), with the old synthesized portal ring. This source: the bow; trimmed and layered"
+  },
+  {
+    "file": "sfx_smack_hero_hawkeyetalianendgame.mp3",
+    "title": "Arrow Loose and Flyby",
+    "author": "saturdaysoundguy (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/saturdaysoundguy/sounds/394180/",
+    "notes": "Peel smacks: the hawkeyetalianendgame peel’s own smack tail: the arrow; trimmed and layered"
+  },
+  {
+    "file": "sfx_smack_hero_hawkeyetalianendgame.mp3",
     "title": "Original synthesized sound",
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the hawkeyetalianendgame peel’s own smack tail; its hero's tail and a synthesized portal ring, made with ffmpeg and Python and released as CC0"
+    "notes": "Peel smacks: the hawkeyetalianendgame peel’s own smack tail: the old synthesized portal ring, rendered as before by scripts/smack-sfx/build.py, layered over its hero's real tail; a synthesized portal ring, made with ffmpeg and Python and released as CC0"
   },
   {
     "file": "sfx_smack_hero_blackpantherendgame.mp3",
@@ -9170,11 +9202,27 @@
   },
   {
     "file": "sfx_smack_hero_wasabiwaspendgame.mp3",
+    "title": "Wasp Wings 1",
+    "author": "Wakerone (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Wakerone/sounds/398486/",
+    "notes": "Peel smacks: the wasabiwaspendgame peel’s own smack tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a wasp's wings buzzing close up, with a wasp buzzing at a window under it (its hero's real tail), with the old synthesized portal ring. This source: the wings; trimmed and layered"
+  },
+  {
+    "file": "sfx_smack_hero_wasabiwaspendgame.mp3",
+    "title": "Wasp Buzzing 02",
+    "author": "loganzsound (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/loganzsound/sounds/856766/",
+    "notes": "Peel smacks: the wasabiwaspendgame peel’s own smack tail: the second wasp; trimmed and layered"
+  },
+  {
+    "file": "sfx_smack_hero_wasabiwaspendgame.mp3",
     "title": "Original synthesized sound",
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the wasabiwaspendgame peel’s own smack tail; its hero's tail and a synthesized portal ring, made with ffmpeg and Python and released as CC0"
+    "notes": "Peel smacks: the wasabiwaspendgame peel’s own smack tail: the old synthesized portal ring, rendered as before by scripts/smack-sfx/build.py, layered over its hero's real tail; a synthesized portal ring, made with ffmpeg and Python and released as CC0"
   },
   {
     "file": "sfx_smack_hero_rocketrucolaendgame.mp3",

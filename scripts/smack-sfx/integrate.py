@@ -97,7 +97,7 @@ REAL = {'sfx_smack_tail_pop', 'sfx_smack_tail_squawk', 'sfx_smack_tail_bell', 's
 REAL |= {'sfx_smack_hero_' + h for h in '''batpeel wonderwedge aquatoe incrediblebulk hawkeyetalian deadpeel shazamozza
     cattoewoman greenpepperarrow hawkcrust swampthincrust wasabiwasp icecreamman zeus hera poseidon demeter athena apollo
     artemis aphrodite hermes dionysus hestia odin frigg freya freyr tyr heimdall njord skadi idun bragi darkkneader
-    odinascended zeusunbound symbiotepan amazonqueen'''.split()}
+    odinascended zeusunbound symbiotepan amazonqueen incrediblebulkendgame hawkeyetalianendgame wasabiwaspendgame'''.split()}
 rep = [d for d in json.load(open(os.path.join(out, 'report.json'))) if 'error' not in d and d['key'] not in REAL]
 for d in rep:
     shutil.copy(os.path.join(out, d['key'] + '.mp3'), os.path.join(repo, 'public/audio', d['key'] + '.mp3'))
