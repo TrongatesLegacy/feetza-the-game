@@ -6208,3 +6208,32 @@ body.still-peels .peelbox .pk-img.shiny::after {
 .bossbar .boss2[data-phase='2'] .phase {
   background: #ffa53d;
 }
+
+/* Pizza Slots once pulled: the result as a badge (gold and glowing for a win), sized to sit inside the card */
+.offer.slots .pull-result {
+  margin-top: 0.25em;
+  align-self: stretch;
+  padding: 0.18em 0.6em 0.22em;
+  border: 0.14em solid var(--ink);
+  border-radius: 0.8em;
+  background: #efe3c8;
+  color: var(--ink-soft);
+  font-family: 'Lilita One', sans-serif;
+  font-size: 1.25em;
+  line-height: 1.1;
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+.offer.slots .pull-result.win {
+  background: linear-gradient(180deg, #ffe97a, #ffc72c);
+  color: var(--ink);
+  box-shadow: 0 0.12em 0 var(--ink), 0 0 0.8em rgba(255, 210, 63, 0.7);
+  animation: pullWin 1.2s ease-in-out infinite alternate;
+}
+@keyframes pullWin {
+  from { filter: brightness(1); }
+  to { filter: brightness(1.12); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .offer.slots .pull-result.win { animation: none; }
+}

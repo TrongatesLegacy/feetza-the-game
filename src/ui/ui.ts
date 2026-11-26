@@ -247,9 +247,9 @@ function slotsRow(sl: NonNullable<ShopState['slots']>, pull: (pay: 'tips' | 'cru
     // a topping won: keep it or sell it
     b = h('div', { class: 'pulls' }, btn('ADD IT', 'green small pull', () => take('add'), { 'aria-label': `Add ${offer.name} to your toppings` }), btn(`SELL · ${fmt(offer.sell)}`, 'yellow small pull', () => take('sell'), { 'aria-label': `Sell ${offer.name} for ${offer.sell} tips` }));
   } else if (sl.used) {
-    const done = btn(!res ? 'PULLED' : res.fresh ? 'SPINNING…' : res.win ? 'WINNER!' : 'NO LUCK', 'small pull', () => {}, { 'aria-label': 'Pizza Slots: already pulled this shop' });
-    done.disabled = true;
-    b = done;
+    // pulled: the result as a badge, not a greyed-out button (a win looked switched off)
+    const word = !res ? 'PULLED' : res.fresh ? 'SPINNING…' : res.win ? 'WINNER!' : 'NO LUCK';
+    b = h('div', { class: `pull-result${res && !res.fresh ? (res.win ? ' win' : ' lose') : ''}`, role: 'status', 'aria-label': `Pizza Slots: ${word.toLowerCase()}` }, word);
   } else {
     const tips = btn(`PULL · ${fmt(sl.cost)}`, `${sl.can ? 'green' : ''} small pull`, () => pull('tips'), { 'aria-label': `Pull Pizza Slots for ${sl.cost} tips` });
     tips.disabled = !sl.can;
