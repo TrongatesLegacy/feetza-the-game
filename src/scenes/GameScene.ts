@@ -37,7 +37,7 @@ import { ui, fmtTime } from '../ui/ui';
 import { PEELS, PEEL_BY_ID, abilityPeel, applyPeelLook, hasPeel, lookPeel, checkPeelAchievements, grantShinyFoot, peelCanvas, peelFootId, peelThumbURL, peelTrail, rollEventDrop, PEEL_HEATS, SHINY_FOOT_CHANCE, titleCase, type PeelDef } from '../game/peels';
 import { STAGES, WAVES_PER_STAGE } from '../data/stages';
 import { passiveBoost, setSlamMode } from '../game/slamMode';
-import { guardHits, guardRearm, setRunHeat, slamSteps } from '../game/heatRules';
+import { guardAutoWear, guardHits, guardRearm, setRunHeat, slamSteps } from '../game/heatRules';
 import { evictShieldArt } from '../game/guardShield';
 import { abilityFor, abilityKindLabel, scaleProc, usesMeter, type Ability, type Effect, type Proc, type Target } from '../game/abilities';
 import { randomLineup } from './MenuScene';
@@ -3511,14 +3511,24 @@ export class GameScene extends Phaser.Scene implements Arena {
     const auto = o.auto || AUTO_SOURCES.has(o.source);
     // automatic damage is scaled by the heat (half on Mild, three quarters on Regular)
     if (auto) dmg *= this.run.heatDef.autoDmg;
-    // a raised guard shield takes the rest too (a hero's bypass still goes straight through). Automatic damage (burns,
-    // toppings, drones, a passive's procs) and chain lightning glance off it entirely: only the player's own blows
-    // break a held shield. A Peel Slam or a peel ability's hit knocks a few steps off (slamSteps); the rest of what a
-    // smack sets off (splashes, blasts) is soaked at half strength, a step for every base smack's worth. Whatever smashes it carries its
+    // a raised guard shield takes the rest too (a hero's bypass still goes straight through). What fires by itself
+    // (toppings, drones, procs, a peel's timed or on-hit ability, hero passives) and chain lightning only wear it down
+    // at the heat's rate (guardAutoWear) and never take its last step: only the player's own blow smashes a held
+    // shield. Burns glance off (a held shield is burn-proof). A Peel Slam or a meter ability's hit knocks a few steps
+    // off (slamSteps); the rest of what a smack sets off (splashes, blasts) is soaked at half strength, a step for every base smack's worth. Whatever smashes it carries its
     // leftover through to the foot.
     if (!smack && this.guardBlocks(f)) {
       // (a chain's jump counts as automatic: chains also stop at a held shield, see chain() and the 'chain' effect)
-      if (auto || o.passive || o.source === 'chain') return this.glance(f, o.x, o.y, o.quiet);
+      if (auto || o.passive || o.source === 'chain') {
+        if (o.source === 'burn' || f.guardHp <= 1) return this.glance(f, o.x, o.y, o.quiet);
+        const was = f.guardHp;
+        const wear = dmg * guardAutoWear(this.run.heat);
+        this.guardStats.soaked += wear;
+        f.guardChip(wear, st.damage, 1);
+        this.guardStats.chipSteps += was - f.guardHp;
+        if (f.guardHp === was) f.guardFx?.deflected();
+        return;
+      }
       const was = f.guardHp;
       // (a passive or topping proc that goes through the ability path is automatic: it's soaked like the rest)
       if (o.source === 'slam' || o.source === 'ability') {
@@ -4764,6 +4774,12 @@ export class GameScene extends Phaser.Scene implements Arena {
       if (tickGarlic && t && !t.dead && f.y > t.surfaceY - 300 && Math.abs(f.x - t.x) < t.radius * 1.1) {
         const dps = st.garlicDps + this.auraDps(t, f.state === 'hover');
         if (dps > 0 && !f.phased) this.dealDamage(f, dps * 0.25, { source: 'garlic', quiet: true });
+      }
+      // a held guard shield is burn-proof: it snuffs a burn out (one that caught while it was down included)
+      if (f.burnT > 0 && f.alive && this.guardBlocks(f)) {
+        f.burnT = 0;
+        f.burnAcc = 0;
+        if (f.guardFx?.deflected()) this.fx.puff(f.cx, f.cy, 6);
       }
       if (f.burnT > 0 && f.alive) {
         f.burnAcc += f.burnDps * dt;

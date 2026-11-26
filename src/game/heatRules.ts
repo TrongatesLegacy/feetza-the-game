@@ -34,6 +34,13 @@ export function slamSteps(h: HeatId | null = current): number {
   return r <= 0 ? 4 : r >= 3 ? 2 : 3;
 }
 
+/** How much of what fires by itself (burns aside: a held shield is burn-proof) wears a raised guard shield down, a step
+ * for every base smack's worth: 0.5 on Mild, 0.35 on Regular, 0.25 on Hot, 0.15 on Extra Hot, 0.1 on Inferno. It
+ * never takes the last step: only the player's own blow smashes a held shield. */
+export function guardAutoWear(h: HeatId | null = current): number {
+  return [0.5, 0.35, 0.25, 0.15, 0.1][Math.min(4, Math.max(0, heatRank(h ?? save.heat)))];
+}
+
 /** Seconds from a guard foot's shield breaking to it raising a new one (whatever happens meanwhile): 12 on Mild, 9 on
  * Regular and Hot, 7.5 from Extra Hot up. */
 export function guardRearm(h: HeatId | null = current): number {
