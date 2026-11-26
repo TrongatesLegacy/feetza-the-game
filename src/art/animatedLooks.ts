@@ -8,7 +8,7 @@
 // their own style (FIRE_PEELS in lookFire.ts); the jewellery box, masterworks, ultra-rares, gods, the God Peel and
 // the heroes get their family's glow and trail (lookGlow.ts). Only the equipped (or worn) look runs in play.
 // A redrawn foot's peel also comes alive (src/art/peelLive.ts), and so do the crafted peels (src/art/peelCraft.ts:
-// the Classic and the Golden Crust set, the places, pizzas, events, acts and the gems), in the same two places.
+// the Classic and the Golden Crust set, the places, pizzas, events, acts, gems, heroes and gods), in the same two places.
 // All of it runs only with animated peels on (Settings → Graphics): off, looks are painted once (a still) and
 // nothing runs per frame.
 
@@ -706,6 +706,13 @@ function heroGlow(id: string, st: GlowStyle): GlowStyle {
   return craftOf(id) === 'hero' ? { ...st, noRing: true, bits: st.bits.filter((b) => b.where !== 'rim') } : st;
 }
 
+/** A living god peel (src/art/peelGod.ts) keeps its element's aura, motes and trail (the God Peel its halo, rays and
+ *  prism trail), but its gold, gems and runes catch the light themselves: the glow's head glints go, and its smack ring
+ *  (the god answers a smack in its own style). */
+function godGlow(id: string, st: GlowStyle): GlowStyle {
+  return craftOf(id) === 'god' ? { ...st, noRing: true, bits: st.bits.filter((b) => b.where !== 'head') } : st;
+}
+
 const built = new Map<string, AnimatedLook | null>();
 /** A peel's animated look: a hand-made one (Zeus), a fire (lookFire.ts), or its family's glow (lookGlow.ts). */
 function lookOf(id: string): AnimatedLook | null {
@@ -716,10 +723,10 @@ function lookOf(id: string): AnimatedLook | null {
   const d = PEEL_BY_ID[id];
   if (fire) out = kitLook(() => fireCore(fire), true);
   else if (d) {
-    if (d.group === 'god') out = glowLook(godPeelStyle(), true);
+    if (d.group === 'god') out = glowLook(godGlow(id, godPeelStyle()), true);
     else if (d.pantheon) {
       const st = godStyle(id);
-      out = st ? glowLook(st, true) : null;
+      out = st ? glowLook(godGlow(id, st), true) : null;
     } else if (d.ultra) out = glowLook(gemGlow(id, ultraStyle(id, d.look())), true);
     else if (d.group === 'jewel') out = glowLook(gemGlow(id, jewelStyle(d.look())), false);
     else if (d.group === 'master') out = glowLook(gemGlow(id, masterStyle(d.look())), false);

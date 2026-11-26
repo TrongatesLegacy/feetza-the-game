@@ -48,10 +48,10 @@ function families(): [string, string, PeelDef[]][] {
   const fire = (d: PeelDef) => d.id in FIRE_PEELS;
   const god = (d: PeelDef) => !!d.pantheon || d.group === 'god';
   return [
-    ['The God Peel', 'the final trophy: halo, turning rays and a rainbow trail', all.filter((d) => d.group === 'god')],
+    ['The God Peel', 'the final trophy: its halo floating, its rays and sunburst turning, its crown of tiny peels hopping, a ring of light and a prism sweep, and its halo, rays and rainbow trail round it', all.filter((d) => d.group === 'god')],
     ['Always aflame', 'their own fire', all.filter(fire)],
-    ['Gods', 'each god’s own glow', all.filter((d) => !fire(d) && god(d) && d.group !== 'god')],
-    ['Crafted: the Classic, the Golden Crusts and the places', 'alive as their material (wood, marble, copper, neon, obsidian; mastered ones too), and the places with a living window', all.filter((d) => hasPeelCraft(d.id) && craftOf(d.id) !== 'gem' && craftOf(d.id) !== 'hero' && d.group !== 'pizza' && d.group !== 'event' && d.group !== 'shinyEvent' && d.group !== 'act')],
+    ['Gods', 'the god’s symbol alive from its own parts (wings, strings, a hammer, a train, a crest, a sail), the gold catching the light or the runes lighting in turn, its domain round it and its element’s glow', all.filter((d) => !fire(d) && god(d) && d.group !== 'god')],
+    ['Crafted: the Classic, the Golden Crusts and the places', 'alive as their material (wood, marble, copper, neon, obsidian; mastered ones too), and the places with a living window', all.filter((d) => hasPeelCraft(d.id) && craftOf(d.id) !== 'gem' && craftOf(d.id) !== 'hero' && craftOf(d.id) !== 'god' && d.group !== 'pizza' && d.group !== 'event' && d.group !== 'shinyEvent' && d.group !== 'act')],
     ['Events and acts', 'a medallion: the wave event in miniature (its answer on a smack), or the act’s places and gold number (its boss stomps on a smack)', all.filter((d) => hasPeelCraft(d.id) && craftOf(d.id) !== 'gem' && (d.group === 'event' || d.group === 'shinyEvent' || d.group === 'act'))],
     ['Gems', 'the jewellery box, its masterworks and the ultra-rares: cut stone, polished metal, pearl, opal and a galaxy under glass, catching a moving light (a smack runs a ring of light through the facets)', all.filter((d) => craftOf(d.id) === 'gem')],
     ['Pizzas', 'the pie alive on its board: glistening, bubbling, steaming, its family’s touch (heat, frost, syrup, gold, a Rare Find’s finish); a smack bounces it', all.filter((d) => d.group === 'pizza')],

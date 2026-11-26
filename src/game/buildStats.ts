@@ -105,7 +105,10 @@ export interface BuildView {
   pace: number | null;
   paceFrom: string;
   smackDps: number | null;
+  /** Automatic DPS at full momentum (the player keeps smacking); idle it cools to autoDps × momentumFloor. */
   autoDps: number;
+  /** What automatic damage cools to when the player stops smacking (the heat's momentum floor). */
+  momentumFloor: number;
   /** Automatic sources that need a measured rate before they get a DPS. */
   autoWaiting: number;
   total: number | null;
@@ -146,7 +149,8 @@ export interface BuildInput {
   ability: Ability | null;
   peel: { id: string; name: string; img: string };
   pizzas: TablePizza[];
-  heat: { name: string; autoDmg: number; tips: number; freshness: number };
+  /** The heat: autoDmg scales automatic damage; momentumFloor is what it cools to when the player stops smacking. */
+  heat: { name: string; autoDmg: number; momentumFloor: number; tips: number; freshness: number };
   /** The wave in play, or the next one while in the shop. */
   wave: number;
   inWave: boolean;
@@ -545,7 +549,7 @@ export function buildView(inp: BuildInput): BuildView {
   if (st.explodeDmg > 0) dmgTiles.push({ label: 'Kills explode', num: st.explodeDmg * g, fmt: 'int', icon: '🍍', tone: 'up', from: from('explodeDmg'), note: 'to every foot nearby' });
   sections.push({ id: 'damage', title: 'Damage', icon: '👊', color: '#e5402a', sub: 'per smack, before armour', tiles: dmgTiles });
 
-  sections.push({ id: 'auto', title: 'Automatic attacks', icon: '⚙️', color: '#ff9f1c', sub: `they hit without a smack · ${pct(auto)}% strength on ${inp.heat.name}`, tiles: [], auto: autos, empty: 'Nothing attacks on its own yet. Orbiting cutters, olives, auras and timed toppings would show here.' });
+  sections.push({ id: 'auto', title: 'Automatic attacks', icon: '⚙️', color: '#ff9f1c', sub: `they hit without a smack · ${pct(auto)}% strength on ${inp.heat.name}, shown at full momentum · keep smacking and they stay at full; idle they cool to ${pct(inp.heat.momentumFloor)}%`, tiles: [], auto: autos, empty: 'Nothing attacks on its own yet. Orbiting cutters, olives, auras and timed toppings would show here.' });
 
   // Crowd control
   const cc: Tile[] = [];
@@ -690,6 +694,7 @@ export function buildView(inp: BuildInput): BuildView {
     paceFrom,
     smackDps,
     autoDps,
+    momentumFloor: inp.heat.momentumFloor,
     autoWaiting,
     total: totalDps,
     measured,

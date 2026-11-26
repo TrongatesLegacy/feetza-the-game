@@ -1328,3 +1328,32 @@
     font-size: 2.8em;
   }
 }
+
+/* automatic attack tiles line up: every name takes the same two lines (clamped), so the numbers and bars sit at one
+   height across a row; numbers are kept short (12.4k, 3.13M) and never run under the i button */
+.st-auto .st-aname {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  min-height: 2.1em;
+  align-self: end;
+  font-size: 1.15em;
+}
+
+.st-auto {
+  align-content: start;
+}
+
+.st-aval {
+  min-width: 0;
+}
+
+.st-aval .st-num {
+  font-size: 1.7em;
+}
+
+.st-tile .st-val {
+  overflow: hidden;
+}

@@ -11,6 +11,7 @@ import { PEEL_HEAD, handleFrom, headFrom, type PeelLook } from '../../art/peelAr
 import { type Ctx, ellipse, roundRect, shade } from '../../art/util';
 import { save } from '../../systems/save';
 import type { HeroPeel } from '../heroPeels';
+import { want } from '../../art/godParts';
 
 const S = '{slam}';
 const INK = '#2a1810';
@@ -64,7 +65,12 @@ function lambdaShield(ctx: Ctx, x: number, y: number, r: number, face: string): 
 
 /** Leonidas: the cloak behind, the helm with its side-to-side crest, and the shield in front. */
 function drawLeonidas(ctx: Ctx, o: { cloak: string; crest: string; helm: string; face: string; worn?: boolean }): void {
-  // the red cloak, falling from behind the helm round the handle
+  // the red cloak, falling from behind the helm round the handle (it billows on a living peel: src/art/peelGod.ts)
+  if (want('cloak')) leonidasCloak(ctx, o.cloak);
+  if (want()) leonidasHelm(ctx, o);
+}
+
+function leonidasCloak(ctx: Ctx, cloak: string): void {
   ctx.beginPath();
   ctx.moveTo(HX - 80, HY + 20);
   ctx.bezierCurveTo(HX - 110, HY + 120, HX - 70, HY + 220, HX - 40, HY + 250);
@@ -75,9 +81,9 @@ function drawLeonidas(ctx: Ctx, o: { cloak: string; crest: string; helm: string;
   ctx.bezierCurveTo(HX + 74, HY + 210, HX + 108, HY + 120, HX + 80, HY + 20);
   ctx.closePath();
   const cg = ctx.createLinearGradient(HX - 100, 0, HX + 100, 0);
-  cg.addColorStop(0, shade(o.cloak, -0.45));
-  cg.addColorStop(0.4, shade(o.cloak, 0.15));
-  cg.addColorStop(1, shade(o.cloak, -0.5));
+  cg.addColorStop(0, shade(cloak, -0.45));
+  cg.addColorStop(0.4, shade(cloak, 0.15));
+  cg.addColorStop(1, shade(cloak, -0.5));
   ctx.fillStyle = cg;
   ctx.fill();
   stroke(ctx, 4.5);
@@ -87,6 +93,9 @@ function drawLeonidas(ctx: Ctx, o: { cloak: string; crest: string; helm: string;
     ctx.quadraticCurveTo(HX + dx, HY + 150, HX + dx * 0.8, HY + 220);
     stroke(ctx, 2.5, 'rgba(42,24,16,0.4)');
   }
+}
+
+function leonidasHelm(ctx: Ctx, o: Parameters<typeof drawLeonidas>[1]): void {
   // the crest, worn side to side across the helm (black with a red stripe)
   ctx.beginPath();
   ctx.moveTo(HX - 104, HY - 34);

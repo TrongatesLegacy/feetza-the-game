@@ -317,16 +317,18 @@ export function drawStar(ctx: Ctx, i: number): void {
 /** What a hero throws (the crafted sprite pool's names: src/art/peelCraft.ts maps them). */
 export type HeroSpr =
   | 'word' | 'note' | 'leaf' | 'bubble' | 'card' | 'goo' | 'star' | 'spark' | 'sparkN' | 'sparkB' | 'sparkG' | 'sparkV'
-  | 'ember' | 'gold' | 'glint' | 'flake' | 'mist' | 'smoke' | 'drop' | 'feather' | 'ruby' | 'white' | 'confetti' | 'crumb' | 'dust';
+  | 'ember' | 'gold' | 'glint' | 'flake' | 'mist' | 'smoke' | 'drop' | 'feather' | 'ruby' | 'white' | 'confetti' | 'crumb' | 'dust'
+  // the gods' (src/art/peelGod.ts)
+  | 'heart' | 'petal' | 'featherK' | 'coin';
 
 export type HeroEmit = (spr: HeroSpr, lx: number, ly: number, vx: number, vy: number, s0: number, s1: number, life: number, o?: { grav?: number; drag?: number; a?: number; fin?: number; spin?: number; rot?: number; frame?: number }) => void;
 
 type EarMode = 'flap' | 'buzz' | 'twitch' | 'sway' | 'flicker' | 'perk';
 type GlyphMode = 'pulse' | 'spin' | 'flip' | 'beat' | 'sweep' | 'swing' | 'flicker' | 'bob' | 'boing';
 type EyeGlow = { col: string; mode: 'steady' | 'heat' | 'flicker'; a?: number };
-type At = 'top' | 'below' | 'rim' | 'head' | 'emblem' | 'eyes' | [number, number][];
+export type At = 'top' | 'below' | 'rim' | 'head' | 'emblem' | 'eyes' | [number, number][];
 
-interface Burst {
+export interface Burst {
   spr: HeroSpr;
   n: number;
   at: At;
@@ -376,15 +378,38 @@ export interface HeroSpec {
 
 // ════════════════════════════ the effects ════════════════════════════
 
-/** One effect of a hero's power: it updates, draws behind the head and/or in front of it, and answers a smack. */
-export interface Fx {
-  update?(L: HeroLive, dt: number): void;
-  back?(L: HeroLive, ctx: Ctx): void;
-  front?(L: HeroLive, ctx: Ctx): void;
-  smack?(L: HeroLive): void;
+/** What an effect reads off the living peel it plays on (a hero, or a god: src/art/peelGod.ts). */
+export interface FxHost {
+  /** Its clock, and seconds since the last smack. */
+  t: number;
+  sm: number;
+  menu: boolean;
+  /** The peel's speed and sideways velocity in its own frame (peel units/s). */
+  speed: number;
+  vx: number;
+  // set by the effects, read by the peel
+  rage: number;
+  heat: number;
+  phase: number;
+  scale: number;
+  jx: number;
+  jy: number;
+  kickQ: number;
+  /** The head's outline (for effects that keep to it). */
+  readonly shape: PeelShape;
+  emitP(spr: HeroSpr, x: number, y: number, vx: number, vy: number, s0: number, s1: number, life: number, o?: Parameters<HeroEmit>[8]): void;
+  scratch(name: string, w: number, h: number): [HTMLCanvasElement, Ctx];
 }
 
-const lighter = (ctx: Ctx, fn: () => void) => {
+/** One effect of a hero's power: it updates, draws behind the head and/or in front of it, and answers a smack. */
+export interface Fx {
+  update?(L: FxHost, dt: number): void;
+  back?(L: FxHost, ctx: Ctx): void;
+  front?(L: FxHost, ctx: Ctx): void;
+  smack?(L: FxHost): void;
+}
+
+export const lighter = (ctx: Ctx, fn: () => void) => {
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
   fn();
@@ -392,7 +417,7 @@ const lighter = (ctx: Ctx, fn: () => void) => {
 };
 
 /** A soft round light (additive), fading to nothing at its edge. */
-function glowDot(ctx: Ctx, x: number, y: number, r: number, col: string, a: number): void {
+export function glowDot(ctx: Ctx, x: number, y: number, r: number, col: string, a: number): void {
   if (a <= 0.005 || r <= 0.2) return;
   const g = ctx.createRadialGradient(x, y, 0, x, y, r);
   g.addColorStop(0, rgba(col, a));
@@ -403,7 +428,7 @@ function glowDot(ctx: Ctx, x: number, y: number, r: number, col: string, a: numb
 }
 
 /** A timer that fires every [a, b] seconds and runs for `dur`: progress 0–1 while running, else -1. */
-class Every {
+export class Every {
   next: number;
   t = -1;
   constructor(
@@ -434,7 +459,7 @@ class Every {
 }
 
 /** Where on the peel `at` means (a random point there). */
-function pointAt(at: At): [number, number] {
+export function pointAt(at: At): [number, number] {
   if (Array.isArray(at)) return at[Math.floor(crand() * at.length)];
   switch (at) {
     case 'top':
@@ -468,7 +493,7 @@ interface Arc {
   a1: number;
   big: number;
 }
-class Arcs implements Fx {
+export class Arcs implements Fx {
   private arcs: Arc[] = [];
   private acc = 0;
   constructor(
@@ -501,7 +526,7 @@ class Arcs implements Fx {
       arc.pts.push(cx + Math.cos(a) * (r + out), cy + Math.sin(a) * (r + out));
     }
   }
-  update(_L: HeroLive, dt: number): void {
+  update(_L: FxHost, dt: number): void {
     this.acc += dt * this.o.rate * (reduced() ? 0.4 : 1);
     while (this.acc >= 1) {
       this.acc -= 1;
@@ -517,7 +542,7 @@ class Arcs implements Fx {
     }
     this.arcs = this.arcs.filter((a) => a.age < a.life);
   }
-  front(_L: HeroLive, ctx: Ctx): void {
+  front(_L: FxHost, ctx: Ctx): void {
     if (!this.arcs.length) return;
     const o = this.o;
     const w = o.w ?? 1;
@@ -554,19 +579,19 @@ class Speed implements Fx {
   private z = 0;
   private dir = -1;
   constructor(private col: string) {}
-  update(L: HeroLive, dt: number): void {
+  update(L: FxHost, dt: number): void {
     const p = this.zoom.tick(dt);
     this.z = Math.max(p >= 0 ? Math.sin(p * Math.PI) : 0, clamp(L.speed / 900, 0, 1), L.sm < 0.5 ? 1 - L.sm / 0.5 : 0);
     if (L.speed > 150) this.dir = L.vx > 0 ? -1 : 1;
   }
-  back(L: HeroLive, ctx: Ctx): void {
+  back(L: FxHost, ctx: Ctx): void {
     const z = this.z * (reduced() ? 0.5 : 1);
     // afterimages in the suit's colour, trailing where it came from
     for (let k = 2; k >= 1; k--) {
       const a = (0.1 + 0.22 * z) * (k === 1 ? 1 : 0.55);
       ctx.save();
       ctx.translate(this.dir * k * (7 + 12 * z), 0);
-      headPath(ctx, L.mini.shape);
+      headPath(ctx, L.shape);
       ctx.fillStyle = rgba(this.col, a);
       ctx.fill();
       ctx.restore();
@@ -611,7 +636,7 @@ class Webs implements Fx {
     [-0.06, 22, 1],
     [2.6, 20, 2],
   ];
-  private end(L: HeroLive, i: number, out: number[]): void {
+  private end(L: FxHost, i: number, out: number[]): void {
     const [a, len] = Webs.S[i];
     const sway = Math.sin(L.t * 1.3 + i * 1.7) * 0.06 + (this.goo ? Math.sin(L.t * 2.6 + i) * 0.12 : 0);
     const l = len * (this.goo ? 0.9 + 0.25 * Math.sin(L.t * 1.9 + i * 2.1) : 1) * (L.sm < 0.4 ? 1 + 0.6 * (1 - L.sm / 0.4) : 1);
@@ -620,13 +645,13 @@ class Webs implements Fx {
     out[2] = HX + Math.cos(a + sway) * (R + l);
     out[3] = HY + Math.sin(a + sway) * (R + l);
   }
-  update(_L: HeroLive, dt: number): void {
+  update(_L: FxHost, dt: number): void {
     if (this.shot >= 0) {
       this.shot += dt;
       if (this.shot > 0.7) this.shot = -1;
     }
   }
-  back(L: HeroLive, ctx: Ctx): void {
+  back(L: FxHost, ctx: Ctx): void {
     const e = [0, 0, 0, 0];
     const e2 = [0, 0, 0, 0];
     ctx.lineCap = 'round';
@@ -674,7 +699,7 @@ class Webs implements Fx {
     }
   }
   /** A writhing black tendril, thick at the head, tapering, lit along its top edge. */
-  private tendril(L: HeroLive, ctx: Ctx, e: number[], i: number): void {
+  private tendril(L: FxHost, ctx: Ctx, e: number[], i: number): void {
     const n = 9;
     const dx = e[2] - e[0];
     const dy = e[3] - e[1];
@@ -708,7 +733,7 @@ class Webs implements Fx {
       ly = y;
     }
   }
-  front(_L: HeroLive, ctx: Ctx): void {
+  front(_L: FxHost, ctx: Ctx): void {
     if (this.shot < 0 || this.goo) return;
     // the web shot: a line flies out and splats
     const k = this.shot;
@@ -756,7 +781,7 @@ class Webs implements Fx {
 
 // ——— particles shed while it's idle ———
 
-interface EmitO {
+export interface EmitO {
   spr: HeroSpr;
   rate: number;
   at: At;
@@ -772,10 +797,10 @@ interface EmitO {
   /** Faster while it's swung. */
   move?: number;
 }
-class Emitter implements Fx {
+export class Emitter implements Fx {
   private acc = crand();
   constructor(private o: EmitO) {}
-  update(L: HeroLive, dt: number): void {
+  update(L: FxHost, dt: number): void {
     const o = this.o;
     this.acc += dt * o.rate * (reduced() ? 0.4 : 1) * (1 + (o.move ?? 0) * clamp(L.speed / 600, 0, 2));
     while (this.acc >= 1) {
@@ -792,7 +817,7 @@ class Emitter implements Fx {
 class PatWave implements Fx {
   private flash = 0;
   constructor(private o: { a: number; base?: number; speed?: number; dir?: 'up' | 'across' | 'down'; width?: number }) {}
-  update(_L: HeroLive, dt: number): void {
+  update(_L: FxHost, dt: number): void {
     this.flash *= Math.exp(-dt / 0.25);
   }
   front(L: HeroLive, ctx: Ctx): void {
@@ -837,7 +862,7 @@ class PatWave implements Fx {
 
 // ——— a sweep of light over polished metal, the whole head or a round part of it ———
 
-class Sheen implements Fx {
+export class Sheen implements Fx {
   private run: Every;
   private p = -1;
   constructor(
@@ -846,10 +871,10 @@ class Sheen implements Fx {
     const [a, b] = o.every ?? [3.5, 6.5];
     this.run = new Every(a, b, 0.9);
   }
-  update(_L: HeroLive, dt: number): void {
+  update(_L: FxHost, dt: number): void {
     this.p = this.run.tick(dt);
   }
-  front(L: HeroLive, ctx: Ctx): void {
+  front(L: FxHost, ctx: Ctx): void {
     if (this.p < 0) return;
     const o = this.o;
     const round = o.r !== undefined;
@@ -860,7 +885,7 @@ class Sheen implements Fx {
     if (round) {
       ctx.beginPath();
       ctx.arc(cx, cy, r, 0, TAU);
-    } else headPath(ctx, L.mini.shape);
+    } else headPath(ctx, L.shape);
     ctx.clip();
     const u = -1.3 + this.p * 2.6;
     const x = cx + u * r;
@@ -888,7 +913,7 @@ interface Tw {
   t: number;
   s: number;
 }
-class Sparkle implements Fx {
+export class Sparkle implements Fx {
   private tw: Tw[] = [];
   private acc = crand();
   constructor(private o: { col: string; pts?: [number, number][]; area?: [number, number, number, number]; rate: number; size?: number; smackN?: number }) {}
@@ -907,7 +932,7 @@ class Sparkle implements Fx {
     if (this.tw.length > 8) this.tw.shift();
     this.tw.push({ x, y, t: 0, s: (o.size ?? 7) * rnd(0.7, 1.2) });
   }
-  update(_L: HeroLive, dt: number): void {
+  update(_L: FxHost, dt: number): void {
     this.acc += dt * this.o.rate;
     while (this.acc >= 1) {
       this.acc -= 1;
@@ -916,7 +941,7 @@ class Sparkle implements Fx {
     for (const w of this.tw) w.t += dt / 0.55;
     this.tw = this.tw.filter((w) => w.t < 1);
   }
-  front(_L: HeroLive, ctx: Ctx): void {
+  front(_L: FxHost, ctx: Ctx): void {
     for (const w of this.tw) {
       const k = Math.sin(w.t * Math.PI);
       const s = w.s * k;
@@ -938,11 +963,11 @@ class Sparkle implements Fx {
 
 // ——— rings: a sonar's pings (Dare-Dough), a repulsor's blast (Iron Pan), a kinetic burst (Black Pan-ther) ———
 
-class Rings implements Fx {
+export class Rings implements Fx {
   private rs: number[] = [];
   private acc = 0;
   constructor(private o: { col: string; rate: number; cx?: number; cy?: number; r0?: number; grow?: number; life?: number; w?: number; front?: boolean; smackN?: number }) {}
-  update(_L: HeroLive, dt: number): void {
+  update(_L: FxHost, dt: number): void {
     this.acc += dt * this.o.rate;
     while (this.acc >= 1) {
       this.acc -= 1;
@@ -971,10 +996,10 @@ class Rings implements Fx {
       }
     });
   }
-  back(_L: HeroLive, ctx: Ctx): void {
+  back(_L: FxHost, ctx: Ctx): void {
     if (!this.o.front) this.draw(ctx);
   }
-  front(_L: HeroLive, ctx: Ctx): void {
+  front(_L: FxHost, ctx: Ctx): void {
     if (this.o.front) this.draw(ctx);
   }
   smack(): void {
@@ -984,10 +1009,10 @@ class Rings implements Fx {
 
 // ——— a mandala of light turning behind the head (Doctor Strangeloaf's ring of sparks, Scarlet Pitch's hex) ———
 
-class Mandala implements Fx {
+export class Mandala implements Fx {
   private flare = 0;
   constructor(private o: { col: string; hot: string; r: number; hex?: boolean; haze?: number; a?: number }) {}
-  update(L: HeroLive, dt: number): void {
+  update(L: FxHost, dt: number): void {
     this.flare *= Math.exp(-dt / 0.35);
     // sparks thrown off the ring as it turns
     if (!this.o.hex && crand() < dt * 5) {
@@ -997,7 +1022,7 @@ class Mandala implements Fx {
       L.emitP('ember', HX + Math.cos(a) * r, HY + Math.sin(a) * r, -Math.sin(t) * 40, Math.cos(t) * 40 + 10, 6, 3, rnd(0.3, 0.6), { grav: 120, drag: 1 });
     }
   }
-  back(L: HeroLive, ctx: Ctx): void {
+  back(L: FxHost, ctx: Ctx): void {
     const o = this.o;
     const pulse = 0.75 + 0.25 * Math.sin(L.t * 2.1) + this.flare;
     lighter(ctx, () => {
@@ -1072,14 +1097,14 @@ class Mandala implements Fx {
 
 // ——— wisps of chaos magic orbiting the head (Scarlet Pitch) ———
 
-class Wisps implements Fx {
+export class Wisps implements Fx {
   constructor(private o: { col: string; n: number }) {}
-  private at(L: HeroLive, i: number, back: number): [number, number, number] {
+  private at(L: FxHost, i: number, back: number): [number, number, number] {
     const th = L.t * (1.1 + 0.25 * i) + (i / this.o.n) * TAU - back;
     const r = R + 6 + 9 * Math.sin(L.t * 1.4 + i * 2);
     return [HX + Math.cos(th) * r, HY + Math.sin(th) * r * 0.9 - 4, Math.sin(th)];
   }
-  front(L: HeroLive, ctx: Ctx): void {
+  front(L: FxHost, ctx: Ctx): void {
     lighter(ctx, () => {
       for (let i = 0; i < this.o.n; i++) {
         for (let k = 7; k >= 0; k--) {
@@ -1098,7 +1123,7 @@ class Wisps implements Fx {
 
 class Rage implements Fx {
   private surge = new Every(3, 5.5, 1.1);
-  update(L: HeroLive, dt: number): void {
+  update(L: FxHost, dt: number): void {
     const p = this.surge.tick(dt);
     const s = p >= 0 ? Math.sin(p * Math.PI) : 0;
     const hit = L.sm < 0.8 ? 1 - L.sm / 0.8 : 0;
@@ -1113,13 +1138,13 @@ class Rage implements Fx {
 class Beams implements Fx {
   private b = -1;
   constructor(private o: { col: string; visor?: boolean; len?: number }) {}
-  update(_L: HeroLive, dt: number): void {
+  update(_L: FxHost, dt: number): void {
     if (this.b >= 0) {
       this.b += dt / 0.5;
       if (this.b >= 1) this.b = -1;
     }
   }
-  front(_L: HeroLive, ctx: Ctx): void {
+  front(_L: FxHost, ctx: Ctx): void {
     if (this.b < 0) return;
     const k = this.b;
     const a = smooth(0, 0.08, k) * (1 - smooth(0.55, 1, k));
@@ -1156,7 +1181,7 @@ class Beams implements Fx {
       }
     });
   }
-  smack(L: HeroLive): void {
+  smack(L: FxHost): void {
     this.b = 0;
     L.heat = 1;
   }
@@ -1168,10 +1193,10 @@ class Reticle implements Fx {
   private lock = new Every(2.4, 4.2, 0.8);
   private p = -1;
   constructor(private o: { col: string; cx: number; cy: number; r: number }) {}
-  update(_L: HeroLive, dt: number): void {
+  update(_L: FxHost, dt: number): void {
     this.p = this.lock.tick(dt);
   }
-  front(L: HeroLive, ctx: Ctx): void {
+  front(L: FxHost, ctx: Ctx): void {
     const o = this.o;
     const lk = this.p >= 0 ? Math.sin(this.p * Math.PI) : 0;
     const hit = L.sm < 0.5 ? 1 - L.sm / 0.5 : 0;
@@ -1203,10 +1228,10 @@ class Reticle implements Fx {
 
 class Lasso implements Fx {
   private tight = 0;
-  update(L: HeroLive): void {
+  update(L: FxHost): void {
     this.tight = L.sm < 0.6 ? Math.sin((L.sm / 0.6) * Math.PI) : 0;
   }
-  private rope(L: HeroLive, ctx: Ctx, a0: number, a1: number): void {
+  private rope(L: FxHost, ctx: Ctx, a0: number, a1: number): void {
     const rx = R + 14 - this.tight * 12;
     const ry = 18 + 3 * Math.sin(L.t * 1.3);
     const cy = HY + 24 + 3 * Math.sin(L.t * 0.9);
@@ -1239,10 +1264,10 @@ class Lasso implements Fx {
     ctx.stroke();
     ctx.setLineDash([]);
   }
-  back(L: HeroLive, ctx: Ctx): void {
+  back(L: FxHost, ctx: Ctx): void {
     this.rope(L, ctx, Math.PI, TAU);
   }
-  front(L: HeroLive, ctx: Ctx): void {
+  front(L: FxHost, ctx: Ctx): void {
     this.rope(L, ctx, 0, Math.PI);
   }
 }
@@ -1252,24 +1277,24 @@ class Lasso implements Fx {
 class Aura implements Fx {
   private ring = -1;
   constructor(private col: string) {}
-  update(_L: HeroLive, dt: number): void {
+  update(_L: FxHost, dt: number): void {
     if (this.ring >= 0) {
       this.ring += dt / 0.6;
       if (this.ring >= 1) this.ring = -1;
     }
   }
-  private outline(L: HeroLive, ctx: Ctx, s: number, a: number, w: number): void {
+  private outline(L: FxHost, ctx: Ctx, s: number, a: number, w: number): void {
     ctx.save();
     ctx.translate(HX, HY);
     ctx.scale(s, s);
     ctx.translate(-HX, -HY);
-    headPath(ctx, L.mini.shape);
+    headPath(ctx, L.shape);
     ctx.restore();
     ctx.strokeStyle = rgba(this.col, a);
     ctx.lineWidth = w;
     ctx.stroke();
   }
-  back(L: HeroLive, ctx: Ctx): void {
+  back(L: FxHost, ctx: Ctx): void {
     const p = 0.5 + 0.5 * Math.sin(L.t * 2.4);
     lighter(ctx, () => {
       this.outline(L, ctx, 1.1 + 0.025 * p, 0.14, 14);
@@ -1291,7 +1316,7 @@ class Aura implements Fx {
 }
 class Cone implements Fx {
   constructor(private col: string) {}
-  front(L: HeroLive, ctx: Ctx): void {
+  front(L: FxHost, ctx: Ctx): void {
     const p = 0.6 + 0.25 * Math.sin(L.t * 3.1) + 0.15 * noise1(L.t * 9) + (L.sm < 0.5 ? 1 - L.sm / 0.5 : 0);
     const y0 = EMB_Y + 6;
     const y1 = EMB_Y + 44;
@@ -1315,7 +1340,7 @@ class Cone implements Fx {
 
 class Phase implements Fx {
   private run = new Every(3, 5.5, 0.6);
-  update(L: HeroLive, dt: number): void {
+  update(L: FxHost, dt: number): void {
     const p = this.run.tick(dt);
     const s = p >= 0 ? smooth(0, 0.25, p) * (1 - smooth(0.6, 1, p)) : 0;
     L.phase = s * (0.85 + 0.15 * Math.sin(L.t * 30));
@@ -1343,7 +1368,7 @@ class Bats implements Fx {
       this.bats.push({ x: dir > 0 ? -16 - i * 14 : B.w + 16 + i * 14, y: rnd(HY + 96, HY + 132) - i * 10, dir, t: crand() * 5, s: rnd(2.3, 2.8) });
     }
   }
-  update(_L: HeroLive, dt: number): void {
+  update(_L: FxHost, dt: number): void {
     this.next -= dt;
     if (this.next <= 0) {
       this.next = rnd(2.8, 6);
@@ -1355,7 +1380,7 @@ class Bats implements Fx {
     }
     this.bats = this.bats.filter((b) => b.x > -40 && b.x < B.w + 40);
   }
-  front(_L: HeroLive, ctx: Ctx): void {
+  front(_L: FxHost, ctx: Ctx): void {
     for (const b of this.bats) {
       const y = b.y + Math.sin(b.t * 5) * 6;
       // (whole before the surface's edge, faded out there)
@@ -1399,11 +1424,11 @@ class Bats implements Fx {
 
 // ——— a bolt from above on a smack (Shazamozza's word) ———
 
-class Strike implements Fx {
+export class Strike implements Fx {
   private s = -1;
   private pts: number[] = [];
   constructor(private col: string) {}
-  update(_L: HeroLive, dt: number): void {
+  update(_L: FxHost, dt: number): void {
     if (this.s >= 0) {
       this.s += dt / 0.45;
       if (this.s >= 1) this.s = -1;
@@ -1420,7 +1445,7 @@ class Strike implements Fx {
       this.pts.push(x0 + (x1 - x0) * u + (k && k < 7 ? (crand() - 0.5) * 18 : 0), u * y1);
     }
   }
-  front(_L: HeroLive, ctx: Ctx): void {
+  front(_L: FxHost, ctx: Ctx): void {
     if (this.s < 0 || !this.pts.length) return;
     const a = 1 - smooth(0.3, 1, this.s);
     lighter(ctx, () => {
@@ -1454,13 +1479,13 @@ class Strike implements Fx {
 class Sense implements Fx {
   private run = new Every(3, 6, 0.6);
   private p = -1;
-  update(_L: HeroLive, dt: number): void {
+  update(_L: FxHost, dt: number): void {
     this.p = this.run.tick(dt);
   }
   smack(): void {
     this.run.fire();
   }
-  front(L: HeroLive, ctx: Ctx): void {
+  front(L: FxHost, ctx: Ctx): void {
     if (this.p < 0) return;
     const a = Math.sin(this.p * Math.PI);
     ctx.lineCap = 'round';
@@ -1493,7 +1518,7 @@ class Sense implements Fx {
 
 class Shrink implements Fx {
   private run = new Every(3.5, 6.5, 1);
-  update(L: HeroLive, dt: number): void {
+  update(L: FxHost, dt: number): void {
     const p = this.run.tick(dt);
     let s = 1;
     if (p >= 0) {
@@ -1518,7 +1543,7 @@ class Shrink implements Fx {
 
 class Boing implements Fx {
   private next = rnd(2, 4);
-  update(L: HeroLive, dt: number): void {
+  update(L: FxHost, dt: number): void {
     this.next -= dt;
     if (this.next <= 0) {
       this.next = rnd(2.6, 5);
@@ -1534,7 +1559,7 @@ class Drips implements Fx {
   constructor(private o: { col: string; hi: string; spr: HeroSpr; n?: number }) {
     for (let i = 0; i < (o.n ?? 3); i++) this.d.push({ a: rnd(0.5, 2.6), l: crand(), dur: rnd(1.3, 2.4) });
   }
-  update(L: HeroLive, dt: number): void {
+  update(L: FxHost, dt: number): void {
     for (const d of this.d) {
       d.l += dt / d.dur;
       if (d.l >= 1) {
@@ -1551,7 +1576,7 @@ class Drips implements Fx {
     const y = HY + Math.sin(d.a) * (R - 3);
     return [x, y + 3 + 13 * d.l * d.l];
   }
-  front(_L: HeroLive, ctx: Ctx): void {
+  front(_L: FxHost, ctx: Ctx): void {
     for (const d of this.d) {
       const x = HX + Math.cos(d.a) * (R - 3);
       const y = HY + Math.sin(d.a) * (R - 3);
@@ -1578,10 +1603,10 @@ class Drips implements Fx {
 // ——— the rocket's exhaust (Rocket Rucola) ———
 
 class Exhaust implements Fx {
-  update(L: HeroLive, dt: number): void {
+  update(L: FxHost, dt: number): void {
     if (crand() < dt * 2.2) L.emitP('smoke', HX + rnd(-3, 3), EMB_Y + 20, rnd(-20, 10), rnd(15, 35), 10, 24, rnd(0.6, 1), { drag: 1.2, a: 0.55, fin: 0.15 });
   }
-  front(L: HeroLive, ctx: Ctx): void {
+  front(L: FxHost, ctx: Ctx): void {
     const f = 0.8 + 0.2 * noise1(L.t * 18) + (L.sm < 0.4 ? 0.6 * (1 - L.sm / 0.4) : 0);
     const y = EMB_Y + 12;
     const len = 9 * f;
@@ -1605,13 +1630,13 @@ class Exhaust implements Fx {
 class Slash implements Fx {
   private s = -1;
   constructor(private col: string) {}
-  update(_L: HeroLive, dt: number): void {
+  update(_L: FxHost, dt: number): void {
     if (this.s >= 0) {
       this.s += dt / 0.5;
       if (this.s >= 1) this.s = -1;
     }
   }
-  front(_L: HeroLive, ctx: Ctx): void {
+  front(_L: FxHost, ctx: Ctx): void {
     if (this.s < 0) return;
     lighter(ctx, () => {
       ctx.lineCap = 'round';
@@ -1646,7 +1671,7 @@ class Slash implements Fx {
 
 class Gems implements Fx {
   constructor(private o: { pts: [number, number][]; cols: string[] }) {}
-  front(L: HeroLive, ctx: Ctx): void {
+  front(L: FxHost, ctx: Ctx): void {
     const n = this.o.pts.length;
     const hit = L.sm < 0.6 ? 1 - L.sm / 0.6 : 0;
     lighter(ctx, () =>
@@ -1667,7 +1692,7 @@ class Portals implements Fx {
   private open(side: number): void {
     this.ps.push({ x: HX + side * (R + 14), y: HY + rnd(-30, 40), t: 0 });
   }
-  update(_L: HeroLive, dt: number): void {
+  update(_L: FxHost, dt: number): void {
     this.next -= dt;
     if (this.next <= 0) {
       this.next = rnd(4.5, 7.5);
@@ -1676,7 +1701,7 @@ class Portals implements Fx {
     for (const p of this.ps) p.t += dt / 1.6;
     this.ps = this.ps.filter((p) => p.t < 1);
   }
-  back(L: HeroLive, ctx: Ctx): void {
+  back(L: FxHost, ctx: Ctx): void {
     lighter(ctx, () => {
       for (const p of this.ps) {
         const r = 18 * smooth(0, 0.2, p.t) * (1 - smooth(0.8, 1, p.t));
@@ -1704,7 +1729,7 @@ class Portals implements Fx {
 
 class Breathe implements Fx {
   constructor(private o: { col: string; cx: number; cy: number; r: number; hz?: number; a?: number }) {}
-  front(L: HeroLive, ctx: Ctx): void {
+  front(L: FxHost, ctx: Ctx): void {
     const o = this.o;
     const ph = (L.t * (o.hz ?? 0.45)) % 1;
     // a slow swell to a bright beat, then down
@@ -1722,7 +1747,7 @@ class Breathe implements Fx {
 
 class Visor implements Fx {
   constructor(private o: { col: string; x0: number; x1: number; y: number }) {}
-  front(L: HeroLive, ctx: Ctx): void {
+  front(L: FxHost, ctx: Ctx): void {
     const o = this.o;
     const u = 0.5 + 0.5 * Math.sin(L.t * 1.7);
     const x = o.x0 + (o.x1 - o.x0) * u;
@@ -2284,8 +2309,8 @@ export interface Lyr {
   h: number;
 }
 
-/** Paint into the hero's box, then cut the canvas down to what was painted (null when nothing was). */
-function cropLayer(RR: number, draw: (ctx: Ctx) => void): Lyr | null {
+/** Paint into the hero's box (or another), then cut the canvas down to what was painted (null when nothing was). */
+export function cropLayer(RR: number, draw: (ctx: Ctx) => void, B: { x: number; y: number; w: number; h: number } = HERO_BOX): Lyr | null {
   const [c, ctx] = makeCanvas(B.w * RR, B.h * RR);
   ctx.setTransform(RR, 0, 0, RR, -B.x * RR, -B.y * RR);
   draw(ctx);
@@ -2442,6 +2467,9 @@ export class HeroLive {
   jy = 0;
   readonly mini: HeroMini;
   readonly spec: HeroSpec;
+  get shape(): PeelShape {
+    return this.mini.shape;
+  }
   private fx: Fx[];
   // eyes
   private blinkNext = rnd(1, 4);

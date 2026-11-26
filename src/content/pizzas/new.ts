@@ -77,7 +77,7 @@ export const pizzas: PizzaType[] = [
     shape: 'round', base: 'white', cheese: 0.5, toppings: ['pumpkin', 'sage', 'pepita'], crust: '#c8803a', cost: 760, route: 'milestone',
   },
   {
-    id: 'fritta', name: 'Pizza Fritta', perk: 'staleHeal', perkText: 'When stale, heals all pizzas 2 slices',
+    id: 'fritta', name: 'Pizza Fritta', perk: 'staleHeal', perkText: 'When it goes stale, heals every other pizza 2 slices',
     shape: 'round', base: 'tomato', cheese: 0, toppings: ['basil', 'friedPuff', 'ricotta'], crust: '#e8a83a', cost: 540, route: 'milestone',
   },
   {

@@ -6,7 +6,7 @@ import { crand } from '../systems/cosmeticRandom';
 import { META, MILESTONE_BY_PIZZA } from '../data/meta';
 import { PIZZAS, PIZZA_BY_ID, type PizzaRoute, type PizzaType } from '../data/pizzas';
 import { awardMilestones, milestoneProgress } from '../game/Run';
-import { RARITY_COLOR, UPGRADES, UPGRADE_BY_ID, kindOf, type Rarity } from '../data/upgrades';
+import { AUTO_TOPPING_NOTE, RARITY_COLOR, UPGRADES, UPGRADE_BY_ID, isAutoTopping, kindOf, type Rarity } from '../data/upgrades';
 import { glyph, slamPrompt } from '../systems/gamepad';
 import type { RunSummary, ShopActions, ShopPizza, ShopState, SlotSymbol, YourTopping } from './shopTypes';
 import { INTROS, freshBar, pizzaThumb } from './bits';
@@ -183,6 +183,36 @@ export interface CounterOffer {
   trial: boolean;
 }
 
+/** The slam button's furnace: a fire with a wavy top (two layers drifting opposite ways), sparks over it, a glowing
+ *  bed of embers and a small flame at its base. Its level is --m (0..1), set by Hud.setMomentum. */
+let furnaces = 0;
+function furnaceEl(): HTMLElement {
+  const el = h('div', { class: 'furnace', 'aria-hidden': 'true' });
+  // (its gradients' ids are unique, so a second furnace, a copy of the button, can't borrow this one's)
+  const id = `fz${++furnaces}`;
+  // a wave two tiles wide (each tile 100 wide), drifting by one tile: the top never runs out
+  const wave = (amp: number, y: number) => {
+    let d = `M0 ${y}`;
+    for (let i = 0; i < 4; i++) d += ` q 12.5 ${-amp} 25 0 t 25 0`;
+    return `${d} V140 H0 Z`;
+  };
+  el.innerHTML = `<svg viewBox="0 0 100 100" preserveAspectRatio="none">
+<defs>
+<linearGradient id="${id}-fire" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe27a"/><stop offset="0.22" stop-color="#ffb12e"/><stop offset="0.55" stop-color="#f2591b"/><stop offset="1" stop-color="#9c1a0c"/></linearGradient>
+<linearGradient id="${id}-back" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff8a2a"/><stop offset="1" stop-color="#7a120a"/></linearGradient>
+<radialGradient id="${id}-bed" cx="0.5" cy="1" r="0.75"><stop offset="0" stop-color="#ff6a1f" stop-opacity="0.95"/><stop offset="0.5" stop-color="#c2260f" stop-opacity="0.55"/><stop offset="1" stop-color="#5a0d06" stop-opacity="0"/></radialGradient>
+</defs>
+<rect class="fz-bed" x="0" y="40" width="100" height="60" fill="url(#${id}-bed)"/>
+<g class="fz-level">
+<g class="fz-back"><path d="${wave(14, 10)}" fill="url(#${id}-back)"/></g>
+<g class="fz-front"><path d="${wave(10, 16)}" fill="url(#${id}-fire)"/></g>
+<g class="fz-sparks"><circle cx="24" cy="6" r="1.6"/><circle cx="58" cy="2" r="1.3"/><circle cx="78" cy="8" r="1.5"/><circle cx="40" cy="12" r="1.1"/></g>
+</g>
+<g class="fz-embers"><circle cx="22" cy="93" r="2"/><circle cx="38" cy="96" r="1.6"/><circle cx="63" cy="95" r="1.8"/><circle cx="80" cy="92" r="1.5"/></g>
+</svg><i class="fz-icon"><svg viewBox="0 0 20 24"><path d="M10 1c1.5 4.2 6.5 6.6 6.5 12.4A6.5 6.5 0 0 1 3.5 13.4c0-2.6 1.3-4.4 2.8-5.6-.1 2 .7 3.4 2 4.1C8 8.6 8.6 4.4 10 1z"/><path class="in" d="M10 11.5c.9 1.9 3.1 3 3.1 5.4a3.1 3.1 0 0 1-6.2 0c0-1.2.6-2 1.3-2.6 0 .9.4 1.5 1 1.8-.2-1.6.1-3.4.8-4.6z"/></svg></i>`;
+  return el;
+}
+
 /** The Pizza Slots machine's symbols and what three of each pays. */
 const SLOT_ICON: Record<SlotSymbol, string> = { tips: '🪙', slices: '🍕', slam: '⚡', topping: '🧀', epic: '💎', crust: '🥖', chef: '👨‍🍳' };
 function slotsRow(sl: NonNullable<ShopState['slots']>, pull: (pay: 'tips' | 'crusts') => void, take: (c: 'add' | 'sell') => void): HTMLElement {
@@ -288,6 +318,10 @@ class Hud {
     return Math.max(0, this.bannerUntil - performance.now());
   }
   private slam = h('div', { class: 'slam', role: 'button', 'aria-label': 'Peel Slam' });
+  /** Momentum, inside the slam button: a fire that rises while the player keeps smacking and sinks to embers when
+   *  they stop (src/game/momentum.ts). No ring and no numbers: the slam's own charge is the yellow ring outside. */
+  private furnace = furnaceEl();
+  private lastMomentum = -1;
   private owned = h('div', { class: 'owned' });
   private toasts = h('div', { class: 'toasts' });
   private tutorialEl: HTMLElement | null = null;
@@ -306,6 +340,7 @@ class Hud {
     this.boss2.append(h('div', { class: 'b2name' }, this.boss2Name, this.boss2Phase), h('div', { class: 'track' }, this.boss2Trail, this.boss2Hp));
     this.boss.append(h('div', { class: 'bossname' }, this.bossName, this.bossPhase), h('div', { class: 'track' }, this.bossTrail, this.bossHp, this.bossNotches), this.boss2, this.bossMove);
     this.slam.innerHTML = '<span>PEEL<br>SLAM<small class="kb">SPACE</small><small class="pd" data-glyph="X">X</small></span>';
+    this.slam.prepend(this.furnace);
     this.slam.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
       this.onSlam();
@@ -417,6 +452,7 @@ class Hud {
   setSlamLabel(name: string | null, kind: string | null): void {
     if (!name) {
       this.slam.innerHTML = '<span>PEEL<br>SLAM<small class="kb">SPACE</small><small class="pd" data-glyph="X">X</small></span>';
+      this.slam.prepend(this.furnace);
       this.slam.classList.remove('ability', 'passive');
       this.slam.setAttribute('aria-label', 'Peel Slam');
       return;
@@ -427,6 +463,7 @@ class Hud {
     const longest = Math.max(...words.map((w) => w.length));
     const size = Math.min(1, 5 / longest, 2.4 / words.length);
     this.slam.innerHTML = `<span><b class="an" style="font-size:${size.toFixed(2)}em">${words.join('<br>')}</b>${passive ? `<small class="pk">${kind}</small>` : '<small class="kb">SPACE</small><small class="pd" data-glyph="X">X</small>'}</span>`;
+    this.slam.prepend(this.furnace);
     this.slam.classList.add('ability');
     this.slam.classList.toggle('passive', passive);
     this.slam.setAttribute('aria-label', name);
@@ -435,6 +472,15 @@ class Hud {
   setSuper(frac: number): void {
     this.slam.style.setProperty('--p', String(Math.min(1, frac)));
     this.slam.classList.toggle('ready', frac >= 1);
+  }
+
+  /** Momentum (0 cold .. 1 hot): the furnace's fire level (only touched when it moves visibly). */
+  setMomentum(m: number): void {
+    const v = Math.round(Math.max(0, Math.min(1, m)) * 100) / 100;
+    if (v === this.lastMomentum) return;
+    this.lastMomentum = v;
+    this.furnace.style.setProperty('--m', String(v));
+    this.furnace.classList.toggle('cold', v < 0.2);
   }
 
   setOwned(owned: Record<string, number>): void {
@@ -790,7 +836,7 @@ class UI {
       ['Toppings now cost tips', 'Buy as many as you can afford between waves.'],
       ['Bosses fight in phases', 'Each one changes up at 66% and 33% health.'],
       ['Mini-bosses and wave events', 'Flyers and chests worth smacking.'],
-      ['Pizzas go stale', 'Reheat them, or swap in fresh ones.'],
+      ['Pizzas go stale', 'Reheat them before they run out, or lose them.'],
       [`A ${JOURNEY_WAVES}-wave journey`, `${ACT_COUNT} acts, ${STAGES.length * 2} bosses, an ending, then endless.`],
       ['Controller support', 'Plug in and play, menus included.'],
       ['Saves mid-run', 'Close the tab and continue from the shop.'],
@@ -1229,7 +1275,7 @@ class UI {
         'div',
         { class: `ytop${y.back !== null ? ' used' : ''}`, style: `--rc:${RARITY_COLOR[u.rarity]}` },
         h('div', { class: 'ic' }, u.icon),
-        h('div', { class: 'tx' }, h('div', { class: 'yt-head' }, h('b', {}, u.name), h('span', { class: `rar ${u.rarity}` }, u.rarity), status), h('span', {}, now), next ? h('small', { class: 'next' }, `Next level: ${next}`) : null, u.downside ? h('em', { class: 'down' }, `▼ ${u.downside}`) : null),
+        h('div', { class: 'tx' }, h('div', { class: 'yt-head' }, h('b', {}, u.name), h('span', { class: `rar ${u.rarity}` }, u.rarity), status), h('span', {}, now), next ? h('small', { class: 'next' }, `Next level: ${next}`) : null, isAutoTopping(u) ? h('small', { class: 'next auto' }, AUTO_TOPPING_NOTE) : null, u.downside ? h('em', { class: 'down' }, `▼ ${u.downside}`) : null),
       );
       return { row, rarity: u.rarity as string, text: `${u.name} ${now} ${u.rarity} ${u.downside ?? ''}`.toLowerCase() };
     });

@@ -4,7 +4,8 @@ import { BASE_SLICES, COMBO_BASE_WINDOW, H, MAX_PIZZAS, PIZZA_Y, W } from '../co
 
 /** Lane width: about one foot wide, so feet in neighbouring lanes don't overlap. */
 const LANE_W = 250;
-import { heatRank, type HeatId } from '../data/difficulty';
+import { MOMENTUM, heatRank, type HeatId } from '../data/difficulty';
+import { Momentum } from '../game/momentum';
 import { FEET, FOOT_BY_ID, OUCH, type FootType } from '../data/feet';
 import { META, MILESTONES } from '../data/meta';
 import { RUN_META } from '../game/Run';
@@ -90,7 +91,9 @@ interface DamageOpts {
 
 /** Damage sources that are always automatic: they hit without a smack (orbiting cutters, thrown toppings, the
  *  garlic aura, burns, traps). Smacks, the slam, the peel's ability and on-smack effects aren't. */
-const AUTO_SOURCES = new Set<DamageOpts['source']>(['cutter', 'olive', 'garlic', 'burn', 'trap']);
+export const AUTO_SOURCES = new Set<DamageOpts['source']>(['cutter', 'olive', 'garlic', 'burn', 'trap']);
+/** In `save.seenIntros`: the momentum tip has been shown (once per save). */
+const MOMENTUM_TIP = 'tip:momentum';
 /** The STATS tab's key for a topping proc's damage (a throwing peel's passive throw counts as the peel's ability). */
 const procTag = (id: string): string => (id === 'peel:also' ? 'ability' : `proc:${id}`);
 /** A peel ability's hit is elemental when it's fiery, frosty or zapping (insulated feet take none of it). */
@@ -206,6 +209,11 @@ export class GameScene extends Phaser.Scene implements Arena {
   /** Damage dealt this run by source (dev balance tooling reads it). */
   /** Damage dealt by source, the time feet were on the table and smacks landed (the STATS tab). */
   tally = new DmgTally();
+  /** Momentum: automatic damage runs on the player's smacking (src/game/momentum.ts; numbers in src/data/difficulty.ts). */
+  momentum = new Momentum(() => this.run.heatDef.momentum);
+  /** Automatic and all damage dealt this run (whether the momentum tip is worth showing). */
+  private autoDealt = 0;
+  private allDealt = 0;
   /** Tips earned in each wave (wave clear bonus included), for balance tooling. */
   tipLog: { wave: number; earned: number; spent: number }[] = [];
   private coinsAtWaveStart = 0;
@@ -792,6 +800,9 @@ export class GameScene extends Phaser.Scene implements Arena {
   private resetState(): void {
     this.run = new Run();
     this.tally = new DmgTally();
+    this.momentum = new Momentum(() => this.run.heatDef.momentum);
+    this.autoDealt = 0;
+    this.allDealt = 0;
     this.tipLog = [];
     this.pizzas = [];
     this.feet = [];
@@ -1265,6 +1276,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     // Grandma Square guards both neighbours' first stomp each wave (enhanced: itself too)
     for (const p of this.alivePizzas()) if (p.perk === 'neighbourShield') for (const q of [...this.neighbours(p), ...(p.enhanced ? [p] : [])]) q.flags.grandma = true;
     this.perkKit.waveStart(n);
+    // every wave starts with the oven hot, so its first seconds aren't punished
+    this.momentum.reset();
     this.outbreak.wave();
     this.run.super = Math.max(this.run.super, st.superStart);
     // a passive on a timer gets its head start (S'mores, Pre-Heated Peel) as timer progress
@@ -2200,20 +2213,14 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.time.delayedCall(ms, wait);
   }
 
-  /** Each wave every pizza loses a little freshness; stale pizzas lose their perk and a slice a wave. */
+  /** Each wave every pizza loses a little freshness; one that runs out goes stale, and a stale pizza is lost like a
+   * stomped one: off the table (the feet don't want it), no reheating it, only a Rebake brings it back. */
   private tickFreshness(): void {
     const drainBase = this.run.heatDef.freshness;
     if (drainBase <= 0) return;
     let anyLow = false;
     for (const p of this.alivePizzas()) {
       if (!p.freshOn) continue;
-      if (p.stale) {
-        const removed = p.takeSlices(1, p.x);
-        this.run.slicesLost += removed.length;
-        this.fx.quip(p.x, p.surfaceY - 130, 'STALE: -1 SLICE', '#cfe0a8', 32);
-        if (p.dead) this.pizzaDestroyed(p);
-        continue;
-      }
       const pickle = this.neighbours(p).filter((q) => q.perk === 'preserve');
       let drain = drainBase * (pickle.some((q) => q.enhanced) ? 0.25 : pickle.length ? 0.5 : 1);
       // fractional drain (Inferno 1.5x, Pickle Pie 0.5x) accumulates
@@ -2232,13 +2239,20 @@ export class GameScene extends Phaser.Scene implements Arena {
           continue;
         }
         audio.sfx('sfx_stale');
-        ui.hud.toast(pizzaPortraitURL(p.type.id), 'PIZZA WENT STALE', `${p.type.name}: perk off, -1 slice a wave. Reheat it from its card in the shop.`);
+        ui.hud.toast(pizzaPortraitURL(p.type.id), 'PIZZA WENT STALE', `${p.type.name} is off the table: even the feet won’t touch it. Rebake it in the shop.`);
+        // Pizza Fritta's last act: it heals the others as it goes
         if (p.type.perk === 'staleHeal' && !p.flags.staleHealed) {
           p.flags.staleHealed = true;
           const n = p.enhanced ? 3 : 2;
-          for (const q of this.alivePizzas()) this.healPizza(q, n);
+          for (const q of this.alivePizzas()) if (q !== p) this.healPizza(q, n);
           this.fx.quip(p.x, p.surfaceY - 170, `PIZZA FRITTA: +${n} SLICES FOR ALL`, '#7dff9a', 34);
         }
+        // gone stale: lost like a stomped pizza
+        p.flags.wentStale = true;
+        const removed = p.takeSlices(p.slices, p.x);
+        this.run.slicesLost += removed.length;
+        this.fx.quip(p.x, p.surfaceY - 130, 'STALE!', '#cfe0a8', 40);
+        if (p.dead) this.pizzaDestroyed(p);
       }
     }
     if (anyLow) this.introCard('freshness');
@@ -2497,7 +2511,7 @@ export class GameScene extends Phaser.Scene implements Arena {
         fresh: p.fresh,
         maxFresh: p.maxFresh,
         freshOn: p.freshOn,
-        stale: p.stale,
+        stale: p.stale || !!p.flags.wentStale,
         dead: p.dead,
         reheat: needs ? { cost, can: this.run.coins >= cost } : null,
       };
@@ -2571,7 +2585,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       crusts: save.crusts,
       cards,
       rerollLabel: this.freeRerollsLeft > 0 ? `REROLL · ${this.freeRerollsLeft} free` : `REROLL · ${this.rerollCost()}`,
-      canReroll: this.freeRerollsLeft > 0 || r.coins >= this.rerollCost(),
+      // (nothing left to reroll once every card on the counter has been bought)
+      canReroll: sh.cards.some((u) => !sh.sold.has(u.id)) && (this.freeRerollsLeft > 0 || r.coins >= this.rerollCost()),
       table: this.shopPizzas(),
       tableFull: this.pizzas.length >= MAX_PIZZAS,
       offers,
@@ -2627,7 +2642,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       perk: p === this.possessedPizza ? null : p.perk,
       line: p.perkLine,
       enhanced: p.enhanced,
-      stale: p.stale,
+      stale: p.stale || !!p.flags.wentStale,
       frozen: p.perkFrozen,
       dead: p.dead,
       slices: p.slices,
@@ -2647,7 +2662,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       ability: this.ability,
       peel: { id: this.peelId, name: peelDef?.name ?? 'Classic Peel', img: peelImg },
       pizzas,
-      heat: { name: r.heatDef.name, autoDmg: r.heatDef.autoDmg, tips: r.heatDef.tips, freshness: r.heatDef.freshness },
+      heat: { name: r.heatDef.name, autoDmg: r.heatDef.autoDmg, momentumFloor: r.heatDef.momentum.floor, tips: r.heatDef.tips, freshness: r.heatDef.freshness },
       wave,
       inWave: this.waveActive,
       bossWave: isBossWave(wave),
@@ -2865,7 +2880,8 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   private shopReroll(): void {
     const sh = this.shop;
-    if (!sh) return;
+    // (every card bought: nothing to reroll, and the key mustn't spend a reroll either)
+    if (!sh || !sh.cards.some((u) => !sh.sold.has(u.id))) return;
     const cost = this.rerollCost();
     if (this.freeRerollsLeft > 0) this.freeRerollsLeft--;
     else if (this.run.coins >= cost) {
@@ -3129,6 +3145,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.run.coins -= cost;
     this.reviveCost = Math.round(this.reviveCost * 1.8);
     p.revived = false;
+    p.flags.wentStale = false;
     p.revive(Math.ceil(p.maxSlices / 2));
     p.setFresh(p.maxFresh);
     this.fx.healBurst(p.x, p.surfaceY);
@@ -3402,6 +3419,9 @@ export class GameScene extends Phaser.Scene implements Arena {
       .sort((a, b) => (b.c.priority ?? 0) - (a.c.priority ?? 0) || a.d - b.d)[0];
     if (click && (!hits.length || (click.c.priority ?? 0) >= 2 || hits[0].d > 18)) {
       this.logSmack(x, y, undefined, `target:${labelOf(click.c)}`);
+      // (any target counts on purpose: a boss's prop or a wave event's target is the player swinging, so it keeps the
+      // oven hot like a smack on a foot)
+      this.momentum.hit();
       click.c.hit();
       return;
     }
@@ -3416,6 +3436,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       return;
     }
     if (this.tutorial) ui.hud.tutorial(false);
+    // a smack that connects keeps automatic damage hot (blocked, parried or guarded too: the player is swinging)
+    this.momentum.hit();
     // Bigger Peel (and The Last Slice) hit every foot in range
     const targets = this.heroes.smackHits(this.run.level('peel') > 0 || this.kit.areaSmack() ? hits : hits.slice(0, 1));
     this.tracker.emit('smack', { hits: targets.length, x, y });
@@ -3536,8 +3558,10 @@ export class GameScene extends Phaser.Scene implements Arena {
     let dmg = amount;
     const auto = o.auto || AUTO_SOURCES.has(o.source);
     // topping damage that hits by itself is scaled down by the heat (autoDmg: 0.35 on Mild to 0.7 from Extra Hot), so
-    // smacking stays the main damage; a peel's own ability and hero passives aren't (`passive` only matters to shields)
-    if (auto) dmg *= this.run.heatDef.autoDmg;
+    // smacking stays the main damage; a peel's own ability and hero passives aren't (`passive` only matters to shields).
+    // It also runs on momentum: full while the player keeps smacking, down to the heat's floor when they stop
+    // (src/game/momentum.ts). The guard-shield wear below is worked out from this, so it cools too.
+    if (auto) dmg *= this.run.heatDef.autoDmg * this.momentum.mult();
     // a raised guard shield takes the rest too (a hero's bypass still goes straight through). What fires by itself
     // (toppings, drones, procs, a peel's timed or on-hit ability, hero passives) and chain lightning only wear it down
     // at the heat's rate (guardAutoWear) and never take its last step: only the player's own blow smashes a held
@@ -3621,7 +3645,10 @@ export class GameScene extends Phaser.Scene implements Arena {
       else if (smack) this.fx.puff(o.x ?? f.cx, o.y ?? f.cy, 3);
     }
     // (the STATS tab's tally: what it took off, a killing blow's overkill left out)
-    this.tally.add(o.tag ?? o.source, Math.min(dealt, Math.max(0, f.hp)));
+    const took = Math.min(dealt, Math.max(0, f.hp));
+    this.tally.add(o.tag ?? o.source, took);
+    this.allDealt += took;
+    if (auto) this.autoDealt += took;
     f.hp -= dealt;
     if (dealt > 0) f.regenHold = 2;
     // the player's own blow (a smack, the Peel Slam, a charged ability's hit), not what fires by itself: the Persian
@@ -4394,6 +4421,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (!a || !this.waveActive) return;
     if (a.trigger.t === 'auto' && this.run.super >= 1 && this.feet.some((f) => f.hittable)) {
       this.run.super = 0;
+      // (no momentum: it fires by itself, and kills by automatic damage charge the meter too, so an idle player's
+      // toppings would keep refilling their own oven. Only a pressed slam or ability fills it, in peelSlam.)
       this.fireAbility();
     } else if (a.trigger.t === 'every') {
       this.abilityT += dt * passiveBoost(this.run.stats.superGain).timer;
@@ -4668,10 +4697,12 @@ export class GameScene extends Phaser.Scene implements Arena {
       // the peel's ability replaces the slam: only active ones are pressed
       if (this.ability.trigger.t !== 'active') return;
       this.run.super = 0;
+      this.momentum.hit(true);
       this.fireAbility();
       return;
     }
     this.run.super = 0;
+    this.momentum.hit(true);
     const st = this.run.stats;
     const big = this.add.image(-400, 560, 'peel').setScale(3.2).setAngle(-90).setOrigin(0.5, 100 / 360);
     this.fxLayer.add(big);
@@ -4738,13 +4769,16 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   private passives(dt: number): void {
     const st = this.run.stats;
+    // as momentum cools the automatic attacks look it: cutters spin slower and dim, auras fade, burns flicker less
+    // (looks only: the orbit, and so the cutters' hit rate, is unchanged; their damage cools in dealDamage)
+    const glow = this.momentum.glow();
     if (this.cutters.length) {
       this.cutterAngle += dt * 4.2;
       this.cutters.forEach((c, i) => {
         const a = this.cutterAngle + (i / this.cutters.length) * Math.PI * 2;
         const cx = this.peelPos.x + Math.cos(a) * 125;
         const cy = this.peelPos.y + Math.sin(a) * 85;
-        c.setPosition(cx, cy).setRotation(c.rotation + dt * 18);
+        c.setPosition(cx, cy).setRotation(c.rotation + dt * 18 * glow * glow).setAlpha(glow);
         for (const f of this.feet) {
           if (!f.hittable || f.distanceTo(cx, cy) > 30) continue;
           const cd = this.cutterCd.get(f) ?? 0;
@@ -4808,7 +4842,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       }
       if (f.burnT > 0 && f.alive) {
         f.burnAcc += f.burnDps * dt;
-        if (Math.random() < dt * 14) this.fx.burn(f.cx, f.cy + 20);
+        if (Math.random() < dt * 14 * glow * glow) this.fx.burn(f.cx, f.cy + 20);
         if (f.burnAcc >= 4) {
           const d = f.burnAcc;
           f.burnAcc = 0;
@@ -4829,7 +4863,7 @@ export class GameScene extends Phaser.Scene implements Arena {
         }
       }
     }
-    for (const g of this.garlicAuras) g.setAlpha(0.18 + Math.sin(this.nowT * 3) * 0.07);
+    for (const g of this.garlicAuras) g.setAlpha((0.18 + Math.sin(this.nowT * 3) * 0.07) * glow);
     for (const p of this.alivePizzas()) {
       if (p.perk !== 'regen') continue;
       p.regenTimer += dt;
@@ -5062,11 +5096,16 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.feetLayer.sort('y');
       this.passives(dt);
       // the STATS tab's pace: real seconds with a foot on the table to smack
+      let n = 0;
       if (this.waveActive) {
-        let n = 0;
         for (const f of this.feet) if (f.hittable) n++;
         if (n) this.tally.tick(real, n);
       }
+      // momentum drains only while there's a foot the player could be smacking (not between spawns, in a wave's
+      // tail, with a boss out of reach, behind a window or with the peel stunned)
+      // (and it holds through slow-mo and hit-stop, when feet barely move and there's less to smack)
+      this.momentum.tick(real, n > 0 && !ui.modalOpen && this.peelStunT <= 0 && this.slowMo <= 0 && this.hitStop <= 0);
+      this.momentumTip();
       this.perkKit.update(dt);
       this.abilityTick(dt);
       this.procTick(dt);
@@ -5110,12 +5149,23 @@ export class GameScene extends Phaser.Scene implements Arena {
     const ab = this.ability;
     if (!ab || usesMeter(ab)) ui.hud.setSuper(r.super);
     else ui.hud.setSuper(ab.trigger.t === 'every' ? this.abilityT / ab.trigger.sec : 0);
+    ui.hud.setMomentum(this.momentum.value);
     if (ab && ab.trigger.t !== 'active') this.slamHinted = true;
     if (r.super >= 1 && !this.slamHinted && this.waveActive) {
       this.slamHinted = true;
       ui.hud.toast(null, 'PEEL SLAM READY!', pad.active ? 'Press X to smack every foot at once' : 'Press SPACE or tap the SLAM button to smack every foot at once');
       audio.sfx('sfx_combo', { rate: 1.4 });
     }
+  }
+
+  /** The first time momentum runs low in a save (with automatic damage worth mentioning): a one-off tip. */
+  private momentumTip(): void {
+    if (this.momentum.value >= MOMENTUM.tipBelow || this.autoDealt < 100 || this.autoDealt < this.allDealt * 0.1) return;
+    if (save.seenIntros.includes(MOMENTUM_TIP)) return;
+    save.seenIntros.push(MOMENTUM_TIP);
+    persist();
+    ui.hud.toast(null, 'THE OVEN’S COOLING!', 'Your toppings cool off when you stop smacking. Keep swinging to keep the oven hot: smack every few seconds and they stay at full!');
+    audio.sfx('sfx_combo', { rate: 0.8 });
   }
 
   // ——— Pause / game over ———

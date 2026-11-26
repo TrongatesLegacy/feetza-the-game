@@ -8,11 +8,11 @@
 // on screen and the field, so they can be fixed before the balance numbers are trusted.
 
 import type Phaser from 'phaser';
-import type { HeatId } from './data/difficulty';
+import { HEAT_BY_ID, MOMENTUM, type HeatId, type MomentumHeat } from './data/difficulty';
 import { META } from './data/meta';
 import { PIZZAS } from './data/pizzas';
 import { artBooted } from './game/assets';
-import { GameScene } from './scenes/GameScene';
+import { AUTO_SOURCES, GameScene } from './scenes/GameScene';
 import { PEELS, PEEL_BY_ID } from './game/peels';
 import { migrate, persist, phaseCardsMuted, save } from './systems/save';
 
@@ -40,6 +40,14 @@ export interface SimOpts {
   shop?: 'rarity' | 'auto';
   /** The bot stops smacking (and slamming) from this wave on: how far do the automatic toppings carry a run? */
   idleFrom?: number;
+  /** How the bot plays: 'full' (a smack every `rate` ms), 'light' (a smack every `lightRate` ms: a lazy player
+   *  leaning on the toppings) or 'idle' (never smacks or slams: the toppings alone). For tuning momentum. */
+  bot?: 'full' | 'light' | 'idle';
+  /** Milliseconds between the light bot's smacks. */
+  lightRate?: number;
+  /** Momentum overrides for this run (src/data/difficulty.ts): the heat's floor, drain and grace, and the shared
+   *  smackGain and slamGain. Put back after the run. */
+  momentum?: Partial<MomentumHeat & typeof MOMENTUM>;
   /** Dev: count random draws per wave, and list where they came from in this wave (finding non-determinism). */
   trace?: number;
   /** Start at this wave instead of wave 1, from the shop with a starter kit sized for it (F.startGame's kit). */
@@ -56,6 +64,13 @@ export interface WaveRow {
   toppings: number;
   /** Slices lost during this wave. */
   lost: number;
+  /** Smack hits that did damage this wave (0: the wave was cleared with no smacks). */
+  smackHits: number;
+  /** Damage this wave from smacks (and what rides on them: chains, splashes) and from automatic sources. */
+  smackDmg: number;
+  autoDmg: number;
+  /** The average automatic-damage multiplier from momentum while the wave was in play (1 = full). */
+  momentum: number;
 }
 
 export interface SimResult {
@@ -77,6 +92,11 @@ export interface SimResult {
   stall?: { screen: string; detail: Record<string, unknown> };
   /** Damage dealt by source over the run. */
   damage?: Record<string, number>;
+  /** Damage over the run by kind: smacks (and what a smack sets off), automatic (scaled by autoDmg and momentum),
+   *  the slam, and the rest (peel abilities, hero passives…). */
+  split?: { smack: number; auto: number; slam: number; other: number };
+  /** Waves cleared without a single smack hit. */
+  noSmackWaves?: number;
   /** Slices lost, by 'boss|…' (a boss or mini-boss on the field) or 'wave|…', then the foot that stomped ('zombie …'
    *  for a turned foot) or the callout of the move that took them. */
   lostBy?: Record<string, number>;
@@ -278,7 +298,13 @@ export function simReady(): boolean {
 }
 
 export async function simRun(game: Phaser.Game, o: SimOpts, start: (opts: Record<string, unknown>) => void): Promise<SimResult> {
-  const opts: Required<SimOpts> = { peel: 'classic', accuracy: 0.9, rate: 260, dt: 1000 / 60, profile: 'fresh', maxRealMs: 600_000, trace: 0, idleFrom: 0, shop: 'rarity', from: 0, ...o };
+  const opts: Required<SimOpts> = { peel: 'classic', accuracy: 0.9, rate: 260, dt: 1000 / 60, profile: 'fresh', maxRealMs: 600_000, trace: 0, idleFrom: 0, shop: 'rarity', from: 0, bot: 'full', lightRate: 2000, momentum: {}, ...o };
+  // momentum overrides: set once the run has started (a run that fails to start throws before them), and put back
+  // when it's done
+  const heatMo = HEAT_BY_ID[opts.heat].momentum;
+  const moBefore = { heat: { ...heatMo }, shared: { ...MOMENTUM } };
+  const { smackGain, slamGain, ...perHeat } = opts.momentum;
+  const actRate = opts.bot === 'light' ? opts.lightRate : opts.rate;
   // the game's art must be built first (several tabs booting at once can take a while)
   for (let i = 0; i < 600 && !artBooted(); i++) await new Promise((r) => setTimeout(r, 100));
   // the browser's own save comes back when the run is done
@@ -326,15 +352,31 @@ export async function simRun(game: Phaser.Game, o: SimOpts, start: (opts: Record
     throw new Error('the game scene did not start');
   }
   g.scene.setVisible(false);
+  // (the start loop above may have begun the first wave: only its grace came from the unchanged numbers)
+  Object.assign(heatMo, perHeat);
+  if (smackGain !== undefined) MOMENTUM.smackGain = smackGain;
+  if (slamGain !== undefined) MOMENTUM.slamGain = slamGain;
   gameMs = 0;
   // where the damage comes from: smacks, the slam/ability, or the automatic sources (procs, cutters, burns…)
   const dmgBy: Record<string, number> = {};
+  const split = { smack: 0, auto: 0, slam: 0, other: 0 };
+  // this wave's: smack hits, smack and automatic damage, and momentum sampled each step in play
+  const wv = { hits: 0, smack: 0, auto: 0, mo: 0, moN: 0 };
   const deal = g.dealDamage;
   g.dealDamage = function (this: AnyScene, f: any, amount: number, o: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
     const before = f?.hp ?? 0;
     const r = deal.call(this, f, amount, o);
     const done = Math.max(0, before - Math.max(0, f?.hp ?? 0));
-    if (done > 0) dmgBy[o?.source ?? 'other'] = (dmgBy[o?.source ?? 'other'] ?? 0) + done;
+    if (done > 0) {
+      dmgBy[o?.source ?? 'other'] = (dmgBy[o?.source ?? 'other'] ?? 0) + done;
+      // the same test the scene uses for automatic damage (GameScene.dealDamage)
+      const auto = !!o?.auto || AUTO_SOURCES.has(o?.source);
+      const kind = o?.source === 'slam' ? 'slam' : auto ? 'auto' : o?.source === 'smack' || o?.source === 'splash' || o?.source === 'chain' || o?.source === 'explode' ? 'smack' : 'other';
+      split[kind] += done;
+      if (o?.source === 'smack') wv.hits++;
+      if (kind === 'smack') wv.smack += done;
+      else if (kind === 'auto') wv.auto += done;
+    }
     return r;
   };
   // where the slices go: by the foot that stomped (a turned foot marked 'zombie') or the move's
@@ -413,8 +455,13 @@ export async function simRun(game: Phaser.Game, o: SimOpts, start: (opts: Record
       pizzas: live.length,
       toppings: Object.values(g!.run.owned ?? {}).reduce((n: number, v) => n + Number(v), 0),
       lost: (g!.run.slicesLost ?? 0) - lostAtWave,
+      smackHits: wv.hits,
+      smackDmg: Math.round(wv.smack),
+      autoDmg: Math.round(wv.auto),
+      momentum: wv.moN ? Math.round((wv.mo / wv.moN) * 1000) / 1000 : 1,
     });
     lostAtWave = g!.run.slicesLost ?? 0;
+    Object.assign(wv, { hits: 0, smack: 0, auto: 0, mo: 0, moN: 0 });
   };
 
   try {
@@ -451,9 +498,13 @@ export async function simRun(game: Phaser.Game, o: SimOpts, start: (opts: Record
       actMs += opts.dt;
       checkMs += opts.dt;
       steps++;
-      if (g.waveActive && !g.over && actMs >= opts.rate) {
+      if (g.waveActive && !g.over && !g.inUpgrade && g.momentum) {
+        wv.mo += g.momentum.mult();
+        wv.moN++;
+      }
+      if (g.waveActive && !g.over && actMs >= actRate) {
         actMs = 0;
-        if (!opts.idleFrom || wave < opts.idleFrom) smack(g, opts.accuracy);
+        if (opts.bot !== 'idle' && (!opts.idleFrom || wave < opts.idleFrom)) smack(g, opts.accuracy);
       }
       const w = g.run?.wave ?? wave;
       if (w !== wave) {
@@ -515,6 +566,9 @@ export async function simRun(game: Phaser.Game, o: SimOpts, start: (opts: Record
     error: errors[0],
     stall,
     damage: Object.fromEntries(Object.entries(dmgBy).map(([k, v]) => [k, Math.round(v)])),
+    split: { smack: Math.round(split.smack), auto: Math.round(split.auto), slam: Math.round(split.slam), other: Math.round(split.other) },
+    // (every row is a wave that was cleared: the one a run dies in gets none)
+    noSmackWaves: rows.filter((r) => r.smackHits === 0).length,
     guard: g.guardStats ? JSON.parse(JSON.stringify(g.guardStats)) : undefined,
     lostBy,
     peakZombies,
@@ -523,7 +577,9 @@ export async function simRun(game: Phaser.Game, o: SimOpts, start: (opts: Record
     Math.random = seeded;
     (result as unknown as Record<string, unknown>).trace = { draws, where, seq };
   }
-  // leave the game quiet for the next run, and put the browser's save back
+  // leave the game quiet for the next run, and put the browser's save back (and momentum's numbers)
+  Object.assign(heatMo, moBefore.heat);
+  Object.assign(MOMENTUM, moBefore.shared);
   game.loop.wake();
   Object.assign(save, JSON.parse(before));
   persist();

@@ -33,6 +33,7 @@ import PEEL_VERSION from 'virtual:peel-version';
 import { PIZZAS, type PizzaType } from '../data/pizzas';
 import type { EventId } from './events';
 import { HERO_PEELS, type HeroSub } from '../content/heroPeels';
+import { godSpecOf } from '../art/peelGod';
 import { heroSpecOf } from '../art/peelHero';
 import { goalProgress, heatHow } from './heroGoals';
 import { godPeelLook } from '../art/godHeads';
@@ -482,6 +483,10 @@ for (const [id] of JEWELS) CRAFT[id] = 'gem';
 for (const [id] of ULTRA) CRAFT[`ultra:${id}`] = 'gem';
 // the hero peels: the hero alive, from its costume's parts (src/art/peelHero.ts)
 for (const hp of HERO_PEELS) if (heroSpecOf(hp.id)) CRAFT[hp.id] = 'hero';
+// the god peels and the God Peel: the god's symbol alive, from its own parts (src/art/peelGod.ts; Zeus keeps his own
+// living blade, src/art/animatedLooks.ts)
+for (const hp of HERO_PEELS) if (godSpecOf(hp.id)) CRAFT[hp.id] = 'god';
+CRAFT['god:pizzagods'] = 'god';
 /** A jewel's look: painted as its stone or metal. */
 const jewelLook = (id: string, jewel: string, p: Plain) => () => crafted({ ...plain(id, p, true)(), craft: 'gem', jewel });
 
