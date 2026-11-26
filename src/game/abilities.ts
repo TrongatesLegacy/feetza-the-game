@@ -482,7 +482,7 @@ export const ABILITIES: Record<string, Ability> = {
     color: GOLD,
     vfx: 'gold',
     custom: true,
-    desc: 'Active ({slam}): a golden peel sweeps down from the heavens. Every foot takes ×25, is stunned for 3 s and burns (2×/s for 4 s); then every pizza gets 2 shields and a slice back, and you get +50 tips. Passive, Pantheon: every 3 s it throws a projectile borrowed at random from the throwing peels, at ×2.',
+    desc: 'Active ({slam}): a golden peel sweeps down from the heavens. Every foot takes ×25, is stunned for 3 s and burns (2×/s for 4 s); then every pizza gets a slice back (and 2 shields, the first time each wave), and you get +50 tips. Passive, Pantheon: every 3 s it throws a projectile borrowed at random from the throwing peels, at ×2.',
   },
 
   // ——— Feet ———
