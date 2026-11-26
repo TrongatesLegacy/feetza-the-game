@@ -738,7 +738,7 @@ h3 {
   place-items: center;
   cursor: pointer;
   pointer-events: auto;
-  background: conic-gradient(var(--cheese) calc(var(--p, 0) * 1turn), rgba(0, 0, 0, 0.55) 0);
+  background: conic-gradient(var(--ring, var(--cheese)) calc(var(--p, 0) * 1turn), rgba(0, 0, 0, 0.55) 0);
   border: 0.25em solid var(--ink);
   box-shadow: 0 0.3em 0 var(--ink);
   transition: transform 0.1s;
@@ -753,9 +753,180 @@ h3 {
   border: 0.2em solid var(--ink);
 }
 
+/* momentum: the furnace inside the button (src/ui/ui.ts furnaceEl). The fire's level is --m (0 embers .. 1 full);
+   the slam's own charge stays the yellow ring outside. */
+.slam .furnace {
+  position: absolute;
+  inset: 0.86em;
+  z-index: 1;
+  border-radius: 50%;
+  overflow: hidden;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 35%, #4a1c10, #240a05 75%);
+  box-shadow: inset 0 0.25em 0.6em rgba(0, 0, 0, 0.6);
+}
+
+.slam .furnace > svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.slam .fz-level {
+  transform: translateY(calc((1 - var(--m, 1)) * 80px));
+  transition: transform 0.35s ease-out;
+}
+
+.slam .fz-back {
+  opacity: calc(0.55 + 0.45 * var(--m, 1));
+  animation: fz-drift 2.6s linear infinite reverse;
+}
+
+.slam .fz-front {
+  /* cold, the bright flame dies back and the dark red under it shows: embers */
+  opacity: calc(0.15 + 0.85 * var(--m, 1));
+  transition: opacity 0.35s;
+  animation: fz-drift 1.7s linear infinite;
+}
+
+.slam .fz-front path,
+.slam .fz-back path {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: fz-flicker 0.9s ease-in-out infinite alternate;
+}
+
+.slam .fz-back path {
+  animation-duration: 1.3s;
+}
+
+.slam .fz-sparks circle {
+  fill: #ffe9a0;
+  transform-box: fill-box;
+  opacity: calc(var(--m, 1) - 0.25);
+  animation: fz-spark 1.4s ease-out infinite;
+}
+
+.slam .fz-sparks circle:nth-child(2) {
+  animation-delay: -0.5s;
+}
+
+.slam .fz-sparks circle:nth-child(3) {
+  animation-delay: -0.9s;
+}
+
+.slam .fz-sparks circle:nth-child(4) {
+  animation-delay: -1.2s;
+}
+
+.slam .fz-bed {
+  opacity: calc(0.45 + 0.55 * var(--m, 1));
+}
+
+.slam .fz-embers circle {
+  fill: #ff7a2a;
+  animation: fz-ember 1.9s ease-in-out infinite alternate;
+}
+
+.slam .fz-embers circle:nth-child(odd) {
+  animation-delay: -0.8s;
+}
+
+/* the small flame at the base: bright while hot, a dull coal when cold */
+.slam .fz-icon {
+  position: absolute;
+  left: 50%;
+  bottom: 0.12em;
+  width: 0.9em;
+  height: 1.08em;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 0 0.15em rgba(255, 140, 40, calc(0.2 + 0.7 * var(--m, 1))));
+}
+
+.slam .fz-icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.slam .fz-icon path {
+  fill: #ffb12e;
+  stroke: var(--ink);
+  stroke-width: 1.6;
+  paint-order: stroke fill;
+}
+
+.slam .fz-icon path.in {
+  fill: #fff1b0;
+  stroke: none;
+}
+
+.slam .furnace.cold .fz-icon path {
+  fill: #8a3a1c;
+}
+
+.slam .furnace.cold .fz-icon path.in {
+  fill: #d0602a;
+}
+
+@keyframes fz-drift {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100px);
+  }
+}
+
+@keyframes fz-flicker {
+  from {
+    transform: scaleY(1);
+  }
+  to {
+    transform: scaleY(1.07);
+  }
+}
+
+@keyframes fz-spark {
+  from {
+    transform: translateY(6px);
+    opacity: 0;
+  }
+  30% {
+    opacity: calc(var(--m, 1) - 0.1);
+  }
+  to {
+    transform: translateY(-14px);
+    opacity: 0;
+  }
+}
+
+@keyframes fz-ember {
+  from {
+    opacity: 0.35;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* reduced motion: a still fire at its level, no drift or flicker */
+@media (prefers-reduced-motion: reduce) {
+  .slam .furnace *,
+  .slam .furnace {
+    animation: none !important;
+  }
+}
+
+body.reduced-motion .slam .furnace * {
+  animation: none !important;
+}
+
 .slam span {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   font-size: 1.7em;
   line-height: 0.9;
   text-align: center;
@@ -805,7 +976,12 @@ h3 {
   box-shadow: 0 0.3em 0 var(--ink), 0 0 2em 0.4em rgba(255, 210, 63, 0.75);
 }
 
+/* (the charge ring and the label dim while charging; the furnace inside keeps its own colour: that's momentum) */
 .slam:not(.ready) {
+  --ring: #edd279;
+}
+
+.slam:not(.ready) > span {
   filter: saturate(0.6);
 }
 

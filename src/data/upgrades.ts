@@ -471,4 +471,20 @@ export function kindOf(u: Upgrade): UpgradeKind {
 /** Waves a used consumable stays out of the shop. */
 export const CONSUMABLE_COOLDOWN = 3;
 
+/** Topping tricks whose own damage is automatic (src/game/toppingKit.ts). */
+const AUTO_KIT = new Set(['pizzadrone', 'woodfired', 'tiedlaces']);
+
+/** Toppings whose damage is automatic (it hits without a smack, so momentum cools it when the player stops smacking,
+ *  src/game/momentum.ts): a topping proc, orbiting cutters, olives, garlic, burns, traps, burning stompers, the drone… */
+export function isAutoTopping(u: Upgrade): boolean {
+  if (u.proc || AUTO_KIT.has(u.id)) return true;
+  const a = baseStats();
+  const b = baseStats();
+  u.apply(b, 1);
+  return (['cutters', 'cutterDmg', 'oliveRate', 'oliveDmg', 'garlicDps', 'burnDps', 'traps', 'stompBurn'] as const).some((k) => a[k] !== b[k]);
+}
+
+/** The line Your Toppings adds under an automatic topping. */
+export const AUTO_TOPPING_NOTE = '🔥 Runs hot while you keep smacking; stop and it cools off.';
+
 export { pct };
