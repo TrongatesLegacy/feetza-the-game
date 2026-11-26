@@ -72,17 +72,51 @@ function chip(s: Src): HTMLElement {
   );
 }
 
-function fromLine(list: Src[]): HTMLElement | null {
+/** Close every open popover in the tab. */
+function closePops(root: ParentNode = document): void {
+  for (const w of root.querySelectorAll('.st-pw.open')) {
+    w.classList.remove('open');
+    w.querySelector('button')?.setAttribute('aria-expanded', 'false');
+  }
+}
+
+/** A small button that opens a popover (on a tap or a click; hover and focus show it too on a desktop). */
+function popBtn(kind: 'from' | 'info', label: (Node | string)[], aria: string, content: HTMLElement): HTMLElement {
+  const b = h('button', { class: `st-pbtn ${kind}`, type: 'button', 'aria-label': aria, 'aria-expanded': 'false' }, ...label);
+  const pop = h('div', { class: 'st-pop', role: 'tooltip' }, content);
+  const wrap = h('span', { class: `st-pw ${kind}` }, b, pop);
+  // it opens towards whichever side has room inside the scrolling panel (a phone's left-hand tiles cut it off)
+  const place = () => {
+    wrap.classList.remove('to-left', 'to-right');
+    const box = (wrap.closest('.st-scroll') ?? document.body).getBoundingClientRect();
+    const r = pop.getBoundingClientRect();
+    if (!r.width) return;
+    if (r.left < box.left + 4) wrap.classList.add('to-right');
+    else if (r.right > box.right - 4) wrap.classList.add('to-left');
+  };
+  b.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const open = !wrap.classList.contains('open');
+    closePops();
+    wrap.classList.toggle('open', open);
+    b.setAttribute('aria-expanded', String(open));
+    if (open) place();
+  });
+  wrap.addEventListener('mouseenter', () => requestAnimationFrame(place));
+  b.addEventListener('focus', () => requestAnimationFrame(place));
+  return wrap;
+}
+
+/** Where a number comes from: a FROM tag on the tile's top-left corner that lists every source. */
+function fromPop(list: Src[]): HTMLElement | null {
   if (!list.length) return null;
-  const shown = list.slice(0, 3);
-  const rest = list.slice(3);
-  return h(
-    'div',
-    { class: 'st-from' },
-    h('span', { class: 'st-from-k' }, 'from'),
-    ...shown.map(chip),
-    rest.length ? h('span', { class: 'st-src more', title: rest.map((s) => s.name).join(', ') }, `+${rest.length} more`) : null,
-  );
+  return popBtn('from', ['FROM ', h('b', {}, String(list.length))], `From: ${list.map((s) => s.name).join(', ')}`, h('div', { class: 'st-from' }, ...list.map(chip)));
+}
+
+/** A longer explanation behind an i button. */
+function infoPop(note: string | undefined, label: string): HTMLElement | null {
+  if (!note) return null;
+  return popBtn('info', ['i'], `${label}: ${note}`, h('div', { class: 'st-note' }, note));
 }
 
 function toneChip(t: Tile): HTMLElement | null {
@@ -98,12 +132,12 @@ function tile(t: Tile, i: number): HTMLElement {
       : counter(t.num, (v) => `${t.pre ?? ''}${show(v, t.fmt)}${t.post ?? ''}`);
   return h(
     'div',
-    { class: `st-tile ${t.tone}${t.big ? ' big' : ''}`, style: `--i:${i}`, title: t.note ? `${t.label}: ${t.note}` : t.label },
+    { class: `st-tile ${t.tone}${t.big ? ' big' : ''}${t.from.length ? ' has-from' : ''}`, style: `--i:${i}` },
     h('div', { class: 'st-ic' }, t.img ? h('img', { src: t.img, alt: '' }) : t.icon),
     h('div', { class: 'st-val' }, value, toneChip(t)),
     h('div', { class: 'st-lbl' }, t.label),
-    t.note ? h('div', { class: 'st-note' }, t.note) : null,
-    fromLine(t.from),
+    fromPop(t.from),
+    infoPop(t.note, t.label),
   );
 }
 
@@ -115,14 +149,13 @@ function autoTile(t: AutoTile, i: number): HTMLElement {
       : h('span', { class: 'st-num txt small' }, t.rate === 'smack' || t.rate === 'kill' ? 'PLAY A WAVE' : 'ON CUE');
   return h(
     'div',
-    { class: 'st-auto', style: `--i:${i};--ac:${t.color}`, title: `${t.label}: ${t.note ?? ''}` },
+    { class: `st-auto${t.from.length ? ' has-from' : ''}`, style: `--i:${i};--ac:${t.color}` },
     h('div', { class: 'st-aic' }, t.img ? h('img', { src: t.img, alt: '' }) : t.icon),
     h('b', { class: 'st-aname' }, t.label),
-    h('span', { class: 'st-aval' }, value, h('small', {}, t.dps !== null ? per : '')),
+    h('span', { class: 'st-aval' }, value, h('small', {}, t.dps !== null ? per : ''), t.measured !== null ? h('span', { class: 'st-meas' }, `measured ${dps(t.measured)}/s`) : null),
     h('div', { class: 'st-abar' }, h('i', { style: `width:${Math.round(t.share * 100)}%` })),
-    h('div', { class: 'st-note' }, t.note ?? ''),
-    t.measured !== null ? h('div', { class: 'st-meas' }, `measured ${dps(t.measured)}/s`) : null,
-    fromLine(t.from),
+    fromPop(t.from),
+    infoPop(t.note, t.label),
   );
 }
 
@@ -253,6 +286,13 @@ export function statsBody(v: BuildView): HTMLElement {
     h('div', { class: 'st-grid' }, ...v.sections.map(sectionCard), pizzaCard(v)),
     h('p', { class: 'st-foot' }, `Worked out from your toppings, pizzas and peel on ${v.heat}, for the foot you're smacking with ${v.feetMeasured ? `about ${r1(v.feet)} feet on the table (as you played)` : 'about 3 feet on the table'}: area hits count once. Measured numbers are what really happened.`),
   );
+  body.addEventListener('click', () => closePops(body));
+  body.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && body.querySelector('.st-pw.open')) {
+      e.stopPropagation();
+      closePops(body);
+    }
+  });
   requestAnimationFrame(runCounters);
   return body;
 }
