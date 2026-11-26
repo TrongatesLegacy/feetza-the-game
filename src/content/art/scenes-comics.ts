@@ -9,11 +9,12 @@
 //   location kit in scene-venomnom.ts: this stays for the before/after page (VL stays here: the fight places its
 //   emitters at VL.emitters).
 // - The Night Conservatory (the Cheetoe, wave 63 with Wonder Wedge): a glass dome on a Metropizza rooftop, overgrown
-//   with jungle, the moon and the city through the panes. Fireflies drift and moonbeams shift.
+//   with jungle, the moon and the city through the panes. Fireflies drift and moonbeams shift. Redrawn with the
+//   location kit in scene-cheetoe.ts: this stays for the before/after page (NC stays here for its old live layer).
 // Every emblem is our own.
 
 import type { GlowSpot } from '../../art/backdrops';
-import { registerLegacyScene, registerScene } from '../../art/registry';
+import { registerLegacyScene } from '../../art/registry';
 import {
   type Ctx,
   type R,
@@ -541,7 +542,8 @@ registerLegacyScene('venomnom', {
   draw: drawSymbioteLab,
 });
 
-registerScene('cheetoe', {
+// (redrawn with the location kit in scene-cheetoe.ts; this stays for the before/after page, ?dev&stages)
+registerLegacyScene('cheetoe', {
   info: {
     name: 'The Night Conservatory',
     subtitle: 'Mini-boss: THE CHEETOE',

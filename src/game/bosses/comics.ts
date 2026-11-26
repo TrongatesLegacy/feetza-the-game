@@ -26,7 +26,9 @@
 //   lines flash across the screen round your peel for 0.9 s, then her claws rake them: a 1 s peel stun if it's on a
 //   line, and any of her own feet on them get hurt) and THE HUNT (every 18 s she vanishes into the leaves: four
 //   bushes with eyes in them, hers amber and blinking, the rest green fireflies; smack hers in 6 s and she falls out
-//   stunned for 2.5 s and 4%, or she ambushes a pizza for a slice).
+//   stunned for 2.5 s and 4%, or she ambushes a pizza for a slice). Her arena answers (src/content/art/scene-cheetoe.ts):
+//   the brain emits 'cheetoe-pounce' (x), 'cheetoe-frenzy', 'cheetoe-hunt', 'cheetoe-found' (x, y), 'cheetoe-ambush'
+//   and 'cheetoe-hunt-end' (however the hunt ends) on the scene's events.
 
 import Phaser from 'phaser';
 import { NOM_MOUTH } from '../../content/art/comics';
@@ -752,6 +754,7 @@ const cheetoe = (): Brain => {
     const forget = bin.add(finish);
     const land = () => {
       a.sfx('sfx_cheetoe_pounce');
+      a.sc.events.emit('cheetoe-pounce', p.x);
       a.shake(260, 0.01);
       a.sc.tweens.add({ targets: f, y: p.surfaceY - 20, duration: 120, yoyo: true, ease: 'Quad.In' });
       impactWord(a, p.x, p.surfaceY - 160, 1.3, 'RRRAWR!');
@@ -831,6 +834,7 @@ const cheetoe = (): Brain => {
     a.sc.time.delayedCall(h.windup(0.9) * 1000, () => {
       forget();
       if (!a.inWave() || !f.alive) return;
+      a.sc.events.emit('cheetoe-frenzy');
       let hitPeel = false;
       lines.forEach(([x0, y0, x1, y1], i) =>
         a.sc.time.delayedCall(i * 90, () => {
@@ -863,6 +867,7 @@ const cheetoe = (): Brain => {
     f.puppet = true;
     f.shielded = true;
     a.sfx('sfx_cheetoe_rustle');
+    a.sc.events.emit('cheetoe-hunt');
     a.quip(f.x, Math.max(SAFE_TOP + 40, f.cy - 170), 'NOW YOU SEE ME…', '#f0a040', 40);
     a.sc.tweens.add({ targets: f, y: -500, duration: 420, ease: 'Quad.In' });
     const spots = Phaser.Utils.Array.Shuffle([260, 700, 1220, 1660]).map((x, i) => ({ x: x + (Math.random() - 0.5) * 80, y: SAFE_TOP + 140 + (i % 2) * 140 }));
@@ -877,6 +882,7 @@ const cheetoe = (): Brain => {
       if (!f.alive) return;
       if (found && at) {
         a.sfx('sfx_cheetoe_flush');
+        a.sc.events.emit('cheetoe-found', at.x, at.y);
         f.x = at.x;
         a.sc.tweens.add({ targets: f, y: (f.hoverY ?? HOVER_Y) - 20, duration: 360, ease: 'Bounce.Out' });
         f.shielded = false;
@@ -891,6 +897,7 @@ const cheetoe = (): Brain => {
         f.y = -200;
         busy = false;
         a.sfx('sfx_cheetoe_hiss');
+        a.sc.events.emit('cheetoe-ambush');
         pounce(f, a, true);
       }
     };
@@ -900,6 +907,7 @@ const cheetoe = (): Brain => {
       f.shielded = false;
       f.puppet = false;
       busy = false;
+      a.sc.events.emit('cheetoe-hunt-end');
     });
     spots.forEach((s, i) => {
       const hers = i === real;
