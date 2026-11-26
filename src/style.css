@@ -6272,3 +6272,15 @@ body.still-peels .peel-big.shiny::after {
 .prerun-bottom .lu.rare b { grid-area: name; }
 .prerun-bottom .lu.rare span:not(.rf):not(.tag) { grid-area: perk; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .prerun-bottom .lu.rare .btn { grid-area: btn; align-self: center; margin-top: 0; }
+
+/* the lineup's header with its SHUFFLE beside it */
+.prerun .lineup-head {
+  display: flex;
+  align-items: center;
+  gap: 0.8em;
+}
+.prerun .lineup-head .btn {
+  font-size: 1em;
+  padding: 0.2em 0.8em 0.25em;
+  min-width: 0;
+}

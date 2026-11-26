@@ -1040,7 +1040,7 @@ class UI {
     };
     // shuffling the lineup costs Golden Crusts, more each time, back to the first price when a run starts
     const shuffleCost = () => shuffleCrusts(save.shuffles);
-    const shuffleBtn = btn('', 'yellow', () => {
+    const shuffleBtn = btn('', 'yellow small', () => {
       const cost = shuffleCost();
       if (save.crusts < cost) return;
       save.crusts -= cost;
@@ -1066,11 +1066,12 @@ class UI {
       h('div', { class: 'section-title' }, 'HEAT'),
       heatRow,
       h('div', { class: 'prerun-mid' }, h('div', {}, h('div', { class: 'section-title' }, 'RUN LENGTH'), actRow), h('div', { class: 'peel-wrap' }, h('div', { class: 'section-title' }, 'YOUR PEEL'), peelCard)),
-      h('div', { class: 'prerun-bottom' }, h('div', { class: 'section-title' }, "TONIGHT'S LINEUP"), lineupRow),
+      // the shuffle sits on the lineup's own header line: it's what it acts on
+      h('div', { class: 'prerun-bottom' }, h('div', { class: 'lineup-head' }, h('div', { class: 'section-title' }, "TONIGHT'S LINEUP"), shuffleBtn), lineupRow),
       h('div', { class: 'row' }, btn('BACK', 'cream', () => {
         redealLineup = null;
         onBack();
-      }, { 'data-pad': 'back' }), shuffleBtn, startBtn),
+      }, { 'data-pad': 'back' }), startBtn),
     );
     return this.open(panel);
   }
