@@ -36,10 +36,10 @@ export class Momentum {
     this.hold = this.heat.grace;
   }
 
-  /** A new wave: full, with a fresh grace. */
+  /** A new wave: it carries over from where the last wave left it (an idle player starts the next wave cold); a
+   * fresh grace only if it was still full. A new run starts full (the constructor). */
   reset(): void {
-    this.value = 1;
-    this.hold = this.heat.grace;
+    this.hold = this.value >= 0.99 ? this.heat.grace : 0;
   }
 
   /** Real seconds of play. `drains`: there's a foot the player could be smacking (otherwise it holds as it is). */

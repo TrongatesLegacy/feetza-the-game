@@ -39,7 +39,7 @@ export interface Heat {
  *    `drain` seconds;
  *  - it only drains while there's a foot on the table the player could be smacking: between spawns, in a wave's tail,
  *    with a boss out of reach, in a cutscene, paused, in the shop or behind a phase card it holds;
- *  - it starts every wave full.
+ *  - it carries over from wave to wave (a run starts full); an idle player starts the next wave cold.
  *  Peel abilities, hero passives, smacks, the Peel Slam and the charged ability aren't affected. */
 export interface MomentumHeat {
   /** What automatic damage falls to when idle (0..1 of its full strength). */

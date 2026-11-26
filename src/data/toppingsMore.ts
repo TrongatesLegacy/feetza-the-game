@@ -110,7 +110,8 @@ export const MORE_TOPPINGS: Upgrade[] = [
   stat('bossbane', 'Bossbane', '👹', 'epic', 3, '+30% damage to bosses', (s) => { s.bossDmg += 0.3; }),
   { ...stat('overtime', 'Overtime', '⏰', 'epic', 2, '', (s) => { s.superGain += 0.6; }), desc: () => meterBoostText(60) },
   stat('chainreaction', 'Chain Reaction', '🔗', 'epic', 2, 'Smacked-down feet explode for +25 area damage', (s) => { s.explodeDmg += 25; }),
-  proc('inferno', 'Inferno Crust', '🏮', 'epic', 3, pr(every(6), [B(1.5, 4, all)], 0xff5a3c, 'fire')),
+  // (3 feet, not every foot: burning the whole table 80% of the time let a stacked build clear waves on its own)
+  proc('inferno', 'Inferno Crust', '🏮', 'epic', 3, pr(every(6), [B(1.5, 4, rnd(3))], 0xff5a3c, 'fire')),
   proc('meteor', 'Meteor Pepperoni', '🌠', 'epic', 3, pr(every(7), [D(4, BL(2, 220))], 0xff9f1c, 'rain')),
   proc('blizzard', 'Blizzard', '🌨️', 'epic', 2, pr(every(12), [FZ(2, all)], 0xffffff, 'frost')),
   proc('storm', 'Lightning Storm', '⛈️', 'epic', 3, pr(every(5), [C(2, 5, rnd(1))], 0x5fd8ff, 'zap')),
