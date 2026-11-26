@@ -276,6 +276,84 @@ function pizzaCard(v: BuildView): HTMLElement {
   );
 }
 
+/** The sub-tab the player last looked at (kept while the game runs). */
+let lastSub = '';
+
+/** The sections as sub-tabs under the summary card: a row of small tabs (each with a hint: the automatic DPS, or how
+ * many tiles are up on base), one pane showing at a time. Left and right on a tab, or a swipe on the pane, move along. */
+function subTabs(v: BuildView): HTMLElement {
+  const items: { id: string; icon: string; title: string; color: string; badge: string; pane: HTMLElement }[] = [
+    ...v.sections.map((sec, i) => {
+      const n = sec.auto ? sec.auto.length : sec.tiles.length;
+      const up = sec.tiles.filter((t) => t.tone === 'up').length;
+      const badge = sec.auto ? (v.autoDps > 0 ? `${dps(v.autoDps)}/s` : String(n)) : up ? `${up}▲` : String(n);
+      return { id: sec.id, icon: sec.icon, title: sec.title, color: sec.color, badge, pane: sectionCard(sec, i) };
+    }),
+    { id: 'pizzas', icon: '🍕', title: 'Pizzas', color: '#d9963f', badge: String(v.pizzas.length), pane: pizzaCard(v) },
+  ];
+  if (!items.some((it) => it.id === lastSub)) lastSub = items[0].id;
+  const tabs: HTMLButtonElement[] = [];
+  const panes = h('div', { class: 'st-panes' });
+  const select = (id: string, focus = false) => {
+    lastSub = id;
+    items.forEach((it, i) => {
+      const on = it.id === id;
+      tabs[i].classList.toggle('active', on);
+      tabs[i].setAttribute('aria-selected', String(on));
+      tabs[i].tabIndex = on ? 0 : -1;
+      it.pane.hidden = !on;
+      if (on && focus) tabs[i].focus();
+      // (a sideways-scrolling row on a phone keeps the chosen tab in view)
+      if (on) tabs[i].scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+    });
+    closePops(panes);
+  };
+  const step = (d: number, focus = false) => {
+    const i = items.findIndex((it) => it.id === lastSub);
+    select(items[(i + d + items.length) % items.length].id, focus);
+  };
+  items.forEach((it) => {
+    const b = h(
+      'button',
+      { class: 'st-subtab', type: 'button', role: 'tab', id: `st-tab-${it.id}`, 'aria-controls': `st-pane-${it.id}`, style: `--sc:${it.color}` },
+      h('i', {}, it.icon),
+      h('span', {}, it.title),
+      h('b', {}, it.badge),
+    );
+    b.addEventListener('click', (e) => {
+      e.stopPropagation();
+      select(it.id);
+    });
+    b.addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      e.preventDefault();
+      e.stopPropagation();
+      step(e.key === 'ArrowLeft' ? -1 : 1, true);
+    });
+    tabs.push(b);
+    it.pane.id = `st-pane-${it.id}`;
+    it.pane.setAttribute('role', 'tabpanel');
+    it.pane.setAttribute('aria-labelledby', `st-tab-${it.id}`);
+    panes.append(it.pane);
+  });
+  // a sideways swipe on the pane moves to the next or previous tab (a phone)
+  let sx = 0;
+  let sy = 0;
+  let st = 0;
+  panes.addEventListener('pointerdown', (e) => {
+    sx = e.clientX;
+    sy = e.clientY;
+    st = performance.now();
+  });
+  panes.addEventListener('pointerup', (e) => {
+    const dx = e.clientX - sx;
+    const dy = e.clientY - sy;
+    if (e.pointerType !== 'mouse' && Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.6 && performance.now() - st < 600) step(dx < 0 ? 1 : -1);
+  });
+  select(lastSub);
+  return h('div', { class: 'st-subs' }, h('div', { class: 'st-subtabs', role: 'tablist', 'aria-label': 'Stat sections' }, ...tabs), panes);
+}
+
 /** The whole STATS tab for a view. */
 export function statsBody(v: BuildView): HTMLElement {
   counters = [];
@@ -283,7 +361,7 @@ export function statsBody(v: BuildView): HTMLElement {
     'div',
     { class: `st-body${still() ? ' still' : ''}` },
     heroCard(v),
-    h('div', { class: 'st-grid' }, ...v.sections.map(sectionCard), pizzaCard(v)),
+    subTabs(v),
     h('p', { class: 'st-foot' }, `Worked out from your toppings, pizzas and peel on ${v.heat}, for the foot you're smacking with ${v.feetMeasured ? `about ${r1(v.feet)} feet on the table (as you played)` : 'about 3 feet on the table'}: area hits count once. Measured numbers are what really happened.`),
   );
   body.addEventListener('click', () => closePops(body));

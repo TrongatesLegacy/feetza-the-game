@@ -1085,3 +1085,101 @@
 .st-pop {
   max-width: min(21em, 70vw);
 }
+
+/* ——— the sections as sub-tabs under the summary card ——— */
+.st-subs {
+  display: grid;
+  gap: 0.7em;
+  min-width: 0;
+}
+
+.st-subtabs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4em;
+}
+
+.st-subtab {
+  font: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 0.3em 0.75em 0.3em 0.5em;
+  font-family: 'Lilita One', sans-serif;
+  font-size: 1.1em;
+  color: var(--ink);
+  background: #fffaf0;
+  border: 0.13em solid var(--ink);
+  border-bottom-width: 0.3em;
+  border-bottom-color: var(--sc);
+  border-radius: 0.8em;
+  box-shadow: 0 0.12em 0 var(--ink);
+}
+
+.st-subtab i {
+  font-style: normal;
+  font-family: system-ui, 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif;
+}
+
+.st-subtab b {
+  font-family: system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 0.7em;
+  padding: 0.1em 0.45em;
+  border-radius: 1em;
+  background: color-mix(in srgb, var(--sc) 25%, #fff);
+  border: 0.1em solid rgba(42, 24, 16, 0.4);
+}
+
+.st-subtab:hover,
+.st-subtab:focus-visible {
+  background: #fff1c8;
+  outline: none;
+}
+
+.st-subtab.active {
+  background: color-mix(in srgb, var(--sc) 30%, #fff);
+  transform: translateY(0.08em);
+  box-shadow: 0 0.04em 0 var(--ink), inset 0 0 0 0.12em #fff;
+}
+
+.st-panes {
+  min-width: 0;
+  touch-action: pan-y;
+}
+
+.st-panes > [hidden] {
+  display: none;
+}
+
+/* the tab row stays at the top of the panel as you scroll past the summary */
+.st-subtabs {
+  position: sticky;
+  top: 0;
+  z-index: 8;
+  padding: 0.3em 0 0.4em;
+  background: linear-gradient(#fbf0da 82%, rgba(251, 240, 218, 0));
+}
+
+/* phones: one row that scrolls sideways */
+@container (max-width: 900px) {
+  .st-subtabs {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-left: 0.2em;
+    padding-right: 0.2em;
+  }
+
+  .st-subtabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .st-subtab {
+    flex: none;
+    font-size: 0.95em;
+  }
+}
