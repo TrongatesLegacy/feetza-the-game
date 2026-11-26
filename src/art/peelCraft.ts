@@ -15,6 +15,8 @@
 //   sheen flashes across it as the light catches them; a smack lights a fracture through the glass from where it landed, and dark shards fly off.
 // - place (the place peels): a window in the head onto the location, its hero motion playing in it and its own smack
 //   (src/art/peelPlace.ts, src/art/peelPlaceDefs.ts).
+// - event and act (the event and act peels): a medallion in the head, the wave event in miniature or the act's places,
+//   boss and number (src/art/peelMedal.ts, src/art/peelEventDefs.ts).
 //
 // It is built as the living foot peels are (src/art/peelLive.ts): the rig (CraftRig: the head's layers, cut to the
 // head's box, and the handle) is built a step at a time in idle time and shared; the motion (CraftLive) is one per
@@ -53,6 +55,7 @@ import { PEEL_FRAME_WORLD, type PeelWorld } from './peelLive';
 import { PlaceLive, placeBaseAsync, placeBaseReady, placeMiniSteps, placeOver, placeUnder, type PlaceEmit, type PlaceMini, type PlaceSpr } from './peelPlace';
 import { PizzaLive, pizzaBoard, pizzaMiniSteps, pizzaPaintAsync, pizzaPaintReady, type PizzaEmit, type PizzaMini, type PizzaSpr } from './peelPizza';
 import { pizzaPeelLook } from '../game/peels';
+import { MedalLive, actPrepAsync, actReady, medalMiniSteps, medalOver, medalUnder, type MedalMini, type MedalSpr } from './peelMedal';
 import { PIZZA_BY_ID } from '../data/pizzas';
 
 const { x: HX, y: HY, r: R } = PEEL_HEAD;
@@ -87,6 +90,8 @@ export interface CraftRig {
   place: PlaceMini | null;
   /** A pizza peel: its pie's layers (src/art/peelPizza.ts). */
   pizza: PizzaMini | null;
+  /** An event or act peel: its medallion's parts (src/art/peelMedal.ts). */
+  medal: MedalMini | null;
   key: string;
 }
 
@@ -112,7 +117,7 @@ function* pizzaRigSteps(peelId: string, RR: number): Generator<void, CraftRig | 
   if (!pizza) return null;
   const under = pizza.pl.round ? pizzaBoard(look, RR) : EMPTY;
   const key = `pc_${peelId.replace(/[^a-z0-9]/gi, '_')}_${RR}`;
-  return { id: peelId, kind: 'pizza', look, RR, handle, under, over: EMPTY, inner: EMPTY, reflect: null, lit: null, lit2: null, place: null, pizza, key };
+  return { id: peelId, kind: 'pizza', look, RR, handle, under, over: EMPTY, inner: EMPTY, reflect: null, lit: null, lit2: null, place: null, pizza, medal: null, key };
 }
 
 function boxLayer(RR: number, draw: (ctx: Ctx) => void): HTMLCanvasElement {
@@ -144,7 +149,17 @@ function* rigSteps(peelId: string, kind: CraftKind, RR: number): Generator<void,
     });
     const place = look.place ? yield* placeMiniSteps(look.place, look.shape, RR) : null;
     if (!place) return null;
-    return { id: peelId, kind, look, RR, handle, under, over, inner, reflect: null, lit: null, lit2: null, place, pizza: null, key };
+    return { id: peelId, kind, look, RR, handle, under, over, inner, reflect: null, lit: null, lit2: null, place, pizza: null, medal: null, key };
+  }
+  if (kind === 'event' || kind === 'act') {
+    // an event or act peel: the head round its medallion, the bezel and glass over it, the medallion's parts
+    const under = boxLayer(RR, (ctx) => medalUnder(ctx, look));
+    yield;
+    const over = boxLayer(RR, (ctx) => medalOver(ctx, look));
+    yield;
+    const medal = yield* medalMiniSteps(look, RR);
+    if (!medal) return null;
+    return { id: peelId, kind, look, RR, handle, under, over, inner: EMPTY, reflect: null, lit: null, lit2: null, place: null, pizza: null, medal, key };
   }
   const under = boxLayer(RR, (ctx) => {
     headPath(ctx, look.shape);
@@ -175,7 +190,7 @@ function* rigSteps(peelId: string, kind: CraftKind, RR: number): Generator<void,
     lit = boxLayer(RR, obsidianFlowLit);
     lit2 = boxLayer(RR, obsidianSheen);
   }
-  return { id: peelId, kind, look, RR, handle, under, over, inner, reflect, lit, lit2, place: null, pizza: null, key };
+  return { id: peelId, kind, look, RR, handle, under, over, inner, reflect, lit, lit2, place: null, pizza: null, medal: null, key };
 }
 
 // ——— building in idle time, shared ———
@@ -254,6 +269,12 @@ export function requestCraftRig(peelId: string, done: (r: CraftRig | null) => vo
     void pizzaPaintAsync(pid, wanted).then(() => wanted() && requestCraftRig(peelId, done, wanted, urgent, RR));
     return;
   }
+  // an act peel's places' windows, its boss's foot and the number's font likewise
+  const act = kind === 'act' ? Number(peelId.slice(peelId.indexOf(':') + 1)) : 0;
+  if (act && !actReady(act)) {
+    void actPrepAsync(act).then(() => wanted() && requestCraftRig(peelId, done, wanted, urgent, RR));
+    return;
+  }
   let job = jobs.find((j) => j.key === key);
   if (!job) {
     job = { key, gen: rigSteps(peelId, kind, RR), waiters: [] };
@@ -318,7 +339,30 @@ export const enum Spr {
   Choc,
   Honey,
   Syrup,
+  // the event and act peels' (src/art/peelMedal.ts)
+  Coin,
+  Shred,
+  Pepper,
+  Gold,
 }
+
+/** An event or act medallion's names for the sprites it throws. */
+const MEDAL_SPR: Record<MedalSpr, Spr> = {
+  coin: Spr.Coin,
+  shred: Spr.Shred,
+  pepper: Spr.Pepper,
+  feather: Spr.Feather,
+  drop: Spr.Drop,
+  smoke: Spr.Smoke,
+  dust: Spr.Dust,
+  confetti: Spr.Confetti,
+  glint: Spr.Glint,
+  sparkN: Spr.SparkN,
+  spark: Spr.SparkC,
+  gold: Spr.Gold,
+  crumb: Spr.Crumb,
+  ember: Spr.Ember,
+};
 
 /** A pizza's names for the sprites it throws. */
 const PIZZA_SPR: Record<PizzaSpr, Spr> = {
@@ -635,7 +679,88 @@ const SPR: Record<Spr, SprDef> = {
   [Spr.Choc]: { w: 24, h: 24, n: 3, anim: false, draw: blob(['#2a1006', '#5c2c12', '#c88a5a']) },
   [Spr.Honey]: { w: 24, h: 24, n: 3, anim: false, draw: blob(['#7a3c02', '#e09a1e', '#fff0b0']) },
   [Spr.Syrup]: { w: 24, h: 24, n: 3, anim: false, draw: blob(['#8a1e4a', '#ee6a9e', '#ffe0ee']) },
+  [Spr.Coin]: { w: 24, h: 24, n: 3, anim: false, draw: coin },
+  [Spr.Shred]: { w: 24, h: 24, n: 3, anim: false, draw: shred },
+  [Spr.Pepper]: { w: 16, h: 16, n: 3, anim: false, draw: pepper },
+  [Spr.Gold]: { w: 24, h: 24, n: 1, anim: false, draw: mote('#ffb020', '#fff8d8') },
 };
+
+/** A tip coin tumbling: gold, lit from the top left, frame i turned edge-on a little more (it spins as it flies). */
+function coin(ctx: Ctx, i: number): void {
+  const sx = [1, 0.62, 0.25][i];
+  ctx.save();
+  ctx.translate(12, 12);
+  ctx.scale(sx, 1);
+  ctx.beginPath();
+  ctx.arc(0.6, 0.9, 8.5, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(90,50,0,0.45)';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(0, 0, 8.5, 0, Math.PI * 2);
+  const g = ctx.createRadialGradient(-3, -3.5, 0.5, 0, 0, 9);
+  g.addColorStop(0, '#fff6b8');
+  g.addColorStop(0.45, '#ffd23f');
+  g.addColorStop(1, '#b87a0a');
+  ctx.fillStyle = g;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(90,50,4,0.95)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(0, 0, 5.8, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(160,100,10,0.7)';
+  ctx.lineWidth = 0.9;
+  ctx.stroke();
+  ctx.restore();
+  ellipse(ctx, 12 - 3 * sx, 8.5, 1.6 * sx + 0.4, 1.1);
+  ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  ctx.fill();
+}
+
+/** A shred of popped balloon: a curled scrap of red rubber, lit on its top. */
+function shred(ctx: Ctx, i: number): void {
+  const r = rng(91 + i);
+  ctx.save();
+  ctx.translate(12, 12);
+  ctx.rotate(r() * 6);
+  ctx.beginPath();
+  ctx.moveTo(-7, -1);
+  ctx.quadraticCurveTo(-2, -6 - i, 6, -3);
+  ctx.quadraticCurveTo(8, 1, 4, 3);
+  ctx.quadraticCurveTo(-1, 0, -6, 4);
+  ctx.closePath();
+  const g = ctx.createLinearGradient(0, -6, 0, 4);
+  g.addColorStop(0, '#ff9a84');
+  g.addColorStop(0.5, '#e03a24');
+  g.addColorStop(1, '#8a160c');
+  ctx.fillStyle = g;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(70,10,4,0.9)';
+  ctx.lineWidth = 1.1;
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** A flake of pepper: dark, angular, a lit edge. */
+function pepper(ctx: Ctx, i: number): void {
+  const r = rng(61 + i);
+  const pts: Pt[] = [];
+  for (let k = 0; k < 5; k++) {
+    const a = (k / 5) * Math.PI * 2 + r() * 0.6;
+    const d = 3 + r() * 3;
+    pts.push([8 + Math.cos(a) * d, 8 + Math.sin(a) * d]);
+  }
+  polyPts(ctx, pts);
+  const g = ctx.createLinearGradient(3, 3, 13, 13);
+  g.addColorStop(0, '#9a7a56');
+  g.addColorStop(0.35, '#3a2618');
+  g.addColorStop(1, '#0e0804');
+  ctx.fillStyle = g;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(10,4,2,0.9)';
+  ctx.lineWidth = 0.9;
+  ctx.stroke();
+}
 
 /** A crumb of baked crust: an uneven lump, golden on its lit top left, browned under, a pore or two. */
 function crumb(ctx: Ctx, i: number): void {
@@ -831,6 +956,8 @@ const FEEL: Record<CraftKind, { squash: number; k: number; c: number; wob: numbe
   obsidian: { squash: 0.035, k: 900, c: 28, wob: 0.01, shake: 1.8, vib: 0, sway: 0.18, wk: 360, wc: 26 },
   place: { squash: 0.06, k: 560, c: 17, wob: 0.022, shake: 1, vib: 0, sway: 0.4, wk: 220, wc: 14 },
   pizza: { squash: 0.025, k: 900, c: 26, wob: 0.012, shake: 0.6, vib: 0, sway: 0.3, wk: 300, wc: 20 },
+  event: { squash: 0.05, k: 600, c: 18, wob: 0.02, shake: 0.8, vib: 0, sway: 0.38, wk: 230, wc: 15 },
+  act: { squash: 0.035, k: 800, c: 24, wob: 0.012, shake: 1.6, vib: 0, sway: 0.25, wk: 320, wc: 22 },
 };
 
 const reduced = () => !!save.settings.reducedMotion;
@@ -926,6 +1053,8 @@ export class CraftLive {
   /** A pizza peel's pie. */
   readonly pizza: PizzaLive | null;
   private pizzaEmit: PizzaEmit = (spr, lx, ly, vx, vy, s0, s1, life, o) => this.emit(PIZZA_SPR[spr], lx, ly, vx, vy, s0, s1, life, o);
+  /** An event or act peel's medallion. */
+  readonly medal: MedalLive | null;
 
   constructor(
     readonly rig: CraftRig,
@@ -936,6 +1065,17 @@ export class CraftLive {
     this.feel = FEEL[rig.kind];
     this.place = rig.place ? new PlaceLive(rig.place) : null;
     this.pizza = rig.pizza ? new PizzaLive(rig.pizza) : null;
+    this.medal = rig.medal ? new MedalLive(rig.medal) : null;
+    if (this.medal) {
+      this.medal.menu = this.menu;
+      // an act's boss stomps where a smack can land: in play and on the locker's big preview (its ▶)
+      if (!this.menu || rig.RR >= 2) this.medal.wantBoss();
+      this.medal.emit = (spr, lx, ly, vx, vy, s0, s1, life, o) => this.emit(MEDAL_SPR[spr], lx, ly, vx, vy, s0, s1, life, o);
+      this.medal.emitPlace = (spr, lx, ly, vx, vy, s0, s1, life, o) => {
+        const m = this.menu ? 0.6 : 1;
+        this.emit(PLACE_SPR[spr], lx, ly, vx * m, vy * m, s0, this.menu ? s1 * 0.8 : s1, life, o);
+      };
+    }
     if (this.pizza) {
       this.pizza.emit = this.pizzaEmit;
       this.pizza.menu = this.menu;
@@ -1055,6 +1195,10 @@ export class CraftLive {
       case 'pizza':
         this.pizza?.smack();
         break;
+      case 'event':
+      case 'act':
+        this.medal?.smack();
+        break;
       case 'obsidian': {
         for (let i = 0; i < Math.round(6 * n); i++) {
           const a = crand() * Math.PI * 2;
@@ -1127,6 +1271,10 @@ export class CraftLive {
           this.pizza.update(dt, vx, vy);
           if (this.glows[0]) this.glows[0].a = this.pizza.glowA;
         }
+        break;
+      case 'event':
+      case 'act':
+        this.medal?.update(dt);
         break;
     }
     this.bits.tick(dt);
@@ -1284,6 +1432,19 @@ export class CraftLive {
       this.pizza.draw(c);
       c.setTransform(1, 0, 0, 1, 0, 0);
       c.globalAlpha = 1;
+      return;
+    }
+    if (this.medal) {
+      // an event or act peel: the medallion (it keeps itself inside its glass), then the bezel and the head over it
+      c.setTransform(RR, 0, 0, RR, -SB.x * RR, -SB.y * RR);
+      this.medal.draw(c);
+      c.setTransform(1, 0, 0, 1, 0, 0);
+      c.globalAlpha = 1;
+      c.globalCompositeOperation = 'source-over';
+      c.drawImage(rig.over, 0, 0);
+      c.setTransform(RR, 0, 0, RR, -SB.x * RR, -SB.y * RR);
+      this.medal.drawOver(c);
+      c.setTransform(1, 0, 0, 1, 0, 0);
       return;
     }
     const [ac, ax] = scratch(RR, 0);

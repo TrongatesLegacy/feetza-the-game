@@ -154,6 +154,8 @@ class FireCore implements LookCore {
   private amt = 0;
   // the lava cracks: three short jagged lines across the head
   private cracks = new Float32Array(30);
+  /** Drawn small (a locker tile). */
+  private small = false;
 
   constructor(private st: FireStyle) {
     if (st.cracks) {
@@ -334,7 +336,9 @@ class FireCore implements LookCore {
       p[j * 2 + 1] = cy + ny * hw;
     }
     const n = 2 * m - 1;
-    pen.poly(p, n, col, 1, outline ? 4.5 : 0, this.st.outline, 0.9);
+    // (drawn small, on a locker tile, the outline stays fine: boosted to tile size, a thick dark edge round every
+    // tongue turned the fire into a spiky hat)
+    pen.poly(p, n, col, 1, outline ? (this.small ? 4.5 / (pen.boost ?? 1) + 0.6 : 4.5) : 0, this.st.outline, this.small ? 0.5 : 0.9);
     if (facets && !outline) {
       // a light facet line from base to tip
       pen.seg(bx, by, p[(m - 1) * 2], p[(m - 1) * 2 + 1], 2.4, 0xffffff, 0.45);
@@ -353,7 +357,8 @@ class FireCore implements LookCore {
       const cx = Math.cos(ang);
       const cy = Math.sin(ang);
       const dot = cx * ux + cy * uy;
-      const cut = st.cut ?? -0.25;
+      // (on a tile it burns all the way round: a band only over the top read as a hat)
+      const cut = this.small ? -1.1 : st.cut ?? -0.25;
       if (dot < cut) continue;
       const lean = Math.max(0, dot);
       // tongues near the cut die down to nothing rather than stopping short
@@ -367,8 +372,8 @@ class FireCore implements LookCore {
       const m = Math.hypot(dx, dy) || 1;
       dx /= m;
       dy /= m;
-      // wide enough to overlap: one body of fire, not a ring of spikes
-      const w = ((Math.PI * 2 * rad) / n) * (st.facets ? 0.95 : 1.15);
+      // wide enough to overlap: one body of fire, not a ring of spikes (fuller still when drawn small)
+      const w = ((Math.PI * 2 * rad) / n) * (st.facets ? 0.95 : 1.15) * (this.small ? 1.3 : 1);
       this.tongue(pen, cx * rad, cy * rad, dx, dy, l, w, Math.sin(t * 7 + i * 2.1) * l * st.sway * calm, this.col(k, i, n), k === 0);
     }
   }
@@ -387,15 +392,17 @@ class FireCore implements LookCore {
     pen.glow(ux * 20, uy * 20, HEAD_R * 1.8, HEAD_R * 1.9, 0, glowC, st.glowA * 1.5 * pulse);
     if (st.core) pen.glow(0, 0, HEAD_R * 1.6, HEAD_R * 1.6, 0, st.core, 0.75 * pulse);
     if (st.corona) this.drawCorona(pen, st.corona);
-    // in the locker the flames stay inside the image's margin (and clear of the tile's edge)
-    const H = st.height * (f.menu ? 0.6 : 1.15) * (1 + 0.45 * this.amt);
+    // in the locker the flames stay inside the image's margin (and clear of the tile's edge); on a tile, lower and
+    // fuller, so they read as a fire round the head rather than a crown of spikes over it
+    this.small = f.menu && (pen.boost ?? 1) > 1.45;
+    const H = st.height * (f.menu ? (this.small ? 0.44 : 0.6) : 1.15) * (1 + 0.45 * this.amt);
     this.ringOf(pen, 0, 78, st.count, H, st.flicker, 0, f);
-    this.ringOf(pen, 1, 75, st.count - 1, H * 0.72, st.flicker * 1.3, 0.2, f);
-    this.ringOf(pen, 2, 70, st.count - 3, H * 0.44, st.flicker * 1.7, 0.45, f);
+    this.ringOf(pen, 1, 75, st.count - 1, H * (this.small ? 0.9 : 0.72), st.flicker * 1.3, 0.2, f);
+    this.ringOf(pen, 2, 70, st.count - 3, H * (this.small ? 0.66 : 0.44), st.flicker * 1.7, 0.45, f);
     // the horns stand out of the fire, darker than it
     if (st.horns) this.drawHorns(pen, f, H);
-    // loose licks breaking away
-    for (let i = 0; i < LICKS; i++) {
+    // loose licks breaking away (not on a tile: there they're specks)
+    for (let i = 0; i < (this.small ? 0 : LICKS); i++) {
       if (this.lt[i] >= this.ll[i]) continue;
       const k = 1 - this.lt[i] / this.ll[i];
       const a = up + this.la[i];
@@ -437,7 +444,7 @@ class FireCore implements LookCore {
       // horns lean out a little and curl back in at the tip
       const da = up + side * 0.5;
       const flick = 0.9 + 0.1 * Math.sin(t * 11 + side * 2) + (f.calm ? 0 : 0.06 * Math.sin(t * 23 + side));
-      const l = H * 1.35 * flick;
+      const l = H * (this.small ? 1.05 : 1.35) * flick;
       this.tongue(pen, bx, by, Math.cos(da), Math.sin(da), l, 52, -side * l * 0.42, HORN, true);
       this.tongue(pen, bx, by, Math.cos(da), Math.sin(da), l * 0.8, 30, -side * l * 0.34, this.ramp[0], false);
       this.tongue(pen, bx, by, Math.cos(da), Math.sin(da), l * 0.45, 14, -side * l * 0.18, this.ramp[1], false);

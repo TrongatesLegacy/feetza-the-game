@@ -524,23 +524,36 @@ export function placeOver(ctx: Ctx, look: PeelLook): void {
 }
 
 let probe: Ctx | null = null;
-/** Studs round the head's band, set in from its own edge (on a circle they'd sit on the bezel or off a narrow head). */
-function bandStuds(ctx: Ctx, look: PeelLook): void {
+const studCache = new Map<PeelShape, [number, number][]>();
+
+/** Where the studs sit round the head's band (peel units), set in from its own edge. */
+export function studSpots(shape: PeelShape): [number, number][] {
+  let out = studCache.get(shape);
+  if (out) return out;
   probe ??= makeCanvas(1, 1)[1];
   const p = probe;
   const n = 12;
+  out = [];
   for (let i = 0; i < n; i++) {
     const a = Math.PI * 0.75 + (i / (n - 1)) * Math.PI * 1.5;
     let lo = 0;
     let hi = R * 1.3;
     for (let k = 0; k < 14; k++) {
       const m = (lo + hi) / 2;
-      headPath(p, look.shape);
+      headPath(p, shape);
       if (p.isPointInPath(HX + Math.cos(a) * m, HY + Math.sin(a) * m)) lo = m;
       else hi = m;
     }
-    const sx = HX + Math.cos(a) * (lo - (look.shape === 'square' ? 8.5 : 10));
-    const sy = HY + Math.sin(a) * (lo - (look.shape === 'square' ? 8.5 : 10));
+    const inset = shape === 'square' ? 8.5 : 10;
+    out.push([HX + Math.cos(a) * (lo - inset), HY + Math.sin(a) * (lo - inset)]);
+  }
+  studCache.set(shape, out);
+  return out;
+}
+
+/** Studs round the head's band, set in from its own edge (on a circle they'd sit on the bezel or off a narrow head). */
+export function bandStuds(ctx: Ctx, look: PeelLook): void {
+  for (const [sx, sy] of studSpots(look.shape)) {
     ctx.beginPath();
     ctx.arc(sx + 0.8, sy + 1.2, 5, 0, Math.PI * 2);
     ctx.fillStyle = 'rgba(0,0,0,0.25)';
@@ -561,6 +574,11 @@ function bandStuds(ctx: Ctx, look: PeelLook): void {
     ctx.fillStyle = 'rgba(255,255,255,0.85)';
     ctx.fill();
   }
+}
+
+/** A place's window at rest (painted on the spot if it isn't ready), or null. */
+export function placeStillNow(loc: LocationId, shape: PeelShape): HTMLCanvasElement | null {
+  return baseNow(loc, shape)?.still ?? null;
 }
 
 /** A place peel's head, whole (the still): the head, the window at rest, the bezel. Drawn over the handle. */

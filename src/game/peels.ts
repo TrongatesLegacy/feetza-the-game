@@ -16,6 +16,8 @@ import { BACKDROPS, type LocationId } from '../art/backdrops';
 import { drawPeelSkin, handleFrom, headFrom, PEEL_H, PEEL_W, type CraftKind, type PeelLook, type PeelPattern, type PeelShape } from '../art/peelArt';
 import { paintCraftHead } from '../art/peelCraftArt';
 import { hasPlaceWindow, placeBaseAsync } from '../art/peelPlace';
+import { actPrepAsync, medalHooks } from '../art/peelMedal';
+import { EVENT_SCENES } from '../art/peelEventDefs';
 import { hashStr, makeCanvas, mix, shade } from '../art/util';
 import { FOOT_FRAME, styledCanvas } from '../art/feetArt';
 import { REST, pose } from '../art/style/kit';
@@ -25,7 +27,7 @@ import { FEET, FOOT_BY_ID, zombifiableType, type FootType } from '../data/feet';
 import { peelZombifier, readCanvas } from './zombieArt';
 import { ACTS, STAGES, WAVES_PER_ACT } from '../data/stages';
 import { persist, save } from '../systems/save';
-import { addCanvas, ensureFootArt, eventCanvases, footArtAsync, footMeta, pizzaTops } from './assets';
+import { addCanvas, ensureFootArt, eventCanvases, footArtAsync, footArtReady, footMeta, pizzaTops } from './assets';
 import { bitmapCanvas, cachedArt, readArt, writeArt } from './artCache';
 import PEEL_VERSION from 'virtual:peel-version';
 import { PIZZAS, type PizzaType } from '../data/pizzas';
@@ -394,6 +396,34 @@ for (const loc of Object.keys(PLACE_LOOK) as LocationId[]) if (hasPlaceWindow(lo
 // the pizza peels: the pie on its board, alive (src/art/peelPizza.ts)
 for (const pz of PIZZAS) CRAFT[`pizza:${pz.id}`] = 'pizza';
 
+// the event peels (and their shinies): the event in miniature in a medallion; the act peels: a trophy medallion with
+// the act's places, boss and number (src/art/peelMedal.ts)
+for (const ev of Object.keys(EVENT_LOOK) as EventId[])
+  if (EVENT_SCENES[ev]) {
+    CRAFT[`event:${ev}`] = 'event';
+    CRAFT[`shinyev:${ev}`] = 'event';
+  }
+ACTS.forEach((_a, i) => (CRAFT[`act:${i + 1}`] = 'act'));
+medalHooks({
+  placeShape: (loc) => PLACE_LOOK[loc]?.shape ?? 'round',
+  boss: (id) => (FOOT_BY_ID[id] && footArtReady(id) ? footCrop(id)?.art ?? null : null),
+  bossReady: (id) => !FOOT_BY_ID[id] || footArtReady(id),
+  bossAsync: (id) => footArtAsync(id),
+});
+
+/** An event peel's look (its shiny's too): its medallion where it has a scene, the stamped disc where not. */
+function eventLook(ev: EventId, shiny: boolean): PeelLook {
+  const id = `${shiny ? 'shinyev' : 'event'}:${ev}`;
+  const base = plain(id, EVENT_LOOK[ev], shiny, eventCanvases[EVENT_KEY[ev]] ?? null)();
+  return EVENT_SCENES[ev] ? crafted({ ...base, emblem: null, craft: 'event', event: ev }) : base;
+}
+
+/** An act peel's look: a trophy medallion. */
+function actLook(n: number): PeelLook {
+  const base = plain(`act:${n}`, ACT_LOOK[n - 1] ?? ACT_LOOK[0], false, null)();
+  return crafted({ ...base, craft: 'act', act: n });
+}
+
 /** A pizza peel's look: its pie on the Classic's wood. `art`: with the pizza's top, which the still paints (the
  *  living rig paints the pizza's own layers, so it asks for none). */
 export function pizzaPeelLook(pz: PizzaType, art = true): PeelLook {
@@ -459,36 +489,6 @@ const ACT_LOOK: Plain[] = [
   { shape: 'oval', base: '#efe9e2', pattern: 'marble', pc: '#c9a23a', handle: '#c7ccd4', studs: '#ffd23f' }, // Greek Myths
   { shape: 'spade', base: '#120a3a', pattern: 'stars', pc: '#ffd23f', handle: '#3a2a6a', metal: true, studs: '#fff4b0' }, // Finale
 ];
-
-const actEmblems = new Map<number, HTMLCanvasElement>();
-
-/** The act's number in gold, for its peel's stamped disc. */
-function actEmblem(act: number): HTMLCanvasElement {
-  let c = actEmblems.get(act);
-  if (c) return c;
-  const [cv, ctx] = makeCanvas(120, 120);
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.lineJoin = 'round';
-  ctx.font = `${act >= 10 ? 84 : 104}px 'Lilita One', 'Fredoka', sans-serif`;
-  const g = ctx.createLinearGradient(0, 18, 0, 104);
-  g.addColorStop(0, '#fff4b0');
-  g.addColorStop(0.5, '#ffd23f');
-  g.addColorStop(1, '#d8901a');
-  ctx.lineWidth = 14;
-  ctx.strokeStyle = '#2a1810';
-  ctx.strokeText(String(act), 60, 66);
-  ctx.fillStyle = g;
-  ctx.fillText(String(act), 60, 66);
-  // a highlight sheen across the top of the number
-  ctx.globalCompositeOperation = 'source-atop';
-  ctx.fillStyle = 'rgba(255,255,255,0.28)';
-  ctx.fillRect(0, 24, 120, 22);
-  c = cv;
-  // fonts may still be loading on the first draw: only keep it once Lilita One is in
-  if (typeof document === 'undefined' || document.fonts?.check("80px 'Lilita One'")) actEmblems.set(act, c);
-  return c;
-}
 
 function buildDefs(): PeelDef[] {
   const defs: PeelDef[] = [];
@@ -565,7 +565,7 @@ function buildDefs(): PeelDef[] {
       group: 'event',
       how: `${verb} ${need} ${plural(label, need)}${ev === 'mimic' ? ' before they open' : ''}.`,
       progress: () => [Math.min(need, save.eventsDone[ev] ?? 0), need],
-      look: () => plain(`event:${ev}`, EVENT_LOOK[ev], false, eventCanvases[EVENT_KEY[ev]] ?? null)(),
+      look: () => eventLook(ev, false),
     });
   }
   // one for completing each act, on any heat (acts 7–10 are named ahead of their stages)
@@ -577,7 +577,7 @@ function buildDefs(): PeelDef[] {
       group: 'act',
       how: `Complete Act ${n}, ${a.name}: beat the boss of wave ${n * WAVES_PER_ACT}, on any heat.`,
       progress: () => [save.actsCleared.includes(n) ? 1 : 0, 1],
-      look: () => plain(`act:${n}`, ACT_LOOK[i] ?? ACT_LOOK[0], false, actEmblem(n))(),
+      look: () => actLook(n),
     });
   });
   // prestige: reach wave 60 with a Classic, Golden Crust or jewellery peel to master it
@@ -636,7 +636,7 @@ function buildDefs(): PeelDef[] {
       how: `A rare drop on Hot or hotter: ${verb.toLowerCase()} a ${label} (about 1 in 40).`,
       drop: { event: ev, chance: EVENT_SHINY_CHANCE },
       shiny: true,
-      look: () => plain(`shinyev:${ev}`, EVENT_LOOK[ev], true, eventCanvases[EVENT_KEY[ev]] ?? null)(),
+      look: () => eventLook(ev, true),
     });
   }
   for (const [id, name, ev, chance, p] of ULTRA) {
@@ -850,6 +850,8 @@ export async function peelThumbAsync(id: string, h = 180): Promise<string> {
 /** A place peel's window, painted (in idle time) or decoded from the art cache, so drawing the peel is quick. */
 export function placePeelReady(id: string): Promise<void> {
   const d = PEEL_BY_ID[id];
+  // an act peel's medallion shows its first place's window, and its number in the game's font
+  if (d?.group === 'act') return actPrepAsync(Number(id.slice(4)));
   if (!d || d.group !== 'place') return Promise.resolve();
   const loc = id.slice(6) as LocationId;
   return hasPlaceWindow(loc) ? placeBaseAsync(loc, PLACE_LOOK[loc].shape) : Promise.resolve();

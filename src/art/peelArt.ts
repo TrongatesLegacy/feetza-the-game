@@ -71,11 +71,17 @@ export interface PeelLook {
   place?: LocationId;
   /** Pizza peels (src/art/peelPizza.ts, craft 'pizza'): the pizza whose pie sits on the head. */
   pizza?: string;
+  /** Event peels (src/art/peelMedal.ts, craft 'event'): the wave event playing in the head's medallion. */
+  event?: string;
+  /** Act peels (src/art/peelMedal.ts, craft 'act'): the act whose places, boss and number the head's medallion
+   *  carries. */
+  act?: number;
 }
 
 /** The materials a crafted peel is made of ('place': a place peel's head with a window onto its location; 'pizza': a
- *  pizza peel's living pie on its board). */
-export type CraftKind = 'wood' | 'marble' | 'copper' | 'neon' | 'obsidian' | 'place' | 'pizza';
+ *  pizza peel's living pie on its board; 'event' and 'act': a medallion set into the head, its wave event or its
+ *  act playing in it). */
+export type CraftKind = 'wood' | 'marble' | 'copper' | 'neon' | 'obsidian' | 'place' | 'pizza' | 'event' | 'act';
 
 export const PEEL_W = 220;
 export const PEEL_H = 360;

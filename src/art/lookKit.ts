@@ -25,6 +25,8 @@ export interface Pen {
   glow(x: number, y: number, rx: number, ry: number, rot: number, color: number, a: number): void;
   /** Drawing over a light menu with normal blending: bolts get a crisper, deeper edge. */
   light?: boolean;
+  /** How much line widths are boosted because the peel is drawn small (1: not at all; a locker tile: about 2). */
+  readonly boost?: number;
 }
 
 // ——— colour ———
@@ -586,6 +588,9 @@ export function canvasPen(ctx: CanvasRenderingContext2D, m: { w: number }): Pen 
   };
   return {
     light: true,
+    get boost() {
+      return m.w;
+    },
     line(pts, n, w, color, a) {
       if (a <= 0.005 || n < 2) return;
       ctx.beginPath();

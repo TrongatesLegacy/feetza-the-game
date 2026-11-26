@@ -15,6 +15,7 @@
 import { INK } from './feetCommon';
 import { paintPlaceHead } from './peelPlace';
 import { paintPizzaHead } from './peelPizza';
+import { paintMedalHead } from './peelMedal';
 import { PEEL_HEAD, headPath, sparkleStar, type CraftKind, type PeelLook, type PeelShape } from './peelArt';
 import { ellipse, hashStr, makeCanvas, mix, rgba, rng, roundRect, shade, type Ctx } from './util';
 
@@ -1178,6 +1179,7 @@ export function paintCraftHead(ctx: Ctx, look: PeelLook): void {
   craftHandle(ctx, look);
   if (look.craft === 'place') return paintPlaceHead(ctx, look);
   if (look.craft === 'pizza') return paintPizzaHead(ctx, look);
+  if (look.craft === 'event' || look.craft === 'act') return paintMedalHead(ctx, look);
   ctx.save();
   headPath(ctx, look.shape);
   ctx.clip();

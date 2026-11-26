@@ -79,7 +79,7 @@ function slice(ctx: Ctx, x: number, y: number, s: number): void {
 }
 
 /** A little hero peel in flight: round head, costume colour, a cape behind (the sightings' silhouettes). */
-function flyer(ctx: Ctx, x: number, y: number, suit: string, cape: string | null, s = 1): void {
+export function flyer(ctx: Ctx, x: number, y: number, suit: string, cape: string | null, s = 1): void {
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(s, s);

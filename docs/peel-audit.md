@@ -11,6 +11,7 @@ How a peel can look today:
 - **crafted** (new in batch 1): painted as its material and alive as it (`src/art/peelCraftArt.ts`, `src/art/peelCraft.ts`).
 - **window** (new in batch 2, a crafted kind): a place peel's head with a living miniature of its location set into it (`src/art/peelPlace.ts`, `src/art/peelPlaceDefs.ts`).
 - **pie** (new in batch 3, a crafted kind): a pizza peel's pie, built from the pizza's own art in layers, alive on its board (`src/art/peelPizza.ts`).
+- **medallion** (new in batch 4, two crafted kinds, `event` and `act`): a round window set into the head behind a bezel and glass, the wave event in miniature or the act's places, number and boss alive in it (`src/art/peelMedal.ts`, `src/art/peelEventDefs.ts`).
 
 Priorities: **P1** the most seen (everyone's first peel, the first peels bought, what most players own early); **P2** owned early or often by most players, still a still today; **P3** rare or late, or already animated (a glow or a fire) and wanting a signature motion of its own.
 
@@ -23,11 +24,11 @@ Priorities: **P1** the most seen (everyone's first peel, the first peels bought,
 | Mastered (of the Classic and the Golden Crusts) | 5 | glow → **crafted + glow (batch 1)** | wave 60 with the peel equipped | done with their bases |
 | Places | 22 | still → **a living window onto the place (batch 2)** | the Trattoria's after two early runs; one per stage after | **P2, done** |
 | Pizzas | 113 | still (5 fire) → **a living pie on its board (batch 3)**; the five fire pizzas keep their fire | Margherita's and the starters' within the first few hours | **P2, done** |
-| Events | 8 | still | balloon, drone and moth peels early | **P2** (next) |
-| Acts | 10 | still | Act 1's after the first act; one per act | **P2** |
+| Events | 8 | still → **the event in miniature in a medallion (batch 4)** | balloon, drone and moth peels early | **P2, done** |
+| Acts | 10 | still → **a trophy medallion: the act's places, gold number and boss (batch 4)** | Act 1's after the first act; one per act | **P2, done** |
 | Jewellery box | 8 | glow (Ruby: fire), preview only | bought late (800–5,000 crusts) | P3 |
 | Mastered (of the jewels) | 8 | glow | late | P3 |
-| Event shinies | 8 | still | rare drops (1 in 40) | P3 |
+| Event shinies | 8 | still → **as their events, with foil (batch 4)** | rare drops (1 in 40) | done with the events |
 | Ultra-rares | 8 | glow (Fire Opal: fire) | extremely rare | P3 |
 | Heroes | 67 | glow (2 fire), preview only | goals across the game | P3 |
 | Gods (Greek 22, Norse 16) | 38 | element glow (Zeus hand-made lightning; Hestia, Hephaestus fire) | goals across the late game | P3 |
@@ -68,16 +69,20 @@ Earned by clearing 20 waves with a pizza on the table, so the starter pizzas' pe
 
 Done in batch 3, all 113 (below).
 
-### Events (8): P2
+### Events (8): batch 4, done
 
 Earned by dealing with a wave event N times (the balloon, drone and moth peels come early). Today a plain head with the event's picture stamped in a disc.
 
 - Each the event's own motion in the disc: the Tip Balloon bobbing on its string, the drone's rotors blurring, the moth's wings beating, the gull's head turning, the pizza-box chest's lid cracking open, the mimic's tongue, the hero's cape in the wind, Charybdis's whirlpool turning. On a smack, the event's answer (the balloon pops and re-inflates, the chest snaps shut).
 - Their shiny versions (8, P3) get the same with foil.
 
-### Acts (10): P2
+Done in batch 4, all 8 and their shinies (below).
+
+### Acts (10): batch 4, done
 
 Earned by finishing each act. Today a plain head stamped with the act's number in gold. A trophy's idle: the number's gold catching a sweep of light (the crafted peels' sheen), the studs glinting in turn, each act's head in its act's motif (Act 8's frost creeping, Act 9's marble veins, Act 10's cosmic swirl). Cheap, and worth doing with the places, since they share stages.
+
+Done in batch 4, all 10, as a trophy medallion with the act's places, number and boss (below).
 
 ### Jewellery box (8), mastered jewels (8), ultra-rares (8): P3
 
@@ -224,7 +229,7 @@ The five fire pizzas (Diavola, Tarte Flambée, Inferno Calzone, Volcano Calzone,
 - **Pizza Fantasma** barely let the board through. It now breathes further, down to 70 %.
 - **Crumbs** lingered like dirt. They now go within about half a second.
 - **The board** read as a frying pan. Its chamfer is wider and lighter.
-- **Not changed:** the reviewer found the Diavola's fire too spiky and red at tile size. That is the fire look from before this pass (`src/art/lookFire.ts`, shared by the five fire pizzas and others), and it is left for when the fire looks are next touched.
+- **Not changed:** the reviewer found the Diavola's fire too spiky and red at tile size. That is the fire look from before this pass (`src/art/lookFire.ts`, shared by the five fire pizzas and others), and it was left then; batch 4 makes the fire lower, fuller and all round the head on a tile (below).
 
 **Note for players' caches.** `src/art/pizzaArt.ts` changed (the layered painting), so the art cache's version moves and every foot and pizza is drawn again once on the next visit, as after any art change.
 
@@ -235,3 +240,54 @@ The five fire pizzas (Diavola, Tarte Flambée, Inferno Calzone, Volcano Calzone,
 3. The P3 families: gems, then heroes, then gods.
 
 The foot peels' first-open warm-up (batch 2) and the fire looks' tile-size read (above) are worth a look alongside.
+
+## Batch 4: the event and act peels (done)
+
+**What changed.** The 8 event peels (and their 8 shinies) and the 10 act peels keep their shape, colours, pattern, studs and handle, and get a medallion set into the head: a round window recessed behind a bezel and a glass, lit from the top left, throwing a soft shadow on the head round it. Two new crafted kinds, `event` and `act` (`src/art/peelMedal.ts`; the events' scenes in `src/art/peelEventDefs.ts`).
+
+Event peels: the wave event in miniature, doing what it does on the table, and its answer to a smack. Each scene is painted once per rig detail in parts (a background, a body, wings, a lid …), lit from the top left, and drawn each frame from those parts, moved, turned and squashed, with strings, cables and trails drawn live:
+
+| Event | Bezel | Idle | Smack |
+|---|---|---|---|
+| Tip Balloon | silver | it bobs and sways on its string in a summer sky, clouds drifting behind; its coin glints | it pops (a red puff, a ring of light, shreds of rubber and a spray of tip coins thrown off the peel), the string drops away, and a new one blows up from the knot |
+| Delivery Drone | gunmetal | it hovers over hazy rooftops (a water tower on one), rotors a blur, its parcel swinging on two cables as a pendulum pushed by its drift; its light blinks cyan; its shadow on the roofs | it lurches (tilt and dip on springs), the parcel swings wide, the light goes red, the rotors race, cyan sparks and a puff of smoke from a motor |
+| Pepper Moth | brass | it flutters round a hanging lamp at dusk, wings beating (folding in as they rise), shedding flakes of pepper; the lamp's glow flickers | swatted: it tumbles away spinning, wings frantic, in a cloud of pepper (flakes inside the medallion and off the peel), and flutters back; the lamp swings on its cord |
+| Golden Seagull | gold | it wheels over a glittering sea, three wingbeats then a glide with its wings held up, a wedge of golden crust in its beak that glints; its shadow on the water | it squawks and jolts up, wings flared then beating fast, feathers fly, the crust flashes gold |
+| Pizza Box Chest | bronze | it sits on the table in a pool of lamplight; every couple of seconds its lid lifts a crack and gold light leaks out with rising sparkles, then drops shut with a bump and a puff of dust | it bursts open: gold to the brim, rays of light fanning up, tip coins, confetti and sparkles; then the lid drops shut, the box squashing as it lands |
+| Mimic | dark bronze | a box in a gloomy purple room that wobbles in bursts (the tell); its lid creaks open on two glowing eyes and its tongue licks the rim | it chomps: the lid flips wide on uneven shaded teeth, the tongue lolls, a red glow from inside, then it snaps shut hard (a squash and a shake), cardboard bits and drool flying |
+| Hero Sighting | gold | a hero streaks across the night sky past a gold star, a trail of light and sparkles behind; the star turns and breathes; stars twinkle over a skyline | caught: the star flares and spins, glints and gold motes burst off it, the hero zooms straight through again |
+| Charybdis | verdigris | the whirlpool turns (its outer arms slow, its inner arms fast), foam flecks spiral in faster as they near the middle, the toothed maw breathes, a plank is dragged round and down now and then | the maw clamps shut and opens again, the water spins faster, spray flies off the rim, a ring of foam |
+
+The shinies are the same with the foil, and foil twinkles round the band.
+
+Act peels: a trophy. A gold bezel, milled like a coin's edge. Through it the act's two places play: their place peels' own living windows (the scene's layers and loops, shared with the place peels), the middle of each, turning from one to the other every 7 s. In front, the act's number struck in gold (a relief: a soft shadow on the place, ink, a gold ramp, a bevel, a band of light). Now and then a sweep of light runs over the number and a glint pops on its shoulder; the studs glint one at a time round the band. Act 3's still shows its second place (space: Out of This World); the rest show their first. A smack brings the act's boss (the boss of its second stage) stomping down: its foot (cut from its peel art) drops onto the medallion, squashes as it lands and lifts away, behind the number, which stays in front, squashed flat under the sole and springing back. The place reacts as its own peel does (the oven's fire flares, the surf surges …), the medallion shakes and flashes, dust puffs out from under the sole, glints fly off the number and the studs light from the middle out. In play, a smack while a stomp is still going only rings the number, so fast clicking doesn't keep the place under a foot.
+
+**How it's built.** On the crafted peels' system (batch 1), as kinds `event` and `act` (`src/art/peelCraft.ts`): the rig's layers are the head round the medallion and the bezel and glass over it (`medalUnder`, `medalOver`), and the medallion's mini (`MedalMini`). The medallion works in disc units (a 120 × 120 square) scaled to its size, which is as big as each head shape allows and, with studs, kept clear of them. An event's parts are vector-painted in a few idle steps (cheap: no art cache needed). An act's mini is its two places' minis (`placeMiniSteps`, their bases from the art cache or painted a layer per idle moment, as the place peels do) and its number, painted once. Its boss's foot is fetched only where a smack can land (in play, and on the locker's big preview for its ▶), in the background, and cut and drawn down in an idle moment, shared by every rig; a tile never asks for it. Each frame the medallion draws itself into the head's surface, clipped to its glass, with its own small pool of particles inside it (pepper, foam, sparkles, dust); what flies off is the crafted peels' sprite pool, which gains tip coins, balloon shreds, pepper and gold motes. The surface flexes about the neck as the crafted heads do. The still (thumbnails, the toast, animated peels off) is the same medallion at rest: the event posed, or the act's first place's window at rest with the number over it. Reduced motion calms the flex, the shakes and the throws.
+
+**The fire looks on tiles** (`src/art/lookFire.ts`). Drawn small (a locker tile, where the pen's line boost goes over 1.45) the fire is lower and fuller and burns all the way round the head: tongues wider, the inner rings taller so the orange and yellow show, the outer ring's outline fine and faint (boosted to tile size, a thick dark edge round every tongue made a crown of spikes), no loose licks (specks at that size), the horns shorter. The big preview and play are unchanged.
+
+**Performance** (headless Chrome; the machine was busy during this batch, load average 5–7 with a background scan and a streaming app running, so the locker figures are noisier than earlier batches'):
+
+- **Cursor peel in play**, swinging and smacking: the look's tick costs 0.30–0.35 ms a frame on average for the event peels (balloon, chest, mimic, sighting; p95 0.6–0.9, max 1.0–1.5 ms) and 0.41–0.42 ms for the act peels (Acts 1 and 8, with the stomp; p95 0.9–1.0, max 1.2–1.5 ms). Frame p95 18.1–19.4 ms, no frame over 50 ms.
+- **Locker, EVENTS tab** (all 8 alive), 6 s from opening the tab: cold art cache p95 18.6 ms, max 28 ms; warm p95 17.3 ms, max 18 ms. No long tasks.
+- **Locker, ACTS tab** (all 10 alive): cold art cache p95 17.2 ms, max 35 ms, no long tasks; warm p95 19.2–19.6 ms, max 31–34 ms. Before the boss's foot was left to where it can stomp, cutting all ten bosses' feet as the tab opened was a 200 ms task (and drawing them cold more).
+- **Locker, ALL tab**, fresh page load, three passes, side by side with the event and act medallions switched off in the same build: third pass p95 33–37 ms (max 56–94) with them against 24–33 ms (max 59–134) without; the first two passes are the locker's existing warm-up (p95 50–120 ms in both). Within the noise of a busy machine; worth timing again on a quiet one.
+- **`F.contrast()` and `F.layout()`** report nothing on the EVENTS and ACTS tabs, at desktop and at phone size (844 × 390).
+
+**Review fixes.** One independent visual review. What it raised and what changed:
+
+- **The Chest and the Mimic looked alike and their idles didn't show** in a 3 s sheet. Their idle beats now come every 1.4–2.6 s (the first within the first gap); the chest's lid lifts further (16°) with its gold light; the mimic's room is a gloomy purple, its still shows its eyes and the tip of its tongue, it wobbles more often.
+- **The Mimic's teeth read as bunting.** Fewer, bigger, uneven teeth, shaded; the chomp holds open longer with a stronger red glow from inside.
+- **The act smack hid the number.** The boss's foot now lands behind the number, which squashes flat under the sole and springs back; the stomp is shorter (it lands at once, holds 0.2 s, lifts away by 0.66 s).
+- **The balloon's pop didn't read at cursor size.** A red puff and a brighter, thicker ring of light, bigger shreds and coins, the string drops away faster and the new balloon starts blowing up sooner (0.4 s).
+- **The gull's crust read as a trumpet, its smack was weak, the gull flat.** A wedge of golden crust with a browned rim and pits, the belly shaded and the back lit, more feathers and a bigger gold flash on the smack.
+- **The Hero Sighting was an empty sky most of the time.** The hero passes every 1.6 s on a shorter track, so it is in the window most of the time.
+- **The Diavola's fire was still a red crown.** It now burns all round the head on a tile, with no stray licks.
+- **The moth's garden** read as blobs: now a dark band fading up into the dusk.
+- **Shinies** were only recoloured: foil twinkles round the band now.
+- **Not changed:** the hero is the game's own sighting badge art (`flyer` in `src/content/props/heroes.ts`), kept so the peel matches the event; the drone's cyan circuit lines are the head's own pattern from before this pass; the act windows' darker places (Acts 6, 9, 10) are their place peels' own windows, and the gold number reads over them.
+
+**Where it stopped.** All 8 event peels, their 8 shinies and all 10 act peels are done. Up next, in order:
+
+1. The P3 families: the gems (the jewellery box, their masterworks and the ultra-rares: one shared facet rig, per-stone colours), then the heroes (cape, emblem, power, on the hero heads' parts), then the gods (each god's signature motion in the head).
+2. Alongside: the foot peels' first-open warm-up on the ALL tab (batch 2), and the Immortal's and Immortal Brute's living defs. The fire looks' big-preview and in-play shapes are unchanged by the tile fix and could get the same look at the bar when the fire peels are next touched.
