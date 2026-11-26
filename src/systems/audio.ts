@@ -606,29 +606,29 @@ const TRIM: Record<string, number> = {
   sfx_mirrorpeel_land: 1.05, // -12.4 dB → -12.0: dark echo thuds onto a pizza
   sfx_mirrorpeel_death: 1.1, // -10.4 dB → -9.6: mirror peel shatters
   // The Sole Proprietor (first meeting)
-  sfx_soleprop_enter: 1.05, // -11.0 dB → -10.6: ominous gong chord and coins
-  sfx_soleprop_voice: 1.06, // -12.5 dB → -12.0: low "hmm-hm" murmur
+  sfx_soleprop_enter: 1.05, // -11.7 dB → -11.2: ominous gong chord and coins
+  sfx_soleprop_voice: 1.06, // -11.9 dB → -11.4: low "hmm-hm" murmur
   sfx_soleprop_stamp: 1.05, // -10.0 dB → -9.6: heavy SOLD stamp thunk
-  sfx_soleprop_cash: 1.13, // -13.1 dB → -12.0: cash register ka-ching
+  sfx_soleprop_cash: 1.13, // -13.1 dB → -12.1: cash register ka-ching
   sfx_soleprop_leave: 1.04, // -11.3 dB → -11.0: portal whoosh out
   sfx_soleprop_agent: 0.98, // -13.3 dB → -13.5: briefcase snaps open (agent arrives)
-  sfx_soleprop_clock: 1.09, // -14.3 dB → -13.6: clock tick
-  sfx_soleprop_bell: 1.1, // -11.4 dB → -10.6: shift-over bell and whistle
+  sfx_soleprop_clock: 1.09, // -14.5 dB → -13.7: clock tick
+  sfx_soleprop_bell: 1.1, // -12.6 dB → -11.7: shift-over bell and whistle
   // Ghost of Feet Future (mini-boss)
   sfx_ghostfuture_enter: 1.03, // -10.8 dB → -10.5: reversed ghostly swell
   sfx_ghostfuture_foresee: 0.87, // -12.3 dB → -13.5: ghost phases out
   sfx_ghostfuture_mark: 1.05, // -11.4 dB → -11.0: future footprint appears (tell)
   sfx_ghostfuture_stomp: 1.05, // -11.0 dB → -10.6: pale ethereal stomp lands
   sfx_ghostfuture_paradox: 1.05, // -10.9 dB → -10.5: peel caught in a paradox: warped zap
-  sfx_ghostfuture_rewind: 1.09, // -11.8 dB → -11.1: tape rewind
+  sfx_ghostfuture_rewind: 1.09, // -12.2 dB → -11.5: tape rewind
   sfx_ghostfuture_death: 1.09, // -11.3 dB → -10.6: ghost dissolves
   // Sole Proprietor Unbound (final boss)
-  sfx_soleunbound_enter: 1.05, // -10.0 dB → -9.6: massive impact and low choir chord
+  sfx_soleunbound_enter: 1.05, // -11.3 dB → -10.9: massive impact and low choir chord
   sfx_soleunbound_fist: 1.09, // -11.7 dB → -11.0: gauntlet fist wind-up whoosh (tell)
   sfx_soleunbound_krak: 1.1, // -10.3 dB → -9.5: comic KRAK impact
-  sfx_soleunbound_frost: 1.14, // -11.7 dB → -10.6: ice crackle freeze
-  sfx_soleunbound_fire: 1.09, // -11.2 dB → -10.5: fire whoomph ignites
-  sfx_soleunbound_douse: 1.06, // -12.5 dB → -12.0: flame smacked out: hiss
+  sfx_soleunbound_frost: 1.14, // -12.8 dB → -11.7: ice crackle freeze
+  sfx_soleunbound_fire: 1.09, // -10.2 dB → -9.4: fire whoomph ignites
+  sfx_soleunbound_douse: 1.06, // -13.4 dB → -12.9: flame smacked out: hiss
   sfx_soleunbound_gaze: 1.05, // -11.4 dB → -11.0: glowing eyes hum (tell)
   sfx_soleunbound_stone: 1.07, // -11.1 dB → -10.5: petrify crunch
   sfx_soleunbound_reflect: 1.06, // -12.5 dB → -12.0: mirror shield reflects: ping

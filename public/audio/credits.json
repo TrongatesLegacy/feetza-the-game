@@ -4594,11 +4594,35 @@
   },
   {
     "file": "ambience_firstpizzeria.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Crickets At Night - Clean sound",
+    "author": "Defelozedd94 (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "The First Pizzeria: synthesized crickets, soft night wind and a crackling wood fire, a 50 s seamless loop made with ffmpeg and Python and released as CC0, with a soft Kenney Impact Sounds impactWood_light_001, impactWood_light_003 log settling (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/Defelozedd94/sounds/522298/",
+    "notes": "The First Pizzeria: crickets, soft night wind and a crackling wood fire; built from real recordings with ffmpeg (scripts/real-sfx/build.py): crickets singing at night in a garden, a pine-wood bonfire crackling on a night in the mountains (crickets in it too), a fire crackling in a fireplace, and a gentle breeze; 50 s crossfaded loop. This source: the crickets; trimmed, levelled and layered into a 50 s crossfaded loop"
+  },
+  {
+    "file": "ambience_firstpizzeria.mp3",
+    "title": "Nighttime Bonfire 1",
+    "author": "samararaine (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/samararaine/sounds/186316/",
+    "notes": "The First Pizzeria: crickets, soft night wind and a crackling wood fire: the bonfire; trimmed, levelled and layered into a 50 s crossfaded loop"
+  },
+  {
+    "file": "ambience_firstpizzeria.mp3",
+    "title": "Fire crackling in fireplace",
+    "author": "Davor (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Davor/sounds/382616/",
+    "notes": "The First Pizzeria: crickets, soft night wind and a crackling wood fire: the fireplace crackle; trimmed, levelled and layered into a 50 s crossfaded loop"
+  },
+  {
+    "file": "ambience_firstpizzeria.mp3",
+    "title": "a gentle breeze, wind 3",
+    "author": "mario1298 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/mario1298/sounds/181252/",
+    "notes": "The First Pizzeria: crickets, soft night wind and a crackling wood fire: the breeze; trimmed, levelled and layered into a 50 s crossfaded loop"
   },
   {
     "file": "sfx_mirrorpeel_enter.mp3",
@@ -4666,19 +4690,35 @@
   },
   {
     "file": "sfx_soleprop_enter.mp3",
+    "title": "gong_brown_80cm_felt_mallet",
+    "author": "glenm8 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/glenm8/sounds/853153/",
+    "notes": "The Sole Proprietor: ominous gong chord and coins; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a big stainless-steel gong struck with a felt mallet, a little lower, and coins poured onto wood, with the old synthesized gong and low brass chord. This source: the gong; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_soleprop_enter.mp3",
+    "title": "Many Coins Dumped on a Wooden Surface.mp3",
+    "author": "dominictreis (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/dominictreis/sounds/334969/",
+    "notes": "The Sole Proprietor: ominous gong chord and coins: the coins; trimmed and layered"
+  },
+  {
+    "file": "sfx_soleprop_enter.mp3",
     "title": "Original synthesized sound",
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "The Sole Proprietor: ominous gong chord and coins; a synthesized gong and low brass chord, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactBell_heavy_002 and RPG Audio handleCoins, handleCoins2 (CC0, kenney.nl)"
+    "notes": "The Sole Proprietor: ominous gong chord and coins: the old synthesized version, of which all is kept, the real recordings layered with it; a synthesized gong and low brass chord, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactBell_heavy_002 and RPG Audio handleCoins, handleCoins2 (CC0, kenney.nl)"
   },
   {
     "file": "sfx_soleprop_voice.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "male_hum.wav",
+    "author": "mahakush (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "The Sole Proprietor: low \"hmm-hm\" murmur; a synthesized low hummed \"hmm-hm\", made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/mahakush/sounds/368817/",
+    "notes": "The Sole Proprietor: low \"hmm-hm\" murmur; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a man humming, cut into a \"hmm\" and a lower \"hm\", pitched down. This source: the hum; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_soleprop_stamp.mp3",
@@ -4690,11 +4730,20 @@
   },
   {
     "file": "sfx_soleprop_cash.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Cash Register",
+    "author": "kiddpark (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/kiddpark/sounds/201159/",
+    "notes": "The Sole Proprietor: cash register ka-ching; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a turn-of-the-century cash register: its handle and its bell, with coins dropping into the drawer. This source: the register; trimmed and layered",
+    "attribution": "\"Cash Register\" by kiddpark (freesound.org), https://freesound.org/people/kiddpark/sounds/201159/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed and layered into this sound"
+  },
+  {
+    "file": "sfx_soleprop_cash.mp3",
+    "title": "Many Coins Dumped on a Wooden Surface.mp3",
+    "author": "dominictreis (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "The Sole Proprietor: cash register ka-ching; a synthesized register bell, made with ffmpeg and Python and released as CC0, layered with Kenney RPG Audio metalLatch, metalClick, handleCoins (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/dominictreis/sounds/334969/",
+    "notes": "The Sole Proprietor: cash register ka-ching: the coins; trimmed and layered"
   },
   {
     "file": "sfx_soleprop_leave.mp3",
@@ -4714,19 +4763,36 @@
   },
   {
     "file": "sfx_soleprop_clock.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "clock-tick-01.flac",
+    "author": "pbimal (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "The Sole Proprietor: clock tick; a synthesized tick, made with ffmpeg and Python and released as CC0, layered with Kenney RPG Audio metalClick (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/pbimal/sounds/534094/",
+    "notes": "The Sole Proprietor: clock tick; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a wall clock's tick, with an old clock's tick under it. This source: the wall clock; trimmed and layered"
+  },
+  {
+    "file": "sfx_soleprop_clock.mp3",
+    "title": "ticking of the clock 02.wav",
+    "author": "blukotek (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/blukotek/sounds/412750/",
+    "notes": "The Sole Proprietor: clock tick: the old clock; trimmed and layered"
   },
   {
     "file": "sfx_soleprop_bell.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Bell, Factory, Break.wav",
+    "author": "dnewtonjr (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "The Sole Proprietor: shift-over bell and whistle; a synthesized factory bell and steam whistle, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactBell_heavy_000 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/dnewtonjr/sounds/189782/",
+    "notes": "The Sole Proprietor: shift-over bell and whistle; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a factory bell ringing, then a tugboat's steam whistle, higher, with a major third over it as a chime whistle. This source: the bell; trimmed and layered"
+  },
+  {
+    "file": "sfx_soleprop_bell.mp3",
+    "title": "Steam whistle.wav",
+    "author": "LG (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/LG/sounds/74471/",
+    "notes": "The Sole Proprietor: shift-over bell and whistle: the whistle; trimmed, pitch-shifted and layered",
+    "attribution": "\"Steam whistle.wav\" by LG (freesound.org), https://freesound.org/people/LG/sounds/74471/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
   },
   {
     "file": "sfx_ghostfuture_enter.mp3",
@@ -4770,11 +4836,11 @@
   },
   {
     "file": "sfx_ghostfuture_rewind.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "cassette tape deck rewind +start, stop clicks.flac",
+    "author": "kyles (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Ghost of Feet Future: tape rewind; a synthesized tape-rewind squeal and chatter, made with ffmpeg and Python and released as CC0, layered with Kenney Interface Sounds switch_003, switch_004 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/kyles/sounds/452901/",
+    "notes": "Ghost of Feet Future: tape rewind; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a cassette deck: the rewind key going down, the tape whirring faster and faster (its whirr stepped up in pitch) and the click as it stops. This source: the deck; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_ghostfuture_death.mp3",
@@ -4786,11 +4852,35 @@
   },
   {
     "file": "sfx_soleunbound_enter.mp3",
+    "title": "door metal big heavy close kinda slam thud echo offmic.wav",
+    "author": "kyles (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/kyles/sounds/406197/",
+    "notes": "Sole Proprietor Unbound: massive impact and low choir chord; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a big heavy metal door slammed, pitched down, and a crowd singing \"ah\", pitched into a low D minor chord with the D an octave under, with the old synthesized boom and choir. This source: the slam; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_soleunbound_enter.mp3",
+    "title": "CRWDSing_Ahh Vowel Sung Near F 02_ShaneVincent_GSC24_MSDEC-MKH435-Spirit.wav",
+    "author": "ShangusBurger (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/ShangusBurger/sounds/764221/",
+    "notes": "Sole Proprietor Unbound: massive impact and low choir chord: the choir; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_soleunbound_enter.mp3",
     "title": "Original synthesized sound",
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Sole Proprietor Unbound: massive impact and low choir chord; a synthesized sub boom and low choir chord, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds explosionCrunch_003, lowFrequency_explosion_000 and Impact Sounds impactPunch_heavy_004 (CC0, kenney.nl)"
+    "notes": "Sole Proprietor Unbound: massive impact and low choir chord: the old synthesized version, of which all is kept, the real recordings layered with it; a synthesized sub boom and low choir chord, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds explosionCrunch_003, lowFrequency_explosion_000 and Impact Sounds impactPunch_heavy_004 (CC0, kenney.nl)"
+  },
+  {
+    "file": "sfx_soleunbound_fist.mp3",
+    "title": "FX - Swoosh - Super Heavy (for swords, sticks, punches, etc)",
+    "author": "bolkmar (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/bolkmar/sounds/475131/",
+    "notes": "Sole Proprietor Unbound: gauntlet fist wind-up whoosh (tell); built from real recordings with ffmpeg (scripts/real-sfx/build.py): a super-heavy swoosh, lower and slower, as the old synthesized wind-up whoosh peaks. This source: the swoosh; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_soleunbound_fist.mp3",
@@ -4798,7 +4888,7 @@
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Sole Proprietor Unbound: gauntlet fist wind-up whoosh (tell); a synthesized heavy wind-up whoosh, made with ffmpeg and Python and released as CC0, layered with Kenney RPG Audio metalLatch (CC0, kenney.nl)"
+    "notes": "Sole Proprietor Unbound: gauntlet fist wind-up whoosh (tell): the old synthesized version, of which all is kept, the real recordings layered with it; a synthesized heavy wind-up whoosh, made with ffmpeg and Python and released as CC0, layered with Kenney RPG Audio metalLatch (CC0, kenney.nl)"
   },
   {
     "file": "sfx_soleunbound_krak.mp3",
@@ -4810,27 +4900,84 @@
   },
   {
     "file": "sfx_soleunbound_frost.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Ice Crack 1",
+    "author": "j_p_higgins (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Sole Proprietor Unbound: ice crackle freeze; a synthesized ice crackle and frost hiss, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactGlass_heavy_001 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/j_p_higgins/sounds/262635/",
+    "notes": "Sole Proprietor Unbound: ice crackle freeze; built from real recordings with ffmpeg (scripts/real-sfx/build.py): ice cracking, ice crackling under pressure, and ice cracking again. This source: the first crack; trimmed and layered"
+  },
+  {
+    "file": "sfx_soleunbound_frost.mp3",
+    "title": "Ice crackles under pressure",
+    "author": "Wigglesworth (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Wigglesworth/sounds/838106/",
+    "notes": "Sole Proprietor Unbound: ice crackle freeze: the crackling; trimmed and layered"
+  },
+  {
+    "file": "sfx_soleunbound_frost.mp3",
+    "title": "Ice Crack 3",
+    "author": "j_p_higgins (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/j_p_higgins/sounds/262633/",
+    "notes": "Sole Proprietor Unbound: ice crackle freeze: the second crack; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_soleunbound_fire.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "fire-whoosh.wav",
+    "author": "hnhnh (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Sole Proprietor Unbound: fire whoomph ignites; a synthesized fire whoomph, made with ffmpeg and Python and released as CC0, layered with Kenney Sci-fi Sounds thrusterFire_001 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/hnhnh/sounds/244926/",
+    "notes": "Sole Proprietor Unbound: fire whoomph ignites; built from real recordings with ffmpeg (scripts/real-sfx/build.py): diesel thrown on a fire flaring up, a burst of gas flame and a fiery explosion, all pitched down. This source: the fire; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_soleunbound_fire.mp3",
+    "title": "Fire Burst Flash",
+    "author": "Za-Games (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Za-Games/sounds/539972/",
+    "notes": "Sole Proprietor Unbound: fire whoomph ignites: the gas burst; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_soleunbound_fire.mp3",
+    "title": "Fire Explosion",
+    "author": "qubodup (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/qubodup/sounds/855898/",
+    "notes": "Sole Proprietor Unbound: fire whoomph ignites: the explosion; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_soleunbound_douse.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Foot Stomp C.wav",
+    "author": "patchen (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/patchen/sounds/20185/",
+    "notes": "Sole Proprietor Unbound: flame smacked out: hiss; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a foot stamp and a washcloth slapped into water, both lower, as the flame is smacked out, then water sizzling on a hot stove and a steam release. This source: the stamp; trimmed, pitch-shifted and layered",
+    "attribution": "\"Foot Stomp C.wav\" by patchen (freesound.org), https://freesound.org/people/patchen/sounds/20185/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_soleunbound_douse.mp3",
+    "title": "Wet Splat 2.mp3",
+    "author": "nebulasnails (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Sole Proprietor Unbound: flame smacked out: hiss; a synthesized steam hiss, made with ffmpeg and Python and released as CC0, layered with Kenney Impact Sounds impactSoft_medium_002 (CC0, kenney.nl)"
+    "url": "https://freesound.org/people/nebulasnails/sounds/495117/",
+    "notes": "Sole Proprietor Unbound: flame smacked out: hiss: the splat; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_soleunbound_douse.mp3",
+    "title": "Water_Sizzle_TwoDrops.wav",
+    "author": "tcrocker68 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/tcrocker68/sounds/235597/",
+    "notes": "Sole Proprietor Unbound: flame smacked out: hiss: the sizzle; trimmed and layered"
+  },
+  {
+    "file": "sfx_soleunbound_douse.mp3",
+    "title": "Steam/hiss",
+    "author": "wubitog (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/wubitog/sounds/234782/",
+    "notes": "Sole Proprietor Unbound: flame smacked out: hiss: the steam; trimmed and layered"
   },
   {
     "file": "sfx_soleunbound_gaze.mp3",
@@ -8056,11 +8203,28 @@
   },
   {
     "file": "sfx_smack_hero_batpeel.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Bat Wings (Fast)",
+    "author": "Natty23 (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/Natty23/sounds/349225/",
+    "notes": "Peel smacks: the batpeel peel’s own smack tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): an umbrella flapped like bat wings (foley), with a pigeon's wingbeats, lower, under it. This source: the umbrella; trimmed and layered",
+    "attribution": "\"Bat Wings (Fast)\" by Natty23 (freesound.org), https://freesound.org/people/Natty23/sounds/349225/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed and layered into this sound"
+  },
+  {
+    "file": "sfx_smack_hero_batpeel.mp3",
+    "title": "Beating wings of a pigeon",
+    "author": "gerardcatala (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the batpeel peel’s own smack tail; a synthesized bat-wing flutter, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/gerardcatala/sounds/153277/",
+    "notes": "Peel smacks: the batpeel peel’s own smack tail: the wingbeats; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_smack_hero_wonderwedge.mp3",
+    "title": "Lasso rope being spun, spinning through air then throw",
+    "author": "zapsplat.com (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/zapsplat.com/sounds/719638/",
+    "notes": "Peel smacks: the wonderwedge peel’s own smack tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a real lasso swung round, with the old synthesized lasso swing and bracer ping. This source: the lasso; trimmed and layered"
   },
   {
     "file": "sfx_smack_hero_wonderwedge.mp3",
@@ -8068,7 +8232,7 @@
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the wonderwedge peel’s own smack tail; a synthesized lasso swing and bracer ping, made with ffmpeg and Python and released as CC0"
+    "notes": "Peel smacks: the wonderwedge peel’s own smack tail: the old synthesized version, of which all is kept, the real recordings layered with it; a synthesized lasso swing and bracer ping, made with ffmpeg and Python and released as CC0"
   },
   {
     "file": "sfx_smack_hero_flashfoot.mp3",
@@ -8080,11 +8244,19 @@
   },
   {
     "file": "sfx_smack_hero_aquatoe.mp3",
+    "title": "Big Water Splash",
+    "author": "qubodup (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/qubodup/sounds/442773/",
+    "notes": "Peel smacks: the aquatoe peel’s own smack tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a real big water splash, with the old synthesized splash and sonar ping. This source: the splash; trimmed and layered"
+  },
+  {
+    "file": "sfx_smack_hero_aquatoe.mp3",
     "title": "Original synthesized sound",
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the aquatoe peel’s own smack tail; a synthesized splash and sonar ping, made with ffmpeg and Python and released as CC0"
+    "notes": "Peel smacks: the aquatoe peel’s own smack tail: the old synthesized version, of which all is kept, the real recordings layered with it; a synthesized splash and sonar ping, made with ffmpeg and Python and released as CC0"
   },
   {
     "file": "sfx_smack_hero_greenlampshade.mp3",
@@ -8120,11 +8292,19 @@
   },
   {
     "file": "sfx_smack_hero_incrediblebulk.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Bear Angry Growl",
+    "author": "celldroid (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the incrediblebulk peel’s own smack tail; a synthesized growl, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/celldroid/sounds/763026/",
+    "notes": "Peel smacks: the incrediblebulk peel’s own smack tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a black bear's growl and a tiger's roar, both pitched down. This source: the bear; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_smack_hero_incrediblebulk.mp3",
+    "title": "Tiger Roar",
+    "author": "lauramellis (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/lauramellis/sounds/263115/",
+    "notes": "Peel smacks: the incrediblebulk peel’s own smack tail: the tiger; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_smack_hero_blackwindow.mp3",
@@ -8136,11 +8316,19 @@
   },
   {
     "file": "sfx_smack_hero_hawkeyetalian.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Bow Release (Bow and Arrow) 2",
+    "author": "Ali_6868 (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the hawkeyetalian peel’s own smack tail; a synthesized bowstring twang, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/Ali_6868/sounds/384916/",
+    "notes": "Peel smacks: the hawkeyetalian peel’s own smack tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a bow released and an arrow flying off. This source: the bow; trimmed and layered"
+  },
+  {
+    "file": "sfx_smack_hero_hawkeyetalian.mp3",
+    "title": "Arrow Loose and Flyby",
+    "author": "saturdaysoundguy (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/saturdaysoundguy/sounds/394180/",
+    "notes": "Peel smacks: the hawkeyetalian peel’s own smack tail: the arrow; trimmed and layered"
   },
   {
     "file": "sfx_smack_hero_wolverpeel.mp3",
@@ -8208,11 +8396,20 @@
   },
   {
     "file": "sfx_smack_hero_deadpeel.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Champagne Cork",
+    "author": "KenRT (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the deadpeel peel’s own smack tail; a synthesized cork pop and kazoo, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/KenRT/sounds/392624/",
+    "notes": "Peel smacks: the deadpeel peel’s own smack tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a champagne cork popping, a little lower, then a kazoo's two-note \"you lose\", higher. This source: the cork; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_smack_hero_deadpeel.mp3",
+    "title": "MUSCInst-Blue Snowball Microphone, CU_Kazoo, 'You Lose' Accent 02_Nicholas Judy_TDC",
+    "author": "designerschoice (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/designerschoice/sounds/809044/",
+    "notes": "Peel smacks: the deadpeel peel’s own smack tail: the kazoo; trimmed, pitch-shifted and layered",
+    "attribution": "\"MUSCInst-Blue Snowball Microphone, CU_Kazoo, 'You Lose' Accent 02_Nicholas Judy_TDC\" by designerschoice (freesound.org), https://freesound.org/people/designerschoice/sounds/809044/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
   },
   {
     "file": "sfx_smack_hero_silverslicer.mp3",
@@ -8256,11 +8453,19 @@
   },
   {
     "file": "sfx_smack_hero_shazamozza.mp3",
+    "title": "Thunder (Kraków, Poland, 20.05.2013)",
+    "author": "vonz (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/vonz/sounds/188767/",
+    "notes": "Peel smacks: the shazamozza peel’s own smack tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a real crack of thunder, with the old synthesized lightning strike and brass stab. This source: the thunder; trimmed and layered"
+  },
+  {
+    "file": "sfx_smack_hero_shazamozza.mp3",
     "title": "Original synthesized sound",
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the shazamozza peel’s own smack tail; a synthesized lightning strike and brass stab, made with ffmpeg and Python and released as CC0"
+    "notes": "Peel smacks: the shazamozza peel’s own smack tail: the old synthesized version, of which all is kept, the real recordings layered with it; a synthesized lightning strike and brass stab, made with ffmpeg and Python and released as CC0"
   },
   {
     "file": "sfx_smack_hero_cypork.mp3",
@@ -8280,11 +8485,20 @@
   },
   {
     "file": "sfx_smack_hero_cattoewoman.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Whip Crack 01.wav",
+    "author": "CGEffex (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/CGEffex/sounds/93100/",
+    "notes": "Peel smacks: the cattoewoman peel’s own smack tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a whip cracked, then a cat's meow, a little higher. This source: the whip; trimmed and layered",
+    "attribution": "\"Whip Crack 01.wav\" by CGEffex (freesound.org), https://freesound.org/people/CGEffex/sounds/93100/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed and layered into this sound"
+  },
+  {
+    "file": "sfx_smack_hero_cattoewoman.mp3",
+    "title": "cat meow short",
+    "author": "skymary (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the cattoewoman peel’s own smack tail; a synthesized whip crack and meow, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/skymary/sounds/412017/",
+    "notes": "Peel smacks: the cattoewoman peel’s own smack tail: the meow; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_smack_hero_martianmozzarella.mp3",
@@ -8296,11 +8510,20 @@
   },
   {
     "file": "sfx_smack_hero_greenpepperarrow.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Bow Release (Bow and Arrow) 2",
+    "author": "Ali_6868 (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the greenpepperarrow peel’s own smack tail; a synthesized twang and boxing-glove boing, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/Ali_6868/sounds/384916/",
+    "notes": "Peel smacks: the greenpepperarrow peel’s own smack tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a bow released, then a spring door stop's boing for the boxing glove. This source: the bow; trimmed and layered"
+  },
+  {
+    "file": "sfx_smack_hero_greenpepperarrow.mp3",
+    "title": "spring_door_stop_01.wav",
+    "author": "joedeshon (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/joedeshon/sounds/81458/",
+    "notes": "Peel smacks: the greenpepperarrow peel’s own smack tail: the boing; trimmed and layered",
+    "attribution": "\"spring_door_stop_01.wav\" by joedeshon (freesound.org), https://freesound.org/people/joedeshon/sounds/81458/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed and layered into this sound"
   },
   {
     "file": "sfx_smack_hero_plasticpan.mp3",
@@ -8312,11 +8535,11 @@
   },
   {
     "file": "sfx_smack_hero_hawkcrust.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Bird - Red-shouldered hawk",
+    "author": "Vrymaa (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the hawkcrust peel’s own smack tail; a synthesized hawk screech, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/Vrymaa/sounds/770032/",
+    "notes": "Peel smacks: the hawkcrust peel’s own smack tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a red-shouldered hawk's cry. This source: the cry; trimmed"
   },
   {
     "file": "sfx_smack_hero_bluebeetroot.mp3",
@@ -8352,11 +8575,19 @@
   },
   {
     "file": "sfx_smack_hero_swampthincrust.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Schlorp",
+    "author": "Clagnar (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the swampthincrust peel’s own smack tail; a synthesized bog gurgle, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/Clagnar/sounds/557647/",
+    "notes": "Peel smacks: the swampthincrust peel’s own smack tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): water bubbling through wet coffee grounds, pitched down, for the bog. This source: the bubbling; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_smack_hero_swampthincrust.mp3",
+    "title": "Blorp",
+    "author": "Clagnar (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Clagnar/sounds/558578/",
+    "notes": "Peel smacks: the swampthincrust peel’s own smack tail: the bubbling, lower; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_smack_hero_nightwings.mp3",
@@ -8392,11 +8623,19 @@
   },
   {
     "file": "sfx_smack_hero_wasabiwasp.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Wasp Wings 1",
+    "author": "Wakerone (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the wasabiwasp peel’s own smack tail; a synthesized wasp buzz and sting, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/Wakerone/sounds/398486/",
+    "notes": "Peel smacks: the wasabiwasp peel’s own smack tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a wasp's wings buzzing close up, with a wasp buzzing at a window under it. This source: the wings; trimmed and layered"
+  },
+  {
+    "file": "sfx_smack_hero_wasabiwasp.mp3",
+    "title": "Wasp Buzzing 02",
+    "author": "loganzsound (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/loganzsound/sounds/856766/",
+    "notes": "Peel smacks: the wasabiwasp peel’s own smack tail: the second wasp; trimmed and layered"
   },
   {
     "file": "sfx_smack_hero_gambeet.mp3",
@@ -8408,11 +8647,19 @@
   },
   {
     "file": "sfx_smack_hero_icecreamman.mp3",
+    "title": "Ice Crack 1",
+    "author": "j_p_higgins (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/j_p_higgins/sounds/262635/",
+    "notes": "Peel smacks: the icecreamman peel’s own smack tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): real ice cracking, with the old synthesized ice crack and van chime. This source: the crack; trimmed and layered"
+  },
+  {
+    "file": "sfx_smack_hero_icecreamman.mp3",
     "title": "Original synthesized sound",
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the icecreamman peel’s own smack tail; a synthesized ice crack and van chime, made with ffmpeg and Python and released as CC0"
+    "notes": "Peel smacks: the icecreamman peel’s own smack tail: the old synthesized version, of which all is kept, the real recordings layered with it; a synthesized ice crack and van chime, made with ffmpeg and Python and released as CC0"
   },
   {
     "file": "sfx_smack_hero_humanscorch.mp3",
@@ -8440,11 +8687,19 @@
   },
   {
     "file": "sfx_smack_hero_zeus.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Thunder (Kraków, Poland, 20.05.2013)",
+    "author": "vonz (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the zeus peel’s own smack tail; a synthesized thunderbolt crack, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/vonz/sounds/188767/",
+    "notes": "Peel smacks: the zeus peel’s own smack tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): thunder cracking, with a second crack, a little lower, under it. This source: the crack; trimmed and layered"
+  },
+  {
+    "file": "sfx_smack_hero_zeus.mp3",
+    "title": "thunder1.wav",
+    "author": "nednednerb (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/nednednerb/sounds/38244/",
+    "notes": "Peel smacks: the zeus peel’s own smack tail: the second crack; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_smack_hero_kratos.mp3",
@@ -8456,19 +8711,43 @@
   },
   {
     "file": "sfx_smack_hero_hera.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Clean and Pompous Fanfare Trumpet.mp3",
+    "author": "joepayne (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the hera peel’s own smack tail; a synthesized regal horn call, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/joepayne/sounds/413203/",
+    "notes": "Peel smacks: the hera peel’s own smack tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): two notes of a trumpet fanfare, a fourth apart, a little higher. This source: the trumpet; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_smack_hero_poseidon.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Big Water Splash",
+    "author": "qubodup (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the poseidon peel’s own smack tail; a synthesized wave crash and trident ring, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/qubodup/sounds/442773/",
+    "notes": "Peel smacks: the poseidon peel’s own smack tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a big water splash, lower, a wave crashing on rocks, and a hit on a metal shed door ringing, higher, for the trident. This source: the splash; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_smack_hero_poseidon.mp3",
+    "title": "Crashing Waves into Rocks 1",
+    "author": "amholma (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/amholma/sounds/376799/",
+    "notes": "Peel smacks: the poseidon peel’s own smack tail: the wave; trimmed and layered"
+  },
+  {
+    "file": "sfx_smack_hero_poseidon.mp3",
+    "title": "small-metal-hit-05.wav",
+    "author": "newagesoup (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/newagesoup/sounds/337845/",
+    "notes": "Peel smacks: the poseidon peel’s own smack tail: the ring; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_smack_hero_demeter.mp3",
+    "title": "Rustling Grass 2.wav",
+    "author": "morganpurkis (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/morganpurkis/sounds/396013/",
+    "notes": "Peel smacks: the demeter peel’s own smack tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): real grass rustling, with the old synthesized wheat rustle and harvest chime. This source: the grass; trimmed and layered"
   },
   {
     "file": "sfx_smack_hero_demeter.mp3",
@@ -8476,23 +8755,39 @@
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the demeter peel’s own smack tail; a synthesized wheat rustle and harvest chime, made with ffmpeg and Python and released as CC0"
+    "notes": "Peel smacks: the demeter peel’s own smack tail: the old synthesized version, of which all is kept, the real recordings layered with it; a synthesized wheat rustle and harvest chime, made with ffmpeg and Python and released as CC0"
   },
   {
     "file": "sfx_smack_hero_athena.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "small-metal-hit-05.wav",
+    "author": "newagesoup (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the athena peel’s own smack tail; a synthesized owl hoot and shield ring, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/newagesoup/sounds/337845/",
+    "notes": "Peel smacks: the athena peel’s own smack tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a hit on a metal shed door ringing for her shield, and an owl hooting twice. This source: the shield; trimmed and layered"
+  },
+  {
+    "file": "sfx_smack_hero_athena.mp3",
+    "title": "owl_hooting_000102_0145S3 002-070 000-002 068-074.wav",
+    "author": "Gerent (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Gerent/sounds/558396/",
+    "notes": "Peel smacks: the athena peel’s own smack tail: the owl; trimmed and layered"
   },
   {
     "file": "sfx_smack_hero_apollo.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Lyre.flac",
+    "author": "Hedmarking (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the apollo peel’s own smack tail; a synthesized lyre strum, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/Hedmarking/sounds/191883/",
+    "notes": "Peel smacks: the apollo peel’s own smack tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): an iron-age lyre strummed (its plucks stacked into a chord), higher. This source: the lyre; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_smack_hero_artemis.mp3",
+    "title": "Bow Release (Bow and Arrow) 2",
+    "author": "Ali_6868 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Ali_6868/sounds/384916/",
+    "notes": "Peel smacks: the artemis peel’s own smack tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a real bow released, with the old synthesized bowstring and silver moon chime. This source: the bow; trimmed and layered"
   },
   {
     "file": "sfx_smack_hero_artemis.mp3",
@@ -8500,7 +8795,7 @@
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the artemis peel’s own smack tail; a synthesized bowstring and silver moon chime, made with ffmpeg and Python and released as CC0"
+    "notes": "Peel smacks: the artemis peel’s own smack tail: the old synthesized version, of which all is kept, the real recordings layered with it; a synthesized bowstring and silver moon chime, made with ffmpeg and Python and released as CC0"
   },
   {
     "file": "sfx_smack_hero_ares.mp3",
@@ -8512,11 +8807,12 @@
   },
   {
     "file": "sfx_smack_hero_aphrodite.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
-    "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the aphrodite peel’s own smack tail; a synthesized harp glissando, made with ffmpeg and Python and released as CC0"
+    "title": "Harp Glissando",
+    "author": "everythingsounds (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/everythingsounds/sounds/594961/",
+    "notes": "Peel smacks: the aphrodite peel’s own smack tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a harp glissando, an octave up. This source: the harp; trimmed and pitch-shifted",
+    "attribution": "\"Harp Glissando\" by everythingsounds (freesound.org), https://freesound.org/people/everythingsounds/sounds/594961/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed and pitch-shifted into this sound"
   },
   {
     "file": "sfx_smack_hero_hephaestus.mp3",
@@ -8528,27 +8824,51 @@
   },
   {
     "file": "sfx_smack_hero_hermes.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Beating wings of a pigeon",
+    "author": "gerardcatala (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the hermes peel’s own smack tail; a synthesized winged-sandal flutter, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/gerardcatala/sounds/153277/",
+    "notes": "Peel smacks: the hermes peel’s own smack tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a pigeon's wingbeats and a heavy swoosh, both higher. This source: the wingbeats; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_smack_hero_hermes.mp3",
+    "title": "FX - Swoosh - Super Heavy (for swords, sticks, punches, etc)",
+    "author": "bolkmar (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/bolkmar/sounds/475131/",
+    "notes": "Peel smacks: the hermes peel’s own smack tail: the swoosh; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_smack_hero_dionysus.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "wine-glasses-clinking",
+    "author": "BogumilaMerc (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the dionysus peel’s own smack tail; a synthesized wine-glass clink and glug, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/BogumilaMerc/sounds/835833/",
+    "notes": "Peel smacks: the dionysus peel’s own smack tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): two wine glasses clinking and a bottle glugging. This source: the glasses; trimmed and layered"
+  },
+  {
+    "file": "sfx_smack_hero_dionysus.mp3",
+    "title": "bottle-glugs.wav",
+    "author": "isbeorn (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/isbeorn/sounds/553954/",
+    "notes": "Peel smacks: the dionysus peel’s own smack tail: the glug; trimmed and layered"
   },
   {
     "file": "sfx_smack_hero_hestia.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Fire crackling in fireplace",
+    "author": "Davor (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the hestia peel’s own smack tail; a synthesized hearth crackle and warm bell, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/Davor/sounds/382616/",
+    "notes": "Peel smacks: the hestia peel’s own smack tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a fire crackling in a fireplace, and a singing bowl struck, lower, for the warm bell. This source: the fire; trimmed and layered"
+  },
+  {
+    "file": "sfx_smack_hero_hestia.mp3",
+    "title": "singing bowl strike sound",
+    "author": "inoshirodesign (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/inoshirodesign/sounds/271370/",
+    "notes": "Peel smacks: the hestia peel’s own smack tail: the bowl; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_smack_hero_hades.mp3",
@@ -8584,11 +8904,20 @@
   },
   {
     "file": "sfx_smack_hero_odin.mp3",
+    "title": "BIRDCrow_Raven Caw Close 03_KVV AUDIO_FREE",
+    "author": "KVV_Audio (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/KVV_Audio/sounds/827424/",
+    "notes": "Peel smacks: the odin peel’s own smack tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a real raven's caw, a little lower, with the old synthesized raven caw and rune gong. This source: the raven; trimmed, pitch-shifted and layered",
+    "attribution": "\"BIRDCrow_Raven Caw Close 03_KVV AUDIO_FREE\" by KVV_Audio (freesound.org), https://freesound.org/people/KVV_Audio/sounds/827424/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed, pitch-shifted and layered into this sound"
+  },
+  {
+    "file": "sfx_smack_hero_odin.mp3",
     "title": "Original synthesized sound",
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the odin peel’s own smack tail; a synthesized raven caw and rune gong, made with ffmpeg and Python and released as CC0"
+    "notes": "Peel smacks: the odin peel’s own smack tail: the old synthesized version, of which all is kept, the real recordings layered with it; a synthesized raven caw and rune gong, made with ffmpeg and Python and released as CC0"
   },
   {
     "file": "sfx_smack_hero_thor.mp3",
@@ -8608,43 +8937,60 @@
   },
   {
     "file": "sfx_smack_hero_frigg.mp3",
+    "title": "Bicycle wheel turning",
+    "author": "13GPanska_Lakota_Jan (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/13GPanska_Lakota_Jan/sounds/378366/",
+    "notes": "Peel smacks: the frigg peel’s own smack tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a bicycle wheel spinning, with the old synthesized spinning-wheel whirr and bell. This source: the wheel; trimmed and layered"
+  },
+  {
+    "file": "sfx_smack_hero_frigg.mp3",
     "title": "Original synthesized sound",
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the frigg peel’s own smack tail; a synthesized spinning-wheel whirr and bell, made with ffmpeg and Python and released as CC0"
+    "notes": "Peel smacks: the frigg peel’s own smack tail: the old synthesized version, of which all is kept, the real recordings layered with it; a synthesized spinning-wheel whirr and bell, made with ffmpeg and Python and released as CC0"
   },
   {
     "file": "sfx_smack_hero_freya.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
-    "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the freya peel’s own smack tail; a synthesized falcon cry, made with ffmpeg and Python and released as CC0"
+    "title": "Birds of Prey: Gyrfalcon Anticipation calls",
+    "author": "MichiJung (freesound.org)",
+    "license": "CC-BY 4.0",
+    "url": "https://freesound.org/people/MichiJung/sounds/867997/",
+    "notes": "Peel smacks: the freya peel’s own smack tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a gyrfalcon's call. This source: the falcon; trimmed",
+    "attribution": "\"Birds of Prey: Gyrfalcon Anticipation calls\" by MichiJung (freesound.org), https://freesound.org/people/MichiJung/sounds/867997/, licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/); trimmed into this sound"
   },
   {
     "file": "sfx_smack_hero_freyr.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Swine - Pig; Dinosaur-like Grunt",
+    "author": "TheKingOfGeeks360 (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the freyr peel’s own smack tail; a synthesized golden boar grunt and coin, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/TheKingOfGeeks360/sounds/842313/",
+    "notes": "Peel smacks: the freyr peel’s own smack tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a pig's growling grunt, lower, for the golden boar, and a coin dropped on a table. This source: the grunt; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_smack_hero_freyr.mp3",
+    "title": "Coin dropped on table 5",
+    "author": "HoseNoseSounds (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/HoseNoseSounds/sounds/510735/",
+    "notes": "Peel smacks: the freyr peel’s own smack tail: the coin; trimmed and layered"
   },
   {
     "file": "sfx_smack_hero_tyr.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "gong_brown_80cm_felt_mallet",
+    "author": "glenm8 (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the tyr peel’s own smack tail; a synthesized oath gong, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/glenm8/sounds/853153/",
+    "notes": "Peel smacks: the tyr peel’s own smack tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a big stainless-steel gong struck with a felt mallet, a little higher, darkened and damped. This source: the gong; trimmed and pitch-shifted"
   },
   {
     "file": "sfx_smack_hero_heimdall.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Battle_horn_1.wav",
+    "author": "kirmm (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the heimdall peel’s own smack tail; a synthesized horn blast, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/kirmm/sounds/392180/",
+    "notes": "Peel smacks: the heimdall peel’s own smack tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a battle horn blown, pitched down, doubled lower still. This source: the horn; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_smack_hero_baldur.mp3",
@@ -8664,19 +9010,43 @@
   },
   {
     "file": "sfx_smack_hero_njord.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "wind_gust_short_sqeeeek.wav",
+    "author": "sqeeeek (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the njord peel’s own smack tail; a synthesized sea wind and wave, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/sqeeeek/sounds/381853/",
+    "notes": "Peel smacks: the njord peel’s own smack tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a gust of wind and a wave crashing on rocks. This source: the wind; trimmed and layered"
+  },
+  {
+    "file": "sfx_smack_hero_njord.mp3",
+    "title": "Crashing Waves into Rocks 1",
+    "author": "amholma (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/amholma/sounds/376799/",
+    "notes": "Peel smacks: the njord peel’s own smack tail: the wave; trimmed and layered"
   },
   {
     "file": "sfx_smack_hero_skadi.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Ski passby",
+    "author": "cribbler (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the skadi peel’s own smack tail; a synthesized ski swish and ice crack, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/cribbler/sounds/592379/",
+    "notes": "Peel smacks: the skadi peel’s own smack tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): skis passing on snow, and ice cracking. This source: the skis; trimmed and layered"
+  },
+  {
+    "file": "sfx_smack_hero_skadi.mp3",
+    "title": "Ice Crack 1",
+    "author": "j_p_higgins (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/j_p_higgins/sounds/262635/",
+    "notes": "Peel smacks: the skadi peel’s own smack tail: the ice; trimmed and layered"
+  },
+  {
+    "file": "sfx_smack_hero_idun.mp3",
+    "title": "Apple Bite Quick.wav",
+    "author": "RoofDog (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/RoofDog/sounds/79240/",
+    "notes": "Peel smacks: the idun peel’s own smack tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a real bite into an apple, with the old synthesized apple crunch and chime. This source: the bite; trimmed and layered"
   },
   {
     "file": "sfx_smack_hero_idun.mp3",
@@ -8684,15 +9054,15 @@
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the idun peel’s own smack tail; a synthesized apple crunch and chime, made with ffmpeg and Python and released as CC0"
+    "notes": "Peel smacks: the idun peel’s own smack tail: the old synthesized version, of which all is kept, the real recordings layered with it; a synthesized apple crunch and chime, made with ffmpeg and Python and released as CC0"
   },
   {
     "file": "sfx_smack_hero_bragi.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Lyre.flac",
+    "author": "Hedmarking (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the bragi peel’s own smack tail; a synthesized harp run, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/Hedmarking/sounds/191883/",
+    "notes": "Peel smacks: the bragi peel’s own smack tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a rising run on an iron-age lyre, higher. This source: the lyre; trimmed, pitch-shifted and layered"
   },
   {
     "file": "sfx_smack_hero_leonidas.mp3",
@@ -8712,11 +9082,19 @@
   },
   {
     "file": "sfx_smack_hero_darkkneader.mp3",
+    "title": "TollBell.wav",
+    "author": "daytripper (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/daytripper/sounds/73678/",
+    "notes": "Peel smacks: the darkkneader peel’s own smack tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a real toll bell, an octave up and damped, with the old synthesized dark flutter and bell toll. This source: the bell; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_smack_hero_darkkneader.mp3",
     "title": "Original synthesized sound",
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the darkkneader peel’s own smack tail; a synthesized dark flutter and bell toll, made with ffmpeg and Python and released as CC0"
+    "notes": "Peel smacks: the darkkneader peel’s own smack tail: the old synthesized version, of which all is kept, the real recordings layered with it; a synthesized dark flutter and bell toll, made with ffmpeg and Python and released as CC0"
   },
   {
     "file": "sfx_smack_hero_captainmarvellousendgame.mp3",
@@ -8848,19 +9226,35 @@
   },
   {
     "file": "sfx_smack_hero_odinascended.mp3",
+    "title": "gong_brown_80cm_felt_mallet",
+    "author": "glenm8 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/glenm8/sounds/853153/",
+    "notes": "Peel smacks: the odinascended peel’s own smack tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a big stainless-steel gong struck with a felt mallet, a little higher, with the old synthesized rune gong and choir. This source: the gong; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_smack_hero_odinascended.mp3",
     "title": "Original synthesized sound",
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the odinascended peel’s own smack tail; a synthesized rune gong and choir, made with ffmpeg and Python and released as CC0"
+    "notes": "Peel smacks: the odinascended peel’s own smack tail: the old synthesized version, of which all is kept, the real recordings layered with it; a synthesized rune gong and choir, made with ffmpeg and Python and released as CC0"
   },
   {
     "file": "sfx_smack_hero_zeusunbound.mp3",
-    "title": "Original synthesized sound",
-    "author": "Made for Feetza",
+    "title": "Thunder (Kraków, Poland, 20.05.2013)",
+    "author": "vonz (freesound.org)",
     "license": "CC0 1.0",
-    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the zeusunbound peel’s own smack tail; a synthesized thunderbolt and long rumble, made with ffmpeg and Python and released as CC0"
+    "url": "https://freesound.org/people/vonz/sounds/188767/",
+    "notes": "Peel smacks: the zeusunbound peel’s own smack tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): thunder cracking, lower, and a close clap of thunder rolling. This source: the crack; trimmed, pitch-shifted and layered"
+  },
+  {
+    "file": "sfx_smack_hero_zeusunbound.mp3",
+    "title": "Thunder, Close",
+    "author": "Fission9 (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Fission9/sounds/505113/",
+    "notes": "Peel smacks: the zeusunbound peel’s own smack tail: the roll; trimmed and layered"
   },
   {
     "file": "sfx_smack_hero_shieldofliberty.mp3",
@@ -8872,11 +9266,27 @@
   },
   {
     "file": "sfx_smack_hero_symbiotepan.mp3",
+    "title": "Slime 5.wav",
+    "author": "Archos (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Archos/sounds/433829/",
+    "notes": "Peel smacks: the symbiotepan peel’s own smack tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a rubber stress ball squished (foley) for the slime, with the old synthesized thwip and slimy gurgle. This source: the squish; trimmed and layered"
+  },
+  {
+    "file": "sfx_smack_hero_symbiotepan.mp3",
     "title": "Original synthesized sound",
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the symbiotepan peel’s own smack tail; a synthesized thwip and slimy gurgle, made with ffmpeg and Python and released as CC0"
+    "notes": "Peel smacks: the symbiotepan peel’s own smack tail: the old synthesized version, of which all is kept, the real recordings layered with it; a synthesized thwip and slimy gurgle, made with ffmpeg and Python and released as CC0"
+  },
+  {
+    "file": "sfx_smack_hero_amazonqueen.mp3",
+    "title": "Lasso rope being spun, spinning through air then throw",
+    "author": "zapsplat.com (freesound.org)",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/zapsplat.com/sounds/719638/",
+    "notes": "Peel smacks: the amazonqueen peel’s own smack tail; built from real recordings with ffmpeg (scripts/real-sfx/build.py): a real lasso swung round, with the old synthesized lasso and horn call. This source: the lasso; trimmed and layered"
   },
   {
     "file": "sfx_smack_hero_amazonqueen.mp3",
@@ -8884,7 +9294,7 @@
     "author": "Made for Feetza",
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "notes": "Peel smacks: the amazonqueen peel’s own smack tail; a synthesized lasso and horn call, made with ffmpeg and Python and released as CC0"
+    "notes": "Peel smacks: the amazonqueen peel’s own smack tail: the old synthesized version, of which all is kept, the real recordings layered with it; a synthesized lasso and horn call, made with ffmpeg and Python and released as CC0"
   },
   {
     "file": "sfx_hero_spartanchant.mp3",

@@ -93,6 +93,11 @@ out, repo = sys.argv[1], sys.argv[2]
 # Tails since re-made from real recordings by scripts/real-sfx/build.py (the audio pass): left as they are, with
 # their credits and trims, so running this again doesn't put the synthesized versions back.
 REAL = {'sfx_smack_tail_pop', 'sfx_smack_tail_squawk', 'sfx_smack_tail_bell', 'sfx_smack_tail_kinghonk', 'sfx_smack_tail_boing'}
+# and (batch 4) the hero and god tails with real-world content
+REAL |= {'sfx_smack_hero_' + h for h in '''batpeel wonderwedge aquatoe incrediblebulk hawkeyetalian deadpeel shazamozza
+    cattoewoman greenpepperarrow hawkcrust swampthincrust wasabiwasp icecreamman zeus hera poseidon demeter athena apollo
+    artemis aphrodite hermes dionysus hestia odin frigg freya freyr tyr heimdall njord skadi idun bragi darkkneader
+    odinascended zeusunbound symbiotepan amazonqueen'''.split()}
 rep = [d for d in json.load(open(os.path.join(out, 'report.json'))) if 'error' not in d and d['key'] not in REAL]
 for d in rep:
     shutil.copy(os.path.join(out, d['key'] + '.mp3'), os.path.join(repo, 'public/audio', d['key'] + '.mp3'))

@@ -47,12 +47,19 @@ OWN = [  # original CC0 music/ambience: file, notes
 sfxdir, work, repo = sys.argv[1], sys.argv[2], sys.argv[3]
 A = os.path.join(repo, 'public/audio')
 rep = json.load(open(os.path.join(sfxdir, 'report.json')))
+# Files since re-made from real recordings by scripts/real-sfx/build.py (the audio pass, docs/audio-audit.md): not
+# copied over, so running this again doesn't put the synthesized versions back (their credits are only ever added
+# when missing, and the TRIM entries are by hand, so both are left as they are too).
+REAL = {'sfx_' + k for k in '''soleprop_enter soleprop_voice soleprop_cash soleprop_clock soleprop_bell ghostfuture_rewind
+    soleunbound_enter soleunbound_fist soleunbound_frost soleunbound_fire soleunbound_douse'''.split()} | {'ambience_firstpizzeria'}
 for d in rep:
-    shutil.copy(os.path.join(sfxdir, d['key'] + '.mp3'), os.path.join(A, d['key'] + '.mp3'))
+    if d['key'] not in REAL:
+        shutil.copy(os.path.join(sfxdir, d['key'] + '.mp3'), os.path.join(A, d['key'] + '.mp3'))
 for f, _ in MUSIC:
     shutil.copy(os.path.join(work, 'music', f), os.path.join(A, f))
 for f, _ in OWN:
-    shutil.copy(os.path.join(work, 'music' if f.startswith('music_') else 'amb', f), os.path.join(A, f))
+    if f[:-4] not in REAL:
+        shutil.copy(os.path.join(work, 'music' if f.startswith('music_') else 'amb', f), os.path.join(A, f))
 
 
 def kenney_list(used):

@@ -145,17 +145,17 @@ export const SMACK_TRIM: Record<string, number> = {
   sfx_smack_tail_boing: 0.65, // -13.2 dB, -16.3 LUFS → -12.0, -20.0
   sfx_smack_tail_pizzagods: 0.47, // -12.0 dB, -13.5 LUFS → -12.0, -20.0
   sfx_smack_hero_superpeel: 0.53, // -14.8 dB, -16.5 LUFS → -13.5, -22.0
-  sfx_smack_hero_batpeel: 0.87, // -13.6 dB, -20.8 LUFS → -13.5, -22.0
-  sfx_smack_hero_wonderwedge: 0.56, // -13.7 dB, -16.9 LUFS → -13.5, -22.0
+  sfx_smack_hero_batpeel: 0.83, // -14.5 dB, -20.4 LUFS → -13.5, -22.0
+  sfx_smack_hero_wonderwedge: 0.49, // -14.6 dB, -15.8 LUFS → -13.5, -22.0
   sfx_smack_hero_flashfoot: 0.86, // -13.6 dB, -20.7 LUFS → -13.5, -22.0
-  sfx_smack_hero_aquatoe: 0.50, // -13.7 dB, -15.9 LUFS → -13.5, -22.0
+  sfx_smack_hero_aquatoe: 0.47, // -13.9 dB, -15.5 LUFS → -13.5, -22.0
   sfx_smack_hero_greenlampshade: 0.44, // -13.5 dB, -14.8 LUFS → -13.5, -22.0
   sfx_smack_hero_spiderpan: 0.51, // -13.3 dB, -16.2 LUFS → -13.5, -22.0
   sfx_smack_hero_ironpan: 0.84, // -13.5 dB, -20.5 LUFS → -13.5, -22.0
   sfx_smack_hero_captainpizzeria: 0.65, // -13.5 dB, -18.2 LUFS → -13.5, -22.0
-  sfx_smack_hero_incrediblebulk: 0.49, // -13.5 dB, -15.8 LUFS → -13.5, -22.0
+  sfx_smack_hero_incrediblebulk: 0.49, // -13.3 dB, -15.8 LUFS → -13.5, -22.0
   sfx_smack_hero_blackwindow: 0.58, // -13.6 dB, -17.3 LUFS → -13.5, -22.0
-  sfx_smack_hero_hawkeyetalian: 0.45, // -13.4 dB, -15.0 LUFS → -13.5, -22.0
+  sfx_smack_hero_hawkeyetalian: 0.51, // -12.4 dB, -16.2 LUFS → -13.5, -22.0
   sfx_smack_hero_wolverpeel: 0.69, // -13.5 dB, -18.8 LUFS → -13.5, -22.0
   sfx_smack_hero_stormyweather: 0.72, // -13.6 dB, -19.1 LUFS → -13.5, -22.0
   sfx_smack_hero_cyclopizza: 0.71, // -13.5 dB, -19.0 LUFS → -13.5, -22.0
@@ -164,70 +164,70 @@ export const SMACK_TRIM: Record<string, number> = {
   sfx_smack_hero_scarletpitch: 0.78, // -14.9 dB, -19.8 LUFS → -13.5, -22.0
   sfx_smack_hero_antpan: 0.87, // -13.5 dB, -20.8 LUFS → -13.5, -22.0
   sfx_smack_hero_daredough: 0.60, // -13.5 dB, -17.6 LUFS → -13.5, -22.0
-  sfx_smack_hero_deadpeel: 0.42, // -14.2 dB, -14.5 LUFS → -13.5, -22.0
+  sfx_smack_hero_deadpeel: 0.47, // -13.2 dB, -15.4 LUFS → -13.5, -22.0
   sfx_smack_hero_silverslicer: 0.38, // -13.7 dB, -13.6 LUFS → -13.5, -22.0
   sfx_smack_hero_iamcrust: 0.41, // -14.1 dB, -14.3 LUFS → -13.5, -22.0
   sfx_smack_hero_rocketrucola: 0.64, // -13.4 dB, -18.1 LUFS → -13.5, -22.0
   sfx_smack_hero_starlard: 0.73, // -13.4 dB, -19.3 LUFS → -13.5, -22.0
   sfx_smack_hero_captainmarvellous: 0.48, // -13.5 dB, -15.7 LUFS → -13.5, -22.0
-  sfx_smack_hero_shazamozza: 0.54, // -13.5 dB, -16.7 LUFS → -13.5, -22.0
+  sfx_smack_hero_shazamozza: 0.57, // -12.8 dB, -17.1 LUFS → -13.5, -22.0
   sfx_smack_hero_cypork: 1.00, // -13.5 dB, -22.4 LUFS → -13.5, -22.0
   sfx_smack_hero_robinpizza: 1.15, // -16.3 dB, -23.2 LUFS → -13.5, -22.0
-  sfx_smack_hero_cattoewoman: 0.48, // -13.6 dB, -15.6 LUFS → -13.5, -22.0
+  sfx_smack_hero_cattoewoman: 0.49, // -13.1 dB, -15.8 LUFS → -13.5, -22.0
   sfx_smack_hero_martianmozzarella: 0.69, // -13.5 dB, -18.8 LUFS → -13.5, -22.0
-  sfx_smack_hero_greenpepperarrow: 0.48, // -13.5 dB, -15.7 LUFS → -13.5, -22.0
+  sfx_smack_hero_greenpepperarrow: 0.52, // -13.0 dB, -16.4 LUFS → -13.5, -22.0
   sfx_smack_hero_plasticpan: 0.47, // -13.5 dB, -15.5 LUFS → -13.5, -22.0
-  sfx_smack_hero_hawkcrust: 0.42, // -13.6 dB, -14.5 LUFS → -13.5, -22.0
+  sfx_smack_hero_hawkcrust: 0.44, // -13.0 dB, -14.8 LUFS → -13.5, -22.0
   sfx_smack_hero_bluebeetroot: 0.62, // -14.8 dB, -17.8 LUFS → -13.5, -22.0
   sfx_smack_hero_boostergouda: 0.42, // -13.5 dB, -14.4 LUFS → -13.5, -22.0
   sfx_smack_hero_staticcling: 0.54, // -14.2 dB, -16.6 LUFS → -13.5, -22.0
   sfx_smack_hero_zatannapanna: 0.50, // -13.5 dB, -16.0 LUFS → -13.5, -22.0
-  sfx_smack_hero_swampthincrust: 0.72, // -13.5 dB, -19.1 LUFS → -13.5, -22.0
+  sfx_smack_hero_swampthincrust: 0.68, // -14.0 dB, -18.7 LUFS → -13.5, -22.0
   sfx_smack_hero_nightwings: 0.84, // -15.3 dB, -20.5 LUFS → -13.5, -22.0
   sfx_smack_hero_ghostroaster: 0.52, // -14.4 dB, -16.4 LUFS → -13.5, -22.0
   sfx_smack_hero_moonknife: 0.53, // -13.5 dB, -16.5 LUFS → -13.5, -22.0
   sfx_smack_hero_shebulk: 1.00, // -13.5 dB, -22.6 LUFS → -13.5, -22.0
-  sfx_smack_hero_wasabiwasp: 0.59, // -17.5 dB, -17.4 LUFS → -13.5, -22.0
+  sfx_smack_hero_wasabiwasp: 0.68, // -16.0 dB, -18.7 LUFS → -13.5, -22.0
   sfx_smack_hero_gambeet: 0.75, // -13.6 dB, -19.5 LUFS → -13.5, -22.0
-  sfx_smack_hero_icecreamman: 0.42, // -13.5 dB, -14.4 LUFS → -13.5, -22.0
+  sfx_smack_hero_icecreamman: 0.39, // -13.9 dB, -13.8 LUFS → -13.5, -22.0
   sfx_smack_hero_humanscorch: 0.53, // -13.6 dB, -16.5 LUFS → -13.5, -22.0
   sfx_smack_hero_mrelasticcheese: 0.71, // -13.5 dB, -19.0 LUFS → -13.5, -22.0
   sfx_smack_hero_squirrelgourmet: 0.38, // -13.4 dB, -13.6 LUFS → -13.5, -22.0
-  sfx_smack_hero_zeus: 0.71, // -13.5 dB, -19.0 LUFS → -13.5, -22.0
+  sfx_smack_hero_zeus: 0.63, // -14.2 dB, -18.0 LUFS → -13.5, -22.0
   sfx_smack_hero_kratos: 0.55, // -13.7 dB, -16.8 LUFS → -13.5, -22.0
-  sfx_smack_hero_hera: 0.40, // -13.5 dB, -14.0 LUFS → -13.5, -22.0
-  sfx_smack_hero_poseidon: 0.53, // -13.5 dB, -16.5 LUFS → -13.5, -22.0
-  sfx_smack_hero_demeter: 0.47, // -13.4 dB, -15.4 LUFS → -13.5, -22.0
-  sfx_smack_hero_athena: 0.51, // -13.5 dB, -16.2 LUFS → -13.5, -22.0
-  sfx_smack_hero_apollo: 0.43, // -13.5 dB, -14.6 LUFS → -13.5, -22.0
-  sfx_smack_hero_artemis: 0.43, // -13.5 dB, -14.7 LUFS → -13.5, -22.0
+  sfx_smack_hero_hera: 0.42, // -12.9 dB, -14.4 LUFS → -13.5, -22.0
+  sfx_smack_hero_poseidon: 0.48, // -14.2 dB, -15.7 LUFS → -13.5, -22.0
+  sfx_smack_hero_demeter: 0.42, // -14.2 dB, -14.4 LUFS → -13.5, -22.0
+  sfx_smack_hero_athena: 0.51, // -13.3 dB, -16.2 LUFS → -13.5, -22.0
+  sfx_smack_hero_apollo: 0.44, // -12.9 dB, -14.9 LUFS → -13.5, -22.0
+  sfx_smack_hero_artemis: 0.45, // -13.4 dB, -15.1 LUFS → -13.5, -22.0
   sfx_smack_hero_ares: 1.01, // -13.6 dB, -22.6 LUFS → -13.5, -22.0
-  sfx_smack_hero_aphrodite: 0.46, // -13.6 dB, -15.2 LUFS → -13.5, -22.0
+  sfx_smack_hero_aphrodite: 0.46, // -13.7 dB, -15.2 LUFS → -13.5, -22.0
   sfx_smack_hero_hephaestus: 0.62, // -13.5 dB, -17.8 LUFS → -13.5, -22.0
-  sfx_smack_hero_hermes: 0.46, // -13.5 dB, -15.2 LUFS → -13.5, -22.0
-  sfx_smack_hero_dionysus: 0.56, // -13.5 dB, -17.0 LUFS → -13.5, -22.0
-  sfx_smack_hero_hestia: 0.70, // -13.5 dB, -18.9 LUFS → -13.5, -22.0
+  sfx_smack_hero_hermes: 0.52, // -12.2 dB, -16.4 LUFS → -13.5, -22.0
+  sfx_smack_hero_dionysus: 0.52, // -13.8 dB, -16.4 LUFS → -13.5, -22.0
+  sfx_smack_hero_hestia: 0.68, // -13.7 dB, -18.6 LUFS → -13.5, -22.0
   sfx_smack_hero_hades: 0.85, // -13.5 dB, -20.6 LUFS → -13.5, -22.0
   sfx_smack_hero_persephone: 0.45, // -13.5 dB, -15.1 LUFS → -13.5, -22.0
   sfx_smack_hero_nike: 0.56, // -13.5 dB, -16.9 LUFS → -13.5, -22.0
   sfx_smack_hero_nyx: 0.48, // -13.5 dB, -15.7 LUFS → -13.5, -22.0
-  sfx_smack_hero_odin: 0.54, // -13.6 dB, -16.6 LUFS → -13.5, -22.0
+  sfx_smack_hero_odin: 0.50, // -13.9 dB, -16.0 LUFS → -13.5, -22.0
   sfx_smack_hero_thor: 0.83, // -12.0 dB, -18.4 LUFS → -12.0, -20.0
   sfx_smack_hero_loki: 0.45, // -13.5 dB, -15.0 LUFS → -13.5, -22.0
-  sfx_smack_hero_frigg: 0.57, // -13.5 dB, -17.1 LUFS → -13.5, -22.0
-  sfx_smack_hero_freya: 0.42, // -13.5 dB, -14.4 LUFS → -13.5, -22.0
-  sfx_smack_hero_freyr: 0.60, // -13.5 dB, -17.5 LUFS → -13.5, -22.0
-  sfx_smack_hero_tyr: 0.81, // -13.5 dB, -20.2 LUFS → -13.5, -22.0
-  sfx_smack_hero_heimdall: 0.42, // -13.5 dB, -14.4 LUFS → -13.5, -22.0
+  sfx_smack_hero_frigg: 0.50, // -14.5 dB, -16.0 LUFS → -13.5, -22.0
+  sfx_smack_hero_freya: 0.43, // -13.0 dB, -14.6 LUFS → -13.5, -22.0
+  sfx_smack_hero_freyr: 0.60, // -13.6 dB, -17.5 LUFS → -13.5, -22.0
+  sfx_smack_hero_tyr: 0.69, // -14.6 dB, -18.8 LUFS → -13.5, -22.0
+  sfx_smack_hero_heimdall: 0.45, // -12.6 dB, -15.0 LUFS → -13.5, -22.0
   sfx_smack_hero_baldur: 0.48, // -13.6 dB, -15.7 LUFS → -13.5, -22.0
   sfx_smack_hero_hel: 0.49, // -13.4 dB, -15.8 LUFS → -13.5, -22.0
-  sfx_smack_hero_njord: 0.56, // -13.4 dB, -16.9 LUFS → -13.5, -22.0
-  sfx_smack_hero_skadi: 0.45, // -13.6 dB, -15.0 LUFS → -13.5, -22.0
-  sfx_smack_hero_idun: 0.52, // -13.4 dB, -16.3 LUFS → -13.5, -22.0
-  sfx_smack_hero_bragi: 0.39, // -14.1 dB, -13.9 LUFS → -13.5, -22.0
+  sfx_smack_hero_njord: 0.51, // -13.6 dB, -16.1 LUFS → -13.5, -22.0
+  sfx_smack_hero_skadi: 0.43, // -13.5 dB, -14.7 LUFS → -13.5, -22.0
+  sfx_smack_hero_idun: 0.46, // -14.5 dB, -15.2 LUFS → -13.5, -22.0
+  sfx_smack_hero_bragi: 0.43, // -13.2 dB, -14.6 LUFS → -13.5, -22.0
   sfx_smack_hero_leonidas: 0.57, // -13.5 dB, -17.1 LUFS → -13.5, -22.0
   sfx_smack_hero_hotgates: 0.49, // -13.5 dB, -15.8 LUFS → -13.5, -22.0
-  sfx_smack_hero_darkkneader: 0.73, // -13.4 dB, -19.3 LUFS → -13.5, -22.0
+  sfx_smack_hero_darkkneader: 0.67, // -14.4 dB, -18.5 LUFS → -13.5, -22.0
   sfx_smack_hero_captainmarvellousendgame: 0.40, // -13.5 dB, -14.0 LUFS → -13.5, -22.0
   sfx_smack_hero_starlardendgame: 0.45, // -13.4 dB, -15.1 LUFS → -13.5, -22.0
   sfx_smack_hero_incrediblebulkendgame: 0.42, // -13.5 dB, -14.5 LUFS → -13.5, -22.0
@@ -244,9 +244,9 @@ export const SMACK_TRIM: Record<string, number> = {
   sfx_smack_hero_superpeelprime: 0.40, // -13.7 dB, -14.0 LUFS → -13.5, -22.0
   sfx_smack_hero_ironpaninfinity: 0.57, // -13.5 dB, -17.1 LUFS → -13.5, -22.0
   sfx_smack_hero_thorunleashed: 0.80, // -12.0 dB, -18.1 LUFS → -12.0, -20.0
-  sfx_smack_hero_odinascended: 0.60, // -13.5 dB, -17.5 LUFS → -13.5, -22.0
-  sfx_smack_hero_zeusunbound: 0.59, // -13.5 dB, -17.4 LUFS → -13.5, -22.0
+  sfx_smack_hero_odinascended: 0.54, // -14.6 dB, -16.6 LUFS → -13.5, -22.0
+  sfx_smack_hero_zeusunbound: 0.55, // -13.8 dB, -16.8 LUFS → -13.5, -22.0
   sfx_smack_hero_shieldofliberty: 0.58, // -13.5 dB, -17.3 LUFS → -13.5, -22.0
-  sfx_smack_hero_symbiotepan: 0.42, // -13.5 dB, -14.5 LUFS → -13.5, -22.0
-  sfx_smack_hero_amazonqueen: 0.48, // -13.5 dB, -15.7 LUFS → -13.5, -22.0
+  sfx_smack_hero_symbiotepan: 0.41, // -14.0 dB, -14.3 LUFS → -13.5, -22.0
+  sfx_smack_hero_amazonqueen: 0.47, // -13.7 dB, -15.4 LUFS → -13.5, -22.0
 };
