@@ -74,15 +74,14 @@ interface DamageOpts {
   x?: number;
   y?: number;
   quiet?: boolean;
-  /** Damage a topping dealt on its own (a timed or triggered proc, the drone…): scaled by the heat's autoDmg (as is a
-   * peel's passive hit: `passive` without `hero`). */
+  /** Damage a topping dealt on its own (a timed or triggered proc, the drone…): scaled by the heat's autoDmg. */
   auto?: boolean;
   /** Where the STATS tab's tally files it (a topping proc, a pizza perk, the drone…): the source when unset. */
   tag?: string;
   /** It fired by itself (a timed or on-hit peel ability, a hero's passive), not as the player's own move: it glances
    * off a held guard shield like automatic damage, without the heat's automatic scaling. */
   passive?: boolean;
-  /** A hero's passive (src/game/heroMoves.ts): passive for shields, but not scaled by the heat's autoDmg. */
+  /** A hero's passive (src/game/heroMoves.ts). */
   hero?: boolean;
   /** Fire, frost or lightning (a peel ability's fiery, frosty or zapping hit): insulated feet take none of it. */
   element?: 'fire' | 'frost' | 'zap';
@@ -3531,9 +3530,9 @@ export class GameScene extends Phaser.Scene implements Arena {
     }
     let dmg = amount;
     const auto = o.auto || AUTO_SOURCES.has(o.source);
-    // what hits by itself is scaled right down by the heat (autoDmg: 0.2 on Mild to 0.35 from Extra Hot), toppings and
-    // a peel's timed or on-hit ability alike, so smacking stays the main damage; hero passives aren't
-    if (auto || (o.passive && !o.hero)) dmg *= this.run.heatDef.autoDmg;
+    // topping damage that hits by itself is scaled down by the heat (autoDmg: 0.35 on Mild to 0.7 from Extra Hot), so
+    // smacking stays the main damage; a peel's own ability and hero passives aren't (`passive` only matters to shields)
+    if (auto) dmg *= this.run.heatDef.autoDmg;
     // a raised guard shield takes the rest too (a hero's bypass still goes straight through). What fires by itself
     // (toppings, drones, procs, a peel's timed or on-hit ability, hero passives) and chain lightning only wear it down
     // at the heat's rate (guardAutoWear) and never take its last step: only the player's own blow smashes a held
@@ -3620,6 +3619,9 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.tally.add(o.tag ?? o.source, Math.min(dealt, Math.max(0, f.hp)));
     f.hp -= dealt;
     if (dealt > 0) f.regenHold = 2;
+    // the player's own blow (a smack, the Peel Slam, a charged ability's hit), not what fires by itself: the Persian
+    // Elephant's armour answers only these (src/game/acts/gods.ts)
+    if (dealt > 0 && (smack || o.source === 'slam' || (o.source === 'ability' && !auto && !o.passive))) f.brain.blow = 1;
     if (smack && f.has('crack') && f.armor > 0) {
       f.armor--;
       this.fx.quip(f.x + 60, f.cy - 60, 'CRACK!', '#c7ccd4', 30);

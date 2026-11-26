@@ -1296,8 +1296,8 @@ class UI {
     const panel = h(
       'div',
       { class: 'panel modal wide yourtops' },
-      h('div', { class: 'title' }, 'YOUR TOPPINGS'),
-      tabs,
+      // the title with the TOPPINGS / STATS tabs beside it, in one row
+      h('div', { class: 'yt-head' }, h('div', { class: 'title' }, 'YOUR TOPPINGS'), tabs),
       topsPane,
       statsPane,
       btn('DONE', 'green', () => this.close(s), { 'data-pad': 'back' }),

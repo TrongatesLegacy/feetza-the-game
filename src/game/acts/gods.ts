@@ -1,7 +1,9 @@
 // What the Kratos Peel's two feet do (data in src/content/feet/gods.ts), through the contentFx foot hooks.
 //
 // - Persian Elephant Feet: when it stomps, its trunk swings down onto the pizza next to its own (the side it
-//   leans to). After every smack it raises gold-edged armour for 0.7 s: nothing hurts it until it drops.
+//   leans to). After every blow of the player's own (a smack, the Peel Slam, a charged ability) it raises gold-rimmed
+//   bronze lamellar plates over the foot for 0.7 s: nothing hurts it until they fold away. Toppings, burns and
+//   passives don't raise them.
 // - Spartan Sandals: march in pairs. A round bronze shield (the guard trait, on its own quicker rhythm: up for 1 s,
 //   down for 1.2 s; FootType.guard) blocks smacks while it's up, and cracks under them; enough of them shatter it
 //   until a new one comes (src/game/guardShield.ts). A hit while it's down slams it straight back up for 2 s.
@@ -19,7 +21,107 @@ import { takeCentre } from './persians';
 /** Seconds its armour stays up after a smack (0.7, was 1: with elephants common in Act 9 they outlasted the waves). */
 const ELEPHANT_GUARD = 0.7;
 
-const plates = new WeakMap<Foot, Phaser.GameObjects.Graphics>();
+const plates = new WeakMap<Foot, Phaser.GameObjects.Image>();
+
+/** Its armour's texture: rows of overlapping bronze lamellar plates, gold-rimmed and riveted, in a rounded shield
+ * shape that covers the front of the foot (drawn once, front-on, lit from the top left). */
+const PLATE_KEY = 'fx_elephant_plates';
+const PW = 340;
+const PH = 320;
+function plateTexture(a: Arena): string {
+  if (a.sc.textures.exists(PLATE_KEY)) return PLATE_KEY;
+  const cv = document.createElement('canvas');
+  cv.width = PW;
+  cv.height = PH;
+  const g = cv.getContext('2d')!;
+  // the outline: a broad rounded shield, flat-ish on top, full at the toes
+  const outline = (c: CanvasRenderingContext2D) => {
+    c.beginPath();
+    c.moveTo(34, 26);
+    c.quadraticCurveTo(PW / 2, 6, PW - 34, 26);
+    c.bezierCurveTo(PW - 6, 120, PW - 10, 230, PW - 46, 282);
+    c.quadraticCurveTo(PW / 2, 330, 46, 282);
+    c.bezierCurveTo(10, 230, 6, 120, 34, 26);
+    c.closePath();
+  };
+  g.save();
+  outline(g);
+  g.clip();
+  // the backing: dark bronze in shade
+  g.fillStyle = '#3a2410';
+  g.fillRect(0, 0, PW, PH);
+  // rows of plates on one shared spacing (offset every other row)
+  const pw = 76;
+  const ph = 104;
+  // (bottom row first: each row hangs over the one below, so every scale's rounded foot shows, as on scale armour)
+  for (let row = 3; row >= 0; row--) {
+    const y = 10 + row * 74;
+    const off = row % 2 ? pw / 2 : 0;
+    for (let x = -pw + off; x < PW + pw; x += pw) {
+      const plate = () => {
+        g.beginPath();
+        g.moveTo(x + 3, y);
+        g.lineTo(x + pw - 3, y);
+        g.lineTo(x + pw - 3, y + ph - pw / 2);
+        g.arc(x + pw / 2, y + ph - pw / 2, pw / 2 - 3, 0, Math.PI);
+        g.closePath();
+      };
+      // its drop shadow on the row beneath
+      g.save();
+      g.translate(0, 6);
+      plate();
+      g.fillStyle = 'rgba(20,10,0,0.45)';
+      g.fill();
+      g.restore();
+      plate();
+      const gr = g.createLinearGradient(x, y, x + pw, y + ph);
+      gr.addColorStop(0, '#d6984a');
+      gr.addColorStop(0.4, '#a2662a');
+      gr.addColorStop(1, '#4e2c0e');
+      g.fillStyle = gr;
+      g.fill();
+      // the gold rim and a bright edge on the lit side
+      // a soft dome of light on each scale (lit from the top left), then the gold rim
+      const dome = g.createRadialGradient(x + pw * 0.38, y + ph * 0.42, 2, x + pw * 0.45, y + ph * 0.5, pw * 0.62);
+      dome.addColorStop(0, 'rgba(255,226,150,0.55)');
+      dome.addColorStop(1, 'rgba(255,226,150,0)');
+      g.fillStyle = dome;
+      g.fill();
+      g.lineWidth = 4;
+      g.strokeStyle = '#d9a33a';
+      g.stroke();
+      g.lineWidth = 1.5;
+      g.strokeStyle = 'rgba(58,34,8,0.8)';
+      g.stroke();
+      // the rivet that holds it
+      g.beginPath();
+      g.arc(x + pw / 2, y + 14, 5.5, 0, Math.PI * 2);
+      g.fillStyle = '#f4d27a';
+      g.fill();
+      g.lineWidth = 1.5;
+      g.strokeStyle = '#5a3a10';
+      g.stroke();
+    }
+  }
+  // the light falls from the top left: a soft sheen there, shade to the bottom right
+  const sh = g.createLinearGradient(0, 0, PW, PH);
+  sh.addColorStop(0, 'rgba(255,240,200,0.28)');
+  sh.addColorStop(0.5, 'rgba(255,240,200,0)');
+  sh.addColorStop(1, 'rgba(30,15,0,0.35)');
+  g.fillStyle = sh;
+  g.fillRect(0, 0, PW, PH);
+  g.restore();
+  // the heavy gold border and its ink line
+  outline(g);
+  g.lineWidth = 10;
+  g.strokeStyle = '#e8b43a';
+  g.stroke();
+  g.lineWidth = 3;
+  g.strokeStyle = '#3a2208';
+  g.stroke();
+  a.sc.textures.addCanvas(PLATE_KEY, cv);
+  return PLATE_KEY;
+}
 
 /** The foot's own pizza's neighbour on the side its trunk swings to. */
 function trunkTarget(a: Arena, f: Foot) {
@@ -51,11 +153,15 @@ function elephantTick(a: Arena, f: Foot, dt: number): void {
     }
   }
   if (f.state !== 'stomp') f.brain.trunked = 0;
-  // shields up for a second after every smack (any damage that got through)
+  // armour up after the player's own blow gets through (a smack, the Peel Slam, a charged ability: GameScene sets
+  // brain.blow); toppings, burns, procs and passives chip it without raising it, so they never put it up in the way
+  // of a smack
   const hp = Number(f.brain.lastHp ?? f.hp);
+  const blow = f.brain.blow === 1;
+  f.brain.blow = 0;
   if (Number(f.brain.guardCd ?? 0) > 0) f.brain.guardCd = Number(f.brain.guardCd) - dt;
   // (after a guard drops it stays open a moment: the gap to land the next smack in)
-  if (f.hp < hp - 0.01 && !f.shielded && f.alive && !(Number(f.brain.guardCd ?? 0) > 0)) {
+  if (blow && f.hp < hp - 0.01 && !f.shielded && f.alive && !(Number(f.brain.guardCd ?? 0) > 0)) {
     f.shielded = true;
     f.brain.guardT = ELEPHANT_GUARD;
     a.sfx('sfx_bronzeshield', { volume: 0.5, throttle: 200 });
@@ -64,25 +170,32 @@ function elephantTick(a: Arena, f: Foot, dt: number): void {
   let g = plates.get(f);
   if (Number(f.brain.guardT ?? 0) > 0) {
     f.brain.guardT = Number(f.brain.guardT) - dt;
+    const h = f.meta.footHeight * f.type.scale;
     if (!g) {
-      g = a.sc.add.graphics();
+      g = a.sc.add.image(0, 0, plateTexture(a)).setOrigin(0.5, 0);
       f.root.add(g);
       plates.set(f, g);
     }
-    // gold-edged plates ring the foot while its guard is up
-    const s = f.root.scaleX || 1;
-    const h = f.meta.footHeight * f.type.scale;
     const left = Number(f.brain.guardT);
-    g.clear();
-    g.setAlpha(left < 0.25 ? left / 0.25 : 1);
-    g.lineStyle(10 / s, 0xe8b43a, 0.9);
-    g.strokeEllipse(0, -h * 0.45, f.meta.legWidth * f.type.scale * 1.25, h * 0.8);
-    g.lineStyle(4 / s, 0xfff2c0, 0.9);
-    g.strokeEllipse(0, -h * 0.45, f.meta.legWidth * f.type.scale * 1.25, h * 0.8);
+    const full = { w: f.meta.legWidth * f.type.scale * 1.3, h: h * 0.86 };
+    if (!g.visible || f.brain.platesUp !== 1) {
+      // they snap up from the ankle over the foot, with a flash and a ring of light
+      f.brain.platesUp = 1;
+      a.sc.tweens.killTweensOf(g);
+      g.setVisible(true).setAlpha(1).setPosition(0, -h * 0.88).setDisplaySize(full.w, full.h * 0.25);
+      g.setTintFill(0xfff2c0);
+      a.sc.tweens.add({ targets: g, displayHeight: full.h, duration: 130, ease: 'Back.Out' });
+      a.sc.time.delayedCall(70, () => g?.active && g.clearTint());
+      a.fx.ring(f.cx, f.cy, 0xe8b43a, 0.7, 0.8);
+    }
     if (left <= 0) {
       f.shielded = false;
       f.brain.guardCd = 0.8;
-      g.clear();
+      f.brain.platesUp = 0;
+      // they fold back down to the ankle
+      const img = g;
+      a.sc.tweens.killTweensOf(img);
+      a.sc.tweens.add({ targets: img, displayHeight: full.h * 0.15, alpha: 0, duration: 160, ease: 'Quad.In', onComplete: () => img.setVisible(false) });
     }
   }
 }

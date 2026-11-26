@@ -876,3 +876,212 @@
     font-size: 4em;
   }
 }
+
+/* ——— the tidy layout (2026-11-26): the title and its tabs in one row, every section full width, equal tiles, and
+   the sources and long notes behind small buttons (a FROM tag on each tile's top-left corner, an i on its right) ——— */
+.yt-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.4em 1em;
+  width: 100%;
+}
+
+.yt-head .title {
+  margin: 0;
+}
+
+.yt-head .yt-tabs .btn {
+  font-size: 1.05em;
+  min-width: 0;
+  padding: 0.25em 0.9em 0.3em;
+}
+
+.st-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.st-tiles,
+.st-autos {
+  grid-auto-rows: 1fr;
+  align-items: stretch;
+  row-gap: 1.1em;
+  padding-top: 0.5em;
+}
+
+.st-tiles {
+  grid-template-columns: repeat(auto-fill, minmax(12.5em, 1fr));
+}
+
+.st-autos {
+  grid-template-columns: repeat(auto-fill, minmax(15em, 1fr));
+}
+
+.st-tile {
+  grid-template-areas: 'ic val' 'ic lbl';
+  align-content: center;
+  padding: 0.75em 2em 0.6em 0.6em;
+}
+
+.st-auto {
+  position: relative;
+  grid-template-areas: 'ic name' 'ic val' 'bar bar';
+  align-content: center;
+  padding: 0.75em 2em 0.6em 0.7em;
+}
+
+.st-aval {
+  flex-wrap: wrap;
+}
+
+.st-meas {
+  font-size: 0.8em;
+  margin-left: 0.4em;
+}
+
+/* the buttons and their popovers */
+.st-pw {
+  position: absolute;
+  z-index: 2;
+}
+
+.st-pw.from {
+  top: -0.8em;
+  left: 0.6em;
+}
+
+.st-pw.info {
+  top: 0.4em;
+  right: 0.4em;
+}
+
+.st-pbtn {
+  font: inherit;
+  cursor: pointer;
+  color: var(--ink);
+  border: 0.1em solid var(--ink);
+  background: #fff6e2;
+  box-shadow: 0 0.1em 0 var(--ink);
+}
+
+.st-pbtn.from {
+  font-weight: 800;
+  font-size: 0.72em;
+  letter-spacing: 0.05em;
+  padding: 0.1em 0.55em;
+  border-radius: 1em;
+}
+
+.st-pbtn.from b {
+  color: var(--basil-d);
+}
+
+.st-pbtn.info {
+  width: 1.45em;
+  height: 1.45em;
+  border-radius: 50%;
+  font-family: Georgia, serif;
+  font-style: italic;
+  font-weight: 700;
+  font-size: 0.9em;
+  line-height: 1;
+  padding: 0;
+}
+
+.st-pbtn:hover,
+.st-pbtn:focus-visible,
+.st-pw.open .st-pbtn {
+  background: var(--cheese);
+  outline: none;
+}
+
+.st-pop {
+  display: none;
+  position: absolute;
+  top: calc(100% + 0.35em);
+  width: max-content;
+  max-width: 21em;
+  padding: 0.5em 0.6em;
+  background: #fffaf0;
+  border: 0.14em solid var(--ink);
+  border-radius: 0.7em;
+  box-shadow: 0 0.22em 0 var(--ink), 0 0.6em 1.4em rgba(42, 24, 16, 0.25);
+  z-index: 30;
+}
+
+.st-pw.from .st-pop {
+  left: 0;
+}
+
+.st-pw.info .st-pop {
+  right: 0;
+}
+
+.st-pw.open .st-pop {
+  display: block;
+}
+
+@media (hover: hover) {
+  .st-pw:hover .st-pop {
+    display: block;
+  }
+}
+
+.st-pw:focus-within .st-pop {
+  display: block;
+}
+
+.st-pop .st-from {
+  margin: 0;
+  gap: 0.3em;
+}
+
+.st-pop .st-note {
+  margin: 0;
+  font-size: 0.95em;
+}
+
+/* the tile under an open popover stays on top of its neighbours */
+.st-tile:hover,
+.st-tile:focus-within,
+.st-auto:hover,
+.st-auto:focus-within {
+  z-index: 5;
+}
+
+.st-tile,
+.st-auto {
+  position: relative;
+}
+
+.st-card:hover,
+.st-card:focus-within {
+  position: relative;
+  z-index: 5;
+}
+
+/* a worded value (every 10s, ON CUE) wraps inside its tile instead of running under the i button */
+.st-tile .st-val {
+  flex-wrap: wrap;
+  row-gap: 0.1em;
+}
+
+.st-tile .st-num.txt {
+  font-size: 1.3em;
+}
+
+/* flipped to the side with room (statsTab.ts: place) */
+.st-pw.to-right .st-pop {
+  left: 0;
+  right: auto;
+}
+
+.st-pw.to-left .st-pop {
+  right: 0;
+  left: auto;
+}
+
+.st-pop {
+  max-width: min(21em, 70vw);
+}

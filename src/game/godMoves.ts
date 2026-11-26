@@ -1570,10 +1570,13 @@ registerMoves({
       );
       for (const f of k.host.live()) k.strike(f.cx, f.cy, 0xfff2a0);
     });
-    // then the feast: shields, a slice and tips
+    // then the feast: a slice and tips every time, and the two shields once a wave (a fast meter used to stack them
+    // up without end)
     k.sc.time.delayedCall(1100, () => {
       if (!k.host.inWave()) return;
-      k.host.runFx([{ e: 'shield', n: 2, who: 'all' }, { e: 'heal', n: 1, who: 'all' }, { e: 'tips', n: 50 }], {}, GOLD);
+      const shields = !k.wv.feastShields;
+      k.wv.feastShields = 1;
+      k.host.runFx([...(shields ? [{ e: 'shield' as const, n: 2, who: 'all' as const }] : []), { e: 'heal', n: 1, who: 'all' }, { e: 'tips', n: 50 }], {}, GOLD);
       for (const p of alive(k)) k.host.fx.healBurst(p.x, p.surfaceY);
     });
   },

@@ -8,7 +8,7 @@ export const feet: FootType[] = [
   {
     id: 'elephant',
     name: 'Persian Elephant Feet',
-    desc: 'A war elephant’s foot in a gold-fringed Persian caparison and bronze plates. Huge, slow and tough (half as tough again as the feet around it). Its trunk swings down with every stomp and hits the pizza next door too, and after a smack it raises its armour for a moment, then has to lower it again.',
+    desc: 'A war elephant’s foot in a gold-fringed Persian caparison and bronze plates. Huge, slow and tough (half as tough again as the feet around it). Its trunk swings down with every stomp and hits the pizza next door too, and after a smack it raises its armour for a moment (toppings and burns don’t set it off), then has to lower it again.',
     // (64, was 96: Act 9 is now full of them, and at 96 with its guard each one cost Regular more than a slice)
     hp: 64, speed: 0.6, armor: 2, stompDmg: 1, coins: 15, score: 480, scale: 1.4, minWave: 81, weight: 4,
     traits: ['heavy'],
