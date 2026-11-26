@@ -22,6 +22,9 @@
 // - hero (the hero peels): no frame, the head is the hero, alive from its own parts (a billowing cape, blinking eyes,
 //   an emblem that spins or beats, the hero's power round the head) and answering a smack with an impact word and
 //   its power's burst (src/art/peelHero.ts). Its surface covers a bigger box than the head's (the cape hangs below).
+// - god (the god peels and the God Peel): no frame, the head is the god's symbol, alive from its own parts (wings that
+//   beat, strings plucked, a hammer that strikes, a train that fans, a crest or cloak that streams), its domain playing
+//   on and round it and a smack in its style (src/art/peelGod.ts).
 //
 // It is built as the living foot peels are (src/art/peelLive.ts): the rig (CraftRig: the head's layers, cut to the
 // head's box, and the handle) is built a step at a time in idle time and shared; the motion (CraftLive) is one per
@@ -65,6 +68,7 @@ import { PIZZA_BY_ID } from '../data/pizzas';
 import { GemLive, gemMiniSteps, gemOver, gemUnder, type GemMini, type GemMote } from './peelGem';
 import { HERO_BOX, HERO_FEEL, HeroLive, WORDS, WORD_H, WORD_W, drawBubble, drawCard, drawLeaf, drawNote, drawStar, drawWord, heroMiniSteps, type HeroMini, type HeroSpr } from './peelHero';
 import { heroArtOf, heroHandleExtras } from './heroHeads';
+import { GOD_FEEL, GodLive, drawHeart, drawPetal, drawRavenFeather, godBox, godMiniSteps, type GodMini } from './peelGod';
 
 const { x: HX, y: HY, r: R } = PEEL_HEAD;
 
@@ -104,6 +108,8 @@ export interface CraftRig {
   gem?: GemMini | null;
   /** A hero peel: its parts on layers (src/art/peelHero.ts). */
   hero?: HeroMini | null;
+  /** A god peel: its symbol's parts on layers (src/art/peelGod.ts). */
+  god?: GodMini | null;
   /** The box its surface covers (peel units), when not the head's (SB). */
   box?: { x: number; y: number; w: number; h: number };
   key: string;
@@ -160,6 +166,18 @@ function* rigSteps(peelId: string, kind: CraftKind, RR: number): Generator<void,
     if (!hero) return null;
     const key = `pc_${peelId.replace(/[^a-z0-9]/gi, '_')}_${RR}`;
     return { id: peelId, kind, look, RR, handle, under: EMPTY, over: EMPTY, inner: EMPTY, reflect: null, lit: null, lit2: null, place: null, pizza: null, medal: null, hero, box: HERO_BOX, key };
+  }
+  if (kind === 'god') {
+    // a god peel: the handle as its still has it, the head painted without its moving parts, and each part alone
+    const look = PEEL_BY_ID[peelId].look();
+    const [handle, hctx] = makeCanvas(PEEL_W * RR, PEEL_H * RR);
+    hctx.scale(RR, RR);
+    drawPeelHandle(hctx, look);
+    yield;
+    const god = yield* godMiniSteps(peelId, look, RR);
+    if (!god) return null;
+    const key = `pc_${peelId.replace(/[^a-z0-9]/gi, '_')}_${RR}`;
+    return { id: peelId, kind, look, RR, handle, under: EMPTY, over: EMPTY, inner: EMPTY, reflect: null, lit: null, lit2: null, place: null, pizza: null, medal: null, god, box: godBox(peelId), key };
   }
   const look = PEEL_BY_ID[peelId].look();
   if (!look.craft) return null;
@@ -404,6 +422,10 @@ export const enum Spr {
   Card,
   Goo,
   Star,
+  // the god peels' (src/art/peelGod.ts)
+  Heart,
+  Petal,
+  FeatherK,
 }
 
 /** A hero's names for the sprites it throws. */
@@ -433,6 +455,10 @@ const HERO_SPR: Record<HeroSpr, Spr> = {
   confetti: Spr.Confetti,
   crumb: Spr.Crumb,
   dust: Spr.Dust,
+  heart: Spr.Heart,
+  petal: Spr.Petal,
+  featherK: Spr.FeatherK,
+  coin: Spr.Coin,
 };
 
 const WORD_FONT = `24px 'Lilita One'`;
@@ -800,6 +826,9 @@ const SPR: Record<Spr, SprDef> = {
   [Spr.Card]: { w: 24, h: 28, n: 2, anim: false, draw: drawCard },
   [Spr.Goo]: { w: 24, h: 24, n: 3, anim: false, draw: blob(['#05050a', '#1c1c2a', '#8a8ad8']) },
   [Spr.Star]: { w: 24, h: 24, n: 4, anim: false, draw: drawStar },
+  [Spr.Heart]: { w: 24, h: 24, n: 2, anim: false, draw: drawHeart },
+  [Spr.Petal]: { w: 24, h: 24, n: 3, anim: false, draw: drawPetal },
+  [Spr.FeatherK]: { w: 24, h: 24, n: 2, anim: false, draw: drawRavenFeather },
 };
 
 /** A small golden feather: a gold vane, lit on its top, a darker quill. */
@@ -1119,6 +1148,8 @@ const FEEL: Record<CraftKind, { squash: number; k: number; c: number; wob: numbe
   gem: { squash: 0.03, k: 950, c: 26, wob: 0.01, shake: 0.9, vib: 0.018, sway: 0.2, wk: 340, wc: 24 },
   // a hero: a lively spring (stretchy heroes boing: their spec's feel)
   hero: HERO_FEEL,
+  // a god: carved marble and gold, or oak and iron, heavier than a hero (its spec can say more)
+  god: GOD_FEEL,
 };
 
 const reduced = () => !!save.settings.reducedMotion;
@@ -1220,6 +1251,8 @@ export class CraftLive {
   readonly gem: GemLive | null;
   /** A hero peel's hero. */
   readonly hero: HeroLive | null;
+  /** A god peel's god. */
+  readonly god: GodLive | null;
 
   constructor(
     readonly rig: CraftRig,
@@ -1228,12 +1261,19 @@ export class CraftLive {
   ) {
     const box = rigBox(rig);
     [this.surface, this.sctx] = makeCanvas(Math.ceil(box.w * rig.RR), Math.ceil(box.h * rig.RR));
-    this.feel = rig.hero?.spec.feel ? { ...FEEL[rig.kind], ...rig.hero.spec.feel } : FEEL[rig.kind];
+    const spec = rig.hero?.spec.feel ?? rig.god?.spec.feel;
+    this.feel = spec ? { ...FEEL[rig.kind], ...spec } : FEEL[rig.kind];
     this.hero = rig.hero ? new HeroLive(rig.hero) : null;
     if (this.hero) {
       this.hero.menu = this.menu;
       this.hero.emit = (spr, lx, ly, vx, vy, s0, s1, life, o) => this.emit(HERO_SPR[spr], lx, ly, vx, vy, s0, s1, life, o);
       this.glows = this.hero.glows;
+    }
+    this.god = rig.god ? new GodLive(rig.god) : null;
+    if (this.god) {
+      this.god.menu = this.menu;
+      this.god.emit = (spr, lx, ly, vx, vy, s0, s1, life, o) => this.emit(HERO_SPR[spr], lx, ly, vx, vy, s0, this.menu ? s1 * 0.85 : s1, life, o);
+      this.glows = this.god.glows;
     }
     this.place = rig.place ? new PlaceLive(rig.place) : null;
     this.pizza = rig.pizza ? new PizzaLive(rig.pizza) : null;
@@ -1384,6 +1424,9 @@ export class CraftLive {
       case 'hero':
         this.hero?.smack();
         break;
+      case 'god':
+        this.god?.smack();
+        break;
       case 'obsidian': {
         for (let i = 0; i < Math.round(6 * n); i++) {
           const a = crand() * Math.PI * 2;
@@ -1471,6 +1514,9 @@ export class CraftLive {
           this.qv += this.hero.kickQ;
           this.hero.kickQ = 0;
         }
+        break;
+      case 'god':
+        this.god?.update(dt, vx, vy);
         break;
     }
     this.bits.tick(dt);
@@ -1621,11 +1667,11 @@ export class CraftLive {
     c.globalAlpha = 1;
     c.globalCompositeOperation = 'source-over';
     c.clearRect(0, 0, this.surface.width, this.surface.height);
-    if (this.hero) {
-      // a hero peel: the hero alive, every part (it covers its own box)
+    if (this.hero || this.god) {
+      // a hero or god peel: alive, every part (it covers its own box)
       const b = rigBox(rig);
       c.setTransform(RR, 0, 0, RR, -b.x * RR, -b.y * RR);
-      this.hero.draw(c);
+      (this.hero ?? this.god)!.draw(c);
       c.setTransform(1, 0, 0, 1, 0, 0);
       c.globalAlpha = 1;
       c.globalCompositeOperation = 'source-over';
