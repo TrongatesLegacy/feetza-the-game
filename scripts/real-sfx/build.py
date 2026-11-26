@@ -39,7 +39,17 @@ and, for the audio pass's batch 1 (docs/audio-audit.md):
        835833 842313 853153 856766 867997 --out SRC_DIR
 
 (it also uses 20185, 73678, 191883, 234782, 244926, 262633, 262635, 263115, 376799, 381853, 392624, 433829, 442773,
-475131, 495117, 505113, 539972, 553954, 719638, 763026, 838106 and 855898 from the earlier sets). Some recipes in
+475131, 495117, 505113, 539972, 553954, 719638, 763026, 838106 and 855898 from the earlier sets), and for batch 5:
+
+  node scripts/sfx-fetch/freesound.mjs get 34175 34646 178658 180818 200321 257152 321952 336425 347036 352198 371094 \\
+       376800 384914 386105 386111 400503 438861 440035 449915 453301 463032 479998 480020 480805 490556 534956 \\
+       539177 567249 567250 578491 611671 680135 683013 695376 703247 703248 706231 720829 733599 753310 765844 \\
+       784152 816237 871034 --out SRC_DIR
+
+(it also uses 20185, 29986, 38244, 57204, 93100, 149190, 162674, 188767, 234782, 235597, 244926, 263115, 326304, 334969,
+337845, 347149, 384916, 391919, 392180, 394180, 416507, 442773, 457449, 475131, 475480, 505113, 527740, 531755, 534094,
+539972, 571296, 578490, 611669, 705058, 760672, 763026, 764221, 819668, 829847, 853153, 867549, 869002 and 869003 from
+the earlier sets). Some recipes in
 every batch keep a layer of the synthesized file they replace, read from git at OLD_REV, so they need the repo's
 history (a shallow clone won't do).
 
@@ -47,9 +57,10 @@ OUT_DIR defaults to public/audio. Names (default: all): spartanchant spartanrage
 (service sweephop ... tailboing), then batch 2's (traytoss pie ... snap), then
 batch 3's (fenrirhowl ... gulp) and its two ambience loops (jotunheim bifrost), then batch 4's (solepropenter ...
 unbounddouse, the hero and god smack tails hbatpeel ... hamazonqueen, three Endgame variants' tails
-hincrediblebulkendgame ... hwasabiwaspendgame) and its loop (firstpizzeria). Each sound is
-cut, pitched, layered and placed by the recipe below (the Spartan, Skald and Siren sounds are also given a short
-convolution room),
+hincrediblebulkendgame ... hwasabiwaspendgame) and its loop (firstpizzeria), then batch 5's (the Kratos Peel's
+Tartarus, tkenter ... zeusdeath, and Leonidas's Hot Gates, trumpet ... herohotgates) and its loop (hotgates). Each sound is
+cut, pitched, layered and placed by the recipe below (the Spartan, Skald and Siren sounds, and batch 5's Spartan roar,
+King Leonidas's Hot Gates war cry and Kronos's gulp, are also given a short convolution room, and Xerxes's laugh a hall),
 then levelled to a 50 ms RMS peak (the same measure
 as the TRIM table in src/systems/audio.ts), limited under -1.5 dBFS (a recipe may set a lower limit, for a bright
 transient that MP3 encoding would push past it), faded, and saved as 44.1 kHz mono 96 kbps
@@ -1679,8 +1690,641 @@ def firstpizzeria():
     ], post='lowpass=f=13000,acompressor=threshold=-32dB:ratio=3:attack=1:release=80:knee=4')  # the crackle's sharpest edges off (so they don't overshoot once encoded) and its pops held in
 
 
+# =============================== Audio pass, batch 5: the nemesis stages of Kratos in Tartarus and Leonidas's Hot Gates
+# As batches 1–4: each replaces (or layers with) a synthesized file under the same name, on the old file's beats, and
+# its level (RECIPES) sits halfway between the old file's 50 ms RMS peak and the level matching its momentary loudness.
+# The two stages share one kit each, so the same recordings recur across related moves: for Kronos, heavy stone
+# (grinding, cracking, falling), chains and big cats' roars; for the Persians and Spartans, horses, bows, horns,
+# bronze and men's shouts.
+STONE = 'lowpass=f=6000'  # stone's glassy top off, so a pitched-down crash reads as rock, not tiles
+REV = 'areverse,asetpts=N/SR/TB'  # a layer played backwards (its timestamps restarted, so a post envelope sees the right t)
+T0 = 'asetpts=N/SR/TB,'  # a post envelope's clock restarted on the mix, so its t counts from the first sample
+DAMP = "asetnsamples=n=64,volume='max(exp(-%d*t),%.2f)':eval=frame"  # a hit damped fast, down to a floor it then rings on at
+
+
+# --- the Kratos Peel in Tartarus · Kronos, the Titan King ---
+def tkenter():
+    return layer([
+        L('old:sfx_titanking_enter', 0.0, 2.38, 0.0, 0.0, 0, fin=0.002, fout=0.3),
+        L(703247, 0.020, 2.40, 0.000, -5.0, -7, fin=0.002, fout=0.4, fx='lowpass=f=1800'),  # a crash of tiles, stone and metal, lower
+        L(611669, 3.450, 1.60, 0.120, -3.0, -2, fin=0.05, fout=0.5, fx='lowpass=f=3000'),  # heavy chains rattling, lower
+    ])
+
+
+def tkroar():
+    return layer([
+        L(869002, 0.780, 1.25, 0.000, -7.0, 0, fin=0.03, fout=0.3, keep=False),  # lions roaring, far lower and slower
+        L(263115, 1.550, 1.90, 0.050, -6.0, 2, fin=0.06, fout=0.4),           # a tiger's roar, lower: the second voice
+        L(763026, 2.600, 1.90, 0.000, -6.0, 6, fin=0.1, fout=0.4, fx='lowpass=f=1200'),  # a bear's growl, lower: the rumble
+    ])
+
+
+def tkflip():
+    return layer([
+        L(760672, 0.600, 1.40, 0.000, 0.0, 2, fin=0.2, fout=0.4, fx='highpass=f=250'),  # heavy stone grinding
+        L(475131, 0.000, 0.60, 0.450, -4.0, -10, fin=0.05, fout=0.25, keep=False),  # a super-heavy swoosh, lower: it turns over
+        L(706231, 0.400, 0.90, 0.550, 0.0, 10, fin=0.03, fout=0.3),            # an hourglass just flipped, its sand running
+    ], post=T0 + swell(0.82, 1.40, 0.2) + ',acompressor=threshold=-28dB:ratio=3:attack=20:release=200:knee=6')
+
+
+def tktick():
+    return layer([
+        L('old:sfx_titanking_tick', 0.0, 0.39, 0.0, 0.0, 0, fin=0.001, fout=0.05),
+        L(534094, 0.020, 0.30, 0.000, -9.0, 8, fin=0.0005, fout=0.12),          # a wall clock's tick, far lower
+    ])
+
+
+def tkshatter():
+    return layer([
+        L(336425, 0.000, 1.50, 0.000, -3.0, 0, fin=0.001, fout=0.5),            # glass shattering and tinkling as it falls, lower
+        L(371094, 0.190, 1.20, 0.000, -5.0, -2, fin=0.001, fout=0.4),           # a large glass bottle shattering, lower
+        L(326304, 0.500, 1.30, 0.150, 0.0, 10, fin=0.1, fout=0.5),             # gravel pouring, edited to sound like sand
+    ])
+
+
+def tkchomp():
+    return layer([
+        L(539177, 0.020, 0.70, 0.000, -9.0, 9, fin=0.001, fout=0.25, fx=DAMP % (14, 0.35)),  # a stone hitting a big stone, far lower: the jaw
+        L(703248, 0.020, 0.70, 0.000, -6.0, 10, fin=0.001, fout=0.3, fx='lowpass=f=1500,' + DAMP % (10, 0.25)),  # a crash of tiles, stone and metal, lower
+        L(20185, 0.040, 0.60, 0.000, -10.0, -1, fin=0.001, fout=0.3, fx='lowpass=f=300'),  # a massed stomp on plywood, far lower: the weight
+        L(816237, 0.020, 0.30, 0.020, -3.0, 9, fin=0.001, fout=0.1),            # a bite of crispy toast, lower: the crust
+    ], post='volume=-15dB,lowpass=f=1500')  # (under the master's compressor, so the bite stays sharp)
+
+
+def tkchew():
+    return layer([
+        L(760672, 2.850, 0.54, 0.000, -3.0, 0, fin=0.06, fout=0.15),            # stone grinding, lower
+        L(753310, 0.030, 0.35, 0.120, -2.0, -2, fin=0.002, fout=0.1),           # a corn chip bitten, a little lower
+        L(816237, 0.020, 0.30, 0.260, -4.0, -2, fin=0.002, fout=0.1),           # and a crunch of toast
+    ])
+
+
+def tkjawhit():
+    return layer([
+        L(539177, 0.020, 0.54, 0.000, -5.0, 0, fin=0.001, fout=0.25, fx=DAMP % (14, 0.2)),  # a stone hitting a big stone, lower: the clack
+        L(29986, 0.350, 0.30, 0.230, -3.0, -4, fin=0.002, fout=0.1, fx=DAMP % (14, 0.2)),  # stone dragged on stone: it grinds back
+    ], post='lowpass=f=1500')
+
+
+def tkfreed():
+    return layer([
+        L('old:sfx_titanking_freed', 0.0, 0.80, 0.0, 0.0, 0, fin=0.001, fout=0.1),
+        L(765844, 5.090, 0.40, 0.000, -2.0, 11, fin=0.001, fout=0.2),           # a rock smashed, a little lower: the crack
+    ])
+
+
+def tkchain():
+    return layer([
+        L(611669, 0.750, 0.40, 0.000, 0.0, -16, fin=0.2, fout=0.08),            # heavy chains rattling
+        L(453301, 0.140, 1.00, 0.270, -3.0, 12, fin=0.002, fout=0.4, fx=DAMP % (6, 0.15)),  # thick chains dropped, lower: they crash down
+        L(20185, 0.040, 0.60, 0.290, -9.0, -12, fin=0.002, fout=0.3, fx='lowpass=f=600'),  # a massed stomp on plywood, far lower: the slam
+    ], post='lowpass=f=4000')
+
+
+def tkchainbreak():
+    links = [L(733599, s, 0.32, t, -2.0, d, fin=0.002, fout=0.12) for s, t, d in
+             ((1.300, 0.110, -2), (2.290, 0.350, 0), (3.360, 0.630, 0), (4.230, 0.900, -3))]
+    return layer([
+        L(386111, 0.000, 0.40, 0.000, -2.0, 0, fin=0.0005, fout=0.2),           # a hammer on steel on an anvil: the snap
+    ] + links + [                                                              # chain links dropped, scattering
+        L(871034, 0.000, 0.60, 0.200, 0.0, -2, fin=0.002, fout=0.2),            # and a small chain dropped
+    ], post=PEAKS)
+
+
+def tkdeath():
+    return layer([
+        L(703247, 0.020, 1.95, 0.430, -5.0, 0, fin=0.01, fout=0.8, fx='lowpass=f=1800'),   # a crash of tiles, stone and metal, lower
+        L(162674, 1.200, 2.38, 0.000, -3.0, -1, fin=0.5, fout=0.6),            # a stone avalanche, lower
+        L(567249, 0.000, 1.90, 0.480, -2.0, -5, fin=0.01, fout=0.6, fx='lowpass=f=2500'),           # bricks, stones and rocks falling and rolling
+        L(453301, 0.140, 1.00, 0.700, -4.0, 2, fin=0.002, fout=0.4),            # thick chains falling, lower
+    ], post=T0 + "lowpass=f=2800,asetnsamples=n=64,volume='if(lt(t,0.62),1,max(0.5,1-(t-0.62)*0.9))':eval=frame")  # the crash, then it settles
+
+
+def tkstrain():
+    return layer([
+        L(680135, 2.700, 0.60, 0.100, -7.0, 0, fin=0.05, fout=0.3, keep=False),  # a man grunting with effort, far lower, slower
+        L(680135, 0.750, 0.40, 0.000, -9.0, -10, fin=0.1, fout=0.2, keep=False),  # and a lower one before it
+        L(611671, 3.250, 1.45, 0.000, -5.0, 0, fin=0.35, fout=0.3, fx='lowpass=f=4000'),  # heavy chains dragged, lower: taut
+        L(611671, 4.850, 0.60, 0.900, -6.0, -2, fin=0.1, fout=0.3, fx='lowpass=f=4000'),
+    ])
+
+
+def tkweakhit():
+    return layer([
+        L(386105, 0.000, 0.44, 0.000, 0.0, 0, fin=0.0005, fout=0.15, fx='lowpass=f=2000,' + DAMP % (9, 0.25)),  # an anvil hammered on its back
+        L(235597, 0.660, 0.44, 0.010, 0.0, -3, fin=0.002, fout=0.15, fx=DAMP % (8, 0.25)),  # water sizzling on a hot stove
+    ], post=PEAKS)
+
+
+def tkweakbreak():
+    return layer([
+        L(386111, 0.000, 0.80, 0.000, -2.0, 0, fin=0.0005, fout=0.4),           # a hammer on steel on an anvil: the crack
+        L(93100, 0.000, 0.40, 0.050, 0.0, -2, fin=0.001, fout=0.15),            # a whip cracked: the chain whips away
+        L(475131, 0.000, 0.60, 0.100, 0.0, -4, fin=0.02, fout=0.25),            # a super-heavy swoosh
+        L(733599, 1.300, 0.50, 0.850, 0.0, -2, fin=0.002, fout=0.25),           # links dropped, rattling down
+        L(234782, 0.550, 0.50, 0.880, 0.0, -14, fin=0.02, fout=0.3, fx='highpass=f=2000'),  # and a steam hiss
+    ], post=PEAKS)
+
+
+def tkrip():
+    return layer([
+        L(765844, 5.090, 0.40, 0.000, -4.0, 16, fin=0.001, fout=0.2),           # a rock smashed, lower: the wall cracks
+        L(765844, 1.030, 0.25, 0.300, -6.0, 14, fin=0.001, fout=0.1),           # and again, lower still
+        L(765844, 2.880, 0.25, 0.650, -5.0, 14, fin=0.001, fout=0.1),           # and again
+        L(869003, 9.400, 1.00, 0.100, -8.0, 0, fin=0.03, fout=0.3, keep=False),  # a lion's roar, far lower and slower
+        L(611669, 3.450, 1.50, 0.050, -2.0, -2, fin=0.03, fout=0.4),           # heavy chains rattling, lower
+    ])
+
+
+def tkscrape():
+    return layer([
+        L(611671, 3.250, 0.90, 0.000, -2.0, 0, fin=0.05, fout=0.2),             # heavy chains dragged, lower
+        L(611671, 4.850, 0.80, 0.750, -3.0, 0, fin=0.1, fout=0.2),              # and dragged on
+        L(611671, 6.700, 0.80, 1.450, -2.0, 0, fin=0.1, fout=0.3),
+        L(720829, 0.650, 1.00, 0.100, -3.0, -4, fin=0.05, fout=0.3),            # a circular saw blade scraped on concrete, lower
+        L(720829, 0.650, 1.00, 1.050, -5.0, -6, fin=0.05, fout=0.3),            # and again, lower still
+        L(760672, 3.900, 2.30, 0.000, -3.0, -6, fin=0.2, fout=0.4),            # heavy stone grinding: the grit
+    ])
+
+
+def tkunchained():
+    return layer([
+        L('old:sfx_titanking_unchained', 0.0, 2.60, 0.0, 0.0, 0, fin=0.002, fout=0.3),
+        L(869002, 6.300, 1.55, 0.050, -8.0, 0, fin=0.05, fout=1.0, keep=False),  # lions roaring, far lower and slower
+        L(149190, 5.400, 1.55, 0.450, -6.0, -4, fin=0.05, fout=0.9),           # a tiger's roar, lower
+        L(611669, 3.450, 1.60, 0.000, -2.0, -2, fin=0.03, fout=0.5),           # heavy chains rattling, lower
+    ])
+
+
+def tkswing():
+    return layer([
+        L(475131, 0.000, 0.61, 0.120, -9.0, -5, fin=0.15, fout=0.3, keep=False),  # a super-heavy swoosh, far lower and slower
+        L(475131, 0.000, 0.61, 0.440, -7.0, 0, fin=0.05, fout=0.3, keep=False),  # and again as it comes down
+        L(611669, 0.750, 0.55, 0.080, -2.0, -9, fin=0.1, fout=0.2),            # heavy chains rattling
+        L(611669, 2.000, 0.40, 0.780, -2.0, -6, fin=0.03, fout=0.2),
+    ])
+
+
+def tkbladehit():
+    return layer([
+        L(180818, 0.170, 0.48, 0.000, -2.0, 0, fin=0.001, fout=0.2, fx=DAMP % (6, 0.18)),  # real swords clashing, a little lower
+        L(386105, 0.000, 0.48, 0.000, -3.0, -4, fin=0.0005, fout=0.2, fx=DAMP % (6, 0.18)),  # an anvil's ring, lower
+    ], post='lowpass=f=4000,' + PEAKS)
+
+
+def tkcrumble():
+    return layer([
+        L(162674, 1.200, 1.98, 0.000, -4.0, 0, fin=0.03, fout=0.5),            # a stone avalanche, lower: the deep rumble
+        L(765844, 1.030, 0.25, 0.300, -4.0, 8, fin=0.001, fout=0.1, fx='lowpass=f=2000'),  # a rock smashed, lower: stones cracking
+        L(765844, 2.880, 0.25, 0.900, -5.0, 8, fin=0.001, fout=0.1, fx='lowpass=f=2000'),
+        L(765844, 3.970, 0.25, 1.400, -3.0, 6, fin=0.001, fout=0.1, fx='lowpass=f=2000'),
+        L(34175, 0.450, 1.60, 0.350, 0.0, -2, fin=0.05, fout=0.5),             # gravel poured out on stairs
+    ], post='volume=-12dB,lowpass=f=3000')  # (under the master's compressor, so the cracks stay sharp)
+
+
+def tkrockcrack():
+    return layer([
+        L(765844, 5.090, 0.40, 0.000, -3.0, 16, fin=0.001, fout=0.2, fx='lowpass=f=2500'),  # a rock smashed, lower: the boulder cracks
+        L(578490, 4.500, 0.65, 0.080, -3.0, 9, fin=0.05, fout=0.2, fx=DAMP % (6, 0.2)),           # a heavy stone door grinding, lower
+        L(391919, 0.000, 0.80, 0.150, 0.0, 8, fin=0.01, fout=0.3),             # rock crumbling: a trickle of grit
+    ], post='volume=-14dB')  # (under the master's compressor, so the crack stays sharp)
+
+
+def tkrockfall():
+    return layer([
+        L(475131, 0.000, 0.61, 0.250, -7.0, 0, fin=0.02, fout=0.02, keep=False, fx=REV),  # a super-heavy swoosh, far lower, backwards: it falls towards you
+        L(567250, 0.000, 1.40, 0.000, 0.0, -4, fin=0.1, fout=0.3),             # rocks dropped, tumbling
+    ], post=T0 + swell(1.08, 1.40, 0.12))
+
+
+def tkrocksmash():
+    return layer([
+        L(703248, 0.020, 0.88, 0.000, -3.0, 0, fin=0.001, fout=0.35, fx=STONE),  # a crash of tiles, stone and metal, lower
+        L(539177, 0.020, 0.60, 0.000, -6.0, 0, fin=0.001, fout=0.25),           # a stone hitting a big stone, lower
+        L(567249, 0.000, 0.80, 0.080, 0.0, -6, fin=0.01, fout=0.3),            # bricks, stones and rocks scattering
+    ], post='lowpass=f=5000')
+
+
+def tkrockland():
+    return layer([
+        L(20185, 0.040, 0.66, 0.000, -8.0, 0, fin=0.002, fout=0.3, fx='lowpass=f=1500'),  # a massed stomp on plywood, far lower: the thud
+        L(703247, 0.020, 0.92, 0.000, -7.0, -3, fin=0.002, fout=0.4, fx=STONE),  # a crash of tiles, stone and metal, far lower
+        L(816237, 0.020, 0.30, 0.010, -5.0, -4, fin=0.001, fout=0.1),           # crispy toast crunched, lower: the crust
+    ])
+
+
+def tkpierce():
+    return layer([
+        L('old:sfx_titanking_pierce', 0.0, 0.90, 0.0, 0.0, 0, fin=0.001, fout=0.1),
+        L(371094, 0.190, 0.90, 0.000, -2.0, 0, fin=0.001, fout=0.3),            # a large glass bottle shattering, a little lower
+    ])
+
+
+def tkrise():
+    return layer([
+        L(578490, 3.300, 1.69, 0.000, -4.0, 0, fin=0.1, fout=0.4),             # a heavy stone door opening, lower
+        L(763026, 2.600, 1.69, 0.000, -6.0, -3, fin=0.2, fout=0.4, fx='lowpass=f=900'),  # a bear's growl, lower
+        L(162674, 0.600, 1.69, 0.000, -5.0, -6, fin=0.3, fout=0.4),            # a stone avalanche, far off: the rumble
+    ], post='lowpass=f=1400')  # from behind the table
+
+
+def tkheadchew():
+    return layer([
+        L(760672, 3.850, 0.48, 0.000, -4.0, 0, fin=0.03, fout=0.15),            # stone grinding, lower
+        L(753310, 0.030, 0.35, 0.020, -2.0, -2, fin=0.002, fout=0.1),           # a corn chip bitten
+        L(816237, 0.020, 0.30, 0.200, -3.0, -2, fin=0.002, fout=0.1),           # and a crunch of toast
+    ])
+
+
+def tksink():
+    return layer([
+        L(578491, 3.900, 0.75, 0.000, -4.0, 3, fin=0.01, fout=0.2),            # a heavy stone door grinding, lower
+        L(578491, 5.200, 0.85, 0.500, -7.0, -4, fin=0.15, fout=0.4),            # and lower still as it sinks
+        L(162674, 0.600, 1.35, 0.000, -6.0, -6, fin=0.2, fout=0.5),            # a stone avalanche, far off: the rumble
+    ], post='lowpass=f=1800')  # behind the table
+
+
+def tkgulp():
+    g = layer([
+        L(531755, 0.110, 0.45, 0.000, -10.0, 0, fin=0.004, fout=0.12, keep=False),  # a hard swallow, far lower and slower
+        L(829847, 0.240, 0.40, 0.040, -8.0, -2, fin=0.004, fout=0.12, keep=False),  # a gulp, far lower
+    ])
+    return reverb(fx(g, DECAY % 3), rt60=0.6, wet_db=-10.0, seed=11)  # in a cavern
+
+
+# --- Tartarus · Zeus, and the gods he calls on ---
+def zeusenter():
+    return layer([
+        L('old:sfx_zeus_enter', 0.0, 1.83, 0.0, 0.0, 0, fin=0.002, fout=0.3),
+        L(188767, 0.100, 1.80, 0.000, -2.0, 0, fin=0.002, fout=0.6),            # a real crack of thunder, a little lower
+    ])
+
+
+def zeusthunder():
+    return layer([
+        L(505113, 0.720, 2.40, 0.000, -2.0, 0, fin=0.005, fout=0.8),            # a close clap of thunder rolling, a little lower
+        L(38244, 0.600, 2.40, 0.150, -3.0, -3, fin=0.05, fout=0.8),            # and a second roll under it
+    ])
+
+
+def zeusbolt():
+    return layer([
+        L('old:sfx_zeus_bolt', 0.0, 1.20, 0.0, 0.0, 0, fin=0.001, fout=0.2),
+        L(188767, 0.150, 1.10, 0.000, 0.0, 0, fin=0.001, fout=0.5),             # a real crack of thunder
+    ])
+
+
+def zeushurl():
+    return layer([
+        L('old:sfx_zeus_hurl', 0.0, 0.90, 0.0, 0.0, 0, fin=0.001, fout=0.1),
+        L(475131, 0.000, 0.61, 0.050, 0.0, 0, fin=0.01, fout=0.25),             # a super-heavy swoosh
+    ])
+
+
+def zeusposeidon():
+    return layer([
+        L('old:sfx_zeus_poseidon', 0.0, 1.80, 0.0, 0.0, 0, fin=0.002, fout=0.2),
+        L(705058, 6.300, 1.80, 0.000, 0.0, 4, fin=0.3, fout=0.3),              # the sea surging under water
+        L(376800, 7.000, 1.80, 0.000, 0.0, -2, fin=0.6, fout=0.3),             # a large wave rising onto rocks
+    ])
+
+
+def zeuswave():
+    return layer([
+        L(376800, 7.850, 1.75, 0.000, -2.0, -14, fin=0.005, fout=0.3),          # large waves crashing into large rocks, lower
+        L(442773, 0.350, 1.20, 0.000, -3.0, -17, fin=0.005, fout=0.5),          # a big water splash, lower
+    ], post=T0 + DAMP % (5, 0.22) + ',equalizer=f=800:t=o:w=2:g=-10')
+
+
+def zeustrident():
+    return layer([
+        L(337845, 0.150, 0.42, 0.000, 0.0, 0, fin=0.0005, fout=0.2),            # a metal shed door struck, ringing: the trident
+        L(442773, 0.400, 0.42, 0.020, 0.0, -2, fin=0.005, fout=0.2),            # and a splash
+    ], post=PEAKS)
+
+
+def zeusares():
+    return layer([
+        L(392180, 0.050, 1.29, 0.000, -12.0, 0, fin=0.03, fout=0.3),           # a battle horn blown, an octave lower
+        L(479998, 0.300, 1.29, 0.020, -17.0, -1, fin=0.06, fout=0.3),          # a note blown on a cow horn (or a conch), far lower
+    ])
+
+
+def zeuswarcry():
+    return layer([
+        L(480805, 5.200, 1.09, 0.000, -2.0, 0, fin=0.03, fout=0.25),            # a small group of men shouting, a little lower
+        L(57204, 0.050, 1.00, 0.020, -3.0, -4, fin=0.01, fout=0.3),             # men shouting "hey", lower
+        L(527740, 0.000, 0.60, 0.250, -2.0, -4, fin=0.01, fout=0.2),            # men shouting "hey" together, lower
+        L(416507, 0.000, 1.09, 0.050, -3.0, -4, fin=0.01, fout=0.3),            # two men shouting "hey" over and over, lower
+        L(449915, 1.700, 1.09, 0.000, 0.0, -4, fin=0.03, fout=0.3),             # a crowd roaring
+    ], post='acompressor=threshold=-24dB:ratio=4:attack=5:release=60:knee=4')
+
+
+def zeuscrown():
+    return layer([
+        L('old:sfx_zeus_crown', 0.0, 0.90, 0.0, 0.0, 0, fin=0.001, fout=0.1),
+        L(371094, 0.190, 0.90, 0.000, 2.0, -2, fin=0.001, fout=0.3),            # a glass bottle shattering, a little higher
+        L(334969, 0.550, 0.85, 0.020, 0.0, 8, fin=0.005, fout=0.3),             # coins poured onto wood: the gold
+    ])
+
+
+def zeusdeath():
+    return layer([
+        L(38244, 0.780, 2.79, 0.000, -3.0, 0, fin=0.01, fout=1.0),             # thunder rolling away, lower
+        L(765844, 5.090, 0.40, 0.020, -1.0, 12, fin=0.001, fout=0.2),           # a rock smashed: the marble cracks
+        L(765844, 1.030, 0.25, 0.500, -2.0, 10, fin=0.001, fout=0.1),           # and again
+        L(764221, 2.400, 1.30, 0.100, -3.0, 10, fin=0.15, fout=0.04, fx='lowpass=f=2400'),  # a crowd singing "ah", lower, cut short
+    ])
+
+
+# --- Leonidas's Hot Gates · the Persians and the Spartans ---
+def trumpet():
+    return layer([
+        L(819668, 0.000, 0.80, 0.000, 0.0, 0, fin=0.01, fout=0.2),              # an elephant trumpeting (a zoo field recording)
+    ])
+
+
+def spartanroar():
+    return reverb(layer([
+        L(695376, 0.000, 0.79, 0.000, -2.0, 0, fin=0.01, fout=0.15),            # a man's battle cry, a little lower
+        L(440035, 0.650, 0.79, 0.000, -3.0, -3, fin=0.01, fout=0.2),           # a warrior's "yeah!", lower
+    ]), rt60=0.4, wet_db=-12.0, seed=5)
+
+
+def bronzeshield():
+    return layer([
+        L(784152, 0.000, 0.50, 0.000, -5.0, 0, fin=0.0005, fout=0.2, fx=DAMP % (6, 0.1)),  # a thick metal plate struck, lower: bronze
+        L(337845, 0.150, 0.50, 0.000, -3.0, -4, fin=0.0005, fout=0.2, fx=DAMP % (6, 0.1)),  # a metal shed door struck, lower
+    ], post=PEAKS)
+
+
+def immortalfall():
+    return layer([
+        L(244926, 0.150, 0.69, 0.000, -3.0, 0, fin=0.005, fout=0.3),            # diesel thrown on a fire, lower
+        L(539972, 0.000, 0.60, 0.000, -5.0, -2, fin=0.002, fout=0.25),          # a burst of gas flame, lower
+        L(20185, 0.050, 0.30, 0.050, -5.0, -6, fin=0.002, fout=0.15, fx='lowpass=f=1500'),  # a massed stomp on plywood, lower: he falls
+    ])
+
+
+def bowdraw():
+    return layer([
+        L(490556, 0.050, 0.55, 0.000, 0.0, 0, fin=0.02, fout=0.06),             # a bow being drawn
+    ])
+
+
+def arrowloose():
+    return layer([
+        L(384916, 0.085, 0.30, 0.000, 0.0, 0, fin=0.001, fout=0.12),            # a bow released
+        L(394180, 0.040, 0.39, 0.020, 0.0, 14, fin=0.01, fout=0.15),            # an arrow loosed, flying off
+    ])
+
+
+def arrowthunk():
+    return layer([
+        L(534956, 0.090, 0.36, 0.000, 0.0, 0, fin=0.001, fout=0.2),             # an arrow from a longbow into a wooden shed
+        L(384914, 0.050, 0.30, 0.000, 0.0, -2, fin=0.001, fout=0.12),           # an arrow hitting its target
+    ], post=PEAKS)
+
+
+def gallop():
+    return layer([
+        L(321952, 0.850, 1.18, 0.000, 0.0, 0, fin=0.01, fout=0.1),              # a horse galloping full speed
+    ])
+
+
+def neigh():
+    return layer([
+        L(347036, 1.380, 0.85, 0.000, 0.0, 0, fin=0.02, fout=0.3),              # a horse whinnying
+    ])
+
+
+def chariotrev():
+    spin = [L(480020, 2.0 + 0.6 * k, 0.40, 0.18 * k, -4.0 + 2.5 * k, 0, fin=0.08, fout=0.12) for k in range(5)]
+    return layer(spin + [                                                       # wooden wheels rolling, faster and faster
+        L(480020, 5.200, 0.42, 0.740, 6.0, 0, fin=0.06, fout=0.15),
+    ], post=T0 + swell(0.80, 1.14, 0.2) + ',lowpass=f=1500')
+
+
+def chariotroll():
+    return layer([
+        L(480020, 2.000, 1.68, 0.000, -3.0, 0, fin=0.1, fout=0.3),              # wooden wheels rolling over a gritty road, lower
+        L(480020, 4.200, 1.68, 0.000, -8.0, -4, fin=0.1, fout=0.3),             # again, far lower: the rumble
+    ], post='lowpass=f=1500')
+
+
+def chariotchip():
+    return layer([
+        L(816237, 0.020, 0.22, 0.000, 0.0, 0, fin=0.001, fout=0.08, fx=DAMP % (14, 0.1)),  # crispy toast bitten: the crust chips
+        L(753310, 0.030, 0.22, 0.000, 0.0, -2, fin=0.001, fout=0.08, fx=DAMP % (14, 0.1)),  # a corn chip bitten
+    ], post='lowpass=f=2800')
+
+
+def hubbreak():
+    return layer([
+        L(352198, 0.860, 0.81, 0.000, -2.0, 0, fin=0.001, fout=0.3),            # a wooden fence panel snapped, a little lower
+        L(178658, 0.500, 0.81, 0.030, 0.0, 9, fin=0.002, fout=0.3),            # a plank breaking, splinter by splinter
+        L(784152, 0.000, 0.60, 0.000, -4.0, -1, fin=0.0005, fout=0.25),          # a thick metal plate struck, lower: the bronze hub
+    ], post=T0 + DAMP % (4, 0.25) + ',lowpass=f=4000,' + PEAKS)
+
+
+def warhorn():
+    return layer([
+        L(392180, 0.100, 0.66, 0.000, -12.0, 0, fin=0.03, fout=0.06),          # a battle horn blown, an octave lower
+        L(392180, 0.500, 0.85, 0.600, -7.0, 0, fin=0.03, fout=0.3),            # and a fourth up
+    ])
+
+
+def immortalbruteenter():
+    mask = 'lowpass=f=1600,equalizer=f=500:t=q:w=1:g=4'  # behind his mask: muffled, boxy
+    return layer([
+        L(20185, 0.040, 0.66, 0.000, -8.0, 0, fin=0.002, fout=0.3, fx='lowpass=f=1500'),  # a massed stomp on plywood, far lower: he lands
+        L(703247, 0.020, 1.60, 0.000, -5.0, -3, fin=0.002, fout=0.6, fx='lowpass=f=2500'),  # a crash of tiles, stone and metal, lower
+        L(611669, 3.450, 1.20, 0.080, 0.0, -4, fin=0.03, fout=0.4),            # heavy chains rattling
+        L(869003, 9.400, 0.90, 0.250, -6.0, -2, fin=0.05, fout=0.3, keep=False, fx=mask),  # a lion's roar, lower, muffled
+    ], post='lowpass=f=2400')
+
+
+def immortalbrutehorde():
+    return layer([
+        L(392180, 0.100, 1.60, 0.050, -10.0, 0, fin=0.06, fout=0.4),           # a battle horn blown, lower
+        L(200321, 1.000, 2.01, 0.000, 0.0, 2, fin=0.05, fout=0.4),             # boots marching in a military parade
+    ])
+
+
+def immortalbrutewhirl():
+    sw = [L(475131, 0.000, 0.40, 0.04 + 0.27 * k, (0.0, -2.0)[k % 2], -2 if k % 2 else 0, fin=0.04, fout=0.12) for k in range(6)]
+    return layer(sw + [                                                        # a super-heavy swoosh, again and again
+        L(611669, 0.700, 0.60, 0.050, 0.0, -6, fin=0.05, fout=0.1),            # heavy chains rattling: the chain clinks
+        L(611669, 3.500, 0.80, 0.650, 0.0, -6, fin=0.05, fout=0.1),
+    ], post=T0 + swell(0.95, 1.70, 0.5))
+
+
+def immortalbruteslam():
+    return layer([
+        L(703248, 0.020, 0.63, 0.000, -3.0, 4, fin=0.001, fout=0.3),            # a crash of tiles, stone and metal, lower
+        L(20185, 0.040, 0.60, 0.000, -12.0, 5, fin=0.002, fout=0.3, fx='lowpass=f=300'),  # a massed stomp on plywood, an octave lower: the thump
+        L(386111, 0.000, 0.50, 0.000, -6.0, -9, fin=0.0005, fout=0.25),          # a hammer on steel, lower: the blade
+    ], post=T0 + DECAY % 5 + ',lowpass=f=1800,' + PEAKS)
+
+
+def immortalbrutesnag():
+    return layer([
+        L(453301, 0.140, 0.60, 0.000, -2.0, 0, fin=0.002, fout=0.25),           # thick chains dropped: the clank
+        L(386111, 0.000, 0.50, 0.000, -4.0, -3, fin=0.0005, fout=0.25),          # a hammer on steel, lower
+        L(680135, 0.750, 0.40, 0.080, -6.0, 0, fin=0.03, fout=0.15, keep=False, fx='lowpass=f=1800'),  # a man grunting, lower, masked
+    ], post=PEAKS)
+
+
+def immortalbruteroar():
+    mask = 'lowpass=f=1800,equalizer=f=600:t=q:w=1:g=4'
+    return layer([
+        L(869002, 4.900, 1.06, 0.000, -5.0, 0, fin=0.03, fout=0.3, keep=False, fx=mask),  # lions roaring, lower and slower, muffled
+        L(763026, 2.700, 1.59, 0.000, -4.0, 5, fin=0.1, fout=0.4, fx=mask),   # a bear's growl, lower: the second voice
+    ])
+
+
+def immortalbrutedeath():
+    return layer([
+        L(457449, 0.050, 0.50, 0.000, -5.0, -14, fin=0.05, fout=0.1),           # a man's long groan, lower
+        L(703247, 0.020, 1.66, 0.460, -4.0, 4, fin=0.001, fout=0.6, fx=DAMP % (6, 0.2)),  # a crash of tiles, stone and metal: his armour
+        L(20185, 0.040, 0.60, 0.460, -10.0, 0, fin=0.001, fout=0.3, fx='lowpass=f=400'),  # a massed stomp on plywood, far lower: he hits the ground
+        L(733599, 1.300, 0.50, 0.920, 0.0, 1, fin=0.002, fout=0.2),            # chains dropped, clattering
+        L(733599, 2.290, 1.05, 1.300, 0.0, 1, fin=0.002, fout=0.6),
+    ], post='lowpass=f=2000')
+
+
+def xerxesenter():
+    return layer([
+        L('old:sfx_xerxes_enter', 0.0, 2.80, 0.0, 0.0, 0, fin=0.002, fout=0.3),
+        L(853153, 0.040, 2.80, 0.000, -3.0, 0, fin=0.002, fout=0.8),           # a big stainless gong, felt mallet, lower
+        L(764221, 2.400, 2.70, 0.100, -5.0, 7, fin=0.4, fout=0.8, fx='lowpass=f=2000'),  # a crowd singing "ah", lower: the choir
+    ])
+
+
+def xerxeslaugh():
+    ha = [L(400503, s, 0.24, t, -3.0, 0, fin=0.01, fout=0.08) for s, t in
+          ((1.860, 0.000), (2.330, 0.260), (2.820, 0.520), (3.280, 0.780), (2.330, 1.040))]
+    return reverb(layer(ha + [                                                 # a man's sinister laugh, cut into ha-ha-ha
+        L(400503, 0.720, 0.75, 1.300, -3.0, 0, fin=0.02, fout=0.25),           # and its big HAAA, all a little lower
+    ]), rt60=1.2, wet_db=-9.0, seed=13)  # in a hall
+
+
+def xerxesarrows():
+    bows = [L(384916, 0.085, 0.30, t, s, d, fin=0.001, fout=0.12) for t, s, d in
+            ((0.00, 0, 0), (0.04, -2, -2), (0.07, 1, -3), (0.12, -1, -2), (0.16, 2, -4), (0.21, -3, -3), (0.27, 0, -4), (0.33, -2, -5))]
+    # then the sky full of them: 42 arrows loosed and flying off, staggered, at other pitches, swelling to the top
+    hiss = [L(394180, 0.040, 0.55, 0.25 + 0.05 * k, ((k * 7) % 9 - 4) * 0.6 + 2, 12 + 8.0 * k / 41, fin=0.05, fout=0.2) for k in range(42)]
+    return layer(bows + hiss, post=T0 + 'highpass=f=600,equalizer=f=6000:t=q:w=1.5:g=8,' + swell(2.20, 2.60, 0.55) +
+                 ',acompressor=threshold=-26dB:ratio=3:attack=10:release=150:knee=6')
+
+
+def xerxesvolley():
+    fly = [L(394180, 0.040, 0.55, t, s, 14, fin=0.03, fout=0.2) for t, s in ((0.02, 0), (0.08, -2), (0.14, 1), (0.20, -1), (0.27, 2))]
+    hit = [L(f, st, 0.25, t, s, d, fin=0.001, fout=0.1) for f, st, t, s, d in
+           ((534956, 0.090, 0.62, 0, 0), (384914, 0.050, 0.70, -2, -2), (534956, 0.090, 0.79, -3, -2), (384914, 0.050, 0.86, 0, -4))]
+    return layer(fly + hit, post='highpass=f=300,' + PEAKS)
+
+
+def xerxesrhino():
+    return layer([
+        L(463032, 1.000, 0.80, 0.000, -3.0, 0, fin=0.01, fout=0.1),             # agitated rhinos tussling (a zoo recording), lower
+        L(867549, 1.550, 0.35, 0.020, -4.0, 16, fin=0.01, fout=0.15),           # a bison's nasal huff, lower
+        L(475480, 0.050, 0.45, 0.500, -4.0, 0, fin=0.01, fout=0.15),            # a horse's snort, lower
+        L(347149, 0.100, 0.70, 0.860, -3.0, -2, fin=0.01, fout=0.3),            # two pieces of granite scraped together: a hoof scrapes
+    ])
+
+
+def xerxescharge():
+    return layer([
+        L(321952, 0.850, 1.35, 0.000, -6.0, 0, fin=0.02, fout=0.1),             # a horse galloping full speed, lower: heavier
+        L(571296, 4.950, 1.35, 0.000, -5.0, 9, fin=0.02, fout=0.1),            # hooves clattering, lower
+        L(703247, 0.020, 0.64, 1.290, -5.0, 0, fin=0.001, fout=0.3, fx=STONE),  # a crash of tiles, stone and metal, lower
+    ])
+
+
+def xerxesturn():
+    return layer([
+        L(475480, 0.050, 0.45, 0.000, -4.0, 0, fin=0.005, fout=0.15),           # a horse's snort, lower
+        L(321952, 0.850, 0.85, 0.220, -5.0, -2, fin=0.02, fout=0.5),            # a horse galloping, lower, faded out as it goes away
+    ], post=T0 + "asetnsamples=n=64,volume='if(lt(t,0.25),1,max(0.08,1-(t-0.25)/0.8))':eval=frame")
+
+
+def xerxeselephants():
+    return layer([
+        L(819668, 5.000, 0.60, 0.000, -2.0, 0, fin=0.02, fout=0.2),             # an elephant trumpeting, a little lower
+        L(819668, 0.000, 0.80, 0.450, -4.0, -2, fin=0.02, fout=0.3),            # and again, lower: a second elephant
+        L(34646, 0.200, 1.30, 0.300, -3.0, -4, fin=0.02, fout=0.4),            # an elephant growling, recorded in Tanzania, lower
+        L(162674, 0.600, 1.77, 0.000, -5.0, -6, fin=0.2, fout=0.4),            # a stone avalanche, far off: the ground rumbles
+    ])
+
+
+def xerxesdeath():
+    return layer([
+        L(475131, 0.000, 0.45, 0.000, -6.0, -20, fin=0.05, fout=0.01, fx=REV),  # a heavy swoosh, lower, backwards: he topples
+        L(703247, 0.020, 2.00, 0.460, -3.0, 0, fin=0.001, fout=0.7, fx=STONE),  # a crash of tiles, stone and metal
+        L(334969, 0.550, 1.40, 0.500, 0.0, 0, fin=0.005, fout=0.5),             # coins poured onto wood: his gold
+        L(453301, 0.140, 1.10, 0.550, -3.0, 1, fin=0.002, fout=0.4),           # thick chains dropped, lower
+        L(853153, 0.040, 2.70, 0.470, -3.0, -2, fin=0.002, fout=1.2),           # a big gong, lower, fading
+    ])
+
+
+def holdline():
+    wall = [L(784152, 0.000, 0.45, t, s, d, fin=0.0005, fout=0.2) for t, s, d in
+            ((0.00, -5, -4), (0.07, -4, -5), (0.14, -6, -4), (0.21, -5, -5), (0.28, -4, -4), (0.35, -6, -5), (0.55, -5, 0))]
+    return layer(wall + [                                                      # a thick metal plate struck, lower: a row of bronze shields
+        L(337845, 0.150, 0.50, 0.550, -3.0, -2, fin=0.0005, fout=0.25),         # and a metal shed door: the wall slams down
+        L(57204, 0.050, 1.00, 0.050, -3.0, 0, fin=0.01, fout=0.3),              # men shouting "hey", lower
+    ], post=PEAKS)
+
+
+def spear():
+    return layer([
+        L(475131, 0.000, 0.40, 0.050, 2.0, 0, fin=0.02, fout=0.1),              # a super-heavy swoosh, higher: the spear flies
+        L(534956, 0.090, 0.20, 0.390, -2.0, 0, fin=0.001, fout=0.1),            # an arrow from a longbow into a wooden shed: the thunk
+    ], post=PEAKS)
+
+
+def hotgates():
+    beat = [L(784152, 0.000, 0.40, t, -5.0, d, fin=0.0005, fout=0.2) for t, d in ((1.46, 0), (1.74, 0), (2.02, -2))]
+    return reverb(layer([
+        L(480805, 5.200, 1.45, 0.000, -2.0, 4, fin=0.03, fout=0.3),             # a small group of men shouting, a little lower
+        L(449915, 1.700, 1.50, 0.000, 0.0, -4, fin=0.05, fout=0.4),             # a crowd roaring
+        L(57204, 0.050, 1.00, 0.050, -3.0, -4, fin=0.01, fout=0.3),             # men shouting "hey", lower
+        L(416507, 0.000, 1.30, 1.350, -2.0, -2, fin=0.01, fout=0.3),            # two men shouting "hey" over and over
+    ] + beat), rt60=0.5, wet_db=-12.0, seed=9)                                 # and the shields beaten in time
+
+
+# --- the Hot Gates ambience: wind moaning through the cliffs, surf on the rocks below, distant war drums from the
+# army beyond the pass in two passages, and twice a far-off horn (the take starts XF s before the loop, so the drums at
+# 11 and 35 s and the horns at 24 and 48 s in it land where the old bed's did, at 6, 30, 19 and 43 s) ---
+LEFT, RIGHT = 'pan=stereo|c0=c0|c1=0*c0', 'pan=stereo|c0=0*c0|c1=c1'  # a mono take into one ear only
+
+
+def hotgatesloop():
+    drums = []
+    for t0, beats, per in ((11.0, 14, 0.62), (35.0, 18, 0.58)):
+        for b in range(beats):
+            sw = math.sin(math.pi * (b + 0.5) / beats)
+            drums.append(Ls(257152, 0.000, 1.6, t0 + b * per, -6.0 if b % 2 else -4.0,
+                            round(20 * math.log10(max(0.05, sw * (1.0 if b % 4 == 0 else 0.7))), 1) - 4,
+                            fin=0.002, fout=0.6, fx='lowpass=f=400,adelay=0|10'))
+    horns = []
+    for t0, s, d in ((24.0, -12.0, 4), (48.0, -14.0, -1)):
+        for dl, g in ((0.0, 0), (0.18, -7), (0.37, -10), (0.62, -15)):  # off the cliffs and back
+            horns.append(Ls(392180, 0.100, 2.6, t0 + dl, s, d + g - 8, fin=0.6, fout=1.0, fx='lowpass=f=1100,adelay=0|15'))
+    return layer2([
+        Ls(438861, 1.500, LOOP + XF, 0.0, 0.0, 5, fin=0.01, fout=0.01, fx=LEFT),   # howling wind, moaning gusts (the mono take
+        Ls(438861, 2.400, LOOP + XF, 0.0, 0.0, 5, fin=0.01, fout=0.01, fx=RIGHT),  # a second apart in each ear)
+        Ls(683013, 8.000, LOOP + XF, 0.0, 0.0, 8, fin=0.01, fout=0.01, fx='lowpass=f=3000,' + LEFT),  # stormy winds on a steep coast
+        Ls(683013, 14.000, LOOP + XF, 0.0, 0.0, 8, fin=0.01, fout=0.01, fx='lowpass=f=3000,' + RIGHT),
+        Ls(376800, 12.000, LOOP + XF, 0.0, 0.0, 4, fin=0.01, fout=0.01,         # large waves crashing into large rocks
+           fx="asetnsamples=n=1024,volume='1-0.45*exp(-pow((t-32.3)/1.3,2))':eval=frame"),  # (its one big breaker eased back)
+    ] + drums + horns, post='acompressor=threshold=-32dB:ratio=3:attack=40:release=500:knee=6')  # the big breakers held in
+
+
 AMB = {'jotunheim': ('ambience_jotunheim', lambda: wrap(jotunheim())), 'bifrost': ('ambience_bifrost', bifrost),
-       'firstpizzeria': ('ambience_firstpizzeria', lambda: wrap(firstpizzeria()), dict(limit=0.62))}
+       'firstpizzeria': ('ambience_firstpizzeria', lambda: wrap(firstpizzeria()), dict(limit=0.62)),
+       'hotgates': ('ambience_hotgates', lambda: wrap(hotgatesloop()))}
 
 RECIPES = {
     'spartanchant': ('sfx_hero_spartanchant', chant, 2.25, -10.3, 0.3),
@@ -1846,6 +2490,81 @@ RECIPES = {
     'hincrediblebulkendgame': ('sfx_smack_hero_incrediblebulkendgame', hincrediblebulkendgame, 0.65, -13.7, 0.08),
     'hhawkeyetalianendgame': ('sfx_smack_hero_hawkeyetalianendgame', hhawkeyetalianendgame, 0.65, -14.0, 0.08, 0.70),
     'hwasabiwaspendgame': ('sfx_smack_hero_wasabiwaspendgame', hwasabiwaspendgame, 0.65, -13.9, 0.08),
+    # batch 5 (the same rule for the level)
+    'tkenter': ('sfx_titanking_enter', tkenter, 2.38, -10.9, 0.40),
+    'tkroar': ('sfx_titanking_roar', tkroar, 1.90, -12.3, 0.38),
+    'tkflip': ('sfx_titanking_flip', tkflip, 1.40, -11.5, 0.28),
+    'tktick': ('sfx_titanking_tick', tktick, 0.39, -12.9, 0.08),
+    'tkshatter': ('sfx_titanking_shatter', tkshatter, 1.47, -10.7, 0.29),
+    'tkchomp': ('sfx_titanking_chomp', tkchomp, 0.70, -11.8, 0.14),
+    'tkchew': ('sfx_titanking_chew', tkchew, 0.54, -11.0, 0.11),
+    'tkjawhit': ('sfx_titanking_jawhit', tkjawhit, 0.54, -12.5, 0.11),
+    'tkfreed': ('sfx_titanking_freed', tkfreed, 0.80, -11.4, 0.16),
+    'tkchain': ('sfx_titanking_chain', tkchain, 1.26, -12.9, 0.25),
+    'tkchainbreak': ('sfx_titanking_chainbreak', tkchainbreak, 1.09, -12.8, 0.22),
+    'tkdeath': ('sfx_titanking_death', tkdeath, 2.38, -12.1, 0.40),
+    'tkstrain': ('sfx_titanking_strain', tkstrain, 1.39, -11.6, 0.28),
+    'tkweakhit': ('sfx_titanking_weakhit', tkweakhit, 0.44, -13.0, 0.09),
+    'tkweakbreak': ('sfx_titanking_weakbreak', tkweakbreak, 1.39, -11.4, 0.28, 0.70),
+    'tkrip': ('sfx_titanking_rip', tkrip, 1.60, -11.7, 0.32),
+    'tkscrape': ('sfx_titanking_scrape', tkscrape, 2.30, -10.3, 0.40, 0.70),
+    'tkunchained': ('sfx_titanking_unchained', tkunchained, 2.60, -10.8, 0.40),
+    'tkswing': ('sfx_titanking_swing', tkswing, 1.22, -11.2, 0.24),
+    'tkbladehit': ('sfx_titanking_bladehit', tkbladehit, 0.48, -12.7, 0.10),
+    'tkcrumble': ('sfx_titanking_crumble', tkcrumble, 1.98, -13.2, 0.40),
+    'tkrockcrack': ('sfx_titanking_rockcrack', tkrockcrack, 0.80, -13.3, 0.16),
+    'tkrockfall': ('sfx_titanking_rockfall', tkrockfall, 1.40, -12.1, 0.28),
+    'tkrocksmash': ('sfx_titanking_rocksmash', tkrocksmash, 0.88, -12.0, 0.18),
+    'tkrockland': ('sfx_titanking_rockland', tkrockland, 0.92, -11.3, 0.18),
+    'tkpierce': ('sfx_titanking_pierce', tkpierce, 0.90, -10.4, 0.18),
+    'tkrise': ('sfx_titanking_rise', tkrise, 1.69, -13.1, 0.34),
+    'tkheadchew': ('sfx_titanking_headchew', tkheadchew, 0.48, -12.9, 0.10, 0.70),
+    'tksink': ('sfx_titanking_sink', tksink, 1.35, -13.8, 0.27),
+    'tkgulp': ('sfx_titanking_gulp', tkgulp, 1.00, -11.2, 0.20),
+    'zeusenter': ('sfx_zeus_enter', zeusenter, 1.83, -10.7, 0.37),
+    'zeusthunder': ('sfx_zeus_thunder', zeusthunder, 2.40, -11.7, 0.40),
+    'zeusbolt': ('sfx_zeus_bolt', zeusbolt, 1.20, -10.4, 0.24),
+    'zeushurl': ('sfx_zeus_hurl', zeushurl, 0.90, -12.7, 0.18),
+    'zeusposeidon': ('sfx_zeus_poseidon', zeusposeidon, 1.80, -11.2, 0.36),
+    'zeuswave': ('sfx_zeus_wave', zeuswave, 1.58, -10.8, 0.32),
+    'zeustrident': ('sfx_zeus_trident', zeustrident, 0.42, -13.0, 0.08),
+    'zeusares': ('sfx_zeus_ares', zeusares, 1.29, -11.3, 0.26),
+    'zeuswarcry': ('sfx_zeus_warcry', zeuswarcry, 1.09, -12.2, 0.22),
+    'zeuscrown': ('sfx_zeus_crown', zeuscrown, 0.90, -10.3, 0.18, 0.70),
+    'zeusdeath': ('sfx_zeus_death', zeusdeath, 2.79, -9.5, 0.40),
+    'trumpet': ('sfx_trumpet', trumpet, 0.80, -13.1, 0.16),
+    'spartanroar': ('sfx_spartanroar', spartanroar, 0.79, -12.0, 0.16),
+    'bronzeshield': ('sfx_bronzeshield', bronzeshield, 0.50, -13.8, 0.10),
+    'immortalfall': ('sfx_immortalfall', immortalfall, 0.69, -11.8, 0.14),
+    'bowdraw': ('sfx_bowdraw', bowdraw, 0.55, -12.6, 0.11),
+    'arrowloose': ('sfx_arrowloose', arrowloose, 0.39, -13.0, 0.08),
+    'arrowthunk': ('sfx_arrowthunk', arrowthunk, 0.30, -12.8, 0.06),
+    'gallop': ('sfx_gallop', gallop, 1.18, -11.5, 0.24),
+    'neigh': ('sfx_neigh', neigh, 0.85, -12.3, 0.17),
+    'chariotrev': ('sfx_chariotrev', chariotrev, 1.14, -12.1, 0.23),
+    'chariotroll': ('sfx_chariotroll', chariotroll, 1.68, -14.2, 0.34),
+    'chariotchip': ('sfx_chariotchip', chariotchip, 0.22, -13.9, 0.05),
+    'hubbreak': ('sfx_hubbreak', hubbreak, 0.81, -12.3, 0.16),
+    'warhorn': ('sfx_warhorn', warhorn, 1.45, -10.5, 0.29),
+    'ibenter': ('sfx_immortalbrute_enter', immortalbruteenter, 1.60, -11.7, 0.32),
+    'ibhorde': ('sfx_immortalbrute_horde', immortalbrutehorde, 2.01, -11.3, 0.40),
+    'ibwhirl': ('sfx_immortalbrute_whirl', immortalbrutewhirl, 1.70, -11.4, 0.34, 0.75),
+    'ibslam': ('sfx_immortalbrute_slam', immortalbruteslam, 0.63, -11.8, 0.13),
+    'ibsnag': ('sfx_immortalbrute_snag', immortalbrutesnag, 0.60, -12.4, 0.12),
+    'ibroar': ('sfx_immortalbrute_roar', immortalbruteroar, 1.59, -11.9, 0.32),
+    'ibdeath': ('sfx_immortalbrute_death', immortalbrutedeath, 2.13, -10.8, 0.40),
+    'xerxesenter': ('sfx_xerxes_enter', xerxesenter, 2.80, -10.6, 0.40),
+    'xerxeslaugh': ('sfx_xerxes_laugh', xerxeslaugh, 2.00, -10.4, 0.40),
+    'xerxesarrows': ('sfx_xerxes_arrows', xerxesarrows, 2.60, -10.3, 0.40, 0.70),
+    'xerxesvolley': ('sfx_xerxes_volley', xerxesvolley, 0.95, -11.4, 0.19, 0.70),
+    'xerxesrhino': ('sfx_xerxes_rhino', xerxesrhino, 1.49, -10.6, 0.30),
+    'xerxescharge': ('sfx_xerxes_charge', xerxescharge, 1.94, -10.8, 0.39),
+    'xerxesturn': ('sfx_xerxes_turn', xerxesturn, 1.07, -11.5, 0.21),
+    'xerxeselephants': ('sfx_xerxes_elephants', xerxeselephants, 1.77, -11.7, 0.35),
+    'xerxesdeath': ('sfx_xerxes_death', xerxesdeath, 3.17, -11.5, 0.40),
+    'holdline': ('sfx_hero_holdline', holdline, 1.07, -10.4, 0.21, 0.70),
+    'spear': ('sfx_hero_spear', spear, 0.59, -12.0, 0.12),
+    'herohotgates': ('sfx_hero_hotgates', hotgates, 2.40, -9.9, 0.40),
 }
 
 if __name__ == '__main__':

@@ -35,6 +35,13 @@ def what(key):
 
 out, repo = sys.argv[1], sys.argv[2]
 rep = [d for d in json.load(open(os.path.join(out, 'report.json'))) if 'error' not in d]
+# Files since re-made from real recordings by scripts/real-sfx/build.py (the audio pass, docs/audio-audit.md): left
+# out altogether (not copied, credited or trimmed here), so running this again on scripts/god-sfx/build.py's output
+# doesn't put the synthesized versions back or replace their credits.
+REAL = {
+    'sfx_trumpet', 'sfx_spartanroar', 'sfx_bronzeshield',
+}
+rep = [d for d in rep if d['key'] not in REAL]
 for d in rep:
     shutil.copy(os.path.join(out, d['key'] + '.mp3'), os.path.join(repo, 'public/audio', d['key'] + '.mp3'))
 

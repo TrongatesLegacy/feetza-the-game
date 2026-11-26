@@ -7,6 +7,7 @@ The music and ambience are made straight into public/audio (no TRIM: levelled to
   python3 -I loops.py music "Prelude and Action.mp3" REPO/public/audio/music_boss_immortalbrute.mp3 49.57 10 10
   python3 -I loops.py music "The Descent.mp3" REPO/public/audio/music_boss_xerxes.mp3 56.03 20 10
   python3 -I ambience_hotgates.py REPO/public/audio
+  (the ambience is now made from real recordings by ../real-sfx/build.py, so ambience_hotgates.py refuses public/audio)
 (sources: https://incompetech.com/music/royalty-free/mp3-royaltyfree/<Title>.mp3)"""
 import json
 import math
@@ -40,8 +41,29 @@ AMB = [
                'drums and twice a far-off horn; synthesized with Python and ffmpeg (scripts/nemesis-audio/ambience_hotgates.py), 50 s crossfaded loop'),
 ]
 
+# Files since re-made from real recordings by scripts/real-sfx/build.py (the audio pass, docs/audio-audit.md): not
+# copied over, so running this again doesn't put the synthesized versions back (their credits and TRIM entries are
+# only ever added when missing, so they are left as they are too).
+# (all of Tartarus and the Hot Gates: build.py with no selection renders every recipe file into one report)
+REAL = {
+    'sfx_titanking_enter', 'sfx_titanking_roar', 'sfx_titanking_flip', 'sfx_titanking_tick',
+    'sfx_titanking_shatter', 'sfx_titanking_chomp', 'sfx_titanking_chew', 'sfx_titanking_jawhit',
+    'sfx_titanking_freed', 'sfx_titanking_chain', 'sfx_titanking_chainbreak', 'sfx_titanking_death',
+    'sfx_titanking_strain', 'sfx_titanking_weakhit', 'sfx_titanking_weakbreak', 'sfx_titanking_rip',
+    'sfx_titanking_scrape', 'sfx_titanking_unchained', 'sfx_titanking_swing', 'sfx_titanking_bladehit',
+    'sfx_titanking_crumble', 'sfx_titanking_rockcrack', 'sfx_titanking_rockfall', 'sfx_titanking_rocksmash',
+    'sfx_titanking_rockland', 'sfx_titanking_pierce', 'sfx_titanking_rise', 'sfx_titanking_headchew',
+    'sfx_titanking_sink', 'sfx_titanking_gulp', 'sfx_zeus_enter', 'sfx_zeus_thunder', 'sfx_zeus_bolt',
+    'sfx_zeus_hurl', 'sfx_zeus_poseidon', 'sfx_zeus_wave', 'sfx_zeus_trident', 'sfx_zeus_ares', 'sfx_zeus_warcry',
+    'sfx_zeus_crown', 'sfx_zeus_death', 'sfx_immortalbrute_enter', 'sfx_immortalbrute_horde',
+    'sfx_immortalbrute_whirl', 'sfx_immortalbrute_slam', 'sfx_immortalbrute_snag', 'sfx_immortalbrute_roar',
+    'sfx_immortalbrute_death', 'sfx_xerxes_enter', 'sfx_xerxes_laugh', 'sfx_xerxes_arrows', 'sfx_xerxes_volley',
+    'sfx_xerxes_rhino', 'sfx_xerxes_charge', 'sfx_xerxes_turn', 'sfx_xerxes_elephants', 'sfx_xerxes_death',
+    'sfx_hero_holdline', 'sfx_hero_spear', 'sfx_hero_hotgates',
+}
 for d in rep:
-    shutil.copy(os.path.join(out, d['key'] + '.mp3'), os.path.join(repo, 'public/audio', d['key'] + '.mp3'))
+    if d['key'] not in REAL:
+        shutil.copy(os.path.join(out, d['key'] + '.mp3'), os.path.join(repo, 'public/audio', d['key'] + '.mp3'))
 
 
 def sfx_credit(d):

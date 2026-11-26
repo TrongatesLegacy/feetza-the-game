@@ -34,8 +34,19 @@ missing = [k for k in NEW if k not in {d['key'] for d in rep}]
 if missing:
     sys.exit('not rendered: ' + ', '.join(missing))
 
+# Files since re-made from real recordings by scripts/real-sfx/build.py (the audio pass, docs/audio-audit.md): not
+# copied over, so running this again doesn't put the synthesized versions back (their credits and TRIM entries are
+# only ever added when missing, so they are left as they are too).
+REAL = {
+    'sfx_titanking_strain', 'sfx_titanking_weakhit', 'sfx_titanking_weakbreak', 'sfx_titanking_rip',
+    'sfx_titanking_scrape', 'sfx_titanking_unchained', 'sfx_titanking_swing', 'sfx_titanking_bladehit',
+    'sfx_titanking_crumble', 'sfx_titanking_rockcrack', 'sfx_titanking_rockfall', 'sfx_titanking_rocksmash',
+    'sfx_titanking_rockland', 'sfx_titanking_pierce', 'sfx_titanking_rise', 'sfx_titanking_headchew',
+    'sfx_titanking_sink', 'sfx_titanking_gulp',
+}
 for d in rep:
-    shutil.copy(os.path.join(out, d['key'] + '.mp3'), os.path.join(repo, 'public/audio', d['key'] + '.mp3'))
+    if d['key'] not in REAL:
+        shutil.copy(os.path.join(out, d['key'] + '.mp3'), os.path.join(repo, 'public/audio', d['key'] + '.mp3'))
 
 
 def sfx_credit(d):

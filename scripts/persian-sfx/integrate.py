@@ -27,8 +27,16 @@ WHAT = {
 
 out, repo = sys.argv[1], sys.argv[2]
 rep = [d for d in json.load(open(os.path.join(out, 'report.json'))) if 'error' not in d]
+# Files since re-made from real recordings by scripts/real-sfx/build.py (the audio pass, docs/audio-audit.md): not
+# copied over, so running this again doesn't put the synthesized versions back (their credits and TRIM entries are
+# only ever added when missing, so they are left as they are too).
+REAL = {
+    'sfx_immortalfall', 'sfx_bowdraw', 'sfx_arrowloose', 'sfx_arrowthunk', 'sfx_gallop', 'sfx_neigh',
+    'sfx_chariotrev', 'sfx_chariotroll', 'sfx_chariotchip', 'sfx_hubbreak', 'sfx_warhorn',
+}
 for d in rep:
-    shutil.copy(os.path.join(out, d['key'] + '.mp3'), os.path.join(repo, 'public/audio', d['key'] + '.mp3'))
+    if d['key'] not in REAL:
+        shutil.copy(os.path.join(out, d['key'] + '.mp3'), os.path.join(repo, 'public/audio', d['key'] + '.mp3'))
 
 md_path = os.path.join(repo, 'public/audio/CREDITS.md')
 md = open(md_path).read()
