@@ -6297,3 +6297,12 @@ body.still-peels .peel-big.shiny::after {
   align-self: center;
   margin-bottom: 0.2em;
 }
+
+/* the run's Rare Find trial: keep it from the game-over screen */
+.callout.trial {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7em;
+  flex-wrap: wrap;
+}

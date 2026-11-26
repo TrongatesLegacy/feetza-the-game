@@ -139,6 +139,8 @@ export interface SaveData {
   rareSeen: string[];
   /** Lineup shuffles bought since the last run started (each costs more Golden Crusts; back to the first price when a run starts). */
   shuffles: number;
+  /** A Rare Find played this run on trial (not bought): offered to keep when the run ends. */
+  rareTrial: string | null;
   /** Milestone records for the phase 3 pizzas: bestCombo, perfectBest, fastWave (best clear in seconds), nightRuns, untouched (1 once done). */
   pizzaGoals: Record<string, number>;
   /** Hero and god peel goals (src/game/heroGoals.ts): counters, bests and flags by key. */
@@ -216,6 +218,7 @@ const DEFAULTS: SaveData = {
   specialSeen: {},
   rareSeen: [],
   shuffles: 0,
+  rareTrial: null,
   pizzaGoals: {},
   goals: {},
   legend: false,

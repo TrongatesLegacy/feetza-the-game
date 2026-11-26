@@ -896,6 +896,7 @@ class UI {
       redealLineup = null;
       // starting a run puts the lineup shuffle back to its first price
       save.shuffles = 0;
+      save.rareTrial = rare && !rare.bought && !save.unlockedPizzas.includes(rare.id) ? rare.id : null;
       persist();
       onStart(heat, endless, startIds());
     });
@@ -1006,7 +1007,7 @@ class UI {
           const r = rare && rare.slot === i ? rare : null;
           if (r) {
             const p = PIZZA_BY_ID[r.id];
-            const buy = btn(r.bought ? 'UNLOCKED' : `BUY ${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} ${fmt(p.cost)}`, r.bought ? 'cream small' : 'yellow small', () => {
+            const buy = btn(r.bought ? 'YOURS' : `KEEP ${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} ${fmt(p.cost)}`, r.bought ? 'cream small' : 'yellow small', () => {
               if (r.bought || save.crusts < p.cost) return;
               save.crusts -= p.cost;
               unlockPizza(p.id);
@@ -1018,22 +1019,23 @@ class UI {
             return h(
               'div',
               { class: `lu rare${r.bought ? ' bought' : ''}` },
-              h('span', { class: 'tag new' }, r.bought ? 'YOURS' : 'NEW'),
+              h('span', { class: 'tag new' }, r.bought ? 'YOURS' : 'FREE TRIAL'),
               h('img', { src: pizzaPortraitURL(p.id), alt: p.name }),
-              h('div', {}, h('span', { class: 'rf' }, 'RARE FIND'), h('b', {}, p.name), h('span', { title: r.bought ? p.perkText : `${p.perkText} · gone if you shuffle or start without buying it` }, p.perkText), buy),
+              h('div', {}, h('span', { class: 'rf' }, r.bought ? 'RARE FIND' : 'RARE FIND · TRY IT THIS RUN'), h('b', {}, p.name), h('span', { title: r.bought ? p.perkText : `${p.perkText} · plays this run for free; keep it now or when the run ends (gone if you shuffle)` }, p.perkText), buy),
             );
           }
           const p = PIZZA_BY_ID[id];
           return h('div', { class: 'lu' }, h('img', { src: pizzaPortraitURL(id), alt: p.name }), h('div', {}, h('b', {}, p.name), h('span', {}, p.perkText)));
         }),
       );
-    // the lineup that actually starts: an unbought Rare Find gives its slot back
-    const startIds = () => cur.map((id, i) => (rare && rare.slot === i ? (rare.bought ? rare.id : rare.was) : id));
+    // the lineup that actually starts: a Rare Find plays this run whether it's bought or not (unbought, it's a free trial,
+    // offered to keep when the run ends)
+    const startIds = () => cur.map((id, i) => (rare && rare.slot === i ? rare.id : id));
     deal();
     if (rare) cur = cur.map((id, i) => (i === rare!.slot ? rare!.id : id));
     renderLineup();
     redealLineup = () => {
-      cur = startIds();
+      cur = cur.map((id, i) => (rare && rare.slot === i && !rare.bought ? rare.was : id));
       deal();
       if (rare) cur = cur.map((id, i) => (i === rare!.slot ? rare!.id : id));
       renderLineup();
@@ -1834,6 +1836,24 @@ class UI {
     if (o.affordable.length) callouts.append(h('div', { class: 'callout', html: `🍕 You can now unlock <b>${o.affordable.slice(0, 3).map((id) => PIZZA_BY_ID[id].name).join(', ')}${o.affordable.length > 3 ? ` +${o.affordable.length - 3} more` : ''}</b> in the Pizzeria!` }));
     else if (o.next) callouts.append(h('div', { class: 'callout', html: `Next unlock: <b>${o.next.name}</b> · ${fmt(Math.min(save.crusts, o.next.cost))} / ${fmt(o.next.cost)} crusts` }));
     if (o.secondChanceRun) callouts.append(h('div', { class: 'callout' }, 'Second-chance run'));
+    // the Rare Find played on trial this run: one chance to keep it
+    const trial = save.rareTrial && PIZZA_BY_ID[save.rareTrial] && !save.unlockedPizzas.includes(save.rareTrial) ? PIZZA_BY_ID[save.rareTrial] : null;
+    save.rareTrial = null;
+    persist();
+    if (trial) {
+      const keep = btn(`KEEP IT ${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} ${fmt(trial.cost)}`, 'yellow small', () => {
+        if (save.crusts < trial.cost) return;
+        save.crusts -= trial.cost;
+        unlockPizza(trial.id);
+        persist();
+        audio.sfx('sfx_levelup');
+        row.replaceChildren(h('span', {}, `🍕 ${trial.name} is yours!`));
+      });
+      // (the run's crusts are already banked when this opens)
+      keep.disabled = save.crusts < trial.cost;
+      const row = h('div', { class: 'callout trial' }, h('span', { html: `🍕 You tried <b>${trial.name}</b> this run. Keep it?` }), keep);
+      callouts.append(row);
+    }
     const crustsEl = h('span', {}, '0');
     const panel = h(
       'div',
