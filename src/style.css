@@ -6306,3 +6306,12 @@ body.still-peels .peel-big.shiny::after {
   gap: 0.7em;
   flex-wrap: wrap;
 }
+/* (room above and below the button, and its drop shadow counted in, so it sits in the middle of the callout) */
+.callout.trial {
+  padding-top: 0.45em;
+  padding-bottom: 0.6em;
+}
+.callout.trial .btn {
+  margin: 0 0 0.15em;
+  font-size: 0.9em;
+}
