@@ -208,12 +208,12 @@ Thresholds set as a share of health (the Black Olive Hole swallowing feet under 
 | L24 | Ariadne's Thread | Act 9, the Labyrinth | Milestone: clear the Labyrinth on Hot | Feet that dive on it have a 50% chance to lose their way and wander off the table | A glowing golden thread circling it |
 | L25 | Triple Crown | Act 9, Cerberus | Special | Every 9 s three heads bark: three random feet stunned 2 s and hit for ×4 | Three ember eyes glowing in smoke |
 | L26 | Hourglass of Kronos | Act 9, Kronos | Pizzeria | Once a wave it rewinds the last stomp on any pizza: the slice comes back and the foot goes back up | Falling sand and a turning clock dial |
-| L27 | Thunder Crust | Act 9, Zeus | Rare Find | Smacks on stunned feet call a thunderbolt (×6) | Storm clouds and flickering lightning |
+| L27 | Hammy Ha | Act 6 | Rare Find | Every 20 s it charges ("Oy… Kame… Hammy…" builds on screen as the crust crackles and the ham glows), then "HA!": a pink-gold beam fires up its lane, hitting every foot in it ×6 and knocking them back to the top | An energy ring round the pie that brightens with the charge, sparks drifting up; its peel's smack fires a mini "HA!" beam |
 | L28 | The Proprietor's Deed | Act 10, the Sole Proprietor | Milestone: beat the Sole Proprietor on Hot | +50% tips, and every shop has one free item | Floating gold coins and a ledger glow |
 | L29 | Oven Between Worlds | Act 10, the Oven | Special | Each wave it borrows the power of a random other legendary | A swirling portal |
 | L30 | The Very First Slice | Act 10, the First Pizzeria | Rare Find | Every other pizza's perk is +25% stronger, and once a run the table survives a loss that would end it | A sunrise glow and rising embers |
 
-Act 6 and Act 10's third pizza are placeholders; the act mapping gets checked against the stages when built, and themes move to match.
+The act mapping gets checked against `src/data/stages.ts` when each is built, and themes move to match. As drafted, Act 6 has one (Hammy Ha) and Act 9 has five; two more for Act 6 get swapped in from Act 9's list or designed fresh when the legendaries are built.
 
 ---
 
