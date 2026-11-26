@@ -81,7 +81,7 @@ function closePops(root: ParentNode = document): void {
 }
 
 /** A small button that opens a popover (on a tap or a click; hover and focus show it too on a desktop). */
-function popBtn(kind: 'from' | 'info', label: (Node | string)[], aria: string, content: HTMLElement): HTMLElement {
+function popBtn(kind: 'from' | 'info' | 'key', label: (Node | string)[], aria: string, content: HTMLElement): HTMLElement {
   const b = h('button', { class: `st-pbtn ${kind}`, type: 'button', 'aria-label': aria, 'aria-expanded': 'false' }, ...label);
   const pop = h('div', { class: 'st-pop', role: 'tooltip' }, content);
   const wrap = h('span', { class: `st-pw ${kind}` }, b, pop);
@@ -130,9 +130,12 @@ function tile(t: Tile, i: number): HTMLElement {
     t.fmt === 'text'
       ? h('span', { class: 'st-num txt' }, t.text ?? '')
       : counter(t.num, (v) => `${t.pre ?? ''}${show(v, t.fmt)}${t.post ?? ''}`);
+  // a longer value (+6 slices, every 20s) gets a smaller size so it fits beside its icon, clear of the i button
+  const said = t.fmt === 'text' ? (t.text ?? '') : `${t.pre ?? ''}${show(t.num, t.fmt)}${t.post ?? ''}`;
+  const len = said.length > 9 ? ' xlong' : said.length > 5 ? ' long' : '';
   return h(
     'div',
-    { class: `st-tile ${t.tone}${t.big ? ' big' : ''}${t.from.length ? ' has-from' : ''}`, style: `--i:${i}` },
+    { class: `st-tile ${t.tone}${t.big ? ' big' : ''}${t.from.length ? ' has-from' : ''}${len}`, style: `--i:${i}` },
     h('div', { class: 'st-ic' }, t.img ? h('img', { src: t.img, alt: '' }) : t.icon),
     h('div', { class: 'st-val' }, value, toneChip(t)),
     h('div', { class: 'st-lbl' }, t.label),
@@ -234,17 +237,24 @@ function stackBar(title: string, bars: { key: string; label: string; color: stri
   const big = bars.filter((b) => b.value / sum >= 0.03).slice(0, 7);
   const other = sum - big.reduce((t, b) => t + b.value, 0);
   const parts = other > 0 ? [...big, { key: 'other', label: 'Other', color: '#a08a70', value: other }] : big;
-  return h(
+  // the bar alone, with its key (and the hint) behind a KEY button: the summary stays compact
+  const keys = h(
     'div',
-    { class: 'st-last' },
-    h('b', {}, title),
-    h('div', { class: 'st-stack', role: 'img', 'aria-label': parts.map((p) => `${p.label} ${Math.round((p.value / sum) * 100)}%`).join(', ') }, ...parts.map((p) => h('i', { style: `width:${(p.value / sum) * 100}%;background:${p.color}`, title: `${p.label}: ${fmt(Math.round(p.value))} damage` }))),
+    { class: 'st-keypop' },
     h(
       'div',
       { class: 'st-keys' },
       ...parts.map((p) => h('span', {}, h('i', { style: `background:${p.color}` }), p.key === 'other' ? '' : `${sourceInfo(p.key).icon} `, p.label, h('b', {}, `${Math.round((p.value / sum) * 100)}%`))),
     ),
     hint ? h('span', { class: 'st-hint' }, hint) : null,
+  );
+  const top = parts[0];
+  return h(
+    'div',
+    { class: 'st-last' },
+    h('div', { class: 'st-last-head' }, h('b', {}, title), popBtn('key', ['KEY'], `Key: ${parts.map((p) => `${p.label} ${Math.round((p.value / sum) * 100)}%`).join(', ')}`, keys)),
+    h('div', { class: 'st-stack', role: 'img', 'aria-label': parts.map((p) => `${p.label} ${Math.round((p.value / sum) * 100)}%`).join(', ') }, ...parts.map((p) => h('i', { style: `width:${(p.value / sum) * 100}%;background:${p.color}`, title: `${p.label}: ${fmt(Math.round(p.value))} damage` }))),
+    top ? h('span', { class: 'st-top' }, 'Most: ', h('b', {}, `${top.key === 'other' ? '' : `${sourceInfo(top.key).icon} `}${top.label} ${Math.round((top.value / sum) * 100)}%`)) : null,
   );
 }
 
@@ -276,6 +286,9 @@ function pizzaCard(v: BuildView): HTMLElement {
   );
 }
 
+/** Short tab labels (the section's own header still says it in full), so the row fits without scrolling. */
+const SHORT: Record<string, string> = { auto: 'Auto', cc: 'Control', peel: 'Peel' };
+
 /** The sub-tab the player last looked at (kept while the game runs). */
 let lastSub = '';
 
@@ -287,7 +300,7 @@ function subTabs(v: BuildView): HTMLElement {
       const n = sec.auto ? sec.auto.length : sec.tiles.length;
       const up = sec.tiles.filter((t) => t.tone === 'up').length;
       const badge = sec.auto ? (v.autoDps > 0 ? `${dps(v.autoDps)}/s` : String(n)) : up ? `${up}▲` : String(n);
-      return { id: sec.id, icon: sec.icon, title: sec.title, color: sec.color, badge, pane: sectionCard(sec, i) };
+      return { id: sec.id, icon: sec.icon, title: SHORT[sec.id] ?? sec.title, color: sec.color, badge, pane: sectionCard(sec, i) };
     }),
     { id: 'pizzas', icon: '🍕', title: 'Pizzas', color: '#d9963f', badge: String(v.pizzas.length), pane: pizzaCard(v) },
   ];

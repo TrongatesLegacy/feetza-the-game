@@ -1163,23 +1163,168 @@
   background: linear-gradient(#fbf0da 82%, rgba(251, 240, 218, 0));
 }
 
-/* phones: one row that scrolls sideways */
+/* phones: a touch smaller, so the row of short labels fits on one line (it wraps rather than scrolls if not) */
 @container (max-width: 900px) {
   .st-subtabs {
-    flex-wrap: nowrap;
-    justify-content: flex-start;
-    overflow-x: auto;
-    scrollbar-width: none;
-    padding-left: 0.2em;
-    padding-right: 0.2em;
-  }
-
-  .st-subtabs::-webkit-scrollbar {
-    display: none;
+    gap: 0.3em;
   }
 
   .st-subtab {
-    flex: none;
     font-size: 0.95em;
+    padding: 0.25em 0.55em 0.25em 0.4em;
+  }
+}
+
+/* a wider window for the stats (it still fits the screen) */
+.modal.wide.yourtops {
+  width: min(86em, 96cqw);
+}
+
+/* values sized to fit: the ▲/▼ stays small beside the number on the same line */
+.st-tile .st-val {
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+.st-tile .st-num,
+.st-tile .st-num.txt {
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.st-tile .st-delta {
+  flex: none;
+  font-size: 0.6em;
+  padding: 0.1em 0.3em;
+}
+
+.st-tile.long .st-num,
+.st-tile.big.long .st-num,
+.st-tile.long .st-num.txt {
+  font-size: 1.55em;
+}
+
+.st-tile.xlong .st-num,
+.st-tile.big.xlong .st-num,
+.st-tile.xlong .st-num.txt {
+  font-size: 1.2em;
+}
+
+.st-tile .st-lbl {
+  font-size: 0.98em;
+}
+
+/* ——— the compact summary: smaller numbers and padding, the bar's key behind a KEY button ——— */
+.st-hero {
+  padding: 0.65em 1em;
+  gap: 0.9em;
+  align-items: center;
+}
+
+.st-hero-l {
+  gap: 0.3em;
+}
+
+.st-big-k {
+  font-size: 1em;
+}
+
+.st-num.huge {
+  font-size: 3.3em;
+}
+
+.st-big-v small {
+  font-size: 1.25em;
+}
+
+.st-pace {
+  font-size: 0.95em;
+  padding: 0.12em 0.6em 0.15em 0.4em;
+}
+
+.st-legend {
+  font-size: 0.95em;
+}
+
+.st-facts {
+  font-size: 0.9em;
+}
+
+.st-last {
+  padding: 0.5em 0.7em 0.55em;
+  gap: 0.35em;
+}
+
+.st-last-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6em;
+}
+
+.st-last-head > b {
+  font-family: 'Lilita One', sans-serif;
+  font-weight: 400;
+  font-size: 0.95em;
+  letter-spacing: 0.04em;
+  color: var(--cheese);
+}
+
+.st-top {
+  font-weight: 600;
+  font-size: 0.9em;
+  color: #f3dcb4;
+}
+
+.st-top b {
+  color: #fff;
+}
+
+.st-pw.key {
+  position: relative;
+  top: auto;
+  left: auto;
+  flex: none;
+}
+
+.st-pbtn.key {
+  font-weight: 800;
+  font-size: 0.72em;
+  letter-spacing: 0.06em;
+  padding: 0.12em 0.6em;
+  border-radius: 1em;
+}
+
+.st-pw.key .st-pop {
+  right: 0;
+  left: auto;
+  max-width: min(26em, 80vw);
+}
+
+/* the key on the popover's cream ground */
+.st-pop .st-keys {
+  font-size: 0.95em;
+  color: var(--ink);
+}
+
+.st-pop .st-keys b {
+  color: var(--ink);
+}
+
+.st-pop .st-hint {
+  display: block;
+  margin-top: 0.4em;
+  font-size: 0.85em;
+  color: var(--ink-soft);
+}
+
+@container (max-width: 900px) {
+  .st-hero {
+    padding: 0.5em 0.8em;
+    gap: 0.5em;
+  }
+
+  .st-num.huge {
+    font-size: 2.8em;
   }
 }
