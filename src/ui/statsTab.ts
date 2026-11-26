@@ -195,7 +195,7 @@ function heroCard(v: BuildView): HTMLElement {
   const head =
     v.total !== null
       ? h('div', { class: 'st-big' }, h('span', { class: 'st-big-k' }, 'TOTAL DPS'), h('span', { class: 'st-big-v' }, counter(v.total, dps, 'huge'), h('small', {}, '/s')))
-      : h('div', { class: 'st-big' }, h('span', { class: 'st-big-k' }, 'PER SMACK'), h('span', { class: 'st-big-v' }, counter(v.perSmack + v.smackExtras, (n) => fmt(Math.round(n)), 'huge'), h('small', {}, `+ ${dps(auto)}/s automatic`)));
+      : h('div', { class: 'st-big' }, h('span', { class: 'st-big-k' }, 'PER SMACK'), h('span', { class: 'st-big-v' }, counter(v.perSmack + v.smackExtras, (n) => fmt(Math.round(n)), 'huge'), h('small', { title: `At full momentum: keep smacking and automatic attacks stay at full. Idle they cool to ${Math.round(v.momentumFloor * 100)}% (${dps(auto * v.momentumFloor)}/s).` }, `+ ${dps(auto)}/s automatic`)));
   const pace =
     v.pace !== null
       ? h('span', { class: 'st-pace', title: `Measured: smacks that landed per second while feet were on the table (${v.paceFrom})` }, h('i', {}, '👋'), `${r1(v.pace)} smacks/s`, h('small', {}, v.paceFrom))
@@ -210,7 +210,14 @@ function heroCard(v: BuildView): HTMLElement {
     'div',
     { class: 'st-legend' },
     h('span', { class: 'sm' }, h('b', {}, smack === null ? '?' : `${dps(smack)}/s`), ' your smacks'),
-    h('span', { class: 'au' }, h('b', {}, `${dps(auto)}/s`), ' automatic', v.autoWaiting ? h('small', {}, ` (+${v.autoWaiting} after a wave)`) : null),
+    h(
+      'span',
+      { class: 'au', title: `At full momentum: keep smacking and automatic attacks stay at full. Idle they cool to ${Math.round(v.momentumFloor * 100)}% (${dps(auto * v.momentumFloor)}/s).` },
+      h('b', {}, `${dps(auto)}/s`),
+      ' automatic',
+      v.autoWaiting ? h('small', {}, ` (+${v.autoWaiting} after a wave)`) : null,
+      auto > 0 ? h('small', {}, ` at full momentum · ${dps(auto * v.momentumFloor)}/s idle`) : null,
+    ),
   );
   const facts = h(
     'div',

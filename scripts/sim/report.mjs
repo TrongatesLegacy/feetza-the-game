@@ -26,13 +26,16 @@ function groups(results) {
   const by = new Map();
   for (const r of results) {
     if (r.repeat) continue;
-    const k = `${r.opts.heat}|${r.opts.peel}`;
-    if (!by.has(k)) by.set(k, { heat: r.opts.heat, peel: r.opts.peel, runs: [] });
+    const bot = r.opts.bot ?? 'full';
+    const k = `${r.opts.heat}|${r.opts.peel}|${bot}`;
+    if (!by.has(k)) by.set(k, { heat: r.opts.heat, peel: r.opts.peel, bot, runs: [] });
     by.get(k).runs.push(r);
   }
-  return [...by.values()].sort((a, b) => HEAT_ORDER.indexOf(a.heat) - HEAT_ORDER.indexOf(b.heat) || a.peel.localeCompare(b.peel));
+  return [...by.values()].sort((a, b) => HEAT_ORDER.indexOf(a.heat) - HEAT_ORDER.indexOf(b.heat) || a.peel.localeCompare(b.peel) || BOT_ORDER.indexOf(a.bot) - BOT_ORDER.indexOf(b.bot));
 }
-const nameOf = (g, many) => `${HEAT_NAME[g.heat] ?? g.heat}${many ? ` · ${g.peel}` : ''}`;
+const BOT_ORDER = ['full', 'light', 'idle'];
+const BOT_NAME = { full: 'busy bot', light: 'light bot', idle: 'idle bot' };
+const nameOf = (g, many, bots) => `${HEAT_NAME[g.heat] ?? g.heat}${many ? ` · ${g.peel}` : ''}${bots ? ` · ${BOT_NAME[g.bot] ?? g.bot}` : ''}`;
 
 /** A line chart: x = wave, one line per series (≤ 8), y from 0 to yMax. */
 function lineChart({ id, series, xMax, yMax, yFmt, yLabel, height = 260 }) {
@@ -99,6 +102,9 @@ function barChart({ id, counts, xMax, height = 170 }) {
 export function writeReport(dir, meta, results) {
   const gs = groups(results);
   const many = new Set(gs.map((g) => g.peel)).size > 1;
+  // (with more than one bot, or a light or idle one, every name says which)
+  const bots = new Set(gs.map((g) => g.bot)).size > 1 || gs.some((g) => g.bot !== 'full');
+  const nm = (g, m = many) => nameOf(g, m, bots);
   const xMax = meta.waves;
   const bad = results.filter((r) => r.outcome === 'stalled' || r.outcome === 'error');
   const shown = gs.slice(0, 8);
@@ -110,12 +116,12 @@ export function writeReport(dir, meta, results) {
     const reached = g.runs.filter((r) => r.outcome === 'reached').length;
     const broken = g.runs.filter((r) => r.outcome === 'stalled' || r.outcome === 'error').length;
     const secs = g.runs.map((r) => r.gameSec);
-    return `<tr><td>${esc(nameOf(g, true))}</td><td class="n">${g.runs.length}</td><td class="n">${pct(reached, g.runs.length)}</td><td class="n">${median(ended) > xMax ? `past ${xMax}` : (median(ended) ?? '–')}</td><td class="n">${deaths.length ? `${quart(deaths, 0.25)}–${quart(deaths, 0.75)}` : '–'}</td><td class="n">${Math.round(median(secs) / 60) || '–'} min</td><td class="n">${broken ? `<b class="warn">${broken}</b>` : 0}</td></tr>`;
+    return `<tr><td>${esc(nm(g, true))}</td><td class="n">${g.runs.length}</td><td class="n">${pct(reached, g.runs.length)}</td><td class="n">${median(ended) > xMax ? `past ${xMax}` : (median(ended) ?? '–')}</td><td class="n">${deaths.length ? `${quart(deaths, 0.25)}–${quart(deaths, 0.75)}` : '–'}</td><td class="n">${Math.round(median(secs) / 60) || '–'} min</td><td class="n">${broken ? `<b class="warn">${broken}</b>` : 0}</td></tr>`;
   });
 
   // survival: share of runs still going at the start of each wave
   const survival = shown.map((g) => ({
-    name: nameOf(g, many),
+    name: nm(g),
     points: Array.from({ length: xMax }, (_, i) => {
       const w = i + 1;
       const n = g.runs.filter((r) => r.outcome !== 'stalled' && r.outcome !== 'error').length;
@@ -130,9 +136,31 @@ export function writeReport(dir, meta, results) {
       const vals = g.runs.map((r) => r.waves.find((x) => x.wave === w)?.[key]).filter((v) => v !== undefined);
       return [w, vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null];
     });
-  const coins = shown.map((g) => ({ name: nameOf(g, many), points: avgBy(g, 'coins') }));
-  const slices = shown.map((g) => ({ name: nameOf(g, many), points: avgBy(g, 'slices') }));
-  const lost = shown.map((g) => ({ name: nameOf(g, many), points: avgBy(g, 'lost') }));
+  const coins = shown.map((g) => ({ name: nm(g), points: avgBy(g, 'coins') }));
+  const slices = shown.map((g) => ({ name: nm(g), points: avgBy(g, 'slices') }));
+  const lost = shown.map((g) => ({ name: nm(g), points: avgBy(g, 'lost') }));
+  // smacks vs automatic damage (momentum): shares over the run, waves cleared with no smacks, momentum held
+  const shareOf = (r, k) => {
+    const s = r.split;
+    const t = s ? s.smack + s.auto + s.slam + s.other : 0;
+    return t ? s[k] / t : null;
+  };
+  const dmgRows = gs.map((g) => {
+    const ok = g.runs.filter((r) => r.split);
+    const med = (f) => median(ok.map(f).filter((v) => v !== null && v !== undefined));
+    const mo = ok.flatMap((r) => r.waves.map((w) => w.momentum).filter((v) => v !== undefined));
+    const f = (v) => (v === null ? '–' : `${Math.round(v * 100)}%`);
+    return `<tr><td>${esc(nm(g, true))}</td><td class="n">${f(med((r) => shareOf(r, 'smack')))}</td><td class="n">${f(med((r) => shareOf(r, 'auto')))}</td><td class="n">${f(med((r) => shareOf(r, 'slam')))}</td><td class="n">${f(med((r) => shareOf(r, 'other')))}</td><td class="n">${med((r) => r.noSmackWaves) ?? '–'}</td><td class="n">${mo.length ? `${Math.round((mo.reduce((a, b) => a + b, 0) / mo.length) * 100)}%` : '–'}</td></tr>`;
+  });
+  const autoShare = shown.map((g) => ({
+    name: nm(g),
+    points: Array.from({ length: xMax }, (_, i) => {
+      const w = i + 1;
+      const rs = g.runs.map((r) => r.waves.find((x) => x.wave === w)).filter((x) => x && x.autoDmg !== undefined && x.autoDmg + x.smackDmg > 0);
+      return [w, rs.length ? (rs.reduce((n, x) => n + x.autoDmg / (x.autoDmg + x.smackDmg), 0) / rs.length) * 100 : null];
+    }),
+  }));
+  const hasSplit = results.some((r) => r.split);
   const maxOf = (ser) => Math.max(1, ...ser.flatMap((s) => s.points.map((p) => p[1] ?? 0)));
   const nice = (v) => {
     const p = 10 ** Math.floor(Math.log10(v));
@@ -143,7 +171,7 @@ export function writeReport(dir, meta, results) {
   const endings = gs.map((g) => {
     const counts = new Map();
     for (const r of g.runs) if (r.outcome === 'dead') counts.set(r.wave, (counts.get(r.wave) ?? 0) + 1);
-    return `<h3>${esc(nameOf(g, true))}</h3>${barChart({ id: `end-${g.heat}-${g.peel}`.replace(/[^a-z0-9-]/gi, ''), counts, xMax })}`;
+    return `<h3>${esc(nm(g, true))}</h3>${barChart({ id: `end-${g.heat}-${g.peel}`.replace(/[^a-z0-9-]/gi, ''), counts, xMax })}`;
   });
   const killers = new Map();
   for (const r of results) {
@@ -189,7 +217,7 @@ details pre{font-size:11px;white-space:pre-wrap;max-height:240px;overflow:auto}
 .scroll{overflow-x:auto}
 </style></head><body><main>
 <h1>Feetza balance report</h1>
-<p class="sub">${results.filter((r) => !r.repeat).length} runs to wave ${xMax} · ${esc(meta.heats.map((h) => HEAT_NAME[h] ?? h).join(', '))} · peels: ${esc(meta.peels.join(', '))} · bot accuracy ${Math.round(meta.accuracy * 100)}% · ${esc(meta.profile)} save · ${new Date(meta.when).toLocaleString('en-GB')}</p>
+<p class="sub">${results.filter((r) => !r.repeat).length} runs to wave ${xMax} · ${esc(meta.heats.map((h) => HEAT_NAME[h] ?? h).join(', '))} · peels: ${esc(meta.peels.join(', '))} · bot accuracy ${Math.round(meta.accuracy * 100)}%${meta.bots ? ` · bots: ${esc(meta.bots.join(', '))}${meta.bots.includes('light') ? ` (light: a smack every ${meta.lightRate} ms)` : ''}` : ''} · ${esc(meta.profile)} save · ${new Date(meta.when).toLocaleString('en-GB')}</p>
 <div class="tiles"><div class="tile"><b>${meta.seconds} s</b><span>real time</span></div><div class="tile"><b>${(meta.gameSeconds / 3600).toFixed(1)} h</b><span>of play simulated</span></div><div class="tile"><b>${Math.round(meta.gameSeconds / Math.max(1, meta.seconds))}×</b><span>real time, overall</span></div><div class="tile"><b class="${bad.length ? 'warn' : ''}">${bad.length}</b><span>stalled or errored</span></div></div>
 ${bad.length ? `<div class="alert"><b>${bad.length} run${bad.length === 1 ? '' : 's'} stalled or hit an error.</b> These are bot or game bugs, not balance: fix them before trusting the numbers. They're left out of the survival curves.</div><div class="scroll"><table><thead><tr><th>What</th><th>Run</th><th class="n">Seed</th><th class="n">Wave</th><th>Where</th></tr></thead><tbody>${badRows.join('')}</tbody></table></div>` : ''}
 <h2>Summary</h2>
@@ -197,6 +225,8 @@ ${bad.length ? `<div class="alert"><b>${bad.length} run${bad.length === 1 ? '' :
 <h2>Survival</h2><p class="sub">Share of runs still going at each wave.</p>${legend(survival)}${lineChart({ id: 'survival', series: survival, xMax, yMax: 100, yFmt: (v) => `${Math.round(v)}%`, yLabel: 'Runs still going' })}
 <h2>Where runs end</h2><p class="sub">Game overs by wave.</p>${endings.join('')}
 ${killerRows.length ? `<h3>Most deadly</h3><div class="scroll"><table><thead><tr><th>Ended during</th><th class="n">Runs</th><th>Heats</th></tr></thead><tbody>${killerRows.join('')}</tbody></table></div>` : ''}
+${hasSplit ? `<h2>Smacks vs automatic damage</h2><p class="sub">Medians over each group's runs: shares of all damage dealt, waves cleared with no smack hits, and the average momentum multiplier on automatic damage while waves were in play.${meta.momentum && Object.keys(meta.momentum).length ? ` Momentum overrides: ${esc(Object.entries(meta.momentum).map(([k, v]) => `${k}=${v}`).join(', '))}.` : ''}</p><div class="scroll"><table><thead><tr><th>Heat · peel · bot</th><th class="n">Smacks</th><th class="n">Automatic</th><th class="n">Slam</th><th class="n">Other</th><th class="n">No-smack waves</th><th class="n">Momentum</th></tr></thead><tbody>${dmgRows.join('')}</tbody></table></div>
+<h3>Automatic share of smack + automatic damage, by wave</h3>${legend(autoShare)}${lineChart({ id: 'autoshare', series: autoShare, xMax, yMax: 100, yFmt: (v) => `${Math.round(v)}%`, yLabel: 'Automatic share', height: 220 })}` : ''}
 <h2>Tips in hand</h2><p class="sub">Average tips after each wave's clear bonus, before shopping, over the runs that cleared it.</p>${legend(coins)}${lineChart({ id: 'coins', series: coins, xMax, yMax: nice(maxOf(coins)), yFmt: (v) => String(Math.round(v)), yLabel: 'Tips' })}
 <h2>Slices on the table</h2><p class="sub">Average slices left across all pizzas at the end of each wave.</p>${legend(slices)}${lineChart({ id: 'slices', series: slices, xMax, yMax: nice(maxOf(slices)), yFmt: (v) => String(Math.round(v)), yLabel: 'Slices' })}
 <h2>Slices lost per wave</h2>${legend(lost)}${lineChart({ id: 'lost', series: lost, xMax, yMax: nice(maxOf(lost)), yFmt: (v) => v.toFixed(v < 10 ? 1 : 0), yLabel: 'Slices lost', height: 200 })}

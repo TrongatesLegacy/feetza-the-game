@@ -4,6 +4,9 @@
 //   npm run sim -- --heat regular,hot --runs 20 --waves 100
 //   npm run sim -- --heat mild --runs 10 --waves 30 --peel classic,hero:zeus --workers 4
 //   npm run sim -- --check          (same seed twice: are runs reproducible?)
+//   npm run sim -- --heat mild --from 60 --waves 90 --shop auto --bot idle,light,full
+//                   (momentum: toppings alone, a lazy player, a busy one; the report splits smack and automatic damage)
+//   npm run sim -- --heat mild --bot idle --momentum floor=0.1,drain=4,grace=2,smackGain=0.6   (try other numbers)
 //
 // It starts its own Vite dev server and a headless Chrome (muted, its own throwaway profile, so the game's save in
 // your browser is never touched), opens one tab per worker and hands each tab runs to play with F.sim.run
@@ -42,6 +45,16 @@ const quiet = !!arg('quiet', false);
 const trace = Number(arg('trace', 0));
 const idleFrom = Number(arg('idle-from', 0));
 const shopMode = String(arg('shop', 'rarity'));
+// how the bot plays (src/devSim.ts SimOpts.bot): full, light (a smack every --light-rate ms) or idle (never smacks)
+const bots = list(arg('bot', 'full'));
+const lightRate = Number(arg('light-rate', 2000));
+// momentum overrides (src/data/difficulty.ts): floor=…,drain=…,grace=… for the heat, smackGain=…,slamGain=… shared
+const momentum = Object.fromEntries(
+  list(arg('momentum', ''))
+    .map((kv) => kv.split('='))
+    .filter(([k, v]) => k && v !== undefined && Number.isFinite(Number(v)))
+    .map(([k, v]) => [k, Number(v)]),
+);
 // start each run at this wave (from the shop, with a starter kit sized for it) instead of wave 1
 const from = Number(arg('from', 0));
 // a fresh page for every run (slower to start, but nothing from an earlier run can carry over)
@@ -49,7 +62,9 @@ const freshEvery = argv.includes('--reuse') ? 8 : 1;
 
 if (argv.includes('--help')) {
   console.log(`npm run sim -- [--heat mild,regular,hot,extrahot,inferno] [--runs N] [--waves N] [--peel id,id]
-                 [--workers N] [--seed N] [--accuracy 0..1] [--dt ms] [--profile fresh|veteran] [--check]`);
+                 [--workers N] [--seed N] [--accuracy 0..1] [--dt ms] [--profile fresh|veteran] [--check]
+                 [--from wave] [--shop rarity|auto] [--idle-from wave] [--bot full,light,idle] [--light-rate ms]
+                 [--momentum floor=0.15,drain=6,grace=2.5,smackGain=0.6,slamGain=1]`);
   process.exit(0);
 }
 
@@ -57,11 +72,12 @@ if (argv.includes('--help')) {
 const jobs = [];
 for (const heat of heats)
   for (const peel of peels)
-    for (let i = 0; i < runs; i++) {
-      const job = { seed: seedBase + i, heat, peel, waves, accuracy, dt, profile, ...(trace ? { trace } : {}), ...(idleFrom ? { idleFrom } : {}), ...(from ? { from } : {}), shop: shopMode };
-      jobs.push(job);
-      if (check) jobs.push({ ...job, repeat: true });
-    }
+    for (const bot of bots)
+      for (let i = 0; i < runs; i++) {
+        const job = { seed: seedBase + i, heat, peel, waves, accuracy, dt, profile, ...(trace ? { trace } : {}), ...(idleFrom ? { idleFrom } : {}), ...(from ? { from } : {}), shop: shopMode, bot, lightRate, ...(Object.keys(momentum).length ? { momentum } : {}) };
+        jobs.push(job);
+        if (check) jobs.push({ ...job, repeat: true });
+      }
 
 const freePort = () =>
   new Promise((res) => {
@@ -191,7 +207,7 @@ mkdirSync(out, { recursive: true });
 const results = [];
 const t0 = Date.now();
 let next = 0;
-const label = (j) => `${j.heat} ${j.peel} seed ${j.seed}${j.repeat ? ' (again)' : ''}`;
+const label = (j) => `${j.heat} ${j.peel}${bots.length > 1 || j.bot !== 'full' ? ` ${j.bot} bot` : ''} seed ${j.seed}${j.repeat ? ' (again)' : ''}`;
 console.log(`Feetza balance sim: ${jobs.length} runs (${heats.join(', ')} × ${peels.join(', ')} × ${runs} seeds, to wave ${waves}) on ${workers} tabs`);
 
 const worker = async () => {
@@ -214,7 +230,10 @@ const worker = async () => {
       const what = r.outcome === 'dead' ? `died at wave ${r.wave}${r.boss ? ` (${r.boss})` : ''}` : r.outcome === 'reached' ? `reached wave ${waves}` : r.outcome === 'stalled' ? `STALLED at wave ${r.wave}: ${r.stall?.screen}` : `ERROR at wave ${r.wave}: ${r.error}`;
       // guard feet's shields: smacks they blocked, shields broken and replaced
       const gd = r.guard?.blocked ? ` · shields: ${r.guard.blocked} blocked, ${r.guard.broken} broken, ${r.guard.rearmed} re-armed` : '';
-      console.log(`[${results.length}/${jobs.length}] ${label(job)}: ${what}${gd} · ${(r.realMs / 1000).toFixed(1)} s (${speed}× real time)`);
+      // smack vs automatic damage, and the waves cleared with no smacks at all
+      const sp = r.split ? r.split.smack + r.split.auto + r.split.slam + r.split.other : 0;
+      const dm = sp ? ` · damage: ${Math.round((r.split.smack / sp) * 100)}% smacks, ${Math.round((r.split.auto / sp) * 100)}% automatic · ${r.noSmackWaves ?? 0} waves with no smacks` : '';
+      console.log(`[${results.length}/${jobs.length}] ${label(job)}: ${what}${gd}${dm} · ${(r.realMs / 1000).toFixed(1)} s (${speed}× real time)`);
     }
     writeFileSync(join(out, 'results.json'), JSON.stringify(results));
   }
@@ -228,7 +247,7 @@ try {
 
 const secs = (Date.now() - t0) / 1000;
 const gameSecs = results.reduce((n, r) => n + (r.gameSec ?? 0), 0);
-const meta = { heats, peels, runs, waves, workers, accuracy, dt, profile, check, seconds: Math.round(secs), gameSeconds: gameSecs, when: new Date().toISOString() };
+const meta = { heats, peels, bots, lightRate, momentum, runs, waves, workers, accuracy, dt, profile, check, seconds: Math.round(secs), gameSeconds: gameSecs, when: new Date().toISOString() };
 writeFileSync(join(out, 'results.json'), JSON.stringify({ meta, results }, null, 0));
 const report = writeReport(out, meta, results);
 const bad = results.filter((r) => r.outcome === 'stalled' || r.outcome === 'error').length;
@@ -237,7 +256,7 @@ if (bad) console.log(`⚠ ${bad} run(s) stalled or errored: see the report befor
 if (check) {
   const pairs = new Map();
   for (const r of results) {
-    const k = `${r.opts.heat}|${r.opts.peel}|${r.opts.seed}`;
+    const k = `${r.opts.heat}|${r.opts.peel}|${r.opts.bot ?? 'full'}|${r.opts.seed}`;
     pairs.set(k, [...(pairs.get(k) ?? []), r]);
   }
   let same = 0;
