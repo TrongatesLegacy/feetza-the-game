@@ -476,6 +476,12 @@ const ULTRA: [string, string, EventId, number, Plain][] = [
   ['cosmic', 'Cosmic Crust', 'chest', 1 / 400, { shape: 'oval', base: '#120a3a', pattern: 'stars', pc: '#ffffff', handle: '#3a2a6a', studs: '#a77dff' }],
 ];
 
+// the jewellery box and the ultra-rares: cut stone, polished metal, pearl, opal, a galaxy under glass (src/art/peelGem.ts)
+for (const [id] of JEWELS) CRAFT[id] = 'gem';
+for (const [id] of ULTRA) CRAFT[`ultra:${id}`] = 'gem';
+/** A jewel's look: painted as its stone or metal. */
+const jewelLook = (id: string, jewel: string, p: Plain) => () => crafted({ ...plain(id, p, true)(), craft: 'gem', jewel });
+
 /** Act peels: a look for each act (the trophy studs, and the act's number stamped on the head). */
 const ACT_LOOK: Plain[] = [
   { shape: 'round', base: '#c8553d', pattern: 'checker', pc: '#fff2e0', studs: '#ffd23f' }, // Opening Night
@@ -500,7 +506,7 @@ function buildDefs(): PeelDef[] {
     look: () => crafted({ ...plain('classic', { shape: 'round', base: '#d9a066', pattern: 'grain', pc: '#7a4a22', trail: '#f6cf94' })(), craft: CRAFT.classic }),
   });
   for (const [id, name, cost, p] of GOLDEN) defs.push({ id, name, group: 'golden', how: `Buy for ${cost.toLocaleString()} Golden Crusts.`, cost, look: () => crafted({ ...plain(id, p)(), craft: CRAFT[id] }) });
-  for (const [id, name, cost, p] of JEWELS) defs.push({ id, name, group: 'jewel', how: `Buy for ${cost.toLocaleString()} Golden Crusts.`, cost, shiny: true, look: plain(id, p, true) });
+  for (const [id, name, cost, p] of JEWELS) defs.push({ id, name, group: 'jewel', how: `Buy for ${cost.toLocaleString()} Golden Crusts.`, cost, shiny: true, look: jewelLook(id, id, p) });
   const feet = FEET.filter((f) => !f.boss && !f.mini);
   for (const f of feet) {
     const need = killsNeeded(f);
@@ -649,7 +655,7 @@ function buildDefs(): PeelDef[] {
       drop: { event: ev, chance },
       shiny: true,
       ultra: true,
-      look: plain(`ultra:${id}`, p, true),
+      look: jewelLook(`ultra:${id}`, id, p),
     });
   }
   // heroes and gods (src/content/peels/): a goal each, or a crust price

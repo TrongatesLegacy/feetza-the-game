@@ -12,6 +12,7 @@ How a peel can look today:
 - **window** (new in batch 2, a crafted kind): a place peel's head with a living miniature of its location set into it (`src/art/peelPlace.ts`, `src/art/peelPlaceDefs.ts`).
 - **pie** (new in batch 3, a crafted kind): a pizza peel's pie, built from the pizza's own art in layers, alive on its board (`src/art/peelPizza.ts`).
 - **medallion** (new in batch 4, two crafted kinds, `event` and `act`): a round window set into the head behind a bezel and glass, the wave event in miniature or the act's places, number and boss alive in it (`src/art/peelMedal.ts`, `src/art/peelEventDefs.ts`).
+- **gem** (new in batch 5, a crafted kind): the head is the stone or metal the peel is named for, in a polished setting, its facets catching a moving light (`src/art/peelGem.ts`).
 
 Priorities: **P1** the most seen (everyone's first peel, the first peels bought, what most players own early); **P2** owned early or often by most players, still a still today; **P3** rare or late, or already animated (a glow or a fire) and wanting a signature motion of its own.
 
@@ -26,10 +27,10 @@ Priorities: **P1** the most seen (everyone's first peel, the first peels bought,
 | Pizzas | 113 | still (5 fire) → **a living pie on its board (batch 3)**; the five fire pizzas keep their fire | Margherita's and the starters' within the first few hours | **P2, done** |
 | Events | 8 | still → **the event in miniature in a medallion (batch 4)** | balloon, drone and moth peels early | **P2, done** |
 | Acts | 10 | still → **a trophy medallion: the act's places, gold number and boss (batch 4)** | Act 1's after the first act; one per act | **P2, done** |
-| Jewellery box | 8 | glow (Ruby: fire), preview only | bought late (800–5,000 crusts) | P3 |
-| Mastered (of the jewels) | 8 | glow | late | P3 |
+| Jewellery box | 8 | glow (Ruby: fire), preview only → **cut stone, metal or pearl, alive (batch 5)**; Ruby keeps its fire | bought late (800–5,000 crusts) | **P3, done** |
+| Mastered (of the jewels) | 8 | glow → **as their jewels, gold-set (batch 5)** | late | done with their bases |
 | Event shinies | 8 | still → **as their events, with foil (batch 4)** | rare drops (1 in 40) | done with the events |
-| Ultra-rares | 8 | glow (Fire Opal: fire) | extremely rare | P3 |
+| Ultra-rares | 8 | glow (Fire Opal: fire) → **their stone or metal alive inside their aura (batch 5)**; Fire Opal keeps its fire | extremely rare | **P3, done** |
 | Heroes | 67 | glow (2 fire), preview only | goals across the game | P3 |
 | Gods (Greek 22, Norse 16) | 38 | element glow (Zeus hand-made lightning; Hestia, Hephaestus fire) | goals across the late game | P3 |
 | The God Peel | 1 | gold halo, rays, prism trail | the final trophy | P3 |
@@ -84,9 +85,11 @@ Earned by finishing each act. Today a plain head stamped with the act's number i
 
 Done in batch 4, all 10, as a trophy medallion with the act's places, number and boss (below).
 
-### Jewellery box (8), mastered jewels (8), ultra-rares (8): P3
+### Jewellery box (8), mastered jewels (8), ultra-rares (8): batch 5, done
 
-Late and rare. Today the generic glow (only on the big preview for the jewels and masters). Gems want what real stones do: light breaking into colour inside them as the light moves (dispersion flashes moving across the facets, a painted facet map per cut), a slow rotation of the facet highlights, and on a smack a burst of caustic light. The ultra-rares keep their aura with this inside. One shared facet rig, per-stone colours.
+Late and rare. They had the generic glow (only on the big preview for the jewels and masters) over a flat head with a rainbow foil. Gems want what real stones do: light breaking into colour inside them as the light moves (dispersion flashes moving across the facets, a painted facet map per cut), a slow rotation of the facet highlights, and on a smack a burst of caustic light. The ultra-rares keep their aura with this inside. One shared facet rig, per-stone colours.
+
+Done in batch 5, all 24 (below).
 
 ### Heroes (67): P3
 
@@ -289,5 +292,92 @@ Act peels: a trophy. A gold bezel, milled like a coin's edge. Through it the act
 
 **Where it stopped.** All 8 event peels, their 8 shinies and all 10 act peels are done. Up next, in order:
 
-1. The P3 families: the gems (the jewellery box, their masterworks and the ultra-rares: one shared facet rig, per-stone colours), then the heroes (cape, emblem, power, on the hero heads' parts), then the gods (each god's signature motion in the head).
+1. The P3 families: the gems (the jewellery box, their masterworks and the ultra-rares: one shared facet rig, per-stone colours; done in batch 5), then the heroes (cape, emblem, power, on the hero heads' parts), then the gods (each god's signature motion in the head).
 2. Alongside: the foot peels' first-open warm-up on the ALL tab (batch 2), and the Immortal's and Immortal Brute's living defs. The fire looks' big-preview and in-play shapes are unchanged by the tile fix and could get the same look at the bar when the fire peels are next touched.
+
+## Batch 5: the gems (done)
+
+**What changed.** The 8 jewellery-box peels, their 8 mastered versions and the 8 ultra-rare jewels are now a new crafted kind, `gem` (`src/art/peelGem.ts`). Each keeps its shape, colours and studs, but the head is now the material the peel is named for, set in a polished metal band. It no longer has the flat head with rainbow foil. Lighting comes from the top left. The band's outer edge is domed and its inner bevel slopes down to the stone, so the bevel is lit on its bottom right, and the band shades the stone's top-left edge. The studs are set as tiny brilliants, metal beads or seed pearls.
+
+Cut stones have real facet geometry fitted to the head's outline:
+
+- a brilliant: a table, 8 stars, 8 kites and 16 upper girdles, with the pavilion's dark arrows showing through the table;
+- an emerald's step cut: three bands of steps, the steps reflected in the table, and diagonals at the corners.
+
+Each facet is lit as a tilted mirror by a light that wanders round the top left. A second, softer light sits low on the right, and every few seconds the stone catches the light as it swings across and back. In play, swinging the peel turns the light. As the light moves, facets flash in turn, with the flash rolling across the facet. Light breaks inside the stone (scintillation, in the stone's own colour), and facets turned away from the light go dark. Glints pop at the corner of whichever facet flashes brightest, and the studs glint in turn round the band.
+
+A smack sends a ring of light out through the facets, from the middle to the girdle, with a flash off the middle. The metal chimes (a quick hum), the studs light from the top outwards, and glints and motes in the stone's colour are thrown off.
+
+| Peel | Made of | Its own life |
+|---|---|---|
+| Sterling Silver, Solid Gold | bright-cut plate, an engine-turned (guilloché) centre | facets swap light and dark as the light moves; a two-lobed highlight turns in the guilloché |
+| Ruby Crown | a brilliant ruby, gold-set | a red glow (it fluoresces), stronger where the light falls and on a smack; keeps its fire look |
+| Sapphire Tide | an oval brilliant sapphire, platinum-set | silk: fine needles in three directions, each set glinting as the light lines up with it, and a soft six-rayed star where the light sits |
+| Emerald Isle | an emerald-cut emerald, gold-set | its jardin (feathery inclusions); steps alternate light and dark, a hall of mirrors |
+| Amethyst Dream | a brilliant amethyst, silver-set | colour zoning; it flushes warmer and cooler as the light changes |
+| Pearl Diver | nacre in a silver band, seed-pearl studs | pink and green orient sliding round the highlight; warm reflected light under it; a smack sends a soft iridescent sheen across it |
+| Chef’s Diamond | a pear brilliant, platinum-set | fire: soft flashes of spectral colour inside the facets; strong light and dark contrast |
+| Rose Gold | bright-cut rose gold, a pink diamond in six claws | as the plates, and the pink stone's fire |
+| Platinum Prop | brushed platinum, a circuit cut into it, an asscher-cut diamond at its heart | light pulses run out along the traces to pavé diamonds that flash; a highlight lies across the brushing |
+| Fire Opal | an opal dome | play of colour: three sets of flakes, each flashing as the light comes round, with pinfire winking; keeps its fire look |
+| Golden Feather | a gold plate with a feather in relief | a sheen runs up the barbs; a smack throws golden feathers |
+| Prismatic | a clear brilliant | the strongest fire; rainbows sweep through it; a rainbow glow behind that turns with the light |
+| Black Diamond | an opaque black brilliant in black rhodium | adamantine flashes, white with a violet edge |
+| Crown Jewel | a cushion-cut red stone in four claws, on purple velvet ringed with diamonds | the velvet's pile catches the light; the ring stones twinkle |
+| Cosmic Crust | a galaxy under a polished dome | nebulae drift, the galaxy turns, stars twinkle; a smack is a supernova (a flare, rays, a ring, stars streaking out) |
+
+**Mastered versions** are the same stones, gold-set, with milgrain along the band, gold studs (beads), and the masterwork glow on the big preview and in play.
+
+**The ultra-rares** do more:
+
+- Every few seconds, a slow bloom of light runs out through the whole head.
+- Now and then, a glint or mote drifts off the rim.
+- They keep their aura (`ultraStyle`), so they still read as the rarest things in the locker.
+
+**The family glows** (`src/art/lookGlow.ts`) stay for their aura and trail, at 70 % strength round a head that now shines on its own. Two parts of them are gone, because the gem now does both itself:
+
+- the generic glints scattered over the head;
+- the generic smack ring, which read as a halo round the peel in play (`noRing`).
+
+The Ruby Crown and the Fire Opal keep their fire looks.
+
+**How it's built.** The rig is built like batch 1's: one per peel per detail, built in idle time and shared.
+
+- **Painted once:** the head's static layers. Under the moving parts: the stone, plate, pearl, opal, space or velvet at rest. Over them: the band, a centre stone's collet and claws, the studs and the outline.
+- **Painted once per detail:** the layers that move (the sapphire's silk, the opal's flakes, the cosmic nebulae and galaxy, the feather's lit barbs).
+- **Drawn each frame:** only what moves, inside the band, between those layers. That is the vector facets (about 33 polygons, filled only where lit), a few gradients and a few layer draws.
+- **Geometry:** the outline is the head's own, set in by the band, with the neck bridged. It is cached per shape.
+- **The still** is the same stone at rest, with one glint on its brightest facet.
+- **Sprites:** the crafted sprite pool gains rainbow fire motes, ruby and white motes, and golden feathers.
+- **Look lab:** gets a Gems family.
+
+**Performance** (headless Chrome; the machine's load average was 5–13 with other apps running):
+
+- **Cursor peel in play**, swinging and smacking: the look's tick costs 0.30–0.42 ms a frame on average (p95 0.6–0.8 ms, max 1.0–2.3 ms) for Chef’s Diamond, Prismatic, Crown Jewel, Pearl Diver and Cosmic Crust. Frame p95 is 18 ms. The second runs had no frame over 50 ms; the first run had a few at the start, under heavy load.
+- **Locker, CRUSTS tab** (26 living tiles, 16 of them gems):
+  - opening it: p95 21 ms, max 29 ms, no long tasks;
+  - scrolling top to bottom and back, twice: p95 20–21 ms, max 21–22 ms, no long tasks.
+- **Locker, SHINY tab:**
+  - opening it: p95 21 ms, max 67 ms, one 54 ms long task while its 150 living tiles start (the shiny feet's rigs);
+  - scrolled to the ultra-rares: p95 21 ms, max 22.5 ms.
+- **`F.contrast()` and `F.layout()`** report nothing on the CRUSTS tab, at desktop and at phone size (844 × 390).
+
+**Review fixes.** One independent visual review. What it raised and what changed:
+
+- **The soft purple box behind the Crown Jewel in play** was the ultra aura lighting the counter behind it. The gem auras are now at 70 %.
+- **The smack ring read as a halo** drawn outside the head. That was the generic glow's ring; it is off for the gems.
+- **Silver and gold had a grey speckle patch** in the middle. The guilloché is now six clean rings with a lit centre, and the plates' facets have stronger light and dark contrast.
+- **The pearl was a flat white oval.** It now has a deeper, darker edge, stronger pink and green orient, and a brighter highlight. Its smack ring, which looked like a sticker, is now a soft, wide iridescent sheen.
+- **The Fire Opal's flecks read as uniform confetti.** The flakes now vary in size and lie in the grain, and the dome has a darker rim and a polished highlight.
+- **The emerald read as a flat target.** Its steps now alternate light and dark, band by band.
+- **The Black Diamond barely moved at rest.** Its flashes are stronger and whiter.
+- **Platinum Prop's diamond was small.** It is bigger.
+- **The Golden Feather's smack only lightened the plaque.** It is toned down, and the smack throws golden feathers.
+- **Not changed:** the Ruby Crown's fire halo on its tile, which the reviewer found spiky. That is the ruby's fire look from before this pass (`src/art/lookFire.ts`, shared with the other fire peels). Its tile shape was already reworked in batch 4.
+
+**Where it stopped.** All 24 gem peels are done. Up next, in order:
+
+1. The heroes (67, P3): a signature motion each (a cape that moves, an emblem that lights, the hero's power), built on the hero heads' parts (`src/art/heroHeads.ts`) and grouped by power family.
+2. The gods (38) and the God Peel (P3): each god's own motion in the head itself.
+3. Alongside: the foot peels' first-open warm-up on the ALL tab (batch 2), the Immortal's and Immortal Brute's living defs, and the fire looks' big-preview and in-play shapes (the Ruby Crown's and the Fire Opal's among them).
+

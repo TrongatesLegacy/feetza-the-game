@@ -53,6 +53,8 @@ export interface GlowStyle {
   halo?: number;
   /** Light rays turning slowly behind the head. */
   rays?: { c: number; n: number; a: number; len: number };
+  /** No ring on a smack (the gem peels send their own through their facets). */
+  noRing?: boolean;
   /** The smack ring's colours. */
   ring: [number, number];
 }
@@ -435,7 +437,7 @@ class GlowCore implements LookCore {
   }
 
   smack(x: number, y: number, f: Frame): void {
-    this.rings.fire(x, y);
+    if (!this.st.noRing) this.rings.fire(x, y);
     const b = this.st.bits[0];
     if (f.calm || !b) return;
     const S = f.s * PX;

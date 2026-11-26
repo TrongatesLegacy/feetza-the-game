@@ -7,8 +7,8 @@
 // Which peels get which look (lookOf): Zeus's lightning sword is hand-made here; the always-aflame peels burn in
 // their own style (FIRE_PEELS in lookFire.ts); the jewellery box, masterworks, ultra-rares, gods, the God Peel and
 // the heroes get their family's glow and trail (lookGlow.ts). Only the equipped (or worn) look runs in play.
-// A redrawn foot's peel also comes alive (src/art/peelLive.ts), and so do the crafted peels, the Classic and the
-// Golden Crust set (src/art/peelCraft.ts), in the same two places.
+// A redrawn foot's peel also comes alive (src/art/peelLive.ts), and so do the crafted peels (src/art/peelCraft.ts:
+// the Classic and the Golden Crust set, the places, pizzas, events, acts and the gems), in the same two places.
 // All of it runs only with animated peels on (Settings → Graphics): off, looks are painted once (a still) and
 // nothing runs per frame.
 
@@ -25,7 +25,7 @@ import { peelsAnimated } from '../systems/graphics';
 import { save } from '../systems/save';
 import { PEEL_H, PEEL_W } from './peelArt';
 import { PeelLive, drawPeelLive, hasPeelLive, requestRig } from './peelLive';
-import { CraftLive, drawCraftLive, hasPeelCraft, requestCraftRig } from './peelCraft';
+import { CraftLive, craftOf, drawCraftLive, hasPeelCraft, requestCraftRig } from './peelCraft';
 import { makeCanvas } from './util';
 
 export type { LookFx, LookHost } from './lookKit';
@@ -693,6 +693,13 @@ const kitLook = (make: () => LookCore, tile: boolean): AnimatedLook => ({
 });
 const glowLook = (st: GlowStyle, tile: boolean) => kitLook(() => glowCore(st), tile);
 
+/** A gem peel (src/art/peelGem.ts) keeps its family's aura, trail and smack ring, but its facets catch the light
+ *  themselves: the glow's generic glints scattered over the head and its smack ring go (the gem runs its own ring
+ *  of light through its facets), and the aura is softer round a head that now shines on its own. */
+function gemGlow(id: string, st: GlowStyle): GlowStyle {
+  return craftOf(id) === 'gem' ? { ...st, auraA: st.auraA * 0.7, noRing: true, bits: st.bits.filter((b) => b.where !== 'head') } : st;
+}
+
 const built = new Map<string, AnimatedLook | null>();
 /** A peel's animated look: a hand-made one (Zeus), a fire (lookFire.ts), or its family's glow (lookGlow.ts). */
 function lookOf(id: string): AnimatedLook | null {
@@ -707,9 +714,9 @@ function lookOf(id: string): AnimatedLook | null {
     else if (d.pantheon) {
       const st = godStyle(id);
       out = st ? glowLook(st, true) : null;
-    } else if (d.ultra) out = glowLook(ultraStyle(id, d.look()), true);
-    else if (d.group === 'jewel') out = glowLook(jewelStyle(d.look()), false);
-    else if (d.group === 'master') out = glowLook(masterStyle(d.look()), false);
+    } else if (d.ultra) out = glowLook(gemGlow(id, ultraStyle(id, d.look())), true);
+    else if (d.group === 'jewel') out = glowLook(gemGlow(id, jewelStyle(d.look())), false);
+    else if (d.group === 'master') out = glowLook(gemGlow(id, masterStyle(d.look())), false);
     else if (d.group === 'hero') out = glowLook(heroStyle(d.look()), false);
   }
   built.set(id, out);

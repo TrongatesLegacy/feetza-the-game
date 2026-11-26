@@ -17,6 +17,8 @@
 //   (src/art/peelPlace.ts, src/art/peelPlaceDefs.ts).
 // - event and act (the event and act peels): a medallion in the head, the wave event in miniature or the act's places,
 //   boss and number (src/art/peelMedal.ts, src/art/peelEventDefs.ts).
+// - gem (the jewellery box, its masterworks and the ultra-rares): cut stone, polished metal, pearl, opal or a galaxy
+//   under glass, its facets catching a moving light; a smack runs a ring of light through them (src/art/peelGem.ts).
 //
 // It is built as the living foot peels are (src/art/peelLive.ts): the rig (CraftRig: the head's layers, cut to the
 // head's box, and the handle) is built a step at a time in idle time and shared; the motion (CraftLive) is one per
@@ -57,6 +59,7 @@ import { PizzaLive, pizzaBoard, pizzaMiniSteps, pizzaPaintAsync, pizzaPaintReady
 import { pizzaPeelLook } from '../game/peels';
 import { MedalLive, actPrepAsync, actReady, medalMiniSteps, medalOver, medalUnder, type MedalMini, type MedalSpr } from './peelMedal';
 import { PIZZA_BY_ID } from '../data/pizzas';
+import { GemLive, gemMiniSteps, gemOver, gemUnder, type GemMini, type GemMote } from './peelGem';
 
 const { x: HX, y: HY, r: R } = PEEL_HEAD;
 
@@ -92,6 +95,8 @@ export interface CraftRig {
   pizza: PizzaMini | null;
   /** An event or act peel: its medallion's parts (src/art/peelMedal.ts). */
   medal: MedalMini | null;
+  /** A gem peel: its stone's geometry and moving layers (src/art/peelGem.ts). */
+  gem?: GemMini | null;
   key: string;
 }
 
@@ -150,6 +155,16 @@ function* rigSteps(peelId: string, kind: CraftKind, RR: number): Generator<void,
     const place = look.place ? yield* placeMiniSteps(look.place, look.shape, RR) : null;
     if (!place) return null;
     return { id: peelId, kind, look, RR, handle, under, over, inner, reflect: null, lit: null, lit2: null, place, pizza: null, medal: null, key };
+  }
+  if (kind === 'gem') {
+    // a gem peel: the stone (or plate) at rest, the band, setting and studs over it, and the layers that move
+    const under = boxLayer(RR, (ctx) => gemUnder(ctx, look));
+    yield;
+    const over = boxLayer(RR, (ctx) => gemOver(ctx, look));
+    yield;
+    const gem = yield* gemMiniSteps(look, RR);
+    if (!gem) return null;
+    return { id: peelId, kind, look, RR, handle, under, over, inner: EMPTY, reflect: null, lit: null, lit2: null, place: null, pizza: null, medal: null, gem, key };
   }
   if (kind === 'event' || kind === 'act') {
     // an event or act peel: the head round its medallion, the bezel and glass over it, the medallion's parts
@@ -344,7 +359,25 @@ export const enum Spr {
   Shred,
   Pepper,
   Gold,
+  // the gem peels' (src/art/peelGem.ts)
+  Fire,
+  Ruby,
+  White,
+  GoldFeather,
 }
+
+/** A gem's names for the sprites it throws. */
+const GEM_SPR: Record<GemMote | 'glint' | 'feather', Spr> = {
+  glint: Spr.Glint,
+  fire: Spr.Fire,
+  red: Spr.Ruby,
+  blue: Spr.SparkB,
+  green: Spr.SparkG,
+  violet: Spr.SparkV,
+  gold: Spr.Gold,
+  white: Spr.White,
+  feather: Spr.GoldFeather,
+};
 
 /** An event or act medallion's names for the sprites it throws. */
 const MEDAL_SPR: Record<MedalSpr, Spr> = {
@@ -683,7 +716,39 @@ const SPR: Record<Spr, SprDef> = {
   [Spr.Shred]: { w: 24, h: 24, n: 3, anim: false, draw: shred },
   [Spr.Pepper]: { w: 16, h: 16, n: 3, anim: false, draw: pepper },
   [Spr.Gold]: { w: 24, h: 24, n: 1, anim: false, draw: mote('#ffb020', '#fff8d8') },
+  [Spr.Fire]: { w: 24, h: 24, n: 6, anim: false, draw: (ctx, i) => mote(['#ff3a3a', '#ff9a2a', '#ffe03a', '#4aff8a', '#3aa8ff', '#9a5aff'][i], '#ffffff')(ctx) },
+  [Spr.Ruby]: { w: 24, h: 24, n: 1, anim: false, draw: mote('#ff2a5a', '#fff0f4') },
+  [Spr.White]: { w: 24, h: 24, n: 1, anim: false, draw: mote('#b8d8ff', '#ffffff') },
+  [Spr.GoldFeather]: { w: 24, h: 24, n: 2, anim: false, draw: goldFeather },
 };
+
+/** A small golden feather: a gold vane, lit on its top, a darker quill. */
+function goldFeather(ctx: Ctx, i: number): void {
+  ctx.save();
+  ctx.translate(12, 12);
+  ctx.rotate(i ? 0.5 : -0.3);
+  ctx.beginPath();
+  ctx.moveTo(-9, 1);
+  ctx.quadraticCurveTo(-2, -6, 9, -2);
+  ctx.quadraticCurveTo(2, 5, -9, 1);
+  ctx.closePath();
+  const g = ctx.createLinearGradient(0, -6, 0, 5);
+  g.addColorStop(0, '#fff6c8');
+  g.addColorStop(0.55, '#f0bf3e');
+  g.addColorStop(1, '#9a6a0a');
+  ctx.fillStyle = g;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(90,56,4,0.8)';
+  ctx.lineWidth = 0.9;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(-10, 1.5);
+  ctx.quadraticCurveTo(0, -1, 9, -2);
+  ctx.strokeStyle = 'rgba(120,80,10,0.9)';
+  ctx.lineWidth = 0.8;
+  ctx.stroke();
+  ctx.restore();
+}
 
 /** A tip coin tumbling: gold, lit from the top left, frame i turned edge-on a little more (it spins as it flies). */
 function coin(ctx: Ctx, i: number): void {
@@ -958,6 +1023,8 @@ const FEEL: Record<CraftKind, { squash: number; k: number; c: number; wob: numbe
   pizza: { squash: 0.025, k: 900, c: 26, wob: 0.012, shake: 0.6, vib: 0, sway: 0.3, wk: 300, wc: 20 },
   event: { squash: 0.05, k: 600, c: 18, wob: 0.02, shake: 0.8, vib: 0, sway: 0.38, wk: 230, wc: 15 },
   act: { squash: 0.035, k: 800, c: 24, wob: 0.012, shake: 1.6, vib: 0, sway: 0.25, wk: 320, wc: 22 },
+  // a jewel: hard and heavy, it barely gives; it chimes (a quick hum)
+  gem: { squash: 0.03, k: 950, c: 26, wob: 0.01, shake: 0.9, vib: 0.018, sway: 0.2, wk: 340, wc: 24 },
 };
 
 const reduced = () => !!save.settings.reducedMotion;
@@ -1055,6 +1122,8 @@ export class CraftLive {
   private pizzaEmit: PizzaEmit = (spr, lx, ly, vx, vy, s0, s1, life, o) => this.emit(PIZZA_SPR[spr], lx, ly, vx, vy, s0, s1, life, o);
   /** An event or act peel's medallion. */
   readonly medal: MedalLive | null;
+  /** A gem peel's stone. */
+  readonly gem: GemLive | null;
 
   constructor(
     readonly rig: CraftRig,
@@ -1066,6 +1135,13 @@ export class CraftLive {
     this.place = rig.place ? new PlaceLive(rig.place) : null;
     this.pizza = rig.pizza ? new PizzaLive(rig.pizza) : null;
     this.medal = rig.medal ? new MedalLive(rig.medal) : null;
+    this.gem = rig.gem ? new GemLive(rig.gem) : null;
+    if (this.gem) {
+      this.gem.menu = this.menu;
+      this.gem.emit = (spr, lx, ly, vx, vy, s0, s1, life, o) => this.emit(GEM_SPR[spr], lx, ly, vx, vy, s0, this.menu ? s1 * 0.8 : s1, life, o);
+      // its glows behind the peel (the ruby's red, Prismatic's rainbow): the same objects, moved by the gem
+      this.glows = this.gem.glows;
+    }
     if (this.medal) {
       this.medal.menu = this.menu;
       // an act's boss stomps where a smack can land: in play and on the locker's big preview (its ▶)
@@ -1199,6 +1275,9 @@ export class CraftLive {
       case 'act':
         this.medal?.smack();
         break;
+      case 'gem':
+        this.gem?.smack();
+        break;
       case 'obsidian': {
         for (let i = 0; i < Math.round(6 * n); i++) {
           const a = crand() * Math.PI * 2;
@@ -1275,6 +1354,9 @@ export class CraftLive {
       case 'event':
       case 'act':
         this.medal?.update(dt);
+        break;
+      case 'gem':
+        this.gem?.update(dt, vx);
         break;
     }
     this.bits.tick(dt);
@@ -1432,6 +1514,19 @@ export class CraftLive {
       this.pizza.draw(c);
       c.setTransform(1, 0, 0, 1, 0, 0);
       c.globalAlpha = 1;
+      return;
+    }
+    if (this.gem) {
+      // a gem peel: the stone alive (it keeps itself inside the band), then the band, setting and studs, then their glints
+      c.setTransform(RR, 0, 0, RR, -SB.x * RR, -SB.y * RR);
+      this.gem.draw(c);
+      c.setTransform(1, 0, 0, 1, 0, 0);
+      c.globalAlpha = 1;
+      c.globalCompositeOperation = 'source-over';
+      c.drawImage(rig.over, 0, 0);
+      c.setTransform(RR, 0, 0, RR, -SB.x * RR, -SB.y * RR);
+      this.gem.drawOver(c);
+      c.setTransform(1, 0, 0, 1, 0, 0);
       return;
     }
     if (this.medal) {

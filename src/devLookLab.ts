@@ -7,7 +7,7 @@ import { LOOK_OX, LOOK_OY, animateLookImg, canvasPen, hasAnimatedLook, movingLoo
 import type { MovingPainter } from './art/lookKit';
 import { FIRE_PEELS } from './art/lookFire';
 import { hasPeelLive } from './art/peelLive';
-import { hasPeelCraft } from './art/peelCraft';
+import { craftOf, hasPeelCraft } from './art/peelCraft';
 
 type Notes = Record<string, string>;
 const LS_KEY = 'feetza.lookLab';
@@ -51,10 +51,11 @@ function families(): [string, string, PeelDef[]][] {
     ['The God Peel', 'the final trophy: halo, turning rays and a rainbow trail', all.filter((d) => d.group === 'god')],
     ['Always aflame', 'their own fire', all.filter(fire)],
     ['Gods', 'each god’s own glow', all.filter((d) => !fire(d) && god(d) && d.group !== 'god')],
-    ['Crafted: the Classic, the Golden Crusts and the places', 'alive as their material (wood, marble, copper, neon, obsidian; mastered ones too), and the places with a living window', all.filter((d) => hasPeelCraft(d.id) && d.group !== 'pizza' && d.group !== 'event' && d.group !== 'shinyEvent' && d.group !== 'act')],
-    ['Events and acts', 'a medallion: the wave event in miniature (its answer on a smack), or the act’s places and gold number (its boss stomps on a smack)', all.filter((d) => hasPeelCraft(d.id) && (d.group === 'event' || d.group === 'shinyEvent' || d.group === 'act'))],
+    ['Crafted: the Classic, the Golden Crusts and the places', 'alive as their material (wood, marble, copper, neon, obsidian; mastered ones too), and the places with a living window', all.filter((d) => hasPeelCraft(d.id) && craftOf(d.id) !== 'gem' && d.group !== 'pizza' && d.group !== 'event' && d.group !== 'shinyEvent' && d.group !== 'act')],
+    ['Events and acts', 'a medallion: the wave event in miniature (its answer on a smack), or the act’s places and gold number (its boss stomps on a smack)', all.filter((d) => hasPeelCraft(d.id) && craftOf(d.id) !== 'gem' && (d.group === 'event' || d.group === 'shinyEvent' || d.group === 'act'))],
+    ['Gems', 'the jewellery box, its masterworks and the ultra-rares: cut stone, polished metal, pearl, opal and a galaxy under glass, catching a moving light (a smack runs a ring of light through the facets)', all.filter((d) => craftOf(d.id) === 'gem')],
     ['Pizzas', 'the pie alive on its board: glistening, bubbling, steaming, its family’s touch (heat, frost, syrup, gold, a Rare Find’s finish); a smack bounces it', all.filter((d) => d.group === 'pizza')],
-    ['Jewellery box, masterworks and ultra-rares', 'glints, sheens and auras', all.filter((d) => !fire(d) && !god(d) && d.group !== 'hero' && !hasPeelLive(d.id) && !hasPeelCraft(d.id))],
+    ['Other glows', 'glints, sheens and auras', all.filter((d) => !fire(d) && !god(d) && d.group !== 'hero' && !hasPeelLive(d.id) && !hasPeelCraft(d.id))],
     ['Heroes', 'a glow, rim glints and a starry ribbon', all.filter((d) => !fire(d) && !god(d) && d.group === 'hero')],
     ['Living feet', 'redrawn feet that move as their foot does: glow, blinks, sway, toes, heat and what they shed', all.filter((d) => !fire(d) && hasPeelLive(d.id) && !d.id.startsWith('boss:'))],
     ['Living bosses', 'the bosses and mini-bosses, alive the same way', all.filter((d) => !fire(d) && hasPeelLive(d.id) && d.id.startsWith('boss:'))],
