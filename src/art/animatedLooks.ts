@@ -844,6 +844,10 @@ interface Overlay {
   foot: { live: Living | null; asked: boolean } | null;
   /** The <img> is hidden while the living foot is drawn in its place. */
   hid: boolean;
+  /** Device pixels per peel unit as drawn (set by place()). */
+  k: number;
+  /** The living peel drawn at its rig's detail, then halved down to near its drawn size (see drawLiving). */
+  mips: [HTMLCanvasElement, CanvasRenderingContext2D][];
   /** Painted once (animated peels off): the still look. */
   still: { back: HTMLCanvasElement | null; front: HTMLCanvasElement } | null;
   id: string;
@@ -857,9 +861,59 @@ interface Living {
   /** On a canvas whose transform is the peel's frame (0, 0 at its top left). */
   draw(ctx: CanvasRenderingContext2D): void;
   smack(): void;
+  /** Its rig's detail (canvas pixels per peel unit). */
+  RR: number;
 }
-const footLiving = (l: PeelLive): Living => ({ update: (dt) => l.update(dt), draw: (ctx) => drawPeelLive(ctx, l), smack: () => l.smack() });
-const craftLiving = (l: CraftLive): Living => ({ update: (dt) => l.update(dt), draw: (ctx) => drawCraftLive(ctx, l), smack: () => l.smack() });
+const footLiving = (l: PeelLive): Living => ({ update: (dt) => l.update(dt), draw: (ctx) => drawPeelLive(ctx, l), smack: () => l.smack(), RR: l.rig.RR });
+const craftLiving = (l: CraftLive): Living => ({ update: (dt) => l.update(dt), draw: (ctx) => drawCraftLive(ctx, l), smack: () => l.smack(), RR: l.rig.RR });
+
+/** Room round the peel's frame (peel units) a living peel's particles and critters may use: the overlay's pad. */
+const LIV = { x: Math.round(220 * 0.14), y: Math.round(360 * 0.14) };
+
+/**
+ * A living peel onto its overlay, smoothly: drawn at its rig's detail on a canvas of its own, then halved (each step
+ * a clean 2:1 smoothing) until it's within twice its drawn size, then drawn down. Drawn straight onto a small tile or
+ * the tilted preview (a third to a tenth of its detail) its outline came out stair-stepped.
+ */
+function drawLiving(o: Overlay, live: Living): void {
+  const S = Math.max(live.RR, o.k);
+  const W = Math.ceil((220 + LIV.x * 2) * S);
+  const H = Math.ceil((360 + LIV.y * 2) * S);
+  let lvl = 0;
+  const mip = (i: number, w: number, h: number) => {
+    let m = o.mips[i];
+    if (!m) {
+      const c = document.createElement('canvas');
+      m = o.mips[i] = [c, c.getContext('2d')!];
+    }
+    if (m[0].width !== w || m[0].height !== h) {
+      m[0].width = w;
+      m[0].height = h;
+    }
+    m[1].setTransform(1, 0, 0, 1, 0, 0);
+    m[1].clearRect(0, 0, w, h);
+    m[1].imageSmoothingQuality = 'high';
+    return m;
+  };
+  const [c0, x0] = mip(0, W, H);
+  x0.setTransform(S, 0, 0, S, LIV.x * S, LIV.y * S);
+  live.draw(x0);
+  let src = c0;
+  let s = S;
+  while (s / 2 >= o.k && lvl < 4) {
+    lvl++;
+    const [c, x] = mip(lvl, Math.ceil(src.width / 2), Math.ceil(src.height / 2));
+    x.drawImage(src, 0, 0, src.width / 2, src.height / 2);
+    src = c;
+    s /= 2;
+  }
+  const ctx = o.ctx;
+  ctx.save();
+  ctx.imageSmoothingQuality = 'high';
+  // (ctx is in the peel's frame about its grip point; the canvas is in units of 1/s, offset by the room)
+  ctx.drawImage(src, -OX - LIV.x, -OY - LIV.y, src.width / s, src.height / s);
+  ctx.restore();
+}
 
 const overlays = new Set<Overlay>();
 let raf = 0;
@@ -930,6 +984,7 @@ function place(o: Overlay): boolean {
   }
   // about half a peel unit per css pixel or less: thicken the strokes so they don't vanish
   o.boost.w = Math.min(2.2, Math.max(1, 0.5 / (k / dpr)));
+  o.k = k;
   return true;
 }
 
@@ -1001,10 +1056,7 @@ function frame(now: number): void {
     if (!place(o)) continue;
     if (f?.live) {
       f.live.update(dt);
-      o.ctx.save();
-      o.ctx.translate(-OX, -OY);
-      f.live.draw(o.ctx);
-      o.ctx.restore();
+      drawLiving(o, f.live);
       if (!o.hid) {
         o.hid = true;
         o.img.style.visibility = 'hidden';
@@ -1085,6 +1137,8 @@ export function animateLookImg(img: HTMLImageElement, id: string): void {
     paint: anim && lookHere ? look!.painter() : null,
     foot: footHere ? { live: null, asked: false } : null,
     hid: false,
+    k: 1,
+    mips: [],
     still,
     id,
     style: getComputedStyle(img),

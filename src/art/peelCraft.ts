@@ -1,15 +1,16 @@
 // Living crafted peels: the Classic Peel and the Golden Crust set (and their mastered versions) come alive as the
 // material they are made of (src/art/peelCraftArt.ts paints them):
-// - wood (the Classic): now and then a sheen runs over the varnish and the grain catches it; flour sifts off its
-//   edge (when it taps the counter in the locker, when it's swung in play); a smack flattens the head, which springs
-//   back with a wobble and throws up a cloud of flour.
+// - wood (the Classic): now and then a broad sheen runs over the varnish; flour sifts off its edge (when it taps the
+//   counter in the locker, when it's swung in play); a smack flattens the head, which springs back with a wobble and
+//   throws a quick drift of flour off past its rim.
 // - marble: the window's reflection drifts on the polish, a glint runs along a vein, mica twinkles; a smack barely
-//   moves it (a heavy thud and a shake), light floods out along the veins, chips and stone dust fly.
+//   moves it (a heavy thud and a shake), gold light floods out along the veins, chips and stone dust fly.
 // - copper: the spun metal's radial highlight swings as the light moves, temper colours breathe in the middle (it's
 //   fresh from the oven), a glint pops on the rim; a smack rings it like a gong (ripples run out across the face, it
 //   hums, sparks fly).
 // - neon: data pulses run out along the cyan traces and light the pads they reach, the tubes hum and the pink one
-//   stutters now and then; a smack surges every tube white, browns them out and sparks fly from the pads.
+//   stutters now and then; a smack surges every tube white (a flash on the glass), browns them out and sparks fly
+//   from the pads.
 // - obsidian: light moves slowly through its violet flow bands (the glass's inner fire), and now and then their
 //   sheen flashes across it as the light catches them; a smack lights a fracture through the glass from where it landed, and dark shards fly off.
 //
@@ -232,7 +233,6 @@ export const enum Spr {
   SparkC,
   SparkN,
   Glint,
-  RingC,
   RingO,
   Mote,
 }
@@ -247,51 +247,29 @@ interface SprDef {
   draw: (ctx: Ctx, i: number) => void;
 }
 
-/** A cloud puff, painted lobe by lobe and lit from the top left; frame i of 8 spreads and thins out. */
+/** A drift of fine powder (flour, stone dust): a haze of many small soft dabs in a loose, uneven cluster, lighter on
+ *  its top-left side and shaded under; frame i of 8 spreads and thins out to nothing. No lumps: it is dust, not cloud. */
 function puff(hi: string, mid: string, lo: string) {
   return (ctx: Ctx, i: number) => {
     const p = i / 7;
     const r = rng(77);
-    const A = 1 - 0.62 * p;
-    const lobes: [number, number, number][] = [];
-    // an uneven billow: lobes of different sizes round a loose middle, spreading and thinning
-    for (let k = 0; k < 9; k++) {
-      const a = (k / 9) * Math.PI * 2 + r() * 0.7;
-      const d = (7 + 11 * p) * (0.55 + r() * 0.7);
-      lobes.push([32 + Math.cos(a) * d, 32 + Math.sin(a) * d * 0.8, (5 + 5 * p) * (0.6 + r() * 0.8)]);
-    }
-    lobes.push([31, 33, 9 + 4 * p]);
-    for (let k = 0; k < 5; k++) {
+    const A = 0.7 * (1 - 0.75 * p);
+    for (let k = 0; k < 46; k++) {
+      // (the same dabs every frame, drifting outwards and thinning)
       const a = r() * Math.PI * 2;
-      const d = 16 + 12 * p + r() * 4;
-      lobes.push([32 + Math.cos(a) * d, 32 + Math.sin(a) * d * 0.85, (2 + 3 * p) * (0.6 + r() * 0.8)]);
-    }
-    // the shaded underside, the body, then the lit tops
-    for (const [x, y, rr] of lobes) {
-      const g = ctx.createRadialGradient(x + rr * 0.2, y + rr * 0.25, 0, x + rr * 0.1, y + rr * 0.12, rr);
-      g.addColorStop(0, rgba(lo, A * 0.9));
-      g.addColorStop(0.65, rgba(lo, A * 0.55));
-      g.addColorStop(1, rgba(lo, 0));
-      ctx.fillStyle = g;
-      ctx.fillRect(x - rr, y - rr, rr * 2.2, rr * 2.2);
-    }
-    for (const [x, y, rr] of lobes) {
-      const g = ctx.createRadialGradient(x - rr * 0.1, y - rr * 0.12, 0, x, y, rr * 0.92);
-      g.addColorStop(0, rgba(mid, A));
-      g.addColorStop(0.7, rgba(mid, A * 0.75));
-      g.addColorStop(1, rgba(mid, 0));
+      const d0 = Math.sqrt(r()) * 13;
+      const d = d0 * (1 + 0.9 * p) + p * 6 * r();
+      const x = 32 + Math.cos(a) * d * (1 + 0.15 * Math.cos(a * 3));
+      const y = 32 + Math.sin(a) * d * 0.78;
+      const rr = (3 + r() * 5) * (1 + 0.6 * p);
+      // lit from the top left: dabs there light, the underside shaded
+      const lit = Math.max(0, Math.min(1, 0.5 - (x - 32 + (y - 32)) / 40));
+      const col = lit > 0.55 ? hi : lit > 0.3 ? mid : lo;
+      const g = ctx.createRadialGradient(x, y, 0, x, y, rr);
+      g.addColorStop(0, rgba(col, A * (0.5 + r() * 0.5)));
+      g.addColorStop(1, rgba(col, 0));
       ctx.fillStyle = g;
       ctx.fillRect(x - rr, y - rr, rr * 2, rr * 2);
-    }
-    for (const [x, y, rr] of lobes) {
-      const hx = x - rr * 0.3;
-      const hy = y - rr * 0.34;
-      const g = ctx.createRadialGradient(hx, hy, 0, hx, hy, rr * 0.75);
-      g.addColorStop(0, rgba(hi, A * 0.85));
-      g.addColorStop(0.6, rgba(hi, A * 0.35));
-      g.addColorStop(1, rgba(hi, 0));
-      ctx.fillStyle = g;
-      ctx.fillRect(hx - rr, hy - rr, rr * 2, rr * 2);
     }
   };
 }
@@ -302,8 +280,21 @@ function polyPts(ctx: Ctx, pts: Pt[]): void {
   ctx.closePath();
 }
 
-function spark(edge: string, body: string, hot: string) {
+function spark(edge: string, body: string, hot: string, glow = false) {
   return (ctx: Ctx) => {
+    if (glow) {
+      // a soft halo of its own light round the streak
+      const hg = ctx.createLinearGradient(0, 0, 48, 0);
+      hg.addColorStop(0, rgba(body, 0));
+      hg.addColorStop(1, rgba(body, 0.35));
+      ctx.strokeStyle = hg;
+      ctx.lineWidth = 11;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(8, 6);
+      ctx.lineTo(42, 6);
+      ctx.stroke();
+    }
     const g = ctx.createLinearGradient(0, 0, 48, 0);
     g.addColorStop(0, rgba(edge, 0));
     g.addColorStop(0.7, rgba(edge, 0.55));
@@ -376,15 +367,22 @@ const SPR: Record<Spr, SprDef> = {
         const d = 4.5 + r() * 3.5;
         pts.push([10 + Math.cos(a) * d, 10 + Math.sin(a) * d]);
       }
+      // a shadow side, the lit face, a dark edge
+      ctx.save();
+      ctx.translate(1, 1.3);
+      polyPts(ctx, pts);
+      ctx.fillStyle = 'rgba(60,52,64,0.55)';
+      ctx.fill();
+      ctx.restore();
       polyPts(ctx, pts);
       const g = ctx.createLinearGradient(4, 4, 16, 16);
       g.addColorStop(0, '#ffffff');
-      g.addColorStop(0.6, '#e6e0d8');
-      g.addColorStop(1, '#a8a0a8');
+      g.addColorStop(0.45, '#e2dcd6');
+      g.addColorStop(1, '#8e8690');
       ctx.fillStyle = g;
       ctx.fill();
-      ctx.strokeStyle = 'rgba(80,74,92,0.85)';
-      ctx.lineWidth = 1;
+      ctx.strokeStyle = 'rgba(58,52,68,0.95)';
+      ctx.lineWidth = 1.5;
       ctx.stroke();
       ctx.beginPath();
       ctx.moveTo(6, 9 + i);
@@ -400,28 +398,33 @@ const SPR: Record<Spr, SprDef> = {
     n: 3,
     anim: false,
     draw: (ctx, i) => {
+      // a long glassy sliver: black, a violet edge where the light comes through, a white spec
       const r = rng(53 + i);
-      const pts: Pt[] = [[12 + (r() - 0.5) * 4, 2], [19 + r() * 3, 13 + r() * 4], [12, 22], [5 - r() * 2, 12 + r() * 3]];
+      const lean = (r() - 0.5) * 3;
+      const pts: Pt[] = [[12 + lean, 1], [15.5 + r() * 1.5, 12], [12 - lean * 0.5, 23], [8.5 - r() * 1.5, 13]];
       polyPts(ctx, pts);
-      const g = ctx.createLinearGradient(5, 2, 19, 22);
-      g.addColorStop(0, '#6a5a8a');
-      g.addColorStop(0.4, '#221c2e');
-      g.addColorStop(1, '#08060c');
+      const g = ctx.createLinearGradient(8, 2, 16, 22);
+      g.addColorStop(0, '#3a2a56');
+      g.addColorStop(0.35, '#120e1a');
+      g.addColorStop(1, '#040306');
       ctx.fillStyle = g;
       ctx.fill();
-      ctx.strokeStyle = 'rgba(20,10,30,0.95)';
-      ctx.lineWidth = 1.4;
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(pts[0][0], pts[0][1] + 1);
-      ctx.lineTo(pts[3][0] + 1, pts[3][1]);
-      ctx.strokeStyle = 'rgba(230,215,255,0.95)';
+      ctx.strokeStyle = 'rgba(10,4,16,1)';
       ctx.lineWidth = 1.2;
       ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(pts[0][0] - 0.4, pts[0][1] + 1.5);
+      ctx.lineTo(pts[3][0] + 0.8, pts[3][1]);
+      ctx.strokeStyle = 'rgba(196,150,255,0.95)';
+      ctx.lineWidth = 1.3;
+      ctx.stroke();
+      ellipse(ctx, pts[0][0] + 0.6, pts[0][1] + 5, 1.1, 1.8, 0.2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
     },
   },
   [Spr.SparkC]: { w: 48, h: 12, n: 1, anim: false, streak: true, draw: spark('#7a2a08', '#ff9a3a', '#fff4c8') },
-  [Spr.SparkN]: { w: 48, h: 12, n: 1, anim: false, streak: true, draw: spark('#0a4a5a', '#3ae8ff', '#f0ffff') },
+  [Spr.SparkN]: { w: 48, h: 12, n: 1, anim: false, streak: true, draw: spark('#0a4a5a', '#3ae8ff', '#f0ffff', true) },
   [Spr.Glint]: {
     w: 32,
     h: 32,
@@ -441,7 +444,6 @@ const SPR: Record<Spr, SprDef> = {
       ctx.fill();
     },
   },
-  [Spr.RingC]: { w: 96, h: 96, n: 1, anim: false, draw: ring('#3ae8ff') },
   [Spr.RingO]: { w: 96, h: 96, n: 1, anim: false, draw: ring('#ffb070') },
   [Spr.Mote]: {
     w: 24,
@@ -685,17 +687,17 @@ export class CraftLive {
     const m = this.menu ? 0.55 : 1;
     switch (this.rig.kind) {
       case 'wood': {
-        // a cloud of flour off the face (in play it billows wider), specks flung out
-        const pm = this.menu ? 1 : 1.35;
-        for (let i = 0; i < Math.round(5 * n); i++) {
-          const a = crand() * Math.PI * 2;
-          const d = crand() * 30;
-          this.emit(Spr.Flour, HX + 4 + Math.cos(a) * d, HY + 12 + Math.sin(a) * d * 0.8, Math.cos(a) * (70 + crand() * 70) * pm, Math.sin(a) * (55 + crand() * 55) * pm - 30, 40, this.menu ? 110 : 165, 0.75 + crand() * 0.35, { drag: 2.6, a: 0.95, fin: 0.04, spin: (crand() - 0.5) * 1.2 });
+        // a quick drift of flour thrown off the face and out past the rim, gone in under half a second
+        const pm = this.menu ? 0.75 : 1.2;
+        for (let i = 0; i < Math.round(8 * n); i++) {
+          const a = (i / 8) * Math.PI * 2 + crand() * 0.6;
+          const d = R * (0.55 + crand() * 0.3);
+          this.emit(Spr.Flour, HX + Math.cos(a) * d, HY + 6 + Math.sin(a) * d * 0.9, Math.cos(a) * (150 + crand() * 90) * pm, Math.sin(a) * (120 + crand() * 80) * pm - 30, 34, this.menu ? 72 : 120, 0.32 + crand() * 0.12, { drag: 3.2, a: 1, fin: 0.05, spin: (crand() - 0.5) * 1.2 });
         }
         for (let i = 0; i < Math.round(14 * n); i++) {
           const a = crand() * Math.PI * 2;
           const sp = (90 + crand() * 170) * m;
-          this.emit(Spr.Speck, HX + 4 + Math.cos(a) * 20, HY + 14 + Math.sin(a) * 16, Math.cos(a) * sp, Math.sin(a) * sp - 60, 7 + crand() * 4, 5, 0.55 + crand() * 0.4, { grav: 420, drag: 1.5 });
+          this.emit(Spr.Speck, HX + 4 + Math.cos(a) * 40, HY + 14 + Math.sin(a) * 34, Math.cos(a) * sp, Math.sin(a) * sp - 60, 7 + crand() * 4, 5, 0.45 + crand() * 0.3, { grav: 420, drag: 1.5 });
         }
         break;
       }
@@ -703,11 +705,11 @@ export class CraftLive {
         for (let i = 0; i < Math.round(5 * n); i++) {
           const a = -Math.PI / 2 + (crand() - 0.5) * 2.6;
           const sp = (110 + crand() * 150) * m;
-          this.emit(Spr.Chip, HX + Math.cos(a) * 34, HY + Math.sin(a) * 30, Math.cos(a) * sp, Math.sin(a) * sp - 70, 15 + crand() * 7, 13, 0.6 + crand() * 0.3, { grav: 650, drag: 0.6, spin: (crand() - 0.5) * 16 });
+          this.emit(Spr.Chip, HX + Math.cos(a) * R * 0.75, HY + Math.sin(a) * R * 0.7, Math.cos(a) * sp * 1.5, Math.sin(a) * sp * 1.5 - 90, 20 + crand() * 8, 17, 0.65 + crand() * 0.3, { grav: 700, drag: 0.4, spin: (crand() - 0.5) * 16, fin: 0.01 });
         }
         for (let i = 0; i < Math.round(3 * n); i++) {
           const a = crand() * Math.PI * 2;
-          this.emit(Spr.Dust, HX + Math.cos(a) * 30, HY + Math.sin(a) * 28, Math.cos(a) * 60, Math.sin(a) * 45 - 15, 36, this.menu ? 80 : 100, 0.65 + crand() * 0.3, { drag: 2.6, a: 0.8 });
+          this.emit(Spr.Dust, HX + Math.cos(a) * R * 0.7, HY + Math.sin(a) * R * 0.65, Math.cos(a) * 120, Math.sin(a) * 90 - 20, 40, this.menu ? 80 : 110, 0.45 + crand() * 0.2, { drag: 2.8, a: 0.9 });
         }
         break;
       }
@@ -728,16 +730,15 @@ export class CraftLive {
           const [px, py] = tr.pts[tr.pts.length - 1];
           const a = Math.atan2(py - HY, px - HX) + (crand() - 0.5) * 0.8;
           const sp = (120 + crand() * 180) * m;
-          this.emit(Spr.SparkN, px, py, Math.cos(a) * sp, Math.sin(a) * sp - 60, 22 + crand() * 8, 12, 0.28 + crand() * 0.2, { grav: 600, fin: 0.01 });
+          this.emit(Spr.SparkN, px, py, Math.cos(a) * sp * 1.3, Math.sin(a) * sp * 1.3 - 60, 34 + crand() * 10, 18, 0.28 + crand() * 0.2, { grav: 600, fin: 0.01 });
         });
-        if (!this.menu) this.emit(Spr.RingC, HX, HY, 0, 0, 60, 320, 0.38, { a: 0.7, fin: 0.02, spin: 0 });
         break;
       }
       case 'obsidian': {
         for (let i = 0; i < Math.round(6 * n); i++) {
           const a = crand() * Math.PI * 2;
           const sp = (120 + crand() * 170) * m;
-          this.emit(Spr.Shard, HX + Math.cos(a) * 24, HY + Math.sin(a) * 28, Math.cos(a) * sp, Math.sin(a) * sp - 80, 17 + crand() * 8, 15, 0.5 + crand() * 0.3, { grav: 620, drag: 0.5, spin: (crand() - 0.5) * 18 });
+          this.emit(Spr.Shard, HX + Math.cos(a) * R * 0.72, HY + Math.sin(a) * R * 0.85, Math.cos(a) * sp * 1.4, Math.sin(a) * sp * 1.4 - 80, 22 + crand() * 8, 20, 0.5 + crand() * 0.3, { grav: 620, drag: 0.5, spin: (crand() - 0.5) * 18 });
         }
         for (let i = 0; i < Math.round(6 * n); i++) {
           const a = crand() * Math.PI * 2;
@@ -928,7 +929,7 @@ export class CraftLive {
   /** Does the surface want repainting this frame? In play the head repaints at about 30 fps, every frame for a moment
    *  after a smack; in the locker, every frame (the locker runs at 30). */
   wantsPaint(): boolean {
-    if (this.menu || this.sm < 0.7 || this.paintAcc >= 1 / 30) {
+    if (this.menu || this.sm < 0.9 || this.paintAcc >= 1 / 30) {
       this.paintAcc = 0;
       return true;
     }
@@ -1028,17 +1029,8 @@ export class CraftLive {
           // the sheen runs over the varnish, the grain catching it
           const b = -1.25 + 2.5 * u;
           const env = Math.sin(Math.PI * u);
-          this.masked(ctx, rig.lit!, (m) => this.band(m, b, 30), 0.8 * env);
-          this.band(ctx, b, 36, 0.24 * env, '#fff6e4');
-        }
-        if (s < 0.5) {
-          // the flour leaps off in a puff of white
-          const k = s / 0.5;
-          const g = ctx.createRadialGradient(HX + 4, HY + 14, 0, HX + 4, HY + 14, 40 + 40 * k);
-          g.addColorStop(0, rgba('#ffffff', 0.35 * (1 - k)));
-          g.addColorStop(1, rgba('#ffffff', 0));
-          ctx.fillStyle = g;
-          ctx.fillRect(SB.x, SB.y, SB.w, SB.h);
+          this.band(ctx, b, 52, 0.26 * env, '#fff6e4');
+          this.masked(ctx, rig.lit!, (m) => this.band(m, b, 40), 0.22 * env);
         }
         break;
       }
@@ -1064,9 +1056,9 @@ export class CraftLive {
           this.star(ctx, v.pts[i0][0] + (v.pts[i0 + 1][0] - v.pts[i0][0]) * fk, v.pts[i0][1] + (v.pts[i0 + 1][1] - v.pts[i0][1]) * fk, 9 * env, env);
         }
         for (const tw of this.twinkles) if (tw.t < 0.55) this.star(ctx, tw.x, tw.y, tw.s * Math.sin((Math.PI * tw.t) / 0.55), 0.9);
-        if (s < 0.6) {
+        if (s < 0.9) {
           // the smack's light floods out along the veins
-          const k = s / 0.6;
+          const k = s / 0.9;
           const rf = 8 + 150 * Math.pow(k, 0.7);
           this.masked(
             ctx,
@@ -1079,17 +1071,18 @@ export class CraftLive {
               m.fillStyle = g;
               m.fillRect(SB.x, SB.y, SB.w, SB.h);
             },
-            (1 - k) * 1.3,
+            (1 - k * k) * 1.6,
           );
-          // and a warm flash where it landed
-          const fk = Math.max(0, 1 - s / 0.2);
-          if (fk > 0) this.dot(ctx, HX, HY, 46, '#ffe2a0', 0.55 * fk);
+          // the veins stay lit gold a moment, and a warm flash where it landed
+          this.drawLayer(ctx, rig.lit, 0.45 * (1 - k));
+          const fk = Math.max(0, 1 - s / 0.3);
+          if (fk > 0) this.dot(ctx, HX, HY, 60, '#ffd890', 0.75 * fk);
         }
         break;
       }
       case 'copper': {
         // the spun highlight swings as the light moves
-        const turn = 0.22 * Math.sin(this.t * 0.37) + 0.08 * noise1(this.t * 0.5);
+        const turn = 0.5 * Math.sin(this.t * 0.37) + 0.12 * noise1(this.t * 0.5);
         const cg = ctx.createConicGradient(turn, HX, HY);
         const lobe = (at: number, w: number, a: number) => {
           cg.addColorStop(Math.max(0, at - w), 'rgba(255,240,225,0)');
@@ -1097,8 +1090,8 @@ export class CraftLive {
           cg.addColorStop(Math.min(1, at + w), 'rgba(255,240,225,0)');
         };
         cg.addColorStop(0, 'rgba(255,240,225,0)');
-        lobe(0.125, 0.025, 0.16);
-        lobe(0.625, 0.03, 0.34);
+        lobe(0.125, 0.035, 0.22);
+        lobe(0.625, 0.04, 0.46);
         cg.addColorStop(1, 'rgba(255,240,225,0)');
         ctx.fillStyle = cg;
         ctx.fillRect(SB.x, SB.y, SB.w, SB.h);
@@ -1150,11 +1143,12 @@ export class CraftLive {
         this.drawLayer(ctx, rig.lit, ta);
         this.drawLayer(ctx, rig.lit2, pa);
         if (ta > 1 || pa > 1) {
-          // a surge: everything white-hot for a moment
+          // a surge: everything white-hot for a moment, a white flash on the glass
           ctx.globalCompositeOperation = 'lighter';
           this.drawLayer(ctx, rig.lit, (ta - 1) * 1.6);
           this.drawLayer(ctx, rig.lit2, (pa - 1) * 1.6);
           ctx.globalCompositeOperation = 'source-over';
+          this.dot(ctx, HX, HY, R * 0.95, '#e8fcff', 0.5 * (1 - this.sm / 0.12));
         }
         const traces = neonGeo(rig.look.shape).traces;
         // data running out along the traces
@@ -1162,7 +1156,7 @@ export class CraftLive {
         for (const p of this.pulses) {
           if (p.wait > 0) continue;
           const tr = traces[p.tr];
-          for (let k = 0; k < 6; k++) {
+          for (let k = 0; k < 9; k++) {
             const d0 = p.d - k * 4;
             if (d0 < 0) break;
             along(tr.pts, d0, this.pt);
@@ -1170,13 +1164,13 @@ export class CraftLive {
             ctx.beginPath();
             ctx.moveTo(this.pt[0], this.pt[1]);
             ctx.lineTo(this.pt2[0], this.pt2[1]);
-            ctx.strokeStyle = `rgba(232,254,255,${0.95 * (1 - k / 6) * Math.min(1, ta)})`;
-            ctx.lineWidth = 2.4;
+            ctx.strokeStyle = `rgba(232,254,255,${0.95 * (1 - k / 9) * Math.min(1, ta)})`;
+            ctx.lineWidth = 3.2;
             ctx.stroke();
           }
           along(tr.pts, p.d, this.pt);
-          this.dot(ctx, this.pt[0], this.pt[1], 7, '#3ae8ff', 0.55 * Math.min(1, ta));
-          this.dot(ctx, this.pt[0], this.pt[1], 2.2, '#ffffff', Math.min(1, ta));
+          this.dot(ctx, this.pt[0], this.pt[1], 12, '#3ae8ff', 0.6 * Math.min(1, ta));
+          this.dot(ctx, this.pt[0], this.pt[1], 3.6, '#ffffff', Math.min(1, ta));
         }
         traces.forEach((tr, i) => {
           const fl = this.padFlash[i];
@@ -1198,8 +1192,8 @@ export class CraftLive {
           // as the light catches the bands, their sheen flashes across the glass
           const bb = -1.3 + 2.6 * u;
           const env = Math.sin(Math.PI * u);
-          this.masked(ctx, rig.lit2!, (m) => this.band(m, bb, 34), 0.75 * env);
-          this.band(ctx, bb, 26, 0.1 * env);
+          this.masked(ctx, rig.lit2!, (m) => this.band(m, bb, 34), 0.38 * env);
+          this.band(ctx, bb, 26, 0.08 * env);
         }
         this.reflectDrift(ctx);
         if (s < 0.6) {

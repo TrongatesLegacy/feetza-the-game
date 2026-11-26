@@ -67,7 +67,8 @@ export interface WoodGeo {
   seams: number[];
   tones: number[];
   grain: { pts: Pt[]; w: number; a: number }[];
-  arches: { pts: Pt[]; w: number }[];
+  /** Each cathedral figure's two legs, from its tip down. */
+  arches: { legs: [Pt[], Pt[]]; w: number }[];
   pores: [number, number, number][];
   blobs: [number, number, number, number][];
   specks: [number, number, number, number][];
@@ -121,50 +122,40 @@ export function woodGeo(): WoodGeo {
         grain.push({ pts, w: 0.6 + r() * 1.1, a: 0.14 + r() * 0.24 });
       }
     }
-    // flat-sawn "cathedral" grain in the middle plank: nested arches, rounded at the crown
+    // flat-sawn "cathedral" grain in the middle plank: nested figures with tapering V tips, unevenly spaced, the
+    // legs running down the plank and spreading
     const arches: WoodGeo['arches'] = [];
     const cx = (seams[0] + seams[1]) / 2 + 2;
-    for (let j = 0; j < 4; j++) {
-      // a rounded crown, then legs running down the plank, spreading a little
-      const ay = 46 + j * 13;
-      const wk = 9 + j * 7;
-      const ry = wk * 0.8;
+    [44, 52, 67, 75, 96].forEach((ay, j) => {
       const ph = r() * 6;
       const leg = (sd: number): Pt[] => {
         const out: Pt[] = [];
-        for (let y = ay + ry; y <= 208; y += 6) out.push([cx + sd * (wk + 0.06 * (y - ay - ry)) + Math.sin(y * 0.05 + ph + sd) * 0.8, y]);
+        for (let y = ay; y <= 208; y += 4) {
+          const u = y - ay;
+          // a narrow V at the tip, opening into the legs
+          const x = cx + (j - 2) * 1.2 + sd * (Math.pow(u, 0.62) * (1.3 + j * 0.55) + u * 0.04) + Math.sin(y * 0.05 + ph + sd) * 0.8;
+          out.push([x, y]);
+        }
         return out;
       };
-      const crown: Pt[] = [];
-      for (let k = 0; k <= 12; k++) {
-        const th = -Math.PI / 2 + (k / 12) * Math.PI;
-        crown.push([cx + Math.sin(th) * wk, ay + ry - Math.cos(th) * ry]);
-      }
-      arches.push({ pts: [...leg(-1).reverse(), ...crown, ...leg(1)], w: 0.8 + r() * 0.7 });
-    }
+      arches.push({ legs: [leg(-1), leg(1)], w: 0.8 + r() * 0.7 });
+    });
     const pores: WoodGeo['pores'] = [];
     for (let i = 0; i < 80; i++) pores.push([HX - R + r() * R * 2, HY - R + r() * R * 2, 1.5 + r() * 3.5]);
-    // flour where the pies sit (a little below the middle), never right out at the rim
+    // a fine dusting of flour, low on the head where the pies are slid off, never out at the rim
     const blobs: WoodGeo['blobs'] = [];
-    // (a few patches, each a cluster of soft dabs: flour lies in drifts, not evenly)
-    for (let p = 0; p < 5; p++) {
-      const px = HX + 4 + gauss(r) * 20;
-      const py = HY + 16 + gauss(r) * 16;
-      const k = 4 + Math.floor(r() * 5);
-      for (let i = 0; i < k; i++) blobs.push([px + gauss(r) * 10, py + gauss(r) * 7, 6 + r() * 12, 0.12 + r() * 0.16]);
-    }
-    for (let i = 0; i < 8; i++) blobs.push([HX + 4 + gauss(r) * 30, HY + 14 + gauss(r) * 24, 14 + r() * 16, 0.05 + r() * 0.06]);
+    for (let i = 0; i < 9; i++) blobs.push([HX + gauss(r) * 26, HY + 34 + gauss(r) * 12, 6 + r() * 10, 0.05 + r() * 0.06]);
     const specks: WoodGeo['specks'] = [];
-    while (specks.length < 70) {
-      const x = HX + 4 + gauss(r) * 28;
-      const y = HY + 14 + gauss(r) * 24;
-      if (Math.hypot(x - HX, y - HY) < R * 0.8) specks.push([x, y, 0.4 + r() * 0.6, 0.35 + r() * 0.45]);
+    while (specks.length < 60) {
+      const x = HX + gauss(r) * 32;
+      const y = HY + 30 + gauss(r) * 18;
+      if (Math.hypot(x - HX, y - HY) < R * 0.78) specks.push([x, y, 0.35 + r() * 0.5, 0.3 + r() * 0.4]);
     }
     const grits: WoodGeo['grits'] = [];
-    while (grits.length < 26) {
-      const x = HX + 2 + gauss(r) * 30;
-      const y = HY + 14 + gauss(r) * 26;
-      if (Math.hypot(x - HX, y - HY) < R * 0.8) grits.push([x, y, r() * Math.PI]);
+    while (grits.length < 18) {
+      const x = HX + gauss(r) * 30;
+      const y = HY + 30 + gauss(r) * 18;
+      if (Math.hypot(x - HX, y - HY) < R * 0.76) grits.push([x, y, r() * Math.PI]);
     }
     // char flecks along the scorched front edge
     const chars: WoodGeo['chars'] = [];
@@ -182,23 +173,23 @@ export function marbleGeo(): MarbleGeo {
     const r = rng(hashStr('craft:marble'));
     const ends: [number, number, number, number, number, number][] = [
       // x0, y0, x1, y1, amplitude, width
-      [8, 44 + r() * 20, 212, 126 + r() * 30, 26, 2.8],
-      [44 + r() * 20, -4, 150 + r() * 30, 212, 30, 1.9],
-      [118 + r() * 30, -4, 214, 74 + r() * 20, 14, 1.5],
+      [8, 44 + r() * 20, 212, 126 + r() * 30, 22, 3.6],
+      [44 + r() * 20, -4, 150 + r() * 30, 212, 26, 2.6],
     ];
-    const veins = ends.map(([x0, y0, x1, y1, amp, w]) => ({ pts: wander(r, x0, y0, x1, y1, 32, amp, 0.44), w }));
+    // (smooth at the small scale: veins drift and wave, they don't zigzag like a crack)
+    const veins = ends.map(([x0, y0, x1, y1, amp, w]) => ({ pts: wander(r, x0, y0, x1, y1, 32, amp, 0.32), w }));
     const minor: MarbleGeo['minor'] = [];
-    for (let i = 0; i < 8; i++) {
-      const v = veins[i % 2 ? 0 : Math.floor(r() * veins.length)];
+    for (let i = 0; i < 3; i++) {
+      const v = veins[i % 2];
       const at = 5 + Math.floor(r() * 22);
       const [x0, y0] = v.pts[at];
       const [x1, y1] = v.pts[at + 2];
       const ang = Math.atan2(y1 - y0, x1 - x0) + (r() < 0.5 ? -1 : 1) * (0.45 + r() * 0.6);
       const len = 22 + r() * 44;
-      minor.push({ pts: wander(r, x0, y0, x0 + Math.cos(ang) * len, y0 + Math.sin(ang) * len, 16, 6, 0.45), w: 0.6 + r() * 0.6, a: 0.18 + r() * 0.16 });
+      minor.push({ pts: wander(r, x0, y0, x0 + Math.cos(ang) * len * 1.3, y0 + Math.sin(ang) * len * 1.3, 16, 8, 0.3), w: 0.8 + r() * 0.6, a: 0.14 + r() * 0.1 });
     }
     const hair: Pt[][] = [];
-    for (let i = 0; i < 6; i++) hair.push(wander(r, 4 + r() * 60, -4 + r() * 210, 150 + r() * 70, -4 + r() * 210, 32, 16, 0.6));
+    for (let i = 0; i < 4; i++) hair.push(wander(r, 4 + r() * 60, -4 + r() * 210, 150 + r() * 70, -4 + r() * 210, 32, 16, 0.35));
     const clouds: MarbleGeo['clouds'] = [];
     for (let i = 0; i < 20; i++) clouds.push([HX + (r() - 0.5) * R * 2.1, HY + (r() - 0.5) * R * 2.1, 14 + r() * 30, r() < 0.45 ? 1 : 0, 0.05 + r() * 0.08]);
     return { veins, minor, hair, clouds };
@@ -305,19 +296,29 @@ function smooth(ctx: Ctx, pts: Pt[]): void {
   ctx.lineTo(l[0], l[1]);
 }
 
-/** A vein that swells in the middle and tapers to its ends. */
+/** A vein that swells in the middle and tapers to its ends: one filled outline (stroked a segment at a time, a
+ *  translucent line beads where the segments overlap). */
 function taperedLine(ctx: Ctx, pts: Pt[], w: number, col: string): void {
   const n = pts.length - 1;
-  ctx.strokeStyle = col;
-  ctx.lineCap = 'round';
-  for (let i = 0; i < n; i++) {
-    const t = (i + 0.5) / n;
-    ctx.lineWidth = w * (0.3 + 0.7 * Math.pow(Math.sin(Math.PI * t), 0.6)) * (0.8 + 0.4 * Math.sin(i * 1.7));
-    ctx.beginPath();
-    ctx.moveTo(pts[i][0], pts[i][1]);
-    ctx.lineTo(pts[i + 1][0], pts[i + 1][1]);
-    ctx.stroke();
+  const left: Pt[] = [];
+  const right: Pt[] = [];
+  for (let i = 0; i <= n; i++) {
+    const a = pts[Math.max(0, i - 1)];
+    const b = pts[Math.min(n, i + 1)];
+    const dx = b[0] - a[0];
+    const dy = b[1] - a[1];
+    const d = Math.hypot(dx, dy) || 1;
+    const t = i / n;
+    const hw = (w / 2) * (0.15 + 0.85 * Math.pow(Math.sin(Math.PI * t), 0.6)) * (0.85 + 0.3 * Math.sin(i * 0.9));
+    left.push([pts[i][0] - (dy / d) * hw, pts[i][1] + (dx / d) * hw]);
+    right.push([pts[i][0] + (dy / d) * hw, pts[i][1] - (dx / d) * hw]);
   }
+  ctx.beginPath();
+  left.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+  for (let i = right.length - 1; i >= 0; i--) ctx.lineTo(right[i][0], right[i][1]);
+  ctx.closePath();
+  ctx.fillStyle = col;
+  ctx.fill();
 }
 
 /** A soft radial dab (fades to nothing at its edge). */
@@ -388,10 +389,14 @@ function foil(ctx: Ctx, look: PeelLook): void {
   if (!look.shiny) return;
   const fg = ctx.createLinearGradient(HX - R, HY - R, HX + R, HY + R);
   FOIL.forEach((c, i) => fg.addColorStop(i / (FOIL.length - 1), c));
+  // (overlay alone muddies warm bases to khaki: a lighter overlay, then a little screened on for the shine)
   ctx.save();
   ctx.globalCompositeOperation = 'overlay';
-  ctx.globalAlpha = 0.5;
+  ctx.globalAlpha = 0.2;
   ctx.fillStyle = fg;
+  ctx.fillRect(HX - R - 12, HY - R - 12, R * 2 + 24, R * 2 + 32);
+  ctx.globalCompositeOperation = 'screen';
+  ctx.globalAlpha = 0.3;
   ctx.fillRect(HX - R - 12, HY - R - 12, R * 2 + 24, R * 2 + 32);
   ctx.restore();
 }
@@ -414,8 +419,16 @@ function trims(ctx: Ctx, look: PeelLook): void {
     const n = 12;
     for (let i = 0; i < n; i++) {
       const a = Math.PI * 0.75 + (i / (n - 1)) * Math.PI * 1.5;
-      const sx = HX + Math.cos(a) * (R - 12);
-      const sy = HY + Math.sin(a) * (R - 12);
+      // set in from the head's own edge (a circle of studs would sit on the rim of a narrow oval or paddle)
+      let lo = 0;
+      let hi = R * 1.3;
+      for (let k = 0; k < 14; k++) {
+        const m = (lo + hi) / 2;
+        if (inside(look.shape, HX + Math.cos(a) * m, HY + Math.sin(a) * m)) lo = m;
+        else hi = m;
+      }
+      const sx = HX + Math.cos(a) * (lo - 12);
+      const sy = HY + Math.sin(a) * (lo - 12);
       ellipse(ctx, sx + 0.8, sy + 1.2, 5.5, 5.5);
       ctx.fillStyle = 'rgba(0,0,0,0.25)';
       ctx.fill();
@@ -475,15 +488,22 @@ function woodUnder(ctx: Ctx, look: PeelLook): void {
   ctx.beginPath();
   ctx.rect(g.seams[0] + 1, 0, g.seams[1] - g.seams[0] - 2, 220);
   ctx.clip();
-  for (const a of g.arches) {
-    smooth(ctx, a.pts);
-    ctx.strokeStyle = rgba(dark, 0.05);
-    ctx.lineWidth = 5;
-    ctx.stroke();
-    ctx.strokeStyle = rgba(dark, 0.16);
-    ctx.lineWidth = a.w;
-    ctx.stroke();
-  }
+  for (const a of g.arches)
+    for (const leg of a.legs) {
+      // thin at the tip, filling out down the leg
+      for (let i = 0; i < leg.length - 1; i++) {
+        const k = Math.min(1, (i + 1) / 9);
+        ctx.beginPath();
+        ctx.moveTo(leg[i][0], leg[i][1]);
+        ctx.lineTo(leg[i + 1][0], leg[i + 1][1]);
+        ctx.strokeStyle = rgba(dark, 0.05 * k);
+        ctx.lineWidth = 5 * k;
+        ctx.stroke();
+        ctx.strokeStyle = rgba(dark, 0.2 * k);
+        ctx.lineWidth = a.w * (0.25 + 0.75 * k);
+        ctx.stroke();
+      }
+    }
   ctx.restore();
   for (const l of g.grain) {
     // (the middle plank's straight grain stays off its arches' crown)
@@ -522,22 +542,22 @@ function woodUnder(ctx: Ctx, look: PeelLook): void {
   const [sc, sx] = makeCanvas(220, 220);
   const rg = sx.createRadialGradient(HX, HY, R * 0.6, HX, HY, R * 1.0);
   rg.addColorStop(0, 'rgba(90,40,12,0)');
-  rg.addColorStop(0.5, 'rgba(100,42,10,0.3)');
-  rg.addColorStop(0.82, 'rgba(60,22,5,0.62)');
-  rg.addColorStop(1, 'rgba(30,10,2,0.9)');
+  rg.addColorStop(0.45, 'rgba(100,42,10,0.38)');
+  rg.addColorStop(0.78, 'rgba(62,22,5,0.78)');
+  rg.addColorStop(1, 'rgba(26,8,2,0.98)');
   sx.fillStyle = rg;
   sx.fillRect(0, 0, 220, 220);
   sx.globalCompositeOperation = 'destination-in';
-  const vg = sx.createLinearGradient(0, HY - R * 0.85, 0, HY + R * 0.15);
+  const vg = sx.createLinearGradient(0, HY - R * 0.7, 0, HY + R * 0.3);
   vg.addColorStop(0, 'rgba(0,0,0,1)');
   vg.addColorStop(1, 'rgba(0,0,0,0)');
   sx.fillStyle = vg;
   sx.fillRect(0, 0, 220, 220);
   ctx.drawImage(sc, 0, 0);
   for (const [x, y, rr, a] of g.chars) {
-    dab(ctx, x, y, rr * 2.4, '#2a1004', 0.45, 0.55, a + Math.PI / 2);
+    dab(ctx, x, y, rr * 2.8, '#2a1004', 0.55, 0.55, a + Math.PI / 2);
     ellipse(ctx, x, y, rr, rr * 0.6, a + Math.PI / 2);
-    ctx.fillStyle = rgba('#1e0a02', 0.55);
+    ctx.fillStyle = rgba('#1e0a02', 0.7);
     ctx.fill();
   }
   // a dusting of flour and semolina where the pies sit
@@ -558,7 +578,7 @@ function woodUnder(ctx: Ctx, look: PeelLook): void {
   foil(ctx, look);
 }
 
-/** The grain caught by the light: the sheen sweeping the varnish lights these (src/art/peelCraft.ts). */
+/** The straight grain caught by the light, faintly, under the sheen sweeping the varnish (src/art/peelCraft.ts). */
 export function woodGrainLit(ctx: Ctx): void {
   const g = woodGeo();
   ctx.strokeStyle = '#fff4dc';
@@ -568,17 +588,6 @@ export function woodGrainLit(ctx: Ctx): void {
     ctx.globalAlpha = Math.min(1, l.a * 2.6);
     ctx.stroke();
   }
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(g.seams[0] + 1, 0, g.seams[1] - g.seams[0] - 2, 220);
-  ctx.clip();
-  for (const a of g.arches) {
-    smooth(ctx, a.pts);
-    ctx.lineWidth = a.w + 0.6;
-    ctx.globalAlpha = 0.85;
-    ctx.stroke();
-  }
-  ctx.restore();
   ctx.globalAlpha = 1;
 }
 
@@ -638,24 +647,30 @@ function marbleUnder(ctx: Ctx, look: PeelLook): void {
   }
   // the veins: a soft halo bleeding into the stone, then the vein, swelling and tapering
   for (const v of g.veins) {
+    // a broad grey cloud the vein runs through, then the vein itself, soft-edged
     smooth(ctx, v.pts);
-    ctx.strokeStyle = rgba(pc, 0.045);
-    ctx.lineWidth = v.w * 9;
+    ctx.strokeStyle = rgba(pc, 0.05);
+    ctx.lineWidth = v.w * 11;
     ctx.stroke();
     ctx.strokeStyle = rgba(pc, 0.08);
-    ctx.lineWidth = v.w * 4;
+    ctx.lineWidth = v.w * 6;
     ctx.stroke();
-    ctx.strokeStyle = rgba(pc, 0.12);
-    ctx.lineWidth = v.w * 2;
+    ctx.strokeStyle = rgba(pc, 0.14);
+    ctx.lineWidth = v.w * 2.8;
     ctx.stroke();
-    taperedLine(ctx, v.pts, v.w, rgba(vein, 0.5));
+    taperedLine(ctx, v.pts, v.w * 1.2, rgba(vein, 0.32));
+    // (its fine core one smooth line: drawn segment by segment it beads)
+    smooth(ctx, v.pts);
+    ctx.strokeStyle = rgba(vein, 0.3);
+    ctx.lineWidth = v.w * 0.4;
+    ctx.stroke();
   }
   for (const m of g.minor) {
     smooth(ctx, m.pts);
     ctx.strokeStyle = rgba(pc, 0.06);
     ctx.lineWidth = m.w * 4;
     ctx.stroke();
-    taperedLine(ctx, m.pts, m.w * 1.2, rgba(vein, m.a));
+    taperedLine(ctx, m.pts, m.w, rgba(vein, m.a));
   }
   rimShade(ctx, '#5a5060', 0.2, 0.6);
   foil(ctx, look);
@@ -666,18 +681,18 @@ export function marbleVeinsLit(ctx: Ctx): void {
   const g = marbleGeo();
   for (const v of g.veins) {
     smooth(ctx, v.pts);
-    ctx.strokeStyle = 'rgba(255,190,70,0.22)';
-    ctx.lineWidth = v.w * 7;
+    ctx.strokeStyle = 'rgba(255,184,60,0.3)';
+    ctx.lineWidth = v.w * 4;
     ctx.stroke();
-    ctx.strokeStyle = 'rgba(255,196,80,0.55)';
-    ctx.lineWidth = v.w * 3.2;
+    ctx.strokeStyle = 'rgba(255,190,70,0.8)';
+    ctx.lineWidth = v.w * 2;
     ctx.stroke();
-    taperedLine(ctx, v.pts, v.w * 1.5, 'rgba(255,248,214,1)');
+    taperedLine(ctx, v.pts, v.w * 1.1, 'rgba(255,248,214,1)');
   }
   for (const m of g.minor) {
     smooth(ctx, m.pts);
-    ctx.strokeStyle = 'rgba(255,196,80,0.4)';
-    ctx.lineWidth = m.w * 3.5;
+    ctx.strokeStyle = 'rgba(255,190,70,0.6)';
+    ctx.lineWidth = m.w * 2.5;
     ctx.stroke();
     taperedLine(ctx, m.pts, m.w * 1.5, 'rgba(255,246,210,0.9)');
   }
@@ -1045,13 +1060,13 @@ export function obsidianFlowLit(ctx: Ctx): void {
 
 /** Sheen obsidian's iridescence: violet, blue and green-gold in the bands, where the light catches them. */
 export function obsidianSheen(ctx: Ctx): void {
-  const cols = ['#b07aff', '#6a9aff', '#5ad8c8', '#d8c070', '#ff8ad0'];
+  const cols = ['#9a74e0', '#6a86d8', '#6aa8b8', '#a898c8', '#c084c8'];
   obsidianGeo().flows.forEach((f, i) => {
     const g = ctx.createLinearGradient(f[0][0], f[0][1], f[f.length - 1][0], f[f.length - 1][1]);
     for (let k = 0; k < 4; k++) g.addColorStop(k / 3, cols[(i + k) % cols.length]);
     smooth(ctx, f);
     ctx.strokeStyle = g;
-    ctx.lineWidth = 6 + (i % 3) * 3;
+    ctx.lineWidth = 3 + (i % 3) * 2.5;
     ctx.stroke();
   });
 }
