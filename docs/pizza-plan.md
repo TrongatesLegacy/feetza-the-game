@@ -172,6 +172,14 @@ Existing pizzas are re-priced into their tier's band. A few weak but expensive P
 
 Each legendary has its own mechanic, its own sound for every move, an animated aura on the table, a show-piece living peel and a hand-written peel ability. One legendary on the table at a time (see questions).
 
+**Damage scales with heat.** Feet get tougher on hotter heats (health ×0.7 on Mild, ×1 Regular, ×1.3 Hot, ×1.7 Extra Hot, ×2.2 Inferno), so a legendary's damage (the Black Olive Hole's ×5, the comet's ×4, the cannon's ×8 and the rest) is set on Mild and scales up in step, so it hits just as hard at every heat:
+
+| Heat | Mild | Regular | Hot | Extra Hot | Inferno |
+|---|---|---|---|---|---|
+| Legendary damage | 1× | ≈1.4× | ≈1.85× | ≈2.4× | ≈3.1× |
+
+Thresholds set as a share of health (the Black Olive Hole swallowing feet under 30%) already scale, so they don't change. Epics' damage scales the same way. Automatic topping damage keeps its own heat cut (`autoDmg`), which is separate.
+
 | # | Pizza | Act / inspired by | Route and gate | Perk | Aura |
 |---|---|---|---|---|---|
 | L1 | Nonna's Masterpiece | Act 1, Trattoria Nonna | Pizzeria | Once a wave Nonna's ladle swats the first foot to reach any pizza: the stomp is blocked and the foot takes ×5 | Warm oven glow, drifting flour |
