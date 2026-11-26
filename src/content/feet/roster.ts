@@ -16,13 +16,28 @@ export const feet: FootType[] = [
   {
     id: 'waiter',
     name: 'Waiter Walt',
-    desc: 'Napkin over the toe, nose in the air: he parries the first smack of every dive with a flick of linen.',
+    desc: 'Nose in the air, napkin over the toe, and his polished silver tray held up in front like a shield. Smacks only dent it, but two knock it clean off (three from Hot), and he flings it at the pizza below: smack it back at him for a big hit, or it clangs down for a slice. A while later someone in the kitchen tosses him a fresh one.',
     hp: 26, speed: 1, armor: 1, stompDmg: 1, coins: 4, score: 150, scale: 1, minWave: 2, weight: 5,
-    traits: ['parry'],
+    traits: ['guard'],
+    // a light guard: his tray takes 2 smacks on Mild and Regular, 3 from Hot up
+    guardHits: [2, 2, 3, 3, 3],
     home: 'trattoria',
-    howTo: 'Tap once to knock the napkin aside, then smack',
-    tell: 'Napkin flicks up as it blocks the first smack',
+    howTo: 'Knock the tray off with 2 smacks (3 from Hot; a Peel Slam does it at once up to Hot), then smack the flung tray back at him for a big hit and a stun, and smack him before a fresh tray comes (12 s on Mild, 9 s on Regular and Hot, 7.5 s from Extra Hot)',
+    tell: 'The badge on his leg: TRAY with a bar of the smacks it can still take, then KNOCKED OFF and a ring counting down to his fresh one. A red reticle and the tray’s shadow on the pizza show where his fling will land',
     art: { kind: 'r_waiter', skin: SKIN.light, primary: '#16161c', secondary: '#f7f5ef', leg: 'suit', legColor: '#1a1a22' },
+  },
+  // the Head Waiter's runner: only ever comes in his fight, bringing him a new tray (src/game/bosses/act1a.ts)
+  {
+    id: 'deliverywaiter',
+    summoned: true,
+    name: 'Delivery Del',
+    desc: 'The Head Waiter’s runner, bringing him a fresh silver tray with a hot dish under the cloche. His hands are full, so he has no shield, but his insulated kitchen boots shrug off burns, frost, slows and lightning. If he gets through, the Head Waiter has his tray back and eats the dish.',
+    hp: 26, speed: 1, armor: 1, stompDmg: 0, coins: 5, score: 180, scale: 1.15, minWave: 3, weight: 0,
+    traits: ['insulated'],
+    howTo: 'Smack him down before he reaches the Head Waiter: he drops the tray and the dish splats, so no new tray and no feast. Burns, frost, slows and lightning do nothing to him; plain hits do',
+    tell: 'He sets off across the top of the table towards the Head Waiter with a dotted line ahead of him, and the Head Waiter’s badge says ORDER, its ring filling as he comes',
+    quips: ['YOUR ORDER, SIR!', 'HOT PLATE, COMING THROUGH!', 'MIND YOUR BACKS!'],
+    art: { kind: 'r_waiter', skin: SKIN.light, primary: '#14141a', secondary: '#c98a2e', leg: 'suit', legColor: '#1a1a22' },
   },
   {
     id: 'garlicgary',

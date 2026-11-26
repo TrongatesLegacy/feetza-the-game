@@ -1,6 +1,11 @@
 // Props for Stages 1–3 (Head Waiter, Bigfoot, Chimney Sweep, Iron Heel, Sandcastle Sam, King Honk).
 // Same style as src/art/eventArt.ts: thick dark-brown outlines, gradients and a highlight sheen.
 import { type Ctx, ellipse, makeCanvas, rgba, rng, roundRect } from '../../art/util';
+import { inkOf } from '../../art/style/kit';
+import { Sil } from '../../art/style/sil';
+import { HW_SALVER, HW_TRAY } from '../style/bosses-3';
+import { DEL_TRAY, drawDeliveryTray } from '../style/delivery';
+import { paintSalver, paintSalverBack, salverPath } from '../style/salver';
 
 const INK = '#2a1810';
 
@@ -559,68 +564,101 @@ function pie2(): HTMLCanvasElement {
 }
 
 /** The Head Waiter's silver tray, face on (it tumbles, so the brain squashes it to show the tilt). */
+/** The Head Waiter's grand salver (face, or underside), as his shield is drawn (src/content/style/bosses-3.ts): the
+ * phase cards' picture of it. */
 function silverTray(under: boolean): () => HTMLCanvasElement {
   return () => {
     const [c, ctx] = makeCanvas(440, 440);
-    const cx = 220;
-    ctx.beginPath();
-    ctx.arc(cx, cx, 206, 0, Math.PI * 2);
-    ctx.fillStyle = under
-      ? lin(ctx, 0, 14, 0, 426, [[0, '#c8ced8'], [0.5, '#8a929e'], [1, '#4a525e']])
-      : lin(ctx, 60, 14, 380, 426, [[0, '#ffffff'], [0.45, '#d4dae2'], [1, '#7f868f']]);
-    ctx.fill();
-    stroke(ctx, 8);
-    // the raised rim and its beads
-    for (let i = 0; i < 28; i++) {
-      const a = (i / 28) * Math.PI * 2;
-      ctx.beginPath();
-      ctx.arc(cx + Math.cos(a) * 190, cx + Math.sin(a) * 190, 5, 0, Math.PI * 2);
-      ctx.fillStyle = under ? '#6a727e' : '#eef1f5';
-      ctx.fill();
-      stroke(ctx, 2.5);
-    }
-    ctx.beginPath();
-    ctx.arc(cx, cx, 172, 0, Math.PI * 2);
-    ctx.fillStyle = under
-      ? rad(ctx, cx, cx, 172, [[0, '#a8aeb8'], [1, '#5a626e']])
-      : rad(ctx, cx, cx, 172, [[0, '#ffffff'], [0.6, '#e4e8ee'], [1, '#9aa2ae']]);
-    ctx.fill();
-    stroke(ctx, 5);
-    if (under) {
-      // the foot ring underneath
-      ctx.beginPath();
-      ctx.arc(cx, cx, 110, 0, Math.PI * 2);
-      stroke(ctx, 10);
-      stroke(ctx, 5, '#b8c0ca');
-    } else {
-      // an engraved scroll ring
-      ctx.setLineDash([10, 8]);
-      ctx.beginPath();
-      ctx.arc(cx, cx, 128, 0, Math.PI * 2);
-      stroke(ctx, 3.5, rgba('#6a727e', 0.7));
-      ctx.setLineDash([]);
-      ctx.beginPath();
-      ctx.arc(cx, cx, 116, 0, Math.PI * 2);
-      stroke(ctx, 2.5, rgba('#6a727e', 0.5));
-    }
-    // a broad sheen and a sparkle
-    ellipse(ctx, cx - 70, cx - 80, 120, 34, -0.75);
-    ctx.fillStyle = rgba('#ffffff', under ? 0.25 : 0.65);
-    ctx.fill();
-    if (!under) {
-      ctx.beginPath();
-      const sx = cx + 96;
-      const sy = cx - 110;
-      ctx.moveTo(sx, sy - 28);
-      ctx.quadraticCurveTo(sx + 4, sy - 4, sx + 28, sy);
-      ctx.quadraticCurveTo(sx + 4, sy + 4, sx, sy + 28);
-      ctx.quadraticCurveTo(sx - 4, sy + 4, sx - 28, sy);
-      ctx.quadraticCurveTo(sx - 4, sy - 4, sx, sy - 28);
-      ctx.fillStyle = '#ffffff';
-      ctx.fill();
-    }
+    const r = 200;
+    // drawn in the salver's own units (radius 98 → 200 px), so its outline and ornaments match the shield's
+    const k = r / HW_TRAY.r;
+    ctx.translate(220, 220);
+    ctx.scale(k, k);
+    ctx.translate(-HW_TRAY.x, -HW_TRAY.y);
+    const path = salverPath(HW_TRAY.x, HW_TRAY.y, HW_TRAY.r);
+    const sil = new Sil(ctx, [path], { x: HW_TRAY.x - HW_TRAY.r, y: HW_TRAY.y - HW_TRAY.r, w: HW_TRAY.r * 2, h: HW_TRAY.r * 2 });
+    if (under) paintSalverBack(sil.g, HW_TRAY.x, HW_TRAY.y, HW_TRAY.r);
+    else paintSalver(sil.g, HW_TRAY.x, HW_TRAY.y, HW_TRAY.r, HW_SALVER);
+    sil.finish(inkOf('#6a7280'));
     return c;
   };
+}
+
+/** The tray a delivery waiter brings the Head Waiter (a cloche over the dish), as his still art paints it: the picture
+ * the fight moves with him (DEL_TRAY_ORIGIN is where the tray's middle sits in it). */
+export const DEL_TRAY_K = 3;
+export const DEL_TRAY_BOX = { w: 192, h: 190 };
+export const DEL_TRAY_ORIGIN = { x: 96, y: 140 };
+function deliveryTray(): HTMLCanvasElement {
+  const [c, ctx] = makeCanvas(DEL_TRAY_BOX.w * DEL_TRAY_K, DEL_TRAY_BOX.h * DEL_TRAY_K);
+  ctx.scale(DEL_TRAY_K, DEL_TRAY_K);
+  drawDeliveryTray(ctx, { ...DEL_TRAY, x: DEL_TRAY_ORIGIN.x, y: DEL_TRAY_ORIGIN.y });
+  return c;
+}
+
+/** The dish a dropped delivery splats on the table: tomato sauce and a tangle of spaghetti, a meatball or two. */
+function dishSplat(): HTMLCanvasElement {
+  const [c, ctx] = makeCanvas(360, 240);
+  const r = rng(707);
+  const cx = 180;
+  const cy = 130;
+  // the sauce: a lumpy blob with splashes thrown out round it
+  ctx.beginPath();
+  for (let i = 0; i <= 28; i++) {
+    const a = (i / 28) * Math.PI * 2;
+    const rr = (i % 2 ? 0.78 : 1) * (0.85 + r() * 0.25);
+    const x = cx + Math.cos(a) * 140 * rr;
+    const y = cy + Math.sin(a) * 82 * rr;
+    if (i) ctx.lineTo(x, y);
+    else ctx.moveTo(x, y);
+  }
+  ctx.closePath();
+  ctx.fillStyle = rad(ctx, cx, cy, 150, [[0, '#ef4a2a'], [0.7, '#c42416'], [1, '#8a120a']]);
+  ctx.fill();
+  stroke(ctx, 6);
+  for (let i = 0; i < 9; i++) {
+    const a = r() * Math.PI * 2;
+    const d = 1.05 + r() * 0.25;
+    ctx.beginPath();
+    ctx.arc(cx + Math.cos(a) * 140 * d, cy + Math.sin(a) * 82 * d, 6 + r() * 9, 0, Math.PI * 2);
+    ctx.fillStyle = '#c42416';
+    ctx.fill();
+    stroke(ctx, 3.5);
+  }
+  // the spaghetti: pale golden strands looping through it
+  ctx.lineCap = 'round';
+  for (let i = 0; i < 16; i++) {
+    const x0 = cx + (r() - 0.5) * 200;
+    const y0 = cy + (r() - 0.5) * 100;
+    ctx.beginPath();
+    ctx.moveTo(x0, y0);
+    ctx.bezierCurveTo(x0 + (r() - 0.5) * 140, y0 + (r() - 0.5) * 90, x0 + (r() - 0.5) * 140, y0 + (r() - 0.5) * 90, x0 + (r() - 0.5) * 120, y0 + (r() - 0.5) * 70);
+    ctx.lineWidth = 9;
+    ctx.strokeStyle = INK;
+    ctx.stroke();
+    ctx.lineWidth = 5.5;
+    ctx.strokeStyle = '#f2d27a';
+    ctx.stroke();
+    ctx.lineWidth = 1.6;
+    ctx.strokeStyle = rgba('#fff4c8', 0.8);
+    ctx.stroke();
+  }
+  // two meatballs and a sprig of basil
+  for (const [x, y, s] of [[cx - 40, cy - 6, 24], [cx + 52, cy + 14, 20]] as const) {
+    ctx.beginPath();
+    ctx.arc(x, y, s, 0, Math.PI * 2);
+    ctx.fillStyle = rad(ctx, x, y, s, [[0, '#a8643a'], [1, '#5a2a12']]);
+    ctx.fill();
+    stroke(ctx, 4);
+    shine(ctx, x - s * 0.35, y - s * 0.4, s * 0.35, s * 0.18, 0.6);
+  }
+  ctx.beginPath();
+  ctx.ellipse(cx + 8, cy - 30, 22, 10, -0.5, 0, Math.PI * 2);
+  ctx.fillStyle = '#3f9a3a';
+  ctx.fill();
+  stroke(ctx, 3);
+  shine(ctx, cx - 40, cy - 40, 50, 12, 0.45, -0.2);
+  return c;
 }
 
 /** A big splat of cream pie: a lumpy white blob with drips, crumbs of crust and the cherry. */
@@ -720,6 +758,8 @@ function creamSplat(): HTMLCanvasElement {
 export const props: Record<string, () => HTMLCanvasElement> = {
   p_silvertray: silverTray(false),
   p_silvertray_b: silverTray(true),
+  p_dw_tray: deliveryTray,
+  p_dw_splat: dishSplat,
   p_creamsplat: creamSplat,
   p_qte_target: qteTarget,
   p_trap0: bearTrap(0),

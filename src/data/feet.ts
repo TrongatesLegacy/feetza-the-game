@@ -52,7 +52,8 @@ export type FootTrait =
   | 'roll' // rolls sideways across the pizzas
   | 'antigrav' // floats back up between stomps
   | 'crusty' // rare: escapes fast, drops Golden Crusts
-  | 'mimic'; // looks like a Golden Foot, then stomps hard
+  | 'mimic' // looks like a Golden Foot, then stomps hard
+  | 'insulated'; // insulated boots: no burns, freezes, slows or lightning (a chain spends a jump on it and goes on)
 
 export type FootKind =
   | 'bare'
@@ -176,6 +177,9 @@ export interface FootType {
    * s, down for `down` s, a warning `warn` s (default 0.6) before each drop. With `react`, a hit while it's down
    * slams it straight back up for react × up[0] s. */
   guard?: { up: [number, number]; down: number; warn?: number; react?: number };
+  /** Blocked smacks its guard shield takes, Mild … Inferno, in place of the heat's usual (guardHits): a light guard
+   * (Waiter Walt's tray). */
+  guardHits?: [number, number, number, number, number];
 }
 
 const SKIN = {
@@ -680,7 +684,7 @@ export const TRAIT_INFO: Record<FootTrait, string> = {
   invisible: '👻 Invisible until it stomps',
   magnet: '🧲 Pulls your aim',
   hop: '🦘 Hops between pizzas',
-  guard: '🛡️ Breakable shield',
+  guard: '🛡️ Shield: smack it off',
   bulk: '💪 Bulks up if ignored',
   thief: '💰 Steals tips',
   spoil: '🪰 Spoils freshness',
@@ -693,6 +697,7 @@ export const TRAIT_INFO: Record<FootTrait, string> = {
   antigrav: '🪐 Floats back up',
   crusty: '✨ Drops Golden Crusts',
   mimic: '🎭 A fake Golden Foot',
+  insulated: '🥾 No burns, frost or zaps',
 };
 
 export const OUCH = [
@@ -749,6 +754,7 @@ const TRAIT_HOWTO: Partial<Record<FootTrait, [string, string]>> = {
   antigrav: ['Hit it at the bottom of a dive', 'It floats back up mid-dive'],
   crusty: ['Smack it before it escapes', 'It glitters like a golden crust'],
   mimic: ['It is not a real Golden Foot', 'A sly grin gives it away'],
+  insulated: ['Smack it: burns, frost, slows and lightning do nothing', 'Gleaming insulated boots with a bolt badge'],
 };
 
 export function howToFor(f: FootType): string | undefined {

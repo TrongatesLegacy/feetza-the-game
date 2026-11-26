@@ -369,7 +369,38 @@ const stone = pad(220, 70, (ctx) => {
   shine(ctx, 70, 20, 30, 5, 0.35, -0.05);
 });
 
+/** Room Service (Delivery Del's peel): a covered dish, a silver cloche on its plate, steam escaping under the lip. */
+const cloche = pad(92, 76, (ctx) => {
+  // the plate under it, seen a little from above
+  ellipse(ctx, 46, 58, 42, 12);
+  fs(ctx, lin(ctx, 4, 46, 88, 70, [[0, '#ffffff'], [0.5, '#dfe4ec'], [1, '#8a929e']]));
+  ellipse(ctx, 46, 57, 32, 8);
+  stroke(ctx, 1.4, rgba(INK, 0.35));
+  // the dome
+  ctx.beginPath();
+  ctx.moveTo(14, 56);
+  ctx.bezierCurveTo(14, 18, 78, 18, 78, 56);
+  ctx.ellipse(46, 56, 32, 7, 0, 0, Math.PI);
+  ctx.closePath();
+  fs(ctx, lin(ctx, 14, 20, 78, 56, [[0, '#ffffff'], [0.25, '#e4e8ee'], [0.45, '#8a929e'], [0.6, '#eef1f5'], [1, '#4a5260']]));
+  shine(ctx, 30, 36, 10, 4, 0.85, -0.9);
+  // its knob
+  circle(ctx, 46, 22, 5);
+  fs(ctx, rad(ctx, 46, 22, 6, [[0, '#ffffff'], [1, '#6a7280']]), 2.4);
+  // steam curling out from under it
+  for (const [x, a] of [[18, 0.7], [72, 0.55]] as const) {
+    ctx.beginPath();
+    ctx.moveTo(x, 50);
+    ctx.bezierCurveTo(x - 6, 40, x + 6, 34, x, 24);
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = rgba('#ffffff', a);
+    ctx.stroke();
+  }
+});
+
 export const props: Record<string, () => HTMLCanvasElement> = {
+  t_cloche: cloche,
   t_anchovy: anchovy,
   t_meatball: meatball,
   t_pizzacutter: pizzacutter,

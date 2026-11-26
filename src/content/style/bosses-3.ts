@@ -1,6 +1,8 @@
 // Mini-bosses in the style kit (batch C), part 3.
 // - THE HEAD WAITER: a mirror-polished black patent oxford under a crisp white buttoned spat, a satin bow tie, a
-//   starched napkin over its arm and a silver cloche on a tray (in play the tray sways, polish glints).
+//   starched napkin over its arm, and his grand silver salver held up in front as a shield (a gadrooned rim, the room
+//   mirrored in it, an engraved monogram of his own). In play the salver is its own piece (src/game/guardShield.ts);
+//   polish glints.
 // - SANDCASTLE SAM: a sandy bare foot with a real sandcastle built on it (keep, towers, gate, a red pennant, shells,
 //   a starfish on the big toe). In play the pennant flutters and sand trickles off the castle.
 // - SHORT-ORDER SHOE: a white kitchen clog spattered with sauce and grease on a chequered sole, the order ticket
@@ -21,8 +23,9 @@ import { beadEye, blotches, contact, eyelet, laceRun, rivet, stitches } from '..
 import { LX, LY, clip, fill, glowDot, glowFinish, heatLayer, lightAll, lin, rad, streak } from '../../art/style/kit-bosses';
 import { type Ctx, hashStr, mix, rgba, rng, shade } from '../../art/util';
 import { type BlobDef, blister, blobShape, doughFinish, doughSkin, poke, popped, pressFold } from './dough-kit';
+import { GRAND_SALVER, paintSalver, paintSalverBack, salverPath, salverShadow } from './salver';
 
-type Opts = { live: boolean; emissive?: boolean; heat?: boolean };
+type Opts = { live: boolean; emissive?: boolean; heat?: boolean; noShield?: boolean };
 
 const ell = (x: number, y: number, rx: number, ry: number, rot = 0): PathFn => (c) => {
   c.beginPath();
@@ -55,7 +58,27 @@ function soloPart(box: { x: number; y: number; w: number; h: number }, pivot: [n
 
 // ════════════════════════════ THE HEAD WAITER ════════════════════════════
 
-export const TRAY = { x: CX + 92, y: 112 };
+/** His grand salver, held up in front of the shoe as his shield (the bow tie, the spat's top and the napkin over his
+ * arm show round it). */
+export const HW_TRAY = { x: CX + 6, y: 142, r: 84 };
+const hwTrayPath = salverPath(HW_TRAY.x, HW_TRAY.y, HW_TRAY.r);
+const HW_TRAY_BOX = { x: HW_TRAY.x - HW_TRAY.r - 2, y: HW_TRAY.y - HW_TRAY.r - 2, w: HW_TRAY.r * 2 + 4, h: HW_TRAY.r * 2 + 4 };
+/** The grand salver's look: gadrooned rim, the monogram engraved in its well. */
+export const HW_SALVER = GRAND_SALVER;
+
+/** The grand salver alone, as its own silhouette. */
+function drawHwTray(ctx: Ctx): void {
+  const { x, y, r } = HW_TRAY;
+  const sil = new Sil(ctx, [hwTrayPath], HW_TRAY_BOX);
+  paintSalver(sil.g, x, y, r, HW_SALVER);
+  finishLight(sil);
+  sil.finish(inkOf('#6a7280'));
+}
+
+function finishLight(sil: Sil): void {
+  sil.edge(rgba('#1a2030', 0.22), 18, LX * 10, LY * 10);
+  sil.edge(rgba(LIGHT.rim, 0.5), 2.5, LX * 3, LY * 3);
+}
 
 const waiterUpper = (flex: number): PathFn => (c) => {
   const b = 240 - flex * 5;
@@ -89,48 +112,6 @@ const spatPath: PathFn = (c) => {
   c.closePath();
 };
 
-const trayPaths = (): PathFn[] => {
-  const { x, y } = TRAY;
-  return [
-    ell(x + 22, y, 44, 10),
-    (c) => {
-      c.beginPath();
-      c.moveTo(x - 10, y - 4);
-      c.bezierCurveTo(x - 10, y - 40, x + 54, y - 40, x + 54, y - 4);
-      c.closePath();
-    },
-    ell(x + 22, y - 36, 5, 5),
-  ];
-};
-
-function paintTray(g: Ctx): void {
-  const { x, y } = TRAY;
-  const [plate, dome, knob] = trayPaths();
-  raised(g, plate, lin(g, x - 22, y - 10, x + 66, y + 10, [
-    [0, '#ffffff'],
-    [0.3, '#b8c0cc'],
-    [0.55, '#f4f6fa'],
-    [1, '#5a6270'],
-  ]), 0.5);
-  raised(g, dome, lin(g, x - 10, y - 40, x + 54, y, [
-    [0, '#ffffff'],
-    [0.25, '#e0e6ee'],
-    [0.5, '#8a929e'],
-    [0.75, '#d8dee8'],
-    [1, '#4a5260'],
-  ]), 0.4);
-  clip(g, dome, () => {
-    spec(g, x + 6, y - 24, 10, 6, 0.9, -0.6);
-    g.fillStyle = rgba('#2a1d30', 0.25);
-    g.fillRect(x - 12, y - 14, 70, 4);
-  });
-  fill(g, knob, rad(g, x + 20, y - 38, 0.5, x + 22, y - 36, 6, [
-    [0, '#ffffff'],
-    [1, '#6a7280'],
-  ]));
-  glint(g, x + 4, y - 26, 5, 0.95);
-}
-
 function drawWaiter(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
   const black = art.primary ?? '#1c1c24';
   const white = art.secondary ?? '#f4f2ee';
@@ -148,7 +129,7 @@ function drawWaiter(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
     c.closePath();
   };
   const box = { x: CX - 130, y: -8, w: 260, h: 272 };
-  const sil = new Sil(ctx, [sole, upper, napkin, ...(o.live ? [] : trayPaths())], box);
+  const sil = new Sil(ctx, [sole, upper, napkin], box);
   const g = sil.g;
   if (o.heat) {
     heatLayer(sil, box, { seed: 91, y0: 262, y1: 10 });
@@ -265,10 +246,14 @@ function drawWaiter(ctx: Ctx, art: FootArt, p: Pose, o: Opts): void {
       c.lineTo(CX - 94 - k * 6, 128);
     }, rgba('#6a6a90', 0.25), 2, 1.5);
   });
-  if (!o.live) paintTray(g);
   glint(g, CX - 64, 196, 5, 0.95);
   lightAll(sil, 0.36, 18, 0.65);
   sil.finish(inkOf('#3a3a48'), { openTop: -5 });
+  // the still art keeps his salver held up in front (in play it's its own piece)
+  if (!o.noShield) {
+    salverShadow(ctx, HW_TRAY.x, HW_TRAY.y, HW_TRAY.r);
+    drawHwTray(ctx);
+  }
 }
 
 registerStyle('headwaiter', {
@@ -276,8 +261,26 @@ registerStyle('headwaiter', {
   halfWidth: 100,
   rig: { from: 176, to: 196 },
   leg: { kind: 'wool', hw: 66, join: 'hem' },
-  parts: {
-    tray: soloPart({ x: TRAY.x - 30, y: TRAY.y - 48, w: 104, h: 66 }, [TRAY.x - 6, TRAY.y], trayPaths(), (g) => paintTray(g), () => '#2a2e38'),
+  // in play the salver is its own piece (src/game/guardShield.ts): dented by blocked smacks, knocked off whole (into
+  // his toss), and handed back by a delivery waiter
+  shield: {
+    box: { x: HW_TRAY_BOX.x - 6, y: HW_TRAY_BOX.y - 6, w: HW_TRAY_BOX.w + 20, h: HW_TRAY_BOX.h + 22 },
+    pivot: [HW_TRAY.x + 40, HW_TRAY.y + 56],
+    down: { dx: -150, dy: 84, rot: -0.5, sx: 0.58 },
+    material: 'silver',
+    badge: 'plate',
+    accent: '#cfd8e4',
+    words: { up: 'TRAY', off: 'KNOCKED', offSub: 'OFF!', icon: 'tray', offIcon: 'trayOff' },
+    sounds: { crack: 'sfx_traydent', shatter: 'sfx_trayknock' },
+    draw: (ctx) => drawHwTray(ctx),
+    back(ctx) {
+      const { x, y, r } = HW_TRAY;
+      const sil = new Sil(ctx, [hwTrayPath], HW_TRAY_BOX);
+      paintSalverBack(sil.g, x, y, r);
+      sil.finish(inkOf('#6a7280'));
+    },
+    shadow: (ctx) => salverShadow(ctx, HW_TRAY.x, HW_TRAY.y, HW_TRAY.r),
+    path: hwTrayPath,
   },
   draw(ctx, art, p, o) {
     drawWaiter(ctx, art, p, o);

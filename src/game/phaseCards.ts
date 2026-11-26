@@ -69,7 +69,7 @@ export function phaseCardFor(id: string, phase: number, phases: number, heat: He
     name,
     what: clean(c?.what ?? does ?? info),
     hit: clean(c?.hit ?? answer ?? 'Keep smacking it'),
-    miss: c?.miss ? clean(c.miss) : undefined,
+    miss: c?.miss ? clean(typeof c.miss === 'function' ? c.miss(heat) : c.miss) : undefined,
     show: (c?.show ?? []).map((s) => ({ key: s.key, label: s.label, hits: typeof s.hits === 'function' ? s.hits(h) : s.hits, watch: s.watch, tint: s.tint })),
     icon: c?.icon ?? (enraged ? '🔥' : '⚔️'),
     art: b.cardArt?.() ?? {},

@@ -11,12 +11,28 @@ import { contact, eyelet, laceRun, stitches } from '../../art/style/details';
 import { tones } from '../../art/style/materials';
 import { type Ctx, hashStr, mix, rgba, rng, shade } from '../../art/util';
 import { BARE_RIG, CX, RMAT, SHOE_RIG, bareWith, dripPath, ell, finishLight, piece, prop, solePath, upperPath, vgrad, within } from './roster-kit';
+import { paintSalver, paintSalverBack, salverPath, salverShadow } from './salver';
 
 // ════════════════════════ Waiter Walt ════════════════════════
 // A black patent oxford polished to a mirror, a crisp linen napkin draped over the toe and a red bow tie on the
-// tongue. In play the napkin's corner swings and the patent toe throws glints.
+// tongue, and his round silver tray held up face-on in front of the shoe as a shield (a beaded rim, the room mirrored
+// in it). In play the tray is its own piece (src/game/guardShield.ts: it dents, and it's knocked off whole); the
+// napkin's corner swings and the patent toe throws glints.
 
 const WAITER = { topW: 58, ballW: 98, toeY: 238 };
+/** His tray: a round salver held up in front of the shoe, over the toe (the bow tie and laces show above it). */
+const WALT_TRAY = { x: CX - 4, y: 132, r: 68 };
+const waltTrayPath = salverPath(WALT_TRAY.x, WALT_TRAY.y, WALT_TRAY.r);
+const WALT_TRAY_BOX = { x: WALT_TRAY.x - WALT_TRAY.r - 2, y: WALT_TRAY.y - WALT_TRAY.r - 2, w: WALT_TRAY.r * 2 + 4, h: WALT_TRAY.r * 2 + 4 };
+
+/** Walt's tray alone: its own silhouette over whatever's behind it. */
+function drawWaltTray(ctx: Ctx): void {
+  const { x, y, r } = WALT_TRAY;
+  const sil = new Sil(ctx, [waltTrayPath], WALT_TRAY_BOX);
+  paintSalver(sil.g, x, y, r, { rim: 'beads', n: 40, well: 0.82 });
+  finishLight(sil, '#9aa3b0', '#1a2030', 0.22);
+  sil.finish(inkOf('#6a7280'));
+}
 
 /** The napkin's loose corner (a live part; the body draws it in still art). */
 const NAPKIN_TAIL: PathFn = (c) => {
@@ -46,12 +62,14 @@ function paintNapkinTail(g: Ctx, linen: string, stripe: string): void {
   });
 }
 
+/** The napkin folded over the outer side of the shoe (his tray is held up in front of the rest). */
 const napkinPath = (flex: number): PathFn => (c) => {
   c.beginPath();
-  c.moveTo(CX - 104, 116);
-  c.bezierCurveTo(CX - 50, 104, CX + 40, 118, CX + 102, 132);
+  c.moveTo(CX + 22, 112);
+  c.bezierCurveTo(CX + 50, 112, CX + 80, 122, CX + 102, 132);
   c.lineTo(CX + 106, 156);
-  c.bezierCurveTo(CX + 60, 176 - flex * 4, CX - 30, 172 - flex * 4, CX - 106, 176);
+  c.bezierCurveTo(CX + 84, 170 - flex * 4, CX + 52, 176 - flex * 4, CX + 26, 178 - flex * 4);
+  c.bezierCurveTo(CX + 18, 156, CX + 16, 130, CX + 22, 112);
   c.closePath();
 };
 
@@ -140,7 +158,7 @@ function drawWaiter(ctx: Ctx, art: FootArt, p: Pose, live: boolean): void {
   // the napkin: starched linen draped over the vamp, a red stripe at the hem
   piece(g, napkin, box, 'linen', linen, { shadow: 0.55 });
   within(g, napkin, () => {
-    for (const [x0, a] of [[-60, 0.3], [-10, 0.22], [44, 0.26]] as const) {
+    for (const [x0, a] of [[48, 0.3], [80, 0.24]] as const) {
       softStroke(g, (c) => {
         c.moveTo(CX + x0, 112);
         c.quadraticCurveTo(CX + x0 + 8, 140, CX + x0 + 2, 176);
@@ -153,10 +171,10 @@ function drawWaiter(ctx: Ctx, art: FootArt, p: Pose, live: boolean): void {
     g.strokeStyle = rgba(red, 0.85);
     g.lineWidth = 2.2;
     g.beginPath();
-    g.moveTo(CX - 106, 168);
-    g.bezierCurveTo(CX - 30, 164 - flex * 4, CX + 60, 168 - flex * 4, CX + 106, 148);
+    g.moveTo(CX + 24, 168 - flex * 4);
+    g.bezierCurveTo(CX + 50, 168 - flex * 4, CX + 80, 162 - flex * 4, CX + 106, 148);
     g.stroke();
-    spec(g, CX - 50, 124, 40, 8, 0.45, -0.05);
+    spec(g, CX + 50, 124, 24, 6, 0.45, -0.1);
   });
   if (!live) paintNapkinTail(g, linen, red);
   // the bow tie on the tongue: red satin
@@ -190,6 +208,26 @@ registerStyle('waiter', {
   contactY: 264,
   rig: SHOE_RIG,
   leg: { kind: 'wool', hw: 68, join: 'hem' },
+  // in play the tray is its own piece (src/game/guardShield.ts): dented by blocked smacks, knocked off whole
+  shield: {
+    box: { x: WALT_TRAY_BOX.x - 6, y: WALT_TRAY_BOX.y - 6, w: WALT_TRAY_BOX.w + 18, h: WALT_TRAY_BOX.h + 20 },
+    pivot: [WALT_TRAY.x + 34, WALT_TRAY.y + 46],
+    down: { dx: -150, dy: 84, rot: -0.5, sx: 0.58 },
+    material: 'silver',
+    badge: 'plate',
+    accent: '#cfd8e4',
+    words: { up: 'TRAY', off: 'KNOCKED', offSub: 'OFF!', rearm: 'NEW TRAY', icon: 'tray', offIcon: 'trayOff' },
+    sounds: { crack: 'sfx_traydent', shatter: 'sfx_trayknock' },
+    draw: (ctx) => drawWaltTray(ctx),
+    back(ctx) {
+      const { x, y, r } = WALT_TRAY;
+      const sil = new Sil(ctx, [waltTrayPath], WALT_TRAY_BOX);
+      paintSalverBack(sil.g, x, y, r);
+      sil.finish(inkOf('#6a7280'));
+    },
+    shadow: (ctx) => salverShadow(ctx, WALT_TRAY.x, WALT_TRAY.y, WALT_TRAY.r),
+    path: waltTrayPath,
+  },
   parts: {
     napkin: {
       box: { x: CX + 78, y: 128, w: 60, h: 92 },
@@ -204,6 +242,11 @@ registerStyle('waiter', {
   },
   draw(ctx, art, p, o) {
     drawWaiter(ctx, art, p, o.live);
+    // the still art keeps his tray held up in front (in play it's its own piece)
+    if (!o.noShield) {
+      salverShadow(ctx, WALT_TRAY.x, WALT_TRAY.y, WALT_TRAY.r);
+      drawWaltTray(ctx);
+    }
   },
 });
 

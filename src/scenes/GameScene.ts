@@ -38,7 +38,7 @@ import { PEELS, PEEL_BY_ID, abilityPeel, applyPeelLook, hasPeel, lookPeel, check
 import { STAGES, WAVES_PER_STAGE } from '../data/stages';
 import { passiveBoost, setSlamMode } from '../game/slamMode';
 import { guardAutoWear, guardHits, guardRearm, setRunHeat, slamSteps } from '../game/heatRules';
-import { evictShieldArt } from '../game/guardShield';
+import { evictShieldArt, shieldDefOf } from '../game/guardShield';
 import { abilityFor, abilityKindLabel, scaleProc, usesMeter, type Ability, type Effect, type Proc, type Target } from '../game/abilities';
 import { randomLineup } from './MenuScene';
 import { ToppingKit } from '../game/toppingKit';
@@ -83,6 +83,8 @@ interface DamageOpts {
   passive?: boolean;
   /** A hero's passive (src/game/heroMoves.ts). */
   hero?: boolean;
+  /** Fire, frost or lightning (a peel ability's fiery, frosty or zapping hit): insulated feet take none of it. */
+  element?: 'fire' | 'frost' | 'zap';
 }
 
 /** Damage sources that are always automatic: they hit without a smack (orbiting cutters, thrown toppings, the
@@ -90,6 +92,8 @@ interface DamageOpts {
 const AUTO_SOURCES = new Set<DamageOpts['source']>(['cutter', 'olive', 'garlic', 'burn', 'trap']);
 /** The STATS tab's key for a topping proc's damage (a throwing peel's passive throw counts as the peel's ability). */
 const procTag = (id: string): string => (id === 'peel:also' ? 'ability' : `proc:${id}`);
+/** A peel ability's hit is elemental when it's fiery, frosty or zapping (insulated feet take none of it). */
+const elementOf = (vfx: Ability['vfx']): DamageOpts['element'] => (vfx === 'fire' || vfx === 'frost' || vfx === 'zap' ? vfx : undefined);
 /** How much of a smack's knock-on damage (chains, splashes, blasts) a raised guard shield soaks counts against it (a step per base smack's worth). */
 const GUARD_SOAK = 0.5;
 
@@ -363,10 +367,10 @@ export class GameScene extends Phaser.Scene implements Arena {
       if (mv) ui.hud.setBossMove(mv.name, mv.info);
     }
   }
-  spawn(id: string, target?: Pizza | null, x?: number, o?: { offBoss?: boolean }): Foot | null {
+  spawn(id: string, target?: Pizza | null, x?: number, o?: { offBoss?: boolean; free?: boolean }): Foot | null {
     const t = FOOT_BY_ID[id];
     if (!t || !this.plan) return null;
-    const f = this.spawnFoot(t, target ?? this.pickTarget(null), false, x);
+    const f = this.spawnFoot(t, o?.free ? (target ?? null) : (target ?? this.pickTarget(null)), false, x, !!o?.free);
     // a boss's own summons (flocks, waiters, blacksmiths) jump the queue for a lane
     f.brain.summoned = true;
     if (o?.offBoss) f.brain.offBoss = true;
@@ -1433,7 +1437,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     });
   }
 
-  private spawnFoot(type: FootType, target: Pizza | null, allowElite = true, x?: number): Foot {
+  private spawnFoot(type: FootType, target: Pizza | null, allowElite = true, x?: number, free = false): Foot {
     const plan = this.plan!;
     // what a boss summons is kept (and warmed) with it from then on (evictArt, warmFeet)
     if (!type.boss && !type.mini)
@@ -1464,11 +1468,12 @@ export class GameScene extends Phaser.Scene implements Arena {
     f.target = target;
     f.setHoverMul(this.run.heatDef.crowd.hoverMul);
     // a guard foot's shield takes more blocked smacks on hotter heats, and is replaced sooner once broken
-    f.guardMax = f.guardHp = guardHits(this.run.heat);
+    f.guardMax = f.guardHp = guardHits(this.run.heat, type);
     f.guardRearmAfter = guardRearm(this.run.heat);
     this.feet.push(f);
-    // regular feet each take their own lane (or wait off screen until one frees up)
-    if (!type.boss && !type.mini) {
+    // regular feet each take their own lane (or wait off screen until one frees up); a fight's free walker takes none
+    if (free) f.brain.free = true;
+    else if (!type.boss && !type.mini) {
       this.assignLane(f, target);
       f.laneKey = this.laneCache.key;
       if (x === undefined && f.laneX !== null) f.x = f.laneX;
@@ -1515,11 +1520,14 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.fx.quip(ft.x, ft.cy - 120, 'SURPRISE!', '#f8dca0', 36);
     } else if (trait === 'guardBreak') {
       this.guardStats.broken++;
-      this.fx.quip(ft.x, ft.cy - 150, 'SHIELD BROKEN!', '#ffd23f', 40);
+      // (a silver tray isn't broken: it's knocked off whole)
+      const tray = shieldDefOf(ft.type)?.material === 'silver';
+      this.fx.quip(ft.x, ft.cy - 150, tray ? 'TRAY OFF!' : 'SHIELD BROKEN!', '#ffd23f', 40);
       this.shake(120, 0.004);
     } else if (trait === 'guardRearm') {
       this.guardStats.rearmed++;
-      this.fx.quip(ft.x, ft.cy - 150, 'NEW SHIELD!', '#9ad8ff', 34);
+      // (a shield its fight hands back says so itself: the Head Waiter's delivered tray)
+      if (!ft.guardManual) this.fx.quip(ft.x, ft.cy - 150, shieldDefOf(ft.type)?.material === 'silver' ? 'FRESH TRAY!' : 'NEW SHIELD!', '#9ad8ff', 34);
     }
   }
 
@@ -1673,7 +1681,7 @@ export class GameScene extends Phaser.Scene implements Arena {
   private usedLanes(except?: Foot): Set<number> {
     const out = new Set<number>();
     for (const o of this.feet) {
-      if (o === except || !o.alive || o.isBossLike || o.held || o.laneSide < 0) continue;
+      if (o === except || !o.alive || o.isBossLike || o.held || o.laneSide < 0 || o.brain.free) continue;
       for (let k = 0; k < o.laneRow; k++) out.add(o.laneSide + k);
     }
     return out;
@@ -1780,7 +1788,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     const lanes = this.lanes();
     const key = this.laneCache.key;
     for (const f of this.feet) {
-      if (!f.alive || f.isBossLike) continue;
+      // (a fight's free walker, moved by hand, has no lane: the Head Waiter's delivery waiters)
+      if (!f.alive || f.isBossLike || f.brain.free) continue;
       f.pinned = this.retreating;
       if (f.held) {
         // (a foot sent off its lane goes off the top first and drops into its new one from there: it never jumps
@@ -3483,6 +3492,16 @@ export class GameScene extends Phaser.Scene implements Arena {
       f.die();
       return;
     }
+    // insulated boots (the delivery waiter's): burns, frost and lightning do nothing; a chain spends its jump on him
+    // and goes on from there
+    if (!smack && f.insulated && (o.element || o.source === 'burn' || o.source === 'chain')) {
+      if (this.nowT - Number(f.brain.insulT ?? -9) > 0.5) {
+        f.brain.insulT = this.nowT;
+        this.fx.ring(o.x ?? f.cx, o.y ?? f.cy, 0xffd23f, 0.4, 0.5);
+        if (!o.quiet) this.fx.quip(f.x, f.cy - 110, 'INSULATED!', '#ffd23f', 30);
+      }
+      return;
+    }
     if (smack && f.glossy) {
       f.glossy = false;
       f.flash(0xff9fd0, 90);
@@ -3502,7 +3521,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     // a raised guard shield blocks the smack and cracks (its badge's pips show what it can still take); the last
     // one it can take shatters it (onTrait 'guardBreak'). Other damage and a hero's bypass go straight through.
     if (smack && f.guardUp && !this.heroes.ignoreShields()) {
-      f.flash(0x9ad8ff, 80);
+      // (a silver tray rings and sparks on its own: a flash of the whole foot would wipe out the silver)
+      if (shieldDefOf(f.type)?.material !== 'silver') f.flash(0x9ad8ff, 80);
       f.knock(80);
       this.guardStats.blocked++;
       // (no quip per crack: the badge's bar counts down, and quips piled up on quick smacks; one says it's nearly gone)
@@ -4528,7 +4548,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       case 'dmg':
         for (const f of targets(e.at)) {
           mark(f);
-          this.dealDamage(f, e.x * st.damage, { source: 'ability', knock: e.knock ?? 120, x: f.cx, y: f.cy, auto: !fromAbility, tag, passive });
+          this.dealDamage(f, e.x * st.damage, { source: 'ability', knock: e.knock ?? 120, x: f.cx, y: f.cy, auto: !fromAbility, tag, passive, element: elementOf(vfx) });
           // a passive ability's hits pick up Freeze Frame (chill) and Cajun Shrimp (sometimes stun)
           if (fromAbility && f.alive && this.ability && !usesMeter(this.ability)) {
             if (st.freezeSlam) {
@@ -4585,7 +4605,7 @@ export class GameScene extends Phaser.Scene implements Arena {
             .sort((a, b) => Math.hypot(a.cx - prev.cx, a.cy - prev.cy) - Math.hypot(b.cx - prev.cx, b.cy - prev.cy))[0];
           if (!next || Math.hypot(next.cx - prev.cx, next.cy - prev.cy) > 700) break;
           this.fx.lightning(prev.cx, prev.cy, next.cx, next.cy);
-          this.dealDamage(next, e.x * st.damage, { source: 'ability', tag, passive: passive || this.guardBlocks(next) });
+          this.dealDamage(next, e.x * st.damage, { source: 'ability', tag, passive: passive || this.guardBlocks(next), element: 'zap' });
           done.add(next);
           prev = next;
         }

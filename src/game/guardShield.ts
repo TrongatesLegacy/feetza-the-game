@@ -10,7 +10,12 @@
 // - a fixed time after it broke, a new one comes at full strength: in the last second the foot reaches back for it
 //   (the aspis pulled from behind its back, the riot shield tossed in from off screen) and raises it;
 // - a leg badge (src/game/legBadge.ts) says SHIELD with a stepped bar of its strength, then BROKEN, then RE-ARM
-//   with the seconds left in an amber ring (glowing blue in its last second); Spartan's says OPEN! while it's down.
+//   with the seconds left in an amber ring (glowing blue in its last second); Spartan's says OPEN! while it's down;
+// - a silver tray (Waiter Walt's, the Head Waiter's) dents and scratches instead of cracking, rings bright when it
+//   blocks, and its last blow knocks it off whole: it spins away, or into the foot's own throw (Foot.guardCatch). Its
+//   badge says TRAY, then KNOCKED OFF; one its fight hands back (Foot.guardManual: the Head Waiter's deliveries) says
+//   OPEN! until a new one is on its way (ORDER, with the delivery's progress in its ring), and swings in from the one
+//   bringing it (receive).
 //
 // The rules live in Foot (guardTick, guardBlock); this file only shows them. Cosmetic randomness uses crand(); the
 // textures use a seeded generator, so they're the same every time.
@@ -54,6 +59,12 @@ interface ShieldTex {
   rim: string;
   body: string | null;
   shards: Shard[];
+  /** Its underside (a tumbling tray shows it), or the face again. */
+  back: string;
+  /** A small bright streak (a silver tray's sparks). */
+  spark: string;
+  /** The shadow it casts on the foot while held, or null. */
+  shadow: string | null;
   /** Texture size in design units. */
   w: number;
   h: number;
@@ -61,6 +72,17 @@ interface ShieldTex {
 }
 
 const texCache = new Map<string, ShieldTex>();
+
+/** A shield piece leaving the foot whole (a tray knocked off or thrown): its textures (the face as dented as it is, and
+ * the underside), where its centre is on screen, its scale and its turn. */
+export interface GuardSnap {
+  key: string;
+  back: string;
+  x: number;
+  y: number;
+  scale: number;
+  rot: number;
+}
 
 /** The shield of a guard foot drawn in the style kit (none in legacy art mode). */
 export function shieldDefOf(type: FootType): ShieldDef | undefined {
@@ -111,6 +133,7 @@ function paintCracks(g: Ctx, def: ShieldDef, stage: number, seed: number): void 
   const R = Math.min(b.w, b.h) / 2;
   const u = R / 80;
   const glass = def.material === 'glass';
+  if (def.material === 'silver') return paintDents(g, def, stage, seed);
   g.save();
   g.globalCompositeOperation = 'source-atop';
   for (let j = 0; j < stage; j++) {
@@ -226,6 +249,92 @@ function paintCracks(g: Ctx, def: ShieldDef, stage: number, seed: number): void 
     g.lineTo(nx + Math.cos(a1 - 1.6) * 16 * u, ny + Math.sin(a1 - 1.6) * 16 * u);
     g.closePath();
     g.fill();
+  }
+  g.restore();
+}
+
+/** A silver tray's blows: each stage a dent (a dark hollow on its lit side, a bright lip on the far side) with scuffs and
+ * scratches round it; the last a deep dent by the rim, the rim bent in there and a crease across. Nothing breaks off:
+ * it's knocked off whole. */
+function paintDents(g: Ctx, def: ShieldDef, stage: number, seed: number): void {
+  const b = def.box;
+  const cx = b.x + b.w / 2;
+  const cy = b.y + b.h / 2;
+  const R = Math.min(b.w, b.h) / 2;
+  const u = R / 80;
+  g.save();
+  g.globalCompositeOperation = 'source-atop';
+  const dent = (ix: number, iy: number, dr: number, deep: number) => {
+    // the hollow: the light comes from the top left, so its upper-left wall is in shadow
+    const sh = g.createRadialGradient(ix - dr * 0.3, iy - dr * 0.3, dr * 0.05, ix, iy, dr * 1.15);
+    sh.addColorStop(0, `rgba(20,26,38,${0.55 * deep})`);
+    sh.addColorStop(0.55, `rgba(30,38,52,${0.3 * deep})`);
+    sh.addColorStop(1, 'rgba(30,38,52,0)');
+    g.fillStyle = sh;
+    g.beginPath();
+    g.arc(ix, iy, dr * 1.15, 0, Math.PI * 2);
+    g.fill();
+    // its lit lip on the lower right, and a hot point in it
+    g.strokeStyle = `rgba(255,255,255,${0.9 * Math.min(1, deep + 0.2)})`;
+    g.lineWidth = 2.6 * u;
+    g.lineCap = 'round';
+    g.beginPath();
+    g.arc(ix, iy, dr * 0.92, 0.05, Math.PI * 0.85);
+    g.stroke();
+    g.fillStyle = 'rgba(255,255,255,0.95)';
+    g.beginPath();
+    g.ellipse(ix + dr * 0.42, iy + dr * 0.5, 2.4 * u, 1.3 * u, -0.6, 0, Math.PI * 2);
+    g.fill();
+    // a dark crease on the shadow side of the lip
+    g.strokeStyle = `rgba(16,20,30,${0.5 * deep})`;
+    g.lineWidth = 1.6 * u;
+    g.beginPath();
+    g.arc(ix, iy, dr * 1.02, Math.PI * 1.05, Math.PI * 1.8);
+    g.stroke();
+  };
+  const scratch = (r: () => number, ix: number, iy: number, n: number, len: number) => {
+    for (let i = 0; i < n; i++) {
+      const a = r() * Math.PI * 2;
+      const d = len * (0.4 + r() * 0.9);
+      const x0 = ix + Math.cos(a) * len * 0.35;
+      const y0 = iy + Math.sin(a) * len * 0.35;
+      const pts = jag(r, x0, y0, a + (r() - 0.5) * 0.6, d, 3, 0.25);
+      stroke(g, pts, 'rgba(20,26,40,0.32)', 1.1 * u, 0.6 * u, 0.6 * u);
+      stroke(g, pts, 'rgba(255,255,255,0.75)', 0.8 * u);
+    }
+  };
+  for (let j = 0; j < stage; j++) {
+    const r = rng(seed + j * 7919);
+    const [fx, fy] = IMPACTS[j];
+    const ix = cx + fx * b.w;
+    const iy = cy + fy * b.h;
+    // older dents are knocked a little deeper by each blow after them
+    const older = stage - 1 - j;
+    dent(ix, iy, 14 * u * (1 + 0.1 * older), Math.min(1, 0.7 + 0.15 * older));
+    scratch(r, ix, iy, 5 + j * 2, 26 * u);
+  }
+  if (stage >= CRACK_STAGES) {
+    // about to go: a deep dent by the rim, the rim bent in there, and a crease running in from it
+    const r = rng(seed + 31337);
+    const a1 = -0.6 + r() * 0.4;
+    const nx = cx + Math.cos(a1) * R * 0.8;
+    const ny = cy + Math.sin(a1) * R * 0.8;
+    dent(nx, ny, 20 * u, 1);
+    const crease = jag(r, nx - Math.cos(a1) * 14 * u, ny - Math.sin(a1) * 14 * u, a1 + Math.PI + (r() - 0.5) * 0.3, R * 0.9, 6, 0.35);
+    stroke(g, crease, 'rgba(255,255,255,0.8)', 2 * u, -1.2 * u, -1.2 * u);
+    stroke(g, crease, 'rgba(18,22,34,0.6)', 2.4 * u);
+    // the bent rim: its highlight knocked dark where it caved in
+    g.strokeStyle = 'rgba(18,22,34,0.75)';
+    g.lineWidth = 5 * u;
+    g.beginPath();
+    g.arc(cx, cy, R * 0.95, a1 - 0.28, a1 + 0.28);
+    g.stroke();
+    g.strokeStyle = 'rgba(255,255,255,0.85)';
+    g.lineWidth = 1.6 * u;
+    g.beginPath();
+    g.arc(cx, cy, R * 0.88, a1 - 0.22, a1 + 0.22);
+    g.stroke();
+    scratch(r, cx, cy, 8, R * 0.7);
   }
   g.restore();
 }
@@ -348,7 +457,46 @@ function shieldTextures(sc: Phaser.Scene, type: FootType, def: ShieldDef, needBo
     rg.drawImage(base, ox - ox * k, oy - oy * k, base.width * k, base.height * k);
     const rim = `gs_${type.id}_rim`;
     if (!sc.textures.exists(rim)) sc.textures.addCanvas(rim, rc);
-    t = { sheet, rim, body: null, shards: cutShards(sc, type.id, frames[CRACK_STAGES], def, s), w, h, res };
+    // the underside (a tray tumbling through the air shows it); without one, the face (made on the first throw)
+    let back = `${sheet}_s0`;
+    if (def.back) {
+      back = `gs_${type.id}_back`;
+      if (!sc.textures.exists(back)) {
+        const [bc, bg] = makeCanvas(Math.ceil(w * s), Math.ceil(h * s));
+        bg.scale(s, s);
+        bg.translate(PAD - def.box.x, PAD - def.box.y);
+        def.back(bg, type.art);
+        sc.textures.addCanvas(back, bc);
+      }
+    }
+    // a small bright streak for a silver tray's sparks
+    const spark = 'gs_spark';
+    if (!sc.textures.exists(spark)) {
+      const [kc, kg] = makeCanvas(48, 10);
+      const gr = kg.createLinearGradient(0, 0, 48, 0);
+      gr.addColorStop(0, 'rgba(255,255,255,0)');
+      gr.addColorStop(0.7, 'rgba(255,255,255,0.95)');
+      gr.addColorStop(1, 'rgba(255,255,255,1)');
+      kg.fillStyle = gr;
+      kg.beginPath();
+      kg.ellipse(24, 5, 23, 3.2, 0, 0, Math.PI * 2);
+      kg.fill();
+      sc.textures.addCanvas(spark, kc);
+    }
+    // (a silver tray never breaks into pieces: it's knocked off whole)
+    const shards = def.material === 'silver' ? [] : cutShards(sc, type.id, frames[CRACK_STAGES], def, s);
+    let shadow: string | null = null;
+    if (def.shadow) {
+      shadow = `gs_${type.id}_shadow`;
+      if (!sc.textures.exists(shadow)) {
+        const [hc, hg] = makeCanvas(Math.ceil(w * s), Math.ceil(h * s));
+        hg.scale(s, s);
+        hg.translate(PAD - def.box.x, PAD - def.box.y);
+        def.shadow(hg, type.art);
+        sc.textures.addCanvas(shadow, hc);
+      }
+    }
+    t = { sheet, rim, body: null, shards, back, spark, shadow, w, h, res };
     texCache.set(type.id, t);
   }
   if (needBody && !t.body) {
@@ -371,7 +519,7 @@ function spring(v: { x: number; v: number }, to: number, w: number, z: number, d
   }
 }
 
-const SND_RATE = { glass: 1.1, bronze: 0.9 };
+const SND_RATE = { glass: 1.1, bronze: 0.9, silver: 1 };
 /** The highest the badge's face centre goes on screen (world y): room for its icon above it, clear of the HUD. */
 const BADGE_TOP = 150;
 /** Seconds the badge says BROKEN before it counts down to the new shield. */
@@ -385,6 +533,13 @@ class GuardFx {
   private img?: Phaser.GameObjects.Image;
   private rim?: Phaser.GameObjects.Image;
   private readonly badge: LegBadge;
+  /** The container the piece hangs in (it follows the foot's rig). */
+  private host?: Phaser.GameObjects.Container;
+  /** A silver tray's bright ring as it blocks a blow (seconds left). */
+  private ringT = 0;
+  /** A new tray swinging in from where it was handed over (in the host's frame; its size there, against its own), or
+   * null. */
+  private recv: { t: number; x: number; y: number; k: number } | null = null;
   /** 0 up … 1 down (springs past both). */
   private k = { x: 0, v: 0 };
   /** The hanging aspis's swing (radians). */
@@ -415,12 +570,15 @@ class GuardFx {
     if (this.def) {
       this.tex = shieldTextures(this.sc, f.type, this.def, false);
       const host = f.attachShield();
+      this.host = host;
       const t = this.tex;
       const ox = (this.def.pivot[0] - this.def.box.x + PAD) / t.w;
       const oy = (this.def.pivot[1] - this.def.box.y + PAD) / t.h;
       this.img = this.sc.add.image(0, 0, t.sheet, 0).setOrigin(ox, oy).setScale(1 / t.res);
       this.rim = this.sc.add.image(0, 0, t.rim).setOrigin(ox, oy).setScale(1 / t.res).setBlendMode(Phaser.BlendModes.ADD).setTint(0xffd84a).setAlpha(0);
-      this.piece = this.sc.add.container(0, 0, [this.img, this.rim]);
+      const parts: Phaser.GameObjects.Image[] = [this.img, this.rim];
+      if (t.shadow) parts.unshift(this.sc.add.image(0, 0, t.shadow).setOrigin(ox, oy).setScale(1 / t.res));
+      this.piece = this.sc.add.container(0, 0, parts);
       host.add(this.piece);
       f.trackLiveImage(this.img);
     }
@@ -465,6 +623,7 @@ class GuardFx {
     }
     this.t += dt;
     if (this.hitT > 0) this.hitT -= dt;
+    if (this.ringT > 0) this.ringT -= dt;
     this.raiseT += dt;
     const vx = dt > 0 ? (f.x - this.lastX) / dt : 0;
     this.lastX = f.x;
@@ -473,6 +632,7 @@ class GuardFx {
     else if (this.mode === 'flight' || this.mode === 'rage') {
       // (nothing to hold)
     } else if (f.guardBroken) this.brokenTick();
+    else if (this.recv) this.recvTick(dt);
     else {
       if (this.fetching) this.endFetch();
       const up = f.guardUp;
@@ -538,7 +698,14 @@ class GuardFx {
       y += Math.sin(this.t * 51 + 1.3) * 1.2 * a * ts;
       rot += Math.sin(this.t * 44) * 0.04 * a;
     }
-    if (this.rim) this.rim.setAlpha(warn ? 0.45 + 0.55 * Math.abs(Math.sin(this.t * 13)) : Math.max(0, this.rim.alpha - 0.12));
+    if (this.rim) {
+      // (a silver tray's ring as it blocks: a white flash of its rim)
+      if (this.ringT > 0) this.rim.setTint(0xffffff).setAlpha(0.55 * Math.min(1, this.ringT / 0.12));
+      else {
+        this.rim.setTint(0xffd84a);
+        this.rim.setAlpha(warn ? 0.45 + 0.55 * Math.abs(Math.sin(this.t * 13)) : Math.max(0, this.rim.alpha - 0.12));
+      }
+    }
     // a blocked smack knocks it back and it shivers
     if (this.hitT > 0) {
       const h = this.hitT / 0.2;
@@ -649,7 +816,44 @@ class GuardFx {
     this.badge.bump();
     if (quiet) this.sfx('sfx_guardcrack', 0.45, 1.25);
     else this.sfx('sfx_guardcrack', Math.min(1.3, 0.8 + 0.1 * stage + 0.15 * (steps - 1)), (1 + 0.06 * stage) * (steps > 1 ? 0.85 : 1));
-    this.chips(quiet ? 2 : 3 + stage + (steps - 1) * 4);
+    if (this.def?.material === 'silver') {
+      // a tray rings bright and throws sparks
+      this.ringT = quiet ? 0.06 : 0.12;
+      this.sparks(quiet ? 2 : 5 + stage + (steps - 1) * 3);
+    } else this.chips(quiet ? 2 : 3 + stage + (steps - 1) * 4);
+  }
+
+  /** Sparks off a blocked blow on a silver tray: bright streaks bursting from its face. */
+  private sparks(n: number): void {
+    if (!this.tex || !this.piece || !this.def) return;
+    const m = this.piece.getWorldTransformMatrix();
+    const layer = this.f.root.parentContainer;
+    const ts = this.f.type.scale;
+    const [px, py] = this.def.pivot;
+    const cx = this.def.box.x + this.def.box.w / 2 - px;
+    const cy = this.def.box.y + this.def.box.h / 2 - py;
+    const R = Math.min(this.def.box.w, this.def.box.h) * 0.3;
+    for (let i = 0; i < n; i++) {
+      const a = crand() * Math.PI * 2;
+      const p = m.transformPoint((cx + Math.cos(a) * R * crand()) * ts, (cy + Math.sin(a) * R * crand()) * ts);
+      const sp = 300 + crand() * 380;
+      const img = this.sc.add.image(p.x, p.y, this.tex.spark).setBlendMode(Phaser.BlendModes.ADD).setTint(crand() < 0.4 ? 0xfff2c0 : 0xffffff).setRotation(a).setScale(0.5 + crand() * 0.5, 0.6);
+      if (layer) layer.add(img);
+      const vx = Math.cos(a) * sp;
+      const vy = Math.sin(a) * sp - 120;
+      this.sc.tweens.addCounter({
+        from: 0,
+        to: 0.32,
+        duration: 320,
+        onUpdate: (tw) => {
+          const t = tw.getValue() ?? 0;
+          img.setPosition(p.x + vx * t, p.y + vy * t + 900 * t * t);
+          img.setRotation(Math.atan2(vy + 1800 * t, vx));
+          img.setAlpha(1 - t / 0.32);
+        },
+        onComplete: () => img.destroy(),
+      });
+    }
   }
 
   /** Knock-on damage soaking into it: the step it's wearing down flashes on the badge. */
@@ -700,10 +904,19 @@ class GuardFx {
     });
   }
 
-  /** It shatters: the pieces burst off the blow and fall away, and the foot is open. */
+  /** It shatters: the pieces burst off the blow and fall away, and the foot is open. A silver tray is knocked off
+   * whole instead: into the foot's own throw (Foot.guardCatch), or spinning away. */
   broke(): void {
     this.sfx('sfx_guardshatter', 1, 1);
     this.badge.bump();
+    if (this.def?.material === 'silver') {
+      this.recv = null;
+      const snap = this.snapshot();
+      if (!snap) return;
+      if (this.f.guardCatch) this.f.guardCatch(snap);
+      else this.knockFly(snap);
+      return;
+    }
     if (!this.piece || !this.tex || !this.def) return;
     const m = this.piece.getWorldTransformMatrix();
     const layer = this.f.root.parentContainer;
@@ -723,6 +936,112 @@ class GuardFx {
     this.piece.setVisible(false);
     this.k.x = 1;
     this.k.v = 0;
+  }
+
+  /** The piece as it is now, as a picture of its own (for a throw), and hide it. Null if it isn't showing. */
+  private snapshot(): GuardSnap | null {
+    if (!this.piece || !this.tex || !this.def || !this.piece.visible) return null;
+    const m = this.piece.getWorldTransformMatrix();
+    const ox = this.def.pivot[0] - this.def.box.x + PAD;
+    const oy = this.def.pivot[1] - this.def.box.y + PAD;
+    const p = m.transformPoint((this.tex.w / 2 - ox) * this.f.type.scale, (this.tex.h / 2 - oy) * this.f.type.scale);
+    this.piece.setVisible(false);
+    // a texture of its own for the frame it's on (as dented as it is), for a plain image to fly
+    const cut = (fr: Phaser.Textures.Frame, key: string) => {
+      if (this.sc.textures.exists(key)) return;
+      const [c, g] = makeCanvas(fr.cutWidth, fr.cutHeight);
+      g.drawImage(fr.source.image as HTMLCanvasElement, fr.cutX, fr.cutY, fr.cutWidth, fr.cutHeight, 0, 0, fr.cutWidth, fr.cutHeight);
+      this.sc.textures.addCanvas(key, c);
+    };
+    // (keyed by the texture it's on: a zombified foot's piece is its own rotted copy)
+    const fr = this.img!.frame;
+    const key = `${fr.texture.key}_s${fr.name}`;
+    cut(fr, key);
+    // the underside: the style's own, or (with none) its whole face
+    let back = this.tex.back;
+    if (!this.def.back) {
+      back = `${fr.texture.key}_s0`;
+      cut(fr.texture.get(0), back);
+    }
+    return { key, back, x: p.x, y: p.y, scale: Math.hypot(m.a, m.b) / this.tex.res, rot: m.rotation };
+  }
+
+  /** Knocked off with nothing to catch it: it spins up and away whole, tumbling face over underside, and drops off. */
+  private knockFly(snap: GuardSnap): void {
+    const layer = this.f.root.parentContainer;
+    const img = this.sc.add.image(snap.x, snap.y, snap.key).setScale(snap.scale).setRotation(snap.rot);
+    if (layer) layer.add(img);
+    const dir = this.f.x < 960 ? 1 : -1;
+    const vx = dir * (240 + crand() * 160);
+    const vy = -620 - crand() * 160;
+    const life = 1.3;
+    this.sc.tweens.addCounter({
+      from: 0,
+      to: life,
+      duration: life * 1000,
+      onUpdate: (tw) => {
+        const t = tw.getValue() ?? 0;
+        const c = Math.cos(t * 14);
+        img.setPosition(snap.x + vx * t, snap.y + vy * t + 0.5 * 1700 * t * t);
+        img.setTexture(c >= 0 ? snap.key : snap.back);
+        img.setScale(snap.scale, snap.scale * (0.12 + 0.88 * Math.abs(c)));
+        img.setRotation(snap.rot + dir * t * 5);
+        img.setAlpha(Math.min(1, ((life - t) / life) * 3));
+      },
+      onComplete: () => img.destroy(),
+    });
+  }
+
+  /** It leaves the foot whole (Foot.guardAway: thrown). */
+  away(): GuardSnap | null {
+    this.recv = null;
+    this.badge.bump();
+    return this.snapshot();
+  }
+
+  /** A new one handed over from a point on screen: it swings in on an arc, spinning, and clanks into place. */
+  receive(from?: { x: number; y: number; k?: number }): void {
+    if (this.fetching) this.endFetch();
+    this.img?.setFrame(0);
+    this.piece?.setVisible(true).setAlpha(1);
+    this.badge.bump();
+    // (raised now: no second clank from the raise)
+    this.wasUp = true;
+    this.k.x = 0;
+    this.k.v = 0;
+    if (!from || !this.host || !this.piece || !this.def) {
+      this.onRaise();
+      this.pose();
+      return;
+    }
+    const p = this.host.getWorldTransformMatrix().applyInverse(from.x, from.y);
+    // (`from` is where the tray's middle is: the piece hangs from its pivot, so start that far off it)
+    const k = from.k ?? 0.55;
+    const ts = this.f.type.scale;
+    const ox = (this.def.box.x + this.def.box.w / 2 - this.def.pivot[0]) * ts;
+    const oy = (this.def.box.y + this.def.box.h / 2 - this.def.pivot[1]) * ts;
+    this.recv = { t: 0, x: p.x - ox * k, y: p.y - oy * k * 0.36, k };
+    this.sfx('sfx_whoosh', 0.4, 1.2);
+  }
+
+  private recvTick(dt: number): void {
+    const r = this.recv;
+    if (!r || !this.piece || !this.def) return;
+    r.t += dt;
+    const D = 0.45;
+    const u = Phaser.Math.Clamp(r.t / D, 0, 1);
+    const e = Phaser.Math.Easing.Cubic.Out(u);
+    const [px, py] = this.pivotLocal();
+    const x = r.x + (px - r.x) * e;
+    const y = r.y + (py - r.y) * e - Math.sin(u * Math.PI) * 70 * this.f.type.scale;
+    // (it starts as it was carried: that size, held flat, and swings up face-on as it grows)
+    const sc = r.k + (1 - r.k) * e;
+    this.piece.setPosition(x, y).setRotation((1 - e) * 0.6 * (r.x < px ? 1 : -1)).setScale(sc, sc * (0.36 + 0.64 * e));
+    if (u >= 1) {
+      this.recv = null;
+      this.onRaise();
+      this.pose();
+    }
   }
 
   // ——— a raging Spartan throws its shield ———
@@ -759,7 +1078,7 @@ class GuardFx {
     this.piece.setVisible(false);
     // a texture of its own for the frame it's on (as cracked as it is), for a plain image to fly
     const fr = this.img!.frame;
-    const key = `${this.tex.sheet}_s${fr.name}`;
+    const key = `${fr.texture.key}_s${fr.name}`;
     if (!this.sc.textures.exists(key)) {
       const [c, g] = makeCanvas(fr.cutWidth, fr.cutHeight);
       g.drawImage(fr.source.image as HTMLCanvasElement, fr.cutX, fr.cutY, fr.cutWidth, fr.cutHeight, 0, 0, fr.cutWidth, fr.cutHeight);
@@ -783,18 +1102,25 @@ class GuardFx {
     if (this.chipT > 0) this.chipT -= dt;
     const steps = { steps: f.guardMax, lit: f.guardHp, chip: f.guardChipAcc / f.guardChipStep, flash: this.chipT > 0.06 };
     let show: LegBadgeShow;
+    const wd = this.def?.words;
     if (this.mode !== 'shield') {
       // RAGE: done with shields; it flashes while the shield is wound up and flying at the peel
       const flash = (this.mode === 'windup' || this.mode === 'flight') && Math.floor(this.modeT / 0.12) % 2 === 0;
       show = { word: 'RAGE', icon: 'rage', state: flash ? 'hot' : 'bad' };
     } else if (f.guardBroken) {
       const left = Math.max(0, f.guardRearmAfter - f.guardIdle);
-      if (f.guardIdle < BROKEN_SHOW) show = { word: 'BROKEN', icon: 'shieldBroken', bar: { steps: f.guardMax, lit: 0 }, state: 'bad' };
-      else show = { word: 'RE-ARM', sub: `${Math.ceil(left)}s`, icon: 'shieldBroken', ring: { frac: f.guardIdle / f.guardRearmAfter, color: '#e0902f' }, state: left <= GUARD_FETCH ? 'warn' : 'bad' };
+      const offIcon = wd?.offIcon ?? 'shieldBroken';
+      if (f.guardIdle < BROKEN_SHOW) {
+        if (f.guardThrown) show = { word: 'THROWN', icon: offIcon, state: 'bad' };
+        else show = { word: wd?.off ?? 'BROKEN', sub: wd?.offSub, icon: offIcon, bar: wd?.offSub ? undefined : { steps: f.guardMax, lit: 0 }, state: 'bad' };
+      }
+      // a guard its fight hands back: open until a new one is on its way, then the delivery's progress in its ring
+      else if (f.guardManual) show = f.guardIncoming >= 0 ? { word: 'ORDER', sub: 'COMING', icon: wd?.icon ?? 'shield', ring: { frac: f.guardIncoming, color: '#e0902f' }, state: 'warn' } : { word: 'OPEN!', icon: offIcon, state: 'go' };
+      else show = { word: wd?.rearm ?? 'RE-ARM', sub: `${Math.ceil(left)}s`, icon: offIcon, ring: { frac: f.guardIdle / f.guardRearmAfter, color: '#e0902f' }, state: left <= GUARD_FETCH ? 'warn' : 'bad' };
     } else if (f.guardUp) {
       // a shield on a beat (Spartan Sandals): the ring runs down to its next drop (a long hold after a hit shows)
       const beat = f.type.guard && (f.state === 'hover' || f.state === 'descend') ? { frac: f.guardToDrop / Math.max(0.1, f.guardNext), color: '#2f9be0' } : undefined;
-      show = { word: 'SHIELD', icon: 'shield', bar: steps, ring: beat, state: f.guardWarned ? 'warn' : null };
+      show = { word: wd?.up ?? 'SHIELD', icon: wd?.icon ?? 'shield', bar: steps, ring: beat, state: f.guardWarned ? 'warn' : null };
     }
     else show = { word: 'OPEN!', icon: 'shield', bar: steps, ring: f.guardOpen > 0 ? { frac: f.guardOpen / this.openTotal, color: '#2c9a3a' } : undefined, state: 'go' };
     this.badge.set(show);

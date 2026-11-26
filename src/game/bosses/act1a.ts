@@ -1,4 +1,4 @@
-// Boss brains, Stages 1–3: headwaiter, bigfoot, sweep, ironheel, sandcastle, clownking.
+// Boss brains, Stages 1–3: headwaiter (and his delivery waiters), bigfoot, sweep, ironheel, sandcastle, clownking.
 // Shared helpers and the heat scaling live in ./kit.ts; the helpers below are only used by these six.
 
 import Phaser from 'phaser';
@@ -7,7 +7,18 @@ import { FOOT_BY_ID } from '../../data/feet';
 import type { Arena } from '../arena';
 import type { Foot } from '../Foot';
 import type { Pizza } from '../Pizza';
-import { type Brain, type Prop, Every, auraFor, heat, hitProp, hitWindup, laneOf, mark, rnd, shield, takeLane, twin, windup } from './kit';
+import { CX } from '../../art/feetCommon';
+import { styledCanvas } from '../../art/feetArt';
+import { REST } from '../../art/style/kit';
+import { DEL_TRAY_BOX, DEL_TRAY_K, DEL_TRAY_ORIGIN } from '../../content/props/act1a';
+import { DEL_TRAY } from '../../content/style/delivery';
+import { HW_TRAY } from '../../content/style/bosses-3';
+import { ui } from '../../ui/ui';
+import type { GuardSnap } from '../guardShield';
+import { deliveryGap, deliveryHp, guardHits, trayHeal } from '../heatRules';
+import { HEATS, type HeatId } from '../../data/difficulty';
+import { type Flying, spinAway, tossTray } from '../trayToss';
+import { type Brain, type HeatScale, type Prop, Every, auraFor, heat, hitProp, hitWindup, laneOf, mark, rnd, shield, takeLane, twin, windup } from './kit';
 
 /** King Honk and his decoys during a shuffle, relative to his full size. */
 const SHUFFLE_SIZE = 0.62;
@@ -197,57 +208,64 @@ class Covers {
 }
 
 // ——— 1. The Head Waiter ———
+//
+// His grand silver salver is a guard shield (src/game/guardShield.ts: dented by smacks, the heat's usual strength). He
+// holds a lane and, on a cooldown, throws it spinning at the pizza (src/game/trayToss.ts): smack it to send it back at
+// him for a tenth of his health, or it clangs down for a slice. Knock it off his hand with smacks and he throws it
+// there and then. Either way it's gone (he's open), and a new one comes only by delivery: one delivery waiter at a time
+// (a short gap after each is dealt with) crosses the top of the table to hand it over, and he eats the dish on it (a
+// heal by heat: trayHeal). Smack the delivery waiter down first and the tray clatters down and the dish splats.
+// Phase 2 (SERVICE!) puts the tray aside: the service shield is all he hides behind, and no deliveries come. Phase 3
+// alternates a round of trays (each one by delivery) and a round of service.
+
+/** A delivery on its way: the waiter, the tray he carries (a picture on him), his dotted path to the Head Waiter. */
+interface Delivery {
+  w: Foot;
+  img: Phaser.GameObjects.Image;
+  path: Phaser.GameObjects.Graphics;
+  age: number;
+  /** How far he had to cross (for the badge's ring). */
+  d0: number;
+  /** The height he walks along (he bobs over it). */
+  baseY: number;
+  /** He's come into view (and said so). */
+  seen: boolean;
+  /** His still art had the tray painted on (animation off): swapped for the body without it. */
+  bare: boolean;
+}
+
+/** A delivery waiter's walking speed (px/s), Mild … Inferno. */
+const DELIVERY_SPEED = [200, 240, 270, 300, 330];
+
+/** Where the Head Waiter holds a lane (contact y): low enough that his salver is in full view, clear of the boss bar. */
+const hwHoldY = (f: Foot) => Math.min(600, f.showAllY() + 70);
+
+function syncHwBar(a: Arena, f: Foot): void {
+  ui.hud.setBoss(f.type.name, f.hp / f.maxHp, f.type.mini ? Math.max(1, a.bossPhases() - 1) : a.bossPhases(), f.phase);
+}
 
 const headwaiter = (): Brain => {
+  // (the cards' numbers follow the card's heat)
+  const healPct = (hid: HeatId) => Math.round(trayHeal(hid) * 100);
+  const trayHits = (hs: HeatScale) => guardHits(HEATS[hs.rank].id);
+  /** Deliveries smacked down this tray round (phase 3 goes back to service after a couple, so it always alternates). */
+  let drops = 0;
   let h: Hold | null = null;
-  /** The tray in flight: an update-driven spin down the lane. */
-  let tray: {
-    img: Phaser.GameObjects.Image;
-    /** Its shadow on the pizza, growing as it comes down. */
-    shadow: Phaser.GameObjects.Ellipse;
-    reticle: Phaser.GameObjects.Image;
-    p: Pizza;
-    k: number;
-    dur: number;
-    /** Tumble angle: the tray flips end over end, so it shows its face, its edge and its underside. */
-    spin: number;
-    back: boolean;
-    done: boolean;
-  } | null = null;
-  /** Tray display size (the texture is 440 px across). */
-  const TRAY = 0.9;
+  /** His tray in the air (thrown, or smacked off and thrown). */
+  let tray: Flying | null = null;
   let t = 1.2;
   let throws = 0;
-  /** Phase 3 alternates: a couple of trays, then a round of waiters. */
+  /** Phase 3 alternates: a round of trays, then a round of waiters. */
   let mode: 'toss' | 'service' = 'toss';
   let waiters: Foot[] = [];
   let serving = false;
   let serveT = 0;
   let slowed = false;
+  let ready = false;
+  let del: Delivery | null = null;
+  /** Seconds until the next delivery may set off. */
+  let gapT = 0;
 
-  /** Take the tray away: `clang` bounces it off what it hit and fades it out, otherwise it just fades. */
-  const endTray = (a?: Arena, clang = false) => {
-    if (!tray) return;
-    const tr = tray;
-    tr.done = true;
-    tray = null;
-    const { img, shadow, reticle } = tr;
-    reticle.destroy();
-    if (!a) {
-      img.destroy();
-      shadow.destroy();
-      return;
-    }
-    a.sc.tweens.killTweensOf([img, shadow]);
-    a.sc.tweens.add({ targets: shadow, alpha: 0, duration: 200, onComplete: () => shadow.destroy() });
-    if (clang) {
-      // it clatters off and spins away
-      const dir = Math.random() < 0.5 ? -1 : 1;
-      a.sc.tweens.add({ targets: img, x: img.x + dir * 220, y: img.y - 170, angle: dir * 300, duration: 420, ease: 'Quad.Out' });
-      a.sc.tweens.add({ targets: img, scaleY: img.scaleX * 0.2, duration: 120, yoyo: true, repeat: 1 });
-      a.sc.tweens.add({ targets: img, alpha: 0, delay: 220, duration: 260, onComplete: () => img.destroy() });
-    } else a.sc.tweens.add({ targets: img, alpha: 0, scale: img.scaleX * 0.6, duration: 220, onComplete: () => img.destroy() });
-  };
   const endHold = () => {
     h?.release();
     h = null;
@@ -258,88 +276,29 @@ const headwaiter = (): Brain => {
     f.speedMul *= on ? 0.55 : 1 / 0.55;
   };
 
-  const throwTray = (f: Foot, a: Arena) => {
-    if (!h) return;
-    const p = h.p;
-    // where it will land: a shadow that darkens and grows, and the red reticle
-    const shadow = a.sc.add.ellipse(p.x, p.surfaceY - 10, p.radius * 1.5, p.radius * 0.45, 0x1a0e08, 0).setScale(0.4);
-    a.fxLayer.add(shadow);
-    const dur = heat(a).windup(2.6);
-    const reticle = mark(a, 'p_reticle', p.x, p.surfaceY - 30, dur + 0.3, 1.1);
-    const img = a.sc.add.image(f.x, f.y + 30, 'p_silvertray').setScale(0);
-    a.fxLayer.add(img);
-    a.sc.tweens.add({ targets: img, scaleX: TRAY, duration: 260, ease: 'Back.Out' });
-    const tr = { img, shadow, reticle, p, k: 0, dur, spin: 0, back: false, done: false };
-    tray = tr;
-    a.quip(f.x, f.y - 40, 'TRAY!', '#ffffff', 44);
-    a.sfx('sfx_headwaiter_traytoss');
-    a.addClickable({
-      get x() {
-        return img.x;
-      },
-      get y() {
-        return img.y;
-      },
-      r: 150,
-      priority: 2,
-      contains: (x, y) => Math.abs(x - img.x) < 200 && Math.abs(y - img.y) < 90,
-      alive: () => !tr.done && !tr.back,
-      hit: () => {
-        if (tr.done || tr.back) return;
-        tr.back = true;
-        tr.reticle.destroy();
-        a.sc.tweens.add({ targets: tr.shadow, alpha: 0, duration: 200 });
-        // a green flash: it's yours now
-        img.setTintFill(0x9dffb0);
-        a.sc.time.delayedCall(90, () => img.active && img.clearTint());
-        a.fx.impact(img.x, img.y, true);
-        a.sfx('sfx_headwaiter_traybat');
-        a.quip(img.x, img.y - 70, 'BATTED!', '#7dff9a', 38);
-      },
-    });
-  };
-
-  const tickTray = (f: Foot, dt: number, a: Arena) => {
-    if (!tray) return;
-    const tr = tray;
-    const img = tr.img;
-    // it tumbles end over end (faster once batted): squash it through face, edge and underside
-    tr.spin += dt * (tr.back ? 16 : 5.5);
-    const c = Math.cos(tr.spin);
-    if (img.scaleX >= TRAY * 0.99 || tr.k > 0.05) {
-      img.scaleY = img.scaleX * (0.14 + 0.62 * Math.abs(c));
-      img.setTexture(c >= 0 ? 'p_silvertray' : 'p_silvertray_b');
-    } else img.scaleY = img.scaleX * 0.76;
-    // and wobbles on its axis
-    img.rotation = Math.sin(tr.spin * 0.5) * 0.22 + (tr.back ? Math.sin(tr.spin) * 0.3 : 0);
-    if (tr.back) {
-      // spins back up to the waiter and clangs off him
-      img.x += (f.x - img.x) * Math.min(1, dt * 7);
-      img.y += (f.cy - img.y) * Math.min(1, dt * 7);
-      if (Math.hypot(f.x - img.x, f.cy - img.y) < 60) {
-        a.fx.impact(img.x, img.y, true);
-        a.sfx('sfx_crit');
-        endTray(a, true);
-        a.damageFoot(f, Math.round(f.maxHp * 0.1), 'RETURN TO SENDER!');
-        afterThrow(f, a);
-      }
+  /** Throw the tray (it's left his hand: `snap` is the piece as it was) at the pizza in his lane, or the nearest. */
+  const toss = (f: Foot, a: Arena, snap: GuardSnap) => {
+    const p = h && !h.p.dead ? h.p : laneOf(a, f);
+    if (!p || !a.inWave()) {
+      spinAway(a, snap, f.x < W / 2 ? 1 : -1);
       return;
     }
-    tr.k += dt / tr.dur;
-    const sx = f.x;
-    const sy = f.y + 30;
-    const ty = tr.p.surfaceY - 30;
-    img.x = sx + (tr.p.x - sx) * tr.k;
-    img.y = sy + (ty - sy) * tr.k;
-    tr.shadow.setPosition(tr.p.x, tr.p.surfaceY - 10).setScale(0.4 + 0.6 * tr.k).setAlpha(0.1 + 0.35 * tr.k);
-    if (tr.k >= 1) {
-      const p = tr.p;
-      a.fx.impact(img.x, img.y, false);
-      a.sfx('sfx_headwaiter_trayclang');
-      endTray(a, true);
-      if (!p.dead) a.hitPizza(p, heat(a).slices(1), 'TRAYED!');
-      afterThrow(f, a);
-    }
+    const hs = heat(a);
+    tray = tossTray(a, f, snap, p, {
+      tell: hs.windup(0.4),
+      flight: hs.windup(2.6),
+      bat: Math.round(f.maxHp * 0.1),
+      stun: 0,
+      slices: hs.slices(1),
+      grow: 1.08,
+      shout: 'TRAY!',
+      sfx: { toss: 'sfx_headwaiter_traytoss', bat: 'sfx_headwaiter_traybat', land: 'sfx_headwaiter_trayclang' },
+      done: () => {
+        tray = null;
+        gapT = deliveryGap(a.heat());
+        afterThrow(f, a);
+      },
+    });
   };
 
   const afterThrow = (f: Foot, a: Arena) => {
@@ -349,15 +308,227 @@ const headwaiter = (): Brain => {
     if (f.phase === 1 && Math.random() < 0.35) {
       const p = rnd(a.alivePizzas().filter((q) => q !== h?.p));
       endHold();
-      h = p ? hold(a, f, p) : null;
+      h = p ? hold(a, f, p, hwHoldY(f)) : null;
     }
   };
 
+  // ——— the delivery waiter ———
+
+  /** Where a delivery waiter hands the tray over: beside the Head Waiter, on his own side. */
+  const spot = (f: Foot, w: Foot) => {
+    const side = Math.sign(w.x - f.x) || 1;
+    return { side, x: f.x + side * (f.meta.halfWidth * f.scale * 0.72 + w.meta.halfWidth * w.scale * 0.55), y: Math.max(HOVER_Y, Math.min(f.y, 600)) };
+  };
+
+  /** Does he want a tray brought (he has none, none is in the air, and it's a tray round)? */
+  const wantsTray = (f: Foot, a: Arena) => a.inWave() && f.alive && f.guardBroken && !tray && !serving && (f.phase === 1 || (f.phase >= 3 && mode === 'toss'));
+
+  const sendDelivery = (f: Foot, a: Arena) => {
+    // he walks in from the edge of the table furthest from the Head Waiter, so he has a way to come
+    const from = f.x < W / 2 ? 1 : -1;
+    const w = a.spawn('deliverywaiter', null, from > 0 ? W + 170 : -170, { free: true });
+    if (!w) {
+      gapT = 1;
+      return;
+    }
+    w.puppet = true;
+    w.setState('hover');
+    const y = spot(f, w).y;
+    w.y = y;
+    // tougher than Walt, more so on hotter heats (on top of the heat's usual health)
+    w.maxHp = w.hp = Math.max(1, Math.round(w.maxHp * deliveryHp(a.heat())));
+    w.brain.carrying = true;
+    // the tray he carries at his side: a picture of its own, so it can be dropped or handed over
+    const ts = w.type.scale;
+    const img = a.sc.add
+      .image((DEL_TRAY.x - CX) * ts, (DEL_TRAY.y - w.meta.footHeight) * ts, 'p_dw_tray')
+      .setOrigin(DEL_TRAY_ORIGIN.x / DEL_TRAY_BOX.w, DEL_TRAY_ORIGIN.y / DEL_TRAY_BOX.h)
+      .setScale(ts / DEL_TRAY_K);
+    w.root.add(img);
+    // he walks in front of every foot (the Head Waiter too), so his tray and the hand-over read
+    a.overFeetLayer.add(w.root);
+    const path = a.sc.add.graphics();
+    a.fxLayer.add(path);
+    del = { w, img, path, age: 0, d0: Math.max(1, Math.abs(spot(f, w).x - w.x)), baseY: y, seen: false, bare: false };
+    f.guardIncoming = 0;
+  };
+
+  /** The dotted line from the delivery waiter to the Head Waiter, its dots marching towards him. */
+  const drawPath = (f: Foot, a: Arena, d: Delivery) => {
+    const g = d.path;
+    g.clear();
+    const w = d.w;
+    const to = spot(f, w);
+    const y = w.y - w.meta.footHeight * w.scale * 0.5;
+    const x0 = Phaser.Math.Clamp(w.x - to.side * w.meta.halfWidth * w.scale * 0.9, 20, W - 20);
+    const x1 = to.x + to.side * 10;
+    const len = Math.abs(x1 - x0);
+    if (len < 30) return;
+    const dir = Math.sign(x1 - x0);
+    const step = 34;
+    const off = (a.now() * 90) % step;
+    const pulse = 0.65 + 0.35 * Math.sin(a.now() * 8);
+    for (let s = off; s < len - 10; s += step) {
+      const x = x0 + dir * s;
+      g.fillStyle(0x2a1810, 0.7 * pulse).fillCircle(x, y, 7.5);
+      g.fillStyle(0xffd23f, pulse).fillCircle(x, y, 5);
+    }
+    // an arrowhead at the Head Waiter's end
+    const ax = x1;
+    g.fillStyle(0x2a1810, 0.8 * pulse).fillTriangle(ax + dir * 14, y, ax - dir * 6, y - 14, ax - dir * 6, y + 14);
+    g.fillStyle(0xffd23f, pulse).fillTriangle(ax + dir * 9, y, ax - dir * 3, y - 9, ax - dir * 3, y + 9);
+  };
+
+  /** He leaves for the kitchen (served, or turned back): up and off the top, no reward. */
+  const leave = (a: Arena, w: Foot, delay: number) => {
+    w.setState('dying');
+    w.shadow.setVisible(false);
+    a.sc.tweens.add({ targets: w.root, y: -500, duration: 700, delay, ease: 'Back.In', onComplete: () => w.destroy() });
+  };
+
+  /** The delivery turned back (the service round, the fight or the wave over): he takes the tray with him. */
+  const recall = (f: Foot, a: Arena) => {
+    const d = del;
+    if (!d) return;
+    del = null;
+    f.guardIncoming = -1;
+    d.path.destroy();
+    if (d.w.alive) leave(a, d.w, 0);
+  };
+
+  /** He got through: the Head Waiter has his tray back and eats the dish. */
+  const handOver = (f: Foot, a: Arena, d: Delivery) => {
+    del = null;
+    const w = d.w;
+    const m = d.img.getWorldTransformMatrix();
+    // (the salver starts its swing at the size it was carried: his tray against the Head Waiter's shield)
+    const at = { x: m.tx, y: m.ty, k: Phaser.Math.Clamp((DEL_TRAY.rx * w.scale) / (HW_TRAY.r * f.scale), 0.2, 1) };
+    d.img.destroy();
+    d.path.destroy();
+    w.brain.carrying = false;
+    f.guardIncoming = -1;
+    f.guardRestore(at);
+    const heal = Math.round(f.maxHp * trayHeal(a.heat()));
+    f.hp = Math.min(f.maxHp, f.hp + heal);
+    a.fx.puff(at.x, at.y - 30, 10);
+    a.fx.ring(f.x, f.cy, 0x7dff9a, 1.5, 0.5);
+    a.quip(f.x, Math.max(200, f.cy - 190), `MMM! +${heal} HP`, '#7dff9a', 44);
+    a.sc.time.delayedCall(450, () => a.quip(w.x + (w.x < f.x ? -60 : 60), Math.max(190, w.y - w.meta.footHeight * w.scale - 10), 'BON APPÉTIT!', '#ffffff', 28));
+    a.sfx('sfx_gulp', { volume: 0.9 });
+    a.sfx('sfx_heal', { volume: 0.6 });
+    syncHwBar(a, f);
+    leave(a, w, 380);
+    // a moment before he throws the new one
+    t = heat(a).cooldown(3);
+    gapT = deliveryGap(a.heat());
+  };
+
+  /** Smacked down on his way: the tray clatters down onto the table and the dish splats. */
+  const dropped = (f: Foot, a: Arena, d: Delivery) => {
+    del = null;
+    drops++;
+    f.guardIncoming = -1;
+    gapT = deliveryGap(a.heat());
+    d.path.destroy();
+    const m = d.img.getWorldTransformMatrix();
+    const x = m.tx;
+    const y = m.ty;
+    const s = Math.hypot(m.a, m.b);
+    d.img.destroy();
+    const img = a.sc.add.image(x, y, 'p_dw_tray').setOrigin(DEL_TRAY_ORIGIN.x / DEL_TRAY_BOX.w, DEL_TRAY_ORIGIN.y / DEL_TRAY_BOX.h).setScale(s);
+    a.fxLayer.add(img);
+    const p = a.alivePizzas().reduce<Pizza | null>((b, q) => (!b || Math.abs(q.x - x) < Math.abs(b.x - x) ? q : b), null);
+    const ty = p ? p.surfaceY - 24 : 860;
+    const dir = x < W / 2 ? 1 : -1;
+    a.quip(x, Math.max(200, y - 70), 'ORDER DROPPED!', '#7dff9a', 38);
+    a.sfx('sfx_whoosh', { volume: 0.5, rate: 0.8 });
+    a.sc.tweens.add({
+      targets: img,
+      y: ty,
+      x: x + dir * 40,
+      angle: dir * 160,
+      duration: 480,
+      ease: 'Quad.In',
+      onComplete: () => {
+        a.sfx('sfx_trayclatter');
+        a.sfx('sfx_hitsplat', { volume: 0.7 });
+        a.fx.impact(img.x, ty, false);
+        a.shake(90, 0.003);
+        // the dish splats where it landed (only a mess: it hurts nothing)
+        const splat = a.sc.add.image(img.x, ty + 10, 'p_dw_splat').setScale(0.1).setAlpha(0.95);
+        a.fxLayer.add(splat);
+        a.fxLayer.moveDown(splat);
+        a.sc.tweens.add({ targets: splat, scale: 0.55, duration: 160, ease: 'Back.Out' });
+        a.sc.tweens.add({ targets: splat, alpha: 0, delay: 1600, duration: 500, onComplete: () => splat.destroy() });
+        // the tray bounces off and spins away
+        a.sc.tweens.add({ targets: img, x: img.x + dir * 160, y: ty - 120, angle: img.angle + dir * 260, duration: 420, ease: 'Quad.Out' });
+        a.sc.tweens.add({ targets: img, alpha: 0, delay: 240, duration: 260, onComplete: () => img.destroy() });
+      },
+    });
+  };
+
+  const tickDelivery = (f: Foot, dt: number, a: Arena) => {
+    if (!del) {
+      if (!wantsTray(f, a)) return;
+      gapT -= dt;
+      if (gapT <= 0) sendDelivery(f, a);
+      return;
+    }
+    const d = del;
+    const w = d.w;
+    if (!w.alive) {
+      dropped(f, a, d);
+      return;
+    }
+    if (!a.inWave() || serving || f.phase === 2 || !f.guardBroken || !f.alive) {
+      recall(f, a);
+      return;
+    }
+    d.age += dt;
+    // with animation off his still art has the tray painted on: show the body without it (the picture is the tray)
+    if (!d.bare && d.age > 0.05) {
+      d.bare = true;
+      if (!w.liveHost && !w.shiny && !w.elite) {
+        const key = 'dw_body_bare';
+        if (!a.sc.textures.exists(key)) a.sc.textures.addCanvas(key, styledCanvas(w.type, REST, { live: false, noShield: true }));
+        w.setArtTexture(key);
+      }
+    }
+    // into view: his order shouted, and a bell from the kitchen
+    if (!d.seen && w.x > 60 && w.x < W - 60) {
+      d.seen = true;
+      a.quip(w.x, Math.max(190, w.y - w.meta.footHeight * w.scale - 30), rnd(w.type.quips ?? []) ?? 'YOUR ORDER, SIR!', '#ffffff', 34);
+      a.sfx('sfx_headwaiter_service', { volume: 0.45, rate: 1.2 });
+    }
+    // crossing: he walks over (a little bob in his step), pausing while stunned; slows can't touch him
+    const to = spot(f, w);
+    const dx = to.x - w.x;
+    if (w.stunT <= 0) {
+      const step = DELIVERY_SPEED[heat(a).rank] * dt;
+      w.x += Math.abs(dx) <= step ? dx : Math.sign(dx) * step;
+      d.baseY += (to.y - d.baseY) * Math.min(1, dt * 2);
+    }
+    const walk = a.now() * 9;
+    w.y = d.baseY - Math.abs(Math.sin(walk)) * 10;
+    w.root.rotation = Math.sin(walk) * 0.05;
+    f.guardIncoming = Phaser.Math.Clamp(1 - Math.abs(to.x - w.x) / d.d0, 0, 1);
+    drawPath(f, a, d);
+    if (Math.abs(to.x - w.x) < 6 && w.stunT <= 0) handOver(f, a, d);
+  };
+
+  // ——— SERVICE! ———
+
   const startService = (f: Foot, a: Arena) => {
-    endTray(a);
+    tray?.cancel();
+    tray = null;
     endHold();
+    recall(f, a);
     serving = true;
     serveT = 0;
+    // his tray goes back to the kitchen: the service shield is all he hides behind (never both at once)
+    const snap = f.guardAway();
+    if (snap) spinAway(a, snap, f.x < W / 2 ? -1 : 1);
+    f.guardFx?.setBadgeVisible(false);
     shield(a, f, true);
     setSlow(f, true);
     const n = heat(a).adds(1) + (f.phase >= 3 ? 1 : 0);
@@ -372,78 +543,57 @@ const headwaiter = (): Brain => {
         const w = a.spawn(FOOT_BY_ID.waiter ? 'waiter' : 'bob', null, f.x + side * (120 + i * 70));
         if (!w) return;
         waiters.push(w);
-        flourish(w, a);
+        // a moment's bow before they dive
+        w.hoverTime += 1.6;
+        a.sc.time.delayedCall(1200, () => {
+          if (!w.alive) return;
+          a.quip(w.x, Math.max(190, w.y - 40), 'BON APPÉTIT!', '#ffffff', 30);
+          a.sfx('sfx_headwaiter_service', { volume: 0.5 });
+        });
       });
     }
-  };
-
-  /** A waiter spins a tray on his toe for a moment ("your order!") before he dives. */
-  const flourish = (w: Foot, a: Arena) => {
-    w.hoverTime += 1.6;
-    const img = a.sc.add.image(w.x, w.y, 'p_silvertray').setScale(0.3, 0.12);
-    a.fxLayer.add(img);
-    const at = () => ({ x: w.x + w.meta.halfWidth * w.scale * 0.7, y: w.y - 40 });
-    const tick = a.sc.time.addEvent({
-      delay: 16,
-      loop: true,
-      callback: () => {
-        const p = at();
-        img.setPosition(p.x, p.y);
-        // spun on his toe: a tilted disc whose sheen flickers as it turns
-        const c = Math.cos(a.now() * 9);
-        img.scaleX = 0.3 * (0.8 + 0.2 * Math.abs(c));
-        img.setTexture(c >= -0.6 ? 'p_silvertray' : 'p_silvertray_b');
-        if (!w.alive) {
-          tick.remove();
-          img.destroy();
-        }
-      },
-    });
-    a.sc.time.delayedCall(1500, () => {
-      tick.remove();
-      if (!img.active) return;
-      if (w.alive) {
-        a.quip(w.x, w.y - 40, 'BON APPÉTIT!', '#ffffff', 30);
-        a.sfx('sfx_headwaiter_service', { volume: 0.5 });
-      }
-      a.sc.tweens.add({ targets: img, y: img.y - 120, angle: 360, alpha: 0, duration: 450, onComplete: () => img.destroy() });
-    });
   };
 
   return {
     names: ['TRAY TOSS', 'SERVICE!', 'ENRAGED'],
     info: [
-      'Holds a lane and spins a giant tray down at the pizza · smack the tray to send it back at him',
-      'Shielded while his waiters are out · clear the waiters to drop his shield',
-      'Waiters come faster and the trays are back · clear the waiters, bat the trays',
+      'His silver tray blocks smacks · knock it off or wait for his toss, bat the tray back at him, and smack the delivery waiter down before he brings a new one',
+      'No tray: shielded while his waiters are out · knock the waiters’ trays off and clear them to drop his shield',
+      'Waiters, then his tray and the deliveries again · clear the waiters, knock the tray off, bat it back, stop the delivery',
     ],
     cards: [
       {
-        what: 'He holds a lane and spins a silver tray at the pizza',
-        hit: 'Smack the tray to send it spinning back at him',
-        miss: 'The tray clangs down and that pizza loses a slice',
-        show: [{ key: 'p_silvertray', label: 'Silver tray', hits: 1 }],
+        what: 'His silver tray blocks smacks, and he throws it at a pizza',
+        hit: 'Knock the tray off or bat it back at him, and smack the delivery waiter down before he brings a new one',
+        miss: (hid) => `The tray takes a slice, and if a new tray gets through he eats the dish on it: ${healPct(hid)}% of his health back`,
+        show: [
+          { key: 'p_silvertray', label: 'His tray', hits: trayHits },
+          { key: '@foot:deliverywaiter', label: 'Delivery waiter' },
+        ],
       },
       {
-        what: 'He calls his waiters and hides behind a shield',
-        hit: 'Clear every waiter to drop his shield',
+        what: 'He puts his tray aside, calls his waiters and hides behind a shield',
+        hit: 'Clear every waiter to drop his shield: knock each one’s tray off first, then smack him',
         miss: 'His shield stays up while the waiters stomp',
         show: [{ key: '@foot:waiter', label: 'Waiters' }],
       },
       {
-        what: 'More waiters, and the trays are back in between',
-        hit: 'Clear the waiters, then bat each tray back',
-        miss: 'He stays shielded and the trays take slices',
+        what: 'Waiters, then his tray and its deliveries again, faster',
+        hit: 'Clear the waiters (knock their trays off first), then knock his tray off, bat it back and stop each delivery',
+        miss: (hid) => `He stays shielded, the trays take slices, and each delivered dish heals ${healPct(hid)}%`,
         show: [
           { key: '@foot:waiter', label: 'Waiters' },
-          { key: 'p_silvertray', label: 'Silver tray', hits: 1 },
+          { key: 'p_silvertray', label: 'His tray', hits: trayHits },
+          { key: '@foot:deliverywaiter', label: 'Delivery waiter' },
         ],
       },
     ],
     onPhase: (f, ph, a) => {
       if (ph === 2) {
-        endTray(a);
+        tray?.cancel();
+        tray = null;
         endHold();
+        recall(f, a);
         mode = 'service';
         t = 1.2;
       }
@@ -452,18 +602,28 @@ const headwaiter = (): Brain => {
         a.quip(f.x, f.cy - 160, 'MORE STAFF!', '#ff4d3d', 50);
       }
     },
+    upkeep: (f, dt, a) => {
+      if (!ready) {
+        // his tray comes back only by delivery; smacked off, he throws it
+        ready = true;
+        f.guardManual = true;
+        f.guardCatch = (snap) => {
+          gapT = deliveryGap(a.heat());
+          if (serving || f.phase === 2 || !a.inWave()) spinAway(a, snap, f.x < W / 2 ? 1 : -1);
+          else toss(f, a, snap);
+        };
+      }
+      tickDelivery(f, dt, a);
+    },
     update: (f, dt, a) => {
       h?.tick(dt);
-      tickTray(f, dt, a);
       if (!a.inWave()) {
-        endTray(a);
+        tray?.cancel();
+        tray = null;
         endHold();
         return;
       }
-      if (h && h.p.dead) {
-        endTray(a);
-        endHold();
-      }
+      if (h && h.p.dead) endHold();
       if (serving) {
         serveT += dt;
         waiters = waiters.filter((w) => w.alive);
@@ -472,41 +632,52 @@ const headwaiter = (): Brain => {
           serving = false;
           shield(a, f, false);
           setSlow(f, false);
+          f.guardFx?.setBadgeVisible(true);
           a.quip(f.x, f.cy - 150, 'SHORT-STAFFED!', '#7dff9a', 42);
           t = heat(a).cooldown(f.phase >= 3 ? 3 : 6);
           if (f.phase >= 3) {
             mode = 'toss';
             throws = 0;
+            drops = 0;
+            gapT = deliveryGap(a.heat());
           }
         }
         return;
       }
       t -= dt;
       if (f.phase === 2 || (f.phase >= 3 && mode === 'service')) {
-        if (t <= 0 && f.state === 'hover') startService(f, a);
+        if (t <= 0 && f.state === 'hover' && !tray) startService(f, a);
         return;
       }
-      // Tray Toss: hold a lane and throw on a cooldown
+      // TRAY TOSS: hold a lane, and throw the tray from his hand on a cooldown (a new one only comes by delivery)
       if (!h) {
         if (t <= 0 && f.state === 'hover') {
-          h = hold(a, f, rnd(a.alivePizzas()));
-          t = 0.8;
+          h = hold(a, f, rnd(a.alivePizzas()), hwHoldY(f));
+          t = Math.max(t, 0.8);
         }
         return;
       }
-      if (!tray && t <= 0 && h.arrived()) {
-        if (f.phase >= 3 && throws >= 2) {
-          endHold();
-          mode = 'service';
-          t = 0.6;
-          return;
-        }
-        throwTray(f, a);
+      // phase 3: once a tray has been thrown it's the waiters' turn again
+      if (f.phase >= 3 && (throws >= 1 || drops >= 2) && !tray && !del) {
+        endHold();
+        mode = 'service';
+        t = 0.6;
+        return;
+      }
+      if (!tray && f.guardUp && t <= 0 && h.arrived() && !h.p.dead) {
+        const snap = f.guardAway();
+        if (snap) toss(f, a, snap);
       }
     },
     onDeath: (f, a) => {
-      endTray(a);
+      tray?.cancel();
+      tray = null;
       endHold();
+      recall(f, a);
+      // (the delivery waiters' still body without the tray, made for Animated feet off: once they've all gone)
+      a.sc.time.delayedCall(1500, () => {
+        if (a.sc.textures.exists('dw_body_bare') && !a.allFeet().some((o) => o.type.id === 'deliverywaiter' && o.state !== 'gone')) a.sc.textures.remove('dw_body_bare');
+      });
       if (slowed) setSlow(f, false);
     },
   };
