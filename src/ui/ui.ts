@@ -790,7 +790,7 @@ class UI {
       ['Toppings now cost tips', 'Buy as many as you can afford between waves.'],
       ['Bosses fight in phases', 'Each one changes up at 66% and 33% health.'],
       ['Mini-bosses and wave events', 'Flyers and chests worth smacking.'],
-      ['Pizzas go stale', 'Reheat them, or swap in fresh ones.'],
+      ['Pizzas go stale', 'Reheat them before they run out, or lose them.'],
       [`A ${JOURNEY_WAVES}-wave journey`, `${ACT_COUNT} acts, ${STAGES.length * 2} bosses, an ending, then endless.`],
       ['Controller support', 'Plug in and play, menus included.'],
       ['Saves mid-run', 'Close the tab and continue from the shop.'],

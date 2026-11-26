@@ -286,7 +286,7 @@ export const ENHANCED_PERK: Record<PizzaPerk, string | (() => string)> = {
   refund: 'Refunds 75% of its price when swapped',
   preserve: 'Neighbours go stale a quarter as fast',
   neverStale: 'Never stale; bosses +2 freshness to all',
-  staleHeal: 'When stale, heals all pizzas 3 slices',
+  staleHeal: 'When it goes stale, heals every other pizza 3 slices',
   riseOnce: 'Rises once with 5 slices when destroyed',
   bossRegrow: '8 slices, all regrow after every boss',
   stunVuln: 'Stunned feet nearby take +75% damage',
