@@ -13,7 +13,8 @@
 
 import type Phaser from 'phaser';
 import { BACKDROPS, type LocationId } from '../art/backdrops';
-import { drawPeelSkin, handleFrom, headFrom, PEEL_H, PEEL_W, type PeelLook, type PeelPattern, type PeelShape } from '../art/peelArt';
+import { drawPeelSkin, handleFrom, headFrom, PEEL_H, PEEL_W, type CraftKind, type PeelLook, type PeelPattern, type PeelShape } from '../art/peelArt';
+import { paintCraftHead } from '../art/peelCraftArt';
 import { hashStr, makeCanvas, mix, shade } from '../art/util';
 import { FOOT_FRAME, styledCanvas } from '../art/feetArt';
 import { REST, pose } from '../art/style/kit';
@@ -384,6 +385,15 @@ const EVENT_LOOK: Record<EventId, Plain> = {
   charybdis: { shape: 'round', base: '#1f5a7a', pattern: 'waves', pc: '#8fe8ff' },
 };
 
+/** Crafted peels: painted as their material, and alive as it (src/art/peelCraftArt.ts, src/art/peelCraft.ts). */
+export const CRAFT: Record<string, CraftKind> = { classic: 'wood', marble: 'marble', copper: 'copper', neon: 'neon', obsidian: 'obsidian' };
+
+/** A look painted as its material, if it has one (its `custom` paints it, so a mastered peel's foil and studs come
+ *  along). */
+function crafted(l: PeelLook): PeelLook {
+  return l.craft ? { ...l, custom: (ctx) => paintCraftHead(ctx, l) } : l;
+}
+
 /** Golden Crust peels (not shiny). */
 const GOLDEN: [string, string, number, Plain][] = [
   ['marble', 'Marble Slab', 400, { shape: 'square', base: '#efe9e2', pattern: 'marble', pc: '#7a7a8a', handle: '#c7ccd4' }],
@@ -468,9 +478,9 @@ function buildDefs(): PeelDef[] {
     name: 'Classic Peel',
     group: 'classic',
     how: 'The one you started with.',
-    look: plain('classic', { shape: 'round', base: '#d9a066', pattern: 'grain', pc: '#7a4a22', trail: '#f6cf94' }),
+    look: () => crafted({ ...plain('classic', { shape: 'round', base: '#d9a066', pattern: 'grain', pc: '#7a4a22', trail: '#f6cf94' })(), craft: CRAFT.classic }),
   });
-  for (const [id, name, cost, p] of GOLDEN) defs.push({ id, name, group: 'golden', how: `Buy for ${cost.toLocaleString()} Golden Crusts.`, cost, look: plain(id, p) });
+  for (const [id, name, cost, p] of GOLDEN) defs.push({ id, name, group: 'golden', how: `Buy for ${cost.toLocaleString()} Golden Crusts.`, cost, look: () => crafted({ ...plain(id, p)(), craft: CRAFT[id] }) });
   for (const [id, name, cost, p] of JEWELS) defs.push({ id, name, group: 'jewel', how: `Buy for ${cost.toLocaleString()} Golden Crusts.`, cost, shiny: true, look: plain(id, p, true) });
   const feet = FEET.filter((f) => !f.boss && !f.mini);
   for (const f of feet) {
@@ -561,7 +571,7 @@ function buildDefs(): PeelDef[] {
       how: `Reach wave ${MASTER_WAVE} with ${base.name} equipped.`,
       progress: () => [Math.min(MASTER_WAVE, save.peelBest[base.id] ?? 0), MASTER_WAVE],
       shiny: true,
-      look: () => ({ ...baseLook(), shiny: true, studs: '#ffd23f', seed: `master:${base.id}` }),
+      look: () => crafted({ ...baseLook(), shiny: true, studs: '#ffd23f', seed: `master:${base.id}` }),
     });
   }
   for (const pz of PIZZAS) {

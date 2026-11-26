@@ -62,7 +62,13 @@ export interface PeelLook {
   seed: string;
   /** Hand-drawn heads (hero peels, src/art/heroHeads.ts): drawn over the handle instead of the parts above. */
   custom?: (ctx: Ctx) => void;
+  /** Crafted peels (the Classic and the Golden Crust set, src/art/peelCraftArt.ts): the head is painted as this
+   * material (and comes alive as it: src/art/peelCraft.ts). Its `custom` paints it. */
+  craft?: CraftKind;
 }
+
+/** The materials a crafted peel is made of. */
+export type CraftKind = 'wood' | 'marble' | 'copper' | 'neon' | 'obsidian';
 
 export const PEEL_W = 220;
 export const PEEL_H = 360;

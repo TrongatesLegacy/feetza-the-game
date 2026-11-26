@@ -7,7 +7,8 @@
 // Which peels get which look (lookOf): Zeus's lightning sword is hand-made here; the always-aflame peels burn in
 // their own style (FIRE_PEELS in lookFire.ts); the jewellery box, masterworks, ultra-rares, gods, the God Peel and
 // the heroes get their family's glow and trail (lookGlow.ts). Only the equipped (or worn) look runs in play.
-// A redrawn foot's peel also comes alive (src/art/peelLive.ts), in the same two places.
+// A redrawn foot's peel also comes alive (src/art/peelLive.ts), and so do the crafted peels, the Classic and the
+// Golden Crust set (src/art/peelCraft.ts), in the same two places.
 // All of it runs only with animated peels on (Settings → Graphics): off, looks are painted once (a still) and
 // nothing runs per frame.
 
@@ -19,10 +20,12 @@ import { FIRE_PEELS, fireCore } from './lookFire';
 import { glowCore, godPeelStyle, godStyle, heroStyle, jewelStyle, masterStyle, ultraStyle, type GlowStyle } from './lookGlow';
 import { PEEL_BY_ID, peelCanvas } from '../game/peels';
 import { playPeelLive } from '../game/peelLivePlay';
+import { playPeelCraft } from '../game/peelCraftPlay';
 import { peelsAnimated } from '../systems/graphics';
 import { save } from '../systems/save';
 import { PEEL_H, PEEL_W } from './peelArt';
 import { PeelLive, drawPeelLive, hasPeelLive, requestRig } from './peelLive';
+import { CraftLive, drawCraftLive, hasPeelCraft, requestCraftRig } from './peelCraft';
 import { makeCanvas } from './util';
 
 export type { LookFx, LookHost } from './lookKit';
@@ -713,9 +716,10 @@ function lookOf(id: string): AnimatedLook | null {
   return out;
 }
 
-/** Does this peel animate: a look of its own, or a living foot (src/art/peelLive.ts)? */
+/** Does this peel animate: a look of its own, a living foot (src/art/peelLive.ts) or a crafted peel
+ *  (src/art/peelCraft.ts)? */
 export function hasAnimatedLook(id: string): boolean {
-  return !!lookOf(id) || hasPeelLive(id);
+  return !!lookOf(id) || hasPeelLive(id) || hasPeelCraft(id);
 }
 
 /** The dev look lab: a painter for this peel's look moving along a path. */
@@ -736,12 +740,12 @@ function both(a: LookFx | null, b: LookFx | null): LookFx | null {
   };
 }
 
-/** Start a peel's animation on the cursor peel: its look and, for a redrawn foot's peel, the foot coming alive
- *  (null when it has neither). With animated peels off (Settings → Graphics) a look shows as a still instead,
- *  baked into the peel's texture, and nothing runs per frame. */
+/** Start a peel's animation on the cursor peel: its look and, for a redrawn foot's peel or a crafted one, the peel
+ *  coming alive (null when it has none of them). With animated peels off (Settings → Graphics) a look shows as a
+ *  still instead, baked into the peel's texture, and nothing runs per frame. */
 export function playLook(id: string, host: LookHost): LookFx | null {
   if (!peelsAnimated()) return stillLookFx(id, host);
-  return both(playPeelLive(id, host), lookOf(id)?.play(host) ?? null);
+  return both(both(playPeelLive(id, host), playPeelCraft(id, host)), lookOf(id)?.play(host) ?? null);
 }
 
 // ——— stills: a look painted once, for when animated peels are off ———
@@ -836,8 +840,8 @@ interface Overlay {
   boost: { w: number };
   /** The look's painter (none on a tile whose look only plays on the big preview). */
   paint: Painter | null;
-  /** A living foot: wanted, asked for, and running once its rig is built. */
-  foot: { live: PeelLive | null; asked: boolean } | null;
+  /** A living peel (a redrawn foot, a crafted peel): wanted, asked for, and running once its rig is built. */
+  foot: { live: Living | null; asked: boolean } | null;
   /** The <img> is hidden while the living foot is drawn in its place. */
   hid: boolean;
   /** Painted once (animated peels off): the still look. */
@@ -847,6 +851,16 @@ interface Overlay {
   /** On screen (tiles scrolled out of view skip their frames). */
   seen: boolean;
 }
+/** A living peel drawn in place of its image: a redrawn foot or a crafted peel. */
+interface Living {
+  update(dt: number): void;
+  /** On a canvas whose transform is the peel's frame (0, 0 at its top left). */
+  draw(ctx: CanvasRenderingContext2D): void;
+  smack(): void;
+}
+const footLiving = (l: PeelLive): Living => ({ update: (dt) => l.update(dt), draw: (ctx) => drawPeelLive(ctx, l), smack: () => l.smack() });
+const craftLiving = (l: CraftLive): Living => ({ update: (dt) => l.update(dt), draw: (ctx) => drawCraftLive(ctx, l), smack: () => l.smack() });
+
 const overlays = new Set<Overlay>();
 let raf = 0;
 let lastT = 0;
@@ -948,23 +962,37 @@ function frame(now: number): void {
     if (f && !f.asked) {
       f.asked = true;
       const big = !o.img.closest('.peel-tile');
-      requestRig(
-        o.id,
-        (rig) => {
-          if (!overlays.has(o)) return;
-          if (rig) f.live = new PeelLive(rig);
-          else o.foot = null;
-        },
-        // scrolled away before it was built: asked again when it's back in view
-        () => {
-          const want = overlays.has(o) && o.img.isConnected && o.seen;
-          if (!want) f.asked = false;
-          return want;
-        },
-        big,
-        // the big preview is drawn larger: its rig at twice the detail
-        big ? 2 : 1,
-      );
+      // scrolled away before it was built: asked again when it's back in view
+      const wanted = () => {
+        const want = overlays.has(o) && o.img.isConnected && o.seen;
+        if (!want) f.asked = false;
+        return want;
+      };
+      // (the big preview is drawn larger: its rig at twice the detail)
+      if (hasPeelCraft(o.id))
+        requestCraftRig(
+          o.id,
+          (rig) => {
+            if (!overlays.has(o)) return;
+            if (rig) f.live = craftLiving(new CraftLive(rig));
+            else o.foot = null;
+          },
+          wanted,
+          big,
+          big ? 2 : 1,
+        );
+      else
+        requestRig(
+          o.id,
+          (rig) => {
+            if (!overlays.has(o)) return;
+            if (rig) f.live = footLiving(new PeelLive(rig));
+            else o.foot = null;
+          },
+          wanted,
+          big,
+          big ? 2 : 1,
+        );
     }
     if (!o.paint && !o.foot) continue;
     // (on screen with something to show, or a living foot about to be: the frames go on)
@@ -975,7 +1003,7 @@ function frame(now: number): void {
       f.live.update(dt);
       o.ctx.save();
       o.ctx.translate(-OX, -OY);
-      drawPeelLive(o.ctx, f.live);
+      f.live.draw(o.ctx);
       o.ctx.restore();
       if (!o.hid) {
         o.hid = true;
@@ -1013,10 +1041,10 @@ const overlayCanvas = (z: string) => {
   return c;
 };
 
-/** Animate a peel over its <img> (in the Peel Locker): its look, and a redrawn foot's peel coming alive. Does
- *  nothing for peels with neither; on the grid's tiles only the showpiece looks play (the rest play on the big
- *  preview), while living feet move on their tiles too. With animated peels off (Settings → Graphics) a look is
- *  painted once instead, and living feet keep their still image. The overlay removes itself when the image leaves
+/** Animate a peel over its <img> (in the Peel Locker): its look, and a redrawn foot's or crafted peel coming alive.
+ *  Does nothing for peels with none of them; on the grid's tiles only the showpiece looks play (the rest play on the
+ *  big preview), while living peels move on their tiles too. With animated peels off (Settings → Graphics) a look is
+ *  painted once instead, and living peels keep their still image. The overlay removes itself when the image leaves
  *  the page; stopLookOverlays() clears them all at once. */
 export function animateLookImg(img: HTMLImageElement, id: string): void {
   const parent = img.parentElement;
@@ -1027,7 +1055,7 @@ export function animateLookImg(img: HTMLImageElement, id: string): void {
   const look = lookOf(id);
   const isTile = !!img.closest('.peel-tile');
   const lookHere = !!look && (!isTile || look.tile);
-  const footHere = anim && hasPeelLive(id);
+  const footHere = anim && (hasPeelLive(id) || hasPeelCraft(id));
   const still = !anim && lookHere ? stillLook(id) : null;
   if (!footHere && !(anim && lookHere) && !still) return;
   if (getComputedStyle(parent).position === 'static') parent.style.position = 'relative';
@@ -1072,6 +1100,11 @@ export function animateLookImg(img: HTMLImageElement, id: string): void {
   }
   seen?.observe(img);
   wake();
+}
+
+/** A smack on a locker image's living peel (the locker's ▶ plays its smack: the peel answers it as in play). */
+export function smackLookImg(img: HTMLImageElement): void {
+  for (const o of overlays) if (o.img === img) o.foot?.live?.smack();
 }
 
 /** Stop every locker overlay (the locker closed). */

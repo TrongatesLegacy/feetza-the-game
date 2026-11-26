@@ -1,0 +1,1329 @@
+// Living crafted peels: the Classic Peel and the Golden Crust set (and their mastered versions) come alive as the
+// material they are made of (src/art/peelCraftArt.ts paints them):
+// - wood (the Classic): now and then a sheen runs over the varnish and the grain catches it; flour sifts off its
+//   edge (when it taps the counter in the locker, when it's swung in play); a smack flattens the head, which springs
+//   back with a wobble and throws up a cloud of flour.
+// - marble: the window's reflection drifts on the polish, a glint runs along a vein, mica twinkles; a smack barely
+//   moves it (a heavy thud and a shake), light floods out along the veins, chips and stone dust fly.
+// - copper: the spun metal's radial highlight swings as the light moves, temper colours breathe in the middle (it's
+//   fresh from the oven), a glint pops on the rim; a smack rings it like a gong (ripples run out across the face, it
+//   hums, sparks fly).
+// - neon: data pulses run out along the cyan traces and light the pads they reach, the tubes hum and the pink one
+//   stutters now and then; a smack surges every tube white, browns them out and sparks fly from the pads.
+// - obsidian: light moves slowly through its violet flow bands (the glass's inner fire), and now and then their
+//   sheen flashes across it as the light catches them; a smack lights a fracture through the glass from where it landed, and dark shards fly off.
+//
+// It is built as the living foot peels are (src/art/peelLive.ts): the rig (CraftRig: the head's layers, cut to the
+// head's box, and the handle) is built a step at a time in idle time and shared; the motion (CraftLive) is one per
+// place it shows. Each frame the head's surface is repainted on a small canvas (its layers and what moves on them,
+// kept inside the head), then drawn flexed about where the head meets the handle; what flies off it is a pool of
+// painted, lit sprites (flour, chips, sparks, shards) in the peel's world. In the locker that's all one 2D canvas;
+// in play (src/game/peelCraftPlay.ts) the surface is a texture stamped flexed into the cursor peel's own texture
+// and the sprites live in the play field. Everything cosmetic uses crand(). Only runs while animated peels are on.
+
+import { PEEL_HEAD, PEEL_H, PEEL_W, drawPeelHandle, headPath, sparkleStar, type CraftKind, type PeelLook } from './peelArt';
+import {
+  PIVOT,
+  SB,
+  craftHandle,
+  craftOver,
+  craftReflect,
+  craftUnder,
+  hasReflect,
+  marbleGeo,
+  marbleVeinsLit,
+  neonGeo,
+  neonTracesLit,
+  neonTubeLit,
+  obsidianFlowLit,
+  obsidianGeo,
+  obsidianSheen,
+  woodGrainLit,
+  type Pt,
+} from './peelCraftArt';
+import { ellipse, makeCanvas, rgba, rng, type Ctx } from './util';
+import { CRAFT, PEEL_BY_ID } from '../game/peels';
+import { noise1 } from '../game/liveKit';
+import { crand } from '../systems/cosmeticRandom';
+import { save } from '../systems/save';
+import { PEEL_FRAME_WORLD, type PeelWorld } from './peelLive';
+
+const { x: HX, y: HY, r: R } = PEEL_HEAD;
+
+/** A crafted peel's material (its mastered version's too), or null. */
+export function craftOf(peelId: string): CraftKind | null {
+  if (!PEEL_BY_ID[peelId]) return null;
+  return CRAFT[peelId] ?? (peelId.startsWith('master:') ? CRAFT[peelId.slice(7)] ?? null : null);
+}
+
+export const hasPeelCraft = (peelId: string): boolean => !!craftOf(peelId);
+
+// ════════════════════════════ the rig ════════════════════════════
+
+export interface CraftRig {
+  id: string;
+  kind: CraftKind;
+  look: PeelLook;
+  /** Canvas pixels per peel unit. */
+  RR: number;
+  /** The handle and its touches, on a whole peel-sized canvas. */
+  handle: HTMLCanvasElement;
+  /** The head's layers, each cut to SB: the material (neon's tubes dark), the rims and outline over it, the head's
+   *  inside (a mask), the reflection at rest, and the material's lit layers (grain, veins, tubes, flow, sheen). */
+  under: HTMLCanvasElement;
+  over: HTMLCanvasElement;
+  inner: HTMLCanvasElement;
+  reflect: HTMLCanvasElement | null;
+  lit: HTMLCanvasElement | null;
+  lit2: HTMLCanvasElement | null;
+  key: string;
+}
+
+function boxLayer(RR: number, draw: (ctx: Ctx) => void): HTMLCanvasElement {
+  const [c, ctx] = makeCanvas(SB.w * RR, SB.h * RR);
+  ctx.setTransform(RR, 0, 0, RR, -SB.x * RR, -SB.y * RR);
+  draw(ctx);
+  return c;
+}
+
+function* rigSteps(peelId: string, kind: CraftKind, RR: number): Generator<void, CraftRig | null> {
+  const look = PEEL_BY_ID[peelId].look();
+  if (!look.craft) return null;
+  const [handle, hctx] = makeCanvas(PEEL_W * RR, PEEL_H * RR);
+  hctx.scale(RR, RR);
+  drawPeelHandle(hctx, look);
+  craftHandle(hctx, look);
+  yield;
+  const under = boxLayer(RR, (ctx) => {
+    headPath(ctx, look.shape);
+    ctx.clip();
+    craftUnder(ctx, look, false);
+  });
+  yield;
+  const over = boxLayer(RR, (ctx) => craftOver(ctx, look));
+  const inner = boxLayer(RR, (ctx) => {
+    headPath(ctx, look.shape);
+    ctx.fillStyle = '#000';
+    ctx.fill();
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.lineWidth = 6.4;
+    ctx.stroke();
+  });
+  yield;
+  const reflect = hasReflect(kind) ? boxLayer(RR, (ctx) => craftReflect(ctx, kind)) : null;
+  let lit: HTMLCanvasElement | null = null;
+  let lit2: HTMLCanvasElement | null = null;
+  if (kind === 'wood') lit = boxLayer(RR, woodGrainLit);
+  if (kind === 'marble') lit = boxLayer(RR, marbleVeinsLit);
+  if (kind === 'neon') {
+    lit = boxLayer(RR, (ctx) => neonTracesLit(ctx, look));
+    lit2 = boxLayer(RR, (ctx) => neonTubeLit(ctx, look));
+  }
+  if (kind === 'obsidian') {
+    lit = boxLayer(RR, obsidianFlowLit);
+    lit2 = boxLayer(RR, obsidianSheen);
+  }
+  return { id: peelId, kind, look, RR, handle, under, over, inner, reflect, lit, lit2, key: `pc_${peelId.replace(/[^a-z0-9]/gi, '_')}_${RR}` };
+}
+
+// ——— building in idle time, shared ———
+
+const rigs = new Map<string, CraftRig | null>();
+const RIG_CAP = 24;
+interface Job {
+  key: string;
+  gen: Generator<void, CraftRig | null>;
+  waiters: { done: (r: CraftRig | null) => void; wanted: () => boolean }[];
+}
+const jobs: Job[] = [];
+let pumping = false;
+const idle = (fn: (d?: IdleDeadline) => void) => {
+  if (typeof requestIdleCallback === 'function') requestIdleCallback(fn, { timeout: 120 });
+  else setTimeout(() => fn(), 16);
+};
+
+function keep(key: string, rig: CraftRig | null): void {
+  rigs.delete(key);
+  rigs.set(key, rig);
+  while (rigs.size > RIG_CAP) rigs.delete(rigs.keys().next().value!);
+}
+
+function pump(d?: IdleDeadline): void {
+  try {
+    const t0 = performance.now();
+    const budget = () => (d && !d.didTimeout ? d.timeRemaining() > 4 : performance.now() - t0 < 10);
+    while (jobs.length && budget()) {
+      const job = jobs[0];
+      job.waiters = job.waiters.filter((w) => w.wanted());
+      if (!job.waiters.length) {
+        jobs.shift();
+        continue;
+      }
+      let r: IteratorResult<void, CraftRig | null>;
+      try {
+        r = job.gen.next();
+      } catch (e) {
+        if (import.meta.env?.DEV) console.error('[peelCraft] building', job.key, e);
+        r = { done: true, value: null };
+      }
+      if (r.done) {
+        jobs.shift();
+        keep(job.key, r.value);
+        for (const w of job.waiters) w.done(r.value);
+      }
+    }
+  } finally {
+    if (jobs.length) idle(pump);
+    else pumping = false;
+  }
+}
+
+/** A crafted peel's rig, built in idle time (null when it isn't one). As requestRig in src/art/peelLive.ts. */
+export function requestCraftRig(peelId: string, done: (r: CraftRig | null) => void, wanted: () => boolean = () => true, urgent = false, RR = 1): void {
+  const key = `${peelId}@${RR}`;
+  if (rigs.has(key)) {
+    const r = rigs.get(key)!;
+    keep(key, r);
+    done(r);
+    return;
+  }
+  const kind = craftOf(peelId);
+  if (!kind) return done(null);
+  let job = jobs.find((j) => j.key === key);
+  if (!job) {
+    job = { key, gen: rigSteps(peelId, kind, RR), waiters: [] };
+    if (urgent) jobs.unshift(job);
+    else jobs.push(job);
+  } else if (urgent && jobs[0] !== job) {
+    jobs.splice(jobs.indexOf(job), 1);
+    jobs.unshift(job);
+  }
+  job.waiters.push({ done, wanted });
+  if (!pumping) {
+    pumping = true;
+    idle(pump);
+  }
+}
+
+/** Build a rig now (dev tools). */
+export function craftRigNow(peelId: string, RR = 1): CraftRig | null {
+  const key = `${peelId}@${RR}`;
+  if (rigs.has(key)) return rigs.get(key)!;
+  const kind = craftOf(peelId);
+  if (!kind) return null;
+  const gen = rigSteps(peelId, kind, RR);
+  for (;;) {
+    const r = gen.next();
+    if (r.done) {
+      keep(key, r.value);
+      return r.value;
+    }
+  }
+}
+
+// ════════════════════════════ sprites: what flies off ════════════════════════════
+
+export const enum Spr {
+  Flour,
+  Speck,
+  Dust,
+  Chip,
+  Shard,
+  SparkC,
+  SparkN,
+  Glint,
+  RingC,
+  RingO,
+  Mote,
+}
+interface SprDef {
+  /** Frame size (px) and how many; `anim`: the frames play through its life (else one is picked per particle). */
+  w: number;
+  h: number;
+  n: number;
+  anim: boolean;
+  /** Drawn along its motion, stretched with speed. */
+  streak?: boolean;
+  draw: (ctx: Ctx, i: number) => void;
+}
+
+/** A cloud puff, painted lobe by lobe and lit from the top left; frame i of 8 spreads and thins out. */
+function puff(hi: string, mid: string, lo: string) {
+  return (ctx: Ctx, i: number) => {
+    const p = i / 7;
+    const r = rng(77);
+    const A = 1 - 0.62 * p;
+    const lobes: [number, number, number][] = [];
+    // an uneven billow: lobes of different sizes round a loose middle, spreading and thinning
+    for (let k = 0; k < 9; k++) {
+      const a = (k / 9) * Math.PI * 2 + r() * 0.7;
+      const d = (7 + 11 * p) * (0.55 + r() * 0.7);
+      lobes.push([32 + Math.cos(a) * d, 32 + Math.sin(a) * d * 0.8, (5 + 5 * p) * (0.6 + r() * 0.8)]);
+    }
+    lobes.push([31, 33, 9 + 4 * p]);
+    for (let k = 0; k < 5; k++) {
+      const a = r() * Math.PI * 2;
+      const d = 16 + 12 * p + r() * 4;
+      lobes.push([32 + Math.cos(a) * d, 32 + Math.sin(a) * d * 0.85, (2 + 3 * p) * (0.6 + r() * 0.8)]);
+    }
+    // the shaded underside, the body, then the lit tops
+    for (const [x, y, rr] of lobes) {
+      const g = ctx.createRadialGradient(x + rr * 0.2, y + rr * 0.25, 0, x + rr * 0.1, y + rr * 0.12, rr);
+      g.addColorStop(0, rgba(lo, A * 0.9));
+      g.addColorStop(0.65, rgba(lo, A * 0.55));
+      g.addColorStop(1, rgba(lo, 0));
+      ctx.fillStyle = g;
+      ctx.fillRect(x - rr, y - rr, rr * 2.2, rr * 2.2);
+    }
+    for (const [x, y, rr] of lobes) {
+      const g = ctx.createRadialGradient(x - rr * 0.1, y - rr * 0.12, 0, x, y, rr * 0.92);
+      g.addColorStop(0, rgba(mid, A));
+      g.addColorStop(0.7, rgba(mid, A * 0.75));
+      g.addColorStop(1, rgba(mid, 0));
+      ctx.fillStyle = g;
+      ctx.fillRect(x - rr, y - rr, rr * 2, rr * 2);
+    }
+    for (const [x, y, rr] of lobes) {
+      const hx = x - rr * 0.3;
+      const hy = y - rr * 0.34;
+      const g = ctx.createRadialGradient(hx, hy, 0, hx, hy, rr * 0.75);
+      g.addColorStop(0, rgba(hi, A * 0.85));
+      g.addColorStop(0.6, rgba(hi, A * 0.35));
+      g.addColorStop(1, rgba(hi, 0));
+      ctx.fillStyle = g;
+      ctx.fillRect(hx - rr, hy - rr, rr * 2, rr * 2);
+    }
+  };
+}
+
+function polyPts(ctx: Ctx, pts: Pt[]): void {
+  ctx.beginPath();
+  pts.forEach(([x, y], k) => (k ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+  ctx.closePath();
+}
+
+function spark(edge: string, body: string, hot: string) {
+  return (ctx: Ctx) => {
+    const g = ctx.createLinearGradient(0, 0, 48, 0);
+    g.addColorStop(0, rgba(edge, 0));
+    g.addColorStop(0.7, rgba(edge, 0.55));
+    g.addColorStop(1, rgba(edge, 0.7));
+    ctx.strokeStyle = g;
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(4, 6);
+    ctx.lineTo(44, 6);
+    ctx.stroke();
+    const b = ctx.createLinearGradient(0, 0, 48, 0);
+    b.addColorStop(0, rgba(body, 0));
+    b.addColorStop(0.6, rgba(body, 0.9));
+    b.addColorStop(1, hot);
+    ctx.strokeStyle = b;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(8, 6);
+    ctx.lineTo(44, 6);
+    ctx.stroke();
+  };
+}
+
+function ring(col: string) {
+  return (ctx: Ctx) => {
+    const g = ctx.createRadialGradient(48, 48, 26, 48, 48, 47);
+    g.addColorStop(0, rgba(col, 0));
+    g.addColorStop(0.55, rgba(col, 0.85));
+    g.addColorStop(0.7, rgba('#ffffff', 0.9));
+    g.addColorStop(0.85, rgba(col, 0.5));
+    g.addColorStop(1, rgba(col, 0));
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 96, 96);
+  };
+}
+
+const SPR: Record<Spr, SprDef> = {
+  [Spr.Flour]: { w: 64, h: 64, n: 8, anim: true, draw: puff('#ffffff', '#f2eadc', '#c9b89c') },
+  [Spr.Speck]: {
+    w: 12,
+    h: 12,
+    n: 3,
+    anim: false,
+    draw: (ctx, i) => {
+      const rr = 2 + i * 0.6;
+      ellipse(ctx, 6.6, 6.9, rr, rr);
+      ctx.fillStyle = 'rgba(150,128,100,0.55)';
+      ctx.fill();
+      ellipse(ctx, 6, 6, rr, rr);
+      ctx.fillStyle = i === 2 ? '#f4dca0' : '#fffaf0';
+      ctx.fill();
+      ellipse(ctx, 5.3, 5.2, rr * 0.4, rr * 0.4);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+    },
+  },
+  [Spr.Dust]: { w: 64, h: 64, n: 8, anim: true, draw: puff('#f4f0ea', '#cfc6bc', '#8a8078') },
+  [Spr.Chip]: {
+    w: 20,
+    h: 20,
+    n: 3,
+    anim: false,
+    draw: (ctx, i) => {
+      const r = rng(31 + i);
+      const pts: Pt[] = [];
+      const n = 5 + i;
+      for (let k = 0; k < n; k++) {
+        const a = (k / n) * Math.PI * 2 + r() * 0.5;
+        const d = 4.5 + r() * 3.5;
+        pts.push([10 + Math.cos(a) * d, 10 + Math.sin(a) * d]);
+      }
+      polyPts(ctx, pts);
+      const g = ctx.createLinearGradient(4, 4, 16, 16);
+      g.addColorStop(0, '#ffffff');
+      g.addColorStop(0.6, '#e6e0d8');
+      g.addColorStop(1, '#a8a0a8');
+      ctx.fillStyle = g;
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(80,74,92,0.85)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(6, 9 + i);
+      ctx.lineTo(14, 11 - i);
+      ctx.strokeStyle = 'rgba(110,110,130,0.6)';
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+    },
+  },
+  [Spr.Shard]: {
+    w: 24,
+    h: 24,
+    n: 3,
+    anim: false,
+    draw: (ctx, i) => {
+      const r = rng(53 + i);
+      const pts: Pt[] = [[12 + (r() - 0.5) * 4, 2], [19 + r() * 3, 13 + r() * 4], [12, 22], [5 - r() * 2, 12 + r() * 3]];
+      polyPts(ctx, pts);
+      const g = ctx.createLinearGradient(5, 2, 19, 22);
+      g.addColorStop(0, '#6a5a8a');
+      g.addColorStop(0.4, '#221c2e');
+      g.addColorStop(1, '#08060c');
+      ctx.fillStyle = g;
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(20,10,30,0.95)';
+      ctx.lineWidth = 1.4;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(pts[0][0], pts[0][1] + 1);
+      ctx.lineTo(pts[3][0] + 1, pts[3][1]);
+      ctx.strokeStyle = 'rgba(230,215,255,0.95)';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+    },
+  },
+  [Spr.SparkC]: { w: 48, h: 12, n: 1, anim: false, streak: true, draw: spark('#7a2a08', '#ff9a3a', '#fff4c8') },
+  [Spr.SparkN]: { w: 48, h: 12, n: 1, anim: false, streak: true, draw: spark('#0a4a5a', '#3ae8ff', '#f0ffff') },
+  [Spr.Glint]: {
+    w: 32,
+    h: 32,
+    n: 1,
+    anim: false,
+    draw: (ctx) => {
+      const g = ctx.createRadialGradient(16, 16, 0, 16, 16, 15);
+      g.addColorStop(0, 'rgba(255,255,255,0.7)');
+      g.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, 32, 32);
+      sparkleStar(ctx, 16, 16, 13);
+      ctx.strokeStyle = 'rgba(110,90,70,0.45)';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+    },
+  },
+  [Spr.RingC]: { w: 96, h: 96, n: 1, anim: false, draw: ring('#3ae8ff') },
+  [Spr.RingO]: { w: 96, h: 96, n: 1, anim: false, draw: ring('#ffb070') },
+  [Spr.Mote]: {
+    w: 24,
+    h: 24,
+    n: 1,
+    anim: false,
+    draw: (ctx) => {
+      const g = ctx.createRadialGradient(12, 12, 0, 12, 12, 11);
+      g.addColorStop(0, 'rgba(255,255,255,1)');
+      g.addColorStop(0.25, 'rgba(214,170,255,0.95)');
+      g.addColorStop(0.6, 'rgba(140,80,230,0.4)');
+      g.addColorStop(1, 'rgba(110,60,200,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, 24, 24);
+    },
+  },
+};
+
+let sprites: HTMLCanvasElement[][] | null = null;
+/** Every sprite's frames, painted once. */
+export function craftSprites(): HTMLCanvasElement[][] {
+  if (!sprites)
+    sprites = (Object.keys(SPR) as unknown as Spr[]).map((k) => {
+      const d = SPR[k];
+      return Array.from({ length: d.n }, (_, i) => {
+        const [c, ctx] = makeCanvas(d.w, d.h);
+        d.draw(ctx, i);
+        return c;
+      });
+    });
+  return sprites;
+}
+export const sprDef = (s: Spr): { w: number; h: number; n: number; anim: boolean; streak?: boolean } => SPR[s];
+export const SPR_COUNT = Object.keys(SPR).length;
+
+/** A pool of what flies off, in world space (the peel's frame in the locker, the play field in a run). */
+export class CraftBits {
+  readonly n = 64;
+  x = new Float32Array(this.n);
+  y = new Float32Array(this.n);
+  vx = new Float32Array(this.n);
+  vy = new Float32Array(this.n);
+  grav = new Float32Array(this.n);
+  drag = new Float32Array(this.n);
+  rot = new Float32Array(this.n);
+  spin = new Float32Array(this.n);
+  s0 = new Float32Array(this.n);
+  s1 = new Float32Array(this.n);
+  age = new Float32Array(this.n).fill(9);
+  life = new Float32Array(this.n).fill(1);
+  a = new Float32Array(this.n);
+  fin = new Float32Array(this.n);
+  spr = new Uint8Array(this.n);
+  frame = new Uint8Array(this.n);
+  next = 0;
+
+  tick(dt: number): void {
+    for (let i = 0; i < this.n; i++) {
+      if (this.age[i] >= this.life[i]) continue;
+      this.age[i] += dt;
+      const d = Math.max(0, 1 - this.drag[i] * dt);
+      this.vx[i] *= d;
+      this.vy[i] = this.vy[i] * d + this.grav[i] * dt;
+      this.x[i] += this.vx[i] * dt;
+      this.y[i] += this.vy[i] * dt;
+      this.rot[i] += this.spin[i] * dt;
+    }
+  }
+
+  /** A particle's look now: [size (world units), alpha, frame], or null when gone. */
+  look(i: number): [number, number, number] | null {
+    if (this.age[i] >= this.life[i]) return null;
+    const k = this.age[i] / this.life[i];
+    const a = this.a[i] * Math.min(1, k / Math.max(0.01, this.fin[i])) * (1 - k * k);
+    if (a <= 0.01) return null;
+    const def = SPR[this.spr[i] as Spr];
+    const f = def.anim ? Math.min(def.n - 1, Math.floor(k * def.n)) : this.frame[i];
+    return [this.s0[i] + (this.s1[i] - this.s0[i]) * Math.sqrt(k), a, f];
+  }
+}
+
+// ════════════════════════════ the motion ════════════════════════════
+
+/** How each material takes a smack and a swing: squash (share of the head's height), the spring back (stiffness,
+ *  damping), the wobble (radians), a shake (peel units), a hum (copper), and how much a swing bends it. */
+const FEEL: Record<CraftKind, { squash: number; k: number; c: number; wob: number; shake: number; vib: number; sway: number; wk: number; wc: number }> = {
+  wood: { squash: 0.15, k: 300, c: 10, wob: 0.07, shake: 0, vib: 0, sway: 1, wk: 110, wc: 7 },
+  marble: { squash: 0.03, k: 1100, c: 34, wob: 0.008, shake: 2.4, vib: 0, sway: 0.12, wk: 400, wc: 30 },
+  copper: { squash: 0.05, k: 700, c: 20, wob: 0.015, shake: 0, vib: 0.04, sway: 0.3, wk: 260, wc: 16 },
+  neon: { squash: 0.07, k: 520, c: 16, wob: 0.025, shake: 0.9, vib: 0, sway: 0.45, wk: 200, wc: 12 },
+  obsidian: { squash: 0.035, k: 900, c: 28, wob: 0.01, shake: 1.8, vib: 0, sway: 0.18, wk: 360, wc: 26 },
+};
+
+const reduced = () => !!save.settings.reducedMotion;
+const smoothstep = (a: number, b: number, x: number) => {
+  const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
+  return t * t * (3 - 2 * t);
+};
+
+/** Scratch canvases the size of a rig's head box, shared (they're used and done with inside one paint). */
+const scratches = new Map<number, [HTMLCanvasElement, Ctx][]>();
+function scratch(RR: number, i: number): [HTMLCanvasElement, Ctx] {
+  let s = scratches.get(RR);
+  if (!s) scratches.set(RR, (s = []));
+  if (!s[i]) s[i] = makeCanvas(SB.w * RR, SB.h * RR);
+  return s[i];
+}
+
+/** A point `d` along a polyline (and the polyline's length). */
+function along(pts: Pt[], d: number, out: Pt): Pt {
+  let rest = d;
+  for (let i = 1; i < pts.length; i++) {
+    const l = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+    if (rest <= l || i === pts.length - 1) {
+      const k = l ? Math.max(0, Math.min(1, rest / l)) : 0;
+      out[0] = pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * k;
+      out[1] = pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * k;
+      return out;
+    }
+    rest -= l;
+  }
+  out[0] = pts[0][0];
+  out[1] = pts[0][1];
+  return out;
+}
+
+/** A soft glow behind the peel (neon's light on whatever is behind it), in the peel's frame. */
+export interface CraftGlow {
+  x: number;
+  y: number;
+  rx: number;
+  ry: number;
+  color: number;
+  a: number;
+}
+
+/** One place a crafted peel shows (a locker canvas, the cursor peel). */
+export class CraftLive {
+  t = crand() * 10;
+  /** The head's surface this frame (SB at the rig's resolution) and whether it wants repainting. */
+  surface: HTMLCanvasElement;
+  private sctx: Ctx;
+  /** The flex about the pivot: scale across and along, turn, and shift (peel units). */
+  sx = 1;
+  sy = 1;
+  rot = 0;
+  dx = 0;
+  dy = 0;
+  bits = new CraftBits();
+  glows: CraftGlow[] = [];
+  private q = 0;
+  private qv = 0;
+  private w = 0;
+  private wv = 0;
+  private shakeA = 0;
+  private vibA = 0;
+  private vibT = 0;
+  /** Seconds since the last smack. */
+  private sm = 9;
+  private paintAcc = 1;
+  private feel: (typeof FEEL)[CraftKind];
+  // ——— the materials' own clocks ———
+  private next = 1.5 + crand() * 2.5;
+  private runT = -1;
+  private runIdx = 0;
+  private tapNext = 4 + crand() * 4;
+  private twinkles = [{ x: 0, y: 0, t: 9, s: 0 }, { x: 0, y: 0, t: 9, s: 0 }];
+  private twNext = 0.5;
+  private stutterT = -1;
+  private stutterNext = 3 + crand() * 5;
+  private pulses: { tr: number; d: number; wait: number }[] = [];
+  private padFlash: Float32Array;
+  private pt: Pt = [0, 0];
+  private pt2: Pt = [0, 0];
+  private lastSpeed = 0;
+  private shedAcc = 0;
+
+  constructor(
+    readonly rig: CraftRig,
+    readonly world: PeelWorld = PEEL_FRAME_WORLD,
+    readonly menu = world === PEEL_FRAME_WORLD,
+  ) {
+    [this.surface, this.sctx] = makeCanvas(SB.w * rig.RR, SB.h * rig.RR);
+    this.feel = FEEL[rig.kind];
+    const traces = rig.kind === 'neon' ? neonGeo(rig.look.shape).traces : [];
+    this.padFlash = new Float32Array(traces.length);
+    if (traces.length) for (let i = 0; i < 3; i++) this.pulses.push({ tr: Math.floor(crand() * traces.length), d: crand() * 40, wait: i * 0.4 });
+    if (rig.kind === 'neon') this.glows = [{ x: HX, y: HY - 4, rx: R * 1.25, ry: R * 1.3, color: 0xff4fa3, a: 0 }, { x: HX + 2, y: HY + 4, rx: R * 0.8, ry: R * 0.8, color: 0x3ae8ff, a: 0 }];
+    this.paint();
+  }
+
+  // ——— particles ———
+
+  /** Shed a sprite from (lx, ly) in the peel's frame, moving (lvx, lvy) peel units/s in it; sizes in peel units,
+   *  gravity in world units/s² (down the screen, whichever way the peel leans). */
+  private emit(spr: Spr, lx: number, ly: number, lvx: number, lvy: number, s0: number, s1: number, life: number, o: { grav?: number; drag?: number; a?: number; fin?: number; spin?: number } = {}): void {
+    const b = this.bits;
+    const i = b.next;
+    b.next = (i + 1) % b.n;
+    const W = this.world;
+    const [wx, wy] = W.toWorld(lx, ly);
+    const [ex, ey] = W.toWorld(lx + lvx * 0.01, ly + lvy * 0.01);
+    const k = W.scale();
+    b.x[i] = wx;
+    b.y[i] = wy;
+    b.vx[i] = (ex - wx) * 100;
+    b.vy[i] = (ey - wy) * 100;
+    b.grav[i] = (o.grav ?? 0) * k;
+    b.drag[i] = o.drag ?? 0;
+    b.rot[i] = crand() * Math.PI * 2;
+    b.spin[i] = o.spin ?? (crand() - 0.5) * 6;
+    b.s0[i] = s0 * k;
+    b.s1[i] = s1 * k;
+    b.age[i] = 0;
+    b.life[i] = life;
+    b.a[i] = o.a ?? 1;
+    b.fin[i] = o.fin ?? 0.08;
+    b.spr[i] = spr;
+    b.frame[i] = Math.floor(crand() * SPR[spr].n);
+  }
+
+  /** A point on the head's rim (angle in radians, 0 = right, +π/2 = down), pulled in a little. */
+  private rim(a: number, inset = 4): [number, number] {
+    return [HX + Math.cos(a) * (R - inset), HY + Math.sin(a) * (R - inset)];
+  }
+
+  // ——— a smack ———
+
+  smack(): void {
+    const f = this.feel;
+    const calm = reduced() ? 0.4 : 1;
+    this.sm = 0;
+    this.q = f.squash * calm;
+    this.qv = 0;
+    this.wv += (crand() < 0.5 ? -1 : 1) * f.wob * 14 * calm;
+    this.shakeA = f.shake * calm;
+    this.vibA = f.vib * calm;
+    this.vibT = 0;
+    this.paintAcc = 1;
+    const n = reduced() ? 0.4 : 1;
+    const m = this.menu ? 0.55 : 1;
+    switch (this.rig.kind) {
+      case 'wood': {
+        // a cloud of flour off the face (in play it billows wider), specks flung out
+        const pm = this.menu ? 1 : 1.35;
+        for (let i = 0; i < Math.round(5 * n); i++) {
+          const a = crand() * Math.PI * 2;
+          const d = crand() * 30;
+          this.emit(Spr.Flour, HX + 4 + Math.cos(a) * d, HY + 12 + Math.sin(a) * d * 0.8, Math.cos(a) * (70 + crand() * 70) * pm, Math.sin(a) * (55 + crand() * 55) * pm - 30, 40, this.menu ? 110 : 165, 0.75 + crand() * 0.35, { drag: 2.6, a: 0.95, fin: 0.04, spin: (crand() - 0.5) * 1.2 });
+        }
+        for (let i = 0; i < Math.round(14 * n); i++) {
+          const a = crand() * Math.PI * 2;
+          const sp = (90 + crand() * 170) * m;
+          this.emit(Spr.Speck, HX + 4 + Math.cos(a) * 20, HY + 14 + Math.sin(a) * 16, Math.cos(a) * sp, Math.sin(a) * sp - 60, 7 + crand() * 4, 5, 0.55 + crand() * 0.4, { grav: 420, drag: 1.5 });
+        }
+        break;
+      }
+      case 'marble': {
+        for (let i = 0; i < Math.round(5 * n); i++) {
+          const a = -Math.PI / 2 + (crand() - 0.5) * 2.6;
+          const sp = (110 + crand() * 150) * m;
+          this.emit(Spr.Chip, HX + Math.cos(a) * 34, HY + Math.sin(a) * 30, Math.cos(a) * sp, Math.sin(a) * sp - 70, 15 + crand() * 7, 13, 0.6 + crand() * 0.3, { grav: 650, drag: 0.6, spin: (crand() - 0.5) * 16 });
+        }
+        for (let i = 0; i < Math.round(3 * n); i++) {
+          const a = crand() * Math.PI * 2;
+          this.emit(Spr.Dust, HX + Math.cos(a) * 30, HY + Math.sin(a) * 28, Math.cos(a) * 60, Math.sin(a) * 45 - 15, 36, this.menu ? 80 : 100, 0.65 + crand() * 0.3, { drag: 2.6, a: 0.8 });
+        }
+        break;
+      }
+      case 'copper': {
+        for (let i = 0; i < Math.round(7 * n); i++) {
+          const a = crand() * Math.PI * 2;
+          const sp = (160 + crand() * 220) * m;
+          this.emit(Spr.SparkC, HX + Math.cos(a) * 30, HY + Math.sin(a) * 30, Math.cos(a) * sp, Math.sin(a) * sp - 80, 24 + crand() * 10, 14, 0.3 + crand() * 0.25, { grav: 700, fin: 0.01 });
+        }
+        if (!this.menu) this.emit(Spr.RingO, HX, HY, 0, 0, 60, 300, 0.42, { a: 0.6, fin: 0.02, spin: 0 });
+        break;
+      }
+      case 'neon': {
+        const traces = neonGeo(this.rig.look.shape).traces;
+        this.padFlash.fill(1);
+        traces.forEach((tr, i) => {
+          if (i % 2 && n < 1) return;
+          const [px, py] = tr.pts[tr.pts.length - 1];
+          const a = Math.atan2(py - HY, px - HX) + (crand() - 0.5) * 0.8;
+          const sp = (120 + crand() * 180) * m;
+          this.emit(Spr.SparkN, px, py, Math.cos(a) * sp, Math.sin(a) * sp - 60, 22 + crand() * 8, 12, 0.28 + crand() * 0.2, { grav: 600, fin: 0.01 });
+        });
+        if (!this.menu) this.emit(Spr.RingC, HX, HY, 0, 0, 60, 320, 0.38, { a: 0.7, fin: 0.02, spin: 0 });
+        break;
+      }
+      case 'obsidian': {
+        for (let i = 0; i < Math.round(6 * n); i++) {
+          const a = crand() * Math.PI * 2;
+          const sp = (120 + crand() * 170) * m;
+          this.emit(Spr.Shard, HX + Math.cos(a) * 24, HY + Math.sin(a) * 28, Math.cos(a) * sp, Math.sin(a) * sp - 80, 17 + crand() * 8, 15, 0.5 + crand() * 0.3, { grav: 620, drag: 0.5, spin: (crand() - 0.5) * 18 });
+        }
+        for (let i = 0; i < Math.round(6 * n); i++) {
+          const a = crand() * Math.PI * 2;
+          const sp = (40 + crand() * 70) * m;
+          this.emit(Spr.Mote, HX + Math.cos(a) * 10, HY + Math.sin(a) * 10, Math.cos(a) * sp, Math.sin(a) * sp - 30, 16, 6, 0.5 + crand() * 0.4, { drag: 1.5 });
+        }
+        break;
+      }
+    }
+  }
+
+  // ——— each frame ———
+
+  /** Advance by dt. `vx`, `vy`: the peel's velocity in its own frame (peel units/s). */
+  update(dt: number, vx = 0, vy = 0): void {
+    const f = this.feel;
+    const calm = reduced() ? 0.35 : 1;
+    this.t += dt;
+    this.sm += dt;
+    this.paintAcc += dt;
+    // ——— the flex ———
+    const n = Math.max(1, Math.ceil(dt / (1 / 120)));
+    const h = dt / n;
+    // a swing bends it back (wood most), then it springs
+    const target = Math.max(-0.08, Math.min(0.08, -vx * 0.00011 * f.sway)) * calm;
+    for (let s = 0; s < n; s++) {
+      this.qv += (-this.q * f.k - this.qv * f.c) * h;
+      this.q += this.qv * h;
+      this.wv += (-(this.w - target) * f.wk - this.wv * f.wc) * h;
+      this.w += this.wv * h;
+    }
+    this.shakeA *= Math.exp(-dt / 0.07);
+    this.vibA *= Math.exp(-dt / 0.16);
+    this.vibT += dt;
+    const vib = this.vibA * Math.sin(this.vibT * Math.PI * 2 * 26);
+    this.sx = 1 + this.q * 0.55 + vib;
+    this.sy = 1 - this.q - vib;
+    this.rot = this.w;
+    this.dx = this.shakeA * noise1(this.t * 60);
+    this.dy = this.shakeA * noise1(this.t * 60 + 17) * 0.6;
+    // ——— the materials' own life ———
+    const speed = Math.hypot(vx, vy);
+    this.lastSpeed = speed;
+    switch (this.rig.kind) {
+      case 'wood':
+        this.woodTick(dt, speed, vx);
+        break;
+      case 'marble':
+        this.marbleTick(dt);
+        break;
+      case 'copper':
+        this.copperTick(dt);
+        break;
+      case 'neon':
+        this.neonTick(dt);
+        break;
+      case 'obsidian':
+        this.obsidianTick(dt);
+        break;
+    }
+    this.bits.tick(dt);
+  }
+
+  /** A sweep that runs every few seconds: its progress 0–1, or -1 between runs. */
+  private sweep(dt: number, dur: number, gap: [number, number]): number {
+    if (this.runT < 0) {
+      this.next -= dt;
+      if (this.next <= 0) this.runT = 0;
+      return -1;
+    }
+    this.runT += dt / dur;
+    if (this.runT >= 1) {
+      this.runT = -1;
+      this.next = gap[0] + crand() * (gap[1] - gap[0]);
+      return -1;
+    }
+    return this.runT;
+  }
+
+  private woodTick(dt: number, speed: number, vx: number): void {
+    this.sweep(dt, 1.5, [4.5, 7.5]);
+    if (this.menu) {
+      // now and then it taps the counter: a little bounce, and flour sifts off its lower edge
+      this.tapNext -= dt;
+      if (this.tapNext <= 0) {
+        this.tapNext = 6.5 + crand() * 4;
+        if (!reduced()) {
+          this.q = Math.max(this.q, 0.035);
+          for (let i = 0; i < 4; i++) {
+            const [x, y] = this.rim(Math.PI * (0.3 + crand() * 0.4), 10);
+            this.emit(Spr.Speck, x + (crand() - 0.5) * 20, y - 6, (crand() - 0.5) * 30, 10 + crand() * 20, 4 + crand() * 2, 3.5, 1 + crand() * 0.5, { grav: 60, drag: 2 });
+          }
+        }
+      }
+    } else if (!reduced()) {
+      // swung, it sheds flour off its trailing edge (and a speck now and then when it's still)
+      this.shedAcc += dt * (0.25 + Math.min(1, speed / 1400) * 9);
+      while (this.shedAcc >= 1) {
+        this.shedAcc -= 1;
+        const side = vx > 0 ? Math.PI : 0;
+        const [x, y] = this.rim(side + (crand() - 0.5) * 1.6, 12);
+        this.emit(Spr.Speck, x, y, -vx * 0.08 + (crand() - 0.5) * 30, (crand() - 0.5) * 30, 4 + crand() * 2.5, 3, 0.7 + crand() * 0.5, { grav: 160, drag: 2.5 });
+      }
+    }
+  }
+
+  private marbleTick(dt: number): void {
+    // a glint runs along a vein
+    if (this.runT < 0 && this.next - dt <= 0) this.runIdx = Math.floor(crand() * marbleGeo().veins.length);
+    this.sweep(dt, 1.7, [2.5, 4.5]);
+    // mica twinkles
+    this.twNext -= dt;
+    for (const tw of this.twinkles) tw.t += dt;
+    if (this.twNext <= 0) {
+      this.twNext = 0.35 + crand() * 0.7;
+      const tw = this.twinkles.find((w) => w.t > 0.55);
+      if (tw) {
+        const a = crand() * Math.PI * 2;
+        const d = Math.sqrt(crand()) * R * 0.78;
+        tw.x = HX + Math.cos(a) * d;
+        tw.y = HY + Math.sin(a) * d * 0.9;
+        tw.t = 0;
+        tw.s = 4 + crand() * 4;
+      }
+    }
+  }
+
+  private copperTick(dt: number): void {
+    this.sweep(dt, 0.5, [2.8, 5]);
+  }
+
+  private neonTick(dt: number): void {
+    const traces = neonGeo(this.rig.look.shape).traces;
+    for (let i = 0; i < this.padFlash.length; i++) this.padFlash[i] = Math.max(0, this.padFlash[i] - dt * 3.2);
+    for (const p of this.pulses) {
+      if (p.wait > 0) {
+        p.wait -= dt;
+        continue;
+      }
+      p.d += dt * 78;
+      if (p.d >= traces[p.tr].len) {
+        this.padFlash[p.tr] = 1;
+        p.tr = Math.floor(crand() * traces.length);
+        p.d = 0;
+        p.wait = 0.15 + crand() * 0.9;
+      }
+    }
+    // the pink tube stutters now and then
+    if (this.stutterT >= 0) {
+      this.stutterT += dt;
+      if (this.stutterT > 0.55) {
+        this.stutterT = -1;
+        this.stutterNext = 4.5 + crand() * 6;
+      }
+    } else {
+      this.stutterNext -= dt;
+      if (this.stutterNext <= 0 && !reduced()) this.stutterT = 0;
+    }
+    const [ta, pa] = this.neonLevels();
+    this.glows[0].a = 0.2 * pa;
+    this.glows[1].a = 0.12 * ta;
+  }
+
+  /** The traces' and the pink tube's brightness now (0–1, more in a surge). */
+  private neonLevels(): [number, number] {
+    let ta = 0.9 + 0.06 * noise1(this.t * 9);
+    let pa = 0.92 + 0.05 * noise1(this.t * 11 + 4);
+    if (this.stutterT >= 0) pa *= noise1(this.t * 38) > -0.15 ? 1 : 0.18;
+    const s = this.sm;
+    if (s < 0.12) {
+      ta = pa = 1.6;
+    } else if (s < 0.4) {
+      const fl = 0.22 + 0.25 * Math.max(0, noise1(this.t * 45));
+      ta *= fl;
+      pa *= fl;
+    } else if (s < 0.75) {
+      const k = smoothstep(0.4, 0.75, s);
+      ta *= 0.45 + 0.55 * k;
+      pa *= 0.45 + 0.55 * k;
+    }
+    return [ta, pa];
+  }
+
+  private obsidianTick(dt: number): void {
+    this.sweep(dt, 1.4, [4, 6.5]);
+  }
+
+  /** Does the surface want repainting this frame? In play the head repaints at about 30 fps, every frame for a moment
+   *  after a smack; in the locker, every frame (the locker runs at 30). */
+  wantsPaint(): boolean {
+    if (this.menu || this.sm < 0.7 || this.paintAcc >= 1 / 30) {
+      this.paintAcc = 0;
+      return true;
+    }
+    return false;
+  }
+
+  // ——— the surface ———
+
+  /** Repaint the head's surface: its material, what moves on it (kept inside the head), its rim and outline. */
+  paint(): void {
+    const rig = this.rig;
+    const RR = rig.RR;
+    const c = this.sctx;
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    c.globalAlpha = 1;
+    c.globalCompositeOperation = 'source-over';
+    c.clearRect(0, 0, this.surface.width, this.surface.height);
+    c.drawImage(rig.under, 0, 0);
+    const [ac, ax] = scratch(RR, 0);
+    ax.setTransform(1, 0, 0, 1, 0, 0);
+    ax.globalAlpha = 1;
+    ax.globalCompositeOperation = 'source-over';
+    ax.clearRect(0, 0, ac.width, ac.height);
+    ax.setTransform(RR, 0, 0, RR, -SB.x * RR, -SB.y * RR);
+    this.effects(ax);
+    // kept inside the head
+    ax.setTransform(1, 0, 0, 1, 0, 0);
+    ax.globalAlpha = 1;
+    ax.globalCompositeOperation = 'destination-in';
+    ax.drawImage(rig.inner, 0, 0);
+    ax.globalCompositeOperation = 'source-over';
+    c.drawImage(ac, 0, 0);
+    c.drawImage(rig.over, 0, 0);
+    c.setTransform(RR, 0, 0, RR, -SB.x * RR, -SB.y * RR);
+    this.onTop(c);
+    c.setTransform(1, 0, 0, 1, 0, 0);
+  }
+
+  /** A layer (SB box) drawn into `acc` only where `mask` paints (in peel units), at alpha `a`. */
+  private masked(acc: Ctx, layer: HTMLCanvasElement, mask: (ctx: Ctx) => void, a: number): void {
+    if (a <= 0.005) return;
+    const RR = this.rig.RR;
+    const [mc, mx] = scratch(RR, 1);
+    mx.setTransform(1, 0, 0, 1, 0, 0);
+    mx.globalAlpha = 1;
+    mx.globalCompositeOperation = 'source-over';
+    mx.clearRect(0, 0, mc.width, mc.height);
+    mx.drawImage(layer, 0, 0);
+    mx.globalCompositeOperation = 'destination-in';
+    mx.setTransform(RR, 0, 0, RR, -SB.x * RR, -SB.y * RR);
+    mask(mx);
+    mx.globalCompositeOperation = 'source-over';
+    acc.save();
+    acc.setTransform(1, 0, 0, 1, 0, 0);
+    acc.globalAlpha = Math.min(1, a);
+    acc.drawImage(mc, 0, 0);
+    acc.restore();
+  }
+
+  /** A soft band across the head, along the light's diagonal: u runs -1 (top left) … 1 (bottom right). */
+  private band(ctx: Ctx, u: number, width: number, a = 1, col = '#ffffff', ang = Math.PI / 4): void {
+    const cx = HX + Math.cos(ang) * u * R * 1.2;
+    const cy = HY + Math.sin(ang) * u * R * 1.2;
+    const dx = Math.cos(ang) * width;
+    const dy = Math.sin(ang) * width;
+    const g = ctx.createLinearGradient(cx - dx, cy - dy, cx + dx, cy + dy);
+    g.addColorStop(0, rgba(col, 0));
+    g.addColorStop(0.5, rgba(col, a));
+    g.addColorStop(1, rgba(col, 0));
+    ctx.fillStyle = g;
+    ctx.fillRect(SB.x, SB.y, SB.w, SB.h);
+  }
+
+  private drawLayer(ctx: Ctx, l: HTMLCanvasElement | null, a: number, ox = 0, oy = 0): void {
+    if (!l || a <= 0.005) return;
+    ctx.globalAlpha = Math.min(1, a);
+    ctx.drawImage(l, SB.x + ox, SB.y + oy, SB.w, SB.h);
+    ctx.globalAlpha = 1;
+  }
+
+  /** The reflection drifting as the light moves (and as the peel swings). */
+  private reflectDrift(ctx: Ctx, a = 1): void {
+    const sw = Math.max(-1, Math.min(1, this.lastSpeed / 1500));
+    const ox = noise1(this.t * 0.17) * 5 - sw * 4;
+    const oy = noise1(this.t * 0.13 + 7) * 4;
+    this.drawLayer(ctx, this.rig.reflect, a * (0.85 + 0.15 * noise1(this.t * 0.3 + 3)), ox, oy);
+  }
+
+  /** What moves on the surface, in peel units (kept inside the head after). */
+  private effects(ctx: Ctx): void {
+    const rig = this.rig;
+    const s = this.sm;
+    const u = this.runT;
+    switch (rig.kind) {
+      case 'wood': {
+        if (u >= 0) {
+          // the sheen runs over the varnish, the grain catching it
+          const b = -1.25 + 2.5 * u;
+          const env = Math.sin(Math.PI * u);
+          this.masked(ctx, rig.lit!, (m) => this.band(m, b, 30), 0.8 * env);
+          this.band(ctx, b, 36, 0.24 * env, '#fff6e4');
+        }
+        if (s < 0.5) {
+          // the flour leaps off in a puff of white
+          const k = s / 0.5;
+          const g = ctx.createRadialGradient(HX + 4, HY + 14, 0, HX + 4, HY + 14, 40 + 40 * k);
+          g.addColorStop(0, rgba('#ffffff', 0.35 * (1 - k)));
+          g.addColorStop(1, rgba('#ffffff', 0));
+          ctx.fillStyle = g;
+          ctx.fillRect(SB.x, SB.y, SB.w, SB.h);
+        }
+        break;
+      }
+      case 'marble': {
+        this.reflectDrift(ctx);
+        if (u >= 0) {
+          // a glint running along a vein, lighting it as it goes
+          const v = marbleGeo().veins[this.runIdx];
+          const at = u * (v.pts.length - 1);
+          const env = Math.sin(Math.PI * u);
+          ctx.lineCap = 'round';
+          for (let i = Math.max(0, Math.floor(at) - 4); i < Math.min(v.pts.length - 1, Math.ceil(at) + 1); i++) {
+            const k = 1 - Math.min(1, Math.abs(i + 0.5 - at) / 4.5);
+            ctx.beginPath();
+            ctx.moveTo(v.pts[i][0], v.pts[i][1]);
+            ctx.lineTo(v.pts[i + 1][0], v.pts[i + 1][1]);
+            ctx.strokeStyle = rgba('#ffc860', 0.85 * k * env);
+            ctx.lineWidth = v.w * 1.5;
+            ctx.stroke();
+          }
+          const i0 = Math.min(v.pts.length - 2, Math.floor(at));
+          const fk = at - i0;
+          this.star(ctx, v.pts[i0][0] + (v.pts[i0 + 1][0] - v.pts[i0][0]) * fk, v.pts[i0][1] + (v.pts[i0 + 1][1] - v.pts[i0][1]) * fk, 9 * env, env);
+        }
+        for (const tw of this.twinkles) if (tw.t < 0.55) this.star(ctx, tw.x, tw.y, tw.s * Math.sin((Math.PI * tw.t) / 0.55), 0.9);
+        if (s < 0.6) {
+          // the smack's light floods out along the veins
+          const k = s / 0.6;
+          const rf = 8 + 150 * Math.pow(k, 0.7);
+          this.masked(
+            ctx,
+            rig.lit!,
+            (m) => {
+              const g = m.createRadialGradient(HX, HY, Math.max(0, rf - 46), HX, HY, rf + 6);
+              g.addColorStop(0, 'rgba(0,0,0,0.25)');
+              g.addColorStop(0.8, 'rgba(0,0,0,1)');
+              g.addColorStop(1, 'rgba(0,0,0,0)');
+              m.fillStyle = g;
+              m.fillRect(SB.x, SB.y, SB.w, SB.h);
+            },
+            (1 - k) * 1.3,
+          );
+          // and a warm flash where it landed
+          const fk = Math.max(0, 1 - s / 0.2);
+          if (fk > 0) this.dot(ctx, HX, HY, 46, '#ffe2a0', 0.55 * fk);
+        }
+        break;
+      }
+      case 'copper': {
+        // the spun highlight swings as the light moves
+        const turn = 0.22 * Math.sin(this.t * 0.37) + 0.08 * noise1(this.t * 0.5);
+        const cg = ctx.createConicGradient(turn, HX, HY);
+        const lobe = (at: number, w: number, a: number) => {
+          cg.addColorStop(Math.max(0, at - w), 'rgba(255,240,225,0)');
+          cg.addColorStop(at, `rgba(255,240,225,${a})`);
+          cg.addColorStop(Math.min(1, at + w), 'rgba(255,240,225,0)');
+        };
+        cg.addColorStop(0, 'rgba(255,240,225,0)');
+        lobe(0.125, 0.025, 0.16);
+        lobe(0.625, 0.03, 0.34);
+        cg.addColorStop(1, 'rgba(255,240,225,0)');
+        ctx.fillStyle = cg;
+        ctx.fillRect(SB.x, SB.y, SB.w, SB.h);
+        // temper colours breathing in the middle: it's fresh from the oven
+        const br = 0.75 + 0.25 * Math.sin(this.t * 0.42);
+        const rr = R * (0.8 + 0.07 * Math.sin(this.t * 0.31));
+        const hg = ctx.createRadialGradient(HX + 3, HY + 6, 0, HX + 3, HY + 6, rr);
+        hg.addColorStop(0, 'rgba(255,214,140,0)');
+        hg.addColorStop(0.32, `rgba(255,206,120,${0.12 * br})`);
+        hg.addColorStop(0.52, `rgba(196,86,150,${0.13 * br})`);
+        hg.addColorStop(0.7, `rgba(84,104,226,${0.11 * br})`);
+        hg.addColorStop(0.88, 'rgba(84,104,226,0)');
+        ctx.fillStyle = hg;
+        ctx.fillRect(SB.x, SB.y, SB.w, SB.h);
+        this.reflectDrift(ctx);
+        if (s < 0.6) {
+          // it rings: ripples run out from the middle, light on their leading side, shadow behind
+          ctx.lineCap = 'round';
+          for (let i = 0; i < 3; i++) {
+            const ti = s - i * 0.075;
+            if (ti <= 0 || ti >= 0.5) continue;
+            const k = ti / 0.5;
+            const r0 = 4 + R * 0.98 * Math.pow(k, 0.75);
+            const a = Math.pow(1 - k, 1.4) * (1 - i * 0.22);
+            ctx.beginPath();
+            ctx.arc(HX, HY, r0, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(255,238,216,${0.8 * a})`;
+            ctx.lineWidth = 2.8 * (1 - k) + 0.8;
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(HX, HY, Math.max(1, r0 - 3.2), 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(80,24,4,${0.4 * a})`;
+            ctx.lineWidth = 2 * (1 - k) + 0.6;
+            ctx.stroke();
+          }
+          const fk = Math.max(0, 1 - s / 0.18);
+          if (fk > 0) {
+            const g = ctx.createRadialGradient(HX, HY, 0, HX, HY, 34);
+            g.addColorStop(0, `rgba(255,248,236,${0.7 * fk})`);
+            g.addColorStop(1, 'rgba(255,248,236,0)');
+            ctx.fillStyle = g;
+            ctx.fillRect(HX - 34, HY - 34, 68, 68);
+          }
+        }
+        break;
+      }
+      case 'neon': {
+        const [ta, pa] = this.neonLevels();
+        this.drawLayer(ctx, rig.lit, ta);
+        this.drawLayer(ctx, rig.lit2, pa);
+        if (ta > 1 || pa > 1) {
+          // a surge: everything white-hot for a moment
+          ctx.globalCompositeOperation = 'lighter';
+          this.drawLayer(ctx, rig.lit, (ta - 1) * 1.6);
+          this.drawLayer(ctx, rig.lit2, (pa - 1) * 1.6);
+          ctx.globalCompositeOperation = 'source-over';
+        }
+        const traces = neonGeo(rig.look.shape).traces;
+        // data running out along the traces
+        ctx.lineCap = 'round';
+        for (const p of this.pulses) {
+          if (p.wait > 0) continue;
+          const tr = traces[p.tr];
+          for (let k = 0; k < 6; k++) {
+            const d0 = p.d - k * 4;
+            if (d0 < 0) break;
+            along(tr.pts, d0, this.pt);
+            along(tr.pts, Math.max(0, d0 - 4), this.pt2);
+            ctx.beginPath();
+            ctx.moveTo(this.pt[0], this.pt[1]);
+            ctx.lineTo(this.pt2[0], this.pt2[1]);
+            ctx.strokeStyle = `rgba(232,254,255,${0.95 * (1 - k / 6) * Math.min(1, ta)})`;
+            ctx.lineWidth = 2.4;
+            ctx.stroke();
+          }
+          along(tr.pts, p.d, this.pt);
+          this.dot(ctx, this.pt[0], this.pt[1], 7, '#3ae8ff', 0.55 * Math.min(1, ta));
+          this.dot(ctx, this.pt[0], this.pt[1], 2.2, '#ffffff', Math.min(1, ta));
+        }
+        traces.forEach((tr, i) => {
+          const fl = this.padFlash[i];
+          if (fl <= 0.01) return;
+          const [x, y] = tr.pts[tr.pts.length - 1];
+          this.dot(ctx, x, y, 11, '#3ae8ff', 0.55 * fl);
+          this.dot(ctx, x, y, 3.4, '#ffffff', 0.95 * fl);
+        });
+        this.reflectDrift(ctx);
+        break;
+      }
+      case 'obsidian': {
+        // light moving slowly through the flow bands
+        const ang = Math.PI / 4 + 0.6 * Math.sin(this.t * 0.11);
+        const b = 0.9 * Math.sin(this.t * 0.33);
+        this.drawLayer(ctx, rig.lit, 0.05 + 0.04 * Math.sin(this.t * 0.8));
+        this.masked(ctx, rig.lit!, (m) => this.band(m, b, 36, 1, '#000000', ang), 0.5);
+        if (u >= 0) {
+          // as the light catches the bands, their sheen flashes across the glass
+          const bb = -1.3 + 2.6 * u;
+          const env = Math.sin(Math.PI * u);
+          this.masked(ctx, rig.lit2!, (m) => this.band(m, bb, 34), 0.75 * env);
+          this.band(ctx, bb, 26, 0.1 * env);
+        }
+        this.reflectDrift(ctx);
+        if (s < 0.6) {
+          // the fracture lights up through the glass from where it landed
+          const grow = Math.min(1, s / 0.1);
+          const a = 1 - smoothstep(0.1, 0.6, s);
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          for (const cr of obsidianGeo().cracks) {
+            const nPts = Math.max(2, Math.round(cr.length * grow));
+            ctx.beginPath();
+            ctx.moveTo(cr[0][0], cr[0][1]);
+            for (let i = 1; i < nPts; i++) ctx.lineTo(cr[i][0], cr[i][1]);
+            ctx.strokeStyle = `rgba(170,110,255,${0.45 * a})`;
+            ctx.lineWidth = 5;
+            ctx.stroke();
+            ctx.strokeStyle = `rgba(248,240,255,${0.95 * a})`;
+            ctx.lineWidth = 1.3;
+            ctx.stroke();
+          }
+          this.dot(ctx, HX, HY, 30, '#b080ff', 0.5 * a);
+        }
+        break;
+      }
+    }
+  }
+
+  /** On the surface over the rim (a glint on copper's rim). */
+  private onTop(ctx: Ctx): void {
+    if (this.rig.kind === 'copper' && this.runT >= 0) {
+      const env = Math.sin(Math.PI * this.runT);
+      this.star(ctx, HX - 55, HY - 58, 10 * env, env);
+    }
+  }
+
+  private dot(ctx: Ctx, x: number, y: number, r: number, col: string, a: number): void {
+    if (a <= 0.01) return;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, rgba(col, a));
+    g.addColorStop(0.45, rgba(col, a * 0.5));
+    g.addColorStop(1, rgba(col, 0));
+    ctx.fillStyle = g;
+    ctx.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+
+  private star(ctx: Ctx, x: number, y: number, size: number, a: number): void {
+    if (size <= 0.3 || a <= 0.01) return;
+    const img = craftSprites()[Spr.Glint][0];
+    ctx.globalAlpha = Math.min(1, a);
+    ctx.drawImage(img, x - size, y - size, size * 2, size * 2);
+    ctx.globalAlpha = 1;
+  }
+}
+
+// ════════════════════════════ drawing on a 2D canvas (the locker) ════════════════════════════
+
+/** The canvas round a locker image reaches this far past the peel (peel units): what flies off fades out before
+ *  its edge (a sprite cut off by the edge would show as a hard line). */
+const MENU_ROOM = { l: -26, r: PEEL_W + 26, t: -44, b: PEEL_H + 44 };
+
+function edgeFade(x: number, y: number, r: number): number {
+  const m = Math.min(x - r - MENU_ROOM.l, MENU_ROOM.r - x - r, y - r - MENU_ROOM.t, MENU_ROOM.b - y - r);
+  return Math.max(0, Math.min(1, m / 14));
+}
+
+/** Draw the pool's sprites (world = the canvas's transform). */
+export function drawCraftBits(ctx: Ctx, live: CraftLive, menu: boolean): void {
+  const b = live.bits;
+  const sp = craftSprites();
+  for (let i = 0; i < b.n; i++) {
+    const lk = b.look(i);
+    if (!lk) continue;
+    const [size, a0, f] = lk;
+    const s = b.spr[i] as Spr;
+    const def = SPR[s];
+    const a = menu ? a0 * edgeFade(b.x[i], b.y[i], size * 0.5) : a0;
+    if (a <= 0.01) continue;
+    const img = sp[s][f];
+    ctx.save();
+    ctx.translate(b.x[i], b.y[i]);
+    ctx.globalAlpha = Math.min(1, a);
+    if (def.streak) {
+      const v = Math.hypot(b.vx[i], b.vy[i]);
+      ctx.rotate(Math.atan2(b.vy[i], b.vx[i]));
+      const len = size * (1 + Math.min(1.5, v / 400));
+      ctx.drawImage(img, -len * 0.9, -size * 0.14, len, size * 0.28);
+    } else {
+      ctx.rotate(b.rot[i]);
+      const h = (size * def.h) / def.w;
+      ctx.drawImage(img, -size / 2, -h / 2, size, h);
+    }
+    ctx.restore();
+  }
+}
+
+/** The whole living peel on a canvas whose transform is the peel's frame (0, 0 at its top left, 220 × 360). */
+export function drawCraftLive(ctx: Ctx, live: CraftLive): void {
+  const rig = live.rig;
+  for (const g of live.glows) {
+    if (g.a <= 0.01) continue;
+    ctx.save();
+    ctx.translate(g.x, g.y);
+    ctx.scale(g.rx, g.ry);
+    const gr = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+    const col = `${(g.color >> 16) & 255},${(g.color >> 8) & 255},${g.color & 255}`;
+    gr.addColorStop(0, `rgba(${col},${g.a})`);
+    gr.addColorStop(0.5, `rgba(${col},${g.a * 0.45})`);
+    gr.addColorStop(1, `rgba(${col},0)`);
+    ctx.fillStyle = gr;
+    ctx.fillRect(-1, -1, 2, 2);
+    ctx.restore();
+  }
+  // (a tile shows the peel at a third of its size or less: smooth it down, or its outline shimmers)
+  const q = ctx.imageSmoothingQuality;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(rig.handle, 0, 0, PEEL_W, PEEL_H);
+  if (live.wantsPaint()) live.paint();
+  ctx.save();
+  ctx.translate(PIVOT.x + live.dx, PIVOT.y + live.dy);
+  ctx.rotate(live.rot);
+  ctx.scale(live.sx, live.sy);
+  ctx.translate(-PIVOT.x, -PIVOT.y);
+  ctx.drawImage(live.surface, SB.x, SB.y, SB.w, SB.h);
+  ctx.restore();
+  ctx.imageSmoothingQuality = q;
+  drawCraftBits(ctx, live, true);
+}

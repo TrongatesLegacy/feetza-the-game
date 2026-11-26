@@ -24,7 +24,7 @@ import { ACT_COUNT, JOURNEY_WAVES, STAGES, actLabel, actName, actOf } from '../d
 import { BACKDROPS } from '../art/backdrops';
 import { applyA11y } from './a11y';
 import { abilityFor, abilityKindLabel, describeAbility } from '../game/abilities';
-import { animateLookImg, hasAnimatedLook, stopLookOverlays } from '../art/animatedLooks';
+import { animateLookImg, hasAnimatedLook, smackLookImg, stopLookOverlays } from '../art/animatedLooks';
 import { GOD_PEEL, PEELS, PEEL_BY_ID, buyPeel, checkPeelAchievements, equipPeel, equippedPeel, hasPeel, peelThumbAsync, peelThumbReady, peelThumbURL, wearSkin, wornSkin, type PeelDef, type PeelGroup } from '../game/peels';
 import { HERO_SUBS } from '../content/heroPeels';
 import './gods.css';
@@ -2412,6 +2412,8 @@ class UI {
         hear.addEventListener('click', (e) => {
           e.stopPropagation();
           void previewSmack(d.id);
+          // a living peel answers its smack (toes splay, wood flexes and throws flour, copper rings)
+          smackLookImg(img as HTMLImageElement);
         });
       }
       detail.replaceChildren(
