@@ -82,8 +82,9 @@ export interface PeelLook {
 
 /** The materials a crafted peel is made of ('place': a place peel's head with a window onto its location; 'pizza': a
  *  pizza peel's living pie on its board; 'event' and 'act': a medallion set into the head, its wave event or its
- *  act playing in it; 'gem': the jewellery box and the ultra-rares, cut stone, polished metal, pearl, opal). */
-export type CraftKind = 'wood' | 'marble' | 'copper' | 'neon' | 'obsidian' | 'place' | 'pizza' | 'event' | 'act' | 'gem';
+ *  act playing in it; 'gem': the jewellery box and the ultra-rares, cut stone, polished metal, pearl, opal; 'hero':
+ *  a hero peel, its costume's parts alive). */
+export type CraftKind = 'wood' | 'marble' | 'copper' | 'neon' | 'obsidian' | 'place' | 'pizza' | 'event' | 'act' | 'gem' | 'hero';
 
 export const PEEL_W = 220;
 export const PEEL_H = 360;

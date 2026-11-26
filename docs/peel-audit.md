@@ -13,6 +13,7 @@ How a peel can look today:
 - **pie** (new in batch 3, a crafted kind): a pizza peel's pie, built from the pizza's own art in layers, alive on its board (`src/art/peelPizza.ts`).
 - **medallion** (new in batch 4, two crafted kinds, `event` and `act`): a round window set into the head behind a bezel and glass, the wave event in miniature or the act's places, number and boss alive in it (`src/art/peelMedal.ts`, `src/art/peelEventDefs.ts`).
 - **gem** (new in batch 5, a crafted kind): the head is the stone or metal the peel is named for, in a polished setting, its facets catching a moving light (`src/art/peelGem.ts`).
+- **hero** (new in batch 6, a crafted kind): no frame; the head is the hero, alive from its costume's own parts (cape, ears, eyes, emblem) with its power playing on and round it (`src/art/peelHero.ts`).
 
 Priorities: **P1** the most seen (everyone's first peel, the first peels bought, what most players own early); **P2** owned early or often by most players, still a still today; **P3** rare or late, or already animated (a glow or a fire) and wanting a signature motion of its own.
 
@@ -31,7 +32,7 @@ Priorities: **P1** the most seen (everyone's first peel, the first peels bought,
 | Mastered (of the jewels) | 8 | glow → **as their jewels, gold-set (batch 5)** | late | done with their bases |
 | Event shinies | 8 | still → **as their events, with foil (batch 4)** | rare drops (1 in 40) | done with the events |
 | Ultra-rares | 8 | glow (Fire Opal: fire) → **their stone or metal alive inside their aura (batch 5)**; Fire Opal keeps its fire | extremely rare | **P3, done** |
-| Heroes | 67 | glow (2 fire), preview only | goals across the game | P3 |
+| Heroes | 67 | glow (2 fire), preview only → **the hero alive from its own parts, its power round the head (batch 6)**; the two fire heroes keep their fire | goals across the game | **P3, done** |
 | Gods (Greek 22, Norse 16) | 38 | element glow (Zeus hand-made lightning; Hestia, Hephaestus fire) | goals across the late game | P3 |
 | The God Peel | 1 | gold halo, rays, prism trail | the final trophy | P3 |
 | Feet | 134 | living (Lava, Fireside, Hyperion also fire) | very often: the first kill goals | done (the Immortal: see below) |
@@ -91,7 +92,7 @@ Late and rare. They had the generic glow (only on the big preview for the jewels
 
 Done in batch 5, all 24 (below).
 
-### Heroes (67): P3
+### Heroes (67): batch 6, done
 
 Earned by hero goals across the game. Today a tight glow in the suit's colours, a ribbon and star glints, shown only on the big preview. Each wants a signature motion of its own: a cape that moves (a sway part, as the foot peels' parts do), an emblem that lights, the hero's power (frost breath, webbing, a shield's ring). The hero heads (`src/art/heroHeads.ts`) are drawn in parts already, so a rig like the foot peels' (parts on springs, a glow layer) fits; group them by power family so motions are shared.
 
@@ -381,3 +382,73 @@ The Ruby Crown and the Fire Opal keep their fire looks.
 2. The gods (38) and the God Peel (P3): each god's own motion in the head itself.
 3. Alongside: the foot peels' first-open warm-up on the ALL tab (batch 2), the Immortal's and Immortal Brute's living defs, and the fire looks' big-preview and in-play shapes (the Ruby Crown's and the Fire Opal's among them).
 
+## Batch 6: the heroes (done)
+
+**What changed.** All 67 hero peels (the 50 heroes, the 12 Endgame variants, Superpeel Prime, Iron Pan Mark Infinity, Shield of Liberty, Symbiote Pan, the Amazon Queen and the Dark Kneader) are a new crafted kind, `hero` (`src/art/peelHero.ts`). There is no frame and no window: the head is the hero, and it comes alive from the costume's own parts, which `src/art/heroHeads.ts` now paints one at a time (`drawHeroPart`: the glow, tail, cape, ears behind, the head, the eyes, the emblem's glyph, what sits on top, ears in front). At rest the parts stack up to exactly the old still (the stills are pixel-identical to before), so nothing jumps when a tile comes alive.
+
+What moves, from the parts:
+
+- **Capes** billow: drawn in rows held at the shoulders, a travelling wave and a widening growing towards the hem, folds of light and shade moving across the cloth; in play a swing blows the cape back and a fast one lifts it; a smack makes it flare.
+- **Ears and wings**: Hawkcrust's wings beat, the Wasp's buzz (a blur of two), cat ears, antennae and raccoon and squirrel ears twitch on springs, the Flashfoot's bolt wings and Hawk-Eye's fletching sway, Captain Pizzeria's little wings flutter now and then, flame crowns flicker, I Am Crust's leaves sway; the squirrel's tail sways and flicks.
+- **Eyes** blink (sometimes twice); behind a mask's lenses they narrow instead, now and then and on a smack (a wince). Glowing eyes breathe or flicker; Superpeel's heat vision charges every few seconds.
+- **The emblem's glyph** (painted on its own, its badge staying put) spins (sunburst, snowflake, flame ring, Deadpeel's cutter), flips like a thrown shield (Superpeel's star, the shields, Zatanna's wand), beats like a heart (Iron Pan's core, the paw, the scarab, the cassette to the music), swings (She-Bulk's gavel, struck down), springs (Plastic Pan, Mr Elastic Cheese, Ant-Pan), bobs, pulses, flickers, or catches a sweep of light (Batpeel's night slice, the claws, the feather, the crescent). A smack flashes it.
+
+Each hero's **power**, from a set of effects shared by the power families and set per hero (`HERO_SPECS`):
+
+| Family | Effect | Heroes |
+|---|---|---|
+| lightning | jagged arcs crackling round the rim or the badge, re-jagged every few hundredths of a second, a big crackle on a smack | Stormy Weather (over the head, with storm smoke), Static Cling (and her bolts flashing), the Flashfoot, Shazamozza (and a bolt from above on a smack), Night Wings' sticks, the Wasp's sting, Black Window's bite |
+| speed | afterimages in the suit's colour and lines streaking past behind the head, a zoom every few seconds and when swung fast | the Flashfoot |
+| webs | strands strung from the rim with cross threads, swaying; a web shot that splats on a smack; spider-sense lines tingling | Spider-Pan; Symbiote Pan's writhing tendrils and goo drips |
+| magic | a ring of sparks turning behind the head with runes, sparks thrown off (Doctor Strangeloaf); a hexagram turning and chaos wisps orbiting (Scarlet Pitch); sparkles round the top hat and wand (Zatanna Panna) |  |
+| light and energy | the pattern lighting up in a wave: Black Pan-ther's plates, Blue Beetroot's, the Bulk's cracks, the embers, Ice Cream Man's frost, the Scorch's flames, Aqua-Toe's scales, Static Cling's bolts | |
+| constructs | a glowing outline round the head and the lamp's light pouring down | Green Lampshade |
+| tech | Iron Pan's core beating with a repulsor ring on a smack, a sheen over the plates; Mark Infinity's six stones glowing in turn; a light running along Cyclopizza's and the Wasp's visors and Cyclopizza's optic blast; Cy-Pork's reticle round its cyber eye | |
+| heat | heat vision from the eyes on a smack | Superpeel, Superpeel Prime |
+| a lasso | a golden rope circling the head, its far side behind, tightening on a smack | Wonder Wedge, the Amazon Queen |
+| sense | a sonar's rings pinging out | Dare-Dough |
+| aim | a reticle turning and locking on | Hawk-Eye-Talian |
+| strength | rage surges that shake the head and light its cracks | the Incredible Bulk (She-Bulk: the gavel) |
+| size | shrinking and popping back, pym sparkles | Ant-Pan |
+| stretch | a bouncy spring that boings now and then | Plastic Pan, Mr Elastic Cheese |
+| phasing | the head goes see-through, its eyes still glowing | Martian Mozzarella |
+| the night | bats flitting past behind the head | Batpeel, the Dark Kneader |
+| nature | bubbles rising (Aqua-Toe), leaves falling (I Am Crust), spores and moss drips (Swamp Thin Crust), feathers (Hawkcrust) | |
+| sound | music notes rising off the headphones | Star-Lard |
+| fire and ice | embers rising (Ghost Roaster, the Scorch, who keep their fire looks); cold mist spilling and snowflakes (Ice Cream Man) | |
+| a rocket | the rocket's exhaust flickering, smoke puffs | Rocket Rucola |
+| glints | glints along the katanas, the tiara's stone, goggles, star visor, shields, sheens over polished metal | Deadpeel, Wonder Wedge, Cat-Toe-Woman, Booster Gouda, Captain Pizzeria, Silver Slicer and more |
+
+The **Endgame** variants keep their base hero's life and add a portal of sparks opening beside the head now and then (both sides on a smack) and a glint on the hex badge. The other variants build on their base (Prime's stronger heat and chrome sweep, Infinity's stones, Liberty's big shield catching the light, the Symbiote's tendrils, the Queen's crest glinting, the Dark Kneader's glowing lenses).
+
+**A smack** lands in the hero's style: an impact word bursts out (37 comic sounds of our own, lettered in the game's font in yellow with a thick ink stroke on a light burst bordered in the hero's colour: POW!, KRAK!, SHING!, BOING!, ORDER!, I AM CRUST! …; a tile plays only the short ones), plus the power's burst (gold, sparks, embers, leaves, cards, notes, goo, feathers, flakes, stars) and its own answer (beams, rings, slashes, a bolt, a web shot, a construct ring). In play the word comes at most every 2.4 s and not on every smack, so it doesn't crowd the table; it is drawn bigger there (1.75 times the tile's size), up and to the left of the head, away from the game's own floating text.
+
+**How it's built.** As the other crafted kinds: the rig is built in idle time and shared, one per peel per detail; the motion (`HeroLive`) is one per place it shows.
+
+- **Layers:** each moving part painted once per detail and cut down to what it paints. The surface covers a bigger box than the head's (`HERO_BOX`, the cape hangs below; crafted rigs can now say their box, `rigBox`), and the bracers move onto the handle.
+- **Each frame:** the layers drawn with their transforms (rows for the cape), and the effects drawn as vectors and gradients; what flies off is the crafted sprite pool, which gains the impact words, notes, leaves, bubbles, cards, goo and stars (`emit` can now pick a sprite's frame).
+- **The family glow** (`src/art/lookGlow.ts`) keeps its aura, motes and ribbon on the big preview and in play, but loses its rim glints and smack ring for living heroes (`heroGlow`).
+- **Look lab:** the Heroes family is now the living heroes.
+
+**Performance** (headless Chrome; the machine's load average was 4–8 with other apps running):
+
+- **Cursor peel in play**, swinging and smacking: the look's tick costs 0.18–0.41 ms a frame on average (p95 0.3–0.7 ms, max 1 ms) for Superpeel, Batpeel, Spider-Pan, Iron Pan Mark Infinity, Plastic Pan, Doctor Strangeloaf and Martian Mozzarella. Frame p95 17.2–17.9 ms, no frame over 50 ms.
+- **Locker, HEROES tab** (27 living tiles on screen): scrolled to the heroes (their thumbnails and rigs building): p95 20 ms, max 20.8 ms, no long tasks; scrolling the tab top to bottom and back, twice: p95 19.9–20.2 ms, max 21.3 ms, no long tasks.
+- **`F.contrast()` and `F.layout()`** report nothing on the HEROES tab, at desktop and at phone size (844 × 390).
+
+**Review fixes.** One independent visual review. What it raised and what changed:
+
+- **The impact word was too small in play and hard to read.** Every word now follows one rule: a light burst with the hero's colour only on its border, yellow letters in a thick ink stroke. On a tile only the short words (five letters or fewer) play, a quarter bigger; in play the word is 1.75 times the tile's size, held about 0.9 s, and bursts up and to the left of the head, away from the game's own floating text at the hit.
+- **Martian Mozzarella's phasing read as a rendering fault** (the whole head and cape at half strength, the handle showing through). Now only the head's fill ghosts a little, the cape and eyes stay, the outline is redrawn with a green shimmer, and it is back within 0.6 s.
+- **Spider-Pan's webs reached the tile's edges and looked cut off.** The strands are shorter (ending about 1.3 times the head's radius out) and each fades out at its free end. The Flashfoot's speed lines fade before the surface's edge too.
+- **The bats read as dirt.** They are bigger, fly in front low over the cape, and are dark silhouettes with a soft violet rim.
+- **Green Lampshade's smack ring was a thin hard circle.** It is three bands now, soft on both sides.
+- **Some heroes hardly moved at rest.** Capes get a gust every 2 to 3.5 s and a bigger wave (Superpeel and every caped hero); eyes blink more often and masks' lenses narrow more; spinning glyphs turn faster. Iron Pan's arc reactor, Ice Cream Man's snowflake, Night Wings' sticks, Cy-Pork's circuit and Dare-Dough's badge breathe with a bright beat every couple of seconds; Cyclopizza's visor pulses; Silver Slicer's and Captain Pizzeria's sheens come round more often; Dare-Dough's sonar is stronger; Ice Cream Man has frost sparkles and more snow.
+- **The Endgame variants were samey** (the same warm glow and orange flecks). The portals' haze is softer, and each has its own extra over its base: Captain Marvellous's and Star-Lard's orbiting lights, the Bulk's gamma rings, Black Window's bite crackling round the rim, Hawk-Eye's target rings, Black Pan-ther's violet kinetic arcs, Strangeloaf's green sparkles, Scarlet Pitch's extra wisps, Ant-Pan's quantum rings, the Wasp's stings round the rim, Rocket's sparks from the rocket, I Am Crust's sparkling leaves.
+- **Scarlet Pitch's pink haze read as smudged.** Its glow and the mandala's haze are halved. **Doctor Strangeloaf's mandala was faint in play:** its sparks are stronger and thicker.
+- **The locker captures showed the gods** (the locker kept its scroll). They are retaken with the HEROES section in view.
+
+**Where it stopped.** All 67 hero peels are done. Up next, in order:
+
+1. The gods (38) and the God Peel (P3): each god's own motion in the head itself (the gods' heads, `src/art/godHeads.ts`, are carved rather than built of parts; Zeus and Zeus, King Unbound already have their living lightning blade). The hero kind's effects (arcs, mandala, sparkles, embers, sheens, rings) are ready to reuse.
+2. Alongside: the foot peels' first-open warm-up on the ALL tab (batch 2), the Immortal's and Immortal Brute's living defs, and the fire looks' big-preview and in-play shapes (the Ruby Crown's, the Fire Opal's, and the Scorch's and Ghost Roaster's among them).

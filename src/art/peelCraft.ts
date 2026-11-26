@@ -19,6 +19,9 @@
 //   boss and number (src/art/peelMedal.ts, src/art/peelEventDefs.ts).
 // - gem (the jewellery box, its masterworks and the ultra-rares): cut stone, polished metal, pearl, opal or a galaxy
 //   under glass, its facets catching a moving light; a smack runs a ring of light through them (src/art/peelGem.ts).
+// - hero (the hero peels): no frame, the head is the hero, alive from its own parts (a billowing cape, blinking eyes,
+//   an emblem that spins or beats, the hero's power round the head) and answering a smack with an impact word and
+//   its power's burst (src/art/peelHero.ts). Its surface covers a bigger box than the head's (the cape hangs below).
 //
 // It is built as the living foot peels are (src/art/peelLive.ts): the rig (CraftRig: the head's layers, cut to the
 // head's box, and the handle) is built a step at a time in idle time and shared; the motion (CraftLive) is one per
@@ -60,6 +63,8 @@ import { pizzaPeelLook } from '../game/peels';
 import { MedalLive, actPrepAsync, actReady, medalMiniSteps, medalOver, medalUnder, type MedalMini, type MedalSpr } from './peelMedal';
 import { PIZZA_BY_ID } from '../data/pizzas';
 import { GemLive, gemMiniSteps, gemOver, gemUnder, type GemMini, type GemMote } from './peelGem';
+import { HERO_BOX, HERO_FEEL, HeroLive, WORDS, WORD_H, WORD_W, drawBubble, drawCard, drawLeaf, drawNote, drawStar, drawWord, heroMiniSteps, type HeroMini, type HeroSpr } from './peelHero';
+import { heroArtOf, heroHandleExtras } from './heroHeads';
 
 const { x: HX, y: HY, r: R } = PEEL_HEAD;
 
@@ -97,8 +102,15 @@ export interface CraftRig {
   medal: MedalMini | null;
   /** A gem peel: its stone's geometry and moving layers (src/art/peelGem.ts). */
   gem?: GemMini | null;
+  /** A hero peel: its parts on layers (src/art/peelHero.ts). */
+  hero?: HeroMini | null;
+  /** The box its surface covers (peel units), when not the head's (SB). */
+  box?: { x: number; y: number; w: number; h: number };
   key: string;
 }
+
+/** The box a rig's surface covers. */
+export const rigBox = (rig: CraftRig) => rig.box ?? SB;
 
 /** The handle every pizza peel shares, per rig detail. */
 const pizzaHandles = new Map<number, HTMLCanvasElement>();
@@ -134,6 +146,21 @@ function boxLayer(RR: number, draw: (ctx: Ctx) => void): HTMLCanvasElement {
 
 function* rigSteps(peelId: string, kind: CraftKind, RR: number): Generator<void, CraftRig | null> {
   if (kind === 'pizza') return yield* pizzaRigSteps(peelId, RR);
+  if (kind === 'hero') {
+    // a hero peel: the handle as its still has it (and the bracers on it), the head's parts on layers of their own
+    const look = PEEL_BY_ID[peelId].look();
+    const art = heroArtOf(peelId);
+    if (!art) return null;
+    const [handle, hctx] = makeCanvas(PEEL_W * RR, PEEL_H * RR);
+    hctx.scale(RR, RR);
+    drawPeelHandle(hctx, look);
+    heroHandleExtras(hctx, art);
+    yield;
+    const hero = yield* heroMiniSteps(peelId, RR);
+    if (!hero) return null;
+    const key = `pc_${peelId.replace(/[^a-z0-9]/gi, '_')}_${RR}`;
+    return { id: peelId, kind, look, RR, handle, under: EMPTY, over: EMPTY, inner: EMPTY, reflect: null, lit: null, lit2: null, place: null, pizza: null, medal: null, hero, box: HERO_BOX, key };
+  }
   const look = PEEL_BY_ID[peelId].look();
   if (!look.craft) return null;
   const [handle, hctx] = makeCanvas(PEEL_W * RR, PEEL_H * RR);
@@ -290,6 +317,11 @@ export function requestCraftRig(peelId: string, done: (r: CraftRig | null) => vo
     void actPrepAsync(act).then(() => wanted() && requestCraftRig(peelId, done, wanted, urgent, RR));
     return;
   }
+  // a hero's impact words want the game's comic font
+  if (kind === 'hero' && !wordFontReady()) {
+    void loadWordFont().then(() => wanted() && requestCraftRig(peelId, done, wanted, urgent, RR));
+    return;
+  }
   let job = jobs.find((j) => j.key === key);
   if (!job) {
     job = { key, gen: rigSteps(peelId, kind, RR), waiters: [] };
@@ -364,7 +396,48 @@ export const enum Spr {
   Ruby,
   White,
   GoldFeather,
+  // the hero peels' (src/art/peelHero.ts)
+  Word,
+  Note,
+  Leaf,
+  Bubble,
+  Card,
+  Goo,
+  Star,
 }
+
+/** A hero's names for the sprites it throws. */
+const HERO_SPR: Record<HeroSpr, Spr> = {
+  word: Spr.Word,
+  note: Spr.Note,
+  leaf: Spr.Leaf,
+  bubble: Spr.Bubble,
+  card: Spr.Card,
+  goo: Spr.Goo,
+  star: Spr.Star,
+  spark: Spr.SparkC,
+  sparkN: Spr.SparkN,
+  sparkB: Spr.SparkB,
+  sparkG: Spr.SparkG,
+  sparkV: Spr.SparkV,
+  ember: Spr.Ember,
+  gold: Spr.Gold,
+  glint: Spr.Glint,
+  flake: Spr.Flake,
+  mist: Spr.Mist,
+  smoke: Spr.Smoke,
+  drop: Spr.Drop,
+  feather: Spr.Feather,
+  ruby: Spr.Ruby,
+  white: Spr.White,
+  confetti: Spr.Confetti,
+  crumb: Spr.Crumb,
+  dust: Spr.Dust,
+};
+
+const WORD_FONT = `24px 'Lilita One'`;
+const wordFontReady = () => typeof document === 'undefined' || !document.fonts || document.fonts.check(WORD_FONT);
+const loadWordFont = () => (typeof document !== 'undefined' && document.fonts ? document.fonts.load(WORD_FONT).catch(() => null) : Promise.resolve(null));
 
 /** A gem's names for the sprites it throws. */
 const GEM_SPR: Record<GemMote | 'glint' | 'feather', Spr> = {
@@ -720,6 +793,13 @@ const SPR: Record<Spr, SprDef> = {
   [Spr.Ruby]: { w: 24, h: 24, n: 1, anim: false, draw: mote('#ff2a5a', '#fff0f4') },
   [Spr.White]: { w: 24, h: 24, n: 1, anim: false, draw: mote('#b8d8ff', '#ffffff') },
   [Spr.GoldFeather]: { w: 24, h: 24, n: 2, anim: false, draw: goldFeather },
+  [Spr.Word]: { w: WORD_W, h: WORD_H, n: WORDS.length, anim: false, draw: drawWord },
+  [Spr.Note]: { w: 24, h: 24, n: 2, anim: false, draw: drawNote },
+  [Spr.Leaf]: { w: 24, h: 24, n: 2, anim: false, draw: drawLeaf },
+  [Spr.Bubble]: { w: 24, h: 24, n: 1, anim: false, draw: drawBubble },
+  [Spr.Card]: { w: 24, h: 28, n: 2, anim: false, draw: drawCard },
+  [Spr.Goo]: { w: 24, h: 24, n: 3, anim: false, draw: blob(['#05050a', '#1c1c2a', '#8a8ad8']) },
+  [Spr.Star]: { w: 24, h: 24, n: 4, anim: false, draw: drawStar },
 };
 
 /** A small golden feather: a gold vane, lit on its top, a darker quill. */
@@ -949,7 +1029,7 @@ function confetti(ctx: Ctx, i: number): void {
 let sprites: HTMLCanvasElement[][] | null = null;
 /** Every sprite's frames, painted once. */
 export function craftSprites(): HTMLCanvasElement[][] {
-  if (!sprites)
+  if (!sprites) {
     sprites = (Object.keys(SPR) as unknown as Spr[]).map((k) => {
       const d = SPR[k];
       return Array.from({ length: d.n }, (_, i) => {
@@ -958,6 +1038,18 @@ export function craftSprites(): HTMLCanvasElement[][] {
         return c;
       });
     });
+    // the impact words were lettered before the comic font came: letter them again when it does
+    if (!wordFontReady()) {
+      const words = sprites[Spr.Word];
+      void loadWordFont().then(() =>
+        words.forEach((c, i) => {
+          const ctx = c.getContext('2d')!;
+          ctx.clearRect(0, 0, c.width, c.height);
+          drawWord(ctx, i);
+        }),
+      );
+    }
+  }
   return sprites;
 }
 export const sprDef = (s: Spr): { w: number; h: number; n: number; anim: boolean; streak?: boolean } => SPR[s];
@@ -1025,6 +1117,8 @@ const FEEL: Record<CraftKind, { squash: number; k: number; c: number; wob: numbe
   act: { squash: 0.035, k: 800, c: 24, wob: 0.012, shake: 1.6, vib: 0, sway: 0.25, wk: 320, wc: 22 },
   // a jewel: hard and heavy, it barely gives; it chimes (a quick hum)
   gem: { squash: 0.03, k: 950, c: 26, wob: 0.01, shake: 0.9, vib: 0.018, sway: 0.2, wk: 340, wc: 24 },
+  // a hero: a lively spring (stretchy heroes boing: their spec's feel)
+  hero: HERO_FEEL,
 };
 
 const reduced = () => !!save.settings.reducedMotion;
@@ -1124,14 +1218,23 @@ export class CraftLive {
   readonly medal: MedalLive | null;
   /** A gem peel's stone. */
   readonly gem: GemLive | null;
+  /** A hero peel's hero. */
+  readonly hero: HeroLive | null;
 
   constructor(
     readonly rig: CraftRig,
     readonly world: PeelWorld = PEEL_FRAME_WORLD,
     readonly menu = world === PEEL_FRAME_WORLD,
   ) {
-    [this.surface, this.sctx] = makeCanvas(SB.w * rig.RR, SB.h * rig.RR);
-    this.feel = FEEL[rig.kind];
+    const box = rigBox(rig);
+    [this.surface, this.sctx] = makeCanvas(Math.ceil(box.w * rig.RR), Math.ceil(box.h * rig.RR));
+    this.feel = rig.hero?.spec.feel ? { ...FEEL[rig.kind], ...rig.hero.spec.feel } : FEEL[rig.kind];
+    this.hero = rig.hero ? new HeroLive(rig.hero) : null;
+    if (this.hero) {
+      this.hero.menu = this.menu;
+      this.hero.emit = (spr, lx, ly, vx, vy, s0, s1, life, o) => this.emit(HERO_SPR[spr], lx, ly, vx, vy, s0, s1, life, o);
+      this.glows = this.hero.glows;
+    }
     this.place = rig.place ? new PlaceLive(rig.place) : null;
     this.pizza = rig.pizza ? new PizzaLive(rig.pizza) : null;
     this.medal = rig.medal ? new MedalLive(rig.medal) : null;
@@ -1170,7 +1273,7 @@ export class CraftLive {
 
   /** Shed a sprite from (lx, ly) in the peel's frame, moving (lvx, lvy) peel units/s in it; sizes in peel units,
    *  gravity in world units/s² (down the screen, whichever way the peel leans). */
-  private emit(spr: Spr, lx: number, ly: number, lvx: number, lvy: number, s0: number, s1: number, life: number, o: { grav?: number; drag?: number; a?: number; fin?: number; spin?: number; rot?: number } = {}): void {
+  private emit(spr: Spr, lx: number, ly: number, lvx: number, lvy: number, s0: number, s1: number, life: number, o: { grav?: number; drag?: number; a?: number; fin?: number; spin?: number; rot?: number; frame?: number } = {}): void {
     const b = this.bits;
     const i = b.next;
     b.next = (i + 1) % b.n;
@@ -1193,7 +1296,7 @@ export class CraftLive {
     b.a[i] = o.a ?? 1;
     b.fin[i] = o.fin ?? 0.08;
     b.spr[i] = spr;
-    b.frame[i] = Math.floor(crand() * SPR[spr].n);
+    b.frame[i] = o.frame ?? Math.floor(crand() * SPR[spr].n);
   }
 
   /** A point on the head's rim (angle in radians, 0 = right, +π/2 = down), pulled in a little. */
@@ -1278,6 +1381,9 @@ export class CraftLive {
       case 'gem':
         this.gem?.smack();
         break;
+      case 'hero':
+        this.hero?.smack();
+        break;
       case 'obsidian': {
         for (let i = 0; i < Math.round(6 * n); i++) {
           const a = crand() * Math.PI * 2;
@@ -1357,6 +1463,14 @@ export class CraftLive {
         break;
       case 'gem':
         this.gem?.update(dt, vx);
+        break;
+      case 'hero':
+        if (this.hero) {
+          this.hero.update(dt, vx, vy);
+          // a stretchy hero's boing
+          this.qv += this.hero.kickQ;
+          this.hero.kickQ = 0;
+        }
         break;
     }
     this.bits.tick(dt);
@@ -1507,6 +1621,16 @@ export class CraftLive {
     c.globalAlpha = 1;
     c.globalCompositeOperation = 'source-over';
     c.clearRect(0, 0, this.surface.width, this.surface.height);
+    if (this.hero) {
+      // a hero peel: the hero alive, every part (it covers its own box)
+      const b = rigBox(rig);
+      c.setTransform(RR, 0, 0, RR, -b.x * RR, -b.y * RR);
+      this.hero.draw(c);
+      c.setTransform(1, 0, 0, 1, 0, 0);
+      c.globalAlpha = 1;
+      c.globalCompositeOperation = 'source-over';
+      return;
+    }
     c.drawImage(rig.under, 0, 0);
     if (this.pizza) {
       // a pizza peel: the board, then the pie and all on it (it keeps itself where it belongs: no mask)
@@ -1913,7 +2037,8 @@ export function drawCraftLive(ctx: Ctx, live: CraftLive): void {
   ctx.rotate(live.rot);
   ctx.scale(live.sx, live.sy);
   ctx.translate(-PIVOT.x, -PIVOT.y);
-  ctx.drawImage(live.surface, SB.x, SB.y, SB.w, SB.h);
+  const box = rigBox(rig);
+  ctx.drawImage(live.surface, box.x, box.y, live.surface.width / rig.RR, live.surface.height / rig.RR);
   ctx.restore();
   ctx.imageSmoothingQuality = q;
   drawCraftBits(ctx, live, true);

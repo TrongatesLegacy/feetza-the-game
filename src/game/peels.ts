@@ -33,6 +33,7 @@ import PEEL_VERSION from 'virtual:peel-version';
 import { PIZZAS, type PizzaType } from '../data/pizzas';
 import type { EventId } from './events';
 import { HERO_PEELS, type HeroSub } from '../content/heroPeels';
+import { heroSpecOf } from '../art/peelHero';
 import { goalProgress, heatHow } from './heroGoals';
 import { godPeelLook } from '../art/godHeads';
 import { NEMESES, nemesisOf, nemesisWaves } from './nemesis';
@@ -479,6 +480,8 @@ const ULTRA: [string, string, EventId, number, Plain][] = [
 // the jewellery box and the ultra-rares: cut stone, polished metal, pearl, opal, a galaxy under glass (src/art/peelGem.ts)
 for (const [id] of JEWELS) CRAFT[id] = 'gem';
 for (const [id] of ULTRA) CRAFT[`ultra:${id}`] = 'gem';
+// the hero peels: the hero alive, from its costume's parts (src/art/peelHero.ts)
+for (const hp of HERO_PEELS) if (heroSpecOf(hp.id)) CRAFT[hp.id] = 'hero';
 /** A jewel's look: painted as its stone or metal. */
 const jewelLook = (id: string, jewel: string, p: Plain) => () => crafted({ ...plain(id, p, true)(), craft: 'gem', jewel });
 

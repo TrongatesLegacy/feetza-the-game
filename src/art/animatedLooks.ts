@@ -700,6 +700,12 @@ function gemGlow(id: string, st: GlowStyle): GlowStyle {
   return craftOf(id) === 'gem' ? { ...st, auraA: st.auraA * 0.7, noRing: true, bits: st.bits.filter((b) => b.where !== 'head') } : st;
 }
 
+/** A living hero peel (src/art/peelHero.ts) keeps its family's aura, motes and ribbon, but its power plays on the head
+ *  itself: the glow's rim glints go, and its smack ring (the hero answers a smack with its own impact word and burst). */
+function heroGlow(id: string, st: GlowStyle): GlowStyle {
+  return craftOf(id) === 'hero' ? { ...st, noRing: true, bits: st.bits.filter((b) => b.where !== 'rim') } : st;
+}
+
 const built = new Map<string, AnimatedLook | null>();
 /** A peel's animated look: a hand-made one (Zeus), a fire (lookFire.ts), or its family's glow (lookGlow.ts). */
 function lookOf(id: string): AnimatedLook | null {
@@ -717,7 +723,7 @@ function lookOf(id: string): AnimatedLook | null {
     } else if (d.ultra) out = glowLook(gemGlow(id, ultraStyle(id, d.look())), true);
     else if (d.group === 'jewel') out = glowLook(gemGlow(id, jewelStyle(d.look())), false);
     else if (d.group === 'master') out = glowLook(gemGlow(id, masterStyle(d.look())), false);
-    else if (d.group === 'hero') out = glowLook(heroStyle(d.look()), false);
+    else if (d.group === 'hero') out = glowLook(heroGlow(id, heroStyle(d.look())), false);
   }
   built.set(id, out);
   return out;

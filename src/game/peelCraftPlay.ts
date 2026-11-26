@@ -6,8 +6,8 @@
 
 import Phaser from 'phaser';
 import { PEEL_H, PEEL_W } from '../art/peelArt';
-import { PIVOT, SB } from '../art/peelCraftArt';
-import { CraftLive, SPR_COUNT, craftSprites, hasPeelCraft, requestCraftRig, sprDef, type CraftRig, type Spr } from '../art/peelCraft';
+import { PIVOT } from '../art/peelCraftArt';
+import { CraftLive, SPR_COUNT, craftSprites, hasPeelCraft, requestCraftRig, rigBox, sprDef, type CraftRig, type Spr } from '../art/peelCraft';
 import type { PeelWorld } from '../art/peelLive';
 import type { LookFx, LookHost } from '../art/lookKit';
 import { makeCanvas } from '../art/util';
@@ -115,9 +115,10 @@ export function playPeelCraft(id: string, h: LookHost): LookFx | null {
     t.clear();
     t.beginDraw();
     t.stamp(handleKey, undefined, 0, 0, { originX: 0, originY: 0, scale: 1 / r.RR, skipBatch: true });
+    const box = rigBox(r);
     t.stamp(SURF_KEY, undefined, PIVOT.x + L.dx, PIVOT.y + L.dy, {
-      originX: (PIVOT.x - SB.x) / SB.w,
-      originY: (PIVOT.y - SB.y) / SB.h,
+      originX: (PIVOT.x - box.x) / (L.surface.width / r.RR),
+      originY: (PIVOT.y - box.y) / (L.surface.height / r.RR),
       scaleX: L.sx / r.RR,
       scaleY: L.sy / r.RR,
       rotation: L.rot,

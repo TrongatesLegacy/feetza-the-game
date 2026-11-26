@@ -59,8 +59,13 @@ export interface HeroArt {
   detail?: (ctx: Ctx) => void;
 }
 
+/** Every hero's art, by peel id (heroLook registers it): the living hero peels (src/art/peelHero.ts) paint its parts. */
+const ARTS = new Map<string, HeroArt>();
+export const heroArtOf = (id: string): HeroArt | undefined => ARTS.get(id);
+
 /** A hero's PeelLook: the usual fields (trail, handle, foil) plus the hand-drawn head. */
 export function heroLook(id: string, a: HeroArt): () => PeelLook {
+  ARTS.set(id, a);
   return () => ({
     shape: a.shape ?? 'round',
     head: headFrom(a.suit),
@@ -162,14 +167,87 @@ const EYE_Y = FY - 4;
 const EYE_DX = 24;
 const EMB_Y = HY + 58;
 
-// ——— the head ———
+// ——— the head, whole or a part at a time ———
+
+/** The parts a living hero peel (src/art/peelHero.ts) paints on layers of their own, to move them: the glow behind,
+ *  the tail, the cape, the ears behind the head, the eyes, the emblem's glyph, what sits on top (hats, crowns, gods'
+ *  and variants' detail), the ears in front; 'head' is everything else. */
+export type HeroPart = 'glow' | 'tail' | 'cape' | 'earsB' | 'eyes' | 'glyph' | 'top' | 'earsF' | 'head';
+let only: HeroPart | null = null;
+let apart: ReadonlySet<HeroPart> = new Set();
+/** Is this part drawn now: always for the whole head; else when it's the part asked for, or (for the head) when the
+ *  part isn't on a layer of its own. */
+const want = (p: HeroPart) => only === null || only === p || (only === 'head' && !apart.has(p));
+
+/** Paint one part of a hero's head (`apart`: the parts painted on layers of their own, left out of 'head'). The
+ *  parts drawn one over another in the order of HeroPart's list (eyes, glyph and top over the head) make the whole
+ *  head, but for the bracers, which go on the handle (heroHandleExtras). */
+export function drawHeroPart(ctx: Ctx, a: HeroArt, id: string, part: HeroPart, separate: ReadonlySet<HeroPart>): void {
+  only = part;
+  apart = separate;
+  try {
+    if (part === 'eyes') heroEyes(ctx, a);
+    else if (part === 'glyph') {
+      if (a.emblem) emblem(ctx, a.emblem, a.emblemColor ?? '#ffffff', a.emblemBg ?? shade(a.suit, -0.25), !!a.fine, 'glyph');
+    } else drawHeroHead(ctx, a, id);
+  } finally {
+    only = null;
+    apart = new Set();
+  }
+}
+
+/** The handle's extras (the bracers), for a living hero peel's handle. */
+export function heroHandleExtras(ctx: Ctx, a: HeroArt): void {
+  if (a.extras?.includes('bracers')) bracers(ctx);
+}
+
+/** The eyes alone, inside the head, with the hair that falls over them cut back out. */
+function heroEyes(ctx: Ctx, a: HeroArt): void {
+  ctx.save();
+  headPath(ctx, a.shape ?? 'round');
+  ctx.clip();
+  eyes(ctx, a.eyes ?? 'friendly', a.eyeColor ?? '#ffffff', a);
+  if (a.hair && a.hairStyle) {
+    ctx.globalCompositeOperation = 'destination-out';
+    hair(ctx, a.hairStyle, a.hair, a.mask ?? 'open');
+  }
+  ctx.restore();
+}
+
+/** The suit's pattern again in a bright colour, inside the head, with the face, hair and emblem cut back out: what a
+ *  living hero peel lights in a wave (Black Pan-ther's plates, the Bulk's cracks, the embers). */
+export function heroPatternLit(ctx: Ctx, a: HeroArt, id: string, col: string): void {
+  if (!a.pattern) return;
+  const shape = a.shape ?? 'round';
+  ctx.save();
+  headPath(ctx, shape);
+  ctx.clip();
+  pattern(ctx, a.pattern, col, rng(hashStr(id)));
+  ctx.globalCompositeOperation = 'destination-out';
+  only = 'head';
+  apart = new Set(['eyes']);
+  try {
+    face(ctx, a, a.mask ?? 'open', new Set(a.extras ?? []));
+    if (a.hair && a.hairStyle) hair(ctx, a.hairStyle, a.hair, a.mask ?? 'open');
+  } finally {
+    only = null;
+    apart = new Set();
+  }
+  if (a.emblem) {
+    circle(ctx, HX, EMB_Y, 24);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
 function drawHeroHead(ctx: Ctx, a: HeroArt, id: string): void {
   const r = rng(hashStr(id));
   const shape = a.shape ?? 'round';
   const ex = new Set(a.extras ?? []);
   const mask = a.mask ?? 'open';
+  const head = want('head');
   // behind the head: glow, cape, tail, swords, collar, ears
-  if (a.glow) {
+  if (a.glow && want('glow')) {
     ctx.save();
     ctx.shadowColor = a.glow;
     ctx.shadowBlur = 26;
@@ -178,12 +256,38 @@ function drawHeroHead(ctx: Ctx, a: HeroArt, id: string): void {
     ctx.fill();
     ctx.restore();
   }
-  if (ex.has('tail')) tail(ctx, a.earColor ?? a.suit);
-  if (a.cape) cape(ctx, a.cape, a.capeTrim, !!a.fine, a.extras?.includes('highCollar'));
-  if (ex.has('katanas')) katanas(ctx);
-  if (a.ears) ears(ctx, a.ears, a.earColor ?? a.suit, false);
+  if (ex.has('tail') && want('tail')) tail(ctx, a.earColor ?? a.suit);
+  if (a.cape && want('cape')) cape(ctx, a.cape, a.capeTrim, !!a.fine, a.extras?.includes('highCollar'), a.fine && id === 'hero:batpeel');
+  if (ex.has('katanas') && head) katanas(ctx);
+  if (a.ears && want('earsB')) ears(ctx, a.ears, a.earColor ?? a.suit, false);
+  if (head) headBody(ctx, a, r, shape, ex, mask);
+  // ears that sit in front of the outline
+  if ((a.ears === 'flames' || a.ears === 'leaves') && want('earsF')) ears(ctx, a.ears, a.earColor ?? a.suit, true);
+  if (head) {
+    headPath(ctx, shape);
+    ink(ctx, 6);
+    shine(ctx, HX - 32, HY - 44, 24, 11, a.metal ? 0.5 : 0.32);
+  }
+  // on top: hats, tiaras, headphones
+  if (!want('top')) return;
+  if (ex.has('tiara')) tiara(ctx);
+  if (ex.has('crownSpikes')) crownSpikes(ctx, a.suit);
+  if (ex.has('headphones')) headphones(ctx);
+  if (ex.has('goggles')) foreheadGoggles(ctx);
+  if (ex.has('cap')) cap(ctx);
+  if (ex.has('topHat')) topHat(ctx);
+  if (ex.has('chefHat')) chefHat(ctx);
+  if (ex.has('softServe')) softServe(ctx);
+  if (ex.has('antennaeSmall')) antennae(ctx, '#1a1418', 0.7);
+  // (a living peel draws the bracers on its handle)
+  if (ex.has('bracers') && only === null) bracers(ctx);
+  if (a.emblem && only !== null && apart.has('glyph')) badgeSheen(ctx);
+  if (a.fine) fineDetail(ctx, id, a);
+  a.detail?.(ctx);
+}
 
-  // the head itself
+/** The head itself: the suit, its pattern, the face, hair, chest and emblem, the rim light. */
+function headBody(ctx: Ctx, a: HeroArt, r: () => number, shape: PeelShape, ex: Set<ExtraKind>, mask: MaskKind): void {
   headPath(ctx, shape);
   ctx.fillStyle = lit(ctx, HX, HY, R, a.suit);
   ctx.fill();
@@ -226,7 +330,7 @@ function drawHeroHead(ctx: Ctx, a: HeroArt, id: string): void {
   if (ex.has('moss')) moss(ctx, r);
   if (ex.has('rivets')) rivets(ctx);
   if (ex.has('stretchBands')) stretchBands(ctx);
-  if (a.emblem) emblem(ctx, a.emblem, a.emblemColor ?? '#ffffff', a.emblemBg ?? shade(a.suit, -0.25), !!a.fine);
+  if (a.emblem) emblem(ctx, a.emblem, a.emblemColor ?? '#ffffff', a.emblemBg ?? shade(a.suit, -0.25), !!a.fine, apart.has('glyph') && only === 'head' ? 'badge' : 'all');
   // a soft rim light down the right side, then the sheen
   const rim = ctx.createLinearGradient(HX + R * 0.4, 0, HX + R, 0);
   rim.addColorStop(0, 'rgba(255,255,255,0)');
@@ -234,28 +338,10 @@ function drawHeroHead(ctx: Ctx, a: HeroArt, id: string): void {
   ctx.fillStyle = rim;
   ctx.fillRect(HX, HY - R - 10, R + 10, R * 2 + 30);
   ctx.restore();
-  // ears that sit in front of the outline
-  if (a.ears === 'flames' || a.ears === 'leaves') ears(ctx, a.ears, a.earColor ?? a.suit, true);
-  headPath(ctx, shape);
-  ink(ctx, 6);
-  shine(ctx, HX - 32, HY - 44, 24, 11, a.metal ? 0.5 : 0.32);
-  // on top: hats, tiaras, headphones
-  if (ex.has('tiara')) tiara(ctx);
-  if (ex.has('crownSpikes')) crownSpikes(ctx, a.suit);
-  if (ex.has('headphones')) headphones(ctx);
-  if (ex.has('goggles')) foreheadGoggles(ctx);
-  if (ex.has('cap')) cap(ctx);
-  if (ex.has('topHat')) topHat(ctx);
-  if (ex.has('chefHat')) chefHat(ctx);
-  if (ex.has('softServe')) softServe(ctx);
-  if (ex.has('antennaeSmall')) antennae(ctx, '#1a1418', 0.7);
-  if (ex.has('bracers')) bracers(ctx);
-  if (a.fine) fineDetail(ctx, id, a);
-  a.detail?.(ctx);
 }
 
 // ——— behind the head ———
-function cape(ctx: Ctx, col: string, trim: string | undefined, fine: boolean, collar = false): void {
+function cape(ctx: Ctx, col: string, trim: string | undefined, fine: boolean, collar = false, scallops = false): void {
   const top = HY - 10;
   const bot = HY + 132;
   ctx.beginPath();
@@ -303,6 +389,16 @@ function cape(ctx: Ctx, col: string, trim: string | undefined, fine: boolean, co
     ctx.stroke();
   }
   ctx.restore();
+  if (scallops) {
+    // a scalloped hem (Batpeel's)
+    for (let i = 0; i < 6; i++) {
+      const x = HX - 100 + i * 40;
+      ctx.beginPath();
+      ctx.arc(x + 20, HY + 136, 20, 0, Math.PI);
+      ctx.fillStyle = rgba('#000000', 0.18);
+      ctx.fill();
+    }
+  }
   if (collar) {
     for (const s of [-1, 1]) {
       ctx.beginPath();
@@ -923,7 +1019,7 @@ function face(ctx: Ctx, a: HeroArt, mask: MaskKind, ex: Set<ExtraKind>): void {
     ctx.quadraticCurveTo(FX, EYE_Y - 20, FX - 54, EYE_Y - 12);
     fillInk(ctx, shade(a.suit, -0.25), 3);
   }
-  eyes(ctx, a.eyes ?? 'friendly', eyeC, a);
+  if (want('eyes')) eyes(ctx, a.eyes ?? 'friendly', eyeC, a);
   // mouths and jaw extras
   if (ex.has('grimace')) grimace(ctx);
   if (ex.has('smile')) smile(ctx, FY + 26);
@@ -1537,7 +1633,24 @@ function bracers(ctx: Ctx): void {
 }
 
 // ——— emblems: our own badges, never a real hero's logo ———
-function emblem(ctx: Ctx, kind: EmblemKind, col: string, bg: string, fine: boolean): void {
+function emblem(ctx: Ctx, kind: EmblemKind, col: string, bg: string, fine: boolean, part: 'all' | 'badge' | 'glyph' = 'all'): void {
+  const x = HX;
+  const y = EMB_Y;
+  const rr = 22;
+  if (part !== 'glyph') emblemBadge(ctx, bg, fine);
+  if (part === 'badge') return;
+  ctx.save();
+  circle(ctx, x, y, rr - 2);
+  ctx.clip();
+  emblemGlyph(ctx, kind, col, bg);
+  ctx.restore();
+  // the badge's own little sheen (over a glyph on a layer of its own, the sheen goes on the top layer: it stays put)
+  if (part === 'all') badgeSheen(ctx);
+}
+
+const badgeSheen = (ctx: Ctx) => shine(ctx, HX - 7, EMB_Y - 9, 7, 3.5, 0.45);
+
+function emblemBadge(ctx: Ctx, bg: string, fine: boolean): void {
   const x = HX;
   const y = EMB_Y;
   const rr = 22;
@@ -1551,9 +1664,11 @@ function emblem(ctx: Ctx, kind: EmblemKind, col: string, bg: string, fine: boole
     circle(ctx, x, y, rr - 4);
     ink(ctx, 1.5, rgba('#ffffff', 0.45));
   }
-  ctx.save();
-  circle(ctx, x, y, rr - 2);
-  ctx.clip();
+}
+
+function emblemGlyph(ctx: Ctx, kind: EmblemKind, col: string, bg: string): void {
+  const x = HX;
+  const y = EMB_Y;
   const c = col;
   const glyph = (lw = 2.5) => fillInk(ctx, lit(ctx, x, y, 16, c, 0.4), lw);
   switch (kind) {
@@ -1985,9 +2100,6 @@ function emblem(ctx: Ctx, kind: EmblemKind, col: string, bg: string, fine: boole
       glyph(1.5);
       break;
   }
-  ctx.restore();
-  // the badge's own little sheen
-  shine(ctx, x - 7, y - 9, 7, 3.5, 0.45);
 }
 
 // ——— the headline heroes get extra care ———
@@ -2039,14 +2151,6 @@ function fineDetail(ctx: Ctx, id: string, a: HeroArt): void {
       ctx.moveTo(HX + s * 46, HY - 76);
       ctx.lineTo(HX + s * 54, HY - 92);
       ink(ctx, 2, rgba('#ffffff', 0.35));
-    }
-    // a scalloped cape hem
-    for (let i = 0; i < 6; i++) {
-      const x = HX - 100 + i * 40;
-      ctx.beginPath();
-      ctx.arc(x + 20, HY + 136, 20, 0, Math.PI);
-      ctx.fillStyle = rgba('#000000', 0.18);
-      ctx.fill();
     }
   }
 }
