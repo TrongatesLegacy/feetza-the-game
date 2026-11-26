@@ -14,6 +14,7 @@ How a peel can look today:
 - **medallion** (new in batch 4, two crafted kinds, `event` and `act`): a round window set into the head behind a bezel and glass, the wave event in miniature or the act's places, number and boss alive in it (`src/art/peelMedal.ts`, `src/art/peelEventDefs.ts`).
 - **gem** (new in batch 5, a crafted kind): the head is the stone or metal the peel is named for, in a polished setting, its facets catching a moving light (`src/art/peelGem.ts`).
 - **hero** (new in batch 6, a crafted kind): no frame; the head is the hero, alive from its costume's own parts (cape, ears, eyes, emblem) with its power playing on and round it (`src/art/peelHero.ts`).
+- **god** (new in batch 7, a crafted kind): no frame; the head is the god's symbol (or helm, or the God Peel's sun), alive from its own parts (wings, strings, a hammer, a train of feathers, a crest, a cloak, a sail), its gold or runes catching the light and its domain round it (`src/art/peelGod.ts`).
 
 Priorities: **P1** the most seen (everyone's first peel, the first peels bought, what most players own early); **P2** owned early or often by most players, still a still today; **P3** rare or late, or already animated (a glow or a fire) and wanting a signature motion of its own.
 
@@ -33,8 +34,8 @@ Priorities: **P1** the most seen (everyone's first peel, the first peels bought,
 | Event shinies | 8 | still → **as their events, with foil (batch 4)** | rare drops (1 in 40) | done with the events |
 | Ultra-rares | 8 | glow (Fire Opal: fire) → **their stone or metal alive inside their aura (batch 5)**; Fire Opal keeps its fire | extremely rare | **P3, done** |
 | Heroes | 67 | glow (2 fire), preview only → **the hero alive from its own parts, its power round the head (batch 6)**; the two fire heroes keep their fire | goals across the game | **P3, done** |
-| Gods (Greek 22, Norse 16) | 38 | element glow (Zeus hand-made lightning; Hestia, Hephaestus fire) | goals across the late game | P3 |
-| The God Peel | 1 | gold halo, rays, prism trail | the final trophy | P3 |
+| Gods (Greek 22, Norse 16) | 38 | element glow (Zeus hand-made lightning; Hestia, Hephaestus fire) → **the symbol alive from its own parts, its domain round it (batch 7)**; both Zeuses keep their living blade, Hestia and Hephaestus their fire | goals across the late game | **P3, done** |
+| The God Peel | 1 | gold halo, rays, prism trail → **its halo, sunburst, rays and crown of tiny peels alive, a ring of light, a prism sweep (batch 7)**, inside its halo, rays and prism trail | the final trophy | **P3, done** |
 | Feet | 134 | living (Lava, Fireside, Hyperion also fire) | very often: the first kill goals | done (the Immortal: see below) |
 | Bosses and mini-bosses | 49 | living (Surtr also fire) | often | done (the Immortal Brute: see below) |
 | Shiny feet | 134 | living, foil twinkles | rare | done |
@@ -96,9 +97,11 @@ Done in batch 5, all 24 (below).
 
 Earned by hero goals across the game. Today a tight glow in the suit's colours, a ribbon and star glints, shown only on the big preview. Each wants a signature motion of its own: a cape that moves (a sway part, as the foot peels' parts do), an emblem that lights, the hero's power (frost breath, webbing, a shield's ring). The hero heads (`src/art/heroHeads.ts`) are drawn in parts already, so a rig like the foot peels' (parts on springs, a glow layer) fits; group them by power family so motions are shared.
 
-### Gods (38) and the God Peel (1): P3
+### Gods (38) and the God Peel (1): batch 7, done
 
 The most animated group already: each god's element as a glow (Poseidon's droplets, Hades's smoke, Thor's flicks), Zeus's hand-made lightning blade, and the God Peel's halo, rays and prismatic trail. What's missing is the god's own signature motion in the head itself (the symbol carved in gold relief catching light, the runes of the Norse peels lighting in sequence, Odin's eye opening, Mjolnir's sparks crawling the iron). P3 because they're late and already move; worth doing after the places, pizzas and events.
+
+Done in batch 7 (below).
 
 ### Feet, bosses, shiny and zombified feet (435): done
 
@@ -450,5 +453,80 @@ The **Endgame** variants keep their base hero's life and add a portal of sparks 
 
 **Where it stopped.** All 67 hero peels are done. Up next, in order:
 
-1. The gods (38) and the God Peel (P3): each god's own motion in the head itself (the gods' heads, `src/art/godHeads.ts`, are carved rather than built of parts; Zeus and Zeus, King Unbound already have their living lightning blade). The hero kind's effects (arcs, mandala, sparkles, embers, sheens, rings) are ready to reuse.
+1. The gods (38) and the God Peel (P3): done in batch 7 (below).
 2. Alongside: the foot peels' first-open warm-up on the ALL tab (batch 2), the Immortal's and Immortal Brute's living defs, and the fire looks' big-preview and in-play shapes (the Ruby Crown's, the Fire Opal's, and the Scorch's and Ghost Roaster's among them).
+
+## Batch 7: the gods and the God Peel (done)
+
+**What changed.** 36 god peels (the 17 Greek gods, Kratos and Ghost of Sparta, King Leonidas and Hot Gates, the 13 Norse gods with Odin and Thor, and Odin Allfather Ascended and Thor, Thunder Unleashed) and the God Peel are a new crafted kind, `god` (`src/art/peelGod.ts`). Zeus and Zeus, King Unbound keep their hand-made living lightning blade (`animatedLooks.ts`), which already had a tile loop, a swing trail and its own smack. As with the heroes there is no frame: the head is the god's symbol, carved in marble and gold or in oak and iron, and it comes alive from its own parts.
+
+**Parts.** The heads' drawing code (`godShapes.ts`, `godHeads.ts`, the Leonidas and variant looks) now asks `want(key)` before each piece that moves on its own (`src/art/godParts.ts`). Painting a still, every piece is wanted, so the stills are unchanged; a rig paints the head once without its moving pieces and once per piece, and each moving part's divine glow is a layer of its own that moves with it, so at rest the layers stack back to the still (measured: 34 of 37 within 0.25 % of pixels; Nike, Hera and Ghost of Sparta under 0.5 %). While the base paints, the runes and gems the head draws are noted (where, glyph, colour), and the gold relief is picked out of the painted head by its colour.
+
+What every god shares: on the Greek heads a light runs over the gold relief every 3 to 5.5 s and the gems breathe and glint in turn; on the Norse heads the runes light in sequence, each from its own pre-lit layer. A smack flashes the head in the god's colour (gently: marble and bone would blow out), flares the gold, sets every rune blazing, lights a glow of the god's colour behind the peel, and throws the god's own burst. No impact words: those are the heroes'.
+
+| God | Motion, from its own parts and domain | Smack |
+|---|---|---|
+| Hera | the seven-feather train breathes open and shut and rattles in a shiver now and then; the eyes shimmer teal, blue and gold in turn | the train flares wide, feathers and sparks |
+| Poseidon | a ribbon of water winds up the shaft (its far side behind), sea light ripples over the gold (caustics), drops fall | a splash off the tines: spray and mist |
+| Demeter | the three ears of wheat sway out of step, with gusts; seeds and leaves drift | grains and leaves burst, the ears whip |
+| Athena | the owl's pupils dart about and settle, its gold lids blink | eyes snap front, a gold aegis ring, feathers |
+| Apollo | the lyre's strings are plucked (bowing and ringing, a glow on each), notes rise; the sun on the soundbox turns its rays | a strum of every string, notes |
+| Artemis | the bow is drawn with its arrow and eased off | loosed: the string snaps and rings, the arrow leaps, a streak of moonlight flies up |
+| Ares | eyes smouldering in the helm with surges of rage, embers rising | embers and sparks, a heavy shake |
+| Aphrodite | the heart-pearl beats, a nacre sheen crosses the shell, hearts rise and petals fall | hearts and petals burst, the heart swells |
+| Hephaestus | the hammer is raised and struck on the hot face every couple of seconds, sparks off each blow, the face glowing (and its fire) | a great blow |
+| Hermes | the winged helm's wings beat in flurries, wind streams past | wings beat hard, feathers |
+| Dionysus | the bunch sways on its vine, grapes glint, wine bubbles rise | the bunch bounces, juice and bubbles |
+| Hestia | the hearth's flame flickers and stretches out of its bowl, embers (and its fire) | the flame surges |
+| Hades | the skull's eyes pulse violet, souls orbit, the prongs smoulder | a burst of souls |
+| Persephone | the leaves stir, the seeds glow in turn, petals fall | seeds and petals burst |
+| Nike | the wings beat, light runs round the laurel, wind | wings flare, gold feathers |
+| Nyx | the night's stars twinkle, the moon glows, shooting stars cross behind | a pulse of night and stars |
+| Kratos, Ghost of Sparta | the crest streams in a travelling wave; eyes like embers, with surges; Ghost's flames lick behind the handle | embers, the eyes blaze, a shake |
+| Leonidas, Hot Gates | the cloak billows down the handle, a light sweeps the shield, dust (Hot Gates: embers and smoke) | sparks off the shield, dust |
+| Odin (and Ascended) | the raven's eye blinks and glows, Huginn and Muninn fly past (Ascended: rays of light pour down from the eye) | both ravens burst out, black feathers |
+| Thor (and Unleashed) | lightning crawls the hammer's edges, the runes pulse (Unleashed: gold, and arcs round it) | a bolt from above, the edges crackle |
+| Loki | the mask splits into green illusions that drift apart and snap back, sly eyes, chaos wisps | two illusions fly out to the sides |
+| Frigg | a light runs along the thread of fate wound round the spindle, the rune ring lights round, mist | threads of fate flung out |
+| Freya | the falcon's wings beat, Brísingamen lights bead by bead, petals | wings, feathers, gold |
+| Freyr | light runs down Gullinbursti's golden bristles, the boar snorts | gold coins, a snort |
+| Tyr | a light runs up the blade, embers off the tip | the blade flashes, sparks |
+| Heimdall | Gjallarhorn's bell glows and sound spreads out of it in arcs, a rainbow sheen | a horn blast of arcs |
+| Baldur | the sun's rays rock and light turns behind them, the core breathes | the rays spin and spring back, light bursts |
+| Hel | the bone side's eye pulses cold, the living eye opens a crack now and then, mist | the living eye snaps open |
+| Njord | the sail fills and slackens, the ship rides two waves (one behind the hull, one in front), spray | a wave breaks, spray |
+| Skadi | the snowflake rocks, frost glitters, snow falls, cold mist | the flake spins and springs back, ice |
+| Idun | the apple's leaf stirs, the gold glints, motes of youth | gold and leaves |
+| Bragi | the harp's strings are plucked, notes rise | a strum |
+
+Carved parts that turn (Baldur's rays, Skadi's snowflake) rock and spring back rather than spin round, so their light stays at the top left; the light turning behind Baldur's rays is a light, not the wood.
+
+**The God Peel**, the final trophy: its sunburst turns behind it, the halo floats above with a light running round it, the gold rays turn round the slice, the slice breathes light, two rings of gold sparks turn round the rim with Greek keys and runes between them, a rainbow prism sweeps across the marble, rays of light turn behind, the crown of tiny peels (one from each group) bobs in a wave and each catches the light in turn, motes and stars drift up; all inside its glow's halo, rays and prism trail. A smack: the rays spin, the halo flares and lifts, the tiny peels hop one after another, gold rings spread, stars, gold and confetti burst.
+
+**How it's built.** As the other crafted kinds: the rig (`godMiniSteps`: the head's layers, the gold, each rune lit) is built in idle time and shared; the motion (`GodLive`) is one per place it shows. The hero kind's effects are shared through a small interface (`FxHost`: arcs, sparkles, rings, wisps, emitters, the bolt from above); the gods add their own (wings and sways, the fan, strings, the bow, the hammer, billowing rows and columns, rays, ravens, illusions, edge lightning, sea, waves, horn, threads, the halo and crown). The surface covers a 220 × 236 box (Kratos, Ghost of Sparta and the Leonidases the whole peel, for the chain and cloak). The crafted sprite pool gains hearts, petals and raven feathers. The god glows (`lookGlow.ts`) keep their aura, motes and trail but drop their head glints and smack ring for living gods (`godGlow`). Look lab: the Gods family is the living gods.
+
+**Performance** (headless Chrome; the machine's load average was 6–7 with other apps running):
+
+- **Cursor peel in play**, swinging and smacking: the look's tick costs 0.24–0.47 ms a frame on average (p95 0.5–0.9 ms, max 1.3 ms) for the God Peel, Thor, Hera, Hephaestus, King Leonidas and Odin. Frame p95 17.8–18.6 ms, no frame over 50 ms.
+- **Locker, HEROES tab**, scrolled to GREEK GODS (their rigs building): p95 19.9 ms, max 21.5 ms, no long tasks; on to NORSE GODS: p95 20.7 ms, max 30.6 ms, no long tasks. A rig builds in 3–16 ms, in idle steps.
+- **`F.contrast()` and `F.layout()`** report nothing on the HEROES tab with the gods in view, at desktop and at phone size (844 × 390).
+
+**Review fixes.** One independent visual review. What it raised and what changed:
+
+- **Smacks blew the heads out to white or yellow** (Apollo, Idun, Thor, Thunder Unleashed, the owl, the God Peel), losing their material. The god's-colour flash is a third of what it was and the gold's flare halved; the gold's sweep no longer fires on a smack; Thor's flash is halved and Thunder Unleashed has none (its arcs and runes carry it); a gem's smack glow is gentler.
+- **Nike's wings were cut off in a hard-edged box** when they beat down past the peel's frame. Wings now beat only up from rest (Hermes, Nike and Freya), in strokes that ease out and back.
+- **Loki's illusions read as misregistered copies in a muddy olive.** They are lit green ghosts now, added rather than painted over, fading as they drift apart.
+- **Athena's wink on a smack read as a blackened eye.** The smack no longer closes her lids.
+- **Njord's wind streaks over the sail** looked like scratches: gone.
+- **Odin's ravens were too small** (they read as insects): a third bigger again.
+- **Notes off the lyre and harp read as flecks:** bigger.
+- **Idles too subtle** (Hera, Demeter, Artemis, Dionysus, Persephone, Freya, both Kratoses, both Leonidases): Hera's train opens wider and shivers harder and its eyes shimmer brighter; the wheat, grapes and pomegranate leaves sway about twice as far; Artemis draws every 1.6 to 3 s and further; Freya's wings beat higher; Kratos's crest and Leonidas's cloak stream more.
+- **The God Peel was the brightest, not the grandest:** its smack washed the slice out, and the spiky sunburst behind looked cut out. The slice's light now sits under the slice (it stays readable at the climax), its flash is nearly gone, the sunburst is drawn faint under two sets of soft rays turning opposite ways (gold, and rose), and a smack runs a beat of every group's light round the crown (each tiny peel flares in its own colour as it hops).
+- Not changed: the Ares, Odin, Hades and Loki locker auras (the element glows from before this batch; the reviewer found them muddy on the cream tiles, so they are worth a look in the glows' own pass), and the God Peel's round silhouette (its still).
+
+**Where it stopped.** All 38 god peels and the God Peel are done (both Zeuses as they were). That finishes every group in the audit. Up next, in order:
+
+1. The foot peels' first-open warm-up on the ALL tab (batch 2).
+2. The Immortal's and Immortal Brute's living defs (`foot:immortal`, `shiny:immortal`, `boss:immortalbrute`).
+3. The fire looks' big-preview and in-play shapes (the Ruby Crown's, the Fire Opal's, the Scorch's, Ghost Roaster's, Hestia's and Hephaestus's among them).
+4. Zeus's blade could join the god kind (its gold catching the light, the eagle's feathers stirring) when it's next touched.

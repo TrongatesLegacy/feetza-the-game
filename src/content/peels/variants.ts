@@ -14,6 +14,7 @@
 import type { Ability } from '../../game/abilities';
 import { registerTrackers, type HeroGoal } from '../../game/heroGoals';
 import { godLook, kratosLook, type GodArt } from '../../art/godHeads';
+import { want } from '../../art/godParts';
 import { heroLook, type HeroArt } from '../../art/heroHeads';
 import { PEEL_HEAD, headPath } from '../../art/peelArt';
 import type { PeelLook } from '../../art/peelArt';
@@ -33,6 +34,31 @@ function beatWith(key: string, boss: string, bossName: string, hero: string, her
 
 // ——— Kratos, Ghost of Sparta ———
 
+/** Ghost of Sparta's burst of flame behind the helm, licking out round the cheek guards and down the handle. */
+function ghostFlames(ctx: Ctx): void {
+  ctx.save();
+  ctx.globalCompositeOperation = 'destination-over';
+  for (const [r, col, n] of [[92, '#ffb040', 9], [104, '#ff6a1a', 11], [112, '#c8201a', 13]] as const) {
+    ctx.beginPath();
+    for (let i = 0; i <= n * 2; i++) {
+      const a = (i / (n * 2)) * Math.PI * 2 + Math.PI / 2;
+      const low = Math.max(0, Math.sin(a));
+      const rr = i % 2 ? r * 0.6 : r * (0.85 + low * 0.45);
+      const x = HX + Math.cos(a) * rr * 0.92;
+      const y = HY + 34 + Math.sin(a) * rr;
+      if (i) ctx.lineTo(x, y);
+      else ctx.moveTo(x, y);
+    }
+    ctx.closePath();
+    ctx.fillStyle = col;
+    ctx.fill();
+    ctx.strokeStyle = '#2a1810';
+    ctx.lineWidth = 4;
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
 /** The Kratos helm, darkened with ash, red war paint, white-hot eyes and a wreath of embers behind it. */
 function ghostSpartaLook(): PeelLook {
   const base = kratosLook();
@@ -44,37 +70,20 @@ function ghostSpartaLook(): PeelLook {
     seed: 'hero:ghostofsparta',
     custom: (ctx: Ctx) => {
       base.custom!(ctx);
-      // ash over the bronze: everything drawn so far goes darker and colder
-      ctx.save();
-      ctx.globalCompositeOperation = 'source-atop';
-      const ash = ctx.createLinearGradient(0, HY - 140, 0, HY + 200);
-      ash.addColorStop(0, 'rgba(40,30,30,0.5)');
-      ash.addColorStop(1, 'rgba(10,6,6,0.55)');
-      ctx.fillStyle = ash;
-      ctx.fillRect(0, 0, 220, 360);
-      ctx.restore();
-      // a burst of flame behind the helm, licking out round the cheek guards and down the handle
-      ctx.save();
-      ctx.globalCompositeOperation = 'destination-over';
-      for (const [r, col, n] of [[92, '#ffb040', 9], [104, '#ff6a1a', 11], [112, '#c8201a', 13]] as const) {
-        ctx.beginPath();
-        for (let i = 0; i <= n * 2; i++) {
-          const a = (i / (n * 2)) * Math.PI * 2 + Math.PI / 2;
-          const low = Math.max(0, Math.sin(a));
-          const rr = i % 2 ? r * 0.6 : r * (0.85 + low * 0.45);
-          const x = HX + Math.cos(a) * rr * 0.92;
-          const y = HY + 34 + Math.sin(a) * rr;
-          if (i) ctx.lineTo(x, y);
-          else ctx.moveTo(x, y);
-        }
-        ctx.closePath();
-        ctx.fillStyle = col;
-        ctx.fill();
-        ctx.strokeStyle = '#2a1810';
-        ctx.lineWidth = 4;
-        ctx.stroke();
+      if (want()) {
+        // ash over the bronze: everything drawn so far goes darker and colder
+        ctx.save();
+        ctx.globalCompositeOperation = 'source-atop';
+        const ash = ctx.createLinearGradient(0, HY - 140, 0, HY + 200);
+        ash.addColorStop(0, 'rgba(40,30,30,0.5)');
+        ash.addColorStop(1, 'rgba(10,6,6,0.55)');
+        ctx.fillStyle = ash;
+        ctx.fillRect(0, 0, 220, 360);
+        ctx.restore();
       }
-      ctx.restore();
+      // (on a living peel the flames behind flicker on their own: src/art/peelGod.ts)
+      if (want('flames')) ghostFlames(ctx);
+      if (!want()) return;
       // the red war paint: a stripe down the helm and a swirl over the left eye
       ctx.save();
       ctx.strokeStyle = '#d8201a';

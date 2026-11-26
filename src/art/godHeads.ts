@@ -10,6 +10,7 @@ import { INK } from './feetCommon';
 import { PEEL_HEAD, handleFrom, headFrom, headPath, type PeelLook, type PeelShape } from './peelArt';
 import { type Ctx, ellipse, hashStr, rgba, rng, roundRect, shade } from './util';
 import { RUNES, drawShaped, runeAt } from './godShapes';
+import { noteRune, want } from './godParts';
 
 const { x: HX, y: HY, r: R } = PEEL_HEAD;
 
@@ -765,6 +766,7 @@ function drawNorse(ctx: Ctx, a: GodArt, id: string): void {
     const rx = HX + Math.cos(ang) * (R - 22);
     const ry = HY + Math.sin(ang) * (R - 22);
     const idx = Math.floor(r() * RUNES.length);
+    noteRune({ idx, x: rx, y: ry, ang: ang + Math.PI / 2, s: 0.95, col: a.color });
     // the cut
     runeAt(ctx, idx, rx, ry, ang + Math.PI / 2, 0.95);
     ctx.strokeStyle = shade(wood, -0.65);
@@ -1235,7 +1237,7 @@ function drawKratos(ctx: Ctx): void {
   const bz = '#c9873a';
   const red = '#c8102e';
   // chain wrapped round the handle: oval iron links, alternating side-on and face-on
-  for (let i = 0; i < 9; i++) {
+  for (let i = 0; i < 9 && want(); i++) {
     const y = HY + R + 8 + i * 15;
     ctx.save();
     ctx.translate(HX, y);
@@ -1257,7 +1259,13 @@ function drawKratos(ctx: Ctx): void {
     }
     ctx.restore();
   }
-  // the red horsehair crest, arching front to back over the helm
+  // the red horsehair crest, arching front to back over the helm (it streams on a living peel: src/art/peelGod.ts)
+  if (want('crest')) kratosCrest(ctx, red);
+  if (!want()) return;
+  kratosHelm(ctx, bz, red);
+}
+
+function kratosCrest(ctx: Ctx, red: string): void {
   const crest = () => {
     ctx.beginPath();
     ctx.moveTo(HX - 70, HY - 30);
@@ -1289,6 +1297,9 @@ function drawKratos(ctx: Ctx): void {
   ctx.restore();
   crest();
   ink(ctx, 5);
+}
+
+function kratosHelm(ctx: Ctx, bz: string, red: string): void {
   // the helm: a bronze dome with cheek guards and a T-shaped face opening
   const helm = () => {
     ctx.beginPath();
@@ -1413,7 +1424,20 @@ export function godPeelLook(): PeelLook {
 }
 
 function drawGodPeel(ctx: Ctx): void {
-  // a sunburst of light behind everything
+  // on a living peel the sunburst turns, the halo floats, the gold rays turn and the crown's tiny peels hop
+  // (src/art/peelGod.ts)
+  if (want('burst')) godPeelBurst(ctx);
+  if (want('halo')) godPeelHalo(ctx);
+  if (want()) godPeelFace(ctx);
+  if (want('rays')) godPeelRays(ctx);
+  if (want('slice')) godPeelSlice(ctx);
+  // the crown of tiny peels: one from each group, fanned round the top of the rim
+  GOD_CROWN.forEach((_c, k) => want(`p${k}`) && godPeelTiny(ctx, k));
+  if (want('finish')) godPeelFinish(ctx);
+}
+
+/** A sunburst of light behind everything. */
+function godPeelBurst(ctx: Ctx): void {
   ctx.save();
   const sb = ctx.createRadialGradient(HX, HY, 20, HX, HY, R + 34);
   sb.addColorStop(0, 'rgba(255,248,200,0.95)');
@@ -1430,7 +1454,10 @@ function drawGodPeel(ctx: Ctx): void {
   ctx.closePath();
   ctx.fill();
   ctx.restore();
-  // the halo (drawn tilted above the head; in play it turns)
+}
+
+/** The halo, drawn tilted above the head. */
+export function godPeelHalo(ctx: Ctx): void {
   ctx.save();
   ctx.shadowColor = '#fff2a0';
   ctx.shadowBlur = 18;
@@ -1443,6 +1470,45 @@ function drawGodPeel(ctx: Ctx): void {
   ctx.strokeStyle = INK;
   ctx.lineWidth = 2.2;
   ctx.stroke();
+}
+
+/** The God Peel's crown of tiny peels, one from each group: [head, handle]. */
+export const GOD_CROWN: [string, string][] = [
+  ['#d9a066', '#8a5a2b'], // classic
+  ['#ffd23f', '#c89a2a'], // golden crust
+  ['#5fd8ff', '#2a7ad8'], // a jewel
+  ['#f0c8a0', '#8a5a3a'], // a foot
+  ['#ff5a3c', '#8a1a1a'], // a boss
+  ['#7be04a', '#2f8a3a'], // a place
+  ['#ff7ad9', '#8a2a6a'], // an event
+  ['#e8b43a', '#c8102e'], // a pizza
+  ['#a77dff', '#4a2a8a'], // a hero
+];
+/** Where the crown's tiny peel i sits: its centre and its turn. */
+export function godCrownAt(i: number): [number, number, number] {
+  const a = Math.PI * (1.18 + (i / (GOD_CROWN.length - 1)) * 0.64);
+  return [HX + Math.cos(a) * (R + 4), HY + Math.sin(a) * (R + 4), a + Math.PI / 2];
+}
+
+function godPeelTiny(ctx: Ctx, i: number): void {
+  const [c, h] = GOD_CROWN[i];
+  const [x, y, rot] = godCrownAt(i);
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rot);
+  roundRect(ctx, -2.5, 2, 5, 16, 2);
+  ctx.fillStyle = h;
+  ctx.fill();
+  ink(ctx, 1.6);
+  circle(ctx, 0, -6, 9);
+  ctx.fillStyle = lit(ctx, 0, -6, 9, c, 0.5);
+  ctx.fill();
+  ink(ctx, 2);
+  shine(ctx, -3, -9, 3, 1.8, 0.7);
+  ctx.restore();
+}
+
+function godPeelFace(ctx: Ctx): void {
   // the head: marble in a heavy gold rim
   headPath(ctx, 'round');
   ctx.fillStyle = lit(ctx, HX, HY, R, '#f6f0e2', 0.12);
@@ -1477,6 +1543,9 @@ function drawGodPeel(ctx: Ctx): void {
   ctx.stroke();
   headPath(ctx, 'round');
   ink(ctx, 5);
+}
+
+function godPeelRays(ctx: Ctx): void {
   // gold rays fanned from a pizza-slice sun in the middle
   ctx.save();
   ctx.translate(HX, HY + 4);
@@ -1488,6 +1557,9 @@ function drawGodPeel(ctx: Ctx): void {
     ink(ctx, 1.8);
   }
   ctx.restore();
+}
+
+function godPeelSlice(ctx: Ctx): void {
   // the slice: crust, cheese and pepperoni, in gold leaf
   relief(ctx, () => poly(ctx, [[HX - 24, HY - 14], [HX + 24, HY - 14], [HX, HY + 34]]), gold(ctx, HX - 24, HY - 14, HX + 24, HY + 34, '#ffd23f'), 3.4);
   relief(ctx, () => roundRect(ctx, HX - 27, HY - 22, 54, 11, 5), gold(ctx, HX - 27, HY - 22, HX + 27, HY - 11, '#d9902a'), 3);
@@ -1497,36 +1569,9 @@ function drawGodPeel(ctx: Ctx): void {
     ctx.fill();
     ink(ctx, 1.8);
   }
-  // the crown of tiny peels: one from each group, fanned round the top of the rim
-  const tiny: [string, string][] = [
-    ['#d9a066', '#8a5a2b'], // classic
-    ['#ffd23f', '#c89a2a'], // golden crust
-    ['#5fd8ff', '#2a7ad8'], // a jewel
-    ['#f0c8a0', '#8a5a3a'], // a foot
-    ['#ff5a3c', '#8a1a1a'], // a boss
-    ['#7be04a', '#2f8a3a'], // a place
-    ['#ff7ad9', '#8a2a6a'], // an event
-    ['#e8b43a', '#c8102e'], // a pizza
-    ['#a77dff', '#4a2a8a'], // a hero
-  ];
-  tiny.forEach(([c, h], i) => {
-    const a = Math.PI * (1.18 + (i / (tiny.length - 1)) * 0.64);
-    const x = HX + Math.cos(a) * (R + 4);
-    const y = HY + Math.sin(a) * (R + 4);
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(a + Math.PI / 2);
-    roundRect(ctx, -2.5, 2, 5, 16, 2);
-    ctx.fillStyle = h;
-    ctx.fill();
-    ink(ctx, 1.6);
-    circle(ctx, 0, -6, 9);
-    ctx.fillStyle = lit(ctx, 0, -6, 9, c, 0.5);
-    ctx.fill();
-    ink(ctx, 2);
-    shine(ctx, -3, -9, 3, 1.8, 0.7);
-    ctx.restore();
-  });
+}
+
+function godPeelFinish(ctx: Ctx): void {
   // a sheen and some sparkles
   ctx.save();
   headPath(ctx, 'round');

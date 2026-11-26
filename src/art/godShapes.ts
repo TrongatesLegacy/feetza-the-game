@@ -10,11 +10,13 @@
 
 import { INK } from './feetCommon';
 import type { GodArt } from './godHeads';
+import { noteGem, noteRune, want } from './godParts';
 import { type Ctx, ellipse, hashStr, mix, rgba, rng, roundRect, shade } from './util';
 
 type P = [number, number];
 type Mat = 'marble' | 'tint' | 'gold' | 'dark' | 'wood' | 'iron' | 'bone';
-type Part = [Mat, () => void];
+/** A part: its material, its outline, and (for a part that moves on a living peel) its key (src/art/godParts.ts). */
+type Part = [Mat, () => void, string?];
 
 const X = 110;
 
@@ -151,6 +153,7 @@ export function runeAt(ctx: Ctx, idx: number, x: number, y: number, ang: number,
 
 /** A rune cut into the wood, glowing in the god's colour. */
 function glowRune(ctx: Ctx, idx: number, x: number, y: number, col: string, s = 1.1, ang = 0): void {
+  noteRune({ idx, x, y, ang, s, col });
   runeAt(ctx, idx, x, y, ang, s);
   ctx.strokeStyle = 'rgba(20,10,4,0.85)';
   ctx.lineWidth = 4.5;
@@ -169,6 +172,7 @@ function glowRune(ctx: Ctx, idx: number, x: number, y: number, col: string, s = 
 }
 
 function gem(ctx: Ctx, x: number, y: number, r: number, col: string): void {
+  noteGem({ x, y, r, col });
   circle(ctx, x, y, r);
   ctx.fillStyle = lit(ctx, x, y, r, col, 0.55);
   ctx.fill();
@@ -268,6 +272,12 @@ interface Shape {
   sheen?: [number, number, number, number];
   /** Heads that are more than parts (Zeus's sword): drawn whole, instead of the parts, collar and glow. */
   draw?: (ctx: Ctx, a: GodArt) => void;
+  /** The key the detail is painted under, or 'own' when the detail asks for its pieces' keys itself. */
+  detailKey?: string;
+  /** The key the runes are painted under (Skadi's turn with her snowflake), or each rune's (Freya's ride her wings). */
+  marksKey?: string | string[];
+  /** The key the collar is painted under, when a moving part sits under it (Dionysus's grapes). */
+  collarKey?: string;
 }
 
 const S: Record<string, Shape> = {};
@@ -502,11 +512,13 @@ S.peacock = {
     ...[-3, -2, -1, 0, 1, 2, 3].map((i): Part => ['tint', () => {
       const ang = -Math.PI / 2 + i * 0.27;
       taper(ctx0(), [[X, 176], [X + Math.cos(ang) * 50, 176 + Math.sin(ang) * 50], [X + Math.cos(ang) * 100, 176 + Math.sin(ang) * 100], [X + Math.cos(ang) * 146, 176 + Math.sin(ang) * 146]], 10, 42);
-    }]),
+    }, `f${i + 3}`]),
     ['gold', () => poly(ctx0(), [[78, 186], [72, 150], [92, 162], [110, 140], [128, 162], [148, 150], [142, 186]])],
   ],
+  detailKey: 'own',
   detail: (ctx, a) => {
     for (let i = -3; i <= 3; i++) {
+      if (!want(`f${i + 3}`)) continue;
       const ang = -Math.PI / 2 + i * 0.27;
       const x = X + Math.cos(ang) * 134;
       const y = 176 + Math.sin(ang) * 134;
@@ -516,7 +528,7 @@ S.peacock = {
       ink(ctx, 2.2);
       gem(ctx, x, y + 1, 6, a.color);
     }
-    gem(ctx, X, 166, 6, '#e0402a');
+    if (want()) gem(ctx, X, 166, 6, '#e0402a');
   },
 };
 
@@ -543,11 +555,13 @@ const ear = (ang: number) => {
 };
 S.wheat = {
   parts: [
-    ...[-0.42, 0, 0.42].map((d): Part => ['gold', () => taper(ctx0(), ear(-Math.PI / 2 + d), 12, 40)]),
+    ...[-0.42, 0, 0.42].map((d, i): Part => ['gold', () => taper(ctx0(), ear(-Math.PI / 2 + d), 12, 40), `e${i}`]),
     ['marble', () => roundRect(ctx0(), 82, 140, 56, 22, 8)],
   ],
+  detailKey: 'own',
   detail: (ctx, a) => {
-    for (const d of [-0.42, 0, 0.42]) {
+    for (const [e, d] of [-0.42, 0, 0.42].entries()) {
+      if (!want(`e${e}`)) continue;
       const c = ear(-Math.PI / 2 + d);
       for (let i = 0; i < 6; i++) {
         const [x, y] = bez(...c, 0.5 + i * 0.085);
@@ -559,7 +573,7 @@ S.wheat = {
         }
       }
     }
-    gem(ctx, X, 151, 6, a.color);
+    if (want()) gem(ctx, X, 151, 6, a.color);
   },
 };
 
@@ -581,7 +595,18 @@ S.owl = {
     }],
   ],
   sheen: [70, 70, 14, 26],
+  detailKey: 'own',
   detail: (ctx, a) => {
+    if (!want()) {
+      // (the pupils alone: on a living peel they look about)
+      if (want('pupils'))
+        for (const s of [-1, 1]) {
+          circle(ctx, X + s * 26, 83, 5);
+          ctx.fillStyle = INK;
+          ctx.fill();
+        }
+      return;
+    }
     // folded wings
     for (const s of [-1, 1]) {
       ctx.beginPath();
@@ -605,6 +630,7 @@ S.owl = {
       ctx.fill();
       ink(ctx, 3.5);
       gem(ctx, X + s * 26, 83, 12, a.color);
+      if (!want('pupils')) continue;
       circle(ctx, X + s * 26, 83, 5);
       ctx.fillStyle = INK;
       ctx.fill();
@@ -616,6 +642,8 @@ S.owl = {
   },
 };
 
+/** The lyre's strings (x from the middle; they run from y 46 to 138). */
+export const LYRE_STRINGS = [-21, -7, 7, 21];
 S.lyre = {
   parts: [['gold', () => {
     const c = ctx0();
@@ -635,16 +663,20 @@ S.lyre = {
     c.bezierCurveTo(152, 118, 152, 80, 138, 46);
     c.closePath();
   }]],
+  detailKey: 'own',
   detail: (ctx, a) => {
-    // strings across the open middle
-    ctx.strokeStyle = '#fff6d8';
-    ctx.lineWidth = 2.4;
-    for (const dx of [-21, -7, 7, 21]) {
-      ctx.beginPath();
-      ctx.moveTo(X + dx, 46);
-      ctx.lineTo(X + dx, 138);
-      ctx.stroke();
+    // strings across the open middle (plucked on a living peel: src/art/peelGod.ts)
+    if (want('strings')) {
+      ctx.strokeStyle = '#fff6d8';
+      ctx.lineWidth = 2.4;
+      for (const dx of LYRE_STRINGS) {
+        ctx.beginPath();
+        ctx.moveTo(X + dx, 46);
+        ctx.lineTo(X + dx, 138);
+        ctx.stroke();
+      }
     }
+    if (!want()) return;
     // a marble sound box with the sun on it
     const box = () => roundRect(ctx, 76, 138, 68, 40, 14);
     box();
@@ -675,15 +707,19 @@ S.bow = {
     c.closePath();
   }]],
   sheen: [44, 120, 10, 22],
+  detailKey: 'own',
   detail: (ctx, a) => {
-    // the bowstring, drawn back to the nock
-    ctx.beginPath();
-    ctx.moveTo(18, 68);
-    ctx.lineTo(X, 124);
-    ctx.lineTo(202, 68);
-    ctx.strokeStyle = '#fff6d8';
-    ctx.lineWidth = 3;
-    ctx.stroke();
+    // the bowstring, drawn back to the nock (drawn and loosed on a living peel: src/art/peelGod.ts)
+    if (want('string')) {
+      ctx.beginPath();
+      ctx.moveTo(18, 68);
+      ctx.lineTo(X, 124);
+      ctx.lineTo(202, 68);
+      ctx.strokeStyle = '#fff6d8';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    }
+    if (!want('arrow')) return;
     // the silver arrow, nocked and pointing up
     roundRect(ctx, X - 4, 18, 8, 112, 3);
     ctx.fillStyle = goldG(ctx);
@@ -769,17 +805,19 @@ S.shell = {
     c.closePath();
   }]],
   sheen: [70, 50, 16, 8],
+  detailKey: 'own',
   detail: (ctx, a) => {
     ctx.strokeStyle = rgba(INK, 0.5);
     ctx.lineWidth = 3;
-    for (let i = 1; i < 9; i++) {
+    for (let i = 1; i < 9 && want(); i++) {
       const ang = Math.PI * (1.12 + (i / 9) * 0.76);
       ctx.beginPath();
       ctx.moveTo(X, 174);
       ctx.lineTo(X + Math.cos(ang) * 86, 176 + Math.sin(ang) * 160);
       ctx.stroke();
     }
-    // a heart-shaped pearl at the hinge
+    // a heart-shaped pearl at the hinge (it beats on a living peel)
+    if (!want('heart')) return;
     ctx.beginPath();
     ctx.moveTo(X, 176);
     ctx.bezierCurveTo(X - 26, 158, X - 12, 136, X, 150);
@@ -792,23 +830,29 @@ S.shell = {
 
 S.anvil = {
   parts: [['iron', () => poly(ctx0(), [[14, 54], [40, 40], [72, 38], [196, 38], [206, 46], [198, 76], [150, 78], [136, 106], [138, 128], [168, 176], [168, 188], [52, 188], [52, 176], [82, 128], [84, 106], [70, 80], [42, 74]])]],
+  detailKey: 'own',
   detail: (ctx, a) => {
-    // the hot face, and a gold hammer resting on it
-    roundRect(ctx, 76, 36, 112, 7, 3);
-    ctx.fillStyle = a.color;
-    ctx.fill();
-    ctx.save();
-    ctx.translate(150, 18);
-    ctx.rotate(-0.35);
-    roundRect(ctx, -30, -12, 44, 22, 5);
-    ctx.fillStyle = goldG(ctx);
-    ctx.fill();
-    ink(ctx, 3.4);
-    roundRect(ctx, -60, -4, 34, 8, 3);
-    ctx.fillStyle = lit(ctx, -40, 0, 20, '#efe9dc', 0.2);
-    ctx.fill();
-    ink(ctx, 3);
-    ctx.restore();
+    // the hot face, and a gold hammer resting on it (raised and struck on a living peel: src/art/peelGod.ts)
+    if (want()) {
+      roundRect(ctx, 76, 36, 112, 7, 3);
+      ctx.fillStyle = a.color;
+      ctx.fill();
+    }
+    if (want('hammer')) {
+      ctx.save();
+      ctx.translate(150, 18);
+      ctx.rotate(-0.35);
+      roundRect(ctx, -30, -12, 44, 22, 5);
+      ctx.fillStyle = goldG(ctx);
+      ctx.fill();
+      ink(ctx, 3.4);
+      roundRect(ctx, -60, -4, 34, 8, 3);
+      ctx.fillStyle = lit(ctx, -40, 0, 20, '#efe9dc', 0.2);
+      ctx.fill();
+      ink(ctx, 3);
+      ctx.restore();
+    }
+    if (!want()) return;
     // a marble plaque with a flame on the waist
     roundRect(ctx, 88, 120, 44, 36, 8);
     ctx.fillStyle = lit(ctx, 100, 130, 30, '#efe9dc', 0.2);
@@ -846,8 +890,8 @@ const wing = (s: number, cx: number, cy: number, w: number, h: number) => () => 
 S.caduceus = {
   // Hermes: a winged traveller's helmet
   parts: [
-    ['gold', wing(-1, 66, 70, 58, 90)],
-    ['gold', wing(1, 154, 70, 58, 90)],
+    ['gold', wing(-1, 66, 70, 58, 90), 'wL'],
+    ['gold', wing(1, 154, 70, 58, 90), 'wR'],
     ['marble', () => {
       const c = ctx0();
       c.beginPath();
@@ -884,6 +928,8 @@ S.caduceus = {
   },
 };
 
+/** Dionysus's grapes (x from the middle, y; radius 19). */
+export const GRAPES: P[] = [[-48, 64], [-16, 60], [16, 60], [48, 64], [-34, 92], [0, 90], [34, 92], [-50, 120], [-18, 120], [18, 120], [50, 120], [-32, 148], [0, 150], [32, 148], [-14, 172], [14, 172]];
 S.grapes = {
   parts: [
     ['gold', () => {
@@ -896,10 +942,12 @@ S.grapes = {
       c.bezierCurveTo(180, 10, 140, 4, X, 38);
       c.closePath();
     }],
-    ...([[-48, 64], [-16, 60], [16, 60], [48, 64], [-34, 92], [0, 90], [34, 92], [-50, 120], [-18, 120], [18, 120], [50, 120], [-32, 148], [0, 150], [32, 148], [-14, 172], [14, 172]] as P[]).map(([dx, y]): Part => ['tint', () => circle(ctx0(), X + dx, y, 19)]),
+    ...GRAPES.map(([dx, y]): Part => ['tint', () => circle(ctx0(), X + dx, y, 19), 'bunch']),
   ],
+  detailKey: 'bunch',
+  collarKey: 'collar',
   detail: (ctx) => {
-    for (const [dx, y] of [[-48, 64], [-16, 60], [16, 60], [48, 64], [-34, 92], [0, 90], [34, 92], [-50, 120], [-18, 120], [18, 120], [50, 120], [-32, 148], [0, 150], [32, 148], [-14, 172], [14, 172]] as P[]) shine(ctx, X + dx - 6, y - 7, 5, 3, 0.6);
+    for (const [dx, y] of GRAPES) shine(ctx, X + dx - 6, y - 7, 5, 3, 0.6);
   },
 };
 
@@ -916,7 +964,7 @@ S.hearth = {
       c.bezierCurveTo(182, 80, 186, 62, 180, 48);
       c.bezierCurveTo(214, 96, 196, 130, 172, 140);
       c.closePath();
-    }],
+    }, 'flame'],
     ['tint', () => {
       const c = ctx0();
       c.beginPath();
@@ -926,7 +974,7 @@ S.hearth = {
       c.bezierCurveTo(130, 92, 140, 86, 146, 80);
       c.bezierCurveTo(160, 110, 160, 130, 148, 140);
       c.closePath();
-    }],
+    }, 'flame'],
     ['marble', () => {
       const c = ctx0();
       c.beginPath();
@@ -939,15 +987,18 @@ S.hearth = {
     }],
   ],
   sheen: [66, 150, 16, 6],
+  detailKey: 'own',
   detail: (ctx, a) => {
-    ctx.fillStyle = '#fff6d0';
-    ctx.beginPath();
-    ctx.moveTo(98, 132);
-    ctx.quadraticCurveTo(96, 112, 110, 100);
-    ctx.quadraticCurveTo(124, 112, 122, 132);
-    ctx.closePath();
-    ctx.fill();
-    gem(ctx, X, 160, 7, a.color);
+    if (want('flame')) {
+      ctx.fillStyle = '#fff6d0';
+      ctx.beginPath();
+      ctx.moveTo(98, 132);
+      ctx.quadraticCurveTo(96, 112, 110, 100);
+      ctx.quadraticCurveTo(124, 112, 122, 132);
+      ctx.closePath();
+      ctx.fill();
+    }
+    if (want()) gem(ctx, X, 160, 7, a.color);
   },
 };
 
@@ -968,30 +1019,37 @@ S.bident = {
   },
 };
 
+/** The seeds in Persephone's cut pomegranate (radius 5). */
+export const POM_SEEDS: P[] = Array.from({ length: 9 }, (_, i) => [128 + Math.cos(i * 1.3) * 16, 126 + Math.sin(i * 2.1) * 11] as P);
 S.pomegranate = {
   parts: [
     ['tint', () => circle(ctx0(), X, 110, 74)],
     ['gold', () => poly(ctx0(), [[86, 48], [78, 14], [96, 30], [110, 6], [124, 30], [142, 14], [134, 48]])],
   ],
   sheen: [72, 76, 20, 10],
+  detailKey: 'own',
   detail: (ctx, a) => {
     // a cut window of seeds
-    ellipse(ctx, 128, 126, 30, 24, -0.3);
-    ctx.fillStyle = '#ffe8d8';
-    ctx.fill();
-    ink(ctx, 3);
-    for (let i = 0; i < 9; i++) {
-      circle(ctx, 128 + Math.cos(i * 1.3) * 16, 126 + Math.sin(i * 2.1) * 11, 5);
-      ctx.fillStyle = lit(ctx, 128, 126, 8, shade(a.color, -0.1), 0.5);
+    if (want()) {
+      ellipse(ctx, 128, 126, 30, 24, -0.3);
+      ctx.fillStyle = '#ffe8d8';
       ctx.fill();
+      ink(ctx, 3);
+      for (const [x, y] of POM_SEEDS) {
+        circle(ctx, x, y, 5);
+        ctx.fillStyle = lit(ctx, 128, 126, 8, shade(a.color, -0.1), 0.5);
+        ctx.fill();
+      }
     }
-    // spring leaves at the stalk
+    // spring leaves at the stalk (they stir on a living peel)
     for (const s of [-1, 1]) {
+      if (!want(s < 0 ? 'leafL' : 'leafR')) continue;
       ellipse(ctx, X + s * 40, 40, 20, 8, s * -0.5);
       ctx.fillStyle = lit(ctx, X + s * 40, 40, 20, '#7ac05a', 0.4);
       ctx.fill();
       ink(ctx, 2.6);
     }
+    if (!want()) return;
     // the stalk down to the handle
     roundRect(ctx, X - 8, 178, 16, 12, 4);
     ctx.fillStyle = goldG(ctx);
@@ -1002,13 +1060,15 @@ S.pomegranate = {
 
 S.wings = {
   parts: [
-    ['gold', wing(-1, 98, 108, 96, 150)],
-    ['gold', wing(1, 122, 108, 96, 150)],
+    ['gold', wing(-1, 98, 108, 96, 150), 'wL'],
+    ['gold', wing(1, 122, 108, 96, 150), 'wR'],
     ['marble', () => circle(ctx0(), X, 140, 30)],
   ],
+  detailKey: 'own',
   detail: (ctx, a) => {
     for (const s of [-1, 1])
       for (const k of [0.4, 0.62, 0.84]) {
+        if (!want(s < 0 ? 'wL' : 'wR')) continue;
         ctx.beginPath();
         ctx.moveTo(X + s * 14, 140);
         ctx.quadraticCurveTo(X + s * 60 * k, 80, X + s * 92 * k, 50 + k * 90);
@@ -1016,6 +1076,7 @@ S.wings = {
         ctx.lineWidth = 2.4;
         ctx.stroke();
       }
+    if (!want()) return;
     // a laurel wreath round the disc
     for (let i = 0; i < 10; i++) {
       const ang = (i / 10) * Math.PI * 2;
@@ -1182,8 +1243,8 @@ S.serpent = {
 
 S.falcon = {
   parts: [
-    ['wood', wing(-1, 96, 96, 92, 120)],
-    ['wood', wing(1, 124, 96, 92, 120)],
+    ['wood', wing(-1, 96, 96, 92, 120), 'wL'],
+    ['wood', wing(1, 124, 96, 92, 120), 'wR'],
     ['wood', () => {
       const c = ctx0();
       c.beginPath();
@@ -1201,6 +1262,7 @@ S.falcon = {
     }],
   ],
   marks: [[54, 84], [166, 84]],
+  marksKey: ['wL', 'wR'],
   detail: (ctx, a) => {
     poly(ctx, [[X - 8, 56], [X + 8, 56], [X, 74]]);
     ctx.fillStyle = ironG(ctx);
@@ -1330,7 +1392,7 @@ S.horn = {
 
 S.sun = {
   parts: [
-    ['wood', () => star(ctx0(), X, 96, 92, 12, 0.7)],
+    ['wood', () => star(ctx0(), X, 96, 92, 12, 0.7), 'rays'],
     ['iron', () => circle(ctx0(), X, 96, 48)],
     ['wood', () => roundRect(ctx0(), 96, 160, 28, 30, 6)],
   ],
@@ -1423,7 +1485,7 @@ S.ship = {
       c.quadraticCurveTo(X, 110, 46, 118);
       c.quadraticCurveTo(34, 70, 46, 20);
       c.closePath();
-    }],
+    }, 'sail'],
     ['wood', () => {
       const c = ctx0();
       c.beginPath();
@@ -1443,21 +1505,25 @@ S.ship = {
     }],
   ],
   marks: [[70, 142], [150, 142]],
+  detailKey: 'own',
   detail: (ctx, a) => {
     // stripes on the sail in the god's colour, and shields along the gunwale
-    ctx.save();
-    ctx.beginPath();
-    ctx.moveTo(46, 20);
-    ctx.quadraticCurveTo(X, 10, 174, 20);
-    ctx.quadraticCurveTo(186, 70, 174, 118);
-    ctx.quadraticCurveTo(X, 110, 46, 118);
-    ctx.quadraticCurveTo(34, 70, 46, 20);
-    ctx.clip();
-    for (const x of [66, 106, 146]) {
-      ctx.fillStyle = rgba(a.color, 0.75);
-      ctx.fillRect(x, 0, 18, 130);
+    if (want('sail')) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(46, 20);
+      ctx.quadraticCurveTo(X, 10, 174, 20);
+      ctx.quadraticCurveTo(186, 70, 174, 118);
+      ctx.quadraticCurveTo(X, 110, 46, 118);
+      ctx.quadraticCurveTo(34, 70, 46, 20);
+      ctx.clip();
+      for (const x of [66, 106, 146]) {
+        ctx.fillStyle = rgba(a.color, 0.75);
+        ctx.fillRect(x, 0, 18, 130);
+      }
+      ctx.restore();
     }
-    ctx.restore();
+    if (!want()) return;
     for (const x of [52, 82, 112, 142, 172]) {
       circle(ctx, x, 128, 9);
       ctx.fillStyle = lit(ctx, x, 128, 9, x % 60 < 30 ? '#c8402a' : '#e8c060', 0.4);
@@ -1488,10 +1554,12 @@ S.snowflake = {
       c.lineTo(0, 14);
       c.closePath();
       c.restore();
-    }]),
-    ['iron', () => star(ctx0(), X, 98, 30, 6, 0.75, 0)],
+    }, 'flake']),
+    ['iron', () => star(ctx0(), X, 98, 30, 6, 0.75, 0), 'flake'],
   ],
   marks: [[X, 26], [48, 134], [172, 134]],
+  marksKey: 'flake',
+  detailKey: 'flake',
   detail: (ctx, a) => glowDot(ctx, X, 98, 10, a.color),
 };
 
@@ -1512,6 +1580,7 @@ S.apple = {
   ],
   marks: [[80, 116], [140, 116]],
   sheen: [70, 82, 16, 26],
+  detailKey: 'leaf',
   detail: () => {
     const c = ctx0();
     c.beginPath();
@@ -1522,6 +1591,13 @@ S.apple = {
   },
 };
 
+/** Bragi's harp strings: [x, top, bottom]. */
+export const HARP_STRINGS: [number, number, number][] = Array.from({ length: 6 }, (_, i) => {
+  const tx = 74 + i * 18;
+  const [, ty] = bez([56, 16], [110, -2], [170, 30], [184, 70], (tx - 56) / 128);
+  const by = 186 - (tx - 68) * 1.02;
+  return [tx, ty + 10, Math.min(176, by + 8)];
+});
 S.harp = {
   parts: [
     ['wood', () => taper(ctx0(), [[54, 186], [50, 130], [46, 70], [56, 16]], 26, 22)],
@@ -1530,23 +1606,24 @@ S.harp = {
     ['iron', () => roundRect(ctx0(), 88, 172, 48, 18, 6)],
   ],
   marks: [[50, 110]],
+  detailKey: 'own',
   detail: (ctx, a) => {
-    // glowing strings from the neck down to the soundboard
-    ctx.save();
-    ctx.shadowColor = a.color;
-    ctx.shadowBlur = 8;
-    ctx.strokeStyle = shade(a.color, 0.35);
-    ctx.lineWidth = 2.2;
-    for (let i = 0; i < 6; i++) {
-      const tx = 74 + i * 18;
-      const [, ty] = bez([56, 16], [110, -2], [170, 30], [184, 70], (tx - 56) / 128);
-      const by = 186 - (tx - 68) * 1.02;
-      ctx.beginPath();
-      ctx.moveTo(tx, ty + 10);
-      ctx.lineTo(tx, Math.min(176, by + 8));
-      ctx.stroke();
+    // glowing strings from the neck down to the soundboard (plucked on a living peel: src/art/peelGod.ts)
+    if (want('strings')) {
+      ctx.save();
+      ctx.shadowColor = a.color;
+      ctx.shadowBlur = 8;
+      ctx.strokeStyle = shade(a.color, 0.35);
+      ctx.lineWidth = 2.2;
+      for (const [tx, y0, y1] of HARP_STRINGS) {
+        ctx.beginPath();
+        ctx.moveTo(tx, y0);
+        ctx.lineTo(tx, y1);
+        ctx.stroke();
+      }
+      ctx.restore();
     }
-    ctx.restore();
+    if (!want()) return;
     // a carved dragon-head finial
     circle(ctx, 184, 70, 12);
     ctx.fillStyle = ironG(ctx);
@@ -1555,6 +1632,12 @@ S.harp = {
     glowDot(ctx, 188, 66, 3.5, a.color);
   },
 };
+
+/** Use up the random numbers a part's fill would (its veins or grain), so the parts after it look as in the still. */
+function skipFill(mat: Mat, r: () => number): void {
+  if (mat === 'marble' || mat === 'tint' || mat === 'dark') for (let i = 0; i < 40; i++) r();
+  else if (mat === 'wood') for (let i = 0; i < 54; i++) r();
+}
 
 // the part paths draw onto whichever context is being painted
 let cur: Ctx | null = null;
@@ -1577,14 +1660,21 @@ export function drawShaped(ctx: Ctx, a: GodArt, id: string): boolean {
   ctx.save();
   ctx.shadowColor = greek ? rgba('#fff2b0', 0.95) : rgba(a.color, 0.55);
   ctx.shadowBlur = greek ? 22 : 14;
-  for (const [, p] of sh.parts) {
+  for (const [, p, key] of sh.parts) {
+    // (a living peel paints the glow behind each moving part with it, and the rest's as a layer of its own)
+    if (!want(key ? `${key}:glow` : 'glow')) continue;
     p();
     ctx.fillStyle = greek ? '#fff4d0' : shade(a.color, -0.3);
     if (evenOdd.has(a.symbol)) ctx.fill('evenodd');
     else ctx.fill();
   }
   ctx.restore();
-  for (const [mat, p] of sh.parts) {
+  for (const [mat, p, key] of sh.parts) {
+    // (a part not painted now still uses up the random numbers its veins or grain would)
+    if (!want(key)) {
+      if (!evenOdd.has(a.symbol)) skipFill(mat, r);
+      continue;
+    }
     if (evenOdd.has(a.symbol)) {
       // even-odd parts keep their hole: fill once with the rule, then the band and outline
       p();
@@ -1604,13 +1694,19 @@ export function drawShaped(ctx: Ctx, a: GodArt, id: string): boolean {
     } else fill(ctx, p, mat, a, r);
   }
   // the collar where the head meets the handle
-  roundRect(ctx, X - 21, 180, 42, 14, 5);
-  ctx.fillStyle = greek ? goldG(ctx) : ironG(ctx, a.rim ?? '#5c6068');
-  ctx.fill();
-  ink(ctx, 3.5);
-  sh.detail?.(ctx, a);
-  if (!greek) (sh.marks ?? []).forEach(([x, y], i) => glowRune(ctx, Math.floor(r() * RUNES.length) + i, x, y, a.color));
-  if (sh.sheen) {
+  if (want(sh.collarKey)) {
+    roundRect(ctx, X - 21, 180, 42, 14, 5);
+    ctx.fillStyle = greek ? goldG(ctx) : ironG(ctx, a.rim ?? '#5c6068');
+    ctx.fill();
+    ink(ctx, 3.5);
+  }
+  if (sh.detailKey === 'own' || want(sh.detailKey)) sh.detail?.(ctx, a);
+  if (!greek)
+    (sh.marks ?? []).forEach(([x, y], i) => {
+      const idx = Math.floor(r() * RUNES.length) + i;
+      if (want(Array.isArray(sh.marksKey) ? sh.marksKey[i] : sh.marksKey)) glowRune(ctx, idx, x, y, a.color);
+    });
+  if (sh.sheen && want()) {
     const [x, y, rx, ry] = sh.sheen;
     shine(ctx, x, y, rx, ry, 0.42);
   }
