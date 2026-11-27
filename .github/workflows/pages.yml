@@ -1,8 +1,14 @@
 name: Deploy to GitHub Pages
 
-# The site is served from the gh-pages branch. Main deploys to its root as a single commit (the pre-built art packs
-# are large, so the branch keeps no history of them); pull-request previews under /pr-preview/pr-N/ (see
-# pr-preview.yml) are carried over into each deploy.
+# The site is served from the gh-pages branch, deployed as a single commit (the pre-built art packs are large, so the
+# branch keeps no history of them); pull-request previews under /pr-preview/pr-N/ (see pr-preview.yml) are carried
+# over into each deploy.
+#
+# Two steps, so a push is live in a couple of minutes:
+# 1. quick: the game without fresh art packs (the packs it finds are for older art, so it paints instead: exactly how
+#    the game worked before the prebuild). Live right away.
+# 2. packs: paints the art packs (about 20 minutes when the art changed), then deploys again with them. Skipped if a
+#    newer commit has landed on main meanwhile (its own run will do it).
 
 on:
   push:
@@ -12,13 +18,40 @@ on:
 permissions:
   contents: write
 
-concurrency:
-  group: pages
-  cancel-in-progress: false
-
 jobs:
-  deploy:
+  quick:
     runs-on: ubuntu-latest
+    concurrency:
+      group: pages-deploy
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # (no art prebuild: npm run build would run it first)
+      - run: npx tsc --noEmit && npx vite build
+      - name: Carry over PR previews
+        run: |
+          if git fetch --depth=1 origin gh-pages 2>/dev/null && git cat-file -e origin/gh-pages:pr-preview 2>/dev/null; then
+            git archive origin/gh-pages pr-preview | tar -x -C dist
+          fi
+      - uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: dist
+          branch: gh-pages
+          single-commit: true
+          force: true
+
+  packs:
+    needs: quick
+    runs-on: ubuntu-latest
+    # a newer push's pack build replaces this one
+    concurrency:
+      group: pages-packs
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -28,7 +61,7 @@ jobs:
       - run: npm ci
       # the art prebuild (scripts/prebuild/run.mjs) paints in the runner's Chrome and encodes with cwebp
       - run: sudo apt-get update -qq && sudo apt-get install -y -qq webp
-      # last deploy's packs: the prebuild repaints only the packs whose source changed
+      # last deploy's packs: skipped entirely when the art hasn't changed since
       - uses: actions/cache@v4
         with:
           path: public/packs
@@ -37,13 +70,19 @@ jobs:
       - run: npm run build
         env:
           PREBUILD_REQUIRED: '1'
-      # keep the open pull requests' previews
-      - name: Carry over PR previews
+      - name: Still the newest commit?
+        id: newest
         run: |
-          if git fetch --depth=1 origin gh-pages 2>/dev/null && git ls-tree -d origin/gh-pages pr-preview >/dev/null 2>&1; then
-            git archive origin/gh-pages pr-preview | tar -x -C dist || true
+          git fetch --depth=1 origin main
+          if [ "$(git rev-parse origin/main)" = "${{ github.sha }}" ]; then echo "go=1" >> "$GITHUB_OUTPUT"; else echo "A newer commit is on main: its own run deploys the packs."; fi
+      - name: Carry over PR previews
+        if: steps.newest.outputs.go == '1'
+        run: |
+          if git fetch --depth=1 origin gh-pages 2>/dev/null && git cat-file -e origin/gh-pages:pr-preview 2>/dev/null; then
+            git archive origin/gh-pages pr-preview | tar -x -C dist
           fi
       - uses: JamesIves/github-pages-deploy-action@v4
+        if: steps.newest.outputs.go == '1'
         with:
           folder: dist
           branch: gh-pages
