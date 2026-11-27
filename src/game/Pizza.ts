@@ -90,7 +90,7 @@ export class Pizza {
     this.root = scene.add.container(x, y);
     layer.add(this.root);
 
-    this.plate = scene.add.image(0, 0, 'plate');
+    this.plate = scene.add.image(0, 0, type.shape === 'square' ? 'plateSquare' : 'plate');
     [this.canvas, this.ctx] = makeCanvas(PIZZA_CANVAS_W, PIZZA_CANVAS_H);
     const key = `pz_inst_${uid++}`;
     this.texKey = key;
@@ -101,7 +101,7 @@ export class Pizza {
     this.trapImg = scene.add.image(-PIZZA_R * 0.95, 30, 'trap').setVisible(false).setScale(0.9);
     // the shield: a force-field dome over the pizza (standing on the plate), a shimmer sweeping it and a small
     // count of the stomps it still blocks on its rim
-    this.shield = scene.add.image(0, -40, 'shield').setOrigin(0.5, 240 / 366).setVisible(false).setBlendMode(Phaser.BlendModes.ADD);
+    this.shield = scene.add.image(0, -40, type.shape === 'square' ? 'shieldSquare' : 'shield').setOrigin(0.5, 240 / 366).setVisible(false).setBlendMode(Phaser.BlendModes.ADD);
     this.shieldSweep = scene.add.image(0, -40, 'shieldSweep').setOrigin(0.5, 240 / 366).setVisible(false).setBlendMode(Phaser.BlendModes.ADD);
     this.shieldPips = scene.add
       .text(0, 0, '', { fontFamily: 'Lilita One, Fredoka, sans-serif', fontSize: '22px', color: '#e6fbff', stroke: '#0a3a52', strokeThickness: 5 })
@@ -162,10 +162,11 @@ export class Pizza {
     this.plate.setScale(s);
     this.img.setScale(s).setY(-lift);
     this.face.setScale(Math.max(0.75, s * 1.15)).setY(-lift + PIZZA_R * TILT * s * 0.32);
-    this.shield.setScale(s).setY(0);
-    this.shieldSweep.setScale(s).setY(0);
+    const ds = s;
+    this.shield.setScale(ds).setY(0);
+    this.shieldSweep.setScale(ds).setY(0);
     // (the count sits on the dome's rim, up and to the right, clear of the face)
-    this.shieldPips.setScale(Math.max(0.8, s)).setPosition(222 * s * 0.72, -222 * 0.92 * s * 0.7);
+    this.shieldPips.setScale(Math.max(0.8, s)).setPosition(222 * ds * 0.72, -222 * 0.92 * ds * 0.7);
     this.trapImg.setScale(s * 1.1).setPosition(-PIZZA_R * s * 1.02, 34 * s);
     this.label.setY((PIZZA_R + 40) * TILT * s + 14);
     this.fitLabel();
@@ -587,7 +588,7 @@ export class Pizza {
       this.shield.setAlpha(0.8 + Math.sin(this.bob * 3) * 0.12 + flick * 0.4);
       // the shimmer sweeps across the dome every couple of seconds
       const ph = (this.bob * 0.45) % 1;
-      const w = PIZZA_R * this.s;
+      const w = 196 * this.shield.scaleX;
       this.shieldSweep.setX(-w + ph * 2 * w).setAlpha(Math.sin(ph * Math.PI) * 0.7);
     }
   }

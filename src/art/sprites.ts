@@ -65,6 +65,73 @@ export function drawPlate(): HTMLCanvasElement {
   return c;
 }
 
+/** A square pizza's platter: a white rectangular ceramic dish with rounded corners, the round plate's glaze, well
+ * and blue stripe, same size and centre as the round plate so the pizza sits on it the same way. */
+export function drawSquarePlate(): HTMLCanvasElement {
+  const R = PIZZA_R + 40;
+  const w = R * 2 + 40;
+  const h = R * 2 * TILT + 60;
+  const [c, ctx] = makeCanvas(w, h);
+  const cx = w / 2;
+  const cy = h / 2 - 6;
+  const S = R - 8; // half its side
+  const box = (half: number, rad: number) => roundRect(ctx, -half, -half, half * 2, half * 2, rad);
+  // soft contact shadow
+  ctx.save();
+  ctx.translate(cx + 6, cy + 18);
+  ctx.scale(1, TILT);
+  ctx.filter = 'blur(14px)';
+  box(S * 1.02, 46);
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  ctx.fill();
+  ctx.filter = 'none';
+  ctx.restore();
+  // its side (thickness)
+  ctx.save();
+  ctx.translate(cx, cy + 8);
+  ctx.scale(1, TILT);
+  box(S, 40);
+  ctx.fillStyle = '#b9bec8';
+  ctx.fill();
+  ctx.restore();
+  // its top
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.scale(1, TILT);
+  const g = ctx.createRadialGradient(-S * 0.3, -S * 0.4, S * 0.1, 0, 0, S * 1.3);
+  g.addColorStop(0, '#ffffff');
+  g.addColorStop(0.7, '#f1f3f6');
+  g.addColorStop(1, '#d5d9e0');
+  box(S, 40);
+  ctx.fillStyle = g;
+  ctx.fill();
+  ctx.strokeStyle = rgba('#7d8592', 0.8);
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  // inner well
+  box(S * 0.82, 26);
+  ctx.strokeStyle = rgba('#aab0ba', 0.6);
+  ctx.lineWidth = 4;
+  ctx.stroke();
+  // light along the back-left rim
+  ctx.beginPath();
+  ctx.moveTo(-S * 0.9, S * 0.3);
+  ctx.lineTo(-S * 0.9, -S * 0.72);
+  ctx.quadraticCurveTo(-S * 0.9, -S * 0.9, -S * 0.72, -S * 0.9);
+  ctx.lineTo(S * 0.2, -S * 0.9);
+  ctx.strokeStyle = rgba('#ffffff', 0.95);
+  ctx.lineWidth = 8;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+  // blue rim stripe
+  box(S * 0.94, 34);
+  ctx.strokeStyle = rgba('#3b6fd6', 0.35);
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  ctx.restore();
+  return c;
+}
+
 function soft(size: number, inner: string, outer: string, stop = 0): HTMLCanvasElement {
   const [c, ctx] = makeCanvas(size, size);
   const g = ctx.createRadialGradient(size / 2, size / 2, stop, size / 2, size / 2, size / 2);
@@ -420,8 +487,9 @@ function vignette(w: number, h: number): HTMLCanvasElement {
 /** A pizza's shield: a force-field dome over it (the table's perspective squashes it), its edge brighter than its
  * middle like a bubble, a fine hex lattice catching the light, and its base ring on the table. 460 × 300; the pizza's
  * centre sits at (230, 230). */
-function cheeseShield(): HTMLCanvasElement {
-  // it stands on the plate (just inside its rim) and covers every pizza shape, deep dish included
+function cheeseShield(square = false): HTMLCanvasElement {
+  // it stands on the plate (just inside its rim) and covers every pizza shape, deep dish included; a square pizza's
+  // is a rounded box standing on its platter (upright sides, a rounded lid) so its corners are inside too
   const W = 480;
   const H = 366;
   const cx = 240;
@@ -430,25 +498,62 @@ function cheeseShield(): HTMLCanvasElement {
   const RY = R * 0.92;
   // the base sits on the table in the pizza's own perspective (as squashed as the pizza is)
   const RB = R * TILT;
+  const CR = 40; // a square base's corner radius (before the squash)
   const [c, ctx] = makeCanvas(W, H);
+  // the base outline: a full ellipse, or a rounded square, in perspective
+  const base = () => {
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(1, TILT);
+    if (square) roundRect(ctx, -R, -R, R * 2, R * 2, CR);
+    else ellipse(ctx, 0, 0, R, R);
+    ctx.restore();
+  };
+  // the lid's outline over the top, left to right: a half ellipse, or a squarish arch (a superellipse) for the box
+  const SIDE = RB - CR * TILT; // where a box's upright side meets its front corner
+  const lid = () => {
+    if (!square) {
+      ctx.ellipse(cx, cy, R, RY, 0, Math.PI, 0);
+      return;
+    }
+    ctx.moveTo(cx - R, cy + SIDE);
+    for (let k = 0; k <= 48; k++) {
+      const a = Math.PI + (Math.PI * k) / 48;
+      const co = Math.cos(a);
+      const si = Math.sin(a);
+      ctx.lineTo(cx + Math.sign(co) * R * Math.abs(co) ** 0.45, cy + Math.sign(si) * RY * 0.86 * Math.abs(si) ** 0.45);
+    }
+    ctx.lineTo(cx + R, cy + SIDE);
+  };
+  // the front of the base, right to left (closes the outline)
+  const front = () => {
+    if (!square) {
+      ctx.ellipse(cx, cy, R, RB, 0, 0, Math.PI);
+      return;
+    }
+    const ry = CR * TILT;
+    ctx.ellipse(cx + R - CR, cy + SIDE, CR, ry, 0, 0, Math.PI / 2);
+    ctx.lineTo(cx - R + CR, cy + RB);
+    ctx.ellipse(cx - R + CR, cy + SIDE, CR, ry, 0, Math.PI / 2, Math.PI);
+  };
   const dome = () => {
     ctx.beginPath();
-    ctx.ellipse(cx, cy, R, RY, 0, Math.PI, 0);
-    ctx.ellipse(cx, cy, R, RB, 0, 0, Math.PI);
+    lid();
+    front();
     ctx.closePath();
   };
   // the field: clear in the middle, brighter towards its edge (looking through more of it there)
   ctx.save();
   dome();
   ctx.clip();
-  const g = ctx.createRadialGradient(cx, cy - 20, R * 0.35, cx, cy, R);
+  const g = ctx.createRadialGradient(cx, cy - 20, R * 0.35, cx, cy, R * (square ? 1.12 : 1));
   g.addColorStop(0, 'rgba(40,200,255,0.1)');
   g.addColorStop(0.7, 'rgba(30,190,255,0.24)');
   g.addColorStop(0.92, 'rgba(70,220,255,0.6)');
   g.addColorStop(1, 'rgba(190,250,255,0.85)');
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, W, H);
-  // the hex lattice, faint, fading out towards the top
+  // the hex lattice, faint
   ctx.strokeStyle = 'rgba(120,235,255,0.32)';
   ctx.lineWidth = 1.6;
   const hs = 22;
@@ -475,35 +580,44 @@ function cheeseShield(): HTMLCanvasElement {
   ctx.fillStyle = hl;
   ctx.fillRect(0, 0, W, H);
   ctx.restore();
-  // its rim and the ring where it meets the table
-  // the rim glowing: a wide soft line under a crisp one
+  // its outline glowing: a wide soft line under a crisp one
+  const outline = () => {
+    ctx.beginPath();
+    lid();
+  };
   ctx.save();
   ctx.shadowColor = 'rgba(60,220,255,0.95)';
   ctx.shadowBlur = 14;
   ctx.strokeStyle = 'rgba(90,225,255,0.9)';
   ctx.lineWidth = 5;
-  ctx.beginPath();
-  ctx.ellipse(cx, cy, R, RY, 0, Math.PI, 0);
+  outline();
   ctx.stroke();
   ctx.restore();
   ctx.strokeStyle = 'rgba(230,253,255,0.95)';
   ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.ellipse(cx, cy, R, RY, 0, Math.PI, 0);
+  outline();
   ctx.stroke();
-  // the base ring: its back half faint (seen through the field), its front half bright
+  // the base ring: its back faint (seen through the field), its front bright
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, W, cy);
+  ctx.clip();
+  base();
   ctx.strokeStyle = 'rgba(110,230,255,0.35)';
   ctx.lineWidth = 2.5;
-  ctx.beginPath();
-  ctx.ellipse(cx, cy, R, RB, 0, Math.PI, 0);
   ctx.stroke();
+  ctx.restore();
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, cy, W, H - cy);
+  ctx.clip();
+  base();
   ctx.shadowColor = 'rgba(60,220,255,0.9)';
   ctx.shadowBlur = 10;
   ctx.strokeStyle = 'rgba(110,230,255,0.9)';
   ctx.lineWidth = 4;
-  ctx.beginPath();
-  ctx.ellipse(cx, cy, R, RB, 0, 0, Math.PI);
   ctx.stroke();
+  ctx.restore();
   return c;
 }
 
@@ -605,6 +719,7 @@ export function buildSprites(): Record<string, HTMLCanvasElement> {
   const peel = drawPeel();
   return {
     plate: drawPlate(),
+    plateSquare: drawSquarePlate(),
     soft: soft(64, 'rgba(255,255,255,1)', 'rgba(255,255,255,0)'),
     glow: soft(256, 'rgba(255,255,255,0.9)', 'rgba(255,255,255,0)', 4),
     star: star(64, 4, 0.32, '#ffffff'),
@@ -626,6 +741,7 @@ export function buildSprites(): Record<string, HTMLCanvasElement> {
     cheese: cheeseString(),
     vignette: vignette(960, 540),
     shield: cheeseShield(),
+    shieldSquare: cheeseShield(true),
     shieldSweep: shieldSweep(),
     trap: mousetrap(),
     eye: eye(),
