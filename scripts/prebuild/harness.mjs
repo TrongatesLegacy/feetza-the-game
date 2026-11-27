@@ -88,15 +88,30 @@ export async function startChrome({ chrome = findChrome(), port, size = '1600,90
       `--window-size=${size}`,
       'about:blank',
     ],
-    { stdio: 'ignore' },
+    { stdio: ['ignore', 'ignore', 'pipe'] },
   );
-  for (let i = 0; i < 150; i++) {
+  // (a busy CI runner can take a while to bring Chrome up: wait up to a minute, and say why if it never comes)
+  let errTail = '';
+  let exited = null;
+  proc.stderr.on('data', (d) => (errTail = (errTail + d).slice(-2000)));
+  proc.on('exit', (code) => (exited = code));
+  let up = false;
+  for (let i = 0; i < 600 && exited === null; i++) {
     try {
       await fetch(`http://127.0.0.1:${cdpPort}/json/version`);
+      up = true;
       break;
     } catch {
       await sleep(100);
     }
+  }
+  if (!up) {
+    try {
+      proc.kill('SIGKILL');
+    } catch {
+      /* gone */
+    }
+    throw new Error(`Chrome didn't come up on port ${cdpPort}${exited !== null ? ` (it exited with ${exited})` : ' within 60 s'}\n${errTail}`);
   }
   const tabs = [];
   return {
