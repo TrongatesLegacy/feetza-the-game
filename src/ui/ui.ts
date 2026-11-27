@@ -9,7 +9,7 @@ import { awardMilestones, milestoneProgress } from '../game/Run';
 import { AUTO_TOPPING_NOTE, RARITY_COLOR, UPGRADES, UPGRADE_BY_ID, isAutoTopping, kindOf, type Rarity } from '../data/upgrades';
 import { glyph, slamPrompt } from '../systems/gamepad';
 import type { RunSummary, ShopActions, ShopPizza, ShopState, SlotSymbol, YourTopping } from './shopTypes';
-import { INTROS, freshBar, pizzaThumb } from './bits';
+import { INTROS, freshBar, freshForever, pizzaThumb } from './bits';
 import { statsBody } from './statsTab';
 import type { BuildView } from '../game/buildStats';
 import { phaseCardPanel } from './phaseCard';
@@ -1155,8 +1155,13 @@ class UI {
           { class: 'strip' },
           ...st.table.map((p, i) => {
             // each pizza that isn't fully fresh gets its own Reheat button
-            const reheat = p.reheat ? btn(`REHEAT · ${fmt(p.reheat.cost)}`, 'yellow small reheat', () => act.reheat(i), { 'aria-label': `Reheat ${p.name} for ${p.reheat.cost} tips` }) : null;
+            // every tile has the same rows, so they line up: slices, freshness (∞ for a pizza that never goes stale; no row on
+            // any tile when freshness is off), then HEAL and REHEAT side by side, greyed when not needed
+            const heal = btn(p.heal.need ? `HEAL +2 · ${fmt(p.heal.cost)}` : 'FULL', 'green small heal', () => act.healPizza(i), { 'aria-label': `Heal ${p.name} 2 slices for ${p.heal.cost} tips` });
+            heal.disabled = !p.heal.can;
+            const reheat = p.reheat ? btn(p.reheat.need ? `REHEAT · ${fmt(p.reheat.cost)}` : p.neverStale ? 'NEVER STALE' : 'FRESH', 'yellow small reheat', () => act.reheat(i), { 'aria-label': `Reheat ${p.name} for ${p.reheat.cost} tips` }) : null;
             if (reheat && p.reheat) reheat.disabled = !p.reheat.can;
+            const actions = p.dead ? h('div', { class: 'pacts' }) : h('div', { class: 'pacts' }, heal, reheat);
             return h(
               'div',
               { class: `ptile${p.stale ? ' stale' : ''}${p.dead ? ' dead' : ''}${p.enhanced ? ' enhanced' : ''}` },
@@ -1166,8 +1171,8 @@ class UI {
               h('div', { class: 'nm' }, p.name),
               h('div', { class: `ds${p.stale ? ' off' : ''}` }, p.enhanced && !p.stale ? perkDiff(p.basePerk, p.perk) : p.perk),
               h('div', { class: 'sl' }, `${p.slices} / ${p.max} slices`),
-              p.freshOn && !p.dead ? freshBar(p.fresh, p.maxFresh) : null,
-              reheat,
+              p.freshness ? (p.dead ? h('div', { class: 'fresh blank' }) : p.neverStale ? freshForever() : freshBar(p.fresh, p.maxFresh)) : null,
+              actions,
             );
           }),
         ),
@@ -1202,7 +1207,6 @@ class UI {
         'div',
         { class: 'services' },
         btn('YOUR TOPPINGS', 'yellow small', () => act.toppings(), { title: 'Every topping you have, its level, and when used ones come back', 'aria-label': `Your toppings: ${st.yours.filter((y) => y.back === null).length}` }),
-        svc('HEAL +2', st.heal, act.heal, 'green'),
         st.rebake.shown ? svc('REBAKE', st.rebake, act.rebake, '') : null,
       );
       const counter = h(

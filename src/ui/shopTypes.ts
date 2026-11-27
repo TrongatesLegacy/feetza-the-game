@@ -38,8 +38,14 @@ export interface ShopPizza {
   basePerk: string;
   /** Its perk once enhanced (the enhance picker's preview). */
   enhancedPerk: string;
-  /** Its own Reheat button (hidden when freshness is off or it's fully fresh). */
-  reheat: { cost: number; can: boolean } | null;
+  /** Its own Reheat button (null when freshness is off for the run; `need` false when it's already fully fresh). */
+  reheat: { cost: number; can: boolean; need: boolean } | null;
+  /** Its own Heal +2 button (`need` false when it has every slice). */
+  heal: { cost: number; can: boolean; need: boolean };
+  /** This pizza never goes stale (Pumpkin Spice): its freshness shows as ∞. */
+  neverStale: boolean;
+  /** Freshness is on for the run (off on Mild: no freshness row on any tile). */
+  freshness: boolean;
 }
 
 export interface ShopOffer {
@@ -120,6 +126,8 @@ export interface ShopActions {
   heal(): void;
   rebake(): void;
   reheat(index: number): void;
+  /** Heal one pizza +2 slices. */
+  healPizza(index: number): void;
   /** Open the Your Toppings window. */
   toppings(): void;
   buyPizza(id: string): void;
