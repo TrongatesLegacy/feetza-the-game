@@ -48,8 +48,9 @@ export interface PackManifest {
 }
 
 const q = typeof location !== 'undefined' ? new URLSearchParams(location.search) : new URLSearchParams();
-/** ?noPacks: paint everything (before/after timings, the prebuild itself). */
-const off = q.has('noPacks') || q.has('prebuild');
+/** ?noPacks: paint everything (before/after timings, the prebuild itself). The balance simulator and the legacy
+ * feet (dev) paint too: the sim's shop steps stay as they were, and legacy art never comes from a pack. */
+const off = q.has('noPacks') || q.has('prebuild') || q.has('sim') || q.has('legacyFeet');
 
 let manifest: PackManifest | null = null;
 /** key → its pack's name. */
@@ -58,11 +59,16 @@ const where = new Map<string, string>();
 const byBackdrop = new Map<string, string[]>();
 let ready: Promise<boolean> | null = null;
 
-/** Fetched atlases (compressed), by `pack/index`. */
+/** Fetched atlases (compressed), by `pack/index`, until decoded. */
 const blobs = new Map<string, Promise<Blob | null>>();
+/** Atlases fetched once this session (the browser's cache has them: a prefetch needn't ask again). */
+const fetchedOnce = new Set<string>();
 /** Decoded atlases kept a moment (several frames of one are often wanted together), by `pack/index`. */
 const decoded = new Map<string, { p: Promise<ImageBitmap | null>; t: number; busy: number }>();
-const KEEP_DECODED = 3;
+/** Decoded atlases kept up to this much memory (a 1024² atlas is 4 MB), and let go after this long unused. */
+const KEEP_BYTES = 64 * 1024 * 1024;
+const KEEP_MS = 15_000;
+let sweeping = false;
 /** Backdrop frames decoded ahead, waiting for their painter. */
 const ahead = new Map<string, ImageBitmap>();
 const stats = { hits: 0, misses: 0, fetched: 0, bytes: 0, decodes: 0, decodeMs: 0, taken: 0 };
@@ -73,14 +79,19 @@ const base = (): string => (import.meta.env.BASE_URL || './').replace(/\/?$/, '/
 export function initPacks(ms = 2000): Promise<boolean> {
   if (ready) return ready;
   if (off || typeof fetch === 'undefined') return (ready = Promise.resolve(false));
-  const load = (async () => {
+  const load = (async (): Promise<PackManifest | null> => {
     const r = await fetch(`${base()}packs/manifest.json`, { cache: 'no-cache' });
-    if (!r.ok) return false;
+    if (!r.ok) return null;
     const m = (await r.json()) as PackManifest;
     if (m.format !== FORMAT || m.v !== PACK_VERSION) {
       if (import.meta.env.DEV) console.info(`[packs] built for ${m.v}, this is ${PACK_VERSION}: painting instead`);
-      return false;
+      return null;
     }
+    return m;
+  })().catch(() => null);
+  // (a manifest that turns up after the timeout is let go: the session paints, as it was told)
+  ready = Promise.race([load, new Promise<null>((r) => setTimeout(() => r(null), ms))]).then((m) => {
+    if (!m) return false;
     manifest = m;
     for (const [name, p] of Object.entries(m.packs))
       for (const [key, e] of Object.entries(p.entries)) {
@@ -92,14 +103,6 @@ export function initPacks(ms = 2000): Promise<boolean> {
         }
       }
     return true;
-  })().catch(() => false);
-  ready = Promise.race([load, new Promise<boolean>((r) => setTimeout(() => r(false), ms))]).then((ok) => {
-    if (!ok) {
-      manifest = null;
-      where.clear();
-      byBackdrop.clear();
-    }
-    return ok;
   });
   return ready;
 }
@@ -127,6 +130,7 @@ function atlasBlob(name: string, i: number, low = false): Promise<Blob | null> {
         if (b) {
           stats.fetched++;
           stats.bytes += b.size;
+          fetchedOnce.add(id);
         }
         return b;
       })
@@ -155,6 +159,8 @@ function decodeAtlas(name: string, i: number): Promise<ImageBitmap | null> {
     const bm = await createImageBitmap(b, { premultiplyAlpha: 'none', colorSpaceConversion: 'none' });
     stats.decodes++;
     stats.decodeMs += performance.now() - t0;
+    // (the compressed copy isn't kept: a later decode fetches it again, from the browser's cache)
+    blobs.delete(id);
     return bm;
   }).catch(() => null);
   decoded.set(id, { p, t: performance.now(), busy: 1 });
@@ -170,11 +176,26 @@ function releaseAtlas(name: string, i: number): void {
 
 /** Keep only the few most recently used decoded atlases (they're big). */
 function trimDecoded(): void {
-  if (decoded.size <= KEEP_DECODED) return;
-  const old = [...decoded.entries()].filter(([, d]) => !d.busy).sort((a, b) => a[1].t - b[1].t).slice(0, decoded.size - KEEP_DECODED);
-  for (const [id, d] of old) {
+  const size = (id: string) => {
+    const [name, i] = id.split('/');
+    const a = manifest?.packs[name]?.atlases[Number(i)];
+    return a ? a.w * a.h * 4 : 0;
+  };
+  const now = performance.now();
+  let total = [...decoded.keys()].reduce((n, id) => n + size(id), 0);
+  for (const [id, d] of [...decoded.entries()].sort((a, b) => a[1].t - b[1].t)) {
+    if (d.busy || (total <= KEEP_BYTES && now - d.t < KEEP_MS)) continue;
     decoded.delete(id);
+    total -= size(id);
     void d.p.then((bm) => bm?.close());
+  }
+  // (and again once the rest have sat unused a while)
+  if (decoded.size && !sweeping) {
+    sweeping = true;
+    setTimeout(() => {
+      sweeping = false;
+      trimDecoded();
+    }, KEEP_MS + 100);
   }
 }
 
@@ -218,19 +239,27 @@ export async function readPackedBlob(key: string): Promise<Blob | null> {
   const [b, ...rest] = r.bitmaps;
   for (const x of rest) x.close();
   try {
-    const c = new OffscreenCanvas(b.width, b.height);
+    const c = document.createElement('canvas');
+    c.width = b.width;
+    c.height = b.height;
     c.getContext('2d')!.drawImage(b, 0, 0);
-    return await c.convertToBlob({ type: 'image/png' });
+    return await new Promise<Blob | null>((res) => c.toBlob(res, 'image/png'));
+  } catch {
+    return null;
   } finally {
     b.close();
   }
 }
 
-/** Fetch a pack's atlases ahead of need (`low`: quietly, the next act's a few waves in). Resolves when they're in. */
-export function prefetchPack(name: string, low = true): Promise<void> {
+/** Fetch a pack's atlases ahead of need (`low`: quietly, the next act's a few waves in): its feet, and its
+ * backdrops' live-layer atlases with Animated stages on (`live`), their stills otherwise. Resolves when they're in. */
+export function prefetchPack(name: string, live: boolean, low = true): Promise<void> {
   const p = manifest?.packs[name];
   if (!p) return Promise.resolve();
-  return Promise.all(p.atlases.map((_, i) => atlasBlob(name, i, low))).then(() => {});
+  const want = new Set<number>();
+  for (const e of Object.values(p.entries)) if (!e.b || e.m === (live ? 'l' : 's')) for (const f of e.f) if (!fetchedOnce.has(`${name}/${f[0]}`)) want.add(f[0]);
+  // (into the browser's cache: the copies aren't held here, a read fetches them again from there)
+  return Promise.all([...want].map((i) => atlasBlob(name, i, low).then(() => void blobs.delete(`${name}/${i}`)))).then(() => {});
 }
 
 /** The pack holding a backdrop's textures, if any. */
@@ -239,6 +268,7 @@ export function backdropPack(id: string): string | null {
   return k ? (where.get(k) ?? null) : null;
 }
 
+/** Decodes in flight, by `id/mode`. */
 const backdropWork = new Map<string, Promise<void>>();
 
 /**
@@ -246,8 +276,11 @@ const backdropWork = new Map<string, Promise<void>>();
  * its still. Keys already made (`have`) are skipped. Resolves when they're ready (or have failed: then they paint).
  */
 export function prepareBackdrop(id: string, live: boolean, have: (key: string) => boolean = () => false): Promise<void> {
+  const job = `${id}/${live ? 'l' : 's'}`;
+  const running = backdropWork.get(job);
+  if (running) return running;
   const keys = (byBackdrop.get(id) ?? []).filter((k) => !ahead.has(k) && !have(k) && entryOf(k)?.[1].m === (live ? 'l' : 's'));
-  if (!keys.length) return backdropWork.get(id) ?? Promise.resolve();
+  if (!keys.length) return Promise.resolve();
   const name = where.get(keys[0])!;
   const p = (async () => {
     const entries = keys.map((k) => [k, entryOf(k)![1]] as const);
@@ -259,18 +292,22 @@ export function prepareBackdrop(id: string, live: boolean, have: (key: string) =
       const t0 = performance.now();
       const bm = await createImageBitmap(b, { premultiplyAlpha: 'none', colorSpaceConversion: 'none' }).catch(() => null);
       if (!bm) continue;
+      blobs.delete(`${name}/${i}`);
       stats.decodes++;
       stats.decodeMs += performance.now() - t0;
       for (const [k, e] of entries) {
-        if (e.f.length !== 1 || e.f[0][0] !== i || ahead.has(k)) continue;
-        ahead.set(k, await crop(bm, e.f[0]));
+        if (e.f.length !== 1 || e.f[0][0] !== i || ahead.has(k) || have(k)) continue;
+        const c = await crop(bm, e.f[0]);
+        // (painted meanwhile, or decoded by another call: not kept)
+        if (ahead.has(k) || have(k)) c.close();
+        else ahead.set(k, c);
       }
       bm.close();
     }
   })()
     .catch(() => {})
-    .finally(() => backdropWork.delete(id));
-  backdropWork.set(id, p);
+    .finally(() => backdropWork.delete(job));
+  backdropWork.set(job, p);
   return p;
 }
 
@@ -285,6 +322,12 @@ export function dropBackdrop(id: string): void {
     ahead.get(k)?.close();
     ahead.delete(k);
   }
+}
+
+/** Let go of every backdrop's decoded frames but these (a new backdrop shown: the next one is decoded again in the
+ * shop before it). Catches frames decoded for a backdrop that never showed, or that a painter never asked for. */
+export function dropBackdropsExcept(keep: string[]): void {
+  for (const [id] of byBackdrop) if (!keep.includes(id)) dropBackdrop(id);
 }
 
 // ——— the painters' side ———

@@ -24,9 +24,10 @@ import { PEELS, peelThumbAsync } from './game/peels';
 import { overrideBackdropAnim } from './systems/graphics';
 
 const FORMAT = 1;
-/** Atlas sizes: a backdrop's (its full-screen layers, 2 × 3 of them) and everything else's. */
+/** Atlas sizes: a backdrop's (its full-screen layers, 2 × 3 of them) and everything else's (small: the art cache's
+ * pieces are read a few at a time, and each read decodes its whole atlas). */
 const BIG = 4096;
-const SMALL = 2048;
+const SMALL = 1024;
 
 interface Item {
   key: string;
@@ -36,7 +37,7 @@ interface Item {
   m?: 's' | 'l';
 }
 
-const state = { state: 'starting', step: '', log: [] as string[], skipped: [] as string[], random: [] as string[], unscoped: [] as string[], error: '' };
+const state = { state: 'starting', step: '', log: [] as string[], skipped: [] as string[], random: [] as string[], unscoped: [] as string[], shared: [] as string[], error: '' };
 const say = (s: string) => {
   state.step = s;
   state.log.push(s);
@@ -79,7 +80,7 @@ function cachePlace(key: string): [string, string] | null {
   }
   if (kind === 'pizza') return ['shared', 'pizzas'];
   if (kind === 'thumb') return ['peels', 'thumbs'];
-  if (kind === 'bg') return ['act1', 'bgcache'];
+  // (bg:trattoria, the still the art cache keeps: the still is packed with its backdrop)
   // the art peel thumbnails are drawn from (foot crops, rotted feet, place windows, pizza boards) is large and only
   // drawn again for a peel's full-size art: it's made from the packed feet and places when wanted (stage 2)
   return null;
@@ -215,10 +216,16 @@ async function harvest(): Promise<void> {
   const sc = await boot();
   /** Backdrop textures recorded for the backdrop being harvested. */
   let scope: { b: BackdropId; m: 's' | 'l'; items: Item[] } | null = null;
-  const seen = new Set<string>();
+  /** Who painted each key first. A key painted by two backdrops may be two different textures under one name
+   * (each backdrop's painters made it their own way): it's left out of the packs, painted as before. */
+  const owner = new Map<string, string>();
   setPackRecorder((key, c, random) => {
-    if (seen.has(key)) return;
-    seen.add(key);
+    const was = owner.get(key);
+    if (was !== undefined) {
+      if (scope && was !== scope.b && !state.shared.includes(key)) state.shared.push(key);
+      return;
+    }
+    owner.set(key, scope?.b ?? '');
     if (!scope) return void state.unscoped.push(key);
     if (random) return void state.random.push(key);
     if (c.width < 1 || c.height < 1) return void state.skipped.push(key);
@@ -331,9 +338,10 @@ async function harvest(): Promise<void> {
     say(`packed ${pack}/${section}: ${items.length}`);
   }
 
+  for (const p of Object.values(packs)) for (const k of state.shared) delete p.entries[k];
   const manifest: PackManifest = { format: FORMAT, v: PACK_VERSION, packs };
   await post('/__prebuild/manifest', JSON.stringify(manifest));
-  say(`done: ${Object.keys(packs).length} packs, ${Object.values(packs).reduce((n, p) => n + Object.keys(p.entries).length, 0)} entries; left out: ${state.random.length} random, ${state.unscoped.length} unscoped, ${state.skipped.length} empty`);
+  say(`done: ${Object.keys(packs).length} packs, ${Object.values(packs).reduce((n, p) => n + Object.keys(p.entries).length, 0)} entries; left out: ${state.random.length} random, ${state.shared.length} painted by several backdrops, ${state.unscoped.length} unscoped, ${state.skipped.length} empty`);
 }
 
 // ——— the check: packed art against the painters ———

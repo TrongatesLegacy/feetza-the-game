@@ -19,7 +19,7 @@ import type { Arena, Clickable } from '../game/arena';
 import { evictFootArt, footPortraitURL, pizzaPortraitURL, setArtWarmBusy, textureURL, texturesInUse, warmFootArt } from '../game/assets';
 import { BackdropView } from '../game/BackdropView';
 import { packedReady, prepareLive, preparePacked, releaseLive } from '../game/liveBackdrop';
-import { backdropPack, prefetchPack } from '../game/packs';
+import { backdropPack, dropBackdropsExcept, prefetchPack } from '../game/packs';
 import { BossDirector } from '../game/bosses';
 import { PHASE_CARDS_OFF, phaseCardFor, phaseCardsOn, phaseSeenKey } from '../game/phaseCards';
 import { eventName, startEvent, type EventId } from '../game/events';
@@ -33,7 +33,7 @@ import { audio, bossSfx, heroSfx } from '../systems/audio';
 import { setRunSmack } from '../game/smacks';
 import { pad } from '../systems/gamepad';
 import { markFootSeen, markToppingsSeen, nextLockedPizza, onSettingsChange, persist, save, updateSettings } from '../systems/save';
-import { peelsAnimated } from '../systems/graphics';
+import { backdropsAnimated, peelsAnimated } from '../systems/graphics';
 import type { GoldenItem, RunSummary, ShopCard, ShopOffer, ShopPizza, ShopState, SlotSymbol, SlotsResult, YourTopping } from '../ui/shopTypes';
 import { ui, fmtTime } from '../ui/ui';
 import { PEELS, PEEL_BY_ID, abilityPeel, applyPeelLook, hasPeel, lookPeel, checkPeelAchievements, grantShinyFoot, peelCanvas, peelFootId, peelThumbURL, placePeelReady, peelTrail, rollEventDrop, PEEL_HEATS, SHINY_FOOT_CHANCE, titleCase, type PeelDef } from '../game/peels';
@@ -553,6 +553,9 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   create(): void {
     this.resetState();
+    // (the scene is reused between runs: a wait for a backdrop from its pack never carries over)
+    this.packWait = false;
+    this.packGaveUp = null;
     this.run.heat = this.start.snapshot?.heat ?? this.start.heat ?? save.heat;
     setRunHeat(this.run.heat);
     this.registry.set('traitIcons', save.settings.traitIcons);
@@ -1197,6 +1200,9 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (bd !== this.currentBackdrop) {
       const fade = this.currentBackdrop && !immediate ? 1600 : 0;
       this.backdrop.show(bd, fade, waveInStage(n));
+      // pre-built frames decoded for any other backdrop (one that never showed, or parts its painters never asked
+      // for) are let go: the next one is decoded again in the shop before it
+      dropBackdropsExcept([bd]);
       this.tintGrade(BACKDROPS[bd].light, fade);
       this.currentBackdrop = bd;
     }
@@ -2326,20 +2332,23 @@ export class GameScene extends Phaser.Scene implements Arena {
     return o.kind === 'pizza' ? 0 : Math.round(cost / 2 / 5) * 5;
   }
 
-  /** Build the live art of the feet that can turn up in wave n in idle time, before they appear (the shop and the
-   * wave's opening seconds): its boss and minion, its mini-boss, its queue (or the feet likeliest in it). */
   /** The pre-built art packs (src/game/packs.ts): this act's now, the next act's quietly a few waves into this one
    * (Endless and Endless+ included: whatever the journey deals next). The shared pack's atlases come as they're
    * asked for (the lineup's pizzas, the everyday feet the warmer wants). */
   private prefetchPacks(n: number): void {
+    const live = backdropsAnimated();
     const here = backdropPack(backdropFor(n));
-    if (here) void prefetchPack(here, false);
-    const first = actStartWave(n);
-    if (n - first < 2) return;
-    const next = backdropPack(backdropFor(first + 2 * WAVES_PER_STAGE));
-    if (next && next !== here) void prefetchPack(next);
+    if (here) void prefetchPack(here, live, false);
+    if (n - actStartWave(n) < 2) return;
+    // the next act's first wave (acts needn't all be the same length)
+    let w = n + 1;
+    while (actOf(w) === actOf(n) && w < n + 40) w++;
+    const next = backdropPack(backdropFor(w));
+    if (next && next !== here) void prefetchPack(next, live);
   }
 
+  /** Build the live art of the feet that can turn up in wave n in idle time, before they appear (the shop and the
+   * wave's opening seconds): its boss and minion, its mini-boss, its queue (or the feet likeliest in it). */
   private warmFeet(n: number, plan?: WavePlan): void {
     this.prefetchPacks(n);
     const ids: string[] = [];
@@ -3320,7 +3329,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       const el = this.shop.el;
       const note = document.createElement('div');
       note.className = 'pack-wait';
-      note.textContent = 'Loading the next act…';
+      note.textContent = 'Loading the next stage…';
       note.style.cssText = 'position:absolute;left:50%;bottom:14px;transform:translateX(-50%);padding:6px 14px;border-radius:10px;background:#1d1422e6;color:#ffe9c7;font:600 15px Fredoka,system-ui,sans-serif;z-index:5;pointer-events:none';
       el.appendChild(note);
       this.packWait = true;

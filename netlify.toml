@@ -10,6 +10,13 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
+# the pre-built art packs (npm run prebuild): atlases are named by their contents, so they never change; the
+# manifest says which ones this build uses
+[[headers]]
+  for = "/packs/a/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
 [[headers]]
   for = "/audio/*"
   [headers.values]

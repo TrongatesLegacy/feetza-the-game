@@ -18,3 +18,4 @@ __pycache__/
 
 # pre-built art packs (npm run prebuild, which npm run build runs first)
 public/packs/
+.prebuild/

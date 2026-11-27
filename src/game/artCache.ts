@@ -113,11 +113,12 @@ export function cachedArt(key: string): boolean {
   return (!disabled && index.has(key)) || packHas(key);
 }
 
-/** A packed entry, raced against a timeout (a pack still downloading on a slow line: the art is drawn instead). */
+/** A packed entry, raced against the caller's timeout (a pack still downloading on a slow line: the art is drawn
+ * instead). */
 async function fromPack<T>(key: string, read: (k: string) => Promise<T | null>, ms: number, drop: (v: T) => void): Promise<T | null> {
   const t0 = performance.now();
-  const work = read(key);
-  const out = await timeout(work, Math.max(ms, 6000), null);
+  const work = read(key).catch(() => null);
+  const out = await timeout(work, ms, null);
   if (!out) void work.then((v) => v && drop(v)).catch(() => {});
   logRead(key, t0, out ? 'pack' : 'pack miss');
   return out;

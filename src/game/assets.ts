@@ -487,7 +487,7 @@ export async function generateAll(scene: Phaser.Scene, progress: (p: number, lab
   progress(1, 'Ready!');
   booted = true;
   // the Peel Locker's thumbnails, quietly (the rest of the shared pack comes an atlas at a time, as it's asked for)
-  if (packed) setTimeout(() => void prefetchPack('peels'), 3000);
+  if (packed) setTimeout(() => void prefetchPack('peels', true), 3000);
   // how long the art took to build (load-time budget checks), and in dev each job's share
   const ms = Math.round(performance.now() - t0);
   performance.mark('feetza:art', { detail: ms });

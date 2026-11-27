@@ -6,7 +6,7 @@
   "description": "Feetza \u2014 stop the feet from stomping the pizza. A browser arcade roguelike.",
   "scripts": {
     "dev": "vite",
-    "prebuild": "node scripts/prebuild/run.mjs",
+    "prebuild": "tsc --noEmit && node scripts/prebuild/run.mjs",
     "build": "tsc --noEmit && vite build",
     "prebuild:check": "node scripts/prebuild/run.mjs --check",
     "preview": "vite preview",

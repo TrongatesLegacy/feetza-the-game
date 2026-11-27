@@ -92,8 +92,8 @@ function artVersion(id = 'virtual:art-version', from: string | string[] = 'game/
 
 // The pre-built art packs' version (src/game/packs.ts, scripts/prebuild): everything the packed art is painted by,
 // the backdrops' live layers (src/game/BackdropView.ts pulls in src/content/live) and the peels included. A pack
-// built under another version is never used.
-const PACK_SOURCES = ['game/assets.ts', 'game/BackdropView.ts', 'game/peels.ts'];
+// built under another version is never used. The prebuild's own page is in it too (what it harvests, and how).
+const PACK_SOURCES = ['game/assets.ts', 'game/BackdropView.ts', 'game/peels.ts', 'devPrebuild.ts'];
 
 // Dev-only: lets the running game POST canvas screenshots for automated visual review.
 function devShots(): Plugin {

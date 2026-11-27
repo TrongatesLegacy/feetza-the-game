@@ -10,7 +10,7 @@ import { Foot } from '../game/Foot';
 import { warmFootArt } from '../game/assets';
 import { Fx } from '../game/Fx';
 import { Pizza } from '../game/Pizza';
-import { backdropFor, endCrustsFor } from '../game/Run';
+import { backdropFor, endCrustsFor, loopOf } from '../game/Run';
 import { preparePacked } from '../game/liveBackdrop';
 import { audio } from '../systems/audio';
 import { freshStart, persist, save } from '../systems/save';
@@ -155,8 +155,9 @@ export class MenuScene extends Phaser.Scene {
             const snapshot = save.run!;
             ui.closeAll();
             this.cameras.main.fadeOut(400, 18, 10, 6);
-            // the saved wave's backdrop from its pre-built pack, while the screen fades (a few seconds at most)
-            const bd = preparePacked(this, backdropFor(snapshot.wave), 5000);
+            // the saved wave's backdrop from its pre-built pack, while the screen fades (a few seconds at most). Not past
+            // the journey's first time through (Endless+ deals its places from the run's own seed, set when it resumes)
+            const bd = loopOf(snapshot.wave) === 0 ? preparePacked(this, backdropFor(snapshot.wave), 5000) : Promise.resolve();
             this.cameras.main.once('camerafadeoutcomplete', () => void bd.then(() => this.scene.start('Game', { snapshot })));
           }
         : null,

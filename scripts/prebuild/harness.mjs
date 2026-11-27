@@ -139,6 +139,8 @@ export class Tab {
         const text = d.params.args.map((a) => a.value ?? a.description ?? '').join(' ');
         this.logs.push({ type: d.params.type, text });
         this.onLog?.(d.params.type, text);
+      } else if (d.method === 'Inspector.targetCrashed') {
+        this.dead = 'the page crashed (out of memory?)';
       } else if (d.method === 'Runtime.exceptionThrown') {
         const text = d.params.exceptionDetails.exception?.description ?? d.params.exceptionDetails.text;
         this.logs.push({ type: 'exception', text });
@@ -146,11 +148,18 @@ export class Tab {
       }
     };
     await new Promise((r) => (this.ws.onopen = r));
+    this.ws.onclose = () => {
+      this.dead ??= 'the page closed';
+      for (const r of this.pend.values()) r({ result: { exceptionDetails: { text: this.dead } } });
+      this.pend.clear();
+    };
+    await this.send('Inspector.enable');
     await this.send('Page.enable');
     await this.send('Runtime.enable');
     if (url) await this.go(url);
   }
   send(method, params = {}) {
+    if (this.dead) return Promise.resolve({ result: { exceptionDetails: { text: this.dead } } });
     return new Promise((r) => {
       const i = ++this.n;
       this.pend.set(i, r);
@@ -169,6 +178,7 @@ export class Tab {
   async until(expr, ms = 120_000, every = 200) {
     const t0 = Date.now();
     while (Date.now() - t0 < ms) {
+      if (this.dead) throw new Error(this.dead);
       const v = await this.eval(`return ${expr}`, 10_000).catch(() => null);
       if (v) return v;
       await sleep(every);
