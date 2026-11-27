@@ -6315,3 +6315,30 @@ body.still-peels .peel-big.shiny::after {
   margin: 0 0 0.15em;
   font-size: 0.9em;
 }
+
+/* the shop's table tiles share one layout: name, perk (it takes the spare height), slices, freshness, then HEAL and
+   REHEAT side by side, so every tile's rows line up whatever its perk's length */
+.ptile .ds {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ptile .pacts {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 0.3em;
+  width: 100%;
+  min-height: 2em;
+  margin-top: 0.15em;
+}
+.ptile .pacts .btn {
+  font-size: 0.72em;
+  width: 100%;
+  margin: 0;
+  padding: 0.25em 0.3em 0.3em;
+  white-space: nowrap;
+}
+.ptile .fresh.blank { visibility: hidden; min-height: 1em; }
+.ptile .fresh.forever .fbar i { background: linear-gradient(90deg, #ffb347, #ffd23f); }
+.ptile .fresh.forever .fn { font-size: 1.3em; line-height: 0.8; }

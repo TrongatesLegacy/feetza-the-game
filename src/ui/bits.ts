@@ -8,6 +8,11 @@ export function pizzaThumb(id: string, slices: number, max: number, size: number
   return h('img', { class: `pthumb${stale ? ' stale' : ''}${dead ? ' dead' : ''}`, src: pizzaStateURL(id, dead ? 0 : slices, max, size), alt: '' });
 }
 
+/** A pizza that never goes stale: the bar full, ∞ for its number. */
+export function freshForever(): HTMLElement {
+  return h('div', { class: 'fresh forever', title: 'Never goes stale' }, h('span', { class: 'fl' }, 'FRESH'), h('span', { class: 'fbar' }, h('i', { style: 'width:100%' })), h('span', { class: 'fn' }, '∞'));
+}
+
 export function freshBar(fresh: number, max: number): HTMLElement {
   const f = Math.max(0, Math.min(1, fresh / Math.max(1, max)));
   return h(

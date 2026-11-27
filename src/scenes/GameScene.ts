@@ -2488,6 +2488,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       slotsTake: (c) => this.slotsTake(c),
       rebake: () => this.shopRebake(),
       reheat: (i) => this.shopReheat(i),
+      healPizza: (i) => this.shopHealPizza(i),
       toppings: () => this.shopToppings(),
       buyPizza: (id) => this.shopBuyPizza(id),
       golden: (id) => this.shopGolden(id),
@@ -2520,6 +2521,7 @@ export class GameScene extends Phaser.Scene implements Arena {
   /** The table as the shop draws it (and the enhance picker). */
   private shopPizzas(): ShopPizza[] {
     const reheatOn = this.run.heatDef.freshness > 0;
+    const healOne = this.boughtOut(this.healOnePrice());
     return this.pizzas.map((p) => {
       const cost = this.reheatCost(p);
       const needs = reheatOn && p.freshOn && !p.dead && p.fresh < p.maxFresh;
@@ -2537,7 +2539,10 @@ export class GameScene extends Phaser.Scene implements Arena {
         freshOn: p.freshOn,
         stale: p.stale || !!p.flags.wentStale,
         dead: p.dead,
-        reheat: needs ? { cost, can: this.run.coins >= cost } : null,
+        reheat: reheatOn ? { cost, can: needs && this.run.coins >= cost, need: needs } : null,
+        heal: { cost: healOne, can: !p.dead && p.slices < p.maxSlices && this.run.coins >= healOne, need: !p.dead && p.slices < p.maxSlices },
+        neverStale: p.type.perk === 'neverStale',
+        freshness: reheatOn,
       };
     });
   }
@@ -3166,6 +3171,21 @@ export class GameScene extends Phaser.Scene implements Arena {
         return `JACKPOT! ${cost * 4} tips`;
       }
     }
+  }
+
+  /** Healing one pizza +2: about half the table-wide heal, climbing with use as it does. */
+  private healOnePrice(): number {
+    return Math.max(5, Math.round((this.healPrice() * 0.5) / 5) * 5);
+  }
+
+  private shopHealPizza(index: number): void {
+    const p = this.pizzas[index];
+    const cost = this.boughtOut(this.healOnePrice());
+    if (!p || p.dead || p.slices >= p.maxSlices || this.run.coins < cost) return;
+    this.run.coins -= cost;
+    this.healCost = Math.round(this.healCost * 1.45 + 10);
+    this.healPizza(p, 2);
+    this.refreshShop();
   }
 
   private shopHeal(): void {
