@@ -1130,8 +1130,8 @@ class UI {
       if (k === 'n' || (k === 'enter' && !onControl)) act.next();
     };
     window.addEventListener('keydown', onKey);
-    // (a dead pizza that can be rebaked shows whole and charred under its oven door)
-    const sliceArt = (p: ShopPizza, size: number) => pizzaThumb(p.id, p.slices, p.max, size, p.stale, p.dead, !!p.rebake);
+    // (a dead pizza: every slice eaten, its plate empty but for crumbs)
+    const sliceArt = (p: ShopPizza, size: number) => pizzaThumb(p.id, p.slices, p.max, size, p.stale, p.dead);
     const render = () => {
       const coin = (n: number) => `${COIN_SVG.replace('class="coin"', 'class="coin-ico"')}${fmt(n)}`;
       const crust = (n: number) => `${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')}${fmt(n)}`;
@@ -1195,25 +1195,28 @@ class UI {
             heal.disabled = !p.heal.can;
             const reheat = p.reheat ? btn(p.reheat.need ? `REHEAT · ${fmt(p.reheat.cost)}` : p.neverStale ? 'NEVER STALE' : 'FRESH', 'yellow small reheat', () => act.reheat(i), { 'aria-label': `Reheat ${p.name} for ${p.reheat.cost} tips` }) : null;
             if (reheat && p.reheat) reheat.disabled = !p.reheat.can;
-            const actions = p.dead ? h('div', { class: 'pacts' }) : h('div', { class: 'pacts' }, heal, reheat);
-            // a dead pizza: charred, with the oven door glowing over it to rebake it (half its slices, fully fresh)
-            let door: HTMLElement | null = null;
+            // a dead pizza (all eaten): one REBAKE button where HEAL and REHEAT sit (back with half its slices, fully fresh)
+            let rebake: HTMLElement | null = null;
             if (p.dead && p.rebake) {
               const rb = p.rebake;
-              door = h('button', { class: 'oven-door', type: 'button', 'aria-label': `Rebake ${p.name} for ${rb.cost} tips: back with half its slices, fully fresh` }, h('span', { class: 'od-glow' }), h('b', {}, 'REBAKE'), h('span', { class: 'od-price', html: coin(rb.cost) }));
-              (door as HTMLButtonElement).disabled = !rb.can;
-              door.addEventListener('click', () => act.rebake(i));
-            } else if (p.dead) door = h('div', { class: 'oven-door off' }, h('b', {}, 'NO REBAKE'), h('span', {}, 'Not on Inferno'));
+              rebake = btn(`REBAKE · ${fmt(rb.cost)}`, 'small rebake', () => act.rebake(i), { 'aria-label': `Rebake ${p.name} for ${rb.cost} tips: back with half its slices, fully fresh`, title: 'Back with half its slices, fully fresh' });
+              (rebake as HTMLButtonElement).disabled = !rb.can;
+            } else if (p.dead) {
+              rebake = btn('NO REBAKE ON INFERNO', 'small rebake', () => {}, { title: 'No rebakes on Inferno' });
+              (rebake as HTMLButtonElement).disabled = true;
+            }
+            const actions = p.dead ? h('div', { class: 'pacts' }, rebake) : h('div', { class: 'pacts' }, heal, reheat);
             const tier = tierAttrs(p.rarity);
             return h(
               'div',
               { class: `ptile ${tier.cls}${p.stale ? ' stale' : ''}${p.dead ? ' dead' : ''}${p.enhanced ? ' enhanced' : ''}`, style: tier.style },
               ...tierFrame(p.rarity),
-              p.stale ? h('span', { class: 'flag' }, 'STALE') : p.dead ? h('span', { class: 'flag dead' }, 'TOAST') : null,
+              p.stale ? h('span', { class: 'flag' }, 'STALE') : p.dead ? h('span', { class: 'flag dead' }, 'EATEN') : null,
               p.enhanced ? h('span', { class: 'star-badge', title: 'Enhanced: its perk is stronger this run', 'aria-label': 'Enhanced' }, '★') : null,
-              h('div', { class: 'pt-pic' }, sliceArt(p, 120), door),
+              h('div', { class: 'pt-pic' }, sliceArt(p, 120)),
               h('div', { class: 'nm' }, p.name),
-              h('div', { class: `ds${p.stale ? ' off' : ''}` }, p.enhanced && !p.stale ? perkDiff(p.basePerk, p.perk) : p.perk),
+              // (a stale or dead pizza's perk crossed out: what reheating or rebaking brings back)
+              h('div', { class: `ds${p.stale || p.dead ? ' off' : ''}` }, p.enhanced && !p.stale && !p.dead ? perkDiff(p.basePerk, p.perk) : p.perk),
               h('div', { class: 'sl' }, `${p.slices} / ${p.max} slices`),
               p.freshness ? (p.dead ? h('div', { class: 'fresh blank' }) : p.neverStale ? freshForever() : freshBar(p.fresh, p.maxFresh)) : null,
               actions,
@@ -1229,21 +1232,23 @@ class UI {
         const pic = h('div', { class: 'offer-pic' }, h('img', { src: pizzaPortraitURL(o.id), alt: '' }), o.kind === 'enhanced' ? h('span', { class: 'star-badge' }, '★') : null);
         // every offer in its tier's frame
         const tier = tierAttrs(o.rarity);
-        const card = (cls: string, ...kids: (HTMLElement | null)[]) => h('div', { class: `offer ${tier.cls}${cls}`, style: tier.style }, ...tierFrame(o.rarity), ...kids);
+        // its tabs in one row along the frame's top: its kind on the left, its tier in the middle, NEW PIZZA on the right;
+        // the row keeps them apart however narrow the card (the tier moves over rather than running into a long kind)
+        const card = (cls: string, kind: HTMLElement | null, isNew: HTMLElement | null, ...kids: (HTMLElement | null)[]) =>
+          h('div', { class: `offer ${tier.cls}${cls}`, style: tier.style }, ...tierFrame(o.rarity, false), h('div', { class: 'tabs' }, kind ?? h('span', { class: 'tab-gap' }), tierLabel(o.rarity), isNew ?? h('span', { class: 'tab-gap' })), ...kids);
         if (o.kind === 'special')
           return card(
             ' special',
-            pic,
-            // what kind of offer it is: a tab of the frame, top left (its tier's is centred; NEW PIZZA's top right)
             h('span', { class: `kind-tab k-special${o.fromPizzeria ? ' k-pizzeria' : ''}` }, ...(o.fromPizzeria ? tabText('PIZZERIA SPECIAL', 'PIZZERIA') : tabText('CHEF’S SPECIAL', 'SPECIAL'))),
-            h('div', { class: 'offer-text' }, h('b', {}, o.name), h('span', { title: o.perk }, o.perk)),
-            b,
             // what makes a Chef's Special worth it (the rest on hover)
             h('span', { class: 'new-tab', title: 'A new pizza: buy it once and it’s yours forever', 'aria-label': 'New pizza: buy it once and it’s yours forever' }, ...tabText('✦ NEW PIZZA', 'NEW')),
+            pic,
+            h('div', { class: 'offer-text' }, h('b', {}, o.name), h('span', { title: o.perk }, o.perk)),
+            b,
           );
         if (o.kind === 'enhanced')
-          return card(' enhanced', pic, h('span', { class: 'kind-tab k-enhanced' }, '★ ENHANCED'), h('div', { class: 'offer-text' }, h('b', {}, o.name), h('span', {}, perkDiff(o.basePerk ?? o.perk, o.perk))), b);
-        return card(o.cost === 0 ? ' free' : '', pic, o.cost === 0 ? h('span', { class: 'kind-tab k-free' }, ...tabText('ON THE HOUSE', 'FREE')) : null, h('div', { class: 'offer-text' }, h('b', {}, o.name), h('span', { title: o.perk }, o.perk)), b);
+          return card(' enhanced', h('span', { class: 'kind-tab k-enhanced' }, '★ ENHANCED'), null, pic, h('div', { class: 'offer-text' }, h('b', {}, o.name), h('span', {}, perkDiff(o.basePerk ?? o.perk, o.perk))), b);
+        return card(o.cost === 0 ? ' free' : '', o.cost === 0 ? h('span', { class: 'kind-tab k-free' }, ...tabText('ON THE HOUSE', 'FREE')) : null, null, pic, h('div', { class: 'offer-text' }, h('b', {}, o.name), h('span', { title: o.perk }, o.perk)), b);
       });
       // Pizza Slots: in the third slot when no Chef's Special turned up
       if (st.slots) offers.push(slotsRow(st.slots, act.slots, act.slotsTake));
@@ -1462,7 +1467,7 @@ class UI {
       const t = h(
         'button',
         { class: `swaptile enh${p.dead ? ' dead' : ''}${p.enhanced ? ' done' : ''}`, type: 'button', 'data-i': i },
-        p.enhanced ? h('span', { class: 'flag gold' }, '★ ENHANCED') : p.dead ? h('span', { class: 'flag dead' }, 'TOAST') : null,
+        p.enhanced ? h('span', { class: 'flag gold' }, '★ ENHANCED') : p.dead ? h('span', { class: 'flag dead' }, 'EATEN') : null,
         pizzaThumb(p.id, p.slices, p.max, 200, p.stale, p.dead),
         h('span', { class: 'nm' }, p.name),
         p.dead ? h('span', { class: 'ds' }, 'Destroyed') : h('span', { class: 'ds' }, perkDiff(p.basePerk, p.enhanced ? p.perk : p.enhancedPerk)),
@@ -1522,7 +1527,7 @@ class UI {
         'button',
         { class: `swaptile${p.stale ? ' stale' : ''}${p.dead ? ' dead' : ''}`, type: 'button', 'data-i': i },
         h('span', { class: 'flag out' }, 'SWAPPING OUT'),
-        p.stale ? h('span', { class: 'flag' }, 'STALE') : p.dead ? h('span', { class: 'flag dead' }, 'TOAST') : null,
+        p.stale ? h('span', { class: 'flag' }, 'STALE') : p.dead ? h('span', { class: 'flag dead' }, 'EATEN') : null,
         pizzaThumb(p.id, p.slices, p.max, 200, p.stale, p.dead),
         h('span', { class: 'nm' }, p.name),
         h('span', { class: `ds${p.stale ? ' off' : ''}` }, p.perk),

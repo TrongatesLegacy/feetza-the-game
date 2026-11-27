@@ -6994,3 +6994,115 @@ body:not(.reduced-motion) .kind-tab.k-special { animation: kindShine 3.6s ease-i
   .offer > .new-tab .ts { display: inline; }
   .counter2.last-stand > .offer .offer-pic img { height: 3.1em; }
 }
+
+/* ——— The counter card's tabs as one row along the frame's top (kind | tier | NEW PIZZA): the tier sits in the middle,
+   and moves over rather than touching a long kind tab; the gap leaves room for each tab's curves ——— */
+.offer > .tabs {
+  position: absolute;
+  top: 0;
+  left: 1.9em;
+  right: 1.9em;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: minmax(max-content, 1fr) auto minmax(max-content, 1fr);
+  column-gap: 1.5em;
+  pointer-events: none;
+}
+.offer > .tabs > * { position: relative; top: auto; left: auto; right: auto; transform: none; pointer-events: auto; }
+.offer > .tabs > :first-child { justify-self: start; }
+.offer > .tabs > :last-child { justify-self: end; }
+.offer > .tabs > .tab-gap { width: 0; }
+/* the tier's tab in the row: the same look as on the other cards */
+.offer > .tabs > span.pzr-tag {
+  z-index: 2;
+  font-family: 'Lilita One', sans-serif;
+  font-weight: 400;
+  font-size: max(0.62em, 7px);
+  line-height: 1.25;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  border: 0;
+  border-radius: 0 0 0.7em 0.7em;
+  padding: 0.05em 0.7em 0.2em;
+  color: var(--tabink);
+  background: linear-gradient(180deg, var(--tab), var(--tab2));
+  box-shadow: inset 0 -0.07em 0 color-mix(in srgb, var(--te) 55%, transparent);
+}
+.offer > .tabs > span.pzr-tag::before,
+.offer > .tabs > span.pzr-tag::after { content: ''; position: absolute; top: 0; width: 0.7em; height: 0.7em; }
+.offer > .tabs > span.pzr-tag::before { right: 100%; background: radial-gradient(circle at 0 100%, transparent 0.7em, var(--tab) 0.72em); }
+.offer > .tabs > span.pzr-tag::after { left: 100%; background: radial-gradient(circle at 100% 100%, transparent 0.7em, var(--tab) 0.72em); }
+/* the kind and NEW tabs' own rules match them as direct children of the card; in the row they're the row's */
+.offer > .tabs > .kind-tab,
+.offer > .tabs > .new-tab {
+  font-family: 'Lilita One', sans-serif;
+  font-size: max(0.62em, 7px);
+  line-height: 1.25;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  border-radius: 0 0 0.7em 0.7em;
+  padding: 0.05em 0.7em 0.2em;
+  color: var(--k-ink);
+  background: linear-gradient(180deg, var(--k1), var(--k2));
+  box-shadow: inset 0 -0.07em 0 rgba(40, 10, 0, 0.45);
+}
+.offer > .tabs > .new-tab { cursor: help; --k1: #e8452e; --k2: #b0251a; --k-ink: #ffe27a; }
+.offer > .tabs > .kind-tab.k-special {
+  background-image: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.75) 50%, transparent 65%), linear-gradient(180deg, var(--k1), var(--k2));
+  background-size: 250% 100%, 100% 100%;
+  background-repeat: no-repeat;
+  background-position: 160% 0, 0 0;
+}
+.offer > .tabs > .kind-tab::before,
+.offer > .tabs > .kind-tab::after,
+.offer > .tabs > .new-tab::before,
+.offer > .tabs > .new-tab::after { content: ''; position: absolute; top: 0; width: 0.7em; height: 0.7em; }
+.offer > .tabs > .kind-tab::before,
+.offer > .tabs > .new-tab::before { right: 100%; background: radial-gradient(circle at 0 100%, transparent 0.7em, var(--k1) 0.72em); }
+.offer > .tabs > .kind-tab::after,
+.offer > .tabs > .new-tab::after { left: 100%; background: radial-gradient(circle at 100% 100%, transparent 0.7em, var(--k1) 0.72em); }
+.offer > .tabs .ts { display: none; }
+@media (max-width: 1100px) {
+  .offer > .tabs .tl { display: none; }
+  .offer > .tabs .ts { display: inline; }
+}
+
+/* ——— A dead pizza on the table: charred, its perk crossed out, and one REBAKE button where HEAL and REHEAT sit ——— */
+.ptile .pacts .btn.rebake {
+  background: linear-gradient(180deg, #ff8a3d, #d9480f);
+}
+.ptile .pacts .btn.rebake:disabled { filter: grayscale(0.7) brightness(0.9); opacity: 0.75; }
+
+/* a table tile's STALE / TOAST: an inked rubber stamp pressed diagonally across its pizza's picture (the frame's top keeps
+   just its tier tab; the text below stays clear) */
+.ptile > .flag {
+  top: 24%;
+  left: 50%;
+  z-index: 3;
+  transform: translate(-50%, -50%) rotate(-16deg);
+  font-family: 'Lilita One', sans-serif;
+  font-weight: 400;
+  font-size: 1.9em;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  padding: 0.12em 0.35em 0.06em;
+  background: transparent;
+  color: rgba(40, 84, 24, 0.92);
+  border: 0.1em solid rgba(40, 84, 24, 0.92);
+  border-radius: 0.22em;
+  box-shadow: inset 0 0 0 0.05em rgba(40, 84, 24, 0.35);
+  text-shadow: 0 0 0.12em rgba(255, 255, 255, 0.55);
+  -webkit-text-stroke: 0;
+  /* worn ink: a speckled mask so it reads stamped, not printed */
+  -webkit-mask: radial-gradient(circle at 30% 40%, #000 0 55%, rgba(0, 0, 0, 0.7) 80%), repeating-radial-gradient(circle at 70% 30%, #000 0 0.12em, rgba(0, 0, 0, 0.55) 0.13em 0.2em);
+  -webkit-mask-composite: source-in;
+  mask: radial-gradient(circle at 30% 40%, #000 0 55%, rgba(0, 0, 0, 0.7) 80%) intersect, repeating-radial-gradient(circle at 70% 30%, #000 0 0.12em, rgba(0, 0, 0, 0.55) 0.13em 0.2em);
+  pointer-events: none;
+  white-space: nowrap;
+}
+.ptile > .flag.dead { color: rgba(176, 37, 26, 0.85); border-color: rgba(176, 37, 26, 0.85); box-shadow: inset 0 0 0 0.05em rgba(176, 37, 26, 0.35); text-shadow: none; }
+/* an eaten pizza's plate is shown as it is (no cracks, no grey): crumbs, and the EATEN stamp */
+.ptile.dead .pt-pic::before { content: none; }
+.ptile .pthumb.dead { filter: none; }
+/* the picture starts below the tier tab */
+.ptile { padding-top: max(1.15em, 12px); }

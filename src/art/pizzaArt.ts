@@ -962,17 +962,24 @@ export function drawSliceSprite(p: PizzaType, top: HTMLCanvasElement): HTMLCanva
   return o;
 }
 
-/** A portrait's plate (drawn at the origin, unsquashed: the caller tilts it), in its tier's materials (TIER_LOOK). */
-function tierPlate(ctx: Ctx, r: PizzaRarity): void {
+/** A portrait's plate (drawn at the origin, unsquashed: the caller tilts it), in its tier's materials (TIER_LOOK).
+ *  `square`: a square pizza's rectangular platter (rounded corners), as on the table in play. */
+function tierPlate(ctx: Ctx, r: PizzaRarity, square = false): void {
   const t = TIER_LOOK[r];
-  const R = 205;
+  const R = square ? 214 : 205;
+  // the plate's outline at half-size h: a circle, or a rounded square
+  const shape = (c: Ctx, x: number, y: number, rx: number, ry: number) => {
+    if (!square) return ellipse(c, x, y, rx, ry);
+    c.beginPath();
+    c.roundRect(x - rx, y - ry, rx * 2, ry * 2, Math.min(rx, ry) * 0.18);
+  };
   // the rim
   const rim = ctx.createLinearGradient(-R, -R, R, R);
   rim.addColorStop(0, t.b);
   rim.addColorStop(0.45, t.a);
   rim.addColorStop(0.7, t.b);
   rim.addColorStop(1, t.a);
-  ellipse(ctx, 0, 0, R, R);
+  shape(ctx, 0, 0, R, R);
   ctx.fillStyle = rim;
   ctx.fill();
   ctx.lineWidth = 7;
@@ -998,24 +1005,45 @@ function tierPlate(ctx: Ctx, r: PizzaRarity): void {
     well.addColorStop(0.75, '#ffd25a');
     well.addColorStop(1, '#c88a10');
   }
-  ellipse(ctx, 0, 0, inner, inner);
+  shape(ctx, 0, 0, inner, inner);
   ctx.fillStyle = well;
   ctx.fill();
   if (r === 'common') {
     // the board's grain: faint rings
     ctx.lineWidth = 3;
     for (let k = 1; k <= 5; k++) {
-      ellipse(ctx, 6 * k - 15, 4 * k - 10, inner - 28 * k, inner - 30 * k);
+      shape(ctx, 6 * k - 15, 4 * k - 10, inner - 28 * k, inner - 30 * k);
       ctx.strokeStyle = `rgba(120, 70, 30, ${0.1 + 0.02 * k})`;
       ctx.stroke();
     }
   } else {
     // a fine line between rim and well
-    ellipse(ctx, 0, 0, inner, inner);
+    shape(ctx, 0, 0, inner, inner);
     ctx.lineWidth = 4;
     ctx.strokeStyle = r === 'epic' ? '#ffe680' : rgba(t.edge, 0.45);
     ctx.stroke();
   }
+}
+
+/** Every slice eaten: the empty plate keeps a few crumbs of crust and a stray bit of topping in the pizza's colours. */
+function eatenPlate(ctx: Ctx, p: PizzaType): void {
+  const rand = rng(hashStr(`eaten:${p.id}`));
+  const cx = PIZZA_CANVAS_W / 2;
+  const cy = PIZZA_CANVAS_H / 2 + 26;
+  for (let i = 0; i < 14; i++) {
+    const a = rand() * Math.PI * 2;
+    const d = 30 + rand() * 120;
+    const x = cx + Math.cos(a) * d;
+    const y = cy + Math.sin(a) * d * TILT;
+    const r = 3 + rand() * (i < 3 ? 9 : 5);
+    ctx.fillStyle = i < 3 ? p.crust : shade(p.crust, -0.15 + rand() * 0.3);
+    ellipse(ctx, x, y, r, r * 0.7, rand() * 3);
+    ctx.fill();
+  }
+  // a smear of the base
+  ctx.fillStyle = rgba(SAUCE[p.base], 0.35);
+  ellipse(ctx, cx + 24, cy + 10, 34, 9, -0.2);
+  ctx.fill();
 }
 
 /** Small preview used in the DOM menus. */
@@ -1025,11 +1053,13 @@ export function pizzaPortrait(p: PizzaType, top: HTMLCanvasElement, size = 160, 
   ctx.save();
   ctx.translate(PIZZA_CANVAS_W / 2, PIZZA_CANVAS_H / 2 + 26);
   ctx.scale(1, TILT);
-  tierPlate(ctx, p.rarity ?? 'common');
+  tierPlate(ctx, p.rarity ?? 'common', p.shape === 'square');
   ctx.restore();
-  const [pc, pctx] = makeCanvas(PIZZA_CANVAS_W, PIZZA_CANVAS_H);
-  renderPizza(pctx, { type: p, top, alive, prints: [], shield: false });
-  ctx.drawImage(pc, 0, 6);
+  if (alive.some(Boolean)) {
+    const [pc, pctx] = makeCanvas(PIZZA_CANVAS_W, PIZZA_CANVAS_H);
+    renderPizza(pctx, { type: p, top, alive, prints: [], shield: false });
+    ctx.drawImage(pc, 0, 6);
+  } else eatenPlate(ctx, p);
   const k = size / c.width;
   const [o, octx] = makeCanvas(c.width * k, c.height * k);
   octx.imageSmoothingQuality = 'high';

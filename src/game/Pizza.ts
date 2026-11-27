@@ -367,6 +367,11 @@ export class Pizza {
   /** The perk's text. A stale pizza still shows it (crossed out), so you can see what reheating brings back. */
   get perkLine(): string {
     if (this.dead) return 'PERK LOST';
+    return this.perkText;
+  }
+
+  /** The perk's text even when it's dead (the shop's table shows it crossed out: what rebaking brings back). */
+  get perkText(): string {
     if (this.type.perk === 'rotate') {
       const season = SEASONS[Number(this.flags.season ?? 0) % 4];
       return this.enhanced ? enhancedText(season) : ['+10% smack damage', '+20% tips from feet', 'Regrows a slice every 20s', 'Blocks the first stomp each wave'][Number(this.flags.season ?? 0) % 4];

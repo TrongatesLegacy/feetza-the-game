@@ -2564,7 +2564,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       return {
         id: p.type.id,
         name: p.type.name,
-        perk: p.perkLine,
+        perk: p.perkText,
         basePerk: p.basePerkLine,
         enhancedPerk: p.enhancedLine,
         enhanced: p.enhanced && !p.dead,
