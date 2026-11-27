@@ -2383,13 +2383,14 @@ export const SKIERS: Rider[] = [
   { id: 'board', turns: 4.5, swing: 70, dur: 13 },
 ];
 
-/** Where a skier is at u along the run: the S of their turns laid across the fall line (towards us and away, so
- * mostly up and down the screen), the phase of their turn cycle (the frame), the scale. */
+/** Where a skier is at u along the run: the S of their turns laid across the slope (side to side on the screen, with
+ * only a little give up and down: swinging mostly up and down read as the skiers hopping with no jumps to hop off),
+ * the phase of their turn cycle (the frame), the scale. */
 export function skierAt(sk: Rider, u: number): { x: number; y: number; k: number; ph: number } {
   const p = skiLine(u);
   const ph = (u * sk.turns) % 1;
   const off = -Math.sin(ph * P2) * sk.swing * p.k;
-  return { x: p.x + off * 0.35, y: p.y + off, k: p.k, ph };
+  return { x: p.x + off, y: p.y + off * 0.18, k: p.k, ph };
 }
 
 function skiersStill(ctx: Ctx): void {
