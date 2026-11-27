@@ -92,6 +92,11 @@ for (const e of item.effects) effects.apply(e, ctx);
 
 Every number goes through one resolver. Sources no longer change `stats` directly: each adds **modifiers**, as in `{ stat: 'damage', op: 'mul', value: 1.1, source: 'pizza:margherita' }`.
 - **Folding:** the resolver folds them in a fixed order (base, then adds, then multipliers, then caps) and keeps the breakdown.
+- **No purchase order:** totals never depend on the order things were bought. Today they can, by accident. `Run.recompute` applies toppings in the order they were bought, and two stats mix flat and percentage changes:
+  - **Smack reach:** Long Handle +6 and Glass Peel ×0.85 give `(r + 6) × 0.85` or `r × 0.85 + 6` depending on which came first.
+  - **Knockback:** Magnet Peel +60 and the ×1.4 topping have the same problem.
+
+  The ledger's fixed order removes it.
 - **STATS reads that breakdown:** each total, and what made it, comes straight from the ledger. It no longer works the stats out again without each item, and multiplied bonuses and caps are attributed correctly.
 - **Growing values are functions of the run:** for example Peel Collector's `value: (run) => 0.01 × floor(peels / 10)`, with a `why` ("64 peels owned"). The NOW tag on the shop card, the STATS tile and play all read the same definition. Today's `PerkKit.perkNow()` folds into that.
 
