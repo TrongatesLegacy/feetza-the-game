@@ -1561,7 +1561,8 @@ const mimic: EventScene = {
 // ════════════════════════════ the Hero Sighting ════════════════════════════
 
 /** The hero's head (disc units): its middle and radius. It flies up and to the right, its cape streaming behind. */
-const HERO = { x: 62, y: 56, r: 40 };
+// (low enough that the chin sits in the collar on the handle top: higher, the head floated clear of the handle)
+const HERO = { x: 61, y: 67, r: 40 };
 const SUIT = '#2a5fd0';
 const CAPE = '#e0242f';
 
