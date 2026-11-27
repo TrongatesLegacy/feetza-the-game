@@ -2975,6 +2975,21 @@ registerKitScene(TRATTORIA, (k, wave0) => {
   const night = k.sprite('streetNight');
   const eve = k.sprite('eveLight');
   const life = k.slot('streetLife');
+  // the street is only seen through the glass: passers-by are clipped to the window's opening, so they never walk out
+  // over the shutters or the curtains' outer edges (they set off and end just outside it)
+  const glass = k.sc.make.graphics({}, false);
+  glass.fillStyle(0xffffff);
+  glass.fillRect(TN.win.x0, TN.win.archY, TN.win.x1 - TN.win.x0, TN.win.sill - TN.win.archY);
+  glass.fillCircle(winCX, TN.win.archY, winR);
+  life.setMask(glass.createGeometryMask());
+  // (drawn in the stage's own coordinates: kept on the stage wherever it's shown, scaled into a card on the stages page
+  // or shaken with the camera in play)
+  const fitGlass = () => {
+    const m = k.root.getWorldTransformMatrix();
+    glass.setPosition(m.tx, m.ty).setScale(m.scaleX, m.scaleY);
+  };
+  fitGlass();
+  k.sc.events.once(Phaser.Scenes.Events.SHUTDOWN, () => glass.destroy());
   const kinds: Kind[] = ['man', 'woman', 'nonna', 'delivery'];
   const walkKeys = kinds.map((kd) => sheet(k, `tr_walk_${kd}`, WK.w, WK.h, WK.n, (c, ph) => walkerFrame(c, kd, ph)));
   const scootKey = sheet(k, 'tr_scooter', SC.w, SC.h, SC.n, (c, ph) => scooterFrame(c, ph));
@@ -3032,6 +3047,7 @@ registerKitScene(TRATTORIA, (k, wave0) => {
       if (power > 0.75 && flashes()) stutter = Math.max(stutter, 0.35);
     },
     update(dt, t) {
+      fitGlass();
       shown += (kw - shown) * Math.min(1, dt * 0.6);
       flare = Math.max(0, flare - dt * 0.9);
       // ——— the fire
