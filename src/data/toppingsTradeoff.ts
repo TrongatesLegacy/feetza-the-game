@@ -51,7 +51,7 @@ export const TRADEOFF_TOPPINGS: Upgrade[] = [
   deal('bigswing', 'Big Swing', '🏏', 'common', 3, '+20 smack reach', '−12% smack damage', (s) => { s.radius += 20; s.damage *= 0.88; }),
 
   // ——— Rare ———
-  deal('ragepeel', 'Rage Peel', '😡', 'rare', 3, '+50% smack damage', 'Feet move 10% faster', (s) => { s.damage *= 1.5; s.speedMult *= 1.1; }),
+  deal('ragepeel', 'Rage Peel', '😡', 'rare', 3, '+50% smack damage', 'Feet move 50% faster', (s) => { s.damage *= 1.5; s.speedMult *= 1.5; }),
   deal('tipleech', 'Tip Leech', '🩸', 'rare', 2, '+25% tips, +2 tips per quick kill', 'Feet have 10% more health', (s) => { s.coinMult += 0.25; s.quickTips += 2; s.footHp *= 1.1; }),
   deal('adrenaline', 'Adrenaline', '💉', 'rare', 3, '+60% meter charge, +8% double-smack chance', '−10% smack reach', (s) => { s.superGain += 0.6; s.doubleChance += 0.08; s.radius *= 0.9; }),
   deal('thincrust', 'Thin Crust', '🥖', 'rare', 2, '+60% smack damage', 'Stomps have a 10% chance to take an extra slice', (s) => { s.damage *= 1.6; s.stompExtra += 0.1; }),
