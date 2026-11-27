@@ -101,6 +101,40 @@ Each effect is typed by its kind: `Effect.OnKill(...)` only accepts an on-kill's
 
 Odd one-offs (the Black Olive Hole's pull, the Hammy Ha beam) stay as custom actions. They plug in through the same trigger and STATS adapters, so they still get their timing, scaling and tile for free.
 
+### Also in the design
+
+1. **Stats are defined like units: one entry each.** For example: `Stat.CritChance = stat({ unit: Chance, stack: Stack.Add, cap: Unit.Chance(85), label: 'Crit chance', icon: '🎯', section: Section.Damage })`.
+   - The ledger reads its stacking and cap from there.
+   - The STATS tab draws its tile from there, so a new stat gets a tile by being defined.
+   - Mac & Cheese's miss can't happen again.
+
+2. **Values that grow are a type too.** A `Value<T>` is either a fixed `T` or a function of the run with a reason, for example `Grows((run) => Unit.Percent(Math.floor(run.peels / 10)), (run) => `${run.peels} peels owned`)`. The NOW tag, STATS and play all read it.
+
+3. **Conditions are typed:** `Cond.Frozen`, `Cond.Burning`, `Cond.Boss`, `Cond.Undead`, `Cond.InLane`, `Cond.Diving`, combined with `Cond.Any` and `Cond.All`.
+   - Frostbite becomes `Effect.DamageTaken(Cond.Any(Cond.Frozen, Cond.Chilled), Unit.Percent(25))`.
+   - "Which pizzas care about frozen feet?" becomes a search.
+
+4. **Statuses are defined once:** freeze, chill, stun, burn, stone, held, lost. Each status says:
+   - how it stacks (refresh, extend or strongest wins);
+   - who is immune (bosses, the undead, friendly zombies);
+   - how it shows on a foot.
+
+   Batch 2's "never strengthen a boss's slow" and "frozen feet stay frozen" fixes become rules written once, not checks scattered through perks.
+
+5. **Off-switches in one place.** Stale, frozen, possessed, Ghost echoes and twins are handled by the trigger bus for every source, and so is "no payouts for decoys".
+
+6. **Card text comes from the effects.**
+   - `describe()` writes the perk line, the enhanced line and the STATS note, so the card and the behaviour can't drift apart.
+   - A hand-written line is still allowed for flavour, but a dev check compares its numbers with `describe()`.
+
+7. **Items are saved by id, not by effect.** Definitions live in code. A run saves item ids, levels and each effect's live state (timers, counters, the Forge's waves), keyed by source. Changing a definition then never breaks an old save.
+
+8. **Effects never draw.** Each action fires an event, such as frozen, blocked or summoned. The presentation layer (living pizzas, ability visuals, sounds) listens and plays it. Gameplay and looks stay apart, which keeps the balance sim fast.
+
+9. **Tests per kind.** Each effect kind gets a small test against a fake `ctx`. A golden test then runs the balance sim on fixed seeds before and after each port.
+
+10. **Old and new side by side.** One adapter, `Effect.Legacy(perkId)`, runs an unported perk the old way. The port can go a family at a time while the game keeps working.
+
 ## How it gets there (each step ships on its own, game unchanged)
 
 1. **Inventory and vocabulary:** list every effect today (toppings, perks, peels, heroes, meta) and group them into stat effects, triggers and actions. Write the vocabulary and its adapters. Port the stat effects first (the easy majority). STATS reads the declarations, and every hand-written tile becomes an adapter's display.
