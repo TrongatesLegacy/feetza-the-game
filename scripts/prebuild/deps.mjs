@@ -11,9 +11,10 @@
 // - and, from those, through the static imports: a module imported for anything but functions (a constant, a table,
 //   a namespace, the default, a side effect, a re-export) is in, and so is everything it imports in turn; a module
 //   imported only for functions is in only if they ran (it's in T) or if one of those functions ran while the page
-//   loaded (L: it may have made load-time state that's read later). For a module in T, only the imports its code
-//   that ran (and the top-level declarations that code refers to) mention count (`usedIdentifiers`). import.meta.glob folders of data
-//   (`const mods = import.meta.glob(…)`) are followed unless the file traces them (traceData); side-effect globs
+//   loaded (L: it may have made load-time state that's read later). For a module in T, only the imports mentioned by
+//   its code that ran (in the unit or at load) and by the top-level declarations that code refers to count
+//   (`usedIdentifiers`). import.meta.glob folders of data (`const mods = import.meta.glob(…)`) are always followed
+//   (traceData only adds what's read to the seeds); side-effect globs
 //   (`import.meta.glob('./art/*.ts', { eager: true })`, the plug-in folders) are not: a plug-in reaches a unit by
 //   its code running (T) or by registering what the unit looks up.
 // A change to any file in the list changes the version; a change to how the files import each other is a change
@@ -29,7 +30,7 @@ import { dirname, join, relative, resolve } from 'node:path';
 const ts = createRequire(import.meta.url)('typescript');
 
 /** Bump when the rule changes (every unit is painted again). */
-export const RULE = 1;
+export const RULE = 2;
 /** Files every unit depends on as they are, whose imports aren't followed: the prebuild's own page (what it
  * harvests, and how; what it calls shows up in T). */
 export const BASE_FILES = ['src/devPrebuild.ts'];
@@ -73,6 +74,14 @@ export function fileReader(root) {
   };
 }
 
+/** One hash over a snapshot (the prebuild records the source it last checked the registrations against; a production
+ * build serves the packs only for that source). */
+export function snapshotHash(snap) {
+  const h = createHash('sha256');
+  for (const [f, x] of [...snap].sort(([a], [b]) => (a < b ? -1 : 1))) h.update(f).update('\0').update(x).update('\0');
+  return h.digest('hex').slice(0, 16);
+}
+
 /** Every file under src/, hashed (to notice the source changing while the prebuild runs). */
 export function snapshotSrc(root) {
   const out = new Map();
@@ -95,11 +104,39 @@ const REEXPORT_RE = /\bexport\s+(type\s+)?(?:\*|\{[^}]*\})\s*(?:as\s+[\w$]+\s+)?
 const DYN_RE = /\bimport\(\s*['"](\.[^'"]+)['"]\s*\)/g;
 // (a glob may carry a type argument: import.meta.glob<{ … }>('./dir/*.ts', …)); bound: its result is used
 const GLOB_RE = /(=\s*)?import\.meta\.glob\b[\s\S]{0,300}?\(\s*['"](\.[^'"]*?)\/\*\.ts['"]/g;
-const FN_DECL_RE = /(?:^|\n)[ \t]*(?:export[ \t]+)?(?:default[ \t]+)?(?:async[ \t]+)?function\*?[ \t]*([\w$]+)/g;
-const CLASS_RE = /(?:^|\n)[ \t]*(?:export[ \t]+)?(?:default[ \t]+)?(?:abstract[ \t]+)?class[ \t]+([\w$]+)/g;
-const ARROW_RE = /(?:^|\n)[ \t]*(?:export[ \t]+)?const[ \t]+([\w$]+)[ \t]*=[ \t]*(?:async[ \t]*)?(?:\([^()]*\)|[\w$]+)[ \t]*(?::[^=;\n]*?)?=>/g;
-const FNEXPR_RE = /(?:^|\n)[ \t]*(?:export[ \t]+)?const[ \t]+([\w$]+)[ \t]*=[ \t]*(?:async[ \t]+)?function\b/g;
-const EXPORT_LIST_RE = /\bexport\s*\{([^}]*)\}\s*(?!\s*from)/g;
+
+/** The names a module exports that are plain functions: top-level `function f` and `const f = (…) => …` /
+ * `const f = function …` (never a class: its static fields are data), exported directly or by an export list. */
+export function functionExports(src) {
+  const sf = ts.createSourceFile('m.ts', src, ts.ScriptTarget.Latest, false, ts.ScriptKind.TS);
+  const local = new Set();
+  const out = new Set();
+  const exported = (st) => !!st.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
+  const isDefault = (st) => !!st.modifiers?.some((m) => m.kind === ts.SyntaxKind.DefaultKeyword);
+  for (const st of sf.statements) {
+    if (ts.isFunctionDeclaration(st) && st.body) {
+      if (st.name) local.add(st.name.text);
+      if (exported(st)) out.add(isDefault(st) ? 'default' : st.name?.text);
+    } else if (ts.isVariableStatement(st) && st.declarationList.flags & ts.NodeFlags.Const) {
+      for (const d of st.declarationList.declarations) {
+        let init = d.initializer;
+        while (init && (ts.isParenthesizedExpression(init) || ts.isAsExpression(init) || ts.isSatisfiesExpression?.(init))) init = init.expression;
+        if (ts.isIdentifier(d.name) && init && (ts.isArrowFunction(init) || ts.isFunctionExpression(init))) {
+          local.add(d.name.text);
+          if (exported(st)) out.add(d.name.text);
+        }
+      }
+    }
+  }
+  for (const st of sf.statements)
+    if (ts.isExportDeclaration(st) && !st.moduleSpecifier && !st.isTypeOnly && st.exportClause && ts.isNamedExports(st.exportClause))
+      for (const el of st.exportClause.elements) {
+        const name = (el.propertyName ?? el.name).text;
+        if (!el.isTypeOnly && local.has(name)) out.add(el.name.text);
+      }
+  out.delete(undefined);
+  return out;
+}
 
 export class Graph {
   constructor(root) {
@@ -121,17 +158,7 @@ export class Graph {
     const path = join(this.root, f);
     if (!f.endsWith('.ts') || !existsSync(path)) return p;
     const src = readFileSync(path, 'utf8');
-    // functions it declares (and so exports, when it exports them)
-    const local = new Set();
-    for (const re of [FN_DECL_RE, CLASS_RE, ARROW_RE, FNEXPR_RE]) for (const m of src.matchAll(re)) local.add(m[1]);
-    for (const m of src.matchAll(/\bexport\s+default\s+(?:async\s+)?(?:function|class)\b/g)) p.fns.add('default');
-    for (const m of src.matchAll(/\bexport\s+(?:async\s+)?(?:function\*?|(?:abstract\s+)?class)\s*([\w$]+)/g)) p.fns.add(m[1]);
-    for (const m of src.matchAll(/\bexport\s+const\s+([\w$]+)/g)) if (local.has(m[1])) p.fns.add(m[1]);
-    for (const m of src.matchAll(EXPORT_LIST_RE))
-      for (const part of m[1].split(',')) {
-        const [a, b] = part.trim().replace(/^type\s+/, '').split(/\s+as\s+/);
-        if (a && local.has(a)) p.fns.add(b ?? a);
-      }
+    p.fns = functionExports(src);
     const add = (spec, names, kind) => {
       const to = this.resolve(f, spec);
       if (to) p.edges.push({ to, names, kind });
@@ -161,9 +188,10 @@ export class Graph {
     for (const m of src.matchAll(SIDE_RE)) add(m[1], null, 'side');
     for (const m of src.matchAll(REEXPORT_RE)) if (!m[1]) add(m[2], null, 'reexport');
     for (const m of src.matchAll(DYN_RE)) add(m[1], null, 'dynamic');
-    const traced = src.includes('traceData(');
+    // (data folders are followed even when traced: a value copied out of the data at load, a closure built from it,
+    // keeps no trace of where it came from)
     for (const m of src.matchAll(GLOB_RE)) {
-      if (!m[1] || traced) continue;
+      if (!m[1]) continue;
       const d = resolve(this.root, dirname(f), m[2]);
       if (existsSync(d)) for (const n of readdirSync(d).sort()) if (n.endsWith('.ts')) p.edges.push({ to: relative(this.root, join(d, n)), names: null, kind: 'glob' });
     }
@@ -222,45 +250,45 @@ export function unitDeps(graph, seeds, T, L, used = new Map(), via = null) {
 }
 
 /**
- * The identifiers a module's code that ran can refer to: the text of its functions that ran (`ran`: the coverage
- * of the unit's painting, which lists only those), with what's nested in them, and from its top level (it ran when
- * the page loaded: `all` is that coverage, listing every function) every statement that isn't a declaration, plus
- * the declarations of the top-level names those refer to, in turn. Import and export-list statements don't count.
- * Null when the coverage doesn't fit the source (then the whole module counts).
+ * The identifiers a module's code can have used in a unit: those in its functions that ran while the unit was painted
+ * (`ran`: that coverage, which lists only those) or while the page loaded (`all`: the load's coverage, listing every
+ * function; a function run at load may have built state the unit reads), with what's nested in them; and from its top
+ * level, every statement that isn't a declaration, plus the declarations of the top-level names those refer to, in
+ * turn. Import and export-list statements don't count. Identifiers are taken from the parsed code (TypeScript's
+ * parser: regular expressions and template strings are read as such). Null when the coverage doesn't fit the source
+ * (then the whole module counts).
  */
 export function usedIdentifiers(code, all, ran) {
   const top = all.find((f) => f.functionName === '' && f.ranges[0].startOffset === 0);
   if (!top || top.ranges[0].endOffset !== code.length) return null;
-  const blank = code.split('');
-  for (const f of [...all, ...ran]) {
-    const r = f.ranges[0];
-    if (r.startOffset === 0 && r.endOffset === code.length) continue;
-    for (let i = r.startOffset; i < r.endOffset; i++) blank[i] = ' ';
-  }
-  const ids = (text) => codeOnly(text).match(/[A-Za-z_$][\w$]*/g) ?? [];
+  const sf = ts.createSourceFile('m.js', code, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
+  if (sf.parseDiagnostics?.length) return null;
+  /** every identifier, by position */
+  const idents = [];
+  const walk = (n) => {
+    if (ts.isIdentifier(n)) idents.push([n.getStart(sf), n.text]);
+    else if (ts.isPrivateIdentifier?.(n)) idents.push([n.getStart(sf), n.text]);
+    ts.forEachChild(n, walk);
+  };
+  walk(sf);
+  const fnRanges = [...all, ...ran].map((f) => f.ranges[0]).filter((r) => !(r.startOffset === 0 && r.endOffset === code.length));
+  const inFn = (pos) => fnRanges.some((r) => pos >= r.startOffset && pos < r.endOffset);
+  const within = (a, b, skipFns) => idents.filter(([p]) => p >= a && p < b && !(skipFns && inFn(p))).map(([, t]) => t);
   const out = new Set();
-  for (const f of ran) {
+  for (const f of [...ran, ...all]) {
     const r = f.ranges[0];
-    if (r.count > 0 && !(r.startOffset === 0 && r.endOffset === code.length)) for (const x of ids(code.slice(r.startOffset, r.endOffset))) out.add(x);
+    if (r.count > 0 && !(r.startOffset === 0 && r.endOffset === code.length)) for (const x of within(r.startOffset, r.endOffset, false)) out.add(x);
   }
-  // the top level, statement by statement (functions blanked out: what ran of them is above)
-  const sf = ts.createSourceFile('m.js', code, ts.ScriptTarget.Latest, false, ts.ScriptKind.JS);
-  const topText = blank.join('');
-  /** top-level name → the identifiers its declaration refers to */
+  // the top level, statement by statement (what's inside functions only through the functions that ran, above)
   const decl = new Map();
   for (const st of sf.statements) {
     if (ts.isImportDeclaration(st) || (ts.isExportDeclaration(st) && !st.moduleSpecifier)) continue;
-    const text = topText.slice(st.getStart(sf), st.end);
+    const refs = within(st.getStart(sf), st.end, true);
     const names = [];
-    if (ts.isVariableStatement(st)) {
-      for (const d of st.declarationList.declarations) names.push(...bindingNames(d.name));
-    } else if ((ts.isFunctionDeclaration(st) || ts.isClassDeclaration(st)) && st.name) names.push(st.name.text);
-    if (!names.length) {
-      for (const x of ids(text)) out.add(x);
-      continue;
-    }
-    const refs = ids(text);
-    for (const n of names) decl.set(n, refs);
+    if (ts.isVariableStatement(st)) for (const d of st.declarationList.declarations) names.push(...bindingNames(d.name));
+    else if ((ts.isFunctionDeclaration(st) || ts.isClassDeclaration(st)) && st.name) names.push(st.name.text);
+    if (!names.length) for (const x of refs) out.add(x);
+    else for (const n of names) decl.set(n, refs);
   }
   // the declarations what's used refers to, and theirs
   const todo = [...out];
@@ -283,62 +311,6 @@ function bindingNames(n) {
   return out;
 }
 
-/** JavaScript with its comments and string contents blanked (template literals keep their \${…} code). */
-export function codeOnly(src) {
-  let out = '';
-  let i = 0;
-  const n = src.length;
-  /** Open template literals' brace depths. */
-  const tpl = [];
-  let depth = 0;
-  while (i < n) {
-    const c = src[i];
-    const d = src[i + 1];
-    if (c === '/' && d === '/') {
-      while (i < n && src[i] !== '\n') i++;
-      continue;
-    }
-    if (c === '/' && d === '*') {
-      const e = src.indexOf('*/', i + 2);
-      i = e < 0 ? n : e + 2;
-      out += ' ';
-      continue;
-    }
-    if (c === "'" || c === '"') {
-      const s0 = i++;
-      while (i < n && src[i] !== c && src[i] !== '\n') i += src[i] === '\\' ? 2 : 1;
-      // (a quote that doesn't close on its line was something else, a regular expression's: kept as it is)
-      if (src[i] !== c) {
-        out += src.slice(s0, i);
-        continue;
-      }
-      i++;
-      out += ' "" ';
-      continue;
-    }
-    if (c === '`' || (c === '}' && tpl.length && tpl[tpl.length - 1] === depth)) {
-      // a template's text, up to its end or its next \${
-      if (c === '}') tpl.pop();
-      i++;
-      while (i < n && src[i] !== '`' && !(src[i] === '$' && src[i + 1] === '{')) i += src[i] === '\\' ? 2 : 1;
-      if (src[i] === '$') {
-        tpl.push(depth);
-        i += 2;
-        out += ' ( ';
-      } else {
-        i++;
-        out += ' "" ';
-      }
-      continue;
-    }
-    if (c === '{') depth++;
-    else if (c === '}') depth--;
-    out += c;
-    i++;
-  }
-  return out;
-}
-
 /** Who registers each lookup, from a page's registrant dump (as src/game/packTrace.ts regSig does). */
 export function regSig(ids, registrants) {
   const out = {};
@@ -353,13 +325,18 @@ export function regSig(ids, registrants) {
   return out;
 }
 
-/** This source's version of every unit recorded in a build file (vite.config.ts). */
-export function currentVersions(root, buildFile) {
+/** This source's version of every unit recorded in a build file (vite.config.ts). `checked`: only if the prebuild
+ * last ran on exactly this source (who registers what is checked only there): a production build. */
+export function currentVersions(root, buildFile, checked = false) {
   if (!existsSync(buildFile)) return {};
   let b;
   try {
     b = JSON.parse(readFileSync(buildFile, 'utf8'));
   } catch {
+    return {};
+  }
+  if (checked && b.checked !== snapshotHash(snapshotSrc(root))) {
+    console.warn('[packs] the art packs were last checked against other source (run npm run prebuild): this build serves none of them');
     return {};
   }
   const base = baseHash(root);

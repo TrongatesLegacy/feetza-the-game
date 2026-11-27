@@ -89,27 +89,36 @@ painted, and left in a cache, can hide a dependency):
 4. **What those import.** From the modules above, through the static imports: a module imported for anything but a
    function (a constant, a table, a namespace, a default, a side-effect import, a re-export) is in, and so is
    everything it imports in turn. A module imported only for functions is in only if they ran (step 1), or if one of
-   them ran while the page loaded (it may have built load-time state that's read later). For a module whose code
-   ran, only the imports mentioned by the code that ran count, plus those mentioned by the top-level declarations
-   that code refers to and by its other top-level statements. So `assets.ts` imports the foot painter, but a
-   backdrop that only calls `ensureBackdrop` doesn't depend on it. Data folders (`const mods = import.meta.glob(…)`)
-   are followed unless traced (step 3). Side-effect plug-in folders (`import.meta.glob('./art/*.ts', { eager: true
-   })`) aren't: a plug-in reaches a unit by its code running or by registering what the unit looks up.
+   them ran while the page loaded (it may have built load-time state that's read later). "Functions" means
+   top-level `function`s and `const f = () => …` (from TypeScript's parser). Classes count as data, since their
+   static fields are. For a module whose code ran, only some of its imports count: those mentioned by its
+   functions that ran (while the unit was painted, or while the page loaded), by its top-level statements, and by
+   the top-level declarations those refer to. Identifiers are read from the parsed code, so a regular expression or
+   a template string can't hide one. So `assets.ts` imports the foot painter, but a backdrop that only calls
+   `ensureBackdrop` doesn't depend on it.
+
+   Data folders (`const mods = import.meta.glob(…)`) are always followed, traced or not. A value copied out of the
+   data at load, such as a hero's look closure built from its colours, keeps no trace of where it came from. So
+   every thumbnail chunk depends on every hero peel file, and every act's feet on every foot data file. Side-effect
+   plug-in folders (`import.meta.glob('./art/*.ts', { eager: true })`) aren't followed: a plug-in reaches a unit by
+   its code running or by registering what the unit looks up.
 
 The list stays sound until one of its files changes (a change to how files import each other is a change to a file
 in the list), and then the unit is painted again and its list found again. Who registers a key can change in a file
 outside the list (a registration for this foot added to another file). The prebuild compares each unit's lookups
 with a fresh page's registrations, and dev's loader compares them with its own registries (it fetches
-`build.json`). A production build always runs the prebuild first, so it never serves a unit the prebuild hasn't
-checked.
+`build.json`). A production build (`vite build`) serves the packs only if the prebuild last ran, over every unit,
+on exactly this source: `build.json` records a hash of `src/` (`checked`), and on any other source the build serves
+no packs at all, so a failed or skipped prebuild can't ship packs it didn't check. `npm run build` runs the prebuild
+first, and so does the deploy. The build leaves `build.json` out of `dist/`.
 
 What it can't see: a content module that changes shared state at load time other than through a traced registry (a
 `Record` some painter reads, written by another file). Give any new registry a `traced(…)`. `npm run prebuild --
 --verify` paints every unit again and fails if one whose version didn't change paints differently: run it after
 changing how painters find their content.
 
-In numbers: a backdrop depends on about 33 files (its scene file, the location kit, the live layer code, `save.ts`
-and `stages.ts`), an act's feet on about 35, a thumbnail chunk on 50 to 120. The peel art draws from everything, and
+In numbers: a backdrop depends on 30 to 87 files (its scene file, the location kit, the live layer code, `save.ts`
+and `stages.ts`), an act's feet on 43 to 55, a pizza bucket on about 26, a thumbnail chunk on 92 to 141. The peel art draws from everything, and
 the peel list itself is built at load from the place windows, so every scene file is in most thumbnail chunks.
 
 `npm run prebuild:test` checks the lists on disk:
@@ -196,17 +205,21 @@ atlases, 170 MB.
 | Build | Units painted | Atlases encoded | Time |
 |---|---|---|---|
 | Before: one version, one page | all | 472 | about 5 min (longer when busy) |
-| Cold, `--jobs 4` | 111 | 495 | 220 s (424 s of painting over 4 pages) |
-| One backdrop file (a colour in `scene-rooftop.ts`), `--jobs 4` | 27 (rooftop, ironheel, 25 thumbnail chunks) | 3 | 65 s |
-| One foot style file (a colour in `roster-2.ts`), `--jobs 2`, niced | 12 (4 act feet, 8 thumbnail chunks) | 4 | 36 s |
-| Both reverted, `--jobs 2`, niced | 31 | 7 | 78 s |
+| Cold, `--jobs 4`, 4 cwebp at once | 111 | 495 | 220 s (424 s of painting over 4 pages) |
+| Every unit repainted (a rule change), `--jobs 2`, niced | 111 | 13 (the rest unchanged) | 361 s |
+| One backdrop file (a colour in `scene-rooftop.ts`), `--jobs 2`, niced | 35 (rooftop, ironheel, 33 thumbnail chunks) | 6 | 136 s |
+| One foot style file (a colour in `roster-2.ts`), `--jobs 2`, niced | 12 (4 act feet, 8 thumbnail chunks) | 5 | 43 s |
+| A non-art change (`heatRules.ts`), or nothing changed | 0 | 0 | 4 s |
+
+Thirteen atlases came out different between two paints of the same source (mostly backdrop stills, and the gem
+thumbnails). They're re-encoded, which is harmless, but `--verify` would report them.
 | A non-art change (`heatRules.ts`), or nothing changed | 0 | 0 | 3 s |
 
 These are estimates for GitHub's runner (4 vCPUs, `--jobs 3`), where the old build took about 22 minutes (18 painting,
 4 encoding):
 - a full repaint: about 9–12 minutes (the same painting split over three pages, plus a second or two of page load
   per unit);
-- a backdrop edit: 2–4 minutes;
+- a backdrop edit: 3–5 minutes (most of it the thumbnail chunks);
 - a foot style edit: 1–2 minutes;
 - a non-art change: about 10 s.
 

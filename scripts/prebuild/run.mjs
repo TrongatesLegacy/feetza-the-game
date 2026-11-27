@@ -28,7 +28,7 @@ import { availableParallelism } from 'node:os';
 import { copyFileSync, existsSync, linkSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { ROOT, findChrome, sleep, startChrome, startVite } from './harness.mjs';
-import { Graph, RULE, baseHash, fileReader, regSig, snapshotSrc, unitDeps, unitVersion, usedIdentifiers } from './deps.mjs';
+import { Graph, RULE, baseHash, fileReader, regSig, snapshotHash, snapshotSrc, unitDeps, unitVersion, usedIdentifiers } from './deps.mjs';
 
 const argv = process.argv.slice(2);
 const arg = (name, def) => {
@@ -95,6 +95,13 @@ function whole(dir) {
   } catch {
     return null;
   }
+}
+// (a run that stopped between its two renames: the old packs are put back)
+const oldDir = join(ROOT, '.prebuild', 'old');
+if (!check && !whole(OUT) && whole(oldDir)) {
+  rmSync(OUT, { recursive: true, force: true });
+  renameSync(oldDir, OUT);
+  console.log('[prebuild] put back the packs an interrupted run had set aside');
 }
 const old = check ? null : whole(OUT);
 /** The old atlases by their pixels (and encoding), to keep instead of encoding again. */
@@ -304,7 +311,16 @@ try {
   if (todo.length > 40) console.log(`  … and ${todo.length - 40} more`);
   const sameUnits = !!old && Object.keys(old.units).sort().join() === units.filter((u) => old.units[u.id]).map((u) => u.id).sort().join() && units.every((u) => old.units[u.id] || why.has(u.id));
   if (dry || (!todo.length && sameUnits)) {
-    if (!dry) logLine('packs match the source: nothing to do (--force paints them again)');
+    if (!dry) {
+      logLine('packs match the source: nothing to do (--force paints them again)');
+      // every unit's files and registrations were checked against this source: a production build may serve them
+      const checked = only ? null : snapshotHash(snap);
+      if (old.checked !== checked) {
+        const tmp = join(ROOT, '.prebuild', 'build.json');
+        writeFileSync(tmp, JSON.stringify({ ...old, checked }));
+        renameSync(tmp, join(OUT, 'build.json'));
+      }
+    }
     await shutdown();
     process.exit(0);
   }
@@ -400,7 +416,9 @@ try {
       copyFileSync(join(OUT, file), dst);
     }
   };
-  const build = { format: FORMAT, rule: RULE, enc: ENC, units: {} };
+  // (`checked`: the source every unit was checked against, when every unit was: a production build serves the packs
+  // only for that source)
+  const build = { format: FORMAT, rule: RULE, enc: ENC, checked: only ? null : snapshotHash(snap), units: {} };
   for (const u of units) {
     const d = done.get(u.id);
     if (!d) {
@@ -453,7 +471,6 @@ try {
   if (shared.length) logLine(`left out (one key painted by several backdrops): ${shared.join(', ')}`);
   if (!whole(stage)) throw new Error('the new packs are incomplete');
   // the new packs replace the old ones in one go: old aside, new in, old gone
-  const oldDir = join(ROOT, '.prebuild', 'old');
   rmSync(oldDir, { recursive: true, force: true });
   if (existsSync(OUT)) renameSync(OUT, oldDir);
   renameSync(stage, OUT);

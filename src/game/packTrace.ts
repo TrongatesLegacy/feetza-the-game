@@ -90,7 +90,7 @@ export function tracedMap<K, V>(name: string, m: Map<K, V>): Map<K, V> {
     keys: () => (all(), P.keys.call(m)),
     values: () => (all(), P.values.call(m)),
     entries: () => (all(), P.entries.call(m)),
-    forEach: (fn: (v: V, k: K, mm: Map<K, V>) => void) => (all(), P.forEach.call(m, fn)),
+    forEach: (fn: (v: V, k: K, mm: Map<K, V>) => void, self?: unknown) => (all(), P.forEach.call(m, fn, self)),
     [Symbol.iterator]: () => (all(), P.entries.call(m)),
   });
   return m;

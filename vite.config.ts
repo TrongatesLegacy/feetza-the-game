@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { readdirSync, readFileSync, existsSync, mkdirSync, statSync, writeFileSync, appendFileSync } from 'node:fs';
+import { readdirSync, readFileSync, existsSync, mkdirSync, rmSync, statSync, writeFileSync, appendFileSync } from 'node:fs';
 import { dirname, relative, resolve } from 'node:path';
 import { defineConfig, type Plugin } from 'vite';
 
@@ -100,8 +100,18 @@ function packVersions(): Plugin {
   const build = resolve(__dirname, 'public/packs/build.json');
   const src = resolve(__dirname, 'src');
   let cached: string | null = null;
+  let building = false;
+  let outDir = 'dist';
   return {
     name: 'pack-versions',
+    configResolved(c) {
+      building = c.command === 'build';
+      outDir = resolve(c.root, c.build.outDir);
+    },
+    // (the prebuild's record isn't for players)
+    closeBundle() {
+      if (building) rmSync(resolve(outDir, 'packs/build.json'), { force: true });
+    },
     resolveId(source) {
       return source === id ? resolved : null;
     },
@@ -109,7 +119,8 @@ function packVersions(): Plugin {
       if (source !== resolved) return null;
       if (cached === null) {
         const { currentVersions } = await import('./scripts/prebuild/deps.mjs');
-        cached = JSON.stringify(currentVersions(__dirname, build));
+        // (a production build serves only packs the prebuild checked against exactly this source)
+        cached = JSON.stringify(currentVersions(__dirname, build, building));
       }
       return `export default ${cached};`;
     },
