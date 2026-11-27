@@ -75,7 +75,8 @@ function runCounters(): void {
 function chip(s: Src): HTMLElement {
   return h(
     'span',
-    { class: `st-src ${s.tone}`, title: s.tip ? `${s.name}: ${s.tip}` : s.name },
+    // (a topping or a pizza shows its whole card when tapped or hovered)
+    { class: `st-src ${s.tone}`, title: s.tip ? `${s.name}: ${s.tip}` : s.name, 'data-tip-card': /^(top|pizza):/.test(s.key) ? s.key : undefined, 'data-tip-lvl': /LV(\d+)$/.exec(s.name)?.[1] },
     s.img ? h('img', { src: s.img, alt: '' }) : h('i', {}, s.icon ?? '•'),
     h('span', {}, s.name),
   );
@@ -393,7 +394,7 @@ export function statsBody(v: BuildView): HTMLElement {
     subTabs(v),
     h('p', { class: 'st-foot' }, `Worked out from your toppings, pizzas and peel on ${v.heat}, for the foot you're smacking with ${v.feetMeasured ? `about ${r1(v.feet)} feet on the table (as you played)` : 'about 3 feet on the table'}: area hits count once. Measured numbers are what really happened.`),
   );
-  body.addEventListener('click', () => closePops(body));
+  body.addEventListener('click', (e) => !(e.target as Element | null)?.closest('.st-pop') && closePops(body));
   body.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && body.querySelector('.st-pw.open')) {
       e.stopPropagation();

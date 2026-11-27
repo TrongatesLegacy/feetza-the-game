@@ -7713,3 +7713,11 @@ body.reduced-motion .pzr-legendary img { animation: none !important; }
 .sec-head .reorder-btn { margin-left: 0; font-size: 1em; }
 .sec-head .move-cost { white-space: nowrap; }
 @media (max-width: 760px), (max-height: 480px) { .sec-head .move-cost { display: none; } }
+/* a tip showing a whole card (a STATS "from" chip): the card itself, at a fixed size */
+.tipbox.card { padding: 0; background: none; border: 0; box-shadow: none; max-width: none; }
+.tipbox.card::after { content: none; }
+.tipbox .tip-card { width: 12em; font-size: 16px; box-shadow: 0 0.4em 0 var(--ink), 0 1em 2em rgba(0, 0, 0, 0.4); }
+.tipbox .ptile.tip-card { display: flex; flex-direction: column; align-items: center; gap: 0.2em; padding: 1.2em 0.7em 0.8em; text-align: center; }
+.tipbox .ptile.tip-card .pt-pic img { width: 8em; height: auto; }
+.tipbox .ptile.tip-card .nm { font-family: 'Lilita One', sans-serif; font-size: 1.2em; }
+.tipbox .ptile.tip-card .ds { flex: none; }

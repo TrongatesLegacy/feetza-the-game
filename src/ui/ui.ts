@@ -76,6 +76,44 @@ const X_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M1
 /** A chunky cog for the shop's pause-menu button (centred in its box, unlike the ⚙ glyph). */
 /** The empty counter: a chalk SOLD OUT board hanging over an empty plate with a few crumbs (the game's plate). */
 /** A topping card's tier frame (the pizza tiers' cousin, in the topping's own rarity colour): its ring. */
+/** A topping's or a pizza's whole card, for a tip (the STATS tab's "from" chips): its frame, picture, name and text. */
+export function previewCard(key: string, el: HTMLElement): HTMLElement | null {
+  const [kind, id] = key.split(':');
+  if (kind === 'top') {
+    const u = UPGRADE_BY_ID[id];
+    if (!u) return null;
+    const lvl = Math.max(1, Number(el.getAttribute('data-tip-lvl') ?? 1));
+    const k = kindOf(u);
+    return h(
+      'div',
+      { class: `tcard tframed ${u.rarity} tip-card`, style: `--rc:${RARITY_COLOR[u.rarity]}` },
+      toppingFrame(),
+      h('div', { class: 'rarity ttab' }, u.rarity),
+      h('div', { class: 'tc-top' }, h('span', { class: 'ic' }, u.icon), h('span', { class: `kind ${k}` }, k === 'permanent' ? 'PERMANENT' : k === 'unique' ? 'ONCE PER RUN' : 'ONE USE')),
+      h('div', { class: 'nm' }, `${u.name}${u.max > 1 ? ` LV${lvl}` : ''}`),
+      h('div', { class: 'ds' }, u.desc(lvl)),
+      u.downside ? h('div', { class: 'down' }, `▼ ${u.downside}`) : null,
+    );
+  }
+  if (kind === 'pizza') {
+    const p = PIZZA_BY_ID[id];
+    if (!p) return null;
+    // (its perk as it stands now: the chip's own line, e.g. enhanced or what an Echo Slice copies)
+    const tip = el.getAttribute('data-tip') ?? '';
+    const line = tip.startsWith(`${p.name}: `) ? tip.slice(p.name.length + 2) : p.perkText;
+    const tier = tierAttrs(p.rarity, p.id);
+    return h(
+      'div',
+      { class: `ptile tip-card ${tier.cls}`, style: tier.style },
+      ...tierFrame(p.rarity),
+      h('div', { class: 'pt-pic' }, h('img', { src: pizzaPortraitURL(p.id), alt: '' })),
+      h('div', { class: 'nm' }, p.name),
+      h('div', { class: 'ds' }, line),
+    );
+  }
+  return null;
+}
+
 /** Your Table's reorder mode: the move a dragged tile calls (null: the mode is off). */
 const tableReorder: { move: ((from: number, to: number) => void) | null } = { move: null };
 let reorderDrag = false;

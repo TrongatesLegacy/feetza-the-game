@@ -5,6 +5,13 @@
 //   - With a mouse, hovering either shows the tip after a moment.
 // Escape, scrolling, or a tap elsewhere closes it.
 
+/** Cards shown in place of a tip: an element with `data-tip-card` (a topping, `top:<id>`, or a pizza, `pizza:<id>`)
+ *  shows that thing's whole card, drawn by whoever registered for it (src/ui/ui.ts). */
+let cardFor: ((key: string, el: HTMLElement) => HTMLElement | null) | null = null;
+export function setTipCards(fn: (key: string, el: HTMLElement) => HTMLElement | null): void {
+  cardFor = fn;
+}
+
 const INTERACTIVE = 'button, a[href], input, select, textarea, summary, [role="button"], [role="tab"], [role="switch"], [role="checkbox"]';
 const HOLD_MS = 450;
 const HOVER_MS = 350;
@@ -35,7 +42,7 @@ function adoptAll(root: ParentNode): void {
 }
 
 function tipOf(target: EventTarget | null): HTMLElement | null {
-  return target instanceof Element ? (target.closest('[data-tip]') as HTMLElement | null) : null;
+  return target instanceof Element ? (target.closest('[data-tip], [data-tip-card]') as HTMLElement | null) : null;
 }
 
 export function hideTip(): void {
@@ -47,13 +54,16 @@ export function hideTip(): void {
 
 function showTip(el: HTMLElement): void {
   const text = el.getAttribute('data-tip');
-  if (!text) return;
+  const key = el.getAttribute('data-tip-card');
+  const card = key && cardFor ? cardFor(key, el) : null;
+  if (!text && !card) return;
   hideTip();
   owner = el;
   box = document.createElement('div');
-  box.className = 'tipbox';
+  box.className = card ? 'tipbox card' : 'tipbox';
   box.setAttribute('role', 'tooltip');
-  box.textContent = text;
+  if (card) box.append(card);
+  else box.textContent = text;
   document.body.appendChild(box);
   // above the element, or below when there's no room; always inside the screen
   const r = el.getBoundingClientRect();

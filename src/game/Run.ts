@@ -626,12 +626,16 @@ export class Run {
       if (!remaining.length) break;
       picks.push(weightedPick(remaining, (u) => weights[u.rarity]));
     }
-    // Mac & Cheese: one extra consumable card
+    this.addExtraConsumables(picks, avail);
+    return this.bumpRarity(picks, exclude);
+  }
+
+  /** Mac & Cheese: one extra one-use card a shop (boss loot too), when one is free to deal. */
+  private addExtraConsumables(picks: Upgrade[], avail: Upgrade[]): void {
     for (let i = 0; i < this.stats.extraConsumable; i++) {
       const cons = avail.filter((u) => kindOf(u) === 'consumable' && !picks.includes(u));
       if (cons.length) picks.push(weightedPick(cons, () => 1));
     }
-    return this.bumpRarity(picks, exclude);
   }
 
   /** Exclusive Menu: every card is dealt one rarity higher (when that rarity is open and has one to offer). */
@@ -656,7 +660,10 @@ export class Run {
       picks.push(u);
       avail.splice(avail.indexOf(u), 1);
     }
-    return picks.length ? this.bumpRarity(picks, exclude) : this.rollChoices(n, exclude);
+    if (!picks.length) return this.rollChoices(n, exclude);
+    // (its extra one-use card can be any rarity, as in any shop)
+    this.addExtraConsumables(picks, UPGRADES.filter((u) => this.offerable(u, this.wave) && !exclude.includes(u.id)));
+    return this.bumpRarity(picks, exclude);
   }
 
   comboMult(): number {
