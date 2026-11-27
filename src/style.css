@@ -7621,3 +7621,19 @@ body:not(.reduced-motion) .kind-tab.k-special { animation: kindShine 3.6s ease-i
 .pzl-reveal.still .pzl-rays,
 .pzl-reveal.still .pzl-halo { animation: none; }
 body.reduced-motion .pzr-legendary img { animation: none !important; }
+
+/* the counter's BUY buttons: smaller, so a long pizza name has room (the longest, Bone Marrow & Black Garlic, takes
+   a second line rather than being cut off) */
+.counter2 > .offer:not(.slots) > .btn {
+  font-size: 1.08em;
+  padding: 0.3em 0.6em 0.36em;
+}
+.counter2 > .offer:not(.slots) .offer-text b {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-height: 1.02;
+}
+/* the pull buttons grow a little on hover: the side column keeps clipping its overflow, with room round them for that */
+.offer.slots .side { padding: 0.3em 0.35em; margin: -0.3em -0.35em; }
