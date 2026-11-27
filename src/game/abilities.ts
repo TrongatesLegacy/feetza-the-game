@@ -713,6 +713,19 @@ export const ABILITIES: Record<string, Ability> = {
   'pizza:royalwedding': ab('Royal Toast', wave, [T(10), H(1, 'all')], PINK, 'gold'),
   'pizza:pirate': ab('Cannonade', every(5), [D(3, BL(1, 220, 'front'))], GOLD, 'burst'),
   'pizza:nonnasecret': ab('Nonna’s Hug', wave, [H(2, 'weakest'), FR(1, 'weakest')], PINK, 'heal'),
+  // the pizza plan's step 3 (src/content/pizzas/p4.ts)
+  'pizza:seasidefritto': ab('High Tide', act, [K(1200, all), D(5, all)], CYAN, 'wind', 0.95),
+  'pizza:blueplate': ab('Daily Special', always, [STAT({ damage: 1, coinMult: 0.08 })], BLUE, 'gold'),
+  'pizza:lodgefondue': ab('Fondue Dip', stomp, [S(0.5, 3, hit(200)), ST(0.6, hit())], GOLD, 'ink'),
+  'pizza:rooftoprosemary': ab('Rooftop Breeze', every(6), [K(900, front(3)), D(1.5, front(3))], GREEN, 'wind'),
+  'pizza:stargazer': ab('Shooting Stars', act, [D(3, BL(3, 150)), M(1.3, 3, all)], BLUE, 'rain', 0.9),
+  'pizza:rinkpretzel': ab('Slapshot', smack(0.2), [D(1.5, hit(140)), K(700, hit())], CYAN, 'burst'),
+  'pizza:raclette': ab('Scrape and Melt', every(7), [S(0.5, 3, front(3)), B(1, 3, front(3))], GOLD, 'fire'),
+  'pizza:cellarmushroom': ab('Cellar Spores', every(6), [M(1.4, 4, rnd(3)), D(1.5, rnd(3))], BROWN, 'ink'),
+  'pizza:oldtowntarte': ab('Market Day', wave, [T(8), FR(1)], GOLD, 'gold'),
+  'pizza:kitchensink': ab('Everything but the Sink', every(5), [TH('clutter', 'ricochet', 1.5, rnd(1), { more: [1, 1] })], ORANGE, 'burst'),
+  'pizza:granite': ab('Stone Skin', act, [FZ(2, all), SH(1, 'all')], 0xcfc6b4, 'burst', 0.9),
+  'pizza:discodiner': ab('Saturday Night', act, [S(0.4, 4, all), D(5, all), ST(0.5, all)], PINK, 'burst', 0.9),
 
   // ——— Act 7 · Comics: places, bosses and villain feet ———
   'place:metropizza': ab('Searchlight', every(6), [M(1.6, 4, tough(2)), D(2, tough(2))], GOLD, 'zap'),

@@ -50,7 +50,7 @@ import { freshKitShop, loadKitState } from '../game/kitState';
 import { cardCount, counterFreebie, counterPrice, dealBlock, freeLunchReady, goldenPrice, happyHour, rerollPrice, toppingPrice } from '../game/shopDeals';
 import { pickWindow, rouletteWindow, slotsPrizeWindow, type PickOption } from '../ui/pickWindows';
 import { abilityKey } from '../game/abilities';
-import { PizzaPerkKit } from '../game/pizzaPerks';
+import { PERK_SFX, PizzaPerkKit } from '../game/pizzaPerks';
 import { contentFx } from '../game/contentFx';
 import { evictLive, setLiveWarmBusy, styleLive, warmLive } from '../game/liveKit';
 import { evictZombieArt } from '../game/zombieArt';
@@ -655,6 +655,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     // the living pizzas' named effects (Epic) call out with a quip; their sounds load now
     aliveHooks.quip = (x, y, text, color, size, angle) => this.fx.quip(x, y, text, color, size, angle);
     audio.preload(this, ALIVE_SFX);
+    audio.preload(this, PERK_SFX);
     this.events.once('shutdown', () => {
       pizzaHooks.healed = undefined;
       pizzaHooks.revived = undefined;
@@ -666,6 +667,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (snap) {
       this.restore(snap);
       this.perkKit.restored(this.pizzas);
+      this.perkKit.lostLastWave = !!snap.lostLastWave;
     }
     else {
       const slices = BASE_SLICES + (save.meta.pies ?? 0);
@@ -936,6 +938,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       bossesBeaten: [...r.bossesBeaten],
       firstKills: r.firstKills,
       slicesLost: r.slicesLost,
+      lostLastWave: this.perkKit.lostLastWave,
       pizzasBought: r.pizzasBought,
       eventCrusts: r.eventCrusts,
       bankedCrusts: r.bankedCrusts,
@@ -1098,7 +1101,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       else if (inv === 'crit') s.critChance = Math.max(0, s.critChance - 0.06);
       else s.damage *= 0.95;
     }
-    this.perkKit.afterRecompute(this.run.stats, COMBO_BASE_WINDOW);
+    this.perkKit.afterRecompute(this.run.stats, COMBO_BASE_WINDOW, [skip.pizza, this.possessedPizza]);
     // the perks' faster smacks land after Run's caps: cap the follow-up chance again
     this.run.stats.doubleChance = Math.min(DOUBLE_CAP, this.run.stats.doubleChance);
     return this.run.stats;
@@ -2761,6 +2764,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       inWave: this.waveActive,
       bossWave: isBossWave(wave),
       extraDouble: this.perkKit.extraDouble(),
+      lossTips: this.perkKit.lossTipsOn(),
       hero: { smack: hero.smack, all: hero.all, reach: this.heroes.reachMult(), crit: this.heroes.critAlways(), meter: this.heroes.meterMult() },
       waveMult: this.perkKit.waveDmgMult(wave),
       areaSmack: r.level('peel') > 0 || this.kit.areaSmack(),
@@ -4203,6 +4207,11 @@ export class GameScene extends Phaser.Scene implements Arena {
     const pierce = f.has('pierce') || this.director.pierces(f);
     if (pierce && (p.traps > 0 || p.shieldCharges > 0 || p.flags.grandma)) this.fx.quip(f.x, p.surfaceY - 150, 'PIERCED!', '#ff4d6d', 40);
     // Pizza Stone: the middle pizza's first stomp each wave
+    // Granite Crust: once a wave the stomp turns to stone
+    if (!pierce && this.perkKit.stoneStomp(f, p)) {
+      blocked(false);
+      return;
+    }
     if (!pierce && this.kit.stoneBlock(p)) {
       f.knock(700);
       blocked(false);
@@ -4276,6 +4285,9 @@ export class GameScene extends Phaser.Scene implements Arena {
       p.soggy = false;
       this.fx.quip(p.x, p.surfaceY - 150, 'SOGGY!', '#8fd3ff', 38);
     }
+    // Raclette Run's first stomp each wave takes only half a slice
+    dmg = this.perkKit.stompDmg(f, p, dmg);
+    if (dmg <= 0) this.fx.splat(p.x + (f.x - p.x) * 0.5, p.surfaceY, false);
     this.tracker.emit('stomp', { foot: f, blocked: null });
     this.applyStomp(p, f, dmg, big);
     heroFootStomp(this, f, p);

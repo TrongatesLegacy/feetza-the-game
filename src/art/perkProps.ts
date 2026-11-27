@@ -235,3 +235,116 @@ export function drawChest(open: boolean): HTMLCanvasElement {
   } else sheen(ctx, -24, -52, 16, 5, 0.45);
   return c;
 }
+
+/** Disco Diner Pie's mirror ball: a sphere of little mirrors, lit from the top left, hung on a short chain. */
+export function drawDiscoBall(): HTMLCanvasElement {
+  const [c, ctx] = makeCanvas(112, 132);
+  const r = rng(31);
+  const cx = 56;
+  const cy = 76;
+  const R = 46;
+  // the chain
+  ctx.strokeStyle = '#8a8a96';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(cx, 0);
+  ctx.lineTo(cx, cy - R);
+  ctx.stroke();
+  ellipse(ctx, cx, cy, R + 4, R + 4);
+  ctx.fillStyle = INK;
+  ctx.fill();
+  ctx.save();
+  ellipse(ctx, cx, cy, R, R);
+  ctx.clip();
+  const g = ctx.createRadialGradient(cx - 16, cy - 18, 4, cx, cy, R);
+  g.addColorStop(0, '#f4f6ff');
+  g.addColorStop(0.5, '#9aa2bc');
+  g.addColorStop(1, '#3a3e5a');
+  ctx.fillStyle = g;
+  ctx.fillRect(cx - R, cy - R, R * 2, R * 2);
+  // the mirror tiles: rows of facets, each catching a different light
+  const rows = 9;
+  for (let i = 0; i < rows; i++) {
+    const lat = -Math.PI / 2 + ((i + 0.5) / rows) * Math.PI;
+    const y = cy + Math.sin(lat) * R;
+    const w = Math.cos(lat) * R;
+    const cols = Math.max(3, Math.round(w / 5));
+    for (let j = 0; j < cols; j++) {
+      const lon = -Math.PI / 2 + ((j + 0.5) / cols) * Math.PI;
+      const x = cx + Math.sin(lon) * w;
+      const fw = Math.max(2, (Math.cos(lon) * w * Math.PI) / cols - 1.2);
+      const fh = (R * Math.PI) / rows - 1.4;
+      const lit = 0.25 + 0.75 * Math.max(0, -Math.sin(lon) * 0.5 - Math.sin(lat) * 0.6 + 0.3) + (r() - 0.5) * 0.35;
+      const tile = ['#dfe4ff', '#ffd6f4', '#d6f4ff', '#fff4c8'][Math.floor(r() * 4)];
+      ctx.fillStyle = rgba(shade(tile, lit - 0.7), 0.95);
+      ctx.fillRect(x - fw / 2, y - fh / 2, fw, fh);
+    }
+  }
+  ctx.restore();
+  // a hot glint top left and a sparkle
+  sheen(ctx, cx - 18, cy - 20, 9, 5, 0.8);
+  ctx.fillStyle = '#ffffff';
+  for (const [x, y, s] of [[cx - 16, cy - 22, 10], [cx + 20, cy + 8, 6]] as [number, number, number][]) {
+    ctx.beginPath();
+    ctx.moveTo(x, y - s);
+    ctx.lineTo(x + s * 0.2, y - s * 0.2);
+    ctx.lineTo(x + s, y);
+    ctx.lineTo(x + s * 0.2, y + s * 0.2);
+    ctx.lineTo(x, y + s);
+    ctx.lineTo(x - s * 0.2, y + s * 0.2);
+    ctx.lineTo(x - s, y);
+    ctx.lineTo(x - s * 0.2, y - s * 0.2);
+    ctx.closePath();
+    ctx.fill();
+  }
+  return c;
+}
+
+/** A music note (a pair of joined quavers), white so it can be tinted. */
+export function drawMusicNote(): HTMLCanvasElement {
+  const [c, ctx] = makeCanvas(64, 64);
+  const draw = (col: string, w: number, k = 0) => {
+    ctx.strokeStyle = col;
+    ctx.fillStyle = col;
+    ctx.lineWidth = w;
+    ellipse(ctx, 18, 48, 9 + 2 - k, 6.5 + 2 - k, -0.4);
+    ctx.fill();
+    ellipse(ctx, 44, 42, 9 + 2 - k, 6.5 + 2 - k, -0.4);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(26, 46);
+    ctx.lineTo(26, 12);
+    ctx.lineTo(52, 6);
+    ctx.lineTo(52, 40);
+    ctx.stroke();
+    ctx.lineWidth = w + 4;
+    ctx.beginPath();
+    ctx.moveTo(26, 14);
+    ctx.lineTo(52, 8);
+    ctx.stroke();
+  };
+  ctx.save();
+  ctx.translate(1, 2);
+  draw(INK, 9);
+  ctx.restore();
+  draw(INK, 8);
+  draw('#ffffff', 4, 2.2);
+  return c;
+}
+
+/** A cone of stage light (white, so it can be tinted), bright at its tip and fading as it widens. */
+export function drawLightBeam(): HTMLCanvasElement {
+  const [c, ctx] = makeCanvas(160, 512);
+  for (let y = 0; y < 512; y += 2) {
+    const t = y / 512;
+    const half = 6 + t * 74;
+    const g = ctx.createLinearGradient(80 - half, 0, 80 + half, 0);
+    const a = 0.85 * (1 - t) ** 1.2;
+    g.addColorStop(0, 'rgba(255,255,255,0)');
+    g.addColorStop(0.5, rgba('#ffffff', a));
+    g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(80 - half, y, half * 2, 2);
+  }
+  return c;
+}

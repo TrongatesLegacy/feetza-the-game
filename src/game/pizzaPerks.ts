@@ -7,7 +7,7 @@
 // half, so table-wide perks read `c(perk)`; perks tied to one pizza read `pk(p)`.
 
 import Phaser from 'phaser';
-import { drawChest, drawGhostRing, drawMeatball, drawMeteor } from '../art/perkProps';
+import { drawChest, drawDiscoBall, drawGhostRing, drawLightBeam, drawMeatball, drawMeteor, drawMusicNote } from '../art/perkProps';
 import { PIZZAS, enhancedText, type PizzaPerk } from '../data/pizzas';
 import { tunaTips } from '../data/perkWave';
 import { WAVES_PER_ACT, isActStart } from '../data/stages';
@@ -16,7 +16,7 @@ import { audio } from '../systems/audio';
 import type { Arena } from './arena';
 import type { Foot } from './Foot';
 import type { Pizza } from './Pizza';
-import { isBossWave, locationFor, waveInStage, type Run } from './Run';
+import { TIP_MULT_CAP, isBossWave, locationFor, waveInStage, type Run } from './Run';
 import type { Stats } from '../data/upgrades';
 
 /** Perks Arcobaleno can't borrow: set up when a pizza is placed, tied to its own type, or another borrower. */
@@ -28,6 +28,10 @@ const BORROW_SKIP = new Set<PizzaPerk>([
 export const BORROW_POOL: PizzaPerk[] = [...new Set(PIZZAS.map((p) => p.perk))].filter((k) => !BORROW_SKIP.has(k));
 /** Mystery Meat's big perks: strong on any table. */
 export const MYSTERY_POOL: PizzaPerk[] = ['damage', 'coins', 'crit', 'critDmg', 'double', 'execute', 'burnHits', 'explode', 'splash', 'radius', 'regenAll', 'meteor', 'timeStop', 'fireLane', 'orbitRing', 'ghostPass'];
+
+/** Sounds the perks play that aren't loaded at boot (the scene loads them with the run): Granite Crust's stone,
+ *  Disco Diner Pie's jukebox, Lodge Fondue Pie's cheese. All CC0 or CC-BY and credited already. */
+export const PERK_SFX = ['sfx_gargoyle_stone', 'sfx_smack_tail_jukebox', 'sfx_venomnom_goo'];
 
 /** Stages played at night (Night Shift). */
 const NIGHT = new Set(['space', 'oldtown', 'cellar']);
@@ -45,8 +49,17 @@ export function perkTextOf(perk: PizzaPerk, enhanced: boolean): string {
   return PIZZAS.find((q) => q.perk === perk)?.perkText ?? perk;
 }
 
-/** The line a borrowing pizza shows on the table and its shop card. */
+/** Kitchen Sink's three picks: what it adds this wave (src/game/pizzaPerks.ts afterRecompute). */
+export const SINK_PICKS = ['smack damage', 'tips', 'crit chance'] as const;
+
+/** Kitchen Sink's bonus in whole percent at a strength (5% plain; enhanced 7.5% reads 8, as other perks round). */
+export function sinkPct(k: number): number {
+  return Math.round(5 * k);
+}
+
+/** The line a borrowing pizza shows on the table and its shop card (Kitchen Sink: this wave's pick). */
 export function borrowLine(p: Pizza, enhanced: boolean): string | null {
+  if (p.type.perk === 'kitchenSink') return p.flags.sink === undefined ? null : `This wave: +${sinkPct(enhanced ? 1.5 : 1)}% ${SINK_PICKS[Number(p.flags.sink) % 3]}`;
   if (p.type.perk === 'mystery' && !p.flags.revealed) return enhanced ? enhancedText('mystery') : p.type.perkText;
   const b = borrowedPerk(p);
   return b ? perkTextOf(b, enhanced || p.type.perk === 'mystery') : null;
@@ -91,6 +104,12 @@ export class PizzaPerkKit {
   private waveKills = 0;
   /** A pizza was destroyed this run (Untouchable's goal). */
   private lost = false;
+  /** Seaside Fritto: a slice was lost last wave, so this one pays more (saved with the run). */
+  lostLastWave = false;
+  /** Rinkside Pretzel Pie: smacks are quicker until then (arena seconds). */
+  private rushUntil = -99;
+  /** Disco Diner Pie: seconds of wave since the last dance beat (it carries over between waves). */
+  private danceT = 0;
 
   constructor(arena: Arena, host: PerkHost) {
     this.a = arena;
@@ -102,6 +121,9 @@ export class PizzaPerkKit {
       ['pk_ring', drawGhostRing],
       ['pk_chest', () => drawChest(false)],
       ['pk_chest_open', () => drawChest(true)],
+      ['pk_disco', drawDiscoBall],
+      ['pk_note', drawMusicNote],
+      ['pk_beam', drawLightBeam],
     ];
     for (const [k, draw] of tex) if (!this.sc.textures.exists(k)) this.sc.textures.addCanvas(k, draw());
   }
@@ -126,8 +148,10 @@ export class PizzaPerkKit {
     return (1 + (p.enhanced ? 0.5 : 0) + (p.type.perk === 'mystery' ? 0.5 : 0)) * this.boost();
   }
 
+  /** The pizzas granting a perk now (a possessed pizza's perk is the Ghost's, not yours: left out, as Tuna is). */
   private with(perk: PizzaPerk): Pizza[] {
-    return this.a.alivePizzas().filter((p) => p.perk === perk);
+    const ghost = this.a.possessed();
+    return this.a.alivePizzas().filter((p) => p.perk === perk && p !== ghost);
   }
 
   private wave(): number {
@@ -159,6 +183,7 @@ export class PizzaPerkKit {
     if (fresh && p.type.perk === 'bigStart') p.addSlices(2);
     if (p.type.perk === 'rainbow' && p.flags.borrow === undefined) p.flags.borrow = Math.floor(Math.random() * BORROW_POOL.length);
     if (p.type.perk === 'mystery' && p.flags.mystery === undefined) p.flags.mystery = Math.floor(Math.random() * MYSTERY_POOL.length);
+    if (p.perk === 'kitchenSink' && p.flags.sink === undefined) p.flags.sink = Math.floor(Math.random() * 3);
   }
 
   /** Enhancing Century Crust grows it to 12 slices. */
@@ -173,6 +198,8 @@ export class PizzaPerkKit {
     if (hr >= 22 || hr < 5) g.nightRuns = (g.nightRuns ?? 0) + 1;
     g.perfectStreak = 0;
     this.lost = false;
+    this.lostLastWave = false;
+    this.danceT = 0;
   }
 
   /** A saved run comes back: did it lose a pizza already? */
@@ -191,7 +218,7 @@ export class PizzaPerkKit {
 
   // ——— stats ———
   /** After the run's stats are worked out: table-shaped perks. */
-  afterRecompute(s: Stats, comboBase: number): void {
+  afterRecompute(s: Stats, comboBase: number, skip: (Pizza | null | undefined)[] = []): void {
     const variety = this.c('varietyDmg');
     if (variety) s.damage *= 1 + 0.05 * variety * new Set(this.a.alivePizzas().map((p) => p.type.id)).size;
     const peels = this.c('peelDmg');
@@ -201,13 +228,33 @@ export class PizzaPerkKit {
     // there's no smack cooldown, so "faster smacks" are extra quick follow-up smacks
     s.doubleChance += 0.15 * this.c('smackSpeed');
     s.crustBonus += 0.1 * this.c('crustRun');
+    // Kitchen Sink: this wave's pick
+    for (const p of this.with('kitchenSink')) {
+      if (p.flags.sink === undefined || skip.includes(p)) continue;
+      const k = 0.05 * this.pk(p);
+      const pick = Number(p.flags.sink) % 3;
+      if (pick === 0) s.damage *= 1 + k;
+      else if (pick === 1) s.coinMult = Math.min(TIP_MULT_CAP, s.coinMult + k);
+      else s.critChance = Math.min(0.85, s.critChance + k);
+    }
   }
 
   /** Pizza Romana: follow-up smacks while it has every slice. */
   extraDouble(): number {
     let d = 0;
     for (const p of this.with('fullSpeed')) if (p.slices === p.maxSlices) d += 0.1 * this.pk(p);
+    if (this.rushing()) for (const p of this.with('killRush')) d += 0.05 * this.pk(p);
     return d;
+  }
+
+  /** Rinkside Pretzel Pie's rush: the 3 s after a kill. */
+  rushing(): boolean {
+    return this.a.now() < this.rushUntil;
+  }
+
+  /** Seaside Fritto pays more this wave (a slice was lost last wave). */
+  lossTipsOn(): boolean {
+    return this.lostLastWave && this.c('lossTips') > 0;
   }
 
   shinyMult(): number {
@@ -236,6 +283,8 @@ export class PizzaPerkKit {
       m *= 1 + 0.2 * this.c('slayer');
     }
     if (f.type.mini) m *= 1 + 0.25 * this.c('miniDmg');
+    // Cellar Mushroom Medley: ghosts and the undead (the zombie marking), and any foot zombified in play
+    if (f.type.undead || f.zombified) m *= 1 + 0.1 * this.c('undeadDmg');
     return m * this.waveDmgMult(this.wave());
   }
 
@@ -255,6 +304,7 @@ export class PizzaPerkKit {
     for (const p of this.with('freshTips')) if (!p.freshOn || p.fresh >= p.maxFresh) m += 0.1 * this.pk(p);
     if (isBossWave(this.wave())) m += 0.2 * this.c('bossTips');
     if (this.actStart()) m += 0.1 * this.c('actStart');
+    if (this.lostLastWave) m += 0.12 * this.c('lossTips');
     if (golden || f.type.id === 'golden') m *= 1 + this.c('goldenDouble');
     return m;
   }
@@ -266,7 +316,10 @@ export class PizzaPerkKit {
 
   knockMult(f: Foot): number {
     const t = f.target;
-    return t && !t.dead && t.perk === 'knockAbove' ? 1 + 0.4 * this.pk(t) : 1;
+    if (!t || t.dead) return 1;
+    if (t.perk === 'knockAbove') return 1 + 0.4 * this.pk(t);
+    if (t.perk === 'roofKnock') return 1 + 0.08 * this.pk(t);
+    return 1;
   }
 
   // ——— hooks ———
@@ -306,6 +359,11 @@ export class PizzaPerkKit {
   /** f was defeated (coins: what it paid). */
   killed(f: Foot, coins: number): void {
     this.waveKills++;
+    // Rinkside Pretzel Pie: a kill gets the smacks going (its pop shows when a rush starts, not on every kill)
+    if (this.c('killRush') > 0) {
+      if (!this.rushing()) for (const p of this.with('killRush')) p.perkFired({ quip: false });
+      this.rushUntil = this.a.now() + 3;
+    }
     const t = f.target;
     const x = f.cx;
     const y = f.cy;
@@ -409,6 +467,61 @@ export class PizzaPerkKit {
     return false;
   }
 
+  /** Granite Crust: the stomp turns to stone on the pie. The pie flashes grey and cracks, stone dust bursts off it,
+   *  and the foot greys over and stands stunned (a boss is only blocked). */
+  stoneStomp(f: Foot, p: Pizza): boolean {
+    if (p.perk !== 'stoneStomp' || p.flags.stoneWave === this.wave() || p === this.a.possessed()) return false;
+    p.flags.stoneWave = this.wave();
+    this.stone(f, p);
+    return true;
+  }
+
+  private stone(f: Foot, p: Pizza): void {
+    const a = this.a;
+    const boss = f.isBossLike;
+    p.stoneFlash(boss ? 650 : p.enhanced ? 1500 : 1000);
+    p.perkFired({ quip: false });
+    a.quip(f.x, p.surfaceY - 150, 'TURNED TO STONE!', '#f2ece0', 44);
+    a.sfx('sfx_gargoyle_stone', { volume: 0.75, rate: 1.15 });
+    a.shake(140, 0.004);
+    a.fx.ring(p.x, p.surfaceY - 24, 0xcfc6b4, 2.2, 0.45);
+    a.fx.ring(f.x, p.surfaceY - 60, 0xffffff, 1.4, 0.5);
+    // the dust and chips flying off the stone
+    for (let i = 0; i < 14; i++) {
+      const ang = Math.PI + Math.random() * Math.PI;
+      const sp = 140 + Math.random() * 260;
+      const chip = this.sc.add.image(f.x + (Math.random() - 0.5) * 80, p.surfaceY - 40, i % 3 ? 'crumb2' : 'shard').setTint(i % 2 ? 0x9a9488 : 0xcfc6b4).setScale(0.5 + Math.random() * 0.5);
+      a.fxLayer.add(chip);
+      this.sc.tweens.add({ targets: chip, x: chip.x + Math.cos(ang) * sp * 0.5, y: chip.y + Math.sin(ang) * sp * 0.4 + 60, angle: (Math.random() - 0.5) * 360, alpha: 0, duration: 520 + Math.random() * 260, ease: 'Quad.Out', onComplete: () => chip.destroy() });
+    }
+    for (let i = 0; i < 5; i++) a.fx.puff(f.x + (Math.random() - 0.5) * 120, p.surfaceY - 30, 2);
+    if (!f.alive || boss) return;
+    f.knock(700);
+    const sec = p.enhanced ? 1.5 : 1;
+    f.stun(sec);
+    // a pale flash of stone, then it stays grey while it stands there
+    f.flash(0xe8e0d0, 110);
+    this.sc.time.delayedCall(130, () => f.alive && f.stunT > 0 && f.tint(0xa09c96));
+  }
+
+  /** Raclette Run: its first stomp each wave (enhanced: two) takes half a slice. The half left over waits on the
+   *  pizza, so two such stomps make one whole slice. Returns the slices this stomp takes. */
+  stompDmg(f: Foot, p: Pizza, dmg: number): number {
+    if (p.perk !== 'halfStomp' || p === this.a.possessed()) return dmg;
+    const w = this.wave();
+    const used = p.flags.halfWave === w ? Number(p.flags.halfUses ?? 0) : 0;
+    if (used >= (p.enhanced ? 2 : 1)) return dmg;
+    p.flags.halfWave = w;
+    p.flags.halfUses = used + 1;
+    const owed = Number(p.flags.halfOwed ?? 0) + dmg / 2;
+    const whole = Math.floor(owed + 1e-9);
+    p.flags.halfOwed = owed - whole;
+    this.a.quip(f.x, p.surfaceY - 150, whole > 0 ? 'ONLY HALF A SLICE!' : 'HALF A SLICE: SAVED!', '#ffe08a', 36);
+    this.a.sfx('sfx_boing', { volume: 0.5, rate: 0.85 });
+    p.perkFired({ quip: false });
+    return whole;
+  }
+
   /** A stomp landed on p: the stomper pays for it. */
   afterStomp(f: Foot, p: Pizza): void {
     const a = this.a;
@@ -430,6 +543,15 @@ export class PizzaPerkKit {
           f.slowPct = Math.max(f.slowPct, 0.4 * k);
           f.tint(0xb07a4a);
           a.quip(f.x, f.cy - 120, 'STICKY!', '#d8a060', 36);
+        }
+        break;
+      case 'fondueStick':
+        if (!f.isBossLike && p !== a.possessed()) {
+          f.stun(p.enhanced ? 0.5 : 0.3);
+          f.tint(0xffd870);
+          a.quip(f.x, f.cy - 120, 'STUCK IN THE FONDUE!', '#ffd870', 34);
+          a.sfx('sfx_venomnom_goo', { volume: 0.45, rate: 1.25, throttle: 200 });
+          p.perkFired({ quip: false });
         }
         break;
       case 'slipStomp':
@@ -608,7 +730,37 @@ export class PizzaPerkKit {
         });
       }
     }
+    // Kitchen Sink: this wave's pick (made when it was placed or the last wave cleared, so the shop shows it)
+    for (const p of this.with('kitchenSink')) {
+      if (p.flags.sink === undefined) {
+        p.flags.sink = Math.floor(Math.random() * 3);
+        p.redraw();
+        changed = true;
+      }
+      this.sc.time.delayedCall(900, () => {
+        if (p.dead) return;
+        a.quip(p.x, p.surfaceY - 190, `KITCHEN SINK: +${sinkPct(this.pk(p))}% ${SINK_PICKS[Number(p.flags.sink) % 3].toUpperCase()}`, '#ffd23f', 28);
+        p.perkFired({ quip: false });
+      });
+    }
     if (changed) this.h.recompute();
+    // Old Town Tarte: tips as the wave starts
+    for (const p of this.with('waveTips'))
+      this.sc.time.delayedCall(700, () => {
+        if (p.dead) return;
+        const n = Math.round(6 * this.pk(p));
+        this.h.giveTips(n, p.x, p.surfaceY - 80);
+        a.quip(p.x, p.surfaceY - 170, `OLD TOWN: +${n} TIPS`, '#ffd23f', 32);
+        p.perkFired({ quip: false });
+      });
+    // Seaside Fritto: a slice went last wave, so this one pays more
+    if (this.lossTipsOn())
+      this.sc.time.delayedCall(1200, () => {
+        const ps = this.with('lossTips');
+        if (!ps.length) return;
+        a.quip(ps[0].x, ps[0].surfaceY - 190, `SEASIDE FRITTO: +${Math.round(12 * this.c('lossTips'))}% TIPS`, '#8fe0ff', 30);
+        for (const p of ps) p.perkFired({ quip: false });
+      });
     const k = this.c('timeStop');
     // the clock stops once the wave's first feet are on the table (they arrive a moment after the banner)
     this.timeStopPending = k > 0 ? Math.min(5, 3 * k) : 0;
@@ -635,6 +787,13 @@ export class PizzaPerkKit {
     // Speed Slice's goal: the time feet were on the table, on a wave of 6 or more
     if (this.waveKills >= 6) g.fastWave = Math.min(g.fastWave ?? 99, Math.round(this.footTime * 10) / 10);
     this.removeChest(true);
+    // Seaside Fritto pays more next wave when a slice went in this one
+    this.lostLastWave = !perfect;
+    // Kitchen Sink picks the next wave's bonus now, so the shop shows the one you'll get
+    for (const p of a.alivePizzas()) if (p.perk === 'kitchenSink') {
+      p.flags.sink = Math.floor(Math.random() * 3);
+      p.redraw();
+    }
     // Tuna & Sweetcorn: every wave pays 5 tips × the wave number (enhanced: 10 ×)
     const tunas = this.with('wave5Tips').filter((p) => p !== this.a.possessed());
     if (tunas.length) {
@@ -744,9 +903,71 @@ export class PizzaPerkKit {
         }
       }
     }
+    // Disco Diner Pie: the jukebox drops a beat every 30 s (two pies: every 15)
+    const disco = this.c('danceBeat');
+    if (disco > 0) {
+      this.danceT += dt;
+      if (this.danceT >= 30 / disco && feet.some((f) => f.alive && f.hittable)) {
+        this.danceT = 0;
+        this.danceBeat();
+      }
+    }
     this.ringsTick(dt);
     this.nonnaCheck();
     if (this.chest) this.chest.img.y += Math.sin(a.now() * 3) * 0.3;
+  }
+
+  /** Disco Diner Pie: a dance beat. The mirror ball drops in over the pie, coloured lights sweep the table, notes
+   *  bounce over every foot and they all slow 30% for 2 s, dancing. */
+  danceBeat(): void {
+    const a = this.a;
+    const pies = this.with('danceBeat');
+    const src = pies[0];
+    const cols = [0xff4a9a, 0x38d8ff, 0xffd23f, 0x7dff7a];
+    a.quip(960, 300, 'DANCE BREAK!', '#ff7ad9', 54);
+    a.sfx('sfx_smack_tail_jukebox', { volume: 0.9 });
+    this.sc.time.delayedCall(260, () => a.sfx('sfx_smack_tail_jukebox', { volume: 0.7, rate: 1.26 }));
+    for (const p of pies) p.perkFired({ quip: false });
+    if (src) {
+      // the ball drops in above the pie, spins its light about and goes back up
+      const bx = src.x;
+      const by = src.surfaceY - 330;
+      const ball = this.sc.add.image(bx, -140, 'pk_disco').setScale(1.15);
+      const halo = this.sc.add.image(bx, by, 'glow').setTint(0xffd8f4).setBlendMode(Phaser.BlendModes.ADD).setScale(1.6).setAlpha(0);
+      a.fxLayer.add([halo, ball]);
+      this.sc.tweens.add({ targets: ball, y: by, duration: 320, ease: 'Back.Out' });
+      this.sc.tweens.add({ targets: halo, alpha: 0.55, duration: 300, yoyo: true, hold: 1300 });
+      this.sc.tweens.add({ targets: ball, angle: { from: -8, to: 8 }, duration: 300, yoyo: true, repeat: 3, ease: 'Sine.InOut' });
+      this.sc.tweens.add({ targets: ball, y: -160, delay: 1900, duration: 360, ease: 'Back.In', onComplete: () => { ball.destroy(); halo.destroy(); } });
+      // four beams of coloured light swing out of the ball across the table
+      for (let i = 0; i < 4; i++) {
+        const beam = this.sc.add.image(bx, by, 'pk_beam').setOrigin(0.5, 0).setTint(cols[i]).setBlendMode(Phaser.BlendModes.ADD).setScale(1.6, 1.5).setAlpha(0);
+        beam.setRotation(-0.9 + i * 0.6);
+        a.fxLayer.addAt(beam, 0);
+        this.sc.tweens.add({ targets: beam, alpha: 0.75, duration: 220, delay: 200 + i * 60 });
+        this.sc.tweens.add({ targets: beam, rotation: beam.rotation + (i % 2 ? -0.7 : 0.7), duration: 900, delay: 200, yoyo: true, ease: 'Sine.InOut' });
+        this.sc.tweens.add({ targets: beam, alpha: 0, delay: 1800, duration: 300, onComplete: () => beam.destroy() });
+      }
+    }
+    for (const f of a.allFeet()) {
+      if (!f.alive || !f.hittable) continue;
+      if (!f.type.traits.includes('immuneSlow')) {
+        // (a stronger slow already on it keeps its own time; a weaker or finished one becomes the beat's)
+        if (f.slowT <= 0 || f.slowPct <= 0.3) {
+          f.slowPct = 0.3;
+          f.slowT = Math.max(f.slowT, 2);
+        }
+      }
+      // a note bouncing over it in time, and a ring of the light on it
+      for (let n = 0; n < 2; n++) {
+        const note = this.sc.add.image(f.cx + (n ? 40 : -40), f.cy - 90, 'pk_note').setTint(cols[(n + Math.floor(f.cx)) % 4]).setScale(0.75).setAlpha(0);
+        a.fxLayer.add(note);
+        this.sc.tweens.add({ targets: note, alpha: 1, duration: 140, delay: n * 220 });
+        this.sc.tweens.add({ targets: note, y: note.y - 36, duration: 260, delay: n * 220, yoyo: true, repeat: 2, ease: 'Sine.InOut' });
+        this.sc.tweens.add({ targets: note, alpha: 0, x: note.x + (n ? 30 : -30), delay: 1500 + n * 220, duration: 400, onComplete: () => note.destroy() });
+      }
+      a.fx.ring(f.cx, f.cy + 40, cols[Math.floor(f.cx) % 4], 1.3, 0.4);
+    }
   }
 
   private meteor(f: Foot, dmg: number): void {

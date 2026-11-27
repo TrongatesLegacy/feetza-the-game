@@ -2,7 +2,7 @@
 
 Goal: four rarity tiers, with **60 Common, 50 Rare, 40 Epic and 30 Legendary** pizzas (180 in all, 67 of them new), and the four ways to unlock spread evenly across every tier.
 
-Status: **approved by Tron (2026-11-27); step 1 (the foundation) built 2026-11-27, see section 6; step 2 (the table pizzas come alive) built 2026-11-27, see section 7.** Decisions: no limit on legendaries at the table; Pizzeria and milestone legendaries gated on beating that act's boss on Hot or hotter; counter odds Common 60 / Rare 28 / Epic 10 / Legendary 2. Perks, names and numbers are proposals; the balance sim sets the final numbers. The act each legendary belongs to gets checked against `src/data/stages.ts` when it's built.
+Status: **approved by Tron (2026-11-27); step 1 (the foundation) built 2026-11-27, see section 6; step 2 (the table pizzas come alive) built 2026-11-27, see section 7; step 3 (the 10 new Commons and 2 new Rares) built 2026-11-27, see section 8.** Decisions: no limit on legendaries at the table; Pizzeria and milestone legendaries gated on beating that act's boss on Hot or hotter; counter odds Common 60 / Rare 28 / Epic 10 / Legendary 2. Perks, names and numbers are proposals; the balance sim sets the final numbers. The act each legendary belongs to gets checked against `src/data/stages.ts` when it's built.
 
 ---
 
@@ -228,7 +228,7 @@ The act mapping gets checked against `src/data/stages.ts` when each is built, an
 
 1. **Foundation (done, 2026-11-27; see section 6):** tiers and frames everywhere, re-pricing, the counter's and new-run screen's rarity odds, the second route for Pizzeria pizzas, and the route moves above (with new goals for the moved milestones).
 2. **The table pizzas come alive (done, 2026-11-27; see section 7):** bubbling, steam, sizzle and stomp reactions on the table, reusing the pizza peels' motion code. Legendary auras build on this.
-3. **New Commons and Rares (12):** quick.
+3. **New Commons and Rares (12) (done, 2026-11-27; see section 8):** quick.
 4. **New Epics (25):** in batches of about 8.
 5. **Legendaries (30):** in batches of 3–4, each with its mechanic, sounds, aura, peel, ability and review.
 6. **Balance:** the sim on Mild, Regular and Hot after each batch, run when Tron isn't playing.
@@ -319,6 +319,37 @@ The pizzas on the table in play (and on the main menu) now live, by tier, from o
 **After a buy** the counter's remaining offers grow taller: that's the counter's own roomy layout for fewer than three offers (step 1), not this step.
 
 **Left for later.** The cards' "pie gently animated" (Epic) and living border (Legendary) rows of section 1, and Pizzeria and milestone unlocks' moments, are not part of this step: the counter's are. The legendaries' own auras, signatures and counter moments plug into `AURAS`, `SIGNATURES` and `LEGENDARY_COUNTER` in step 5.
+
+## 8. Step 3, as built (2026-11-27)
+
+The 12 new pizzas of section 3 (C1–C10, R1–R2), all Rare Finds, in `src/content/pizzas/p4.ts`. The table now has 125 pizzas: Common 60 (Rare Find 15), Rare 50 (Rare Find 12), Epic 15. Their perks run in `src/game/pizzaPerks.ts` (the two plain stat bumps in `src/game/Run.ts`), their new toppings are drawn in `src/content/art/toppings-p4.ts`, and every one has its peel (from `buildDefs()`, unlocked by 20 waves on the table like every pizza peel) with a hand-written ability in `ABILITIES`.
+
+| # | Pizza (id) | Crusts | Toppings (new ones in bold) | Perk, as built | Enhanced | Its moment |
+|---|---|---|---|---|---|---|
+| C1 | Seaside Fritto (`seasidefritto`) | 190 | **fried calamari** (rings and the odd crispy tentacle), lemon, parsley | +12% tips the wave after a slice is lost (anywhere on the table; saved with the run) | +18% | "SEASIDE FRITTO: +12% TIPS" as such a wave starts |
+| C2 | Blue Plate Special (`blueplate`) | 260 | beef, cheddar, **crinkle-cut fries**, pickle on BBQ | +5% smack damage and +5% tips | +8% each | (a stat: none) |
+| C3 | Lodge Fondue Pie (`lodgefondue`) | 210 | potato, **a swirled pool of fondue** with cheese strings, **dipped bread cubes**, cornichons | Feet that stomp it stick for 0.3 s (not bosses or mini-bosses) | 0.5 s | "STUCK IN THE FONDUE!", the foot goes cheese-yellow, a sticky squelch |
+| C4 | Rooftop Rosemary (`rooftoprosemary`) | 170 | rosemary, ricotta, **honeycomb** from the rooftop hives, honey | +8% knockback on feet above it | +12% | (a stat: none) |
+| C5 | Stargazer Calzone (`stargazer`) | 290 | a calzone glazed dusk-blue, **star-cut vents** glowing with cheese, a constellation scored in the dough | +3% crit chance, +10% crit damage | +5%, +15% | (a stat: none) |
+| C6 | Rinkside Pretzel Pie (`rinkpretzel`) | 220 | sausage, **pretzel bites**, **a mustard zigzag** | Smacks 5% faster for 3 s after a kill (5% more follow-up smacks, as Speed Slice's "faster" is) | 8% | its pop when a rush starts |
+| C7 | Raclette Run (`raclette`) | 240 | potato, **draped raclette sheets**, cornichons, onion | Each wave's first stomp on it takes half a slice; the half left over waits on the pizza, so two such stomps make one slice | first 2 stomps | "HALF A SLICE: SAVED!" / "ONLY HALF A SLICE!" |
+| C8 | Cellar Mushroom Medley (`cellarmushroom`) | 200 | mushroom, porcini, **chanterelles**, sage | +10% damage to the undead (the `undead` marking: ghosts, zombies, mummies, the Immortals, the echo ghost…) and to any foot zombified in play | +15% | (a stat: none) |
+| C9 | Old Town Tarte (`oldtowntarte`) | 160 | square: **jammy caramelised onion**, bacon, sage | +6 tips at the start of every wave | +9 | "OLD TOWN: +6 TIPS" |
+| C10 | Kitchen Sink (`kitchensink`) | 270 | pepperoni, ham, mushroom, pepper, pineapple, olive, sweetcorn: everything | Each wave: +5% to one of smack damage, tips or crit chance, at random (tips within the ×2.5 cap); the pick is made when it's placed and as each wave clears, so the shop and its card line show the one the next wave gets | +8% | "KITCHEN SINK: +5% TIPS" (and so on) each wave |
+| R1 | Granite Crust (`granite`) | 520 | a stone-grey crust **speckled like granite** (sesame, charcoal salt, pepper), mozzarella, olives, black garlic, basil | Once a wave a stomp on it turns to stone: blocked (checked where Pizza Stone is, so a piercing stomp goes through); the foot is knocked up and stunned 1 s, greyed (a boss is only blocked) | 1.5 s | the pie goes grey with a crack across it for the stun, a pale flash, stone chips and dust, "TURNED TO STONE!", the Gargoyle's stone grind |
+| R2 | Disco Diner Pie (`discodiner`) | 450 | **vinyl-record pepperoni** with jukebox-coloured labels, peppers, basil | Every 30 s of wave (with feet on the table; the count carries between waves) a dance beat slows every foot 30% for 2 s | every 20 s | "DANCE BREAK!": a mirror ball drops in over the pie, four coloured beams swing across the table, notes bounce over every foot, the jukebox sting |
+
+**Living pizzas (step 2).** Each runs its tier's settings from `TIER_SET`. The Rares have a Rare Find finish (Granite a pale stone glow, Disco a pink one) and elements in `PERK_ELEMENT` (Granite holy, its quip "TURNED TO STONE!"; Disco rainbow, "DANCE BREAK!"); the Commons' elements only colour their pop. Every moment above calls `perkFired()`.
+
+**STATS tab.** The stat bumps (C2, C5, C10) show as chips on Smack damage, Crit chance, Crit damage and Tips, like the other stat perks (Kitchen Sink's pick is left out when the STATS tab works out what each pizza adds). The rest have tiles: "vs ghosts and undead" and "After a kill" (Damage); "Stuck in fondue", "Knockback above", "Turned to stone" and "Dance beat" (Crowd control); "After a lost slice" and "Wave start" (Economy); "Half-slice stomps" (Sustain).
+
+**Peel abilities** (in the pizza peels' style; the four meter ones have their own visuals in `src/game/abilityFxSpecs.ts`): Seaside Fritto **High Tide** (meter: every foot knocked back, ×5; the fritto at the edge and the sea flooding in), Blue Plate **Daily Special** (always: +1 damage, +8% tips), Lodge Fondue **Fondue Dip** (on a stomp: slows round it 50%, stuns the stomper), Rooftop **Rooftop Breeze** (every 6 s: the 3 front feet knocked back and hit ×1.5), Stargazer **Shooting Stars** (meter: three blasts ×3 and every foot marked ×1.3; stars streaking down), Rinkside **Slapshot** (20% of smacks: ×1.5 round it and a knock), Raclette **Scrape and Melt** (every 7 s: the 3 front feet slowed and melted), Cellar **Cellar Spores** (every 6 s: 3 feet marked ×1.4 and hit), Old Town **Market Day** (each wave: +8 tips, +1 freshness), Kitchen Sink **Everything but the Sink** (every 5 s: clutter ricocheting through 3 feet), Granite **Stone Skin** (meter: every foot frozen 2 s, a shield on every pizza; the pie slams down like a slab), Disco **Saturday Night** (meter: every foot slowed 40%, ×5 and stunned; the mirror ball drops in at the top).
+
+**Sounds.** All reused, already credited: the Gargoyle's stone grind (`sfx_gargoyle_stone`), the jukebox tail (`sfx_smack_tail_jukebox`) and Venom-Nom's goo (`sfx_venomnom_goo`), loaded with the run (`PERK_SFX`).
+
+**A possessed pizza** (the Ghost) grants none of these: the perk kit leaves it out, as it does Tuna & Sweetcorn.
+
+**Not done here.** Calzone peels (this one too) show the half-moon pie on the handle with no board, as the Calzone's always has. The Phantom King and the other ghost bosses aren't marked `undead` (CLAUDE.md keeps bosses out of the marking), so Cellar Mushroom Medley doesn't count them. The balance sim's runs don't put Rare Finds on the table, so its light check only shows nothing broke; the numbers wait on step 6.
 
 ---
 

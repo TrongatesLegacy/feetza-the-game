@@ -550,6 +550,11 @@ export class Run {
     s.miniWeak = Math.min(0.5, s.miniWeak + 0.2 * c('miniWeak'));
     s.stunVuln += 0.5 * c('stunVuln');
     s.freeTopping = s.freeTopping || c('freeTopping') > 0;
+    // the pizza plan's step 3: Blue Plate Special, Stargazer Calzone
+    s.damage *= 1 + 0.05 * c('bluePlate');
+    s.coinMult += 0.05 * c('bluePlate');
+    s.critChance += 0.03 * c('stargazer');
+    s.critMult += 0.1 * c('stargazer');
     for (const [k, v] of Object.entries(extra)) {
       const key = k as keyof Stats;
       if (typeof s[key] === 'number') (s as unknown as Record<string, number>)[key] += v as number;

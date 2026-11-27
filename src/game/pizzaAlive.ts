@@ -123,6 +123,15 @@ const PERK_ELEMENT: Partial<Record<PizzaPerk, { el: Element; quip?: string }>> =
   slowHits: { el: 'frost' },
   firstFreeze: { el: 'frost' },
   regen: { el: 'life' },
+  // the pizza plan's step 3: the Rares' elements (their colour is their Rare Find glow), and the Commons' pop colours
+  stoneStomp: { el: 'holy', quip: 'TURNED TO STONE!' },
+  danceBeat: { el: 'rainbow', quip: 'DANCE BREAK!' },
+  undeadDmg: { el: 'ghost' },
+  fondueStick: { el: 'gold' },
+  halfStomp: { el: 'gold' },
+  roofKnock: { el: 'life' },
+  stargazer: { el: 'cosmic' },
+  killRush: { el: 'frost' },
 };
 
 /** A perk's element: its own, else by its name, else by its pizza (a hot pie fire, a cold one frost), else power. */

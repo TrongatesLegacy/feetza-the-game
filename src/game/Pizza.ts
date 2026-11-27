@@ -81,6 +81,8 @@ export class Pizza {
   private life?: PizzaAlive;
   /** Drawn with another top for a moment (its pieces lifted out while they hop). */
   private topOverride: HTMLCanvasElement | null = null;
+  /** Granite Crust: the pie is stone until then (scene time, ms); a redraw keeps it grey. */
+  private stoneUntil = 0;
 
   constructor(scene: Phaser.Scene, layer: Phaser.GameObjects.Layer | Phaser.GameObjects.Container, type: PizzaType, x: number, y: number, s: number, slices: number) {
     this.scene = scene;
@@ -173,6 +175,54 @@ export class Pizza {
    *  caller says its own; text names the effect. */
   perkFired(o: { quip?: boolean; text?: string } = {}): void {
     this.life?.fire(o);
+  }
+
+  /** Granite Crust: the pie turns to stone for a moment (grey, a crack across it, a pale flash) and back. */
+  stoneFlash(ms = 650): void {
+    if (!this.root.active || this.dead) return;
+    const sc = this.scene;
+    this.stoneUntil = sc.time.now + ms - 10;
+    this.img.setTint(0xb4ada0);
+    this.plate.setTint(0xc8c2b6);
+    const crack = sc.add.graphics();
+    const lift = sideFor(this.type.shape) * this.s;
+    const r = PIZZA_R * this.s;
+    // a crack across the stone, jagged, with a branch off it
+    let x = -r * 0.86;
+    let dy = (Math.random() - 0.5) * r * 0.3;
+    const pts: [number, number][] = [[x, -lift + dy * TILT]];
+    for (let i = 0; i < 7; i++) {
+      x += r * 0.245;
+      dy += (Math.random() - 0.5) * r * 0.22;
+      pts.push([x, -lift + dy * TILT]);
+    }
+    const [bx, by] = pts[3];
+    const branch: [number, number][] = [[bx, by], [bx + r * 0.12, by + r * 0.14 * TILT], [bx + r * 0.2, by + r * 0.3 * TILT]];
+    for (const [w, col, a] of [[8, 0x2a2622, 0.85], [2.6, 0xf2ece0, 0.75]] as [number, number, number][]) {
+      crack.lineStyle(w, col, a);
+      for (const l of [pts, branch]) {
+        crack.beginPath();
+        l.forEach(([px, py], i) => (i ? crack.lineTo(px, py) : crack.moveTo(px, py)));
+        crack.strokePath();
+      }
+    }
+    this.root.addAt(crack, this.root.getIndex(this.img) + 1);
+    const flash = sc.add.image(0, -lift, 'glow').setTint(0xfff6e8).setBlendMode(Phaser.BlendModes.ADD).setScale((r * 2.2) / 256, (r * 2.2 * TILT) / 256).setAlpha(0.6);
+    this.root.addAt(flash, this.root.getIndex(crack) + 1);
+    sc.tweens.add({ targets: flash, alpha: 0, duration: 380, ease: 'Quad.Out', onComplete: () => flash.destroy() });
+    sc.tweens.add({ targets: this.root, scaleX: { from: 1.05, to: 1 }, scaleY: { from: 0.95, to: 1 }, duration: 260, ease: 'Back.Out' });
+    sc.tweens.add({
+      targets: crack,
+      alpha: 0,
+      delay: ms - 250,
+      duration: 250,
+      onComplete: () => {
+        crack.destroy();
+        if (!this.root.active) return;
+        this.plate.clearTint();
+        this.redraw();
+      },
+    });
   }
 
   get slices(): number {
@@ -491,7 +541,8 @@ export class Pizza {
     this.label.setColor(col).setAlpha(this.dead ? 0.75 : 0.92);
     // an enhanced perk reads in gold
     this.perkLabel.setColor(this.enhanced && !this.dead && !this.stale ? '#ffd23f' : col).setAlpha(this.dead ? 0.75 : this.stale ? 0.8 : this.enhanced ? 1 : 0.92);
-    if (this.perkFrozen) this.img.setTint(0xb8e2ff);
+    if (this.scene.time.now < this.stoneUntil) this.img.setTint(0xb4ada0);
+    else if (this.perkFrozen) this.img.setTint(0xb8e2ff);
     else if (this.stale) this.img.setTint(0xc8d4a0);
     else this.img.clearTint();
     this.fitLabel();

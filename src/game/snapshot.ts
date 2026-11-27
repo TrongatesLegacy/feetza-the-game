@@ -53,6 +53,8 @@ export interface RunSnapshot {
   bossesBeaten: string[];
   firstKills: number;
   slicesLost: number;
+  /** Seaside Fritto: a slice was lost in the last wave cleared, so the next one pays more. */
+  lostLastWave?: boolean;
   pizzasBought: number;
   eventCrusts: number;
   /** Crusts already paid into the bank this run. */

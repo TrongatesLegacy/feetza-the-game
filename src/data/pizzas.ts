@@ -96,7 +96,10 @@ export type PizzaPerk =
   | 'actStart' | 'slayer' | 'bigStart' | 'killSlices' | 'perfectTips' | 'burnAbove' | 'crustRun' | 'peelDmg'
   | 'comboLong' | 'firstBack' | 'smackSpeed' | 'nightDmg' | 'frostFire' | 'surviveOnce'
   | 'rainbow' | 'postBoss' | 'fireLane' | 'ghostPass' | 'mystery' | 'eventChance' | 'timeStop' | 'meteor'
-  | 'erupt' | 'pinata' | 'orbitRing' | 'goldenDiscount' | 'treasure' | 'nonna';
+  | 'erupt' | 'pinata' | 'orbitRing' | 'goldenDiscount' | 'treasure' | 'nonna'
+  // ——— the pizza plan's step 3 (src/content/pizzas/p4.ts) ———
+  | 'lossTips' | 'bluePlate' | 'fondueStick' | 'roofKnock' | 'stargazer' | 'killRush' | 'halfStomp' | 'undeadDmg'
+  | 'waveTips' | 'kitchenSink' | 'stoneStomp' | 'danceBeat';
 
 export interface PizzaType {
   id: string;
@@ -363,6 +366,19 @@ export const ENHANCED_PERK: Record<PizzaPerk, string | (() => string)> = {
   goldenDiscount: 'Golden Menu items cost 38% less',
   treasure: "A richer chest on each stage's wave 4",
   nonna: 'Twice per act, fully heals every pizza',
+  // the pizza plan's step 3
+  lossTips: '+18% tips the wave after a slice is lost',
+  bluePlate: '+8% smack damage and +8% tips',
+  fondueStick: 'Feet that stomp it stick for 0.5s',
+  roofKnock: '+12% knockback on feet above it',
+  stargazer: '+5% crit chance, +15% crit damage',
+  killRush: 'Smacks 8% faster for 3s after a kill',
+  halfStomp: 'First 2 stomps each wave: half a slice',
+  undeadDmg: '+15% damage to ghosts and the undead',
+  waveTips: '+9 tips at the start of every wave',
+  kitchenSink: 'Each wave: +8% damage, tips or crit',
+  stoneStomp: 'Once a wave a stomp turns to stone: 1.5s',
+  danceBeat: 'Every 20s a dance beat slows feet 30%',
 };
 
 /** A perk's enhanced text. */

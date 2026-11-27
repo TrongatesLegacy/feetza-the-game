@@ -513,6 +513,27 @@ const S: Record<string, Spec> = {
     steps: [{ k: 'show', tex: 'p_watch', size: 280, glow: CYAN, ms: 600 }, { k: 'flood', kind: 'frost', t: 60 }, { k: 'rings', color: CYAN, n: 2, t: 100 }],
     sfx: [['sfx_hades_tick'], ['sfx_freeze', 150]],
   },
+  // High Tide: the fritto at the edge, and the sea comes in off the pier over every foot
+  'pizza:seasidefritto': {
+    steps: [{ k: 'show', tex: 'pizza', size: 280, glow: CYAN }, { k: 'flood', kind: 'water', t: 60 }],
+    sfx: [['sfx_kraken_splash'], ['sfx_smack_water_heavy', 170]],
+  },
+  // Shooting Stars: the calzone glows at the edge and stars streak down onto the feet
+  'pizza:stargazer': {
+    steps: [{ k: 'show', tex: 'pizza', size: 260, glow: 0xffe08a }, { k: 'rain', tex: ['star'], n: 12, size: 60, slant: 30, add: true, trail: GOLD, tint: [0xffe08a, 0xffffff, 0x9ab8ff], t: 80 }],
+    sfx: [['sfx_smack_magic_1'], ['sfx_whoosh', 90, 0.7, 1.3], ['sfx_crit', 170]],
+  },
+  // Stone Skin: the granite pie comes down like a cathedral slab and stone dust rings every foot
+  'pizza:granite': {
+    steps: [{ k: 'strike', tex: 'pizza', size: 1.1, crack: true, dust: 0xb8b0a0 }, { k: 'rings', color: 0xcfc6b4, n: 2, icons: 'crumb2', nIcons: 10, iconTint: [0x9a9488, 0xcfc6b4], t: 170 }],
+    sfx: [['sfx_gargoyle_stone', 0, 0.9], ['sfx_smack_stone_heavy', 170]],
+  },
+  // Saturday Night: the mirror ball drops in at the top and notes ring out over the dancing feet
+  'pizza:discodiner': {
+    steps: [{ k: 'show', tex: 'pk_disco', size: 200, from: 'top', glow: PINK, ms: 700 }, { k: 'rings', color: PINK, n: 2, icons: 'pk_note', nIcons: 10, iconTint: RAINBOW, t: 120 }],
+    sfx: [['sfx_smack_tail_jukebox'], ['sfx_smack_tail_jukebox', 250, 0.8, 1.26], ['sfx_hitbonk', 170, 0.6]],
+    emblem: 'pk_disco',
+  },
   // Eruption: the pizza erupts like a volcano, lava falling on every foot
   'pizza:volcano': {
     steps: [{ k: 'show', tex: 'pizza', size: 360, from: 'below', glow: RED, wiggle: true }, { k: 'rain', tex: ['p_fireball', 'flame'], n: 14, size: 90, trail: ORANGE, splash: ORANGE, t: 80 }],
