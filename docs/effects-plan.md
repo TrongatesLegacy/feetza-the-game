@@ -22,16 +22,16 @@ Every item (topping, pizza, peel, hero, Pizzeria upgrade, Legendary) declares a 
 3. how it scales: level, enhanced, Napoletana's boost, Echo Slice copies, heat for Legendaries.
 
 ```ts
-// a pizza, a topping or a peel all say what they do the same way
-perk: [
-  stat('cardsPerShop', +1, { kind: 'consumable' }),       // Mac & Cheese
-],
+// a pizza, a topping or a peel all say what they do the same way: typed variants, every field required
 effects: [
-  onKill({ chance: 0.15, do: summon('friendlyGhost') }),    // Phantom Waltz
-  every({ sec: 20, do: blowUp({ diving: true }) }),         // Steam Bun Pie
-  onStomp({ firstPerWave: 1, do: block({ stun: 1 }) }),     // Granite Crust
+  { kind: Effect.Stat, stat: Stat.ConsumableCards, op: Op.Add, value: 1 },                        // Mac & Cheese
+  { kind: Effect.OnKill, chance: 0.15, action: { kind: Action.Summon, ally: Ally.FriendlyGhost } }, // Phantom Waltz
+  { kind: Effect.Every, sec: 20, action: { kind: Action.BlowUp, target: Target.Diving } },          // Steam Bun Pie
+  { kind: Effect.OnStomp, perWave: 1, action: { kind: Action.Block, stunSec: 1 } },                 // Granite Crust
 ]
 ```
+
+(The names are `as const` objects, so `Stat.ConsumableCards` autocompletes, renames safely and can't be misspelt. Each variant is its own type with no optional "options bag", so an effect that's missing a field doesn't compile.)
 
 - **Stat effects** (a number goes up or down) need no code at all: the STATS tab finds them, and their sources, from the declaration.
 - **Trigger effects** (on kill, on smack, on stomp, every N seconds, at wave start, on a pizza lost, on a boss beaten) run through one trigger bus. A source subscribes by declaring the trigger, and the bus handles stale, frozen, possessed, Ghost echoes and twins once, for everything.
