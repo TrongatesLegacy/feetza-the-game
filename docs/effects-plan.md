@@ -47,8 +47,8 @@ Positional arguments are used for one or two obvious values, and a typed object 
 
 ```ts
 // effects/onKill.ts: everything about one kind of effect, in one place
-export const onKill = defineEffect('onKill', {
-  apply: (e, ctx) => ctx.on('kill', (foot) => { if (ctx.roll(e.chance)) runAction(e.action, ctx, foot); }),
+export const onKill = defineEffect(Effect.OnKill, {
+  apply: (e, ctx) => ctx.on(GameEvent.Kill, (foot) => { if (ctx.roll(e.chance)) runAction(e.action, ctx, foot); }),
   describe: (e) => `${pct(e.chance)} of kills: ${describeAction(e.action)}`,  // the STATS tile and card text
   scale: (e, k) => ({ ...e, chance: Math.min(1, e.chance * k) }),              // enhanced, Napoletana, Echo Slice
   tags: (e) => actionTags(e.action),                                            // "summons", "freezes", ...
@@ -58,7 +58,7 @@ export const onKill = defineEffect('onKill', {
 for (const e of item.effects) effects.apply(e, ctx);
 ```
 
-The registry is typed as a `Record` over every kind, so a kind with no module (or one missing `describe` or `scale`) fails the typecheck. `ctx` is one small interface onto the game (subscribe to an event, roll, find feet, run an action), so effects never reach into the scene. They stay data (saved with the run, copied by Echo Slice, searched by tag), while working like objects with their own methods.
+Every name is a constant (`Effect.OnKill`, `GameEvent.Kill`), never typed out by hand. Each constant's value is a string (`Effect.OnKill = 'onKill'`), so saves stay readable and don't break when a kind is added. Numbered enums would shift and break old saves. The registry is typed as a `Record` over every kind, so a kind with no module (or one missing `describe` or `scale`) fails the typecheck. `ctx` is one small interface onto the game (subscribe to an event, roll, find feet, run an action), so effects never reach into the scene. They stay data (saved with the run, copied by Echo Slice, searched by tag), while working like objects with their own methods.
 
 (The names are `as const` objects, so `Stat.ConsumableCards` autocompletes, renames safely and can't be misspelt. Each variant is its own type with no optional "options bag", so an effect that's missing a field doesn't compile.)
 
