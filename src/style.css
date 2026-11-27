@@ -7658,3 +7658,58 @@ body.reduced-motion .pzr-legendary img { animation: none !important; }
   box-shadow: 0 0.12em 0 var(--ink);
   cursor: help;
 }
+
+/* ——— Tips (src/ui/tips.ts): a bubble, tapped or held on a phone, hovered with a mouse ——— */
+.has-tip { cursor: help; }
+.tipbox {
+  position: fixed;
+  z-index: 3000;
+  max-width: min(22em, calc(100vw - 16px));
+  padding: 0.5em 0.75em;
+  font: 600 15px/1.3 Fredoka, sans-serif;
+  color: var(--ink);
+  background: var(--cream);
+  border: 2px solid var(--ink);
+  border-radius: 0.7em;
+  box-shadow: 0 3px 0 var(--ink), 0 8px 22px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  animation: tipIn 0.12s ease-out;
+}
+.tipbox::after {
+  content: '';
+  position: absolute;
+  left: var(--ax, 50%);
+  width: 10px;
+  height: 10px;
+  background: var(--cream);
+  border: 2px solid var(--ink);
+  transform: translateX(-50%) rotate(45deg);
+}
+.tipbox.above::after { bottom: -7px; border-top: 0; border-left: 0; }
+.tipbox.below::after { top: -7px; border-bottom: 0; border-right: 0; }
+@keyframes tipIn { from { opacity: 0; transform: translateY(3px); } }
+@media (prefers-reduced-motion: reduce) { .tipbox { animation: none; } }
+
+/* ——— Your Table's reorder mode: tiles drag to a new place (or step with their arrows) ——— */
+.sec-head .reorder-btn { margin-left: auto; }
+.strip.reordering > .ptile {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  outline: 0.14em dashed color-mix(in srgb, var(--ink) 45%, transparent);
+  outline-offset: 0.2em;
+}
+.strip.reordering > .ptile.dragging {
+  cursor: grabbing;
+  z-index: 5;
+  transition: none;
+  box-shadow: 0 0.8em 1.6em rgba(0, 0, 0, 0.35);
+  scale: 1.03;
+}
+.strip.reordering > .ptile.drop-here { outline: 0.18em solid var(--basil); }
+.strip.reordering > .ptile .pacts .mv { font-size: 1.2em; }
+.strip.reordering > .ptile img { pointer-events: none; -webkit-user-drag: none; }
+.sec-head .reorder { margin-left: auto; display: flex; align-items: center; gap: 0.6em; }
+.sec-head .reorder-btn { margin-left: 0; font-size: 1em; }
+.sec-head .move-cost { white-space: nowrap; }
+@media (max-width: 760px), (max-height: 480px) { .sec-head .move-cost { display: none; } }

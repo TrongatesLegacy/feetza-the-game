@@ -12,6 +12,7 @@ import { setGame } from './game/assets';
 import { pad } from './systems/gamepad';
 import { applyA11y } from './ui/a11y';
 import { ui } from './ui/ui';
+import { installTips } from './ui/tips';
 
 // Dev-only: the art prebuild's page (scripts/prebuild/run.mjs) runs the painters on a game of its own
 if (import.meta.env.DEV && new URLSearchParams(location.search).has('prebuild')) void import('./devPrebuild').then((m) => m.runPrebuild());
@@ -19,6 +20,7 @@ else startGame();
 
 function startGame(): void {
   ui.init();
+  installTips();
   applyA11y();
   pad.init();
 

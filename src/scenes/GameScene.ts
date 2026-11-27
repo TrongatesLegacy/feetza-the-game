@@ -47,7 +47,7 @@ import { abilityFor, abilityKindLabel, scaleProc, usesMeter, type Ability, type 
 import { randomLineup } from './MenuScene';
 import { ToppingKit } from '../game/toppingKit';
 import { freshKitShop, loadKitState } from '../game/kitState';
-import { cardCount, counterFreebie, counterPrice, dealBlock, freeLunchReady, goldenPrice, happyHour, rerollPrice, toppingPrice } from '../game/shopDeals';
+import { cardCount, counterFreebie, counterPrice, dealBlock, freeLunchReady, goldenPrice, happyHour, movePrice, rerollPrice, toppingPrice } from '../game/shopDeals';
 import { pickWindow, rouletteWindow, slotsPrizeWindow, type PickOption } from '../ui/pickWindows';
 import { abilityKey } from '../game/abilities';
 import { legendGate, legendHeat, legendHeatOk, legendSpecialOpen } from '../game/legendary';
@@ -328,7 +328,7 @@ export class GameScene extends Phaser.Scene implements Arena {
   private smackCount = 0;
   private lastKillAt = -9;
   private bossBonusGiven = false;
-  private shop: { el: HTMLElement; state: ShopState; cards: Upgrade[]; sold: Set<string>; free: string | null; bossReward: boolean; counter: CounterOffer[]; goldenBought?: GoldenItem['id']; lastStand: boolean; boughtOut?: boolean; slots?: { used: boolean; result: SlotsResult | null; table?: SlotsTable } } | null = null;
+  private shop: { el: HTMLElement; state: ShopState; cards: Upgrade[]; sold: Set<string>; free: string | null; bossReward: boolean; counter: CounterOffer[]; goldenBought?: GoldenItem['id']; lastStand: boolean; boughtOut?: boolean; slots?: { used: boolean; result: SlotsResult | null; table?: SlotsTable }; reorderPaid?: boolean; reordering?: boolean } | null = null;
   private keyHandler = (e: KeyboardEvent) => this.onKey(e);
   private visHandler = () => {
     if (document.hidden && this.waveActive && !this.paused && !this.over && !this.inUpgrade) this.togglePause(true);
@@ -2590,6 +2590,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       rebake: (i) => this.shopRebake(i),
       reheat: (i) => this.shopReheat(i),
       healPizza: (i) => this.shopHealPizza(i),
+      movePizza: (from, to) => this.shopMovePizza(from, to),
+      reorder: (on) => this.shopReorder(on),
       toppings: () => this.shopToppings(),
       buyPizza: (id) => this.shopBuyPizza(id),
       golden: (id) => this.shopGolden(id),
@@ -2724,6 +2726,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       rerollLabel: this.freeRerollsLeft > 0 ? `REROLL · ${this.freeRerollsLeft} free` : `REROLL · ${this.rerollCost()}`,
       // (nothing left to reroll once every card on the counter has been bought)
       canReroll: sh.cards.some((u) => !sh.sold.has(u.id)) && (this.freeRerollsLeft > 0 || r.coins >= this.rerollCost()),
+      reorder: { cost: this.boughtOut(movePrice(r)), paid: !!sh.reorderPaid, on: !!sh.reordering, can: !!sh.reorderPaid || r.coins >= this.boughtOut(movePrice(r)) },
       table: this.shopPizzas(),
       tableFull: this.pizzas.length >= MAX_PIZZAS,
       offers,
@@ -3289,6 +3292,33 @@ export class GameScene extends Phaser.Scene implements Arena {
   /** Healing one pizza +2: about half the table-wide heal, climbing with use as it does. */
   private healOnePrice(): number {
     return Math.max(5, Math.round((this.healPrice() * 0.5) / 5) * 5);
+  }
+
+  /** Your Table's reorder mode: paid for once a shop (then every move, and opening it again, is free there). */
+  private shopReorder(on: boolean): void {
+    const sh = this.shop;
+    if (!sh) return;
+    if (on && !sh.reorderPaid) {
+      const cost = this.boughtOut(movePrice(this.run));
+      if (this.run.coins < cost) return;
+      this.run.coins -= cost;
+      sh.reorderPaid = true;
+      audio.sfx('sfx_coin', { volume: 0.5 });
+    }
+    sh.reordering = on && this.pizzas.length > 1;
+    this.refreshShop();
+  }
+
+  /** In reorder mode: a pizza moves to another place on the table (its lane and its neighbours change with it). */
+  private shopMovePizza(from: number, to: number): void {
+    const n = this.pizzas.length;
+    if (!this.shop?.reordering || from === to || from < 0 || to < 0 || from >= n || to >= n) return;
+    const [p] = this.pizzas.splice(from, 1);
+    this.pizzas.splice(to, 0, p);
+    this.layoutPizzas(true);
+    this.recompute();
+    audio.sfx('sfx_click', { volume: 0.4, throttle: 80 });
+    this.refreshShop();
   }
 
   private shopHealPizza(index: number): void {

@@ -51,6 +51,11 @@ export function freeLunchReady(run: Run): boolean {
 }
 
 /** What a reroll costs (Coupon Clipper, Rush Order, Owner's Discount). */
+/** Moving a pizza to another place on the table (one move, however far): 10 tips, plus 1.5 a wave, in 5s. */
+export function movePrice(run: Run): number {
+  return round5(10 + 1.5 * run.wave);
+}
+
 export function rerollPrice(run: Run): number {
   const st = run.stats;
   const owner = run.level('ownersdiscount') ? 0.75 : 1;

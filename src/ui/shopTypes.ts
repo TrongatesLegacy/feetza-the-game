@@ -89,6 +89,8 @@ export interface ShopState {
   cards: ShopCard[];
   rerollLabel: string;
   canReroll: boolean;
+  /** Your Table's reorder mode: paid for once a shop (cost), then free there; on while it's open. */
+  reorder: { cost: number; paid: boolean; on: boolean; can: boolean };
   table: ShopPizza[];
   tableFull: boolean;
   offers: ShopOffer[];
@@ -139,6 +141,10 @@ export interface ShopActions {
   reheat(index: number): void;
   /** Heal one pizza +2 slices. */
   healPizza(index: number): void;
+  /** Move the pizza at one table place to another (in reorder mode): the table in play follows. */
+  movePizza(from: number, to: number): void;
+  /** Open (paying once a shop) or close the reorder mode. */
+  reorder(on: boolean): void;
   /** Open the Your Toppings window. */
   toppings(): void;
   buyPizza(id: string): void;

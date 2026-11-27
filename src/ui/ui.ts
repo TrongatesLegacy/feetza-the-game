@@ -76,6 +76,55 @@ const X_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M1
 /** A chunky cog for the shop's pause-menu button (centred in its box, unlike the ⚙ glyph). */
 /** The empty counter: a chalk SOLD OUT board hanging over an empty plate with a few crumbs (the game's plate). */
 /** A topping card's tier frame (the pizza tiers' cousin, in the topping's own rarity colour): its ring. */
+/** Your Table's reorder mode: the move a dragged tile calls (null: the mode is off). */
+const tableReorder: { move: ((from: number, to: number) => void) | null } = { move: null };
+let reorderDrag = false;
+/** In reorder mode a table tile drags to its new place (touch or mouse); its arrows do the same a step at a time. */
+function installReorderDrag(): void {
+  if (reorderDrag) return;
+  reorderDrag = true;
+  document.addEventListener(
+    'pointerdown',
+    (e) => {
+      const t = e.target as Element | null;
+      const tile = t?.closest('.strip.reordering > .ptile') as HTMLElement | null;
+      if (!tile || t?.closest('button') || !tableReorder.move) return;
+      const tiles = [...tile.parentElement!.children] as HTMLElement[];
+      const from = tiles.indexOf(tile);
+      const x0 = e.clientX;
+      let to = from;
+      try {
+        tile.setPointerCapture(e.pointerId);
+      } catch {
+        // (no capture for this pointer: the drag still follows it over the tile)
+      }
+      tile.classList.add('dragging');
+      const move = (ev: PointerEvent) => {
+        tile.style.transform = `translateX(${ev.clientX - x0}px)`;
+        to = from;
+        tiles.forEach((o, j) => {
+          const r = o.getBoundingClientRect();
+          if (o !== tile && ev.clientX >= r.left && ev.clientX <= r.right) to = j;
+        });
+        tiles.forEach((o, j) => o.classList.toggle('drop-here', j === to && j !== from));
+      };
+      const up = () => {
+        tile.removeEventListener('pointermove', move);
+        tile.removeEventListener('pointerup', up);
+        tile.removeEventListener('pointercancel', up);
+        tile.classList.remove('dragging');
+        tile.style.transform = '';
+        tiles.forEach((o) => o.classList.remove('drop-here'));
+        if (to !== from) tableReorder.move?.(from, to);
+      };
+      tile.addEventListener('pointermove', move);
+      tile.addEventListener('pointerup', up);
+      tile.addEventListener('pointercancel', up);
+    },
+    true,
+  );
+}
+
 const toppingFrame = (): HTMLElement => h('span', { class: 'tfx', 'aria-hidden': 'true' });
 
 /** A counter tab's label: its full wording, and a short one for a phone's narrow cards (style.css swaps them). */
@@ -1201,13 +1250,36 @@ class UI {
         h('div', { class: `cards${cards.length > 4 ? ' row' : ''}${cards.length > 5 ? ' many' : ''}` }, ...cards),
       );
       // table strip
+      const ro = st.reorder;
+      tableReorder.move = ro.on ? (from, to) => act.movePizza(from, to) : null;
+      installReorderDrag();
       const table = h(
         'section',
         { class: 'shop-sec table', 'data-pad-section': '' },
-        h('div', { class: 'sec-head' }, h('h2', {}, 'YOUR TABLE'), h('span', { class: `sec-chip${st.tableFull ? ' full' : ''}` }, `${st.table.length} / 5${st.tableFull ? ' FULL' : ''}`)),
         h(
           'div',
-          { class: 'strip' },
+          { class: 'sec-head' },
+          h('h2', {}, 'YOUR TABLE'),
+          h('span', { class: `sec-chip${st.tableFull ? ' full' : ''}` }, `${st.table.length} / 5${st.tableFull ? ' FULL' : ''}`),
+          st.table.length > 1
+            ? h(
+                'span',
+                { class: 'reorder' },
+                ro.on ? h('span', { class: 'sec-note move-cost' }, 'Drag a pizza, or use its arrows') : null,
+                (() => {
+                  const b = btn(ro.on ? '✓ DONE' : ro.paid ? '⇄ REORDER' : `⇄ REORDER · ${fmt(ro.cost)}`, `small ${ro.on ? 'green' : 'cream'} reorder-btn`, () => act.reorder(!ro.on), {
+                    'aria-pressed': String(ro.on),
+                    title: ro.paid ? 'Move your pizzas round the table: free for the rest of this shop' : `Move your pizzas round the table: ${fmt(ro.cost)} tips, then free for the rest of this shop`,
+                  });
+                  b.disabled = !ro.on && !ro.can;
+                  return b;
+                })(),
+              )
+            : null,
+        ),
+        h(
+          'div',
+          { class: `strip${ro.on ? ' reordering' : ''}` },
           ...st.table.map((p, i) => {
             // each pizza that isn't fully fresh gets its own Reheat button
             // every tile has the same rows, so they line up: slices, freshness (∞ for a pizza that never goes stale; no row on
@@ -1226,7 +1298,15 @@ class UI {
               rebake = btn('NO REBAKE ON INFERNO', 'small rebake', () => {}, { title: 'No rebakes on Inferno' });
               (rebake as HTMLButtonElement).disabled = true;
             }
-            const actions = p.dead ? h('div', { class: 'pacts' }, rebake) : h('div', { class: 'pacts' }, heal, reheat);
+            let actions = p.dead ? h('div', { class: 'pacts' }, rebake) : h('div', { class: 'pacts' }, heal, reheat);
+            // reorder mode: arrows in place of the buttons (and the whole tile drags)
+            if (ro.on) {
+              const left = btn('◀', 'cream small mv', () => act.movePizza(i, i - 1), { 'aria-label': `Move ${p.name} left` });
+              const right = btn('▶', 'cream small mv', () => act.movePizza(i, i + 1), { 'aria-label': `Move ${p.name} right` });
+              left.disabled = i === 0;
+              right.disabled = i === st.table.length - 1;
+              actions = h('div', { class: 'pacts' }, left, right);
+            }
             const tier = tierAttrs(p.rarity, p.id);
             return h(
               'div',
