@@ -59,6 +59,7 @@ import { agents as solepropAgents } from '../game/bosses/act10';
 import '../content/styleLive';
 import { playLook, type LookFx } from '../art/animatedLooks';
 import { HeroDirector } from '../game/heroMoves';
+import { AbilityFx, type HitRec } from '../game/abilityFx';
 import type { HeroHost } from '../game/heroKit';
 import { HeroTracker, bestGoal, type RunView } from '../game/heroGoals';
 import { maybeSignal, sightingChance, sightingDue } from '../game/sightings';
@@ -200,6 +201,10 @@ export class GameScene extends Phaser.Scene implements Arena {
   private pickOpen = false;
   /** Hero peels: signature moves, transformations, overlays and passives (src/game/heroMoves.ts). */
   private heroes!: HeroDirector;
+  /** The meter abilities' own visuals (src/game/abilityFx.ts). */
+  private abilityFx!: AbilityFx;
+  /** While a meter ability's effects run: the feet they reach (for its visual). */
+  private abilityHits: Map<Foot, HitRec> | null = null;
   /** Hero and god goals: feats, counters and timings (src/game/heroGoals.ts). */
   private tracker!: HeroTracker;
   /** Goal bookkeeping: when the wave and the boss fight began, smacks on the boss, a stunned peel, and the
@@ -625,6 +630,17 @@ export class GameScene extends Phaser.Scene implements Arena {
     setNemesisPeel(nmDev ? nmDev.peels[0] : abilityPeel(this.start.snapshot?.peel).id);
     this.events.once('shutdown', () => setNemesisPeel(''));
     this.heroes = new HeroDirector(this.heroHost());
+    this.abilityFx = new AbilityFx({
+      sc: this,
+      layer: this.fxLayer,
+      under: this.underLayer,
+      pizzas: () => this.alivePizzas(),
+      bossFight: () => !!(this.bossFoot?.alive || this.miniFoot?.alive),
+      now: () => this.nowT,
+      feet: () => this.feet.filter((f) => f.alive && !f.phased).map((f) => ({ x: f.cx, y: f.cy })),
+      shake: (ms, k) => this.shake(ms, k),
+      rumble: (k, ms) => this.rumble(k, ms),
+    });
     this.tracker = new HeroTracker(
       () => this.runView(),
       () => this.peelToasts(checkPeelAchievements()),
@@ -669,6 +685,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     const wantAbility = this.start.snapshot?.ability ?? true;
     this.ability = wantAbility && peelDef.id !== 'classic' ? abilityFor(peelDef.id) : null;
     this.abilityT = 0;
+    this.abilityFx.prepare(this.ability, peelDef.id);
     if (this.ability?.zombie) audio.preload(this, OUTBREAK_SFX);
     // slam-related toppings and perks reword (and work) for the ability in use; meter boosts are only
     // useless for passives with no timer or chance to speed up
@@ -1182,6 +1199,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.ability = id !== 'classic' ? abilityFor(id) : null;
     this.abilityT = 0;
     this.run.super = 0;
+    this.abilityFx.prepare(this.ability, id);
     if (this.ability?.zombie) audio.preload(this, OUTBREAK_SFX);
     setSlamMode(this.ability);
     const t0 = this.ability?.trigger.t;
@@ -4507,6 +4525,7 @@ export class GameScene extends Phaser.Scene implements Arena {
   private swapAbility(id: string | null): void {
     this.ability = id ? abilityFor(id) : abilityFor(this.peelId);
     if (this.ability.zombie) audio.preload(this, OUTBREAK_SFX);
+    this.abilityFx.prepare(this.ability, id ?? this.peelId);
     if (id) {
       addCanvas(this, 'peel_shift', peelCanvas(id));
       this.peel.setTexture('peel_shift');
@@ -4623,16 +4642,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.tracker.emit('ability', {});
     }
     if (big && !a.custom) {
-      if (a.vfx === 'slam') {
-        const sweep = this.add.image(-400, 560, 'peel').setScale(3.2).setAngle(-90).setOrigin(0.5, 100 / 360);
-        this.fxLayer.add(sweep);
-        this.tweens.add({ targets: sweep, x: W + 400, angle: -70, duration: 520, ease: 'Sine.InOut', onComplete: () => sweep.destroy() });
-      }
-      audio.sfx('sfx_whoosh', { volume: 1, rate: 0.8 });
-      audio.sfx(a.vfx === 'frost' ? 'sfx_freeze' : a.vfx === 'zap' ? 'sfx_zap' : 'sfx_crit');
-      this.shake(300, 0.009);
-      this.rumble(0.8, 250);
-      this.flash(160, (color >> 16) & 255, (color >> 8) & 255, color & 255);
+      // its own visual (src/game/abilityFx.ts) plays once the effects below have picked their feet
+      this.abilityHits = new Map();
       this.fx.quip(W / 2, 420, `${a.name.toUpperCase()}!`, '#' + color.toString(16).padStart(6, '0'), 72, -4);
       this.lastSlam = this.nowT;
     } else if (big) {
@@ -4642,7 +4653,14 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.fx.quip(ctx.x ?? this.peelPos.x, (ctx.y ?? this.peelPos.y) - 90, a.name, '#' + color.toString(16).padStart(6, '0'), 30, 0);
     }
     // (an ability that fires itself on a timer or a hit is passive: it glances off held shields like a topping)
-    this.runEffects(a.fx, ctx, color, a.vfx, true, undefined, !usesMeter(a));
+    let hits: HitRec[] | null = null;
+    try {
+      this.runEffects(a.fx, ctx, color, a.vfx, true, undefined, !usesMeter(a));
+      if (this.abilityHits) hits = [...this.abilityHits.values()];
+    } finally {
+      this.abilityHits = null;
+    }
+    if (hits) this.abilityFx.play(a, hits);
     // Freeze Frame and Cajun Shrimp work on a meter ability the way they do on the Peel Slam
     if (big && (st.freezeSlam || st.slamStun)) {
       for (const f of this.feet) {
@@ -4693,9 +4711,17 @@ export class GameScene extends Phaser.Scene implements Arena {
     const targets = (t: Target): Foot[] => {
       const k = JSON.stringify(t);
       const hitList = cache?.get(k);
-      if (hitList) return hitList.filter((f) => f.alive && f.hittable);
-      const list = this.abilityTargets(t, ctx);
-      cache?.set(k, list);
+      const list = hitList ? hitList.filter((f) => f.alive && f.hittable) : this.abilityTargets(t, ctx);
+      if (!hitList) cache?.set(k, list);
+      // a meter ability's visual hits the feet its effects reach, where they are now
+      if (this.abilityHits) {
+        const kind = e.e === 'stun' && e.freeze ? 'freeze' : e.e;
+        for (const f of list) {
+          const r = this.abilityHits.get(f) ?? { x: f.cx, y: f.cy, big: f.isBossLike, fx: new Set() };
+          r.fx.add(kind);
+          this.abilityHits.set(f, r);
+        }
+      }
       return list;
     };
     const mark = (f: Foot) => {
@@ -4839,6 +4865,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.fxLayer.add(big);
     audio.sfx('sfx_whoosh', { volume: 1, rate: 0.7 });
     this.tweens.add({ targets: big, x: W + 400, angle: -70, duration: 520, ease: 'Sine.InOut', onComplete: () => big.destroy() });
+    this.abilityFx.classic(big);
     this.time.delayedCall(230, () => {
       this.lastSlam = this.nowT;
       audio.sfx('sfx_crit');

@@ -12157,5 +12157,13 @@
     "license": "CC0 1.0",
     "url": "https://kenney.nl/assets/impact-sounds",
     "notes": "Muspel Fire-Feet: a dying roar, the fire guttering out and a hiss of steam (defeated); layered with Impact Sounds impactMining_004 (Kenney, CC0) and a synthesized dying roar, the fire guttering out and a hiss of steam (original, made for Feetza with ffmpeg and Python, CC0)"
+  },
+  {
+    "file": "sfx_curtaincall_applause.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "The Finale Peel's Curtain Call: the house applauds as the curtains part; synthesized hand claps (filtered noise bursts) swelling in and dying away, with a short room (scripts/ability-sfx/applause.py, ffmpeg)"
   }
 ]
