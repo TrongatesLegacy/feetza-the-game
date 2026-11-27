@@ -42,6 +42,19 @@ A class (`new Seconds(20)`) would add costs and protect less:
 - Every use would need `.value` or a method.
 - Saving one gives `{ value: 20 }`, which loses the class on load.
 
+**Chance and Percent are different units.**
+- **`Unit.Chance(15)`** is a probability: it gets rolled.
+- **`Unit.Percent(10)`** is a size: +10% damage, 30% slower.
+
+Both are written the way people say them (15, 10) and stored as fractions (0.15, 0.1), so the maths is the same everywhere and nobody has to remember which form a number is in.
+
+**The units hold no maths of their own.** They are plain numbers. What can be done with each lives beside it in the unit's module, so it's never redone by hand in an effect:
+- `Unit.roll(chance)`: the one place gameplay rolls happen (`Math.random`, seeded in the sim);
+- `Unit.boost(value, percent)` and `Unit.cut(value, percent)`: grow or shrink a number by a percentage;
+- `Unit.ticks(seconds, dt)`: timers.
+
+Totals (how bonuses stack, in which order, and their caps) aren't the units' job. They belong to the modifier ledger below.
+
 An effect takes a typed object only where it has optional extras.
 
 Each kind of effect is written **once**, in its own file: its fields, and what it does in play, on STATS, when scaled and in searches. Writing it once gives both the `Effect.OnKill(...)` used above and its registered behaviour:
