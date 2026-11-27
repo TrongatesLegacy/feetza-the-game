@@ -43,6 +43,23 @@ effects: [
 
 Positional arguments are used for one or two obvious values, and a typed object for more (TypeScript has no named arguments, so `{ chance, action }` stands in for them). The constructors check their values (a chance between 0 and 1) and hold the defaults. What they return stays plain data, so a `switch` on `kind` still works and runs save and load cleanly.
 
+**Where the behaviour lives:** effects are data, and each kind's behaviour lives in one module beside its type, registered once. Nothing using an effect needs to know what kind it is:
+
+```ts
+// effects/onKill.ts: everything about one kind of effect, in one place
+export const onKill = defineEffect('onKill', {
+  apply: (e, ctx) => ctx.on('kill', (foot) => { if (ctx.roll(e.chance)) runAction(e.action, ctx, foot); }),
+  describe: (e) => `${pct(e.chance)} of kills: ${describeAction(e.action)}`,  // the STATS tile and card text
+  scale: (e, k) => ({ ...e, chance: Math.min(1, e.chance * k) }),              // enhanced, Napoletana, Echo Slice
+  tags: (e) => actionTags(e.action),                                            // "summons", "freezes", ...
+});
+
+// anywhere else: no switch, no knowledge of the kinds
+for (const e of item.effects) effects.apply(e, ctx);
+```
+
+The registry is typed as a `Record` over every kind, so a kind with no module (or one missing `describe` or `scale`) fails the typecheck. `ctx` is one small interface onto the game (subscribe to an event, roll, find feet, run an action), so effects never reach into the scene. They stay data (saved with the run, copied by Echo Slice, searched by tag), while working like objects with their own methods.
+
 (The names are `as const` objects, so `Stat.ConsumableCards` autocompletes, renames safely and can't be misspelt. Each variant is its own type with no optional "options bag", so an effect that's missing a field doesn't compile.)
 
 - **Stat effects** (a number goes up or down) need no code at all: the STATS tab finds them, and their sources, from the declaration.
