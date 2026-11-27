@@ -55,7 +55,8 @@ export function freeLunchReady(run: Run): boolean {
 export function rerollPrice(run: Run): number {
   const st = run.stats;
   const owner = run.level('ownersdiscount') ? 0.75 : 1;
-  return Math.max(1, Math.round((run.rerollCost - st.rerollLess) * st.rerollMult * owner));
+  // (its climbing price plus the wave's, so a reroll stays a real cost later on)
+  return Math.max(1, Math.round((run.rerollCost + 1.5 * run.wave - st.rerollLess) * st.rerollMult * owner));
 }
 
 /** A free counter pizza from a topping: Bottomless Pizza (every 10 waves) first, then Free Delivery (once a run). Regular pizzas only. */

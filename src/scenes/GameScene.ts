@@ -2269,7 +2269,7 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   // ——— Shop ———
   private pizzaPrice(): number {
-    const base = 100 + 50 * this.run.pizzasBought + 8 * this.run.wave;
+    const base = 150 + 75 * this.run.pizzasBought + 12 * this.run.wave;
     return Math.round((base * (1 - this.run.stats.counterDiscount)) / 5) * 5;
   }
 
@@ -2590,8 +2590,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       table: this.shopPizzas(),
       tableFull: this.pizzas.length >= MAX_PIZZAS,
       offers,
-      heal: { cost: this.boughtOut(this.healCost), can: this.alivePizzas().some((p) => p.slices < p.maxSlices) && r.coins >= this.boughtOut(this.healCost) },
-      rebake: { cost: this.boughtOut(this.reviveCost), can: dead.length > 0 && r.coins >= this.boughtOut(this.reviveCost), shown: this.run.heatDef.rebake },
+      heal: { cost: this.boughtOut(this.healPrice()), can: this.alivePizzas().some((p) => p.slices < p.maxSlices) && r.coins >= this.boughtOut(this.healPrice()) },
+      rebake: { cost: this.boughtOut(this.rebakePrice()), can: dead.length > 0 && r.coins >= this.boughtOut(this.rebakePrice()), shown: this.run.heatDef.rebake },
       slots: this.slotsShown() ? { cost: this.slotsCost(), can: !sh.slots?.used && r.coins >= this.slotsCost(), crustCost: SLOTS_CRUSTS, canCrusts: !sh.slots?.used && save.crusts >= SLOTS_CRUSTS, used: !!sh.slots?.used, result: sh.slots?.result ?? null, pays: this.slotsPays() } : null,
       lastStand,
       yours: this.yourToppings(),
@@ -2874,6 +2874,16 @@ export class GameScene extends Phaser.Scene implements Arena {
   }
 
   /** A reroll's price: the shop deals, then Gambeet's Gambler (1 less). */
+  /** Heal +2 a pizza: its climbing price plus the wave's (so it stays a real cost later on). */
+  private healPrice(): number {
+    return Math.round((this.healCost + 3 * this.run.wave) / 5) * 5;
+  }
+
+  /** Rebake: its climbing price plus the wave's. */
+  private rebakePrice(): number {
+    return Math.round((this.reviveCost + 8 * this.run.wave) / 5) * 5;
+  }
+
   private rerollCost(): number {
     return this.boughtOut(Math.max(0, rerollPrice(this.run) - this.heroes.rerollDiscount()));
   }
@@ -3135,8 +3145,8 @@ export class GameScene extends Phaser.Scene implements Arena {
   }
 
   private shopHeal(): void {
-    if (this.run.coins < this.boughtOut(this.healCost)) return;
-    this.run.coins -= this.boughtOut(this.healCost);
+    if (this.run.coins < this.boughtOut(this.healPrice())) return;
+    this.run.coins -= this.boughtOut(this.healPrice());
     this.healCost = Math.round(this.healCost * 1.45 + 10);
     for (const p of this.alivePizzas()) this.healPizza(p, 2);
     this.refreshShop();
@@ -3144,7 +3154,7 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   private shopRebake(): void {
     const p = this.pizzas.find((x) => x.dead);
-    const cost = this.boughtOut(this.reviveCost);
+    const cost = this.boughtOut(this.rebakePrice());
     if (!p || this.run.coins < cost || !this.run.heatDef.rebake) return;
     this.run.coins -= cost;
     this.reviveCost = Math.round(this.reviveCost * 1.8);

@@ -449,9 +449,9 @@ export const RARITY_COLOR: Record<Rarity, string> = {
 };
 
 /** Base topping price by rarity (plus RARITY_PER_WAVE a wave). Consumables and trade-offs cost less. */
-export const RARITY_PRICE: Record<Rarity, number> = { common: 30, rare: 70, epic: 120, legendary: 200 };
+export const RARITY_PRICE: Record<Rarity, number> = { common: 40, rare: 90, epic: 160, legendary: 260 };
 /** Tips added per wave, by rarity: rarer toppings stay proportionally dearer all run (legendary ~3–4× common). */
-export const RARITY_PER_WAVE: Record<Rarity, number> = { common: 3, rare: 4, epic: 6, legendary: 9 };
+export const RARITY_PER_WAVE: Record<Rarity, number> = { common: 4, rare: 6, epic: 8, legendary: 12 };
 
 /** Price of the next level: rarity base + 4 per wave, +35% for every level already owned (so stacking
  * one upgrade gets expensive and tips spread across the run); consumables are 30% cheaper. */
