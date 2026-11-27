@@ -417,24 +417,96 @@ function vignette(w: number, h: number): HTMLCanvasElement {
   return c;
 }
 
+/** A pizza's shield: a force-field dome over it (the table's perspective squashes it), its edge brighter than its
+ * middle like a bubble, a fine hex lattice catching the light, and its base ring on the table. 460 × 300; the pizza's
+ * centre sits at (230, 230). */
 function cheeseShield(): HTMLCanvasElement {
-  const [c, ctx] = makeCanvas(460, 220);
-  ctx.translate(230, 140);
-  ctx.scale(1, 0.45);
-  const g = ctx.createRadialGradient(-60, -120, 20, 0, 0, 220);
-  g.addColorStop(0, 'rgba(255,250,210,0.75)');
-  g.addColorStop(0.6, 'rgba(255,214,90,0.28)');
-  g.addColorStop(1, 'rgba(255,190,40,0.05)');
-  ctx.beginPath();
-  ctx.arc(0, 0, 210, Math.PI, 0);
-  ctx.ellipse(0, 0, 210, 60, 0, 0, Math.PI);
+  const W = 460;
+  const H = 300;
+  const cx = 230;
+  const cy = 230;
+  const R = 214;
+  const RY = R * 0.92;
+  const [c, ctx] = makeCanvas(W, H);
+  const dome = () => {
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, R, RY, 0, Math.PI, 0);
+    ctx.ellipse(cx, cy, R, R * TILT * 0.55, 0, 0, Math.PI);
+    ctx.closePath();
+  };
+  // the field: clear in the middle, brighter towards its edge (looking through more of it there)
+  ctx.save();
+  dome();
+  ctx.clip();
+  const g = ctx.createRadialGradient(cx, cy - 20, R * 0.35, cx, cy, R);
+  g.addColorStop(0, 'rgba(40,200,255,0.1)');
+  g.addColorStop(0.7, 'rgba(30,190,255,0.24)');
+  g.addColorStop(0.92, 'rgba(70,220,255,0.6)');
+  g.addColorStop(1, 'rgba(190,250,255,0.85)');
   ctx.fillStyle = g;
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(255,230,140,0.9)';
-  ctx.lineWidth = 6;
+  ctx.fillRect(0, 0, W, H);
+  // the hex lattice, faint, fading out towards the top
+  ctx.strokeStyle = 'rgba(120,235,255,0.32)';
+  ctx.lineWidth = 1.6;
+  const hs = 22;
+  for (let row = -1; row * hs * 0.87 < H; row++) {
+    for (let col = -1; col * hs * 1.5 < W; col++) {
+      const x = col * hs * 1.5;
+      const y = row * hs * 1.73 + (col % 2 ? hs * 0.87 : 0);
+      ctx.beginPath();
+      for (let k = 0; k < 6; k++) {
+        const a = (Math.PI / 3) * k;
+        const px = x + Math.cos(a) * hs * 0.98;
+        const py = y + Math.sin(a) * hs * 0.98 * 0.8;
+        if (k) ctx.lineTo(px, py);
+        else ctx.moveTo(px, py);
+      }
+      ctx.closePath();
+      ctx.stroke();
+    }
+  }
+  // the light catching it top left
+  const hl = ctx.createRadialGradient(cx - R * 0.45, cy - RY * 0.7, 4, cx - R * 0.45, cy - RY * 0.7, R * 0.5);
+  hl.addColorStop(0, 'rgba(220,250,255,0.4)');
+  hl.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = hl;
+  ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+  // its rim and the ring where it meets the table
+  // the rim glowing: a wide soft line under a crisp one
+  ctx.save();
+  ctx.shadowColor = 'rgba(60,220,255,0.95)';
+  ctx.shadowBlur = 14;
+  ctx.strokeStyle = 'rgba(90,225,255,0.9)';
+  ctx.lineWidth = 5;
   ctx.beginPath();
-  ctx.arc(0, 0, 210, Math.PI, 0);
+  ctx.ellipse(cx, cy, R, RY, 0, Math.PI, 0);
   ctx.stroke();
+  ctx.restore();
+  ctx.strokeStyle = 'rgba(230,253,255,0.95)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, R, RY, 0, Math.PI, 0);
+  ctx.stroke();
+  ctx.shadowColor = 'rgba(60,220,255,0.9)';
+  ctx.shadowBlur = 10;
+  ctx.strokeStyle = 'rgba(110,230,255,0.9)';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, R, R * TILT * 0.55, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  return c;
+}
+
+/** A thin bright band that sweeps across a shield's dome now and then (the field's shimmer). */
+function shieldSweep(): HTMLCanvasElement {
+  const [c, ctx] = makeCanvas(60, 300);
+  const g = ctx.createLinearGradient(0, 0, 60, 0);
+  g.addColorStop(0, 'rgba(200,250,255,0)');
+  g.addColorStop(0.5, 'rgba(230,253,255,0.55)');
+  g.addColorStop(1, 'rgba(200,250,255,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 60, 300);
   return c;
 }
 
@@ -545,6 +617,7 @@ export function buildSprites(): Record<string, HTMLCanvasElement> {
     cheese: cheeseString(),
     vignette: vignette(960, 540),
     shield: cheeseShield(),
+    shieldSweep: shieldSweep(),
     trap: mousetrap(),
     eye: eye(),
     pupil: pupil(),

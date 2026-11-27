@@ -58,6 +58,10 @@ export class Pizza {
   private tex: Phaser.Textures.CanvasTexture;
   private texKey: string;
   private shield: Phaser.GameObjects.Image;
+  /** The shield's shimmer (a band sweeping its dome) and its hits-left pips on the base ring. */
+  private shieldSweep: Phaser.GameObjects.Image;
+  private shieldPips: Phaser.GameObjects.Text;
+  private shieldFlash = 0;
   private trapImg: Phaser.GameObjects.Image;
   private face: Phaser.GameObjects.Container;
   private eyes: Phaser.GameObjects.Image[] = [];
@@ -95,7 +99,14 @@ export class Pizza {
     // pizza centre in canvas space
     this.img.setOrigin((10 + PIZZA_SIZE / 2) / PIZZA_CANVAS_W, (6 + (PIZZA_SIZE / 2) * TILT) / PIZZA_CANVAS_H);
     this.trapImg = scene.add.image(-PIZZA_R * 0.95, 30, 'trap').setVisible(false).setScale(0.9);
-    this.shield = scene.add.image(0, -40, 'shield').setVisible(false).setBlendMode(Phaser.BlendModes.ADD);
+    // the shield: a force-field dome over the pizza (origin at the pizza's centre), a shimmer sweeping it and a small
+    // count of the stomps it still blocks on its rim
+    this.shield = scene.add.image(0, -40, 'shield').setOrigin(0.5, 230 / 300).setVisible(false).setBlendMode(Phaser.BlendModes.ADD);
+    this.shieldSweep = scene.add.image(0, -40, 'shieldSweep').setOrigin(0.5, 230 / 300).setVisible(false).setBlendMode(Phaser.BlendModes.ADD);
+    this.shieldPips = scene.add
+      .text(0, 0, '', { fontFamily: 'Lilita One, Fredoka, sans-serif', fontSize: '22px', color: '#e6fbff', stroke: '#0a3a52', strokeThickness: 5 })
+      .setOrigin(0.5)
+      .setVisible(false);
 
     this.face = scene.add.container(0, 0);
     for (const sx of [-1, 1]) {
@@ -122,7 +133,7 @@ export class Pizza {
     this.perkLabel = scene.add.text(0, 0, type.perkText, labelStyle).setOrigin(0.5, 0).setAlpha(0.92);
     this.strike = scene.add.graphics();
     this.freshBar = scene.add.graphics();
-    this.root.add([this.plate, this.trapImg, this.img, this.face, this.shield, this.label, this.perkLabel, this.strike, this.freshBar]);
+    this.root.add([this.plate, this.trapImg, this.img, this.face, this.shield, this.shieldSweep, this.shieldPips, this.label, this.perkLabel, this.strike, this.freshBar]);
     this.makeFinish();
     this.applyScale();
     this.redraw();
@@ -151,7 +162,10 @@ export class Pizza {
     this.plate.setScale(s);
     this.img.setScale(s).setY(-lift);
     this.face.setScale(Math.max(0.75, s * 1.15)).setY(-lift + PIZZA_R * TILT * s * 0.32);
-    this.shield.setScale(s * 0.95).setY(-lift - 30 * s);
+    this.shield.setScale(s).setY(-lift);
+    this.shieldSweep.setScale(s).setY(-lift);
+    // (the count sits on the dome's rim, up and to the right, clear of the face)
+    this.shieldPips.setScale(Math.max(0.8, s)).setPosition(214 * s * 0.72, -lift - 214 * 0.92 * s * 0.7);
     this.trapImg.setScale(s * 1.1).setPosition(-PIZZA_R * s * 1.02, 34 * s);
     this.label.setY((PIZZA_R + 40) * TILT * s + 14);
     this.fitLabel();
@@ -518,8 +532,14 @@ export class Pizza {
   }
 
   setShield(n: number): void {
+    // a charge spent: the field flares (and flickers as it reforms, or bursts when the last one goes)
+    if (n < this.shieldCharges) this.shieldFlash = 1;
     this.shieldCharges = n;
-    this.shield.setVisible(n > 0 && !this.dead);
+    const on = n > 0 && !this.dead;
+    this.shield.setVisible(on);
+    this.shieldSweep.setVisible(on);
+    // the hits it still blocks: a small count on its rim (×2…), none for a single one
+    this.shieldPips.setVisible(on && n > 1).setText(n > 1 ? `×${n}` : '');
   }
 
   setTraps(n: number): void {
@@ -560,7 +580,16 @@ export class Pizza {
     // nervous shiver
     const shake = scared ? Math.sin(this.bob * 60) * 1.5 * threat : 0;
     this.face.x = shake;
-    if (this.shield.visible) this.shield.setAlpha(0.65 + Math.sin(this.bob * 3) * 0.2);
+    if (this.shield.visible) {
+      // the field breathes, and flickers back after a hit
+      this.shieldFlash = Math.max(0, this.shieldFlash - 0.04);
+      const flick = this.shieldFlash > 0 ? (Math.sin(this.bob * 90) > 0 ? 1 : 0.4) * this.shieldFlash : 0;
+      this.shield.setAlpha(0.8 + Math.sin(this.bob * 3) * 0.12 + flick * 0.4);
+      // the shimmer sweeps across the dome every couple of seconds
+      const ph = (this.bob * 0.45) % 1;
+      const w = PIZZA_R * this.s;
+      this.shieldSweep.setX(-w + ph * 2 * w).setAlpha(Math.sin(ph * Math.PI) * 0.7);
+    }
   }
 
   destroy(): void {

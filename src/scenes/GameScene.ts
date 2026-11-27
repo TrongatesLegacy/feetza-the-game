@@ -4158,8 +4158,10 @@ export class GameScene extends Phaser.Scene implements Arena {
     }
     if (p.shieldCharges > 0 && !pierce) {
       p.setShield(p.shieldCharges - 1);
-      this.fx.ring(p.x, p.surfaceY - 30, 0xffe680, 2.2, 0.45);
-      this.fx.quip(f.x, p.surfaceY - 130, 'BLOCKED!', '#ffe680', 48);
+      // the force field takes the stomp: a ripple from the impact and a flash of the dome
+      this.fx.ring(f.x, p.surfaceY - 60, 0x7fe8ff, 2.4, 0.5);
+      this.fx.ring(p.x, p.surfaceY - 30, 0xc8f6ff, 1.6, 0.35);
+      this.fx.quip(f.x, p.surfaceY - 130, p.shieldCharges > 0 ? 'BLOCKED!' : 'SHIELD BROKEN!', '#8ff0ff', 48);
       audio.sfx('sfx_shield');
       f.knock(700);
       blocked(true);
