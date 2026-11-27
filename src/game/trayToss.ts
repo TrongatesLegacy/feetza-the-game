@@ -49,8 +49,7 @@ export function tossTray(a: Arena, f: Foot, snap: GuardSnap, p: Pizza, o: TrayTo
   // shadow and reticle sit under the tray
   a.fxLayer.moveDown(shadow);
   const reticle = mark(a, 'p_reticle', p.x, p.surfaceY - 30, o.tell + o.flight + 0.3, 0.95);
-  // where it waits during the tell: lifted a little beside him, as he winds up
-  const side = p.x >= f.x ? 1 : -1;
+  // (during the tell it slips straight down off him: see the tell below)
   const sx0 = snap.x - f.x;
   const sy0 = snap.y - f.y;
   let t = 0;
@@ -124,13 +123,14 @@ export function tossTray(a: Arena, f: Foot, snap: GuardSnap, p: Pizza, o: TrayTo
           clatter();
           return;
         }
-        // the tell: it swings up and clear of him, over his shoulder, wobbling, as he leans back into the throw
+        // the tell: knocked loose, it slips straight down off him a little and teeters there, wobbling harder, before it
+        // drops (no swing out to the side first)
         const k = t / o.tell;
         const e = Phaser.Math.Easing.Back.Out(Math.min(1, k * 1.4));
-        const lift = f.meta.footHeight * f.scale * 0.35;
-        img.setPosition(f.x + sx0 + side * (f.meta.halfWidth * f.scale * 0.7) * e, f.y + sy0 - lift * e);
-        img.rotation = snap.rot + Math.sin(t * 22) * 0.08 * k - side * 0.5 * e;
-        f.leanExtra = -side * 0.14 * e;
+        const slip = f.meta.footHeight * f.scale * 0.12;
+        img.setPosition(f.x + sx0, f.y + sy0 + slip * e);
+        img.rotation = snap.rot + Math.sin(t * 22) * (0.04 + 0.1 * k);
+        f.leanExtra = 0;
         shadow.setAlpha(0.08 + 0.12 * k).setScale(0.35);
         from = { x: img.x, y: img.y };
         if (t + dt >= o.tell) {
