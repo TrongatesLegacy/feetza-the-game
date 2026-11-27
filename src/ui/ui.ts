@@ -3,13 +3,15 @@
 
 import { FEET, FOOT_BY_ID, TRAIT_INFO, howToFor, tellFor, type FootType } from '../data/feet';
 import { crand } from '../systems/cosmeticRandom';
-import { META, MILESTONE_BY_PIZZA } from '../data/meta';
+import { META, MILESTONE_BY_PIZZA, legacyMilestone } from '../data/meta';
 import { PIZZAS, PIZZA_BY_ID, type PizzaRoute, type PizzaType } from '../data/pizzas';
 import { awardMilestones, milestoneProgress } from '../game/Run';
 import { AUTO_TOPPING_NOTE, RARITY_COLOR, UPGRADES, UPGRADE_BY_ID, isAutoTopping, kindOf, type Rarity } from '../data/upgrades';
 import { glyph, slamPrompt } from '../systems/gamepad';
 import type { RunSummary, ShopActions, ShopPizza, ShopState, SlotSymbol, YourTopping } from './shopTypes';
 import { INTROS, freshBar, freshForever, pizzaThumb } from './bits';
+import { tierAttrs, tierFrame, tierGem, tierLabel } from './pizzaTier';
+import { pickByTier } from '../data/pizzaRarity';
 import { statsBody } from './statsTab';
 import type { BuildView } from '../game/buildStats';
 import { phaseCardPanel } from './phaseCard';
@@ -992,7 +994,8 @@ class UI {
       const forced = forcedRare && PIZZA_BY_ID[forcedRare] && !save.unlockedPizzas.includes(forcedRare) ? forcedRare : null;
       forcedRare = null;
       const pool = PIZZAS.filter((p) => p.route === 'rare' && !save.unlockedPizzas.includes(p.id));
-      const id = forced ?? (pool.length && Math.random() < RARE_FIND_CHANCE ? pool[Math.floor(Math.random() * pool.length)].id : null);
+      // (by rarity, as the counter deals: the tier first, then a pizza of it)
+      const id = forced ?? (pool.length && Math.random() < RARE_FIND_CHANCE ? pickByTier(pool, (p) => p.rarity)?.id ?? null : null);
       if (!id || !cur.length) return;
       const slot = Math.floor(Math.random() * cur.length);
       rare = { id, slot, was: cur[slot], bought: false };
@@ -1016,16 +1019,19 @@ class UI {
               renderLineup();
             });
             buy.disabled = r.bought || save.crusts < p.cost;
+            const tier = tierAttrs(p.rarity);
             return h(
               'div',
-              { class: `lu rare${r.bought ? ' bought' : ''}` },
+              { class: `lu rare ${tier.cls}${r.bought ? ' bought' : ''}`, style: tier.style },
+              ...tierFrame(p.rarity, false),
               h('span', { class: 'tag new' }, r.bought ? 'YOURS' : 'FREE TRIAL'),
               h('img', { src: pizzaPortraitURL(p.id), alt: p.name }),
-              h('div', {}, h('span', { class: 'rf' }, r.bought ? 'RARE FIND' : 'RARE FIND · TRY IT THIS RUN'), h('b', {}, p.name), h('span', { title: r.bought ? p.perkText : `${p.perkText} · plays this run for free; keep it now or when the run ends (gone if you shuffle)` }, p.perkText), buy),
+              h('div', {}, h('span', { class: 'rf' }, r.bought ? 'RARE FIND' : 'RARE FIND · TRY IT THIS RUN', ' ', tierLabel(p.rarity)), h('b', {}, p.name), h('span', { title: r.bought ? p.perkText : `${p.perkText} · plays this run for free; keep it now or when the run ends (gone if you shuffle)` }, p.perkText), buy),
             );
           }
           const p = PIZZA_BY_ID[id];
-          return h('div', { class: 'lu' }, h('img', { src: pizzaPortraitURL(id), alt: p.name }), h('div', {}, h('b', {}, p.name), h('span', {}, p.perkText)));
+          const tier = tierAttrs(p.rarity);
+          return h('div', { class: `lu ${tier.cls}`, style: tier.style }, ...tierFrame(p.rarity, false), h('img', { src: pizzaPortraitURL(id), alt: p.name }), h('div', {}, tierLabel(p.rarity), h('b', {}, p.name), h('span', {}, p.perkText)));
         }),
       );
     // the lineup that actually starts: a Rare Find plays this run whether it's bought or not (unbought, it's a free trial,
@@ -1099,7 +1105,8 @@ class UI {
       if (k === 'n' || (k === 'enter' && !onControl)) act.next();
     };
     window.addEventListener('keydown', onKey);
-    const sliceArt = (p: ShopPizza, size: number) => pizzaThumb(p.id, p.slices, p.max, size, p.stale, p.dead);
+    // (a dead pizza that can be rebaked shows whole and charred under its oven door)
+    const sliceArt = (p: ShopPizza, size: number) => pizzaThumb(p.id, p.slices, p.max, size, p.stale, p.dead, !!p.rebake);
     const render = () => {
       const coin = (n: number) => `${COIN_SVG.replace('class="coin"', 'class="coin-ico"')}${fmt(n)}`;
       const crust = (n: number) => `${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')}${fmt(n)}`;
@@ -1162,12 +1169,22 @@ class UI {
             const reheat = p.reheat ? btn(p.reheat.need ? `REHEAT · ${fmt(p.reheat.cost)}` : p.neverStale ? 'NEVER STALE' : 'FRESH', 'yellow small reheat', () => act.reheat(i), { 'aria-label': `Reheat ${p.name} for ${p.reheat.cost} tips` }) : null;
             if (reheat && p.reheat) reheat.disabled = !p.reheat.can;
             const actions = p.dead ? h('div', { class: 'pacts' }) : h('div', { class: 'pacts' }, heal, reheat);
+            // a dead pizza: charred, with the oven door glowing over it to rebake it (half its slices, fully fresh)
+            let door: HTMLElement | null = null;
+            if (p.dead && p.rebake) {
+              const rb = p.rebake;
+              door = h('button', { class: 'oven-door', type: 'button', 'aria-label': `Rebake ${p.name} for ${rb.cost} tips: back with half its slices, fully fresh` }, h('span', { class: 'od-glow' }), h('b', {}, 'REBAKE'), h('span', { class: 'od-price', html: coin(rb.cost) }));
+              (door as HTMLButtonElement).disabled = !rb.can;
+              door.addEventListener('click', () => act.rebake(i));
+            } else if (p.dead) door = h('div', { class: 'oven-door off' }, h('b', {}, 'NO REBAKE'), h('span', {}, 'Not on Inferno'));
+            const tier = tierAttrs(p.rarity);
             return h(
               'div',
-              { class: `ptile${p.stale ? ' stale' : ''}${p.dead ? ' dead' : ''}${p.enhanced ? ' enhanced' : ''}` },
+              { class: `ptile ${tier.cls}${p.stale ? ' stale' : ''}${p.dead ? ' dead' : ''}${p.enhanced ? ' enhanced' : ''}`, style: tier.style },
+              ...tierFrame(p.rarity),
               p.stale ? h('span', { class: 'flag' }, 'STALE') : p.dead ? h('span', { class: 'flag dead' }, 'TOAST') : null,
               p.enhanced ? h('span', { class: 'star-badge', title: 'Enhanced: its perk is stronger this run', 'aria-label': 'Enhanced' }, '★') : null,
-              sliceArt(p, 120),
+              h('div', { class: 'pt-pic' }, sliceArt(p, 120), door),
               h('div', { class: 'nm' }, p.name),
               h('div', { class: `ds${p.stale ? ' off' : ''}` }, p.enhanced && !p.stale ? perkDiff(p.basePerk, p.perk) : p.perk),
               h('div', { class: 'sl' }, `${p.slices} / ${p.max} slices`),
@@ -1183,31 +1200,27 @@ class UI {
         const b = btn(o.cost === 0 ? 'FREE' : `BUY · ${was}${fmt(o.cost)}`, `${st.coins >= o.cost ? 'green' : ''} small`, () => act.buyPizza(o.id));
         b.disabled = st.coins < o.cost;
         const pic = h('div', { class: 'offer-pic' }, h('img', { src: pizzaPortraitURL(o.id), alt: '' }), o.kind === 'enhanced' ? h('span', { class: 'star-badge' }, '★') : null);
+        // every offer in its tier's frame
+        const tier = tierAttrs(o.rarity);
+        const card = (cls: string, ...kids: (HTMLElement | null)[]) => h('div', { class: `offer ${tier.cls}${cls}`, style: tier.style }, ...tierFrame(o.rarity), ...kids);
         if (o.kind === 'special')
-          return h(
-            'div',
-            { class: 'offer special' },
+          return card(
+            ' special',
             pic,
-            h('div', { class: 'offer-text' }, h('span', { class: 'tag' }, "CHEF'S SPECIAL"), h('b', {}, o.name), h('span', {}, o.perk)),
+            h('div', { class: 'offer-text' }, h('span', { class: 'tag' }, o.fromPizzeria ? 'PIZZERIA SPECIAL' : "CHEF'S SPECIAL"), h('b', {}, o.name), h('span', {}, o.perk)),
             b,
             h('div', { class: 'unlock-note' }, h('b', {}, 'NEW PIZZA'), ' · Buy it to add it to your table and unlock it forever'),
           );
         if (o.kind === 'enhanced')
-          return h('div', { class: 'offer enhanced' }, pic, h('div', { class: 'offer-text' }, h('span', { class: 'tag' }, '★ ENHANCED PIZZA'), h('b', {}, o.name), h('span', {}, perkDiff(o.basePerk ?? o.perk, o.perk))), b);
-        return h('div', { class: `offer${o.cost === 0 ? ' free' : ''}` }, pic, h('div', { class: 'offer-text' }, o.cost === 0 ? h('span', { class: 'tag' }, 'ON THE HOUSE') : null, h('b', {}, o.name), h('span', {}, o.perk)), b);
+          return card(' enhanced', pic, h('div', { class: 'offer-text' }, h('span', { class: 'tag' }, '★ ENHANCED PIZZA'), h('b', {}, o.name), h('span', {}, perkDiff(o.basePerk ?? o.perk, o.perk))), b);
+        return card(o.cost === 0 ? ' free' : '', pic, h('div', { class: 'offer-text' }, o.cost === 0 ? h('span', { class: 'tag' }, 'ON THE HOUSE') : null, h('b', {}, o.name), h('span', {}, o.perk)), b);
       });
       // Pizza Slots: in the third slot when no Chef's Special turned up
       if (st.slots) offers.push(slotsRow(st.slots, act.slots, act.slotsTake));
-      const svc = (label: string, s: { cost: number; can: boolean }, fn: () => void, cls: string) => {
-        const b = btn(`${label} · ${fmt(s.cost)}`, `${cls} small`, fn);
-        b.disabled = !s.can;
-        return b;
-      };
       const services = h(
         'div',
         { class: 'services' },
         btn('YOUR TOPPINGS', 'yellow small', () => act.toppings(), { title: 'Every topping you have, its level, and when used ones come back', 'aria-label': `Your toppings: ${st.yours.filter((y) => y.back === null).length}` }),
-        st.rebake.shown ? svc('REBAKE', st.rebake, act.rebake, '') : null,
       );
       const counter = h(
         'section',
@@ -1961,8 +1974,17 @@ class UI {
     // every pizza, grouped by how it unlocks
     const pizzasTab = (): HTMLElement[] => {
       const has = (id: string) => save.unlockedPizzas.includes(id);
-      const tile = (p: PizzaType, cls: string, ...rest: (HTMLElement | null)[]) =>
-        h('div', { class: `tile pz-tile ${cls}` }, h('img', { src: pizzaPortraitURL(p.id), alt: p.name, loading: 'lazy' }), h('div', { class: 'nm' }, p.name), h('div', { class: 'ds' }, p.perkText), ...rest, newPizzas.has(p.id) ? h('span', { class: 'tag new' }, 'NEW') : null);
+      const tile = (p: PizzaType, cls: string, ...rest: (HTMLElement | null)[]) => {
+        const tier = tierAttrs(p.rarity);
+        return h('div', { class: `tile pz-tile ${tier.cls} ${cls}`, style: tier.style }, ...tierFrame(p.rarity), h('img', { src: pizzaPortraitURL(p.id), alt: p.name, loading: 'lazy' }), h('div', { class: 'nm' }, p.name), h('div', { class: 'ds' }, p.perkText), ...rest, newPizzas.has(p.id) ? h('span', { class: 'tag new' }, 'NEW') : null);
+      };
+      // a pizza that moved off milestones: its old goal still wins it, as a second way in
+      const alsoGoal = (p: PizzaType) => {
+        const m = legacyMilestone(p);
+        if (!m) return null;
+        const [have, need] = milestoneProgress(m.id);
+        return h('div', { class: 'seen' }, `Or win it: ${m.name} (${fmt(have)} / ${fmt(need)})`);
+      };
       const section = (title: string, note: string, tiles: HTMLElement[]) => (tiles.length ? [h('div', { class: 'pz-sec' }, h('b', {}, title), h('span', {}, note)), h('div', { class: 'grid' }, ...tiles)] : []);
       const owned = PIZZAS.filter((p) => has(p.id)).sort((a, b) => Number(newPizzas.has(b.id)) - Number(newPizzas.has(a.id)) || a.cost - b.cost);
       const locked = (r: PizzaRoute) => PIZZAS.filter((p) => p.route === r && !has(p.id));
@@ -1980,7 +2002,7 @@ class UI {
             render();
           });
           b.disabled = save.crusts < p.cost;
-          const t = tile(p, `unowned${openOn.pizza === p.id ? ' selected' : ''}`, b);
+          const t = tile(p, `unowned${openOn.pizza === p.id ? ' selected' : ''}`, alsoGoal(p), b);
           t.dataset.pz = p.id;
           return t;
         });
@@ -1992,19 +2014,23 @@ class UI {
         .sort((a, b) => a.cost - b.cost)
         .map((p) => {
           const n = save.specialSeen[p.id] ?? 0;
-          return tile(p, 'unowned', h('div', { class: 'route' }, 'Turns up as a Chef’s Special in the shop'), h('div', { class: 'seen' }, n ? `Seen ${n} time${n === 1 ? '' : 's'}` : 'Not seen yet'));
+          return tile(p, 'unowned', h('div', { class: 'route' }, 'Turns up as a Chef’s Special in the shop'), h('div', { class: 'seen' }, n ? `Seen ${n} time${n === 1 ? '' : 's'}` : 'Not seen yet'), alsoGoal(p));
         });
       const rare = locked('rare').map((p) => {
         // a silhouette until it's turned up once
         const seen = save.rareSeen.includes(p.id);
+        const tier = tierAttrs(p.rarity);
         return h(
           'div',
-          { class: `tile pz-tile unowned rare${seen ? '' : ' unseen'}` },
+          { class: `tile pz-tile unowned rare${seen ? ` ${tier.cls}` : ' unseen'}`, style: seen ? tier.style : undefined },
+          // (its tier shows once it has turned up)
+          ...(seen ? tierFrame(p.rarity) : []),
           h('img', { src: pizzaPortraitURL(p.id), alt: seen ? p.name : 'Unknown pizza', loading: 'lazy' }),
           h('div', { class: 'nm' }, seen ? p.name : '???'),
           h('div', { class: 'ds' }, seen ? p.perkText : 'A Rare Find'),
           h('div', { class: 'route' }, 'Turns up rarely on the new-run screen'),
           seen ? h('div', { class: 'seen' }, `${fmt(p.cost)} crusts when it turns up`) : null,
+          seen ? alsoGoal(p) : null,
         );
       });
       // the ones you can act on first (buy with crusts, chase a goal), then what you own
@@ -2027,7 +2053,7 @@ class UI {
       const parts = pzUnlockedOnly
         ? []
         : [
-            ...(show('pizzeria') ? section(`BUY WITH GOLDEN CRUSTS · ${shop.length}`, 'Unlock them here', shop) : []),
+            ...(show('pizzeria') ? section(`BUY WITH GOLDEN CRUSTS · ${shop.length}`, 'Unlock them here. Commons and Rares turn up now and then as a Chef’s Special too', shop) : []),
             ...(show('milestone') ? section(`MILESTONE PRIZES · ${prizes.length}`, 'Reach the goal and the pizza is yours', prizes) : []),
             ...(show('special') ? section(`CHEF’S SPECIALS · ${specials.length}`, 'Buy one in the shop with tips to unlock it for good', specials) : []),
             ...(show('rare') ? section(`RARE FINDS · ${rare.length}`, 'Only by luck, on the new-run screen', rare) : []),
@@ -2204,7 +2230,8 @@ class UI {
       const owned = save.unlockedPizzas.includes(id);
       const ms = MILESTONE_BY_PIZZA[id];
       // how a locked pizza unlocks, by its route
-      const how = p.route === 'special' ? '🔒 Chef’s Special in the shop' : p.route === 'milestone' ? `🔒 Milestone: ${ms?.name ?? 'a milestone'}` : p.route === 'rare' ? '🔒 Rare Find on the new-run screen' : `🔒 ${p.cost} Golden Crusts`;
+      const also = legacyMilestone(p);
+      const how = (p.route === 'special' ? '🔒 Chef’s Special in the shop' : p.route === 'milestone' ? `🔒 Milestone: ${ms?.name ?? 'a milestone'}` : p.route === 'rare' ? '🔒 Rare Find on the new-run screen' : `🔒 ${p.cost} Golden Crusts`) + (also ? `, or milestone: ${also.name}` : '');
       if (hiddenRare(p)) {
         detail.replaceChildren(h('img', { src: pizzaPortraitURL(id), alt: '', style: 'filter:brightness(0) opacity(0.35)' }), h('div', {}, h('div', { class: 'dt-head' }, h('h3', {}, '???'), h('span', { class: 'chip' }, how)), h('p', {}, 'A Rare Find. It turns up only by luck, in a lineup on the new-run screen.')));
         return;
@@ -2216,7 +2243,8 @@ class UI {
             this.pizzeria(() => this.pedia(onClose), { tab: 'pizzas', pizza: id });
           })
         : null;
-      detail.replaceChildren(h('img', { src: pizzaPortraitURL(id), alt: '' }), h('div', {}, h('div', { class: 'dt-head' }, h('h3', {}, p.name), h('span', { class: 'chip' }, owned ? '✅ Unlocked' : how), go ? h('span', { class: 'dt-act' }, go) : null), h('p', {}, `Perk: ${p.perkText}`)));
+      const tier = tierAttrs(p.rarity);
+      detail.replaceChildren(h('img', { src: pizzaPortraitURL(id), alt: '' }), h('div', {}, h('div', { class: 'dt-head' }, h('h3', {}, p.name), h('span', { class: `${tier.cls} pzr-inline`, style: tier.style }, tierLabel(p.rarity)), h('span', { class: 'chip' }, owned ? '✅ Unlocked' : how), go ? h('span', { class: 'dt-act' }, go) : null), h('p', {}, `Perk: ${p.perkText}`)));
     };
     const EVENTS: [string, string, string, string][] = [
       ['balloon', 'ev_balloon', 'Tip Balloon', 'Drifts across the top. One smack: 10 to 25 tips.'],
@@ -2283,7 +2311,8 @@ class UI {
           const hide = hiddenRare(p);
           // locked pizzas are dimmed, with how they unlock under the name
           const route = owned ? null : p.route === 'pizzeria' ? `${fmt(p.cost)} crusts` : p.route === 'milestone' ? 'Milestone' : p.route === 'special' ? 'Chef’s Special' : 'Rare Find';
-          const t = h('div', { class: `tile pz-tile${hide ? ' locked' : owned ? '' : ' unowned'}`, tabindex: 0 }, h('img', { src: pizzaPortraitURL(p.id), alt: '', loading: 'lazy' }), h('div', { class: 'nm' }, hide ? '???' : p.name), route ? h('div', { class: 'ds' }, route) : null, owned ? null : h('span', { class: 'tag' }, '🔒'));
+          const tier = tierAttrs(p.rarity);
+          const t = h('div', { class: `tile pz-tile${hide ? ' locked' : ` ${tier.cls}`}${hide || owned ? '' : ' unowned'}`, style: hide ? undefined : tier.style, tabindex: 0 }, ...(hide ? [] : tierFrame(p.rarity)), h('img', { src: pizzaPortraitURL(p.id), alt: '', loading: 'lazy' }), h('div', { class: 'nm' }, hide ? '???' : p.name), route ? h('div', { class: 'ds' }, route) : null, owned ? null : h('span', { class: 'tag' }, '🔒'));
           t.addEventListener('click', () => {
             audio.sfx('sfx_click');
             showPizza(p.id);
@@ -2541,6 +2570,8 @@ class UI {
         !owned && d.cost ? h('div', { class: 'cost' }, `${fmt(d.cost)} crusts`) : null,
         equipped ? h('span', { class: 'tag' }, 'ON') : fresh.has(d.id) ? h('span', { class: 'tag new' }, 'NEW') : null,
         worn ? h('span', { class: 'tag look', title: 'Worn look' }, 'LOOK') : null,
+        // a pizza peel: its pizza's tier
+        d.group === 'pizza' && PIZZA_BY_ID[d.id.slice(6)] ? tierGem(PIZZA_BY_ID[d.id.slice(6)].rarity) : null,
       );
       activatable(t);
       // (its living look starts once the thumbnail is in: the observer above)

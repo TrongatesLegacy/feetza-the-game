@@ -5098,8 +5098,7 @@ body.still-peels .peel-big.shiny::after {
 }
 
 .pz-tile.rare {
-  border-color: #6a3aa8;
-  background: linear-gradient(160deg, #f6efff, #e9dcff);
+  background: linear-gradient(160deg, #fffdf6, #fff3d6);
 }
 
 .pz-tile.rare.unseen img {
@@ -5357,9 +5356,8 @@ body.still-peels .peel-big.shiny::after {
 .lu.rare {
   position: relative;
   overflow: hidden;
-  border-color: #6a3aa8;
-  background: linear-gradient(135deg, #f6efff, #e3d2ff);
-  box-shadow: 0 0 0 0.16em #b98aff, 0 0 1.2em rgba(176, 107, 255, 0.7);
+  background: linear-gradient(135deg, #fffdf6, #fff1cf);
+  box-shadow: 0 0 0 0.16em #ffd23f, 0 0 1.1em rgba(255, 210, 63, 0.6);
 }
 
 .lu.rare::after {
@@ -5376,7 +5374,7 @@ body.still-peels .peel-big.shiny::after {
   font-family: 'Lilita One', sans-serif;
   font-size: 0.8em;
   letter-spacing: 0.12em;
-  color: #5a2a8a;
+  color: #8a5200;
 }
 
 .lu.rare .btn {
@@ -6270,7 +6268,7 @@ body.still-peels .peel-big.shiny::after {
 }
 .prerun-bottom .lu.rare .rf { grid-area: rf; }
 .prerun-bottom .lu.rare b { grid-area: name; }
-.prerun-bottom .lu.rare span:not(.rf):not(.tag) { grid-area: perk; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.prerun-bottom .lu.rare span:not(.rf):not(.tag):not(.pzr-tag):not(.pzr-fx) { grid-area: perk; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .prerun-bottom .lu.rare .btn { grid-area: btn; align-self: center; margin-top: 0; }
 
 /* the lineup's header with its SHUFFLE beside it */
@@ -6342,3 +6340,364 @@ body.still-peels .peel-big.shiny::after {
 .ptile .fresh.blank { visibility: hidden; min-height: 1em; }
 .ptile .fresh.forever .fbar i { background: linear-gradient(90deg, #ffb347, #ffd23f); }
 .ptile .fresh.forever .fn { font-size: 1.3em; line-height: 0.8; }
+
+/* ——— Pizza tiers (src/ui/pizzaTier.ts, colours from TIER_LOOK in src/data/pizzaRarity.ts) ———
+   A framed card: a ring inside its border in the tier's materials, under the card's content (the card is its own
+   stacking context, the frame sits at z-index -1), and a small label in its top-left corner. */
+@property --pzr-turn {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.pzr {
+  position: relative;
+  isolation: isolate;
+}
+
+.pzr-fx {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* the ring: a band of the tier's material just inside the card's border */
+.pzr-fx::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 0.2em;
+  background: linear-gradient(135deg, var(--tb), var(--ta) 35%, var(--tb) 55%, var(--ta) 80%, var(--tb));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+
+/* the ring's inner edge: a fine dark line so a pale ring reads on a pale card */
+.pzr-fx::after {
+  content: '';
+  position: absolute;
+  inset: 0.26em;
+  border-radius: inherit;
+  border: 0.07em solid var(--te);
+  opacity: 0.55;
+}
+
+.pzr-epic > .pzr-fx::after {
+  inset: 0.3em;
+}
+
+.pzr-legendary > .pzr-fx::after {
+  inset: 0.34em;
+}
+
+/* Common: plain wood, its grain */
+.pzr-common > .pzr-fx::before {
+  background: repeating-linear-gradient(100deg, var(--ta) 0 0.35em, var(--tb) 0.35em 0.6em, #c99560 0.6em 0.9em);
+  padding: 0.26em;
+}
+
+/* Rare: silver, a soft sheen running round it */
+.pzr-rare > .pzr-fx::before {
+  background: linear-gradient(110deg, var(--ta) 0%, var(--tb) 18%, var(--ta) 34%, #ffffff 46%, var(--ta) 58%, var(--tb) 78%, var(--ta) 100%);
+  background-size: 300% 100%;
+  padding: 0.26em;
+  animation: pzrSheen 5s ease-in-out infinite;
+}
+
+/* Epic: purple and gold, drifting, with sparkles */
+.pzr-epic > .pzr-fx::before {
+  background: linear-gradient(120deg, var(--ta) 0%, var(--tb) 12%, var(--ta) 24%, var(--ta) 38%, var(--tb) 50%, var(--ta) 62%, var(--ta) 76%, var(--tb) 88%, var(--ta) 100%);
+  background-size: 200% 100%;
+  padding: 0.24em;
+  animation: pzrSheen 7s linear infinite;
+}
+
+/* Legendary: gold, its border alive (a turning light) */
+.pzr-legendary > .pzr-fx::before {
+  background: conic-gradient(from var(--pzr-turn), var(--ta), var(--tb), #ffffff, var(--tb), var(--ta), var(--tb), var(--ta));
+  padding: 0.28em;
+  animation: pzrTurn 4s linear infinite;
+}
+
+.pzr-legendary {
+  box-shadow: 0 0 0.9em rgba(255, 191, 31, 0.55);
+}
+
+/* a soft wash of the tier's colour in the card's corner, behind its content */
+.pzr-epic > .pzr-fx {
+  background: radial-gradient(circle at 0% 0%, rgba(164, 99, 255, 0.16), transparent 55%);
+}
+
+.pzr-legendary > .pzr-fx {
+  background: radial-gradient(circle at 0% 0%, rgba(255, 210, 63, 0.2), transparent 60%);
+}
+
+.pzr-spark {
+  position: absolute;
+  width: 0.55em;
+  height: 0.55em;
+  background: var(--tb);
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  opacity: 0;
+  animation: pzrTwinkle 2.6s ease-in-out infinite;
+}
+
+.pzr-spark.s0 { top: 0.35em; left: 22%; animation-delay: 0s; }
+.pzr-spark.s1 { top: 40%; right: 0.3em; animation-delay: 0.7s; }
+.pzr-spark.s2 { bottom: 0.35em; left: 58%; animation-delay: 1.3s; }
+.pzr-spark.s3 { top: 62%; left: 0.3em; animation-delay: 1.9s; }
+
+.pzr-legendary .pzr-spark {
+  background: #fff6c8;
+}
+
+@keyframes pzrSheen {
+  0% { background-position: 100% 0; }
+  100% { background-position: 0% 0; }
+}
+
+@keyframes pzrTurn {
+  to { --pzr-turn: 360deg; }
+}
+
+@keyframes pzrTwinkle {
+  0%, 100% { opacity: 0; transform: scale(0.3) rotate(0deg); }
+  45% { opacity: 1; transform: scale(1) rotate(45deg); }
+  70% { opacity: 0; transform: scale(0.5) rotate(90deg); }
+}
+
+/* the tier's label (span.pzr-tag beats the cards' own span styles, .lu span and the like) */
+.pzr > span.pzr-tag,
+.pzr-tag {
+  position: absolute;
+  top: 0.4em;
+  left: 0.45em;
+  z-index: 2;
+  font-family: 'Lilita One', sans-serif;
+  font-size: max(0.6em, 9px);
+  line-height: 1.25;
+  letter-spacing: 0.08em;
+  color: var(--ti);
+  background: var(--tl);
+  border: 0.14em solid var(--te);
+  border-radius: 1em;
+  padding: 0 0.55em;
+  pointer-events: none;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.pzr-epic .pzr-tag {
+  background: linear-gradient(135deg, #8a4af0, var(--tl) 60%, #5a22b8);
+  box-shadow: 0 0 0 0.1em var(--tb) inset;
+}
+
+.pzr-legendary .pzr-tag {
+  background: linear-gradient(135deg, #fff1a8, var(--tl));
+}
+
+/* (shown in a row: the Pizzapedia's detail) */
+.pzr-inline {
+  display: inline-flex;
+}
+
+.pzr-inline > span.pzr-tag,
+.pzr-inline .pzr-tag {
+  position: static;
+  font-size: 0.8em;
+}
+
+.ptile .pzr-tag {
+  top: 0.45em;
+  left: 0.5em;
+}
+
+/* the lineup: the label sits in the text, off the portrait */
+.prerun-bottom .lu span.pzr-tag,
+.lu span.pzr-tag {
+  position: static;
+  align-self: flex-start;
+  display: inline-block;
+  color: var(--ti);
+  font-weight: 400;
+  font-size: max(0.6em, 9px);
+  letter-spacing: 0.08em;
+  line-height: 1.25;
+  white-space: nowrap;
+  margin-bottom: 0.1em;
+}
+
+.lu .rf span.pzr-tag {
+  display: inline-block;
+  vertical-align: middle;
+  margin: 0 0 0 0.2em;
+  font-size: 0.85em;
+}
+
+/* locked tiles keep their tier clear */
+.tile.pz-tile.unowned .pzr-tag {
+  opacity: 0.85;
+}
+
+/* the Peel Locker: a pizza peel's tier, a small cut gem */
+.pz-gem {
+  position: absolute;
+  top: 0.55em;
+  left: 0.55em;
+  z-index: 2;
+  width: 1em;
+  height: 1em;
+  transform: rotate(45deg);
+  border: 0.13em solid var(--te);
+  border-radius: 0.15em;
+  background: linear-gradient(135deg, var(--tb) 0%, var(--tg) 45%, var(--ta) 100%);
+  box-shadow: 0 0.08em 0 rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+
+.pz-gem.pzr-common {
+  border-radius: 50%;
+  transform: none;
+}
+
+.pz-gem.pzr-legendary {
+  box-shadow: 0 0 0.5em rgba(255, 191, 31, 0.9);
+}
+
+.tag.look ~ .pz-gem {
+  top: 2.1em;
+}
+
+/* ——— a dead pizza on the shop's table: charred, the oven door glowing over it to rebake it ——— */
+.pt-pic {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.pthumb.charred {
+  filter: sepia(1) saturate(1.6) hue-rotate(-12deg) brightness(0.38) contrast(1.35);
+}
+
+/* its cracks, across the pie */
+.ptile.dead .pt-pic::before {
+  content: '';
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  top: 22%;
+  bottom: 28%;
+  z-index: 1;
+  pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 50' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='%23140804' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 30 L22 26 L30 31 L41 24 L50 27'/%3E%3Cpath d='M62 8 L58 17 L64 22 L60 31'/%3E%3Cpath d='M70 40 L78 33 L88 35 L94 28'/%3E%3Cpath d='M30 31 L33 40'/%3E%3C/g%3E%3C/svg%3E") center / 100% 100% no-repeat;
+  opacity: 0.85;
+}
+
+.oven-door {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -46%);
+  z-index: 2;
+  width: 55%;
+  min-width: max-content;
+  display: grid;
+  justify-items: center;
+  gap: 0.05em;
+  padding: 0.55em 0.4em 0.35em;
+  font: inherit;
+  color: #fff;
+  background: linear-gradient(180deg, #3a2a22, #1e1410);
+  border: 0.16em solid var(--ink);
+  border-radius: 2.2em 2.2em 0.6em 0.6em;
+  box-shadow: 0 0 0 0.12em #6a5244 inset, 0 0.25em 0 var(--ink);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+/* the oven's window: a glow behind the words */
+.oven-door .od-glow {
+  position: absolute;
+  inset: 0.3em 0.35em 0.3em;
+  border-radius: 1.8em 1.8em 0.4em 0.4em;
+  background: radial-gradient(ellipse at 50% 80%, #ffe08a 0%, #ff9a2a 35%, #c8401a 70%, rgba(80, 20, 8, 0.9) 100%);
+  animation: ovenGlow 1.6s ease-in-out infinite alternate;
+  z-index: 0;
+}
+
+.oven-door b,
+.oven-door span:not(.od-glow) {
+  position: relative;
+  z-index: 1;
+}
+
+.oven-door b {
+  font-family: 'Lilita One', sans-serif;
+  font-weight: 400;
+  font-size: 1.05em;
+  letter-spacing: 0.06em;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.2em var(--ink);
+}
+
+.oven-door .od-price {
+  font-weight: 800;
+  font-size: 0.85em;
+  color: #fff;
+  background: rgba(42, 24, 16, 0.85);
+  border-radius: 1em;
+  padding: 0 0.5em;
+  white-space: nowrap;
+}
+
+.oven-door:hover:not(:disabled),
+.oven-door:focus-visible {
+  transform: translate(-50%, -50%) scale(1.04);
+  outline: none;
+  box-shadow: 0 0 0 0.12em #6a5244 inset, 0 0.25em 0 var(--ink), 0 0 1em rgba(255, 154, 42, 0.8);
+}
+
+.oven-door:disabled {
+  cursor: not-allowed;
+  filter: saturate(0.4) brightness(0.8);
+}
+
+.oven-door:disabled .od-glow {
+  animation: none;
+  opacity: 0.45;
+}
+
+.oven-door.off {
+  cursor: default;
+  font-size: 0.8em;
+  padding: 0.5em 0.4em;
+}
+
+.oven-door.off span {
+  font-weight: 700;
+  font-size: 0.85em;
+  color: #e8d8c8;
+}
+
+/* the system's reduced motion: frames, sparkles and the oven's glow hold still */
+@media (prefers-reduced-motion: reduce) {
+  .pzr-fx::before,
+  .pzr-spark,
+  .oven-door .od-glow {
+    animation: none !important;
+  }
+
+  .pzr-spark {
+    opacity: 0.8;
+  }
+}
+
+@keyframes ovenGlow {
+  from { opacity: 0.8; filter: brightness(0.92); }
+  to { opacity: 1; filter: brightness(1.12); }
+}

@@ -268,6 +268,9 @@ export function migrate(parsed: Partial<SaveData>): SaveData {
       if (!st.dev && s.bossesBeaten.includes(st.boss)) s.actsCleared.push(a);
     }
   }
+  // Rare Finds that used to be Chef's Specials (the pizza plan's route moves): one seen on the counter has turned up
+  // already, so it isn't a mystery silhouette (idempotent, so it needs no version)
+  for (const [id, n] of Object.entries(s.specialSeen ?? {})) if (n > 0 && !s.rareSeen.includes(id)) s.rareSeen.push(id);
   return s;
 }
 

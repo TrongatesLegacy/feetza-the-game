@@ -5,6 +5,7 @@ import { DEEP_FROM, DEEP_SPAN, HEAT_BY_ID, type HeatId } from '../data/difficult
 import { FEET, FOOT_BY_ID, type FootType } from '../data/feet';
 import { PIZZA_BY_ID, type PizzaPerk, type PizzaType } from '../data/pizzas';
 import { MILESTONES, type Milestone } from '../data/meta';
+import { PIZZERIA_SPECIAL_MARKUP, TIER_TIPS } from '../data/pizzaRarity';
 import { BOSS_CREW, JOURNEY_WAVES, MINI_ESCORT, MINI_WAVE, STAGES, STAGES_PER_ACT, WAVES_PER_STAGE } from '../data/stages';
 import { CONSUMABLE_COOLDOWN, RARITY_WEIGHT, UPGRADES, UPGRADE_BY_ID, baseStats, kindOf, type OfferEnv, type Rarity, type Stats, type Upgrade } from '../data/upgrades';
 import { freshKitState, type KitState } from './kitState';
@@ -717,16 +718,28 @@ export function bestRarity(wave: number): Rarity {
   return rarityOpen('legendary', wave) ? 'legendary' : rarityOpen('epic', wave) ? 'epic' : 'rare';
 }
 
-/** A pizza's tier, by its crust price: 1 simple, 2 mid, 3 fancy. */
-export function pizzaTier(p: PizzaType): number {
-  return p.cost < 150 ? 1 : p.cost < 400 ? 2 : 3;
+/** A locked Pizzeria pizza dealt as a Chef's Special. */
+const pizzeriaSpecial = (p: PizzaType) => p.route === 'pizzeria' && !save.unlockedPizzas.includes(p.id);
+
+/** A pizza's Chef's Special tips before wave scaling: a special's own price (inside its tier's band); a Pizzeria
+ * pizza dealt as one, the top of its tier's band; anything else (a pizza you own, enhanced), the band's middle. */
+export function specialTips(p: PizzaType): number {
+  if (p.route === 'special') return p.cost;
+  const [lo, hi] = TIER_TIPS[p.rarity];
+  return pizzeriaSpecial(p) ? hi : Math.round((lo + hi) / 2);
 }
 
-/** A Chef's Special's coin price: about twice a normal counter pizza, plus a bonus for fancier ones
- * that grows with the wave. */
+/** A Chef's Special's tip price: about twice that pizza at the counter (`normal`, its tier's price), plus its own
+ * tips, which grow with the wave. A Pizzeria pizza dealt as one costs a good deal more (crusts stay the reliable way). */
 export function specialPrice(normal: number, p: PizzaType, wave: number): number {
-  return Math.round((normal * 2 + pizzaTier(p) * (15 + 2 * wave)) / 5) * 5;
+  const price = (normal * 2 + specialTips(p) * (0.4 + 0.035 * wave)) * (pizzeriaSpecial(p) ? PIZZERIA_SPECIAL_MARKUP : 1);
+  return Math.round(price / 5) * 5;
 }
+
+/** Everyday feet that leave pizzas soggy or scorched (Pizza Bianca's goal). */
+const SOGGY_SCORCH = (): string[] => FEET.filter((f) => !f.boss && !f.mini && (f.traits.includes('soggy') || f.traits.includes('scorch'))).map((f) => f.id);
+/** Every mini-boss (Lobster Thermidor's goal). */
+const MINI_IDS = (): string[] => FEET.filter((f) => f.mini).map((f) => f.id);
 
 /** A milestone's progress towards its goal: [have, need]. */
 export function milestoneProgress(id: string): [number, number] {
@@ -771,6 +784,15 @@ export function milestoneProgress(id: string): [number, number] {
     case 'night10': return [Math.min(10, g.nightRuns ?? 0), 10];
     case 'surtr': return [save.bossesBeaten.includes('surtr') ? 1 : 0, 1];
     case 'hades': return [save.bossesBeaten.includes('hades') ? 1 : 0, 1];
+    // the pizza plan's new milestone prizes (all counted from the save, on any heat)
+    case 'wave60': return [Math.min(60, wave), 60];
+    case 'soggyScorch': return [Math.min(150, SOGGY_SCORCH().reduce((n, id) => n + (save.kills[id] ?? 0), 0)), 150];
+    case 'pier25': return [Math.min(25, save.stageWaves.pier ?? 0), 25];
+    case 'minis25': return [Math.min(25, MINI_IDS().reduce((n, id) => n + (save.kills[id] ?? 0), 0)), 25];
+    case 'pizzas40': return [Math.min(40, save.unlockedPizzas.filter((id) => PIZZA_BY_ID[id]).length), 40];
+    case 'feet3000': return [Math.min(3000, save.totalFeet), 3000];
+    case 'golden25': return [Math.min(25, save.kills.golden ?? 0), 25];
+    case 'events40': return [Math.min(40, Object.values(save.eventsDone).reduce((n, v) => n + v, 0)), 40];
     default: return [0, 1];
   }
 }
@@ -788,6 +810,9 @@ export function awardMilestones(run: Run | null): { m: Milestone; pizza: PizzaTy
     const owed = save.milestones.includes(m.id) && pizza && !save.unlockedPizzas.includes(pizza.id);
     if (!fresh && !owed) continue;
     if (fresh) save.milestones.push(m.id);
+    // a goal reached for a pizza that's already yours (bought before it became a milestone prize, or won by its other
+    // route): nothing more to give, so it's ticked off quietly
+    if (fresh && pizza && save.unlockedPizzas.includes(pizza.id)) continue;
     if (pizza) {
       if (run) run.unlock(pizza.id, `Milestone: ${m.name}`);
       else unlockPizza(pizza.id);

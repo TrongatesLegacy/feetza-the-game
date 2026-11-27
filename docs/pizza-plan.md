@@ -2,7 +2,7 @@
 
 Goal: four rarity tiers, with **60 Common, 50 Rare, 40 Epic and 30 Legendary** pizzas (180 in all, 67 of them new), and the four ways to unlock spread evenly across every tier.
 
-Status: **approved by Tron (2026-11-27), not built yet.** Decisions: no limit on legendaries at the table; Pizzeria and milestone legendaries gated on beating that act's boss on Hot or hotter; counter odds Common 60 / Rare 28 / Epic 10 / Legendary 2. Perks, names and numbers are proposals; the balance sim sets the final numbers. The act each legendary belongs to gets checked against `src/data/stages.ts` when it's built.
+Status: **approved by Tron (2026-11-27); step 1 (the foundation) built 2026-11-27, see section 6.** Decisions: no limit on legendaries at the table; Pizzeria and milestone legendaries gated on beating that act's boss on Hot or hotter; counter odds Common 60 / Rare 28 / Epic 10 / Legendary 2. Perks, names and numbers are proposals; the balance sim sets the final numbers. The act each legendary belongs to gets checked against `src/data/stages.ts` when it's built.
 
 ---
 
@@ -226,7 +226,7 @@ The act mapping gets checked against `src/data/stages.ts` when each is built, an
 
 ## 4. Build order
 
-1. **Foundation:** tiers and frames everywhere, re-pricing, the counter's and new-run screen's rarity odds, the second route for Pizzeria pizzas, and the route moves above (with new goals for the moved milestones).
+1. **Foundation (done, 2026-11-27; see section 6):** tiers and frames everywhere, re-pricing, the counter's and new-run screen's rarity odds, the second route for Pizzeria pizzas, and the route moves above (with new goals for the moved milestones).
 2. **The table pizzas come alive:** bubbling, steam, sizzle and stomp reactions on the table, reusing the pizza peels' motion code. Legendary auras build on this.
 3. **New Commons and Rares (12):** quick.
 4. **New Epics (25):** in batches of about 8.
@@ -242,6 +242,53 @@ Every new pizza gets its peel automatically (`buildDefs()`), a hand-written abil
 3. **Counter odds:** Common 60 / Rare 28 / Epic 10 / Legendary 2.
 4. **The 67:** as drafted, with the Black Olive Hole and Hammy Ha.
 
+## 6. Step 1, as built (2026-11-27)
+
+Everything here is in the code; numbers wait on the balance sim (step 6), which hasn't been run on them yet.
+
+**Tiers.** Every pizza has a `rarity` (`PizzaType`), as in the appendix: Epic 15, Rare 48, Common 50. Each tier's colours, deal odds and price bands live in one place, `src/data/pizzaRarity.ts`; the frames read them (`src/ui/pizzaTier.ts`), and so do the portraits' plates (`src/art/pizzaArt.ts`).
+
+**Routes now** (all 113): Common 15 Special / 15 Pizzeria (3 of them the starters) / 15 Milestone / 5 Rare Find; Rare 13 / 13 / 12 / 10; Epic 1 / 1 / 4 / 9. The moves are the ones in section 2.
+
+**The moved milestones' goals** (a decision of the build): the seven milestones whose pizzas moved off milestones (Combo King, Boss Slayer Supreme, Pizza Fritta, Okonomiyaki, Birthday Cake Pizza, Quattro Stagioni, Thousand-Foot Feast) keep pointing at their old pizza for now, so each of those pizzas has a second way in (its new route, or its old goal), and no goal shows a broken reward. The Pizzeria, the Pizzapedia and the shop say so ("Or win it: …"). When the new Epic and Legendary milestone pizzas come (steps 4 and 5), they take these goals over. A goal reached for a pizza that's already yours is ticked off quietly, with no toast.
+
+**New goals for the eight new milestone prizes** (all counted from what the save already records, on any heat):
+
+| Pizza | Goal |
+|---|---|
+| Stromboli | Reach wave 60 |
+| Pizza Bianca | Defeat 150 feet that leave pizzas soggy or scorched |
+| Saffron & Lobster | Clear 25 waves at The Pier |
+| Lobster Thermidor | Beat 25 mini-bosses |
+| Wagyu & Truffle | Unlock 40 pizzas |
+| Bone Marrow & Black Garlic | Defeat 3,000 feet |
+| Gold Leaf Margherita | Catch 25 golden feet |
+| Fig & Prosciutto Rose | Deal with 40 wave events |
+
+Players who own a pizza keep it whatever its route (the save only lists what's unlocked). A pizza moved off milestones that was unlocked stays unlocked.
+
+**Prices.** Every pizza is re-priced into its tier's band, keeping its order inside its tier and route: crusts for the Pizzeria, Rare Finds (and, only for sorting, milestone prizes), tips for Chef's Specials. For example: Pizzeria Commons 150–300 crusts (Pizza al Taglio 150 … Porcini Tartufata 300), Pizzeria Rares 350–600 (Pesto Genovese 350 … Caviar Bianca 600, Boss Slayer Supreme 580), Napoli DOC 900; Rare Finds: Common 150–300, Rare 350–600, Epic 700–1,100 (Mystery Meat 700 … Nonna's Secret 1,100); Chef's Specials: Common 40–80 tips, Rare 90–160 (Combo King 160), Spinach & Feta 275.
+
+**The counter.**
+- A pizza you own costs the counter's base (150 + 75 a pizza bought + 12 a wave) times its tier: Common ×0.9, Rare ×1.05, Epic ×1.3, Legendary ×1.6 (about ×1 across today's 113).
+- A Chef's Special costs twice its counter price plus its own tips × (0.4 + 0.035 a wave). Epic specials come out dearer than before (Spinach & Feta about 1,100 tips at wave 5, was 770): one for the sim.
+- Dealing goes by rarity everywhere: the tier is rolled first (60 / 28 / 10 / 2 among the tiers there are to deal), then a pizza of it. This holds for the Chef's Special slot, the two owned pizzas, Pizza Slots' jackpot special and the new-run screen's Rare Finds.
+- Epic specials are dealt from the wave 5 boss shop, as epic toppings are. A legendary special only turns up from wave 10, in its own act's stages: `act` on the pizza, unused until legendaries exist.
+- **Second route:** when the slot's roll lands on Common or Rare, 12% of the time a locked Pizzeria pizza of that tier comes instead, as a "PIZZERIA SPECIAL", at 1.35 times a real special's price. Buying it unlocks it for good.
+
+**Rebake on the pizza.** A dead pizza in the shop's table shows whole and charred, cracked, with a glowing oven door (REBAKE and its price) over it. Tap it to rebake that pizza: back with half its slices, fully fresh. The price is 1.5 times that pizza's counter price for the run's first rebake, then 2 times for every one after. It's still off on Inferno (its tile says so). Rebakes now follow the counter price, which grows with pizzas bought, so they cost more than the old flat price (a Common at wave 5 is about 490 tips, was about 160): kept as designed, one for the sim. The separate REBAKE button has gone; the Golden Menu's Golden Rebake (crusts, full slices, once a run) stays. Heal and Reheat stay on every tile, as before.
+
+**Frames.**
+- Every pizza card has a ring inside its border in its tier's material, plus a small label. Common is plain wood grain; Rare is silver with a sheen running round it; Epic is purple and gold, drifting, with sparkles; Legendary is gold with a turning, living border (ready for the legendaries).
+- The cards are the shop's counter and table, the Pizzeria, the new-run lineup and its Rare Find, and the Pizzapedia (with the label in its detail too).
+- Every pizza portrait sits on its tier's plate: a wooden board, a silver platter, a purple plate with a gold rim, or a gold platter.
+- The Peel Locker's pizza peels carry a small tier gem: a wooden stud, or a silver, purple or gold diamond.
+- The motion stops for reduced motion.
+
+**Rare Find cards** (the new-run lineup, the Pizzeria) are now a neutral gold highlight, not purple, so they don't read as Epic; a Rare Find's tier shows by its frame like any pizza. A Rare Find that was seen on the counter as a Chef's Special before its move counts as seen.
+
+**Not done here:** the five Commons that became Rare Finds don't get a Rare Find's glow `finish` (that's left to step 2's tier visuals on the table). There are two new intro cards, "Pizza rarity" (the first time the counter deals a Rare or better) and "Rebake" (the first shop with a dead pizza).
+
 ---
 
 ## Appendix: today's 113 pizzas, re-tiered
@@ -252,4 +299,4 @@ Tiered by perk strength from the perk text and numbers (not yet the sim). Format
 
 **Rare (48):** Choco-Berry, Detroit Red Top, Chicago Deep Dish, S'mores, Unicorn Dream, Pizza Fritta, Okonomiyaki, Mac & Cheese, Birthday Cake Pizza, Carbonara, Cajun Shrimp, Pumpkin Spice, Quattro Stagioni, Speed Slice, Combo King, Inferno Calzone, Boss Slayer Supreme, Thousand-Foot Feast, Olympian Feast, Pesto Genovese, Sicilian Square, Grandma Square, Calabrese, Lahmacun, Fig & Gorgonzola, Duck à l'Orange, Philly Cheesesteak, Burrata & Heirloom, Napoletana, Oyster Rockefeller, Caviar Bianca, Four-Leaf Clover, Pizza Piñata, Haunted Hawaiian, Pirate's Treasure, Royal Wedding, Garden Veggie, Capricciosa, Calzone, Veggie Supreme, Hot Honey Chicken, Buffalo Hot, Meat Feast, Frutti di Mare, Taco Fiesta, New York Slice, Kebab Pizza, Greek.
 
-**Common (50):** everything else: the three starters, the small stat bumps and the situational and score-only perks (Black Truffle, Mallow Mountain, Victory Lap, Golden Anniversary, Night Shift, Perfect Pie, Century Crust, and so on). The full per-pizza list is generated from `src/data/pizzas.ts` when the foundation is built.
+**Common (50):** everything else: the three starters, the small stat bumps and the situational and score-only perks (Black Truffle, Mallow Mountain, Victory Lap, Golden Anniversary, Night Shift, Perfect Pie, Century Crust, and so on). In full: Margherita, Pepperoni, Funghi, Hawaiian, Quattro Formaggi, Diavola, BBQ Chicken, Black Truffle, Marinara, Prosciutto e Rucola, Breakfast Club, Patate e Rosmarino, Nduja, Hot Honey Pepperoni, Puttanesca, Stromboli, Pizza Bianca, Tarte Flambée, Pizza al Taglio, Pickle Pie, Tandoori, Salsiccia e Friarielli, Mallow Mountain, Pugliese, Ham & Mushroom, Chicken Pesto, Tuna & Sweetcorn, Pizza Romana, Garlic Bread Pizza, Bolognese, Jerk Chicken, Bufala, Chorizo & Pepper, Mediterranean, Sloppy Joe, Quattro Pomodori, Saffron & Lobster, Wagyu & Truffle, Smoked Salmon & Dill, Porcini Tartufata, Champagne Brunch, Lobster Thermidor, Fig & Prosciutto Rose, Bone Marrow & Black Garlic, Gold Leaf Margherita, Victory Lap, Century Crust, Perfect Pie, Golden Anniversary, Night Shift. Each pizza's `rarity` in the data is the source now.

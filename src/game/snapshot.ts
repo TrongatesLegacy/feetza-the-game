@@ -43,7 +43,10 @@ export interface RunSnapshot {
   super: number;
   rerollCost: number;
   healCost: number;
+  /** Old saves: the climbing rebake price (rebakes now go by the pizza's own price). */
   reviveCost: number;
+  /** Rebakes bought this run (the first is cheaper). */
+  rebakes?: number;
   reheatUses: number;
   bestCombo: number;
   feetSmacked: number;

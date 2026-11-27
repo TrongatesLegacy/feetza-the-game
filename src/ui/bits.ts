@@ -3,8 +3,10 @@
 import { pizzaStateURL } from '../game/assets';
 import { h } from './ui';
 
-/** A pizza drawn with its eaten slices missing, so slice count reads at a glance at any size. */
-export function pizzaThumb(id: string, slices: number, max: number, size: number, stale = false, dead = false): HTMLElement {
+/** A pizza drawn with its eaten slices missing, so slice count reads at a glance at any size. `charred`: a dead
+ *  pizza drawn whole and burnt (the shop's table, under its oven door), not as an empty plate. */
+export function pizzaThumb(id: string, slices: number, max: number, size: number, stale = false, dead = false, charred = false): HTMLElement {
+  if (dead && charred) return h('img', { class: 'pthumb charred', src: pizzaStateURL(id, max, max, size), alt: '' });
   return h('img', { class: `pthumb${stale ? ' stale' : ''}${dead ? ' dead' : ''}`, src: pizzaStateURL(id, dead ? 0 : slices, max, size), alt: '' });
 }
 
@@ -59,5 +61,15 @@ export const INTROS: Record<string, { tag: string; title: string; lines: string[
     tag: 'NEW: GOLDEN MENU',
     title: 'Spend crusts mid-run',
     lines: ['The Golden menu in the shop is paid from your banked Golden Crusts.', 'It is a permanent spend: those crusts are gone, not invested.'],
+  },
+  tiers: {
+    tag: 'NEW: PIZZA RARITY',
+    title: 'Common, Rare, Epic',
+    lines: ['Every pizza has a tier, shown by its frame: plain wood for Common, silver for Rare, purple and gold for Epic. Legendaries are coming.', 'Rarer pizzas turn up less often and cost more at the counter. Now and then a Pizzeria pizza turns up as a Chef’s Special too.'],
+  },
+  rebake: {
+    tag: 'NEW: REBAKE',
+    title: 'Back from the ashes',
+    lines: ['Tap the oven door on a toasted pizza to rebake it: back with half its slices, fully fresh.', 'It costs one and a half times that pizza’s counter price the first time in a run, then twice its price after that. Not on Inferno.'],
   },
 };

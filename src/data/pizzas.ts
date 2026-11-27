@@ -3,6 +3,7 @@
 import { meterBoostText, slamStunText, superStartText } from '../game/slamMode';
 import { CONTENT_PIZZAS } from '../content/pizzaData';
 import { tunaText } from './perkWave';
+import type { PizzaRarity } from './pizzaRarity';
 
 export type Topping =
   | 'pepperoni'
@@ -107,11 +108,18 @@ export interface PizzaType {
   cheese: number; // 0..1 cheese coverage
   toppings: Topping[];
   crust: string;
-  cost: number; // Golden Crust unlock cost (0 = starter)
+  /** Its price, inside its tier's band (src/data/pizzaRarity.ts): Golden Crusts for a Pizzeria pizza or a Rare Find
+   *  (0 = starter), a Chef's Special's tips before wave scaling. Milestone prizes aren't sold; theirs only sorts. */
+  cost: number;
   /** How a locked pizza is unlocked: bought at the shop counter as a Chef's Special (coins), bought
    * in the Pizzeria (crusts), won by its milestone (MILESTONES in data/meta.ts names it), or found
-   * by luck on the new-run screen (bought there with crusts). Starters are 'pizzeria' at cost 0. */
+   * by luck on the new-run screen (bought there with crusts). Starters are 'pizzeria' at cost 0.
+   * Common and Rare Pizzeria pizzas can also turn up, rarely, as a Chef's Special. */
   route: PizzaRoute;
+  /** Its tier, by how strong its perk is (docs/pizza-plan.md): its frame, how often it's dealt and its prices. */
+  rarity: PizzaRarity;
+  /** A legendary's act: a Chef's Special legendary only turns up in that act's stages. */
+  act?: number;
   /** Rare Finds' special finish: a coloured glow and sparkles on the table, and a see-through ghost. */
   finish?: { glow?: number; sparkle?: boolean; ghost?: boolean };
 }
@@ -121,115 +129,115 @@ export type PizzaRoute = 'special' | 'pizzeria' | 'milestone' | 'rare';
 export const PIZZAS: PizzaType[] = [
   {
     id: 'margherita', name: 'Margherita', perk: 'damage', perkText: '+10% smack damage',
-    shape: 'round', base: 'tomato', cheese: 0.55, toppings: ['mozzarella', 'basil'], crust: '#d9963f', cost: 0, route: 'pizzeria',
+    shape: 'round', base: 'tomato', cheese: 0.55, toppings: ['mozzarella', 'basil'], crust: '#d9963f', cost: 0, route: 'pizzeria', rarity: 'common',
   },
   {
     id: 'pepperoni', name: 'Pepperoni', perk: 'coins', perkText: '+20% tips from feet',
-    shape: 'round', base: 'tomato', cheese: 1, toppings: ['pepperoni'], crust: '#d48f3c', cost: 0, route: 'pizzeria',
+    shape: 'round', base: 'tomato', cheese: 1, toppings: ['pepperoni'], crust: '#d48f3c', cost: 0, route: 'pizzeria', rarity: 'common',
   },
   {
     id: 'funghi', name: 'Funghi', perk: 'stun', perkText: '+8% chance to stun feet',
-    shape: 'round', base: 'tomato', cheese: 1, toppings: ['mushroom'], crust: '#d29342', cost: 0, route: 'pizzeria',
+    shape: 'round', base: 'tomato', cheese: 1, toppings: ['mushroom'], crust: '#d29342', cost: 0, route: 'pizzeria', rarity: 'common',
   },
   {
     id: 'hawaiian', name: 'Hawaiian', perk: 'explode', perkText: 'Smacked-down feet explode (15 dmg)',
-    shape: 'round', base: 'tomato', cheese: 1, toppings: ['ham', 'pineapple'], crust: '#dc9a48', cost: 40, route: 'special',
+    shape: 'round', base: 'tomato', cheese: 1, toppings: ['ham', 'pineapple'], crust: '#dc9a48', cost: 40, route: 'special', rarity: 'common',
   },
   {
     id: 'veggie', name: 'Garden Veggie', perk: 'regen', perkText: 'Regrows a slice every 20s',
-    shape: 'round', base: 'tomato', cheese: 0.9, toppings: ['greenPepper', 'redPepper', 'onion', 'olive', 'tomato'], crust: '#d39646', cost: 60, route: 'special',
+    shape: 'round', base: 'tomato', cheese: 0.9, toppings: ['greenPepper', 'redPepper', 'onion', 'olive', 'tomato'], crust: '#d39646', cost: 90, route: 'special', rarity: 'rare',
   },
   {
     id: 'formaggi', name: 'Quattro Formaggi', perk: 'shield', perkText: 'Blocks the first stomp each wave',
-    shape: 'round', base: 'white', cheese: 1, toppings: ['blueCheese', 'parmesan', 'mozzarella'], crust: '#dca050', cost: 75, route: 'special',
+    shape: 'round', base: 'white', cheese: 1, toppings: ['blueCheese', 'parmesan', 'mozzarella'], crust: '#dca050', cost: 50, route: 'special', rarity: 'common',
   },
   {
     id: 'diavola', name: 'Diavola', perk: 'burnStomper', perkText: 'Feet that stomp it catch fire',
-    shape: 'round', base: 'tomato', cheese: 0.9, toppings: ['salami', 'chili', 'jalapeno'], crust: '#cf8a38', cost: 105, route: 'special',
+    shape: 'round', base: 'tomato', cheese: 0.9, toppings: ['salami', 'chili', 'jalapeno'], crust: '#cf8a38', cost: 65, route: 'special', rarity: 'common',
   },
   {
     id: 'bbq', name: 'BBQ Chicken', perk: 'crit', perkText: '+6% critical smack chance',
-    shape: 'round', base: 'bbq', cheese: 1, toppings: ['chicken', 'onion', 'bbq'], crust: '#c9843a', cost: 135, route: 'special',
+    shape: 'round', base: 'bbq', cheese: 1, toppings: ['chicken', 'onion', 'bbq'], crust: '#c9843a', cost: 75, route: 'special', rarity: 'common',
   },
   {
     id: 'meat', name: 'Meat Feast', perk: 'slices', perkText: 'Extra hearty: 12 slices instead of 8',
-    shape: 'round', base: 'tomato', cheese: 1, toppings: ['pepperoni', 'sausage', 'bacon', 'ham'], crust: '#c88038', cost: 180, route: 'special',
+    shape: 'round', base: 'tomato', cheese: 1, toppings: ['pepperoni', 'sausage', 'bacon', 'ham'], crust: '#c88038', cost: 125, route: 'special', rarity: 'rare',
   },
   {
     id: 'pesto', name: 'Pesto Genovese', perk: 'slowAbove', perkText: 'Feet above it move 25% slower',
-    shape: 'round', base: 'pesto', cheese: 0.7, toppings: ['tomato', 'mozzarella', 'basil'], crust: '#d9a050', cost: 225, route: 'pizzeria',
+    shape: 'round', base: 'pesto', cheese: 0.7, toppings: ['tomato', 'mozzarella', 'basil'], crust: '#d9a050', cost: 350, route: 'pizzeria', rarity: 'rare',
   },
   {
     id: 'sicilian', name: 'Sicilian Square', perk: 'thick', perkText: 'Thick crust: 30% chance to block a stomp',
-    shape: 'square', base: 'tomato', cheese: 0.85, toppings: ['basil', 'parmesan'], crust: '#c98a3e', cost: 255, route: 'pizzeria',
+    shape: 'square', base: 'tomato', cheese: 0.85, toppings: ['basil', 'parmesan'], crust: '#c98a3e', cost: 370, route: 'pizzeria', rarity: 'rare',
   },
   {
     id: 'dessert', name: 'Choco-Berry', perk: 'super', get perkText() { return meterBoostText(35); },
-    shape: 'round', base: 'choc', cheese: 0, toppings: ['strawberry', 'chocolate'], crust: '#c8874a', cost: 300, route: 'milestone',
+    shape: 'round', base: 'choc', cheese: 0, toppings: ['strawberry', 'chocolate'], crust: '#c8874a', cost: 350, route: 'milestone', rarity: 'rare',
   },
   {
     id: 'truffle', name: 'Black Truffle', perk: 'score', perkText: '+25% score',
-    shape: 'round', base: 'white', cheese: 0.9, toppings: ['truffle', 'arugula', 'parmesan'], crust: '#d79c52', cost: 390, route: 'milestone',
+    shape: 'round', base: 'white', cheese: 0.9, toppings: ['truffle', 'arugula', 'parmesan'], crust: '#d79c52', cost: 150, route: 'milestone', rarity: 'common',
   },
   {
     id: 'marinara', name: 'Marinara', perk: 'garlic', perkText: 'Garlic aura: feet above it take 6 dmg/s',
-    shape: 'round', base: 'tomato', cheese: 0, toppings: ['garlic', 'basil'], crust: '#d39646', cost: 45, route: 'special',
+    shape: 'round', base: 'tomato', cheese: 0, toppings: ['garlic', 'basil'], crust: '#d39646', cost: 45, route: 'special', rarity: 'common',
   },
   {
     id: 'capricciosa', name: 'Capricciosa', perk: 'reroll', perkText: '+1 free upgrade reroll each wave',
-    shape: 'round', base: 'tomato', cheese: 0.9, toppings: ['ham', 'mushroom', 'artichoke', 'olive'], crust: '#d6973f', cost: 90, route: 'special',
+    shape: 'round', base: 'tomato', cheese: 0.9, toppings: ['ham', 'mushroom', 'artichoke', 'olive'], crust: '#d6973f', cost: 95, route: 'special', rarity: 'rare',
   },
   {
     id: 'calzone', name: 'Calzone', perk: 'healWeakest', perkText: 'Patches the weakest pizza by 1 slice each wave',
-    shape: 'calzone', base: 'tomato', cheese: 0, toppings: [], crust: '#d99a48', cost: 120, route: 'special',
+    shape: 'calzone', base: 'tomato', cheese: 0, toppings: [], crust: '#d99a48', cost: 100, route: 'special', rarity: 'rare',
   },
   {
     id: 'prosciutto', name: 'Prosciutto e Rucola', perk: 'knockback', perkText: '+35% smack knockback',
-    shape: 'round', base: 'tomato', cheese: 0.8, toppings: ['prosciutto', 'arugula', 'parmesan'], crust: '#d7a050', cost: 150, route: 'special',
+    shape: 'round', base: 'tomato', cheese: 0.8, toppings: ['prosciutto', 'arugula', 'parmesan'], crust: '#d7a050', cost: 75, route: 'special', rarity: 'common',
   },
   {
     id: 'buffalo', name: 'Buffalo Hot', perk: 'burnHits', perkText: 'Smacks set feet on fire (4 dmg/s)',
-    shape: 'round', base: 'tomato', cheese: 1, toppings: ['chicken', 'blueCheese', 'hotSauce'], crust: '#cf8a38', cost: 165, route: 'special',
+    shape: 'round', base: 'tomato', cheese: 1, toppings: ['chicken', 'blueCheese', 'hotSauce'], crust: '#cf8a38', cost: 120, route: 'special', rarity: 'rare',
   },
   {
     id: 'breakfast', name: 'Breakfast Club', perk: 'combo', perkText: 'Combos last 0.6s longer',
-    shape: 'round', base: 'white', cheese: 0.9, toppings: ['bacon', 'egg', 'cheddar'], crust: '#d79c4a', cost: 195, route: 'special',
+    shape: 'round', base: 'white', cheese: 0.9, toppings: ['bacon', 'egg', 'cheddar'], crust: '#d79c4a', cost: 80, route: 'special', rarity: 'common',
   },
   {
     id: 'seafood', name: 'Frutti di Mare', perk: 'slowHits', perkText: 'Smacks chill feet (-20% speed)',
-    shape: 'round', base: 'tomato', cheese: 0.5, toppings: ['shrimp', 'mussel', 'squid', 'basil'], crust: '#d39646', cost: 210, route: 'special',
+    shape: 'round', base: 'tomato', cheese: 0.5, toppings: ['shrimp', 'mussel', 'squid', 'basil'], crust: '#d39646', cost: 130, route: 'special', rarity: 'rare',
   },
   {
     id: 'taco', name: 'Taco Fiesta', perk: 'double', perkText: '10% chance to smack twice',
-    shape: 'round', base: 'tomato', cheese: 1, toppings: ['beef', 'cheddar', 'lettuce', 'tomato', 'nacho'], crust: '#d8a245', cost: 240, route: 'special',
+    shape: 'round', base: 'tomato', cheese: 1, toppings: ['beef', 'cheddar', 'lettuce', 'tomato', 'nacho'], crust: '#d8a245', cost: 135, route: 'special', rarity: 'rare',
   },
   {
     id: 'spinach', name: 'Spinach & Feta', perk: 'regenAll', perkText: 'Every pizza regrows 1 slice each wave',
-    shape: 'round', base: 'white', cheese: 0.7, toppings: ['spinach', 'feta', 'garlic'], crust: '#d9a050', cost: 285, route: 'special',
+    shape: 'round', base: 'white', cheese: 0.7, toppings: ['spinach', 'feta', 'garlic'], crust: '#d9a050', cost: 275, route: 'special', rarity: 'epic',
   },
   {
     id: 'detroit', name: 'Detroit Red Top', perk: 'execute', perkText: 'Feet under 12% HP are smacked out instantly',
-    shape: 'square', base: 'white', cheese: 1, toppings: ['pepperoni', 'redStripes'], crust: '#b8742c', cost: 330, route: 'milestone',
+    shape: 'square', base: 'white', cheese: 1, toppings: ['pepperoni', 'redStripes'], crust: '#b8742c', cost: 370, route: 'milestone', rarity: 'rare',
   },
   {
     id: 'deepdish', name: 'Chicago Deep Dish', perk: 'radius', perkText: '+20% smack area',
-    shape: 'deep', base: 'tomato', cheese: 0, toppings: ['sausage', 'parmesan', 'basil'], crust: '#c88a3e', cost: 360, route: 'milestone',
+    shape: 'deep', base: 'tomato', cheese: 0, toppings: ['sausage', 'parmesan', 'basil'], crust: '#c88a3e', cost: 400, route: 'milestone', rarity: 'rare',
   },
   {
     id: 'smores', name: 'S\'mores', perk: 'superStart', get perkText() { return superStartText(40); },
-    shape: 'round', base: 'choc', cheese: 0, toppings: ['marshmallow', 'chocolate'], crust: '#b97a3e', cost: 420, route: 'milestone',
+    shape: 'round', base: 'choc', cheese: 0, toppings: ['marshmallow', 'chocolate'], crust: '#b97a3e', cost: 420, route: 'milestone', rarity: 'rare',
   },
   {
     id: 'bianca', name: 'Patate e Rosmarino', perk: 'coinsWave', perkText: '+8 tips for every wave cleared',
-    shape: 'round', base: 'white', cheese: 0.6, toppings: ['potato', 'rosemary', 'parmesan'], crust: '#dca355', cost: 450, route: 'pizzeria',
+    shape: 'round', base: 'white', cheese: 0.6, toppings: ['potato', 'rosemary', 'parmesan'], crust: '#dca355', cost: 160, route: 'pizzeria', rarity: 'common',
   },
   {
     id: 'unicorn', name: 'Unicorn Dream', perk: 'critDmg', perkText: '+60% critical smack damage',
-    shape: 'round', base: 'white', cheese: 0, toppings: ['marshmallow', 'sprinkles', 'strawberry'], crust: '#e0a86a', cost: 495, route: 'milestone',
+    shape: 'round', base: 'white', cheese: 0, toppings: ['marshmallow', 'sprinkles', 'strawberry'], crust: '#e0a86a', cost: 440, route: 'milestone', rarity: 'rare',
   },
   {
     id: 'golden', name: 'The Golden Pie', perk: 'luck', perkText: 'Better upgrade rarity & +15% tips',
-    shape: 'round', base: 'tomato', cheese: 1, toppings: ['pepperoni', 'goldLeaf', 'basil'], crust: '#e0a83e', cost: 600, route: 'milestone',
+    shape: 'round', base: 'tomato', cheese: 1, toppings: ['pepperoni', 'goldLeaf', 'basil'], crust: '#e0a83e', cost: 700, route: 'milestone', rarity: 'epic',
   },
 ];
 

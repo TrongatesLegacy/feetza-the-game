@@ -9,7 +9,8 @@ import { Momentum } from '../game/momentum';
 import { FEET, FOOT_BY_ID, OUCH, type FootType } from '../data/feet';
 import { META, MILESTONES } from '../data/meta';
 import { RUN_META } from '../game/Run';
-import { PIZZAS, PIZZA_BY_ID, enhancedText } from '../data/pizzas';
+import { PIZZAS, PIZZA_BY_ID, enhancedText, type PizzaType } from '../data/pizzas';
+import { PIZZERIA_SPECIAL_CHANCE, TIER_COUNTER, pickByTier, rollTier } from '../data/pizzaRarity';
 import { perkWave, setPerkWave } from '../data/perkWave';
 import { DmgTally } from '../game/dmgTally';
 import { buildView, toneOf, topSrc, type BuildView, type Src, type TablePizza } from '../game/buildStats';
@@ -305,7 +306,8 @@ export class GameScene extends Phaser.Scene implements Arena {
   /** The shop a Continue resumes into (cards, purchases, counter). */
   private restoredShop: { counter: RunSnapshot['counter']; shop: RunSnapshot['shop'] } | null = null;
   private healCost = 30;
-  private reviveCost = 120;
+  /** Rebakes bought this run (the first is cheaper). */
+  private rebakes = 0;
   private nowT = 0;
   private currentBackdrop: BackdropId | null = null;
   private currentLocation: LocationId | null = null;
@@ -829,7 +831,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.inUpgrade = false;
     this.displayCoins = 0;
     this.healCost = 30;
-    this.reviveCost = 120;
+    this.rebakes = 0;
     this.currentBackdrop = null;
     this.currentLocation = null;
     this.hitStop = 0;
@@ -904,7 +906,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       super: r.super,
       rerollCost: r.rerollCost,
       healCost: this.healCost,
-      reviveCost: this.reviveCost,
+      reviveCost: 120,
+      rebakes: this.rebakes,
       reheatUses: r.reheatUses,
       bestCombo: r.bestCombo,
       feetSmacked: r.feetSmacked,
@@ -954,7 +957,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     r.super = s.super;
     r.rerollCost = s.rerollCost;
     this.healCost = s.healCost;
-    this.reviveCost = s.reviveCost;
+    // (saves from before per-pizza rebakes: the old climbing price shows whether one was bought)
+    this.rebakes = s.rebakes ?? (s.reviveCost > 120 ? 1 : 0);
     r.reheatUses = s.reheatUses;
     r.bestCombo = s.bestCombo;
     r.feetSmacked = s.feetSmacked;
@@ -2275,8 +2279,10 @@ export class GameScene extends Phaser.Scene implements Arena {
   }
 
   // ——— Shop ———
-  private pizzaPrice(): number {
-    const base = 150 + 75 * this.run.pizzasBought + 12 * this.run.wave;
+  /** A pizza at the counter: the counter's base (150 + 75 a pizza bought + 12 a wave) times its tier's (Common the
+   *  cheapest, Legendary the dearest); with no pizza, the base itself (Pizza Slots' pull). */
+  private pizzaPrice(p?: PizzaType): number {
+    const base = (150 + 75 * this.run.pizzasBought + 12 * this.run.wave) * (p ? TIER_COUNTER[p.rarity] : 1);
     return Math.round((base * (1 - this.run.stats.counterDiscount)) / 5) * 5;
   }
 
@@ -2287,36 +2293,64 @@ export class GameScene extends Phaser.Scene implements Arena {
   }
 
   /**
-   * Two pizzas from your unlocked pool, plus sometimes a Chef's Special: a locked pizza that's
-   * unlocked for good when bought. Once every special is unlocked, that slot offers a pizza you own
-   * with its perk enhanced instead.
+   * Two pizzas from your unlocked pool, plus sometimes a Chef's Special: a locked pizza that's unlocked for good when
+   * bought. Everything is dealt by rarity (src/data/pizzaRarity.ts): the tier is rolled first (Common 60, Rare 28,
+   * Epic 10, Legendary 2, among the tiers there are to deal), then a pizza of it. The special's slot now and then deals
+   * a locked Common or Rare Pizzeria pizza instead, at a high tip price. Once every special is unlocked, that slot
+   * offers a pizza you own with its perk enhanced instead.
    */
   private rollCounterOffers(): CounterOffer[] {
     const alive = new Set(this.alivePizzas().map((p) => p.type.id));
     const onTable = new Set(this.pizzas.map((p) => p.type.id));
-    const price = this.pizzaPrice();
     const wave = this.run.wave;
+    const rarity = (id: string) => PIZZA_BY_ID[id].rarity;
     // toast pizzas can come back; ones not on the table at all come first
-    const owned = Phaser.Utils.Array.Shuffle(save.unlockedPizzas.filter((id) => !alive.has(id) && PIZZA_BY_ID[id])).sort((a, b) => Number(onTable.has(a)) - Number(onTable.has(b)));
-    const offers: CounterOffer[] = owned.slice(0, 2).map((id) => ({ id, name: PIZZA_BY_ID[id].name, perk: PIZZA_BY_ID[id].perkText, cost: price, kind: 'pizza' }));
-    const specials = PIZZAS.filter((p) => p.route === 'special' && !save.unlockedPizzas.includes(p.id)).sort((a, b) => a.cost - b.cost);
+    const owned = save.unlockedPizzas.filter((id) => !alive.has(id) && PIZZA_BY_ID[id]);
+    const offers: CounterOffer[] = [];
+    for (let i = 0; i < 2; i++) {
+      const left = owned.filter((id) => !offers.some((o) => o.id === id));
+      const away = left.filter((id) => !onTable.has(id));
+      const id = pickByTier(away.length ? away : left, rarity);
+      if (!id) break;
+      const p = PIZZA_BY_ID[id];
+      offers.push({ id, name: p.name, perk: p.perkText, cost: this.pizzaPrice(p), kind: 'pizza' });
+    }
     // Chef's Favourite: a Chef's Special is always on the counter
     if (offers.length < 2 || Math.random() < 0.5 || this.run.level('chefsfav')) {
-      if (specials.length) {
-        // the simpler specials turn up first
-        const p = Phaser.Utils.Array.GetRandom(specials.slice(0, 8));
-        offers.push({ id: p.id, name: p.name, perk: p.perkText, cost: specialPrice(price, p, wave), kind: 'special' });
+      const p = this.rollSpecial([]);
+      if (p) {
+        offers.push({ id: p.id, name: p.name, perk: p.perkText, cost: specialPrice(this.pizzaPrice(p), p, wave), kind: 'special' });
         save.specialSeen[p.id] = (save.specialSeen[p.id] ?? 0) + 1;
         persist();
       } else {
         const pool = save.unlockedPizzas.filter((id) => !alive.has(id) && PIZZA_BY_ID[id] && !offers.some((o) => o.id === id));
-        if (pool.length) {
-          const p = PIZZA_BY_ID[Phaser.Utils.Array.GetRandom(pool)];
-          offers.push({ id: p.id, name: p.name, perk: enhancedText(p.perk), cost: specialPrice(price, p, wave), kind: 'enhanced' });
+        const e = pickByTier(pool, rarity);
+        if (e) {
+          const q = PIZZA_BY_ID[e];
+          offers.push({ id: q.id, name: q.name, perk: enhancedText(q.perk), cost: specialPrice(this.pizzaPrice(q), q, wave), kind: 'enhanced' });
         }
       }
     }
     return offers;
+  }
+
+  /**
+   * A Chef's Special for the counter (null when there's none left to deal): a locked special, by rarity. Epics turn up
+   * from the wave 5 boss shop, as epic toppings do; a legendary special only in its own act's stages, from wave 10.
+   * When the roll lands on Common or Rare, now and then a locked Pizzeria pizza of that tier comes instead.
+   */
+  private rollSpecial(skip: string[]): PizzaType | null {
+    const wave = this.run.wave;
+    // (the shop opens after `wave`: its stages are the next wave's)
+    const act = actOf(wave + 1);
+    const locked = (route: PizzaType['route']) => PIZZAS.filter((p) => p.route === route && !save.unlockedPizzas.includes(p.id) && !skip.includes(p.id));
+    const specials = locked('special').filter((p) => rarityOpen(p.rarity, wave) && (p.rarity !== 'legendary' || p.act === act));
+    const pizzeria = locked('pizzeria').filter((p) => p.rarity === 'common' || p.rarity === 'rare');
+    const tier = rollTier([...specials, ...pizzeria].map((p) => p.rarity));
+    const fromPizzeria = pizzeria.filter((p) => p.rarity === tier);
+    if (fromPizzeria.length && Math.random() < PIZZERIA_SPECIAL_CHANCE) return Phaser.Utils.Array.GetRandom(fromPizzeria);
+    // otherwise a real special: of the tier rolled, or (none of it left) the tier rolled again among the specials
+    return pickByTier(specials.filter((p) => p.rarity === tier).length ? specials.filter((p) => p.rarity === tier) : specials, (p) => p.rarity);
   }
 
   /** Last pizza standing: the shop opened with one pizza left and none has been added yet. */
@@ -2486,7 +2520,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       heal: () => this.shopHeal(),
       slots: (pay) => this.shopSlots(pay),
       slotsTake: (c) => this.slotsTake(c),
-      rebake: () => this.shopRebake(),
+      rebake: (i) => this.shopRebake(i),
       reheat: (i) => this.shopReheat(i),
       healPizza: (i) => this.shopHealPizza(i),
       toppings: () => this.shopToppings(),
@@ -2499,6 +2533,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (this.run.kit.pendingPick) this.time.delayedCall(300, () => this.openPending());
     if (cards.some((u) => kindOf(u) !== 'permanent')) this.introCard('kinds');
     if (save.crusts >= 25 && this.shop.state.golden.some((g) => g.available)) this.introCard('golden');
+    if (counter.some((o) => PIZZA_BY_ID[o.id] && PIZZA_BY_ID[o.id].rarity !== 'common')) this.introCard('tiers');
+    if (this.run.heatDef.rebake && this.pizzas.some((p) => p.dead)) this.introCard('rebake');
   }
 
   /** Clearance Rack: one card that isn't free is half price. */
@@ -2540,6 +2576,8 @@ export class GameScene extends Phaser.Scene implements Arena {
         stale: p.stale || !!p.flags.wentStale,
         dead: p.dead,
         reheat: reheatOn ? { cost, can: needs && this.run.coins >= cost, need: needs } : null,
+        rebake: p.dead && this.run.heatDef.rebake ? { cost: this.boughtOut(this.rebakePrice(p)), can: this.run.coins >= this.boughtOut(this.rebakePrice(p)) } : null,
+        rarity: p.type.rarity,
         heal: { cost: healOne, can: !p.dead && p.slices < p.maxSlices && this.run.coins >= healOne, need: !p.dead && p.slices < p.maxSlices },
         neverStale: p.type.perk === 'neverStale',
         freshness: reheatOn,
@@ -2604,6 +2642,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       cost: this.offerPrice(o),
       fullCost: o.cost,
       kind: o.kind,
+      rarity: PIZZA_BY_ID[o.id]?.rarity ?? 'common',
+      fromPizzeria: o.kind === 'special' && PIZZA_BY_ID[o.id]?.route === 'pizzeria',
       basePerk: o.kind === 'enhanced' ? PIZZA_BY_ID[o.id]?.perkText : undefined,
     }));
     return {
@@ -2620,7 +2660,6 @@ export class GameScene extends Phaser.Scene implements Arena {
       tableFull: this.pizzas.length >= MAX_PIZZAS,
       offers,
       heal: { cost: this.boughtOut(this.healPrice()), can: this.alivePizzas().some((p) => p.slices < p.maxSlices) && r.coins >= this.boughtOut(this.healPrice()) },
-      rebake: { cost: this.boughtOut(this.rebakePrice()), can: dead.length > 0 && r.coins >= this.boughtOut(this.rebakePrice()), shown: this.run.heatDef.rebake },
       slots: this.slotsShown() ? { cost: this.slotsCost(), can: !sh.slots?.used && r.coins >= this.slotsCost(), crustCost: SLOTS_CRUSTS, canCrusts: !sh.slots?.used && save.crusts >= SLOTS_CRUSTS, used: !!sh.slots?.used, result: sh.slots?.result ?? null, pays: this.slotsPays() } : null,
       lastStand,
       yours: this.yourToppings(),
@@ -2908,9 +2947,10 @@ export class GameScene extends Phaser.Scene implements Arena {
     return Math.round((this.healCost + 3 * this.run.wave) / 5) * 5;
   }
 
-  /** Rebake: its climbing price plus the wave's. */
-  private rebakePrice(): number {
-    return Math.round((this.reviveCost + 8 * this.run.wave) / 5) * 5;
+  /** Rebaking a pizza: 1.5 times what it costs at the counter right now (its tier's price, at this wave) for the run's
+   *  first rebake, twice for every one after. */
+  private rebakePrice(p: Pizza): number {
+    return Math.round((this.pizzaPrice(p.type) * (this.rebakes ? 2 : 1.5)) / 5) * 5;
   }
 
   private rerollCost(): number {
@@ -3154,8 +3194,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       case 'chef': {
         // the jackpot: a Chef's Special on the house (or an enhanced pizza when every special is unlocked)
         const sh = this.shop!;
-        const special = PIZZAS.filter((p) => p.route === 'special' && !save.unlockedPizzas.includes(p.id) && !sh.counter.some((o) => o.id === p.id));
-        const p = special.length ? Phaser.Utils.Array.GetRandom(special.slice(0, 8)) : null;
+        const p = this.rollSpecial(sh.counter.map((o) => o.id));
         if (p) {
           sh.counter.push({ id: p.id, name: p.name, perk: p.perkText, cost: 0, kind: 'special' });
           return `JACKPOT! ${p.name} is on the house at the counter`;
@@ -3196,17 +3235,21 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.refreshShop();
   }
 
-  private shopRebake(): void {
-    const p = this.pizzas.find((x) => x.dead);
-    const cost = this.boughtOut(this.rebakePrice());
-    if (!p || this.run.coins < cost || !this.run.heatDef.rebake) return;
+  /** Rebake a dead pizza (its tile's oven door in the shop): back with half its slices, fully fresh. Off on Inferno. */
+  private shopRebake(index?: number): void {
+    const p = index === undefined ? this.pizzas.find((x) => x.dead) : this.pizzas[index];
+    if (!p || !p.dead || !this.run.heatDef.rebake) return;
+    const cost = this.boughtOut(this.rebakePrice(p));
+    if (this.run.coins < cost) return;
     this.run.coins -= cost;
-    this.reviveCost = Math.round(this.reviveCost * 1.8);
+    this.rebakes++;
     p.revived = false;
     p.flags.wentStale = false;
     p.revive(Math.ceil(p.maxSlices / 2));
     p.setFresh(p.maxFresh);
     this.fx.healBurst(p.x, p.surfaceY);
+    this.fx.quip(p.x, p.surfaceY - 150, 'REBAKED!', '#ffb070', 40);
+    audio.sfx('sfx_reheat');
     audio.sfx('sfx_heal');
     this.recompute();
     this.refreshShop();
@@ -3251,7 +3294,7 @@ export class GameScene extends Phaser.Scene implements Arena {
         if (off.kind === 'enhanced') this.enhance(p);
       }
       // a Chef's Special is yours for good
-      if (off.kind === 'special' && this.run.unlock(id, "Bought as a Chef's Special")) {
+      if (off.kind === 'special' && this.run.unlock(id, PIZZA_BY_ID[id].route === 'pizzeria' ? 'Bought as a Pizzeria Special' : "Bought as a Chef's Special")) {
         this.time.delayedCall(900, () => ui.hud.toast(pizzaPortraitURL(id), 'NEW PIZZA UNLOCKED', `${name} is on your menu for good`));
       }
       this.refreshShop();
@@ -5013,7 +5056,7 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   // ——— Onboarding ———
   /** A first-time card; `after` runs once it's closed (or straight away if it isn't shown). */
-  private introCard(id: 'kinds' | 'swap' | 'freshness' | 'phases' | 'mini' | 'events' | 'golden', after?: () => void): void {
+  private introCard(id: 'kinds' | 'swap' | 'freshness' | 'phases' | 'mini' | 'events' | 'golden' | 'tiers' | 'rebake', after?: () => void): void {
     if (save.seenIntros.includes(id) || (id === 'freshness' && this.run.heatDef.freshness <= 0)) {
       after?.();
       return;
@@ -5514,7 +5557,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     r.startPeels = [...save.peels];
     r.goalStart = {};
     for (const d of PEELS) if (d.progress && !hasPeel(d.id)) r.goalStart[`peel:${d.id}`] = d.progress()[0];
-    for (const m of MILESTONES) if (!save.milestones.includes(m.id)) r.goalStart[`ms:${m.id}`] = milestoneProgress(m.id)[0];
+    // (a goal whose pizza is yours already, by its other route, has nothing left to win)
+    for (const m of MILESTONES) if (!save.milestones.includes(m.id) && !(m.pizza && save.unlockedPizzas.includes(m.pizza))) r.goalStart[`ms:${m.id}`] = milestoneProgress(m.id)[0];
   }
 
   /** Everything this run unlocked or moved closer, for the "Unlocked this run" screen. */
@@ -5531,7 +5575,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     }
     for (const m of MILESTONES) {
       const was = r.goalStart[`ms:${m.id}`];
-      if (was === undefined || save.milestones.includes(m.id)) continue;
+      if (was === undefined || save.milestones.includes(m.id) || (m.pizza && save.unlockedPizzas.includes(m.pizza))) continue;
       const [have, need] = milestoneProgress(m.id);
       const pz = m.pizza ? PIZZA_BY_ID[m.pizza] : null;
       // milestones without a pizza prize (crusts only) have no portrait, so they're left out of GETTING CLOSER

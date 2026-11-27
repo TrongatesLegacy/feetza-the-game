@@ -2,6 +2,7 @@
 // calls back.
 
 import type { UpgradeKind, Rarity } from '../data/upgrades';
+import type { PizzaRarity } from '../data/pizzaRarity';
 
 export interface ShopCard {
   id: string;
@@ -40,6 +41,10 @@ export interface ShopPizza {
   enhancedPerk: string;
   /** Its own Reheat button (null when freshness is off for the run; `need` false when it's already fully fresh). */
   reheat: { cost: number; can: boolean; need: boolean } | null;
+  /** A dead pizza's Rebake (its oven-door overlay; null when it isn't dead, or on Inferno). */
+  rebake: { cost: number; can: boolean } | null;
+  /** Its tier: its tile's frame. */
+  rarity: PizzaRarity;
   /** Its own Heal +2 button (`need` false when it has every slice). */
   heal: { cost: number; can: boolean; need: boolean };
   /** This pizza never goes stale (Pumpkin Spice): its freshness shows as ∞. */
@@ -56,6 +61,10 @@ export interface ShopOffer {
   cost: number;
   fullCost: number;
   kind: 'pizza' | 'special' | 'enhanced';
+  /** Its tier: its card's frame. */
+  rarity: PizzaRarity;
+  /** A special that's a Pizzeria pizza (Common or Rare), dealt here now and then. */
+  fromPizzeria?: boolean;
   /** Enhanced offers: the plain perk text, struck through next to perk. */
   basePerk?: string;
 }
@@ -82,7 +91,6 @@ export interface ShopState {
   tableFull: boolean;
   offers: ShopOffer[];
   heal: { cost: number; can: boolean };
-  rebake: { cost: number; can: boolean; shown: boolean };
   /** Pizza Slots: in the counter's third slot when no Chef's Special turned up. One pull a shop; only three of a
    *  kind pays. `result` is the last pull (fresh: it was just pulled, so the reels spin). */
   slots: { cost: number; can: boolean; crustCost: number; canCrusts: boolean; used: boolean; result: SlotsResult | null; pays: [SlotSymbol, string][] } | null;
@@ -124,7 +132,8 @@ export interface ShopActions {
   buy(cardId: string): void;
   reroll(): void;
   heal(): void;
-  rebake(): void;
+  /** Rebake the dead pizza at this table index. */
+  rebake(index: number): void;
   reheat(index: number): void;
   /** Heal one pizza +2 slices. */
   healPizza(index: number): void;

@@ -238,7 +238,8 @@ function shopOnce(g: AnyScene, mode: 'rarity' | 'auto' = 'rarity'): boolean {
     const free = st.offers.find((o: any) => o.cost <= st.coins); // eslint-disable-line @typescript-eslint/no-explicit-any
     if (free) return g.shopBuyPizza(free.id), true;
   }
-  if (st.rebake.can && st.rebake.shown) return g.shopRebake(), true;
+  const dead = st.table.findIndex((p: any) => p.rebake?.can); // eslint-disable-line @typescript-eslint/no-explicit-any
+  if (dead >= 0) return g.shopRebake(dead), true;
   const rank: Record<string, number> = { legendary: 4, epic: 3, rare: 2, uncommon: 1.5, common: 1 };
   const score = (c: any) => (rank[c.rarity] ?? 0) + (mode === 'auto' && AUTO.test(`${c.name} ${c.desc}`) ? 10 : 0); // eslint-disable-line @typescript-eslint/no-explicit-any
   const card = st.cards.filter((c: any) => !c.sold && (c.free || st.coins >= c.price)).sort((a: any, b: any) => score(b) - score(a))[0]; // eslint-disable-line @typescript-eslint/no-explicit-any

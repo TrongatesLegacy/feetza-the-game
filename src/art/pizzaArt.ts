@@ -3,6 +3,7 @@
 
 import { toppingDrawer } from './registry';
 import type { PizzaType, Topping } from '../data/pizzas';
+import { TIER_LOOK, type PizzaRarity } from '../data/pizzaRarity';
 import { EXTRA_COUNTS, EXTRA_ORDER, drawDrizzles, drawExtraTopping } from './toppingsExtra';
 import { type Ctx, blob, ellipse, grain, hashStr, makeCanvas, mix, rgba, rng, roundRect, shade } from './util';
 
@@ -961,20 +962,70 @@ export function drawSliceSprite(p: PizzaType, top: HTMLCanvasElement): HTMLCanva
   return o;
 }
 
+/** A portrait's plate (drawn at the origin, unsquashed: the caller tilts it), in its tier's materials (TIER_LOOK). */
+function tierPlate(ctx: Ctx, r: PizzaRarity): void {
+  const t = TIER_LOOK[r];
+  const R = 205;
+  // the rim
+  const rim = ctx.createLinearGradient(-R, -R, R, R);
+  rim.addColorStop(0, t.b);
+  rim.addColorStop(0.45, t.a);
+  rim.addColorStop(0.7, t.b);
+  rim.addColorStop(1, t.a);
+  ellipse(ctx, 0, 0, R, R);
+  ctx.fillStyle = rim;
+  ctx.fill();
+  ctx.lineWidth = 7;
+  ctx.strokeStyle = t.edge;
+  ctx.stroke();
+  // the well
+  const inner = r === 'common' ? R - 10 : R - 18;
+  const well = ctx.createRadialGradient(-50, -70, 20, 0, 0, inner + 10);
+  if (r === 'common') {
+    well.addColorStop(0, '#f0cf9c');
+    well.addColorStop(0.7, t.b);
+    well.addColorStop(1, t.a);
+  } else if (r === 'rare') {
+    well.addColorStop(0, '#ffffff');
+    well.addColorStop(0.8, '#e4e9f0');
+    well.addColorStop(1, '#a6b0bd');
+  } else if (r === 'epic') {
+    well.addColorStop(0, '#b98cff');
+    well.addColorStop(0.75, '#7a3ae0');
+    well.addColorStop(1, '#4a1a9a');
+  } else {
+    well.addColorStop(0, '#fff6c8');
+    well.addColorStop(0.75, '#ffd25a');
+    well.addColorStop(1, '#c88a10');
+  }
+  ellipse(ctx, 0, 0, inner, inner);
+  ctx.fillStyle = well;
+  ctx.fill();
+  if (r === 'common') {
+    // the board's grain: faint rings
+    ctx.lineWidth = 3;
+    for (let k = 1; k <= 5; k++) {
+      ellipse(ctx, 6 * k - 15, 4 * k - 10, inner - 28 * k, inner - 30 * k);
+      ctx.strokeStyle = `rgba(120, 70, 30, ${0.1 + 0.02 * k})`;
+      ctx.stroke();
+    }
+  } else {
+    // a fine line between rim and well
+    ellipse(ctx, 0, 0, inner, inner);
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = r === 'epic' ? '#ffe680' : rgba(t.edge, 0.45);
+    ctx.stroke();
+  }
+}
+
 /** Small preview used in the DOM menus. */
 export function pizzaPortrait(p: PizzaType, top: HTMLCanvasElement, size = 160, alive: boolean[] = new Array(8).fill(true)): string {
   const [c, ctx] = makeCanvas(PIZZA_CANVAS_W, PIZZA_CANVAS_H + 60);
-  // plate
+  // its plate, by its tier: a wooden board, a silver platter, a purple plate with a gold rim, a gold platter
   ctx.save();
   ctx.translate(PIZZA_CANVAS_W / 2, PIZZA_CANVAS_H / 2 + 26);
   ctx.scale(1, TILT);
-  const pg = ctx.createRadialGradient(-40, -60, 20, 0, 0, 220);
-  pg.addColorStop(0, '#ffffff');
-  pg.addColorStop(0.85, '#e8eaee');
-  pg.addColorStop(1, '#aab0ba');
-  ellipse(ctx, 0, 0, 205, 205);
-  ctx.fillStyle = pg;
-  ctx.fill();
+  tierPlate(ctx, p.rarity ?? 'common');
   ctx.restore();
   const [pc, pctx] = makeCanvas(PIZZA_CANVAS_W, PIZZA_CANVAS_H);
   renderPizza(pctx, { type: p, top, alive, prints: [], shield: false });
