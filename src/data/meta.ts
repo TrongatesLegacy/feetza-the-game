@@ -78,6 +78,23 @@ export const MILESTONES: Milestone[] = [
   { id: 'night10', name: 'Play 10 runs after 10pm', pizza: 'nightshift' },
   { id: 'surtr', name: 'Beat Surtr', pizza: 'ragnarok' },
   { id: 'hades', name: 'Beat Hades', pizza: 'olympian' },
+  // the pizza plan's route moves (docs/pizza-plan.md, step 1): eight Common Pizzeria pizzas became milestone prizes.
+  // (Seven milestones' pizzas moved the other way, off milestones: Combo King, Boss Slayer Supreme, Pizza Fritta,
+  // Okonomiyaki, Birthday Cake Pizza, Quattro Stagioni, Thousand-Foot Feast. Their goals still award them, as a
+  // second way in, until the new Epic and Legendary milestone pizzas take those goals over.)
+  { id: 'wave60', name: 'Reach wave 60', pizza: 'stromboli' },
+  { id: 'soggyScorch', name: 'Defeat 150 feet that leave pizzas soggy or scorched', pizza: 'whitepie' },
+  { id: 'pier25', name: 'Clear 25 waves at The Pier', pizza: 'saffronlobster' },
+  { id: 'minis25', name: 'Beat 25 mini-bosses', pizza: 'thermidor' },
+  { id: 'pizzas40', name: 'Unlock 40 pizzas', pizza: 'wagyu' },
+  { id: 'feet3000', name: 'Defeat 3,000 feet', pizza: 'marrow' },
+  { id: 'golden25', name: 'Catch 25 golden feet', pizza: 'goldmargherita' },
+  { id: 'events40', name: 'Deal with 40 wave events', pizza: 'figrose' },
 ];
 
 export const MILESTONE_BY_PIZZA: Record<string, Milestone> = Object.fromEntries(MILESTONES.filter((m) => m.pizza).map((m) => [m.pizza!, m]));
+
+/** The milestone that also wins a pizza whose own route is elsewhere now (it moved off milestones), if any. */
+export function legacyMilestone(p: { id: string; route: string }): Milestone | null {
+  return p.route !== 'milestone' ? MILESTONE_BY_PIZZA[p.id] ?? null : null;
+}

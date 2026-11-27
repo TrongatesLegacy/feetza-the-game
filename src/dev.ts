@@ -27,7 +27,7 @@ function seed(n: number | null): void {
 
 function skipIntros(): void {
   // (the player's own phase cards seen are kept; phase cards are muted for this page only, not saved off)
-  save.seenIntros = [...new Set([...save.seenIntros, 'shop', 'kinds', 'swap', 'freshness', 'phases', 'mini', 'events', 'golden'])];
+  save.seenIntros = [...new Set([...save.seenIntros, 'shop', 'kinds', 'swap', 'freshness', 'phases', 'mini', 'events', 'golden', 'tiers', 'rebake'])];
   phaseCardsMuted.on = true;
   save.tutorialDone = true;
 }
@@ -65,7 +65,8 @@ function botShop(g: AnyScene): void {
       return;
     }
   }
-  if (st.rebake.can && st.rebake.shown) return g.shopRebake();
+  const dead = st.table.findIndex((p: any) => p.rebake?.can); // eslint-disable-line @typescript-eslint/no-explicit-any
+  if (dead >= 0) return g.shopRebake(dead);
   const rank: Record<string, number> = { legendary: 4, epic: 3, rare: 2, common: 1 };
   const card = st.cards.filter((c: any) => !c.sold && (c.free || st.coins >= c.price)).sort((a: any, b: any) => rank[b.rarity] - rank[a.rarity])[0]; // eslint-disable-line @typescript-eslint/no-explicit-any
   if (card) return g.shopBuy(card.id);
