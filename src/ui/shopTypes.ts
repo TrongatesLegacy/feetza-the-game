@@ -27,6 +27,8 @@ export interface ShopPizza {
   id: string;
   name: string;
   perk: string;
+  /** What a growing perk is worth right now (Peel Collector: +6% damage, from 64 peels owned). */
+  now?: { total: string; why: string } | null;
   slices: number;
   max: number;
   fresh: number;

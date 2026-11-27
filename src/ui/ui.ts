@@ -1234,7 +1234,7 @@ class UI {
               ...tierFrame(p.rarity),
               p.stale ? h('span', { class: 'flag' }, 'STALE') : p.dead ? h('span', { class: 'flag dead' }, 'EATEN') : null,
               p.enhanced ? h('span', { class: 'star-badge', title: 'Enhanced: its perk is stronger this run', 'aria-label': 'Enhanced' }, '★') : null,
-              h('div', { class: 'pt-pic' }, sliceArt(p, 120)),
+              h('div', { class: 'pt-pic' }, sliceArt(p, 120), p.now ? h('span', { class: 'now', title: `Now ${p.now.total}: ${p.now.why}` }, `NOW ${p.now.total.replace(/ damage$/, '')}`) : null),
               h('div', { class: 'nm' }, p.name),
               // (a stale or dead pizza's perk crossed out: what reheating or rebaking brings back)
               h('div', { class: `ds${p.stale || p.dead ? ' off' : ''}` }, p.enhanced && !p.stale && !p.dead ? perkDiff(p.basePerk, p.perk) : p.perk),

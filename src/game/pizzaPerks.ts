@@ -415,6 +415,33 @@ export class PizzaPerkKit {
     return Math.round(3 * this.skaldBosses() * this.pk(p) * 10) / 10;
   }
 
+  /** What a growing perk is worth right now, for its card (Peel Collector's peels, the Forge's waves, the Saga's
+   *  bosses, Napoli DOC's variety): its total, and what it's counted from. Null for perks with no running total, or
+   *  while its perk is off. */
+  perkNow(p: Pizza): { total: string; why: string } | null {
+    if (!p.perk || p === this.a.possessed()) return null;
+    const r1 = (n: number) => Math.round(n * 10) / 10;
+    const many = (n: number, one: string, more: string) => `${n} ${n === 1 ? one : more}`;
+    switch (p.perk) {
+      case 'peelDmg': {
+        const n = new Set(['classic', ...save.peels]).size;
+        return { total: `+${r1(Math.floor(n / 10) * this.pk(p))}% damage`, why: `${many(n, 'peel', 'peels')} owned` };
+      }
+      case 'forgeWaves':
+        return { total: `+${this.forgePct(p)}% damage`, why: `${many(this.forgeWaves, 'wave', 'waves')} survived` };
+      case 'skaldSaga': {
+        const n = this.skaldBosses();
+        return { total: `+${this.skaldPct(p)}% damage`, why: `${many(n, 'boss', 'bosses')} beaten` };
+      }
+      case 'varietyDmg': {
+        const n = new Set(this.a.alivePizzas().map((q) => q.type.id)).size;
+        return { total: `+${r1(5 * n * this.pk(p))}% damage`, why: `${many(n, 'kind', 'kinds')} of pizza out` };
+      }
+      default:
+        return null;
+    }
+  }
+
   /** Pizza Romana: follow-up smacks while it has every slice. */
   extraDouble(): number {
     let d = 0;

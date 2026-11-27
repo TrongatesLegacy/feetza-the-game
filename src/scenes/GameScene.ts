@@ -2631,6 +2631,7 @@ export class GameScene extends Phaser.Scene implements Arena {
         id: p.type.id,
         name: p.type.name,
         perk: p.perkText,
+        now: p.dead || p.stale ? null : this.perkKit.perkNow(p),
         basePerk: p.basePerkLine,
         enhancedPerk: p.enhancedLine,
         enhanced: p.enhanced && !p.dead,

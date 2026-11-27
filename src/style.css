@@ -7637,3 +7637,24 @@ body.reduced-motion .pzr-legendary img { animation: none !important; }
 }
 /* the pull buttons grow a little on hover: the side column keeps clipping its overflow, with room round them for that */
 .offer.slots .side { padding: 0.3em 0.35em; margin: -0.3em -0.35em; }
+
+/* a growing perk's worth right now (Peel Collector, Colossus Forge, Skald's Saga, Napoli DOC): a tag on its
+   picture (what it's counted from on hover), so the card keeps its height */
+.ptile .pt-pic { position: relative; }
+.ptile .now {
+  position: absolute;
+  left: 50%;
+  bottom: -0.1em;
+  transform: translateX(-50%);
+  font-family: 'Lilita One', sans-serif;
+  font-size: 0.78em;
+  letter-spacing: 0.03em;
+  color: #fff;
+  background: var(--basil-d);
+  border: 0.12em solid var(--ink);
+  border-radius: 0.7em;
+  padding: 0.02em 0.55em 0.06em;
+  white-space: nowrap;
+  box-shadow: 0 0.12em 0 var(--ink);
+  cursor: help;
+}
