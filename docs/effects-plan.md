@@ -26,13 +26,13 @@ Items say what they do in one line each:
 ```ts
 effects: [
   Effect.Stat(Stat.ConsumableCards, Op.Add(1)),                         // Mac & Cheese
-  Effect.OnKill(Chance(15), Action.Summon(Ally.FriendlyGhost)),         // Phantom Waltz
-  Effect.Every(Seconds(20), Action.BlowUp(Target.Diving)),              // Steam Bun Pie
-  Effect.OnStomp(PerWave(1), Action.Block(Seconds(1))),                 // Granite Crust
+  Effect.OnKill(Unit.Chance(15), Action.Summon(Ally.FriendlyGhost)),         // Phantom Waltz
+  Effect.Every(Unit.Seconds(20), Action.BlowUp(Target.Diving)),              // Steam Bun Pie
+  Effect.OnStomp(Unit.PerWave(1), Action.Block(Unit.Seconds(1))),                 // Granite Crust
 ]
 ```
 
-**Arguments are plain and positional, and every number carries its unit.** `Chance(15)`, `Seconds(20)` and `PerWave(1)` give **branded numbers**:
+**Arguments are plain and positional, and every number carries its unit.** `Unit.Chance(15)`, `Unit.Seconds(20)` and `Unit.PerWave(1)` give **branded numbers**. Like everything else, the units sit under one name, `Unit.`, so typing it lists them all and none can clash with a stat or an ally of the same name.
 - **At typecheck:** `Seconds` is its own type, so passing one where a `Chance` belongs doesn't compile, and neither does passing a bare `20`.
 - **At run time:** each is an ordinary number. The maths works on it directly, saves store `20`, and it costs nothing.
 - **Range checks:** each unit's function checks its own range, so a chance must be 0–100%.
