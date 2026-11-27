@@ -2,7 +2,7 @@
 
 Goal: four rarity tiers, with **60 Common, 50 Rare, 40 Epic and 30 Legendary** pizzas (180 in all, 67 of them new), and the four ways to unlock spread evenly across every tier.
 
-Status: **draft for review. Nothing here is built yet.** Perks, names and numbers are proposals; the balance sim sets the final numbers. The act each legendary belongs to gets checked against `src/data/stages.ts` when it's built.
+Status: **approved by Tron (2026-11-27), not built yet.** Decisions: no limit on legendaries at the table; Pizzeria and milestone legendaries gated on beating that act's boss on Hot or hotter; counter odds Common 60 / Rare 28 / Epic 10 / Legendary 2. Perks, names and numbers are proposals; the balance sim sets the final numbers. The act each legendary belongs to gets checked against `src/data/stages.ts` when it's built.
 
 ---
 
@@ -177,7 +177,7 @@ Existing pizzas are re-priced into their tier's band. A few weak but expensive P
 
 ### Legendary (30, three per act)
 
-Each legendary has its own mechanic, its own sound for every move, an animated aura on the table, a show-piece living peel and a hand-written peel ability. One legendary on the table at a time (see questions).
+Each legendary has its own mechanic, its own sound for every move, an animated aura on the table, a show-piece living peel and a hand-written peel ability. Any number can be on the table at once (Tron's call): price and rarity keep them scarce, and the balance sim checks stacked legendaries.
 
 **Damage scales with heat.** Feet get tougher on hotter heats (health ×0.7 on Mild, ×1 Regular, ×1.3 Hot, ×1.7 Extra Hot, ×2.2 Inferno), so a legendary's damage (the Black Olive Hole's ×5, the comet's ×4, the cannon's ×8 and the rest) is set on Mild and scales up in step, so it hits just as hard at every heat:
 
@@ -235,12 +235,12 @@ The act mapping gets checked against `src/data/stages.ts` when each is built, an
 
 Every new pizza gets its peel automatically (`buildDefs()`), a hand-written ability in `ABILITIES`, a look, and a check in the Peel Locker, per CLAUDE.md.
 
-## 5. Questions for Tron
+## 5. Decisions (Tron, 2026-11-27)
 
-1. **One legendary on the table at a time?** Recommended, so they stay centrepieces.
-2. **Legendary gates:** Hot or hotter for the Pizzeria and milestone ones, as above, or any heat?
-3. **Counter odds:** Common 60 / Rare 28 / Epic 10 / Legendary 2: happy with these?
-4. **Any of the 67 to drop, rename or swap?**
+1. **Legendaries at the table:** no limit.
+2. **Legendary gates:** Hot or hotter for the Pizzeria and milestone ones.
+3. **Counter odds:** Common 60 / Rare 28 / Epic 10 / Legendary 2.
+4. **The 67:** as drafted, with the Black Olive Hole and Hammy Ha.
 
 ---
 
