@@ -2807,6 +2807,12 @@ export class GameScene extends Phaser.Scene implements Arena {
       wave,
       inWave: this.waveActive,
       bossWave: isBossWave(wave),
+      shopCards: (() => {
+        const usual = 3 + (save.meta.indecisive ? 1 : 0);
+        // (what this shop dealt: cards are dealt as the shop opens, so a change bought here counts from the next one)
+        const sh = this.shop;
+        return { now: cardCount(r, usual) + r.stats.extraConsumable, base: usual, dealt: sh && !sh.bossReward ? sh.cards.length : null };
+      })(),
       extraDouble: this.perkKit.extraDouble(),
       lossTips: this.perkKit.lossTipsOn(),
       ghosts: this.perkKit.ghostCount(),

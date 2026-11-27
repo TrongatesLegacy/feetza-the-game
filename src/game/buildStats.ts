@@ -157,6 +157,8 @@ export interface BuildInput {
   wave: number;
   inWave: boolean;
   bossWave: boolean;
+  /** Topping cards each shop deals now (Extra Shelf, Exclusive Menu, Mac & Cheese… included), and with none of them. */
+  shopCards: { now: number; base: number; dealt: number | null };
   /** Pizza Romana's follow-up chance (on top of doubleChance). */
   extraDouble: number;
   /** Seaside Fritto pays more this wave (or the next, in the shop): a slice was lost in the one before. */
@@ -704,11 +706,16 @@ export function buildView(inp: BuildInput): BuildView {
   if (st.consumableDiscount > 0) eco.push({ label: 'One-use discount', num: pct(st.consumableDiscount), fmt: 'pct', icon: '🧇', tone: 'up', from: from('consumableDiscount') });
   if (st.counterDiscount > 0 || st.counterMult !== 1) eco.push({ label: 'Pizza counter', num: (1 - st.counterDiscount) * st.counterMult, fmt: 'x', icon: '🍕', tone: (1 - st.counterDiscount) * st.counterMult <= 1 ? 'up' : 'down', from: from('counterDiscount', 'counterMult'), note: 'prices' });
   if (st.rerollLess > 0 || st.rerollMult !== 1) eco.push({ label: 'Rerolls', num: st.rerollMult, fmt: 'x', icon: '🔄', tone: st.rerollMult > 1 ? 'down' : 'up', from: from('rerollLess', 'rerollMult'), note: st.rerollLess ? `${st.rerollLess} tips off each` : undefined });
-  // the shop's card count: toppings that add or take away cards, plus Mac & Cheese's extra consumable card
-  const cards = st.cardDelta + st.extraConsumable;
+  // the shop's card count: how many topping cards a shop deals now (toppings that add or take away cards, and Mac &
+  // Cheese's extra one-use card), against the usual
   const macs = st.extraConsumable > 0 ? inp.pizzas.filter((p) => p.perk === 'extraConsumable') : [];
-  if (st.cardDelta !== 0 || st.extraConsumable > 0)
-    eco.push({ label: 'Cards per shop', num: Math.abs(cards), fmt: 'int', pre: cards > 0 ? '+' : cards < 0 ? '−' : '', icon: '🃏', tone: cards > 0 ? 'up' : cards < 0 ? 'down' : 'flat', from: [...from('cardDelta', 'extraConsumable'), ...macs.map(pzSrc).filter((m) => !from('extraConsumable').some((o) => o.key === m.key))], note: st.extraConsumable > 0 ? `${st.extraConsumable} of them a one-use card` : undefined });
+  if (st.cardDelta !== 0 || st.extraConsumable > 0) {
+    const { now, base: usual } = inp.shopCards;
+    const src = [...from('cardDelta', 'extraConsumable'), ...macs.map(pzSrc).filter((m) => !from('extraConsumable').some((o) => o.key === m.key))];
+    const dealt = inp.shopCards.dealt;
+    const note = `${usual} normally${st.extraConsumable > 0 ? ` · ${st.extraConsumable} of them a one-use card (when one is free to deal)` : ''}${dealt !== null && dealt !== now ? ` · this shop dealt ${dealt}: cards are dealt as a shop opens, so this counts from the next shop` : ''}`;
+    eco.push({ label: 'Cards per shop', num: now, fmt: 'int', icon: '🃏', tone: now > usual ? 'up' : now < usual ? 'down' : 'flat', from: src, note });
+  }
   if (st.goldenDiscount > 0) eco.push({ label: 'Golden Menu off', num: pct(st.goldenDiscount), fmt: 'pct', icon: '🎫', tone: 'up', from: from('goldenDiscount') });
   if (st.crustBonus > 0 || st.endCrustMult > 0) eco.push({ label: 'End-of-run crusts', num: pct(st.crustBonus + st.endCrustMult), fmt: 'pct', pre: '+', icon: '🥧', tone: 'up', from: from('crustBonus', 'endCrustMult') });
   if (st.scoreMult !== 1) eco.push({ label: 'Score', num: st.scoreMult, fmt: 'x', icon: '⭐', tone: tone('scoreMult'), from: from('scoreMult') });
