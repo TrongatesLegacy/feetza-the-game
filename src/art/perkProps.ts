@@ -348,3 +348,241 @@ export function drawLightBeam(): HTMLCanvasElement {
   }
   return c;
 }
+
+/** Phantom Waltz's friendly ghost: a little sheet ghost from the Phantom King's court, one arm raised to waltz, a
+ *  violet bow tie, see-through at its hem. Drawn pale so the scene can tint it. */
+export function drawWaltzGhost(): HTMLCanvasElement {
+  const [c, ctx] = makeCanvas(140, 160);
+  ctx.translate(70, 76);
+  const body = () => {
+    ctx.beginPath();
+    ctx.moveTo(-34, 44);
+    ctx.lineTo(-34, -6);
+    ctx.bezierCurveTo(-34, -46, 34, -46, 34, -6);
+    ctx.lineTo(34, 44);
+    // a wavy hem, swishing as it waltzes
+    for (let i = 0; i < 4; i++) {
+      const x0 = 34 - i * 17;
+      ctx.quadraticCurveTo(x0 - 8.5, 44 + (i % 2 ? -10 : 14), x0 - 17, 44);
+    }
+    ctx.closePath();
+  };
+  // its soft glow
+  const glow = ctx.createRadialGradient(0, 4, 10, 0, 4, 70);
+  glow.addColorStop(0, rgba('#d8c0ff', 0.45));
+  glow.addColorStop(1, rgba('#d8c0ff', 0));
+  ctx.fillStyle = glow;
+  ctx.fillRect(-70, -76, 140, 160);
+  // the raised arm (behind) and the one on its hip
+  ctx.lineCap = 'round';
+  for (const [w, col] of [[15, '#5a4a78'], [11, '#f4f0ff']] as const) {
+    ctx.strokeStyle = col;
+    ctx.lineWidth = w;
+    ctx.beginPath();
+    ctx.moveTo(26, -2);
+    ctx.quadraticCurveTo(46, -18, 44, -40);
+    ctx.moveTo(-28, 8);
+    ctx.quadraticCurveTo(-46, 12, -36, 26);
+    ctx.stroke();
+  }
+  body();
+  ctx.lineWidth = 6;
+  ctx.strokeStyle = '#4a3a6a';
+  ctx.stroke();
+  body();
+  const g = ctx.createLinearGradient(0, -40, 0, 54);
+  g.addColorStop(0, '#ffffff');
+  g.addColorStop(0.6, '#eee8ff');
+  g.addColorStop(1, rgba('#c8b8f0', 0.55));
+  ctx.fillStyle = g;
+  ctx.fill();
+  // eyes, cheeks and a happy little "o"
+  ctx.fillStyle = '#2a2040';
+  ellipse(ctx, -11, -10, 5, 7);
+  ctx.fill();
+  ellipse(ctx, 11, -10, 5, 7);
+  ctx.fill();
+  ctx.fillStyle = '#ffffff';
+  ellipse(ctx, -12.5, -13, 1.8, 1.8);
+  ctx.fill();
+  ellipse(ctx, 9.5, -13, 1.8, 1.8);
+  ctx.fill();
+  ctx.fillStyle = rgba('#ff9ad0', 0.5);
+  ellipse(ctx, -19, 0, 4.5, 2.6);
+  ctx.fill();
+  ellipse(ctx, 19, 0, 4.5, 2.6);
+  ctx.fill();
+  ctx.fillStyle = '#2a2040';
+  ellipse(ctx, 0, 4, 3.2, 3.8);
+  ctx.fill();
+  // the Phantom King's violet bow tie
+  ctx.fillStyle = '#7a3ad0';
+  ctx.strokeStyle = '#2e0f62';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, 16);
+  ctx.lineTo(-13, 9);
+  ctx.lineTo(-13, 23);
+  ctx.closePath();
+  ctx.moveTo(0, 16);
+  ctx.lineTo(13, 9);
+  ctx.lineTo(13, 23);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ellipse(ctx, 0, 16, 3.4, 3.4);
+  ctx.fillStyle = '#ffd23f';
+  ctx.fill();
+  sheen(ctx, -16, -26, 9, 4, 0.7);
+  return c;
+}
+
+/** Comet Calzone's comet, from the Cosmic Croc's sky: an icy head of rock and frost, blazing blue-white, with a long
+ *  tail streaming up and to the right (it travels down-left). */
+export function drawComet(): HTMLCanvasElement {
+  const [c, ctx] = makeCanvas(320, 320);
+  const r = rng(23);
+  ctx.save();
+  ctx.translate(110, 210);
+  ctx.rotate(Math.PI / 4);
+  // the tail: three layers, widest and faintest outside, with a few streaks of dust in it
+  for (const [w, col, a] of [[84, '#4a8aff', 0.3], [54, '#9ad0ff', 0.5], [24, '#f4faff', 0.85]] as const) {
+    const g = ctx.createLinearGradient(0, 0, 0, -200);
+    g.addColorStop(0, rgba(col, a));
+    g.addColorStop(1, rgba(col, 0));
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(-w / 2, 0);
+    ctx.quadraticCurveTo(-w * 0.1, -230, 0, -230);
+    ctx.quadraticCurveTo(w * 0.1, -230, w / 2, 0);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.strokeStyle = rgba('#ffffff', 0.45);
+  ctx.lineWidth = 1.6;
+  for (let i = 0; i < 5; i++) {
+    const x = (r() - 0.5) * 40;
+    ctx.beginPath();
+    ctx.moveTo(x * 0.3, -20);
+    ctx.lineTo(x, -110 - r() * 70);
+    ctx.stroke();
+  }
+  ctx.restore();
+  ctx.translate(110, 210);
+  const glow = ctx.createRadialGradient(0, 0, 8, 0, 0, 52);
+  glow.addColorStop(0, rgba('#e8f6ff', 0.9));
+  glow.addColorStop(0.5, rgba('#6ab0ff', 0.45));
+  glow.addColorStop(1, rgba('#2a6aff', 0));
+  ctx.fillStyle = glow;
+  ellipse(ctx, 0, 0, 52, 52);
+  ctx.fill();
+  blob(ctx, 0, 0, 25, 0.22, r, 9);
+  ctx.fillStyle = '#1a2440';
+  ctx.fill();
+  blob(ctx, 0, 0, 21, 0.22, r, 9);
+  const g = ctx.createRadialGradient(-6, -7, 2, 0, 0, 24);
+  g.addColorStop(0, '#d8ecff');
+  g.addColorStop(0.5, '#7a9ac8');
+  g.addColorStop(1, '#3a4a6a');
+  ctx.fillStyle = g;
+  ctx.fill();
+  // frost caps and craters on the rock
+  for (const [x, y, s] of [[7, -9, 4.5], [-10, -6, 3.5], [5, 11, 3]]) {
+    ctx.fillStyle = rgba('#22304a', 0.6);
+    ellipse(ctx, x, y, s, s * 0.8);
+    ctx.fill();
+  }
+  sheen(ctx, -8, -10, 7, 3, 0.8);
+  return c;
+}
+
+/** Sandcastle Sundae's sand wall: Sandcastle Sam's rampart of pressed sand, a tower at each end with a pennant, in the
+ *  style of the Sundae's sandcastles (shaded, crumbly, outlined), for the wall that rises to block a stomp. */
+export function drawSandWall(): HTMLCanvasElement {
+  const [c, ctx] = makeCanvas(280, 170);
+  const r = rng(31);
+  const sand = '#e2b46a';
+  const dark = '#a8743a';
+  const line = '#6a4418';
+  const crenel = (x: number, y: number, w: number, h: number, teeth: number) => {
+    ctx.beginPath();
+    ctx.moveTo(x, y + h);
+    ctx.lineTo(x, y);
+    const tw = w / (teeth * 2 - 1);
+    for (let i = 0; i < teeth * 2 - 1; i++) {
+      const tx = x + i * tw;
+      const up = i % 2 === 0 ? -12 : 0;
+      ctx.lineTo(tx, y + up);
+      ctx.lineTo(tx + tw, y + up);
+    }
+    ctx.lineTo(x + w, y + h);
+    ctx.closePath();
+  };
+  const part = (x: number, y: number, w: number, h: number, teeth: number) => {
+    crenel(x, y, w, h, teeth);
+    ctx.save();
+    ctx.translate(3, 3);
+    ctx.fillStyle = dark;
+    ctx.fill();
+    ctx.restore();
+    crenel(x, y, w, h, teeth);
+    const g = ctx.createLinearGradient(x, y, x + w, y + h);
+    g.addColorStop(0, shade(sand, 0.15));
+    g.addColorStop(0.6, sand);
+    g.addColorStop(1, shade(sand, -0.18));
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = line;
+    ctx.stroke();
+    ctx.save();
+    crenel(x, y, w, h, teeth);
+    ctx.clip();
+    for (let i = 0; i < (w * h) / 18; i++) {
+      ctx.fillStyle = r() < 0.5 ? rgba('#fff0c8', 0.6) : rgba('#8a5a22', 0.45);
+      ctx.fillRect(x + r() * w, y - 12 + r() * (h + 12), 2, 2);
+    }
+    // pressed-sand courses
+    ctx.strokeStyle = rgba('#8a5a22', 0.35);
+    ctx.lineWidth = 2;
+    for (let yy = y + 18; yy < y + h; yy += 18) {
+      ctx.beginPath();
+      ctx.moveTo(x, yy + Math.sin(yy) * 2);
+      ctx.lineTo(x + w, yy - Math.sin(yy) * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  };
+  // the rampart, then a tower at each end
+  part(40, 62, 200, 100, 6);
+  part(8, 30, 56, 132, 2);
+  part(216, 30, 56, 132, 2);
+  // the gate and arrow slits
+  ctx.fillStyle = '#5a3412';
+  ctx.beginPath();
+  ctx.moveTo(122, 162);
+  ctx.lineTo(122, 122);
+  ctx.arc(140, 122, 18, Math.PI, 0);
+  ctx.lineTo(158, 162);
+  ctx.closePath();
+  ctx.fill();
+  for (const x of [30, 244]) ctx.fillRect(x, 70, 6, 18);
+  // pennants on the towers
+  for (const [x, col] of [[36, '#e83a3a'], [244, '#2a8ae0']] as const) {
+    ctx.strokeStyle = '#f6e6c8';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(x, 18);
+    ctx.lineTo(x, -2 + 4);
+    ctx.stroke();
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.moveTo(x + 1, 2);
+    ctx.quadraticCurveTo(x + 12, 4, x + 22, 10);
+    ctx.quadraticCurveTo(x + 12, 13, x + 1, 16);
+    ctx.closePath();
+    ctx.fill();
+  }
+  sheen(ctx, 70, 80, 14, 4, 0.35);
+  return c;
+}

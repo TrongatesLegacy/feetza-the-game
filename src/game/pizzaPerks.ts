@@ -7,7 +7,7 @@
 // half, so table-wide perks read `c(perk)`; perks tied to one pizza read `pk(p)`.
 
 import Phaser from 'phaser';
-import { drawChest, drawDiscoBall, drawGhostRing, drawLightBeam, drawMeatball, drawMeteor, drawMusicNote } from '../art/perkProps';
+import { drawChest, drawDiscoBall, drawGhostRing, drawLightBeam, drawMeatball, drawMeteor, drawMusicNote, drawWaltzGhost, drawComet, drawSandWall } from '../art/perkProps';
 import { PIZZAS, enhancedText, type PizzaPerk } from '../data/pizzas';
 import { tunaTips } from '../data/perkWave';
 import { WAVES_PER_ACT, isActStart } from '../data/stages';
@@ -18,6 +18,10 @@ import type { Foot } from './Foot';
 import type { Pizza } from './Pizza';
 import { TIP_MULT_CAP, isBossWave, locationFor, waveInStage, type Run } from './Run';
 import type { Stats } from '../data/upgrades';
+import { TILT } from '../art/pizzaArt';
+import { toppingDrawer } from '../art/registry';
+import { makeCanvas, rng } from '../art/util';
+import { crand } from '../systems/cosmeticRandom';
 
 /** Perks Arcobaleno can't borrow: set up when a pizza is placed, tied to its own type, or another borrower. */
 const BORROW_SKIP = new Set<PizzaPerk>([
@@ -30,8 +34,16 @@ export const BORROW_POOL: PizzaPerk[] = [...new Set(PIZZAS.map((p) => p.perk))].
 export const MYSTERY_POOL: PizzaPerk[] = ['damage', 'coins', 'crit', 'critDmg', 'double', 'execute', 'burnHits', 'explode', 'splash', 'radius', 'regenAll', 'meteor', 'timeStop', 'fireLane', 'orbitRing', 'ghostPass'];
 
 /** Sounds the perks play that aren't loaded at boot (the scene loads them with the run): Granite Crust's stone,
- *  Disco Diner Pie's jukebox, Lodge Fondue Pie's cheese. All CC0 or CC-BY and credited already. */
-export const PERK_SFX = ['sfx_gargoyle_stone', 'sfx_smack_tail_jukebox', 'sfx_venomnom_goo'];
+ *  Disco Diner Pie's jukebox, Lodge Fondue Pie's cheese, and the Epic Chef's Specials' sounds from their bosses (the
+ *  Kraken's ink, the Yeti's snowball, King Honk's pie, Sandcastle Sam's walls, T-Rex Toes' growl, Iron Heel's steam,
+ *  the Chimney Sweep's soot, the Cosmic Croc's meteor, the Phantom King's stir). All CC0 or CC-BY and credited already. */
+export const PERK_SFX = [
+  'sfx_gargoyle_stone', 'sfx_smack_tail_jukebox', 'sfx_venomnom_goo',
+  'sfx_kraken_squirt', 'sfx_kraken_inked', 'sfx_yeti_snowball', 'sfx_smack_snow_heavy', 'sfx_clownking_piesplat', 'sfx_clownking_honk',
+  'sfx_sandcastle_walls', 'sfx_sandcastle_sandland', 'sfx_smack_sand_heavy', 'sfx_trex_growl', 'sfx_smack_stone_heavy', 'sfx_ironheel_steam',
+  'sfx_ironheel_vent', 'sfx_sweep_soot', 'sfx_cosmiccroc_meteor', 'sfx_cosmiccroc_impact', 'sfx_phantomking_stir', 'sfx_phantomking_fade',
+  'sfx_smack_ghost_heavy',
+];
 
 /** Stages played at night (Night Shift). */
 const NIGHT = new Set(['space', 'oldtown', 'cellar']);
@@ -77,6 +89,26 @@ export interface PerkHost {
   /** One more free reroll in the next shop. */
   addReroll(): void;
   toast(id: string, title: string, body: string): void;
+  /** Move a foot to a free lane over another pizza (Squid Ink Nero): the new pizza, or null if none is free. */
+  relane(f: Foot): Pizza | null;
+}
+
+/** Sandcastle Sundae's wall towers: its sandcastle topping, drawn large. */
+function drawSandcastle(): HTMLCanvasElement {
+  const [c, ctx] = makeCanvas(150, 150);
+  ctx.translate(75, 84);
+  ctx.scale(2.6, 2.6);
+  toppingDrawer('sandcastle')?.draw(ctx, rng(5));
+  return c;
+}
+
+/** Phantom Waltz's friendly ghost: a sprite guarding a pizza (never a foot, so nothing can zombify it). */
+interface Ghost {
+  p: Pizza;
+  img: Phaser.GameObjects.Image;
+  glow: Phaser.GameObjects.Image;
+  ph: number;
+  ready: boolean;
 }
 
 interface Chest {
@@ -110,6 +142,28 @@ export class PizzaPerkKit {
   private rushUntil = -99;
   /** Disco Diner Pie: seconds of wave since the last dance beat (it carries over between waves). */
   private danceT = 0;
+  // ——— the Epic Chef's Specials (step 4, batch 1) ———
+  /** Squid Ink Nero: inked feet, wandering off to a new lane until then (arena seconds), and the ink on them. */
+  private inked = new Map<Foot, { until: number; bx: number; ph: number; blobs: Phaser.GameObjects.Image[]; tintAt: number }>();
+  /** Cream Pie Supreme: the pie splat left on a pizza, where it lies. */
+  private splats = new Map<Pizza, { img: Phaser.GameObjects.Image; dx: number }>();
+  /** Sandcastle Sundae: stomps the sand wall can still block this wave, and its towers beside the pies. */
+  private sandLeft = 0;
+  private sandTowers: Phaser.GameObjects.Image[] = [];
+  /** T-Rex Ribs: the table shakes (+damage) until then (arena seconds); when its last shake played. */
+  private quakeUntil = -99;
+  private quakeFx = -99;
+  /** Steam Bun Pie: seconds of wave since the last vent (it carries over between waves). */
+  private steamT = 0;
+  /** Chimney Soot Pie: the pizza each foot was last sooted over (once per arrival), and the soot on it now. */
+  private sootFor = new WeakMap<Foot, Pizza>();
+  private sooted = new Map<Foot, { until: number; bx: number; ph: number; clouds: Phaser.GameObjects.Image[]; tintAt: number }>();
+  /** Comet Calzone: seconds since the last comet this wave. */
+  private cometT = 0;
+  /** Phantom Waltz: the friendly ghosts guarding pizzas (sprites, never feet: nothing can zombify them). */
+  private ghosts: Ghost[] = [];
+  /** When a quip of each kind last played (they'd stack up over a busy wave). */
+  private quipAt: Record<string, number> = {};
 
   constructor(arena: Arena, host: PerkHost) {
     this.a = arena;
@@ -124,6 +178,10 @@ export class PizzaPerkKit {
       ['pk_disco', drawDiscoBall],
       ['pk_note', drawMusicNote],
       ['pk_beam', drawLightBeam],
+      ['pk_waltzghost', drawWaltzGhost],
+      ['pk_comet', drawComet],
+      ['pk_sandcastle', drawSandcastle],
+      ['pk_sandwall', drawSandWall],
     ];
     for (const [k, draw] of tex) if (!this.sc.textures.exists(k)) this.sc.textures.addCanvas(k, draw());
   }
@@ -200,6 +258,7 @@ export class PizzaPerkKit {
     this.lost = false;
     this.lostLastWave = false;
     this.danceT = 0;
+    this.steamT = 0;
   }
 
   /** A saved run comes back: did it lose a pizza already? */
@@ -285,6 +344,8 @@ export class PizzaPerkKit {
     if (f.type.mini) m *= 1 + 0.25 * this.c('miniDmg');
     // Cellar Mushroom Medley: ghosts and the undead (the zombie marking), and any foot zombified in play
     if (f.type.undead || f.zombified) m *= 1 + 0.1 * this.c('undeadDmg');
+    // T-Rex Ribs: the table's shaking after a crit
+    if (this.quaking()) m *= 1 + 0.1 * this.c('critQuake');
     return m * this.waveDmgMult(this.wave());
   }
 
@@ -328,6 +389,21 @@ export class PizzaPerkKit {
     let chance = 0;
     for (const p of this.with('fireLane')) chance += 0.1 * this.pk(p);
     if (chance > 0 && Math.random() < chance) this.fireLane(f.cx || x);
+    // Squid Ink Nero: the smack sprays ink
+    const ink = this.with('inkSpray');
+    if (ink.length && f.alive) this.inkSpray(f, ink);
+    // Snowball Pie: every 8th smack (enhanced: 5th) throws a snowball
+    for (const p of this.with('snowball')) {
+      p.flags.snowN = Number(p.flags.snowN ?? 0) + 1;
+      if (Number(p.flags.snowN) >= (p.enhanced ? 5 : 8) && this.snowball(p)) p.flags.snowN = 0;
+    }
+  }
+
+  /** A smack crit f: T-Rex Ribs shakes the table. */
+  crit(f: Foot): void {
+    const k = this.c('critQuake');
+    if (k <= 0) return;
+    this.quake(f, k);
   }
 
   private fireLane(x: number): void {
@@ -359,6 +435,10 @@ export class PizzaPerkKit {
   /** f was defeated (coins: what it paid). */
   killed(f: Foot, coins: number): void {
     this.waveKills++;
+    // Cream Pie Supreme leaves a splat where it fell; Phantom Waltz may raise a friendly ghost
+    if (this.c('pieSplat') > 0) this.pieSplat(f);
+    const waltz = this.c('ghostAlly');
+    if (waltz > 0 && Math.random() < Math.min(0.6, 0.15 * waltz)) this.raiseGhost(f);
     // Rinkside Pretzel Pie: a kill gets the smacks going (its pop shows when a rush starts, not on every kill)
     if (this.c('killRush') > 0) {
       if (!this.rushing()) for (const p of this.with('killRush')) p.perkFired({ quip: false });
@@ -444,6 +524,8 @@ export class PizzaPerkKit {
   /** Before a stomp lands on p: true when it misses (ghost pass, oyster shell). */
   preStomp(f: Foot, p: Pizza): boolean {
     const a = this.a;
+    // Cream Pie Supreme: the next foot down on a splat slips on it (a piercing stomp goes through)
+    if (!f.has('pierce') && this.slip(f, p)) return true;
     if (p.perk === 'ghostPass' && Math.random() < 0.25 * this.pk(p)) {
       a.quip(f.x, p.surfaceY - 140, 'PASSED RIGHT THROUGH!', '#bfe8ff', 38);
       p.perkFired({ quip: false });
@@ -474,6 +556,22 @@ export class PizzaPerkKit {
     p.flags.stoneWave = this.wave();
     this.stone(f, p);
     return true;
+  }
+
+  /** Phantom Waltz's ghost guarding p, then Sandcastle Sundae's sand wall: true when the stomp is blocked (checked where
+   *  Pizza Stone is, so a piercing stomp goes through). */
+  guardStomp(f: Foot, p: Pizza): boolean {
+    if (p === this.a.possessed()) return false;
+    const g = this.ghosts.find((o) => o.p === p && o.ready);
+    if (g) {
+      this.ghostBlock(g, f);
+      return true;
+    }
+    if (this.sandLeft > 0) {
+      this.sandBlock(f, p);
+      return true;
+    }
+    return false;
   }
 
   private stone(f: Foot, p: Pizza): void {
@@ -693,7 +791,20 @@ export class PizzaPerkKit {
     this.footTime = 0;
     this.waveKills = 0;
     this.meteorT = 0;
+    this.cometT = 0;
     this.removeChest();
+    // the ghosts come back out to guard their pizzas (one whose pizza left the table in the shop goes with it)
+    const table = a.alivePizzas();
+    this.ghosts = this.ghosts.filter((g) => {
+      if (table.includes(g.p)) return true;
+      g.img.destroy();
+      g.glow.destroy();
+      return false;
+    });
+    for (const g of this.ghosts) {
+      g.img.setVisible(true);
+      g.glow.setVisible(true);
+    }
     let changed = false;
     for (const p of a.alivePizzas()) {
       const perk = p.perk;
@@ -744,6 +855,8 @@ export class PizzaPerkKit {
       });
     }
     if (changed) this.h.recompute();
+    // Sandcastle Sundae: the wall goes up (after Arcobaleno's new colour, which may be it)
+    this.sandUp();
     // Old Town Tarte: tips as the wave starts
     for (const p of this.with('waveTips'))
       this.sc.time.delayedCall(700, () => {
@@ -780,6 +893,8 @@ export class PizzaPerkKit {
     const a = this.a;
     // the rings only move in a wave: off the table until the next one (they'd hang frozen over the shop)
     this.dropRings();
+    // the splats, the soot, the ink and the sand wall go with the wave; the ghosts wait out the shop unseen
+    this.clearEpics(false);
     const g = save.pizzaGoals;
     g.perfectStreak = perfect ? (g.perfectStreak ?? 0) + 1 : 0;
     g.perfectBest = Math.max(g.perfectBest ?? 0, g.perfectStreak);
@@ -912,6 +1027,30 @@ export class PizzaPerkKit {
         this.danceBeat();
       }
     }
+    // Steam Bun Pie: the vents blow every 20 s (two pies: every 10), once a foot is diving
+    const steam = this.c('steamVent');
+    if (steam > 0) {
+      this.steamT += dt;
+      if (this.steamT >= 20 / steam && feet.some((f) => f.alive && f.hittable && f.state === 'descend' && f.y > 300)) {
+        this.steamT = 0;
+        this.steamVents();
+      }
+    }
+    // Comet Calzone: every 12 s a comet finds the toughest foot
+    const comet = this.c('comet');
+    if (comet > 0) {
+      this.cometT += dt;
+      if (this.cometT >= 12 / comet) {
+        const tough = feet.filter((f) => f.hittable && f.y > 120).sort((p, q) => q.hp - p.hp)[0];
+        if (tough) {
+          this.cometT = 0;
+          this.comet(tough);
+        }
+      }
+    }
+    this.inkTick(dt);
+    this.sootTick(dt);
+    this.ghostTick();
     this.ringsTick(dt);
     this.nonnaCheck();
     if (this.chest) this.chest.img.y += Math.sin(a.now() * 3) * 0.3;
@@ -1061,6 +1200,561 @@ export class PizzaPerkKit {
     nonna.perkFired({ quip: false });
   }
 
+  // ——— the Epic Chef's Specials (step 4, batch 1): each from a boss, its props and its sounds ———
+
+  /** A quip (or a pizza's moment) of this kind at most every `gap` seconds. */
+  private every(key: string, gap: number): boolean {
+    const now = this.a.now();
+    if (now - (this.quipAt[key] ?? -99) < gap) return false;
+    this.quipAt[key] = now;
+    return true;
+  }
+
+  /** A boss or mini-boss is in the fight: the perks' effects play lighter. */
+  private bossOn(): boolean {
+    return this.a.allFeet().some((f) => f.alive && f.isBossLike);
+  }
+
+  /** Squid Ink Nero: the smack sprays the Kraken's ink. A foot loses its lane (it's given another, if one's free) and
+   *  wanders off towards it, unable to dive, for 1.5 s (enhanced 2.5). Bosses and mini-bosses are only splattered. */
+  private inkSpray(f: Foot, pies: Pizza[]): void {
+    const a = this.a;
+    const now = a.now();
+    const light = this.bossOn();
+    // the spray: ink drops flung off the foot
+    for (let i = 0; i < (light ? 3 : 6); i++) {
+      const ang = -Math.PI / 2 + (crand() - 0.5) * 2.6;
+      const sp = 90 + crand() * 160;
+      const d = this.sc.add.image(f.cx + (crand() - 0.5) * 40, f.cy + (crand() - 0.5) * 40, 'p_ink').setScale(0.03 + crand() * 0.04).setAlpha(0.95);
+      a.fxLayer.add(d);
+      this.sc.tweens.add({ targets: d, x: d.x + Math.cos(ang) * sp, y: d.y + Math.sin(ang) * sp * 0.6 + 70, scale: d.scale * 0.5, alpha: 0, duration: 420 + crand() * 200, ease: 'Quad.Out', onComplete: () => d.destroy() });
+    }
+    a.sfx('sfx_kraken_squirt', { volume: 0.45, rate: 1.1 + crand() * 0.2, throttle: 140 });
+    // (bosses and mini-bosses are only splattered; a foot a fight moves by hand keeps its place)
+    if (f.isBossLike || f.puppet || f.brain.free) return;
+    const sec = pies.some((p) => p.enhanced) ? 2.5 : 1.5;
+    const have = this.inked.get(f);
+    if (have) {
+      have.until = Math.max(have.until, now + sec);
+      return;
+    }
+    // it loses its lane (another, if there's one free) and can't dive till the ink wears off
+    this.holdDive(f, sec);
+    this.h.relane(f);
+    const blobs = [0, 1].map((i) => {
+      const b = this.sc.add.image(f.cx, f.cy, 'p_inkblob').setScale(0.32 - i * 0.08).setAlpha(0.9).setRotation(crand() * 6);
+      a.fxLayer.add(b);
+      return b;
+    });
+    // (it's tinted inky once the smack's flash is over: a flash clears it. Its wander is gameplay: Math.random)
+    this.inked.set(f, { until: now + sec, bx: f.x, ph: Math.random() * 6, blobs, tintAt: 0 });
+    if (this.every('inkQuip', 1.2)) a.quip(f.x, f.cy - 130, 'INKED! LOST ITS LANE', '#c8a8ff', 32);
+    if (this.every('inkFire', 1.5)) {
+      a.sfx('sfx_kraken_inked', { volume: 0.4, throttle: 400 });
+      for (const p of pies) p.perkFired({ quip: false });
+    }
+  }
+
+  /** Ink and soot: the foot can't dive for `sec` more. A diving foot is pulled back to its hover, at the end of its
+   *  wait (so a mole doesn't bury itself again); the hover is held with holdHoverT, as a boss holds its own. */
+  private holdDive(f: Foot, sec: number): void {
+    if (f.state === 'descend') {
+      f.setState('hover');
+      f.stateT = f.hoverTime;
+    }
+    f.brain.holdHoverT = sec;
+  }
+
+  /** Ink or soot wore off: the foot may dive again (unless the other still holds it: its tick holds it again), and its
+   *  tint goes. */
+  private release(f: Foot): void {
+    if (!f.alive || this.inked.has(f) || this.sooted.has(f)) return;
+    f.brain.holdHoverT = 0;
+    if (f.stunT <= 0) f.clearTint();
+  }
+
+  /** Keep a foot tinted while the effect lasts: every smack's flash clears a tint, so it goes back on after. */
+  private keepTint(f: Foot, col: number, at: number, now: number): number {
+    if (f.flashing || f.stunT > 0 || now - at < 0.2) return at;
+    f.tint(col);
+    return now;
+  }
+
+  /** Inked feet wander, weaving towards their new lane, and can't dive; the ink rides on them. */
+  private inkTick(dt: number): void {
+    if (!this.inked.size) return;
+    const now = this.a.now();
+    for (const [f, ink] of this.inked) {
+      const end = !f.alive || now >= ink.until;
+      ink.blobs.forEach((b, i) => b.setPosition(f.cx + (i ? 26 : -18), f.cy + (i ? -30 : 10)));
+      if (end) {
+        this.inked.delete(f);
+        this.dropImgs(ink.blobs);
+        this.release(f);
+        continue;
+      }
+      ink.tintAt = this.keepTint(f, 0x6a5a8a, ink.tintAt, now);
+      this.holdDive(f, ink.until - now);
+      if (f.state !== 'hover' || f.stunT > 0 || f.held || f.pinned) continue;
+      ink.bx += ((f.laneX ?? ink.bx) - ink.bx) * Math.min(1, dt * 1.6);
+      const off = Math.sin(now * 3.1 + ink.ph) * 70 + Math.sin(now * 1.7 + ink.ph * 2) * 40;
+      f.x = Phaser.Math.Clamp(ink.bx + off, 90, 1830);
+    }
+  }
+
+  /** Snowball Pie: the Yeti's snowball, lobbed from the pie at the foot nearest the table (bosses aren't frozen: it
+   *  chills them 30% for 2 s). */
+  private snowball(p: Pizza): boolean {
+    const a = this.a;
+    const feet = a.allFeet().filter((f) => f.alive && f.hittable && f.y > 60 && !(f.stunT > 0 && f.frozen));
+    const pool = feet.filter((f) => !f.isBossLike);
+    const t = (pool.length ? pool : feet).sort((x, y) => y.y - x.y)[0];
+    if (!t) return false;
+    const sx = p.x;
+    const sy = p.surfaceY - 70;
+    const ball = this.sc.add.image(sx, sy, 'p_snowball').setScale(0.85);
+    a.fxLayer.add(ball);
+    a.sfx('sfx_yeti_snowball', { volume: 0.55, throttle: 120 });
+    p.perkFired({ quip: false });
+    this.sc.tweens.addCounter({
+      from: 0,
+      to: 1,
+      duration: 380,
+      onUpdate: (tw) => {
+        const u = tw.getValue() ?? 0;
+        ball.setPosition(sx + (t.cx - sx) * u, sy + (t.cy - sy) * u - Math.sin(Math.PI * u) * 170).setRotation(u * 7);
+        if (crand() < 0.35) a.fx.propTrail(ball.x, ball.y, 0xdff2ff, 0.4);
+      },
+      onComplete: () => {
+        ball.destroy();
+        a.fx.frost(t.cx, t.cy);
+        a.fx.ring(t.cx, t.cy + 30, 0xbfe8ff, 1.3, 0.45);
+        // packed snow bursting off it
+        for (let i = 0; i < 8; i++) {
+          const ang = crand() * Math.PI * 2;
+          const c = this.sc.add.image(t.cx, t.cy, 'p_snowball').setScale(0.18 + crand() * 0.14);
+          a.fxLayer.add(c);
+          this.sc.tweens.add({ targets: c, x: c.x + Math.cos(ang) * 90, y: c.y + Math.sin(ang) * 60 + 50, alpha: 0, scale: 0.05, duration: 420, ease: 'Quad.Out', onComplete: () => c.destroy() });
+        }
+        a.sfx('sfx_smack_snow_heavy', { volume: 0.6, throttle: 100 });
+        if (!t.alive) return;
+        if (!t.isBossLike) {
+          t.stun(2, true);
+          a.quip(t.x, t.cy - 130, t.insulated ? 'SNOWBALL! (INSULATED)' : 'SNOWBALL! FROZEN', '#bfe8ff', 34);
+        } else {
+          if (!t.type.traits.includes('immuneSlow') && (t.slowT <= 0 || t.slowPct <= 0.3)) {
+            t.slowPct = 0.3;
+            t.slowT = Math.max(t.slowT, 2);
+          }
+          a.quip(t.x, t.cy - 130, 'SNOWBALL! CHILLED', '#bfe8ff', 34);
+        }
+      },
+    });
+    return true;
+  }
+
+  /** T-Rex Ribs is shaking the table (+damage to every foot). */
+  quaking(): boolean {
+    return this.a.now() < this.quakeUntil;
+  }
+
+  /** T-Rex Ribs: a crit stamps the table like T-Rex Toes: it shakes, dust jumps off round the pies, and every foot
+   *  takes +10% (enhanced 15%) for 3 s. */
+  private quake(f: Foot, k: number): void {
+    const a = this.a;
+    const now = a.now();
+    const was = this.quaking();
+    this.quakeUntil = now + 3;
+    if (now - this.quakeFx < 0.4) return;
+    this.quakeFx = now;
+    const light = this.bossOn();
+    a.shake(light ? 80 : 130, light ? 0.002 : 0.0035);
+    a.sfx('sfx_smack_stone_heavy', { volume: 0.4, rate: 0.7, throttle: 250 });
+    a.fx.ring(f.cx, f.cy + 40, 0xffb070, 1.2, 0.4);
+    for (const p of a.alivePizzas()) for (let i = 0; i < (light ? 1 : 2); i++) a.fx.puff(p.x + (crand() - 0.5) * p.radius * 1.7, p.surfaceY + p.radius * 0.32, 2);
+    if (was) return;
+    a.sfx('sfx_trex_growl', { volume: 0.5, throttle: 1500 });
+    if (this.every('quakeQuip', 2.5)) a.quip(960, 300, `TABLE SHAKE! +${Math.round(10 * k)}% DAMAGE`, '#ffb070', 40);
+    for (const p of this.with('critQuake')) p.perkFired({ quip: false });
+  }
+
+  /** Cream Pie Supreme: a smacked-down foot drops one of King Honk's pies on the pizza it was over: a splat lies there
+   *  (one a pizza) until the next foot comes down on it. */
+  private pieSplat(f: Foot): void {
+    const p = f.target;
+    if (!p || p.dead || p === this.a.possessed() || this.splats.has(p)) return;
+    const a = this.a;
+    const r = p.radius;
+    const dx = Phaser.Math.Clamp(f.x - p.x, -r * 0.55, r * 0.55);
+    // (on the back half of the pie, where the feet come down: its face is on the front half)
+    const ly = p.surfaceY - p.y - r * TILT * 0.42;
+    const img = this.sc.add.image(dx, ly, 'p_creamsplat').setAlpha(0.96);
+    img.setDisplaySize(r * 0.62, r * 0.62 * TILT);
+    const sx = img.scaleX;
+    const sy = img.scaleY;
+    img.setScale(0);
+    p.addOnPie(img);
+    this.splats.set(p, { img, dx });
+    // the pie falls from where the foot went down and lands face first
+    const pie = this.sc.add.image(f.cx, f.cy, 'p_pie2').setScale(0.4);
+    a.fxLayer.add(pie);
+    this.sc.tweens.add({
+      targets: pie,
+      x: p.x + dx,
+      y: p.surfaceY - r * TILT * 0.42,
+      angle: 200,
+      duration: 260,
+      ease: 'Quad.In',
+      onComplete: () => {
+        pie.destroy();
+        if (!img.active) return;
+        this.sc.tweens.add({ targets: img, scaleX: sx, scaleY: sy, duration: 160, ease: 'Back.Out' });
+        for (let i = 0; i < 6; i++) {
+          const ang = Math.PI + crand() * Math.PI;
+          const c = this.sc.add.image(p.x + dx, p.surfaceY - r * TILT * 0.42, 'p_cream').setScale(0.03 + crand() * 0.03);
+          a.fxLayer.add(c);
+          this.sc.tweens.add({ targets: c, x: c.x + Math.cos(ang) * 80, y: c.y + Math.sin(ang) * 40 + 30, alpha: 0, duration: 380, ease: 'Quad.Out', onComplete: () => c.destroy() });
+        }
+        a.sfx('sfx_clownking_piesplat', { volume: 0.5, throttle: 150 });
+        if (this.every('pieQuip', 1.5)) a.quip(p.x + dx, p.surfaceY - 120, 'PIE SPLAT!', '#fff0e0', 30);
+      },
+    });
+  }
+
+  /** The next foot down on a splat slips on it: its stomp misses, and it's stunned 1 s (enhanced 1.5). */
+  private slip(f: Foot, p: Pizza): boolean {
+    const sp = this.splats.get(p);
+    if (!sp || f.isBossLike) return false;
+    const a = this.a;
+    this.splats.delete(p);
+    this.sc.tweens.add({ targets: sp.img, scaleX: sp.img.scaleX * 1.7, alpha: 0, duration: 380, ease: 'Quad.Out', onComplete: () => sp.img.destroy() });
+    const sec = this.with('pieSplat').some((q) => q.enhanced) ? 1.5 : 1;
+    f.knock(650);
+    f.stun(sec);
+    f.flash(0xfff4e4, 120);
+    for (let i = 0; i < 8; i++) {
+      const ang = -Math.PI / 2 + (crand() - 0.5) * 2.4;
+      const c = this.sc.add.image(f.x + (crand() - 0.5) * 60, p.surfaceY - 30, 'p_cream').setScale(0.03 + crand() * 0.04);
+      a.fxLayer.add(c);
+      this.sc.tweens.add({ targets: c, x: c.x + Math.cos(ang) * 120, y: c.y + Math.sin(ang) * 90 + 60, alpha: 0, angle: crand() * 300, duration: 520, ease: 'Quad.Out', onComplete: () => c.destroy() });
+    }
+    a.sfx('sfx_clownking_honk', { volume: 0.4, throttle: 300 });
+    a.sfx('sfx_boing', { volume: 0.5, rate: 1.3 });
+    a.quip(f.x, p.surfaceY - 150, 'SLIPPED ON THE PIE!', '#fff0e0', 36);
+    for (const q of this.with('pieSplat')) q.perkFired({ quip: false });
+    return true;
+  }
+
+  /** Sandcastle Sundae: Sandcastle Sam's wall goes up as the wave starts, 2 stomps' worth a pie (enhanced 3), a sand
+   *  tower for each standing on the table at the plate's sides. */
+  private sandUp(): void {
+    const a = this.a;
+    this.dropImgs(this.sandTowers);
+    this.sandTowers = [];
+    const ps = this.with('sandWall');
+    this.sandLeft = ps.reduce((n, p) => n + (p.enhanced ? 3 : 2), 0);
+    if (!this.sandLeft) return;
+    for (const p of ps) {
+      const n = p.enhanced ? 3 : 2;
+      for (let i = 0; i < n; i++) {
+        // alternately left and right of the plate, stepping outwards
+        const side = i % 2 ? 1 : -1;
+        const x = p.x + side * p.radius * (1.12 + Math.floor(i / 2) * 0.2);
+        const t = this.sc.add.image(x, p.y + p.radius * TILT * 0.5, 'pk_sandcastle').setOrigin(0.5, 0.92);
+        t.setScale((p.radius * 0.3) / t.width);
+        const s = t.scaleY;
+        t.setScale(t.scaleX, 0);
+        a.fxLayer.addAt(t, 0);
+        this.sandTowers.push(t);
+        this.sc.tweens.add({ targets: t, scaleY: s, delay: 500 + i * 120, duration: 300, ease: 'Back.Out' });
+      }
+    }
+    this.sc.time.delayedCall(560, () => a.sfx('sfx_sandcastle_sandland', { volume: 0.45 }));
+    this.sc.time.delayedCall(900, () => {
+      const p = ps.find((q) => !q.dead);
+      if (!p || !this.sandLeft) return;
+      a.quip(p.x, p.surfaceY - 170, `SAND WALL: ${this.sandLeft} STOMPS`, '#ffd88a', 30);
+      p.perkFired({ quip: false });
+    });
+  }
+
+  /** The wall takes a stomp: sand bursts up under the foot, a wall of it, and the foot bounces off; a tower crumbles. */
+  private sandBlock(f: Foot, p: Pizza): void {
+    const a = this.a;
+    this.sandLeft--;
+    const tower = this.sandTowers.pop();
+    if (tower) {
+      this.sc.tweens.killTweensOf(tower);
+      this.sc.tweens.add({ targets: tower, scaleY: 0, alpha: 0, duration: 300, ease: 'Quad.In', onComplete: () => tower.destroy() });
+    }
+    // (it rises from the back of the pie, between the foot and it, clear of the pie's face)
+    const wall = this.sc.add.image(f.x, p.surfaceY - p.radius * TILT * 0.35, 'pk_sandwall').setOrigin(0.5, 1).setScale(0.72, 0);
+    a.fxLayer.addAt(wall, 0);
+    this.sc.tweens.add({ targets: wall, scaleY: 0.72, duration: 150, ease: 'Back.Out' });
+    this.sc.tweens.add({ targets: wall, scaleY: 0, alpha: 0, delay: 520, duration: 320, ease: 'Quad.In', onComplete: () => wall.destroy() });
+    for (let i = 0; i < 12; i++) {
+      const ang = -Math.PI / 2 + (crand() - 0.5) * 2.2;
+      const sp = 120 + crand() * 200;
+      const g = this.sc.add.image(f.x + (crand() - 0.5) * 150, p.surfaceY - 20, 'crumb2').setTint(crand() < 0.5 ? 0xe2b46a : 0xc89a52).setScale(0.5 + crand() * 0.5);
+      a.fxLayer.add(g);
+      this.sc.tweens.add({ targets: g, x: g.x + Math.cos(ang) * sp * 0.5, y: g.y + Math.sin(ang) * sp * 0.5 + 80, angle: crand() * 360, alpha: 0, duration: 600, ease: 'Quad.Out', onComplete: () => g.destroy() });
+    }
+    f.knock(750);
+    a.shake(100, 0.003);
+    a.sfx('sfx_sandcastle_walls', { volume: 0.55, throttle: 120 });
+    a.sfx('sfx_smack_sand_heavy', { volume: 0.5 });
+    a.quip(f.x, p.surfaceY - 160, this.sandLeft > 0 ? 'SAND WALL!' : 'SAND WALL CRUMBLED!', '#ffd88a', 40);
+    for (const q of this.with('sandWall')) q.perkFired({ quip: false });
+  }
+
+  /** Steam Bun Pie: Iron Heel's vents burst open under every diving foot and blow it back up the lane. */
+  private steamVents(): void {
+    const a = this.a;
+    const light = this.bossOn();
+    a.quip(960, 300, 'STEAM VENTS!', '#e8f0ff', 50);
+    a.sfx('sfx_ironheel_vent', { volume: 0.75 });
+    a.sfx('sfx_ironheel_steam', { volume: 0.6 });
+    for (const p of this.with('steamVent')) p.perkFired({ quip: false });
+    const table = (a.alivePizzas()[0]?.surfaceY ?? 820) - 10;
+    for (const f of a.allFeet()) {
+      if (!f.alive || !f.hittable || (f.state !== 'descend' && f.state !== 'stomp')) continue;
+      const x = f.cx;
+      // a jet of steam rushing up the lane from the table to the foot, its glow behind it
+      const jet = this.sc.add.image(x, table, 'glow').setOrigin(0.5, 1).setTint(0xf4f8ff).setBlendMode(Phaser.BlendModes.ADD).setScale(0.7, 0.2).setAlpha(0.7);
+      a.fxLayer.addAt(jet, 0);
+      this.sc.tweens.add({ targets: jet, scaleY: Math.max(0.5, (table - f.cy) / 110), duration: 140, ease: 'Quad.Out' });
+      this.sc.tweens.add({ targets: jet, alpha: 0, scaleX: 0.25, delay: 200, duration: 380, onComplete: () => jet.destroy() });
+      for (let i = 0; i < (light ? 4 : 7); i++) {
+        const puff = this.sc.add.image(x + (crand() - 0.5) * 40, table, 'p_steam').setScale(0.2).setAlpha(0.85);
+        a.fxLayer.addAt(puff, 0);
+        this.sc.tweens.add({ targets: puff, y: f.cy + 40 + crand() * 80, x: puff.x + (crand() - 0.5) * 60, scale: 0.45 + crand() * 0.25, alpha: 0, delay: i * 35, duration: 520 + crand() * 200, ease: 'Quad.Out', onComplete: () => puff.destroy() });
+      }
+      a.fx.ring(x, table - 10, 0xe8f0ff, 1.2, 0.35);
+      f.knock(1100);
+    }
+  }
+
+  /** Chimney Soot Pie: a foot arriving over it (once each time it comes) is lost in the Chimney Sweep's soot for 2 s
+   *  (enhanced 3): it can't find the pie to dive on it, and gropes about. Bosses and mini-bosses see through it. */
+  private sootTick(dt: number): void {
+    const a = this.a;
+    const now = a.now();
+    const ghost = a.possessed();
+    if (this.c('sootAbove') > 0)
+      for (const f of a.allFeet()) {
+        if (!f.alive || f.isBossLike || f.puppet || f.brain.free || f.zombieHold || f.state !== 'hover' || f.y < 40) continue;
+        const t = f.target;
+        if (!t || t.dead || t.perk !== 'sootAbove' || t === ghost || this.sootFor.get(f) === t) continue;
+        this.sootFor.set(f, t);
+        this.soot(f, t);
+      }
+    for (const [f, s] of this.sooted) {
+      const end = !f.alive || now >= s.until;
+      s.clouds.forEach((c, i) => c.setPosition(f.cx + Math.cos(now * 1.3 + i * 2.1) * 50, f.cy + Math.sin(now * 1.1 + i * 2.1) * 34 - 10).setRotation(now * 0.3 + i));
+      if (end) {
+        this.sooted.delete(f);
+        this.dropImgs(s.clouds);
+        this.release(f);
+        continue;
+      }
+      if (!this.inked.has(f)) s.tintAt = this.keepTint(f, 0x6a6462, s.tintAt, now);
+      this.holdDive(f, s.until - now);
+      if (f.state !== 'hover' || f.stunT > 0 || f.held || f.pinned || this.inked.has(f)) continue;
+      s.bx += ((f.laneX ?? s.bx) - s.bx) * Math.min(1, dt * 3);
+      f.x = Phaser.Math.Clamp(s.bx + Math.sin(now * 2.4 + s.ph) * 45, 90, 1830);
+    }
+  }
+
+  private soot(f: Foot, t: Pizza): void {
+    const a = this.a;
+    const sec = t.enhanced ? 3 : 2;
+    // a gust of soot up the chimney (a column off the pie), then the cloud wraps the foot
+    const col = this.sc.add.image(f.cx, t.surfaceY - 20, 'p_sootcol').setOrigin(0.5, 1).setAlpha(0.75);
+    col.setScale(0.32, 0.05);
+    a.fxLayer.addAt(col, 0);
+    this.sc.tweens.add({ targets: col, scaleY: Math.max(0.1, (t.surfaceY - f.cy) / col.height), duration: 220, ease: 'Quad.Out' });
+    this.sc.tweens.add({ targets: col, alpha: 0, delay: 260, duration: 400, onComplete: () => col.destroy() });
+    const clouds = [0, 1, 2].map((i) => {
+      const c = this.sc.add.image(f.cx, f.cy, 'p_soot').setScale(0.1).setAlpha(0);
+      a.fxLayer.add(c);
+      this.sc.tweens.add({ targets: c, scale: 0.4 + i * 0.06, alpha: 0.78, delay: 120 + i * 60, duration: 260, ease: 'Quad.Out' });
+      return c;
+    });
+    // (its groping is gameplay: Math.random)
+    this.sooted.set(f, { until: a.now() + sec, bx: f.x, ph: Math.random() * 6, clouds, tintAt: 0 });
+    f.tint(0x6a6462);
+    a.sfx('sfx_sweep_soot', { volume: 0.5, throttle: 250 });
+    if (this.every('sootQuip', 1.2)) a.quip(f.x, f.cy - 140, 'LOST IN SOOT!', '#cfc6bc', 34);
+    if (this.every('sootFire', 1.5)) t.perkFired({ quip: false });
+  }
+
+  /** Comet Calzone: the Cosmic Croc's comet streaks down onto the toughest foot on the table for ×4. */
+  private comet(f: Foot): void {
+    const a = this.a;
+    const dmg = this.run.stats.damage * 4;
+    const light = this.bossOn();
+    const dir = f.cx > 1200 ? -1 : 1;
+    const sx = f.cx + dir * 640;
+    const sy = -90;
+    // (its tail streams up behind it, whichever side it comes from)
+    const m = this.sc.add.image(sx, sy, 'pk_comet').setScale(0.9).setFlipX(dir < 0).setOrigin(dir < 0 ? 1 - 110 / 320 : 110 / 320, 210 / 320);
+    const halo = this.sc.add.image(sx, sy, 'glow').setTint(0x7ab8ff).setBlendMode(Phaser.BlendModes.ADD).setScale(1.1).setAlpha(0.8);
+    a.fxLayer.add([halo, m]);
+    a.sfx('sfx_cosmiccroc_meteor', { volume: 0.6, throttle: 200 });
+    for (const p of this.with('comet')) p.perkFired({ quip: false });
+    this.sc.tweens.add({
+      targets: [m, halo],
+      x: f.cx,
+      y: f.cy,
+      duration: 480,
+      ease: 'Sine.In',
+      onUpdate: () => {
+        if (crand() < 0.7) a.fx.propTrail(m.x + dir * 14, m.y - 14, crand() < 0.5 ? 0x9ad0ff : 0xffffff, 0.7);
+      },
+      onComplete: () => {
+        m.destroy();
+        halo.destroy();
+        a.fx.explosion(f.cx, f.cy, light ? 120 : 170);
+        a.fx.ring(f.cx, f.cy + 20, 0x9ad0ff, 2, 0.45);
+        a.shake(light ? 110 : 170, light ? 0.004 : 0.006);
+        a.sfx('sfx_cosmiccroc_impact', { volume: 0.6, throttle: 120 });
+        if (!f.alive) return;
+        this.h.dealDamage(f, dmg, 'explode', 500, 'perk:comet');
+        a.quip(f.x, f.cy - 140, 'COMET! ×4', '#9ad0ff', 42);
+      },
+    });
+  }
+
+  /** Phantom Waltz: a fallen foot rises as a friendly ghost of the Phantom King's court. It waltzes a turn, then glides
+   *  to a pizza with no ghost (the one it fell over, else the most hurt) and guards it from the next stomp. It's a
+   *  sprite, never a foot: nothing zombifies it, smacks pass through it, and it waits out the shop. */
+  private raiseGhost(f: Foot): void {
+    const a = this.a;
+    const free = a.alivePizzas().filter((p) => p !== a.possessed() && !this.ghosts.some((g) => g.p === p));
+    if (!free.length) return;
+    const p = f.target && free.includes(f.target) ? f.target : free.sort((x, y) => x.slices / x.maxSlices - y.slices / y.maxSlices)[0];
+    const img = this.sc.add.image(f.cx, f.cy, 'pk_waltzghost').setScale(0.2).setAlpha(0);
+    const glow = this.sc.add.image(f.cx, f.cy, 'glow').setTint(0xc8a8ff).setBlendMode(Phaser.BlendModes.ADD).setScale(0.9).setAlpha(0);
+    a.fxLayer.add([glow, img]);
+    const g = { p, img, glow, ph: crand() * 6, ready: false };
+    this.ghosts.push(g);
+    const [gx, gy] = this.ghostSpot(p);
+    // up out of the fallen foot, a twirl, then off to its pizza
+    this.sc.tweens.add({ targets: img, alpha: 0.92, scale: 0.72, y: f.cy - 90, duration: 380, ease: 'Quad.Out' });
+    this.sc.tweens.add({ targets: glow, alpha: 0.5, y: f.cy - 90, duration: 380, ease: 'Quad.Out' });
+    this.sc.tweens.add({ targets: img, angle: 360, delay: 380, duration: 520, ease: 'Sine.InOut' });
+    this.sc.tweens.add({
+      targets: [img, glow],
+      x: gx,
+      y: gy,
+      delay: 900,
+      duration: 620,
+      ease: 'Sine.InOut',
+      onComplete: () => {
+        img.setAngle(0);
+        g.ready = true;
+      },
+    });
+    a.sfx('sfx_phantomking_stir', { volume: 0.45, throttle: 400 });
+    if (this.every('ghostQuip', 1.5)) a.quip(f.x, f.cy - 150, 'A FRIENDLY GHOST!', '#d8c8ff', 32);
+    for (const q of this.with('ghostAlly')) q.perkFired({ quip: false });
+  }
+
+  /** Where a ghost guards its pizza: beside the pie, over its rim, clear of its face. */
+  private ghostSpot(p: Pizza): [number, number] {
+    const side = p.x > 960 ? -1 : 1;
+    return [p.x + side * p.radius * 0.95, p.surfaceY - 150];
+  }
+
+  /** The ghosts bob and sway (a slow waltz) by their pizzas; one whose pizza is gone drifts away. */
+  private ghostTick(): void {
+    if (!this.ghosts.length) return;
+    const now = this.a.now();
+    for (const g of [...this.ghosts]) {
+      if (g.p.dead) {
+        this.ghosts.splice(this.ghosts.indexOf(g), 1);
+        this.sc.tweens.killTweensOf([g.img, g.glow]);
+        this.sc.tweens.add({ targets: [g.img, g.glow], alpha: 0, y: '-=120', duration: 700, onComplete: () => { g.img.destroy(); g.glow.destroy(); } });
+        continue;
+      }
+      if (!g.ready) continue;
+      const [gx, gy] = this.ghostSpot(g.p);
+      const x = gx + Math.sin(now * 1.4 + g.ph) * 14;
+      const y = gy + Math.sin(now * 2.2 + g.ph) * 9;
+      g.img.setPosition(x, y).setRotation(Math.sin(now * 1.4 + g.ph) * 0.14);
+      g.glow.setPosition(x, y + 6).setAlpha(0.38 + Math.sin(now * 3 + g.ph) * 0.1);
+    }
+  }
+
+  /** A ghost takes the stomp for its pizza: it swoops into the foot with a "BOO!" and is gone. */
+  private ghostBlock(g: Ghost, f: Foot): void {
+    const a = this.a;
+    const p = g.p;
+    g.ready = false;
+    this.ghosts.splice(this.ghosts.indexOf(g), 1);
+    this.sc.tweens.killTweensOf([g.img, g.glow]);
+    this.sc.tweens.add({
+      targets: [g.img, g.glow],
+      x: f.cx,
+      y: f.cy + 20,
+      duration: 140,
+      ease: 'Quad.In',
+      onComplete: () => {
+        a.fx.ring(f.cx, f.cy, 0xc8a8ff, 1.6, 0.45);
+        this.sc.tweens.add({ targets: [g.img, g.glow], alpha: 0, scale: 0.9, duration: 360, ease: 'Quad.Out', onComplete: () => { g.img.destroy(); g.glow.destroy(); } });
+      },
+    });
+    f.knock(800);
+    if (!f.isBossLike) f.stun(0.5);
+    a.quip(f.x, p.surfaceY - 160, 'BOO! BLOCKED!', '#d8c8ff', 44);
+    a.sfx('sfx_smack_ghost_heavy', { volume: 0.55 });
+    a.sfx('sfx_phantomking_fade', { volume: 0.4, throttle: 300 });
+    for (const q of this.with('ghostAlly')) q.perkFired({ quip: false });
+  }
+
+  /** Phantom Waltz's ghosts on the table now (the STATS tab). */
+  ghostCount(): number {
+    return this.ghosts.length;
+  }
+
+  /** The wave's over (or the scene's going): the ink, soot, splats and sand go; the ghosts hide till the next wave
+   *  (all: they go too). */
+  private clearEpics(all: boolean): void {
+    const held = [...this.inked.keys(), ...this.sooted.keys()];
+    for (const ink of this.inked.values()) this.dropImgs(ink.blobs, all);
+    for (const so of this.sooted.values()) this.dropImgs(so.clouds, all);
+    this.inked.clear();
+    this.sooted.clear();
+    if (!all) for (const f of held) this.release(f);
+    for (const sp of this.splats.values()) if (sp.img.active) sp.img.destroy();
+    this.splats.clear();
+    this.dropImgs(this.sandTowers, all);
+    this.sandTowers = [];
+    this.sandLeft = 0;
+    for (const g of this.ghosts) {
+      if (all) {
+        g.img.destroy();
+        g.glow.destroy();
+        continue;
+      }
+      this.sc.tweens.killTweensOf([g.img, g.glow]);
+      g.img.setAngle(0).setScale(0.72).setAlpha(0.92).setVisible(false);
+      g.glow.setAlpha(0.4).setVisible(false);
+      g.ready = true;
+    }
+    if (all) this.ghosts = [];
+  }
+
+  /** Fade images out (now: the scene is going, so destroy them without starting tweens). */
+  private dropImgs(imgs: Phaser.GameObjects.Image[], now = false): void {
+    for (const o of imgs) {
+      if (!o.active) continue;
+      this.sc.tweens.killTweensOf(o);
+      if (now) o.destroy();
+      else this.sc.tweens.add({ targets: o, alpha: 0, duration: 250, onComplete: () => o.destroy() });
+    }
+  }
+
   // ——— Pirate's Treasure ———
   private spawnChest(): void {
     const a = this.a;
@@ -1120,6 +1814,7 @@ export class PizzaPerkKit {
   clear(): void {
     this.dropRings();
     this.chest = null;
+    this.clearEpics(true);
   }
 
   private dropRings(): void {

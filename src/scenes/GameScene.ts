@@ -622,6 +622,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       recompute: () => this.recompute(),
       addReroll: () => this.freeRerollsLeft++,
       toast: (id, title, body) => ui.hud.toast(pizzaPortraitURL(id), title, body),
+      relane: (f) => this.relane(f),
     });
     this.events.once('shutdown', () => this.perkKit.clear());
     contentFx.reset(this);
@@ -893,6 +894,10 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.miniSpawned = false;
     this.waveSlicesLost = 0;
     this.procs = [];
+    // the lanes are cached by the pizzas' places: a new run with its pizzas in the same places must not reuse the
+    // last run's lanes (they point at its pizzas)
+    this.laneCache = { key: '', lanes: [] };
+    this.laneFrame = -1;
   }
 
   /** Dev starts: the wave a kit start begins at (31 for the old Act 2 start). */
@@ -2765,6 +2770,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       bossWave: isBossWave(wave),
       extraDouble: this.perkKit.extraDouble(),
       lossTips: this.perkKit.lossTipsOn(),
+      ghosts: this.perkKit.ghostCount(),
       hero: { smack: hero.smack, all: hero.all, reach: this.heroes.reachMult(), crit: this.heroes.critAlways(), meter: this.heroes.meterMult() },
       waveMult: this.perkKit.waveDmgMult(wave),
       areaSmack: r.level('peel') > 0 || this.kit.areaSmack(),
@@ -3836,6 +3842,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.fx.impact(px, py, crit);
       this.fx.blush(f.root, (px - f.x) / f.root.scaleX, (py - f.y) / f.root.scaleY);
       if (crit) {
+        // T-Rex Ribs: a crit shakes the table
+        this.perkKit.crit(f);
         audio.critSmack();
         this.hitStop = 0.07;
         this.shake(120, 0.004);
@@ -4209,6 +4217,11 @@ export class GameScene extends Phaser.Scene implements Arena {
     // Pizza Stone: the middle pizza's first stomp each wave
     // Granite Crust: once a wave the stomp turns to stone
     if (!pierce && this.perkKit.stoneStomp(f, p)) {
+      blocked(false);
+      return;
+    }
+    // Phantom Waltz's friendly ghost, then Sandcastle Sundae's sand wall
+    if (!pierce && this.perkKit.guardStomp(f, p)) {
       blocked(false);
       return;
     }

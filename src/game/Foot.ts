@@ -1103,6 +1103,11 @@ export class Foot {
     this.auraTween = this.scene.tweens.add({ targets: this.auraFx, outerStrength: { from: 4, to: 10 }, duration: 650, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
   }
 
+  /** A hit's flash is showing (it clears the tint when it ends). */
+  get flashing(): boolean {
+    return this.flashT > 0;
+  }
+
   tint(color: number | null): void {
     for (const o of [this.img, this.leg, this.cuff, ...this.liveImgs]) {
       if (!o) continue;

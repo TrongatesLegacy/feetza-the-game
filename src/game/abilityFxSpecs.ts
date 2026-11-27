@@ -534,6 +534,30 @@ const S: Record<string, Spec> = {
     sfx: [['sfx_smack_tail_jukebox'], ['sfx_smack_tail_jukebox', 250, 0.8, 1.26], ['sfx_hitbonk', 170, 0.6]],
     emblem: 'pk_disco',
   },
+  // Ink Cloud: the Kraken's tentacle slaps up at the edge and its ink floods in over every foot
+  'pizza:squidinknero': {
+    steps: [{ k: 'show', tex: 'p_bigtentacle', size: 300, from: 'below', glow: PURPLE, wiggle: true, ms: 650 }, { k: 'flood', kind: 'ink', t: 60 }, { k: 'rings', color: PURPLE, n: 1, icons: 'p_inkblob', nIcons: 8, t: 150 }],
+    sfx: [['sfx_kraken_tentacle', 0, 0.8], ['sfx_kraken_squirt', 120], ['sfx_kraken_inked', 200, 0.8]],
+    emblem: 'pizza',
+  },
+  // Sand Rampart: Sandcastle Sam's sand pours down in columns on the feet and a wall rings each one
+  'pizza:sandcastlesundae': {
+    steps: [{ k: 'strike', tex: 'p_sand', size: 0.9, n: 4, stagger: 60, crack: false, dust: 0xe2b46a, bounce: true }, { k: 'rings', color: 0xffd88a, n: 2, icons: 'crumb2', nIcons: 10, iconTint: [0xe2b46a, 0xffe0a0], t: 170 }],
+    sfx: [['sfx_sandcastle_pour', 0, 0.8], ['sfx_sandcastle_walls', 160], ['sfx_smack_sand_heavy', 200, 0.8]],
+    emblem: 'pizza',
+  },
+  // Big Stomp: the rib pie slams down on the table like T-Rex Toes, the shock rolling out under every foot
+  'pizza:trexribs': {
+    steps: [{ k: 'strike', tex: 'pizza', size: 1.1, crack: true, dust: 0xc8a070 }, { k: 'rings', color: ORANGE, n: 3, gap: 90, squash: 0.55, icons: 'crumb2', nIcons: 10, iconTint: [0xa87a4a, 0xffb070], t: 170 }],
+    sfx: [['sfx_trex_growl', 0, 0.8], ['sfx_smack_stone_heavy', 160], ['sfx_trex_roar', 240, 0.6]],
+    weight: 1.2,
+  },
+  // Comet Tail: the Cosmic Croc's comets streak down onto the toughest feet, icy blue
+  'pizza:cometcalzone': {
+    steps: [{ k: 'show', tex: 'pizza', size: 240, glow: 0x7ab8ff, ms: 500 }, { k: 'rain', tex: ['p_meteor'], n: 6, size: 120, slant: 30, trail: 0x9ad0ff, splash: 0x9ad0ff, tint: [0xcfe6ff, 0xffffff], spin: true, t: 80 }],
+    sfx: [['sfx_cosmiccroc_meteor'], ['sfx_cosmiccroc_impact', 170], ['sfx_explosion', 260, 0.5]],
+    dim: 0.12,
+  },
   // Eruption: the pizza erupts like a volcano, lava falling on every foot
   'pizza:volcano': {
     steps: [{ k: 'show', tex: 'pizza', size: 360, from: 'below', glow: RED, wiggle: true }, { k: 'rain', tex: ['p_fireball', 'flame'], n: 14, size: 90, trail: ORANGE, splash: ORANGE, t: 80 }],

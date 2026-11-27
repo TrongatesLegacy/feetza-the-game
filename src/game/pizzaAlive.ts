@@ -65,7 +65,9 @@ export const aliveDev: { tier: PizzaRarity | null; off: boolean } = { tier: null
 
 // ════════════════════════════ a perk's element ════════════════════════════
 
-export type Element = 'fire' | 'frost' | 'frostfire' | 'cosmic' | 'moon' | 'ghost' | 'ink' | 'life' | 'gold' | 'holy' | 'time' | 'rainbow' | 'heal' | 'power';
+export type Element = 'fire' | 'frost' | 'frostfire' | 'cosmic' | 'moon' | 'ghost' | 'ink' | 'life' | 'gold' | 'holy' | 'time' | 'rainbow' | 'heal' | 'power'
+  // the Epic Chef's Specials' own (step 4)
+  | 'sand' | 'steam' | 'soot' | 'cream' | 'quake';
 
 interface ElementLook {
   /** Its colour (a pizza's Rare Find glow, if it has one, takes over), and a second one for its motes. */
@@ -97,13 +99,19 @@ const EL: Record<Element, ElementLook> = {
   rainbow: { col: 0xff9ae6, col2: 0xffffff, mote: 'pza_mote', move: 'orbit', rate: 8, add: true, sfx: 'sfx_smack_magic_2', quip: 'RAINBOW!' },
   heal: { col: 0xffb0c8, col2: 0xffffff, mote: 'pza_heart', move: 'rise', rate: 1.6, add: false, sfx: 'sfx_heal', quip: 'HEALED!' },
   power: { col: 0xffd23f, col2: 0xffffff, mote: 'pza_star', move: 'orbit', rate: 6, add: true, sfx: 'sfx_smack_magic_1', quip: 'POWER UP!' },
+  // sand trickling off the crust; steam puffing up; soot drifting up dark; cream foaming; table dust jumping
+  sand: { col: 0xffc870, col2: 0xfff0c8, mote: 'pza_mote', move: 'fall', rate: 3, add: false, sfx: 'sfx_smack_sand_heavy', quip: 'SAND WALL!' },
+  steam: { col: 0xe8f0ff, col2: 0xffffff, mote: 'pza_steam', move: 'rise', rate: 2.4, add: false, sfx: 'sfx_ironheel_steam', quip: 'STEAM VENTS!' },
+  soot: { col: 0xb0a090, col2: 0x3a3430, mote: 'pza_steam', move: 'rise', rate: 2.2, add: false, sfx: 'sfx_sweep_soot', quip: 'LOST IN SOOT!' },
+  cream: { col: 0xffe8f0, col2: 0xffffff, mote: 'pza_mote', move: 'rise', rate: 2.4, add: false, sfx: 'sfx_clownking_piesplat', quip: 'PIE SPLAT!' },
+  quake: { col: 0xff8a3a, col2: 0xffd0a0, mote: 'pza_mote', move: 'drift', rate: 2.6, add: false, sfx: 'sfx_smack_stone_heavy', quip: 'TABLE SHAKE!' },
 };
 
 /** The sounds it plays that aren't loaded at boot (the scene loads them with the run). */
 export const ALIVE_SFX = ['sfx_smack_tail_glint', 'sfx_smack_tail_bell', 'sfx_smack_magic_1', 'sfx_smack_magic_2', 'sfx_smack_magic_3'];
 
 /** The perks with an element (and a named effect) of their own; any other perk gets one by its name or its pizza. */
-const PERK_ELEMENT: Partial<Record<PizzaPerk, { el: Element; quip?: string }>> = {
+const PERK_ELEMENT: Partial<Record<PizzaPerk, { el: Element; quip?: string; col?: number }>> = {
   frostFire: { el: 'frostfire' },
   fireLane: { el: 'fire', quip: 'DRAGON BREATH!' },
   erupt: { el: 'fire', quip: 'ERUPTION!' },
@@ -132,6 +140,16 @@ const PERK_ELEMENT: Partial<Record<PizzaPerk, { el: Element; quip?: string }>> =
   roofKnock: { el: 'life' },
   stargazer: { el: 'cosmic' },
   killRush: { el: 'frost' },
+  // the pizza plan's step 4, batch 1: the Epic Chef's Specials, each in its boss's colours
+  inkSpray: { el: 'ink', quip: 'INK SPRAY!', col: 0x9a5aff },
+  snowball: { el: 'frost', quip: 'SNOWBALL!' },
+  pieSplat: { el: 'cream', quip: 'PIE SPLAT!' },
+  sandWall: { el: 'sand', quip: 'SAND WALL!' },
+  critQuake: { el: 'quake', quip: 'TABLE SHAKE!' },
+  steamVent: { el: 'steam', quip: 'STEAM VENTS!' },
+  sootAbove: { el: 'soot', quip: 'LOST IN SOOT!' },
+  comet: { el: 'cosmic', quip: 'COMET!', col: 0x7ab8ff },
+  ghostAlly: { el: 'ghost', quip: 'A FRIENDLY GHOST!', col: 0xc8a8ff },
 };
 
 /** A perk's element: its own, else by its name, else by its pizza (a hot pie fire, a cold one frost), else power. */
@@ -155,7 +173,7 @@ export function elementOf(p: PizzaType, tr: PizzaTraits): Element {
 
 /** Its colour: a Rare Find's glow if it has one, else its element's. */
 function colourOf(p: PizzaType, el: Element): number {
-  return p.finish?.glow ?? EL[el].col;
+  return p.finish?.glow ?? PERK_ELEMENT[p.perk]?.col ?? EL[el].col;
 }
 
 // ════════════════════════════ legendary hooks (step 5 fills these in) ════════════════════════════
@@ -1066,6 +1084,19 @@ export class PizzaAlive {
         if (Math.sin(a) > 0.3) this.spawn(this.mid, 'pza_steam', x, y + 6 * s, { vx: (crand() - 0.5) * 10, vy: 10 * s, life: 1.6, s0: 0.7 * s, s1: 1.4 * s, a: 0.18, fade: 'inout', grav: 8 * s, drag: 0.6, tint: 0xdff2ff, sy: 0.45 });
         else this.spawn(layer, 'pza_flake', x, y - 6 * s, { vx: (crand() - 0.5) * 16 * s, vy: (crand() - 0.6) * 20 * s, life: 1 + crand() * 0.6, s0: 0.2 * s, s1: (0.55 + crand() * 0.3) * s, a: 0.9, fade: 'inout', spin: (crand() - 0.5) * 2, add: true });
       }
+      if (this.el === 'sand') this.spawn(layer, 'pza_mote', x, y, { vx: (crand() - 0.5) * 8 * s, vy: 10 * s, life: 0.9 + crand() * 0.4, s0: 0.32 * s, s1: 0.18 * s, a: 0.95, grav: 160 * s, drag: 0.2, tint: crand() < 0.5 ? L.col : 0xc89a52 });
+      if (this.el === 'steam' && Math.sin(a) < 0.4) this.spawn(this.top, 'pza_steam', x * 0.85, y - 8 * s, { vx: (crand() - 0.5) * 10 * s, vy: -(40 + crand() * 30) * s, life: 1.3 + crand() * 0.5, s0: 0.45 * s, s1: 1.2 * s, a: 0.4, fade: 'inout', grav: -10 * s, drag: 0.4, tint: 0xffffff, sway: 8 * s });
+      if (this.el === 'soot') {
+        if (crand() < 0.6) this.spawn(layer, 'pza_steam', x, y - 6 * s, { vx: (crand() - 0.5) * 10 * s, vy: -(28 + crand() * 22) * s, life: 1.4 + crand() * 0.6, s0: 0.35 * s, s1: 1 * s, a: 0.3, fade: 'inout', grav: -6 * s, drag: 0.3, tint: 0x2a2624, sway: 10 * s });
+        else this.spawn(layer, 'pza_mote', x, y - 10 * s, { vx: (crand() - 0.5) * 16 * s, vy: -(10 + crand() * 12) * s, life: 1.4, s0: 0.3 * s, s1: 0.2 * s, a: 0.9, fade: 'inout', grav: 12 * s, drag: 0.3, tint: 0x1a1614, sway: 12 * s });
+      }
+      if (this.el === 'cream') this.spawn(layer, 'pza_mote', x, y - 4 * s, { vx: (crand() - 0.5) * 12 * s, vy: -(18 + crand() * 14) * s, life: 1.2 + crand() * 0.5, s0: 0.25 * s, s1: 0.6 * s, a: 0.9, fade: 'inout', grav: -4 * s, drag: 0.4, tint: crand() < 0.3 ? 0xffc8d8 : 0xffffff, sway: 6 * s });
+      if (this.el === 'quake') {
+        // dust jumping off the table round it, as if something big were walking past
+        const ox = Math.cos(a) * f.prx * (1 + crand() * 0.12);
+        const oy = f.pry * 0.2 + Math.sin(a) * f.pry * 0.9;
+        this.spawn(this.mid, 'pza_mote', ox, oy, { vx: (crand() - 0.5) * 30 * s, vy: -(60 + crand() * 50) * s, life: 0.5 + crand() * 0.3, s0: 0.35 * s, s1: 0.15 * s, a: 0.85, grav: 400 * s, drag: 0.4, tint: crand() < 0.5 ? 0xc8a070 : 0x8a6a48 });
+      }
       if (this.el === 'life' || this.el === 'heal' || this.el === 'holy') this.spawn(layer, L.mote, x, y, { vx: (crand() - 0.5) * 24 * s, vy: -(26 + crand() * 22) * s, life: 1.6 + crand() * 0.8, s0: 0.4 * s, s1: (this.el === 'holy' ? 0.4 : 0.85) * s, a: this.el === 'holy' ? 0.85 : 0.95, fade: 'inout', grav: -6 * s, drag: 0.3, spin: this.el === 'life' ? (crand() - 0.5) * 2 : 0, add: L.add, tint: this.el === 'holy' ? this.col : undefined, sway: 10 * s });
     }
   }
@@ -1204,6 +1235,9 @@ export class PizzaAlive {
       else if (el === 'life' || el === 'heal') this.spawn(this.top, L.mote, x, y, { vx: Math.cos(a) * v * 0.6, vy: Math.sin(a) * v * 0.7 - 50 * s, life: 0.8 + crand() * 0.4, s0: 0.5 * s, s1: 0.9 * s, a: 1, grav: 160 * s, drag: 1, spin: (crand() - 0.5) * 6 });
       else if (el === 'gold') this.spawn(this.top, crand() < 0.4 ? 'coin' : 'pza_star', x, y, { vx: Math.cos(a) * v * 0.7, vy: Math.sin(a) * v - 60 * s, life: 0.7 + crand() * 0.3, s0: 0.45 * s, s1: 0.35 * s, a: 1, grav: 800 * s, drag: 0.5, spin: (crand() - 0.5) * 8 });
       else if (el === 'ghost') this.spawn(this.top, 'pza_wispy', x, y, { vx: Math.cos(a) * v * 0.5, vy: Math.sin(a) * v * 0.5 - 60 * s, life: 0.9, s0: 0.6 * s, s1: 1.3 * s, a: 0.7, grav: -40 * s, drag: 1.2, add: true, tint });
+      else if (el === 'sand' || el === 'quake') this.spawn(this.top, crand() < 0.6 ? 'crumb2' : 'pza_mote', x, y, { vx: Math.cos(a) * v * 0.7, vy: Math.sin(a) * v - 50 * s, life: 0.6 + crand() * 0.3, s0: 0.55 * s, s1: 0.4 * s, a: 1, grav: 800 * s, drag: 0.5, spin: (crand() - 0.5) * 8, tint: el === 'sand' ? (crand() < 0.5 ? 0xe2b46a : 0xffe0a0) : crand() < 0.5 ? 0xa87a4a : 0xffb070 });
+      else if (el === 'steam' || el === 'soot') this.spawn(this.top, 'pza_steam', x, y, { vx: Math.cos(a) * v * 0.4, vy: Math.sin(a) * v * 0.5 - 70 * s, life: 0.8 + crand() * 0.4, s0: 0.5 * s, s1: 1.4 * s, a: el === 'steam' ? 0.55 : 0.5, fade: 'out', grav: -50 * s, drag: 1.2, tint: el === 'steam' ? 0xffffff : crand() < 0.5 ? 0x2a2624 : 0x5a524c });
+      else if (el === 'cream') this.spawn(this.top, 'pza_mote', x, y, { vx: Math.cos(a) * v * 0.6, vy: Math.sin(a) * v * 0.7 - 50 * s, life: 0.6 + crand() * 0.3, s0: 0.7 * s, s1: 0.5 * s, a: 1, grav: 700 * s, drag: 0.6, tint: crand() < 0.3 ? 0xffc8d8 : 0xfffaf0 });
       else if (el === 'rainbow') this.spawn(this.top, crand() < 0.5 ? 'confetti' : 'pza_star', x, y, { vx: Math.cos(a) * v * 0.7, vy: Math.sin(a) * v - 60 * s, life: 0.8, s0: 0.7 * s, s1: 0.5 * s, a: 1, grav: 600 * s, drag: 0.6, spin: (crand() - 0.5) * 12, tint: Phaser.Display.Color.HSVToRGB(crand(), 0.6, 1).color });
       else this.spawn(this.top, el === 'time' || el === 'holy' ? 'pza_mote' : 'pza_star', x, y, { vx: Math.cos(a) * v * 0.7, vy: Math.sin(a) * v - 50 * s, life: 0.6 + crand() * 0.3, s0: 0.7 * s, s1: 0.2 * s, a: 1, grav: 200 * s, drag: 1.2, add: true, tint, spin: (crand() - 0.5) * 4 });
     }

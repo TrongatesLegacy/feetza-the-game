@@ -99,7 +99,9 @@ export type PizzaPerk =
   | 'erupt' | 'pinata' | 'orbitRing' | 'goldenDiscount' | 'treasure' | 'nonna'
   // ——— the pizza plan's step 3 (src/content/pizzas/p4.ts) ———
   | 'lossTips' | 'bluePlate' | 'fondueStick' | 'roofKnock' | 'stargazer' | 'killRush' | 'halfStomp' | 'undeadDmg'
-  | 'waveTips' | 'kitchenSink' | 'stoneStomp' | 'danceBeat';
+  | 'waveTips' | 'kitchenSink' | 'stoneStomp' | 'danceBeat'
+  // ——— the pizza plan's step 4, batch 1: the Epic Chef's Specials (src/content/pizzas/p5.ts) ———
+  | 'inkSpray' | 'snowball' | 'pieSplat' | 'sandWall' | 'critQuake' | 'steamVent' | 'sootAbove' | 'comet' | 'ghostAlly';
 
 export interface PizzaType {
   id: string;
@@ -379,6 +381,16 @@ export const ENHANCED_PERK: Record<PizzaPerk, string | (() => string)> = {
   kitchenSink: 'Each wave: +8% damage, tips or crit',
   stoneStomp: 'Once a wave a stomp turns to stone: 1.5s',
   danceBeat: 'Every 20s a dance beat slows feet 30%',
+  // the pizza plan's step 4, batch 1
+  inkSpray: 'Smacks spray ink: feet wander for 2.5s',
+  snowball: 'Every 5th smack: a snowball freezes 2s',
+  pieSplat: 'Kills leave a pie splat: slips for 1.5s',
+  sandWall: 'A sand wall blocks 3 stomps each wave',
+  critQuake: 'Crits shake the table: +15% dmg for 3s',
+  steamVent: 'Every 13s steam blows diving feet back',
+  sootAbove: 'Feet above it are lost in soot for 3s',
+  comet: 'Every 8s a comet hits the toughest ×4',
+  ghostAlly: '22% of kills: a ghost blocks one stomp',
 };
 
 /** A perk's enhanced text. */

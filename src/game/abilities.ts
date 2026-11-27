@@ -726,6 +726,16 @@ export const ABILITIES: Record<string, Ability> = {
   'pizza:kitchensink': ab('Everything but the Sink', every(5), [TH('clutter', 'ricochet', 1.5, rnd(1), { more: [1, 1] })], ORANGE, 'burst'),
   'pizza:granite': ab('Stone Skin', act, [FZ(2, all), SH(1, 'all')], 0xcfc6b4, 'burst', 0.9),
   'pizza:discodiner': ab('Saturday Night', act, [S(0.4, 4, all), D(5, all), ST(0.5, all)], PINK, 'burst', 0.9),
+  // the pizza plan's step 4, batch 1: the Epic Chef's Specials (src/content/pizzas/p5.ts), each from its boss
+  'pizza:squidinknero': ab('Ink Cloud', act, [S(0.5, 4, all), M(1.4, 4, all), D(4, all)], PURPLE, 'ink', 0.9),
+  'pizza:snowballpie': ab('Snowball Fight', every(5), [FZ(1.5, rnd(2)), D(1.5, rnd(2))], CYAN, 'frost'),
+  'pizza:creampie': ab('Pie in the Face', every(5), [TH('pie', 'lob', 2.5, front(1), { on: [ST(1.2, hit())] })], WHITE, 'burst'),
+  'pizza:sandcastlesundae': ab('Sand Rampart', act, [SH(1, 'all'), K(1100, all), D(4, all)], GOLD, 'burst', 0.9),
+  'pizza:trexribs': ab('Big Stomp', act, [D(7, all, 900), ST(1.5, all)], ORANGE, 'slam', 0.9),
+  'pizza:steambun': ab('Pressure Release', every(8), [K(1100, front(3)), D(2, front(3))], WHITE, 'wind'),
+  'pizza:chimneysoot': ab('Soot Cloud', smack(0.2), [ST(0.8, hit(150)), M(1.3, 3, hit(150))], BROWN, 'ink'),
+  'pizza:cometcalzone': ab('Comet Tail', act, [D(6, BL(3, 170, 'toughest')), B(1, 3, all)], BLUE, 'rain', 0.9),
+  'pizza:phantomwaltz': ab('Last Waltz', kill(0.3), [ST(1, hit(200)), D(1.5, hit(200))], PURPLE, 'ink'),
 
   // ——— Act 7 · Comics: places, bosses and villain feet ———
   'place:metropizza': ab('Searchlight', every(6), [M(1.6, 4, tough(2)), D(2, tough(2))], GOLD, 'zap'),

@@ -159,6 +159,8 @@ export interface BuildInput {
   extraDouble: number;
   /** Seaside Fritto pays more this wave (or the next, in the shop): a slice was lost in the one before. */
   lossTips: boolean;
+  /** Phantom Waltz's friendly ghosts out guarding pizzas now. */
+  ghosts: number;
   hero: { smack: number; all: number; reach: number; crit: boolean; meter: number };
   /** Every hit's multiplier this wave, whatever the foot (Victory Lap, Night Shift, Moon Cheese). */
   waveMult: number;
@@ -545,6 +547,11 @@ export function buildView(inp: BuildInput): BuildView {
   if (undead > 0) dmgTiles.push({ label: 'vs ghosts and undead', num: 1 + 0.1 * undead, fmt: 'x', icon: '👻', tone: 'up', from: inp.pizzas.filter((p) => p.perk === 'undeadDmg').map(pzSrc), note: 'zombified feet too' });
   const rush = inp.c('killRush');
   if (rush > 0) dmgTiles.push({ label: 'After a kill', num: pct(0.05 * rush), fmt: 'pct', pre: '+', icon: '⛸️', tone: 'up', from: inp.pizzas.filter((p) => p.perk === 'killRush').map(pzSrc), note: 'faster smacks for 3s' });
+  // the Epic Chef's Specials: T-Rex Ribs' table shake, Comet Calzone's comet
+  const quake = inp.c('critQuake');
+  if (quake > 0) dmgTiles.push({ label: 'Table shake', num: 1 + 0.1 * quake, fmt: 'x', icon: '🦖', tone: 'up', from: inp.pizzas.filter((p) => p.perk === 'critQuake').map(pzSrc), note: 'every foot, for 3s after a crit' });
+  const comet = inp.c('comet');
+  if (comet > 0) dmgTiles.push({ label: 'Comet', num: 4, fmt: 'x', icon: '☄️', tone: 'up', from: inp.pizzas.filter((p) => p.perk === 'comet').map(pzSrc), note: `the toughest foot, every ${r1(12 / comet)}s` });
   for (const p of inp.pizzas.filter((q) => q.perk === 'stunVuln')) dmgTiles.push({ label: 'vs stunned feet', num: p.enhanced ? 1.75 : 1.5, fmt: 'x', icon: '😵', tone: 'up', from: [pzSrc(p)], note: `over ${p.name}` });
   if (Math.abs(inp.waveMult - 1) > 0.001) dmgTiles.push({ label: inp.inWave ? 'This wave' : 'Next wave', num: inp.waveMult, fmt: 'x', icon: '🌙', tone: 'up', from: inp.pizzas.filter((p) => p.perk === 'actStart' || p.perk === 'nightDmg' || p.perk === 'postBoss').map(pzSrc), note: 'every hit' });
   if (inp.hero.all !== 1) dmgTiles.push({ label: 'Hero passive', num: inp.hero.all, fmt: 'x', icon: '🦸', tone: inp.hero.all > 1 ? 'up' : 'down', from: [{ key: 'peel', name: inp.peel.name, img: inp.peel.img, tone: 'up' }], note: 'every hit' });
@@ -593,12 +600,17 @@ export function buildView(inp: BuildInput): BuildView {
     roofKnock: (p) => ({ label: 'Knockback above', num: 1 + 0.08 * p.pk, fmt: 'x', icon: '🌿', tone: 'up', from: [pzSrc(p)], note: `over ${p.name}` }),
     stoneStomp: (p) => ({ label: 'Turned to stone', num: p.enhanced ? 1.5 : 1, fmt: 'sec', icon: '🗿', tone: 'up', from: [pzSrc(p)], note: `once a wave a stomp on ${p.name} is blocked, its stomper stunned` }),
     danceBeat: () => ({ label: 'Dance beat', num: Math.round(30 / Math.max(1e-6, inp.c('danceBeat'))), fmt: 'sec', pre: 'every ', icon: '🪩', tone: 'up', from: inp.pizzas.filter((q) => q.perk === 'danceBeat').map(pzSrc), note: 'every foot 30% slower for 2s' }),
+    inkSpray: (p) => ({ label: 'Ink spray', num: p.enhanced ? 2.5 : 1.5, fmt: 'sec', icon: '🦑', tone: 'up', from: [pzSrc(p)], note: 'smacked feet lose their lane and wander' }),
+    snowball: (p) => ({ label: 'Snowball', num: p.enhanced ? 5 : 8, fmt: 'int', pre: 'every ', post: ' smacks', icon: '☃️', tone: 'up', from: [pzSrc(p)], note: 'freezes the foot nearest the table 2s' }),
+    pieSplat: (p) => ({ label: 'Pie splat', num: p.enhanced ? 1.5 : 1, fmt: 'sec', icon: '🥧', tone: 'up', from: [pzSrc(p)], note: 'kills leave a splat; the next foot on it slips' }),
+    steamVent: () => ({ label: 'Steam vents', num: r1(20 / Math.max(1e-6, inp.c('steamVent'))), fmt: 'sec', pre: 'every ', icon: '♨️', tone: 'up', from: inp.pizzas.filter((q) => q.perk === 'steamVent').map(pzSrc), note: 'every diving foot blown back up' }),
+    sootAbove: (p) => ({ label: 'Lost in soot', num: p.enhanced ? 3 : 2, fmt: 'sec', icon: '🧹', tone: 'up', from: [pzSrc(p)], note: `feet arriving over ${p.name} can't dive` }),
     disarm: (p) => ({ label: 'Disarm', num: p.enhanced ? 5 : 3, fmt: 'sec', icon: '🫒', tone: 'up', from: [pzSrc(p)], note: 'smacked feet above lose their trait' }),
   };
   const seenCc = new Set<PizzaPerk>();
   for (const p of inp.pizzas) {
     if (!p.perk || !perkCc[p.perk]) continue;
-    if ((p.perk === 'timeStop' || p.perk === 'danceBeat') && seenCc.has(p.perk)) continue;
+    if ((p.perk === 'timeStop' || p.perk === 'danceBeat' || p.perk === 'steamVent') && seenCc.has(p.perk)) continue;
     seenCc.add(p.perk);
     cc.push(perkCc[p.perk]!(p));
   }
@@ -657,6 +669,10 @@ export function buildView(inp: BuildInput): BuildView {
   if (st.stompBurn > 0) sus.push({ label: 'Stompers burn', num: st.stompBurn * auto * g, fmt: 'int', post: '/s', icon: '♨️', tone: 'up', from: from('stompBurn') });
   if (st.stompExtra > 0) sus.push({ label: 'Extra slice lost', num: pct(st.stompExtra), fmt: 'pct', icon: '💔', tone: 'down', from: from('stompExtra'), note: 'chance on each stomp' });
   if (inp.heat.freshness > 0 && st.freshBonus !== 0) sus.push({ label: 'Freshness', num: Math.abs(st.freshBonus), fmt: 'int', pre: st.freshBonus > 0 ? '+' : '−', icon: '🧊', tone: tone('freshBonus'), from: from('freshBonus'), note: 'on every pizza' });
+  const sand = inp.pizzas.filter((p) => p.perk === 'sandWall');
+  if (sand.length) sus.push({ label: 'Sand wall', num: sand.reduce((n, p) => n + (p.enhanced ? 3 : 2), 0), fmt: 'int', post: ' stomps', icon: '🏰', tone: 'up', from: sand.map(pzSrc), note: 'blocked each wave, on any pizza' });
+  const waltz = inp.c('ghostAlly');
+  if (waltz > 0) sus.push({ label: 'Friendly ghosts', num: pct(Math.min(0.6, 0.15 * waltz)), fmt: 'pct', icon: '👻', tone: 'up', from: inp.pizzas.filter((p) => p.perk === 'ghostAlly').map(pzSrc), note: `of kills rise; each blocks a stomp${inp.ghosts ? ` (${inp.ghosts} on guard)` : ''}` });
   for (const p of inp.pizzas) if (p.perk === 'halfStomp') sus.push({ label: 'Half-slice stomps', num: p.enhanced ? 2 : 1, fmt: 'int', post: ' a wave', icon: '🧀', tone: 'up', from: [pzSrc(p)], note: `the first on ${p.name} take half a slice` });
   for (const p of inp.pizzas) if (p.perk === 'regen') sus.push({ label: 'Regrows a slice', num: p.enhanced ? 13 : 20, fmt: 'sec', pre: 'every ', icon: '🥗', tone: 'up', from: [pzSrc(p)], note: p.name });
   for (const pr of inp.procs) {

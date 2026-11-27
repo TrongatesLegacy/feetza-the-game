@@ -225,6 +225,11 @@ export class Pizza {
     });
   }
 
+  /** Something lying on the pie (Cream Pie Supreme's splat), in local space: over the pie, under its face and labels. */
+  addOnPie(o: Phaser.GameObjects.GameObject): void {
+    this.root.addAt(o, this.root.getIndex(this.face));
+  }
+
   get slices(): number {
     return this.alive.filter(Boolean).length;
   }
