@@ -326,9 +326,14 @@ export function sourceInfo(key: string): { label: string; color: string; icon: s
 export function buildView(inp: BuildInput): BuildView {
   const st = inp.stats;
   const base = baseStats();
+  // every stat a tile shows (its "from" chips): what's left over at the end still gets shown, under More effects
+  const shown = new Set<keyof Stats>();
   const from = (...keys: (keyof Stats)[]): Src[] => {
     const out: Src[] = [];
-    for (const k of keys) for (const s of inp.from[k] ?? []) if (!out.some((o) => o.key === s.key)) out.push(s);
+    for (const k of keys) {
+      shown.add(k);
+      for (const s of inp.from[k] ?? []) if (!out.some((o) => o.key === s.key)) out.push(s);
+    }
     return out;
   };
   const tone = (k: keyof Stats) => toneOf(k, st[k] as number | boolean, base[k] as number | boolean);
@@ -693,7 +698,11 @@ export function buildView(inp: BuildInput): BuildView {
   if (st.consumableDiscount > 0) eco.push({ label: 'One-use discount', num: pct(st.consumableDiscount), fmt: 'pct', icon: '🧇', tone: 'up', from: from('consumableDiscount') });
   if (st.counterDiscount > 0 || st.counterMult !== 1) eco.push({ label: 'Pizza counter', num: (1 - st.counterDiscount) * st.counterMult, fmt: 'x', icon: '🍕', tone: (1 - st.counterDiscount) * st.counterMult <= 1 ? 'up' : 'down', from: from('counterDiscount', 'counterMult'), note: 'prices' });
   if (st.rerollLess > 0 || st.rerollMult !== 1) eco.push({ label: 'Rerolls', num: st.rerollMult, fmt: 'x', icon: '🔄', tone: st.rerollMult > 1 ? 'down' : 'up', from: from('rerollLess', 'rerollMult'), note: st.rerollLess ? `${st.rerollLess} tips off each` : undefined });
-  if (st.cardDelta !== 0) eco.push({ label: 'Cards per shop', num: Math.abs(st.cardDelta), fmt: 'int', pre: st.cardDelta > 0 ? '+' : '−', icon: '🃏', tone: tone('cardDelta'), from: from('cardDelta') });
+  // the shop's card count: toppings that add or take away cards, plus Mac & Cheese's extra consumable card
+  const cards = st.cardDelta + st.extraConsumable;
+  const macs = st.extraConsumable > 0 ? inp.pizzas.filter((p) => p.perk === 'extraConsumable') : [];
+  if (st.cardDelta !== 0 || st.extraConsumable > 0)
+    eco.push({ label: 'Cards per shop', num: Math.abs(cards), fmt: 'int', pre: cards > 0 ? '+' : cards < 0 ? '−' : '', icon: '🃏', tone: cards > 0 ? 'up' : cards < 0 ? 'down' : 'flat', from: [...from('cardDelta', 'extraConsumable'), ...macs.map(pzSrc).filter((m) => !from('extraConsumable').some((o) => o.key === m.key))], note: st.extraConsumable > 0 ? `${st.extraConsumable} of them a one-use card` : undefined });
   if (st.goldenDiscount > 0) eco.push({ label: 'Golden Menu off', num: pct(st.goldenDiscount), fmt: 'pct', icon: '🎫', tone: 'up', from: from('goldenDiscount') });
   if (st.crustBonus > 0 || st.endCrustMult > 0) eco.push({ label: 'End-of-run crusts', num: pct(st.crustBonus + st.endCrustMult), fmt: 'pct', pre: '+', icon: '🥧', tone: 'up', from: from('crustBonus', 'endCrustMult') });
   if (st.scoreMult !== 1) eco.push({ label: 'Score', num: st.scoreMult, fmt: 'x', icon: '⭐', tone: tone('scoreMult'), from: from('scoreMult') });
@@ -789,6 +798,17 @@ export function buildView(inp: BuildInput): BuildView {
     dead: p.dead,
   }));
 
+  // the safety net: a stat something changed that no tile shows gets its sources listed under More effects (with
+  // what each does), and the dev build says so, so it gets a proper tile
+  const unshown = (Object.keys(inp.from) as (keyof Stats)[]).filter((k) => !shown.has(k) && (inp.from[k]?.length ?? 0) > 0 && st[k] !== base[k]);
+  if (unshown.length) {
+    const more: Tile[] = [];
+    for (const k of unshown)
+      for (const s of inp.from[k] ?? [])
+        if (!more.some((t) => t.from[0].key === s.key)) more.push({ label: s.tip ?? s.name, num: 0, fmt: 'text', text: 'ON', icon: s.icon ?? '✨', img: s.img, tone: s.tone, from: [s] });
+    sections.push({ id: 'more', title: 'More effects', icon: '✨', color: '#8a7f72', sub: 'what else your build changes', tiles: more });
+    if (import.meta.env.DEV) console.error(`[stats] no STATS tile shows ${unshown.join(', ')} (from ${unshown.flatMap((k) => (inp.from[k] ?? []).map((s) => s.name)).join(', ')}): give it a tile in src/game/buildStats.ts`);
+  }
   return {
     perSmack,
     smackExtras,
