@@ -61,10 +61,10 @@ import { noise1 } from '../game/liveKit';
 import { crand } from '../systems/cosmeticRandom';
 import { save } from '../systems/save';
 import { PEEL_FRAME_WORLD, type PeelWorld } from './peelLive';
-import { PlaceLive, placeBaseAsync, placeBaseReady, placeMiniSteps, placeOver, placeUnder, type PlaceEmit, type PlaceMini, type PlaceSpr } from './peelPlace';
+import { PlaceLive, placePath, placeBaseAsync, placeBaseReady, placeMiniSteps, placeOver, placeUnder, type PlaceEmit, type PlaceMini, type PlaceSpr } from './peelPlace';
 import { PizzaLive, pizzaBoard, pizzaMiniSteps, pizzaPaintAsync, pizzaPaintReady, type PizzaEmit, type PizzaMini, type PizzaSpr } from './peelPizza';
 import { pizzaPeelLook } from '../game/peels';
-import { MedalLive, actPrepAsync, actReady, medalMiniSteps, medalOver, medalUnder, type MedalMini, type MedalSpr } from './peelMedal';
+import { EVENT_BOX, MedalLive, actPrepAsync, actReady, medalMiniSteps, medalOver, medalUnder, type MedalMini, type MedalSpr } from './peelMedal';
 import { PIZZA_BY_ID } from '../data/pizzas';
 import { GemLive, gemMiniSteps, gemOver, gemUnder, type GemMini, type GemMote } from './peelGem';
 import { HERO_BOX, HERO_FEEL, HeroLive, WORDS, WORD_H, WORD_W, drawBubble, drawCard, drawLeaf, drawNote, drawStar, drawWord, heroMiniSteps, type HeroMini, type HeroSpr } from './peelHero';
@@ -194,7 +194,8 @@ function* rigSteps(peelId: string, kind: CraftKind, RR: number): Generator<void,
     const over = boxLayer(RR, (ctx) => placeOver(ctx, look));
     yield;
     const inner = boxLayer(RR, (ctx) => {
-      headPath(ctx, look.shape);
+      if (look.place) placePath(ctx, look.place, look.shape);
+      else headPath(ctx, look.shape);
       ctx.fillStyle = '#000';
       ctx.fill();
     });
@@ -212,8 +213,14 @@ function* rigSteps(peelId: string, kind: CraftKind, RR: number): Generator<void,
     if (!gem) return null;
     return { id: peelId, kind, look, RR, handle, under, over, inner: EMPTY, reflect: null, lit: null, lit2: null, place: null, pizza: null, medal: null, gem, key };
   }
-  if (kind === 'event' || kind === 'act') {
-    // an event or act peel: the head round its medallion, the bezel and glass over it, the medallion's parts
+  if (kind === 'event') {
+    // an event peel: no frame, the head is the event (its parts, unclipped, on a surface that covers EVENT_BOX)
+    const medal = yield* medalMiniSteps(look, RR);
+    if (!medal) return null;
+    return { id: peelId, kind, look, RR, handle, under: EMPTY, over: EMPTY, inner: EMPTY, reflect: null, lit: null, lit2: null, place: null, pizza: null, medal, box: EVENT_BOX, key };
+  }
+  if (kind === 'act') {
+    // an act peel: the head round its medallion, the bezel and glass over it, the medallion's parts
     const under = boxLayer(RR, (ctx) => medalUnder(ctx, look));
     yield;
     const over = boxLayer(RR, (ctx) => medalOver(ctx, look));
@@ -1703,14 +1710,16 @@ export class CraftLive {
       return;
     }
     if (this.medal) {
-      // an event or act peel: the medallion (it keeps itself inside its glass), then the bezel and the head over it
-      c.setTransform(RR, 0, 0, RR, -SB.x * RR, -SB.y * RR);
+      // an event peel: the event (its own box); an act peel: the medallion (it keeps itself inside its glass), then the
+      // bezel and the head over it
+      const b = rigBox(rig);
+      c.setTransform(RR, 0, 0, RR, -b.x * RR, -b.y * RR);
       this.medal.draw(c);
       c.setTransform(1, 0, 0, 1, 0, 0);
       c.globalAlpha = 1;
       c.globalCompositeOperation = 'source-over';
       c.drawImage(rig.over, 0, 0);
-      c.setTransform(RR, 0, 0, RR, -SB.x * RR, -SB.y * RR);
+      c.setTransform(RR, 0, 0, RR, -b.x * RR, -b.y * RR);
       this.medal.drawOver(c);
       c.setTransform(1, 0, 0, 1, 0, 0);
       return;

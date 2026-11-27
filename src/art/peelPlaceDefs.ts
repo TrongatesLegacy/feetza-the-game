@@ -986,7 +986,7 @@ const bifrost: PlaceDef = {
       glow(g, x + ((i * 13) % 20) - 10, y - 4, 6, '#ffffff', 0.7 * Math.sin(Math.PI * u) ** 3);
     }
   },
-  flash: ['#e8f4ff', 0.45],
+  flash: ['#ffd890', 0.28],
   smack(s, emit) {
     for (let i = 0; i < 6; i++) {
       const [x, y] = bz(0.05 + s.r() * 0.35);

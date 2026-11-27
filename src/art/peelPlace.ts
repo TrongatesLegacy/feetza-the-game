@@ -17,6 +17,7 @@
 import type { LocationId } from './backdrops';
 import { PEEL_HEAD, headPath, plainHeadOver, plainHeadUnder, type PeelLook, type PeelShape } from './peelArt';
 import { windowBars } from './peelCraftArt';
+import { PLACE_HEADS, headOver } from './peelPlaceHeads';
 import { PLACE_DEFS, type LoopDef, type PlaceDef, type PlaceEmit, type PlaceState } from './peelPlaceDefs';
 import { kitSpec, paintCropSteps } from './scene/layers';
 import { makeCanvas, rgba, shade, type Ctx } from './util';
@@ -90,10 +91,25 @@ export function winBox(shape: PeelShape): Box {
   }
 }
 
-/** The box of the scene the window shows: `crop.w` wide about its centre, as tall as the window's shape asks. */
-function cropOf(def: PlaceDef, box: Box): Box {
-  const h = (def.crop.w * box.h) / box.w;
-  return { x: def.crop.cx - def.crop.w / 2, y: def.crop.cy - h / 2, w: def.crop.w, h };
+/** A place's head: its own silhouette (src/art/peelPlaceHeads.ts), or the old window in the head's shape. */
+export function placePath(ctx: Ctx, loc: LocationId, shape: PeelShape): void {
+  const h = PLACE_HEADS[loc];
+  if (h) h.path(ctx);
+  else winPath(ctx, shape);
+}
+
+/** The box a place's window fills (peel units). */
+export const placeBox = (loc: LocationId, shape: PeelShape): Box => PLACE_HEADS[loc]?.box ?? winBox(shape);
+
+/** The box of the scene the window shows: as wide as its def's crop (scaled to its head's box, moved and zoomed as
+ *  the head says) about its centre, as tall as the box's shape asks. */
+function cropOf(def: PlaceDef, loc: LocationId, shape: PeelShape, box: Box): Box {
+  const hd = PLACE_HEADS[loc];
+  const w = hd ? (def.crop.w * box.w) / winBox(shape).w / (hd.zoom ?? 1) : def.crop.w;
+  const cx = def.crop.cx + (hd?.dx ?? 0);
+  const cy = def.crop.cy + (hd?.dy ?? 0);
+  const h = (w * box.h) / box.w;
+  return { x: cx - w / 2, y: cy - h / 2, w, h };
 }
 
 // ════════════════════════════ the window's base (the scene's layers, painted once) ════════════════════════════
@@ -117,8 +133,8 @@ function* baseSteps(loc: LocationId, shape: PeelShape): Generator<void, Painted 
   const def = PLACE_DEFS[loc];
   const spec = kitSpec(loc);
   if (!def || !spec) return null;
-  const box = winBox(shape);
-  const crop = cropOf(def, box);
+  const box = placeBox(loc, shape);
+  const crop = cropOf(def, loc, shape, box);
   const px = Math.ceil(box.w * BASE_RR);
   const from = def.frontFrom ? spec.layers.findIndex((l) => l.id === def.frontFrom) : -1;
   const front = new Set([...(def.front ?? []), ...(from >= 0 ? spec.layers.slice(from + 1).map((l) => l.id) : [])]);
@@ -237,8 +253,8 @@ export interface PlaceMini {
 
 function miniOf(loc: LocationId, shape: PeelShape, RR: number, p: Painted, frames: (k: number) => HTMLCanvasElement[][]): PlaceMini {
   const def = PLACE_DEFS[loc]!;
-  const box = winBox(shape);
-  const crop = cropOf(def, box);
+  const box = placeBox(loc, shape);
+  const crop = cropOf(def, loc, shape, box);
   const pw = Math.ceil(box.w * RR);
   const ph = Math.ceil(box.h * RR);
   const k = pw / crop.w;
@@ -251,8 +267,8 @@ export function* placeMiniSteps(loc: LocationId, shape: PeelShape, RR: number): 
   if (!def) return null;
   const p = yield* baseSteps(loc, shape);
   if (!p) return null;
-  const box = winBox(shape);
-  const k = Math.ceil(box.w * RR) / cropOf(def, box).w;
+  const box = placeBox(loc, shape);
+  const k = Math.ceil(box.w * RR) / cropOf(def, loc, shape, box).w;
   const frames: HTMLCanvasElement[][] = [];
   for (const lp of def.loops ?? []) {
     const fr: HTMLCanvasElement[] = [];
@@ -418,7 +434,7 @@ export class PlaceLive implements PlaceState {
   draw(ctx: Ctx): void {
     const m = this.mini;
     ctx.save();
-    winPath(ctx, m.shape);
+    placePath(ctx, m.loc, m.shape);
     ctx.clip();
     ctx.drawImage(this.compose(), m.box.x, m.box.y, m.box.w, m.box.h);
     ctx.restore();
@@ -429,6 +445,8 @@ export class PlaceLive implements PlaceState {
 
 /** The head under the window: its material, pattern and foil, clipped to the head. */
 export function placeUnder(ctx: Ctx, look: PeelLook): void {
+  // (a head of its own has nothing under its window)
+  if (look.place && PLACE_HEADS[look.place]) return;
   plainHeadUnder(ctx, look);
   // the bezel's shadow on the head round it (light from the top left)
   ctx.save();
@@ -446,6 +464,8 @@ export function placeUnder(ctx: Ctx, look: PeelLook): void {
 
 /** Over the window: the head's edge shadow inside it, the glass, the bezel; then the head's studs, outline and gloss. */
 export function placeOver(ctx: Ctx, look: PeelLook): void {
+  const hd = look.place ? PLACE_HEADS[look.place] : undefined;
+  if (hd) return headOver(ctx, hd);
   const def = look.place ? PLACE_DEFS[look.place] : undefined;
   const col = def?.bezel ?? '#b08a4a';
   const shape = look.shape;
@@ -590,9 +610,9 @@ export function paintPlaceHead(ctx: Ctx, look: PeelLook): void {
     // the window at rest, drawn down to the canvas's own scale
     const m = ctx.getTransform();
     const RR = Math.max(1, Math.hypot(m.a, m.b));
-    const box = winBox(look.shape);
+    const box = placeBox(loc!, look.shape);
     ctx.save();
-    winPath(ctx, look.shape);
+    placePath(ctx, loc!, look.shape);
     ctx.clip();
     ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(downTo(p.still, Math.ceil(box.w * RR), Math.ceil(box.h * RR)), box.x, box.y, box.w, box.h);

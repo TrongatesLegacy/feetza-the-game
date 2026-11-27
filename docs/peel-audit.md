@@ -9,9 +9,9 @@ How a peel can look today:
 - **fire**: always aflame in its own style (`src/art/lookFire.ts`).
 - **living**: the redrawn foot moves on the peel as it does in play (`src/art/peelLive.ts`): blinks, sway, toes that curl and splay on a smack, its own emitters and critters.
 - **crafted** (new in batch 1): painted as its material and alive as it (`src/art/peelCraftArt.ts`, `src/art/peelCraft.ts`).
-- **window** (new in batch 2, a crafted kind): a place peel's head with a living miniature of its location set into it (`src/art/peelPlace.ts`, `src/art/peelPlaceDefs.ts`).
+- **window** (new in batch 2, a crafted kind): a place peel's head with a living miniature of its location set into it (`src/art/peelPlace.ts`, `src/art/peelPlaceDefs.ts`). Since batch 9 there's no window: each place's head is cut to a silhouette of its own, an object or a shaped scene, with the living scene showing through it (`src/art/peelPlaceHeads.ts`).
 - **pie** (new in batch 3, a crafted kind): a pizza peel's pie, built from the pizza's own art in layers, alive on its board (`src/art/peelPizza.ts`).
-- **medallion** (new in batch 4, two crafted kinds, `event` and `act`): a round window set into the head behind a bezel and glass, the wave event in miniature or the act's places, number and boss alive in it (`src/art/peelMedal.ts`, `src/art/peelEventDefs.ts`).
+- **medallion** (new in batch 4, two crafted kinds, `event` and `act`): a round window set into the head behind a bezel and glass, the wave event in miniature or the act's places, number and boss alive in it (`src/art/peelMedal.ts`, `src/art/peelEventDefs.ts`). Since batch 9 only the acts keep it (a trophy is meant to be a frame); an event peel's head is the event itself, with no frame.
 - **gem** (new in batch 5, a crafted kind): the head is the stone or metal the peel is named for, in a polished setting, its facets catching a moving light (`src/art/peelGem.ts`).
 - **hero** (new in batch 6, a crafted kind): no frame; the head is the hero, alive from its costume's own parts (cape, ears, eyes, emblem) with its power playing on and round it (`src/art/peelHero.ts`).
 - **god** (new in batch 7, a crafted kind): no frame; the head is the god's symbol (or helm, or the God Peel's sun), alive from its own parts (wings, strings, a hammer, a train of feathers, a crest, a cloak, a sail), its gold or runes catching the light and its domain round it (`src/art/peelGod.ts`).
@@ -25,13 +25,13 @@ Priorities: **P1** the most seen (everyone's first peel, the first peels bought,
 | Classic | 1 | still → **crafted (batch 1)** | every player, from the first run; the default cursor | **P1, done** |
 | Golden Crusts | 4 | still → **crafted (batch 1)** | the first things players buy (400–1,200 crusts) | **P1, done** |
 | Mastered (of the Classic and the Golden Crusts) | 5 | glow → **crafted + glow (batch 1)** | wave 60 with the peel equipped | done with their bases |
-| Places | 22 | still → **a living window onto the place (batch 2)** | the Trattoria's after two early runs; one per stage after | **P2, done** |
+| Places | 22 | still → **a living window onto the place (batch 2)** → **no frame: the head cut to the place's object or shaped scene (batch 9)** | the Trattoria's after two early runs; one per stage after | **P2, done** |
 | Pizzas | 113 | still (5 fire) → **a living pie on its board (batch 3)**; the five fire pizzas keep their fire | Margherita's and the starters' within the first few hours | **P2, done** |
-| Events | 8 | still → **the event in miniature in a medallion (batch 4)** | balloon, drone and moth peels early | **P2, done** |
+| Events | 8 | still → **the event in miniature in a medallion (batch 4)** → **no frame: the head is the event (batch 9)** | balloon, drone and moth peels early | **P2, done** |
 | Acts | 10 | still → **a trophy medallion: the act's places, gold number and boss (batch 4)** | Act 1's after the first act; one per act | **P2, done** |
 | Jewellery box | 8 | glow (Ruby: fire), preview only → **cut stone, metal or pearl, alive (batch 5)**; Ruby keeps its fire | bought late (800–5,000 crusts) | **P3, done** |
 | Mastered (of the jewels) | 8 | glow → **as their jewels, gold-set (batch 5)** | late | done with their bases |
-| Event shinies | 8 | still → **as their events, with foil (batch 4)** | rare drops (1 in 40) | done with the events |
+| Event shinies | 8 | still → **as their events, with foil (batch 4)**; frameless with a moving foil (batch 9) | rare drops (1 in 40) | done with the events |
 | Ultra-rares | 8 | glow (Fire Opal: fire) → **their stone or metal alive inside their aura (batch 5)**; Fire Opal keeps its fire | extremely rare | **P3, done** |
 | Heroes | 67 | glow (2 fire), preview only → **the hero alive from its own parts, its power round the head (batch 6)**; the two fire heroes keep their fire | goals across the game | **P3, done** |
 | Gods (Greek 22, Norse 16) | 38 | element glow (Zeus hand-made lightning; Hestia, Hephaestus fire) → **the symbol alive from its own parts, its domain round it (batch 7)**; both Zeuses keep their living blade, Hestia and Hephaestus their fire | goals across the late game | **P3, done** |
@@ -573,3 +573,86 @@ At rest the live peel matches the still. Cursor peel in play: 0.22–0.24 ms a f
 Not done: Zeus's hand-made blade stays in `animatedLooks.ts` (it already has its own tile loop, trail and smack; moving it into the god kind isn't a cheap change).
 
 **Where it stopped.** The audit's leftovers are done. Worth a look next: the ALL tab's ultra-rares and gods, a screenful of the richest living tiles at once, draw at 18–25 ms a frame on a busy machine; if that shows on slower devices, a lower frame rate for tiles when many are alive would be the cheap fix.
+
+## Batch 9: frameless event and place peels (done)
+
+**Why.** Batches 2 and 4 put all 22 place peels and all 16 event peels (8 and their shinies) behind the same framed window: a round or arched opening with a bezel, set into a plain head. Forty identical framed windows. The rule from the foot, hero and god peels applies: the head IS the thing. The act peels keep their medallions (a trophy is meant to be a frame).
+
+**Event peels** (`src/art/peelMedal.ts`, `src/art/peelEventDefs.ts`). The `event` kind is now frameless: no head, bezel or glass. The event is drawn unclipped over the whole head (disc (60, 60) is the head's centre, `BARE_K` = 1.45 peel units a disc unit) on a surface of its own (`EVENT_BOX`, 220 × 256, so wings can spread past the outline and a string can wind down the handle). The painted parts from batch 4 are reused at head size; the skies, roofs, lamp, table and night behind them are gone. Each sits on the handle's top:
+
+| Event | The head | Idle | Smack |
+|---|---|---|---|
+| Tip Balloon | the balloon tied to the handle's top, its string wound five times down the handle, the end loose | it sways about its knot and breathes, its coin glints | it pops (a puff and a ring of light, shreds and tip coins), leaving the knot and a rag of rubber, and blows up again from the knot within 0.7 s; a smack while it's still blowing up only jolts it, so fast clicking doesn't keep the cursor headless |
+| Delivery Drone | the drone on a steel mast from the handle, rotors reaching just past the head's sides, the parcel on its two cables | rotors a blur over rings of downwash, the parcel swinging, the light blinking cyan | it lurches up and tilts, the parcel swings, the light goes red, sparks, a puff of smoke |
+| Pepper Moth | the moth gripping the handle's top with six legs, its wings past the outline | the wings fan slowly, pepper sheds | knocked about, wings frantic (never folding edge-on), a cloud of pepper |
+| Golden Seagull | perched on the handle (orange legs, webbed feet round its top), wings up, a pepperoni slice in its beak (as a wedge of crust it read as a trumpet) | it leans to look about, flaps to keep its balance every few seconds, the slice glints | it jolts, flares its wings and flaps hard, feathers, a gold flash on the slice |
+| Pizza Box Chest | a deep pizza box with gold corner brackets and a hasp | its lid lifts a crack, gold light leaking, and drops with a bump and dust | it bursts open (as far as the peel's box allows), rays of gold, tip coins, confetti, sparkles |
+| Mimic | the same box, darker, iron corners, a torn flap, its fangs hanging over the rim even when shut | it wobbles, its lid creaks open on two glowing eyes and the tongue licks the rim | it chomps: the jaw flips open on the dark of its mouth, the tongue lolls, a red flare, then it snaps shut |
+| Hero Sighting | the hero's head: a blue cowl with ears, a mask, a grin, a gold star on the brow; its red cape streams out behind with a trail of light | the cape ripples, it bobs, blinks, sheds sparkles, the star glints | caught: the star flares, swells and spins, glints and gold motes, the hero jolts up |
+| Charybdis | open water turning on the head, its edge heaving, a foaming rim breaking the outline | the arms turn, foam spirals in, spray is flicked off the rim, a plank is dragged down | the maw clamps shut, the water spins faster, spray and foam fly |
+
+Shinies: the same, with a rainbow foil laid over the event alone, a brighter band of it running across now and then, and foil twinkles over the event.
+
+**Place peels** (`src/art/peelPlaceHeads.ts`, `src/art/peelPlace.ts`). No head round a window and no bezel: each place's head is cut to a silhouette of its own, with the place's living window (its scene's layers and loops, and its smack, all from batch 2) showing through. Each head says its kind, its path, the box the window fills, how its crop moves and zooms against the old window's, and its touches in its own material. Over it go an inner shade along the edge, a lit rim on the top left and the ink outline. A place without a head falls back to the old window.
+
+- **Object heads:**
+  - the Trattoria's wood-fired oven: a beehive dome with its flue and cap;
+  - the Diner's jukebox: an arch on a chrome plinth;
+  - the Lodge's chimney breast: the hearth below a mantel shelf, the stack above;
+  - Space's planet: a ring round it, behind and in front;
+  - the Kitchen's saucepan: lip and handles, the sauce pot on its blue flame inside;
+  - the Rink's mirror ball: on its cap, the ball filling it;
+  - the Doom Lab's vat: a glass capsule in steel bands;
+  - Metropizza's Art Deco crown, stepped;
+  - Tartarus's soul fire: a flame with three tongues;
+  - the Oven's portal, its edge broken;
+  - the First Pizzeria's first slice: its point on the handle, a blistered crust along the top;
+  - the Hot Gates' Spartan helmet: a horsehair crest, eye slits either side of a nose guard, a brow ridge;
+  - the Labyrinth's amphora: handles, a meander band, the brazier's fire in its belly.
+- **Shaped scenes:**
+  - the Rooftop under a gable with its chimney;
+  - the Beach on a surfboard, with a stripe and a fin;
+  - Old Town in its campanile, with a tiled roof;
+  - the Pier under three foaming crests;
+  - the Slopes cut to their snow-capped peaks;
+  - the Cellar in a gothic arch with its keystone;
+  - Jotunheim in a shard of ice;
+  - Bifröst in a rune-stone, runes lit along its edges;
+  - Goth-Ham in its skyline of spires, with lit windows.
+
+The act peels' medallions show the middle of their places' windows, so they pick up the new crops (a little closer in); the medallions themselves are unchanged. Bifröst's smack flash is softer (it whited the whole rune-stone out).
+
+**Packs.** The peel thumbnails in `public/packs/` were built before this change. The art version has moved, so they fall back to painting until `npm run prebuild` is run again.
+
+**Performance** (headless Chrome; the machine was busy, load average 10–18 with other work running, so these figures are noisy):
+
+- Locker, EVENTS tab, 6 s from opening, fresh page load: p95 16.7 ms, max 17–67 ms, 0–1 long tasks.
+- Locker, PLACES tab, fresh page load (window bases from the art cache): p95 50–100 ms, max 133–200 ms, 12–16 long tasks. origin/main, measured the same way in the same session: p95 33–50 ms, max 150–167 ms, 9–17 long tasks. Within the noise; once warm, p95 16.8 ms with 3 long tasks. Worth timing on a quiet machine:
+  - the bigger windows paint bigger bases (about 1.6× the pixels);
+  - the zoomed heads paint their loop frames bigger (the Rink's ball at 3.6×);
+  - the Beach's surf loop is the slowest rig, about 150 ms over 14 idle steps.
+- `F.contrast()` and `F.layout()` report nothing on the EVENTS and PLACES tabs, at desktop and at phone size (844 × 390).
+
+**Review fixes.** One independent visual review. What it raised and what changed:
+
+- **The Mimic looked like the Chest at rest.** Its fangs now hang over the rim when it's shut.
+- **Goth-Ham was the old framed window (an oval).** Its head is now a skyline of spires with lit windows.
+- **The Hot Gates' helmet read as a tombstone.** It now has eye slits either side of a nose guard under its brow ridge.
+- **The Labyrinth's amphora read as a round window, murky.** It's closer in on the brazier's fire.
+- **The Beach and Tartarus were both teardrops.** The surfboard has a stripe and a fin (its stringer read as a crack); the flame has three tongues.
+- **Bifröst read as a road sign and whited out on a smack.** It's closer in on the rainbow, with a softer flash.
+- **Old Town read as a birdhouse.** It's closer in on the tower, with a tiled roof.
+- **The balloon left the cursor headless in play.** It's gone for only 0.2 s and whole again by 0.7 s, a smack while it's blowing up only jolts it, and the pop is a brighter puff.
+- **The moth folded to a stick.** Its wings no longer fold edge-on.
+- **The drone's parcel slid into its body.** A gentler knock: the drone lifts rather than dips.
+- **Charybdis's foam rim was a noisy halo.** Fewer, fainter flecks.
+- **Jotunheim's facet lines read as frame struts.** They're fainter.
+
+Not changed:
+
+- Several places' smacks are mostly a flash at head size: the Trattoria, Rink, Old Town, Goth-Ham, Hot Gates, Doom Lab and Space.
+- Some idles are slow enough to look still in a 3 s sheet: the Rooftop, Slopes, Hot Gates, Labyrinth, Old Town and Beach.
+- These are the batch 2 reactions and loops, kept as the brief asked. Giving each object head a reaction of its own (the oven door, the jukebox's needle, the ball swinging on its cap) is the next step.
+- The shinies' foil is still heavy on the two boxes.
+
+**Where it stopped.** All 8 event peels, their 8 shinies and all 22 place peels are frameless. Next: object-level smacks and livelier idles for the place heads above, then `npm run prebuild` to repack the thumbnails.

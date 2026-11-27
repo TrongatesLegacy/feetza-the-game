@@ -1,32 +1,33 @@
-// The event peels' medallions (src/art/peelMedal.ts): each wave event in miniature, doing what it does on the table,
-// and its answer to a smack. Painted in parts once per rig detail (disc units: a 120 × 120 square, centre (60, 60)),
-// lit from the top left; drawn each frame from those parts, with strings, cables and trails drawn live.
+// The event peels' heads (src/art/peelMedal.ts): no frame, the head IS the event, doing what it does on the table, and
+// its answer to a smack. Painted in parts once per rig detail (disc units: the head's centre is (60, 60), BARE_K peel
+// units a disc unit, the handle's top at y 110), lit from the top left; drawn each frame from those parts, with
+// strings, cables, legs, capes and the water's edge drawn live.
 //
-// - Tip Balloon: bobs on its string in a summer sky, clouds drifting behind; its coin glints. Smack: it pops (shreds
-//   of rubber, a spray of tip coins), the string drops, and a new one blows up from the knot.
-// - Delivery Drone: hovers over the rooftops, rotors a blur, its parcel swinging on its cables as it drifts, its
-//   light blinking. Smack: it lurches (sparks, a puff from a motor, the light goes red), the parcel swings wide.
-// - Pepper Moth: flutters round a hanging lamp at dusk, wings beating, shedding pepper. Smack: swatted, it tumbles
-//   away in a cloud of pepper and flutters back; the lamp swings.
-// - Golden Seagull: wheels over the sea with a golden crust in its beak, flapping and gliding; the sea glitters.
-//   Smack: it squawks and jolts, feathers fly, the crust flashes.
-// - Pizza Box Chest: sits on the table; now and then its lid lifts a crack and gold light leaks out. Smack: it
-//   bursts open (rays of gold, tip coins, confetti) and drops shut.
-// - Mimic: a box that wobbles; its lid creaks open on two eyes and a tongue licks the rim. Smack: it chomps (teeth,
-//   tongue, a red flare) and snaps shut.
-// - Hero Sighting: a hero streaks across the night sky past a gold star, a trail of light behind. Smack: caught, the
-//   star flares and the hero zooms through.
-// - Charybdis: the whirlpool turns, foam spiralling in, the maw breathing; now and then a plank is dragged down. Smack:
-//   the maw clamps shut, the water spins and spray flies.
+// - Tip Balloon: tied to the handle's top, its string wound round the handle and its end swaying; it sways and
+//   breathes, its coin glints. Smack: it pops (shreds of rubber, a spray of tip coins), a rag of it is left on the
+//   knot, and a new one blows up from it.
+// - Delivery Drone: on a mast from the handle, rotors a blur over rings of downwash, its parcel swinging on its
+//   cables, its light blinking. Smack: it lurches (sparks, a puff from a motor, the light goes red), the parcel
+//   swings wide.
+// - Pepper Moth: clinging to the handle's top, its wings (past the head's outline) fanning slowly, shedding pepper.
+//   Smack: it's knocked about, wings frantic, in a cloud of pepper.
+// - Golden Seagull: perched on the handle, wings up, a golden crust in its beak; it leans to look about and flaps to
+//   keep its balance. Smack: it jolts and flares its wings, feathers fly, the crust flashes.
+// - Pizza Box Chest: a deep pizza box with gold corners sitting on the handle; now and then its lid lifts a crack and
+//   gold light leaks out. Smack: it bursts open (rays of gold, tip coins, confetti) and drops shut.
+// - Mimic: the same box, darker, that wobbles; its lid creaks open on two eyes and a tongue licks the rim. Smack: it
+//   chomps (teeth, tongue, a red flare) and snaps shut.
+// - Hero Sighting: the hero's head, masked, a gold star on its brow, its cape and a trail of light streaming behind;
+//   it blinks. Smack: caught, the star flares and spins, the hero jolts up.
+// - Charybdis: open water turning on the head, its edge heaving and foaming, spray flicked off it, foam spiralling in,
+//   the maw breathing; now and then a plank is dragged down. Smack: the maw clamps shut, the water spins and spray
+//   flies.
 
 import { ellipse, rgba, rng, roundRect, shade, type Ctx } from './util';
 import { INK } from './feetCommon';
-import { flyer } from '../content/props/heroes';
 import { part, placePart, star, type MedalEmit, type MedalState, type Part, type Parts } from './peelMedal';
 
 export interface EventScene {
-  /** The bezel's metal. */
-  bezel: string;
   /** Paint the background and parts at px canvas px per disc unit, a part per step. */
   paint(px: number): Generator<void, Parts>;
   init?(s: MedalState): void;
@@ -98,24 +99,7 @@ function spec(ctx: Ctx, x: number, y: number, rx: number, ry: number, rot = -0.6
   ctx.restore();
 }
 
-/** A soft cloud: a cluster of lit puffs, the underside shaded. */
-function cloud(ctx: Ctx, x: number, y: number, w: number, h: number, seed: number, a = 1, shadow = '#9cb4cc'): void {
-  const r = rng(seed);
-  const puffs: [number, number, number][] = [];
-  const n = 7;
-  for (let i = 0; i < n; i++) {
-    const u = i / (n - 1);
-    const px = x - w / 2 + u * w + (r() - 0.5) * w * 0.1;
-    const top = Math.sin(Math.PI * u);
-    puffs.push([px, y - top * h * 0.35 + (r() - 0.5) * 2, h * (0.32 + 0.3 * top + r() * 0.1)]);
-  }
-  // the shaded underside first, then the lit body over it, then the top's light
-  for (const [px, py, pr] of puffs) dab(ctx, px + 1.2, py + pr * 0.35, pr * 1.05, shadow, 0.55 * a);
-  for (const [px, py, pr] of puffs) dab(ctx, px, py, pr, '#ffffff', 0.9 * a);
-  for (const [px, py, pr] of puffs) dab(ctx, px - pr * 0.25, py - pr * 0.3, pr * 0.6, '#ffffff', 0.5 * a);
-}
 
-const full = (px: number, draw: (ctx: Ctx) => void): Part => part(px, 0, 0, 120, 120, draw);
 
 /** The Lilita font, falling back if it isn't in yet. */
 const FONT = "'Lilita One', 'Fredoka', sans-serif";
@@ -173,18 +157,8 @@ function every(s: MedalState, key: string, dt: number, len: number, gap: [number
   return m[key];
 }
 
-// ════════════════════════════ skies ════════════════════════════
 
-function sky(ctx: Ctx, stops: [number, string][], sun: string | null, sunA = 0.8): void {
-  ctx.fillStyle = lin(ctx, 0, 0, 0, 120, stops);
-  ctx.fillRect(0, 0, 120, 120);
-  if (sun) {
-    dab(ctx, 18, 12, 70, sun, sunA * 0.45);
-    dab(ctx, 18, 12, 30, sun, sunA);
-  }
-}
-
-// ════════════════════════════ the Tip Balloon ════════════════════════════
+// ════════════════════════════ the Tip Balloon: its parts ════════════════════════════
 
 function paintBalloon(ctx: Ctx): void {
   // the knot and its tie
@@ -230,170 +204,13 @@ function paintBalloon(ctx: Ctx): void {
   spec(ctx, 14, 12, 2.2, 4.5, -0.6, 0.35);
 }
 
-/** The balloon's size in the medallion. */
-const BAL = 1.18;
 
-const balloon: EventScene = {
-  bezel: '#d4dae2',
-  *paint(px) {
-    const bg = full(px, (ctx) => {
-      sky(ctx, [[0, '#5aa8e2'], [0.55, '#9ed2f4'], [1, '#e2f3ff']], '#fff4d0');
-      cloud(ctx, 24, 106, 60, 22, 3, 0.9);
-      cloud(ctx, 98, 110, 70, 24, 4, 0.9);
-    });
-    yield;
-    const cloudA = part(px, -26, -12, 52, 24, (ctx) => cloud(ctx, 0, 2, 44, 16, 11, 0.8));
-    const cloudB = part(px, -20, -9, 40, 18, (ctx) => cloud(ctx, 0, 2, 32, 12, 12, 0.7));
-    yield;
-    const body = part(px, -30, -35, 60, 76, paintBalloon);
-    return { bg, cloudA, cloudB, body };
-  },
-  update() {},
-  draw(g, s, P) {
-    const t = s.t;
-    placePart(g, P.bg, 0, 0);
-    // clouds drifting by behind it
-    const ca = ((t * 2.2 + 30) % 170) - 25;
-    const cb = ((t * 1.4 + 120) % 160) - 20;
-    placePart(g, P.cloudA, ca, 34);
-    placePart(g, P.cloudB, cb, 62);
-    const sm = s.still ? 9 : s.sm;
-    // bobbing and swaying on the breeze
-    const bx = 60 + 3 * Math.sin(t * 0.53);
-    const by = 46 + 3.2 * Math.sin(t * 1.3);
-    const rot = 0.07 * Math.sin(t * 0.9 + 0.4) + 0.03 * Math.sin(t * 2.1);
-    const sy = 1 + 0.025 * Math.cos(t * 1.3);
-    // popped: gone, then a new one blowing up from the knot
-    const gone = sm < 0.42;
-    const grow = sm < 0.42 ? 0 : sm < 0.95 ? (sm - 0.42) / 0.53 : 1;
-    const sc = grow >= 1 ? 1 : smooth(grow) * (1 + 0.14 * Math.sin(grow * Math.PI));
-    // the string: from the knot, swaying, down out of the window (dropping away after a pop)
-    const kx = bx + Math.sin(rot) * -36 * BAL * sc;
-    const ky = by + Math.cos(rot) * 36 * BAL * sc + (1 - sc) * 22;
-    const drop = gone ? sm * 30 + sm * sm * 380 : 0;
-    const sa = gone ? Math.max(0, 1 - sm * 2.6) : 1;
-    if (sa > 0.01) {
-      g.globalAlpha = sa;
-      g.beginPath();
-      g.moveTo(kx, ky + drop);
-      const sw = Math.sin(t * 1.7) * 6;
-      g.bezierCurveTo(kx - 6 + sw, ky + 26 + drop, kx + 8 - sw, ky + 48 + drop, kx + 2 + sw * 0.5, 126 + drop);
-      g.strokeStyle = 'rgba(70,48,36,0.95)';
-      g.lineWidth = 1.5;
-      g.stroke();
-      g.strokeStyle = 'rgba(255,246,230,0.5)';
-      g.lineWidth = 0.5;
-      g.stroke();
-      g.globalAlpha = 1;
-    }
-    if (!gone && sc > 0.02) {
-      g.save();
-      g.translate(bx, by + (1 - sc) * 22);
-      g.rotate(rot);
-      g.scale(BAL * sc * (2 - sy), BAL * sc * sy);
-      placePart(g, P.body, 0, 0);
-      g.restore();
-      // the coin's glint now and then
-      const gp = (t * 0.29) % 1;
-      if (gp < 0.1 && sc >= 1) star(g, bx - 6, by - 4, 6 * Math.sin((gp / 0.1) * Math.PI), Math.sin((gp / 0.1) * Math.PI));
-    }
-    // the pop: a ring of light
-    if (sm < 0.28) {
-      const u = sm / 0.28;
-      const rr = 16 + u * 50;
-      // a red puff where the skin was, then a ring of light running out
-      const pg = g.createRadialGradient(bx, by, 0, bx, by, 30 * (0.6 + u));
-      pg.addColorStop(0, `rgba(255,120,90,${(0.55 * (1 - u)).toFixed(3)})`);
-      pg.addColorStop(1, 'rgba(255,90,60,0)');
-      g.fillStyle = pg;
-      g.fillRect(bx - 50, by - 50, 100, 100);
-      g.save();
-      g.globalCompositeOperation = 'lighter';
-      const rg = g.createRadialGradient(bx, by, rr * 0.45, bx, by, rr);
-      rg.addColorStop(0, 'rgba(255,220,200,0)');
-      rg.addColorStop(0.72, `rgba(255,246,230,${(0.95 * (1 - u)).toFixed(3)})`);
-      rg.addColorStop(1, 'rgba(255,236,220,0)');
-      g.fillStyle = rg;
-      g.fillRect(bx - rr, by - rr, rr * 2, rr * 2);
-      g.restore();
-    }
-  },
-  smack(s, emit) {
-    const t = s.t;
-    const bx = 60 + 3 * Math.sin(t * 0.53);
-    const by = 46 + 3.2 * Math.sin(t * 1.3);
-    const m = s.menu ? 0.6 : 1;
-    s.flash('#fff0e6', 0.3, 0.3);
-    s.shake(1.2);
-    for (let i = 0; i < 8; i++) {
-      const a = (i / 8) * TAU + s.r() * 0.6;
-      const sp = (140 + s.r() * 120) * m;
-      emit('shred', bx + Math.cos(a) * 20, by + Math.sin(a) * 24, Math.cos(a) * sp, Math.sin(a) * sp - 40, 13 + s.r() * 4, 10, 0.45 + s.r() * 0.25, { grav: 260, drag: 1.4, spin: (s.r() - 0.5) * 18 });
-    }
-    for (let i = 0; i < 6; i++) {
-      const a = -Math.PI / 2 + (s.r() - 0.5) * 1.8;
-      const sp = (150 + s.r() * 120) * m;
-      emit('coin', bx + (s.r() - 0.5) * 12, by, Math.cos(a) * sp, Math.sin(a) * sp, 13 + s.r() * 3, 13, 0.6 + s.r() * 0.25, { grav: 520, spin: (s.r() - 0.5) * 10 });
-    }
-    for (let i = 0; i < 6; i++) {
-      const a = s.r() * TAU;
-      s.dots.spawn('spark', bx + Math.cos(a) * 10, by + Math.sin(a) * 12, Math.cos(a) * 70, Math.sin(a) * 70, 8, 3, 0.35, { drag: 3, add: true });
-    }
-  },
-};
 
-// ════════════════════════════ the Delivery Drone ════════════════════════════
+// ════════════════════════════ the Delivery Drone: its parts ════════════════════════════
 
-function paintRooftops(ctx: Ctx): void {
-  const r = rng(21);
-  // far roofs, hazy
-  ctx.fillStyle = '#a9bccc';
-  let x = -4;
-  while (x < 124) {
-    const w = 10 + r() * 14;
-    const h = 14 + r() * 16;
-    ctx.fillRect(x, 120 - h - 8, w + 0.5, h + 10);
-    x += w;
-  }
-  // near roofs, a water tower on one
-  const near = ['#7f93a8', '#73879c', '#8698ac'];
-  x = -6;
-  let i = 0;
-  while (x < 126) {
-    const w = 16 + r() * 18;
-    const h = 8 + r() * 12;
-    const top = 120 - h;
-    ctx.fillStyle = lin(ctx, 0, top, 0, 120, [[0, near[i % 3]], [1, shade(near[i % 3], -0.3)]]);
-    ctx.fillRect(x, top, w + 0.5, h);
-    ctx.fillStyle = 'rgba(255,240,220,0.35)';
-    ctx.fillRect(x, top, w + 0.5, 1.1);
-    // a few windows lit
-    for (let k = 0; k < 3; k++) if (r() < 0.4) {
-      ctx.fillStyle = 'rgba(255,226,150,0.55)';
-      ctx.fillRect(x + 3 + r() * (w - 7), top + 4 + r() * (h - 6), 2.2, 2.6);
-    }
-    if (i === 2) {
-      ctx.fillStyle = '#5f6f80';
-      ctx.fillRect(x + 4, top - 7, 1.4, 7);
-      ctx.fillRect(x + 11, top - 7, 1.4, 7);
-      roundRect(ctx, x + 2.5, top - 17, 11, 11, 2);
-      fs(ctx, lin(ctx, x + 2, 0, x + 14, 0, [[0, '#8a7a6a'], [1, '#5a4a3e']]), 0);
-      ctx.beginPath();
-      ctx.moveTo(x + 1.5, top - 17);
-      ctx.lineTo(x + 8, top - 22);
-      ctx.lineTo(x + 14.5, top - 17);
-      ctx.closePath();
-      ctx.fillStyle = '#4e4036';
-      ctx.fill();
-    }
-    x += w;
-    i++;
-  }
-}
 
 /** The drone's arms reach this far each side (disc units, before it's scaled up). */
 const ARM = 31;
-const DRONE = 1.16;
 
 function paintDrone(ctx: Ctx): void {
   // arms out to the motors
@@ -492,112 +309,8 @@ function paintParcel(ctx: Ctx): void {
   ink(ctx, 1.4, '#3a3e46');
 }
 
-const drone: EventScene = {
-  bezel: '#8e9aaa',
-  *paint(px) {
-    const bg = full(px, (ctx) => {
-      sky(ctx, [[0, '#6eaee0'], [0.6, '#b4daf2'], [1, '#f4dcc0']], '#fff2d6', 0.7);
-      cloud(ctx, 92, 30, 40, 13, 5, 0.6);
-      paintRooftops(ctx);
-    });
-    yield;
-    const body = part(px * DRONE, -ARM - 8, -16, ARM * 2 + 16, 28, paintDrone);
-    const rotors = [0, 1, 2].map((i) => part(px * DRONE, -19, -6, 38, 12, (ctx) => paintRotor(ctx, i)));
-    yield;
-    const parcel = part(px * DRONE, -18, -2, 36, 34, paintParcel);
-    return { bg, body, parcel, r0: rotors[0], r1: rotors[1], r2: rotors[2] };
-  },
-  update(s, dt) {
-    const m = s.mem;
-    // the parcel on its cables: a pendulum, pushed by the drone's drift
-    const ax = -1.44 * 4 * Math.sin(s.t * 0.6);
-    const L = 16;
-    const n = Math.max(1, Math.ceil(dt / (1 / 120)));
-    const h = dt / n;
-    let th = m.th ?? 0;
-    let w = m.thv ?? 0;
-    for (let i = 0; i < n; i++) {
-      w += (-(180 / L) * Math.sin(th) - 1.6 * w - ax / L) * h;
-      th += w * h;
-    }
-    m.th = th;
-    m.thv = w;
-    spring(s, 'tilt', 0, 160, 9, dt);
-    spring(s, 'dip', 0, 120, 10, dt);
-  },
-  draw(g, s, P) {
-    const t = s.t;
-    const m = s.mem;
-    placePart(g, P.bg, 0, 0);
-    const x = 60 + 4 * Math.sin(t * 0.6);
-    const y = 42 + 2.2 * Math.sin(t * 2.3) + (m.dip ?? 0);
-    const rot = 0.06 * Math.sin(t * 0.6 + 1.2) + (m.tilt ?? 0);
-    const th = s.still ? 0.05 : m.th ?? 0;
-    // its shadow far below on the roofs
-    ellipse(g, x + 4, 112, 22, 2.6);
-    g.fillStyle = 'rgba(30,40,60,0.16)';
-    g.fill();
-    g.save();
-    g.translate(x, y);
-    g.rotate(rot);
-    g.scale(DRONE, DRONE);
-    // the parcel hangs from under the body on its two cables
-    const hx = Math.sin(th) * 16;
-    const hy = 9 + Math.cos(th) * 16;
-    g.beginPath();
-    g.moveTo(-7, 6);
-    g.lineTo(hx - 0.5, hy + 0.5);
-    g.moveTo(7, 6);
-    g.lineTo(hx + 0.5, hy + 0.5);
-    g.strokeStyle = INK;
-    g.lineWidth = 1.5;
-    g.stroke();
-    g.strokeStyle = 'rgba(210,214,220,0.6)';
-    g.lineWidth = 0.5;
-    g.stroke();
-    placePart(g, P.parcel, hx, hy, th);
-    placePart(g, P.body, 0, 0);
-    // rotors a blur (faster after a knock)
-    const spin = 30 * (1 + 1.5 * s.hit(0.8));
-    const f = Math.floor(t * spin) % 3;
-    const rp = [P.r0, P.r1, P.r2];
-    placePart(g, rp[f], -ARM, -11);
-    placePart(g, rp[(f + 1) % 3], ARM, -11);
-    // its light: a slow cyan blink, red when knocked
-    const red = s.hit(0.9);
-    const bl = s.still ? 0.8 : 0.35 + 0.65 * Math.pow(Math.max(0, Math.sin(t * 4.2)), 6);
-    const col = red > 0.05 ? '#ff4a3a' : '#5ff4e6';
-    const a = Math.max(bl, red);
-    const lg = g.createRadialGradient(0, -2.5, 0, 0, -2.5, 8);
-    lg.addColorStop(0, rgba('#ffffff', a));
-    lg.addColorStop(0.3, rgba(col, a * 0.9));
-    lg.addColorStop(1, rgba(col, 0));
-    g.fillStyle = lg;
-    g.fillRect(-8, -10.5, 16, 16);
-    g.restore();
-  },
-  smack(s, emit) {
-    const m = s.mem;
-    const dir = s.r() < 0.5 ? -1 : 1;
-    m.tiltv = (m.tiltv ?? 0) + dir * 5.5 * s.calm;
-    m.dipv = (m.dipv ?? 0) + 90 * s.calm;
-    m.thv = (m.thv ?? 0) - dir * 7 * s.calm;
-    s.flash('#e8fbff', 0.25, 0.3);
-    s.shake(1);
-    const t = s.t;
-    const x = 60 + 4 * Math.sin(t * 0.6);
-    const y = 40 + 2.2 * Math.sin(t * 2.3);
-    const mm = s.menu ? 0.6 : 1;
-    for (let i = 0; i < 6; i++) {
-      const a = -Math.PI / 2 + (s.r() - 0.5) * 2.8;
-      const sp = (140 + s.r() * 140) * mm;
-      emit('sparkN', x + Math.cos(a) * 12, y + Math.sin(a) * 6, Math.cos(a) * sp, Math.sin(a) * sp - 30, 16 + s.r() * 6, 10, 0.3 + s.r() * 0.2, { grav: 500, fin: 0.01 });
-    }
-    emit('smoke', x + dir * ARM * DRONE, y - 8, dir * 30 * mm, -50 * mm, 10, s.menu ? 26 : 38, 0.6, { drag: 1.6, a: 0.75 });
-  },
-};
 
-// ════════════════════════════ the Pepper Moth ════════════════════════════
+// ════════════════════════════ the Pepper Moth: its parts ════════════════════════════
 
 function paintMothWing(ctx: Ctx): void {
   // the right wing (the left is its mirror), from the body at (0, 0): forewing red as a pepper, hindwing orange
@@ -692,151 +405,10 @@ function paintMothBody(ctx: Ctx): void {
   spec(ctx, -1.4, -3, 1.2, 4, 0, 0.45);
 }
 
-function paintLamp(ctx: Ctx): void {
-  // hanging from its cord at (0, 0): a brass cap and a glowing bulb
-  roundRect(ctx, -4.5, 0, 9, 7, 1.5);
-  fs(ctx, lin(ctx, -4.5, 0, 4.5, 0, [[0, '#f0d08a'], [0.5, '#b08a3a'], [1, '#6a4a1a']]), 1.5);
-  ctx.beginPath();
-  ctx.moveTo(-5, 7);
-  ctx.bezierCurveTo(-11, 12, -10, 23, 0, 24);
-  ctx.bezierCurveTo(10, 23, 11, 12, 5, 7);
-  ctx.closePath();
-  const g = ctx.createRadialGradient(-1, 14, 0, 0, 15, 11);
-  g.addColorStop(0, '#ffffff');
-  g.addColorStop(0.45, '#fff6c8');
-  g.addColorStop(1, '#ffd070');
-  fs(ctx, g, 1.4);
-  ctx.beginPath();
-  ctx.moveTo(-2.5, 11);
-  ctx.quadraticCurveTo(0, 18, 2.5, 11);
-  ink(ctx, 0.9, 'rgba(200,120,30,0.9)');
-  spec(ctx, -4, 12, 1.6, 3.6, 0.2, 0.9);
-}
 
-/** The moth's path round the lamp (disc units). */
-function mothAt(t: number): [number, number, number] {
-  const x = 64 + 22 * Math.sin(t * 1.25);
-  const y = 66 + 12 * Math.sin(t * 2.1 + 0.7);
-  const vx = 22 * 1.25 * Math.cos(t * 1.25);
-  return [x, y, clamp(vx * 0.012, -0.4, 0.4)];
-}
 
-const moth: EventScene = {
-  bezel: '#b8924e',
-  *paint(px) {
-    const bg = full(px, (ctx) => {
-      sky(ctx, [[0, '#2e2a5e'], [0.55, '#5a4680'], [1, '#8a5470']], null);
-      // the lamp's light on the dusk, and dark leaves at the foot
-      dab(ctx, 34, 30, 90, '#ffcf7a', 0.42);
-      dab(ctx, 34, 30, 40, '#ffe0a0', 0.3);
-      // the garden below in shadow, fading up into the dusk
-      ctx.fillStyle = lin(ctx, 0, 92, 0, 120, [[0, 'rgba(24,18,40,0)'], [0.5, 'rgba(24,18,40,0.55)'], [1, 'rgba(18,12,30,0.85)']]);
-      ctx.fillRect(0, 92, 120, 28);
-    });
-    yield;
-    const wingR = part(px, -2, -22, 36, 56, paintMothWing);
-    const wingL = part(px, -34, -22, 36, 56, (ctx) => {
-      ctx.scale(-1, 1);
-      paintMothWing(ctx);
-    });
-    yield;
-    const body = part(px, -12, -24, 24, 40, paintMothBody);
-    const lamp = part(px, -12, -1, 24, 27, paintLamp);
-    return { bg, wingL, wingR, body, lamp };
-  },
-  update(s, dt) {
-    const m = s.mem;
-    spring(s, 'kx', 0, 30, 4, dt);
-    spring(s, 'ky', 0, 30, 4, dt);
-    spring(s, 'lamp', 0, 18, 1.2, dt);
-    m.spin = (m.spin ?? 0) * Math.exp(-dt / 0.35);
-    m.ang = ((m.ang ?? 0) + (m.spin ?? 0) * dt) % TAU;
-    // pepper shaken off its wings
-    m.pep = (m.pep ?? 0) + dt;
-    if (m.pep > 0.32 && !s.still) {
-      m.pep = 0;
-      const [x, y] = mothAt(s.t);
-      s.dots.spawn('pepper', x + (s.r() - 0.5) * 18, y + 4, (s.r() - 0.5) * 8, 10 + s.r() * 8, 2.6 + s.r(), 2.2, 1.4, { grav: 4, a: 0.9, spin: (s.r() - 0.5) * 6 });
-    }
-  },
-  draw(g, s, P) {
-    const t = s.t;
-    const m = s.mem;
-    placePart(g, P.bg, 0, 0);
-    // the lamp on its cord, swinging when knocked, its glow breathing
-    const la = (m.lamp ?? 0) + 0.04 * Math.sin(t * 0.9);
-    const cx = 34;
-    const cy = -2;
-    const L = 26;
-    const lx = cx + Math.sin(la) * L;
-    const ly = cy + Math.cos(la) * L;
-    g.beginPath();
-    g.moveTo(cx, cy);
-    g.lineTo(lx, ly);
-    g.strokeStyle = '#1a1208';
-    g.lineWidth = 1.4;
-    g.stroke();
-    const fl = 0.85 + 0.1 * Math.sin(t * 13) * Math.sin(t * 7.3) + 0.3 * s.hit(0.3);
-    g.save();
-    g.globalCompositeOperation = 'lighter';
-    const gx = lx + Math.sin(la) * 15;
-    const gy = ly + Math.cos(la) * 15;
-    const lg = g.createRadialGradient(gx, gy, 0, gx, gy, 46);
-    lg.addColorStop(0, `rgba(255,214,130,${(0.5 * fl).toFixed(3)})`);
-    lg.addColorStop(0.35, `rgba(255,170,80,${(0.18 * fl).toFixed(3)})`);
-    lg.addColorStop(1, 'rgba(255,150,60,0)');
-    g.fillStyle = lg;
-    g.fillRect(gx - 46, gy - 46, 92, 92);
-    g.restore();
-    placePart(g, P.lamp, lx, ly, -la);
-    // the moth: round the lamp, wings beating (frantic after a swat), tumbling when knocked
-    let [x, y, rot] = mothAt(t);
-    if (s.still) [x, y, rot] = [74, 66, 0.15];
-    x += m.kx ?? 0;
-    y += m.ky ?? 0;
-    rot += m.ang ?? 0;
-    const hz = 3.4 * (1 + 1.2 * s.hit(0.9));
-    const ph = t * TAU * hz;
-    const open = s.still ? 1 : 0.5 + 0.5 * Math.cos(ph);
-    const wsx = 0.22 + 0.78 * open;
-    y += s.still ? 0 : 1.2 * Math.sin(ph);
-    // its shadow? (it's flying: a faint warm rim of the lamp's light on its wings is in the paint)
-    g.save();
-    g.translate(x, y);
-    g.rotate(rot);
-    g.scale(1.06, 1.06);
-    placePart(g, P.wingL, 0, 0, 0, wsx, 1);
-    placePart(g, P.wingR, 0, 0, 0, wsx, 1);
-    // the wings darken as they fold up away from the light
-    placePart(g, P.body, 0, 0);
-    g.restore();
-  },
-  smack(s, emit) {
-    const m = s.mem;
-    const [x, y] = mothAt(s.t);
-    const dir = x < 64 ? -1 : 1;
-    m.kxv = (m.kxv ?? 0) + dir * 150 * s.calm;
-    m.kyv = (m.kyv ?? 0) + 110 * s.calm;
-    m.spin = (m.spin ?? 0) + dir * 16 * s.calm;
-    m.lampv = (m.lampv ?? 0) + 2.4 * s.calm;
-    s.flash('#ffe8b0', 0.25, 0.3);
-    s.shake(1);
-    const mm = s.menu ? 0.6 : 1;
-    for (let i = 0; i < 12; i++) {
-      const a = s.r() * TAU;
-      const sp = 20 + s.r() * 50;
-      s.dots.spawn('pepper', x + Math.cos(a) * 6, y + Math.sin(a) * 6, Math.cos(a) * sp, Math.sin(a) * sp, 2.6 + s.r() * 1.4, 2, 1 + s.r() * 0.6, { grav: 20, drag: 1.5, spin: (s.r() - 0.5) * 10 });
-    }
-    for (let i = 0; i < 5; i++) {
-      const a = s.r() * TAU;
-      const sp = (90 + s.r() * 90) * mm;
-      emit('pepper', x + Math.cos(a) * 10, y + Math.sin(a) * 10, Math.cos(a) * sp, Math.sin(a) * sp, 6, 5, 0.5 + s.r() * 0.3, { grav: 200, drag: 1 });
-    }
-    emit('smoke', x, y, dir * 30 * mm, -20, 12, s.menu ? 26 : 40, 0.55, { drag: 2, a: 0.6 });
-  },
-};
 
-// ════════════════════════════ the Golden Seagull ════════════════════════════
+// ════════════════════════════ the Golden Seagull: its parts ════════════════════════════
 
 function paintGullWing(ctx: Ctx, far: boolean): void {
   // from the shoulder (0, 0) out to the right: a long tapering wing, grey on top, a black tip
@@ -900,25 +472,30 @@ function paintGullBody(ctx: Ctx): void {
   fs(ctx, '#d83a1a', 0);
   // a wedge of golden crust: its point in the beak, its puffed rim out beyond
   ctx.beginPath();
-  ctx.moveTo(21.5, -3);
-  ctx.lineTo(35, -10);
-  ctx.quadraticCurveTo(38.5, -2, 34, 6);
+  ctx.moveTo(23, -3.4);
+  ctx.lineTo(25.5, 12.5);
+  ctx.quadraticCurveTo(32, 13.6, 38, 8);
   ctx.closePath();
-  fs(ctx, lit(ctx, 30, -3, 9, '#ffd23f', 0.65, -0.3), 1.4);
-  ctx.beginPath();
-  ctx.moveTo(35, -10);
-  ctx.quadraticCurveTo(38.5, -2, 34, 6);
-  ink(ctx, 3.4, '#c8781a');
-  ctx.beginPath();
-  ctx.moveTo(35.4, -8.6);
-  ctx.quadraticCurveTo(37.6, -3, 35, 3);
-  ink(ctx, 1, '#ffe8a0');
-  // its crumb: a few pits baked into the gold
-  for (const [cx, cy] of [[27, -3], [30.5, 1], [31, -6]] as const) {
-    ellipse(ctx, cx, cy, 0.9, 0.7);
-    fs(ctx, 'rgba(168,100,12,0.8)', 0);
+  fs(ctx, lit(ctx, 29, 4, 10, '#ffd23f', 0.6, -0.3), 1.4);
+  // its pepperoni, and the cheese's sheen
+  for (const [cx, cy, r] of [[28.5, 5.5, 2], [31.5, 9.6, 1.6], [26.6, 1.2, 1.2]] as const) {
+    ellipse(ctx, cx, cy, r, r * 0.9);
+    fs(ctx, lit(ctx, cx, cy, r, '#d8322e', 0.4, -0.35), 0.7);
   }
-  spec(ctx, 28.5, -4, 1.6, 3, 0.4, 0.95);
+  // the crust along its far edge, golden brown, puffed
+  ctx.beginPath();
+  ctx.moveTo(25.2, 12.6);
+  ctx.quadraticCurveTo(32, 14.2, 38.2, 7.8);
+  ink(ctx, 5.4, INK);
+  ctx.beginPath();
+  ctx.moveTo(25.2, 12.6);
+  ctx.quadraticCurveTo(32, 14.2, 38.2, 7.8);
+  ink(ctx, 3.6, '#d08a2a');
+  ctx.beginPath();
+  ctx.moveTo(26.4, 12.2);
+  ctx.quadraticCurveTo(32, 13.2, 36.6, 8.6);
+  ink(ctx, 1, '#ffe2a0');
+  spec(ctx, 27, 2, 1.2, 2.6, 0.2, 0.9);
   // the eye
   ellipse(ctx, 14, -6.5, 1.5, 1.5);
   fs(ctx, '#1a1208', 0);
@@ -937,156 +514,15 @@ function paintGullBody(ctx: Ctx): void {
   ctx.restore();
 }
 
-const GULL = 1.3;
 
-/** The gull's flight: wheeling over the sea, flapping in bursts and gliding between. */
-function gullAt(t: number): [number, number] {
-  return [58 + 14 * Math.sin(t * 0.55), 46 + 7 * Math.sin(t * 1.1)];
-}
 
-const seagull: EventScene = {
-  bezel: '#e2b232',
-  *paint(px) {
-    const bg = full(px, (ctx) => {
-      sky(ctx, [[0, '#6ab8ea'], [0.62, '#c4e6f8'], [0.72, '#e8f6ff'], [0.72, '#5ab4cc'], [1, '#1e6888']], '#fff2c8');
-      // a headland on the horizon, hazy
-      ctx.beginPath();
-      ctx.moveTo(78, 86.4);
-      ctx.quadraticCurveTo(92, 78, 104, 80);
-      ctx.quadraticCurveTo(114, 82, 124, 79);
-      ctx.lineTo(124, 86.4);
-      ctx.closePath();
-      ctx.fillStyle = 'rgba(90,130,160,0.55)';
-      ctx.fill();
-      // the sea: swell lines, the sun's path
-      const r = rng(17);
-      for (let i = 0; i < 22; i++) {
-        const y = 89 + Math.pow(r(), 1.4) * 30;
-        const x = r() * 120;
-        const w = 3 + (y - 86) * 0.35;
-        ctx.beginPath();
-        ctx.moveTo(x - w, y);
-        ctx.quadraticCurveTo(x, y - 1, x + w, y);
-        ctx.strokeStyle = `rgba(230,250,255,${(0.18 + r() * 0.2).toFixed(3)})`;
-        ctx.lineWidth = 0.8;
-        ctx.stroke();
-      }
-      dab(ctx, 22, 96, 24, '#fff6d8', 0.28, 0.4);
-    });
-    yield;
-    const wingNear = part(px * GULL, -4, -20, 48, 28, (ctx) => paintGullWing(ctx, false));
-    const wingFar = part(px * GULL, -4, -20, 48, 28, (ctx) => paintGullWing(ctx, true));
-    yield;
-    const body = part(px * GULL, -24, -14, 64, 26, paintGullBody);
-    return { bg, wingNear, wingFar, body };
-  },
-  update(s, dt) {
-    spring(s, 'jy', 0, 90, 8, dt);
-  },
-  draw(g, s, P) {
-    const t = s.t;
-    placePart(g, P.bg, 0, 0);
-    // the sea glitters under the sun
-    if (!s.still)
-      for (let i = 0; i < 6; i++) {
-        const ph = (t * 0.8 + i * 0.37) % 1;
-        const a = Math.sin(ph * Math.PI);
-        const gx = 14 + ((i * 37) % 23) + Math.sin(i * 3.1) * 4;
-        const gy = 90 + ((i * 13) % 20);
-        star(g, gx, gy, 2.6 * a, 0.9 * a);
-      }
-    let [x, y] = gullAt(t);
-    if (s.still) [x, y] = [56, 46];
-    y += s.mem.jy ?? 0;
-    // flaps in bursts of three beats, then a glide with its wings held up
-    const cyc = (t % 2.4) / 2.4;
-    const fast = s.hit(0.9);
-    const flapping = cyc < 0.5 || fast > 0.05;
-    const ph = t * TAU * (2.5 + 2.5 * fast);
-    let wa = flapping ? 0.55 * Math.sin(ph) - 0.08 : -0.38 + 0.04 * Math.sin(t * 3);
-    if (s.still) wa = -0.42;
-    wa -= 0.5 * s.hit(0.25);
-    y += flapping && !s.still ? -1.4 * Math.sin(ph + 0.6) : 0;
-    // its shadow on the water, faint
-    ellipse(g, x, 104, 16, 1.8);
-    g.fillStyle = 'rgba(10,40,60,0.18)';
-    g.fill();
-    g.save();
-    g.translate(x, y);
-    g.rotate(-0.05 + 0.04 * Math.sin(t * 0.55 + 1));
-    g.scale(GULL, GULL);
-    // the far wing behind (reaching left, a touch shorter), the body, the near wing in front (reaching right): they
-    // beat together
-    g.save();
-    g.scale(-0.86, 0.94);
-    placePart(g, P.wingFar, 2, -3, wa);
-    g.restore();
-    placePart(g, P.body, 0, 0);
-    placePart(g, P.wingNear, 2, -4, wa, 1, 1);
-    g.restore();
-    // the crust's glint
-    const gp = (t * 0.4) % 1;
-    if (gp < 0.12 && !s.still) star(g, x + 31 * GULL, y - 4 * GULL, 6 * Math.sin((gp / 0.12) * Math.PI), Math.sin((gp / 0.12) * Math.PI));
-  },
-  smack(s, emit) {
-    s.mem.jyv = (s.mem.jyv ?? 0) - 120 * s.calm;
-    s.flash('#fff2b8', 0.3, 0.35);
-    s.shake(1);
-    const [x, y] = gullAt(s.t);
-    const mm = s.menu ? 0.6 : 1;
-    for (let i = 0; i < 7; i++) {
-      const a = s.r() * TAU;
-      const sp = (60 + s.r() * 80) * mm;
-      emit('feather', x + Math.cos(a) * 8, y + Math.sin(a) * 6, Math.cos(a) * sp, Math.sin(a) * sp - 30, 12, 12, 0.9 + s.r() * 0.4, { grav: 60, drag: 2.2, spin: (s.r() - 0.5) * 6 });
-    }
-    for (let i = 0; i < 5; i++) {
-      const a = s.r() * TAU;
-      const sp = (90 + s.r() * 90) * mm;
-      emit('glint', x + 28, y - 3, Math.cos(a) * sp, Math.sin(a) * sp, 10 + s.r() * 4, 2, 0.4 + s.r() * 0.2, { drag: 2 });
-    }
-    emit('gold', x + 30 * GULL, y - 3, 0, 0, 44, 14, 0.45, { a: 1 });
-    for (let i = 0; i < 6; i++) s.dots.spawn('spark', x + 30 * GULL, y - 3, (s.r() - 0.5) * 90, (s.r() - 0.5) * 90, 9, 2, 0.45, { drag: 3, add: true });
-  },
-};
 
-// ════════════════════════════ the Pizza Box Chest and the Mimic ════════════════════════════
+// ════════════════════════════ the Pizza Box Chest and the Mimic: its parts ════════════════════════════
 
-/** The table under the box (and the room's wall behind), warm or (the mimic's) gloomy. */
-function paintTable(ctx: Ctx, dark: boolean): void {
-  ctx.fillStyle = lin(ctx, 0, 0, 0, 72, dark ? [[0, '#1e1430'], [1, '#43284a']] : [[0, '#6a3824'], [1, '#a8643a']]);
-  ctx.fillRect(0, 0, 120, 74);
-  // a lamp's light pool on the wall
-  dab(ctx, 60, 40, 60, dark ? '#7a3a8a' : '#ffcf8a', 0.35);
-  // the tabletop: planks running away, grain, a lit front edge
-  ctx.fillStyle = lin(ctx, 0, 72, 0, 120, dark ? [[0, '#5e3c26'], [1, '#342014']] : [[0, '#c88a4a'], [1, '#8a5428']]);
-  ctx.fillRect(0, 72, 120, 48);
-  const r = rng(dark ? 5 : 3);
-  for (let i = -6; i <= 6; i++) {
-    ctx.beginPath();
-    ctx.moveTo(60 + i * 10, 72);
-    ctx.lineTo(60 + i * 26, 120);
-    ctx.strokeStyle = dark ? 'rgba(10,4,2,0.5)' : 'rgba(90,46,16,0.45)';
-    ctx.lineWidth = 0.8;
-    ctx.stroke();
-  }
-  for (let i = 0; i < 30; i++) {
-    const y = 74 + r() * 46;
-    const x = r() * 120;
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.quadraticCurveTo(x + 4, y + 0.4, x + 8 + r() * 6, y + (r() - 0.5));
-    ctx.strokeStyle = dark ? 'rgba(0,0,0,0.25)' : 'rgba(110,60,20,0.3)';
-    ctx.lineWidth = 0.6;
-    ctx.stroke();
-  }
-  ctx.fillStyle = 'rgba(255,230,190,0.22)';
-  ctx.fillRect(0, 72, 120, 1);
-  // the light pool on the table round the box
-  dab(ctx, 60, 100, 46, dark ? '#a83a3a' : '#ffe0a0', dark ? 0.16 : 0.32, 0.45);
-}
 
-const BW = 74;
-const BH = 30;
+/** The box (in its own units, before it's scaled onto the head): a deep pizza box, a treasure chest. */
+const BW = 66;
+const BH = 44;
 
 /** The box's body: anchor at its bottom centre. */
 function paintBoxBody(ctx: Ctx, dark: boolean): void {
@@ -1120,6 +556,37 @@ function paintBoxBody(ctx: Ctx, dark: boolean): void {
     }
   }
   ctx.restore();
+  // a treasure chest's metal: corner brackets and a hasp (gold on the chest, old iron on the mimic)
+  const metal = dark ? '#7a6a5a' : '#ffc93a';
+  for (const sx of [-1, 1])
+    for (const top of [true, false]) {
+      const x = sx * (BW / 2);
+      const y = top ? -BH : 0;
+      ctx.beginPath();
+      ctx.moveTo(x, y + (top ? 9 : -9));
+      ctx.lineTo(x, y);
+      ctx.lineTo(x - sx * 9, y);
+      ctx.lineTo(x - sx * 9, y + (top ? 3.4 : -3.4));
+      ctx.lineTo(x - sx * 3.4, y + (top ? 3.4 : -3.4));
+      ctx.lineTo(x - sx * 3.4, y + (top ? 9 : -9));
+      ctx.closePath();
+      fs(ctx, lin(ctx, x - sx * 9, y - 4, x, y + 4, [[0, shade(metal, 0.45)], [1, shade(metal, -0.35)]]), 1.4);
+      ellipse(ctx, x - sx * 2, y + (top ? 2 : -2), 0.9, 0.9);
+      fs(ctx, shade(metal, -0.55), 0);
+    }
+  roundRect(ctx, -4.5, -BH, 9, 11, 2);
+  fs(ctx, lin(ctx, -4.5, -BH, 4.5, -BH + 11, [[0, shade(metal, 0.45)], [1, shade(metal, -0.35)]]), 1.4);
+  ellipse(ctx, 0, -BH + 6.5, 1.6, 2);
+  fs(ctx, '#1a0e06', 0);
+  spec(ctx, -2, -BH + 2.6, 1.6, 0.8, 0, 0.8);
+  if (dark) {
+    // a torn flap on its corner, and a scrape
+    ctx.beginPath();
+    ctx.moveTo(BW / 2 - 18, -BH);
+    ctx.lineTo(BW / 2 - 12, -BH + 7);
+    ctx.lineTo(BW / 2 - 8, -BH + 2);
+    ink(ctx, 1, 'rgba(40,20,6,0.7)');
+  }
 }
 
 /** The lid: anchor at its hinge (the box's top back-left corner); it reaches right along the top. */
@@ -1172,6 +639,9 @@ function paintMaw(ctx: Ctx): void {
 
 /** The teeth along the lid's underside (lid's frame: hanging below its hinge line). */
 function paintLidTeeth(ctx: Ctx): void {
+  // the gum they grow from, wet and dark
+  roundRect(ctx, 2, -1, BW - 4, 4, 2);
+  fs(ctx, lin(ctx, 0, -1, 0, 3, [[0, '#c83a4a'], [1, '#5a0a16']]), 1.1);
   const r = rng(78);
   for (let x = 9; x < BW - 6; x += 12) {
     const h = 8 + r() * 3.5;
@@ -1200,272 +670,13 @@ function paintTongue(ctx: Ctx): void {
   spec(ctx, -2.5, 5, 1.2, 3, 0, 0.7);
 }
 
-const BOX_X = 60;
-const BOX_Y = 98;
-const BOX = 1.2;
 
-function boxDraw(g: Ctx, s: MedalState, P: Parts, mimic: boolean): void {
-  const m = s.mem;
-  placePart(g, P.bg, 0, 0);
-  const open = s.still ? (mimic ? 0.24 : 0.2) : Math.max(0, m.lid ?? 0);
-  const sq = m.sq ?? 0;
-  const rot = m.rot ?? 0;
-  // its shadow on the table
-  ellipse(g, BOX_X + 2, BOX_Y + 1, BW * 0.56 * BOX, 4.6);
-  g.fillStyle = 'rgba(20,8,2,0.35)';
-  g.fill();
-  g.save();
-  g.translate(BOX_X, BOX_Y);
-  g.rotate(rot);
-  g.scale(BOX * (1 + sq * 0.5), BOX * (1 - sq));
-  const top = -BH;
-  // inside: the hoard or the maw
-  if (open > 0.02) placePart(g, mimic ? P.maw : P.hoard, 0, top + 1);
-  // the gold light leaking from the gap (the chest) or the eyes in it (the mimic)
-  if (!mimic && open > 0.02) {
-    const a = clamp(open * 4, 0, 1);
-    g.save();
-    g.globalCompositeOperation = 'lighter';
-    const lg = g.createRadialGradient(6, top - 3, 0, 6, top - 3, 34 + open * 40);
-    lg.addColorStop(0, `rgba(255,236,150,${(0.75 * a).toFixed(3)})`);
-    lg.addColorStop(0.4, `rgba(255,200,80,${(0.3 * a).toFixed(3)})`);
-    lg.addColorStop(1, 'rgba(255,180,60,0)');
-    g.fillStyle = lg;
-    g.fillRect(-60, top - 80, 120, 90);
-    // rays fanning up from the mouth
-    const rays = clamp((open - 0.2) * 1.6, 0, 1);
-    if (rays > 0.01) {
-      for (let i = 0; i < 7; i++) {
-        const ang = -Math.PI / 2 + (i - 3) * 0.26 + Math.sin(s.t * 1.3 + i) * 0.04;
-        const len = 60 + (i % 2) * 14;
-        g.save();
-        g.translate(4, top);
-        g.rotate(ang + Math.PI / 2);
-        const rg = g.createLinearGradient(0, 0, 0, -len);
-        rg.addColorStop(0, `rgba(255,240,170,${(0.55 * rays).toFixed(3)})`);
-        rg.addColorStop(1, 'rgba(255,220,120,0)');
-        g.fillStyle = rg;
-        g.beginPath();
-        g.moveTo(-2, 0);
-        g.lineTo(-7, -len);
-        g.lineTo(7, -len);
-        g.lineTo(2, 0);
-        g.closePath();
-        g.fill();
-        g.restore();
-      }
-    }
-    g.restore();
-  }
-  // the lid's teeth (the mimic's), behind the box's front
-  if (mimic) {
-    g.save();
-    g.translate(-BW / 2, top);
-    g.rotate(-open);
-    placePart(g, P.teeth, 0, 0);
-    g.restore();
-  }
-  placePart(g, P.body, 0, 0);
-  if (mimic) {
-    // eyes glinting in the gap, and its tongue
-    const ea = clamp((open - 0.05) * 8, 0, 1);
-    if (ea > 0.01) {
-      g.save();
-      g.globalCompositeOperation = 'lighter';
-      for (const ex of [6, 20]) {
-        const eg = g.createRadialGradient(ex, top - 2.2, 0, ex, top - 2.2, 6);
-        eg.addColorStop(0, `rgba(255,250,170,${ea.toFixed(3)})`);
-        eg.addColorStop(0.3, `rgba(255,214,60,${(0.8 * ea).toFixed(3)})`);
-        eg.addColorStop(1, 'rgba(255,120,20,0)');
-        g.fillStyle = eg;
-        g.fillRect(ex - 6, top - 8, 12, 12);
-      }
-      g.restore();
-    }
-    const tg = m.tongue ?? 0;
-    if (tg > 0.02 && open > 0.08) {
-      g.save();
-      g.translate(4, top + 1);
-      g.rotate(0.15 * Math.sin(s.t * 9));
-      g.scale(1, tg);
-      placePart(g, P.tongue, 0, 0);
-      g.restore();
-    }
-  }
-  g.save();
-  g.translate(-BW / 2, top);
-  g.rotate(-open);
-  placePart(g, P.lid, 0, 0);
-  g.restore();
-  g.restore();
-}
 
-function boxPaint(dark: boolean) {
-  return function* (px: number): Generator<void, Parts> {
-    const bg = full(px, (ctx) => paintTable(ctx, dark));
-    yield;
-    const q = px * BOX;
-    const body = part(q, -BW / 2 - 2, -BH - 2, BW + 4, BH + 4, (ctx) => paintBoxBody(ctx, dark));
-    const lid = part(q, -3, -11, BW + 6, 13, (ctx) => paintLid(ctx, dark));
-    yield;
-    const out: Parts = { bg, body, lid };
-    if (dark) {
-      out.maw = part(q, -BW / 2, -11, BW, 18, paintMaw);
-      out.teeth = part(q, 0, -2, BW, 15, paintLidTeeth);
-      out.tongue = part(q, -10, -3, 20, 23, paintTongue);
-    } else out.hoard = part(q, -BW / 2, -7, BW, 14, paintHoard);
-    return out;
-  };
-}
 
-const chest: EventScene = {
-  bezel: '#a8743c',
-  paint: boxPaint(false),
-  update(s, dt) {
-    const m = s.mem;
-    // now and then the lid lifts a crack, gold light leaking out, and drops back with a bump
-    const u = every(s, 'peek', dt, 1.2, [1.4, 2.4]);
-    let target = 0;
-    if (s.sm < 0.85) target = 0.95;
-    else if (u >= 0) target = u < 0.75 ? 0.28 + 0.04 * Math.sin(u * 20) : 0;
-    const was = m.lid ?? 0;
-    const lid = spring(s, 'lid', target, target > was ? 260 : 420, target > was ? 13 : 9, dt);
-    if (lid < 0 && (m.lidv ?? 0) < -0.5) {
-      // it lands: the box squashes, a puff of dust
-      m.lid = 0;
-      m.sqv = (m.sqv ?? 0) + Math.min(3, -(m.lidv ?? 0) * 0.35);
-      m.lidv = 0;
-      if (!s.still) for (const sx of [-1, 1]) s.dots.spawn('dust', BOX_X + sx * BW * 0.5 * BOX, BOX_Y - 2, sx * 24, -6, 6, 16, 0.5, { drag: 3, a: 0.6 });
-    }
-    spring(s, 'sq', 0, 500, 16, dt);
-    // a sparkle rising from the gap while it's open
-    m.sp = (m.sp ?? 0) + dt;
-    if (lid > 0.08 && m.sp > 0.12) {
-      m.sp = 0;
-      s.dots.spawn('spark', BOX_X - 20 + s.r() * 44, BOX_Y - BH * BOX - 2, (s.r() - 0.5) * 10, -18 - s.r() * 20, 4 + s.r() * 2, 1.5, 0.8, { add: true });
-    }
-  },
-  draw(g, s, P) {
-    boxDraw(g, s, P, false);
-  },
-  smack(s, emit) {
-    const m = s.mem;
-    m.lidv = (m.lidv ?? 0) + 14 * s.calm;
-    m.sqv = (m.sqv ?? 0) + 4 * s.calm;
-    s.flash('#ffe6a0', 0.35, 0.4);
-    s.shake(1.2);
-    const mm = s.menu ? 0.6 : 1;
-    for (let i = 0; i < 7; i++) {
-      const a = -Math.PI / 2 + (s.r() - 0.5) * 1.6;
-      const sp = (170 + s.r() * 120) * mm;
-      emit('coin', BOX_X - 10 + s.r() * 24, BOX_Y - BH * BOX - 4, Math.cos(a) * sp, Math.sin(a) * sp, 9 + s.r() * 2, 9, 0.65 + s.r() * 0.25, { grav: 560, spin: (s.r() - 0.5) * 10 });
-    }
-    for (let i = 0; i < 5; i++) {
-      const a = -Math.PI / 2 + (s.r() - 0.5) * 2.2;
-      const sp = (120 + s.r() * 100) * mm;
-      emit('confetti', BOX_X, BOX_Y - BH * BOX - 4, Math.cos(a) * sp, Math.sin(a) * sp, 8, 8, 0.8 + s.r() * 0.3, { grav: 260, drag: 1.4 });
-    }
-    for (let i = 0; i < 8; i++) s.dots.spawn('spark', BOX_X - 26 + s.r() * 52, BOX_Y - BH * BOX - 4, (s.r() - 0.5) * 30, -40 - s.r() * 40, 6 + s.r() * 3, 2, 0.7, { add: true });
-  },
-};
 
-const mimic: EventScene = {
-  bezel: '#6e4c3a',
-  paint: boxPaint(true),
-  rest(s) {
-    // its still: the lid ajar on its eyes, the tip of its tongue over the rim
-    s.mem.tongue = 0.45;
-  },
-  update(s, dt) {
-    const m = s.mem;
-    // its tell: it wobbles in bursts
-    const wob = every(s, 'wob', dt, 0.9, [1.1, 2]);
-    const rt = wob >= 0 ? 0.06 * Math.sin(wob * TAU * 3) * Math.sin(wob * Math.PI) : 0;
-    spring(s, 'rot', rt, 600, 18, dt);
-    // the lid creaks open on two eyes, the tongue licks the rim
-    const u = every(s, 'peek', dt, 1.5, [1.4, 2.6]);
-    let target = 0;
-    const sm = s.sm;
-    if (sm < 0.4) target = 0.95;
-    else if (sm < 0.7) target = -0.05;
-    else if (u >= 0) target = u < 0.8 ? 0.3 : 0;
-    const was = m.lid ?? 0;
-    const lid = spring(s, 'lid', target, target > was ? 380 : 900, target > was ? 16 : 14, dt);
-    if (lid < 0) {
-      if ((m.lidv ?? 0) < -1) {
-        m.sqv = (m.sqv ?? 0) + Math.min(4, -(m.lidv ?? 0) * 0.3);
-        s.shake(Math.min(1.6, -(m.lidv ?? 0) * 0.1));
-      }
-      m.lid = 0;
-      m.lidv = 0;
-    }
-    spring(s, 'sq', 0, 520, 15, dt);
-    const tTarget = sm < 0.45 ? 1 : u >= 0.15 && u < 0.7 ? Math.sin(((u - 0.15) / 0.55) * Math.PI) * 0.8 : 0;
-    spring(s, 'tongue', tTarget, 200, 14, dt);
-  },
-  draw(g, s, P) {
-    boxDraw(g, s, P, true);
-    // a red flare from inside as it chomps
-    const h = s.still ? 0 : s.hit(0.8);
-    if (h > 0.01) {
-      g.save();
-      g.globalCompositeOperation = 'lighter';
-      const rg = g.createRadialGradient(BOX_X, BOX_Y - BH * BOX - 6, 0, BOX_X, BOX_Y - BH * BOX - 6, 50);
-      rg.addColorStop(0, `rgba(255,70,50,${(0.75 * h).toFixed(3)})`);
-      rg.addColorStop(1, 'rgba(255,40,30,0)');
-      g.fillStyle = rg;
-      g.fillRect(0, 0, 120, 120);
-      g.restore();
-    }
-  },
-  smack(s, emit) {
-    s.mem.lidv = (s.mem.lidv ?? 0) + 10 * s.calm;
-    s.flash('#ff6a50', 0.25, 0.35);
-    s.shake(1.4);
-    const mm = s.menu ? 0.6 : 1;
-    for (let i = 0; i < 5; i++) {
-      const a = -Math.PI / 2 + (s.r() - 0.5) * 2.6;
-      const sp = (110 + s.r() * 110) * mm;
-      emit('crumb', BOX_X - 20 + s.r() * 40, BOX_Y - BH * BOX, Math.cos(a) * sp, Math.sin(a) * sp, 7, 6, 0.5 + s.r() * 0.3, { grav: 500 });
-    }
-    for (let i = 0; i < 3; i++) {
-      const a = -Math.PI / 2 + (s.r() - 0.5) * 1.6;
-      const sp = (70 + s.r() * 60) * mm;
-      emit('drop', BOX_X + 4, BOX_Y - BH * BOX + 4, Math.cos(a) * sp, Math.sin(a) * sp, 6, 5, 0.5, { grav: 420 });
-    }
-  },
-};
 
-// ════════════════════════════ the Hero Sighting ════════════════════════════
+// ════════════════════════════ the Hero Sighting: its parts ════════════════════════════
 
-function paintNight(ctx: Ctx): void {
-  sky(ctx, [[0, '#0e1e58'], [0.55, '#23409a'], [0.85, '#5a6ac8'], [1, '#d88a78']], null);
-  const r = rng(29);
-  for (let i = 0; i < 46; i++) {
-    const x = r() * 120;
-    const y = r() * 92;
-    const b = r();
-    ellipse(ctx, x, y, 0.4 + b * 0.7, 0.4 + b * 0.7);
-    ctx.fillStyle = `rgba(255,250,230,${(0.35 + b * 0.55).toFixed(3)})`;
-    ctx.fill();
-  }
-  // the city's glow and its skyline
-  dab(ctx, 60, 124, 70, '#ffb070', 0.45, 0.4);
-  let x = -4;
-  const cols = ['#101a3a', '#0c1430', '#141e44'];
-  let i = 0;
-  while (x < 124) {
-    const w = 8 + r() * 12;
-    const h = 10 + r() * 20;
-    ctx.fillStyle = cols[i++ % 3];
-    ctx.fillRect(x, 120 - h, w + 0.5, h);
-    for (let k = 0; k < 4; k++) if (r() < 0.5) {
-      ctx.fillStyle = 'rgba(255,214,140,0.6)';
-      ctx.fillRect(x + 2 + r() * (w - 4), 120 - h + 3 + r() * (h - 5), 1.4, 1.8);
-    }
-    x += w;
-  }
-}
 
 function paintBigStar(ctx: Ctx): void {
   const pts = (r: number, inner: number) => {
@@ -1498,128 +709,11 @@ function paintBigStar(ctx: Ctx): void {
   spec(ctx, -4, -6, 3, 1.6, -0.6, 0.85);
 }
 
-function paintHero(ctx: Ctx): void {
-  flyer(ctx, 0, 0, '#2a5fd0', '#e0242f', 0.46);
-}
 
-/** A pass of the hero across the sky: 0 … 1 (or less than 0, between passes). */
-const PASS = 1.6;
-const PASS_LEN = 1.3;
 
-function heroAt(u: number): [number, number, number] {
-  const x = -22 + u * 170;
-  const y = 72 - 26 * Math.sin(Math.PI * u) + u * 6;
-  return [x, y, -0.28 + 0.36 * u];
-}
 
-const sighting: EventScene = {
-  bezel: '#e2b232',
-  *paint(px) {
-    const bg = full(px, paintNight);
-    yield;
-    const big = part(px, -18, -18, 36, 36, paintBigStar);
-    const hero = part(px, -72, -18, 96, 34, paintHero);
-    return { bg, big, hero };
-  },
-  init(s) {
-    s.mem.pass = -s.r();
-  },
-  update(s, dt) {
-    const m = s.mem;
-    m.pass = (m.pass ?? 0) + dt / PASS;
-    if (m.pass >= 1) m.pass -= 1;
-    spring(s, 'pop', 0, 160, 8, dt);
-    m.spin = (m.spin ?? 0) * Math.exp(-dt / 0.5);
-    m.sa = ((m.sa ?? 0) + (m.spin ?? 0) * dt) % TAU;
-    // a sparkle shed along the trail
-    const u = (m.pass * PASS) / PASS_LEN;
-    m.sp = (m.sp ?? 0) + dt;
-    if (u >= 0 && u <= 1 && m.sp > 0.05) {
-      m.sp = 0;
-      const [x, y] = heroAt(u);
-      s.dots.spawn('spark', x - 18, y + (s.r() - 0.5) * 6, -20 - s.r() * 20, 6 + s.r() * 10, 4 + s.r() * 3, 1, 0.6, { add: true });
-    }
-  },
-  draw(g, s, P) {
-    const t = s.t;
-    const m = s.mem;
-    placePart(g, P.bg, 0, 0);
-    // stars twinkling
-    if (!s.still)
-      for (let i = 0; i < 5; i++) {
-        const ph = (t * 0.5 + i * 0.29) % 1;
-        const a = Math.sin(ph * Math.PI);
-        star(g, 10 + ((i * 47) % 100), 10 + ((i * 29) % 60), 2.8 * a, a);
-      }
-    // the gold star: turning slowly, breathing, flaring when caught
-    const pop = m.pop ?? 0;
-    const sc = 1 + 0.05 * Math.sin(t * 2.2) + pop;
-    const glow = 0.3 + 0.12 * Math.sin(t * 2.2) + s.hit(0.6) * 0.6;
-    g.save();
-    g.globalCompositeOperation = 'lighter';
-    const gg = g.createRadialGradient(84, 32, 0, 84, 32, 30 * sc);
-    gg.addColorStop(0, `rgba(255,226,120,${glow.toFixed(3)})`);
-    gg.addColorStop(1, 'rgba(255,200,80,0)');
-    g.fillStyle = gg;
-    g.fillRect(50, 0, 70, 70);
-    g.restore();
-    placePart(g, P.big, 84, 32, 0.08 * Math.sin(t * 0.7) + (m.sa ?? 0), sc);
-    // the hero streaking past, a trail of light behind
-    const u = s.still ? 0.42 : ((m.pass ?? 0) * PASS) / PASS_LEN;
-    if (u >= 0 && u <= 1) {
-      const [x, y, rot] = heroAt(u);
-      const boost = 1 + s.hit(0.8);
-      g.save();
-      g.globalCompositeOperation = 'lighter';
-      for (let k = 0; k < 3; k++) {
-        const len = (34 + k * 10) * boost;
-        const dy = (k - 1) * 4.5;
-        g.save();
-        g.translate(x - 4, y + dy);
-        g.rotate(rot);
-        const tg = g.createLinearGradient(0, 0, -len, 0);
-        tg.addColorStop(0, `rgba(255,246,200,${(0.55 - k * 0.12).toFixed(3)})`);
-        tg.addColorStop(1, 'rgba(160,200,255,0)');
-        g.fillStyle = tg;
-        g.beginPath();
-        g.moveTo(0, -2.2);
-        g.lineTo(-len, -0.4);
-        g.lineTo(-len, 0.4);
-        g.lineTo(0, 2.2);
-        g.closePath();
-        g.fill();
-        g.restore();
-      }
-      g.restore();
-      placePart(g, P.hero, x, y, rot);
-    }
-  },
-  smack(s, emit) {
-    const m = s.mem;
-    m.popv = (m.popv ?? 0) + 6 * s.calm;
-    m.spin = (m.spin ?? 0) + 9 * s.calm;
-    // caught: it zooms straight through again
-    m.pass = 0.02;
-    s.flash('#fff4c0', 0.35, 0.4);
-    const mm = s.menu ? 0.6 : 1;
-    for (let i = 0; i < 6; i++) {
-      const a = s.r() * TAU;
-      const sp = (90 + s.r() * 110) * mm;
-      emit('glint', 84 + Math.cos(a) * 10, 32 + Math.sin(a) * 10, Math.cos(a) * sp, Math.sin(a) * sp, 10 + s.r() * 5, 2, 0.45 + s.r() * 0.2, { drag: 2 });
-    }
-    for (let i = 0; i < 6; i++) {
-      const a = s.r() * TAU;
-      const sp = (40 + s.r() * 80) * mm;
-      emit('gold', 84 + Math.cos(a) * 8, 32 + Math.sin(a) * 8, Math.cos(a) * sp, Math.sin(a) * sp - 20, 9, 4, 0.5 + s.r() * 0.3, { drag: 1.6 });
-    }
-    for (let i = 0; i < 8; i++) {
-      const a = s.r() * TAU;
-      s.dots.spawn('spark', 84, 32, Math.cos(a) * 60, Math.sin(a) * 60, 7, 2, 0.45, { drag: 3, add: true });
-    }
-  },
-};
 
-// ════════════════════════════ Charybdis ════════════════════════════
+// ════════════════════════════ Charybdis: its parts ════════════════════════════
 
 function paintWhirl(ctx: Ctx): void {
   const g = ctx.createRadialGradient(60, 60, 0, 60, 60, 86);
@@ -1691,16 +785,1007 @@ function paintPlank(ctx: Ctx): void {
   ink(ctx, 0.5, 'rgba(90,50,20,0.6)');
 }
 
-const charybdis: EventScene = {
-  bezel: '#5e8c88',
+
+// ════════════════════════════ the head: where the handle is ════════════════════════════
+
+/** The handle's top (disc units: the head's centre is (60, 60), BARE_K peel units a disc unit), its half width, and
+ *  the neck (where the head flexes). */
+const HT = 110;
+const HWD = 9.7;
+
+/** A soft cast shadow on the handle's top under whatever sits on it. */
+function seat(g: Ctx, w: number, a = 0.35): void {
+  g.save();
+  g.beginPath();
+  g.rect(60 - HWD, HT - 1, HWD * 2, 12);
+  g.clip();
+  const sg = g.createLinearGradient(0, HT - 1, 0, HT + 10);
+  sg.addColorStop(0, `rgba(30,12,2,${a})`);
+  sg.addColorStop(1, 'rgba(30,12,2,0)');
+  g.fillStyle = sg;
+  g.fillRect(60 - w, HT - 1, w * 2, 12);
+  g.restore();
+}
+
+/** Two strokes along the current path: ink, and a fine lit line down it. */
+function cord(g: Ctx, w: number, col: string, lit: string): void {
+  g.strokeStyle = col;
+  g.lineWidth = w;
+  g.stroke();
+  g.strokeStyle = lit;
+  g.lineWidth = w * 0.35;
+  g.stroke();
+}
+
+// ════════════════════════════ the Tip Balloon ════════════════════════════
+
+/** The balloon's size on the head, and where it's tied (the handle's top). */
+const BB = 1.55;
+const KNOT = { x: 60, y: 111 };
+/** The balloon's middle (disc units), at rest. */
+const BAL_C = { x: 60, y: KNOT.y - 36 * BB };
+
+/** What's left on the handle when it pops: the knot and a rag of rubber. */
+function paintStub(ctx: Ctx): void {
+  for (const [a, l] of [[-2.4, 7], [-1.1, 6], [-0.5, 8]] as const) {
+    ctx.beginPath();
+    ctx.moveTo(-2, 29.5);
+    ctx.quadraticCurveTo(Math.cos(a) * l * 0.6 - 1, 29 + Math.sin(a) * l * 0.4, Math.cos(a) * l, 29 + Math.sin(a) * l * 0.7);
+    ctx.lineTo(Math.cos(a) * l + 2.2, 29.6 + Math.sin(a) * l * 0.5);
+    ctx.closePath();
+    fs(ctx, '#d8402a', 1.2);
+  }
+  ctx.beginPath();
+  ctx.moveTo(-4.5, 29);
+  ctx.quadraticCurveTo(0, 33, 4.5, 29);
+  ctx.lineTo(3, 36);
+  ctx.quadraticCurveTo(0, 38, -3, 36);
+  ctx.closePath();
+  fs(ctx, lin(ctx, 0, 29, 0, 37, [[0, '#d83a26'], [1, '#8a1a10']]), 1.8);
+}
+
+/** The string from the knot, wound five times down the handle, its end loose and swaying. */
+function balloonString(g: Ctx, t: number): void {
+  g.beginPath();
+  g.moveTo(KNOT.x + 0.5, KNOT.y + 1);
+  g.quadraticCurveTo(KNOT.x - 4, KNOT.y + 4, 60 - HWD, 116);
+  for (let i = 0; i < 5; i++) {
+    const y = 116 + i * 7;
+    g.moveTo(60 - HWD, y);
+    g.quadraticCurveTo(60, y + 6.5, 60 + HWD, y + 3.5);
+  }
+  const ey = 116 + 4 * 7 + 3.5;
+  const sw = Math.sin(t * 1.7) * 2.6;
+  g.moveTo(60 + HWD, ey);
+  g.bezierCurveTo(60 + HWD + 4, ey + 3, 60 + HWD + 1 + sw, ey + 7, 60 + HWD + 4 + sw * 1.6, ey + 12);
+  cord(g, 1.5, 'rgba(70,48,36,0.95)', 'rgba(255,246,230,0.6)');
+}
+
+const balloon: EventScene = {
   *paint(px) {
-    const bg = full(px, paintWhirl);
+    const q = px * BB;
+    const body = part(q, -30, -35, 60, 76, paintBalloon);
+    yield;
+    const stub = part(q, -12, 20, 24, 20, paintStub);
+    return { body, stub };
+  },
+  update(s, dt) {
+    s.mem.pop = (s.mem.pop ?? 9) + dt;
+  },
+  draw(g, s, P) {
+    const t = s.t;
+    // (seconds since it last popped)
+    const sm = s.still ? 9 : s.mem.pop ?? 9;
+    // swaying on the breeze about its knot, the skin breathing
+    const rot = s.still ? -0.035 : 0.075 * Math.sin(t * 0.9 + 0.4) + 0.03 * Math.sin(t * 2.1);
+    const sy = s.still ? 1 : 1 + 0.025 * Math.cos(t * 1.3);
+    // popped: gone, then a new one blowing up from the knot
+    const gone = sm < 0.2;
+    const grow = sm < 0.2 ? 0 : sm < 0.7 ? (sm - 0.2) / 0.5 : 1;
+    const sc = grow >= 1 ? 1 : smooth(grow) * (1 + 0.14 * Math.sin(grow * Math.PI));
+    balloonString(g, t);
+    if (gone || sc < 0.45) {
+      g.save();
+      g.translate(KNOT.x, KNOT.y);
+      g.scale(BB, BB);
+      placePart(g, P.stub, 0, -36);
+      g.restore();
+    }
+    seat(g, 16, 0.3);
+    if (!gone && sc > 0.02) {
+      g.save();
+      g.translate(KNOT.x, KNOT.y);
+      g.rotate(rot);
+      g.scale(BB * sc * (2 - sy), BB * sc * sy);
+      placePart(g, P.body, 0, -36);
+      g.restore();
+      // the coin's glint now and then
+      const gp = (t * 0.29) % 1;
+      if (gp < 0.1 && sc >= 1 && !s.still) star(g, BAL_C.x - 9, BAL_C.y - 3, 9 * Math.sin((gp / 0.1) * Math.PI), Math.sin((gp / 0.1) * Math.PI));
+    }
+    // the pop: a red puff where the skin was, then a ring of light running out
+    if (sm < 0.28) {
+      const { x: bx, y: by } = BAL_C;
+      const u = sm / 0.28;
+      const rr = 24 + u * 62;
+      const pg = g.createRadialGradient(bx, by, 0, bx, by, 46 * (0.6 + u));
+      pg.addColorStop(0, `rgba(255,150,110,${(0.45 * (1 - u)).toFixed(3)})`);
+      pg.addColorStop(0.5, `rgba(255,80,50,${(0.25 * (1 - u)).toFixed(3)})`);
+      pg.addColorStop(1, 'rgba(255,60,40,0)');
+      g.fillStyle = pg;
+      g.fillRect(bx - 76, by - 76, 152, 152);
+      g.save();
+      g.globalCompositeOperation = 'lighter';
+      const rg = g.createRadialGradient(bx, by, rr * 0.45, bx, by, rr);
+      rg.addColorStop(0, 'rgba(255,220,200,0)');
+      rg.addColorStop(0.72, `rgba(255,246,230,${(0.95 * (1 - u)).toFixed(3)})`);
+      rg.addColorStop(1, 'rgba(255,236,220,0)');
+      g.fillStyle = rg;
+      g.fillRect(bx - rr, by - rr, rr * 2, rr * 2);
+      g.restore();
+    }
+  },
+  smack(s, emit) {
+    const { x: bx, y: by } = BAL_C;
+    const m = s.menu ? 0.6 : 1;
+    // a smack while it's still blowing up again only jolts it (fast clicking in play doesn't keep it popped)
+    if ((s.mem.pop ?? 9) < 0.7) {
+      s.shake(1.4);
+      return;
+    }
+    s.mem.pop = 0;
+    s.flash('#fff0e6', 0.3, 0.3);
+    s.shake(1.2);
+    for (let i = 0; i < 9; i++) {
+      const a = (i / 9) * TAU + s.r() * 0.6;
+      const sp = (140 + s.r() * 120) * m;
+      emit('shred', bx + Math.cos(a) * 30, by + Math.sin(a) * 36, Math.cos(a) * sp, Math.sin(a) * sp - 40, 14 + s.r() * 4, 11, 0.45 + s.r() * 0.25, { grav: 260, drag: 1.4, spin: (s.r() - 0.5) * 18 });
+    }
+    for (let i = 0; i < 6; i++) {
+      const a = -Math.PI / 2 + (s.r() - 0.5) * 1.8;
+      const sp = (150 + s.r() * 120) * m;
+      emit('coin', bx + (s.r() - 0.5) * 16, by, Math.cos(a) * sp, Math.sin(a) * sp, 13 + s.r() * 3, 13, 0.6 + s.r() * 0.25, { grav: 520, spin: (s.r() - 0.5) * 10 });
+    }
+    for (let i = 0; i < 8; i++) {
+      const a = s.r() * TAU;
+      s.dots.spawn('spark', bx + Math.cos(a) * 16, by + Math.sin(a) * 18, Math.cos(a) * 80, Math.sin(a) * 80, 10, 3, 0.35, { drag: 3, add: true });
+    }
+  },
+};
+
+// ════════════════════════════ the Delivery Drone ════════════════════════════
+
+/** The drone's size on the head (its rotors reach just past the head's sides), and where it hovers. */
+const D2 = 1.5;
+const DRONE_Y = 36;
+
+/** The mast it's mounted on, from the handle's top up to its belly. */
+function mast(g: Ctx, bx: number, by: number): void {
+  g.beginPath();
+  g.moveTo(60, HT + 3);
+  g.lineTo(bx, by);
+  g.lineCap = 'butt';
+  g.strokeStyle = INK;
+  g.lineWidth = 7.6;
+  g.stroke();
+  const mg = g.createLinearGradient(56, 0, 64, 0);
+  mg.addColorStop(0, '#d8dee6');
+  mg.addColorStop(0.45, '#9aa4b0');
+  mg.addColorStop(1, '#4a525c');
+  g.strokeStyle = mg;
+  g.lineWidth = 4.4;
+  g.stroke();
+  g.lineCap = 'round';
+  // a collar where it meets the handle
+  roundRect(g, 60 - HWD - 1, HT - 1, HWD * 2 + 2, 6, 2);
+  fs(g, lin(g, 50, HT, 70, HT, [[0, '#c8d0da'], [0.5, '#7a8490'], [1, '#3a424c']]), 1.6);
+}
+
+const drone: EventScene = {
+  *paint(px) {
+    const q = px * D2;
+    const body = part(q, -ARM - 8, -16, ARM * 2 + 16, 28, paintDrone);
+    yield;
+    const rotors = [0, 1, 2].map((i) => part(q, -19, -6, 38, 12, (ctx) => paintRotor(ctx, i)));
+    yield;
+    const parcel = part(q, -18, -2, 36, 34, paintParcel);
+    return { body, parcel, r0: rotors[0], r1: rotors[1], r2: rotors[2] };
+  },
+  update(s, dt) {
+    const m = s.mem;
+    // the parcel on its cables: a pendulum, pushed by the drone's drift
+    const ax = -0.8 * 4 * Math.sin(s.t * 0.6);
+    const L = 16;
+    const n = Math.max(1, Math.ceil(dt / (1 / 120)));
+    const h = dt / n;
+    let th = m.th ?? 0;
+    let w = m.thv ?? 0;
+    for (let i = 0; i < n; i++) {
+      w += (-(180 / L) * Math.sin(th) - 1.6 * w - ax / L) * h;
+      th += w * h;
+    }
+    m.th = th;
+    m.thv = w;
+    spring(s, 'tilt', 0, 160, 9, dt);
+    spring(s, 'dip', 0, 120, 10, dt);
+  },
+  draw(g, s, P) {
+    const t = s.t;
+    const m = s.mem;
+    const x = 60 + (s.still ? 0 : 1.4 * Math.sin(t * 0.6));
+    const y = DRONE_Y + (s.still ? 0 : 1.4 * Math.sin(t * 2.3)) + (m.dip ?? 0) * 0.6;
+    const rot = (s.still ? 0 : 0.045 * Math.sin(t * 0.6 + 1.2)) + (m.tilt ?? 0);
+    const th = s.still ? 0.12 : m.th ?? 0;
+    mast(g, x - Math.sin(rot) * 7 * D2, y + Math.cos(rot) * 7 * D2);
+    seat(g, 14, 0.25);
+    // the downwash under the rotors: rings of air running down
+    if (!s.still)
+      for (const sx of [-1, 1])
+        for (let k = 0; k < 3; k++) {
+          const u = (t * 1.8 + k / 3) % 1;
+          const rx = x + sx * ARM * D2;
+          const ry = y - 11 * D2 + 8 + u * 30;
+          ellipse(g, rx, ry, 16 + u * 10, 3 + u * 2);
+          g.strokeStyle = `rgba(226,240,252,${(0.32 * (1 - u) * Math.min(1, u * 5)).toFixed(3)})`;
+          g.lineWidth = 1.3;
+          g.stroke();
+        }
+    g.save();
+    g.translate(x, y);
+    g.rotate(rot);
+    g.scale(D2, D2);
+    // the parcel hangs from under the body on its two cables
+    const hx = Math.sin(th) * 16;
+    const hy = 9 + Math.cos(th) * 16;
+    g.beginPath();
+    g.moveTo(-7, 6);
+    g.lineTo(hx - 0.5, hy + 0.5);
+    g.moveTo(7, 6);
+    g.lineTo(hx + 0.5, hy + 0.5);
+    g.strokeStyle = INK;
+    g.lineWidth = 1.5;
+    g.stroke();
+    g.strokeStyle = 'rgba(210,214,220,0.6)';
+    g.lineWidth = 0.5;
+    g.stroke();
+    placePart(g, P.parcel, hx, hy, th);
+    placePart(g, P.body, 0, 0);
+    // rotors a blur (faster after a knock)
+    const spin = 30 * (1 + 1.5 * s.hit(0.8));
+    const f = Math.floor(t * spin) % 3;
+    const rp = [P.r0, P.r1, P.r2];
+    placePart(g, rp[f], -ARM, -11);
+    placePart(g, rp[(f + 1) % 3], ARM, -11);
+    // its light: a slow cyan blink, red when knocked
+    const red = s.hit(0.9);
+    const bl = s.still ? 0.8 : 0.35 + 0.65 * Math.pow(Math.max(0, Math.sin(t * 4.2)), 6);
+    const col = red > 0.05 ? '#ff4a3a' : '#5ff4e6';
+    const a = Math.max(bl, red);
+    const lg = g.createRadialGradient(0, -2.5, 0, 0, -2.5, 8);
+    lg.addColorStop(0, rgba('#ffffff', a));
+    lg.addColorStop(0.3, rgba(col, a * 0.9));
+    lg.addColorStop(1, rgba(col, 0));
+    g.fillStyle = lg;
+    g.fillRect(-8, -10.5, 16, 16);
+    g.restore();
+  },
+  smack(s, emit) {
+    const m = s.mem;
+    const dir = s.r() < 0.5 ? -1 : 1;
+    m.tiltv = (m.tiltv ?? 0) + dir * 3.2 * s.calm;
+    m.dipv = (m.dipv ?? 0) - 30 * s.calm;
+    m.thv = (m.thv ?? 0) - dir * 4.5 * s.calm;
+    s.flash('#e8fbff', 0.25, 0.3);
+    s.shake(1);
+    const x = 60;
+    const y = DRONE_Y;
+    const mm = s.menu ? 0.6 : 1;
+    for (let i = 0; i < 7; i++) {
+      const a = -Math.PI / 2 + (s.r() - 0.5) * 2.8;
+      const sp = (140 + s.r() * 140) * mm;
+      emit('sparkN', x + Math.cos(a) * 18, y + Math.sin(a) * 8, Math.cos(a) * sp, Math.sin(a) * sp - 30, 16 + s.r() * 6, 10, 0.3 + s.r() * 0.2, { grav: 500, fin: 0.01 });
+    }
+    emit('smoke', x + dir * ARM * D2, y - 12, dir * 30 * mm, -50 * mm, 12, s.menu ? 28 : 40, 0.6, { drag: 1.6, a: 0.75 });
+  },
+};
+
+// ════════════════════════════ the Pepper Moth ════════════════════════════
+
+/** The moth's size on the head (its wings reach past the head's sides), and where its body sits. */
+const MS = 2;
+const MOTH = { x: 60, y: 62 };
+
+/** Its legs, from its body down to the handle's top, gripping it. */
+function mothLegs(g: Ctx, x: number, y: number): void {
+  g.beginPath();
+  for (const sx of [-1, 1])
+    for (let k = 0; k < 3; k++) {
+      const y0 = y + (6 + k * 5) * MS * 0.5;
+      const fx = 60 + sx * (3 + k * 2.6);
+      const kx = x + sx * (13 + k * 3);
+      const ky = (y0 + HT) / 2 - 2;
+      g.moveTo(x + sx * 3.5, y0);
+      g.lineTo(kx, ky);
+      g.lineTo(fx, HT + 1.5);
+    }
+  g.lineJoin = 'round';
+  g.strokeStyle = '#1e1008';
+  g.lineWidth = 2.6;
+  g.stroke();
+  g.strokeStyle = 'rgba(160,110,70,0.7)';
+  g.lineWidth = 0.9;
+  g.stroke();
+}
+
+const moth: EventScene = {
+  *paint(px) {
+    const q = px * MS;
+    const wingR = part(q, -2, -22, 36, 56, paintMothWing);
+    const wingL = part(q, -34, -22, 36, 56, (ctx) => {
+      ctx.scale(-1, 1);
+      paintMothWing(ctx);
+    });
+    yield;
+    const body = part(q, -12, -24, 24, 40, paintMothBody);
+    return { wingL, wingR, body };
+  },
+  update(s, dt) {
+    const m = s.mem;
+    spring(s, 'kx', 0, 60, 6, dt);
+    spring(s, 'ky', 0, 60, 6, dt);
+    m.spin = (m.spin ?? 0) * Math.exp(-dt / 0.3);
+    m.ang = (m.ang ?? 0) * Math.exp(-dt / 0.25) + (m.spin ?? 0) * dt;
+    // the wings: a slow fan at rest, frantic after a swat
+    const fast = s.hit(1.1);
+    m.ph = ((m.ph ?? 0) + dt * TAU * (0.5 + 5.5 * fast)) % (TAU * 100);
+    // pepper shaken off its wings
+    m.pep = (m.pep ?? 0) + dt * (1 + 3 * fast);
+    if (m.pep > 0.3 && !s.still) {
+      m.pep = 0;
+      const sx = s.r() < 0.5 ? -1 : 1;
+      s.dots.spawn('pepper', MOTH.x + sx * (14 + s.r() * 40), MOTH.y + 10 + s.r() * 30, sx * 4, 12 + s.r() * 10, 4 + s.r() * 1.6, 3.4, 1.3, { grav: 6, a: 0.9, spin: (s.r() - 0.5) * 6 });
+    }
+  },
+  draw(g, s, P) {
+    const t = s.t;
+    const m = s.mem;
+    const x = MOTH.x + (m.kx ?? 0);
+    const y = MOTH.y + (m.ky ?? 0) + (s.still ? 0 : 0.8 * Math.sin(t * 1.3));
+    const rot = (s.still ? 0 : 0.035 * Math.sin(t * 0.8)) + (m.ang ?? 0);
+    const fast = s.hit(1.1);
+    const c = Math.cos(m.ph ?? 0);
+    const open = s.still ? 1 : fast > 0.05 ? 0.5 + 0.5 * c : 0.84 + 0.16 * c;
+    const wsx = 0.5 + 0.5 * open;
+    mothLegs(g, x, y);
+    seat(g, 12, 0.25);
+    g.save();
+    g.translate(x, y);
+    g.rotate(rot);
+    g.scale(MS, MS);
+    placePart(g, P.wingL, 0, 0, 0, wsx, 1);
+    placePart(g, P.wingR, 0, 0, 0, wsx, 1);
+    placePart(g, P.body, 0, 0);
+    // its antennae twitch now and then: a glint on its eyes instead (a part can't bend)
+    g.restore();
+    const gp = (t * 0.23) % 1;
+    if (gp < 0.08 && !s.still) star(g, x - 3, y - 21, 5 * Math.sin((gp / 0.08) * Math.PI), Math.sin((gp / 0.08) * Math.PI));
+  },
+  smack(s, emit) {
+    const m = s.mem;
+    const dir = s.r() < 0.5 ? -1 : 1;
+    m.kxv = (m.kxv ?? 0) + dir * 70 * s.calm;
+    m.kyv = (m.kyv ?? 0) - 50 * s.calm;
+    m.spin = (m.spin ?? 0) + dir * 3 * s.calm;
+    s.flash('#ffe8b0', 0.22, 0.3);
+    s.shake(1);
+    const { x, y } = MOTH;
+    const mm = s.menu ? 0.6 : 1;
+    for (let i = 0; i < 16; i++) {
+      const a = s.r() * TAU;
+      const sp = 30 + s.r() * 70;
+      s.dots.spawn('pepper', x + Math.cos(a) * 30, y + Math.sin(a) * 20, Math.cos(a) * sp, Math.sin(a) * sp, 4 + s.r() * 2, 3, 1 + s.r() * 0.6, { grav: 20, drag: 1.5, spin: (s.r() - 0.5) * 10 });
+    }
+    for (let i = 0; i < 6; i++) {
+      const a = s.r() * TAU;
+      const sp = (90 + s.r() * 90) * mm;
+      emit('pepper', x + Math.cos(a) * 34, y + Math.sin(a) * 22, Math.cos(a) * sp, Math.sin(a) * sp, 6, 5, 0.5 + s.r() * 0.3, { grav: 200, drag: 1 });
+    }
+    emit('smoke', x + dir * 30, y, dir * 30 * mm, -20, 14, s.menu ? 28 : 42, 0.55, { drag: 2, a: 0.6 });
+  },
+};
+
+// ════════════════════════════ the Golden Seagull ════════════════════════════
+
+/** The gull's size on the head, and where its body sits (perched on the handle's top). */
+const G2 = 1.8;
+const GULL = { x: 57, y: 82 };
+
+/** Its legs and webbed feet, from its belly down to the handle's top, gripping it. */
+function gullLegs(g: Ctx, x: number, y: number): void {
+  for (const sx of [-1, 1]) {
+    const lx = x + sx * 3.4 * G2 + 3;
+    const fx = 60 + sx * 4.5;
+    g.beginPath();
+    g.moveTo(lx, y + 6 * G2);
+    g.lineTo(fx, HT - 1);
+    cord(g, 2.6, '#c8701a', '#ffd08a');
+    g.beginPath();
+    g.moveTo(fx - 5, HT + 1.6);
+    g.lineTo(fx, HT - 2);
+    g.lineTo(fx + 5, HT + 1.6);
+    g.quadraticCurveTo(fx, HT + 3.4, fx - 5, HT + 1.6);
+    g.closePath();
+    fs(g, lin(g, fx, HT - 2, fx, HT + 3, [[0, '#ffb44a'], [1, '#d8701a']]), 1.3);
+  }
+}
+
+const seagull: EventScene = {
+  *paint(px) {
+    const q = px * G2;
+    const wingNear = part(q, -4, -20, 48, 28, (ctx) => paintGullWing(ctx, false));
+    const wingFar = part(q, -4, -20, 48, 28, (ctx) => paintGullWing(ctx, true));
+    yield;
+    const body = part(q, -24, -14, 64, 30, paintGullBody);
+    return { wingNear, wingFar, body };
+  },
+  update(s, dt) {
+    spring(s, 'jy', 0, 90, 8, dt);
+    const m = s.mem;
+    // a turn of its head now and then (the body leans, the crust tips)
+    const u = every(s, 'look', dt, 1.4, [2.2, 3.6]);
+    spring(s, 'lean', u >= 0 ? 0.09 * Math.sin(u * Math.PI) : 0, 60, 9, dt);
+    m.fl = ((m.fl ?? 0) + dt) % 3.1;
+  },
+  draw(g, s, P) {
+    const t = s.t;
+    const m = s.mem;
+    const x = GULL.x;
+    let y = GULL.y + (m.jy ?? 0);
+    // perched with its wings held up; every few seconds it flaps to keep its balance
+    const fast = s.hit(0.9);
+    const cyc = (m.fl ?? 0) / 3.1;
+    const flapping = !s.still && (cyc < 0.28 || fast > 0.05);
+    const ph = t * TAU * (2.3 + 2.5 * fast);
+    let wa = flapping ? 0.42 * Math.sin(ph) - 0.2 : -0.36 + 0.05 * Math.sin(t * 2.2);
+    if (s.still) wa = -0.4;
+    wa -= 0.45 * s.hit(0.25);
+    if (flapping) y -= 1.6 * Math.max(0, Math.sin(ph + 0.6));
+    gullLegs(g, x, y);
+    seat(g, 12, 0.25);
+    g.save();
+    g.translate(x, y);
+    g.rotate(-0.06 + (m.lean ?? 0) + 0.025 * Math.sin(t * 0.7));
+    g.scale(G2, G2);
+    g.save();
+    g.scale(-0.86, 0.94);
+    placePart(g, P.wingFar, 2, -3, wa);
+    g.restore();
+    placePart(g, P.body, 0, 0);
+    placePart(g, P.wingNear, 2, -4, wa, 1, 1);
+    g.restore();
+    // the crust's glint
+    const gp = (t * 0.4) % 1;
+    if (gp < 0.12 && !s.still) star(g, x + 29 * G2, y + 3 * G2, 8 * Math.sin((gp / 0.12) * Math.PI), Math.sin((gp / 0.12) * Math.PI));
+  },
+  smack(s, emit) {
+    s.mem.jyv = (s.mem.jyv ?? 0) - 90 * s.calm;
+    s.flash('#fff2b8', 0.28, 0.35);
+    s.shake(1);
+    const { x, y } = GULL;
+    const mm = s.menu ? 0.6 : 1;
+    for (let i = 0; i < 8; i++) {
+      const a = s.r() * TAU;
+      const sp = (60 + s.r() * 80) * mm;
+      emit('feather', x + Math.cos(a) * 16, y + Math.sin(a) * 10, Math.cos(a) * sp, Math.sin(a) * sp - 30, 13, 13, 0.9 + s.r() * 0.4, { grav: 60, drag: 2.2, spin: (s.r() - 0.5) * 6 });
+    }
+    const cx = x + 30 * G2;
+    const cy = y + 6 * G2;
+    for (let i = 0; i < 5; i++) {
+      const a = s.r() * TAU;
+      const sp = (90 + s.r() * 90) * mm;
+      emit('glint', cx, cy, Math.cos(a) * sp, Math.sin(a) * sp, 11 + s.r() * 4, 2, 0.4 + s.r() * 0.2, { drag: 2 });
+    }
+    emit('gold', cx, cy, 0, 0, 48, 16, 0.45, { a: 1 });
+    for (let i = 0; i < 6; i++) s.dots.spawn('spark', cx, cy, (s.r() - 0.5) * 100, (s.r() - 0.5) * 100, 11, 3, 0.45, { drag: 3, add: true });
+  },
+};
+
+// ════════════════════════════ the Pizza Box Chest and the Mimic ════════════════════════════
+
+/** The box on the head: its scale, and where its bottom sits (on the handle's top). */
+const CB = 1.5;
+const BOX_X = 60;
+const BOX_Y = HT + 2;
+/** How far the lid can swing open (radians: past this it would leave the peel). */
+const LID_MAX = 0.55;
+
+function boxDraw(g: Ctx, s: MedalState, P: Parts, mimic: boolean): void {
+  const m = s.mem;
+  const open = Math.min(LID_MAX, s.still ? (mimic ? 0.2 : 0.16) : Math.max(0, m.lid ?? 0));
+  const sq = m.sq ?? 0;
+  const rot = m.rot ?? 0;
+  seat(g, 20, 0.4);
+  g.save();
+  g.translate(BOX_X, BOX_Y);
+  g.rotate(rot);
+  g.scale(CB * (1 + sq * 0.5), CB * (1 - sq));
+  const top = -BH;
+  // inside: the hoard or the maw
+  if (open > 0.02) placePart(g, mimic ? P.maw : P.hoard, 0, top + 1);
+  // the gold light leaking from the gap (the chest) or the eyes in it (the mimic)
+  if (!mimic && open > 0.02) {
+    const a = clamp(open * 5, 0, 1);
+    g.save();
+    g.globalCompositeOperation = 'lighter';
+    const gr = 22 + open * 34;
+    const lg = g.createRadialGradient(6, top - 3, 0, 6, top - 3, gr);
+    lg.addColorStop(0, `rgba(255,236,150,${(0.75 * a).toFixed(3)})`);
+    lg.addColorStop(0.4, `rgba(255,200,80,${(0.3 * a).toFixed(3)})`);
+    lg.addColorStop(1, 'rgba(255,180,60,0)');
+    g.fillStyle = lg;
+    g.fillRect(6 - gr, top - 3 - gr, gr * 2, gr * 2);
+    // rays fanning up from the mouth
+    const rays = clamp((open - 0.14) * 2.6, 0, 1);
+    if (rays > 0.01) {
+      for (let i = 0; i < 7; i++) {
+        const ang = -Math.PI / 2 + (i - 3) * 0.26 + Math.sin(s.t * 1.3 + i) * 0.04;
+        const len = 30 + (i % 2) * 8;
+        g.save();
+        g.translate(4, top);
+        g.rotate(ang + Math.PI / 2);
+        const rg = g.createLinearGradient(0, 0, 0, -len);
+        rg.addColorStop(0, `rgba(255,240,170,${(0.6 * rays).toFixed(3)})`);
+        rg.addColorStop(1, 'rgba(255,220,120,0)');
+        g.fillStyle = rg;
+        g.beginPath();
+        g.moveTo(-2, 0);
+        g.lineTo(-7, -len);
+        g.lineTo(7, -len);
+        g.lineTo(2, 0);
+        g.closePath();
+        g.fill();
+        g.restore();
+      }
+    }
+    g.restore();
+  }
+  // the lid's teeth (the mimic's), behind the box's front, the dark of its mouth between the jaws
+  if (mimic && open > 0.02) {
+    const ex = -BW / 2 + BW * Math.cos(open);
+    const ey = top - BW * Math.sin(open);
+    g.beginPath();
+    g.moveTo(-BW / 2 + 2, top);
+    g.lineTo(ex, ey + 2);
+    g.lineTo(BW / 2 - 1, top + 1);
+    g.closePath();
+    const mg = g.createLinearGradient(-BW / 2, top, BW / 2, top);
+    mg.addColorStop(0, '#12020a');
+    mg.addColorStop(0.7, '#4a0a16');
+    mg.addColorStop(1, '#8a1a28');
+    g.fillStyle = mg;
+    g.fill();
+  }
+  if (mimic && open > 0.12) {
+    g.save();
+    g.translate(-BW / 2, top);
+    g.rotate(-open);
+    placePart(g, P.teeth, 0, 0);
+    g.restore();
+  }
+  placePart(g, P.body, 0, 0);
+  if (mimic && open <= 0.12) {
+    // shut, its fangs still hang out over the rim
+    g.save();
+    g.translate(-BW / 2, top);
+    g.rotate(-open);
+    placePart(g, P.teeth, 0, 0);
+    g.restore();
+  }
+  if (mimic) {
+    // eyes glinting in the gap, and its tongue
+    const ea = clamp((open - 0.04) * 9, 0, 1);
+    if (ea > 0.01) {
+      g.save();
+      g.globalCompositeOperation = 'lighter';
+      for (const ex of [4, 18]) {
+        const eg = g.createRadialGradient(ex, top - 2.6, 0, ex, top - 2.6, 6.5);
+        eg.addColorStop(0, `rgba(255,250,170,${ea.toFixed(3)})`);
+        eg.addColorStop(0.3, `rgba(255,214,60,${(0.8 * ea).toFixed(3)})`);
+        eg.addColorStop(1, 'rgba(255,120,20,0)');
+        g.fillStyle = eg;
+        g.fillRect(ex - 7, top - 9, 14, 13);
+      }
+      g.restore();
+    }
+    const tg = m.tongue ?? 0;
+    if (tg > 0.02 && open > 0.06) {
+      g.save();
+      g.translate(4, top + 1);
+      g.rotate(0.15 * Math.sin(s.t * 9));
+      g.scale(1, tg);
+      placePart(g, P.tongue, 0, 0);
+      g.restore();
+    }
+  }
+  g.save();
+  g.translate(-BW / 2, top);
+  g.rotate(-open);
+  placePart(g, P.lid, 0, 0);
+  g.restore();
+  g.restore();
+}
+
+function boxPaint(dark: boolean) {
+  return function* (px: number): Generator<void, Parts> {
+    const q = px * CB;
+    const body = part(q, -BW / 2 - 2, -BH - 2, BW + 4, BH + 4, (ctx) => paintBoxBody(ctx, dark));
+    yield;
+    const lid = part(q, -3, -11, BW + 6, 13, (ctx) => paintLid(ctx, dark));
+    const out: Parts = { body, lid };
+    if (dark) {
+      out.maw = part(q, -BW / 2, -11, BW, 18, paintMaw);
+      out.teeth = part(q, 0, -2, BW, 15, paintLidTeeth);
+      out.tongue = part(q, -10, -3, 20, 23, paintTongue);
+    } else out.hoard = part(q, -BW / 2, -7, BW, 14, paintHoard);
+    return out;
+  };
+}
+
+/** The box's top edge (disc units), where its gold and teeth show. */
+const BOX_TOP = BOX_Y - BH * CB;
+
+const chest: EventScene = {
+  paint: boxPaint(false),
+  update(s, dt) {
+    const m = s.mem;
+    // now and then the lid lifts a crack, gold light leaking out, and drops back with a bump
+    const u = every(s, 'peek', dt, 1.2, [1.4, 2.4]);
+    let target = 0;
+    if (s.sm < 0.85) target = LID_MAX + 0.05;
+    else if (u >= 0) target = u < 0.75 ? 0.22 + 0.03 * Math.sin(u * 20) : 0;
+    const was = m.lid ?? 0;
+    const lid = spring(s, 'lid', target, target > was ? 260 : 420, target > was ? 13 : 9, dt);
+    if (lid > LID_MAX && (m.lidv ?? 0) > 0) {
+      m.lid = LID_MAX;
+      m.lidv = 0;
+    }
+    if (lid < 0 && (m.lidv ?? 0) < -0.5) {
+      // it lands: the box squashes, a puff of dust
+      m.lid = 0;
+      m.sqv = (m.sqv ?? 0) + Math.min(3, -(m.lidv ?? 0) * 0.35);
+      m.lidv = 0;
+      if (!s.still) for (const sx of [-1, 1]) s.dots.spawn('dust', BOX_X + sx * BW * 0.5 * CB, BOX_TOP + 4, sx * 30, -8, 8, 22, 0.5, { drag: 3, a: 0.6 });
+    }
+    spring(s, 'sq', 0, 500, 16, dt);
+    // a sparkle rising from the gap while it's open
+    m.sp = (m.sp ?? 0) + dt;
+    if (lid > 0.06 && m.sp > 0.1) {
+      m.sp = 0;
+      s.dots.spawn('spark', BOX_X - 30 + s.r() * 66, BOX_TOP - 2, (s.r() - 0.5) * 12, -20 - s.r() * 24, 6 + s.r() * 3, 2, 0.8, { add: true });
+    }
+  },
+  draw(g, s, P) {
+    boxDraw(g, s, P, false);
+  },
+  smack(s, emit) {
+    const m = s.mem;
+    m.lidv = (m.lidv ?? 0) + 14 * s.calm;
+    m.sqv = (m.sqv ?? 0) + 4 * s.calm;
+    s.flash('#ffe6a0', 0.32, 0.4);
+    s.shake(1.2);
+    const mm = s.menu ? 0.6 : 1;
+    for (let i = 0; i < 8; i++) {
+      const a = -Math.PI / 2 + (s.r() - 0.5) * 1.6;
+      const sp = (170 + s.r() * 120) * mm;
+      emit('coin', BOX_X - 16 + s.r() * 36, BOX_TOP - 4, Math.cos(a) * sp, Math.sin(a) * sp, 11 + s.r() * 2, 11, 0.65 + s.r() * 0.25, { grav: 560, spin: (s.r() - 0.5) * 10 });
+    }
+    for (let i = 0; i < 6; i++) {
+      const a = -Math.PI / 2 + (s.r() - 0.5) * 2.2;
+      const sp = (120 + s.r() * 100) * mm;
+      emit('confetti', BOX_X, BOX_TOP - 4, Math.cos(a) * sp, Math.sin(a) * sp, 9, 9, 0.8 + s.r() * 0.3, { grav: 260, drag: 1.4 });
+    }
+    for (let i = 0; i < 10; i++) s.dots.spawn('spark', BOX_X - 40 + s.r() * 80, BOX_TOP - 4, (s.r() - 0.5) * 36, -46 - s.r() * 46, 8 + s.r() * 4, 2, 0.7, { add: true });
+  },
+};
+
+const mimic: EventScene = {
+  paint: boxPaint(true),
+  rest(s) {
+    // its still: the lid ajar on its eyes, the tip of its tongue over the rim
+    s.mem.tongue = 0.45;
+  },
+  update(s, dt) {
+    const m = s.mem;
+    // its tell: it wobbles in bursts
+    const wob = every(s, 'wob', dt, 0.9, [1.1, 2]);
+    const rt = wob >= 0 ? 0.06 * Math.sin(wob * TAU * 3) * Math.sin(wob * Math.PI) : 0;
+    spring(s, 'rot', rt, 600, 18, dt);
+    // the lid creaks open on two eyes, the tongue licks the rim
+    const u = every(s, 'peek', dt, 1.5, [1.4, 2.6]);
+    let target = 0;
+    const sm = s.sm;
+    if (sm < 0.4) target = LID_MAX + 0.05;
+    else if (sm < 0.7) target = -0.05;
+    else if (u >= 0) target = u < 0.8 ? 0.24 : 0;
+    const was = m.lid ?? 0;
+    const lid = spring(s, 'lid', target, target > was ? 380 : 900, target > was ? 16 : 14, dt);
+    if (lid > LID_MAX && (m.lidv ?? 0) > 0) {
+      m.lid = LID_MAX;
+      m.lidv = 0;
+    }
+    if (lid < 0) {
+      if ((m.lidv ?? 0) < -1) {
+        m.sqv = (m.sqv ?? 0) + Math.min(4, -(m.lidv ?? 0) * 0.3);
+        s.shake(Math.min(1.6, -(m.lidv ?? 0) * 0.1));
+      }
+      m.lid = 0;
+      m.lidv = 0;
+    }
+    spring(s, 'sq', 0, 520, 15, dt);
+    const tTarget = sm < 0.45 ? 1 : u >= 0.15 && u < 0.7 ? Math.sin(((u - 0.15) / 0.55) * Math.PI) * 0.8 : 0;
+    spring(s, 'tongue', tTarget, 200, 14, dt);
+  },
+  draw(g, s, P) {
+    boxDraw(g, s, P, true);
+    // a red flare from inside as it chomps
+    const h = s.still ? 0 : s.hit(0.8);
+    if (h > 0.01) {
+      g.save();
+      g.globalCompositeOperation = 'lighter';
+      const rg = g.createRadialGradient(BOX_X, BOX_TOP - 6, 0, BOX_X, BOX_TOP - 6, 60);
+      rg.addColorStop(0, `rgba(255,70,50,${(0.75 * h).toFixed(3)})`);
+      rg.addColorStop(1, 'rgba(255,40,30,0)');
+      g.fillStyle = rg;
+      g.fillRect(0, 0, 120, 120);
+      g.restore();
+    }
+  },
+  smack(s, emit) {
+    s.mem.lidv = (s.mem.lidv ?? 0) + 10 * s.calm;
+    s.flash('#ff6a50', 0.22, 0.35);
+    s.shake(1.4);
+    const mm = s.menu ? 0.6 : 1;
+    for (let i = 0; i < 6; i++) {
+      const a = -Math.PI / 2 + (s.r() - 0.5) * 2.6;
+      const sp = (110 + s.r() * 110) * mm;
+      emit('crumb', BOX_X - 30 + s.r() * 60, BOX_TOP, Math.cos(a) * sp, Math.sin(a) * sp, 8, 7, 0.5 + s.r() * 0.3, { grav: 500 });
+    }
+    for (let i = 0; i < 3; i++) {
+      const a = -Math.PI / 2 + (s.r() - 0.5) * 1.6;
+      const sp = (70 + s.r() * 60) * mm;
+      emit('drop', BOX_X + 6, BOX_TOP + 6, Math.cos(a) * sp, Math.sin(a) * sp, 7, 6, 0.5, { grav: 420 });
+    }
+  },
+};
+
+// ════════════════════════════ the Hero Sighting ════════════════════════════
+
+/** The hero's head (disc units): its middle and radius. It flies up and to the right, its cape streaming behind. */
+const HERO = { x: 62, y: 56, r: 40 };
+const SUIT = '#2a5fd0';
+const CAPE = '#e0242f';
+
+/** The hero's head without its eyes and its brow's star: a lit blue cowl, a mask, a grin. */
+function paintHeroHead(ctx: Ctx): void {
+  const r = HERO.r;
+  ellipse(ctx, 0, 0, r, r);
+  fs(ctx, lit(ctx, 0, 0, r, SUIT, 0.5, -0.45), 3);
+  // the cowl's ear points
+  for (const sx of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(sx * r * 0.52, -r * 0.8);
+    ctx.lineTo(sx * r * 0.7, -r * 1.12);
+    ctx.lineTo(sx * r * 0.82, -r * 0.56);
+    ctx.closePath();
+    fs(ctx, lin(ctx, 0, -r * 1.1, 0, -r * 0.5, [[0, shade(SUIT, 0.3)], [1, SUIT]]), 2.4);
+  }
+  // the face below the mask, a determined grin
+  ctx.save();
+  ellipse(ctx, 0, 0, r, r);
+  ctx.clip();
+  ellipse(ctx, 2, r * 0.58, r * 0.62, r * 0.5);
+  fs(ctx, lit(ctx, 2, r * 0.5, r * 0.6, '#f2c49a', 0.3, -0.3), 0);
+  dab(ctx, 12, 28, 16, '#0a1838', 0.25);
+  ctx.restore();
+  ctx.beginPath();
+  ctx.moveTo(-8, r * 0.55);
+  ctx.quadraticCurveTo(4, r * 0.7, 14, r * 0.46);
+  ink(ctx, 2.2);
+  // the mask: a dark band across the eyes, tilted with the flight
+  ctx.beginPath();
+  ctx.moveTo(-r * 0.92, -2);
+  ctx.bezierCurveTo(-r * 0.5, -14, r * 0.5, -16, r * 0.94, -8);
+  ctx.bezierCurveTo(r * 0.8, 8, r * 0.3, 10, 2, 6);
+  ctx.bezierCurveTo(-r * 0.3, 12, -r * 0.8, 10, -r * 0.92, -2);
+  ctx.closePath();
+  fs(ctx, lin(ctx, 0, -14, 0, 10, [[0, '#24346a'], [1, '#0c1430']]), 2.2);
+  spec(ctx, -r * 0.5, -r * 0.45, r * 0.2, r * 0.1, -0.7, 0.55);
+}
+
+/** Its eyes (white, looking up and ahead): a part of their own, so they blink. */
+function paintHeroEyes(ctx: Ctx): void {
+  for (const ex of [-12, 14]) {
+    ellipse(ctx, ex, 0, 7.5, 5.4);
+    fs(ctx, '#ffffff', 1.6);
+    ellipse(ctx, ex + 2.6, -1.2, 2.6, 2.6);
+    fs(ctx, '#101828', 0);
+    ellipse(ctx, ex + 1.6, -2.2, 0.9, 0.9);
+    fs(ctx, '#ffffff', 0);
+  }
+}
+
+/** The collar where the head meets the handle: the cape's gold clasp. */
+function paintCollar(ctx: Ctx): void {
+  ellipse(ctx, 0, 0, 15, 6);
+  fs(ctx, lin(ctx, 0, -6, 0, 6, [[0, '#ff6a5a'], [1, '#9a1018']]), 2);
+  ellipse(ctx, 0, 0, 4.6, 4.6);
+  fs(ctx, lit(ctx, 0, 0, 4.6, '#ffd23f', 0.6, -0.3), 1.4);
+}
+
+/** The cape, streaming out to the left and down behind the hero, rippling (drawn live; w: how hard the wind). */
+function heroCape(g: Ctx, t: number, w: number): void {
+  const a = Math.sin(t * 6.2) * 3 * w;
+  const b = Math.sin(t * 6.2 + 1.3) * 5 * w;
+  const c = Math.sin(t * 6.2 + 2.5) * 7 * w;
+  g.beginPath();
+  g.moveTo(70, 84);
+  g.bezierCurveTo(46, 72 + a * 0.5, 22, 80 + b, -6, 74 + c);
+  g.quadraticCurveTo(-4 + b * 0.3, 92 + c, -10, 104 + c);
+  g.quadraticCurveTo(-2, 112 + b, -8, 124 + c);
+  g.bezierCurveTo(16, 126 + b, 40, 118 + a, 70, 106);
+  g.closePath();
+  fs(g, lin(g, -8, 0, 70, 0, [[0, shade(CAPE, -0.4)], [0.55, CAPE], [1, shade(CAPE, 0.15)]]), 2.6);
+  // its folds running out along it, and its lining's edge
+  for (const [y0, k] of [[88, 0.6], [100, 1]] as const) {
+    g.beginPath();
+    g.moveTo(60, y0);
+    g.bezierCurveTo(40, y0 - 2 + a * k, 18, y0 + 4 + b * k, -2, y0 + 2 + c * k);
+    ink(g, 1.4, rgba(INK, 0.35));
+  }
+  g.beginPath();
+  g.moveTo(46, 76 + a * 0.4);
+  g.bezierCurveTo(30, 76 + b * 0.6, 12, 80 + b, -4, 76 + c);
+  ink(g, 1.2, 'rgba(255,170,150,0.6)');
+}
+
+const sighting: EventScene = {
+  *paint(px) {
+    const head = part(px, -HERO.r - 4, -HERO.r * 1.16 - 4, HERO.r * 2 + 8, HERO.r * 2.16 + 8, paintHeroHead);
+    yield;
+    const eyes = part(px, -22, -8, 46, 16, paintHeroEyes);
+    const collar = part(px, -18, -9, 36, 18, paintCollar);
+    const big = part(px, -18, -18, 36, 36, paintBigStar);
+    return { head, eyes, collar, big };
+  },
+  update(s, dt) {
+    const m = s.mem;
+    spring(s, 'pop', 0, 160, 8, dt);
+    spring(s, 'zy', 0, 70, 7, dt);
+    m.spin = (m.spin ?? 0) * Math.exp(-dt / 0.5);
+    m.sa = ((m.sa ?? 0) + (m.spin ?? 0) * dt) % TAU;
+    // a sparkle shed along the trail
+    m.sp = (m.sp ?? 0) + dt;
+    if (m.sp > 0.07 && !s.still) {
+      m.sp = 0;
+      s.dots.spawn('spark', 34 + s.r() * 14, 92 + s.r() * 16, -40 - s.r() * 30, 26 + s.r() * 20, 6 + s.r() * 3, 1.5, 0.6, { add: true });
+    }
+  },
+  draw(g, s, P) {
+    const t = s.t;
+    const m = s.mem;
+    const boost = 1 + s.hit(0.8);
+    const x = HERO.x + (s.still ? 0 : 1.2 * Math.sin(t * 1.1));
+    const y = HERO.y + (m.zy ?? 0) + (s.still ? 0 : 1.6 * Math.sin(t * 2.4));
+    // a trail of light behind it, down and to the left
+    g.save();
+    g.globalCompositeOperation = 'lighter';
+    for (let k = 0; k < 3; k++) {
+      const len = (52 + k * 14) * boost;
+      g.save();
+      g.translate(40 + k * 9, 88 + k * 6);
+      g.rotate(Math.PI * 0.82);
+      const tg = g.createLinearGradient(0, 0, len, 0);
+      const fl = 0.85 + 0.15 * Math.sin(t * 17 + k * 2);
+      tg.addColorStop(0, `rgba(255,246,200,${((0.5 - k * 0.11) * fl).toFixed(3)})`);
+      tg.addColorStop(1, 'rgba(160,200,255,0)');
+      g.fillStyle = tg;
+      g.beginPath();
+      g.moveTo(0, -3.4);
+      g.lineTo(len, -0.5);
+      g.lineTo(len, 0.5);
+      g.lineTo(0, 3.4);
+      g.closePath();
+      g.fill();
+      g.restore();
+    }
+    g.restore();
+    heroCape(g, t, s.still ? 0.4 : 0.8 + 0.6 * s.hit(0.8));
+    placePart(g, P.collar, 60, HT - 3);
+    seat(g, 14, 0.3);
+    g.save();
+    g.translate(x, y);
+    g.rotate(0.1);
+    placePart(g, P.head, 0, 0);
+    // a blink now and then
+    const bp = (t * 0.31) % 1;
+    const blink = s.still ? 1 : bp < 0.05 ? Math.abs(1 - bp / 0.025) : 1;
+    placePart(g, P.eyes, 0, -2, 0, 1, Math.max(0.1, blink));
+    g.restore();
+    // the gold star on its brow: turning, breathing, flaring when caught
+    const pop = m.pop ?? 0;
+    const sx = x - Math.sin(0.1) * -HERO.r * 0.58;
+    const sy = y - Math.cos(0.1) * HERO.r * 0.58;
+    const glow = (s.still ? 0.25 : 0.25 + 0.12 * Math.sin(t * 2.2)) + s.hit(0.6) * 0.7;
+    g.save();
+    g.globalCompositeOperation = 'lighter';
+    const gg = g.createRadialGradient(sx, sy, 0, sx, sy, 22 * (1 + pop));
+    gg.addColorStop(0, `rgba(255,226,120,${glow.toFixed(3)})`);
+    gg.addColorStop(1, 'rgba(255,200,80,0)');
+    g.fillStyle = gg;
+    g.fillRect(sx - 40, sy - 40, 80, 80);
+    g.restore();
+    placePart(g, P.big, sx, sy, 0.1 + (m.sa ?? 0), 0.62 * (1 + pop));
+    const gp = (t * 0.37) % 1;
+    if (gp < 0.1 && !s.still) star(g, sx + 4, sy - 5, 8 * Math.sin((gp / 0.1) * Math.PI), Math.sin((gp / 0.1) * Math.PI));
+  },
+  smack(s, emit) {
+    const m = s.mem;
+    m.popv = (m.popv ?? 0) + 5 * s.calm;
+    m.spin = (m.spin ?? 0) + 10 * s.calm;
+    m.zyv = (m.zyv ?? 0) - 70 * s.calm;
+    s.flash('#fff4c0', 0.3, 0.4);
+    const mm = s.menu ? 0.6 : 1;
+    const sx = HERO.x;
+    const sy = HERO.y - HERO.r * 0.58;
+    for (let i = 0; i < 7; i++) {
+      const a = s.r() * TAU;
+      const sp = (90 + s.r() * 110) * mm;
+      emit('glint', sx + Math.cos(a) * 10, sy + Math.sin(a) * 10, Math.cos(a) * sp, Math.sin(a) * sp, 11 + s.r() * 5, 2, 0.45 + s.r() * 0.2, { drag: 2 });
+    }
+    for (let i = 0; i < 6; i++) {
+      const a = s.r() * TAU;
+      const sp = (40 + s.r() * 80) * mm;
+      emit('gold', sx + Math.cos(a) * 8, sy + Math.sin(a) * 8, Math.cos(a) * sp, Math.sin(a) * sp - 20, 10, 4, 0.5 + s.r() * 0.3, { drag: 1.6 });
+    }
+    for (let i = 0; i < 8; i++) {
+      const a = s.r() * TAU;
+      s.dots.spawn('spark', sx, sy, Math.cos(a) * 70, Math.sin(a) * 70, 9, 2, 0.45, { drag: 3, add: true });
+    }
+  },
+};
+
+// ════════════════════════════ Charybdis ════════════════════════════
+
+/** The whirlpool on the head: open water, its middle and radius (disc units); no frame, a foaming rim. */
+const WP = { x: 60, y: 58, r: 56 };
+
+/** The water's edge: a circle that heaves a little. */
+function rimPath(g: Ctx, t: number, grow = 0): void {
+  g.beginPath();
+  const n = 56;
+  for (let i = 0; i <= n; i++) {
+    const a = (i / n) * TAU;
+    const r = WP.r + grow + 1.5 * Math.sin(a * 7 + t * 2) + 1.1 * Math.sin(a * 11 - t * 3.1);
+    const x = WP.x + Math.cos(a) * r;
+    const y = WP.y + Math.sin(a) * r;
+    if (i) g.lineTo(x, y);
+    else g.moveTo(x, y);
+  }
+  g.closePath();
+}
+
+const charybdis: EventScene = {
+  *paint(px) {
+    const bg = part(px, -60, -60, 120, 120, (ctx) => {
+      ctx.translate(-60, -60);
+      paintWhirl(ctx);
+    });
     yield;
     const outer = part(px, -86, -86, 172, 172, (ctx) => paintArms(ctx, 5, 22, 84, 0.62, 3.2, 0.75));
     yield;
     const inner = part(px, -46, -46, 92, 92, (ctx) => paintArms(ctx, 4, 16, 44, 0.55, 2, 0.55));
-    const maw = part(px, -22, -22, 44, 44, paintMaw2);
-    const plank = part(px, -9, -4, 18, 8, paintPlank);
+    const maw = part(px * 1.3, -22, -22, 44, 44, paintMaw2);
+    const plank = part(px * 1.3, -9, -4, 18, 8, paintPlank);
     return { bg, outer, inner, maw, plank };
   },
   update(s, dt) {
@@ -1708,53 +1793,94 @@ const charybdis: EventScene = {
     const fast = 1 + 2.4 * s.hit(1.2);
     m.a1 = ((m.a1 ?? 0) + dt * 0.55 * fast) % TAU;
     m.a2 = ((m.a2 ?? 0) + dt * 1.3 * fast) % TAU;
+    m.rim = ((m.rim ?? 0) + dt * 0.35 * fast) % TAU;
     // the maw clamps shut on a smack and opens again
     const target = s.sm < 0.35 ? 0.3 : 1;
     spring(s, 'maw', target, s.sm < 0.35 ? 900 : 60, s.sm < 0.35 ? 30 : 8, dt);
     m.plank = ((m.plank ?? s.r()) + dt / 4.6) % 1;
+    // spray flicked off the rim now and then
+    m.spr = (m.spr ?? 0) + dt * fast;
+    if (m.spr > 0.22 && !s.still) {
+      m.spr = 0;
+      const a = s.r() * TAU;
+      const tx = -Math.sin(a);
+      const ty = Math.cos(a);
+      s.dots.spawn('drop', WP.x + Math.cos(a) * WP.r, WP.y + Math.sin(a) * WP.r, (Math.cos(a) * 14 + tx * 30) * fast, (Math.sin(a) * 14 + ty * 30) * fast - 10, 3.4 + s.r() * 1.6, 2, 0.5, { grav: 60 });
+    }
   },
   draw(g, s, P) {
-    const t = s.t;
+    const t = s.still ? 0 : s.t;
     const m = s.mem;
-    placePart(g, P.bg, 0, 0);
-    placePart(g, P.outer, 60, 60, m.a1 ?? 0.3);
-    placePart(g, P.inner, 60, 60, (m.a2 ?? 0.8) + 0.4);
+    seat(g, 18, 0.35);
+    // a dark wet shadow round it, then the water inside its heaving edge
+    rimPath(g, t, 3);
+    g.fillStyle = INK;
+    g.fill();
+    g.save();
+    rimPath(g, t);
+    g.clip();
+    placePart(g, P.bg, WP.x, WP.y, 0, 1.0);
+    placePart(g, P.outer, WP.x, WP.y, m.a1 ?? 0.3);
+    placePart(g, P.inner, WP.x, WP.y, (m.a2 ?? 0.8) + 0.4);
     // foam flecks spiralling in, faster as they near the middle
     if (!s.still)
-      for (let i = 0; i < 16; i++) {
-        const u = (t * 0.22 + i / 16) % 1;
-        const rr = 56 * (1 - u) + 10;
-        const ang = i * 2.4 + t * 0.5 + (1 / (rr / 56 + 0.2)) * 1.6 + (m.a1 ?? 0);
+      for (let i = 0; i < 18; i++) {
+        const u = (t * 0.22 + i / 18) % 1;
+        const rr = 50 * (1 - u) + 12;
+        const ang = i * 2.4 + t * 0.5 + (1 / (rr / 50 + 0.2)) * 1.6 + (m.a1 ?? 0);
         const a = Math.sin(Math.PI * Math.min(1, u * 1.4)) * 0.9;
-        const sz = 2.2 + 2.6 * (1 - u);
+        const sz = 2.6 + 3 * (1 - u);
         g.globalAlpha = a;
-        g.drawImage(foamDot(), 60 + Math.cos(ang) * rr - sz / 2, 60 + Math.sin(ang) * rr - sz / 2, sz, sz);
+        g.drawImage(foamDot(), WP.x + Math.cos(ang) * rr - sz / 2, WP.y + Math.sin(ang) * rr - sz / 2, sz, sz);
       }
     g.globalAlpha = 1;
     // a plank caught in it, dragged down
     const pu = s.still ? 0.3 : m.plank ?? 0;
     if (pu < 0.92) {
-      const rr = 52 * (1 - pu) + 6;
+      const rr = 46 * (1 - pu) + 8;
       const ang = 1.2 + pu * TAU * 1.6 + (m.a1 ?? 0) * 0.5;
-      const sc = 0.5 + 0.6 * (1 - pu);
-      placePart(g, P.plank, 60 + Math.cos(ang) * rr, 60 + Math.sin(ang) * rr, ang + Math.PI / 2, sc, sc, Math.min(1, (0.92 - pu) * 6));
+      const sc = 0.7 + 0.8 * (1 - pu);
+      placePart(g, P.plank, WP.x + Math.cos(ang) * rr, WP.y + Math.sin(ang) * rr, ang + Math.PI / 2, sc, sc, Math.min(1, (0.92 - pu) * 6));
     }
     // the maw, breathing, turning against the water
-    const ms = (m.maw ?? 1) * (1 + 0.05 * Math.sin(t * 2));
-    placePart(g, P.maw, 60, 60, -t * 0.3, ms);
+    const ms = (m.maw ?? 1) * (1 + 0.05 * Math.sin(t * 2)) * 1.3;
+    placePart(g, P.maw, WP.x, WP.y, -t * 0.3, ms);
+    // the light off the water's top left, the shade on its bottom right
+    const sh = g.createLinearGradient(WP.x - WP.r, WP.y - WP.r, WP.x + WP.r, WP.y + WP.r);
+    sh.addColorStop(0, 'rgba(220,250,255,0.16)');
+    sh.addColorStop(0.5, 'rgba(220,250,255,0)');
+    sh.addColorStop(1, 'rgba(0,10,20,0.25)');
+    g.fillStyle = sh;
+    g.fillRect(WP.x - WP.r - 4, WP.y - WP.r - 4, WP.r * 2 + 8, WP.r * 2 + 8);
+    g.restore();
+    // the foaming rim, turning with the water, over the edge (it breaks the outline)
+    rimPath(g, t, -1);
+    g.strokeStyle = 'rgba(236,252,255,0.85)';
+    g.lineWidth = 2.6;
+    g.stroke();
+    const f = foamDot();
+    const rot = m.rim ?? 0;
+    for (let i = 0; i < 24; i++) {
+      const a = (i / 24) * TAU + rot + Math.sin(i * 1.7) * 0.05;
+      const rr = WP.r + Math.sin(i * 2.3 + t * 1.5) * 1.6;
+      const sz = 6 + ((i * 7) % 5) * 1.4 + Math.sin(t * 3 + i) * 0.8;
+      g.globalAlpha = 0.55 + 0.2 * Math.sin(i * 1.3);
+      g.drawImage(f, WP.x + Math.cos(a) * rr - sz / 2, WP.y + Math.sin(a) * rr - sz / 2, sz, sz);
+    }
+    g.globalAlpha = 1;
   },
   smack(s, emit) {
-    s.flash('#d8faff', 0.3, 0.35);
+    s.flash('#d8faff', 0.28, 0.35);
     s.shake(1.6);
     const mm = s.menu ? 0.6 : 1;
-    for (let i = 0; i < 8; i++) {
-      const a = (i / 8) * TAU + s.r() * 0.5;
+    for (let i = 0; i < 10; i++) {
+      const a = (i / 10) * TAU + s.r() * 0.5;
       const sp = (120 + s.r() * 120) * mm;
-      emit('drop', 60 + Math.cos(a) * 46, 60 + Math.sin(a) * 46, Math.cos(a) * sp, Math.sin(a) * sp - 50, 8 + s.r() * 3, 6, 0.5 + s.r() * 0.2, { grav: 500 });
+      emit('drop', WP.x + Math.cos(a) * WP.r, WP.y + Math.sin(a) * WP.r, Math.cos(a) * sp, Math.sin(a) * sp - 50, 9 + s.r() * 3, 7, 0.5 + s.r() * 0.2, { grav: 500 });
     }
-    for (let i = 0; i < 12; i++) {
-      const a = (i / 12) * TAU;
-      s.dots.spawn('foam', 60 + Math.cos(a) * 24, 60 + Math.sin(a) * 24, Math.cos(a) * 60, Math.sin(a) * 60, 5, 2, 0.5, { drag: 2.5 });
+    for (let i = 0; i < 14; i++) {
+      const a = (i / 14) * TAU;
+      s.dots.spawn('foam', WP.x + Math.cos(a) * 30, WP.y + Math.sin(a) * 30, Math.cos(a) * 70, Math.sin(a) * 70, 7, 3, 0.5, { drag: 2.5 });
     }
   },
 };

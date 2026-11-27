@@ -1,18 +1,19 @@
-// Event and act peels: a medallion set into the head (the peel's own shape, colours, pattern, studs and handle round
-// it), recessed behind a bezel and a glass, with something alive inside (a crafted kind each: src/art/peelCraft.ts).
+// Event and act peels (a crafted kind each: src/art/peelCraft.ts).
 //
-// - event: the wave event in miniature, doing what it does on the table (src/art/peelEventDefs.ts): the Tip Balloon
-//   bobbing on its string, the drone hovering with its parcel swinging, the moth fluttering round a lamp, the golden
-//   gull flapping over the sea, the pizza box chest letting gold light out of its lid, the mimic wobbling and licking
-//   its lips, a hero streaking past, Charybdis turning. A smack gets the event's answer (the balloon pops and blows
-//   up again, the chest bursts open, the mimic chomps, the whirlpool clamps shut …).
-// - act: a trophy. Through a round window in a gold bezel the act's two places play (their place peels' own living
+// - event: no frame. The head IS the event (src/art/peelEventDefs.ts): the Tip Balloon tied to the handle, its string
+//   wound round it; the Delivery Drone on its mast, rotors spinning, parcel swinging; the Pepper Moth clinging to the
+//   handle's top, fanning its wings past the head's outline; the Golden Seagull perched on it, wings up; the Pizza
+//   Box Chest and the Mimic sitting on it; the Hero Sighting's hero, cape streaming; Charybdis's open water turning
+//   on the head with a foaming rim. A smack gets the event's answer (the balloon pops and blows up again, the chest
+//   bursts open, the mimic chomps, the whirlpool clamps shut …). The shinies are the same with a moving foil.
+// - act: a trophy, a medallion set into the head (the peel's own shape, colours, pattern, studs and handle round it),
+//   recessed behind a bezel and a glass. Through a round window in a gold bezel the act's two places play (their place peels' own living
 //   windows, src/art/peelPlace.ts), turning from one to the other, with the act's number struck in gold in front,
 //   a sweep of light running over it now and then and the studs glinting in turn. A smack brings the act's boss's
 //   foot stomping down into the place (it reacts as its place peel does), the number jolting and flaring.
 //
-// The medallion lives in disc units: a 120 × 120 square, its centre at (60, 60), drawn into the head's surface scaled
-// to the medallion's size. What's painted (the scene's background and its parts) is painted once per rig detail, a
+// Both live in disc units: a 120 × 120 square, its centre at (60, 60), drawn into the head's surface scaled to the
+// medallion's size (an event's: to the whole head, BARE_K peel units a disc unit, drawn unclipped). What's painted (the scene's background and its parts) is painted once per rig detail, a
 // part per idle step; each frame the scene is drawn from those parts, moved, turned and squashed, with a few things
 // drawn live (strings, cables, trails). Small things inside the medallion (pepper, foam, sparkles, dust) are a pool
 // of their own, clipped to it; what flies off the peel is the crafted peels' sprite pool. Everything cosmetic uses
@@ -41,6 +42,14 @@ export interface Disc {
   cy: number;
   r: number;
 }
+
+/** Peel units per disc unit for a frameless event head: disc (60, 60) is the head's centre and the disc's 120 units
+ *  span the head (and a little more). */
+export const BARE_K = 1.45;
+/** The box a frameless event head's surface covers (peel units): room for wings past the outline and the string
+ *  wound down the handle. */
+export const EVENT_BOX = { x: 0, y: 0, w: 220, h: 256 };
+const BARE_DISC: Disc = { cx: HX, cy: HY, r: 60 * BARE_K };
 
 /** Where the medallion sits on each head shape: as big as the head allows with a band of the head left round it (and
  *  room for the studs on a narrow oval). */
@@ -252,6 +261,8 @@ export type MedalSpr = 'coin' | 'shred' | 'pepper' | 'feather' | 'drop' | 'smoke
 export type MedalEmit = (spr: MedalSpr, x: number, y: number, vx: number, vy: number, s0: number, s1: number, life: number, o?: { grav?: number; drag?: number; a?: number; fin?: number; spin?: number }) => void;
 
 export interface MedalState {
+  /** A frameless event head (no window: drawn unclipped over the whole head). */
+  bare: boolean;
   /** Seconds, and seconds since the last smack. */
   t: number;
   sm: number;
@@ -306,6 +317,7 @@ export function medalHooks(h: {
 }
 
 const FONT = "'Lilita One', 'Fredoka', sans-serif";
+const FOIL = ['#ff5f6d', '#ffc371', '#fff06a', '#7dff9a', '#5fd8ff', '#a77dff', '#ff7ad9'];
 const fontReady = () => typeof document === 'undefined' || !!document.fonts?.check(`80px 'Lilita One'`);
 
 /** Everything an act's medallion needs before its rig is built: its places' window bases and the number's font (its
@@ -447,6 +459,8 @@ export interface MedalMini {
   RR: number;
   /** Canvas px per disc unit. */
   px: number;
+  /** A frameless event head. */
+  bare: boolean;
   scene: EventScene | null;
   parts: Parts;
   act: ActMini | null;
@@ -458,12 +472,13 @@ export function* medalMiniSteps(look: PeelLook, RR: number): Generator<void, Med
   if (look.craft === 'act' && look.act) {
     const act = yield* actMiniSteps(look.act, px, RR);
     if (!act) return null;
-    return { kind: 'act', look, disc, RR, px, scene: null, parts: {}, act };
+    return { kind: 'act', look, disc, RR, px, scene: null, parts: {}, act, bare: false };
   }
   const scene = look.event ? EVENT_SCENES[look.event] : undefined;
   if (!scene) return null;
-  const parts = yield* scene.paint(px);
-  return { kind: 'event', look, disc, RR, px, scene, parts, act: null };
+  const bpx = RR * BARE_K;
+  const parts = yield* scene.paint(bpx);
+  return { kind: 'event', look, disc: BARE_DISC, RR, px: bpx, scene, parts, act: null, bare: true };
 }
 
 /** The mini now (the still, dev tools): painted on the spot. */
@@ -488,6 +503,7 @@ export class MedalLive implements MedalState {
   readonly mem: Record<string, number> = {};
   readonly r = crand;
   readonly dots = new Dots();
+  readonly bare: boolean;
   /** Where what flies off goes (peel units); set by the crafted peel. */
   emit: ((spr: MedalSpr, lx: number, ly: number, vx: number, vy: number, s0: number, s1: number, life: number, o?: { grav?: number; drag?: number; a?: number; fin?: number; spin?: number }) => void) | null = null;
   /** And what a place throws (an act's place reacting to its boss's stomp), in peel units. */
@@ -512,6 +528,7 @@ export class MedalLive implements MedalState {
   private bossWanted = false;
 
   constructor(readonly mini: MedalMini) {
+    this.bare = mini.bare;
     if (mini.act) {
       this.places = mini.act.places.map((m) => new PlaceLive(m));
       // (from the place its still shows, so a tile doesn't jump when it comes alive)
@@ -690,6 +707,7 @@ export class MedalLive implements MedalState {
 
   /** Draw the medallion's contents into a head's surface (peel units), kept inside it. */
   draw(ctx: Ctx): void {
+    if (this.bare) return this.drawBare(ctx);
     const d = this.mini.disc;
     const k = d.r / 60;
     ctx.save();
@@ -716,10 +734,64 @@ export class MedalLive implements MedalState {
     ctx.restore();
   }
 
+  /** A frameless event head (peel units), drawn on a surface of its own (nothing else on it: the flash and the foil
+   *  lie on what it draws). */
+  private drawBare(ctx: Ctx): void {
+    const k = BARE_K;
+    ctx.save();
+    ctx.translate(HX - 60 * k, HY - 60 * k);
+    ctx.scale(k, k);
+    if (this.shakeA > 0.05 && !this.still) ctx.translate(this.shakeA * noise1(this.t * 55), this.shakeA * noise1(this.t * 55 + 9) * 0.7);
+    this.mini.scene!.draw(ctx, this, this.mini.parts);
+    this.dots.draw(ctx);
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-atop';
+    if (this.mini.look.shiny) {
+      // the foil: a rainbow over the event, and a brighter band of it running across now and then
+      const fg = ctx.createLinearGradient(0, 0, 120, 120);
+      FOIL.forEach((hc, i) => fg.addColorStop(i / (FOIL.length - 1), rgba(hc, 0.16)));
+      ctx.fillStyle = fg;
+      ctx.fillRect(-30, -20, 180, 200);
+      const u = this.still ? 0.35 : ((this.t * 0.32) % 1.6) - 0.3;
+      if (u > -0.3 && u < 1.3) {
+        const c = -40 + u * 200;
+        const bg = ctx.createLinearGradient(c - 30, c - 30, c + 30, c + 30);
+        bg.addColorStop(0, 'rgba(255,255,255,0)');
+        FOIL.forEach((hc, i) => bg.addColorStop(0.2 + (0.6 * i) / (FOIL.length - 1), rgba(hc, 0.34)));
+        bg.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = bg;
+        ctx.fillRect(-30, -20, 180, 200);
+      }
+    }
+    const fu = this.flashT / this.flashLen;
+    if (!this.still && fu < 1 && this.flashA > 0.01) {
+      const a = this.flashA * (1 - fu) * (1 - fu);
+      const g = ctx.createRadialGradient(60, 50, 0, 60, 60, 90);
+      g.addColorStop(0, rgba(this.flashC, a));
+      g.addColorStop(0.6, rgba(this.flashC, a * 0.5));
+      g.addColorStop(1, rgba(this.flashC, 0));
+      ctx.fillStyle = g;
+      ctx.fillRect(-30, -20, 180, 200);
+    }
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.restore();
+  }
+
   /** Over the bezel and studs (peel units): the studs glinting in turn. */
   drawOver(ctx: Ctx): void {
     if (this.still) return;
-    if (this.mini.look.shiny) {
+    if (this.mini.look.shiny && this.bare) {
+      // a shiny's foil twinkles over the event, here and there
+      for (let i = 0; i < 4; i++) {
+        const u = (this.t * 0.45 + i * 0.27) % 1;
+        if (u > 0.22) continue;
+        const a = Math.sin((u / 0.22) * Math.PI);
+        const n = Math.floor(this.t * 0.45 + i * 0.27);
+        const ang = i * 2.39 + n * 1.7;
+        const rr = (22 + ((n * 7 + i * 13) % 5) * 7) * BARE_K;
+        star(ctx, HX + Math.cos(ang) * rr, HY - 8 + Math.sin(ang) * rr * 0.9, 8 * a, a);
+      }
+    } else if (this.mini.look.shiny) {
       // a shiny's foil twinkles round the band, here and there
       const d = this.mini.disc;
       for (let i = 0; i < 4; i++) {
@@ -871,8 +943,7 @@ export function star(ctx: Ctx, x: number, y: number, size: number, a: number): v
 
 /** The bezel's metal: an event's own, an act's gold. */
 function bezelOf(look: PeelLook): string {
-  if (look.craft === 'act') return '#e0a92a';
-  return (look.event && EVENT_SCENES[look.event]?.bezel) || '#b08a4a';
+  return look.craft === 'act' ? '#e0a92a' : '#b08a4a';
 }
 
 /** The head under the medallion: its material, pattern and foil, and the medallion's shadow on it. */
@@ -981,11 +1052,30 @@ export function medalOver(ctx: Ctx, look: PeelLook): void {
   plainHeadOver(ctx, { ...look, studs: undefined }, false);
 }
 
-/** An event or act peel's head, whole (the still): the head, the medallion at rest, the bezel. */
+/** An event or act peel's head, whole (the still): an act's head, its medallion at rest and the bezel; an event's
+ *  frameless head at rest. */
 export function paintMedalHead(ctx: Ctx, look: PeelLook): void {
-  medalUnder(ctx, look);
   const m = ctx.getTransform();
   const RR = Math.max(1, Math.round(Math.hypot(m.a, m.b) * 2) / 2);
+  if (look.craft === 'event') {
+    const key = `${look.event}@${RR}`;
+    let mini = stillMinis.get(key);
+    if (mini === undefined) {
+      mini = medalMiniNow(look, RR);
+      stillMinis.set(key, mini);
+    }
+    if (!mini) return;
+    // drawn on a canvas of its own (its foil lies on the event alone), then onto the peel
+    const B = EVENT_BOX;
+    const [c, cx] = makeCanvas(Math.ceil(B.w * RR), Math.ceil(B.h * RR));
+    cx.setTransform(RR, 0, 0, RR, -B.x * RR, -B.y * RR);
+    const live = new MedalLive({ ...mini, look });
+    live.rest();
+    live.draw(cx);
+    ctx.drawImage(c, B.x, B.y, B.w, B.h);
+    return;
+  }
+  medalUnder(ctx, look);
   if (look.craft === 'act' && look.act) {
     // the first place at rest (its window's still), the number over it
     const info = actInfo(look.act);
@@ -1006,18 +1096,6 @@ export function paintMedalHead(ctx: Ctx, look: PeelLook): void {
     const [num] = numeral((RR * d.r) / 60, look.act);
     placePart(ctx, num, NUM.x, NUM.y);
     ctx.restore();
-  } else {
-    const key = `${look.event}:${look.shape}:${!!look.studs}@${RR}`;
-    let mini = stillMinis.get(key);
-    if (mini === undefined) {
-      mini = medalMiniNow(look, RR);
-      stillMinis.set(key, mini);
-    }
-    if (mini) {
-      const live = new MedalLive(mini);
-      live.rest();
-      live.draw(ctx);
-    }
   }
   medalOver(ctx, look);
 }
