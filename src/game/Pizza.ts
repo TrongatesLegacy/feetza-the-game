@@ -3,6 +3,8 @@
 import Phaser from 'phaser';
 import { PIZZA_CANVAS_H, PIZZA_CANVAS_W, PIZZA_R, PIZZA_SIZE, TILT, renderPizza, sideFor, type Footprint } from '../art/pizzaArt';
 import { makeCanvas } from '../art/util';
+import { SHIELD_GLINT_FRAMES } from '../art/sprites';
+import { crand } from '../systems/cosmeticRandom';
 import { SEASONS, enhancedText, type PizzaPerk, type PizzaType } from '../data/pizzas';
 import { ensurePizzaArt, pizzaTops } from './assets';
 import { borrowLine, borrowedPerk } from './pizzaPerks';
@@ -61,8 +63,13 @@ export class Pizza {
   private tex: Phaser.Textures.CanvasTexture;
   private texKey: string;
   private shield: Phaser.GameObjects.Image;
-  /** The shield's shimmer (a band sweeping its dome) and its hits-left pips on the base ring. */
+  /** The shield's glint (a band of light following the dome's curve over it, now and then) and its hits-left count. */
   private shieldSweep: Phaser.GameObjects.Image;
+  /** The glint: seconds to the next one, and the one passing (its progress, speed and direction). */
+  private glintWait = 1 + crand() * 3;
+  private glintT = -1;
+  private glintSpeed = 1;
+  private glintDir = 1;
   private shieldPips: Phaser.GameObjects.Text;
   private shieldFlash = 0;
   private trapImg: Phaser.GameObjects.Image;
@@ -111,7 +118,13 @@ export class Pizza {
     // the shield: a force-field dome over the pizza (standing on the plate), a shimmer sweeping it and a small
     // count of the stomps it still blocks on its rim
     this.shield = scene.add.image(0, -40, type.shape === 'square' ? 'shieldSquare' : 'shield').setOrigin(0.5, 240 / 366).setVisible(false).setBlendMode(Phaser.BlendModes.ADD);
-    this.shieldSweep = scene.add.image(0, -40, 'shieldSweep').setOrigin(0.5, 240 / 366).setVisible(false).setBlendMode(Phaser.BlendModes.ADD);
+    const glintKey = type.shape === 'square' ? 'shieldGlintSquare' : 'shieldGlint';
+    const glintTex = scene.textures.get(glintKey);
+    if (!glintTex.has('0')) {
+      const fw = glintTex.source[0].width / SHIELD_GLINT_FRAMES;
+      for (let i = 0; i < SHIELD_GLINT_FRAMES; i++) glintTex.add(String(i), 0, fw * i, 0, fw, glintTex.source[0].height);
+    }
+    this.shieldSweep = scene.add.image(0, -40, glintKey, '0').setOrigin(0.5, 240 / 366).setVisible(false).setAlpha(0).setBlendMode(Phaser.BlendModes.ADD);
     this.shieldPips = scene.add
       .text(0, 0, '', { fontFamily: 'Lilita One, Fredoka, sans-serif', fontSize: '22px', color: '#e6fbff', stroke: '#0a3a52', strokeThickness: 5 })
       .setOrigin(0.5)
@@ -262,7 +275,7 @@ export class Pizza {
     this.face.setScale(Math.max(0.75, s * 1.15)).setY(-lift + PIZZA_R * TILT * s * 0.32);
     const ds = s;
     this.shield.setScale(ds).setY(0);
-    this.shieldSweep.setScale(ds).setY(0);
+    this.shieldSweep.setScale(ds * 2).setY(0);
     // (the count sits on the dome's rim, up and to the right, clear of the face)
     this.shieldPips.setScale(Math.max(0.8, s)).setPosition(222 * ds * 0.72, -222 * 0.92 * ds * 0.7);
     this.trapImg.setScale(s * 1.1).setPosition(-PIZZA_R * s * 1.02, 34 * s);
@@ -701,10 +714,26 @@ export class Pizza {
       this.shieldFlash = Math.max(0, this.shieldFlash - 0.04);
       const flick = this.shieldFlash > 0 ? (Math.sin(this.bob * 90) > 0 ? 1 : 0.4) * this.shieldFlash : 0;
       this.shield.setAlpha(0.8 + Math.sin(this.bob * 3) * 0.12 + flick * 0.4);
-      // the shimmer sweeps across the dome every couple of seconds
-      const ph = (this.bob * 0.45) % 1;
-      const w = 196 * this.shield.scaleX;
-      this.shieldSweep.setX(-w + ph * 2 * w).setAlpha(Math.sin(ph * Math.PI) * 0.7);
+      // now and then a glint of light runs over the dome, following its curve (its own timing, speed and way)
+      if (this.glintT < 0) {
+        this.glintWait -= dt;
+        this.shieldSweep.setAlpha(0);
+        if (this.glintWait <= 0) {
+          this.glintT = 0;
+          this.glintSpeed = 0.7 + crand() * 0.5;
+          this.glintDir = crand() < 0.5 ? 1 : -1;
+        }
+      } else {
+        this.glintT += dt * this.glintSpeed;
+        if (this.glintT >= 1) {
+          this.glintT = -1;
+          this.glintWait = 3 + crand() * 5;
+          this.shieldSweep.setAlpha(0);
+        } else {
+          const u = this.glintDir > 0 ? this.glintT : 1 - this.glintT;
+          this.shieldSweep.setFrame(String(Math.min(SHIELD_GLINT_FRAMES - 1, Math.floor(u * SHIELD_GLINT_FRAMES)))).setAlpha(Math.sin(this.glintT * Math.PI) * 0.55);
+        }
+      }
     }
   }
 

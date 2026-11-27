@@ -487,18 +487,65 @@ function vignette(w: number, h: number): HTMLCanvasElement {
 /** A pizza's shield: a force-field dome over it (the table's perspective squashes it), its edge brighter than its
  * middle like a bubble, a fine hex lattice catching the light, and its base ring on the table. 460 × 300; the pizza's
  * centre sits at (230, 230). */
+// a shield's geometry (its canvas is 480×366; the dome stands on a base at (240, 240))
+const SH_W = 480;
+const SH_H = 366;
+const SH_CX = 240;
+const SH_CY = 240;
+const SH_R = 222;
+const SH_RY = SH_R * 0.92;
+const SH_CR = 40; // a square base's corner radius (before the squash)
+
+/** The lid's outline over the top, left to right: a half ellipse, or a squarish arch (a superellipse) for the box. */
+function shieldLid(ctx: CanvasRenderingContext2D, square: boolean): void {
+  const cx = SH_CX, cy = SH_CY, R = SH_R, RY = SH_RY;
+  if (!square) {
+    ctx.ellipse(cx, cy, R, RY, 0, Math.PI, 0);
+    return;
+  }
+  const SIDE = R * TILT - SH_CR * TILT; // where a box's upright side meets its front corner
+  ctx.moveTo(cx - R, cy + SIDE);
+  for (let k = 0; k <= 48; k++) {
+    const a = Math.PI + (Math.PI * k) / 48;
+    const co = Math.cos(a);
+    const si = Math.sin(a);
+    ctx.lineTo(cx + Math.sign(co) * R * Math.abs(co) ** 0.45, cy + Math.sign(si) * RY * 0.86 * Math.abs(si) ** 0.45);
+  }
+  ctx.lineTo(cx + R, cy + SIDE);
+}
+
+/** The front of the base, right to left (closes the dome's outline). */
+function shieldFront(ctx: CanvasRenderingContext2D, square: boolean): void {
+  const cx = SH_CX, cy = SH_CY, R = SH_R, CR = SH_CR;
+  const RB = R * TILT;
+  if (!square) {
+    ctx.ellipse(cx, cy, R, RB, 0, 0, Math.PI);
+    return;
+  }
+  const SIDE = RB - CR * TILT;
+  const ry = CR * TILT;
+  ctx.ellipse(cx + R - CR, cy + SIDE, CR, ry, 0, 0, Math.PI / 2);
+  ctx.lineTo(cx - R + CR, cy + RB);
+  ctx.ellipse(cx - R + CR, cy + SIDE, CR, ry, 0, Math.PI / 2, Math.PI);
+}
+
+function shieldDome(ctx: CanvasRenderingContext2D, square: boolean): void {
+  ctx.beginPath();
+  shieldLid(ctx, square);
+  shieldFront(ctx, square);
+  ctx.closePath();
+}
+
 function cheeseShield(square = false): HTMLCanvasElement {
   // it stands on the plate (just inside its rim) and covers every pizza shape, deep dish included; a square pizza's
   // is a rounded box standing on its platter (upright sides, a rounded lid) so its corners are inside too
-  const W = 480;
-  const H = 366;
-  const cx = 240;
-  const cy = 240;
-  const R = 222;
-  const RY = R * 0.92;
-  // the base sits on the table in the pizza's own perspective (as squashed as the pizza is)
-  const RB = R * TILT;
-  const CR = 40; // a square base's corner radius (before the squash)
+  const W = SH_W;
+  const H = SH_H;
+  const cx = SH_CX;
+  const cy = SH_CY;
+  const R = SH_R;
+  const RY = SH_RY;
+  const CR = SH_CR;
   const [c, ctx] = makeCanvas(W, H);
   // the base outline: a full ellipse, or a rounded square, in perspective
   const base = () => {
@@ -509,39 +556,8 @@ function cheeseShield(square = false): HTMLCanvasElement {
     else ellipse(ctx, 0, 0, R, R);
     ctx.restore();
   };
-  // the lid's outline over the top, left to right: a half ellipse, or a squarish arch (a superellipse) for the box
-  const SIDE = RB - CR * TILT; // where a box's upright side meets its front corner
-  const lid = () => {
-    if (!square) {
-      ctx.ellipse(cx, cy, R, RY, 0, Math.PI, 0);
-      return;
-    }
-    ctx.moveTo(cx - R, cy + SIDE);
-    for (let k = 0; k <= 48; k++) {
-      const a = Math.PI + (Math.PI * k) / 48;
-      const co = Math.cos(a);
-      const si = Math.sin(a);
-      ctx.lineTo(cx + Math.sign(co) * R * Math.abs(co) ** 0.45, cy + Math.sign(si) * RY * 0.86 * Math.abs(si) ** 0.45);
-    }
-    ctx.lineTo(cx + R, cy + SIDE);
-  };
-  // the front of the base, right to left (closes the outline)
-  const front = () => {
-    if (!square) {
-      ctx.ellipse(cx, cy, R, RB, 0, 0, Math.PI);
-      return;
-    }
-    const ry = CR * TILT;
-    ctx.ellipse(cx + R - CR, cy + SIDE, CR, ry, 0, 0, Math.PI / 2);
-    ctx.lineTo(cx - R + CR, cy + RB);
-    ctx.ellipse(cx - R + CR, cy + SIDE, CR, ry, 0, Math.PI / 2, Math.PI);
-  };
-  const dome = () => {
-    ctx.beginPath();
-    lid();
-    front();
-    ctx.closePath();
-  };
+  const lid = () => shieldLid(ctx, square);
+  const dome = () => shieldDome(ctx, square);
   // the field: clear in the middle, brighter towards its edge (looking through more of it there)
   ctx.save();
   dome();
@@ -621,15 +637,50 @@ function cheeseShield(square = false): HTMLCanvasElement {
   return c;
 }
 
-/** A thin bright band that sweeps across a shield's dome now and then (the field's shimmer). */
-function shieldSweep(): HTMLCanvasElement {
-  const [c, ctx] = makeCanvas(60, 366);
-  const g = ctx.createLinearGradient(0, 0, 60, 0);
-  g.addColorStop(0, 'rgba(200,250,255,0)');
-  g.addColorStop(0.5, 'rgba(230,253,255,0.55)');
-  g.addColorStop(1, 'rgba(200,250,255,0)');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, 60, 366);
+/** A shield's glint, as a strip of frames: a soft band of light following the dome's curve (a meridian of it) from
+ *  its left edge over the top to its right, kept inside the dome. Drawn at half size (it's soft), shown at 2×. */
+export const SHIELD_GLINT_FRAMES = 18;
+function shieldGlint(square: boolean): HTMLCanvasElement {
+  const fw = SH_W / 2;
+  const fh = SH_H / 2;
+  const [c, ctx] = makeCanvas(fw * SHIELD_GLINT_FRAMES, fh);
+  const RB = SH_R * TILT;
+  for (let i = 0; i < SHIELD_GLINT_FRAMES; i++) {
+    // its longitude, from near the left edge to near the right
+    const phi = (-0.42 + (0.84 * i) / (SHIELD_GLINT_FRAMES - 1)) * Math.PI;
+    const a = Math.abs(Math.sin(phi)) * SH_R * (square ? 1.04 : 1);
+    const right = phi > 0;
+    // foreshortened at the edges: narrower and dimmer there, fullest over the top
+    const face = Math.cos(phi);
+    ctx.save();
+    ctx.translate(fw * i, 0);
+    ctx.scale(0.5, 0.5);
+    shieldDome(ctx, square);
+    ctx.clip();
+    const arc = () => {
+      ctx.beginPath();
+      // up its back from the base, over the top (the upper half follows the lid, the lower the base's front)
+      if (a < 2) {
+        ctx.moveTo(SH_CX, SH_CY + RB);
+        ctx.lineTo(SH_CX, SH_CY - SH_RY);
+      } else if (right) {
+        ctx.ellipse(SH_CX, SH_CY, a, SH_RY, 0, -Math.PI / 2, 0);
+        ctx.ellipse(SH_CX, SH_CY, a, RB, 0, 0, Math.PI / 2);
+      } else {
+        ctx.ellipse(SH_CX, SH_CY, a, SH_RY, 0, -Math.PI / 2, -Math.PI, true);
+        ctx.ellipse(SH_CX, SH_CY, a, RB, 0, Math.PI, Math.PI / 2, true);
+      }
+    };
+    const w = 10 + 26 * face;
+    for (const [lw, al] of [[w * 1.6, 0.1], [w, 0.18], [w * 0.45, 0.3]] as const) {
+      ctx.strokeStyle = `rgba(225,252,255,${al * (0.45 + 0.55 * face)})`;
+      ctx.lineWidth = lw;
+      ctx.lineCap = 'round';
+      arc();
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
   return c;
 }
 
@@ -742,7 +793,8 @@ export function buildSprites(): Record<string, HTMLCanvasElement> {
     vignette: vignette(960, 540),
     shield: cheeseShield(),
     shieldSquare: cheeseShield(true),
-    shieldSweep: shieldSweep(),
+    shieldGlint: shieldGlint(false),
+    shieldGlintSquare: shieldGlint(true),
     trap: mousetrap(),
     eye: eye(),
     pupil: pupil(),

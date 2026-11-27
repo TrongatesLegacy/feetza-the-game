@@ -75,14 +75,8 @@ const X_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M1
 
 /** A chunky cog for the shop's pause-menu button (centred in its box, unlike the ⚙ glyph). */
 /** The empty counter: a chalk SOLD OUT board hanging over an empty plate with a few crumbs (the game's plate). */
-/** A topping card's tier frame (the pizza tiers' cousin, in the topping's own rarity colour): its ring, and for the
- *  rarer ones a little seasoning on the move (herb flecks drifting up on an Epic, gold flakes falling on a Legendary). */
-const toppingFrame = (rarity: string): HTMLElement => {
-  const fx = h('span', { class: 'tfx', 'aria-hidden': 'true' });
-  const n = rarity === 'legendary' ? 6 : rarity === 'epic' ? 5 : 0;
-  for (let i = 0; i < n; i++) fx.append(h('i', { class: `seas s${i}` }));
-  return fx;
-};
+/** A topping card's tier frame (the pizza tiers' cousin, in the topping's own rarity colour): its ring. */
+const toppingFrame = (): HTMLElement => h('span', { class: 'tfx', 'aria-hidden': 'true' });
 
 /** A counter tab's label: its full wording, and a short one for a phone's narrow cards (style.css swaps them). */
 const tabText = (full: string, short: string): HTMLElement[] => [h('span', { class: 'tl' }, full), h('span', { class: 'ts' }, short)];
@@ -1179,7 +1173,7 @@ class UI {
         const el = h(
           'div',
           { class: `card tframed ${c.rarity}${c.sold ? ' sold' : ''}${dealt.has(c.id) ? ' dealt' : ''}`, tabindex: 0, role: 'button', 'aria-label': `${c.name}: ${c.desc}` },
-          toppingFrame(c.rarity),
+          toppingFrame(),
           // its rarity, a tab of its frame
           h('div', { class: 'rarity ttab' }, c.rarity),
           h('div', { class: 'key' }, String(i + 1)),
@@ -2186,7 +2180,7 @@ class UI {
         return h(
           'div',
           { class: `tcard tframed ${u.rarity}${runs ? ' bought' : ''}`, style: `--rc:${RARITY_COLOR[u.rarity]}` },
-          toppingFrame(u.rarity),
+          toppingFrame(),
           h('div', { class: 'rarity ttab' }, u.rarity),
           h('div', { class: 'tc-top' }, h('span', { class: 'ic' }, u.icon), h('span', { class: `kind ${k}` }, k === 'permanent' ? 'PERMANENT' : k === 'unique' ? 'ONCE PER RUN' : 'ONE USE')),
           h('div', { class: 'nm' }, u.name),
