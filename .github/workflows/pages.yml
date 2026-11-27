@@ -50,10 +50,12 @@ jobs:
   packs:
     needs: quick
     runs-on: ubuntu-latest
-    # a newer push's pack build replaces this one
+    # a pack build in progress finishes (and saves its cache) rather than being thrown away by a newer push: the
+    # newest push waits and then builds incrementally on it (GitHub keeps only the newest waiting run); an older build
+    # still skips its deploy if a newer commit has landed
     concurrency:
       group: pages-packs
-      cancel-in-progress: true
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
