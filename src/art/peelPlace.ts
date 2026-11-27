@@ -98,6 +98,9 @@ export function placePath(ctx: Ctx, loc: LocationId, shape: PeelShape): void {
   else winPath(ctx, shape);
 }
 
+/** Is a place's head painted whole (the object itself, not its window)? */
+export const placePainted = (loc: LocationId): boolean => !!PLACE_HEADS[loc]?.paint;
+
 /** The box a place's window fills (peel units). */
 export const placeBox = (loc: LocationId, shape: PeelShape): Box => PLACE_HEADS[loc]?.box ?? winBox(shape);
 
@@ -331,6 +334,7 @@ export class PlaceLive implements PlaceState {
   update(dt: number): void {
     this.t += dt;
     this.sm += dt;
+    PLACE_HEADS[this.mini.loc]?.update?.(this, dt);
     (this.mini.def.loops ?? []).forEach((lp, i) => {
       const rush = 1 + (lp.rush ?? 0.8) * this.hit(0.9);
       this.ph[i] = (this.ph[i] + dt * lp.fps * rush * (reduced() ? 0.6 : 1)) % lp.n;
@@ -433,6 +437,8 @@ export class PlaceLive implements PlaceState {
   /** Draw the window into a head's surface (peel units; the caller keeps it inside the head). */
   draw(ctx: Ctx): void {
     const m = this.mini;
+    const hd = PLACE_HEADS[m.loc];
+    if (hd?.paint) return hd.paint(ctx, this);
     ctx.save();
     placePath(ctx, m.loc, m.shape);
     ctx.clip();
@@ -605,6 +611,13 @@ export function placeStillNow(loc: LocationId, shape: PeelShape): HTMLCanvasElem
 export function paintPlaceHead(ctx: Ctx, look: PeelLook): void {
   const loc = look.place;
   placeUnder(ctx, look);
+  const hd = loc ? PLACE_HEADS[loc] : undefined;
+  if (hd?.paint) {
+    // a painted head at rest
+    const st: PlaceState = { t: PLACE_DEFS[loc!]?.stillT ?? 0, sm: 9, hit: () => 0, r: () => 0.5, calm: 1, mem: {}, still: true };
+    hd.paint(ctx, st);
+    return;
+  }
   const p = loc ? baseNow(loc, look.shape) : null;
   if (p) {
     // the window at rest, drawn down to the canvas's own scale

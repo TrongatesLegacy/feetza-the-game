@@ -61,7 +61,7 @@ import { noise1 } from '../game/liveKit';
 import { crand } from '../systems/cosmeticRandom';
 import { save } from '../systems/save';
 import { PEEL_FRAME_WORLD, type PeelWorld } from './peelLive';
-import { PlaceLive, placePath, placeBaseAsync, placeBaseReady, placeMiniSteps, placeOver, placeUnder, type PlaceEmit, type PlaceMini, type PlaceSpr } from './peelPlace';
+import { PlaceLive, placePainted, placePath, placeBaseAsync, placeBaseReady, placeMiniSteps, placeOver, placeUnder, type PlaceEmit, type PlaceMini, type PlaceSpr } from './peelPlace';
 import { PizzaLive, pizzaBoard, pizzaMiniSteps, pizzaPaintAsync, pizzaPaintReady, type PizzaEmit, type PizzaMini, type PizzaSpr } from './peelPizza';
 import { pizzaPeelLook } from '../game/peels';
 import { EVENT_BOX, MedalLive, actPrepAsync, actReady, medalMiniSteps, medalOver, medalUnder, type MedalMini, type MedalSpr } from './peelMedal';
@@ -194,10 +194,14 @@ function* rigSteps(peelId: string, kind: CraftKind, RR: number): Generator<void,
     const over = boxLayer(RR, (ctx) => placeOver(ctx, look));
     yield;
     const inner = boxLayer(RR, (ctx) => {
-      if (look.place) placePath(ctx, look.place, look.shape);
-      else headPath(ctx, look.shape);
-      ctx.fillStyle = '#000';
-      ctx.fill();
+      // (a painted head keeps itself where it belongs: its mask is the whole surface)
+      if (look.place && placePainted(look.place)) ctx.fillRect(SB.x, SB.y, SB.w, SB.h);
+      else {
+        if (look.place) placePath(ctx, look.place, look.shape);
+        else headPath(ctx, look.shape);
+        ctx.fillStyle = '#000';
+        ctx.fill();
+      }
     });
     const place = look.place ? yield* placeMiniSteps(look.place, look.shape, RR) : null;
     if (!place) return null;

@@ -593,7 +593,7 @@ Not done: Zeus's hand-made blade stays in `animatedLooks.ts` (it already has its
 
 Shinies: the same, with a rainbow foil laid over the event alone, a brighter band of it running across now and then, and foil twinkles over the event.
 
-**Place peels** (`src/art/peelPlaceHeads.ts`, `src/art/peelPlace.ts`). No head round a window and no bezel: each place's head is cut to a silhouette of its own, with the place's living window (its scene's layers and loops, and its smack, all from batch 2) showing through. Each head says its kind, its path, the box the window fills, how its crop moves and zooms against the old window's, and its touches in its own material. Over it go an inner shade along the edge, a lit rim on the top left and the ink outline. A place without a head falls back to the old window.
+**Place peels** (`src/art/peelPlaceHeads.ts`, `src/art/peelPlace.ts`). No head round a window and no bezel: each place's head is cut to a silhouette of its own, with the place's living window (its scene's layers and loops, and its smack, all from batch 2) showing through. Each head says its kind, its path, the box the window fills, how its crop moves and zooms against the old window's, and its touches in its own material. Over it go a light inner shade along the edge, a lit rim on the top left and the ink outline. A place without a head falls back to the old window. Two heads are painted whole instead (`paint` and `update` on the head): the object itself with its own edges, the window not shown (the act medallions still show those places' windows).
 
 - **Object heads:**
   - the Trattoria's wood-fired oven: a beehive dome with its flue and cap;
@@ -601,12 +601,12 @@ Shinies: the same, with a rainbow foil laid over the event alone, a brighter ban
   - the Lodge's chimney breast: the hearth below a mantel shelf, the stack above;
   - Space's planet: a ring round it, behind and in front;
   - the Kitchen's saucepan: lip and handles, the sauce pot on its blue flame inside;
-  - the Rink's mirror ball: on its cap, the ball filling it;
+  - the Rink's mirror ball, painted whole: hung from its cap and a short chain at the handle's top, its mirrors drawn as tiles on a turning sphere, each lit by the light from the top left and flashing where it catches it straight on, a few twinkling at random, spots of coloured light wheeling round it; a smack spins it up, flashes the mirrors and brightens the spots;
   - the Doom Lab's vat: a glass capsule in steel bands;
   - Metropizza's Art Deco crown, stepped;
   - Tartarus's soul fire: a flame with three tongues;
   - the Oven's portal, its edge broken;
-  - the First Pizzeria's first slice: its point on the handle, a blistered crust along the top;
+  - the First Pizzeria's first slice, painted whole: golden cheese with browned blisters, sauce at its edges, pepperoni, basil, a puffed and blistered crust, glowing a little from the first oven; a sheen slides over the cheese, bubbles rise and pop in it, steam curls off it; a smack flares the glow and the oven's embers fly (its smoke left out: on the cheese it read as a smudge);
   - the Hot Gates' Spartan helmet: a horsehair crest, eye slits either side of a nose guard, a brow ridge;
   - the Labyrinth's amphora: handles, a meander band, the brazier's fire in its belly.
 - **Shaped scenes:**
@@ -654,5 +654,7 @@ Not changed:
 - Some idles are slow enough to look still in a 3 s sheet: the Rooftop, Slopes, Hot Gates, Labyrinth, Old Town and Beach.
 - These are the batch 2 reactions and loops, kept as the brief asked. Giving each object head a reaction of its own (the oven door, the jukebox's needle, the ball swinging on its cap) is the next step.
 - The shinies' foil is still heavy on the two boxes.
+
+**Second round** (asked for by Tron after the review): the Rink is now the mirror ball itself and the First Pizzeria the first slice itself (above; as a slice cut from the scene, its dark oven didn't read); the edge shade inside every place head is lighter, so the scenes read less as a window behind a dark rim. The handle never shows above a head: what looked like it in the first stills sheet was the sheet itself (each cell drew the whole 360-unit peel, so a row's handle ran on into the next row's heads). The sheets now clip each cell, and the locker, the big preview and the cursor in play were checked.
 
 **Where it stopped.** All 8 event peels, their 8 shinies and all 22 place peels are frameless. Next: object-level smacks and livelier idles for the place heads above, then `npm run prebuild` to repack the thumbnails.

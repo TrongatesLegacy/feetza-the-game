@@ -1160,7 +1160,8 @@ const firstpizzeria: PlaceDef = {
     }
   },
   flash: ['#ffcc90', 0.4],
-  smack: (s, emit) => embers(s, emit, FP_FIRE.x, FP_FIRE.y - 100, 90, 10),
+  // (no smoke: on the peel's first slice it read as a smudge on the cheese)
+  smack: (s, emit) => embers(s, emit, FP_FIRE.x, FP_FIRE.y - 100, 90, 10, false),
 };
 
 // ════════════════════════════ Nemesis stages ════════════════════════════

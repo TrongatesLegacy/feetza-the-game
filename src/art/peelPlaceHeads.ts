@@ -17,6 +17,7 @@
 import type { LocationId } from './backdrops';
 import { INK } from './feetCommon';
 import { rgba, rng, shade, type Ctx } from './util';
+import type { PlaceState } from './peelPlaceDefs';
 
 export interface Box {
   x: number;
@@ -39,7 +40,12 @@ export interface PlaceHead {
   /** Its material's edge (the light catching the silhouette's rim) and touches over the window. */
   rim?: string;
   dress?(c: Ctx): void;
+  /** A painted head: the object itself, drawn whole each frame with its own edges (the window isn't shown). */
+  paint?(c: Ctx, s: HeadState): void;
+  update?(s: HeadState, dt: number): void;
 }
+
+export type HeadState = PlaceState;
 
 const TAU = Math.PI * 2;
 
@@ -86,6 +92,436 @@ const PORTAL = (() => {
   }
   return pts;
 })();
+
+// ════════════════════════════ painted heads: the object itself, alive ════════════════════════════
+
+/** A painted head's static layer, per canvas scale (peel units in, cut to the surface's box SB). */
+const layers = new Map<string, HTMLCanvasElement>();
+const SBX = { x: 14, y: 2, w: 192, h: 202 };
+function layer(key: string, ctx: Ctx, paint: (c: Ctx) => void): HTMLCanvasElement {
+  const m = ctx.getTransform();
+  const k = Math.max(1, Math.round(Math.hypot(m.a, m.b) * 2) / 2);
+  const id = `${key}@${k}`;
+  let c = layers.get(id);
+  if (!c) {
+    c = document.createElement('canvas');
+    c.width = Math.ceil(SBX.w * k);
+    c.height = Math.ceil(SBX.h * k);
+    const g = c.getContext('2d')!;
+    g.setTransform(k, 0, 0, k, -SBX.x * k, -SBX.y * k);
+    g.lineJoin = 'round';
+    g.lineCap = 'round';
+    paint(g);
+    layers.set(id, c);
+  }
+  return c;
+}
+const drawLayer = (ctx: Ctx, c: HTMLCanvasElement) => ctx.drawImage(c, SBX.x, SBX.y, SBX.w, SBX.h);
+
+/** A soft round glow (added light). */
+function glowAt(g: Ctx, x: number, y: number, r: number, col: string, a: number): void {
+  if (a <= 0.005) return;
+  const gr = g.createRadialGradient(x, y, 0, x, y, r);
+  gr.addColorStop(0, rgba(col, Math.min(1, a)));
+  gr.addColorStop(0.45, rgba(col, Math.min(1, a) * 0.4));
+  gr.addColorStop(1, rgba(col, 0));
+  g.fillStyle = gr;
+  g.fillRect(x - r, y - r, r * 2, r * 2);
+}
+
+/** A four-pointed glint. */
+function glint(g: Ctx, x: number, y: number, s: number, a: number): void {
+  if (a <= 0.01 || s <= 0.3) return;
+  g.save();
+  g.globalAlpha = Math.min(1, a);
+  glowAt(g, x, y, s * 1.4, '#ffffff', 0.6);
+  g.beginPath();
+  g.moveTo(x, y - s);
+  g.quadraticCurveTo(x + s * 0.12, y - s * 0.12, x + s, y);
+  g.quadraticCurveTo(x + s * 0.12, y + s * 0.12, x, y + s);
+  g.quadraticCurveTo(x - s * 0.12, y + s * 0.12, x - s, y);
+  g.quadraticCurveTo(x - s * 0.12, y - s * 0.12, x, y - s);
+  g.fillStyle = '#ffffff';
+  g.fill();
+  g.restore();
+}
+
+// ——— the Roller Rink's mirror ball ———
+
+const BALL = { x: 110, y: 90, r: 78 };
+const LAT = 13;
+const LON = 26;
+/** Light from the top left and in front; the half-vector for the mirror's flash. */
+const LD = (() => {
+  const v = [-0.5, 0.62, 0.6];
+  const n = Math.hypot(v[0], v[1], v[2]);
+  return v.map((x) => x / n);
+})();
+const HV = (() => {
+  const v = [LD[0], LD[1], LD[2] + 1];
+  const n = Math.hypot(v[0], v[1], v[2]);
+  return v.map((x) => x / n);
+})();
+const TINTS = ['#ffffff', '#ffd0f0', '#c8f0ff', '#fff0c0', '#e0d0ff'];
+
+/** The ball's hanger at the handle's top, its cap, and the ball's dark body (the grout between the mirrors). */
+function ballBase(c: Ctx): void {
+  const { x, y, r } = BALL;
+  // the hanger: a ring and a short chain down to the handle
+  c.beginPath();
+  c.moveTo(x, y + r - 4);
+  c.lineTo(x, 182);
+  c.strokeStyle = INK;
+  c.lineWidth = 7;
+  c.stroke();
+  c.strokeStyle = '#c7ccd4';
+  c.lineWidth = 3.4;
+  c.stroke();
+  for (const ly of [172, 180]) {
+    c.beginPath();
+    c.ellipse(x, ly, 4.4, 5.2, 0, 0, TAU);
+    c.strokeStyle = INK;
+    c.lineWidth = 4.6;
+    c.stroke();
+    c.strokeStyle = '#e8edf2';
+    c.lineWidth = 2;
+    c.stroke();
+  }
+  c.beginPath();
+  c.arc(x, y, r, 0, TAU);
+  const g = c.createRadialGradient(x - r * 0.35, y - r * 0.4, r * 0.1, x, y, r);
+  g.addColorStop(0, '#4a4866');
+  g.addColorStop(1, '#14121e');
+  c.fillStyle = g;
+  c.fill();
+}
+
+/** Over the ball: its shading, its rim catching the light, its ink edge, its cap. */
+function ballOver(c: Ctx): void {
+  const { x, y, r } = BALL;
+  c.save();
+  c.beginPath();
+  c.arc(x, y, r, 0, TAU);
+  c.clip();
+  const sh = c.createRadialGradient(x - r * 0.3, y - r * 0.35, r * 0.4, x, y, r * 1.05);
+  sh.addColorStop(0, 'rgba(0,0,0,0)');
+  sh.addColorStop(0.75, 'rgba(10,6,24,0.15)');
+  sh.addColorStop(1, 'rgba(10,6,24,0.6)');
+  c.fillStyle = sh;
+  c.fillRect(x - r, y - r, r * 2, r * 2);
+  c.restore();
+  c.beginPath();
+  c.arc(x, y, r, 0, TAU);
+  c.strokeStyle = INK;
+  c.lineWidth = 5;
+  c.stroke();
+  c.beginPath();
+  c.arc(x, y, r - 3.5, Math.PI * 1.05, Math.PI * 1.6);
+  c.strokeStyle = 'rgba(255,255,255,0.55)';
+  c.lineWidth = 2;
+  c.stroke();
+  // the cap where the hanger meets it
+  c.beginPath();
+  c.roundRect(x - 9, y + r - 8, 18, 10, 3);
+  c.fillStyle = lin(c, 0, y + r - 8, 0, y + r + 2, [[0, '#f0f2f6'], [1, '#6a7480']]);
+  c.fill();
+  c.strokeStyle = INK;
+  c.lineWidth = 2.4;
+  c.stroke();
+}
+
+function hash(i: number): number {
+  const s = Math.sin(i * 127.1 + 311.7) * 43758.5453;
+  return s - Math.floor(s);
+}
+
+function paintBall(c: Ctx, s: HeadState): void {
+  const m = s.mem;
+  const { x, y, r } = BALL;
+  const hit = s.still ? 0 : s.hit(1.2);
+  // it turns slowly; a smack spins it up
+  const spin = s.still ? 0.3 : (m.spin ?? 0);
+  // the spots it throws, wheeling round it (behind and past its edge)
+  if (!s.still) {
+    c.save();
+    c.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 11; i++) {
+      const a = i * 0.57 + spin * 1.3 + hash(i) * TAU;
+      const rr = r + 6 + hash(i + 40) * 14;
+      const sx = x + Math.cos(a) * rr;
+      const sy = y + Math.sin(a) * rr * 0.8;
+      const tw = 0.35 + 0.35 * Math.sin(s.t * 3 + i * 1.9) + hit * 0.6;
+      glowAt(c, sx, sy, 6 + hash(i + 9) * 4, TINTS[i % TINTS.length], tw);
+    }
+    c.restore();
+  }
+  drawLayer(c, layer('ball', c, ballBase));
+  // the mirrors: each tile on the sphere, lit by the light and flashing where it catches it straight on
+  c.save();
+  c.beginPath();
+  c.arc(x, y, r - 0.5, 0, TAU);
+  c.clip();
+  const gap = 0.07;
+  for (let i = 0; i < LAT; i++) {
+    const la0 = -Math.PI / 2 + (i / LAT) * Math.PI;
+    const la1 = la0 + Math.PI / LAT;
+    const lm = (la0 + la1) / 2;
+    // fewer tiles round the poles
+    const n = Math.max(6, Math.round(LON * Math.cos(lm)));
+    for (let j = 0; j < n; j++) {
+      const lo0 = (j / n) * TAU + spin;
+      const lo1 = lo0 + TAU / n;
+      const lmid = (lo0 + lo1) / 2;
+      const nz = Math.cos(lm) * Math.cos(lmid);
+      if (nz <= 0.02) continue;
+      const nx = Math.cos(lm) * Math.sin(lmid);
+      const ny = Math.sin(lm);
+      const d = Math.max(0, nx * LD[0] + ny * LD[1] + nz * LD[2]);
+      const h = Math.max(0, nx * HV[0] + ny * HV[1] + nz * HV[2]);
+      const id = i * 64 + j;
+      const flash = Math.pow(h, 60) + (hash(id) > 0.93 ? Math.max(0, Math.sin(s.t * 2.2 + hash(id + 7) * 20)) ** 8 : 0) + hit * (hash(id + 3) > 0.7 ? 0.8 : 0);
+      const v = 0.38 + 0.5 * d + Math.min(1, flash) * 0.8;
+      const tint = TINTS[Math.floor(hash(id + 11) * TINTS.length)];
+      const pts: [number, number][] = [];
+      for (const [la, lo] of [[la0 + gap * (la1 - la0), lo0 + gap * (lo1 - lo0)], [la0 + gap * (la1 - la0), lo1 - gap * (lo1 - lo0)], [la1 - gap * (la1 - la0), lo1 - gap * (lo1 - lo0)], [la1 - gap * (la1 - la0), lo0 + gap * (lo1 - lo0)]] as const)
+        pts.push([x + r * Math.cos(la) * Math.sin(lo), y - r * Math.sin(la)]);
+      c.beginPath();
+      c.moveTo(pts[0][0], pts[0][1]);
+      for (let k = 1; k < 4; k++) c.lineTo(pts[k][0], pts[k][1]);
+      c.closePath();
+      const base = Math.round(80 + 170 * Math.min(1, v));
+      c.fillStyle = v > 0.9 ? rgba(tint, Math.min(1, v - 0.1)) : `rgb(${Math.round(base * 0.92)},${Math.round(base * 0.9)},${base})`;
+      c.fill();
+    }
+  }
+  c.restore();
+  drawLayer(c, layer('ballOver', c, ballOver));
+  // glints on the brightest mirrors
+  if (!s.still)
+    for (let k = 0; k < 3; k++) {
+      const u = (s.t * 0.7 + k * 0.33) % 1;
+      if (u > 0.3) continue;
+      const a = Math.sin((u / 0.3) * Math.PI);
+      const ang = k * 2.1 + Math.floor(s.t * 0.7 + k * 0.33) * 1.3;
+      glint(c, x - 20 + Math.cos(ang) * 30, y - 22 + Math.sin(ang) * 26, 9 * a, a);
+    }
+  else glint(c, x - 30, y - 34, 8, 1);
+  if (hit > 0.05) {
+    c.save();
+    c.globalCompositeOperation = 'lighter';
+    glowAt(c, x - 10, y - 10, r * 1.2, '#ffe8ff', 0.35 * hit);
+    c.restore();
+  }
+}
+
+// ——— the First Pizzeria's first slice ———
+
+const SL = { tip: [110, 192] as const, l: [24, 44] as const, r: [196, 44] as const, top: -2 };
+
+function slicePath(c: Ctx): void {
+  c.beginPath();
+  c.moveTo(SL.tip[0], SL.tip[1]);
+  c.lineTo(SL.l[0], SL.l[1]);
+  c.quadraticCurveTo(110, SL.top, SL.r[0], SL.r[1]);
+  c.closePath();
+}
+
+/** The slice at rest: cheese, sauce at its edge, pepperoni, basil, char; a puffed, blistered crust. */
+function slicePaint(c: Ctx): void {
+  // the cheese
+  slicePath(c);
+  const ch = c.createLinearGradient(110, 20, 110, 192);
+  ch.addColorStop(0, '#ffe27a');
+  ch.addColorStop(0.5, '#ffc83a');
+  ch.addColorStop(1, '#f0a020');
+  c.fillStyle = ch;
+  c.fill();
+  c.save();
+  slicePath(c);
+  c.clip();
+  // sauce peeking at the edges, under a melted, wavy cheese line
+  c.beginPath();
+  c.moveTo(110, 192);
+  c.lineTo(24, 44);
+  c.lineTo(36, 44);
+  for (let i = 0; i <= 10; i++) {
+    const u = i / 10;
+    c.lineTo(36 + (110 - 36) * u + Math.sin(i * 2.1) * 3.4, 50 + (186 - 50) * u);
+  }
+  c.closePath();
+  c.fillStyle = '#c8321e';
+  c.fill();
+  c.beginPath();
+  c.moveTo(110, 192);
+  c.lineTo(196, 44);
+  c.lineTo(184, 44);
+  for (let i = 0; i <= 10; i++) {
+    const u = i / 10;
+    c.lineTo(184 - (184 - 110) * u + Math.sin(i * 1.7 + 1) * 3.4, 50 + (186 - 50) * u);
+  }
+  c.closePath();
+  c.fillStyle = '#b82a18';
+  c.fill();
+  // browned cheese blisters
+  const r = rng(77);
+  for (let i = 0; i < 18; i++) {
+    const y = 50 + r() * 120;
+    const half = ((192 - y) / 148) * 72;
+    const x = 110 + (r() - 0.5) * half * 1.5;
+    c.beginPath();
+    c.ellipse(x, y, 2.6 + r() * 4, 1.8 + r() * 2.4, r() * 3, 0, TAU);
+    c.fillStyle = `rgba(190,100,20,${(0.25 + r() * 0.3).toFixed(2)})`;
+    c.fill();
+  }
+  // the light on its top left
+  const lg = c.createLinearGradient(30, 30, 150, 150);
+  lg.addColorStop(0, 'rgba(255,255,230,0.35)');
+  lg.addColorStop(0.5, 'rgba(255,255,230,0)');
+  lg.addColorStop(1, 'rgba(120,40,0,0.18)');
+  c.fillStyle = lg;
+  c.fillRect(20, 0, 180, 196);
+  c.restore();
+  // pepperoni, lit, with a curl of fat
+  for (const [x, y, rr] of [[80, 72, 13], [134, 68, 12], [106, 106, 12], [88, 136, 9], [126, 138, 8], [110, 166, 6]] as const) {
+    c.beginPath();
+    c.ellipse(x + 1, y + 2, rr, rr * 0.92, 0, 0, TAU);
+    c.fillStyle = 'rgba(120,40,0,0.35)';
+    c.fill();
+    c.beginPath();
+    c.ellipse(x, y, rr, rr * 0.92, 0, 0, TAU);
+    const pg = c.createRadialGradient(x - rr * 0.35, y - rr * 0.4, rr * 0.1, x, y, rr);
+    pg.addColorStop(0, '#f05a3a');
+    pg.addColorStop(0.7, '#c8281a');
+    pg.addColorStop(1, '#7a1008');
+    c.fillStyle = pg;
+    c.fill();
+    c.strokeStyle = 'rgba(60,8,2,0.8)';
+    c.lineWidth = 1.6;
+    c.stroke();
+    for (let k = 0; k < 3; k++) {
+      c.beginPath();
+      c.arc(x + (hash(x + k) - 0.5) * rr, y + (hash(y + k) - 0.5) * rr, 1.2, 0, TAU);
+      c.fillStyle = 'rgba(255,210,170,0.6)';
+      c.fill();
+    }
+    c.beginPath();
+    c.ellipse(x - rr * 0.35, y - rr * 0.4, rr * 0.3, rr * 0.16, -0.6, 0, TAU);
+    c.fillStyle = 'rgba(255,255,255,0.55)';
+    c.fill();
+  }
+  // basil
+  for (const [x, y, a] of [[108, 76, -0.4], [70, 104, 0.6], [146, 102, -0.9]] as const) {
+    c.save();
+    c.translate(x, y);
+    c.rotate(a);
+    c.beginPath();
+    c.moveTo(-9, 0);
+    c.quadraticCurveTo(0, -7, 9, 0);
+    c.quadraticCurveTo(0, 7, -9, 0);
+    c.fillStyle = lin(c, 0, -6, 0, 6, [[0, '#5ac84a'], [1, '#1e7a22']]);
+    c.fill();
+    c.strokeStyle = 'rgba(10,50,10,0.8)';
+    c.lineWidth = 1.2;
+    c.stroke();
+    c.beginPath();
+    c.moveTo(-7, 0);
+    c.lineTo(7, 0);
+    c.strokeStyle = 'rgba(200,255,180,0.6)';
+    c.lineWidth = 0.8;
+    c.stroke();
+    c.restore();
+  }
+  // the outline
+  slicePath(c);
+  c.strokeStyle = INK;
+  c.lineWidth = 5.4;
+  c.stroke();
+  // the crust: puffed, golden brown, blistered and charred, lit along its top
+  c.beginPath();
+  c.moveTo(SL.l[0] - 2, SL.l[1] + 2);
+  c.quadraticCurveTo(110, SL.top, SL.r[0] + 2, SL.r[1] + 2);
+  c.strokeStyle = INK;
+  c.lineWidth = 24;
+  c.stroke();
+  c.strokeStyle = lin(c, 0, 10, 0, 50, [[0, '#f8c870'], [0.5, '#d88a30'], [1, '#8a4a14']]);
+  c.lineWidth = 18;
+  c.stroke();
+  c.beginPath();
+  c.moveTo(34, 36);
+  c.quadraticCurveTo(110, -4, 186, 36);
+  c.strokeStyle = 'rgba(255,240,200,0.75)';
+  c.lineWidth = 3;
+  c.stroke();
+  for (const [x, y, w] of [[46, 34, 4], [70, 24, 3], [98, 18, 4.4], [128, 18, 3], [152, 24, 4], [176, 34, 3]] as const) {
+    c.beginPath();
+    c.ellipse(x, y, w, w * 0.6, 0, 0, TAU);
+    c.fillStyle = 'rgba(70,26,4,0.65)';
+    c.fill();
+  }
+}
+
+function paintSlice(c: Ctx, s: HeadState): void {
+  const hit = s.still ? 0 : s.hit(0.9);
+  // the oven's glow still on it, breathing (and flaring on a smack)
+  const br = s.still ? 0.5 : 0.5 + 0.12 * Math.sin(s.t * 1.7) + 0.08 * Math.sin(s.t * 4.3) + 0.5 * hit;
+  c.save();
+  c.globalCompositeOperation = 'lighter';
+  glowAt(c, 110, 96, 104, '#ff9a3a', 0.22 * br);
+  c.restore();
+  drawLayer(c, layer('slice', c, slicePaint));
+  c.save();
+  slicePath(c);
+  c.clip();
+  // the cheese glistening: a sheen sliding over it
+  const u = s.still ? 0.4 : ((s.t * 0.28) % 1.4) - 0.2;
+  if (u > -0.2 && u < 1.2) {
+    const cx = 20 + u * 180;
+    const g = c.createLinearGradient(cx - 30, 20, cx + 30, 70);
+    g.addColorStop(0, 'rgba(255,255,240,0)');
+    g.addColorStop(0.5, `rgba(255,255,240,${(0.32 * Math.sin(Math.PI * Math.min(1, Math.max(0, u)))).toFixed(3)})`);
+    g.addColorStop(1, 'rgba(255,255,240,0)');
+    c.fillStyle = g;
+    c.fillRect(20, 0, 180, 196);
+  }
+  // bubbles in the hot cheese, rising and popping
+  if (!s.still)
+    for (let i = 0; i < 5; i++) {
+      const p = (s.t * 0.6 + i * 0.37) % 1;
+      const bx = 110 + (hash(i + Math.floor(s.t * 0.6 + i * 0.37) * 5) - 0.5) * 80;
+      const by = 70 + hash(i * 3 + Math.floor(s.t * 0.6 + i * 0.37)) * 70;
+      const rr = 1.5 + p * 4.5;
+      c.beginPath();
+      c.arc(bx, by, rr, 0, TAU);
+      c.strokeStyle = `rgba(255,250,210,${(0.75 * (1 - p)).toFixed(3)})`;
+      c.lineWidth = 1.3;
+      c.stroke();
+    }
+  // a warm flash when it's smacked
+  if (hit > 0.02) {
+    c.globalCompositeOperation = 'lighter';
+    c.fillStyle = `rgba(255,200,120,${(0.3 * hit).toFixed(3)})`;
+    c.fillRect(20, 0, 180, 196);
+  }
+  c.restore();
+  // steam curling up off it (more after a smack)
+  if (!s.still) {
+    c.save();
+    c.lineCap = 'round';
+    for (let i = 0; i < 4; i++) {
+      const p = (s.t * 0.32 + i * 0.25) % 1;
+      const x0 = 62 + i * 32;
+      const y0 = 84 - p * 58;
+      const a = Math.sin(Math.PI * p) * (0.4 + 0.4 * hit);
+      c.beginPath();
+      c.moveTo(x0, y0 + 14);
+      c.bezierCurveTo(x0 - 8, y0 + 6, x0 + 8, y0 - 2, x0 + Math.sin(s.t + i) * 4, y0 - 12);
+      c.strokeStyle = `rgba(255,255,255,${a.toFixed(3)})`;
+      c.lineWidth = 5 - p * 2;
+      c.stroke();
+    }
+    c.restore();
+  }
+}
 
 export const PLACE_HEADS: Partial<Record<LocationId, PlaceHead>> = {
   trattoria: {
@@ -356,24 +792,21 @@ export const PLACE_HEADS: Partial<Record<LocationId, PlaceHead>> = {
   },
   rink: {
     kind: 'object',
-    // the mirror ball on its cap
+    // the mirror ball itself, no frame: hung from its cap at the handle's top, turning, its mirrors catching the
+    // light and throwing spots round it; a smack spins it up and scatters the light
     path(c) {
       c.beginPath();
-      c.arc(110, 98, 80, 0, TAU);
+      c.arc(BALL.x, BALL.y, BALL.r, 0, TAU);
     },
-    box: { x: 30, y: 18, w: 160, h: 176 },
+    box: { x: 30, y: 12, w: 160, h: 182 },
     zoom: 3.6,
     dy: -42,
-    rim: '#ffffff',
-    dress(c) {
-      bar(c, 100, 8, 20, 14, '#c7ccd4', 4);
-      c.beginPath();
-      c.arc(110, 4, 5, 0, TAU);
-      c.strokeStyle = INK;
-      c.lineWidth = 3;
-      c.stroke();
+    update(s, dt) {
+      s.mem.spin = ((s.mem.spin ?? 0) + dt * (0.22 + 3.2 * s.hit(1.2))) % TAU;
     },
+    paint: paintBall,
   },
+
   slopes: {
     kind: 'scene',
     // the peaks
@@ -605,44 +1038,15 @@ export const PLACE_HEADS: Partial<Record<LocationId, PlaceHead>> = {
   },
   firstpizzeria: {
     kind: 'object',
-    // the first slice, its point on the handle, its crust along the top
-    path(c) {
-      c.beginPath();
-      c.moveTo(110, 194);
-      c.lineTo(26, 40);
-      c.quadraticCurveTo(110, -6, 194, 40);
-      c.closePath();
-    },
+    // the first slice itself: golden cheese, pepperoni, basil, a puffed and blistered crust, still glowing from the
+    // first oven, its cheese glistening and bubbling, steam curling off it
+    path: slicePath,
     box: { x: 26, y: 16, w: 168, h: 178 },
     zoom: 1.05,
     dy: -14,
-    rim: '#ffe0a0',
-    dress(c) {
-      c.beginPath();
-      c.moveTo(24, 42);
-      c.quadraticCurveTo(110, -6, 196, 42);
-      c.strokeStyle = INK;
-      c.lineWidth = 17;
-      c.lineCap = 'round';
-      c.stroke();
-      c.strokeStyle = lin(c, 0, 16, 0, 44, [[0, '#f0b860'], [1, '#a8601e']]);
-      c.lineWidth = 11;
-      c.stroke();
-      c.strokeStyle = 'rgba(255,236,190,0.7)';
-      c.lineWidth = 2.4;
-      c.beginPath();
-      c.moveTo(40, 34);
-      c.quadraticCurveTo(110, 0, 180, 34);
-      c.stroke();
-      // charred blisters on the crust
-      for (const [x, y] of [[54, 27], [92, 17], [136, 18], [170, 30]] as const) {
-        c.beginPath();
-        c.ellipse(x, y, 3.4, 2.2, 0, 0, TAU);
-        c.fillStyle = 'rgba(60,24,6,0.6)';
-        c.fill();
-      }
-    },
+    paint: paintSlice,
   },
+
   gotham: {
     kind: 'scene',
     // the skyline: gothic spires, the clock tower in the middle
@@ -737,19 +1141,21 @@ export const PLACE_HEADS: Partial<Record<LocationId, PlaceHead>> = {
 
 /** The over-layer for a place head: its edge shaded inside, the light along its rim, its ink outline, its touches. */
 export function headOver(c: Ctx, h: PlaceHead): void {
+  // (a painted head draws its own edges)
+  if (h.paint) return;
   const b = h.box;
   c.save();
   h.path(c);
   c.clip();
   // the edge shaded inside (so the scene sits in the object, not on it), lit from the top left
   h.path(c);
-  c.strokeStyle = 'rgba(8,4,14,0.28)';
-  c.lineWidth = 16;
+  c.strokeStyle = 'rgba(8,4,14,0.14)';
+  c.lineWidth = 12;
   c.lineJoin = 'round';
   c.stroke();
   h.path(c);
-  c.strokeStyle = 'rgba(8,4,14,0.22)';
-  c.lineWidth = 7;
+  c.strokeStyle = 'rgba(8,4,14,0.12)';
+  c.lineWidth = 6;
   c.stroke();
   const gl = c.createLinearGradient(b.x, b.y, b.x + b.w, b.y + b.h);
   gl.addColorStop(0, 'rgba(255,255,255,0.12)');
