@@ -631,6 +631,23 @@ const S: Record<string, Spec> = {
     weight: 0.9,
     emblem: 'pk_tide',
   },
+  // Crouton Rift: the crouton moon tumbles in at the corner, portals tear open over the feet and croutons rain through
+  // them onto the two toughest, stars streaking in
+  'pizza:cosmiccrouton': {
+    steps: [{ k: 'show', tex: 'pk_crouton3', size: 200, from: 'pop', glow: 0x9a8cff, spin: 1, ms: 620 }, { k: 'spin', tex: 'pk_portal', size: 640, turns: -1.5, ms: 600, implode: true, color: 0x7df9ff, t: 120 }, { k: 'rain', tex: ['pk_crouton0', 'pk_crouton5', 'pk_crouton9'], n: 8, size: 70, spin: true, trail: 0x9a8cff, splash: 0x7df9ff, t: 300 }],
+    sfx: [['sfx_thanfoot_portal', 0, 0.8], ['sfx_ufotoe_abduct', 220, 0.7], ['sfx_smack_cosmic_heavy', 360, 0.8], ['sfx_cosmiccroc_holeclose', 620, 0.6]],
+    weight: 1,
+    dim: 0.12,
+    emblem: 'pk_crouton0',
+  },
+  // Event Horizon: the black olive opens a hole over the table, the disc spinning, everything pulled in and flung out
+  'pizza:blackolivehole': {
+    steps: [{ k: 'tint', color: 0x0a0414, alpha: 0.22, ms: 900 }, { k: 'spin', tex: 'pk_disc', size: 900, turns: 2, ms: 900, implode: true, color: 0xffb060, add: true }, { k: 'show', tex: 'pk_horizon', size: 420, from: 'pop', glow: 0xffb060, ms: 800, t: 80 }, { k: 'rings', color: 0xffe0b0, n: 2, icons: 'pk_starstreak', nIcons: 16, implode: true, t: 420 }],
+    sfx: [['sfx_cosmiccroc_blackhole', 0, 0.9], ['sfx_soleunbound_hole', 300, 0.6], ['sfx_cosmiccroc_holeclose', 760, 0.85]],
+    weight: 1.1,
+    dim: 0.15,
+    emblem: 'pk_bigolive',
+  },
   // Eruption: the pizza erupts like a volcano, lava falling on every foot
   'pizza:volcano': {
     steps: [{ k: 'show', tex: 'pizza', size: 360, from: 'below', glow: RED, wiggle: true }, { k: 'rain', tex: ['p_fireball', 'flame'], n: 14, size: 90, trail: ORANGE, splash: ORANGE, t: 80 }],

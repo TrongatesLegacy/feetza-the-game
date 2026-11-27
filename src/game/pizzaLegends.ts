@@ -42,6 +42,7 @@ import type { Foot } from './Foot';
 import type { Pizza } from './Pizza';
 import type { Run } from './Run';
 import { legendDmg, legendLook } from './legendary';
+import { Act3Legends, LEGEND3_SFX } from './pizzaLegends3';
 
 /** Sounds the Legendaries' perks play that aren't loaded at boot: Nonna's spoon and rolling pin, the Head Waiter's
  *  tray, wood and sauce smacks. All credited already. (The Legendaries' own synthesized sounds, sfx_legendbake,
@@ -54,6 +55,8 @@ export const LEGEND_SFX = [
   'sfx_clownking_honkwind', 'sfx_clownking_honk', 'sfx_clownking_piesplat', 'sfx_clownking_pie', 'sfx_clownking_leap', 'sfx_hitboom', 'sfx_jokester_giggle',
   'sfx_sandcastle_walls', 'sfx_sandcastle_pour', 'sfx_sandcastle_shovel', 'sfx_sandcastle_sandland', 'sfx_smack_sand_heavy',
   'sfx_zeus_wave', 'sfx_seagull', 'sfx_kraken_splash', 'sfx_smack_water_heavy', 'sfx_smack_water_1', 'sfx_smack_tail_kinghonk',
+  // Act 3: src/game/pizzaLegends3.ts
+  ...LEGEND3_SFX,
 ];
 
 /** What the Epics' kit lends the Legendaries. */
@@ -68,6 +71,9 @@ export interface LegendHost {
   recompute(): void;
   /** Give a pizza slices back (up to its maximum). */
   heal(p: Pizza, n: number): void;
+  /** Defeat a foot outright (a portal, the black hole): a kill, paid and counted like any (as an 'explode' kill, so
+   *  it never sets off Explode's chain blast). */
+  kill(f: Foot): void;
 }
 
 export class LegendKit {
@@ -88,6 +94,8 @@ export class LegendKit {
   /** Sprites in flight (dropped at once if the scene goes). */
   private live = new Set<Phaser.GameObjects.GameObject>();
   private quipAt: Record<string, number> = {};
+  /** Act 3's perks (src/game/pizzaLegends3.ts). */
+  readonly act3: Act3Legends;
 
   constructor(arena: Arena, host: LegendHost) {
     this.a = arena;
@@ -110,6 +118,7 @@ export class LegendKit {
       ['pk_sand', drawSandGrain],
     ];
     for (const [k, draw] of tex) if (!this.sc.textures.exists(k)) this.sc.textures.addCanvas(k, draw());
+    this.act3 = new Act3Legends(arena, host, (x, y, k, u) => this.img(x, y, k, u), (k, g) => this.every(k, g));
   }
 
   private get run(): Run {
@@ -144,6 +153,7 @@ export class LegendKit {
     this.ladleUsed = 0;
     this.baked.clear();
     this.ovenStage = -1;
+    this.act3.runStart();
   }
 
   waveStart(wave: number): void {
@@ -173,6 +183,7 @@ export class LegendKit {
   }
 
   waveClear(n: number): void {
+    this.act3.waveClear();
     // the citadel's keep flies all its pennants again in the shop (ready for the next wave)
     this.citadel = [];
     for (const p of this.a.alivePizzas()) if (p.perk === 'citadelWall') p.flags.citadelLeft = p.enhanced ? 4 : 3;
@@ -273,7 +284,18 @@ export class LegendKit {
 
   // ——— Silver Service ———
 
+  /** A smack landed on f (Act 3: Cosmic Crouton Supreme's portal, Roar Roast's embers). */
+  smacked(f: Foot): void {
+    this.act3.smacked(f);
+  }
+
+  /** Every hit's multiplier from the Legendaries now (Roar Roast's +30%). */
+  damageMult(): number {
+    return this.act3.damageMult();
+  }
+
   update(dt: number): void {
+    this.act3.update(dt);
     this.tideTick(dt);
     // Big Top Pie: every 20 s (two pies: 10) of wave with a foot on the table, the cannon fires at the toughest foot
     const top = this.h.c('bigTopCannon');
@@ -805,6 +827,7 @@ export class LegendKit {
 
   /** The scene is shutting down: everything in flight goes at once (no tweens). */
   clear(): void {
+    this.act3.clear();
     for (const o of [...this.live]) o.destroy();
     this.live.clear();
   }

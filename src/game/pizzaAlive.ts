@@ -188,6 +188,10 @@ const PERK_ELEMENT: Partial<Record<PizzaPerk, { el: Element; quip?: string; col?
   bigTopCannon: { el: 'rainbow', quip: 'BIG TOP!', col: 0xff5a68 },
   citadelWall: { el: 'sand', quip: 'THE CITADEL!' },
   tidalWash: { el: 'water', quip: 'TIDAL TIKI!', col: 0x4ad8e0 },
+  // the pizza plan's step 5, batch 3: Act 3's Legendaries (their auras: src/game/legendAuras3.ts)
+  croutonPortal: { el: 'cosmic', quip: 'COSMIC CROUTON!', col: 0x9a8cff },
+  hearthRoar: { el: 'fire', quip: 'ROAR!', col: 0xff7a2a },
+  blackHole: { el: 'cosmic', quip: 'BLACK OLIVE HOLE!', col: 0xffb060 },
 };
 
 /** A perk's element: its own, else by its name, else by its pizza (a hot pie fire, a cold one frost), else power. */

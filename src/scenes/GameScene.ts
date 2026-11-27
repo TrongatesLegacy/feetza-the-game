@@ -629,6 +629,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       addReroll: () => this.freeRerollsLeft++,
       toast: (id, title, body) => ui.hud.toast(pizzaPortraitURL(id), title, body),
       relane: (f) => this.relane(f),
+      kill: (f) => this.killFoot(f, 'explode'),
     });
     this.events.once('shutdown', () => this.perkKit.clear());
     contentFx.reset(this);

@@ -11,6 +11,7 @@ import { borrowLine, borrowedPerk } from './pizzaPerks';
 import { PizzaAlive, bakedTop } from './pizzaAlive';
 // (the legendaries' auras and signatures plug into the living layer's hooks)
 import './legendAuras';
+import './legendAuras3';
 
 let uid = 0;
 

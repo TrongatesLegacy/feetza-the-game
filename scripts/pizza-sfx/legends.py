@@ -1,6 +1,6 @@
-# The Legendary pizzas' own sounds (docs/pizza-plan.md, section 12): the counter's fanfare when a Legendary is dealt,
-# the stamp of "LEGENDARY!", the reveal's music sting when one becomes yours, and The First Bake's oven (its breath
-# across the table, and a soft puff when it's stomped). Synthesized from sines, partials and filtered noise, with a
+# The Legendary pizzas' own sounds (docs/pizza-plan.md, sections 12 and 14): the counter's fanfare when a Legendary is
+# dealt, the stamp of "LEGENDARY!", the reveal's music sting when one becomes yours, The First Bake's oven (its breath
+# across the table, and a soft puff when it's stomped) and Roar Roast's hearth roaring up. Synthesized from sines, partials and filtered noise, with a
 # small room. Pure Python, released as CC0 (made for Feetza). Usage: python3 legends.py <outdir>  (mp3s via ffmpeg).
 import math
 import os
@@ -235,6 +235,41 @@ b = room(b, 0.16)
 fade_tail(b, 60)
 write(os.path.join(out, 'sfx_legendpuff.wav'), b, 0.75)
 made.append('sfx_legendpuff')
+
+# Roar Roast (Act 3): the Alpine Lodge's hearth roaring up the chimney: a deep growl of flame (a low, rough buzz
+# swelling and falling), a big rush of filtered noise opening up as the fire takes, a thump, the logs crackling after
+def growl(buf, t0, dur, amp, f0, f1, seed):
+    """A rough low roar: a buzzing tone gliding f0 to f1, its loudness jittered like a throat (or a chimney's draw)."""
+    i0 = int(t0 * SR)
+    rnd = random.Random(seed)
+    ph = 0.0
+    lp = 0.0
+    am = 1.0
+    for k in range(int(dur * SR)):
+        if i0 + k >= len(buf):
+            break
+        t = k / SR
+        u = t / dur
+        f = f0 + (f1 - f0) * u
+        ph += f / SR
+        saw = 2 * (ph % 1.0) - 1
+        if k % 220 == 0:
+            am = 0.6 + rnd.random() * 0.4
+        lp += 0.06 * (saw * am - lp)
+        e = min(1.0, t / 0.12) * (1 - u) ** 1.4
+        buf[i0 + k] += amp * e * lp
+
+
+b = [0.0] * int(SR * 1.8)
+thump(b, 0.0, 48, 0.7, decay=5)
+growl(b, 0.0, 1.3, 0.55, 62, 44, 51)
+noise_swell(b, 0.0, 1.2, 0.6, 220, 1100, 52, shape=0.9)
+noise_swell(b, 0.08, 0.9, 0.22, 1600, 3600, 53, shape=1.6)
+crackle(b, 0.2, 1.3, 30, 0.32, 54)
+b = room(b, 0.24)
+fade_tail(b, 140)
+write(os.path.join(out, 'sfx_legendroar.wav'), b, 0.56)
+made.append('sfx_legendroar')
 
 for name in made:
     src = os.path.join(out, f'{name}.wav')

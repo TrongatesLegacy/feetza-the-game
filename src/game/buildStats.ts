@@ -568,6 +568,11 @@ export function buildView(inp: BuildInput): BuildView {
   // the Legendaries (step 5, Act 2): Big Top Pie's cannon pie (×8, Legendary damage: scaled by heat)
   const bigTop = inp.c('bigTopCannon');
   if (bigTop > 0) dmgTiles.push({ label: 'Cannon pie', num: 8, fmt: 'x', icon: '🎪', tone: 'up', from: inp.pizzas.filter((p) => p.perk === 'bigTopCannon').map(pzSrc), note: `the toughest foot, every ${r1(20 / bigTop)}s, and every foot laughs 1s (${Math.round(8 * (inp.heat.legend ?? 1) * 10) / 10} smacks on ${inp.heat.name})` });
+  // Act 3: Cosmic Crouton Supreme's portal (bosses ×10) and the Black Olive Hole's pull (×5 near it), Legendary damage
+  const crouton = inp.c('croutonPortal');
+  if (crouton > 0) dmgTiles.push({ label: 'Crouton portal', num: r1(Math.min(5, crouton)), fmt: 'pct', icon: '🌌', tone: 'up', from: inp.pizzas.filter((p) => p.perk === 'croutonPortal').map(pzSrc), note: `of smacks take an ordinary foot through a portal (a kill); bosses take ×10 (${Math.round(10 * (inp.heat.legend ?? 1) * 10) / 10} smacks on ${inp.heat.name})` });
+  const hole = inp.c('blackHole');
+  if (hole > 0) dmgTiles.push({ label: 'Black olive hole', num: 5, fmt: 'x', icon: '🕳️', tone: 'up', from: inp.pizzas.filter((p) => p.perk === 'blackHole').map(pzSrc), note: `every ${Math.round(20 / hole)}s every foot is pulled in for 2s: in its lane under 30% health swallowed whole, the rest ×5 near it, less further out (${Math.round(5 * (inp.heat.legend ?? 1) * 10) / 10} smacks on ${inp.heat.name})` });
   // the Epic Pizzeria pizzas: Colossus Forge, Three-Headed Hound, Gorgon's Gaze, Ember Shade
   for (const p of inp.pizzas.filter((q) => q.perk === 'forgeWaves')) dmgTiles.push({ label: 'The Forge', num: r1(Math.min(40, inp.forgeWaves) * p.pk), fmt: 'pct', pre: '+', icon: '⚒️', tone: 'up', from: [pzSrc(p)], note: `${inp.forgeWaves} wave${inp.forgeWaves === 1 ? '' : 's'} survived · +${r1(p.pk)}% a wave, up to +${r1(40 * p.pk)}%` });
   for (const p of inp.pizzas.filter((q) => q.perk === 'tripleBite')) dmgTiles.push({ label: 'Three bites', num: p.enhanced ? 2 : 3, fmt: 'int', pre: 'every ', post: ' smacks', icon: '🐕', tone: 'up', from: [pzSrc(p)], note: 'the smack bites three times' });
@@ -644,6 +649,7 @@ export function buildView(inp: BuildInput): BuildView {
     snowball: (p) => ({ label: 'Snowball', num: p.enhanced ? 5 : 8, fmt: 'int', pre: 'every ', post: ' smacks', icon: '☃️', tone: 'up', from: [pzSrc(p)], note: 'freezes the foot nearest the table 2s' }),
     pieSplat: (p) => ({ label: 'Pie splat', num: p.enhanced ? 1.5 : 1, fmt: 'sec', icon: '🥧', tone: 'up', from: [pzSrc(p)], note: 'kills leave a splat; the next foot on it slips' }),
     // the Legendaries (step 5): Silver Service's tray
+    hearthRoar: () => ({ label: 'Hearth roar', num: Math.round(25 / Math.max(1e-6, inp.c('hearthRoar'))), fmt: 'sec', pre: 'every ', icon: '🔥', tone: 'up', from: inp.pizzas.filter((q) => q.perk === 'hearthRoar').map(pzSrc), note: 'every foot stunned 2s (bosses slowed), then every hit +30% for 4s' }),
     silverTray: () => ({ label: 'Silver service', num: r1(15 / Math.max(1e-6, inp.c('silverTray'))), fmt: 'sec', pre: 'every ', icon: '🍽️', tone: 'up', from: inp.pizzas.filter((q) => q.perk === 'silverTray').map(pzSrc), note: 'a silver tray bats every diving foot back up' }),
     steamVent: () => ({ label: 'Steam vents', num: r1(20 / Math.max(1e-6, inp.c('steamVent'))), fmt: 'sec', pre: 'every ', icon: '♨️', tone: 'up', from: inp.pizzas.filter((q) => q.perk === 'steamVent').map(pzSrc), note: 'every diving foot blown back up' }),
     sootAbove: (p) => ({ label: 'Lost in soot', num: p.enhanced ? 3 : 2, fmt: 'sec', icon: '🧹', tone: 'up', from: [pzSrc(p)], note: `feet arriving over ${p.name} can't dive` }),
@@ -658,7 +664,7 @@ export function buildView(inp: BuildInput): BuildView {
   const seenCc = new Set<PizzaPerk>();
   for (const p of inp.pizzas) {
     if (!p.perk || !perkCc[p.perk]) continue;
-    if ((p.perk === 'timeStop' || p.perk === 'danceBeat' || p.perk === 'steamVent' || p.perk === 'sirenSong' || p.perk === 'whirlpool' || p.perk === 'fenrirHowl' || p.perk === 'silverTray') && seenCc.has(p.perk)) continue;
+    if ((p.perk === 'timeStop' || p.perk === 'danceBeat' || p.perk === 'steamVent' || p.perk === 'sirenSong' || p.perk === 'whirlpool' || p.perk === 'fenrirHowl' || p.perk === 'silverTray' || p.perk === 'hearthRoar') && seenCc.has(p.perk)) continue;
     seenCc.add(p.perk);
     cc.push(perkCc[p.perk]!(p));
   }

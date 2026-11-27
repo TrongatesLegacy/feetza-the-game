@@ -95,6 +95,10 @@ export const LEGEND_LOOK: Record<string, LegendLook> = {
   bigtoppie: { col: 0xff4a5a, col2: 0xfff2b0, css: '#ff5a68', css2: '#fff2b0', confetti: ['#e2322a', '#ffd23f', '#2a7ae0', '#ffffff', '#3fc060', '#ff6ab0'], line: 'King Honk’s circus, Act 2' },
   sandcastlecitadel: { col: 0xf2c070, col2: 0xfff4d8, css: '#f2c070', css2: '#fff2d0', confetti: ['#e4b468', '#fff0c8', '#e2322a', '#2a7ae0', '#ffffff'], line: 'Sandcastle Sam’s fortress, Act 2' },
   tidaltiki: { col: 0x3ad0d8, col2: 0xe8fff8, css: '#4ad8e0', css2: '#e8fffa', confetti: ['#1a9ab8', '#5ad8d8', '#ffffff', '#e8306a', '#ffc83a', '#3fa040'], line: 'The Beach’s tide, Act 2' },
+  // Act 3 (batch 3): the Cosmic Croc's crouton moon, the Alpine Lodge's roaring hearth, Space's black hole
+  cosmiccrouton: { col: 0x8a7cff, col2: 0xffe2a0, css: '#9a8cff', css2: '#ffe2a0', confetti: ['#2b3d8f', '#7df9ff', '#ffd27a', '#b07cff', '#ffffff'], line: 'The Cosmic Croc’s moon, Act 3' },
+  roarroast: { col: 0xff6a1a, col2: 0xffe0a0, css: '#ff7a2a', css2: '#ffe2b0', confetti: ['#ff6a1a', '#ffc23a', '#8a2a12', '#fff0d0', '#3a6a2a'], line: 'The Alpine Lodge’s hearth, Act 3' },
+  blackolivehole: { col: 0xffa64a, col2: 0xd8c8ff, css: '#ffb060', css2: '#e0d4ff', confetti: ['#140a24', '#ffb060', '#fff2d8', '#7a5cff', '#ff6a3a'], line: 'From the depths of Space, Act 3' },
 };
 
 const GOLD: LegendLook = { col: 0xffc83a, col2: 0xfff2a0, css: '#ffc83a', css2: '#fff2a0', confetti: ['#ffc83a', '#fff2a0', '#d08a08', '#ffffff'], line: 'Legendary' };

@@ -12229,5 +12229,13 @@
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
     "notes": "The First Bake stomped: a soft puff of oven heat and a few crackles, synthesized (scripts/pizza-sfx/legends.py)"
+  },
+  {
+    "file": "sfx_legendroar.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "Roar Roast's perk: the Alpine Lodge's hearth roaring up the chimney, a low rough growl of flame, a rush of filtered noise opening up, a thump and the logs crackling after; synthesized (scripts/pizza-sfx/legends.py)"
   }
 ]

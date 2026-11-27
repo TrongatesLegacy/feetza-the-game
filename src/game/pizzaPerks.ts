@@ -39,8 +39,8 @@ const LEGEND_PERKS = new Set<PizzaPerk>(PIZZAS.filter((p) => p.rarity === 'legen
 /** Perks Echo Slice won't copy: the same as Arcobaleno's (set up when a pizza is placed, tied to its own type, once a
  *  run, the crust earners, the other borrowers) and itself. It does copy a Legendary's once-a-wave or timed perk
  *  (Nonna's ladle: one more swat a wave; Silver Service: the tray twice as often; Big Top Pie: the cannon twice as
- *  often; Sandcastle Citadel: 3 more stomps a wave; Tidal Tiki: one more slice from the tide), never a once-a-run one
- *  (The First Bake). It counts as a second copy of anything else, doing what two
+ *  often; Sandcastle Citadel: 3 more stomps a wave; Tidal Tiki: one more slice from the tide; Cosmic Crouton Supreme:
+ *  its 1% more; Roar Roast and Black Olive Hole: twice as often), never a once-a-run one (The First Bake). It counts as a second copy of anything else, doing what two
  *  of that pizza would. */
 export const ECHO_SKIP = BORROW_SKIP;
 /** Every perk a pizza has, for Echo Slice's flag (it keeps its copy as an index: 1 + its place here; 0 nothing). */
@@ -135,6 +135,8 @@ export interface PerkHost {
   toast(id: string, title: string, body: string): void;
   /** Move a foot to a free lane over another pizza (Squid Ink Nero): the new pizza, or null if none is free. */
   relane(f: Foot): Pizza | null;
+  /** Defeat a foot outright (Act 3's portal and black hole): a kill, paid and counted like any. */
+  kill(f: Foot): void;
 }
 
 /** Sandcastle Sundae's wall towers: its sandcastle topping, drawn large. */
@@ -269,6 +271,7 @@ export class PizzaPerkKit {
       dealDamage: (f, n, source, knock, tag) => host.dealDamage(f, n, source, knock, tag),
       recompute: () => host.recompute(),
       heal: (p, n) => host.healPizza(p, n),
+      kill: (f) => host.kill(f),
     });
   }
 
@@ -497,6 +500,8 @@ export class PizzaPerkKit {
     // Frostbite: a chilled or frozen foot takes +25%
     const frost = this.c('frostbite');
     if (frost > 0 && this.cold(f)) m *= 1 + 0.25 * frost;
+    // Roar Roast: +30% for 4 s after its roar
+    m *= this.legends.damageMult();
     return m * this.waveDmgMult(this.wave());
   }
 
@@ -556,6 +561,8 @@ export class PizzaPerkKit {
     // Rainbow Bridge and Frostbite show on the smacks they strengthen
     if (this.bridges.length && this.bridgeMult(f) > 1) this.bridgeHit(f);
     if (this.c('frostbite') > 0 && this.cold(f)) this.frostbiteHit(f);
+    // the Legendaries: Cosmic Crouton Supreme's portal, Roar Roast's embers
+    this.legends.smacked(f);
   }
 
   /** A swing of the peel landed (once a swing, however many feet it hit; f: the foot it hit first). Three-Headed
