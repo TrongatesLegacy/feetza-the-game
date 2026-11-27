@@ -93,7 +93,7 @@ Existing pizzas are re-priced into their tier's band. A few weak but expensive P
 - **Rebake is an overlay on the dead pizza** in the shop's table view: it shows charred and cracked, with a glowing oven door and its price over it; tap it to rebake that pizza (back at half its slices, fully fresh, with a puff of oven heat). You choose which dead pizza to save.
 - **Its price comes from the pizza:** 1.5× what that pizza costs at the counter right now (its tier's price, at this wave) for the first rebake in a run, and 2× for every rebake after. A dead legendary is a real decision; a dead common is cheap to bring back. Still off on Inferno.
 - **Reheat** is a small "REHEAT · price" chip on each stale pizza, in the same place.
-- **Heal** stays one button for the whole table (or optionally a small "+slices" chip per damaged pizza).
+- **Heal moves onto each pizza too (Tron, 2026-11-27):** a small "HEAL +2 · price" chip on each damaged pizza instead of the one table-wide button. It keeps today's pricing: a base that grows a little with the wave (+3 tips a wave), stepping up each time you use it in the run (×1.45 + 10).
 
 ### Legendary unlock gates
 
