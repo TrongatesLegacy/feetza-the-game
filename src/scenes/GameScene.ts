@@ -3312,7 +3312,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       cost,
       coins: this.run.coins,
       canAdd: !full,
-      current: this.pizzas.map((p) => ({ id: p.type.id, name: p.type.name, perk: p.perkLine, slices: p.slices, max: p.maxSlices, dead: p.dead, stale: p.stale, fresh: p.fresh, freshOn: p.freshOn })),
+      current: this.pizzas.map((p) => ({ id: p.type.id, name: p.type.name, perk: p.perkText, slices: p.slices, max: p.maxSlices, dead: p.dead, stale: p.stale, fresh: p.fresh, freshOn: p.freshOn })),
       onChoose: commit,
     }));
   }

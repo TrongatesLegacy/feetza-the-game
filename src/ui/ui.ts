@@ -1505,9 +1505,9 @@ class UI {
     onChoose: (index: number) => void; // -1 = new plate
   }): HTMLElement {
     let s: HTMLElement;
-    // stale and destroyed pizzas first: they're the obvious ones to swap
-    const order = o.current.map((p, i) => ({ p, i })).sort((a, b) => Number(b.p.dead || b.p.stale) - Number(a.p.dead || a.p.stale));
-    let picked = order[0]?.i ?? -1;
+    // left to right as on the table (and the shop's), the first eaten or stale pizza picked to start: the obvious swap
+    const order = o.current.map((p, i) => ({ p, i }));
+    let picked = (order.find(({ p }) => p.dead || p.stale) ?? order[0])?.i ?? -1;
     const lose = h('div', { class: 'diff lose' });
     const confirm = btn('', 'green big', () => {
       if (picked === -2) return;
@@ -1519,7 +1519,7 @@ class UI {
       tiles.forEach((t) => t.classList.toggle('picked', Number(t.dataset.i) === picked));
       const p = o.current[picked];
       if (picked === -1) lose.replaceChildren(h('span', { class: 'lbl' }, 'YOU LOSE'), h('b', {}, 'Nothing'), h('span', {}, 'It goes on a new plate'));
-      else if (p) lose.replaceChildren(h('span', { class: 'lbl' }, 'YOU LOSE'), h('b', {}, p.name), h('span', {}, p.dead ? 'Already toast' : `${p.stale ? `Stale (perk off): ${p.perk}` : p.perk} · ${p.slices}/${p.max} slices left`));
+      else if (p) lose.replaceChildren(h('span', { class: 'lbl' }, 'YOU LOSE'), h('b', {}, p.name), h('span', {}, p.dead ? `Already eaten: ${p.perk}` : `${p.stale ? `Stale (perk off): ${p.perk}` : p.perk} · ${p.slices}/${p.max} slices left`));
       confirm.innerHTML = picked === -1 ? `ADD · ${fmt(o.cost)}` : `SWAP · ${fmt(o.cost)}`;
     };
     for (const { p, i } of order) {
@@ -1530,7 +1530,7 @@ class UI {
         p.stale ? h('span', { class: 'flag' }, 'STALE') : p.dead ? h('span', { class: 'flag dead' }, 'EATEN') : null,
         pizzaThumb(p.id, p.slices, p.max, 200, p.stale, p.dead),
         h('span', { class: 'nm' }, p.name),
-        h('span', { class: `ds${p.stale ? ' off' : ''}` }, p.perk),
+        h('span', { class: `ds${p.stale || p.dead ? ' off' : ''}` }, p.perk),
         h('span', { class: 'sl' }, `${p.slices} / ${p.max} slices`),
       );
       t.addEventListener('click', () => {
