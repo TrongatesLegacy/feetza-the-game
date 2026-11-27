@@ -7,6 +7,8 @@ import { SEASONS, enhancedText, type PizzaPerk, type PizzaType } from '../data/p
 import { ensurePizzaArt, pizzaTops } from './assets';
 import { borrowLine, borrowedPerk } from './pizzaPerks';
 import { PizzaAlive, bakedTop } from './pizzaAlive';
+// (the legendaries' auras and signatures plug into the living layer's hooks)
+import './legendAuras';
 
 let uid = 0;
 
@@ -236,6 +238,11 @@ export class Pizza {
 
   get maxSlices(): number {
     return this.alive.length;
+  }
+
+  /** The First Bake's slices over its maximum still on it (src/game/pizzaLegends.ts): eaten first, never grown back. */
+  get overSlices(): number {
+    return Number(this.flags.bakeExtra ?? 0);
   }
 
   /** World-space y of the pizza's top surface centre. */
@@ -581,7 +588,11 @@ export class Pizza {
       const idx = this.alive.map((a, i) => (a ? i : -1)).filter((i) => i >= 0);
       if (!idx.length) break;
       const pick = idx[Math.floor(Math.random() * idx.length)];
-      this.alive[pick] = false;
+      // The First Bake's slice over the top goes first, and doesn't grow back: the pie is back to its own slices
+      if (this.overSlices > 0) {
+        this.alive.splice(pick, 1);
+        this.flags.bakeExtra = this.overSlices - 1;
+      } else this.alive[pick] = false;
       removed.push(pick);
     }
     // footprint decal in top-down pizza space

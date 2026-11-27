@@ -212,11 +212,15 @@ function colourOf(p: PizzaType, el: Element): number {
 
 // ════════════════════════════ legendary hooks (step 5 fills these in) ════════════════════════════
 
-/** Where an aura draws: under the plate, between the plate and the pie (round it), and the pie's ellipse now. */
+/** Where an aura draws: under the plate, between the plate and the pie (round it), between the pie and its face (the
+ *  crust's edge only: never over the face), and the pie's ellipse now. */
 export interface AuraCtx {
   scene: Phaser.Scene;
   under: Phaser.GameObjects.Container;
   mid: Phaser.GameObjects.Container;
+  top: Phaser.GameObjects.Container;
+  /** The pizza's scale (its world size). */
+  s: () => number;
   col: number;
   /** A square pie (its rings and glow are rounded squares). */
   square: boolean;
@@ -232,6 +236,8 @@ export interface AuraFrame {
   /** Calm (reduced motion) and basics-only (graphics). */
   calm: boolean;
   basic: boolean;
+  /** Its perk is off for now (stale or frozen): an aura dims. */
+  quiet: boolean;
 }
 export interface Aura {
   update(dt: number, f: AuraFrame): void;
@@ -240,11 +246,24 @@ export interface Aura {
   setVisible(on: boolean): void;
   destroy(): void;
 }
-/** A legendary's aura, by pizza id (step 5). Without one, a legendary shows the test aura. */
+/** A legendary's aura, by pizza id (src/game/legendAuras.ts). Without one, a legendary shows the test aura. */
 export const AURAS: Record<string, (c: AuraCtx) => Aura> = {};
-/** A legendary's signature reactions, by pizza id (step 5): stomped (the screen pulse, its own sound) and its perk's
- *  full moment. Each gets the pizza's world position. */
-export const SIGNATURES: Record<string, { stomp?: (x: number, y: number) => void; fire?: (x: number, y: number) => void }> = {};
+/** Where a signature plays: the pizza's world position and scale, the scene's effects layer (none on the menu), and
+ *  whether a boss is in the fight (it plays lighter). */
+export interface SigCtx {
+  scene: Phaser.Scene;
+  x: number;
+  y: number;
+  s: number;
+  layer: Phaser.GameObjects.Container | null;
+  /** The pizza's own layer under its plate (local: the pizza's middle at 0, 0). */
+  under: Phaser.GameObjects.Container;
+  light: boolean;
+  calm: boolean;
+}
+/** A legendary's signature reactions, by pizza id (src/game/legendAuras.ts): stomped (the aura flares, a light pulse
+ *  over the table round it, its own sound) and its perk firing (a flourish on top of its perk's own moment). */
+export const SIGNATURES: Record<string, { stomp?: (c: SigCtx) => void; fire?: (c: SigCtx) => void }> = {};
 
 // ════════════════════════════ shared textures ════════════════════════════
 
@@ -704,7 +723,12 @@ export interface AliveHost {
 }
 
 /** Quips from the scene (set by GameScene; the menu has none). */
-export const aliveHooks: { quip?: (x: number, y: number, text: string, color: string, size: number, angle: number) => void } = {};
+export const aliveHooks: {
+  quip?: (x: number, y: number, text: string, color: string, size: number, angle: number) => void;
+  /** The scene's effects layer and its boss fight (the legendaries' signatures; the menu has neither). */
+  layer?: () => Phaser.GameObjects.Container | null;
+  bossFight?: () => boolean;
+} = {};
 
 const reduced = () => !!save.settings.reducedMotion;
 
@@ -800,7 +824,7 @@ export class PizzaAlive {
     }
     if (this.set.aura) {
       const make = AURAS[p.id] ?? testAura;
-      this.aura = make({ scene: this.sc, under: this.under, mid: this.mid, col: p.finish?.glow ?? 0xffc83a, square: this.sq });
+      this.aura = make({ scene: this.sc, under: this.under, mid: this.mid, top: this.top, s: () => this.host.s, col: p.finish?.glow ?? 0xffc83a, square: this.sq });
     }
     // the peel's painted layers (from the art cache, else painted in idle time): its real points, light map and
     // hopping pieces
@@ -919,7 +943,7 @@ export class PizzaAlive {
     const lift = sideFor(this.host.type.shape) * s;
     const calz = this.host.type.shape === 'calzone';
     const cy = -lift + (calz ? (CALZONE_CY + PIZZA_R * 0.3 - PIZZA_SIZE / 2) * TILT * s : 0);
-    return { cx: 0, cy, rx: PIZZA_R * s * (calz ? 1 : 1), ry: PIZZA_R * TILT * s * (calz ? 0.75 : 1), prx: (PIZZA_R + 40) * s, pry: (PIZZA_R + 40) * TILT * s, calm: reduced(), basic: !peelsAnimated() };
+    return { cx: 0, cy, rx: PIZZA_R * s * (calz ? 1 : 1), ry: PIZZA_R * TILT * s * (calz ? 0.75 : 1), prx: (PIZZA_R + 40) * s, pry: (PIZZA_R + 40) * TILT * s, calm: reduced(), basic: !peelsAnimated(), quiet: this.host.stale || this.host.perkFrozen };
   }
 
   /** Art space (top-down px) to local. */
@@ -1191,7 +1215,7 @@ export class PizzaAlive {
     if (this.set.signature) {
       this.flareT = 1;
       this.aura?.flare(1);
-      SIGNATURES[this.host.type.id]?.stomp?.(this.host.x, this.host.surfaceY);
+      SIGNATURES[this.host.type.id]?.stomp?.(this.sigCtx(f.calm));
     }
   }
 
@@ -1345,8 +1369,12 @@ export class PizzaAlive {
     }
     if (this.set.signature) {
       this.aura?.flare(0.8);
-      SIGNATURES[this.host.type.id]?.fire?.(this.host.x, this.host.surfaceY);
+      SIGNATURES[this.host.type.id]?.fire?.(this.sigCtx(calm));
     }
+  }
+
+  private sigCtx(calm: boolean): SigCtx {
+    return { scene: this.sc, x: this.host.x, y: this.host.surfaceY, s: this.host.s, layer: aliveHooks.layer?.() ?? null, under: this.under, light: !!aliveHooks.bossFight?.(), calm };
   }
 
   /** Is an art-space point on a slice that's still there? */

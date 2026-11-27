@@ -47,15 +47,15 @@ type Pt = [number, number];
 // ════════════════════════════ a pizza's family, from its data ════════════════════════════
 
 /** Toppings too small to read when they hop (flecks, crumbs, herbs). */
-const TINY = new Set<string>(['chili', 'parmesan', 'goldLeaf', 'oregano', 'blackPepper', 'chives', 'parsley', 'dill', 'aonori', 'bonito', 'breadcrumbs', 'starDust', 'sprinkles', 'rosemary', 'pepita', 'pineNut', 'caper', 'grahamCrumb', 'pistachio', 'sage', 'springOnion']);
+const TINY = new Set<string>(['seaSalt', 'parmShavings', 'chili', 'parmesan', 'goldLeaf', 'oregano', 'blackPepper', 'chives', 'parsley', 'dill', 'aonori', 'bonito', 'breadcrumbs', 'starDust', 'sprinkles', 'rosemary', 'pepita', 'pineNut', 'caper', 'grahamCrumb', 'pistachio', 'sage', 'springOnion']);
 /** Fatty, oily toppings: they glisten more and their fat sizzles. */
-const OILY = new Set<string>(['pepperoni', 'salami', 'cupPepperoni', 'chorizo', 'nduja', 'calabreseSalami', 'sausage', 'bacon', 'guanciale', 'lardons', 'andouille', 'meatball', 'wagyu', 'mortadella', 'kebabMeat', 'steak', 'friedChicken', 'ribBone', 'brickChorizo', 'bronzePlates', 'muspelCoals']);
+const OILY = new Set<string>(['nonnaRagu', 'pepperoni', 'salami', 'cupPepperoni', 'chorizo', 'nduja', 'calabreseSalami', 'sausage', 'bacon', 'guanciale', 'lardons', 'andouille', 'meatball', 'wagyu', 'mortadella', 'kebabMeat', 'steak', 'friedChicken', 'ribBone', 'brickChorizo', 'bronzePlates', 'muspelCoals']);
 /** Oil poured over the whole pie. */
-const OILED = new Set<string>(['grease', 'oliveOil', 'garlicButter']);
+const OILED = new Set<string>(['grease', 'oliveOil', 'garlicButter', 'oilPools']);
 const SPICY = new Set<string>(['chili', 'jalapeno', 'hotSauce', 'longChili', 'scotchBonnet', 'nduja', 'pepperoncini', 'infernoCracks', 'lavaVents', 'flambeFlames', 'fireIce', 'cajunShrimp', 'jerkChicken', 'calabreseSalami', 'forgeGlow', 'emberCoals', 'surtrBlade', 'muspelCoals']);
 const HOT_PERKS = new Set<string>(['burnStomper', 'burnHits', 'heatAbove', 'burnAbove', 'fireLane', 'hoverFire', 'erupt', 'frostFire', 'forgeWaves', 'emberTrail', 'surtrSpread']);
 const COLD_PERKS = new Set<string>(['slowHits', 'firstFreeze', 'frostFire', 'snowball', 'frostbite']);
-const GOLDISH = new Set<string>(['goldLeaf', 'pearl', 'fleeceCurls']);
+const GOLDISH = new Set<string>(['goldLeaf', 'pearl', 'fleeceCurls', 'silverLeaf', 'caviarPearls']);
 const GOLD_RIMS = new Set<string>(['goldRim', 'crown', 'halo', 'anniv25']);
 const SWEET = new Set<string>(['strawberry', 'chocolate', 'marshmallow', 'sprinkles', 'frostingRosette', 'candy', 'marshMountain', 'grahamCrumb', 'miniCreamPie', 'creamSplats', 'sandcastle', 'seaShell']);
 
@@ -922,6 +922,16 @@ function scratch(w: number, h: number, i: number): [HTMLCanvasElement, Ctx] {
   return s;
 }
 
+/** A Legendary pizza peel's show-piece (src/content/art/legend-peels-p8.ts and on): its aura on the peel, drawn behind
+ *  the pie and in front of its rim, what it sheds each frame, and its smack in its own style. */
+export interface LegendPeel {
+  back?(ctx: Ctx, live: PizzaLive): void;
+  front?(ctx: Ctx, live: PizzaLive): void;
+  tick?(live: PizzaLive, dt: number): void;
+  smack?(live: PizzaLive): void;
+}
+export const LEGEND_PEEL: Record<string, LegendPeel> = {};
+
 /** One place a pizza peel shows (a locker canvas, the cursor peel). */
 export class PizzaLive {
   t = crand() * 20;
@@ -962,6 +972,7 @@ export class PizzaLive {
 
   smack(): void {
     this.sm = 0;
+    LEGEND_PEEL[this.mini.p.id]?.smack?.(this);
     const m = this.mini;
     const tr = m.tr;
     const n = reduced() ? 0.4 : 1;
@@ -1143,6 +1154,7 @@ export class PizzaLive {
       }
     });
     this.glowA = tr.glow !== null ? 0.2 + 0.08 * Math.sin(this.t * 2.2) : 0;
+    LEGEND_PEEL[m.p.id]?.tick?.(this, dt);
   }
 
   /** The pie on its board this frame (peel units): its shadow, the pie and what moves on it, what's lifted. */
@@ -1156,6 +1168,8 @@ export class PizzaLive {
     const oy = this.slideY - 2.4 * lift;
     const s = 1 + 0.055 * lift;
     drawShadow(ctx, m.shadow, pl, lift, m.cx + this.slideX * 0.4, m.cy + this.slideY * 0.4, ghost);
+    const legend = LEGEND_PEEL[m.p.id];
+    legend?.back?.(ctx, this);
     ctx.save();
     ctx.translate(m.cx + ox, m.cy + oy);
     ctx.scale(s, s);
@@ -1191,6 +1205,7 @@ export class PizzaLive {
     this.drawHops(ctx);
     this.drawTwinkles(ctx);
     ctx.restore();
+    legend?.front?.(ctx, this);
     if (tr.syrup) this.drip.forEach((d, i) => {
       const a = m.drips[i];
       const bead = 2.7 + 1.3 * Math.max(0, (d.u - 0.6) / 0.4);

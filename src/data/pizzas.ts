@@ -105,7 +105,9 @@ export type PizzaPerk =
   // ——— the pizza plan's step 4, batch 2: the Epic Pizzeria pizzas (src/content/pizzas/p6.ts) ———
   | 'forgeWaves' | 'gorgonGaze' | 'tripleBite' | 'mazeLost' | 'emberTrail' | 'sirenSong' | 'harpyGust' | 'goldenFleece' | 'whirlpool'
   // ——— the pizza plan's step 4, batch 3: the Epic milestones and Echo Slice (src/content/pizzas/p7.ts) ———
-  | 'fenrirHowl' | 'bridgeLane' | 'skaldSaga' | 'frostbite' | 'surtrSpread' | 'serpentCoil' | 'echo';
+  | 'fenrirHowl' | 'bridgeLane' | 'skaldSaga' | 'frostbite' | 'surtrSpread' | 'serpentCoil' | 'echo'
+  // ——— the pizza plan's step 5, batch 1: the first Legendaries, Act 1's (src/content/pizzas/p8.ts) ———
+  | 'nonnaLadle' | 'silverTray' | 'firstBake';
 
 export interface PizzaType {
   id: string;
@@ -127,7 +129,9 @@ export interface PizzaType {
   route: PizzaRoute;
   /** Its tier, by how strong its perk is (docs/pizza-plan.md): its frame, how often it's dealt and its prices. */
   rarity: PizzaRarity;
-  /** A legendary's act: a Chef's Special legendary only turns up in that act's stages. */
+  /** A legendary's act (src/game/legendary.ts): a Chef's Special legendary only turns up in that act's stages, a
+   *  Pizzeria one is sold once that act's boss is beaten on Hot or hotter, a Rare Find one is found once the act is
+   *  cleared. */
   act?: number;
   /** Rare Finds' special finish: a coloured glow and sparkles on the table, and a see-through ghost. */
   finish?: { glow?: number; sparkle?: boolean; ghost?: boolean };
@@ -413,6 +417,10 @@ export const ENHANCED_PERK: Record<PizzaPerk, string | (() => string)> = {
   surtrSpread: 'Burning kills spread fire to 2 feet',
   serpentCoil: 'First diver each wave: coiled 4.5s',
   echo: 'Copies the perk beside it, enhanced',
+  // the pizza plan's step 5, batch 1: the first Legendaries
+  nonnaLadle: 'Twice a wave the ladle blocks a stomp ×5',
+  silverTray: 'Every 10s a tray bats all divers back up',
+  firstBake: 'Fresh each wave; once, 2 slices over max',
 };
 
 /** A perk's enhanced text. */

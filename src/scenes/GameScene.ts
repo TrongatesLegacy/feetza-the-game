@@ -50,6 +50,8 @@ import { freshKitShop, loadKitState } from '../game/kitState';
 import { cardCount, counterFreebie, counterPrice, dealBlock, freeLunchReady, goldenPrice, happyHour, rerollPrice, toppingPrice } from '../game/shopDeals';
 import { pickWindow, rouletteWindow, slotsPrizeWindow, type PickOption } from '../ui/pickWindows';
 import { abilityKey } from '../game/abilities';
+import { legendGate, legendHeat, legendHeatOk, legendSpecialOpen } from '../game/legendary';
+import { legendReveal } from '../ui/legendDeal';
 import { PERK_SFX, PizzaPerkKit, perkTextOf } from '../game/pizzaPerks';
 import { contentFx } from '../game/contentFx';
 import { evictLive, setLiveWarmBusy, styleLive, warmLive } from '../game/liveKit';
@@ -655,12 +657,17 @@ export class GameScene extends Phaser.Scene implements Arena {
     };
     // the living pizzas' named effects (Epic) call out with a quip; their sounds load now
     aliveHooks.quip = (x, y, text, color, size, angle) => this.fx.quip(x, y, text, color, size, angle);
+    // (the legendaries' signatures play over the table, lighter in a boss fight)
+    aliveHooks.layer = () => this.fxLayer;
+    aliveHooks.bossFight = () => !!(this.bossFoot?.alive || this.miniFoot?.alive);
     audio.preload(this, ALIVE_SFX);
     audio.preload(this, PERK_SFX);
     this.events.once('shutdown', () => {
       pizzaHooks.healed = undefined;
       pizzaHooks.revived = undefined;
       aliveHooks.quip = undefined;
+      aliveHooks.layer = undefined;
+      aliveHooks.bossFight = undefined;
     });
     finaleState.buyout = false;
 
@@ -671,6 +678,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.perkKit.lostLastWave = !!snap.lostLastWave;
       // (older saves don't have it: the waves already cleared stand in)
       this.perkKit.forgeWaves = snap.forgeWaves ?? this.run.wave;
+      this.perkKit.legends.baked = new Set(snap.legendBaked ?? []);
     }
     else {
       const slices = BASE_SLICES + (save.meta.pies ?? 0);
@@ -947,6 +955,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       slicesLost: r.slicesLost,
       lostLastWave: this.perkKit.lostLastWave,
       forgeWaves: this.perkKit.forgeWaves,
+      legendBaked: [...this.perkKit.legends.baked],
       pizzasBought: r.pizzasBought,
       eventCrusts: r.eventCrusts,
       bankedCrusts: r.bankedCrusts,
@@ -2375,15 +2384,15 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   /**
    * A Chef's Special for the counter (null when there's none left to deal): a locked special, by rarity. Epics turn up
-   * from the wave 5 boss shop, as epic toppings do; a legendary special only in its own act's stages, from wave 10.
+   * from the wave 5 boss shop, as epic toppings do; a legendary special only in its own act's stages, from the act's
+   * second stage on (src/game/legendary.ts).
    * When the roll lands on Common or Rare, now and then a locked Pizzeria pizza of that tier comes instead.
    */
   private rollSpecial(skip: string[]): PizzaType | null {
     const wave = this.run.wave;
-    // (the shop opens after `wave`: its stages are the next wave's)
-    const act = actOf(wave + 1);
     const locked = (route: PizzaType['route']) => PIZZAS.filter((p) => p.route === route && !save.unlockedPizzas.includes(p.id) && !skip.includes(p.id));
-    const specials = locked('special').filter((p) => rarityOpen(p.rarity, wave) && (p.rarity !== 'legendary' || p.act === act));
+    // (a Legendary only in its own act's stages, from the act's second stage on: src/game/legendary.ts)
+    const specials = locked('special').filter((p) => (p.rarity === 'legendary' ? legendSpecialOpen(p, wave) : rarityOpen(p.rarity, wave)));
     const pizzeria = locked('pizzeria').filter((p) => p.rarity === 'common' || p.rarity === 'rare');
     const tier = rollTier([...specials, ...pizzeria].map((p) => p.rarity));
     const fromPizzeria = pizzeria.filter((p) => p.rarity === tier);
@@ -2608,7 +2617,7 @@ export class GameScene extends Phaser.Scene implements Arena {
         enhancedPerk: p.enhancedLine,
         enhanced: p.enhanced && !p.dead,
         slices: p.slices,
-        max: p.maxSlices,
+        max: p.maxSlices - p.overSlices,
         fresh: p.fresh,
         maxFresh: p.maxFresh,
         freshOn: p.freshOn,
@@ -2754,7 +2763,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       frozen: p.perkFrozen,
       dead: p.dead,
       slices: p.slices,
-      max: p.maxSlices,
+      max: p.maxSlices - p.overSlices,
       pk: this.perkKit.pk(p),
       echo: p.type.perk === 'echo',
       img: pizzaPortraitURL(p.type.id),
@@ -2771,7 +2780,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       ability: this.ability,
       peel: { id: this.peelId, name: peelDef?.name ?? 'Classic Peel', img: peelImg },
       pizzas,
-      heat: { name: r.heatDef.name, autoDmg: r.heatDef.autoDmg, momentumFloor: r.heatDef.momentum.floor, tips: r.heatDef.tips, freshness: r.heatDef.freshness },
+      heat: { name: r.heatDef.name, autoDmg: r.heatDef.autoDmg, momentumFloor: r.heatDef.momentum.floor, tips: r.heatDef.tips, freshness: r.heatDef.freshness, legend: legendHeat(r.heat) },
       wave,
       inWave: this.waveActive,
       bossWave: isBossWave(wave),
@@ -3360,7 +3369,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       cost,
       coins: this.run.coins,
       canAdd: !full,
-      current: this.pizzas.map((p) => ({ id: p.type.id, name: p.type.name, perk: p.perkText, slices: p.slices, max: p.maxSlices, dead: p.dead, stale: p.stale, fresh: p.fresh, freshOn: p.freshOn })),
+      current: this.pizzas.map((p) => ({ id: p.type.id, name: p.type.name, perk: p.perkText, slices: p.slices, max: p.maxSlices - p.overSlices, dead: p.dead, stale: p.stale, fresh: p.fresh, freshOn: p.freshOn })),
       onChoose: commit,
     }));
   }
@@ -3522,6 +3531,8 @@ export class GameScene extends Phaser.Scene implements Arena {
   /** Award any milestones reached: each unlocks the pizza it names (or 50 crusts). */
   private checkMilestones(): void {
     for (const { m, pizza } of awardMilestones(this.run)) {
+      // a Legendary won: its full-screen reveal (between waves: the milestones are checked as a wave clears)
+      if (pizza?.rarity === 'legendary') legendReveal(pizza.id, `MILESTONE: ${m.name.toUpperCase()}`, 1600);
       if (pizza) ui.hud.toast(pizzaPortraitURL(pizza.id), `MILESTONE: ${m.name.toUpperCase()}`, `${pizza.name} unlocked for free!`);
       else ui.hud.toast(null, `MILESTONE: ${m.name.toUpperCase()}`, '+50 Golden Crusts');
       audio.sfx('sfx_levelup', { volume: 0.7 });
@@ -4106,6 +4117,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.tracker.emit('bossDown', { foot: f, mini, secs: this.nowT - this.heroT.boss, smacks: this.heroT.bossSmacks, slicesLost: this.waveSlicesLost, peelStunned: this.heroT.stunned, abilityUsed: this.heroT.abilityUsed });
     // boss peels (after Act 1) need the win on Hot or hotter
     if (PEEL_HEATS.has(this.run.heat) && !(save.bossesBeatenHot ??= []).includes(f.type.id)) save.bossesBeatenHot.push(f.type.id);
+    // Silver Service's feat: the Head Waiter beaten on Hot or hotter without a slice lost in his wave
+    if (f.type.id === 'headwaiter' && legendHeatOk(this.run.heat) && this.waveSlicesLost === 0) save.pizzaGoals.waiterHot = 1;
     const firstKill = !save.bossesBeaten.includes(f.type.id);
     if (firstKill) {
       save.bossesBeaten.push(f.type.id);
@@ -4182,6 +4195,11 @@ export class GameScene extends Phaser.Scene implements Arena {
     };
     // Pizza Fantasma's ghost pass, Oyster Rockefeller's shell
     if (this.perkKit.preStomp(f, p)) {
+      blocked(false);
+      return;
+    }
+    // Nonna's Masterpiece: her ladle swats the first stomp of the wave on any pizza (piercing ones too)
+    if (this.perkKit.ladleStomp(f, p)) {
       blocked(false);
       return;
     }
@@ -5753,7 +5771,7 @@ export class GameScene extends Phaser.Scene implements Arena {
           banked,
           secondChanceRun: r.secondChances > 0,
           time: fmtTime(secs),
-          affordable: PIZZAS.filter((p) => p.route === 'pizzeria' && !save.unlockedPizzas.includes(p.id) && p.cost <= save.crusts)
+          affordable: PIZZAS.filter((p) => p.route === 'pizzeria' && !save.unlockedPizzas.includes(p.id) && p.cost <= save.crusts && legendGate(p).open)
             .sort((a, b) => a.cost - b.cost)
             .map((p) => p.id),
           next: nextLockedPizza(PIZZAS),

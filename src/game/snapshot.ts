@@ -57,6 +57,8 @@ export interface RunSnapshot {
   lostLastWave?: boolean;
   /** Colossus Forge: waves survived this run (its damage grows with them). */
   forgeWaves?: number;
+  /** The First Bake: the pizza types that have had their slice over the top this run. */
+  legendBaked?: string[];
   pizzasBought: number;
   eventCrusts: number;
   /** Crusts already paid into the bank this run. */

@@ -6,12 +6,15 @@
 // border), and a small label. The colours come from TIER_LOOK (src/data/pizzaRarity.ts); the portraits' plates use
 // the same ones (src/art/pizzaArt.ts). The motion is in style.css (.pzr-*), and stops for reduced motion.
 import { TIER_LOOK, type PizzaRarity } from '../data/pizzaRarity';
+import { LEGEND_LOOK } from '../game/legendary';
 import { h } from './ui';
 
-/** The class and the colour variables a framed card needs. */
-export function tierAttrs(r: PizzaRarity): { cls: string; style: string } {
+/** The class and the colour variables a framed card needs (a Legendary's own colours too, given its id: its pie glows
+ *  in them and its border's light turns through them). */
+export function tierAttrs(r: PizzaRarity, id?: string): { cls: string; style: string } {
   const t = TIER_LOOK[r];
-  return { cls: `pzr pzr-${r}`, style: `--ta:${t.a};--tb:${t.b};--te:${t.edge};--tg:${t.gem};--tl:${t.label};--ti:${t.ink}` };
+  const l = r === 'legendary' && id ? LEGEND_LOOK[id] : undefined;
+  return { cls: `pzr pzr-${r}`, style: `--ta:${t.a};--tb:${t.b};--te:${t.edge};--tg:${t.gem};--tl:${t.label};--ti:${t.ink}${l ? `;--la:${l.css};--lb:${l.css2}` : ''}` };
 }
 
 /** The frame (first child of the card): its ring and moving light, and its tier's label. `label` false leaves the

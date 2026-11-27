@@ -12,6 +12,8 @@ import type { RunSummary, ShopActions, ShopPizza, ShopState, SlotSymbol, YourTop
 import { INTROS, freshBar, freshForever, pizzaThumb } from './bits';
 import { tierAttrs, tierFrame, tierGem, tierLabel } from './pizzaTier';
 import { boughtCard, dealCard } from './pizzaDeal';
+import { legendReveal } from './legendDeal';
+import { legendGate } from '../game/legendary';
 import { pickByTier, type PizzaRarity } from '../data/pizzaRarity';
 import { statsBody } from './statsTab';
 import type { BuildView } from '../game/buildStats';
@@ -829,7 +831,7 @@ class UI {
       h(
         'div',
         { class: 'menu-buttons' },
-        btn(`PIZZERIA${save.pizzasNew.length || save.toppingsNew.length || PIZZAS.some((p) => p.route === 'pizzeria' && !save.unlockedPizzas.includes(p.id) && p.cost <= save.crusts) ? ' <span class="badge">NEW</span>' : ''}`, 'yellow', h_.pizzeria),
+        btn(`PIZZERIA${save.pizzasNew.length || save.toppingsNew.length || PIZZAS.some((p) => p.route === 'pizzeria' && !save.unlockedPizzas.includes(p.id) && p.cost <= save.crusts && legendGate(p).open) ? ' <span class="badge">NEW</span>' : ''}`, 'yellow', h_.pizzeria),
         btn(`PIZZAPEDIA <small style="font-size:.7em">${seen}/${FEET.length}</small>`, 'green', h_.pedia),
         btn(`PEELS${save.peelsNew.length ? ' <span class="badge">NEW</span>' : ''}`, 'yellow', h_.locker),
         btn('SETTINGS', 'cream', h_.settings),
@@ -1028,7 +1030,8 @@ class UI {
       rare = null;
       const forced = forcedRare && PIZZA_BY_ID[forcedRare] && !save.unlockedPizzas.includes(forcedRare) ? forcedRare : null;
       forcedRare = null;
-      const pool = PIZZAS.filter((p) => p.route === 'rare' && !save.unlockedPizzas.includes(p.id));
+      // (a Legendary Rare Find only once its act is cleared: src/game/legendary.ts)
+      const pool = PIZZAS.filter((p) => p.route === 'rare' && !save.unlockedPizzas.includes(p.id) && legendGate(p).open);
       // (by rarity, as the counter deals: the tier first, then a pizza of it)
       const id = forced ?? (pool.length && Math.random() < RARE_FIND_CHANCE ? pickByTier(pool, (p) => p.rarity)?.id ?? null : null);
       if (!id || !cur.length) return;
@@ -1054,7 +1057,7 @@ class UI {
               renderLineup();
             });
             buy.disabled = r.bought || save.crusts < p.cost;
-            const tier = tierAttrs(p.rarity);
+            const tier = tierAttrs(p.rarity, p.id);
             return h(
               'div',
               { class: `lu rare ${tier.cls}${r.bought ? ' bought' : ''}`, style: tier.style },
@@ -1065,7 +1068,7 @@ class UI {
             );
           }
           const p = PIZZA_BY_ID[id];
-          const tier = tierAttrs(p.rarity);
+          const tier = tierAttrs(p.rarity, p.id);
           return h('div', { class: `lu ${tier.cls}`, style: tier.style }, ...tierFrame(p.rarity, false), h('img', { src: pizzaPortraitURL(id), alt: p.name }), h('div', {}, tierLabel(p.rarity), h('b', {}, p.name), h('span', {}, p.perkText)));
         }),
       );
@@ -1220,7 +1223,7 @@ class UI {
               (rebake as HTMLButtonElement).disabled = true;
             }
             const actions = p.dead ? h('div', { class: 'pacts' }, rebake) : h('div', { class: 'pacts' }, heal, reheat);
-            const tier = tierAttrs(p.rarity);
+            const tier = tierAttrs(p.rarity, p.id);
             return h(
               'div',
               { class: `ptile ${tier.cls}${p.stale ? ' stale' : ''}${p.dead ? ' dead' : ''}${p.enhanced ? ' enhanced' : ''}`, style: tier.style },
@@ -1245,7 +1248,7 @@ class UI {
         b.disabled = st.coins < o.cost;
         const pic = h('div', { class: 'offer-pic' }, h('img', { src: pizzaPortraitURL(o.id), alt: '' }), o.kind === 'enhanced' ? h('span', { class: 'star-badge' }, '★') : null);
         // every offer in its tier's frame
-        const tier = tierAttrs(o.rarity);
+        const tier = tierAttrs(o.rarity, o.id);
         // its tabs in one row along the frame's top: its kind on the left, its tier in the middle, NEW PIZZA on the right;
         // the row keeps them apart however narrow the card (the tier moves over rather than running into a long kind)
         const card = (cls: string, kind: HTMLElement | null, isNew: HTMLElement | null, ...kids: (HTMLElement | null)[]) =>
@@ -1552,9 +1555,13 @@ class UI {
       confirm.innerHTML = picked === -1 ? `ADD · ${fmt(o.cost)}` : `SWAP · ${fmt(o.cost)}`;
     };
     for (const { p, i } of order) {
+      // (in its tier's frame, as everywhere a pizza card shows)
+      const r = PIZZA_BY_ID[p.id]?.rarity ?? 'common';
+      const tier = tierAttrs(r, p.id);
       const t = h(
         'button',
-        { class: `swaptile${p.stale ? ' stale' : ''}${p.dead ? ' dead' : ''}`, type: 'button', 'data-i': i },
+        { class: `swaptile ${tier.cls}${p.stale ? ' stale' : ''}${p.dead ? ' dead' : ''}`, style: tier.style, type: 'button', 'data-i': i },
+        ...tierFrame(r, false),
         h('span', { class: 'flag out' }, 'SWAPPING OUT'),
         p.stale ? h('span', { class: 'flag' }, 'STALE') : p.dead ? h('span', { class: 'flag dead' }, 'EATEN') : null,
         pizzaThumb(p.id, p.slices, p.max, 200, p.stale, p.dead),
@@ -1583,7 +1590,8 @@ class UI {
       { class: 'swap2' },
       h(
         'div',
-        { class: 'incoming' },
+        { class: `incoming ${tierAttrs(PIZZA_BY_ID[o.id]?.rarity ?? 'common', o.id).cls}`, style: tierAttrs(PIZZA_BY_ID[o.id]?.rarity ?? 'common', o.id).style },
+        ...tierFrame(PIZZA_BY_ID[o.id]?.rarity ?? 'common', false),
         h('img', { src: pizzaPortraitURL(o.id), alt: '' }),
         h('div', { class: 'in-text' }, h('span', { class: 'tag' }, `COMING IN · ${fmt(o.cost)} TIPS`), h('b', {}, o.name), h('span', {}, `${o.perk} · arrives whole`)),
         h('div', { class: 'in-ask' }, h('b', {}, 'WHERE DOES IT GO?'), h('span', {}, o.canAdd ? 'Add a plate or swap one out' : 'Table full: pick a pizza to swap out')),
@@ -1974,8 +1982,8 @@ class UI {
   // ——— Pizzeria (meta shop): upgrades, every pizza and how it unlocks, and the toppings collection ———
   pizzeria(onClose: () => void, openOn: { tab?: 'upgrades' | 'pizzas' | 'toppings'; pizza?: string } = {}): HTMLElement {
     type Tab = 'upgrades' | 'pizzas' | 'toppings';
-    // catch up on milestones met before they named their pizza
-    awardMilestones(null);
+    // catch up on milestones met before they named their pizza (a Legendary won gets its reveal)
+    for (const w of awardMilestones(null)) if (w.pizza?.rarity === 'legendary') legendReveal(w.pizza.id, `MILESTONE: ${w.m.name.toUpperCase()}`);
     // NEW badges stay for this visit; looking at a tab clears them for next time
     const newPizzas = new Set(save.pizzasNew);
     const newTops = new Set(save.toppingsNew);
@@ -2052,7 +2060,7 @@ class UI {
     const pizzasTab = (): HTMLElement[] => {
       const has = (id: string) => save.unlockedPizzas.includes(id);
       const tile = (p: PizzaType, cls: string, ...rest: (HTMLElement | null)[]) => {
-        const tier = tierAttrs(p.rarity);
+        const tier = tierAttrs(p.rarity, p.id);
         return h('div', { class: `tile pz-tile ${tier.cls} ${cls}`, style: tier.style }, ...tierFrame(p.rarity), h('img', { src: pizzaPortraitURL(p.id), alt: p.name, loading: 'lazy' }), h('div', { class: 'nm' }, p.name), h('div', { class: 'ds' }, p.perkText), ...rest, newPizzas.has(p.id) ? h('span', { class: 'tag new' }, 'NEW') : null);
       };
       const section = (title: string, note: string, tiles: HTMLElement[]) => (tiles.length ? [h('div', { class: 'pz-sec' }, h('b', {}, title), h('span', {}, note)), h('div', { class: 'grid' }, ...tiles)] : []);
@@ -2061,18 +2069,21 @@ class UI {
       const shop = locked('pizzeria')
         .sort((a, b) => a.cost - b.cost)
         .map((p) => {
-          const b = btn(`${crustIco} ${fmt(p.cost)}`, 'green small', () => {
-            if (save.crusts < p.cost) return;
+          // a Legendary is sold once its act's boss is beaten on Hot or hotter: locked with the reason until then
+          const gate = legendGate(p);
+          const b = btn(gate.open ? `${crustIco} ${fmt(p.cost)}` : `🔒 ${crustIco} ${fmt(p.cost)}`, gate.open ? 'green small' : 'small', () => {
+            if (save.crusts < p.cost || !gate.open) return;
             save.crusts -= p.cost;
             unlockPizza(p.id);
             newPizzas.add(p.id);
             save.pizzasNew = save.pizzasNew.filter((x) => x !== p.id);
             persist();
-            audio.sfx('sfx_levelup');
+            if (p.rarity === 'legendary') legendReveal(p.id, 'YOURS!');
+            else audio.sfx('sfx_levelup');
             render();
           });
-          b.disabled = save.crusts < p.cost;
-          const t = tile(p, `unowned${openOn.pizza === p.id ? ' selected' : ''}`, b);
+          b.disabled = save.crusts < p.cost || !gate.open;
+          const t = tile(p, `unowned${openOn.pizza === p.id ? ' selected' : ''}${gate.open ? '' : ' gated'}`, gate.open ? null : h('div', { class: 'route gate' }, `🔒 ${gate.why}`), b);
           t.dataset.pz = p.id;
           return t;
         });
@@ -2089,7 +2100,7 @@ class UI {
       const rare = locked('rare').map((p) => {
         // a silhouette until it's turned up once
         const seen = save.rareSeen.includes(p.id);
-        const tier = tierAttrs(p.rarity);
+        const tier = tierAttrs(p.rarity, p.id);
         return h(
           'div',
           { class: `tile pz-tile unowned rare${seen ? ` ${tier.cls}` : ' unseen'}`, style: seen ? tier.style : undefined },
@@ -2301,7 +2312,8 @@ class UI {
       const owned = save.unlockedPizzas.includes(id);
       const ms = MILESTONE_BY_PIZZA[id];
       // how a locked pizza unlocks, by its route
-      const how = p.route === 'special' ? '🔒 Chef’s Special in the shop' : p.route === 'milestone' ? `🔒 Milestone: ${ms?.name ?? 'a milestone'}` : p.route === 'rare' ? '🔒 Rare Find on the new-run screen' : `🔒 ${p.cost} Golden Crusts`;
+      const gate = legendGate(p);
+      const how = p.route === 'special' ? (p.rarity === 'legendary' ? `🔒 ${gate.why}` : '🔒 Chef’s Special in the shop') : p.route === 'milestone' ? `🔒 Milestone: ${ms?.name ?? 'a milestone'}` : p.route === 'rare' ? (gate.open ? '🔒 Rare Find on the new-run screen' : `🔒 Rare Find, once you ${gate.why.toLowerCase()}`) : gate.open ? `🔒 ${p.cost} Golden Crusts` : `🔒 ${fmt(p.cost)} Golden Crusts · ${gate.why}`;
       if (hiddenRare(p)) {
         detail.replaceChildren(h('img', { src: pizzaPortraitURL(id), alt: '', style: 'filter:brightness(0) opacity(0.35)' }), h('div', {}, h('div', { class: 'dt-head' }, h('h3', {}, '???'), h('span', { class: 'chip' }, how)), h('p', {}, 'A Rare Find. It turns up only by luck, in a lineup on the new-run screen.')));
         return;
@@ -2313,7 +2325,7 @@ class UI {
             this.pizzeria(() => this.pedia(onClose), { tab: 'pizzas', pizza: id });
           })
         : null;
-      const tier = tierAttrs(p.rarity);
+      const tier = tierAttrs(p.rarity, p.id);
       detail.replaceChildren(h('img', { src: pizzaPortraitURL(id), alt: '' }), h('div', {}, h('div', { class: 'dt-head' }, h('h3', {}, p.name), h('span', { class: `${tier.cls} pzr-inline`, style: tier.style }, tierLabel(p.rarity)), h('span', { class: 'chip' }, owned ? '✅ Unlocked' : how), go ? h('span', { class: 'dt-act' }, go) : null), h('p', {}, `Perk: ${p.perkText}`)));
     };
     const EVENTS: [string, string, string, string][] = [
@@ -2381,7 +2393,7 @@ class UI {
           const hide = hiddenRare(p);
           // locked pizzas are dimmed, with how they unlock under the name
           const route = owned ? null : p.route === 'pizzeria' ? `${fmt(p.cost)} crusts` : p.route === 'milestone' ? 'Milestone' : p.route === 'special' ? 'Chef’s Special' : 'Rare Find';
-          const tier = tierAttrs(p.rarity);
+          const tier = tierAttrs(p.rarity, p.id);
           const t = h('div', { class: `tile pz-tile${hide ? ' locked' : ` ${tier.cls}`}${hide || owned ? '' : ' unowned'}`, style: hide ? undefined : tier.style, tabindex: 0 }, ...(hide ? [] : tierFrame(p.rarity)), h('img', { src: pizzaPortraitURL(p.id), alt: '', loading: 'lazy' }), h('div', { class: 'nm' }, hide ? '???' : p.name), route ? h('div', { class: 'ds' }, route) : null, owned ? null : h('span', { class: 'tag' }, '🔒'));
           t.addEventListener('click', () => {
             audio.sfx('sfx_click');

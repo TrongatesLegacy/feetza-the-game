@@ -754,7 +754,6 @@ export function milestoneProgress(id: string): [number, number] {
   const act1 = (h: HeatId): [number, number] => (save.act1Cleared.includes(h) ? [30, 30] : [Math.min(29, save.best[h]?.wave ?? 0), 30]);
   switch (id) {
     case 'firstWave3': return [Math.min(3, wave), 3];
-    case 'firstBoss': return [Math.min(1, nb), 1];
     case 'feet150': return [Math.min(150, save.totalFeet), 150];
     case 'wave10': return [Math.min(10, wave), 10];
     case 'bosses3': return [Math.min(3, nb), 3];
@@ -805,6 +804,8 @@ export function milestoneProgress(id: string): [number, number] {
     case 'hotBosses6': return [Math.min(6, (save.bossesBeatenHot ?? []).length), 6];
     case 'combo200': return [Math.min(200, g.bestCombo ?? 0), 200];
     case 'feet8000': return [Math.min(8000, save.totalFeet), 8000];
+    // the Legendary milestones (docs/pizza-plan.md, section 12): feats recorded as they happen (save.pizzaGoals)
+    case 'waiterHot': return [g.waiterHot ? 1 : 0, 1];
     default: return [0, 1];
   }
 }

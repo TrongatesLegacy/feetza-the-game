@@ -601,6 +601,20 @@ const S: Record<string, Spec> = {
     weight: 1.1,
     dim: 0.1,
   },
+  // Nonna's Wooden Ladle: her ladle comes down on every foot like a judge's gavel, ragù and flour flying off them
+  'pizza:nonnasmasterpiece': {
+    steps: [{ k: 'tint', color: 0x3a1a08, alpha: 0.1, ms: 600 }, { k: 'strike', tex: 'pk_ladle', n: 4, size: 0.9, from: 'left', spin: 0, dust: 0xfff0d8, stagger: 70 }, { k: 'rings', color: 0xff9a4a, n: 2, icons: 'pk_ragu', nIcons: 8, iconTint: [0xffffff], t: 170 }],
+    sfx: [['sfx_whoosh', 0, 0.9, 0.8], ['sfx_nonna_spoon', 80, 0.9], ['sfx_smack_wood_heavy', 170], ['sfx_smack_sauce_heavy', 210, 0.6]],
+    weight: 1.1,
+    emblem: 'pk_ladle',
+  },
+  // Fresh from the Oven: the wood oven rises at the corner and breathes fire over the table, embers raining on the feet
+  'pizza:firstbake': {
+    steps: [{ k: 'show', tex: 'pk_oven', size: 300, from: 'below', glow: 0xffc23a, ms: 800 }, { k: 'rain', tex: ['pza_ember', 'flame'], n: 14, size: 70, trail: 0xff9a2a, splash: 0xffc23a, t: 120 }, { k: 'rings', color: 0xffc23a, n: 2, icons: 'p_steam', nIcons: 6, t: 220 }],
+    sfx: [['sfx_legendbake', 0, 0.9], ['sfx_fire', 160, 0.7], ['sfx_smack_fire_heavy', 220, 0.7]],
+    dim: 0.1,
+    emblem: 'pk_oven',
+  },
   // Eruption: the pizza erupts like a volcano, lava falling on every foot
   'pizza:volcano': {
     steps: [{ k: 'show', tex: 'pizza', size: 360, from: 'below', glow: RED, wiggle: true }, { k: 'rain', tex: ['p_fireball', 'flame'], n: 14, size: 90, trail: ORANGE, splash: ORANGE, t: 80 }],

@@ -87,14 +87,17 @@ export const MILESTONES: Milestone[] = [
   //   Bridge, as far as the Bifröst; Boss Slayer Supreme's 'Beat all 24 original bosses' → Skald's Saga, 32 different
   //   bosses; Okonomiyaki's 'Beat 6 different bosses' → Frostbite, on Hot or hotter; Combo King's 'Reach a 150 combo'
   //   → Surtr's Ember Crust, a 200 combo; Thousand-Foot Feast's 'Defeat 5,000 feet' → Serpent's Coil, 8,000 feet.
-  // The seventh, Birthday Cake Pizza's 'Beat your first boss' ('firstBoss'), waits for step 5's Silver Service (beat the
-  // Head Waiter, the first boss you meet, on Hot without losing a slice). The old pizzas keep only their new routes.
+  // The seventh, Birthday Cake Pizza's 'Beat your first boss' ('firstBoss'), went to step 5's Silver Service as its own
+  // feat under a new id (beat the Head Waiter, the first boss you meet, on Hot without losing a slice in its wave), so
+  // nobody wins a Legendary for a goal met long ago. The old pizzas keep only their new routes.
   { id: 'hot20', name: 'Reach wave 20 on Hot or hotter', pizza: 'fenrirshowl' },
   { id: 'bifrost76', name: 'Reach the Bifröst (wave 76)', pizza: 'rainbowbridge' },
   { id: 'bosses32', name: 'Beat 32 different bosses', pizza: 'skaldssaga' },
   { id: 'hotBosses6', name: 'Beat 6 different bosses on Hot or hotter', pizza: 'frostbite' },
   { id: 'combo200', name: 'Reach a 200 combo', pizza: 'surtrsember' },
   { id: 'feet8000', name: 'Defeat 8,000 feet', pizza: 'serpentscoil' },
+  // the pizza plan's Legendary milestones (docs/pizza-plan.md, section 12): a feat in the pizza's act, on Hot or hotter
+  { id: 'waiterHot', name: 'Beat the Head Waiter on Hot or hotter without losing a slice', pizza: 'silverservice' },
 ];
 
 export const MILESTONE_BY_PIZZA: Record<string, Milestone> = Object.fromEntries(MILESTONES.filter((m) => m.pizza).map((m) => [m.pizza!, m]));

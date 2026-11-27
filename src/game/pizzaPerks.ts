@@ -25,14 +25,21 @@ import { TILT } from '../art/pizzaArt';
 import { toppingDrawer } from '../art/registry';
 import { makeCanvas, rng } from '../art/util';
 import { crand } from '../systems/cosmeticRandom';
+import { LEGEND_SFX, LegendKit } from './pizzaLegends';
 
 /** Perks Arcobaleno can't borrow: set up when a pizza is placed, tied to its own type, or another borrower. */
 const BORROW_SKIP = new Set<PizzaPerk>([
   'rainbow', 'mystery', 'rotate', 'slices', 'bossRegrow', 'neverStale', 'staleHeal', 'riseOnce', 'refund',
   'bigStart', 'erupt', 'surviveOnce', 'firstBack', 'crustWaves', 'crustBonus', 'crustRun', 'echo',
+  // the Legendaries' once-a-run perks (The First Bake's slice over the top)
+  'firstBake',
 ]);
+/** Perks Arcobaleno never borrows besides those: the Legendaries' (they're kept scarce by their price and gates). */
+const LEGEND_PERKS = new Set<PizzaPerk>(PIZZAS.filter((p) => p.rarity === 'legendary').map((p) => p.perk));
 /** Perks Echo Slice won't copy: the same as Arcobaleno's (set up when a pizza is placed, tied to its own type, once a
- *  run, the crust earners, the other borrowers) and itself. It counts as a second copy of anything else, doing what two
+ *  run, the crust earners, the other borrowers) and itself. It does copy a Legendary's once-a-wave or timed perk
+ *  (Nonna's ladle: one more swat a wave; Silver Service: the tray twice as often), never a once-a-run one (The First
+ *  Bake). It counts as a second copy of anything else, doing what two
  *  of that pizza would. */
 export const ECHO_SKIP = BORROW_SKIP;
 /** Every perk a pizza has, for Echo Slice's flag (it keeps its copy as an index: 1 + its place here; 0 nothing). */
@@ -48,7 +55,7 @@ export function echoPerk(p: Pizza): PizzaPerk | null {
   return ALL_PERKS[Number(p.flags.echo ?? 0) - 1] ?? null;
 }
 /** Arcobaleno's pool: every other pizza's perk. */
-export const BORROW_POOL: PizzaPerk[] = [...new Set(PIZZAS.map((p) => p.perk))].filter((k) => !BORROW_SKIP.has(k));
+export const BORROW_POOL: PizzaPerk[] = [...new Set(PIZZAS.map((p) => p.perk))].filter((k) => !BORROW_SKIP.has(k) && !LEGEND_PERKS.has(k));
 /** Mystery Meat's big perks: strong on any table. */
 export const MYSTERY_POOL: PizzaPerk[] = ['damage', 'coins', 'crit', 'critDmg', 'double', 'execute', 'burnHits', 'explode', 'splash', 'radius', 'regenAll', 'meteor', 'timeStop', 'fireLane', 'orbitRing', 'ghostPass'];
 
@@ -73,6 +80,8 @@ export const PERK_SFX = [
   // constrict and hiss, and the Mirror Peel's echo
   'sfx_fenrir_howl', 'sfx_fenrir_snap', 'sfx_sungap', 'sfx_skaldsong', 'sfx_thrym_crack', 'sfx_thrym_shatter', 'sfx_surtr_fireball',
   'sfx_surtr_ignite', 'sfx_jormungandr_constrict', 'sfx_jormungandr_hiss', 'sfx_mirrorpeel_echo',
+  // the Legendaries (step 5): src/game/pizzaLegends.ts
+  ...LEGEND_SFX,
 ];
 
 /** Stages played at night (Night Shift). */
@@ -219,6 +228,8 @@ export class PizzaPerkKit {
   private coiled = new Map<Foot, { until: number; img: Phaser.GameObjects.Image; tintAt: number; s: number }>();
   /** When a quip of each kind last played (they'd stack up over a busy wave). */
   private quipAt: Record<string, number> = {};
+  /** The Legendaries' perks (src/game/pizzaLegends.ts). */
+  readonly legends: LegendKit;
 
   constructor(arena: Arena, host: PerkHost) {
     this.a = arena;
@@ -249,6 +260,20 @@ export class PizzaPerkKit {
       ['pk_rune2', () => drawRuneStone(2)],
     ];
     for (const [k, draw] of tex) if (!this.sc.textures.exists(k)) this.sc.textures.addCanvas(k, draw());
+    this.legends = new LegendKit(arena, {
+      run: () => this.run,
+      c: (perk) => this.c(perk),
+      granting: (perk) => this.with(perk),
+      bossFight: () => this.bossOn(),
+      dealDamage: (f, n, source, knock, tag) => host.dealDamage(f, n, source, knock, tag),
+      recompute: () => host.recompute(),
+    });
+  }
+
+  /** Nonna's ladle swats the first stomp(s) of a wave (src/game/pizzaLegends.ts): true when this one's blocked. Checked
+   *  before every other defence, piercing stomps too. */
+  ladleStomp(f: Foot, p: Pizza): boolean {
+    return this.legends.ladle(f, p);
   }
 
   // ——— strength ———
@@ -326,6 +351,7 @@ export class PizzaPerkKit {
     this.steamT = 0;
     this.sirenT = 0;
     this.forgeWaves = 0;
+    this.legends.runStart();
   }
 
   /** A saved run comes back: did it lose a pizza already? */
@@ -1029,6 +1055,7 @@ export class PizzaPerkKit {
     if (this.c('actStart') > 0 && this.actStart()) this.sc.time.delayedCall(1400, () => a.quip(960, 330, 'VICTORY LAP!', '#ffd23f', 44));
     // Pirate's Treasure: a chest turns up on the 4th wave of every stage
     if (this.c('treasure') > 0 && waveInStage(n) === 4) this.sc.time.delayedCall(4500, () => this.spawnChest());
+    this.legends.waveStart(n);
   }
 
   /** The wave is clear. earned: tips this wave so far. */
@@ -1038,6 +1065,7 @@ export class PizzaPerkKit {
     this.dropRings();
     // the splats, the soot, the ink and the sand wall go with the wave; the ghosts wait out the shop unseen
     this.clearEpics(false);
+    this.legends.waveClear(n);
     const g = save.pizzaGoals;
     g.perfectStreak = perfect ? (g.perfectStreak ?? 0) + 1 : 0;
     g.perfectBest = Math.max(g.perfectBest ?? 0, g.perfectStreak);
@@ -1216,6 +1244,7 @@ export class PizzaPerkKit {
     this.ghostTick();
     this.ringsTick(dt);
     this.nonnaCheck();
+    this.legends.update(dt);
     if (this.chest) this.chest.img.y += Math.sin(a.now() * 3) * 0.3;
   }
 
@@ -2756,6 +2785,7 @@ export class PizzaPerkKit {
     this.dropRings();
     this.chest = null;
     this.clearEpics(true);
+    this.legends.clear();
   }
 
   private dropRings(): void {
