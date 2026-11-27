@@ -6772,3 +6772,13 @@ body.still-peels .peel-big.shiny::after {
   from { opacity: 0.8; filter: brightness(0.92); }
   to { opacity: 1; filter: brightness(1.12); }
 }
+
+/* the shop fits the screen: with the tier frames and three-line descriptions it ran ~3.5em taller than the 16:9 screen
+   (the table's tiles over the footer), so its spacing is tighter, the topping icons and table pictures a little smaller */
+.shop2 { gap: 0.7em; }
+.shop-left { gap: 0.8em; min-height: 0; }
+.shop-left > .shop-sec { gap: 0.5em; }
+.shop2 .card { padding: 0.7em 0.9em 0.8em; gap: 0.25em; }
+.shop2 .card .icon { font-size: 2.3em; }
+.ptile { gap: 0.15em; }
+.ptile .pt-pic .pthumb { width: 6.4em; }
