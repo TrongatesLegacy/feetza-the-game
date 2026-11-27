@@ -2,7 +2,7 @@
 
 Goal: four rarity tiers, with **60 Common, 50 Rare, 40 Epic and 30 Legendary** pizzas (180 in all, 67 of them new), and the four ways to unlock spread evenly across every tier.
 
-Status: **approved by Tron (2026-11-27); step 1 (the foundation) built 2026-11-27, see section 6.** Decisions: no limit on legendaries at the table; Pizzeria and milestone legendaries gated on beating that act's boss on Hot or hotter; counter odds Common 60 / Rare 28 / Epic 10 / Legendary 2. Perks, names and numbers are proposals; the balance sim sets the final numbers. The act each legendary belongs to gets checked against `src/data/stages.ts` when it's built.
+Status: **approved by Tron (2026-11-27); step 1 (the foundation) built 2026-11-27, see section 6; step 2 (the table pizzas come alive) built 2026-11-27, see section 7.** Decisions: no limit on legendaries at the table; Pizzeria and milestone legendaries gated on beating that act's boss on Hot or hotter; counter odds Common 60 / Rare 28 / Epic 10 / Legendary 2. Perks, names and numbers are proposals; the balance sim sets the final numbers. The act each legendary belongs to gets checked against `src/data/stages.ts` when it's built.
 
 ---
 
@@ -227,7 +227,7 @@ The act mapping gets checked against `src/data/stages.ts` when each is built, an
 ## 4. Build order
 
 1. **Foundation (done, 2026-11-27; see section 6):** tiers and frames everywhere, re-pricing, the counter's and new-run screen's rarity odds, the second route for Pizzeria pizzas, and the route moves above (with new goals for the moved milestones).
-2. **The table pizzas come alive:** bubbling, steam, sizzle and stomp reactions on the table, reusing the pizza peels' motion code. Legendary auras build on this.
+2. **The table pizzas come alive (done, 2026-11-27; see section 7):** bubbling, steam, sizzle and stomp reactions on the table, reusing the pizza peels' motion code. Legendary auras build on this.
 3. **New Commons and Rares (12):** quick.
 4. **New Epics (25):** in batches of about 8.
 5. **Legendaries (30):** in batches of 3–4, each with its mechanic, sounds, aura, peel, ability and review.
@@ -288,6 +288,37 @@ Players who own a pizza keep it whatever its route (the save only lists what's u
 **Rare Find cards** (the new-run lineup, the Pizzeria) are now a neutral gold highlight, not purple, so they don't read as Epic; a Rare Find's tier shows by its frame like any pizza. A Rare Find that was seen on the counter as a Chef's Special before its move counts as seen.
 
 **Not done here:** the five Commons that became Rare Finds don't get a Rare Find's glow `finish` (that's left to step 2's tier visuals on the table). There are two new intro cards, "Pizza rarity" (the first time the counter deals a Rare or better) and "Rebake" (the first shop with a dead pizza).
+
+## 7. Step 2, as built (2026-11-27)
+
+The pizzas on the table in play (and on the main menu) now live, by tier, from one shared system: `src/game/pizzaAlive.ts`, driven by `Pizza` (`src/game/Pizza.ts`). It reads the pizza peels' painted layers and traits (`src/art/peelPizza.ts`: where the cheese bubbles, the oily pieces, the gold, the light map, the pieces that hop, the frost), so a pizza bubbles and glistens where its peel does. Everything is cosmetic: no gameplay reads it, its randomness is `crand()`, and the balance sim (which hides the scene) skips it.
+
+**What each tier gets** (`TIER_SET`; each keeps everything below it):
+
+| | At rest | Stomped | Its perk fires |
+|---|---|---|---|
+| **Common** | Cheese (or sauce) blisters swelling and popping, a calzone's vents bubbling; steam curling off its back half; its light map breathing (the oil and cheese shine); the fat on cured meats sizzling and spitting | Crumbs off the crust and a puff of steam (the squash is the pizza's own) | A small pop of its colour: a ring on the table and a few motes |
+| **Rare** | Plus a richer bake (the crust browned deeper at its edge, leopard-spotted, a broad sheen: `bakedTop`, drawn once per pizza) and a glossier light map; a soft light sweeping across it every 6–11 s | Plus its toppings hopping (the peel's lifted pieces, the pie drawn without them while they're up), the cheese stretching after them and snapping | Plus a ring of light round it, a soft flash under the plate, and a chime |
+| **Epic** | Plus its perk's own idle effect and a faint glow in its colour under the plate | Plus its element bursting out (a frost crack across the plate and ice shards, embers and flame licks, stardust, wisps, ink, leaves, coins…) with its sound | Plus its named effect (the burst, bigger) and a quip in its colour, at most every 4 s |
+| **Legendary** | Plus an animated aura: `AURAS[id]` (step 5), else the test aura (a gold glow kept to the plate's footprint, a ring of light turning on the table, short shafts of light rising behind the pie and ending below its freshness bar, motes circling and rising), kept calm so it doesn't flood the neighbours or the labels | Plus the aura flaring and `SIGNATURES[id].stomp` | Plus the aura flaring and `SIGNATURES[id].fire` |
+
+**Elements.** An Epic's idle effect and burst come from its perk's element: a small table for the perks that have their own (`PERK_ELEMENT`: Ragnarök Roast frost-and-fire, Dragon Fruit and Volcano fire, Meteorite cosmic, Moon Cheese moonlight, Tikka time, Fantasma ghost, Arcobaleno rainbow, Mystery Meat ink, The Golden Pie gold, Spinach & Feta life, Nonna's Secret hearts, Untouchable holy…), else one by the perk's name, else by the pizza (a hot pie fire, a cold one frost), else "power". Its colour is its Rare Find glow if it has one, else its element's. The elements: fire (embers rising, the crust glowing hot), frost (rime on the crust, breathing in and back, kept to the rim so the pie keeps its colour; a cold mist rolling off its front; flakes), frost-and-fire (both), cosmic and moon (stars circling), ghost (wisps circling), ink (ink swirls circling), life (leaves rising), heal (hearts rising), gold (glints circling), holy (motes rising), time (motes circling slowly, a tick of light round the crust each second), rainbow (motes cycling through the colours), power (sparks circling).
+
+**Where its perk fires** (`Pizza.perkFired()`; `{ quip: false }` where the moment has its own quip already): Quattro Formaggi's and Bufala's shield taking a stomp, the thick crust and Stromboli holding, Diavola setting its stomper alight, Garden Veggie regrowing, Spinach & Feta and the Calzone healing at the wave's end, Dragon Fruit's fire lane, Ragnarök's freeze, Meteorite's meteor, Tikka's time stop, Moon Cheese's double damage, Arcobaleno's new colour, Mystery Meat's reveal, Nonna's Secret, Untouchable, the Volcano's eruption, and the moments in `src/game/pizzaPerks.ts` that already quip (free reroll, feast, passing through, shell shut, garlic butter, the gods, tuna time, golden crust, burrata balm). Perks that are only a stat (+10% damage and the like) have no moment and don't fire.
+
+**Readable at every tier.** The system draws in three layers inside the pizza's container: under the plate (the glow, the aura), between the plate and the pie (rings on the table, things circling it, which pass behind the pie), and between the pie and its face (bubbles, glints, steam, hops, bursts). The face, slice lines, labels, freshness bar and shield dome draw over all of it, and nothing shows over the face (`onFace`): bubbles and glints aren't spawned there, anything flying over the pie fades out over it, and pieces by the face don't hop. Every shape is handled: a square pie bakes and frosts along its sides on its square platter, and its glow, rings and aura are rounded squares, a calzone bubbles and steams from its vents, a deep dish sits higher. Effects only appear on the slices still there.
+
+**Settings.** Reduced motion: about half the bubbling and steam, no hops, no light sweep, the glows still, slower circling. Peel animation off (the Low and Medium presets): the basics only (bubbles and steam, thinner; the bake and glow stay still; crumbs when stomped; the pop and ring when a perk fires). A stale pizza has gone cold (no steam or bubbling); a frozen perk stills its own effect.
+
+**The counter** (`src/ui/pizzaDeal.ts`, `.pzd-*` in `src/style.css`). Dealt (each offer new to the shop, one after another): a Rare's silver catches a bright sweep of cool light, with a soft chime; an Epic flips in face up, its frame flaring, a burst of sparkles in purple and gold and a rising run of notes; a Legendary calls `LEGENDARY_COUNTER.dealt` (step 5), else shows the Epic's in gold. Bought (the burst centred on its picture, so it stays off the cards round it): a Rare bursts into sparkles with a glint; an Epic bursts bigger with a short sting (standing in for the usual fanfare); a Legendary calls `LEGENDARY_COUNTER.bought`, else the Epic's in gold. Reduced motion keeps the light and sounds, without the flip or the bursts. Three new sounds, synthesized and CC0 (`scripts/pizza-sfx/tiers.py`): `sfx_tierchime`, `sfx_tierrise`, `sfx_tiersting`, levelled with the shop's other sounds (about −12 to −14 dB 50 ms RMS peak, like `sfx_upgrade`); the rest reuse the game's (`sfx_smack_tail_glint`, `sfx_fire`, `sfx_freeze`, `sfx_heal`, the magic smack takes…).
+
+**Cost.** With 5 Epic pizzas (forced) in a busy Hot wave at wave 24 (6 feet on the table): 60 fps throughout (mean frame 16.65 ms, p95 16.8, worst 16.8, none over 33 ms, the same with the system off); the system itself takes 0.13–0.17 ms a frame on average (p99 0.5 ms, worst 0.9 ms); with 5 Legendaries (the test aura) 0.19 ms (worst 0.7 ms), still 60 fps. Textures are drawn once and shared (the bubbles per colour, the hop pieces per pizza); each pizza keeps a pool of images (at most 90 at once) and three small canvases (its light map, its sweep, its frost) redrawn only when its slices change (the sweep while it runs).
+
+**Testing.** `?dev`, then `F.pizzaFx.tier('epic')` shows every table pizza at a tier (null: their own), `F.pizzaFx.stomp(i)` and `F.pizzaFx.fire(i)` play pizza i's reactions (all with no i), `F.pizzaFx.calm()` clears the feet and holds the wave for still shots, `F.pizzaFx.off()` turns the system off to time a frame without it.
+
+**After a buy** the counter's remaining offers grow taller: that's the counter's own roomy layout for fewer than three offers (step 1), not this step.
+
+**Left for later.** The cards' "pie gently animated" (Epic) and living border (Legendary) rows of section 1, and Pizzeria and milestone unlocks' moments, are not part of this step: the counter's are. The legendaries' own auras, signatures and counter moments plug into `AURAS`, `SIGNATURES` and `LEGENDARY_COUNTER` in step 5.
 
 ---
 

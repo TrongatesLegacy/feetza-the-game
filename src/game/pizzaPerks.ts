@@ -291,6 +291,7 @@ export class PizzaPerkKit {
     for (let y = table; y > 80; y -= 55) this.sc.time.delayedCall((table - y) * 0.25, () => a.fx.burn(x + (Math.random() - 0.5) * 60, y));
     a.quip(x, 260, 'DRAGON FIRE!', '#ff7a3a', 40);
     a.sfx('sfx_fire', { volume: 0.8 });
+    for (const p of this.with('fireLane')) p.perkFired({ quip: false });
     a.shake(160, 0.004);
     for (const o of a.allFeet()) {
       if (!o.hittable || Math.abs(o.cx - x) > 120) continue;
@@ -318,6 +319,7 @@ export class PizzaPerkKit {
           t.flags.duckKills = 0;
           this.h.addReroll();
           this.a.quip(t.x, t.surfaceY - 170, 'FREE REROLL!', '#ffb347', 36);
+          t.perkFired({ quip: false });
           audio.sfx('sfx_coin', { rate: 1.3 });
         }
       }
@@ -335,6 +337,7 @@ export class PizzaPerkKit {
         p.flags.feastKills = 0;
         for (const q of this.a.alivePizzas()) this.h.healPizza(q, 1);
         this.a.quip(p.x, p.surfaceY - 180, 'FEAST! +1 SLICE ALL ROUND', '#7dff9a', 34);
+        p.perkFired({ quip: false });
       }
     }
   }
@@ -385,6 +388,7 @@ export class PizzaPerkKit {
     const a = this.a;
     if (p.perk === 'ghostPass' && Math.random() < 0.25 * this.pk(p)) {
       a.quip(f.x, p.surfaceY - 140, 'PASSED RIGHT THROUGH!', '#bfe8ff', 38);
+      p.perkFired({ quip: false });
       a.sfx('sfx_whoosh', { volume: 0.7, rate: 0.6 });
       a.fx.ring(p.x, p.surfaceY - 20, 0xbfe8ff, 2, 0.45);
       this.sc.tweens.add({ targets: p.root, alpha: { from: 0.25, to: 1 }, duration: 600, ease: 'Sine.Out' });
@@ -395,6 +399,7 @@ export class PizzaPerkKit {
       const last = this.lastStomp.get(p) ?? -99;
       if (a.now() - last < (p.enhanced ? 3 : 2)) {
         a.quip(f.x, p.surfaceY - 140, 'SHELL SHUT!', '#cfe8e0', 38);
+        p.perkFired({ quip: false });
         a.sfx('sfx_shield', { volume: 0.7 });
         a.fx.ring(p.x, p.surfaceY - 20, 0xcfe8e0, 2, 0.45);
         f.knock(520);
@@ -417,6 +422,7 @@ export class PizzaPerkKit {
       case 'stompMeter':
         this.run.super = Math.min(1, this.run.super + 0.05 * k);
         a.quip(p.x, p.surfaceY - 150, 'GARLIC BUTTER: METER UP', '#ffe08a', 30);
+        p.perkFired({ quip: false });
         break;
       case 'stickyStomp':
         if (canSlow) {
@@ -462,6 +468,7 @@ export class PizzaPerkKit {
           a.sfx('sfx_freeze');
         }
         a.quip(f.x, f.cy - 120, 'FIRE AND ICE!', '#ffb070', 38);
+        p.perkFired({ quip: false });
         const dps = 10 * k;
         this.sc.time.delayedCall(f.isBossLike ? 100 : (p.enhanced ? 2000 : 1500), () => {
           if (!f.alive || !canBurn) return;
@@ -487,6 +494,7 @@ export class PizzaPerkKit {
       a.fx.healBurst(p.x, p.surfaceY);
       a.fx.ring(p.x, p.surfaceY - 30, 0xffe680, 2.4, 0.45);
       a.quip(p.x, p.surfaceY - 170, 'THE GODS SAY NOT TODAY!', '#ffe680', 38);
+      p.perkFired({ quip: false });
       a.sfx('sfx_shield');
       return 'survive';
     }
@@ -502,6 +510,7 @@ export class PizzaPerkKit {
         a.fx.healBurst(p.x, p.surfaceY);
         a.fx.ring(p.x, p.surfaceY - 30, 0xffffff, 2.4, 0.45);
         a.quip(p.x, p.surfaceY - 160, 'UNTOUCHABLE!', '#ffffff', 48);
+        p.perkFired({ quip: false });
         a.sfx('sfx_heal');
         this.h.recompute();
       });
@@ -524,6 +533,7 @@ export class PizzaPerkKit {
     a.dramatic(0.6);
     a.fx.explosion(p.x, p.surfaceY - 40, 420);
     a.quip(p.x, p.surfaceY - 220, 'ERUPTION!', '#ff5a1a', 72);
+    p.perkFired({ quip: false });
     a.sfx('sfx_explosion');
     a.sfx('sfx_fire');
     // lava bombs arc out of the calzone onto every foot
@@ -569,6 +579,7 @@ export class PizzaPerkKit {
       if (perk === 'bossShield' && isBossWave(n)) {
         p.setShield(p.shieldCharges + (p.enhanced ? 2 : 1));
         a.fx.ring(p.x, p.surfaceY - 30, 0xffe680, 2, 0.45);
+        p.perkFired({ quip: false });
       }
       // Arcobaleno takes a new colour every wave
       if (p.type.perk === 'rainbow' && !p.stale && !p.perkFrozen) {
@@ -578,7 +589,11 @@ export class PizzaPerkKit {
         p.flags.borrow = next;
         p.redraw();
         changed = true;
-        this.sc.time.delayedCall(900, () => p.dead || a.quip(p.x, p.surfaceY - 190, `RAINBOW: ${perkTextOf(BORROW_POOL[next], p.enhanced).toUpperCase()}`, '#ff9ae6', 26));
+        this.sc.time.delayedCall(900, () => {
+          if (p.dead) return;
+          a.quip(p.x, p.surfaceY - 190, `RAINBOW: ${perkTextOf(BORROW_POOL[next], p.enhanced).toUpperCase()}`, '#ff9ae6', 26);
+          p.perkFired({ quip: false });
+        });
       }
       // Mystery Meat shows its hand on the first wave it plays
       if (p.type.perk === 'mystery' && !p.flags.revealed) {
@@ -587,6 +602,7 @@ export class PizzaPerkKit {
         const line = borrowLine(p, p.enhanced) ?? '';
         this.sc.time.delayedCall(1000, () => {
           a.quip(p.x, p.surfaceY - 190, 'MYSTERY MEAT REVEALED!', '#c8a8ff', 34);
+          p.perkFired({ quip: false });
           this.h.toast(p.type.id, 'MYSTERY MEAT REVEALED', line);
           a.sfx('sfx_levelup', { volume: 0.5, rate: 1.3 });
         });
@@ -597,7 +613,11 @@ export class PizzaPerkKit {
     // the clock stops once the wave's first feet are on the table (they arrive a moment after the banner)
     this.timeStopPending = k > 0 ? Math.min(5, 3 * k) : 0;
     this.timeStopT = 0;
-    if (this.c('postBoss') > 0 && n > 1 && isBossWave(n - 1)) this.sc.time.delayedCall(1400, () => a.quip(960, 330, 'MOON CHEESE: DOUBLE DAMAGE!', '#cfe4ff', 40));
+    if (this.c('postBoss') > 0 && n > 1 && isBossWave(n - 1))
+      this.sc.time.delayedCall(1400, () => {
+        a.quip(960, 330, 'MOON CHEESE: DOUBLE DAMAGE!', '#cfe4ff', 40);
+        for (const p of this.with('postBoss')) p.perkFired({ quip: false });
+      });
     if (this.c('actStart') > 0 && this.actStart()) this.sc.time.delayedCall(1400, () => a.quip(960, 330, 'VICTORY LAP!', '#ffd23f', 44));
     // Pirate's Treasure: a chest turns up on the 4th wave of every stage
     if (this.c('treasure') > 0 && waveInStage(n) === 4) this.sc.time.delayedCall(4500, () => this.spawnChest());
@@ -621,6 +641,7 @@ export class PizzaPerkKit {
       const p = tunas[0];
       this.h.giveTips(Math.round(tunas.reduce((t, q) => t + tunaTips(n, q.enhanced), 0) * this.boost()), p.x, p.surfaceY - 80);
       a.quip(p.x, p.surfaceY - 170, 'TUNA TIME!', '#ffe08a', 34);
+      p.perkFired({ quip: false });
     }
     const perfectK = this.c('perfectTips');
     if (perfect && perfectK && earned > 0) {
@@ -642,6 +663,7 @@ export class PizzaPerkKit {
           p.flags.caviarWaves = 0;
           this.run.bank(1);
           a.quip(p.x, p.surfaceY - 190, '+1 GOLDEN CRUST', '#ffd23f', 36);
+          p.perkFired({ quip: false });
           a.fx.glint(p.x, p.surfaceY - 60, 8);
         }
       }
@@ -660,7 +682,10 @@ export class PizzaPerkKit {
       a.flash(300, 140, 220, 255);
       a.quip(960, 300, 'TIME STOP!', '#9ae6ff', 56);
       a.sfx('sfx_freeze', { volume: 0.8 });
-      for (const p of this.with('timeStop')) a.fx.ring(p.x, p.surfaceY - 30, 0x9ae6ff, 2.4, 0.45);
+      for (const p of this.with('timeStop')) {
+        a.fx.ring(p.x, p.surfaceY - 30, 0x9ae6ff, 2.4, 0.45);
+        p.perkFired({ quip: false });
+      }
     }
     const st = this.run.stats;
     for (const f of feet) {
@@ -700,6 +725,7 @@ export class PizzaPerkKit {
         if (f.phase > was) for (const p of this.with('phaseHeal')) {
           this.h.healPizza(p, p.enhanced ? 2 : 1);
           a.quip(p.x, p.surfaceY - 170, 'BURRATA BALM', '#fff6e2', 32);
+          p.perkFired({ quip: false });
         }
         this.phases.set(f, f.phase);
       }
@@ -714,6 +740,7 @@ export class PizzaPerkKit {
         if (targets.length) {
           this.meteorT = 0;
           this.meteor(Phaser.Utils.Array.GetRandom(targets), st.damage * 3);
+          for (const p of this.with('meteor')) p.perkFired();
         }
       }
     }
@@ -810,6 +837,7 @@ export class PizzaPerkKit {
       this.h.healPizza(p, p.maxSlices);
       a.fx.ring(p.x, p.surfaceY - 30, 0xff9a9a, 2, 0.45);
     }
+    nonna.perkFired({ quip: false });
   }
 
   // ——— Pirate's Treasure ———

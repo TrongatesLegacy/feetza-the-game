@@ -10,7 +10,7 @@ import { FEET, FOOT_BY_ID, OUCH, type FootType } from '../data/feet';
 import { META, MILESTONES } from '../data/meta';
 import { RUN_META } from '../game/Run';
 import { PIZZAS, PIZZA_BY_ID, enhancedText, type PizzaType } from '../data/pizzas';
-import { PIZZERIA_SPECIAL_CHANCE, TIER_COUNTER, pickByTier, rollTier } from '../data/pizzaRarity';
+import { PIZZERIA_SPECIAL_CHANCE, TIER_COUNTER, pickByTier, rollTier, tierRank } from '../data/pizzaRarity';
 import { perkWave, setPerkWave } from '../data/perkWave';
 import { DmgTally } from '../game/dmgTally';
 import { buildView, toneOf, topSrc, type BuildView, type Src, type TablePizza } from '../game/buildStats';
@@ -27,6 +27,7 @@ import { eventName, startEvent, type EventId } from '../game/events';
 import { Foot } from '../game/Foot';
 import { Fx } from '../game/Fx';
 import { Pizza, pizzaHooks } from '../game/Pizza';
+import { ALIVE_SFX, aliveHooks } from '../game/pizzaAlive';
 import { Projectiles } from '../game/projectiles';
 import { DOUBLE_CAP, endlessPlus, LOCATION_AMBIENCE, LOCATION_MUSIC, RARITY_FROM, Run, awardMilestones, milestoneProgress, backdropFor, bestRarity, rarityOpen, specialPrice, bossMusic, isBossWave, isMiniWave, locationFor, loopOf, waveInStage, planWave, footPool, type WavePlan, bossFor, miniFor, escortOf, escortArrival } from '../game/Run';
 import type { CounterSnap, RunSnapshot } from '../game/snapshot';
@@ -651,9 +652,13 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.tracker.emit('revive', { onTable: () => !p.dead && this.pizzas.includes(p) });
       if (n) this.tracker.emit('healed', { n });
     };
+    // the living pizzas' named effects (Epic) call out with a quip; their sounds load now
+    aliveHooks.quip = (x, y, text, color, size, angle) => this.fx.quip(x, y, text, color, size, angle);
+    audio.preload(this, ALIVE_SFX);
     this.events.once('shutdown', () => {
       pizzaHooks.healed = undefined;
       pizzaHooks.revived = undefined;
+      aliveHooks.quip = undefined;
     });
     finaleState.buyout = false;
 
@@ -2194,10 +2199,13 @@ export class GameScene extends Phaser.Scene implements Arena {
       const amt = st.regenPerWave + st.regenAll;
       if (amt > 0) this.healPizza(p, amt);
     }
+    // (Spinach & Feta's and the Calzone's moment)
+    if (st.regenAll > 0) for (const p of this.alivePizzas()) if (p.perk === 'regenAll') p.perkFired();
     for (let i = 0; i < st.healWeakest; i++) {
       const weakest = [...this.alivePizzas()].sort((a, b) => a.slices / a.maxSlices - b.slices / b.maxSlices)[0];
       if (weakest) this.healPizza(weakest, 1);
     }
+    if (st.healWeakest > 0) for (const p of this.alivePizzas()) if (p.perk === 'healWeakest') p.perkFired();
     // Aqua-Toe's Tidal Calm: no pizza goes stale at the seaside
     if (!this.heroes.keepFresh()) this.tickFreshness();
     this.perkKit.waveClear(n, perfect, this.run.coins - this.coinsAtWaveStart);
@@ -3303,10 +3311,13 @@ export class GameScene extends Phaser.Scene implements Arena {
       if (freebie === 'bottomless') this.run.kit.bottomlessAt = dealBlock(this.run.wave);
       if (freebie === 'delivery') this.run.kit.freeDeliveryUsed = true;
       this.run.pizzasBought++;
+      // its tier's moment at its card, before the shop redraws without it
+      ui.pizzaBought(id, PIZZA_BY_ID[id].rarity);
       sh.counter = sh.counter.filter((o) => o !== off);
       const name = PIZZA_BY_ID[id].name;
       const label = off.kind === 'special' ? `${name} (Chef's Special)` : off.kind === 'enhanced' ? `${name} (enhanced)` : name;
-      const p = this.placeNewPizza(id, label, index >= 0 ? index : undefined);
+      // (an Epic's or Legendary's sting stands in for the usual fanfare)
+      const p = this.placeNewPizza(id, label, index >= 0 ? index : undefined, tierRank(PIZZA_BY_ID[id].rarity) >= tierRank('epic'));
       if (p) {
         p.flags.paid = cost;
         if (off.kind === 'enhanced') this.enhance(p);
@@ -3447,7 +3458,7 @@ export class GameScene extends Phaser.Scene implements Arena {
   private packGaveUp: BackdropId | null = null;
 
   /** Put a new pizza on the table: into the given slot (swapping that pizza out), or a new plate. */
-  private placeNewPizza(id: string, label: string, swapIndex?: number): Pizza | null {
+  private placeNewPizza(id: string, label: string, swapIndex?: number, quiet = false): Pizza | null {
     const slices = BASE_SLICES + (save.meta.pies ?? 0);
     if (swapIndex !== undefined && this.pizzas[swapIndex]) {
       const old = this.pizzas[swapIndex];
@@ -3467,7 +3478,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       fresh.root.setScale(0).setY(PIZZA_Y - 200);
       this.tweens.add({ targets: fresh.root, scale: 1, y: PIZZA_Y, duration: 700, ease: 'Bounce.Out' });
       this.recompute();
-      audio.sfx('sfx_levelup', { volume: 0.6 });
+      if (!quiet) audio.sfx('sfx_levelup', { volume: 0.6 });
       ui.hud.toast(pizzaPortraitURL(id), 'PIZZA SWAPPED', `${label} replaces ${old.type.name}`);
       return fresh;
     }
@@ -3480,7 +3491,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     const p = this.addPizza(id, slices, true);
     this.layoutPizzas(true);
     this.recompute();
-    audio.sfx('sfx_levelup', { volume: 0.6 });
+    if (!quiet) audio.sfx('sfx_levelup', { volume: 0.6 });
     ui.hud.toast(pizzaPortraitURL(id), 'NEW PIZZA ON THE TABLE', `${label}: ${PIZZA_BY_ID[id].perkText}`);
     return p;
   }
@@ -4224,6 +4235,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.fx.ring(p.x, p.surfaceY - 30, 0xc8f6ff, 1.6, 0.35);
       this.fx.quip(f.x, p.surfaceY - 130, p.shieldCharges > 0 ? 'BLOCKED!' : 'SHIELD BROKEN!', '#8ff0ff', 48);
       audio.sfx('sfx_shield');
+      if (p.perk === 'shield' || p.perk === 'bossShield') p.perkFired({ quip: false });
       f.knock(700);
       blocked(true);
       return;
@@ -4240,6 +4252,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (!pierce && ((p.perk === 'thick' && Math.random() < (p.enhanced ? 0.45 : 0.3)) || (p.perk === 'sturdyMulti' && p.enhanced && Math.random() < 0.15))) {
       this.fx.quip(f.x, p.surfaceY - 130, 'THICK CRUST!', '#e0a050', 40);
       audio.sfx('sfx_boing', { volume: 0.6, rate: 0.8 });
+      p.perkFired({ quip: false });
       f.knock(450);
       blocked(false);
       return;
@@ -4247,6 +4260,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     // Stromboli shrugs off the second half of double stomps
     if (p.perk === 'sturdyMulti' && f.has('double') && f.brain.stompedOnce) {
       this.fx.quip(f.x, p.surfaceY - 130, 'STROMBOLI HOLDS!', '#e0a050', 36);
+      p.perkFired({ quip: false });
       f.brain.stompedOnce = false;
       return;
     }
@@ -4303,6 +4317,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       f.burnDps = Math.max(f.burnDps, (p.perk === 'burnStomper' ? (p.enhanced ? 15 : 10) : 0) + st.stompBurn);
       this.fx.quip(f.x, f.cy - 100, 'HOT HOT HOT!', '#ff8a3d', 38);
       audio.sfx('sfx_fire', { volume: 0.6 });
+      if (p.perk === 'burnStomper') p.perkFired({ quip: false });
     }
     this.perkKit.afterStomp(f, p);
   }
@@ -5028,6 +5043,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       if (p.regenTimer >= (p.enhanced ? 13 : 20)) {
         p.regenTimer = 0;
         this.healPizza(p, 1);
+        p.perkFired();
       }
     }
   }

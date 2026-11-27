@@ -140,7 +140,7 @@ const CELL = 120;
 const PIE_PX = 352;
 const SPEC_PX = 200;
 
-interface PaintData {
+export interface PaintData {
   /** The lifted pieces' centres (art px), in their cells' order. */
   hops: number[];
   /** Where it bubbles (cheese, else sauce), its oily pieces, its gold: art px, flattened [x, y, …]. */
@@ -417,6 +417,14 @@ export async function pizzaPaintAsync(id: string, wanted: () => boolean = () => 
 
 export const pizzaPaintReady = (id: string): boolean => paints.has(id);
 
+/** A pizza's painted layers, for the living table pizzas (src/game/pizzaAlive.ts), once pizzaPaintAsync has them: the
+ *  pie with its lifted pieces out (PIE_PX square), its light map (SPEC_PX square), the lifted pieces (CELL px cells
+ *  side by side) and the points (art px): where it bubbles, its oily pieces, its gold, the lifted pieces' centres. */
+export function pizzaPaintData(id: string): { pie: HTMLCanvasElement; spec: HTMLCanvasElement; sheet: HTMLCanvasElement | null; cell: number; d: PaintData } | null {
+  const p = paints.get(id);
+  return p ? { pie: p.pie, spec: p.spec, sheet: p.sheet, cell: CELL, d: p.d } : null;
+}
+
 // ════════════════════════════ what's painted the same in the still and the rig ════════════════════════════
 
 /** The board: the Classic's beech, turned round, its edge chamfered and lit from the top left, a soft shadow under. */
@@ -481,7 +489,7 @@ function drawShadow(ctx: Ctx, sh: HTMLCanvasElement, pl: PizzaPlace, lift: numbe
 
 /** Frost on a cold pie (art space, 400 px): the crust rimed (outer), and feathers of frost reaching in (inner). */
 const frosts = new Map<string, [HTMLCanvasElement, HTMLCanvasElement]>();
-function frostArt(p: PizzaType): [HTMLCanvasElement, HTMLCanvasElement] {
+export function frostArt(p: PizzaType): [HTMLCanvasElement, HTMLCanvasElement] {
   const have = frosts.get(p.id);
   if (have) return have;
   const S = PIZZA_SIZE;

@@ -11,7 +11,8 @@ import { glyph, slamPrompt } from '../systems/gamepad';
 import type { RunSummary, ShopActions, ShopPizza, ShopState, SlotSymbol, YourTopping } from './shopTypes';
 import { INTROS, freshBar, freshForever, pizzaThumb } from './bits';
 import { tierAttrs, tierFrame, tierGem, tierLabel } from './pizzaTier';
-import { pickByTier } from '../data/pizzaRarity';
+import { boughtCard, dealCard } from './pizzaDeal';
+import { pickByTier, type PizzaRarity } from '../data/pizzaRarity';
 import { statsBody } from './statsTab';
 import type { BuildView } from '../game/buildStats';
 import { phaseCardPanel } from './phaseCard';
@@ -1125,6 +1126,8 @@ class UI {
     let st = st0;
     /** Topping ids already dealt onto the counter (they don't replay their entrance). */
     const dealt = new Set<string>();
+    /** Counter offers already dealt (kind:id): only new ones play their tier's entrance. */
+    const dealtOffers = new Set<string>();
     const wrap = h('div', { class: 'shop2' });
     let screen: HTMLElement;
     const onKey = (e: KeyboardEvent) => {
@@ -1246,7 +1249,7 @@ class UI {
         // its tabs in one row along the frame's top: its kind on the left, its tier in the middle, NEW PIZZA on the right;
         // the row keeps them apart however narrow the card (the tier moves over rather than running into a long kind)
         const card = (cls: string, kind: HTMLElement | null, isNew: HTMLElement | null, ...kids: (HTMLElement | null)[]) =>
-          h('div', { class: `offer ${tier.cls}${cls}`, style: tier.style }, ...tierFrame(o.rarity, false), h('div', { class: 'tabs' }, kind ?? h('span', { class: 'tab-gap' }), tierLabel(o.rarity), isNew ?? h('span', { class: 'tab-gap' })), ...kids);
+          h('div', { class: `offer ${tier.cls}${cls}`, style: tier.style, 'data-offer': o.id }, ...tierFrame(o.rarity, false), h('div', { class: 'tabs' }, kind ?? h('span', { class: 'tab-gap' }), tierLabel(o.rarity), isNew ?? h('span', { class: 'tab-gap' })), ...kids);
         if (o.kind === 'special')
           return card(
             ' special',
@@ -1260,6 +1263,14 @@ class UI {
         if (o.kind === 'enhanced')
           return card(' enhanced', h('span', { class: 'kind-tab k-enhanced' }, '★ ENHANCED'), null, pic, h('div', { class: 'offer-text' }, h('b', {}, o.name), h('span', {}, perkDiff(o.basePerk ?? o.perk, o.perk))), b);
         return card(o.cost === 0 ? ' free' : '', o.cost === 0 ? h('span', { class: 'kind-tab k-free' }, ...tabText('ON THE HOUSE', 'FREE')) : null, null, pic, h('div', { class: 'offer-text' }, h('b', {}, o.name), h('span', { title: o.perk }, o.perk)), b);
+      });
+      // each offer new to the counter plays its tier's entrance (a Rare's chime, an Epic's flip and sparkles)
+      let order = 0;
+      st.offers.forEach((o, i) => {
+        const key = `${o.kind}:${o.id}`;
+        if (dealtOffers.has(key)) return;
+        dealtOffers.add(key);
+        if (o.rarity !== 'common') dealCard(offers[i], o.rarity, o.id, order++);
       });
       // Pizza Slots: in the third slot when no Chef's Special turned up
       if (st.slots) offers.push(slotsRow(st.slots, act.slots, act.slotsTake));
@@ -1335,6 +1346,13 @@ class UI {
 
   updateShop(screen: HTMLElement, st: ShopState): void {
     this.shops.get(screen)?.(st);
+  }
+
+  /** A pizza just bought from the counter (before the shop redraws without it): its tier's moment at its card. */
+  pizzaBought(id: string, rarity: PizzaRarity): void {
+    const card = document.querySelector<HTMLElement>(`.shop2 .offer[data-offer="${CSS.escape(id)}"]`);
+    // (centred on its picture, so the burst stays off the cards round it)
+    boughtCard((card?.querySelector('.offer-pic') ?? card)?.getBoundingClientRect() ?? null, rarity, id);
   }
 
   /** Next Wave pressed while it's locked: shake the counter so the eye goes there. */

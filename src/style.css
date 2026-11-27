@@ -6542,6 +6542,121 @@ body.still-peels .peel-big.shiny::after {
   70% { opacity: 0; transform: scale(0.5) rotate(90deg); }
 }
 
+/* ——— the counter's tier moments (src/ui/pizzaDeal.ts): dealt and bought ——— */
+/* Rare dealt: the card comes in as any does, then its silver catches a bright sweep of light */
+.offer.pzd-deal-rare::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 3;
+  /* (a cool silver light, so it reads on the cream card) */
+  background: linear-gradient(115deg, transparent 22%, rgba(196, 214, 240, 0.55) 38%, rgba(255, 255, 255, 1) 47%, rgba(176, 200, 236, 0.9) 53%, rgba(196, 214, 240, 0.5) 62%, transparent 78%) no-repeat;
+  box-shadow: 0 0 1.1em 0.25em rgba(200, 220, 255, 0.95), 0 0 0.9em 0.15em rgba(220, 234, 255, 0.95) inset;
+  background-size: 250% 100%;
+  background-position: 130% 0;
+  opacity: 0;
+  animation: pzdSweep 0.9s ease-out var(--pzd-delay, 0ms) 1 both;
+}
+
+@keyframes pzdSweep {
+  0% { opacity: 1; background-position: 130% 0; }
+  85% { opacity: 1; }
+  100% { opacity: 0; background-position: -30% 0; }
+}
+
+/* Epic dealt: the card flips in face up, its frame flaring purple and gold as it lands */
+.offer.pzd-deal-epic {
+  animation: pzdFlip 0.62s cubic-bezier(0.25, 0.9, 0.3, 1.15) var(--pzd-delay, 0ms) 1 both;
+  transform-origin: 50% 55%;
+}
+
+.offer.pzd-deal-epic::after {
+  content: '';
+  position: absolute;
+  inset: -0.2em;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 3;
+  box-shadow: 0 0 1.2em 0.3em var(--ta), 0 0 0.5em 0.15em var(--tb) inset;
+  opacity: 0;
+  animation: pzdFlare 1.1s ease-out calc(var(--pzd-delay, 0ms) + 0.3s) 1 both;
+}
+
+@keyframes pzdFlip {
+  0% { transform: perspective(40em) rotateY(-90deg) scale(0.86); opacity: 0; }
+  45% { opacity: 1; }
+  70% { transform: perspective(40em) rotateY(8deg) scale(1.04); }
+  100% { transform: none; opacity: 1; }
+}
+
+@keyframes pzdFlare {
+  0% { opacity: 0; }
+  20% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* (a legendary, until step 5's own moment: the Epic's flip, in gold) */
+.offer.pzd-gold::after {
+  box-shadow: 0 0 1.4em 0.4em #ffc93a, 0 0 0.6em 0.2em #fff0a0 inset;
+}
+
+/* the bursts: over everything, never in the way */
+.pzd-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.pzd-flash {
+  position: absolute;
+  width: 8em;
+  height: 8em;
+  margin: -4em 0 0 -4em;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.85), var(--c) 30%, transparent 68%);
+  mix-blend-mode: screen;
+  animation: pzdBloom 0.7s ease-out both;
+}
+
+.pzd-flash.pzd-epic,
+.pzd-flash.pzd-legendary {
+  width: 11em;
+  height: 11em;
+  margin: -5.5em 0 0 -5.5em;
+}
+
+@keyframes pzdBloom {
+  0% { transform: scale(0.2); opacity: 0.9; }
+  100% { transform: scale(1); opacity: 0; }
+}
+
+.pzd-spark {
+  position: absolute;
+  width: 1.1em;
+  height: 1.1em;
+  margin: -0.55em 0 0 -0.55em;
+  background: var(--c);
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  filter: drop-shadow(0 0 0.25em var(--c));
+  animation: pzdSpark 0.95s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+.pzd-spark.big {
+  width: 1.7em;
+  height: 1.7em;
+  margin: -0.85em 0 0 -0.85em;
+}
+
+@keyframes pzdSpark {
+  0% { transform: translate(0, 0) scale(0.2) rotate(0deg); opacity: 1; }
+  60% { opacity: 1; }
+  100% { transform: translate(var(--dx), calc(var(--dy) + 1.5em)) scale(0.5) rotate(var(--rot)); opacity: 0; }
+}
+
 /* the tier's label (span.pzr-tag beats the cards' own span styles, .lu span and the like) */
 .pzr > span.pzr-tag,
 .pzr-tag {

@@ -159,6 +159,25 @@ export function installDevTools(game: Phaser.Game): void {
       run: async (o: import('./devSim').SimOpts) => (await import('./devSim')).simRun(game, o, (opts) => api.startGame(opts)),
       ready: async () => (await import('./devSim')).simReady(),
     },
+    /** The living table pizzas (src/game/pizzaAlive.ts): F.pizzaFx.tier('epic') shows every table pizza at a tier (null:
+     *  their own), .stomp(i) and .fire(i) play pizza i's reactions (all with no i), .calm() clears the feet and holds the
+     *  wave (for still shots). */
+    pizzaFx: {
+      off: async (on = true) => ((await import('./game/pizzaAlive')).aliveDev.off = on),
+      tier: async (t: 'common' | 'rare' | 'epic' | 'legendary' | null) => {
+        const { aliveDev } = await import('./game/pizzaAlive');
+        aliveDev.tier = t;
+        for (const p of (game.scene.getScene('Game') as AnyScene).pizzas ?? []) p.rebuildLife();
+      },
+      stomp: (i?: number) => ((game.scene.getScene('Game') as AnyScene).pizzas as any[]).forEach((p, j) => (i === undefined || i === j) && p.takeSlices(1, p.x)), // eslint-disable-line @typescript-eslint/no-explicit-any
+      fire: (i?: number) => ((game.scene.getScene('Game') as AnyScene).pizzas as any[]).forEach((p, j) => (i === undefined || i === j) && p.perkFired()), // eslint-disable-line @typescript-eslint/no-explicit-any
+      calm: () => {
+        const g = game.scene.getScene('Game') as AnyScene;
+        g.spawnTick = () => {};
+        for (const f of g.feet) f.destroy();
+        g.feet = [];
+      },
+    },
     startGame(opts?: string[] | Record<string, any>): void { // eslint-disable-line @typescript-eslint/no-explicit-any
       const o = Array.isArray(opts) ? { lineup: opts } : (opts ?? {});
       if (o.seed !== undefined) seed(Number(o.seed));

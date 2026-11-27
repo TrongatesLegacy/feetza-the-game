@@ -6,6 +6,7 @@ import { makeCanvas } from '../art/util';
 import { SEASONS, enhancedText, type PizzaPerk, type PizzaType } from '../data/pizzas';
 import { ensurePizzaArt, pizzaTops } from './assets';
 import { borrowLine, borrowedPerk } from './pizzaPerks';
+import { PizzaAlive, bakedTop } from './pizzaAlive';
 
 let uid = 0;
 
@@ -76,6 +77,10 @@ export class Pizza {
   private blinkTimer = 2 + Math.random() * 3;
   private lookX = 0;
   private bob = Math.random() * 10;
+  /** Its living layer (src/game/pizzaAlive.ts): bubbling, steam, glisten, its tier's effects and reactions. */
+  private life?: PizzaAlive;
+  /** Drawn with another top for a moment (its pieces lifted out while they hop). */
+  private topOverride: HTMLCanvasElement | null = null;
 
   constructor(scene: Phaser.Scene, layer: Phaser.GameObjects.Layer | Phaser.GameObjects.Container, type: PizzaType, x: number, y: number, s: number, slices: number) {
     this.scene = scene;
@@ -135,8 +140,39 @@ export class Pizza {
     this.freshBar = scene.add.graphics();
     this.root.add([this.plate, this.trapImg, this.img, this.face, this.shield, this.shieldSweep, this.shieldPips, this.label, this.perkLabel, this.strike, this.freshBar]);
     this.makeFinish();
+    this.life = new PizzaAlive(this, this.plate, this.img, this.face);
     this.applyScale();
     this.redraw();
+  }
+
+  /** Dev: build its living layer again (after F.pizzaFx.tier changes the tier shown). */
+  rebuildLife(): void {
+    this.life?.destroy();
+    this.life = new PizzaAlive(this, this.plate, this.img, this.face);
+    this.applyScale();
+    this.redraw();
+  }
+
+  /** The face's middle (local) and scale, kept clear by the living layer. */
+  get faceY(): number {
+    return this.face.y;
+  }
+
+  get faceS(): number {
+    return this.face.scaleX;
+  }
+
+  /** Draw the pie with another top for now (null: its own). */
+  setTop(top: HTMLCanvasElement | null): void {
+    if (this.topOverride === top) return;
+    this.topOverride = top;
+    this.redraw();
+  }
+
+  /** Its perk just fired (a moment, not every frame): its tier's show (src/game/pizzaAlive.ts). quip: false when the
+   *  caller says its own; text names the effect. */
+  perkFired(o: { quip?: boolean; text?: string } = {}): void {
+    this.life?.fire(o);
   }
 
   get slices(): number {
@@ -173,6 +209,7 @@ export class Pizza {
     this.drawFresh();
     this.drawGold();
     this.placeFinish();
+    this.life?.place();
   }
 
   private makeFinish(): void {
@@ -437,9 +474,11 @@ export class Pizza {
 
   redraw(): void {
     if (!this.root.active) return;
+    const top = pizzaTops[this.type.id];
     renderPizza(this.ctx, {
       type: this.type,
-      top: pizzaTops[this.type.id],
+      // (Rare and up: a richer bake)
+      top: this.topOverride ?? (this.life?.set.bake ? bakedTop(this.type, top) : top),
       alive: this.alive,
       prints: this.prints,
       shield: false,
@@ -459,6 +498,7 @@ export class Pizza {
     this.drawFresh();
     this.drawGold();
     this.placeFinish();
+    this.life?.slicesChanged();
   }
 
   /** Re-read the perk's line (perks whose text counts with the wave, like Tuna & Sweetcorn's), without a redraw. */
@@ -501,6 +541,8 @@ export class Pizza {
     this.hurtTimer = 0.9;
     this.redraw();
     this.scene.tweens.add({ targets: this.root, scaleY: { from: 0.86, to: 1 }, scaleX: { from: 1.08, to: 1 }, duration: 380, ease: 'Elastic.Out' });
+    // crumbs, and its tier's reaction
+    if (removed.length) this.life?.stomp(worldX);
     return removed;
   }
 
@@ -560,6 +602,7 @@ export class Pizza {
   update(dt: number, threatX: number | null, threat: number): void {
     this.fear = threat;
     this.bob += dt;
+    this.life?.update(dt);
     if (this.dead) return;
     // eyes track the most threatening foot
     const target = threatX === null ? Math.sin(this.bob * 0.6) * 0.4 : Phaser.Math.Clamp((threatX - this.x) / 200, -1, 1);
@@ -601,6 +644,7 @@ export class Pizza {
   destroy(): void {
     this.gold?.tweens.forEach((t) => t.remove());
     this.finishFx?.tweens.forEach((t) => t.remove());
+    this.life?.destroy();
     this.root.destroy();
     if (this.scene.textures.exists(this.texKey)) this.scene.textures.remove(this.texKey);
   }

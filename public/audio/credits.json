@@ -12165,5 +12165,29 @@
     "license": "CC0 1.0",
     "url": "https://creativecommons.org/publicdomain/zero/1.0/",
     "notes": "The Finale Peel's Curtain Call: the house applauds as the curtains part; synthesized hand claps (filtered noise bursts) swelling in and dying away, with a short room (scripts/ability-sfx/applause.py, ffmpeg)"
+  },
+  {
+    "file": "sfx_tierchime.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "A Rare pizza dealt onto the shop counter: a soft two-note chime (E6, B6), synthesized bell tones with a short room (scripts/pizza-sfx/tiers.py)"
+  },
+  {
+    "file": "sfx_tierrise.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "An Epic pizza dealt onto the shop counter: a rising run of bell notes (C6 E6 G6 C7) over a soft swell, sparkles after it, with a short room (scripts/pizza-sfx/tiers.py)"
+  },
+  {
+    "file": "sfx_tiersting.mp3",
+    "title": "Original synthesized sound",
+    "author": "Made for Feetza",
+    "license": "CC0 1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "notes": "An Epic pizza bought at the shop counter: a short bright sting, a G major stab and its top note rung an octave up, with sparkles and a short room (scripts/pizza-sfx/tiers.py)"
   }
 ]
