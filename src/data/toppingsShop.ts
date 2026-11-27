@@ -39,5 +39,5 @@ export const SHOP_TOPPINGS: Upgrade[] = [
   shop('ownersdiscount', 'Owner’s Discount', '🏷️', 'legendary', 1, 'Everything in the shop is 25% off', (s) => { s.shopDiscount += 0.25; s.goldenDiscount += 0.25; }),
   shop('bottomless', 'Bottomless Pizza', '♾️', 'legendary', 1, 'One free counter pizza every 10 waves'),
   shop('stockroom', 'Stockroom Key', '🔑', 'legendary', 1, 'The first card you buy in each shop restocks'),
-  deal('exclusivemenu', 'Exclusive Menu', '🎩', 'legendary', 'Every card is one rarity higher', 'Shops deal 2 cards (Extra Shelf and Premium Menu still add theirs)', () => {}),
+  deal('exclusivemenu', 'Exclusive Menu', '🎩', 'legendary', 'Every card is one rarity higher', 'Two fewer topping cards per shop', (s) => { s.cardDelta -= 2; }),
 ];
