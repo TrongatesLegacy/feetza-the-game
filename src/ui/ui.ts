@@ -1127,7 +1127,9 @@ class UI {
           h('div', { class: 'rarity' }, c.rarity),
           h('div', { class: 'icon' }, c.icon),
           h('div', { class: 'name' }, c.name),
-          h('div', { class: 'desc' }, c.desc),
+          // a long description is set smaller (and at most three lines, the full text on hover), so it never makes the card
+          // (and the whole shop) taller
+          h('div', { class: `desc${c.desc.length > 105 ? ' xlong' : c.desc.length > 75 ? ' long' : ''}`, title: c.desc }, h('span', { class: 'dt' }, c.desc)),
           c.downside ? h('div', { class: 'down' }, `▼ ${c.downside}`) : null,
           // a deal (FREE, HALF PRICE…) rides on the level line, clear of everything else
           h('div', { class: 'lvl' }, c.lvl, !c.sold && (c.free || c.tag) ? h('span', { class: `ptag ${c.free ? 'free' : c.tag!.kind}` }, c.free ? 'FREE' : c.tag!.text) : null),

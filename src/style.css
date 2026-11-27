@@ -6401,3 +6401,16 @@ body.still-peels .peel-big.shiny::after {
 @media (prefers-reduced-motion: reduce) {
   .offer.special .unlock-note::after { animation: none; display: none; }
 }
+.shop2 .card .desc.long { font-size: 0.95em; }
+.shop2 .card .desc.xlong { font-size: 0.86em; }
+.shop2 .card .desc .dt {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+  text-align: center;
+}
+/* every card's description box is the same height (room for three lines of a long one), so no card, and no shop,
+   grows with its text */
+.shop2 .card .desc { min-height: 0; height: 3.25em; }
