@@ -2691,6 +2691,19 @@ body.pad .slam .pd {
   text-overflow: ellipsis;
 }
 
+/* a Legendary's long name (Nonna's Masterpiece, Sandcastle Citadel) takes a second line, a little smaller, rather
+   than being cut off */
+.counter2 .offer.pzr-legendary .offer-text b {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 1em;
+  line-height: 1.02;
+  margin-bottom: 0.1em;
+}
+.counter2.roomy > .offer.pzr-legendary .offer-text b { font-size: 1.2em; }
+
 /* a long perk takes a second line rather than being cut off */
 .counter2 .offer-text span {
   display: -webkit-box;
@@ -7405,6 +7418,28 @@ body:not(.reduced-motion) .tframed.legendary .seas { animation: seasFall 4.4s ea
 .pzl-stamp.out {
   transition: opacity 0.6s;
   opacity: 0 !important;
+}
+
+.lu-pic {
+  position: relative;
+  display: block;
+  line-height: 0;
+  flex-shrink: 0;
+  font-style: normal;
+}
+/* (the lineup's names take a grid area: the stamp over the picture doesn't) */
+.prerun-bottom .lu .lu-pic .pzl-stamp { grid-area: auto; font-size: 0.85rem; line-height: 1; max-width: 100%; }
+
+/* (a Legendary Rare Find on the new-run lineup: its tile lifts over the dim as the counter's card does) */
+.lu.pzl-dealt {
+  position: relative;
+  z-index: 5;
+  box-shadow: 0 0 1.6em 0.4em var(--la, #ffc83a), 0 0 0 0.12em #fff6d0;
+}
+
+.lu.pzl-flip {
+  animation: pzdFlip 0.7s cubic-bezier(0.25, 0.9, 0.3, 1.15) 0.1s 1 both;
+  transform-origin: 50% 55%;
 }
 
 .offer.pzl-dealt {

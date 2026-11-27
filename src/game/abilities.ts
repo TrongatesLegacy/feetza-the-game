@@ -759,6 +759,10 @@ export const ABILITIES: Record<string, Ability> = {
   'pizza:nonnasmasterpiece': ab("Nonna's Wooden Ladle", act, [K(1500, all), D(7, all), ST(1.5, all), H(1, 'all')], 0xff9a4a, 'slam', 0.9),
   'pizza:silverservice': ab('Tray Service', every(7), [K(1300, front(3)), D(2.5, front(3)), ST(0.8, front(3))], 0xdfe8f6, 'wind'),
   'pizza:firstbake': ab('Fresh from the Oven', act, [FR(10, 'all'), B(3, 4, all), D(5, all), H(1, 'all')], 0xffc23a, 'fire', 0.9),
+  // the pizza plan's step 5, batch 2: Act 2's Legendaries (src/content/pizzas/p9.ts)
+  'pizza:bigtoppie': ab('Big Top Finale', act, [D(8, tough(2)), ST(1.2, all), M(1.3, 4, all)], 0xff5a68, 'burst', 0.9),
+  'pizza:sandcastlecitadel': ab('Raise the Walls', stomp, [K(1300, hit()), ST(1.5, hit()), D(3, hit()), SH(1, 'weakest')], 0xf2c070, 'slam'),
+  'pizza:tidaltiki': ab('High Tide', act, [K(1600, all), D(4, all), S(0.35, 3, all), H(1, 'all')], 0x4ad8e0, 'wind', 0.9),
 
   // ——— Act 7 · Comics: places, bosses and villain feet ———
   'place:metropizza': ab('Searchlight', every(6), [M(1.6, 4, tough(2)), D(2, tough(2))], GOLD, 'zap'),

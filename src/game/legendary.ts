@@ -91,6 +91,10 @@ export const LEGEND_LOOK: Record<string, LegendLook> = {
   nonnasmasterpiece: { col: 0xff8a3a, col2: 0xfff0d8, css: '#ff9a4a', css2: '#ffe6c0', confetti: ['#d8321e', '#3f9a3a', '#fff6e2', '#ffb070', '#ffd23f'], line: 'From Trattoria Nonna, Act 1' },
   silverservice: { col: 0xcfe0f4, col2: 0xffffff, css: '#d8e6f6', css2: '#ffffff', confetti: ['#e8f0fa', '#9fb4cc', '#ffffff', '#ffd23f', '#1c2430'], line: 'The Head Waiter’s, Act 1' },
   firstbake: { col: 0xffc23a, col2: 0xfff0b0, css: '#ffc23a', css2: '#fff2c0', confetti: ['#ffc23a', '#fff2c0', '#e0a050', '#d8321e', '#ffffff'], line: 'Opening Night’s first pie, Act 1' },
+  // Act 2 (batch 2): King Honk's circus, Sandcastle Sam's fortress, the Beach's tide
+  bigtoppie: { col: 0xff4a5a, col2: 0xfff2b0, css: '#ff5a68', css2: '#fff2b0', confetti: ['#e2322a', '#ffd23f', '#2a7ae0', '#ffffff', '#3fc060', '#ff6ab0'], line: 'King Honk’s circus, Act 2' },
+  sandcastlecitadel: { col: 0xf2c070, col2: 0xfff4d8, css: '#f2c070', css2: '#fff2d0', confetti: ['#e4b468', '#fff0c8', '#e2322a', '#2a7ae0', '#ffffff'], line: 'Sandcastle Sam’s fortress, Act 2' },
+  tidaltiki: { col: 0x3ad0d8, col2: 0xe8fff8, css: '#4ad8e0', css2: '#e8fffa', confetti: ['#1a9ab8', '#5ad8d8', '#ffffff', '#e8306a', '#ffc83a', '#3fa040'], line: 'The Beach’s tide, Act 2' },
 };
 
 const GOLD: LegendLook = { col: 0xffc83a, col2: 0xfff2a0, css: '#ffc83a', css2: '#fff2a0', confetti: ['#ffc83a', '#fff2a0', '#d08a08', '#ffffff'], line: 'Legendary' };

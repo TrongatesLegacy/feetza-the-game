@@ -11,7 +11,7 @@ import { glyph, slamPrompt } from '../systems/gamepad';
 import type { RunSummary, ShopActions, ShopPizza, ShopState, SlotSymbol, YourTopping } from './shopTypes';
 import { INTROS, freshBar, freshForever, pizzaThumb } from './bits';
 import { tierAttrs, tierFrame, tierGem, tierLabel } from './pizzaTier';
-import { boughtCard, dealCard } from './pizzaDeal';
+import { LEGENDARY_COUNTER, boughtCard, dealCard } from './pizzaDeal';
 import { legendReveal } from './legendDeal';
 import { legendGate } from '../game/legendary';
 import { pickByTier, type PizzaRarity } from '../data/pizzaRarity';
@@ -1025,7 +1025,7 @@ class UI {
     renderPeel();
     const lineupRow = h('div', { class: 'lineup2' });
     // a Rare Find: now and then (1 in 20 deals) a locked rare pizza takes a slot, to buy with crusts
-    let rare: { id: string; slot: number; was: string; bought: boolean } | null = null;
+    let rare: { id: string; slot: number; was: string; bought: boolean; shown?: boolean } | null = null;
     const deal = () => {
       rare = null;
       const forced = forcedRare && PIZZA_BY_ID[forcedRare] && !save.unlockedPizzas.includes(forcedRare) ? forcedRare : null;
@@ -1055,17 +1055,27 @@ class UI {
               r.bought = true;
               audio.sfx('sfx_levelup');
               renderLineup();
+              // a Legendary kept: its full-screen reveal
+              if (p.rarity === 'legendary') legendReveal(p.id, 'YOURS FOR GOOD!');
             });
             buy.disabled = r.bought || save.crusts < p.cost;
             const tier = tierAttrs(p.rarity, p.id);
-            return h(
+            const card = h(
               'div',
               { class: `lu rare ${tier.cls}${r.bought ? ' bought' : ''}`, style: tier.style },
               ...tierFrame(p.rarity, false),
               h('span', { class: 'tag new' }, r.bought ? 'YOURS' : 'FREE TRIAL'),
-              h('img', { src: pizzaPortraitURL(p.id), alt: p.name }),
+              // (its picture in a holder of its own: a Legendary's dealt moment stamps over it)
+              h('i', { class: 'lu-pic' }, h('img', { src: pizzaPortraitURL(p.id), alt: p.name })),
               h('div', {}, h('span', { class: 'rf' }, r.bought ? 'RARE FIND' : 'RARE FIND · TRY IT', ' ', tierLabel(p.rarity)), h('b', {}, p.name), h('span', { title: r.bought ? p.perkText : `${p.perkText} · plays this run for free; keep it now or when the run ends (gone if you shuffle)` }, p.perkText), buy),
             );
+            // a Legendary Rare Find's dealt moment (the counter's: the lineup dims round it, a shaft of light, the
+            // fanfare and the LEGENDARY! stamp), once each time it's dealt
+            if (p.rarity === 'legendary' && !r.shown) {
+              r.shown = true;
+              LEGENDARY_COUNTER.dealt?.(card, p.id);
+            }
+            return card;
           }
           const p = PIZZA_BY_ID[id];
           const tier = tierAttrs(p.rarity, p.id);
@@ -1950,6 +1960,7 @@ class UI {
         persist();
         audio.sfx('sfx_levelup');
         row.replaceChildren(h('span', {}, `🍕 ${trial.name} is yours!`));
+        if (trial.rarity === 'legendary') legendReveal(trial.id, 'YOURS FOR GOOD!');
       });
       // (the run's crusts are already banked when this opens)
       keep.disabled = save.crusts < trial.cost;
@@ -2313,7 +2324,7 @@ class UI {
       const ms = MILESTONE_BY_PIZZA[id];
       // how a locked pizza unlocks, by its route
       const gate = legendGate(p);
-      const how = p.route === 'special' ? (p.rarity === 'legendary' ? `🔒 ${gate.why}` : '🔒 Chef’s Special in the shop') : p.route === 'milestone' ? `🔒 Milestone: ${ms?.name ?? 'a milestone'}` : p.route === 'rare' ? (gate.open ? '🔒 Rare Find on the new-run screen' : `🔒 Rare Find, once you ${gate.why.toLowerCase()}`) : gate.open ? `🔒 ${p.cost} Golden Crusts` : `🔒 ${fmt(p.cost)} Golden Crusts · ${gate.why}`;
+      const how = p.route === 'special' ? (p.rarity === 'legendary' ? `🔒 ${gate.why}` : '🔒 Chef’s Special in the shop') : p.route === 'milestone' ? `🔒 Milestone: ${ms?.name ?? 'a milestone'}` : p.route === 'rare' ? (gate.open ? '🔒 Rare Find on the new-run screen' : `🔒 Rare Find, once you ${gate.why.charAt(0).toLowerCase()}${gate.why.slice(1)}`) : gate.open ? `🔒 ${p.cost} Golden Crusts` : `🔒 ${fmt(p.cost)} Golden Crusts · ${gate.why}`;
       if (hiddenRare(p)) {
         detail.replaceChildren(h('img', { src: pizzaPortraitURL(id), alt: '', style: 'filter:brightness(0) opacity(0.35)' }), h('div', {}, h('div', { class: 'dt-head' }, h('h3', {}, '???'), h('span', { class: 'chip' }, how)), h('p', {}, 'A Rare Find. It turns up only by luck, in a lineup on the new-run screen.')));
         return;

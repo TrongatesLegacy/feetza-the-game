@@ -560,6 +560,9 @@ export function buildView(inp: BuildInput): BuildView {
   if (quake > 0) dmgTiles.push({ label: 'Table shake', num: 1 + 0.1 * quake, fmt: 'x', icon: '🦖', tone: 'up', from: inp.pizzas.filter((p) => p.perk === 'critQuake').map(pzSrc), note: 'every foot, for 3s after a crit' });
   const comet = inp.c('comet');
   if (comet > 0) dmgTiles.push({ label: 'Comet', num: 4, fmt: 'x', icon: '☄️', tone: 'up', from: inp.pizzas.filter((p) => p.perk === 'comet').map(pzSrc), note: `the toughest foot, every ${r1(12 / comet)}s` });
+  // the Legendaries (step 5, Act 2): Big Top Pie's cannon pie (×8, Legendary damage: scaled by heat)
+  const bigTop = inp.c('bigTopCannon');
+  if (bigTop > 0) dmgTiles.push({ label: 'Cannon pie', num: 8, fmt: 'x', icon: '🎪', tone: 'up', from: inp.pizzas.filter((p) => p.perk === 'bigTopCannon').map(pzSrc), note: `the toughest foot, every ${r1(20 / bigTop)}s, and every foot laughs 1s (${Math.round(8 * (inp.heat.legend ?? 1) * 10) / 10} smacks on ${inp.heat.name})` });
   // the Epic Pizzeria pizzas: Colossus Forge, Three-Headed Hound, Gorgon's Gaze, Ember Shade
   for (const p of inp.pizzas.filter((q) => q.perk === 'forgeWaves')) dmgTiles.push({ label: 'The Forge', num: r1(Math.min(40, inp.forgeWaves) * p.pk), fmt: 'pct', pre: '+', icon: '⚒️', tone: 'up', from: [pzSrc(p)], note: `${inp.forgeWaves} wave${inp.forgeWaves === 1 ? '' : 's'} survived · +${r1(p.pk)}% a wave, up to +${r1(40 * p.pk)}%` });
   for (const p of inp.pizzas.filter((q) => q.perk === 'tripleBite')) dmgTiles.push({ label: 'Three bites', num: p.enhanced ? 2 : 3, fmt: 'int', pre: 'every ', post: ' smacks', icon: '🐕', tone: 'up', from: [pzSrc(p)], note: 'the smack bites three times' });
@@ -721,6 +724,17 @@ export function buildView(inp: BuildInput): BuildView {
   if (ladle.length) {
     const n = ladle.reduce((k, p) => k + (p.enhanced ? 2 : 1), 0);
     sus.push({ label: "Nonna's ladle", num: n, fmt: 'int', post: n === 1 ? ' stomp a wave' : ' stomps a wave', icon: '🥄', tone: 'up', from: ladle.map(pzSrc), note: `the first stomps on any pizza blocked, the foot takes ×5 (a Legendary's damage scales with the heat: ${Math.round(5 * (inp.heat.legend ?? 1) * 10) / 10} smacks on ${inp.heat.name})` });
+  }
+  // Act 2: Sandcastle Citadel's walls and Tidal Tiki's tide
+  const cit = inp.pizzas.filter((p) => p.perk === 'citadelWall' && !p.dead);
+  if (cit.length) {
+    const n = cit.reduce((k, p) => k + (p.enhanced ? 4 : 3), 0);
+    sus.push({ label: 'The citadel', num: n, fmt: 'int', post: ' stomps', icon: '🏰', tone: 'up', from: cit.map(pzSrc), note: 'blocked each wave, on any pizza (after the sand wall)' });
+  }
+  const tiki = inp.pizzas.filter((p) => p.perk === 'tidalWash' && !p.dead);
+  if (tiki.length) {
+    const every = tiki.some((p) => p.enhanced) ? 3 : 4;
+    sus.push({ label: 'Tidal Tiki', num: tiki.length, fmt: 'int', pre: '+', post: tiki.length === 1 ? ' slice' : ' slices', icon: '🌊', tone: 'up', from: tiki.map(pzSrc), note: `every pizza, every ${every === 3 ? '3rd' : '4th'} wave, as the tide washes every foot back up` });
   }
   const bake = inp.pizzas.filter((p) => p.perk === 'firstBake' && !p.dead);
   if (bake.length) {

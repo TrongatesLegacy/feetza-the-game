@@ -12,6 +12,20 @@
 //   shows it, and again as the next starts), and once a run each pizza gets one slice over its maximum (enhanced two),
 //   the first time it starts a wave whole. A slice over is eaten first and never grows back.
 //
+// Act 2 (batch 2, docs/pizza-plan.md section 13):
+// - Big Top Pie (bigTopCannon): every 20 s of wave with a foot on the table (enhanced 13; two copies twice as often)
+//   King Honk's circus cannon fires a cream pie at the toughest foot (bosses too) for ×8, Legendary damage, and every
+//   foot laughs: ordinary ones stunned 1 s; bosses, mini-bosses and feet a fight moves by hand only giggle (40% slower
+//   for 1 s); a frozen foot stays frozen.
+// - Sandcastle Citadel (citadelWall): as each wave starts Sandcastle Sam's citadel goes up and takes 3 stomps (enhanced
+//   4; copies add) on any pizza. It's checked where Pizza Stone is, after Phantom Waltz's ghost and Sandcastle
+//   Sundae's wall (the Sundae's 2 go first, then the citadel's), so a piercing stomp goes through; bosses are blocked
+//   too; once up it lasts the wave even if its pie is lost. Its keep (the aura) flies a pennant for each stomp left.
+// - Tidal Tiki (tidalWash): every 4th wave of the run (waves 4, 8, 12…; enhanced every 3rd) the tide comes in once, a
+//   few seconds in when the feet are diving: every foot it reaches is washed back up to the top (bosses and
+//   mini-bosses knocked back; feet a fight moves by hand and friendly zombies left alone) and every pizza gets a slice
+//   back (one for each Tidal Tiki on the table). One tide however many copies.
+//
 // Each perk's moment is a show-piece (the ladle's swing, the tray's run across the table, the oven's breath) with its
 // own sound, landing on its targets and never covering the table; lighter in a boss fight. Gameplay randomness is
 // Math.random, cosmetic crand; nothing starts a tween as the scene shuts down.
@@ -21,6 +35,8 @@ import { HOVER_Y, W } from '../config';
 import type { PizzaPerk } from '../data/pizzas';
 import { crand } from '../systems/cosmeticRandom';
 import { drawFlour, drawLadle, drawOvenMouth, drawRaguFleck, drawSilverTray } from '../art/perkPropsLegend';
+import { drawCannonBarrel, drawCannonCart, drawCannonPie, drawCitadelWall, drawConfetti, drawFoam, drawPennant, drawSandGrain, drawTideWave } from '../art/perkPropsLegend2';
+import { TILT } from '../art/pizzaArt';
 import type { Arena } from './arena';
 import type { Foot } from './Foot';
 import type { Pizza } from './Pizza';
@@ -33,6 +49,11 @@ import { legendDmg, legendLook } from './legendary';
 export const LEGEND_SFX = [
   'sfx_nonna_spoon', 'sfx_nonna_pin', 'sfx_smack_wood_heavy', 'sfx_smack_sauce_heavy', 'sfx_smack_sauce_1',
   'sfx_headwaiter_traytoss', 'sfx_headwaiter_traybat', 'sfx_headwaiter_trayclang', 'sfx_headwaiter_service', 'sfx_smack_metal_heavy',
+  // Act 2: King Honk's horn, pie and slide whistle, a cannon boom and the feet's giggles; Sandcastle Sam's walls, pour and
+  // shovel; the Beach's wave, gulls and splashes
+  'sfx_clownking_honkwind', 'sfx_clownking_honk', 'sfx_clownking_piesplat', 'sfx_clownking_pie', 'sfx_clownking_leap', 'sfx_hitboom', 'sfx_jokester_giggle',
+  'sfx_sandcastle_walls', 'sfx_sandcastle_pour', 'sfx_sandcastle_shovel', 'sfx_sandcastle_sandland', 'sfx_smack_sand_heavy',
+  'sfx_zeus_wave', 'sfx_seagull', 'sfx_kraken_splash', 'sfx_smack_water_heavy', 'sfx_smack_water_1', 'sfx_smack_tail_kinghonk',
 ];
 
 /** What the Epics' kit lends the Legendaries. */
@@ -45,6 +66,8 @@ export interface LegendHost {
   bossFight(): boolean;
   dealDamage(f: Foot, amount: number, source: 'explode' | 'olive' | 'cutter' | 'direct', knock?: number, tag?: string): void;
   recompute(): void;
+  /** Give a pizza slices back (up to its maximum). */
+  heal(p: Pizza, n: number): void;
 }
 
 export class LegendKit {
@@ -60,6 +83,8 @@ export class LegendKit {
   baked = new Set<string>();
   /** The First Bake: the stage its oven last breathed in (its moment plays at most once a stage). */
   private ovenStage = -1;
+  /** Big Top Pie: seconds of wave (with a foot on the table) since the last cannon pie (it carries over). */
+  bigTopT = 0;
   /** Sprites in flight (dropped at once if the scene goes). */
   private live = new Set<Phaser.GameObjects.GameObject>();
   private quipAt: Record<string, number> = {};
@@ -74,6 +99,15 @@ export class LegendKit {
       ['pk_oven', drawOvenMouth],
       ['pk_flour', drawFlour],
       ['pk_ragu', drawRaguFleck],
+      ['pk_cannoncart', drawCannonCart],
+      ['pk_cannonbarrel', drawCannonBarrel],
+      ['pk_cannonpie', drawCannonPie],
+      ['pk_confetti', drawConfetti],
+      ['pk_citadelwall', drawCitadelWall],
+      ['pk_pennant', drawPennant],
+      ['pk_tide', drawTideWave],
+      ['pk_foam', drawFoam],
+      ['pk_sand', drawSandGrain],
     ];
     for (const [k, draw] of tex) if (!this.sc.textures.exists(k)) this.sc.textures.addCanvas(k, draw());
   }
@@ -89,9 +123,11 @@ export class LegendKit {
     return true;
   }
 
-  private img(x: number, y: number, key: string, under = false): Phaser.GameObjects.Image {
+  /** A sprite in flight: over the table (`under`: under the other effects), or `back` behind the pizzas. */
+  private img(x: number, y: number, key: string, under: boolean | 'back' = false): Phaser.GameObjects.Image {
     const o = this.sc.add.image(x, y, key);
-    if (under) this.a.fxLayer.addAt(o, 0);
+    if (under === 'back') this.a.underLayer.add(o);
+    else if (under) this.a.fxLayer.addAt(o, 0);
     else this.a.fxLayer.add(o);
     this.live.add(o);
     o.once('destroy', () => this.live.delete(o));
@@ -102,13 +138,23 @@ export class LegendKit {
 
   runStart(): void {
     this.silverT = 0;
+    this.bigTopT = 0;
+    this.tideDue = false;
+    this.citadel = [];
     this.ladleUsed = 0;
     this.baked.clear();
     this.ovenStage = -1;
   }
 
-  waveStart(_n: number): void {
+  waveStart(wave: number): void {
     this.ladleUsed = 0;
+    // Sandcastle Citadel's walls go up; Tidal Tiki's tide is due every 4th wave (enhanced every 3rd)
+    this.citadelUp();
+    // (a Tiki frozen or stale as the wave starts still brings its tide: it comes once the Tiki grants again)
+    const ghost = this.a.possessed();
+    const tiki = [...new Set([...this.h.granting('tidalWash'), ...this.a.alivePizzas().filter((p) => p.type.perk === 'tidalWash' && p !== ghost)])];
+    this.tideDue = tiki.length > 0 && wave % (tiki.some((p) => p.enhanced) ? 3 : 4) === 0;
+    this.tideT = 0;
     // The First Bake: every pizza starts the wave fresh (one bought in the shop too), and the first time each starts a
     // wave whole it gets its slice over the top
     const bakers = this.h.granting('firstBake');
@@ -127,6 +173,10 @@ export class LegendKit {
   }
 
   waveClear(n: number): void {
+    // the citadel's keep flies all its pennants again in the shop (ready for the next wave)
+    this.citadel = [];
+    for (const p of this.a.alivePizzas()) if (p.perk === 'citadelWall') p.flags.citadelLeft = p.enhanced ? 4 : 3;
+    this.tideDue = false;
     // The First Bake tops every pizza up as the wave clears, so the shop shows them fresh
     if (this.h.granting('firstBake').length) this.freshen(Math.floor((n - 1) / 5));
   }
@@ -224,6 +274,20 @@ export class LegendKit {
   // ——— Silver Service ———
 
   update(dt: number): void {
+    this.tideTick(dt);
+    // Big Top Pie: every 20 s (two pies: 10) of wave with a foot on the table, the cannon fires at the toughest foot
+    const top = this.h.c('bigTopCannon');
+    if (top > 0) {
+      const feet = this.a.allFeet().filter((f) => f.alive && f.hittable && f.y > 60);
+      if (feet.length) this.bigTopT += dt;
+      if (this.bigTopT >= 20 / top) {
+        const tough = feet.filter((f) => f.y > 120).sort((p, q) => q.hp - p.hp)[0];
+        if (tough) {
+          this.bigTopT = 0;
+          this.bigTop(tough);
+        }
+      }
+    }
     const k = this.h.c('silverTray');
     if (k <= 0) return;
     this.silverT += dt;
@@ -357,6 +421,384 @@ export class LegendKit {
         a.quip(p.x, p.surfaceY - 200, `+${n} SLICE${n > 1 ? 'S' : ''} OVER!`, look.css, 32);
       });
     });
+  }
+
+  // ════════════════════════════ Act 2 (batch 2) ════════════════════════════
+
+  // ——— Big Top Pie ———
+
+  /** King Honk's cannon fires a cream pie at the toughest foot on the table (bosses too) for ×8, and every foot laughs:
+   *  ordinary ones stunned 1 s, bosses, mini-bosses and feet a fight moves by hand only giggle (40% slower, 1 s). */
+  private bigTop(target: Foot): void {
+    const a = this.a;
+    const pies = this.h.granting('bigTopCannon');
+    const src = pies[0];
+    if (!src) return;
+    const light = this.h.bossFight();
+    const look = legendLook('bigtoppie');
+    for (const p of pies) p.perkFired({ quip: false });
+    // the cannon rolls up beside its pie, on the side towards the target, clear of its plate
+    const dir = target.cx >= src.x ? 1 : -1;
+    const cx = Phaser.Math.Clamp(src.x + dir * src.radius * 1.25, 80, W - 80);
+    const cy = src.surfaceY - 24;
+    const k = 0.62;
+    const cart = this.img(cx, cy + 40, 'pk_cannoncart').setOrigin(0.5, 0.42).setScale(k * 0.6).setAlpha(0).setFlipX(dir < 0);
+    const barrel = this.img(cx, cy + 40, 'pk_cannonbarrel').setOrigin(0.16, 0.5).setScale(k * 0.6).setAlpha(0).setFlipY(dir < 0);
+    // (aim: from the trunnion at the target, kept above the horizon)
+    const aimAt = () => {
+      const ang = Math.atan2(target.cy - cy, target.cx - cx);
+      return dir > 0 ? Phaser.Math.Clamp(ang, -1.1, -0.3) : Phaser.Math.Clamp(ang, -Math.PI + 0.3, -Math.PI + 1.1);
+    };
+    barrel.setRotation(dir > 0 ? -0.2 : -Math.PI + 0.2);
+    a.sfx('sfx_clownking_honkwind', { volume: 0.6 });
+    a.quip(src.x, src.surfaceY - 320, 'BIG TOP!', look.css, 50);
+    this.sc.tweens.add({ targets: [cart, barrel], y: cy, alpha: 1, scale: k, duration: 260, ease: 'Back.Out' });
+    // it swings round to aim (anticipation), squashes, and fires
+    this.sc.time.delayedCall(260, () => {
+      if (!barrel.active) return;
+      this.sc.tweens.add({ targets: barrel, rotation: aimAt(), duration: 220, ease: 'Sine.InOut' });
+      this.sc.tweens.add({ targets: [cart, barrel], scaleY: k * 0.9, scaleX: k * 1.06, duration: 200, ease: 'Quad.In' });
+    });
+    this.sc.time.delayedCall(500, () => {
+      if (!barrel.active) return;
+      const ang = barrel.rotation;
+      const len = 300 * 0.84 * k;
+      const mx = cx + Math.cos(ang) * len;
+      const my = cy + Math.sin(ang) * len;
+      a.sfx('sfx_hitboom', { volume: light ? 0.5 : 0.7 });
+      a.sfx('sfx_clownking_honk', { volume: 0.5 });
+      a.shake(light ? 90 : 160, light ? 0.003 : 0.006);
+      // the recoil: the barrel kicks back and stretches, then settles
+      this.sc.tweens.add({ targets: [cart, barrel], scaleX: k * 0.92, scaleY: k * 1.08, duration: 70, yoyo: true });
+      this.sc.tweens.add({ targets: barrel, x: cx - Math.cos(ang) * 18, y: cy - Math.sin(ang) * 18, duration: 70, yoyo: true });
+      // muzzle flash, smoke and confetti
+      const flash = this.img(mx, my, 'glow').setTint(0xfff2b0).setBlendMode(Phaser.BlendModes.ADD).setScale(0.9).setAlpha(0.95);
+      this.sc.tweens.add({ targets: flash, scale: 1.8, alpha: 0, duration: 260, onComplete: () => flash.destroy() });
+      for (let i = 0; i < (light ? 2 : 4); i++) a.fx.puff(mx + (crand() - 0.5) * 30, my + (crand() - 0.5) * 20, 2);
+      this.confetti(mx, my, ang, light ? 10 : 22);
+      // the pie flies, spinning, in a short arc to wherever the foot is now
+      const pie = this.img(mx, my, 'pk_cannonpie').setScale(0.42).setRotation(crand() * 0.6);
+      const x0 = mx;
+      const y0 = my;
+      const ms = 360;
+      // (where it's going: the foot, or where it last was if it falls first)
+      let lx = target.cx;
+      let ly = target.cy;
+      this.sc.tweens.addCounter({
+        from: 0,
+        to: 1,
+        duration: ms,
+        ease: 'Sine.In',
+        onUpdate: (tw) => {
+          if (!pie.active) return;
+          const u = tw.getValue() ?? 0;
+          if (target.alive) {
+            lx = target.cx;
+            ly = target.cy;
+          }
+          pie.setPosition(x0 + (lx - x0) * u, y0 + (ly - y0) * u - Math.sin(u * Math.PI) * 90);
+          pie.rotation += 0.25 * dir;
+          pie.setScale(0.42 + u * 0.22);
+          if (!light && crand() < 0.6) a.fx.propTrail(pie.x - Math.cos(ang) * 30, pie.y, crand() < 0.5 ? 0xffffff : 0xffd23f, 0.5);
+        },
+        onComplete: () => {
+          const px = pie.x;
+          const py = pie.y;
+          pie.destroy();
+          this.splat(target, px, py, light);
+        },
+      });
+      // the cannon rolls away
+      this.sc.tweens.add({ targets: [cart, barrel], alpha: 0, y: cy + 50, delay: 700, duration: 320, ease: 'Quad.In', onComplete: () => {
+        cart.destroy();
+        barrel.destroy();
+      } });
+    });
+  }
+
+  /** The pie lands: SPLAT, cream everywhere, ×8 (Legendary-scaled), then every foot laughs. */
+  private splat(target: Foot, x: number, y: number, light: boolean): void {
+    const a = this.a;
+    a.sfx('sfx_clownking_piesplat', { volume: 0.8 });
+    a.fx.ring(x, y, 0xffffff, 1.8, 0.5);
+    a.fx.ring(x, y, legendLook('bigtoppie').col, 2.4, 0.45);
+    for (let i = 0; i < (light ? 7 : 14); i++) {
+      const ang = crand() * Math.PI * 2;
+      const sp = 90 + crand() * 200;
+      const c = this.img(x, y, 'pk_foam').setTint(crand() < 0.25 ? 0xffe0e8 : 0xffffff).setScale(0.4 + crand() * 0.6);
+      this.sc.tweens.add({ targets: c, x: x + Math.cos(ang) * sp, y: y + Math.sin(ang) * sp * 0.7 + 60, alpha: 0, angle: crand() * 200, duration: 560 + crand() * 200, ease: 'Quad.Out', onComplete: () => c.destroy() });
+    }
+    if (target.alive) {
+      const dmg = legendDmg(8, this.run.stats.damage, this.run.heat);
+      target.flash(0xffffff, 120);
+      this.h.dealDamage(target, dmg, 'explode', 350, 'perk:bigTopCannon');
+      a.quip(target.x, target.cy - 200, 'CANNON PIE! ×8', legendLook('bigtoppie').css, 44);
+    }
+    this.sc.time.delayedCall(220, () => this.laugh(light, target));
+  }
+
+  /** Every foot on the table laughs: "HA!"s over them, a giggle, and they're stunned (bosses only giggle, slowed). */
+  private laugh(light: boolean, target: Foot): void {
+    const a = this.a;
+    const feet = a.allFeet().filter((f) => f.alive && f.hittable && f.y > 0 && !f.zombieHold);
+    if (!feet.length) return;
+    a.sfx('sfx_jokester_giggle', { volume: 0.6, throttle: 400 });
+    const words = ['HA!', 'HO HO!', 'HEE!', 'HAHA!'];
+    let shown = 0;
+    for (const f of feet) {
+      if (f.isBossLike || f.puppet || f.brain.free) {
+        // (only a slow about to run out is replaced: a longer one is never made stronger)
+        if (!f.type.traits.includes('immuneSlow') && (f.slowT <= 1 || f.slowPct >= 0.4)) {
+          if (f.slowT <= 1) f.slowPct = 0.4;
+          f.slowT = Math.max(f.slowT, 1);
+        }
+      } else if (!(f.stunT > 0 && f.frozen)) {
+        f.stun(1);
+      }
+      // (a few laughs, not one over every foot, and none over the pie's target: its own quip is there)
+      if (f !== target && shown < (light ? 2 : 4)) {
+        a.quip(f.x + (crand() - 0.5) * 40, f.cy - 110, words[shown % words.length], '#fff2b0', 30);
+        shown++;
+      }
+    }
+    if (feet.length > 1) a.quip(W / 2, 260, 'EVERY FOOT LAUGHS!', legendLook('bigtoppie').css, 40);
+  }
+
+  /** A burst of circus confetti from (x, y), thrown along `ang`. */
+  private confetti(x: number, y: number, ang: number, n: number): void {
+    const cols = legendLook('bigtoppie').confetti.map((c) => parseInt(c.slice(1), 16));
+    for (let i = 0; i < n; i++) {
+      const a2 = ang + (crand() - 0.5) * 1.6;
+      const sp = 140 + crand() * 260;
+      const c = this.img(x, y, 'pk_confetti').setTint(cols[i % cols.length]).setScale(0.8 + crand() * 0.6).setRotation(crand() * 6);
+      this.sc.tweens.add({
+        targets: c,
+        x: x + Math.cos(a2) * sp,
+        y: y + Math.sin(a2) * sp + 120,
+        rotation: c.rotation + (crand() - 0.5) * 12,
+        scaleY: { from: c.scaleY, to: -c.scaleY },
+        alpha: 0,
+        duration: 800 + crand() * 400,
+        ease: 'Quad.Out',
+        onComplete: () => c.destroy(),
+      });
+    }
+  }
+
+  // ——— Sandcastle Citadel ———
+
+  /** The citadel's walls this wave: each Citadel pie's stomps left (it lasts the wave even if its pie is lost). */
+  private citadel: { p: Pizza; left: number }[] = [];
+
+  /** The stomps the citadel can still take this wave. */
+  get citadelLeft(): number {
+    return this.citadel.reduce((n, c) => n + c.left, 0);
+  }
+
+  /** As a wave starts the citadel's walls go up: 3 stomps a pie (enhanced 4), its keep's pennants rising one a stomp. */
+  private citadelUp(): void {
+    const pies = this.h.granting('citadelWall');
+    this.citadel = pies.map((p) => ({ p, left: p.enhanced ? 4 : 3 }));
+    for (const c of this.citadel) c.p.flags.citadelLeft = c.left;
+    const n = this.citadelLeft;
+    if (!n) return;
+    const a = this.a;
+    const look = legendLook('sandcastlecitadel');
+    this.sc.time.delayedCall(700, () => {
+      a.sfx('sfx_sandcastle_walls', { volume: 0.5, throttle: 300 });
+      for (const c of this.citadel) {
+        if (c.p.dead || c.p.type.perk !== 'citadelWall') continue;
+        const [kx, ky] = this.keepAt(c.p);
+        a.fx.ring(kx, ky + 10, look.col, 1.2, 0.45);
+        for (let i = 0; i < 6; i++) {
+          const g = this.img(kx + (crand() - 0.5) * 60, ky + 10, 'pk_sand').setScale(0.8 + crand() * 0.6);
+          this.sc.tweens.add({ targets: g, y: g.y - 30 - crand() * 30, alpha: 0, duration: 500, ease: 'Quad.Out', onComplete: () => g.destroy() });
+        }
+      }
+      const p = this.citadel.find((c) => !c.p.dead)?.p;
+      if (p) {
+        a.quip(p.x, p.surfaceY - 300, `THE CITADEL: ${n} STOMPS`, look.css, 32);
+        p.perkFired({ quip: false });
+      }
+    });
+  }
+
+  /** Where a Citadel pie's keep stands (world): beside its back, on the right (as its aura draws it). */
+  private keepAt(p: Pizza): [number, number] {
+    return [p.x + p.radius * 1.02, p.surfaceY - p.radius * 0.5 * 0.62];
+  }
+
+  /** A stomp on p, after Phantom Waltz's ghost and Sandcastle Sundae's wall: the citadel takes it if it can (checked
+   *  where Pizza Stone is, so a piercing stomp goes through; bosses are blocked too). True when blocked. */
+  citadelStomp(f: Foot, p: Pizza): boolean {
+    if (p === this.a.possessed()) return false;
+    const open = this.citadel.filter((c) => c.left > 0);
+    if (!open.length) return false;
+    // (from the Citadel nearest the stomped pie)
+    const c = open.reduce((b, q) => (Math.abs(q.p.x - p.x) < Math.abs(b.p.x - p.x) ? q : b));
+    c.left--;
+    c.p.flags.citadelLeft = c.left;
+    this.citadelBlock(f, p, c.p, c.left);
+    return true;
+  }
+
+  /** Sam's citadel wall bursts up out of the sand behind the pie, the foot slams into it and bounces off, sand flies, a
+   *  pennant is torn off the keep. */
+  private citadelBlock(f: Foot, p: Pizza, src: Pizza, leftHere: number): void {
+    const a = this.a;
+    const light = this.h.bossFight();
+    const look = legendLook('sandcastlecitadel');
+    const total = this.citadelLeft;
+    // (it rises behind the stomped pie, in the layer under the pizzas: the pie, its face, label and freshness bar all
+    // draw over it, and it towers up behind them into the foot's way)
+    const wy = p.surfaceY - p.radius * TILT * 0.55;
+    const wx = p.x;
+    const k = Phaser.Math.Clamp(p.radius / 240, 0.5, 0.78);
+    const wall = this.img(wx, wy + 20, 'pk_citadelwall', 'back').setOrigin(0.5, 1).setScale(k * 1.05, 0);
+    this.sc.tweens.add({ targets: wall, scaleY: k, y: wy, duration: 140, ease: 'Back.Out' });
+    // the thud: it squashes as the foot hits, then sinks back into the sand
+    this.sc.time.delayedCall(140, () => {
+      if (!wall.active) return;
+      this.sc.tweens.add({ targets: wall, scaleY: k * 0.9, scaleX: k * 1.1, duration: 70, yoyo: true });
+      this.sc.tweens.add({ targets: wall, scaleY: 0, alpha: 0, delay: 560, duration: 340, ease: 'Quad.In', onComplete: () => wall.destroy() });
+    });
+    for (let i = 0; i < (light ? 8 : 16); i++) {
+      const ang = -Math.PI / 2 + (crand() - 0.5) * 2.4;
+      const sp = 120 + crand() * 220;
+      const g = this.img(wx + (crand() - 0.5) * 220, wy - 120 - crand() * 80, 'pk_sand').setScale(0.8 + crand() * 1.2);
+      this.sc.tweens.add({ targets: g, x: g.x + Math.cos(ang) * sp * 0.5, y: g.y + Math.sin(ang) * sp * 0.5 + 90, angle: crand() * 360, alpha: 0, duration: 650, ease: 'Quad.Out', onComplete: () => g.destroy() });
+    }
+    for (let i = 0; i < (light ? 1 : 3); i++) a.fx.puff(f.cx + (crand() - 0.5) * 120, Math.min(f.cy + 60, wy - 160), 2);
+    a.fx.ring(f.cx, Math.min(f.cy + 60, wy - 160), look.col, 1.8, 0.45);
+    a.shake(light ? 90 : 150, light ? 0.003 : 0.005);
+    a.sfx('sfx_sandcastle_walls', { volume: 0.7, throttle: 120 });
+    a.sfx('sfx_smack_sand_heavy', { volume: 0.6 });
+    this.sc.time.delayedCall(420, () => a.sfx('sfx_sandcastle_pour', { volume: 0.35, throttle: 300 }));
+    a.quip(f.x, Math.min(f.cy - 140, wy - 300), total > 0 ? `THE CITADEL! ${total} LEFT` : 'THE CITADEL HELD!', look.css, 40);
+    // a pennant torn off the keep, fluttering away (an Echo Slice copying the Citadel has no keep)
+    if (!src.dead && src.type.perk === 'citadelWall') {
+      const [kx, ky] = this.keepAt(src);
+      const pen = this.img(kx, ky - 50 - leftHere * 6, 'pk_pennant').setOrigin(0, 0.5).setScale(0.45);
+      this.sc.tweens.add({ targets: pen, x: kx + 120 + crand() * 60, y: ky - 180, angle: 300 + crand() * 200, scaleY: { from: 0.45, to: -0.45 }, alpha: 0, duration: 900, ease: 'Quad.Out', onComplete: () => pen.destroy() });
+      src.perkFired({ quip: false });
+    }
+    f.knock(900);
+  }
+
+  // ——— Tidal Tiki ———
+
+  /** Tidal Tiki: this wave's tide is still to come, and seconds of wave so far. */
+  private tideDue = false;
+  private tideT = 0;
+
+  /** Every 4th wave (enhanced every 3rd) the tide comes in once, a few seconds in, once the feet are pressing. */
+  private tideTick(dt: number): void {
+    if (!this.tideDue) return;
+    this.tideT += dt;
+    if (this.tideT < 3) return;
+    const feet = this.a.allFeet();
+    const diving = feet.some((f) => this.batable(f) && f.y > 300);
+    const any = feet.some((f) => f.alive && f.hittable && f.y > 60);
+    if (!diving && !(this.tideT >= 10 && any)) return;
+    if (!this.h.granting('tidalWash').length) return;
+    this.tideDue = false;
+    this.tide();
+  }
+
+  /** The tide rolls across the table behind the pizzas from the Tiki's side: every foot it reaches is washed back up
+   *  to the top (bosses and mini-bosses knocked back; feet a fight moves by hand and friendly zombies left alone), and
+   *  as it passes every pizza gets a slice back (one for each Tidal Tiki). */
+  private tide(): void {
+    const a = this.a;
+    const pies = this.h.granting('tidalWash');
+    const src = pies[0];
+    if (!src) return;
+    const light = this.h.bossFight();
+    const look = legendLook('tidaltiki');
+    for (const p of pies) p.perkFired({ quip: false });
+    const table = Math.min(...a.alivePizzas().map((p) => p.surfaceY - p.radius * TILT), src.surfaceY - src.radius * TILT);
+    // (its foot along the back of the table, behind the freshness bars: it washes the lanes, not the pies)
+    const y = table - 40;
+    const dir = src.x <= W / 2 ? 1 : -1;
+    const sc = 1.3;
+    const x0 = dir > 0 ? -520 : W + 520;
+    const x1 = dir > 0 ? W + 520 : -520;
+    const ms = 1600;
+    a.sfx('sfx_zeus_wave', { volume: light ? 0.55 : 0.75 });
+    a.sfx('sfx_seagull', { volume: 0.4 });
+    a.quip(src.x, src.surfaceY - 330, 'TIDAL TIKI! THE TIDE’S IN', look.css, 44);
+    const wave = this.img(x0, y, 'pk_tide', true).setOrigin(0.5, 1).setScale(sc * dir, sc).setAlpha(0.92);
+    const sheen = this.img(x0, y, 'glow', true).setTint(look.col).setBlendMode(Phaser.BlendModes.ADD).setScale(4, 1.2).setAlpha(0.35);
+    this.sc.tweens.add({
+      targets: [wave, sheen],
+      x: x1,
+      duration: ms,
+      ease: 'Sine.InOut',
+      onUpdate: (tw) => {
+        const u = tw.progress;
+        // it rears up as it crosses the middle and spills spray off its foot
+        wave.setScale(sc * dir * (1 + 0.08 * Math.sin(u * Math.PI)), sc * (0.85 + 0.25 * Math.sin(u * Math.PI)));
+        sheen.y = y - 60;
+        if (!light && crand() < 0.6) {
+          const s = this.img(wave.x + dir * 260 * sc, y - 20 - crand() * 40, 'pk_foam').setScale(0.6 + crand() * 0.8).setAlpha(0.9);
+          this.sc.tweens.add({ targets: s, x: s.x + dir * (40 + crand() * 80), y: s.y - 40 - crand() * 60, alpha: 0, duration: 500, ease: 'Quad.Out', onComplete: () => s.destroy() });
+        }
+      },
+      onComplete: () => {
+        wave.destroy();
+        sheen.destroy();
+      },
+    });
+    // each foot is washed up as the wave's front reaches it
+    const cross = (x: number) => Phaser.Math.Clamp((x - x0) / (x1 - x0), 0, 1);
+    for (const f of a.allFeet()) {
+      if (!f.alive || !f.hittable || f.zombieHold || f.puppet || f.brain.free) continue;
+      // (the crest runs 260 px ahead of the wave's middle)
+      const u = cross(f.cx - dir * 260 * sc);
+      const t = (Math.acos(1 - 2 * u) / Math.PI) * ms;
+      this.sc.time.delayedCall(t, () => this.wash(f, light));
+    }
+    // and as it passes each pizza, a slice back
+    const n = pies.length;
+    for (const p of a.alivePizzas()) {
+      const u = cross(p.x - dir * 260 * sc);
+      const t = (Math.acos(1 - 2 * u) / Math.PI) * ms;
+      this.sc.time.delayedCall(t, () => {
+        if (p.dead) return;
+        this.h.heal(p, n);
+        a.fx.ring(p.x, p.surfaceY - 24, look.col, 2, 0.42);
+        for (let i = 0; i < (light ? 3 : 6); i++) {
+          const d = this.img(p.x + (crand() - 0.5) * p.radius * 1.6, p.surfaceY - p.radius * TILT, 'pk_foam').setScale(0.5 + crand() * 0.5).setAlpha(0.9);
+          this.sc.tweens.add({ targets: d, y: d.y - 50 - crand() * 40, alpha: 0, duration: 520, ease: 'Quad.Out', onComplete: () => d.destroy() });
+        }
+        a.quip(p.x, p.surfaceY - 200, `+${n} SLICE${n > 1 ? 'S' : ''}`, look.css2, 30);
+      });
+    }
+    this.sc.time.delayedCall(ms * 0.5, () => a.sfx('sfx_kraken_splash', { volume: 0.45 }));
+  }
+
+  private wash(f: Foot, light: boolean): void {
+    const a = this.a;
+    if (!f.alive || !f.hittable || f.zombieHold || f.puppet || f.brain.free) return;
+    a.sfx('sfx_smack_water_heavy', { volume: 0.5, throttle: 90 });
+    a.fx.ring(f.cx, f.cy + 60, 0x8af0f0, 1.3, 0.5);
+    for (let i = 0; i < (light ? 2 : 4); i++) {
+      const s = this.img(f.cx + (crand() - 0.5) * 60, f.cy + 50, 'pk_foam').setScale(0.5 + crand() * 0.6);
+      this.sc.tweens.add({ targets: s, y: s.y - 60 - crand() * 50, x: s.x + (crand() - 0.5) * 60, alpha: 0, duration: 520, ease: 'Quad.Out', onComplete: () => s.destroy() });
+    }
+    if (f.isBossLike) {
+      f.knock(1400);
+      return;
+    }
+    if (f.state === 'descend' || f.state === 'stomp') {
+      // swept back up to the top (the lift slows as it rises and stops at the hover line, where it picks a new target)
+      f.setState('lift');
+      f.vy = -Math.sqrt(1400 * Math.max(40, f.y - HOVER_Y + 20));
+    } else if (f.state === 'hover') {
+      // (a hovering foot starts its wait over, and backs off a little: never down)
+      f.stateT = 0;
+      f.y = Math.min(f.y, Math.max(HOVER_Y - 30, f.y - 50));
+    }
   }
 
   // ——— the scene ———

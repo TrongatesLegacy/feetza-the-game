@@ -38,8 +38,9 @@ const BORROW_SKIP = new Set<PizzaPerk>([
 const LEGEND_PERKS = new Set<PizzaPerk>(PIZZAS.filter((p) => p.rarity === 'legendary').map((p) => p.perk));
 /** Perks Echo Slice won't copy: the same as Arcobaleno's (set up when a pizza is placed, tied to its own type, once a
  *  run, the crust earners, the other borrowers) and itself. It does copy a Legendary's once-a-wave or timed perk
- *  (Nonna's ladle: one more swat a wave; Silver Service: the tray twice as often), never a once-a-run one (The First
- *  Bake). It counts as a second copy of anything else, doing what two
+ *  (Nonna's ladle: one more swat a wave; Silver Service: the tray twice as often; Big Top Pie: the cannon twice as
+ *  often; Sandcastle Citadel: 3 more stomps a wave; Tidal Tiki: one more slice from the tide), never a once-a-run one
+ *  (The First Bake). It counts as a second copy of anything else, doing what two
  *  of that pizza would. */
 export const ECHO_SKIP = BORROW_SKIP;
 /** Every perk a pizza has, for Echo Slice's flag (it keeps its copy as an index: 1 + its place here; 0 nothing). */
@@ -267,6 +268,7 @@ export class PizzaPerkKit {
       bossFight: () => this.bossOn(),
       dealDamage: (f, n, source, knock, tag) => host.dealDamage(f, n, source, knock, tag),
       recompute: () => host.recompute(),
+      heal: (p, n) => host.healPizza(p, n),
     });
   }
 
@@ -337,6 +339,8 @@ export class PizzaPerkKit {
   /** Enhancing Century Crust grows it to 12 slices. */
   enhanced(p: Pizza): void {
     if (p.type.perk === 'bigStart') p.addSlices(2);
+    // (Sandcastle Citadel's keep flies its fourth pennant at once)
+    if (p.type.perk === 'citadelWall') p.flags.citadelLeft = 4;
   }
 
   /** A new run (not a continue): count night runs, start the perfect streak over. */
@@ -710,8 +714,8 @@ export class PizzaPerkKit {
     return true;
   }
 
-  /** Phantom Waltz's ghost guarding p, then Sandcastle Sundae's sand wall: true when the stomp is blocked (checked where
-   *  Pizza Stone is, so a piercing stomp goes through). */
+  /** Phantom Waltz's ghost guarding p, then Sandcastle Sundae's sand wall, then Sandcastle Citadel's: true when the
+   *  stomp is blocked (checked where Pizza Stone is, so a piercing stomp goes through). */
   guardStomp(f: Foot, p: Pizza): boolean {
     if (p === this.a.possessed()) return false;
     const g = this.ghosts.find((o) => o.p === p && o.ready);
@@ -723,7 +727,8 @@ export class PizzaPerkKit {
       this.sandBlock(f, p);
       return true;
     }
-    return false;
+    // Sandcastle Citadel: its walls take what the Sundae's leave (src/game/pizzaLegends.ts)
+    return this.legends.citadelStomp(f, p);
   }
 
   private stone(f: Foot, p: Pizza): void {

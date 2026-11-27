@@ -615,6 +615,22 @@ const S: Record<string, Spec> = {
     dim: 0.1,
     emblem: 'pk_oven',
   },
+  // Big Top Finale: King Honk's circus cannon rolls up at the corner and fires cream pies down onto the toughest feet,
+  // confetti bursting off every foot as they laugh
+  'pizza:bigtoppie': {
+    steps: [{ k: 'show', tex: 'pk_cannoncart', size: 280, from: 'below', glow: 0xff5a68, ms: 760 }, { k: 'rain', tex: ['pk_cannonpie'], n: 6, size: 95, spin: true, trail: 0xffffff, splash: 0xffffff, t: 180 }, { k: 'rings', color: 0xffd23f, n: 2, icons: 'pk_confetti', nIcons: 18, iconTint: [0xe2322a, 0xffd23f, 0x2a7ae0, 0x3fc060, 0xff6ab0], t: 330 }],
+    sfx: [['sfx_clownking_honkwind', 0, 0.8], ['sfx_hitboom', 180, 0.8], ['sfx_clownking_piesplat', 360, 0.8], ['sfx_jokester_giggle', 480, 0.6]],
+    weight: 1,
+    dim: 0.08,
+    emblem: 'pk_cannonpie',
+  },
+  // High Tide: the Beach's wave breaks across the whole table, sea water flooding in and foam bursting off every foot
+  'pizza:tidaltiki': {
+    steps: [{ k: 'flood', kind: 'water', tint: 0x4ad8e0 }, { k: 'sweep', tex: 'pk_tide', dir: 1, size: 460, ms: 820, n: 1, ghosts: false, t: 60 }, { k: 'rings', color: 0x8af0f0, n: 2, icons: 'pk_foam', nIcons: 12, t: 320 }],
+    sfx: [['sfx_zeus_wave', 0, 0.85], ['sfx_seagull', 160, 0.5], ['sfx_smack_water_heavy', 320, 0.7]],
+    weight: 0.9,
+    emblem: 'pk_tide',
+  },
   // Eruption: the pizza erupts like a volcano, lava falling on every foot
   'pizza:volcano': {
     steps: [{ k: 'show', tex: 'pizza', size: 360, from: 'below', glow: RED, wiggle: true }, { k: 'rain', tex: ['p_fireball', 'flame'], n: 14, size: 90, trail: ORANGE, splash: ORANGE, t: 80 }],

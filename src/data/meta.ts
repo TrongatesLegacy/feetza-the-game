@@ -98,6 +98,7 @@ export const MILESTONES: Milestone[] = [
   { id: 'feet8000', name: 'Defeat 8,000 feet', pizza: 'serpentscoil' },
   // the pizza plan's Legendary milestones (docs/pizza-plan.md, section 12): a feat in the pizza's act, on Hot or hotter
   { id: 'waiterHot', name: 'Beat the Head Waiter on Hot or hotter without losing a slice', pizza: 'silverservice' },
+  { id: 'beachHot', name: 'Clear the Beach on Hot or hotter without losing a pizza', pizza: 'tidaltiki' },
 ];
 
 export const MILESTONE_BY_PIZZA: Record<string, Milestone> = Object.fromEntries(MILESTONES.filter((m) => m.pizza).map((m) => [m.pizza!, m]));

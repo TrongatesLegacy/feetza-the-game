@@ -107,7 +107,9 @@ export type PizzaPerk =
   // ——— the pizza plan's step 4, batch 3: the Epic milestones and Echo Slice (src/content/pizzas/p7.ts) ———
   | 'fenrirHowl' | 'bridgeLane' | 'skaldSaga' | 'frostbite' | 'surtrSpread' | 'serpentCoil' | 'echo'
   // ——— the pizza plan's step 5, batch 1: the first Legendaries, Act 1's (src/content/pizzas/p8.ts) ———
-  | 'nonnaLadle' | 'silverTray' | 'firstBake';
+  | 'nonnaLadle' | 'silverTray' | 'firstBake'
+  // ——— the pizza plan's step 5, batch 2: Act 2's Legendaries (src/content/pizzas/p9.ts) ———
+  | 'bigTopCannon' | 'citadelWall' | 'tidalWash';
 
 export interface PizzaType {
   id: string;
@@ -421,6 +423,10 @@ export const ENHANCED_PERK: Record<PizzaPerk, string | (() => string)> = {
   nonnaLadle: 'Twice a wave the ladle blocks a stomp ×5',
   silverTray: 'Every 10s a tray bats all divers back up',
   firstBake: 'Fresh each wave; once, 2 slices over max',
+  // the pizza plan's step 5, batch 2: Act 2's Legendaries
+  bigTopCannon: 'Cannon pie ×8 every 13s; all feet laugh',
+  citadelWall: 'Each wave the citadel blocks 4 stomps',
+  tidalWash: 'Every 3rd wave: feet washed up, +1 slice',
 };
 
 /** A perk's enhanced text. */

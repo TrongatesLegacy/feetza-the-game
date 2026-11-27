@@ -57,13 +57,13 @@ function dealt(card: HTMLElement, id: string): boolean {
   const stamp = el('b', `pzl-stamp${still ? ' still' : ''}`, '', 'LEGENDARY!');
   stamp.setAttribute('aria-hidden', 'true');
   // (over its picture, clear of its name, perk and price)
-  (card.querySelector('.offer-pic') ?? card).appendChild(stamp);
+  (card.querySelector('.offer-pic, .lu-pic') ?? card).appendChild(stamp);
   if (!still) card.classList.add('pzl-flip');
   setTimeout(() => card.isConnected && audio.sfx('sfx_legendfanfare', { volume: 0.75, throttle: 400 }), 140);
   setTimeout(() => {
     if (!card.isConnected) return;
     audio.sfx('sfx_legendstamp', { volume: 0.7, throttle: 300 });
-    tierBurst((card.querySelector('.offer-pic') ?? card).getBoundingClientRect(), 'legendary', 18, 1.4);
+    tierBurst((card.querySelector('.offer-pic, .lu-pic') ?? card).getBoundingClientRect(), 'legendary', 18, 1.4);
   }, 760);
   setTimeout(() => {
     dim.classList.add('out');

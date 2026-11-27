@@ -59,6 +59,10 @@ export interface RunSnapshot {
   forgeWaves?: number;
   /** The First Bake: the pizza types that have had their slice over the top this run. */
   legendBaked?: string[];
+  /** Tidal Tiki's feat (a stage cleared on Hot without losing a pizza): the stage seen from its first wave, and
+   *  whether a pizza has been lost in it. */
+  stageSeen?: number;
+  stageLost?: boolean;
   pizzasBought: number;
   eventCrusts: number;
   /** Crusts already paid into the bank this run. */

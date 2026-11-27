@@ -184,6 +184,10 @@ const PERK_ELEMENT: Partial<Record<PizzaPerk, { el: Element; quip?: string; col?
   surtrSpread: { el: 'fire', quip: "SURTR'S FIRE!", col: 0xff6a1a },
   serpentCoil: { el: 'water', quip: 'COILED!', col: 0x5fcf9a },
   echo: { el: 'echo', quip: 'ECHO!' },
+  // the pizza plan's step 5, batch 2: Act 2's Legendaries (their auras are their own: src/game/legendAuras.ts)
+  bigTopCannon: { el: 'rainbow', quip: 'BIG TOP!', col: 0xff5a68 },
+  citadelWall: { el: 'sand', quip: 'THE CITADEL!' },
+  tidalWash: { el: 'water', quip: 'TIDAL TIKI!', col: 0x4ad8e0 },
 };
 
 /** A perk's element: its own, else by its name, else by its pizza (a hot pie fire, a cold one frost), else power. */
@@ -224,6 +228,8 @@ export interface AuraCtx {
   col: number;
   /** A square pie (its rings and glow are rounded squares). */
   square: boolean;
+  /** The pizza's perk flags now (a Legendary's aura can show its perk's state: the citadel's pennants left). */
+  flags: () => Record<string, number | boolean>;
 }
 export interface AuraFrame {
   /** The pie's middle (local), its radii, and the plate's. */
@@ -720,6 +726,8 @@ export interface AliveHost {
   surfaceY: number;
   /** Redraw the pie with another top (the holed one while pieces hop), or its own (null). */
   setTop(top: HTMLCanvasElement | null): void;
+  /** Its perk flags (the Legendaries' auras read their perk's state from them). */
+  flags?: Record<string, number | boolean>;
 }
 
 /** Quips from the scene (set by GameScene; the menu has none). */
@@ -824,7 +832,7 @@ export class PizzaAlive {
     }
     if (this.set.aura) {
       const make = AURAS[p.id] ?? testAura;
-      this.aura = make({ scene: this.sc, under: this.under, mid: this.mid, top: this.top, s: () => this.host.s, col: p.finish?.glow ?? 0xffc83a, square: this.sq });
+      this.aura = make({ scene: this.sc, under: this.under, mid: this.mid, top: this.top, s: () => this.host.s, col: p.finish?.glow ?? 0xffc83a, square: this.sq, flags: () => this.host.flags ?? {} });
     }
     // the peel's painted layers (from the art cache, else painted in idle time): its real points, light map and
     // hopping pieces

@@ -278,6 +278,10 @@ export class GameScene extends Phaser.Scene implements Arena {
   private waveEvent2: EventId | null = null;
   private event2Started = false;
   private waveSlicesLost = 0;
+  /** Tidal Tiki's feat: the stage (its index on the journey, endless loops counted) seen from its first wave this run,
+   *  and whether a pizza has been lost in it. */
+  private stageSeen = -1;
+  private stageLost = false;
   private oliveT = 0;
   private garlicT = 0;
   private hitStop = 0;
@@ -679,6 +683,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       // (older saves don't have it: the waves already cleared stand in)
       this.perkKit.forgeWaves = snap.forgeWaves ?? this.run.wave;
       this.perkKit.legends.baked = new Set(snap.legendBaked ?? []);
+      this.stageSeen = snap.stageSeen ?? -1;
+      this.stageLost = !!snap.stageLost;
     }
     else {
       const slices = BASE_SLICES + (save.meta.pies ?? 0);
@@ -903,6 +909,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.goldenSpawned = false;
     this.miniSpawned = false;
     this.waveSlicesLost = 0;
+    this.stageSeen = -1;
+    this.stageLost = false;
     this.procs = [];
     // the lanes are cached by the pizzas' places: a new run with its pizzas in the same places must not reuse the
     // last run's lanes (they point at its pizzas)
@@ -956,6 +964,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       lostLastWave: this.perkKit.lostLastWave,
       forgeWaves: this.perkKit.forgeWaves,
       legendBaked: [...this.perkKit.legends.baked],
+      stageSeen: this.stageSeen,
+      stageLost: this.stageLost,
       pizzasBought: r.pizzasBought,
       eventCrusts: r.eventCrusts,
       bankedCrusts: r.bankedCrusts,
@@ -1270,6 +1280,11 @@ export class GameScene extends Phaser.Scene implements Arena {
   private beginWave(n: number, devBoss?: { id: string; hp?: number }): void {
     if (this.over) return;
     this.run.wave = n;
+    // Tidal Tiki's feat watches each stage from its first wave
+    if ((n - 1) % WAVES_PER_STAGE === 0) {
+      this.stageSeen = Math.floor((n - 1) / WAVES_PER_STAGE);
+      this.stageLost = false;
+    }
     this.syncPerkWave(n);
     this.tally.beginWave();
     // the act's stats count from its first wave (or from wherever this run joined it)
@@ -2184,6 +2199,9 @@ export class GameScene extends Phaser.Scene implements Arena {
     // its place peel is near: have its window painted (or read from the art cache) in idle moments, so the unlock's
     // toast is a quick draw
     if (where && !hasPeel(`place:${where}`) && (save.stageWaves[where] ?? 0) >= 6) void placePeelReady(`place:${where}`);
+    // Tidal Tiki's feat: the Beach cleared (its boss wave) on Hot or hotter, played from its first wave without losing
+    // a pizza
+    if (where === 'beach' && isBossWave(n) && legendHeatOk(this.run.heat) && this.stageSeen === Math.floor((n - 1) / WAVES_PER_STAGE) && !this.stageLost) save.pizzaGoals.beachHot = 1;
     for (const p of this.alivePizzas()) save.pizzaWaves[p.type.id] = (save.pizzaWaves[p.type.id] ?? 0) + 1;
     const eqId = this.peelId;
     save.peelBest[eqId] = Math.max(save.peelBest[eqId] ?? 0, n);
@@ -4252,7 +4270,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       blocked(false);
       return;
     }
-    // Phantom Waltz's friendly ghost, then Sandcastle Sundae's sand wall
+    // Phantom Waltz's friendly ghost, then Sandcastle Sundae's sand wall, then Sandcastle Citadel's
     if (!pierce && this.perkKit.guardStomp(f, p)) {
       blocked(false);
       return;
@@ -4436,6 +4454,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       return;
     }
     this.heroT.lost++;
+    this.stageLost = true;
     this.tracker.emit('pizzaLost', {});
     this.fx.puff(p.x, p.surfaceY, 14);
     this.fx.splat(p.x, p.surfaceY, true);
