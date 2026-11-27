@@ -31,6 +31,18 @@ effects: [
 ]
 ```
 
+Items write them through small constructors, which return exactly those typed objects:
+
+```ts
+effects: [
+  Effect.stat(Stat.ConsumableCards, Op.add(1)),                    // Mac & Cheese
+  Effect.onKill({ chance: 0.15, action: Action.summon(Ally.FriendlyGhost) }), // Phantom Waltz
+  Effect.every({ sec: 20, action: Action.blowUp(Target.Diving) }), // Steam Bun Pie
+]
+```
+
+Positional arguments are used for one or two obvious values, and a typed object for more (TypeScript has no named arguments, so `{ chance, action }` stands in for them). The constructors check their values (a chance between 0 and 1) and hold the defaults. What they return stays plain data, so a `switch` on `kind` still works and runs save and load cleanly.
+
 (The names are `as const` objects, so `Stat.ConsumableCards` autocompletes, renames safely and can't be misspelt. Each variant is its own type with no optional "options bag", so an effect that's missing a field doesn't compile.)
 
 - **Stat effects** (a number goes up or down) need no code at all: the STATS tab finds them, and their sources, from the declaration.
