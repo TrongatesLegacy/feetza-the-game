@@ -60,17 +60,31 @@ function showTip(el: HTMLElement): void {
   hideTip();
   owner = el;
   box = document.createElement('div');
-  box.className = card ? 'tipbox card' : 'tipbox';
+  box.className = card ? 'tipbox with-card' : 'tipbox';
   box.setAttribute('role', 'tooltip');
   if (card) box.append(card);
   else box.textContent = text;
   document.body.appendChild(box);
-  // above the element, or below when there's no room; always inside the screen
   const r = el.getBoundingClientRect();
   const b = box.getBoundingClientRect();
   const m = 8;
-  const above = r.top - b.height - 10 >= m;
-  const y = above ? r.top - b.height - 10 : Math.min(window.innerHeight - b.height - m, r.bottom + 10);
+  // a card sits beside what it came from (the popover the chip is in, or the chip), level with the chip: to its right,
+  // else its left; only when neither side has room does it go above or below like a text tip
+  if (card) {
+    const a = (el.closest('.st-pop') ?? el).getBoundingClientRect();
+    const gap = 14;
+    const y = Math.max(m, Math.min(window.innerHeight - b.height - m, r.top + r.height / 2 - b.height / 2));
+    const side = a.right + gap + b.width <= window.innerWidth - m ? a.right + gap : a.left - gap - b.width >= m ? a.left - gap - b.width : null;
+    if (side !== null) {
+      box.style.left = `${Math.round(side)}px`;
+      box.style.top = `${Math.round(y)}px`;
+      return;
+    }
+  }
+  // above the element, or below when there's no room; always inside the screen
+  const gapY = card ? 16 : 10;
+  const above = r.top - b.height - gapY >= m;
+  const y = above ? r.top - b.height - gapY : Math.min(window.innerHeight - b.height - m, r.bottom + gapY);
   const x = Math.max(m, Math.min(window.innerWidth - b.width - m, r.left + r.width / 2 - b.width / 2));
   box.style.left = `${Math.round(x)}px`;
   box.style.top = `${Math.round(y)}px`;

@@ -13,7 +13,7 @@ import type { Ability, Effect, Proc, Target } from './abilities';
 import { describeAbility, throwCount } from './abilities';
 import type { Stats } from '../data/upgrades';
 import { baseStats, UPGRADE_BY_ID } from '../data/upgrades';
-import type { PizzaPerk } from '../data/pizzas';
+import { PIZZA_BY_ID, type PizzaPerk } from '../data/pizzas';
 import { passiveBoost } from './slamMode';
 import { DOUBLE_CAP, TIP_MULT_CAP } from './Run';
 import { total, type DmgTally, type TallySpan } from './dmgTally';
@@ -709,11 +709,14 @@ export function buildView(inp: BuildInput): BuildView {
   // the shop's card count: how many topping cards a shop deals now (toppings that add or take away cards, and Mac &
   // Cheese's extra one-use card), against the usual
   const macs = st.extraConsumable > 0 ? inp.pizzas.filter((p) => p.perk === 'extraConsumable') : [];
-  if (st.cardDelta !== 0 || st.extraConsumable > 0) {
+  // (a Mac & Cheese whose perk is off, stale, frozen or eaten, deals no extra card: say so rather than leave it a mystery)
+  const offMacs = inp.pizzas.filter((p) => PIZZA_BY_ID[p.id]?.perk === 'extraConsumable' && !p.perk);
+  const p0 = (p: TablePizza) => (p.dead ? 'is eaten' : p.stale ? 'is stale' : 'is frozen');
+  if (st.cardDelta !== 0 || st.extraConsumable > 0 || offMacs.length) {
     const { now, base: usual } = inp.shopCards;
-    const src = [...from('cardDelta', 'extraConsumable'), ...macs.map(pzSrc).filter((m) => !from('extraConsumable').some((o) => o.key === m.key))];
+    const src = [...from('cardDelta', 'extraConsumable'), ...macs.map(pzSrc).filter((m) => !from('extraConsumable').some((o) => o.key === m.key)), ...offMacs.map((p) => ({ ...pzSrc(p), tone: 'flat' as const }))];
     const dealt = inp.shopCards.dealt;
-    const note = `${usual} normally${st.extraConsumable > 0 ? ` · ${st.extraConsumable} of them a one-use card (when one is free to deal)` : ''}${dealt !== null && dealt !== now ? ` · this shop dealt ${dealt}: cards are dealt as a shop opens, so this counts from the next shop` : ''}`;
+    const note = `${usual} normally${st.extraConsumable > 0 ? ` · ${st.extraConsumable} of them a one-use card (when one is free to deal)` : ''}${dealt !== null && dealt !== now ? ` · this shop dealt ${dealt}: cards are dealt as a shop opens, so this counts from the next shop` : ''}${offMacs.length ? ` · ${offMacs.map((p) => p.name).join(', ')} ${p0(offMacs[0])}: no extra card until it's back` : ''}`;
     eco.push({ label: 'Cards per shop', num: now, fmt: 'int', icon: '🃏', tone: now > usual ? 'up' : now < usual ? 'down' : 'flat', from: src, note });
   }
   if (st.goldenDiscount > 0) eco.push({ label: 'Golden Menu off', num: pct(st.goldenDiscount), fmt: 'pct', icon: '🎫', tone: 'up', from: from('goldenDiscount') });
