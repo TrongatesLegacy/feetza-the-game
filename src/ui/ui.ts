@@ -71,6 +71,31 @@ function madeBy(): HTMLElement {
 const X_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="3.6" stroke-linecap="round"/></svg>';
 
 /** A chunky cog for the shop's pause-menu button (centred in its box, unlike the ⚙ glyph). */
+/** The empty counter: a chalk SOLD OUT board hanging over an empty plate with a few crumbs (the game's plate). */
+/** A counter tab's label: its full wording, and a short one for a phone's narrow cards (style.css swaps them). */
+const tabText = (full: string, short: string): HTMLElement[] => [h('span', { class: 'tl' }, full), h('span', { class: 'ts' }, short)];
+
+const SOLD_OUT_SVG = `<svg viewBox="0 0 220 150" xmlns="http://www.w3.org/2000/svg">
+<g class="ce-sign"><g stroke="#5a3a1e" stroke-width="2.2" stroke-linecap="round"><path d="M62 4 L80 34"/><path d="M158 4 L140 34"/></g>
+<circle cx="62" cy="4" r="3.2" fill="#8a5a2e"/><circle cx="158" cy="4" r="3.2" fill="#8a5a2e"/>
+<g transform="rotate(-3 110 52)">
+<rect x="52" y="30" width="116" height="46" rx="7" fill="#8a5a2e" stroke="#2a1810" stroke-width="2.6"/>
+<rect x="58" y="36" width="104" height="34" rx="4" fill="#2f3d35"/>
+<path d="M64 42 l24 1 M120 64 l34 -1" stroke="rgba(255,255,255,0.08)" stroke-width="5" stroke-linecap="round"/>
+<text x="110" y="61" text-anchor="middle" font-family="Lilita One, Fredoka, sans-serif" font-size="21" letter-spacing="1.5" fill="#f4f1e6">SOLD OUT</text>
+<path d="M70 66 q40 4 80 -1" stroke="#ff9a7a" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.85"/>
+</g></g>
+<ellipse cx="116" cy="134" rx="80" ry="13" fill="rgba(0,0,0,0.22)"/>
+<ellipse cx="110" cy="128" rx="78" ry="19" fill="#b9bec8"/>
+<ellipse cx="110" cy="124" rx="78" ry="19" fill="#f4f6f9" stroke="#7d8592" stroke-width="2"/>
+<ellipse cx="110" cy="124" rx="73" ry="17" fill="none" stroke="rgba(59,111,214,0.35)" stroke-width="2"/>
+<ellipse cx="110" cy="124" rx="60" ry="13" fill="none" stroke="#aab0ba" stroke-width="2.5" opacity="0.7"/>
+<path d="M60 118 a50 11 0 0 1 40 -6" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round"/>
+<g fill="#d39646" stroke="#8a5a20" stroke-width="0.8"><path d="M92 124 l7 -3 l3 5 l-8 2z"/><circle cx="121" cy="127" r="2.2"/><circle cx="132" cy="121" r="1.6"/><circle cx="104" cy="130" r="1.4"/></g>
+<circle cx="113" cy="121" r="2" fill="#c8402a"/>
+<path d="M140 127 q5 -6 10 -1 q-5 4 -10 1z" fill="#3f8a3a"/>
+</svg>`;
+
 const GEAR_SVG =
   '<svg class="gear" viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor">' +
   Array.from({ length: 8 }, (_, i) => `<rect x="10" y="1.2" width="4" height="5" rx="1" transform="rotate(${i * 45} 12 12)"/>`).join('') +
@@ -1209,14 +1234,16 @@ class UI {
           return card(
             ' special',
             pic,
-            h('div', { class: 'offer-text' }, h('span', { class: 'tag' }, o.fromPizzeria ? 'PIZZERIA SPECIAL' : "CHEF'S SPECIAL"), h('b', {}, o.name), h('span', {}, o.perk)),
+            // what kind of offer it is: a tab of the frame, top left (its tier's is centred; NEW PIZZA's top right)
+            h('span', { class: `kind-tab k-special${o.fromPizzeria ? ' k-pizzeria' : ''}` }, ...(o.fromPizzeria ? tabText('PIZZERIA SPECIAL', 'PIZZERIA') : tabText('CHEF’S SPECIAL', 'SPECIAL'))),
+            h('div', { class: 'offer-text' }, h('b', {}, o.name), h('span', { title: o.perk }, o.perk)),
             b,
-            // a ribbon across the card: what makes a Chef's Special worth it
-            h('div', { class: 'unlock-note' }, h('span', { class: 'un-star' }, '✦'), h('b', {}, 'NEW PIZZA'), h('span', { class: 'un-sub' }, 'buy it once, yours forever'), h('span', { class: 'un-star' }, '✦')),
+            // what makes a Chef's Special worth it (the rest on hover)
+            h('span', { class: 'new-tab', title: 'A new pizza: buy it once and it’s yours forever', 'aria-label': 'New pizza: buy it once and it’s yours forever' }, ...tabText('✦ NEW PIZZA', 'NEW')),
           );
         if (o.kind === 'enhanced')
-          return card(' enhanced', pic, h('div', { class: 'offer-text' }, h('span', { class: 'tag' }, '★ ENHANCED PIZZA'), h('b', {}, o.name), h('span', {}, perkDiff(o.basePerk ?? o.perk, o.perk))), b);
-        return card(o.cost === 0 ? ' free' : '', pic, h('div', { class: 'offer-text' }, o.cost === 0 ? h('span', { class: 'tag' }, 'ON THE HOUSE') : null, h('b', {}, o.name), h('span', {}, o.perk)), b);
+          return card(' enhanced', pic, h('span', { class: 'kind-tab k-enhanced' }, '★ ENHANCED'), h('div', { class: 'offer-text' }, h('b', {}, o.name), h('span', {}, perkDiff(o.basePerk ?? o.perk, o.perk))), b);
+        return card(o.cost === 0 ? ' free' : '', pic, o.cost === 0 ? h('span', { class: 'kind-tab k-free' }, ...tabText('ON THE HOUSE', 'FREE')) : null, h('div', { class: 'offer-text' }, h('b', {}, o.name), h('span', { title: o.perk }, o.perk)), b);
       });
       // Pizza Slots: in the third slot when no Chef's Special turned up
       if (st.slots) offers.push(slotsRow(st.slots, act.slots, act.slotsTake));
@@ -1227,10 +1254,23 @@ class UI {
       );
       const counter = h(
         'section',
-        { class: `shop-sec counter2${st.lastStand ? ' last-stand' : ''}`, 'data-pad-section': '' },
+        // (with fewer than three offers each has room to spare: a roomy layout, a bigger picture with its text stacked; not
+        // at last pizza standing, where the banner takes that room)
+        { class: `shop-sec counter2${st.lastStand ? ' last-stand' : ''}${offers.length < 3 && !st.lastStand ? ` roomy${offers.length === 1 ? ' single' : ''}` : ''}`, 'data-pad-section': '' },
         h('div', { class: 'sec-head' }, h('h2', {}, 'PIZZA COUNTER'), st.tableFull ? h('span', { class: 'sec-note' }, 'Full: you pick one to swap') : null),
         st.lastStand ? h('div', { class: 'ls-banner', role: 'status' }, h('b', {}, 'ONE PIZZA LEFT'), h('span', {}, 'PICK ANOTHER ONE, ON THE HOUSE')) : null,
-        ...(offers.length ? offers : [h('div', { class: 'hint' }, 'Nothing more at the counter this time.')]),
+        ...(offers.length
+          ? offers
+          : // nothing left to sell: an empty plate under a SOLD OUT board, filling the counter
+            [
+              h(
+                'div',
+                { class: 'counter-empty' },
+                h('div', { class: 'ce-art', 'aria-hidden': 'true', html: SOLD_OUT_SVG }),
+                h('b', {}, 'SOLD OUT'),
+                h('span', {}, 'Nothing more at the counter this time. Fresh pizzas at the next shop.'),
+              ),
+            ]),
         services,
       );
       const golden = h(
@@ -1515,7 +1555,7 @@ class UI {
         h('div', { class: 'in-ask' }, h('b', {}, 'WHERE DOES IT GO?'), h('span', {}, o.canAdd ? 'Add a plate or swap one out' : 'Table full: pick a pizza to swap out')),
       ),
       h('div', { class: 'swaprow' }, ...tiles),
-      h('div', { class: 'swapfoot' }, lose, h('div', { class: 'diff gain' }, h('span', { class: 'lbl' }, 'YOU GAIN'), h('b', {}, o.name), h('span', {}, o.perk)), btn('CANCEL', 'cream', () => this.close(s), { 'data-pad': 'back' }), confirm),
+      h('div', { class: 'swapfoot' }, lose, h('div', { class: 'diff gain' }, h('span', { class: 'lbl' }, 'YOU GAIN'), h('b', {}, o.name), h('span', { title: o.perk }, o.perk)), btn('CANCEL', 'cream', () => this.close(s), { 'data-pad': 'back' }), confirm),
     );
     sync();
     s = this.open(panel);

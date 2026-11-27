@@ -6782,3 +6782,215 @@ body.still-peels .peel-big.shiny::after {
 .shop2 .card .icon { font-size: 2.3em; }
 .ptile { gap: 0.15em; }
 .ptile .pt-pic .pthumb { width: 6.4em; }
+
+/* ——— A framed pizza card's tier label is a tab of its frame, centred at the top: it hangs from the top ring in the ring's own material,
+   joined to it by two small curves (--tab is the ring's colour at the top; the label's text reads on it) ——— */
+.pzr-common { --tab: #c48a50; --tab2: #a8703c; --tabink: #fff4e0; }
+.pzr-rare { --tab: #dde4ec; --tab2: #a9b4c1; --tabink: #28323e; }
+.pzr-epic { --tab: #7a3ae0; --tab2: #5a22b8; --tabink: #ffffff; }
+.pzr-legendary { --tab: #ffd65a; --tab2: #d08a08; --tabink: #3e2400; }
+.pzr:not(.pzr-inline) > span.pzr-tag {
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 0;
+  border-radius: 0 0 0.7em 0.7em;
+  padding: 0.05em 0.7em 0.2em;
+  color: var(--tabink);
+  background: linear-gradient(180deg, var(--tab), var(--tab2));
+  box-shadow: inset 0 -0.07em 0 color-mix(in srgb, var(--te) 55%, transparent);
+  text-shadow: none;
+}
+/* the curves where the tab meets the ring */
+.pzr:not(.pzr-inline) > span.pzr-tag::before,
+.pzr:not(.pzr-inline) > span.pzr-tag::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: 0.7em;
+  height: 0.7em;
+}
+.pzr:not(.pzr-inline) > span.pzr-tag::before {
+  right: 100%;
+  background: radial-gradient(circle at 0 100%, transparent 0.7em, var(--tab) 0.72em);
+}
+.pzr:not(.pzr-inline) > span.pzr-tag::after {
+  left: 100%;
+  background: radial-gradient(circle at 100% 100%, transparent 0.7em, var(--tab) 0.72em);
+}
+.pzr-epic:not(.pzr-inline) > span.pzr-tag,
+.pzr-legendary:not(.pzr-inline) > span.pzr-tag {
+  box-shadow: inset 0 -0.07em 0 color-mix(in srgb, var(--te) 55%, transparent);
+}
+
+/* ——— The counter with room to spare (fewer than three offers): a bigger picture, its text stacked over its button ——— */
+.counter2.roomy > .offer:not(.slots) {
+  grid-template-columns: 7.4em minmax(0, 1fr);
+  grid-template-areas: 'pic text' 'pic buy';
+  align-content: center;
+  column-gap: 0.9em;
+  row-gap: 0.4em;
+  padding: 0.7em 0.9em 0.7em 0.6em;
+}
+.counter2.roomy > .offer.special:not(.slots) {
+  grid-template-columns: 7.4em minmax(0, 1fr);
+  grid-template-areas: 'pic text' 'pic buy';
+}
+.counter2.roomy > .offer > .offer-pic { grid-area: pic; }
+.counter2.roomy > .offer > .offer-text { grid-area: text; align-self: end; }
+.counter2.roomy > .offer > .btn { grid-area: buy; justify-self: stretch; align-self: start; max-width: 14em; }
+.counter2.roomy > .offer .offer-pic img { width: 7.4em; height: 5.8em; }
+.counter2.roomy > .offer .offer-text b { font-size: 1.35em; }
+.counter2.roomy > .offer .offer-text span:not(.tag) { font-size: 0.92em; }
+/* one offer alone: bigger still, and a long perk gets a third line */
+.counter2.roomy.single > .offer:not(.slots) { grid-template-columns: 8.4em minmax(0, 1fr); }
+.counter2.roomy.single > .offer .offer-pic img { width: 8.4em; height: 6.6em; }
+.counter2.roomy.single > .offer .offer-text span:not(.tag) { -webkit-line-clamp: 3; }
+
+/* the right column's spacing a little tighter, and the last-pizza banner slimmer, so the counter at last pizza
+   standing (its banner and three offers) still fits over the Golden Menu and Next Wave */
+.shop-right { gap: 0.8em; }
+.ls-banner { padding: 0.15em 0.8em 0.2em; line-height: 1; }
+
+/* YOUR TOPPINGS: alone on its row, the full width */
+.counter2 .services { grid-template-columns: 1fr; }
+.counter2 .services .btn:only-child { grid-column: 1 / -1; }
+
+/* ——— One offer alone: a showcase, the pizza big and centred under a soft spotlight, its name, perk and button
+   centred below it (and the Chef's Special's ribbon at the foot) ——— */
+.counter2.roomy.single > .offer:not(.slots) {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: 'pic' 'text' 'buy';
+  justify-items: center;
+  text-align: center;
+  row-gap: 0.4em;
+  padding: 1.2em 1.2em 0.8em;
+}
+.counter2.roomy.single > .offer.special:not(.slots) {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: 'pic' 'text' 'buy';
+}
+.counter2.roomy.single > .offer > .offer-text { align-self: auto; justify-items: center; }
+.counter2.roomy.single > .offer > .btn { justify-self: center; min-width: 12em; }
+.counter2.roomy.single > .offer .offer-pic img { width: 10.5em; height: 7em; position: relative; }
+.counter2.roomy.single > .offer .offer-pic::before {
+  content: '';
+  position: absolute;
+  inset: -0.6em -2.5em -0.4em;
+  background: radial-gradient(ellipse 50% 55% at 50% 55%, rgba(255, 236, 170, 0.85), rgba(255, 236, 170, 0) 70%);
+  pointer-events: none;
+}
+.counter2.roomy.single > .offer .offer-text b { font-size: 1.5em; }
+.counter2.roomy.single > .offer .offer-text span:not(.tag) { font-size: 0.95em; max-width: 22em; }
+
+/* ——— Nothing left at the counter: a SOLD OUT board over an empty plate, filling the counter ——— */
+.counter-empty {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25em;
+  text-align: center;
+  border: 0.14em dashed rgba(90, 58, 30, 0.35);
+  border-radius: 0.9em;
+  background: radial-gradient(ellipse 70% 60% at 50% 40%, rgba(255, 244, 214, 0.9), rgba(255, 244, 214, 0));
+  padding: 0.8em 1em;
+}
+.counter-empty .ce-art { width: 13em; }
+.counter-empty .ce-art svg { display: block; width: 100%; height: auto; }
+.counter-empty b { font-family: 'Lilita One', sans-serif; font-weight: 400; font-size: 1.6em; color: var(--tomato-d); letter-spacing: 0.04em; }
+.counter-empty span { font-weight: 600; color: var(--ink-soft); max-width: 18em; line-height: 1.2; }
+body:not(.reduced-motion) .counter-empty .ce-sign { transform-origin: 110px 0; transform-box: view-box; animation: ceSway 4s ease-in-out infinite; }
+@keyframes ceSway { 0%, 100% { transform: rotate(-1.5deg); } 50% { transform: rotate(1.5deg); } }
+@media (prefers-reduced-motion: reduce) { .counter-empty .ce-sign { animation: none !important; } }
+
+/* ——— The counter cards' tabs, hanging from the frame's top ring like the tier's (centred): the offer's kind top left
+   (CHEF'S SPECIAL with a slow shine), NEW PIZZA top right (the rest on hover). Both sit in from the corners so their
+   curves stay on the straight top edge. ——— */
+.offer > .kind-tab,
+.offer > .new-tab {
+  position: absolute;
+  top: 0;
+  z-index: 2;
+  font-family: 'Lilita One', sans-serif;
+  font-size: max(0.62em, 9px);
+  line-height: 1.25;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  border-radius: 0 0 0.7em 0.7em;
+  padding: 0.05em 0.7em 0.2em;
+  color: var(--k-ink);
+  background: linear-gradient(180deg, var(--k1), var(--k2));
+  box-shadow: inset 0 -0.07em 0 rgba(40, 10, 0, 0.45);
+}
+.offer > .kind-tab { left: 1.9em; }
+.offer > .new-tab { right: 1.9em; cursor: help; --k1: #e8452e; --k2: #b0251a; --k-ink: #ffe27a; }
+.offer > .kind-tab::before,
+.offer > .kind-tab::after,
+.offer > .new-tab::before,
+.offer > .new-tab::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: 0.7em;
+  height: 0.7em;
+}
+.offer > .kind-tab::before,
+.offer > .new-tab::before { right: 100%; background: radial-gradient(circle at 0 100%, transparent 0.7em, var(--k1) 0.72em); }
+.offer > .kind-tab::after,
+.offer > .new-tab::after { left: 100%; background: radial-gradient(circle at 100% 100%, transparent 0.7em, var(--k1) 0.72em); }
+.kind-tab.k-special { --k1: #ffd84a; --k2: #e7a50e; --k-ink: #8a1c0c; }
+.kind-tab.k-pizzeria { --k1: #ffd84a; --k2: #d98f0a; --k-ink: #5a2a00; }
+.kind-tab.k-enhanced { --k1: #e8b830; --k2: #b07800; --k-ink: #fff8e0; }
+.kind-tab.k-free { --k1: #6cc04a; --k2: #3f8a2c; --k-ink: #ffffff; }
+/* the special's shine: a soft light crossing the tab now and then */
+.kind-tab.k-special {
+  background-image: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.75) 50%, transparent 65%), linear-gradient(180deg, var(--k1), var(--k2));
+  background-size: 250% 100%, 100% 100%;
+  background-repeat: no-repeat;
+  background-position: 160% 0, 0 0;
+}
+body:not(.reduced-motion) .kind-tab.k-special { animation: kindShine 3.6s ease-in-out infinite; }
+@keyframes kindShine { 0%, 55% { background-position: 160% 0, 0 0; } 100% { background-position: -60% 0, 0 0; } }
+@media (prefers-reduced-motion: reduce) { .kind-tab.k-special { animation: none !important; } }
+
+/* the portraits' painted pizza sits high in its picture (room below for the plate's shadow): nudged down so it reads
+   centred in the counter's cards */
+.counter2 .offer-pic img { transform: translateY(8%); }
+
+/* every counter card's content starts below its tabs (tier, centre; NEW PIZZA, right), so a top line (CHEF'S SPECIAL,
+   ★ ENHANCED PIZZA, ON THE HOUSE) never runs under one */
+.counter2 > .offer:not(.slots) { padding-top: 1em; padding-bottom: 0.4em; }
+.counter2.roomy > .offer:not(.slots) { padding-top: 1.1em; padding-bottom: 0.7em; }
+.counter2.roomy.single > .offer:not(.slots) { padding-top: 1.3em; }
+.counter2 > .offer:not(.slots) .offer-pic img { transform: translateY(4%); }
+.counter2 > .offer:not(.slots) { padding-bottom: 0.25em; }
+.counter2.roomy > .offer:not(.slots) { padding-bottom: 0.5em; }
+/* at last pizza standing the banner is one line, and its offers' padding tighter, so three offers and it still fit */
+.counter2.last-stand .ls-banner { flex-direction: row; justify-content: center; align-items: baseline; gap: 0 0.5em; }
+.counter2.last-stand .ls-banner b { font-size: 1.1em; }
+.counter2.last-stand .ls-banner span { font-size: 0.85em; }
+.counter2.last-stand > .offer:not(.slots) { padding-top: 0.9em; padding-bottom: 0.15em; }
+.counter2.last-stand:has(> .offer ~ .offer ~ .offer) > .offer .offer-text span:not(.tag) { -webkit-line-clamp: 1; }
+/* the picture has the same room from the frame on the left as the button on the right */
+.counter2 > .offer:not(.slots) { padding-left: 0.75em; padding-right: 0.75em; }
+.counter2.roomy > .offer:not(.slots) { padding-left: 0.9em; padding-right: 0.9em; }
+
+/* on a phone (1em is ~8px) the tabs keep to the body text's size, and the cards' top padding follows the tab's real
+   height */
+.pzr:not(.pzr-inline) > span.pzr-tag,
+.offer > .kind-tab,
+.offer > .new-tab { font-size: max(0.62em, 7px); }
+.counter2 > .offer:not(.slots) { padding-top: max(1em, 11px); }
+.counter2.roomy > .offer:not(.slots) { padding-top: max(1.1em, 12px); }
+.counter2.last-stand > .offer:not(.slots) { padding-top: max(0.9em, 11px); }
+.offer > .kind-tab .ts,
+.offer > .new-tab .ts { display: none; }
+@media (max-width: 1100px) {
+  .offer > .kind-tab .tl,
+  .offer > .new-tab .tl { display: none; }
+  .offer > .kind-tab .ts,
+  .offer > .new-tab .ts { display: inline; }
+  .counter2.last-stand > .offer .offer-pic img { height: 3.1em; }
+}
