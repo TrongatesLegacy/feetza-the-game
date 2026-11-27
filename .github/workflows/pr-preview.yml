@@ -28,7 +28,8 @@ jobs:
           cache: npm
       - run: npm ci
         if: github.event.action != 'closed'
-      - run: npm run build
+      # previews skip the art prebuild (npm run build would run it first): they paint the art at runtime
+      - run: npx tsc --noEmit && npx vite build
         if: github.event.action != 'closed'
       - uses: rossjrw/pr-preview-action@v1
         with:
