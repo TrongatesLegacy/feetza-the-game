@@ -421,17 +421,20 @@ function vignette(w: number, h: number): HTMLCanvasElement {
  * middle like a bubble, a fine hex lattice catching the light, and its base ring on the table. 460 × 300; the pizza's
  * centre sits at (230, 230). */
 function cheeseShield(): HTMLCanvasElement {
-  const W = 460;
-  const H = 300;
-  const cx = 230;
-  const cy = 230;
-  const R = 214;
+  // it stands on the plate (just inside its rim) and covers every pizza shape, deep dish included
+  const W = 480;
+  const H = 366;
+  const cx = 240;
+  const cy = 240;
+  const R = 222;
   const RY = R * 0.92;
+  // the base sits on the table in the pizza's own perspective (as squashed as the pizza is)
+  const RB = R * TILT;
   const [c, ctx] = makeCanvas(W, H);
   const dome = () => {
     ctx.beginPath();
     ctx.ellipse(cx, cy, R, RY, 0, Math.PI, 0);
-    ctx.ellipse(cx, cy, R, R * TILT * 0.55, 0, 0, Math.PI);
+    ctx.ellipse(cx, cy, R, RB, 0, 0, Math.PI);
     ctx.closePath();
   };
   // the field: clear in the middle, brighter towards its edge (looking through more of it there)
@@ -488,25 +491,31 @@ function cheeseShield(): HTMLCanvasElement {
   ctx.beginPath();
   ctx.ellipse(cx, cy, R, RY, 0, Math.PI, 0);
   ctx.stroke();
+  // the base ring: its back half faint (seen through the field), its front half bright
+  ctx.strokeStyle = 'rgba(110,230,255,0.35)';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, R, RB, 0, Math.PI, 0);
+  ctx.stroke();
   ctx.shadowColor = 'rgba(60,220,255,0.9)';
   ctx.shadowBlur = 10;
   ctx.strokeStyle = 'rgba(110,230,255,0.9)';
   ctx.lineWidth = 4;
   ctx.beginPath();
-  ctx.ellipse(cx, cy, R, R * TILT * 0.55, 0, 0, Math.PI * 2);
+  ctx.ellipse(cx, cy, R, RB, 0, 0, Math.PI);
   ctx.stroke();
   return c;
 }
 
 /** A thin bright band that sweeps across a shield's dome now and then (the field's shimmer). */
 function shieldSweep(): HTMLCanvasElement {
-  const [c, ctx] = makeCanvas(60, 300);
+  const [c, ctx] = makeCanvas(60, 366);
   const g = ctx.createLinearGradient(0, 0, 60, 0);
   g.addColorStop(0, 'rgba(200,250,255,0)');
   g.addColorStop(0.5, 'rgba(230,253,255,0.55)');
   g.addColorStop(1, 'rgba(200,250,255,0)');
   ctx.fillStyle = g;
-  ctx.fillRect(0, 0, 60, 300);
+  ctx.fillRect(0, 0, 60, 366);
   return c;
 }
 
