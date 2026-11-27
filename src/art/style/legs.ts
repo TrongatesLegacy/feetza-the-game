@@ -8,6 +8,7 @@
 import { type Ctx, makeCanvas, mix, rgba, shade } from '../util';
 import { LIGHT, STYLE, inkOf, texture } from './kit';
 import { MATERIALS } from './materials';
+import { traced } from '../../game/packTrace';
 
 /** The built-in leg materials, plus any registered with registerLegKind. 'tights' is smooth nylon with a sheen,
  * 'plate' polished armour, 'scales' a scaly hide. */
@@ -57,14 +58,14 @@ export interface LegKindDef {
   tile?: number;
 }
 
-const customKinds: Record<string, LegKindDef> = {};
+const customKinds: Record<string, LegKindDef> = traced('legKinds', {});
 
 /** Add a leg material (use it as a LegSpec kind). */
 export function registerLegKind(name: string, def: LegKindDef): void {
   customKinds[name] = def;
 }
 
-const legOverrides: Record<string, Partial<LegSpec>> = {};
+const legOverrides: Record<string, Partial<LegSpec>> = traced('legs', {});
 
 /** Change one foot's styled leg (kind, colour, accent, pattern…) without touching its style: merged over its
  * style's leg spec. */

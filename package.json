@@ -9,6 +9,7 @@
     "prebuild": "tsc --noEmit && node scripts/prebuild/run.mjs",
     "build": "tsc --noEmit && vite build",
     "prebuild:check": "node scripts/prebuild/run.mjs --check",
+    "prebuild:test": "node scripts/prebuild/test-deps.mjs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "sim": "node scripts/sim/run.mjs"

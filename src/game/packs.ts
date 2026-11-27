@@ -6,9 +6,11 @@
 //   painter returns. Packs: 'shared' (sprites, pizzas, everyday feet), 'peels' (the Peel Locker's thumbnails and the
 //   peel art they're drawn from), one per act ('act1' … : its locations, arenas, themed feet and bosses) and 'extra'
 //   (places outside the journey).
-// - Never stale: the manifest records the pack version it was painted under (vite.config.ts: virtual:pack-version, a
-//   hash of every source file the packed art is painted by). Any other version and the packs are ignored: everything
-//   is painted, exactly as without packs.
+// - Never stale: the art is painted in units (a backdrop, an act's feet, a bucket of pizzas, a chunk of the Locker's
+//   thumbnails…), and the manifest records each unit's version: a hash of the source files that unit's painters
+//   depend on (scripts/prebuild/deps.mjs). This build's own versions of them (vite.config.ts: virtual:pack-versions,
+//   the same hash over the files as they are now) must match, unit by unit: a unit whose files changed since is
+//   ignored and painted, exactly as without packs, while the rest are still served.
 // - Two ways in. Art the art cache keeps (feet, pizzas, sprites, peel thumbnails, crops: src/game/artCache.ts) is
 //   read from a pack as from the cache (packHas / readPacked: fetched on first need, decoded off the main thread).
 //   Backdrop textures (stills, live bases and pieces, frame sheets) are made synchronously by their painters, so a
@@ -16,11 +18,12 @@
 //   painters take them (packedCanvas) instead of painting.
 // - Anything not in a pack (dev edits, dynamic art), or a pack that fails to load, is painted as before.
 
-import PACK_VERSION from 'virtual:pack-version';
+import PACK_VERSIONS from 'virtual:pack-versions';
+import { regSig } from './packTrace';
 import { crandCount } from '../systems/cosmeticRandom';
 
 /** Bump when the manifest's layout changes. */
-const FORMAT = 1;
+const FORMAT = 2;
 
 /** A frame: [atlas index in its pack, x, y, w, h]. */
 type Frame = [number, number, number, number, number];
@@ -33,6 +36,8 @@ export interface PackEntry {
   /** Backdrop textures: the backdrop they belong to, and 's' (the still) or 'l' (the live layer's). */
   b?: string;
   m?: 's' | 'l';
+  /** The unit it was painted in (its version: PackManifest.units). */
+  u?: string;
 }
 
 export interface PackInfo {
@@ -43,8 +48,20 @@ export interface PackInfo {
 
 export interface PackManifest {
   format: number;
-  v: string;
+  /** Each unit's version, as painted. */
+  units: Record<string, string>;
   packs: Record<string, PackInfo>;
+}
+
+/** This build's version of each unit (vite.config.ts). */
+const VERSIONS = PACK_VERSIONS as Record<string, string>;
+
+/** The key a piece is packed under: a Locker thumbnail without the peel version in its name (that's the art cache's
+ * own invalidation; the pack's is its unit's version). */
+export function packKey(key: string): string {
+  if (!key.startsWith('thumb:')) return key;
+  const i = key.indexOf(':', 6);
+  return i < 0 ? key : `thumb:${key.slice(i + 1)}`;
 }
 
 const q = typeof location !== 'undefined' ? new URLSearchParams(location.search) : new URLSearchParams();
@@ -55,6 +72,8 @@ const off = q.has('noPacks') || q.has('prebuild') || q.has('sim') || q.has('lega
 let manifest: PackManifest | null = null;
 /** key → its pack's name. */
 const where = new Map<string, string>();
+/** Units left out: changed since they were painted. */
+const staleUnits: string[] = [];
 /** backdrop id → its texture keys. */
 const byBackdrop = new Map<string, string[]>();
 let ready: Promise<boolean> | null = null;
@@ -83,10 +102,22 @@ export function initPacks(ms = 2000): Promise<boolean> {
     const r = await fetch(`${base()}packs/manifest.json`, { cache: 'no-cache' });
     if (!r.ok) return null;
     const m = (await r.json()) as PackManifest;
-    if (m.format !== FORMAT || m.v !== PACK_VERSION) {
-      if (import.meta.env.DEV) console.info(`[packs] built for ${m.v}, this is ${PACK_VERSION}: painting instead`);
+    if (m.format !== FORMAT || !m.units) {
+      if (import.meta.env.DEV) console.info(`[packs] the manifest's format is ${m.format}, this is ${FORMAT}: painting instead`);
       return null;
     }
+    const ok = new Set(Object.keys(m.units).filter((u) => m.units[u] === VERSIONS[u]));
+    // dev: and who registers what each unit looked up hasn't changed (a registration added in another file)
+    if (import.meta.env.DEV && ok.size) {
+      const b = await fetch(`${base()}packs/build.json`, { cache: 'no-cache' }).then((x) => (x.ok ? x.json() : null)).catch(() => null) as { units?: Record<string, { regs?: Record<string, string[]> }> } | null;
+      for (const u of [...ok]) {
+        const regs = b?.units?.[u]?.regs;
+        if (!regs || JSON.stringify(regSig(Object.keys(regs))) !== JSON.stringify(regs)) ok.delete(u);
+      }
+    }
+    for (const u of Object.keys(m.units)) if (!ok.has(u)) staleUnits.push(u);
+    if (import.meta.env.DEV && staleUnits.length) console.info(`[packs] ${staleUnits.length} of ${Object.keys(m.units).length} units changed since they were painted (painted instead): ${staleUnits.slice(0, 12).join(', ')}${staleUnits.length > 12 ? '…' : ''}`);
+    for (const p of Object.values(m.packs)) for (const [k, e] of Object.entries(p.entries)) if (!e.u || !ok.has(e.u)) delete p.entries[k];
     return m;
   })().catch(() => null);
   // (a manifest that turns up after the timeout is let go: the session paints, as it was told)
@@ -109,10 +140,11 @@ export function initPacks(ms = 2000): Promise<boolean> {
 
 /** Is this key in a pack (manifest loaded)? */
 export function packHas(key: string): boolean {
-  return where.has(key);
+  return where.has(packKey(key));
 }
 
 const entryOf = (key: string): [string, PackEntry] | null => {
+  key = packKey(key);
   const name = where.get(key);
   const e = name ? manifest?.packs[name]?.entries[key] : undefined;
   return name && e ? [name, e] : null;
@@ -376,8 +408,8 @@ export function packedCanvas(key: string, paint: () => HTMLCanvasElement): HTMLC
 export function packsDev(): Record<string, unknown> {
   return {
     enabled: !!manifest,
-    version: PACK_VERSION,
-    built: manifest?.v ?? null,
+    units: manifest ? Object.keys(manifest.units).length : 0,
+    stale: staleUnits,
     keys: where.size,
     packs: manifest ? Object.fromEntries(Object.entries(manifest.packs).map(([n, p]) => [n, { atlases: p.atlases.length, mb: +(p.atlases.reduce((s, a) => s + a.bytes, 0) / 1048576).toFixed(2), entries: Object.keys(p.entries).length }])) : {},
     ahead: ahead.size,

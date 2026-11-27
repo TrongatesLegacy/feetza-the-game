@@ -17,6 +17,7 @@ import type { Effect, ThrowFx } from './abilities';
 import type { Foot } from './Foot';
 import type { Fx } from './Fx';
 import type { Pizza } from './Pizza';
+import { traced } from './packTrace';
 import '../ui/heroes.css';
 
 export type DmgSource = 'smack' | 'ability' | 'direct' | 'burn' | 'chain' | 'other';
@@ -255,8 +256,8 @@ export interface Passive {
   rerollDiscount?: number;
 }
 
-export const MOVES: Record<string, Move> = {};
-export const PASSIVES: Record<string, Passive> = {};
+export const MOVES: Record<string, Move> = traced('moves', {});
+export const PASSIVES: Record<string, Passive> = traced('passives', {});
 
 export function registerMoves(m: Record<string, Move>): void {
   Object.assign(MOVES, m);

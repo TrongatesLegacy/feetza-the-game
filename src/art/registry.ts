@@ -4,6 +4,7 @@
 import type { FootArt } from '../data/feet';
 import type { BackdropId, BackdropInfo } from './backdrops';
 import type { Ctx } from './util';
+import { traced } from '../game/packTrace';
 
 export interface KindDrawer {
   /** Draw the foot in design space (same frame as the built-in kinds in feetArt.ts / feetKinds2.ts). */
@@ -29,9 +30,9 @@ export interface SceneDef {
   draw(ctx: Ctx, r: () => number): void;
 }
 
-const kinds: Record<string, KindDrawer> = {};
-const toppings: Record<string, ToppingDrawer> = {};
-const scenes: Partial<Record<BackdropId, SceneDef>> = {};
+const kinds: Record<string, KindDrawer> = traced('kinds', {});
+const toppings: Record<string, ToppingDrawer> = traced('toppings', {});
+const scenes: Partial<Record<BackdropId, SceneDef>> = traced('scenes', {});
 const sceneListeners: ((id: BackdropId, def: SceneDef) => void)[] = [];
 
 export function registerKind(kind: string, d: KindDrawer): void {
@@ -57,7 +58,7 @@ export function sceneDef(id: BackdropId): SceneDef | undefined {
 }
 
 /** The old art of scenes redrawn with the location kit (src/art/scene), for the before/after page. */
-const legacyScenes: Partial<Record<BackdropId, SceneDef>> = {};
+const legacyScenes: Partial<Record<BackdropId, SceneDef>> = traced('legacyScenes', {});
 export function registerLegacyScene(id: BackdropId, def: SceneDef): void {
   legacyScenes[id] = def;
 }

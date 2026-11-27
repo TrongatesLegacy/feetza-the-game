@@ -34,7 +34,7 @@ function audioManifest(): Plugin {
 // saved in the browser is never used after any of them changes. It follows the static imports (and the folders
 // import.meta.glob loads) from src/game/assets.ts, which draws everything the cache keeps; `import type` lines are
 // skipped (no runtime code). Dev recomputes it after any change under src/ (the next page load picks it up); a
-// build bakes it in. `from` may list several entry files (the art packs' version follows everything they hold).
+// build bakes it in. `from` may list several entry files.
 function artVersion(id = 'virtual:art-version', from: string | string[] = 'game/assets.ts'): Plugin {
   const resolved = '\0' + id;
   const root = resolve(__dirname, 'src');
@@ -90,10 +90,40 @@ function artVersion(id = 'virtual:art-version', from: string | string[] = 'game/
   };
 }
 
-// The pre-built art packs' version (src/game/packs.ts, scripts/prebuild): everything the packed art is painted by,
-// the backdrops' live layers (src/game/BackdropView.ts pulls in src/content/live) and the peels included. A pack
-// built under another version is never used. The prebuild's own page is in it too (what it harvests, and how).
-const PACK_SOURCES = ['game/assets.ts', 'game/BackdropView.ts', 'game/peels.ts', 'devPrebuild.ts'];
+// The pre-built art packs' unit versions (src/game/packs.ts; docs/prebuild.md): for each unit the packs hold (a
+// backdrop, an act's feet…), a hash over the files the prebuild found it depends on (public/packs/build.json), as
+// they are now. The loader serves a unit only when this matches the version it was painted at. Dev recomputes it
+// after any change under src/ or to the packs.
+function packVersions(): Plugin {
+  const id = 'virtual:pack-versions';
+  const resolved = '\0' + id;
+  const build = resolve(__dirname, 'public/packs/build.json');
+  const src = resolve(__dirname, 'src');
+  let cached: string | null = null;
+  return {
+    name: 'pack-versions',
+    resolveId(source) {
+      return source === id ? resolved : null;
+    },
+    async load(source) {
+      if (source !== resolved) return null;
+      if (cached === null) {
+        const { currentVersions } = await import('./scripts/prebuild/deps.mjs');
+        cached = JSON.stringify(currentVersions(__dirname, build));
+      }
+      return `export default ${cached};`;
+    },
+    configureServer(server) {
+      server.watcher.add(build);
+      server.watcher.on('all', (_e, file) => {
+        if (!file.startsWith(src) && file !== build) return;
+        cached = null;
+        const mod = server.moduleGraph.getModuleById(resolved);
+        if (mod) server.moduleGraph.invalidateModule(mod);
+      });
+    },
+  };
+}
 
 // Dev-only: lets the running game POST canvas screenshots for automated visual review.
 function devShots(): Plugin {
@@ -203,7 +233,7 @@ function devNotes(): Plugin {
 
 export default defineConfig({
   base: './',
-  plugins: [audioManifest(), artVersion(), artVersion('virtual:peel-version', 'game/peels.ts'), artVersion('virtual:pack-version', PACK_SOURCES), devShots(), devNotes(), devSmackLog()],
+  plugins: [audioManifest(), artVersion(), artVersion('virtual:peel-version', 'game/peels.ts'), packVersions(), devShots(), devNotes(), devSmackLog()],
   build: {
     target: 'es2022',
     assetsInlineLimit: 0,

@@ -27,6 +27,7 @@ import type { FootType } from '../data/feet';
 import { crand } from '../systems/cosmeticRandom';
 import { save } from '../systems/save';
 import type { Foot } from './Foot';
+import { traced } from './packTrace';
 
 // ════════════════════════════ textures ════════════════════════════
 
@@ -744,7 +745,7 @@ export interface RigPose {
   curl: number;
 }
 
-const defs: Record<string, LiveDef> = {};
+const defs: Record<string, LiveDef> = traced('liveFeet', {});
 
 /** A styled foot's live behaviour, if it has one (its peel animates from it too: src/art/peelLive.ts). */
 export function liveDefOf(id: string): LiveDef | undefined {
@@ -756,7 +757,7 @@ export function registerLive<S>(id: string, def: LiveDef<S>): void {
   defs[id] = def as LiveDef;
 }
 
-const peelDefs: Record<string, LiveDef> = {};
+const peelDefs: Record<string, LiveDef> = traced('peelLive', {});
 
 /** Declare how a foot's peel moves when the foot has a live layer of its own in play (the Immortals: a peel-only
  * style, src/art/style/registry.ts registerPeelStyle). Play never runs it. */

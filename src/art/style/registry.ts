@@ -7,6 +7,7 @@ import type { FootArt } from '../../data/feet';
 import type { Ctx } from '../util';
 import type { Box, Pose } from './kit';
 import type { LegSpec } from './legs';
+import { traced } from '../../game/packTrace';
 
 export interface DrawOpts {
   /** In play: leave out what the live layer draws on its own (eyes, ears, tufts, flies, glow). */
@@ -90,7 +91,7 @@ export interface StyleDef {
   shield?: ShieldDef;
 }
 
-const styles: Record<string, StyleDef> = {};
+const styles: Record<string, StyleDef> = traced('styles', {});
 
 /** Dev: ?dev&legacyFeet plays the whole game with every foot's old art (the old drawers stay in place: a style
  * only takes over drawFoot while one is registered and this is off). */
@@ -115,7 +116,7 @@ export function styleFor(id: string): StyleDef | undefined {
   return legacy ? undefined : styles[id];
 }
 
-const peelStyles: Record<string, StyleDef> = {};
+const peelStyles: Record<string, StyleDef> = traced('peelStyles', {});
 
 /**
  * A style a foot's peel is drawn and animated with (src/art/peelLive.ts) while the foot itself keeps its own art and

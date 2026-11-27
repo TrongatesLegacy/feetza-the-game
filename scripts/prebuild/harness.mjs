@@ -18,12 +18,16 @@ const portFree = (port) =>
     s.listen(port, '127.0.0.1', () => s.close(() => res(true)));
   });
 
-/** A free port: `want` if given, else one picked at random in 9400–9800 (never 9444), else any. */
-export async function freePort(want) {
-  if (want) return want;
+/** A free port: `want` if given, else one picked at random in lo–hi (never 9444 or 5288, which are in use), else
+ * any. */
+export async function freePort(want, lo = 9400, hi = 9800) {
+  if (want) {
+    if (!(await portFree(want))) throw new Error(`port ${want} is in use`);
+    return want;
+  }
   for (let i = 0; i < 40; i++) {
-    const p = 9400 + Math.floor(Math.random() * 400);
-    if (p !== 9444 && (await portFree(p))) return p;
+    const p = lo + Math.floor(Math.random() * (hi - lo));
+    if (p !== 9444 && p !== 5288 && (await portFree(p))) return p;
   }
   return new Promise((res) => {
     const s = netServer();
@@ -58,7 +62,7 @@ export async function startVite({ port, cacheDir, plugins = [] } = {}) {
     logLevel: 'error',
     cacheDir: cacheDir ?? mkdtempSync(join(tmpdir(), 'feetza-prebuild-vite-')),
     plugins,
-    server: { port: port ?? (await freePort()), strictPort: false, host: '127.0.0.1', fs: { strict: false } },
+    server: { port: await freePort(port, 5600, 5700), strictPort: true, host: '127.0.0.1', fs: { strict: false } },
   });
   await vite.listen();
   return { vite, url: vite.resolvedUrls.local[0] };
@@ -128,8 +132,20 @@ export class Tab {
     this.logs = [];
   }
   async open(url) {
-    const t = await (await fetch(`http://127.0.0.1:${this.cdpPort}/json/new?about:blank`, { method: 'PUT' })).json();
-    this.ws = new WebSocket(t.webSocketDebuggerUrl);
+    // (a window of its own: a background tab's requestAnimationFrame would wait)
+    const ver = await (await fetch(`http://127.0.0.1:${this.cdpPort}/json/version`)).json();
+    const bw = new WebSocket(ver.webSocketDebuggerUrl);
+    await new Promise((r) => (bw.onopen = r));
+    const targetId = await new Promise((res, rej) => {
+      bw.onmessage = (m) => {
+        const d = JSON.parse(m.data);
+        if (d.id === 1) d.error ? rej(new Error(d.error.message)) : res(d.result.targetId);
+      };
+      bw.send(JSON.stringify({ id: 1, method: 'Target.createTarget', params: { url: 'about:blank', newWindow: true } }));
+    });
+    bw.close();
+    this.targetId = targetId;
+    this.ws = new WebSocket(`ws://127.0.0.1:${this.cdpPort}/devtools/page/${targetId}`);
     this.ws.onmessage = (m) => {
       const d = JSON.parse(m.data);
       if (d.id && this.pend.has(d.id)) {

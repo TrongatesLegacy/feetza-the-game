@@ -7,6 +7,7 @@ import { backdropsAnimated } from '../systems/graphics';
 import type Phaser from 'phaser';
 import type { BackdropId } from '../art/backdrops';
 import { backdropReady, dropBackdrop, prepareBackdrop } from './packs';
+import { traced } from './packTrace';
 
 export interface LiveCtx {
   sc: Phaser.Scene;
@@ -30,14 +31,14 @@ export interface LiveScene {
 
 export type LiveFactory = (ctx: LiveCtx) => LiveScene;
 
-const live: Partial<Record<BackdropId, LiveFactory>> = {};
+const live: Partial<Record<BackdropId, LiveFactory>> = traced('liveBackdrops', {});
 /** The old live layers of redrawn scenes, kept for the before/after page (?dev&stages). */
-const legacy: Partial<Record<BackdropId, LiveFactory>> = {};
+const legacy: Partial<Record<BackdropId, LiveFactory>> = traced('legacyLive', {});
 /** Builds what a scene's live layer shows (its base and baked layers) ahead of time, e.g. while loading. */
-const prepares: Partial<Record<BackdropId, (sc: Phaser.Scene) => void>> = {};
+const prepares: Partial<Record<BackdropId, (sc: Phaser.Scene) => void>> = traced('livePrepares', {});
 
 /** Frees what prepare built (a stage left behind for good). */
-const releases: Partial<Record<BackdropId, (sc: Phaser.Scene) => void>> = {};
+const releases: Partial<Record<BackdropId, (sc: Phaser.Scene) => void>> = traced('liveReleases', {});
 
 export function registerLive(id: BackdropId, f: LiveFactory, prepare?: (sc: Phaser.Scene) => void, release?: (sc: Phaser.Scene) => void): void {
   live[id] = f;

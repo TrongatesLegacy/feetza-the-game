@@ -7,8 +7,10 @@ name: Deploy to GitHub Pages
 # Two steps, so a push is live in a couple of minutes:
 # 1. quick: the game without fresh art packs (the packs it finds are for older art, so it paints instead: exactly how
 #    the game worked before the prebuild). Live right away.
-# 2. packs: paints the art packs (about 20 minutes when the art changed), then deploys again with them. Skipped if a
-#    newer commit has landed on main meanwhile (its own run will do it).
+# 2. packs: paints the art packs again where the art changed, then deploys again with them. It starts from the last
+#    deploy's packs (actions/cache) and repaints only the units whose source changed (docs/prebuild.md: a backdrop
+#    edit is a minute or two, a non-art change seconds; a full repaint about ten minutes). Skipped if a newer commit
+#    has landed on main meanwhile (its own run will do it).
 
 on:
   push:
@@ -61,7 +63,8 @@ jobs:
       - run: npm ci
       # the art prebuild (scripts/prebuild/run.mjs) paints in the runner's Chrome and encodes with cwebp
       - run: sudo apt-get update -qq && sudo apt-get install -y -qq webp
-      # last deploy's packs: skipped entirely when the art hasn't changed since
+      # last deploy's packs (with build.json, each unit's version and files): only units whose source changed since
+      # are painted again, and unchanged atlases keep their names
       - uses: actions/cache@v4
         with:
           path: public/packs

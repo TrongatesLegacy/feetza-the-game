@@ -1,33 +1,50 @@
-// Dev-only: the art prebuild's page (?dev&prebuild, driven by scripts/prebuild/run.mjs). It runs the game's own
+// Dev-only: the art prebuild's page (?dev&prebuild=…, driven by scripts/prebuild/run.mjs). It runs the game's own
 // painters, exactly as the game does, records what they make (src/game/packs.ts: packedCanvas; src/game/artCache.ts:
 // writeArt) and packs it into atlases, which it posts to the runner's endpoint as PNGs (the runner encodes them as
-// lossless WebP). See docs/prebuild.md.
+// WebP). See docs/prebuild.md.
 //
+// The art is split into units, each painted on a fresh page of its own (so what one unit paints can't hide what
+// another depends on) and versioned on its own:
 // - every backdrop: its still (Animated stages off), then its live layer run through every wave of its stage with a
-//   few stomps (its live base, baked pieces, shade and frame sheets), each backdrop in atlases of its own;
-// - every foot's still art, every pizza, the sprites; every peel's Peel Locker thumbnail and the art it's drawn from.
+//   few stomps (its live base, baked pieces, shade and frame sheets);
+// - the sprites; each act's feet (the everyday feet in four buckets); the pizzas in eight buckets; the Peel Locker's
+//   thumbnails, by Locker group, in chunks.
 //
-// ?dev&prebuild=check instead compares packed art with the painters' (scripts/prebuild/run.mjs --check).
+// - ?prebuild=plan: lists the units, and who registers what (src/game/packTrace.ts);
+// - ?prebuild=unit: boots, says 'ready', and paints the unit the runner then hands it (window.__prebuildGo);
+// - ?prebuild=check: compares packed art with the painters' (scripts/prebuild/run.mjs --check).
 
 import Phaser from 'phaser';
-import PACK_VERSION from 'virtual:pack-version';
+import PACK_VERSIONS from 'virtual:pack-versions';
 import { BACKDROPS, type BackdropId } from './art/backdrops';
-import { FEET, FOOT_BY_ID, type FootType } from './data/feet';
+import { FEET, type FootType } from './data/feet';
 import { PIZZAS } from './data/pizzas';
 import { BOSS_MINION, STAGES } from './data/stages';
 import { BackdropView } from './game/BackdropView';
 import { setArtRecorder } from './game/artCache';
 import { ensureBackdrop, ensureFootArt, ensurePizzaArt, generateAll, setGame } from './game/assets';
 import { releaseLive } from './game/liveBackdrop';
-import { type PackEntry, type PackInfo, type PackManifest, countRandom, setPackRecorder } from './game/packs';
+import { type PackEntry, type PackManifest, countRandom, packKey, setPackRecorder } from './game/packs';
+import { beginTrace, endTrace, registrants } from './game/packTrace';
 import { PEELS, peelThumbAsync } from './game/peels';
 import { overrideBackdropAnim } from './systems/graphics';
 
-const FORMAT = 1;
 /** Atlas sizes: a backdrop's (its full-screen layers, 2 × 3 of them) and everything else's (small: the art cache's
  * pieces are read a few at a time, and each read decodes its whole atlas). */
 const BIG = 4096;
 const SMALL = 1024;
+/** Buckets for the everyday feet and the pizzas (by a hash of the id: a new one only changes its own bucket), and
+ * the Locker's thumbnails per chunk (in Locker order, within a group). */
+const FEET_BUCKETS = 4;
+const PIZZA_BUCKETS = 8;
+const THUMB_CHUNK = 32;
+
+export interface Unit {
+  id: string;
+  kind: 'bg' | 'sprites' | 'feet' | 'pizzas' | 'thumbs';
+  pack: string;
+  members: string[];
+}
 
 interface Item {
   key: string;
@@ -37,14 +54,25 @@ interface Item {
   m?: 's' | 'l';
 }
 
-const state = { state: 'starting', step: '', log: [] as string[], skipped: [] as string[], random: [] as string[], unscoped: [] as string[], shared: [] as string[], error: '' };
+interface UnitAtlas {
+  ref: string;
+  w: number;
+  h: number;
+  lossy?: boolean;
+}
+
+const state = { state: 'starting', step: '', error: '' } as Record<string, unknown>;
 const say = (s: string) => {
   state.step = s;
-  state.log.push(s);
   console.log(`[prebuild] ${s}`);
 };
 const frame = () => new Promise<void>((r) => requestAnimationFrame(() => r()));
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+const hash = (s: string) => {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
+  return h >>> 0;
+};
 
 // ——— which pack ———
 
@@ -70,38 +98,49 @@ function footPack(f: FootType): string {
   }
   return 'shared';
 }
-/** A cache-backed key's pack and section (things wanted together share atlases). */
-function cachePlace(key: string): [string, string] | null {
-  const kind = key.slice(0, key.indexOf(':') < 0 ? key.length : key.indexOf(':'));
-  if (key === 'sprites') return ['shared', 'sprites'];
-  if (kind === 'foot') {
-    const f = FOOT_BY_ID[key.slice(5)];
-    return [f ? footPack(f) : 'shared', 'feet'];
+
+/** Every unit, in a stable order. */
+function plan(): Unit[] {
+  const units: Unit[] = [];
+  const ids = (Object.keys(BACKDROPS) as BackdropId[]).sort();
+  for (const id of ids) units.push({ id: `bg:${id}`, kind: 'bg', pack: backdropPack(id), members: [id] });
+  units.push({ id: 'sprites', kind: 'sprites', pack: 'shared', members: ['sprites'] });
+  const feet = new Map<string, string[]>();
+  for (const f of FEET) {
+    const p = footPack(f);
+    const u = p === 'shared' ? `feet:shared${hash(f.id) % FEET_BUCKETS}` : `feet:${p}`;
+    if (!feet.has(u)) feet.set(u, []);
+    feet.get(u)!.push(f.id);
   }
-  if (kind === 'pizza') return ['shared', 'pizzas'];
-  if (kind === 'thumb') return ['peels', 'thumbs'];
-  // (bg:trattoria, the still the art cache keeps: the still is packed with its backdrop)
-  // the art peel thumbnails are drawn from (foot crops, rotted feet, place windows, pizza boards) is large and only
-  // drawn again for a peel's full-size art: it's made from the packed feet and places when wanted (stage 2)
-  return null;
+  for (const [u, m] of [...feet].sort()) units.push({ id: u, kind: 'feet', pack: u.startsWith('feet:shared') ? 'shared' : u.slice(5), members: m });
+  const pz = new Map<string, string[]>();
+  for (const p of PIZZAS) {
+    const u = `pizzas:${hash(p.id) % PIZZA_BUCKETS}`;
+    if (!pz.has(u)) pz.set(u, []);
+    pz.get(u)!.push(p.id);
+  }
+  for (const [u, m] of [...pz].sort()) units.push({ id: u, kind: 'pizzas', pack: 'shared', members: m });
+  const groups = new Map<string, string[]>();
+  for (const d of PEELS) {
+    if (!groups.has(d.group)) groups.set(d.group, []);
+    groups.get(d.group)!.push(d.id);
+  }
+  for (const [g, m] of groups) for (let i = 0; i < m.length; i += THUMB_CHUNK) units.push({ id: `thumbs:${g}:${i / THUMB_CHUNK}`, kind: 'thumbs', pack: 'peels', members: m.slice(i, i + THUMB_CHUNK) });
+  return units;
 }
 
 // ——— atlases ———
 
-const packs: Record<string, PackInfo> = {};
-const packOf = (name: string): PackInfo => (packs[name] ??= { atlases: [], entries: {} });
-
-async function post(path: string, body: Blob | string): Promise<{ file: string; bytes: number }> {
+async function post(path: string, body: Blob | string): Promise<{ ref: string }> {
   const r = await fetch(path, { method: 'POST', body });
   if (!r.ok) throw new Error(`${path}: ${r.status} ${await r.text()}`);
   return r.json();
 }
 
 /** Shelf-pack items into atlases of at most max × max (an image wider or taller gets one of its own), draw and post
- * them, and enter their frames in the pack. */
-async function packItems(pack: string, section: string, items: Item[], max: number, lossy = false): Promise<void> {
+ * them, and enter their frames (atlas indices within the unit). */
+async function packItems(out: { atlases: UnitAtlas[]; entries: Record<string, PackEntry> }, name: string, items: Item[], max: number, lossy = false): Promise<void> {
   if (!items.length) return;
-  const p = packOf(pack);
   const imgs = items.flatMap((it, ii) => it.canvases.map((c, ci) => ({ ii, ci, c, w: c.width, h: c.height })));
   // (tallest first; equal heights keep their order: the Locker's thumbnails stay in the Locker's order)
   imgs.sort((a, b) => b.h - a.h);
@@ -137,8 +176,8 @@ async function packItems(pack: string, section: string, items: Item[], max: numb
     cur.h = Math.max(cur.h, y + row);
   }
   const frames = new Map<string, [number, number, number, number, number]>();
-  for (const s of sheets) {
-    const index = p.atlases.length;
+  for (const [si, s] of sheets.entries()) {
+    const index = out.atlases.length;
     const c = document.createElement('canvas');
     c.width = s.w;
     c.height = s.h;
@@ -153,9 +192,8 @@ async function packItems(pack: string, section: string, items: Item[], max: numb
     copy.getContext('2d')!.putImageData(ctx.getImageData(0, 0, s.w, s.h), 0, 0);
     c.width = c.height = 1;
     const png = await copy.convertToBlob({ type: 'image/png' });
-    const name = `${pack}-${section}-${index}`;
-    const got = await post(`/__prebuild/atlas?name=${encodeURIComponent(name)}${lossy ? '&lossy=1' : ''}`, png);
-    p.atlases.push({ file: got.file, w: s.w, h: s.h, bytes: got.bytes, ...(lossy ? { lossy: true } : {}) });
+    const got = await post(`/__prebuild/atlas?name=${encodeURIComponent(`${name}-${si}`)}`, png);
+    out.atlases.push({ ref: got.ref, w: s.w, h: s.h, ...(lossy ? { lossy: true } : {}) });
   }
   items.forEach((it, ii) => {
     const e: PackEntry = { f: it.canvases.map((_, ci) => frames.get(`${ii}/${ci}`)!) };
@@ -164,7 +202,7 @@ async function packItems(pack: string, section: string, items: Item[], max: numb
       e.b = it.b;
       e.m = it.m;
     }
-    p.entries[it.key] = e;
+    out.entries[it.key] = e;
   });
 }
 
@@ -176,7 +214,7 @@ function isOpaque(c: HTMLCanvasElement): boolean {
   return true;
 }
 
-// ——— the harvest ———
+// ——— the page ———
 
 class Harvest extends Phaser.Scene {
   constructor() {
@@ -187,8 +225,12 @@ class Harvest extends Phaser.Scene {
 export async function runPrebuild(): Promise<void> {
   (window as unknown as { __prebuild: typeof state }).__prebuild = state;
   try {
-    if (new URLSearchParams(location.search).get('prebuild') === 'check') await check();
-    else await harvest();
+    const mode = new URLSearchParams(location.search).get('prebuild');
+    if (mode === 'check') await check();
+    else if (mode === 'plan') {
+      state.units = plan();
+      state.registrants = Object.fromEntries([...registrants].map(([k, v]) => [k, [...v].sort()]));
+    } else await unitPage();
     state.state = 'done';
   } catch (e) {
     state.error = String((e as Error)?.stack ?? e);
@@ -209,139 +251,146 @@ async function boot(): Promise<Phaser.Scene> {
   return game.scene.getScene('Harvest')!;
 }
 
-async function harvest(): Promise<void> {
+/** Run a backdrop's live layer through every wave of its stage, with a stomp in each. */
+async function runLive(sc: Phaser.Scene, id: BackdropId): Promise<void> {
+  const bg = sc.add.container(0, 0);
+  const amb = sc.add.container(0, 0);
+  const view = new BackdropView(sc, bg, amb);
+  try {
+    view.show(id, 0, 1);
+    for (let w = 1; w <= 5; w++) {
+      view.setWave(w);
+      for (let i = 0; i < 12; i++) {
+        view.update(1 / 20);
+        if (i === 4) view.impact(960, 760, 1);
+      }
+      await frame();
+    }
+  } finally {
+    view.destroy();
+    bg.destroy();
+    amb.destroy();
+  }
+}
+
+/** Boot, wait for the runner to start its coverage and hand over a unit, paint it, pack it. */
+async function unitPage(): Promise<void> {
   // art painted with any randomness (cosmetic or Math.random) is left out of the packs: it's meant to vary
   const rnd = Math.random;
   Math.random = () => (countRandom(), rnd());
   const sc = await boot();
-  /** Backdrop textures recorded for the backdrop being harvested. */
-  let scope: { b: BackdropId; m: 's' | 'l'; items: Item[] } | null = null;
-  /** Who painted each key first. A key painted by two backdrops may be two different textures under one name
-   * (each backdrop's painters made it their own way): it's left out of the packs, painted as before. */
-  const owner = new Map<string, string>();
-  setPackRecorder((key, c, random) => {
-    const was = owner.get(key);
-    if (was !== undefined) {
-      if (scope && was !== scope.b && !state.shared.includes(key)) state.shared.push(key);
-      return;
-    }
-    owner.set(key, scope?.b ?? '');
-    if (!scope) return void state.unscoped.push(key);
-    if (random) return void state.random.push(key);
-    if (c.width < 1 || c.height < 1) return void state.skipped.push(key);
-    scope.items.push({ key, canvases: [c], b: scope.b, m: scope.m });
+  state.state = 'ready';
+  const w = window as unknown as { __prebuildGo?: Unit };
+  while (!w.__prebuildGo) await sleep(20);
+  const u = w.__prebuildGo;
+  state.state = 'running';
+  const t0 = performance.now();
+  beginTrace();
+
+  /** Backdrop textures recorded (bg units), with the keys painted with randomness and every key seen. */
+  let scope: { b: BackdropId; m: 's' | 'l' } | null = null;
+  const items: Item[] = [];
+  const seen = new Set<string>();
+  const random: string[] = [];
+  setPackRecorder((key, c, isRandom) => {
+    if (seen.has(key) || !scope) return;
+    seen.add(key);
+    if (isRandom) return void random.push(key);
+    if (c.width < 1 || c.height < 1) return;
+    items.push({ key, canvases: [c], b: scope.b, m: scope.m });
   });
   const cached = new Map<string, Item>();
   setArtRecorder((key, canvases, data) => {
-    if (cached.has(key)) return;
-    if (canvases.some((c) => c.width < 1 || c.height < 1)) return void state.skipped.push(key);
+    if (cached.has(key) || canvases.some((c) => c.width < 1 || c.height < 1)) return;
     cached.set(key, { key, canvases: [...canvases], data: data === undefined ? null : JSON.parse(JSON.stringify(data)) });
   });
+  const out = { atlases: [] as UnitAtlas[], entries: {} as Record<string, PackEntry> };
+  const name = (s: string) => `${u.pack}-${s}`;
 
-  // the sprites and the title's backdrop, as boot makes them
-  const t0 = performance.now();
-  overrideBackdropAnim(true);
-  scope = { b: 'trattoria', m: 'l', items: [] };
-  await generateAll(sc, () => {}, [], []);
-  const firstItems = scope.items;
-  scope = null;
-  const baseline = new Set(sc.textures.getTextureKeys());
-
-  // every backdrop: still, then live through its waves
-  const ids = Object.keys(BACKDROPS) as BackdropId[];
-  const order = [...ids].sort((a, b) => backdropPack(a).localeCompare(backdropPack(b), 'en', { numeric: true }));
-  for (const [n, id] of order.entries()) {
-    const tb = performance.now();
-    const items: Item[] = id === 'trattoria' ? [...firstItems] : [];
-    scope = { b: id, m: 's', items };
+  if (u.kind === 'bg') {
+    const id = u.members[0] as BackdropId;
+    // the title's backdrop is first made by boot, as the game does
+    if (id === 'trattoria') {
+      overrideBackdropAnim(true);
+      scope = { b: id, m: 'l' };
+      await generateAll(sc, () => {}, [], []);
+    }
+    scope = { b: id, m: 's' };
     overrideBackdropAnim(false);
     ensureBackdrop(sc, id);
-    scope.m = 'l';
+    scope = { b: id, m: 'l' };
     overrideBackdropAnim(true);
-    const bg = sc.add.container(0, 0);
-    const amb = sc.add.container(0, 0);
-    const view = new BackdropView(sc, bg, amb);
     try {
-      view.show(id, 0, 1);
-      for (let w = 1; w <= 5; w++) {
-        view.setWave(w);
-        for (let i = 0; i < 12; i++) {
-          view.update(1 / 20);
-          if (i === 4) view.impact(960, 760, 1);
-        }
-        await frame();
-      }
+      await runLive(sc, id);
     } catch (e) {
       say(`${id}: live layer failed (${String(e)})`);
     }
-    view.destroy();
-    bg.destroy();
-    amb.destroy();
     scope = null;
+    overrideBackdropAnim(null);
     // the still and the live layer's textures in atlases of their own (only one of them is ever shown); the opaque
     // full-screen layers as lossy WebP (a seventh of the size, within a level or two of the painted pixels), the
     // rest lossless
-    const pk = backdropPack(id);
     const live = items.filter((it) => it.m === 'l');
     const opaque = live.filter((it) => isOpaque(it.canvases[0]));
-    await packItems(pk, `${id}-still`, items.filter((it) => it.m === 's'), BIG, true);
-    await packItems(pk, `${id}-live`, opaque, BIG, true);
-    await packItems(pk, `${id}-parts`, live.filter((it) => !opaque.includes(it)), BIG);
+    await packItems(out, name(`${id}-still`), items.filter((it) => it.m === 's'), BIG, true);
+    await packItems(out, name(`${id}-live`), opaque, BIG, true);
+    await packItems(out, name(`${id}-parts`), live.filter((it) => !opaque.includes(it)), BIG);
     releaseLive(sc, id);
-    for (const k of sc.textures.getTextureKeys()) if (!baseline.has(k) || k === `bg_${id}` || k.startsWith(`bgk_${id}_`)) sc.textures.remove(k);
-    say(`backdrop ${n + 1}/${order.length} ${id}: ${items.length} textures, ${Math.round(performance.now() - tb)} ms`);
-    // (a breath between backdrops: the machine may be in use)
-    await sleep(30);
-  }
-  overrideBackdropAnim(null);
-
-  // every foot and pizza
-  let tf = performance.now();
-  for (const f of FEET) {
-    try {
-      ensureFootArt(null, f.id);
-    } catch (e) {
-      say(`foot ${f.id} failed: ${String(e)}`);
+  } else {
+    let tf = performance.now();
+    const breathe = async () => {
+      if (performance.now() - tf > 40) {
+        await frame();
+        tf = performance.now();
+      }
+    };
+    let keep: (key: string) => string | null;
+    if (u.kind === 'sprites') {
+      overrideBackdropAnim(true);
+      await generateAll(sc, () => {}, [], []);
+      overrideBackdropAnim(null);
+      keep = (k) => (k === 'sprites' ? k : null);
+    } else if (u.kind === 'feet') {
+      for (const id of u.members) {
+        try {
+          ensureFootArt(null, id);
+        } catch (e) {
+          say(`foot ${id} failed: ${String(e)}`);
+        }
+        await breathe();
+      }
+      const want = new Set(u.members.map((id) => `foot:${id}`));
+      keep = (k) => (want.has(k) ? k : null);
+    } else if (u.kind === 'pizzas') {
+      for (const id of u.members) {
+        ensurePizzaArt(id);
+        await breathe();
+      }
+      const want = new Set(u.members.map((id) => `pizza:${id}`));
+      keep = (k) => (want.has(k) ? k : null);
+    } else {
+      // the Locker's thumbnails (and the crops, rotted feet, windows and boards they're drawn from, which aren't
+      // packed: they're made from the packed feet and places when a peel's full-size art is wanted)
+      for (const id of u.members) {
+        try {
+          await peelThumbAsync(id);
+        } catch (e) {
+          say(`peel ${id} failed: ${String(e)}`);
+        }
+      }
+      const want = new Set(u.members.map((id) => `thumb:${id}@180`));
+      keep = (k) => (k.startsWith('thumb:') && want.has(packKey(k)) ? packKey(k) : null);
     }
-    if (performance.now() - tf > 40) {
-      await frame();
-      tf = performance.now();
+    const list: Item[] = [];
+    for (const it of cached.values()) {
+      const k = keep(it.key);
+      if (k) list.push({ ...it, key: k });
     }
+    // (the Locker's order, as the peels were painted)
+    await packItems(out, name(u.id.replace(/^[a-z]+:/, '').replace(/[^a-z0-9]+/gi, '-') || u.kind), list, SMALL);
   }
-  for (const p of PIZZAS) ensurePizzaArt(p.id);
-  say(`feet and pizzas: ${FEET.length} + ${PIZZAS.length}`);
-
-  // every peel's locker thumbnail (and the crops, rotted feet, windows and boards it's drawn from)
-  for (const [i, d] of PEELS.entries()) {
-    try {
-      await peelThumbAsync(d.id);
-    } catch (e) {
-      say(`peel ${d.id} failed: ${String(e)}`);
-    }
-    if (i % 50 === 49) say(`peels ${i + 1}/${PEELS.length}`);
-  }
-  say(`art painted in ${Math.round((performance.now() - t0) / 1000)} s; packing ${cached.size} cached pieces`);
-
-  // cache-backed art, by pack and section
-  const groups = new Map<string, Item[]>();
-  for (const it of cached.values()) {
-    const place = cachePlace(it.key);
-    if (!place) continue;
-    const [pack, section] = place;
-    const g = `${pack}\0${section}`;
-    if (!groups.has(g)) groups.set(g, []);
-    groups.get(g)!.push(it);
-  }
-  for (const [g, items] of groups) {
-    const [pack, section] = g.split('\0');
-    await packItems(pack, section, items, SMALL);
-    say(`packed ${pack}/${section}: ${items.length}`);
-  }
-
-  for (const p of Object.values(packs)) for (const k of state.shared) delete p.entries[k];
-  const manifest: PackManifest = { format: FORMAT, v: PACK_VERSION, packs };
-  await post('/__prebuild/manifest', JSON.stringify(manifest));
-  say(`done: ${Object.keys(packs).length} packs, ${Object.values(packs).reduce((n, p) => n + Object.keys(p.entries).length, 0)} entries; left out: ${state.random.length} random, ${state.shared.length} painted by several backdrops, ${state.unscoped.length} unscoped, ${state.skipped.length} empty`);
+  const trace = endTrace();
+  state.result = { ...out, keys: [...seen], random, regs: trace.regs, data: trace.data, ms: Math.round(performance.now() - t0) };
 }
 
 // ——— the check: packed art against the painters ———
@@ -352,8 +401,10 @@ async function check(): Promise<void> {
   const n = Number(q.get('sample')) || 40;
   const sc = await boot();
   const m = (await (await fetch('packs/manifest.json', { cache: 'no-cache' })).json()) as PackManifest;
-  if (m.v !== PACK_VERSION) throw new Error(`packs are for ${m.v}, the source is ${PACK_VERSION}: run the prebuild`);
-  const all = Object.entries(m.packs).flatMap(([name, p]) => Object.entries(p.entries).map(([key, e]) => ({ name, key, e })));
+  // (only entries whose unit is current: a stale one is painted by the game, not served)
+  const fresh = (e: PackEntry) => !!e.u && m.units[e.u] === (PACK_VERSIONS as Record<string, string>)[e.u];
+  const all = Object.entries(m.packs).flatMap(([name, p]) => Object.entries(p.entries).filter(([, e]) => fresh(e)).map(([key, e]) => ({ name, key, e })));
+  if (!all.length) throw new Error('no current packs: run npm run prebuild first');
   // a spread: some of each kind, then at random (seeded: the same sample each time)
   let s = 12345;
   const r = () => ((s = (s * 1103515245 + 12345) >>> 0) / 4294967296);
@@ -387,7 +438,7 @@ async function check(): Promise<void> {
   // painted again: the cache-backed art through the art cache's own painters (recorded), the backdrop textures
   // through theirs
   const painted = new Map<string, HTMLCanvasElement[]>();
-  setArtRecorder((key, cs) => painted.set(key, cs));
+  setArtRecorder((key, cs) => painted.set(packKey(key), cs));
   setPackRecorder((key, c) => painted.set(key, [c]));
   const results: { key: string; ok: boolean; max: number; diff: number; px: number; note?: string }[] = [];
   overrideBackdropAnim(true);
@@ -399,27 +450,12 @@ async function check(): Promise<void> {
         if (e.b) {
           overrideBackdropAnim(e.m === 'l');
           if (e.m === 's') ensureBackdrop(sc, e.b as BackdropId);
-          else {
-            const bg = sc.add.container(0, 0);
-            const amb = sc.add.container(0, 0);
-            const view = new BackdropView(sc, bg, amb);
-            view.show(e.b as BackdropId, 0, 1);
-            for (let w = 1; w <= 5; w++) {
-              view.setWave(w);
-              for (let i = 0; i < 12; i++) {
-                view.update(1 / 20);
-                if (i === 4) view.impact(960, 760, 1);
-              }
-            }
-            view.destroy();
-            bg.destroy();
-            amb.destroy();
-          }
+          else await runLive(sc, e.b as BackdropId);
           releaseLive(sc, e.b as BackdropId);
           for (const k of sc.textures.getTextureKeys()) if (k === `bg_${e.b}` || k.startsWith(`bgk_${e.b}_`)) sc.textures.remove(k);
         } else if (key.startsWith('foot:')) ensureFootArt(null, key.slice(5));
         else if (key.startsWith('pizza:')) ensurePizzaArt(key.slice(6));
-        else if (key.startsWith('thumb:')) await peelThumbAsync(key.slice(key.indexOf(':', 6) + 1).replace(/@\d+$/, ''));
+        else if (key.startsWith('thumb:')) await peelThumbAsync(key.slice(6).replace(/@\d+$/, ''));
       }
       const got = painted.get(key);
       if (!got) {
@@ -460,6 +496,6 @@ async function check(): Promise<void> {
     }
     await frame();
   }
-  (state as unknown as { results: unknown }).results = results;
+  state.results = results;
   say(`checked ${results.length}: ${results.filter((x) => x.ok).length} match`);
 }

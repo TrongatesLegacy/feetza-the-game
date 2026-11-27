@@ -8,6 +8,7 @@ import type { BackdropId, BackdropInfo } from '../backdrops';
 import { type Ctx, hashStr, makeCanvas, rng } from '../util';
 import type { Box } from './kit';
 import { H, W } from './kit';
+import { tracedMap } from '../../game/packTrace';
 
 export interface SceneLayer {
   id: string;
@@ -174,7 +175,7 @@ export function bakeLayer(spec: SceneSpec, id: string): { canvas: HTMLCanvasElem
 
 // ——— a window onto the place (the place peels: src/art/peelPlace.ts) ———
 
-const specs = new Map<BackdropId, SceneSpec>();
+const specs = tracedMap('kitSpecs', new Map<BackdropId, SceneSpec>());
 /** Keep a kit scene's spec (registerKitScene does), for what paints a corner of it elsewhere. */
 export function keepSpec(spec: SceneSpec): void {
   specs.set(spec.id, spec);

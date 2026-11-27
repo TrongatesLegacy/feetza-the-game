@@ -17,8 +17,9 @@ declare module 'virtual:peel-version' {
   export default version;
 }
 
-/** The same for the pre-built art packs (src/game/packs.ts): everything the packed art is painted by. */
-declare module 'virtual:pack-version' {
-  const version: string;
-  export default version;
+/** The pre-built art packs' unit versions (src/game/packs.ts): each unit's hash over the files it's painted by, as
+ * they are in this build (vite.config.ts, scripts/prebuild/deps.mjs). */
+declare module 'virtual:pack-versions' {
+  const versions: Record<string, string>;
+  export default versions;
 }
