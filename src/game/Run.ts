@@ -798,6 +798,13 @@ export function milestoneProgress(id: string): [number, number] {
     case 'feet3000': return [Math.min(3000, save.totalFeet), 3000];
     case 'golden25': return [Math.min(25, save.kills.golden ?? 0), 25];
     case 'events40': return [Math.min(40, Object.values(save.eventsDone).reduce((n, v) => n + v, 0)), 40];
+    // the Epic milestones (docs/pizza-plan.md, section 11)
+    case 'hot20': return [Math.min(20, Math.max(...(['hot', 'extrahot', 'inferno'] as HeatId[]).map((h) => save.best[h]?.wave ?? 0))), 20];
+    case 'bifrost76': return [Math.min(76, wave), 76];
+    case 'bosses32': return [Math.min(32, nb), 32];
+    case 'hotBosses6': return [Math.min(6, (save.bossesBeatenHot ?? []).length), 6];
+    case 'combo200': return [Math.min(200, g.bestCombo ?? 0), 200];
+    case 'feet8000': return [Math.min(8000, save.totalFeet), 8000];
     default: return [0, 1];
   }
 }

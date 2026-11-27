@@ -127,7 +127,7 @@ export const pizzas: PizzaType[] = [
   },
 
   // ——— Milestone prizes (MILESTONES in src/data/meta.ts names each one's goal; Combo King, Boss Slayer Supreme and
-  // Thousand-Foot Feast have other routes now, their goals still win them) ———
+  // Thousand-Foot Feast have other routes now, and their old goals went to the Epic milestones in p7.ts) ———
   {
     id: 'victorylap', name: 'Victory Lap', perk: 'actStart', perkText: "+10% dmg & tips on an act's first wave",
     shape: 'round', base: 'tomato', cheese: 0.8, toppings: ['chequerFlag', 'pepperoni', 'basil'], crust: '#d6983f', cost: 190, route: 'milestone', rarity: 'common',

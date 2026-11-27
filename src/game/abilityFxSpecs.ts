@@ -582,6 +582,25 @@ const S: Record<string, Spec> = {
     sfx: [['sfx_whirlpool'], ['sfx_kraken_splash', 200, 0.8], ['sfx_smack_water_heavy', 240, 0.7]],
     dim: 0.1,
   },
+  // Fenrir Unbound: the wolf rises howling at the bottom corner, Gleipnir's links flung off every foot as it's blown back
+  'pizza:fenrirshowl': {
+    steps: [{ k: 'show', tex: 'pk_wolf', size: 300, from: 'below', glow: 0xdfe4ff, ms: 800 }, { k: 'rings', color: 0xdfe4ff, n: 2, gap: 110, icons: 'p_chainlink', nIcons: 5, iconTint: [0xbfe6ff, 0xffffff], t: 160 }],
+    sfx: [['sfx_fenrir_howl', 0, 0.9], ['sfx_fenrir_snap', 150, 0.7], ['sfx_whoosh', 220, 0.6, 0.8]],
+    emblem: 'pk_wolf',
+  },
+  // Bifröst Opens: the bridge pie at the edge, a beam of the rainbow down on every foot, marking them
+  'pizza:rainbowbridge': {
+    steps: [{ k: 'tint', color: 0x2a1a3a, alpha: 0.1, ms: 700 }, { k: 'show', tex: 'pizza', size: 240, glow: 0xffe0a0, ms: 700 }, { k: 'beam', kind: 'laser', color: WHITE, colors: RAINBOW, w: 1.1, t: 80 }, { k: 'rings', color: 0xffe0a0, n: 2, icons: 'star5', nIcons: 7, iconTint: RAINBOW, t: 200 }],
+    sfx: [['sfx_sungap', 0, 0.8], ['sfx_smack_tail_glint', 150], ['sfx_smack_magic_2', 230, 0.6]],
+    emblem: 'pizza',
+  },
+  // Sword of Surtr: the ember pie slams the table and Surtr's fireballs rain on the toughest feet, setting all alight
+  'pizza:surtrsember': {
+    steps: [{ k: 'strike', tex: 'pizza', size: 1.1, crack: true, dust: ORANGE }, { k: 'rain', tex: ['p_fireball'], n: 8, size: 80, trail: ORANGE, splash: ORANGE, t: 120 }],
+    sfx: [['sfx_surtr_ignite', 0, 0.8], ['sfx_surtr_fireball', 120], ['sfx_surtr_impact', 260, 0.7]],
+    weight: 1.1,
+    dim: 0.1,
+  },
   // Eruption: the pizza erupts like a volcano, lava falling on every foot
   'pizza:volcano': {
     steps: [{ k: 'show', tex: 'pizza', size: 360, from: 'below', glow: RED, wiggle: true }, { k: 'rain', tex: ['p_fireball', 'flame'], n: 14, size: 90, trail: ORANGE, splash: ORANGE, t: 80 }],

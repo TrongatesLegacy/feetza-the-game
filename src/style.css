@@ -6262,11 +6262,12 @@ body.still-peels .peel-big.shiny::after {
 .prerun-bottom .lu.rare > div {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas: 'rf btn' 'name btn' 'perk perk';
+  /* (its header runs the full width, so its tier tag never sits under the button) */
+  grid-template-areas: 'rf rf' 'name btn' 'perk perk';
   align-items: center;
   column-gap: 0.5em;
 }
-.prerun-bottom .lu.rare .rf { grid-area: rf; }
+.prerun-bottom .lu.rare .rf { grid-area: rf; white-space: nowrap; letter-spacing: 0.05em; }
 .prerun-bottom .lu.rare b { grid-area: name; }
 .prerun-bottom .lu.rare span:not(.rf):not(.tag):not(.pzr-tag):not(.pzr-fx) { grid-area: perk; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .prerun-bottom .lu.rare .btn { grid-area: btn; align-self: center; margin-top: 0; }

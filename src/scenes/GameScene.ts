@@ -50,7 +50,7 @@ import { freshKitShop, loadKitState } from '../game/kitState';
 import { cardCount, counterFreebie, counterPrice, dealBlock, freeLunchReady, goldenPrice, happyHour, rerollPrice, toppingPrice } from '../game/shopDeals';
 import { pickWindow, rouletteWindow, slotsPrizeWindow, type PickOption } from '../ui/pickWindows';
 import { abilityKey } from '../game/abilities';
-import { PERK_SFX, PizzaPerkKit } from '../game/pizzaPerks';
+import { PERK_SFX, PizzaPerkKit, perkTextOf } from '../game/pizzaPerks';
 import { contentFx } from '../game/contentFx';
 import { evictLive, setLiveWarmBusy, styleLive, warmLive } from '../game/liveKit';
 import { evictZombieArt } from '../game/zombieArt';
@@ -1088,6 +1088,8 @@ export class GameScene extends Phaser.Scene implements Arena {
   }
 
   private statsNow(skip: { pizza?: Pizza; meta?: boolean; peel?: boolean }): Stats {
+    // Echo Slice copies what's beside it now (the table may have changed since the last time)
+    this.perkKit.syncEchoes();
     const live = this.alivePizzas().filter((p) => p !== this.possessedPizza && p !== skip.pizza && p.perk);
     const perks = live.map((p) => p.perk!);
     // an enhanced pizza's perk counts half as much again
@@ -2745,7 +2747,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       id: p.type.id,
       name: p.type.name,
       perk: p === this.possessedPizza ? null : p.perk,
-      line: p.perkLine,
+      // (an Echo Slice's line names the pizza it copies; here it spells the copied perk out too)
+      line: p.type.perk === 'echo' && p.perk && p.perk !== 'echo' ? `${p.perkLine}: ${perkTextOf(p.perk, p.enhanced)}` : p.perkLine,
       enhanced: p.enhanced,
       stale: p.stale || !!p.flags.wentStale,
       frozen: p.perkFrozen,
@@ -2753,6 +2756,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       slices: p.slices,
       max: p.maxSlices,
       pk: this.perkKit.pk(p),
+      echo: p.type.perk === 'echo',
       img: pizzaPortraitURL(p.type.id),
     }));
     const hero = this.heroes.flatDmgMult();
@@ -2775,6 +2779,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       lossTips: this.perkKit.lossTipsOn(),
       ghosts: this.perkKit.ghostCount(),
       forgeWaves: this.perkKit.forgeWaves,
+      skaldBosses: this.perkKit.skaldBosses(),
       hero: { smack: hero.smack, all: hero.all, reach: this.heroes.reachMult(), crit: this.heroes.critAlways(), meter: this.heroes.meterMult() },
       waveMult: this.perkKit.waveDmgMult(wave),
       areaSmack: r.level('peel') > 0 || this.kit.areaSmack(),

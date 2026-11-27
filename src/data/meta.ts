@@ -47,17 +47,13 @@ export interface Milestone {
 
 export const MILESTONES: Milestone[] = [
   { id: 'firstWave3', name: 'Survive to wave 3', pizza: 'dessert' },
-  { id: 'firstBoss', name: 'Beat your first boss', pizza: 'birthday' },
   { id: 'feet150', name: 'Smack 150 feet', pizza: 'smores' },
   { id: 'wave10', name: 'Reach wave 10', pizza: 'deepdish' },
   { id: 'bosses3', name: 'Beat 3 different bosses', pizza: 'detroit' },
   { id: 'feet600', name: 'Smack 600 feet', pizza: 'maccheese' },
-  { id: 'wave20', name: 'Reach wave 20', pizza: 'fritta' },
-  { id: 'bosses6', name: 'Beat 6 different bosses', pizza: 'okonomiyaki' },
   { id: 'act1', name: 'Beat wave 30', pizza: 'carbonara' },
   { id: 'bosses12', name: 'Beat 12 different bosses', pizza: 'cajun' },
   { id: 'feet1500', name: 'Smack 1,500 feet', pizza: 'marshmallow' },
-  { id: 'wave45', name: 'Reach wave 45', pizza: 'stagioni' },
   { id: 'bosses18', name: 'Beat 18 different bosses', pizza: 'pumpkin' },
   { id: 'journey', name: `Finish the journey (wave ${JOURNEY_WAVES})`, pizza: 'golden' },
   { id: 'allBosses', name: 'Beat all 24 bosses', pizza: 'unicorn' },
@@ -66,22 +62,16 @@ export const MILESTONES: Milestone[] = [
   { id: 'inferno30', name: 'Beat wave 30 on Inferno', pizza: 'infernocalzone' },
   // phase 3 milestone prizes (progress in milestoneProgress, records in save.pizzaGoals)
   { id: 'act1Lap', name: 'Beat wave 30', pizza: 'victorylap' },
-  { id: 'slayer24', name: 'Beat all 24 original bosses', pizza: 'slayer' },
   { id: 'wave100', name: 'Reach wave 100', pizza: 'century' },
-  { id: 'feet5000', name: 'Defeat 5,000 feet', pizza: 'thousand' },
   { id: 'perfect10', name: '10 perfect waves in a row', pizza: 'perfectpie' },
   { id: 'runs25', name: 'Play 25 runs', pizza: 'anniversary' },
   { id: 'peels100', name: 'Own 100 peels', pizza: 'peelcollector' },
-  { id: 'combo150', name: 'Reach a 150 combo', pizza: 'comboking' },
   { id: 'untouched', name: 'Finish a run without losing a pizza', pizza: 'untouchable' },
   { id: 'fastWave', name: 'Clear a wave in under 8s', pizza: 'speedslice' },
   { id: 'night10', name: 'Play 10 runs after 10pm', pizza: 'nightshift' },
   { id: 'surtr', name: 'Beat Surtr', pizza: 'ragnarok' },
   { id: 'hades', name: 'Beat Hades', pizza: 'olympian' },
   // the pizza plan's route moves (docs/pizza-plan.md, step 1): eight Common Pizzeria pizzas became milestone prizes.
-  // (Seven milestones' pizzas moved the other way, off milestones: Combo King, Boss Slayer Supreme, Pizza Fritta,
-  // Okonomiyaki, Birthday Cake Pizza, Quattro Stagioni, Thousand-Foot Feast. Their goals still award them, as a
-  // second way in, until the new Epic and Legendary milestone pizzas take those goals over.)
   { id: 'wave60', name: 'Reach wave 60', pizza: 'stromboli' },
   { id: 'soggyScorch', name: 'Defeat 150 feet that leave pizzas soggy or scorched', pizza: 'whitepie' },
   { id: 'pier25', name: 'Clear 25 waves at The Pier', pizza: 'saffronlobster' },
@@ -90,11 +80,22 @@ export const MILESTONES: Milestone[] = [
   { id: 'feet3000', name: 'Defeat 3,000 feet', pizza: 'marrow' },
   { id: 'golden25', name: 'Catch 25 golden feet', pizza: 'goldmargherita' },
   { id: 'events40', name: 'Deal with 40 wave events', pizza: 'figrose' },
+  // the pizza plan's Epic milestones (docs/pizza-plan.md, section 11): six of the goals whose Rare pizzas moved off
+  // milestones in step 1 passed to them, each made an Epic's goal (new ids, so a goal met under its old wording doesn't
+  // count; records the save already keeps do, if they really meet the new one):
+  //   Pizza Fritta's 'Reach wave 20' → Fenrir's Howl, on Hot or hotter; Quattro Stagioni's 'Reach wave 45' → Rainbow
+  //   Bridge, as far as the Bifröst; Boss Slayer Supreme's 'Beat all 24 original bosses' → Skald's Saga, 32 different
+  //   bosses; Okonomiyaki's 'Beat 6 different bosses' → Frostbite, on Hot or hotter; Combo King's 'Reach a 150 combo'
+  //   → Surtr's Ember Crust, a 200 combo; Thousand-Foot Feast's 'Defeat 5,000 feet' → Serpent's Coil, 8,000 feet.
+  // The seventh, Birthday Cake Pizza's 'Beat your first boss' ('firstBoss'), waits for step 5's Silver Service (beat the
+  // Head Waiter, the first boss you meet, on Hot without losing a slice). The old pizzas keep only their new routes.
+  { id: 'hot20', name: 'Reach wave 20 on Hot or hotter', pizza: 'fenrirshowl' },
+  { id: 'bifrost76', name: 'Reach the Bifröst (wave 76)', pizza: 'rainbowbridge' },
+  { id: 'bosses32', name: 'Beat 32 different bosses', pizza: 'skaldssaga' },
+  { id: 'hotBosses6', name: 'Beat 6 different bosses on Hot or hotter', pizza: 'frostbite' },
+  { id: 'combo200', name: 'Reach a 200 combo', pizza: 'surtrsember' },
+  { id: 'feet8000', name: 'Defeat 8,000 feet', pizza: 'serpentscoil' },
 ];
 
 export const MILESTONE_BY_PIZZA: Record<string, Milestone> = Object.fromEntries(MILESTONES.filter((m) => m.pizza).map((m) => [m.pizza!, m]));
 
-/** The milestone that also wins a pizza whose own route is elsewhere now (it moved off milestones), if any. */
-export function legacyMilestone(p: { id: string; route: string }): Milestone | null {
-  return p.route !== 'milestone' ? MILESTONE_BY_PIZZA[p.id] ?? null : null;
-}

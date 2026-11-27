@@ -746,6 +746,15 @@ export const ABILITIES: Record<string, Ability> = {
   'pizza:harpyfeather': ab('Harpy Swoop', every(6), [K(1100, front(3)), D(1.5, front(3))], PURPLE, 'wind'),
   'pizza:goldenfleece': ab('Fleece of Gold', always, [STAT({ coinMult: 0.1, bossDmg: 0.1 })], GOLD, 'gold'),
   'pizza:charybdisswirl': ab('Maelstrom', act, [D(5, all, 600), S(0.5, 3, all), ST(1, BL(2, 240, 'front'))], CYAN, 'wind', 0.9),
+  // the pizza plan's step 4, batch 3: the Epic milestones (src/content/pizzas/p7.ts), from Act 8's Norse bosses, and
+  // the Epic Rare Find Echo Slice (the Echo Phantom)
+  'pizza:fenrirshowl': ab('Fenrir Unbound', act, [K(1600, all), ST(1.2, all), D(5, all)], 0x9aa3ad, 'wind', 0.9),
+  'pizza:rainbowbridge': ab('Bifröst Opens', act, [M(1.5, 5, all), D(5, all)], PINK, 'zap', 0.9),
+  'pizza:skaldssaga': ab('Saga of Heroes', always, [STAT({ bossDmg: 0.2 })], GOLD, 'gold'),
+  'pizza:frostbite': ab('Rime of Thrym', smack(0.2), [S(0.4, 2, hit(160)), M(1.25, 2, hit(160))], CYAN, 'frost'),
+  'pizza:surtrsember': ab('Sword of Surtr', act, [B(2.5, 5, all), D(6, BL(2, 220, 'toughest'), 900)], ORANGE, 'fire', 0.9),
+  'pizza:serpentscoil': ab('Coils of the Deep', stomp, [ST(2.5, hit()), D(2, hit())], GREEN, 'ink'),
+  'pizza:echoslice': ab('Echo Smack', smack(0.25), [D(1, hit()), D(0.6, rnd(1))], 0x7df9ff, 'ink'),
 
   // ——— Act 7 · Comics: places, bosses and villain feet ———
   'place:metropizza': ab('Searchlight', every(6), [M(1.6, 4, tough(2)), D(2, tough(2))], GOLD, 'zap'),

@@ -103,7 +103,9 @@ export type PizzaPerk =
   // ——— the pizza plan's step 4, batch 1: the Epic Chef's Specials (src/content/pizzas/p5.ts) ———
   | 'inkSpray' | 'snowball' | 'pieSplat' | 'sandWall' | 'critQuake' | 'steamVent' | 'sootAbove' | 'comet' | 'ghostAlly'
   // ——— the pizza plan's step 4, batch 2: the Epic Pizzeria pizzas (src/content/pizzas/p6.ts) ———
-  | 'forgeWaves' | 'gorgonGaze' | 'tripleBite' | 'mazeLost' | 'emberTrail' | 'sirenSong' | 'harpyGust' | 'goldenFleece' | 'whirlpool';
+  | 'forgeWaves' | 'gorgonGaze' | 'tripleBite' | 'mazeLost' | 'emberTrail' | 'sirenSong' | 'harpyGust' | 'goldenFleece' | 'whirlpool'
+  // ——— the pizza plan's step 4, batch 3: the Epic milestones and Echo Slice (src/content/pizzas/p7.ts) ———
+  | 'fenrirHowl' | 'bridgeLane' | 'skaldSaga' | 'frostbite' | 'surtrSpread' | 'serpentCoil' | 'echo';
 
 export interface PizzaType {
   id: string;
@@ -403,6 +405,14 @@ export const ENHANCED_PERK: Record<PizzaPerk, string | (() => string)> = {
   harpyGust: 'Every 5s feet above are blown 150px up',
   goldenFleece: 'Bosses and mini-bosses drop +75% tips',
   whirlpool: '15% of smacks: a whirlpool stuns 1.5s',
+  // the pizza plan's step 4, batch 3
+  fenrirHowl: 'Pizza lost: all feet flee, stunned 1s',
+  bridgeLane: 'Each wave a lane is bridged: +60% damage',
+  skaldSaga: '+4.5% damage per boss beaten this run',
+  frostbite: 'Chilled or frozen feet take +38% damage',
+  surtrSpread: 'Burning kills spread fire to 2 feet',
+  serpentCoil: 'First diver each wave: coiled 4.5s',
+  echo: 'Copies the perk beside it, enhanced',
 };
 
 /** A perk's enhanced text. */

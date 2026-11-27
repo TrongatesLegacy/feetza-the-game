@@ -70,7 +70,9 @@ export type Element = 'fire' | 'frost' | 'frostfire' | 'cosmic' | 'moon' | 'ghos
   // the Epic Chef's Specials' own (step 4)
   | 'sand' | 'steam' | 'soot' | 'cream' | 'quake'
   // the Epic Pizzeria pizzas' own (step 4, batch 2: Act 9's myths)
-  | 'forge' | 'stone' | 'tempers' | 'song' | 'feather' | 'water';
+  | 'forge' | 'stone' | 'tempers' | 'song' | 'feather' | 'water'
+  // Echo Slice's own (step 4, batch 3: the Echo Phantom)
+  | 'echo';
 
 interface ElementLook {
   /** Its colour (a pizza's Rare Find glow, if it has one, takes over), and a second one for its motes. */
@@ -116,6 +118,9 @@ const EL: Record<Element, ElementLook> = {
   song: { col: 0x8ff0e0, col2: 0xd8c8ff, mote: 'p9_note', move: 'rise', rate: 1.4, add: false, sfx: 'sfx_smack_tail_bell', quip: "SIREN'S SONG!" },
   feather: { col: 0xc8a8ff, col2: 0xd9a441, mote: 'pza_feather', move: 'fall', rate: 1.2, add: false, sfx: 'sfx_harpy', quip: 'HARPY GUST!' },
   water: { col: 0x6ac8ff, col2: 0xffffff, mote: 'pza_mote', move: 'orbit', rate: 7, add: true, sfx: 'sfx_kraken_splash', quip: 'WHIRLPOOL!' },
+  // the Echo Phantom's glitch: wisps circling in cyan and magenta, and every couple of seconds an echo of the pie's rim
+  // rippling out across the table
+  echo: { col: 0x7df9ff, col2: 0xff3df0, mote: 'pza_wispy', move: 'orbit', rate: 4, add: true, sfx: 'sfx_mirrorpeel_echo', quip: 'ECHO!' },
 };
 
 /** The sounds it plays that aren't loaded at boot (the scene loads them with the run). */
@@ -171,6 +176,14 @@ const PERK_ELEMENT: Partial<Record<PizzaPerk, { el: Element; quip?: string; col?
   harpyGust: { el: 'feather', quip: 'HARPY GUST!' },
   goldenFleece: { el: 'gold', quip: 'GOLDEN FLEECE!' },
   whirlpool: { el: 'water', quip: 'WHIRLPOOL!' },
+  // the pizza plan's step 4, batch 3: the Epic milestones, from Act 8's Norse bosses, and Echo Slice
+  fenrirHowl: { el: 'moon', quip: "FENRIR'S HOWL!", col: 0xc8d0f0 },
+  bridgeLane: { el: 'rainbow', quip: 'RAINBOW BRIDGE!' },
+  skaldSaga: { el: 'song', quip: "SKALD'S SAGA!", col: 0xffc84a },
+  frostbite: { el: 'frost', quip: 'FROSTBITE!' },
+  surtrSpread: { el: 'fire', quip: "SURTR'S FIRE!", col: 0xff6a1a },
+  serpentCoil: { el: 'water', quip: 'COILED!', col: 0x5fcf9a },
+  echo: { el: 'echo', quip: 'ECHO!' },
 };
 
 /** A perk's element: its own, else by its name, else by its pizza (a hot pie fire, a cold one frost), else power. */
@@ -709,6 +722,8 @@ export class PizzaAlive {
   private pool = new Map<Phaser.GameObjects.Container, Phaser.GameObjects.Image[]>();
   private t = crand() * 20;
   private acc: Record<string, number> = {};
+  /** Echo Slice: which colour its next rim echo is. */
+  private echoN = 0;
   private bubTex: string;
   /** Points (art px, flattened): where it bubbles, its oily pieces, its gold. */
   private bub: number[];
@@ -1092,6 +1107,14 @@ export class PizzaAlive {
       else o.img.setTint(o.ph > 3 ? L.col2 : this.el === 'ink' ? L.col : this.col);
       if (this.el === 'ink' || this.el === 'ghost') o.img.setRotation(o.a + Math.PI / 2);
     }
+    if (this.el === 'echo') {
+      // an echo of its rim rippling out across the table, cyan then magenta
+      if (this.every('echo', 0.45 * k, dt) > 0) {
+        this.echoN = (this.echoN + 1) % 2;
+        this.spawn(this.mid, this.rimTex, 0, f.cy, { life: 1.1, s0: (f.rx * 2.05) / 256, s1: (f.rx * 2.9) / 256, a: 0.4 * k, add: true, tint: this.echoN ? L.col2 : L.col, sy: TILT * (f.ry / (f.rx * TILT)), fade: 'out' });
+      }
+      return;
+    }
     if (L.move === 'orbit' && this.el !== 'time') return;
     if (this.el === 'time') {
       // a tick of light round the crust every second
@@ -1271,6 +1294,7 @@ export class PizzaAlive {
       else if (el === 'life' || el === 'heal') this.spawn(this.top, L.mote, x, y, { vx: Math.cos(a) * v * 0.6, vy: Math.sin(a) * v * 0.7 - 50 * s, life: 0.8 + crand() * 0.4, s0: 0.5 * s, s1: 0.9 * s, a: 1, grav: 160 * s, drag: 1, spin: (crand() - 0.5) * 6 });
       else if (el === 'gold') this.spawn(this.top, crand() < 0.4 ? 'coin' : 'pza_star', x, y, { vx: Math.cos(a) * v * 0.7, vy: Math.sin(a) * v - 60 * s, life: 0.7 + crand() * 0.3, s0: 0.45 * s, s1: 0.35 * s, a: 1, grav: 800 * s, drag: 0.5, spin: (crand() - 0.5) * 8 });
       else if (el === 'ghost') this.spawn(this.top, 'pza_wispy', x, y, { vx: Math.cos(a) * v * 0.5, vy: Math.sin(a) * v * 0.5 - 60 * s, life: 0.9, s0: 0.6 * s, s1: 1.3 * s, a: 0.7, grav: -40 * s, drag: 1.2, add: true, tint });
+      else if (el === 'echo') this.spawn(this.top, i % 2 ? 'pza_wispy' : 'pza_star', x + (i % 2 ? -6 : 6) * s, y, { vx: Math.cos(a) * v * 0.55, vy: Math.sin(a) * v * 0.55 - 50 * s, life: 0.8, s0: 0.55 * s, s1: 1 * s, a: 0.8, grav: -30 * s, drag: 1.2, add: true, tint: i % 2 ? L.col2 : L.col });
       else if (el === 'sand' || el === 'quake') this.spawn(this.top, crand() < 0.6 ? 'crumb2' : 'pza_mote', x, y, { vx: Math.cos(a) * v * 0.7, vy: Math.sin(a) * v - 50 * s, life: 0.6 + crand() * 0.3, s0: 0.55 * s, s1: 0.4 * s, a: 1, grav: 800 * s, drag: 0.5, spin: (crand() - 0.5) * 8, tint: el === 'sand' ? (crand() < 0.5 ? 0xe2b46a : 0xffe0a0) : crand() < 0.5 ? 0xa87a4a : 0xffb070 });
       else if (el === 'steam' || el === 'soot') this.spawn(this.top, 'pza_steam', x, y, { vx: Math.cos(a) * v * 0.4, vy: Math.sin(a) * v * 0.5 - 70 * s, life: 0.8 + crand() * 0.4, s0: 0.5 * s, s1: 1.4 * s, a: el === 'steam' ? 0.55 : 0.5, fade: 'out', grav: -50 * s, drag: 1.2, tint: el === 'steam' ? 0xffffff : crand() < 0.5 ? 0x2a2624 : 0x5a524c });
       else if (el === 'forge') this.spawn(this.top, crand() < 0.3 ? 'crumb2' : 'pza_ember', x, y, { vx: Math.cos(a) * v * 0.8, vy: Math.sin(a) * v - 60 * s, life: 0.5 + crand() * 0.3, s0: 0.6 * s, s1: 0.12 * s, a: 1, grav: 700 * s, drag: 0.4, add: true, tint: crand() < 0.5 ? 0xffe0a0 : crand() < 0.5 ? 0xff8a3a : 0xc88a3a });

@@ -49,12 +49,12 @@ type Pt = [number, number];
 /** Toppings too small to read when they hop (flecks, crumbs, herbs). */
 const TINY = new Set<string>(['chili', 'parmesan', 'goldLeaf', 'oregano', 'blackPepper', 'chives', 'parsley', 'dill', 'aonori', 'bonito', 'breadcrumbs', 'starDust', 'sprinkles', 'rosemary', 'pepita', 'pineNut', 'caper', 'grahamCrumb', 'pistachio', 'sage', 'springOnion']);
 /** Fatty, oily toppings: they glisten more and their fat sizzles. */
-const OILY = new Set<string>(['pepperoni', 'salami', 'cupPepperoni', 'chorizo', 'nduja', 'calabreseSalami', 'sausage', 'bacon', 'guanciale', 'lardons', 'andouille', 'meatball', 'wagyu', 'mortadella', 'kebabMeat', 'steak', 'friedChicken', 'ribBone', 'brickChorizo', 'bronzePlates']);
+const OILY = new Set<string>(['pepperoni', 'salami', 'cupPepperoni', 'chorizo', 'nduja', 'calabreseSalami', 'sausage', 'bacon', 'guanciale', 'lardons', 'andouille', 'meatball', 'wagyu', 'mortadella', 'kebabMeat', 'steak', 'friedChicken', 'ribBone', 'brickChorizo', 'bronzePlates', 'muspelCoals']);
 /** Oil poured over the whole pie. */
 const OILED = new Set<string>(['grease', 'oliveOil', 'garlicButter']);
-const SPICY = new Set<string>(['chili', 'jalapeno', 'hotSauce', 'longChili', 'scotchBonnet', 'nduja', 'pepperoncini', 'infernoCracks', 'lavaVents', 'flambeFlames', 'fireIce', 'cajunShrimp', 'jerkChicken', 'calabreseSalami', 'forgeGlow', 'emberCoals']);
-const HOT_PERKS = new Set<string>(['burnStomper', 'burnHits', 'heatAbove', 'burnAbove', 'fireLane', 'hoverFire', 'erupt', 'frostFire', 'forgeWaves', 'emberTrail']);
-const COLD_PERKS = new Set<string>(['slowHits', 'firstFreeze', 'frostFire', 'snowball']);
+const SPICY = new Set<string>(['chili', 'jalapeno', 'hotSauce', 'longChili', 'scotchBonnet', 'nduja', 'pepperoncini', 'infernoCracks', 'lavaVents', 'flambeFlames', 'fireIce', 'cajunShrimp', 'jerkChicken', 'calabreseSalami', 'forgeGlow', 'emberCoals', 'surtrBlade', 'muspelCoals']);
+const HOT_PERKS = new Set<string>(['burnStomper', 'burnHits', 'heatAbove', 'burnAbove', 'fireLane', 'hoverFire', 'erupt', 'frostFire', 'forgeWaves', 'emberTrail', 'surtrSpread']);
+const COLD_PERKS = new Set<string>(['slowHits', 'firstFreeze', 'frostFire', 'snowball', 'frostbite']);
 const GOLDISH = new Set<string>(['goldLeaf', 'pearl', 'fleeceCurls']);
 const GOLD_RIMS = new Set<string>(['goldRim', 'crown', 'halo', 'anniv25']);
 const SWEET = new Set<string>(['strawberry', 'chocolate', 'marshmallow', 'sprinkles', 'frostingRosette', 'candy', 'marshMountain', 'grahamCrumb', 'miniCreamPie', 'creamSplats', 'sandcastle', 'seaShell']);

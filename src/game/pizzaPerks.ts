@@ -8,7 +8,10 @@
 
 import Phaser from 'phaser';
 import { drawChest, drawDiscoBall, drawGhostRing, drawLightBeam, drawMeatball, drawMeteor, drawMusicNote, drawWaltzGhost, drawComet, drawSandWall, drawMaze, drawEmbers, drawFeather, drawFleece } from '../art/perkProps';
+import { drawBifrostBand, drawHowlingWolf, drawRuneStone, drawSerpentCoil } from '../art/perkPropsNorse';
 import { PIZZAS, enhancedText, type PizzaPerk } from '../data/pizzas';
+import { FOOT_BY_ID } from '../data/feet';
+import { HOVER_Y } from '../config';
 import { tunaTips } from '../data/perkWave';
 import { WAVES_PER_ACT, isActStart } from '../data/stages';
 import { save } from '../systems/save';
@@ -26,8 +29,24 @@ import { crand } from '../systems/cosmeticRandom';
 /** Perks Arcobaleno can't borrow: set up when a pizza is placed, tied to its own type, or another borrower. */
 const BORROW_SKIP = new Set<PizzaPerk>([
   'rainbow', 'mystery', 'rotate', 'slices', 'bossRegrow', 'neverStale', 'staleHeal', 'riseOnce', 'refund',
-  'bigStart', 'erupt', 'surviveOnce', 'firstBack', 'crustWaves', 'crustBonus', 'crustRun',
+  'bigStart', 'erupt', 'surviveOnce', 'firstBack', 'crustWaves', 'crustBonus', 'crustRun', 'echo',
 ]);
+/** Perks Echo Slice won't copy: the same as Arcobaleno's (set up when a pizza is placed, tied to its own type, once a
+ *  run, the crust earners, the other borrowers) and itself. It counts as a second copy of anything else, doing what two
+ *  of that pizza would. */
+export const ECHO_SKIP = BORROW_SKIP;
+/** Every perk a pizza has, for Echo Slice's flag (it keeps its copy as an index: 1 + its place here; 0 nothing). */
+const ALL_PERKS: PizzaPerk[] = [...new Set(PIZZAS.map((p) => p.perk))];
+
+/** The pizza an Echo Slice is copying now, or null. */
+export function echoSource(p: Pizza): (typeof PIZZAS)[number] | null {
+  return PIZZAS[Number(p.flags.echoFrom ?? 0) - 1] ?? null;
+}
+
+/** The perk an Echo Slice copies now, or null (nothing beside it to copy). */
+export function echoPerk(p: Pizza): PizzaPerk | null {
+  return ALL_PERKS[Number(p.flags.echo ?? 0) - 1] ?? null;
+}
 /** Arcobaleno's pool: every other pizza's perk. */
 export const BORROW_POOL: PizzaPerk[] = [...new Set(PIZZAS.map((p) => p.perk))].filter((k) => !BORROW_SKIP.has(k));
 /** Mystery Meat's big perks: strong on any table. */
@@ -49,6 +68,11 @@ export const PERK_SFX = [
   'sfx_colossus_anvil', 'sfx_colossus_clang', 'sfx_medusa_gaze', 'sfx_medusa_petrify', 'sfx_medusa_crumble', 'sfx_cerberus_bark',
   'sfx_cerberus_growl', 'sfx_minotaur_walls', 'sfx_minotaur_snort', 'sfx_hades_flare', 'sfx_sirensong', 'sfx_harpy', 'sfx_whirlpool',
   'sfx_kraken_splash', 'sfx_hero_coins', 'sfx_smack_gold_heavy',
+  // the Epic milestones and Echo Slice (step 4, batch 3), from Act 8's Norse bosses: Fenrir's howl and snap, the
+  // Bifröst's parting clouds, the Skald's saga, Thrym's cracking ice, Surtr's fireball and ignite, Jörmungandr's
+  // constrict and hiss, and the Mirror Peel's echo
+  'sfx_fenrir_howl', 'sfx_fenrir_snap', 'sfx_sungap', 'sfx_skaldsong', 'sfx_thrym_crack', 'sfx_thrym_shatter', 'sfx_surtr_fireball',
+  'sfx_surtr_ignite', 'sfx_jormungandr_constrict', 'sfx_jormungandr_hiss', 'sfx_mirrorpeel_echo',
 ];
 
 /** Stages played at night (Night Shift). */
@@ -56,6 +80,8 @@ const NIGHT = new Set(['space', 'oldtown', 'cellar']);
 
 /** The perk a borrowing pizza (Arcobaleno, Mystery Meat) has right now, or null. */
 export function borrowedPerk(p: Pizza): PizzaPerk | null {
+  // Echo Slice: the perk of the pizza beside it (PizzaPerkKit.syncEchoes keeps it up to date)
+  if (p.type.perk === 'echo') return echoPerk(p);
   if (p.type.perk === 'rainbow') return p.flags.borrow === undefined ? null : BORROW_POOL[Number(p.flags.borrow) % BORROW_POOL.length];
   if (p.type.perk === 'mystery') return p.flags.mystery === undefined ? null : MYSTERY_POOL[Number(p.flags.mystery) % MYSTERY_POOL.length];
   return null;
@@ -79,6 +105,8 @@ export function sinkPct(k: number): number {
 export function borrowLine(p: Pizza, enhanced: boolean): string | null {
   if (p.type.perk === 'kitchenSink') return p.flags.sink === undefined ? null : `This wave: +${sinkPct(enhanced ? 1.5 : 1)}% ${SINK_PICKS[Number(p.flags.sink) % 3]}`;
   if (p.type.perk === 'mystery' && !p.flags.revealed) return enhanced ? enhancedText('mystery') : p.type.perkText;
+  // (the pizza it copies sits right beside it with its perk in full; the STATS tab spells the copy out)
+  if (p.type.perk === 'echo') return echoPerk(p) ? `Echoing ${echoSource(p)?.name ?? 'its neighbour'}` : 'Echoing nothing';
   const b = borrowedPerk(p);
   return b ? perkTextOf(b, enhanced || p.type.perk === 'mystery') : null;
 }
@@ -184,6 +212,11 @@ export class PizzaPerkKit {
   private blown = new Map<Foot, number>();
   /** Charybdis Swirl: feet spinning in a whirlpool, and the whirl under them. */
   private whirled = new Map<Foot, { until: number; img: Phaser.GameObjects.Image; tintAt: number }>();
+  // ——— the Epic milestones (step 4, batch 3) ———
+  /** Rainbow Bridge: the lanes bridged this wave (+40% damage to feet in them) and the Bifröst over each. */
+  private bridges: { src: Pizza; lane: Pizza; x: number; r: number; k: number; img: Phaser.GameObjects.Image; glow: Phaser.GameObjects.Image; ph: number }[] = [];
+  /** Serpent's Coil: feet held in Jörmungandr's coils until then, and the coils on them. */
+  private coiled = new Map<Foot, { until: number; img: Phaser.GameObjects.Image; tintAt: number; s: number }>();
   /** When a quip of each kind last played (they'd stack up over a busy wave). */
   private quipAt: Record<string, number> = {};
 
@@ -208,6 +241,12 @@ export class PizzaPerkKit {
       ['pk_embers', drawEmbers],
       ['pk_feather', drawFeather],
       ['pk_fleece', drawFleece],
+      ['pk_bifrost', drawBifrostBand],
+      ['pk_coil', drawSerpentCoil],
+      ['pk_wolf', drawHowlingWolf],
+      ['pk_rune0', () => drawRuneStone(0)],
+      ['pk_rune1', () => drawRuneStone(1)],
+      ['pk_rune2', () => drawRuneStone(2)],
     ];
     for (const [k, draw] of tex) if (!this.sc.textures.exists(k)) this.sc.textures.addCanvas(k, draw());
   }
@@ -317,6 +356,8 @@ export class PizzaPerkKit {
     s.crustBonus += 0.1 * this.c('crustRun');
     // Colossus Forge: +1% damage a wave survived this run (up to +40%; enhanced 1.5% and 60%)
     for (const p of this.with('forgeWaves')) if (!skip.includes(p)) s.damage *= 1 + this.forgePct(p) / 100;
+    // Skald's Saga: +3% damage for every boss beaten this run (enhanced 4.5%)
+    for (const p of this.with('skaldSaga')) if (!skip.includes(p)) s.damage *= 1 + this.skaldPct(p) / 100;
     // Kitchen Sink: this wave's pick
     for (const p of this.with('kitchenSink')) {
       if (p.flags.sink === undefined || skip.includes(p)) continue;
@@ -332,6 +373,16 @@ export class PizzaPerkKit {
   forgePct(p: Pizza): number {
     const k = this.pk(p);
     return Math.round(Math.min(40, this.forgeWaves) * k * 10) / 10;
+  }
+
+  /** Bosses beaten this run (not mini-bosses; a boss's Ghost echoes and its twins never count): Skald's Saga. */
+  skaldBosses(): number {
+    return this.run.bossesBeaten.filter((id) => !FOOT_BY_ID[id]?.mini).length;
+  }
+
+  /** Skald's Saga's bonus now, in percent (to one decimal): 3% a boss beaten this run (scaled by its strength). */
+  skaldPct(p: Pizza): number {
+    return Math.round(3 * this.skaldBosses() * this.pk(p) * 10) / 10;
   }
 
   /** Pizza Romana: follow-up smacks while it has every slice. */
@@ -384,6 +435,11 @@ export class PizzaPerkKit {
     if (this.quaking()) m *= 1 + 0.1 * this.c('critQuake');
     // Gorgon's Gaze: a foot turned to stone takes double
     if (this.stoneOn(f)) m *= 2;
+    // Rainbow Bridge: a foot in a bridged lane takes +40% (enhanced 60%)
+    m *= this.bridgeMult(f);
+    // Frostbite: a chilled or frozen foot takes +25%
+    const frost = this.c('frostbite');
+    if (frost > 0 && this.cold(f)) m *= 1 + 0.25 * frost;
     return m * this.waveDmgMult(this.wave());
   }
 
@@ -440,6 +496,9 @@ export class PizzaPerkKit {
     // Charybdis Swirl: 10% of smacks (enhanced 15%) drag the foot into a whirlpool
     const whirl = this.c('whirlpool');
     if (whirl > 0 && f.alive && Math.random() < Math.min(0.4, 0.1 * whirl)) this.whirlpool(f);
+    // Rainbow Bridge and Frostbite show on the smacks they strengthen
+    if (this.bridges.length && this.bridgeMult(f) > 1) this.bridgeHit(f);
+    if (this.c('frostbite') > 0 && this.cold(f)) this.frostbiteHit(f);
   }
 
   /** A swing of the peel landed (once a swing, however many feet it hit; f: the foot it hit first). Three-Headed
@@ -498,6 +557,14 @@ export class PizzaPerkKit {
     // (not for a boss's Ghost echo, or one of several of a boss while another stands: they pay a tenth)
     if (this.c('emberTrail') > 0 && !echo) this.dropEmbers(f);
     if (f.isBossLike && !echo && this.c('goldenFleece') > 0) this.fleece(f);
+    // Surtr's Ember Crust: a burning foot's fire leaps to the nearest foot as it dies
+    if (!echo && this.c('surtrSpread') > 0 && f.burnT > 0 && f.burnDps > 0) this.spreadFire(f);
+    // Skald's Saga: a boss beaten (it's on the run's list once its banner is up) adds a verse
+    if (!echo && !f.brain.decoy && f.type.boss && !f.type.mini && this.c('skaldSaga') > 0)
+      this.sc.time.delayedCall(1600, () => {
+        this.h.recompute();
+        for (const p of this.with('skaldSaga')) this.saga(p);
+      });
     // Rinkside Pretzel Pie: a kill gets the smacks going (its pop shows when a rush starts, not on every kill)
     if (this.c('killRush') > 0) {
       if (!this.rushing()) for (const p of this.with('killRush')) p.perkFired({ quip: false });
@@ -782,6 +849,9 @@ export class PizzaPerkKit {
     }
     p.flags.lost = true;
     this.lost = true;
+    // Fenrir's Howl: the wolf howls for the lost pizza (its own loss too, a last howl)
+    const ownHowl = (p.type.perk === 'fenrirHowl' || (p.type.perk === 'echo' && echoPerk(p) === 'fenrirHowl')) && fresh && !p.perkFrozen && p !== a.possessed();
+    if (this.c('fenrirHowl') > 0 || ownHowl) this.howl(p, (ownHowl && p.enhanced) || this.with('fenrirHowl').some((q) => q.enhanced));
     // Untouchable: the first pizza lost each run (it included) comes back
     const keeper = [...this.a.alivePizzas(), p].find((q) => q.type.perk === 'firstBack' && !q.stale && !q.perkFrozen && !q.flags.untouchUsed);
     if (keeper && !this.untouchUsed()) {
@@ -894,6 +964,8 @@ export class PizzaPerkKit {
       if (p.type.perk === 'mystery' && !p.flags.revealed) {
         p.flags.revealed = true;
         p.redraw();
+        // (an Echo Slice beside it can copy it now)
+        changed = true;
         const line = borrowLine(p, p.enhanced) ?? '';
         this.sc.time.delayedCall(1000, () => {
           a.quip(p.x, p.surfaceY - 190, 'MYSTERY MEAT REVEALED!', '#c8a8ff', 34);
@@ -919,6 +991,8 @@ export class PizzaPerkKit {
     if (changed) this.h.recompute();
     // Sandcastle Sundae: the wall goes up (after Arcobaleno's new colour, which may be it)
     this.sandUp();
+    // Rainbow Bridge: the Bifröst comes down over a lane
+    this.bridgeUp();
     // Colossus Forge: the waves it has hammered in so far
     for (const p of this.with('forgeWaves'))
       this.sc.time.delayedCall(2500, () => {
@@ -1131,6 +1205,8 @@ export class PizzaPerkKit {
       }
     }
     this.harpyTick(dt);
+    this.bridgeTick();
+    this.coilTick();
     this.gorgonTick();
     this.mazeTick();
     this.emberTick();
@@ -1842,6 +1918,12 @@ export class PizzaPerkKit {
     this.whirled.clear();
     this.embers = [];
     this.blown.clear();
+    // the Epic milestones': the Bifröst and the coils go with the wave
+    for (const b of this.bridges) this.dropImgs([b.img, b.glow], all);
+    this.bridges = [];
+    for (const co of this.coiled.values()) this.dropImgs([co.img], all);
+    tinted.push(...this.coiled.keys());
+    this.coiled.clear();
     if (!all) {
       for (const f of lost) this.release(f);
       for (const f of tinted) if (f.alive && f.stunT <= 0) f.clearTint();
@@ -2281,6 +2363,337 @@ export class PizzaPerkKit {
         w.tintAt = now;
       }
     }
+  }
+
+  // ——— the Epic milestones (step 4, batch 3): Act 8's Norse bosses, and Echo Slice ———
+
+  /** Echo Slice: what each one copies now. It copies the pizza on its right in table order, else the one on its left:
+   *  never another Echo Slice, a dead, stale or frozen pizza (nothing to copy), the Ghost's possessed one, a Mystery Meat
+   *  not yet revealed, or a perk in ECHO_SKIP. Run on every recompute (a swap, a loss, a pizza going stale or coming
+   *  back), so it re-copies whenever the table changes. Returns whether any changed. */
+  syncEchoes(): boolean {
+    const a = this.a;
+    const seats = [...a.allPizzas()].sort((p, q) => p.x - q.x);
+    const ghost = a.possessed();
+    let changed = false;
+    seats.forEach((e, i) => {
+      if (e.type.perk !== 'echo') return;
+      const pick = (q: Pizza | undefined): { k: PizzaPerk; q: Pizza } | null => {
+        if (!q || q.type.perk === 'echo' || q === ghost || q.flags.eaten) return null;
+        if (q.type.perk === 'mystery' && !q.flags.revealed) return null;
+        const k = q.perk;
+        return k && !ECHO_SKIP.has(k) ? { k, q } : null;
+      };
+      const next = pick(seats[i + 1]) ?? pick(seats[i - 1]);
+      const n = next ? ALL_PERKS.indexOf(next.k) + 1 : 0;
+      const from = next ? PIZZAS.indexOf(next.q.type) + 1 : 0;
+      if (Number(e.flags.echo ?? 0) === n && Number(e.flags.echoFrom ?? 0) === from) return;
+      e.flags.echo = n;
+      e.flags.echoFrom = from;
+      changed = true;
+      if (e.root.active) e.redraw();
+      // a new echo mid-wave: it rings out from the pie with the name of the pizza it's copying
+      if (next && a.inWave() && !e.dead && !e.stale && !e.perkFrozen && e !== ghost) {
+        a.quip(e.x, e.surfaceY - 190, `ECHOING ${next.q.type.name.toUpperCase()}!`, '#7df9ff', 30);
+        a.sfx('sfx_mirrorpeel_echo', { volume: 0.45, throttle: 400 });
+        e.perkFired({ quip: false });
+      }
+    });
+    return changed;
+  }
+
+  /** Fenrir's Howl: a pizza is lost and the wolf howls. Every ordinary foot flees: a diving or stomping one flies back
+   *  up to the top, a hovering one starts its wait over (enhanced: and they're all stunned 1 s once they're up). Bosses
+   *  and mini-bosses are only knocked back; feet a fight moves by hand, and friendly zombies, stay where they are. */
+  private howl(p: Pizza, enhanced: boolean): void {
+    const a = this.a;
+    const light = this.bossOn();
+    const x = p.x;
+    const y = p.surfaceY;
+    a.sfx('sfx_fenrir_howl', { volume: 0.8, throttle: 600 });
+    this.sc.time.delayedCall(120, () => a.sfx('sfx_fenrir_snap', { volume: 0.45 }));
+    for (const q of this.with('fenrirHowl')) q.perkFired({ quip: false });
+    a.shake(light ? 100 : 170, light ? 0.003 : 0.005);
+    // the wolf rises behind its own pie (the lost one, for a last howl), throws back its head and howls, and fades
+    const src = this.with('fenrirHowl')[0] ?? p;
+    const wy = src.surfaceY - 90;
+    a.quip(src.x, wy - 340, "FENRIR'S HOWL! THE FEET FLEE", '#dfe4ff', 40);
+    const wolf = this.sc.add.image(src.x, wy + 30, 'pk_wolf').setOrigin(0.5, 1).setScale(0.3).setAlpha(0);
+    a.fxLayer.addAt(wolf, 0);
+    this.sc.tweens.add({ targets: wolf, y: wy, scale: 0.85, alpha: 1, duration: 280, ease: 'Back.Out' });
+    this.sc.tweens.add({ targets: wolf, angle: -7, duration: 500, delay: 280, ease: 'Sine.Out' });
+    this.sc.tweens.add({ targets: wolf, alpha: 0, y: wy - 40, delay: 1000, duration: 420, onComplete: () => wolf.destroy() });
+    // the howl rolling out over the table, and Gleipnir's links flung off the pie
+    for (let i = 0; i < 3; i++) this.sc.time.delayedCall(140 + i * 150, () => a.fx.ring(x, y - 150, 0xdfe4ff, 2 + i * 0.9, 0.45));
+    for (let i = 0; i < (light ? 4 : 7); i++) {
+      const ang = -Math.PI / 2 + (crand() - 0.5) * 2.6;
+      const sp = 180 + crand() * 200;
+      const link = this.sc.add.image(x + (crand() - 0.5) * 50, y - 40, 'p_chainlink').setScale(0.3 + crand() * 0.15).setRotation(crand() * 6);
+      a.fxLayer.add(link);
+      this.sc.tweens.add({ targets: link, x: link.x + Math.cos(ang) * sp, y: link.y + Math.sin(ang) * sp * 0.6 + 80, rotation: link.rotation + (crand() - 0.5) * 8, alpha: 0, duration: 650 + crand() * 250, ease: 'Quad.Out', onComplete: () => link.destroy() });
+    }
+    for (const f of a.allFeet()) {
+      if (!f.alive || f.zombieHold || f.puppet || f.brain.free) continue;
+      if (f.isBossLike) {
+        f.knock(1400);
+        continue;
+      }
+      if (f.state === 'descend' || f.state === 'stomp') {
+        // it turns tail and flies back up to the top (the lift slows as it rises and stops at the hover line)
+        f.setState('lift');
+        f.vy = -Math.sqrt(1400 * Math.max(40, f.y - HOVER_Y + 20));
+      } else if (f.state === 'hover') {
+        // (it starts its wait over, and backs off a little: never down, a foot waiting high stays where it is)
+        f.stateT = 0;
+        f.y = Math.min(f.y, Math.max(HOVER_Y - 30, f.y - 50));
+      } else continue;
+      // a streak of wind behind it as it flees
+      const st = this.sc.add.image(f.cx, f.cy + 60, 'glow').setOrigin(0.5, 0).setTint(0xdfe4ff).setBlendMode(Phaser.BlendModes.ADD).setScale(0.1, 0.6).setAlpha(0.55);
+      a.fxLayer.addAt(st, 0);
+      this.sc.tweens.add({ targets: st, scaleY: 1.6, alpha: 0, duration: 420, ease: 'Quad.Out', onComplete: () => st.destroy() });
+      if (enhanced) this.sc.time.delayedCall(650, () => f.alive && !(f.stunT > 0 && f.frozen) && f.stun(1));
+    }
+  }
+
+  /** Rainbow Bridge, as a wave starts: each pie bridges a lane (a different one each, while there are lanes to spare),
+   *  and the Bifröst comes down over it, faint and behind the pizzas and the feet. */
+  private bridgeUp(): void {
+    const a = this.a;
+    const pies = this.with('bridgeLane');
+    if (!pies.length) return;
+    const lanes = a.alivePizzas();
+    if (!lanes.length) return;
+    for (const p of pies) {
+      const free = lanes.filter((q) => !this.bridges.some((b) => b.lane === q));
+      const pool = free.length ? free : lanes;
+      // (which lane is gameplay: Math.random)
+      const lane = pool[Math.floor(Math.random() * pool.length)];
+      const r = Math.max(110, lane.radius * 1.2);
+      const top = 70;
+      const h = Math.max(200, lane.surfaceY - 20 - top);
+      const glow = this.sc.add.image(lane.x, lane.surfaceY - 30, 'glow').setTint(0xfff2c8).setBlendMode(Phaser.BlendModes.ADD).setScale(1.2, 0.5).setAlpha(0);
+      const img = this.sc.add.image(lane.x, lane.surfaceY - 20, 'pk_bifrost').setOrigin(0.5, 1).setScale((r * 2) / 200, 0).setAlpha(0.32);
+      a.underLayer.add([glow, img]);
+      this.sc.tweens.add({ targets: img, scaleY: h / 512, duration: 520, ease: 'Quad.Out' });
+      this.sc.tweens.add({ targets: glow, alpha: 0.5, duration: 300, yoyo: true, hold: 400 });
+      this.bridges.push({ src: p, lane, x: lane.x, r, k: this.pk(p), img, glow, ph: crand() * 6 });
+      a.sfx('sfx_sungap', { volume: 0.5, throttle: 600 });
+      this.sc.time.delayedCall(200, () => a.sfx('sfx_smack_tail_glint', { volume: 0.5, throttle: 300 }));
+      a.quip(lane.x, lane.surfaceY - 210, `RAINBOW BRIDGE: +${Math.round(40 * this.pk(p))}% HERE`, '#ffe0a0', 30);
+      p.perkFired({ quip: false });
+    }
+  }
+
+  /** Rainbow Bridge: what a foot in a bridged lane takes (the best bridge it's under; they don't stack). */
+  private bridgeMult(f: Foot): number {
+    let m = 1;
+    const ghost = this.bridges.length ? this.a.possessed() : null;
+    // (a bridge whose pizza stopped bridging counts for nothing, even before its tick takes it down)
+    for (const b of this.bridges) if (b.src.perk === 'bridgeLane' && b.src !== ghost && Math.abs(f.x - b.x) < b.r) m = Math.max(m, 1 + 0.4 * b.k);
+    return m;
+  }
+
+  /** The Bifröst shimmers over its lane, and goes when its pizza stops bridging it (lost, stale, its perk frozen or
+   *  possessed by the Ghost, or an Echo Slice that no longer copies it). */
+  private bridgeTick(): void {
+    if (!this.bridges.length) return;
+    const now = this.a.now();
+    const ghost = this.a.possessed();
+    for (const b of this.bridges) {
+      if (b.src.perk !== 'bridgeLane' || b.src === ghost) {
+        this.dropImgs([b.img, b.glow]);
+        b.k = 0;
+        continue;
+      }
+      b.img.setAlpha(0.28 + 0.06 * Math.sin(now * 2.2 + b.ph));
+    }
+    this.bridges = this.bridges.filter((b) => b.k > 0);
+  }
+
+  /** A smack on a foot in a bridged lane: rainbow sparks off it. */
+  private bridgeHit(f: Foot): void {
+    if (!this.every('bridgeHit', 0.3)) return;
+    const a = this.a;
+    const cols = [0xff4d4d, 0xff9f1c, 0xffd23f, 0x5fe06a, 0x4cc9f0, 0x6a7dff, 0xb06bff];
+    for (let i = 0; i < (this.bossOn() ? 4 : 7); i++) {
+      const ang = (i / 7) * Math.PI * 2 + crand() * 0.4;
+      const s = this.sc.add.image(f.cx, f.cy, 'glow').setTint(cols[i % 7]).setBlendMode(Phaser.BlendModes.ADD).setScale(0.07);
+      a.fxLayer.add(s);
+      this.sc.tweens.add({ targets: s, x: f.cx + Math.cos(ang) * 70, y: f.cy + Math.sin(ang) * 50 - 30, scale: 0.02, alpha: 0, duration: 380 + crand() * 160, ease: 'Quad.Out', onComplete: () => s.destroy() });
+    }
+    if (this.every('bridgeQuip', 3)) a.quip(f.x, f.cy - 140, `BIFRÖST! +${Math.round((this.bridgeMult(f) - 1) * 100)}%`, '#ffe0a0', 30);
+    if (this.every('bridgeFire', 2)) for (const b of this.bridges) b.src.perkFired({ quip: false });
+  }
+
+  /** Frostbite: is this foot chilled (slowed: the game draws every slowed foot frosted) or frozen? */
+  private cold(f: Foot): boolean {
+    return (f.stunT > 0 && f.frozen) || (f.slowT > 0 && f.slowPct > 0 && !f.type.traits.includes('immuneSlow'));
+  }
+
+  /** Frostbite: a smack on a cold foot cracks its frost, Thrym's hail chipping off it. */
+  private frostbiteHit(f: Foot): void {
+    if (!this.every('frostbiteFx', 0.25)) return;
+    const a = this.a;
+    a.fx.ring(f.cx, f.cy + 20, 0xbfe8ff, 1, 0.45);
+    for (let i = 0; i < (this.bossOn() ? 2 : 4); i++) {
+      const ang = -Math.PI / 2 + (crand() - 0.5) * 2.8;
+      const h = this.sc.add.image(f.cx + (crand() - 0.5) * 40, f.cy + (crand() - 0.5) * 30, 'p_hail').setScale(0.24 + crand() * 0.1).setRotation(crand() * 6);
+      a.fxLayer.add(h);
+      this.sc.tweens.add({ targets: h, x: h.x + Math.cos(ang) * 90, y: h.y + Math.sin(ang) * 60 + 70, rotation: h.rotation + 3, alpha: 0, duration: 480, ease: 'Quad.Out', onComplete: () => h.destroy() });
+    }
+    a.sfx('sfx_thrym_crack', { volume: 0.3, rate: 1.2 + crand() * 0.2, throttle: 300 });
+    if (this.every('frostbiteQuip', 2.5)) a.quip(f.x, f.cy - 140, `FROSTBITE! +${Math.round(25 * this.c('frostbite'))}%`, '#bfe8ff', 32);
+    if (this.every('frostbiteFire', 1.5)) for (const p of this.with('frostbite')) p.perkFired({ quip: false });
+  }
+
+  /** Surtr's Ember Crust: a burning foot dies and Surtr's fire leaps from it to the nearest foot (enhanced: the two
+   *  nearest; two pies add up, to three), as a fireball. The foot it lands on burns as hot and as long (3 s at least).
+   *  Burn-proof and insulated feet don't catch. */
+  private spreadFire(f: Foot): void {
+    const a = this.a;
+    const x = f.cx;
+    const y = f.cy;
+    const dps = f.burnDps;
+    const sec = Math.max(3, f.burnT);
+    const fromAbility = f.burnFromAbility;
+    const n = Math.min(3, Math.max(1, Math.round(this.c('surtrSpread'))));
+    const near = a.allFeet()
+      .filter((o) => o !== f && o.alive && o.hittable && !o.type.traits.includes('immuneBurn') && !o.insulated && Math.hypot(o.cx - x, o.cy - y) < 700)
+      .sort((p, q) => Math.hypot(p.cx - x, p.cy - y) - Math.hypot(q.cx - x, q.cy - y))
+      .slice(0, n);
+    if (!near.length) return;
+    a.sfx('sfx_surtr_fireball', { volume: 0.45, throttle: 250 });
+    if (this.every('surtrQuip', 1.5)) a.quip(x, y - 140, "SURTR'S FIRE SPREADS!", '#ffb060', 34);
+    if (this.every('surtrFire', 1.5)) for (const p of this.with('surtrSpread')) p.perkFired({ quip: false });
+    for (const o of near) {
+      const ball = this.sc.add.image(x, y, 'p_fireball').setScale(0.5);
+      a.fxLayer.add(ball);
+      const tx = o.cx;
+      const ty = o.cy;
+      let px = x;
+      let py = y;
+      // (it arcs over, less near the top of the screen so it stays in sight)
+      const lift = Phaser.Math.Clamp(Math.min(y, ty) - 70, 20, 120);
+      this.sc.tweens.addCounter({
+        from: 0,
+        to: 1,
+        duration: 360,
+        onUpdate: (tw) => {
+          const u = tw.getValue() ?? 0;
+          const bx = x + (tx - x) * u;
+          const by = y + (ty - y) * u - Math.sin(Math.PI * u) * lift;
+          // (it points the way it flies, its flames trailing: the drawing falls head down)
+          if (bx !== px || by !== py) ball.setRotation(Math.atan2(by - py, bx - px) - Math.PI / 2);
+          ball.setPosition(bx, by);
+          px = bx;
+          py = by;
+          if (crand() < 0.6) a.fx.propTrail(bx, by, crand() < 0.5 ? 0xff7a1a : 0xffd070, 0.45);
+        },
+        onComplete: () => {
+          ball.destroy();
+          a.fx.burn(tx, ty);
+          a.fx.ring(tx, ty + 20, 0xff7a1a, 1.1, 0.45);
+          a.sfx('sfx_surtr_ignite', { volume: 0.35, throttle: 200 });
+          if (!o.alive || o.insulated || o.type.traits.includes('immuneBurn')) return;
+          // (whose fire it is: a foot that wasn't burning takes the spread fire's source with it)
+          if (o.burnT <= 0) o.burnFromAbility = fromAbility;
+          o.burnT = Math.max(o.burnT, sec);
+          o.burnDps = Math.max(o.burnDps, dps);
+          for (let i = 0; i < 3; i++) this.sc.time.delayedCall(i * 80, () => o.alive && a.fx.burn(o.cx + (crand() - 0.5) * 50, o.cy + (crand() - 0.5) * 50));
+        },
+      });
+    }
+  }
+
+  /** Skald's Saga: a boss falls and the Skald sings it into his saga: runes and notes rise off the pie, and the
+   *  damage it adds shows. */
+  private saga(p: Pizza): void {
+    const a = this.a;
+    const light = this.bossOn();
+    const x = p.x;
+    const y = p.surfaceY - 60;
+    a.sfx('sfx_skaldsong', { volume: 0.7, throttle: 1500 });
+    a.fx.ring(p.x, p.surfaceY - 24, 0xffd070, 2, 0.45);
+    for (let i = 0; i < (light ? 2 : 3); i++) {
+      const r = this.sc.add.image(x + (i - 1) * 56, y, `pk_rune${i}`).setScale(0.15).setAlpha(0).setAngle((i - 1) * 8);
+      a.fxLayer.add(r);
+      this.sc.tweens.add({ targets: r, y: y - 110 - i * 20, scale: 0.55, alpha: 1, duration: 520, delay: i * 140, ease: 'Back.Out' });
+      this.sc.tweens.add({ targets: r, alpha: 0, y: y - 170 - i * 20, delay: 1300 + i * 140, duration: 400, onComplete: () => r.destroy() });
+    }
+    const tints = [0xffd070, 0x6a9ae0, 0xe8584a];
+    for (let i = 0; i < (light ? 3 : 6); i++) {
+      const n = this.sc.add.image(x + (crand() - 0.5) * 80, y, 'p9_note').setScale(0.22).setTint(tints[i % 3]).setAlpha(0);
+      a.fxLayer.add(n);
+      this.sc.tweens.add({ targets: n, alpha: 1, duration: 150, delay: i * 90 });
+      this.sc.tweens.add({ targets: n, y: y - 150 - crand() * 70, x: n.x + (crand() - 0.5) * 90, angle: (crand() - 0.5) * 40, delay: i * 90, duration: 1100, ease: 'Sine.Out' });
+      this.sc.tweens.add({ targets: n, alpha: 0, delay: 900 + i * 90, duration: 350, onComplete: () => n.destroy() });
+    }
+    a.quip(p.x, p.surfaceY - 210, `SKALD'S SAGA: +${this.skaldPct(p)}% DAMAGE`, '#ffd070', 32);
+    p.perkFired({ quip: false });
+  }
+
+  /** Serpent's Coil: once a wave, the first ordinary foot to dive on the pie is caught in Jörmungandr's coils and held
+   *  where it is for 3 s (enhanced 4.5). Bosses, mini-bosses, feet a fight moves by hand and a foot already frozen
+   *  aren't caught (the coil waits for the next). */
+  private coilTick(): void {
+    const a = this.a;
+    const now = a.now();
+    for (const p of this.with('serpentCoil')) {
+      if (p.flags.coilWave === this.wave()) continue;
+      // (caught well into its dive, low enough that the coils show clear of the top of the screen)
+      const f = a.allFeet().find((o) => o.alive && o.hittable && o.state === 'descend' && o.target === p && o.y > Math.max(420, p.surfaceY - 360) && !o.isBossLike && !o.puppet && !o.brain.free && !o.zombieHold && !(o.stunT > 0 && o.frozen) && !this.coiled.has(o));
+      if (!f) continue;
+      p.flags.coilWave = this.wave();
+      this.coil(f, p);
+    }
+    for (const [f, co] of this.coiled) {
+      const sq = 1 + 0.05 * Math.sin(now * 9);
+      co.img.setPosition(f.cx, this.coilY(f)).setScale(co.s * sq, co.s / sq);
+      if (!f.alive || now >= co.until) {
+        this.coiled.delete(f);
+        this.dropImgs([co.img]);
+        if (f.alive && f.stunT <= 0) f.clearTint();
+        continue;
+      }
+      // (sea-green while it's held: it's a stun, so keepTint would skip it; a smack's flash clears it, so it goes back on)
+      if (!f.flashing && now - co.tintAt > 0.2) {
+        f.tint(0x9ad8b0);
+        co.tintAt = now;
+      }
+    }
+  }
+
+  /** Where the coils sit on a foot: round its middle. */
+  private coilY(f: Foot): number {
+    return f.y - f.meta.footHeight * f.scale * 0.34;
+  }
+
+  private coil(f: Foot, p: Pizza): void {
+    const a = this.a;
+    const sec = p.enhanced ? 4.5 : 3;
+    f.stun(sec);
+    f.flash(0x9ad8b0, 100);
+    // the serpent's body whips up out of the pie to the foot, then wraps it
+    const sx = p.x;
+    const sy = p.surfaceY - 30;
+    const len = Math.max(40, sy - f.cy);
+    const lash = this.sc.add.image(sx, sy, 'glow').setOrigin(0.5, 1).setTint(0x3f8a6a).setScale(0.18, 0.1).setAlpha(0.9);
+    a.fxLayer.addAt(lash, 0);
+    this.sc.tweens.add({ targets: lash, x: f.cx, scaleY: len / 110, duration: 140, ease: 'Quad.Out' });
+    this.sc.tweens.add({ targets: lash, alpha: 0, scaleX: 0.05, delay: 160, duration: 220, onComplete: () => lash.destroy() });
+    const full = Phaser.Math.Clamp((f.meta.footHeight * f.scale * 0.95) / 260, 0.45, 1.3);
+    const img = this.sc.add.image(f.cx, this.coilY(f), 'pk_coil').setScale(full * 0.3).setAlpha(0);
+    a.fxLayer.add(img);
+    this.sc.tweens.add({ targets: img, alpha: 1, duration: 160, delay: 120 });
+    const co = { until: a.now() + sec, img, tintAt: -1, s: full * 0.3 };
+    this.coiled.set(f, co);
+    // (the coils tighten: their size grows in through coilTick)
+    this.sc.tweens.add({ targets: co, s: full, duration: 260, delay: 120, ease: 'Back.Out' });
+    a.fx.ring(f.cx, f.cy + 30, 0x5fcf9a, 1.3, 0.45);
+    a.sfx('sfx_jormungandr_constrict', { volume: 0.5, throttle: 400 });
+    this.sc.time.delayedCall(200, () => a.sfx('sfx_jormungandr_hiss', { volume: 0.35, throttle: 400 }));
+    a.quip(f.x, f.cy - 150, `COILED! HELD ${sec}s`, '#9af0c0', 36);
+    p.perkFired({ quip: false });
   }
 
   // ——— Pirate's Treasure ———

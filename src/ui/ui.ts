@@ -3,7 +3,7 @@
 
 import { FEET, FOOT_BY_ID, TRAIT_INFO, howToFor, tellFor, type FootType } from '../data/feet';
 import { crand } from '../systems/cosmeticRandom';
-import { META, MILESTONE_BY_PIZZA, legacyMilestone } from '../data/meta';
+import { META, MILESTONE_BY_PIZZA } from '../data/meta';
 import { PIZZAS, PIZZA_BY_ID, type PizzaRoute, type PizzaType } from '../data/pizzas';
 import { awardMilestones, milestoneProgress } from '../game/Run';
 import { AUTO_TOPPING_NOTE, RARITY_COLOR, UPGRADES, UPGRADE_BY_ID, isAutoTopping, kindOf, type Rarity } from '../data/upgrades';
@@ -1061,7 +1061,7 @@ class UI {
               ...tierFrame(p.rarity, false),
               h('span', { class: 'tag new' }, r.bought ? 'YOURS' : 'FREE TRIAL'),
               h('img', { src: pizzaPortraitURL(p.id), alt: p.name }),
-              h('div', {}, h('span', { class: 'rf' }, r.bought ? 'RARE FIND' : 'RARE FIND · TRY IT THIS RUN', ' ', tierLabel(p.rarity)), h('b', {}, p.name), h('span', { title: r.bought ? p.perkText : `${p.perkText} · plays this run for free; keep it now or when the run ends (gone if you shuffle)` }, p.perkText), buy),
+              h('div', {}, h('span', { class: 'rf' }, r.bought ? 'RARE FIND' : 'RARE FIND · TRY IT', ' ', tierLabel(p.rarity)), h('b', {}, p.name), h('span', { title: r.bought ? p.perkText : `${p.perkText} · plays this run for free; keep it now or when the run ends (gone if you shuffle)` }, p.perkText), buy),
             );
           }
           const p = PIZZA_BY_ID[id];
@@ -2055,13 +2055,6 @@ class UI {
         const tier = tierAttrs(p.rarity);
         return h('div', { class: `tile pz-tile ${tier.cls} ${cls}`, style: tier.style }, ...tierFrame(p.rarity), h('img', { src: pizzaPortraitURL(p.id), alt: p.name, loading: 'lazy' }), h('div', { class: 'nm' }, p.name), h('div', { class: 'ds' }, p.perkText), ...rest, newPizzas.has(p.id) ? h('span', { class: 'tag new' }, 'NEW') : null);
       };
-      // a pizza that moved off milestones: its old goal still wins it, as a second way in
-      const alsoGoal = (p: PizzaType) => {
-        const m = legacyMilestone(p);
-        if (!m) return null;
-        const [have, need] = milestoneProgress(m.id);
-        return h('div', { class: 'seen' }, `Or win it: ${m.name} (${fmt(have)} / ${fmt(need)})`);
-      };
       const section = (title: string, note: string, tiles: HTMLElement[]) => (tiles.length ? [h('div', { class: 'pz-sec' }, h('b', {}, title), h('span', {}, note)), h('div', { class: 'grid' }, ...tiles)] : []);
       const owned = PIZZAS.filter((p) => has(p.id)).sort((a, b) => Number(newPizzas.has(b.id)) - Number(newPizzas.has(a.id)) || a.cost - b.cost);
       const locked = (r: PizzaRoute) => PIZZAS.filter((p) => p.route === r && !has(p.id));
@@ -2079,7 +2072,7 @@ class UI {
             render();
           });
           b.disabled = save.crusts < p.cost;
-          const t = tile(p, `unowned${openOn.pizza === p.id ? ' selected' : ''}`, alsoGoal(p), b);
+          const t = tile(p, `unowned${openOn.pizza === p.id ? ' selected' : ''}`, b);
           t.dataset.pz = p.id;
           return t;
         });
@@ -2091,7 +2084,7 @@ class UI {
         .sort((a, b) => a.cost - b.cost)
         .map((p) => {
           const n = save.specialSeen[p.id] ?? 0;
-          return tile(p, 'unowned', h('div', { class: 'route' }, 'Turns up as a Chef’s Special in the shop'), h('div', { class: 'seen' }, n ? `Seen ${n} time${n === 1 ? '' : 's'}` : 'Not seen yet'), alsoGoal(p));
+          return tile(p, 'unowned', h('div', { class: 'route' }, 'Turns up as a Chef’s Special in the shop'), h('div', { class: 'seen' }, n ? `Seen ${n} time${n === 1 ? '' : 's'}` : 'Not seen yet'));
         });
       const rare = locked('rare').map((p) => {
         // a silhouette until it's turned up once
@@ -2107,7 +2100,6 @@ class UI {
           h('div', { class: 'ds' }, seen ? p.perkText : 'A Rare Find'),
           h('div', { class: 'route' }, 'Turns up rarely on the new-run screen'),
           seen ? h('div', { class: 'seen' }, `${fmt(p.cost)} crusts when it turns up`) : null,
-          seen ? alsoGoal(p) : null,
         );
       });
       // the ones you can act on first (buy with crusts, chase a goal), then what you own
@@ -2309,8 +2301,7 @@ class UI {
       const owned = save.unlockedPizzas.includes(id);
       const ms = MILESTONE_BY_PIZZA[id];
       // how a locked pizza unlocks, by its route
-      const also = legacyMilestone(p);
-      const how = (p.route === 'special' ? '🔒 Chef’s Special in the shop' : p.route === 'milestone' ? `🔒 Milestone: ${ms?.name ?? 'a milestone'}` : p.route === 'rare' ? '🔒 Rare Find on the new-run screen' : `🔒 ${p.cost} Golden Crusts`) + (also ? `, or milestone: ${also.name}` : '');
+      const how = p.route === 'special' ? '🔒 Chef’s Special in the shop' : p.route === 'milestone' ? `🔒 Milestone: ${ms?.name ?? 'a milestone'}` : p.route === 'rare' ? '🔒 Rare Find on the new-run screen' : `🔒 ${p.cost} Golden Crusts`;
       if (hiddenRare(p)) {
         detail.replaceChildren(h('img', { src: pizzaPortraitURL(id), alt: '', style: 'filter:brightness(0) opacity(0.35)' }), h('div', {}, h('div', { class: 'dt-head' }, h('h3', {}, '???'), h('span', { class: 'chip' }, how)), h('p', {}, 'A Rare Find. It turns up only by luck, in a lineup on the new-run screen.')));
         return;

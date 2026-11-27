@@ -137,6 +137,8 @@ export interface TablePizza {
   max: number;
   /** Its perk's strength (1, 1.5 enhanced, Napoletana's boost). */
   pk: number;
+  /** An Echo Slice (its perk is the one it's copying; its line says which). */
+  echo?: boolean;
   img: string;
 }
 
@@ -163,6 +165,8 @@ export interface BuildInput {
   ghosts: number;
   /** Colossus Forge: waves survived this run. */
   forgeWaves: number;
+  /** Skald's Saga: bosses beaten this run (not mini-bosses). */
+  skaldBosses: number;
   hero: { smack: number; all: number; reach: number; crit: boolean; meter: number };
   /** Every hit's multiplier this wave, whatever the foot (Victory Lap, Night Shift, Moon Cheese). */
   waveMult: number;
@@ -523,6 +527,7 @@ export function buildView(inp: BuildInput): BuildView {
   // ——— sections ———
   const pct = (n: number) => Math.round(n * 100);
   const sections: Section[] = [];
+  const echoTiles: { t: Tile; where: 'damage' | 'cc' | 'eco' | 'sustain' }[] = [];
 
   // Damage
   const dmgTiles: Tile[] = [
@@ -561,6 +566,16 @@ export function buildView(inp: BuildInput): BuildView {
   for (const p of inp.pizzas.filter((q) => q.perk === 'gorgonGaze')) dmgTiles.push({ label: 'Stone gaze', num: 2, fmt: 'x', icon: '🐍', tone: 'up', from: [pzSrc(p)], note: `the first foot over ${p.name} each wave, stone for ${p.enhanced ? 5 : 3}s` });
   const embers = inp.pizzas.filter((p) => p.perk === 'emberTrail');
   if (embers.length) dmgTiles.push({ label: 'Embers', num: Math.round(6 * (embers.some((p) => p.enhanced) ? 1.5 : 1) * inp.boost), fmt: 'int', post: '/s', icon: '🔥', tone: 'up', from: embers.map(pzSrc), note: 'kills leave embers; the next foot through burns 3s' });
+  // the Epic milestones: Rainbow Bridge, Skald's Saga, Frostbite, Surtr's Ember Crust
+  for (const p of inp.pizzas.filter((q) => q.perk === 'bridgeLane')) dmgTiles.push({ label: 'Rainbow bridge', num: Math.round(40 * p.pk), fmt: 'pct', pre: '+', icon: '🌈', tone: 'up', from: [pzSrc(p)], note: 'to feet in the lane it bridges each wave' });
+  for (const p of inp.pizzas.filter((q) => q.perk === 'skaldSaga')) dmgTiles.push({ label: "Skald's saga", num: r1(3 * inp.skaldBosses * p.pk), fmt: 'pct', pre: '+', icon: '📜', tone: inp.skaldBosses ? 'up' : 'flat', from: [pzSrc(p)], note: `${inp.skaldBosses} boss${inp.skaldBosses === 1 ? '' : 'es'} beaten this run · +${r1(3 * p.pk)}% each` });
+  const frostbite = inp.c('frostbite');
+  if (frostbite > 0) dmgTiles.push({ label: 'vs chilled or frozen', num: 1 + 0.25 * frostbite, fmt: 'x', icon: '🥶', tone: 'up', from: inp.pizzas.filter((p) => p.perk === 'frostbite').map(pzSrc), note: 'slowed or frozen feet' });
+  const surtr = inp.c('surtrSpread');
+  if (surtr > 0) {
+    const n = Math.min(3, Math.max(1, Math.round(surtr)));
+    dmgTiles.push({ label: 'Burning spreads', num: n, fmt: 'int', pre: 'to ', post: n === 1 ? ' foot' : ' feet', icon: '🌋', tone: 'up', from: inp.pizzas.filter((p) => p.perk === 'surtrSpread').map(pzSrc), note: "a burning foot's fire leaps on as it dies" });
+  }
   for (const p of inp.pizzas.filter((q) => q.perk === 'stunVuln')) dmgTiles.push({ label: 'vs stunned feet', num: p.enhanced ? 1.75 : 1.5, fmt: 'x', icon: '😵', tone: 'up', from: [pzSrc(p)], note: `over ${p.name}` });
   if (Math.abs(inp.waveMult - 1) > 0.001) dmgTiles.push({ label: inp.inWave ? 'This wave' : 'Next wave', num: inp.waveMult, fmt: 'x', icon: '🌙', tone: 'up', from: inp.pizzas.filter((p) => p.perk === 'actStart' || p.perk === 'nightDmg' || p.perk === 'postBoss').map(pzSrc), note: 'every hit' });
   if (inp.hero.all !== 1) dmgTiles.push({ label: 'Hero passive', num: inp.hero.all, fmt: 'x', icon: '🦸', tone: inp.hero.all > 1 ? 'up' : 'down', from: [{ key: 'peel', name: inp.peel.name, img: inp.peel.img, tone: 'up' }], note: 'every hit' });
@@ -569,6 +584,14 @@ export function buildView(inp: BuildInput): BuildView {
   if (st.chainChance > 0) dmgTiles.push({ label: 'Chain lightning', num: pct(st.chainChance), fmt: 'pct', icon: '⚡', tone: 'up', from: from('chainChance', 'chainCount', 'chainDmg'), note: `to ${st.chainCount} feet for ${Math.round(dmg * st.chainDmg * g)} each` });
   if (st.splashDmg > 0) dmgTiles.push({ label: 'Splash', num: st.splashDmg * g, fmt: 'int', icon: '💦', tone: 'up', from: from('splashDmg'), note: 'on each foot nearby' });
   if (st.explodeDmg > 0) dmgTiles.push({ label: 'Kills explode', num: st.explodeDmg * g, fmt: 'int', icon: '🍍', tone: 'up', from: from('explodeDmg'), note: 'to every foot nearby' });
+  // Echo Slice: what it's copying, in the section its copy belongs to
+  for (const p of inp.pizzas.filter((q) => q.echo && !q.dead)) {
+    const t: Tile = { label: p.name, num: 0, fmt: 'text', text: p.perk && p.perk !== 'echo' ? 'ECHOING' : 'NOTHING', icon: '🔁', tone: p.perk && p.perk !== 'echo' ? 'up' : 'flat', from: [pzSrc(p)], note: p.line };
+    // (its section from the copied perk's text: the line is "Echoing <pizza>: <perk>")
+    const txt = p.line.split(': ').slice(1).join(': ');
+    echoTiles.push({ t, where: /tip|coin|crust|reroll|discount|price|shop/i.test(txt) ? 'eco' : /stun|slow|freez|frozen|knock|flee|lost|held|coil|chill|wander|soot|ink|enchant|blown|stick|stuck/i.test(txt) ? 'cc' : /slice|shield|heal|regrow|block|stomp|fresh|stale/i.test(txt) ? 'sustain' : 'damage' });
+  }
+  dmgTiles.push(...echoTiles.filter((e) => e.where === 'damage').map((e) => e.t));
   sections.push({ id: 'damage', title: 'Damage', icon: '👊', color: '#e5402a', sub: 'per smack, before armour', tiles: dmgTiles });
 
   sections.push({ id: 'auto', title: 'Automatic attacks', icon: '⚙️', color: '#ff9f1c', sub: `they hit without a smack · ${pct(auto)}% strength on ${inp.heat.name}, shown at full momentum · keep smacking and they stay at full; idle they cool to ${pct(inp.heat.momentumFloor)}%`, tiles: [], auto: autos, empty: 'Nothing attacks on its own yet. Orbiting cutters, olives, auras and timed toppings would show here.' });
@@ -618,16 +641,19 @@ export function buildView(inp: BuildInput): BuildView {
     sirenSong: () => ({ label: "Siren's song", num: r1(25 / Math.max(1e-6, inp.c('sirenSong'))), fmt: 'sec', pre: 'every ', icon: '🧜', tone: 'up', from: inp.pizzas.filter((q) => q.perk === 'sirenSong').map(pzSrc), note: 'every foot enchanted 1.5s (bosses slowed)' }),
     harpyGust: (p) => ({ label: 'Harpy gust', num: p.enhanced ? 150 : 100, fmt: 'int', post: 'px', icon: '🪶', tone: 'up', from: [pzSrc(p)], note: `every 5s, feet over ${p.name} blown back up` }),
     whirlpool: () => ({ label: 'Whirlpool', num: pct(Math.min(0.4, 0.1 * inp.c('whirlpool'))), fmt: 'pct', icon: '🌊', tone: 'up', from: inp.pizzas.filter((q) => q.perk === 'whirlpool').map(pzSrc), note: 'of smacks stun the foot 1.5s' }),
+    fenrirHowl: (p) => ({ label: "Fenrir's howl", num: 0, fmt: 'text', text: 'ON A LOSS', icon: '🐺', tone: 'up', from: inp.pizzas.filter((q) => q.perk === 'fenrirHowl').map(pzSrc), note: `a pizza lost: every foot flees to the top${inp.pizzas.some((q) => q.perk === 'fenrirHowl' && q.enhanced) || p.enhanced ? ', stunned 1s' : ''}` }),
+    serpentCoil: (p) => ({ label: "Serpent's coil", num: p.enhanced ? 4.5 : 3, fmt: 'sec', icon: '🐍', tone: 'up', from: [pzSrc(p)], note: `the first foot to dive on ${p.name} each wave, held` }),
     disarm: (p) => ({ label: 'Disarm', num: p.enhanced ? 5 : 3, fmt: 'sec', icon: '🫒', tone: 'up', from: [pzSrc(p)], note: 'smacked feet above lose their trait' }),
   };
   const seenCc = new Set<PizzaPerk>();
   for (const p of inp.pizzas) {
     if (!p.perk || !perkCc[p.perk]) continue;
-    if ((p.perk === 'timeStop' || p.perk === 'danceBeat' || p.perk === 'steamVent' || p.perk === 'sirenSong' || p.perk === 'whirlpool') && seenCc.has(p.perk)) continue;
+    if ((p.perk === 'timeStop' || p.perk === 'danceBeat' || p.perk === 'steamVent' || p.perk === 'sirenSong' || p.perk === 'whirlpool' || p.perk === 'fenrirHowl') && seenCc.has(p.perk)) continue;
     seenCc.add(p.perk);
     cc.push(perkCc[p.perk]!(p));
   }
   if (lv('coldfeet')) cc.push({ label: 'Cold Feet', num: 5, fmt: 'sec', icon: '🧦', tone: 'up', from: [topSrc('coldfeet', 1)], note: 'half speed as each wave starts' });
+  cc.push(...echoTiles.filter((e) => e.where === 'cc').map((e) => e.t));
   sections.push({ id: 'cc', title: 'Crowd control', icon: '🧊', color: '#4cc9f0', sub: 'stuns, slows and shoves', tiles: cc, empty: 'Nothing stuns or slows feet yet.' });
 
   // Economy
@@ -671,6 +697,7 @@ export function buildView(inp: BuildInput): BuildView {
   if (st.noEvents) eco.push({ label: 'Wave events', num: 0, fmt: 'text', text: 'OFF', icon: '🚫', tone: 'down', from: from('noEvents') });
   else if (st.eventAlways || st.eventMult !== 1) eco.push({ label: 'Wave events', num: st.eventMult, fmt: st.eventAlways ? 'text' : 'x', text: st.eventAlways ? 'EVERY WAVE' : undefined, icon: '🎪', tone: st.eventAlways || st.eventMult > 1 ? 'up' : 'down', from: from('eventMult', 'eventAlways') });
   if (st.shinyMult !== 1) eco.push({ label: 'Shiny feet', num: st.shinyMult, fmt: 'x', icon: '✨', tone: 'up', from: from('shinyMult', 'shinyCrusts'), note: st.shinyCrusts ? `${st.shinyCrusts} crusts each` : undefined });
+  eco.push(...echoTiles.filter((e) => e.where === 'eco').map((e) => e.t));
   sections.push({ id: 'eco', title: 'Economy', icon: '🪙', color: '#ffbf1f', sub: 'tips, coins and crusts', tiles: eco });
 
   // Sustain
@@ -701,6 +728,7 @@ export function buildView(inp: BuildInput): BuildView {
     const u = UPGRADE_BY_ID[id];
     if (u) sus.push({ label: u.name, num: 0, fmt: 'text', text: 'READY', icon: u.icon, tone: 'up', from: [topSrc(id, 1)], note: u.desc(1) });
   }
+  sus.push(...echoTiles.filter((e) => e.where === 'sustain').map((e) => e.t));
   sections.push({ id: 'sustain', title: 'Sustain', icon: '💚', color: '#3f9a2e', sub: 'heals, regrowth and protection', tiles: sus, empty: 'Nothing heals or shields your pizzas yet. Slow Proof, Mozzarella Shield and friends would show here.' });
 
   // Peel and super
