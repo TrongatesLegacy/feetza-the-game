@@ -38,6 +38,17 @@ effects: [
 - **Actions** (freeze, stun, burn, knock back, hold the dive, block a stomp, heal slices, pay tips, hit for ×N) are shared. Snowball Pie's freeze and Frostbite's "frozen" are then the same thing, so "chilled or frozen feet take +25%" finds every source of a freeze automatically.
 - **Tags** come from the effects. "Which items freeze feet?", "which pizzas burn?" and "what can Echo Slice copy?" become queries, not lists kept by hand.
 
+### Numbers: one modifier ledger
+
+Every number goes through one resolver. Sources no longer change `stats` directly: each adds **modifiers**, as in `{ stat: 'damage', op: 'mul', value: 1.1, source: 'pizza:margherita' }`.
+- **Folding:** the resolver folds them in a fixed order (base, then adds, then multipliers, then caps) and keeps the breakdown.
+- **STATS reads that breakdown:** each total, and what made it, comes straight from the ledger. It no longer works the stats out again without each item, and multiplied bonuses and caps are attributed correctly.
+- **Growing values are functions of the run:** for example Peel Collector's `value: (run) => 0.01 × floor(peels / 10)`, with a `why` ("64 peels owned"). The NOW tag on the shop card, the STATS tile and play all read the same definition. Today's `PerkKit.perkNow()` folds into that.
+
+### Types, not loose strings
+
+Effects are a **discriminated union**, TypeScript's version of Rust's enums: each variant carries its own data, for example `{ kind: 'stat', stat: StatKey, op, value }`, `{ kind: 'onKill', chance, action: Action }` or `{ kind: 'every', sec, action }`. The adapters are a `Record<EffectKind, Adapter>`, and every `switch` ends in an `assertNever`. Adding a kind of effect then fails the typecheck until its apply, its STATS display and its scaling are all written, and stat names are a typed key union, so a typo can't compile. This is the guarantee that stops a detail going missing.
+
 Odd one-offs (the Black Olive Hole's pull, the Hammy Ha beam) stay as custom actions. They plug in through the same trigger and STATS adapters, so they still get their timing, scaling and tile for free.
 
 ## How it gets there (each step ships on its own, game unchanged)
