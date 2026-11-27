@@ -72,6 +72,15 @@ const X_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M1
 
 /** A chunky cog for the shop's pause-menu button (centred in its box, unlike the ⚙ glyph). */
 /** The empty counter: a chalk SOLD OUT board hanging over an empty plate with a few crumbs (the game's plate). */
+/** A topping card's tier frame (the pizza tiers' cousin, in the topping's own rarity colour): its ring, and for the
+ *  rarer ones a little seasoning on the move (herb flecks drifting up on an Epic, gold flakes falling on a Legendary). */
+const toppingFrame = (rarity: string): HTMLElement => {
+  const fx = h('span', { class: 'tfx', 'aria-hidden': 'true' });
+  const n = rarity === 'legendary' ? 6 : rarity === 'epic' ? 5 : 0;
+  for (let i = 0; i < n; i++) fx.append(h('i', { class: `seas s${i}` }));
+  return fx;
+};
+
 /** A counter tab's label: its full wording, and a short one for a phone's narrow cards (style.css swaps them). */
 const tabText = (full: string, short: string): HTMLElement[] => [h('span', { class: 'tl' }, full), h('span', { class: 'ts' }, short)];
 
@@ -1153,10 +1162,12 @@ class UI {
         b.disabled = c.sold || (!c.free && st.coins < c.price);
         const el = h(
           'div',
-          { class: `card ${c.rarity}${c.sold ? ' sold' : ''}${dealt.has(c.id) ? ' dealt' : ''}`, tabindex: 0, role: 'button', 'aria-label': `${c.name}: ${c.desc}` },
+          { class: `card tframed ${c.rarity}${c.sold ? ' sold' : ''}${dealt.has(c.id) ? ' dealt' : ''}`, tabindex: 0, role: 'button', 'aria-label': `${c.name}: ${c.desc}` },
+          toppingFrame(c.rarity),
+          // its rarity, a tab of its frame
+          h('div', { class: 'rarity ttab' }, c.rarity),
           h('div', { class: 'key' }, String(i + 1)),
           h('span', { class: `kind ${c.kind}` }, c.kind === 'permanent' ? 'PERMANENT' : c.kind === 'unique' ? 'ONCE PER RUN' : 'ONE USE'),
-          h('div', { class: 'rarity' }, c.rarity),
           h('div', { class: 'icon' }, c.icon),
           h('div', { class: 'name' }, c.name),
           // a long description is set smaller (and at most three lines, the full text on hover), so it never makes the card
@@ -2142,8 +2153,10 @@ class UI {
         const runs = save.toppingRuns[u.id] ?? 0;
         return h(
           'div',
-          { class: `tcard ${u.rarity}${runs ? ' bought' : ''}`, style: `--rc:${RARITY_COLOR[u.rarity]}` },
-          h('div', { class: 'tc-top' }, h('span', { class: 'ic' }, u.icon), h('div', { class: 'rarity' }, u.rarity), h('span', { class: `kind ${k}` }, k === 'permanent' ? 'PERMANENT' : k === 'unique' ? 'ONCE PER RUN' : 'ONE USE')),
+          { class: `tcard tframed ${u.rarity}${runs ? ' bought' : ''}`, style: `--rc:${RARITY_COLOR[u.rarity]}` },
+          toppingFrame(u.rarity),
+          h('div', { class: 'rarity ttab' }, u.rarity),
+          h('div', { class: 'tc-top' }, h('span', { class: 'ic' }, u.icon), h('span', { class: `kind ${k}` }, k === 'permanent' ? 'PERMANENT' : k === 'unique' ? 'ONCE PER RUN' : 'ONE USE')),
           h('div', { class: 'nm' }, u.name),
           h('div', { class: 'ds' }, u.desc(1)),
           u.downside ? h('div', { class: 'down' }, `▼ ${u.downside}`) : null,

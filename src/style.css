@@ -7106,3 +7106,145 @@ body:not(.reduced-motion) .kind-tab.k-special { animation: kindShine 3.6s ease-i
 .ptile .pthumb.dead { filter: none; }
 /* the picture starts below the tier tab */
 .ptile { padding-top: max(1.15em, 12px); }
+
+/* ——— Topping cards' tier frames: the pizza tiers' cousins, in each rarity's own colour (--rc, so the colour-blind
+   palettes still hold): a ring of the rarity's material inside the border, the rarity a tab hanging from the frame's
+   top, and seasoning on the move instead of the pizzas' sparkles. Common: a plain band. Rare: glazed, a soft
+   sheen running round. Epic: a drifting violet band with herb flecks rising. Legendary: a living gold border with gold
+   flakes falling. ——— */
+.tframed {
+  isolation: isolate;
+  --r-dark: color-mix(in srgb, var(--rc) 62%, #2a1810);
+  --r-light: color-mix(in srgb, var(--rc) 45%, #ffffff);
+  box-shadow: 0 0.45em 0 var(--ink), 0 1em 2.4em rgba(0, 0, 0, 0.5);
+}
+.tcard.tframed { box-shadow: none; }
+.shop2 .card.tframed:hover,
+.shop2 .card.tframed:focus-visible { box-shadow: 0 0.9em 0 var(--ink), 0 1.6em 3em rgba(0, 0, 0, 0.55); }
+.tframed > .tfx {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+}
+.tframed > .tfx::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 0.34em;
+  background: linear-gradient(135deg, var(--r-dark), var(--rc) 30%, var(--r-light) 50%, var(--rc) 70%, var(--r-dark));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+.tcard.tframed > .tfx::before { padding: 0.24em; }
+/* the ring's inner edge: a fine line so a pale ring reads on the paper */
+.tframed > .tfx::after {
+  content: '';
+  position: absolute;
+  inset: 0.38em;
+  border-radius: calc(1.4em - 0.38em);
+  border: 0.06em solid var(--r-dark);
+  opacity: 0.5;
+}
+.tcard.tframed > .tfx::after { inset: 0.27em; border-radius: 0.75em; }
+/* Common: a plain band in its colour, lit from the top left (no motion) */
+.tframed.common > .tfx::before {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--rc) 80%, #2a1810), var(--rc) 35%, color-mix(in srgb, var(--rc) 75%, #fff) 55%, var(--rc) 75%, color-mix(in srgb, var(--rc) 80%, #2a1810));
+}
+/* Rare: glazed, a soft sheen running round */
+.tframed.rare > .tfx::before {
+  background: linear-gradient(110deg, var(--r-dark) 0%, var(--rc) 20%, #ffffff 46%, var(--rc) 60%, var(--r-dark) 100%);
+  background-size: 300% 100%;
+  animation: pzrSheen 5.5s ease-in-out infinite;
+}
+/* Epic: a drifting band, violet into pink */
+.tframed.epic > .tfx::before {
+  background: linear-gradient(120deg, var(--r-dark), var(--rc) 20%, color-mix(in srgb, var(--rc) 60%, #ff7ad9) 40%, var(--r-light) 50%, var(--rc) 65%, var(--r-dark));
+  background-size: 220% 100%;
+  animation: pzrSheen 7s linear infinite;
+}
+/* Legendary: gold, its border alive (a turning light), and a warm glow */
+.tframed.legendary > .tfx::before {
+  background: conic-gradient(from var(--pzr-turn), var(--r-dark), var(--rc), #ffffff, var(--rc), var(--r-dark), var(--rc), var(--r-dark));
+  padding: 0.4em;
+  animation: pzrTurn 4.5s linear infinite;
+}
+.shop2 .card.tframed.legendary { box-shadow: 0 0.45em 0 var(--ink), 0 0 1.4em color-mix(in srgb, var(--rc) 70%, transparent), 0 1em 2.4em rgba(0, 0, 0, 0.5); }
+/* the old full-card shimmer gives way to the frame's own motion */
+.tframed.epic::after,
+.tframed.legendary::after { content: none; }
+
+/* seasoning: herb flecks rising on an Epic, gold flakes drifting down on a Legendary */
+.tframed .seas {
+  position: absolute;
+  width: 0.45em;
+  height: 0.22em;
+  border-radius: 50% 50% 50% 0;
+  background: color-mix(in srgb, var(--rc) 55%, #3f8a3a);
+  opacity: 0;
+  bottom: 8%;
+}
+.tframed.legendary .seas {
+  width: 0.32em;
+  height: 0.32em;
+  border-radius: 0.06em;
+  background: linear-gradient(135deg, #fff6c8, var(--rc));
+  bottom: auto;
+  top: 4%;
+}
+.tframed .seas.s0 { left: 12%; animation-delay: 0s; }
+.tframed .seas.s1 { left: 30%; animation-delay: 1.3s; }
+.tframed .seas.s2 { left: 52%; animation-delay: 2.6s; }
+.tframed .seas.s3 { left: 72%; animation-delay: 0.7s; }
+.tframed .seas.s4 { left: 88%; animation-delay: 2s; }
+.tframed .seas.s5 { left: 42%; animation-delay: 3.3s; }
+body:not(.reduced-motion) .tframed.epic .seas { animation: seasRise 4s ease-in-out infinite; }
+body:not(.reduced-motion) .tframed.legendary .seas { animation: seasFall 4.4s ease-in infinite; }
+.tframed.epic .seas.s0, .tframed.epic .seas.s2, .tframed.epic .seas.s4 { animation-duration: 4.6s; }
+@keyframes seasRise {
+  0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+  20% { opacity: 0.55; }
+  80% { opacity: 0.4; }
+  100% { transform: translateY(-14em) rotate(220deg); opacity: 0; }
+}
+@keyframes seasFall {
+  0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+  15% { opacity: 0.8; }
+  85% { opacity: 0.6; }
+  100% { transform: translateY(16em) rotate(300deg); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tframed > .tfx::before, .tframed .seas { animation: none !important; }
+}
+
+/* its rarity: a tab hanging from the frame's top centre, in the ring's colour, joined by small curves */
+.tframed > .rarity.ttab {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  margin: 0;
+  font-size: 0.82em;
+  letter-spacing: 0.12em;
+  line-height: 1.25;
+  padding: 0.08em 0.9em 0.22em;
+  border: 0;
+  border-radius: 0 0 0.75em 0.75em;
+  background: linear-gradient(180deg, var(--rc), var(--r-dark));
+  color: #fff;
+  -webkit-text-stroke: 0.14em var(--ink);
+  box-shadow: inset 0 -0.07em 0 rgba(0, 0, 0, 0.3);
+}
+.tcard.tframed > .rarity.ttab { font-size: max(0.62em, 7px); -webkit-text-stroke: 0.12em var(--ink); }
+.tframed > .rarity.ttab::before,
+.tframed > .rarity.ttab::after { content: ''; position: absolute; top: 0; width: 0.75em; height: 0.75em; }
+.tframed > .rarity.ttab::before { right: 100%; background: radial-gradient(circle at 0 100%, transparent 0.75em, var(--rc) 0.77em); }
+.tframed > .rarity.ttab::after { left: 100%; background: radial-gradient(circle at 100% 100%, transparent 0.75em, var(--rc) 0.77em); }
+/* the card's content starts below the tab */
+.shop2 .card.tframed { padding-top: 1.5em; }
+.tcard.tframed { padding-top: max(1.1em, 12px); }
