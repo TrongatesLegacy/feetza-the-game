@@ -1,7 +1,8 @@
 name: Deploy to GitHub Pages
 
-# The site is served from the gh-pages branch. Main deploys to its root; pull requests
-# deploy previews under /pr-preview/pr-N/ (see pr-preview.yml), which this job leaves alone.
+# The site is served from the gh-pages branch. Main deploys to its root as a single commit (the pre-built art packs
+# are large, so the branch keeps no history of them); pull-request previews under /pr-preview/pr-N/ (see
+# pr-preview.yml) are carried over into each deploy.
 
 on:
   push:
@@ -25,10 +26,26 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # the art prebuild (scripts/prebuild/run.mjs) paints in the runner's Chrome and encodes with cwebp
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq webp
+      # last deploy's packs: the prebuild repaints only the packs whose source changed
+      - uses: actions/cache@v4
+        with:
+          path: public/packs
+          key: packs-${{ github.sha }}
+          restore-keys: packs-
       - run: npm run build
+        env:
+          PREBUILD_REQUIRED: '1'
+      # keep the open pull requests' previews
+      - name: Carry over PR previews
+        run: |
+          if git fetch --depth=1 origin gh-pages 2>/dev/null && git ls-tree -d origin/gh-pages pr-preview >/dev/null 2>&1; then
+            git archive origin/gh-pages pr-preview | tar -x -C dist || true
+          fi
       - uses: JamesIves/github-pages-deploy-action@v4
         with:
           folder: dist
           branch: gh-pages
-          clean-exclude: pr-preview/
-          force: false
+          single-commit: true
+          force: true

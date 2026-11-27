@@ -43,7 +43,7 @@ transparent parts (lossless). So a stage only downloads what it shows. Everythin
 (pixel-exact; code reads foot and crop pixels). File names carry a content hash, so a pack that didn't change keeps
 its URL and stays in the browser cache; only changed atlases download again.
 
-Atlases live in `packs/a/` (cached for good: `netlify.toml`); `packs/manifest.json` (fetched fresh) maps every key to `{ f: [[atlas, x, y, w, h], …], d: data, b: backdrop, m: 's'|'l' }` and
+Atlases live in `packs/a/` (named by their contents, so the browser's cache keeps them until they change); `packs/manifest.json` (fetched fresh) maps every key to `{ f: [[atlas, x, y, w, h], …], d: data, b: backdrop, m: 's'|'l' }` and
 records the pack version it was painted at, plus the encoder settings and font versions (`enc`: a change to either
 makes the prebuild paint again).
 
@@ -110,7 +110,7 @@ bytes and decode time.
    leaves the old packs as they were. A crashed page fails the run at once.
 
 Without Chrome the prebuild warns and skips (the game paints, as before); `--require` or `PREBUILD_REQUIRED=1`
-fails instead. Without `cwebp` the atlases stay PNG. Netlify's build image has neither by default: see stage 2.
+fails instead. Without `cwebp` the atlases stay PNG. The GitHub Pages workflow (`.github/workflows/pages.yml`) installs neither yet: see stage 2.
 
 `npm run prebuild:check` paints a seeded sample of packed keys again (some of every kind) and compares pixel by
 pixel. Lossless entries must match within 1/255; lossy ones need a PSNR of 38 dB or better.
@@ -160,8 +160,9 @@ already keeps whichever paint came first, so the pack behaves the same.
 
 ## Stage 2
 
-- CI: install Chrome (e.g. `npx @puppeteer/browsers install chrome-headless-shell`) and `cwebp` in the Netlify
-  build, or build the packs on a machine and upload them as a release artefact keyed by pack version.
+- CI: install Chrome (e.g. `npx @puppeteer/browsers install chrome-headless-shell`) and `cwebp` in the GitHub Pages
+  workflow (`.github/workflows/pages.yml`, and `pr-preview.yml`), or build the packs on a machine and upload them as a
+  release artefact keyed by pack version.
 - Live foot textures (`lk_*`, `liveKit`): the biggest remaining paint at a stage start.
 - `fxAtlas`, guard shields, zombie art, the sync `peelThumbURL` sizes (96, 160, 200, 240, 300, 360).
 - Keys painted by more than one backdrop are left out; give them distinct names (or move true duplicates to

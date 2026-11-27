@@ -53,7 +53,6 @@ Every push to `main` deploys to GitHub Pages (served from the `gh-pages` branch)
 
 `dist/` is a plain static folder with relative paths, so it can also go anywhere else:
 
-- **Netlify**: `netlify.toml` is already set up (build `npm run build`, publish `dist`, plus long-cache headers for assets and audio, which GitHub Pages can't set). Import the repo in Netlify, or run `npx netlify-cli deploy --build --prod`.
 - **itch.io**: zip the *contents* of `dist/`, upload it as an HTML game, and tick "Mobile friendly".
 - **Vercel / Cloudflare Pages**: build command `npm run build`, publish directory `dist`.
 
@@ -61,7 +60,7 @@ Every push to `main` deploys to GitHub Pages (served from the `gh-pages` branch)
 
 | Option | Verdict |
 |---|---|
-| **Phaser 3.90 + Vite + TypeScript** ✅ | Mature 2D engine: WebGL batching, particles, tweens, cameras, a Web Audio sound manager, scale manager. Vite gives instant dev reloads and an optimised static build that suits Netlify. 3.90 is the final, battle-tested v3 release. |
+| **Phaser 3.90 + Vite + TypeScript** ✅ | Mature 2D engine: WebGL batching, particles, tweens, cameras, a Web Audio sound manager, scale manager. Vite gives instant dev reloads and an optimised static build that suits GitHub Pages. 3.90 is the final, battle-tested v3 release. |
 | Phaser 4 | Newer renderer, but a younger API with breaking changes. No benefit for a 2D sprite game. |
 | PixiJS + Howler | Great renderer, but you'd hand-roll scenes, tweens, input and audio categories. |
 | Three.js / Babylon | 3D engines, overkill for a 2D arcade game. |
