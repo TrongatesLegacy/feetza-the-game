@@ -19,8 +19,10 @@ import { audio } from '../systems/audio';
 import type { Arena } from './arena';
 import type { Foot } from './Foot';
 import type { Pizza } from './Pizza';
-import { TIP_MULT_CAP, isBossWave, locationFor, waveInStage, type Run } from './Run';
-import type { Stats } from '../data/upgrades';
+import { isBossWave, locationFor, waveInStage, type Run } from './Run';
+import { applyAll, Effect, Grows, Op, Phase, Stat, Unit, type EffectData } from '../effects';
+import { isGrowing, type Ledger, type SourceRef, type ValueCtx } from '../effects/ledger';
+import { STAT_DEFS } from '../effects/stats';
 import { TILT } from '../art/pizzaArt';
 import { toppingDrawer } from '../art/registry';
 import { makeCanvas, rng } from '../art/util';
@@ -103,7 +105,7 @@ export function perkTextOf(perk: PizzaPerk, enhanced: boolean): string {
   return PIZZAS.find((q) => q.perk === perk)?.perkText ?? perk;
 }
 
-/** Kitchen Sink's three picks: what it adds this wave (src/game/pizzaPerks.ts afterRecompute). */
+/** Kitchen Sink's three picks: what it adds this wave (PizzaPerkKit.modifiers, below). */
 export const SINK_PICKS = ['smack damage', 'tips', 'crit chance'] as const;
 
 /** Kitchen Sink's bonus in whole percent at a strength (5% plain; enhanced 7.5% reads 8, as other perks round). */
@@ -376,36 +378,75 @@ export class PizzaPerkKit {
   }
 
   // ——— stats ———
-  /** After the run's stats are worked out: table-shaped perks. */
-  afterRecompute(s: Stats, comboBase: number, skip: (Pizza | null | undefined)[] = []): void {
+  /** Each pizza's ledger id, for as long as it's on the table (moving it keeps it). */
+  private uids = new WeakMap<Pizza, number>();
+  private nextUid = 1;
+
+  /** A pizza's ledger source: its kind and its own id ('pizza:colossusforge#7'). */
+  srcOf(p: Pizza): string {
+    let id = this.uids.get(p);
+    if (id === undefined) this.uids.set(p, (id = this.nextUid++));
+    return `pizza:${p.type.id}#${id}`;
+  }
+
+  /** The pizza on the table a ledger source names (null: gone). */
+  pizzaOf(source: string): Pizza | null {
+    return this.a.allPizzas().find((p) => this.srcOf(p) === source) ?? null;
+  }
+
+  /** What the growing perks count right now (Peel Collector's peels, the Forge's waves, the Saga's bosses, Napoli
+   *  DOC's kinds of pizza). */
+  valueCtx(): ValueCtx {
+    return {
+      peels: new Set(['classic', ...save.peels]).size,
+      forgeWaves: this.forgeWaves,
+      bosses: this.skaldBosses(),
+      kinds: new Set(this.a.alivePizzas().map((p) => p.type.id)).size,
+      wave: this.run.wave,
+    };
+  }
+
+  /** The table-shaped perks, on the capped stats (the ledger's Table phase). skip: pizzas whose perk is off (the
+   *  Ghost's). A perk the whole table shares is shared by the pizzas granting it, by strength. */
+  modifiers(L: Ledger, skip: (Pizza | null | undefined)[] = []): void {
+    const put = (source: SourceRef, list: EffectData[]) => applyAll(list, { ledger: L, source, phase: Phase.Table });
+    const shared = (perk: PizzaPerk): Record<string, number> => this.run.withBoost(Object.fromEntries(this.with(perk).filter((p) => !skip.includes(p)).map((p) => [this.srcOf(p), this.pk(p) / this.boost()])));
+    /** One pizza, with Napoletana's part of it. */
+    const one = (p: Pizza) => this.run.withBoost({ [this.srcOf(p)]: 1 });
+    const many = (n: number, one: string, more: string) => `${n} ${n === 1 ? one : more}`;
+    // Napoli DOC: +5% damage for every kind of pizza out
     const variety = this.c('varietyDmg');
-    if (variety) s.damage *= 1 + 0.05 * variety * new Set(this.a.alivePizzas().map((p) => p.type.id)).size;
+    if (variety) put(shared('varietyDmg'), [Effect.Stat(Stat.Damage, Op.Boost(Grows((x) => Unit.of('percent', 0.05 * variety * x.kinds), (x) => `${many(x.kinds, 'kind', 'kinds')} of pizza out`)))]);
+    // Peel Collector: +1% damage for every 10 peels owned
     const peels = this.c('peelDmg');
-    if (peels) s.damage *= 1 + 0.01 * peels * Math.floor(new Set(['classic', ...save.peels]).size / 10);
+    if (peels) put(shared('peelDmg'), [Effect.Stat(Stat.Damage, Op.Boost(Grows((x) => Unit.of('percent', 0.01 * peels * Math.floor(x.peels / 10)), (x) => `${many(x.peels, 'peel', 'peels')} owned`)))]);
+    // Combo Champ: the whole combo window (its base length too) lasts longer
     const combo = this.c('comboLong');
-    if (combo) s.comboBonus = (comboBase + s.comboBonus) * (1 + combo) - comboBase;
+    if (combo) put(shared('comboLong'), [Effect.Stat(Stat.ComboBonus, Op.Boost(Unit.of('percent', combo)))]);
     // there's no smack cooldown, so "faster smacks" are extra quick follow-up smacks
-    s.doubleChance += 0.15 * this.c('smackSpeed');
-    s.crustBonus += 0.1 * this.c('crustRun');
+    const speed = this.c('smackSpeed');
+    if (speed) put(shared('smackSpeed'), [Effect.Stat(Stat.DoubleChance, Op.Add(Unit.scale(Unit.Chance(15), speed)))]);
+    const crust = this.c('crustRun');
+    if (crust) put(shared('crustRun'), [Effect.Stat(Stat.CrustBonus, Op.Add(Unit.scale(Unit.Percent(10), crust)))]);
     // Colossus Forge: +1% damage a wave survived this run (up to +40%; enhanced 1.5% and 60%)
-    for (const p of this.with('forgeWaves')) if (!skip.includes(p)) s.damage *= 1 + this.forgePct(p) / 100;
+    for (const p of this.with('forgeWaves'))
+      if (!skip.includes(p)) put(one(p), [Effect.Stat(Stat.Damage, Op.Boost(Grows((x) => Unit.of('percent', this.forgePct(p, x.forgeWaves) / 100), (x) => `${many(x.forgeWaves, 'wave', 'waves')} survived`)))]);
     // Skald's Saga: +3% damage for every boss beaten this run (enhanced 4.5%)
-    for (const p of this.with('skaldSaga')) if (!skip.includes(p)) s.damage *= 1 + this.skaldPct(p) / 100;
-    // Kitchen Sink: this wave's pick
+    for (const p of this.with('skaldSaga'))
+      if (!skip.includes(p)) put(one(p), [Effect.Stat(Stat.Damage, Op.Boost(Grows((x) => Unit.of('percent', this.skaldPct(p, x.bosses) / 100), (x) => `${many(x.bosses, 'boss', 'bosses')} beaten`)))]);
+    // Kitchen Sink: this wave's pick (tips and crits stay under their caps)
     for (const p of this.with('kitchenSink')) {
       if (p.flags.sink === undefined || skip.includes(p)) continue;
-      const k = 0.05 * this.pk(p);
+      const k = Unit.of('percent', 0.05 * this.pk(p));
       const pick = Number(p.flags.sink) % 3;
-      if (pick === 0) s.damage *= 1 + k;
-      else if (pick === 1) s.coinMult = Math.min(TIP_MULT_CAP, s.coinMult + k);
-      else s.critChance = Math.min(0.85, s.critChance + k);
+      put(one(p), [pick === 0 ? Effect.Stat(Stat.Damage, Op.Boost(k)) : pick === 1 ? Effect.Stat(Stat.CoinMult, Op.Add(k)) : Effect.Stat(Stat.CritChance, Op.Add(Unit.of('chance', k)))]);
     }
   }
 
   /** Colossus Forge's bonus now, in percent (to one decimal): 1% a wave survived, up to 40% (scaled by its strength). */
-  forgePct(p: Pizza): number {
+  forgePct(p: Pizza, waves = this.forgeWaves): number {
     const k = this.pk(p);
-    return Math.round(Math.min(40, this.forgeWaves) * k * 10) / 10;
+    return Math.round(Math.min(40, waves) * k * 10) / 10;
   }
 
   /** Bosses beaten this run (not mini-bosses; a boss's Ghost echoes and its twins never count): Skald's Saga. */
@@ -414,35 +455,30 @@ export class PizzaPerkKit {
   }
 
   /** Skald's Saga's bonus now, in percent (to one decimal): 3% a boss beaten this run (scaled by its strength). */
-  skaldPct(p: Pizza): number {
-    return Math.round(3 * this.skaldBosses() * this.pk(p) * 10) / 10;
+  skaldPct(p: Pizza, bosses = this.skaldBosses()): number {
+    return Math.round(3 * bosses * this.pk(p) * 10) / 10;
   }
 
-  /** What a growing perk is worth right now, for its card (Peel Collector's peels, the Forge's waves, the Saga's
-   *  bosses, Napoli DOC's variety): its total, and what it's counted from. Null for perks with no running total, or
-   *  while its perk is off. */
+  /** What a growing perk is worth right now, for its card's NOW tag: read from the run's ledger (the same growing
+   *  values the stats use: Peel Collector's peels, the Forge's waves, the Saga's bosses, Napoli DOC's kinds), this
+   *  pizza's part of it, worked out now. Null for perks with no running total, or while its perk is off. */
   perkNow(p: Pizza): { total: string; why: string } | null {
-    if (!p.perk || p === this.a.possessed()) return null;
-    const r1 = (n: number) => Math.round(n * 10) / 10;
-    const many = (n: number, one: string, more: string) => `${n} ${n === 1 ? one : more}`;
-    switch (p.perk) {
-      case 'peelDmg': {
-        const n = new Set(['classic', ...save.peels]).size;
-        return { total: `+${r1(Math.floor(n / 10) * this.pk(p))}% damage`, why: `${many(n, 'peel', 'peels')} owned` };
-      }
-      case 'forgeWaves':
-        return { total: `+${this.forgePct(p)}% damage`, why: `${many(this.forgeWaves, 'wave', 'waves')} survived` };
-      case 'skaldSaga': {
-        const n = this.skaldBosses();
-        return { total: `+${this.skaldPct(p)}% damage`, why: `${many(n, 'boss', 'bosses')} beaten` };
-      }
-      case 'varietyDmg': {
-        const n = new Set(this.a.alivePizzas().map((q) => q.type.id)).size;
-        return { total: `+${r1(5 * n * this.pk(p))}% damage`, why: `${many(n, 'kind', 'kinds')} of pizza out` };
-      }
-      default:
-        return null;
+    const L = this.run.ledger;
+    if (!p.perk || p === this.a.possessed() || !L) return null;
+    const src = this.srcOf(p);
+    // (Napoletana has a share in every boosted perk, but no running total of its own)
+    if (src in this.run.boosters) return null;
+    const ctx = this.valueCtx();
+    for (const m of L.of(src)) {
+      if (m.op.op === 'on' || !isGrowing(m.op.value)) continue;
+      // (its own part: Napoletana's share of the boost is still in this pizza's number, as it always was)
+      const part = L.partOf(m, src, ctx, (id) => !(id in this.run.boosters));
+      if (!part) continue;
+      // (to one decimal; the nudge keeps a shared part on the same side of .x5 as the per-pizza sum it splits)
+      const r1 = (n: number) => Math.round(n * 10 + 1e-7) / 10;
+      return { total: `+${r1(part.value * 100)}% ${STAT_DEFS[m.stat].short ?? STAT_DEFS[m.stat].label.toLowerCase()}`, why: part.why ?? '' };
     }
+    return null;
   }
 
   /** Pizza Romana: follow-up smacks while it has every slice. */

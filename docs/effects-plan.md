@@ -1,6 +1,6 @@
 # Effects plan: one plug-and-play system for perks, toppings and peels
 
-Status: **proposed (2026-11-28), waiting for Tron's go-ahead.**
+Status: **approved; step 1 done (2026-11-27, branch effects-1): units, stat definitions, the modifier ledger, STATS from the ledger.** See "Step 1: what was built" at the end.
 
 ## The problem
 
@@ -154,3 +154,74 @@ Odd one-offs (the Black Olive Hole's pull, the Hammy Ha beam) stay as custom act
 - `?dev` play of each family;
 - the STATS tab compared against the current one;
 - an independent code review.
+
+## Step 1: what was built (2026-11-27, branch effects-1)
+
+Units, stat definitions, the modifier ledger, and the STATS tab read from the ledger. Every number in `Stats` now goes through one resolver.
+
+**The modules** (`src/effects/`):
+- `units.ts`: `Unit.Chance`, `Unit.Percent` (written as people say them, stored as fractions), `Seconds`, `PerWave`, `Px`, `Mult`, plus `Count`, `Amount` and `Rate`. Each maker checks its range (a dev build throws). The maths sits beside them: `roll`, `boost`, `cut`, `scale`, `scaleChance`, `tick`, `of`, `show.*`.
+- `stats.ts`: `STAT_DEFS`, one definition for every key of `Stats`, typed as a `Record` over the keys. A new stat without a definition doesn't compile, and neither does one without a `Stat.` name. Each definition gives the stat's unit, how it stacks (`Stack.Add`, `Mul`, `Flag`, `Max`), its base (`baseStats()` is built from them), its caps, its label, icon and section, how its number reads, and whether more is better (`Better`, which replaces `BAD_UP`). `DOUBLE_CAP` and `TIP_MULT_CAP` live here now.
+- `ledger.ts`: `Ledger`, `Phase`, `Value`/`Grows`, and the breakdown.
+- `kind.ts`, `stat.ts`, `legacy.ts`, `when.ts`, `index.ts`: `effectKind()`, `Effect.Stat` with its typed `Op.*` and `Levels`, `Effect.Legacy`, run-wide conditions (`When.Freshness`), and the registry (`effects.apply/describe/scale/tags`, `applyAll`).
+
+**The fold.** Modifiers go in five fixed phases, each folded on the one before:
+1. **Build:** the Pizzeria's upgrades, toppings and the table's perks.
+2. **Peel:** the peel's and the hero's always-on stats. Then the definitions' caps: floors and the tips' soft ceiling here only, hard ceilings after every later phase.
+3. **Tricks:** The Last Slice, Midnight Snack.
+4. **Haunt:** the Ghost's possession.
+5. **Table:** Napoli DOC, Peel Collector, Combo Champ, Speed Slice, the crust perks, the Forge, the Saga, Kitchen Sink.
+
+Within a phase the order is: the highest Set, then adds, then multipliers, then flags, then the sources' own bounds, then caps.
+
+The phases keep everything else exactly where it was. Only purchase order went:
+- **Smack reach and knockback** now always take their flat changes before their multipliers. Long Handle +6 with Glass Peel ×0.85 gives `(26 + 6) × 0.85` whichever came first; Magnet Peel +60 with Spring-Loaded ×1.4 likewise.
+- **Every other number is bit-identical** across 2,473 builds. To get that:
+  - adds and multipliers apply one at a time in the order they were added;
+  - the perks go in their old order (`PERK_STATS`);
+  - Pepperoni's and the luck pizzas' tips stay one sum (`PERK_TIPS`).
+
+  A last-bit difference in tips once changed what the balance sim's bot could afford.
+
+**The breakdown.** Each stat keeps each source's share of its change:
+- adds count at face value;
+- a phase's multipliers share what they add between them by the log of each, so a ×0.85 gets a negative share;
+- caps get their own share (`CAP_SOURCE`).
+
+The breakdown is worked out only when it's read (the STATS tab, the NOW tags). Resolving keeps just a list of credits.
+
+Sources are `top:<id>`, `pizza:<type>#<n>`, `meta`, `peel` and `ghost`. A pizza's `n` is its own id while it's on the table, so moving it doesn't change its source (`PizzaPerkKit.srcOf`, `pizzaOf`).
+
+A perk the whole table shares (counted by strength) is one modifier, shared between its pizzas by weight. Napoletana gets the part its boost adds to every other perk (`Run.withBoost`), so it keeps its chips. The NOW tags leave Napoletana's part in the pizza's own number, as before.
+
+**Growing values.** Peel Collector, the Forge, the Saga and Napoli DOC are `Grows(at, why)` values, worked out when the ledger resolves. `PizzaPerkKit.perkNow` (the shop card's NOW tag) reads the same modifiers, this pizza's part of them, worked out now.
+
+**What moved, and what's still legacy.** Every source of stats is on the ledger:
+- **Toppings:** each declares `effects: [Effect.Stat(...)]`.
+  - Freezer Burn, Garlic Lightning and the Olive Launcher split by `Levels.First`/`Levels.Later`.
+  - The freshness trade-offs' catches wait on `When.Freshness`/`When.NoFreshness`.
+  - Full Tank and the Olive Launcher's first level are Sets.
+- **Pizza perks' stat parts:** `src/game/perkStats.ts`.
+- **The rest:** meta upgrades, always-on peel and hero stats, the topping tricks, the Ghost's possession, and the table-shaped perks (`PizzaPerkKit.modifiers`, which replaces `afterRecompute`).
+
+Nothing uses `Effect.Legacy` today. It's there for content not yet written as effects: it runs the old `(s, lvl) => …` at the end of its phase's multipliers, and the ledger credits what it changed to its source.
+
+**STATS.** `buildView` takes the breakdown and a source-to-chip resolver:
+- **Simple tiles:** `statTile(k)` builds a tile from the stat's definition (label, icon, number, tone, note, "at the cap") and its breakdown.
+- **Combined tiles** (DPS, per smack, automatic attacks, cards per shop…) stay hand-written. They read the ledger's totals, and their chips come from the breakdown.
+- **Changed stats with no tile:** any stat something changes that no tile shows gets its own tile in its section. The event toppings' flyers, chests, mimics, drops, sightings, Infinite Oven's levels and the free-topping perk all show now.
+- **More effects** now lists only toppings that work in play and that no tile names, such as Happy Hour and Bulk Buy.
+- **No more recomputing:** `statsView` no longer works the stats out again without each source.
+
+**Notes:**
+- The shop still caps the topping discount at 60% where it's used (`shopDeals.ts`). The stat itself has never been capped. Its tile notes the cap.
+- A definition's `around` lets a multiplier scale more than the stat (Combo Champ multiplies the whole combo window, base length included).
+- `Stack` drives the ledger for flags and Sets: the highest Set wins, or the lowest for `Stack.Min` (a sure hero sighting every 10 waves beats every 20). For `Add` and `Mul` it describes the stat.
+- **The balance sim can't compare two builds run by run.** A no-op comment added to `GameScene.ts` on main changes Mild seed 1 from wave 3. What changes is the path a run takes, not the numbers. Compare the totals (as for this step), or find the cause first. It looks like something keyed to the source text or the code's timing, not the seeded randomness.
+- The golden comparison and the screenshots for this step were scratch scripts (`F.scene('Game').computeStats()` over fixed builds). Step 2 should make the golden a checked-in dev check.
+
+**Step 2 starts from here:**
+- The trigger bus extends `EffectCtx` (subscribe to a game event, roll, find feet, run an action). The kinds go next to `stat.ts`, one file each, registered in `index.ts`.
+- `pizzaPerks.ts`'s behaviours port family by family. The checks for each family: golden builds plus the balance sim on fixed seeds.
+- **Shop cards:** every way of dealing them (a normal shop, boss loot, rerolls, Booster Gouda's coming shop, the hero shop) goes through **one deal function** that reads the ledger's card-count total (`cardDelta`, `extraConsumable`, Exclusive Menu's rarity bump).
+  - Boss loot missed Mac & Cheese's card until a shared `addExtraConsumables()` fixed it: the same class of miss the ledger removes for numbers.

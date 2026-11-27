@@ -11,15 +11,35 @@ import { CONSUMABLE_COOLDOWN, RARITY_WEIGHT, UPGRADES, UPGRADE_BY_ID, baseStats,
 import { freshKitState, type KitState } from './kitState';
 import { applyNemesis, homeOf } from './nemesis';
 import { save, unlockPizza } from '../systems/save';
+import { applyAll, Effect, Op, Phase, Stat, Unit, type EffectData } from '../effects';
+import { Ledger, type SourceRef, type ValueCtx } from '../effects/ledger';
+import { STAT_DEFS } from '../effects/stats';
+import { PERK_STATS, PERK_TIPS } from './perkStats';
 
 /** Golden Crusts for the first time you ever beat a main boss (on top of the usual 5). */
 export const FIRST_KILL_CRUSTS = 20;
 
-/** The Pizzeria upgrades recompute reads (the STATS tab leaves them out to see what they add). */
+/** The Pizzeria upgrades the run's stats read (one "Pizzeria upgrades" source on the STATS tab). */
 export const RUN_META = ['wrists', 'tips', 'apron', 'opinion'];
+/** The ledger source of the Pizzeria's upgrades. */
+export const META_SOURCE = 'meta';
+/** The ledger source of the Ghost's possession. */
+export const GHOST_SOURCE = 'ghost';
 
-/** The most tip boosts can add up to (see recompute). */
-export const TIP_MULT_CAP = 2.5;
+// (the caps live in the stat definitions now)
+export { DOUBLE_CAP, TIP_MULT_CAP } from '../effects/stats';
+
+/** A pizza granting a perk now, for the ledger: its perk, its source id and its weight (1; +0.5 enhanced; +0.5 Mystery Meat). */
+export interface TableSeat {
+  perk: PizzaPerk;
+  source: string;
+  weight: number;
+}
+/** A peel's always-on stat changes (its ability, a hero's passive), from one source. */
+export interface PeelStats {
+  source: string;
+  mods: Partial<Record<keyof Stats, number>>;
+}
 
 export const LOCATIONS: LocationId[] = STAGES.map((s) => s.location);
 
@@ -122,8 +142,6 @@ export function miniFor(n: number): string {
  * boss are dealt from shuffled decks, a new deal each loop. The scene sets it for the run (seed: the deal). */
 export const endlessPlus = { on: false, seed: 1 };
 
-/** A smack's follow-up chance never reaches certainty (the same ceiling as crits). */
-export const DOUBLE_CAP = 0.85;
 
 /** The finale's own bosses stay in the finale (the buyout and the ending belong to waves 95 and 100). */
 const UNSHUFFLED_BOSSES = new Set(['soleprop', 'soleunbound']);
@@ -489,93 +507,80 @@ export class Run {
     return save.meta[id] ?? 0;
   }
 
-  /** extra: always-on peel ability stat changes, added before the caps. enhanced: the perks of
-   * enhanced pizzas among alivePerks, each worth 1.5 of a plain one. noMeta: leave the Pizzeria's
-   * upgrades out (the STATS tab works out what they add). */
-  recompute(alivePerks: PizzaPerk[], extra: Partial<Record<keyof Stats, number>> = {}, enhanced: PizzaPerk[] = [], noMeta = false): void {
-    const s = baseStats();
-    // meta progression
-    if (!noMeta) {
-      s.damage *= 1 + 0.08 * this.meta('wrists');
-      s.coinMult += 0.1 * this.meta('tips');
-      s.luck += this.meta('apron');
-      s.freeRerolls += this.meta('opinion');
-    }
-    // upgrades
+  /** The run's modifier ledger, as last resolved (what made each stat: the STATS tab and the NOW tags read it). */
+  ledger: Ledger | null = null;
+
+  /**
+   * A fresh ledger with the run's build in it (src/effects/ledger.ts): the Pizzeria's upgrades, the toppings' effects
+   * and the table's perks (Phase.Build), the peel's and the hero's always-on stats (Phase.Peel). The scene adds the
+   * later phases (topping tricks, the Ghost, the table-shaped perks) and settles it.
+   * seats: the pizzas granting a perk now, each with its weight (1; +0.5 enhanced; +0.5 Mystery Meat).
+   * enhanced: the perks of enhanced pizzas (and Mystery Meat's), for the perks that read "enhanced" in play.
+   */
+  buildLedger(seats: TableSeat[], peel: PeelStats[] = [], enhanced: PizzaPerk[] = []): Ledger {
+    const L = new Ledger();
+    const build = (source: SourceRef, list: EffectData[], levels = 1) => applyAll(list, { ledger: L, source, phase: Phase.Build }, levels);
+    // the Pizzeria's upgrades
+    const meta = (id: string) => this.meta(id);
+    const metaFx: EffectData[] = [];
+    if (meta('wrists')) metaFx.push(Effect.Stat(Stat.Damage, Op.Boost(Unit.scale(Unit.Percent(8), meta('wrists')))));
+    if (meta('tips')) metaFx.push(Effect.Stat(Stat.CoinMult, Op.Add(Unit.scale(Unit.Percent(10), meta('tips')))));
+    if (meta('apron')) metaFx.push(Effect.Stat(Stat.Luck, Op.Add(Unit.Count(meta('apron')))));
+    if (meta('opinion')) metaFx.push(Effect.Stat(Stat.FreeRerolls, Op.Add(Unit.Count(meta('opinion')))));
+    build(META_SOURCE, metaFx);
+    // toppings: each level applies the topping's effects once
     for (const [id, lvl] of Object.entries(this.owned)) {
       const u = UPGRADE_BY_ID[id];
-      if (!u) continue;
-      for (let l = 1; l <= lvl; l++) u.apply(s, l);
+      if (u?.effects && lvl > 0) build(`top:${id}`, u.effects, lvl);
     }
-    // live pizza perks (Napoletana makes every other perk 5% stronger)
+    // live pizza perks, shared by the pizzas granting them (Napoletana makes every other perk 5% stronger)
     const counts: Partial<Record<PizzaPerk, number>> = {};
-    for (const p of alivePerks) counts[p] = (counts[p] ?? 0) + 1;
-    for (const p of enhanced) counts[p] = (counts[p] ?? 0) + 0.5;
+    const who: Partial<Record<PizzaPerk, Record<string, number>>> = {};
+    for (const t of seats) {
+      counts[t.perk] = (counts[t.perk] ?? 0) + t.weight;
+      const w = (who[t.perk] ??= {});
+      w[t.source] = (w[t.source] ?? 0) + t.weight;
+    }
     this.perkCounts = counts;
     this.enhancedPerks = new Set(enhanced);
+    this.boosters = who.perkBoost ?? {};
     const boost = 1 + 0.05 * (counts.perkBoost ?? 0);
     const c = (p: PizzaPerk) => (counts[p] ?? 0) * boost;
-    s.damage *= 1 + 0.1 * c('damage');
-    s.coinMult += 0.2 * c('coins') + 0.15 * c('luck');
-    s.stunChance += 0.08 * c('stun');
-    s.explodeDmg += 15 * c('explode');
-    s.critChance += 0.06 * c('crit');
-    s.superGain += 0.35 * c('super');
-    s.scoreMult += 0.25 * c('score');
-    s.luck += c('luck');
-    s.freeRerolls += Math.round(c('reroll'));
-    s.healWeakest += Math.round(c('healWeakest'));
-    s.knockback *= 1 + 0.35 * c('knockback');
-    s.burnDps += 4 * c('burnHits');
-    s.comboBonus += 0.6 * c('combo');
-    s.slowPct += 0.2 * c('slowHits');
-    s.doubleChance += 0.1 * c('double');
-    s.regenAll += Math.round(c('regenAll'));
-    s.execute += 0.12 * c('execute');
-    s.radius *= 1 + 0.2 * c('radius');
-    s.superStart += 0.4 * c('superStart');
-    s.coinsPerWave += 8 * c('coinsWave');
-    s.critMult += 0.6 * c('critDmg');
-    // Feetza 2.0 perks
-    s.splashDmg += 4 * c('splash');
-    s.bigHurt += 0.15 * c('bigHurt');
-    s.bossDmg += 0.2 * c('bossDmg');
-    s.tenthCrit = s.tenthCrit || c('tenthCrit') > 0;
-    s.cutters += Math.round(c('cutter'));
-    s.quickTips += Math.round(c('quickTips'));
-    s.counterDiscount = Math.min(0.5, s.counterDiscount + 0.15 * c('counterDiscount'));
-    s.extraConsumable += Math.round(c('extraConsumable'));
-    s.crustBonus += 0.15 * c('crustBonus');
-    s.slamStun = s.slamStun || c('slamStun') > 0;
-    s.miniWeak = Math.min(0.5, s.miniWeak + 0.2 * c('miniWeak'));
-    s.stunVuln += 0.5 * c('stunVuln');
-    s.freeTopping = s.freeTopping || c('freeTopping') > 0;
-    // the pizza plan's step 3: Blue Plate Special, Stargazer Calzone
-    s.damage *= 1 + 0.05 * c('bluePlate');
-    s.coinMult += 0.05 * c('bluePlate');
-    s.critChance += 0.03 * c('stargazer');
-    s.critMult += 0.1 * c('stargazer');
-    for (const [k, v] of Object.entries(extra)) {
-      const key = k as keyof Stats;
-      if (typeof s[key] === 'number') (s as unknown as Record<string, number>)[key] += v as number;
+    // Pepperoni's and the luck pizzas' tips: one sum, shared by their pizzas by what each adds
+    if (c('coins') > 0 || c('luck') > 0) {
+      const src: Record<string, number> = {};
+      for (const k of ['coins', 'luck'] as const) for (const [id, w] of Object.entries(who[k] ?? {})) src[id] = (src[id] ?? 0) + PERK_TIPS[k] * w;
+      build(this.withBoost(src), [Effect.Stat(Stat.CoinMult, Op.Add(Unit.of('percent', PERK_TIPS.coins * c('coins') + PERK_TIPS.luck * c('luck'))))]);
     }
-    // trade-off toppings can stack their downsides: keep everything playable
-    s.superGain = Math.max(0.2, s.superGain);
-    s.coinMult = Math.max(0.3, s.coinMult);
-    s.radius = Math.max(14, s.radius);
-    s.freshBonus = Math.max(-4, s.freshBonus);
-    s.critChance = Math.max(0, s.critChance);
-    s.stompExtra = Math.min(0.6, s.stompExtra);
-    s.speedMult = Math.min(1.6, s.speedMult);
-    // golden feet stack fast across toppings, peels and perks: at most 30% of feet turn to gold
-    s.goldenTouch = Math.min(0.3, s.goldenTouch);
-    s.slowPct = Math.min(0.7, s.slowPct);
-    s.critChance = Math.min(0.85, s.critChance);
-    s.doubleChance = Math.min(DOUBLE_CAP, s.doubleChance);
-    s.execute = Math.min(0.4, s.execute);
-    // tip boosts: full value up to ×2, half value beyond, never above ×2.5 (late runs piled up 100k+ tips)
-    if (s.coinMult > 2) s.coinMult = Math.min(TIP_MULT_CAP, 2 + (s.coinMult - 2) * 0.5);
-    this.stats = s;
+    // the rest, perk by perk in their old order
+    for (const [perk, fx] of Object.entries(PERK_STATS) as [PizzaPerk, (n: number) => EffectData[]][]) if (c(perk) > 0) build(this.withBoost(who[perk]!), fx(c(perk)));
+    // always-on peel and hero stats, on the build (before the caps). (Raw numbers: an ability's `stat` effect is
+    // written in the stats' own stored units, src/game/abilities.ts; it becomes Effect.Stat when peels port, step 3.)
+    for (const p of peel)
+      for (const [k, v] of Object.entries(p.mods) as [keyof Stats, number][])
+        if (typeof STAT_DEFS[k]?.base === 'number' && v) L.add({ stat: k, op: Op.Add(v), source: p.source, phase: Phase.Peel });
+    return L;
+  }
+
+  /** The Napoletanas on the table now (their ledger sources and weights): set by buildLedger. */
+  boosters: Record<string, number> = {};
+
+  /** A perk's sources with Napoletana's share added: its boost is part of every other perk's strength, so it gets the
+   *  part of each it adds (×1.05: 1/21 of the perk). src is weighted by strength before the boost. */
+  withBoost(src: Record<string, number>): Record<string, number> {
+    const n = Object.values(this.boosters).reduce((a, b) => a + b, 0);
+    if (!n) return src;
+    const W = Object.values(src).reduce((a, b) => a + b, 0);
+    const out = { ...src };
+    for (const [id, w] of Object.entries(this.boosters)) out[id] = (out[id] ?? 0) + W * 0.05 * w;
+    return out;
+  }
+
+  /** Resolve a ledger into the run's stats (and keep it for the STATS tab). */
+  settle(L: Ledger, ctx: ValueCtx): Stats {
+    this.stats = L.resolve(ctx).stats;
+    this.ledger = L;
+    return this.stats;
   }
 
   /** Can this upgrade be offered right now? */

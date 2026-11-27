@@ -8,12 +8,13 @@ import { MOMENTUM, heatRank, type HeatId } from '../data/difficulty';
 import { Momentum } from '../game/momentum';
 import { FEET, FOOT_BY_ID, OUCH, type FootType } from '../data/feet';
 import { META, MILESTONES } from '../data/meta';
-import { RUN_META } from '../game/Run';
+import { GHOST_SOURCE, META_SOURCE, RUN_META, type PeelStats, type TableSeat } from '../game/Run';
+import { applyAll, Effect as Eff, Op, Phase, Stat, Unit, type EffectData } from '../effects';
 import { PIZZAS, PIZZA_BY_ID, enhancedText, type PizzaType } from '../data/pizzas';
 import { PIZZERIA_SPECIAL_CHANCE, TIER_COUNTER, pickByTier, rollTier, tierRank } from '../data/pizzaRarity';
 import { perkWave, setPerkWave } from '../data/perkWave';
 import { DmgTally } from '../game/dmgTally';
-import { buildView, toneOf, topSrc, type BuildView, type Src, type TablePizza } from '../game/buildStats';
+import { buildView, topSrc, type BuildView, type Src, type TablePizza } from '../game/buildStats';
 import { ACT_COUNT, BOSS_CREW, BOSS_MINION, HEAT_UNLOCK_WAVE, MINI_ESCORT, JOURNEY_WAVES, actLabel, actName, actOf, actStartWave, isActEnd, isActStart, waveInJourney } from '../data/stages';
 import { UPGRADES, UPGRADE_BY_ID, kindOf, type Rarity, type Stats, type Upgrade } from '../data/upgrades';
 import type { Arena, Clickable } from '../game/arena';
@@ -1092,49 +1093,35 @@ export class GameScene extends Phaser.Scene implements Arena {
   /** Toppings owned that add chain lightning (counted in recompute, read by every goal event). */
   private chainToppings = 0;
 
-  /** Work out the run's stats (into run.stats) from the toppings, the pizzas on the table and the peel. skip leaves
-   *  one of them out, so the STATS tab can tell what each one changes; a plain call after puts everything back. */
-  private computeStats(skip: { topping?: string; pizza?: Pizza; meta?: boolean; peel?: boolean } = {}): Stats {
-    const owned = this.run.owned;
-    if (skip.topping) {
-      const { [skip.topping]: _gone, ...rest } = owned;
-      this.run.owned = rest;
-    }
-    try {
-      return this.statsNow(skip);
-    } finally {
-      this.run.owned = owned;
-    }
-  }
-
-  private statsNow(skip: { pizza?: Pizza; meta?: boolean; peel?: boolean }): Stats {
+  /** Work out the run's stats (into run.stats) through the modifier ledger (src/effects/ledger.ts): the build (the
+   *  Pizzeria's upgrades, toppings, the table's perks), the peel's always-on stats, then the topping tricks, the
+   *  Ghost's possession and the table-shaped perks on the capped build. run.ledger keeps what made each number. */
+  private computeStats(): Stats {
     // Echo Slice copies what's beside it now (the table may have changed since the last time)
     this.perkKit.syncEchoes();
-    const live = this.alivePizzas().filter((p) => p !== this.possessedPizza && p !== skip.pizza && p.perk);
-    const perks = live.map((p) => p.perk!);
-    // an enhanced pizza's perk counts half as much again
+    const live = this.alivePizzas().filter((p) => p !== this.possessedPizza && p.perk);
+    // an enhanced pizza's perk counts half as much again (and Mystery Meat's)
+    const seats: TableSeat[] = live.map((p) => ({ perk: p.perk!, source: this.perkKit.srcOf(p), weight: 1 + (p.enhanced ? 0.5 : 0) + (p.type.perk === 'mystery' ? 0.5 : 0) }));
     const enhanced = [...live.filter((p) => p.enhanced).map((p) => p.perk!), ...this.perkKit.bigPerks(live)];
-    // always-on peel abilities change stats before the caps are applied
-    const extra: Record<string, number> = {};
-    const peel = skip.peel ? null : this.ability;
-    if (peel?.trigger.t === 'always') for (const e of peel.fx) if (e.e === 'stat') for (const [k, v] of Object.entries(e.mods)) extra[k] = (extra[k] ?? 0) + (v as number);
-    // a hero's always-on passive (its `also`) changes stats the same way
-    if (peel?.also?.trigger.t === 'always') for (const e of peel.also.fx) if (e.e === 'stat') for (const [k, v] of Object.entries(e.mods)) extra[k] = (extra[k] ?? 0) + (v as number);
-    this.run.recompute(perks, extra, enhanced, skip.meta);
-    this.kit.afterRecompute(this.run.stats, this.alivePizzas().length);
-    // the Ghost's possession inverts the haunted pizza's perk
+    // always-on peel abilities (and a hero's always-on passive, its `also`) change stats before the caps
+    const peel = this.ability;
+    const mods: Record<string, number> = {};
+    for (const a of [peel, peel?.also])
+      if (a?.trigger.t === 'always') for (const e of a.fx) if (e.e === 'stat') for (const [k, v] of Object.entries(e.mods)) mods[k] = (mods[k] ?? 0) + (v as number);
+    const peelStats: PeelStats[] = [{ source: 'peel', mods }];
+    const L = this.run.buildLedger(seats, peelStats, enhanced);
+    this.kit.modifiers(L, this.alivePizzas().length);
+    // the Ghost's possession turns the haunted pizza's perk against you
     const inv = this.possessedPizza?.perk;
     if (inv) {
-      const s = this.run.stats;
-      if (inv === 'coins' || inv === 'luck' || inv === 'coinsWave' || inv === 'quickTips') s.coinMult = Math.max(0.2, s.coinMult - 0.2);
-      else if (inv === 'damage' || inv === 'critDmg' || inv === 'bigHurt' || inv === 'bossDmg') s.damage *= 0.9;
-      else if (inv === 'crit') s.critChance = Math.max(0, s.critChance - 0.06);
-      else s.damage *= 0.95;
+      const ghost = (list: EffectData[]) => applyAll(list, { ledger: L, source: GHOST_SOURCE, phase: Phase.Haunt });
+      if (inv === 'coins' || inv === 'luck' || inv === 'coinsWave' || inv === 'quickTips') ghost([Eff.Stat(Stat.CoinMult, Op.Sub(Unit.Percent(20))), Eff.Stat(Stat.CoinMult, Op.AtLeast(Unit.Mult(0.2)))]);
+      else if (inv === 'damage' || inv === 'critDmg' || inv === 'bigHurt' || inv === 'bossDmg') ghost([Eff.Stat(Stat.Damage, Op.Mul(Unit.Mult(0.9)))]);
+      else if (inv === 'crit') ghost([Eff.Stat(Stat.CritChance, Op.Sub(Unit.Chance(6))), Eff.Stat(Stat.CritChance, Op.AtLeast(Unit.Chance(0)))]);
+      else ghost([Eff.Stat(Stat.Damage, Op.Mul(Unit.Mult(0.95)))]);
     }
-    this.perkKit.afterRecompute(this.run.stats, COMBO_BASE_WINDOW, [skip.pizza, this.possessedPizza]);
-    // the perks' faster smacks land after Run's caps: cap the follow-up chance again
-    this.run.stats.doubleChance = Math.min(DOUBLE_CAP, this.run.stats.doubleChance);
-    return this.run.stats;
+    this.perkKit.modifiers(L, [this.possessedPizza]);
+    return this.run.settle(L, this.perkKit.valueCtx());
   }
 
   private recompute(): void {
@@ -2743,37 +2730,22 @@ export class GameScene extends Phaser.Scene implements Arena {
   /** The STATS tab: the build worked out into numbers (src/game/buildStats.ts). */
   private statsView(): BuildView {
     const r = this.run;
-    const st = this.computeStats();
-    const full = { ...st };
-    // what each topping, pizza, the Pizzeria's upgrades and the peel change: work the stats out without it
-    const from: Partial<Record<keyof Stats, Src[]>> = {};
-    const diff = (src: Omit<Src, 'tone'>, without: Stats) => {
-      for (const k of Object.keys(full) as (keyof Stats)[]) {
-        const a = full[k];
-        const b = without[k];
-        if (a === b || (typeof a === 'number' && typeof b === 'number' && Math.abs(a - b) < 1e-9)) continue;
-        (from[k] ??= []).push({ ...src, tone: toneOf(k, a, b) });
-      }
-    };
+    this.computeStats();
+    // what made each number: the ledger's breakdown, its sources as "from" chips
     const peelDef = PEEL_BY_ID[this.peelId];
     const peelImg = peelDef ? peelThumbURL(this.peelId, 96) : '';
-    try {
-      for (const [id, lvl] of Object.entries(r.owned)) {
-        if (!UPGRADE_BY_ID[id] || lvl <= 0) continue;
-        diff(topSrc(id, lvl), { ...this.computeStats({ topping: id }) });
+    const metas = META.filter((m) => (save.meta[m.id] ?? 0) > 0 && RUN_META.includes(m.id));
+    const source = (id: string): Omit<Src, 'tone'> | null => {
+      if (id.startsWith('top:')) return UPGRADE_BY_ID[id.slice(4)] ? topSrc(id.slice(4), r.level(id.slice(4))) : null;
+      if (id.startsWith('pizza:')) {
+        const p = this.perkKit.pizzaOf(id);
+        return p ? { key: `pizza:${p.type.id}`, name: p.type.name, img: pizzaPortraitURL(p.type.id), tip: p.perkLine } : null;
       }
-      for (const p of this.alivePizzas()) {
-        if (!p.perk || p === this.possessedPizza) continue;
-        diff({ key: `pizza:${p.type.id}`, name: p.type.name, img: pizzaPortraitURL(p.type.id), tip: p.perkLine }, { ...this.computeStats({ pizza: p }) });
-      }
-      // (the Pizzeria upgrades Run.recompute reads)
-      const metas = META.filter((m) => (save.meta[m.id] ?? 0) > 0 && RUN_META.includes(m.id));
-      if (metas.length) diff({ key: 'meta', name: 'Pizzeria upgrades', icon: '🏪', tip: metas.map((m) => `${m.name} LV${save.meta[m.id]}`).join(' · ') }, { ...this.computeStats({ meta: true }) });
-      if (this.ability) diff({ key: 'peel', name: peelDef?.name ?? this.ability.name, img: peelImg }, { ...this.computeStats({ peel: true }) });
-    } finally {
-      // everything back as it was, whatever happened
-      this.computeStats();
-    }
+      if (id === META_SOURCE) return { key: 'meta', name: 'Pizzeria upgrades', icon: '🏪', tip: metas.map((m) => `${m.name} LV${save.meta[m.id]}`).join(' · ') };
+      if (id === 'peel') return { key: 'peel', name: peelDef?.name ?? this.ability?.name ?? 'Peel', img: peelImg };
+      if (id === GHOST_SOURCE) return { key: 'ghost', name: 'The Ghost', icon: '👻', tip: `haunting ${this.possessedPizza?.type.name ?? 'a pizza'}: its perk works against you` };
+      return null;
+    };
     const wave = this.waveActive ? r.wave : r.wave + 1;
     const pizzas: TablePizza[] = this.pizzas.map((p) => ({
       id: p.type.id,
@@ -2794,7 +2766,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     const hero = this.heroes.flatDmgMult();
     return buildView({
       stats: r.stats,
-      from,
+      breakdown: r.ledger!.resolved!.breakdown,
+      source,
       owned: r.owned,
       procs: Object.entries(r.owned)
         .map(([id, lvl]) => ({ u: UPGRADE_BY_ID[id], lvl }))

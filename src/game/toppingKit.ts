@@ -12,8 +12,9 @@ import type { Foot } from './Foot';
 import type { Fx } from './Fx';
 import type { Pizza } from './Pizza';
 import { Projectiles } from './projectiles';
-import { TIP_MULT_CAP, type Run } from './Run';
-import type { Stats } from '../data/upgrades';
+import type { Run } from './Run';
+import { applyAll, Effect as Eff, Op, Phase, Stat, Unit, type EffectData } from '../effects';
+import type { Ledger } from '../effects/ledger';
 import { audio } from '../systems/audio';
 
 const { hit, D, B, ST, TH } = P;
@@ -263,13 +264,11 @@ export class ToppingKit {
     return [...picks, others.length ? Phaser.Utils.Array.GetRandom(others) : picks[0]];
   }
 
-  /** After the run's stats are worked out: The Last Slice and Midnight Snack. */
-  afterRecompute(s: Stats, alive: number): void {
-    if (this.lv('lastslice') && alive === 1) s.damage *= 2;
-    if (this.lv('midnightsnack') && this.run.wave >= 50) {
-      s.damage *= 1.25;
-      s.coinMult = Math.min(TIP_MULT_CAP, s.coinMult + 0.25);
-    }
+  /** On the capped build (the ledger's Tricks phase): The Last Slice and Midnight Snack. Tips stay under their cap. */
+  modifiers(L: Ledger, alive: number): void {
+    const at = (source: string, list: EffectData[]) => applyAll(list, { ledger: L, source, phase: Phase.Tricks });
+    if (this.lv('lastslice') && alive === 1) at('top:lastslice', [Eff.Stat(Stat.Damage, Op.Mul(Unit.Mult(2)))]);
+    if (this.lv('midnightsnack') && this.run.wave >= 50) at('top:midnightsnack', [Eff.Stat(Stat.Damage, Op.Mul(Unit.Mult(1.25))), Eff.Stat(Stat.CoinMult, Op.Add(Unit.Percent(25)))]);
   }
 
   // ——— kills, stomps, pizzas ———

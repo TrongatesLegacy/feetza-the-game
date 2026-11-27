@@ -12,12 +12,13 @@
 import type { Ability, Effect, Proc, Target } from './abilities';
 import { describeAbility, throwCount } from './abilities';
 import type { Stats } from '../data/upgrades';
-import { baseStats, UPGRADE_BY_ID } from '../data/upgrades';
+import { baseStats, kindOf, UPGRADE_BY_ID } from '../data/upgrades';
+import { Better, Stack, STAT_DEFS, STAT_KEYS } from '../effects/stats';
+import { CAP_SOURCE, type Breakdown } from '../effects/ledger';
 import { PIZZA_BY_ID, type PizzaPerk } from '../data/pizzas';
 import { passiveBoost } from './slamMode';
 import { DOUBLE_CAP, TIP_MULT_CAP } from './Run';
 import { total, type DmgTally, type TallySpan } from './dmgTally';
-import { COMBO_BASE_WINDOW } from '../config';
 import { tunaTips } from '../data/perkWave';
 
 export type Tone = 'up' | 'down' | 'flat';
@@ -144,8 +145,10 @@ export interface TablePizza {
 
 export interface BuildInput {
   stats: Stats;
-  /** What each topping, pizza, upgrade and the peel change, stat by stat (the scene leaves each out in turn). */
-  from: Partial<Record<keyof Stats, Src[]>>;
+  /** What made each stat: the run's ledger breakdown (src/effects/ledger.ts), each source's share. */
+  breakdown: Record<keyof Stats, Breakdown>;
+  /** A ledger source as a "from" chip (its name, icon or image, and what it does). */
+  source: (id: string) => Omit<Src, 'tone'> | null;
   owned: Record<string, number>;
   procs: { id: string; p: Proc; lvl: number }[];
   ability: Ability | null;
@@ -189,14 +192,19 @@ export interface BuildInput {
 
 // ——— helpers ———
 
-/** Stats where more is worse (feet tougher or faster, extra slices lost, dearer shops). */
-const BAD_UP = new Set<keyof Stats>(['footHp', 'speedMult', 'stompExtra', 'counterMult', 'rerollMult', 'noEvents', 'noGolden']);
-
+/** Up or down from `base`, by whether more of the stat is good (its definition says: feet tougher or faster, extra
+ *  slices lost and dearer shops are worse). */
 export function toneOf(k: keyof Stats, now: number | boolean, base: number | boolean): Tone {
   const a = Number(now);
   const b = Number(base);
   if (Math.abs(a - b) < 1e-9) return 'flat';
-  return a > b !== BAD_UP.has(k) ? 'up' : 'down';
+  return a > b !== (STAT_DEFS[k].better === Better.Down) ? 'up' : 'down';
+}
+
+/** A source's share of a stat as a tone: what it does to the stat, good or bad. */
+function shareTone(k: keyof Stats, share: number): Tone {
+  if (STAT_DEFS[k].stack === Stack.Flag) return STAT_DEFS[k].better === Better.Down ? 'down' : 'up';
+  return toneOf(k, share, 0);
 }
 
 const hex = (c: number) => '#' + c.toString(16).padStart(6, '0');
@@ -328,15 +336,33 @@ export function sourceInfo(key: string): { label: string; color: string; icon: s
 export function buildView(inp: BuildInput): BuildView {
   const st = inp.stats;
   const base = baseStats();
-  // every stat a tile shows (its "from" chips): what's left over at the end still gets shown, under More effects
+  // every stat a tile shows (its "from" chips, from the ledger's breakdown): a stat something changes that no
+  // tile here shows gets its own tile from its definition at the end
   const shown = new Set<keyof Stats>();
   const from = (...keys: (keyof Stats)[]): Src[] => {
     const out: Src[] = [];
     for (const k of keys) {
       shown.add(k);
-      for (const s of inp.from[k] ?? []) if (!out.some((o) => o.key === s.key)) out.push(s);
+      for (const part of inp.breakdown[k]?.parts ?? []) {
+        if (part.source === CAP_SOURCE) continue;
+        const info = inp.source(part.source);
+        if (!info) continue;
+        const tone = shareTone(k, part.share);
+        const had = out.find((o) => o.key === info.key);
+        // (one chip a source: two Margheritas are one chip; a source that helps one stat and hurts another shows up)
+        if (!had) out.push({ ...info, tone });
+        else if (had.tone !== tone && tone === 'up') had.tone = 'up';
+      }
     }
     return out;
+  };
+  /** A stat this tile stands for without showing its number (freshness on Mild, a perk's own tile). */
+  const claim = (...keys: (keyof Stats)[]) => keys.forEach((k) => shown.add(k));
+  /** A stat's tile from its definition: its label, icon, number, tone, note and "from" chips. */
+  const statTile = (k: keyof Stats, over: Partial<Tile> = {}): Tile => {
+    const d = STAT_DEFS[k];
+    const v = st[k];
+    return { label: d.label, icon: d.icon, ...d.show(Number(v)), tone: tone(k), from: from(k), note: d.note, ...over };
   };
   const tone = (k: keyof Stats) => toneOf(k, st[k] as number | boolean, base[k] as number | boolean);
   const auto = inp.heat.autoDmg;
@@ -541,12 +567,12 @@ export function buildView(inp: BuildInput): BuildView {
     { label: 'Smack damage', num: dmg, fmt: 'int', icon: '👋', tone: tone('damage'), from: from('damage'), big: true, note: inp.hero.smack !== 1 ? `×${r1(inp.hero.smack)} from your hero` : undefined },
     { label: 'Average per smack', num: perSmack, fmt: 'int', icon: '🎯', tone: perSmack > BASE_PER_SMACK + 0.01 ? 'up' : perSmack < BASE_PER_SMACK - 0.01 ? 'down' : 'flat', from: from('damage', 'critChance', 'critMult', 'doubleChance'), big: true, note: `crits and ${hits > 1.005 ? `${r1(hits)} hits` : 'follow-ups'} folded in` },
     { label: 'Crit chance', num: pct(Math.min(1, pCrit)), fmt: 'pct', icon: '💥', tone: inp.hero.crit ? 'up' : tone('critChance'), from: from('critChance', 'tenthCrit'), note: tenth ? `every ${tenth}th smack is a sure crit` : inp.hero.crit ? 'your hero always crits' : undefined },
-    { label: 'Crit damage', num: st.critMult, fmt: 'x', icon: '💢', tone: tone('critMult'), from: from('critMult') },
+    statTile('critMult'),
   ];
   if (dbl > 0) dmgTiles.push({ label: 'Double smack', num: pct(dbl), fmt: 'pct', icon: '👏', tone: 'up', from: [...from('doubleChance'), ...inp.pizzas.filter((p) => p.perk === 'fullSpeed' || p.perk === 'smackSpeed').map(pzSrc)], note: dbl >= DOUBLE_CAP - 1e-6 ? `at the ${pct(DOUBLE_CAP)}% cap` : 'chance to smack again' });
   if (fold) dmgTiles.push({ label: 'Fold Over', num: lv('foldover') >= 2 ? 3 : 4, fmt: 'int', pre: 'every ', post: 'th', icon: '🌮', tone: 'up', from: [topSrc('foldover', lv('foldover'))], note: 'smack hits twice' });
   if (echo) dmgTiles.push({ label: 'Echo smacks', num: pct(echo), fmt: 'pct', icon: '📣', tone: 'up', from: [topSrc('echochamber', lv('echochamber'))] });
-  if (st.execute > 0) dmgTiles.push({ label: 'Finishes feet under', num: pct(st.execute), fmt: 'pct', icon: '🔪', tone: 'up', from: from('execute'), note: 'health, not bosses' });
+  if (st.execute > 0) dmgTiles.push(statTile('execute'));
   // conditional multipliers
   const fullBoss = inp.pizzas.filter((p) => p.perk === 'fullBoss' && p.slices === p.max).reduce((m, p) => m * (1 + 0.15 * p.pk), 1);
   const bossX = (1 + st.bossDmg) * (1 + 0.2 * inp.c('slayer')) * fullBoss;
@@ -554,7 +580,7 @@ export function buildView(inp: BuildInput): BuildView {
   if (bossX > 1.001) dmgTiles.push({ label: 'vs bosses', num: bossX, fmt: 'x', icon: '👹', tone: 'up', from: bossFrom });
   const miniX = (1 + st.bossDmg) * (1 + 0.25 * inp.c('miniDmg'));
   if (miniX > 1.001 || st.miniWeak > 0) dmgTiles.push({ label: 'vs mini-bosses', num: miniX, fmt: 'x', icon: '👺', tone: 'up', from: [...from('bossDmg', 'miniWeak'), ...inp.pizzas.filter((p) => p.perk === 'miniDmg').map(pzSrc)], note: st.miniWeak > 0 ? `they spawn with ${pct(st.miniWeak)}% less health` : undefined });
-  if (st.bigHurt > 0) dmgTiles.push({ label: 'vs healthy feet', num: 1 + st.bigHurt, fmt: 'x', icon: '💪', tone: 'up', from: from('bigHurt'), note: 'above half health' });
+  if (st.bigHurt > 0) dmgTiles.push(statTile('bigHurt'));
   const fast = inp.c('fastDmg');
   if (fast > 0) dmgTiles.push({ label: 'vs fast feet', num: 1 + 0.15 * fast, fmt: 'x', icon: '💨', tone: 'up', from: inp.pizzas.filter((p) => p.perk === 'fastDmg').map(pzSrc) });
   for (const p of inp.pizzas.filter((q) => q.perk === 'nearDmg')) dmgTiles.push({ label: `near ${p.name}`, num: 1 + 0.1 * p.pk, fmt: 'x', icon: '📍', tone: 'up', from: [pzSrc(p)], note: 'smacks near it' });
@@ -591,14 +617,15 @@ export function buildView(inp: BuildInput): BuildView {
     const n = Math.min(3, Math.max(1, Math.round(surtr)));
     dmgTiles.push({ label: 'Burning spreads', num: n, fmt: 'int', pre: 'to ', post: n === 1 ? ' foot' : ' feet', icon: '🌋', tone: 'up', from: inp.pizzas.filter((p) => p.perk === 'surtrSpread').map(pzSrc), note: "a burning foot's fire leaps on as it dies" });
   }
+  if (inp.pizzas.some((q) => q.perk === 'stunVuln')) claim('stunVuln');
   for (const p of inp.pizzas.filter((q) => q.perk === 'stunVuln')) dmgTiles.push({ label: 'vs stunned feet', num: p.enhanced ? 1.75 : 1.5, fmt: 'x', icon: '😵', tone: 'up', from: [pzSrc(p)], note: `over ${p.name}` });
   if (Math.abs(inp.waveMult - 1) > 0.001) dmgTiles.push({ label: inp.inWave ? 'This wave' : 'Next wave', num: inp.waveMult, fmt: 'x', icon: '🌙', tone: 'up', from: inp.pizzas.filter((p) => p.perk === 'actStart' || p.perk === 'nightDmg' || p.perk === 'postBoss').map(pzSrc), note: 'every hit' });
   if (inp.hero.all !== 1) dmgTiles.push({ label: 'Hero passive', num: inp.hero.all, fmt: 'x', icon: '🦸', tone: inp.hero.all > 1 ? 'up' : 'down', from: [{ key: 'peel', name: inp.peel.name, img: inp.peel.img, tone: 'up' }], note: 'every hit' });
   const reachNow = st.radius * inp.hero.reach;
-  dmgTiles.push({ label: 'Smack reach', num: reachNow, fmt: 'int', icon: '🏓', tone: tone('radius'), from: from('radius'), note: inp.areaSmack ? 'hits every foot in range' : undefined });
+  dmgTiles.push(statTile('radius', { num: reachNow, note: inp.areaSmack ? 'hits every foot in range' : undefined }));
   if (st.chainChance > 0) dmgTiles.push({ label: 'Chain lightning', num: pct(st.chainChance), fmt: 'pct', icon: '⚡', tone: 'up', from: from('chainChance', 'chainCount', 'chainDmg'), note: `to ${st.chainCount} feet for ${Math.round(dmg * st.chainDmg * g)} each` });
-  if (st.splashDmg > 0) dmgTiles.push({ label: 'Splash', num: st.splashDmg * g, fmt: 'int', icon: '💦', tone: 'up', from: from('splashDmg'), note: 'on each foot nearby' });
-  if (st.explodeDmg > 0) dmgTiles.push({ label: 'Kills explode', num: st.explodeDmg * g, fmt: 'int', icon: '🍍', tone: 'up', from: from('explodeDmg'), note: 'to every foot nearby' });
+  if (st.splashDmg > 0) dmgTiles.push(statTile('splashDmg', { num: st.splashDmg * g }));
+  if (st.explodeDmg > 0) dmgTiles.push(statTile('explodeDmg', { num: st.explodeDmg * g }));
   // Echo Slice: what it's copying, in the section its copy belongs to
   for (const p of inp.pizzas.filter((q) => q.echo && !q.dead)) {
     const t: Tile = { label: p.name, num: 0, fmt: 'text', text: p.perk && p.perk !== 'echo' ? 'ECHOING' : 'NOTHING', icon: '🔁', tone: p.perk && p.perk !== 'echo' ? 'up' : 'flat', from: [pzSrc(p)], note: p.line };
@@ -613,11 +640,11 @@ export function buildView(inp: BuildInput): BuildView {
 
   // Crowd control
   const cc: Tile[] = [];
-  if (st.stunChance > 0) cc.push({ label: 'Stun chance', num: pct(st.stunChance), fmt: 'pct', icon: '😵', tone: 'up', from: from('stunChance'), note: 'smacks stun feet 1.2s', big: true });
-  if (st.slowPct > 0) cc.push({ label: 'Chill', num: pct(st.slowPct), fmt: 'pct', icon: '❄️', tone: 'up', from: from('slowPct'), note: 'slower for 2s after a smack', big: true });
-  cc.push({ label: 'Knockback', num: st.knockback, fmt: 'int', icon: '🌀', tone: tone('knockback'), from: from('knockback') });
+  if (st.stunChance > 0) cc.push(statTile('stunChance', { big: true }));
+  if (st.slowPct > 0) cc.push(statTile('slowPct', { big: true }));
+  cc.push(statTile('knockback'));
   if (Math.abs(st.speedMult - 1) > 0.001) cc.push({ label: st.speedMult < 1 ? 'Feet slower' : 'Feet faster', num: pct(Math.abs(1 - st.speedMult)), fmt: 'pct', icon: st.speedMult < 1 ? '🐌' : '🏃', tone: tone('speedMult'), from: from('speedMult') });
-  if (Math.abs(st.footHp - 1) > 0.001) cc.push({ label: 'Feet health', num: st.footHp, fmt: 'x', icon: '🦶', tone: tone('footHp'), from: from('footHp') });
+  if (Math.abs(st.footHp - 1) > 0.001) cc.push(statTile('footHp'));
   if (st.freezeSlam) cc.push({ label: a && !usesMeter ? `${a.name} chills` : 'Slam freezes', num: a && !usesMeter ? 40 : 3, fmt: a && !usesMeter ? 'pct' : 'sec', icon: '⏳', tone: 'up', from: from('freezeSlam'), note: a && !usesMeter ? 'for 2s' : 'every foot' });
   if (st.slamStun) cc.push({ label: a && !usesMeter ? `${a.name} stuns` : 'Slam stuns', num: inp.pizzas.some((p) => p.perk === 'slamStun' && p.enhanced) ? 2.5 : 1.5, fmt: 'sec', icon: '🦐', tone: 'up', from: from('slamStun') });
   for (const pr of inp.procs) {
@@ -691,8 +718,8 @@ export function buildView(inp: BuildInput): BuildView {
   if (fritto > 0) eco.push({ label: 'After a lost slice', num: pct(0.12 * fritto), fmt: 'pct', pre: '+', icon: '🦑', tone: inp.lossTips ? 'up' : 'flat', from: inp.pizzas.filter((p) => p.perk === 'lossTips').map(pzSrc), note: inp.lossTips ? `tips ${inp.inWave ? 'this' : 'next'} wave` : 'tips the wave after a slice is lost' });
   const tarte = inp.pizzas.filter((p) => p.perk === 'waveTips');
   if (tarte.length) eco.push({ label: 'Wave start', num: tarte.reduce((t, p) => t + Math.round(6 * p.pk), 0), fmt: 'int', pre: '+', post: ' tips', icon: '🏘️', tone: 'up', from: tarte.map(pzSrc), note: 'as every wave starts' });
-  if (st.goldenTouch > 0) eco.push({ label: 'Golden feet', num: pct(st.goldenTouch), fmt: 'pct', icon: '👑', tone: 'up', from: from('goldenTouch'), note: 'of kills pay 5× tips' });
-  if (st.quickTips > 0) eco.push({ label: 'Quick kills', num: st.quickTips, fmt: 'int', pre: '+', post: ' tips', icon: '⚡', tone: 'up', from: from('quickTips'), note: 'within 1s of the last' });
+  if (st.goldenTouch > 0) eco.push(statTile('goldenTouch'));
+  if (st.quickTips > 0) eco.push(statTile('quickTips'));
   for (const pr of inp.procs) {
     const tp = pr.p.fx.find((e): e is Extract<Effect, { e: 'tips' }> => e.e === 'tips');
     const u = UPGRADE_BY_ID[pr.id];
@@ -700,10 +727,10 @@ export function buildView(inp: BuildInput): BuildView {
     const t = pr.p.trigger;
     eco.push({ label: u.name, num: Math.round(tp.n * inp.heat.tips), fmt: 'int', pre: '+', post: ' tips', icon: u.icon, tone: 'up', from: [topSrc(u.id, pr.lvl)], note: t.t === 'kill' ? `${pct(t.p)}% of kills` : t.t === 'wave' ? 'each wave' : t.t === 'every' ? `every ${r1(t.sec)}s` : 'sometimes' });
   }
-  if (st.luck > 0) eco.push({ label: 'Luck', num: st.luck, fmt: 'int', pre: '+', icon: '🍀', tone: 'up', from: from('luck'), note: 'rarer cards, more golden feet' });
-  if (st.freeRerolls > 0) eco.push({ label: 'Free rerolls', num: st.freeRerolls, fmt: 'int', icon: '🎲', tone: 'up', from: from('freeRerolls'), note: 'every shop' });
+  if (st.luck > 0) eco.push(statTile('luck'));
+  if (st.freeRerolls > 0) eco.push(statTile('freeRerolls'));
   if (st.shopDiscount !== 0) eco.push({ label: st.shopDiscount > 0 ? 'Topping discount' : 'Topping surcharge', num: pct(Math.abs(Math.min(0.6, st.shopDiscount))), fmt: 'pct', icon: '🏷️', tone: tone('shopDiscount'), from: from('shopDiscount') });
-  if (st.consumableDiscount > 0) eco.push({ label: 'One-use discount', num: pct(st.consumableDiscount), fmt: 'pct', icon: '🧇', tone: 'up', from: from('consumableDiscount') });
+  if (st.consumableDiscount > 0) eco.push(statTile('consumableDiscount'));
   if (st.counterDiscount > 0 || st.counterMult !== 1) eco.push({ label: 'Pizza counter', num: (1 - st.counterDiscount) * st.counterMult, fmt: 'x', icon: '🍕', tone: (1 - st.counterDiscount) * st.counterMult <= 1 ? 'up' : 'down', from: from('counterDiscount', 'counterMult'), note: 'prices' });
   if (st.rerollLess > 0 || st.rerollMult !== 1) eco.push({ label: 'Rerolls', num: st.rerollMult, fmt: 'x', icon: '🔄', tone: st.rerollMult > 1 ? 'down' : 'up', from: from('rerollLess', 'rerollMult'), note: st.rerollLess ? `${st.rerollLess} tips off each` : undefined });
   // the shop's card count: how many topping cards a shop deals now (toppings that add or take away cards, and Mac &
@@ -719,11 +746,11 @@ export function buildView(inp: BuildInput): BuildView {
     const note = `${usual} normally${st.extraConsumable > 0 ? ` · ${st.extraConsumable} of them a one-use card (when one is free to deal)` : ''}${dealt !== null && dealt !== now ? ` · this shop dealt ${dealt}: cards are dealt as a shop opens, so this counts from the next shop` : ''}${offMacs.length ? ` · ${offMacs.map((p) => p.name).join(', ')} ${p0(offMacs[0])}: no extra card until it's back` : ''}`;
     eco.push({ label: 'Cards per shop', num: now, fmt: 'int', icon: '🃏', tone: now > usual ? 'up' : now < usual ? 'down' : 'flat', from: src, note });
   }
-  if (st.goldenDiscount > 0) eco.push({ label: 'Golden Menu off', num: pct(st.goldenDiscount), fmt: 'pct', icon: '🎫', tone: 'up', from: from('goldenDiscount') });
+  if (st.goldenDiscount > 0) eco.push(statTile('goldenDiscount'));
   if (st.crustBonus > 0 || st.endCrustMult > 0) eco.push({ label: 'End-of-run crusts', num: pct(st.crustBonus + st.endCrustMult), fmt: 'pct', pre: '+', icon: '🥧', tone: 'up', from: from('crustBonus', 'endCrustMult') });
-  if (st.scoreMult !== 1) eco.push({ label: 'Score', num: st.scoreMult, fmt: 'x', icon: '⭐', tone: tone('scoreMult'), from: from('scoreMult') });
-  if (st.comboBonus !== 0) eco.push({ label: 'Combo window', num: COMBO_BASE_WINDOW + st.comboBonus, fmt: 'sec', icon: '⏲️', tone: tone('comboBonus'), from: from('comboBonus') });
-  if (st.eventTips > 0) eco.push({ label: 'Event tips', num: pct(st.eventTips), fmt: 'pct', pre: '+', icon: '💰', tone: 'up', from: from('eventTips') });
+  if (st.scoreMult !== 1) eco.push(statTile('scoreMult'));
+  if (st.comboBonus !== 0) eco.push(statTile('comboBonus'));
+  if (st.eventTips > 0) eco.push(statTile('eventTips'));
   if (st.noEvents) eco.push({ label: 'Wave events', num: 0, fmt: 'text', text: 'OFF', icon: '🚫', tone: 'down', from: from('noEvents') });
   else if (st.eventAlways || st.eventMult !== 1) eco.push({ label: 'Wave events', num: st.eventMult, fmt: st.eventAlways ? 'text' : 'x', text: st.eventAlways ? 'EVERY WAVE' : undefined, icon: '🎪', tone: st.eventAlways || st.eventMult > 1 ? 'up' : 'down', from: from('eventMult', 'eventAlways') });
   if (st.shinyMult !== 1) eco.push({ label: 'Shiny feet', num: st.shinyMult, fmt: 'x', icon: '✨', tone: 'up', from: from('shinyMult', 'shinyCrusts'), note: st.shinyCrusts ? `${st.shinyCrusts} crusts each` : undefined });
@@ -737,11 +764,13 @@ export function buildView(inp: BuildInput): BuildView {
   if (st.healWeakest > 0) sus.push({ label: 'Patch the weakest', num: st.healWeakest, fmt: 'int', pre: '+', post: st.healWeakest === 1 ? ' slice' : ' slices', icon: '🩹', tone: 'up', from: from('healWeakest'), note: 'after each wave', big: true });
   const perkShield = inp.pizzas.filter((p) => p.perk === 'shield');
   if (st.shields > 0 || perkShield.length) sus.push({ label: 'Stomp shields', num: st.shields, fmt: 'int', post: ' each', icon: '🧀', tone: tone('shields'), from: [...from('shields'), ...perkShield.map(pzSrc)], note: `every pizza, every wave${perkShield.length ? ' · +1 on Quattro Formaggi' : ''}${lv('crustarmour') ? ` · +${lv('crustarmour')} in boss waves` : ''}` });
-  if (st.shrugChance > 0) sus.push({ label: 'Shrug off a stomp', num: pct(st.shrugChance), fmt: 'pct', icon: '🧱', tone: 'up', from: from('shrugChance') });
+  if (st.shrugChance > 0) sus.push(statTile('shrugChance'));
   if (st.traps > 0) sus.push({ label: 'Mousetraps', num: Math.round(100 * auto * g), fmt: 'int', icon: '🪤', tone: 'up', from: from('traps'), note: `${st.traps} under every pizza each wave, + stun` });
-  if (st.stompBurn > 0) sus.push({ label: 'Stompers burn', num: st.stompBurn * auto * g, fmt: 'int', post: '/s', icon: '♨️', tone: 'up', from: from('stompBurn') });
-  if (st.stompExtra > 0) sus.push({ label: 'Extra slice lost', num: pct(st.stompExtra), fmt: 'pct', icon: '💔', tone: 'down', from: from('stompExtra'), note: 'chance on each stomp' });
-  if (inp.heat.freshness > 0 && st.freshBonus !== 0) sus.push({ label: 'Freshness', num: Math.abs(st.freshBonus), fmt: 'int', pre: st.freshBonus > 0 ? '+' : '−', icon: '🧊', tone: tone('freshBonus'), from: from('freshBonus'), note: 'on every pizza' });
+  if (st.stompBurn > 0) sus.push(statTile('stompBurn', { num: st.stompBurn * auto * g }));
+  if (st.stompExtra > 0) sus.push(statTile('stompExtra'));
+  // (freshness is off on Mild: nothing to show there)
+  if (inp.heat.freshness <= 0) claim('freshBonus');
+  else if (st.freshBonus !== 0) sus.push(statTile('freshBonus'));
   const sand = inp.pizzas.filter((p) => p.perk === 'sandWall');
   if (sand.length) sus.push({ label: 'Sand wall', num: sand.reduce((n, p) => n + (p.enhanced ? 3 : 2), 0), fmt: 'int', post: ' stomps', icon: '🏰', tone: 'up', from: sand.map(pzSrc), note: 'blocked each wave, on any pizza' });
   // the Legendaries (step 5): Nonna's ladle and The First Bake
@@ -814,17 +843,23 @@ export function buildView(inp: BuildInput): BuildView {
     dead: p.dead,
   }));
 
-  // the safety net: a stat something changed that no tile shows gets its sources listed under More effects (with
-  // what each does), and the dev build says so, so it gets a proper tile
-  const unshown = (Object.keys(inp.from) as (keyof Stats)[]).filter((k) => !shown.has(k) && (inp.from[k]?.length ?? 0) > 0 && st[k] !== base[k]);
-  if (unshown.length) {
-    const more: Tile[] = [];
-    for (const k of unshown)
-      for (const s of inp.from[k] ?? [])
-        if (!more.some((t) => t.from[0].key === s.key)) more.push({ label: s.tip ?? s.name, num: 0, fmt: 'text', text: 'ON', icon: s.icon ?? '✨', img: s.img, tone: s.tone, from: [s] });
-    sections.push({ id: 'more', title: 'More effects', icon: '✨', color: '#8a7f72', sub: 'what else your build changes', tiles: more });
-    if (import.meta.env.DEV) console.error(`[stats] no STATS tile shows ${unshown.join(', ')} (from ${unshown.flatMap((k) => (inp.from[k] ?? []).map((s) => s.name)).join(', ')}): give it a tile in src/game/buildStats.ts`);
+  // every stat something changes gets shown: one the tiles above don't show gets its own, from its definition, in
+  // its section (Mac & Cheese's extra card went unseen before stats had definitions)
+  for (const k of STAT_KEYS) {
+    if (shown.has(k)) continue;
+    const parts = (inp.breakdown[k]?.parts ?? []).filter((p) => p.source !== CAP_SOURCE);
+    if (!parts.length && st[k] === base[k]) continue;
+    const sec = sections.find((x) => x.id === STAT_DEFS[k].section);
+    if (sec) sec.tiles.push(statTile(k));
   }
+  // the safety net for what isn't a stat: a topping you own that no tile names (a trick the scene runs by itself)
+  const chips = new Set(sections.flatMap((x) => [...x.tiles, ...(x.auto ?? [])].flatMap((t) => t.from.map((f) => f.key))));
+  const unnamed = Object.entries(inp.owned).filter(([id, lvl]) => lvl > 0 && UPGRADE_BY_ID[id] && kindOf(UPGRADE_BY_ID[id]) !== 'consumable' && !chips.has(`top:${id}`));
+  if (unnamed.length)
+    sections.push({ id: 'more', title: 'More effects', icon: '✨', color: '#8a7f72', sub: 'toppings that work in play', tiles: unnamed.map(([id, lvl]) => {
+      const s = topSrc(id, lvl);
+      return { label: UPGRADE_BY_ID[id].name, num: 0, fmt: 'text', text: 'ON', icon: s.icon ?? '✨', tone: 'up', from: [s], note: s.tip };
+    }) });
   return {
     perSmack,
     smackExtras,

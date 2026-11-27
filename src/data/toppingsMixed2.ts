@@ -14,7 +14,6 @@ function pick(id: string, name: string, rarity: Rarity, icon: string): Upgrade {
   return {
     id, name, icon, rarity, max: 1, kind: 'consumable', pick: rarity, onPick: 'pick',
     desc: () => `Choose 1 of 3 random ${RARITY_NAME[rarity]} toppings, free`,
-    apply: () => {},
   };
 }
 
@@ -23,13 +22,12 @@ function proc(id: string, name: string, icon: string, rarity: Rarity, max: numbe
   return {
     id, name, icon, rarity, max, proc: p,
     desc: (l) => (short ? (l <= 1 ? short : `Hits ${Math.round(50 * (l - 1))}% harder, more often`) : l <= 1 ? describeProc(p) : `${describeProc(scaleProc(p, l))}`),
-    apply: () => {},
   };
 }
 
 /** A topping the scene runs itself (see toppingKit.ts). desc(l) may differ by level. */
 function kit(id: string, name: string, icon: string, rarity: Rarity, max: number, desc: (l: number) => string, extra: Partial<Upgrade> = {}): Upgrade {
-  return { id, name, icon, rarity, max, desc, apply: () => {}, ...extra };
+  return { id, name, icon, rarity, max, desc, ...extra };
 }
 
 export const MIXED_TOPPINGS: Upgrade[] = [

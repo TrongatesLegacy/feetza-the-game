@@ -8,6 +8,8 @@ import { MIXED_TOPPINGS } from './toppingsMixed2';
 import { SHOP_TOPPINGS } from './toppingsShop';
 import { WILD_TOPPINGS } from './toppingsWild';
 import { freezeText, meterBoostText } from '../game/slamMode';
+import { Effect, Levels, Op, Stat, Unit, type EffectData } from '../effects';
+import { baseStatsFromDefs } from '../effects/stats';
 
 export interface Stats {
   damage: number;
@@ -117,92 +119,9 @@ export interface Stats {
   capBonus: number;
 }
 
+/** A fresh run's stats: every stat definition's base (src/effects/stats.ts). */
 export function baseStats(): Stats {
-  return {
-    damage: 10,
-    critChance: 0.05,
-    critMult: 2.5,
-    radius: 26,
-    knockback: 260,
-    burnDps: 0,
-    slowPct: 0,
-    chainChance: 0,
-    chainCount: 2,
-    chainDmg: 0.6,
-    cutters: 0,
-    cutterDmg: 12,
-    garlicDps: 0,
-    shields: 0,
-    regenPerWave: 0,
-    coinMult: 1,
-    comboBonus: 0,
-    scoreMult: 1,
-    stunChance: 0,
-    superGain: 1,
-    doubleChance: 0,
-    shrugChance: 0,
-    execute: 0,
-    oliveRate: 0,
-    oliveDmg: 15,
-    explodeDmg: 0,
-    speedMult: 1,
-    traps: 0,
-    luck: 0,
-    freeRerolls: 0,
-    stompBurn: 0,
-    goldenTouch: 0,
-    freezeSlam: false,
-    angel: 0,
-    coinsPerWave: 0,
-    slowAbove: 0,
-    healWeakest: 0,
-    regenAll: 0,
-    superStart: 0,
-    freshBonus: 0,
-    splashDmg: 0,
-    bigHurt: 0,
-    bossDmg: 0,
-    tenthCrit: false,
-    quickTips: 0,
-    counterDiscount: 0,
-    extraConsumable: 0,
-    crustBonus: 0,
-    slamStun: false,
-    miniWeak: 0,
-    stunVuln: 0,
-    freeTopping: false,
-    footHp: 1,
-    stompExtra: 0,
-    eventMult: 1,
-    eventAlways: false,
-    eventCount: 1,
-    noEvents: false,
-    noGolden: false,
-    eventTips: 0,
-    flyerSec: 0,
-    flyerBias: false,
-    seagullCrust: 0,
-    chestLess: 0,
-    mimicMult: 1,
-    eventRetry: false,
-    dropAdd: 0,
-    dropMult: 1,
-    mimicDrop: 0,
-    shinyMult: 1,
-    shinyCrusts: 0,
-    sightingMult: 1,
-    sightingEvery: 0,
-    sightingHits: 0,
-    endCrustMult: 0,
-    shopDiscount: 0,
-    consumableDiscount: 0,
-    cardDelta: 0,
-    rerollLess: 0,
-    rerollMult: 1,
-    goldenDiscount: 0,
-    counterMult: 1,
-    capBonus: 0,
-  };
+  return baseStatsFromDefs();
 }
 
 export type Rarity = 'common' | 'rare' | 'epic' | 'legendary';
@@ -223,7 +142,9 @@ export interface Upgrade {
   rarity: Rarity;
   max: number;
   desc: (lvl: number) => string; // describes the effect of taking level `lvl`
-  apply: (s: Stats, lvl: number) => void; // applied once per owned level (lvl = 1..owned)
+  /** What it changes, applied once for each level owned (1..owned): its Effect.Stat numbers go through the modifier
+   *  ledger (src/effects/ledger.ts). Toppings the scene runs itself (procs, kit tricks) have none. */
+  effects?: EffectData[];
   /** Called once when picked (immediate effects). 'arm' = a consumable that waits to trigger. */
   onPick?: 'healAll2' | 'extraPizza' | 'fridge' | 'arm' | 'pick' | 'roulette' | 'crispy' | 'bogo';
   /** Pick toppings: choose one of 3 random toppings of this rarity, free. */
@@ -253,181 +174,180 @@ export const UPGRADES: Upgrade[] = [
   {
     id: 'heavy', name: 'Heavy Hand', icon: '💪', rarity: 'common', max: 8,
     desc: () => '+25% smack damage',
-    apply: (s) => { s.damage *= 1.25; },
+    effects: [Effect.Stat(Stat.Damage, Op.Mul(Unit.Mult(1.25)))],
   },
   {
     id: 'peel', name: 'Bigger Peel', icon: '🏓', rarity: 'common', max: 6,
     desc: (l) => (l === 1 ? 'Smacks hit every foot in range, +35% radius' : '+35% smack radius'),
-    apply: (s) => { s.radius += 9; },
+    effects: [Effect.Stat(Stat.Radius, Op.Add(Unit.Px(9)))],
   },
   {
     id: 'crit', name: 'Critical Crust', icon: '🎯', rarity: 'common', max: 6,
     desc: () => '+8% critical smack chance',
-    apply: (s) => { s.critChance += 0.08; },
+    effects: [Effect.Stat(Stat.CritChance, Op.Add(Unit.Chance(8)))],
   },
   {
     id: 'chili', name: 'Chili Flakes', icon: '🌶️', rarity: 'common', max: 5,
     desc: (l) => (l === 1 ? 'Smacks set feet on fire: 6 dmg/s' : '+6 burn dmg/s'),
-    apply: (s) => { s.burnDps += 6; },
+    effects: [Effect.Stat(Stat.BurnDps, Op.Add(Unit.Amount(6)))],
   },
   {
     id: 'freezer', name: 'Freezer Burn', icon: '❄️', rarity: 'common', max: 4,
     desc: (l) => (l === 1 ? 'Smacks chill feet: -20% speed for 2s' : '+12% chill strength'),
-    apply: (s, l) => { s.slowPct += l === 1 ? 0.2 : 0.12; },
+    effects: [Effect.Stat(Stat.SlowPct, Op.Add(Unit.Percent(20)), { levels: Levels.First }), Effect.Stat(Stat.SlowPct, Op.Add(Unit.Percent(12)), { levels: Levels.Later })],
   },
   {
     id: 'tips', name: 'Tip Jar', icon: '🫙', rarity: 'common', max: 5,
     desc: () => '+25% tips from feet (all tip boosts top out at ×2.5)',
-    apply: (s) => { s.coinMult += 0.25; },
+    effects: [Effect.Stat(Stat.CoinMult, Op.Add(Unit.Percent(25)))],
   },
   {
     id: 'combo', name: 'Combo Chef', icon: '👨‍🍳', rarity: 'common', max: 5,
     desc: () => 'Combos last +0.4s and score +10%',
-    apply: (s) => { s.comboBonus += 0.4; s.scoreMult += 0.1; },
+    effects: [Effect.Stat(Stat.ComboBonus, Op.Add(Unit.Seconds(0.4))), Effect.Stat(Stat.ScoreMult, Op.Add(Unit.Percent(10)))],
   },
   {
     id: 'spring', name: 'Spring-Loaded', icon: '🌀', rarity: 'common', max: 4,
     desc: () => '+40% knockback: send feet flying back up',
-    apply: (s) => { s.knockback *= 1.4; },
+    effects: [Effect.Stat(Stat.Knockback, Op.Mul(Unit.Mult(1.4)))],
   },
   {
     id: 'oregano', name: 'Oregano Overdrive', icon: '🌿', rarity: 'common', max: 4,
     desc: () => meterBoostText(35),
-    apply: (s) => { s.superGain += 0.35; },
+    effects: [Effect.Stat(Stat.SuperGain, Op.Add(Unit.Percent(35)))],
   },
   {
     id: 'oven', name: 'Fresh From the Oven', icon: '🧑‍🍳', rarity: 'common', max: 1, kind: 'consumable',
     desc: () => 'Heal every pizza 2 slices, right now',
-    apply: () => {},
     onPick: 'healAll2',
   },
   {
     id: 'proof', name: 'Slow Proof', icon: '🍞', rarity: 'common', max: 3,
     desc: () => '+1 slice regrowth on every pizza after each wave',
-    apply: (s) => { s.regenPerWave += 1; },
+    effects: [Effect.Stat(Stat.RegenPerWave, Op.Add(Unit.PerWave(1)))],
   },
   {
     id: 'fridge', name: 'Fridge Magnet', icon: '🧊', rarity: 'rare', max: 2,
     desc: () => '+4 freshness on every pizza, now and for new ones',
-    apply: (s) => { s.freshBonus += 4; },
+    effects: [Effect.Stat(Stat.FreshBonus, Op.Add(Unit.Amount(4)))],
     onPick: 'fridge',
   },
   {
     id: 'leftovers', name: 'Leftovers Box', icon: '🥡', rarity: 'common', max: 1, kind: 'consumable',
     desc: () => 'The next pizza to go stale stays fresh 4 more waves',
-    apply: () => {},
     onPick: 'arm',
   },
   {
     id: 'dough', name: 'Emergency Dough', icon: '🫓', rarity: 'rare', max: 1, kind: 'consumable',
     desc: () => 'A pizza that drops to 1 slice regains 3, once',
-    apply: () => {},
     onPick: 'arm',
   },
   // ——— Rare ———
   {
     id: 'zap', name: 'Garlic Lightning', icon: '⚡', rarity: 'rare', max: 4,
     desc: (l) => (l === 1 ? '18% chance a smack arcs to 2 nearby feet' : '+10% arc chance, +1 target'),
-    apply: (s, l) => { s.chainChance += l === 1 ? 0.18 : 0.1; if (l > 1) s.chainCount += 1; },
+    effects: [
+      Effect.Stat(Stat.ChainChance, Op.Add(Unit.Chance(18)), { levels: Levels.First }),
+      Effect.Stat(Stat.ChainChance, Op.Add(Unit.Chance(10)), { levels: Levels.Later }),
+      Effect.Stat(Stat.ChainCount, Op.Add(Unit.Count(1)), { levels: Levels.Later }),
+    ],
   },
   {
     id: 'cutter', name: 'Orbiting Cutter', icon: '⚙️', rarity: 'rare', max: 4,
     desc: (l) => (l === 1 ? 'A pizza cutter orbits your peel, slicing feet' : '+1 orbiting cutter'),
-    apply: (s) => { s.cutters += 1; },
+    effects: [Effect.Stat(Stat.Cutters, Op.Add(Unit.Count(1)))],
   },
   {
     id: 'garlic', name: 'Garlic Breath', icon: '🧄', rarity: 'rare', max: 4,
     desc: () => 'Feet close to any pizza take 8 dmg/s',
-    apply: (s) => { s.garlicDps += 8; },
+    effects: [Effect.Stat(Stat.GarlicDps, Op.Add(Unit.Amount(8)))],
   },
   {
     id: 'shield', name: 'Mozzarella Shield', icon: '🧀', rarity: 'rare', max: 2,
     desc: () => 'Each pizza blocks +1 stomp every wave',
-    apply: (s) => { s.shields += 1; },
+    effects: [Effect.Stat(Stat.Shields, Op.Add(Unit.PerWave(1)))],
   },
   {
     id: 'tickle', name: 'Tickle Feather', icon: '🪶', rarity: 'rare', max: 4,
     desc: () => '+8% chance smacks stun feet for 1.2s',
-    apply: (s) => { s.stunChance += 0.08; },
+    effects: [Effect.Stat(Stat.StunChance, Op.Add(Unit.Chance(8)))],
   },
   {
     id: 'double', name: 'Double Slap', icon: '👏', rarity: 'rare', max: 4,
     desc: () => '+12% chance to smack twice',
-    apply: (s) => { s.doubleChance += 0.12; },
+    effects: [Effect.Stat(Stat.DoubleChance, Op.Add(Unit.Chance(12)))],
   },
   {
     id: 'sturdy', name: 'Sturdy Crust', icon: '🧱', rarity: 'rare', max: 3,
     desc: () => '+15% chance pizzas shrug off a stomp',
-    apply: (s) => { s.shrugChance += 0.15; },
+    effects: [Effect.Stat(Stat.ShrugChance, Op.Add(Unit.Chance(15)))],
   },
   {
     id: 'olive', name: 'Olive Launcher', icon: '🫒', rarity: 'rare', max: 4,
     desc: (l) => (l === 1 ? 'Auto-fires an olive at a foot every 1.6s' : 'Fires olives 35% faster'),
-    apply: (s, l) => { s.oliveRate = l === 1 ? 1 / 1.6 : s.oliveRate * 1.35; },
+    effects: [Effect.Stat(Stat.OliveRate, Op.Set(Unit.Rate(1 / 1.6)), { levels: Levels.First }), Effect.Stat(Stat.OliveRate, Op.Mul(Unit.Mult(1.35)), { levels: Levels.Later })],
   },
   {
     id: 'mercy', name: 'Cutter\'s Mercy', icon: '🔪', rarity: 'rare', max: 3,
     desc: (l) => `Smacks instantly finish feet under ${8 * l}% health`,
-    apply: (s) => { s.execute += 0.08; },
+    effects: [Effect.Stat(Stat.Execute, Op.Add(Unit.Percent(8)))],
   },
   {
     id: 'siesta', name: 'Siesta', icon: '😴', rarity: 'rare', max: 3,
     desc: () => 'All feet move 8% slower',
-    apply: (s) => { s.speedMult *= 0.92; },
+    effects: [Effect.Stat(Stat.SpeedMult, Op.Mul(Unit.Mult(0.92)))],
   },
   // ——— Epic ———
   {
     id: 'pineapple', name: 'Explosive Pineapple', icon: '🍍', rarity: 'epic', max: 3,
     desc: () => 'Smacked-down feet explode for 30 area damage',
-    apply: (s) => { s.explodeDmg += 30; },
+    effects: [Effect.Stat(Stat.ExplodeDmg, Op.Add(Unit.Amount(30)))],
   },
   {
     id: 'trap', name: 'Mousetraps', icon: '🪤', rarity: 'epic', max: 2,
     desc: () => 'Each wave, a trap under every pizza snaps the first stomper (100 dmg + stun)',
-    apply: (s) => { s.traps += 1; },
+    effects: [Effect.Stat(Stat.Traps, Op.Add(Unit.Count(1)))],
   },
   {
     id: 'brutal', name: 'Brutal Crits', icon: '💥', rarity: 'epic', max: 3,
     desc: () => '+100% critical damage',
-    apply: (s) => { s.critMult += 1; },
+    effects: [Effect.Stat(Stat.CritMult, Op.Add(Unit.Percent(100)))],
   },
   {
     id: 'hotoven', name: 'Hot Plates', icon: '♨️', rarity: 'epic', max: 2,
     desc: () => 'Feet that stomp a pizza burn for 15 dmg/s',
-    apply: (s) => { s.stompBurn += 15; },
+    effects: [Effect.Stat(Stat.StompBurn, Op.Add(Unit.Amount(15)))],
   },
   {
     id: 'lucky', name: 'Lucky Pepperoni', icon: '🍀', rarity: 'epic', max: 3,
     desc: () => 'Better upgrade rarities, more Golden Feet',
-    apply: (s) => { s.luck += 1; },
+    effects: [Effect.Stat(Stat.Luck, Op.Add(Unit.Count(1)))],
   },
   {
     id: 'reroll', name: 'Second Opinion', icon: '🎲', rarity: 'epic', max: 2,
     desc: () => '+1 free reroll on every upgrade screen',
-    apply: (s) => { s.freeRerolls += 1; },
+    effects: [Effect.Stat(Stat.FreeRerolls, Op.Add(Unit.Count(1)))],
   },
   // ——— Legendary ———
   {
     id: 'helping', name: 'Second Helping', icon: '🍕', rarity: 'legendary', max: 1, kind: 'unique',
     desc: () => 'A brand-new pizza joins the table',
-    apply: () => {},
     onPick: 'extraPizza',
   },
   {
     id: 'angel', name: 'Pizza Angel', icon: '👼', rarity: 'legendary', max: 1, kind: 'consumable',
     desc: () => 'The next pizza destroyed rises again with 4 slices',
-    apply: () => {},
     onPick: 'arm',
   },
   {
     id: 'freeze', name: 'Freeze Frame', icon: '⏳', rarity: 'legendary', max: 1,
     desc: () => freezeText(),
-    apply: (s) => { s.freezeSlam = true; },
+    effects: [Effect.Stat(Stat.FreezeSlam, Op.On())],
   },
   {
     id: 'midas', name: 'Golden Touch', icon: '👑', rarity: 'legendary', max: 2,
     desc: () => '8% of smacked-down feet turn to gold: 5x tips',
-    apply: (s) => { s.goldenTouch += 0.08; },
+    effects: [Effect.Stat(Stat.GoldenTouch, Op.Add(Unit.Chance(8)))],
   },
   ...MORE_TOPPINGS,
   ...TRADEOFF_TOPPINGS,
@@ -474,15 +394,14 @@ export const CONSUMABLE_COOLDOWN = 3;
 /** Topping tricks whose own damage is automatic: every trick that hits through the kit's damage() or effects()
  *  (src/game/toppingKit.ts; the scene marks those auto). Keep in step when a trick learns to hit. */
 const AUTO_KIT = new Set(['pizzadrone', 'woodfired', 'tiedlaces', 'napkinninja']);
+/** Stats that hit on their own. */
+const AUTO_STATS = new Set<keyof Stats>(['cutters', 'cutterDmg', 'oliveRate', 'oliveDmg', 'garlicDps', 'burnDps', 'traps', 'stompBurn']);
 
 /** Toppings whose damage is automatic (it hits without a smack, so momentum cools it when the player stops smacking,
  *  src/game/momentum.ts): a topping proc, orbiting cutters, olives, garlic, burns, traps, burning stompers, the drone… */
 export function isAutoTopping(u: Upgrade): boolean {
   if (u.proc || AUTO_KIT.has(u.id)) return true;
-  const a = baseStats();
-  const b = baseStats();
-  u.apply(b, 1);
-  return (['cutters', 'cutterDmg', 'oliveRate', 'oliveDmg', 'garlicDps', 'burnDps', 'traps', 'stompBurn'] as const).some((k) => a[k] !== b[k]);
+  return (u.effects ?? []).some((e) => e.kind === 'stat' && e.levels !== Levels.Later && AUTO_STATS.has(e.stat));
 }
 
 /** The line Your Toppings adds under an automatic topping. */
