@@ -25,12 +25,24 @@ Items say what they do in one line each:
 
 ```ts
 effects: [
-  Effect.Stat(Stat.ConsumableCards, Op.add(1)),                                  // Mac & Cheese
-  Effect.OnKill({ chance: 0.15, action: Action.Summon(Ally.FriendlyGhost) }),    // Phantom Waltz
-  Effect.Every({ sec: 20, action: Action.BlowUp(Target.Diving) }),               // Steam Bun Pie
-  Effect.OnStomp({ perWave: 1, action: Action.Block({ stunSec: 1 }) }),          // Granite Crust
+  Effect.Stat(Stat.ConsumableCards, Op.Add(1)),                         // Mac & Cheese
+  Effect.OnKill(Chance(15), Action.Summon(Ally.FriendlyGhost)),         // Phantom Waltz
+  Effect.Every(Seconds(20), Action.BlowUp(Target.Diving)),              // Steam Bun Pie
+  Effect.OnStomp(PerWave(1), Action.Block(Seconds(1))),                 // Granite Crust
 ]
 ```
+
+**Arguments are plain and positional, and every number carries its unit.** `Chance(15)`, `Seconds(20)` and `PerWave(1)` give **branded numbers**:
+- **At typecheck:** `Seconds` is its own type, so passing one where a `Chance` belongs doesn't compile, and neither does passing a bare `20`.
+- **At run time:** each is an ordinary number. The maths works on it directly, saves store `20`, and it costs nothing.
+- **Range checks:** each unit's function checks its own range, so a chance must be 0–100%.
+
+A class (`new Seconds(20)`) would add costs and protect less:
+- Two classes with the same shape are interchangeable in TypeScript, so `Seconds` and `Chance` would still swap unless branded anyway.
+- Every use would need `.value` or a method.
+- Saving one gives `{ value: 20 }`, which loses the class on load.
+
+An effect takes a typed object only where it has optional extras.
 
 Each kind of effect is written **once**, in its own file: its fields, and what it does in play, on STATS, when scaled and in searches. Writing it once gives both the `Effect.OnKill(...)` used above and its registered behaviour:
 
@@ -38,7 +50,7 @@ Each kind of effect is written **once**, in its own file: its fields, and what i
 // effects/onKill.ts: everything about "on kill", in one place
 export const OnKill = effectKind('onKill', {
   // its fields (typed; a missing one doesn't compile)
-  make: (o: { chance: number; action: ActionData }) => ({ chance: check01(o.chance), action: o.action }),
+  make: (chance: Chance, action: ActionData) => ({ chance, action }),
   // what it does in play, through a small interface onto the game
   apply: (e, ctx) => ctx.on(GameEvent.Kill, (foot) => { if (ctx.roll(e.chance)) runAction(e.action, ctx, foot); }),
   describe: (e) => `${pct(e.chance)} of kills: ${describeAction(e.action)}`,  // card text and STATS tile
