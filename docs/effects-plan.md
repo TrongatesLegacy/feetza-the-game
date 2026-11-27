@@ -78,7 +78,7 @@ export const Effect = { Stat, OnKill, Every, OnStomp /* ... */ } as const;
 for (const e of item.effects) effects.apply(e, ctx);
 ```
 
-- `Effect.OnKill({ … })` builds the effect: plain data, tagged with its kind. It can be saved with the run, copied by Echo Slice and searched by tag.
+- `Effect.OnKill(…)` builds the effect: plain data, tagged with its kind. Echo Slice can copy it and searches can find it by tag. Runs save item ids, not effects.
 - `effects.apply(e, ctx)` (and `describe`, `scale`, `tags`) looks up the effect's kind and runs that kind's code. Nothing outside the kind's file needs to know what it does.
 - The tag in the data is a string underneath (`'onKill'`) so saves stay readable and stable when kinds are added (numbered enums would shift and break old saves), but code never types it: it only appears in the one line that declares the kind.
 - `ctx` is a small interface onto the game (subscribe to an event, roll, find feet, run an action), so effects never reach into the scene.
