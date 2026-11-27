@@ -586,3 +586,225 @@ export function drawSandWall(): HTMLCanvasElement {
   sheen(ctx, 70, 80, 14, 4, 0.35);
   return c;
 }
+
+// ——— the Epic Pizzeria pizzas (step 4, batch 2): Act 9's myths ———
+
+/** Labyrinth Lasagne's lost foot: a little round Cretan labyrinth in sandstone, turning over its head. */
+export function drawMaze(): HTMLCanvasElement {
+  const [c, ctx] = makeCanvas(120, 120);
+  ctx.translate(60, 60);
+  ctx.beginPath();
+  ctx.arc(0, 0, 54, 0, Math.PI * 2);
+  ctx.fillStyle = INK;
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(0, 0, 50, 0, Math.PI * 2);
+  const g = ctx.createRadialGradient(-16, -18, 4, 0, 0, 52);
+  g.addColorStop(0, '#f2dca8');
+  g.addColorStop(0.6, '#c8a064');
+  g.addColorStop(1, '#8a6034');
+  ctx.fillStyle = g;
+  ctx.fill();
+  // the paths: rings with gaps, the gaps turning, and a wall from each gap to the next ring
+  ctx.lineCap = 'round';
+  const rings = [42, 33, 24, 15];
+  rings.forEach((rr, i) => {
+    const gap = i * 1.7 + 0.4;
+    for (const [w, col] of [[6, '#5a3a18'], [3.2, '#f6e2b4']] as const) {
+      ctx.strokeStyle = col;
+      ctx.lineWidth = w;
+      ctx.beginPath();
+      ctx.arc(0, 0, rr, gap + 0.45, gap + Math.PI * 2 - 0.45);
+      ctx.stroke();
+      if (i < rings.length - 1) {
+        const a = gap + Math.PI;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * rr, Math.sin(a) * rr);
+        ctx.lineTo(Math.cos(a) * rings[i + 1], Math.sin(a) * rings[i + 1]);
+        ctx.stroke();
+      }
+    }
+  });
+  // a dot at its heart (the lost foot looking for the way out)
+  ctx.fillStyle = '#c8402a';
+  ctx.beginPath();
+  ctx.arc(0, 0, 5, 0, Math.PI * 2);
+  ctx.fill();
+  sheen(ctx, -18, -24, 14, 5, 0.4);
+  return c;
+}
+
+/** Ember Shade's embers: a little drift of the underworld's coals, glowing, a tongue of Hades' blue fire over them. */
+export function drawEmbers(): HTMLCanvasElement {
+  const [c, ctx] = makeCanvas(120, 120);
+  const r = rng(41);
+  // the heat haze round them
+  const haze = ctx.createRadialGradient(60, 74, 4, 60, 70, 56);
+  haze.addColorStop(0, rgba('#ff7a2a', 0.55));
+  haze.addColorStop(1, rgba('#ff3a0a', 0));
+  ctx.fillStyle = haze;
+  ctx.fillRect(0, 0, 120, 120);
+  // the blue flame behind
+  for (const [w, h, col] of [[22, 58, rgba('#3a8aff', 0.8)], [13, 40, '#bfe6ff']] as const) {
+    ctx.beginPath();
+    ctx.moveTo(60 - w, 80);
+    ctx.bezierCurveTo(60 - w, 80 - h * 0.6, 60 - w * 0.2, 80 - h * 0.7, 62, 80 - h);
+    ctx.bezierCurveTo(60 + w * 0.5, 80 - h * 0.6, 60 + w, 80 - h * 0.4, 60 + w, 80);
+    ctx.closePath();
+    ctx.fillStyle = col;
+    ctx.fill();
+  }
+  // the coals
+  for (let i = 0; i < 6; i++) {
+    const x = 34 + i * 10 + (r() - 0.5) * 6;
+    const y = 82 + Math.sin(i * 1.7) * 5;
+    const rr = 9 + r() * 5;
+    blob(ctx, x, y, rr + 2, 0.3, r, 7);
+    ctx.fillStyle = INK;
+    ctx.fill();
+    blob(ctx, x, y, rr, 0.3, r, 7);
+    const g = ctx.createRadialGradient(x - 3, y - 4, 1, x, y, rr);
+    g.addColorStop(0, '#ffe08a');
+    g.addColorStop(0.35, '#ff7a2a');
+    g.addColorStop(0.8, '#8a1a0a');
+    g.addColorStop(1, '#2a0a06');
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.strokeStyle = '#fff2b0';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(x - rr * 0.5, y);
+    ctx.lineTo(x, y + rr * 0.2);
+    ctx.lineTo(x + rr * 0.3, y - rr * 0.3);
+    ctx.stroke();
+  }
+  return c;
+}
+
+/** Harpy Feather Pie's gust: one of the Harpies' feathers, dusky violet barred with gold. */
+export function drawFeather(): HTMLCanvasElement {
+  const [c, ctx] = makeCanvas(140, 60);
+  ctx.translate(70, 30);
+  const vane = (grow: number) => {
+    ctx.beginPath();
+    ctx.moveTo(-60, 2);
+    ctx.bezierCurveTo(-30, -22 - grow, 30, -20 - grow, 62, -2);
+    ctx.bezierCurveTo(30, 18 + grow, -30, 20 + grow, -60, 2);
+    ctx.closePath();
+  };
+  vane(3);
+  ctx.fillStyle = '#1e1428';
+  ctx.fill();
+  vane(0);
+  const g = ctx.createLinearGradient(0, -20, 0, 20);
+  g.addColorStop(0, '#9a84b8');
+  g.addColorStop(0.5, '#5a4a6a');
+  g.addColorStop(1, '#3a2a4a');
+  ctx.fillStyle = g;
+  ctx.fill();
+  ctx.save();
+  ctx.clip();
+  for (let i = 0; i < 6; i++) {
+    const x = -40 + i * 18;
+    ctx.fillStyle = rgba('#d9a441', 0.9);
+    ctx.beginPath();
+    ctx.moveTo(x - 4, -22);
+    ctx.lineTo(x + 3, -22);
+    ctx.lineTo(x - 2, 22);
+    ctx.lineTo(x - 9, 22);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.strokeStyle = rgba('#2a1a38', 0.5);
+  ctx.lineWidth = 1;
+  for (let x = -52; x < 58; x += 5) {
+    ctx.beginPath();
+    ctx.moveTo(x, 1);
+    ctx.lineTo(x + 7, -20);
+    ctx.moveTo(x, 1);
+    ctx.lineTo(x + 7, 20);
+    ctx.stroke();
+  }
+  ctx.restore();
+  ctx.strokeStyle = '#f2e6c8';
+  ctx.lineWidth = 2.4;
+  ctx.beginPath();
+  ctx.moveTo(-68, 4);
+  ctx.quadraticCurveTo(0, -2, 60, -2);
+  ctx.stroke();
+  sheen(ctx, -10, -8, 18, 3, 0.35);
+  return c;
+}
+
+/** Golden Fleece's moment: the fleece itself, a golden ram's pelt of curls, gleaming. */
+export function drawFleece(): HTMLCanvasElement {
+  const [c, ctx] = makeCanvas(180, 130);
+  const r = rng(53);
+  ctx.translate(90, 66);
+  // the pelt's outline: a body with its legs hanging and a little head, as it hung on the tree
+  const pelt = (grow: number) => {
+    ctx.beginPath();
+    ctx.moveTo(-60 - grow, -22);
+    ctx.quadraticCurveTo(-74 - grow, -40, -56, -48 - grow);
+    ctx.quadraticCurveTo(0, -60 - grow, 56, -48 - grow);
+    ctx.quadraticCurveTo(76 + grow, -40, 62 + grow, -20);
+    ctx.lineTo(70 + grow, 40 + grow);
+    ctx.lineTo(48, 34);
+    ctx.quadraticCurveTo(0, 46 + grow, -48, 34);
+    ctx.lineTo(-70 - grow, 40 + grow);
+    ctx.closePath();
+  };
+  pelt(4);
+  ctx.fillStyle = '#5a3206';
+  ctx.fill();
+  pelt(0);
+  const g = ctx.createLinearGradient(-60, -50, 60, 40);
+  g.addColorStop(0, '#fff2a8');
+  g.addColorStop(0.5, '#ffc83a');
+  g.addColorStop(1, '#b8740e');
+  ctx.fillStyle = g;
+  ctx.fill();
+  ctx.save();
+  ctx.clip();
+  // the curls
+  for (let i = 0; i < 70; i++) {
+    const x = (r() - 0.5) * 150;
+    const y = -52 + r() * 96;
+    const rr = 5 + r() * 4;
+    ctx.fillStyle = rgba('#8a5210', 0.35);
+    ellipse(ctx, x + 1.4, y + 1.8, rr, rr * 0.85);
+    ctx.fill();
+    const cg = ctx.createRadialGradient(x - rr * 0.4, y - rr * 0.4, 0.5, x, y, rr);
+    cg.addColorStop(0, '#fffbe0');
+    cg.addColorStop(0.5, '#ffd04a');
+    cg.addColorStop(1, '#c8841a');
+    ctx.fillStyle = cg;
+    ellipse(ctx, x, y, rr, rr * 0.85);
+    ctx.fill();
+    ctx.strokeStyle = rgba('#8a5210', 0.6);
+    ctx.lineWidth = 0.9;
+    ctx.beginPath();
+    ctx.arc(x, y, rr * 0.5, r() * 6, r() * 6 + 4);
+    ctx.stroke();
+  }
+  ctx.restore();
+  // the ram's little head and curled horns at the top middle
+  ctx.fillStyle = '#5a3206';
+  ellipse(ctx, 0, -50, 15, 11);
+  ctx.fill();
+  ctx.fillStyle = '#ffd04a';
+  ellipse(ctx, 0, -50, 12.5, 9);
+  ctx.fill();
+  for (const s of [-1, 1]) {
+    ctx.beginPath();
+    ctx.arc(s * 13, -54, 7, s > 0 ? -2 : -1.2, s > 0 ? 1.8 : 4.6);
+    ctx.strokeStyle = '#5a3206';
+    ctx.lineWidth = 5;
+    ctx.stroke();
+    ctx.strokeStyle = '#e8b048';
+    ctx.lineWidth = 2.6;
+    ctx.stroke();
+  }
+  sheen(ctx, -30, -30, 26, 6, 0.5);
+  return c;
+}

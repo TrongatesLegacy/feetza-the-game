@@ -161,6 +161,8 @@ export interface BuildInput {
   lossTips: boolean;
   /** Phantom Waltz's friendly ghosts out guarding pizzas now. */
   ghosts: number;
+  /** Colossus Forge: waves survived this run. */
+  forgeWaves: number;
   hero: { smack: number; all: number; reach: number; crit: boolean; meter: number };
   /** Every hit's multiplier this wave, whatever the foot (Victory Lap, Night Shift, Moon Cheese). */
   waveMult: number;
@@ -303,6 +305,7 @@ const SRC_INFO: Record<string, { label: string; color: string; icon: string }> =
   'perk:erupt': { label: 'Eruption', color: '#c8321a', icon: '🌋' },
   'perk:meatball': { label: 'Meatballs', color: '#b0603a', icon: '🧆' },
   'perk:orbitRing': { label: 'Ghost rings', color: '#8aff9a', icon: '💍' },
+  'perk:tripleBite': { label: 'Three-headed bites', color: '#ff8a3a', icon: '🐕' },
 };
 
 export function sourceInfo(key: string): { label: string; color: string; icon: string } {
@@ -552,6 +555,12 @@ export function buildView(inp: BuildInput): BuildView {
   if (quake > 0) dmgTiles.push({ label: 'Table shake', num: 1 + 0.1 * quake, fmt: 'x', icon: '🦖', tone: 'up', from: inp.pizzas.filter((p) => p.perk === 'critQuake').map(pzSrc), note: 'every foot, for 3s after a crit' });
   const comet = inp.c('comet');
   if (comet > 0) dmgTiles.push({ label: 'Comet', num: 4, fmt: 'x', icon: '☄️', tone: 'up', from: inp.pizzas.filter((p) => p.perk === 'comet').map(pzSrc), note: `the toughest foot, every ${r1(12 / comet)}s` });
+  // the Epic Pizzeria pizzas: Colossus Forge, Three-Headed Hound, Gorgon's Gaze, Ember Shade
+  for (const p of inp.pizzas.filter((q) => q.perk === 'forgeWaves')) dmgTiles.push({ label: 'The Forge', num: r1(Math.min(40, inp.forgeWaves) * p.pk), fmt: 'pct', pre: '+', icon: '⚒️', tone: 'up', from: [pzSrc(p)], note: `${inp.forgeWaves} wave${inp.forgeWaves === 1 ? '' : 's'} survived · +${r1(p.pk)}% a wave, up to +${r1(40 * p.pk)}%` });
+  for (const p of inp.pizzas.filter((q) => q.perk === 'tripleBite')) dmgTiles.push({ label: 'Three bites', num: p.enhanced ? 2 : 3, fmt: 'int', pre: 'every ', post: ' smacks', icon: '🐕', tone: 'up', from: [pzSrc(p)], note: 'the smack bites three times' });
+  for (const p of inp.pizzas.filter((q) => q.perk === 'gorgonGaze')) dmgTiles.push({ label: 'Stone gaze', num: 2, fmt: 'x', icon: '🐍', tone: 'up', from: [pzSrc(p)], note: `the first foot over ${p.name} each wave, stone for ${p.enhanced ? 5 : 3}s` });
+  const embers = inp.pizzas.filter((p) => p.perk === 'emberTrail');
+  if (embers.length) dmgTiles.push({ label: 'Embers', num: Math.round(6 * (embers.some((p) => p.enhanced) ? 1.5 : 1) * inp.boost), fmt: 'int', post: '/s', icon: '🔥', tone: 'up', from: embers.map(pzSrc), note: 'kills leave embers; the next foot through burns 3s' });
   for (const p of inp.pizzas.filter((q) => q.perk === 'stunVuln')) dmgTiles.push({ label: 'vs stunned feet', num: p.enhanced ? 1.75 : 1.5, fmt: 'x', icon: '😵', tone: 'up', from: [pzSrc(p)], note: `over ${p.name}` });
   if (Math.abs(inp.waveMult - 1) > 0.001) dmgTiles.push({ label: inp.inWave ? 'This wave' : 'Next wave', num: inp.waveMult, fmt: 'x', icon: '🌙', tone: 'up', from: inp.pizzas.filter((p) => p.perk === 'actStart' || p.perk === 'nightDmg' || p.perk === 'postBoss').map(pzSrc), note: 'every hit' });
   if (inp.hero.all !== 1) dmgTiles.push({ label: 'Hero passive', num: inp.hero.all, fmt: 'x', icon: '🦸', tone: inp.hero.all > 1 ? 'up' : 'down', from: [{ key: 'peel', name: inp.peel.name, img: inp.peel.img, tone: 'up' }], note: 'every hit' });
@@ -605,12 +614,16 @@ export function buildView(inp: BuildInput): BuildView {
     pieSplat: (p) => ({ label: 'Pie splat', num: p.enhanced ? 1.5 : 1, fmt: 'sec', icon: '🥧', tone: 'up', from: [pzSrc(p)], note: 'kills leave a splat; the next foot on it slips' }),
     steamVent: () => ({ label: 'Steam vents', num: r1(20 / Math.max(1e-6, inp.c('steamVent'))), fmt: 'sec', pre: 'every ', icon: '♨️', tone: 'up', from: inp.pizzas.filter((q) => q.perk === 'steamVent').map(pzSrc), note: 'every diving foot blown back up' }),
     sootAbove: (p) => ({ label: 'Lost in soot', num: p.enhanced ? 3 : 2, fmt: 'sec', icon: '🧹', tone: 'up', from: [pzSrc(p)], note: `feet arriving over ${p.name} can't dive` }),
+    mazeLost: (p) => ({ label: 'Lost in the maze', num: p.enhanced ? 3 : 2, fmt: 'sec', pre: '+', icon: '🌀', tone: 'up', from: [pzSrc(p)], note: `feet that stomp ${p.name} dive later, in another lane` }),
+    sirenSong: () => ({ label: "Siren's song", num: r1(25 / Math.max(1e-6, inp.c('sirenSong'))), fmt: 'sec', pre: 'every ', icon: '🧜', tone: 'up', from: inp.pizzas.filter((q) => q.perk === 'sirenSong').map(pzSrc), note: 'every foot enchanted 1.5s (bosses slowed)' }),
+    harpyGust: (p) => ({ label: 'Harpy gust', num: p.enhanced ? 150 : 100, fmt: 'int', post: 'px', icon: '🪶', tone: 'up', from: [pzSrc(p)], note: `every 5s, feet over ${p.name} blown back up` }),
+    whirlpool: () => ({ label: 'Whirlpool', num: pct(Math.min(0.4, 0.1 * inp.c('whirlpool'))), fmt: 'pct', icon: '🌊', tone: 'up', from: inp.pizzas.filter((q) => q.perk === 'whirlpool').map(pzSrc), note: 'of smacks stun the foot 1.5s' }),
     disarm: (p) => ({ label: 'Disarm', num: p.enhanced ? 5 : 3, fmt: 'sec', icon: '🫒', tone: 'up', from: [pzSrc(p)], note: 'smacked feet above lose their trait' }),
   };
   const seenCc = new Set<PizzaPerk>();
   for (const p of inp.pizzas) {
     if (!p.perk || !perkCc[p.perk]) continue;
-    if ((p.perk === 'timeStop' || p.perk === 'danceBeat' || p.perk === 'steamVent') && seenCc.has(p.perk)) continue;
+    if ((p.perk === 'timeStop' || p.perk === 'danceBeat' || p.perk === 'steamVent' || p.perk === 'sirenSong' || p.perk === 'whirlpool') && seenCc.has(p.perk)) continue;
     seenCc.add(p.perk);
     cc.push(perkCc[p.perk]!(p));
   }
@@ -627,6 +640,9 @@ export function buildView(inp: BuildInput): BuildView {
     const boost = inp.boost;
     eco.push({ label: 'Tuna Time', num: Math.round(tunas.reduce((t, p) => t + tunaTips(inp.wave, p.enhanced), 0) * boost), fmt: 'int', post: ' tips', icon: '🐟', tone: 'up', from: tunas.map(pzSrc), note: `at the end of wave ${inp.wave}` });
   }
+  // Golden Fleece: bosses and mini-bosses pay more
+  const fleece = inp.c('goldenFleece');
+  if (fleece > 0) eco.push({ label: 'Boss tips', num: pct(0.5 * fleece), fmt: 'pct', pre: '+', icon: '🐏', tone: 'up', from: inp.pizzas.filter((p) => p.perk === 'goldenFleece').map(pzSrc), note: 'from bosses and mini-bosses' });
   const fritto = inp.c('lossTips');
   if (fritto > 0) eco.push({ label: 'After a lost slice', num: pct(0.12 * fritto), fmt: 'pct', pre: '+', icon: '🦑', tone: inp.lossTips ? 'up' : 'flat', from: inp.pizzas.filter((p) => p.perk === 'lossTips').map(pzSrc), note: inp.lossTips ? `tips ${inp.inWave ? 'this' : 'next'} wave` : 'tips the wave after a slice is lost' });
   const tarte = inp.pizzas.filter((p) => p.perk === 'waveTips');

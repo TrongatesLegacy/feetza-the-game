@@ -7,7 +7,7 @@
 // half, so table-wide perks read `c(perk)`; perks tied to one pizza read `pk(p)`.
 
 import Phaser from 'phaser';
-import { drawChest, drawDiscoBall, drawGhostRing, drawLightBeam, drawMeatball, drawMeteor, drawMusicNote, drawWaltzGhost, drawComet, drawSandWall } from '../art/perkProps';
+import { drawChest, drawDiscoBall, drawGhostRing, drawLightBeam, drawMeatball, drawMeteor, drawMusicNote, drawWaltzGhost, drawComet, drawSandWall, drawMaze, drawEmbers, drawFeather, drawFleece } from '../art/perkProps';
 import { PIZZAS, enhancedText, type PizzaPerk } from '../data/pizzas';
 import { tunaTips } from '../data/perkWave';
 import { WAVES_PER_ACT, isActStart } from '../data/stages';
@@ -43,6 +43,12 @@ export const PERK_SFX = [
   'sfx_sandcastle_walls', 'sfx_sandcastle_sandland', 'sfx_smack_sand_heavy', 'sfx_trex_growl', 'sfx_smack_stone_heavy', 'sfx_ironheel_steam',
   'sfx_ironheel_vent', 'sfx_sweep_soot', 'sfx_cosmiccroc_meteor', 'sfx_cosmiccroc_impact', 'sfx_phantomking_stir', 'sfx_phantomking_fade',
   'sfx_smack_ghost_heavy',
+  // the Epic Pizzeria pizzas (step 4, batch 2), from Act 9's myths: the Colossus's anvil, Medusa's gaze and stone,
+  // Cerberus's barks, the Minotaur's walls, Hades' flare, the Sirens' song, the Harpies' screech, Charybdis's whirlpool
+  // and the Golden Fleece's coins
+  'sfx_colossus_anvil', 'sfx_colossus_clang', 'sfx_medusa_gaze', 'sfx_medusa_petrify', 'sfx_medusa_crumble', 'sfx_cerberus_bark',
+  'sfx_cerberus_growl', 'sfx_minotaur_walls', 'sfx_minotaur_snort', 'sfx_hades_flare', 'sfx_sirensong', 'sfx_harpy', 'sfx_whirlpool',
+  'sfx_kraken_splash', 'sfx_hero_coins', 'sfx_smack_gold_heavy',
 ];
 
 /** Stages played at night (Night Shift). */
@@ -162,6 +168,22 @@ export class PizzaPerkKit {
   private cometT = 0;
   /** Phantom Waltz: the friendly ghosts guarding pizzas (sprites, never feet: nothing can zombify them). */
   private ghosts: Ghost[] = [];
+  // ——— the Epic Pizzeria pizzas (step 4, batch 2) ———
+  /** Colossus Forge: waves survived this run (saved with the run). */
+  forgeWaves = 0;
+  /** Gorgon's Gaze: feet turned to stone (×2 damage) until then, and the cracks on them. */
+  private stoned = new Map<Foot, { until: number; crack: Phaser.GameObjects.Image; tintAt: number }>();
+  /** Labyrinth Lasagne: lost feet. Their wait starts when they're back in their hover (start < 0 till then). */
+  private lostFeet = new Map<Foot, { start: number; sec: number; maze: Phaser.GameObjects.Image }>();
+  /** Ember Shade: embers left where feet fell, waiting for the next foot through. */
+  private embers: { x: number; y: number; img: Phaser.GameObjects.Image; glow: Phaser.GameObjects.Image; ph: number; done: boolean }[] = [];
+  /** Siren's Song: seconds of wave since the last song (it carries over between waves). */
+  private sirenT = 0;
+  /** Harpy Feather Pie: seconds since each pie's last gust, and the feet being blown up (px still to go). */
+  private harpyT = new Map<Pizza, number>();
+  private blown = new Map<Foot, number>();
+  /** Charybdis Swirl: feet spinning in a whirlpool, and the whirl under them. */
+  private whirled = new Map<Foot, { until: number; img: Phaser.GameObjects.Image; tintAt: number }>();
   /** When a quip of each kind last played (they'd stack up over a busy wave). */
   private quipAt: Record<string, number> = {};
 
@@ -182,6 +204,10 @@ export class PizzaPerkKit {
       ['pk_comet', drawComet],
       ['pk_sandcastle', drawSandcastle],
       ['pk_sandwall', drawSandWall],
+      ['pk_maze', drawMaze],
+      ['pk_embers', drawEmbers],
+      ['pk_feather', drawFeather],
+      ['pk_fleece', drawFleece],
     ];
     for (const [k, draw] of tex) if (!this.sc.textures.exists(k)) this.sc.textures.addCanvas(k, draw());
   }
@@ -259,6 +285,8 @@ export class PizzaPerkKit {
     this.lostLastWave = false;
     this.danceT = 0;
     this.steamT = 0;
+    this.sirenT = 0;
+    this.forgeWaves = 0;
   }
 
   /** A saved run comes back: did it lose a pizza already? */
@@ -287,6 +315,8 @@ export class PizzaPerkKit {
     // there's no smack cooldown, so "faster smacks" are extra quick follow-up smacks
     s.doubleChance += 0.15 * this.c('smackSpeed');
     s.crustBonus += 0.1 * this.c('crustRun');
+    // Colossus Forge: +1% damage a wave survived this run (up to +40%; enhanced 1.5% and 60%)
+    for (const p of this.with('forgeWaves')) if (!skip.includes(p)) s.damage *= 1 + this.forgePct(p) / 100;
     // Kitchen Sink: this wave's pick
     for (const p of this.with('kitchenSink')) {
       if (p.flags.sink === undefined || skip.includes(p)) continue;
@@ -296,6 +326,12 @@ export class PizzaPerkKit {
       else if (pick === 1) s.coinMult = Math.min(TIP_MULT_CAP, s.coinMult + k);
       else s.critChance = Math.min(0.85, s.critChance + k);
     }
+  }
+
+  /** Colossus Forge's bonus now, in percent (to one decimal): 1% a wave survived, up to 40% (scaled by its strength). */
+  forgePct(p: Pizza): number {
+    const k = this.pk(p);
+    return Math.round(Math.min(40, this.forgeWaves) * k * 10) / 10;
   }
 
   /** Pizza Romana: follow-up smacks while it has every slice. */
@@ -346,6 +382,8 @@ export class PizzaPerkKit {
     if (f.type.undead || f.zombified) m *= 1 + 0.1 * this.c('undeadDmg');
     // T-Rex Ribs: the table's shaking after a crit
     if (this.quaking()) m *= 1 + 0.1 * this.c('critQuake');
+    // Gorgon's Gaze: a foot turned to stone takes double
+    if (this.stoneOn(f)) m *= 2;
     return m * this.waveDmgMult(this.wave());
   }
 
@@ -367,6 +405,8 @@ export class PizzaPerkKit {
     if (this.actStart()) m += 0.1 * this.c('actStart');
     if (this.lostLastWave) m += 0.12 * this.c('lossTips');
     if (golden || f.type.id === 'golden') m *= 1 + this.c('goldenDouble');
+    // Golden Fleece: bosses and mini-bosses pay half as much again
+    if (f.isBossLike) m += 0.5 * this.c('goldenFleece');
     return m;
   }
 
@@ -396,6 +436,21 @@ export class PizzaPerkKit {
     for (const p of this.with('snowball')) {
       p.flags.snowN = Number(p.flags.snowN ?? 0) + 1;
       if (Number(p.flags.snowN) >= (p.enhanced ? 5 : 8) && this.snowball(p)) p.flags.snowN = 0;
+    }
+    // Charybdis Swirl: 10% of smacks (enhanced 15%) drag the foot into a whirlpool
+    const whirl = this.c('whirlpool');
+    if (whirl > 0 && f.alive && Math.random() < Math.min(0.4, 0.1 * whirl)) this.whirlpool(f);
+  }
+
+  /** A swing of the peel landed (once a swing, however many feet it hit; f: the foot it hit first). Three-Headed
+   *  Hound: every 3rd smack (enhanced: 2nd) bites three times. */
+  swung(f: Foot): void {
+    for (const p of this.with('tripleBite')) {
+      p.flags.biteN = Number(p.flags.biteN ?? 0) + 1;
+      if (Number(p.flags.biteN) >= (p.enhanced ? 2 : 3) && f.alive) {
+        p.flags.biteN = 0;
+        this.tripleBite(f, p);
+      }
     }
   }
 
@@ -433,12 +488,16 @@ export class PizzaPerkKit {
   }
 
   /** f was defeated (coins: what it paid). */
-  killed(f: Foot, coins: number): void {
+  killed(f: Foot, coins: number, echo = false): void {
     this.waveKills++;
     // Cream Pie Supreme leaves a splat where it fell; Phantom Waltz may raise a friendly ghost
     if (this.c('pieSplat') > 0) this.pieSplat(f);
     const waltz = this.c('ghostAlly');
     if (waltz > 0 && Math.random() < Math.min(0.6, 0.15 * waltz)) this.raiseGhost(f);
+    // Ember Shade leaves embers where it fell; Golden Fleece shines on a boss's tips
+    // (not for a boss's Ghost echo, or one of several of a boss while another stands: they pay a tenth)
+    if (this.c('emberTrail') > 0 && !echo) this.dropEmbers(f);
+    if (f.isBossLike && !echo && this.c('goldenFleece') > 0) this.fleece(f);
     // Rinkside Pretzel Pie: a kill gets the smacks going (its pop shows when a rush starts, not on every kill)
     if (this.c('killRush') > 0) {
       if (!this.rushing()) for (const p of this.with('killRush')) p.perkFired({ quip: false });
@@ -642,6 +701,9 @@ export class PizzaPerkKit {
           f.tint(0xb07a4a);
           a.quip(f.x, f.cy - 120, 'STICKY!', '#d8a060', 36);
         }
+        break;
+      case 'mazeLost':
+        if (!f.isBossLike && !f.puppet && !f.brain.free && p !== a.possessed()) this.lose(f, p);
         break;
       case 'fondueStick':
         if (!f.isBossLike && p !== a.possessed()) {
@@ -857,6 +919,13 @@ export class PizzaPerkKit {
     if (changed) this.h.recompute();
     // Sandcastle Sundae: the wall goes up (after Arcobaleno's new colour, which may be it)
     this.sandUp();
+    // Colossus Forge: the waves it has hammered in so far
+    for (const p of this.with('forgeWaves'))
+      this.sc.time.delayedCall(2500, () => {
+        if (p.dead || this.forgeWaves <= 0) return;
+        this.forgeStrike(p);
+      });
+    this.harpyT.clear();
     // Old Town Tarte: tips as the wave starts
     for (const p of this.with('waveTips'))
       this.sc.time.delayedCall(700, () => {
@@ -904,6 +973,9 @@ export class PizzaPerkKit {
     this.removeChest(true);
     // Seaside Fritto pays more next wave when a slice went in this one
     this.lostLastWave = !perfect;
+    // Colossus Forge: one more wave survived (it counts whether or not the Forge is out; its bonus shows in the shop)
+    this.forgeWaves++;
+    if (this.c('forgeWaves') > 0) this.h.recompute();
     // Kitchen Sink picks the next wave's bonus now, so the shop shows the one you'll get
     for (const p of a.alivePizzas()) if (p.perk === 'kitchenSink') {
       p.flags.sink = Math.floor(Math.random() * 3);
@@ -1048,6 +1120,21 @@ export class PizzaPerkKit {
         }
       }
     }
+    // Siren's Song: every 25 s (two pies: 12.5) of wave with feet on the table, a song enchants every foot
+    const siren = this.c('sirenSong');
+    if (siren > 0) {
+      const on = feet.some((f) => f.alive && f.hittable && f.y > 60);
+      if (on) this.sirenT += dt;
+      if (this.sirenT >= 25 / siren && on) {
+        this.sirenT = 0;
+        this.sirenSong();
+      }
+    }
+    this.harpyTick(dt);
+    this.gorgonTick();
+    this.mazeTick();
+    this.emberTick();
+    this.whirlTick();
     this.inkTick(dt);
     this.sootTick(dt);
     this.ghostTick();
@@ -1268,7 +1355,7 @@ export class PizzaPerkKit {
   /** Ink or soot wore off: the foot may dive again (unless the other still holds it: its tick holds it again), and its
    *  tint goes. */
   private release(f: Foot): void {
-    if (!f.alive || this.inked.has(f) || this.sooted.has(f)) return;
+    if (!f.alive || this.inked.has(f) || this.sooted.has(f) || this.lostFeet.has(f)) return;
     f.brain.holdHoverT = 0;
     if (f.stunT <= 0) f.clearTint();
   }
@@ -1743,6 +1830,22 @@ export class PizzaPerkKit {
       g.ready = true;
     }
     if (all) this.ghosts = [];
+    // the Epic Pizzeria pizzas': stone, lost feet, embers, gusts and whirlpools go with the wave
+    const lost = [...this.lostFeet.keys()];
+    for (const st of this.stoned.values()) this.dropImgs([st.crack], all);
+    for (const l of this.lostFeet.values()) this.dropImgs([l.maze], all);
+    for (const w of this.whirled.values()) this.dropImgs([w.img], all);
+    for (const e of this.embers) this.dropImgs([e.img, e.glow], all);
+    const tinted = [...this.stoned.keys(), ...this.whirled.keys()];
+    this.stoned.clear();
+    this.lostFeet.clear();
+    this.whirled.clear();
+    this.embers = [];
+    this.blown.clear();
+    if (!all) {
+      for (const f of lost) this.release(f);
+      for (const f of tinted) if (f.alive && f.stunT <= 0) f.clearTint();
+    }
   }
 
   /** Fade images out (now: the scene is going, so destroy them without starting tweens). */
@@ -1752,6 +1855,431 @@ export class PizzaPerkKit {
       this.sc.tweens.killTweensOf(o);
       if (now) o.destroy();
       else this.sc.tweens.add({ targets: o, alpha: 0, duration: 250, onComplete: () => o.destroy() });
+    }
+  }
+
+  // ——— the Epic Pizzeria pizzas (step 4, batch 2): Act 9's myths, each from its boss's props and sounds ———
+
+  /** Colossus Forge, as a wave starts: the hammer comes down on the anvil, sparks fly off the pie, and its bonus shows. */
+  private forgeStrike(p: Pizza): void {
+    const a = this.a;
+    const light = this.bossOn();
+    const y = p.surfaceY - 40;
+    a.sfx('sfx_colossus_anvil', { volume: 0.6 });
+    this.sc.time.delayedCall(140, () => a.sfx('sfx_colossus_clang', { volume: 0.45, rate: 0.9 }));
+    a.fx.ring(p.x, p.surfaceY - 20, 0xffa040, 1.8, 0.45);
+    // sparks thrown up and out off the pie, falling back as they cool
+    for (let i = 0; i < (light ? 8 : 16); i++) {
+      const ang = -Math.PI / 2 + (crand() - 0.5) * 2.4;
+      const sp = 220 + crand() * 260;
+      const s = this.sc.add.image(p.x + (crand() - 0.5) * 40, y, 'glow').setTint(crand() < 0.5 ? 0xffd070 : 0xff7a2a).setBlendMode(Phaser.BlendModes.ADD).setScale(0.08 + crand() * 0.06);
+      a.fxLayer.add(s);
+      this.sc.tweens.add({ targets: s, x: s.x + Math.cos(ang) * sp * 0.6, y: s.y + Math.sin(ang) * sp * 0.5 + 90, alpha: 0, scale: 0.02, duration: 520 + crand() * 300, ease: 'Quad.Out', onComplete: () => s.destroy() });
+    }
+    // a bronze plate glinting up off the pie
+    const plate = this.sc.add.image(p.x, y, 'p_colossus_glint').setScale(0.3).setAlpha(0.9).setBlendMode(Phaser.BlendModes.ADD);
+    a.fxLayer.add(plate);
+    this.sc.tweens.add({ targets: plate, y: y - 70, scale: 0.6, alpha: 0, duration: 600, ease: 'Quad.Out', onComplete: () => plate.destroy() });
+    a.quip(p.x, p.surfaceY - 180, `THE FORGE: +${Math.round(this.forgePct(p))}% DAMAGE`, '#ffb060', 32);
+    p.perkFired({ quip: false });
+  }
+
+  /** Gorgon's Gaze is turning a foot to stone now (it takes double). */
+  private stoneOn(f: Foot): boolean {
+    const st = this.stoned.get(f);
+    return !!st && this.a.now() < st.until;
+  }
+
+  /** Gorgon's Gaze: the first ordinary foot to hover over the pie each wave meets Medusa's eyes. */
+  private gorgonTick(): void {
+    const a = this.a;
+    const now = a.now();
+    if (this.c('gorgonGaze') > 0) {
+      const ghost = a.possessed();
+      for (const f of a.allFeet()) {
+        if (!f.alive || !f.hittable || f.isBossLike || f.puppet || f.brain.free || f.state !== 'hover' || f.y < 60 || this.stoned.has(f)) continue;
+        const t = f.target;
+        if (!t || t.dead || t.perk !== 'gorgonGaze' || t === ghost || t.stale || t.perkFrozen || t.flags.gorgonWave === this.wave()) continue;
+        t.flags.gorgonWave = this.wave();
+        this.gaze(f, t);
+      }
+    }
+    for (const [f, st] of this.stoned) {
+      st.crack.setPosition(f.cx, this.stoneY(f));
+      if (!f.alive || now >= st.until) {
+        this.stoned.delete(f);
+        this.crumble(f, st.crack);
+        continue;
+      }
+      // (a smack's flash clears the grey: it goes back on after)
+      if (!f.flashing && now - st.tintAt > 0.2) {
+        f.tint(0x86847e);
+        st.tintAt = now;
+      }
+    }
+  }
+
+  /** Medusa's gaze: a green glare from the pie up to the foot, and it greys over into a statue for 3 s (enhanced 5). */
+  private gaze(f: Foot, p: Pizza): void {
+    const a = this.a;
+    const sec = p.enhanced ? 5 : 3;
+    const x0 = p.x;
+    const y0 = p.surfaceY - 30;
+    // two eyes opening on the back of the pie, then the glare
+    for (const s of [-1, 1]) {
+      const e = this.sc.add.image(x0 + s * 22, y0 - 8, 'glow').setTint(0x9dff6a).setBlendMode(Phaser.BlendModes.ADD).setScale(0.05, 0.02).setAlpha(0.95);
+      a.fxLayer.add(e);
+      this.sc.tweens.add({ targets: e, scaleX: 0.22, scaleY: 0.12, duration: 160, yoyo: true, hold: 360, onComplete: () => e.destroy() });
+    }
+    const len = Math.max(60, Math.hypot(f.cx - x0, f.cy - y0));
+    const beam = this.sc.add.image(x0, y0, 'pk_beam').setOrigin(0.5, 0).setTint(0x9dff6a).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
+    beam.setRotation(Math.atan2(f.cy - y0, f.cx - x0) - Math.PI / 2).setScale(0.8, len / 512);
+    const core = this.sc.add.image(x0, y0, 'pk_beam').setOrigin(0.5, 0).setTint(0xeaffd8).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
+    core.setRotation(beam.rotation).setScale(0.28, len / 512);
+    a.fxLayer.addAt(core, 0);
+    a.fxLayer.addAt(beam, 0);
+    this.sc.tweens.add({ targets: beam, alpha: 1, duration: 140, delay: 120 });
+    this.sc.tweens.add({ targets: core, alpha: 0.9, duration: 140, delay: 120 });
+    this.sc.tweens.add({ targets: [beam, core], alpha: 0, scaleX: 0.1, delay: 620, duration: 320, onComplete: () => { beam.destroy(); core.destroy(); } });
+    a.sfx('sfx_medusa_gaze', { volume: 0.55, throttle: 300 });
+    p.perkFired({ quip: false });
+    this.sc.time.delayedCall(260, () => {
+      if (!f.alive || this.stoned.has(f)) return;
+      a.sfx('sfx_medusa_petrify', { volume: 0.5, throttle: 300 });
+      f.knock(300);
+      // (a frozen foot stays frozen under the stone: a plain stun would thaw it)
+      if (!(f.stunT > 0 && f.frozen)) f.stun(sec);
+      f.flash(0xf0ece0, 120);
+      a.fx.ring(f.cx, f.cy + 30, 0x9dff6a, 1.4, 0.45);
+      // grey stone flecks puff off it as it sets
+      for (let i = 0; i < 8; i++) {
+        const ang = crand() * Math.PI * 2;
+        const c = this.sc.add.image(f.cx + Math.cos(ang) * 30, f.cy + Math.sin(ang) * 40, 'crumb2').setTint(crand() < 0.5 ? 0xb8b6ac : 0x8a877c).setScale(0.4 + crand() * 0.4);
+        a.fxLayer.add(c);
+        this.sc.tweens.add({ targets: c, x: c.x + Math.cos(ang) * 50, y: c.y + Math.sin(ang) * 40 + 40, alpha: 0, duration: 500, ease: 'Quad.Out', onComplete: () => c.destroy() });
+      }
+      const crack = this.sc.add.image(f.cx, this.stoneY(f), 'p9_crack2').setAlpha(0).setScale(0.95);
+      a.fxLayer.add(crack);
+      this.sc.tweens.add({ targets: crack, alpha: 0.95, duration: 200 });
+      this.stoned.set(f, { until: a.now() + sec, crack, tintAt: -1 });
+      a.quip(f.x, f.cy - 140, 'TURNED TO STONE! ×2', '#c8ffa0', 36);
+    });
+  }
+
+  /** Where a stone foot's crack shows: low on the foot, the part that's always on screen. */
+  private stoneY(f: Foot): number {
+    return f.y - f.meta.footHeight * f.scale * 0.22;
+  }
+
+  /** The stone wears off: it crumbles away off the foot. */
+  private crumble(f: Foot, crack: Phaser.GameObjects.Image): void {
+    const a = this.a;
+    this.dropImgs([crack]);
+    if (!f.alive) return;
+    if (f.stunT <= 0) f.clearTint();
+    a.sfx('sfx_medusa_crumble', { volume: 0.35, throttle: 300 });
+    for (let i = 0; i < 6; i++) {
+      const c = this.sc.add.image(f.cx + (crand() - 0.5) * 70, f.cy + (crand() - 0.5) * 60, 'crumb2').setTint(0xb8b6ac).setScale(0.35 + crand() * 0.35);
+      a.fxLayer.add(c);
+      this.sc.tweens.add({ targets: c, y: c.y + 120, alpha: 0, angle: crand() * 200, duration: 600, ease: 'Quad.In', onComplete: () => c.destroy() });
+    }
+  }
+
+  /** Three-Headed Hound: the smack's bite and two more, one for each of Cerberus's heads (fire, ice, poison). The two
+   *  extra bites hit for a smack's damage each (no crit). */
+  private tripleBite(f: Foot, p: Pizza): void {
+    const a = this.a;
+    const heads = ['p9_temper_fire', 'p9_temper_ice', 'p9_temper_poison'];
+    const tints = [0xff8a3a, 0x9ad8ff, 0x9dff6a];
+    const side = f.cx > 960 ? -1 : 1;
+    heads.forEach((key, i) => {
+      this.sc.time.delayedCall(i * 120, () => {
+        if (!f.alive && i > 0) return;
+        const x = f.cx + side * (60 - i * 50);
+        const y = f.cy - 30 + (i % 2 ? 26 : -10);
+        const head = this.sc.add.image(x - side * 30, y, key).setScale(0.12).setAlpha(0);
+        a.fxLayer.add(head);
+        this.sc.tweens.add({ targets: head, x, scale: 0.62, alpha: 1, duration: 90, ease: 'Back.Out' });
+        this.sc.tweens.add({ targets: head, alpha: 0, scale: 0.5, delay: 260, duration: 220, onComplete: () => head.destroy() });
+        a.fx.ring(f.cx, f.cy + 10, tints[i], 0.9, 0.5);
+        a.sfx('sfx_cerberus_bark', { volume: 0.32, rate: [0.95, 1.05, 1.15][i] + crand() * 0.05, throttle: 60 });
+        if (i > 0 && f.alive) {
+          this.h.dealDamage(f, this.run.stats.damage, 'direct', 120, 'perk:tripleBite');
+          a.fx.impact(f.cx + (crand() - 0.5) * 40, f.cy + (crand() - 0.5) * 40, false);
+        }
+      });
+    });
+    if (this.every('biteQuip', 1.2)) a.quip(f.x, f.cy - 140, 'THREE BITES!', '#ffb070', 34);
+    if (this.every('biteFire', 1)) p.perkFired({ quip: false });
+  }
+
+  /** Labyrinth Lasagne: its stomper is lost in the Minotaur's maze. It's sent to another lane (if one's free) and,
+   *  once back up in its hover, waits 2 s (enhanced 3) longer before its next dive. */
+  private lose(f: Foot, p: Pizza): void {
+    const a = this.a;
+    const sec = p.enhanced ? 3 : 2;
+    const have = this.lostFeet.get(f);
+    if (have) {
+      have.start = -1;
+      have.sec = sec;
+      return;
+    }
+    this.h.relane(f);
+    const maze = this.sc.add.image(f.cx, f.cy - 120, 'pk_maze').setScale(0).setAlpha(0.95);
+    a.fxLayer.add(maze);
+    this.sc.tweens.add({ targets: maze, scale: 0.8, duration: 220, ease: 'Back.Out' });
+    this.lostFeet.set(f, { start: -1, sec, maze });
+    // the Minotaur's walls jut up either side of the pie for a moment
+    for (const s of [-1, 1]) {
+      const w = this.sc.add.image(f.x + s * 80, p.surfaceY - 10, 'p9_wall').setOrigin(0.5, 1).setScale(0.3, 0);
+      a.fxLayer.addAt(w, 0);
+      this.sc.tweens.add({ targets: w, scaleY: 0.3, duration: 140, ease: 'Back.Out' });
+      this.sc.tweens.add({ targets: w, scaleY: 0, alpha: 0, delay: 500, duration: 260, ease: 'Quad.In', onComplete: () => w.destroy() });
+    }
+    a.sfx('sfx_minotaur_walls', { volume: 0.4, rate: 1.2, throttle: 400 });
+    if (this.every('mazeQuip', 1.2)) a.quip(f.x, f.cy - 160, 'LOST IN THE LABYRINTH!', '#f2d08a', 32);
+    if (this.every('mazeFire', 1)) p.perkFired({ quip: false });
+  }
+
+  /** Lost feet wait out their extra time in their hover, the maze turning over them. */
+  private mazeTick(): void {
+    if (!this.lostFeet.size) return;
+    const now = this.a.now();
+    for (const [f, l] of this.lostFeet) {
+      l.maze.setPosition(f.cx, f.cy - f.meta.footHeight * f.type.scale * 0.55 - 40).setRotation(now * 1.6);
+      if (l.start < 0 && f.alive && f.state === 'hover') l.start = now;
+      const end = !f.alive || (l.start >= 0 && now >= l.start + f.hoverTime + l.sec);
+      if (end) {
+        this.lostFeet.delete(f);
+        this.dropImgs([l.maze]);
+        this.release(f);
+        continue;
+      }
+      // (on top of its usual wait in the hover: the foot dives that much later)
+      if (l.start >= 0) f.brain.holdHoverT = l.start + f.hoverTime + l.sec - now;
+    }
+  }
+
+  /** Ember Shade: a fallen foot leaves embers hanging where it fell (at most six at once). */
+  private dropEmbers(f: Foot): void {
+    const a = this.a;
+    if (this.embers.length >= 6) return;
+    const table = (a.alivePizzas()[0]?.surfaceY ?? 820) - 140;
+    const x = Phaser.Math.Clamp(f.cx, 90, 1830);
+    const y = Phaser.Math.Clamp(f.cy, 220, table);
+    const glow = this.sc.add.image(x, y, 'glow').setTint(0xff6a2a).setBlendMode(Phaser.BlendModes.ADD).setScale(0.2).setAlpha(0);
+    const img = this.sc.add.image(x, y, 'pk_embers').setScale(0.2).setAlpha(0);
+    a.fxLayer.add([glow, img]);
+    this.sc.tweens.add({ targets: img, scale: 0.8, alpha: 1, duration: 260, ease: 'Back.Out' });
+    this.sc.tweens.add({ targets: glow, scale: 0.75, alpha: 0.5, duration: 260 });
+    this.embers.push({ x, y, img, glow, ph: crand() * 6, done: false });
+    a.sfx('sfx_hades_flare', { volume: 0.25, rate: 1.3, throttle: 500 });
+    if (this.every('emberFire', 2)) for (const p of this.with('emberTrail')) p.perkFired({ quip: false });
+  }
+
+  /** The embers flicker where they hang; the next foot through catches them and burns (6 a second; enhanced 9). */
+  private emberTick(): void {
+    if (!this.embers.length) return;
+    const a = this.a;
+    const now = a.now();
+    const dps = 6 * (this.with('emberTrail').some((p) => p.enhanced) ? 1.5 : 1) * this.boost();
+    for (const e of this.embers) {
+      if (e.done) continue;
+      const fl = Math.sin(now * 7 + e.ph) * 0.04 + Math.sin(now * 11.3 + e.ph) * 0.03;
+      e.img.setScale(0.8 + fl, 0.8 - fl);
+      e.glow.setAlpha(0.42 + fl * 3);
+      if (crand() < 0.04) a.fx.propTrail(e.x + (crand() - 0.5) * 30, e.y - 20, crand() < 0.5 ? 0xff8a3a : 0x6ab8ff, 0.35);
+      if (!this.c('emberTrail')) continue;
+      const f = a.allFeet().find((o) => o.alive && o.hittable && !o.type.traits.includes('immuneBurn') && !o.insulated && o.distanceTo(e.x, e.y) < 80);
+      if (!f) continue;
+      e.done = true;
+      f.burnT = Math.max(f.burnT, 3);
+      f.burnDps = Math.max(f.burnDps, dps);
+      // the embers leap onto it and it catches
+      this.sc.tweens.killTweensOf([e.img, e.glow]);
+      this.sc.tweens.add({ targets: [e.img, e.glow], x: f.cx, y: f.cy, scale: 0.2, alpha: 0, duration: 220, ease: 'Quad.In', onComplete: () => { e.img.destroy(); e.glow.destroy(); } });
+      for (let i = 0; i < 4; i++) this.sc.time.delayedCall(i * 70, () => f.alive && a.fx.burn(f.cx + (crand() - 0.5) * 50, f.cy + (crand() - 0.5) * 50));
+      a.sfx('sfx_fire', { volume: 0.4, throttle: 200 });
+      if (this.every('emberQuip', 1.2)) a.quip(f.x, f.cy - 130, `EMBERS! ${Math.round(dps)}/s`, '#ff9a5a', 32);
+    }
+    this.embers = this.embers.filter((e) => !e.done);
+  }
+
+  /** Siren's Song: the Sirens sing from the pie, notes drift to every foot, and they all stand enchanted for 1.5 s
+   *  (bosses and mini-bosses are only lulled: 40% slower for 1.5 s). */
+  private sirenSong(): void {
+    const a = this.a;
+    const pies = this.with('sirenSong');
+    const src = pies[0];
+    const light = this.bossOn();
+    a.quip(960, 300, "SIREN'S SONG!", '#8ff0e0', 50);
+    a.sfx('sfx_sirensong', { volume: 0.7 });
+    for (const p of pies) p.perkFired({ quip: false });
+    if (src) {
+      // the song rolling out over the table from the pie, in soft rings
+      for (let i = 0; i < 3; i++) this.sc.time.delayedCall(i * 180, () => a.fx.ring(src.x, src.surfaceY - 30, 0x8ff0e0, 1.6 + i * 0.5, 0.4));
+    }
+    for (const f of a.allFeet()) {
+      if (!f.alive || !f.hittable) continue;
+      // (bosses, mini-bosses and feet a fight moves by hand are only lulled; a frozen foot stays frozen)
+      if (f.isBossLike || f.puppet || f.brain.free) {
+        if (!f.type.traits.includes('immuneSlow') && (f.slowT <= 0 || f.slowPct <= 0.4)) {
+          f.slowPct = 0.4;
+          f.slowT = Math.max(f.slowT, 1.5);
+        }
+      } else if (!(f.stunT > 0 && f.frozen)) {
+        f.stun(1.5);
+        f.tint(0x9ae8e0);
+      }
+      // notes drifting from the pie to it, and swaying over it
+      const sx = src?.x ?? 960;
+      const sy = (src?.surfaceY ?? 820) - 60;
+      for (let n = 0; n < (light ? 1 : 2); n++) {
+        const note = this.sc.add.image(sx, sy, 'p9_note').setScale(0.3).setAlpha(0).setTint(n ? 0xd8c8ff : 0x9af0e0);
+        a.fxLayer.add(note);
+        const tx = f.cx + (n ? 40 : -40);
+        const ty = f.cy - 90;
+        this.sc.tweens.add({ targets: note, alpha: 1, duration: 120, delay: n * 160 });
+        this.sc.tweens.addCounter({
+          from: 0,
+          to: 1,
+          duration: 520,
+          delay: n * 160,
+          ease: 'Sine.Out',
+          onUpdate: (tw) => {
+            const u = tw.getValue() ?? 0;
+            note.setPosition(sx + (tx - sx) * u, sy + (ty - sy) * u - Math.sin(Math.PI * u) * 90).setScale(0.3 + 0.25 * u);
+          },
+        });
+        this.sc.tweens.add({ targets: note, angle: { from: -14, to: 14 }, duration: 300, yoyo: true, repeat: 2, delay: 680 + n * 160, ease: 'Sine.InOut' });
+        this.sc.tweens.add({ targets: note, alpha: 0, y: ty - 50, delay: 1500 + n * 160, duration: 400, onComplete: () => note.destroy() });
+      }
+      a.fx.ring(f.cx, f.cy + 30, 0x8ff0e0, 1.1, 0.4);
+    }
+  }
+
+  /** Harpy Feather Pie: every 5 s, once a foot is over it, a gust off the pie blows the feet above it 100 px back up
+   *  (enhanced 150; heavy feet and bosses move less, as with any knock). */
+  private harpyTick(dt: number): void {
+    const a = this.a;
+    const on = a.allFeet().some((f) => f.alive && f.hittable && f.y > 60);
+    for (const p of this.with('harpyGust')) {
+      if (p.stale || p.perkFrozen) continue;
+      const t = (this.harpyT.get(p) ?? 0) + (on ? dt : 0);
+      const above = a.allFeet().filter((f) => f.alive && f.hittable && f.target === p && (f.state === 'hover' || f.state === 'descend') && f.y > 120 && !f.puppet && !f.brain.free);
+      if (t >= 5 && above.length) {
+        this.harpyT.set(p, 0);
+        this.gust(p, above);
+      } else this.harpyT.set(p, t);
+    }
+    // the feet being blown up rise quickly through what's left of their push
+    for (const [f, left] of this.blown) {
+      if (!f.alive || left <= 0 || f.stunT > 0 || f.held || f.pinned) {
+        this.blown.delete(f);
+        continue;
+      }
+      const step = Math.min(left, 700 * dt);
+      // (never down: a foot already near the top stays where it is)
+      f.y = Math.min(f.y, Math.max(110, f.y - step));
+      if (f.state === 'descend') f.vy = Math.min(f.vy, 0);
+      if (f.y <= 110) this.blown.delete(f);
+      else this.blown.set(f, left - step);
+    }
+  }
+
+  private gust(p: Pizza, feet: Foot[]): void {
+    const a = this.a;
+    const light = this.bossOn();
+    const px = p.enhanced ? 150 : 100;
+    a.sfx('sfx_harpy', { volume: 0.4, throttle: 400 });
+    a.sfx('sfx_whoosh', { volume: 0.5, rate: 0.8, throttle: 200 });
+    if (this.every('harpyQuip', 3)) a.quip(p.x, p.surfaceY - 200, 'HARPY GUST!', '#d8c0ff', 36);
+    p.perkFired({ quip: false });
+    const table = p.surfaceY - 30;
+    for (const f of feet) {
+      let push = px;
+      if (f.type.traits.includes('heavy')) push *= 0.35;
+      if (f.isBossLike) push *= 0.4;
+      this.blown.set(f, push);
+      // feathers whirled up from the pie past the foot, and streaks of wind
+      for (let i = 0; i < (light ? 2 : 4); i++) {
+        const fe = this.sc.add.image(f.x + (crand() - 0.5) * 80, table, 'pk_feather').setScale(0.5 + crand() * 0.2).setRotation(crand() * 6).setAlpha(0.95);
+        a.fxLayer.add(fe);
+        this.sc.tweens.add({ targets: fe, y: f.cy - 60 - crand() * 80, x: fe.x + (crand() - 0.5) * 120, rotation: fe.rotation + (crand() - 0.5) * 8, duration: 520 + crand() * 200, delay: i * 50, ease: 'Quad.Out' });
+        this.sc.tweens.add({ targets: fe, alpha: 0, delay: 500 + i * 50, duration: 300, onComplete: () => fe.destroy() });
+      }
+      for (let i = 0; i < 3; i++) {
+        const sx = f.x + (i - 1) * 34;
+        const st = this.sc.add.image(sx, table - 40, 'glow').setOrigin(0.5, 1).setTint(0xf0e8ff).setBlendMode(Phaser.BlendModes.ADD).setScale(0.06, 0.2).setAlpha(0.6);
+        a.fxLayer.addAt(st, 0);
+        this.sc.tweens.add({ targets: st, y: f.cy + 40, scaleY: 1.1, alpha: 0, duration: 380, delay: i * 40, ease: 'Quad.Out', onComplete: () => st.destroy() });
+      }
+    }
+  }
+
+  /** Golden Fleece: a boss or mini-boss falls and the Fleece shines over it, its tips half as much again. */
+  private fleece(f: Foot): void {
+    const a = this.a;
+    const x = f.cx;
+    const y = Math.max(220, f.cy - 60);
+    const glow = this.sc.add.image(x, y, 'glow').setTint(0xffd04a).setBlendMode(Phaser.BlendModes.ADD).setScale(0.4).setAlpha(0);
+    const img = this.sc.add.image(x, y - 80, 'pk_fleece').setScale(0.4).setAlpha(0);
+    a.fxLayer.add([glow, img]);
+    this.sc.tweens.add({ targets: img, y, scale: 1, alpha: 1, duration: 420, ease: 'Back.Out' });
+    this.sc.tweens.add({ targets: glow, scale: 1.6, alpha: 0.7, duration: 420, yoyo: true, hold: 700 });
+    this.sc.tweens.add({ targets: img, angle: { from: -5, to: 5 }, duration: 400, yoyo: true, repeat: 1, delay: 420, ease: 'Sine.InOut' });
+    this.sc.tweens.add({ targets: img, alpha: 0, y: y - 60, delay: 1500, duration: 400, onComplete: () => { img.destroy(); glow.destroy(); } });
+    a.fx.glint(x, y, 6);
+    a.fx.ring(x, y + 40, 0xffd04a, 2, 0.45);
+    a.sfx('sfx_smack_gold_heavy', { volume: 0.5 });
+    this.sc.time.delayedCall(200, () => a.sfx('sfx_hero_coins', { volume: 0.5 }));
+    const pct = Math.round(50 * this.c('goldenFleece'));
+    a.quip(x, y - 120, `GOLDEN FLEECE: +${pct}% TIPS`, '#ffd23f', 38);
+    for (const p of this.with('goldenFleece')) p.perkFired({ quip: false });
+  }
+
+  /** Charybdis Swirl: the smack drags the foot down into Charybdis's whirlpool, spinning, for 1.5 s. Bosses, mini-bosses
+   *  and feet a fight moves by hand don't go under. */
+  private whirlpool(f: Foot): void {
+    if (f.isBossLike || f.puppet || f.brain.free || this.whirled.has(f) || (f.stunT > 0 && f.frozen)) return;
+    const a = this.a;
+    const now = a.now();
+    f.stun(1.5);
+    // pulled down a little (a hovering foot only: a diving one could be pulled onto the pie)
+    if (f.state === 'hover') f.y += 24;
+    const img = this.sc.add.image(f.cx, f.y + 14, 'ev_charybdis').setAlpha(0).setBlendMode(Phaser.BlendModes.NORMAL);
+    img.setScale(200 / img.width, (200 / img.width) * 0.4);
+    a.fxLayer.addAt(img, 0);
+    this.sc.tweens.add({ targets: img, alpha: 0.9, duration: 160 });
+    this.whirled.set(f, { until: now + 1.5, img, tintAt: -1 });
+    for (let i = 0; i < 8; i++) {
+      const ang = crand() * Math.PI * 2;
+      const b = this.sc.add.image(f.cx + Math.cos(ang) * 70, f.y + 14 + Math.sin(ang) * 22, 'glow').setTint(0xbfe8ff).setBlendMode(Phaser.BlendModes.ADD).setScale(0.06);
+      a.fxLayer.add(b);
+      this.sc.tweens.add({ targets: b, x: f.cx, y: f.y + 14, scale: 0.02, alpha: 0, duration: 500 + crand() * 300, ease: 'Quad.In', onComplete: () => b.destroy() });
+    }
+    a.sfx('sfx_whirlpool', { volume: 0.4, throttle: 500 });
+    a.sfx('sfx_kraken_splash', { volume: 0.35, throttle: 200 });
+    if (this.every('whirlQuip', 1.2)) a.quip(f.x, f.cy - 140, 'WHIRLPOOL!', '#9ae0ff', 36);
+    if (this.every('whirlFire', 1.5)) for (const p of this.with('whirlpool')) p.perkFired({ quip: false });
+  }
+
+  /** The whirls turn under their feet, sea-blue, until the stun's over. */
+  private whirlTick(): void {
+    if (!this.whirled.size) return;
+    const now = this.a.now();
+    for (const [f, w] of this.whirled) {
+      w.img.setPosition(f.cx, f.y + 14).setRotation(now * 5);
+      if (!f.alive || now >= w.until) {
+        this.whirled.delete(f);
+        this.dropImgs([w.img]);
+        if (f.alive && f.stunT <= 0) f.clearTint();
+        continue;
+      }
+      if (!f.flashing && now - w.tintAt > 0.2) {
+        f.tint(0x8ac8e8);
+        w.tintAt = now;
+      }
     }
   }
 

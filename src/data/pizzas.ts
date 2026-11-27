@@ -101,7 +101,9 @@ export type PizzaPerk =
   | 'lossTips' | 'bluePlate' | 'fondueStick' | 'roofKnock' | 'stargazer' | 'killRush' | 'halfStomp' | 'undeadDmg'
   | 'waveTips' | 'kitchenSink' | 'stoneStomp' | 'danceBeat'
   // ——— the pizza plan's step 4, batch 1: the Epic Chef's Specials (src/content/pizzas/p5.ts) ———
-  | 'inkSpray' | 'snowball' | 'pieSplat' | 'sandWall' | 'critQuake' | 'steamVent' | 'sootAbove' | 'comet' | 'ghostAlly';
+  | 'inkSpray' | 'snowball' | 'pieSplat' | 'sandWall' | 'critQuake' | 'steamVent' | 'sootAbove' | 'comet' | 'ghostAlly'
+  // ——— the pizza plan's step 4, batch 2: the Epic Pizzeria pizzas (src/content/pizzas/p6.ts) ———
+  | 'forgeWaves' | 'gorgonGaze' | 'tripleBite' | 'mazeLost' | 'emberTrail' | 'sirenSong' | 'harpyGust' | 'goldenFleece' | 'whirlpool';
 
 export interface PizzaType {
   id: string;
@@ -391,6 +393,16 @@ export const ENHANCED_PERK: Record<PizzaPerk, string | (() => string)> = {
   sootAbove: 'Feet above it are lost in soot for 3s',
   comet: 'Every 8s a comet hits the toughest ×4',
   ghostAlly: '22% of kills: a ghost blocks one stomp',
+  // the pizza plan's step 4, batch 2
+  forgeWaves: '+1.5% damage a wave survived (max 60%)',
+  gorgonGaze: 'First foot above each wave: stone 5s, ×2',
+  tripleBite: 'Every 2nd smack hits three times',
+  mazeLost: 'Stompers get lost: 3s late, a new lane',
+  emberTrail: 'Kills leave embers: next foot burns 9/s',
+  sirenSong: 'Every 17s a song freezes every foot 1.5s',
+  harpyGust: 'Every 5s feet above are blown 150px up',
+  goldenFleece: 'Bosses and mini-bosses drop +75% tips',
+  whirlpool: '15% of smacks: a whirlpool stuns 1.5s',
 };
 
 /** A perk's enhanced text. */

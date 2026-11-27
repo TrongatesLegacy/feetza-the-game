@@ -736,6 +736,16 @@ export const ABILITIES: Record<string, Ability> = {
   'pizza:chimneysoot': ab('Soot Cloud', smack(0.2), [ST(0.8, hit(150)), M(1.3, 3, hit(150))], BROWN, 'ink'),
   'pizza:cometcalzone': ab('Comet Tail', act, [D(6, BL(3, 170, 'toughest')), B(1, 3, all)], BLUE, 'rain', 0.9),
   'pizza:phantomwaltz': ab('Last Waltz', kill(0.3), [ST(1, hit(200)), D(1.5, hit(200))], PURPLE, 'ink'),
+  // the pizza plan's step 4, batch 2: the Epic Pizzeria pizzas (src/content/pizzas/p6.ts), from Act 9's myths
+  'pizza:colossusforge': ab('Bronze Hammer', act, [D(7, BL(3, 200, 'toughest'), 900), ST(1.2, all)], ORANGE, 'slam', 0.9),
+  'pizza:gorgonsgaze': ab('Petrifying Glare', act, [FZ(2.5, all), M(1.5, 4, all)], 0x9dff6a, 'frost', 0.9),
+  'pizza:threeheaded': ab('Three Heads Bite', every(6), [D(2, rnd(3)), B(0.8, 2, rnd(1))], RED, 'fire'),
+  'pizza:labyrinthlasagne': ab('Dead End', stomp, [ST(1.5, hit()), M(1.4, 3, hit())], BROWN, 'ink'),
+  'pizza:embershade': ab('Embers of Hades', kill(0.35), [B(1.5, 4, hit(200))], ORANGE, 'fire'),
+  'pizza:sirenssong': ab("Sirens' Chorus", act, [ST(2, all), M(1.3, 4, all), D(3, all)], CYAN, 'wind', 0.9),
+  'pizza:harpyfeather': ab('Harpy Swoop', every(6), [K(1100, front(3)), D(1.5, front(3))], PURPLE, 'wind'),
+  'pizza:goldenfleece': ab('Fleece of Gold', always, [STAT({ coinMult: 0.1, bossDmg: 0.1 })], GOLD, 'gold'),
+  'pizza:charybdisswirl': ab('Maelstrom', act, [D(5, all, 600), S(0.5, 3, all), ST(1, BL(2, 240, 'front'))], CYAN, 'wind', 0.9),
 
   // ——— Act 7 · Comics: places, bosses and villain feet ———
   'place:metropizza': ab('Searchlight', every(6), [M(1.6, 4, tough(2)), D(2, tough(2))], GOLD, 'zap'),

@@ -558,6 +558,30 @@ const S: Record<string, Spec> = {
     sfx: [['sfx_cosmiccroc_meteor'], ['sfx_cosmiccroc_impact', 170], ['sfx_explosion', 260, 0.5]],
     dim: 0.12,
   },
+  // Bronze Hammer: the forge pie slams the table like the Colossus, bronze shards raining on the toughest feet
+  'pizza:colossusforge': {
+    steps: [{ k: 'strike', tex: 'pizza', size: 1.1, crack: true, dust: 0xc88a3a }, { k: 'rain', tex: ['p_colossus_shard', 'p_colossus_chunk'], n: 6, size: 70, t: 170, spin: true, tint: [0xffc070, 0xd08a3a] }, { k: 'rings', color: ORANGE, n: 2, icons: 'crumb2', nIcons: 8, iconTint: [0xffe0a0, 0xff8a3a], t: 200 }],
+    sfx: [['sfx_colossus_anvil', 0, 0.8], ['sfx_colossus_crack', 160], ['sfx_colossus_clang', 220, 0.7]],
+    weight: 1.1,
+  },
+  // Petrifying Glare: the gorgon pie rises at the edge, its green glare beaming down on every foot, stone on them
+  'pizza:gorgonsgaze': {
+    steps: [{ k: 'show', tex: 'pizza', size: 260, from: 'below', glow: 0x9dff6a, ms: 600 }, { k: 'beam', kind: 'laser', color: 0x9dff6a, t: 80 }, { k: 'rings', color: 0xcfc6b4, n: 1, icons: 'p9_crack1', nIcons: 4, t: 200 }],
+    sfx: [['sfx_medusa_glow'], ['sfx_medusa_gaze', 120], ['sfx_medusa_petrify', 220]],
+    emblem: 'pizza',
+  },
+  // Sirens' Chorus: the siren pie at the edge, notes drifting down onto every foot, a soft sea-green wash
+  'pizza:sirenssong': {
+    steps: [{ k: 'tint', color: 0x0a3a3a, alpha: 0.12, ms: 700 }, { k: 'show', tex: 'pizza', size: 240, glow: 0x8ff0e0, ms: 700 }, { k: 'seek', tex: 'p9_note', n: 2, size: 70, tint: 0x9af0e0, t: 100 }, { k: 'rings', color: 0x8ff0e0, n: 2, gap: 120, t: 220 }],
+    sfx: [['sfx_sirensong', 0, 0.9], ['sfx_smack_tail_bell', 300, 0.6]],
+    emblem: 'pizza',
+  },
+  // Maelstrom: Charybdis's water at the sides, a whirl under every foot, the swirl pie spinning at the edge
+  'pizza:charybdisswirl': {
+    steps: [{ k: 'flood', kind: 'water' }, { k: 'spin', tex: 'afx_spiral', turns: -1.5, tint: 0x9fe6ff, color: CYAN, sparkle: false, t: 60 }, { k: 'show', tex: 'pizza', size: 220, glow: 0x6ac8ff, spin: -1, ms: 600 }],
+    sfx: [['sfx_whirlpool'], ['sfx_kraken_splash', 200, 0.8], ['sfx_smack_water_heavy', 240, 0.7]],
+    dim: 0.1,
+  },
   // Eruption: the pizza erupts like a volcano, lava falling on every foot
   'pizza:volcano': {
     steps: [{ k: 'show', tex: 'pizza', size: 360, from: 'below', glow: RED, wiggle: true }, { k: 'rain', tex: ['p_fireball', 'flame'], n: 14, size: 90, trail: ORANGE, splash: ORANGE, t: 80 }],

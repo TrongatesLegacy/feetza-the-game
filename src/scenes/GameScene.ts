@@ -669,6 +669,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.restore(snap);
       this.perkKit.restored(this.pizzas);
       this.perkKit.lostLastWave = !!snap.lostLastWave;
+      // (older saves don't have it: the waves already cleared stand in)
+      this.perkKit.forgeWaves = snap.forgeWaves ?? this.run.wave;
     }
     else {
       const slices = BASE_SLICES + (save.meta.pies ?? 0);
@@ -944,6 +946,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       firstKills: r.firstKills,
       slicesLost: r.slicesLost,
       lostLastWave: this.perkKit.lostLastWave,
+      forgeWaves: this.perkKit.forgeWaves,
       pizzasBought: r.pizzasBought,
       eventCrusts: r.eventCrusts,
       bankedCrusts: r.bankedCrusts,
@@ -2771,6 +2774,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       extraDouble: this.perkKit.extraDouble(),
       lossTips: this.perkKit.lossTipsOn(),
       ghosts: this.perkKit.ghostCount(),
+      forgeWaves: this.perkKit.forgeWaves,
       hero: { smack: hero.smack, all: hero.all, reach: this.heroes.reachMult(), crit: this.heroes.critAlways(), meter: this.heroes.meterMult() },
       waveMult: this.perkKit.waveDmgMult(wave),
       areaSmack: r.level('peel') > 0 || this.kit.areaSmack(),
@@ -3609,16 +3613,20 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (this.waveActive) this.tally.wave.smacks++;
     // Pizza Romana's extra is worked out once a smack, and the total stays under the cap
     const double = Math.min(DOUBLE_CAP, this.run.stats.doubleChance + this.perkKit.extraDouble());
+    let first: Foot | null = null;
     for (const { f } of targets) {
-      this.hitFoot(f, x, y);
+      if (this.hitFoot(f, x, y) && !first) first = f;
       if (Math.random() < double && f.alive) this.time.delayedCall(90, () => f.alive && this.hitFoot(f, x + 12, y - 12));
     }
+    // once a swing (Three-Headed Hound counts smacks, not the feet one hits)
+    if (first) this.perkKit.swung(first);
   }
 
   /** Guard shields this run: smacks blocked, shields broken, new ones raised (the balance sim reads it). */
   guardStats = { blocked: 0, broken: 0, rearmed: 0, soaked: 0, deflected: 0, chipSteps: 0, slamSteps: 0, ttk: {} as Record<string, number[]>, stomps: {} as Record<string, number> };
 
-  private hitFoot(f: Foot, x: number, y: number): void {
+  /** Returns whether the smack landed (not parried, guarded or dodged). */
+  private hitFoot(f: Foot, x: number, y: number): boolean {
     const st = this.run.stats;
     const hpBefore = f.hp;
     // due to stomp within 0.3 s (Spider-Pan's goal)
@@ -3639,7 +3647,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       // (Spartan Sandals: a hit in an opening slams the shield back up)
       f.guardReact();
     }
-    if (!f.alive) return;
+    if (!f.alive) return landed;
     if (f.has('pinch')) this.stunPeel(0.5, 'PINCHED!');
     if (f.has('sticky')) {
       this.slowPeel(1.4);
@@ -3656,6 +3664,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.fx.quip(f.x, 220, 'BOUNCED TO THE TOP!', '#ffe0f0', 36);
       audio.sfx('sfx_boing', { rate: 0.8 });
     }
+    return landed;
   }
 
   private dealDamage(f: Foot, amount: number, o: DamageOpts): void {
@@ -4024,7 +4033,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     }
     // Zombie Outbreak: a kill may heal a slice (its own bites and bursts heal by their own rule)
     if (this.ability?.zombie) this.outbreak.killed(f);
-    this.perkKit.killed(f, coins);
+    this.perkKit.killed(f, coins, echoCut < 1);
     if (f.has('crusty')) {
       const cap = Math.round(EVENT_CRUST_CAP * this.run.heatDef.crusts);
       const got = Math.max(0, Math.min(1 + Math.floor(Math.random() * 3), cap - this.run.eventCrusts));
