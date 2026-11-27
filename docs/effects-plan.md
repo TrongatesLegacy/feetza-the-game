@@ -21,46 +21,42 @@ Every item (topping, pizza, peel, hero, Pizzeria upgrade, Legendary) declares a 
 2. how to show it on the STATS tab, with its tile, number, note and "from" chips;
 3. how it scales: level, enhanced, Napoletana's boost, Echo Slice copies, heat for Legendaries.
 
-```ts
-// a pizza, a topping or a peel all say what they do the same way: typed variants, every field required
-effects: [
-  { kind: Effect.Stat, stat: Stat.ConsumableCards, op: Op.Add, value: 1 },                        // Mac & Cheese
-  { kind: Effect.OnKill, chance: 0.15, action: { kind: Action.Summon, ally: Ally.FriendlyGhost } }, // Phantom Waltz
-  { kind: Effect.Every, sec: 20, action: { kind: Action.BlowUp, target: Target.Diving } },          // Steam Bun Pie
-  { kind: Effect.OnStomp, perWave: 1, action: { kind: Action.Block, stunSec: 1 } },                 // Granite Crust
-]
-```
-
-Items write them through small constructors, which return exactly those typed objects:
+Items say what they do in one line each:
 
 ```ts
 effects: [
-  Effect.stat(Stat.ConsumableCards, Op.add(1)),                    // Mac & Cheese
-  Effect.onKill({ chance: 0.15, action: Action.summon(Ally.FriendlyGhost) }), // Phantom Waltz
-  Effect.every({ sec: 20, action: Action.blowUp(Target.Diving) }), // Steam Bun Pie
+  Effect.Stat(Stat.ConsumableCards, Op.add(1)),                                  // Mac & Cheese
+  Effect.OnKill({ chance: 0.15, action: Action.Summon(Ally.FriendlyGhost) }),    // Phantom Waltz
+  Effect.Every({ sec: 20, action: Action.BlowUp(Target.Diving) }),               // Steam Bun Pie
+  Effect.OnStomp({ perWave: 1, action: Action.Block({ stunSec: 1 }) }),          // Granite Crust
 ]
 ```
 
-Positional arguments are used for one or two obvious values, and a typed object for more (TypeScript has no named arguments, so `{ chance, action }` stands in for them). The constructors check their values (a chance between 0 and 1) and hold the defaults. What they return stays plain data, so a `switch` on `kind` still works and runs save and load cleanly.
-
-**Where the behaviour lives:** effects are data, and each kind's behaviour lives in one module beside its type, registered once. Nothing using an effect needs to know what kind it is:
+Each kind of effect is written **once**, in its own file: its fields, and what it does in play, on STATS, when scaled and in searches. Writing it once gives both the `Effect.OnKill(...)` used above and its registered behaviour:
 
 ```ts
-// effects/onKill.ts: everything about one kind of effect, in one place
-export const onKill = defineEffect(Effect.OnKill, {
+// effects/onKill.ts: everything about "on kill", in one place
+export const OnKill = effectKind('onKill', {
+  // its fields (typed; a missing one doesn't compile)
+  make: (o: { chance: number; action: ActionData }) => ({ chance: check01(o.chance), action: o.action }),
+  // what it does in play, through a small interface onto the game
   apply: (e, ctx) => ctx.on(GameEvent.Kill, (foot) => { if (ctx.roll(e.chance)) runAction(e.action, ctx, foot); }),
-  describe: (e) => `${pct(e.chance)} of kills: ${describeAction(e.action)}`,  // the STATS tile and card text
+  describe: (e) => `${pct(e.chance)} of kills: ${describeAction(e.action)}`,  // card text and STATS tile
   scale: (e, k) => ({ ...e, chance: Math.min(1, e.chance * k) }),              // enhanced, Napoletana, Echo Slice
   tags: (e) => actionTags(e.action),                                            // "summons", "freezes", ...
 });
 
-// anywhere else: no switch, no knowledge of the kinds
+// effects/index.ts: the list of every kind (typed: one missing a method doesn't compile)
+export const Effect = { Stat, OnKill, Every, OnStomp /* ... */ } as const;
+
+// the game: no switch, no knowledge of the kinds
 for (const e of item.effects) effects.apply(e, ctx);
 ```
 
-Every name is a constant (`Effect.OnKill`, `GameEvent.Kill`), never typed out by hand. Each constant's value is a string (`Effect.OnKill = 'onKill'`), so saves stay readable and don't break when a kind is added. Numbered enums would shift and break old saves. The registry is typed as a `Record` over every kind, so a kind with no module (or one missing `describe` or `scale`) fails the typecheck. `ctx` is one small interface onto the game (subscribe to an event, roll, find feet, run an action), so effects never reach into the scene. They stay data (saved with the run, copied by Echo Slice, searched by tag), while working like objects with their own methods.
-
-(The names are `as const` objects, so `Stat.ConsumableCards` autocompletes, renames safely and can't be misspelt. Each variant is its own type with no optional "options bag", so an effect that's missing a field doesn't compile.)
+- `Effect.OnKill({ … })` builds the effect: plain data, tagged with its kind. It can be saved with the run, copied by Echo Slice and searched by tag.
+- `effects.apply(e, ctx)` (and `describe`, `scale`, `tags`) looks up the effect's kind and runs that kind's code. Nothing outside the kind's file needs to know what it does.
+- The tag in the data is a string underneath (`'onKill'`) so saves stay readable and stable when kinds are added (numbered enums would shift and break old saves), but code never types it: it only appears in the one line that declares the kind.
+- `ctx` is a small interface onto the game (subscribe to an event, roll, find feet, run an action), so effects never reach into the scene.
 
 - **Stat effects** (a number goes up or down) need no code at all: the STATS tab finds them, and their sources, from the declaration.
 - **Trigger effects** (on kill, on smack, on stomp, every N seconds, at wave start, on a pizza lost, on a boss beaten) run through one trigger bus. A source subscribes by declaring the trigger, and the bus handles stale, frozen, possessed, Ghost echoes and twins once, for everything.
@@ -76,7 +72,7 @@ Every number goes through one resolver. Sources no longer change `stats` directl
 
 ### Types, not loose strings
 
-Effects are a **discriminated union**, TypeScript's version of Rust's enums: each variant carries its own data, for example `{ kind: 'stat', stat: StatKey, op, value }`, `{ kind: 'onKill', chance, action: Action }` or `{ kind: 'every', sec, action }`. The adapters are a `Record<EffectKind, Adapter>`, and every `switch` ends in an `assertNever`. Adding a kind of effect then fails the typecheck until its apply, its STATS display and its scaling are all written, and stat names are a typed key union, so a typo can't compile. This is the guarantee that stops a detail going missing.
+Each effect is typed by its kind: `Effect.OnKill(...)` only accepts an on-kill's fields, and what it returns is an on-kill, never a loose object. The list of kinds is checked so every kind has its `make`, `apply`, `describe`, `scale` and `tags`. Stats, events, allies and targets are typed constants (`Stat.ConsumableCards`, `GameEvent.Kill`), so a typo can't compile. This is the guarantee that stops a detail going missing.
 
 Odd one-offs (the Black Olive Hole's pull, the Hammy Ha beam) stay as custom actions. They plug in through the same trigger and STATS adapters, so they still get their timing, scaling and tile for free.
 
