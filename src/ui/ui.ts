@@ -1190,7 +1190,8 @@ class UI {
             pic,
             h('div', { class: 'offer-text' }, h('span', { class: 'tag' }, "CHEF'S SPECIAL"), h('b', {}, o.name), h('span', {}, o.perk)),
             b,
-            h('div', { class: 'unlock-note' }, h('b', {}, 'NEW PIZZA'), ' · Buy it to add it to your table and unlock it forever'),
+            // a ribbon across the card: what makes a Chef's Special worth it
+            h('div', { class: 'unlock-note' }, h('span', { class: 'un-star' }, '✦'), h('b', {}, 'NEW PIZZA'), h('span', { class: 'un-sub' }, 'buy it once, yours forever'), h('span', { class: 'un-star' }, '✦')),
           );
         if (o.kind === 'enhanced')
           return h('div', { class: 'offer enhanced' }, pic, h('div', { class: 'offer-text' }, h('span', { class: 'tag' }, '★ ENHANCED PIZZA'), h('b', {}, o.name), h('span', {}, perkDiff(o.basePerk ?? o.perk, o.perk))), b);
