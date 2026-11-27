@@ -621,8 +621,8 @@ export class Run {
       if (!remaining.length) break;
       picks.push(weightedPick(remaining, (u) => weights[u.rarity]));
     }
-    // Mac & Cheese: one extra consumable card (not past Exclusive Menu's 2-card cap)
-    for (let i = 0; i < (this.level('exclusivemenu') ? 0 : this.stats.extraConsumable); i++) {
+    // Mac & Cheese: one extra consumable card (on top of Exclusive Menu's 2, like Extra Shelf's)
+    for (let i = 0; i < this.stats.extraConsumable; i++) {
       const cons = avail.filter((u) => kindOf(u) === 'consumable' && !picks.includes(u));
       if (cons.length) picks.push(weightedPick(cons, () => 1));
     }

@@ -14,11 +14,11 @@ export function happyHour(run: Run): boolean {
   return run.level('happyhour') > 0 && run.wave > 0 && run.wave % 5 === 0;
 }
 
-/** Topping cards in a shop: Extra Shelf and Premium Menu add, Discount Bin takes one, Exclusive Menu caps it at 2, never below 1. */
+/** Topping cards in a shop: Exclusive Menu deals 2 where a shop would deal more, then Extra Shelf and Premium Menu add
+ *  theirs on top and Discount Bin takes one; never below 1. */
 export function cardCount(run: Run, base: number): number {
-  let n = base + run.stats.cardDelta;
-  if (run.level('exclusivemenu')) n = Math.min(n, 2);
-  return Math.max(1, n);
+  const deal = run.level('exclusivemenu') ? Math.min(base, 2) : base;
+  return Math.max(1, deal + run.stats.cardDelta);
 }
 
 /** Every discount on this card right now (negative: a surcharge), capped at 60% off. */
