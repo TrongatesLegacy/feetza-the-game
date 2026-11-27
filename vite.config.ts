@@ -34,11 +34,11 @@ function audioManifest(): Plugin {
 // saved in the browser is never used after any of them changes. It follows the static imports (and the folders
 // import.meta.glob loads) from src/game/assets.ts, which draws everything the cache keeps; `import type` lines are
 // skipped (no runtime code). Dev recomputes it after any change under src/ (the next page load picks it up); a
-// build bakes it in.
-function artVersion(id = 'virtual:art-version', from = 'game/assets.ts'): Plugin {
+// build bakes it in. `from` may list several entry files (the art packs' version follows everything they hold).
+function artVersion(id = 'virtual:art-version', from: string | string[] = 'game/assets.ts'): Plugin {
   const resolved = '\0' + id;
   const root = resolve(__dirname, 'src');
-  const entry = resolve(root, from);
+  const entries = (Array.isArray(from) ? from : [from]).map((f) => resolve(root, f));
   const importRe = /\b(?:import|export)\s+(type\s+)?(?:[\w*{}\s,$]*?\s+from\s+)?['"](\.[^'"]+)['"]|\bimport\(\s*['"](\.[^'"]+)['"]\s*\)/g;
   // (a glob may carry a type argument: import.meta.glob<{ … }>('./dir/*.ts', …))
   const globRe = /import\.meta\.glob\b[\s\S]{0,300}?\(\s*['"](\.[^'"]*?)\/\*\.ts['"]/g;
@@ -64,7 +64,7 @@ function artVersion(id = 'virtual:art-version', from = 'game/assets.ts'): Plugin
         if (r) walk(r);
       }
     };
-    walk(entry);
+    for (const e of entries) walk(e);
     const h = createHash('sha256');
     for (const f of [...seen].sort()) h.update(relative(root, f)).update('\0').update(readFileSync(f)).update('\0');
     return h.digest('hex').slice(0, 16);
@@ -89,6 +89,11 @@ function artVersion(id = 'virtual:art-version', from = 'game/assets.ts'): Plugin
     },
   };
 }
+
+// The pre-built art packs' version (src/game/packs.ts, scripts/prebuild): everything the packed art is painted by,
+// the backdrops' live layers (src/game/BackdropView.ts pulls in src/content/live) and the peels included. A pack
+// built under another version is never used.
+const PACK_SOURCES = ['game/assets.ts', 'game/BackdropView.ts', 'game/peels.ts'];
 
 // Dev-only: lets the running game POST canvas screenshots for automated visual review.
 function devShots(): Plugin {
@@ -198,7 +203,7 @@ function devNotes(): Plugin {
 
 export default defineConfig({
   base: './',
-  plugins: [audioManifest(), artVersion(), artVersion('virtual:peel-version', 'game/peels.ts'), devShots(), devNotes(), devSmackLog()],
+  plugins: [audioManifest(), artVersion(), artVersion('virtual:peel-version', 'game/peels.ts'), artVersion('virtual:pack-version', PACK_SOURCES), devShots(), devNotes(), devSmackLog()],
   build: {
     target: 'es2022',
     assetsInlineLimit: 0,

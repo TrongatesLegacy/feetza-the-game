@@ -14,6 +14,7 @@ import { makeCanvas } from '../art/util';
 import { crand } from '../systems/cosmeticRandom';
 import { FX_R, type FxFrame, Spring, fxAtlas } from './liveKit';
 import { type KitLive, calm } from './sceneLive';
+import { packedCanvas } from './packs';
 
 type Img = Phaser.GameObjects.Image;
 type Container = Phaser.GameObjects.Container;
@@ -28,18 +29,21 @@ export function sheet(k: KitLive, key: string, fw: number, fh: number, n: number
   if (sc.textures.exists(key)) return key;
   fw = Math.ceil(fw);
   fh = Math.ceil(fh);
-  const [c, ctx] = makeCanvas(fw * n, fh);
-  ctx.lineJoin = 'round';
-  ctx.lineCap = 'round';
-  for (let i = 0; i < n; i++) {
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(i * fw, 0, fw, fh);
-    ctx.clip();
-    ctx.translate(i * fw, 0);
-    draw(ctx, i / n, i);
-    ctx.restore();
-  }
+  const c = packedCanvas(key, () => {
+    const [c, ctx] = makeCanvas(fw * n, fh);
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    for (let i = 0; i < n; i++) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(i * fw, 0, fw, fh);
+      ctx.clip();
+      ctx.translate(i * fw, 0);
+      draw(ctx, i / n, i);
+      ctx.restore();
+    }
+    return c;
+  });
   const tex = sc.textures.addCanvas(key, c)!;
   for (let i = 0; i < n; i++) tex.add(i, 0, i * fw, 0, fw, fh);
   return key;

@@ -10,7 +10,8 @@ import { Foot } from '../game/Foot';
 import { warmFootArt } from '../game/assets';
 import { Fx } from '../game/Fx';
 import { Pizza } from '../game/Pizza';
-import { endCrustsFor } from '../game/Run';
+import { backdropFor, endCrustsFor } from '../game/Run';
+import { preparePacked } from '../game/liveBackdrop';
 import { audio } from '../systems/audio';
 import { freshStart, persist, save } from '../systems/save';
 import { ui } from '../ui/ui';
@@ -154,7 +155,9 @@ export class MenuScene extends Phaser.Scene {
             const snapshot = save.run!;
             ui.closeAll();
             this.cameras.main.fadeOut(400, 18, 10, 6);
-            this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('Game', { snapshot }));
+            // the saved wave's backdrop from its pre-built pack, while the screen fades (a few seconds at most)
+            const bd = preparePacked(this, backdropFor(snapshot.wave), 5000);
+            this.cameras.main.once('camerafadeoutcomplete', () => void bd.then(() => this.scene.start('Game', { snapshot })));
           }
         : null,
       pizzeria: () => {

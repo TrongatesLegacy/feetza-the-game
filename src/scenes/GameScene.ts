@@ -18,7 +18,8 @@ import { UPGRADES, UPGRADE_BY_ID, kindOf, type Rarity, type Stats, type Upgrade 
 import type { Arena, Clickable } from '../game/arena';
 import { evictFootArt, footPortraitURL, pizzaPortraitURL, setArtWarmBusy, textureURL, texturesInUse, warmFootArt } from '../game/assets';
 import { BackdropView } from '../game/BackdropView';
-import { prepareLive, releaseLive } from '../game/liveBackdrop';
+import { packedReady, prepareLive, preparePacked, releaseLive } from '../game/liveBackdrop';
+import { backdropPack, prefetchPack } from '../game/packs';
 import { BossDirector } from '../game/bosses';
 import { PHASE_CARDS_OFF, phaseCardFor, phaseCardsOn, phaseSeenKey } from '../game/phaseCards';
 import { eventName, startEvent, type EventId } from '../game/events';
@@ -2327,7 +2328,20 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   /** Build the live art of the feet that can turn up in wave n in idle time, before they appear (the shop and the
    * wave's opening seconds): its boss and minion, its mini-boss, its queue (or the feet likeliest in it). */
+  /** The pre-built art packs (src/game/packs.ts): this act's now, the next act's quietly a few waves into this one
+   * (Endless and Endless+ included: whatever the journey deals next). The shared pack's atlases come as they're
+   * asked for (the lineup's pizzas, the everyday feet the warmer wants). */
+  private prefetchPacks(n: number): void {
+    const here = backdropPack(backdropFor(n));
+    if (here) void prefetchPack(here, false);
+    const first = actStartWave(n);
+    if (n - first < 2) return;
+    const next = backdropPack(backdropFor(first + 2 * WAVES_PER_STAGE));
+    if (next && next !== here) void prefetchPack(next);
+  }
+
   private warmFeet(n: number, plan?: WavePlan): void {
+    this.prefetchPacks(n);
     const ids: string[] = [];
     // (the plan's own boss and mini-boss: the dev shortcut can put others in)
     if (isBossWave(n)) {
@@ -2408,7 +2422,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.warmFeet(this.run.wave + 1);
     // the next stage's backdrop: build its live textures while the shop is up, not as its first wave starts
     const nextBd = backdropFor(this.run.wave + 1);
-    if (nextBd !== this.currentBackdrop) this.time.delayedCall(500, () => this.inUpgrade && prepareLive(this, nextBd));
+    // (decoded from its pre-built pack first when it has one: then nothing is painted)
+    if (nextBd !== this.currentBackdrop) this.time.delayedCall(500, () => this.inUpgrade && void preparePacked(this, nextBd).then(() => this.inUpgrade && prepareLive(this, nextBd)));
     this.inUpgrade = true;
     // the shop's perk texts count with the wave coming up (Tuna & Sweetcorn)
     this.syncPerkWave(this.run.wave + 1);
@@ -3297,6 +3312,27 @@ export class GameScene extends Phaser.Scene implements Arena {
       ui.nudgeCounter(this.shop.el);
       return;
     }
+    // the next stage's backdrop still coming from its pack (a slow line, the last shop before an act): wait for it
+    // with a note, rather than paint it now
+    const nextBd = backdropFor(this.run.wave + 1);
+    if (nextBd !== this.currentBackdrop && this.packGaveUp !== nextBd && !packedReady(this, nextBd)) {
+      if (this.packWait) return;
+      const el = this.shop.el;
+      const note = document.createElement('div');
+      note.className = 'pack-wait';
+      note.textContent = 'Loading the next act…';
+      note.style.cssText = 'position:absolute;left:50%;bottom:14px;transform:translateX(-50%);padding:6px 14px;border-radius:10px;background:#1d1422e6;color:#ffe9c7;font:600 15px Fredoka,system-ui,sans-serif;z-index:5;pointer-events:none';
+      el.appendChild(note);
+      this.packWait = true;
+      void preparePacked(this, nextBd, 15000).then(() => {
+        this.packWait = false;
+        // (still not in after the wait: it's painted)
+        this.packGaveUp = nextBd;
+        note.remove();
+        if (this.shop?.el === el) this.shopNext();
+      });
+      return;
+    }
     this.saveRun();
     ui.close(this.shop.el);
     this.shop = null;
@@ -3305,6 +3341,10 @@ export class GameScene extends Phaser.Scene implements Arena {
     audio.duck(1);
     this.time.delayedCall(400, () => this.beginWave(this.run.wave + 1));
   }
+
+  /** The next act's backdrop is being decoded from its pack while the shop waits (shopNext). */
+  private packWait = false;
+  private packGaveUp: BackdropId | null = null;
 
   /** Put a new pizza on the table: into the given slot (swapping that pizza out), or a new plate. */
   private placeNewPizza(id: string, label: string, swapIndex?: number): Pizza | null {

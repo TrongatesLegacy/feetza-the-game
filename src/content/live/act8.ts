@@ -8,6 +8,7 @@ import { crand } from '../../systems/cosmeticRandom';
 import { aurora, flame, glow } from '../../art/sceneKit';
 import { makeCanvas, rgba, rng } from '../../art/util';
 import { type LiveCtx, type LiveScene, registerLegacyLive } from '../../game/liveBackdrop';
+import { packedCanvas } from '../../game/packs';
 
 const W = 1920;
 
@@ -18,8 +19,11 @@ type Emitter = Phaser.GameObjects.Particles.ParticleEmitter;
 
 function tex(sc: Phaser.Scene, key: string, w: number, h: number, draw: (ctx: CanvasRenderingContext2D) => void): string {
   if (!sc.textures.exists(key)) {
-    const [c, ctx] = makeCanvas(w, h);
-    draw(ctx);
+    const c = packedCanvas(key, () => {
+      const [c, ctx] = makeCanvas(w, h);
+      draw(ctx);
+      return c;
+    });
     sc.textures.addCanvas(key, c);
   }
   return key;

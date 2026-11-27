@@ -11,7 +11,6 @@ import '../content/art';
 import '../content/style';
 import '../content/styleLive';
 import { drawBackdrop, type BackdropId } from '../art/backdrops';
-import { prepareLive } from './liveBackdrop';
 import { ART_RES, drawFoot, footPortrait, type FootTextures } from '../art/feetArt';
 import { drawPizzaTop, drawSliceSprite, pizzaPortrait } from '../art/pizzaArt';
 import { buildEventSprites } from '../art/eventArt';
@@ -21,6 +20,8 @@ import { scrollingNow } from '../art/scrolling';
 import { FOOT_BY_ID } from '../data/feet';
 import { PIZZA_BY_ID } from '../data/pizzas';
 import { bitmapCanvas, cachedArt, openArtCache, readArt, writeArt } from './artCache';
+import { initPacks, packedCanvas, prefetchPack } from './packs';
+import { prepareLive, preparePacked } from './liveBackdrop';
 
 export interface FootMeta {
   footKey: string;
@@ -449,7 +450,9 @@ export function artBooted(): boolean {
  */
 export async function generateAll(scene: Phaser.Scene, progress: (p: number, label: string) => void, feet: string[] = [], pizzas: string[] = []): Promise<void> {
   const t0 = performance.now();
-  await openArtCache();
+  // the art cache, and the pre-built packs' manifest (then the title's backdrop decoded from its pack)
+  const [, packed] = await Promise.all([openArtCache(), initPacks()]);
+  if (packed) await preparePacked(scene, 'trattoria', 4000);
   const timing: [string, number][] = [];
   // with Animated stages on the room is shown live (its live base and moving parts: src/game/liveBackdrop.ts), not
   // the still
@@ -483,6 +486,8 @@ export async function generateAll(scene: Phaser.Scene, progress: (p: number, lab
   }
   progress(1, 'Ready!');
   booted = true;
+  // the Peel Locker's thumbnails, quietly (the rest of the shared pack comes an atlas at a time, as it's asked for)
+  if (packed) setTimeout(() => void prefetchPack('peels'), 3000);
   // how long the art took to build (load-time budget checks), and in dev each job's share
   const ms = Math.round(performance.now() - t0);
   performance.mark('feetza:art', { detail: ms });
@@ -495,7 +500,7 @@ export function backdropKey(id: BackdropId): string {
 
 export function ensureBackdrop(scene: Phaser.Scene, id: BackdropId): string {
   const key = backdropKey(id);
-  if (!scene.textures.exists(key)) addCanvas(scene, key, drawBackdrop(id));
+  if (!scene.textures.exists(key)) addCanvas(scene, key, packedCanvas(key, () => drawBackdrop(id)));
   return key;
 }
 

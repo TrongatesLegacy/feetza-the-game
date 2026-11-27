@@ -12,6 +12,7 @@ import { registerLegacyScene, registerScene } from '../art/registry';
 import { crand } from '../systems/cosmeticRandom';
 import { save } from '../systems/save';
 import { type LiveCtx, registerLegacyLive, registerLive } from './liveBackdrop';
+import { packedCanvas } from './packs';
 
 type Img = Phaser.GameObjects.Image;
 type Container = Phaser.GameObjects.Container;
@@ -87,13 +88,16 @@ export class KitLive {
   /** A canvas texture made once per game. */
   tex(key: string, w: number, h: number, draw: (c: CanvasRenderingContext2D) => void): string {
     if (!this.sc.textures.exists(key)) {
-      const c = document.createElement('canvas');
-      c.width = w;
-      c.height = h;
-      const g = c.getContext('2d')!;
-      g.lineJoin = 'round';
-      g.lineCap = 'round';
-      draw(g);
+      const c = packedCanvas(key, () => {
+        const c = document.createElement('canvas');
+        c.width = w;
+        c.height = h;
+        const g = c.getContext('2d')!;
+        g.lineJoin = 'round';
+        g.lineCap = 'round';
+        draw(g);
+        return c;
+      });
       this.sc.textures.addCanvas(key, c);
     }
     return key;
@@ -153,15 +157,15 @@ function bake(sc: Phaser.Scene, spec: SceneSpec, tag: string = spec.id): { base:
   const plan = planLive(spec);
   let shade: string | null = `bgk_${tag}_shade`;
   if (!sc.textures.exists(shade)) {
-    const c = paintShade(spec, SHADE_K);
+    const c = spec.shade ? packedCanvas(shade, () => paintShade(spec, SHADE_K)!) : null;
     if (c) sc.textures.addCanvas(shade, c);
     else shade = null;
   }
   const base = `bgk_${tag}_base`;
-  if (!sc.textures.exists(base)) sc.textures.addCanvas(base, paintLiveBase(spec, plan.base));
+  if (!sc.textures.exists(base)) sc.textures.addCanvas(base, packedCanvas(base, () => paintLiveBase(spec, plan.base)));
   const pieces = plan.pieces.map((p, i) => {
     const key = `bgk_${tag}_${i}_${p.kind === 'overlay' ? 'ov' : p.layer.id}`;
-    if (p.kind !== 'slot' && !sc.textures.exists(key)) sc.textures.addCanvas(key, bakePiece(spec, p));
+    if (p.kind !== 'slot' && !sc.textures.exists(key)) sc.textures.addCanvas(key, packedCanvas(key, () => bakePiece(spec, p)));
     return key;
   });
   return { base, pieces, plan, shade };

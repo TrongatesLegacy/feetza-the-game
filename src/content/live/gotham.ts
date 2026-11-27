@@ -11,6 +11,7 @@ import { makeCanvas } from '../../art/util';
 import { type LiveCtx, type LiveScene, registerLegacyLive } from '../../game/liveBackdrop';
 import { audio } from '../../systems/audio';
 import { save } from '../../systems/save';
+import { packedCanvas } from '../../game/packs';
 
 const W = 1920;
 const H = 1080;
@@ -22,8 +23,11 @@ const reduced = () => save.settings.reducedMotion;
 
 function tex(sc: Phaser.Scene, key: string, w: number, h: number, draw: (ctx: CanvasRenderingContext2D) => void): string {
   if (!sc.textures.exists(key)) {
-    const [c, ctx] = makeCanvas(w, h);
-    draw(ctx);
+    const c = packedCanvas(key, () => {
+      const [c, ctx] = makeCanvas(w, h);
+      draw(ctx);
+      return c;
+    });
     sc.textures.addCanvas(key, c);
   }
   return key;

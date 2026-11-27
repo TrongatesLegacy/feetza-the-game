@@ -15,3 +15,6 @@ inspiration/
 # Python bytecode from the audio build scripts
 __pycache__/
 *.pyc
+
+# pre-built art packs (npm run prebuild, which npm run build runs first)
+public/packs/

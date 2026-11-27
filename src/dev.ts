@@ -152,6 +152,8 @@ export function installDevTools(game: Phaser.Game): void {
       clear: async () => (await import('./game/artCache')).artCacheDev.clear(),
       pending: async () => (await import('./game/assets')).artPending(),
     },
+    /** The pre-built art packs (src/game/packs.ts): what's loaded, hits and misses, bytes fetched, decode time. */
+    packs: async () => (await import('./game/packs')).packsDev(),
     sim: {
       run: async (o: import('./devSim').SimOpts) => (await import('./devSim')).simRun(game, o, (opts) => api.startGame(opts)),
       ready: async () => (await import('./devSim')).simReady(),

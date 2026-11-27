@@ -16,3 +16,9 @@ declare module 'virtual:peel-version' {
   const version: string;
   export default version;
 }
+
+/** The same for the pre-built art packs (src/game/packs.ts): everything the packed art is painted by. */
+declare module 'virtual:pack-version' {
+  const version: string;
+  export default version;
+}
