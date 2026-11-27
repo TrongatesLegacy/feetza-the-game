@@ -16,6 +16,7 @@ import Phaser from 'phaser';
 import { makeCanvas } from '../../art/util';
 import { crand } from '../../systems/cosmeticRandom';
 import { type KitLive, calm } from '../../game/sceneLive';
+import { packedCanvas } from '../../game/packs';
 
 type Img = Phaser.GameObjects.Image;
 type Container = Phaser.GameObjects.Container;
@@ -24,18 +25,21 @@ type Container = Phaser.GameObjects.Container;
 export function sheet(k: KitLive, key: string, n: number, w: number, h: number, draw: (c: CanvasRenderingContext2D, ph: number, i: number) => void): string {
   const sc = k.sc;
   if (sc.textures.exists(key)) return key;
-  const [c, ctx] = makeCanvas(w * n, h);
-  for (let i = 0; i < n; i++) {
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(i * w, 0, w, h);
-    ctx.clip();
-    ctx.translate(i * w, 0);
-    ctx.lineJoin = 'round';
-    ctx.lineCap = 'round';
-    draw(ctx, i / n, i);
-    ctx.restore();
-  }
+  const c = packedCanvas(key, () => {
+    const [c, ctx] = makeCanvas(w * n, h);
+    for (let i = 0; i < n; i++) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(i * w, 0, w, h);
+      ctx.clip();
+      ctx.translate(i * w, 0);
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      draw(ctx, i / n, i);
+      ctx.restore();
+    }
+    return c;
+  });
   const tex = sc.textures.addCanvas(key, c);
   for (let i = 0; i < n; i++) tex?.add(i, 0, i * w, 0, w, h);
   return key;

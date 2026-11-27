@@ -8,6 +8,7 @@ import type { GlowSpot } from '../../art/backdrops';
 import type { BackdropId } from '../../art/backdrops';
 import { type SceneDef, registerLegacyScene, registerScene as registerPainted } from '../../art/registry';
 import { type LiveFactory, registerLegacyLive, registerLive } from '../../game/liveBackdrop';
+import { packedCanvas } from '../../game/packs';
 
 /** Moving parts of a backdrop that a painted canvas can't do (flickering flames, drifting fog, a boat on a
  * river), and lighting that changes over the stage's 5 waves. */
@@ -610,10 +611,13 @@ function plinth(ctx: Ctx, x: number, y: number, w: number, h: number, col: strin
 /** A canvas texture made once per scene (live sprites: flames, fog puffs, the ferry). */
 function tex(scene: Phaser.Scene, key: string, w: number, h: number, draw: (c: Ctx) => void): string {
   if (scene.textures.exists(key)) return key;
-  const c = document.createElement('canvas');
-  c.width = w;
-  c.height = h;
-  draw(c.getContext('2d')!);
+  const c = packedCanvas(key, () => {
+    const c = document.createElement('canvas');
+    c.width = w;
+    c.height = h;
+    draw(c.getContext('2d')!);
+    return c;
+  });
   scene.textures.addCanvas(key, c);
   return key;
 }

@@ -6,6 +6,7 @@
 import { backdropsAnimated } from '../systems/graphics';
 import type Phaser from 'phaser';
 import type { BackdropId } from '../art/backdrops';
+import { backdropReady, dropBackdrop, prepareBackdrop } from './packs';
 
 export interface LiveCtx {
   sc: Phaser.Scene;
@@ -47,6 +48,8 @@ export function registerLive(id: BackdropId, f: LiveFactory, prepare?: (sc: Phas
 /** Free a scene's live textures (it can build them again if it comes back). */
 export function releaseLive(sc: Phaser.Scene, id: BackdropId): void {
   releases[id]?.(sc);
+  // (and any of its pre-built frames still waiting for their painter)
+  dropBackdrop(id);
 }
 
 export function registerLegacyLive(id: BackdropId, f: LiveFactory): void {
@@ -65,4 +68,16 @@ export function prepareLive(sc: Phaser.Scene, id: BackdropId): boolean {
   if (!p || !backdropsAnimated()) return false;
   p(sc);
   return true;
+}
+
+/** Decode a backdrop's pre-built textures (src/game/packs.ts) ahead of showing it: its live layer's with Animated
+ * stages on, its still otherwise. Resolves when they're ready, or after `ms` (they're then painted as before). */
+export function preparePacked(sc: Phaser.Scene, id: BackdropId, ms = 8000): Promise<void> {
+  const work = prepareBackdrop(id, backdropsAnimated(), (k) => sc.textures.exists(k));
+  return Promise.race([work, new Promise<void>((r) => setTimeout(r, ms))]);
+}
+
+/** Can this backdrop show without painting (its packed textures decoded, or nothing packed to wait for)? */
+export function packedReady(sc: Phaser.Scene, id: BackdropId): boolean {
+  return backdropReady(id, backdropsAnimated(), (k) => sc.textures.exists(k));
 }

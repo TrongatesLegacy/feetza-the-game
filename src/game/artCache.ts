@@ -6,9 +6,13 @@
 // file the art imports (in dev, or a new build) misses the cache until the art is drawn again; entries of other
 // versions are swept. Never in the way: if IndexedDB is missing (private mode), slow, full or corrupt, every read
 // misses and the art is drawn as before. Reads race a timeout, a bad entry is deleted, and writes go in idle time.
+//
+// Art pre-built at build time (src/game/packs.ts) reads as if it were cached: a key in a pack of this version is
+// "cached", and read from the pack when the browser's own cache doesn't have it.
 
 import ART_VERSION from 'virtual:art-version';
 import { scrollingNow } from '../art/scrolling';
+import { packHas, readPacked, readPackedBlob } from './packs';
 
 /** Bump when the stored layout changes. */
 const FORMAT = 1;
@@ -104,15 +108,26 @@ export function openArtCache(): Promise<IDBDatabase | null> {
   return dbp;
 }
 
-/** Is this key cached for this version (index read when the database opened)? */
+/** Is this key cached for this version (index read when the database opened), or in a pre-built pack? */
 export function cachedArt(key: string): boolean {
-  return !disabled && index.has(key);
+  return (!disabled && index.has(key)) || packHas(key);
+}
+
+/** A packed entry, raced against the caller's timeout (a pack still downloading on a slow line: the art is drawn
+ * instead). */
+async function fromPack<T>(key: string, read: (k: string) => Promise<T | null>, ms: number, drop: (v: T) => void): Promise<T | null> {
+  const t0 = performance.now();
+  const work = read(key).catch(() => null);
+  const out = await timeout(work, ms, null);
+  if (!out) void work.then((v) => v && drop(v)).catch(() => {});
+  logRead(key, t0, out ? 'pack' : 'pack miss');
+  return out;
 }
 
 /** Read an entry's images (decoded off the main thread) and its data; null on a miss, an error or a slow read. */
 export async function readArt(key: string, ms = 4000): Promise<{ bitmaps: ImageBitmap[]; data: unknown } | null> {
-  const meta = index.get(key);
-  if (!meta) return null;
+  const meta = disabled ? undefined : index.get(key);
+  if (!meta) return packHas(key) ? fromPack(key, readPacked, ms, (r) => r.bitmaps.forEach((b) => b.close())) : null;
   const db = await openArtCache();
   if (!db) return null;
   const t0 = performance.now();
@@ -153,8 +168,12 @@ export async function readArt(key: string, ms = 4000): Promise<{ bitmaps: ImageB
  * as a blob URL: decoding it to redraw and re-encode it as a data URL was a 40–90 ms task per batch of tiles). Null on
  * a miss, an error or a slow read. */
 export async function readArtBlobs(key: string, ms = 1500): Promise<Blob[] | null> {
-  const meta = index.get(key);
-  if (!meta) return null;
+  const meta = disabled ? undefined : index.get(key);
+  if (!meta) {
+    if (!packHas(key)) return null;
+    const b = await fromPack(key, readPackedBlob, ms, () => {});
+    return b ? [b] : null;
+  }
   const db = await openArtCache();
   if (!db) return null;
   try {
@@ -189,12 +208,19 @@ function fontsReady(): boolean {
   }
 }
 
+/** The prebuild (src/devPrebuild.ts) records every piece of art the cache would keep, to pack it. */
+let artRecorder: ((key: string, canvases: HTMLCanvasElement[], data: unknown) => void) | null = null;
+export function setArtRecorder(r: typeof artRecorder): void {
+  artRecorder = r;
+}
+
 const writes: (() => Promise<void>)[] = [];
 let writing = false;
 
 /** Save canvases (and their data) under a key, in idle time. The pixels are taken now, so later drawing on the
  * canvases doesn't reach the cache. */
 export function writeArt(key: string, canvases: HTMLCanvasElement[], data: unknown, later = false): void {
+  if (artRecorder && fontsReady()) artRecorder(key, canvases, data);
   if (disabled || !dbp || !fontsReady()) return;
   const v = version();
   // the pixels as getImageData reads them (the way the game reads them too), encoded from a copy: a GPU canvas's
