@@ -138,13 +138,13 @@ Every stage keeps the game playing exactly as before, except where a stage says 
 - **Two clocks for a while.** Until stage 2, scene timers and `now()` keep their own time beside the game clock: a move that mixes them (a clock tween whose end starts a scene timer) keeps both paces meanwhile.
 - **Performance in the browser**: the view reading state each frame and the core's events instead of direct calls. Measured at each stage on a quiet machine (`?dev` FPS, a crowded boss wave), not assumed.
 
-## Open questions (for Tron)
+## Decisions (Tron, 2026-11-28)
 
-1. **The step**: fixed 60 steps a second everywhere (the game's frame drives whole steps, an accumulator), or the frame's own time in the browser and fixed steps only in the sim? Fixed everywhere is what makes the Node and Chrome sims agree and replays possible; it costs a little smoothing in the view.
-2. **Hit-stop's freeze**: since stage 1, a flight, a lunge and a foot's death freeze with the world during a hit-stop (×0.06 for 70 ms on a crit). Keep (the world is one thing), or let looks run through it?
-3. **Between waves**: the game clock runs in the shop too (so whatever was in the air lands or goes). Keep, or freeze the world while the shop is open (then a meteor in flight waits over the shop)?
-4. **The run timer** stays real time, as today: confirmed.
-5. **Where new fights' choreography lives**: one view file per fight (proposed), or beside the fight while the split is under way?
+1. **The step:** fixed 60 steps a second everywhere. An accumulator turns each frame into whole steps, and the view interpolates for smoothness. The Node sim and the real game run the same steps, and replays become possible.
+2. **Hit-stop:** flights, lunges and foot deaths freeze with the world during a crit's hit-stop. One world, one clock.
+3. **Between waves:** the game clock keeps running while the shop is open, so whatever is in the air lands or leaves.
+4. **The run timer** stays real time, as today.
+5. **New fights' choreography:** one view file per fight from the start (rules in the core, choreography in its view file).
 
 ## New content during the split (the Legendaries, feet, bosses)
 
