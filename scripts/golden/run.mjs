@@ -55,6 +55,8 @@ const shutdown = async () => {
 
 let out;
 const textProblems = [];
+// the effects audit's problems (src/devEffectsAudit.ts problemsOf)
+const effectProblems = [];
 try {
   for (let i = 0; i < 100; i++) {
     try {
@@ -104,6 +106,13 @@ try {
   const audit = await evalJs('return F.cardTextAudit()');
   textProblems.push(...audit.problems);
   console.log(`Card text: ${audit.generated} toppings generated, ${audit.overridden.length} with a hand-written side (${audit.overridden.join(', ')}), ${audit.scene} the scene's own`);
+  // the effects audit (src/devEffectsAudit.ts): every item declares an effect, every one shows on STATS or a card, and
+  // every trigger keeps the off-switch (or says why it outlives its pizzas)
+  const fx = await evalJs('return F.effectsProblems()');
+  effectProblems.push(...fx.problems);
+  const reasons = {};
+  for (const o of fx.outlives) reasons[o.split(': ').pop()] = (reasons[o.split(': ').pop()] ?? 0) + 1;
+  console.log(`Effects audit: ${fx.counts.toppings} toppings, ${fx.counts.pizzas} pizzas, ${fx.counts.peels} peels, ${fx.counts.effects} effects; ${fx.problems.length ? `${fx.problems.length} problem(s)` : 'every item declares an effect and shows'}; off-switch: ${fx.gated} field-wide or own triggers held by it, ${fx.outlives.length} outliving their pizzas (${Object.entries(reasons).map(([k, v]) => `${v} ${k}`).join(', ')}), ${fx.ownRules} rules read the pizza's own perk`);
   await evalJs(`F.startGame({ upgrades: {}, coins: 500, wave: 12, intros: false, seed: 1 });
     for (let i = 0; i < 200 && !document.querySelector('.shop2 .cards .card'); i++) await new Promise((r) => setTimeout(r, 50));
     await new Promise((r) => setTimeout(r, 800)); return true`);
@@ -122,10 +131,14 @@ if (textProblems.length) {
   console.log(`${textProblems.length} card text problem(s):`);
   for (const t of textProblems.slice(0, 100)) console.log(`  ${t}`);
 }
+if (effectProblems.length) {
+  console.log(`${effectProblems.length} effects audit problem(s):`);
+  for (const t of effectProblems.slice(0, 100)) console.log(`  ${t}`);
+}
 if (write || !existsSync(SNAP)) {
   writeFileSync(SNAP, JSON.stringify(out, null, 0).replace(/\},"/g, '},\n"') + '\n');
   console.log(`Wrote ${SNAP}`);
-  process.exit(textProblems.length ? 1 : 0);
+  process.exit(textProblems.length || effectProblems.length ? 1 : 0);
 }
 const want = JSON.parse(readFileSync(SNAP, 'utf8'));
 const diffs = [];
@@ -149,4 +162,4 @@ if (diffs.length) {
   process.exit(1);
 }
 console.log('No differences from the snapshot.');
-if (textProblems.length) process.exit(1);
+if (textProblems.length || effectProblems.length) process.exit(1);

@@ -15,6 +15,8 @@ import { applyAll, Effect, Op, Phase, Stat, Unit, type DealRuleId, type EffectDa
 import { Ledger, type ValueCtx } from '../effects/ledger';
 import { Source, shareEntries, type SourceKey, type SourceRef, type SourceShare } from '../effects/source';
 import { PERK_NONE, PERK_STATS, PERK_TIPS } from './perkStats';
+import { Rule } from '../effects/rule';
+import { boostOf, perksWith, perkValue } from './perkRules';
 
 /** Golden Crusts for the first time you ever beat a main boss (on top of the usual 5). */
 export const FIRST_KILL_CRUSTS = 20;
@@ -517,7 +519,7 @@ export class Run {
    */
   buildLedger(seats: TableSeat[], peel: PeelStats[] = [], enhanced: PizzaPerk[] = []): Ledger {
     const L = new Ledger();
-    const build = (source: SourceRef, list: EffectData[], levels = 1) => applyAll(list, { ledger: L, source, phase: Phase.Build }, levels);
+    const build = (source: SourceRef, list: readonly EffectData[], levels = 1) => applyAll(list, { ledger: L, source, phase: Phase.Build }, levels);
     // the Pizzeria's upgrades
     const meta = (id: string) => this.meta(id);
     const metaFx: EffectData[] = [];
@@ -553,8 +555,9 @@ export class Run {
     }
     this.perkCounts = counts;
     this.enhancedPerks = new Set(enhanced);
-    this.boosters = who.perkBoost ?? {};
-    const boost = 1 + 0.05 * (counts.perkBoost ?? 0);
+    // (the pizzas declaring Napoletana's boost, Rule.Boost)
+    this.boosters = Object.assign({}, ...perksWith(Rule.Boost).map((k) => who[k] ?? {}));
+    const boost = boostOf(counts);
     const c = (p: PizzaPerk) => (counts[p] ?? 0) * boost;
     // Pepperoni's and the luck pizzas' tips: one sum, shared by their pizzas by what each adds
     if (c('coins') > 0 || c('luck') > 0) {
@@ -584,7 +587,8 @@ export class Run {
     if (!n) return src;
     const W = shareEntries(src).reduce((a, [, b]) => a + b, 0);
     const out = { ...src };
-    for (const [id, w] of shareEntries(this.boosters)) out[id] = (out[id] ?? 0) + W * 0.05 * w;
+    const pct = perkValue(perksWith(Rule.Boost)[0], Rule.Boost) ?? 0;
+    for (const [id, w] of shareEntries(this.boosters)) out[id] = (out[id] ?? 0) + W * pct * w;
     return out;
   }
 

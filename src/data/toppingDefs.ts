@@ -13,7 +13,7 @@
 
 import type { Proc } from '../game/abilities';
 import { Effect, When } from '../effects';
-import type { EffectData } from '../effects';
+import type { Effects } from '../effects';
 import type { StatData } from '../effects/stat';
 import type { WhenId } from '../effects/when';
 import { freshnessOn } from '../game/heatRules';
@@ -38,12 +38,12 @@ interface ToppingBase {
 
 /** A topping that works through its effects (stats and triggers); its card text comes from them. Trade-offs are
  *  plain toppings too: a change that moves a stat the worse way is their downside, shown in red. */
-export function Topping(d: ToppingBase & { effects: EffectData[] }): Upgrade {
+export function Topping(d: ToppingBase & { effects: Effects }): Upgrade {
   return { ...d };
 }
 
 /** A topping the scene runs itself (src/game/toppingKit.ts, keyed by id): its card text is written by hand. */
-export function KitTopping(d: ToppingBase & { effects?: EffectData[]; text: TextOverride & { up: TextLine<string> } }): Upgrade {
+export function KitTopping(d: ToppingBase & { effects: Effects; text: TextOverride & { up: TextLine<string> } }): Upgrade {
   return { ...d };
 }
 
@@ -77,7 +77,7 @@ export function PickTopping(d: Pick<ToppingBase, 'id' | 'name' | 'icon' | 'rarit
  *  effects). The catch's effects wait on the heat (When.Freshness / When.NoFreshness), and so does its card text. */
 export function FreshTradeoff(
   d: ToppingBase & {
-    effects: EffectData[];
+    effects: Effects;
     fresh: { freshNow?: number; effects?: StatData[] };
     mild: { slicesNow?: number; effects?: StatData[] };
   },

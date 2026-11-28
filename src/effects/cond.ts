@@ -14,7 +14,7 @@ export type CondData =
   | { c: 'over' | 'hovering' | 'pierces' | 'fast' | 'bossKind' | 'mini' | 'undead' | 'cold' | 'goldenFoot' }
   | { c: 'stomping' | 'friendly' | 'pinned' | 'inPortal' }
   | { c: 'near' | 'full' | 'fullFresh' | 'haunted' | 'enhanced' }
-  | { c: 'smack' | 'fresh' | 'night' | 'autoSlam' | 'notByAbility' }
+  | { c: 'smack' | 'fresh' | 'night' | 'autoSlam' | 'notByAbility' | 'ready' }
   | { c: 'flag'; id: string }
   | { c: 'down'; y: Px }
   | { c: 'notEcho' | 'perfect' | 'earned' | 'bossWave' | 'afterBoss' | 'actStart' }
@@ -89,6 +89,9 @@ export const Cond = {
   AutoSlam: { c: 'autoSlam' } as CondData,
   /** The kill wasn't the peel ability's own (an ability never sets itself off). */
   NotByAbility: { c: 'notByAbility' } as CondData,
+  /** A foot could be hit as this pass of the frame began: the pass looks at the field once, for every timer in it
+   *  (the toppings' procs: one coming due after another's hit the last foot still goes off, as it always did). */
+  Ready: { c: 'ready' } as CondData,
   /** A night location (the wave's). */
   Night: { c: 'night' } as CondData,
   /** Something the game keeps that holds now (typed names: src/game/perkEffects.ts Flag). */
@@ -204,6 +207,8 @@ export function holdsCond(c: CondData, x: CondCtx, f: Foot | null = x.foot): boo
       return 'auto' in x.ev && x.ev.auto;
     case 'notByAbility':
       return !('byAbility' in x.ev && x.ev.byAbility);
+    case 'ready':
+      return 'ready' in x.ev && !!x.ev.ready;
     case 'night':
       return !!x.isNight?.(x.wave());
     case 'flag':

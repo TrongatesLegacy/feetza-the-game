@@ -485,6 +485,8 @@ registerMoves({
 for (const base of ['binaryMode', 'awesomeMix', 'redLedger', 'trickQuiver', 'kinetic', 'timeStone', 'chaosHex', 'giantSize', 'stingSwarm', 'bigGun', 'iAmCrust']) {
   registerMoves({ [`endgame_${base}`]: withBase(base, (k) => void k.sc.time.delayedCall(400, () => portals(k))) });
 }
+// the Bulk's has no button: the portals open as he hulks out
+registerMoves({ endgame_bulkSmash: withBase('bulkSmash', (k) => portals(k)) });
 
 // ——— the variants' passives: their base hero's, with a twist or two ———
 
@@ -524,14 +526,8 @@ registerPassives({
     },
   },
   'hero:zeusunbound': passiveFrom('hero:zeus'),
-  // the Bulk hulks out on his own: the portals open the first time he does each wave
-  'hero:incrediblebulkendgame': passiveFrom('hero:incrediblebulk', {
-    lost: (k) => {
-      if (!k.wv.raged || k.wv.endgamed) return;
-      k.wv.endgamed = true;
-      portals(k);
-    },
-  }),
+  // the Bulk hulks out on his own (once a wave): his Endgame move opens the portals as he does (endgame_bulkSmash)
+  'hero:incrediblebulkendgame': passiveFrom('hero:incrediblebulk'),
 });
 for (const id of ['captainmarvellous', 'starlard', 'blackwindow', 'hawkeyetalian', 'blackpanther', 'strangeloaf', 'scarletpitch', 'antpan', 'wasabiwasp', 'rocketrucola', 'iamcrust']) {
   registerPassives({ [`hero:${id}endgame`]: passiveFrom(`hero:${id}`) });

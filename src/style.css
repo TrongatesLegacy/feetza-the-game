@@ -2592,6 +2592,16 @@ body.pad .slam .pd {
   max-width: 100%;
 }
 
+/* Your Table: a long name (Cosmic Crouton Supreme, Bone Marrow & Black Garlic) takes a second line, balanced, rather
+   than being cut off (as the counter's Legendaries do); a short one stays on one */
+.ptile .nm {
+  white-space: normal;
+  text-wrap: balance;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
 .ptile .ds {
   font-weight: 600;
   font-size: 0.85em;

@@ -11,6 +11,7 @@ import type { Foot } from '../game/Foot';
 import type { Pizza } from '../game/Pizza';
 import type { AnyEvent } from './events';
 import { applyStatus, describeStatus, type StatusData } from './status';
+import { condTags, holdsCond, type CondCtx, type CondData } from './cond';
 import { Tag, type TagId } from './tags';
 import type { Amount, Count, Mult, Percent, Px, Seconds } from './units';
 import type { Effect as AbilityFx } from '../game/abilities';
@@ -49,11 +50,24 @@ export type AllyId = (typeof Ally)[keyof typeof Ally];
 const ALLY_NAME: Record<AllyId, string> = { friendlyGhost: 'friendly ghost' };
 
 /** How hard a hit is: m × your smack damage, or a Legendary's m (× your smack damage × the heat's Legendary scale,
- *  legendDmg in src/game/legendary.ts). Either way × the firing's strength. */
-export type HitData = { h: 'smack' | 'legend'; m: Mult };
+ *  legendDmg in src/game/legendary.ts). Either way × the firing's strength, unless it's a plain hit (Hit.Plain: the
+ *  strength already went into its chance). */
+export type HitData = { h: 'smack' | 'legend' | 'plain'; m: Mult };
 export const Hit = {
   Smack: (m: Mult): HitData => ({ h: 'smack', m }),
   Legend: (m: Mult): HitData => ({ h: 'legend', m }),
+  /** m × your smack damage, whatever the strength. */
+  Plain: (m: Mult): HitData => ({ h: 'plain', m }),
+} as const;
+
+/** Where an area action reaches (Action.Area): the feet matching `of`, in the field's order, and of those either all
+ *  (Area.Field) or those within `half` px across of the moment's foot (Area.Column: a lane up the table). */
+export type AreaData = { at: 'field'; of: CondData } | { at: 'column'; half: Px; of: CondData };
+export const Area = {
+  /** Every foot on the field that matches. */
+  Field: (of: CondData): AreaData => ({ at: 'field', of }),
+  /** The feet that match within `half` px across of the moment's foot (or its x): a lane up the table. */
+  Column: (half: Px, of: CondData): AreaData => ({ at: 'column', half, of }),
 } as const;
 /** A hit's extras: how hard it knocks (its hit's knock), and a push back up first. */
 export interface DamageOpts {
@@ -74,6 +88,7 @@ export type ActionData =
   | { a: 'knock'; n: Amount }
   | { a: 'damage'; hit: HitData; o: DamageOpts }
   | { a: 'ability'; fx: AbilityFx[] }
+  | { a: 'area'; area: AreaData; act: ActionData }
   | { a: 'later'; sec: Seconds; act: ActionData }
   | { a: 'seq'; list: ActionData[] };
 
@@ -100,6 +115,8 @@ export const Action = {
   Damage: (hit: HitData, o: DamageOpts = {}): ActionData => ({ a: 'damage', hit, o }),
   /** Knock the moment's foot back up (its knock speed). */
   Knock: (n: Amount): ActionData => ({ a: 'knock', n }),
+  /** Do `act` to every foot in an area, one by one, each as the moment's foot (area damage, a field-wide slow). */
+  Area: (area: AreaData, act: ActionData): ActionData => ({ a: 'area', area, act }),
   /** Later on the scene's clock (skipped if the firing pizza is gone by then). */
   Later: (sec: Seconds, act: ActionData): ActionData => ({ a: 'later', sec, act }),
   Seq: (...list: ActionData[]): ActionData => ({ a: 'seq', list }),
@@ -143,6 +160,9 @@ export interface ActionHost {
   hurt(f: Foot, amount: number, o: DamageOpts, fire: Fire): void;
   /** Run an ability's own effects (Action.Ability): only the scene's peel side has it. */
   ability?(fx: AbilityFx[], fire: Fire): void;
+  /** The feet on the field, and the conditions' view of a moment (Action.Area). */
+  feet?(): Foot[];
+  cond?(ev: AnyEvent): CondCtx;
 }
 
 const enhancedOf = (fire: Fire) => !!fire.pizza?.enhanced;
@@ -198,10 +218,24 @@ export function runAction(a: ActionData, host: ActionHost, fire: Fire): boolean 
       if (!host.ability) return false;
       host.ability(a.fx, fire);
       return true;
+    case 'area': {
+      const feet = host.feet?.() ?? [];
+      const cc = host.cond?.(fire.ev);
+      if (!cc) return false;
+      const ev = fire.ev;
+      // (a column is centred on the moment's foot, or where the moment was)
+      const cx = fire.foot?.cx || ('x' in ev ? ev.x : 0);
+      for (const f of feet) {
+        if (!holdsCond(a.area.of, cc, f)) continue;
+        if (a.area.at === 'column' && Math.abs(f.cx - cx) > a.area.half) continue;
+        runAction(a.act, host, { perk: fire.perk, ev, foot: f, pizza: fire.pizza, pizzas: fire.pizzas, k: fire.k });
+      }
+      return true;
+    }
     case 'damage': {
       const f = fire.foot;
       if (!f || !f.alive) return false;
-      const m = a.hit.m * fire.k();
+      const m = a.hit.h === 'plain' ? a.hit.m : a.hit.m * fire.k();
       host.hurt(f, a.hit.h === 'legend' ? host.legendDmg(m) : m * host.damage(), a.o, fire);
       return true;
     }
@@ -248,6 +282,8 @@ export function describeAction(a: ActionData): string {
       return a.fx.map((x) => x.e).join(', ');
     case 'damage':
       return `hit it for ×${a.hit.m}${a.hit.h === 'legend' ? ' (a Legendary hit)' : ''}`;
+    case 'area':
+      return `${a.area.at === 'column' ? 'every foot in its lane' : 'every foot'}: ${describeAction(a.act)}`;
     case 'later':
       return describeAction(a.act);
     case 'seq':
@@ -271,6 +307,8 @@ export function actionTags(a: ActionData): TagId[] {
       return [Tag.Summons, Tag.Ally(a.ally)];
     case 'ability':
       return [Tag.Action('ability'), ...a.fx.map((x) => Tag.ProcFx(x.e))];
+    case 'area':
+      return [Tag.Action('area'), ...condTags(a.area.of), ...actionTags(a.act)];
     default:
       return [Tag.Action(a.a)];
   }

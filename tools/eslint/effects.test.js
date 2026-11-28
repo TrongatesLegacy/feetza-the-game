@@ -277,6 +277,40 @@ run('typed-item-names', {
   ],
 });
 
+// ——— step 4: no pizza perk checked by name ———
+run('no-perk-names', {
+  valid: [
+    'if (hasRule(p, Rule.ThickCrust)) block();',
+    'const t = ruleOf(f.target, Rule.Disarm);',
+    // the firing perk, or a perk held in a variable, isn't a name
+    'if (q.type.perk === fire.perk) keep(q);',
+    "if (f.type.id === 'golden') pay();",
+    "const has = traits.has('regen');",
+  ],
+  invalid: [
+    { code: "if (p.perk === 'thick') block();", errors: [{ messageId: 'named', data: { perk: 'thick' } }] },
+    { code: "if (f.target?.perk !== 'disarm') return;", errors: [{ messageId: 'named', data: { perk: 'disarm' } }] },
+    { code: "const s = p.type.perk === 'rotate';", errors: [{ messageId: 'named', data: { perk: 'rotate' } }] },
+    { code: "const n = run.enhancedPerks.has('slamStun') ? 2.5 : 1.5;", errors: [{ messageId: 'named', data: { perk: 'slamStun' } }] },
+    { code: "switch (p.perk) { case 'shield': break; }", errors: [{ messageId: 'named', data: { perk: 'shield' } }] },
+  ],
+});
+
+// ——— step 4: a perk's one-off never reads its own off-switch ———
+run('no-own-off-switch', {
+  valid: [
+    'if (!grantsPerk(t, perk)) return;',
+    'for (const p of fire.pizzas) p.perkFired();',
+    // a write is the pizza's own business
+    'p.perkFrozen = false;',
+  ],
+  invalid: [
+    { code: 'if (t.stale || t.perkFrozen) return;', errors: [{ messageId: 'own' }, { messageId: 'own' }] },
+    { code: 'if (p.perkOff) return false;', errors: [{ messageId: 'own' }] },
+    { code: 'if (p === this.a.possessed()) return;', errors: [{ messageId: 'own' }] },
+  ],
+});
+
 // ——— all the rules together, over several fix passes (a list's fix first, then its calls') ———
 {
   const linter = new Linter({ configType: 'flat' });

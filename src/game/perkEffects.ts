@@ -11,8 +11,9 @@
 // Sink), the rings, the Legendaries (src/game/pizzaLegends*.ts) and every damage, tips and knockback multiplier.
 
 import type { PizzaPerk } from '../data/pizzas';
-import { Action, Ally, At, Cond, Dps, Effect, Enh, Grow, Guard, HitStat, Nth, Pay, Pick, Reset, Scope, Status, Unit, Who, type EffectData } from '../effects';
+import { Action, Ally, Area, At, Cond, Dps, Effect, Enh, Grow, Guard, Hit, HitStat, Nth, Outlives, Pay, Pick, Reset, Rule, Scope, SlowStack, Status, Unit, Who, type Effects } from '../effects';
 import { locationFor } from './Run';
+import type { StatDeclared } from './perkStats';
 
 /** The night locations (Night Shift's +20%). */
 const NIGHT = new Set(['space', 'oldtown', 'cellar']);
@@ -22,7 +23,6 @@ export const isNight = (n: number): boolean => NIGHT.has(locationFor(n));
 /** The one-offs a perk does that aren't shared actions (yet): each is PizzaPerkKit's own (src/game/pizzaPerks.ts). */
 export const Custom = {
   Meteor: 'meteor',
-  DanceBeat: 'danceBeat',
   SteamVents: 'steamVents',
   Comet: 'comet',
   SirenSong: 'sirenSong',
@@ -33,7 +33,6 @@ export const Custom = {
   SagaVerse: 'sagaVerse',
   KillRush: 'killRush',
   Meatball: 'meatball',
-  FireLane: 'fireLane',
   InkSpray: 'inkSpray',
   Snowball: 'snowball',
   Whirlpool: 'whirlpool',
@@ -83,14 +82,18 @@ export const Custom = {
   Untouchable: 'untouchable',
   // ——— step 3: the ticking props ———
   HarpyTick: 'harpyTick',
+  HarpyBlown: 'harpyBlown',
   BridgeTick: 'bridgeTick',
   CoilTick: 'coilTick',
+  CoilHold: 'coilHold',
   GorgonTick: 'gorgonTick',
+  GorgonStone: 'gorgonStone',
   MazeTick: 'mazeTick',
   EmberTick: 'emberTick',
   WhirlTick: 'whirlTick',
   InkTick: 'inkTick',
   SootTick: 'sootTick',
+  SootCloud: 'sootCloud',
   GhostTick: 'ghostTick',
   RingsTick: 'ringsTick',
   NonnaSecret: 'nonnaSecret',
@@ -141,6 +144,13 @@ export const Look = {
   /** The pizza's own moment, with its usual quip. */
   Fired: 'fired',
   GhostPass: 'ghostPass',
+  // ——— step 4: the looks of what's now shared actions ———
+  /** Dragon Fruit Flambé's column of fire up the lane (the hits and burns are Action.Area). */
+  FireLane: 'fireLane',
+  /** Disco Diner Pie's ball and beams (the slow on every foot is Action.Area). */
+  DanceBreak: 'danceBreak',
+  /** The dance break on one foot: its notes and its ring of light. */
+  DanceNote: 'danceNote',
 } as const;
 export type LookId = (typeof Look)[keyof typeof Look];
 
@@ -187,7 +197,7 @@ const Batable = Cond.All(Cond.Alive, Cond.Hittable, Movable, Cond.Any(Cond.Divin
 const PortalReady = Cond.All(Cond.Alive, Cond.Hittable, Movable, Cond.Not(Cond.InPortal));
 
 /** Every ported perk's trigger effects, in the order they run on each moment. */
-export const PERK_EFFECTS: [PizzaPerk, EffectData[]][] = [
+export const PERK_EFFECTS = [
   // ——— timers (the old update(): Meteorite Margherita, Disco Diner Pie, Steam Bun Pie, Comet Calzone, Siren's Song) ———
   ['meteor', [
     Effect.Every(
@@ -196,10 +206,11 @@ export const PERK_EFFECTS: [PizzaPerk, EffectData[]][] = [
       { at: Pick.Random(InPlay), reset: Reset.Wave },
     ),
   ]],
+  // (Disco Diner Pie: every foot standing slows 30% for 2 s, never strengthening a stronger slow already on it)
   ['danceBeat', [
     Effect.Every(
       Unit.Seconds(30),
-      C(Custom.DanceBeat),
+      Action.Seq(S(Look.DanceBreak), Action.Area(Area.Field(Standing), Action.Seq(Action.Apply(Status.Slow(Unit.Seconds(2), Unit.Percent(30), { stack: SlowStack.Strongest, fixed: true })), S(Look.DanceNote)))),
       { fireIf: Cond.AnyFoot(Standing) },
     ),
   ]],
@@ -302,7 +313,7 @@ export const PERK_EFFECTS: [PizzaPerk, EffectData[]][] = [
   // Dragon Fruit Flambé: 10% a pie that the smack breathes fire up the lane
   ['fireLane', [
     Effect.OnSmack(
-      C(Custom.FireLane),
+      Action.Seq(S(Look.FireLane), Action.Area(Area.Column(Unit.Px(120), Cond.Hittable), Action.Seq(Action.Damage(Hit.Plain(Unit.Mult(1))), Action.Apply(Status.Burn(Unit.Seconds(3), Dps.Plain(Unit.Mult(0.5))))))),
       { scope: Scope.Sum, chance: Unit.Chance(10) },
     ),
   ]],
@@ -395,7 +406,7 @@ export const PERK_EFFECTS: [PizzaPerk, EffectData[]][] = [
   ['ghostAlly', [
     Effect.WaveOpen(
       C(Custom.GhostsBack),
-      { scope: Scope.Field },
+      { scope: Scope.Field, outlives: Outlives.Props },
     ),
   ]],
   ['bossShield', [
@@ -413,7 +424,7 @@ export const PERK_EFFECTS: [PizzaPerk, EffectData[]][] = [
   ['mystery', [
     Effect.WaveOpen(
       C(Custom.MysteryReveal),
-      { scope: Scope.Own },
+      { scope: Scope.Own, outlives: Outlives.OwnMoment },
     ),
   ]],
   ['kitchenSink', [
@@ -428,7 +439,7 @@ export const PERK_EFFECTS: [PizzaPerk, EffectData[]][] = [
   ['sandWall', [
     Effect.WaveStart(
       C(Custom.SandUp),
-      { scope: Scope.Field },
+      { scope: Scope.Field, outlives: Outlives.TidyUp },
     ),
   ]],
   ['bridgeLane', [
@@ -440,13 +451,13 @@ export const PERK_EFFECTS: [PizzaPerk, EffectData[]][] = [
   ['harpyGust', [
     Effect.WaveStart(
       C(Custom.HarpyReset),
-      { scope: Scope.Field },
+      { scope: Scope.Field, outlives: Outlives.TidyUp },
     ),
   ]],
   ['timeStop', [
     Effect.WaveStart(
       C(Custom.TimeStopSet),
-      { scope: Scope.Field },
+      { scope: Scope.Field, outlives: Outlives.TidyUp },
     ),
   ]],
 
@@ -529,7 +540,7 @@ export const PERK_EFFECTS: [PizzaPerk, EffectData[]][] = [
     Effect.Defend(
       Guard.Early,
       C(Custom.Slip),
-      { scope: Scope.Field, when: Cond.Not(Cond.Pierces) },
+      { scope: Scope.Field, when: Cond.Not(Cond.Pierces), outlives: Outlives.Props },
     ),
   ]],
   ['ghostPass', [
@@ -550,7 +561,7 @@ export const PERK_EFFECTS: [PizzaPerk, EffectData[]][] = [
     Effect.Defend(
       Guard.Early,
       C(Custom.Ladle),
-      { scope: Scope.Field },
+      { scope: Scope.Field, when: Cond.All(Cond.Alive, Cond.Not(Cond.Haunted)) },
     ),
   ]],
   // At the walls (a piercing stomp never gets here): Granite Crust once a wave, then (never on the Ghost's pizza)
@@ -566,21 +577,21 @@ export const PERK_EFFECTS: [PizzaPerk, EffectData[]][] = [
     Effect.Defend(
       Guard.Wall,
       C(Custom.GhostGuard),
-      { scope: Scope.Field, when: Cond.Not(Cond.Haunted) },
+      { scope: Scope.Field, when: Cond.Not(Cond.Haunted), outlives: Outlives.Props },
     ),
   ]],
   ['sandWall', [
     Effect.Defend(
       Guard.Wall,
       C(Custom.SandWall),
-      { scope: Scope.Field, when: Cond.Not(Cond.Haunted) },
+      { scope: Scope.Field, when: Cond.Not(Cond.Haunted), outlives: Outlives.Props },
     ),
   ]],
   ['citadelWall', [
     Effect.Defend(
       Guard.Wall,
       C(Custom.CitadelWall),
-      { scope: Scope.Field, when: Cond.Not(Cond.Haunted) },
+      { scope: Scope.Field, when: Cond.Not(Cond.Haunted), outlives: Outlives.Props },
     ),
   ]],
   // ——— the per-foot auras (step 3; the old update()'s loop over the feet), every frame for each foot standing ———
@@ -588,7 +599,7 @@ export const PERK_EFFECTS: [PizzaPerk, EffectData[]][] = [
   ['timeStop', [
     Effect.FrameStart(
       C(Custom.TimeStopArrive),
-      { scope: Scope.Field },
+      { scope: Scope.Field, outlives: Outlives.Props },
     ),
   ]],
   // over the pizza a foot hovers above or comes down on: Chicken Pesto's slow grows the longer it waits (and lets go
@@ -616,13 +627,13 @@ export const PERK_EFFECTS: [PizzaPerk, EffectData[]][] = [
   ['timeStop', [
     Effect.Aura(
       C(Custom.TimeStopHold),
-      { scope: Scope.Field },
+      { scope: Scope.Field, outlives: Outlives.Props },
     ),
   ]],
   ['phaseHeal', [
     Effect.Aura(
       C(Custom.PhaseHeal),
-      { scope: Scope.Field, when: Cond.Boss },
+      { scope: Scope.Field, when: Cond.Boss, outlives: Outlives.Follows },
     ),
   ]],
 
@@ -634,12 +645,16 @@ export const PERK_EFFECTS: [PizzaPerk, EffectData[]][] = [
       C(Custom.HarpyTick),
       { scope: Scope.Field },
     ),
+    Effect.EachFrame(
+      C(Custom.HarpyBlown),
+      { scope: Scope.Field, outlives: Outlives.Props },
+    ),
   ]],
   // the Bifröst shimmers, and goes when its pizza stops bridging
   ['bridgeLane', [
     Effect.EachFrame(
       C(Custom.BridgeTick),
-      { scope: Scope.Field },
+      { scope: Scope.Field, outlives: Outlives.Props },
     ),
   ]],
   // Serpent's Coil holds
@@ -648,6 +663,10 @@ export const PERK_EFFECTS: [PizzaPerk, EffectData[]][] = [
       C(Custom.CoilTick),
       { scope: Scope.Field },
     ),
+    Effect.EachFrame(
+      C(Custom.CoilHold),
+      { scope: Scope.Field, outlives: Outlives.Props },
+    ),
   ]],
   // Gorgon's Gaze turns feet to stone
   ['gorgonGaze', [
@@ -655,33 +674,37 @@ export const PERK_EFFECTS: [PizzaPerk, EffectData[]][] = [
       C(Custom.GorgonTick),
       { scope: Scope.Field },
     ),
+    Effect.EachFrame(
+      C(Custom.GorgonStone),
+      { scope: Scope.Field, outlives: Outlives.Props },
+    ),
   ]],
   // Labyrinth Lasagne's lost feet find their way back
   ['mazeLost', [
     Effect.EachFrame(
       C(Custom.MazeTick),
-      { scope: Scope.Field },
+      { scope: Scope.Field, outlives: Outlives.Props },
     ),
   ]],
   // Ember Shade's embers wait for the next foot
   ['emberTrail', [
     Effect.EachFrame(
       C(Custom.EmberTick),
-      { scope: Scope.Field },
+      { scope: Scope.Field, outlives: Outlives.Props },
     ),
   ]],
   // Charybdis Swirl's whirlpools
   ['whirlpool', [
     Effect.EachFrame(
       C(Custom.WhirlTick),
-      { scope: Scope.Field },
+      { scope: Scope.Field, outlives: Outlives.Props },
     ),
   ]],
   // Squid Ink Nero's ink
   ['inkSpray', [
     Effect.EachFrame(
       C(Custom.InkTick),
-      { scope: Scope.Field },
+      { scope: Scope.Field, outlives: Outlives.Props },
     ),
   ]],
   // Chimney Soot Pie's soot
@@ -690,19 +713,23 @@ export const PERK_EFFECTS: [PizzaPerk, EffectData[]][] = [
       C(Custom.SootTick),
       { scope: Scope.Field },
     ),
+    Effect.EachFrame(
+      C(Custom.SootCloud),
+      { scope: Scope.Field, outlives: Outlives.Props },
+    ),
   ]],
   // Phantom Waltz's ghosts drift by their pizzas
   ['ghostAlly', [
     Effect.EachFrame(
       C(Custom.GhostTick),
-      { scope: Scope.Field },
+      { scope: Scope.Field, outlives: Outlives.Props },
     ),
   ]],
   // Haunted Hawaiian's rings orbit
   ['orbitRing', [
     Effect.EachFrame(
       C(Custom.RingsTick),
-      { scope: Scope.Field },
+      { scope: Scope.Field, outlives: Outlives.Props },
     ),
   ]],
   // Nonna's Secret, once an act
@@ -719,23 +746,23 @@ export const PERK_EFFECTS: [PizzaPerk, EffectData[]][] = [
   ['bigStart', [
     Effect.OnPlaced(
       C(Custom.CenturyStart),
-      { scope: Scope.Own, when: Cond.Fresh },
+      { scope: Scope.Own, when: Cond.Fresh, outlives: Outlives.OwnMoment },
     ),
     Effect.OnEnhanced(
       C(Custom.CenturyGrow),
-      { scope: Scope.Own },
+      { scope: Scope.Own, outlives: Outlives.OwnMoment },
     ),
   ]],
   ['rainbow', [
     Effect.OnPlaced(
       C(Custom.BorrowFirst),
-      { scope: Scope.Own },
+      { scope: Scope.Own, outlives: Outlives.OwnMoment },
     ),
   ]],
   ['mystery', [
     Effect.OnPlaced(
       C(Custom.MysteryFirst),
-      { scope: Scope.Own },
+      { scope: Scope.Own, outlives: Outlives.OwnMoment },
     ),
   ]],
   ['kitchenSink', [
@@ -748,33 +775,33 @@ export const PERK_EFFECTS: [PizzaPerk, EffectData[]][] = [
   ['citadelWall', [
     Effect.OnEnhanced(
       C(Custom.CitadelPennant),
-      { scope: Scope.Own },
+      { scope: Scope.Own, outlives: Outlives.OwnMoment },
     ),
   ]],
   // destroyed with its perk on (not stale, and not the Ghost's): Volcano Calzone erupts; Olympian Feast keeps it once
   ['erupt', [
     Effect.OnDestroyed(
       C(Custom.Erupt),
-      { scope: Scope.Own, when: Cond.Fresh },
+      { scope: Scope.Own },
     ),
   ]],
   ['surviveOnce', [
     Effect.OnDestroyed(
       C(Custom.Olympian),
-      { scope: Scope.Own, when: Cond.Fresh },
+      { scope: Scope.Own },
     ),
   ]],
   // lost: Fenrir's wolf howls for it (its own loss too, a last howl); Untouchable brings the run's first loss back
   ['fenrirHowl', [
     Effect.OnLost(
       C(Custom.FenrirHowl),
-      { scope: Scope.Field },
+      { scope: Scope.Field, outlives: Outlives.OwnMoment },
     ),
   ]],
   ['firstBack', [
     Effect.OnLost(
       C(Custom.Untouchable),
-      { scope: Scope.Field },
+      { scope: Scope.Field, outlives: Outlives.OwnMoment },
     ),
   ]],
 
@@ -837,7 +864,7 @@ export const PERK_EFFECTS: [PizzaPerk, EffectData[]][] = [
     Effect.PerHit(
       HitStat.Damage,
       By(Factor.Stone),
-      { scope: Scope.Field },
+      { scope: Scope.Field, outlives: Outlives.Props },
     ),
   ]],
   ['bridgeLane', [
@@ -858,7 +885,7 @@ export const PERK_EFFECTS: [PizzaPerk, EffectData[]][] = [
     Effect.PerHit(
       HitStat.Damage,
       By(Factor.LegendRoar),
-      { scope: Scope.Field },
+      { scope: Scope.Field, outlives: Outlives.Props },
     ),
   ]],
   // every hit in a wave, whatever the foot: Victory Lap on an act's first wave, Night Shift at night, Moon Cheese
@@ -1006,37 +1033,37 @@ export const PERK_EFFECTS: [PizzaPerk, EffectData[]][] = [
   ['orbitRing', [
     Effect.WaveClose(
       C(Custom.RingsDown),
-      { scope: Scope.Field },
+      { scope: Scope.Field, outlives: Outlives.TidyUp },
     ),
   ]],
   ['pieSplat', [
     Effect.WaveClose(
       C(Custom.EpicsAway),
-      { scope: Scope.Field },
+      { scope: Scope.Field, outlives: Outlives.TidyUp },
     ),
   ]],
   ['hearthRoar', [
     Effect.WaveClose(
       C(Custom.RoarEnd),
-      { scope: Scope.Field },
+      { scope: Scope.Field, outlives: Outlives.TidyUp },
     ),
   ]],
   ['blackHole', [
     Effect.WaveClose(
       C(Custom.HoleEnd),
-      { scope: Scope.Field },
+      { scope: Scope.Field, outlives: Outlives.TidyUp },
     ),
   ]],
   ['citadelWall', [
     Effect.WaveClose(
       C(Custom.CitadelDown),
-      { scope: Scope.Field },
+      { scope: Scope.Field, outlives: Outlives.TidyUp },
     ),
   ]],
   ['tidalWash', [
     Effect.WaveClose(
       C(Custom.TideOff),
-      { scope: Scope.Field },
+      { scope: Scope.Field, outlives: Outlives.TidyUp },
     ),
   ]],
   ['firstBake', [
@@ -1067,7 +1094,7 @@ export const PERK_EFFECTS: [PizzaPerk, EffectData[]][] = [
   ['hearthRoar', [
     Effect.OnSmack(
       C(Custom.RoarSparks),
-      { scope: Scope.Field },
+      { scope: Scope.Field, outlives: Outlives.Props },
     ),
   ]],
   ['croutonPortal', [
@@ -1081,19 +1108,19 @@ export const PERK_EFFECTS: [PizzaPerk, EffectData[]][] = [
   ['nonnaLadle', [
     Effect.WaveStart(
       C(Custom.LadleReady),
-      { scope: Scope.Field },
+      { scope: Scope.Field, outlives: Outlives.TidyUp },
     ),
   ]],
   ['citadelWall', [
     Effect.WaveStart(
       C(Custom.CitadelUp),
-      { scope: Scope.Field },
+      { scope: Scope.Field, outlives: Outlives.TidyUp },
     ),
   ]],
   ['tidalWash', [
     Effect.WaveStart(
       C(Custom.TideReady),
-      { scope: Scope.Field },
+      { scope: Scope.Field, outlives: Outlives.TidyUp },
     ),
   ]],
   ['firstBake', [
@@ -1108,25 +1135,25 @@ export const PERK_EFFECTS: [PizzaPerk, EffectData[]][] = [
   ['hearthRoar', [
     Effect.EachFrame(
       C(Custom.Act3Timers),
-      { scope: Scope.Field },
+      { scope: Scope.Field, outlives: Outlives.Follows },
     ),
   ]],
   ['blackHole', [
     Effect.EachFrame(
       C(Custom.HoleStep),
-      { scope: Scope.Field },
+      { scope: Scope.Field, outlives: Outlives.Props },
     ),
   ]],
   ['hearthRoar', [
     Effect.EachFrame(
       C(Custom.RippleStep),
-      { scope: Scope.Field },
+      { scope: Scope.Field, outlives: Outlives.Props },
     ),
   ]],
   ['tidalWash', [
     Effect.EachFrame(
       C(Custom.TideTick),
-      { scope: Scope.Field },
+      { scope: Scope.Field, outlives: Outlives.Props },
     ),
   ]],
   ['bigTopCannon', [
@@ -1143,5 +1170,228 @@ export const PERK_EFFECTS: [PizzaPerk, EffectData[]][] = [
       { fireIf: Cond.AnyFoot(Cond.All(Batable, Cond.Down(Unit.Px(300)))) },
     ),
   ]],
-];
+
+  // ——— the rules the scene's own code reads (step 4: Effect.Rule, src/game/perkRules.ts), by the rule, never the
+  // perk: a stomp's walls, slices and freshness, the feet over a pizza, the table's ———
+  // a stomp's walls: Quattro Formaggi's shields, Bufala's light up when they block; Grandma Square's guard; Sicilian
+  // Square's thick crust (an enhanced Stromboli's too); Stromboli holds; Pizza Bianca's immunity; Inferno's fireproof
+  ['shield', [
+    Effect.Rule(
+      Rule.ExtraShields,
+      Enh(Unit.Count(1), Unit.Count(2)),
+    ),
+    Effect.Rule(Rule.ShieldGlow),
+  ]],
+  ['bossShield', [
+    Effect.Rule(Rule.ShieldGlow),
+  ]],
+  ['neighbourShield', [
+    Effect.Rule(
+      Rule.Guard,
+      Enh(Unit.Count(0), Unit.Count(1)),
+    ),
+  ]],
+  ['thick', [
+    Effect.Rule(
+      Rule.ThickCrust,
+      Enh(Unit.Chance(30), Unit.Chance(45)),
+    ),
+  ]],
+  ['sturdyMulti', [
+    Effect.Rule(
+      Rule.ThickCrust,
+      Enh(Unit.Chance(0), Unit.Chance(15)),
+    ),
+    Effect.Rule(Rule.Sturdy),
+  ]],
+  ['immuneEffects', [
+    Effect.Rule(
+      Rule.Immune,
+      Enh(Unit.Count(0), Unit.Count(1)),
+    ),
+  ]],
+  ['burnAbove', [
+    Effect.Rule(Rule.Fireproof),
+  ]],
+  // slices and freshness: Meat Feast's 4 more (2 more enhanced), Lahmacun's 2 fewer (at least 4, 2 more enhanced, all
+  // back after a boss), Garden Veggie's regrowth, Pumpkin Spice never stale (and the table freshened after a boss),
+  // Pickle Pie's neighbours, Pizza Fritta's last act, Carbonara rises, Pizza al Taglio's refund, Quattro Stagioni turns
+  ['slices', [
+    Effect.Rule(
+      Rule.MoreSlices,
+      Unit.Count(4),
+    ),
+    Effect.Rule(
+      Rule.EnhanceSlices,
+      Unit.Count(2),
+    ),
+  ]],
+  ['bossRegrow', [
+    Effect.Rule(
+      Rule.FewerSlices,
+      Unit.Count(2),
+      Unit.Count(4),
+    ),
+    Effect.Rule(
+      Rule.EnhanceSlices,
+      Unit.Count(2),
+    ),
+    Effect.Rule(Rule.BossRegrow),
+  ]],
+  ['regen', [
+    Effect.Rule(
+      Rule.Regen,
+      Enh(Unit.Seconds(20), Unit.Seconds(13)),
+    ),
+  ]],
+  ['neverStale', [
+    Effect.Rule(Rule.NeverStale),
+    Effect.Rule(
+      Rule.BossFreshen,
+      Enh(Unit.Count(1), Unit.Count(2)),
+    ),
+  ]],
+  ['preserve', [
+    Effect.Rule(
+      Rule.Preserve,
+      Enh(Unit.Mult(0.5), Unit.Mult(0.25)),
+    ),
+  ]],
+  ['staleHeal', [
+    Effect.Rule(
+      Rule.StaleHeal,
+      Enh(Unit.Count(2), Unit.Count(3)),
+    ),
+  ]],
+  ['riseOnce', [
+    Effect.Rule(
+      Rule.Rise,
+      Enh(Unit.Count(3), Unit.Count(5)),
+    ),
+  ]],
+  ['refund', [
+    Effect.Rule(
+      Rule.Refund,
+      Enh(Unit.Percent(50), Unit.Percent(75)),
+    ),
+  ]],
+  ['rotate', [
+    Effect.Rule(Rule.Seasons),
+  ]],
+  // the feet over a pizza: Pesto's slow, Marinara's garlic, Tarte Flambée's heat (half as much again enhanced),
+  // Diavola's fire (and its curse while possessed), Tandoori's mark, Greek's disarm, Mallow Mountain's bounce,
+  // Okonomiyaki on stunned feet
+  ['slowAbove', [
+    Effect.Rule(
+      Rule.SlowAbove,
+      Enh(Unit.Percent(25), Unit.Percent(38)),
+    ),
+  ]],
+  ['garlic', [
+    Effect.Rule(
+      Rule.Aura,
+      Enh(Unit.Amount(6), Unit.Amount(9)),
+    ),
+  ]],
+  ['heatAbove', [
+    Effect.Rule(
+      Rule.HoverAura,
+      Enh(Unit.Amount(3), Unit.Amount(4.5)),
+    ),
+  ]],
+  ['burnStomper', [
+    Effect.Rule(
+      Rule.StompBurn,
+      Enh(Unit.Amount(10), Unit.Amount(15)),
+    ),
+    Effect.Rule(Rule.HauntedFire),
+  ]],
+  ['markFirst', [
+    Effect.Rule(
+      Rule.MarkFirst,
+      Enh(Unit.Mult(2), Unit.Mult(3)),
+    ),
+  ]],
+  ['disarm', [
+    Effect.Rule(
+      Rule.Disarm,
+      Enh(Unit.Seconds(3), Unit.Seconds(5)),
+    ),
+  ]],
+  ['bounceTop', [
+    Effect.Rule(
+      Rule.BounceTop,
+      Enh(Unit.Count(1), Unit.Count(2)),
+    ),
+  ]],
+  ['stunVuln', [
+    Effect.Rule(
+      Rule.StunnedDmg,
+      Enh(Unit.Mult(1.5), Unit.Mult(1.75)),
+    ),
+  ]],
+  // the table's: Spinach & Feta's and the Calzone's heals light them up, Birthday Cake's free card, Hawaiian's tenth
+  // smack, Cajun Shrimp's slam, the Fig's crusts, Napoletana's boost
+  ['regenAll', [
+    Effect.Rule(Rule.RegrowGlow),
+  ]],
+  ['healWeakest', [
+    Effect.Rule(Rule.WeakestGlow),
+  ]],
+  ['freeTopping', [
+    Effect.Rule(
+      Rule.FreeEvery,
+      Enh(Unit.Count(5), Unit.Count(3)),
+    ),
+  ]],
+  ['tenthCrit', [
+    Effect.Rule(
+      Rule.TenthCrit,
+      Enh(Unit.Count(10), Unit.Count(7)),
+    ),
+  ]],
+  ['slamStun', [
+    Effect.Rule(
+      Rule.SlamStun,
+      Enh(Unit.Seconds(1.5), Unit.Seconds(2.5)),
+      Enh(Unit.Chance(25), Unit.Chance(40)),
+    ),
+  ]],
+  ['crustBonus', [
+    Effect.Rule(Rule.CrustEarner),
+  ]],
+  ['crustRun', [
+    Effect.Rule(Rule.CrustEarner),
+  ]],
+  ['perkBoost', [
+    Effect.Rule(
+      Rule.Boost,
+      Unit.Percent(5),
+    ),
+  ]],
+  // the borrowers: Echo Slice's copy, Arcobaleno's borrowing, Mystery Meat's big hidden perk, Kitchen Sink's picks
+  ['echo', [
+    Effect.Rule(Rule.Echo),
+  ]],
+  ['rainbow', [
+    Effect.Rule(Rule.Borrow),
+  ]],
+  ['mystery', [
+    Effect.Rule(
+      Rule.Mystery,
+      Unit.Mult(0.5),
+    ),
+  ]],
+  ['kitchenSink', [
+    Effect.Rule(Rule.Sink),
+  ]],
+] as const satisfies readonly (readonly [PizzaPerk, Effects])[];
+
+// ——— step 4's guard: every pizza perk declares an effect ———
+// A perk declares its triggers and rules above, its stats in src/game/perkStats.ts (PERK_STATS, PERK_TIPS, the
+// table-shaped perks). A perk that declares none of them doesn't compile: it's named here, in the error.
+type PerkDeclared = (typeof PERK_EFFECTS)[number][0] | StatDeclared;
+type Undeclared = Exclude<PizzaPerk, PerkDeclared>;
+/** Every pizza perk declares at least one effect (the error names any that doesn't). */
+export const EVERY_PERK_DECLARES: [Undeclared] extends [never] ? true : { undeclared: Undeclared } = true;
 

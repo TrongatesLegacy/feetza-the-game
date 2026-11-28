@@ -4,6 +4,7 @@
 import type { Foot } from '../game/Foot';
 import type { Pizza } from '../game/Pizza';
 import type { HitQuery } from './perHit';
+import type { ChargeFromId } from './charged';
 
 export const GameEvent = {
   /** Every frame of a wave. */
@@ -49,13 +50,20 @@ export const GameEvent = {
   WaveClose: 'waveClose',
   /** A hit (or a moment) being worked out: never emitted, asked (Effect.PerHit, src/effects/perHit.ts). */
   Hit: 'hit',
+  // ——— step 4 ———
+  /** Charge comes to the peel's charged clock (Effect.Charged): from where, how much; `taken` once a clock took it. */
+  Charge: 'charge',
+  /** Slices were just lost to a stomp (the Incredible Bulk's rage counts them). */
+  Losses: 'losses',
 } as const;
 export type GameEventId = (typeof GameEvent)[keyof typeof GameEvent];
 
 /** What each moment carries. `foot` and `pizza` are the ones it's about (none for the wave's own moments). */
 export interface EventData {
-  tick: { dt: number };
-  kill: { foot: Foot; coins: number; echo: boolean };
+  /** `ready`: a pass that looks at the field once, as it begins (the toppings' procs: Cond.Ready). */
+  tick: { dt: number; ready?: boolean };
+  /** Where it fell (x, y: its middle as it went down); `byAbility`: the peel's ability's own kill. */
+  kill: { foot: Foot; coins: number; echo: boolean; byAbility: boolean; x: number; y: number };
   smack: { foot: Foot; x: number };
   swing: { foot: Foot };
   crit: { foot: Foot };
@@ -75,6 +83,8 @@ export interface EventData {
   hit: HitQuery;
   waveClose: { wave: number };
   slam: { auto: boolean };
+  charge: { from: ChargeFromId; share: number; taken: boolean };
+  losses: { n: number };
 }
 
 /** What a perk answers when a pizza is destroyed: it survives (back on its feet now), it rises (back in a moment), or

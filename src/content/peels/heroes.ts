@@ -27,9 +27,9 @@ function sig(name: string, move: string, charge: number, color: number, desc: st
   return { name, trigger: active, fx: [{ e: 'move', id: move }], charge, color, vfx: 'burst', custom: true, desc, also };
 }
 
-/** A hero with no button: its move fires itself (the Incredible Bulk). */
+/** A hero with no button: its move fires itself once a wave, at the third slice lost (the Incredible Bulk). */
 function noButton(name: string, move: string, color: number, desc: string): Ability {
-  return { name, trigger: { t: 'always' }, fx: [{ e: 'move', id: move }], charge: 1, color, vfx: 'burst', custom: true, desc };
+  return { name, trigger: { t: 'always' }, fx: [{ e: 'move', id: move }], charge: 1, color, vfx: 'burst', custom: true, desc, losses: 3 };
 }
 
 const stat = (mods: Extract<Effect, { e: 'stat' }>['mods']): Ability['also'] => ({ trigger: { t: 'always' }, fx: [P.STAT(mods)] });

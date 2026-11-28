@@ -158,6 +158,9 @@ export interface Ability {
   /** Zombie Outbreak (the Zombie Toes peel, and every zombified foot peel on top of its foot's own ability): run by
    * src/game/zombiePeel.ts, its numbers in ZOMBIE_PERK. */
   zombie?: boolean;
+  /** A hero with no button: his move goes off by itself, once a wave, when this many slices have gone this wave (the
+   *  Incredible Bulk: 3). Declared as Effect.OnLosses (src/game/peelEffects.ts). */
+  losses?: number;
 }
 
 /** Zombie Outbreak's numbers (src/game/zombiePeel.ts). Damage in smacks. */
@@ -362,8 +365,16 @@ const PINK = 0xff7ad9;
 const WHITE = 0xffffff;
 const BROWN = 0xb07a3a;
 
-function ab(name: string, trigger: Trigger, fx: Effect[], color: number, vfx: Vfx, charge = 1): Ability {
-  return { name, trigger, fx, charge, color, vfx };
+/** A peel's ability: its trigger and at least one effect (an ability that does nothing doesn't compile: step 4's
+ *  guard, docs/effects-plan.md). */
+function ab(name: string, trigger: Trigger, fx: readonly [Effect, ...Effect[]], color: number, vfx: Vfx, charge = 1): Ability {
+  return { name, trigger, fx: [...fx], charge, color, vfx };
+}
+
+/** Zombie Outbreak's own peel: all it does is the outbreak's (its smacks turn feet, its kills heal: declared in
+ *  src/game/peelEffects.ts, run by src/game/zombiePeel.ts), so it has no effects of its own. */
+function outbreak(name: string, color: number, vfx: Vfx): Ability {
+  return { name, trigger: always, fx: [], charge: 1, color, vfx, zombie: true };
 }
 
 /** A throwing peel: its ability, plus a passive throw. */
@@ -504,7 +515,7 @@ export const ABILITIES: Record<string, Ability> = {
   'foot:clown': ab('Honk!', act, [ST(3, all)], PINK, 'burst', 1.1),
   'foot:ghost': ab('Spooky', every(7), [M(1.6, 4, rnd(3))], PURPLE, 'ink'),
   // Zombie Outbreak: all of it is the zombie perk (src/game/zombiePeel.ts), so no effects of its own
-  'foot:zombie': { ...ab('Zombie Outbreak', always, [], GREEN, 'ink'), zombie: true },
+  'foot:zombie': outbreak('Zombie Outbreak', GREEN, 'ink'),
   'foot:robo': ab('Laser Grid', every(4), [D(2, front(3))], RED, 'zap'),
   'foot:lava': ab('Magma Trail', smack(0.35), [B(1.5, 3, hit(120))], ORANGE, 'fire'),
   'foot:mitosis': ab('Seeing Double', always, [STAT({ doubleChance: 0.12 })], GREEN, 'burst'),

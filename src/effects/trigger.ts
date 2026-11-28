@@ -9,7 +9,7 @@ import { condTags, holdsCond, type CondCtx, type CondData } from './cond';
 import { footOf, pizzaOf, type AnyEvent, type EventData, type GameEventId } from './events';
 import type { Pizza } from '../game/Pizza';
 import type { Foot } from '../game/Foot';
-import type { Chance, Count } from './units';
+import type { Chance, Count, Seconds } from './units';
 import type { MaybeEnh } from './status';
 import { Tag, type TagId, type TriggerKindId } from './tags';
 import type { HitQuery, HitStatId } from './perHit';
@@ -27,15 +27,35 @@ export const Scope = {
   /** Each pizza on the table granting the perk, in table order. Triggers of this scope that sit
    *  together on a moment go pizza by pizza, as one pass over the table. */
   Alive: 'alive',
-  /** Whatever the table: a prop left on the field (a splat, a ghost, a stone foot) or a perk's own set-up that also
-   *  tidies up after itself. It reads what it needs itself, so the off-switch is its own business (the audit lists
-   *  every one). */
+  /** The field's: once, for the table, not tied to one pizza (a set-up, a prop's clock). The bus's off-switch holds it
+   *  while no pizza grants the perk, unless it declares that it outlives its pizzas (`outlives`: props left on the
+   *  field, a tidy-up). A prop tied to an owner pizza asks the same rule of its owner (grantsPerk). */
   Field: 'field',
   /** The pizza by its own perk, whatever it grants now (a borrower that has borrowed another's, a Mystery Meat still
-   *  hidden): the moment's pizza, or each one in a pass over the table. Off-switches are its own business too. */
+   *  hidden): the moment's pizza, or each one in a pass over the table. The bus's off-switch holds it while that
+   *  pizza's perk is off (at its end: unless it was on as it went), unless it declares `outlives`. */
   Own: 'own',
 } as const;
 export type ScopeId = (typeof Scope)[keyof typeof Scope];
+
+/** Why a trigger runs whatever its pizzas' state (the bus's off-switch doesn't hold it): declared, never assumed. */
+export const Outlives = {
+  /** Its props stay on the field after the moment that made them (a splat, a ghost, a wall, a stone foot) and play
+   *  out or tidy themselves up when their pizza goes; anything new they start asks its owner (grantsPerk). */
+  Props: 'props',
+  /** A set-up or a tidy-up for the wave: it clears or resets what's left, so it runs with nothing on the table too. */
+  TidyUp: 'tidyUp',
+  /** It's the pizza's own moment (placed, enhanced, its first reveal, its own loss): it runs whatever its perk's state. */
+  OwnMoment: 'ownMoment',
+  /** It follows the field for its pizzas (a boss's phases, a clock shared by several perks), each part reading its
+   *  own strength. */
+  Follows: 'follows',
+} as const;
+export type OutlivesId = (typeof Outlives)[keyof typeof Outlives];
+
+/** The off-switch, one rule for every source: a pizza grants a perk while it's its Pizza.perk, never while it's
+ *  eaten, stale, frozen or possessed. Every scope reads it, and so does a prop tied to an owner pizza. */
+export const grantsPerk = (p: Pizza | null | undefined, perk: string): p is Pizza => !!p && !p.dead && p.perk === perk;
 
 /** One grant of a trigger: the pizza firing it (null for the whole table), the pizzas behind it, its strength. */
 export interface Grant {
@@ -53,7 +73,8 @@ export interface PlayCtx extends ActionHost {
   on<E extends GameEventId>(ev: E, fn: (d: EventData[E]) => void, scope?: ScopeId): void;
   /** The one place a gameplay chance is rolled (Math.random: seeded in the balance sim). */
   roll(c: number): boolean;
-  grants(scope: ScopeId, ev: AnyEvent, chance?: number): Grant[];
+  /** Who fires (the scopes, each under the bus's off-switch; `outlives`: a Field or Own trigger that runs whatever). */
+  grants(scope: ScopeId, ev: AnyEvent, chance?: number, outlives?: OutlivesId): Grant[];
   feet(): Foot[];
   cond(ev: AnyEvent): CondCtx;
   /** Run-long state kept by the bus (a timer's seconds), by key. */
@@ -62,6 +83,8 @@ export interface PlayCtx extends ActionHost {
   per(stat: HitStatId, fold: (q: HitQuery, m: number) => number): void;
   /** A one-off's own per-hit factor (Grow.By). */
   factor(id: string, q: HitQuery): number;
+  /** How fast a charged clock fills with time (Effect.Charged: the peel's meter boosts run its timer faster); 1 if unsaid. */
+  rate?(): number;
 }
 
 /** A counted trigger: every n-th moment fires (n enhanced on an enhanced pizza), counted in the pizza's flags under
@@ -83,6 +106,12 @@ export interface TriggerOpts {
   nth?: NthData;
   /** Once a wave per pizza, marked in its flags under this name. */
   oncePerWave?: string;
+  /** The whole trigger waits this long after its moment, its roll and conditions too, on the scene's clock (a topping
+   *  proc's kill roll comes 40 ms after the kill). Action.Later is the other way round: rolled now, done later. */
+  delay?: Seconds;
+  /** A Field or Own trigger that runs whatever its pizzas' state, and why (Outlives). Without it, the bus's
+   *  off-switch holds it (Scope.Field, Scope.Own). */
+  outlives?: OutlivesId;
 }
 
 export interface TriggerData extends TriggerOpts {
@@ -99,7 +128,7 @@ export function fireTrigger(e: TriggerData, ctx: PlayCtx, ev: AnyEvent, once = f
   // (a count or a once-a-wave mark lives on a pizza: a table-wide trigger can't have one)
   if (import.meta.env?.DEV && (e.nth || e.oncePerWave) && (scope === Scope.Table || scope === Scope.Sum)) console.error(`[effects] ${ctx.perk}: a counted or once-a-wave trigger needs a per-pizza scope`);
   if (!e.nth && e.when && !holdsCond(e.when, { ...cc(), pizza: pizzaOf(ev) })) return false;
-  for (const g of ctx.grants(scope, ev, e.chance)) {
+  for (const g of ctx.grants(scope, ev, e.chance, e.outlives)) {
     const pizza = g.pizza ?? (scope === Scope.Target ? pizzaOf(ev) : null);
     if (e.oncePerWave && pizza) {
       if (pizza.flags[e.oncePerWave] === ctx.wave()) continue;
@@ -140,11 +169,12 @@ export function describeTrigger(what: string, e: TriggerData): string {
   const a = /^[aeiou]/.test(what) ? 'an' : 'a';
   const pre = e.chance !== undefined ? `${Math.round(e.chance * 100)}% chance on ${a} ${what}` : e.nth ? `Every ${nth(n)} ${what}` : `On ${a} ${what}`;
   const once = e.oncePerWave ? ' (once a wave)' : '';
-  return `${pre}${once}: ${describeAction(e.action)}`;
+  const later = e.delay ? ' (a beat later)' : '';
+  return `${pre}${once}${later}: ${describeAction(e.action)}`;
 }
 
 export function triggerTags(kind: TriggerKindId, e: TriggerData): TagId[] {
-  return [Tag.Trigger(kind), Tag.Scope(e.scope ?? Scope.Table), ...condTags(e.when), ...actionTags(e.action)];
+  return [Tag.Trigger(kind), Tag.Scope(e.scope ?? Scope.Table), ...(e.outlives ? [Tag.Outlives(e.outlives)] : []), ...condTags(e.when), ...actionTags(e.action)];
 }
 
 /** A trigger scaled (enhanced, Napoletana, Echo Slice): its chance, never past its cap. */
@@ -161,7 +191,15 @@ export function triggerSpec<D extends TriggerData & { readonly kind: TriggerKind
       const play = ctx.play;
       if (!play) return;
       const full: TriggerData = need ? { ...e, when: e.when ? { c: 'all', of: [need, e.when] } : need } : e;
-      play.on(event, (ev) => fireTrigger(full, play, ev), e.scope);
+      const delay = e.delay;
+      play.on(
+        event,
+        (ev) => {
+          if (delay === undefined) fireTrigger(full, play, ev);
+          else play.later(Math.round(delay * 1000), () => fireTrigger(full, play, ev));
+        },
+        e.scope,
+      );
     },
     describe: (e: D) => describeTrigger(what, e),
     scale: (e: D, k: number) => scaleTrigger(e, k),

@@ -34,6 +34,9 @@ import { DealEffect } from './deal';
 import { ProcEffect } from './proc';
 import { OnPickEffect } from './onPick';
 import { OnSlamEffect } from './onSlam';
+import { ChargedEffect } from './charged';
+import { OnLossesEffect } from './onLosses';
+import { RuleEffect } from './rule';
 
 export const Effect = {
   Stat: StatEffect,
@@ -63,11 +66,17 @@ export const Effect = {
   Proc: ProcEffect,
   OnPick: OnPickEffect,
   OnSlam: OnSlamEffect,
+  Charged: ChargedEffect,
+  OnLosses: OnLossesEffect,
+  Rule: RuleEffect,
 } as const;
 
 /** Any effect, as data. */
 export type EffectData = ReturnType<(typeof Effect)[keyof typeof Effect]>;
 export type EffectKindId = EffectData['kind'];
+/** What an item declares: at least one effect (a topping, a pizza perk or a peel with none doesn't compile: step 4's
+ *  guard, docs/effects-plan.md). */
+export type Effects = readonly [EffectData, ...EffectData[]];
 
 // every kind's behaviour, by its tag (a kind missing here, or missing a method, doesn't compile)
 const KINDS: { [E in EffectData as E['kind']]: KindSpec<E> } = {
@@ -98,6 +107,9 @@ const KINDS: { [E in EffectData as E['kind']]: KindSpec<E> } = {
   proc: ProcEffect.spec,
   onPick: OnPickEffect.spec,
   onSlam: OnSlamEffect.spec,
+  charged: ChargedEffect.spec,
+  onLosses: OnLossesEffect.spec,
+  rule: RuleEffect.spec,
 };
 
 const spec = <E extends EffectData>(e: E) => KINDS[e.kind as E['kind']] as unknown as KindSpec<E>;
@@ -134,8 +146,10 @@ export { DealRule, type DealRuleId } from './deal';
 export { HitStat, Grow, type HitQuery, type HitStatId } from './perHit';
 export { Cond, type CondData } from './cond';
 export { Status, Enh, Dps, SlowStack } from './status';
-export { Action, Pay, At, Who, Ally, Hit, type ActionData, type ActionHost, type Fire } from './actions';
-export { Scope, Nth, type PlayCtx, type Grant } from './trigger';
+export { Action, Pay, At, Who, Ally, Hit, Area, type ActionData, type ActionHost, type Fire } from './actions';
+export { Scope, Nth, Outlives, grantsPerk, type OutlivesId, type PlayCtx, type Grant } from './trigger';
 export { Pick, Reset } from './every';
+export { ChargeFrom, chargedKey, type ChargeFromId } from './charged';
+export { Rule, RuleBy, RULE_DEFS, type RuleId, type RuleData } from './rule';
 export { Tag, TriggerKind, type TagId, type TriggerKindId } from './tags';
 export { Ledger, Phase, Grows } from './ledger';

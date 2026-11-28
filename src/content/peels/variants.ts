@@ -294,7 +294,7 @@ function endgamePeel(id: string): HeroPeel {
   const move = fx0?.e === 'move' ? fx0.id : '';
   const noButton = base.ability.trigger.t !== 'active';
   const ability: Ability = noButton
-    ? { ...base.ability, name: `${base.ability.name}: Endgame`, desc: `${base.ability.desc} Endgame: the first time he hulks out each wave, a ring of portals opens and strikes the 5 toughest feet (×3 each).` }
+    ? { ...base.ability, fx: [{ e: 'move', id: `endgame_${move}` }], name: `${base.ability.name}: Endgame`, desc: `${base.ability.desc} Endgame: the first time he hulks out each wave, a ring of portals opens and strikes the 5 toughest feet (×3 each).` }
     : variantAbility(base.ability, `${base.ability.name}: Endgame`, `endgame_${move}`, id === 'iamcrust' ? 'I am Crust.' : `${base.ability.desc}${ENDGAME_TWIST}`, 0.9);
   return {
     id: `hero:${id}endgame`,

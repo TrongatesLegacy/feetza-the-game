@@ -18,7 +18,7 @@ import { condTags, holdsCond, type CondData } from './cond';
 import { pizzaOf } from './events';
 import { effectKind } from './kind';
 import { Tag, TriggerKind, type TagId } from './tags';
-import { Scope, type ScopeId } from './trigger';
+import { Scope, type OutlivesId, type ScopeId } from './trigger';
 import type { Percent } from './units';
 
 /** The numbers worked out per hit (or per moment). */
@@ -82,6 +82,8 @@ export const Grow = {
 
 export interface PerHitOpts {
   scope?: ScopeId;
+  /** A Field one that runs whatever its pizzas' state (its props: a stone foot), and why. */
+  outlives?: OutlivesId;
   /** Checked for each grant, with its pizza. */
   when?: CondData;
 }
@@ -110,7 +112,7 @@ export const PerHitEffect = effectKind('perHit', make, {
     const scope = e.scope ?? Scope.Table;
     play.per(e.stat, (q, m) => {
       const g = e.grow;
-      for (const gr of play.grants(scope, q)) {
+      for (const gr of play.grants(scope, q, undefined, e.outlives)) {
         if (e.when && !holdsCond(e.when, { ...play.cond(q), pizza: gr.pizza ?? pizzaOf(q) })) continue;
         m = fold(e, m, gr.k(), () => (g.g === 'by' ? play.factor(g.factor, q) : 1));
       }
@@ -125,5 +127,5 @@ export const PerHitEffect = effectKind('perHit', make, {
     return g.g === 'cut' ? `−${pc}% ${noun}` : `+${pc}% ${noun}`;
   },
   scale: (e, k) => (e.grow.g === 'by' ? e : { ...e, grow: { ...e.grow, per: (e.grow.per * k) as Percent } }),
-  tags: (e): TagId[] => [Tag.Trigger(TriggerKind.PerHit), Tag.Hit(e.stat), Tag.Scope(e.scope ?? Scope.Table), ...condTags(e.when)],
+  tags: (e): TagId[] => [Tag.Trigger(TriggerKind.PerHit), Tag.Hit(e.stat), Tag.Scope(e.scope ?? Scope.Table), ...(e.outlives ? [Tag.Outlives(e.outlives)] : []), ...condTags(e.when)],
 });

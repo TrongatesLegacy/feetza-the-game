@@ -47,4 +47,17 @@ export default tseslint.config(
       'effects/typed-item-names': 'error',
     },
   },
+  // step 4's guards (docs/effects-plan.md, "Step 4"): game code never checks a pizza perk by name (the perks'
+  // declarations, the pizzas' data and the dev tools name them on purpose; the STATS tab's hand-written perk tiles are
+  // the one place left, listed in the plan doc)
+  {
+    files: ['src/**/*.ts'],
+    ignores: ['src/game/perkEffects.ts', 'src/game/perkStats.ts', 'src/data/pizzas.ts', 'src/content/pizzas/**', 'src/dev*.ts', 'src/game/buildStats.ts'],
+    rules: { 'effects/no-perk-names': 'error' },
+  },
+  // …and the perks' one-offs never check stale, frozen or possessed themselves: the trigger bus's off-switch does
+  {
+    files: ['src/game/pizzaPerks.ts', 'src/game/pizzaLegends.ts', 'src/game/pizzaLegends3.ts'],
+    rules: { 'effects/no-own-off-switch': 'error' },
+  },
 );

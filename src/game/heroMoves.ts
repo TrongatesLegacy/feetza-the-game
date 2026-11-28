@@ -1656,7 +1656,10 @@ registerMoves({
   },
 });
 
-// ——— Bulk: no button. Lose 3 slices in a wave and the peel turns green. ———
+// ——— Bulk: no button. Lose 3 slices in a wave and the peel turns green (his ability's Effect.OnLosses fires the move:
+// src/game/peelEffects.ts). ———
+registerMoves({ bulkSmash: (k) => bulkUp(k) });
+
 function bulkUp(k: HeroKit): void {
   k.transform({
     label: 'GREEN RAGE',
@@ -1830,16 +1833,6 @@ registerPassives({
 
   'hero:captainpizzeria': {
     dmgMult: (k) => (k.host.pizzas().some((p) => !p.dead && p.slices === 1) ? 1.3 : 1),
-  },
-
-  'hero:incrediblebulk': {
-    lost: (k, n) => {
-      k.wv.lost = Number(k.wv.lost ?? 0) + n;
-      if (Number(k.wv.lost) >= 3 && !k.wv.raged && k.host.inWave()) {
-        k.wv.raged = true;
-        bulkUp(k);
-      }
-    },
   },
 
   'hero:blackwindow': {

@@ -3,10 +3,12 @@
 // gives each effect its PlayCtx: who grants the perk now and how strongly (the scopes), the conditions' view of the
 // field, the one gameplay roll, and the shared actions through the kit (ActionHost).
 //
-// The off-switch is one rule, Pizza.perk, which every scope reads: an eaten, stale, frozen-perk or possessed pizza
-// grants no perk, so none of its triggers fire (table-wide, per-pizza, the pizza a foot was over, the end-of-wave
-// pass), and neither do its old code paths, auras and defences. Its stats are the Ghost's possession's (the Haunt
-// phase), as before.
+// The off-switch is one rule, Pizza.perk (grantsPerk), which every scope reads: an eaten, stale, frozen-perk or
+// possessed pizza grants no perk, so none of its triggers fire (table-wide, per-pizza, the pizza a foot was over, the
+// end-of-wave pass), and neither do its rules, auras and defences. A field-wide trigger (Scope.Field) is held while no
+// pizza grants its perk, and a pizza's own (Scope.Own) while its perk is off, unless it declares that it outlives them
+// (TriggerOpts.outlives: its props, a tidy-up, its own moment); a prop tied to an owner pizza asks grantsPerk of it.
+// Its stats are the Ghost's possession's (the Haunt phase), as before.
 
 import type { PizzaPerk } from '../data/pizzas';
 import { isActStart } from '../data/stages';
@@ -17,7 +19,7 @@ import { Source } from '../effects/source';
 import type { AnyEvent } from '../effects/events';
 import { answered, pizzaOf } from '../effects/events';
 import { HIT_STATS, type HitQuery, type HitStatId } from '../effects/perHit';
-import { Scope, type ScopeId } from '../effects/trigger';
+import { Scope, grantsPerk, type OutlivesId, type ScopeId } from '../effects/trigger';
 import type { Foot } from './Foot';
 import type { Pizza } from './Pizza';
 import { PERK_EFFECTS } from './perkEffects';
@@ -122,7 +124,7 @@ export class PerkBus {
       isNight,
       flag: (id) => h.flag(id),
     });
-    const grants = (scope: ScopeId, ev: AnyEvent, chance?: number): Grant[] => {
+    const grants = (scope: ScopeId, ev: AnyEvent, chance?: number, outlives?: OutlivesId): Grant[] => {
       switch (scope) {
         case Scope.Table: {
           if (h.c(perk) <= 0) return [];
@@ -143,18 +145,23 @@ export class PerkBus {
         }
         case Scope.Target: {
           const t = pizzaOf(ev);
-          return t && !t.dead && t.perk === perk ? [{ pizza: t, pizzas: [t], k: () => h.pk(t) }] : [];
+          return grantsPerk(t, perk) ? [{ pizza: t, pizzas: [t], k: () => h.pk(t) }] : [];
         }
         case Scope.Alive: {
           const p = bus.visiting;
-          return p && p.perk === perk ? [{ pizza: p, pizzas: [p], k: () => h.pk(p) }] : [];
+          return grantsPerk(p, perk) ? [{ pizza: p, pizzas: [p], k: () => h.pk(p) }] : [];
         }
         case Scope.Own: {
           // (the moment's own pizza when it names one; else the one a table pass is visiting)
           const p = pizzaOf(ev) ?? bus.visiting;
-          return p && p.type.perk === perk ? [{ pizza: p, pizzas: [p], k: () => h.pk(p) }] : [];
+          if (!p || p.type.perk !== perk) return [];
+          // (the off-switch: its perk is on; at its end, it was on as it went)
+          const on = 'answer' in ev ? 'fresh' in ev && ev.fresh : !p.dead && !p.perkOff;
+          return on || outlives ? [{ pizza: p, pizzas: [p], k: () => h.pk(p) }] : [];
         }
         case Scope.Field:
+          // (the off-switch: some pizza grants the perk)
+          if (!outlives && h.c(perk) <= 0) return [];
           return [{ pizza: null, get pizzas() { return h.granting(perk); }, k: () => h.c(perk) }];
       }
     };

@@ -1,29 +1,35 @@
-// F.effectsAudit() (docs/effects-plan.md, step 3; finished in step 4): every item (toppings, pizzas, peels) through
-// the effect adapters, on the live Game scene (F.startGame first). It reports:
-// - items that declare no effect (still on an old code path);
-// - items whose effects no STATS tile, "More effects" line or perk card shows (it builds each item alone and reads the
-//   STATS tab's own view, as the game does);
-// - effects that skip the stale, frozen and possessed rules: triggers whose scope reads its own off-switch
-//   (Scope.Field: props and set-ups; Scope.Own: by the pizza's own perk, whatever it grants);
-// - any adapter (describe, tags, scale) that throws.
+// F.effectsAudit() (docs/effects-plan.md, steps 3 and 4): every item (toppings, pizzas, peels) through the effect
+// adapters, on the live Game scene (F.startGame first). `npm run golden` (so `npm run check`) runs it headless and fails
+// on any problem (problemsOf). It reports:
+// - items that declare no effect (a problem: every item declares at least one, and the types say so too);
+// - items whose effects no STATS tile, "More effects" line or perk card shows (a problem: it builds each item alone and
+//   reads the STATS tab's own view, as the game does);
+// - the off-switch: every trigger goes by the bus's one rule (its scope reads Pizza.perk; a field-wide or own trigger
+//   is held while its perk is off), unless it declares that it outlives its pizzas and why (Outlives). Those are
+//   listed with their reason; a trigger with an unknown scope or reason, or a topping's or peel's on the field, is a
+//   problem;
+// - the rules that read the pizza's own perk, whatever it grants (RuleBy.Own), listed;
+// - any adapter (describe, tags, scale) that throws (a problem).
 // Dev only; it puts the run back as it found it.
 
 import { UPGRADES, kindOf, UpgradeKind, type Upgrade } from './data/upgrades';
 import { PIZZAS, type PizzaPerk } from './data/pizzas';
 import { Effect, Op, Stat, effects, type EffectData } from './effects';
-import { Scope } from './effects/trigger';
+import { Outlives, Scope } from './effects/trigger';
+import { RULE_DEFS, RuleBy } from './effects/rule';
 import { Source } from './effects/source';
 import { ABILITIES } from './game/abilities';
 import { PERK_EFFECTS } from './game/perkEffects';
-import { PERK_NONE, PERK_STATS, PERK_TIPS } from './game/perkStats';
+import { PERK_NONE, PERK_STATS, PERK_TIPS, TABLE_SHAPED } from './game/perkStats';
 import { abilityEffects } from './game/peelEffects';
 import type { BuildView } from './game/buildStats';
 import { save } from './systems/save';
 
 type AnyScene = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
-/** The perks whose numbers PizzaPerkKit.modifiers works out from the whole table (a declared Grows value each). */
-const TABLE_SHAPED: PizzaPerk[] = ['varietyDmg', 'peelDmg', 'comboLong', 'smackSpeed', 'crustRun', 'forgeWaves', 'skaldSaga', 'kitchenSink'];
+const TABLE: readonly PizzaPerk[] = TABLE_SHAPED;
+const SCOPES = new Set<string>(Object.values(Scope));
+const REASONS = new Set<string>(Object.values(Outlives));
 
 /** A pizza perk's declared effects: its stats (PERK_STATS, at strength 1; Pepperoni's and the luck pizzas' tips are one
  *  sum, PERK_TIPS, declared in Run.buildLedger) and its triggers (PERK_EFFECTS). */
@@ -35,7 +41,7 @@ export function perkEffectsOf(perk: PizzaPerk): EffectData[] {
       Op.Add(PERK_TIPS[perk as keyof typeof PERK_TIPS]),
     ),
   ] : [];
-  return [...(stats && stats !== PERK_NONE ? stats(1) : []), ...tips, ...PERK_EFFECTS.filter(([p]) => p === perk).flatMap(([, l]) => l)];
+  return [...(stats && stats !== PERK_NONE ? stats(1) : []), ...tips, ...PERK_EFFECTS.filter(([p]) => p === perk).flatMap(([, l]): readonly EffectData[] => l)];
 }
 
 interface Row {
@@ -52,13 +58,19 @@ export interface EffectsAudit {
   notShown: { toppings: string[]; pizzas: string[]; peels: string[] };
   /** Shown only by its card (a one-use topping's armed line; a pizza whose numbers no tile names: its perk card). */
   cardOnly: { toppings: string[]; pizzas: string[] };
-  /** Triggers that read their own off-switch (Scope.Field / Scope.Own): item, kind and scope. */
-  ownOffSwitch: string[];
+  /** Triggers that run whatever their pizzas' state, each with its declared reason (TriggerOpts.outlives). */
+  outlives: string[];
+  /** Field-wide and own triggers the bus's off-switch holds (no reason to outlive their pizzas declared). */
+  gated: number;
+  /** Rules that read the pizza's own perk, whatever it grants (RuleBy.Own). */
+  ownRules: string[];
+  /** Triggers that skip the off-switch: an unknown scope or reason, or a topping's or a peel's on the field. */
+  offSwitch: string[];
   adapterErrors: string[];
   rows: { toppings: Row[]; pizzas: Row[]; peels: Row[] };
 }
 
-const kindsOf = (list: EffectData[]) => [...new Set(list.map((e) => e.kind))];
+const kindsOf = (list: readonly EffectData[]) => [...new Set(list.map((e) => e.kind))];
 
 /** The STATS tab's chips: every tile's and automatic tile's sources, and the More effects lines. */
 function chipsOf(v: BuildView): Set<string> {
@@ -71,11 +83,14 @@ export function effectsAudit(g: AnyScene): EffectsAudit {
     noEffects: { toppings: [], pizzas: [], peels: [] },
     notShown: { toppings: [], pizzas: [], peels: [] },
     cardOnly: { toppings: [], pizzas: [] },
-    ownOffSwitch: [],
+    outlives: [],
+    gated: 0,
+    ownRules: [],
+    offSwitch: [],
     adapterErrors: [],
     rows: { toppings: [], pizzas: [], peels: [] },
   };
-  const adapt = (who: string, list: EffectData[]) => {
+  const adapt = (who: string, list: readonly EffectData[]) => {
     out.counts.effects += list.length;
     for (const e of list) {
       try {
@@ -87,7 +102,15 @@ export function effectsAudit(g: AnyScene): EffectsAudit {
         out.adapterErrors.push(`${who} ${e.kind}: ${String(err)}`);
       }
       const scope = 'scope' in e ? e.scope : undefined;
-      if (scope === Scope.Field || scope === Scope.Own) out.ownOffSwitch.push(`${who} ${e.kind} (${scope})`);
+      const why = 'outlives' in e ? e.outlives : undefined;
+      if (scope !== undefined && !SCOPES.has(scope)) out.offSwitch.push(`${who} ${e.kind}: an unknown scope (${scope})`);
+      if (why !== undefined && !REASONS.has(why)) out.offSwitch.push(`${who} ${e.kind}: an unknown reason to outlive its pizzas (${why})`);
+      if (scope === Scope.Field || scope === Scope.Own) {
+        if (!who.startsWith('pizza')) out.offSwitch.push(`${who} ${e.kind}: a ${scope} trigger, which only a pizza perk has`);
+        else if (why) out.outlives.push(`${who} ${e.kind} (${scope}): ${why}`);
+        else out.gated++;
+      } else if (why) out.offSwitch.push(`${who} ${e.kind}: outlives its pizzas but its scope (${scope ?? Scope.Table}) holds it anyway`);
+      if (e.kind === 'rule' && RULE_DEFS[e.rule].by === RuleBy.Own) out.ownRules.push(`${who} ${e.rule}`);
     }
   };
   const r = g.run;
@@ -128,7 +151,7 @@ export function effectsAudit(g: AnyScene): EffectsAudit {
       out.counts.pizzas++;
       const list = perkEffectsOf(p.perk);
       out.rows.pizzas.push({ id: p.id, name: p.name, effects: list.length, kinds: kindsOf(list) });
-      if (!list.length && !TABLE_SHAPED.includes(p.perk)) out.noEffects.pizzas.push(`${p.id} (${p.perk})`);
+      if (!list.length && !TABLE.includes(p.perk)) out.noEffects.pizzas.push(`${p.id} (${p.perk})`);
       adapt(`pizza ${p.id}`, list);
       table([p.id, 'margherita', 'pepperoni']);
       const v: BuildView = g.statsView();
@@ -157,5 +180,16 @@ export function effectsAudit(g: AnyScene): EffectsAudit {
     table(was.table);
     g.computeStats();
   }
+  return out;
+}
+
+/** What fails the check (npm run golden): an item declaring nothing, an item nothing shows, a trigger skipping the
+ *  off-switch, an adapter that throws. */
+export function problemsOf(a: EffectsAudit): string[] {
+  const out: string[] = [];
+  for (const [what, ids] of Object.entries(a.noEffects)) for (const id of ids) out.push(`${what}: ${id} declares no effect`);
+  for (const [what, ids] of Object.entries(a.notShown)) for (const id of ids) out.push(`${what}: ${id} shows on neither STATS nor a card`);
+  out.push(...a.offSwitch.map((s) => `off-switch: ${s}`));
+  out.push(...a.adapterErrors.map((s) => `adapter: ${s}`));
   return out;
 }

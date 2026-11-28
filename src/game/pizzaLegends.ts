@@ -172,18 +172,15 @@ export class LegendKit {
 
   /** A wave starts: Tidal Tiki's tide is due every 4th wave (enhanced every 3rd). (A Tiki frozen or stale as the wave
    *  starts still brings its tide: it comes once the Tiki grants again.) */
-  tideReady(wave: number): void {
-    const ghost = this.a.possessed();
-    const tiki = [...new Set([...this.h.granting('tidalWash'), ...this.a.alivePizzas().filter((p) => p.type.perk === 'tidalWash' && p !== ghost)])];
+  tideReady(wave: number, perk: PizzaPerk): void {
+    const tiki = [...new Set([...this.h.granting(perk), ...this.a.alivePizzas().filter((p) => p.type.perk === perk && !p.haunted)])];
     this.tideDue = tiki.length > 0 && wave % (tiki.some((p) => p.enhanced) ? 3 : 4) === 0;
     this.tideT = 0;
   }
 
   /** A wave starts: The First Bake. Every pizza starts the wave fresh (one bought in the shop too), and the first time
    *  each starts a wave whole it gets its slice over the top. */
-  firstBake(): void {
-    const bakers = this.h.granting('firstBake');
-    if (!bakers.length) return;
+  firstBake(bakers: Pizza[]): void {
     this.freshen();
     const n = bakers.some((p) => p.enhanced) ? 2 : 1;
     const got: Pizza[] = [];
@@ -198,9 +195,9 @@ export class LegendKit {
   }
 
   /** The wave closes: the citadel's keep flies all its pennants again in the shop (ready for the next wave). */
-  citadelDown(): void {
+  citadelDown(perk: string): void {
     this.citadel = [];
-    for (const p of this.a.alivePizzas()) if (p.perk === 'citadelWall') p.flags.citadelLeft = p.enhanced ? 4 : 3;
+    for (const p of this.a.alivePizzas()) if (p.perk === perk) p.flags.citadelLeft = p.enhanced ? 4 : 3;
   }
 
   /** The wave closes: no tide still to come. */
@@ -210,7 +207,7 @@ export class LegendKit {
 
   /** The wave closes: The First Bake tops every pizza up, so the shop shows them fresh. */
   bakeFreshen(n: number): void {
-    if (this.h.granting('firstBake').length) this.freshen(Math.floor((n - 1) / 5));
+    this.freshen(Math.floor((n - 1) / 5));
   }
 
   /** Every pizza fully fresh, quietly. When one was really low (half fresh or less, or stale) the oven breathes across
@@ -234,10 +231,7 @@ export class LegendKit {
   // ——— Nonna's Masterpiece ———
 
   /** A stomp is about to land on p: Nonna's ladle swats it if she has a swat left this wave. True when it's blocked. */
-  ladle(f: Foot, p: Pizza): boolean {
-    if (p === this.a.possessed() || !f.alive) return false;
-    const pies = this.h.granting('nonnaLadle');
-    if (!pies.length) return false;
+  ladle(f: Foot, p: Pizza, pies: Pizza[]): boolean {
     const allowed = pies.reduce((n, q) => n + (q.enhanced ? 2 : 1), 0);
     if (this.ladleUsed >= allowed) return false;
     this.ladleUsed++;
@@ -610,7 +604,7 @@ export class LegendKit {
   // ——— Sandcastle Citadel ———
 
   /** The citadel's walls this wave: each Citadel pie's stomps left (it lasts the wave even if its pie is lost). */
-  private citadel: { p: Pizza; left: number }[] = [];
+  private citadel: { p: Pizza; perk: string; left: number }[] = [];
 
   /** The stomps the citadel can still take this wave. */
   get citadelLeft(): number {
@@ -618,9 +612,9 @@ export class LegendKit {
   }
 
   /** As a wave starts the citadel's walls go up: 3 stomps a pie (enhanced 4), its keep's pennants rising one a stomp. */
-  citadelUp(): void {
-    const pies = this.h.granting('citadelWall');
-    this.citadel = pies.map((p) => ({ p, left: p.enhanced ? 4 : 3 }));
+  citadelUp(perk: PizzaPerk): void {
+    const pies = this.h.granting(perk);
+    this.citadel = pies.map((p) => ({ p, perk, left: p.enhanced ? 4 : 3 }));
     for (const c of this.citadel) c.p.flags.citadelLeft = c.left;
     const n = this.citadelLeft;
     if (!n) return;
@@ -629,7 +623,7 @@ export class LegendKit {
     this.sc.time.delayedCall(700, () => {
       a.sfx('sfx_sandcastle_walls', { volume: 0.5, throttle: 300 });
       for (const c of this.citadel) {
-        if (c.p.dead || c.p.type.perk !== 'citadelWall') continue;
+        if (c.p.dead || c.p.type.perk !== c.perk) continue;
         const [kx, ky] = this.keepAt(c.p);
         a.fx.ring(kx, ky + 10, look.col, 1.2, 0.45);
         for (let i = 0; i < 6; i++) {
@@ -653,20 +647,19 @@ export class LegendKit {
   /** A stomp on p, after Phantom Waltz's ghost and Sandcastle Sundae's wall: the citadel takes it if it can (checked
    *  where Pizza Stone is, so a piercing stomp goes through; bosses are blocked too). True when blocked. */
   citadelStomp(f: Foot, p: Pizza): boolean {
-    if (p === this.a.possessed()) return false;
     const open = this.citadel.filter((c) => c.left > 0);
     if (!open.length) return false;
     // (from the Citadel nearest the stomped pie)
     const c = open.reduce((b, q) => (Math.abs(q.p.x - p.x) < Math.abs(b.p.x - p.x) ? q : b));
     c.left--;
     c.p.flags.citadelLeft = c.left;
-    this.citadelBlock(f, p, c.p, c.left);
+    this.citadelBlock(f, p, c.p, c.left, c.perk);
     return true;
   }
 
   /** Sam's citadel wall bursts up out of the sand behind the pie, the foot slams into it and bounces off, sand flies, a
    *  pennant is torn off the keep. */
-  private citadelBlock(f: Foot, p: Pizza, src: Pizza, leftHere: number): void {
+  private citadelBlock(f: Foot, p: Pizza, src: Pizza, leftHere: number, perk: string): void {
     const a = this.a;
     const light = this.h.bossFight();
     const look = legendLook('sandcastlecitadel');
@@ -698,7 +691,7 @@ export class LegendKit {
     this.sc.time.delayedCall(420, () => a.sfx('sfx_sandcastle_pour', { volume: 0.35, throttle: 300 }));
     a.quip(f.x, Math.min(f.cy - 140, wy - 300), total > 0 ? `THE CITADEL! ${total} LEFT` : 'THE CITADEL HELD!', look.css, 40);
     // a pennant torn off the keep, fluttering away (an Echo Slice copying the Citadel has no keep)
-    if (!src.dead && src.type.perk === 'citadelWall') {
+    if (!src.dead && src.type.perk === perk) {
       const [kx, ky] = this.keepAt(src);
       const pen = this.img(kx, ky - 50 - leftHere * 6, 'pk_pennant').setOrigin(0, 0.5).setScale(0.45);
       this.sc.tweens.add({ targets: pen, x: kx + 120 + crand() * 60, y: ky - 180, angle: 300 + crand() * 200, scaleY: { from: 0.45, to: -0.45 }, alpha: 0, duration: 900, ease: 'Quad.Out', onComplete: () => pen.destroy() });
@@ -714,7 +707,7 @@ export class LegendKit {
   private tideT = 0;
 
   /** Every 4th wave (enhanced every 3rd) the tide comes in once, a few seconds in, once the feet are pressing. */
-  tideTick(dt: number): void {
+  tideTick(dt: number, tikis: Pizza[]): void {
     if (!this.tideDue) return;
     this.tideT += dt;
     if (this.tideT < 3) return;
@@ -722,7 +715,8 @@ export class LegendKit {
     const diving = feet.some((f) => this.batable(f) && f.y > 300);
     const any = feet.some((f) => f.alive && f.hittable && f.y > 60);
     if (!diving && !(this.tideT >= 10 && any)) return;
-    if (!this.h.granting('tidalWash').length) return;
+    // (the tide waits for a Tiki that grants it)
+    if (!tikis.length) return;
     this.tideDue = false;
     this.tide();
   }

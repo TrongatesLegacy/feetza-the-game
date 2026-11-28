@@ -18,11 +18,22 @@ export const PERK_TIPS = { coins: Unit.Percent(20), luck: Unit.Percent(15) } as 
 
 /** Each perk's stat effects, in the order they have always been applied: a stat's sum or product then comes out the
  *  same to the last bit (the balance sim's rounding of tips and health can tell). */
-/** A perk with no stat effects (what it does is in play: src/game/perkEffects.ts, src/game/pizzaPerks.ts). */
-const none = (): EffectData[] => [];
+/** A perk with no stat effects (what it does is in play: src/game/perkEffects.ts, src/game/pizzaPerks.ts). Marked, so
+ *  the type rule below can tell it from a perk that has some. */
+const none = Object.assign((): EffectData[] => [], { none: true as const });
 export const PERK_NONE = none;
+type NoStats = typeof none;
 
-export const PERK_STATS: Record<PizzaPerk, (c: number) => EffectData[]> = {
+/** The perks whose numbers PizzaPerkKit.modifiers works out from the whole table: each a declared Effect.Stat with a
+ *  Grows value (Napoli DOC's variety, Peel Collector, Combo Champ, Speed Slice, the crust run, the Forge, the Saga,
+ *  Kitchen Sink's pick). */
+export const TABLE_SHAPED = ['varietyDmg', 'peelDmg', 'comboLong', 'smackSpeed', 'crustRun', 'forgeWaves', 'skaldSaga', 'kitchenSink'] as const satisfies readonly PizzaPerk[];
+
+/** The perks that declare stat effects (here), Pepperoni's and the luck pizzas' tips, and the table-shaped ones: what
+ *  the type rule in src/game/perkEffects.ts counts beside the triggers and rules. */
+export type StatDeclared = { [K in PizzaPerk]: (typeof PERK_STATS)[K] extends NoStats ? never : K }[PizzaPerk] | keyof typeof PERK_TIPS | (typeof TABLE_SHAPED)[number];
+
+export const PERK_STATS = {
   damage: (c) => [
     Effect.Stat(
       Stat.Damage,
@@ -369,4 +380,4 @@ export const PERK_STATS: Record<PizzaPerk, (c: number) => EffectData[]> = {
   croutonPortal: none,
   hearthRoar: none,
   blackHole: none,
-};
+} satisfies Record<PizzaPerk, (c: number) => EffectData[]>;

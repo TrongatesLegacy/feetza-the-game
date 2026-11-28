@@ -32,13 +32,15 @@ export const TriggerKind = {
   PerHit: 'perHit',
   WaveClose: 'waveClose',
   OnSlam: 'onSlam',
+  Charged: 'charged',
+  OnLosses: 'onLosses',
 } as const;
 export type TriggerKindId = (typeof TriggerKind)[keyof typeof TriggerKind];
 
 type OpTag = 'add' | 'mul' | 'set' | 'on' | 'atLeast' | 'atMost' | 'none';
 type ScopeTag = 'table' | 'each' | 'sum' | 'target' | 'alive' | 'field' | 'own';
 type StatusTag = 'burn' | 'slow' | 'stun' | 'freeze';
-type ActionTag = 'tips' | 'reroll' | 'heal' | 'meter' | 'crust' | 'knock' | 'damage' | 'ability';
+type ActionTag = 'tips' | 'reroll' | 'heal' | 'meter' | 'crust' | 'knock' | 'damage' | 'ability' | 'area' | 'relane';
 /** A condition's name, or one inside a Not / AnyFoot. */
 type CondId = Exclude<CondData['c'], 'all' | 'any' | 'not' | 'anyFoot'>;
 type CondTag = `${'' | 'not:' | 'anyFoot:' | 'not:anyFoot:' | 'anyFoot:not:'}${CondId}`;
@@ -61,6 +63,9 @@ export type TagId =
   | `procFx:${string}`
   | `onPick:${string}`
   | `ally:${string}`
+  | `charge:${string}`
+  | `rule:${string}`
+  | `outlives:${string}`
   | 'summons';
 
 export const Tag = {
@@ -88,5 +93,11 @@ export const Tag = {
   /** What happens when it's picked (src/effects/onPick.ts). */
   OnPick: (id: string): TagId => `onPick:${id}`,
   Ally: (id: string): TagId => `ally:${id}`,
+  /** Where a charged clock takes charge from (src/effects/charged.ts). */
+  Charge: (from: string): TagId => `charge:${from}`,
+  /** A rule a pizza perk changes in the scene (src/effects/rule.ts). */
+  Rule: (id: string): TagId => `rule:${id}`,
+  /** Why a trigger runs whatever its pizzas' state (src/effects/trigger.ts Outlives). */
+  Outlives: (why: string): TagId => `outlives:${why}`,
   Summons: 'summons' as TagId,
 } as const;

@@ -163,6 +163,12 @@ export function installDevTools(game: Phaser.Game): void {
     /** Every topping, pizza and peel through the effect adapters (src/devEffectsAudit.ts; a run must be up: F.startGame
      *  first): what declares no effect, what STATS doesn't show, what reads its own off-switch. */
     effectsAudit: async () => (await import('./devEffectsAudit')).effectsAudit(game.scene.getScene('Game') as AnyScene),
+    /** The audit's problems (what fails npm run check): none when every item declares, shows and keeps the off-switch. */
+    effectsProblems: async () => {
+      const m = await import('./devEffectsAudit');
+      const a = m.effectsAudit(game.scene.getScene('Game') as AnyScene);
+      return { problems: m.problemsOf(a), counts: a.counts, outlives: a.outlives, gated: a.gated, ownRules: a.ownRules.length, cardOnly: a.cardOnly };
+    },
     /** With the shop open: every topping's card text, all levels, both heats, that doesn't fit a shop card's 4-line
      *  text block in one of the shop's layouts (empty: all fit). */
     cardTextFit: async () => (await import('./devCardText')).fit(),

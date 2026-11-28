@@ -142,7 +142,8 @@ function tile(t: Tile, i: number): HTMLElement {
       : counter(t.num, (v) => `${t.pre ?? ''}${show(v, t.fmt)}${t.post ?? ''}`);
   // a longer value (+6 slices, every 20s) gets a smaller size so it fits beside its icon, clear of the i button
   const said = t.fmt === 'text' ? (t.text ?? '') : `${t.pre ?? ''}${show(t.num, t.fmt)}${t.post ?? ''}`;
-  const len = said.length > 8 ? ' xlong' : said.length > 4 ? ' long' : '';
+  // (a word in capitals runs wider than digits: ECHOING takes the smaller size)
+  const len = said.length > (t.fmt === 'text' ? 6 : 8) ? ' xlong' : said.length > 4 ? ' long' : '';
   return h(
     'div',
     { class: `st-tile ${t.tone}${t.big ? ' big' : ''}${t.from.length ? ' has-from' : ''}${len}`, style: `--i:${i}` },

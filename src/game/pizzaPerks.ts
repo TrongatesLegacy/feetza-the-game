@@ -29,13 +29,15 @@ import { toppingDrawer } from '../art/registry';
 import { makeCanvas, rng } from '../art/util';
 import { crand } from '../systems/cosmeticRandom';
 import { LEGEND_SFX, LegendKit } from './pizzaLegends';
-import { Answer, GameEvent, HitStat, type Fire, type HitQuery, type HitStatId } from '../effects';
+import { Answer, GameEvent, HitStat, grantsPerk, type ActionHost, type Fire, type HitQuery, type HitStatId } from '../effects';
 import { runAction } from '../effects/actions';
 import { legendDmg } from './legendary';
 import type { AtData } from '../effects/actions';
 import { PerkBus, type BusHost } from './perkBus';
 import { Custom, Factor, Flag, Look, type CustomId, type FactorId, type FlagId, type LookId } from './perkEffects';
 import { pizzaOf } from '../effects/events';
+import { Rule } from '../effects/rule';
+import { boostOf, declares, hasRule, ruleOf } from './perkRules';
 import { Rarity } from '../data/rarity';
 
 /** Perks Arcobaleno can't borrow: set up when a pizza is placed, tied to its own type, or another borrower. */
@@ -99,9 +101,10 @@ export const PERK_SFX = [
 /** The perk a borrowing pizza (Arcobaleno, Mystery Meat) has right now, or null. */
 export function borrowedPerk(p: Pizza): PizzaPerk | null {
   // Echo Slice: the perk of the pizza beside it (PizzaPerkKit.syncEchoes keeps it up to date)
-  if (p.type.perk === 'echo') return echoPerk(p);
-  if (p.type.perk === 'rainbow') return p.flags.borrow === undefined ? null : BORROW_POOL[Number(p.flags.borrow) % BORROW_POOL.length];
-  if (p.type.perk === 'mystery') return p.flags.mystery === undefined ? null : MYSTERY_POOL[Number(p.flags.mystery) % MYSTERY_POOL.length];
+  const own = p.type.perk;
+  if (declares(own, Rule.Echo)) return echoPerk(p);
+  if (declares(own, Rule.Borrow)) return p.flags.borrow === undefined ? null : BORROW_POOL[Number(p.flags.borrow) % BORROW_POOL.length];
+  if (declares(own, Rule.Mystery)) return p.flags.mystery === undefined ? null : MYSTERY_POOL[Number(p.flags.mystery) % MYSTERY_POOL.length];
   return null;
 }
 
@@ -121,12 +124,13 @@ export function sinkPct(k: number): number {
 
 /** The line a borrowing pizza shows on the table and its shop card (Kitchen Sink: this wave's pick). */
 export function borrowLine(p: Pizza, enhanced: boolean): string | null {
-  if (p.type.perk === 'kitchenSink') return p.flags.sink === undefined ? null : `This wave: +${sinkPct(enhanced ? 1.5 : 1)}% ${SINK_PICKS[Number(p.flags.sink) % 3]}`;
-  if (p.type.perk === 'mystery' && !p.flags.revealed) return enhanced ? enhancedText('mystery') : p.type.perkText;
+  const own = p.type.perk;
+  if (declares(own, Rule.Sink)) return p.flags.sink === undefined ? null : `This wave: +${sinkPct(enhanced ? 1.5 : 1)}% ${SINK_PICKS[Number(p.flags.sink) % 3]}`;
+  if (declares(own, Rule.Mystery) && !p.flags.revealed) return enhanced ? enhancedText(own) : p.type.perkText;
   // (the pizza it copies sits right beside it with its perk in full; the STATS tab spells the copy out)
-  if (p.type.perk === 'echo') return echoPerk(p) ? `Echoing ${echoSource(p)?.name ?? 'its neighbour'}` : 'Echoing nothing';
+  if (declares(own, Rule.Echo)) return echoPerk(p) ? `Echoing ${echoSource(p)?.name ?? 'its neighbour'}` : 'Echoing nothing';
   const b = borrowedPerk(p);
-  return b ? perkTextOf(b, enhanced || p.type.perk === 'mystery') : null;
+  return b ? perkTextOf(b, enhanced || declares(own, Rule.Mystery)) : null;
 }
 
 /** What the scene lends the kit (its private parts, as callbacks). */
@@ -227,7 +231,7 @@ export class PizzaPerkKit {
   private whirled = new Map<Foot, { until: number; img: Phaser.GameObjects.Image; tintAt: number }>();
   // ——— the Epic milestones (step 4, batch 3) ———
   /** Rainbow Bridge: the lanes bridged this wave (+40% damage to feet in them) and the Bifröst over each. */
-  private bridges: { src: Pizza; lane: Pizza; x: number; r: number; k: number; img: Phaser.GameObjects.Image; glow: Phaser.GameObjects.Image; ph: number }[] = [];
+  private bridges: { src: Pizza; perk: string; lane: Pizza; x: number; r: number; k: number; img: Phaser.GameObjects.Image; glow: Phaser.GameObjects.Image; ph: number }[] = [];
   /** Serpent's Coil: feet held in Jörmungandr's coils until then, and the coils on them. */
   private coiled = new Map<Foot, { until: number; img: Phaser.GameObjects.Image; tintAt: number; s: number }>();
   /** When a quip of each kind last played (they'd stack up over a busy wave). */
@@ -282,6 +286,11 @@ export class PizzaPerkKit {
     this.bus = new PerkBus(this.host);
   }
 
+  /** The shared actions' game side (tips, heals, the clock, hits…), for the peel's bus too (src/game/peelBus.ts). */
+  actionHost(): ActionHost {
+    return this.host;
+  }
+
   /** The bus's view of the game: the table and its strengths, the field, and the shared actions' game side. */
   private busHost() {
     const a = this.a;
@@ -296,7 +305,7 @@ export class PizzaPerkKit {
       pk: (p) => this.pk(p),
       granting: (perk) => this.with(perk),
       feet: () => a.allFeet(),
-      possessed: () => a.possessed(),
+      possessed: () => a.possessed(), // eslint-disable-line effects/no-own-off-switch -- the bus's own view of the Ghost
       tips: (n, at, fire) => {
         const [x, y] = where(at, fire);
         h.giveTips(n, x, y);
@@ -401,6 +410,9 @@ export class PizzaPerkKit {
     [Look.PerfectPie]: ({ pizzas: [p] }) => {
       if (p) this.a.quip(p.x, p.surfaceY - 190, 'PERFECT PIE!', '#ffd23f', 36);
     },
+    [Look.FireLane]: ({ foot, ev, pizzas }) => void (foot && this.fireLane(foot.cx || ('x' in ev ? ev.x : 0), pizzas)),
+    [Look.DanceBreak]: ({ pizzas }) => this.danceBreak(pizzas),
+    [Look.DanceNote]: ({ foot }) => void (foot && this.danceNote(foot)),
     [Look.GhostPass]: ({ foot: f, pizza: p }) => {
       if (!f || !p) return;
       const a = this.a;
@@ -421,7 +433,6 @@ export class PizzaPerkKit {
   /** The ported perks' one-offs (Action.Custom): each still the kit's own, with its look. False: it didn't happen. */
   private readonly CUSTOM: Record<CustomId, (fire: Fire) => boolean | void> = {
     [Custom.Meteor]: ({ foot }) => void (foot && this.meteor(foot, this.run.stats.damage * 3)),
-    [Custom.DanceBeat]: () => this.danceBeat(),
     [Custom.SteamVents]: () => this.steamVents(),
     [Custom.Comet]: ({ foot }) => void (foot && this.comet(foot)),
     [Custom.SirenSong]: () => this.sirenSong(),
@@ -447,7 +458,6 @@ export class PizzaPerkKit {
       const y = f.cy;
       this.sc.time.delayedCall(120, () => this.meatball(x, y, t, k));
     },
-    [Custom.FireLane]: ({ foot, ev }) => void (foot && this.fireLane(foot.cx || ('x' in ev ? ev.x : 0))),
     [Custom.InkSpray]: ({ foot, pizzas }) => void (foot && this.inkSpray(foot, pizzas)),
     [Custom.Snowball]: ({ pizza }) => !!pizza && this.snowball(pizza),
     [Custom.Whirlpool]: ({ foot }) => void (foot && this.whirlpool(foot)),
@@ -509,9 +519,9 @@ export class PizzaPerkKit {
       return true;
     },
     // Nonna's Masterpiece: her ladle swats the first stomp(s) of a wave (src/game/pizzaLegends.ts)
-    [Custom.Ladle]: ({ foot, ev }) => {
+    [Custom.Ladle]: ({ foot, ev, pizzas }) => {
       const p = pizzaOf(ev);
-      return !!foot && !!p && this.legends.ladle(foot, p);
+      return !!foot && !!p && this.legends.ladle(foot, p, pizzas);
     },
     // Granite Crust: the stomp turns to stone on the pie
     [Custom.Stone]: ({ foot, pizza }) => {
@@ -610,7 +620,7 @@ export class PizzaPerkKit {
     },
     // Arcobaleno takes a new colour every wave
     [Custom.RainbowShift]: ({ pizza: p }) => {
-      if (!p || p.perkOff) return false;
+      if (!p) return false;
       const a = this.a;
       const was = Number(p.flags.borrow ?? -1);
       let next = Math.floor(Math.random() * BORROW_POOL.length);
@@ -654,7 +664,7 @@ export class PizzaPerkKit {
       });
     },
     [Custom.SandUp]: () => this.sandUp(),
-    [Custom.BridgeUp]: () => this.bridgeUp(),
+    [Custom.BridgeUp]: (fire) => this.bridgeUp(fire.perk, fire.pizzas),
     [Custom.HarpyReset]: () => this.harpyT.clear(),
     // Tikka Time Machine: the clock stops once the wave's first feet are on the table (they arrive a moment after the
     // banner)
@@ -705,20 +715,24 @@ export class PizzaPerkKit {
       ev.answer = Answer.Survive;
     },
     // Fenrir's Howl: the wolf howls for the lost pizza (its own loss too, a last howl)
-    [Custom.FenrirHowl]: ({ ev }) => {
+    [Custom.FenrirHowl]: (fire) => {
+      const ev = fire.ev;
       const p = pizzaOf(ev);
       if (!p || !('fresh' in ev)) return false;
-      const ownHowl = (p.type.perk === 'fenrirHowl' || (p.type.perk === 'echo' && echoPerk(p) === 'fenrirHowl')) && ev.fresh && !p.perkFrozen;
+      // (its own loss: a last howl, unless its perk was frozen as it went)
+      // eslint-disable-next-line effects/no-own-off-switch -- its own moment (Outlives.OwnMoment): the lost pizza's own state
+      const ownHowl = (p.type.perk === fire.perk || (declares(p.type.perk, Rule.Echo) && echoPerk(p) === fire.perk)) && ev.fresh && !p.perkFrozen;
       if (!(this.c('fenrirHowl') > 0 || ownHowl)) return false;
       this.howl(p, (ownHowl && p.enhanced) || this.with('fenrirHowl').some((q) => q.enhanced));
     },
     // Untouchable: the first pizza lost each run (it included) comes back
-    [Custom.Untouchable]: ({ ev }) => {
+    [Custom.Untouchable]: ({ ev, perk }) => {
       const p = pizzaOf(ev);
       if (!p || !('answer' in ev)) return false;
       const a = this.a;
-      const keeper = [...this.a.alivePizzas(), p].find((q) => q.type.perk === 'firstBack' && !q.perkOff && !q.flags.untouchUsed);
-      if (!keeper || this.untouchUsed()) return false;
+      // (its own loss counts: the run's first loss, it included)
+      const keeper = [...this.a.alivePizzas(), p].find((q) => q.type.perk === perk && !q.perkOff && !q.flags.untouchUsed); // eslint-disable-line effects/no-own-off-switch -- its own loss: the keeper is whichever Untouchable still grants, the lost one too
+      if (!keeper || this.untouchUsed(perk)) return false;
       keeper.flags.untouchUsed = true;
       const full = keeper.enhanced;
       this.sc.time.delayedCall(1100, () => {
@@ -733,18 +747,22 @@ export class PizzaPerkKit {
       ev.answer = Answer.Rise;
     },
     // ——— the ticking props ———
-    [Custom.HarpyTick]: ({ ev }) => this.harpyTick('dt' in ev ? ev.dt : 0),
+    [Custom.HarpyTick]: ({ ev, pizzas }) => this.harpyGusts('dt' in ev ? ev.dt : 0, pizzas),
+    [Custom.HarpyBlown]: ({ ev }) => this.harpyBlown('dt' in ev ? ev.dt : 0),
     [Custom.BridgeTick]: () => this.bridgeTick(),
-    [Custom.CoilTick]: () => this.coilTick(),
-    [Custom.GorgonTick]: () => this.gorgonTick(),
+    [Custom.CoilTick]: ({ pizzas }) => this.coilCatch(pizzas),
+    [Custom.CoilHold]: () => this.coilHold(),
+    [Custom.GorgonTick]: ({ perk }) => this.gorgonGaze(perk),
+    [Custom.GorgonStone]: () => this.gorgonStone(),
     [Custom.MazeTick]: () => this.mazeTick(),
-    [Custom.EmberTick]: () => this.emberTick(),
+    [Custom.EmberTick]: ({ pizzas }) => this.emberTick(pizzas),
     [Custom.WhirlTick]: () => this.whirlTick(),
     [Custom.InkTick]: ({ ev }) => this.inkTick('dt' in ev ? ev.dt : 0),
-    [Custom.SootTick]: ({ ev }) => this.sootTick('dt' in ev ? ev.dt : 0),
+    [Custom.SootTick]: ({ perk }) => this.sootSettle(perk),
+    [Custom.SootCloud]: ({ ev }) => this.sootClouds('dt' in ev ? ev.dt : 0),
     [Custom.GhostTick]: () => this.ghostTick(),
     [Custom.RingsTick]: ({ ev }) => this.ringsTick('dt' in ev ? ev.dt : 0),
-    [Custom.NonnaSecret]: () => this.nonnaCheck(),
+    [Custom.NonnaSecret]: ({ pizzas }) => this.nonnaCheck(pizzas[0]),
     // ——— the wave closing ———
     [Custom.RingsDown]: () => this.dropRings(),
     [Custom.EpicsAway]: () => this.clearEpics(false),
@@ -762,17 +780,17 @@ export class PizzaPerkKit {
     [Custom.Portal]: ({ foot: f }) => void (f && this.legends.act3.portalOn(f)),
     [Custom.RoarEnd]: () => this.legends.act3.roarEnd(),
     [Custom.HoleEnd]: () => this.legends.act3.holeEnd(),
-    [Custom.CitadelDown]: () => this.legends.citadelDown(),
+    [Custom.CitadelDown]: ({ perk }) => this.legends.citadelDown(perk),
     [Custom.TideOff]: () => this.legends.tideOff(),
     [Custom.BakeFreshen]: ({ ev }) => this.legends.bakeFreshen('wave' in ev ? ev.wave : this.wave()),
     [Custom.LadleReady]: () => this.legends.ladleReady(),
-    [Custom.CitadelUp]: () => this.legends.citadelUp(),
-    [Custom.TideReady]: ({ ev }) => this.legends.tideReady('wave' in ev ? ev.wave : this.wave()),
-    [Custom.FirstBake]: () => this.legends.firstBake(),
+    [Custom.CitadelUp]: ({ perk }) => this.legends.citadelUp(perk as PizzaPerk),
+    [Custom.TideReady]: ({ ev, perk }) => this.legends.tideReady('wave' in ev ? ev.wave : this.wave(), perk as PizzaPerk),
+    [Custom.FirstBake]: ({ pizzas }) => this.legends.firstBake(pizzas),
     [Custom.Act3Timers]: ({ ev }) => this.legends.act3.timersTick('dt' in ev ? ev.dt : 0),
     [Custom.HoleStep]: ({ ev }) => this.legends.act3.holeStep('dt' in ev ? ev.dt : 0),
     [Custom.RippleStep]: ({ ev }) => this.legends.act3.rippleStep('dt' in ev ? ev.dt : 0),
-    [Custom.TideTick]: ({ ev }) => this.legends.tideTick('dt' in ev ? ev.dt : 0),
+    [Custom.TideTick]: ({ ev, pizzas }) => this.legends.tideTick('dt' in ev ? ev.dt : 0, pizzas),
     [Custom.Cannon]: ({ foot }) => void (foot && this.legends.cannon(foot)),
     [Custom.Tray]: () => this.legends.tray(),
     [Custom.HalfStomp]: ({ foot, pizza, ev }) => {
@@ -789,7 +807,7 @@ export class PizzaPerkKit {
 
   /** Napoletana's boost to every other perk. */
   boost(): number {
-    return 1 + 0.05 * (this.run.perkCounts.perkBoost ?? 0);
+    return boostOf(this.run.perkCounts);
   }
 
   /** Table-wide strength of a perk (0 when no pizza has it). */
@@ -799,13 +817,13 @@ export class PizzaPerkKit {
 
   /** One pizza's strength: 1, 1.5 enhanced, half as much again for Mystery Meat. */
   pk(p: Pizza): number {
-    return (1 + (p.enhanced ? 0.5 : 0) + (p.type.perk === 'mystery' ? 0.5 : 0)) * this.boost();
+    return (1 + (p.enhanced ? 0.5 : 0) + (ruleOf(p, Rule.Mystery) ?? 0)) * this.boost();
   }
 
-  /** The pizzas granting a perk now (a possessed pizza's perk is the Ghost's, not yours: left out, as Tuna is). */
+  /** The pizzas granting a perk now, by the bus's off-switch (grantsPerk: a possessed pizza's perk is the Ghost's, not
+   *  yours, so it's left out, as Tuna is). */
   private with(perk: PizzaPerk): Pizza[] {
-    const ghost = this.a.possessed();
-    return this.a.alivePizzas().filter((p) => p.perk === perk && p !== ghost);
+    return this.a.alivePizzas().filter((p) => grantsPerk(p, perk));
   }
 
   private wave(): number {
@@ -819,7 +837,7 @@ export class PizzaPerkKit {
 
   /** Mystery Meat's perk counts as a big (enhanced-strength) one. */
   bigPerks(live: Pizza[]): PizzaPerk[] {
-    return live.filter((p) => p.type.perk === 'mystery' && p.perk).map((p) => p.perk!);
+    return live.filter((p) => hasRule(p, Rule.Mystery) && p.perk).map((p) => p.perk!);
   }
 
   // ——— placing and the run ———
@@ -1112,9 +1130,8 @@ export class PizzaPerkKit {
     this.bus.emit(GameEvent.Crit, { foot: f });
   }
 
-  private fireLane(x: number): void {
+  private fireLane(x: number, pies: Pizza[]): void {
     const a = this.a;
-    const st = this.run.stats;
     const table = (a.alivePizzas()[0]?.surfaceY ?? 820) - 20;
     // a tall column of fire from the table up through the lane
     const col = this.sc.add.image(x, table, 'glow').setOrigin(0.5, 1).setTint(0xff6a1a).setBlendMode(Phaser.BlendModes.ADD).setScale(0.9, 0.2).setAlpha(0.95);
@@ -1126,23 +1143,15 @@ export class PizzaPerkKit {
     for (let y = table; y > 80; y -= 55) this.sc.time.delayedCall((table - y) * 0.25, () => a.fx.burn(x + (crand() - 0.5) * 60, y));
     a.quip(x, 260, 'DRAGON FIRE!', '#ff7a3a', 40);
     a.sfx('sfx_fire', { volume: 0.8 });
-    for (const p of this.with('fireLane')) p.perkFired({ quip: false });
+    for (const p of pies) p.perkFired({ quip: false });
     a.shake(160, 0.004);
-    for (const o of a.allFeet()) {
-      if (!o.hittable || Math.abs(o.cx - x) > 120) continue;
-      this.h.dealDamage(o, st.damage, 'explode', undefined, 'perk:fireLane');
-      if (o.alive && !o.type.traits.includes('immuneBurn')) {
-        o.burnT = Math.max(o.burnT, 3);
-        o.burnDps = Math.max(o.burnDps, st.damage * 0.5);
-      }
-    }
   }
 
   /** f was defeated (coins: what it paid; echo: a boss's Ghost echo or one of several of a boss, paying a tenth). Every
    *  kill perk is on the bus (src/game/perkEffects.ts). */
-  killed(f: Foot, coins: number, echo = false): void {
+  killed(f: Foot, coins: number, echo = false, byAbility = false): void {
     this.waveKills++;
-    this.bus.emit(GameEvent.Kill, { foot: f, coins, echo });
+    this.bus.emit(GameEvent.Kill, { foot: f, coins, echo, byAbility, x: f.cx, y: f.cy });
   }
 
   /** Bolognese: a meatball drops from the defeated foot and rolls into the next one. */
@@ -1279,8 +1288,8 @@ export class PizzaPerkKit {
     return l.answer;
   }
 
-  private untouchUsed(): boolean {
-    return this.a.allPizzas().some((q) => q.type.perk === 'firstBack' && q.flags.untouchUsed);
+  private untouchUsed(perk: string): boolean {
+    return this.a.allPizzas().some((q) => q.type.perk === perk && q.flags.untouchUsed);
   }
 
   /** Volcano Calzone: ×10 to every foot on the screen. */
@@ -1385,9 +1394,9 @@ export class PizzaPerkKit {
 
   /** Disco Diner Pie: a dance beat. The mirror ball drops in over the pie, coloured lights sweep the table, notes
    *  bounce over every foot and they all slow 30% for 2 s, dancing. */
-  danceBeat(): void {
+  /** Disco Diner Pie's dance break: the ball drops in over the pie and swings its light across the table. */
+  private danceBreak(pies: Pizza[]): void {
     const a = this.a;
-    const pies = this.with('danceBeat');
     const src = pies[0];
     const cols = [0xff4a9a, 0x38d8ff, 0xffd23f, 0x7dff7a];
     a.quip(960, 300, 'DANCE BREAK!', '#ff7ad9', 54);
@@ -1415,25 +1424,20 @@ export class PizzaPerkKit {
         this.sc.tweens.add({ targets: beam, alpha: 0, delay: 1800, duration: 300, onComplete: () => beam.destroy() });
       }
     }
-    for (const f of a.allFeet()) {
-      if (!f.alive || !f.hittable) continue;
-      if (!f.type.traits.includes('immuneSlow')) {
-        // (a stronger slow already on it keeps its own time; a weaker or finished one becomes the beat's)
-        if (f.slowT <= 0 || f.slowPct <= 0.3) {
-          f.slowPct = 0.3;
-          f.slowT = Math.max(f.slowT, 2);
-        }
-      }
-      // a note bouncing over it in time, and a ring of the light on it
-      for (let n = 0; n < 2; n++) {
-        const note = this.sc.add.image(f.cx + (n ? 40 : -40), f.cy - 90, 'pk_note').setTint(cols[(n + Math.floor(f.cx)) % 4]).setScale(0.75).setAlpha(0);
-        a.fxLayer.add(note);
-        this.sc.tweens.add({ targets: note, alpha: 1, duration: 140, delay: n * 220 });
-        this.sc.tweens.add({ targets: note, y: note.y - 36, duration: 260, delay: n * 220, yoyo: true, repeat: 2, ease: 'Sine.InOut' });
-        this.sc.tweens.add({ targets: note, alpha: 0, x: note.x + (n ? 30 : -30), delay: 1500 + n * 220, duration: 400, onComplete: () => note.destroy() });
-      }
-      a.fx.ring(f.cx, f.cy + 40, cols[Math.floor(f.cx) % 4], 1.3, 0.4);
+  }
+
+  /** The dance break on a foot: a note bouncing over it in time, and a ring of the light on it. */
+  private danceNote(f: Foot): void {
+    const a = this.a;
+    const cols = [0xff4a9a, 0x38d8ff, 0xffd23f, 0x7dff7a];
+    for (let n = 0; n < 2; n++) {
+      const note = this.sc.add.image(f.cx + (n ? 40 : -40), f.cy - 90, 'pk_note').setTint(cols[(n + Math.floor(f.cx)) % 4]).setScale(0.75).setAlpha(0);
+      a.fxLayer.add(note);
+      this.sc.tweens.add({ targets: note, alpha: 1, duration: 140, delay: n * 220 });
+      this.sc.tweens.add({ targets: note, y: note.y - 36, duration: 260, delay: n * 220, yoyo: true, repeat: 2, ease: 'Sine.InOut' });
+      this.sc.tweens.add({ targets: note, alpha: 0, x: note.x + (n ? 30 : -30), delay: 1500 + n * 220, duration: 400, onComplete: () => note.destroy() });
     }
+    a.fx.ring(f.cx, f.cy + 40, cols[Math.floor(f.cx) % 4], 1.3, 0.4);
   }
 
   private meteor(f: Foot, dmg: number): void {
@@ -1506,9 +1510,8 @@ export class PizzaPerkKit {
   }
 
   /** Nonna's Secret: when a pizza is down to its last 2 slices, Nonna heals every pizza (once an act). */
-  private nonnaCheck(): void {
+  private nonnaCheck(nonna: Pizza | undefined): void {
     const a = this.a;
-    const nonna = this.with('nonna')[0];
     if (!nonna) return;
     const act = this.act();
     const uses = nonna.flags.nonnaAct === act ? Number(nonna.flags.nonnaUses ?? 0) : 0;
@@ -1709,7 +1712,7 @@ export class PizzaPerkKit {
    *  (one a pizza) until the next foot comes down on it. */
   private pieSplat(f: Foot): void {
     const p = f.target;
-    if (!p || p.dead || p === this.a.possessed() || this.splats.has(p)) return;
+    if (!p || p.dead || p.haunted || this.splats.has(p)) return;
     const a = this.a;
     const r = p.radius;
     const dx = Phaser.Math.Clamp(f.x - p.x, -r * 0.55, r * 0.55);
@@ -1863,18 +1866,19 @@ export class PizzaPerkKit {
 
   /** Chimney Soot Pie: a foot arriving over it (once each time it comes) is lost in the Chimney Sweep's soot for 2 s
    *  (enhanced 3): it can't find the pie to dive on it, and gropes about. Bosses and mini-bosses see through it. */
-  private sootTick(dt: number): void {
-    const a = this.a;
-    const now = a.now();
-    const ghost = a.possessed();
-    if (this.c('sootAbove') > 0)
-      for (const f of a.allFeet()) {
-        if (!f.alive || f.isBossLike || f.puppet || f.brain.free || f.zombieHold || f.state !== 'hover' || f.y < 40) continue;
-        const t = f.target;
-        if (!t || t.dead || t.perk !== 'sootAbove' || t === ghost || this.sootFor.get(f) === t) continue;
-        this.sootFor.set(f, t);
-        this.soot(f, t);
-      }
+  private sootSettle(perk: string): void {
+    for (const f of this.a.allFeet()) {
+      if (!f.alive || f.isBossLike || f.puppet || f.brain.free || f.zombieHold || f.state !== 'hover' || f.y < 40) continue;
+      const t = f.target;
+      if (!grantsPerk(t, perk) || this.sootFor.get(f) === t) continue;
+      this.sootFor.set(f, t);
+      this.soot(f, t);
+    }
+  }
+
+  /** Chimney Soot Pie: the soot clouds hang on their feet, and drift them off their lane. */
+  private sootClouds(dt: number): void {
+    const now = this.a.now();
     for (const [f, s] of this.sooted) {
       const end = !f.alive || now >= s.until;
       s.clouds.forEach((c, i) => c.setPosition(f.cx + Math.cos(now * 1.3 + i * 2.1) * 50, f.cy + Math.sin(now * 1.1 + i * 2.1) * 34 - 10).setRotation(now * 0.3 + i));
@@ -1957,7 +1961,7 @@ export class PizzaPerkKit {
    *  sprite, never a foot: nothing zombifies it, smacks pass through it, and it waits out the shop. */
   private raiseGhost(f: Foot): void {
     const a = this.a;
-    const free = a.alivePizzas().filter((p) => p !== a.possessed() && !this.ghosts.some((g) => g.p === p));
+    const free = a.alivePizzas().filter((p) => !p.haunted && !this.ghosts.some((g) => g.p === p));
     if (!free.length) return;
     const p = f.target && free.includes(f.target) ? f.target : free.sort((x, y) => x.slices / x.maxSlices - y.slices / y.maxSlices)[0];
     const img = this.sc.add.image(f.cx, f.cy, 'pk_waltzghost').setScale(0.2).setAlpha(0);
@@ -2137,19 +2141,20 @@ export class PizzaPerkKit {
   }
 
   /** Gorgon's Gaze: the first ordinary foot to hover over the pie each wave meets Medusa's eyes. */
-  private gorgonTick(): void {
+  private gorgonGaze(perk: string): void {
     const a = this.a;
-    const now = a.now();
-    if (this.c('gorgonGaze') > 0) {
-      const ghost = a.possessed();
-      for (const f of a.allFeet()) {
-        if (!f.alive || !f.hittable || f.isBossLike || f.puppet || f.brain.free || f.state !== 'hover' || f.y < 60 || this.stoned.has(f)) continue;
-        const t = f.target;
-        if (!t || t.dead || t.perk !== 'gorgonGaze' || t === ghost || t.stale || t.perkFrozen || t.flags.gorgonWave === this.wave()) continue;
-        t.flags.gorgonWave = this.wave();
-        this.gaze(f, t);
-      }
+    for (const f of a.allFeet()) {
+      if (!f.alive || !f.hittable || f.isBossLike || f.puppet || f.brain.free || f.state !== 'hover' || f.y < 60 || this.stoned.has(f)) continue;
+      const t = f.target;
+      if (!grantsPerk(t, perk) || t.flags.gorgonWave === this.wave()) continue;
+      t.flags.gorgonWave = this.wave();
+      this.gaze(f, t);
     }
+  }
+
+  /** Gorgon's Gaze: the stone feet stay stone for their time, and crumble back. */
+  private gorgonStone(): void {
+    const now = this.a.now();
     for (const [f, st] of this.stoned) {
       st.crack.setPosition(f.cx, this.stoneY(f));
       if (!f.alive || now >= st.until) {
@@ -2324,18 +2329,20 @@ export class PizzaPerkKit {
   }
 
   /** The embers flicker where they hang; the next foot through catches them and burns (6 a second; enhanced 9). */
-  private emberTick(): void {
+  /** Ember Shade's embers glow where they fell (props: they outlive their kill) and leap onto the next foot through
+   *  while a pie grants the perk (`pies`: the bus's grant). Each ember glows, then looks for its foot, in turn. */
+  private emberTick(pies: Pizza[]): void {
     if (!this.embers.length) return;
     const a = this.a;
     const now = a.now();
-    const dps = 6 * (this.with('emberTrail').some((p) => p.enhanced) ? 1.5 : 1) * this.boost();
+    const dps = 6 * (pies.some((p) => p.enhanced) ? 1.5 : 1) * this.boost();
     for (const e of this.embers) {
       if (e.done) continue;
       const fl = Math.sin(now * 7 + e.ph) * 0.04 + Math.sin(now * 11.3 + e.ph) * 0.03;
       e.img.setScale(0.8 + fl, 0.8 - fl);
       e.glow.setAlpha(0.42 + fl * 3);
       if (crand() < 0.04) a.fx.propTrail(e.x + (crand() - 0.5) * 30, e.y - 20, crand() < 0.5 ? 0xff8a3a : 0x6ab8ff, 0.35);
-      if (!this.c('emberTrail')) continue;
+      if (!pies.length) continue;
       const f = a.allFeet().find((o) => o.alive && o.hittable && !o.type.traits.includes('immuneBurn') && !o.insulated && o.distanceTo(e.x, e.y) < 80);
       if (!f) continue;
       e.done = true;
@@ -2406,11 +2413,10 @@ export class PizzaPerkKit {
 
   /** Harpy Feather Pie: every 5 s, once a foot is over it, a gust off the pie blows the feet above it 100 px back up
    *  (enhanced 150; heavy feet and bosses move less, as with any knock). */
-  private harpyTick(dt: number): void {
+  private harpyGusts(dt: number, pies: Pizza[]): void {
     const a = this.a;
     const on = a.allFeet().some((f) => f.alive && f.hittable && f.y > 60);
-    for (const p of this.with('harpyGust')) {
-      if (p.stale || p.perkFrozen) continue;
+    for (const p of pies) {
       const t = (this.harpyT.get(p) ?? 0) + (on ? dt : 0);
       const above = a.allFeet().filter((f) => f.alive && f.hittable && f.target === p && (f.state === 'hover' || f.state === 'descend') && f.y > 120 && !f.puppet && !f.brain.free);
       if (t >= 5 && above.length) {
@@ -2418,7 +2424,10 @@ export class PizzaPerkKit {
         this.gust(p, above);
       } else this.harpyT.set(p, t);
     }
-    // the feet being blown up rise quickly through what's left of their push
+  }
+
+  /** The feet being blown up rise quickly through what's left of their push. */
+  private harpyBlown(dt: number): void {
     for (const [f, left] of this.blown) {
       if (!f.alive || left <= 0 || f.stunT > 0 || f.held || f.pinned) {
         this.blown.delete(f);
@@ -2538,13 +2547,12 @@ export class PizzaPerkKit {
   syncEchoes(): boolean {
     const a = this.a;
     const seats = [...a.allPizzas()].sort((p, q) => p.x - q.x);
-    const ghost = a.possessed();
     let changed = false;
     seats.forEach((e, i) => {
-      if (e.type.perk !== 'echo') return;
+      if (!hasRule(e, Rule.Echo)) return;
       const pick = (q: Pizza | undefined): { k: PizzaPerk; q: Pizza } | null => {
-        if (!q || q.type.perk === 'echo' || q === ghost || q.flags.eaten) return null;
-        if (q.type.perk === 'mystery' && !q.flags.revealed) return null;
+        if (!q || hasRule(q, Rule.Echo) || q.haunted || q.flags.eaten) return null;
+        if (hasRule(q, Rule.Mystery) && !q.flags.revealed) return null;
         const k = q.perk;
         return k && !ECHO_SKIP.has(k) ? { k, q } : null;
       };
@@ -2557,7 +2565,8 @@ export class PizzaPerkKit {
       changed = true;
       if (e.root.active) e.redraw();
       // a new echo mid-wave: it rings out from the pie with the name of the pizza it's copying
-      if (next && a.inWave() && !e.dead && !e.stale && !e.perkFrozen && e !== ghost) {
+      // eslint-disable-next-line effects/no-own-off-switch -- the echo's own ring: only an Echo Slice whose perk is on rings out
+      if (next && a.inWave() && !e.dead && !e.perkOff) {
         a.quip(e.x, e.surfaceY - 190, `ECHOING ${next.q.type.name.toUpperCase()}!`, '#7df9ff', 30);
         a.sfx('sfx_mirrorpeel_echo', { volume: 0.45, throttle: 400 });
         e.perkFired({ quip: false });
@@ -2621,10 +2630,8 @@ export class PizzaPerkKit {
 
   /** Rainbow Bridge, as a wave starts: each pie bridges a lane (a different one each, while there are lanes to spare),
    *  and the Bifröst comes down over it, faint and behind the pizzas and the feet. */
-  private bridgeUp(): void {
+  private bridgeUp(perk: string, pies: Pizza[]): void {
     const a = this.a;
-    const pies = this.with('bridgeLane');
-    if (!pies.length) return;
     const lanes = a.alivePizzas();
     if (!lanes.length) return;
     for (const p of pies) {
@@ -2640,7 +2647,7 @@ export class PizzaPerkKit {
       a.underLayer.add([glow, img]);
       this.sc.tweens.add({ targets: img, scaleY: h / 512, duration: 520, ease: 'Quad.Out' });
       this.sc.tweens.add({ targets: glow, alpha: 0.5, duration: 300, yoyo: true, hold: 400 });
-      this.bridges.push({ src: p, lane, x: lane.x, r, k: this.pk(p), img, glow, ph: crand() * 6 });
+      this.bridges.push({ src: p, perk, lane, x: lane.x, r, k: this.pk(p), img, glow, ph: crand() * 6 });
       a.sfx('sfx_sungap', { volume: 0.5, throttle: 600 });
       this.sc.time.delayedCall(200, () => a.sfx('sfx_smack_tail_glint', { volume: 0.5, throttle: 300 }));
       a.quip(lane.x, lane.surfaceY - 210, `RAINBOW BRIDGE: +${Math.round(40 * this.pk(p))}% HERE`, '#ffe0a0', 30);
@@ -2651,9 +2658,8 @@ export class PizzaPerkKit {
   /** Rainbow Bridge: what a foot in a bridged lane takes (the best bridge it's under; they don't stack). */
   private bridgeMult(f: Foot): number {
     let m = 1;
-    const ghost = this.bridges.length ? this.a.possessed() : null;
     // (a bridge whose pizza stopped bridging counts for nothing, even before its tick takes it down)
-    for (const b of this.bridges) if (b.src.perk === 'bridgeLane' && b.src !== ghost && Math.abs(f.x - b.x) < b.r) m = Math.max(m, 1 + 0.4 * b.k);
+    for (const b of this.bridges) if (grantsPerk(b.src, b.perk) && Math.abs(f.x - b.x) < b.r) m = Math.max(m, 1 + 0.4 * b.k);
     return m;
   }
 
@@ -2662,9 +2668,8 @@ export class PizzaPerkKit {
   private bridgeTick(): void {
     if (!this.bridges.length) return;
     const now = this.a.now();
-    const ghost = this.a.possessed();
     for (const b of this.bridges) {
-      if (b.src.perk !== 'bridgeLane' || b.src === ghost) {
+      if (!grantsPerk(b.src, b.perk)) {
         this.dropImgs([b.img, b.glow]);
         b.k = 0;
         continue;
@@ -2794,10 +2799,9 @@ export class PizzaPerkKit {
   /** Serpent's Coil: once a wave, the first ordinary foot to dive on the pie is caught in Jörmungandr's coils and held
    *  where it is for 3 s (enhanced 4.5). Bosses, mini-bosses, feet a fight moves by hand and a foot already frozen
    *  aren't caught (the coil waits for the next). */
-  private coilTick(): void {
+  private coilCatch(pies: Pizza[]): void {
     const a = this.a;
-    const now = a.now();
-    for (const p of this.with('serpentCoil')) {
+    for (const p of pies) {
       if (p.flags.coilWave === this.wave()) continue;
       // (caught well into its dive, low enough that the coils show clear of the top of the screen)
       const f = a.allFeet().find((o) => o.alive && o.hittable && o.state === 'descend' && o.target === p && o.y > Math.max(420, p.surfaceY - 360) && !o.isBossLike && !o.puppet && !o.brain.free && !o.zombieHold && !(o.stunT > 0 && o.frozen) && !this.coiled.has(o));
@@ -2805,6 +2809,11 @@ export class PizzaPerkKit {
       p.flags.coilWave = this.wave();
       this.coil(f, p);
     }
+  }
+
+  /** Serpent's Coil: the coils hold their feet, and let go. */
+  private coilHold(): void {
+    const now = this.a.now();
     for (const [f, co] of this.coiled) {
       const sq = 1 + 0.05 * Math.sin(now * 9);
       co.img.setPosition(f.cx, this.coilY(f)).setScale(co.s * sq, co.s / sq);

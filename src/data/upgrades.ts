@@ -9,7 +9,7 @@ import { EVENT_TOPPINGS } from './toppingsEvents';
 import { MIXED_TOPPINGS } from './toppingsMixed2';
 import { SHOP_TOPPINGS } from './toppingsShop';
 import { WILD_TOPPINGS } from './toppingsWild';
-import { Effect, Op, Stat, Trick, Unit, effects, isAutoTrick, type DealRuleId, type EffectData, type PriceId, type TrickId } from '../effects';
+import { Effect, Op, Stat, Trick, Unit, effects, isAutoTrick, type DealRuleId, type EffectData, type Effects, type PriceId, type TrickId } from '../effects';
 import { RARITY_DEFS, Rarity } from './rarity';
 import { isTradeoff } from '../game/cardText';
 import { KitTopping, Topping } from './toppingDefs';
@@ -173,9 +173,10 @@ export interface Upgrade {
   /** How many times it can be taken (1: once). */
   maxLevel: number;
   /** What it changes, applied once for each level owned (1..owned): its Effect.Stat numbers go through the modifier
-   *  ledger (src/effects/ledger.ts). Toppings the scene runs itself (procs, kit tricks) have none. The card text is
+   *  ledger (src/effects/ledger.ts); the scene's own toppings declare their trick (Effect.Trick), a proc its Effect.Proc.
+   *  At least one, always: a topping that declares nothing doesn't compile (step 4's guard). The card text is
    *  generated from them (src/game/cardText.ts). */
-  effects?: EffectData[];
+  effects: Effects;
   /** Card text written by hand (the scene's own toppings, and flavour the effects can't give). */
   text?: TextOverride;
   /** Called once when picked (immediate effects). */
@@ -238,9 +239,6 @@ export const UPGRADES: Upgrade[] = [
     id: 'chili', name: 'Chili Flakes', icon: '🌶️',
     rarity: Rarity.Common,
     maxLevel: 5,
-    // (LV1 keeps its words. They were kept for the balance sim's shopping bot, which picked "automatic" toppings by a
-    // regex over card text; it reads isAutoTopping now, so the override could go: a card-text change, left for Tron)
-    text: { up: (l, auto) => (l <= 1 ? 'Smacks set feet on fire: 6 dmg/s' : auto) },
     effects: [
       Effect.Stat(
         Stat.BurnDps,

@@ -8,6 +8,8 @@ import { crand } from '../systems/cosmeticRandom';
 import { SEASONS, enhancedText, type PizzaPerk, type PizzaType } from '../data/pizzas';
 import { ensurePizzaArt, pizzaTops } from './assets';
 import { borrowLine, borrowedPerk } from './pizzaPerks';
+import { declares } from './perkRules';
+import { Rule } from '../effects/rule';
 import { PizzaAlive, bakedTop } from './pizzaAlive';
 // (the legendaries' auras and signatures plug into the living layer's hooks)
 import './legendAuras';
@@ -494,7 +496,7 @@ export class Pizza {
   /** The perk it would grant were the Ghost not in it: what the Ghost's possession turns against you. */
   get ownPerk(): PizzaPerk | null {
     if (this.dead || this.stale || this.perkFrozen) return null;
-    if (this.type.perk === 'rotate') return SEASONS[Number(this.flags.season ?? 0) % 4];
+    if (declares(this.type.perk, Rule.Seasons)) return SEASONS[Number(this.flags.season ?? 0) % 4];
     // Arcobaleno and Mystery Meat grant the perk they've borrowed
     return borrowedPerk(this) ?? this.type.perk;
   }
@@ -507,7 +509,7 @@ export class Pizza {
 
   /** The perk's text even when it's dead (the shop's table shows it crossed out: what rebaking brings back). */
   get perkText(): string {
-    if (this.type.perk === 'rotate') {
+    if (declares(this.type.perk, Rule.Seasons)) {
       const season = SEASONS[Number(this.flags.season ?? 0) % 4];
       return this.enhanced ? enhancedText(season) : ['+10% smack damage', '+20% tips from feet', 'Regrows a slice every 20s', 'Blocks the first stomp each wave'][Number(this.flags.season ?? 0) % 4];
     }
@@ -520,13 +522,13 @@ export class Pizza {
   get enhancedLine(): string {
     const borrowed = borrowLine(this, true);
     if (borrowed) return borrowed;
-    return enhancedText(this.type.perk === 'rotate' ? SEASONS[Number(this.flags.season ?? 0) % 4] : this.type.perk);
+    return enhancedText(declares(this.type.perk, Rule.Seasons) ? SEASONS[Number(this.flags.season ?? 0) % 4] : this.type.perk);
   }
 
   /** The plain perk text (an enhanced pizza's card shows it struck through). */
   get basePerkLine(): string {
     if (this.dead) return 'PERK LOST';
-    if (this.type.perk === 'rotate') return ['+10% smack damage', '+20% tips from feet', 'Regrows a slice every 20s', 'Blocks the first stomp each wave'][Number(this.flags.season ?? 0) % 4];
+    if (declares(this.type.perk, Rule.Seasons)) return ['+10% smack damage', '+20% tips from feet', 'Regrows a slice every 20s', 'Blocks the first stomp each wave'][Number(this.flags.season ?? 0) % 4];
     return borrowLine(this, false) ?? this.type.perkText;
   }
 

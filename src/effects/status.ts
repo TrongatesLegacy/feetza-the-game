@@ -34,6 +34,8 @@ export const Dps = {
   Flat: (n: number): DpsData => ({ d: 'flat', n, scaled: true }),
   /** n a second, whatever the strength. */
   Fixed: (n: number): DpsData => ({ d: 'flat', n, scaled: false }),
+  /** Smack damage × m a second, whatever the strength. */
+  Plain: (m: Mult): DpsData => ({ d: 'smack', m, scaled: false }),
 } as const;
 
 export const SlowStack = {

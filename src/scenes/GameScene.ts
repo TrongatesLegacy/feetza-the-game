@@ -67,7 +67,12 @@ import { playLook, type LookFx } from '../art/animatedLooks';
 import { HeroDirector } from '../game/heroMoves';
 import { AbilityFx, type HitRec } from '../game/abilityFx';
 import { PeelFx, PeelFxBus } from '../game/peelFxEvents';
-import { peelStatEffects } from '../game/peelEffects';
+import { PeelFlag, PeelCustom, peelParts, peelStatEffects, procEffects, type PeelCustomId, type PeelFlagId } from '../game/peelEffects';
+import { PeelBus, PeelGroup, type PeelBusHost, type PeelGroupId, type PeelSource } from '../game/peelBus';
+import { ChargeFrom, GameEvent } from '../effects';
+import type { AnyEvent } from '../effects/events';
+import { Rule } from '../effects/rule';
+import { hasRule, perkValue, ruleOf, tableRule } from '../game/perkRules';
 import type { HeroHost } from '../game/heroKit';
 import { HeroTracker, bestGoal, type RunView } from '../game/heroGoals';
 import { maybeSignal, sightingChance, sightingDue } from '../game/sightings';
@@ -197,9 +202,12 @@ export class GameScene extends Phaser.Scene implements Arena {
   private timerStopped = false;
   /** The peel's ability, when it replaces the Peel Slam this run (null: the Peel Slam). */
   private ability: Ability | null = null;
-  private abilityT = 0;
-  /** Proc toppings owned this run (scaled by level), with their timers. */
-  private procs: { id: string; p: Proc; t: number }[] = [];
+  /** Proc toppings owned this run (scaled by level), the peel's passive part last; their timers are on the peel bus. */
+  private procs: { id: string; p: Proc }[] = [];
+  /** The peel's trigger bus (src/game/peelBus.ts): its ability, the procs and Zombie Outbreak, declared as effects. */
+  private peelBus!: PeelBus;
+  /** The ability the peel bus was last set up for (a new bus, fresh with each run, has none). */
+  private peelBusFor: Ability | null | undefined = undefined;
   /** Thrown props (peel abilities and topping procs). */
   private throws!: Projectiles;
   /** The event, mixed and wildcard toppings' in-play mechanics. */
@@ -655,6 +663,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       kill: (f) => this.killFoot(f, 'explode'),
     });
     this.events.once('shutdown', () => this.perkKit.clear());
+    this.peelBus = new PeelBus(this.peelBusHost());
     contentFx.reset(this);
     // the run's ability peel brings its nemesis stage, if it has one (a resumed run's peel comes from its save);
     // a dev boss start of a nemesis boss brings its stage too, so it fights in its own arena
@@ -735,7 +744,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     // every peel but the Classic brings its ability (runs saved with the old Peel Slam switch keep their choice)
     const wantAbility = this.start.snapshot?.ability ?? true;
     this.ability = wantAbility && peelDef.id !== 'classic' ? abilityFor(peelDef.id) : null;
-    this.abilityT = 0;
+    this.syncPeelBus(true);
     this.abilityFx.prepare(this.ability, peelDef.id);
     if (this.ability?.zombie) audio.preload(this, OUTBREAK_SFX);
     // slam-related toppings and perks reword (and work) for the ability in use; meter boosts are only
@@ -1085,13 +1094,16 @@ export class GameScene extends Phaser.Scene implements Arena {
   // ——— Pizzas ———
   private addPizza(id: string, slices: number, animate: boolean, fresh?: number, exact = false): Pizza {
     const type = PIZZA_BY_ID[id];
-    let n = exact ? slices : type.perk === 'slices' ? slices + 4 : type.perk === 'bossRegrow' ? Math.max(4, slices - 2) : slices;
+    // Meat Feast's extra slices, Lahmacun's fewer (never below its floor)
+    const more = perkValue(type.perk, Rule.MoreSlices);
+    const fewer = perkValue(type.perk, Rule.FewerSlices);
+    let n = exact ? slices : more !== undefined ? slices + more : fewer !== undefined ? Math.max(perkValue(type.perk, Rule.FewerSlices, 'b') ?? 1, slices - fewer) : slices;
     n = Math.max(1, n);
     const p = new Pizza(this, this.pizzaLayer, type, W / 2, PIZZA_Y, 0.8, n);
-    p.freshOn = this.run.heatDef.freshness > 0 && type.perk !== 'neverStale';
+    p.freshOn = this.run.heatDef.freshness > 0 && !hasRule(p, Rule.NeverStale);
     p.maxFresh = 10 + (this.run.stats?.freshBonus ?? 0);
     p.setFresh(fresh ?? p.maxFresh);
-    if (type.perk === 'rotate' && p.flags.season === undefined) p.flags.season = 0;
+    if (hasRule(p, Rule.Seasons) && p.flags.season === undefined) p.flags.season = 0;
     this.perkKit.placed(p, !exact);
     this.pizzas.push(p);
     if (animate) {
@@ -1126,7 +1138,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.perkKit.syncEchoes();
     const live = this.alivePizzas().filter((p) => p !== this.possessedPizza && p.perk);
     // an enhanced pizza's perk counts half as much again (and Mystery Meat's)
-    const seats: TableSeat[] = live.map((p) => ({ perk: p.perk!, source: this.perkKit.srcOf(p), weight: 1 + (p.enhanced ? 0.5 : 0) + (p.type.perk === 'mystery' ? 0.5 : 0) }));
+    const seats: TableSeat[] = live.map((p) => ({ perk: p.perk!, source: this.perkKit.srcOf(p), weight: 1 + (p.enhanced ? 0.5 : 0) + (ruleOf(p, Rule.Mystery) ?? 0) }));
     const enhanced = [...live.filter((p) => p.enhanced).map((p) => p.perk!), ...this.perkKit.bigPerks(live)];
     // always-on peel abilities (and a hero's always-on passive, its `also`) change stats before the caps
     const peel = this.ability;
@@ -1184,15 +1196,22 @@ export class GameScene extends Phaser.Scene implements Arena {
       p.maxFresh = 10 + this.run.stats.freshBonus;
       if (p.fresh > p.maxFresh) p.setFresh(p.maxFresh);
     }
-    const timers = new Map(this.procs.map((x) => [x.id, x.t]));
     this.procs = Object.entries(this.run.owned)
       .map(([id, lvl]) => ({ u: UPGRADE_BY_ID[id], lvl }))
       .map((x) => ({ ...x, proc: x.u && procOf(x.u) }))
       .filter((x) => x.proc && x.lvl > 0)
-      .map((x) => ({ id: x.u.id, p: scaleProc(x.proc!, x.lvl), t: timers.get(x.u.id) ?? 0 }));
+      .map((x) => ({ id: x.u.id, p: scaleProc(x.proc!, x.lvl) }));
     // a throwing peel's passive throw runs like a proc
     const also = this.ability?.also;
-    if (also) this.procs.push({ id: 'peel:also', p: { ...also, color: this.ability!.color, vfx: this.ability!.vfx }, t: timers.get('peel:also') ?? 0 });
+    if (also) this.procs.push({ id: 'peel:also', p: { ...also, color: this.ability!.color, vfx: this.ability!.vfx } });
+    this.syncPeelBus(false);
+    // (each keeps its timer while it's still owned)
+    this.peelBus.set(PeelGroup.Procs, this.procs.map((pr): PeelSource => ({
+      key: pr.id,
+      effects: procEffects(pr.p),
+      run: (_fx, fire) => this.runEffects(pr.p.fx, this.peelAt(fire.ev, true), pr.p.color, pr.p.vfx, false, procTag(pr.id), true),
+      k: () => 1,
+    })));
     this.syncCutters();
     this.syncGarlic();
     // toppings that only make sense sometimes (Peel Roulette, Head Chef)
@@ -1236,8 +1255,59 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   /** Charge the meter by a fraction (a timed passive comes round sooner instead). */
   private chargeMeter(frac: number): void {
-    if (this.ability?.trigger.t === 'every') this.abilityT += this.ability.trigger.sec * frac;
-    else if (!this.ability || usesMeter(this.ability)) this.run.super = Math.min(1, this.run.super + frac);
+    if (this.peelBus.charge(ChargeFrom.Meter, frac)) return;
+    if (!this.ability || usesMeter(this.ability)) this.run.super = Math.min(1, this.run.super + frac);
+  }
+
+  /** The peel bus's view of the game: the perk kit's shared actions, the field, the run being on, the peel's flags and
+   *  one-offs (Zombie Outbreak's moments). */
+  private peelBusHost(): PeelBusHost {
+    const flags: Record<PeelFlagId, () => boolean> = {
+      [PeelFlag.InWave]: () => this.waveActive && !this.over && !this.inUpgrade,
+    };
+    const custom: Record<PeelCustomId, (ev: AnyEvent) => void> = {
+      [PeelCustom.ZombieTurn]: (ev) => {
+        if ('x' in ev && 'foot' in ev) this.outbreak.smacked(ev.foot, ev.x);
+      },
+      [PeelCustom.ZombieHeal]: (ev) => {
+        if ('foot' in ev && ev.foot) this.outbreak.killed(ev.foot);
+      },
+    };
+    return Object.assign(Object.create(this.perkKit.actionHost()) as PeelBusHost, {
+      feet: () => this.feet,
+      live: () => !this.over && !this.inUpgrade,
+      flag: (id: string) => flags[id as PeelFlagId](),
+      custom: (id: string, fire: { ev: AnyEvent }) => void custom[id as PeelCustomId](fire.ev),
+    });
+  }
+
+  /** Put the peel's ability (and Zombie Outbreak's moments) on the peel bus when it's changed. `fresh`: a new peel or a
+   *  borrowed ability starts its clock again; anything else (Act 9's home ground) keeps it. */
+  private syncPeelBus(fresh: boolean): void {
+    if (!fresh && this.peelBusFor === this.ability) return;
+    this.peelBusFor = this.ability;
+    const a = this.ability;
+    const parts = a ? peelParts(a) : null;
+    const boost = () => passiveBoost(this.run.stats.superGain);
+    const peel: PeelSource[] = parts ? [{ key: 'peel', effects: parts.peel, run: (_fx, fire) => this.fireAbility(this.peelAt(fire.ev, false)), k: () => boost().chance, rate: () => boost().timer }] : [];
+    const outbreak: PeelSource[] = parts?.outbreak.length ? [{ key: 'outbreak', effects: parts.outbreak, run: () => {}, k: () => 1 }] : [];
+    this.peelBus.set(PeelGroup.Peel, peel, fresh);
+    this.peelBus.set(PeelGroup.Outbreak, outbreak, fresh);
+  }
+
+  /** Where a peel moment's ability goes off: a kill's where the foot fell, a smack's or a stomp's on its foot, a
+   *  wave's over the table; a timer's from the peel (a proc's) or the whole field (the ability's). */
+  private peelAt(ev: AnyEvent, proc: boolean): { foot?: Foot; x?: number; y?: number } {
+    if ('byAbility' in ev) return { x: ev.x, y: ev.y };
+    if ('foot' in ev && ev.foot) return { foot: ev.foot, x: ev.foot.cx, y: ev.foot.cy };
+    if ('wave' in ev) return { x: W / 2, y: 520 };
+    return proc ? { x: this.peelPos.x, y: this.peelPos.y } : {};
+  }
+
+  /** The peel bus's groups a smack or a stomp goes to: the procs only while the run is on (they're checked before
+   *  their rolls; the ability's own runner checks after its roll, and the outbreak checks itself). */
+  private peelGroups(): PeelGroupId[] {
+    return this.over || this.inUpgrade ? [PeelGroup.Peel, PeelGroup.Outbreak] : [PeelGroup.Peel, PeelGroup.Procs, PeelGroup.Outbreak];
   }
 
   /** Peel Roulette's choices: unlocked peels with a different ability from the one in use, one per ability. */
@@ -1273,7 +1343,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.heroes.setPeel(id, peelTrail(def) ?? 0xffd23f);
     audio.preload(this, heroSfx(id.startsWith('hero:')));
     this.ability = id !== 'classic' ? abilityFor(id) : null;
-    this.abilityT = 0;
+    this.syncPeelBus(true);
     this.run.super = 0;
     this.abilityFx.prepare(this.ability, id);
     if (this.ability?.zombie) audio.preload(this, OUTBREAK_SFX);
@@ -1377,21 +1447,21 @@ export class GameScene extends Phaser.Scene implements Arena {
     // Crust Armour: a shield more on every pizza in boss waves
     const armour = isBossWave(n) ? this.run.trick(Trick.CrustArmour) : 0;
     for (const p of this.alivePizzas()) {
-      p.setShield(st.shields + armour + (p.perk === 'shield' ? (p.enhanced ? 2 : 1) : 0));
+      p.setShield(st.shields + armour + (ruleOf(p, Rule.ExtraShields) ?? 0));
       p.setTraps(st.traps);
       p.flags.markedWave = false;
       p.flags.bounced = 0;
       p.flags.grandma = false;
     }
     // Grandma Square guards both neighbours' first stomp each wave (enhanced: itself too)
-    for (const p of this.alivePizzas()) if (p.perk === 'neighbourShield') for (const q of [...this.neighbours(p), ...(p.enhanced ? [p] : [])]) q.flags.grandma = true;
+    for (const p of this.alivePizzas()) if (hasRule(p, Rule.Guard)) for (const q of [...this.neighbours(p), ...(ruleOf(p, Rule.Guard) ? [p] : [])]) q.flags.grandma = true;
     this.perkKit.waveStart(n);
     // every wave starts with the oven hot, so its first seconds aren't punished
     this.momentum.reset();
     this.outbreak.wave();
     this.run.super = Math.max(this.run.super, st.superStart);
     // a passive on a timer gets its head start (S'mores, Pre-Heated Peel) as timer progress
-    if (this.ability?.trigger.t === 'every') this.abilityT = Math.max(this.abilityT, this.ability.trigger.sec * Math.min(1, this.run.super));
+    this.peelBus.charge(ChargeFrom.HeadStart, this.run.super);
     const boss = isBossWave(n);
     // event toppings change the odds and can bring a second event (Grand Parade, Second Look); Four-Leaf Clover
     // raises the rate; a hero sighting (Hero Hotline makes it likelier) is rolled first
@@ -1683,11 +1753,12 @@ export class GameScene extends Phaser.Scene implements Arena {
       }
     }
     const t = f.target;
-    if (t && !t.dead && t.perk === 'markFirst' && !t.flags.markedWave && !f.isBossLike) {
+    const mark = t && !t.dead ? ruleOf(t, Rule.MarkFirst) : undefined;
+    if (t && mark && !t.flags.markedWave && !f.isBossLike) {
       t.flags.markedWave = true;
-      f.brain.marked = t.enhanced ? 3 : 2;
+      f.brain.marked = mark;
       f.tint(0xffb070);
-      this.fx.quip(f.x, f.cy - 130, t.enhanced ? 'MARKED: TRIPLE DAMAGE' : 'MARKED: DOUBLE DAMAGE', '#ff8a3d', 32);
+      this.fx.quip(f.x, f.cy - 130, mark >= 3 ? 'MARKED: TRIPLE DAMAGE' : 'MARKED: DOUBLE DAMAGE', '#ff8a3d', 32);
     }
   }
 
@@ -2128,8 +2199,8 @@ export class GameScene extends Phaser.Scene implements Arena {
         if (ps[0]) this.healPizza(ps[0], n);
       },
       slam: (frac) => {
-        if (this.ability?.trigger.t === 'every') this.abilityT += this.ability.trigger.sec * frac;
-        else if (this.ability && !usesMeter(this.ability)) this.giveTips(15, W / 2, 300);
+        if (this.peelBus.charge(ChargeFrom.Event, frac)) return;
+        if (this.ability && !usesMeter(this.ability)) this.giveTips(15, W / 2, 300);
         else this.run.super = Math.min(1, this.run.super + frac);
       },
       crust: (n, x, y) => {
@@ -2278,20 +2349,20 @@ export class GameScene extends Phaser.Scene implements Arena {
       const amt = st.regenPerWave + st.regenAll;
       if (amt > 0) this.healPizza(p, amt);
     }
-    // (Spinach & Feta's and the Calzone's moment)
-    if (st.regenAll > 0) for (const p of this.alivePizzas()) if (p.perk === 'regenAll') p.perkFired();
+    // (Spinach & Feta's and the Calzone's moments: the heals are theirs)
+    if (st.regenAll > 0) for (const p of this.alivePizzas()) if (hasRule(p, Rule.RegrowGlow)) p.perkFired();
     for (let i = 0; i < st.healWeakest; i++) {
       const weakest = [...this.alivePizzas()].sort((a, b) => a.slices / a.maxSlices - b.slices / b.maxSlices)[0];
       if (weakest) this.healPizza(weakest, 1);
     }
-    if (st.healWeakest > 0) for (const p of this.alivePizzas()) if (p.perk === 'healWeakest') p.perkFired();
+    if (st.healWeakest > 0) for (const p of this.alivePizzas()) if (hasRule(p, Rule.WeakestGlow)) p.perkFired();
     // Aqua-Toe's Tidal Calm: no pizza goes stale at the seaside
     if (!this.heroes.keepFresh()) this.tickFreshness();
     this.perkKit.waveClear(n, perfect, this.run.coins - this.coinsAtWaveStart);
     // Tuna & Sweetcorn has paid for this wave: its text counts the next one now
     this.syncPerkWave(n + 1);
     // Quattro Stagioni turns to its next season
-    for (const p of this.alivePizzas()) if (p.type.perk === 'rotate') {
+    for (const p of this.alivePizzas()) if (hasRule(p, Rule.Seasons)) {
       p.flags.season = (Number(p.flags.season ?? 0) + 1) % 4;
       p.redraw();
     }
@@ -2337,8 +2408,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     let anyLow = false;
     for (const p of this.alivePizzas()) {
       if (!p.freshOn) continue;
-      const pickle = this.neighbours(p).filter((q) => q.perk === 'preserve');
-      let drain = drainBase * (pickle.some((q) => q.enhanced) ? 0.25 : pickle.length ? 0.5 : 1);
+      // (the strongest Pickle Pie beside it)
+      let drain = drainBase * Math.min(1, ...this.neighbours(p).map((q) => ruleOf(q, Rule.Preserve) ?? 1));
       // fractional drain (Inferno 1.5x, Pickle Pie 0.5x) accumulates
       const acc = Number(p.flags.freshAcc ?? 0) + drain;
       drain = Math.floor(acc);
@@ -2358,9 +2429,10 @@ export class GameScene extends Phaser.Scene implements Arena {
         audio.sfx('sfx_stale');
         ui.hud.toast(pizzaPortraitURL(p.type.id), 'PIZZA WENT STALE', `${p.type.name} is off the table: even the feet won’t touch it. Rebake it in the shop.`);
         // Pizza Fritta's last act: it heals the others as it goes
-        if (p.type.perk === 'staleHeal' && !p.flags.staleHealed && !p.haunted) {
+        const staleHeal = ruleOf(p, Rule.StaleHeal);
+        if (staleHeal && !p.flags.staleHealed && !p.haunted) {
           p.flags.staleHealed = true;
-          const n = p.enhanced ? 3 : 2;
+          const n = staleHeal;
           for (const q of this.alivePizzas()) if (q !== p) this.healPizza(q, n);
           this.fx.quip(p.x, p.surfaceY - 170, `PIZZA FRITTA: +${n} SLICES FOR ALL`, '#7dff9a', 34);
         }
@@ -2594,7 +2666,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.run.kit.shop.exclusive = deal.exclusive;
       // boss loot: the lowest-rarity pick dealt is free (a random one of them when several share it) ·
       // Birthday Cake: every 5th wave a random card is free (enhanced: every 3rd)
-      const every = this.run.enhancedPerks.has('freeTopping') ? 3 : 5;
+      const every = tableRule(this.run.enhancedPerks, Rule.FreeEvery);
       if (bossReward && cards.length) {
         const rank: Record<Rarity, number> = { common: 0, rare: 1, epic: 2, legendary: 3 };
         const low = Math.min(...cards.map((u) => rank[u.rarity]));
@@ -2691,7 +2763,7 @@ export class GameScene extends Phaser.Scene implements Arena {
         rebake: p.dead && this.run.heatDef.rebake ? { cost: this.boughtOut(this.rebakePrice(p)), can: this.run.coins >= this.boughtOut(this.rebakePrice(p)) } : null,
         rarity: p.type.rarity,
         heal: { cost: healOne, can: !p.dead && p.slices < p.maxSlices && this.run.coins >= healOne, need: !p.dead && p.slices < p.maxSlices },
-        neverStale: p.type.perk === 'neverStale',
+        neverStale: hasRule(p, Rule.NeverStale),
         freshness: reheatOn,
       };
     });
@@ -2818,7 +2890,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       perk: p.perk,
       possessed: p.haunted,
       // (an Echo Slice's line names the pizza it copies; here it spells the copied perk out too)
-      line: p.type.perk === 'echo' && p.perk && p.perk !== 'echo' ? `${p.perkLine}: ${perkTextOf(p.perk, p.enhanced)}` : p.perkLine,
+      line: hasRule(p, Rule.Echo) && p.perk && p.perk !== p.type.perk ? `${p.perkLine}: ${perkTextOf(p.perk, p.enhanced)}` : p.perkLine,
       enhanced: p.enhanced,
       stale: p.outOfFreshness,
       frozen: p.perkFrozen,
@@ -2826,7 +2898,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       slices: p.slices,
       max: p.maxSlices - p.overSlices,
       pk: this.perkKit.pk(p),
-      echo: p.type.perk === 'echo',
+      echo: hasRule(p, Rule.Echo),
       img: pizzaPortraitURL(p.type.id),
     }));
     const hero = this.heroes.flatDmgMult();
@@ -3301,10 +3373,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       }
       case 'slam': {
         // a full Peel Slam meter (or the ability's timer run down); a peel with neither, or a full meter: the pull back
-        if (this.ability?.trigger.t === 'every') {
-          this.abilityT += this.ability.trigger.sec;
-          return `${this.ability.name} straight away`;
-        }
+        if (this.ability && this.peelBus.charge(ChargeFrom.Slots)) return `${this.ability.name} straight away`;
         if (this.ability && !usesMeter(this.ability)) return refund();
         if (this.run.super >= 1) return refund();
         this.run.super = 1;
@@ -3483,7 +3552,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (p.enhanced) return;
     p.flags.enhanced = true;
     // Meat Feast and Lahmacun: two more slices
-    if (p.type.perk === 'slices' || p.type.perk === 'bossRegrow') p.addSlices(2);
+    const more = ruleOf(p, Rule.EnhanceSlices);
+    if (more) p.addSlices(more);
     this.perkKit.enhanced(p);
     p.redraw();
     this.fx.healBurst(p.x, p.surfaceY - 20);
@@ -3595,8 +3665,9 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (swapIndex !== undefined && this.pizzas[swapIndex]) {
       const old = this.pizzas[swapIndex];
       // Pizza al Taglio refunds half its price when it leaves (enhanced: three quarters)
-      if (old.type.perk === 'refund' && old.flags.paid) {
-        const back = Math.round(Number(old.flags.paid) * (old.enhanced ? 0.75 : 0.5));
+      const refund = ruleOf(old, Rule.Refund);
+      if (refund && old.flags.paid) {
+        const back = Math.round(Number(old.flags.paid) * refund);
         this.run.coins += back;
         ui.hud.toast(null, 'REFUND', `+${back} tips for the ${old.type.name}`);
       }
@@ -3629,7 +3700,7 @@ export class GameScene extends Phaser.Scene implements Arena {
   }
 
   private figOnTable(): boolean {
-    return this.alivePizzas().some((p) => p.perk === 'crustBonus' || p.perk === 'crustRun');
+    return this.alivePizzas().some((p) => hasRule(p, Rule.CrustEarner));
   }
 
   /** Award any milestones reached: each unlocks the pizza it names (or 50 crusts). */
@@ -3755,10 +3826,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.dealDamage(f, st.damage, { source: 'smack', canCrit: true, knock: st.knockback, x, y });
     // smack abilities only when the smack landed (not parried, guarded or dodged)
     const landed = !f.alive || f.hp < hpBefore;
-    if (landed && this.ability?.trigger.t === 'smack' && Math.random() < this.ability.trigger.p * passiveBoost(st.superGain).chance) this.fireAbility({ foot: f, x: f.cx, y: f.cy });
-    if (landed) this.fireProcs('smack', { foot: f, x: f.cx, y: f.cy });
-    // Zombie Outbreak: a landed smack may turn the foot into a friendly zombie
-    if (landed && this.ability?.zombie) this.outbreak.smacked(f, x);
+    // the peel's ability, the procs, Zombie Outbreak (it may turn the foot into a friendly zombie)
+    if (landed) this.peelBus.emit(GameEvent.Smack, { foot: f, x }, this.peelGroups());
     if (landed) {
       this.kit.onSmackLanded(f, x, y);
       this.perkKit.smacked(f, x);
@@ -3776,7 +3845,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (f.has('invisible')) f.reveal(1.2);
     // Marshmallow Mountain: the first smack each wave on a foot above it sends it back to the top
     const t = f.target;
-    if (t && !t.dead && t.perk === 'bounceTop' && Number(t.flags.bounced ?? 0) < (t.enhanced ? 2 : 1) && !f.isBossLike) {
+    const bounces = t && !t.dead ? ruleOf(t, Rule.BounceTop) : undefined;
+    if (t && bounces && Number(t.flags.bounced ?? 0) < bounces && !f.isBossLike) {
       t.flags.bounced = Number(t.flags.bounced ?? 0) + 1;
       f.y = 140;
       f.vy = 0;
@@ -3893,7 +3963,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     let crit = false;
     if (smack) {
       this.smackCount++;
-      if (st.tenthCrit && this.smackCount % (this.run.enhancedPerks.has('tenthCrit') ? 7 : 10) === 0) crit = true;
+      if (st.tenthCrit && this.smackCount % tableRule(this.run.enhancedPerks, Rule.TenthCrit) === 0) crit = true;
     }
     if (o.canCrit && (f.has('tender') || this.heroes.critAlways() || (smack && this.kit.forceCrit(f)))) crit = true;
     else if (o.canCrit && Math.random() < st.critChance) crit = true;
@@ -3918,7 +3988,10 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (f.markUntil > this.nowT) dmg *= f.markMult;
     if (f.isBossLike) dmg *= 1 + st.bossDmg;
     if (f.hp > f.maxHp * 0.5) dmg *= 1 + st.bigHurt;
-    if (f.stunT > 0 && f.target?.perk === 'stunVuln') dmg *= f.target.enhanced ? 1.75 : 1.5;
+    if (f.stunT > 0) {
+      const stunned = ruleOf(f.target, Rule.StunnedDmg);
+      if (stunned) dmg *= stunned;
+    }
     dmg *= this.perkKit.damageMult(f, smack);
     let executed = false;
     if (smack && !f.isBossLike && st.execute > 0 && f.hp / f.maxHp <= st.execute) {
@@ -4004,7 +4077,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       }
       if (st.chainChance > 0 && Math.random() < st.chainChance) this.chain(f, amount * st.chainDmg);
       if (st.splashDmg > 0) for (const q of this.feet) if (q !== f && q.hittable && Math.hypot(q.cx - f.cx, q.cy - f.cy) < 200) this.dealDamage(q, st.splashDmg, { source: 'splash', quiet: true });
-      if (f.target?.perk === 'disarm' && !f.isBossLike) f.disarmT = f.target.enhanced ? 5 : 3;
+      const disarm = ruleOf(f.target, Rule.Disarm);
+      if (disarm && !f.isBossLike) f.disarmT = disarm;
       if (f.hp > 0 && f.has('dodge') && Math.random() < 0.35) f.dodge();
     } else if (o.source === 'slam' || o.source === 'trap' || o.source === 'olive' || o.source === 'cutter' || o.source === 'direct') {
       f.flash(0xffffff, 60);
@@ -4143,17 +4217,10 @@ export class GameScene extends Phaser.Scene implements Arena {
     // they've gone idle, so toppings can't fill the slam for an idle player)
     const autoKill = AUTO_SOURCES.has(source) ? this.momentum.mult() : 1;
     if (source !== 'slam' && source !== 'ability' && !(source === 'burn' && f.burnFromAbility)) this.run.super = Math.min(1, this.run.super + 0.05 * autoKill * st.superGain * (this.ability ? this.ability.charge : 1) * this.heroes.meterMult());
-    if (this.ability?.trigger.t === 'kill' && source !== 'ability' && Math.random() < this.ability.trigger.p * passiveBoost(st.superGain).chance) {
-      const at = { x: f.cx, y: f.cy };
-      this.time.delayedCall(40, () => this.fireAbility({ x: at.x, y: at.y }));
-    }
-    if (source !== 'ability' && this.procs.length) {
-      const at = { x: f.cx, y: f.cy };
-      this.time.delayedCall(40, () => this.fireProcs('kill', { x: at.x, y: at.y }));
-    }
-    // Zombie Outbreak: a kill may heal a slice (its own bites and bursts heal by their own rule)
-    if (this.ability?.zombie) this.outbreak.killed(f);
-    this.perkKit.killed(f, coins, echoCut < 1);
+    // the peel's ability and the procs (never for the ability's own kill), Zombie Outbreak (a kill may heal a slice; its
+    // own bites and bursts heal by their own rule)
+    this.peelBus.emit(GameEvent.Kill, { foot: f, coins, echo: echoCut < 1, byAbility: source === 'ability', x: f.cx, y: f.cy });
+    this.perkKit.killed(f, coins, echoCut < 1, source === 'ability');
     if (f.has('crusty')) {
       const cap = Math.round(EVENT_CRUST_CAP * this.run.heatDef.crusts);
       const got = Math.max(0, Math.min(1 + Math.floor(Math.random() * 3), cap - this.run.eventCrusts));
@@ -4257,10 +4324,11 @@ export class GameScene extends Phaser.Scene implements Arena {
     }
     // Lahmacun regrows every slice after a boss; Pumpkin Spice freshens the table
     for (const p of this.alivePizzas()) {
-      if (p.perk === 'bossRegrow') this.healPizza(p, p.maxSlices);
+      if (hasRule(p, Rule.BossRegrow)) this.healPizza(p, p.maxSlices);
     }
-    const pumpkin = this.alivePizzas().filter((p) => p.perk === 'neverStale');
-    if (pumpkin.length) for (const p of this.alivePizzas()) if (p.freshOn) p.setFresh(p.fresh + (pumpkin.some((q) => q.enhanced) ? 2 : 1));
+    const freshen = this.alivePizzas().map((p) => ruleOf(p, Rule.BossFreshen) ?? 0);
+    const fr = Math.max(0, ...freshen);
+    if (fr > 0) for (const p of this.alivePizzas()) if (p.freshOn) p.setFresh(p.fresh + fr);
     this.possess(null);
     for (const p of this.pizzas) p.setLift(0);
     this.slowMo = 1.4;
@@ -4313,8 +4381,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.tracker.emit('stomp', { foot: f, blocked: 'other' });
       return;
     }
-    if (this.ability?.trigger.t === 'stomp') this.fireAbility({ foot: f, x: f.cx, y: f.cy });
-    this.fireProcs('stomp', { foot: f, x: f.cx, y: f.cy });
+    this.peelBus.emit(GameEvent.Stomp, { foot: f, pizza: p }, this.peelGroups());
     // Graffiti Gina tags the pizza; the next foot on it stomps twice as hard
     let tagged = false;
     if (p.flags.tagged && !f.has('tag')) {
@@ -4385,7 +4452,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.fx.ring(p.x, p.surfaceY - 30, 0xc8f6ff, 1.6, 0.35);
       this.fx.quip(f.x, p.surfaceY - 130, p.shieldCharges > 0 ? 'BLOCKED!' : 'SHIELD BROKEN!', '#8ff0ff', 48);
       audio.sfx('sfx_shield');
-      if (p.perk === 'shield' || p.perk === 'bossShield') p.perkFired({ quip: false });
+      if (hasRule(p, Rule.ShieldGlow)) p.perkFired({ quip: false });
       f.knock(700);
       blocked(true);
       return;
@@ -4399,7 +4466,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     }
     const big = f.isBossLike || f.type.stompDmg >= 2;
     // Sicilian's thick crust (enhanced 45%); an enhanced Stromboli blocks 15% too
-    if (!pierce && ((p.perk === 'thick' && Math.random() < (p.enhanced ? 0.45 : 0.3)) || (p.perk === 'sturdyMulti' && p.enhanced && Math.random() < 0.15))) {
+    const thick = ruleOf(p, Rule.ThickCrust);
+    if (!pierce && thick && Math.random() < thick) {
       this.fx.quip(f.x, p.surfaceY - 130, 'THICK CRUST!', '#e0a050', 40);
       audio.sfx('sfx_boing', { volume: 0.6, rate: 0.8 });
       p.perkFired({ quip: false });
@@ -4408,7 +4476,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       return;
     }
     // Stromboli shrugs off the second half of double stomps
-    if (p.perk === 'sturdyMulti' && f.has('double') && f.brain.stompedOnce) {
+    if (hasRule(p, Rule.Sturdy) && f.has('double') && f.brain.stompedOnce) {
       this.fx.quip(f.x, p.surfaceY - 130, 'STROMBOLI HOLDS!', '#e0a050', 36);
       p.perkFired({ quip: false });
       f.brain.stompedOnce = false;
@@ -4434,8 +4502,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     heroFootStomp(this, f, p);
     // Pizza Bianca (enhanced: its neighbours too)
     // Inferno Calzone is fireproof
-    const immune = p.perk === 'immuneEffects' || this.neighbours(p).some((q) => q.perk === 'immuneEffects' && q.enhanced);
-    const fireproof = immune || p.perk === 'burnAbove';
+    const immune = hasRule(p, Rule.Immune) || this.neighbours(p).some((q) => !!ruleOf(q, Rule.Immune));
+    const fireproof = immune || hasRule(p, Rule.Fireproof);
     if (f.has('soggy') && !p.dead && !immune) {
       p.soggy = true;
       for (let i = 0; i < 4; i++) this.fx.sweatDrop(p.x + (crand() - 0.5) * 120, p.surfaceY - 20);
@@ -4455,7 +4523,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (f.type.boss) for (const q of this.alivePizzas()) if (q !== p) q.hurt();
     if (f.has('wide')) {
       for (const q of this.neighbours(p)) {
-        if (q.perk === 'sturdyMulti') {
+        if (hasRule(q, Rule.Sturdy)) {
           this.fx.quip(q.x, q.surfaceY - 130, 'STROMBOLI HOLDS!', '#e0a050', 32);
           continue;
         }
@@ -4463,14 +4531,15 @@ export class GameScene extends Phaser.Scene implements Arena {
       }
     }
     // the possessed Diavola sets your own pizza alight
-    if (p === this.possessedPizza && p.type.perk === 'burnStomper') this.time.delayedCall(600, () => !p.dead && this.hitPizza(p, 1, 'CURSED FIRE!', '#c9a8ff'));
+    if (p === this.possessedPizza && hasRule(p, Rule.HauntedFire)) this.time.delayedCall(600, () => !p.dead && this.hitPizza(p, 1, 'CURSED FIRE!', '#c9a8ff'));
     // retaliation
-    if (!f.type.traits.includes('immuneBurn') && ((p.perk === 'burnStomper' && p !== this.possessedPizza) || st.stompBurn > 0)) {
+    const burns = p !== this.possessedPizza ? ruleOf(p, Rule.StompBurn) : undefined;
+    if (!f.type.traits.includes('immuneBurn') && (burns || st.stompBurn > 0)) {
       f.burnT = 4;
-      f.burnDps = Math.max(f.burnDps, (p.perk === 'burnStomper' ? (p.enhanced ? 15 : 10) : 0) + st.stompBurn);
+      f.burnDps = Math.max(f.burnDps, (burns ?? 0) + st.stompBurn);
       this.fx.quip(f.x, f.cy - 100, 'HOT HOT HOT!', '#ff8a3d', 38);
       audio.sfx('sfx_fire', { volume: 0.6 });
-      if (p.perk === 'burnStomper') p.perkFired({ quip: false });
+      if (burns) p.perkFired({ quip: false });
     }
     this.perkKit.afterStomp(f, p);
   }
@@ -4498,6 +4567,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.waveSlicesLost += removed.length;
     this.run.slicesLost += removed.length;
     this.heroes.stomped(f, removed.length);
+    // (the Incredible Bulk counts them: his rage is the peel's Effect.OnLosses)
+    if (removed.length > 0) this.peelBus.emit(GameEvent.Losses, { n: removed.length }, [PeelGroup.Peel]);
     if (removed.length) this.tracker.emit('slices', { n: removed.length });
     const y = p.surfaceY;
     this.fx.splat(p.x + ((f?.x ?? p.x) - p.x) * 0.5, y, big);
@@ -4559,11 +4630,11 @@ export class GameScene extends Phaser.Scene implements Arena {
         audio.sfx('sfx_heal');
         this.recompute();
       });
-    } else if (p.type.perk === 'riseOnce' && !p.flags.rose && !haunted) {
+    } else if (hasRule(p, Rule.Rise) && !p.flags.rose && !haunted) {
       p.flags.rose = true;
       rises = true;
       this.time.delayedCall(1100, () => {
-        p.revive(p.enhanced ? 5 : 3);
+        p.revive(ruleOf(p, Rule.Rise) ?? 1);
         this.fx.healBurst(p.x, p.surfaceY);
         this.fx.quip(p.x, p.surfaceY - 160, 'CARBONARA RISES!', '#fff6c0', 48);
         audio.sfx('sfx_heal');
@@ -4709,12 +4780,12 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.lookFx?.setActive(!id);
     setSlamMode(this.ability);
     ui.hud.setSlamLabel(this.ability.name, abilityKindLabel(this.ability));
-    this.abilityT = 0;
+    this.syncPeelBus(true);
     this.recompute();
     // Act 9's home ground: off for a borrowed ability, back on when the god returns
     contentFx.abilityChanged(this);
     // a borrowed meter ability goes off straight away
-    if (id && usesMeter(this.ability)) this.fireAbility();
+    if (id && usesMeter(this.ability)) this.peelBus.emit(GameEvent.Slam, { auto: true }, [PeelGroup.Peel]);
   }
 
   /** Every frame: the hero kit, then the goal trackers (four times a second). */
@@ -4741,27 +4812,24 @@ export class GameScene extends Phaser.Scene implements Arena {
   }
 
   // ——— Peel abilities ———
-  private abilityTick(dt: number): void {
+  /** Every frame of a wave: an automatic ability goes off when its meter's full (the meter is the scene's), then the
+   *  peel bus's frame for the ability (its charged clock) and for the procs (their timers look at the field once). */
+  private peelTick(dt: number): void {
+    if (!this.waveActive) return;
     const a = this.ability;
-    if (!a || !this.waveActive) return;
-    if (a.trigger.t === 'auto' && this.run.super >= 1 && this.feet.some((f) => f.hittable)) {
+    if (a?.trigger.t === 'auto' && this.run.super >= 1 && this.feet.some((f) => f.hittable)) {
       this.run.super = 0;
       // (no momentum: it fires by itself, and kills by automatic damage charge the meter too, so an idle player's
       // toppings would keep refilling their own oven. Only a pressed slam or ability fills it, in peelSlam.)
-      this.fireAbility();
-    } else if (a.trigger.t === 'every') {
-      this.abilityT += dt * passiveBoost(this.run.stats.superGain).timer;
-      if (this.abilityT >= a.trigger.sec && this.feet.some((f) => f.hittable)) {
-        this.abilityT = 0;
-        this.fireAbility();
-      }
+      this.peelBus.emit(GameEvent.Slam, { auto: true }, [PeelGroup.Peel]);
     }
+    this.peelBus.emit(GameEvent.Tick, { dt }, [PeelGroup.Peel]);
+    this.peelBus.emit(GameEvent.Tick, { dt, ready: this.feet.some((f) => f.hittable) }, [PeelGroup.Procs]);
   }
 
   /** Wave-start abilities: heals, shields, tips. */
   private abilityWaveStart(): void {
-    if (this.ability?.trigger.t === 'wave') this.time.delayedCall(600, () => this.fireAbility({ x: W / 2, y: 520 }));
-    if (this.procs.some((x) => x.p.trigger.t === 'wave')) this.time.delayedCall(700, () => this.fireProcs('wave', { x: W / 2, y: 520 }));
+    this.peelBus.emit(GameEvent.WaveStart, { wave: this.run.wave });
   }
 
   private abilityTargets(t: Target, ctx: { foot?: Foot; x?: number; y?: number }): Foot[] {
@@ -4843,32 +4911,9 @@ export class GameScene extends Phaser.Scene implements Arena {
         if (st.freezeSlam) {
           f.stun(3, true);
           this.peelFx.emit(PeelFx.Freeze, { foot: f });
-        } else if (!f.isBossLike) f.stun(this.run.enhancedPerks.has('slamStun') ? 2.5 : 1.5);
+        } else if (!f.isBossLike) f.stun(tableRule(this.run.enhancedPerks, Rule.SlamStun));
       }
       if (st.freezeSlam) this.peelFx.emit(PeelFx.SlamFreezeSound, {});
-    }
-  }
-
-  /** Topping procs for one trigger kind (smack, kill, stomp, wave). */
-  private fireProcs(kind: 'smack' | 'kill' | 'stomp' | 'wave', ctx: { foot?: Foot; x?: number; y?: number }): void {
-    if (this.over || this.inUpgrade) return;
-    for (const pr of this.procs) {
-      const t = pr.p.trigger;
-      if (t.t !== kind) continue;
-      if ((t.t === 'smack' || t.t === 'kill') && Math.random() >= t.p) continue;
-      this.runEffects(pr.p.fx, ctx, pr.p.color, pr.p.vfx, false, procTag(pr.id), true);
-    }
-  }
-
-  private procTick(dt: number): void {
-    if (!this.waveActive || !this.procs.length) return;
-    const any = this.feet.some((f) => f.hittable);
-    for (const pr of this.procs) {
-      if (pr.p.trigger.t !== 'every') continue;
-      pr.t += dt;
-      if (pr.t < pr.p.trigger.sec || !any) continue;
-      pr.t = 0;
-      this.runEffects(pr.p.fx, { x: this.peelPos.x, y: this.peelPos.y }, pr.p.color, pr.p.vfx, false, procTag(pr.id), true);
     }
   }
 
@@ -4912,7 +4957,7 @@ export class GameScene extends Phaser.Scene implements Arena {
               f.slowT = Math.max(f.slowT, 2);
               f.slowPct = Math.max(f.slowPct, 0.4);
             }
-            if (st.slamStun && !f.isBossLike && Math.random() < (this.run.enhancedPerks.has('slamStun') ? 0.4 : 0.25)) f.stun(1);
+            if (st.slamStun && !f.isBossLike && Math.random() < tableRule(this.run.enhancedPerks, Rule.SlamStun, 'b')) f.stun(1);
           }
         }
         break;
@@ -5022,7 +5067,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       if (this.ability.trigger.t !== 'active') return;
       this.run.super = 0;
       this.momentum.hit(true);
-      this.fireAbility();
+      this.peelBus.emit(GameEvent.Slam, { auto: false }, [PeelGroup.Peel]);
       return;
     }
     this.run.super = 0;
@@ -5047,7 +5092,7 @@ export class GameScene extends Phaser.Scene implements Arena {
         if (st.freezeSlam && f.alive) {
           f.stun(3, true);
           this.fx.frost(f.cx, f.cy);
-        } else if (st.slamStun && f.alive && !f.isBossLike) f.stun(this.run.enhancedPerks.has('slamStun') ? 2.5 : 1.5);
+        } else if (st.slamStun && f.alive && !f.isBossLike) f.stun(tableRule(this.run.enhancedPerks, Rule.SlamStun));
       }
       if (st.freezeSlam) audio.sfx('sfx_freeze');
       this.fx.quip(W / 2, 420, 'PEEL SLAM!', '#ffd23f', 90, -4);
@@ -5076,8 +5121,7 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   /** Marinara's garlic aura (6 dmg/s) and Tarte Flambée's heat over a hovering foot (3), half as much again when enhanced. */
   private auraDps(p: Pizza, hovering: boolean): number {
-    const k = p.enhanced ? 1.5 : 1;
-    return (p.perk === 'garlic' ? 6 * k : 0) + (p.perk === 'heatAbove' && hovering ? 3 * k : 0);
+    return (ruleOf(p, Rule.Aura) ?? 0) + (hovering ? (ruleOf(p, Rule.HoverAura) ?? 0) : 0);
   }
 
   private syncGarlic(): void {
@@ -5086,7 +5130,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     for (const p of this.alivePizzas()) {
       const dps = this.run.stats.garlicDps + this.auraDps(p, true);
       if (dps <= 0) continue;
-      const g = this.add.image(p.x, p.surfaceY - 120, 'glow').setTint(p.perk === 'heatAbove' ? 0xffa060 : 0xb8ff7a).setBlendMode(Phaser.BlendModes.ADD).setScale(2.2, 1.6).setAlpha(0.25);
+      const g = this.add.image(p.x, p.surfaceY - 120, 'glow').setTint(hasRule(p, Rule.HoverAura) ? 0xffa060 : 0xb8ff7a).setBlendMode(Phaser.BlendModes.ADD).setScale(2.2, 1.6).setAlpha(0.25);
       this.shadowLayer.add(g);
       this.garlicAuras.push(g);
     }
@@ -5154,7 +5198,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       f.cheer = cheerers.some((c) => c !== f && Math.abs(c.x - f.x) < 450) ? 0.2 : 0;
       if (!f.isBossLike) f.hurry = (this.hurryT > 0 ? this.hurryMult : 1) * this.kit.footPace(f);
       const t = f.target;
-      f.slowAbove = t && !t.dead && t.perk === 'slowAbove' ? (t.enhanced ? 0.38 : 0.25) : 0;
+      f.slowAbove = t && !t.dead ? (ruleOf(t, Rule.SlowAbove) ?? 0) : 0;
       if (tickGarlic && t && !t.dead && f.y > t.surfaceY - 300 && Math.abs(f.x - t.x) < t.radius * 1.1) {
         const dps = st.garlicDps + this.auraDps(t, f.state === 'hover');
         if (dps > 0 && !f.phased) this.dealDamage(f, dps * 0.25, { source: 'garlic', quiet: true });
@@ -5190,9 +5234,10 @@ export class GameScene extends Phaser.Scene implements Arena {
     }
     for (const g of this.garlicAuras) g.setAlpha((0.18 + Math.sin(this.nowT * 3) * 0.07) * glow);
     for (const p of this.alivePizzas()) {
-      if (p.perk !== 'regen') continue;
+      const every = ruleOf(p, Rule.Regen);
+      if (!every) continue;
       p.regenTimer += dt;
-      if (p.regenTimer >= (p.enhanced ? 13 : 20)) {
+      if (p.regenTimer >= every) {
         p.regenTimer = 0;
         this.healPizza(p, 1);
         p.perkFired();
@@ -5434,8 +5479,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.momentum.tick(real, this.waveActive && !this.over && !ui.modalOpen && this.peelStunT <= 0);
       this.momentumTip();
       this.perkKit.update(dt);
-      this.abilityTick(dt);
-      this.procTick(dt);
+      this.peelTick(dt);
       this.throws.update(dt);
       this.outbreak.update(dt);
       if (this.waveActive) this.kit.tick(dt, real);
@@ -5475,7 +5519,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     ui.hud.setCombo(r.combo, r.comboMult(), r.comboTimer / (COMBO_BASE_WINDOW + r.stats.comboBonus));
     const ab = this.ability;
     if (!ab || usesMeter(ab)) ui.hud.setSuper(r.super);
-    else ui.hud.setSuper(ab.trigger.t === 'every' ? this.abilityT / ab.trigger.sec : 0);
+    else ui.hud.setSuper(this.peelBus.clockFill() ?? 0);
     ui.hud.setMomentum(this.momentum.value);
     if (ab && ab.trigger.t !== 'active') this.slamHinted = true;
     if (r.super >= 1 && !this.slamHinted && this.waveActive) {

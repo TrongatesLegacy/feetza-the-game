@@ -509,6 +509,76 @@ const typedItemNames = {
   },
 };
 
+// ——— step 4: no pizza perk checked by name; no trigger reading its own off-switch ———
+
+/** Is n a pizza's perk: `x.perk`, `x.type.perk`, `x?.perk`, or a plain `perk`? */
+const isPerkRead = (n) => {
+  if (!n) return false;
+  if (n.type === 'ChainExpression') return isPerkRead(n.expression);
+  if (n.type === 'Identifier') return n.name === 'perk';
+  return n.type === 'MemberExpression' && !n.computed && n.property.type === 'Identifier' && n.property.name === 'perk';
+};
+const isStrLit = (n) => n?.type === 'Literal' && typeof n.value === 'string';
+
+const noPerkNames = {
+  meta: {
+    type: 'problem',
+    docs: { description: "No pizza perk checked by name in game code: ask for its rule (ruleOf, hasRule: src/game/perkRules.ts) or use the firing perk (fire.perk)." },
+    messages: { named: "The perk '{{perk}}' checked by name: declare what it does (Effect.Rule, a trigger) and ask for that." },
+    schema: [],
+  },
+  create(context) {
+    const report = (lit) => context.report({ node: lit, messageId: 'named', data: { perk: lit.value } });
+    return {
+      // p.perk === 'thick', f.target?.perk !== 'disarm', type.perk === 'rotate'
+      BinaryExpression(node) {
+        if (!['===', '!==', '==', '!='].includes(node.operator)) return;
+        if (isStrLit(node.right) && isPerkRead(node.left)) report(node.right);
+        else if (isStrLit(node.left) && isPerkRead(node.right)) report(node.left);
+      },
+      // switch (p.perk) { case 'shield': … }
+      SwitchCase(node) {
+        if (node.test && isStrLit(node.test) && isPerkRead(node.parent.discriminant)) report(node.test);
+      },
+      // run.enhancedPerks.has('slamStun')
+      CallExpression(node) {
+        const c = node.callee;
+        if (c.type !== 'MemberExpression' || c.computed || c.property.name !== 'has' || !isStrLit(node.arguments[0])) return;
+        const o = c.object;
+        if (o.type === 'MemberExpression' && !o.computed && /perks$/i.test(o.property.name)) report(node.arguments[0]);
+      },
+    };
+  },
+};
+
+/** The pizza state the bus's off-switch reads (Pizza.perk is null for each): a trigger reading it itself skips the rule. */
+const OFF_FIELDS = new Set(['perkFrozen', 'perkOff', 'stale']);
+
+const noOwnOffSwitch = {
+  meta: {
+    type: 'problem',
+    docs: { description: "A perk's one-off doesn't check stale, frozen or possessed itself: the bus's off-switch does (grantsPerk, Scope.Field / Scope.Own, TriggerOpts.outlives)." },
+    messages: {
+      own: "A one-off reading its pizza's {{what}}: let the bus's off-switch decide (a prop asks grantsPerk of its owner), or declare why it outlives it (outlives) and say so here.",
+    },
+    schema: [],
+  },
+  create(context) {
+    return {
+      MemberExpression(node) {
+        if (node.computed || node.property.type !== 'Identifier' || !OFF_FIELDS.has(node.property.name)) return;
+        // (a write is a pizza's own business: perkFrozen = …)
+        if (node.parent.type === 'AssignmentExpression' && node.parent.left === node) return;
+        context.report({ node: node.property, messageId: 'own', data: { what: node.property.name } });
+      },
+      CallExpression(node) {
+        const c = node.callee;
+        if (c.type === 'MemberExpression' && !c.computed && c.property.name === 'possessed') context.report({ node: c.property, messageId: 'own', data: { what: 'possession (possessed())' } });
+      },
+    };
+  },
+};
+
 export default {
   meta: { name: 'feetza-effects' },
   rules: {
@@ -518,5 +588,7 @@ export default {
     'op-needs-unit': opNeedsUnit,
     'no-loose-strings': noLooseStrings,
     'typed-item-names': typedItemNames,
+    'no-perk-names': noPerkNames,
+    'no-own-off-switch': noOwnOffSwitch,
   },
 };
