@@ -31,6 +31,11 @@ export const OnPick = {
 } as const;
 export type OnPick = (typeof OnPick)[keyof typeof OnPick];
 
+/** What else a topping needs to be offered: the Peel Slam itself (Freeze Frame changes the Slam), or freshness (it does
+ *  nothing where freshness is off, on Mild). Run.offerable reads it. */
+export const Needs = { Slam: 'slam', Freshness: 'freshness' } as const;
+export type Needs = (typeof Needs)[keyof typeof Needs];
+
 /** Meter: only offered when the peel's meter (or timer) can be sped up. Tank: only when the wave-start meter matters. */
 export const NeedsMeter = { Meter: 'meter', Tank: 'tank' } as const;
 export type NeedsMeter = (typeof NeedsMeter)[keyof typeof NeedsMeter];

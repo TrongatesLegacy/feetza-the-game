@@ -26,6 +26,12 @@
 //   mini-bosses knocked back; feet a fight moves by hand and friendly zombies left alone) and every pizza gets a slice
 //   back (one for each Tidal Tiki on the table). One tide however many copies.
 //
+// On the trigger bus (docs/effects-plan.md, step 3): every moment of these perks is declared in src/game/perkEffects.ts
+// (the Legendaries' section) and runs here as a one-off of the kit's (Custom.*), in the old order: the walls and the
+// tide as a wave starts, the ladle and the Citadel among a stomp's defences, the cannon and the tray as Effect.Every
+// timers, the tide, the hole and the roar's timers every frame, the portal on a smack. Their hits go through the shared
+// Action.Damage with Hit.Legend (legendDmg), except the ladle's ×5, worked out as the swing starts (as it always was).
+//
 // Each perk's moment is a show-piece (the ladle's swing, the tray's run across the table, the oven's breath) with its
 // own sound, landing on its targets and never covering the table; lighter in a boss fight. Gameplay randomness is
 // Math.random, cosmetic crand; nothing starts a tween as the scene shuts down.
@@ -42,6 +48,7 @@ import type { Foot } from './Foot';
 import type { Pizza } from './Pizza';
 import type { Run } from './Run';
 import { legendDmg, legendLook } from './legendary';
+import { Action, Hit, Unit, type ActionData } from '../effects';
 import { Act3Legends, LEGEND3_SFX } from './pizzaLegends3';
 
 /** Sounds the Legendaries' perks play that aren't loaded at boot: Nonna's spoon and rolling pin, the Head Waiter's
@@ -74,6 +81,8 @@ export interface LegendHost {
   /** Defeat a foot outright (a portal, the black hole): a kill, paid and counted like any (as an 'explode' kill, so
    *  it never sets off Explode's chain blast). */
   kill(f: Foot): void;
+  /** Run a shared action on a foot for a perk (Action.Damage with Hit.Legend: legendDmg), at strength k. */
+  strike(f: Foot, perk: PizzaPerk, act: ActionData, k?: number): void;
 }
 
 export class LegendKit {
@@ -156,17 +165,23 @@ export class LegendKit {
     this.act3.runStart();
   }
 
-  waveStart(wave: number): void {
+  /** A wave starts: Nonna's ladle has its swats again. */
+  ladleReady(): void {
     this.ladleUsed = 0;
-    // Sandcastle Citadel's walls go up; Tidal Tiki's tide is due every 4th wave (enhanced every 3rd)
-    this.citadelUp();
-    // (a Tiki frozen or stale as the wave starts still brings its tide: it comes once the Tiki grants again)
+  }
+
+  /** A wave starts: Tidal Tiki's tide is due every 4th wave (enhanced every 3rd). (A Tiki frozen or stale as the wave
+   *  starts still brings its tide: it comes once the Tiki grants again.) */
+  tideReady(wave: number): void {
     const ghost = this.a.possessed();
     const tiki = [...new Set([...this.h.granting('tidalWash'), ...this.a.alivePizzas().filter((p) => p.type.perk === 'tidalWash' && p !== ghost)])];
     this.tideDue = tiki.length > 0 && wave % (tiki.some((p) => p.enhanced) ? 3 : 4) === 0;
     this.tideT = 0;
-    // The First Bake: every pizza starts the wave fresh (one bought in the shop too), and the first time each starts a
-    // wave whole it gets its slice over the top
+  }
+
+  /** A wave starts: The First Bake. Every pizza starts the wave fresh (one bought in the shop too), and the first time
+   *  each starts a wave whole it gets its slice over the top. */
+  firstBake(): void {
     const bakers = this.h.granting('firstBake');
     if (!bakers.length) return;
     this.freshen();
@@ -182,13 +197,19 @@ export class LegendKit {
     if (got.length) this.sc.time.delayedCall(900, () => this.bakeSlices(got, n, bakers[0]));
   }
 
-  waveClear(n: number): void {
-    this.act3.waveClear();
-    // the citadel's keep flies all its pennants again in the shop (ready for the next wave)
+  /** The wave closes: the citadel's keep flies all its pennants again in the shop (ready for the next wave). */
+  citadelDown(): void {
     this.citadel = [];
     for (const p of this.a.alivePizzas()) if (p.perk === 'citadelWall') p.flags.citadelLeft = p.enhanced ? 4 : 3;
+  }
+
+  /** The wave closes: no tide still to come. */
+  tideOff(): void {
     this.tideDue = false;
-    // The First Bake tops every pizza up as the wave clears, so the shop shows them fresh
+  }
+
+  /** The wave closes: The First Bake tops every pizza up, so the shop shows them fresh. */
+  bakeFreshen(n: number): void {
     if (this.h.granting('firstBake').length) this.freshen(Math.floor((n - 1) / 5));
   }
 
@@ -284,38 +305,18 @@ export class LegendKit {
 
   // ——— Silver Service ———
 
-  /** A smack landed on f (Act 3: Cosmic Crouton Supreme's portal, Roar Roast's embers). */
-  smacked(f: Foot): void {
-    this.act3.smacked(f);
-  }
-
   /** Every hit's multiplier from the Legendaries now (Roar Roast's +30%). */
   damageMult(): number {
     return this.act3.damageMult();
   }
 
-  update(dt: number): void {
-    this.act3.update(dt);
-    this.tideTick(dt);
-    // Big Top Pie: every 20 s (two pies: 10) of wave with a foot on the table, the cannon fires at the toughest foot
-    const top = this.h.c('bigTopCannon');
-    if (top > 0) {
-      const feet = this.a.allFeet().filter((f) => f.alive && f.hittable && f.y > 60);
-      if (feet.length) this.bigTopT += dt;
-      if (this.bigTopT >= 20 / top) {
-        const tough = feet.filter((f) => f.y > 120).sort((p, q) => q.hp - p.hp)[0];
-        if (tough) {
-          this.bigTopT = 0;
-          this.bigTop(tough);
-        }
-      }
-    }
-    const k = this.h.c('silverTray');
-    if (k <= 0) return;
-    this.silverT += dt;
-    if (this.silverT < 15 / k) return;
-    if (!this.a.allFeet().some((f) => this.batable(f) && f.y > 300)) return;
-    this.silverT = 0;
+  /** Big Top Pie's cannon fires at the toughest foot (its timer: Effect.Every in src/game/perkEffects.ts). */
+  cannon(tough: Foot): void {
+    this.bigTop(tough);
+  }
+
+  /** Silver Service's tray (its timer: Effect.Every in src/game/perkEffects.ts). */
+  tray(): void {
     this.service();
   }
 
@@ -551,9 +552,8 @@ export class LegendKit {
       this.sc.tweens.add({ targets: c, x: x + Math.cos(ang) * sp, y: y + Math.sin(ang) * sp * 0.7 + 60, alpha: 0, angle: crand() * 200, duration: 560 + crand() * 200, ease: 'Quad.Out', onComplete: () => c.destroy() });
     }
     if (target.alive) {
-      const dmg = legendDmg(8, this.run.stats.damage, this.run.heat);
       target.flash(0xffffff, 120);
-      this.h.dealDamage(target, dmg, 'explode', 350, 'perk:bigTopCannon');
+      this.h.strike(target, 'bigTopCannon', Action.Damage(Hit.Legend(Unit.Mult(8)), { knock: Unit.Amount(350) }));
       a.quip(target.x, target.cy - 200, 'CANNON PIE! ×8', legendLook('bigtoppie').css, 44);
     }
     this.sc.time.delayedCall(220, () => this.laugh(light, target));
@@ -618,7 +618,7 @@ export class LegendKit {
   }
 
   /** As a wave starts the citadel's walls go up: 3 stomps a pie (enhanced 4), its keep's pennants rising one a stomp. */
-  private citadelUp(): void {
+  citadelUp(): void {
     const pies = this.h.granting('citadelWall');
     this.citadel = pies.map((p) => ({ p, left: p.enhanced ? 4 : 3 }));
     for (const c of this.citadel) c.p.flags.citadelLeft = c.left;
@@ -714,7 +714,7 @@ export class LegendKit {
   private tideT = 0;
 
   /** Every 4th wave (enhanced every 3rd) the tide comes in once, a few seconds in, once the feet are pressing. */
-  private tideTick(dt: number): void {
+  tideTick(dt: number): void {
     if (!this.tideDue) return;
     this.tideT += dt;
     if (this.tideT < 3) return;

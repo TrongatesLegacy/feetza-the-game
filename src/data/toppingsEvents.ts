@@ -5,7 +5,7 @@
 import type { Upgrade } from './upgrades';
 import { NeedsMeter } from './itemKinds';
 import { Rarity } from './rarity';
-import { Effect, Op, Stat, Unit } from '../effects';
+import { Effect, Op, Stat, Trick, Unit } from '../effects';
 import { eventName, type EventId } from '../game/events';
 import { Topping } from './toppingDefs';
 
@@ -269,6 +269,7 @@ export const EVENT_TOPPINGS: Upgrade[] = [
         Stat.ShinyMult,
         Op.Mul(Unit.Mult(5)),
       ),
+      Effect.Trick(Trick.RainbowRoad),
     ],
   }),
   // the hero sighting event reads sightingEvery

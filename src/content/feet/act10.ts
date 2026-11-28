@@ -104,6 +104,8 @@ export const feet: FootType[] = [
     hp: 2800, speed: 0.9, armor: 1, stompDmg: 2, coins: 156, score: 13400, scale: 1.6, minWave: 98, weight: 0,
     traits: [],
     mini: true,
+    // (a ghost: undead, so Hel's ×2 and Cellar Mushroom Medley's +10% go by the flag, not its name)
+    undead: true,
     home: 'firstpizzeria',
     howTo: 'It can\'t be hit where your peel is heading. Swing through it, never stop on it, and dodge the footprints it stamps ahead of you.',
     tell: 'A pale future peel shows where it thinks you\'re going; a glowing footprint marks where it will stomp.',

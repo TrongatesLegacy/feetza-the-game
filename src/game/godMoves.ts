@@ -13,7 +13,7 @@
 import Phaser from 'phaser';
 import { H, HOVER_Y, TABLE_Y, W } from '../config';
 import { actOf } from '../data/stages';
-import { Rarity, UPGRADES } from '../data/upgrades';
+import { Rarity, UPGRADE_BY_ID } from '../data/upgrades';
 import { audio } from '../systems/audio';
 import { save } from '../systems/save';
 import type { ThrowFx } from './abilities';
@@ -1602,8 +1602,9 @@ const PANTHEON: ThrowFx[] = [
   TH('hammer', 'boomerang', 4, { more: [4] }),
 ];
 
-const UNDEAD = /zombie|mummy|ghost|skelet|hoplite|draugr|poltergeist|phantom|loafer/i;
-const isUndead = (f: Foot) => !!f.type.undead || UNDEAD.test(f.type.id) || UNDEAD.test(f.type.name);
+/** Undead by the foot's own flag (FootType.undead: the ghosts, zombies, mummies, skeletons, hoplites, draugr…), never
+ *  its name. */
+const isUndead = (f: Foot) => !!f.type.undead;
 
 registerPassives(
   godPassives({
@@ -1662,14 +1663,14 @@ registerPassives(
     'hero:athena': {
       waveClear: (k) => {
         // Wisdom: roll the next shop's cards now and point out the strongest one
-        const names = k.host.peekShop();
-        if (!names.length) return;
-        const best = athenaPick(names, k.host.owned());
-        k.host.toast(null, 'ATHENA ADVISES', `In the shop: ${best} fits your build best.`);
+        const ids = k.host.peekShop();
+        if (!ids.length) return;
+        const best = athenaPick(ids, k.host.owned());
+        k.host.toast(null, 'ATHENA ADVISES', `In the shop: ${UPGRADE_BY_ID[best]?.name ?? best} fits your build best.`);
         // the owl marks that card once the shop is on screen
         let tries = 0;
         const iv = window.setInterval(() => {
-          const card = [...document.querySelectorAll<HTMLElement>('.cards .card')].find((c) => c.getAttribute('aria-label')?.startsWith(`${best}:`));
+          const card = [...document.querySelectorAll<HTMLElement>('.cards .card')].find((c) => c.dataset.id === best);
           if (card) card.classList.add('athena-pick');
           if (card || ++tries > 40) window.clearInterval(iv);
         }, 250);
@@ -2049,14 +2050,14 @@ function weakPoint(f: Foot): [number, number] {
 
 /** Athena's pick from the next shop's cards: a topping you already have (it builds on what you're doing),
  * then the rarest. */
-function athenaPick(names: string[], owned: Record<string, number>): string {
-  const score = (n: string) => {
-    const u = UPGRADES.find((x) => x.name === n);
+function athenaPick(ids: string[], owned: Record<string, number>): string {
+  const score = (id: string) => {
+    const u = UPGRADE_BY_ID[id];
     if (!u) return 0;
     // (rarer first: the same order as before, which ranked a made-up 'uncommon' between common and rare)
     return (owned[u.id] ? 10 : 0) + Rarity.rank(u.rarity);
   };
-  return [...names].sort((a, b) => score(b) - score(a))[0];
+  return [...ids].sort((a, b) => score(b) - score(a))[0];
 }
 
 export const GOD_COLOR_FIRE = hexS(FIRE);

@@ -1262,7 +1262,7 @@ class UI {
         b.disabled = c.sold || (!c.free && st.coins < c.price);
         const el = h(
           'div',
-          { class: `card tframed ${c.rarity}${c.sold ? ' sold' : ''}${c.exclusive ? ' exclusive' : ''}${dealt.has(c.id) ? ' dealt' : ''}`, tabindex: 0, role: 'button', 'aria-label': `${c.exclusive ? 'Exclusive: ' : ''}${c.name}: ${c.desc}` },
+          { class: `card tframed ${c.rarity}${c.sold ? ' sold' : ''}${c.exclusive ? ' exclusive' : ''}${dealt.has(c.id) ? ' dealt' : ''}`, tabindex: 0, role: 'button', 'data-id': c.id, 'aria-label': `${c.exclusive ? 'Exclusive: ' : ''}${c.name}: ${c.desc}` },
           toppingFrame(),
           // its rarity, a tab of its frame
           h('div', { class: 'rarity ttab' }, c.rarity),

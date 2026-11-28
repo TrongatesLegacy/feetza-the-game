@@ -79,7 +79,7 @@ export interface HeroHost {
   rumble: (k: number, ms: number) => void;
   /** Next wave's plan, made now (Herald) and used when the wave starts. */
   peekWave: (n: number) => string[];
-  /** The next shop's cards, rolled now (From the Future) and dealt when the shop opens. */
+  /** The next shop's cards (their ids), rolled now (From the Future) and dealt when the shop opens. */
   peekShop: () => string[];
 }
 

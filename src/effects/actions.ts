@@ -13,6 +13,7 @@ import type { AnyEvent } from './events';
 import { applyStatus, describeStatus, type StatusData } from './status';
 import { Tag, type TagId } from './tags';
 import type { Amount, Count, Mult, Percent, Px, Seconds } from './units';
+import type { Effect as AbilityFx } from '../game/abilities';
 
 /** How many tips: n × strength (rounded), the kill's own tips × m (at least `min`), or a share of the wave's. */
 export type PayData = { p: 'fixed'; n: Amount } | { p: 'kill'; m: Mult; min: Amount } | { p: 'earned'; share: Percent } | { p: 'tuna' };
@@ -47,6 +48,19 @@ export type AllyId = (typeof Ally)[keyof typeof Ally];
 /** An ally as a card names it. */
 const ALLY_NAME: Record<AllyId, string> = { friendlyGhost: 'friendly ghost' };
 
+/** How hard a hit is: m × your smack damage, or a Legendary's m (× your smack damage × the heat's Legendary scale,
+ *  legendDmg in src/game/legendary.ts). Either way × the firing's strength. */
+export type HitData = { h: 'smack' | 'legend'; m: Mult };
+export const Hit = {
+  Smack: (m: Mult): HitData => ({ h: 'smack', m }),
+  Legend: (m: Mult): HitData => ({ h: 'legend', m }),
+} as const;
+/** A hit's extras: how hard it knocks (its hit's knock), and a push back up first. */
+export interface DamageOpts {
+  knock?: Amount;
+  push?: Amount;
+}
+
 export type ActionData =
   | { a: 'tips'; pay: PayData; at: AtData }
   | { a: 'reroll' }
@@ -57,6 +71,9 @@ export type ActionData =
   | { a: 'summon'; ally: AllyId }
   | { a: 'show'; look: string }
   | { a: 'custom'; id: string }
+  | { a: 'knock'; n: Amount }
+  | { a: 'damage'; hit: HitData; o: DamageOpts }
+  | { a: 'ability'; fx: AbilityFx[] }
   | { a: 'later'; sec: Seconds; act: ActionData }
   | { a: 'seq'; list: ActionData[] };
 
@@ -76,6 +93,13 @@ export const Action = {
   Show: <L extends string>(look: L): ActionData => ({ a: 'show', look }),
   /** A one-off the game keeps. Typed names: src/game/perkEffects.ts Custom. */
   Custom: <C extends string>(id: C): ActionData => ({ a: 'custom', id }),
+  /** A peel ability's or a topping proc's own effects (the ability vocabulary, src/game/abilities.ts: targets, throws,
+   *  marks, chains), run by the scene (GameScene.runEffects). */
+  Ability: (fx: AbilityFx[]): ActionData => ({ a: 'ability', fx }),
+  /** Hit the moment's foot (if it's still standing): filed on the STATS tab under the firing perk. */
+  Damage: (hit: HitData, o: DamageOpts = {}): ActionData => ({ a: 'damage', hit, o }),
+  /** Knock the moment's foot back up (its knock speed). */
+  Knock: (n: Amount): ActionData => ({ a: 'knock', n }),
   /** Later on the scene's clock (skipped if the firing pizza is gone by then). */
   Later: (sec: Seconds, act: ActionData): ActionData => ({ a: 'later', sec, act }),
   Seq: (...list: ActionData[]): ActionData => ({ a: 'seq', list }),
@@ -113,6 +137,12 @@ export interface ActionHost {
   custom(id: string, fire: Fire): boolean | void;
   /** Tuna & Sweetcorn's tips for a wave (src/data/perkWave.ts). */
   tunaTips(wave: number, enhanced: boolean): number;
+  /** A Legendary's hit: m × your smack damage × the heat's Legendary scale (legendDmg). */
+  legendDmg(m: number): number;
+  /** Deal a hit to a foot (Action.Damage), filed under the firing perk. */
+  hurt(f: Foot, amount: number, o: DamageOpts, fire: Fire): void;
+  /** Run an ability's own effects (Action.Ability): only the scene's peel side has it. */
+  ability?(fx: AbilityFx[], fire: Fire): void;
 }
 
 const enhancedOf = (fire: Fire) => !!fire.pizza?.enhanced;
@@ -160,6 +190,21 @@ export function runAction(a: ActionData, host: ActionHost, fire: Fire): boolean 
       return true;
     case 'custom':
       return host.custom(a.id, fire) !== false;
+    case 'knock':
+      if (!fire.foot) return false;
+      fire.foot.knock(a.n);
+      return true;
+    case 'ability':
+      if (!host.ability) return false;
+      host.ability(a.fx, fire);
+      return true;
+    case 'damage': {
+      const f = fire.foot;
+      if (!f || !f.alive) return false;
+      const m = a.hit.m * fire.k();
+      host.hurt(f, a.hit.h === 'legend' ? host.legendDmg(m) : m * host.damage(), a.o, fire);
+      return true;
+    }
     case 'later': {
       const p = fire.pizza;
       host.later(Math.round(a.sec * 1000), () => {
@@ -197,6 +242,12 @@ export function describeAction(a: ActionData): string {
     case 'custom':
       // (a one-off by its name: danceBeat → "dance beat")
       return a.id.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase();
+    case 'knock':
+      return 'knock it back';
+    case 'ability':
+      return a.fx.map((x) => x.e).join(', ');
+    case 'damage':
+      return `hit it for ×${a.hit.m}${a.hit.h === 'legend' ? ' (a Legendary hit)' : ''}`;
     case 'later':
       return describeAction(a.act);
     case 'seq':
@@ -218,6 +269,8 @@ export function actionTags(a: ActionData): TagId[] {
       return [Tag.Custom(a.id)];
     case 'summon':
       return [Tag.Summons, Tag.Ally(a.ally)];
+    case 'ability':
+      return [Tag.Action('ability'), ...a.fx.map((x) => Tag.ProcFx(x.e))];
     default:
       return [Tag.Action(a.a)];
   }

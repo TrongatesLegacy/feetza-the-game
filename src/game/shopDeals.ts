@@ -1,10 +1,12 @@
 // The shop toppings' sums (src/data/toppingsShop.ts): card counts, topping, reroll, counter and Golden
-// Menu prices, and which items are free. Discounts stack additively and stop at 60% off.
+// Menu prices, and which items are free. Discounts stack additively and stop at 60% off. The shop toppings' rules are
+// read from what they declare (Effect.ShopPrice, Effect.Deal: Run.shopPrice, Run.deal), never by their ids.
 
 import { UpgradeKind, kindOf, upgradePrice, type Upgrade } from '../data/upgrades';
 import { save } from '../systems/save';
 import { DEAL_BLOCK } from './kitState';
 import type { Run } from './Run';
+import { DealRule, Price } from '../effects';
 
 export const MAX_DISCOUNT = 0.6;
 
@@ -12,7 +14,7 @@ const round5 = (n: number) => Math.round(n / 5) * 5;
 
 /** Happy Hour: every 5th wave's shop (the boss loot). */
 export function happyHour(run: Run): boolean {
-  return run.level('happyhour') > 0 && run.wave > 0 && run.wave % 5 === 0;
+  return !!run.shopPrice(Price.HappyHour) && run.wave > 0 && run.wave % 5 === 0;
 }
 
 /** Topping cards in a shop: a plain sum (Extra Shelf +1 a level, Premium Menu +2, Discount Bin −1, Exclusive Menu −2),
@@ -72,11 +74,13 @@ export function toppingDiscount(run: Run, u: Upgrade): number {
   const st = run.stats;
   const k = run.kit.shop;
   let d = st.shopDiscount;
-  if (happyHour(run)) d += 0.25;
+  const happy = run.shopPrice(Price.HappyHour);
+  if (happy && happyHour(run)) d += happy.off;
   if (kindOf(u) === UpgradeKind.Consumable) d += st.consumableDiscount;
-  const bulk = run.level('bulkbuy');
-  if (bulk && k.bought === 2) d += 0.2 * bulk;
-  if (run.level('haggler')) d += Math.min(0.3, 0.1 * k.bought);
+  const bulk = run.shopPrice(Price.BulkBuy);
+  if (bulk && k.bought === 2) d += bulk.off * bulk.level;
+  const haggle = run.shopPrice(Price.Haggle);
+  if (haggle) d += Math.min(haggle.cap ?? MAX_DISCOUNT, haggle.off * k.bought);
   if (k.clearance === u.id) d += 0.5;
   // Exclusive Menu's guaranteed card (LV2+)
   if (k.exclusive.includes(u.id)) d += st.exclusiveDiscount;
@@ -96,7 +100,7 @@ export function dealBlock(wave: number): number {
 
 /** Free Lunch is ready: every card shows FREE until one is taken. */
 export function freeLunchReady(run: Run): boolean {
-  return run.level('freelunch') > 0 && run.kit.freeLunchAt !== dealBlock(run.wave);
+  return run.deal(DealRule.FreeLunch) > 0 && run.kit.freeLunchAt !== dealBlock(run.wave);
 }
 
 /** What a reroll costs (Coupon Clipper, Rush Order, Owner's Discount). */
@@ -107,16 +111,17 @@ export function movePrice(run: Run): number {
 
 export function rerollPrice(run: Run): number {
   const st = run.stats;
-  const owner = run.level('ownersdiscount') ? 0.75 : 1;
+  const own = run.shopPrice(Price.Owner);
+  const owner = own ? 1 - own.off : 1;
   // (its climbing price plus the wave's, so a reroll stays a real cost later on)
   return Math.max(1, Math.round((run.rerollCost + 1.5 * run.wave - st.rerollLess) * st.rerollMult * owner));
 }
 
 /** A free counter pizza from a topping: Bottomless Pizza (every 10 waves) first, then Free Delivery (once a run). Regular pizzas only. */
-export function counterFreebie(run: Run, kind: string): 'bottomless' | 'delivery' | null {
+export function counterFreebie(run: Run, kind: string): typeof DealRule.Bottomless | typeof DealRule.FreeDelivery | null {
   if (kind !== 'pizza') return null;
-  if (run.level('bottomless') && run.kit.bottomlessAt !== dealBlock(run.wave)) return 'bottomless';
-  if (run.level('freedelivery') && !run.kit.freeDeliveryUsed) return 'delivery';
+  if (run.deal(DealRule.Bottomless) && run.kit.bottomlessAt !== dealBlock(run.wave)) return DealRule.Bottomless;
+  if (run.deal(DealRule.FreeDelivery) && !run.kit.freeDeliveryUsed) return DealRule.FreeDelivery;
   return null;
 }
 
@@ -124,8 +129,10 @@ export function counterFreebie(run: Run, kind: string): 'bottomless' | 'delivery
 export function counterPrice(run: Run, cost: number, kind: string): number {
   if (counterFreebie(run, kind)) return 0;
   let k = run.stats.counterMult;
-  if (run.level('ownersdiscount')) k *= 0.75;
-  if (kind === 'special' && run.level('chefsfav')) k *= 0.75;
+  const own = run.shopPrice(Price.Owner);
+  if (own) k *= 1 - own.off;
+  const chef = kind === 'special' ? run.shopPrice(Price.ChefsSpecial) : null;
+  if (chef) k *= 1 - chef.off;
   return k === 1 ? cost : round5(cost * k);
 }
 

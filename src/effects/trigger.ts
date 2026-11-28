@@ -12,6 +12,7 @@ import type { Foot } from '../game/Foot';
 import type { Chance, Count } from './units';
 import type { MaybeEnh } from './status';
 import { Tag, type TagId, type TriggerKindId } from './tags';
+import type { HitQuery, HitStatId } from './perHit';
 import { pickEnh } from './status';
 
 export const Scope = {
@@ -26,6 +27,13 @@ export const Scope = {
   /** Each pizza on the table granting the perk, in table order. Triggers of this scope that sit
    *  together on a moment go pizza by pizza, as one pass over the table. */
   Alive: 'alive',
+  /** Whatever the table: a prop left on the field (a splat, a ghost, a stone foot) or a perk's own set-up that also
+   *  tidies up after itself. It reads what it needs itself, so the off-switch is its own business (the audit lists
+   *  every one). */
+  Field: 'field',
+  /** The pizza by its own perk, whatever it grants now (a borrower that has borrowed another's, a Mystery Meat still
+   *  hidden): the moment's pizza, or each one in a pass over the table. Off-switches are its own business too. */
+  Own: 'own',
 } as const;
 export type ScopeId = (typeof Scope)[keyof typeof Scope];
 
@@ -50,6 +58,10 @@ export interface PlayCtx extends ActionHost {
   cond(ev: AnyEvent): CondCtx;
   /** Run-long state kept by the bus (a timer's seconds), by key. */
   state: Record<string, number>;
+  /** Fold into a per-hit number (Effect.PerHit): called in the order effects are listed. */
+  per(stat: HitStatId, fold: (q: HitQuery, m: number) => number): void;
+  /** A one-off's own per-hit factor (Grow.By). */
+  factor(id: string, q: HitQuery): number;
 }
 
 /** A counted trigger: every n-th moment fires (n enhanced on an enhanced pizza), counted in the pizza's flags under
@@ -77,14 +89,16 @@ export interface TriggerData extends TriggerOpts {
   action: ActionData;
 }
 
-/** A moment came: fire for every grant that passes. */
-export function fireTrigger(e: TriggerData, ctx: PlayCtx, ev: AnyEvent): void {
+/** A moment came: fire for every grant that passes (`once`: stop at the first that fires, as a defence does). True
+ *  when an action happened. */
+export function fireTrigger(e: TriggerData, ctx: PlayCtx, ev: AnyEvent, once = false): boolean {
+  let any = false;
   const foot = footOf(ev);
   const scope = e.scope ?? Scope.Table;
   const cc = () => ctx.cond(ev);
   // (a count or a once-a-wave mark lives on a pizza: a table-wide trigger can't have one)
   if (import.meta.env?.DEV && (e.nth || e.oncePerWave) && (scope === Scope.Table || scope === Scope.Sum)) console.error(`[effects] ${ctx.perk}: a counted or once-a-wave trigger needs a per-pizza scope`);
-  if (!e.nth && e.when && !holdsCond(e.when, { ...cc(), pizza: pizzaOf(ev) })) return;
+  if (!e.nth && e.when && !holdsCond(e.when, { ...cc(), pizza: pizzaOf(ev) })) return false;
   for (const g of ctx.grants(scope, ev, e.chance)) {
     const pizza = g.pizza ?? (scope === Scope.Target ? pizzaOf(ev) : null);
     if (e.oncePerWave && pizza) {
@@ -106,7 +120,10 @@ export function fireTrigger(e: TriggerData, ctx: PlayCtx, ev: AnyEvent): void {
     // a counted trigger starts its count again when it fires (unless a one-off said it didn't happen)
     const done = runActionCounted(e, ctx, fire);
     if (e.nth && pizza && done) pizza.flags[e.nth.flag] = 0;
+    any ||= done;
+    if (once && done) break;
   }
+  return any;
 }
 
 function runActionCounted(e: TriggerData, ctx: PlayCtx, fire: Fire): boolean {

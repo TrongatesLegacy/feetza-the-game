@@ -637,6 +637,8 @@ export const FEET: FootType[] = [
     hp: 6800, speed: 0.65, armor: 3, stompDmg: 3, coins: 320, score: 40000, scale: 2.2, minWave: 60, weight: 0,
     traits: ['phase', 'teleport'],
     boss: true,
+    // (a ghost: undead, so Hel's ×2 and Cellar Mushroom Medley's +10% go by the flag, not its name)
+    undead: true,
     art: { kind: 'bare', skin: '#cfe9ff', ghost: true, nails: '#8fc7ff', leg: 'skin' },
   },
 ];

@@ -1,4 +1,6 @@
-// In-play mechanics for the event, mixed and wildcard toppings (src/data/toppings{Events,Mixed2,Wild}.ts).
+// In-play mechanics for the event, mixed and wildcard toppings (src/data/toppings{Events,Mixed2,Wild}.ts), each the
+// trick its topping declares (Effect.Trick, src/effects/trick.ts): the kit asks how strongly a trick is on, never
+// which topping it is.
 // The game scene owns one ToppingKit and calls its hooks from the moments that matter (wave start and end,
 // smacks, misses, kills, stomps, boss phases); the kit keeps its own drawn things (the Pizza Drone, laces,
 // cheese strings, dip pots, crumbs, the pizza stone, Sixth Sense glows) and its run state in run.kit.
@@ -13,7 +15,7 @@ import type { Fx } from './Fx';
 import type { Pizza } from './Pizza';
 import { Projectiles } from './projectiles';
 import type { Run } from './Run';
-import { applyAll, Effect as Eff, Op, Phase, Stat, Unit, type EffectData } from '../effects';
+import { Trick, applyAll, Effect as Eff, Op, Phase, Stat, Unit, type EffectData, type TrickId } from '../effects';
 import { Source, type SourceKey } from '../effects/source';
 import type { Ledger } from '../effects/ledger';
 import { audio } from '../systems/audio';
@@ -94,8 +96,9 @@ export class ToppingKit {
     return this.h.run();
   }
 
-  private lv(id: string): number {
-    return this.run.level(id);
+  /** How strongly a trick is on: the levels of the toppings declaring it (Effect.Trick: Run.trick), never their ids. */
+  private lv(t: TrickId): number {
+    return this.run.trick(t);
   }
 
   // ——— waves ———
@@ -109,9 +112,9 @@ export class ToppingKit {
     this.webs = [];
     this.laceT = 0;
     // the pizza stone sits under the middle pizza
-    this.stoneLeft = this.lv('pizzastone');
+    this.stoneLeft = this.lv(Trick.PizzaStone);
     this.placeStone();
-    if (this.lv('midnightsnack') && n === 50) this.h.recompute();
+    if (this.lv(Trick.MidnightSnack) && n === 50) this.h.recompute();
   }
 
   /** Wave cleared (boss or not): refunds, rush tips and interest. Runs after the clear bonus is paid. */
@@ -122,7 +125,7 @@ export class ToppingKit {
     back.forEach((p, i) => this.h.sc.time.delayedCall(500 + i * 260, () => this.napkin(p)));
     this.napkinLost = [];
     // Delivery Rush: a quick wave pays (big waves get a little longer)
-    const rush = this.lv('deliveryrush');
+    const rush = this.lv(Trick.DeliveryRush);
     if (rush && !boss) {
       const limit = 20 + Math.max(0, this.h.planSize() - 10);
       if (now - this.waveT0 < limit) {
@@ -131,7 +134,7 @@ export class ToppingKit {
       }
     }
     // Tip Interest: a share of the tips you're holding
-    if (this.lv('tipinterest')) {
+    if (this.lv(Trick.TipInterest)) {
       const n = Math.min(40, Math.floor(this.run.coins * 0.05));
       if (n > 0) {
         this.run.coins += n;
@@ -158,7 +161,7 @@ export class ToppingKit {
     this.droneTick(dt, real);
     this.spinTick(real);
     // Tied Laces
-    const lace = this.lv('tiedlaces');
+    const lace = this.lv(Trick.TiedLaces);
     if (lace) {
       this.laceT += dt;
       const every = 8 / (1 + 0.2 * ticks(lace));
@@ -173,9 +176,9 @@ export class ToppingKit {
     this.webs = this.webs.filter((w) => w.t > 0 && w.a.alive && w.b.alive);
     this.draw();
     // Sixth Sense: feet about to stomp glow red
-    if (this.lv('sixthsense')) this.senseTick();
+    if (this.lv(Trick.SixthSense)) this.senseTick();
     // Doorbell: where each foot is about to arrive glows
-    if (this.lv('doorbell')) for (const f of this.h.feet()) {
+    if (this.lv(Trick.Doorbell)) for (const f of this.h.feet()) {
       if (f.state !== 'enter' || f.held || f.pinned || this.rung.has(f) || f.isBossLike) continue;
       this.rung.add(f);
       this.crit.add(f);
@@ -186,19 +189,19 @@ export class ToppingKit {
 
   /** Cold Feet: regular feet move at half speed for the first 5 s of a wave. */
   footPace(f: Foot): number {
-    return this.lv('coldfeet') && !f.isBossLike && this.h.now() - this.waveT0 < 5 ? 0.5 : 1;
+    return this.lv(Trick.ColdFeet) && !f.isBossLike && this.h.now() - this.waveT0 < 5 ? 0.5 : 1;
   }
 
   /** Oven Mitts: nothing can stun, slow, freeze or snatch the peel. */
   peelGuard(): boolean {
-    return this.lv('ovenmitts') > 0;
+    return this.lv(Trick.OvenMitts) > 0;
   }
 
   // ——— smacks ———
 
   /** A smack missed every foot. */
   onMiss(x: number, y: number): void {
-    const l = this.lv('napkinninja');
+    const l = this.lv(Trick.NapkinNinja);
     if (!l || Math.random() >= 0.2 + 0.1 * ticks(l)) return;
     const f = this.nearest(x, y, 900);
     if (!f) return;
@@ -212,7 +215,7 @@ export class ToppingKit {
     this.landed++;
     const r = this.run;
     // Double Cheese: combo milestones regrow a slice
-    const dc = this.lv('doublecheese');
+    const dc = this.lv(Trick.DoubleCheese);
     if (dc && r.combo > 0 && r.combo % (dc >= 2 ? 15 : 25) === 0) {
       const weakest = [...this.h.alivePizzas()].filter((p) => p.slices < p.maxSlices).sort((a, b) => a.slices / a.maxSlices - b.slices / b.maxSlices)[0];
       if (weakest) {
@@ -224,21 +227,21 @@ export class ToppingKit {
     for (const l of this.laces) {
       const other = l.a === f ? l.b : l.b === f ? l.a : null;
       if (other && other.alive) {
-        this.h.damage(other, 0.5 + 0.25 * ticks(this.lv('tiedlaces')), { chain: true });
+        this.h.damage(other, 0.5 + 0.25 * ticks(this.lv(Trick.TiedLaces)), { chain: true });
         other.flash(0xfff4e0, 70);
       }
     }
     // Fold Over: every 4th (3rd) smack hits twice
-    const fo = this.lv('foldover');
+    const fo = this.lv(Trick.FoldOver);
     if (fo && this.landed % (fo >= 2 ? 3 : 4) === 0) this.later(90, () => f.alive && this.again(() => this.h.hitFoot(f, x + 10, y - 10), f, 'FOLD!'));
     // Wood-Fired: every 10th (7th) smack is a fireball
-    const wf = this.lv('woodfired');
+    const wf = this.lv(Trick.WoodFired);
     if (wf && this.landed % (wf >= 2 ? 7 : 10) === 0 && f.alive) this.fireball(f);
     // Mozzarella Web
-    const mw = this.lv('mozzweb');
+    const mw = this.lv(Trick.MozzWeb);
     if (mw && Math.random() < 0.25 + 0.1 * ticks(mw)) this.web(f);
     // Echo Chamber: the same spot, half a second later
-    const ec = this.lv('echochamber');
+    const ec = this.lv(Trick.EchoChamber);
     if (ec && Math.random() < 0.2 + 0.1 * ticks(ec)) this.echo(x, y);
   }
 
@@ -256,12 +259,12 @@ export class ToppingKit {
 
   /** The Last Slice: one pizza left, so every smack hits the whole radius. */
   areaSmack(): boolean {
-    return this.lv('lastslice') > 0 && this.h.alivePizzas().length === 1;
+    return this.lv(Trick.LastSlice) > 0 && this.h.alivePizzas().length === 1;
   }
 
   /** Head Chef: one more foot (or the same one again) for every throw. */
   extraThrow(picks: Foot[]): Foot[] {
-    if (!this.lv('headchef') || !picks.length) return picks;
+    if (!this.lv(Trick.HeadChef) || !picks.length) return picks;
     const others = this.h.feet().filter((f) => Projectiles.ok(f) && !picks.includes(f));
     return [...picks, others.length ? Phaser.Utils.Array.GetRandom(others) : picks[0]];
   }
@@ -269,13 +272,13 @@ export class ToppingKit {
   /** On the capped build (the ledger's Tricks phase): The Last Slice and Midnight Snack. Tips stay under their cap. */
   modifiers(L: Ledger, alive: number): void {
     const at = (source: SourceKey, list: EffectData[]) => applyAll(list, { ledger: L, source, phase: Phase.Tricks });
-    if (this.lv('lastslice') && alive === 1) at(Source.Topping('lastslice'), [
+    if (this.lv(Trick.LastSlice) && alive === 1) at(Source.Topping(this.run.trickHolder(Trick.LastSlice)), [
       Eff.Stat(
         Stat.Damage,
         Op.Mul(Unit.Mult(2)),
       ),
     ]);
-    if (this.lv('midnightsnack') && this.run.wave >= 50) at(Source.Topping('midnightsnack'), [
+    if (this.lv(Trick.MidnightSnack) && this.run.wave >= 50) at(Source.Topping(this.run.trickHolder(Trick.MidnightSnack)), [
       Eff.Stat(
         Stat.Damage,
         Op.Mul(Unit.Mult(1.25)),
@@ -304,9 +307,9 @@ export class ToppingKit {
     // Mimic Whisperer: an opened mimic beaten still rolls its drop
     if (f.type.id === 'mimic' && st.mimicDrop > 0) rollDrop('mimic');
     if (f.isBossLike) return;
-    const dip = this.lv('garlicdip');
+    const dip = this.lv(Trick.GarlicDip);
     if (dip && Math.random() < 0.06 + 0.03 * ticks(dip)) this.dropDip(x, y);
-    const cc = this.lv('crustcrumbs');
+    const cc = this.lv(Trick.CrustCrumbs);
     if (cc && Math.random() < 0.05 * cc) this.crumb(x, y);
   }
 
@@ -324,7 +327,7 @@ export class ToppingKit {
 
   /** Slices a stomp took (Spare Napkin remembers the first ones each wave). */
   noteLoss(p: Pizza, n: number): void {
-    const l = this.lv('sparenapkin');
+    const l = this.lv(Trick.SpareNapkin);
     for (let i = 0; i < n && this.napkinLost.length < l; i++) this.napkinLost.push(p);
   }
 
@@ -333,7 +336,7 @@ export class ToppingKit {
    * quarters with one neighbour). Fractions carry over. Returns whole slices to take now, or null when off.
    */
   share(p: Pizza, dmg: number, nbrs: Pizza[]): [Pizza, number][] | null {
-    if (!this.lv('pizzaparty') || !nbrs.length) return null;
+    if (!this.lv(Trick.PizzaParty) || !nbrs.length) return null;
     const parts: [Pizza, number][] = [[p, nbrs.length === 1 ? 0.75 : 0.5], ...nbrs.slice(0, 2).map((q): [Pizza, number] => [q, 0.25])];
     return parts.map(([q, k]) => {
       const acc = (this.shareAcc.get(q) ?? 0) + dmg * k;
@@ -345,14 +348,14 @@ export class ToppingKit {
 
   /** Second Oven: once per run, the last pizza's loss brings every pizza back. */
   secondOven(): boolean {
-    if (!this.lv('secondoven') || this.run.kit.secondOvenUsed) return false;
+    if (!this.lv(Trick.SecondOven) || this.run.kit.secondOvenUsed) return false;
     this.run.kit.secondOvenUsed = true;
     return true;
   }
 
   /** A boss changed phase (Party Popper). */
   onPhase(): void {
-    if (!this.lv('partypopper')) return;
+    if (!this.lv(Trick.PartyPopper)) return;
     for (let i = 0; i < 7; i++) this.h.fx.party(200 + i * 253, 160 + crand() * 120, 26);
     audio.sfx('sfx_pop');
     audio.sfx('sfx_combo', { rate: 1.3 });
@@ -420,7 +423,7 @@ export class ToppingKit {
 
   /** Rainbow Road: if no shiny has turned up by wave 17, the next regular foot is one. */
   forceShiny(): boolean {
-    return this.lv('rainbowroad') > 0 && !this.run.kit.rainbowDone && this.run.wave >= 17 && this.run.wave < 20;
+    return this.lv(Trick.RainbowRoad) > 0 && !this.run.kit.rainbowDone && this.run.wave >= 17 && this.run.wave < 20;
   }
 
   shinySpawned(): void {
@@ -429,7 +432,7 @@ export class ToppingKit {
 
   // ——— Dough Spinner: swirl the peel to charge the meter ———
   private spinTick(real: number): void {
-    const l = this.lv('doughspinner');
+    const l = this.lv(Trick.DoughSpinner);
     if (!l || !this.h.inWave()) return;
     const s = this.spin;
     const p = this.h.peelPos();
@@ -473,7 +476,7 @@ export class ToppingKit {
 
   // ——— Pizza Drone ———
   private droneTick(dt: number, real: number): void {
-    const l = this.lv('pizzadrone');
+    const l = this.lv(Trick.PizzaDrone);
     if (!l) {
       if (this.drone) {
         this.drone.destroy();

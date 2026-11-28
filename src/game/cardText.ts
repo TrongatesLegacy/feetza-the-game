@@ -11,13 +11,13 @@
 //   of the downside.
 // - `text` (Upgrade.text) overrides a side by hand; cardTextAudit() checks its numbers against the effects.
 
-import { Stat, effects } from '../effects';
+import { Stat, effects, type EffectData } from '../effects';
 import type { StatData } from '../effects/stat';
 import type { WordsCtx } from '../effects/stats';
 import { holds } from '../effects/when';
 import { joinPhrases, statPhrase, type Phrase } from '../effects/words';
 import { RARITY_DEFS } from '../data/rarity';
-import { UPGRADE_KIND_DEFS, UpgradeKind, kindOf, type CardText, type TextLine, type Upgrade } from '../data/upgrades';
+import { UPGRADE_KIND_DEFS, kindOf, liftedMax, procOf, type CardText, type TextLine, type Upgrade } from '../data/upgrades';
 import { describeProc, scaleProc } from './abilities';
 import { freezeText, meterBoostText, slamStunText, superStartText } from './slamMode';
 
@@ -44,12 +44,20 @@ export function procGrowth(lvl: number): string {
 
 const plural = (n: number) => (n === 1 ? '' : 's');
 
+/** The effects whose words go on the card (not the quiet ones: a scene trick, a shop rule, a proc, what happens when
+ *  it's picked, which the topping's own text says). */
+export function loudEffects(u: Upgrade): EffectData[] {
+  return (u.effects ?? []).filter((e) => !effects.quiet(e));
+}
+
 /** What the declarations say at a level, before any hand-written override. */
 export function autoCardText(u: Upgrade, lvl: number): CardText {
   const ups: Phrase[] = [];
   const downs: Phrase[] = [];
   const other: string[] = [];
-  for (const e of u.effects ?? []) {
+  const loud = loudEffects(u);
+  const proc = procOf(u);
+  for (const e of loud) {
     if (e.kind !== 'stat') {
       other.push(effects.describe(e));
       continue;
@@ -62,9 +70,9 @@ export function autoCardText(u: Upgrade, lvl: number): CardText {
   // one-time costs when it's bought
   if (u.freshNow) downs.push({ text: `pizzas lose ${u.freshNow} freshness now`, good: false });
   if (u.slicesNow) downs.push({ text: `pizzas lose ${u.slicesNow} slice${plural(u.slicesNow)} now`, good: false });
-  const lines = [u.proc ? describeProc(scaleProc(u.proc, lvl)) : '', u.pick ? `Choose 1 of 3 random ${RARITY_DEFS[u.pick].label.toLowerCase()} toppings, free` : '', joinPhrases(ups), ...other].filter(Boolean);
+  const lines = [proc ? describeProc(scaleProc(proc, lvl)) : '', u.pick ? `Choose 1 of 3 random ${RARITY_DEFS[u.pick].label.toLowerCase()} toppings, free` : '', joinPhrases(ups), ...other].filter(Boolean);
   // (a level past the ones it declares, from Infinite Oven's extra levels: Exclusive Menu's LV5)
-  const up = lines.join(' ') || (u.effects?.length ? 'Nothing more at this level' : '');
+  const up = lines.join(' ') || (loud.length ? 'Nothing more at this level' : '');
   return { up, down: joinPhrases(downs) || null };
 }
 
@@ -100,7 +108,7 @@ export function levelLine(u: Upgrade, lvl: number): string {
 
 /** It arcs chain lightning (a chain chance, or a proc that chains): what Hero Goals count, from what it declares. */
 export function hasChainLightning(u: Upgrade): boolean {
-  return (u.effects ?? []).some((e) => e.kind === 'stat' && e.stat === Stat.ChainChance) || !!u.proc?.fx.some((e) => e.e === 'chain');
+  return (u.effects ?? []).some((e) => e.kind === 'stat' && e.stat === Stat.ChainChance) || !!procOf(u)?.fx.some((e) => e.e === 'chain');
 }
 
 // ——— dev checks ———
@@ -108,10 +116,10 @@ export function hasChainLightning(u: Upgrade): boolean {
 /** The levels a topping can reach: its own, and for one that levels up, as many more as every Stat.CapBonus in `list`
  *  adds (Infinite Oven's +2). */
 export function topLevel(u: Upgrade, list: readonly Upgrade[]): number {
-  if (u.maxLevel <= 1 || kindOf(u) !== UpgradeKind.Permanent) return u.maxLevel;
   let bonus = 0;
   for (const x of list) for (const e of x.effects ?? []) if (e.kind === 'stat' && e.stat === Stat.CapBonus && e.op.op === 'add' && typeof e.op.value === 'number') bonus += e.op.value;
-  return u.maxLevel + bonus;
+  // (into levels that do something: liftedMax)
+  return liftedMax(u, bonus);
 }
 
 /** The numbers in a text, each with the sign it's written with ('' for none): "+20%" is { n: 20, sign: '+' }. */
@@ -130,7 +138,8 @@ export function cardTextAudit(list: readonly Upgrade[]): string[] {
   const out: string[] = [];
   for (const u of list) {
     const t = u.text;
-    if (!t || (!u.effects?.length && !u.proc)) continue;
+    const proc = procOf(u);
+    if (!t || (!loudEffects(u).length && !proc)) continue;
     const at = (l: number) => autoCardText(u, l);
     const top = topLevel(u, list);
     const known = new Set<string>((t.scene ?? []).map(String));
@@ -140,13 +149,13 @@ export function cardTextAudit(list: readonly Upgrade[]): string[] {
         if (x.sign) known.add(`${x.sign}${x.n}`);
       }
     }
-    for (let l = 1; l <= (u.proc ? 1 : top); l++) {
+    for (let l = 1; l <= (proc ? 1 : top); l++) {
       // the override's own words: with what the declarations say left blank
       const own = [side(t.up, l, '', at), side(t.down, l, '', at)].join(' ');
       for (const x of numbers(own)) {
         if (!known.has(x.sign ? `${x.sign}${x.n}` : String(x.n))) out.push(`${u.id} LV${l}: ${x.sign}${x.n} in its card text is no number it declares (add it to text.scene if the scene owns it)`);
       }
-      if (u.proc) continue;
+      if (proc) continue;
       const full = cardText(u, l);
       const shown = new Set([...numbers(full.up), ...numbers(full.down)].map((x) => x.n));
       const auto = at(l);
@@ -160,6 +169,6 @@ export function cardTextAudit(list: readonly Upgrade[]): string[] {
  *  the scene's own (no effects or proc to check it against). */
 export function cardTextSources(list: readonly Upgrade[]): { generated: string[]; overridden: string[]; scene: string[] } {
   const r = { generated: [] as string[], overridden: [] as string[], scene: [] as string[] };
-  for (const u of list) (!u.text ? r.generated : u.effects?.length || u.proc ? r.overridden : r.scene).push(u.id);
+  for (const u of list) (!u.text ? r.generated : loudEffects(u).length || procOf(u) ? r.overridden : r.scene).push(u.id);
   return r;
 }

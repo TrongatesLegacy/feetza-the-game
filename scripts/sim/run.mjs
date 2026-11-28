@@ -71,6 +71,8 @@ const from = Number(arg('from', 0));
 // dev: the starting table (--lineup id,id,id), all enhanced with --enhance
 const lineup = list(arg('lineup', ''));
 const enhance = argv.includes('--enhance');
+// dev: toppings owned from the start (--toppings id:lvl,id:lvl; a one-use topping is armed)
+const toppings = Object.fromEntries(list(arg('toppings', '')).map((kv) => kv.split(':')).map(([k, v]) => [k, Number(v ?? 1)]));
 // a fresh page for every run (slower to start, but nothing from an earlier run can carry over)
 const freshEvery = argv.includes('--reuse') ? 8 : 1;
 
@@ -88,7 +90,7 @@ for (const heat of heats)
   for (const peel of peels)
     for (const bot of bots)
       for (let i = 0; i < runs; i++) {
-        const job = { seed: seedBase + i, heat, peel, waves, accuracy, dt, profile, ...(trace ? { trace } : {}), ...(idleFrom ? { idleFrom } : {}), ...(from ? { from } : {}), ...(lineup.length ? { lineup } : {}), ...(enhance ? { enhance } : {}), shop: shopMode, bot, lightRate, ...(Object.keys(momentum).length ? { momentum } : {}) };
+        const job = { seed: seedBase + i, heat, peel, waves, accuracy, dt, profile, ...(trace ? { trace } : {}), ...(idleFrom ? { idleFrom } : {}), ...(from ? { from } : {}), ...(lineup.length ? { lineup } : {}), ...(enhance ? { enhance } : {}), ...(Object.keys(toppings).length ? { toppings } : {}), shop: shopMode, bot, lightRate, ...(Object.keys(momentum).length ? { momentum } : {}) };
         jobs.push(job);
         if (check) jobs.push({ ...job, repeat: true });
       }

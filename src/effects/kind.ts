@@ -29,6 +29,12 @@ export interface KindSpec<D> {
   scale(e: D, k: number): D;
   /** What it is, for searches (Tag.Stat(Stat.Damage), Tag.Trigger(TriggerKind.OnKill)). */
   tags(e: D): TagId[];
+  /** Its card text is written by hand (the scene's own tricks, the shop's rules, a proc's own words): describe() is
+   *  for STATS, the audit and searches, never the generated card. */
+  quiet?: boolean;
+  /** Does it do anything at this level (a topping's level)? Every level, unless it says (Effect.Stat: an EachLevelUp
+   *  chain's Op.Nothing, an { atLevel } effect's other levels). Infinite Oven only lifts a topping into levels that do. */
+  doesAt?(e: D, level: number): boolean;
 }
 
 /** Declare a kind: its maker (which returns its data, tagged with `kind`) and its behaviour. The maker keeps its

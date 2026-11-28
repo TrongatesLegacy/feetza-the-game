@@ -9,14 +9,14 @@ import { EVENT_TOPPINGS } from './toppingsEvents';
 import { MIXED_TOPPINGS } from './toppingsMixed2';
 import { SHOP_TOPPINGS } from './toppingsShop';
 import { WILD_TOPPINGS } from './toppingsWild';
-import { Effect, Op, Stat, Unit, type EffectData } from '../effects';
+import { Effect, Op, Stat, Trick, Unit, effects, isAutoTrick, type DealRuleId, type EffectData, type PriceId, type TrickId } from '../effects';
 import { RARITY_DEFS, Rarity } from './rarity';
 import { isTradeoff } from '../game/cardText';
 import { KitTopping, Topping } from './toppingDefs';
 
 export { Rarity, RARITY_DEFS } from './rarity';
-export { CONSUMABLE_COOLDOWN, NeedsMeter, OnPick, UPGRADE_KIND_DEFS, UpgradeKind } from './itemKinds';
-import { NeedsMeter, OnPick, UpgradeKind } from './itemKinds';
+export { CONSUMABLE_COOLDOWN, Needs, NeedsMeter, OnPick, UPGRADE_KIND_DEFS, UpgradeKind } from './itemKinds';
+import { Needs, NeedsMeter, OnPick, UpgradeKind } from './itemKinds';
 import { TIP_MULT_CAP, baseStatsFromDefs } from '../effects/stats';
 
 export interface Stats {
@@ -179,7 +179,6 @@ export interface Upgrade {
   /** Card text written by hand (the scene's own toppings, and flavour the effects can't give). */
   text?: TextOverride;
   /** Called once when picked (immediate effects). */
-  onPick?: OnPick;
   /** Pick toppings: choose one of 3 random toppings of this rarity, free. */
   pick?: Rarity;
   /** Only offered while this holds (Peel Roulette needs 3 other peels, Head Chef something that throws). */
@@ -187,10 +186,10 @@ export interface Upgrade {
   /** Only offered while wave events can happen (not after Do Not Disturb and friends). */
   needsEvents?: boolean;
   needsMeter?: NeedsMeter;
+  /** What else it needs to be offered (the Peel Slam, freshness). */
+  needs?: readonly Needs[];
   /** Permanent when left out. */
   kind?: UpgradeKind;
-  /** Proc toppings: an ability-style trigger and effects (scaled by level), run by the scene. */
-  proc?: Proc;
   /** One-time cost when bought: pizzas on the table lose this much freshness (never below 1). */
   freshNow?: number;
   /** One-time cost when bought: pizzas on the table lose this many slices (never below 1). */
@@ -221,6 +220,7 @@ export const UPGRADES: Upgrade[] = [
         Stat.Radius,
         Op.Add(Unit.Px(9)),
       ),
+      Effect.Trick(Trick.AreaSmack),
     ],
   }),
   Topping({
@@ -316,7 +316,9 @@ export const UPGRADES: Upgrade[] = [
     maxLevel: 1,
     kind: UpgradeKind.Consumable,
     text: { up: 'Heal every pizza 2 slices, right now' },
-    onPick: OnPick.HealAll2,
+    effects: [
+      Effect.OnPick(OnPick.HealAll2),
+    ],
   }),
   Topping({
     id: 'proof', name: 'Slow Proof', icon: '🍞',
@@ -333,6 +335,7 @@ export const UPGRADES: Upgrade[] = [
     id: 'fridge', name: 'Fridge Magnet', icon: '🧊',
     rarity: Rarity.Rare,
     maxLevel: 2,
+    needs: [Needs.Freshness],
     // (the scene: onPick tops up the pizzas on the table now)
     text: { up: (_l, auto) => `${auto}, now and for new ones` },
     effects: [
@@ -340,16 +343,20 @@ export const UPGRADES: Upgrade[] = [
         Stat.FreshBonus,
         Op.Add(Unit.Amount(4)),
       ),
+      Effect.OnPick(OnPick.Fridge),
     ],
-    onPick: OnPick.Fridge,
   }),
   KitTopping({
     id: 'leftovers', name: 'Leftovers Box', icon: '🥡',
     rarity: Rarity.Common,
     maxLevel: 1,
+    needs: [Needs.Freshness],
     kind: UpgradeKind.Consumable,
     text: { up: 'The next pizza to go stale stays fresh 4 more waves' },
-    onPick: OnPick.Arm,
+    effects: [
+      Effect.OnPick(OnPick.Arm),
+      Effect.Trick(Trick.Leftovers),
+    ],
   }),
   KitTopping({
     id: 'dough', name: 'Emergency Dough', icon: '🫓',
@@ -357,7 +364,10 @@ export const UPGRADES: Upgrade[] = [
     maxLevel: 1,
     kind: UpgradeKind.Consumable,
     text: { up: 'A pizza that drops to 1 slice regains 3, once' },
-    onPick: OnPick.Arm,
+    effects: [
+      Effect.OnPick(OnPick.Arm),
+      Effect.Trick(Trick.LastDough),
+    ],
   }),
   // ——— Rare ———
   Topping({
@@ -550,7 +560,9 @@ export const UPGRADES: Upgrade[] = [
     maxLevel: 1,
     kind: UpgradeKind.Unique,
     text: { up: 'A brand-new pizza joins the table' },
-    onPick: OnPick.ExtraPizza,
+    effects: [
+      Effect.OnPick(OnPick.ExtraPizza),
+    ],
   }),
   KitTopping({
     id: 'angel', name: 'Pizza Angel', icon: '👼',
@@ -558,12 +570,16 @@ export const UPGRADES: Upgrade[] = [
     maxLevel: 1,
     kind: UpgradeKind.Consumable,
     text: { up: 'The next pizza destroyed rises again with 4 slices' },
-    onPick: OnPick.Arm,
+    effects: [
+      Effect.OnPick(OnPick.Arm),
+      Effect.Trick(Trick.GuardianAngel),
+    ],
   }),
   Topping({
     id: 'freeze', name: 'Freeze Frame', icon: '⏳',
     rarity: Rarity.Legendary,
     maxLevel: 1,
+    needs: [Needs.Slam],
     effects: [
       Effect.Stat(
         Stat.FreezeSlam,
@@ -592,6 +608,59 @@ export const UPGRADES: Upgrade[] = [
 
 export const UPGRADE_BY_ID: Record<string, Upgrade> = Object.fromEntries(UPGRADES.map((u) => [u.id, u]));
 
+/** What a keyed effect is keyed by: a scene trick, a shop price rule or a deal rule. */
+export type DeclKey = `trick:${TrickId}` | `shopPrice:${PriceId}` | `deal:${DealRuleId}`;
+const keyOf = (e: EffectData): DeclKey | null =>
+  e.kind === 'trick' ? `trick:${e.trick}` : e.kind === 'shopPrice' ? `shopPrice:${e.rule}` : e.kind === 'deal' ? `deal:${e.rule}` : null;
+/** Which toppings declare each keyed effect (docs/effects-plan.md, step 3): worked out once from the declarations, so
+ *  the game asks for the trick or the rule (Run.trick, Run.shopPrice, Run.deal) and never names a topping. */
+const DECLARED = new Map<DeclKey, { id: string; e: EffectData }[]>();
+for (const u of UPGRADES)
+  for (const e of u.effects ?? []) {
+    const k = keyOf(e);
+    if (k) DECLARED.set(k, [...(DECLARED.get(k) ?? []), { id: u.id, e }]);
+  }
+/** The toppings declaring a keyed effect, with the effect each declares. */
+export function declaring(k: DeclKey): readonly { id: string; e: EffectData }[] {
+  return DECLARED.get(k) ?? [];
+}
+
+/** A topping's proc (Effect.Proc), if it has one. */
+export function procOf(u: Upgrade): Proc | undefined {
+  for (const e of u.effects ?? []) if (e.kind === 'proc') return e.proc;
+  return undefined;
+}
+
+/** What happens the moment a topping is picked (Effect.OnPick), if anything. */
+export function onPickOf(u: Upgrade): OnPick | undefined {
+  for (const e of u.effects ?? []) if (e.kind === 'onPick') return e.pick;
+  return undefined;
+}
+
+/** The toppings that put a pizza on the table when picked (Effect.OnPick(OnPick.ExtraPizza)): kept out of a deal while
+ *  the table is full. */
+export const ADDS_PIZZA: readonly string[] = UPGRADES.filter((u) => onPickOf(u) === OnPick.ExtraPizza).map((u) => u.id);
+
+/** A topping's level cap with `bonus` more levels (Infinite Oven's Stat.CapBonus): only a topping that levels up is
+ *  lifted, and only into levels its effects do something at (a level adds nothing when none of its effects applies
+ *  there: Exclusive Menu's LV5 and LV6). */
+export function liftedMax(u: Upgrade, bonus: number): number {
+  if (u.maxLevel <= 1 || kindOf(u) !== UpgradeKind.Permanent) return u.maxLevel;
+  let top = u.maxLevel;
+  while (top < u.maxLevel + bonus && (u.effects ?? []).some((e) => effects.doesAt(e, top + 1))) top++;
+  return top;
+}
+
+/** Does this topping declare a deal rule (Effect.Deal)? */
+export function hasDeal(u: Upgrade, r: DealRuleId): boolean {
+  return (u.effects ?? []).some((e) => e.kind === 'deal' && e.rule === r);
+}
+
+/** Does this topping turn on a scene trick (Effect.Trick)? */
+export function hasTrick(u: Upgrade, t: TrickId): boolean {
+  return (u.effects ?? []).some((e) => e.kind === 'trick' && e.trick === t);
+}
+
 /** Price of the next level: the rarity's base + its price a wave (RARITY_DEFS), +35% for every level already owned (so
  * stacking one upgrade gets expensive and tips spread across the run); consumables are 30% cheaper, and trade-offs
  * (a card with a downside) 20%. */
@@ -612,14 +681,14 @@ export function kindOf(u: Upgrade): UpgradeKind {
 
 /** Topping tricks whose own damage is automatic: every trick that hits through the kit's damage() or effects()
  *  (src/game/toppingKit.ts; the scene marks those auto). Keep in step when a trick learns to hit. */
-const AUTO_KIT = new Set(['pizzadrone', 'woodfired', 'tiedlaces', 'napkinninja']);
 /** Stats that hit on their own. */
 const AUTO_STATS = new Set<keyof Stats>(['cutters', 'cutterDmg', 'oliveRate', 'oliveDmg', 'garlicDps', 'burnDps', 'traps', 'stompBurn']);
 
 /** Toppings whose damage is automatic (it hits without a smack, so momentum cools it when the player stops smacking,
  *  src/game/momentum.ts): a topping proc, orbiting cutters, olives, garlic, burns, traps, burning stompers, the drone… */
 export function isAutoTopping(u: Upgrade): boolean {
-  if (u.proc || AUTO_KIT.has(u.id)) return true;
+  // (a proc, or a scene trick that hits by itself: TRICK_DEFS auto)
+  if ((u.effects ?? []).some((e) => e.kind === 'proc' || (e.kind === 'trick' && isAutoTrick(e.trick)))) return true;
   // (what its first level does: an EachLevelUp-only effect, Op.Nothing first, doesn't count)
   return (u.effects ?? []).some((e) => e.kind === 'stat' && e.op.op !== 'none' && AUTO_STATS.has(e.stat));
 }

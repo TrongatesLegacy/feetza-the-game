@@ -34,9 +34,15 @@ import { ensureFootArt, ensurePizzaArt } from './assets';
 import { ABILITIES, type Ability, type Effect } from './abilities';
 import { peelCanvas } from './peels';
 import { specFor, type Spec, type Step, type TexRef } from './abilityFxSpecs';
+import type { Fx } from './Fx';
+import { PeelFx, type PeelFxBus } from './peelFxEvents';
 
 export interface AfxHost {
   sc: Phaser.Scene;
+  /** The scene's shared effects (quips, frost, fire, glints, rings, lightning, explosions). */
+  fx: Fx;
+  /** What the abilities and procs did (src/game/peelFxEvents.ts): the looks here play it. */
+  events: PeelFxBus;
   /** Over the feet (under the cursor): the moves themselves. */
   layer: Phaser.GameObjects.Container;
   /** Under the pizzas and feet: dimming the backdrop, cracks in the table. */
@@ -273,7 +279,37 @@ export class AbilityFx {
   private peelTex = new Map<string, string>();
   /** When a meter ability last played its full visual (game seconds). */
   private lastFull = -99;
-  constructor(private h: AfxHost) {}
+  constructor(private h: AfxHost) {
+    this.listen();
+  }
+
+  /** The looks of what an ability or proc did (the scene fires them as its effects land: src/game/peelFxEvents.ts). */
+  private listen(): void {
+    const { events: e, fx } = this.h;
+    const css = (c: number) => '#' + c.toString(16).padStart(6, '0');
+    e.on(PeelFx.Named, (d) => (d.big ? fx.quip(W / 2, 420, `${d.name.toUpperCase()}!`, css(d.color), 72, -4) : fx.quip(d.x, d.y - 90, d.name, css(d.color), 30, 0)));
+    e.on(PeelFx.Hit, ({ foot: f, vfx, color }) => {
+      if (vfx === 'frost') fx.frost(f.cx, f.cy);
+      else if (vfx === 'fire') fx.burn(f.cx, f.cy);
+      else if (vfx === 'zap' || vfx === 'gold') fx.glint(f.cx, f.cy, 3);
+      else if (vfx === 'rain') {
+        const drop = this.sc.add.image(f.cx, f.cy - 320, 'glow').setTint(color).setBlendMode(Phaser.BlendModes.ADD).setScale(0.35, 0.9).setAlpha(0.9);
+        this.h.layer.add(drop);
+        this.sc.tweens.add({ targets: drop, y: f.cy, duration: 160, ease: 'Quad.In', onComplete: () => drop.destroy() });
+      } else fx.impact(f.cx, f.cy, false);
+    });
+    e.on(PeelFx.Burn, ({ foot: f }) => fx.burn(f.cx, f.cy));
+    e.on(PeelFx.Freeze, ({ foot: f }) => fx.frost(f.cx, f.cy));
+    e.on(PeelFx.FreezeSound, () => audio.sfx('sfx_freeze', { throttle: 200 }));
+    e.on(PeelFx.SlamFreezeSound, () => audio.sfx('sfx_freeze'));
+    e.on(PeelFx.Mark, ({ foot: f, color }) => f.flash(color, 120));
+    e.on(PeelFx.ChainSound, () => audio.sfx('sfx_zap', { throttle: 60 }));
+    e.on(PeelFx.Chain, (d) => fx.lightning(d.x1, d.y1, d.x2, d.y2));
+    e.on(PeelFx.Finished, ({ foot: f }) => fx.quip(f.x, f.cy - 120, 'FINISHED!', '#ff8a6a', 36));
+    e.on(PeelFx.Shield, (d) => fx.ring(d.x, d.y, d.color, 0.8, 0.4));
+    e.on(PeelFx.Blast, (d) => fx.explosion(d.x, d.y, d.r));
+    e.on(PeelFx.BlastSound, () => audio.sfx('sfx_explosion', { throttle: 90, volume: 0.6 }));
+  }
 
   private get sc(): Phaser.Scene {
     return this.h.sc;

@@ -160,6 +160,9 @@ export function installDevTools(game: Phaser.Game): void {
     /** Hand-written card text checked against the effects (src/game/cardText.ts): problems, and how many toppings
      *  read generated text, which have an override, and how many the scene runs itself. */
     cardTextAudit: async () => (await import('./devCardText')).audit(),
+    /** Every topping, pizza and peel through the effect adapters (src/devEffectsAudit.ts; a run must be up: F.startGame
+     *  first): what declares no effect, what STATS doesn't show, what reads its own off-switch. */
+    effectsAudit: async () => (await import('./devEffectsAudit')).effectsAudit(game.scene.getScene('Game') as AnyScene),
     /** With the shop open: every topping's card text, all levels, both heats, that doesn't fit a shop card's 4-line
      *  text block in one of the shop's layouts (empty: all fit). */
     cardTextFit: async () => (await import('./devCardText')).fit(),

@@ -3,6 +3,7 @@
 
 import type { Foot } from '../game/Foot';
 import type { Pizza } from '../game/Pizza';
+import type { HitQuery } from './perHit';
 
 export const GameEvent = {
   /** Every frame of a wave. */
@@ -21,6 +22,33 @@ export const GameEvent = {
   WaveStart: 'waveStart',
   /** The wave is clear. */
   WaveClear: 'waveClear',
+  // ——— step 3 ———
+  /** A stomp is about to land on a pizza, before anything else (piercing stomps too): a defence may block it. */
+  PreStomp: 'preStomp',
+  /** A stomp meets the pizza's walls (where Pizza Stone is: a piercing stomp never gets here): a defence may block it. */
+  StompWall: 'stompWall',
+  /** A stomp is about to take slices: a defence may take fewer (`dmg`). */
+  StompDamage: 'stompDamage',
+  /** A frame of a wave begins (before the feet are looked at). */
+  FrameStart: 'frameStart',
+  /** A foot standing on the field, once a frame. */
+  FootTick: 'footTick',
+  /** A wave opens: the table's own changes, before the field is set (shields, new colours, picks). */
+  WaveOpen: 'waveOpen',
+  /** A pizza joins the table (`fresh`: bought or placed now, not a saved run coming back). */
+  Placed: 'placed',
+  /** A pizza was enhanced. */
+  Enhanced: 'enhanced',
+  /** A pizza has just been destroyed: a perk may keep it (`answer`). */
+  Destroyed: 'destroyed',
+  /** A pizza is lost (it stayed destroyed): a perk may bring it back (`answer`). */
+  Lost: 'lost',
+  /** The peel's meter ability is used (pressed, or by itself when the meter fills). */
+  Slam: 'slam',
+  /** The wave is over, before anything is paid for it: the props and walls come down. */
+  WaveClose: 'waveClose',
+  /** A hit (or a moment) being worked out: never emitted, asked (Effect.PerHit, src/effects/perHit.ts). */
+  Hit: 'hit',
 } as const;
 export type GameEventId = (typeof GameEvent)[keyof typeof GameEvent];
 
@@ -34,6 +62,29 @@ export interface EventData {
   stomp: { foot: Foot; pizza: Pizza };
   waveStart: { wave: number };
   waveClear: { wave: number; perfect: boolean; earned: number };
+  preStomp: { foot: Foot; pizza: Pizza; blocked: boolean };
+  stompWall: { foot: Foot; pizza: Pizza; blocked: boolean };
+  stompDamage: { foot: Foot; pizza: Pizza; dmg: number };
+  frameStart: { dt: number };
+  footTick: { foot: Foot; dt: number };
+  waveOpen: { wave: number };
+  placed: { pizza: Pizza; fresh: boolean };
+  enhanced: { pizza: Pizza };
+  destroyed: { pizza: Pizza; fresh: boolean; answer: Answer };
+  lost: { pizza: Pizza; fresh: boolean; answer: Answer };
+  hit: HitQuery;
+  waveClose: { wave: number };
+  slam: { auto: boolean };
+}
+
+/** What a perk answers when a pizza is destroyed: it survives (back on its feet now), it rises (back in a moment), or
+ *  nothing (it's gone). */
+export const Answer = { None: null, Survive: 'survive', Rise: 'rise' } as const;
+export type Answer = (typeof Answer)[keyof typeof Answer];
+
+/** Moments that ask a question: the bus stops once one is answered (first defence wins). */
+export function answered(ev: AnyEvent): boolean {
+  return ('blocked' in ev && ev.blocked) || ('answer' in ev && ev.answer !== null);
 }
 export type AnyEvent = EventData[GameEventId];
 
@@ -45,5 +96,5 @@ export function footOf(ev: AnyEvent): Foot | null {
 /** The pizza a moment is about: the one stomped, else the one the foot was over. */
 export function pizzaOf(ev: AnyEvent): Pizza | null {
   if ('pizza' in ev) return ev.pizza;
-  return 'foot' in ev ? (ev.foot.target ?? null) : null;
+  return 'foot' in ev ? (ev.foot?.target ?? null) : null;
 }

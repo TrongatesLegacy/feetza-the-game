@@ -23,6 +23,7 @@ import type { Pizza } from './Pizza';
 // the god peels' moves and passives register themselves (src/game/godMoves.ts)
 import './godMoves';
 import { STAGES } from '../data/stages';
+import { UPGRADE_BY_ID } from '../data/upgrades';
 import { NIGHT_STAGES } from './heroGoals';
 import { crand } from '../systems/cosmeticRandom';
 
@@ -1977,7 +1978,7 @@ registerPassives({
   'hero:boostergouda': {
     waveStart: (k) => {
       const cards = k.host.peekShop();
-      if (cards.length) k.host.toast(null, 'FROM THE FUTURE · NEXT SHOP', cards.join(', '));
+      if (cards.length) k.host.toast(null, 'FROM THE FUTURE · NEXT SHOP', cards.map((id) => UPGRADE_BY_ID[id]?.name ?? id).join(', '));
     },
   },
 

@@ -12,7 +12,8 @@
 import type { Ability, Effect, Proc, Target } from './abilities';
 import { describeAbility, throwCount } from './abilities';
 import type { Stats } from '../data/upgrades';
-import { baseStats, kindOf, UPGRADE_BY_ID, UpgradeKind } from '../data/upgrades';
+import { baseStats, declaring, kindOf, procOf, UPGRADE_BY_ID, UpgradeKind } from '../data/upgrades';
+import { Trick, type TrickId } from '../effects';
 import { cardLine, cardText } from './cardText';
 import { Better, Stack, STAT_DEFS, STAT_KEYS } from '../effects/stats';
 import { CAP_SOURCE, type Breakdown } from '../effects/ledger';
@@ -332,7 +333,7 @@ export function sourceInfo(key: string): { label: string; color: string; icon: s
   if (SRC_INFO[key]) return SRC_INFO[key];
   if (key.startsWith('proc:')) {
     const u = UPGRADE_BY_ID[key.slice(5)];
-    if (u) return { label: u.name, color: hex(u.proc?.color ?? 0xd9a066), icon: u.icon };
+    if (u) return { label: u.name, color: hex(procOf(u)?.color ?? 0xd9a066), icon: u.icon };
   }
   return { label: key, color: '#a08a70', icon: '•' };
 }
@@ -375,6 +376,11 @@ export function buildView(inp: BuildInput): BuildView {
   const g = inp.hero.all * inp.waveMult;
   const dmg = st.damage;
   const lv = (id: string) => inp.owned[id] ?? 0;
+  // a scene trick's level and the topping holding it (for its chip), from what the toppings declare (Effect.Trick)
+  const tk = (t: TrickId): { lvl: number; id: string } => {
+    for (const d of declaring(`trick:${t}`)) if (lv(d.id) > 0) return { lvl: lv(d.id), id: d.id };
+    return { lvl: 0, id: '' };
+  };
 
   // ——— measured ———
   const { span, label: paceFrom } = rates(inp.tally);
@@ -389,8 +395,8 @@ export function buildView(inp: BuildInput): BuildView {
   const pCrit = tenth ? pc0 + (1 - pc0) / tenth : pc0;
   const critAvg = 1 + pCrit * (st.critMult - 1);
   const dbl = Math.min(DOUBLE_CAP, st.doubleChance + inp.extraDouble);
-  const fold = lv('foldover') ? 1 / (lv('foldover') >= 2 ? 3 : 4) : 0;
-  const echo = lv('echochamber') ? 0.2 + 0.1 * (lv('echochamber') - 1) : 0;
+  const fold = tk(Trick.FoldOver).lvl ? 1 / (tk(Trick.FoldOver).lvl >= 2 ? 3 : 4) : 0;
+  const echo = tk(Trick.EchoChamber).lvl ? 0.2 + 0.1 * (tk(Trick.EchoChamber).lvl - 1) : 0;
   const hits = 1 + dbl + fold + echo;
   const hitDmg = dmg * critAvg * inp.hero.smack * g;
   const perSmack = hitDmg * hits;
@@ -470,14 +476,14 @@ export function buildView(inp: BuildInput): BuildView {
     addAuto({ key: `proc:${pr.id}`, label: u.name, icon: u.icon, color: hex(pr.p.color), dps, rate, measured: measuredOf(`proc:${pr.id}`), note, from: [topSrc(u.id, pr.lvl)] });
   }
   // topping tricks
-  if (lv('pizzadrone')) {
-    const per = 0.25 * lv('pizzadrone') * dmg * auto * g;
-    addAuto({ key: 'kit:drone', label: 'Pizza Drone', icon: '🛸', img: inp.tex('tp_drone'), color: SRC_INFO['kit:drone'].color, dps: per / 2, measured: measuredOf('kit:drone'), note: `a zap every 2s · ${Math.round(per)} a zap`, from: [topSrc('pizzadrone', lv('pizzadrone'))] });
+  if (tk(Trick.PizzaDrone).lvl) {
+    const per = 0.25 * tk(Trick.PizzaDrone).lvl * dmg * auto * g;
+    addAuto({ key: 'kit:drone', label: 'Pizza Drone', icon: '🛸', img: inp.tex('tp_drone'), color: SRC_INFO['kit:drone'].color, dps: per / 2, measured: measuredOf('kit:drone'), note: `a zap every 2s · ${Math.round(per)} a zap`, from: [topSrc(tk(Trick.PizzaDrone).id, tk(Trick.PizzaDrone).lvl)] });
   }
-  if (lv('woodfired')) {
-    const n = lv('woodfired') >= 2 ? 7 : 10;
+  if (tk(Trick.WoodFired).lvl) {
+    const n = tk(Trick.WoodFired).lvl >= 2 ? 7 : 10;
     const per = (4 * dmg * auto + Math.max(0, 1 * dmg * auto - st.burnDps * auto) * 3) * g / n;
-    addAuto({ key: 'kit:woodfired', label: 'Wood-Fired', icon: '🏕️', color: SRC_INFO['kit:woodfired'].color, dps: pace !== null ? per * pace : null, rate: 'smack', measured: measuredOf('kit:woodfired'), note: `every ${n}th smack is a fireball · ${r1(per)} a smack`, from: [topSrc('woodfired', lv('woodfired'))] });
+    addAuto({ key: 'kit:woodfired', label: 'Wood-Fired', icon: '🏕️', color: SRC_INFO['kit:woodfired'].color, dps: pace !== null ? per * pace : null, rate: 'smack', measured: measuredOf('kit:woodfired'), note: `every ${n}th smack is a fireball · ${r1(per)} a smack`, from: [topSrc(tk(Trick.WoodFired).id, tk(Trick.WoodFired).lvl)] });
   }
   // pizza perks that attack on their own
   const pzSrc = (p: TablePizza): Src => ({ key: `pizza:${p.id}`, name: p.name, img: p.img, tone: 'up', tip: p.line });
@@ -576,8 +582,8 @@ export function buildView(inp: BuildInput): BuildView {
     statTile('critMult'),
   ];
   if (dbl > 0) dmgTiles.push({ label: 'Double smack', num: pct(dbl), fmt: 'pct', icon: '👏', tone: 'up', from: [...from('doubleChance'), ...inp.pizzas.filter((p) => p.perk === 'fullSpeed' || p.perk === 'smackSpeed').map(pzSrc)], note: dbl >= DOUBLE_CAP - 1e-6 ? `at the ${pct(DOUBLE_CAP)}% cap` : 'chance to smack again' });
-  if (fold) dmgTiles.push({ label: 'Fold Over', num: lv('foldover') >= 2 ? 3 : 4, fmt: 'int', pre: 'every ', post: 'th', icon: '🌮', tone: 'up', from: [topSrc('foldover', lv('foldover'))], note: 'smack hits twice' });
-  if (echo) dmgTiles.push({ label: 'Echo smacks', num: pct(echo), fmt: 'pct', icon: '📣', tone: 'up', from: [topSrc('echochamber', lv('echochamber'))] });
+  if (fold) dmgTiles.push({ label: 'Fold Over', num: tk(Trick.FoldOver).lvl >= 2 ? 3 : 4, fmt: 'int', pre: 'every ', post: 'th', icon: '🌮', tone: 'up', from: [topSrc(tk(Trick.FoldOver).id, tk(Trick.FoldOver).lvl)], note: 'smack hits twice' });
+  if (echo) dmgTiles.push({ label: 'Echo smacks', num: pct(echo), fmt: 'pct', icon: '📣', tone: 'up', from: [topSrc(tk(Trick.EchoChamber).id, tk(Trick.EchoChamber).lvl)] });
   if (st.execute > 0) dmgTiles.push(statTile('execute'));
   // conditional multipliers
   const fullBoss = inp.pizzas.filter((p) => p.perk === 'fullBoss' && p.slices === p.max).reduce((m, p) => m * (1 + 0.15 * p.pk), 1);
@@ -703,7 +709,7 @@ export function buildView(inp: BuildInput): BuildView {
     seenCc.add(p.perk);
     cc.push(perkCc[p.perk]!(p));
   }
-  if (lv('coldfeet')) cc.push({ label: 'Cold Feet', num: 5, fmt: 'sec', icon: '🧦', tone: 'up', from: [topSrc('coldfeet', 1)], note: 'half speed as each wave starts' });
+  if (tk(Trick.ColdFeet).lvl) cc.push({ label: 'Cold Feet', num: 5, fmt: 'sec', icon: '🧦', tone: 'up', from: [topSrc(tk(Trick.ColdFeet).id, 1)], note: 'half speed as each wave starts' });
   cc.push(...echoTiles.filter((e) => e.where === 'cc').map((e) => e.t));
   sections.push({ id: 'cc', title: 'Crowd control', icon: '🧊', color: '#4cc9f0', sub: 'stuns, slows and shoves', tiles: cc, empty: 'Nothing stuns or slows feet yet.' });
 
@@ -772,7 +778,7 @@ export function buildView(inp: BuildInput): BuildView {
   if (regrow > 0) sus.push({ label: 'Regrowth each wave', num: regrow, fmt: 'int', pre: '+', post: regrow === 1 ? ' slice' : ' slices', icon: '🌱', tone: 'up', from: from('regenPerWave', 'regenAll'), note: 'on every pizza', big: true });
   if (st.healWeakest > 0) sus.push({ label: 'Patch the weakest', num: st.healWeakest, fmt: 'int', pre: '+', post: st.healWeakest === 1 ? ' slice' : ' slices', icon: '🩹', tone: 'up', from: from('healWeakest'), note: 'after each wave', big: true });
   const perkShield = inp.pizzas.filter((p) => p.perk === 'shield');
-  if (st.shields > 0 || perkShield.length) sus.push({ label: 'Stomp shields', num: st.shields, fmt: 'int', post: ' each', icon: '🧀', tone: tone('shields'), from: [...from('shields'), ...perkShield.map(pzSrc)], note: `every pizza, every wave${perkShield.length ? ' · +1 on Quattro Formaggi' : ''}${lv('crustarmour') ? ` · +${lv('crustarmour')} in boss waves` : ''}` });
+  if (st.shields > 0 || perkShield.length) sus.push({ label: 'Stomp shields', num: st.shields, fmt: 'int', post: ' each', icon: '🧀', tone: tone('shields'), from: [...from('shields'), ...perkShield.map(pzSrc)], note: `every pizza, every wave${perkShield.length ? ' · +1 on Quattro Formaggi' : ''}${tk(Trick.CrustArmour).lvl ? ` · +${tk(Trick.CrustArmour).lvl} in boss waves` : ''}` });
   if (st.shrugChance > 0) sus.push(statTile('shrugChance'));
   if (st.traps > 0) sus.push({ label: 'Mousetraps', num: Math.round(100 * auto * g), fmt: 'int', icon: '🪤', tone: 'up', from: from('traps'), note: `${st.traps} under every pizza each wave, + stun` });
   if (st.stompBurn > 0) sus.push(statTile('stompBurn', { num: st.stompBurn * auto * g }));

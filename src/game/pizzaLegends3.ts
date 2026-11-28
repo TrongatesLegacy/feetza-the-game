@@ -29,8 +29,8 @@ import type { Arena } from './arena';
 import type { Foot } from './Foot';
 import type { Pizza } from './Pizza';
 import type { LegendHost } from './pizzaLegends';
-import type { Run } from './Run';
-import { legendDmg, legendLook } from './legendary';
+import { legendLook } from './legendary';
+import { Action, Hit, Unit } from '../effects';
 import { lensIdle, lensOff, lensOn, type LensFX } from './lensFx';
 
 /** Sounds Act 3's perks play that aren't loaded at boot (all credited already): the Cosmic Croc's black hole and its
@@ -127,10 +127,6 @@ export class Act3Legends {
     for (const [k, draw] of tex) if (!this.sc.textures.exists(k)) this.sc.textures.addCanvas(k, draw());
   }
 
-  private get run(): Run {
-    return this.h.run();
-  }
-
   /** A foot a perk may move or take: on the table and reachable, not a friendly zombie or one a fight moves by hand. */
   private reachable(f: Foot): boolean {
     return f.alive && f.hittable && !f.zombieHold && !f.puppet && !f.brain.free && !f.pinned && f.y > 0;
@@ -142,13 +138,24 @@ export class Act3Legends {
     this.holeT = 0;
   }
 
-  waveClear(): void {
-    // (the roar's boost ends with its wave; an open hole closes as the wave clears)
+  /** The wave closes: the roar's boost ends with its wave. */
+  roarEnd(): void {
     this.roarUntil = -99;
+  }
+
+  /** The wave closes: an open hole closes as the wave clears. */
+  holeEnd(): void {
     if (this.hole) this.closeHole(this.hole, true);
   }
 
-  update(dt: number): void {
+  /** Is a Black Olive Hole open now? */
+  holeOpen(): boolean {
+    return !!this.hole;
+  }
+
+  /** Every frame: Roar Roast's and Black Olive Hole's timers (one frame's look at the field for both, as they always
+   *  had: a roar can't change whether the hole's clock runs this frame). */
+  timersTick(dt: number): void {
     const roar = this.h.c('hearthRoar');
     const bh = this.h.c('blackHole');
     if (roar > 0 || bh > 0) {
@@ -159,7 +166,15 @@ export class Act3Legends {
       }
       this.timers(dt, roar, bh, on);
     }
+  }
+
+  /** Every frame: an open hole pulls. */
+  holeStep(dt: number): void {
     if (this.hole) this.holeTick(this.hole, dt);
+  }
+
+  /** Every frame: the roar's ripple rolls out. */
+  rippleStep(dt: number): void {
     if (this.wave) this.waveTick(dt);
   }
 
@@ -194,16 +209,17 @@ export class Act3Legends {
 
   // ════════════════════════════ Cosmic Crouton Supreme ════════════════════════════
 
-  /** A smack landed on f: 1% of the time (enhanced 1.5%, copies add) the crouton opens a portal on it. */
-  smacked(f: Foot): void {
-    // Roar Roast's boost shows on the smacks it strengthens: embers off the foot
+  /** A smack landed on f: Roar Roast's boost shows on the smacks it strengthens, embers off the foot. */
+  roarSparks(f: Foot): void {
     if (this.roaring() && f.alive && this.every('roarHit', 0.12)) {
       this.a.fx.burn(f.cx + (crand() - 0.5) * 30, f.cy + 20);
       this.a.fx.ring(f.cx, f.cy + 30, 0xff8a2a, 0.7, 0.5);
     }
-    const k = this.h.c('croutonPortal');
-    if (k <= 0 || !f.alive || !f.hittable || f.zombieHold || f.puppet || f.brain.free || f.brain.portal) return;
-    if (Math.random() >= Math.min(0.05, 0.01 * k)) return;
+  }
+
+  /** A smack's 1% (enhanced 1.5%, copies add; rolled on the bus: src/game/perkEffects.ts) came up: the crouton opens a
+   *  portal on f (a boss takes ×10 instead). */
+  portalOn(f: Foot): void {
     const pies = this.h.granting('croutonPortal');
     const src = pies[0];
     if (!src) return;
@@ -310,9 +326,8 @@ export class Act3Legends {
       a.fx.ring(px, py, look.col2, 1.6, 0.9);
       for (let i = 0; i < (light ? 4 : 8); i++) this.streak(px, py, 160 + crand() * 220, 280 + crand() * 160, crand() * 120);
       if (!f.alive) return;
-      const dmg = legendDmg(10, this.run.stats.damage, this.run.heat);
       f.flash(0xbff6ff, 120);
-      this.h.dealDamage(f, dmg, 'explode', 300, 'perk:croutonPortal');
+      this.h.strike(f, 'croutonPortal', Action.Damage(Hit.Legend(Unit.Mult(10)), { knock: Unit.Amount(300) }));
       a.quip(px, py - 220, 'COSMIC CROUTON! ×10', look.css, 44);
     });
   }
@@ -660,8 +675,7 @@ export class Act3Legends {
         if (f.stunT <= 0.3) f.stunT = 0.01;
       }
       if (!quiet && f.hittable) {
-        const dmg = legendDmg(5 * c.k, this.run.stats.damage, this.run.heat);
-        this.h.dealDamage(f, dmg, 'explode', 0, 'perk:blackHole');
+        this.h.strike(f, 'blackHole', Action.Damage(Hit.Legend(Unit.Mult(5)), { knock: Unit.Amount(0) }), c.k);
         hits++;
       }
       if (!f.alive) continue;

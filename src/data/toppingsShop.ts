@@ -5,7 +5,7 @@
 import type { Upgrade } from './upgrades';
 import { OnPick, UpgradeKind } from './itemKinds';
 import { Rarity } from './rarity';
-import { Effect, Op, Stat, Unit } from '../effects';
+import { DealRule, Effect, Op, Price, Stat, Unit } from '../effects';
 import { KitTopping, Topping } from './toppingDefs';
 
 export const SHOP_TOPPINGS: Upgrade[] = [
@@ -26,12 +26,24 @@ export const SHOP_TOPPINGS: Upgrade[] = [
     rarity: Rarity.Common,
     maxLevel: 2,
     text: { up: 'The 3rd topping you buy in each shop is 20% off' },
+    effects: [
+      Effect.ShopPrice(
+        Price.BulkBuy,
+        Unit.Percent(20),
+      ),
+    ],
   }),
   KitTopping({
     id: 'happyhour', name: 'Happy Hour', icon: '🍹',
     rarity: Rarity.Common,
     maxLevel: 1,
     text: { up: 'Every 5th wave’s shop: all toppings 25% off' },
+    effects: [
+      Effect.ShopPrice(
+        Price.HappyHour,
+        Unit.Percent(25),
+      ),
+    ],
   }),
   Topping({
     id: 'dayold', name: 'Day-Old Deals', icon: '🧇',
@@ -67,6 +79,9 @@ export const SHOP_TOPPINGS: Upgrade[] = [
     maxLevel: 1,
     text: { up: 'One pizza from the counter is free, once this run' },
     kind: UpgradeKind.Unique,
+    effects: [
+      Effect.Deal(DealRule.FreeDelivery),
+    ],
   }),
   Topping({
     id: 'extrashelf', name: 'Extra Shelf', icon: '🪜',
@@ -84,6 +99,13 @@ export const SHOP_TOPPINGS: Upgrade[] = [
     rarity: Rarity.Rare,
     maxLevel: 1,
     text: { up: 'Each topping bought takes 10% off the next (up to 30%)' },
+    effects: [
+      Effect.ShopPrice(
+        Price.Haggle,
+        Unit.Percent(10),
+        { cap: Unit.Percent(30) },
+      ),
+    ],
   }),
   Topping({
     id: 'freerefill', name: 'Free Refill', icon: '🔄',
@@ -119,7 +141,9 @@ export const SHOP_TOPPINGS: Upgrade[] = [
     maxLevel: 1,
     text: { up: 'The next topping you level up gets a free extra level' },
     kind: UpgradeKind.Unique,
-    onPick: OnPick.Bogo,
+    effects: [
+      Effect.OnPick(OnPick.Bogo),
+    ],
   }),
   Topping({
     id: 'goldenticket', name: 'Golden Ticket', icon: '🎫',
@@ -137,12 +161,22 @@ export const SHOP_TOPPINGS: Upgrade[] = [
     rarity: Rarity.Epic,
     maxLevel: 1,
     text: { up: 'A Chef’s Special is always on the counter, 25% cheaper' },
+    effects: [
+      Effect.ShopPrice(
+        Price.ChefsSpecial,
+        Unit.Percent(25),
+      ),
+      Effect.Deal(DealRule.ChefsSpecial),
+    ],
   }),
   KitTopping({
     id: 'clearance', name: 'Clearance Rack', icon: '📉',
     rarity: Rarity.Epic,
     maxLevel: 1,
     text: { up: 'One topping card in every shop is half price' },
+    effects: [
+      Effect.Deal(DealRule.Clearance),
+    ],
   }),
   Topping({
     id: 'premiummenu', name: 'Premium Menu', icon: '💎',
@@ -171,6 +205,9 @@ export const SHOP_TOPPINGS: Upgrade[] = [
     rarity: Rarity.Legendary,
     maxLevel: 1,
     text: { up: 'Once every 10 waves, take any one topping card free' },
+    effects: [
+      Effect.Deal(DealRule.FreeLunch),
+    ],
   }),
   Topping({
     id: 'ownersdiscount', name: 'Owner’s Discount', icon: '🏷️',
@@ -186,6 +223,10 @@ export const SHOP_TOPPINGS: Upgrade[] = [
         Stat.GoldenDiscount,
         Op.Add(Unit.Percent(25)),
       ),
+      Effect.ShopPrice(
+        Price.Owner,
+        Unit.Percent(25),
+      ),
     ],
   }),
   KitTopping({
@@ -193,12 +234,18 @@ export const SHOP_TOPPINGS: Upgrade[] = [
     rarity: Rarity.Legendary,
     maxLevel: 1,
     text: { up: 'One free counter pizza every 10 waves' },
+    effects: [
+      Effect.Deal(DealRule.Bottomless),
+    ],
   }),
   KitTopping({
     id: 'stockroom', name: 'Stockroom Key', icon: '🔑',
     rarity: Rarity.Legendary,
     maxLevel: 1,
     text: { up: 'The first card you buy in each shop restocks' },
+    effects: [
+      Effect.Deal(DealRule.Restock),
+    ],
   }),
   // (each level sets the Exclusive card's discount outright, not on top; LV1's catch stays the same at every level)
   Topping({

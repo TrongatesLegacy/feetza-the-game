@@ -145,6 +145,8 @@ export const StatEffect = effectKind('stat', makeStat, {
     if (e.atLevel !== undefined && ctx.level !== e.atLevel) return;
     ctx.ledger.add({ stat: e.stat, op, source: ctx.source, phase: e.phase ?? ctx.phase });
   },
+  // (whatever the heat: a level counts if it changes the stat on some heat)
+  doesAt: (e, level) => opAt(e.op, level) !== null && (e.atLevel === undefined || e.atLevel === level),
   // (player-ready: "+18% chain lightning chance, +10% each level-up"; the card text reads the same words)
   describe: (e) => describeStatEffect(e),
   scale(e, k): StatData {

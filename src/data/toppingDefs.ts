@@ -12,12 +12,12 @@
 // say it (the scene's own toppings) or say it worse.
 
 import type { Proc } from '../game/abilities';
-import { When } from '../effects';
+import { Effect, When } from '../effects';
 import type { EffectData } from '../effects';
 import type { StatData } from '../effects/stat';
 import type { WhenId } from '../effects/when';
 import { freshnessOn } from '../game/heatRules';
-import { OnPick, UpgradeKind, type NeedsMeter } from './itemKinds';
+import { OnPick, UpgradeKind, type Needs, type NeedsMeter } from './itemKinds';
 import type { Rarity } from './rarity';
 import type { OfferEnv, TextLine, TextOverride, Upgrade } from './upgrades';
 
@@ -29,10 +29,10 @@ interface ToppingBase {
   rarity: Rarity;
   maxLevel: number;
   kind?: UpgradeKind;
-  onPick?: OnPick;
   offerIf?: (env: OfferEnv) => boolean;
   needsEvents?: boolean;
   needsMeter?: NeedsMeter;
+  needs?: readonly Needs[];
   text?: TextOverride;
 }
 
@@ -47,15 +47,29 @@ export function KitTopping(d: ToppingBase & { effects?: EffectData[]; text: Text
   return { ...d };
 }
 
-/** A proc topping: an ability-style trigger and effects (src/game/abilities.ts), scaled by level; its card text is the
- *  proc's own (describeProc). */
+/** A proc topping: an ability-style trigger and effects (src/game/abilities.ts), scaled by level, declared as its
+ *  Effect.Proc; its card text is the proc's own (describeProc). */
 export function ProcTopping(d: ToppingBase & { proc: Proc }): Upgrade {
-  return { ...d };
+  const { proc, ...rest } = d;
+  return {
+    ...rest,
+    effects: [
+      Effect.Proc(proc),
+    ],
+  };
 }
 
 /** A Pick: one use, choose one of 3 random toppings of its rarity, free (its card text says so). */
 export function PickTopping(d: Pick<ToppingBase, 'id' | 'name' | 'icon' | 'rarity'>): Upgrade {
-  return { ...d, maxLevel: 1, kind: UpgradeKind.Consumable, pick: d.rarity, onPick: OnPick.Pick };
+  return {
+    ...d,
+    maxLevel: 1,
+    kind: UpgradeKind.Consumable,
+    pick: d.rarity,
+    effects: [
+      Effect.OnPick(OnPick.Pick),
+    ],
+  };
 }
 
 /** A trade-off paid in freshness, with a different catch on Mild (where freshness is off): `fresh` while freshness is

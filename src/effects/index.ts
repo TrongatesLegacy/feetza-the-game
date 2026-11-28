@@ -16,6 +16,24 @@ import { OnSwingEffect } from './onSwing';
 import { StatEffect } from './stat';
 import { WaveClearEffect } from './waveClear';
 import { WaveStartEffect } from './waveStart';
+import { DefendEffect } from './defend';
+import { SoftenEffect } from './soften';
+import { FrameStartEffect } from './frameStart';
+import { AuraEffect } from './aura';
+import { EachFrameEffect } from './eachFrame';
+import { WaveOpenEffect } from './waveOpen';
+import { OnPlacedEffect } from './onPlaced';
+import { OnEnhancedEffect } from './onEnhanced';
+import { OnDestroyedEffect } from './onDestroyed';
+import { OnLostEffect } from './onLost';
+import { PerHitEffect } from './perHit';
+import { WaveCloseEffect } from './waveClose';
+import { TrickEffect } from './trick';
+import { ShopPriceEffect } from './shopPrice';
+import { DealEffect } from './deal';
+import { ProcEffect } from './proc';
+import { OnPickEffect } from './onPick';
+import { OnSlamEffect } from './onSlam';
 
 export const Effect = {
   Stat: StatEffect,
@@ -27,6 +45,24 @@ export const Effect = {
   OnStomp: OnStompEffect,
   WaveStart: WaveStartEffect,
   WaveClear: WaveClearEffect,
+  Defend: DefendEffect,
+  Soften: SoftenEffect,
+  FrameStart: FrameStartEffect,
+  Aura: AuraEffect,
+  EachFrame: EachFrameEffect,
+  WaveOpen: WaveOpenEffect,
+  OnPlaced: OnPlacedEffect,
+  OnEnhanced: OnEnhancedEffect,
+  OnDestroyed: OnDestroyedEffect,
+  OnLost: OnLostEffect,
+  PerHit: PerHitEffect,
+  WaveClose: WaveCloseEffect,
+  Trick: TrickEffect,
+  ShopPrice: ShopPriceEffect,
+  Deal: DealEffect,
+  Proc: ProcEffect,
+  OnPick: OnPickEffect,
+  OnSlam: OnSlamEffect,
 } as const;
 
 /** Any effect, as data. */
@@ -44,6 +80,24 @@ const KINDS: { [E in EffectData as E['kind']]: KindSpec<E> } = {
   onStomp: OnStompEffect.spec,
   waveStart: WaveStartEffect.spec,
   waveClear: WaveClearEffect.spec,
+  defend: DefendEffect.spec,
+  soften: SoftenEffect.spec,
+  frameStart: FrameStartEffect.spec,
+  aura: AuraEffect.spec,
+  eachFrame: EachFrameEffect.spec,
+  waveOpen: WaveOpenEffect.spec,
+  onPlaced: OnPlacedEffect.spec,
+  onEnhanced: OnEnhancedEffect.spec,
+  onDestroyed: OnDestroyedEffect.spec,
+  onLost: OnLostEffect.spec,
+  perHit: PerHitEffect.spec,
+  waveClose: WaveCloseEffect.spec,
+  trick: TrickEffect.spec,
+  shopPrice: ShopPriceEffect.spec,
+  deal: DealEffect.spec,
+  proc: ProcEffect.spec,
+  onPick: OnPickEffect.spec,
+  onSlam: OnSlamEffect.spec,
 };
 
 const spec = <E extends EffectData>(e: E) => KINDS[e.kind as E['kind']] as unknown as KindSpec<E>;
@@ -53,6 +107,10 @@ export const effects = {
   describe: (e: EffectData): string => spec(e).describe(e),
   scale: <E extends EffectData>(e: E, k: number): E => spec(e).scale(e, k),
   tags: (e: EffectData): TagId[] => spec(e).tags(e),
+  /** Its card text is written by hand (KindSpec.quiet). */
+  quiet: (e: EffectData): boolean => !!spec(e).quiet,
+  /** Does it do anything at this level (KindSpec.doesAt)? */
+  doesAt: (e: EffectData, level: number): boolean => spec(e).doesAt?.(e, level) ?? true,
 };
 
 /** Apply a list of effects from one source, once for each level (a topping at LV3 applies them for 1, 2 and 3). */
@@ -68,10 +126,15 @@ export { Op } from './stat';
 export { Stat, STAT_DEFS, Section, Stack, Better } from './stats';
 export { Unit, UnitKind } from './units';
 export { When } from './when';
-export { GameEvent, type EventData, type GameEventId } from './events';
+export { GameEvent, Answer, type EventData, type GameEventId } from './events';
+export { Guard } from './defend';
+export { Trick, TRICK_DEFS, isAutoTrick, type TrickId } from './trick';
+export { Price, type PriceId } from './shopPrice';
+export { DealRule, type DealRuleId } from './deal';
+export { HitStat, Grow, type HitQuery, type HitStatId } from './perHit';
 export { Cond, type CondData } from './cond';
 export { Status, Enh, Dps, SlowStack } from './status';
-export { Action, Pay, At, Who, Ally, type ActionData, type ActionHost, type Fire } from './actions';
+export { Action, Pay, At, Who, Ally, Hit, type ActionData, type ActionHost, type Fire } from './actions';
 export { Scope, Nth, type PlayCtx, type Grant } from './trigger';
 export { Pick, Reset } from './every';
 export { Tag, TriggerKind, type TagId, type TriggerKindId } from './tags';

@@ -3,7 +3,7 @@
 
 import { P, TRIG, type Proc } from '../game/abilities';
 import type { Upgrade } from './upgrades';
-import { NeedsMeter } from './itemKinds';
+import { Needs, NeedsMeter } from './itemKinds';
 import { Rarity } from './rarity';
 import { Effect, Op, Stat, Unit } from '../effects';
 import { ProcTopping, Topping } from './toppingDefs';
@@ -45,6 +45,7 @@ export const MORE_TOPPINGS: Upgrade[] = [
     id: 'basil', name: 'Fresh Basil', icon: '🌱',
     rarity: Rarity.Common,
     maxLevel: 3,
+    needs: [Needs.Freshness],
     effects: [
       Effect.Stat(
         Stat.FreshBonus,

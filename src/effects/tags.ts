@@ -19,13 +19,26 @@ export const TriggerKind = {
   OnStomp: 'onStomp',
   WaveStart: 'waveStart',
   WaveClear: 'waveClear',
+  Defend: 'defend',
+  Soften: 'soften',
+  FrameStart: 'frameStart',
+  Aura: 'aura',
+  EachFrame: 'eachFrame',
+  WaveOpen: 'waveOpen',
+  OnPlaced: 'onPlaced',
+  OnEnhanced: 'onEnhanced',
+  OnDestroyed: 'onDestroyed',
+  OnLost: 'onLost',
+  PerHit: 'perHit',
+  WaveClose: 'waveClose',
+  OnSlam: 'onSlam',
 } as const;
 export type TriggerKindId = (typeof TriggerKind)[keyof typeof TriggerKind];
 
 type OpTag = 'add' | 'mul' | 'set' | 'on' | 'atLeast' | 'atMost' | 'none';
-type ScopeTag = 'table' | 'each' | 'sum' | 'target' | 'alive';
+type ScopeTag = 'table' | 'each' | 'sum' | 'target' | 'alive' | 'field' | 'own';
 type StatusTag = 'burn' | 'slow' | 'stun' | 'freeze';
-type ActionTag = 'tips' | 'reroll' | 'heal' | 'meter' | 'crust';
+type ActionTag = 'tips' | 'reroll' | 'heal' | 'meter' | 'crust' | 'knock' | 'damage' | 'ability';
 /** A condition's name, or one inside a Not / AnyFoot. */
 type CondId = Exclude<CondData['c'], 'all' | 'any' | 'not' | 'anyFoot'>;
 type CondTag = `${'' | 'not:' | 'anyFoot:' | 'not:anyFoot:' | 'anyFoot:not:'}${CondId}`;
@@ -40,6 +53,13 @@ export type TagId =
   | `status:${StatusTag}`
   | `action:${ActionTag}`
   | `custom:${string}`
+  | `hit:${string}`
+  | `trick:${string}`
+  | `shop:${string}`
+  | `deal:${string}`
+  | `proc:${string}`
+  | `procFx:${string}`
+  | `onPick:${string}`
   | `ally:${string}`
   | 'summons';
 
@@ -54,6 +74,19 @@ export const Tag = {
   Status: (s: StatusTag): TagId => `status:${s}`,
   Action: (a: ActionTag): TagId => `action:${a}`,
   Custom: (id: string): TagId => `custom:${id}`,
+  /** A per-hit number (src/effects/perHit.ts HitStat). */
+  Hit: (id: string): TagId => `hit:${id}`,
+  /** A scene trick a topping turns on (src/effects/trick.ts). */
+  Trick: (id: string): TagId => `trick:${id}`,
+  /** A shop price rule (src/effects/shopPrice.ts). */
+  Shop: (id: string): TagId => `shop:${id}`,
+  /** A deal rule (src/effects/deal.ts). */
+  Deal: (id: string): TagId => `deal:${id}`,
+  /** A proc's trigger, and each of its effects (src/effects/proc.ts). */
+  Proc: (t: string): TagId => `proc:${t}`,
+  ProcFx: (e: string): TagId => `procFx:${e}`,
+  /** What happens when it's picked (src/effects/onPick.ts). */
+  OnPick: (id: string): TagId => `onPick:${id}`,
   Ally: (id: string): TagId => `ally:${id}`,
   Summons: 'summons' as TagId,
 } as const;

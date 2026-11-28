@@ -12,6 +12,7 @@ import { HEAT_BY_ID, MOMENTUM, type HeatId, type MomentumHeat } from './data/dif
 import { META } from './data/meta';
 import { PIZZAS } from './data/pizzas';
 import { Rarity } from './data/rarity';
+import { UPGRADE_BY_ID, UpgradeKind, kindOf } from './data/upgrades';
 import { artBooted } from './game/assets';
 import { seedCosmetic } from './systems/cosmeticRandom';
 import { AUTO_SOURCES, GameScene } from './scenes/GameScene';
@@ -58,6 +59,9 @@ export interface SimOpts {
    *  family plays out the same before and after a refactor). */
   lineup?: string[];
   enhance?: boolean;
+  /** Dev: toppings owned from the start, by id and level (a one-use topping is armed instead): checking a topping
+   *  family before and after a refactor. */
+  toppings?: Record<string, number>;
 }
 
 export interface WaveRow {
@@ -307,7 +311,7 @@ export function simReady(): boolean {
 }
 
 export async function simRun(game: Phaser.Game, o: SimOpts, start: (opts: Record<string, unknown>) => void): Promise<SimResult> {
-  const opts: Required<SimOpts> = { lineup: [], enhance: false, peel: 'classic', accuracy: 0.9, rate: 260, dt: 1000 / 60, profile: 'fresh', maxRealMs: 600_000, trace: 0, idleFrom: 0, shop: 'rarity', from: 0, bot: 'full', lightRate: 2000, momentum: {}, ...o };
+  const opts: Required<SimOpts> = { lineup: [], enhance: false, toppings: {}, peel: 'classic', accuracy: 0.9, rate: 260, dt: 1000 / 60, profile: 'fresh', maxRealMs: 600_000, trace: 0, idleFrom: 0, shop: 'rarity', from: 0, bot: 'full', lightRate: 2000, momentum: {}, ...o };
   // momentum overrides: set once the run has started (a run that fails to start throws before them), and put back
   // when it's done
   const heatMo = HEAT_BY_ID[opts.heat].momentum;
@@ -373,6 +377,15 @@ export async function simRun(game: Phaser.Game, o: SimOpts, start: (opts: Record
   g.scene.setVisible(false);
   if (opts.enhance) {
     for (const p of g.pizzas ?? []) p.flags.enhanced = true;
+    g.recompute();
+  }
+  if (Object.keys(opts.toppings).length) {
+    for (const [id, lvl] of Object.entries(opts.toppings)) {
+      const u = UPGRADE_BY_ID[id];
+      if (!u) continue;
+      if (kindOf(u) === UpgradeKind.Consumable) g.run.armed.push(id);
+      else g.run.owned[id] = lvl;
+    }
     g.recompute();
   }
   // (the start loop above may have begun the first wave: only its grace came from the unchanged numbers)

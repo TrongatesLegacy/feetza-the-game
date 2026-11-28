@@ -7,14 +7,13 @@ import { PIZZA_BY_ID, type PizzaPerk, type PizzaType } from '../data/pizzas';
 import { MILESTONES, type Milestone } from '../data/meta';
 import { PIZZERIA_SPECIAL_MARKUP } from '../data/pizzaRarity';
 import { BOSS_CREW, JOURNEY_WAVES, MINI_ESCORT, MINI_WAVE, STAGES, STAGES_PER_ACT, WAVES_PER_STAGE } from '../data/stages';
-import { CONSUMABLE_COOLDOWN, NeedsMeter, RARITY_DEFS, Rarity, UPGRADES, UPGRADE_BY_ID, UpgradeKind, baseStats, kindOf, type OfferEnv, type Stats, type Upgrade } from '../data/upgrades';
+import { CONSUMABLE_COOLDOWN, Needs, NeedsMeter, RARITY_DEFS, Rarity, UPGRADES, UPGRADE_BY_ID, UpgradeKind, baseStats, declaring, kindOf, liftedMax, type OfferEnv, type Stats, type Upgrade } from '../data/upgrades';
 import { freshKitState, type KitState } from './kitState';
 import { applyNemesis, homeOf } from './nemesis';
 import { save, unlockPizza } from '../systems/save';
-import { applyAll, Effect, Op, Phase, Stat, Unit, type EffectData } from '../effects';
+import { applyAll, Effect, Op, Phase, Stat, Unit, type DealRuleId, type EffectData, type PriceId, type TrickId } from '../effects';
 import { Ledger, type ValueCtx } from '../effects/ledger';
 import { Source, shareEntries, type SourceKey, type SourceRef, type SourceShare } from '../effects/source';
-import { STAT_DEFS } from '../effects/stats';
 import { PERK_NONE, PERK_STATS, PERK_TIPS } from './perkStats';
 
 /** Golden Crusts for the first time you ever beat a main boss (on top of the usual 5). */
@@ -36,10 +35,11 @@ export interface TableSeat {
   source: SourceKey;
   weight: number;
 }
-/** A peel's always-on stat changes (its ability, a hero's passive), from one source. */
+/** A peel's always-on stat changes (its ability, a hero's passive), from one source: Effect.Stat on the Peel phase
+ *  (src/game/peelEffects.ts peelStatEffects). */
 export interface PeelStats {
   source: SourceKey;
-  mods: Partial<Record<keyof Stats, number>>;
+  effects: EffectData[];
 }
 
 export const LOCATIONS: LocationId[] = STAGES.map((s) => s.location);
@@ -435,7 +435,6 @@ export interface ActMark {
 }
 
 /** Toppings that only touch freshness: never dealt where freshness is off. */
-const FRESH_ONLY = new Set(['basil', 'fridge', 'leftovers']);
 
 export class Run {
   heat: HeatId = 'regular';
@@ -572,11 +571,8 @@ export class Run {
     }
     // the rest, perk by perk in their old order
     for (const [perk, fx] of Object.entries(PERK_STATS) as [PizzaPerk, (n: number) => EffectData[]][]) if (fx !== PERK_NONE && c(perk) > 0) build(this.withBoost(who[perk]!), fx(c(perk)));
-    // always-on peel and hero stats, on the build (before the caps). (Raw numbers: an ability's `stat` effect is
-    // written in the stats' own stored units, src/game/abilities.ts; it becomes Effect.Stat when peels port, step 3.)
-    for (const p of peel)
-      for (const [k, v] of Object.entries(p.mods) as [keyof Stats, number][])
-        if (typeof STAT_DEFS[k]?.base === 'number' && v) L.add({ stat: k, op: Op.Add(v), source: p.source, phase: Phase.Peel });
+    // always-on peel and hero stats, on the build (before the caps): their declared Effect.Stat (src/game/peelEffects.ts)
+    for (const p of peel) applyAll(p.effects, { ledger: L, source: p.source, phase: Phase.Peel });
     return L;
   }
 
@@ -601,25 +597,60 @@ export class Run {
     return this.stats;
   }
 
+  /** How strongly a scene trick is on (Effect.Trick): the levels of every topping you own that declares it. */
+  trick(t: TrickId): number {
+    let n = 0;
+    for (const d of declaring(`trick:${t}`)) n += this.level(d.id);
+    return n;
+  }
+
+  /** The topping you own that declares this trick (its source on the ledger and the STATS tab): the first owned. */
+  trickHolder(t: TrickId): string {
+    for (const d of declaring(`trick:${t}`)) if (this.level(d.id) > 0) return d.id;
+    return '';
+  }
+
+  /** An armed consumable declaring this trick (its id, to use it up), or null. */
+  armedTrick(t: TrickId): string | null {
+    for (const d of declaring(`trick:${t}`)) if (this.armed.includes(d.id)) return d.id;
+    return null;
+  }
+
+  /** A shop price rule you hold (Effect.ShopPrice): how much off, its cap, and the level it's held at; or null. */
+  shopPrice(rule: PriceId): { level: number; off: number; cap?: number } | null {
+    for (const d of declaring(`shopPrice:${rule}`)) {
+      const l = this.level(d.id);
+      if (l > 0 && d.e.kind === 'shopPrice') return { level: l, off: d.e.off, cap: d.e.cap };
+    }
+    return null;
+  }
+
+  /** A deal rule you hold (Effect.Deal): the levels of every topping you own that declares it. */
+  deal(rule: DealRuleId): number {
+    let n = 0;
+    for (const d of declaring(`deal:${rule}`)) n += this.level(d.id);
+    return n;
+  }
+
   /** Can this upgrade be offered right now? */
   /** Set by the scene when a peel ability replaces the Peel Slam: slam-only toppings aren't offered. */
   slamless: { slam: boolean; meter: boolean; tank?: boolean } = { slam: false, meter: false };
 
-  /** A topping's level cap this run (Infinite Oven lifts every one that levels up). */
+  /** A topping's level cap this run (Infinite Oven lifts every one that levels up, into levels that do something). */
   maxLevel(u: Upgrade): number {
-    return u.maxLevel > 1 && kindOf(u) === UpgradeKind.Permanent ? u.maxLevel + this.stats.capBonus : u.maxLevel;
+    return liftedMax(u, this.stats.capBonus);
   }
 
   offerable(u: Upgrade, wave: number): boolean {
     // rarer toppings arrive as the run builds up (shop cards, rerolls, boss loot, events, Golden Menu)
     if (!rarityOpen(u.rarity, wave)) return false;
-    if (this.slamless.slam && u.id === 'freeze') return false;
+    if (this.slamless.slam && u.needs?.includes(Needs.Slam)) return false;
     if (this.slamless.meter && u.needsMeter) return false;
     if (u.needsMeter === NeedsMeter.Tank && this.slamless.tank) return false;
     if (u.needsEvents && (this.stats.noEvents || (this.stats.eventMult <= 0 && !this.stats.eventAlways))) return false;
     if (u.offerIf && !u.offerIf(this.env)) return false;
     // freshness toppings do nothing where freshness is off (Mild)
-    if (FRESH_ONLY.has(u.id) && this.heatDef.freshness <= 0) return false;
+    if (u.needs?.includes(Needs.Freshness) && this.heatDef.freshness <= 0) return false;
     const k = kindOf(u);
     if (k === UpgradeKind.Unique) return this.level(u.id) === 0;
     if (k === UpgradeKind.Consumable) return !this.armed.includes(u.id) && (this.cooldowns[u.id] ?? 0) <= wave;

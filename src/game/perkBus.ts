@@ -10,11 +10,13 @@
 
 import type { PizzaPerk } from '../data/pizzas';
 import { isActStart } from '../data/stages';
+import { isNight } from './perkEffects';
 import { effects, Phase, type ActionHost, type EventData, type GameEventId, type Grant, type PlayCtx } from '../effects';
 import type { CondCtx } from '../effects/cond';
 import { Source } from '../effects/source';
 import type { AnyEvent } from '../effects/events';
-import { pizzaOf } from '../effects/events';
+import { answered, pizzaOf } from '../effects/events';
+import { HIT_STATS, type HitQuery, type HitStatId } from '../effects/perHit';
 import { Scope, type ScopeId } from '../effects/trigger';
 import type { Foot } from './Foot';
 import type { Pizza } from './Pizza';
@@ -31,6 +33,10 @@ export interface BusHost extends ActionHost {
   granting(perk: PizzaPerk): Pizza[];
   feet(): Foot[];
   possessed(): Pizza | null;
+  /** A one-off's own per-hit factor (Grow.By: src/game/perkEffects.ts Factor). */
+  factor(id: string, q: HitQuery): number;
+  /** A flag the game keeps (Cond.Flag: src/game/perkEffects.ts Flag). */
+  flag(id: string): boolean;
 }
 
 interface Sub {
@@ -45,6 +51,8 @@ export class PerkBus {
   private state: Record<string, number> = {};
   /** Scope.Alive's pass over the table: the pizza being visited. */
   private visiting: Pizza | null = null;
+  /** The per-hit numbers' folds (Effect.PerHit), in the order they're listed. */
+  private folds = new Map<HitStatId, ((q: HitQuery, m: number) => number)[]>();
 
   constructor(private h: BusHost) {
     for (const [perk, list] of PERK_EFFECTS) {
@@ -58,22 +66,27 @@ export class PerkBus {
     for (const k of Object.keys(this.state)) this.state[k] = 0;
   }
 
-  /** A moment: every trigger on it, in the order they're listed. Scope.Alive triggers that sit together go pizza by
-   *  pizza in table order (one pass over the table, as the old loop did). */
+  /** A moment: every trigger on it, in the order they're listed. On a moment that isn't about one pizza, Scope.Alive
+   *  and Scope.Own triggers that sit together go pizza by pizza in table order (one pass over the table, as the old
+   *  loops did). A moment that asks a question (a stomp's defences, a pizza destroyed) stops once it's answered: the
+   *  first defence wins. */
   emit<E extends GameEventId>(event: E, data: EventData[E]): void {
     const list = this.subs.get(event);
     if (!list) return;
+    const pass = !('pizza' in data) && !('foot' in data);
+    const inPass = (s: Sub) => pass && (s.scope === Scope.Alive || s.scope === Scope.Own);
     for (let i = 0; i < list.length; i++) {
-      if (list[i].scope !== Scope.Alive) {
+      if (answered(data)) return;
+      if (!inPass(list[i])) {
         list[i].fn(data);
         continue;
       }
       let j = i;
-      while (j + 1 < list.length && list[j + 1].scope === Scope.Alive) j++;
+      while (j + 1 < list.length && inPass(list[j + 1])) j++;
       const group = list.slice(i, j + 1);
       for (const p of this.h.table())
         for (const s of group) {
-          if (p.perk !== s.perk) continue;
+          if ((s.scope === Scope.Own ? p.type.perk : p.perk) !== s.perk) continue;
           this.visiting = p;
           try {
             s.fn(data);
@@ -83,6 +96,14 @@ export class PerkBus {
         }
       i = j;
     }
+  }
+
+  /** A per-hit number (Effect.PerHit): its base, every fold in the order they're listed, then its floor. */
+  hit(stat: HitStatId, q: HitQuery): number {
+    const def = HIT_STATS[stat];
+    let m = def.base;
+    for (const f of this.folds.get(stat) ?? []) m = f(q, m);
+    return def.floor !== undefined ? Math.max(def.floor, m) : m;
   }
 
   private ctxFor(perk: PizzaPerk): PlayCtx {
@@ -97,6 +118,8 @@ export class PerkBus {
       isBossWave,
       isActStart,
       waveInStage,
+      isNight,
+      flag: (id) => h.flag(id),
     });
     const grants = (scope: ScopeId, ev: AnyEvent, chance?: number): Grant[] => {
       switch (scope) {
@@ -125,6 +148,12 @@ export class PerkBus {
           const p = bus.visiting;
           return p && p.perk === perk ? [{ pizza: p, pizzas: [p], k: () => h.pk(p) }] : [];
         }
+        case Scope.Own: {
+          const p = bus.visiting ?? pizzaOf(ev);
+          return p && p.type.perk === perk ? [{ pizza: p, pizzas: [p], k: () => h.pk(p) }] : [];
+        }
+        case Scope.Field:
+          return [{ pizza: null, get pizzas() { return h.granting(perk); }, k: () => h.c(perk) }];
       }
     };
     return Object.assign(Object.create(h) as BusHost, {
@@ -139,6 +168,12 @@ export class PerkBus {
       feet: () => h.feet(),
       cond,
       state: bus.state,
+      per: (stat: HitStatId, fold: (q: HitQuery, m: number) => number) => {
+        const list = bus.folds.get(stat) ?? [];
+        list.push(fold);
+        bus.folds.set(stat, list);
+      },
+      factor: (id: string, q: HitQuery) => h.factor(id, q),
     }) as unknown as PlayCtx;
   }
 }

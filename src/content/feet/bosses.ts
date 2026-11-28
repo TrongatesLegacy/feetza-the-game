@@ -235,6 +235,8 @@ export const feet: FootType[] = [
     hp: 1520, speed: 0.9, armor: 1, stompDmg: 2, coins: 140, score: 12000, scale: 1.6, minWave: 58, weight: 0,
     traits: [],
     mini: true,
+    // (a zombie: undead, so Hel's ×2 and Cellar Mushroom Medley's +10% go by the flag, not its name)
+    undead: true,
     home: 'cellar',
     howTo: 'Smack the foot it marks before the bite lands, and click a coughed-on pizza to cure it.',
     tell: 'It licks its lips before it lunges for a bite.',
