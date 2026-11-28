@@ -1,6 +1,6 @@
 # Effects plan: one plug-and-play system for perks, toppings and peels
 
-Status: **approved; step 1 done (2026-11-27, branch effects-1): units, stat definitions, the modifier ledger, STATS from the ledger. Step 2 done (2026-11-28, branch effects-2): the balance sim made repeatable, the golden check, the trigger bus, the perks' behaviours ported (most families), one deal function for shop cards, and typed names for sources, tags and units. Step 4's lint rules done early (2026-11-28, branch effects-lint): `npm run lint` and `npm run check`. Tron's four rule decisions (2026-11-28, branch rules-1): reach cuts on the base, Exclusive Menu redesigned, a possessed pizza's perks all stop, looks on cosmetic randomness. Readable item declarations (2026-11-28, branch items-1, pulled forward from step 4): typed rarity and item names, named item fields, card text generated from the effects, the shop card's fixed slots. Step 3 done (2026-11-28, branch effects-3): the leftover perk families, the Legendaries, the toppings (no game code tests a topping's id) and the peels on the effect system, and `F.effectsAudit()`.** See "Step 1: what was built", "Step 2: what was built", "Lint rules", "Rule decisions", "Item declarations and card text" and "Step 3: what was built" at the end.
+Status: **approved; step 1 done (2026-11-27, branch effects-1): units, stat definitions, the modifier ledger, STATS from the ledger. Step 2 done (2026-11-28, branch effects-2): the balance sim made repeatable, the golden check, the trigger bus, the perks' behaviours ported (most families), one deal function for shop cards, and typed names for sources, tags and units. Step 4's lint rules done early (2026-11-28, branch effects-lint): `npm run lint` and `npm run check`. Tron's four rule decisions (2026-11-28, branch rules-1): reach cuts on the base, Exclusive Menu redesigned, a possessed pizza's perks all stop, looks on cosmetic randomness. Readable item declarations (2026-11-28, branch items-1, pulled forward from step 4): typed rarity and item names, named item fields, card text generated from the effects, the shop card's fixed slots. Step 3 done (2026-11-28, branch effects-3): the leftover perk families, the Legendaries, the toppings (no game code tests a topping's id) and the peels on the effect system, and `F.effectsAudit()`. Step 4 done (2026-11-28, branch effects-4): the refactor is complete. The peels' triggers on a bus, the last 23 pizzas declared, shared area actions, one off-switch rule, and the guards on (types, the audit in `npm run check`, two lint rules).** See "Step 1: what was built", "Step 2: what was built", "Lint rules", "Rule decisions", "Item declarations and card text", "Step 3: what was built" and "Step 4: what was built" at the end; "How to add a new item" there is the checklist for what comes next.
 
 ## The problem
 
@@ -475,7 +475,7 @@ Topping({
 | Topping | Override | Why |
 |---|---|---|
 | Bigger Peel | LV1: "Smacks hit every foot in range, " + generated | the scene's area smack from LV1 |
-| Chili Flakes | LV1: "Smacks set feet on fire: 6 dmg/s" | the balance sim's shopping bot picks "automatic" toppings by their card text (see Notes): "burn" in LV1's text would change what it buys |
+| Chili Flakes | LV1: "Smacks set feet on fire: 6 dmg/s" | the balance sim's shopping bot picked "automatic" toppings by their card text (see Notes). **Gone in step 4**: it reads its generated text now |
 | Tip Jar | generated + " from feet (all tip boosts top out at ×2.5)" | the cap (`TIP_MULT_CAP`, in `scene`) |
 | Spring-Loaded | generated + ": send feet flying back up" | flavour |
 | Fridge Magnet | generated + ", now and for new ones" | its `onPick` tops up the pizzas on the table now |
@@ -617,3 +617,104 @@ Kept, as docs/pizza-plan.md teaches: never move a friendly zombie, a puppet or a
 - **The `Custom` one-offs** that share a shape (area damage, a projectile hit, a lane change) still want shared actions; the props (`EachFrame`) are one-offs by nature.
 - **Card text for perks**: the new kinds' `describe()` reads plainly, but pizzas' `perkText` stays hand-written.
 - **The guards**: a typecheck rule that every item declares an effect (toppings already all do; 23 pizzas and 3 peels don't yet), and the audit as a check in `npm run check` (it needs a running game: beside the golden check).
+
+## Step 4: what was built (2026-11-28, branch effects-4)
+
+The port is finished and the guards are on. Every topping, pizza and peel declares what it does; the triggers fire on a bus, under one off-switch rule; and a new item that declares nothing doesn't compile, nor pass `npm run check`. A refactor: the balance sim and every seeded scenario are identical run by run, and the golden check shows no differences. Three small, decided changes come with it ("Small items").
+
+### The peels on the trigger bus
+
+`src/game/peelBus.ts` is the peel's trigger bus: the same kinds, scopes, conditions and shared actions as the pizza perks' (`src/game/perkBus.ts`), with the peel's ability, the toppings' procs and Zombie Outbreak as its sources (`src/game/peelEffects.ts`, `peelParts`). The scene sends it each moment (a landed smack, a kill, a stomp, a wave's start, a frame, a slam, slices lost, charge for the clock) and the bus decides what fires, when, and how often. `fireProcs`, `procTick`, `abilityTick` and the `abilityT` timer are gone; `fireAbility` is only the bus's runner for the peel.
+
+- **Groups, in the old order.** A moment goes to the peel's ability, then the toppings' procs (the peel's passive part, `also`, last of them, as it always ran), then Zombie Outbreak. Each group is set again when what's in it changes (a new peel, the toppings owned) and keeps the clocks of the sources it keeps; a group set again gets a state of its own, so what the replaced sources still do in a moment under way (a proc's kill can work the stats out again mid-frame, rebuilding the procs) lands on the old state, as it always did.
+- **A delayed trigger** (`TriggerOpts.delay`): the whole trigger waits, its roll and conditions too. A proc's kill roll comes 40 ms after the kill (`Effect.OnKill(act, { chance, when: Cond.NotByAbility, delay: 0.04 s })`); the peel's own kill ability is the other way round, rolled at the kill and played a beat later (`Action.Later`).
+- **A charged clock** (`Effect.Charged`, `src/effects/charged.ts`): a timed ability fills with time (× `PlayCtx.rate`, the meter boosts' timer) and from the typed sources it declares: `ChargeFrom.Time`, `Meter` (the meter's top-ups: Dough Spinner), `Event` (an event's slam prize), `HeadStart` (the meter's head start as a wave begins: S'mores, Pre-Heated Peel, Full Tank) and `Slots` (Pizza Slots' slam). The scene sends charge with `PeelBus.charge(from, share)`, which says whether a clock took it (else the meter fills, or the tips come); the HUD reads how full it is from the clock (`PeelBus.clockFill`).
+- **A proc's timer looks at the field once a frame** for every proc (`Cond.Ready`, the Tick's `ready`), as the old loop did: one coming due after another's hit the last foot still goes off.
+- **Strength**: the peel's chances are rolled at its meter boosts' chance (`PeelSource.k`), a proc's at 1.
+- **Off-switches, as before**: a delayed moment lands only while the run is on; the peel's runner checks after its roll; the procs get a smack or a stomp only while the run is on (checked before their rolls).
+- **Zombie Outbreak** is declared: `Effect.OnSmack(Action.Custom(PeelCustom.ZombieTurn))` and `Effect.OnKill(… ZombieHeal)`, after the procs. The outbreak's own clock (its zombies' bites, the wave's heal cap) stays the outbreak's: links already going finish whatever the peel.
+- **The Incredible Bulk** is declared: `Effect.OnLosses(Unit.Count(3), Action.Ability(fx), { when: Cond.Flag(PeelFlag.InWave) })` (`src/effects/onLosses.ts`): once a wave, at the third slice lost. His move is the `bulkSmash` move (`heroMoves.ts`); the Endgame's `endgame_bulkSmash` opens the portals as he hulks out. The hero passives' `lost` hooks for both are gone.
+
+### The 23 pizzas: rules, not names
+
+`Effect.Rule(Rule.X, a?, b?)` (`src/effects/rule.ts`) declares a rule a perk changes in the scene's own code, with its numbers, plain or enhanced (`Enh`). The scene asks for the rule by its typed name for the pizza in question (`src/game/perkRules.ts`: `ruleOf(p, Rule.ThickCrust)`, `hasRule(p, Rule.NeverStale)`, `tableRule(run.enhancedPerks, Rule.TenthCrit)`), never for a perk: the perk declaring it, a borrower copying it and a pizza whose perk is off all read right. `RULE_DEFS` says, for each rule, whose perk it reads: the perk the pizza grants now (off while it's stale, frozen, possessed or eaten), or its own (a pizza being placed, going stale, destroyed or swapped out). Its words are the pizza's card (quiet).
+
+| Pizza | Rule |
+|---|---|
+| Quattro Formaggi, Bufala | `ExtraShields` 1 (enhanced 2), `ShieldGlow` |
+| Grandma Square | `Guard` (enhanced: itself too) |
+| Sicilian Square, Stromboli | `ThickCrust` 30% (45%); Stromboli 0% (15%) and `Sturdy` |
+| Pizza Bianca, Inferno Calzone | `Immune` (enhanced: its neighbours too), `Fireproof` |
+| Meat Feast, Lahmacun | `MoreSlices` 4 / `FewerSlices` 2 (at least 4), `EnhanceSlices` 2, `BossRegrow` |
+| Garden Veggie | `Regen` every 20 s (13 s) |
+| Pumpkin Spice | `NeverStale`, `BossFreshen` 1 (2) |
+| Pickle Pie, Pizza Fritta, Carbonara, Pizza al Taglio | `Preserve` ×0.5 (×0.25), `StaleHeal` 2 (3), `Rise` 3 (5), `Refund` 50% (75%) |
+| Quattro Stagioni | `Seasons` |
+| Pesto, Marinara, Tarte Flambée, Diavola | `SlowAbove` 25% (38%), `Aura` 6 (9), `HoverAura` 3 (4.5), `StompBurn` 10 (15) and `HauntedFire` |
+| Tandoori, Greek, Mallow Mountain, Okonomiyaki | `MarkFirst` ×2 (×3), `Disarm` 3 s (5 s), `BounceTop` 1 (2), `StunnedDmg` ×1.5 (×1.75) |
+| Spinach & Feta, the Calzone, Birthday Cake, Hawaiian, Cajun Shrimp, the Fig's | `RegrowGlow`, `WeakestGlow`, `FreeEvery` 5 (3), `TenthCrit` 10 (7), `SlamStun` 1.5 s (2.5 s) and 25% (40%), `CrustEarner` |
+| Napoletana, Echo Slice, Arcobaleno, Mystery Meat, Kitchen Sink | `Boost` 5% (Run and the kit read `boostOf`), `Echo`, `Borrow`, `Mystery` (+0.5 strength), `Sink` |
+
+No game code compares a perk to a name (the lint rule `effects/no-perk-names`): the scene, `Pizza`, `Run`, the kit and the Legendaries ask for rules, or for the firing perk (`fire.perk`: Untouchable, Fenrir, the Citadel and the tide find their own pizzas by it). The exceptions are the declarations themselves, the pizzas' data, the dev tools, and the STATS tab's hand-written perk tiles (`buildStats.ts`: see "What's left").
+
+### Shared actions
+
+- **`Action.Area(area, act)`** does an action to every foot in an area, one by one, each as the moment's foot: `Area.Field(cond)` (every foot that matches) or `Area.Column(px, cond)` (a lane up the table around the moment's foot). **`Hit.Plain(m)`** and **`Dps.Plain(m)`** are a hit and a burn of m × your smack damage whatever the strength (its strength went into its chance).
+- **Dragon Fruit Flambé's fire lane**: `Action.Seq(Show(Look.FireLane), Area(Column(120 px, Hittable), Seq(Damage(Hit.Plain(×1)), Apply(Burn(3 s, Dps.Plain(×0.5))))))`.
+- **Disco Diner Pie's dance beat**: `Action.Seq(Show(Look.DanceBreak), Area(Field(Standing), Seq(Apply(Slow(2 s, 30%, SlowStack.Strongest, fixed)), Show(Look.DanceNote))))`.
+- **Visuals react**: the column of fire, the disco ball and the notes are looks (`LOOKS`), played in the old order so the cosmetic draws (which a waiter's tray can feel) come out the same.
+- **Left as one-offs, and why**: the projectiles (meteor, comet, meatball, snowball, the lava bombs) land their hits when their flight's tween completes, and the ink's and soot's lane change sits inside their hold; turning them into `Action.Later` hits or a shared lane change moves when the damage lands within the frame, which changes seeded runs. They're for a deliberate change (see "What's left").
+
+### One off-switch
+
+- **One rule**: `grantsPerk(p, perk)` (`src/effects/trigger.ts`): a pizza grants a perk while it's its `Pizza.perk` (never while it's eaten, stale, frozen or possessed). Every scope reads it; so does a prop tied to an owner pizza (the Bifröst remembers its perk and asks it of its pizza), and the kit's own `with()`.
+- **The field's and own triggers** are held by the bus: a `Scope.Field` trigger fires only while some pizza grants its perk, a `Scope.Own` one only while its pizza's perk is on (at its end, a destroyed one's: while it was on as it went). The per-trigger checks are gone (Arcobaleno's, the gaze's, the soot's, the harpies', the coils', the Bifröst's, Nonna's ladle and Secret, The First Bake's, the Citadel's).
+- **Outliving its pizzas is declared**, with a typed reason (`TriggerOpts.outlives`, `Outlives`): `Props` (splats, ghosts, walls, stone feet, embers, inked and sooted feet, the rings, the hole, the tide: they play out and tidy themselves up), `TidyUp` (the wave's set-ups and tidy-ups that reset what's left), `OwnMoment` (placed, enhanced, Mystery Meat's reveal, its own loss: Fenrir, Untouchable) and `Follows` (Burrata follows a boss's phases; Roar Roast and Black Olive Hole share one clock). 46 triggers say so, 14 field-wide or own triggers are held by the rule. A prop that also starts something new splits in two: the gaze, the soot, the gusts and the coils start only while their pizza grants (`GorgonTick`, `SootTick`, `HarpyTick`, `CoilTick`), their stone feet, clouds, blown feet and held feet play out (`GorgonStone`, `SootCloud`, `HarpyBlown`, `CoilHold`). Ember Shade's embers stay one trigger, each ember glowing then burning in turn (the cosmetic draws' order), the burn waiting for a pie that grants it.
+- **The lint rule `effects/no-own-off-switch`** (the kit and the Legendaries): a one-off that reads `stale`, `perkFrozen`, `perkOff` or `possessed()` is an error; the three deliberate ones say why (Fenrir's last howl, Untouchable's own loss, the echo's ring).
+
+### The guards
+
+- **Compile time** (`Effects`: a non-empty list):
+  - every topping (`Upgrade.effects: Effects`, required; the builders take it);
+  - every peel ability built with `ab()` (its `fx` non-empty; Zombie Outbreak's peel is `outbreak()`, whose effects are the outbreak's; the heroes' builders always carry a move);
+  - every pizza perk: `PERK_EFFECTS` keeps its perks' literal names (`as const satisfies … Effects`), `PERK_STATS` knows which perks have no stats (`none` is marked), and `EVERY_PERK_DECLARES` fails to compile, naming the perk, when one declares no trigger, rule or stat (the table-shaped perks count as declared: `TABLE_SHAPED`).
+- **In `npm run check`**: `npm run golden` runs the effects audit headless (`F.effectsProblems()`, `problemsOf` in `src/devEffectsAudit.ts`) and fails on an item declaring nothing (a trigger whose action is empty counts as nothing), an item shown on neither STATS nor a card, a trigger skipping the off-switch (an unknown scope or reason, a Field or Own trigger on a topping or peel, or a reason on a trigger its scope holds anyway), or an adapter that throws. It prints the off-switch's tally: `14 field-wide or own triggers held by it, 46 outliving their pizzas (24 props, 12 tidyUp, 2 follows, 8 ownMoment), 14 rules read the pizza's own perk`.
+- **Lint**: `effects/no-perk-names` and `effects/no-own-off-switch` (above), with their tests (91 cases in all).
+- **Shown failing**: on a copy of the branch, removing Garden Veggie's rule gives `Type 'boolean' is not assignable to type '{ undeclared: "regen"; }'`; `effects: []` on Chili Flakes `Type '[]' is not assignable to type 'Effects'. Source has 0 element(s) but target requires 1.`; `ab('Soggy Socks', smack(0.3), [], …)` `Argument of type '[]' is not assignable to parameter of type 'readonly [Effect, ...Effect[]]'`. Forcing all three past the types (`as unknown as`), `npm run golden` fails: `3 effects audit problem(s): toppings: chili declares no effect; pizzas: veggie (regen) declares no effect; peels: foot:sock declares no effect`.
+
+### Small items
+
+- **Chili Flakes** reads its generated text at LV1 too ("Smacks burn feet: +6 dmg/s"): the override kept for the old text-reading bot is gone. Every topping still fits (`F.cardTextFit()` at desktop and phone size); 16 toppings keep a hand-written side.
+- **Your Table's names**: a long name takes a second line, balanced, as the counter's Legendaries do (`.ptile .nm`), rather than being cut off. All 159 pizza names checked in a tile at desktop (1280×720) and phone (844×390) size: every one fits, 6 on two lines (Cosmic Crouton Supreme, Bone Marrow & Black Garlic…).
+- **STATS**: Echo Slice's ECHOING tile takes the smaller size (a word in capitals runs wider than digits).
+- **The null-`fill` console error**: not reproduced in 70 scripted back-to-back restarts (30 mixed and 40 with the step-3 aura lineup that once showed it; peels and tables varied, the auto-player on, restarting after 60 ms to 2.5 s). Its message (a 2-D context's `fill` read on null) points at a canvas whose context was lost; without a stack it's left open.
+
+### How to add a new item (the Act 4+ Legendaries, and anything after)
+
+1. **Declare everything it does** in one place: a pizza perk's triggers and rules in `PERK_EFFECTS` (`src/game/perkEffects.ts`), its numbers in `PERK_STATS` (`src/game/perkStats.ts`); a topping's `effects` with its builder (`src/data/toppingDefs.ts`); a peel's ability with `ab()` (`src/game/abilities.ts`). It won't compile until it declares at least one effect.
+2. **Pick the moment and who fires**: a timer `Effect.Every` (or `Effect.Charged` for a clock others feed), a chance on a hit `Effect.OnSmack` with `chance`/`cap`, a kill `OnKill` (`delay` if its roll waits), a stomp `OnStomp`, a defence `Effect.Defend` (`Guard.Early` / `Guard.Wall`), a set-up `WaveStart` / `WaveOpen`, a tidy-up `WaveClose`, a prop `EachFrame`, a per-hit number `Effect.PerHit`; a rule the scene reads `Effect.Rule` (add the rule to `Rule` and `RULE_DEFS`). Its scope says who fires: `Table`, `Each`, `Sum`, `Target`, `Alive`, `Own`, `Field`.
+3. **Say what it does with shared actions first**: `Action.Damage(Hit.Legend(…))` (`Hit.Plain` when the strength is in the chance), `Action.Area(Area.Field | Area.Column, …)`, `Action.Apply(Status.Burn | Slow | Stun | Freeze)`, `Tips`, `Heal`, `Meter`, `Crust`, `Knock`, `Later`, `Seq`; a one-off only for what's truly its own (`Custom`, its body in the kit), and its looks as `Look`s (effects never draw).
+4. **Keep the off-switch**: never check stale, frozen or possessed in its body (the lint rule says so). A field-wide trigger is held while no pizza grants its perk; a prop that outlives its pizza declares `outlives: Outlives.Props` (or `TidyUp`, `OwnMoment`, `Follows`) and asks `grantsPerk(owner, fire.perk)` before it starts anything new. Find its pizzas through the firing (`fire.pizzas`, `fire.perk`), never by its name.
+5. **Keep the order** when it shares a moment with others: triggers run in the order they're listed, and its random draws (gameplay: `Math.random` through `ctx.roll` or the kit; looks: `crand()`) land where they are.
+6. **Check it**: `npm run check` (types, lint, golden, card text, the effects audit: it must show on STATS or its card); a `--lineup` sim of it plain and `--enhance`d; `?dev` play; its STATS tile and card text.
+
+### Checks
+
+- `npm run check` passes: no golden differences (1,202 builds), every topping's card text fits at desktop and phone size, the card-text audit is clean (201 generated, 16 with a hand-written side, 43 the scene's own), the effects audit is clean (260 toppings, 159 pizzas, 640 peels, 1,566 effects), 91 lint test cases.
+- **Balance sim** (`nice npm run sim -- --heat mild,regular --runs 2 --waves 40 --shop auto --workers 2`) against a copy of main, on the finished code: identical, every field of every run (crusts 263, 259, 523, 547).
+- **Seeded scenarios**, each against the same copy of main, every field compared:
+  - step 3's 46 (the perk families, the Legendaries, the toppings, the peels, Infinite Oven): all identical, but one run of `top3` (below);
+  - 16 new: the 23 pizzas (5 tables, plain and `--enhance`, Mild and Regular, the light bot), the peels' clocks and chances (timed abilities with Full Tank and Dried Oregano ×4, kill and smack abilities with Dried Oregano ×4, a timed ability with five procs), Zombie Outbreak and the Bulk (`peels7`), the fire lane and dance beat with the projectiles (`act1`, plain and enhanced): all identical but the zombie runs and one `act1` run (below).
+- **Main doesn't always repeat itself.** Run twice on the same copy of main, three tables differ from themselves: `act1` (Mild seed 2, from wave 14), `top3` (Regular seed 1) and the zombie peels' runs in `peels7` (5 of 16: the outbreak builds its zombie art in the background). In each, this branch matches main's second run (`act1` 4/4, `top3` 4/4); the zombie runs differ from main's either run as much as main's runs do from each other, while every non-zombie run of `peels7` (the Bulk's 8 included) is identical. A repeatability leak in main for those tables, to look into; not this change.
+- **Traced** (`--trace`, random draw by random draw and the field each step), where a scenario differed during the work: a mid-frame rebuild of the procs (a proc's kill set off a boss's loot, which works the stats out again) kept the old loop's timers apart, now kept by each group's own state; Ember Shade's split into glow and burn moved cosmetic draws a waiter's tray could feel, now one trigger again; the glows of Spinach & Feta and the Calzone keep their old places.
+- **`?dev` play** (the auto-player at ×6): the timed (Neon Pulse 26 fires with Anchovy procs), kill (Ruby Rage), smack (Soggy Socks), active (Pirouette) abilities, Zombie Outbreak (8 zombies), the Bulk (his rage once a wave; the Endgame's portals), the 23 pizzas (thick crust, Grandma's guard, the marks, the bounces, Diavola's fire, shields), the fire lane (×20) and the dance break all fired; frozen, the Gorgon, the soot, the harpies and the coils started nothing and the Bifröst came down; possessed, the Gorgon gazed at no foot. No console errors.
+- **Screenshots** of the shop (Your Table with Cosmic Crouton Supreme and Bone Marrow & Black Garlic) and STATS at desktop (1280×720) and phone (844×390) size: `F.contrast()` clean; `F.layout()` lists only the pizza tier tabs (by design).
+- **Review**: an independent review of the diff. Fixed from it: a peel's stomp ability and stomp procs fire even when the stomper is already down (`TriggerOpts.evenIfDown`: Effect.OnStomp's own check skipped, as the scene always fired them); the procs' "run is on" check on a smack or a stomp comes as their turn comes, after the ability's (`emit`'s `procsWhileLive`); the field-wide off-switch looks at the pizzas granting the perk now, not the counts of the last recompute; stale comments. Noted, not changed: a resumed run saved with the old Peel Slam switch off has no ability, so the Bulk wouldn't hulk out in it (his rage is his ability now); the lint rules don't see a perk name in an `includes` list or a map lookup, nor `haunted` / `dead` reads; a perk whose stats are `(c) => []` passes the type rule (the audit catches it).
+
+### What's left
+
+- **The STATS tab's perk tiles** (`src/game/buildStats.ts`) are still written by hand and find their pizzas by perk name (75 places): the one place `effects/no-perk-names` doesn't cover. Each could read its perk's declarations (a rule's value, a trigger's numbers) the way the stat tiles read the ledger.
+- **The projectile hits and the lane change** (meteor, comet, meatball, snowball, Volcano's lava bombs; Squid Ink's and the soot's relane) stay one-offs: their hits land when their flight's tween completes. A shared `Action.Fly(…, hit)` with the flight's time declared would change when they land within a frame, so it's a deliberate change for its own commit, sim before and after.
+- **Card text for perks**: pizzas' `perkText` stays hand-written (`describe()` of the new kinds reads plainly).
+- **The heroes' passives** (`src/game/heroMoves.ts`, `PASSIVES` by hero id) are their own system; only the Incredible Bulk's rage moved onto the bus.
+- **The null-`fill` error**: open (above).
