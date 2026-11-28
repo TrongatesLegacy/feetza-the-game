@@ -469,6 +469,13 @@ export class Pizza {
     return this.freshOn && !this.dead && this.fresh <= 0;
   }
 
+  /** Out of freshness, on the table or off it: worked out from freshness alone, never remembered, so it can't disagree
+   *  with the freshness bar. A pizza that went stale is taken off at 0 freshness; one brought back (a rebake, a second
+   *  chance) has its freshness set again, so it isn't stale any more. The shop shows STALE rather than EATEN by it. */
+  get outOfFreshness(): boolean {
+    return this.freshOn && this.fresh <= 0;
+  }
+
   /** The perk this pizza currently grants (stale pizzas grant none; Quattro Stagioni rotates). */
   get perk(): PizzaPerk | null {
     if (this.dead || this.stale || this.perkFrozen) return null;

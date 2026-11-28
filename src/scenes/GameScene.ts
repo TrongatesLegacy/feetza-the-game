@@ -2341,8 +2341,7 @@ export class GameScene extends Phaser.Scene implements Arena {
           for (const q of this.alivePizzas()) if (q !== p) this.healPizza(q, n);
           this.fx.quip(p.x, p.surfaceY - 170, `PIZZA FRITTA: +${n} SLICES FOR ALL`, '#7dff9a', 34);
         }
-        // gone stale: lost like a stomped pizza
-        p.flags.wentStale = true;
+        // gone stale: lost like a stomped pizza (the shop shows it as STALE from its freshness)
         const removed = p.takeSlices(p.slices, p.x);
         this.run.slicesLost += removed.length;
         this.fx.quip(p.x, p.surfaceY - 130, 'STALE!', '#cfe0a8', 40);
@@ -2660,7 +2659,7 @@ export class GameScene extends Phaser.Scene implements Arena {
         fresh: p.fresh,
         maxFresh: p.maxFresh,
         freshOn: p.freshOn,
-        stale: p.stale || !!p.flags.wentStale,
+        stale: p.outOfFreshness,
         dead: p.dead,
         reheat: reheatOn ? { cost, can: needs && this.run.coins >= cost, need: needs } : null,
         rebake: p.dead && this.run.heatDef.rebake ? { cost: this.boughtOut(this.rebakePrice(p)), can: this.run.coins >= this.boughtOut(this.rebakePrice(p)) } : null,
@@ -2792,7 +2791,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       // (an Echo Slice's line names the pizza it copies; here it spells the copied perk out too)
       line: p.type.perk === 'echo' && p.perk && p.perk !== 'echo' ? `${p.perkLine}: ${perkTextOf(p.perk, p.enhanced)}` : p.perkLine,
       enhanced: p.enhanced,
-      stale: p.stale || !!p.flags.wentStale,
+      stale: p.outOfFreshness,
       frozen: p.perkFrozen,
       dead: p.dead,
       slices: p.slices,
@@ -3365,7 +3364,6 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.run.coins -= cost;
     this.rebakes++;
     p.revived = false;
-    p.flags.wentStale = false;
     p.revive(Math.ceil(p.maxSlices / 2));
     p.setFresh(p.maxFresh);
     this.fx.healBurst(p.x, p.surfaceY);
