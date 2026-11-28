@@ -435,8 +435,17 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (f.held) this.bumpForSummon(f);
     return f;
   }
-  hitPizza(p: Pizza, slices: number, label: string, color = '#ff8a6a'): void {
+  hitPizza(p: Pizza, slices: number, label: string, color = '#ff8a6a', o: { shield?: boolean } = {}): void {
     if (p.dead || this.over) return;
+    // a hit a stomp shield stands up to (a chariot's chip): it takes a shield life first, like a stomp
+    if (o.shield && p.shieldCharges > 0) {
+      p.setShield(p.shieldCharges - 1);
+      this.fx.ring(p.x, p.surfaceY - 30, 0xc8f6ff, 1.6, 0.35);
+      this.fx.quip(p.x, p.surfaceY - 150, p.shieldCharges > 0 ? 'BLOCKED!' : 'SHIELD BROKEN!', '#8ff0ff', 40);
+      audio.sfx('sfx_shield', { throttle: 80 });
+      if (hasRule(p, Rule.ShieldGlow)) p.perkFired({ quip: false });
+      return;
+    }
     this.fx.quip(p.x, p.surfaceY - 150, label, color, 40);
     this.applyStomp(p, null, slices, true);
   }

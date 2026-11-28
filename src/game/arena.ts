@@ -48,7 +48,8 @@ export interface Arena {
    * the last of them (GameScene.killFoot). */
   spawnExtraBoss?(id: string, x: number, y: number, hpFrac: number): Foot | null;
   /** A non-stomp ability hits a pizza: never blocked by shields, traps or thick crust. */
-  hitPizza(p: Pizza, slices: number, label: string, color?: string): void;
+  /** A pizza loses slices to a move (not a stomp). `shield`: a stomp shield takes it first (a life), as a stomp. */
+  hitPizza(p: Pizza, slices: number, label: string, color?: string, o?: { shield?: boolean }): void;
   /** Lock the peel (no smacks) for a moment. */
   stunPeel(sec: number, label: string): void;
   /** The peel trails the pointer (brain freeze, sticky kelp). */

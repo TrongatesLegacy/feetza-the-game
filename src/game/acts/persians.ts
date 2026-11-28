@@ -436,7 +436,7 @@ const chariot: FootFx = {
       for (const p of ps) {
         if (hit.has(p) || Math.abs(p.x - hubWorld(f).x) > 24) continue;
         hit.add(p);
-        a.hitPizza(p, 1, 'CHIPPED!', '#ffb070');
+        a.hitPizza(p, 1, 'CHIPPED!', '#ffb070', { shield: true });
         a.sfx('sfx_chariotchip', { volume: 0.8, throttle: 80 });
         a.shake(90, 0.004);
       }
