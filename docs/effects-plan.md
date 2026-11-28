@@ -585,7 +585,16 @@ Kept, as docs/pizza-plan.md teaches: never move a friendly zombie, a puppet or a
 
 - **Infinite Oven skips dead levels.** `liftedMax(u, bonus)` (`src/data/upgrades.ts`) lifts a topping only into levels its effects do something at (`KindSpec.doesAt`: an `{ atLevel }` effect only at its level, an `EachLevelUp` chain's `Op.Nothing` never). `Run.maxLevel` and the card-text checks' `topLevel` use it. Of every levelling topping, only Exclusive Menu changes: its cap under Infinite Oven is 4 (was 6), and its cards no longer read "Nothing more at this level".
 - **Leftover text and id lookups:** Athena's pick reads the next shop's ids (`peekShop` returns ids; the shop's cards carry `data-id`); `isUndead` reads the `undead` flag only: the Ghost of Feet Past, the Ghost of Feet Future and the Zombie Loafer, which only their names matched, are flagged `undead` (bosses and mini-bosses are never zombified, so that changes nothing there; Cellar Mushroom Medley's +10% now applies to them too, as its words say: "ghosts and the undead"); `Run.offerable` reads `needs: [Needs.Slam]` (Freeze Frame) and `needs: [Needs.Freshness]` (Basil, Fridge Magnet, Leftovers Box) instead of an id and `FRESH_ONLY`.
-- **The sim bot buys by `isAutoTopping`** (`src/devSim.ts`), not a regex over card text: a separate, last commit (see Checks).
+- **The sim bot buys by `isAutoTopping`** (`src/devSim.ts`), not a regex over card text: a separate, last commit, made after every identical-run check. It changes what the seeded bot buys (it now also favours toppings whose automatic damage its words didn't name, such as Blizzard, Hot Oven, Inferno and Tremor), so it changes the seeded runs once, deliberately. The balance sim before → after that commit (every run still reaches wave 41):
+
+  | Run | Crusts | Tips at the end | Toppings owned |
+  |---|---|---|---|
+  | Mild seed 1 | 263 → 263 | 1 → 751 | 75 → 71 |
+  | Mild seed 2 | 260 → 259 | 911 → 663 | 53 → 61 |
+  | Regular seed 1 | 629 → 522 | 408 → 951 | 67 → 52 |
+  | Regular seed 2 | 525 → 547 | 402 → 710 | 44 → 42 |
+
+  Chili Flakes' LV1 override was kept for the old regex; it could go now (a card-text change, left for Tron).
 
 ### Checks
 

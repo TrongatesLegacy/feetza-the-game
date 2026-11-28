@@ -238,8 +238,8 @@ export const UPGRADES: Upgrade[] = [
     id: 'chili', name: 'Chili Flakes', icon: '🌶️',
     rarity: Rarity.Common,
     maxLevel: 5,
-    // (LV1 keeps its words: the balance sim's shopping bot picks "automatic" toppings by their card text, src/devSim.ts
-    // AUTO, and the generated "Smacks burn feet" would change what it buys, so the seeded runs)
+    // (LV1 keeps its words. They were kept for the balance sim's shopping bot, which picked "automatic" toppings by a
+    // regex over card text; it reads isAutoTopping now, so the override could go: a card-text change, left for Tron)
     text: { up: (l, auto) => (l <= 1 ? 'Smacks set feet on fire: 6 dmg/s' : auto) },
     effects: [
       Effect.Stat(

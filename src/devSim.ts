@@ -12,7 +12,7 @@ import { HEAT_BY_ID, MOMENTUM, type HeatId, type MomentumHeat } from './data/dif
 import { META } from './data/meta';
 import { PIZZAS } from './data/pizzas';
 import { Rarity } from './data/rarity';
-import { UPGRADE_BY_ID, UpgradeKind, kindOf } from './data/upgrades';
+import { UPGRADE_BY_ID, UpgradeKind, isAutoTopping, kindOf } from './data/upgrades';
 import { artBooted } from './game/assets';
 import { seedCosmetic } from './systems/cosmeticRandom';
 import { AUTO_SOURCES, GameScene } from './scenes/GameScene';
@@ -234,8 +234,6 @@ function screenOf(g: AnyScene): string {
 
 /** Shopping, in one go: heal when hurt, reheat stale pizzas, take a free last-stand pizza, rebake, buy the best
  *  affordable card; returns true when it did something (the bot comes back next action), false = next wave. */
-/** Toppings that deal damage on their own (no smack needed). */
-const AUTO = /every \d+(\.\d+)?s|orbit|drone|aura|burn|zap|bounces|cutter|blade/i;
 
 function shopOnce(g: AnyScene, mode: 'rarity' | 'auto' = 'rarity'): boolean {
   const st = g.shop?.state;
@@ -251,7 +249,7 @@ function shopOnce(g: AnyScene, mode: 'rarity' | 'auto' = 'rarity'): boolean {
   const dead = st.table.findIndex((p: any) => p.rebake?.can); // eslint-disable-line @typescript-eslint/no-explicit-any
   if (dead >= 0) return g.shopRebake(dead), true;
   // (rarer first: Common 1 up to Legendary 4, as before)
-  const score = (c: any) => Rarity.rank(c.rarity) + 1 + (mode === 'auto' && AUTO.test(`${c.name} ${c.desc}`) ? 10 : 0); // eslint-disable-line @typescript-eslint/no-explicit-any
+  const score = (c: any) => Rarity.rank(c.rarity) + 1 + (mode === 'auto' && UPGRADE_BY_ID[c.id] && isAutoTopping(UPGRADE_BY_ID[c.id]) ? 10 : 0); // eslint-disable-line @typescript-eslint/no-explicit-any
   const card = st.cards.filter((c: any) => !c.sold && (c.free || st.coins >= c.price)).sort((a: any, b: any) => score(b) - score(a))[0]; // eslint-disable-line @typescript-eslint/no-explicit-any
   if (card) return g.shopBuy(card.id), true;
   return false;
