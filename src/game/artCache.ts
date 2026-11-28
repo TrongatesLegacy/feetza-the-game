@@ -40,7 +40,8 @@ export interface CacheMeta {
 const version = (): string => `${FORMAT}:${ART_VERSION}`;
 
 let dbp: Promise<IDBDatabase | null> | null = null;
-let disabled = typeof indexedDB === 'undefined' || (typeof location !== 'undefined' && new URLSearchParams(location.search).has('noArtCache'));
+// (the balance sim (?sim) keeps none: art loading from another tab's cache would land at a real-time moment)
+let disabled = typeof indexedDB === 'undefined' || (typeof location !== 'undefined' && (new URLSearchParams(location.search).has('noArtCache') || new URLSearchParams(location.search).has('sim')));
 /** Current-version entries by key (filled when the database opens). */
 const index = new Map<string, CacheMeta>();
 const stats = { hits: 0, misses: 0, writes: 0, errors: 0, readMs: 0 };

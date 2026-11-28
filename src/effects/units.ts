@@ -42,6 +42,20 @@ export interface Units {
   flag: boolean;
 }
 export type UnitName = keyof Units;
+
+/** Every unit's name, typed (a stat's definition says its unit with one: unit: UnitKind.Chance). */
+export const UnitKind = {
+  Chance: 'chance',
+  Percent: 'percent',
+  Seconds: 'seconds',
+  PerWave: 'perWave',
+  Px: 'px',
+  Mult: 'mult',
+  Count: 'count',
+  Amount: 'amount',
+  Rate: 'rate',
+  Flag: 'flag',
+} as const satisfies Record<string, UnitName>;
 export type NumUnit = Exclude<UnitName, 'flag'>;
 
 const DEV = typeof import.meta !== 'undefined' && !!import.meta.env?.DEV;
@@ -94,6 +108,11 @@ function Amount(n: number): Amount {
 function Rate(n: number): Rate {
   check(finite(n) && n >= 0, 'Rate', n);
   return n as Rate;
+}
+/** Once every s seconds, as a rate: Unit.Every(Unit.Seconds(1.6)) is 1/1.6 a second. */
+function Every(s: Seconds): Rate {
+  check(finite(s) && s > 0, 'Every', s);
+  return (1 / s) as Rate;
 }
 
 // ——— maths ———
@@ -152,4 +171,4 @@ const show = {
 };
 
 /** Every unit's maker and its maths, under one name: Unit.Chance(15), Unit.roll(c), Unit.show.percent(p). */
-export const Unit = { Chance, Percent, Seconds, PerWave, Px, Mult, Count, Amount, Rate, roll, boost, cut, scale, scaleChance, tick, of, show } as const;
+export const Unit = { Chance, Percent, Seconds, PerWave, Px, Mult, Count, Amount, Rate, Every, roll, boost, cut, scale, scaleChance, tick, of, show } as const;

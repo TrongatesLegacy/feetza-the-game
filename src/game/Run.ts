@@ -11,10 +11,11 @@ import { CONSUMABLE_COOLDOWN, RARITY_WEIGHT, UPGRADES, UPGRADE_BY_ID, baseStats,
 import { freshKitState, type KitState } from './kitState';
 import { applyNemesis, homeOf } from './nemesis';
 import { save, unlockPizza } from '../systems/save';
-import { applyAll, Effect, Op, Phase, Stat, Unit, type EffectData } from '../effects';
-import { Ledger, type SourceRef, type ValueCtx } from '../effects/ledger';
+import { applyAll, Effect, Op, Phase, Stat, Unit, UnitKind, type EffectData } from '../effects';
+import { Ledger, type ValueCtx } from '../effects/ledger';
+import { Source, shareEntries, type SourceKey, type SourceRef, type SourceShare } from '../effects/source';
 import { STAT_DEFS } from '../effects/stats';
-import { PERK_STATS, PERK_TIPS } from './perkStats';
+import { PERK_NONE, PERK_STATS, PERK_TIPS } from './perkStats';
 
 /** Golden Crusts for the first time you ever beat a main boss (on top of the usual 5). */
 export const FIRST_KILL_CRUSTS = 20;
@@ -22,9 +23,9 @@ export const FIRST_KILL_CRUSTS = 20;
 /** The Pizzeria upgrades the run's stats read (one "Pizzeria upgrades" source on the STATS tab). */
 export const RUN_META = ['wrists', 'tips', 'apron', 'opinion'];
 /** The ledger source of the Pizzeria's upgrades. */
-export const META_SOURCE = 'meta';
+export const META_SOURCE = Source.Meta;
 /** The ledger source of the Ghost's possession. */
-export const GHOST_SOURCE = 'ghost';
+export const GHOST_SOURCE = Source.Ghost;
 
 // (the caps live in the stat definitions now)
 export { DOUBLE_CAP, TIP_MULT_CAP } from '../effects/stats';
@@ -32,12 +33,12 @@ export { DOUBLE_CAP, TIP_MULT_CAP } from '../effects/stats';
 /** A pizza granting a perk now, for the ledger: its perk, its source id and its weight (1; +0.5 enhanced; +0.5 Mystery Meat). */
 export interface TableSeat {
   perk: PizzaPerk;
-  source: string;
+  source: SourceKey;
   weight: number;
 }
 /** A peel's always-on stat changes (its ability, a hero's passive), from one source. */
 export interface PeelStats {
-  source: string;
+  source: SourceKey;
   mods: Partial<Record<keyof Stats, number>>;
 }
 
@@ -531,11 +532,11 @@ export class Run {
     // toppings: each level applies the topping's effects once
     for (const [id, lvl] of Object.entries(this.owned)) {
       const u = UPGRADE_BY_ID[id];
-      if (u?.effects && lvl > 0) build(`top:${id}`, u.effects, lvl);
+      if (u?.effects && lvl > 0) build(Source.Topping(id), u.effects, lvl);
     }
     // live pizza perks, shared by the pizzas granting them (Napoletana makes every other perk 5% stronger)
     const counts: Partial<Record<PizzaPerk, number>> = {};
-    const who: Partial<Record<PizzaPerk, Record<string, number>>> = {};
+    const who: Partial<Record<PizzaPerk, SourceShare>> = {};
     for (const t of seats) {
       counts[t.perk] = (counts[t.perk] ?? 0) + t.weight;
       const w = (who[t.perk] ??= {});
@@ -548,12 +549,12 @@ export class Run {
     const c = (p: PizzaPerk) => (counts[p] ?? 0) * boost;
     // Pepperoni's and the luck pizzas' tips: one sum, shared by their pizzas by what each adds
     if (c('coins') > 0 || c('luck') > 0) {
-      const src: Record<string, number> = {};
-      for (const k of ['coins', 'luck'] as const) for (const [id, w] of Object.entries(who[k] ?? {})) src[id] = (src[id] ?? 0) + PERK_TIPS[k] * w;
-      build(this.withBoost(src), [Effect.Stat(Stat.CoinMult, Op.Add(Unit.of('percent', PERK_TIPS.coins * c('coins') + PERK_TIPS.luck * c('luck'))))]);
+      const src: SourceShare = {};
+      for (const k of ['coins', 'luck'] as const) for (const [id, w] of shareEntries(who[k] ?? {})) src[id] = (src[id] ?? 0) + PERK_TIPS[k] * w;
+      build(this.withBoost(src), [Effect.Stat(Stat.CoinMult, Op.Add(Unit.of(UnitKind.Percent, PERK_TIPS.coins * c('coins') + PERK_TIPS.luck * c('luck'))))]);
     }
     // the rest, perk by perk in their old order
-    for (const [perk, fx] of Object.entries(PERK_STATS) as [PizzaPerk, (n: number) => EffectData[]][]) if (c(perk) > 0) build(this.withBoost(who[perk]!), fx(c(perk)));
+    for (const [perk, fx] of Object.entries(PERK_STATS) as [PizzaPerk, (n: number) => EffectData[]][]) if (fx !== PERK_NONE && c(perk) > 0) build(this.withBoost(who[perk]!), fx(c(perk)));
     // always-on peel and hero stats, on the build (before the caps). (Raw numbers: an ability's `stat` effect is
     // written in the stats' own stored units, src/game/abilities.ts; it becomes Effect.Stat when peels port, step 3.)
     for (const p of peel)
@@ -563,16 +564,16 @@ export class Run {
   }
 
   /** The Napoletanas on the table now (their ledger sources and weights): set by buildLedger. */
-  boosters: Record<string, number> = {};
+  boosters: SourceShare = {};
 
   /** A perk's sources with Napoletana's share added: its boost is part of every other perk's strength, so it gets the
    *  part of each it adds (×1.05: 1/21 of the perk). src is weighted by strength before the boost. */
-  withBoost(src: Record<string, number>): Record<string, number> {
-    const n = Object.values(this.boosters).reduce((a, b) => a + b, 0);
+  withBoost(src: SourceShare): SourceShare {
+    const n = shareEntries(this.boosters).reduce((a, [, b]) => a + b, 0);
     if (!n) return src;
-    const W = Object.values(src).reduce((a, b) => a + b, 0);
+    const W = shareEntries(src).reduce((a, [, b]) => a + b, 0);
     const out = { ...src };
-    for (const [id, w] of Object.entries(this.boosters)) out[id] = (out[id] ?? 0) + W * 0.05 * w;
+    for (const [id, w] of shareEntries(this.boosters)) out[id] = (out[id] ?? 0) + W * 0.05 * w;
     return out;
   }
 
@@ -614,8 +615,13 @@ export class Run {
     this.cooldowns[id] = this.wave + CONSUMABLE_COOLDOWN + 1;
   }
 
-  /** Roll shop choices. */
-  rollChoices(n: number, exclude: string[] = []): Upgrade[] {
+  /** What can be dealt now, less `exclude`. */
+  dealable(exclude: string[] = []): Upgrade[] {
+    return UPGRADES.filter((u) => this.offerable(u, this.wave) && !exclude.includes(u.id));
+  }
+
+  /** n cards weighted by rarity (luck tips it rarer) from `avail`: the deal's picks (src/game/shopDeals.ts dealCards). */
+  pickCards(n: number, avail: Upgrade[]): Upgrade[] {
     const luck = this.stats.luck;
     const weights: Record<Rarity, number> = {
       common: RARITY_WEIGHT.common / (1 + luck * 0.25),
@@ -623,7 +629,6 @@ export class Run {
       epic: RARITY_WEIGHT.epic * (1 + luck * 0.35),
       legendary: RARITY_WEIGHT.legendary * (1 + luck * 0.6),
     };
-    const avail = UPGRADES.filter((u) => this.offerable(u, this.wave) && !exclude.includes(u.id));
     const picks: Upgrade[] = [];
     let guard = 0;
     while (picks.length < n && guard++ < 200) {
@@ -631,21 +636,31 @@ export class Run {
       if (!remaining.length) break;
       picks.push(weightedPick(remaining, (u) => weights[u.rarity]));
     }
-    this.addExtraConsumables(picks, avail);
-    return this.bumpRarity(picks, exclude);
+    return picks;
   }
 
-  /** Mac & Cheese: one extra one-use card a shop (boss loot too), when one is free to deal. */
-  private addExtraConsumables(picks: Upgrade[], avail: Upgrade[]): void {
-    for (let i = 0; i < this.stats.extraConsumable; i++) {
+  /** Boss loot's n picks: epic or better (none when none is open). */
+  pickBossCards(n: number, exclude: string[] = []): Upgrade[] {
+    const avail = this.dealable(exclude).filter((u) => u.rarity === 'epic' || u.rarity === 'legendary');
+    const picks: Upgrade[] = [];
+    while (picks.length < n && avail.length) {
+      const u = weightedPick(avail, (x) => (x.rarity === 'legendary' ? 1 : 2.5));
+      picks.push(u);
+      avail.splice(avail.indexOf(u), 1);
+    }
+    return picks;
+  }
+
+  /** `extra` one-use cards more (Mac & Cheese's, from the ledger's total), each when one is free to deal. */
+  addExtraConsumables(picks: Upgrade[], avail: Upgrade[], extra: number): void {
+    for (let i = 0; i < extra; i++) {
       const cons = avail.filter((u) => kindOf(u) === 'consumable' && !picks.includes(u));
       if (cons.length) picks.push(weightedPick(cons, () => 1));
     }
   }
 
   /** Exclusive Menu: every card is dealt one rarity higher (when that rarity is open and has one to offer). */
-  private bumpRarity(picks: Upgrade[], exclude: string[]): Upgrade[] {
-    if (!this.level('exclusivemenu')) return picks;
+  bumpRarity(picks: Upgrade[], exclude: string[]): Upgrade[] {
     const up: Record<Rarity, Rarity> = { common: 'rare', rare: 'epic', epic: 'legendary', legendary: 'legendary' };
     const out: Upgrade[] = [];
     for (const u of picks) {
@@ -654,21 +669,6 @@ export class Run {
       out.push(pool.length ? pool[Math.floor(Math.random() * pool.length)] : u);
     }
     return out;
-  }
-
-  /** Boss loot guarantees epic-or-better. */
-  rollBossChoices(n: number, exclude: string[] = []): Upgrade[] {
-    const avail = UPGRADES.filter((u) => this.offerable(u, this.wave) && !exclude.includes(u.id) && (u.rarity === 'epic' || u.rarity === 'legendary'));
-    const picks: Upgrade[] = [];
-    while (picks.length < n && avail.length) {
-      const u = weightedPick(avail, (x) => (x.rarity === 'legendary' ? 1 : 2.5));
-      picks.push(u);
-      avail.splice(avail.indexOf(u), 1);
-    }
-    if (!picks.length) return this.rollChoices(n, exclude);
-    // (its extra one-use card can be any rarity, as in any shop)
-    this.addExtraConsumables(picks, UPGRADES.filter((u) => this.offerable(u, this.wave) && !exclude.includes(u.id)));
-    return this.bumpRarity(picks, exclude);
   }
 
   comboMult(): number {

@@ -8,7 +8,8 @@ import { MOMENTUM, heatRank, type HeatId } from '../data/difficulty';
 import { Momentum } from '../game/momentum';
 import { FEET, FOOT_BY_ID, OUCH, type FootType } from '../data/feet';
 import { META, MILESTONES } from '../data/meta';
-import { GHOST_SOURCE, META_SOURCE, RUN_META, type PeelStats, type TableSeat } from '../game/Run';
+import { readSource, Source, type SourceKey } from '../effects/source';
+import { GHOST_SOURCE, RUN_META, type PeelStats, type TableSeat } from '../game/Run';
 import { applyAll, Effect as Eff, Op, Phase, Stat, Unit, type EffectData } from '../effects';
 import { PIZZAS, PIZZA_BY_ID, enhancedText, type PizzaType } from '../data/pizzas';
 import { PIZZERIA_SPECIAL_CHANCE, TIER_COUNTER, pickByTier, rollTier, tierRank } from '../data/pizzaRarity';
@@ -48,7 +49,7 @@ import { abilityFor, abilityKindLabel, scaleProc, usesMeter, type Ability, type 
 import { randomLineup } from './MenuScene';
 import { ToppingKit } from '../game/toppingKit';
 import { freshKitShop, loadKitState } from '../game/kitState';
-import { cardCount, counterFreebie, counterPrice, dealBlock, freeLunchReady, goldenPrice, happyHour, movePrice, rerollPrice, toppingPrice } from '../game/shopDeals';
+import { cardCount, counterFreebie, counterPrice, dealBlock, dealCards, freeLunchReady, goldenPrice, happyHour, movePrice, rerollPrice, shopCardTotal, toppingPrice, usualCards } from '../game/shopDeals';
 import { pickWindow, rouletteWindow, slotsPrizeWindow, type PickOption } from '../ui/pickWindows';
 import { abilityKey } from '../game/abilities';
 import { legendGate, legendHeat, legendHeatOk, legendSpecialOpen } from '../game/legendary';
@@ -993,7 +994,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       peel: this.peelId,
       ability: !!this.ability,
       shop: this.shop
-        ? { cards: this.shop.cards.map((u) => u.id), sold: [...this.shop.sold], free: this.shop.free, bossReward: this.shop.bossReward, freeRerolls: this.freeRerollsLeft, goldenBought: this.shop.goldenBought, lastStand: this.shop.lastStand, boughtOut: this.shop.boughtOut, slotsUsed: !!this.shop.slots?.used }
+        ? { cards: this.shop.cards.map((u) => u.id), sold: [...this.shop.sold], free: this.shop.free, bossReward: this.shop.bossReward, freeRerolls: this.freeRerollsLeft, goldenBought: this.shop.goldenBought, lastStand: this.shop.lastStand, boughtOut: this.shop.boughtOut, slotsUsed: !!this.shop.slots?.used, reorderPaid: !!this.shop.reorderPaid }
         : this.restoredShop?.shop,
     };
   }
@@ -1108,7 +1109,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     const mods: Record<string, number> = {};
     for (const a of [peel, peel?.also])
       if (a?.trigger.t === 'always') for (const e of a.fx) if (e.e === 'stat') for (const [k, v] of Object.entries(e.mods)) mods[k] = (mods[k] ?? 0) + (v as number);
-    const peelStats: PeelStats[] = [{ source: 'peel', mods }];
+    const peelStats: PeelStats[] = [{ source: Source.Peel, mods }];
     const L = this.run.buildLedger(seats, peelStats, enhanced);
     this.kit.modifiers(L, this.alivePizzas().length);
     // the Ghost's possession turns the haunted pizza's perk against you
@@ -2527,7 +2528,6 @@ export class GameScene extends Phaser.Scene implements Arena {
     ui.setPlaying(false);
     audio.duck(0.55);
     this.displayCoins = this.run.coins;
-    const count = cardCount(this.run, 3 + (save.meta.indecisive ? 1 : 0));
     const tableFull = this.pizzas.length >= MAX_PIZZAS && !this.pizzas.some((p) => p.dead);
     const exclude = tableFull ? ['helping'] : [];
     let cards = keepCards?.cards;
@@ -2538,7 +2538,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     // a new shop: its deals start over (a resumed shop keeps them, even one saved with no cards left)
     if (!keepCards && !this.restoredShop?.shop) this.run.kit.shop = freshKitShop();
     if (!cards) {
-      cards = future ?? (bossReward ? this.run.rollBossChoices(count, exclude) : this.run.rollChoices(count, exclude));
+      cards = future ?? dealCards(this.run, { boss: bossReward, exclude });
       // boss loot: the lowest-rarity pick dealt is free (a random one of them when several share it) ·
       // Birthday Cake: every 5th wave a random card is free (enhanced: every 3rd)
       const every = this.run.enhancedPerks.has('freeTopping') ? 3 : 5;
@@ -2555,6 +2555,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     // a bought-out shop stays bought out through Save & Menu
     const restoredBuyout = !!this.restoredShop?.shop?.boughtOut;
     const restoredSlots = !!this.restoredShop?.shop?.slotsUsed;
+    // Your Table's reorder, paid for once a shop: kept through Save & Menu (and when the shop comes back after a pick)
+    const reorderPaid = (!!this.shop?.reorderPaid && this.shop.state?.wave === this.run.wave) || !!this.restoredShop?.shop?.reorderPaid;
     this.restoredShop = null;
     // one pizza left: a free one from the counter, and Next Wave waits for it
     const lastStand = keepCards?.lastStand ?? (this.alivePizzas().length === 1 && counter.some((o) => o.kind === 'pizza'));
@@ -2563,7 +2565,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     finaleState.buyout = false;
     // Pizza Slots: one pull a shop, kept through Save & Menu (a resumed shop shows the machine as pulled)
     const slotsUsed = !!this.shop?.slots?.used && this.shop.state?.wave === this.run.wave ? true : restoredSlots;
-    this.shop = { el: null as unknown as HTMLElement, state: null as unknown as ShopState, cards, sold: keepCards?.sold ?? new Set(), free, bossReward, counter, goldenBought: keepCards?.goldenBought, lastStand, boughtOut, slots: slotsUsed ? { used: true, result: this.shop?.slots?.result ?? null } : undefined };
+    this.shop = { el: null as unknown as HTMLElement, state: null as unknown as ShopState, cards, sold: keepCards?.sold ?? new Set(), free, bossReward, counter, goldenBought: keepCards?.goldenBought, lastStand, boughtOut, slots: slotsUsed ? { used: true, result: this.shop?.slots?.result ?? null } : undefined, reorderPaid };
     if (boughtOut) title = title ?? 'BOUGHT OUT! EVERY PRICE ×2';
     this.saveRun();
     const state = this.shopState(title);
@@ -2735,16 +2737,24 @@ export class GameScene extends Phaser.Scene implements Arena {
     const peelDef = PEEL_BY_ID[this.peelId];
     const peelImg = peelDef ? peelThumbURL(this.peelId, 96) : '';
     const metas = META.filter((m) => (save.meta[m.id] ?? 0) > 0 && RUN_META.includes(m.id));
-    const source = (id: string): Omit<Src, 'tone'> | null => {
-      if (id.startsWith('top:')) return UPGRADE_BY_ID[id.slice(4)] ? topSrc(id.slice(4), r.level(id.slice(4))) : null;
-      if (id.startsWith('pizza:')) {
-        const p = this.perkKit.pizzaOf(id);
-        return p ? { key: `pizza:${p.type.id}`, name: p.type.name, img: pizzaPortraitURL(p.type.id), tip: p.perkLine } : null;
+    const source = (id: SourceKey): Omit<Src, 'tone'> | null => {
+      const s = readSource(id);
+      switch (s.s) {
+        case 'topping':
+          return UPGRADE_BY_ID[s.id] ? topSrc(s.id, r.level(s.id)) : null;
+        case 'pizza': {
+          const p = this.perkKit.pizzaOf(id);
+          return p ? { key: `pizza:${p.type.id}`, name: p.type.name, img: pizzaPortraitURL(p.type.id), tip: p.perkLine } : null;
+        }
+        case 'meta':
+          return { key: 'meta', name: 'Pizzeria upgrades', icon: '🏪', tip: metas.map((m) => `${m.name} LV${save.meta[m.id]}`).join(' · ') };
+        case 'peel':
+          return { key: 'peel', name: peelDef?.name ?? this.ability?.name ?? 'Peel', img: peelImg };
+        case 'ghost':
+          return { key: 'ghost', name: 'The Ghost', icon: '👻', tip: `haunting ${this.possessedPizza?.type.name ?? 'a pizza'}: its perk works against you` };
+        default:
+          return null;
       }
-      if (id === META_SOURCE) return { key: 'meta', name: 'Pizzeria upgrades', icon: '🏪', tip: metas.map((m) => `${m.name} LV${save.meta[m.id]}`).join(' · ') };
-      if (id === 'peel') return { key: 'peel', name: peelDef?.name ?? this.ability?.name ?? 'Peel', img: peelImg };
-      if (id === GHOST_SOURCE) return { key: 'ghost', name: 'The Ghost', icon: '👻', tip: `haunting ${this.possessedPizza?.type.name ?? 'a pizza'}: its perk works against you` };
-      return null;
     };
     const wave = this.waveActive ? r.wave : r.wave + 1;
     const pizzas: TablePizza[] = this.pizzas.map((p) => ({
@@ -2781,10 +2791,10 @@ export class GameScene extends Phaser.Scene implements Arena {
       inWave: this.waveActive,
       bossWave: isBossWave(wave),
       shopCards: (() => {
-        const usual = 3 + (save.meta.indecisive ? 1 : 0);
-        // (what this shop dealt: cards are dealt as the shop opens, so a change bought here counts from the next one)
+        // (the total the deal reads: src/game/shopDeals.ts dealCards. What this shop dealt: cards are dealt as the
+        // shop opens, so a change bought here counts from the next one)
         const sh = this.shop;
-        return { now: cardCount(r, usual) + r.stats.extraConsumable, base: usual, dealt: sh ? sh.cards.length : null };
+        return { now: shopCardTotal(r), base: usualCards(), dealt: sh ? sh.cards.length : null };
       })(),
       extraDouble: this.perkKit.extraDouble(),
       lossTips: this.perkKit.lossTipsOn(),
@@ -2855,7 +2865,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       k.shop.restocked = true;
       if (this.run.offerable(u, this.run.wave)) sh.sold.delete(id);
       else {
-        const fresh = this.run.rollChoices(1, sh.cards.map((c) => c.id))[0];
+        const fresh = dealCards(this.run, { n: 1, exclude: sh.cards.map((c) => c.id) })[0];
         if (fresh) sh.cards = sh.cards.map((c) => (c.id === id ? fresh : c));
       }
       ui.hud.toast(null, 'RESTOCKED', 'The Stockroom Key put a card back on the shelf');
@@ -3030,15 +3040,15 @@ export class GameScene extends Phaser.Scene implements Arena {
   /** Deal new cards; `best` guarantees one of that rarity (Golden Reroll: the rarest open at this wave). */
   private rerollCards(best: Rarity | null): void {
     const sh = this.shop!;
-    // the base count: Mac & Cheese's extra consumable card is added on top by rollChoices
-    const count = sh.bossReward ? sh.cards.length : cardCount(this.run, 3 + (save.meta.indecisive ? 1 : 0));
+    // the base count: Mac & Cheese's extra one-use card is added on top by the deal (boss loot: as many as it dealt)
+    const count = sh.bossReward ? sh.cards.length : cardCount(this.run, usualCards());
     const tableFull = this.pizzas.length >= MAX_PIZZAS && !this.pizzas.some((p) => p.dead);
     const keep = sh.cards.filter((u) => sh.sold.has(u.id));
     // a reroll never deals back the cards it replaced: roll from everything else first,
     // and only top up with old cards if the pool has run that dry
     const old = sh.cards.filter((u) => !sh.sold.has(u.id)).map((u) => u.id);
     const base = [...keep.map((u) => u.id), ...(tableFull ? ['helping'] : [])];
-    const roll = (n: number, ex: string[]) => (sh.bossReward ? this.run.rollBossChoices(n, ex) : this.run.rollChoices(n, ex));
+    const roll = (n: number, ex: string[]) => dealCards(this.run, { boss: sh.bossReward, n, exclude: ex });
     let fresh = roll(count - keep.length, [...base, ...old]);
     if (fresh.length < count - keep.length) fresh = [...fresh, ...roll(count - keep.length - fresh.length, [...base, ...fresh.map((u) => u.id)]).slice(0, count - keep.length - fresh.length)];
     if (best && !fresh.some((u) => u.rarity === best)) {
@@ -4595,7 +4605,7 @@ export class GameScene extends Phaser.Scene implements Arena {
         if (isBossWave(this.run.wave)) return [];
         const tableFull = this.pizzas.length >= MAX_PIZZAS && !this.pizzas.some((p) => p.dead);
         // the same number of cards the shop itself will deal
-        this.heroT.shop = this.run.rollChoices(cardCount(this.run, 3 + (save.meta.indecisive ? 1 : 0)), tableFull ? ['helping'] : []);
+        this.heroT.shop = dealCards(this.run, { exclude: tableFull ? ['helping'] : [] });
         return this.heroT.shop.map((u) => u.name);
       },
     };

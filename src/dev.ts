@@ -155,6 +155,8 @@ export function installDevTools(game: Phaser.Game): void {
     },
     /** The pre-built art packs (src/game/packs.ts): what's loaded, hits and misses, bytes fetched, decode time. */
     packs: async () => (await import('./game/packs')).packsDev(),
+    /** The golden check's builds (src/devGolden.ts; npm run golden): every build's stats on the running Game scene. */
+    golden: async () => (await import('./devGolden')).goldenRun(game.scene.getScene('Game') as AnyScene),
     sim: {
       run: async (o: import('./devSim').SimOpts) => (await import('./devSim')).simRun(game, o, (opts) => api.startGame(opts)),
       ready: async () => (await import('./devSim')).simReady(),

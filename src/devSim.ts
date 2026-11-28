@@ -12,6 +12,7 @@ import { HEAT_BY_ID, MOMENTUM, type HeatId, type MomentumHeat } from './data/dif
 import { META } from './data/meta';
 import { PIZZAS } from './data/pizzas';
 import { artBooted } from './game/assets';
+import { seedCosmetic } from './systems/cosmeticRandom';
 import { AUTO_SOURCES, GameScene } from './scenes/GameScene';
 import { PEELS, PEEL_BY_ID } from './game/peels';
 import { migrate, persist, phaseCardsMuted, save } from './systems/save';
@@ -52,6 +53,10 @@ export interface SimOpts {
   trace?: number;
   /** Start at this wave instead of wave 1, from the shop with a starter kit sized for it (F.startGame's kit). */
   from?: number;
+  /** Dev: the starting table (pizza ids; ignored with `from`), all of them enhanced with `enhance` (checking a perk
+   *  family plays out the same before and after a refactor). */
+  lineup?: string[];
+  enhance?: boolean;
 }
 
 export interface WaveRow {
@@ -294,12 +299,14 @@ function smack(g: AnyScene, accuracy: number): void {
 }
 
 /** The game's art is built (several tabs booting at once can take a while). */
+/** Ready for a run: the title's art built. (Under ?sim no other art is drawn in idle time, and none comes from the
+ *  art cache: every run starts from the same art, whatever real time the page had. src/game/assets.ts NO_WARMER) */
 export function simReady(): boolean {
   return artBooted();
 }
 
 export async function simRun(game: Phaser.Game, o: SimOpts, start: (opts: Record<string, unknown>) => void): Promise<SimResult> {
-  const opts: Required<SimOpts> = { peel: 'classic', accuracy: 0.9, rate: 260, dt: 1000 / 60, profile: 'fresh', maxRealMs: 600_000, trace: 0, idleFrom: 0, shop: 'rarity', from: 0, bot: 'full', lightRate: 2000, momentum: {}, ...o };
+  const opts: Required<SimOpts> = { lineup: [], enhance: false, peel: 'classic', accuracy: 0.9, rate: 260, dt: 1000 / 60, profile: 'fresh', maxRealMs: 600_000, trace: 0, idleFrom: 0, shop: 'rarity', from: 0, bot: 'full', lightRate: 2000, momentum: {}, ...o };
   // momentum overrides: set once the run has started (a run that fails to start throws before them), and put back
   // when it's done
   const heatMo = HEAT_BY_ID[opts.heat].momentum;
@@ -317,12 +324,22 @@ export async function simRun(game: Phaser.Game, o: SimOpts, start: (opts: Record
   // the loop sleeps from the start and game time takes over the page's clock, so the scene is built (and every
   // random number drawn) on the sim's own steps
   game.loop.sleep();
+  // cosmetic randomness from the same seed every run (it can reach play: src/systems/cosmeticRandom.ts)
+  seedCosmetic(opts.seed);
   const clock = new GameClock();
   clock.install();
   let g: AnyScene | null = null;
   const t0 = real.now();
   let gameMs = 0;
+  // the loop sleeps, so its frame figures would stay whatever the last real frame left (real time, varying with the
+  // machine's load and the page's boot): code that reads them (a waiter's tray flies by game.loop.delta) gets the
+  // sim's own step instead. They're put back when the run is done.
+  const loop = game.loop as unknown as Record<'delta' | 'rawDelta' | 'actualFps' | 'time' | 'now', number>;
+  const loopBefore = { delta: loop.delta, rawDelta: loop.rawDelta, actualFps: loop.actualFps, time: loop.time, now: loop.now };
   const step = () => {
+    loop.delta = loop.rawDelta = opts.dt;
+    loop.actualFps = 1000 / opts.dt;
+    loop.time = loop.now = clock.now();
     game.scene.update(clock.now(), opts.dt);
     clock.advance(opts.dt);
     gameMs += opts.dt;
@@ -337,7 +354,7 @@ export async function simRun(game: Phaser.Game, o: SimOpts, start: (opts: Record
     }
     game.scene.add('Game', GameScene, false);
     for (const k of game.scene.getScenes(true).map((x) => x.sys.settings.key)) if (k !== 'Game') game.scene.stop(k);
-    start({ heat: opts.heat, intros: false, seed: opts.seed, ...(opts.from ? { wave: opts.from, kit: true } : {}) });
+    start({ heat: opts.heat, intros: false, seed: opts.seed, ...(opts.from ? { wave: opts.from, kit: true } : opts.lineup?.length ? { lineup: opts.lineup } : {}) });
     for (let i = 0; i < 600 && !(g?.run && (g.waveActive || g.inUpgrade)); i++) {
       step();
       g = game.scene.getScene('Game') as AnyScene;
@@ -353,6 +370,10 @@ export async function simRun(game: Phaser.Game, o: SimOpts, start: (opts: Record
     throw new Error('the game scene did not start');
   }
   g.scene.setVisible(false);
+  if (opts.enhance) {
+    for (const p of g.pizzas ?? []) p.flags.enhanced = true;
+    g.recompute();
+  }
   // (the start loop above may have begun the first wave: only its grace came from the unchanged numbers)
   Object.assign(heatMo, perHeat);
   if (smackGain !== undefined) MOMENTUM.smackGain = smackGain;
@@ -420,6 +441,14 @@ export async function simRun(game: Phaser.Game, o: SimOpts, start: (opts: Record
   const draws: number[] = [];
   const where: Record<string, number> = {};
   const seq: string[] = [];
+  const frames: string[] = [];
+  if (opts.trace) {
+    const log = g.logSmack;
+    g.logSmack = function (this: AnyScene, x: number, y: number, blocked?: string, result?: string) {
+      if (g?.run?.wave === opts.trace) frames.push(`${Math.round(gameMs)}|smack ${Math.round(x)},${Math.round(y)} ${blocked ?? ''} ${result ?? ''} r=${this.run.stats.radius}`);
+      return log.call(this, x, y, blocked, result);
+    };
+  }
   const seeded = Math.random;
   if (opts.trace) {
     Math.random = () => {
@@ -495,6 +524,9 @@ export async function simRun(game: Phaser.Game, o: SimOpts, start: (opts: Record
         await yieldNow();
       }
       step();
+      // tracing: the field's state each step of the traced wave (finding a change that draws no random number)
+      if (opts.trace && g.run?.wave === opts.trace && frames.length < 20000)
+        frames.push(`${Math.round(gameMs)}|${(g.feet ?? []).map((f: any) => `${f.type.id}:${Math.round(f.x)},${Math.round(f.y)},${Math.round(f.hp * 10)},${f.state},${Math.round((f.slowT ?? 0) * 100)},${Math.round((f.stunT ?? 0) * 100)}`).join(';')}|${Math.round(g.run.coins)}`); // eslint-disable-line @typescript-eslint/no-explicit-any
       if (clock.errors.length) errors.push(...clock.errors.splice(0));
       actMs += opts.dt;
       checkMs += opts.dt;
@@ -576,11 +608,12 @@ export async function simRun(game: Phaser.Game, o: SimOpts, start: (opts: Record
   };
   if (opts.trace) {
     Math.random = seeded;
-    (result as unknown as Record<string, unknown>).trace = { draws, where, seq };
+    (result as unknown as Record<string, unknown>).trace = { draws, where, seq, frames };
   }
   // leave the game quiet for the next run, and put the browser's save back (and momentum's numbers)
   Object.assign(heatMo, moBefore.heat);
   Object.assign(MOMENTUM, moBefore.shared);
+  Object.assign(loop, loopBefore);
   game.loop.wake();
   Object.assign(save, JSON.parse(before));
   persist();

@@ -343,8 +343,13 @@ const idleArt = (fn: (d?: IdleDeadline) => void): void => {
   else setTimeout(() => go(), 40);
 };
 
+/** The balance sim (?sim) draws no art in idle time: how much a page had drawn before a seeded run began depended
+ *  on real time (a background tab gets few idle slots), and a run that met a foot not yet drawn played out
+ *  differently. In the sim every piece is drawn when it's first wanted, at the same moment of every run. */
+const NO_WARMER = typeof location !== 'undefined' && new URLSearchParams(location.search).has('sim');
+
 function pumpArt(): void {
-  if (pumping) return;
+  if (pumping || NO_WARMER) return;
   pumping = true;
   idleArt(artStep);
 }

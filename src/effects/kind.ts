@@ -3,11 +3,16 @@
 // registry (src/effects/index.ts) runs. The data an effect makes is plain, tagged with its kind.
 
 import type { Ledger, PhaseId, SourceRef } from './ledger';
+import type { TagId } from './tags';
+import type { PlayCtx } from './trigger';
 
-/** What an effect may touch while it's applied. Step 1: the ledger (numbers). The trigger bus comes in step 2. */
+/** What an effect may touch while it's applied: the ledger (numbers: Effect.Stat), or the trigger bus in play
+ *  (subscribe to a game event, roll, find feet, run an action: the trigger kinds). Each kind uses its own part and
+ *  does nothing without it (a stat effect isn't applied on the bus, nor a trigger on the ledger). */
 export interface EffectCtx {
-  ledger: Ledger;
-  /** Who it's from: 'top:heavy', 'pizza:margherita@2', 'peel', 'meta'… (or several sharing it). */
+  ledger?: Ledger;
+  play?: PlayCtx;
+  /** Who it's from: Source.Topping('heavy'), Source.Pizza('margherita', 2), Source.Peel, Source.Meta… (or several sharing it: a SourceShare). */
   source: SourceRef;
   /** The phase its numbers go in, unless it says. */
   phase: PhaseId;
@@ -22,8 +27,8 @@ export interface KindSpec<D> {
   describe(e: D): string;
   /** Stronger or weaker by a factor (enhanced, Napoletana, Echo Slice copies). */
   scale(e: D, k: number): D;
-  /** What it is, for searches ("stat:damage", "legacy"). */
-  tags(e: D): string[];
+  /** What it is, for searches (Tag.Stat(Stat.Damage), Tag.Trigger(TriggerKind.OnKill)). */
+  tags(e: D): TagId[];
 }
 
 /** Declare a kind: its maker (which returns its data, tagged with `kind`) and its behaviour. The maker keeps its

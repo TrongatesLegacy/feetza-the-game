@@ -4,13 +4,13 @@
 // src/game/pizzaPerks.ts (ported onto triggers in step 2 of docs/effects-plan.md).
 
 import type { PizzaPerk } from '../data/pizzas';
-import { Effect, Op, Stat, Unit, type EffectData } from '../effects';
+import { Effect, Op, Stat, Unit, UnitKind, type EffectData } from '../effects';
 
 const { scale } = Unit;
 /** A whole number of things from a strength (rerolls, cutters): rounded, as it always was. */
 const whole = (c: number) => Unit.Count(Math.round(c));
 /** A count that may be fractional (luck from a perk's strength). */
-const some = (c: number) => Unit.of('count', c);
+const some = (c: number) => Unit.of(UnitKind.Count, c);
 
 /** The tips from Pepperoni (coins) and the luck pizzas, per strength: added as one sum, as they always were, so the
  *  total stays the same to the last bit. */
@@ -18,7 +18,11 @@ export const PERK_TIPS = { coins: Unit.Percent(20), luck: Unit.Percent(15) } as 
 
 /** Each perk's stat effects, in the order they have always been applied: a stat's sum or product then comes out the
  *  same to the last bit (the balance sim's rounding of tips and health can tell). */
-export const PERK_STATS: Partial<Record<PizzaPerk, (c: number) => EffectData[]>> = {
+/** A perk with no stat effects (what it does is in play: src/game/perkEffects.ts, src/game/pizzaPerks.ts). */
+const none = (): EffectData[] => [];
+export const PERK_NONE = none;
+
+export const PERK_STATS: Record<PizzaPerk, (c: number) => EffectData[]> = {
   damage: (c) => [Effect.Stat(Stat.Damage, Op.Boost(scale(Unit.Percent(10), c)))],
   // (Pepperoni's and the luck pizzas' tips are one sum, added in Run.buildLedger: see PERK_TIPS)
   luck: (c) => [Effect.Stat(Stat.Luck, Op.Add(some(c)))],
@@ -57,4 +61,129 @@ export const PERK_STATS: Partial<Record<PizzaPerk, (c: number) => EffectData[]>>
   // the pizza plan's step 3: Blue Plate Special, Stargazer Calzone
   bluePlate: (c) => [Effect.Stat(Stat.Damage, Op.Boost(scale(Unit.Percent(5), c))), Effect.Stat(Stat.CoinMult, Op.Add(scale(Unit.Percent(5), c)))],
   stargazer: (c) => [Effect.Stat(Stat.CritChance, Op.Add(scale(Unit.Chance(3), c))), Effect.Stat(Stat.CritMult, Op.Add(scale(Unit.Percent(10), c)))],
+  // ——— no stat effects: these act in play (or through PizzaPerkKit.modifiers, Run.buildLedger's tips) ———
+  coins: none,
+  regen: none,
+  shield: none,
+  burnStomper: none,
+  slices: none,
+  slowAbove: none,
+  thick: none,
+  garlic: none,
+  neighbourShield: none,
+  sturdyMulti: none,
+  immuneEffects: none,
+  heatAbove: none,
+  rotate: none,
+  refund: none,
+  preserve: none,
+  neverStale: none,
+  staleHeal: none,
+  riseOnce: none,
+  bossRegrow: none,
+  markFirst: none,
+  disarm: none,
+  bounceTop: none,
+  perkBoost: none,
+  tipsAbove: none,
+  nearDmg: none,
+  slowWait: none,
+  wave5Tips: none,
+  fullSpeed: none,
+  stompMeter: none,
+  meatball: none,
+  fastDmg: none,
+  bossShield: none,
+  hoverFire: none,
+  freshTips: none,
+  stickyStomp: none,
+  slipStomp: none,
+  neighbourRegrow: none,
+  honeyStomp: none,
+  fullBoss: none,
+  scoreAbove: none,
+  crustWaves: none,
+  phaseHeal: none,
+  firstFreeze: none,
+  killReroll: none,
+  varietyDmg: none,
+  shinyDouble: none,
+  bossTips: none,
+  miniDmg: none,
+  eventDrops: none,
+  knockAbove: none,
+  stompCooldown: none,
+  goldenDouble: none,
+  actStart: none,
+  slayer: none,
+  bigStart: none,
+  killSlices: none,
+  perfectTips: none,
+  burnAbove: none,
+  crustRun: none,
+  peelDmg: none,
+  comboLong: none,
+  firstBack: none,
+  smackSpeed: none,
+  nightDmg: none,
+  frostFire: none,
+  surviveOnce: none,
+  rainbow: none,
+  postBoss: none,
+  fireLane: none,
+  ghostPass: none,
+  mystery: none,
+  eventChance: none,
+  timeStop: none,
+  meteor: none,
+  erupt: none,
+  pinata: none,
+  orbitRing: none,
+  goldenDiscount: none,
+  treasure: none,
+  nonna: none,
+  lossTips: none,
+  fondueStick: none,
+  roofKnock: none,
+  killRush: none,
+  halfStomp: none,
+  undeadDmg: none,
+  waveTips: none,
+  kitchenSink: none,
+  stoneStomp: none,
+  danceBeat: none,
+  inkSpray: none,
+  snowball: none,
+  pieSplat: none,
+  sandWall: none,
+  critQuake: none,
+  steamVent: none,
+  sootAbove: none,
+  comet: none,
+  ghostAlly: none,
+  forgeWaves: none,
+  gorgonGaze: none,
+  tripleBite: none,
+  mazeLost: none,
+  emberTrail: none,
+  sirenSong: none,
+  harpyGust: none,
+  goldenFleece: none,
+  whirlpool: none,
+  fenrirHowl: none,
+  bridgeLane: none,
+  skaldSaga: none,
+  frostbite: none,
+  surtrSpread: none,
+  serpentCoil: none,
+  echo: none,
+  nonnaLadle: none,
+  silverTray: none,
+  firstBake: none,
+  bigTopCannon: none,
+  citadelWall: none,
+  tidalWash: none,
+  croutonPortal: none,
+  hearthRoar: none,
+  blackHole: none,
 };

@@ -2,6 +2,7 @@
 // Menu prices, and which items are free. Discounts stack additively and stop at 60% off.
 
 import { kindOf, upgradePrice, type Upgrade } from '../data/upgrades';
+import { save } from '../systems/save';
 import { DEAL_BLOCK } from './kitState';
 import type { Run } from './Run';
 
@@ -18,6 +19,38 @@ export function happyHour(run: Run): boolean {
  *  never below 1. */
 export function cardCount(run: Run, base: number): number {
   return Math.max(1, base + run.stats.cardDelta);
+}
+
+/** A shop's usual topping cards before anything changes them: 3 (4 with the Pizzeria's Indecisive Chef). */
+export function usualCards(): number {
+  return 3 + (save.meta.indecisive ? 1 : 0);
+}
+
+/** The cards a shop deals in all (what STATS' Cards per shop shows): its topping cards (cardCount) and the ledger's
+ *  one-use extras (Mac & Cheese's extraConsumable; each dealt when one is free to deal). */
+export function shopCardTotal(run: Run): number {
+  return cardCount(run, usualCards()) + run.stats.extraConsumable;
+}
+
+/**
+ * Deal shop cards: every way of dealing them goes through here (a shop opening, boss loot, rerolls, the Stockroom
+ * Key's restock, the hero's peek at the next shop, From the Future's shop, and Booster Gouda's coming shop). It reads
+ * the ledger's card totals: n topping cards (cardDelta, through cardCount, unless the caller says how many), the
+ * one-use extras (extraConsumable), then Exclusive Menu's bump of every card one rarity up. Boss loot deals epic or
+ * better (any shop's deal when none is open); its one-use extras can be any rarity, as in any shop.
+ */
+export function dealCards(run: Run, o: { boss?: boolean; n?: number; exclude?: string[] } = {}): Upgrade[] {
+  const exclude = o.exclude ?? [];
+  const n = o.n ?? cardCount(run, usualCards());
+  let picks: Upgrade[] = [];
+  if (o.boss) picks = run.pickBossCards(n, exclude);
+  // (boss loot with nothing epic or better open: an ordinary deal)
+  if (!o.boss || !picks.length) {
+    const avail = run.dealable(exclude);
+    picks = run.pickCards(n, avail);
+    run.addExtraConsumables(picks, avail, run.stats.extraConsumable);
+  } else run.addExtraConsumables(picks, run.dealable(exclude), run.stats.extraConsumable);
+  return run.level('exclusivemenu') ? run.bumpRarity(picks, exclude) : picks;
 }
 
 /** Every discount on this card right now (negative: a surcharge), capped at 60% off. */

@@ -15,6 +15,7 @@ import type { Stats } from '../data/upgrades';
 import { baseStats, kindOf, UPGRADE_BY_ID } from '../data/upgrades';
 import { Better, Stack, STAT_DEFS, STAT_KEYS } from '../effects/stats';
 import { CAP_SOURCE, type Breakdown } from '../effects/ledger';
+import { Source, type SourceKey } from '../effects/source';
 import { PIZZA_BY_ID, type PizzaPerk } from '../data/pizzas';
 import { passiveBoost } from './slamMode';
 import { DOUBLE_CAP, TIP_MULT_CAP } from './Run';
@@ -148,7 +149,7 @@ export interface BuildInput {
   /** What made each stat: the run's ledger breakdown (src/effects/ledger.ts), each source's share. */
   breakdown: Record<keyof Stats, Breakdown>;
   /** A ledger source as a "from" chip (its name, icon or image, and what it does). */
-  source: (id: string) => Omit<Src, 'tone'> | null;
+  source: (id: SourceKey) => Omit<Src, 'tone'> | null;
   owned: Record<string, number>;
   procs: { id: string; p: Proc; lvl: number }[];
   ability: Ability | null;
@@ -854,7 +855,7 @@ export function buildView(inp: BuildInput): BuildView {
   }
   // the safety net for what isn't a stat: a topping you own that no tile names (a trick the scene runs by itself)
   const chips = new Set(sections.flatMap((x) => [...x.tiles, ...(x.auto ?? [])].flatMap((t) => t.from.map((f) => f.key))));
-  const unnamed = Object.entries(inp.owned).filter(([id, lvl]) => lvl > 0 && UPGRADE_BY_ID[id] && kindOf(UPGRADE_BY_ID[id]) !== 'consumable' && !chips.has(`top:${id}`));
+  const unnamed = Object.entries(inp.owned).filter(([id, lvl]) => lvl > 0 && UPGRADE_BY_ID[id] && kindOf(UPGRADE_BY_ID[id]) !== 'consumable' && !chips.has(Source.Topping(id)));
   if (unnamed.length)
     sections.push({ id: 'more', title: 'More effects', icon: '✨', color: '#8a7f72', sub: 'toppings that work in play', tiles: unnamed.map(([id, lvl]) => {
       const s = topSrc(id, lvl);
@@ -885,7 +886,7 @@ export function buildView(inp: BuildInput): BuildView {
 export function topSrc(id: string, lvl: number): Src {
   const u = UPGRADE_BY_ID[id];
   const l = Math.max(1, lvl);
-  return { key: `top:${id}`, name: u ? `${u.name}${u.max > 1 ? ` LV${l}` : ''}` : id, icon: u?.icon, tone: 'up', tip: u ? `${u.desc(l)}${u.downside ? ` · ▼ ${u.downside}` : ''}` : undefined };
+  return { key: Source.Topping(id), name: u ? `${u.name}${u.max > 1 ? ` LV${l}` : ''}` : id, icon: u?.icon, tone: 'up', tip: u ? `${u.desc(l)}${u.downside ? ` · ▼ ${u.downside}` : ''}` : undefined };
 }
 
 /** A line on what a pizza's perk is worth right now, where there's a number to give. */

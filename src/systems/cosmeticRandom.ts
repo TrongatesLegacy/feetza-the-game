@@ -16,3 +16,10 @@ export function crand(): number {
   s >>>= 0;
   return s / 4294967296;
 }
+
+/** The balance sim (src/devSim.ts) starts every run's cosmetic sequence from the same seed. Cosmetic numbers can still
+ *  reach play through what's drawn where (a waiter's tray is flung from where his swaying arm holds it), so a seeded
+ *  run must not start from the page's clock. */
+export function seedCosmetic(n: number): void {
+  s = (n ^ 0x9e3779b9) >>> 0 || 1;
+}

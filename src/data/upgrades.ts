@@ -8,7 +8,7 @@ import { MIXED_TOPPINGS } from './toppingsMixed2';
 import { SHOP_TOPPINGS } from './toppingsShop';
 import { WILD_TOPPINGS } from './toppingsWild';
 import { freezeText, meterBoostText } from '../game/slamMode';
-import { Effect, Levels, Op, Stat, Unit, type EffectData } from '../effects';
+import { Effect, Op, Stat, Unit, type EffectData } from '../effects';
 import { baseStatsFromDefs } from '../effects/stats';
 
 export interface Stats {
@@ -194,7 +194,7 @@ export const UPGRADES: Upgrade[] = [
   {
     id: 'freezer', name: 'Freezer Burn', icon: '❄️', rarity: 'common', max: 4,
     desc: (l) => (l === 1 ? 'Smacks chill feet: -20% speed for 2s' : '+12% chill strength'),
-    effects: [Effect.Stat(Stat.SlowPct, Op.Add(Unit.Percent(20)), { levels: Levels.First }), Effect.Stat(Stat.SlowPct, Op.Add(Unit.Percent(12)), { levels: Levels.Later })],
+    effects: [Effect.Stat(Stat.SlowPct, Op.Add(Unit.Percent(20)).EachLevelUp.Add(Unit.Percent(12)))],
   },
   {
     id: 'tips', name: 'Tip Jar', icon: '🫙', rarity: 'common', max: 5,
@@ -247,9 +247,8 @@ export const UPGRADES: Upgrade[] = [
     id: 'zap', name: 'Garlic Lightning', icon: '⚡', rarity: 'rare', max: 4,
     desc: (l) => (l === 1 ? '18% chance a smack arcs to 2 nearby feet' : '+10% arc chance, +1 target'),
     effects: [
-      Effect.Stat(Stat.ChainChance, Op.Add(Unit.Chance(18)), { levels: Levels.First }),
-      Effect.Stat(Stat.ChainChance, Op.Add(Unit.Chance(10)), { levels: Levels.Later }),
-      Effect.Stat(Stat.ChainCount, Op.Add(Unit.Count(1)), { levels: Levels.Later }),
+      Effect.Stat(Stat.ChainChance, Op.Add(Unit.Chance(18)).EachLevelUp.Add(Unit.Chance(10))),
+      Effect.Stat(Stat.ChainCount, Op.Nothing.EachLevelUp.Add(Unit.Count(1))),
     ],
   },
   {
@@ -285,7 +284,7 @@ export const UPGRADES: Upgrade[] = [
   {
     id: 'olive', name: 'Olive Launcher', icon: '🫒', rarity: 'rare', max: 4,
     desc: (l) => (l === 1 ? 'Auto-fires an olive at a foot every 1.6s' : 'Fires olives 35% faster'),
-    effects: [Effect.Stat(Stat.OliveRate, Op.Set(Unit.Rate(1 / 1.6)), { levels: Levels.First }), Effect.Stat(Stat.OliveRate, Op.Mul(Unit.Mult(1.35)), { levels: Levels.Later })],
+    effects: [Effect.Stat(Stat.OliveRate, Op.Set(Unit.Every(Unit.Seconds(1.6))).EachLevelUp.Mul(Unit.Mult(1.35)))],
   },
   {
     id: 'mercy', name: 'Cutter\'s Mercy', icon: '🔪', rarity: 'rare', max: 3,
@@ -401,7 +400,8 @@ const AUTO_STATS = new Set<keyof Stats>(['cutters', 'cutterDmg', 'oliveRate', 'o
  *  src/game/momentum.ts): a topping proc, orbiting cutters, olives, garlic, burns, traps, burning stompers, the drone… */
 export function isAutoTopping(u: Upgrade): boolean {
   if (u.proc || AUTO_KIT.has(u.id)) return true;
-  return (u.effects ?? []).some((e) => e.kind === 'stat' && e.levels !== Levels.Later && AUTO_STATS.has(e.stat));
+  // (what its first level does: an EachLevelUp-only effect, Op.Nothing first, doesn't count)
+  return (u.effects ?? []).some((e) => e.kind === 'stat' && e.op.op !== 'none' && AUTO_STATS.has(e.stat));
 }
 
 /** The line Your Toppings adds under an automatic topping. */

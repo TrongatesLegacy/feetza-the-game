@@ -8,9 +8,18 @@
 //                   (momentum: toppings alone, a lazy player, a busy one; the report splits smack and automatic damage)
 //   npm run sim -- --heat mild --bot idle --momentum floor=0.1,drain=4,grace=2,smackGain=0.6   (try other numbers)
 //
+//   npm run sim -- --heat mild --runs 2 --waves 15 --lineup meteorite,discodiner --enhance
+//                   (every run starts with that table, enhanced: a perk family before and after a refactor)
+//
 // It starts its own Vite dev server and a headless Chrome (muted, its own throwaway profile, so the game's save in
-// your browser is never touched), opens one tab per worker and hands each tab runs to play with F.sim.run
+// your browser is never touched), opens one window per worker and hands each runs to play with F.sim.run
 // (src/devSim.ts). Results land in .sim/<date-time>/results.json and report.html (see report.mjs).
+//
+// Repeatable: the same seeds give the same runs, whatever unrelated code changes (docs/effects-plan.md, step 2). Each
+// worker has a window of its own (a background tab gets no animation frames and never finished booting); under ?sim
+// the game draws art only when it's first wanted, never in idle time, and keeps no art cache; and the sim pins
+// Phaser's frame figures (game.loop.delta…) to its own step. --cache-dir (or SIM_CACHE_DIR) gives Vite a cache of its
+// own when several checkouts share node_modules.
 
 import { spawn } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
@@ -45,6 +54,8 @@ const quiet = !!arg('quiet', false);
 const trace = Number(arg('trace', 0));
 const idleFrom = Number(arg('idle-from', 0));
 const shopMode = String(arg('shop', 'rarity'));
+// Vite's dependency cache (default: node_modules/.vite); give a separate one when several checkouts share node_modules
+const cacheDir = arg('cache-dir', process.env.SIM_CACHE_DIR ?? '');
 // how the bot plays (src/devSim.ts SimOpts.bot): full, light (a smack every --light-rate ms) or idle (never smacks)
 const bots = list(arg('bot', 'full'));
 const lightRate = Number(arg('light-rate', 2000));
@@ -57,6 +68,9 @@ const momentum = Object.fromEntries(
 );
 // start each run at this wave (from the shop, with a starter kit sized for it) instead of wave 1
 const from = Number(arg('from', 0));
+// dev: the starting table (--lineup id,id,id), all enhanced with --enhance
+const lineup = list(arg('lineup', ''));
+const enhance = argv.includes('--enhance');
 // a fresh page for every run (slower to start, but nothing from an earlier run can carry over)
 const freshEvery = argv.includes('--reuse') ? 8 : 1;
 
@@ -74,7 +88,7 @@ for (const heat of heats)
   for (const peel of peels)
     for (const bot of bots)
       for (let i = 0; i < runs; i++) {
-        const job = { seed: seedBase + i, heat, peel, waves, accuracy, dt, profile, ...(trace ? { trace } : {}), ...(idleFrom ? { idleFrom } : {}), ...(from ? { from } : {}), shop: shopMode, bot, lightRate, ...(Object.keys(momentum).length ? { momentum } : {}) };
+        const job = { seed: seedBase + i, heat, peel, waves, accuracy, dt, profile, ...(trace ? { trace } : {}), ...(idleFrom ? { idleFrom } : {}), ...(from ? { from } : {}), ...(lineup.length ? { lineup } : {}), ...(enhance ? { enhance } : {}), shop: shopMode, bot, lightRate, ...(Object.keys(momentum).length ? { momentum } : {}) };
         jobs.push(job);
         if (check) jobs.push({ ...job, repeat: true });
       }
@@ -91,7 +105,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // ——— the dev server and Chrome ———
 const { createServer } = await import(join(ROOT, 'node_modules/vite/dist/node/index.js'));
-const vite = await createServer({ root: ROOT, logLevel: 'error', server: { port: await freePort(), strictPort: false, host: '127.0.0.1' } });
+const vite = await createServer({ root: ROOT, logLevel: 'error', ...(cacheDir && cacheDir !== true ? { cacheDir: resolve(String(cacheDir)) } : {}), server: { port: await freePort(), strictPort: false, host: '127.0.0.1', fs: { strict: false } } });
 await vite.listen();
 const url = vite.resolvedUrls.local[0];
 const cdpPort = await freePort();
@@ -120,6 +134,11 @@ const shutdown = async () => {
   if (closed) return;
   closed = true;
   try {
+    browserWs?.close();
+  } catch {
+    /* gone */
+  }
+  try {
     browser.kill('SIGTERM');
   } catch {
     /* gone */
@@ -147,10 +166,40 @@ for (let i = 0; i < 100; i++) {
   }
 }
 
+/** A new page in a window of its own (through the browser's own CDP endpoint): its target id. */
+let browserWs = null;
+let browserUp = null;
+let bn = 0;
+const bpend = new Map();
+async function newWindow() {
+  browserUp ??= (async () => {
+    const v = await (await fetch(`http://127.0.0.1:${cdpPort}/json/version`)).json();
+    browserWs = new WebSocket(v.webSocketDebuggerUrl);
+    browserWs.onmessage = (m) => {
+      const d = JSON.parse(m.data);
+      if (d.id && bpend.has(d.id)) {
+        bpend.get(d.id)(d);
+        bpend.delete(d.id);
+      }
+    };
+    await new Promise((r) => (browserWs.onopen = r));
+  })();
+  await browserUp;
+  const r = await new Promise((res) => {
+    const i = ++bn;
+    bpend.set(i, res);
+    browserWs.send(JSON.stringify({ id: i, method: 'Target.createTarget', params: { url: 'about:blank', newWindow: true, width: 1280, height: 720 } }));
+  });
+  return r.result.targetId;
+}
+
 // ——— a tab that plays runs ———
 class Tab {
   async open() {
-    const t = await (await fetch(`http://127.0.0.1:${cdpPort}/json/new?about:blank`, { method: 'PUT' })).json();
+    // each tab in a window of its own: a background tab gets no animation frames, so its page couldn't boot (it sat
+    // out the ready wait, minutes, before every run)
+    const id = await newWindow();
+    const t = (await (await fetch(`http://127.0.0.1:${cdpPort}/json/list`)).json()).find((x) => x.id === id);
     this.id = t.id;
     this.ws = new WebSocket(t.webSocketDebuggerUrl);
     this.n = 0;

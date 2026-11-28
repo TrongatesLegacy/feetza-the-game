@@ -17,6 +17,7 @@
 // it resolves, and the shop card's NOW tag reads the same ones.
 
 import type { Stats } from '../data/upgrades';
+import { Source, shareEntries, type SourceKey, type SourceRef } from './source';
 import { STAT_DEFS, STAT_KEYS, Stack, type StatKey } from './stats';
 
 // ——— phases ———
@@ -82,8 +83,9 @@ export type OpData =
   | { op: 'atMost'; value: Value<number> };
 export type OpKind = OpData['op'];
 
-/** Where a modifier comes from: one source, or several sharing it by weight (two Peel Collectors on the table). */
-export type SourceRef = string | Record<string, number>;
+/** Where a modifier comes from: one source, or several sharing it by weight (two Peel Collectors on the table):
+ *  typed keys from src/effects/source.ts. */
+export type { SourceKey, SourceRef } from './source';
 
 export interface Modifier {
   stat: StatKey;
@@ -92,20 +94,13 @@ export interface Modifier {
   phase: PhaseId;
 }
 
-/** A legacy source (Effect.Legacy): changes the stats the old way, at the end of its phase's multipliers. */
-export interface LegacyMod {
-  source: string;
-  phase: PhaseId;
-  run: (s: Stats) => void;
-}
-
 // ——— the breakdown ———
 
 /** The cap's share of a stat, in its breakdown. */
-export const CAP_SOURCE = 'cap';
+export const CAP_SOURCE = Source.Cap;
 
 export interface Part {
-  source: string;
+  source: SourceKey;
   /** Its share of the change from the base, in the stat's own units (flags: 1 for each source that turns it on). */
   share: number;
 }
@@ -127,7 +122,6 @@ const EPS = 1e-12;
 /** Sources add modifiers; resolve() folds them. A fresh ledger is built every time the stats are worked out. */
 export class Ledger {
   readonly mods: Modifier[] = [];
-  readonly legacy: LegacyMod[] = [];
   /** Set by resolve(): the totals and what made them. */
   resolved: Resolved | null = null;
   private ctx: ValueCtx | null = null;
@@ -141,24 +135,20 @@ export class Ledger {
     this.mods.push(m);
   }
 
-  addLegacy(l: LegacyMod): void {
-    this.legacy.push(l);
-  }
-
   /** Every modifier a source has a share in (the NOW tag of a pizza's card reads its growing ones). */
-  of(source: string): Modifier[] {
+  of(source: SourceKey): Modifier[] {
     return this.mods.filter((m) => (typeof m.source === 'string' ? m.source === source : source in m.source));
   }
 
   /** A modifier's value now, and this source's part of it (by weight, for a shared one; `among` says which sharers
    *  count), and why when it grows. */
-  partOf(m: Modifier, source: string, ctx: ValueCtx | null = this.ctx, among: (id: string) => boolean = () => true): { value: number; why?: string } | null {
+  partOf(m: Modifier, source: SourceKey, ctx: ValueCtx | null = this.ctx, among: (id: SourceKey) => boolean = () => true): { value: number; why?: string } | null {
     if (m.op.op === 'on' || !ctx) return null;
     const v = valueAt(m.op.value, ctx);
     let w = 1;
     if (typeof m.source !== 'string') {
       let tot = 0;
-      for (const [id, x] of Object.entries(m.source)) if (among(id)) tot += x;
+      for (const [id, x] of shareEntries(m.source)) if (among(id)) tot += x;
       w = tot ? (m.source[source] ?? 0) / tot : 0;
     }
     // (a multiplier's part is its share of what it adds: ×1.06 shared by two is +3% each)
@@ -229,17 +219,6 @@ export class Ledger {
         }
         s[k] = x;
       }
-      // legacy sources, in the order they were added (they see the phase so far)
-      for (const l of this.legacy) {
-        if (l.phase !== phase) continue;
-        const before = { ...s };
-        l.run(s as unknown as Stats);
-        for (const k of STAT_KEYS) {
-          if (s[k] === before[k]) continue;
-          if (typeof s[k] === 'boolean') credit(k, l.source, 1);
-          else credit(k, l.source, (s[k] as number) - (before[k] as number));
-        }
-      }
       // flags and the sources' own bounds
       for (const [k, list] of ph) {
         if (STAT_DEFS[k].stack === Stack.Flag) {
@@ -294,14 +273,14 @@ const CAPPED = STAT_KEYS.filter((k) => STAT_DEFS[k].caps && typeof STAT_DEFS[k].
 
 /** Each stat's sources and their shares, largest first. */
 function breakdownOf(s: Stats, credits: [StatKey, SourceRef, number][]): Record<StatKey, Breakdown> {
-  const shares = new Map<StatKey, Map<string, number>>();
+  const shares = new Map<StatKey, Map<SourceKey, number>>();
   for (const [k, src, amount] of credits) {
     let m = shares.get(k);
     if (!m) shares.set(k, (m = new Map()));
     if (typeof src === 'string') m.set(src, (m.get(src) ?? 0) + amount);
     else {
-      const tot = Object.values(src).reduce((a, b) => a + b, 0) || 1;
-      for (const [id, w] of Object.entries(src)) m.set(id, (m.get(id) ?? 0) + (amount * w) / tot);
+      const tot = shareEntries(src).reduce((a, [, b]) => a + b, 0) || 1;
+      for (const [id, w] of shareEntries(src)) m.set(id, (m.get(id) ?? 0) + (amount * w) / tot);
     }
   }
   const out = {} as Record<StatKey, Breakdown>;
