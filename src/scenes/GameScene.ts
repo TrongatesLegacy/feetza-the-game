@@ -10,7 +10,7 @@ import { Momentum } from '../game/momentum';
 import { FEET, FOOT_BY_ID, OUCH, type FootType } from '../data/feet';
 import { META, MILESTONES } from '../data/meta';
 import { readSource, Source, type SourceKey } from '../effects/source';
-import { GHOST_SOURCE, RUN_META, type PeelStats, type TableSeat } from '../game/Run';
+import { GHOST_SOURCE, REROLL_BASE, RUN_META, type PeelStats, type TableSeat } from '../game/Run';
 import { DealRule, Trick, applyAll, Effect as Eff, Op, Phase, Stat, Unit, type EffectData } from '../effects';
 import { PIZZAS, PIZZA_BY_ID, enhancedText, type PizzaType } from '../data/pizzas';
 import { PIZZERIA_SPECIAL_CHANCE, pickByTier, rollTier } from '../data/pizzaRarity';
@@ -1026,6 +1026,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       eventCrusts: r.eventCrusts,
       bankedCrusts: r.bankedCrusts,
       goldenUsed: { ...r.goldenUsed },
+      goldenAt: { ...r.goldenAt },
       newUnlocks: [...r.newUnlocks],
       elapsed: r.elapsed,
       elapsedUs: r.elapsedUs,
@@ -1077,6 +1078,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     r.eventCrusts = s.eventCrusts;
     r.bankedCrusts = s.bankedCrusts ?? 0;
     r.goldenUsed = { ...s.goldenUsed };
+    r.goldenAt = { ...(s.goldenAt ?? {}) };
     r.newUnlocks = [...s.newUnlocks];
     r.elapsedUs = s.elapsedUs ?? Math.round(s.elapsed * 1e6);
     r.elapsed = r.elapsedUs / 1e6;
@@ -1457,6 +1459,9 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.spawnsPaused = false;
     this.thawPerks();
     this.freeRerollsLeft = this.run.stats.freeRerolls;
+    // a reroll's price climbs within a shop and starts again at the next one (it compounded for the whole run: about
+    // ten paid rerolls put it past a topping's price for good)
+    this.run.rerollCost = REROLL_BASE;
     this.abilityWaveStart();
     this.coinsAtWaveStart = this.run.coins;
     const st = this.run.stats;
@@ -2818,15 +2823,17 @@ export class GameScene extends Phaser.Scene implements Arena {
     const dead = this.pizzas.filter((p) => p.dead);
     const next = nextLockedPizza(PIZZAS);
     const used = (id: string) => r.goldenUsed[id] ?? 0;
+    // when it was bought (saves from before this have no wave)
+    const usedNote = (id: string) => (r.goldenAt[id] ? `Used at wave ${r.goldenAt[id]}` : 'Used this run');
     const canEnhance = this.alivePizzas().some((p) => !p.enhanced);
     const best = bestRarity(r.wave);
     const legOpen = rarityOpen(Rarity.Legendary, r.wave);
     const golden: GoldenItem[] = [
-      { id: 'rebake', name: 'Golden Rebake', desc: 'A destroyed pizza back with full slices', cost: 40, available: dead.length > 0 && used('rebake') < 1 && this.run.heat !== 'inferno', note: this.run.heat === 'inferno' ? 'Off on Inferno' : used('rebake') ? 'Used this run' : dead.length ? '' : 'No pizza lost' },
+      { id: 'rebake', name: 'Golden Rebake', desc: 'A destroyed pizza back with full slices', cost: 40, available: dead.length > 0 && used('rebake') < 1 && this.run.heat !== 'inferno', note: this.run.heat === 'inferno' ? 'Off on Inferno' : used('rebake') ? usedNote('rebake') : dead.length ? '' : 'No pizza lost' },
       { id: 'enhance', name: 'Enhance a Pizza', desc: 'Pick a pizza: its perk gets about 50% stronger for the rest of the run. The price doubles each time.', cost: r.enhanceCost(), available: canEnhance, note: canEnhance ? '' : 'All enhanced' },
       { id: 'reroll', name: 'Golden Reroll', desc: `Reroll with ${best === Rarity.Epic ? 'an' : 'a'} ${best} · ${2 - used('reroll')} left`, cost: 25, available: used('reroll') < 2, note: used('reroll') >= 2 ? 'Used twice' : '' },
-      { id: 'topping', name: 'Golden Topping', desc: 'A guaranteed legendary card', cost: 60, available: legOpen && used('topping') < 1, note: !legOpen ? `From wave ${RARITY_DEFS.legendary.from}` : used('topping') ? 'Used this run' : '' },
-      { id: 'fresh', name: 'Fresh Batch', desc: 'Every pizza back to full freshness', cost: 30, available: used('fresh') < 1 && this.run.heatDef.freshness > 0, note: this.run.heatDef.freshness > 0 ? (used('fresh') ? 'Used this run' : '') : 'Freshness is off' },
+      { id: 'topping', name: 'Golden Topping', desc: 'A guaranteed legendary card', cost: 60, available: legOpen && used('topping') < 1, note: !legOpen ? `From wave ${RARITY_DEFS.legendary.from}` : used('topping') ? usedNote('topping') : '' },
+      { id: 'fresh', name: 'Fresh Batch', desc: 'Every pizza back to full freshness', cost: 30, available: used('fresh') < 1 && this.run.heatDef.freshness > 0, note: this.run.heatDef.freshness > 0 ? (used('fresh') ? usedNote('fresh') : '') : 'Freshness is off' },
     ];
     // Golden Ticket, Owner's Discount; Royal Wedding
     for (const g of golden) g.cost = Math.max(1, Math.round(goldenPrice(r, g.cost) * this.perkKit.goldenMult()));
@@ -3589,6 +3596,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     const pay = () => {
       save.crusts -= g.cost;
       this.run.goldenUsed[id] = (this.run.goldenUsed[id] ?? 0) + 1;
+      this.run.goldenAt[id] = this.run.wave;
       sh.goldenBought = id;
       audio.sfx('sfx_levelup', { volume: 0.7 });
     };

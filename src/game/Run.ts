@@ -436,6 +436,9 @@ export interface ActMark {
   slices: number;
 }
 
+/** A reroll's base price at the start of every shop (it climbs ×1.5 + 5 with each paid reroll in that shop). */
+export const REROLL_BASE = 10;
+
 export class Run {
   heat: HeatId = 'regular';
   act2Start = false;
@@ -455,7 +458,7 @@ export class Run {
   /** Consumables bought and waiting to trigger. */
   armed: string[] = [];
   super = 0;
-  rerollCost = 10;
+  rerollCost = REROLL_BASE;
   reheatUses = 0;
   stats: Stats = baseStats();
   perkCounts: Partial<Record<PizzaPerk, number>> = {};
@@ -467,6 +470,8 @@ export class Run {
   bankedCrusts = 0;
   /** Golden menu uses this run, by item id. */
   goldenUsed: Record<string, number> = {};
+  /** The wave each Golden Menu item was last bought in (shown as "Used at wave N"). */
+  goldenAt: Record<string, number> = {};
   secondChances = 0;
   newUnlocks: string[] = [];
   /** Why each pizza in newUnlocks was unlocked (for the end-of-run summary). */

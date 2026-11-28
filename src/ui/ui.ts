@@ -163,6 +163,14 @@ function installReorderDrag(): void {
   );
 }
 
+/** The Golden Menu item picked by a first tap (waiting for the second): putting it back. */
+let goldenArmed: (() => void) | null = null;
+function disarmGolden(): void {
+  const f = goldenArmed;
+  goldenArmed = null;
+  f?.();
+}
+
 const toppingFrame = (): HTMLElement => h('span', { class: 'tfx', 'aria-hidden': 'true' });
 /** A topping's card text (src/game/cardText.ts) as a card shows it: its upside (in `cls`), then its downside on a red
  *  line of its own. */
@@ -1284,12 +1292,20 @@ class UI {
         el.addEventListener('keydown', (e) => e.key === 'Enter' && !c.sold && act.buy(c.id));
         return el;
       });
+      const yoursBtn = btn('YOUR TOPPINGS', 'small cream', () => act.toppings(), { title: 'Every topping you have, its level, and when used ones come back', 'aria-label': `Your toppings: ${st.yours.filter((y) => y.back === null).length}` });
       const reroll = btn(st.rerollLabel, 'yellow small', () => act.reroll(), { 'data-pad': 'y' });
       reroll.disabled = !st.canReroll;
       const toppings = h(
         'section',
         { class: 'shop-sec toppings', 'data-pad-section': '' },
-        h('div', { class: 'sec-head' }, h('h2', {}, 'TOPPINGS'), h('span', { class: 'sec-note' }, 'Buy as many as you can afford'), reroll),
+        h(
+          'div',
+          { class: 'sec-head' },
+          h('h2', {}, 'TOPPINGS'),
+          h('span', { class: 'sec-note' }, 'Buy as many as you can afford'),
+          // your toppings beside the reroll: what you have, next to what's on offer
+          h('div', { class: 'sec-btns' }, yoursBtn, reroll),
+        ),
         h('div', { class: `cards${cards.length > 4 ? ' row' : ''}${cards.length > 5 ? ' many' : ''}` }, ...cards),
       );
       // table strip
@@ -1410,11 +1426,6 @@ class UI {
       });
       // Pizza Slots: in the third slot when no Chef's Special turned up
       if (st.slots) offers.push(slotsRow(st.slots, act.slots, act.slotsTake));
-      const services = h(
-        'div',
-        { class: 'services' },
-        btn('YOUR TOPPINGS', 'yellow small', () => act.toppings(), { title: 'Every topping you have, its level, and when used ones come back', 'aria-label': `Your toppings: ${st.yours.filter((y) => y.back === null).length}` }),
-      );
       const counter = h(
         'section',
         // (with fewer than three offers each has room to spare: a roomy layout, a bigger picture with its text stacked; not
@@ -1434,7 +1445,6 @@ class UI {
                 h('span', {}, 'Nothing more at the counter this time. Fresh pizzas at the next shop.'),
               ),
             ]),
-        services,
       );
       const golden = h(
         'section',
@@ -1444,9 +1454,35 @@ class UI {
           'div',
           { class: 'gitems' },
           ...st.golden.map((g) => {
-            const el = h('button', { class: `gitem${g.available ? ' on' : ''}`, type: 'button', title: `${g.desc}${g.note ? ` · ${g.note}` : ''}` }, h('b', {}, g.name), h('span', { html: g.available ? `${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} ${g.cost}` : g.note || 'Not now' })) as HTMLButtonElement;
+            const price = `${CRUST_SVG.replace('class="coin"', 'class="coin-ico"')} ${g.cost}`;
+            const line = h('span', { html: g.available ? price : g.note || 'Not now' });
+            const el = h('button', { class: `gitem${g.available ? ' on' : ''}`, type: 'button', title: `${g.desc}${g.note ? ` · ${g.note}` : ''}` }, h('b', {}, g.name), line) as HTMLButtonElement;
             el.disabled = !g.available;
-            el.addEventListener('click', () => g.available && act.golden(g.id));
+            // banked crusts take a long time to earn: the first tap only picks it (and says so), a second tap buys it;
+            // a tap anywhere else, or a few seconds, puts it back
+            el.addEventListener('click', (e) => {
+              if (!g.available) return;
+              if (el.classList.contains('arm')) {
+                disarmGolden();
+                act.golden(g.id);
+                return;
+              }
+              disarmGolden();
+              e.stopPropagation();
+              el.classList.add('arm');
+              line.innerHTML = `TAP AGAIN TO BUY · ${price}`;
+              const off = (ev: Event) => {
+                if (!el.contains(ev.target as Node)) disarmGolden();
+              };
+              const timer = window.setTimeout(() => disarmGolden(), 4000);
+              document.addEventListener('pointerdown', off, true);
+              goldenArmed = () => {
+                window.clearTimeout(timer);
+                document.removeEventListener('pointerdown', off, true);
+                el.classList.remove('arm');
+                line.innerHTML = price;
+              };
+            });
             return el;
           }),
         ),

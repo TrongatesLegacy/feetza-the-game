@@ -71,6 +71,8 @@ export interface RunSnapshot {
   peel?: string;
   ability?: boolean;
   goldenUsed: Record<string, number>;
+  /** The wave each Golden Menu item was bought in (older saves: none). */
+  goldenAt?: Record<string, number>;
   newUnlocks: string[];
   elapsed: number;
   /** The run clock in microseconds (old saves only have elapsed, in seconds). */

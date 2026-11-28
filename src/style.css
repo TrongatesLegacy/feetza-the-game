@@ -2471,6 +2471,17 @@ body.pad .slam .pd {
   margin-left: auto;
 }
 
+/* buttons that share a section's head (Your Toppings and Reroll): kept together on the right */
+.sec-head .sec-btns {
+  margin-left: auto;
+  display: flex;
+  gap: 0.5em;
+  flex: none;
+}
+.sec-head .sec-btns .btn {
+  margin-left: 0;
+}
+
 .sec-chip {
   font-weight: 700;
   font-size: 1em;
@@ -2776,6 +2787,20 @@ body.pad .slam .pd {
 
 .gitem.on:hover {
   filter: brightness(1.06);
+}
+
+/* picked by a first tap: waiting for the second to buy it */
+.gitem.on.arm {
+  background: linear-gradient(180deg, #fff3b8, #ffd23f);
+  box-shadow: 0 0 0 0.2em #fff, 0 0 0 0.36em var(--ink), 0 0.18em 0 var(--ink);
+  animation: gitem-arm 0.9s ease-in-out infinite alternate;
+}
+.gitem.on.arm span {
+  font-weight: 700;
+  white-space: nowrap;
+}
+@keyframes gitem-arm {
+  to { filter: brightness(1.12); }
 }
 
 .gitem b {
