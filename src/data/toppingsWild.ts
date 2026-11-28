@@ -45,7 +45,17 @@ export const WILD_TOPPINGS: Upgrade[] = [
   // ——— Legendary ———
   kit('lastslice', 'The Last Slice', '☝️', 'legendary', 1, () => 'Down to one pizza: +100% damage, and smacks hit all in range'),
   kit('sixthsense', 'Sixth Sense', '👁️', 'legendary', 1, () => 'Feet about to stomp glow red and take +25% damage'),
-  { id: 'fulltank', name: 'Full Tank', icon: '⛽', rarity: 'legendary', max: 1, desc: () => superStartText(100), effects: [Effect.Stat(Stat.SuperStart, Op.Set(Unit.Percent(100)))], needsMeter: 'tank' },
+  { id: 'fulltank', name: 'Full Tank', icon: '⛽', rarity: 'legendary', max: 1, desc: () => superStartText(100), effects: [
+    Effect.Stat(
+      Stat.SuperStart,
+      Op.Set(Unit.Percent(100)),
+    ),
+  ], needsMeter: 'tank' },
   kit('coldfeet', 'Cold Feet', '🧦', 'legendary', 1, () => 'For the first 5s of every wave, feet move at half speed'),
-  { id: 'infiniteoven', name: 'Infinite Oven', icon: '🌡️', rarity: 'legendary', max: 1, desc: () => 'Every topping that levels up can go 2 levels higher', effects: [Effect.Stat(Stat.CapBonus, Op.Add(Unit.Count(2)))] },
+  { id: 'infiniteoven', name: 'Infinite Oven', icon: '🌡️', rarity: 'legendary', max: 1, desc: () => 'Every topping that levels up can go 2 levels higher', effects: [
+    Effect.Stat(
+      Stat.CapBonus,
+      Op.Add(Unit.Count(2)),
+    ),
+  ] },
 ];

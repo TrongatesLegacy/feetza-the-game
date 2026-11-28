@@ -1,6 +1,6 @@
 # Effects plan: one plug-and-play system for perks, toppings and peels
 
-Status: **approved; step 1 done (2026-11-27, branch effects-1): units, stat definitions, the modifier ledger, STATS from the ledger. Step 2 done (2026-11-28, branch effects-2): the balance sim made repeatable, the golden check, the trigger bus, the perks' behaviours ported (most families), one deal function for shop cards, and typed names for sources, tags and units.** See "Step 1: what was built" and "Step 2: what was built" at the end.
+Status: **approved; step 1 done (2026-11-27, branch effects-1): units, stat definitions, the modifier ledger, STATS from the ledger. Step 2 done (2026-11-28, branch effects-2): the balance sim made repeatable, the golden check, the trigger bus, the perks' behaviours ported (most families), one deal function for shop cards, and typed names for sources, tags and units. Step 4's lint rules done early (2026-11-28, branch effects-lint): `npm run lint` and `npm run check`.** See "Step 1: what was built", "Step 2: what was built" and "Lint rules" at the end.
 
 ## The problem
 
@@ -145,7 +145,7 @@ Odd one-offs (the Black Olive Hole's pull, the Hammy Ha beam) stay as custom act
 1. **Inventory and vocabulary:** list every effect today (toppings, perks, peels, heroes, meta) and group them into stat effects, triggers and actions. Write the vocabulary and its adapters. Port the stat effects first (the easy majority). STATS reads the declarations, and every hand-written tile becomes an adapter's display.
 2. **The trigger bus:** port the pizza perks' behaviours from `pizzaPerks.ts` onto triggers and shared actions, one family at a time (timers, on-kill, on-stomp, on-smack, wave start). Each family is checked with the balance sim for identical numbers before and after.
 3. **Toppings and peels:** move their in-play checks by id onto the same bus. Peel abilities' `fx` become the same actions.
-4. **Guards:** a typecheck rule that every item declares at least one effect, and a dev audit (`F.effectsAudit()`) that puts every item through the adapters and flags any item with no declared effects (it's still on an old code path). Nothing can be invisible on STATS or skip the stale/frozen rules. A lint rule: one effect per line, no arithmetic in declarations.
+4. **Guards:** a typecheck rule that every item declares at least one effect, and a dev audit (`F.effectsAudit()`) that puts every item through the adapters and flags any item with no declared effects (it's still on an old code path). Nothing can be invisible on STATS or skip the stale/frozen rules. A lint rule: one effect per line, no arithmetic in declarations (done early: see "Lint rules").
 
 **Order:** best done **before the remaining 21 Legendaries**, so they're built on it rather than adding more one-off wiring. Act 3's batch is already under way and is ported in step 2 like the rest.
 
@@ -306,7 +306,7 @@ Checked in `?dev` with Mac & Cheese, Extra Shelf LV2 and Exclusive Menu: a norma
 
 - **`EachLevelUp` replaces `Levels`.** `Op.Add(Unit.Chance(18)).EachLevelUp.Add(Unit.Chance(10))`: the first op at level 1, the EachLevelUp op once for each level after. `Op.Nothing.EachLevelUp.Add(Unit.Count(1))`: nothing at level 1. Any op can follow any op (`Op.Set(Unit.Every(Unit.Seconds(1.6))).EachLevelUp.Mul(Unit.Mult(1.35))`, the Olive Launcher). The chain is plain data (`{ op, value, each: { op, value } }`; `.EachLevelUp` is a hidden getter). Card text reads "18% chain lightning, +10% each level-up". Freezer Burn, Garlic Lightning and the Olive Launcher are ported; `Levels` is gone. Nothing is named a lowercase `then` (an object with a `.then` method is taken for a promise): `Action.Later`'s action is `act`.
 - **`Unit.Every(Unit.Seconds(n))`** gives a `Rate` (1/n).
-- **No arithmetic inside effect declarations**: a number that needs working out gets a named maker (`Unit.Every`, `Enh`, `Nth`, `Dps.Smack`). Step 2's new declarations (`perkEffects.ts`, the three toppings) follow it; step 1's perk stats (`perkStats.ts`, `PizzaPerkKit.modifiers`) still work numbers out inline, for the lint rule's pass.
+- **No arithmetic inside effect declarations**: a number that needs working out gets a named maker (`Unit.Every`, `Enh`, `Nth`, `Dps.Smack`). Step 2's new declarations (`perkEffects.ts`, the three toppings) follow it; the lint pass moved the rest (`PizzaPerkKit.modifiers`, Run's tips sum, the tips' `At` offsets) onto makers, and the rule now checks it (see "Lint rules").
 - **`Effect.Legacy` is deleted**, with the ledger's `LegacyMod`, `addLegacy`, its list and its fold. Anything not ported stays in its old code path and is listed here.
 - **Sources** (`src/effects/source.ts`): `Source.Topping(id)`, `Source.Pizza(type, n)`, `Source.Perk(perk)`, `Source.Meta`, `Source.Peel`, `Source.Hero`, `Source.Ghost`, `Source.Cap`, as typed template keys (`` `top:${string}` ``, `` `pizza:${string}#${number}` ``, `` `perk:${PizzaPerk}` ``, `'meta'`…), so the ledger's maps and the golden check read the same strings as before. `readSource(key)` reads one back (the STATS chip resolver); a shared modifier is a `SourceShare` (`Partial<Record<SourceKey, number>>`, `shareEntries`). A misspelt key doesn't compile. (Topping ids aren't a literal union yet, so `Source.Topping('typo')` still compiles; the audit in step 4 can check them.)
 - **`PERK_STATS`** is a full `Record<PizzaPerk, …>`: a perk with no stat effects says `none` (124 of them), so a forgotten perk doesn't compile.
@@ -340,3 +340,31 @@ Checked in `?dev` with Mac & Cheese, Extra Shelf LV2 and Exclusive Menu: a norma
 - The `Custom` one-offs become shared actions where they share a shape (area damage, a projectile hit, a lane change), with their looks moving to `LOOKS`.
 - Toppings' and peels' in-play checks by id move onto the bus (the plan's step 3). The Legendaries come with `Action.Damage` via `legendDmg`.
 - The golden check and `--lineup` family sims are the checks for each port.
+
+## Lint rules (2026-11-28, branch effects-lint)
+
+ESLint (dev only, `typescript-eslint`'s parser, flat config in `eslint.config.js`) runs a small local plugin for the effect declarations, `tools/eslint/effects.js`, plus a short list of correctness rules from ESLint's recommended set that the codebase already passes (`no-unreachable`, `no-dupe-keys`, `no-fallthrough`, `use-isnan`…). There are no style rules: nothing that isn't an effect declaration gets reformatted.
+
+**Commands:**
+- `npm run lint`: ESLint over `src`, `scripts` and `tools`. `npx eslint --fix <files>` applies the layout fixes.
+- `npm run lint:test`: the rules' own tests (ESLint's `RuleTester`, `tools/eslint/effects.test.js`): valid and invalid cases for each rule, with the fixes (64 cases, the last running every rule together over several fix passes).
+- `npm run check`: `tsc --noEmit`, the rules' tests, the lint and the golden check. Every change runs it before merging.
+
+**What counts as a declaration:** an `Effect.*` call, an `Op.*` call or chain (`Op.Add(…).EachLevelUp.Mul(…)`), a `Unit` maker (`Unit.Chance`, `Unit.Seconds`…: a capital letter), and everything inside their arguments, nested calls and functions included. `Unit`'s lowercase maths (`Unit.scale`, `Unit.boost`, `Unit.tick`…) is ordinary game code outside a declaration, so it's only checked inside one. Another name for an import (`Effect as Eff`) and a destructured maker (`const { scale } = Unit`) are followed.
+
+**The rules** (all errors):
+1. **`effects/one-effect-per-line`** (fixable): an effect list (an `effects: [...]` property, or any array holding `Effect.*` calls: toppings, perk stats, the perks' triggers, the Pizzeria's upgrades, the Ghost's possession) has `[` and `]` on their own lines and one entry per line, even with one entry.
+2. **`effects/effect-args-per-line`** (fixable): an `Effect.*(…)` with more than one argument has one argument per line, `(` and `)` on their own lines. Inner calls (`Op.Add(Unit.Chance(18))`, `Action.Seq(…)`) and an options object stay on one line.
+3. **`effects/no-effect-arithmetic`**: no `+ - * / %` or unary minus inside a declaration. A number that needs working out goes through a named maker: `Unit.Every(Unit.Seconds(1.6))`, `Unit.Percent(n)`, `Unit.scale(v, k)`, and two new ones, `Unit.plus(a, b)` (two of one unit added) and `Unit.groups(n, size)` (whole groups: Peel Collector's every 10 peels). `At.Foot`/`At.Pizza` now take how far above as a `Px` (`At.Foot(Unit.Px(40))`), and keep the screen's `dy` (−40) in their data. (They can only go up now; nothing goes down today, and a downward offset would get its own maker.)
+4. **`effects/op-needs-unit`**: no bare number passed to an `Op.*`: wrap it in its `Unit.*` maker.
+5. **`effects/no-loose-strings`** (fixable for `Effect.Stat`'s stat and `Unit.of`'s unit): no string handed straight to the effect vocabulary (an argument of `Effect.*`, `Op.*`, `Unit.*`, `Action.*`, `Cond.*`, `Status.*`…, or a field of an options object given to one) where a typed name exists (`Stat.`, `UnitKind.`, `Custom.`, `Look.`, `Scope.`, `When.`…).
+
+**Allowances** (each exact, none blanket):
+- `Grows(at, why)`: `why` is the reason's words for the STATS tab, so its strings (and their `+`) are allowed. `at` is checked like any declaration.
+- `Nth(n, flag)` and `{ oncePerWave: flag }`: the flag is the counter's name in a pizza's saved flags; there's no typed name, and renaming it would break saves.
+- `Source.*` takes free ids (`Source.Topping('salt')`), and strings passed to the game's own lookups inside a declaration (`meta('wrists')`, `c('coins')`) aren't handed to the vocabulary.
+- A `+` with a string on either side is joining words, not arithmetic.
+
+**What `--fix` and the pass changed:** the layout of 240 effect lists and 341 `Effect.*` calls in 12 files (toppings ×6 with the Pizzeria's upgrades, `perkStats.ts`, `perkEffects.ts`, `pizzaPerks.ts`'s table perks, `Run.ts`'s Pizzeria and tips effects, `toppingKit.ts`'s tricks, the Ghost's possession in `GameScene.ts`). By hand: the arithmetic in Napoli DOC, Peel Collector, the Forge, the Saga and Kitchen Sink (`PizzaPerkKit.modifiers`), Pepperoni's and the luck pizzas' tips sum (`Run.buildLedger`) and the four tip offsets in `perkEffects.ts` moved onto makers, which give the same numbers to the last bit (`0.05 × n × kinds` is `scale(scale(Percent(5), n), kinds)`, in the same order); Kitchen Sink's three-way pick became an `if` per pick so each list stays one entry a line. The golden check shows no differences. (One small difference outside the numbers: the Forge's and the Saga's `Unit.Percent` now range-checks their values, where `Unit.of` didn't.)
+
+**Limits:** the layout fixes change only whitespace and commas, so no fix is offered when a comment sits between the items or an item holds a template string over several lines (the rule still reports it). Names are matched by spelling: a local that shadows `Effect`, `Op` or `Unit` counts as them.

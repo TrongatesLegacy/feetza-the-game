@@ -23,44 +23,227 @@ const none = (): EffectData[] => [];
 export const PERK_NONE = none;
 
 export const PERK_STATS: Record<PizzaPerk, (c: number) => EffectData[]> = {
-  damage: (c) => [Effect.Stat(Stat.Damage, Op.Boost(scale(Unit.Percent(10), c)))],
+  damage: (c) => [
+    Effect.Stat(
+      Stat.Damage,
+      Op.Boost(scale(Unit.Percent(10), c)),
+    ),
+  ],
   // (Pepperoni's and the luck pizzas' tips are one sum, added in Run.buildLedger: see PERK_TIPS)
-  luck: (c) => [Effect.Stat(Stat.Luck, Op.Add(some(c)))],
-  stun: (c) => [Effect.Stat(Stat.StunChance, Op.Add(scale(Unit.Chance(8), c)))],
-  explode: (c) => [Effect.Stat(Stat.ExplodeDmg, Op.Add(scale(Unit.Amount(15), c)))],
-  crit: (c) => [Effect.Stat(Stat.CritChance, Op.Add(scale(Unit.Chance(6), c)))],
-  super: (c) => [Effect.Stat(Stat.SuperGain, Op.Add(scale(Unit.Percent(35), c)))],
-  score: (c) => [Effect.Stat(Stat.ScoreMult, Op.Add(scale(Unit.Percent(25), c)))],
-  reroll: (c) => [Effect.Stat(Stat.FreeRerolls, Op.Add(whole(c)))],
-  healWeakest: (c) => [Effect.Stat(Stat.HealWeakest, Op.Add(Unit.PerWave(Math.round(c))))],
-  knockback: (c) => [Effect.Stat(Stat.Knockback, Op.Boost(scale(Unit.Percent(35), c)))],
-  burnHits: (c) => [Effect.Stat(Stat.BurnDps, Op.Add(scale(Unit.Amount(4), c)))],
-  combo: (c) => [Effect.Stat(Stat.ComboBonus, Op.Add(scale(Unit.Seconds(0.6), c)))],
-  slowHits: (c) => [Effect.Stat(Stat.SlowPct, Op.Add(scale(Unit.Percent(20), c)))],
-  double: (c) => [Effect.Stat(Stat.DoubleChance, Op.Add(scale(Unit.Chance(10), c)))],
-  regenAll: (c) => [Effect.Stat(Stat.RegenAll, Op.Add(Unit.PerWave(Math.round(c))))],
-  execute: (c) => [Effect.Stat(Stat.Execute, Op.Add(scale(Unit.Percent(12), c)))],
-  radius: (c) => [Effect.Stat(Stat.Radius, Op.Boost(scale(Unit.Percent(20), c)))],
-  superStart: (c) => [Effect.Stat(Stat.SuperStart, Op.Add(scale(Unit.Percent(40), c)))],
-  coinsWave: (c) => [Effect.Stat(Stat.CoinsPerWave, Op.Add(scale(Unit.PerWave(8), c)))],
-  critDmg: (c) => [Effect.Stat(Stat.CritMult, Op.Add(scale(Unit.Percent(60), c)))],
+  luck: (c) => [
+    Effect.Stat(
+      Stat.Luck,
+      Op.Add(some(c)),
+    ),
+  ],
+  stun: (c) => [
+    Effect.Stat(
+      Stat.StunChance,
+      Op.Add(scale(Unit.Chance(8), c)),
+    ),
+  ],
+  explode: (c) => [
+    Effect.Stat(
+      Stat.ExplodeDmg,
+      Op.Add(scale(Unit.Amount(15), c)),
+    ),
+  ],
+  crit: (c) => [
+    Effect.Stat(
+      Stat.CritChance,
+      Op.Add(scale(Unit.Chance(6), c)),
+    ),
+  ],
+  super: (c) => [
+    Effect.Stat(
+      Stat.SuperGain,
+      Op.Add(scale(Unit.Percent(35), c)),
+    ),
+  ],
+  score: (c) => [
+    Effect.Stat(
+      Stat.ScoreMult,
+      Op.Add(scale(Unit.Percent(25), c)),
+    ),
+  ],
+  reroll: (c) => [
+    Effect.Stat(
+      Stat.FreeRerolls,
+      Op.Add(whole(c)),
+    ),
+  ],
+  healWeakest: (c) => [
+    Effect.Stat(
+      Stat.HealWeakest,
+      Op.Add(Unit.PerWave(Math.round(c))),
+    ),
+  ],
+  knockback: (c) => [
+    Effect.Stat(
+      Stat.Knockback,
+      Op.Boost(scale(Unit.Percent(35), c)),
+    ),
+  ],
+  burnHits: (c) => [
+    Effect.Stat(
+      Stat.BurnDps,
+      Op.Add(scale(Unit.Amount(4), c)),
+    ),
+  ],
+  combo: (c) => [
+    Effect.Stat(
+      Stat.ComboBonus,
+      Op.Add(scale(Unit.Seconds(0.6), c)),
+    ),
+  ],
+  slowHits: (c) => [
+    Effect.Stat(
+      Stat.SlowPct,
+      Op.Add(scale(Unit.Percent(20), c)),
+    ),
+  ],
+  double: (c) => [
+    Effect.Stat(
+      Stat.DoubleChance,
+      Op.Add(scale(Unit.Chance(10), c)),
+    ),
+  ],
+  regenAll: (c) => [
+    Effect.Stat(
+      Stat.RegenAll,
+      Op.Add(Unit.PerWave(Math.round(c))),
+    ),
+  ],
+  execute: (c) => [
+    Effect.Stat(
+      Stat.Execute,
+      Op.Add(scale(Unit.Percent(12), c)),
+    ),
+  ],
+  radius: (c) => [
+    Effect.Stat(
+      Stat.Radius,
+      Op.Boost(scale(Unit.Percent(20), c)),
+    ),
+  ],
+  superStart: (c) => [
+    Effect.Stat(
+      Stat.SuperStart,
+      Op.Add(scale(Unit.Percent(40), c)),
+    ),
+  ],
+  coinsWave: (c) => [
+    Effect.Stat(
+      Stat.CoinsPerWave,
+      Op.Add(scale(Unit.PerWave(8), c)),
+    ),
+  ],
+  critDmg: (c) => [
+    Effect.Stat(
+      Stat.CritMult,
+      Op.Add(scale(Unit.Percent(60), c)),
+    ),
+  ],
   // Feetza 2.0 perks
-  splash: (c) => [Effect.Stat(Stat.SplashDmg, Op.Add(scale(Unit.Amount(4), c)))],
-  bigHurt: (c) => [Effect.Stat(Stat.BigHurt, Op.Add(scale(Unit.Percent(15), c)))],
-  bossDmg: (c) => [Effect.Stat(Stat.BossDmg, Op.Add(scale(Unit.Percent(20), c)))],
-  tenthCrit: () => [Effect.Stat(Stat.TenthCrit, Op.On())],
-  cutter: (c) => [Effect.Stat(Stat.Cutters, Op.Add(whole(c)))],
-  quickTips: (c) => [Effect.Stat(Stat.QuickTips, Op.Add(Unit.Amount(Math.round(c))))],
-  counterDiscount: (c) => [Effect.Stat(Stat.CounterDiscount, Op.Add(scale(Unit.Percent(15), c)))],
-  extraConsumable: (c) => [Effect.Stat(Stat.ExtraConsumable, Op.Add(whole(c)))],
-  crustBonus: (c) => [Effect.Stat(Stat.CrustBonus, Op.Add(scale(Unit.Percent(15), c)))],
-  slamStun: () => [Effect.Stat(Stat.SlamStun, Op.On())],
-  miniWeak: (c) => [Effect.Stat(Stat.MiniWeak, Op.Add(scale(Unit.Percent(20), c)))],
-  stunVuln: (c) => [Effect.Stat(Stat.StunVuln, Op.Add(scale(Unit.Percent(50), c)))],
-  freeTopping: () => [Effect.Stat(Stat.FreeTopping, Op.On())],
+  splash: (c) => [
+    Effect.Stat(
+      Stat.SplashDmg,
+      Op.Add(scale(Unit.Amount(4), c)),
+    ),
+  ],
+  bigHurt: (c) => [
+    Effect.Stat(
+      Stat.BigHurt,
+      Op.Add(scale(Unit.Percent(15), c)),
+    ),
+  ],
+  bossDmg: (c) => [
+    Effect.Stat(
+      Stat.BossDmg,
+      Op.Add(scale(Unit.Percent(20), c)),
+    ),
+  ],
+  tenthCrit: () => [
+    Effect.Stat(
+      Stat.TenthCrit,
+      Op.On(),
+    ),
+  ],
+  cutter: (c) => [
+    Effect.Stat(
+      Stat.Cutters,
+      Op.Add(whole(c)),
+    ),
+  ],
+  quickTips: (c) => [
+    Effect.Stat(
+      Stat.QuickTips,
+      Op.Add(Unit.Amount(Math.round(c))),
+    ),
+  ],
+  counterDiscount: (c) => [
+    Effect.Stat(
+      Stat.CounterDiscount,
+      Op.Add(scale(Unit.Percent(15), c)),
+    ),
+  ],
+  extraConsumable: (c) => [
+    Effect.Stat(
+      Stat.ExtraConsumable,
+      Op.Add(whole(c)),
+    ),
+  ],
+  crustBonus: (c) => [
+    Effect.Stat(
+      Stat.CrustBonus,
+      Op.Add(scale(Unit.Percent(15), c)),
+    ),
+  ],
+  slamStun: () => [
+    Effect.Stat(
+      Stat.SlamStun,
+      Op.On(),
+    ),
+  ],
+  miniWeak: (c) => [
+    Effect.Stat(
+      Stat.MiniWeak,
+      Op.Add(scale(Unit.Percent(20), c)),
+    ),
+  ],
+  stunVuln: (c) => [
+    Effect.Stat(
+      Stat.StunVuln,
+      Op.Add(scale(Unit.Percent(50), c)),
+    ),
+  ],
+  freeTopping: () => [
+    Effect.Stat(
+      Stat.FreeTopping,
+      Op.On(),
+    ),
+  ],
   // the pizza plan's step 3: Blue Plate Special, Stargazer Calzone
-  bluePlate: (c) => [Effect.Stat(Stat.Damage, Op.Boost(scale(Unit.Percent(5), c))), Effect.Stat(Stat.CoinMult, Op.Add(scale(Unit.Percent(5), c)))],
-  stargazer: (c) => [Effect.Stat(Stat.CritChance, Op.Add(scale(Unit.Chance(3), c))), Effect.Stat(Stat.CritMult, Op.Add(scale(Unit.Percent(10), c)))],
+  bluePlate: (c) => [
+    Effect.Stat(
+      Stat.Damage,
+      Op.Boost(scale(Unit.Percent(5), c)),
+    ),
+    Effect.Stat(
+      Stat.CoinMult,
+      Op.Add(scale(Unit.Percent(5), c)),
+    ),
+  ],
+  stargazer: (c) => [
+    Effect.Stat(
+      Stat.CritChance,
+      Op.Add(scale(Unit.Chance(3), c)),
+    ),
+    Effect.Stat(
+      Stat.CritMult,
+      Op.Add(scale(Unit.Percent(10), c)),
+    ),
+  ],
   // ——— no stat effects: these act in play (or through PizzaPerkKit.modifiers, Run.buildLedger's tips) ———
   coins: none,
   regen: none,

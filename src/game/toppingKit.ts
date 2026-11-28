@@ -268,8 +268,22 @@ export class ToppingKit {
   /** On the capped build (the ledger's Tricks phase): The Last Slice and Midnight Snack. Tips stay under their cap. */
   modifiers(L: Ledger, alive: number): void {
     const at = (source: SourceKey, list: EffectData[]) => applyAll(list, { ledger: L, source, phase: Phase.Tricks });
-    if (this.lv('lastslice') && alive === 1) at(Source.Topping('lastslice'), [Eff.Stat(Stat.Damage, Op.Mul(Unit.Mult(2)))]);
-    if (this.lv('midnightsnack') && this.run.wave >= 50) at(Source.Topping('midnightsnack'), [Eff.Stat(Stat.Damage, Op.Mul(Unit.Mult(1.25))), Eff.Stat(Stat.CoinMult, Op.Add(Unit.Percent(25)))]);
+    if (this.lv('lastslice') && alive === 1) at(Source.Topping('lastslice'), [
+      Eff.Stat(
+        Stat.Damage,
+        Op.Mul(Unit.Mult(2)),
+      ),
+    ]);
+    if (this.lv('midnightsnack') && this.run.wave >= 50) at(Source.Topping('midnightsnack'), [
+      Eff.Stat(
+        Stat.Damage,
+        Op.Mul(Unit.Mult(1.25)),
+      ),
+      Eff.Stat(
+        Stat.CoinMult,
+        Op.Add(Unit.Percent(25)),
+      ),
+    ]);
   }
 
   // ——— kills, stomps, pizzas ———

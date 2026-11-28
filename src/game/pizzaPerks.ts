@@ -608,30 +608,86 @@ export class PizzaPerkKit {
     const many = (n: number, one: string, more: string) => `${n} ${n === 1 ? one : more}`;
     // Napoli DOC: +5% damage for every kind of pizza out
     const variety = this.c('varietyDmg');
-    if (variety) put(shared('varietyDmg'), [Effect.Stat(Stat.Damage, Op.Boost(Grows((x) => Unit.of(UnitKind.Percent, 0.05 * variety * x.kinds), (x) => `${many(x.kinds, 'kind', 'kinds')} of pizza out`)))]);
+    if (variety) put(shared('varietyDmg'), [
+      Effect.Stat(
+        Stat.Damage,
+        Op.Boost(Grows((x) => Unit.scale(Unit.scale(Unit.Percent(5), variety), x.kinds), (x) => `${many(x.kinds, 'kind', 'kinds')} of pizza out`)),
+      ),
+    ]);
     // Peel Collector: +1% damage for every 10 peels owned
     const peels = this.c('peelDmg');
-    if (peels) put(shared('peelDmg'), [Effect.Stat(Stat.Damage, Op.Boost(Grows((x) => Unit.of(UnitKind.Percent, 0.01 * peels * Math.floor(x.peels / 10)), (x) => `${many(x.peels, 'peel', 'peels')} owned`)))]);
+    if (peels) put(shared('peelDmg'), [
+      Effect.Stat(
+        Stat.Damage,
+        Op.Boost(Grows((x) => Unit.scale(Unit.scale(Unit.Percent(1), peels), Unit.groups(x.peels, 10)), (x) => `${many(x.peels, 'peel', 'peels')} owned`)),
+      ),
+    ]);
     // Combo Champ: the whole combo window (its base length too) lasts longer
     const combo = this.c('comboLong');
-    if (combo) put(shared('comboLong'), [Effect.Stat(Stat.ComboBonus, Op.Boost(Unit.of(UnitKind.Percent, combo)))]);
+    if (combo) put(shared('comboLong'), [
+      Effect.Stat(
+        Stat.ComboBonus,
+        Op.Boost(Unit.of(UnitKind.Percent, combo)),
+      ),
+    ]);
     // there's no smack cooldown, so "faster smacks" are extra quick follow-up smacks
     const speed = this.c('smackSpeed');
-    if (speed) put(shared('smackSpeed'), [Effect.Stat(Stat.DoubleChance, Op.Add(Unit.scale(Unit.Chance(15), speed)))]);
+    if (speed) put(shared('smackSpeed'), [
+      Effect.Stat(
+        Stat.DoubleChance,
+        Op.Add(Unit.scale(Unit.Chance(15), speed)),
+      ),
+    ]);
     const crust = this.c('crustRun');
-    if (crust) put(shared('crustRun'), [Effect.Stat(Stat.CrustBonus, Op.Add(Unit.scale(Unit.Percent(10), crust)))]);
+    if (crust) put(shared('crustRun'), [
+      Effect.Stat(
+        Stat.CrustBonus,
+        Op.Add(Unit.scale(Unit.Percent(10), crust)),
+      ),
+    ]);
     // Colossus Forge: +1% damage a wave survived this run (up to +40%; enhanced 1.5% and 60%)
     for (const p of this.with('forgeWaves'))
-      if (!skip.includes(p)) put(one(p), [Effect.Stat(Stat.Damage, Op.Boost(Grows((x) => Unit.of(UnitKind.Percent, this.forgePct(p, x.forgeWaves) / 100), (x) => `${many(x.forgeWaves, 'wave', 'waves')} survived`)))]);
+      if (!skip.includes(p)) put(one(p), [
+        Effect.Stat(
+          Stat.Damage,
+          Op.Boost(Grows((x) => Unit.Percent(this.forgePct(p, x.forgeWaves)), (x) => `${many(x.forgeWaves, 'wave', 'waves')} survived`)),
+        ),
+      ]);
     // Skald's Saga: +3% damage for every boss beaten this run (enhanced 4.5%)
     for (const p of this.with('skaldSaga'))
-      if (!skip.includes(p)) put(one(p), [Effect.Stat(Stat.Damage, Op.Boost(Grows((x) => Unit.of(UnitKind.Percent, this.skaldPct(p, x.bosses) / 100), (x) => `${many(x.bosses, 'boss', 'bosses')} beaten`)))]);
+      if (!skip.includes(p)) put(one(p), [
+        Effect.Stat(
+          Stat.Damage,
+          Op.Boost(Grows((x) => Unit.Percent(this.skaldPct(p, x.bosses)), (x) => `${many(x.bosses, 'boss', 'bosses')} beaten`)),
+        ),
+      ]);
     // Kitchen Sink: this wave's pick (tips and crits stay under their caps)
     for (const p of this.with('kitchenSink')) {
       if (p.flags.sink === undefined || skip.includes(p)) continue;
-      const k = Unit.of(UnitKind.Percent, 0.05 * this.pk(p));
+      const k = Unit.scale(Unit.Percent(5), this.pk(p));
       const pick = Number(p.flags.sink) % 3;
-      put(one(p), [pick === 0 ? Effect.Stat(Stat.Damage, Op.Boost(k)) : pick === 1 ? Effect.Stat(Stat.CoinMult, Op.Add(k)) : Effect.Stat(Stat.CritChance, Op.Add(Unit.of(UnitKind.Chance, k)))]);
+      if (pick === 0) {
+        put(one(p), [
+          Effect.Stat(
+            Stat.Damage,
+            Op.Boost(k),
+          ),
+        ]);
+      } else if (pick === 1) {
+        put(one(p), [
+          Effect.Stat(
+            Stat.CoinMult,
+            Op.Add(k),
+          ),
+        ]);
+      } else {
+        put(one(p), [
+          Effect.Stat(
+            Stat.CritChance,
+            Op.Add(Unit.of(UnitKind.Chance, k)),
+          ),
+        ]);
+      }
     }
   }
 

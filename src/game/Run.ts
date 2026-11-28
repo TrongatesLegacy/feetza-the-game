@@ -11,7 +11,7 @@ import { CONSUMABLE_COOLDOWN, RARITY_WEIGHT, UPGRADES, UPGRADE_BY_ID, baseStats,
 import { freshKitState, type KitState } from './kitState';
 import { applyNemesis, homeOf } from './nemesis';
 import { save, unlockPizza } from '../systems/save';
-import { applyAll, Effect, Op, Phase, Stat, Unit, UnitKind, type EffectData } from '../effects';
+import { applyAll, Effect, Op, Phase, Stat, Unit, type EffectData } from '../effects';
 import { Ledger, type ValueCtx } from '../effects/ledger';
 import { Source, shareEntries, type SourceKey, type SourceRef, type SourceShare } from '../effects/source';
 import { STAT_DEFS } from '../effects/stats';
@@ -524,10 +524,22 @@ export class Run {
     // the Pizzeria's upgrades
     const meta = (id: string) => this.meta(id);
     const metaFx: EffectData[] = [];
-    if (meta('wrists')) metaFx.push(Effect.Stat(Stat.Damage, Op.Boost(Unit.scale(Unit.Percent(8), meta('wrists')))));
-    if (meta('tips')) metaFx.push(Effect.Stat(Stat.CoinMult, Op.Add(Unit.scale(Unit.Percent(10), meta('tips')))));
-    if (meta('apron')) metaFx.push(Effect.Stat(Stat.Luck, Op.Add(Unit.Count(meta('apron')))));
-    if (meta('opinion')) metaFx.push(Effect.Stat(Stat.FreeRerolls, Op.Add(Unit.Count(meta('opinion')))));
+    if (meta('wrists')) metaFx.push(Effect.Stat(
+      Stat.Damage,
+      Op.Boost(Unit.scale(Unit.Percent(8), meta('wrists'))),
+    ));
+    if (meta('tips')) metaFx.push(Effect.Stat(
+      Stat.CoinMult,
+      Op.Add(Unit.scale(Unit.Percent(10), meta('tips'))),
+    ));
+    if (meta('apron')) metaFx.push(Effect.Stat(
+      Stat.Luck,
+      Op.Add(Unit.Count(meta('apron'))),
+    ));
+    if (meta('opinion')) metaFx.push(Effect.Stat(
+      Stat.FreeRerolls,
+      Op.Add(Unit.Count(meta('opinion'))),
+    ));
     build(META_SOURCE, metaFx);
     // toppings: each level applies the topping's effects once
     for (const [id, lvl] of Object.entries(this.owned)) {
@@ -551,7 +563,12 @@ export class Run {
     if (c('coins') > 0 || c('luck') > 0) {
       const src: SourceShare = {};
       for (const k of ['coins', 'luck'] as const) for (const [id, w] of shareEntries(who[k] ?? {})) src[id] = (src[id] ?? 0) + PERK_TIPS[k] * w;
-      build(this.withBoost(src), [Effect.Stat(Stat.CoinMult, Op.Add(Unit.of(UnitKind.Percent, PERK_TIPS.coins * c('coins') + PERK_TIPS.luck * c('luck'))))]);
+      build(this.withBoost(src), [
+        Effect.Stat(
+          Stat.CoinMult,
+          Op.Add(Unit.plus(Unit.scale(PERK_TIPS.coins, c('coins')), Unit.scale(PERK_TIPS.luck, c('luck')))),
+        ),
+      ]);
     }
     // the rest, perk by perk in their old order
     for (const [perk, fx] of Object.entries(PERK_STATS) as [PizzaPerk, (n: number) => EffectData[]][]) if (fx !== PERK_NONE && c(perk) > 0) build(this.withBoost(who[perk]!), fx(c(perk)));

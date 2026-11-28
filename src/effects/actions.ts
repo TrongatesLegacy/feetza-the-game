@@ -3,7 +3,7 @@
 // never draws: Action.Show fires a look the game plays (src/game/perkEffects.ts LOOKS), Action.Summon an ally the
 // game raises, Action.Custom a one-off the game keeps (the meteor's flight, the dance beat's lights).
 //
-//   Action.Tips(Pay.Fixed(Unit.Amount(6)), At.Pizza(-80))          Old Town Tarte: 6 tips × strength, from the pie
+//   Action.Tips(Pay.Fixed(Unit.Amount(6)), At.Pizza(Unit.Px(80)))  Old Town Tarte: 6 tips × strength, from the pie
 //   Action.Seq(Action.Apply(Status.Freeze(…)), Action.Show(Look.ColdSmoked))
 //   Action.Later(Unit.Seconds(0.7), …)                              on the scene's clock; skipped if its pizza's gone
 
@@ -12,7 +12,7 @@ import type { Pizza } from '../game/Pizza';
 import type { AnyEvent } from './events';
 import { applyStatus, describeStatus, type StatusData } from './status';
 import { Tag, type TagId } from './tags';
-import type { Amount, Count, Mult, Percent, Seconds } from './units';
+import type { Amount, Count, Mult, Percent, Px, Seconds } from './units';
 
 /** How many tips: n × strength (rounded), the kill's own tips × m (at least `min`), or a share of the wave's. */
 export type PayData = { p: 'fixed'; n: Amount } | { p: 'kill'; m: Mult; min: Amount } | { p: 'earned'; share: Percent } | { p: 'tuna' };
@@ -25,11 +25,13 @@ export const Pay = {
   Tuna: (): PayData => ({ p: 'tuna' }),
 } as const;
 
-/** Where tips fly from: the foot (dy above its middle) or the pizza (dy above its top). */
+/** Where tips fly from: the foot (so many px above its middle) or the pizza (above its top). The data keeps the
+ *  screen's offset, dy (up is negative): At.Foot(Unit.Px(40)) is dy −40. */
 export type AtData = { at: 'foot' | 'pizza'; dy: number };
+const up = (px: Px | undefined) => (px ? 0 - px : 0);
 export const At = {
-  Foot: (dy = 0): AtData => ({ at: 'foot', dy }),
-  Pizza: (dy = 0): AtData => ({ at: 'pizza', dy }),
+  Foot: (above?: Px): AtData => ({ at: 'foot', dy: up(above) }),
+  Pizza: (above?: Px): AtData => ({ at: 'pizza', dy: up(above) }),
 } as const;
 
 /** Whose slices a heal grows: every pizza on the table, or the firing pizza's neighbours. */

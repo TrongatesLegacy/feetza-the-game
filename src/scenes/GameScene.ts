@@ -1116,10 +1116,38 @@ export class GameScene extends Phaser.Scene implements Arena {
     const inv = this.possessedPizza?.perk;
     if (inv) {
       const ghost = (list: EffectData[]) => applyAll(list, { ledger: L, source: GHOST_SOURCE, phase: Phase.Haunt });
-      if (inv === 'coins' || inv === 'luck' || inv === 'coinsWave' || inv === 'quickTips') ghost([Eff.Stat(Stat.CoinMult, Op.Sub(Unit.Percent(20))), Eff.Stat(Stat.CoinMult, Op.AtLeast(Unit.Mult(0.2)))]);
-      else if (inv === 'damage' || inv === 'critDmg' || inv === 'bigHurt' || inv === 'bossDmg') ghost([Eff.Stat(Stat.Damage, Op.Mul(Unit.Mult(0.9)))]);
-      else if (inv === 'crit') ghost([Eff.Stat(Stat.CritChance, Op.Sub(Unit.Chance(6))), Eff.Stat(Stat.CritChance, Op.AtLeast(Unit.Chance(0)))]);
-      else ghost([Eff.Stat(Stat.Damage, Op.Mul(Unit.Mult(0.95)))]);
+      if (inv === 'coins' || inv === 'luck' || inv === 'coinsWave' || inv === 'quickTips') ghost([
+        Eff.Stat(
+          Stat.CoinMult,
+          Op.Sub(Unit.Percent(20)),
+        ),
+        Eff.Stat(
+          Stat.CoinMult,
+          Op.AtLeast(Unit.Mult(0.2)),
+        ),
+      ]);
+      else if (inv === 'damage' || inv === 'critDmg' || inv === 'bigHurt' || inv === 'bossDmg') ghost([
+        Eff.Stat(
+          Stat.Damage,
+          Op.Mul(Unit.Mult(0.9)),
+        ),
+      ]);
+      else if (inv === 'crit') ghost([
+        Eff.Stat(
+          Stat.CritChance,
+          Op.Sub(Unit.Chance(6)),
+        ),
+        Eff.Stat(
+          Stat.CritChance,
+          Op.AtLeast(Unit.Chance(0)),
+        ),
+      ]);
+      else ghost([
+        Eff.Stat(
+          Stat.Damage,
+          Op.Mul(Unit.Mult(0.95)),
+        ),
+      ]);
     }
     this.perkKit.modifiers(L, [this.possessedPizza]);
     return this.run.settle(L, this.perkKit.valueCtx());

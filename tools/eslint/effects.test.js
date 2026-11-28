@@ -1,0 +1,251 @@
+// Tests for the effect declarations' lint rules (tools/eslint/effects.js): `npm run lint:test` (part of `npm run check`).
+// Each rule has valid and invalid cases; a fixable one checks its fix too.
+
+import assert from 'node:assert/strict';
+import { Linter, RuleTester } from 'eslint';
+import tseslint from 'typescript-eslint';
+import plugin from './effects.js';
+
+const tester = new RuleTester({ languageOptions: { parser: tseslint.parser, ecmaVersion: 'latest', sourceType: 'module' } });
+const rule = (name) => plugin.rules[name];
+let ran = 0;
+const run = (name, cases) => {
+  tester.run(name, rule(name), cases);
+  ran += cases.valid.length + cases.invalid.length;
+};
+
+const IMPORTS = "import { Effect, Op, Stat, Unit, UnitKind, Action, At, Pay, Nth, Enh, Grows, Source, Custom } from '../effects';\n";
+const code = (s) => IMPORTS + s;
+
+// ——— one effect per line ———
+run('one-effect-per-line', {
+  valid: [
+    code('const t = { effects: [\n  Effect.Stat(Stat.Damage, Op.Add(Unit.Amount(1))),\n] };'),
+    code('const t = { effects: [] };'),
+    // a list passed positionally: [ ends its line, ] starts its line
+    code("stat('rolling', 'Rolling Pin', [\n  Effect.Stat(Stat.Damage, Op.Add(Unit.Amount(1))),\n  Effect.Stat(Stat.Radius, Op.Add(Unit.Px(4))),\n]);"),
+    // an array that holds no effects isn't an effect list
+    code('const xs = [1, 2, 3];'),
+    code("const list = [Source.Meta, 'x'];"),
+  ],
+  invalid: [
+    {
+      code: code('const t = { effects: [Effect.Stat(Stat.Damage, Op.Add(Unit.Amount(1)))] };'),
+      output: code('const t = { effects: [\n  Effect.Stat(Stat.Damage, Op.Add(Unit.Amount(1))),\n] };'),
+      errors: [{ messageId: 'layout' }],
+    },
+    {
+      // two on one line, inside a call, indented: the entries go one level in from the line the list starts on
+      code: code("  stat('rolling', [Effect.Stat(Stat.Damage, Op.Add(Unit.Amount(1))), Effect.Stat(Stat.Radius, Op.Add(Unit.Px(4)))]);"),
+      output: code("  stat('rolling', [\n    Effect.Stat(Stat.Damage, Op.Add(Unit.Amount(1))),\n    Effect.Stat(Stat.Radius, Op.Add(Unit.Px(4))),\n  ]);"),
+      errors: [{ messageId: 'layout' }],
+    },
+    {
+      // any `effects:` list, spreads too
+      code: code('const t = { effects: [...a, ...b] };'),
+      output: code('const t = { effects: [\n  ...a,\n  ...b,\n] };'),
+      errors: [{ messageId: 'layout' }],
+    },
+    {
+      // ] not on its own line
+      code: code('const t = { effects: [\n  Effect.Stat(Stat.Damage, Op.Add(Unit.Amount(1)))] };'),
+      output: code('const t = { effects: [\n  Effect.Stat(Stat.Damage, Op.Add(Unit.Amount(1))),\n] };'),
+      errors: [{ messageId: 'layout' }],
+    },
+    {
+      // Effect under another name
+      code: "import { Effect as Eff, Op, Stat, Unit } from '../effects';\nghost([Eff.Stat(Stat.Damage, Op.Mul(Unit.Mult(0.9)))]);",
+      output: "import { Effect as Eff, Op, Stat, Unit } from '../effects';\nghost([\n  Eff.Stat(Stat.Damage, Op.Mul(Unit.Mult(0.9))),\n]);",
+      errors: [{ messageId: 'layout' }],
+    },
+    {
+      // a comment between entries would be lost by the reflow: reported, not fixed
+      code: code('const t = { effects: [Effect.Stat(Stat.Damage, Op.Add(Unit.Amount(1))), /* why */ Effect.Stat(Stat.Radius, Op.Add(Unit.Px(4)))] };'),
+      output: null,
+      errors: [{ messageId: 'layout' }],
+    },
+    {
+      // an entry over several lines moves in as a whole, its continuation lines with it
+      code: code('    put([Effect.Stat(\n      Stat.Damage,\n      Op.Add(Unit.Amount(1)),\n    )]);'),
+      output: code('    put([\n      Effect.Stat(\n        Stat.Damage,\n        Op.Add(Unit.Amount(1)),\n      ),\n    ]);'),
+      errors: [{ messageId: 'layout' }],
+    },
+    {
+      // an entry in its own parentheses keeps them
+      code: code('const t = { effects: [(Effect.Stat(Stat.Damage, Op.Add(Unit.Amount(1))))] };'),
+      output: code('const t = { effects: [\n  (Effect.Stat(Stat.Damage, Op.Add(Unit.Amount(1)))),\n] };'),
+      errors: [{ messageId: 'layout' }],
+    },
+    {
+      // a template string over several lines would change if re-indented: reported, not fixed
+      code: code('  const t = { effects: [Effect.OnKill(Action.Custom(`a\n  b`))] };'),
+      output: null,
+      errors: [{ messageId: 'layout' }],
+    },
+  ],
+});
+
+// ——— Effect.*(…) arguments one per line ———
+run('effect-args-per-line', {
+  valid: [
+    code('Effect.Stat(\n  Stat.Damage,\n  Op.Add(Unit.Amount(1)),\n);'),
+    // one argument stays on one line
+    code('Effect.OnKill(Action.Custom(Custom.Meatball));'),
+    // Op and Unit calls aren't Effect calls
+    code('Op.Add(Unit.Chance(18)).EachLevelUp.Add(Unit.Chance(10));'),
+  ],
+  invalid: [
+    {
+      code: code('Effect.Stat(Stat.Damage, Op.Add(Unit.Amount(1)));'),
+      output: code('Effect.Stat(\n  Stat.Damage,\n  Op.Add(Unit.Amount(1)),\n);'),
+      errors: [{ messageId: 'layout', data: { name: 'Effect.Stat' } }],
+    },
+    {
+      // the inner calls and the options object stay on one line each
+      code: code('  [\n    Effect.OnKill(Action.Tips(Pay.Fixed(Unit.Amount(1)), At.Foot(Unit.Px(40))), { chance: Unit.Chance(20) }),\n  ]'),
+      output: code('  [\n    Effect.OnKill(\n      Action.Tips(Pay.Fixed(Unit.Amount(1)), At.Foot(Unit.Px(40))),\n      { chance: Unit.Chance(20) },\n    ),\n  ]'),
+      errors: [{ messageId: 'layout', data: { name: 'Effect.OnKill' } }],
+    },
+    {
+      // ( and ) on their own lines
+      code: code('Effect.Stat(Stat.Damage,\n  Op.Add(Unit.Amount(1)));'),
+      output: code('Effect.Stat(\n  Stat.Damage,\n  Op.Add(Unit.Amount(1)),\n);'),
+      errors: [{ messageId: 'layout' }],
+    },
+    {
+      // an argument in its own parentheses keeps them
+      code: code('Effect.Stat(Stat.Damage, (Op.Add(Unit.Amount(1))));'),
+      output: code('Effect.Stat(\n  Stat.Damage,\n  (Op.Add(Unit.Amount(1))),\n);'),
+      errors: [{ messageId: 'layout' }],
+    },
+    {
+      // a comment between arguments: reported, not fixed
+      code: code('Effect.Stat(Stat.Damage, /* why */ Op.Add(Unit.Amount(1)));'),
+      output: null,
+      errors: [{ messageId: 'layout' }],
+    },
+  ],
+});
+
+// ——— no arithmetic ———
+run('no-effect-arithmetic', {
+  valid: [
+    code('Effect.Stat(Stat.OliveRate, Op.Set(Unit.Every(Unit.Seconds(1.6))));'),
+    code('Effect.Stat(Stat.Damage, Op.Boost(Unit.scale(Unit.Percent(10), c)));'),
+    code('Effect.Stat(Stat.CoinMult, Op.Add(Unit.plus(Unit.scale(a, x), Unit.scale(b, y))));'),
+    // Grows' reason is words: its strings join with +
+    code("Effect.Stat(Stat.Damage, Op.Boost(Grows((x) => Unit.Percent(x.n), (x) => x.n + ' peels owned')));"),
+    // arithmetic outside a declaration, and Unit's maths outside one, is ordinary game code
+    code('const k = a * b; Unit.tick(left, dt * 2); Unit.scale(v, 1 - p);'),
+    code("const s = 'a' + b;"),
+    // a join of three or more parts is still words
+    code("Effect.OnKill(Action.Custom(Custom.Meteor), { note: 'a' + n + m });"),
+  ],
+  invalid: [
+    { code: code('Effect.Stat(Stat.Damage, Op.Add(Unit.Amount(a * 2)));'), errors: [{ messageId: 'arith', data: { op: '*' } }] },
+    { code: code('Unit.Percent(x / 100);'), errors: [{ messageId: 'arith', data: { op: '/' } }] },
+    { code: code('Op.Add(Unit.Rate(1 / 1.6));'), errors: [{ messageId: 'arith', data: { op: '/' } }] },
+    { code: code('Effect.OnKill(Action.Tips(Pay.Fixed(Unit.Amount(1)), At.Foot(-40)));'), errors: [{ messageId: 'arith', data: { op: 'unary -' } }] },
+    { code: code('Effect.Stat(Stat.Luck, Op.Add(Unit.of(UnitKind.Count, a + b)));'), errors: [{ messageId: 'arith', data: { op: '+' } }] },
+    // a Grows' value is checked like any declaration
+    { code: code("Effect.Stat(Stat.Damage, Op.Boost(Grows((x) => Unit.of(UnitKind.Percent, 0.01 * x.n), (x) => 'why')));"), errors: [{ messageId: 'arith', data: { op: '*' } }] },
+    // a destructured Unit helper inside a declaration
+    { code: code('const { scale } = Unit;\nEffect.Stat(Stat.Damage, Op.Add(scale(Unit.Percent(10), c % 3)));'), errors: [{ messageId: 'arith', data: { op: '%' } }] },
+    { code: code('Op.Add(Unit.Chance(18)).EachLevelUp.Add(Unit.Chance(5 + 5));'), errors: [{ messageId: 'arith', data: { op: '+' } }] },
+    // through type wrappers, and a chain through `!`
+    { code: code('Op.Add(<Amount>(a * 2));'), errors: [{ messageId: 'arith', data: { op: '*' } }] },
+    { code: code('Op.Add((a * 2) as Amount);'), errors: [{ messageId: 'arith', data: { op: '*' } }] },
+    { code: code('Op.Add(Unit.Count(1))!.EachLevelUp.Add(Unit.Count(n - 1));'), errors: [{ messageId: 'arith', data: { op: '-' } }] },
+    // a Unit maker destructured inside a function
+    { code: code('function f() { const { Percent } = Unit; return Percent(x / 2); }'), errors: [{ messageId: 'arith', data: { op: '/' } }] },
+  ],
+});
+
+// ——— no bare numbers in an Op ———
+run('op-needs-unit', {
+  valid: [code('Op.Add(Unit.Count(1));'), code('Op.Add(v);'), code('Op.Nothing.EachLevelUp.Add(Unit.Count(1));'), code('Math.max(1, 2);')],
+  invalid: [
+    { code: code('Effect.Stat(Stat.Cutters, Op.Add(1));'), errors: [{ messageId: 'bare', data: { n: '1', name: 'Add' } }] },
+    { code: code('Op.Mul(-0.5);'), errors: [{ messageId: 'bare', data: { n: '-0.5', name: 'Mul' } }] },
+    { code: code('Op.Add(Unit.Chance(18)).EachLevelUp.Add(10);'), errors: [{ messageId: 'bare', data: { n: '10', name: 'Add' } }] },
+    { code: code('Op.Add(Unit.Count(1))!.EachLevelUp.Add(5);'), errors: [{ messageId: 'bare', data: { n: '5', name: 'Add' } }] },
+  ],
+});
+
+// ——— no hand-typed strings ———
+run('no-loose-strings', {
+  valid: [
+    code('Effect.Stat(Stat.Damage, Op.Add(Unit.Amount(1)));'),
+    code('Unit.of(UnitKind.Percent, x);'),
+    // the counter's flag name (Nth, oncePerWave), Grows' reason and the game's own lookups have no typed name
+    code("Effect.OnKill(Action.Reroll(), { nth: Nth(Enh(Unit.Count(10), Unit.Count(7)), 'duckKills'), oncePerWave: 'salmonWave' });"),
+    code("Effect.Stat(Stat.Damage, Op.Boost(Grows((x) => Unit.Percent(x.n), (x) => `${x.n} peels owned`)));"),
+    code("Effect.Stat(Stat.Damage, Op.Boost(Unit.scale(Unit.Percent(8), meta('wrists'))));"),
+    // a free id
+    code("Effect.Stat(Stat.Damage, Op.Add(Unit.Amount(Source.Topping('salt').length)));"),
+    // strings outside a declaration
+    code("Action.Custom('meteor'); const s = 'damage';"),
+  ],
+  invalid: [
+    {
+      code: code("Effect.Stat('damage', Op.Add(Unit.Amount(1)));"),
+      output: code('Effect.Stat(Stat.Damage, Op.Add(Unit.Amount(1)));'),
+      errors: [{ messageId: 'typed', data: { text: "'damage'", fix: 'Stat.Damage' } }],
+    },
+    {
+      code: code("Effect.Stat(Stat.Luck, Op.Add(Unit.of('count', n)));"),
+      output: code('Effect.Stat(Stat.Luck, Op.Add(Unit.of(UnitKind.Count, n)));'),
+      errors: [{ messageId: 'typed', data: { text: "'count'", fix: 'UnitKind.Count' } }],
+    },
+    {
+      // no Stat in scope: reported, not fixed
+      code: "import { Effect, Op, Unit } from '../effects';\nEffect.Stat('critChance', Op.Add(Unit.Chance(5)));",
+      output: null,
+      errors: [{ messageId: 'typed', data: { text: "'critChance'", fix: 'Stat.CritChance' } }],
+    },
+    {
+      // only a type in scope (import type): reported, not fixed
+      code: "import { Effect, Op, Unit } from '../effects';\nimport type { UnitKind } from '../effects/units';\nOp.Add(Unit.of('count', n));",
+      output: null,
+      errors: [{ messageId: 'typed', data: { text: "'count'", fix: 'UnitKind.Count' } }],
+    },
+    {
+      // an action named by hand, inside an effect
+      code: code("Effect.OnKill(Action.Custom('meteor'));"),
+      errors: [{ messageId: 'loose' }],
+    },
+    {
+      // an options field
+      code: code("Effect.OnKill(Action.Reroll(), { scope: 'target' });"),
+      errors: [{ messageId: 'loose' }],
+    },
+    {
+      // a choice between hand-typed names
+      code: code("Effect.OnKill(Action.Custom(big ? 'meteor' : 'comet'));"),
+      errors: [{ messageId: 'loose' }, { messageId: 'loose' }],
+    },
+  ],
+});
+
+// ——— all the rules together, over several fix passes (a list's fix first, then its calls') ———
+{
+  const linter = new Linter({ configType: 'flat' });
+  const config = [
+    {
+      files: ['**/*.ts'],
+      languageOptions: { parser: tseslint.parser },
+      plugins: { effects: plugin },
+      rules: Object.fromEntries(Object.keys(plugin.rules).map((r) => [`effects/${r}`, 'error'])),
+    },
+  ];
+  const before = code("  stat('x', [Effect.Stat('damage', Op.Add(Unit.Amount(1))), Effect.OnKill(Action.Custom(Custom.Meteor), { chance: Unit.Chance(5) })]);");
+  const after = code(
+    "  stat('x', [\n    Effect.Stat(\n      Stat.Damage,\n      Op.Add(Unit.Amount(1)),\n    ),\n    Effect.OnKill(\n      Action.Custom(Custom.Meteor),\n      { chance: Unit.Chance(5) },\n    ),\n  ]);",
+  );
+  const r = linter.verifyAndFix(before, config, { filename: 'x.ts' });
+  assert.deepEqual(r.messages, []);
+  assert.equal(r.output, after);
+  ran++;
+}
+
+console.log(`effects lint rules: ${ran} cases passed`);

@@ -1,5 +1,9 @@
 # Feetza: project rules
 
+## Run `npm run check` before merging
+
+Every change runs `npm run check` before it's merged: the typecheck, the lint (`npm run lint`, including the effect declarations' rules: one effect per line, no arithmetic, units on every number, typed names; see "Lint rules" in `docs/effects-plan.md`), the lint rules' tests and the golden check. Fix layout with `npx eslint --fix <files>` on the files you changed; never run a whole-repo formatter.
+
 ## Every new foot, boss, pizza, location or event gets a peel
 
 Peels are the game's collection. Anything new a player can meet must come with its peel, in the same change:

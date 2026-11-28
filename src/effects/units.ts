@@ -4,7 +4,7 @@
 // At run time each is an ordinary number (the maths works on it directly, saves store it as is, it costs nothing).
 // Each maker checks its range. Chance and Percent are written the way people say them (15) and stored as fractions
 // (0.15), so the maths is the same everywhere. The units hold no maths of their own: what can be done with each
-// lives beside it here (roll, boost, cut, scale, tick, show). Totals (stacking, order, caps) belong to the ledger
+// lives beside it here (roll, boost, cut, scale, plus, groups, tick, show). Totals (stacking, order, caps) belong to the ledger
 // (src/effects/ledger.ts).
 
 declare const unit: unique symbol;
@@ -133,6 +133,14 @@ function cut<T extends number>(v: T, p: Percent): T {
 function scale<T extends number>(v: T, k: number): T {
   return (v * k) as T;
 }
+/** Two of the same unit added (a sum of shares worked out beside each other): still that unit. */
+function plus<T extends number>(a: T, b: T): T {
+  return (a + b) as T;
+}
+/** How many whole groups of `size` there are in n: groups(64, 10) is 6 (Peel Collector's every 10 peels). */
+function groups(n: number, size: number): Count {
+  return Math.floor(n / size) as Count;
+}
 /** A chance times a factor, never past certainty. */
 function scaleChance(c: Chance, k: number): Chance {
   return Math.max(0, Math.min(1, c * k)) as Chance;
@@ -171,4 +179,4 @@ const show = {
 };
 
 /** Every unit's maker and its maths, under one name: Unit.Chance(15), Unit.roll(c), Unit.show.percent(p). */
-export const Unit = { Chance, Percent, Seconds, PerWave, Px, Mult, Count, Amount, Rate, Every, roll, boost, cut, scale, scaleChance, tick, of, show } as const;
+export const Unit = { Chance, Percent, Seconds, PerWave, Px, Mult, Count, Amount, Rate, Every, roll, boost, cut, scale, plus, groups, scaleChance, tick, of, show } as const;
