@@ -712,7 +712,7 @@ export class PizzaPerkKit {
    *  pizza's part of it, worked out now. Null for perks with no running total, or while its perk is off. */
   perkNow(p: Pizza): { total: string; why: string } | null {
     const L = this.run.ledger;
-    if (!p.perk || p === this.a.possessed() || !L) return null;
+    if (!p.perk || !L) return null;
     const src = this.srcOf(p);
     // (Napoletana has a share in every boosted perk, but no running total of its own)
     if (src in this.run.boosters) return null;
@@ -859,7 +859,7 @@ export class PizzaPerkKit {
     this.sc.tweens.add({ targets: col, scaleY: table / 120, duration: 160, ease: 'Quad.Out' });
     this.sc.tweens.add({ targets: core, scaleY: table / 130, duration: 160, ease: 'Quad.Out' });
     this.sc.tweens.add({ targets: [col, core], alpha: 0, scaleX: 0.2, delay: 260, duration: 420, onComplete: () => { col.destroy(); core.destroy(); } });
-    for (let y = table; y > 80; y -= 55) this.sc.time.delayedCall((table - y) * 0.25, () => a.fx.burn(x + (Math.random() - 0.5) * 60, y));
+    for (let y = table; y > 80; y -= 55) this.sc.time.delayedCall((table - y) * 0.25, () => a.fx.burn(x + (crand() - 0.5) * 60, y));
     a.quip(x, 260, 'DRAGON FIRE!', '#ff7a3a', 40);
     a.sfx('sfx_fire', { volume: 0.8 });
     for (const p of this.with('fireLane')) p.perkFired({ quip: false });
@@ -953,7 +953,7 @@ export class PizzaPerkKit {
   /** Granite Crust: the stomp turns to stone on the pie. The pie flashes grey and cracks, stone dust bursts off it,
    *  and the foot greys over and stands stunned (a boss is only blocked). */
   stoneStomp(f: Foot, p: Pizza): boolean {
-    if (p.perk !== 'stoneStomp' || p.flags.stoneWave === this.wave() || p === this.a.possessed()) return false;
+    if (p.perk !== 'stoneStomp' || p.flags.stoneWave === this.wave()) return false;
     p.flags.stoneWave = this.wave();
     this.stone(f, p);
     return true;
@@ -988,13 +988,13 @@ export class PizzaPerkKit {
     a.fx.ring(f.x, p.surfaceY - 60, 0xffffff, 1.4, 0.5);
     // the dust and chips flying off the stone
     for (let i = 0; i < 14; i++) {
-      const ang = Math.PI + Math.random() * Math.PI;
-      const sp = 140 + Math.random() * 260;
-      const chip = this.sc.add.image(f.x + (Math.random() - 0.5) * 80, p.surfaceY - 40, i % 3 ? 'crumb2' : 'shard').setTint(i % 2 ? 0x9a9488 : 0xcfc6b4).setScale(0.5 + Math.random() * 0.5);
+      const ang = Math.PI + crand() * Math.PI;
+      const sp = 140 + crand() * 260;
+      const chip = this.sc.add.image(f.x + (crand() - 0.5) * 80, p.surfaceY - 40, i % 3 ? 'crumb2' : 'shard').setTint(i % 2 ? 0x9a9488 : 0xcfc6b4).setScale(0.5 + crand() * 0.5);
       a.fxLayer.add(chip);
-      this.sc.tweens.add({ targets: chip, x: chip.x + Math.cos(ang) * sp * 0.5, y: chip.y + Math.sin(ang) * sp * 0.4 + 60, angle: (Math.random() - 0.5) * 360, alpha: 0, duration: 520 + Math.random() * 260, ease: 'Quad.Out', onComplete: () => chip.destroy() });
+      this.sc.tweens.add({ targets: chip, x: chip.x + Math.cos(ang) * sp * 0.5, y: chip.y + Math.sin(ang) * sp * 0.4 + 60, angle: (crand() - 0.5) * 360, alpha: 0, duration: 520 + crand() * 260, ease: 'Quad.Out', onComplete: () => chip.destroy() });
     }
-    for (let i = 0; i < 5; i++) a.fx.puff(f.x + (Math.random() - 0.5) * 120, p.surfaceY - 30, 2);
+    for (let i = 0; i < 5; i++) a.fx.puff(f.x + (crand() - 0.5) * 120, p.surfaceY - 30, 2);
     if (!f.alive || boss) return;
     f.knock(700);
     const sec = p.enhanced ? 1.5 : 1;
@@ -1007,7 +1007,7 @@ export class PizzaPerkKit {
   /** Raclette Run: its first stomp each wave (enhanced: two) takes half a slice. The half left over waits on the
    *  pizza, so two such stomps make one whole slice. Returns the slices this stomp takes. */
   stompDmg(f: Foot, p: Pizza, dmg: number): number {
-    if (p.perk !== 'halfStomp' || p === this.a.possessed()) return dmg;
+    if (p.perk !== 'halfStomp') return dmg;
     const w = this.wave();
     const used = p.flags.halfWave === w ? Number(p.flags.halfUses ?? 0) : 0;
     if (used >= (p.enhanced ? 2 : 1)) return dmg;
@@ -1032,7 +1032,8 @@ export class PizzaPerkKit {
    * back in a moment (Untouchable); null: it's gone. Volcano Calzone erupts either way. */
   destroyed(p: Pizza): 'survive' | 'rise' | null {
     const a = this.a;
-    const fresh = !p.freshOn || p.fresh > 0;
+    // (a possessed pizza's perks are off to the end, as a stale one's: Pizza.haunted)
+    const fresh = (!p.freshOn || p.fresh > 0) && !p.haunted;
     if (p.type.perk === 'erupt' && fresh) this.erupt(p);
     if (p.type.perk === 'surviveOnce' && fresh && !p.flags.olympUsed) {
       p.flags.olympUsed = true;
@@ -1047,10 +1048,10 @@ export class PizzaPerkKit {
     p.flags.lost = true;
     this.lost = true;
     // Fenrir's Howl: the wolf howls for the lost pizza (its own loss too, a last howl)
-    const ownHowl = (p.type.perk === 'fenrirHowl' || (p.type.perk === 'echo' && echoPerk(p) === 'fenrirHowl')) && fresh && !p.perkFrozen && p !== a.possessed();
+    const ownHowl = (p.type.perk === 'fenrirHowl' || (p.type.perk === 'echo' && echoPerk(p) === 'fenrirHowl')) && fresh && !p.perkFrozen;
     if (this.c('fenrirHowl') > 0 || ownHowl) this.howl(p, (ownHowl && p.enhanced) || this.with('fenrirHowl').some((q) => q.enhanced));
     // Untouchable: the first pizza lost each run (it included) comes back
-    const keeper = [...this.a.alivePizzas(), p].find((q) => q.type.perk === 'firstBack' && !q.stale && !q.perkFrozen && !q.flags.untouchUsed);
+    const keeper = [...this.a.alivePizzas(), p].find((q) => q.type.perk === 'firstBack' && !q.perkOff && !q.flags.untouchUsed);
     if (keeper && !this.untouchUsed()) {
       keeper.flags.untouchUsed = true;
       const full = keeper.enhanced;
@@ -1098,7 +1099,7 @@ export class PizzaPerkKit {
         y: ty,
         duration: 420 + Math.random() * 200,
         ease: 'Quad.In',
-        onUpdate: () => Math.random() < 0.4 && a.fx.burn(bomb.x, bomb.y),
+        onUpdate: () => crand() < 0.4 && a.fx.burn(bomb.x, bomb.y),
         onComplete: () => {
           bomb.destroy();
           if (!f.alive) return;
@@ -1111,7 +1112,7 @@ export class PizzaPerkKit {
         },
       });
     }
-    for (let i = 0; i < 24; i++) this.sc.time.delayedCall(i * 40, () => a.fx.burn(p.x + (Math.random() - 0.5) * 220, p.surfaceY - Math.random() * 200));
+    for (let i = 0; i < 24; i++) this.sc.time.delayedCall(i * 40, () => a.fx.burn(p.x + (crand() - 0.5) * 220, p.surfaceY - crand() * 200));
   }
 
   /** A wave begins. */
@@ -1142,7 +1143,7 @@ export class PizzaPerkKit {
         p.perkFired({ quip: false });
       }
       // Arcobaleno takes a new colour every wave
-      if (p.type.perk === 'rainbow' && !p.stale && !p.perkFrozen) {
+      if (p.type.perk === 'rainbow' && !p.perkOff) {
         const was = Number(p.flags.borrow ?? -1);
         let next = Math.floor(Math.random() * BORROW_POOL.length);
         if (next === was) next = (next + 1) % BORROW_POOL.length;
@@ -1274,7 +1275,7 @@ export class PizzaPerkKit {
       // Tikka Time Machine: nothing moves for the first seconds of a wave
       if (this.timeStopT > 0 && !f.isBossLike && f.stunT < this.timeStopT) {
         f.stun(this.timeStopT, true);
-        if (Math.random() < dt * 3) a.fx.frost(f.cx, f.cy);
+        if (crand() < dt * 3) a.fx.frost(f.cx, f.cy);
       }
       // Burrata & Heirloom: a boss changing phase heals it
       if (f.isBossLike) {
@@ -1372,7 +1373,7 @@ export class PizzaPerkKit {
       y: f.cy,
       duration: 480,
       ease: 'Quad.In',
-      onUpdate: () => Math.random() < 0.5 && a.fx.burn(m.x + 20, m.y - 20),
+      onUpdate: () => crand() < 0.5 && a.fx.burn(m.x + 20, m.y - 20),
       onComplete: () => {
         m.destroy();
         a.fx.explosion(f.cx, f.cy, 180);

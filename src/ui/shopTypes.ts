@@ -20,6 +20,8 @@ export interface ShopCard {
   free: boolean;
   /** A ribbon on the card: a sale (Clearance Rack, Happy Hour…). FREE cards always get one. */
   tag?: { text: string; kind: 'sale' };
+  /** Exclusive Menu's guaranteed Epic-or-better card (a reroll gives it up). */
+  exclusive?: boolean;
   sold: boolean;
 }
 

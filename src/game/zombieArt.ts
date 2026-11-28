@@ -29,7 +29,7 @@ import { blob, hashStr, makeCanvas, rng } from '../art/util';
 import { drawFly } from '../content/style/pilot-bare';
 import { styleDef } from '../art/style/registry';
 import { feetAnimated } from '../systems/graphics';
-import { crand } from '../systems/cosmeticRandom';
+import { cosmetic, crand } from '../systems/cosmeticRandom';
 import { save } from '../systems/save';
 import type { Foot } from './Foot';
 import { zombifiableType, type FootArt } from '../data/feet';
@@ -73,20 +73,9 @@ const reduced = () => !!save.settings.reducedMotion;
 /** The texture a piece draws (a tile sprite's own texture is a scratch canvas: its source is displayTexture). */
 const keyOf = (p: Piece): string => (p instanceof Phaser.GameObjects.TileSprite ? (p as unknown as { displayTexture: Phaser.Textures.Texture }).displayTexture.key : p.texture.key);
 
-/**
- * Run `fn` with Math.random drawing from the cosmetic generator. Math.random is the game's seeded sequence (the
- * balance simulator replays runs from it), and Phaser draws on it inside things that are only for show here: a tile
- * sprite's texture key (UUID), particle ranges. A zombie foot's looks must never move that sequence on.
- */
-export function cosmetic<T>(fn: () => T): T {
-  const was = Math.random;
-  Math.random = crand;
-  try {
-    return fn();
-  } finally {
-    Math.random = was;
-  }
-}
+/** Run `fn` with Math.random drawing from the cosmetic generator (src/systems/cosmeticRandom.ts): a zombie foot's looks
+ *  never move the game's own random sequence on. */
+export { cosmetic };
 
 // ════════════════════════════ colour and noise ════════════════════════════
 

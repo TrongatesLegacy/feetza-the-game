@@ -149,6 +149,7 @@ export function goldenRun(g: AnyScene): Record<string, Record<string, number> & 
     });
   } finally {
     Math.random = realRandom;
+    g.possessedPizza = null;
     save.meta = metaBefore;
     save.peels = peelsBefore;
   }

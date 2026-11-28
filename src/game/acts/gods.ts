@@ -17,6 +17,7 @@ import type { FootFx } from '../contentFx';
 import type { Foot } from '../Foot';
 import { heat, throwAtPeel } from '../bosses/kit';
 import { takeCentre } from './persians';
+import { crand } from '../../systems/cosmeticRandom';
 
 /** Seconds its armour stays up after a smack (0.7, was 1: with elephants common in Act 9 they outlasted the waves). */
 const ELEPHANT_GUARD = 0.7;
@@ -284,7 +285,7 @@ function spartanTick(a: Arena, f: Foot, dt: number): void {
     a.fx.puff(f.cx, f.cy - 60, 8);
     a.shake(140, 0.005);
   }
-  if (f.brain.raged && Math.random() < dt * 6) a.fx.burn(f.cx + (Math.random() - 0.5) * 60, f.cy - 40);
+  if (f.brain.raged && crand() < dt * 6) a.fx.burn(f.cx + (crand() - 0.5) * 60, f.cy - 40);
 }
 
 export const footFx: Record<string, FootFx> = {

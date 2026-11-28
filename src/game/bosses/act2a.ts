@@ -6,6 +6,7 @@ import type { Arena } from '../arena';
 import type { Foot } from '../Foot';
 import type { Pizza } from '../Pizza';
 import { type Brain, type Prop, type Takeover, Every, heat, hitProp, laneOf, mark, retreat, rnd, shield, takeLane } from './kit';
+import { crand } from '../../systems/cosmeticRandom';
 
 // ——— Local helpers ———
 
@@ -311,7 +312,7 @@ const nonna = (): Brain => {
         steady(a, pin.img, scale);
         a.sc.tweens.add({ targets: pin.img, scaleY: scale * 0.86, scaleX: scale * 1.015, duration: 70, yoyo: true, ease: 'Quad.Out' });
         back += 40;
-        a.fx.puff(cx + (Math.random() - 0.5) * 900 * scale, st.y + 60, 4);
+        a.fx.puff(cx + (crand() - 0.5) * 900 * scale, st.y + 60, 4);
       },
       onClear: () => {
         // it bounces back up the table and fades
@@ -361,7 +362,7 @@ const nonna = (): Brain => {
         dust -= dt;
         if (dust <= 0) {
           dust = 0.25;
-          a.fx.puff(cx + (Math.random() - 0.5) * 1300 * scale, st.y + 70 * scale, 3);
+          a.fx.puff(cx + (crand() - 0.5) * 1300 * scale, st.y + 70 * scale, 3);
         }
       }
       const fr = ((Math.floor(rolled / perFrame) % 6) + 6) % 6;
@@ -552,7 +553,7 @@ const nonna = (): Brain => {
       const by = pp.y - uy * 105;
       drawHandle(me.x, me.y, bx, by);
       const jig = 2 + 3 * (1 - left);
-      bowl.setPosition(bx + (Math.random() - 0.5) * jig, by + (Math.random() - 0.5) * jig).setRotation(Math.atan2(uy, ux) - Math.PI / 2);
+      bowl.setPosition(bx + (crand() - 0.5) * jig, by + (crand() - 0.5) * jig).setRotation(Math.atan2(uy, ux) - Math.PI / 2);
       // chevrons from the peel pointing away from her: which way to pull
       arrows.clear();
       const now = a.now();
@@ -815,8 +816,8 @@ const gargoyle = (): Brain => {
       let y = -fh * (0.62 - 0.07 * (k % 3));
       const pts = [{ x, y }];
       for (let i = 0; i < 5; i++) {
-        x += (Math.random() - 0.5) * hw * 0.35;
-        y += fh * (0.06 + Math.random() * 0.04);
+        x += (crand() - 0.5) * hw * 0.35;
+        y += fh * (0.06 + crand() * 0.04);
         pts.push({ x, y });
       }
       paths.push(pts);
@@ -962,7 +963,7 @@ const gargoyle = (): Brain => {
       drawCracks();
       count?.set(CRACKS - cracks);
       if (cracks < CRACKS) a.sfx('sfx_gargoyle_stonecrack', { throttle: 80 });
-      a.fx.puff(f.cx + (Math.random() - 0.5) * 80, f.y - 60, 5);
+      a.fx.puff(f.cx + (crand() - 0.5) * 80, f.y - 60, 5);
       if (cracks >= CRACKS) {
         endStone(f, a);
         stoneNext = heat(a).cooldown(7);
@@ -1029,7 +1030,7 @@ const jellyfish = (): Brain => {
       g.lineStyle(4 + 6 * k, 0xffb0ee, 0.4 + 0.55 * k).strokeCircle(f.cx, f.cy, rr);
       g.lineStyle(4, 0xffffff, 0.8 * k);
       for (let i = 0; i < 6; i++) {
-        const ang = Math.random() * Math.PI * 2;
+        const ang = crand() * Math.PI * 2;
         g.lineBetween(f.cx + Math.cos(ang) * rr, f.cy + Math.sin(ang) * rr, f.cx + Math.cos(ang + 0.15) * (rr - 26), f.cy + Math.sin(ang + 0.15) * (rr - 26));
       }
     } else if (mode === 'glow') {
@@ -1041,7 +1042,7 @@ const jellyfish = (): Brain => {
       const n = 28;
       for (let i = 0; i <= n; i++) {
         const ang = (i / n) * Math.PI * 2;
-        const rr = r * 1.12 + (i % 2 ? 1 : -1) * (10 + Math.random() * 14);
+        const rr = r * 1.12 + (i % 2 ? 1 : -1) * (10 + crand() * 14);
         const x = f.cx + Math.cos(ang) * rr;
         const y = f.cy + Math.sin(ang) * rr;
         if (i) g.lineTo(x, y);
@@ -1278,7 +1279,7 @@ const kraken = (): Brain => {
         // a dribble of ink drops behind it
         if (a.now() >= dripT) {
           dripT = a.now() + 0.06;
-          const d = a.sc.add.circle(at.x, at.y, 9 + Math.random() * 6, 0x24143e).setStrokeStyle(3, 0x2a1810);
+          const d = a.sc.add.circle(at.x, at.y, 9 + crand() * 6, 0x24143e).setStrokeStyle(3, 0x2a1810);
           a.fxLayer.add(d);
           a.sc.tweens.add({ targets: d, alpha: 0, scale: 0.3, y: d.y + 30, duration: 420, onComplete: () => d.destroy() });
         }

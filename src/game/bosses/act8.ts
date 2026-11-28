@@ -17,6 +17,7 @@ import { Bin, laneFall } from './act2b';
 import { COIL, KELP, NECK_AT_HEAD, SK, SOCKET, WRAP, drawNeckAlong, paintCoil, paintHeadStill, paintKelpAt, paintWrap } from '../../content/art/jormungandr';
 import { HEAD_TILT, SerpentRig, aimTilt, mouthOffset } from './jormRig';
 import { type Brain, type PhaseCard, type Prop, Every, heat, hitProp, mark, rnd, shield, takeLane, throwAtPeel } from './kit';
+import { crand } from '../../systems/cosmeticRandom';
 
 // ——— Act helpers ———
 
@@ -56,12 +57,12 @@ function leaveArena(a: Arena): void {
 /** Pieces fly off and tumble (a death that lands): ice shards, embers, scales. */
 function shatter(a: Arena, x: number, y: number, key: string, n: number, look: { scale?: number; tint?: number; spread?: number } = {}): void {
   for (let i = 0; i < n; i++) {
-    const img = a.sc.add.image(x, y, key).setScale((look.scale ?? 0.45) * (0.5 + Math.random() * 0.7)).setAngle(Math.random() * 360);
+    const img = a.sc.add.image(x, y, key).setScale((look.scale ?? 0.45) * (0.5 + crand() * 0.7)).setAngle(crand() * 360);
     if (look.tint !== undefined) img.setTint(look.tint);
     a.fxLayer.add(img);
-    const vx = (Math.random() - 0.5) * (look.spread ?? 1300);
-    const vy = -300 - Math.random() * 700;
-    const spin = (Math.random() - 0.5) * 900;
+    const vx = (crand() - 0.5) * (look.spread ?? 1300);
+    const vy = -300 - crand() * 700;
+    const spin = (crand() - 0.5) * 900;
     const st = { t: 0 };
     a.sc.tweens.add({
       targets: st,
@@ -153,7 +154,7 @@ const fenrir = (): Brain => {
     const k = strain / perBreak(a, f);
     const c = Phaser.Display.Color.Interpolate.ColorWithColor(new Phaser.Display.Color(255, 255, 255), new Phaser.Display.Color(255, 80, 60), 100, k * 100);
     chain.setTint(Phaser.Display.Color.GetColor(c.r, c.g, c.b));
-    chain.x += k > 0.6 ? (Math.random() - 0.5) * 6 * k : 0;
+    chain.x += k > 0.6 ? (crand() - 0.5) * 6 * k : 0;
     // three pips by the shackle: the chain's breaks so far
     pips.clear();
     if (loose) return;
@@ -1038,7 +1039,7 @@ const jormungandr = (): Brain => {
         c.stage = 'tell';
         c.t = h.windup(0.9);
         c.t0 = c.t;
-        for (let i = 0; i < 5; i++) a.sc.time.delayedCall(i * 150, () => a.fx.puff(g + (Math.random() - 0.5) * 90, EDGE_Y - 10, 3));
+        for (let i = 0; i < 5; i++) a.sc.time.delayedCall(i * 150, () => a.fx.puff(g + (crand() - 0.5) * 90, EDGE_Y - 10, 3));
         a.quip(g, EDGE_Y - 160, 'HISSS…', '#7dffb0', 36);
         a.sfx('sfx_jormungandr_hiss');
       } else if (c.stage === 'tell') {
@@ -1228,7 +1229,7 @@ const jormungandr = (): Brain => {
         a.dramatic(1.2);
         a.sfx('sfx_jormungandr_death');
         a.shake(900, 0.012);
-        for (let i = 0; i < 12; i++) a.fx.puff(100 + Math.random() * 1720, EDGE_Y - Math.random() * 30, 6);
+        for (let i = 0; i < 12; i++) a.fx.puff(100 + crand() * 1720, EDGE_Y - crand() * 30, 6);
         // plates of stone hide fly off the head (it crashes back into the sea and the coils sink: SerpentRig.die)
         if (rig && H.up) shatter(a, H.x, H.y, 'jsr_chip', 9, { scale: 1, spread: 1000 });
       }
@@ -1337,7 +1338,7 @@ const surtr = (): Brain => {
     if (!quiet && !p.dead) {
       a.quip(p.x, p.surfaceY - 170, 'FLAMES OUT!', '#7dff9a', 40);
       a.sfx('sfx_surtr_douse');
-      for (let i = 0; i < 6; i++) a.fx.puff(p.x + (Math.random() - 0.5) * 160, p.surfaceY - 20, 2);
+      for (let i = 0; i < 6; i++) a.fx.puff(p.x + (crand() - 0.5) * 160, p.surfaceY - 20, 2);
     }
   };
 
@@ -1358,7 +1359,7 @@ const surtr = (): Brain => {
       badgeDy: -150,
       hitSfx: 'sfx_surtr_douse',
       clearSfx: 'sfx_surtr_douse',
-      onHit: () => a.fx.puff(p.x + (Math.random() - 0.5) * 120, p.surfaceY - 40, 3),
+      onHit: () => a.fx.puff(p.x + (crand() - 0.5) * 120, p.surfaceY - 40, 3),
       onClear: () => douse(a, p),
     });
     prop.img.setOrigin(0.5, 0.85);
@@ -1375,7 +1376,7 @@ const surtr = (): Brain => {
     const p = ps.reduce((b, q) => (q.slices > b.slices ? q : b));
     // embers gather first
     mark(a, 'p_reticle', p.x, p.surfaceY - 30, 0.9, 0.75).setTint(0xff7a1a);
-    for (let i = 0; i < 6; i++) a.sc.time.delayedCall(i * 120, () => a.fx.burn(p.x + (Math.random() - 0.5) * 180, p.surfaceY - 10));
+    for (let i = 0; i < 6; i++) a.sc.time.delayedCall(i * 120, () => a.fx.burn(p.x + (crand() - 0.5) * 180, p.surfaceY - 10));
     a.sc.time.delayedCall(900, () => f.alive && a.inWave() && ignite(a, p));
   };
 
@@ -1507,7 +1508,7 @@ const surtr = (): Brain => {
         a.sfx('sfx_surtr_enter');
         a.flash(400, 255, 140, 40);
         a.shake(900, 0.012);
-        for (let i = 0; i < 24; i++) a.sc.time.delayedCall(i * 40, () => a.fx.burn(Math.random() * 1920, 760 + Math.random() * 60));
+        for (let i = 0; i < 24; i++) a.sc.time.delayedCall(i * 40, () => a.fx.burn(crand() * 1920, 760 + crand() * 60));
         a.quip(960, 330, 'RAGNARÖK HAS COME!', '#ffb24a', 50);
         a.sc.time.delayedCall(1200, () => f.alive && lightOne(f, a));
       }
@@ -1523,7 +1524,7 @@ const surtr = (): Brain => {
         }
         b.glow.setPosition(p.x, p.surfaceY);
         b.t -= dt;
-        if (Math.random() < dt * 6) a.fx.burn(p.x + (Math.random() - 0.5) * p.radius * 1.4, p.surfaceY - 10);
+        if (crand() < dt * 6) a.fx.burn(p.x + (crand() - 0.5) * p.radius * 1.4, p.surfaceY - 10);
         if (b.t <= 0) {
           b.t = 4;
           hitSoft(a, p, 1, 'BURNING!', '#ff8a3d', heat(a).rank === 0);
@@ -1626,7 +1627,7 @@ const surtr = (): Brain => {
               trail.clear();
               trail.lineStyle(16, 0x2a1810, 0.3).lineBetween(fromX, y + 20, st.x, y + 20);
               trail.lineStyle(9, 0xff7a1a, 0.8).lineBetween(fromX, y + 20, st.x, y + 20);
-              if (Math.random() < 0.5) a.fx.burn(st.x + (Math.random() - 0.5) * 40, y);
+              if (crand() < 0.5) a.fx.burn(st.x + (crand() - 0.5) * 40, y);
             },
             onComplete: () => {
               if (done) return;
@@ -1677,7 +1678,7 @@ const surtr = (): Brain => {
       a.shake(1000, 0.016);
       a.sfx('sfx_surtr_death');
       shatter(a, f.cx, f.cy, 'p_fireball', 16, { scale: 0.4, spread: 1800 });
-      for (let i = 0; i < 30; i++) a.sc.time.delayedCall(i * 30, () => a.fx.puff(f.cx + (Math.random() - 0.5) * 300, f.cy + (Math.random() - 0.5) * 200, 2));
+      for (let i = 0; i < 30; i++) a.sc.time.delayedCall(i * 30, () => a.fx.puff(f.cx + (crand() - 0.5) * 300, f.cy + (crand() - 0.5) * 200, 2));
       a.quip(960, 380, 'THE FIRE GOES OUT!', '#ffd23f', 56);
     },
   };

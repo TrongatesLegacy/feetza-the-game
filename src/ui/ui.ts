@@ -1259,12 +1259,14 @@ class UI {
         b.disabled = c.sold || (!c.free && st.coins < c.price);
         const el = h(
           'div',
-          { class: `card tframed ${c.rarity}${c.sold ? ' sold' : ''}${dealt.has(c.id) ? ' dealt' : ''}`, tabindex: 0, role: 'button', 'aria-label': `${c.name}: ${c.desc}` },
+          { class: `card tframed ${c.rarity}${c.sold ? ' sold' : ''}${c.exclusive ? ' exclusive' : ''}${dealt.has(c.id) ? ' dealt' : ''}`, tabindex: 0, role: 'button', 'aria-label': `${c.exclusive ? 'Exclusive: ' : ''}${c.name}: ${c.desc}` },
           toppingFrame(),
           // its rarity, a tab of its frame
           h('div', { class: 'rarity ttab' }, c.rarity),
           h('div', { class: 'key' }, String(i + 1)),
           h('span', { class: `kind ${c.kind}` }, c.kind === 'permanent' ? 'PERMANENT' : c.kind === 'unique' ? 'ONCE PER RUN' : 'ONE USE'),
+          // Exclusive Menu's guaranteed card: marked, so it's clear which one a reroll gives up
+          c.exclusive && !c.sold ? h('span', { class: 'xtag', title: 'Exclusive Menu: this shop’s guaranteed Epic-or-better card. A reroll gives it up.' }, 'EXCLUSIVE') : null,
           h('div', { class: 'icon' }, c.icon),
           h('div', { class: 'name' }, c.name),
           // a long description is set smaller (and at most three lines, the full text on hover), so it never makes the card

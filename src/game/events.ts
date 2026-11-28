@@ -8,6 +8,7 @@ import { slamMode } from './slamMode';
 import { heroSighting } from './sightings';
 // ——— Act 9 · Greek myths: Charybdis, Tartarus's whirlpool ———
 import { charybdis } from './acts/act9';
+import { crand } from '../systems/cosmeticRandom';
 
 export type EventId = 'balloon' | 'drone' | 'moth' | 'seagull' | 'chest' | 'mimic' | 'sighting'
   // Act 9 · Greek myths
@@ -198,7 +199,7 @@ function chest(a: Arena, mimic: boolean, rw: EventRewards): void {
     hit: () => {
       if (done) return;
       hits++;
-      a.fx.impact(x + (Math.random() - 0.5) * 60, y - 20, false);
+      a.fx.impact(x + (crand() - 0.5) * 60, y - 20, false);
       a.sfx('sfx_slap_2', { volume: 0.6, rate: 0.9 });
       a.sc.tweens.add({ targets: img, scaleY: { from: 0.8, to: 0.9 }, duration: 120 });
       drawBar();

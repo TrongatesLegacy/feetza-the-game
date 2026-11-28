@@ -23,6 +23,7 @@ import type { Foot } from '../Foot';
 import '../godMoves';
 import { MOVES, PASSIVES, registerMoves, registerPassives, type HeroKit, type MoveCtx, type Passive } from '../heroKit';
 import { NIGHT } from '../heroMoves';
+import { crand } from '../../systems/cosmeticRandom';
 
 // the nemesis arenas on night stages (Tartarus, Metropizza Rooftops)
 for (const id of ['titanking', 'zeus', 'cheetoe']) NIGHT.add(id);
@@ -101,7 +102,7 @@ registerMoves({
           lay = 0.05;
           at = p;
           flames.push({ x: p.x, y: p.y, t: 2.4 });
-          if (Math.random() < 0.15) audio.sfx('sfx_hero_firetrail', { volume: 0.35, throttle: 220 });
+          if (crand() < 0.15) audio.sfx('sfx_hero_firetrail', { volume: 0.35, throttle: 220 });
         }
         g.clear();
         for (const f of flames) f.t -= dt;
@@ -112,7 +113,7 @@ registerMoves({
           g.fillStyle(0xd8201a, 0.32 * a).fillEllipse(fl.x, fl.y, 92 * w, 40 * w);
           g.fillStyle(0xff8a1a, 0.5 * a).fillEllipse(fl.x, fl.y - 4, 60 * w, 26 * w);
           g.fillStyle(0xfff0c0, 0.55 * a).fillEllipse(fl.x, fl.y - 6, 24, 10);
-          if (Math.random() < 0.05 * a) k.host.fx.burn(fl.x + (Math.random() - 0.5) * 50, fl.y - 10);
+          if (crand() < 0.05 * a) k.host.fx.burn(fl.x + (crand() - 0.5) * 50, fl.y - 10);
         }
         if (!k.host.inWave()) return;
         const now = k.host.now();
@@ -139,7 +140,7 @@ function emberAura(k: HeroKit): void {
   }
   const p = k.host.peelPos();
   glow.setPosition(p.x, p.y - 20).setScale(0.75 + Math.sin(k.host.now() * 5) * 0.06).setVisible(true);
-  if (Math.random() < 0.35) k.host.fx.burn(p.x + (Math.random() - 0.5) * 90, p.y - 40 + (Math.random() - 0.5) * 60);
+  if (crand() < 0.35) k.host.fx.burn(p.x + (crand() - 0.5) * 90, p.y - 40 + (crand() - 0.5) * 60);
 }
 
 // (passiveFrom runs the Kratos Peel's own hooks first: the blades, one more each new act)
@@ -237,9 +238,9 @@ registerMoves({
             }
             k.host.fx.explosion(f.cx, f.cy, 100);
           }
-          if (Math.random() < 0.7) k.host.fx.burn(sx + s * 60, ty);
+          if (crand() < 0.7) k.host.fx.burn(sx + s * 60, ty);
         }
-        if (Math.random() < 0.4) k.host.shake(60, 0.004);
+        if (crand() < 0.4) k.host.shake(60, 0.004);
       },
       () => {
         g.destroy();
@@ -411,7 +412,7 @@ registerMoves({
       if (!f) return;
       grabbed.add(f);
       audio.sfx('sfx_hero_tendril', { volume: 0.7, throttle: 120 });
-      const ax = f.cx + (Math.random() - 0.5) * 120;
+      const ax = f.cx + (crand() - 0.5) * 120;
       const g = k.sc.add.graphics();
       k.host.layers.fx.add(g);
       const o = { u: 0 };

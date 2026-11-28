@@ -7,6 +7,7 @@ import { type HeatId, heatRank } from '../../data/difficulty';
 import type { Arena } from '../arena';
 import type { Foot } from '../Foot';
 import type { Pizza } from '../Pizza';
+import { crand } from '../../systems/cosmeticRandom';
 
 export interface Brain {
   /** Phase names, index 0 = phase 1. Longer than the boss's phase count is fine. */
@@ -142,7 +143,7 @@ export function throwAtPeel(a: Arena, key: string, from: { x: number; y: number 
       done = true;
       a.fx.impact(img.x, img.y, true);
       a.sfx('sfx_slap_2', { volume: 0.8 });
-      a.sc.tweens.add({ targets: img, y: img.y - 500, x: img.x + (Math.random() - 0.5) * 300, angle: 720, alpha: 0, duration: 500, onComplete: () => img.destroy() });
+      a.sc.tweens.add({ targets: img, y: img.y - 500, x: img.x + (crand() - 0.5) * 300, angle: 720, alpha: 0, duration: 500, onComplete: () => img.destroy() });
       onSmack();
     },
   });
@@ -271,7 +272,7 @@ export function screenSplat(a: Arena, key: string, x: number, y: number, hits: n
     alive: () => left > 0,
     hit: () => {
       left--;
-      a.fx.puff(x + (Math.random() - 0.5) * 160, y + (Math.random() - 0.5) * 120, 8);
+      a.fx.puff(x + (crand() - 0.5) * 160, y + (crand() - 0.5) * 120, 8);
       a.sfx('sfx_squish', { volume: 0.6, rate: 1.2 });
       img.setScale(img.scale * 0.8);
       if (left <= 0) {

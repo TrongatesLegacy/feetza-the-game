@@ -15,6 +15,7 @@ import type { Pizza } from '../Pizza';
 import { finaleOf, finaleState, peelThumbKey, screenGlitch } from '../finale';
 import { LOCATION_MUSIC, locationFor } from '../Run';
 import { type Brain, type Prop, Every, heat, hitProp, hitWindup, mark, retreat, rnd, shield } from './kit';
+import { cpick, crand } from '../../systems/cosmeticRandom';
 
 // ——— Act helpers ———
 
@@ -72,7 +73,7 @@ function stageMusic(a: Arena): void {
 
 /** A comic-book impact word over a starburst (the Comics act's look). */
 function comic(a: Arena, x: number, y: number, word: string, color = '#e5242f'): void {
-  const burst = a.sc.add.image(x, y, 'p_comicburst').setScale(0.2).setAngle((Math.random() - 0.5) * 30);
+  const burst = a.sc.add.image(x, y, 'p_comicburst').setScale(0.2).setAngle((crand() - 0.5) * 30);
   const t = a.sc.add.text(x, y, word, { fontFamily: 'Lilita One, Fredoka, sans-serif', fontSize: '76px', color, stroke: '#2a1810', strokeThickness: 12 }).setOrigin(0.5).setScale(0.2).setAngle(burst.angle * 0.5);
   a.fxLayer.add([burst, t]);
   a.sc.tweens.add({ targets: [burst, t], scale: 1, duration: 200, ease: 'Back.Out' });
@@ -176,11 +177,11 @@ function laneDrop(a: Arena, p: Pizza, o: DropOpts, bin: Bin): void {
 /** Shards of dark glass bursting out (the Mirror Peel breaking, echo peels shattering). */
 function shatter(a: Arena, x: number, y: number, n: number, tint = 0xb06bff): void {
   for (let i = 0; i < n; i++) {
-    const s = a.sc.add.triangle(x, y, 0, 0, 18 + Math.random() * 20, 4, 6, 22 + Math.random() * 18, i % 3 ? 0x1d1a2c : tint).setStrokeStyle(2, 0xe0c8ff, 0.8);
+    const s = a.sc.add.triangle(x, y, 0, 0, 18 + crand() * 20, 4, 6, 22 + crand() * 18, i % 3 ? 0x1d1a2c : tint).setStrokeStyle(2, 0xe0c8ff, 0.8);
     a.fxLayer.add(s);
-    const ang = Math.random() * Math.PI * 2;
-    const d = 120 + Math.random() * 260;
-    a.sc.tweens.add({ targets: s, x: x + Math.cos(ang) * d, y: y + Math.sin(ang) * d + 160, angle: (Math.random() - 0.5) * 720, alpha: 0, duration: 700 + Math.random() * 400, ease: 'Quad.Out', onComplete: () => s.destroy() });
+    const ang = crand() * Math.PI * 2;
+    const d = 120 + crand() * 260;
+    a.sc.tweens.add({ targets: s, x: x + Math.cos(ang) * d, y: y + Math.sin(ang) * d + 160, angle: (crand() - 0.5) * 720, alpha: 0, duration: 700 + crand() * 400, ease: 'Quad.Out', onComplete: () => s.destroy() });
   }
 }
 
@@ -863,7 +864,7 @@ const ghostfuture = (): Brain => {
       ready = false;
       a.sfx('sfx_ghostfuture_death');
       screenGlitch(a.sc, 600, 0.8);
-      for (let i = 0; i < 14; i++) a.fx.glint(f.cx + (Math.random() - 0.5) * 200, f.cy + (Math.random() - 0.5) * 200, 2);
+      for (let i = 0; i < 14; i++) a.fx.glint(f.cx + (crand() - 0.5) * 200, f.cy + (crand() - 0.5) * 200, 2);
       a.fx.puff(f.cx, f.cy, 16);
       if (a.inWave()) stageMusic(a);
     },
@@ -1191,7 +1192,7 @@ const soleunbound = (): Brain => {
         a.fxLayer.add(flyer);
         a.sfx('sfx_soleunbound_montage', { throttle: 60 });
         a.sc.tweens.add({
-          targets: flyer, x: f.cx + (Math.random() - 0.5) * 120, y: f.cy + (Math.random() - 0.5) * 80, angle: 360, scale: 1.3, duration: 220, ease: 'Quad.In',
+          targets: flyer, x: f.cx + (crand() - 0.5) * 120, y: f.cy + (crand() - 0.5) * 80, angle: 360, scale: 1.3, duration: 220, ease: 'Quad.In',
           onComplete: () => {
             flyer.destroy();
             burstOf(a, f, ab);
@@ -1338,7 +1339,7 @@ const soleunbound = (): Brain => {
       }
       if (finale !== 'none') return true;
       // comic-book hits in the first act
-      if (f.phase === 1 && Math.random() < 0.18) comic(a, f.cx + (Math.random() - 0.5) * 200, f.cy - 100, rnd(['BAM!', 'POW!', 'WHAM!', 'ZOK!'])!, '#ffd23f');
+      if (f.phase === 1 && crand() < 0.18) comic(a, f.cx + (crand() - 0.5) * 200, f.cy - 100, cpick(['BAM!', 'POW!', 'WHAM!', 'ZOK!'])!, '#ffd23f');
       return false;
     },
     onPhase: (f, phase, a) => {
@@ -1396,10 +1397,10 @@ const soleunbound = (): Brain => {
       for (let i = 0; i < 6; i++) {
         let cx = x;
         let cy = y;
-        const ang0 = Math.random() * Math.PI * 2;
+        const ang0 = crand() * Math.PI * 2;
         cracks.lineStyle(10, 0xfff2a0, 1).beginPath().moveTo(cx, cy);
         for (let k = 0; k < 5; k++) {
-          const ang = ang0 + (Math.random() - 0.5) * 0.9;
+          const ang = ang0 + (crand() - 0.5) * 0.9;
           cx += Math.cos(ang) * 50;
           cy += Math.sin(ang) * 50;
           cracks.lineTo(cx, cy);
@@ -1438,14 +1439,14 @@ function nearest(line: Phaser.Geom.Line, p: { x: number; y: number }): [number, 
 
 /** One peel's ability, as a quick burst on the boss (the Last Slice montage). */
 function burstOf(a: Arena, f: Foot, ab: Ability): void {
-  const x = f.cx + (Math.random() - 0.5) * 140;
-  const y = f.cy + (Math.random() - 0.5) * 100;
+  const x = f.cx + (crand() - 0.5) * 140;
+  const y = f.cy + (crand() - 0.5) * 100;
   switch (ab.vfx) {
     case 'frost':
       a.fx.frost(x, y);
       break;
     case 'fire':
-      for (let i = 0; i < 3; i++) a.fx.burn(x + (Math.random() - 0.5) * 80, y);
+      for (let i = 0; i < 3; i++) a.fx.burn(x + (crand() - 0.5) * 80, y);
       break;
     case 'zap':
       a.fx.lightning(x - 300, y - 400, x, y);

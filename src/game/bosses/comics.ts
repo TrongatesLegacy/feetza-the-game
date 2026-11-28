@@ -40,6 +40,7 @@ import type { Foot } from '../Foot';
 import type { Pizza } from '../Pizza';
 import { type Brain, type Prop, Every, heat, hitProp, hitWindup, rnd, twin, windup } from './kit';
 import { Bin, SAFE_TOP, enterArena, entrance, hitSoft, lanePizzas, leaveArena, once, scatter, shatter, timerRing } from './nzkit';
+import { cpick, crand } from '../../systems/cosmeticRandom';
 
 /** Design point on a foot's art → screen. */
 function onFoot(f: Foot, x: number, y: number, contactY: number): { x: number; y: number } {
@@ -356,8 +357,8 @@ const redsole = (): Brain => {
       }
       quipT -= dt;
       if (quipT <= 0) {
-        quipT = 11 + Math.random() * 6;
-        bubble(a, rnd(['THE CRUMB SHALL RISE!', 'YOU ARE A RELIC, CAPTAIN.', 'HAIL HYDRANT!'])!, f);
+        quipT = 11 + crand() * 6;
+        bubble(a, cpick(['THE CRUMB SHALL RISE!', 'YOU ARE A RELIC, CAPTAIN.', 'HAIL HYDRANT!'])!, f);
       }
     },
     onSmacked(f, a) {
@@ -407,7 +408,7 @@ const venomnom = (): Brain => {
       repeat: 8,
       callback: () => {
         const m = mouth(f);
-        const d = a.sc.add.image(m.x + (Math.random() - 0.5) * 60, m.y, 'soft').setTint(0xd8d8ff).setScale(0.05, 0.1);
+        const d = a.sc.add.image(m.x + (crand() - 0.5) * 60, m.y, 'soft').setTint(0xd8d8ff).setScale(0.05, 0.1);
         a.fxLayer.add(d);
         a.sc.tweens.add({ targets: d, y: d.y + 90, alpha: 0, duration: 500, onComplete: () => d.destroy() });
       },
@@ -653,7 +654,7 @@ const venomnom = (): Brain => {
           ring: 0x8a8aff,
           delay: 400,
           onLanded: () => {
-            for (let i = 0; i < 6; i++) a.fx.puff(f.x + (Math.random() - 0.5) * 300, f.y, 3);
+            for (let i = 0; i < 6; i++) a.fx.puff(f.x + (crand() - 0.5) * 300, f.y, 3);
             bubble(a, 'EYES. LUNGS. PIZZA.', f, 1800);
           },
         });
@@ -689,8 +690,8 @@ const venomnom = (): Brain => {
       }
       quipT -= dt;
       if (quipT <= 0) {
-        quipT = 11 + Math.random() * 6;
-        bubble(a, rnd(['TASTY LITTLE SLICES…', 'WE WANT THE SPIDER.', 'EYES. LUNGS. PIZZA.'])!, f);
+        quipT = 11 + crand() * 6;
+        bubble(a, cpick(['TASTY LITTLE SLICES…', 'WE WANT THE SPIDER.', 'EYES. LUNGS. PIZZA.'])!, f);
       }
     },
     onDeath(f, a) {
@@ -1006,8 +1007,8 @@ const cheetoe = (): Brain => {
       }
       quipT -= dt;
       if (quipT <= 0) {
-        quipT = 11 + Math.random() * 6;
-        bubble(a, rnd(['NINE LIVES. HOW MANY HAVE YOU?', 'FASTER THAN YOUR PEEL, PRINCESS.', 'SSSSST!'])!, f);
+        quipT = 11 + crand() * 6;
+        bubble(a, cpick(['NINE LIVES. HOW MANY HAVE YOU?', 'FASTER THAN YOUR PEEL, PRINCESS.', 'SSSSST!'])!, f);
       }
     },
     onSmacked(f, a) {

@@ -25,6 +25,14 @@ export type SectionId = (typeof Section)[keyof typeof Section];
 export const Stack = { Add: 'add', Mul: 'mul', Flag: 'flag', Max: 'max', Min: 'min' } as const;
 export type StackId = (typeof Stack)[keyof typeof Stack];
 
+/** How a stat's multipliers fold (src/effects/ledger.ts).
+ *  Standard: every multiplier scales the whole total (the base, its Set and its adds).
+ *  CutsOnBase: a cut (a multiplier below 1) scales only the base (or the Set that replaced it), before the adds, so it
+ *  never shrinks a flat boost: Long Handle +6 with Glass Peel ×0.85 is 26 × 0.85 + 6. A boost (above 1) still scales
+ *  the whole total, as Standard. */
+export const Fold = { Standard: 'standard', CutsOnBase: 'cutsOnBase' } as const;
+export type FoldId = (typeof Fold)[keyof typeof Fold];
+
 /** Whether more of a stat is good for the player. */
 export const Better = { Up: 'up', Down: 'down' } as const;
 export type BetterId = (typeof Better)[keyof typeof Better];
@@ -55,6 +63,8 @@ export interface StatDef<U extends UnitName = UnitName> {
   caps?: Caps;
   /** Multipliers scale this stat plus `around` (the combo window: its base length plus the bonus). */
   around?: number;
+  /** How its multipliers fold (Fold.Standard when left out). */
+  fold?: FoldId;
   label: string;
   /** The word for it in a short line (a NOW tag's "+3% damage"). */
   short?: string;
@@ -98,7 +108,7 @@ export const STAT_DEFS = {
   damage: def({ unit: UnitKind.Amount, stack: Add, base: 10, label: 'Smack damage', short: 'damage', icon: '👋', section: Damage, better: Up, show: Show.int() }),
   critChance: def({ unit: UnitKind.Chance, stack: Add, base: 0.05, caps: { min: 0, max: 0.85 }, label: 'Crit chance', icon: '💥', section: Damage, better: Up, show: Show.pct() }),
   critMult: def({ unit: UnitKind.Mult, stack: Add, base: 2.5, label: 'Crit damage', icon: '💢', section: Damage, better: Up, show: Show.x() }),
-  radius: def({ unit: UnitKind.Px, stack: Add, base: 26, caps: { min: 14 }, label: 'Smack reach', icon: '🏓', section: Damage, better: Up, show: Show.int() }),
+  radius: def({ unit: UnitKind.Px, stack: Add, base: 26, caps: { min: 14 }, fold: Fold.CutsOnBase, label: 'Smack reach', icon: '🏓', section: Damage, better: Up, show: Show.int() }),
   doubleChance: def({ unit: UnitKind.Chance, stack: Add, base: 0, caps: { max: DOUBLE_CAP }, label: 'Double smack', icon: '👏', section: Damage, better: Up, show: Show.pct(), note: 'chance to smack again' }),
   execute: def({ unit: UnitKind.Percent, stack: Add, base: 0, caps: { max: 0.4 }, label: 'Finishes feet under', icon: '🔪', section: Damage, better: Up, show: Show.pct(), note: 'health, not bosses' }),
   chainChance: def({ unit: UnitKind.Chance, stack: Add, base: 0, label: 'Chain lightning', icon: '⚡', section: Damage, better: Up, show: Show.pct() }),
@@ -121,7 +131,7 @@ export const STAT_DEFS = {
   // ——— crowd control ———
   stunChance: def({ unit: UnitKind.Chance, stack: Add, base: 0, label: 'Stun chance', icon: '😵', section: Control, better: Up, show: Show.pct(), note: 'smacks stun feet 1.2s' }),
   slowPct: def({ unit: UnitKind.Percent, stack: Add, base: 0, caps: { max: 0.7 }, label: 'Chill', icon: '❄️', section: Control, better: Up, show: Show.pct(), note: 'slower for 2s after a smack' }),
-  knockback: def({ unit: UnitKind.Px, stack: Add, base: 260, label: 'Knockback', icon: '🌀', section: Control, better: Up, show: Show.int() }),
+  knockback: def({ unit: UnitKind.Px, stack: Add, base: 260, fold: Fold.CutsOnBase, label: 'Knockback', icon: '🌀', section: Control, better: Up, show: Show.int() }),
   speedMult: def({ unit: UnitKind.Mult, stack: Mul, base: 1, caps: { max: 1.6 }, label: 'Feet speed', icon: '🏃', section: Control, better: Down, show: Show.x() }),
   footHp: def({ unit: UnitKind.Mult, stack: Mul, base: 1, label: 'Feet health', icon: '🦶', section: Control, better: Down, show: Show.x() }),
   slowAbove: def({ unit: UnitKind.Percent, stack: Add, base: 0, label: 'Slow above', icon: '🌿', section: Control, better: Up, show: Show.pct() }),
@@ -141,6 +151,8 @@ export const STAT_DEFS = {
   rerollLess: def({ unit: UnitKind.Amount, stack: Add, base: 0, label: 'Cheaper rerolls', icon: '🔄', section: Economy, better: Up, show: Show.int(undefined, ' tips off') }),
   rerollMult: def({ unit: UnitKind.Mult, stack: Mul, base: 1, label: 'Reroll price', icon: '🔄', section: Economy, better: Down, show: Show.x() }),
   cardDelta: def({ unit: UnitKind.Count, stack: Add, base: 0, label: 'Cards per shop', icon: '🃏', section: Economy, better: Up, show: Show.signed() }),
+  guaranteedEpic: def({ unit: UnitKind.Count, stack: Add, base: 0, label: 'Epic or better', icon: '🎩', section: Economy, better: Up, show: Show.int(undefined, ' a shop'), note: 'cards guaranteed in each new shop (not a reroll)' }),
+  exclusiveDiscount: def({ unit: UnitKind.Percent, stack: Max, base: 0, label: 'Exclusive card off', icon: '🎩', section: Economy, better: Up, show: Show.pct(), note: 'with the other discounts, up to 60% off' }),
   extraConsumable: def({ unit: UnitKind.Count, stack: Add, base: 0, label: 'One-use cards', icon: '🃏', section: Economy, better: Up, show: Show.int('+'), note: 'an extra one-use card in every shop' }),
   goldenDiscount: def({ unit: UnitKind.Percent, stack: Add, base: 0, label: 'Golden Menu off', icon: '🎫', section: Economy, better: Up, show: Show.pct() }),
   freeTopping: { ...flag('Free topping', '🎁', Economy), note: 'one shop topping free every 5th wave (every 3rd enhanced)' },
@@ -276,6 +288,8 @@ export const Stat = {
   ShopDiscount: 'shopDiscount',
   ConsumableDiscount: 'consumableDiscount',
   CardDelta: 'cardDelta',
+  GuaranteedEpic: 'guaranteedEpic',
+  ExclusiveDiscount: 'exclusiveDiscount',
   RerollLess: 'rerollLess',
   RerollMult: 'rerollMult',
   GoldenDiscount: 'goldenDiscount',

@@ -27,6 +27,7 @@ import { WHEEL_AT } from '../../content/art/persianFeet';
 import { CHARIOT_HUB, WHEEL_R } from '../../content/style/chariot-wheel';
 import { styleFor } from '../../art/style/registry';
 import { bruteLive, immortalLive } from '../footLive';
+import { cpick, crand } from '../../systems/cosmeticRandom';
 
 /** The scene behind the Arena: the projectiles (for batted arrows), the smack damage and the lane hooks. */
 interface SceneBits {
@@ -69,7 +70,7 @@ const immortal: FootFx = {
   tick: (a, f, dt) => {
     immortalLive(f, dt);
     // light catches the chrome mask now and then
-    if (f.state === 'hover' && Math.random() < dt * 0.8) a.fx.glint(f.cx + (Math.random() - 0.5) * 60, f.cy - footH(f) * 0.3);
+    if (f.state === 'hover' && crand() < dt * 0.8) a.fx.glint(f.cx + (crand() - 0.5) * 60, f.cy - footH(f) * 0.3);
     // burning: tell the player the return is off
     if (f.burnT > 0 && !f.brain.returned && !f.brain.burnTold) {
       f.brain.burnTold = 1;
@@ -147,7 +148,7 @@ const archer: FootFx = {
         a.sfx('sfx_bowdraw', { volume: 0.6, throttle: 150 });
       }
       f.brain.drawK = Math.min(1, 1 - t / wind);
-      if (Math.random() < dt * 8) a.fx.glint(f.x + f.meta.legWidth * f.type.scale * 0.7, f.cy - H * 0.2);
+      if (crand() < dt * 8) a.fx.glint(f.x + f.meta.legWidth * f.type.scale * 0.7, f.cy - H * 0.2);
     }
     if (t <= 0) {
       f.brain.drawing = 0;
@@ -272,7 +273,7 @@ const cavalry: FootFx = {
       // the tell: it rears (a crouch and spring) and whinnies
       a.sc.tweens.add({ targets: f.root, scaleY: f.root.scaleY * 0.84, duration: 150, yoyo: true, ease: 'Sine.InOut' });
       a.sfx('sfx_neigh', { volume: 0.7, throttle: 300 });
-      if (Math.random() < 0.4 && f.x > 0 && f.x < W) a.quip(f.x, Math.max(200, f.cy - 140), Phaser.Utils.Array.GetRandom(f.type.quips ?? ['CHARGE!']), '#ffd23f', 32);
+      if (crand() < 0.4 && f.x > 0 && f.x < W) a.quip(f.x, Math.max(200, f.cy - 140), cpick(f.type.quips ?? ['CHARGE!']), '#ffd23f', 32);
       return;
     }
     // a hit (or a stun) mid-gallop trips it
@@ -308,7 +309,7 @@ const cavalry: FootFx = {
     f.x += Math.sign(dx) * Math.min(Math.abs(dx), sp);
     const base = f.hoverY ?? HOVER_Y;
     f.y += (base - Math.abs(Math.sin(age * 15)) * 26 - f.y) * Math.min(1, dt * 12);
-    if (Math.random() < dt * 14) a.fx.puff(f.x - Math.sign(dx) * 40, f.y, 2);
+    if (crand() < dt * 14) a.fx.puff(f.x - Math.sign(dx) * 40, f.y, 2);
     if (Math.abs(dest - f.x) < 2) {
       // the charge: straight down, no hover
       endGallop(f);
@@ -412,7 +413,7 @@ const chariot: FootFx = {
       // drop to the table and rev: dust, a rumble and a red line along the row
       f.y += (y - f.y) * Math.min(1, dt * 8);
       if (img) img.rotation += dt * 18 * Math.sign(toX - fromX);
-      if (Math.random() < dt * 16) a.fx.puff(f.x - Math.sign(toX - fromX) * 60, f.y, 2);
+      if (crand() < dt * 16) a.fx.puff(f.x - Math.sign(toX - fromX) * 60, f.y, 2);
       f.brain.rT = Number(f.brain.rT) - dt;
       drawLine(a, f, y, Number(f.brain.rT));
       drawHubMark(a, f, Number(f.brain.rT), true);
@@ -428,7 +429,7 @@ const chariot: FootFx = {
       const dir = Math.sign(toX - fromX);
       f.x += dir * sp;
       f.y = y + Math.abs(Math.sin(f.x / 40)) * -4;
-      if (Math.random() < dt * 20) a.fx.puff(f.x - dir * 50, f.y, 2);
+      if (crand() < dt * 20) a.fx.puff(f.x - dir * 50, f.y, 2);
       const hit = chipped.get(f) ?? new Set<Pizza>();
       chipped.set(f, hit);
       for (const p of ps) {
@@ -512,7 +513,7 @@ function startRoll(a: Arena, f: Foot): void {
   chipped.delete(f);
   f.puppet = true;
   a.sfx('sfx_chariotrev', { volume: 0.8, throttle: 300 });
-  a.quip(f.x, Math.max(220, f.cy - 150), Phaser.Utils.Array.GetRandom(f.type.quips ?? ['ROLL OUT!']), '#ffb070', 34);
+  a.quip(f.x, Math.max(220, f.cy - 150), cpick(f.type.quips ?? ['ROLL OUT!']), '#ffb070', 34);
   // the hub is the weak point: one smack breaks the wheel (a prop, so it beats a foot at the same spot)
   const ws = () => hubWorld(f);
   a.addClickable({
@@ -619,7 +620,7 @@ const satrap: FootFx = {
       g.lineStyle(8, 0x2a1810, 0.35).lineBetween(f.cx, f.cy, o.cx, o.cy);
       g.lineStyle(4, 0xf0c040, 0.6 + 0.25 * Math.sin(t * 6)).lineBetween(f.cx, f.cy, o.cx, o.cy);
     }
-    if (Math.random() < 0.05) a.fx.glint(f.cx + (Math.random() - 0.5) * 80, f.cy + (Math.random() - 0.5) * 80);
+    if (crand() < 0.05) a.fx.glint(f.cx + (crand() - 0.5) * 80, f.cy + (crand() - 0.5) * 80);
   },
   kill: (a, f) => {
     links.get(f)?.destroy();

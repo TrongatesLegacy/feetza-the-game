@@ -32,25 +32,39 @@ export function shopCardTotal(run: Run): number {
   return cardCount(run, usualCards()) + run.stats.extraConsumable;
 }
 
+/** What a deal dealt: its cards, and which of them are Exclusive Menu's guaranteed ones (first in the list). */
+export interface Deal {
+  cards: Upgrade[];
+  exclusive: string[];
+}
+
 /**
  * Deal shop cards: every way of dealing them goes through here (a shop opening, boss loot, rerolls, the Stockroom
  * Key's restock, the hero's peek at the next shop, From the Future's shop, and Booster Gouda's coming shop). It reads
- * the ledger's card totals: n topping cards (cardDelta, through cardCount, unless the caller says how many), the
- * one-use extras (extraConsumable), then Exclusive Menu's bump of every card one rarity up. Boss loot deals epic or
- * better (any shop's deal when none is open); its one-use extras can be any rarity, as in any shop.
+ * the ledger's card totals: n topping cards (cardDelta, through cardCount, unless the caller says how many), of which
+ * the first Stat.GuaranteedEpic (Exclusive Menu) are Epic or Legendary by their usual weights (a Rare when none is
+ * open, else any card), then the one-use extras (extraConsumable, always ordinary one-use cards). Boss loot deals epic
+ * or better (any shop's deal when none is open); its one-use extras can be any rarity, as in any shop.
+ * `guarantee: false` (a reroll) deals with no guaranteed card.
  */
-export function dealCards(run: Run, o: { boss?: boolean; n?: number; exclude?: string[] } = {}): Upgrade[] {
+export function dealCards(run: Run, o: { boss?: boolean; n?: number; exclude?: string[]; guarantee?: boolean } = {}): Deal {
   const exclude = o.exclude ?? [];
   const n = o.n ?? cardCount(run, usualCards());
+  const g = o.guarantee === false ? 0 : Math.min(n, run.stats.guaranteedEpic);
+  const sure = g > 0 ? run.pickExclusive(g, run.dealable(exclude)) : [];
+  const ex = sure.length ? [...exclude, ...sure.map((u) => u.id)] : exclude;
   let picks: Upgrade[] = [];
-  if (o.boss) picks = run.pickBossCards(n, exclude);
+  if (o.boss && n > sure.length) picks = run.pickBossCards(n - sure.length, ex);
   // (boss loot with nothing epic or better open: an ordinary deal)
-  if (!o.boss || !picks.length) {
-    const avail = run.dealable(exclude);
-    picks = run.pickCards(n, avail);
+  if (!o.boss || (!picks.length && n > sure.length)) {
+    const avail = run.dealable(ex);
+    picks = [...sure, ...run.pickCards(n - sure.length, avail)];
     run.addExtraConsumables(picks, avail, run.stats.extraConsumable);
-  } else run.addExtraConsumables(picks, run.dealable(exclude), run.stats.extraConsumable);
-  return run.level('exclusivemenu') ? run.bumpRarity(picks, exclude) : picks;
+  } else {
+    picks = [...sure, ...picks];
+    run.addExtraConsumables(picks, run.dealable(ex), run.stats.extraConsumable);
+  }
+  return { cards: picks, exclusive: sure.map((u) => u.id) };
 }
 
 /** Every discount on this card right now (negative: a surcharge), capped at 60% off. */
@@ -64,6 +78,8 @@ export function toppingDiscount(run: Run, u: Upgrade): number {
   if (bulk && k.bought === 2) d += 0.2 * bulk;
   if (run.level('haggler')) d += Math.min(0.3, 0.1 * k.bought);
   if (k.clearance === u.id) d += 0.5;
+  // Exclusive Menu's guaranteed card (LV2+)
+  if (k.exclusive.includes(u.id)) d += st.exclusiveDiscount;
   return Math.min(MAX_DISCOUNT, d);
 }
 

@@ -240,13 +240,13 @@ export const PERK_EFFECTS: [PizzaPerk, EffectData[]][] = [
   ['mazeLost', [
     Effect.OnStomp(
       C(Custom.Lose),
-      { scope: Scope.Target, when: Cond.All(Cond.Not(Cond.Boss), Cond.Not(Cond.Puppet), Cond.Not(Cond.Free), Cond.NotPossessed) },
+      { scope: Scope.Target, when: Cond.All(Cond.Not(Cond.Boss), Cond.Not(Cond.Puppet), Cond.Not(Cond.Free)) },
     ),
   ]],
   ['fondueStick', [
     Effect.OnStomp(
       Action.Seq(Action.Apply(Status.Stun(Enh(Unit.Seconds(0.3), Unit.Seconds(0.5)))), S(Look.Fondue)),
-      { scope: Scope.Target, when: Cond.All(Cond.Not(Cond.Boss), Cond.NotPossessed) },
+      { scope: Scope.Target, when: Cond.Not(Cond.Boss) },
     ),
   ]],
   ['slipStomp', [

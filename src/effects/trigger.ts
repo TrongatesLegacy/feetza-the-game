@@ -1,8 +1,8 @@
 // What every trigger kind shares (docs/effects-plan.md): who fires (the scope), the off-switches, counted and
 // once-a-wave triggers, the chance, and running the action. Each kind (onKill.ts, onSmack.ts…) is a few lines on top.
 //
-// The off-switches live in one place, the scope (PlayCtx.grants): a stale, frozen-perk or dead pizza never fires,
-// and the Ghost's possessed pizza never fires a table-wide or per-pizza perk (it's the Ghost's).
+// The off-switch is one rule that every scope (PlayCtx.grants) reads: Pizza.perk, which is null for an eaten, stale,
+// frozen-perk or possessed pizza, so none of its triggers fire, whatever the scope.
 
 import { actionTags, describeAction, runAction, type ActionData, type ActionHost, type Fire } from './actions';
 import { condTags, holdsCond, type CondCtx, type CondData } from './cond';
@@ -23,7 +23,7 @@ export const Scope = {
   Sum: 'sum',
   /** The pizza the moment is about (the one stomped, or the one the foot was over), if it grants it. */
   Target: 'target',
-  /** Each pizza on the table with the perk, the Ghost's too, in table order. Triggers of this scope that sit
+  /** Each pizza on the table granting the perk, in table order. Triggers of this scope that sit
    *  together on a moment go pizza by pizza, as one pass over the table. */
   Alive: 'alive',
 } as const;

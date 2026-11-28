@@ -12,6 +12,7 @@ import type { Arena } from './arena';
 import type { EventRewards } from './events';
 import { bumpGoal, openSecrets, openSightings, type SightingId } from './heroGoals';
 import { NIGHT } from './heroMoves';
+import { crand } from '../systems/cosmeticRandom';
 
 /** Base chance a wave brings a sighting. */
 export const SIGHTING_CHANCE = 1 / 40;
@@ -40,12 +41,12 @@ interface Flyby {
 
 const FLYBY: Record<SightingId, Flyby> = {
   bird: { key: 's_bird', name: 'IS IT A BIRD?', y: 130, path: (k) => Math.sin(k * 6) * 14, sfx: 'sfx_hero_flyby' },
-  comet: { key: 's_comet', name: 'A GREEN COMET!', y: 110, path: (k) => -k * 30, sfx: 'sfx_hero_flyby', extra: (a, img) => Math.random() < 0.6 && a.fx.trail(img.x - 70 * Math.sign(img.scaleX), img.y, 0x7dff9a) },
+  comet: { key: 's_comet', name: 'A GREEN COMET!', y: 110, path: (k) => -k * 30, sfx: 'sfx_hero_flyby', extra: (a, img) => crand() < 0.6 && a.fx.trail(img.x - 70 * Math.sign(img.scaleX), img.y, 0x7dff9a) },
   visor: { key: 's_visor', name: 'A VISOR GLINT!', y: 150, path: () => 0, sfx: 'sfx_hero_glint', extra: (_a, img, k) => img.setAlpha(0.55 + Math.abs(Math.sin(k * 40)) * 0.45) },
   cassette: { key: 's_cassette', name: 'A CASSETTE SHIP!', y: 140, path: (k) => Math.sin(k * 9) * 18, sfx: 'sfx_hero_flyby' },
-  kid: { key: 's_kid', name: 'THE LIGHTNING KID!', y: 130, path: (k) => Math.sin(k * 14) * 10, sfx: 'sfx_hero_flyby', extra: (a, img) => Math.random() < 0.12 && a.fx.glint(img.x, img.y, 2) },
+  kid: { key: 's_kid', name: 'THE LIGHTNING KID!', y: 130, path: (k) => Math.sin(k * 14) * 10, sfx: 'sfx_hero_flyby', extra: (a, img) => crand() < 0.12 && a.fx.glint(img.x, img.y, 2) },
   saucer: { key: 's_saucer', name: 'A GREEN SAUCER!', y: 150, path: (k) => Math.sin(k * 5) * 22, sfx: 'sfx_hero_saucer', extra: (_a, img, k) => img.setAlpha(0.45 + 0.55 * Math.abs(Math.sin(k * 7))) },
-  tophat: { key: 's_tophat', name: 'A TOP HAT?', y: 140, path: (k) => Math.sin(k * 7) * 26, sfx: 'sfx_hero_magic', extra: (a, img) => Math.random() < 0.05 && a.fx.glint(img.x, img.y + 30, 2) },
+  tophat: { key: 's_tophat', name: 'A TOP HAT?', y: 140, path: (k) => Math.sin(k * 7) * 26, sfx: 'sfx_hero_magic', extra: (a, img) => crand() < 0.05 && a.fx.glint(img.x, img.y + 30, 2) },
   squirrels: { key: 'h_squirrel', name: 'A SQUIRREL PARADE!', y: 170, path: (k) => -Math.abs(Math.sin(k * 30)) * 16, sfx: 'sfx_hero_squeak' },
 };
 

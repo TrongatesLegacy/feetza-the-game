@@ -49,7 +49,7 @@ import { abilityFor, abilityKindLabel, scaleProc, usesMeter, type Ability, type 
 import { randomLineup } from './MenuScene';
 import { ToppingKit } from '../game/toppingKit';
 import { freshKitShop, loadKitState } from '../game/kitState';
-import { cardCount, counterFreebie, counterPrice, dealBlock, dealCards, freeLunchReady, goldenPrice, happyHour, movePrice, rerollPrice, shopCardTotal, toppingPrice, usualCards } from '../game/shopDeals';
+import { cardCount, counterFreebie, counterPrice, dealBlock, dealCards, type Deal, freeLunchReady, goldenPrice, happyHour, movePrice, rerollPrice, shopCardTotal, toppingPrice, usualCards } from '../game/shopDeals';
 import { pickWindow, rouletteWindow, slotsPrizeWindow, type PickOption } from '../ui/pickWindows';
 import { abilityKey } from '../game/abilities';
 import { legendGate, legendHeat, legendHeatOk, legendSpecialOpen } from '../game/legendary';
@@ -76,6 +76,7 @@ import { finaleCast, playEnding } from '../game/ending';
 // ——— Nemesis stages: a hero peel swaps a stage for its nemesis (src/game/nemesis.ts) ———
 import { applyNemesis, nemesisOf, setNemesisPeel } from '../game/nemesis';
 import { HitboxOverlay, describeNear, labelOf, record, smackLog } from '../game/smackLog';
+import { cpick, crand } from '../systems/cosmeticRandom';
 
 interface DamageOpts {
   source: 'smack' | 'chain' | 'cutter' | 'olive' | 'slam' | 'explode' | 'garlic' | 'burn' | 'trap' | 'splash' | 'direct' | 'ability';
@@ -216,7 +217,7 @@ export class GameScene extends Phaser.Scene implements Arena {
    * plan and shop a hero showed early (Herald, From the Future). */
   private heroT = GameScene.freshHeroT();
   private static freshHeroT() {
-    return { wave: 0, boss: 0, bossSmacks: 0, stunned: false, tick: 0, coins: 0, firstWave: 0, since: 0, bosses: 0, lost: 0, abilityUsed: false, plan: null as (WavePlan & { n: number }) | null, shop: null as Upgrade[] | null };
+    return { wave: 0, boss: 0, bossSmacks: 0, stunned: false, tick: 0, coins: 0, firstWave: 0, since: 0, bosses: 0, lost: 0, abilityUsed: false, plan: null as (WavePlan & { n: number }) | null, shop: null as Deal | null };
   }
   /** Damage dealt this run by source (dev balance tooling reads it). */
   /** Damage dealt by source, the time feet were on the table and smacks landed (the STATS tab). */
@@ -305,7 +306,17 @@ export class GameScene extends Phaser.Scene implements Arena {
   private hurryT = 0;
   private hurryMult = 1;
   private lastSlam = -99;
-  private possessedPizza: Pizza | null = null;
+  private haunting: Pizza | null = null;
+  /** The Ghost's pizza: kept in step with the pizza's own `haunted`, so its perks are off however it's set or
+   *  cleared (Pizza.perk). */
+  private get possessedPizza(): Pizza | null {
+    return this.haunting;
+  }
+  private set possessedPizza(p: Pizza | null) {
+    if (this.haunting) this.haunting.haunted = false;
+    this.haunting = p;
+    if (p) p.haunted = true;
+  }
   private orders = new Map<Pizza, number>();
   /** Pizzas a boss has claimed for a move: no regular foot may use their lanes. */
   private lockedPizzas = new Set<Pizza>();
@@ -496,15 +507,19 @@ export class GameScene extends Phaser.Scene implements Arena {
   }
   possess(p: Pizza | null): void {
     if (!this.sys.isActive() && !this.sys.isPaused()) return;
-    if (this.possessedPizza) {
-      this.possessedPizza.flags.possessed = false;
-      this.possessedPizza.redraw();
-    }
+    const old = this.possessedPizza;
+    // (set first: the pizza let go is no longer haunted when it's redrawn)
     this.possessedPizza = p;
+    if (old) {
+      old.flags.possessed = false;
+      old.redraw();
+    }
     if (p) {
       p.flags.possessed = true;
       this.fx.quip(p.x, p.surfaceY - 170, `${p.type.name.toUpperCase()} IS POSSESSED`, '#c9a8ff', 38);
       p.hurt();
+      // (its perk struck through: every perk it has is off while the Ghost is in it)
+      p.redraw();
     }
     this.recompute();
   }
@@ -1113,7 +1128,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     const L = this.run.buildLedger(seats, peelStats, enhanced);
     this.kit.modifiers(L, this.alivePizzas().length);
     // the Ghost's possession turns the haunted pizza's perk against you
-    const inv = this.possessedPizza?.perk;
+    const inv = this.possessedPizza?.ownPerk;
     if (inv) {
       const ghost = (list: EffectData[]) => applyAll(list, { ledger: L, source: GHOST_SOURCE, phase: Phase.Haunt });
       if (inv === 'coins' || inv === 'luck' || inv === 'coinsWave' || inv === 'quickTips') ghost([
@@ -1643,7 +1658,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     contentFx.footTick(this, f, dt);
     styleLive(f, dt);
     heroFootTick(this, f, dt);
-    if (f.shiny && Math.random() < dt * 9) this.fx.glint(f.cx + (Math.random() - 0.5) * 90 * f.scale, f.cy + (Math.random() - 0.5) * 120 * f.scale);
+    if (f.shiny && crand() < dt * 9) this.fx.glint(f.cx + (crand() - 0.5) * 90 * f.scale, f.cy + (crand() - 0.5) * 120 * f.scale);
     if (f.has('magnet') && (f.state === 'hover' || f.state === 'descend')) {
       const dx = f.cx - this.peelPos.x;
       const dy = f.cy - this.peelPos.y;
@@ -2335,7 +2350,7 @@ export class GameScene extends Phaser.Scene implements Arena {
         audio.sfx('sfx_stale');
         ui.hud.toast(pizzaPortraitURL(p.type.id), 'PIZZA WENT STALE', `${p.type.name} is off the table: even the feet won’t touch it. Rebake it in the shop.`);
         // Pizza Fritta's last act: it heals the others as it goes
-        if (p.type.perk === 'staleHeal' && !p.flags.staleHealed) {
+        if (p.type.perk === 'staleHeal' && !p.flags.staleHealed && !p.haunted) {
           p.flags.staleHealed = true;
           const n = p.enhanced ? 3 : 2;
           for (const q of this.alivePizzas()) if (q !== p) this.healPizza(q, n);
@@ -2565,7 +2580,10 @@ export class GameScene extends Phaser.Scene implements Arena {
     // a new shop: its deals start over (a resumed shop keeps them, even one saved with no cards left)
     if (!keepCards && !this.restoredShop?.shop) this.run.kit.shop = freshKitShop();
     if (!cards) {
-      cards = future ?? dealCards(this.run, { boss: bossReward, exclude });
+      // (a shop's first deal: Exclusive Menu's guaranteed card is in it, and kept with the shop's deals)
+      const deal = future ?? dealCards(this.run, { boss: bossReward, exclude });
+      cards = deal.cards;
+      this.run.kit.shop.exclusive = deal.exclusive;
       // boss loot: the lowest-rarity pick dealt is free (a random one of them when several share it) ·
       // Birthday Cake: every 5th wave a random card is free (enhanced: every 3rd)
       const every = this.run.enhancedPerks.has('freeTopping') ? 3 : 5;
@@ -2695,6 +2713,7 @@ export class GameScene extends Phaser.Scene implements Arena {
         was: cp.full,
         free: cp.free,
         tag: tag && !cp.free && cp.price < cp.full ? { text: tag, kind: 'sale' } : undefined,
+        exclusive: r.kit.shop.exclusive.includes(u.id),
         sold: sh.sold.has(u.id),
       };
     });
@@ -2778,7 +2797,7 @@ export class GameScene extends Phaser.Scene implements Arena {
         case 'peel':
           return { key: 'peel', name: peelDef?.name ?? this.ability?.name ?? 'Peel', img: peelImg };
         case 'ghost':
-          return { key: 'ghost', name: 'The Ghost', icon: '👻', tip: `haunting ${this.possessedPizza?.type.name ?? 'a pizza'}: its perk works against you` };
+          return { key: 'ghost', name: 'The Ghost', icon: '👻', tip: `haunting ${this.possessedPizza?.type.name ?? 'a pizza'}: its perks are off, and its perk works against you` };
         default:
           return null;
       }
@@ -2787,7 +2806,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     const pizzas: TablePizza[] = this.pizzas.map((p) => ({
       id: p.type.id,
       name: p.type.name,
-      perk: p === this.possessedPizza ? null : p.perk,
+      perk: p.perk,
+      possessed: p.haunted,
       // (an Echo Slice's line names the pizza it copies; here it spells the copied perk out too)
       line: p.type.perk === 'echo' && p.perk && p.perk !== 'echo' ? `${p.perkLine}: ${perkTextOf(p.perk, p.enhanced)}` : p.perkLine,
       enhanced: p.enhanced,
@@ -2892,8 +2912,13 @@ export class GameScene extends Phaser.Scene implements Arena {
       k.shop.restocked = true;
       if (this.run.offerable(u, this.run.wave)) sh.sold.delete(id);
       else {
-        const fresh = dealCards(this.run, { n: 1, exclude: sh.cards.map((c) => c.id) })[0];
-        if (fresh) sh.cards = sh.cards.map((c) => (c.id === id ? fresh : c));
+        // (a restock isn't a reroll: restocking Exclusive Menu's card deals another guaranteed one in its place)
+        const was = k.shop.exclusive.includes(id);
+        const fresh = dealCards(this.run, { n: 1, exclude: sh.cards.map((c) => c.id), guarantee: was }).cards[0];
+        if (fresh) {
+          sh.cards = sh.cards.map((c) => (c.id === id ? fresh : c));
+          if (was) k.shop.exclusive = k.shop.exclusive.map((x) => (x === id ? fresh.id : x));
+        }
       }
       ui.hud.toast(null, 'RESTOCKED', 'The Stockroom Key put a card back on the shelf');
     }
@@ -3075,7 +3100,10 @@ export class GameScene extends Phaser.Scene implements Arena {
     // and only top up with old cards if the pool has run that dry
     const old = sh.cards.filter((u) => !sh.sold.has(u.id)).map((u) => u.id);
     const base = [...keep.map((u) => u.id), ...(tableFull ? ['helping'] : [])];
-    const roll = (n: number, ex: string[]) => dealCards(this.run, { boss: sh.bossReward, n, exclude: ex });
+    // (a reroll deals with normal odds: Exclusive Menu's guaranteed card is given up, unless it was bought)
+    const roll = (n: number, ex: string[]) => dealCards(this.run, { boss: sh.bossReward, n, exclude: ex, guarantee: false }).cards;
+    const k = this.run.kit.shop;
+    k.exclusive = k.exclusive.filter((id) => sh.sold.has(id));
     let fresh = roll(count - keep.length, [...base, ...old]);
     if (fresh.length < count - keep.length) fresh = [...fresh, ...roll(count - keep.length - fresh.length, [...base, ...fresh.map((u) => u.id)]).slice(0, count - keep.length - fresh.length)];
     if (best && !fresh.some((u) => u.rarity === best)) {
@@ -4035,7 +4063,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.lastPeelPos = { x, y };
     if (!this.peel.visible || save.settings.reducedMotion || moved < 8) return;
     if (this.peelTrailColor !== null && !this.lookFx?.ownTrail) this.fx.trail(x, y, this.peelTrailColor);
-    if (this.peelShiny && Math.random() < 0.35) this.fx.glint(x + (Math.random() - 0.5) * 40, y + (Math.random() - 0.5) * 40);
+    if (this.peelShiny && crand() < 0.35) this.fx.glint(x + (crand() - 0.5) * 40, y + (crand() - 0.5) * 40);
   }
 
   private killFoot(f: Foot, source: DamageOpts['source']): void {
@@ -4131,8 +4159,8 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.fx.quip(f.x, f.cy - 120, 'JACKPOT!', '#ffd23f', 64);
       this.fx.party(f.cx, f.cy, 80);
       audio.sfx('sfx_levelup', { volume: 0.7 });
-    } else if (Math.random() < (boss || mini ? 1 : 0.45)) {
-      this.fx.quip(f.x + (Math.random() - 0.5) * 60, f.cy - 110, Phaser.Utils.Array.GetRandom(OUCH), '#ffffff', boss ? 80 : 46);
+    } else if (crand() < (boss || mini ? 1 : 0.45)) {
+      this.fx.quip(f.x + (crand() - 0.5) * 60, f.cy - 110, cpick(OUCH), '#ffffff', boss ? 80 : 46);
       audio.sfx('sfx_ouch', { throttle: 250, rate: f.type.scale < 0.8 ? 1.5 : f.type.scale > 1.5 ? 0.7 : 1, jitter: 0.12 });
     }
     audio.sfx('sfx_whoosh', { volume: 0.7, throttle: 50 });
@@ -4407,12 +4435,12 @@ export class GameScene extends Phaser.Scene implements Arena {
     const fireproof = immune || p.perk === 'burnAbove';
     if (f.has('soggy') && !p.dead && !immune) {
       p.soggy = true;
-      for (let i = 0; i < 4; i++) this.fx.sweatDrop(p.x + (Math.random() - 0.5) * 120, p.surfaceY - 20);
+      for (let i = 0; i < 4; i++) this.fx.sweatDrop(p.x + (crand() - 0.5) * 120, p.surfaceY - 20);
     }
     if (f.has('scorch') && !fireproof) {
       this.time.delayedCall(2000, () => {
         if (p.dead || this.over || !this.waveActive) return;
-        for (let i = 0; i < 6; i++) this.fx.burn(p.x + (Math.random() - 0.5) * 140, p.surfaceY);
+        for (let i = 0; i < 6; i++) this.fx.burn(p.x + (crand() - 0.5) * 140, p.surfaceY);
         this.fx.quip(p.x, p.surfaceY - 150, 'SCORCHED!', '#ff8a3d', 40);
         if (!contentFx.scorch(this, f)) audio.sfx('sfx_fire', { volume: 0.6 });
         const removed = p.takeSlices(1, p.x);
@@ -4509,7 +4537,13 @@ export class GameScene extends Phaser.Scene implements Arena {
     audio.sfx('sfx_boing', { rate: 0.7 });
     p.setShield(0);
     p.setTraps(0);
-    if (p === this.possessedPizza) this.possess(null);
+    // (a possessed pizza's perks are off to the end: Carbonara doesn't rise from the Ghost's hold)
+    const haunted = p.haunted;
+    if (p === this.possessedPizza) {
+      this.possess(null);
+      // (possess() does nothing while the scene isn't running: the Ghost lets go all the same)
+      if (this.possessedPizza === p) this.possessedPizza = null;
+    }
     let rises = kit === 'rise';
     if (rises) ui.hud.toast(pizzaPortraitURL(p.type.id), 'UNTOUCHABLE', `${p.type.name} comes back in a moment`);
     else if (this.run.armed.includes('angel')) {
@@ -4522,7 +4556,7 @@ export class GameScene extends Phaser.Scene implements Arena {
         audio.sfx('sfx_heal');
         this.recompute();
       });
-    } else if (p.type.perk === 'riseOnce' && !p.flags.rose) {
+    } else if (p.type.perk === 'riseOnce' && !p.flags.rose && !haunted) {
       p.flags.rose = true;
       rises = true;
       this.time.delayedCall(1100, () => {
@@ -4632,7 +4666,7 @@ export class GameScene extends Phaser.Scene implements Arena {
         const tableFull = this.pizzas.length >= MAX_PIZZAS && !this.pizzas.some((p) => p.dead);
         // the same number of cards the shop itself will deal
         this.heroT.shop = dealCards(this.run, { exclude: tableFull ? ['helping'] : [] });
-        return this.heroT.shop.map((u) => u.name);
+        return this.heroT.shop.cards.map((u) => u.name);
       },
     };
   }
@@ -5119,7 +5153,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     const tickGarlic = this.garlicT >= 0.25;
     if (tickGarlic) this.garlicT = 0;
     const cheerers = this.feet.filter((c) => c.alive && c.has('cheer'));
-    for (const c of cheerers) if (Math.random() < dt * 4) this.fx.party(c.cx, c.cy - 40, 2);
+    for (const c of cheerers) if (crand() < dt * 4) this.fx.party(c.cx, c.cy - 40, 2);
     for (const f of this.feet) {
       if (!f.alive) continue;
       f.cheer = cheerers.some((c) => c !== f && Math.abs(c.x - f.x) < 450) ? 0.2 : 0;
@@ -5138,7 +5172,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       }
       if (f.burnT > 0 && f.alive) {
         f.burnAcc += f.burnDps * dt;
-        if (Math.random() < dt * 14 * glow * glow) this.fx.burn(f.cx, f.cy + 20);
+        if (crand() < dt * 14 * glow * glow) this.fx.burn(f.cx, f.cy + 20);
         if (f.burnAcc >= 4) {
           const d = f.burnAcc;
           f.burnAcc = 0;
@@ -5147,7 +5181,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       }
       if (f.alive && f.has('stink') && t && !t.dead && (f.state === 'hover' || f.state === 'descend')) {
         f.stink += dt * 0.22;
-        if (Math.random() < dt * 6) this.fx.stinkPuff(f.cx, f.cy + 40);
+        if (crand() < dt * 6) this.fx.stinkPuff(f.cx, f.cy + 40);
         if (f.stink >= 1) {
           f.stink = 0;
           this.fx.quip(t.x, t.surfaceY - 120, 'PEE-YEW!', '#b8e05a', 46);
@@ -5428,7 +5462,7 @@ export class GameScene extends Phaser.Scene implements Arena {
         }
       }
       p.update(real, best ? best.x : null, threat);
-      if (threat > 0.75 && Math.random() < real * 2) this.fx.sweatDrop(p.x + (Math.random() - 0.5) * 60, p.surfaceY - 30);
+      if (threat > 0.75 && crand() < real * 2) this.fx.sweatDrop(p.x + (crand() - 0.5) * 60, p.surfaceY - 30);
     }
     // the tips counter fades while a foot is behind it
     ui.hud.setCoinFade(this.feet.some((f) => f.alive && f.x > 1460 && f.y < 520));

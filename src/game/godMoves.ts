@@ -23,6 +23,7 @@ import { HeroKit, registerMoves, registerPassives, type Passive } from './heroKi
 import { NIGHT } from './heroMoves';
 import { GOD_PEEL, PEEL_BY_ID } from './peels';
 import type { Pizza } from './Pizza';
+import { cpick, crand } from '../systems/cosmeticRandom';
 
 const FIRE = 0xff6a1a;
 const GOLD = 0xffd23f;
@@ -222,7 +223,7 @@ function flames(k: HeroKit): { tick: (dt: number, left: number) => void; kill: (
       layer(48, 13, 128, 0xff7a1a, 9, false, 0.2);
       layer(44, 11, 78, 0xffd23f, 12, false, 0.45);
       // loose licks break off the top and rise away
-      if (Math.random() < 14 * dt * life) licks.push({ a: (Math.random() - 0.5) * 1.6, d: 0, t: 0, life: 0.28 + Math.random() * 0.2, size: 14 + Math.random() * 12 });
+      if (crand() < 14 * dt * life) licks.push({ a: (crand() - 0.5) * 1.6, d: 0, t: 0, life: 0.28 + crand() * 0.2, size: 14 + crand() * 12 });
       for (let i = licks.length - 1; i >= 0; i--) {
         const q = licks[i];
         q.t += dt;
@@ -260,15 +261,15 @@ function flames(k: HeroKit): { tick: (dt: number, left: number) => void; kill: (
       }
 
       // embers stream off it as you move
-      if (Math.random() < 0.95 * life) k.host.fx.burn(p.x + (Math.random() - 0.5) * 80 * s, p.y - 60 * s);
-      if (Math.random() < 0.5 * life) k.host.fx.burn(p.x + (Math.random() - 0.5) * 50 * s, p.y - 110 * s);
+      if (crand() < 0.95 * life) k.host.fx.burn(p.x + (crand() - 0.5) * 80 * s, p.y - 60 * s);
+      if (crand() < 0.5 * life) k.host.fx.burn(p.x + (crand() - 0.5) * 50 * s, p.y - 110 * s);
       const last = trail[trail.length - 1];
       const moved = last ? Math.hypot(p.x - last.x, p.y - last.y) : 99;
       // a jump (a teleport, the peel snapping back) starts a new ribbon rather than drawing a long straight bar
       if (moved > 320) trail.length = 0;
       if (moved > 6) trail.push({ x: p.x, y: p.y, t: 0 });
-      if (moved > 14 && moved <= 320 && Math.random() < 0.9) k.host.fx.trail(p.x, p.y, FIRE);
-      if (moved > 14 && moved <= 320 && Math.random() < 0.6) k.host.fx.burn(p.x, p.y);
+      if (moved > 14 && moved <= 320 && crand() < 0.9) k.host.fx.trail(p.x, p.y, FIRE);
+      if (moved > 14 && moved <= 320 && crand() < 0.6) k.host.fx.burn(p.x, p.y);
       // the fire ribbon: a tapering band along the peel's recent path, with a dark-red edge that reads on
       // bright backdrops and a white-hot core
       for (const q of trail) q.t += dt;
@@ -323,9 +324,9 @@ function fireRing(k: HeroKit, x: number, y: number): void {
   const e = k.sc.add.graphics();
   k.host.layers.fx.add(e);
   const sparks = Array.from({ length: 26 }, () => {
-    const a = -Math.PI / 2 + (Math.random() - 0.5) * 2.6;
-    const v = 380 + Math.random() * 560;
-    return { vx: Math.cos(a) * v, vy: Math.sin(a) * v, r: 9 + Math.random() * 8 };
+    const a = -Math.PI / 2 + (crand() - 0.5) * 2.6;
+    const v = 380 + crand() * 560;
+    return { vx: Math.cos(a) * v, vy: Math.sin(a) * v, r: 9 + crand() * 8 };
   });
   const st = { p: 0 };
   k.sc.tweens.add({
@@ -428,8 +429,8 @@ function blades(k: HeroKit, dt: number): void {
     g.fillCircle(bx, by, 9);
     g.lineStyle(3, 0x2a1810, 1);
     g.strokeCircle(bx, by, 9);
-    if (raging && Math.random() < 0.5) k.host.fx.burn(bx, by);
-    else if (Math.random() < 0.05) k.host.fx.glint(bx, by);
+    if (raging && crand() < 0.5) k.host.fx.burn(bx, by);
+    else if (crand() < 0.05) k.host.fx.glint(bx, by);
     // it hits every foot it passes through, at most once per foot every 0.5 s
     if (!k.host.inWave()) continue;
     for (const f of k.host.live()) {
@@ -529,7 +530,7 @@ registerMoves({
     const crack = k.sc.add.graphics().setBlendMode(Phaser.BlendModes.ADD);
     k.host.layers.fx.add(crack);
     const pts: [number, number][] = [];
-    for (let x = -20; x <= W + 20; x += 60) pts.push([x, 70 + (Math.random() - 0.5) * 50]);
+    for (let x = -20; x <= W + 20; x += 60) pts.push([x, 70 + (crand() - 0.5) * 50]);
     for (const [w, c, a] of [[26, 0x9fd8ff, 0.35], [8, 0xe8f6ff, 0.9]] as const) {
       crack.lineStyle(w, c, a);
       crack.beginPath();
@@ -650,7 +651,7 @@ registerMoves({
             g.lineTo(x, top);
             g.lineTo(x + dir * 60, top + 50);
             g.strokePath();
-            for (let i = 0; i < 5; i++) k.host.fx.splat(x + (Math.random() - 0.5) * 80, top + Math.random() * 60);
+            for (let i = 0; i < 5; i++) k.host.fx.splat(x + (crand() - 0.5) * 80, top + crand() * 60);
             // everything the wave's face swept this frame (between where it was and where it is now, and the foot's
             // width): checking only ±90 px of the face each frame let feet slip through on a long frame or as they moved
             const lo = Math.min(prevX, x) - 140;
@@ -687,7 +688,7 @@ registerMoves({
     for (const x of spots) {
       for (let j = 0; j < 3; j++) {
         const w = k.img('g_wheat', x + (j - 1) * 26, TABLE_Y + 80, 0.6).setOrigin(0.5, 1).setScale(0.6, 0.05).setAngle((j - 1) * 10);
-        k.sc.tweens.add({ targets: w, scaleY: 0.6 + Math.random() * 0.15, duration: 380, delay: j * 70, ease: 'Back.Out' });
+        k.sc.tweens.add({ targets: w, scaleY: 0.6 + crand() * 0.15, duration: 380, delay: j * 70, ease: 'Back.Out' });
         k.sc.tweens.add({ targets: w, angle: w.angle + 6, duration: 600, yoyo: true, repeat: 2, ease: 'Sine.InOut' });
         k.sc.tweens.add({ targets: w, alpha: 0, delay: 2400, duration: 500, onComplete: () => w.destroy() });
       }
@@ -749,7 +750,7 @@ registerMoves({
         c.x = ltr ? -300 + (W + 600) * u : W + 300 - (W + 600) * u;
         c.y = 190 + Math.sin(t * 9) * 8;
         glow.setPosition(c.x, c.y);
-        for (let i = 0; i < 3; i++) k.host.fx.burn(c.x + (ltr ? -1 : 1) * (80 + Math.random() * 160), c.y + 30 + (Math.random() - 0.5) * 60);
+        for (let i = 0; i < 3; i++) k.host.fx.burn(c.x + (ltr ? -1 : 1) * (80 + crand() * 160), c.y + 30 + (crand() - 0.5) * 60);
         // the sun's heat rains down in a band below it
         for (const f of k.host.live()) {
           if (hit.has(f) || Math.abs(f.cx - c.x) > 110) continue;
@@ -834,11 +835,11 @@ registerMoves({
       },
       tick: () => {
         const q = k.host.peelPos();
-        if (Math.random() < 0.3) k.host.fx.trail(q.x, q.y, 0xe0402a);
+        if (crand() < 0.3) k.host.fx.trail(q.x, q.y, 0xe0402a);
         // the pizzas bare their teeth: a red glint now and then
-        if (Math.random() < 0.05) {
-          const z = Phaser.Utils.Array.GetRandom(alive(k));
-          if (z) k.host.fx.glint(z.x + (Math.random() - 0.5) * z.radius, z.surfaceY - 20);
+        if (crand() < 0.05) {
+          const z = cpick(alive(k));
+          if (z) k.host.fx.glint(z.x + (crand() - 0.5) * z.radius, z.surfaceY - 20);
         }
       },
       end: () => (k.wv.war = 0),
@@ -868,7 +869,7 @@ registerMoves({
           k.stun(f, 0.2);
           f.y = Math.max(HOVER_Y - 30, f.y - 110 * dt);
           f.x += Math.sin(t * 2 + f.cx) * 30 * dt;
-          if (Math.random() < dt * 2) k.host.fx.glint(f.cx, f.cy - 60);
+          if (crand() < dt * 2) k.host.fx.glint(f.cx, f.cy - 60);
         }
       },
       () => {
@@ -908,7 +909,7 @@ registerMoves({
           // the anvil rings: sparks fly off it at two feet
           k.sc.tweens.add({ targets: anvil, scaleY: 0.72, duration: 60, yoyo: true });
           sfx('spark', 0.6);
-          for (let i = 0; i < 6; i++) k.host.fx.trail(anvil.x + (Math.random() - 0.5) * 60, anvil.y - 40, 0xff9a2a);
+          for (let i = 0; i < 6; i++) k.host.fx.trail(anvil.x + (crand() - 0.5) * 60, anvil.y - 40, 0xff9a2a);
           const pick = k.random(2);
           for (const f of pick) {
             k.beam(anvil.x, anvil.y - 40, f.cx, f.cy, 0xff9a2a, 8, 180);
@@ -918,7 +919,7 @@ registerMoves({
         };
       },
       tick: () => {
-        if (Math.random() < 0.15) k.host.fx.burn(anvil.x + (Math.random() - 0.5) * 70, anvil.y - 30);
+        if (crand() < 0.15) k.host.fx.burn(anvil.x + (crand() - 0.5) * 70, anvil.y - 30);
       },
       end: () => k.sc.tweens.add({ targets: anvil, alpha: 0, y: anvil.y + 40, duration: 400, onComplete: () => anvil.destroy() }),
     });
@@ -975,7 +976,7 @@ registerMoves({
           // they stagger about like they've had one too many
           if (!f.isBossLike && !f.puppet) f.x += Math.sin(t * 3 + f.cy * 0.01) * 70 * dt;
         }
-        if (Math.random() < dt * 3) k.host.fx.party(Math.random() * W, 120, 8);
+        if (crand() < dt * 3) k.host.fx.party(crand() * W, 120, 8);
       },
       () => tint.end(400),
     );
@@ -988,7 +989,7 @@ registerMoves({
     k.sc.time.delayedCall(1400, () => warm.end(800));
     for (const p of alive(k)) {
       restore(k, p, 99, true);
-      for (let i = 0; i < 6; i++) k.host.fx.burn(p.x + (Math.random() - 0.5) * p.radius * 1.6, p.surfaceY + 10);
+      for (let i = 0; i < 6; i++) k.host.fx.burn(p.x + (crand() - 0.5) * p.radius * 1.6, p.surfaceY + 10);
     }
   },
 
@@ -1000,7 +1001,7 @@ registerMoves({
     k.host.layers.under.add(crack);
     // the floor cracks open below the table, glowing from beneath
     const pts: [number, number][] = [];
-    for (let x = 0; x <= W; x += 70) pts.push([x, TABLE_Y + 150 + (Math.random() - 0.5) * 40]);
+    for (let x = 0; x <= W; x += 70) pts.push([x, TABLE_Y + 150 + (crand() - 0.5) * 40]);
     for (const [w, c, a] of [[60, 0x3a1a6a, 0.8], [26, 0x7a5aff, 0.8], [8, 0xd8c8ff, 1]] as const) {
       crack.lineStyle(w, c, a);
       crack.beginPath();
@@ -1028,9 +1029,9 @@ registerMoves({
     title(k, 'SPRING RETURNS!', 0xff5a7a, 100);
     const dead = k.host.pizzas().filter((p) => p.dead);
     for (let i = 0; i < 26; i++) {
-      const x = 120 + Math.random() * (W - 240);
-      const fl = k.img('g_flower', x, TABLE_Y + 70 + Math.random() * 60, 0.05).setAngle((Math.random() - 0.5) * 30);
-      k.sc.tweens.add({ targets: fl, scale: 0.35 + Math.random() * 0.2, duration: 360, delay: i * 30, ease: 'Back.Out' });
+      const x = 120 + crand() * (W - 240);
+      const fl = k.img('g_flower', x, TABLE_Y + 70 + crand() * 60, 0.05).setAngle((crand() - 0.5) * 30);
+      k.sc.tweens.add({ targets: fl, scale: 0.35 + crand() * 0.2, duration: 360, delay: i * 30, ease: 'Back.Out' });
       k.sc.tweens.add({ targets: fl, alpha: 0, delay: 2600 + i * 20, duration: 600, onComplete: () => fl.destroy() });
     }
     if (dead.length && !k.st.spring) {
@@ -1078,8 +1079,8 @@ registerMoves({
     const stars = k.sc.add.graphics().setBlendMode(Phaser.BlendModes.ADD);
     k.host.layers.fx.add(stars);
     for (let i = 0; i < 60; i++) {
-      stars.fillStyle(0xe8e0ff, 0.4 + Math.random() * 0.6);
-      stars.fillCircle(Math.random() * W, Math.random() * H * 0.7, 1 + Math.random() * 2.5);
+      stars.fillStyle(0xe8e0ff, 0.4 + crand() * 0.6);
+      stars.fillCircle(crand() * W, crand() * H * 0.7, 1 + crand() * 2.5);
     }
     timed(
       k,
@@ -1201,7 +1202,7 @@ registerMoves({
       () => {
         const q = k.host.peelPos();
         hm.x = q.x;
-        if (Math.random() < 0.4) k.host.fx.lightning(hm.x - 40, hm.y - 60, hm.x + 30, hm.y + 20);
+        if (crand() < 0.4) k.host.fx.lightning(hm.x - 40, hm.y - 60, hm.x + 30, hm.y + 20);
       },
       () => {
         k.flashC(0xffffff, 160);
@@ -1311,7 +1312,7 @@ registerMoves({
       tick: () => {
         const p = k.host.peelPos();
         wings.setPosition(p.x, p.y - 20).setScale(0.75, 0.75 + Math.sin(now(k) * 10) * 0.08);
-        if (Math.random() < 0.3) k.host.fx.trail(p.x, p.y, 0xffb0d8);
+        if (crand() < 0.3) k.host.fx.trail(p.x, p.y, 0xffb0d8);
       },
       end: () => wings.destroy(),
     });
@@ -1333,7 +1334,7 @@ registerMoves({
         boar.x = ltr ? -200 + (W + 400) * u : W + 200 - (W + 400) * u;
         boar.y = y + Math.abs(Math.sin(t * 14)) * -14;
         glow.setPosition(boar.x, boar.y);
-        if (Math.random() < 0.5) k.host.fx.puff(boar.x - (ltr ? 80 : -80), y + 60, 2);
+        if (crand() < 0.5) k.host.fx.puff(boar.x - (ltr ? 80 : -80), y + 60, 2);
         for (const f of k.host.live()) {
           if (hit.has(f) || Math.abs(f.cx - boar.x) > 100 || f.cy < y - 320) continue;
           hit.add(f);
@@ -1375,7 +1376,7 @@ registerMoves({
           k.shout('×3!', 0xff6a4a, 130);
         }
         const p = k.host.peelPos();
-        if (phase && Math.random() < 0.3) k.host.fx.trail(p.x, p.y, 0xff6a4a);
+        if (phase && crand() < 0.3) k.host.fx.trail(p.x, p.y, 0xff6a4a);
       },
       end: () => k.host.peel().clearTint(),
     });
@@ -1412,7 +1413,7 @@ registerMoves({
             pillar.fillStyle(0xfff2a0, al * a);
             pillar.fillRect(p.x - w / 2, 0, w, p.surfaceY + 20);
           }
-          if (Math.random() < 0.08) k.host.fx.glint(p.x + (Math.random() - 0.5) * p.radius, Math.random() * p.surfaceY);
+          if (crand() < 0.08) k.host.fx.glint(p.x + (crand() - 0.5) * p.radius, crand() * p.surfaceY);
         }
       },
       () => {
@@ -1448,7 +1449,7 @@ registerMoves({
     title(k, 'SEA WIND!', 0x5fd8ff, 110);
     const wind = k.sc.add.graphics();
     k.host.layers.fx.add(wind);
-    const gusts = Array.from({ length: 40 }, () => ({ x: Math.random() * W, y: Math.random() * H, v: 900 + Math.random() * 700 }));
+    const gusts = Array.from({ length: 40 }, () => ({ x: crand() * W, y: crand() * H, v: 900 + crand() * 700 }));
     timed(
       k,
       8,
@@ -1460,7 +1461,7 @@ registerMoves({
           g.x += g.v * dt;
           if (g.x > W + 100) {
             g.x = -100;
-            g.y = Math.random() * H;
+            g.y = crand() * H;
           }
           wind.lineBetween(g.x, g.y, g.x - 90, g.y + Math.sin(t * 4 + g.y) * 6);
         }
@@ -1507,7 +1508,7 @@ registerMoves({
     title(k, first ? 'GOLDEN APPLES!' : 'THE TREE IS BARE', 0xffd23f, first ? 104 : 80);
     k.st.apples = true;
     for (const [i, p] of alive(k).entries()) {
-      const ap = k.img('g_apple', p.x + (Math.random() - 0.5) * 40, -80, 0.6);
+      const ap = k.img('g_apple', p.x + (crand() - 0.5) * 40, -80, 0.6);
       k.sc.tweens.add({
         targets: ap,
         y: p.surfaceY - 50,
@@ -1536,7 +1537,7 @@ registerMoves({
       tick: () => {
         const p = k.host.peelPos();
         // music notes drift off the peel
-        if (Math.random() < 0.15) k.host.quip(p.x + (Math.random() - 0.5) * 80, p.y - 80, Math.random() < 0.5 ? '♪' : '♫', '#ffd8a0', 30);
+        if (crand() < 0.15) k.host.quip(p.x + (crand() - 0.5) * 80, p.y - 80, crand() < 0.5 ? '♪' : '♫', '#ffd8a0', 30);
       },
       end: () => (k.wv.saga = 0),
     });
@@ -2036,7 +2037,7 @@ function godHalo(k: HeroKit): void {
   const last = (k.st.haloLast as string | undefined)?.split(',').map(Number);
   if (last && Math.hypot(p.x - last[0], p.y - last[1]) > 14) {
     k.host.fx.trail(p.x, p.y, GOLD);
-    if (Math.random() < 0.5) k.host.fx.glint(p.x + (Math.random() - 0.5) * 40, p.y + (Math.random() - 0.5) * 40);
+    if (crand() < 0.5) k.host.fx.glint(p.x + (crand() - 0.5) * 40, p.y + (crand() - 0.5) * 40);
   }
   k.st.haloLast = `${p.x},${p.y}`;
 }

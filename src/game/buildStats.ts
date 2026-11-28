@@ -85,7 +85,7 @@ export interface PerkCard {
   max: number;
   line: string;
   enhanced: boolean;
-  status: 'stale' | 'frozen' | 'toast' | null;
+  status: 'stale' | 'frozen' | 'possessed' | 'toast' | null;
   note?: string;
   stale: boolean;
   dead: boolean;
@@ -128,12 +128,14 @@ export interface BuildView {
 export interface TablePizza {
   id: string;
   name: string;
-  /** The perk it grants now (null: stale, frozen or gone). */
+  /** The perk it grants now (null: stale, frozen, possessed or gone). */
   perk: PizzaPerk | null;
   line: string;
   enhanced: boolean;
   stale: boolean;
   frozen: boolean;
+  /** The Ghost has it: every perk it has is off. */
+  possessed?: boolean;
   dead: boolean;
   slices: number;
   max: number;
@@ -737,14 +739,17 @@ export function buildView(inp: BuildInput): BuildView {
   // the shop's card count: how many topping cards a shop deals now (toppings that add or take away cards, and Mac &
   // Cheese's extra one-use card), against the usual
   const macs = st.extraConsumable > 0 ? inp.pizzas.filter((p) => p.perk === 'extraConsumable') : [];
-  // (a Mac & Cheese whose perk is off, stale, frozen or eaten, deals no extra card: say so rather than leave it a mystery)
+  // (a Mac & Cheese whose perk is off, stale, frozen, possessed or eaten, deals no extra card: say so rather than leave it a mystery)
   const offMacs = inp.pizzas.filter((p) => PIZZA_BY_ID[p.id]?.perk === 'extraConsumable' && !p.perk);
-  const p0 = (p: TablePizza) => (p.dead ? 'is eaten' : p.stale ? 'is stale' : 'is frozen');
-  if (st.cardDelta !== 0 || st.extraConsumable > 0 || offMacs.length) {
+  const p0 = (p: TablePizza) => (p.dead ? 'is eaten' : p.stale ? 'is stale' : p.possessed ? 'is possessed' : 'is frozen');
+  if (st.cardDelta !== 0 || st.extraConsumable > 0 || st.guaranteedEpic > 0 || offMacs.length) {
     const { now, base: usual } = inp.shopCards;
-    const src = [...from('cardDelta', 'extraConsumable'), ...macs.map(pzSrc).filter((m) => !from('extraConsumable').some((o) => o.key === m.key)), ...offMacs.map((p) => ({ ...pzSrc(p), tone: 'flat' as const }))];
+    const src = [...from('cardDelta', 'extraConsumable', 'guaranteedEpic', 'exclusiveDiscount'), ...macs.map(pzSrc).filter((m) => !from('extraConsumable').some((o) => o.key === m.key)), ...offMacs.map((p) => ({ ...pzSrc(p), tone: 'flat' as const }))];
     const dealt = inp.shopCards.dealt;
-    const note = `${usual} normally${st.extraConsumable > 0 ? ` · ${st.extraConsumable} of them a one-use card (when one is free to deal)` : ''}${dealt !== null && dealt !== now ? ` · this shop dealt ${dealt}: cards are dealt as a shop opens, so this counts from the next shop` : ''}${offMacs.length ? ` · ${offMacs.map((p) => p.name).join(', ')} ${p0(offMacs[0])}: no extra card until it's back` : ''}`;
+    // (Exclusive Menu: its guaranteed card, and what's off it)
+    const sure = Math.min(now, st.guaranteedEpic);
+    const exclusive = sure > 0 ? ` · ${sure} card${sure === 1 ? '' : 's'} a shop: Epic or better${st.exclusiveDiscount > 0 ? `, ${pct(st.exclusiveDiscount)}% off` : ''} (not after a reroll)` : '';
+    const note = `${usual} normally${exclusive}${st.extraConsumable > 0 ? ` · ${st.extraConsumable} of them a one-use card (when one is free to deal)` : ''}${dealt !== null && dealt !== now ? ` · this shop dealt ${dealt}: cards are dealt as a shop opens, so this counts from the next shop` : ''}${offMacs.length ? ` · ${offMacs.map((p) => p.name).join(', ')} ${p0(offMacs[0])}: no extra card until it's back` : ''}`;
     eco.push({ label: 'Cards per shop', num: now, fmt: 'int', icon: '🃏', tone: now > usual ? 'up' : now < usual ? 'down' : 'flat', from: src, note });
   }
   if (st.goldenDiscount > 0) eco.push(statTile('goldenDiscount'));
@@ -838,7 +843,7 @@ export function buildView(inp: BuildInput): BuildView {
     max: p.max,
     line: p.line,
     enhanced: p.enhanced,
-    status: p.dead ? 'toast' : p.stale ? 'stale' : p.frozen ? 'frozen' : null,
+    status: p.dead ? 'toast' : p.stale ? 'stale' : p.possessed ? 'possessed' : p.frozen ? 'frozen' : null,
     note: perkNote(p, inp, dmg * g, auto),
     stale: p.stale,
     dead: p.dead,
@@ -893,6 +898,7 @@ export function topSrc(id: string, lvl: number): Src {
 function perkNote(p: TablePizza, inp: BuildInput, dmg: number, auto: number): string | undefined {
   if (p.dead) return 'Destroyed: its perk is gone';
   if (p.stale) return 'Stale: its perk is off until it is reheated';
+  if (p.possessed) return 'Possessed: every perk it has is off while the Ghost is in it';
   if (p.frozen) return 'Frozen: its perk is off for a moment';
   switch (p.perk) {
     case 'wave5Tips':

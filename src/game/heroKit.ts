@@ -19,6 +19,7 @@ import type { Fx } from './Fx';
 import type { Pizza } from './Pizza';
 import { traced } from './packTrace';
 import '../ui/heroes.css';
+import { crand } from '../systems/cosmeticRandom';
 
 export type DmgSource = 'smack' | 'ability' | 'direct' | 'burn' | 'chain' | 'other';
 
@@ -161,7 +162,7 @@ export class Overlay {
       const g = sc.add.graphics();
       sc.children.moveBelow(g as unknown as Phaser.GameObjects.GameObject, L.fx);
       this.g = g;
-      for (let i = 0; i < 90; i++) this.drops.push({ x: Math.random() * (W + 300), y: Math.random() * H, v: 1400 + Math.random() * 700 });
+      for (let i = 0; i < 90; i++) this.drops.push({ x: crand() * (W + 300), y: crand() * H, v: 1400 + crand() * 700 });
       obj = g;
     }
     this.objs.push(obj);
@@ -189,7 +190,7 @@ export class Overlay {
         d.x -= d.v * 0.25 * dt;
         if (d.y > H) {
           d.y = -40;
-          d.x = Math.random() * (W + 300);
+          d.x = crand() * (W + 300);
         }
         g.lineBetween(d.x, d.y, d.x - 10, d.y + 40);
       }
@@ -419,9 +420,9 @@ export class HeroKit {
   strike(x: number, y: number, color = 0xd8f0ff): void {
     const g = this.sc.add.graphics().setBlendMode(Phaser.BlendModes.ADD);
     this.host.layers.fx.add(g);
-    const pts: [number, number][] = [[x + (Math.random() - 0.5) * 120, -20]];
+    const pts: [number, number][] = [[x + (crand() - 0.5) * 120, -20]];
     const n = 7;
-    for (let i = 1; i < n; i++) pts.push([x + (Math.random() - 0.5) * 70, (y * i) / n]);
+    for (let i = 1; i < n; i++) pts.push([x + (crand() - 0.5) * 70, (y * i) / n]);
     pts.push([x, y]);
     for (const [w, c, a] of [[22, color, 0.3], [9, color, 0.85], [3, 0xffffff, 1]] as const) {
       g.lineStyle(w, c, a);

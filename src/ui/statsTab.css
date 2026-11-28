@@ -705,6 +705,7 @@
 
 .st-pz.stale,
 .st-pz.frozen,
+.st-pz.possessed,
 .st-pz.toast {
   background: #f1e9dc;
 }
@@ -762,6 +763,10 @@
   background: #1f6f95;
 }
 
+.st-flag.possessed {
+  background: #5a2a8a;
+}
+
 .st-pz-line {
   text-wrap: balance;
   font-weight: 700;
@@ -774,6 +779,7 @@
 }
 
 .st-pz.stale .st-pz-line,
+.st-pz.possessed .st-pz-line,
 .st-pz.toast .st-pz-line {
   text-decoration: line-through;
   color: var(--ink-soft);

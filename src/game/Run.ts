@@ -676,16 +676,15 @@ export class Run {
     }
   }
 
-  /** Exclusive Menu: every card is dealt one rarity higher (when that rarity is open and has one to offer). */
-  bumpRarity(picks: Upgrade[], exclude: string[]): Upgrade[] {
-    const up: Record<Rarity, Rarity> = { common: 'rare', rare: 'epic', epic: 'legendary', legendary: 'legendary' };
-    const out: Upgrade[] = [];
-    for (const u of picks) {
-      const r = up[u.rarity];
-      const pool = r === u.rarity ? [] : UPGRADES.filter((x) => x.rarity === r && this.offerable(x, this.wave) && !exclude.includes(x.id) && !out.includes(x) && !picks.includes(x));
-      out.push(pool.length ? pool[Math.floor(Math.random() * pool.length)] : u);
+  /** n cards that are Epic or Legendary (Exclusive Menu's guarantee, Stat.GuaranteedEpic) from `avail`, by the usual
+   *  weights (luck included); a Rare when none is open, else any card. */
+  pickExclusive(n: number, avail: Upgrade[]): Upgrade[] {
+    const picks: Upgrade[] = [];
+    for (const ok of [(r: Rarity) => r === 'epic' || r === 'legendary', (r: Rarity) => r === 'rare', () => true]) {
+      if (picks.length >= n) break;
+      picks.push(...this.pickCards(n - picks.length, avail.filter((u) => ok(u.rarity) && !picks.includes(u))));
     }
-    return out;
+    return picks;
   }
 
   comboMult(): number {

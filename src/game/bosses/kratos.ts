@@ -33,11 +33,12 @@ import type { Foot } from '../Foot';
 import { type Brain, type PhaseCard, type PhaseShow, type Prop, Every, heat, hitProp, rnd, shield, throwAtPeel } from './kit';
 import { brains as titankingBrains } from './titanking';
 import { Bin, SAFE_TOP, cameo, enterArena, entrance, hitSoft, once, scatter, shatter, timerRing } from './nzkit';
+import { cpick, crand } from '../../systems/cosmeticRandom';
 
 /** A thunderbolt from the sky down to (x, y). */
 function strikeAt(a: Arena, x: number, y: number): void {
-  a.fx.lightning(x + (Math.random() - 0.5) * 80, -20, x, y);
-  a.fx.lightning(x + (Math.random() - 0.5) * 120, -20, x, y);
+  a.fx.lightning(x + (crand() - 0.5) * 80, -20, x, y);
+  a.fx.lightning(x + (crand() - 0.5) * 120, -20, x, y);
   a.fx.ring(x, y, 0x9fd8ff, 1.2, 0.4);
   a.flash(90, 220, 236, 255);
   a.shake(180, 0.008);
@@ -496,15 +497,15 @@ const zeus = (): Brain => {
       }
       quipT -= dt;
       if (quipT <= 0) {
-        quipT = 12 + Math.random() * 6;
-        a.quip(f.x, Math.max(SAFE_TOP + 40, f.cy - 190), rnd(['I AM THE STORM.', 'YOU WERE ALWAYS MY PAWN.', 'OLYMPUS, TO ME!'])!, '#9fd8ff', 34);
+        quipT = 12 + crand() * 6;
+        a.quip(f.x, Math.max(SAFE_TOP + 40, f.cy - 190), cpick(['I AM THE STORM.', 'YOU WERE ALWAYS MY PAWN.', 'OLYMPUS, TO ME!'])!, '#9fd8ff', 34);
       }
     },
     onDeath(f, a) {
       bin.flush();
       crowned = null;
       // the king of the gods falls: lightning flickers out of him, marble shards and gold fly
-      for (let i = 0; i < 6; i++) a.sc.time.delayedCall(i * 120, () => strikeAt(a, f.cx + (Math.random() - 0.5) * 300, f.cy + (Math.random() - 0.5) * 200));
+      for (let i = 0; i < 6; i++) a.sc.time.delayedCall(i * 120, () => strikeAt(a, f.cx + (crand() - 0.5) * 300, f.cy + (crand() - 0.5) * 200));
       shatter(a, f, { burst: 0x9fd8ff, tint: 0xf4f0e8, sfx: 'sfx_zeus_death', n: 12 });
       scatter(a, f.cx, f.cy, 'shard', 14, { scale: 0.8, tints: [0xffd23f, 0xf4f0e8] });
       a.quip(f.x, Math.max(SAFE_TOP + 40, f.cy - 170), 'OLYMPUS… FALLS…', '#9fd8ff', 44);

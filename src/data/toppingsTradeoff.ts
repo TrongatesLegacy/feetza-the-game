@@ -48,7 +48,7 @@ function when(w: WhenId, list: StatData[] = []): StatData[] {
 
 export const TRADEOFF_TOPPINGS: Upgrade[] = [
   // ——— Common ———
-  deal('glasspeel', 'Glass Peel', '🔍', 'common', 3, '+40% smack damage', '−15% smack reach', [
+  deal('glasspeel', 'Glass Peel', '🔍', 'common', 3, '+40% smack damage', '−15% base smack reach', [
     Effect.Stat(
       Stat.Damage,
       Op.Mul(Unit.Mult(1.4)),
@@ -122,7 +122,7 @@ export const TRADEOFF_TOPPINGS: Upgrade[] = [
       Op.Add(Unit.PerWave(2)),
     ),
   ], { text: 'Pizzas on the table lose 2 freshness now', now: 2 }, { text: 'Pizzas on the table lose 1 slice now', slicesNow: 1 }),
-  deal('ghostpepper', 'Ghost Pepper', '🥵', 'common', 3, 'Smacks burn feet: +8 dmg/s', '−10% smack reach', [
+  deal('ghostpepper', 'Ghost Pepper', '🥵', 'common', 3, 'Smacks burn feet: +8 dmg/s', '−10% base smack reach', [
     Effect.Stat(
       Stat.BurnDps,
       Op.Add(Unit.Amount(8)),
@@ -183,7 +183,7 @@ export const TRADEOFF_TOPPINGS: Upgrade[] = [
       Op.Mul(Unit.Mult(1.1)),
     ),
   ]),
-  deal('adrenaline', 'Adrenaline', '💉', 'rare', 3, '+60% meter charge, +8% double-smack chance', '−10% smack reach', [
+  deal('adrenaline', 'Adrenaline', '💉', 'rare', 3, '+60% meter charge, +8% double-smack chance', '−10% base smack reach', [
     Effect.Stat(
       Stat.SuperGain,
       Op.Add(Unit.Percent(60)),
@@ -321,7 +321,7 @@ export const TRADEOFF_TOPPINGS: Upgrade[] = [
       Op.Sub(Unit.Percent(15)),
     ),
   ]),
-  deal('stormcaller', 'Storm Caller', '🧿', 'epic', 2, '+30% chain lightning chance, +2 chain targets', '−15% smack reach', [
+  deal('stormcaller', 'Storm Caller', '🧿', 'epic', 2, '+30% chain lightning chance, +2 chain targets', '−15% base smack reach', [
     Effect.Stat(
       Stat.ChainChance,
       Op.Add(Unit.Chance(30)),
@@ -510,7 +510,7 @@ export const TRADEOFF_TOPPINGS: Upgrade[] = [
       Op.Mul(Unit.Mult(1.1)),
     ),
   ]),
-  deal('overclock', 'Overclock', '🖥️', 'legendary', 1, '+40% chain lightning chance, +3 targets, +30% chain damage', '−20% smack reach', [
+  deal('overclock', 'Overclock', '🖥️', 'legendary', 1, '+40% chain lightning chance, +3 targets, +30% chain damage', '−20% base smack reach', [
     Effect.Stat(
       Stat.ChainChance,
       Op.Add(Unit.Chance(40)),

@@ -36,6 +36,7 @@ import { nemesisOf } from '../nemesis';
 import { bossFor, locationFor, miniFor, waveInStage, isBossWave, isMiniWave } from '../Run';
 import { DL } from '../../content/art/scene-doomlab';
 import { TF } from '../../content/art/scene-thanfoot';
+import { crand } from '../../systems/cosmeticRandom';
 
 const FONT = 'Lilita One, Fredoka, sans-serif';
 const INK = 0x2a1810;
@@ -87,7 +88,7 @@ export function bubble(a: Arena, text: string, at: Foot | { x: number; y: number
     box.setPosition(x, y);
   };
   place();
-  box.setScale(0.2).setAngle(-4 + Math.random() * 8);
+  box.setScale(0.2).setAngle(-4 + crand() * 8);
   sc.tweens.add({ targets: box, scale: 1, duration: reduced() ? 1 : 220, ease: 'Back.Out' });
   const ticker = sc.time.addEvent({ delay: 16, loop: true, callback: () => 'type' in at && at.alive && place() });
   sc.time.delayedCall(ms, () => {
@@ -124,8 +125,8 @@ export function impactWord(a: Arena, x: number, y: number, size = 1, word?: stri
   if (size < 1.4 && now - lastWord < 0.3) return;
   lastWord = now;
   const sc = a.sc;
-  const [tint, col] = PALETTE[Math.floor(Math.random() * PALETTE.length)];
-  const w = word ?? WORDS[Math.floor(Math.random() * WORDS.length)];
+  const [tint, col] = PALETTE[Math.floor(crand() * PALETTE.length)];
+  const w = word ?? WORDS[Math.floor(crand() * WORDS.length)];
   const burst = sc.add.image(0, 0, 'p_a7_burst').setTint(tint);
   const t = sc.add
     .text(0, -4, w, { fontFamily: FONT, fontSize: '78px', color: col, stroke: '#2a1810', strokeThickness: 12 })
@@ -134,7 +135,7 @@ export function impactWord(a: Arena, x: number, y: number, size = 1, word?: stri
   const c = sc.add.container(Phaser.Math.Clamp(x, 200, W - 200), Phaser.Math.Clamp(y, 300, 980), [burst, t]);
   a.fxLayer.add(c);
   const s = 0.55 * size;
-  c.setScale(s * 0.3).setAngle(-12 + Math.random() * 24);
+  c.setScale(s * 0.3).setAngle(-12 + crand() * 24);
   if (reduced()) {
     c.setScale(s);
     sc.tweens.add({ targets: c, alpha: 0, delay: 380, duration: 200, onComplete: () => c.destroy() });
@@ -247,12 +248,12 @@ function arcs(a: Arena, layer: Layer, every: number): void {
   layer.tickers.push((dt) => {
     t -= dt;
     if (t > 0) return;
-    t = every * (0.6 + Math.random() * 0.8);
-    const i = Math.random() < 0.5 ? 0 : 1;
+    t = every * (0.6 + crand() * 0.8);
+    const i = crand() < 0.5 ? 0 : 1;
     const c = DL.coils[i];
     const h = DL.horns[i];
     a.fx.lightning(c.x + (i ? -1 : 1) * DL.toroid.rx * 0.8, c.y, h.x, h.y);
-    if (Math.random() < 0.5) a.sfx('sfx_zap', { volume: 0.18, rate: 1.4, throttle: 400 });
+    if (crand() < 0.5) a.sfx('sfx_zap', { volume: 0.18, rate: 1.4, throttle: 400 });
   });
 }
 
@@ -325,9 +326,9 @@ function cosmos(a: Arena, layer: Layer): void {
     neb.setAlpha(0.09 + Math.sin(t * 0.7) * 0.05);
     next -= dt;
     if (next > 0) return;
-    next = 2 + Math.random() * 3;
-    const x = L.x0 + Math.random() * (L.x1 - L.x0);
-    const y = L.y0 + Math.random() * (L.y1 - L.y0);
+    next = 2 + crand() * 3;
+    const x = L.x0 + crand() * (L.x1 - L.x0);
+    const y = L.y0 + crand() * (L.y1 - L.y0);
     const star = sc.add.image(x, y, 'star').setScale(0.3).setBlendMode(Phaser.BlendModes.ADD).setTint(0xfff0c0);
     layer.back.add(star);
     sc.tweens.add({ targets: star, x: x + L.dx, y: y + L.dy, alpha: 0, duration: 900, ease: 'Quad.In', onComplete: () => star.destroy() });
@@ -341,7 +342,7 @@ function lightning(a: Arena, layer: Layer, strong: boolean): void {
   layer.flash.setAlpha(reduced() ? 0.12 : strong ? 0.45 : 0.25);
   sc.tweens.add({ targets: layer.flash, alpha: 0, duration: 420, ease: 'Quad.Out' });
   if (!reduced()) sc.time.delayedCall(120, () => layer.flash.active && layer.flash.setAlpha(0.18) && sc.tweens.add({ targets: layer.flash, alpha: 0, duration: 300 }));
-  sc.time.delayedCall(220 + Math.random() * 500, () => a.sfx('sfx_thunder', { volume: strong ? 0.8 : 0.5 }));
+  sc.time.delayedCall(220 + crand() * 500, () => a.sfx('sfx_thunder', { volume: strong ? 0.8 : 0.5 }));
 }
 
 function setup(a: Arena, layer: Layer, n: number): void {
@@ -359,7 +360,7 @@ function setup(a: Arena, layer: Layer, n: number): void {
   // rebuild the moving parts when the place or the weather changes
   clearPlace(layer);
   layer.place = place;
-  layer.nextFlash = 3 + Math.random() * 3;
+  layer.nextFlash = 3 + crand() * 3;
   if (place === 'metropizza') {
     // the backdrop runs its own blimp, searchlights and bolts; the act keeps the rain over the feet, and flashes
     // the screen and thunders when one of the backdrop's bolts strikes
@@ -380,7 +381,7 @@ function setup(a: Arena, layer: Layer, n: number): void {
   } else if (place === 'doomlab') {
     if (live) {
       // animated, the backdrop runs its vats, arcs, beacons and light, and its own power surges: the act plays them
-      const onArc = (strong: boolean) => (strong || Math.random() < 0.5) && a.sfx('sfx_zap', { volume: strong ? 0.3 : 0.18, rate: strong ? 1.1 : 1.4, throttle: 400 });
+      const onArc = (strong: boolean) => (strong || crand() < 0.5) && a.sfx('sfx_zap', { volume: strong ? 0.3 : 0.18, rate: strong ? 1.1 : 1.4, throttle: 400 });
       const onSurge = () => a.sfx('sfx_zap', { volume: 0.35, rate: 0.7, throttle: 500 });
       a.sc.events.on('doomlab:arc', onArc);
       a.sc.events.on('doomlab:surge', onSurge);
@@ -412,14 +413,14 @@ function weatherTick(a: Arena, layer: Layer, dt: number): void {
   layer.nextFlash -= dt;
   if (layer.nextFlash > 0) return;
   if (layer.place === 'metropizza' && ws >= 4 && !layer.unhook) {
-    layer.nextFlash = 5 + Math.random() * 5;
-    lightning(a, layer, Math.random() < 0.4);
+    layer.nextFlash = 5 + crand() * 5;
+    lightning(a, layer, crand() < 0.4);
   } else if (layer.place === 'doomstomp' && !layer.unhook) {
-    layer.nextFlash = 8 + Math.random() * 6;
+    layer.nextFlash = 8 + crand() * 6;
     lightning(a, layer, false);
   } else if (layer.place === 'doomlab' && ws >= 4 && !layer.unhook) {
     // power surge: the lights dip and come back (an animated backdrop runs its own)
-    layer.nextFlash = 6 + Math.random() * 5;
+    layer.nextFlash = 6 + crand() * 5;
     const sc = a.sc;
     sc.tweens.add({ targets: layer.grade, alpha: { from: 0.75, to: LIGHT.doomlab[3][1] }, duration: 700, ease: 'Stepped', easeParams: [5] });
     a.sfx('sfx_zap', { volume: 0.35, rate: 0.7, throttle: 500 });
@@ -466,7 +467,7 @@ export const actFx: Record<number, ActFx> = {
       // crits always get a word; bosses on a big hit; everything else now and then
       if (crit) impactWord(a, x, y - 60, f.isBossLike ? 1.25 : 1);
       else if (f.isBossLike && dealt > f.maxHp * 0.03) impactWord(a, x, y - 60, 1);
-      else if (source === 'smack' && Math.random() < 0.06) impactWord(a, x, y - 60, 0.8);
+      else if (source === 'smack' && crand() < 0.06) impactWord(a, x, y - 60, 0.8);
     },
     kill(a, f) {
       if (f.isBossLike) impactWord(a, f.cx, f.cy - 40, 2, f.type.boss ? 'KRA-KOOM!' : 'KAPOW!');
@@ -480,8 +481,8 @@ export const actFx: Record<number, ActFx> = {
 /** Any foot in an Act 7 wave may say one of its lines as it arrives (the villains more often). */
 function maybeQuip(a: Arena, f: Foot, chance: number): void {
   const q = f.type.quips;
-  if (!q?.length || Math.random() > chance) return;
-  a.sc.time.delayedCall(400, () => f.alive && bubble(a, q[Math.floor(Math.random() * q.length)], f));
+  if (!q?.length || crand() > chance) return;
+  a.sc.time.delayedCall(400, () => f.alive && bubble(a, q[Math.floor(crand() * q.length)], f));
 }
 
 const bossOnField = (a: Arena) => a.allFeet().some((o) => o.alive && o.isBossLike);
@@ -546,10 +547,10 @@ const jetpack: FootFx = {
     }
     // exhaust: a vapour trail while cruising in, little flames while hovering, a sputter before the dive
     const cruising = f.state === 'enter' && Math.abs((f.laneX ?? f.x) - f.x) > 60;
-    if (cruising && Math.random() < dt * 40) a.fx.trail(f.x - Number(f.brain.jetDir ?? 1) * 90, f.cy + 30, 0xffe0b0);
+    if (cruising && crand() < dt * 40) a.fx.trail(f.x - Number(f.brain.jetDir ?? 1) * 90, f.cy + 30, 0xffe0b0);
     if (f.state === 'hover' || f.state === 'enter') {
       const k = f.scale;
-      if (Math.random() < dt * 12) a.fx.burn(f.x + (Math.random() < 0.5 ? -1 : 1) * 112 * k, f.y - 70 * k);
+      if (crand() < dt * 12) a.fx.burn(f.x + (crand() < 0.5 ? -1 : 1) * 112 * k, f.y - 70 * k);
       if (f.state === 'hover' && f.stateT > f.hoverTime - 0.45 && !f.brain.sputter) {
         f.brain.sputter = true;
         a.fx.puff(f.x - 112 * k, f.y - 60 * k, 4);
@@ -593,7 +594,7 @@ function dropBomb(a: Arena, f: Foot, img: Phaser.GameObjects.Image): void {
       bomb.x = x0 + (tx - x0) * st.k;
       bomb.y = y0 + (ty - y0) * st.k;
       bomb.rotation += 0.12;
-      if (Math.random() < 0.4) a.fx.burn(bomb.x + 30, bomb.y - 40);
+      if (crand() < 0.4) a.fx.burn(bomb.x + 30, bomb.y - 40);
     },
     onComplete: () => {
       if (done) return;
@@ -628,7 +629,7 @@ function dropBomb(a: Arena, f: Foot, img: Phaser.GameObjects.Image): void {
       a.sfx('sfx_bombfuse', { volume: 0.4, rate: 0.6 });
       impactWord(a, bomb.x, bomb.y - 60, 1, 'POW!');
       a.quip(bomb.x, bomb.y - 140, 'DEFUSED!', '#7dff9a', 36);
-      sc.tweens.add({ targets: bomb, y: bomb.y - 420, x: bomb.x + (Math.random() - 0.5) * 500, angle: 540, alpha: 0, duration: 600, onComplete: () => bomb.destroy() });
+      sc.tweens.add({ targets: bomb, y: bomb.y - 420, x: bomb.x + (crand() - 0.5) * 500, angle: 540, alpha: 0, duration: 600, onComplete: () => bomb.destroy() });
     },
   });
 }
@@ -658,7 +659,7 @@ const goon: FootFx = {
       return;
     }
     // the fizzing spark is the tell
-    if (Math.random() < dt * 30) {
+    if (crand() < dt * 30) {
       const m = img.getWorldTransformMatrix();
       a.fx.burn(m.tx + 26, m.ty - 44);
     }

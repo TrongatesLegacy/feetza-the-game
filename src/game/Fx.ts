@@ -2,6 +2,7 @@
 
 import Phaser from 'phaser';
 import { save } from '../systems/save';
+import { cosmetic, crand } from '../systems/cosmeticRandom';
 
 const FONT = '"Lilita One", "Fredoka", system-ui, sans-serif';
 
@@ -109,31 +110,37 @@ export class Fx {
     });
   }
 
+  /** A burst of particles: Phaser rolls their ranges with Math.random, so it's run on the cosmetic generator (a look
+   *  never moves the game's own random sequence on). */
+  private emit(em: Phaser.GameObjects.Particles.ParticleEmitter, n: number, x: number, y: number): void {
+    cosmetic(() => em.explode(n, x, y));
+  }
+
   /** A thrown prop's trail puff (size ≈ the prop's size / 150). */
   propTrail(x: number, y: number, color: number, size = 0.5): void {
     const em = size >= 0.6 ? this.propTrailBig : this.propTrailEm;
     em.setParticleTint(color);
-    em.explode(1, x, y);
+    this.emit(em, 1, x, y);
   }
 
   /** A thrown prop lands: a pop, a ring and a spray of bits in its colour. */
   propBurst(x: number, y: number, color: number, size = 1): void {
     this.propBits.setParticleTint(color);
-    this.propBits.explode(Math.round(7 * size), x, y);
-    const b = this.scene.add.image(x, y, 'burst').setScale(0.22 * size).setAngle(Math.random() * 360).setTint(color);
+    this.emit(this.propBits, Math.round(7 * size), x, y);
+    const b = this.scene.add.image(x, y, 'burst').setScale(0.22 * size).setAngle(crand() * 360).setTint(color);
     this.layer.add(b);
     this.scene.tweens.add({ targets: b, scale: 0.5 * size, alpha: 0, duration: 200, ease: 'Quad.Out', onComplete: () => b.destroy() });
     this.ring(x, y, color, 0.55 * size, 0.7);
-    this.stars.explode(3, x, y);
+    this.emit(this.stars, 3, x, y);
   }
 
   glint(x: number, y: number, n = 1): void {
-    this.glints.explode(n, x, y);
+    this.emit(this.glints, n, x, y);
   }
 
   trail(x: number, y: number, color: number): void {
     this.trailEm.setParticleTint(color);
-    this.trailEm.explode(1, x, y);
+    this.emit(this.trailEm, 1, x, y);
   }
 
   private text(): Phaser.GameObjects.Text {
@@ -164,7 +171,7 @@ export class Fx {
     }[kind];
     t.setText(kind === 'coin' ? `+${value}` : kind === 'heal' ? `+${value}` : `${Math.round(value)}${kind === 'crit' ? '!' : ''}`);
     t.setStyle({ fontFamily: FONT, fontSize: `${styles.size}px`, color: styles.fill, stroke: '#2a1810', strokeThickness: kind === 'crit' ? 10 : 8 });
-    t.setOrigin(0.5).setPosition(x + (Math.random() - 0.5) * 40, y);
+    t.setOrigin(0.5).setPosition(x + (crand() - 0.5) * 40, y);
     t.setScale(kind === 'crit' ? 0.4 : 0.7);
     this.scene.tweens.add({ targets: t, scale: 1, duration: 160, ease: 'Back.Out' });
     this.scene.tweens.add({
@@ -178,7 +185,7 @@ export class Fx {
     });
   }
 
-  quip(x: number, y: number, msg: string, color = '#ffffff', size = 44, angle = (Math.random() - 0.5) * 16): void {
+  quip(x: number, y: number, msg: string, color = '#ffffff', size = 44, angle = (crand() - 0.5) * 16): void {
     const t = this.text();
     t.setText(msg);
     t.setStyle({ fontFamily: FONT, fontSize: `${size}px`, color, stroke: '#2a1810', strokeThickness: 10 });
@@ -193,11 +200,11 @@ export class Fx {
   }
 
   impact(x: number, y: number, crit: boolean): void {
-    const b = this.scene.add.image(x, y, 'burst').setScale(crit ? 0.5 : 0.32).setAngle(Math.random() * 360).setTint(crit ? 0xffd23f : 0xffffff);
+    const b = this.scene.add.image(x, y, 'burst').setScale(crit ? 0.5 : 0.32).setAngle(crand() * 360).setTint(crit ? 0xffd23f : 0xffffff);
     this.layer.add(b);
     this.scene.tweens.add({ targets: b, scale: crit ? 1 : 0.6, alpha: 0, duration: crit ? 260 : 180, ease: 'Quad.Out', onComplete: () => b.destroy() });
-    this.stars.explode(crit ? 10 : 5, x, y);
-    if (crit) this.sparks.explode(14, x, y);
+    this.emit(this.stars, crit ? 10 : 5, x, y);
+    if (crit) this.emit(this.sparks, 14, x, y);
   }
 
   blush(foot: Phaser.GameObjects.Container, x: number, y: number): void {
@@ -207,17 +214,17 @@ export class Fx {
   }
 
   splat(x: number, y: number, big = false): void {
-    this.sauce.explode(big ? 26 : 14, x, y);
-    this.crumbs.explode(big ? 18 : 10, x, y);
-    this.cheese.explode(big ? 10 : 5, x, y);
-    this.peps.explode(big ? 5 : 2, x, y);
+    this.emit(this.sauce, big ? 26 : 14, x, y);
+    this.emit(this.crumbs, big ? 18 : 10, x, y);
+    this.emit(this.cheese, big ? 10 : 5, x, y);
+    this.emit(this.peps, big ? 5 : 2, x, y);
   }
 
   slice(key: string, x: number, y: number, scale: number): void {
     const s = this.scene.add.image(x, y, key).setScale(scale, scale * 0.5);
     this.layer.add(s);
-    const dir = Math.random() < 0.5 ? -1 : 1;
-    this.scene.tweens.add({ targets: s, x: x + dir * (160 + Math.random() * 120), duration: 900, ease: 'Linear' });
+    const dir = crand() < 0.5 ? -1 : 1;
+    this.scene.tweens.add({ targets: s, x: x + dir * (160 + crand() * 120), duration: 900, ease: 'Linear' });
     this.scene.tweens.add({
       targets: s,
       y: { value: y - 160, duration: 380, ease: 'Quad.Out', yoyo: true },
@@ -228,31 +235,31 @@ export class Fx {
   }
 
   burn(x: number, y: number): void {
-    this.flames.explode(1, x + (Math.random() - 0.5) * 60, y);
+    this.emit(this.flames, 1, x + (crand() - 0.5) * 60, y);
   }
 
   stinkPuff(x: number, y: number): void {
-    this.stink.explode(1, x + (Math.random() - 0.5) * 80, y);
+    this.emit(this.stink, 1, x + (crand() - 0.5) * 80, y);
   }
 
   frost(x: number, y: number): void {
-    this.ice.explode(6, x, y);
+    this.emit(this.ice, 6, x, y);
   }
 
   puff(x: number, y: number, n = 8): void {
-    this.smoke.explode(n, x, y);
+    this.emit(this.smoke, n, x, y);
   }
 
   party(x: number, y: number, n = 60): void {
-    this.confetti.explode(n, x, y);
+    this.emit(this.confetti, n, x, y);
   }
 
   sweatDrop(x: number, y: number): void {
-    this.sweat.explode(1, x, y);
+    this.emit(this.sweat, 1, x, y);
   }
 
   healBurst(x: number, y: number): void {
-    this.heal.explode(12, x, y);
+    this.emit(this.heal, 12, x, y);
   }
 
   ring(x: number, y: number, color = 0xffffff, size = 1, squash = 0.4): void {
@@ -263,8 +270,8 @@ export class Fx {
 
   explosion(x: number, y: number, radius: number): void {
     this.ring(x, y, 0xffd23f, (radius * 2) / 256, 1);
-    this.sparks.explode(24, x, y);
-    this.smoke.explode(10, x, y);
+    this.emit(this.sparks, 24, x, y);
+    this.emit(this.smoke, 10, x, y);
     const b = this.scene.add.image(x, y, 'burst').setTint(0xff9f1c).setScale(0.3);
     this.layer.add(b);
     this.scene.tweens.add({ targets: b, scale: (radius / 100) * 0.9, alpha: 0, angle: 40, duration: 320, onComplete: () => b.destroy() });
@@ -277,7 +284,7 @@ export class Fx {
     const segs = 9;
     for (let i = 1; i < segs; i++) {
       const t = i / segs;
-      pts.push([x0 + (x1 - x0) * t + (Math.random() - 0.5) * 50, y0 + (y1 - y0) * t + (Math.random() - 0.5) * 50]);
+      pts.push([x0 + (x1 - x0) * t + (crand() - 0.5) * 50, y0 + (y1 - y0) * t + (crand() - 0.5) * 50]);
     }
     pts.push([x1, y1]);
     for (const [w, c, a] of [[14, 0x4cc9f0, 0.35], [6, 0xbff4ff, 0.9], [2, 0xffffff, 1]] as const) {
@@ -295,8 +302,8 @@ export class Fx {
     for (let i = 0; i < count; i++) {
       const c = this.scene.add.image(x, y, 'coin').setScale(0.8);
       this.layer.add(c);
-      const ang = Math.random() * Math.PI * 2;
-      const r = 40 + Math.random() * 70;
+      const ang = crand() * Math.PI * 2;
+      const r = 40 + crand() * 70;
       this.scene.tweens.add({
         targets: c,
         x: x + Math.cos(ang) * r,

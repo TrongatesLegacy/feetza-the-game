@@ -6,6 +6,7 @@ import { type GuardSnap, makeGuardFx } from './guardShield';
 import type { FootType } from '../data/feet';
 import { ensureFootArt, type FootMeta } from './assets';
 import type { Pizza } from './Pizza';
+import { crand } from '../systems/cosmeticRandom';
 
 export type FootState = 'enter' | 'hover' | 'descend' | 'stomp' | 'lift' | 'dying' | 'gone';
 
@@ -179,7 +180,7 @@ export class Foot {
   private phaseT = Math.random() * 2;
   private burstT = 0;
   private zigBase = 0;
-  private wobbleT = Math.random() * 10;
+  private wobbleT = crand() * 10;
   private flashT = 0;
   /** A guard foot with a rhythm (Spartan Sandals): its shield is down for this much longer (on its beat, or just
    * after a stomp). */
@@ -1287,7 +1288,7 @@ export class Foot {
     this.guardFx = null;
     this.stars?.destroy();
     this.shadow.setVisible(false);
-    const spin = (Math.random() < 0.5 ? -1 : 1) * (boss ? 0.15 : 0.35);
+    const spin = (crand() < 0.5 ? -1 : 1) * (boss ? 0.15 : 0.35);
     this.scene.tweens.add({
       targets: this.root,
       scaleY: this.root.scaleX * 0.78,

@@ -26,6 +26,7 @@ import { brains as comics } from './bosses/comics';
 // ——— Nemesis bosses: King Leonidas at the Hot Gates ———
 import { brains as leonidas } from './bosses/leonidas';
 import { type Brain, type PhaseCard, Every, auraFor, hitWindup } from './bosses/kit';
+import { crand } from '../systems/cosmeticRandom';
 
 export type { Brain };
 
@@ -117,7 +118,7 @@ export class BossDirector {
       b.upkeep?.(f, dt, this.a);
       if (Number(f.brain.holdHoverT ?? 0) > 0) f.brain.holdHoverT = Number(f.brain.holdHoverT) - dt;
       // phase 3 and up: embers rise off the boss
-      if (f.phase >= 3 && f.root.visible && Math.random() < dt * 6) this.a.fx.burn(f.x + (Math.random() - 0.5) * 120 * f.scale, f.cy + (Math.random() - 0.5) * 80 * f.scale);
+      if (f.phase >= 3 && f.root.visible && crand() < dt * 6) this.a.fx.burn(f.x + (crand() - 0.5) * 120 * f.scale, f.cy + (crand() - 0.5) * 80 * f.scale);
       // the transform beat: the boss holds still, then gets on with its new moves
       const tr = Number(f.brain.transformT ?? 0);
       if (tr > 0) {

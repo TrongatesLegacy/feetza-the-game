@@ -13,6 +13,9 @@ function deal(id: string, name: string, icon: string, rarity: Rarity, up: string
   return { id, name, icon, rarity, max: 1, desc: () => up, downside: down, effects };
 }
 
+/** Exclusive Menu: the guaranteed card's discount at each level, in percent (Tron's numbers; the effects set them). */
+const EXCLUSIVE_OFF: Record<number, number> = { 2: 10, 3: 20, 4: 40 };
+
 export const SHOP_TOPPINGS: Upgrade[] = [
   // ——— Common ———
   shop('couponclipper', 'Coupon Clipper', '✂️', 'common', 3, 'Rerolls cost 2 tips less (never below 1)', [
@@ -105,10 +108,37 @@ export const SHOP_TOPPINGS: Upgrade[] = [
   ]),
   shop('bottomless', 'Bottomless Pizza', '♾️', 'legendary', 1, 'One free counter pizza every 10 waves'),
   shop('stockroom', 'Stockroom Key', '🔑', 'legendary', 1, 'The first card you buy in each shop restocks'),
-  deal('exclusivemenu', 'Exclusive Menu', '🎩', 'legendary', 'Every card is one rarity higher', 'Two fewer topping cards per shop', [
-    Effect.Stat(
-      Stat.CardDelta,
-      Op.Sub(Unit.Count(2)),
-    ),
-  ]),
+  // (its own definition: deal() is max 1. Each level sets the guaranteed card's discount outright, not on top)
+  {
+    id: 'exclusivemenu', name: 'Exclusive Menu', icon: '🎩', rarity: 'legendary', max: 4,
+    desc: (l) => (l <= 1 ? 'One topping card each shop is always Epic or Legendary' : `The Exclusive card (Epic or Legendary) is ${EXCLUSIVE_OFF[l] ?? 0}% off`),
+    downside: 'Two fewer topping cards per shop (not more each level)',
+    effects: [
+      Effect.Stat(
+        Stat.GuaranteedEpic,
+        Op.Add(Unit.Count(1)),
+        { atLevel: 1 },
+      ),
+      Effect.Stat(
+        Stat.CardDelta,
+        Op.Sub(Unit.Count(2)),
+        { atLevel: 1 },
+      ),
+      Effect.Stat(
+        Stat.ExclusiveDiscount,
+        Op.Set(Unit.Percent(10)),
+        { atLevel: 2 },
+      ),
+      Effect.Stat(
+        Stat.ExclusiveDiscount,
+        Op.Set(Unit.Percent(20)),
+        { atLevel: 3 },
+      ),
+      Effect.Stat(
+        Stat.ExclusiveDiscount,
+        Op.Set(Unit.Percent(40)),
+        { atLevel: 4 },
+      ),
+    ],
+  },
 ];

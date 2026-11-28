@@ -108,6 +108,10 @@ export interface Stats {
   consumableDiscount: number;
   /** Topping cards added to (or taken from) every shop. */
   cardDelta: number;
+  /** Exclusive Menu: topping cards each shop's first deal makes Epic or Legendary (not a reroll's). */
+  guaranteedEpic: number;
+  /** Exclusive Menu (LV2+): off the guaranteed card's price (with the shop's other discounts, up to 60%). */
+  exclusiveDiscount: number;
   /** Tips off every reroll, and its multiplier. */
   rerollLess: number;
   rerollMult: number;

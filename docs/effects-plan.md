@@ -1,6 +1,6 @@
 # Effects plan: one plug-and-play system for perks, toppings and peels
 
-Status: **approved; step 1 done (2026-11-27, branch effects-1): units, stat definitions, the modifier ledger, STATS from the ledger. Step 2 done (2026-11-28, branch effects-2): the balance sim made repeatable, the golden check, the trigger bus, the perks' behaviours ported (most families), one deal function for shop cards, and typed names for sources, tags and units. Step 4's lint rules done early (2026-11-28, branch effects-lint): `npm run lint` and `npm run check`.** See "Step 1: what was built", "Step 2: what was built" and "Lint rules" at the end.
+Status: **approved; step 1 done (2026-11-27, branch effects-1): units, stat definitions, the modifier ledger, STATS from the ledger. Step 2 done (2026-11-28, branch effects-2): the balance sim made repeatable, the golden check, the trigger bus, the perks' behaviours ported (most families), one deal function for shop cards, and typed names for sources, tags and units. Step 4's lint rules done early (2026-11-28, branch effects-lint): `npm run lint` and `npm run check`. Tron's four rule decisions (2026-11-28, branch rules-1): reach cuts on the base, Exclusive Menu redesigned, a possessed pizza's perks all stop, looks on cosmetic randomness.** See "Step 1: what was built", "Step 2: what was built", "Lint rules" and "Rule decisions" at the end.
 
 ## The problem
 
@@ -175,7 +175,7 @@ Units, stat definitions, the modifier ledger, and the STATS tab read from the le
 Within a phase the order is: the highest Set, then adds, then multipliers, then flags, then the sources' own bounds, then caps.
 
 The phases keep everything else exactly where it was. Only purchase order went:
-- **Smack reach and knockback** now always take their flat changes before their multipliers. Long Handle +6 with Glass Peel ×0.85 gives `(26 + 6) × 0.85` whichever came first; Magnet Peel +60 with Spring-Loaded ×1.4 likewise.
+- **Smack reach and knockback** now always take their flat changes before their multipliers. Long Handle +6 with Glass Peel ×0.85 gives `(26 + 6) × 0.85` whichever came first; Magnet Peel +60 with Spring-Loaded ×1.4 likewise. (Since rules-1, a cut on reach or knockback goes on the base only: `26 × 0.85 + 6`. See "Rule decisions".)
 - **Every other number is bit-identical** across 2,473 builds. To get that:
   - adds and multipliers apply one at a time in the order they were added;
   - the perks go in their old order (`PERK_STATS`);
@@ -294,7 +294,7 @@ Plain stat changes, tips and heals, statuses (stun, freeze, slow, burn), meter, 
 
 ### One deal function for shop cards
 
-`dealCards(run, { boss?, n?, exclude? })` (`src/game/shopDeals.ts`) is the only way cards are dealt: a shop opening, boss loot, rerolls, the Stockroom Key's restock, the hero's peek at the next shop (From the Future, Booster Gouda's coming shop: `heroT.shop`). It reads the ledger's totals: `n` topping cards from `cardCount` (`cardDelta`), the one-use extras (`extraConsumable`), then Exclusive Menu's bump of every card one rarity up. `Run.addExtraConsumables()` folded into it; `Run.rollChoices`/`rollBossChoices` are gone (Run keeps the pieces: `dealable`, `pickCards`, `pickBossCards`, `addExtraConsumables`, `bumpRarity`). The STATS tab's Cards per shop reads `shopCardTotal(run)`, the same total the deal uses. The random draws are the same, in the same order, as before.
+`dealCards(run, { boss?, n?, exclude? })` (`src/game/shopDeals.ts`) is the only way cards are dealt: a shop opening, boss loot, rerolls, the Stockroom Key's restock, the hero's peek at the next shop (From the Future, Booster Gouda's coming shop: `heroT.shop`). It reads the ledger's totals: `n` topping cards from `cardCount` (`cardDelta`), the one-use extras (`extraConsumable`), then Exclusive Menu's bump of every card one rarity up. `Run.addExtraConsumables()` folded into it; `Run.rollChoices`/`rollBossChoices` are gone (Run keeps the pieces: `dealable`, `pickCards`, `pickBossCards`, `addExtraConsumables`, `bumpRarity`). The STATS tab's Cards per shop reads `shopCardTotal(run)`, the same total the deal uses. The random draws are the same, in the same order, as before. (rules-1 replaced the bump with Exclusive Menu's guaranteed card, `Stat.GuaranteedEpic`, and `dealCards` now returns `{ cards, exclusive }`: see "Rule decisions".)
 
 Checked in `?dev` with Mac & Cheese, Extra Shelf LV2 and Exclusive Menu: a normal shop deals 3 + 1 (Extra Shelf +2, Exclusive Menu −2, Mac & Cheese +1) = 4, boss loot 3 + 1 = 4, and STATS reads 4.
 
@@ -324,12 +324,12 @@ Checked in `?dev` with Mac & Cheese, Extra Shelf LV2 and Exclusive Menu: a norma
 
 ### Notes
 
-- **The Ghost and Target perks.** The old hooks let a possessed pizza's on-kill and on-stomp perks keep firing (only Labyrinth Lasagne and Lodge Fondue checked for the Ghost), while every table-wide and per-pizza perk stops. Kept as it was (`Scope.Target`, `Cond.NotPossessed`); for Tron to decide whether the Ghost's pizza should stop them all.
-- **Exclusive Menu and Mac & Cheese.** The bump turns every card, the one-use extra too, into a card one rarity higher of any kind, so the extra may not be a one-use card after all. Unchanged; worth a look.
+- **The Ghost and Target perks.** The old hooks let a possessed pizza's on-kill and on-stomp perks keep firing (only Labyrinth Lasagne and Lodge Fondue checked for the Ghost), while every table-wide and per-pizza perk stops. Kept as it was (`Scope.Target`, `Cond.NotPossessed`); for Tron to decide whether the Ghost's pizza should stop them all. **Decided in rules-1:** a possessed pizza's perks all stop (see "Rule decisions").
+- **Exclusive Menu and Mac & Cheese.** The bump turns every card, the one-use extra too, into a card one rarity higher of any kind, so the extra may not be a one-use card after all. Unchanged; worth a look. **Decided in rules-1:** Exclusive Menu was redesigned and the bump is gone (see "Rule decisions").
 - **The Stockroom Key's restock** deals one card through the full deal (the one-use extras are drawn too, then dropped), as before: kept for identical runs.
-- **Cosmetic `Math.random`** is still used in some looks (the fire lane's flames, Granite Crust's chips, the lava bombs, `Fx.quip`'s tilt, the coin flights). Moving them to `crand()` changes the seeded runs, so it's a separate, deliberate change.
+- **Cosmetic `Math.random`** is still used in some looks (the fire lane's flames, Granite Crust's chips, the lava bombs, `Fx.quip`'s tilt, the coin flights). Moving them to `crand()` changes the seeded runs, so it's a separate, deliberate change. **Done in rules-1** (see "Rule decisions").
 - **Card text** stays hand-written: `describe()` of the ported triggers doesn't read like the cards yet (they name one-offs by id), so no card text is generated from effects in this step.
-- Smack reach and knockback ordering are untouched (a decision is pending with Tron).
+- Smack reach and knockback ordering are untouched (a decision is pending with Tron). **Decided in rules-1** (see "Rule decisions").
 - **From the code review:** a `Scope.Sum` chance now respects its cap (none has one yet); a counted or once-a-wave trigger with a table-wide scope logs a dev error (its count lives on a pizza); `Effect.Every`'s `scale` is for words and searches only (in play the table's strength already divides its time). The golden check covers the stats, not the deal: the deal's draws are covered by the seeded sim.
 
 ### Step 3 starts from here
@@ -368,3 +368,62 @@ ESLint (dev only, `typescript-eslint`'s parser, flat config in `eslint.config.js
 **What `--fix` and the pass changed:** the layout of 240 effect lists and 341 `Effect.*` calls in 12 files (toppings ×6 with the Pizzeria's upgrades, `perkStats.ts`, `perkEffects.ts`, `pizzaPerks.ts`'s table perks, `Run.ts`'s Pizzeria and tips effects, `toppingKit.ts`'s tricks, the Ghost's possession in `GameScene.ts`). By hand: the arithmetic in Napoli DOC, Peel Collector, the Forge, the Saga and Kitchen Sink (`PizzaPerkKit.modifiers`), Pepperoni's and the luck pizzas' tips sum (`Run.buildLedger`) and the four tip offsets in `perkEffects.ts` moved onto makers, which give the same numbers to the last bit (`0.05 × n × kinds` is `scale(scale(Percent(5), n), kinds)`, in the same order); Kitchen Sink's three-way pick became an `if` per pick so each list stays one entry a line. The golden check shows no differences. (One small difference outside the numbers: the Forge's and the Saga's `Unit.Percent` now range-checks their values, where `Unit.of` didn't.)
 
 **Limits:** the layout fixes change only whitespace and commas, so no fix is offered when a comment sits between the items or an item holds a template string over several lines (the rule still reports it). Names are matched by spelling: a local that shadows `Effect`, `Op` or `Unit` counts as them.
+
+## Rule decisions (2026-11-28, branch rules-1)
+
+Four gameplay rules Tron decided, each through the effect system rather than a special case.
+
+### Smack reach: cuts apply to the base only
+
+- **The fold rule.** A stat's definition can say `fold: Fold.CutsOnBase` (`src/effects/stats.ts`). For such a stat the ledger (`src/effects/ledger.ts`) folds each phase as: the highest Set, then the cuts (multipliers below 1) on the base, then the adds, then the boosts (multipliers above 1) on the whole total. So Glass Peel's ×0.85 with Long Handle's +6 is `26 × 0.85 + 6`, not `(26 + 6) × 0.85`, and Deep Dish's ×1.2 still grows the whole reach. The "base" is the definition's base (or a Set that replaced it); a later phase's cuts scale that already-cut base again. Every other stat folds as before (`Fold.Standard`), to the last bit.
+- **The breakdown** credits the cuts with what they took off the base (shared by the log of each, as multipliers always were) and the adds at face value: Long Handle LV3 +18, Glass Peel −3.9 for a reach of 40.1 (it was 37.4).
+- **Smack reach and knockback** both take the rule. Knockback has no cuts today (Magnet Peel's +60 and Spring-Loaded's ×1.4, Prosciutto's +35% are adds and boosts), so nothing about it changes; it's declared so a future cut on it works the same way.
+- **Card text:** Glass Peel, Ghost Pepper, Adrenaline, Storm Caller and Overclock now read "−15% base smack reach" (and so on).
+
+### Exclusive Menu: one guaranteed Epic or Legendary card each shop
+
+- **The topping** (`src/data/toppingsShop.ts`, its own definition: `deal()` is max 1) is max 4. LV1: "One topping card each shop is always Epic or Legendary", with "Two fewer topping cards per shop". LV2–4: "The Exclusive card (Epic or Legendary) is 10% / 20% / 40% off"; the catch reads "Two fewer topping cards per shop (not more each level)" (Tron's numbers, the total at each level, not added up).
+- **Its effects:** `Effect.Stat(Stat.GuaranteedEpic, Op.Add(Unit.Count(1)), { atLevel: 1 })`, `Stat.CardDelta −2 { atLevel: 1 }`, and `Stat.ExclusiveDiscount` set to 10%, 20%, 40% at levels 2, 3, 4 (`Op.Set` with `{ atLevel: n }`: the highest set wins). `atLevel` is a new `StatOpts` field (`src/effects/stat.ts`): the effect applies at that level only. Its words say "at LV n".
+- **The deal** (`dealCards`, `src/game/shopDeals.ts`) reads `Stat.GuaranteedEpic`: that many of the shop's topping cards come first, drawn among offerable Epic and Legendary cards by their usual weights (`Run.pickExclusive`: `pickCards`, so `RARITY_WEIGHT` and luck as usual); a Rare when none is open (before wave 5), else any card. The rest are dealt as before with normal odds (boss loot: epic or better, as always), then Mac & Cheese's extra, which is always an ordinary one-use card. `Run.bumpRarity` is gone. No topping id is checked in the deal.
+- **Which card it is** is kept with the shop's deals (`KitShop.exclusive`, saved with the run), marked in the shop with a gold EXCLUSIVE ribbon and ring (`ShopCard.exclusive`), and its discount (`Stat.ExclusiveDiscount`) is added in `toppingDiscount` with the shop's other discounts under the 60% cap, so its price shows the way any discount does.
+- **Rerolls give it up:** a reroll deals normal odds with no guaranteed card (`dealCards(…, { guarantee: false })`), and the shop forgets the exclusive card unless it was bought. The guarantee applies to a shop's first deal: a normal shop, boss loot, and From the Future's / Booster Gouda's coming shop (`heroT.shop` is a `Deal`).
+- **The Stockroom Key's restock** is not a reroll: when the card bought was the exclusive one and it can't come back, the fresh card in its place is dealt with the guarantee and becomes the exclusive card; any other restock deals normally. When the exclusive card itself comes back on the shelf (a topping that levels up), it stays the exclusive card and keeps Exclusive Menu's discount for its next level (Tron's call: left as is).
+- **STATS:** Cards per shop names Exclusive Menu and notes "1 card a shop: Epic or better, 20% off (not after a reroll)".
+- **Checked** over 3,000 seeded deals each at wave 20 (normal shop, boss loot, reroll), with Exclusive Menu alone, at LV4, with Extra Shelf LV2, with Mac & Cheese, and with both: exactly one guaranteed card in every first deal, 82–84% Epic and 16–18% Legendary; none after a reroll; the other cards at the usual odds (about 64% Common, 26% Rare, 8% Epic, 2% Legendary; boss loot 75/25 Epic/Legendary); Mac's card one-use every time; no duplicates. Wave 2: the guaranteed card is a Rare; wave 7: an Epic.
+
+### A Ghost-possessed pizza's perks all stop
+
+- **One rule:** `Pizza.perk` is null while the pizza is possessed, as it is while eaten, stale or frozen (`Pizza.haunted`, kept in step by the scene's `possessedPizza` accessor, never saved). Every trigger scope reads it (table-wide, per-pizza, the pizza a foot was over, the end-of-wave pass), and so do the old code paths, auras and defences. `Pizza.perkOff` (stale, frozen or possessed) replaces the old "stale or frozen" checks; the once-at-death perks (Volcano Calzone, Olympian Feast, Fenrir's own howl, Untouchable, Carbonara) check `haunted` too, as does Pizza Fritta's heal as it goes stale. If the scene isn't running when a possessed pizza is destroyed, the Ghost lets go all the same (`haunted` never sticks).
+- **Removed:** `Cond.NotPossessed` (Labyrinth Lasagne and Lodge Fondue Pie used it) and the now-redundant Ghost checks in Granite Crust, Raclette Run and the NOW tag.
+- **Stats unchanged:** the Ghost's possession still takes the pizza's stats (the Haunt phase reads `Pizza.ownPerk`, the perk it would grant): the golden's possession builds are unchanged.
+- **Shown:** the pizza's perk line is struck through on the table, as for a stale or frozen pizza; STATS gives it a POSSESSED flag, its perk struck through and "Possessed: every perk it has is off while the Ghost is in it"; a possessed Mac & Cheese "is possessed" in Cards per shop; the living pizza goes still and dim as a frozen one does. The Ghost's phase card and info line say its perks stop.
+- **Checked:** with `?dev`, a kill over Bolognese rolled a meatball; possessed, two kills over it rolled none.
+
+### Looks use cosmetic randomness
+
+- Every cosmetic `Math.random` found (401 calls in 36 files: `Fx` (quip tilt, damage numbers, slices, lightning, coin flights), the fire lane's flames, Granite Crust's chips, the lava bombs' sparks, the pizzas' blink, bob, sparkles and footprints, a foot's wobble and death spin, every boss's and act's shatters, puffs, glints, notes, speech-bubble timers and words, the hero and god moves' looks, the finale's flicker and memories, the topping party's confetti) now draws from `crand()`; quips' words from `cpick()` (`src/systems/cosmeticRandom.ts`). A cosmetic roll that gated a gameplay draw went with it, so a look never moves the game's sequence.
+- `Fx`'s particle bursts run under `cosmetic()` (shared now in `cosmeticRandom.ts`, re-exported by `zombieArt.ts`): Phaser rolls a burst's ranges with `Math.random`.
+- Gameplay stays on `Math.random`: anything that decides where a foot, prop, target or hit is, timings that land damage (the lava bombs' flight), picks, chances, prices and the slot machine.
+- This changes seeded runs once (see the sim below). Left on `Math.random` though only for show: the clutter prop's spin factor, which also shapes its flight (`projectiles.ts`), so it stays gameplay.
+
+### Shop contrast (from main)
+
+`F.contrast()` on main flagged the shop's pizza rarity badges (COMMON, cream on light brown: 2.71) and the shop's subtitle over the dimmed game (4.05, the boss loot's "One pick is on the house" too), plus CHEF'S SPECIAL (4.35), ✦ NEW PIZZA (3.08), the keyboard hint row and, at phone size, GOLDEN MENU (4.24). Fixed: a darker common tab, darker special ink, a darker NEW PIZZA tab with white ink, an outline on the subtitle and the hint row (as the in-wave hints have), a darker Golden Menu heading. `F.contrast()` is clean in the shop, boss loot and STATS at desktop and phone size. (`F.layout()` still lists the pizza tier tabs as "cut off": they hang from the frame by design.)
+
+### Golden
+
+`npm run golden -- --write`. The rules' own changes, checked with the cosmetic change and the new build's seed shift taken out: Exclusive Menu LV1 `guaranteedEpic` 0 → 1; the mixed builds with Exclusive Menu (mix:65, 89, 150, 165) `guaranteedEpic` 0 → 1 and `exclusiveDiscount` 0 → 0.1 / 0.4; reach in the two mixed builds that hold both a flat reach boost and a cut (mix:92 −0.4 → 0.8, mix:129 −2.74 → 11.15); a new build `top:exclusivemenu@4`. Nothing else, possession builds included. The snapshot also moves where a build's seeded picks (Arcobaleno, Mystery Meat, Kitchen Sink) changed: every build after the new `top:exclusivemenu@4` has its `Math.random` seed shifted by one, and a pizza no longer draws its blink and bob from `Math.random`.
+
+### Balance sim
+
+`nice npm run sim -- --heat mild,regular --runs 2 --waves 40 --shop auto --workers 2`, once, on the finished code. Every run still reaches wave 41.
+
+| Run | Tips at the end, before → after | Crusts, before → after |
+|---|---|---|
+| Mild seed 1 | 1,850 → 1 | 268 → 263 |
+| Mild seed 2 | 557 → 911 | 255 → 260 |
+| Regular seed 1 | 665 → 3,523 | 535 → 531 |
+| Regular seed 2 | 101 → 359 | 528 → 513 |
+
+(Before: step 2's numbers on main.) The runs differ from the first waves because about 400 cosmetic draws (and Phaser's particle ranges) no longer come out of the seeded `Math.random`, so every later gameplay roll lands differently: a new seed, in effect, not a balance change. End-of-run tips swing with when the bot last shopped; crusts, which follow score and waves, move by under 3%. Of the rules: the bot took no Exclusive Menu; reach cuts mattered only in Mild seed 2 (Glass Peel and Ghost Pepper with Big Swing: more reach than before); Mac & Cheese (Regular seed 2) deals as before without Exclusive Menu; the Ghost (from wave 60) isn't met in 40 waves.
+

@@ -33,6 +33,7 @@ import type { Foot } from '../Foot';
 import type { Pizza } from '../Pizza';
 import { LOCATION_MUSIC, bossMusic, locationFor } from '../Run';
 import { type Brain, type PhaseCard, type Prop, Every, auraFor, dropOn, heat, hitProp, mark, retreat, rnd, screenSplat, shield, takeLane, throwAtPeel, type Takeover } from './kit';
+import { cpick, crand } from '../../systems/cosmeticRandom';
 
 // ——— Helpers ———
 
@@ -105,12 +106,12 @@ function hitSoft(a: Arena, p: Pizza, n: number, label: string, color: string): v
 /** Pieces fly off and tumble (a death that lands). */
 function scatter(a: Arena, x: number, y: number, key: string, n: number, look: { scale?: number; tints?: number[]; spread?: number } = {}): void {
   for (let i = 0; i < n; i++) {
-    const img = a.sc.add.image(x, y, key).setScale((look.scale ?? 0.5) * (0.6 + Math.random() * 0.7)).setAngle(Math.random() * 360);
+    const img = a.sc.add.image(x, y, key).setScale((look.scale ?? 0.5) * (0.6 + crand() * 0.7)).setAngle(crand() * 360);
     if (look.tints) img.setTint(look.tints[i % look.tints.length]);
     a.fxLayer.add(img);
-    const vx = (Math.random() - 0.5) * (look.spread ?? 1300);
-    const vy = -320 - Math.random() * 700;
-    const spin = (Math.random() - 0.5) * 900;
+    const vx = (crand() - 0.5) * (look.spread ?? 1300);
+    const vy = -320 - crand() * 700;
+    const spin = (crand() - 0.5) * 900;
     const st = { t: 0 };
     a.sc.tweens.add({
       targets: st,
@@ -178,7 +179,7 @@ const bunion = (): Brain => {
     for (let i = 0; i < 6; i++) {
       const d = a.sc.add.image(v.glass.x, v.glass.y, 'soft').setTint(0x7dff6a).setScale(0.12).setBlendMode(Phaser.BlendModes.ADD);
       a.fxLayer.add(d);
-      a.sc.tweens.add({ targets: d, x: d.x + (Math.random() - 0.5) * 200, y: d.y + 120 + Math.random() * 120, alpha: 0, duration: 600, onComplete: () => d.destroy() });
+      a.sc.tweens.add({ targets: d, x: d.x + (crand() - 0.5) * 200, y: d.y + 120 + crand() * 120, alpha: 0, duration: 600, onComplete: () => d.destroy() });
     }
     if (winded && f.alive) {
       impactWord(a, v.glass.x, v.glass.y - 80, 1.1, 'GLUG!');
@@ -471,8 +472,8 @@ const bunion = (): Brain => {
       if (n >= 3 && !f.puppet) surge(a, f);
       quipT -= dt;
       if (quipT <= 0) {
-        quipT = 11 + Math.random() * 6;
-        bubble(a, rnd(['YOU MERELY ADOPTED THE CRUST.', 'NOW IS NOT THE TIME FOR SNACKS.', 'PEACE HAS COST YOU YOUR TOPPINGS.'])!, f);
+        quipT = 11 + crand() * 6;
+        bubble(a, cpick(['YOU MERELY ADOPTED THE CRUST.', 'NOW IS NOT THE TIME FOR SNACKS.', 'PEACE HAS COST YOU YOUR TOPPINGS.'])!, f);
       }
     },
     upkeep(f) {
@@ -483,8 +484,8 @@ const bunion = (): Brain => {
       if (strain) {
         const h = heat(a);
         strain.v -= h.rank === 0 ? 0.12 : 0.09;
-        a.fx.impact(f.cx + (Math.random() - 0.5) * 80, f.cy, false);
-        if (Math.random() < 0.35) impactWord(a, f.cx, f.cy - 60, 0.9, rnd(['POW!', 'BIFF!', 'WHAM!']));
+        a.fx.impact(f.cx + (crand() - 0.5) * 80, f.cy, false);
+        if (crand() < 0.35) impactWord(a, f.cx, f.cy - 60, 0.9, cpick(['POW!', 'BIFF!', 'WHAM!']));
         if (strain.v <= 0) endBreak(a, f, true);
         return false;
       }
@@ -523,7 +524,7 @@ const bunion = (): Brain => {
         for (let i = 0; i < 8; i++) {
           const d = a.sc.add.image(p.x, p.y, 'soft').setTint(0x7dff6a).setScale(0.18).setBlendMode(Phaser.BlendModes.ADD);
           a.fxLayer.add(d);
-          a.sc.tweens.add({ targets: d, x: d.x + (Math.random() - 0.5) * 400, y: d.y + (Math.random() - 0.7) * 300, alpha: 0, scale: 0.05, duration: 900, onComplete: () => d.destroy() });
+          a.sc.tweens.add({ targets: d, x: d.x + (crand() - 0.5) * 400, y: d.y + (crand() - 0.7) * 300, alpha: 0, scale: 0.05, duration: 900, onComplete: () => d.destroy() });
         }
       }
       scatter(a, f.cx, f.cy, 'confetti', 18, { scale: 1.2, tints: [0x2c2e36, 0x7dff6a, 0xc9cfd8, 0x3a3c46] });
@@ -711,7 +712,7 @@ const jokester = (): Brain => {
 
   const armGift = (a: Arena, p: Pizza, img: Phaser.GameObjects.Image, s: number) => {
     let done = false;
-    const sparkle = a.sc.time.addEvent({ delay: 260, loop: true, callback: () => img.active && a.fx.glint(img.x + (Math.random() - 0.5) * 80 * s * 5, img.y - 30) });
+    const sparkle = a.sc.time.addEvent({ delay: 260, loop: true, callback: () => img.active && a.fx.glint(img.x + (crand() - 0.5) * 80 * s * 5, img.y - 30) });
     a.sc.tweens.add({ targets: img, y: img.y - 10, duration: 400, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
     const finish = () => {
       done = true;
@@ -855,7 +856,7 @@ const jokester = (): Brain => {
           d.brain.danceSX = d.root.scaleX;
           d.brain.danceSY = d.root.scaleY;
           d.tint(0xd8c0ff);
-          if (Math.random() < 0.5) a.sfx('sfx_jokester_giggle', { volume: 0.6, throttle: 700 });
+          if (crand() < 0.5) a.sfx('sfx_jokester_giggle', { volume: 0.6, throttle: 700 });
         } else if (!inside && c.dancers.has(d)) {
           c.dancers.delete(d);
           unDance(d);
@@ -869,10 +870,10 @@ const jokester = (): Brain => {
         d.slowPct = Math.max(d.slowPct, 0.4);
         const b = Math.sin(a.now() * 12 + d.x);
         d.root.setScale(Number(d.brain.danceSX) * (1 + b * 0.08), Number(d.brain.danceSY) * (1 - b * 0.08));
-        if (Math.random() < dt * 1.5) {
-          const n = a.sc.add.image(d.cx + (Math.random() - 0.5) * 60, d.cy - 80, 'p_gt_note').setScale(0.5);
+        if (crand() < dt * 1.5) {
+          const n = a.sc.add.image(d.cx + (crand() - 0.5) * 60, d.cy - 80, 'p_gt_note').setScale(0.5);
           a.fxLayer.add(n);
-          a.sc.tweens.add({ targets: n, y: n.y - 90, x: n.x + (Math.random() - 0.5) * 60, alpha: 0, angle: (Math.random() - 0.5) * 60, duration: 900, onComplete: () => n.destroy() });
+          a.sc.tweens.add({ targets: n, y: n.y - 90, x: n.x + (crand() - 0.5) * 60, alpha: 0, angle: (crand() - 0.5) * 60, duration: 900, onComplete: () => n.destroy() });
         }
       }
     }
@@ -1190,8 +1191,8 @@ const jokester = (): Brain => {
       }
       quipT -= dt;
       if (quipT <= 0) {
-        quipT = 10 + Math.random() * 6;
-        bubble(a, rnd(['HA! HA! HA-HA-HA!', 'HERE\'S MY CARD.', 'JUST A LITTLE PRANK!', 'LET\'S PUT A SMILE ON THAT PIZZA.'])!, f);
+        quipT = 10 + crand() * 6;
+        bubble(a, cpick(['HA! HA! HA-HA-HA!', 'HERE\'S MY CARD.', 'JUST A LITTLE PRANK!', 'LET\'S PUT A SMILE ON THAT PIZZA.'])!, f);
         a.sfx('sfx_jokester_laugh', { volume: 0.6, throttle: 2000 });
       }
     },

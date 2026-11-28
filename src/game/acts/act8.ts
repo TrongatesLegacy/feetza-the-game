@@ -43,9 +43,9 @@ const frostgiant: FootFx = {
         a.fx.frost(p.x, p.surfaceY - 20);
       } else if (p.perkFrozenT < CHILL_LINGER) p.perkFrozenT = CHILL_LINGER;
       // frost breath drifting from the toes onto the pizza
-      if (Math.random() < dt * 2.5) a.fx.frost(p.x + (Math.random() - 0.5) * p.radius * 1.4, p.surfaceY - 10);
+      if (crand() < dt * 2.5) a.fx.frost(p.x + (crand() - 0.5) * p.radius * 1.4, p.surfaceY - 10);
     }
-    if (Math.random() < dt * 3) a.fx.frost(f.x + (Math.random() - 0.5) * 120 * f.scale, f.y - 30);
+    if (crand() < dt * 3) a.fx.frost(f.x + (crand() - 0.5) * 120 * f.scale, f.y - 30);
   },
 };
 
@@ -58,7 +58,7 @@ const draugr: FootFx = {
       f.reviveUsed = true;
       f.brain.burned = true;
       a.quip(f.x, Math.max(260, f.cy - 140), 'BURNED: IT STAYS DOWN!', '#ffb24a', 32);
-      for (let i = 0; i < 5; i++) a.fx.burn(f.cx + (Math.random() - 0.5) * 80, f.cy + (Math.random() - 0.5) * 80);
+      for (let i = 0; i < 5; i++) a.fx.burn(f.cx + (crand() - 0.5) * 80, f.cy + (crand() - 0.5) * 80);
     }
     // it went down and got back up: grave-fire and earth
     if (f.reviveUsed && !f.brain.burned && !f.brain.rose) {
@@ -298,7 +298,7 @@ const valkyrie: FootFx = {
   },
   tick: (a, f, dt) => {
     // a trail of feathers while it dives in
-    if ((f.state === 'enter' || f.state === 'descend') && f.y > 0 && Math.random() < dt * 8) a.fx.propTrail(f.cx + (Math.random() - 0.5) * 80, f.cy - 30, 0xfff6e2, 0.4);
+    if ((f.state === 'enter' || f.state === 'descend') && f.y > 0 && crand() < dt * 8) a.fx.propTrail(f.cx + (crand() - 0.5) * 80, f.cy - 30, 0xfff6e2, 0.4);
   },
 };
 

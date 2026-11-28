@@ -13,6 +13,7 @@ import type { Foot } from '../Foot';
 import type { Pizza } from '../Pizza';
 import { LOCATION_MUSIC, bossMusic, locationFor } from '../Run';
 import { heat } from './kit';
+import { crand } from '../../systems/cosmeticRandom';
 
 /** Game y below the boss bar and its move line: anything the player must hit sits below this. */
 export const SAFE_TOP = 260;
@@ -108,7 +109,7 @@ export function entrance(a: Arena, f: Foot, o: { sfx: string; quip: string; colo
       a.rumble(1, 380);
       a.flash(240, ...o.flash);
       a.fx.ring(f.x, f.y, o.ring ?? 0xffffff, 2, 0.4);
-      for (let i = 0; i < 10; i++) a.fx.puff(f.x + (Math.random() - 0.5) * 260, f.y + (Math.random() - 0.5) * 60, 2);
+      for (let i = 0; i < 10; i++) a.fx.puff(f.x + (crand() - 0.5) * 260, f.y + (crand() - 0.5) * 60, 2);
       a.quip(f.x, Math.max(SAFE_TOP + 40, f.cy - 170), o.quip, o.color, 50);
       const sx = f.root.scaleX;
       const sy = f.root.scaleY;
@@ -143,7 +144,7 @@ function shardsOf(a: Arena, f: Foot, n: number): string[] {
       ctx.beginPath();
       for (let k = 0; k < 7; k++) {
         const ang = (k / 7) * Math.PI * 2;
-        const rr = 0.42 + Math.random() * 0.16;
+        const rr = 0.42 + crand() * 0.16;
         const px = cw / 2 + Math.cos(ang) * cw * rr;
         const py = ch / 2 + Math.sin(ang) * ch * rr;
         if (k) ctx.lineTo(px, py);
@@ -179,10 +180,10 @@ export function shatter(a: Arena, f: Foot, o: { tint?: number; burst?: number; n
     const img = a.sc.add.image(cx, cy, k).setScale(s);
     if (o.tint !== undefined) img.setTint(o.tint);
     a.fxLayer.add(img);
-    const dx = (cx - f.x) * 2.2 + (Math.random() - 0.5) * 300;
+    const dx = (cx - f.x) * 2.2 + (crand() - 0.5) * 300;
     a.sc.tweens.add({ targets: img, x: cx + dx, duration: 1300, ease: 'Quad.Out' });
-    a.sc.tweens.add({ targets: img, y: cy - 260 - Math.random() * 200, duration: 450, ease: 'Quad.Out', yoyo: true, hold: 60, onComplete: () => a.sc.tweens.add({ targets: img, y: 1200, duration: 700, ease: 'Quad.In', onComplete: () => img.destroy() }) });
-    a.sc.tweens.add({ targets: img, angle: (Math.random() - 0.5) * 720, duration: 1800 });
+    a.sc.tweens.add({ targets: img, y: cy - 260 - crand() * 200, duration: 450, ease: 'Quad.Out', yoyo: true, hold: 60, onComplete: () => a.sc.tweens.add({ targets: img, y: 1200, duration: 700, ease: 'Quad.In', onComplete: () => img.destroy() }) });
+    a.sc.tweens.add({ targets: img, angle: (crand() - 0.5) * 720, duration: 1800 });
   });
   a.fx.party(f.cx, f.cy, 70);
   if (o.burst !== undefined) {
@@ -195,12 +196,12 @@ export function shatter(a: Arena, f: Foot, o: { tint?: number; burst?: number; n
 /** Bits fly off and tumble (sand, links, shards). */
 export function scatter(a: Arena, x: number, y: number, key: string, n: number, look: { scale?: number; tints?: number[]; spread?: number } = {}): void {
   for (let i = 0; i < n; i++) {
-    const img = a.sc.add.image(x, y, key).setScale((look.scale ?? 0.5) * (0.6 + Math.random() * 0.7)).setAngle(Math.random() * 360);
+    const img = a.sc.add.image(x, y, key).setScale((look.scale ?? 0.5) * (0.6 + crand() * 0.7)).setAngle(crand() * 360);
     if (look.tints) img.setTint(look.tints[i % look.tints.length]);
     a.fxLayer.add(img);
-    const vx = (Math.random() - 0.5) * (look.spread ?? 1300);
-    const vy = -320 - Math.random() * 700;
-    const spin = (Math.random() - 0.5) * 900;
+    const vx = (crand() - 0.5) * (look.spread ?? 1300);
+    const vy = -320 - crand() * 700;
+    const spin = (crand() - 0.5) * 900;
     const st = { t: 0 };
     a.sc.tweens.add({
       targets: st,

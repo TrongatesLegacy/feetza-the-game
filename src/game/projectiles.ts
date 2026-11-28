@@ -11,6 +11,7 @@ import { audio } from '../systems/audio';
 import type { ThrowFx, ThrowProp } from './abilities';
 import type { Foot } from './Foot';
 import type { Fx } from './Fx';
+import { cpick, crand } from '../systems/cosmeticRandom';
 
 export const MAX_IN_FLIGHT = 12;
 /** A queued throw that can't launch within this long is dropped (its moment has passed). */
@@ -284,7 +285,7 @@ export class Projectiles {
 
   // ——— flight ———
   private texFor(prop: ThrowProp): string {
-    const key = prop === 'clutter' ? Phaser.Utils.Array.GetRandom(CLUTTER) : `t_${prop}`;
+    const key = prop === 'clutter' ? cpick(CLUTTER) : `t_${prop}`;
     return this.scene.textures.exists(key) ? key : 'soft';
   }
 
@@ -295,10 +296,10 @@ export class Projectiles {
     if (key === 'soft') img.setTint(look.color);
     const src = this.scene.textures.get(key).getSourceImage();
     const base = (look.size * (child ? 0.62 : 1)) / Math.max(src.width, src.height);
-    img.setScale(base * 0.4).setAngle(Math.random() * 360);
+    img.setScale(base * 0.4).setAngle(crand() * 360);
     this.layer.add(img);
     const wild = e.prop === 'clutter' ? (Math.random() < 0.5 ? -1 : 1) * (1.2 + Math.random()) : 1;
-    const s: Shot = { e, look, color, onHit, img, base, x, y, leg: null, hit: new Set(), hitN: 0, spin: look.spin * (Math.random() < 0.5 ? -1 : 1) * wild, age: 0, trailT: 0, rolling: false, stuck: null, done: false, child };
+    const s: Shot = { e, look, color, onHit, img, base, x, y, leg: null, hit: new Set(), hitN: 0, spin: look.spin * (crand() < 0.5 ? -1 : 1) * wild, age: 0, trailT: 0, rolling: false, stuck: null, done: false, child };
     this.shots.push(s);
     return s;
   }
@@ -651,7 +652,7 @@ export class Projectiles {
   private miss(s: Shot): void {
     const img = s.img;
     s.done = true;
-    this.scene.tweens.add({ targets: img, x: img.x + (Math.random() - 0.5) * 80, y: img.y + 70, alpha: 0, duration: 320, ease: 'Quad.In', onComplete: () => img.destroy() });
+    this.scene.tweens.add({ targets: img, x: img.x + (crand() - 0.5) * 80, y: img.y + 70, alpha: 0, duration: 320, ease: 'Quad.In', onComplete: () => img.destroy() });
   }
 
   // ——— beams (instant) ———

@@ -27,6 +27,7 @@ import type { Foot } from '../Foot';
 import type { Pizza } from '../Pizza';
 import { type Brain, type PhaseCard, Every, dropOn, heat, hitProp, rnd, shield } from './kit';
 import { Bin, SAFE_TOP, enterArena, entrance, hitSoft, lanePizzas, leaveArena, once, scatter, shatter, timerRing } from './nzkit';
+import { cpick, crand } from '../../systems/cosmeticRandom';
 
 /** A glowing column down a pizza's lane (a charge's tell). Returns its remover. */
 function laneColumn(a: Arena, p: Pizza, y0: number, color: number): () => void {
@@ -190,7 +191,7 @@ const immortalbrute = (): Brain => {
         if (!victim.alive || !f.alive) return;
         // the chain pulls taut: it shakes more as time runs out
         const k = Math.min(1, (a.now() - t0) / sec);
-        const j = (Math.random() - 0.5) * 8 * k;
+        const j = (crand() - 0.5) * 8 * k;
         for (const [w, c] of [[12, 0x2a1810], [6, 0x9aa3ad]] as const) {
           chain.lineStyle(w, c, 1);
           chain.lineBetween(f.x, f.cy, victim.x + j, victim.cy + j);
@@ -615,9 +616,9 @@ const xerxes = (): Brain => {
       if (moveT.tick(dt)) special(f, a, m);
       quipT -= dt;
       if (quipT <= 0) {
-        quipT = 12 + Math.random() * 6;
+        quipT = 12 + crand() * 6;
         a.sfx('sfx_xerxes_laugh', { volume: 0.7 });
-        const line = rnd(['KNEEL, AND YOU MAY KEEP YOUR PIZZA.', 'A GOD-KING DOES NOT BLEED.', 'I AM GENEROUS.'])!;
+        const line = cpick(['KNEEL, AND YOU MAY KEEP YOUR PIZZA.', 'A GOD-KING DOES NOT BLEED.', 'I AM GENEROUS.'])!;
         a.quip(f.x, Math.max(SAFE_TOP + 40, f.cy - 190), line, '#ffd23f', 34);
         // (a bribe: the pavilion's gold glints and coin spills from the tribute)
         if (line !== 'A GOD-KING DOES NOT BLEED.') a.sc.events.emit('xerxes-bribe');

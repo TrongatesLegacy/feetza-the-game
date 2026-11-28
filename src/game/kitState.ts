@@ -11,6 +11,8 @@ export interface KitShop {
   clearance: string | null;
   /** Stockroom Key: the restock is spent. */
   restocked: boolean;
+  /** Exclusive Menu: the guaranteed Epic-or-better card(s) this shop dealt (a reroll gives them up). */
+  exclusive: string[];
 }
 
 export interface KitState {
@@ -35,7 +37,7 @@ export interface KitState {
 }
 
 export function freshKitShop(): KitShop {
-  return { bought: 0, clearance: null, restocked: false };
+  return { bought: 0, clearance: null, restocked: false, exclusive: [] };
 }
 
 export function freshKitState(): KitState {

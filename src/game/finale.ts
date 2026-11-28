@@ -19,6 +19,7 @@ import type { Foot } from './Foot';
 import { PEEL_BY_ID, hasPeel, peelCanvas } from './peels';
 import { PEEL_H, PEEL_W } from '../art/peelArt';
 import { isBossWave, locationFor, waveInStage } from './Run';
+import { crand } from '../systems/cosmeticRandom';
 
 const W = 1920;
 const H = 1080;
@@ -292,7 +293,7 @@ export class Finale {
     const k = waveInStage(n) - 1;
     const q0 = Math.floor((k / 4) * all.length);
     const q1 = Math.max(q0 + 1, Math.floor(((k + 1) / 4) * all.length));
-    let pick = all[q0 + Math.floor(Math.random() * (q1 - q0))];
+    let pick = all[q0 + Math.floor(crand() * (q1 - q0))];
     if (pick === this.memNow) pick = all[(all.indexOf(pick) + 1) % all.length];
     const first = !this.memImg;
     if (!this.memImg) {
@@ -317,7 +318,7 @@ export class Finale {
       const name = BACKDROPS[pick as BackdropId]?.name ?? '';
       this.caption(`MEMORY · ${name.toUpperCase()}`);
     });
-    this.flickerT = 3 + Math.random() * 3;
+    this.flickerT = 3 + crand() * 3;
   }
 
   private forget(): void {
@@ -421,12 +422,12 @@ export class Finale {
       const q = this.wallQueue.shift()!;
       const key = peelThumbKey(this.sc, q.id, q.h);
       // hung from the top of its handle, so it swings on the peg
-      const img = this.sc.add.image(q.x, q.y - q.h * 0.04, key).setOrigin(0.5, 0.04).setScale(0).setAngle((Math.random() - 0.5) * 8);
+      const img = this.sc.add.image(q.x, q.y - q.h * 0.04, key).setOrigin(0.5, 0.04).setScale(0).setAngle((crand() - 0.5) * 8);
       this.wall.add(img);
       this.wallImgs.push({ id: q.id, img });
       this.sc.tweens.add({ targets: img, scale: 1, duration: 320, ease: 'Back.Out' });
-      this.sc.tweens.add({ targets: img, angle: { from: img.angle - 3, to: img.angle + 3 }, duration: 1800 + Math.random() * 1400, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
-      audio.sfx('sfx_finale_peelwall', { volume: 0.5, throttle: 140, rate: 0.9 + Math.random() * 0.3 });
+      this.sc.tweens.add({ targets: img, angle: { from: img.angle - 3, to: img.angle + 3 }, duration: 1800 + crand() * 1400, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+      audio.sfx('sfx_finale_peelwall', { volume: 0.5, throttle: 140, rate: 0.9 + crand() * 0.3 });
     }
     // memory lane flickers back to the cosmic kitchen now and then
     if (this.memImg && this.memAlpha > 0) {
@@ -438,8 +439,8 @@ export class Finale {
           this.memFrameImg?.setAlpha(1);
         }
       } else if (this.flickerT <= 0) {
-        this.flickerT = 4 + Math.random() * 4;
-        this.flickerOut = 0.14 + Math.random() * 0.12;
+        this.flickerT = 4 + crand() * 4;
+        this.flickerOut = 0.14 + crand() * 0.12;
         this.memImg.setAlpha(0.12);
         this.memFrameImg?.setAlpha(0.3);
         audio.sfx('sfx_finale_glitch', { volume: 0.55, throttle: 300 });
@@ -452,12 +453,12 @@ export class Finale {
       let st = this.echoFx.get(f);
       if (!st) {
         const img = (f as unknown as { img: Piped }).img;
-        st = { fx: glitchOn(this.sc, img), t: 0.5 + Math.random() * 2, burst: 0 };
+        st = { fx: glitchOn(this.sc, img), t: 0.5 + crand() * 2, burst: 0 };
         this.echoFx.set(f, st);
       }
       st.t -= dt;
       if (st.t <= 0) {
-        st.t = 1.2 + Math.random() * 2.4;
+        st.t = 1.2 + crand() * 2.4;
         st.burst = 0.18;
         audio.sfx('sfx_finale_glitch', { volume: 0.35, throttle: 450 });
       }

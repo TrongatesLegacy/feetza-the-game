@@ -11,7 +11,8 @@
 //
 // A topping applies its effects once for each level it has. An op on its own applies at every level; one with
 // .EachLevelUp applies its first op at level 1 and the EachLevelUp op once for each level after it (any op can follow
-// any other). The chain is plain data: { op, value, each: { op, value } }. (No lowercase `then` anywhere: an object
+// any other). `{ atLevel: n }` applies an effect at level n only (Exclusive Menu: each level sets its own discount).
+// The chain is plain data: { op, value, each: { op, value } }. (No lowercase `then` anywhere: an object
 // with a .then method is taken for a promise.)
 
 import { effectKind } from './kind';
@@ -105,6 +106,8 @@ export type StatOpData = (OpData | NoneOp) & { each?: OpData };
 export interface StatOpts {
   when?: WhenId;
   phase?: PhaseId;
+  /** Applies at this level only (a topping's levels that each do something different: Exclusive Menu). */
+  atLevel?: number;
 }
 
 export interface StatData extends StatOpts {
@@ -138,17 +141,10 @@ export const StatEffect = effectKind('stat', makeStat, {
   apply(e, ctx) {
     const op = opAt(e.op, ctx.level);
     if (!op || !holds(e.when) || !ctx.ledger) return;
+    if (e.atLevel !== undefined && ctx.level !== e.atLevel) return;
     ctx.ledger.add({ stat: e.stat, op, source: ctx.source, phase: e.phase ?? ctx.phase });
   },
-  describe(e) {
-    const d = STAT_DEFS[e.stat];
-    const what = d.label.toLowerCase();
-    const first = opAt(e.op, 1);
-    const each = e.op.each ? describeOp(e.stat, e.op.each, 'each') : '';
-    if (!first) return `${each} ${what} each level-up`;
-    if (!each) return describeOp(e.stat, first, 'one');
-    return `${describeOp(e.stat, first, 'head')}, ${each} each level-up`;
-  },
+  describe: (e) => (e.atLevel !== undefined ? `${describeStat(e)} at LV ${e.atLevel}` : describeStat(e)),
   scale(e, k): StatData {
     const s = (o: OpData): OpData => (o.op === 'add' ? { op: 'add', value: map(o.value, (n) => n * k) } : o.op === 'mul' ? { op: 'mul', value: map(o.value, (n) => 1 + (n - 1) * k) } : o);
     const first = firstOp(e.op);
@@ -158,6 +154,17 @@ export const StatEffect = effectKind('stat', makeStat, {
   },
   tags: (e) => [Tag.Stat(e.stat), Tag.Op(e.op.op), ...(e.op.each ? [Tag.Each(e.op.each.op)] : [])],
 });
+
+/** A stat effect in words (its level-1 op, and what each later level does). */
+function describeStat(e: StatData): string {
+  const d = STAT_DEFS[e.stat];
+  const what = d.label.toLowerCase();
+  const first = opAt(e.op, 1);
+  const each = e.op.each ? describeOp(e.stat, e.op.each, 'each') : '';
+  if (!first) return `${each} ${what} each level-up`;
+  if (!each) return describeOp(e.stat, first, 'one');
+  return `${describeOp(e.stat, first, 'head')}, ${each} each level-up`;
+}
 
 /** One op in words: "+12% chill strength". The head of a chain reads a chance as a chance ("18% arc chance, …"); its
  *  EachLevelUp part reads without the stat's name ("…, +10% each level-up"). */

@@ -6,6 +6,10 @@
 //   for each phase in turn (Build, Peel, Tricks, Haunt, Table):
 //     the highest Set → Adds → Multipliers → On (flags) → the sources' own bounds → caps
 //
+// A stat whose definition says Fold.CutsOnBase (smack reach, knockback) takes its cuts (multipliers below 1) on its
+// base only, before the adds: the highest Set → cuts on the base → Adds → boosts → … So Glass Peel's ×0.85 with Long
+// Handle's +6 is 26 × 0.85 + 6, not (26 + 6) × 0.85. A later phase's cuts scale the already-cut base again.
+//
 // Caps come from the stat definitions (src/effects/stats.ts): the floor and the soft ceiling once, at the end of the
 // Peel phase (the build's caps), the hard ceiling again after every later phase. The phases keep what is worked out
 // on top of the capped build where it always was: The Last Slice doubles capped damage, the Ghost's haunting comes
@@ -18,7 +22,7 @@
 
 import type { Stats } from '../data/upgrades';
 import { Source, shareEntries, type SourceKey, type SourceRef } from './source';
-import { STAT_DEFS, STAT_KEYS, Stack, type StatKey } from './stats';
+import { Fold, STAT_DEFS, STAT_KEYS, Stack, type StatKey } from './stats';
 
 // ——— phases ———
 
@@ -176,12 +180,16 @@ export class Ledger {
       else ph.set(m.stat, [m]);
     }
     const muls: [SourceRef, number][] = [];
+    const cuts: [SourceRef, number][] = [];
+    // Fold.CutsOnBase: what the cuts scale (the base, or the Set that replaced it, cut so far)
+    const cutBase = new Map<StatKey, number>();
     for (const phase of PHASES) {
       const ph = by[phase];
       // sets, adds and multipliers, one stat at a time
       for (const [k, list] of ph) {
         const d = STAT_DEFS[k];
         if (d.stack === Stack.Flag) continue;
+        const onBase = d.fold === Fold.CutsOnBase;
         let x = s[k] as number;
         // the set that wins: the lowest for a Min stat (a sighting every 10 waves beats every 20), else the highest
         let best: Modifier | null = null;
@@ -194,6 +202,27 @@ export class Ledger {
         if (best) {
           credit(k, best.source, bestV - x);
           x = bestV;
+          if (onBase) cutBase.set(k, bestV);
+        }
+        // Fold.CutsOnBase: the cuts scale the base only, before the adds (26 × 0.85 + 6)
+        if (onBase) {
+          const b = cutBase.get(k) ?? (d.base as number);
+          let cb = b;
+          let C = 1;
+          cuts.length = 0;
+          for (const m of list) {
+            if (m.op.op !== 'mul') continue;
+            const v = val(m, ctx);
+            if (v >= 1) continue;
+            cb *= v;
+            C *= v;
+            cuts.push([m.source, v]);
+          }
+          if (cuts.length) {
+            attribute(cuts, cb - b, C, (src, a) => credit(k, src, a));
+            x += cb - b;
+            cutBase.set(k, cb);
+          }
         }
         for (const m of list) {
           if (m.op.op !== 'add') continue;
@@ -202,6 +231,7 @@ export class Ledger {
           credit(k, m.source, v);
         }
         // multipliers one at a time, in the order the sources were added: the same product to the last bit as always
+        // (Fold.CutsOnBase: only the boosts here, the cuts went on the base above)
         const p = d.around ?? 0;
         let after = x;
         let M = 1;
@@ -209,6 +239,7 @@ export class Ledger {
         for (const m of list) {
           if (m.op.op !== 'mul') continue;
           const v = val(m, ctx);
+          if (onBase && v < 1) continue;
           after = p ? (after + p) * v - p : after * v;
           M *= v;
           muls.push([m.source, v]);

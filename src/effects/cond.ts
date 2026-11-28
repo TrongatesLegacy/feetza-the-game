@@ -12,7 +12,7 @@ import type { Px } from './units';
 export type CondData =
   | { c: 'alive' | 'hittable' | 'bossLike' | 'trueBoss' | 'diving' | 'burning' | 'puppet' | 'free' | 'decoy' | 'slowable' | 'burnable' }
   | { c: 'down'; y: Px }
-  | { c: 'notEcho' | 'perfect' | 'earned' | 'bossWave' | 'afterBoss' | 'actStart' | 'notPossessed' }
+  | { c: 'notEcho' | 'perfect' | 'earned' | 'bossWave' | 'afterBoss' | 'actStart' }
   | { c: 'waveInStage'; n: number }
   | { c: 'anyFoot'; of: CondData }
   | { c: 'all' | 'any'; of: CondData[] }
@@ -55,8 +55,6 @@ export const Cond = {
   ActStart: { c: 'actStart' } as CondData,
   /** The n-th wave of its stage. */
   WaveInStage: (n: number): CondData => ({ c: 'waveInStage', n }),
-  /** The pizza the moment is about isn't the Ghost's. */
-  NotPossessed: { c: 'notPossessed' } as CondData,
   /** Some foot on the field matches. */
   AnyFoot: (of: CondData): CondData => ({ c: 'anyFoot', of }),
   All: (...of: CondData[]): CondData => ({ c: 'all', of }),
@@ -71,7 +69,6 @@ export interface CondCtx {
   ev: AnyEvent;
   feet(): Foot[];
   wave(): number;
-  possessed(): Pizza | null;
   isBossWave(n: number): boolean;
   isActStart(n: number): boolean;
   waveInStage(n: number): number;
@@ -118,8 +115,6 @@ export function holdsCond(c: CondData, x: CondCtx, f: Foot | null = x.foot): boo
       return x.isActStart(x.wave());
     case 'waveInStage':
       return x.waveInStage(x.wave()) === c.n;
-    case 'notPossessed':
-      return x.pizza !== x.possessed();
     case 'anyFoot':
       return x.feet().some((o) => holdsCond(c.of, x, o));
     case 'all':

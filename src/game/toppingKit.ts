@@ -17,6 +17,7 @@ import { applyAll, Effect as Eff, Op, Phase, Stat, Unit, type EffectData } from 
 import { Source, type SourceKey } from '../effects/source';
 import type { Ledger } from '../effects/ledger';
 import { audio } from '../systems/audio';
+import { crand } from '../systems/cosmeticRandom';
 
 const { hit, D, B, ST, TH } = P;
 
@@ -352,7 +353,7 @@ export class ToppingKit {
   /** A boss changed phase (Party Popper). */
   onPhase(): void {
     if (!this.lv('partypopper')) return;
-    for (let i = 0; i < 7; i++) this.h.fx.party(200 + i * 253, 160 + Math.random() * 120, 26);
+    for (let i = 0; i < 7; i++) this.h.fx.party(200 + i * 253, 160 + crand() * 120, 26);
     audio.sfx('sfx_pop');
     audio.sfx('sfx_combo', { rate: 1.3 });
     this.h.fx.quip(960, 470, 'PARTY POPPER!', '#ff7ad9', 60, -3);

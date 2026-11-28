@@ -19,6 +19,7 @@ import { deliveryGap, deliveryHp, guardHits, trayHeal } from '../heatRules';
 import { HEATS, type HeatId } from '../../data/difficulty';
 import { type Flying, spinAway, tossTray } from '../trayToss';
 import { type Brain, type HeatScale, type Prop, Every, auraFor, heat, hitProp, hitWindup, laneOf, mark, rnd, shield, takeLane, twin, windup } from './kit';
+import { crand } from '../../systems/cosmeticRandom';
 
 /** King Honk and his decoys during a shuffle, relative to his full size. */
 const SHUFFLE_SIZE = 0.62;
@@ -71,7 +72,7 @@ function hold(a: Arena, f: Foot, p: Pizza | null | undefined, y = HOVER_Y): Hold
       f.x += (h.p.x - f.x) * Math.min(1, dt * 4);
       f.y += (h.y - f.y) * Math.min(1, dt * 5);
       const s = h.shake;
-      f.root.setPosition(f.x + (Math.random() - 0.5) * s * 2, f.y + (Math.random() - 0.5) * s);
+      f.root.setPosition(f.x + (crand() - 0.5) * s * 2, f.y + (crand() - 0.5) * s);
     },
     release: (to = 'hover') => {
       if (!live) return;
@@ -1154,7 +1155,7 @@ const sweep = (): Brain => {
           pending = true;
           a.quip(f.x, f.cy - 150, 'SOOT CLOUD!', '#cfcfcf', 42);
           a.sfx('sfx_sweep_brush');
-          for (let i = 0; i < 4; i++) a.sc.time.delayedCall(i * 150, () => a.fx.puff(p.x + (Math.random() - 0.5) * 120, 140 + i * 60, 10));
+          for (let i = 0; i < 4; i++) a.sc.time.delayedCall(i * 150, () => a.fx.puff(p.x + (crand() - 0.5) * 120, 140 + i * 60, 10));
           a.sc.time.delayedCall(700, () => {
             pending = false;
             if (!f.alive || p.dead || !a.inWave()) return;
@@ -1378,8 +1379,8 @@ const ironheel = (): Brain => {
         }
         orb.setPosition(f.x, f.y + 40).setScale(0.3 + k * 1.1 + Math.sin(a.now() * 20) * 0.05);
         h.shake = 2 + k * 6;
-        if (Math.random() < dt * 14) {
-          const ang = Math.random() * Math.PI * 2;
+        if (crand() < dt * 14) {
+          const ang = crand() * Math.PI * 2;
           const s = a.sc.add.circle(f.x + Math.cos(ang) * 220, f.y + 40 + Math.sin(ang) * 160, 7, 0x9ae8ff).setBlendMode(Phaser.BlendModes.ADD);
           a.fxLayer.add(s);
           a.sc.tweens.add({ targets: s, x: f.x, y: f.y + 40, scale: 0.3, duration: 380, ease: 'Quad.In', onComplete: () => s.destroy() });
@@ -1424,7 +1425,7 @@ const ironheel = (): Brain => {
       delay: 140,
       loop: true,
       callback: () => {
-        const s = a.sc.add.image(x + (Math.random() - 0.5) * 60, y, 'p_steam').setScale(0.25).setAlpha(0.7);
+        const s = a.sc.add.image(x + (crand() - 0.5) * 60, y, 'p_steam').setScale(0.25).setAlpha(0.7);
         a.fxLayer.add(s);
         a.sc.tweens.add({ targets: s, y: y - 70, alpha: 0, duration: 500, onComplete: () => s.destroy() });
       },
@@ -1436,9 +1437,9 @@ const ironheel = (): Brain => {
       if (!a.inWave() || !f.alive) return;
       a.sfx('sfx_ironheel_steam');
       for (let i = 0; i < 7; i++) {
-        const s = a.sc.add.image(x + (Math.random() - 0.5) * R, y + (Math.random() - 0.5) * 60, 'p_steam').setScale(0.6).setAlpha(0.95);
+        const s = a.sc.add.image(x + (crand() - 0.5) * R, y + (crand() - 0.5) * 60, 'p_steam').setScale(0.6).setAlpha(0.95);
         a.fxLayer.add(s);
-        a.sc.tweens.add({ targets: s, y: s.y - 220 - Math.random() * 80, scale: 1.4, alpha: 0, duration: 800, onComplete: () => s.destroy() });
+        a.sc.tweens.add({ targets: s, y: s.y - 220 - crand() * 80, scale: 1.4, alpha: 0, duration: 800, onComplete: () => s.destroy() });
       }
       const q = a.peelPoint();
       if (Math.hypot(q.x - x, q.y - y) < R + 10) a.stunPeel(hz.stun(1.2), 'SCALDED!');
@@ -1745,7 +1746,7 @@ const sandcastle = (): Brain => {
 
 /** A cream splat on the screen, bigger than the kit's (King Honk's new pies). */
 function bigSplat(a: Arena, x: number, y: number, hits: number): void {
-  const img = a.sc.add.image(x, y, 'p_creamsplat').setScale(0.3).setAlpha(0.97).setAngle((Math.random() - 0.5) * 30);
+  const img = a.sc.add.image(x, y, 'p_creamsplat').setScale(0.3).setAlpha(0.97).setAngle((crand() - 0.5) * 30);
   a.fxLayer.add(img);
   // it lands with a squash, then the cream slowly slides down the screen
   a.sc.tweens.add({ targets: img, scaleX: 1.08, scaleY: 1.0, duration: 260, ease: 'Back.Out' });
@@ -1759,7 +1760,7 @@ function bigSplat(a: Arena, x: number, y: number, hits: number): void {
     alive: () => left > 0,
     hit: () => {
       left--;
-      a.fx.puff(x + (Math.random() - 0.5) * 220, y + (Math.random() - 0.5) * 160, 8);
+      a.fx.puff(x + (crand() - 0.5) * 220, y + (crand() - 0.5) * 160, 8);
       a.sfx('sfx_squish', { volume: 0.6, rate: 1.2 });
       if (left <= 0) {
         a.quip(x, y - 80, 'WIPED!', '#7dff9a', 44);

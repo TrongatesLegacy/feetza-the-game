@@ -84,9 +84,9 @@ export class Pizza {
   private perkLabel: Phaser.GameObjects.Text;
   private strike: Phaser.GameObjects.Graphics;
   private hurtTimer = 0;
-  private blinkTimer = 2 + Math.random() * 3;
+  private blinkTimer = 2 + crand() * 3;
   private lookX = 0;
-  private bob = Math.random() * 10;
+  private bob = crand() * 10;
   /** Its living layer (src/game/pizzaAlive.ts): bubbling, steam, glisten, its tier's effects and reactions. */
   private life?: PizzaAlive;
   /** Drawn with another top for a moment (its pieces lifted out while they hop). */
@@ -205,11 +205,11 @@ export class Pizza {
     const r = PIZZA_R * this.s;
     // a crack across the stone, jagged, with a branch off it
     let x = -r * 0.86;
-    let dy = (Math.random() - 0.5) * r * 0.3;
+    let dy = (crand() - 0.5) * r * 0.3;
     const pts: [number, number][] = [[x, -lift + dy * TILT]];
     for (let i = 0; i < 7; i++) {
       x += r * 0.245;
-      dy += (Math.random() - 0.5) * r * 0.22;
+      dy += (crand() - 0.5) * r * 0.22;
       pts.push([x, -lift + dy * TILT]);
     }
     const [bx, by] = pts[3];
@@ -334,8 +334,8 @@ export class Pizza {
 
   /** A sparkle somewhere over the pizza's surface. */
   private placeSparkle(sp: Phaser.GameObjects.Image): void {
-    const a = Math.random() * Math.PI * 2;
-    const d = Math.sqrt(Math.random()) * 0.9;
+    const a = crand() * Math.PI * 2;
+    const d = Math.sqrt(crand()) * 0.9;
     const cy = -sideFor(this.type.shape) * this.s;
     sp.setPosition(Math.cos(a) * PIZZA_R * this.s * d, cy + Math.sin(a) * PIZZA_R * TILT * this.s * d - 20 * this.s);
   }
@@ -395,7 +395,7 @@ export class Pizza {
 
   /** A sparkle somewhere on the gold rim. */
   private placeSpark(sp: Phaser.GameObjects.Image): void {
-    const a = Math.random() * Math.PI * 2;
+    const a = crand() * Math.PI * 2;
     const cy = -sideFor(this.type.shape) * this.s;
     sp.setPosition(Math.cos(a) * PIZZA_R * this.s * 1.01, cy + Math.sin(a) * PIZZA_R * TILT * this.s * 1.01);
   }
@@ -411,9 +411,9 @@ export class Pizza {
     const k = Math.min(want, room / Math.max(1, w));
     this.label.setScale(k);
     this.perkLabel.setScale(k).setY(this.label.y + (this.label.height - 10) * k);
-    // stale: a line through the perk (it's switched off until the pizza is reheated)
+    // stale, frozen or possessed: a line through the perk (it's switched off)
     this.strike.clear();
-    if ((this.stale || this.perkFrozen) && this.perkLabel.visible) {
+    if (this.perkOff && this.perkLabel.visible) {
       const pw = (this.perkLabel.width - 8) * k;
       const y = this.perkLabel.y + this.perkLabel.height * k * 0.52;
       this.strike.lineStyle(6 * k, 0x2a1810, 1).lineBetween(-pw / 2 - 4, y, pw / 2 + 4, y);
@@ -476,8 +476,23 @@ export class Pizza {
     return this.freshOn && this.fresh <= 0;
   }
 
-  /** The perk this pizza currently grants (stale pizzas grant none; Quattro Stagioni rotates). */
+  /** The Ghost has possessed it (kept in step by the scene, never saved). */
+  haunted = false;
+
+  /** Its perk is off: stale, frozen, or possessed by the Ghost. */
+  get perkOff(): boolean {
+    return this.stale || this.perkFrozen || this.haunted;
+  }
+
+  /** The perk this pizza currently grants. None while it's eaten, stale, frozen or possessed: the one rule every perk
+   *  goes by (the trigger bus's scopes, the old code paths, the auras and defences all read it). Quattro Stagioni
+   *  rotates. */
   get perk(): PizzaPerk | null {
+    return this.haunted ? null : this.ownPerk;
+  }
+
+  /** The perk it would grant were the Ghost not in it: what the Ghost's possession turns against you. */
+  get ownPerk(): PizzaPerk | null {
     if (this.dead || this.stale || this.perkFrozen) return null;
     if (this.type.perk === 'rotate') return SEASONS[Number(this.flags.season ?? 0) % 4];
     // Arcobaleno and Mystery Meat grant the perk they've borrowed
@@ -619,10 +634,10 @@ export class Pizza {
     // footprint decal in top-down pizza space
     const local = (worldX - this.x) / this.s;
     this.prints.push({
-      x: PIZZA_SIZE / 2 + Phaser.Math.Clamp(local, -90, 90) + (Math.random() - 0.5) * 40,
-      y: PIZZA_SIZE / 2 + (Math.random() - 0.5) * 80,
-      rot: (Math.random() - 0.5) * 0.8,
-      s: 0.8 + Math.random() * 0.4,
+      x: PIZZA_SIZE / 2 + Phaser.Math.Clamp(local, -90, 90) + (crand() - 0.5) * 40,
+      y: PIZZA_SIZE / 2 + (crand() - 0.5) * 80,
+      rot: (crand() - 0.5) * 0.8,
+      s: 0.8 + crand() * 0.4,
     });
     if (this.prints.length > 5) this.prints.shift();
     if (this.slices === 0) this.dead = true;
@@ -701,7 +716,7 @@ export class Pizza {
     let blink = 1;
     if (this.blinkTimer < 0) {
       blink = Math.max(0.1, Math.abs(this.blinkTimer + 0.06) / 0.06);
-      if (this.blinkTimer < -0.12) this.blinkTimer = 2 + Math.random() * 4;
+      if (this.blinkTimer < -0.12) this.blinkTimer = 2 + crand() * 4;
     }
     this.hurtTimer -= dt;
     const hurt = this.hurtTimer > 0;

@@ -7,6 +7,7 @@ import type { Arena } from '../arena';
 import type { Foot } from '../Foot';
 import type { Pizza } from '../Pizza';
 import { type Brain, type Prop, Every, dropOn, heat, hitProp, laneOf, mark, retreat, rnd, twin } from './kit';
+import { crand } from '../../systems/cosmeticRandom';
 
 // ——— Helpers for this batch ———
 
@@ -410,7 +411,7 @@ const trex = (): Brain => {
     const vy = Phaser.Math.Clamp(v.y + 160, 520, 600);
     const vh = v.meta.footHeight * v.scale;
     a.sc.tweens.add({ targets: v, y: vy, duration: 500, ease: 'Back.Out' });
-    const tremble = a.sc.time.addEvent({ delay: 50, loop: true, callback: () => v.alive && (v.root.rotation = (Math.random() - 0.5) * 0.12) });
+    const tremble = a.sc.time.addEvent({ delay: 50, loop: true, callback: () => v.alive && (v.root.rotation = (crand() - 0.5) * 0.12) });
     v.flash(0xffd0a0, 140);
     a.quip(Phaser.Math.Clamp(f.x, 300, 1620), Math.max(330, f.y + 40), 'SNACK TIME!', '#ffb03d', 54);
     a.sc.time.delayedCall(450, () => v.alive && a.quip(v.x, vy - vh - 30, 'UH OH…', '#ffffff', 34));
@@ -528,7 +529,7 @@ const trex = (): Brain => {
           a.quip(o.x, Math.max(140, o.cy - 120), 'EEK!', '#ffffff', 34);
           o.setState('dying');
           o.shadow.setVisible(false);
-          a.sc.tweens.add({ targets: o.root, y: -600, duration: 600, delay: Math.random() * 300, ease: 'Back.In', onComplete: () => o.destroy() });
+          a.sc.tweens.add({ targets: o.root, y: -600, duration: 600, delay: crand() * 300, ease: 'Back.In', onComplete: () => o.destroy() });
         }
       }
       if (!a.inWave()) return;
@@ -698,9 +699,9 @@ const iceskate = (): Brain => {
         loop: true,
         callback: () => {
           if (!live) return;
-          const fl = a.sc.add.image(p.x + (Math.random() - 0.5) * half * 1.7, top + 40, 'p_ivy_flake').setScale(0.6 + Math.random() * 0.5);
+          const fl = a.sc.add.image(p.x + (crand() - 0.5) * half * 1.7, top + 40, 'p_ivy_flake').setScale(0.6 + crand() * 0.5);
           a.fxLayer.add(fl);
-          a.sc.tweens.add({ targets: fl, y: bottom - 30, x: fl.x + (Math.random() - 0.5) * 60, angle: 180, duration: 1300 + Math.random() * 500, onComplete: () => fl.destroy() });
+          a.sc.tweens.add({ targets: fl, y: bottom - 30, x: fl.x + (crand() - 0.5) * 60, angle: 180, duration: 1300 + crand() * 500, onComplete: () => fl.destroy() });
           // everything in the lane freezes (and stays frozen until just after the snow stops)
           const left = dur - (a.now() - t0);
           for (const o of a.allFeet()) {
@@ -758,7 +759,7 @@ const iceskate = (): Brain => {
       // triple axel: glide over to another lane every few seconds
       if (swinging > 0) {
         swinging -= dt;
-        if (Math.random() < dt * 20) a.fx.glint(f.x + (Math.random() - 0.5) * 80, f.y - 20, 1);
+        if (crand() < dt * 20) a.fx.glint(f.x + (crand() - 0.5) * 80, f.y - 20, 1);
         for (const o of a.allFeet()) {
           if (!o.alive || o.isBossLike || o.frozen || Math.abs(o.x - f.x) > 150) continue;
           if (boosts.add(a, o, 1.5, 4)) {
@@ -829,32 +830,32 @@ const colossus = (): Brain => {
   const world = (f: Foot, lx: number, ly: number) => ({ x: f.root.x + lx * f.root.scaleX, y: f.root.y + ly * f.root.scaleY });
   const shards = (a: Arena, x: number, y: number, n: number, burst = false) => {
     for (let i = 0; i < n; i++) {
-      const s = a.sc.add.image(x, y, 'p_colossus_shard').setScale(0.45 + Math.random() * 0.4).setAngle(Math.random() * 360);
+      const s = a.sc.add.image(x, y, 'p_colossus_shard').setScale(0.45 + crand() * 0.4).setAngle(crand() * 360);
       a.fxLayer.add(s);
-      const dx = (Math.random() - 0.5) * (burst ? 900 : 300);
-      const up = burst ? 200 + Math.random() * 300 : 60 + Math.random() * 100;
+      const dx = (crand() - 0.5) * (burst ? 900 : 300);
+      const up = burst ? 200 + crand() * 300 : 60 + crand() * 100;
       a.sc.tweens.add({ targets: s, x: x + dx, duration: burst ? 1100 : 900, ease: 'Linear' });
       a.sc.tweens.add({ targets: s, y: y - up, duration: burst ? 300 : 220, ease: 'Quad.Out', onComplete: () => {
-        a.sc.tweens.add({ targets: s, y: 1150, angle: s.angle + (Math.random() - 0.5) * 720, duration: burst ? 900 : 800, ease: 'Quad.In', onComplete: () => s.destroy() });
+        a.sc.tweens.add({ targets: s, y: 1150, angle: s.angle + (crand() - 0.5) * 720, duration: burst ? 900 : 800, ease: 'Quad.In', onComplete: () => s.destroy() });
       } });
     }
   };
   /** A whole slab of plating breaks away and tumbles off the table. */
   const slab = (a: Arena, x: number, y: number, kick = 0) => {
-    const s = a.sc.add.image(x, y, 'p_colossus_chunk').setScale(0.7).setAngle((Math.random() - 0.5) * 30);
+    const s = a.sc.add.image(x, y, 'p_colossus_chunk').setScale(0.7).setAngle((crand() - 0.5) * 30);
     a.fxLayer.add(s);
-    const dir = kick || (Math.random() < 0.5 ? -1 : 1);
-    a.sc.tweens.add({ targets: s, x: x + dir * (160 + Math.random() * 200), duration: 1000, ease: 'Linear' });
+    const dir = kick || (crand() < 0.5 ? -1 : 1);
+    a.sc.tweens.add({ targets: s, x: x + dir * (160 + crand() * 200), duration: 1000, ease: 'Linear' });
     a.sc.tweens.add({ targets: s, y: y - 90, duration: 240, ease: 'Quad.Out', onComplete: () => {
-      a.sc.tweens.add({ targets: s, y: 1200, angle: s.angle + dir * (200 + Math.random() * 200), duration: 760, ease: 'Quad.In', onComplete: () => s.destroy() });
+      a.sc.tweens.add({ targets: s, y: 1200, angle: s.angle + dir * (200 + crand() * 200), duration: 760, ease: 'Quad.In', onComplete: () => s.destroy() });
     } });
   };
   const crack = (f: Foot, a: Arena) => {
     pieces--;
     f.armor = Math.max(2, f.armor - 2);
     const at = spot(f, cracks.length);
-    const sc = 0.55 + Math.random() * 0.15;
-    const img = a.sc.add.image(at.x, at.y, 'p_colossus_crack').setScale(sc * 0.4).setAngle(Math.random() * 360).setAlpha(0);
+    const sc = 0.55 + crand() * 0.15;
+    const img = a.sc.add.image(at.x, at.y, 'p_colossus_crack').setScale(sc * 0.4).setAngle(crand() * 360).setAlpha(0);
     f.root.add(img);
     cracks.push(img);
     // the crack splits open: it snaps out past full size, then settles
@@ -1114,7 +1115,7 @@ const colossus = (): Brain => {
         shatterAll(f, a);
         a.fx.explosion(f.x, cy, 260);
         shards(a, f.x, cy, 14, true);
-        for (let i = 0; i < 4; i++) slab(a, f.x + (i - 1.5) * 110, cy - 40 + Math.random() * 80);
+        for (let i = 0; i < 4; i++) slab(a, f.x + (i - 1.5) * 110, cy - 40 + crand() * 80);
         a.flash(160, 255, 255, 255);
         a.sfx('sfx_colossus_shatter');
         a.quip(f.x, Math.max(f.y + 60, 420), 'SHATTERED!', '#ffffff', 60);
@@ -1149,7 +1150,7 @@ const colossus = (): Brain => {
           const sh = shieldImg;
           sh.setTintFill(0xffffff);
           a.sc.time.delayedCall(70, () => sh.active && sh.clearTint());
-          a.sc.tweens.add({ targets: sh, scale: { from: 1.05, to: 0.9 }, angle: { from: (Math.random() - 0.5) * 16, to: 0 }, duration: 160, ease: 'Back.Out' });
+          a.sc.tweens.add({ targets: sh, scale: { from: 1.05, to: 0.9 }, angle: { from: (crand() - 0.5) * 16, to: 0 }, duration: 160, ease: 'Back.Out' });
           a.fx.impact(sh.x, sh.y, true);
         }
         return true;

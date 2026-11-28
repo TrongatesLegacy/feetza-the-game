@@ -24,6 +24,7 @@ import type { Pizza } from './Pizza';
 import './godMoves';
 import { STAGES } from '../data/stages';
 import { NIGHT_STAGES } from './heroGoals';
+import { crand } from '../systems/cosmeticRandom';
 
 const RED = 0xff3a2a;
 const GOLD = 0xffd23f;
@@ -166,9 +167,9 @@ registerMoves({
             k.host.fx.burn(f.cx, f.cy);
             k.host.fx.explosion(f.cx, f.cy, 90);
           }
-          if (Math.random() < 0.6) k.host.fx.burn(tx, ty);
+          if (crand() < 0.6) k.host.fx.burn(tx, ty);
         }
-        if (Math.random() < 0.3) k.host.shake(60, 0.003);
+        if (crand() < 0.3) k.host.shake(60, 0.003);
       },
       () => {
         g.destroy();
@@ -520,7 +521,7 @@ registerMoves({
       },
       tick: (dt) => {
         claws.tick(dt);
-        for (const f of k.host.live()) if (f.brain.bleed && Math.random() < dt * 6) k.host.fx.propBurst(f.cx, f.cy + 20, 0xc8102e, 0.3);
+        for (const f of k.host.live()) if (f.brain.bleed && crand() < dt * 6) k.host.fx.propBurst(f.cx, f.cy + 20, 0xc8102e, 0.3);
       },
       end: () => claws.kill(),
     });
@@ -579,7 +580,7 @@ registerMoves({
         for (const f of k.host.live()) {
           if (f.cy > p.y || Math.abs(f.cx - p.x) > 60 + f.meta.halfWidth * f.scale * 0.6) continue;
           k.host.hurt(f, 0.6, { knock: 60, quiet: true });
-          if (Math.random() < 0.5) k.host.fx.burn(f.cx, f.cy);
+          if (crand() < 0.5) k.host.fx.burn(f.cx, f.cy);
         }
       },
       () => g.destroy(),
@@ -930,7 +931,7 @@ registerMoves({
         k.host.fx.glint(p.x, p.y - 60, 2);
         const t = k.random(1);
         if (t.length) k.host.throwAt(TH('bolt', 'straight', 1.5), t, ORANGE);
-        if (n % 4 === 0) k.host.quip(p.x + (Math.random() - 0.5) * 300, 220, '♪', '#ffd23f', 50);
+        if (n % 4 === 0) k.host.quip(p.x + (crand() - 0.5) * 300, 220, '♪', '#ffd23f', 50);
       },
       end: () => {
         scan?.end(400);
@@ -961,7 +962,7 @@ registerMoves({
       },
       tick: () => {
         const p = k.host.peelPos();
-        if (Math.random() < 0.5) k.host.fx.trail(p.x, p.y, GOLD);
+        if (crand() < 0.5) k.host.fx.trail(p.x, p.y, GOLD);
       },
       end: () => {
         if (glow) k.host.peel().preFX?.remove(glow);
@@ -988,7 +989,7 @@ registerMoves({
       },
       tick: () => {
         const q = k.host.peelPos();
-        if (Math.random() < 0.08) k.host.fx.lightning(q.x - 40, q.y - 120, q.x + 20, q.y - 40);
+        if (crand() < 0.08) k.host.fx.lightning(q.x - 40, q.y - 120, q.x + 20, q.y - 40);
       },
     });
   },
@@ -1303,7 +1304,7 @@ registerMoves({
       },
       tick: () => {
         const p = k.host.peelPos();
-        if (Math.random() < 0.25) k.host.fx.lightning(p.x + (Math.random() - 0.5) * 120, p.y - 60 - Math.random() * 60, p.x + (Math.random() - 0.5) * 60, p.y);
+        if (crand() < 0.25) k.host.fx.lightning(p.x + (crand() - 0.5) * 120, p.y - 60 - crand() * 60, p.x + (crand() - 0.5) * 60, p.y);
       },
     });
   },
@@ -1359,7 +1360,7 @@ registerMoves({
         g.fillRect(0, TABLE_Y - 30, W, H - TABLE_Y + 30);
         g.fillStyle(0x5a7a2a, 0.6 * a);
         for (let x = 0; x < W; x += 60) g.fillEllipse(x + Math.sin(t * 2 + x) * 10, TABLE_Y - 26 + Math.sin(t * 3 + x * 0.1) * 5, 80, 22);
-        if (Math.random() < dt * 12) k.host.fx.stinkPuff(Math.random() * W, TABLE_Y - 10);
+        if (crand() < dt * 12) k.host.fx.stinkPuff(crand() * W, TABLE_Y - 10);
         tickT += dt;
         if (tickT < 0.5) return;
         tickT = 0;
@@ -1418,7 +1419,7 @@ registerMoves({
           g.lineStyle(3, 0xfff0c0, 1);
           g.lineBetween(p.x + s * 12, p.y - 12, f.cx + s * 10, f.cy - 10);
         }
-        if (Math.random() < 0.5) k.host.fx.burn(f.cx, f.cy);
+        if (crand() < 0.5) k.host.fx.burn(f.cx, f.cy);
         if (!f.isBossLike) f.stunT = Math.max(f.stunT, 0.2);
       },
       () => {
@@ -1448,7 +1449,7 @@ registerMoves({
           d.x += v.x * dt;
           d.y += v.y * dt;
           d.angle += 900 * dt;
-          if (Math.random() < 0.5) k.host.fx.propTrail(d.x, d.y, 0xd8f0ff, 0.4);
+          if (crand() < 0.5) k.host.fx.propTrail(d.x, d.y, 0xd8f0ff, 0.4);
           for (const f of k.host.live()) {
             if (hit.has(f) || f.distanceTo(d.x, d.y) > 40) continue;
             hit.add(f);
@@ -1555,7 +1556,7 @@ registerMoves({
           f.stateT = 0;
           k.sc.tweens.add({ targets: f, x: f.x + (Math.random() < 0.5 ? -50 : 50), duration: 220, yoyo: true, ease: 'Sine.InOut' });
           k.host.hurt(f, 0.5, { quiet: true });
-          if (Math.random() < 0.4) k.host.fx.frost(f.cx, f.cy);
+          if (crand() < 0.4) k.host.fx.frost(f.cx, f.cy);
         }
       },
       () => g.destroy(),
@@ -1579,10 +1580,10 @@ registerMoves({
       },
       tick: (dt) => {
         const p = k.host.peelPos();
-        if (Math.random() < 0.7) k.host.fx.burn(p.x + (Math.random() - 0.5) * 50, p.y - 30);
+        if (crand() < 0.7) k.host.fx.burn(p.x + (crand() - 0.5) * 50, p.y - 30);
         for (const pt of patches) {
           pt.t -= dt;
-          if (Math.random() < dt * 14) k.host.fx.burn(pt.x + (Math.random() - 0.5) * 160, TABLE_Y + 60);
+          if (crand() < dt * 14) k.host.fx.burn(pt.x + (crand() - 0.5) * 160, TABLE_Y + 60);
           for (const f of k.host.live()) if (Math.abs(f.cx - pt.x) < 110 && f.y > TABLE_Y - 120) k.burn(f, 1.5, 2);
         }
         for (let i = patches.length - 1; i >= 0; i--) if (patches[i].t <= 0) patches.splice(i, 1);

@@ -14,6 +14,7 @@ import type { Foot } from '../Foot';
 import { PASSIVES, registerMoves, registerPassives, type HeroKit } from '../heroKit';
 import { NIGHT } from '../heroMoves';
 import { NEMESES } from '../nemesis';
+import { crand } from '../../systems/cosmeticRandom';
 
 const GOLD = 0xffd23f;
 
@@ -29,7 +30,7 @@ function half(k: HeroKit, from: { x: number; y: number }, f: Foot, delay: number
     const st = { t: 0 };
     const x0 = from.x;
     const y0 = from.y;
-    const bow = (Math.random() < 0.5 ? -1 : 1) * 120;
+    const bow = (crand() < 0.5 ? -1 : 1) * 120;
     k.sc.tweens.add({
       targets: st,
       t: 1,
@@ -40,7 +41,7 @@ function half(k: HeroKit, from: { x: number; y: number }, f: Foot, delay: number
         const ty = f.cy;
         img.setPosition(x0 + (tx - x0) * st.t, y0 + (ty - y0) * st.t - Math.sin(st.t * Math.PI) * bow);
         img.rotation += 0.6;
-        if (Math.random() < 0.5) k.host.fx.propTrail(img.x, img.y, GOLD, 0.3);
+        if (crand() < 0.5) k.host.fx.propTrail(img.x, img.y, GOLD, 0.3);
       },
       onComplete: () => {
         img.destroy();

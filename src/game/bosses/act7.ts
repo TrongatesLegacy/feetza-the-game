@@ -28,6 +28,7 @@ import type { Foot } from '../Foot';
 import type { Pizza } from '../Pizza';
 import { LOCATION_MUSIC, locationFor } from '../Run';
 import { type Brain, type Prop, Every, auraFor, heat, hitProp, hitWindup, mark, retreat, rnd, shield, windup } from './kit';
+import { cpick, crand } from '../../systems/cosmeticRandom';
 
 // ——— Batch helpers ———
 
@@ -115,11 +116,11 @@ function deathBurst(a: Arena, f: Foot, colours: number[], word: string, sfx?: st
   impactWord(a, x, y - 80, 2.2, word);
   for (let i = 0; i < 22; i++) {
     const key = i % 3 ? 'confetti' : 'shard';
-    const p = sc.add.image(x + (Math.random() - 0.5) * 80, y + (Math.random() - 0.5) * 80, key).setTint(colours[i % colours.length]).setScale(1.2 + Math.random());
+    const p = sc.add.image(x + (crand() - 0.5) * 80, y + (crand() - 0.5) * 80, key).setTint(colours[i % colours.length]).setScale(1.2 + crand());
     a.fxLayer.add(p);
-    const ang = Math.random() * Math.PI * 2;
-    const sp = 300 + Math.random() * 500;
-    sc.tweens.add({ targets: p, x: p.x + Math.cos(ang) * sp, angle: (Math.random() - 0.5) * 900, duration: 1400, ease: 'Quad.Out' });
+    const ang = crand() * Math.PI * 2;
+    const sp = 300 + crand() * 500;
+    sc.tweens.add({ targets: p, x: p.x + Math.cos(ang) * sp, angle: (crand() - 0.5) * 900, duration: 1400, ease: 'Quad.Out' });
     sc.tweens.add({ targets: p, y: p.y + Math.sin(ang) * sp * 0.6 + 380, alpha: 0, duration: 1400, ease: 'Quad.In', onComplete: () => p.destroy() });
   }
   a.fx.party(x, y, 40);
@@ -184,9 +185,9 @@ const lexlugtoe = (): Brain => {
       if (c.p.perkFrozen) c.p.perkFrozenT = 0.001;
       a.fx.puff(c.img.x, c.img.y, 16);
       for (let i = 0; i < 10; i++) {
-        const s = a.sc.add.image(c.img.x + (Math.random() - 0.5) * 220, c.img.y + (Math.random() - 0.5) * 160, 'shard').setTint(0xd8f2ff).setScale(1.4);
+        const s = a.sc.add.image(c.img.x + (crand() - 0.5) * 220, c.img.y + (crand() - 0.5) * 160, 'shard').setTint(0xd8f2ff).setScale(1.4);
         a.fxLayer.add(s);
-        a.sc.tweens.add({ targets: s, y: s.y + 260 + Math.random() * 200, x: s.x + (Math.random() - 0.5) * 300, angle: 400, alpha: 0, duration: 700, onComplete: () => s.destroy() });
+        a.sc.tweens.add({ targets: s, y: s.y + 260 + crand() * 200, x: s.x + (crand() - 0.5) * 300, angle: 400, alpha: 0, duration: 700, onComplete: () => s.destroy() });
       }
       impactWord(a, c.p.x, c.p.surfaceY - 180, 1.2, 'KRASH!');
       a.sc.tweens.add({ targets: c.img, alpha: 0, scale: c.img.scale * 1.2, duration: 160, onComplete: () => c.img.destroy() });
@@ -301,8 +302,8 @@ const lexlugtoe = (): Brain => {
       }
       quipT -= dt;
       if (quipT <= 0) {
-        quipT = 10 + Math.random() * 6;
-        bubble(a, rnd(['I\'LL TAKE THE LOT.', 'SOLD! TO THE BALD MAN.', 'NAME YOUR PRICE.', 'PUT IT ON MY TAB.'])!, f);
+        quipT = 10 + crand() * 6;
+        bubble(a, cpick(['I\'LL TAKE THE LOT.', 'SOLD! TO THE BALD MAN.', 'NAME YOUR PRICE.', 'PUT IT ON MY TAB.'])!, f);
       }
       acquire.every = h.cooldown(f.phase >= 2 ? 9 : 10);
       if (acquire.tick(dt) && a.inWave()) {
@@ -617,7 +618,7 @@ const doomstomp = (): Brain => {
         // smacks can't finish him, but they charge your meter
         const r = bits(a).run;
         r.super = Math.min(1, r.super + 0.07);
-        a.fx.glint(f.cx + (Math.random() - 0.5) * 80, f.cy);
+        a.fx.glint(f.cx + (crand() - 0.5) * 80, f.cy);
         return true;
       }
       if (ko) return true;
@@ -809,7 +810,7 @@ const ultoe = (): Brain => {
           callback: () => {
             k++;
             f.setVisualAlpha(k % 2 ? 0.25 + k / 16 : 0.1);
-            a.fx.lightning(f.cx - 80 + Math.random() * 160, f.cy - 80, f.cx - 80 + Math.random() * 160, f.cy + 80);
+            a.fx.lightning(f.cx - 80 + crand() * 160, f.cy - 80, f.cx - 80 + crand() * 160, f.cy + 80);
             if (k >= 12) {
               f.setVisualAlpha(1);
               f.puppet = false;
@@ -840,8 +841,8 @@ const ultoe = (): Brain => {
       }
       quipT -= dt;
       if (quipT <= 0) {
-        quipT = 11 + Math.random() * 6;
-        bubble(a, rnd(['I AM EVERY SHOE.', 'THERE ARE NO STRINGS ON ME. ONLY LACES.', 'WHICH ONE IS ME?', 'DELETING PIZZA…'])!, f);
+        quipT = 11 + crand() * 6;
+        bubble(a, cpick(['I AM EVERY SHOE.', 'THERE ARE NO STRINGS ON ME. ONLY LACES.', 'WHICH ONE IS ME?', 'DELETING PIZZA…'])!, f);
       }
       keepDrones(a, f, Math.max(1, h.adds(2) - 1));
       upload.every = h.cooldown(f.phase >= 2 ? 12 : 15);
@@ -953,7 +954,7 @@ const thanfoot = (): Brain => {
             const p = socketAt(f, i);
             const bit = a.sc.add.image(p.x, p.y, `p_a7_stone_${s.id}`).setScale(0.62);
             a.fxLayer.add(bit);
-            a.sc.tweens.add({ targets: bit, x: p.x + (Math.random() - 0.5) * 700, y: p.y - 300, angle: 720, alpha: 0, duration: 700, ease: 'Quad.Out', onComplete: () => bit.destroy() });
+            a.sc.tweens.add({ targets: bit, x: p.x + (crand() - 0.5) * 700, y: p.y - 300, angle: 720, alpha: 0, duration: 700, ease: 'Quad.Out', onComplete: () => bit.destroy() });
             impactWord(a, p.x, p.y - 80, 1, 'PLINK!');
             knockOut(a, i);
           },
@@ -998,9 +999,9 @@ const thanfoot = (): Brain => {
         const lose = Math.floor(p.slices / 2);
         if (lose > 0) a.hitPizza(p, lose, 'HALVED!', '#d8b0ff');
         for (let k = 0; k < 10; k++) {
-          const d = a.sc.add.image(p.x + (Math.random() - 0.5) * p.radius * 1.6, p.surfaceY - Math.random() * 60, 'soft').setTint(0x8a6a5a).setScale(0.25);
+          const d = a.sc.add.image(p.x + (crand() - 0.5) * p.radius * 1.6, p.surfaceY - crand() * 60, 'soft').setTint(0x8a6a5a).setScale(0.25);
           a.fxLayer.add(d);
-          a.sc.tweens.add({ targets: d, y: d.y - 200 - Math.random() * 100, x: d.x + 80 + Math.random() * 120, alpha: 0, duration: 1600, onComplete: () => d.destroy() });
+          a.sc.tweens.add({ targets: d, y: d.y - 200 - crand() * 100, x: d.x + 80 + crand() * 120, alpha: 0, duration: 1600, onComplete: () => d.destroy() });
         }
       }
       // the stones are spent: the sock empties
@@ -1092,8 +1093,8 @@ const thanfoot = (): Brain => {
       }
       quipT -= dt;
       if (quipT <= 0) {
-        quipT = 12 + Math.random() * 6;
-        bubble(a, rnd(['PERFECTLY BALANCED.', 'I AM INEVITABLE.', 'A SMALL PRICE TO PAY FOR SALVATION.', 'THE HARDEST CHOICES REQUIRE THE STRONGEST FEET.'])!, f);
+        quipT = 12 + crand() * 6;
+        bubble(a, cpick(['PERFECTLY BALANCED.', 'I AM INEVITABLE.', 'A SMALL PRICE TO PAY FOR SALVATION.', 'THE HARDEST CHOICES REQUIRE THE STRONGEST FEET.'])!, f);
       }
       collect.every = h.cooldown(9 * [1, 1, 0.85, 0.75, 0.7][Math.min(4, f.phase)]);
       if (!snapping && collect.tick(dt) && a.inWave()) {
@@ -1132,7 +1133,7 @@ const thanfoot = (): Brain => {
       }
       if (has('soul') && f.hp < f.maxHp) {
         f.hp = Math.min(f.maxHp, f.hp + f.maxHp * 0.004 * dt * (h.rank + 1) * 0.5);
-        if (Math.random() < dt * 3) a.fx.healBurst(f.cx + (Math.random() - 0.5) * 100, f.cy);
+        if (crand() < dt * 3) a.fx.healBurst(f.cx + (crand() - 0.5) * 100, f.cy);
       }
       if (has('time')) {
         timers.time -= dt;

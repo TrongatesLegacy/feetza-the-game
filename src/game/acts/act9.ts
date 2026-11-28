@@ -14,6 +14,7 @@ import type { Foot } from '../Foot';
 import { PEEL_BY_ID, type PeelDef } from '../peels';
 import type { Pizza } from '../Pizza';
 import { LOCATION_MUSIC, bossMusic, isBossWave, isMiniWave, locationFor, waveInStage } from '../Run';
+import { crand } from '../../systems/cosmeticRandom';
 
 /** The scene behind the Arena: a few things the Arena has no call for (the pointer the peel follows,
  * the smack damage, a stat recompute, a foot's lane hooks). */
@@ -198,11 +199,11 @@ function harpySmack(f: Foot, a: Arena): void {
 function sirenTick(f: Foot, dt: number, a: Arena): void {
   if (f.state !== 'hover' && f.state !== 'descend') return;
   if (f.y < 120) return;
-  if (Math.random() < dt * 2.2) {
-    const n = a.sc.add.image(f.x + (Math.random() - 0.5) * 90 * f.scale, f.cy - 40, 'p9_note').setScale(0.45).setAlpha(0).setTint(Math.random() < 0.5 ? 0xbff8f0 : 0xffffff);
+  if (crand() < dt * 2.2) {
+    const n = a.sc.add.image(f.x + (crand() - 0.5) * 90 * f.scale, f.cy - 40, 'p9_note').setScale(0.45).setAlpha(0).setTint(crand() < 0.5 ? 0xbff8f0 : 0xffffff);
     a.fxLayer.add(n);
     a.sc.tweens.add({ targets: n, alpha: { from: 0, to: 0.95 }, duration: 250, yoyo: true, hold: 600 });
-    a.sc.tweens.add({ targets: n, y: n.y - 150, x: n.x + (Math.random() - 0.5) * 80, angle: (Math.random() - 0.5) * 40, duration: 1100, onComplete: () => n.destroy() });
+    a.sc.tweens.add({ targets: n, y: n.y - 150, x: n.x + (crand() - 0.5) * 80, angle: (crand() - 0.5) * 40, duration: 1100, onComplete: () => n.destroy() });
   }
   if (!f.brain.sang) {
     f.brain.sang = true;
@@ -221,7 +222,7 @@ function titanTick(f: Foot, _dt: number, a: Arena): void {
   if (st === 'descend') {
     a.shake(260, 0.005);
     a.rumble(0.5, 200);
-    for (let i = 0; i < 5; i++) a.fx.puff(f.x + (Math.random() - 0.5) * 260, 760 + Math.random() * 40, 2);
+    for (let i = 0; i < 5; i++) a.fx.puff(f.x + (crand() - 0.5) * 260, 760 + crand() * 40, 2);
   } else if (st === 'stomp') {
     a.shake(380, 0.011);
     a.rumble(0.9, 260);
@@ -407,7 +408,7 @@ export function charybdis(a: Arena, rw: EventRewards): void {
     hit: () => {
       if (done) return;
       hits++;
-      a.fx.impact(CH.x + (Math.random() - 0.5) * 120, CH.y, hits >= CH.hits);
+      a.fx.impact(CH.x + (crand() - 0.5) * 120, CH.y, hits >= CH.hits);
       a.sfx('sfx_slap_2', { volume: 0.6, rate: 0.8 });
       a.sc.tweens.add({ targets: swirl, scaleX: full.x * 0.86, scaleY: full.y * 0.86, duration: 80, yoyo: true });
       if (hits < CH.hits) {

@@ -2104,13 +2104,15 @@ input[type='range']::-moz-range-thumb {
 }
 
 /* keyboard hints over the dimmed game get an outline instead of relying on the dim layer */
-.upgrade-wrap .kbd-hint {
+.upgrade-wrap .kbd-hint,
+.shop2 .kbd-hint {
   paint-order: stroke fill;
   -webkit-text-stroke: 0.25em var(--ink);
   text-shadow: none !important;
 }
 
-.upgrade-wrap .kbd-hint .kbd {
+.upgrade-wrap .kbd-hint .kbd,
+.shop2 .kbd-hint .kbd {
   -webkit-text-stroke: 0;
 }
 
@@ -2375,6 +2377,9 @@ body.pad .slam .pd {
   color: var(--cream);
   font-weight: 600;
   font-size: 1.2em;
+  /* over the dimmed game: an outline carries its contrast, whatever is behind */
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.22em var(--ink);
 }
 
 .shop-purses {
@@ -2728,7 +2733,7 @@ body.pad .slam .pd {
 }
 
 .golden .sec-head h2 {
-  color: #8a5a00;
+  color: #6e4800;
 }
 
 .gitems {
@@ -5494,6 +5499,29 @@ body.still-peels .peel-big.shiny::after {
   background: var(--tomato-d);
 }
 
+/* Exclusive Menu's guaranteed card: a gold ribbon on its top-right corner (clear of the rarity tab and the key) */
+.card .xtag {
+  position: absolute;
+  top: 0.55em;
+  right: 0.5em;
+  transform: rotate(6deg);
+  font-family: 'Lilita One', sans-serif;
+  font-size: 0.8em;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+  background: var(--cheese);
+  padding: 0.05em 0.5em;
+  border: 0.14em solid var(--ink);
+  border-radius: 0.5em;
+  box-shadow: 0 0.15em 0 var(--ink);
+  white-space: nowrap;
+  z-index: 3;
+  pointer-events: none;
+}
+.card.exclusive {
+  box-shadow: 0 0 0 0.22em var(--cheese), 0 0.35em 0 rgba(42, 24, 16, 0.35);
+}
+
 .btn s {
   opacity: 0.7;
   font-size: 0.85em;
@@ -6914,7 +6942,7 @@ body.still-peels .peel-big.shiny::after {
 
 /* ——— A framed pizza card's tier label is a tab of its frame, centred at the top: it hangs from the top ring in the ring's own material,
    joined to it by two small curves (--tab is the ring's colour at the top; the label's text reads on it) ——— */
-.pzr-common { --tab: #c48a50; --tab2: #a8703c; --tabink: #fff4e0; }
+.pzr-common { --tab: #8f5f30; --tab2: #74491f; --tabink: #fff4e0; }
 .pzr-rare { --tab: #dde4ec; --tab2: #a9b4c1; --tabink: #28323e; }
 .pzr-epic { --tab: #7a3ae0; --tab2: #5a22b8; --tabink: #ffffff; }
 .pzr-legendary { --tab: #ffd65a; --tab2: #d08a08; --tabink: #3e2400; }
@@ -7054,7 +7082,7 @@ body:not(.reduced-motion) .counter-empty .ce-sign { transform-origin: 110px 0; t
   box-shadow: inset 0 -0.07em 0 rgba(40, 10, 0, 0.45);
 }
 .offer > .kind-tab { left: 1.9em; }
-.offer > .new-tab { right: 1.9em; cursor: help; --k1: #e8452e; --k2: #b0251a; --k-ink: #ffe27a; }
+.offer > .new-tab { right: 1.9em; cursor: help; --k1: #c8321f; --k2: #9a1f14; --k-ink: #ffffff; }
 .offer > .kind-tab::before,
 .offer > .kind-tab::after,
 .offer > .new-tab::before,
@@ -7069,7 +7097,7 @@ body:not(.reduced-motion) .counter-empty .ce-sign { transform-origin: 110px 0; t
 .offer > .new-tab::before { right: 100%; background: radial-gradient(circle at 0 100%, transparent 0.7em, var(--k1) 0.72em); }
 .offer > .kind-tab::after,
 .offer > .new-tab::after { left: 100%; background: radial-gradient(circle at 100% 100%, transparent 0.7em, var(--k1) 0.72em); }
-.kind-tab.k-special { --k1: #ffd84a; --k2: #e7a50e; --k-ink: #8a1c0c; }
+.kind-tab.k-special { --k1: #ffd84a; --k2: #e7a50e; --k-ink: #6e1408; }
 .kind-tab.k-pizzeria { --k1: #ffd84a; --k2: #d98f0a; --k-ink: #5a2a00; }
 .kind-tab.k-enhanced { --k1: #e8b830; --k2: #b07800; --k-ink: #fff8e0; }
 .kind-tab.k-free { --k1: #6cc04a; --k2: #3f8a2c; --k-ink: #ffffff; }
@@ -7175,7 +7203,7 @@ body:not(.reduced-motion) .kind-tab.k-special { animation: kindShine 3.6s ease-i
   background: linear-gradient(180deg, var(--k1), var(--k2));
   box-shadow: inset 0 -0.07em 0 rgba(40, 10, 0, 0.45);
 }
-.offer > .tabs > .new-tab { cursor: help; --k1: #e8452e; --k2: #b0251a; --k-ink: #ffe27a; }
+.offer > .tabs > .new-tab { cursor: help; --k1: #c8321f; --k2: #9a1f14; --k-ink: #ffffff; }
 .offer > .tabs > .kind-tab.k-special {
   background-image: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.75) 50%, transparent 65%), linear-gradient(180deg, var(--k1), var(--k2));
   background-size: 250% 100%, 100% 100%;

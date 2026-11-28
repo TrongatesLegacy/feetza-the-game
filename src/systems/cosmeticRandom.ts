@@ -23,3 +23,20 @@ export function crand(): number {
 export function seedCosmetic(n: number): void {
   s = (n ^ 0x9e3779b9) >>> 0 || 1;
 }
+
+/** One of `a`, picked by the cosmetic generator (a quip's words, a prop's look). */
+export function cpick<T>(a: readonly T[]): T {
+  return a[Math.floor(crand() * a.length)];
+}
+
+/** Run `fn` with Math.random drawing from the cosmetic generator: for looks that Phaser draws randomness for
+ *  itself (a particle burst's ranges, a tile sprite's texture key), so they never move the game's own sequence on. */
+export function cosmetic<T>(fn: () => T): T {
+  const was = Math.random;
+  Math.random = crand;
+  try {
+    return fn();
+  } finally {
+    Math.random = was;
+  }
+}

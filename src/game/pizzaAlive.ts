@@ -721,6 +721,8 @@ export interface AliveHost {
   dead: boolean;
   stale: boolean;
   perkFrozen: boolean;
+  /** The Ghost has it: its perks are off, so it's as still as a frozen one. */
+  haunted: boolean;
   alive: boolean[];
   /** The face's middle (local) and its scale. */
   faceY: number;
@@ -955,7 +957,7 @@ export class PizzaAlive {
     const lift = sideFor(this.host.type.shape) * s;
     const calz = this.host.type.shape === 'calzone';
     const cy = -lift + (calz ? (CALZONE_CY + PIZZA_R * 0.3 - PIZZA_SIZE / 2) * TILT * s : 0);
-    return { cx: 0, cy, rx: PIZZA_R * s * (calz ? 1 : 1), ry: PIZZA_R * TILT * s * (calz ? 0.75 : 1), prx: (PIZZA_R + 40) * s, pry: (PIZZA_R + 40) * TILT * s, calm: reduced(), basic: !peelsAnimated(), quiet: this.host.stale || this.host.perkFrozen };
+    return { cx: 0, cy, rx: PIZZA_R * s * (calz ? 1 : 1), ry: PIZZA_R * TILT * s * (calz ? 0.75 : 1), prx: (PIZZA_R + 40) * s, pry: (PIZZA_R + 40) * TILT * s, calm: reduced(), basic: !peelsAnimated(), quiet: this.host.stale || this.host.perkFrozen || this.host.haunted };
   }
 
   /** Art space (top-down px) to local. */
@@ -1001,7 +1003,7 @@ export class PizzaAlive {
     const basic = f.basic;
     // a stale pie has gone cold: no steam, no bubbling; a frozen perk stills its own effect
     const warm = !h.stale;
-    const idle = this.set.idle && !h.perkFrozen && !h.stale && !basic;
+    const idle = this.set.idle && !h.perkFrozen && !h.haunted && !h.stale && !basic;
     const life = this.set.life * (calm ? 0.45 : 1) * (basic ? 0.6 : 1);
     if (on) {
       if (warm) this.living(dt, life, basic, f);
@@ -1012,7 +1014,7 @@ export class PizzaAlive {
         // (kept to the rim: it creeps in and back as it breathes, never greying the pie)
         this.frost.outer.setVisible(idle).setAlpha(calm ? 0.7 : 0.6 + 0.25 * Math.sin(this.t * 0.42));
       }
-      if (this.glow) this.glow.setVisible(!h.stale).setAlpha((h.perkFrozen ? 0.15 : calm || basic ? 0.4 : 0.36 + 0.1 * Math.sin(this.t * 1.7)) + 0.35 * this.flareT);
+      if (this.glow) this.glow.setVisible(!h.stale).setAlpha((h.perkFrozen || h.haunted ? 0.15 : calm || basic ? 0.4 : 0.36 + 0.1 * Math.sin(this.t * 1.7)) + 0.35 * this.flareT);
       if (this.rimGlow) this.rimGlow.setVisible(idle).setAlpha((calm ? 0.26 : 0.22 + 0.1 * Math.sin(this.t * 2.6 + 1)) + 0.4 * this.flareT);
       this.aura?.update(dt, f);
     }

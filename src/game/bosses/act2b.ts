@@ -9,7 +9,7 @@ import type { Arena } from '../arena';
 import type { Foot } from '../Foot';
 import type { Pizza } from '../Pizza';
 import { type Brain, type Prop, type Takeover, Every, dropOn, heat, hitProp, hitWindup, laneOf, mark, retreat, rnd, screenSplat, shield, takeLane, throwAtPeel, windup } from './kit';
-import { crand } from '../../systems/cosmeticRandom';
+import { cpick, crand } from '../../systems/cosmeticRandom';
 import { runHeatRank, zombieRevive, zombieReviveText } from '../heatRules';
 import { ZombieLook, canZombify, prepareZombie, stepZombieBuilds } from '../zombieArt';
 
@@ -306,7 +306,7 @@ const milkshake = (): Brain => {
       steamT -= dt;
       if (bowl && steamT <= 0) {
         steamT = 0.5;
-        a.fx.puff(BOWL.x + (Math.random() - 0.5) * 60, BOWL.y - 70, 1);
+        a.fx.puff(BOWL.x + (crand() - 0.5) * 60, BOWL.y - 70, 1);
       }
     },
     update: (f, dt, a) => {
@@ -400,10 +400,10 @@ const milkshake = (): Brain => {
         if (s.dripT <= 0 && s.t > 0.95) {
           s.dripT = 0.18;
           // blobs of pizza-shake get pulled in at the mouth and shoot up the straw
-          const x = s.p.x + (Math.random() - 0.5) * 150;
+          const x = s.p.x + (crand() - 0.5) * 150;
           const d = a.sc.add.image(x, s.p.surfaceY + 10, 'p_slurp').setScale(0.9).setAngle(180);
           a.fxLayer.add(d);
-          a.sc.tweens.add({ targets: d, x: s.p.x + (Math.random() - 0.5) * 40, y: s.p.surfaceY - 30, scale: 0.6, duration: 220, ease: 'Quad.In' });
+          a.sc.tweens.add({ targets: d, x: s.p.x + (crand() - 0.5) * 40, y: s.p.surfaceY - 30, scale: 0.6, duration: 220, ease: 'Quad.In' });
           a.sc.tweens.add({ targets: d, y: s.p.surfaceY - 470, alpha: 0, scale: 0.45, duration: 520, delay: 220, ease: 'Quad.In', onComplete: () => d.destroy() });
           a.sfx('sfx_milkshake_slurp', { throttle: 450 });
         }
@@ -1089,7 +1089,7 @@ const poltergeist = (): Brain => {
           F.zombies.delete(o);
           continue;
         }
-        if (whiff && Math.random() < 0.5) a.fx.stinkPuff(o.cx, o.cy);
+        if (whiff && crand() < 0.5) a.fx.stinkPuff(o.cx, o.cy);
         if (o.state === 'descend') {
           z.armed = true;
           z.p = o.target;
@@ -1255,7 +1255,7 @@ const poltergeist = (): Brain => {
           if (s.munch.tick(dt) && s.p.slices > 1) {
             a.hitPizza(s.p, 1, 'MUNCH!', '#9be36a');
             a.sfx('sfx_poltergeist_munch', { throttle: 200 });
-            if (Math.random() < 0.5) a.quip(s.p.x + 90, s.p.surfaceY - 120, rnd(GROANS)!, '#9be36a', 30);
+            if (crand() < 0.5) a.quip(s.p.x + 90, s.p.surfaceY - 120, cpick(GROANS), '#9be36a', 30);
           }
         }
       }
@@ -1363,7 +1363,7 @@ const phantomking = (): Brain => {
   };
   return {
     names: ['FADE', 'ECHOES', 'POSSESSION'],
-    info: ['Fades out between stomps · hit it while it is solid', 'Only echoes of past bosses join it, each with one weak move · clear them fast and stop their moves', 'Possesses a pizza, then hops to another every 8 s · Peel Slam while the Ghost is solid'],
+    info: ['Fades out between stomps · hit it while it is solid', 'Only echoes of past bosses join it, each with one weak move · clear them fast and stop their moves', 'Possesses a pizza (all its perks stop and its perk turns against you), then hops to another every 8 s · Peel Slam while the Ghost is solid'],
     cards: [
       {
         what: 'The Ghost fades out between stomps',
@@ -1381,7 +1381,7 @@ const phantomking = (): Brain => {
         ],
       },
       {
-        what: 'The Ghost possesses a pizza and turns its perk against you',
+        what: 'The Ghost possesses a pizza: all its perks stop, and its perk turns against you',
         hit: 'Peel Slam while the Ghost is solid to break the curse',
         miss: 'The curse hops to another pizza every 8 s',
         icon: '👻',

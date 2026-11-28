@@ -13,6 +13,7 @@ import { addCanvas } from '../assets';
 import type { Foot } from '../Foot';
 import type { Pizza } from '../Pizza';
 import { type Brain, type PhaseCard, type Prop, type Takeover, Every, dropOn, heat, hitProp, laneOf, mark, rnd, shield, takeLane, throwAtPeel } from './kit';
+import { crand } from '../../systems/cosmeticRandom';
 
 // ——— Act helpers ———
 
@@ -106,7 +107,7 @@ function entrance(a: Arena, f: Foot, o: { sfx: string; quip: string; color: stri
       a.rumble(0.9, 320);
       a.flash(220, ...o.flash);
       a.fx.ring(f.x, f.y, 0xffffff, 1.8, 0.4);
-      for (let i = 0; i < 8; i++) a.fx.puff(f.x + (Math.random() - 0.5) * 220, f.y + (Math.random() - 0.5) * 60, 2);
+      for (let i = 0; i < 8; i++) a.fx.puff(f.x + (crand() - 0.5) * 220, f.y + (crand() - 0.5) * 60, 2);
       a.quip(f.x, Math.max(SAFE_TOP + 40, f.cy - 170), o.quip, o.color, 52);
       const sx = f.root.scaleX;
       const sy = f.root.scaleY;
@@ -143,7 +144,7 @@ function shardsOf(a: Arena, f: Foot, n: number): string[] {
       const pts = 7;
       for (let k = 0; k < pts; k++) {
         const ang = (k / pts) * Math.PI * 2;
-        const rr = 0.42 + Math.random() * 0.16;
+        const rr = 0.42 + crand() * 0.16;
         const px = cw / 2 + Math.cos(ang) * cw * rr;
         const py = ch / 2 + Math.sin(ang) * ch * rr;
         if (k) ctx.lineTo(px, py);
@@ -179,10 +180,10 @@ function shatter(a: Arena, f: Foot, o: { tint?: number; burst?: number; n?: numb
     const img = a.sc.add.image(cx, cy, k).setScale(s);
     if (o.tint !== undefined) img.setTint(o.tint);
     a.fxLayer.add(img);
-    const dx = (cx - f.x) * 2.2 + (Math.random() - 0.5) * 300;
+    const dx = (cx - f.x) * 2.2 + (crand() - 0.5) * 300;
     a.sc.tweens.add({ targets: img, x: cx + dx, duration: 1300, ease: 'Quad.Out' });
-    a.sc.tweens.add({ targets: img, y: cy - 260 - Math.random() * 200, duration: 450, ease: 'Quad.Out', yoyo: true, hold: 60, onComplete: () => a.sc.tweens.add({ targets: img, y: 1200, duration: 700, ease: 'Quad.In', onComplete: () => img.destroy() }) });
-    a.sc.tweens.add({ targets: img, angle: (Math.random() - 0.5) * 720, alpha: { from: 1, to: 0.85 }, duration: 1800 });
+    a.sc.tweens.add({ targets: img, y: cy - 260 - crand() * 200, duration: 450, ease: 'Quad.Out', yoyo: true, hold: 60, onComplete: () => a.sc.tweens.add({ targets: img, y: 1200, duration: 700, ease: 'Quad.In', onComplete: () => img.destroy() }) });
+    a.sc.tweens.add({ targets: img, angle: (crand() - 0.5) * 720, alpha: { from: 1, to: 0.85 }, duration: 1800 });
   });
   a.fx.party(f.cx, f.cy, 70);
   if (o.burst !== undefined) {
@@ -273,7 +274,7 @@ const minotaur = (): Brain => {
     a.sfx('sfx_minotaur_snort');
     // pawing: it rocks and steam puffs from its nostrils
     const paw = a.sc.tweens.add({ targets: f.root, angle: { from: -4, to: 4 }, duration: 120, yoyo: true, repeat: Math.max(1, Math.round((sec * 1000) / 240) - 1) });
-    const steam = a.sc.time.addEvent({ delay: 220, repeat: Math.ceil(sec / 0.22), callback: () => a.fx.puff(f.x + (Math.random() - 0.5) * 80, f.y - 20, 2) });
+    const steam = a.sc.time.addEvent({ delay: 220, repeat: Math.ceil(sec / 0.22), callback: () => a.fx.puff(f.x + (crand() - 0.5) * 80, f.y - 20, 2) });
     let t = 0;
     const tick = a.sc.time.addEvent({ delay: 16, loop: true, callback: () => glow.set(Math.min(1, (t += 0.016) / sec)) });
     a.sc.time.delayedCall(sec * 1000, () => {
@@ -307,7 +308,7 @@ const minotaur = (): Brain => {
         a.sfx('sfx_minotaur_gore');
         a.shake(380, 0.012);
         a.rumble(0.9, 260);
-        for (let i = 0; i < 6; i++) a.fx.puff(p.x + (Math.random() - 0.5) * 200, p.surfaceY, 2);
+        for (let i = 0; i < 6; i++) a.fx.puff(p.x + (crand() - 0.5) * 200, p.surfaceY, 2);
         if (!p.dead && a.inWave()) a.hitPizza(p, h.slices(1), 'GORED!', '#ff6a4a');
         a.sc.tweens.add({ targets: f, y: y0, duration: 520, delay: 200, ease: 'Quad.Out', onComplete: () => afterCharge(f, a) });
       },
@@ -336,7 +337,7 @@ const minotaur = (): Brain => {
         a.rumble(1, 380);
         a.flash(160, 255, 230, 180);
         a.fx.ring(tx, WALL_TOP + 20, 0xffe0a0, 1.6, 0.5);
-        for (let i = 0; i < 10; i++) a.fx.puff(tx + (Math.random() - 0.5) * 220, WALL_TOP + Math.random() * 120, 2);
+        for (let i = 0; i < 10; i++) a.fx.puff(tx + (crand() - 0.5) * 220, WALL_TOP + crand() * 120, 2);
         if (w) {
           w.crack++;
           a.sc.tweens.add({ targets: w.img, angle: { from: -5, to: 5 }, duration: 60, yoyo: true, repeat: 3, onComplete: () => w.img.setAngle(0) });
@@ -533,7 +534,7 @@ function freeStatue(a: Arena, s: Statue, cured: boolean): void {
 function crackStatue(a: Arena, s: Statue): void {
   s.cracks++;
   const p = s.p;
-  a.fx.puff(p.x + (Math.random() - 0.5) * 100, p.surfaceY - 10, 5);
+  a.fx.puff(p.x + (crand() - 0.5) * 100, p.surfaceY - 10, 5);
   if (s.cracks >= s.need) {
     freeStatue(a, s, false);
     a.sfx('sfx_medusa_crumble');
@@ -601,7 +602,7 @@ const medusa = (): Brain => {
         const m = mirror!;
         m.hits++;
         a.sfx('sfx_medusa_reflect');
-        a.fx.impact(x + (Math.random() - 0.5) * 60, y + (Math.random() - 0.5) * 60, true);
+        a.fx.impact(x + (crand() - 0.5) * 60, y + (crand() - 0.5) * 60, true);
         a.sc.tweens.add({ targets: [img, refl], angle: { from: -6, to: 6 }, duration: 60, yoyo: true });
         // the reflection hit lands on Medusa herself
         reflecting = true;
@@ -1230,13 +1231,13 @@ const hades = (): Brain => {
     },
     onDeath: (f, a) => {
       bin.flush();
-      for (let i = 0; i < 14; i++) a.sc.time.delayedCall(i * 40, () => a.fx.burn(f.cx + (Math.random() - 0.5) * 260, f.cy + (Math.random() - 0.5) * 200));
+      for (let i = 0; i < 14; i++) a.sc.time.delayedCall(i * 40, () => a.fx.burn(f.cx + (crand() - 0.5) * 260, f.cy + (crand() - 0.5) * 200));
       shatter(a, f, { burst: 0x4fb8ff, tint: 0xbfd8ff, sfx: 'sfx_hades_banish' });
       // the souls he held drift free
       for (let i = 0; i < 10; i++) {
-        const g = a.sc.add.image(f.cx + (Math.random() - 0.5) * 400, f.cy + Math.random() * 200, 'glow').setTint(0x9fe8ff).setBlendMode(Phaser.BlendModes.ADD).setScale(0.3).setAlpha(0);
+        const g = a.sc.add.image(f.cx + (crand() - 0.5) * 400, f.cy + crand() * 200, 'glow').setTint(0x9fe8ff).setBlendMode(Phaser.BlendModes.ADD).setScale(0.3).setAlpha(0);
         a.fxLayer.add(g);
-        a.sc.tweens.add({ targets: g, alpha: { from: 0.9, to: 0 }, y: g.y - 500 - Math.random() * 200, x: g.x + (Math.random() - 0.5) * 200, duration: 1800 + Math.random() * 800, delay: i * 90, onComplete: () => g.destroy() });
+        a.sc.tweens.add({ targets: g, alpha: { from: 0.9, to: 0 }, y: g.y - 500 - crand() * 200, x: g.x + (crand() - 0.5) * 200, duration: 1800 + crand() * 800, delay: i * 90, onComplete: () => g.destroy() });
       }
     },
   };
@@ -1282,7 +1283,7 @@ const hades = (): Brain => {
     // (the phase banner already names the Titan: no second banner over the action)
     a.sc.time.delayedCall(700, () => {
       for (const c of chains) {
-        a.sc.tweens.add({ targets: c, y: -420, angle: (Math.random() - 0.5) * 60, alpha: 0, duration: 500, ease: 'Quad.In', onComplete: () => c.destroy() });
+        a.sc.tweens.add({ targets: c, y: -420, angle: (crand() - 0.5) * 60, alpha: 0, duration: 500, ease: 'Quad.In', onComplete: () => c.destroy() });
       }
       if (!f.alive || !a.inWave()) {
         rift.destroy();
@@ -1448,11 +1449,11 @@ const hades = (): Brain => {
         loop: true,
         callback: () => {
           if (p.dead || !a.inWave()) return done();
-          for (let i = 0; i < 5; i++) a.fx.burn(p.x + (Math.random() - 0.5) * 120, p.surfaceY);
+          for (let i = 0; i < 5; i++) a.fx.burn(p.x + (crand() - 0.5) * 120, p.surfaceY);
           a.hitPizza(p, 1, 'BURNING!', '#ffb040');
         },
       });
-      const flames = a.sc.time.addEvent({ delay: 140, loop: true, callback: () => a.fx.burn(p.x + (Math.random() - 0.5) * 150, p.surfaceY - 10) });
+      const flames = a.sc.time.addEvent({ delay: 140, loop: true, callback: () => a.fx.burn(p.x + (crand() - 0.5) * 150, p.surfaceY - 10) });
       let prop: Prop | null = null;
       const done = () => {
         burn.remove();
