@@ -3,6 +3,7 @@
 // phases on every heat). Shared helpers and the heat scaling live in ./kit.ts; this act's props are drawn
 // in src/content/props/act10.ts, its runtime layers (glitch, wall of peels) in src/game/finale.ts, the ending in src/game/ending.ts.
 
+import { type ClockTween, clockOf } from '../../core/clock';
 import Phaser from 'phaser';
 import { BOSS_MINION } from '../../data/stages';
 import { FOOT_BY_ID } from '../../data/feet';
@@ -115,7 +116,7 @@ function laneDrop(a: Arena, p: Pizza, o: DropOpts, bin: Bin): void {
     return top + (endY() - top) * ((s - o.warn) / o.fall);
   };
   let ended = false;
-  let tw: Phaser.Tweens.Tween | null = null;
+  let tw: ClockTween | null = null;
   const finish = (smashed: boolean) => {
     if (ended) return;
     ended = true;
@@ -142,7 +143,7 @@ function laneDrop(a: Arena, p: Pizza, o: DropOpts, bin: Bin): void {
     },
   });
   const forget = bin.add(() => finish(false));
-  tw = a.sc.tweens.add({
+  tw = clockOf(a.sc).tween({
     targets: st,
     t: 1,
     duration: total * 1000,
@@ -522,7 +523,7 @@ const soleprop = (): Brain => {
         a.shake(900, 0.008);
         const r = retreat(a);
         bin.add(r);
-        a.sc.tweens.add({ targets: f, y: 560, duration: 1800, ease: 'Back.Out' });
+        clockOf(a.sc).tween({ targets: f, y: 560, duration: 1800, ease: 'Back.Out' });
         // he talks once the phase banner has gone
         a.sc.time.delayedCall(4900, () => f.alive && say(a, f, 'SO. YOU\'RE THE ONE SMACKING MY STAFF.'));
         a.sc.time.delayedCall(7100, () => f.alive && say(a, f, 'I OWN EVERY PIZZERIA IN EVERY WORLD. NOW I OWN YOUR SHOP.'));
@@ -536,7 +537,7 @@ const soleprop = (): Brain => {
           a.sc.time.delayedCall(900, () => {
             const stamp = a.sc.add.image(960, 600, 'p_sold').setScale(2.4).setAlpha(0);
             a.fxLayer.add(stamp);
-            a.sc.tweens.add({
+            clockOf(a.sc).tween({
               targets: stamp, scale: 1, alpha: 1, duration: 180, ease: 'Quad.In',
               onComplete: () => {
                 a.sfx('sfx_soleprop_stamp');
@@ -557,7 +558,7 @@ const soleprop = (): Brain => {
           a.sfx('sfx_soleprop_leave');
           screenGlitch(a.sc, 700, 0.9);
           a.fx.ring(f.cx, f.cy, 0xffd23f, 3, 0.5);
-          a.sc.tweens.add({
+          clockOf(a.sc).tween({
             targets: f, y: -700, duration: 900, ease: 'Back.In',
             onComplete: () => {
               // gone (off screen and out of every lane) until the shift is over
@@ -729,7 +730,7 @@ const ghostfuture = (): Brain => {
         // the pale foot from the future lands
         const foot = a.sc.add.image(x, y - 420, `foot_${f.type.id}`).setOrigin(0.5, 0.85).setScale((0.7 * f.scale) / (f.type.scale * f.meta.textures.res)).setAlpha(0.75).setTint(0xdff4ff);
         a.fxLayer.add(foot);
-        a.sc.tweens.add({
+        clockOf(a.sc).tween({
           targets: foot, y, duration: 140, ease: 'Quad.In',
           onComplete: () => {
             a.sfx('sfx_ghostfuture_stomp');
@@ -1110,7 +1111,7 @@ const soleunbound = (): Brain => {
     const ps = [...a.alivePizzas()].sort((p, q) => q.slices - p.slices);
     lastOne = ps[0] ?? null;
     eaten = ps.slice(1);
-    a.sc.tweens.add({ targets: f, x: lastOne ? lastOne.x : 960, y: 420, duration: 900, ease: 'Sine.InOut' });
+    clockOf(a.sc).tween({ targets: f, x: lastOne ? lastOne.x : 960, y: 420, duration: 900, ease: 'Sine.InOut' });
     // he eats every pizza but one, one gulp at a time
     eaten.forEach((p, i) => {
       a.sc.time.delayedCall(1000 + i * 650, () => {

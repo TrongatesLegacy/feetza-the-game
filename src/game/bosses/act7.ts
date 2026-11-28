@@ -15,6 +15,7 @@
 //   A socketed stone takes 3 smacks to knock out and gives him its power while it stays in. Six at once and he
 //   snaps after a 3 s wind-up (knock one out to stop it): every pizza loses half its slices, and the sock empties.
 
+import { clockOf } from '../../core/clock';
 import Phaser from 'phaser';
 import { HOVER_Y, W } from '../../config';
 import { SOCKETS } from '../../content/art/act7';
@@ -80,7 +81,7 @@ function slamEntrance(a: Arena, f: Foot, word: string, line: string, sfx: string
   f.shielded = true;
   f.y = -420;
   f.x = f.target?.x ?? f.x;
-  a.sc.tweens.add({
+  clockOf(a.sc).tween({
     targets: f,
     y: (f.hoverY ?? HOVER_Y) - 20,
     duration: 700,
@@ -397,7 +398,7 @@ const doomstomp = (): Brain => {
         const p = order[i++];
         if (!p || p.dead) {
           // back up to hover over the last pizza
-          a.sc.tweens.add({ targets: f, y: (f.hoverY ?? HOVER_Y) - 20, duration: 380, ease: 'Quad.Out', onComplete: () => {
+          clockOf(a.sc).tween({ targets: f, y: (f.hoverY ?? HOVER_Y) - 20, duration: 380, ease: 'Quad.Out', onComplete: () => {
             busy = false;
             f.puppet = false;
           } });
@@ -405,9 +406,9 @@ const doomstomp = (): Brain => {
         }
         const ret = mark(a, 'p_reticle', p.x, p.surfaceY - 30, 0.55 * (h.rank === 0 ? 1.3 : 1), 0.8);
         void ret;
-        a.sc.tweens.add({ targets: f, x: p.x, y: (f.hoverY ?? HOVER_Y) - 60, duration: 300 * (h.rank === 0 ? 1.3 : 1), ease: 'Sine.InOut', onComplete: () => {
+        clockOf(a.sc).tween({ targets: f, x: p.x, y: (f.hoverY ?? HOVER_Y) - 60, duration: 300 * (h.rank === 0 ? 1.3 : 1), ease: 'Sine.InOut', onComplete: () => {
           if (!f.alive || ko || st.dazed) return hop();
-          a.sc.tweens.add({ targets: f, y: p.surfaceY + 4, duration: 200, ease: 'Quad.In', onComplete: () => {
+          clockOf(a.sc).tween({ targets: f, y: p.surfaceY + 4, duration: 200, ease: 'Quad.In', onComplete: () => {
             if (f.alive && !p.dead && !ko && !st.dazed) {
               a.sfx('sfx_doomstomp_stomp');
               a.shake(260, 0.01);
@@ -487,7 +488,7 @@ const doomstomp = (): Brain => {
     a.sc.tweens.killTweensOf(f.root);
     f.root.setScale(sx, sy);
     a.sc.tweens.add({ targets: f.root, scaleY: sy * 0.62, scaleX: sx * 1.18, duration: 260, ease: 'Quad.In' });
-    a.sc.tweens.add({ targets: f, y: baseY + 260, duration: 420, ease: 'Bounce.Out' });
+    clockOf(a.sc).tween({ targets: f, y: baseY + 260, duration: 420, ease: 'Bounce.Out' });
     stars = a.sc.add.image(f.x, f.cy - 120, 'star').setScale(0.6).setTint(0xffd23f);
     a.fxLayer.add(stars);
     a.sc.tweens.add({ targets: stars, angle: 360, duration: 900, repeat: 2 });
@@ -499,7 +500,7 @@ const doomstomp = (): Brain => {
       if (!f.alive) return;
       a.sfx('sfx_doomstomp_rise');
       a.sc.tweens.killTweensOf(f.root);
-      a.sc.tweens.add({ targets: f, y: baseY, duration: 380, ease: 'Back.Out' });
+      clockOf(a.sc).tween({ targets: f, y: baseY, duration: 380, ease: 'Back.Out' });
       // he comes back bigger and tougher every time (setSize tweens him up from the squash)
       f.root.setScale(sx, sy);
       f.setSize(f.sizeMul * 1.12, 500);
@@ -567,7 +568,7 @@ const doomstomp = (): Brain => {
           a.sfx('sfx_doomstomp_dazed');
           a.banner('FINISH IT!', 'Peel Slam or your peel ability', 'phase', 'He only goes down to your signature move · Smack him to fill the meter, then use it');
           a.sc.tweens.add({ targets: f.root, angle: -14, duration: 400, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
-          a.sc.tweens.add({ targets: f, y: (f.hoverY ?? HOVER_Y) + 120, duration: 500, ease: 'Bounce.Out' });
+          clockOf(a.sc).tween({ targets: f, y: (f.hoverY ?? HOVER_Y) + 120, duration: 500, ease: 'Bounce.Out' });
           stars = a.sc.add.image(f.x, f.cy - 140, 'star').setScale(0.7).setTint(0xffd23f);
           a.fxLayer.add(stars);
           a.sc.tweens.add({ targets: stars, angle: 360, duration: 900, repeat: -1 });
@@ -917,7 +918,7 @@ const thanfoot = (): Brain => {
     sock[i] = { img: comet, left: () => 0, alive: () => true, clear: () => {}, destroy: () => comet.destroy() };
     const fly = fast ? 0.5 : h.windup(1.1);
     let trailT = 0;
-    a.sc.tweens.add({
+    clockOf(a.sc).tween({
       targets: comet,
       x: { getEnd: () => socketAt(f, i).x },
       y: { getEnd: () => socketAt(f, i).y },
@@ -1075,7 +1076,7 @@ const thanfoot = (): Brain => {
         f.setVisualAlpha(0);
         a.sfx('sfx_thanfoot_portal');
         for (let k = 0; k < 4; k++) a.sc.time.delayedCall(k * 160, () => a.fx.ring(f.cx, f.cy, 0xb04dff, 1.4 + k * 0.4, 0.9));
-        a.sc.tweens.add({
+        clockOf(a.sc).tween({
           targets: f,
           y: { from: (f.hoverY ?? HOVER_Y) - 200, to: (f.hoverY ?? HOVER_Y) - 20 },
           duration: 900,

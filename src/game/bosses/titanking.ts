@@ -31,6 +31,7 @@
 //
 // Gameplay rolls use the game's seeded Math.random (rnd()); everything only for show uses crand().
 
+import { type ClockTween, clockOf } from '../../core/clock';
 import { FOOT_BY_ID } from '../../data/feet';
 import { warmLive } from '../liveKit';
 import Phaser from 'phaser';
@@ -540,7 +541,7 @@ const titanking = (): Brain => {
     if (fled) a.quip(W / 2, SAFE_TOP + 90, 'THEY FLEE THE TITAN!', '#ffd27a', 40);
     // he strides to the middle of the table and plants himself
     a.sc.tweens.killTweensOf(f);
-    a.sc.tweens.add({ targets: f, x: SEAT[0], y: SEAT[1], duration: 1300, ease: 'Sine.InOut' });
+    clockOf(a.sc).tween({ targets: f, x: SEAT[0], y: SEAT[1], duration: 1300, ease: 'Sine.InOut' });
     a.sfx('sfx_titanking_chain');
     bigQuip(a, f, 'I WILL TEAR TARTARUS DOWN!', '#ffd27a', 42);
     // his two front sky chains: the fight draws them from here on (his live art's are hidden)
@@ -560,7 +561,7 @@ const titanking = (): Brain => {
       pulls.push(pull);
       const to = PULL_ANCHOR(s);
       const st = { x: anchor[0], y: anchor[1] };
-      a.sc.tweens.add({ targets: st, x: to[0], y: to[1], duration: 1300, ease: 'Quad.InOut', onUpdate: () => ((pull.anchor[0] = st.x), (pull.anchor[1] = st.y)) });
+      clockOf(a.sc).tween({ targets: st, x: to[0], y: to[1], duration: 1300, ease: 'Quad.InOut', onUpdate: () => ((pull.anchor[0] = st.x), (pull.anchor[1] = st.y)) });
     }
     if (sky) {
       sky.setHidden(0, true);
@@ -702,7 +703,7 @@ const titanking = (): Brain => {
     p.stub = { run: new LinkRun(a, k, a.fxLayer, false), th: th0, w: 0 };
     // he lurches as it gives
     a.sc.tweens.killTweensOf(f);
-    a.sc.tweens.add({ targets: f, x: SEAT[0] - p.s * 46, duration: 160, yoyo: true, ease: 'Quad.Out', onComplete: () => (f.x = SEAT[0]) });
+    clockOf(a.sc).tween({ targets: f, x: SEAT[0] - p.s * 46, duration: 160, yoyo: true, ease: 'Quad.Out', onComplete: () => (f.x = SEAT[0]) });
     bigQuip(a, f, pulls.every((q) => q.broken) ? 'NO! NOOO!' : 'GRRRAAH!', '#ff8a6a', 44);
     if (pulls.every((q) => q.broken)) a.sc.time.delayedCall(700, () => f.alive && beginShield(f, a));
   };
@@ -864,7 +865,7 @@ const titanking = (): Brain => {
     // 2 hits (1 on Mild, 3 from Extra Hot); each one holds it in the air a moment
     let left = h.rank === 0 ? 1 : h.rank >= 3 ? 3 : 2;
     let live = true;
-    let fallTw: Phaser.Tweens.Tween | null = null;
+    let fallTw: ClockTween | null = null;
     const end = () => {
       live = false;
       rimEv.remove();
@@ -889,7 +890,7 @@ const titanking = (): Brain => {
       if (!live) return;
       a.sfx('sfx_titanking_rockfall', { throttle: 150 });
       a.sc.tweens.add({ targets: img, angle: img.angle + pm() * 160, duration: fall * 1000 });
-      fallTw = a.sc.tweens.add({
+      fallTw = clockOf(a.sc).tween({
         targets: img,
         y: ty,
         duration: fall * 1000,
@@ -998,7 +999,7 @@ const titanking = (): Brain => {
       ev.remove();
       chunk.destroy();
     });
-    a.sc.tweens.add({
+    clockOf(a.sc).tween({
       targets: e,
       x: sx,
       y: y0,
@@ -1012,7 +1013,7 @@ const titanking = (): Brain => {
         const hitDone = new Set<Pizza>();
         let sparkT = 0;
         let lastX = e.x;
-        a.sc.tweens.add({
+        clockOf(a.sc).tween({
           targets: e,
           x: sx1,
           duration: 2600,
@@ -1082,7 +1083,7 @@ const titanking = (): Brain => {
     bigQuip(a, f, 'I AM UNCHAINED!', '#ffd27a', 56);
     const x0 = SEAT[0];
     a.sc.tweens.killTweensOf(f);
-    a.sc.tweens.add({ targets: f, x: { from: x0 - 14, to: x0 + 14 }, duration: 60, yoyo: true, repeat: 9, onComplete: () => (f.x = x0) });
+    clockOf(a.sc).tween({ targets: f, x: { from: x0 - 14, to: x0 + 14 }, duration: 60, yoyo: true, repeat: 9, onComplete: () => (f.x = x0) });
     a.sc.time.delayedCall(1000, () => {
       if (!f.alive || p3?.part !== 'B') return;
       // the dome forms first (the moment to see), then the banner says what to do about it
@@ -1249,7 +1250,7 @@ const titanking = (): Brain => {
     draw();
     a.sfx('sfx_titanking_swing');
     a.quip(W / 2 + s * 560, SAFE_TOP + 80, 'A BROKEN CHAIN!', '#ffb070', 36);
-    a.sc.tweens.add({
+    clockOf(a.sc).tween({
       targets: st,
       th: s * 0.1,
       duration: 900,
@@ -1279,7 +1280,7 @@ const titanking = (): Brain => {
       badge?.destroy();
       ring?.();
       a.sfx('sfx_titanking_swing', { volume: 0.6, rate: 1.15 });
-      a.sc.tweens.add({ targets: st, th: OUT, duration: 800, ease: 'Sine.In', onComplete: () => finish() });
+      clockOf(a.sc).tween({ targets: st, th: OUT, duration: 800, ease: 'Sine.In', onComplete: () => finish() });
     };
     const finish = (quiet = false) => {
       if (!run.box.active) return;
@@ -1328,7 +1329,7 @@ const titanking = (): Brain => {
       ring?.();
       // it swings hard into the shield, point first
       const into = Math.asin(Phaser.Math.Clamp((f.x - s * 150 - anc[0]) / (SWING_LEN + bladeLen * 0.6), -0.9, 0.9));
-      a.sc.tweens.add({
+      clockOf(a.sc).tween({
         targets: st,
         th: into,
         duration: 200,
@@ -1561,7 +1562,7 @@ const titanking = (): Brain => {
         p.shake = Math.max(p.shake, 0.7);
         quake(a, 2.5, 5);
         a.sc.tweens.killTweensOf(f);
-        a.sc.tweens.add({ targets: f, x: SEAT[0] + p.s * 22, duration: 520, yoyo: true, ease: 'Sine.InOut', onComplete: () => (f.x = SEAT[0]) });
+        clockOf(a.sc).tween({ targets: f, x: SEAT[0] + p.s * 22, duration: 520, yoyo: true, ease: 'Sine.InOut', onComplete: () => (f.x = SEAT[0]) });
         a.fx.puff(p.s < 0 ? 30 : W - 30, PULL_ANCHOR(p.s)[1] + 40, 4);
       }
     }

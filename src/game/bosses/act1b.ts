@@ -1,6 +1,7 @@
 // Boss brains, Stages 4–6: shortorder, trex, iceskate, colossus, ufotoe, cosmiccroc.
 // Shared helpers and the heat scaling live in ./kit.ts.
 
+import { clockOf } from '../../core/clock';
 import Phaser from 'phaser';
 import { ui } from '../../ui/ui';
 import type { Arena } from '../arena';
@@ -410,7 +411,7 @@ const trex = (): Brain => {
     // the snack is hauled down to where everyone can see it, trembling
     const vy = Phaser.Math.Clamp(v.y + 160, 520, 600);
     const vh = v.meta.footHeight * v.scale;
-    a.sc.tweens.add({ targets: v, y: vy, duration: 500, ease: 'Back.Out' });
+    clockOf(a.sc).tween({ targets: v, y: vy, duration: 500, ease: 'Back.Out' });
     const tremble = a.sc.time.addEvent({ delay: 50, loop: true, callback: () => v.alive && (v.root.rotation = (crand() - 0.5) * 0.12) });
     v.flash(0xffd0a0, 140);
     a.quip(Phaser.Math.Clamp(f.x, 300, 1620), Math.max(330, f.y + 40), 'SNACK TIME!', '#ffb03d', 54);
@@ -439,14 +440,14 @@ const trex = (): Brain => {
       }
       a.sfx('sfx_whoosh', { volume: 1, rate: 0.6 });
       // anticipation: he rears up, then lunges across and down onto the snack
-      a.sc.tweens.add({
+      clockOf(a.sc).tween({
         targets: f,
         y: f.y - 70,
         duration: 220,
         ease: 'Quad.Out',
         onComplete: () => {
           if (!f.alive || !v.alive) return release();
-          a.sc.tweens.add({
+          clockOf(a.sc).tween({
             targets: f,
             x: v.x,
             y: vy - 30,
@@ -466,7 +467,7 @@ const trex = (): Brain => {
               if (v.alive) {
                 v.setState('dying');
                 v.shadow.setVisible(false);
-                a.sc.tweens.add({ targets: v.root, scaleX: 0, scaleY: 0, y: f.y - 120, duration: 260, ease: 'Quad.In', onComplete: () => v.destroy() });
+                clockOf(a.sc).tween({ targets: v.root, scaleX: 0, scaleY: 0, y: f.y - 120, duration: 260, ease: 'Quad.In', onComplete: () => v.destroy() });
               }
               const heal = Math.round(f.maxHp * [0.03, 0.04, 0.05, 0.06, 0.07][heat(a).rank]);
               f.hp = Math.min(f.maxHp, f.hp + heal);
@@ -529,7 +530,7 @@ const trex = (): Brain => {
           a.quip(o.x, Math.max(140, o.cy - 120), 'EEK!', '#ffffff', 34);
           o.setState('dying');
           o.shadow.setVisible(false);
-          a.sc.tweens.add({ targets: o.root, y: -600, duration: 600, delay: crand() * 300, ease: 'Back.In', onComplete: () => o.destroy() });
+          clockOf(a.sc).tween({ targets: o.root, y: -600, duration: 600, delay: crand() * 300, ease: 'Back.In', onComplete: () => o.destroy() });
         }
       }
       if (!a.inWave()) return;
@@ -553,7 +554,7 @@ const trex = (): Brain => {
           const p = o.target;
           a.sc.time.delayedCall(240, () => {
             if (!o.alive || !f.alive || !p || p.dead || !a.inWave()) return;
-            a.sc.tweens.add({ targets: o, y: o.y - 50, duration: 80, yoyo: true, ease: 'Quad.Out' });
+            clockOf(a.sc).tween({ targets: o, y: o.y - 50, duration: 80, yoyo: true, ease: 'Quad.Out' });
             a.hitPizza(p, 1, 'AGAIN!');
           });
         }
@@ -1060,7 +1061,7 @@ const colossus = (): Brain => {
     a.sc.time.delayedCall(220, () => blow(1));
     s.setState('dying');
     s.shadow.setVisible(false);
-    a.sc.tweens.add({ targets: s.root, y: -500, rotation: 0, duration: 700, delay: 520, ease: 'Back.In', onComplete: () => s.destroy() });
+    clockOf(a.sc).tween({ targets: s.root, y: -500, rotation: 0, duration: 700, delay: 520, ease: 'Back.In', onComplete: () => s.destroy() });
   };
 
   return {
@@ -1529,7 +1530,7 @@ const cosmiccroc = (): Brain => {
       stopUpright = null;
     }
     // smacks land where the peel is drawn: keep the pointer's world point fresh while the camera turns
-    a.sc.tweens.add({ targets: cam, rotation: on ? Math.PI : 0, duration: 1200, ease: 'Sine.InOut', onUpdate: () => refreshPointer(a), onComplete: () => refreshPointer(a) });
+    clockOf(a.sc).tween({ targets: cam, rotation: on ? Math.PI : 0, duration: 1200, ease: 'Sine.InOut', onUpdate: () => refreshPointer(a), onComplete: () => refreshPointer(a) });
     a.sfx('sfx_cosmiccroc_flip');
     if (on) a.rumble(0.5, 500);
   };

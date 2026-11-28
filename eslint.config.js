@@ -55,6 +55,13 @@ export default tseslint.config(
     ignores: ['src/game/perkEffects.ts', 'src/game/perkStats.ts', 'src/data/pizzas.ts', 'src/content/pizzas/**', 'src/dev*.ts', 'src/game/buildStats.ts'],
     rules: { 'effects/no-perk-names': 'error' },
   },
+  // stage 1 of the core split (docs/core-split-plan.md): no gameplay waits on a Phaser tween or animation; it runs on
+  // the game clock (src/core/clock.ts). Dev tools and the trailer are only looks.
+  {
+    files: ['src/**/*.ts'],
+    ignores: ['src/dev*.ts', 'src/trailer.ts'],
+    rules: { 'effects/no-gameplay-in-tweens': 'error' },
+  },
   // …and the perks' one-offs never check stale, frozen or possessed themselves: the trigger bus's off-switch does
   {
     files: ['src/game/pizzaPerks.ts', 'src/game/pizzaLegends.ts', 'src/game/pizzaLegends3.ts'],

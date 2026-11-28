@@ -30,6 +30,7 @@
 //   the brain emits 'cheetoe-pounce' (x), 'cheetoe-frenzy', 'cheetoe-hunt', 'cheetoe-found' (x, y), 'cheetoe-ambush'
 //   and 'cheetoe-hunt-end' (however the hunt ends) on the scene's events.
 
+import { clockOf } from '../../core/clock';
 import Phaser from 'phaser';
 import { NOM_MOUTH } from '../../content/art/comics';
 import { VL } from '../../content/art/scenes-comics';
@@ -240,7 +241,7 @@ const redsole = (): Brain => {
       blitzing = false;
       if (!f.alive) return;
       f.puppet = false;
-      a.sc.tweens.add({ targets: f, y: (f.hoverY ?? HOVER_Y) - 20, duration: 400 });
+      clockOf(a.sc).tween({ targets: f, y: (f.hoverY ?? HOVER_Y) - 20, duration: 400 });
       if (halted) {
         f.stun(h.stun(2));
         a.quip(f.x, Math.max(SAFE_TOP + 40, f.cy - 170), 'MARCH HALTED!', '#7dff9a', 44);
@@ -251,7 +252,7 @@ const redsole = (): Brain => {
       const p = steps[i];
       if (!blitzing || !f.alive || !a.inWave()) return finish(false);
       if (!p || p.dead) return finish(false);
-      a.sc.tweens.add({
+      clockOf(a.sc).tween({
         targets: f,
         x: p.x,
         y: (f.hoverY ?? HOVER_Y) + 20,
@@ -266,7 +267,7 @@ const redsole = (): Brain => {
             a.sfx('sfx_redsole_stomp');
             a.sc.events.emit('redsole-blitz', p.x);
             a.shake(300, 0.012);
-            a.sc.tweens.add({ targets: f, y: p.surfaceY - 30, duration: 110, yoyo: true, ease: 'Quad.In' });
+            clockOf(a.sc).tween({ targets: f, y: p.surfaceY - 30, duration: 110, yoyo: true, ease: 'Quad.In' });
             impactWord(a, p.x, p.surfaceY - 160, 1.3, 'KRUNCH!');
             if (!p.dead) hitSoft(a, p, 1, 'STOMPED!', '#ff5a4a');
             a.sc.time.delayedCall(350, () => step(i + 1));
@@ -453,14 +454,14 @@ const venomnom = (): Brain => {
     const retract = (ms: number, after?: () => void) => {
       state = 'back';
       a.sc.tweens.killTweensOf(st);
-      a.sc.tweens.add({ targets: st, u: 0, duration: ms, ease: 'Quad.In', onComplete: () => (forget(), after?.()) });
+      clockOf(a.sc).tween({ targets: st, u: 0, duration: ms, ease: 'Quad.In', onComplete: () => (forget(), after?.()) });
     };
     a.sc.time.delayedCall(h.windup(1.1) * 1000, () => {
       if (state !== 'wait' || !f.alive || !a.inWave() || p.dead) return void forget();
       state = 'out';
       a.sfx('sfx_venomnom_tongue');
       a.sc.events.emit('venomnom-lash', p.x, p.surfaceY);
-      a.sc.tweens.add({
+      clockOf(a.sc).tween({
         targets: st,
         u: 1,
         duration: h.windup(1.3) * 1000,
@@ -727,7 +728,7 @@ const cheetoe = (): Brain => {
   const dashTo = (f: Foot, a: Arena, x: number, then: () => void) => {
     a.sfx('sfx_cheetoe_dash');
     const x0 = f.x;
-    a.sc.tweens.add({
+    clockOf(a.sc).tween({
       targets: f,
       x,
       duration: 260,
@@ -750,14 +751,14 @@ const cheetoe = (): Brain => {
       busy = false;
       if (!f.alive) return;
       f.puppet = false;
-      a.sc.tweens.add({ targets: f, y: (f.hoverY ?? HOVER_Y) - 20, duration: 300 });
+      clockOf(a.sc).tween({ targets: f, y: (f.hoverY ?? HOVER_Y) - 20, duration: 300 });
     };
     const forget = bin.add(finish);
     const land = () => {
       a.sfx('sfx_cheetoe_pounce');
       a.sc.events.emit('cheetoe-pounce', p.x);
       a.shake(260, 0.01);
-      a.sc.tweens.add({ targets: f, y: p.surfaceY - 20, duration: 120, yoyo: true, ease: 'Quad.In' });
+      clockOf(a.sc).tween({ targets: f, y: p.surfaceY - 20, duration: 120, yoyo: true, ease: 'Quad.In' });
       impactWord(a, p.x, p.surfaceY - 160, 1.3, 'RRRAWR!');
       if (!p.dead) hitSoft(a, p, 1, 'POUNCED!', '#f0a040');
       // claw marks: smack them twice or they take another slice
@@ -787,7 +788,7 @@ const cheetoe = (): Brain => {
       if (ambush) return land();
       // the crouch: tail lashing, eyes glowing, a low growl
       a.sfx('sfx_cheetoe_crouch');
-      a.sc.tweens.add({ targets: f, y: (f.hoverY ?? HOVER_Y) + 30, duration: 300 });
+      clockOf(a.sc).tween({ targets: f, y: (f.hoverY ?? HOVER_Y) + 30, duration: 300 });
       windup(a, f, '', h.windup(1.2), 'POUNCE!', h.hits(2), land);
       const watch = a.sc.time.addEvent({
         delay: 50,
@@ -870,7 +871,7 @@ const cheetoe = (): Brain => {
     a.sfx('sfx_cheetoe_rustle');
     a.sc.events.emit('cheetoe-hunt');
     a.quip(f.x, Math.max(SAFE_TOP + 40, f.cy - 170), 'NOW YOU SEE ME…', '#f0a040', 40);
-    a.sc.tweens.add({ targets: f, y: -500, duration: 420, ease: 'Quad.In' });
+    clockOf(a.sc).tween({ targets: f, y: -500, duration: 420, ease: 'Quad.In' });
     const spots = Phaser.Utils.Array.Shuffle([260, 700, 1220, 1660]).map((x, i) => ({ x: x + (Math.random() - 0.5) * 80, y: SAFE_TOP + 140 + (i % 2) * 140 }));
     const real = Math.floor(Math.random() * spots.length);
     const props: Prop[] = [];
@@ -885,7 +886,7 @@ const cheetoe = (): Brain => {
         a.sfx('sfx_cheetoe_flush');
         a.sc.events.emit('cheetoe-found', at.x, at.y);
         f.x = at.x;
-        a.sc.tweens.add({ targets: f, y: (f.hoverY ?? HOVER_Y) - 20, duration: 360, ease: 'Bounce.Out' });
+        clockOf(a.sc).tween({ targets: f, y: (f.hoverY ?? HOVER_Y) - 20, duration: 360, ease: 'Bounce.Out' });
         f.shielded = false;
         f.puppet = false;
         busy = false;

@@ -24,6 +24,7 @@
 //   each). Break all three and the crown shatters: he's stunned 2.5 s and takes 4%. While crowned, his clouds come
 //   twice as often. The crown comes back every 18 s.
 
+import { clockOf } from '../../core/clock';
 import Phaser from 'phaser';
 import { W } from '../../config';
 import { HEAT_BY_ID } from '../../data/difficulty';
@@ -240,7 +241,7 @@ const zeus = (): Brain => {
           // the trident flies back into Zeus
           const t = a.sc.add.image(x, 600, 'p_nz_trident').setScale(0.5);
           a.fxLayer.add(t);
-          a.sc.tweens.add({
+          clockOf(a.sc).tween({
             targets: t,
             x: f.cx,
             y: f.cy,
@@ -266,7 +267,7 @@ const zeus = (): Brain => {
           a.sc.tweens.killTweensOf(wave);
           const hit = new Set<Foot>();
           const st = { u: 0 };
-          a.sc.tweens.add({
+          clockOf(a.sc).tween({
             targets: st,
             u: 1,
             duration: 1100,

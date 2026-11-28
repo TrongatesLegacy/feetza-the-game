@@ -6,6 +6,7 @@
 //   half flying at the next foot for ×1.5. Its passive is Batpeel's Utility Belt.
 // The rooftop's weather and the comic print come from src/content/live/gotham.ts and the Act 7 layer.
 
+import { clockOf } from '../../core/clock';
 import { W } from '../../config';
 import { audio } from '../../systems/audio';
 import type { ThrowFx } from '../abilities';
@@ -31,7 +32,7 @@ function half(k: HeroKit, from: { x: number; y: number }, f: Foot, delay: number
     const x0 = from.x;
     const y0 = from.y;
     const bow = (crand() < 0.5 ? -1 : 1) * 120;
-    k.sc.tweens.add({
+    clockOf(k.sc).tween({
       targets: st,
       t: 1,
       duration: 320,

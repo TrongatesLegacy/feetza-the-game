@@ -14,6 +14,8 @@
 //                                 p.rarity ?? 'common', RARITY_DEFS['epic']): Rarity.Epic…. Without type information it
 //                                 can't see a rarity passed as an argument (rarityOpen('epic', …)) or compared through a
 //                                 local (const k = kindOf(u); k === 'unique'): TypeScript accepts the string there.
+//   effects/no-gameplay-in-tweens no gameplay in a Phaser tween's or animation's callbacks: it goes on the game
+//                                 clock (src/core/clock.ts). Its own file: tools/eslint/tweens.js
 //
 // What counts as a declaration: an Effect.* call (Effect.Stat, Effect.OnKill…), an Op.* call or chain
 // (Op.Add(…).EachLevelUp.Mul(…)), a Unit maker (Unit.Chance, Unit.Seconds… : a capital letter), and everything inside
@@ -33,6 +35,8 @@
 // The layout fixes reflow only whitespace and commas: no fix is offered when a comment sits between the items or an
 // item holds a template string over several lines (re-indenting it would change the string). Names are matched by
 // spelling: a local variable that shadows Effect, Op or Unit counts as them.
+
+import noGameplayInTweens from './tweens.js';
 
 const ROOTS = new Set(['Effect', 'Op', 'Unit', 'Grows', 'Nth']);
 const ARITH = new Set(['+', '-', '*', '/', '%']);
@@ -590,5 +594,6 @@ export default {
     'typed-item-names': typedItemNames,
     'no-perk-names': noPerkNames,
     'no-own-off-switch': noOwnOffSwitch,
+    'no-gameplay-in-tweens': noGameplayInTweens,
   },
 };

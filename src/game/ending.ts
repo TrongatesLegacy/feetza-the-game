@@ -1022,6 +1022,7 @@ export function playEnding(sc: Phaser.Scene, done: () => void, o: EndingOpts = {
       duration: 230,
       delay: 2050,
       ease: 'Quad.In',
+      // visual-only: the ending's cutscene (dust.spawn is a particle puff, not a foot)
       onComplete: () => {
         quake(240, 8);
         live?.impact?.(W / 2, 760, 0.7);

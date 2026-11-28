@@ -5,6 +5,7 @@
 // The two mini-bosses take the stage over: their arena backdrop and music crossfade in when they
 // arrive and the location comes back when they go down.
 
+import { clockOf } from '../../core/clock';
 import Phaser from 'phaser';
 import { BACKDROPS, type ArenaId, type BackdropId } from '../../art/backdrops';
 import { HOVER_Y } from '../../config';
@@ -724,7 +725,7 @@ const thrym = (): Brain => {
           const line = a.sc.add.graphics();
           a.fxLayer.add(line);
           const st = { k: 0 };
-          a.sc.tweens.add({
+          clockOf(a.sc).tween({
             targets: st,
             k: 1,
             duration: 1400,
@@ -1619,7 +1620,7 @@ const surtr = (): Brain => {
           let done = false;
           const trail = a.sc.add.graphics();
           a.fxLayer.add(trail);
-          const tw = a.sc.tweens.add({
+          const tw = clockOf(a.sc).tween({
             targets: st,
             x: p.x,
             duration: dur,

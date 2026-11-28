@@ -2,6 +2,7 @@
 // Cerberus (mini, wave 88) and Hades and the Titans (wave 90). Shared helpers and heat scaling are in
 // ./kit.ts; this act's props are drawn in src/content/props/act9.ts, the feet in src/content/feet/act9.ts.
 
+import { clockOf } from '../../core/clock';
 import Phaser from 'phaser';
 import { PIZZA_R } from '../../art/pizzaArt';
 import { HOVER_Y, W } from '../../config';
@@ -94,7 +95,7 @@ function entrance(a: Arena, f: Foot, o: { sfx: string; quip: string; color: stri
   f.shielded = true;
   const hy = (f.hoverY ?? HOVER_Y) - 20;
   f.y = -460;
-  a.sc.tweens.add({
+  clockOf(a.sc).tween({
     targets: f,
     y: hy,
     delay: o.delay ?? 250,
@@ -298,7 +299,7 @@ const minotaur = (): Brain => {
     a.sfx('sfx_minotaur_charge');
     a.shake(300, 0.006);
     const y0 = f.y;
-    a.sc.tweens.add({
+    clockOf(a.sc).tween({
       targets: f,
       y: p.surfaceY + 4,
       duration: 300,
@@ -310,7 +311,7 @@ const minotaur = (): Brain => {
         a.rumble(0.9, 260);
         for (let i = 0; i < 6; i++) a.fx.puff(p.x + (crand() - 0.5) * 200, p.surfaceY, 2);
         if (!p.dead && a.inWave()) a.hitPizza(p, h.slices(1), 'GORED!', '#ff6a4a');
-        a.sc.tweens.add({ targets: f, y: y0, duration: 520, delay: 200, ease: 'Quad.Out', onComplete: () => afterCharge(f, a) });
+        clockOf(a.sc).tween({ targets: f, y: y0, duration: 520, delay: 200, ease: 'Quad.Out', onComplete: () => afterCharge(f, a) });
       },
     });
   };
@@ -324,7 +325,7 @@ const minotaur = (): Brain => {
     const tx = w ? w.p.x : f.x;
     a.quip(f.x, Math.max(SAFE_TOP + 60, f.cy - 160), 'CHARGING BLIND!', '#7dff9a', 44);
     a.sfx('sfx_minotaur_charge', { rate: 1.15 });
-    a.sc.tweens.add({
+    clockOf(a.sc).tween({
       targets: f,
       x: tx,
       y: WALL_TOP + 10,
@@ -348,7 +349,7 @@ const minotaur = (): Brain => {
         const h = heat(a);
         f.vuln = 1.5;
         a.sc.time.delayedCall(h.stun(3) * 1000 + 600, () => (f.vuln = 1));
-        a.sc.tweens.add({
+        clockOf(a.sc).tween({
           targets: f,
           x: x0,
           y: y0,
@@ -867,7 +868,7 @@ const cerberus = (): Brain => {
     // each paw drops in with its own bark
     t.puppet = true;
     t.y = -460;
-    a.sc.tweens.add({
+    clockOf(a.sc).tween({
       targets: t,
       y: (t.hoverY ?? HOVER_Y) - 20,
       delay,

@@ -10,6 +10,7 @@
 // ribbon trail, fire rings where smacks land and a flame countdown bar; and the Spinning Blade passive, chained
 // blades that orbit the peel (one more each new act of the run, up to 5) and catch fire in the rage.
 
+import { clockOf } from '../core/clock';
 import Phaser from 'phaser';
 import { H, HOVER_Y, TABLE_Y, W } from '../config';
 import { actOf } from '../data/stages';
@@ -76,7 +77,7 @@ function toTop(k: HeroKit, f: Foot, stun = 0, ms = 600): void {
   }
   if (f.puppet) return;
   f.puppet = true;
-  k.sc.tweens.add({
+  clockOf(k.sc).tween({
     targets: f,
     y: HOVER_Y - 30,
     duration: ms,
@@ -605,7 +606,7 @@ registerMoves({
     title(k, 'EARTHSHAKER!', 0x3ab0e0, 104);
     const p0 = k.host.peelPos();
     const tri = k.img('g_trident', p0.x, -120, 0.9).setAngle(0);
-    k.sc.tweens.add({
+    clockOf(k.sc).tween({
       targets: tri,
       y: TABLE_Y - 60,
       duration: 260,
@@ -1146,7 +1147,7 @@ registerMoves({
         const hop = () => {
           const pt = path[i++];
           if (!pt) return r.destroy();
-          k.sc.tweens.add({
+          clockOf(k.sc).tween({
             targets: r,
             x: pt.x,
             y: pt.y,
@@ -1171,7 +1172,7 @@ registerMoves({
         k.sc.time.delayedCall(i * 160, () => {
           if (!f.alive) return;
           const sp = k.img('g_spear', f.cx, -200, 0.8).setAngle(90);
-          k.sc.tweens.add({
+          clockOf(k.sc).tween({
             targets: sp,
             y: f.cy - 40,
             duration: 160,
@@ -1509,7 +1510,7 @@ registerMoves({
     k.st.apples = true;
     for (const [i, p] of alive(k).entries()) {
       const ap = k.img('g_apple', p.x + (crand() - 0.5) * 40, -80, 0.6);
-      k.sc.tweens.add({
+      clockOf(k.sc).tween({
         targets: ap,
         y: p.surfaceY - 50,
         angle: 360,

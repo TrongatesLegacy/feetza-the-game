@@ -1,5 +1,6 @@
 // A descending foot: state machine, traits, status effects and its visuals (leg + foot + cuff).
 
+import { clockOf } from '../core/clock';
 import Phaser from 'phaser';
 import { BASE_DESCEND, GUARD_FETCH, HOVER_Y } from '../config';
 import { type GuardSnap, makeGuardFx } from './guardShield';
@@ -883,7 +884,7 @@ export class Foot {
         // dino: a second stomp before lifting off
         if (this.has('double') && !this.stompedTwice && this.stateT > 0.32) {
           this.stompedTwice = true;
-          this.scene.tweens.add({ targets: this, y: this.y - 60, duration: 90, yoyo: true, ease: 'Quad.Out' });
+          clockOf(this.scene).tween({ targets: this, y: this.y - 60, duration: 90, yoyo: true, ease: 'Quad.Out' });
           this.scene.time.delayedCall(180, () => this.alive && this.state === 'stomp' && this.hooks.onStomp(this));
           this.stateT = 0.05;
         }
@@ -1210,7 +1211,7 @@ export class Foot {
   dodge(): void {
     const dir = this.x < 960 ? 1 : -1;
     const dx = dir * (90 + Math.random() * 60);
-    this.scene.tweens.add({ targets: this, x: this.x + dx, duration: 180, ease: 'Quad.Out' });
+    clockOf(this.scene).tween({ targets: this, x: this.x + dx, duration: 180, ease: 'Quad.Out' });
   }
 
   stun(sec: number, frozen = false): void {
@@ -1240,7 +1241,7 @@ export class Foot {
 
   private blinkTo(p: Pizza): void {
     this.target = p;
-    this.scene.tweens.add({
+    clockOf(this.scene).tween({
       targets: this.root,
       alpha: { from: 1, to: 0 },
       duration: 120,
@@ -1260,7 +1261,7 @@ export class Foot {
     this.guardFx?.destroy();
     this.guardFx = null;
     this.hooks.onEscape(this);
-    this.scene.tweens.add({ targets: this.root, y: -900, duration: 700, ease: 'Back.In', onComplete: () => this.destroy() });
+    clockOf(this.scene).tween({ targets: this.root, y: -900, duration: 700, ease: 'Back.In', onComplete: () => this.destroy() });
   }
 
   revive(): void {
@@ -1289,14 +1290,14 @@ export class Foot {
     this.stars?.destroy();
     this.shadow.setVisible(false);
     const spin = (crand() < 0.5 ? -1 : 1) * (boss ? 0.15 : 0.35);
-    this.scene.tweens.add({
+    clockOf(this.scene).tween({
       targets: this.root,
       scaleY: this.root.scaleX * 0.78,
       duration: boss ? 500 : 90,
       yoyo: !boss,
       ease: 'Quad.Out',
       onComplete: () => {
-        this.scene.tweens.add({
+        clockOf(this.scene).tween({
           targets: this.root,
           y: -this.meta.footHeight * this.scale - 200,
           rotation: spin,

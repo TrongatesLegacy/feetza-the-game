@@ -3,6 +3,7 @@
 // that breaks it into pieces of itself, a Mild-friendly pizza hit, and a timer ring for countdown props. The kit
 // itself (hitProp, takeLane, shield…) is in ./kit.ts.
 
+import { clockOf } from '../../core/clock';
 import Phaser from 'phaser';
 import { BACKDROPS, type ArenaId, type BackdropId } from '../../art/backdrops';
 import { HOVER_Y } from '../../config';
@@ -96,7 +97,7 @@ export function entrance(a: Arena, f: Foot, o: { sfx: string; quip: string; colo
   f.shielded = true;
   const hy = (f.hoverY ?? HOVER_Y) - 20;
   f.y = -480;
-  a.sc.tweens.add({
+  clockOf(a.sc).tween({
     targets: f,
     y: hy,
     delay: o.delay ?? 250,

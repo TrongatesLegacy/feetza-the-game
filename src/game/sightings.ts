@@ -5,6 +5,7 @@
 // Also here: Batpeel's Signal, a secret. On night stages a winged shape sometimes lights up the clouds for a
 // few seconds; smacking it counts towards Batpeel.
 
+import { clockOf } from '../core/clock';
 import Phaser from 'phaser';
 import { W } from '../config';
 import type { Stats } from '../data/upgrades';
@@ -80,7 +81,7 @@ export function heroSighting(a: Arena, rw: EventRewards): void {
   let done = false;
   const st = { t: 0 };
   const dir = ltr ? 1 : -1;
-  sc.tweens.add({
+  clockOf(sc).tween({
     targets: st,
     t: 1,
     duration: 3500,

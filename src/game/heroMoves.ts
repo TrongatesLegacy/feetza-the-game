@@ -12,6 +12,7 @@
 //   ability straight away, and swaps back when the transformation ends, the wave ends or the run ends. Hero peels
 //   are never picked, so one transformation never starts inside another.
 
+import { clockOf } from '../core/clock';
 import Phaser from 'phaser';
 import { H, HOVER_Y, TABLE_Y, W } from '../config';
 import { audio } from '../systems/audio';
@@ -466,7 +467,7 @@ registerMoves({
           k.host.hurt(f, x);
           for (const o of k.host.live()) {
             if (o === f || Math.hypot(o.cx - f.cx, o.cy - f.cy) > 360 || o.isBossLike) continue;
-            k.sc.tweens.add({ targets: o, x: o.x + (f.x - o.x) * 0.5, duration: 260, ease: 'Quad.Out' });
+            clockOf(k.sc).tween({ targets: o, x: o.x + (f.x - o.x) * 0.5, duration: 260, ease: 'Quad.Out' });
             k.host.hurt(o, 1.5, { quiet: true });
             k.host.fx.lightning(f.cx, f.cy, o.cx, o.cy);
           }
@@ -642,7 +643,7 @@ registerMoves({
       const was = then.feet.get(f);
       const to = was ?? { x: f.x, y: HOVER_Y - 60, vy: 0, state: 'hover' as const };
       f.puppet = true;
-      k.sc.tweens.add({
+      clockOf(k.sc).tween({
         targets: f,
         x: to.x,
         y: Math.min(to.y, HOVER_Y + 40),
@@ -789,7 +790,7 @@ registerMoves({
       const f = k.random(1)[0];
       if (!f) return;
       const c = k.img('t_coin', from.x, from.y, 0.4);
-      k.sc.tweens.add({
+      clockOf(k.sc).tween({
         targets: c,
         x: f.cx,
         y: f.cy,
@@ -822,7 +823,7 @@ registerMoves({
         const b = k.img('h_board', ltr ? -200 : W + 200, y, 1).setFlipX(!ltr);
         const hit = new Set<Foot>();
         sfx('whoosh', 0.7);
-        k.sc.tweens.add({
+        clockOf(k.sc).tween({
           targets: b,
           x: ltr ? W + 200 : -200,
           duration: 520,
@@ -927,7 +928,7 @@ registerMoves({
         if (beat < 0.5) return;
         beat = 0;
         n++;
-        for (const f of k.host.live()) if (!f.isBossLike) k.sc.tweens.add({ targets: f, y: f.y - 26, duration: 110, yoyo: true, ease: 'Quad.Out' });
+        for (const f of k.host.live()) if (!f.isBossLike) clockOf(k.sc).tween({ targets: f, y: f.y - 26, duration: 110, yoyo: true, ease: 'Quad.Out' });
         const p = k.host.peelPos();
         k.host.fx.glint(p.x, p.y - 60, 2);
         const t = k.random(1);
@@ -1031,7 +1032,7 @@ registerMoves({
       f.puppet = true;
       k.sc.time.delayedCall(300, () => {
         if (!f.alive) return;
-        k.sc.tweens.add({
+        clockOf(k.sc).tween({
           targets: f,
           x: px,
           y: py + 60,
@@ -1140,7 +1141,7 @@ registerMoves({
       }
       t.puppet = true;
       k.host.quip(t.x, t.cy - 140, 'OUT OF HERE!', '#7be04a', 40);
-      k.sc.tweens.add({
+      clockOf(k.sc).tween({
         targets: t,
         y: -500,
         duration: 520,
@@ -1202,7 +1203,7 @@ registerMoves({
     const peel = k.sc.add.image(best, -260, 'peel').setOrigin(0.5, 100 / 360).setScale(1.6).setAngle(180);
     k.host.layers.fx.add(peel);
     const hit = new Set<Foot>();
-    k.sc.tweens.add({
+    clockOf(k.sc).tween({
       targets: peel,
       y: TABLE_Y - 60,
       duration: 380,
@@ -1329,7 +1330,7 @@ registerMoves({
       }
       if (f.puppet) continue;
       f.puppet = true;
-      k.sc.tweens.add({
+      clockOf(k.sc).tween({
         targets: f,
         y: HOVER_Y - 30,
         duration: 600,
@@ -1468,7 +1469,7 @@ registerMoves({
     sfx('objection');
     k.shout('OBJECTION!', 0x7be04a, 110);
     const gavel = k.img('h_gavel', W / 2 + 200, 120, 1).setAngle(-50);
-    k.sc.tweens.add({
+    clockOf(k.sc).tween({
       targets: gavel,
       angle: 10,
       y: 200,
@@ -1503,7 +1504,7 @@ registerMoves({
         return;
       }
       const c = chain[i++];
-      k.sc.tweens.add({
+      clockOf(k.sc).tween({
         targets: w,
         x: c.x(),
         y: c.y(),
@@ -1555,7 +1556,7 @@ registerMoves({
         for (const f of k.host.live()) {
           if ((f.state !== 'hover' && f.state !== 'enter') || f.isBossLike) continue;
           f.stateT = 0;
-          k.sc.tweens.add({ targets: f, x: f.x + (Math.random() < 0.5 ? -50 : 50), duration: 220, yoyo: true, ease: 'Sine.InOut' });
+          clockOf(k.sc).tween({ targets: f, x: f.x + (Math.random() < 0.5 ? -50 : 50), duration: 220, yoyo: true, ease: 'Sine.InOut' });
           k.host.hurt(f, 0.5, { quiet: true });
           if (crand() < 0.4) k.host.fx.frost(f.cx, f.cy);
         }
@@ -1625,7 +1626,7 @@ registerMoves({
         const f = k.random(1)[0];
         const s = k.img('h_squirrel', -80, TABLE_Y - 10, 0.5);
         const tx = f ? f.cx : W + 100;
-        k.sc.tweens.add({
+        clockOf(k.sc).tween({
           targets: s,
           x: tx,
           duration: 300 + Math.abs(tx) * 0.35,
@@ -1636,7 +1637,7 @@ registerMoves({
               k.sc.tweens.add({ targets: s, x: W + 120, duration: 600, onComplete: () => s.destroy() });
               return;
             }
-            k.sc.tweens.add({
+            clockOf(k.sc).tween({
               targets: s,
               y: f.cy,
               duration: 220,

@@ -2,6 +2,7 @@
 // phantomking. Shared helpers and the heat scaling live in ./kit.ts; this batch's props are drawn in
 // src/content/props/act2b.ts.
 
+import { type ClockTween, clockOf } from '../../core/clock';
 import Phaser from 'phaser';
 import { STRAW } from '../../content/props/act2b';
 import { FOOT_BY_ID } from '../../data/feet';
@@ -129,7 +130,7 @@ export function laneFall(a: Arena, p: Pizza, o: FallOpts, bin: Bin): void {
     return top + (endY() - top) * ((s - o.warn) / o.fall);
   };
   let ended = false;
-  let tw: Phaser.Tweens.Tween | null = null;
+  let tw: ClockTween | null = null;
   const finish = (smashed: boolean) => {
     if (ended) return;
     ended = true;
@@ -155,7 +156,7 @@ export function laneFall(a: Arena, p: Pizza, o: FallOpts, bin: Bin): void {
   });
   const forget = bin.add(() => finish(false));
   drawLane(x0, top, 0);
-  tw = a.sc.tweens.add({
+  tw = clockOf(a.sc).tween({
     targets: st,
     t: 1,
     duration: total * 1000,
@@ -998,7 +999,7 @@ function morphIntoLoafer(fi: LoaferFight, o: Foot, a: Arena): void {
     fi.zombies.delete(o);
     if (z.gaveRevive) o.extraTraits.delete('revive');
     z.look.release();
-    a.sc.tweens.add({ targets: o.root, alpha: 0, duration: 120, onComplete: () => o.destroy() });
+    clockOf(a.sc).tween({ targets: o.root, alpha: 0, duration: 120, onComplete: () => o.destroy() });
     o.setState('dying');
     const sx = L.root.scaleX;
     const sy = L.root.scaleY;
@@ -1150,7 +1151,7 @@ const poltergeist = (): Brain => {
             const side = Math.sign(f.x - o.x) || 1;
             const gap = (f.meta.halfWidth * f.scale + o.meta.halfWidth * o.scale) * 0.55;
             f.puppet = true;
-            a.sc.tweens.add({
+            clockOf(a.sc).tween({
               targets: f,
               x: o.x + side * gap,
               y: o.y,
@@ -1174,7 +1175,7 @@ const poltergeist = (): Brain => {
                     a.fx.healBurst(f.cx, f.cy);
                   }
                 }
-                a.sc.tweens.add({
+                clockOf(a.sc).tween({
                   targets: f,
                   x: home.x,
                   y: home.y,
@@ -1208,7 +1209,7 @@ const poltergeist = (): Brain => {
             a.sfx('sfx_poltergeist_cough');
             const puff = a.sc.add.image(f.x, f.cy, 'p_cough').setScale(0.3).setAlpha(0.9);
             a.fxLayer.add(puff);
-            a.sc.tweens.add({
+            clockOf(a.sc).tween({
               targets: puff,
               x: p.x,
               y: p.surfaceY - 60,

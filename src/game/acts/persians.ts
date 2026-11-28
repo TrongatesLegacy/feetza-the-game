@@ -15,6 +15,7 @@
 // War bands (planWave in src/game/Run.ts) tag their feet with brain.band: elephants and the Satrap take the
 // middle lanes, cavalry the outer ones.
 
+import { clockOf } from '../../core/clock';
 import Phaser from 'phaser';
 import { HOVER_Y, W } from '../../config';
 import type { ThrowFx } from '../abilities';
@@ -172,7 +173,7 @@ function loose(a: Arena, f: Foot): void {
   const st = { k: 0, done: false };
   const arc = 70;
   const pos = (k: number) => ({ x: from.x + (to.x - from.x) * k, y: from.y + (to.y - from.y) * k - Math.sin(k * Math.PI) * arc });
-  const tw = a.sc.tweens.add({
+  const tw = clockOf(a.sc).tween({
     targets: st,
     k: 1,
     duration: h.windup(0.9) * 1000,

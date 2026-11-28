@@ -19,6 +19,7 @@
 //   Feet stomp in and a golden ward makes him untouchable while they stand, 14 s at most). Mild: arrows, elephants;
 //   Regular and Hot: arrows, rhino, elephants; Extra Hot and up add THE GOD-KING (all three in turn, faster).
 
+import { clockOf } from '../../core/clock';
 import Phaser from 'phaser';
 import { HEAT_BY_ID } from '../../data/difficulty';
 import { save } from '../../systems/save';
@@ -500,7 +501,7 @@ const xerxes = (): Brain => {
         a.rumble(1, 500);
         // the charge: down the lane, scattering the feet in its way, through the pizza and off the bottom
         for (const o of a.allFeet()) if (o.alive && !o.isBossLike && Math.abs(o.x - x) < 120) o.knock(520);
-        a.sc.tweens.add({
+        clockOf(a.sc).tween({
           targets: img,
           y: p.surfaceY - 30,
           scale: 0.9,

@@ -2,6 +2,7 @@
 // whirlpool wave event) and the Greek god peels' home-ground bonus. The feet's stats live in
 // src/content/feet/act9.ts and the fights in src/game/bosses/act9.ts.
 
+import { clockOf } from '../../core/clock';
 import Phaser from 'phaser';
 import { BACKDROPS, type ArenaId, type BackdropId, type LocationId } from '../../art/backdrops';
 import { W } from '../../config';
@@ -176,7 +177,7 @@ function harpySmack(f: Foot, a: Arena): void {
   if (!home) return;
   const img = a.sc.add.image(from.x, from.y, 'p9_slice').setScale(0.8);
   a.fxLayer.add(img);
-  a.sc.tweens.add({
+  clockOf(a.sc).tween({
     targets: img,
     x: home.x,
     y: home.surfaceY - 20,

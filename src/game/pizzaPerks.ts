@@ -6,6 +6,7 @@
 // Mystery Meat's perk is "big" (counts half as much again). Run.perkCounts already sums the enhanced
 // half, so table-wide perks read `c(perk)`; perks tied to one pizza read `pk(p)`.
 
+import { clockOf } from '../core/clock';
 import Phaser from 'phaser';
 import { drawChest, drawDiscoBall, drawGhostRing, drawLightBeam, drawMeatball, drawMeteor, drawMusicNote, drawWaltzGhost, drawComet, drawSandWall, drawMaze, drawEmbers, drawFeather, drawFleece } from '../art/perkProps';
 import { drawBifrostBand, drawHowlingWolf, drawRuneStone, drawSerpentCoil } from '../art/perkPropsNorse';
@@ -1163,7 +1164,7 @@ export class PizzaPerkKit {
     const t = targets[0];
     // it drops to the pizza first, then rolls off to its target (or off the table)
     const floor = from.surfaceY - 40;
-    this.sc.tweens.add({
+    clockOf(this.sc).tween({
       targets: ball,
       y: floor,
       angle: 180,
@@ -1174,7 +1175,7 @@ export class PizzaPerkKit {
         const tx = t ? t.cx : x + (x < 960 ? -700 : 700);
         const ty = t ? t.cy : floor;
         audio.sfx('sfx_boing', { volume: 0.4, rate: 0.7, throttle: 120 });
-        this.sc.tweens.add({
+        clockOf(this.sc).tween({
           targets: ball,
           x: tx,
           y: ty,
@@ -1312,7 +1313,7 @@ export class PizzaPerkKit {
       a.fxLayer.add(bomb);
       const tx = f.cx;
       const ty = f.cy;
-      this.sc.tweens.add({
+      clockOf(this.sc).tween({
         targets: bomb,
         x: tx,
         y: ty,
@@ -1447,7 +1448,7 @@ export class PizzaPerkKit {
     const m = this.sc.add.image(sx, sy, 'pk_meteor').setScale(0.85);
     a.fxLayer.add(m);
     a.sfx('sfx_whoosh', { volume: 0.6, rate: 0.7 });
-    this.sc.tweens.add({
+    clockOf(this.sc).tween({
       targets: m,
       x: f.cx,
       y: f.cy,
@@ -1646,7 +1647,7 @@ export class PizzaPerkKit {
     a.fxLayer.add(ball);
     a.sfx('sfx_yeti_snowball', { volume: 0.55, throttle: 120 });
     p.perkFired({ quip: false });
-    this.sc.tweens.addCounter({
+    clockOf(this.sc).tween({
       from: 0,
       to: 1,
       duration: 380,
@@ -1933,7 +1934,7 @@ export class PizzaPerkKit {
     a.fxLayer.add([halo, m]);
     a.sfx('sfx_cosmiccroc_meteor', { volume: 0.6, throttle: 200 });
     for (const p of this.with('comet')) p.perkFired({ quip: false });
-    this.sc.tweens.add({
+    clockOf(this.sc).tween({
       targets: [m, halo],
       x: f.cx,
       y: f.cy,
@@ -1974,7 +1975,7 @@ export class PizzaPerkKit {
     this.sc.tweens.add({ targets: img, alpha: 0.92, scale: 0.72, y: f.cy - 90, duration: 380, ease: 'Quad.Out' });
     this.sc.tweens.add({ targets: glow, alpha: 0.5, y: f.cy - 90, duration: 380, ease: 'Quad.Out' });
     this.sc.tweens.add({ targets: img, angle: 360, delay: 380, duration: 520, ease: 'Sine.InOut' });
-    this.sc.tweens.add({
+    clockOf(this.sc).tween({
       targets: [img, glow],
       x: gx,
       y: gy,
@@ -2738,7 +2739,7 @@ export class PizzaPerkKit {
       let py = y;
       // (it arcs over, less near the top of the screen so it stays in sight)
       const lift = Phaser.Math.Clamp(Math.min(y, ty) - 70, 20, 120);
-      this.sc.tweens.addCounter({
+      clockOf(this.sc).tween({
         from: 0,
         to: 1,
         duration: 360,

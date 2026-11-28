@@ -311,6 +311,50 @@ run('no-own-off-switch', {
   ],
 });
 
+// ——— no gameplay in tweens (tools/eslint/tweens.js) ———
+run('no-gameplay-in-tweens', {
+  valid: [
+    // looks only: destroy, a puff, a sound, a cosmetic roll, a nested look
+    "a.sc.tweens.add({ targets: img, y: 10, duration: 200, onComplete: () => { img.destroy(); a.fx.puff(x, y, 4); a.sfx('sfx_x'); img.angle = crand() * 360; } });",
+    'this.tweens.add({ targets: b, alpha: 0, duration: 90, onUpdate: () => (b.x += 1), onComplete: () => this.tweens.add({ targets: b, scale: 0, duration: 60, onComplete: () => b.destroy() }) });',
+    // a call through a look's own object is a look: a.fx.burn is a flame
+    'a.sc.tweens.addCounter({ from: 0, to: 1, duration: 300, onUpdate: () => crand() < 0.4 && a.fx.burn(m.x, m.y) });',
+    // the game clock's tweens are where gameplay belongs
+    "clockOf(a.sc).tween({ targets: m, x: 1, duration: 480, onComplete: () => { m.destroy(); this.h.dealDamage(f, dmg, 'explode', 500); } });",
+    // a scene's own events and a loader's aren't an animation's
+    "this.events.once('update', () => this.killFoot(f));",
+    "this.load.once('complete', () => { run.coins = 0; });",
+    // listed as visual-only, with a reason
+    "sc.tweens.add({ targets: t2, y: 1, duration: 230,\n  // visual-only: the ending's cutscene (dust.spawn is a particle puff)\n  onComplete: () => dust.spawn({ x: 1 }) });",
+    // an image's x is the image's
+    'a.sc.tweens.add({ targets: st, t: 1, duration: 200, onUpdate: () => { img.x = st.t; img.y = 2; } });',
+  ],
+  invalid: [
+    "a.sc.tweens.add({ targets: m, x: 1, duration: 480, onComplete: () => { m.destroy(); this.h.dealDamage(f, dmg, 'explode', 500); } });",
+    "a.sc.tweens.add({ targets: img, y: 1, duration: 300, onComplete: () => a.hitPizza(p, 1, 'BOMBED!') });",
+    { code: "k.sc.tweens.add({ targets: f, y: 1, duration: 300, onComplete: () => { f.puppet = false; f.setState('hover'); k.stun(f, 2); } });", errors: [{ messageId: 'write' }, { messageId: 'call' }, { messageId: 'call' }] },
+    // a sweep that hurts what it passes
+    'k.sc.tweens.add({ targets: o, u: 1, duration: 900, onUpdate: () => { for (const f of k.host.live()) k.host.hurt(f, 15); } });',
+    // a continuation a fight passed down (a method callback too)
+    'a.sc.tweens.add({ targets: st, t: 1, duration: 500, onComplete() { if (a.inWave()) onLand(); } });',
+    // a gameplay roll
+    { code: 'a.sc.tweens.add({ targets: img, y: 1, duration: 300, onComplete: () => a.quip(x, y, rnd(GROANS)) });', errors: [{ messageId: 'random' }] },
+    { code: 'this.tweens.add({ targets: img, y: 1, duration: 300, onComplete: () => { img.y = Math.random() * 10; } });', errors: [{ messageId: 'random' }] },
+    { code: 'a.sc.tweens.add({ targets: img, y: 1, duration: 300, onComplete: () => Phaser.Utils.Array.Shuffle(team) });', errors: [{ messageId: 'random' }] },
+    // state: a foot's place, its brain, the run
+    { code: 'a.sc.tweens.add({ targets: f, x: 9, duration: 300, onComplete: () => (f.x = SEAT[0]) });', errors: [{ messageId: 'write' }] },
+    { code: 'k.sc.tweens.add({ targets: g, alpha: 0, duration: 300, onComplete: () => { f.brain.webbed = 1; } });', errors: [{ messageId: 'write' }] },
+    { code: 'this.sc.tweens.add({ targets: c, alpha: 0, duration: 300, onComplete: () => { this.run.coins += 5; } });', errors: [{ messageId: 'write' }] },
+    // gameplay scheduled from a tween's end still starts on the tween's time
+    "a.sc.tweens.add({ targets: f, y: 1, duration: 200, onComplete: () => a.sc.time.delayedCall(160, () => a.hitPizza(p, 1, 'X')) });",
+    // a tween's and a sprite's own events
+    "tw.on('complete', () => a.damageFoot(f, 10));",
+    { code: 'sprite.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => { f.hp -= 1; });', errors: [{ messageId: 'write' }] },
+    // a listing needs its reason
+    { code: 'sc.tweens.add({ targets: t2, y: 1, duration: 230,\n  // visual-only\n  onComplete: () => dust.spawn({ x: 1 }) });', errors: [{ messageId: 'reason' }] },
+  ].map((c) => (typeof c === 'string' ? { code: c, errors: [{ messageId: 'call' }] } : c)),
+});
+
 // ——— all the rules together, over several fix passes (a list's fix first, then its calls') ———
 {
   const linter = new Linter({ configType: 'flat' });

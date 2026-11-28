@@ -5,6 +5,7 @@
 // smacks, misses, kills, stomps, boss phases); the kit keeps its own drawn things (the Pizza Drone, laces,
 // cheese strings, dip pots, crumbs, the pizza stone, Sixth Sense glows) and its run state in run.kit.
 
+import { clockOf } from '../core/clock';
 import Phaser from 'phaser';
 import { HOVER_Y, TABLE_Y } from '../config';
 import { P, type Effect, type Vfx } from './abilities';
@@ -608,7 +609,7 @@ export class ToppingKit {
     const p = this.h.peelPos();
     const ball = this.h.sc.add.image(p.x, p.y, 'glow').setTint(0xff7a2a).setBlendMode(Phaser.BlendModes.ADD).setScale(0.9);
     this.h.fxLayer.add(ball);
-    this.h.sc.tweens.add({
+    clockOf(this.h.sc).tween({
       targets: ball,
       x: f.cx,
       y: f.cy,
@@ -703,7 +704,7 @@ export class ToppingKit {
     if (p.dead || !p.root.scene) return;
     const n = this.h.sc.add.image(p.x + 140, p.surfaceY - 260, 't_napkin').setScale(0.6).setAngle(-30);
     this.h.fxLayer.add(n);
-    this.h.sc.tweens.add({
+    clockOf(this.h.sc).tween({
       targets: n,
       x: p.x,
       y: p.surfaceY - 40,

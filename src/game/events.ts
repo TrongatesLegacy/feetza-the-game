@@ -1,6 +1,7 @@
 // Wave events: about one wave in four, a flyer crosses the screen or a chest lands on the table.
 // Dealing with it pays out, but every smack spent on it is a smack not spent on feet.
 
+import { clockOf } from '../core/clock';
 import Phaser from 'phaser';
 import { W } from '../config';
 import type { Arena } from './arena';
@@ -89,7 +90,7 @@ export function startEvent(a: Arena, id: EventId, rw: EventRewards): void {
   let hits = 0;
   let done = false;
   const st = { t: 0 };
-  a.sc.tweens.add({
+  clockOf(a.sc).tween({
     targets: st,
     t: 1,
     duration: (cfg.sec + (rw.flyerSec ?? 0)) * 1000,

@@ -15,6 +15,7 @@
 //   Bracers glance off 25% of stomps (Wonder Wedge: 15%).
 // Also adds the Kratos nemesis arenas to the night stages (Moon Knife's Moonlit, Batpeel's Signal).
 
+import { clockOf } from '../../core/clock';
 import Phaser from 'phaser';
 import { TABLE_Y, W } from '../../config';
 import { audio } from '../../systems/audio';
@@ -276,7 +277,7 @@ registerMoves({
         const cols = [0x7a5aff, 0xff3a3a, 0x3a8aff, 0xffd23f, 0xff8a1c, 0x3acf6a];
         const hit = new Set<Foot>();
         const o = { u: 0 };
-        k.sc.tweens.add({
+        clockOf(k.sc).tween({
           targets: o,
           u: 1,
           delay: 500,
@@ -341,7 +342,7 @@ registerMoves({
         k.sc.time.delayedCall(i * 160, () => {
           if (!f.alive) return;
           const sp = k.img('g_spear', f.cx, -200, 0.8).setAngle(90).setTint(0xffe680);
-          k.sc.tweens.add({
+          clockOf(k.sc).tween({
             targets: sp,
             y: f.cy - 40,
             duration: 160,
@@ -429,7 +430,7 @@ registerMoves({
           g.strokePath();
         }
       };
-      k.sc.tweens.add({
+      clockOf(k.sc).tween({
         targets: o,
         u: 1,
         duration: 520,
@@ -461,7 +462,7 @@ registerMoves({
         t.brain.lassoStomp = 1;
         k.mark(t, 3, 8);
         k.stun(t, 1.5);
-        if (!t.isBossLike) k.sc.tweens.add({ targets: t, x: t.x + (cx - t.x) * 0.5, duration: 260, ease: 'Quad.Out' });
+        if (!t.isBossLike) clockOf(k.sc).tween({ targets: t, x: t.x + (cx - t.x) * 0.5, duration: 260, ease: 'Quad.Out' });
         k.host.quip(t.x, t.cy - 140, 'ROPED!', '#ffd23f', 36);
         const ring = k.img('glow', t.cx, t.cy, 0.5).setTint(0xffd23f).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.8);
         timed(

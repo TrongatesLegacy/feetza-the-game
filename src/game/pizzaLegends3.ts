@@ -21,6 +21,7 @@
 //
 // Gameplay randomness is Math.random, cosmetic crand; nothing starts a tween as the scene shuts down.
 
+import { clockOf } from '../core/clock';
 import Phaser from 'phaser';
 import { HOVER_Y, W } from '../config';
 import { CROUTON_FRAMES, drawAccretionDisc, drawBigOlive, drawCoal, drawCroutonFrame, drawEventHorizon, drawHearthFlame, drawPortal, drawStarStreak } from '../art/perkPropsLegend3';
@@ -354,7 +355,7 @@ export class Act3Legends {
     // (its middle goes to the point: the root is its sole, the middle above it by 0.45 of its height)
     const mid = f.meta.footHeight * f.scale * 0.45;
     const r0 = root.rotation;
-    this.sc.tweens.addCounter({
+    clockOf(this.sc).tween({
       from: 0,
       to: 1,
       duration: ms,

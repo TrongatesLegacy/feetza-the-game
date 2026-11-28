@@ -1,6 +1,7 @@
 // Boss brains, Stages 7–9: doughboy, nonna, pigeonking, gargoyle, jellyfish, kraken.
 // Shared helpers and the heat scaling live in ./kit.ts. Props are drawn in src/content/props/act2a.ts.
 
+import { clockOf } from '../../core/clock';
 import Phaser from 'phaser';
 import type { Arena } from '../arena';
 import type { Foot } from '../Foot';
@@ -54,7 +55,7 @@ function drop(a: Arena, f: Foot, p: Pizza, key: string, sec: number, label: stri
       return;
     }
     a.sfx('sfx_whoosh', { volume: 0.5, rate: 0.7 });
-    a.sc.tweens.add({
+    clockOf(a.sc).tween({
       targets: img,
       y: ty,
       angle: 200,
@@ -482,7 +483,7 @@ const nonna = (): Brain => {
           const fly = a.sc.add.image(at.x, at.y, 'peel').setScale(0.6);
           a.fxLayer.add(fly);
           a.sfx('sfx_whoosh', { rate: 0.8 });
-          a.sc.tweens.add({ targets: fly, x: p.x, y: p.surfaceY - 20, angle: 540, duration: 450, ease: 'Quad.In', onComplete: () => {
+          clockOf(a.sc).tween({ targets: fly, x: p.x, y: p.surfaceY - 20, angle: 540, duration: 450, ease: 'Quad.In', onComplete: () => {
             fly.destroy();
             if (!p.dead && a.inWave()) {
               a.fx.impact(p.x, p.surfaceY - 20, true);
@@ -1265,7 +1266,7 @@ const kraken = (): Brain => {
     const pos = (t: number) => ({ x: from.x + (tx - from.x) * t, y: from.y + (ty - from.y) * t - Math.sin(t * Math.PI) * 160 });
     // a slow arc down to the pizza; smack the blob on the way to block it
     const k = { t: 0 };
-    a.sc.tweens.add({
+    clockOf(a.sc).tween({
       targets: k,
       t: 1,
       duration: h.windup(1.3) * 1000,

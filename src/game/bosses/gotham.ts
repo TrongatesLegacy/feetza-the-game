@@ -22,6 +22,7 @@
 //   your peel (1 smack or a 1 s peel stun). When the round is over his guard drops for 6.5 s, dizzy (2 s more and
 //   a big hit if you beat every prop). Mild: 3 props, slower, never a pizza's last slice.
 
+import { clockOf } from '../../core/clock';
 import Phaser from 'phaser';
 import { BACKDROPS, type ArenaId, type BackdropId } from '../../art/backdrops';
 import { H, HOVER_Y, TABLE_Y, W } from '../../config';
@@ -270,13 +271,13 @@ const bunion = (): Brain => {
       if (!f.alive || !a.inWave()) return done();
       const p = order[i++];
       if (!p || p.dead) {
-        a.sc.tweens.add({ targets: f, y: (f.hoverY ?? HOVER_Y) - 20, duration: 380, ease: 'Quad.Out', onComplete: done });
+        clockOf(a.sc).tween({ targets: f, y: (f.hoverY ?? HOVER_Y) - 20, duration: 380, ease: 'Quad.Out', onComplete: done });
         return;
       }
       mark(a, 'p_reticle', p.x, p.surfaceY - 30, h.windup(0.6), 0.8);
-      a.sc.tweens.add({ targets: f, x: p.x, y: (f.hoverY ?? HOVER_Y) - 70, duration: h.windup(340), ease: 'Sine.InOut', onComplete: () => {
+      clockOf(a.sc).tween({ targets: f, x: p.x, y: (f.hoverY ?? HOVER_Y) - 70, duration: h.windup(340), ease: 'Sine.InOut', onComplete: () => {
         if (!f.alive) return done();
-        a.sc.tweens.add({ targets: f, y: p.surfaceY + 4, duration: 200, ease: 'Quad.In', onComplete: () => {
+        clockOf(a.sc).tween({ targets: f, y: p.surfaceY + 4, duration: 200, ease: 'Quad.In', onComplete: () => {
           if (f.alive && !p.dead) {
             a.sfx('sfx_bunion_smash');
             a.shake(300, 0.012);
@@ -330,7 +331,7 @@ const bunion = (): Brain => {
     a.fxLayer.add(crack);
     strain = { bar, crack, p, v: 0.2, hold, end, tick: 0 };
     // he plants himself on the pizza
-    a.sc.tweens.add({ targets: f, x: p.x, y: p.surfaceY - 30, duration: 500, ease: 'Quad.In', onComplete: () => {
+    clockOf(a.sc).tween({ targets: f, x: p.x, y: p.surfaceY - 30, duration: 500, ease: 'Quad.In', onComplete: () => {
       a.shake(240, 0.008);
       a.sfx('sfx_bunion_smash', { volume: 0.6 });
     } });
@@ -350,7 +351,7 @@ const bunion = (): Brain => {
       a.sfx('sfx_bunion_saved');
       impactWord(a, f.cx, f.cy - 80, 1.6, 'LET GO!');
       a.sc.tweens.add({ targets: s.crack, alpha: 0, duration: 400, onComplete: () => s.crack.destroy() });
-      a.sc.tweens.add({ targets: f, y: (f.hoverY ?? HOVER_Y) - 20, duration: 420, ease: 'Back.Out', onComplete: () => {
+      clockOf(a.sc).tween({ targets: f, y: (f.hoverY ?? HOVER_Y) - 20, duration: 420, ease: 'Back.Out', onComplete: () => {
         f.puppet = false;
         if (f.alive) f.stun(2);
       } });
@@ -364,7 +365,7 @@ const bunion = (): Brain => {
       hitSoft(a, s.p, half, 'BROKEN!', '#ff6a4a');
       a.sc.tweens.add({ targets: s.crack, alpha: 0, delay: 600, duration: 400, onComplete: () => s.crack.destroy() });
       bubble(a, 'YOUR PIZZA... IS BROKEN.', f, 1800);
-      a.sc.tweens.add({ targets: f, y: (f.hoverY ?? HOVER_Y) - 20, duration: 500, ease: 'Quad.Out', onComplete: () => (f.puppet = false) });
+      clockOf(a.sc).tween({ targets: f, y: (f.hoverY ?? HOVER_Y) - 20, duration: 500, ease: 'Quad.Out', onComplete: () => (f.puppet = false) });
     }
     if (f.phase >= 2 || heat(a).rank === 0) a.bossMove(f, 'OVERDOSE', 'His vials fill twice as fast now · Keep draining them before all three fill');
   };
@@ -404,7 +405,7 @@ const bunion = (): Brain => {
         f.puppet = true;
         f.shielded = true;
         f.y = -440;
-        a.sc.tweens.add({
+        clockOf(a.sc).tween({
           targets: f,
           y: (f.hoverY ?? HOVER_Y) - 20,
           duration: 760,
@@ -643,7 +644,7 @@ const jokester = (): Brain => {
       img.destroy();
     };
     bin.add(() => !gone && kill());
-    a.sc.tweens.add({
+    clockOf(a.sc).tween({
       targets: st,
       t: 1,
       duration: 700,
@@ -1133,7 +1134,7 @@ const jokester = (): Brain => {
           if (!f.alive) return;
           f.root.setVisible(true);
           impactWord(a, W / 2, TABLE_Y - 260, 1.8, 'SURPRISE!');
-          a.sc.tweens.add({ targets: f, y: (f.hoverY ?? HOVER_Y) - 20, duration: 700, ease: 'Back.Out', onComplete: () => {
+          clockOf(a.sc).tween({ targets: f, y: (f.hoverY ?? HOVER_Y) - 20, duration: 700, ease: 'Back.Out', onComplete: () => {
             f.puppet = false;
             f.shielded = false;
           } });

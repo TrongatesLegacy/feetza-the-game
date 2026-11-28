@@ -1,5 +1,6 @@
 // A pizza on a plate: slices as HP, footprint decals, shields/traps, and a nervous little face.
 
+import { clockOf } from '../core/clock';
 import Phaser from 'phaser';
 import { PIZZA_CANVAS_H, PIZZA_CANVAS_W, PIZZA_R, PIZZA_SIZE, TILT, renderPizza, sideFor, type Footprint } from '../art/pizzaArt';
 import { makeCanvas } from '../art/util';
@@ -554,7 +555,7 @@ export class Pizza {
   /** Piston lift: positive dy raises the pizza (world px). */
   setLift(dy: number, ms = 350): void {
     const to = this.baseY - dy;
-    this.scene.tweens.add({ targets: this, y: to, duration: ms, ease: 'Back.Out', onUpdate: () => (this.root.y = this.y) });
+    clockOf(this.scene).tween({ targets: this, y: to, duration: ms, ease: 'Back.Out', onUpdate: () => (this.root.y = this.y) });
   }
 
   /** Slide along the table to a new x (rolling pizzas). */

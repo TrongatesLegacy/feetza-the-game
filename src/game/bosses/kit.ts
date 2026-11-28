@@ -2,6 +2,7 @@
 // the heat scaling table, and the set-piece mechanics (lane takeover, retreat, hit-counter props,
 // shields, twins). Fights live in act1a/act1b/act2a/act2b.ts.
 
+import { clockOf } from '../../core/clock';
 import Phaser from 'phaser';
 import { type HeatId, heatRank } from '../../data/difficulty';
 import type { Arena } from '../arena';
@@ -109,7 +110,7 @@ export function throwAtPeel(a: Arena, key: string, from: { x: number; y: number 
   a.fxLayer.add(img);
   let done = false;
   const st = { t: 0 };
-  a.sc.tweens.add({
+  clockOf(a.sc).tween({
     targets: st,
     t: 1,
     duration: sec * 1000,
@@ -206,7 +207,7 @@ export function dropOn(a: Arena, f: Foot, p: Pizza, key: string, sec: number, la
       return;
     }
     a.sfx(look.fallSfx ?? 'sfx_whoosh', look.fallSfx ? { throttle: 200 } : { volume: 0.5, rate: 0.7 });
-    a.sc.tweens.add({
+    clockOf(a.sc).tween({
       targets: img,
       y: ty,
       angle: 200,

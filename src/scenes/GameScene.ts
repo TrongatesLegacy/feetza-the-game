@@ -1,3 +1,4 @@
+import { GameClock, bindClock, clockOf } from '../core/clock';
 import Phaser from 'phaser';
 import { BACKDROPS, type ArenaId, type BackdropId, type LocationId } from '../art/backdrops';
 import { BASE_SLICES, COMBO_BASE_WINDOW, H, MAX_PIZZAS, PIZZA_Y, W } from '../config';
@@ -302,6 +303,10 @@ export class GameScene extends Phaser.Scene implements Arena {
   private oliveT = 0;
   private garlicT = 0;
   private hitStop = 0;
+  /** The game clock: the world's time (`dt` below), which gameplay that waits or moves over time runs on, never a
+   *  tween's or a scene timer's (src/core/clock.ts). Bound to the scene for the feet, fights and kits (clockOf). */
+  readonly clock = new GameClock();
+  private tweensBound = false;
   private slowMo = 0;
   /** Crusts banked for the boss this wave, for the BOSS DEFEATED banner. */
   private lastBossCrusts = 0;
@@ -598,6 +603,21 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   create(): void {
     this.resetState();
+    this.clock.clear();
+    bindClock(this, this.clock);
+    // a tween moved onto the game clock is still stopped the way any tween is: killing a target's tweens (a boss
+    // cancelling its lunge, a prop smacked mid-flight) stops its clock tweens too, and isTweening sees them
+    if (!this.tweensBound) {
+      this.tweensBound = true;
+      const tw = this.tweens;
+      const kill = tw.killTweensOf.bind(tw);
+      const busy = tw.isTweening.bind(tw);
+      tw.killTweensOf = (t: object | object[]) => {
+        this.clock.killTweensOf(t);
+        return kill(t);
+      };
+      tw.isTweening = (t: object) => this.clock.isTweening(t) || busy(t);
+    }
     // (the scene is reused between runs: a wait for a backdrop from its pack never carries over)
     this.packWait = false;
     this.packGaveUp = null;
@@ -5166,7 +5186,7 @@ export class GameScene extends Phaser.Scene implements Arena {
           const o = this.add.image(src.x, src.surfaceY - 20, 'olive');
           this.fxLayer.add(o);
           audio.sfx('sfx_boing', { volume: 0.25, rate: 1.8, throttle: 100 });
-          this.tweens.add({
+          clockOf(this).tween({
             targets: o,
             x: f.cx,
             y: f.cy,
@@ -5453,6 +5473,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.peel.setPosition(this.peelPos.x, this.peelPos.y).setVisible(!this.inUpgrade && !this.over && !touchIdle);
     this.lookFx?.tick(real);
     this.peelTrailTick();
+    // the game clock moves with the world (between waves and after the run too, so what's in the air lands or goes)
+    if (!this.paused) this.clock.tick(dt);
     if (!this.paused && !this.over && !this.inUpgrade) {
       this.spawnTick(dt);
       this.laneTick(dt);

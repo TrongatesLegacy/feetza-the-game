@@ -1,6 +1,7 @@
 // Boss brains, Stages 1–3: headwaiter (and his delivery waiters), bigfoot, sweep, ironheel, sandcastle, clownking.
 // Shared helpers and the heat scaling live in ./kit.ts; the helpers below are only used by these six.
 
+import { clockOf } from '../../core/clock';
 import Phaser from 'phaser';
 import { HOVER_Y, W } from '../../config';
 import { FOOT_BY_ID } from '../../data/feet';
@@ -93,7 +94,7 @@ function hold(a: Arena, f: Foot, p: Pizza | null | undefined, y = HOVER_Y): Hold
 
 /** Slam a held boss down onto y, then call `land`. */
 function slam(a: Arena, f: Foot, y: number, ms: number, land: () => void): void {
-  a.sc.tweens.add({
+  clockOf(a.sc).tween({
     targets: f,
     y,
     duration: ms,
@@ -384,7 +385,7 @@ const headwaiter = (): Brain => {
   const leave = (a: Arena, w: Foot, delay: number) => {
     w.setState('dying');
     w.shadow.setVisible(false);
-    a.sc.tweens.add({ targets: w.root, y: -500, duration: 700, delay, ease: 'Back.In', onComplete: () => w.destroy() });
+    clockOf(a.sc).tween({ targets: w.root, y: -500, duration: 700, delay, ease: 'Back.In', onComplete: () => w.destroy() });
   };
 
   /** The delivery turned back (the service round, the fight or the wave over): he takes the tray with him. */
@@ -916,7 +917,7 @@ const bigfoot = (): Brain => {
           a.quip(g.x, g.y - 160, 'OUCH!', '#ff4d3d', 72);
           shield(a, g, false);
           // back up to the top, stunned
-          a.sc.tweens.add({
+          clockOf(a.sc).tween({
             targets: g,
             y: HOVER_Y,
             duration: 500,
@@ -1297,7 +1298,7 @@ const ironheel = (): Brain => {
       const r = a.sc.add.image(x, ly - 40, 'p_rocket');
       a.fxLayer.add(r);
       a.sfx('sfx_ironheel_rocket');
-      a.sc.tweens.add({ targets: r, y: toY, duration: 380, ease: 'Quad.In', onComplete: () => (r.destroy(), onHit()) });
+      clockOf(a.sc).tween({ targets: r, y: toY, duration: 380, ease: 'Quad.In', onComplete: () => (r.destroy(), onHit()) });
     };
     a.addClickable({
       get x() {
@@ -1714,7 +1715,7 @@ const sandcastle = (): Brain => {
           const s = a.sc.add.image(f.x, f.y, 'p_dough').setTint(0xf0d090).setScale(0.3);
           a.fxLayer.add(s);
           a.sfx('sfx_sandcastle_pour');
-          a.sc.tweens.add({
+          clockOf(a.sc).tween({
             targets: s,
             x: p.x,
             y: p.surfaceY - 20,
@@ -1827,7 +1828,7 @@ const clownking = (): Brain => {
     f.shielded = true;
     a.quip(f.x, f.cy - 160, 'WHICH ONE IS REAL?', '#b06bff', 42);
     a.sfx('sfx_clownking_leap');
-    a.sc.tweens.add({
+    clockOf(a.sc).tween({
       targets: f,
       y: -420,
       duration: 450,
@@ -1975,7 +1976,7 @@ const clownking = (): Brain => {
         a.quip(f.x, f.cy - 160, 'PIE!', '#ffffff', 44);
         let blocked = false;
         // a slow lob that grows as it comes at the screen: there's time to smack it out of the air
-        a.sc.tweens.add({
+        clockOf(a.sc).tween({
           targets: img,
           x,
           y,

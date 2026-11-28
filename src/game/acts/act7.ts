@@ -20,6 +20,7 @@
 // side; Goon Galoshes light a bomb and drop it on their pizza (smack it mid-air). Doomstomp's last life is
 // spared from every blow except a signature move (see src/game/bosses/act7.ts).
 
+import { clockOf } from '../../core/clock';
 import Phaser from 'phaser';
 import { H, HOVER_Y, W } from '../../config';
 import { FOOT_BY_ID, type FootType } from '../../data/feet';
@@ -585,7 +586,7 @@ function dropBomb(a: Arena, f: Foot, img: Phaser.GameObjects.Image): void {
   a.fxLayer.add(ret);
   sc.tweens.add({ targets: ret, scale: 0.7, duration: 260, yoyo: true, repeat: -1 });
   const st = { k: 0 };
-  const tw = sc.tweens.add({
+  const tw = clockOf(sc).tween({
     targets: st,
     k: 1,
     duration: fall * 1000,
