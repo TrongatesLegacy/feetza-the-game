@@ -1355,7 +1355,13 @@ class UI {
               'div',
               { class: `ptile ${tier.cls}${p.stale ? ' stale' : ''}${p.dead ? ' dead' : ''}${p.enhanced ? ' enhanced' : ''}`, style: tier.style },
               ...tierFrame(p.rarity),
-              p.stale ? h('span', { class: 'flag' }, 'STALE') : p.dead ? h('span', { class: 'flag dead' }, 'EATEN') : null,
+              p.stale
+                ? h('span', { class: 'flag', title: 'Out of freshness: its perk is off. Reheat it before the wave ends or it goes off the table.' }, 'STALE')
+                : p.dead
+                  ? p.wentStale
+                    ? h('span', { class: 'flag dead', title: 'It ran out of freshness as the wave ended and went off the table. Rebake it to bring it back.' }, 'WENT STALE')
+                    : h('span', { class: 'flag dead', title: 'Every slice was eaten. Rebake it to bring it back.' }, 'EATEN')
+                  : null,
               p.enhanced ? h('span', { class: 'star-badge', title: 'Enhanced: its perk is stronger this run', 'aria-label': 'Enhanced' }, '★') : null,
               h('div', { class: 'pt-pic' }, sliceArt(p, 120), p.now ? h('span', { class: 'now', title: `Now ${p.now.total}: ${p.now.why}` }, `NOW ${p.now.total.replace(/ damage$/, '')}`) : null),
               h('div', { class: 'nm', title: p.name }, p.name),

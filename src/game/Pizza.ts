@@ -674,6 +674,10 @@ export class Pizza {
     const wasDead = this.dead;
     this.revived = true;
     this.dead = false;
+    // a pizza that went stale is never brought back stale (a Pizza Angel, Carbonara's rise, a second chance): it would
+    // be off the table again at the next wave's end with its perk off meanwhile. It comes back with 4 freshness, as
+    // the Leftovers Box saves one; a rebake then sets it full.
+    if (this.freshOn && this.fresh <= 0) this.setFresh(Math.min(this.maxFresh, 4));
     this.prints = [];
     this.alive = this.alive.map((_, i) => i < slices);
     this.redraw();
