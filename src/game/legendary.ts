@@ -11,8 +11,10 @@
 // - Its colours: each Legendary's look (LEGEND_LOOK), shared by its aura, its moments and its cards.
 //
 // Later batches add their pizzas to src/content/pizzas/ with `act` set, a LEGEND_LOOK entry, an aura and signature
-// (src/game/legendAuras.ts), their perk in src/game/pizzaLegends.ts and their peel's look (LEGEND_PEEL, src/content/art/legend-peels-p8.ts):
-// the gates, the counter's and the reveal's moments and the card borders come for free.
+// (src/game/legendAuras*.ts), their perk declared in src/game/perkEffects.ts and run in src/game/pizzaLegends*.ts (its
+// looks in a view file of its own: src/game/legendView4.ts) and their peel's look (LEGEND_PEEL,
+// src/content/art/legend-peels-p*.ts): the gates, the counter's and the reveal's moments and the card borders come
+// for free.
 
 import { HEAT_BY_ID, type HeatId } from '../data/difficulty';
 import { FOOT_BY_ID } from '../data/feet';
@@ -100,6 +102,11 @@ export const LEGEND_LOOK: Record<string, LegendLook> = {
   cosmiccrouton: { col: 0x8a7cff, col2: 0xffe2a0, css: '#9a8cff', css2: '#ffe2a0', confetti: ['#2b3d8f', '#7df9ff', '#ffd27a', '#b07cff', '#ffffff'], line: 'The Cosmic Croc’s moon, Act 3' },
   roarroast: { col: 0xff6a1a, col2: 0xffe0a0, css: '#ff7a2a', css2: '#ffe2b0', confetti: ['#ff6a1a', '#ffc23a', '#8a2a12', '#fff0d0', '#3a6a2a'], line: 'The Alpine Lodge’s hearth, Act 3' },
   blackolivehole: { col: 0xffa64a, col2: 0xd8c8ff, css: '#ffb060', css2: '#e0d4ff', confetti: ['#140a24', '#ffb060', '#fff2d8', '#7a5cff', '#ff6a3a'], line: 'From the depths of Space, Act 3' },
+  // Act 4 (batch 4): the Pigeon King's pigeon over Old Town's lamplit piazza, the Dough Boy's dough rising again, the
+  // Gargoyle's cathedral in stone and stained glass
+  pigeoncatch: { col: 0xffb85a, col2: 0xc8ccf0, css: '#ffbe6a', css2: '#dfe2ff', confetti: ['#8e93ab', '#5fc89a', '#9462d2', '#ffc83a', '#ffffff'], line: 'The Pigeon King’s own pigeon, Act 4' },
+  secondrise: { col: 0xffd08a, col2: 0xfff6e0, css: '#ffd08a', css2: '#fff6e0', confetti: ['#f6e2b8', '#e8bf7a', '#ffffff', '#3f9a2e', '#c22f1c'], line: 'The Dough Boy’s kitchen, Act 4' },
+  cathedralcrust: { col: 0xb48aff, col2: 0xffe6a0, css: '#c0a0ff', css2: '#ffe6a0', confetti: ['#e0344c', '#3a6ae0', '#f6c23a', '#34b06a', '#bdb3a0'], line: 'The Gargoyle’s cathedral, Act 4' },
 };
 
 const GOLD: LegendLook = { col: 0xffc83a, col2: 0xfff2a0, css: '#ffc83a', css2: '#fff2a0', confetti: ['#ffc83a', '#fff2a0', '#d08a08', '#ffffff'], line: 'Legendary' };

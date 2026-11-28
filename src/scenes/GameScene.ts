@@ -4325,6 +4325,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (PEEL_HEATS.has(this.run.heat) && !(save.bossesBeatenHot ??= []).includes(f.type.id)) save.bossesBeatenHot.push(f.type.id);
     // Silver Service's feat: the Head Waiter beaten on Hot or hotter without a slice lost in his wave
     if (f.type.id === 'headwaiter' && legendHeatOk(this.run.heat) && this.waveSlicesLost === 0) save.pizzaGoals.waiterHot = 1;
+    // Pigeon King's Catch's feat: the Pigeon King beaten on Hot or hotter (the real one: never a Ghost echo)
+    if (f.type.id === 'pigeonking' && !f.brain.echo && legendHeatOk(this.run.heat)) save.pizzaGoals.pigeonHot = 1;
     const firstKill = !save.bossesBeaten.includes(f.type.id);
     if (firstKill) {
       save.bossesBeaten.push(f.type.id);

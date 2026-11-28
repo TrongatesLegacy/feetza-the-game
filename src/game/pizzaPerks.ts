@@ -30,7 +30,7 @@ import { toppingDrawer } from '../art/registry';
 import { makeCanvas, rng } from '../art/util';
 import { crand } from '../systems/cosmeticRandom';
 import { LEGEND_SFX, LegendKit } from './pizzaLegends';
-import { Answer, GameEvent, HitStat, grantsPerk, type ActionHost, type Fire, type HitQuery, type HitStatId } from '../effects';
+import { Ally, Answer, GameEvent, HitStat, grantsPerk, type ActionHost, type Fire, type HitQuery, type HitStatId } from '../effects';
 import { runAction } from '../effects/actions';
 import { legendDmg } from './legendary';
 import type { AtData } from '../effects/actions';
@@ -54,7 +54,9 @@ const LEGEND_PERKS = new Set<PizzaPerk>(PIZZAS.filter((p) => p.rarity === Rarity
  *  run, the crust earners, the other borrowers) and itself. It does copy a Legendary's once-a-wave or timed perk
  *  (Nonna's ladle: one more swat a wave; Silver Service: the tray twice as often; Big Top Pie: the cannon twice as
  *  often; Sandcastle Citadel: 3 more stomps a wave; Tidal Tiki: one more slice from the tide; Cosmic Crouton Supreme:
- *  its 1% more; Roar Roast and Black Olive Hole: twice as often), never a once-a-run one (The First Bake). It counts as a second copy of anything else, doing what two
+ *  its 1% more; Roar Roast and Black Olive Hole: twice as often; Pigeon King's Catch: the pigeon twice as often;
+ *  Second Rise: the risen bite twice as hard; Cathedral Crust: one more stone stomp on every pizza each wave), never
+ *  a once-a-run one (The First Bake). It counts as a second copy of anything else, doing what two
  *  of that pizza would. */
 export const ECHO_SKIP = BORROW_SKIP;
 /** Every perk a pizza has, for Echo Slice's flag (it keeps its copy as an index: 1 + its place here; 0 nothing). */
@@ -321,7 +323,12 @@ export class PizzaPerkKit {
       wave: () => this.wave(),
       boost: () => this.boost(),
       later: (ms, fn) => void this.sc.time.delayedCall(ms, fn),
-      summon: (_ally, fire) => fire.foot && this.raiseGhost(fire.foot),
+      // (Phantom Waltz's friendly ghost, or Second Rise's risen dough: src/game/pizzaLegends4.ts)
+      summon: (ally, fire) => {
+        if (!fire.foot) return;
+        if (ally === Ally.RisenDough) this.legends.act4.rise(fire.foot, fire.perk as PizzaPerk, fire.k(), fire.pizzas);
+        else this.raiseGhost(fire.foot);
+      },
       show: (look, fire) => this.LOOKS[look as LookId](fire),
       custom: (id, fire) => this.CUSTOM[id as CustomId](fire),
       tunaTips: (wave, enhanced) => tunaTips(wave, enhanced),
@@ -794,6 +801,17 @@ export class PizzaPerkKit {
     [Custom.TideTick]: ({ ev, pizzas }) => this.legends.tideTick('dt' in ev ? ev.dt : 0, pizzas),
     [Custom.Cannon]: ({ foot }) => void (foot && this.legends.cannon(foot)),
     [Custom.Tray]: () => this.legends.tray(),
+    // ——— Act 4's Legendaries (src/game/pizzaLegends4.ts) ———
+    [Custom.PigeonCatch]: ({ foot, pizzas }) => !!foot && this.legends.act4.catchFoot(foot, pizzas),
+    [Custom.DoughTick]: ({ ev }) => this.legends.act4.doughTick('dt' in ev ? ev.dt : 0),
+    [Custom.DoughDown]: () => this.legends.act4.doughDown(),
+    [Custom.CathedralStone]: ({ foot, ev, pizzas, perk }) => {
+      const p = pizzaOf(ev);
+      return !!foot && !!p && this.legends.act4.stoneStomp(foot, p, perk as PizzaPerk, pizzas);
+    },
+    [Custom.CathedralUp]: ({ perk }) => this.legends.act4.stoneUp(perk as PizzaPerk),
+    [Custom.CathedralTick]: ({ perk }) => this.legends.act4.stoneTick(perk as PizzaPerk),
+    [Custom.CathedralDown]: () => this.legends.act4.stoneDown(),
     [Custom.HalfStomp]: ({ foot, pizza, ev }) => {
       if (!foot || !pizza || !('dmg' in ev)) return false;
       ev.dmg = this.halfStomp(foot, pizza, ev.dmg);

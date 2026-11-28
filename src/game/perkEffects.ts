@@ -121,6 +121,14 @@ export const Custom = {
   TideTick: 'tideTick',
   Cannon: 'cannon',
   Tray: 'tray',
+  // ——— the pizza plan's step 5, batch 4: Act 4's Legendaries (src/game/pizzaLegends4.ts) ———
+  PigeonCatch: 'pigeonCatch',
+  DoughTick: 'doughTick',
+  DoughDown: 'doughDown',
+  CathedralStone: 'cathedralStone',
+  CathedralUp: 'cathedralUp',
+  CathedralTick: 'cathedralTick',
+  CathedralDown: 'cathedralDown',
 } as const;
 export type CustomId = (typeof Custom)[keyof typeof Custom];
 
@@ -195,6 +203,28 @@ const Movable = Cond.All(Cond.Not(Cond.Friendly), Cond.Not(Cond.Puppet), Cond.No
 const Batable = Cond.All(Cond.Alive, Cond.Hittable, Movable, Cond.Any(Cond.Diving, Cond.Stomping));
 /** A foot Cosmic Crouton Supreme's portal can open on. */
 const PortalReady = Cond.All(Cond.Alive, Cond.Hittable, Movable, Cond.Not(Cond.InPortal));
+
+/** Act 4's Legendaries' numbers (docs/pizza-plan.md, section 15), declared once: their triggers below, the kit
+ *  (src/game/pizzaLegends4.ts) and their STATS tiles read them from here. */
+export const ACT4 = {
+  /** Pigeon King's Catch: a diving foot carried off every 10 s (÷ the table's strength). */
+  catchEvery: Unit.Seconds(10),
+  /** Second Rise: a risen dough foot bites ×0.5 (a Legendary hit, × the strength it rose at) every second for 6 s;
+   *  at most 3 up at once. */
+  bite: Unit.Mult(0.5),
+  biteEvery: Unit.Seconds(1),
+  riseFor: Unit.Seconds(6),
+  risenMax: Unit.Count(3),
+  /** Cathedral Crust: each pizza's first stomp a wave (enhanced two; copies add) is blocked, the foot stone for 1.5 s. */
+  stones: Enh(Unit.Count(1), Unit.Count(2)),
+  stoned: Unit.Seconds(1.5),
+} as const;
+/** A foot the Pigeon King's pigeon can carry off: an ordinary foot diving or stomping on the table, one a Legendary
+ *  may move, not pinned by a set-piece and not already being taken (a portal, another pigeon). */
+const Catchable = Cond.All(Cond.Alive, Cond.Hittable, Movable, Cond.Not(Cond.Boss), Cond.Not(Cond.Pinned), Cond.Not(Cond.InPortal), Cond.Not(Cond.InTalons), Cond.Any(Cond.Diving, Cond.Stomping), Cond.Down(Unit.Px(120)));
+/** A beaten foot that rises again as Second Rise's dough: an ordinary one (never a boss or mini-boss, their Ghost
+ *  echoes or twins), not a friendly zombie, not one carried off or taken through a portal. */
+const Risable = Cond.All(Cond.NotEcho, Cond.Not(Cond.Boss), Cond.Not(Cond.Friendly), Cond.Not(Cond.InPortal));
 
 /** Every ported perk's trigger effects, in the order they run on each moment. */
 export const PERK_EFFECTS = [
@@ -561,6 +591,15 @@ export const PERK_EFFECTS = [
     Effect.Defend(
       Guard.Early,
       C(Custom.Ladle),
+      { scope: Scope.Field, when: Cond.All(Cond.Alive, Cond.Not(Cond.Haunted)) },
+    ),
+  ]],
+  // Cathedral Crust (step 5, batch 4): each pizza's first stomp a wave turns to stone, after Nonna's ladle and before
+  // the walls (so a piercing stomp is stoned too; never the Ghost's pizza)
+  ['stoneFirst', [
+    Effect.Defend(
+      Guard.Early,
+      C(Custom.CathedralStone),
       { scope: Scope.Field, when: Cond.All(Cond.Alive, Cond.Not(Cond.Haunted)) },
     ),
   ]],
@@ -1168,6 +1207,50 @@ export const PERK_EFFECTS = [
       Unit.Seconds(15),
       C(Custom.Tray),
       { fireIf: Cond.AnyFoot(Cond.All(Batable, Cond.Down(Unit.Px(300)))) },
+    ),
+  ]],
+
+  // ——— Act 4's Legendaries L10–L12 (step 5, batch 4; src/game/pizzaLegends4.ts runs each one-off, its looks in
+  // src/game/legendView4.ts) ———
+  // Pigeon King's Catch: every 10 s of feet on the table, the Pigeon King's pigeon carries off the front diving foot
+  // (an ordinary one; a kill)
+  ['pigeonCatch', [
+    Effect.Every(
+      ACT4.catchEvery,
+      C(Custom.PigeonCatch),
+      { tickIf: Cond.AnyFoot(FeetUp), at: Pick.Front(Catchable) },
+    ),
+  ]],
+  // Second Rise: a beaten foot rises again as dough for 6 s, biting the nearest foot every second (its bites on the
+  // game clock, every frame); the risen sink as the wave closes
+  ['doughRise', [
+    Effect.OnKill(
+      Action.Summon(Ally.RisenDough),
+      { when: Risable },
+    ),
+    Effect.EachFrame(
+      C(Custom.DoughTick),
+      { scope: Scope.Field, outlives: Outlives.Props },
+    ),
+    Effect.WaveClose(
+      C(Custom.DoughDown),
+      { scope: Scope.Field, outlives: Outlives.TidyUp },
+    ),
+  ]],
+  // Cathedral Crust: as a wave starts every pizza is set in stone for its first stomp (its stomp defence is above);
+  // the stone shows under each pie, and comes off as the wave closes
+  ['stoneFirst', [
+    Effect.WaveStart(
+      C(Custom.CathedralUp),
+      { scope: Scope.Field, outlives: Outlives.TidyUp },
+    ),
+    Effect.EachFrame(
+      C(Custom.CathedralTick),
+      { scope: Scope.Field, outlives: Outlives.Props },
+    ),
+    Effect.WaveClose(
+      C(Custom.CathedralDown),
+      { scope: Scope.Field, outlives: Outlives.TidyUp },
     ),
   ]],
 

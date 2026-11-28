@@ -778,6 +778,10 @@ export const ABILITIES: Record<string, Ability> = {
   'pizza:cosmiccrouton': ab('Crouton Rift', act, [EX(0.25, all), D(6, tough(2)), M(1.4, 4, all)], 0x9a8cff, 'zap', 0.9),
   'pizza:roarroast': ab('Hearth Roar', every(10), [ST(1.2, all), M(1.3, 3, all)], 0xff7a2a, 'fire'),
   'pizza:blackolivehole': ab('Event Horizon', act, [EX(0.3, all), D(5, all), ST(1.5, all)], 0xffb060, 'slam', 0.85),
+  // the pizza plan's step 5, batch 4: Act 4's Legendaries (src/content/pizzas/p11.ts)
+  'pizza:pigeoncatch': ab('Flock Call', act, [EX(0.35, front(3)), D(3, front(3)), K(1500, all), ST(1, all)], 0xc8ccf0, 'wind', 0.9),
+  'pizza:secondrise': ab('Rising Dough', kill(0.35), [D(2.5, hit(260)), S(0.3, 2, hit(260))], 0xffd08a, 'heal'),
+  'pizza:cathedralcrust': ab('Cathedral Bell', act, [ST(2, all), D(4, all), SH(1, 'all')], 0xc0a0ff, 'slam', 0.9),
 
   // ——— Act 7 · Comics: places, bosses and villain feet ———
   'place:metropizza': ab('Searchlight', every(6), [M(1.6, 4, tough(2)), D(2, tough(2))], GOLD, 'zap'),

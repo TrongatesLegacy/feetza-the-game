@@ -1110,6 +1110,11 @@ export class Foot {
     return this.flashT > 0;
   }
 
+  /** The tint it wears now (null: none), to put back after a passing one. */
+  tintNow(): number | null {
+    return this.img.isTinted ? this.img.tintTopLeft : null;
+  }
+
   tint(color: number | null): void {
     for (const o of [this.img, this.leg, this.cuff, ...this.liveImgs]) {
       if (!o) continue;

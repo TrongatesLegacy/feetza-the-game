@@ -193,6 +193,10 @@ const PERK_ELEMENT: Partial<Record<PizzaPerk, { el: Element; quip?: string; col?
   croutonPortal: { el: 'cosmic', quip: 'COSMIC CROUTON!', col: 0x9a8cff },
   hearthRoar: { el: 'fire', quip: 'ROAR!', col: 0xff7a2a },
   blackHole: { el: 'cosmic', quip: 'BLACK OLIVE HOLE!', col: 0xffb060 },
+  // the pizza plan's step 5, batch 4: Act 4's Legendaries (their auras: src/game/legendAuras4.ts)
+  pigeonCatch: { el: 'feather', quip: 'SNATCHED!', col: 0xffbe6a },
+  doughRise: { el: 'cream', quip: 'SECOND RISE!', col: 0xffd08a },
+  stoneFirst: { el: 'stone', quip: 'SET IN STONE!', col: 0xc0a0ff },
 };
 
 /** A perk's element: its own, else by its name, else by its pizza (a hot pie fire, a cold one frost), else power. */

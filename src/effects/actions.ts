@@ -44,10 +44,13 @@ export type WhoId = (typeof Who)[keyof typeof Who];
 export const Ally = {
   /** Phantom Waltz's friendly ghost: a sprite guarding a pizza (never a foot, so nothing can zombify it). */
   FriendlyGhost: 'friendlyGhost',
+  /** Second Rise's risen dough: the beaten foot back for a few seconds as a dough copy of itself, biting the nearest
+   *  foot (a sprite, never a foot: nothing zombifies it, smacks and stomps pass it by). */
+  RisenDough: 'risenDough',
 } as const;
 export type AllyId = (typeof Ally)[keyof typeof Ally];
 /** An ally as a card names it. */
-const ALLY_NAME: Record<AllyId, string> = { friendlyGhost: 'friendly ghost' };
+const ALLY_NAME: Record<AllyId, string> = { friendlyGhost: 'friendly ghost', risenDough: 'risen dough foot' };
 
 /** How hard a hit is: m × your smack damage, or a Legendary's m (× your smack damage × the heat's Legendary scale,
  *  legendDmg in src/game/legendary.ts). Either way × the firing's strength, unless it's a plain hit (Hit.Plain: the

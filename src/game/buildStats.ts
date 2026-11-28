@@ -23,6 +23,7 @@ import { passiveBoost } from './slamMode';
 import { DOUBLE_CAP, TIP_MULT_CAP } from './Run';
 import { total, type DmgTally, type TallySpan } from './dmgTally';
 import { tunaTips } from '../data/perkWave';
+import { ACT4 } from './perkEffects';
 
 export type Tone = 'up' | 'down' | 'flat';
 
@@ -613,6 +614,12 @@ export function buildView(inp: BuildInput): BuildView {
   if (crouton > 0) dmgTiles.push({ label: 'Crouton portal', num: r1(Math.min(5, crouton)), fmt: 'pct', icon: '🌌', tone: 'up', from: inp.pizzas.filter((p) => p.perk === 'croutonPortal').map(pzSrc), note: `of smacks take an ordinary foot through a portal (a kill); bosses take ×10 (${Math.round(10 * (inp.heat.legend ?? 1) * 10) / 10} smacks on ${inp.heat.name})` });
   const hole = inp.c('blackHole');
   if (hole > 0) dmgTiles.push({ label: 'Black olive hole', num: 5, fmt: 'x', icon: '🕳️', tone: 'up', from: inp.pizzas.filter((p) => p.perk === 'blackHole').map(pzSrc), note: `every ${Math.round(20 / hole)}s every foot is pulled in for 2s: in its lane under 30% health swallowed whole, the rest ×5 near it, less further out (${Math.round(5 * (inp.heat.legend ?? 1) * 10) / 10} smacks on ${inp.heat.name})` });
+  // Act 4: Pigeon King's Catch's pigeon (a kill every 10s) and Second Rise's risen dough (×0.5 bites, Legendary damage),
+  // their numbers read from their declarations (ACT4)
+  const pigeon = inp.c('pigeonCatch');
+  if (pigeon > 0) dmgTiles.push({ label: 'Pigeon catch', num: Math.round(ACT4.catchEvery / pigeon), fmt: 'sec', pre: 'every ', icon: '🐦', tone: 'up', from: inp.pizzas.filter((p) => p.perk === 'pigeonCatch').map(pzSrc), note: 'the diving foot nearest a pizza carried off the table (a kill); never a boss or mini-boss' });
+  const rise = inp.c('doughRise');
+  if (rise > 0) dmgTiles.push({ label: 'Risen dough', num: r1(ACT4.bite * rise), fmt: 'x', icon: '🥖', tone: 'up', from: inp.pizzas.filter((p) => p.perk === 'doughRise').map(pzSrc), note: `beaten feet rise for ${ACT4.riseFor}s and bite the nearest foot every ${ACT4.biteEvery}s, up to ${ACT4.risenMax} at once (${Math.round(ACT4.bite * rise * (inp.heat.legend ?? 1) * 100) / 100} smacks a bite on ${inp.heat.name})` });
   // the Epic Pizzeria pizzas: Colossus Forge, Three-Headed Hound, Gorgon's Gaze, Ember Shade
   for (const p of inp.pizzas.filter((q) => q.perk === 'forgeWaves')) dmgTiles.push({ label: 'The Forge', num: r1(Math.min(40, inp.forgeWaves) * p.pk), fmt: 'pct', pre: '+', icon: '⚒️', tone: 'up', from: [pzSrc(p)], note: `${inp.forgeWaves} wave${inp.forgeWaves === 1 ? '' : 's'} survived · +${r1(p.pk)}% a wave, up to +${r1(40 * p.pk)}%` });
   for (const p of inp.pizzas.filter((q) => q.perk === 'tripleBite')) dmgTiles.push({ label: 'Three bites', num: p.enhanced ? 2 : 3, fmt: 'int', pre: 'every ', post: ' smacks', icon: '🐕', tone: 'up', from: [pzSrc(p)], note: 'the smack bites three times' });
@@ -809,6 +816,13 @@ export function buildView(inp: BuildInput): BuildView {
   if (bake.length) {
     const n = bake.some((p) => p.enhanced) ? 2 : 1;
     sus.push({ label: 'The First Bake', num: n, fmt: 'int', pre: '+', post: n === 1 ? ' slice over max' : ' slices over max', icon: '🔥', tone: 'up', from: bake.map(pzSrc), note: `once a run on every pizza${inp.heat.freshness > 0 ? ', and every pizza starts each wave fresh' : ''}` });
+  }
+  // Act 4: Cathedral Crust's stone (each pizza's first stomp a wave; an enhanced one two; copies add)
+  // (the pizzas granting it: p.perk is the perk granted now, none while stale, frozen, possessed or eaten)
+  const cath = inp.pizzas.filter((p) => p.perk === 'stoneFirst' && !p.dead && !p.stale && !p.frozen && !p.possessed);
+  if (cath.length) {
+    const n = cath.reduce((k, p) => k + (p.enhanced ? ACT4.stones.enhanced : ACT4.stones.plain), 0);
+    sus.push({ label: 'Set in stone', num: n, fmt: 'int', post: n === 1 ? ' stomp a pizza' : ' stomps a pizza', icon: '⛪', tone: 'up', from: cath.map(pzSrc), note: `each wave, the first on every pizza blocked (piercing ones too); the foot turned to stone ${ACT4.stoned}s` });
   }
   const waltz = inp.c('ghostAlly');
   if (waltz > 0) sus.push({ label: 'Friendly ghosts', num: pct(Math.min(0.6, 0.15 * waltz)), fmt: 'pct', icon: '👻', tone: 'up', from: inp.pizzas.filter((p) => p.perk === 'ghostAlly').map(pzSrc), note: `of kills rise; each blocks a stomp${inp.ghosts ? ` (${inp.ghosts} on guard)` : ''}` });

@@ -12,6 +12,8 @@
 //   slow; Stack.Strongest (a dance beat, a snowball, a song) only takes when nothing stronger is on, so it never
 //   strengthens (or shortens) a slow already there: a boss's own slow is never made worse.
 // - Stun and Freeze: the longer stun stands (Foot.stun); insulated boots shrug off a freeze.
+// - Stone: a stun that only takes on an ordinary foot. Bosses, mini-bosses (their Ghost echoes and twins too) and
+//   feet a fight moves by hand (puppets, free feet) are never turned to stone: their fights' scripts stand.
 
 import type { Foot } from '../game/Foot';
 import type { Mult, Percent, Seconds } from './units';
@@ -50,7 +52,8 @@ export type StatusData =
   | { s: 'burn'; sec: MaybeEnh<Seconds>; dps: DpsData }
   | { s: 'slow'; sec: MaybeEnh<Seconds>; pct: Percent; scaled: boolean; stack: SlowStackId }
   | { s: 'stun'; sec: MaybeEnh<Seconds> }
-  | { s: 'freeze'; sec: MaybeEnh<Seconds> };
+  | { s: 'freeze'; sec: MaybeEnh<Seconds> }
+  | { s: 'stone'; sec: MaybeEnh<Seconds> };
 
 export const Status = {
   Burn: (sec: MaybeEnh<Seconds>, dps: DpsData): StatusData => ({ s: 'burn', sec, dps }),
@@ -58,7 +61,12 @@ export const Status = {
   Slow: (sec: MaybeEnh<Seconds>, pct: Percent, o: { stack?: SlowStackId; fixed?: boolean } = {}): StatusData => ({ s: 'slow', sec, pct, scaled: !o.fixed, stack: o.stack ?? SlowStack.Refresh }),
   Stun: (sec: MaybeEnh<Seconds>): StatusData => ({ s: 'stun', sec }),
   Freeze: (sec: MaybeEnh<Seconds>): StatusData => ({ s: 'freeze', sec }),
+  /** Turned to stone: stunned, ordinary feet only (Cathedral Crust's stone stomp). */
+  Stone: (sec: MaybeEnh<Seconds>): StatusData => ({ s: 'stone', sec }),
 } as const;
+
+/** Can a foot be turned to stone? Only an ordinary one: never a boss or mini-boss, nor a foot a fight moves by hand. */
+export const stoneable = (f: Foot): boolean => f.alive && !f.isBossLike && !f.puppet && !f.brain.free;
 
 /** Put a status on f. k: the perk's strength; damage: your smack damage now. False when it didn't take (immune). */
 export function applyStatus(st: StatusData, f: Foot, o: { k: number; enhanced: boolean; damage: number }): boolean {
@@ -93,6 +101,10 @@ export function applyStatus(st: StatusData, f: Foot, o: { k: number; enhanced: b
     case 'freeze':
       f.stun(pickEnh(st.sec, o.enhanced), true);
       return true;
+    case 'stone':
+      if (!stoneable(f)) return false;
+      f.stun(pickEnh(st.sec, o.enhanced));
+      return true;
   }
 }
 
@@ -107,5 +119,7 @@ export function describeStatus(st: StatusData): string {
       return `stun it for ${sec(st.sec)}`;
     case 'freeze':
       return `freeze it for ${sec(st.sec)}`;
+    case 'stone':
+      return `turn it to stone for ${sec(st.sec)}`;
   }
 }

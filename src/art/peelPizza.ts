@@ -47,7 +47,7 @@ type Pt = [number, number];
 // ════════════════════════════ a pizza's family, from its data ════════════════════════════
 
 /** Toppings too small to read when they hop (flecks, crumbs, herbs). */
-const TINY = new Set<string>(['lingonberry', 'cosmicParmesan', 'samphire', 'seaSalt', 'parmShavings', 'chili', 'parmesan', 'goldLeaf', 'oregano', 'blackPepper', 'chives', 'parsley', 'dill', 'aonori', 'bonito', 'breadcrumbs', 'starDust', 'sprinkles', 'rosemary', 'pepita', 'pineNut', 'caper', 'grahamCrumb', 'pistachio', 'sage', 'springOnion']);
+const TINY = new Set<string>(['crumbTrail', 'lingonberry', 'cosmicParmesan', 'samphire', 'seaSalt', 'parmShavings', 'chili', 'parmesan', 'goldLeaf', 'oregano', 'blackPepper', 'chives', 'parsley', 'dill', 'aonori', 'bonito', 'breadcrumbs', 'starDust', 'sprinkles', 'rosemary', 'pepita', 'pineNut', 'caper', 'grahamCrumb', 'pistachio', 'sage', 'springOnion']);
 /** Fatty, oily toppings: they glisten more and their fat sizzles. */
 const OILY = new Set<string>(['roastBeef', 'tikiMask', 'nonnaRagu', 'pepperoni', 'salami', 'cupPepperoni', 'chorizo', 'nduja', 'calabreseSalami', 'sausage', 'bacon', 'guanciale', 'lardons', 'andouille', 'meatball', 'wagyu', 'mortadella', 'kebabMeat', 'steak', 'friedChicken', 'ribBone', 'brickChorizo', 'bronzePlates', 'muspelCoals']);
 /** Oil poured over the whole pie. */

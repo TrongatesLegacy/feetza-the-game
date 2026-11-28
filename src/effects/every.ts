@@ -21,11 +21,13 @@ import type { Seconds } from './units';
 export const Reset = { Wave: 'wave', Run: 'run' } as const;
 export type ResetId = (typeof Reset)[keyof typeof Reset];
 
-/** Which foot a timed action goes for: a random one, or the toughest (most hp), of those matching. */
-export type PickData = { pick: 'random' | 'toughest'; of: CondData };
+/** Which foot a timed action goes for: a random one, the toughest (most hp), or the front one (the lowest on the
+ *  screen: the closest to a pizza, as a peel's `front` target), of those matching. */
+export type PickData = { pick: 'random' | 'toughest' | 'front'; of: CondData };
 export const Pick = {
   Random: (of: CondData): PickData => ({ pick: 'random', of }),
   Toughest: (of: CondData): PickData => ({ pick: 'toughest', of }),
+  Front: (of: CondData): PickData => ({ pick: 'front', of }),
 } as const;
 
 export interface EveryOpts {
@@ -67,7 +69,7 @@ export const EveryEffect = effectKind('every', make, {
         const pool = play.feet().filter((f) => holdsCond(at.of, cc, f));
         if (!pool.length) return;
         // (Phaser's GetRandom's draw: one Math.random, floored)
-        foot = at.pick === 'random' ? pool[Math.floor(Math.random() * pool.length)] : pool.sort((p, q) => q.hp - p.hp)[0];
+        foot = at.pick === 'random' ? pool[Math.floor(Math.random() * pool.length)] : at.pick === 'front' ? pool.sort((p, q) => q.y - p.y)[0] : pool.sort((p, q) => q.hp - p.hp)[0];
       }
       play.state[key] = 0;
       const fire: Fire = { perk: play.perk, ev, foot, pizza: null, get pizzas() { return g.pizzas; }, k: g.k };

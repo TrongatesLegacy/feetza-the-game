@@ -39,7 +39,7 @@ export type TriggerKindId = (typeof TriggerKind)[keyof typeof TriggerKind];
 
 type OpTag = 'add' | 'mul' | 'set' | 'on' | 'atLeast' | 'atMost' | 'none';
 type ScopeTag = 'table' | 'each' | 'sum' | 'target' | 'alive' | 'field' | 'own';
-type StatusTag = 'burn' | 'slow' | 'stun' | 'freeze';
+type StatusTag = 'burn' | 'slow' | 'stun' | 'freeze' | 'stone';
 type ActionTag = 'tips' | 'reroll' | 'heal' | 'meter' | 'crust' | 'knock' | 'damage' | 'ability' | 'area' | 'relane';
 /** A condition's name, or one inside a Not / AnyFoot. */
 type CondId = Exclude<CondData['c'], 'all' | 'any' | 'not' | 'anyFoot'>;

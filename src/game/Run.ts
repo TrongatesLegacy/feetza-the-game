@@ -872,6 +872,7 @@ export function milestoneProgress(id: string): [number, number] {
     // the Legendary milestones (docs/pizza-plan.md, section 12): feats recorded as they happen (save.pizzaGoals)
     case 'waiterHot': return [g.waiterHot ? 1 : 0, 1];
     case 'beachHot': return [g.beachHot ? 1 : 0, 1];
+    case 'pigeonHot': return [g.pigeonHot ? 1 : 0, 1];
     default: return [0, 1];
   }
 }

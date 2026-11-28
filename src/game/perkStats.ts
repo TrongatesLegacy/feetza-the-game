@@ -380,4 +380,7 @@ export const PERK_STATS = {
   croutonPortal: none,
   hearthRoar: none,
   blackHole: none,
+  pigeonCatch: none,
+  doughRise: none,
+  stoneFirst: none,
 } satisfies Record<PizzaPerk, (c: number) => EffectData[]>;

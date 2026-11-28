@@ -15,6 +15,7 @@ import { PizzaAlive, bakedTop } from './pizzaAlive';
 // (the legendaries' auras and signatures plug into the living layer's hooks)
 import './legendAuras';
 import './legendAuras3';
+import './legendAuras4';
 
 let uid = 0;
 

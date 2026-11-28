@@ -50,6 +50,8 @@ import type { Run } from './Run';
 import { legendDmg, legendLook } from './legendary';
 import { Action, Hit, Unit, type ActionData } from '../effects';
 import { Act3Legends, LEGEND3_SFX } from './pizzaLegends3';
+import { Act4Legends, LEGEND4_SFX } from './pizzaLegends4';
+import { Legends4View } from './legendView4';
 
 /** Sounds the Legendaries' perks play that aren't loaded at boot: Nonna's spoon and rolling pin, the Head Waiter's
  *  tray, wood and sauce smacks. All credited already. (The Legendaries' own synthesized sounds, sfx_legendbake,
@@ -64,6 +66,8 @@ export const LEGEND_SFX = [
   'sfx_zeus_wave', 'sfx_seagull', 'sfx_kraken_splash', 'sfx_smack_water_heavy', 'sfx_smack_water_1', 'sfx_smack_tail_kinghonk',
   // Act 3: src/game/pizzaLegends3.ts
   ...LEGEND3_SFX,
+  // Act 4: src/game/pizzaLegends4.ts (its looks: src/game/legendView4.ts)
+  ...LEGEND4_SFX,
 ];
 
 /** What the Epics' kit lends the Legendaries. */
@@ -105,6 +109,8 @@ export class LegendKit {
   private quipAt: Record<string, number> = {};
   /** Act 3's perks (src/game/pizzaLegends3.ts). */
   readonly act3: Act3Legends;
+  /** Act 4's perks (src/game/pizzaLegends4.ts) and their looks (src/game/legendView4.ts). */
+  readonly act4: Act4Legends;
 
   constructor(arena: Arena, host: LegendHost) {
     this.a = arena;
@@ -128,6 +134,7 @@ export class LegendKit {
     ];
     for (const [k, draw] of tex) if (!this.sc.textures.exists(k)) this.sc.textures.addCanvas(k, draw());
     this.act3 = new Act3Legends(arena, host, (x, y, k, u) => this.img(x, y, k, u), (k, g) => this.every(k, g));
+    this.act4 = new Act4Legends(arena, host, new Legends4View(arena, (x, y, k, u) => this.img(x, y, k, u), (k, g) => this.every(k, g)));
   }
 
   private get run(): Run {
@@ -163,6 +170,7 @@ export class LegendKit {
     this.baked.clear();
     this.ovenStage = -1;
     this.act3.runStart();
+    this.act4.runStart();
   }
 
   /** A wave starts: Nonna's ladle has its swats again. */
@@ -822,6 +830,7 @@ export class LegendKit {
   /** The scene is shutting down: everything in flight goes at once (no tweens). */
   clear(): void {
     this.act3.clear();
+    this.act4.clear();
     for (const o of [...this.live]) o.destroy();
     this.live.clear();
   }

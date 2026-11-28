@@ -648,6 +648,22 @@ const S: Record<string, Spec> = {
     dim: 0.15,
     emblem: 'pk_bigolive',
   },
+  // Flock Call: the Pigeon King's flock sweeps the table from the side, the crowned pigeon leading, feathers raining
+  'pizza:pigeoncatch': {
+    steps: [{ k: 'show', tex: 'pk_pigeon2', size: 260, from: 'pop', glow: 0xffbe6a, ms: 520 }, { k: 'sweep', tex: 'pk_pigeon0', n: 5, gap: 90, size: 150, ms: 760, hop: 30, hops: 3, trail: 0xdfe2ff, t: 140 }, { k: 'rain', tex: ['pk_feather'], n: 12, size: 54, spin: true, at: 'spread', t: 420 }],
+    sfx: [['sfx_pigeonking_coo', 0, 0.7], ['sfx_pigeonking_flock', 120, 0.8], ['sfx_hero_wings', 200, 0.7], ['sfx_smack_fur_heavy', 520, 0.6]],
+    weight: 0.9,
+    emblem: 'pk_pigeon2',
+  },
+  // Cathedral Bell: the bell swings in at the top, the rose window lights up behind it, every foot greys to stone in the
+  // coloured light, glass and chips falling
+  'pizza:cathedralcrust': {
+    steps: [{ k: 'tint', color: 0x1a1430, alpha: 0.18, ms: 900 }, { k: 'spin', tex: 'pk_rosewindow', size: 620, turns: 0.15, ms: 900, color: 0xc0a0ff, add: true }, { k: 'show', tex: 'pk_bell', size: 220, from: 'top', glow: 0xffe6a0, wiggle: true, ms: 760, t: 80 }, { k: 'rain', tex: ['pk_glass0', 'pk_glass1', 'pk_glass2', 'pk_stonechip'], n: 14, size: 44, spin: true, t: 360 }],
+    sfx: [['sfx_soleprop_bell', 0, 0.8], ['sfx_gargoyle_stone', 260, 0.7], ['sfx_gargoyle_stonecrack', 420, 0.6], ['sfx_smack_glass_1', 520, 0.6]],
+    weight: 1,
+    dim: 0.12,
+    emblem: 'pk_bell',
+  },
   // Eruption: the pizza erupts like a volcano, lava falling on every foot
   'pizza:volcano': {
     steps: [{ k: 'show', tex: 'pizza', size: 360, from: 'below', glow: RED, wiggle: true }, { k: 'rain', tex: ['p_fireball', 'flame'], n: 14, size: 90, trail: ORANGE, splash: ORANGE, t: 80 }],

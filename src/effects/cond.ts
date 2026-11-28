@@ -12,7 +12,7 @@ import type { Px } from './units';
 export type CondData =
   | { c: 'alive' | 'hittable' | 'bossLike' | 'trueBoss' | 'diving' | 'burning' | 'puppet' | 'free' | 'decoy' | 'slowable' | 'burnable' }
   | { c: 'over' | 'hovering' | 'pierces' | 'fast' | 'bossKind' | 'mini' | 'undead' | 'cold' | 'goldenFoot' }
-  | { c: 'stomping' | 'friendly' | 'pinned' | 'inPortal' }
+  | { c: 'stomping' | 'friendly' | 'pinned' | 'inPortal' | 'inTalons' }
   | { c: 'near' | 'full' | 'fullFresh' | 'haunted' | 'enhanced' }
   | { c: 'smack' | 'fresh' | 'night' | 'autoSlam' | 'notByAbility' | 'ready' }
   | { c: 'flag'; id: string }
@@ -69,6 +69,8 @@ export const Cond = {
   Pinned: { c: 'pinned' } as CondData,
   /** Already through Cosmic Crouton Supreme's portal. */
   InPortal: { c: 'inPortal' } as CondData,
+  /** A pigeon is swooping on it (Pigeon King's Catch): nothing else takes it meanwhile. */
+  InTalons: { c: 'inTalons' } as CondData,
   /** The golden foot, or a kill paid as golden (Midas). */
   Golden: { c: 'goldenFoot' } as CondData,
   /** The foot is over the pizza or close beside it (within 1.3 of its radius). */
@@ -185,6 +187,8 @@ export function holdsCond(c: CondData, x: CondCtx, f: Foot | null = x.foot): boo
       return !!f?.pinned;
     case 'inPortal':
       return !!f?.brain.portal;
+    case 'inTalons':
+      return !!f?.brain.pigeon;
     case 'goldenFoot':
       return ('golden' in x.ev && x.ev.golden) || f?.type.id === 'golden';
     case 'near': {
