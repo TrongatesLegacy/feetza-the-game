@@ -14,7 +14,7 @@
 
 import { UPGRADES, kindOf, UpgradeKind, type Upgrade } from './data/upgrades';
 import { PIZZAS, type PizzaPerk } from './data/pizzas';
-import { Effect, Op, Stat, effects, type EffectData } from './effects';
+import { Effect, Op, Stat, effects, type ActionData, type EffectData } from './effects';
 import { Outlives, Scope } from './effects/trigger';
 import { RULE_DEFS, RuleBy } from './effects/rule';
 import { Source } from './effects/source';
@@ -71,6 +71,16 @@ export interface EffectsAudit {
 }
 
 const kindsOf = (list: readonly EffectData[]) => [...new Set(list.map((e) => e.kind))];
+
+/** An action that does something: an ability with no effects of its own, or a sequence of nothing, doesn't. */
+function acts(a: ActionData): boolean {
+  if (a.a === 'ability') return a.fx.length > 0;
+  if (a.a === 'seq') return a.list.some(acts);
+  if (a.a === 'later' || a.a === 'area') return acts(a.act);
+  return true;
+}
+/** An effect that does something (a trigger whose action is empty declares nothing). */
+const doesSomething = (e: EffectData): boolean => !('action' in e) || acts(e.action);
 
 /** The STATS tab's chips: every tile's and automatic tile's sources, and the More effects lines. */
 function chipsOf(v: BuildView): Set<string> {
@@ -131,7 +141,7 @@ export function effectsAudit(g: AnyScene): EffectsAudit {
       out.counts.toppings++;
       const list = u.effects ?? [];
       out.rows.toppings.push({ id: u.id, name: u.name, effects: list.length, kinds: kindsOf(list) });
-      if (!list.length) out.noEffects.toppings.push(u.id);
+      if (!list.some(doesSomething)) out.noEffects.toppings.push(u.id);
       adapt(`topping ${u.id}`, list);
       if (kindOf(u) === UpgradeKind.Consumable) {
         out.cardOnly.toppings.push(u.id);
@@ -151,7 +161,7 @@ export function effectsAudit(g: AnyScene): EffectsAudit {
       out.counts.pizzas++;
       const list = perkEffectsOf(p.perk);
       out.rows.pizzas.push({ id: p.id, name: p.name, effects: list.length, kinds: kindsOf(list) });
-      if (!list.length && !TABLE.includes(p.perk)) out.noEffects.pizzas.push(`${p.id} (${p.perk})`);
+      if (!list.some(doesSomething) && !TABLE.includes(p.perk)) out.noEffects.pizzas.push(`${p.id} (${p.perk})`);
       adapt(`pizza ${p.id}`, list);
       table([p.id, 'margherita', 'pepperoni']);
       const v: BuildView = g.statsView();
@@ -166,7 +176,7 @@ export function effectsAudit(g: AnyScene): EffectsAudit {
       out.counts.peels++;
       const list = abilityEffects(a);
       out.rows.peels.push({ id, name: a.name, effects: list.length, kinds: kindsOf(list) });
-      if (!list.length) out.noEffects.peels.push(id);
+      if (!list.some(doesSomething)) out.noEffects.peels.push(id);
       adapt(`peel ${id}`, list);
       g.ability = a;
       const v: BuildView = g.statsView();
