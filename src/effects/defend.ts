@@ -3,7 +3,7 @@
 // fields are a trigger's (src/effects/trigger.ts: scope, conditions, chance, counted or once a wave); the stomp is
 // blocked when its action happened (a one-off that says it didn't, such as a slip with no splat there, lets it on).
 //
-//   Effect.Defend(Guard.Early, Action.Seq(Action.Knock(Unit.Amount(420)), S(Look.GhostPass)), { scope: Scope.Target, chance: Unit.Chance(25) })
+//   Effect.Defend(Guard.Early, Action.Seq(S(Look.GhostPass), Action.Knock(Unit.Amount(420))), { scope: Scope.Target, chance: Unit.Chance(25) })
 //   Effect.Defend(Guard.Wall, C(Custom.Stone), { scope: Scope.Target, oncePerWave: 'stoneWave' })
 
 import { describeAction, type ActionData } from './actions';

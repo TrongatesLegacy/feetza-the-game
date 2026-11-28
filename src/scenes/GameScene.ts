@@ -210,8 +210,9 @@ export class GameScene extends Phaser.Scene implements Arena {
   private pickOpen = false;
   /** Hero peels: signature moves, transformations, overlays and passives (src/game/heroMoves.ts). */
   private heroes!: HeroDirector;
-  /** What the abilities and procs did, for their visuals to play (src/game/peelFxEvents.ts). */
-  private peelFx = new PeelFxBus();
+  /** What the abilities and procs did, for their visuals to play (src/game/peelFxEvents.ts): a fresh one with each
+   *  run's AbilityFx (the scene is reused, its old listeners must go with the old run). */
+  private peelFx!: PeelFxBus;
   /** The meter abilities' own visuals (src/game/abilityFx.ts). */
   private abilityFx!: AbilityFx;
   /** While a meter ability's effects run: the feet they reach (for its visual). */
@@ -661,6 +662,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     setNemesisPeel(nmDev ? nmDev.peels[0] : abilityPeel(this.start.snapshot?.peel).id);
     this.events.once('shutdown', () => setNemesisPeel(''));
     this.heroes = new HeroDirector(this.heroHost());
+    this.peelFx = new PeelFxBus();
     this.abilityFx = new AbilityFx({
       sc: this,
       fx: this.fx,

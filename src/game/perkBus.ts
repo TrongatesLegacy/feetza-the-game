@@ -87,11 +87,12 @@ export class PerkBus {
       for (const p of this.h.table())
         for (const s of group) {
           if ((s.scope === Scope.Own ? p.type.perk : p.perk) !== s.perk) continue;
+          const outer = this.visiting;
           this.visiting = p;
           try {
             s.fn(data);
           } finally {
-            this.visiting = null;
+            this.visiting = outer;
           }
         }
       i = j;
@@ -149,7 +150,8 @@ export class PerkBus {
           return p && p.perk === perk ? [{ pizza: p, pizzas: [p], k: () => h.pk(p) }] : [];
         }
         case Scope.Own: {
-          const p = bus.visiting ?? pizzaOf(ev);
+          // (the moment's own pizza when it names one; else the one a table pass is visiting)
+          const p = pizzaOf(ev) ?? bus.visiting;
           return p && p.type.perk === perk ? [{ pizza: p, pizzas: [p], k: () => h.pk(p) }] : [];
         }
         case Scope.Field:

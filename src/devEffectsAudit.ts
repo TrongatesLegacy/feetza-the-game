@@ -10,12 +10,12 @@
 
 import { UPGRADES, kindOf, UpgradeKind, type Upgrade } from './data/upgrades';
 import { PIZZAS, type PizzaPerk } from './data/pizzas';
-import { effects, type EffectData } from './effects';
+import { Effect, Op, Stat, effects, type EffectData } from './effects';
 import { Scope } from './effects/trigger';
 import { Source } from './effects/source';
 import { ABILITIES } from './game/abilities';
 import { PERK_EFFECTS } from './game/perkEffects';
-import { PERK_NONE, PERK_STATS } from './game/perkStats';
+import { PERK_NONE, PERK_STATS, PERK_TIPS } from './game/perkStats';
 import { abilityEffects } from './game/peelEffects';
 import type { BuildView } from './game/buildStats';
 import { save } from './systems/save';
@@ -25,10 +25,17 @@ type AnyScene = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 /** The perks whose numbers PizzaPerkKit.modifiers works out from the whole table (a declared Grows value each). */
 const TABLE_SHAPED: PizzaPerk[] = ['varietyDmg', 'peelDmg', 'comboLong', 'smackSpeed', 'crustRun', 'forgeWaves', 'skaldSaga', 'kitchenSink'];
 
-/** A pizza perk's declared effects: its stats (PERK_STATS, at strength 1) and its triggers (PERK_EFFECTS). */
+/** A pizza perk's declared effects: its stats (PERK_STATS, at strength 1; Pepperoni's and the luck pizzas' tips are one
+ *  sum, PERK_TIPS, declared in Run.buildLedger) and its triggers (PERK_EFFECTS). */
 export function perkEffectsOf(perk: PizzaPerk): EffectData[] {
   const stats = PERK_STATS[perk];
-  return [...(stats && stats !== PERK_NONE ? stats(1) : []), ...PERK_EFFECTS.filter(([p]) => p === perk).flatMap(([, l]) => l)];
+  const tips = perk in PERK_TIPS ? [
+    Effect.Stat(
+      Stat.CoinMult,
+      Op.Add(PERK_TIPS[perk as keyof typeof PERK_TIPS]),
+    ),
+  ] : [];
+  return [...(stats && stats !== PERK_NONE ? stats(1) : []), ...tips, ...PERK_EFFECTS.filter(([p]) => p === perk).flatMap(([, l]) => l)];
 }
 
 interface Row {

@@ -1145,5 +1145,3 @@ export const PERK_EFFECTS: [PizzaPerk, EffectData[]][] = [
   ]],
 ];
 
-/** The perks whose behaviour runs on the trigger bus. */
-export const BUS_PERKS = new Set<PizzaPerk>(PERK_EFFECTS.map(([p]) => p));

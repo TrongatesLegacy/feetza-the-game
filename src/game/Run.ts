@@ -434,8 +434,6 @@ export interface ActMark {
   slices: number;
 }
 
-/** Toppings that only touch freshness: never dealt where freshness is off. */
-
 export class Run {
   heat: HeatId = 'regular';
   act2Start = false;

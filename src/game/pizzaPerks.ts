@@ -96,8 +96,6 @@ export const PERK_SFX = [
   ...LEGEND_SFX,
 ];
 
-/** Stages played at night (Night Shift). */
-
 /** The perk a borrowing pizza (Arcobaleno, Mystery Meat) has right now, or null. */
 export function borrowedPerk(p: Pizza): PizzaPerk | null {
   // Echo Slice: the perk of the pizza beside it (PizzaPerkKit.syncEchoes keeps it up to date)
@@ -830,12 +828,10 @@ export class PizzaPerkKit {
     this.bus.emit(GameEvent.Placed, { pizza: p, fresh });
   }
 
-
   /** A pizza was enhanced: Century Crust grows to 12 slices, the Citadel's fourth pennant (on the bus). */
   enhanced(p: Pizza): void {
     this.bus.emit(GameEvent.Enhanced, { pizza: p });
   }
-
 
   /** A new run (not a continue): count night runs, start the perfect streak over. */
   runStart(): void {
