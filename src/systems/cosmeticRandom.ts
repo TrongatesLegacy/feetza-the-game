@@ -1,7 +1,12 @@
-// Random numbers for things that are only for show (a sound's pitch wobble, which take plays, a slot reel's blur).
-// They come from their own generator, not Math.random, so whether a sound happened to play (it may still be loading,
-// or be throttled) never shifts the game's own random sequence: a seeded run (the balance simulator) plays the same.
+// Random numbers for things that are only for show (a slot reel's blur, a quip's tilt, a prop's look). They come from
+// their own generator, not Math.random, so looks never shift the game's own random sequence: a seeded run (the balance
+// simulator) plays the same.
+//
+// Sounds have a generator of their own again (srand: a pitch wobble, which take plays). Whether a sound plays at all
+// depends on real time (it may still be loading, or be throttled), and cosmetic numbers can reach play (see
+// seedCosmetic): a sound that happened to be loaded must not move the looks' sequence on.
 let s = (Date.now() ^ 0x9e3779b9) >>> 0 || 1;
+let a = (s ^ 0x85ebca6b) >>> 0 || 1;
 
 /** How many cosmetic numbers have been drawn (the art prebuild leaves out art painted with any: src/game/packs.ts). */
 export const crandCount = { n: 0 };
@@ -22,6 +27,17 @@ export function crand(): number {
  *  run must not start from the page's clock. */
 export function seedCosmetic(n: number): void {
   s = (n ^ 0x9e3779b9) >>> 0 || 1;
+  a = (s ^ 0x85ebca6b) >>> 0 || 1;
+}
+
+/** A number in [0, 1) for a sound (src/systems/audio.ts), from the sounds' own generator: never crand(). */
+export function srand(): number {
+  a ^= a << 13;
+  a >>>= 0;
+  a ^= a >>> 17;
+  a ^= a << 5;
+  a >>>= 0;
+  return a / 4294967296;
 }
 
 /** One of `a`, picked by the cosmetic generator (a quip's words, a prop's look). */

@@ -274,7 +274,14 @@ export function migrate(parsed: Partial<SaveData>): SaveData {
   return s;
 }
 
+/** The balance sim (?sim) keeps its save in memory only. The browser's storage is shared by every tab of the page: a
+ *  sim tab used to load whatever another tab had saved mid-run (its peel, what it had seen and unlocked), and the title
+ *  screen picks its pizzas, its demo foot and the peel's sounds from the save, so a seeded run's start depended on
+ *  which runs another tab happened to be playing. Every sim page starts from a new player's save. */
+const SIM = !!import.meta.env?.DEV && typeof location !== 'undefined' && new URLSearchParams(location.search).has('sim');
+
 function load(): SaveData {
+  if (SIM) return clone(DEFAULTS);
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return clone(DEFAULTS);
@@ -296,6 +303,7 @@ export function onSettingsChange(fn: Listener): () => void {
 }
 
 export function persist(): void {
+  if (SIM) return;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(save));
   } catch {

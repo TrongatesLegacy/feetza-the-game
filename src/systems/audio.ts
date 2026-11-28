@@ -2,7 +2,7 @@
 // lazy loading of the larger tracks, and SFX throttling/variation.
 
 import Phaser from 'phaser';
-import { crand } from './cosmeticRandom';
+import { srand } from './cosmeticRandom';
 import manifest from 'virtual:audio-manifest';
 import { onSettingsChange, save } from './save';
 import { SMACK_TRIM } from './smackTrim';
@@ -911,7 +911,7 @@ class AudioManager {
     if (now - last < throttle) return;
     this.lastPlayed.set(key, now);
     const jitter = opts.jitter ?? 0.06;
-    const rate = (opts.rate ?? 1) * (1 + (crand() * 2 - 1) * jitter);
+    const rate = (opts.rate ?? 1) * (1 + (srand() * 2 - 1) * jitter);
     this.game.sound.play(key, {
       volume: (opts.volume ?? 1) * (TRIM[key] ?? 1) * this.vol('sfx'),
       rate,
@@ -923,7 +923,7 @@ class AudioManager {
 
   /** Round-robin through the slap variations (never the same one twice) with pitch variation. */
   private classicSlap(intensity: number): void {
-    this.lastSlap = (this.lastSlap + 1 + Math.floor(crand() * 2)) % 3;
+    this.lastSlap = (this.lastSlap + 1 + Math.floor(srand() * 2)) % 3;
     this.sfx(SLAPS[this.lastSlap], { volume: 0.8 + 0.2 * intensity, rate: 1.06 - 0.12 * intensity, throttle: 25, jitter: 0.1 });
   }
 
@@ -986,8 +986,8 @@ class AudioManager {
       return;
     }
     // alternate takes (never the same twice), slight random pitch and volume, the peel's own pitch on top
-    this.lastTake = (this.lastTake + 1 + Math.floor(crand() * 2)) % p.takes.length;
-    const vol = (0.8 + 0.2 * intensity) * (0.92 + crand() * 0.08);
+    this.lastTake = (this.lastTake + 1 + Math.floor(srand() * 2)) % p.takes.length;
+    const vol = (0.8 + 0.2 * intensity) * (0.92 + srand() * 0.08);
     const rate = p.rate * (heavy ? 0.97 : 1.06 - 0.12 * intensity);
     const key = heavy ? p.heavy : p.takes[this.lastTake];
     this.play(key, vol, rate, heavy ? 40 : 25, 0.07);
@@ -1023,7 +1023,7 @@ class AudioManager {
     this.lastPlayed.set(key, now);
     this.game.sound.play(key, {
       volume: volume * (TRIM[key] ?? 1) * this.vol('sfx'),
-      rate: rate * (1 + (crand() * 2 - 1) * jitter),
+      rate: rate * (1 + (srand() * 2 - 1) * jitter),
     });
   }
 

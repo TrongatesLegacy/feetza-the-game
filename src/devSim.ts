@@ -131,8 +131,22 @@ const real = {
   raf: window.requestAnimationFrame.bind(window),
   caf: window.cancelAnimationFrame.bind(window),
   now: performance.now.bind(performance),
-  dateNow: Date.now,
+  Date,
 };
+// Where the page's clocks stand as a run starts: the same for every run. They used to start from the real clocks, and
+// the numbers the page sees then differ in their last bits from run to run: Date.now() is about 1.8e12, so a step added
+// to it rounds to within 2e-4 ms, differently for every start, and Phaser's tweens (a projectile's flight, a tray's
+// toss) time themselves by Date.now(): a flight could land a step earlier or later. performance.now() starts later
+// than any page's own clock (a stamp the page took before the run reads as long ago, the same in every run), and each
+// further run on the same page (--reuse) starts later again, past anything the run before it stamped. The date is a
+// fixed one (Monday 5 January 2026, noon UTC: a fixed number, so the tweens round alike on any machine), so goals that
+// ask for the time of day or the weekday don't depend on when the sim was run either.
+const PERF_BASE = 10_000_000;
+/** Between the starts of two runs on one page: longer than any run's game time. */
+const PERF_PER_RUN = 1_000_000_000;
+const DATE_BASE = Date.UTC(2026, 0, 5, 12);
+/** Runs this page has played (each starts its clock past the last). */
+let pageRuns = 0;
 // during a run only microtasks get a turn (promises settle): a real timer left over from before the run firing
 // in between would draw random numbers off the seed's sequence
 const yieldNow = () => Promise.resolve();
@@ -147,8 +161,8 @@ interface FakeTimer {
 }
 class GameClock {
   ms = 0;
-  private base = real.now();
-  private dateBase = real.dateNow();
+  private base = PERF_BASE + PERF_PER_RUN * pageRuns++;
+  private dateBase = DATE_BASE;
   private timers = new Map<number, FakeTimer>();
   private nextId = 1_000_000;
   errors: string[] = [];
@@ -169,7 +183,17 @@ class GameClock {
     w.requestAnimationFrame = (fn: unknown) => add(fn, 16, [], 0, true);
     w.cancelAnimationFrame = (id: number) => void this.timers.delete(id);
     performance.now = () => this.now();
-    Date.now = () => this.dateBase + this.ms;
+    // Date.now(), and new Date() with no arguments (the hour a night run counts by, the hero goals' weekdays)
+    const dateNow = () => this.dateBase + this.ms;
+    const RealDate = real.Date;
+    const SimDate = function (this: unknown, ...args: unknown[]) {
+      if (!new.target) return new RealDate(dateNow()).toString();
+      return Reflect.construct(RealDate, args.length ? args : [dateNow()], new.target) as Date;
+    } as unknown as DateConstructor;
+    Object.setPrototypeOf(SimDate, RealDate);
+    (SimDate as unknown as { prototype: Date }).prototype = RealDate.prototype;
+    SimDate.now = dateNow;
+    w.Date = SimDate;
   }
   uninstall(): void {
     const w = window as unknown as Record<string, unknown>;
@@ -180,7 +204,7 @@ class GameClock {
     w.requestAnimationFrame = real.raf;
     w.cancelAnimationFrame = real.caf;
     performance.now = real.now;
-    Date.now = real.dateNow;
+    w.Date = real.Date;
   }
   /** Move game time on and run whatever timers fell due, in order. */
   advance(dt: number): void {

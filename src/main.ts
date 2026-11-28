@@ -14,6 +14,14 @@ import { applyA11y } from './ui/a11y';
 import { previewCard, ui } from './ui/ui';
 import { installTips, setTipCards } from './ui/tips';
 
+/** The balance sim (?sim) always draws with Phaser's canvas renderer. With AUTO a sim page got WebGL only while the
+ *  browser would give it a context: with two worker tabs and a fresh page every run, contexts ran out part way
+ *  through a table, and later pages fell back to the canvas renderer. Some looks are made only under WebGL (the
+ *  zombie wipe's bands of light: each tile sprite made draws cosmetic numbers for its key), and cosmetic numbers can
+ *  reach play, so a seeded run depended on how many pages the browser had opened before it. The sim shows nothing
+ *  anyway: the canvas renderer is always there, and uses no GPU. */
+const SIM = import.meta.env.DEV && new URLSearchParams(location.search).has('sim');
+
 // Dev-only: the art prebuild's page (scripts/prebuild/run.mjs) runs the painters on a game of its own
 if (import.meta.env.DEV && new URLSearchParams(location.search).has('prebuild')) void import('./devPrebuild').then((m) => m.runPrebuild());
 else startGame();
@@ -26,7 +34,7 @@ function startGame(): void {
   pad.init();
 
   const game = new Phaser.Game({
-    type: Phaser.AUTO,
+    type: SIM ? Phaser.CANVAS : Phaser.AUTO,
     parent: 'game',
     width: W,
     height: H,

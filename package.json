@@ -13,6 +13,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "sim": "node scripts/sim/run.mjs",
+    "sim:repeat": "node scripts/sim/repeat.mjs",
     "golden": "node scripts/golden/run.mjs",
     "lint": "eslint src scripts tools",
     "lint:test": "node tools/eslint/effects.test.js",

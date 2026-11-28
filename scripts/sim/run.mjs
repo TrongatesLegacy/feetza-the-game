@@ -3,7 +3,8 @@
 //
 //   npm run sim -- --heat regular,hot --runs 20 --waves 100
 //   npm run sim -- --heat mild --runs 10 --waves 30 --peel classic,hero:zeus --workers 4
-//   npm run sim -- --check          (same seed twice: are runs reproducible?)
+//   npm run sim -- --check          (same seed twice: are runs reproducible? every field; exit 1 if not)
+//   npm run sim:repeat              (a small fixed set, each run twice: scripts/sim/repeat.mjs)
 //   npm run sim -- --heat mild --from 60 --waves 90 --shop auto --bot idle,light,full
 //                   (momentum: toppings alone, a lazy player, a busy one; the report splits smack and automatic damage)
 //   npm run sim -- --heat mild --bot idle --momentum floor=0.1,drain=4,grace=2,smackGain=0.6   (try other numbers)
@@ -13,13 +14,16 @@
 //
 // It starts its own Vite dev server and a headless Chrome (muted, its own throwaway profile, so the game's save in
 // your browser is never touched), opens one window per worker and hands each runs to play with F.sim.run
-// (src/devSim.ts). Results land in .sim/<date-time>/results.json and report.html (see report.mjs).
+// (src/devSim.ts). Results land in .sim/<date-time>-<pid>/results.json and report.html (see report.mjs).
 //
-// Repeatable: the same seeds give the same runs, whatever unrelated code changes (docs/effects-plan.md, step 2). Each
-// worker has a window of its own (a background tab gets no animation frames and never finished booting); under ?sim
-// the game draws art only when it's first wanted, never in idle time, and keeps no art cache; and the sim pins
-// Phaser's frame figures (game.loop.delta…) to its own step. --cache-dir (or SIM_CACHE_DIR) gives Vite a cache of its
-// own when several checkouts share node_modules.
+// Repeatable: the same seeds give the same runs, every field, whatever unrelated code changes, and whichever tab or
+// how many workers play them (docs/effects-plan.md: step 2, and "The balance sim repeats itself"). Each worker has a
+// window of its own (a background tab gets no animation frames and never finished booting); under ?sim the game draws
+// art only when it's first wanted, never in idle time, keeps no art cache, keeps its save in memory (never the
+// browser's storage, which the tabs share), and draws with the canvas renderer (WebGL contexts ran out part way
+// through a table); the sim pins Phaser's frame figures (game.loop.delta…) to its own step and starts the page's
+// clocks at the same numbers every run. --cache-dir (or SIM_CACHE_DIR) gives Vite a cache of its own when several
+// checkouts share node_modules.
 
 import { spawn } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
@@ -84,7 +88,8 @@ if (argv.includes('--help')) {
   process.exit(0);
 }
 
-// every heat × peel × seed (with --check, each seed twice)
+// every heat × peel × seed (with --check, each seed twice: the repeats after the first pass, in reverse order, so a
+// seed's second run comes at another moment, usually on the other tab, after other runs)
 const jobs = [];
 for (const heat of heats)
   for (const peel of peels)
@@ -92,8 +97,8 @@ for (const heat of heats)
       for (let i = 0; i < runs; i++) {
         const job = { seed: seedBase + i, heat, peel, waves, accuracy, dt, profile, ...(trace ? { trace } : {}), ...(idleFrom ? { idleFrom } : {}), ...(from ? { from } : {}), ...(lineup.length ? { lineup } : {}), ...(enhance ? { enhance } : {}), ...(Object.keys(toppings).length ? { toppings } : {}), shop: shopMode, bot, lightRate, ...(Object.keys(momentum).length ? { momentum } : {}) };
         jobs.push(job);
-        if (check) jobs.push({ ...job, repeat: true });
       }
+if (check) jobs.push(...jobs.map((j) => ({ ...j, repeat: true })).reverse());
 
 const freePort = () =>
   new Promise((res) => {
@@ -253,7 +258,8 @@ class Tab {
 }
 
 // ——— run them ———
-const out = join(ROOT, '.sim', new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19));
+// (the process id too: two sims started in the same second must not share a folder)
+const out = join(ROOT, '.sim', `${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}-${process.pid}`);
 mkdirSync(out, { recursive: true });
 const results = [];
 const t0 = Date.now();
@@ -275,6 +281,8 @@ const worker = async () => {
       await tab.load().catch(() => {});
     }
     r.repeat = !!repeat;
+    // (--check pairs a seed's runs by their job: an errored run's opts aren't filled in like a played one's)
+    r.job = JSON.stringify(opts);
     results.push(r);
     if (!quiet) {
       const speed = r.realMs ? Math.round((r.gameSec * 1000) / r.realMs) : 0;
@@ -304,18 +312,28 @@ const report = writeReport(out, meta, results);
 const bad = results.filter((r) => r.outcome === 'stalled' || r.outcome === 'error').length;
 console.log(`\nDone: ${results.length} runs in ${secs.toFixed(0)} s, ${(gameSecs / 3600).toFixed(1)} h of game time (${Math.round(gameSecs / secs)}× real time overall).`);
 if (bad) console.log(`⚠ ${bad} run(s) stalled or errored: see the report before trusting the numbers.`);
+// --check: every field of a seed's two runs must match (all but the real time they took)
+let differ = 0;
 if (check) {
   const pairs = new Map();
   for (const r of results) {
-    const k = `${r.opts.heat}|${r.opts.peel}|${r.opts.bot ?? 'full'}|${r.opts.seed}`;
-    pairs.set(k, [...(pairs.get(k) ?? []), r]);
+    pairs.set(r.job, [...(pairs.get(r.job) ?? []), r]);
   }
-  let same = 0;
-  for (const [k, [a, b]] of pairs) {
-    const ok = a && b && a.outcome === b.outcome && a.wave === b.wave && a.waves.map((w) => w.coins).join() === b.waves.map((w) => w.coins).join();
-    if (ok) same++;
-    else console.log(`  differs: ${k}: ${a?.outcome} ${a?.wave} vs ${b?.outcome} ${b?.wave}`);
+  // (keys sorted at every level: the same numbers in another order are the same)
+  const canon = (v) => (Array.isArray(v) ? v.map(canon) : v && typeof v === 'object' ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, canon(v[k])])) : v);
+  const same = (x, y) => JSON.stringify(canon(x)) === JSON.stringify(canon(y));
+  const skip = new Set(['realMs', 'repeat', 'job']);
+  const fields = (r) => Object.fromEntries(Object.entries(r).filter(([f]) => !skip.has(f)));
+  for (const [, [a, b]] of pairs) {
+    const o = a.opts;
+    const name = `${o.heat} ${o.peel}${o.bot !== 'full' ? ` ${o.bot} bot` : ''} seed ${o.seed}`;
+    if (a && b && a.outcome !== 'error' && a.outcome !== 'stalled' && same(fields(a), fields(b))) continue;
+    differ++;
+    const which = b ? [...new Set([...Object.keys(a), ...Object.keys(b)])].filter((f) => !skip.has(f) && !same(a[f], b[f])) : ['(no second run)'];
+    const first = b ? a.waves.find((w, i) => !same(w, b.waves[i])) : null;
+    console.log(`  differs: ${name}: ${a.outcome} at wave ${a.wave} vs ${b?.outcome} at wave ${b?.wave}${which.length ? `; fields: ${which.join(', ')}` : ` (${a.outcome})`}${first ? `; from wave ${first.wave}` : ''}`);
   }
-  console.log(`Reproducible: ${same}/${pairs.size} seeds gave identical runs.`);
+  console.log(`Reproducible: ${pairs.size - differ}/${pairs.size} seeds gave identical runs, every field.`);
 }
 console.log(`Report: ${report}`);
+if (differ) process.exit(1);
