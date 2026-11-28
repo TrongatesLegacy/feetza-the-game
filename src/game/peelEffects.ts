@@ -81,7 +81,10 @@ function peelTrigger(a: Ability): EffectData[] {
       ];
     case 'stomp':
       return [
-        Effect.OnStomp(act),
+        Effect.OnStomp(
+          act,
+          { evenIfDown: true },
+        ),
       ];
     case 'wave':
       return [
@@ -133,7 +136,10 @@ function procTrigger(t: Trigger, fx: AbilityFx[]): EffectData[] {
       ];
     case 'stomp':
       return [
-        Effect.OnStomp(act),
+        Effect.OnStomp(
+          act,
+          { evenIfDown: true },
+        ),
       ];
     case 'wave':
       return [

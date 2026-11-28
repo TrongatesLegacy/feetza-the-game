@@ -112,6 +112,9 @@ export interface TriggerOpts {
   /** A Field or Own trigger that runs whatever its pizzas' state, and why (Outlives). Without it, the bus's
    *  off-switch holds it (Scope.Field, Scope.Own). */
   outlives?: OutlivesId;
+  /** It fires even when the moment's foot is already down (a peel's stomp ability or proc: the kind's own check that
+   *  the stomper still stands is skipped, as the scene always fired them). */
+  evenIfDown?: boolean;
 }
 
 export interface TriggerData extends TriggerOpts {
@@ -190,7 +193,7 @@ export function triggerSpec<D extends TriggerData & { readonly kind: TriggerKind
     apply(e: D, ctx: { play?: PlayCtx }) {
       const play = ctx.play;
       if (!play) return;
-      const full: TriggerData = need ? { ...e, when: e.when ? { c: 'all', of: [need, e.when] } : need } : e;
+      const full: TriggerData = need && !e.evenIfDown ? { ...e, when: e.when ? { c: 'all', of: [need, e.when] } : need } : e;
       const delay = e.delay;
       play.on(
         event,

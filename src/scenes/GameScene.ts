@@ -68,7 +68,7 @@ import { HeroDirector } from '../game/heroMoves';
 import { AbilityFx, type HitRec } from '../game/abilityFx';
 import { PeelFx, PeelFxBus } from '../game/peelFxEvents';
 import { PeelFlag, PeelCustom, peelParts, peelStatEffects, procEffects, type PeelCustomId, type PeelFlagId } from '../game/peelEffects';
-import { PeelBus, PeelGroup, type PeelBusHost, type PeelGroupId, type PeelSource } from '../game/peelBus';
+import { PeelBus, PeelGroup, type PeelBusHost, type PeelSource } from '../game/peelBus';
 import { ChargeFrom, GameEvent } from '../effects';
 import type { AnyEvent } from '../effects/events';
 import { Rule } from '../effects/rule';
@@ -206,7 +206,7 @@ export class GameScene extends Phaser.Scene implements Arena {
   private procs: { id: string; p: Proc }[] = [];
   /** The peel's trigger bus (src/game/peelBus.ts): its ability, the procs and Zombie Outbreak, declared as effects. */
   private peelBus!: PeelBus;
-  /** The ability the peel bus was last set up for (a new bus, fresh with each run, has none). */
+  /** The ability the peel bus was last set up for (every run's set-up sets it afresh: syncPeelBus(true)). */
   private peelBusFor: Ability | null | undefined = undefined;
   /** Thrown props (peel abilities and topping procs). */
   private throws!: Projectiles;
@@ -1304,11 +1304,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     return proc ? { x: this.peelPos.x, y: this.peelPos.y } : {};
   }
 
-  /** The peel bus's groups a smack or a stomp goes to: the procs only while the run is on (they're checked before
-   *  their rolls; the ability's own runner checks after its roll, and the outbreak checks itself). */
-  private peelGroups(): PeelGroupId[] {
-    return this.over || this.inUpgrade ? [PeelGroup.Peel, PeelGroup.Outbreak] : [PeelGroup.Peel, PeelGroup.Procs, PeelGroup.Outbreak];
-  }
+
 
   /** Peel Roulette's choices: unlocked peels with a different ability from the one in use, one per ability. */
   private rouletteOptions(n: number): string[] {
@@ -3827,7 +3823,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     // smack abilities only when the smack landed (not parried, guarded or dodged)
     const landed = !f.alive || f.hp < hpBefore;
     // the peel's ability, the procs, Zombie Outbreak (it may turn the foot into a friendly zombie)
-    if (landed) this.peelBus.emit(GameEvent.Smack, { foot: f, x }, this.peelGroups());
+    if (landed) this.peelBus.emit(GameEvent.Smack, { foot: f, x }, undefined, true);
     if (landed) {
       this.kit.onSmackLanded(f, x, y);
       this.perkKit.smacked(f, x);
@@ -4381,7 +4377,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.tracker.emit('stomp', { foot: f, blocked: 'other' });
       return;
     }
-    this.peelBus.emit(GameEvent.Stomp, { foot: f, pizza: p }, this.peelGroups());
+    this.peelBus.emit(GameEvent.Stomp, { foot: f, pizza: p }, undefined, true);
     // Graffiti Gina tags the pizza; the next foot on it stomps twice as hard
     let tagged = false;
     if (p.flags.tagged && !f.has('tag')) {

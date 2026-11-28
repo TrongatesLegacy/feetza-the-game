@@ -15,8 +15,8 @@
 //
 // Off-switches, as the game always had them: a delayed moment or action (a proc's kill roll, a wave's ability) lands
 // only while the run is on (PeelBusHost.live: not over, not in the shop); the peel's ability itself never goes off
-// then (the scene's runner checks, after its roll); the scene sends a smack or a stomp to the procs only while the
-// run is on (they were checked before their rolls).
+// then (the scene's runner checks, after its roll); a smack or a stomp reaches the procs only while the run is on,
+// looked at as their turn comes (emit's procsWhileLive: they were checked before their rolls).
 
 import { effects, Phase, type ActionHost, type EventData, type GameEventId, type Grant, type PlayCtx } from '../effects';
 import { chargedKey, ChargeFrom, type ChargeFromId } from '../effects/charged';
@@ -97,9 +97,12 @@ export class PeelBus {
     if (!fresh) for (const k of Object.keys(state)) if (k in kept) state[k] = kept[k];
   }
 
-  /** A moment: to each group in turn (or just those named), each source's triggers in the order they're listed. */
-  emit<E extends GameEventId>(event: E, data: EventData[E], groups: readonly PeelGroupId[] = ORDER): void {
+  /** A moment: to each group in turn (or just those named), each source's triggers in the order they're listed.
+   *  `procsWhileLive`: the procs only while the run is on, looked at as their turn comes (a smack's or a stomp's: they
+   *  were checked before their rolls, after the ability's). */
+  emit<E extends GameEventId>(event: E, data: EventData[E], groups: readonly PeelGroupId[] = ORDER, procsWhileLive = false): void {
     for (const g of groups) {
+      if (procsWhileLive && g === PeelGroup.Procs && !this.h.live()) continue;
       const list = this.subs[g].get(event);
       if (list) for (const s of list) s.fn(data);
     }

@@ -160,8 +160,8 @@ export class PerkBus {
           return on || outlives ? [{ pizza: p, pizzas: [p], k: () => h.pk(p) }] : [];
         }
         case Scope.Field:
-          // (the off-switch: some pizza grants the perk)
-          if (!outlives && h.c(perk) <= 0) return [];
+          // (the off-switch: some pizza grants the perk, looked at now)
+          if (!outlives && !h.granting(perk).length) return [];
           return [{ pizza: null, get pizzas() { return h.granting(perk); }, k: () => h.c(perk) }];
       }
     };
