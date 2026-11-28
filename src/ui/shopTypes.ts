@@ -39,8 +39,6 @@ export interface ShopPizza {
   /** On the table and out of freshness: its perk is off until it's reheated. */
   stale: boolean;
   dead: boolean;
-  /** Lost to staleness rather than eaten (worked out from its freshness): its tile says WENT STALE, not EATEN. */
-  wentStale: boolean;
   /** Enhanced this run: perk is the stronger text, basePerk the plain one (shown struck through). */
   enhanced: boolean;
   basePerk: string;

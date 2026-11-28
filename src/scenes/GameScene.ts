@@ -2421,12 +2421,14 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.time.delayedCall(ms, wait);
   }
 
-  /** Each wave every pizza loses a little freshness; one that runs out goes stale, and a stale pizza is lost like a
-   * stomped one: off the table (the feet don't want it), no reheating it, only a Rebake brings it back. */
+  /** Each wave every pizza loses a little freshness; one that runs out goes stale: it stays on the table with its
+   * slices (the feet still stomp it), but its perk is off until it's reheated in the shop (Tron, 2026-11-28: it used to
+   * be lost like a stomped pizza, which read as a death nobody could explain). */
   private tickFreshness(): void {
     const drainBase = this.run.heatDef.freshness;
     if (drainBase <= 0) return;
     let anyLow = false;
+    let anyStale = false;
     for (const p of this.alivePizzas()) {
       if (!p.freshOn) continue;
       // (the strongest Pickle Pie beside it)
@@ -2448,7 +2450,7 @@ export class GameScene extends Phaser.Scene implements Arena {
           continue;
         }
         audio.sfx('sfx_stale');
-        ui.hud.toast(pizzaPortraitURL(p.type.id), 'PIZZA WENT STALE', `${p.type.name} is off the table: even the feet won’t touch it. Rebake it in the shop.`);
+        ui.hud.toast(pizzaPortraitURL(p.type.id), 'PIZZA WENT STALE', `${p.type.name}’s perk is off until you reheat it in the shop.`);
         // Pizza Fritta's last act: it heals the others as it goes
         const staleHeal = ruleOf(p, Rule.StaleHeal);
         if (staleHeal && !p.flags.staleHealed && !p.haunted) {
@@ -2457,14 +2459,14 @@ export class GameScene extends Phaser.Scene implements Arena {
           for (const q of this.alivePizzas()) if (q !== p) this.healPizza(q, n);
           this.fx.quip(p.x, p.surfaceY - 170, `PIZZA FRITTA: +${n} SLICES FOR ALL`, '#7dff9a', 34);
         }
-        // gone stale: lost like a stomped pizza (the shop shows it as STALE from its freshness)
-        const removed = p.takeSlices(p.slices, p.x);
-        this.run.slicesLost += removed.length;
+        // gone stale: it stays, its perk off (Pizza.perk), its look stale (the shop shows it from its freshness)
         this.fx.quip(p.x, p.surfaceY - 130, 'STALE!', '#cfe0a8', 40);
-        if (p.dead) this.pizzaDestroyed(p);
+        p.redraw();
+        anyStale = true;
       }
     }
-    if (anyLow) this.introCard('freshness');
+    if (anyStale) this.recompute();
+    if (anyLow || anyStale) this.introCard('freshness');
   }
 
   private healPizza(p: Pizza, n: number): void {
@@ -2779,7 +2781,6 @@ export class GameScene extends Phaser.Scene implements Arena {
         maxFresh: p.maxFresh,
         freshOn: p.freshOn,
         stale: p.stale,
-        wentStale: p.dead && p.outOfFreshness,
         dead: p.dead,
         reheat: reheatOn ? { cost, can: needs && this.run.coins >= cost, need: needs } : null,
         rebake: p.dead && this.run.heatDef.rebake ? { cost: this.boughtOut(this.rebakePrice(p)), can: this.run.coins >= this.boughtOut(this.rebakePrice(p)) } : null,
@@ -2917,7 +2918,6 @@ export class GameScene extends Phaser.Scene implements Arena {
       line: hasRule(p, Rule.Echo) && p.perk && p.perk !== p.type.perk ? `${p.perkLine}: ${perkTextOf(p.perk, p.enhanced)}` : p.perkLine,
       enhanced: p.enhanced,
       stale: p.stale,
-        wentStale: p.dead && p.outOfFreshness,
       frozen: p.perkFrozen,
       dead: p.dead,
       slices: p.slices,

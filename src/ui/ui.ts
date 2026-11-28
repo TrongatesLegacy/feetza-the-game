@@ -972,7 +972,7 @@ class UI {
       ['Toppings now cost tips', 'Buy as many as you can afford between waves.'],
       ['Bosses fight in phases', 'Each one changes up at 66% and 33% health.'],
       ['Mini-bosses and wave events', 'Flyers and chests worth smacking.'],
-      ['Pizzas go stale', 'Reheat them before they run out, or lose them.'],
+      ['Pizzas go stale', 'A stale pizza’s perk is off: reheat it in the shop.'],
       [`A ${JOURNEY_WAVES}-wave journey`, `${ACT_COUNT} acts, ${STAGES.length * 2} bosses, an ending, then endless.`],
       ['Controller support', 'Plug in and play, menus included.'],
       ['Saves mid-run', 'Close the tab and continue from the shop.'],
@@ -1372,11 +1372,9 @@ class UI {
               { class: `ptile ${tier.cls}${p.stale ? ' stale' : ''}${p.dead ? ' dead' : ''}${p.enhanced ? ' enhanced' : ''}`, style: tier.style },
               ...tierFrame(p.rarity),
               p.stale
-                ? h('span', { class: 'flag', title: 'Out of freshness: its perk is off. Reheat it before the wave ends or it goes off the table.' }, 'STALE')
+                ? h('span', { class: 'flag', title: 'Out of freshness: its perk is off until you reheat it. It keeps its slices.' }, 'STALE')
                 : p.dead
-                  ? p.wentStale
-                    ? h('span', { class: 'flag dead', title: 'It ran out of freshness as the wave ended and went off the table. Rebake it to bring it back.' }, 'WENT STALE')
-                    : h('span', { class: 'flag dead', title: 'Every slice was eaten. Rebake it to bring it back.' }, 'EATEN')
+                  ? h('span', { class: 'flag dead', title: 'Every slice was eaten. Rebake it to bring it back.' }, 'EATEN')
                   : null,
               p.enhanced ? h('span', { class: 'star-badge', title: 'Enhanced: its perk is stronger this run', 'aria-label': 'Enhanced' }, '★') : null,
               h('div', { class: 'pt-pic' }, sliceArt(p, 120), p.now ? h('span', { class: 'now', title: `Now ${p.now.total}: ${p.now.why}` }, `NOW ${p.now.total.replace(/ damage$/, '')}`) : null),

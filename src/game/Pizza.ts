@@ -472,13 +472,6 @@ export class Pizza {
     return this.freshOn && !this.dead && this.fresh <= 0;
   }
 
-  /** Out of freshness, on the table or off it: worked out from freshness alone, never remembered, so it can't disagree
-   *  with the freshness bar. A pizza that went stale is taken off at 0 freshness; one brought back (a rebake, a second
-   *  chance) has its freshness set again, so it isn't stale any more. The shop shows STALE rather than EATEN by it. */
-  get outOfFreshness(): boolean {
-    return this.freshOn && this.fresh <= 0;
-  }
-
   /** The Ghost has possessed it (kept in step by the scene, never saved). */
   haunted = false;
 
@@ -674,9 +667,8 @@ export class Pizza {
     const wasDead = this.dead;
     this.revived = true;
     this.dead = false;
-    // a pizza that went stale is never brought back stale (a Pizza Angel, Carbonara's rise, a second chance): it would
-    // be off the table again at the next wave's end with its perk off meanwhile. It comes back with 4 freshness, as
-    // the Leftovers Box saves one; a rebake then sets it full.
+    // a pizza brought back (a Pizza Angel, Carbonara's rise, a second chance) is never brought back stale, with its perk
+    // off: it comes back with 4 freshness, as the Leftovers Box saves one; a rebake then sets it full.
     if (this.freshOn && this.fresh <= 0) this.setFresh(Math.min(this.maxFresh, 4));
     this.prints = [];
     this.alive = this.alive.map((_, i) => i < slices);
