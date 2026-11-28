@@ -40,7 +40,7 @@ const KELP_N = 8;
 const NECK_N = 32;
 const BODY_N = 96;
 /** How thick the body is (against its tile) where it's thickest, low down towards the water. */
-const BODY_W = 1.2;
+const BODY_W = 1.8;
 
 /** Where the mouth is from the head's middle (screen px) for a head facing `face`, tilted by `tilt`, at extra scale
  * `scale`: so the brain can aim the bite and spit from the mouth. */
