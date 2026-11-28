@@ -5509,11 +5509,12 @@ body.still-peels .peel-big.shiny::after {
   background: var(--tomato-d);
 }
 
-/* Exclusive Menu's guaranteed card: a gold ribbon on its top-right corner (clear of the rarity tab and the key) */
+/* Exclusive Menu's guaranteed card: a gold ribbon on its right edge, beside the art (clear of the rarity tab, the kind
+   tag and the key) */
 .card .xtag {
   position: absolute;
-  top: 0.55em;
-  right: 0.5em;
+  top: 3.4em;
+  right: 0.35em;
   transform: rotate(6deg);
   font-family: 'Lilita One', sans-serif;
   font-size: 0.8em;
@@ -5545,7 +5546,10 @@ body.still-peels .peel-big.shiny::after {
   overflow-x: auto;
   overflow-y: hidden;
   gap: 0.6em;
-  padding-bottom: 0.5em;
+  /* a scrolling row clips both ways, so it keeps room for a hovered card's lift and tilt (and its rarity tab) above
+     and beside the cards; the negative margins keep the row where it was */
+  padding: 1.1em 0.5em 0.5em;
+  margin: -1.1em -0.5em 0;
   scrollbar-width: thin;
 }
 
