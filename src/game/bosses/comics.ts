@@ -270,7 +270,7 @@ const redsole = (): Brain => {
             clockOf(a.sc).tween({ targets: f, y: p.surfaceY - 30, duration: 110, yoyo: true, ease: 'Quad.In' });
             impactWord(a, p.x, p.surfaceY - 160, 1.3, 'KRUNCH!');
             if (!p.dead) hitSoft(a, p, 1, 'STOMPED!', '#ff5a4a');
-            a.sc.time.delayedCall(350, () => step(i + 1));
+            clockOf(a.sc).after(350, () => step(i + 1));
           });
           // a cancelled stomp halts the whole march
           const watch = a.sc.time.addEvent({
@@ -781,7 +781,7 @@ const cheetoe = (): Brain => {
         });
         bin.add(() => sc.destroy());
       }
-      a.sc.time.delayedCall(300, () => (forget(), finish()));
+      clockOf(a.sc).after(300, () => (forget(), finish()));
     };
     dashTo(f, a, p.x, () => {
       if (!f.alive || !a.inWave()) return void forget();

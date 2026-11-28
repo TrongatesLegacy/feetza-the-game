@@ -885,7 +885,7 @@ export class Foot {
         if (this.has('double') && !this.stompedTwice && this.stateT > 0.32) {
           this.stompedTwice = true;
           clockOf(this.scene).tween({ targets: this, y: this.y - 60, duration: 90, yoyo: true, ease: 'Quad.Out' });
-          this.scene.time.delayedCall(180, () => this.alive && this.state === 'stomp' && this.hooks.onStomp(this));
+          clockOf(this.scene).after(180, () => this.alive && this.state === 'stomp' && this.hooks.onStomp(this));
           this.stateT = 0.05;
         }
         if (this.stateT > 0.5) {

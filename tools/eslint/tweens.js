@@ -17,7 +17,12 @@
 // - a draw from the gameplay random stream: Math.random(), rnd(…), Phaser.Math.Between / FloatBetween / RND.*,
 //   Phaser.Utils.Array.GetRandom / Shuffle (crand / cpick are the cosmetic stream, and allowed);
 // - a write to a gameplay field (GAMEPLAY_FIELDS: hp, puppet, shielded, target, laneX, burnT…), to anything under a
-//   foot's `brain` or the `run`, or to a foot's x / y (`f.x =`, `foot.y +=`, `boss.x =`: the receiver's name).
+//   foot's `brain` or the `run`, or to a foot's x / y (`f.x =`, `foot.y +=`, `boss.x =`: the receiver's name; `this.x`
+//   in Foot.ts).
+// And a Phaser tween of a foot's place itself: `targets: f` (foot, boss; `this` in Foot.ts) with an x or a y.
+//
+// Not seen: a callback passed by name (`onComplete: done`), and gameplay behind a generic name (`f.destroy()`, a
+// `done = true` flag a clickable reads). Stage 1 found those with a type-aware scan; review keeps them out.
 // A call made through a look's own object is never gameplay: anything under `fx`, `audio`, `cameras`, `add`, `make`,
 // `tweens` or `textures` (a.fx.burn is a flame, not a burn).
 //
@@ -109,6 +114,7 @@ const noGameplayInTweens = {
     messages: {
       call: "Gameplay ({{what}}) in a tween's or animation's callback: it lands on the animation's time. Run it on the game clock (clockOf(scene).tween({...}) takes the same config), or, if it's only a look, say so: // visual-only: <why>.",
       random: "A gameplay random draw ({{what}}) in a tween's or animation's callback: looks draw from crand() / cpick(); a gameplay roll belongs on the game clock.",
+      target: "A Phaser tween moving a foot ({{what}}): a foot's place is gameplay. Tween it on the game clock: clockOf(scene).tween({...}).",
       write: "A gameplay state change ({{what}}) in a tween's or animation's callback: it lands on the animation's time. Run it on the game clock (clockOf(scene).tween({...})).",
       reason: 'A visual-only callback says why: // visual-only: <why>.',
     },
@@ -116,6 +122,9 @@ const noGameplayInTweens = {
   },
   create(context) {
     const sourceCode = context.sourceCode;
+    // inside Foot.ts, `this` is the foot
+    const inFoot = /(^|[\\/])Foot\.ts$/.test(context.filename ?? '');
+    const isFoot = (c) => c.length === 1 && (FOOT_NAMES.has(c[0]) || (inFoot && c[0] === 'this'));
     const check = (fn) => {
       const visit = (n) => {
         if (!n || typeof n.type !== 'string') return;
@@ -135,7 +144,7 @@ const noGameplayInTweens = {
             const field = c[c.length - 1];
             const what = c.join('.');
             if (GAMEPLAY_FIELDS.has(field) || c.slice(0, -1).includes('brain') || c.slice(0, -1).includes('run')) context.report({ node: n, messageId: 'write', data: { what } });
-            else if ((field === 'x' || field === 'y') && c.length === 2 && FOOT_NAMES.has(c[0])) context.report({ node: n, messageId: 'write', data: { what } });
+            else if ((field === 'x' || field === 'y') && c.length === 2 && isFoot(c.slice(0, 1))) context.report({ node: n, messageId: 'write', data: { what } });
           }
         }
         for (const k of Object.keys(n)) {
@@ -164,6 +173,13 @@ const noGameplayInTweens = {
             const objs = arg.type === 'ArrayExpression' ? arg.elements : [arg];
             for (const o of objs) {
               if (o?.type !== 'ObjectExpression') continue;
+              // a Phaser tween of a foot's place (targets: f, x: …)
+              const tg = o.properties.find((p) => p.type === 'Property' && name(p.key) === 'targets');
+              const moves = o.properties.some((p) => p.type === 'Property' && ['x', 'y'].includes(name(p.key)));
+              if (tg && moves) {
+                const els = tg.value.type === 'ArrayExpression' ? tg.value.elements : [tg.value];
+                for (const el of els) if (el && isFoot(chain(el))) context.report({ node: tg, messageId: 'target', data: { what: `targets: ${chain(el).join('.')}` } });
+              }
               for (const p of o.properties) if (p.type === 'Property' && CALLBACKS.has(name(p.key))) callback(p);
             }
           }

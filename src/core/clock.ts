@@ -103,6 +103,9 @@ type Target = Record<string, unknown>;
 type PropEnd = number | string | { from: number; to: number } | { getStart?: () => number; getEnd: () => number };
 type Callback = (tw: ClockTween) => void;
 
+/** Phaser tween options the clock doesn't support: they throw rather than being tweened as props. */
+const UNSUPPORTED = new Set(['repeatDelay', 'completeDelay', 'loopDelay', 'loop', 'timeScale', 'paused', 'persist', 'props', 'tweens', 'callbackScope', 'onCompleteParams', 'onUpdateParams', 'onStartParams', 'onYoyoParams', 'onRepeatParams', 'interpolation', 'flipX', 'flipY', 'onLoop', 'onActive', 'onStop', 'onPause', 'onResume']);
+
 const KEYS = new Set(['from', 'to', 'targets', 'duration', 'delay', 'ease', 'yoyo', 'hold', 'repeat', 'onStart', 'onUpdate', 'onYoyo', 'onRepeat', 'onComplete']);
 
 export interface ClockTweenConfig {
@@ -154,13 +157,18 @@ export class ClockTween {
   /** Finished, or stopped: it does nothing more. */
   done = false;
   readonly targets: Target[];
+  readonly cfg: ClockTweenConfig;
 
-  constructor(readonly cfg: ClockTweenConfig) {
+  // (no parameter properties: Node runs this file with its types stripped)
+  constructor(cfg: ClockTweenConfig) {
+    this.cfg = cfg;
     const t = cfg.targets;
     this.targets = (t === undefined ? [] : Array.isArray(t) ? [...t] : [t]) as Target[];
     this.ease = easeOf(cfg.ease);
     this.legs = cfg.yoyo ? 2 : 1;
+    if (cfg.hold && !cfg.yoyo) throw new Error('[clock] hold without yoyo is not supported');
     for (const key of Object.keys(cfg)) {
+      if (UNSUPPORTED.has(key)) throw new Error(`[clock] the clock doesn't support ${key}`);
       if (KEYS.has(key)) continue;
       const end = cfg[key];
       if (typeof end !== 'number' && typeof end !== 'string' && !(end && typeof end === 'object' && ('to' in end || 'getEnd' in end))) throw new Error(`[clock] can't tween ${key}`);
@@ -225,9 +233,19 @@ export class ClockTween {
     this.cfg.onStart?.(this);
   }
 
+  /** Set every prop and call onUpdate as Phaser does: once per prop per target (a tween of x and y on two targets
+   *  calls it 4 times a frame; counters and timers once), each after its own value is set. */
   private apply(): void {
     const v = this.ease(this.leg === 1 ? 1 - this.progress : this.progress);
-    for (const d of this.data) d.t[d.key] = d.from + (d.to - d.from) * v;
+    if (!this.data.length) {
+      this.cfg.onUpdate?.(this);
+      return;
+    }
+    for (const d of this.data) {
+      d.t[d.key] = d.from + (d.to - d.from) * v;
+      this.cfg.onUpdate?.(this);
+      if (this.done) return;
+    }
   }
 
   /** Move on `ms` of game time. Returns true once it's done. */
@@ -252,6 +270,7 @@ export class ClockTween {
         left -= h;
         if (this.holdT > 0) return false;
         this.startLeg(1);
+        if (this.done) return true;
         continue;
       }
       this.legT += left;
@@ -259,14 +278,12 @@ export class ClockTween {
       if (this.legT < dur) {
         this.progress = this.legT / dur;
         this.apply();
-        this.cfg.onUpdate?.(this);
         return this.done;
       }
       // the leg ends
       left = this.legT - dur;
       this.progress = 1;
       this.apply();
-      this.cfg.onUpdate?.(this);
       if (this.done) return true;
       if (this.leg === 0 && this.legs === 2) {
         if (this.cfg.hold) {
@@ -276,6 +293,7 @@ export class ClockTween {
           continue;
         }
         this.startLeg(1);
+        if (this.done) return true;
         continue;
       }
       const rep = this.cfg.repeat ?? 0;
