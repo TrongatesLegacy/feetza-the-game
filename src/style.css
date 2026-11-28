@@ -5509,25 +5509,45 @@ body.still-peels .peel-big.shiny::after {
   background: var(--tomato-d);
 }
 
-/* Exclusive Menu's guaranteed card: a gold ribbon on its right edge, beside the art (clear of the rarity tab, the kind
-   tag and the key) */
+/* Exclusive Menu's guaranteed card. On a card of ordinary width: a gold tab along its right edge, reading downwards,
+   level with the art (it never covers the rarity tab, the kind tag or the key). On a wide card there's room to spare
+   at the top right, so it's a ribbon there instead. */
+.shop2 .cards .card.exclusive {
+  container-type: inline-size;
+}
 .card .xtag {
   position: absolute;
-  top: 3.4em;
-  right: 0.35em;
-  transform: rotate(6deg);
+  top: 2.6em;
+  right: 0;
+  writing-mode: vertical-rl;
   font-family: 'Lilita One', sans-serif;
-  font-size: 0.8em;
-  letter-spacing: 0.06em;
+  font-size: 0.72em;
+  letter-spacing: 0.12em;
+  line-height: 1;
   color: var(--ink);
   background: var(--cheese);
-  padding: 0.05em 0.5em;
+  padding: 0.6em 0.28em 0.6em 0.34em;
   border: 0.14em solid var(--ink);
-  border-radius: 0.5em;
-  box-shadow: 0 0.15em 0 var(--ink);
+  border-right: none;
+  border-radius: 0.55em 0 0 0.55em;
+  box-shadow: -0.12em 0.12em 0 var(--ink);
   white-space: nowrap;
   z-index: 3;
   pointer-events: none;
+}
+@container (min-width: 17em) {
+  .card .xtag {
+    top: 0.95em;
+    right: 0.7em;
+    writing-mode: horizontal-tb;
+    font-size: 0.8em;
+    letter-spacing: 0.06em;
+    padding: 0.05em 0.5em;
+    border-right: 0.14em solid var(--ink);
+    border-radius: 0.5em;
+    box-shadow: 0 0.15em 0 var(--ink);
+    transform: rotate(4deg);
+  }
 }
 .card.exclusive {
   box-shadow: 0 0 0 0.22em var(--cheese), 0 0.35em 0 rgba(42, 24, 16, 0.35);
