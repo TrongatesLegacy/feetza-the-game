@@ -32,7 +32,7 @@ import { texturesInUse } from '../assets';
 type Img = Phaser.GameObjects.Image;
 
 /** The head on screen: its scale. */
-export const HEAD_S = 0.84;
+export const HEAD_S = 1.68;
 /** The head's resting tilt (snout down towards the table). */
 export const HEAD_TILT = 0.35;
 const KELP_N = 8;
