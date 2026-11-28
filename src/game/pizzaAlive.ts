@@ -28,6 +28,7 @@ import { audio } from '../systems/audio';
 import { crand } from '../systems/cosmeticRandom';
 import { peelsAnimated } from '../systems/graphics';
 import { save } from '../systems/save';
+import { Rarity } from '../data/rarity';
 
 // ════════════════════════════ tiers ════════════════════════════
 
@@ -802,7 +803,7 @@ export class PizzaAlive {
     const p = host.type;
     this.sc = host.scene;
     ensureTextures(this.sc);
-    this.tier = aliveDev.tier ?? p.rarity ?? 'common';
+    this.tier = aliveDev.tier ?? p.rarity ?? Rarity.Common;
     this.set = TIER_SET[this.tier];
     this.tr = pizzaTraits(p);
     this.el = elementOf(p, this.tr);

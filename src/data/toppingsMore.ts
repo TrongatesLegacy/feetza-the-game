@@ -1,441 +1,958 @@
 // The Feetza 2.0 topping expansion: 106 more toppings (50 common, 40 rare, 30 epic, 20 legendary in all).
 // Stat toppings change Stats; proc toppings use the peel-ability engine (triggers + effects), scaled by level.
 
-import { P, TRIG, describeProc, scaleProc, type Proc } from '../game/abilities';
-import type { Rarity, Upgrade } from './upgrades';
-import { Effect, Op, Stat, Unit, type EffectData } from '../effects';
-import { meterBoostText } from '../game/slamMode';
+import { P, TRIG, type Proc } from '../game/abilities';
+import type { Upgrade } from './upgrades';
+import { NeedsMeter } from './itemKinds';
+import { Rarity } from './rarity';
+import { Effect, Op, Stat, Unit } from '../effects';
+import { ProcTopping, Topping } from './toppingDefs';
 
 const { all, peel, hit, rnd, front, tough, nearP, BL, D, B, S, ST, FZ, K, M, C, H, SH, T } = P;
 const { every, smack, kill, stomp, wave } = TRIG;
-
-const pc = (n: number) => `${Math.round(n * 100)}%`;
-
-function stat(id: string, name: string, icon: string, rarity: Rarity, max: number, desc: string, effects: EffectData[]): Upgrade {
-  return { id, name, icon, rarity, max, desc: () => desc, effects };
-}
-
-function proc(id: string, name: string, icon: string, rarity: Rarity, max: number, p: Proc): Upgrade {
-  return {
-    id,
-    name,
-    icon,
-    rarity,
-    max,
-    proc: p,
-    desc: (l) => (l <= 1 ? describeProc(p) : `${describeProc(scaleProc(p, l))}`),
-  };
-}
 
 const pr = (trigger: Proc['trigger'], fx: Proc['fx'], color: number, vfx: Proc['vfx']): Proc => ({ trigger, fx, color, vfx });
 
 export const MORE_TOPPINGS: Upgrade[] = [
   // ——— Common (38) ———
-  stat('rolling', 'Rolling Pin', '🪵', 'common', 5, '+12% smack damage, +40 knockback', [
-    Effect.Stat(
-      Stat.Damage,
-      Op.Mul(Unit.Mult(1.12)),
-    ),
-    Effect.Stat(
-      Stat.Knockback,
-      Op.Add(Unit.Px(40)),
-    ),
-  ]),
-  stat('salt', 'Sea Salt', '🧂', 'common', 5, `+${pc(0.05)} critical smack chance`, [
-    Effect.Stat(
-      Stat.CritChance,
-      Op.Add(Unit.Chance(5)),
-    ),
-  ]),
-  stat('basil', 'Fresh Basil', '🌱', 'common', 3, '+2 freshness on every pizza', [
-    Effect.Stat(
-      Stat.FreshBonus,
-      Op.Add(Unit.Amount(2)),
-    ),
-  ]),
-  stat('napkin', 'Napkin Snap', '🧻', 'common', 4, `+${pc(0.05)} chance smacks stun feet`, [
-    Effect.Stat(
-      Stat.StunChance,
-      Op.Add(Unit.Chance(5)),
-    ),
-  ]),
-  stat('whisk', 'Whisk It', '🥄', 'common', 5, `+${pc(0.06)} chance to smack twice`, [
-    Effect.Stat(
-      Stat.DoubleChance,
-      Op.Add(Unit.Chance(6)),
-    ),
-  ]),
-  stat('oil', 'Olive Oil Drizzle', '🫗', 'common', 4, 'Smacks burn feet: +3 dmg/s', [
-    Effect.Stat(
-      Stat.BurnDps,
-      Op.Add(Unit.Amount(3)),
-    ),
-  ]),
-  stat('icecubes', 'Ice Cubes', '🥤', 'common', 4, 'Smacks chill feet: +8% slow', [
-    Effect.Stat(
-      Stat.SlowPct,
-      Op.Add(Unit.Percent(8)),
-    ),
-  ]),
-  stat('tipcup', 'Tip Cup', '☕', 'common', 5, '+3 tips after every wave', [
-    Effect.Stat(
-      Stat.CoinsPerWave,
-      Op.Add(Unit.PerWave(3)),
-    ),
-  ]),
-  stat('streak', 'Hot Streak', '⏲️', 'common', 4, 'Combos last +0.3s', [
-    Effect.Stat(
-      Stat.ComboBonus,
-      Op.Add(Unit.Seconds(0.3)),
-    ),
-  ]),
-  stat('showboat', 'Showboat', '🎭', 'common', 5, '+10% score', [
-    Effect.Stat(
-      Stat.ScoreMult,
-      Op.Add(Unit.Percent(10)),
-    ),
-  ]),
-  stat('handle', 'Long Handle', '🥢', 'common', 5, '+6 smack reach', [
-    Effect.Stat(
-      Stat.Radius,
-      Op.Add(Unit.Px(6)),
-    ),
-  ]),
-  stat('grip', 'Better Grip', '🧤', 'common', 6, '+10% smack damage', [
-    Effect.Stat(
-      Stat.Damage,
-      Op.Mul(Unit.Mult(1.1)),
-    ),
-  ]),
-  { ...stat('dried', 'Dried Oregano', '🍂', 'common', 4, '', [
-    Effect.Stat(
-      Stat.SuperGain,
-      Op.Add(Unit.Percent(20)),
-    ),
-  ]), desc: () => meterBoostText(20) },
-  stat('slayer', 'Giant Slayer', '🛡️', 'common', 4, '+12% damage to bosses', [
-    Effect.Stat(
-      Stat.BossDmg,
-      Op.Add(Unit.Percent(12)),
-    ),
-  ]),
-  stat('bully', 'Bully Smack', '👊', 'common', 4, '+12% damage to feet above half health', [
-    Effect.Stat(
-      Stat.BigHurt,
-      Op.Add(Unit.Percent(12)),
-    ),
-  ]),
-  stat('crumbs', 'Crumb Trail', '🥖', 'common', 3, 'Smacks finish feet under +4% health', [
-    Effect.Stat(
-      Stat.Execute,
-      Op.Add(Unit.Percent(4)),
-    ),
-  ]),
-  stat('knots', 'Garlic Knots', '🥨', 'common', 4, 'Feet near pizzas take +4 dmg/s', [
-    Effect.Stat(
-      Stat.GarlicDps,
-      Op.Add(Unit.Amount(4)),
-    ),
-  ]),
-  stat('pearls', 'Mozzarella Pearls', '⚪', 'common', 3, `+${pc(0.06)} chance pizzas shrug off a stomp`, [
-    Effect.Stat(
-      Stat.ShrugChance,
-      Op.Add(Unit.Chance(6)),
-    ),
-  ]),
-  stat('pepcount', 'Pepperoni Count', '🔴', 'common', 4, '+8% tips', [
-    Effect.Stat(
-      Stat.CoinMult,
-      Op.Add(Unit.Percent(8)),
-    ),
-  ]),
-  stat('lunchrush', 'Lunch Rush', '⏱️', 'common', 3, '+1 tip for every quick kill', [
-    Effect.Stat(
-      Stat.QuickTips,
-      Op.Add(Unit.Amount(1)),
-    ),
-  ]),
-  stat('shaker', 'Herb Shaker', '🪴', 'common', 4, '+3% crit and +3% stun chance', [
-    Effect.Stat(
-      Stat.CritChance,
-      Op.Add(Unit.Chance(3)),
-    ),
-    Effect.Stat(
-      Stat.StunChance,
-      Op.Add(Unit.Chance(3)),
-    ),
-  ]),
-  proc('flour', 'Flour Bomb', '💨', 'common', 4, pr(kill(0.2), [D(1, hit(150))], 0xffffff, 'burst')),
-  proc('grinder', 'Pepper Grinder', '🫑', 'common', 4, pr(smack(0.15), [B(0.6, 3, hit(120))], 0xff9f1c, 'fire')),
-  proc('saucesplash', 'Sauce Splash', '🥫', 'common', 4, pr(kill(0.25), [D(0.6, hit(170)), S(0.3, 2, hit(170))], 0xff5a3c, 'burst')),
-  proc('crustedge', 'Crusty Edge', '🥯', 'common', 4, pr(smack(0.12), [D(0.8, hit(140))], 0xd9a066, 'burst')),
-  proc('parmsnow', 'Parmesan Snow', '🏔️', 'common', 3, pr(every(7), [S(0.25, 2, all)], 0xffffff, 'frost')),
-  proc('chilioil', 'Chili Oil', '🧴', 'common', 4, pr(every(6), [B(0.5, 3, rnd(2))], 0xff5a3c, 'fire')),
-  proc('frisbee', 'Dough Frisbee', '🥏', 'common', 4, pr(every(6), [D(1.5, rnd(1))], 0xf2dfb0, 'rain')),
-  proc('orderbell', 'Order Bell', '🛎️', 'common', 3, pr(wave, [T(6)], 0xffd23f, 'gold')),
-  proc('boxlid', 'Pizza Box Lid', '📦', 'common', 3, pr(stomp, [K(600, hit())], 0xd9a066, 'wind')),
-  proc('spatula', 'Spatula Swipe', '🍳', 'common', 4, pr(smack(0.15), [K(500, hit(140))], 0xc7ccd4, 'wind')),
-  proc('anchovy', 'Anchovy Fling', '🐟', 'common', 4, pr(every(5), [D(1, front(1))], 0x5fd8ff, 'rain')),
-  proc('cheeseburst', 'Cheese Burst', '🫕', 'common', 4, pr(kill(0.2), [D(0.8, hit(200))], 0xffd23f, 'burst')),
-  proc('warmplates', 'Warm Plates', '🫖', 'common', 2, pr(wave, [H(1, 'weakest')], 0x7be04a, 'heal')),
-  proc('scoop', 'Ice Cream Scoop', '🍨', 'common', 4, pr(smack(0.1), [ST(0.6, hit())], 0xff7ad9, 'burst')),
-  proc('stretch', 'Cheese Stretch', '🧵', 'common', 4, pr(smack(0.12), [C(0.6, 1)], 0xffd23f, 'zap')),
-  proc('sesame', 'Sesame Seeds', '🌾', 'common', 4, pr(kill(0.3), [D(0.5, rnd(3))], 0xf2dfb0, 'rain')),
-  proc('rocket', 'Rocket Leaves', '🥬', 'common', 3, pr(every(8), [D(0.8, all)], 0x7be04a, 'wind')),
+  Topping({
+    id: 'rolling', name: 'Rolling Pin', icon: '🪵',
+    rarity: Rarity.Common,
+    maxLevel: 5,
+    effects: [
+      Effect.Stat(
+        Stat.Damage,
+        Op.Mul(Unit.Mult(1.12)),
+      ),
+      Effect.Stat(
+        Stat.Knockback,
+        Op.Add(Unit.Px(40)),
+      ),
+    ],
+  }),
+  Topping({
+    id: 'salt', name: 'Sea Salt', icon: '🧂',
+    rarity: Rarity.Common,
+    maxLevel: 5,
+    effects: [
+      Effect.Stat(
+        Stat.CritChance,
+        Op.Add(Unit.Chance(5)),
+      ),
+    ],
+  }),
+  Topping({
+    id: 'basil', name: 'Fresh Basil', icon: '🌱',
+    rarity: Rarity.Common,
+    maxLevel: 3,
+    effects: [
+      Effect.Stat(
+        Stat.FreshBonus,
+        Op.Add(Unit.Amount(2)),
+      ),
+    ],
+  }),
+  Topping({
+    id: 'napkin', name: 'Napkin Snap', icon: '🧻',
+    rarity: Rarity.Common,
+    maxLevel: 4,
+    effects: [
+      Effect.Stat(
+        Stat.StunChance,
+        Op.Add(Unit.Chance(5)),
+      ),
+    ],
+  }),
+  Topping({
+    id: 'whisk', name: 'Whisk It', icon: '🥄',
+    rarity: Rarity.Common,
+    maxLevel: 5,
+    effects: [
+      Effect.Stat(
+        Stat.DoubleChance,
+        Op.Add(Unit.Chance(6)),
+      ),
+    ],
+  }),
+  Topping({
+    id: 'oil', name: 'Olive Oil Drizzle', icon: '🫗',
+    rarity: Rarity.Common,
+    maxLevel: 4,
+    effects: [
+      Effect.Stat(
+        Stat.BurnDps,
+        Op.Add(Unit.Amount(3)),
+      ),
+    ],
+  }),
+  Topping({
+    id: 'icecubes', name: 'Ice Cubes', icon: '🥤',
+    rarity: Rarity.Common,
+    maxLevel: 4,
+    effects: [
+      Effect.Stat(
+        Stat.SlowPct,
+        Op.Add(Unit.Percent(8)),
+      ),
+    ],
+  }),
+  Topping({
+    id: 'tipcup', name: 'Tip Cup', icon: '☕',
+    rarity: Rarity.Common,
+    maxLevel: 5,
+    effects: [
+      Effect.Stat(
+        Stat.CoinsPerWave,
+        Op.Add(Unit.PerWave(3)),
+      ),
+    ],
+  }),
+  Topping({
+    id: 'streak', name: 'Hot Streak', icon: '⏲️',
+    rarity: Rarity.Common,
+    maxLevel: 4,
+    effects: [
+      Effect.Stat(
+        Stat.ComboBonus,
+        Op.Add(Unit.Seconds(0.3)),
+      ),
+    ],
+  }),
+  Topping({
+    id: 'showboat', name: 'Showboat', icon: '🎭',
+    rarity: Rarity.Common,
+    maxLevel: 5,
+    effects: [
+      Effect.Stat(
+        Stat.ScoreMult,
+        Op.Add(Unit.Percent(10)),
+      ),
+    ],
+  }),
+  Topping({
+    id: 'handle', name: 'Long Handle', icon: '🥢',
+    rarity: Rarity.Common,
+    maxLevel: 5,
+    effects: [
+      Effect.Stat(
+        Stat.Radius,
+        Op.Add(Unit.Px(6)),
+      ),
+    ],
+  }),
+  Topping({
+    id: 'grip', name: 'Better Grip', icon: '🧤',
+    rarity: Rarity.Common,
+    maxLevel: 6,
+    effects: [
+      Effect.Stat(
+        Stat.Damage,
+        Op.Mul(Unit.Mult(1.1)),
+      ),
+    ],
+  }),
+  Topping({
+    id: 'dried', name: 'Dried Oregano', icon: '🍂',
+    rarity: Rarity.Common,
+    maxLevel: 4,
+    needsMeter: NeedsMeter.Meter,
+    effects: [
+      Effect.Stat(
+        Stat.SuperGain,
+        Op.Add(Unit.Percent(20)),
+      ),
+    ],
+  }),
+  Topping({
+    id: 'slayer', name: 'Giant Slayer', icon: '🛡️',
+    rarity: Rarity.Common,
+    maxLevel: 4,
+    effects: [
+      Effect.Stat(
+        Stat.BossDmg,
+        Op.Add(Unit.Percent(12)),
+      ),
+    ],
+  }),
+  Topping({
+    id: 'bully', name: 'Bully Smack', icon: '👊',
+    rarity: Rarity.Common,
+    maxLevel: 4,
+    effects: [
+      Effect.Stat(
+        Stat.BigHurt,
+        Op.Add(Unit.Percent(12)),
+      ),
+    ],
+  }),
+  Topping({
+    id: 'crumbs', name: 'Crumb Trail', icon: '🥖',
+    rarity: Rarity.Common,
+    maxLevel: 3,
+    effects: [
+      Effect.Stat(
+        Stat.Execute,
+        Op.Add(Unit.Percent(4)),
+      ),
+    ],
+  }),
+  Topping({
+    id: 'knots', name: 'Garlic Knots', icon: '🥨',
+    rarity: Rarity.Common,
+    maxLevel: 4,
+    effects: [
+      Effect.Stat(
+        Stat.GarlicDps,
+        Op.Add(Unit.Amount(4)),
+      ),
+    ],
+  }),
+  Topping({
+    id: 'pearls', name: 'Mozzarella Pearls', icon: '⚪',
+    rarity: Rarity.Common,
+    maxLevel: 3,
+    effects: [
+      Effect.Stat(
+        Stat.ShrugChance,
+        Op.Add(Unit.Chance(6)),
+      ),
+    ],
+  }),
+  Topping({
+    id: 'pepcount', name: 'Pepperoni Count', icon: '🔴',
+    rarity: Rarity.Common,
+    maxLevel: 4,
+    effects: [
+      Effect.Stat(
+        Stat.CoinMult,
+        Op.Add(Unit.Percent(8)),
+      ),
+    ],
+  }),
+  Topping({
+    id: 'lunchrush', name: 'Lunch Rush', icon: '⏱️',
+    rarity: Rarity.Common,
+    maxLevel: 3,
+    effects: [
+      Effect.Stat(
+        Stat.QuickTips,
+        Op.Add(Unit.Amount(1)),
+      ),
+    ],
+  }),
+  Topping({
+    id: 'shaker', name: 'Herb Shaker', icon: '🪴',
+    rarity: Rarity.Common,
+    maxLevel: 4,
+    effects: [
+      Effect.Stat(
+        Stat.CritChance,
+        Op.Add(Unit.Chance(3)),
+      ),
+      Effect.Stat(
+        Stat.StunChance,
+        Op.Add(Unit.Chance(3)),
+      ),
+    ],
+  }),
+  ProcTopping({
+    id: 'flour', name: 'Flour Bomb', icon: '💨',
+    rarity: Rarity.Common,
+    maxLevel: 4,
+    proc: pr(kill(0.2), [D(1, hit(150))], 0xffffff, 'burst'),
+  }),
+  ProcTopping({
+    id: 'grinder', name: 'Pepper Grinder', icon: '🫑',
+    rarity: Rarity.Common,
+    maxLevel: 4,
+    proc: pr(smack(0.15), [B(0.6, 3, hit(120))], 0xff9f1c, 'fire'),
+  }),
+  ProcTopping({
+    id: 'saucesplash', name: 'Sauce Splash', icon: '🥫',
+    rarity: Rarity.Common,
+    maxLevel: 4,
+    proc: pr(kill(0.25), [D(0.6, hit(170)), S(0.3, 2, hit(170))], 0xff5a3c, 'burst'),
+  }),
+  ProcTopping({
+    id: 'crustedge', name: 'Crusty Edge', icon: '🥯',
+    rarity: Rarity.Common,
+    maxLevel: 4,
+    proc: pr(smack(0.12), [D(0.8, hit(140))], 0xd9a066, 'burst'),
+  }),
+  ProcTopping({
+    id: 'parmsnow', name: 'Parmesan Snow', icon: '🏔️',
+    rarity: Rarity.Common,
+    maxLevel: 3,
+    proc: pr(every(7), [S(0.25, 2, all)], 0xffffff, 'frost'),
+  }),
+  ProcTopping({
+    id: 'chilioil', name: 'Chili Oil', icon: '🧴',
+    rarity: Rarity.Common,
+    maxLevel: 4,
+    proc: pr(every(6), [B(0.5, 3, rnd(2))], 0xff5a3c, 'fire'),
+  }),
+  ProcTopping({
+    id: 'frisbee', name: 'Dough Frisbee', icon: '🥏',
+    rarity: Rarity.Common,
+    maxLevel: 4,
+    proc: pr(every(6), [D(1.5, rnd(1))], 0xf2dfb0, 'rain'),
+  }),
+  ProcTopping({
+    id: 'orderbell', name: 'Order Bell', icon: '🛎️',
+    rarity: Rarity.Common,
+    maxLevel: 3,
+    proc: pr(wave, [T(6)], 0xffd23f, 'gold'),
+  }),
+  ProcTopping({
+    id: 'boxlid', name: 'Pizza Box Lid', icon: '📦',
+    rarity: Rarity.Common,
+    maxLevel: 3,
+    proc: pr(stomp, [K(600, hit())], 0xd9a066, 'wind'),
+  }),
+  ProcTopping({
+    id: 'spatula', name: 'Spatula Swipe', icon: '🍳',
+    rarity: Rarity.Common,
+    maxLevel: 4,
+    proc: pr(smack(0.15), [K(500, hit(140))], 0xc7ccd4, 'wind'),
+  }),
+  ProcTopping({
+    id: 'anchovy', name: 'Anchovy Fling', icon: '🐟',
+    rarity: Rarity.Common,
+    maxLevel: 4,
+    proc: pr(every(5), [D(1, front(1))], 0x5fd8ff, 'rain'),
+  }),
+  ProcTopping({
+    id: 'cheeseburst', name: 'Cheese Burst', icon: '🫕',
+    rarity: Rarity.Common,
+    maxLevel: 4,
+    proc: pr(kill(0.2), [D(0.8, hit(200))], 0xffd23f, 'burst'),
+  }),
+  ProcTopping({
+    id: 'warmplates', name: 'Warm Plates', icon: '🫖',
+    rarity: Rarity.Common,
+    maxLevel: 2,
+    proc: pr(wave, [H(1, 'weakest')], 0x7be04a, 'heal'),
+  }),
+  ProcTopping({
+    id: 'scoop', name: 'Ice Cream Scoop', icon: '🍨',
+    rarity: Rarity.Common,
+    maxLevel: 4,
+    proc: pr(smack(0.1), [ST(0.6, hit())], 0xff7ad9, 'burst'),
+  }),
+  ProcTopping({
+    id: 'stretch', name: 'Cheese Stretch', icon: '🧵',
+    rarity: Rarity.Common,
+    maxLevel: 4,
+    proc: pr(smack(0.12), [C(0.6, 1)], 0xffd23f, 'zap'),
+  }),
+  ProcTopping({
+    id: 'sesame', name: 'Sesame Seeds', icon: '🌾',
+    rarity: Rarity.Common,
+    maxLevel: 4,
+    proc: pr(kill(0.3), [D(0.5, rnd(3))], 0xf2dfb0, 'rain'),
+  }),
+  ProcTopping({
+    id: 'rocket', name: 'Rocket Leaves', icon: '🥬',
+    rarity: Rarity.Common,
+    maxLevel: 3,
+    proc: pr(every(8), [D(0.8, all)], 0x7be04a, 'wind'),
+  }),
 
   // ——— Rare (28) ———
-  stat('wheel', 'Pizza Wheel', '🛞', 'rare', 3, '+1 orbiting cutter, cutters deal +4', [
-    Effect.Stat(
-      Stat.Cutters,
-      Op.Add(Unit.Count(1)),
-    ),
-    Effect.Stat(
-      Stat.CutterDmg,
-      Op.Add(Unit.Amount(4)),
-    ),
-  ]),
-  stat('magnetpeel', 'Magnet Peel', '🧲', 'rare', 3, '+10 smack reach, +60 knockback', [
-    Effect.Stat(
-      Stat.Radius,
-      Op.Add(Unit.Px(10)),
-    ),
-    Effect.Stat(
-      Stat.Knockback,
-      Op.Add(Unit.Px(60)),
-    ),
-  ]),
-  stat('sharp', 'Sharpened Edge', '🪒', 'rare', 4, '+40% critical damage', [
-    Effect.Stat(
-      Stat.CritMult,
-      Op.Add(Unit.Percent(40)),
-    ),
-  ]),
-  stat('crowd', 'Crowd Control', '🚧', 'rare', 3, '+6% stun chance and +8% slow', [
-    Effect.Stat(
-      Stat.StunChance,
-      Op.Add(Unit.Chance(6)),
-    ),
-    Effect.Stat(
-      Stat.SlowPct,
-      Op.Add(Unit.Percent(8)),
-    ),
-  ]),
-  stat('sizzle', 'Sizzle Plate', '🥘', 'rare', 3, 'Feet that stomp a pizza burn for +8 dmg/s', [
-    Effect.Stat(
-      Stat.StompBurn,
-      Op.Add(Unit.Amount(8)),
-    ),
-  ]),
-  stat('harvest', 'Harvest Moon', '🌕', 'rare', 2, 'Your weakest pizza regrows +1 slice after each wave', [
-    Effect.Stat(
-      Stat.HealWeakest,
-      Op.Add(Unit.PerWave(1)),
-    ),
-  ]),
-  stat('spicerack', 'Spice Rack', '🗄️', 'rare', 3, '+3 burn, +3% crit, +3% stun', [
-    Effect.Stat(
-      Stat.BurnDps,
-      Op.Add(Unit.Amount(3)),
-    ),
-    Effect.Stat(
-      Stat.CritChance,
-      Op.Add(Unit.Chance(3)),
-    ),
-    Effect.Stat(
-      Stat.StunChance,
-      Op.Add(Unit.Chance(3)),
-    ),
-  ]),
-  stat('echo', 'Echo Smack', '🔊', 'rare', 3, `+${pc(0.1)} chance to smack twice`, [
-    Effect.Stat(
-      Stat.DoubleChance,
-      Op.Add(Unit.Chance(10)),
-    ),
-  ]),
-  stat('cleaver', 'Meat Cleaver', '🪓', 'rare', 3, 'Finish feet under +5% health, +10% boss damage', [
-    Effect.Stat(
-      Stat.Execute,
-      Op.Add(Unit.Percent(5)),
-    ),
-    Effect.Stat(
-      Stat.BossDmg,
-      Op.Add(Unit.Percent(10)),
-    ),
-  ]),
-  proc('meatball', 'Meatball Mortar', '🧆', 'rare', 4, pr(every(5), [D(2, BL(1, 160))], 0xb07a3a, 'rain')),
-  proc('calzonebomb', 'Calzone Bomb', '🥟', 'rare', 4, pr(kill(0.3), [D(2, hit(220))], 0xff9f1c, 'burst')),
-  proc('fireball', 'Fireball', '🔥', 'rare', 4, pr(every(5), [D(1.5, BL(1, 180)), B(0.8, 3, BL(1, 180))], 0xff5a3c, 'fire')),
-  proc('frostnova', 'Frost Nova', '🥶', 'rare', 3, pr(every(9), [FZ(1.2, peel(260))], 0x5fd8ff, 'frost')),
-  proc('shock', 'Static Shock', '🔋', 'rare', 4, pr(smack(0.2), [C(0.8, 3)], 0x5fd8ff, 'zap')),
-  proc('stinkbomb', 'Stink Bomb', '🦨', 'rare', 4, pr(every(6), [D(1.2, BL(1, 220, 'front')), S(0.3, 2, BL(1, 220, 'front'))], 0x9fbf4a, 'ink')),
-  proc('sauceflood', 'Sauce Flood', '🍅', 'rare', 3, pr(every(10), [D(1.2, all), S(0.2, 2, all)], 0xff5a3c, 'wind')),
-  proc('thunder', 'Thunder Crust', '🔌', 'rare', 4, pr(kill(0.2), [C(1.2, 4)], 0x5fd8ff, 'zap')),
-  proc('boomerang', 'Boomerang Peel', '🪃', 'rare', 4, pr(smack(0.2), [D(1, rnd(2))], 0xd9a066, 'burst')),
-  proc('greasefire', 'Grease Fire', '🍟', 'rare', 3, pr(stomp, [B(1.5, 4, hit(200))], 0xff9f1c, 'fire')),
-  proc('ricochet', 'Ricochet', '🎱', 'rare', 4, pr(every(3), [D(1.2, front(1))], 0x4c7dff, 'burst')),
-  proc('pepperspray', 'Pepper Spray', '🧯', 'rare', 3, pr(smack(0.15), [ST(1, hit(150))], 0xff5a3c, 'ink')),
-  proc('tremor', 'Tremor', '🪨', 'rare', 3, pr(every(8), [D(1.5, all), K(300, all)], 0xb07a3a, 'burst')),
-  proc('tipstorm', 'Tip Storm', '💸', 'rare', 3, pr(kill(0.15), [T(3)], 0xffd23f, 'gold')),
-  proc('bookmark', 'Mark of the Peel', '🔖', 'rare', 4, pr(smack(0.2), [M(1.4, 4, hit())], 0xff7ad9, 'ink')),
-  proc('shards', 'Crust Shards', '🥐', 'rare', 4, pr(kill(0.35), [D(0.8, rnd(3))], 0xd9a066, 'rain')),
-  proc('bubblewrap', 'Bubble Wrap', '🫧', 'rare', 2, pr(wave, [SH(1, 'weakest')], 0x5fd8ff, 'heal')),
-  proc('stampede', 'Stampede', '🐂', 'rare', 3, pr(every(9), [D(2, front(3), 600)], 0xb07a3a, 'wind')),
-  proc('lemon', 'Zesty Lemon', '🍋', 'rare', 4, pr(smack(0.18), [D(1.2, hit(130))], 0xfff06a, 'burst')),
+  Topping({
+    id: 'wheel', name: 'Pizza Wheel', icon: '🛞',
+    rarity: Rarity.Rare,
+    maxLevel: 3,
+    effects: [
+      Effect.Stat(
+        Stat.Cutters,
+        Op.Add(Unit.Count(1)),
+      ),
+      Effect.Stat(
+        Stat.CutterDmg,
+        Op.Add(Unit.Amount(4)),
+      ),
+    ],
+  }),
+  Topping({
+    id: 'magnetpeel', name: 'Magnet Peel', icon: '🧲',
+    rarity: Rarity.Rare,
+    maxLevel: 3,
+    effects: [
+      Effect.Stat(
+        Stat.Radius,
+        Op.Add(Unit.Px(10)),
+      ),
+      Effect.Stat(
+        Stat.Knockback,
+        Op.Add(Unit.Px(60)),
+      ),
+    ],
+  }),
+  Topping({
+    id: 'sharp', name: 'Sharpened Edge', icon: '🪒',
+    rarity: Rarity.Rare,
+    maxLevel: 4,
+    effects: [
+      Effect.Stat(
+        Stat.CritMult,
+        Op.Add(Unit.Percent(40)),
+      ),
+    ],
+  }),
+  Topping({
+    id: 'crowd', name: 'Crowd Control', icon: '🚧',
+    rarity: Rarity.Rare,
+    maxLevel: 3,
+    effects: [
+      Effect.Stat(
+        Stat.StunChance,
+        Op.Add(Unit.Chance(6)),
+      ),
+      Effect.Stat(
+        Stat.SlowPct,
+        Op.Add(Unit.Percent(8)),
+      ),
+    ],
+  }),
+  Topping({
+    id: 'sizzle', name: 'Sizzle Plate', icon: '🥘',
+    rarity: Rarity.Rare,
+    maxLevel: 3,
+    effects: [
+      Effect.Stat(
+        Stat.StompBurn,
+        Op.Add(Unit.Amount(8)),
+      ),
+    ],
+  }),
+  Topping({
+    id: 'harvest', name: 'Harvest Moon', icon: '🌕',
+    rarity: Rarity.Rare,
+    maxLevel: 2,
+    effects: [
+      Effect.Stat(
+        Stat.HealWeakest,
+        Op.Add(Unit.PerWave(1)),
+      ),
+    ],
+  }),
+  Topping({
+    id: 'spicerack', name: 'Spice Rack', icon: '🗄️',
+    rarity: Rarity.Rare,
+    maxLevel: 3,
+    effects: [
+      Effect.Stat(
+        Stat.BurnDps,
+        Op.Add(Unit.Amount(3)),
+      ),
+      Effect.Stat(
+        Stat.CritChance,
+        Op.Add(Unit.Chance(3)),
+      ),
+      Effect.Stat(
+        Stat.StunChance,
+        Op.Add(Unit.Chance(3)),
+      ),
+    ],
+  }),
+  Topping({
+    id: 'echo', name: 'Echo Smack', icon: '🔊',
+    rarity: Rarity.Rare,
+    maxLevel: 3,
+    effects: [
+      Effect.Stat(
+        Stat.DoubleChance,
+        Op.Add(Unit.Chance(10)),
+      ),
+    ],
+  }),
+  Topping({
+    id: 'cleaver', name: 'Meat Cleaver', icon: '🪓',
+    rarity: Rarity.Rare,
+    maxLevel: 3,
+    effects: [
+      Effect.Stat(
+        Stat.Execute,
+        Op.Add(Unit.Percent(5)),
+      ),
+      Effect.Stat(
+        Stat.BossDmg,
+        Op.Add(Unit.Percent(10)),
+      ),
+    ],
+  }),
+  ProcTopping({
+    id: 'meatball', name: 'Meatball Mortar', icon: '🧆',
+    rarity: Rarity.Rare,
+    maxLevel: 4,
+    proc: pr(every(5), [D(2, BL(1, 160))], 0xb07a3a, 'rain'),
+  }),
+  ProcTopping({
+    id: 'calzonebomb', name: 'Calzone Bomb', icon: '🥟',
+    rarity: Rarity.Rare,
+    maxLevel: 4,
+    proc: pr(kill(0.3), [D(2, hit(220))], 0xff9f1c, 'burst'),
+  }),
+  ProcTopping({
+    id: 'fireball', name: 'Fireball', icon: '🔥',
+    rarity: Rarity.Rare,
+    maxLevel: 4,
+    proc: pr(every(5), [D(1.5, BL(1, 180)), B(0.8, 3, BL(1, 180))], 0xff5a3c, 'fire'),
+  }),
+  ProcTopping({
+    id: 'frostnova', name: 'Frost Nova', icon: '🥶',
+    rarity: Rarity.Rare,
+    maxLevel: 3,
+    proc: pr(every(9), [FZ(1.2, peel(260))], 0x5fd8ff, 'frost'),
+  }),
+  ProcTopping({
+    id: 'shock', name: 'Static Shock', icon: '🔋',
+    rarity: Rarity.Rare,
+    maxLevel: 4,
+    proc: pr(smack(0.2), [C(0.8, 3)], 0x5fd8ff, 'zap'),
+  }),
+  ProcTopping({
+    id: 'stinkbomb', name: 'Stink Bomb', icon: '🦨',
+    rarity: Rarity.Rare,
+    maxLevel: 4,
+    proc: pr(every(6), [D(1.2, BL(1, 220, 'front')), S(0.3, 2, BL(1, 220, 'front'))], 0x9fbf4a, 'ink'),
+  }),
+  ProcTopping({
+    id: 'sauceflood', name: 'Sauce Flood', icon: '🍅',
+    rarity: Rarity.Rare,
+    maxLevel: 3,
+    proc: pr(every(10), [D(1.2, all), S(0.2, 2, all)], 0xff5a3c, 'wind'),
+  }),
+  ProcTopping({
+    id: 'thunder', name: 'Thunder Crust', icon: '🔌',
+    rarity: Rarity.Rare,
+    maxLevel: 4,
+    proc: pr(kill(0.2), [C(1.2, 4)], 0x5fd8ff, 'zap'),
+  }),
+  ProcTopping({
+    id: 'boomerang', name: 'Boomerang Peel', icon: '🪃',
+    rarity: Rarity.Rare,
+    maxLevel: 4,
+    proc: pr(smack(0.2), [D(1, rnd(2))], 0xd9a066, 'burst'),
+  }),
+  ProcTopping({
+    id: 'greasefire', name: 'Grease Fire', icon: '🍟',
+    rarity: Rarity.Rare,
+    maxLevel: 3,
+    proc: pr(stomp, [B(1.5, 4, hit(200))], 0xff9f1c, 'fire'),
+  }),
+  ProcTopping({
+    id: 'ricochet', name: 'Ricochet', icon: '🎱',
+    rarity: Rarity.Rare,
+    maxLevel: 4,
+    proc: pr(every(3), [D(1.2, front(1))], 0x4c7dff, 'burst'),
+  }),
+  ProcTopping({
+    id: 'pepperspray', name: 'Pepper Spray', icon: '🧯',
+    rarity: Rarity.Rare,
+    maxLevel: 3,
+    proc: pr(smack(0.15), [ST(1, hit(150))], 0xff5a3c, 'ink'),
+  }),
+  ProcTopping({
+    id: 'tremor', name: 'Tremor', icon: '🪨',
+    rarity: Rarity.Rare,
+    maxLevel: 3,
+    proc: pr(every(8), [D(1.5, all), K(300, all)], 0xb07a3a, 'burst'),
+  }),
+  ProcTopping({
+    id: 'tipstorm', name: 'Tip Storm', icon: '💸',
+    rarity: Rarity.Rare,
+    maxLevel: 3,
+    proc: pr(kill(0.15), [T(3)], 0xffd23f, 'gold'),
+  }),
+  ProcTopping({
+    id: 'bookmark', name: 'Mark of the Peel', icon: '🔖',
+    rarity: Rarity.Rare,
+    maxLevel: 4,
+    proc: pr(smack(0.2), [M(1.4, 4, hit())], 0xff7ad9, 'ink'),
+  }),
+  ProcTopping({
+    id: 'shards', name: 'Crust Shards', icon: '🥐',
+    rarity: Rarity.Rare,
+    maxLevel: 4,
+    proc: pr(kill(0.35), [D(0.8, rnd(3))], 0xd9a066, 'rain'),
+  }),
+  ProcTopping({
+    id: 'bubblewrap', name: 'Bubble Wrap', icon: '🫧',
+    rarity: Rarity.Rare,
+    maxLevel: 2,
+    proc: pr(wave, [SH(1, 'weakest')], 0x5fd8ff, 'heal'),
+  }),
+  ProcTopping({
+    id: 'stampede', name: 'Stampede', icon: '🐂',
+    rarity: Rarity.Rare,
+    maxLevel: 3,
+    proc: pr(every(9), [D(2, front(3), 600)], 0xb07a3a, 'wind'),
+  }),
+  ProcTopping({
+    id: 'lemon', name: 'Zesty Lemon', icon: '🍋',
+    rarity: Rarity.Rare,
+    maxLevel: 4,
+    proc: pr(smack(0.18), [D(1.2, hit(130))], 0xfff06a, 'burst'),
+  }),
 
   // ——— Epic (24) ———
-  stat('sawblades', 'Saw Blades', '🪚', 'epic', 2, '+2 orbiting cutters, cutters deal +8', [
-    Effect.Stat(
-      Stat.Cutters,
-      Op.Add(Unit.Count(2)),
-    ),
-    Effect.Stat(
-      Stat.CutterDmg,
-      Op.Add(Unit.Amount(8)),
-    ),
-  ]),
-  stat('berserker', 'Berserker', '😤', 'epic', 3, '+35% smack damage', [
-    Effect.Stat(
-      Stat.Damage,
-      Op.Mul(Unit.Mult(1.35)),
-    ),
-  ]),
-  stat('critmass', 'Critical Mass', '🎇', 'epic', 3, '+10% crit chance, +50% crit damage', [
-    Effect.Stat(
-      Stat.CritChance,
-      Op.Add(Unit.Chance(10)),
-    ),
-    Effect.Stat(
-      Stat.CritMult,
-      Op.Add(Unit.Percent(50)),
-    ),
-  ]),
-  stat('guillotine', 'Guillotine', '⚔️', 'epic', 2, 'Smacks finish feet under +10% health', [
-    Effect.Stat(
-      Stat.Execute,
-      Op.Add(Unit.Percent(10)),
-    ),
-  ]),
-  stat('hydra', 'Hydra Peel', '🐉', 'epic', 2, '+15% chain lightning chance, +1 chain target', [
-    Effect.Stat(
-      Stat.ChainChance,
-      Op.Add(Unit.Chance(15)),
-    ),
-    Effect.Stat(
-      Stat.ChainCount,
-      Op.Add(Unit.Count(1)),
-    ),
-  ]),
-  stat('radiant', 'Radiant Crust', '☀️', 'epic', 2, 'Feet near pizzas take +12 dmg/s', [
-    Effect.Stat(
-      Stat.GarlicDps,
-      Op.Add(Unit.Amount(12)),
-    ),
-  ]),
-  stat('bossbane', 'Bossbane', '👹', 'epic', 3, '+30% damage to bosses', [
-    Effect.Stat(
-      Stat.BossDmg,
-      Op.Add(Unit.Percent(30)),
-    ),
-  ]),
-  { ...stat('overtime', 'Overtime', '⏰', 'epic', 2, '', [
-    Effect.Stat(
-      Stat.SuperGain,
-      Op.Add(Unit.Percent(60)),
-    ),
-  ]), desc: () => meterBoostText(60) },
-  stat('chainreaction', 'Chain Reaction', '🔗', 'epic', 2, 'Smacked-down feet explode for +25 area damage', [
-    Effect.Stat(
-      Stat.ExplodeDmg,
-      Op.Add(Unit.Amount(25)),
-    ),
-  ]),
+  Topping({
+    id: 'sawblades', name: 'Saw Blades', icon: '🪚',
+    rarity: Rarity.Epic,
+    maxLevel: 2,
+    effects: [
+      Effect.Stat(
+        Stat.Cutters,
+        Op.Add(Unit.Count(2)),
+      ),
+      Effect.Stat(
+        Stat.CutterDmg,
+        Op.Add(Unit.Amount(8)),
+      ),
+    ],
+  }),
+  Topping({
+    id: 'berserker', name: 'Berserker', icon: '😤',
+    rarity: Rarity.Epic,
+    maxLevel: 3,
+    effects: [
+      Effect.Stat(
+        Stat.Damage,
+        Op.Mul(Unit.Mult(1.35)),
+      ),
+    ],
+  }),
+  Topping({
+    id: 'critmass', name: 'Critical Mass', icon: '🎇',
+    rarity: Rarity.Epic,
+    maxLevel: 3,
+    effects: [
+      Effect.Stat(
+        Stat.CritChance,
+        Op.Add(Unit.Chance(10)),
+      ),
+      Effect.Stat(
+        Stat.CritMult,
+        Op.Add(Unit.Percent(50)),
+      ),
+    ],
+  }),
+  Topping({
+    id: 'guillotine', name: 'Guillotine', icon: '⚔️',
+    rarity: Rarity.Epic,
+    maxLevel: 2,
+    effects: [
+      Effect.Stat(
+        Stat.Execute,
+        Op.Add(Unit.Percent(10)),
+      ),
+    ],
+  }),
+  Topping({
+    id: 'hydra', name: 'Hydra Peel', icon: '🐉',
+    rarity: Rarity.Epic,
+    maxLevel: 2,
+    effects: [
+      Effect.Stat(
+        Stat.ChainChance,
+        Op.Add(Unit.Chance(15)),
+      ),
+      Effect.Stat(
+        Stat.ChainCount,
+        Op.Add(Unit.Count(1)),
+      ),
+    ],
+  }),
+  Topping({
+    id: 'radiant', name: 'Radiant Crust', icon: '☀️',
+    rarity: Rarity.Epic,
+    maxLevel: 2,
+    effects: [
+      Effect.Stat(
+        Stat.GarlicDps,
+        Op.Add(Unit.Amount(12)),
+      ),
+    ],
+  }),
+  Topping({
+    id: 'bossbane', name: 'Bossbane', icon: '👹',
+    rarity: Rarity.Epic,
+    maxLevel: 3,
+    effects: [
+      Effect.Stat(
+        Stat.BossDmg,
+        Op.Add(Unit.Percent(30)),
+      ),
+    ],
+  }),
+  Topping({
+    id: 'overtime', name: 'Overtime', icon: '⏰',
+    rarity: Rarity.Epic,
+    maxLevel: 2,
+    needsMeter: NeedsMeter.Meter,
+    effects: [
+      Effect.Stat(
+        Stat.SuperGain,
+        Op.Add(Unit.Percent(60)),
+      ),
+    ],
+  }),
+  Topping({
+    id: 'chainreaction', name: 'Chain Reaction', icon: '🔗',
+    rarity: Rarity.Epic,
+    maxLevel: 2,
+    effects: [
+      Effect.Stat(
+        Stat.ExplodeDmg,
+        Op.Add(Unit.Amount(25)),
+      ),
+    ],
+  }),
   // (3 feet, not every foot: burning the whole table 80% of the time let a stacked build clear waves on its own)
-  proc('inferno', 'Inferno Crust', '🏮', 'epic', 3, pr(every(6), [B(1.5, 4, rnd(3))], 0xff5a3c, 'fire')),
-  proc('meteor', 'Meteor Pepperoni', '🌠', 'epic', 3, pr(every(7), [D(4, BL(2, 220))], 0xff9f1c, 'rain')),
-  proc('blizzard', 'Blizzard', '🌨️', 'epic', 2, pr(every(12), [FZ(2, all)], 0xffffff, 'frost')),
-  proc('storm', 'Lightning Storm', '⛈️', 'epic', 3, pr(every(5), [C(2, 5, rnd(1))], 0x5fd8ff, 'zap')),
-  proc('firecracker', 'Firecracker', '🧨', 'epic', 3, pr(kill(0.35), [D(3, hit(260))], 0xff5a3c, 'burst')),
-  proc('shockwave', 'Shockwave', '📯', 'epic', 3, pr(smack(0.2), [D(1.5, peel(240))], 0xffd23f, 'burst')),
-  proc('acid', 'Acid Sauce', '🧪', 'epic', 3, pr(every(6), [M(1.5, 5, all)], 0x7be04a, 'ink')),
-  proc('gravitybomb', 'Gravity Bomb', '💣', 'epic', 2, pr(every(10), [ST(1.5, all), D(2, all)], 0xa77dff, 'burst')),
-  proc('mortar', 'Pizza Mortar', '🎆', 'epic', 3, pr(every(4), [D(2.5, BL(1, 200, 'front'))], 0xff9f1c, 'rain')),
-  proc('cascade', 'Cascade', '💦', 'epic', 3, pr(kill(0.3), [C(1.2, 4)], 0x4c7dff, 'zap')),
-  proc('hail', 'Hailstorm', '🌧️', 'epic', 3, pr(every(6), [D(1.2, rnd(6))], 0xd8f6ff, 'rain')),
-  proc('goldrain', 'Gold Rain', '🪙', 'epic', 3, pr(kill(0.2), [T(4), D(1, hit(180))], 0xffd23f, 'gold')),
-  proc('tornado', 'Tornado', '🌪️', 'epic', 2, pr(every(8), [K(900, all), D(1.5, all)], 0xc7ccd4, 'wind')),
-  proc('spikedplates', 'Spiked Plates', '📌', 'epic', 3, pr(stomp, [D(4, hit(200)), ST(1, hit())], 0xc7ccd4, 'burst')),
-  proc('volcano', 'Volcano', '🌋', 'epic', 3, pr(every(9), [D(3, BL(3, 200)), B(1, 3, BL(3, 200))], 0xff5a3c, 'fire')),
+  ProcTopping({
+    id: 'inferno', name: 'Inferno Crust', icon: '🏮',
+    rarity: Rarity.Epic,
+    maxLevel: 3,
+    proc: pr(every(6), [B(1.5, 4, rnd(3))], 0xff5a3c, 'fire'),
+  }),
+  ProcTopping({
+    id: 'meteor', name: 'Meteor Pepperoni', icon: '🌠',
+    rarity: Rarity.Epic,
+    maxLevel: 3,
+    proc: pr(every(7), [D(4, BL(2, 220))], 0xff9f1c, 'rain'),
+  }),
+  ProcTopping({
+    id: 'blizzard', name: 'Blizzard', icon: '🌨️',
+    rarity: Rarity.Epic,
+    maxLevel: 2,
+    proc: pr(every(12), [FZ(2, all)], 0xffffff, 'frost'),
+  }),
+  ProcTopping({
+    id: 'storm', name: 'Lightning Storm', icon: '⛈️',
+    rarity: Rarity.Epic,
+    maxLevel: 3,
+    proc: pr(every(5), [C(2, 5, rnd(1))], 0x5fd8ff, 'zap'),
+  }),
+  ProcTopping({
+    id: 'firecracker', name: 'Firecracker', icon: '🧨',
+    rarity: Rarity.Epic,
+    maxLevel: 3,
+    proc: pr(kill(0.35), [D(3, hit(260))], 0xff5a3c, 'burst'),
+  }),
+  ProcTopping({
+    id: 'shockwave', name: 'Shockwave', icon: '📯',
+    rarity: Rarity.Epic,
+    maxLevel: 3,
+    proc: pr(smack(0.2), [D(1.5, peel(240))], 0xffd23f, 'burst'),
+  }),
+  ProcTopping({
+    id: 'acid', name: 'Acid Sauce', icon: '🧪',
+    rarity: Rarity.Epic,
+    maxLevel: 3,
+    proc: pr(every(6), [M(1.5, 5, all)], 0x7be04a, 'ink'),
+  }),
+  ProcTopping({
+    id: 'gravitybomb', name: 'Gravity Bomb', icon: '💣',
+    rarity: Rarity.Epic,
+    maxLevel: 2,
+    proc: pr(every(10), [ST(1.5, all), D(2, all)], 0xa77dff, 'burst'),
+  }),
+  ProcTopping({
+    id: 'mortar', name: 'Pizza Mortar', icon: '🎆',
+    rarity: Rarity.Epic,
+    maxLevel: 3,
+    proc: pr(every(4), [D(2.5, BL(1, 200, 'front'))], 0xff9f1c, 'rain'),
+  }),
+  ProcTopping({
+    id: 'cascade', name: 'Cascade', icon: '💦',
+    rarity: Rarity.Epic,
+    maxLevel: 3,
+    proc: pr(kill(0.3), [C(1.2, 4)], 0x4c7dff, 'zap'),
+  }),
+  ProcTopping({
+    id: 'hail', name: 'Hailstorm', icon: '🌧️',
+    rarity: Rarity.Epic,
+    maxLevel: 3,
+    proc: pr(every(6), [D(1.2, rnd(6))], 0xd8f6ff, 'rain'),
+  }),
+  ProcTopping({
+    id: 'goldrain', name: 'Gold Rain', icon: '🪙',
+    rarity: Rarity.Epic,
+    maxLevel: 3,
+    proc: pr(kill(0.2), [T(4), D(1, hit(180))], 0xffd23f, 'gold'),
+  }),
+  ProcTopping({
+    id: 'tornado', name: 'Tornado', icon: '🌪️',
+    rarity: Rarity.Epic,
+    maxLevel: 2,
+    proc: pr(every(8), [K(900, all), D(1.5, all)], 0xc7ccd4, 'wind'),
+  }),
+  ProcTopping({
+    id: 'spikedplates', name: 'Spiked Plates', icon: '📌',
+    rarity: Rarity.Epic,
+    maxLevel: 3,
+    proc: pr(stomp, [D(4, hit(200)), ST(1, hit())], 0xc7ccd4, 'burst'),
+  }),
+  ProcTopping({
+    id: 'volcano', name: 'Volcano', icon: '🌋',
+    rarity: Rarity.Epic,
+    maxLevel: 3,
+    proc: pr(every(9), [D(3, BL(3, 200)), B(1, 3, BL(3, 200))], 0xff5a3c, 'fire'),
+  }),
 
   // ——— Legendary (16) ———
-  stat('handofdough', 'Hand of Dough', '🙌', 'legendary', 1, '+60% smack damage', [
-    Effect.Stat(
-      Stat.Damage,
-      Op.Mul(Unit.Mult(1.6)),
-    ),
-  ]),
-  stat('michelin', 'Michelin Star', '⭐', 'legendary', 1, '+30% smack damage, +10% crit chance, +10 smack reach', [
-    Effect.Stat(
-      Stat.Damage,
-      Op.Mul(Unit.Mult(1.3)),
-    ),
-    Effect.Stat(
-      Stat.CritChance,
-      Op.Add(Unit.Chance(10)),
-    ),
-    Effect.Stat(
-      Stat.Radius,
-      Op.Add(Unit.Px(10)),
-    ),
-  ]),
-  stat('excalibur', 'Excalibur', '🗡️', 'legendary', 1, '+20% crit chance, +150% crit damage, finish feet under 8% health', [
-    Effect.Stat(
-      Stat.CritChance,
-      Op.Add(Unit.Chance(20)),
-    ),
-    Effect.Stat(
-      Stat.CritMult,
-      Op.Add(Unit.Percent(150)),
-    ),
-    Effect.Stat(
-      Stat.Execute,
-      Op.Add(Unit.Percent(8)),
-    ),
-  ]),
-  stat('feast', 'Endless Feast', '🍽️', 'legendary', 1, 'Every pizza regrows +1 slice after each wave, and your weakest +1 more', [
-    Effect.Stat(
-      Stat.RegenAll,
-      Op.Add(Unit.PerWave(1)),
-    ),
-    Effect.Stat(
-      Stat.HealWeakest,
-      Op.Add(Unit.PerWave(1)),
-    ),
-  ]),
-  stat('goldengod', 'Golden God', '🏆', 'legendary', 1, '+40% tips, 10% of feet turn to gold, +15% smack damage', [
-    Effect.Stat(
-      Stat.CoinMult,
-      Op.Add(Unit.Percent(40)),
-    ),
-    Effect.Stat(
-      Stat.GoldenTouch,
-      Op.Add(Unit.Chance(10)),
-    ),
-    Effect.Stat(
-      Stat.Damage,
-      Op.Mul(Unit.Mult(1.15)),
-    ),
-  ]),
-  proc('apocalypse', 'Pizzapocalypse', '☄️', 'legendary', 2, pr(every(8), [D(5, BL(3, 240)), B(1, 3, BL(3, 240))], 0xff5a3c, 'fire')),
-  proc('mjolnir', 'Thunder Peel', '🔨', 'legendary', 2, pr(smack(0.25), [C(2.5, 6)], 0x5fd8ff, 'zap')),
-  proc('eclipse', 'Total Eclipse', '🌑', 'legendary', 2, pr(every(15), [D(8, all), ST(2, all)], 0xa77dff, 'slam')),
-  proc('singularity', 'Singularity', '🌌', 'legendary', 2, pr(every(12), [D(6, all), S(0.5, 3, all)], 0xa77dff, 'ink')),
-  proc('phoenix', 'Phoenix Oven', '🦅', 'legendary', 2, pr(kill(0.5), [D(3, hit(280)), B(2, 3, hit(280))], 0xff9f1c, 'fire')),
-  proc('doomsday', 'Doomsday Crust', '💀', 'legendary', 2, pr(kill(0.15), [D(6, all)], 0xff5a3c, 'slam')),
-  proc('zeus', 'Bolt from the Blue', '🌩️', 'legendary', 2, pr(every(4), [C(3, 6, tough(1))], 0x4c7dff, 'zap')),
-  proc('frostgiant', 'Frost Giant', '☃️', 'legendary', 2, pr(every(10), [FZ(3, all), D(3, all)], 0x5fd8ff, 'frost')),
-  proc('dragon', 'Dragon’s Breath', '🐲', 'legendary', 2, pr(every(5), [B(3, 4, front(4)), D(2, front(4))], 0xff5a3c, 'fire')),
-  proc('blackhole', 'Black Hole', '🕳️', 'legendary', 2, pr(every(14), [D(10, tough(3)), ST(2, all)], 0x24202c, 'ink')),
-  proc('supernova', 'Supernova', '🌟', 'legendary', 2, pr(kill(0.25), [D(4, hit(320), 900)], 0xffd23f, 'burst')),
+  Topping({
+    id: 'handofdough', name: 'Hand of Dough', icon: '🙌',
+    rarity: Rarity.Legendary,
+    maxLevel: 1,
+    effects: [
+      Effect.Stat(
+        Stat.Damage,
+        Op.Mul(Unit.Mult(1.6)),
+      ),
+    ],
+  }),
+  Topping({
+    id: 'michelin', name: 'Michelin Star', icon: '⭐',
+    rarity: Rarity.Legendary,
+    maxLevel: 1,
+    effects: [
+      Effect.Stat(
+        Stat.Damage,
+        Op.Mul(Unit.Mult(1.3)),
+      ),
+      Effect.Stat(
+        Stat.CritChance,
+        Op.Add(Unit.Chance(10)),
+      ),
+      Effect.Stat(
+        Stat.Radius,
+        Op.Add(Unit.Px(10)),
+      ),
+    ],
+  }),
+  Topping({
+    id: 'excalibur', name: 'Excalibur', icon: '🗡️',
+    rarity: Rarity.Legendary,
+    maxLevel: 1,
+    effects: [
+      Effect.Stat(
+        Stat.CritChance,
+        Op.Add(Unit.Chance(20)),
+      ),
+      Effect.Stat(
+        Stat.CritMult,
+        Op.Add(Unit.Percent(150)),
+      ),
+      Effect.Stat(
+        Stat.Execute,
+        Op.Add(Unit.Percent(8)),
+      ),
+    ],
+  }),
+  Topping({
+    id: 'feast', name: 'Endless Feast', icon: '🍽️',
+    rarity: Rarity.Legendary,
+    maxLevel: 1,
+    text: { up: 'Every pizza regrows +1 slice after each wave, and your weakest +1 more' },
+    effects: [
+      Effect.Stat(
+        Stat.RegenAll,
+        Op.Add(Unit.PerWave(1)),
+      ),
+      Effect.Stat(
+        Stat.HealWeakest,
+        Op.Add(Unit.PerWave(1)),
+      ),
+    ],
+  }),
+  Topping({
+    id: 'goldengod', name: 'Golden God', icon: '🏆',
+    rarity: Rarity.Legendary,
+    maxLevel: 1,
+    effects: [
+      Effect.Stat(
+        Stat.CoinMult,
+        Op.Add(Unit.Percent(40)),
+      ),
+      Effect.Stat(
+        Stat.GoldenTouch,
+        Op.Add(Unit.Chance(10)),
+      ),
+      Effect.Stat(
+        Stat.Damage,
+        Op.Mul(Unit.Mult(1.15)),
+      ),
+    ],
+  }),
+  ProcTopping({
+    id: 'apocalypse', name: 'Pizzapocalypse', icon: '☄️',
+    rarity: Rarity.Legendary,
+    maxLevel: 2,
+    proc: pr(every(8), [D(5, BL(3, 240)), B(1, 3, BL(3, 240))], 0xff5a3c, 'fire'),
+  }),
+  ProcTopping({
+    id: 'mjolnir', name: 'Thunder Peel', icon: '🔨',
+    rarity: Rarity.Legendary,
+    maxLevel: 2,
+    proc: pr(smack(0.25), [C(2.5, 6)], 0x5fd8ff, 'zap'),
+  }),
+  ProcTopping({
+    id: 'eclipse', name: 'Total Eclipse', icon: '🌑',
+    rarity: Rarity.Legendary,
+    maxLevel: 2,
+    proc: pr(every(15), [D(8, all), ST(2, all)], 0xa77dff, 'slam'),
+  }),
+  ProcTopping({
+    id: 'singularity', name: 'Singularity', icon: '🌌',
+    rarity: Rarity.Legendary,
+    maxLevel: 2,
+    proc: pr(every(12), [D(6, all), S(0.5, 3, all)], 0xa77dff, 'ink'),
+  }),
+  ProcTopping({
+    id: 'phoenix', name: 'Phoenix Oven', icon: '🦅',
+    rarity: Rarity.Legendary,
+    maxLevel: 2,
+    proc: pr(kill(0.5), [D(3, hit(280)), B(2, 3, hit(280))], 0xff9f1c, 'fire'),
+  }),
+  ProcTopping({
+    id: 'doomsday', name: 'Doomsday Crust', icon: '💀',
+    rarity: Rarity.Legendary,
+    maxLevel: 2,
+    proc: pr(kill(0.15), [D(6, all)], 0xff5a3c, 'slam'),
+  }),
+  ProcTopping({
+    id: 'zeus', name: 'Bolt from the Blue', icon: '🌩️',
+    rarity: Rarity.Legendary,
+    maxLevel: 2,
+    proc: pr(every(4), [C(3, 6, tough(1))], 0x4c7dff, 'zap'),
+  }),
+  ProcTopping({
+    id: 'frostgiant', name: 'Frost Giant', icon: '☃️',
+    rarity: Rarity.Legendary,
+    maxLevel: 2,
+    proc: pr(every(10), [FZ(3, all), D(3, all)], 0x5fd8ff, 'frost'),
+  }),
+  ProcTopping({
+    id: 'dragon', name: 'Dragon’s Breath', icon: '🐲',
+    rarity: Rarity.Legendary,
+    maxLevel: 2,
+    proc: pr(every(5), [B(3, 4, front(4)), D(2, front(4))], 0xff5a3c, 'fire'),
+  }),
+  ProcTopping({
+    id: 'blackhole', name: 'Black Hole', icon: '🕳️',
+    rarity: Rarity.Legendary,
+    maxLevel: 2,
+    proc: pr(every(14), [D(10, tough(3)), ST(2, all)], 0x24202c, 'ink'),
+  }),
+  ProcTopping({
+    id: 'supernova', name: 'Supernova', icon: '🌟',
+    rarity: Rarity.Legendary,
+    maxLevel: 2,
+    proc: pr(kill(0.25), [D(4, hit(320), 900)], 0xffd23f, 'burst'),
+  }),
 ];
 
 void nearP;

@@ -14,4 +14,4 @@ export interface OnSwingData extends TriggerData {
 
 const make = (action: ActionData, o: TriggerOpts = {}): OnSwingData => ({ kind: 'onSwing', action, ...o });
 
-export const OnSwingEffect = effectKind('onSwing', make, triggerSpec<OnSwingData>(GameEvent.Swing, 'swings'));
+export const OnSwingEffect = effectKind('onSwing', make, triggerSpec<OnSwingData>(GameEvent.Swing, 'swing'));

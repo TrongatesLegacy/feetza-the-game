@@ -14,4 +14,4 @@ export interface WaveStartData extends TriggerData {
 
 const make = (action: ActionData, o: TriggerOpts = {}): WaveStartData => ({ kind: 'waveStart', action, ...o });
 
-export const WaveStartEffect = effectKind('waveStart', make, triggerSpec<WaveStartData>(GameEvent.WaveStart, 'waves starting'));
+export const WaveStartEffect = effectKind('waveStart', make, triggerSpec<WaveStartData>(GameEvent.WaveStart, 'wave start'));

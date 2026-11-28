@@ -19,6 +19,7 @@ import { audio } from '../systems/audio';
 import { crand } from '../systems/cosmeticRandom';
 import { save } from '../systems/save';
 import { LEGENDARY_COUNTER, tierBurst } from './pizzaDeal';
+import { Rarity } from '../data/rarity';
 
 const calm = () => !!save.settings.reducedMotion;
 
@@ -63,7 +64,7 @@ function dealt(card: HTMLElement, id: string): boolean {
   setTimeout(() => {
     if (!card.isConnected) return;
     audio.sfx('sfx_legendstamp', { volume: 0.7, throttle: 300 });
-    tierBurst((card.querySelector('.offer-pic, .lu-pic') ?? card).getBoundingClientRect(), 'legendary', 18, 1.4);
+    tierBurst((card.querySelector('.offer-pic, .lu-pic') ?? card).getBoundingClientRect(), Rarity.Legendary, 18, 1.4);
   }, 760);
   setTimeout(() => {
     dim.classList.add('out');

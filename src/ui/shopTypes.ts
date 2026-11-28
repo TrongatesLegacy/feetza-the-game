@@ -12,7 +12,7 @@ export interface ShopCard {
   kind: UpgradeKind;
   desc: string;
   /** Trade-off toppings: the catch. */
-  downside?: string;
+  downside?: string | null;
   lvl: string;
   price: number;
   /** Its usual price, when a shop topping makes it cheaper (shown struck through). */

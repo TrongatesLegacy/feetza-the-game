@@ -1,6 +1,6 @@
 # Effects plan: one plug-and-play system for perks, toppings and peels
 
-Status: **approved; step 1 done (2026-11-27, branch effects-1): units, stat definitions, the modifier ledger, STATS from the ledger. Step 2 done (2026-11-28, branch effects-2): the balance sim made repeatable, the golden check, the trigger bus, the perks' behaviours ported (most families), one deal function for shop cards, and typed names for sources, tags and units. Step 4's lint rules done early (2026-11-28, branch effects-lint): `npm run lint` and `npm run check`. Tron's four rule decisions (2026-11-28, branch rules-1): reach cuts on the base, Exclusive Menu redesigned, a possessed pizza's perks all stop, looks on cosmetic randomness.** See "Step 1: what was built", "Step 2: what was built", "Lint rules" and "Rule decisions" at the end.
+Status: **approved; step 1 done (2026-11-27, branch effects-1): units, stat definitions, the modifier ledger, STATS from the ledger. Step 2 done (2026-11-28, branch effects-2): the balance sim made repeatable, the golden check, the trigger bus, the perks' behaviours ported (most families), one deal function for shop cards, and typed names for sources, tags and units. Step 4's lint rules done early (2026-11-28, branch effects-lint): `npm run lint` and `npm run check`. Tron's four rule decisions (2026-11-28, branch rules-1): reach cuts on the base, Exclusive Menu redesigned, a possessed pizza's perks all stop, looks on cosmetic randomness. Readable item declarations (2026-11-28, branch items-1, pulled forward from step 4): typed rarity and item names, named item fields, card text generated from the effects, the shop card's fixed slots.** See "Step 1: what was built", "Step 2: what was built", "Lint rules", "Rule decisions" and "Item declarations and card text" at the end.
 
 ## The problem
 
@@ -328,7 +328,7 @@ Checked in `?dev` with Mac & Cheese, Extra Shelf LV2 and Exclusive Menu: a norma
 - **Exclusive Menu and Mac & Cheese.** The bump turns every card, the one-use extra too, into a card one rarity higher of any kind, so the extra may not be a one-use card after all. Unchanged; worth a look. **Decided in rules-1:** Exclusive Menu was redesigned and the bump is gone (see "Rule decisions").
 - **The Stockroom Key's restock** deals one card through the full deal (the one-use extras are drawn too, then dropped), as before: kept for identical runs.
 - **Cosmetic `Math.random`** is still used in some looks (the fire lane's flames, Granite Crust's chips, the lava bombs, `Fx.quip`'s tilt, the coin flights). Moving them to `crand()` changes the seeded runs, so it's a separate, deliberate change. **Done in rules-1** (see "Rule decisions").
-- **Card text** stays hand-written: `describe()` of the ported triggers doesn't read like the cards yet (they name one-offs by id), so no card text is generated from effects in this step.
+- **Card text** stays hand-written: `describe()` of the ported triggers doesn't read like the cards yet (they name one-offs by id), so no card text is generated from effects in this step. **Done for toppings in items-1** (see "Item declarations and card text").
 - Smack reach and knockback ordering are untouched (a decision is pending with Tron). **Decided in rules-1** (see "Rule decisions").
 - **From the code review:** a `Scope.Sum` chance now respects its cap (none has one yet); a counted or once-a-wave trigger with a table-wide scope logs a dev error (its count lives on a pizza); `Effect.Every`'s `scale` is for words and searches only (in play the table's strength already divides its time). The golden check covers the stats, not the deal: the deal's draws are covered by the seeded sim.
 
@@ -427,3 +427,83 @@ Four gameplay rules Tron decided, each through the effect system rather than a s
 
 (Before: step 2's numbers on main.) The runs differ from the first waves because about 400 cosmetic draws (and Phaser's particle ranges) no longer come out of the seeded `Math.random`, so every later gameplay roll lands differently: a new seed, in effect, not a balance change. End-of-run tips swing with when the bot last shopped; crusts, which follow score and waves, move by under 3%. Of the rules: the bot took no Exclusive Menu; reach cuts mattered only in Mild seed 2 (Glass Peel and Ghost Pepper with Big Swing: more reach than before); Mac & Cheese (Regular seed 2) deals as before without Exclusive Menu; the Ghost (from wave 60) isn't met in 40 waves.
 
+
+## Item declarations and card text (2026-11-28, branch items-1)
+
+Pulled forward from step 4: toppings are declared with typed names and named fields, and their card text is generated from what they declare. A refactor: no number, price or seeded run changes.
+
+### Rarity and the item names are typed
+
+- **`Rarity`** (`src/data/rarity.ts`): `Rarity.Common | Rare | Epic | Legendary` (`as const`; the strings underneath are the ones saves, CSS classes and the golden snapshot already use). It replaces the string union everywhere: toppings, pizzas (`src/content/pizzas/*`), the shop, the UI, the art.
+- **`RARITY_DEFS`**, a `Record` over the rarities, is the one place everything rarity-keyed lives: `order`, `label`, the toppings' deal `weight` (was `RARITY_WEIGHT`), `color` (`RARITY_COLOR`), `price` and `perWave` (`RARITY_PRICE`, `RARITY_PER_WAVE`), `from` (the first shop it's dealt in, `RARITY_FROM`), and each pizza tier's `pizza: { look, weight, crusts, tips, counter }` (`TIER_LOOK`, `TIER_WEIGHT`, `TIER_CRUSTS`, `TIER_TIPS`, `TIER_COUNTER`). A rarity missing a field doesn't compile.
+- **Helpers:** `Rarity.all` (Common first), `rank`, `atLeast(r, Rarity.Epic)`, `atMost`, `next`, `compare`, `rarest`. They replace the hand-built orders: `tierRank`, Your Toppings' `RANK` map, the Pizzeria's `RARITIES` list and rarity tabs, the Pick window's `RARITY_LABEL`, the Exclusive Menu's and boss loot's "Epic or Legendary" checks, the hero goal's gamble check, the dev kit's rarity lists.
+- **The other small names on a topping** (`src/data/itemKinds.ts`, a leaf module so the topping files can import it while `upgrades.ts` loads): `UpgradeKind.Permanent | Unique | Consumable` with `UPGRADE_KIND_DEFS` (the card's tag, PERMANENT / ONCE PER RUN / ONE USE, and the level line, "One use, back in 3 waves" from `CONSUMABLE_COOLDOWN`: five places spelled these out by hand), `OnPick.*`, `NeedsMeter.Meter | Tank`. A Pick's `pick` is a `Rarity`.
+- **Lint:** `effects/typed-item-names` (fixable when the name is in scope) forbids a hand-typed rarity, kind, onPick, needsMeter or pick in an item definition (a builder's argument, or any object with an `id` and a `rarity`), a `rarity:` string anywhere, and checks on them (`u.rarity === 'epic'`, `kindOf(u) !== 'consumable'`, `c.kind === 'unique'`, `case 'epic':`, `p.rarity ?? 'common'`, `RARITY_DEFS['epic']`). Other objects' own `kind` and `pick` values (a shop offer's kind 'special', a target pick) aren't touched. Without type information it can't see a rarity passed as an argument (`rarityOpen('epic', …)`) or compared through a local (`const k = kindOf(u); k === 'unique'`): TypeScript accepts the string there, so those rely on review. 11 new test cases (75 in all).
+- Meter-only toppings now all say `needsMeter: NeedsMeter.Meter` (Oregano Overdrive, Dried Oregano and Overtime were checked by id in `Run.offerable`); the check reads the field only.
+
+### Named item fields
+
+Each topping family has one builder taking a single object (`src/data/toppingDefs.ts`):
+
+```ts
+Topping({
+  id: 'earplugs', name: 'Earplugs', icon: '🔇',
+  rarity: Rarity.Common,
+  maxLevel: 2,
+  effects: [ … ],
+})
+```
+
+- `Topping` (works through its effects; a trade-off is a plain topping, its downside found from the effects), `KitTopping` (the scene runs it, keyed by id: its text is required), `ProcTopping` (an ability-style proc), `PickTopping` (one use, a pick of its rarity), `FreshTradeoff` (a catch paid in freshness, with its Mild catch: `fresh: { freshNow, effects }`, `mild: { slicesNow, effects }`, the effects waiting on `When.Freshness` / `When.NoFreshness` as before).
+- They replace `stat`, `proc`, `deal` ×2, `freshDeal`, `ev`, `quiet`, `shop`, `pick`, `kit` and the bare object literals. `Upgrade.max` is `maxLevel` (runs save ids and levels, never this field: `RunSnapshot.owned`).
+- **Pizzas** were already declared with named fields (`PizzaType` object literals in `src/content/pizzas/*`), so they only took the typed rarity. Their `perkText` stays hand-written: most perks live in `pizzaPerks.ts`'s old code paths, not in declarations a `describe()` could read (step 3). Their `route` ('special', 'pizzeria', 'milestone', 'rare') is a similar string union, left for a later pass.
+
+### Card text is generated
+
+- **Words on every stat** (`src/effects/stats.ts`): each definition has `words` (required: a new stat without them doesn't compile): a `noun` ("smack damage" → "+25% smack damage"), or `say` (the whole phrase: "Feet move 6% faster", "Rerolls cost 2 tips less (never below 1)"), an optional fuller `alone` line for when it's the only change on its side ("+5% chance smacks stun feet for 1.2s" rather than "+5% stun chance"), and a `subject` so phrases about the same thing join ("Feet have 20% more health and move 10% faster", "Shiny feet 3× as common and pay 10 Golden Crusts each"). Words that depend on the run (the peel's meter and slam) come through a `WordsCtx`: the card text passes `slamMode`'s texts, `describe()` plain ones.
+- **How a change reads** (`src/effects/words.ts`, `changeOf`): an add in its unit ("+6 smack reach", "+0.4s"; a multiplier stat's add as a percentage, "+25% tips"), a multiplier as a percentage change (×1.05 reads "+5%", ×0.85 "−15%", a whole ×2 or more "×2"), a cut on a `Fold.CutsOnBase` stat says "base" ("−15% base smack reach"), a Set as its value.
+- **Upside or downside** is decided by the stat's `Better`: a change that moves the stat the worse way is the red line (flags too: `Stat.NoEvents` is better down). One-time costs (`freshNow`, `slicesNow`) are downside lines. The trade-off price discount reads it (`isTradeoff(u)`: its card has a downside), not a separate `downside` string: every topping's price at waves 1, 10 and 30, both heats, is the same as before.
+- **Levels:** a level's text is what taking it does: an `EachLevelUp` chain's first op at level 1, its level-up op after (Freezer Burn: "Smacks chill feet: +20% slow", then "+12% slow"); `atLevel` effects only at their level. `describe()` of a chain gives both: "+18% chain lightning, +10% each level-up".
+- **Every effect kind's `describe()`** is player-ready: stat effects through the words above; triggers as "15% chance on a kill: summon a friendly ghost", "Every 10th kill: …", "On a stomp: …", "Every 20s: …"; statuses as "stun it for 1s", "slow it 30% for 2s".
+- **One function** (`cardText(u, lvl)` in `src/game/cardText.ts`; `cardLine` for tooltips, `levelLine` for the level line) feeds the shop's cards, the Pick and Pizza Slots windows, the level-up and free-topping toasts, Your Toppings (now and next level), the STATS tab's chips, tips and tip cards, the READY tiles, the HUD's owned-topping tooltips and the Pizzeria's Toppings tab.
+- **Generated or written by hand:** of 260 toppings, 132 effect toppings read fully generated text, 64 procs their proc's own (`describeProc`, as before) and 4 Picks their rarity's line; 13 effect toppings and 4 procs (Meatball Bounce, Pizza Cutter, Calzone Cannon, Rolling Cutter: a written first level) keep one hand-written side, checked by the audit; 43 are the scene's own kit toppings, whose numbers live in `toppingKit.ts`, so their declarations have nothing to check them against.
+
+### Overrides
+
+`text: { up?, down?, scene? }` on a topping replaces one side of its card. A side is a string, or a function of the level, what the effects say there (`auto`) and `autoAt(l)` (the generated text at another level), so an override can add to the generated text rather than repeat it. `cardTextAudit()` (run by `npm run golden`; `F.cardTextAudit()` in the console) checks every override against what the topping declares, at every level it can reach (Infinite Oven's included): each number in its own words (with `auto` left blank) must be one the declarations give at some level, with the same sign when it's written with one ("+20%" where the effects give "−20%" is caught), or listed in `scene` (a number the scene owns, or a stat's cap); and for an effect topping, every number the effects give at a level must still show on that level's card. A proc's written first level is checked against the proc's own text (its later levels are generated: "Hits 50% harder, more often"). The effect toppings' overrides, and why:
+
+| Topping | Override | Why |
+|---|---|---|
+| Bigger Peel | LV1: "Smacks hit every foot in range, " + generated | the scene's area smack from LV1 |
+| Chili Flakes | LV1: "Smacks set feet on fire: 6 dmg/s" | the balance sim's shopping bot picks "automatic" toppings by their card text (see Notes): "burn" in LV1's text would change what it buys |
+| Tip Jar | generated + " from feet (all tip boosts top out at ×2.5)" | the cap (`TIP_MULT_CAP`, in `scene`) |
+| Spring-Loaded | generated + ": send feet flying back up" | flavour |
+| Fridge Magnet | generated + ", now and for new ones" | its `onPick` tops up the pizzas on the table now |
+| Mousetraps | generated + ": it snaps a stomper (100 dmg + stun)" | the scene's trap (100 in `scene`) |
+| Endless Feast | "Every pizza regrows +1 slice after each wave, and your weakest +1 more" | the generated line is twice as long |
+| Sacrifice | "Every pizza regrows +2 slices, +1 shield a wave" | the generated line ran past a narrow card's 4 lines |
+| Overclock | "+40% chain lightning: +3 targets, +30% damage" | likewise |
+| Rainbow Road | generated + "; one turns up before wave 20" | the scene's early shiny (20 in `scene`) |
+| Premium Menu | down: "Toppings and pizzas cost 20% more" | two price changes read as one |
+| Owner's Discount | up: "Everything in the shop is 25% off" | two discounts read as one |
+| Exclusive Menu | down: LV1's generated catch + " (not per level)", at every level | its catch is LV1's effect only, but its card shows it at every level |
+
+The text before and after, every topping at every level (and Mild where it differs), was compared row by row for this step (668 rows: 515 the same, 153 changed). The changes in tone are small: "+8% critical smack chance" → "+8% crit chance", "×1.5 smack damage" → "+50% smack damage", "Pizzas on the table lose 2 freshness now" → "Pizzas lose 2 freshness now", "One fewer topping card per shop" → "One fewer card a shop", "+8% double-smack chance" → "+8% double smacks" (it ran past a narrow card with a long ability name); a meter boost names the peel's meter ("+40% Peel Slam charge", as Oregano's always did), a cut reads "−20% meter charge" whatever the peel. A level past the ones a topping declares (Exclusive Menu's LV5 and LV6 under Infinite Oven) reads "Nothing more at this level" (it said "is 0% off").
+
+### The shop card has fixed slots
+
+Every topping card in the shop, whatever its rarity, is one grid: tag, art, name, a text block of a fixed height (4 lines, the downside included, centred), the level line, the button (`.ctext` in `src/style.css`). The name, the text, the level line and BUY sit in the same places on every card (the level line's row takes any spare height, so a wrapping level line grows the whole row and the buttons stay level); the block keeps the full text as its tooltip. The old font steps for long texts and the 3-line clamp (which cut long texts off with "…") are gone. A row of 5 or more cards is 12em a card (it was 10.8em: 5 now fit without scrolling, 6 scroll as before) with its text at 0.88em; it starts at its first card (centred, an overflowing row's first card was cut off out of reach) and keeps the frame's room for the rarity tab above the PERMANENT tag (it sat on top of it).
+
+`F.cardTextFit()` (with the shop open; `src/devCardText.ts`) lays every topping's text, at every level it can reach (Infinite Oven's +2 included), on both heats and with every kind of peel's meter wording (the Peel Slam's, and the longest ability name of each kind), into a shop card in each layout the shop deals (3, 4, 5, 6 and 8 cards) and lists any that run past the block. `npm run golden` runs it at desktop (1280×720) and phone (844×390) size, with the override audit, and fails on any. Phrases were shortened until all fit.
+
+### Checks
+
+- `npm run check` passes: no golden differences (1,202 builds), every topping fits at desktop and phone size, the audit is clean.
+- Prices: every topping at waves 1, 10 and 30, both heats, identical to main.
+- Screenshots (desktop and phone) of the shop with 4 cards (trade-offs, level-ups, Exclusive Menu) and with 6, Your Toppings, STATS with a topping's tip card, a Pick window and the Pizzeria's Toppings tab, against main's: `F.contrast()` clean everywhere; `F.layout()` lists only the pizza tier tabs (by design).
+- **Balance sim** (`--heat mild,regular --runs 2 --waves 40 --shop auto --workers 2`), on main and on this branch: identical run by run, every field of every run (all four reach wave 41; crusts 263, 260, 629, 525). The bot buys by card text (see Notes), so Chili Flakes' LV1 keeps its words.
+
+### Notes
+
+- **Exclusive Menu and Infinite Oven:** Infinite Oven lifts every levelling topping 2 levels, Exclusive Menu too, though its LV5 and LV6 do nothing (no `atLevel` effect there). Unchanged; for Tron to decide whether Infinite Oven should skip it.
+- **State read from text, not values** (found while doing this): the balance sim's shopping bot (`src/devSim.ts`, `AUTO`) picks "automatic" toppings by a regex over their card text; `isAutoTopping(u)` (from the effects) is the real answer, but switching changes what the seeded bot buys, so it's for a deliberate change (Chili Flakes' LV1 override keeps today's choices until then). Hero Goals' chain-lightning count read `/chain lightning/` off the card text (Garlic Lightning's "arcs" didn't match); it reads the effects now (`hasChainLightning`: a chain chance or a chaining proc), so Garlic Lightning counts. The STATS chips' tip card read its level back out of the chip's name ("LV3"); it's a field now. Two hand-built rarity orders with a made-up 'uncommon' (the sim bot's ranks, Athena's pick in `godMoves.ts`) read `Rarity.rank` now, same order. Still open: `godMoves.ts`' `isUndead` matches foot ids and names by regex beside the `undead` flag; Athena's pick finds toppings by their display name; `Run.offerable` checks Freeze Frame by id and freshness toppings by an id list (`FRESH_ONLY`).

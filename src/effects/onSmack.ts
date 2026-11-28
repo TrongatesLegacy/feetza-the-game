@@ -14,4 +14,4 @@ export interface OnSmackData extends TriggerData {
 
 const make = (action: ActionData, o: TriggerOpts = {}): OnSmackData => ({ kind: 'onSmack', action, ...o });
 
-export const OnSmackEffect = effectKind('onSmack', make, triggerSpec<OnSmackData>(GameEvent.Smack, 'smacks'));
+export const OnSmackEffect = effectKind('onSmack', make, triggerSpec<OnSmackData>(GameEvent.Smack, 'smack'));

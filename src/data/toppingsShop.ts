@@ -2,117 +2,210 @@
 // Discounts stack additively up to 60% off; "one fewer card" never takes the shop below 1 card; free
 // items carry a FREE tag. Prices and cards are worked out in src/game/shopDeals.ts.
 
-import type { Rarity, Upgrade } from './upgrades';
-import { Effect, Op, Stat, Unit, type EffectData } from '../effects';
-
-function shop(id: string, name: string, icon: string, rarity: Rarity, max: number, desc: string, effects: EffectData[] = [], extra: Partial<Upgrade> = {}): Upgrade {
-  return { id, name, icon, rarity, max, desc: () => desc, effects, ...extra };
-}
-
-function deal(id: string, name: string, icon: string, rarity: Rarity, up: string, down: string, effects: EffectData[]): Upgrade {
-  return { id, name, icon, rarity, max: 1, desc: () => up, downside: down, effects };
-}
-
-/** Exclusive Menu: the guaranteed card's discount at each level, in percent (Tron's numbers; the effects set them). */
-const EXCLUSIVE_OFF: Record<number, number> = { 2: 10, 3: 20, 4: 40 };
+import type { Upgrade } from './upgrades';
+import { OnPick, UpgradeKind } from './itemKinds';
+import { Rarity } from './rarity';
+import { Effect, Op, Stat, Unit } from '../effects';
+import { KitTopping, Topping } from './toppingDefs';
 
 export const SHOP_TOPPINGS: Upgrade[] = [
   // ——— Common ———
-  shop('couponclipper', 'Coupon Clipper', '✂️', 'common', 3, 'Rerolls cost 2 tips less (never below 1)', [
-    Effect.Stat(
-      Stat.RerollLess,
-      Op.Add(Unit.Amount(2)),
-    ),
-  ]),
-  shop('bulkbuy', 'Bulk Buy', '🛒', 'common', 2, 'The 3rd topping you buy in each shop is 20% off'),
-  shop('happyhour', 'Happy Hour', '🍹', 'common', 1, 'Every 5th wave’s shop: all toppings 25% off'),
-  shop('dayold', 'Day-Old Deals', '🧇', 'common', 2, 'One-use toppings cost 20% less', [
-    Effect.Stat(
-      Stat.ConsumableDiscount,
-      Op.Add(Unit.Percent(20)),
-    ),
-  ]),
-  deal('discountbin', 'Discount Bin', '🗑️', 'common', 'All toppings 15% cheaper', 'One fewer topping card per shop', [
-    Effect.Stat(
-      Stat.ShopDiscount,
-      Op.Add(Unit.Percent(15)),
-    ),
-    Effect.Stat(
-      Stat.CardDelta,
-      Op.Sub(Unit.Count(1)),
-    ),
-  ]),
+  Topping({
+    id: 'couponclipper', name: 'Coupon Clipper', icon: '✂️',
+    rarity: Rarity.Common,
+    maxLevel: 3,
+    effects: [
+      Effect.Stat(
+        Stat.RerollLess,
+        Op.Add(Unit.Amount(2)),
+      ),
+    ],
+  }),
+  KitTopping({
+    id: 'bulkbuy', name: 'Bulk Buy', icon: '🛒',
+    rarity: Rarity.Common,
+    maxLevel: 2,
+    text: { up: 'The 3rd topping you buy in each shop is 20% off' },
+  }),
+  KitTopping({
+    id: 'happyhour', name: 'Happy Hour', icon: '🍹',
+    rarity: Rarity.Common,
+    maxLevel: 1,
+    text: { up: 'Every 5th wave’s shop: all toppings 25% off' },
+  }),
+  Topping({
+    id: 'dayold', name: 'Day-Old Deals', icon: '🧇',
+    rarity: Rarity.Common,
+    maxLevel: 2,
+    effects: [
+      Effect.Stat(
+        Stat.ConsumableDiscount,
+        Op.Add(Unit.Percent(20)),
+      ),
+    ],
+  }),
+  Topping({
+    id: 'discountbin', name: 'Discount Bin', icon: '🗑️',
+    rarity: Rarity.Common,
+    maxLevel: 1,
+    effects: [
+      Effect.Stat(
+        Stat.ShopDiscount,
+        Op.Add(Unit.Percent(15)),
+      ),
+      Effect.Stat(
+        Stat.CardDelta,
+        Op.Sub(Unit.Count(1)),
+      ),
+    ],
+  }),
 
   // ——— Rare ———
-  shop('freedelivery', 'Free Delivery', '🚚', 'rare', 1, 'One pizza from the counter is free, once this run', [], { kind: 'unique' }),
-  shop('extrashelf', 'Extra Shelf', '🪜', 'rare', 2, 'Every shop deals one more topping card', [
-    Effect.Stat(
-      Stat.CardDelta,
-      Op.Add(Unit.Count(1)),
-    ),
-  ]),
-  shop('haggler', 'Haggler', '🤝', 'rare', 1, 'Each topping bought takes 10% off the next (up to 30%)'),
-  shop('freerefill', 'Free Refill', '🔄', 'rare', 2, 'One free reroll in every shop', [
-    Effect.Stat(
-      Stat.FreeRerolls,
-      Op.Add(Unit.Count(1)),
-    ),
-  ]),
-  deal('rushorder', 'Rush Order', '⏩', 'rare', 'Counter pizzas cost 30% less', 'Rerolls cost double', [
-    Effect.Stat(
-      Stat.CounterDiscount,
-      Op.Add(Unit.Percent(30)),
-    ),
-    Effect.Stat(
-      Stat.RerollMult,
-      Op.Mul(Unit.Mult(2)),
-    ),
-  ]),
+  KitTopping({
+    id: 'freedelivery', name: 'Free Delivery', icon: '🚚',
+    rarity: Rarity.Rare,
+    maxLevel: 1,
+    text: { up: 'One pizza from the counter is free, once this run' },
+    kind: UpgradeKind.Unique,
+  }),
+  Topping({
+    id: 'extrashelf', name: 'Extra Shelf', icon: '🪜',
+    rarity: Rarity.Rare,
+    maxLevel: 2,
+    effects: [
+      Effect.Stat(
+        Stat.CardDelta,
+        Op.Add(Unit.Count(1)),
+      ),
+    ],
+  }),
+  KitTopping({
+    id: 'haggler', name: 'Haggler', icon: '🤝',
+    rarity: Rarity.Rare,
+    maxLevel: 1,
+    text: { up: 'Each topping bought takes 10% off the next (up to 30%)' },
+  }),
+  Topping({
+    id: 'freerefill', name: 'Free Refill', icon: '🔄',
+    rarity: Rarity.Rare,
+    maxLevel: 2,
+    effects: [
+      Effect.Stat(
+        Stat.FreeRerolls,
+        Op.Add(Unit.Count(1)),
+      ),
+    ],
+  }),
+  Topping({
+    id: 'rushorder', name: 'Rush Order', icon: '⏩',
+    rarity: Rarity.Rare,
+    maxLevel: 1,
+    effects: [
+      Effect.Stat(
+        Stat.CounterDiscount,
+        Op.Add(Unit.Percent(30)),
+      ),
+      Effect.Stat(
+        Stat.RerollMult,
+        Op.Mul(Unit.Mult(2)),
+      ),
+    ],
+  }),
 
   // ——— Epic ———
-  shop('bogo', 'Buy One Get One', '✌️', 'epic', 1, 'The next topping you level up gets a free extra level', [], { kind: 'unique', onPick: 'bogo' }),
-  shop('goldenticket', 'Golden Ticket', '🎫', 'epic', 1, 'Golden Menu items cost 30% fewer Golden Crusts', [
-    Effect.Stat(
-      Stat.GoldenDiscount,
-      Op.Add(Unit.Percent(30)),
-    ),
-  ]),
-  shop('chefsfav', 'Chef’s Favourite', '💝', 'epic', 1, 'A Chef’s Special is always on the counter, 25% cheaper'),
-  shop('clearance', 'Clearance Rack', '📉', 'epic', 1, 'One topping card in every shop is half price'),
-  deal('premiummenu', 'Premium Menu', '💎', 'epic', '+2 topping cards in every shop', 'Toppings and pizzas cost 20% more', [
-    Effect.Stat(
-      Stat.CardDelta,
-      Op.Add(Unit.Count(2)),
-    ),
-    Effect.Stat(
-      Stat.ShopDiscount,
-      Op.Sub(Unit.Percent(20)),
-    ),
-    Effect.Stat(
-      Stat.CounterMult,
-      Op.Mul(Unit.Mult(1.2)),
-    ),
-  ]),
+  KitTopping({
+    id: 'bogo', name: 'Buy One Get One', icon: '✌️',
+    rarity: Rarity.Epic,
+    maxLevel: 1,
+    text: { up: 'The next topping you level up gets a free extra level' },
+    kind: UpgradeKind.Unique,
+    onPick: OnPick.Bogo,
+  }),
+  Topping({
+    id: 'goldenticket', name: 'Golden Ticket', icon: '🎫',
+    rarity: Rarity.Epic,
+    maxLevel: 1,
+    effects: [
+      Effect.Stat(
+        Stat.GoldenDiscount,
+        Op.Add(Unit.Percent(30)),
+      ),
+    ],
+  }),
+  KitTopping({
+    id: 'chefsfav', name: 'Chef’s Favourite', icon: '💝',
+    rarity: Rarity.Epic,
+    maxLevel: 1,
+    text: { up: 'A Chef’s Special is always on the counter, 25% cheaper' },
+  }),
+  KitTopping({
+    id: 'clearance', name: 'Clearance Rack', icon: '📉',
+    rarity: Rarity.Epic,
+    maxLevel: 1,
+    text: { up: 'One topping card in every shop is half price' },
+  }),
+  Topping({
+    id: 'premiummenu', name: 'Premium Menu', icon: '💎',
+    rarity: Rarity.Epic,
+    maxLevel: 1,
+    text: { down: 'Toppings and pizzas cost 20% more' },
+    effects: [
+      Effect.Stat(
+        Stat.CardDelta,
+        Op.Add(Unit.Count(2)),
+      ),
+      Effect.Stat(
+        Stat.ShopDiscount,
+        Op.Sub(Unit.Percent(20)),
+      ),
+      Effect.Stat(
+        Stat.CounterMult,
+        Op.Mul(Unit.Mult(1.2)),
+      ),
+    ],
+  }),
 
   // ——— Legendary ———
-  shop('freelunch', 'Free Lunch', '🥪', 'legendary', 1, 'Once every 10 waves, take any one topping card free'),
-  shop('ownersdiscount', 'Owner’s Discount', '🏷️', 'legendary', 1, 'Everything in the shop is 25% off', [
-    Effect.Stat(
-      Stat.ShopDiscount,
-      Op.Add(Unit.Percent(25)),
-    ),
-    Effect.Stat(
-      Stat.GoldenDiscount,
-      Op.Add(Unit.Percent(25)),
-    ),
-  ]),
-  shop('bottomless', 'Bottomless Pizza', '♾️', 'legendary', 1, 'One free counter pizza every 10 waves'),
-  shop('stockroom', 'Stockroom Key', '🔑', 'legendary', 1, 'The first card you buy in each shop restocks'),
-  // (its own definition: deal() is max 1. Each level sets the guaranteed card's discount outright, not on top)
-  {
-    id: 'exclusivemenu', name: 'Exclusive Menu', icon: '🎩', rarity: 'legendary', max: 4,
-    desc: (l) => (l <= 1 ? 'One topping card each shop is always Epic or Legendary' : `The Exclusive card (Epic or Legendary) is ${EXCLUSIVE_OFF[l] ?? 0}% off`),
-    downside: 'Two fewer topping cards per shop (not more each level)',
+  KitTopping({
+    id: 'freelunch', name: 'Free Lunch', icon: '🥪',
+    rarity: Rarity.Legendary,
+    maxLevel: 1,
+    text: { up: 'Once every 10 waves, take any one topping card free' },
+  }),
+  Topping({
+    id: 'ownersdiscount', name: 'Owner’s Discount', icon: '🏷️',
+    rarity: Rarity.Legendary,
+    maxLevel: 1,
+    text: { up: 'Everything in the shop is 25% off' },
+    effects: [
+      Effect.Stat(
+        Stat.ShopDiscount,
+        Op.Add(Unit.Percent(25)),
+      ),
+      Effect.Stat(
+        Stat.GoldenDiscount,
+        Op.Add(Unit.Percent(25)),
+      ),
+    ],
+  }),
+  KitTopping({
+    id: 'bottomless', name: 'Bottomless Pizza', icon: '♾️',
+    rarity: Rarity.Legendary,
+    maxLevel: 1,
+    text: { up: 'One free counter pizza every 10 waves' },
+  }),
+  KitTopping({
+    id: 'stockroom', name: 'Stockroom Key', icon: '🔑',
+    rarity: Rarity.Legendary,
+    maxLevel: 1,
+    text: { up: 'The first card you buy in each shop restocks' },
+  }),
+  // (each level sets the Exclusive card's discount outright, not on top; LV1's catch stays the same at every level)
+  Topping({
+    id: 'exclusivemenu', name: 'Exclusive Menu', icon: '🎩',
+    rarity: Rarity.Legendary,
+    maxLevel: 4,
+    text: { down: (_l, _auto, autoAt) => `${autoAt(1).down} (not per level)` },
     effects: [
       Effect.Stat(
         Stat.GuaranteedEpic,
@@ -140,5 +233,5 @@ export const SHOP_TOPPINGS: Upgrade[] = [
         { atLevel: 4 },
       ),
     ],
-  },
+  }),
 ];

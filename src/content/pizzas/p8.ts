@@ -7,18 +7,19 @@
 // src/content/art/toppings-p8.ts; their auras and signatures in src/game/legendAuras.ts.
 // perkText must stay at 40 characters or fewer (one card line).
 import type { PizzaType } from '../../data/pizzas';
+import { Rarity } from '../../data/rarity';
 
 export const pizzas: PizzaType[] = [
   {
     id: 'nonnasmasterpiece', name: "Nonna's Masterpiece", perk: 'nonnaLadle', perkText: 'Once a wave the ladle blocks a stomp: ×5',
-    shape: 'round', base: 'tomato', cheese: 0, toppings: ['nonnaRagu', 'fiorDiLatte', 'parmShavings', 'basil', 'nonnaSpoon', 'flourDust'], crust: '#d8954a', cost: 2400, route: 'pizzeria', rarity: 'legendary', act: 1,
+    shape: 'round', base: 'tomato', cheese: 0, toppings: ['nonnaRagu', 'fiorDiLatte', 'parmShavings', 'basil', 'nonnaSpoon', 'flourDust'], crust: '#d8954a', cost: 2400, route: 'pizzeria', rarity: Rarity.Legendary, act: 1,
   },
   {
     id: 'silverservice', name: 'Silver Service', perk: 'silverTray', perkText: 'Every 15s a tray bats all divers back up',
-    shape: 'round', base: 'white', cheese: 0, toppings: ['cremeSpiral', 'salmonRose', 'cremeRosette', 'caviarPearls', 'silverLeaf', 'dill', 'silverCrust'], crust: '#c4914f', cost: 2000, route: 'milestone', rarity: 'legendary', act: 1,
+    shape: 'round', base: 'white', cheese: 0, toppings: ['cremeSpiral', 'salmonRose', 'cremeRosette', 'caviarPearls', 'silverLeaf', 'dill', 'silverCrust'], crust: '#c4914f', cost: 2000, route: 'milestone', rarity: Rarity.Legendary, act: 1,
   },
   {
     id: 'firstbake', name: 'The First Bake', perk: 'firstBake', perkText: 'Fresh every wave; once, a slice over max',
-    shape: 'round', base: 'tomato', cheese: 0, toppings: ['oilPools', 'sanMarzano', 'fiorDiLatte', 'basil', 'seaSalt', 'wheatSprig', 'woodfireCrust'], crust: '#e0a050', cost: 650, route: 'special', rarity: 'legendary', act: 1,
+    shape: 'round', base: 'tomato', cheese: 0, toppings: ['oilPools', 'sanMarzano', 'fiorDiLatte', 'basil', 'seaSalt', 'wheatSprig', 'woodfireCrust'], crust: '#e0a050', cost: 650, route: 'special', rarity: Rarity.Legendary, act: 1,
   },
 ];

@@ -25,6 +25,17 @@ export function setSlamMode(a: Ability | null | undefined): void {
   current = a === undefined ? null : fromAbility(a);
 }
 
+/** Dev (the card text fit check): run fn with the slam mode of ability `a` (null: the Peel Slam), then put it back. */
+export function withSlamMode<T>(a: Ability | null, fn: () => T): T {
+  const was = current;
+  current = fromAbility(a);
+  try {
+    return fn();
+  } finally {
+    current = was;
+  }
+}
+
 export function slamMode(): SlamMode {
   if (current) return current;
   // only the Classic Peel has the Peel Slam; every other peel brings its ability

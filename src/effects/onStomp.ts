@@ -15,4 +15,4 @@ export interface OnStompData extends TriggerData {
 
 const make = (action: ActionData, o: TriggerOpts = {}): OnStompData => ({ kind: 'onStomp', action, ...o });
 
-export const OnStompEffect = effectKind('onStomp', make, triggerSpec<OnStompData>(GameEvent.Stomp, 'stomps', Cond.Alive));
+export const OnStompEffect = effectKind('onStomp', make, triggerSpec<OnStompData>(GameEvent.Stomp, 'stomp', Cond.Alive));

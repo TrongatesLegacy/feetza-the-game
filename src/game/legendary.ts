@@ -19,6 +19,7 @@ import { FOOT_BY_ID } from '../data/feet';
 import type { PizzaType } from '../data/pizzas';
 import { STAGES, STAGES_PER_ACT, WAVES_PER_ACT, WAVES_PER_STAGE, actOf, waveInJourney } from '../data/stages';
 import { save } from '../systems/save';
+import { Rarity } from '../data/rarity';
 
 /** A Legendary's damage multiplier on this heat (×1 on Mild): its damage is set on Mild and scales with the feet's
  *  health (Mild 0.7 … Inferno 2.2), so a ×5 hits as hard at every heat (×1, ≈1.43, ≈1.86, ≈2.43, ≈3.14). */
@@ -46,7 +47,7 @@ export function actBossName(act: number): string {
 
 /** A Legendary's gate right now: open, and when it's shut, why (shown on its locked card). */
 export function legendGate(p: PizzaType): { open: boolean; why: string } {
-  if (p.rarity !== 'legendary' || !p.act) return { open: true, why: '' };
+  if (p.rarity !== Rarity.Legendary || !p.act) return { open: true, why: '' };
   const act = p.act;
   switch (p.route) {
     case 'pizzeria': {
@@ -69,7 +70,7 @@ export function legendGate(p: PizzaType): { open: boolean; why: string } {
  *  shop on), Act 2's after waves 15–19, and so on, on every endless loop too. */
 export function legendSpecialOpen(p: PizzaType, wave: number): boolean {
   const next = wave + 1;
-  return p.rarity === 'legendary' && p.act === actOf(next) && (waveInJourney(next) - 1) % WAVES_PER_ACT >= WAVES_PER_STAGE;
+  return p.rarity === Rarity.Legendary && p.act === actOf(next) && (waveInJourney(next) - 1) % WAVES_PER_ACT >= WAVES_PER_STAGE;
 }
 
 /** Hot or hotter (the Legendaries' feats and the Pizzeria gate). */

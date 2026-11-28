@@ -74,7 +74,7 @@ export const EveryEffect = effectKind('every', make, {
       runAction(e.action, play, fire);
     });
   },
-  describe: (e) => `every ${e.seconds}s: ${describeAction(e.action)}`,
+  describe: (e) => `Every ${e.seconds}s: ${describeAction(e.action)}`,
   // (two pies: twice as often; the table's strength already divides the time)
   scale: (e, k) => ({ ...e, seconds: (e.seconds / k) as Seconds }),
   tags: (e) => [Tag.Trigger(TriggerKind.Every), ...condTags(e.fireIf), ...actionTags(e.action)],

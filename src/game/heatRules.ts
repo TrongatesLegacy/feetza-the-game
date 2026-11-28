@@ -12,6 +12,11 @@ export function setRunHeat(h: HeatId | null): void {
   current = h;
 }
 
+/** The run's heat as set by the scene (null outside a run). */
+export function runHeat(): HeatId | null {
+  return current;
+}
+
 /** The run's heat rank (0 Mild … 4 Inferno; the saved heat outside a run): for wording that depends on it. */
 export function runHeatRank(): number {
   return heatRank(current ?? save.heat);

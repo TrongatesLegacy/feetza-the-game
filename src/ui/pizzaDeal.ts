@@ -7,7 +7,7 @@
 // The bursts are drawn in a layer of their own over the screen, so they outlive the shop redrawing the card away. The
 // motion is in style.css (.pzd-*); reduced motion keeps the light and the sound, without the flip or the burst.
 import type { PizzaRarity } from '../data/pizzaRarity';
-import { TIER_LOOK } from '../data/pizzaRarity';
+import { RARITY_DEFS, Rarity } from '../data/rarity';
 import { audio } from '../systems/audio';
 import { crand } from '../systems/cosmeticRandom';
 import { save } from '../systems/save';
@@ -32,7 +32,7 @@ function burstLayer(): HTMLElement {
 /** Sparkles bursting from a rect's middle, in the tier's colours. */
 export function tierBurst(rect: DOMRect, r: PizzaRarity, n: number, spread = 1): void {
   if (calm() || !rect.width) return;
-  const t = TIER_LOOK[r];
+  const t = RARITY_DEFS[r].pizza.look;
   const host = burstLayer();
   const cx = rect.left + rect.width / 2;
   const cy = rect.top + rect.height * 0.5;
@@ -57,15 +57,15 @@ export function tierBurst(rect: DOMRect, r: PizzaRarity, n: number, spread = 1):
 
 /** A counter card dealt (first drawn this shop): its tier's entrance, `order` cards after the first. */
 export function dealCard(card: HTMLElement, r: PizzaRarity, id: string, order: number): void {
-  if (r === 'common') return;
+  if (r === Rarity.Common) return;
   const delay = 120 + order * 160;
-  if (r === 'legendary' && LEGENDARY_COUNTER.dealt?.(card, id)) return;
-  card.classList.add(`pzd-deal-${r === 'legendary' ? 'epic' : r}`);
-  if (r === 'legendary') card.classList.add('pzd-gold');
+  if (r === Rarity.Legendary && LEGENDARY_COUNTER.dealt?.(card, id)) return;
+  card.classList.add(`pzd-deal-${r === Rarity.Legendary ? Rarity.Epic : r}`);
+  if (r === Rarity.Legendary) card.classList.add('pzd-gold');
   card.style.setProperty('--pzd-delay', `${delay}ms`);
   setTimeout(() => {
     if (!card.isConnected) return;
-    if (r === 'rare') audio.sfx('sfx_tierchime', { volume: 0.55, throttle: 120 });
+    if (r === Rarity.Rare) audio.sfx('sfx_tierchime', { volume: 0.55, throttle: 120 });
     else {
       audio.sfx('sfx_tierrise', { volume: 0.6, throttle: 120 });
       // the sparkles burst as the card lands face up
@@ -76,9 +76,9 @@ export function dealCard(card: HTMLElement, r: PizzaRarity, id: string, order: n
 
 /** A pizza bought from the counter (its card's last place on screen): its tier's moment. */
 export function boughtCard(rect: DOMRect | null, r: PizzaRarity, id: string): void {
-  if (!rect || r === 'common') return;
-  if (r === 'legendary' && LEGENDARY_COUNTER.bought?.(rect, id)) return;
-  if (r === 'rare') {
+  if (!rect || r === Rarity.Common) return;
+  if (r === Rarity.Legendary && LEGENDARY_COUNTER.bought?.(rect, id)) return;
+  if (r === Rarity.Rare) {
     tierBurst(rect, r, 10, 0.9);
     audio.sfx('sfx_smack_tail_glint', { volume: 0.5 });
     return;

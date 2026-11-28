@@ -157,6 +157,12 @@ export function installDevTools(game: Phaser.Game): void {
     packs: async () => (await import('./game/packs')).packsDev(),
     /** The golden check's builds (src/devGolden.ts; npm run golden): every build's stats on the running Game scene. */
     golden: async () => (await import('./devGolden')).goldenRun(game.scene.getScene('Game') as AnyScene),
+    /** Hand-written card text checked against the effects (src/game/cardText.ts): problems, and how many toppings
+     *  read generated text, which have an override, and how many the scene runs itself. */
+    cardTextAudit: async () => (await import('./devCardText')).audit(),
+    /** With the shop open: every topping's card text, all levels, both heats, that doesn't fit a shop card's 4-line
+     *  text block in one of the shop's layouts (empty: all fit). */
+    cardTextFit: async () => (await import('./devCardText')).fit(),
     sim: {
       run: async (o: import('./devSim').SimOpts) => (await import('./devSim')).simRun(game, o, (opts) => api.startGame(opts)),
       ready: async () => (await import('./devSim')).simReady(),
@@ -166,7 +172,7 @@ export function installDevTools(game: Phaser.Game): void {
      *  wave (for still shots). */
     pizzaFx: {
       off: async (on = true) => ((await import('./game/pizzaAlive')).aliveDev.off = on),
-      tier: async (t: 'common' | 'rare' | 'epic' | 'legendary' | null) => {
+      tier: async (t: import('./data/rarity').Rarity | null) => {
         const { aliveDev } = await import('./game/pizzaAlive');
         aliveDev.tier = t;
         for (const p of (game.scene.getScene('Game') as AnyScene).pizzas ?? []) p.rebuildLife();

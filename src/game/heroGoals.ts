@@ -19,6 +19,7 @@ import type { HeatId } from '../data/difficulty';
 import { STAGES, WAVES_PER_STAGE, actWaves, waveInJourney } from '../data/stages';
 import { persist, save } from '../systems/save';
 import type { Foot } from './Foot';
+import { Rarity } from '../data/rarity';
 
 export type SightingId = 'bird' | 'comet' | 'visor' | 'cassette' | 'kid' | 'saucer' | 'tophat' | 'squirrels';
 export type SecretId = 'signal' | (string & {});
@@ -294,7 +295,7 @@ export interface HeroEvents {
   chainHit: Record<string, never>;
   knockedTop: { foot: Foot };
   /** A shop reroll dealt these rarities. */
-  reroll: { rarities: string[] };
+  reroll: { rarities: Rarity[] };
   /** Four times a second while a wave is on. */
   tick: { feet: Foot[]; now: number };
   runEnd: { victory: boolean };
@@ -524,7 +525,7 @@ registerTrackers({
   }],
   gambles: ['Win 3 shop gambles in one run (a reroll that deals an epic or legendary topping)', {
     reroll: (e, c) => {
-      if (!e.rarities.some((r) => r === 'epic' || r === 'legendary')) return;
+      if (!e.rarities.some((r) => Rarity.atLeast(r, Rarity.Epic))) return;
       const n = Number(c.st.n ?? 0) + 1;
       c.st.n = n;
       if (n === 3) return true;

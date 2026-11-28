@@ -1,7 +1,7 @@
 // The shop toppings' sums (src/data/toppingsShop.ts): card counts, topping, reroll, counter and Golden
 // Menu prices, and which items are free. Discounts stack additively and stop at 60% off.
 
-import { kindOf, upgradePrice, type Upgrade } from '../data/upgrades';
+import { UpgradeKind, kindOf, upgradePrice, type Upgrade } from '../data/upgrades';
 import { save } from '../systems/save';
 import { DEAL_BLOCK } from './kitState';
 import type { Run } from './Run';
@@ -73,7 +73,7 @@ export function toppingDiscount(run: Run, u: Upgrade): number {
   const k = run.kit.shop;
   let d = st.shopDiscount;
   if (happyHour(run)) d += 0.25;
-  if (kindOf(u) === 'consumable') d += st.consumableDiscount;
+  if (kindOf(u) === UpgradeKind.Consumable) d += st.consumableDiscount;
   const bulk = run.level('bulkbuy');
   if (bulk && k.bought === 2) d += 0.2 * bulk;
   if (run.level('haggler')) d += Math.min(0.3, 0.1 * k.bought);

@@ -14,4 +14,4 @@ export interface WaveClearData extends TriggerData {
 
 const make = (action: ActionData, o: TriggerOpts = {}): WaveClearData => ({ kind: 'waveClear', action, ...o });
 
-export const WaveClearEffect = effectKind('waveClear', make, triggerSpec<WaveClearData>(GameEvent.WaveClear, 'waves cleared'));
+export const WaveClearEffect = effectKind('waveClear', make, triggerSpec<WaveClearData>(GameEvent.WaveClear, 'wave clear'));

@@ -98,12 +98,12 @@ export function describeStatus(st: StatusData): string {
   const sec = (v: MaybeEnh<Seconds>) => (typeof v === 'number' ? `${v}s` : `${v.plain}s (enhanced ${v.enhanced}s)`);
   switch (st.s) {
     case 'burn':
-      return `burns for ${sec(st.sec)}`;
+      return `set it on fire for ${sec(st.sec)}`;
     case 'slow':
-      return `${Math.round(st.pct * 100)}% slower for ${sec(st.sec)}`;
+      return `slow it ${Math.round(st.pct * 100)}% for ${sec(st.sec)}`;
     case 'stun':
-      return `stunned ${sec(st.sec)}`;
+      return `stun it for ${sec(st.sec)}`;
     case 'freeze':
-      return `frozen ${sec(st.sec)}`;
+      return `freeze it for ${sec(st.sec)}`;
   }
 }

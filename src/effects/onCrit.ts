@@ -14,4 +14,4 @@ export interface OnCritData extends TriggerData {
 
 const make = (action: ActionData, o: TriggerOpts = {}): OnCritData => ({ kind: 'onCrit', action, ...o });
 
-export const OnCritEffect = effectKind('onCrit', make, triggerSpec<OnCritData>(GameEvent.Crit, 'crits'));
+export const OnCritEffect = effectKind('onCrit', make, triggerSpec<OnCritData>(GameEvent.Crit, 'crit'));

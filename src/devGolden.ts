@@ -13,6 +13,7 @@ import { META } from './data/meta';
 import { PIZZAS } from './data/pizzas';
 import { baseStats, UPGRADES, type Stats } from './data/upgrades';
 import { save } from './systems/save';
+import { Rarity } from './data/rarity';
 
 type AnyScene = Phaser.Scene & Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -50,14 +51,14 @@ export function goldenBuilds(): Build[] {
   const plain = ['margherita', 'pepperoni', 'funghi'];
   for (const u of UPGRADES) {
     out.push({ name: `top:${u.id}@1`, owned: { [u.id]: 1 } });
-    if (u.max > 1) out.push({ name: `top:${u.id}@${u.max}`, owned: { [u.id]: u.max } });
+    if (u.maxLevel > 1) out.push({ name: `top:${u.id}@${u.maxLevel}`, owned: { [u.id]: u.maxLevel } });
   }
   // every pizza alone with two plain ones, plain and enhanced (its perk's own number), and on Mild
   for (const p of PIZZAS) {
     out.push({ name: `pizza:${p.id}`, table: [p.id, ...plain.slice(0, 2)] });
     out.push({ name: `pizza:${p.id}*`, table: [`${p.id}*`, ...plain.slice(0, 2)] });
   }
-  for (const p of PIZZAS.filter((q) => q.rarity === 'legendary' || q.rarity === 'epic')) out.push({ name: `pizza:${p.id}@mild`, heat: 'mild', table: [p.id, ...plain.slice(0, 2)] });
+  for (const p of PIZZAS.filter((q) => Rarity.atLeast(q.rarity, Rarity.Epic))) out.push({ name: `pizza:${p.id}@mild`, heat: 'mild', table: [p.id, ...plain.slice(0, 2)] });
   // Napoletana's boost, Echo Slice's copies, the Ghost's possession of each kind of perk
   const some = ['pepperoni', 'margherita', 'funghi', 'maccheese', 'colossusforge', 'kitchensink'].filter((id) => PIZZAS.some((p) => p.id === id));
   for (const id of some) {
@@ -75,7 +76,7 @@ export function goldenBuilds(): Build[] {
     const owned: Record<string, number> = {};
     for (let n = Math.floor(R() * 14); n > 0; n--) {
       const u = pick(UPGRADES);
-      owned[u.id] = 1 + Math.floor(R() * u.max);
+      owned[u.id] = 1 + Math.floor(R() * u.maxLevel);
     }
     const meta: Record<string, number> = {};
     for (const m of META) if (R() < 0.5) meta[m.id] = 1 + Math.floor(R() * m.costs.length);

@@ -17,8 +17,9 @@
 
 import { effectKind } from './kind';
 import { isGrowing, Grows, type OpData, type PhaseId, type Value } from './ledger';
-import { STAT_DEFS, type AddUnitOf, type StatKey, type UnitOf } from './stats';
-import { Unit, UnitKind, type Mult, type Percent, type Units } from './units';
+import { type AddUnitOf, type StatKey, type UnitOf } from './stats';
+import { type Mult, type Percent, type Units } from './units';
+import { describeStatEffect } from './words';
 import { Tag } from './tags';
 import { holds, type WhenId } from './when';
 
@@ -144,7 +145,8 @@ export const StatEffect = effectKind('stat', makeStat, {
     if (e.atLevel !== undefined && ctx.level !== e.atLevel) return;
     ctx.ledger.add({ stat: e.stat, op, source: ctx.source, phase: e.phase ?? ctx.phase });
   },
-  describe: (e) => (e.atLevel !== undefined ? `${describeStat(e)} at LV ${e.atLevel}` : describeStat(e)),
+  // (player-ready: "+18% chain lightning chance, +10% each level-up"; the card text reads the same words)
+  describe: (e) => describeStatEffect(e),
   scale(e, k): StatData {
     const s = (o: OpData): OpData => (o.op === 'add' ? { op: 'add', value: map(o.value, (n) => n * k) } : o.op === 'mul' ? { op: 'mul', value: map(o.value, (n) => 1 + (n - 1) * k) } : o);
     const first = firstOp(e.op);
@@ -154,43 +156,3 @@ export const StatEffect = effectKind('stat', makeStat, {
   },
   tags: (e) => [Tag.Stat(e.stat), Tag.Op(e.op.op), ...(e.op.each ? [Tag.Each(e.op.each.op)] : [])],
 });
-
-/** A stat effect in words (its level-1 op, and what each later level does). */
-function describeStat(e: StatData): string {
-  const d = STAT_DEFS[e.stat];
-  const what = d.label.toLowerCase();
-  const first = opAt(e.op, 1);
-  const each = e.op.each ? describeOp(e.stat, e.op.each, 'each') : '';
-  if (!first) return `${each} ${what} each level-up`;
-  if (!each) return describeOp(e.stat, first, 'one');
-  return `${describeOp(e.stat, first, 'head')}, ${each} each level-up`;
-}
-
-/** One op in words: "+12% chill strength". The head of a chain reads a chance as a chance ("18% arc chance, …"); its
- *  EachLevelUp part reads without the stat's name ("…, +10% each level-up"). */
-function describeOp(stat: StatKey, o: OpData, part: 'one' | 'head' | 'each'): string {
-  {
-    const d = STAT_DEFS[stat];
-    const what = d.label.toLowerCase();
-    if (o.op === 'on') return d.label;
-    const v = o.value;
-    if (isGrowing(v)) return `${what}: grows with the run`;
-    const unit = d.unit === UnitKind.Flag ? UnitKind.Amount : o.op === 'add' && d.unit === UnitKind.Mult ? UnitKind.Percent : d.unit;
-    const amount = (n: number) => (unit === UnitKind.Percent || unit === UnitKind.Chance ? Unit.show.percent(n) : unit === UnitKind.Mult ? Unit.show.mult(n) : `${n < 0 ? '−' : '+'}${Math.abs(n)}`);
-    // (the EachLevelUp part reads without the stat's name: "…, +10% each level-up")
-    const named = (s: string) => (part === 'each' ? s : `${s} ${what}`);
-    switch (o.op) {
-      case 'add':
-        return part === 'head' && unit === UnitKind.Chance ? `${Unit.show.chance(v)} ${what}` : named(amount(v));
-      case 'mul':
-        return named(Unit.show.mult(v));
-      case 'set':
-        if (part === 'each') return `set to ${unit === UnitKind.Percent || unit === UnitKind.Chance ? Unit.show.chance(v) : v}`;
-        return `${what}: ${unit === UnitKind.Percent || unit === UnitKind.Chance ? Unit.show.chance(v) : unit === UnitKind.Rate ? Unit.show.rate(v) : v}`;
-      case 'atLeast':
-        return part === 'each' ? `at least ${v}` : `${what} at least ${v}`;
-      case 'atMost':
-        return part === 'each' ? `at most ${v}` : `${what} at most ${v}`;
-    }
-  }
-}

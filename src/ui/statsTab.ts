@@ -76,7 +76,7 @@ function chip(s: Src): HTMLElement {
   return h(
     'span',
     // (a topping or a pizza shows its whole card when tapped or hovered)
-    { class: `st-src ${s.tone}`, title: s.tip ? `${s.name}: ${s.tip}` : s.name, 'data-tip-card': /^(top|pizza):/.test(s.key) ? s.key : undefined, 'data-tip-lvl': /LV(\d+)$/.exec(s.name)?.[1] },
+    { class: `st-src ${s.tone}`, title: s.tip ? `${s.name}: ${s.tip}` : s.name, 'data-tip-card': /^(top|pizza):/.test(s.key) ? s.key : undefined, 'data-tip-lvl': s.lvl },
     s.img ? h('img', { src: s.img, alt: '' }) : h('i', {}, s.icon ?? '•'),
     h('span', {}, s.name),
   );

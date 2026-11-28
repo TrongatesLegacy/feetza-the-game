@@ -2,7 +2,9 @@
 // The golden check (docs/effects-plan.md): the run's Stats for a large fixed set of builds (src/devGolden.ts), worked
 // out by the game's own code, compared with the committed snapshot to 1e-9.
 //
-//   npm run golden             compare with scripts/golden/stats.json and list every difference (exit 1 if any)
+//   npm run golden             compare with scripts/golden/stats.json and list every difference (exit 1 if any); and
+//                              the card text checks (src/devCardText.ts): overrides against the effects, and every
+//                              topping's text fits a shop card at desktop and phone size (exit 1 on any problem)
 //   npm run golden -- --write  write the snapshot (after a change that's meant to move numbers)
 //   --cache-dir <dir>          Vite's dependency cache (default node_modules/.vite; or SIM_CACHE_DIR)
 //
@@ -52,6 +54,7 @@ const shutdown = async () => {
 };
 
 let out;
+const textProblems = [];
 try {
   for (let i = 0; i < 100; i++) {
     try {
@@ -96,14 +99,33 @@ try {
   const t0 = Date.now();
   out = await evalJs('return F.golden()');
   console.log(`Golden: ${Object.keys(out).length} builds worked out in ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+  // the card text checks (src/devCardText.ts): hand-written text against the effects, and every topping's text in
+  // the shop card's 4-line block, at desktop and phone size
+  const audit = await evalJs('return F.cardTextAudit()');
+  textProblems.push(...audit.problems);
+  console.log(`Card text: ${audit.generated} toppings generated, ${audit.overridden.length} with a hand-written side (${audit.overridden.join(', ')}), ${audit.scene} the scene's own`);
+  await evalJs(`F.startGame({ upgrades: {}, coins: 500, wave: 12, intros: false, seed: 1 });
+    for (let i = 0; i < 200 && !document.querySelector('.shop2 .cards .card'); i++) await new Promise((r) => setTimeout(r, 50));
+    await new Promise((r) => setTimeout(r, 800)); return true`);
+  for (const [name, width, height] of [['desktop', 1280, 720], ['phone', 844, 390]]) {
+    await send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: name === 'phone' });
+    await sleep(400);
+    const fails = await evalJs('return F.cardTextFit()');
+    for (const f of fails) textProblems.push(`${f.id} LV${f.lvl} (${f.heat}, ${f.meter}, ${f.cards} cards, ${name}): ${f.lines} lines, more than the card's 4`);
+    console.log(`Card text fit (${name} ${width}×${height}): ${fails.length ? `${fails.length} too long` : 'every topping fits'}`);
+  }
 } finally {
   await shutdown();
 }
 
+if (textProblems.length) {
+  console.log(`${textProblems.length} card text problem(s):`);
+  for (const t of textProblems.slice(0, 100)) console.log(`  ${t}`);
+}
 if (write || !existsSync(SNAP)) {
   writeFileSync(SNAP, JSON.stringify(out, null, 0).replace(/\},"/g, '},\n"') + '\n');
   console.log(`Wrote ${SNAP}`);
-  process.exit(0);
+  process.exit(textProblems.length ? 1 : 0);
 }
 const want = JSON.parse(readFileSync(SNAP, 'utf8'));
 const diffs = [];
@@ -127,3 +149,4 @@ if (diffs.length) {
   process.exit(1);
 }
 console.log('No differences from the snapshot.');
+if (textProblems.length) process.exit(1);

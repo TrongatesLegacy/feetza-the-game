@@ -11,6 +11,7 @@ import type Phaser from 'phaser';
 import { HEAT_BY_ID, MOMENTUM, type HeatId, type MomentumHeat } from './data/difficulty';
 import { META } from './data/meta';
 import { PIZZAS } from './data/pizzas';
+import { Rarity } from './data/rarity';
 import { artBooted } from './game/assets';
 import { seedCosmetic } from './systems/cosmeticRandom';
 import { AUTO_SOURCES, GameScene } from './scenes/GameScene';
@@ -245,8 +246,8 @@ function shopOnce(g: AnyScene, mode: 'rarity' | 'auto' = 'rarity'): boolean {
   }
   const dead = st.table.findIndex((p: any) => p.rebake?.can); // eslint-disable-line @typescript-eslint/no-explicit-any
   if (dead >= 0) return g.shopRebake(dead), true;
-  const rank: Record<string, number> = { legendary: 4, epic: 3, rare: 2, uncommon: 1.5, common: 1 };
-  const score = (c: any) => (rank[c.rarity] ?? 0) + (mode === 'auto' && AUTO.test(`${c.name} ${c.desc}`) ? 10 : 0); // eslint-disable-line @typescript-eslint/no-explicit-any
+  // (rarer first: Common 1 up to Legendary 4, as before)
+  const score = (c: any) => Rarity.rank(c.rarity) + 1 + (mode === 'auto' && AUTO.test(`${c.name} ${c.desc}`) ? 10 : 0); // eslint-disable-line @typescript-eslint/no-explicit-any
   const card = st.cards.filter((c: any) => !c.sold && (c.free || st.coins >= c.price)).sort((a: any, b: any) => score(b) - score(a))[0]; // eslint-disable-line @typescript-eslint/no-explicit-any
   if (card) return g.shopBuy(card.id), true;
   return false;

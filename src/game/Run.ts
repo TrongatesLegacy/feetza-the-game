@@ -5,9 +5,9 @@ import { DEEP_FROM, DEEP_SPAN, HEAT_BY_ID, type HeatId } from '../data/difficult
 import { FEET, FOOT_BY_ID, type FootType } from '../data/feet';
 import { PIZZA_BY_ID, type PizzaPerk, type PizzaType } from '../data/pizzas';
 import { MILESTONES, type Milestone } from '../data/meta';
-import { PIZZERIA_SPECIAL_MARKUP, TIER_TIPS } from '../data/pizzaRarity';
+import { PIZZERIA_SPECIAL_MARKUP } from '../data/pizzaRarity';
 import { BOSS_CREW, JOURNEY_WAVES, MINI_ESCORT, MINI_WAVE, STAGES, STAGES_PER_ACT, WAVES_PER_STAGE } from '../data/stages';
-import { CONSUMABLE_COOLDOWN, RARITY_WEIGHT, UPGRADES, UPGRADE_BY_ID, baseStats, kindOf, type OfferEnv, type Rarity, type Stats, type Upgrade } from '../data/upgrades';
+import { CONSUMABLE_COOLDOWN, NeedsMeter, RARITY_DEFS, Rarity, UPGRADES, UPGRADE_BY_ID, UpgradeKind, baseStats, kindOf, type OfferEnv, type Stats, type Upgrade } from '../data/upgrades';
 import { freshKitState, type KitState } from './kitState';
 import { applyNemesis, homeOf } from './nemesis';
 import { save, unlockPizza } from '../systems/save';
@@ -607,22 +607,22 @@ export class Run {
 
   /** A topping's level cap this run (Infinite Oven lifts every one that levels up). */
   maxLevel(u: Upgrade): number {
-    return u.max > 1 && kindOf(u) === 'permanent' ? u.max + this.stats.capBonus : u.max;
+    return u.maxLevel > 1 && kindOf(u) === UpgradeKind.Permanent ? u.maxLevel + this.stats.capBonus : u.maxLevel;
   }
 
   offerable(u: Upgrade, wave: number): boolean {
     // rarer toppings arrive as the run builds up (shop cards, rerolls, boss loot, events, Golden Menu)
     if (!rarityOpen(u.rarity, wave)) return false;
     if (this.slamless.slam && u.id === 'freeze') return false;
-    if (this.slamless.meter && (u.id === 'oregano' || u.id === 'dried' || u.id === 'overtime' || u.needsMeter)) return false;
-    if (u.needsMeter === 'tank' && this.slamless.tank) return false;
+    if (this.slamless.meter && u.needsMeter) return false;
+    if (u.needsMeter === NeedsMeter.Tank && this.slamless.tank) return false;
     if (u.needsEvents && (this.stats.noEvents || (this.stats.eventMult <= 0 && !this.stats.eventAlways))) return false;
     if (u.offerIf && !u.offerIf(this.env)) return false;
     // freshness toppings do nothing where freshness is off (Mild)
     if (FRESH_ONLY.has(u.id) && this.heatDef.freshness <= 0) return false;
     const k = kindOf(u);
-    if (k === 'unique') return this.level(u.id) === 0;
-    if (k === 'consumable') return !this.armed.includes(u.id) && (this.cooldowns[u.id] ?? 0) <= wave;
+    if (k === UpgradeKind.Unique) return this.level(u.id) === 0;
+    if (k === UpgradeKind.Consumable) return !this.armed.includes(u.id) && (this.cooldowns[u.id] ?? 0) <= wave;
     return this.level(u.id) < this.maxLevel(u);
   }
 
@@ -640,11 +640,12 @@ export class Run {
   /** n cards weighted by rarity (luck tips it rarer) from `avail`: the deal's picks (src/game/shopDeals.ts dealCards). */
   pickCards(n: number, avail: Upgrade[]): Upgrade[] {
     const luck = this.stats.luck;
+    const w = (r: Rarity) => RARITY_DEFS[r].weight;
     const weights: Record<Rarity, number> = {
-      common: RARITY_WEIGHT.common / (1 + luck * 0.25),
-      rare: RARITY_WEIGHT.rare * (1 + luck * 0.15),
-      epic: RARITY_WEIGHT.epic * (1 + luck * 0.35),
-      legendary: RARITY_WEIGHT.legendary * (1 + luck * 0.6),
+      common: w(Rarity.Common) / (1 + luck * 0.25),
+      rare: w(Rarity.Rare) * (1 + luck * 0.15),
+      epic: w(Rarity.Epic) * (1 + luck * 0.35),
+      legendary: w(Rarity.Legendary) * (1 + luck * 0.6),
     };
     const picks: Upgrade[] = [];
     let guard = 0;
@@ -658,10 +659,10 @@ export class Run {
 
   /** Boss loot's n picks: epic or better (none when none is open). */
   pickBossCards(n: number, exclude: string[] = []): Upgrade[] {
-    const avail = this.dealable(exclude).filter((u) => u.rarity === 'epic' || u.rarity === 'legendary');
+    const avail = this.dealable(exclude).filter((u) => Rarity.atLeast(u.rarity, Rarity.Epic));
     const picks: Upgrade[] = [];
     while (picks.length < n && avail.length) {
-      const u = weightedPick(avail, (x) => (x.rarity === 'legendary' ? 1 : 2.5));
+      const u = weightedPick(avail, (x) => (x.rarity === Rarity.Legendary ? 1 : 2.5));
       picks.push(u);
       avail.splice(avail.indexOf(u), 1);
     }
@@ -671,7 +672,7 @@ export class Run {
   /** `extra` one-use cards more (Mac & Cheese's, from the ledger's total), each when one is free to deal. */
   addExtraConsumables(picks: Upgrade[], avail: Upgrade[], extra: number): void {
     for (let i = 0; i < extra; i++) {
-      const cons = avail.filter((u) => kindOf(u) === 'consumable' && !picks.includes(u));
+      const cons = avail.filter((u) => kindOf(u) === UpgradeKind.Consumable && !picks.includes(u));
       if (cons.length) picks.push(weightedPick(cons, () => 1));
     }
   }
@@ -680,7 +681,7 @@ export class Run {
    *  weights (luck included); a Rare when none is open, else any card. */
   pickExclusive(n: number, avail: Upgrade[]): Upgrade[] {
     const picks: Upgrade[] = [];
-    for (const ok of [(r: Rarity) => r === 'epic' || r === 'legendary', (r: Rarity) => r === 'rare', () => true]) {
+    for (const ok of [(r: Rarity) => Rarity.atLeast(r, Rarity.Epic), (r: Rarity) => r === Rarity.Rare, () => true]) {
       if (picks.length >= n) break;
       picks.push(...this.pickCards(n - picks.length, avail.filter((u) => ok(u.rarity) && !picks.includes(u))));
     }
@@ -738,17 +739,15 @@ export function endCrustsFor(score: number, wave: number, act2Start: boolean, he
   return Math.floor(base * HEAT_BY_ID[heat].crusts * (1 + figBonus));
 }
 
-/** First shop (wave cleared) each rarity can be dealt in: epics from the wave 5 boss shop,
- * legendaries from wave 10. */
-export const RARITY_FROM: Record<Rarity, number> = { common: 0, rare: 0, epic: 5, legendary: 10 };
-
+/** A rarity can be dealt from this shop on (RARITY_DEFS' `from`: epics from the wave 5 boss shop, legendaries from
+ *  wave 10). */
 export function rarityOpen(r: Rarity, wave: number): boolean {
-  return wave >= RARITY_FROM[r];
+  return wave >= RARITY_DEFS[r].from;
 }
 
 /** The rarest rarity open at this wave (Golden Reroll guarantees one). */
 export function bestRarity(wave: number): Rarity {
-  return rarityOpen('legendary', wave) ? 'legendary' : rarityOpen('epic', wave) ? 'epic' : 'rare';
+  return rarityOpen(Rarity.Legendary, wave) ? Rarity.Legendary : rarityOpen(Rarity.Epic, wave) ? Rarity.Epic : Rarity.Rare;
 }
 
 /** A locked Pizzeria pizza dealt as a Chef's Special. */
@@ -758,7 +757,7 @@ const pizzeriaSpecial = (p: PizzaType) => p.route === 'pizzeria' && !save.unlock
  * pizza dealt as one, the top of its tier's band; anything else (a pizza you own, enhanced), the band's middle. */
 export function specialTips(p: PizzaType): number {
   if (p.route === 'special') return p.cost;
-  const [lo, hi] = TIER_TIPS[p.rarity];
+  const [lo, hi] = RARITY_DEFS[p.rarity].pizza.tips;
   return pizzeriaSpecial(p) ? hi : Math.round((lo + hi) / 2);
 }
 

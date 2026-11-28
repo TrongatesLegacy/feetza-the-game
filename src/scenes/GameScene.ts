@@ -12,12 +12,13 @@ import { readSource, Source, type SourceKey } from '../effects/source';
 import { GHOST_SOURCE, RUN_META, type PeelStats, type TableSeat } from '../game/Run';
 import { applyAll, Effect as Eff, Op, Phase, Stat, Unit, type EffectData } from '../effects';
 import { PIZZAS, PIZZA_BY_ID, enhancedText, type PizzaType } from '../data/pizzas';
-import { PIZZERIA_SPECIAL_CHANCE, TIER_COUNTER, pickByTier, rollTier, tierRank } from '../data/pizzaRarity';
+import { PIZZERIA_SPECIAL_CHANCE, pickByTier, rollTier } from '../data/pizzaRarity';
 import { perkWave, setPerkWave } from '../data/perkWave';
 import { DmgTally } from '../game/dmgTally';
 import { buildView, topSrc, type BuildView, type Src, type TablePizza } from '../game/buildStats';
 import { ACT_COUNT, BOSS_CREW, BOSS_MINION, HEAT_UNLOCK_WAVE, MINI_ESCORT, JOURNEY_WAVES, actLabel, actName, actOf, actStartWave, isActEnd, isActStart, waveInJourney } from '../data/stages';
-import { UPGRADES, UPGRADE_BY_ID, kindOf, type Rarity, type Stats, type Upgrade } from '../data/upgrades';
+import { OnPick, RARITY_DEFS, Rarity, UPGRADES, UPGRADE_BY_ID, UpgradeKind, kindOf, type Stats, type Upgrade } from '../data/upgrades';
+import { cardText, hasChainLightning, levelLine } from '../game/cardText';
 import type { Arena, Clickable } from '../game/arena';
 import { evictFootArt, footPortraitURL, pizzaPortraitURL, setArtWarmBusy, textureURL, texturesInUse, warmFootArt } from '../game/assets';
 import { BackdropView } from '../game/BackdropView';
@@ -31,7 +32,7 @@ import { Fx } from '../game/Fx';
 import { Pizza, pizzaHooks } from '../game/Pizza';
 import { ALIVE_SFX, aliveHooks } from '../game/pizzaAlive';
 import { Projectiles } from '../game/projectiles';
-import { DOUBLE_CAP, endlessPlus, LOCATION_AMBIENCE, LOCATION_MUSIC, RARITY_FROM, Run, awardMilestones, milestoneProgress, backdropFor, bestRarity, rarityOpen, specialPrice, bossMusic, isBossWave, isMiniWave, locationFor, loopOf, waveInStage, planWave, footPool, type WavePlan, bossFor, miniFor, escortOf, escortArrival } from '../game/Run';
+import { DOUBLE_CAP, endlessPlus, LOCATION_AMBIENCE, LOCATION_MUSIC, Run, awardMilestones, milestoneProgress, backdropFor, bestRarity, rarityOpen, specialPrice, bossMusic, isBossWave, isMiniWave, locationFor, loopOf, waveInStage, planWave, footPool, type WavePlan, bossFor, miniFor, escortOf, escortArrival } from '../game/Run';
 import type { CounterSnap, RunSnapshot } from '../game/snapshot';
 import { audio, bossSfx, heroSfx } from '../systems/audio';
 import { setRunSmack } from '../game/smacks';
@@ -765,7 +766,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (!snap) {
       // meta perks at run start
       if (save.meta.headstart) {
-        const rares = UPGRADES.filter((u) => u.rarity === 'rare' && kindOf(u) === 'permanent');
+        const rares = UPGRADES.filter((u) => u.rarity === Rarity.Rare && kindOf(u) === UpgradeKind.Permanent);
         this.run.owned[Phaser.Utils.Array.GetRandom(rares).id] = 1;
       }
       if (save.meta.preheat) this.run.super = 1;
@@ -945,11 +946,11 @@ export class GameScene extends Phaser.Scene implements Arena {
    * (epics from wave 30, legendaries from 60), and roughly the tips a run holds by then. The old Act 2 start: 6 at w = 31. */
   private devKit(w: number): void {
     this.run.act2Start = !!this.start.act2;
-    const rarities = w >= 60 ? ['common', 'rare', 'epic', 'legendary'] : w >= 30 && !this.start.act2 ? ['common', 'rare', 'epic'] : ['common', 'rare'];
-    const pool = UPGRADES.filter((u) => kindOf(u) === 'permanent' && rarities.includes(u.rarity));
+    const rarest = w >= 60 ? Rarity.Legendary : w >= 30 && !this.start.act2 ? Rarity.Epic : Rarity.Rare;
+    const pool = UPGRADES.filter((u) => kindOf(u) === UpgradeKind.Permanent && Rarity.atMost(u.rarity, rarest));
     for (let i = 0; i < (this.start.act2 ? 6 : Math.round(w / 3)); i++) {
       const u = Phaser.Utils.Array.GetRandom(pool);
-      this.run.owned[u.id] = Math.min(u.max, (this.run.owned[u.id] ?? 0) + 1);
+      this.run.owned[u.id] = Math.min(u.maxLevel, (this.run.owned[u.id] ?? 0) + 1);
     }
     this.run.coins = this.start.tips ?? Math.round(w * 14);
     this.run.pizzasBought = 2;
@@ -1171,7 +1172,7 @@ export class GameScene extends Phaser.Scene implements Arena {
   private recompute(): void {
     this.chainToppings = Object.entries(this.run.owned).filter(([id, lvl]) => {
       const u = UPGRADE_BY_ID[id];
-      return lvl > 0 && !!u && (/chain lightning/i.test(u.desc(1)) || !!u.proc?.fx.some((e) => e.e === 'chain'));
+      return lvl > 0 && !!u && hasChainLightning(u);
     }).length;
     this.computeStats();
     for (const p of this.pizzas) {
@@ -2193,14 +2194,14 @@ export class GameScene extends Phaser.Scene implements Arena {
   /** A free consumable: applied now if it's an instant one, otherwise armed. */
   private freeConsumable(): void {
     // Picks open a window: they're shop-only
-    const cons = UPGRADES.filter((u) => kindOf(u) === 'consumable' && !u.pick && this.run.offerable(u, this.run.wave));
+    const cons = UPGRADES.filter((u) => kindOf(u) === UpgradeKind.Consumable && !u.pick && this.run.offerable(u, this.run.wave));
     const u = cons.length ? Phaser.Utils.Array.GetRandom(cons) : null;
     if (!u) {
       this.giveTips(30, W / 2, 400);
       return;
     }
     this.applyUpgrade(u);
-    ui.hud.toast(null, 'FREE CONSUMABLE', `${u.name}: ${u.desc(1)}`);
+    ui.hud.toast(null, 'FREE CONSUMABLE', `${u.name}: ${cardText(u, 1).up}`);
   }
 
   private checkWaveEnd(): void {
@@ -2379,7 +2380,7 @@ export class GameScene extends Phaser.Scene implements Arena {
   /** A pizza at the counter: the counter's base (150 + 75 a pizza bought + 12 a wave) times its tier's (Common the
    *  cheapest, Legendary the dearest); with no pizza, the base itself (Pizza Slots' pull). */
   private pizzaPrice(p?: PizzaType): number {
-    const base = (150 + 75 * this.run.pizzasBought + 12 * this.run.wave) * (p ? TIER_COUNTER[p.rarity] : 1);
+    const base = (150 + 75 * this.run.pizzasBought + 12 * this.run.wave) * (p ? RARITY_DEFS[p.rarity].pizza.counter : 1);
     return Math.round((base * (1 - this.run.stats.counterDiscount)) / 5) * 5;
   }
 
@@ -2441,8 +2442,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     const wave = this.run.wave;
     const locked = (route: PizzaType['route']) => PIZZAS.filter((p) => p.route === route && !save.unlockedPizzas.includes(p.id) && !skip.includes(p.id));
     // (a Legendary only in its own act's stages, from the act's second stage on: src/game/legendary.ts)
-    const specials = locked('special').filter((p) => (p.rarity === 'legendary' ? legendSpecialOpen(p, wave) : rarityOpen(p.rarity, wave)));
-    const pizzeria = locked('pizzeria').filter((p) => p.rarity === 'common' || p.rarity === 'rare');
+    const specials = locked('special').filter((p) => (p.rarity === Rarity.Legendary ? legendSpecialOpen(p, wave) : rarityOpen(p.rarity, wave)));
+    const pizzeria = locked('pizzeria').filter((p) => Rarity.atMost(p.rarity, Rarity.Rare));
     const tier = rollTier([...specials, ...pizzeria].map((p) => p.rarity));
     const fromPizzeria = pizzeria.filter((p) => p.rarity === tier);
     if (fromPizzeria.length && Math.random() < PIZZERIA_SPECIAL_CHANCE) return Phaser.Utils.Array.GetRandom(fromPizzeria);
@@ -2634,9 +2635,9 @@ export class GameScene extends Phaser.Scene implements Arena {
     });
     // a Pick or Peel Roulette bought before a reload is still waiting
     if (this.run.kit.pendingPick) this.time.delayedCall(300, () => this.openPending());
-    if (cards.some((u) => kindOf(u) !== 'permanent')) this.introCard('kinds');
+    if (cards.some((u) => kindOf(u) !== UpgradeKind.Permanent)) this.introCard('kinds');
     if (save.crusts >= 25 && this.shop.state.golden.some((g) => g.available)) this.introCard('golden');
-    if (counter.some((o) => PIZZA_BY_ID[o.id] && PIZZA_BY_ID[o.id].rarity !== 'common')) this.introCard('tiers');
+    if (counter.some((o) => PIZZA_BY_ID[o.id] && PIZZA_BY_ID[o.id].rarity !== Rarity.Common)) this.introCard('tiers');
     if (this.run.heatDef.rebake && this.pizzas.some((p) => p.dead)) this.introCard('rebake');
   }
 
@@ -2699,6 +2700,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       const lvl = r.level(u.id);
       const k = kindOf(u);
       const cp = this.cardPrice(u);
+      const text = cardText(u, lvl + 1);
       const tag = r.kit.shop.clearance === u.id ? 'HALF PRICE' : happy ? 'HAPPY HOUR' : cp.price < cp.full ? 'SALE' : null;
       return {
         id: u.id,
@@ -2706,9 +2708,9 @@ export class GameScene extends Phaser.Scene implements Arena {
         icon: u.icon,
         rarity: u.rarity,
         kind: k,
-        desc: u.desc(lvl + 1),
-        downside: u.downside,
-        lvl: k === 'consumable' ? 'One use, back in 3 waves' : k === 'unique' ? 'Once per run' : lvl ? `LV ${lvl} → ${lvl + 1}` : 'NEW',
+        desc: text.up,
+        downside: text.down,
+        lvl: levelLine(u, lvl),
         price: cp.price,
         was: cp.full,
         free: cp.free,
@@ -2722,12 +2724,12 @@ export class GameScene extends Phaser.Scene implements Arena {
     const used = (id: string) => r.goldenUsed[id] ?? 0;
     const canEnhance = this.alivePizzas().some((p) => !p.enhanced);
     const best = bestRarity(r.wave);
-    const legOpen = rarityOpen('legendary', r.wave);
+    const legOpen = rarityOpen(Rarity.Legendary, r.wave);
     const golden: GoldenItem[] = [
       { id: 'rebake', name: 'Golden Rebake', desc: 'A destroyed pizza back with full slices', cost: 40, available: dead.length > 0 && used('rebake') < 1 && this.run.heat !== 'inferno', note: this.run.heat === 'inferno' ? 'Off on Inferno' : used('rebake') ? 'Used this run' : dead.length ? '' : 'No pizza lost' },
       { id: 'enhance', name: 'Enhance a Pizza', desc: 'Pick a pizza: its perk gets about 50% stronger for the rest of the run. The price doubles each time.', cost: r.enhanceCost(), available: canEnhance, note: canEnhance ? '' : 'All enhanced' },
-      { id: 'reroll', name: 'Golden Reroll', desc: `Reroll with ${best === 'epic' ? 'an' : 'a'} ${best} · ${2 - used('reroll')} left`, cost: 25, available: used('reroll') < 2, note: used('reroll') >= 2 ? 'Used twice' : '' },
-      { id: 'topping', name: 'Golden Topping', desc: 'A guaranteed legendary card', cost: 60, available: legOpen && used('topping') < 1, note: !legOpen ? `From wave ${RARITY_FROM.legendary}` : used('topping') ? 'Used this run' : '' },
+      { id: 'reroll', name: 'Golden Reroll', desc: `Reroll with ${best === Rarity.Epic ? 'an' : 'a'} ${best} · ${2 - used('reroll')} left`, cost: 25, available: used('reroll') < 2, note: used('reroll') >= 2 ? 'Used twice' : '' },
+      { id: 'topping', name: 'Golden Topping', desc: 'A guaranteed legendary card', cost: 60, available: legOpen && used('topping') < 1, note: !legOpen ? `From wave ${RARITY_DEFS.legendary.from}` : used('topping') ? 'Used this run' : '' },
       { id: 'fresh', name: 'Fresh Batch', desc: 'Every pizza back to full freshness', cost: 30, available: used('fresh') < 1 && this.run.heatDef.freshness > 0, note: this.run.heatDef.freshness > 0 ? (used('fresh') ? 'Used this run' : '') : 'Freshness is off' },
     ];
     // Golden Ticket, Owner's Discount; Royal Wedding
@@ -2747,7 +2749,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       cost: this.offerPrice(o),
       fullCost: o.cost,
       kind: o.kind,
-      rarity: PIZZA_BY_ID[o.id]?.rarity ?? 'common',
+      rarity: PIZZA_BY_ID[o.id]?.rarity ?? Rarity.Common,
       fromPizzeria: o.kind === 'special' && PIZZA_BY_ID[o.id]?.route === 'pizzeria',
       basePerk: o.kind === 'enhanced' ? PIZZA_BY_ID[o.id]?.perkText : undefined,
     }));
@@ -2929,24 +2931,24 @@ export class GameScene extends Phaser.Scene implements Arena {
   private applyUpgrade(u: Upgrade, o: { paid?: number; bonus?: boolean } = {}): void {
     const k = kindOf(u);
     if (!o.bonus) audio.sfx('sfx_upgrade');
-    if (k !== 'consumable') this.run.owned[u.id] = (this.run.owned[u.id] ?? 0) + 1;
-    if (u.onPick === 'healAll2') {
+    if (k !== UpgradeKind.Consumable) this.run.owned[u.id] = (this.run.owned[u.id] ?? 0) + 1;
+    if (u.onPick === OnPick.HealAll2) {
       for (const p of this.alivePizzas()) this.healPizza(p, 2);
-      if (k === 'consumable') this.run.consume(u.id);
+      if (k === UpgradeKind.Consumable) this.run.consume(u.id);
     }
-    if (u.onPick === 'arm') this.run.armed.push(u.id);
+    if (u.onPick === OnPick.Arm) this.run.armed.push(u.id);
     // a Pick or Peel Roulette waits (saved with the run) until its choice is made
-    if (u.onPick === 'pick') {
+    if (u.onPick === OnPick.Pick) {
       this.run.consume(u.id);
       this.run.kit.pendingPick = { id: u.id, paid: o.paid ?? 0 };
       this.openPending();
     }
-    if (u.onPick === 'roulette') {
+    if (u.onPick === OnPick.Roulette) {
       this.run.kit.pendingPick = { id: u.id, paid: o.paid ?? 0 };
       this.openPending();
     }
-    if (u.onPick === 'bogo') this.run.kit.bogo = 'ready';
-    if (u.onPick === 'crispy') {
+    if (u.onPick === OnPick.Bogo) this.run.kit.bogo = 'ready';
+    if (u.onPick === OnPick.Crispy) {
       // Extra Crispy: the pizza with the fewest slices to its name gets one more
       const p = [...this.alivePizzas()].sort((a, b) => a.maxSlices - b.maxSlices)[0];
       if (p) {
@@ -2955,12 +2957,12 @@ export class GameScene extends Phaser.Scene implements Arena {
         this.fx.quip(p.x, p.surfaceY - 160, 'EXTRA CRISPY! +1 SLICE', '#ffb070', 38);
       }
     }
-    if (u.onPick === 'fridge') for (const p of this.alivePizzas()) if (p.freshOn) p.setFresh(p.fresh + 4);
+    if (u.onPick === OnPick.Fridge) for (const p of this.alivePizzas()) if (p.freshOn) p.setFresh(p.fresh + 4);
     // trade-offs paid in freshness: a one-time hit to the pizzas on the table, never enough to make one stale
     if (u.freshNow && !o.bonus) for (const p of this.alivePizzas()) if (p.freshOn && p.fresh > 1) p.setFresh(Math.max(1, p.fresh - u.freshNow));
     // on Mild (no freshness) those trade-offs cost slices instead, never the last one
     if (u.slicesNow && !o.bonus) for (const p of this.alivePizzas()) if (p.slices > 1) p.takeSlices(Math.min(u.slicesNow, p.slices - 1), p.x);
-    if (u.onPick === 'extraPizza') {
+    if (u.onPick === OnPick.ExtraPizza) {
       if (this.pizzas.length >= MAX_PIZZAS) {
         const dead = this.pizzas.find((p) => p.dead);
         if (dead) {
@@ -2978,7 +2980,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     this.recompute();
     // Buy One Get One: the next topping that levels up gets a second level, free
     const kit = this.run.kit;
-    if (!o.bonus && kit.bogo === 'ready' && u.id !== 'bogo' && k === 'permanent' && this.run.level(u.id) < this.run.maxLevel(u)) {
+    if (!o.bonus && kit.bogo === 'ready' && u.id !== 'bogo' && k === UpgradeKind.Permanent && this.run.level(u.id) < this.run.maxLevel(u)) {
       kit.bogo = 'used';
       this.applyUpgrade(u, { bonus: true });
       ui.hud.toast(null, 'BUY ONE GET ONE', `${u.name}: a free extra level (now LV ${this.run.level(u.id)})`);
@@ -2994,7 +2996,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       this.run.kit.pendingPick = null;
       return;
     }
-    if (u.onPick === 'roulette') this.openRoulette(pend.paid);
+    if (u.onPick === OnPick.Roulette) this.openRoulette(pend.paid);
     else this.openPick(u, pend.paid);
   }
 
@@ -3002,7 +3004,7 @@ export class GameScene extends Phaser.Scene implements Arena {
   private openPick(u: Upgrade, paid: number): void {
     if (!this.shop || this.over) return;
     const tableFull = this.pizzas.length >= MAX_PIZZAS && !this.pizzas.some((p) => p.dead);
-    const pool = UPGRADES.filter((x) => x.rarity === u.pick && !x.pick && x.onPick !== 'roulette' && this.run.offerable(x, this.run.wave) && !(tableFull && x.id === 'helping'));
+    const pool = UPGRADES.filter((x) => x.rarity === u.pick && !x.pick && x.onPick !== OnPick.Roulette && this.run.offerable(x, this.run.wave) && !(tableFull && x.id === 'helping'));
     const picks = Phaser.Utils.Array.Shuffle([...pool]).slice(0, 3);
     if (!picks.length) {
       // nothing left of that rarity: what it cost, back
@@ -3016,8 +3018,8 @@ export class GameScene extends Phaser.Scene implements Arena {
     markToppingsSeen(picks.map((x) => x.id));
     const options: PickOption[] = picks.map((x) => {
       const lvl = this.run.level(x.id);
-      const k = kindOf(x);
-      return { u: x, desc: x.desc(lvl + 1), downside: x.downside, lvl: k === 'consumable' ? 'One use, back in 3 waves' : k === 'unique' ? 'Once per run' : lvl ? `LV ${lvl} → ${lvl + 1}` : 'NEW' };
+      const text = cardText(x, lvl + 1);
+      return { u: x, desc: text.up, downside: text.down, lvl: levelLine(x, lvl) };
     });
     pickWindow({
       title: 'CHOOSE ONE, FREE',
@@ -3034,7 +3036,7 @@ export class GameScene extends Phaser.Scene implements Arena {
           persist();
         }
         this.applyUpgrade(got);
-        ui.hud.toast(null, `${u.name.toUpperCase()}: ${got.name.toUpperCase()}`, got.desc(this.run.level(id) || 1));
+        ui.hud.toast(null, `${u.name.toUpperCase()}: ${got.name.toUpperCase()}`, cardText(got, this.run.level(id) || 1).up);
         this.refreshShop();
       },
     });
@@ -3216,8 +3218,8 @@ export class GameScene extends Phaser.Scene implements Arena {
         if (offer && !offer.taken && UPGRADE_BY_ID[offer.id]) {
           const u = UPGRADE_BY_ID[offer.id];
           const lvl = this.run.level(u.id);
-          const k = kindOf(u);
-          slotsPrizeWindow({ u, desc: u.desc(lvl + 1), downside: u.downside, lvl: k === 'consumable' ? 'One use, back in 3 waves' : k === 'unique' ? 'Once per run' : lvl ? `LV ${lvl} → ${lvl + 1}` : 'NEW', sell: offer.sell, onChoose: (c) => this.slotsTake(c) });
+          const text = cardText(u, lvl + 1);
+          slotsPrizeWindow({ u, desc: text.up, downside: text.down, lvl: levelLine(u, lvl), sell: offer.sell, onChoose: (c) => this.slotsTake(c) });
         } else ui.hud.toast(null, 'PIZZA SLOTS: THREE OF A KIND!', prize);
       } else audio.sfx('sfx_pop', { rate: 0.7 });
       this.refreshShop();
@@ -3237,7 +3239,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     if (choice === 'add') {
       if (!this.run.bought.includes(u.id)) this.run.bought.push(u.id);
       this.applyUpgrade(u);
-      ui.hud.toast(null, `PIZZA SLOTS: ${u.name.toUpperCase()}`, u.desc(this.run.level(u.id) || 1));
+      ui.hud.toast(null, `PIZZA SLOTS: ${u.name.toUpperCase()}`, cardText(u, this.run.level(u.id) || 1).up);
       this.shop!.slots!.result!.prize = `Added: ${u.name}`;
     } else {
       this.run.coins += o.sell;
@@ -3260,7 +3262,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       return `Your ${cost} tips back`;
     };
     // a topping is offered, not applied: keep it or sell it for half its usual price (slotsTake)
-    const topping = (rarities: string[]) => {
+    const topping = (rarities: Rarity[]) => {
       const pool = UPGRADES.filter((u) => rarities.includes(u.rarity) && !u.pick && this.run.offerable(u, this.run.wave));
       const u = pool.length ? Phaser.Utils.Array.GetRandom(pool) : null;
       if (!u) return null;
@@ -3300,10 +3302,10 @@ export class GameScene extends Phaser.Scene implements Arena {
         return 'A full Peel Slam meter';
       }
       case 'topping':
-        return topping(['rare']) ?? topping(['common']) ?? refund();
+        return topping([Rarity.Rare]) ?? topping([Rarity.Common]) ?? refund();
       case 'epic':
         // some machines (from wave 20) pay a legendary here
-        return (this.slotsTable().legendary ? topping(['legendary']) : null) ?? topping(['epic']) ?? topping(['rare']) ?? refund();
+        return (this.slotsTable().legendary ? topping([Rarity.Legendary]) : null) ?? topping([Rarity.Epic]) ?? topping([Rarity.Rare]) ?? refund();
       case 'crust': {
         // always more than a crust pull costs
         const n = this.slotsTable().crusts;
@@ -3438,7 +3440,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       const name = PIZZA_BY_ID[id].name;
       const label = off.kind === 'special' ? `${name} (Chef's Special)` : off.kind === 'enhanced' ? `${name} (enhanced)` : name;
       // (an Epic's or Legendary's sting stands in for the usual fanfare)
-      const p = this.placeNewPizza(id, label, index >= 0 ? index : undefined, tierRank(PIZZA_BY_ID[id].rarity) >= tierRank('epic'));
+      const p = this.placeNewPizza(id, label, index >= 0 ? index : undefined, Rarity.atLeast(PIZZA_BY_ID[id].rarity, Rarity.Epic));
       if (p) {
         p.flags.paid = cost;
         if (off.kind === 'enhanced') this.enhance(p);
@@ -3520,7 +3522,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       }
     } else if (id === 'reroll') this.rerollCards(bestRarity(this.run.wave));
     else if (id === 'topping') {
-      const leg = UPGRADES.filter((u) => u.rarity === 'legendary' && this.run.offerable(u, this.run.wave) && !sh.cards.includes(u));
+      const leg = UPGRADES.filter((u) => u.rarity === Rarity.Legendary && this.run.offerable(u, this.run.wave) && !sh.cards.includes(u));
       if (leg.length) sh.cards.push(Phaser.Utils.Array.GetRandom(leg));
     } else if (id === 'fresh') for (const p of this.alivePizzas()) if (p.freshOn) p.setFresh(p.maxFresh);
     persist();
@@ -3625,7 +3627,7 @@ export class GameScene extends Phaser.Scene implements Arena {
   private checkMilestones(): void {
     for (const { m, pizza } of awardMilestones(this.run)) {
       // a Legendary won: its full-screen reveal (between waves: the milestones are checked as a wave clears)
-      if (pizza?.rarity === 'legendary') legendReveal(pizza.id, `MILESTONE: ${m.name.toUpperCase()}`, 1600);
+      if (pizza?.rarity === Rarity.Legendary) legendReveal(pizza.id, `MILESTONE: ${m.name.toUpperCase()}`, 1600);
       if (pizza) ui.hud.toast(pizzaPortraitURL(pizza.id), `MILESTONE: ${m.name.toUpperCase()}`, `${pizza.name} unlocked for free!`);
       else ui.hud.toast(null, `MILESTONE: ${m.name.toUpperCase()}`, '+50 Golden Crusts');
       audio.sfx('sfx_levelup', { volume: 0.7 });

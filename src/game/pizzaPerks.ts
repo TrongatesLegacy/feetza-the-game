@@ -33,6 +33,7 @@ import { GameEvent, type ActionHost, type Fire } from '../effects';
 import type { AtData } from '../effects/actions';
 import { PerkBus } from './perkBus';
 import { Custom, Look, type CustomId, type LookId } from './perkEffects';
+import { Rarity } from '../data/rarity';
 
 /** Perks Arcobaleno can't borrow: set up when a pizza is placed, tied to its own type, or another borrower. */
 const BORROW_SKIP = new Set<PizzaPerk>([
@@ -42,7 +43,7 @@ const BORROW_SKIP = new Set<PizzaPerk>([
   'firstBake',
 ]);
 /** Perks Arcobaleno never borrows besides those: the Legendaries' (they're kept scarce by their price and gates). */
-const LEGEND_PERKS = new Set<PizzaPerk>(PIZZAS.filter((p) => p.rarity === 'legendary').map((p) => p.perk));
+const LEGEND_PERKS = new Set<PizzaPerk>(PIZZAS.filter((p) => p.rarity === Rarity.Legendary).map((p) => p.perk));
 /** Perks Echo Slice won't copy: the same as Arcobaleno's (set up when a pizza is placed, tied to its own type, once a
  *  run, the crust earners, the other borrowers) and itself. It does copy a Legendary's once-a-wave or timed perk
  *  (Nonna's ladle: one more swat a wave; Silver Service: the tray twice as often; Big Top Pie: the cannon twice as

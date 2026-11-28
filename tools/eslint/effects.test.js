@@ -227,6 +227,56 @@ run('no-loose-strings', {
   ],
 });
 
+// ——— typed item names ———
+const ITEMS = "import { Rarity } from './rarity';\nimport { OnPick, UpgradeKind, NeedsMeter } from './itemKinds';\n";
+run('typed-item-names', {
+  valid: [
+    ITEMS + "Topping({ id: 'earplugs', rarity: Rarity.Common, maxLevel: 2, kind: UpgradeKind.Unique, onPick: OnPick.Bogo, needsMeter: NeedsMeter.Tank });",
+    ITEMS + 'if (u.rarity === Rarity.Epic || kindOf(u) !== UpgradeKind.Consumable) go();',
+    ITEMS + 'switch (p.rarity) { case Rarity.Rare: break; }',
+    // other objects have kinds and picks of their own (a shop offer, a target pick)
+    "const offer = { id: 'x', kind: 'special' }; const at = { pick: 'random', of: c }; if (o.kind === 'special') go();",
+    // a route that happens to be called 'rare', and a word that isn't a rarity
+    "const p = { id: 'x', route: 'rare', rarity: Rarity.Common }; if (u.rarity === 'uncommon') go();",
+  ],
+  invalid: [
+    {
+      code: ITEMS + "Topping({ id: 'earplugs', rarity: 'common', maxLevel: 2 });",
+      output: ITEMS + "Topping({ id: 'earplugs', rarity: Rarity.Common, maxLevel: 2 });",
+      errors: [{ messageId: 'typed', data: { text: "'common'", fix: 'Rarity.Common' } }],
+    },
+    {
+      // a pizza: an object with an id and a rarity
+      code: ITEMS + "const p = { id: 'romana', rarity: 'epic', kind: 'unique' };",
+      output: ITEMS + "const p = { id: 'romana', rarity: Rarity.Epic, kind: UpgradeKind.Unique };",
+      errors: [{ messageId: 'typed' }, { messageId: 'typed' }],
+    },
+    {
+      code: ITEMS + "KitTopping({ id: 'x', rarity: Rarity.Rare, onPick: 'roulette', needsMeter: 'meter' });",
+      output: ITEMS + "KitTopping({ id: 'x', rarity: Rarity.Rare, onPick: OnPick.Roulette, needsMeter: NeedsMeter.Meter });",
+      errors: [{ messageId: 'typed' }, { messageId: 'typed' }],
+    },
+    {
+      // checks, either way round, and a switch
+      code: ITEMS + "if (u.rarity === 'legendary' || 'rare' !== p?.rarity || kindOf(u) === 'consumable') go(); switch (u.rarity) { case 'epic': break; }",
+      output: ITEMS + 'if (u.rarity === Rarity.Legendary || Rarity.Rare !== p?.rarity || kindOf(u) === UpgradeKind.Consumable) go(); switch (u.rarity) { case Rarity.Epic: break; }',
+      errors: [{ messageId: 'typed' }, { messageId: 'typed' }, { messageId: 'typed' }, { messageId: 'typed' }],
+    },
+    {
+      // a card's kind, a fallback and a definition by hand (a shop offer's kind 'special' is its own: see valid)
+      code: ITEMS + "if (c.kind === 'unique') go(); const r = p.rarity ?? 'common'; const d = RARITY_DEFS['epic'];",
+      output: ITEMS + 'if (c.kind === UpgradeKind.Unique) go(); const r = p.rarity ?? Rarity.Common; const d = RARITY_DEFS[Rarity.Epic];',
+      errors: [{ messageId: 'typed' }, { messageId: 'typed' }, { messageId: 'typed' }],
+    },
+    {
+      // no Rarity in scope: reported, not fixed
+      code: "const p = { id: 'x', rarity: 'rare' };",
+      output: null,
+      errors: [{ messageId: 'typed', data: { text: "'rare'", fix: 'Rarity.Rare' } }],
+    },
+  ],
+});
+
 // ——— all the rules together, over several fix passes (a list's fix first, then its calls') ———
 {
   const linter = new Linter({ configType: 'flat' });

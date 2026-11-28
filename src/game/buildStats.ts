@@ -12,7 +12,8 @@
 import type { Ability, Effect, Proc, Target } from './abilities';
 import { describeAbility, throwCount } from './abilities';
 import type { Stats } from '../data/upgrades';
-import { baseStats, kindOf, UPGRADE_BY_ID } from '../data/upgrades';
+import { baseStats, kindOf, UPGRADE_BY_ID, UpgradeKind } from '../data/upgrades';
+import { cardLine, cardText } from './cardText';
 import { Better, Stack, STAT_DEFS, STAT_KEYS } from '../effects/stats';
 import { CAP_SOURCE, type Breakdown } from '../effects/ledger';
 import { Source, type SourceKey } from '../effects/source';
@@ -34,6 +35,8 @@ export interface Src {
   tone: Tone;
   /** What it does (a topping's text at its level, a pizza's perk line): the chip's tooltip. */
   tip?: string;
+  /** A topping's level (its tip card shows that level's text). */
+  lvl?: number;
 }
 
 export type NumFmt = 'int' | 'dec' | 'pct' | 'x' | 'sec' | 'text';
@@ -813,7 +816,7 @@ export function buildView(inp: BuildInput): BuildView {
   }
   for (const id of inp.armed) {
     const u = UPGRADE_BY_ID[id];
-    if (u) sus.push({ label: u.name, num: 0, fmt: 'text', text: 'READY', icon: u.icon, tone: 'up', from: [topSrc(id, 1)], note: u.desc(1) });
+    if (u) sus.push({ label: u.name, num: 0, fmt: 'text', text: 'READY', icon: u.icon, tone: 'up', from: [topSrc(id, 1)], note: cardText(u, 1).up });
   }
   sus.push(...echoTiles.filter((e) => e.where === 'sustain').map((e) => e.t));
   sections.push({ id: 'sustain', title: 'Sustain', icon: '💚', color: '#3f9a2e', sub: 'heals, regrowth and protection', tiles: sus, empty: 'Nothing heals or shields your pizzas yet. Slow Proof, Mozzarella Shield and friends would show here.' });
@@ -860,7 +863,7 @@ export function buildView(inp: BuildInput): BuildView {
   }
   // the safety net for what isn't a stat: a topping you own that no tile names (a trick the scene runs by itself)
   const chips = new Set(sections.flatMap((x) => [...x.tiles, ...(x.auto ?? [])].flatMap((t) => t.from.map((f) => f.key))));
-  const unnamed = Object.entries(inp.owned).filter(([id, lvl]) => lvl > 0 && UPGRADE_BY_ID[id] && kindOf(UPGRADE_BY_ID[id]) !== 'consumable' && !chips.has(Source.Topping(id)));
+  const unnamed = Object.entries(inp.owned).filter(([id, lvl]) => lvl > 0 && UPGRADE_BY_ID[id] && kindOf(UPGRADE_BY_ID[id]) !== UpgradeKind.Consumable && !chips.has(Source.Topping(id)));
   if (unnamed.length)
     sections.push({ id: 'more', title: 'More effects', icon: '✨', color: '#8a7f72', sub: 'toppings that work in play', tiles: unnamed.map(([id, lvl]) => {
       const s = topSrc(id, lvl);
@@ -891,7 +894,7 @@ export function buildView(inp: BuildInput): BuildView {
 export function topSrc(id: string, lvl: number): Src {
   const u = UPGRADE_BY_ID[id];
   const l = Math.max(1, lvl);
-  return { key: Source.Topping(id), name: u ? `${u.name}${u.max > 1 ? ` LV${l}` : ''}` : id, icon: u?.icon, tone: 'up', tip: u ? `${u.desc(l)}${u.downside ? ` · ▼ ${u.downside}` : ''}` : undefined };
+  return { key: Source.Topping(id), name: u ? `${u.name}${u.maxLevel > 1 ? ` LV${l}` : ''}` : id, icon: u?.icon, tone: 'up', tip: u ? cardLine(u, l) : undefined, lvl: l };
 }
 
 /** A line on what a pizza's perk is worth right now, where there's a number to give. */

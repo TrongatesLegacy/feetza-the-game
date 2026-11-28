@@ -13,7 +13,7 @@
 import Phaser from 'phaser';
 import { H, HOVER_Y, TABLE_Y, W } from '../config';
 import { actOf } from '../data/stages';
-import { UPGRADES } from '../data/upgrades';
+import { Rarity, UPGRADES } from '../data/upgrades';
 import { audio } from '../systems/audio';
 import { save } from '../systems/save';
 import type { ThrowFx } from './abilities';
@@ -2050,11 +2050,11 @@ function weakPoint(f: Foot): [number, number] {
 /** Athena's pick from the next shop's cards: a topping you already have (it builds on what you're doing),
  * then the rarest. */
 function athenaPick(names: string[], owned: Record<string, number>): string {
-  const RANK = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
   const score = (n: string) => {
     const u = UPGRADES.find((x) => x.name === n);
     if (!u) return 0;
-    return (owned[u.id] ? 10 : 0) + RANK.indexOf(u.rarity);
+    // (rarer first: the same order as before, which ranked a made-up 'uncommon' between common and rare)
+    return (owned[u.id] ? 10 : 0) + Rarity.rank(u.rarity);
   };
   return [...names].sort((a, b) => score(b) - score(a))[0];
 }

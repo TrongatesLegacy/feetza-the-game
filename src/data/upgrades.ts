@@ -1,4 +1,6 @@
-// In-run roguelike upgrades. Each upgrade stacks up to `max` levels and modifies Stats.
+// In-run roguelike upgrades (toppings). Each stacks up to `maxLevel` levels and declares its effects; its card text is
+// generated from them (src/game/cardText.ts). The topping families' builders (Topping, KitTopping…) are in
+// src/data/toppingDefs.ts.
 
 import type { Proc } from '../game/abilities';
 import { MORE_TOPPINGS } from './toppingsMore';
@@ -7,9 +9,15 @@ import { EVENT_TOPPINGS } from './toppingsEvents';
 import { MIXED_TOPPINGS } from './toppingsMixed2';
 import { SHOP_TOPPINGS } from './toppingsShop';
 import { WILD_TOPPINGS } from './toppingsWild';
-import { freezeText, meterBoostText } from '../game/slamMode';
 import { Effect, Op, Stat, Unit, type EffectData } from '../effects';
-import { baseStatsFromDefs } from '../effects/stats';
+import { RARITY_DEFS, Rarity } from './rarity';
+import { isTradeoff } from '../game/cardText';
+import { KitTopping, Topping } from './toppingDefs';
+
+export { Rarity, RARITY_DEFS } from './rarity';
+export { CONSUMABLE_COOLDOWN, NeedsMeter, OnPick, UPGRADE_KIND_DEFS, UpgradeKind } from './itemKinds';
+import { NeedsMeter, OnPick, UpgradeKind } from './itemKinds';
+import { TIP_MULT_CAP, baseStatsFromDefs } from '../effects/stats';
 
 export interface Stats {
   damage: number;
@@ -128,8 +136,6 @@ export function baseStats(): Stats {
   return baseStatsFromDefs();
 }
 
-export type Rarity = 'common' | 'rare' | 'epic' | 'legendary';
-
 /** What the scene tells the shop about the run, for toppings that only make sense sometimes. */
 export interface OfferEnv {
   /** Unlocked peels other than the one in use. */
@@ -137,107 +143,138 @@ export interface OfferEnv {
   /** Something throws: the peel's ability or a topping you own. */
   throws: boolean;
 }
-export type UpgradeKind = 'permanent' | 'unique' | 'consumable';
+
+/** A side of a card written by hand: a string, or a function of the level and what the effects say there (`auto`;
+ *  `autoAt(l)` is the generated text at another level). */
+export type TextLine<A> = string | ((lvl: number, auto: A, autoAt: (lvl: number) => CardText) => A);
+
+/** A card's text (src/game/cardText.ts): the upside, and the downside (the red line), or null. */
+export interface CardText {
+  up: string;
+  down: string | null;
+}
+
+/** Card text written by hand, for what the effects can't say, or say worse (src/game/cardText.ts). Anything not
+ *  overridden is generated from the effects. A dev check (cardTextAudit) makes sure every number in hand-written text
+ *  is one the effects give, so the text can't drift from what the topping does. */
+export interface TextOverride {
+  up?: TextLine<string>;
+  down?: TextLine<string | null>;
+  /** Numbers in the hand-written text that the scene owns, not the effects (Mousetraps' 100 damage): the audit lets
+   *  these through, and only these. */
+  scene?: number[];
+}
 
 export interface Upgrade {
   id: string;
   name: string;
   icon: string;
   rarity: Rarity;
-  max: number;
-  desc: (lvl: number) => string; // describes the effect of taking level `lvl`
+  /** How many times it can be taken (1: once). */
+  maxLevel: number;
   /** What it changes, applied once for each level owned (1..owned): its Effect.Stat numbers go through the modifier
-   *  ledger (src/effects/ledger.ts). Toppings the scene runs itself (procs, kit tricks) have none. */
+   *  ledger (src/effects/ledger.ts). Toppings the scene runs itself (procs, kit tricks) have none. The card text is
+   *  generated from them (src/game/cardText.ts). */
   effects?: EffectData[];
-  /** Called once when picked (immediate effects). 'arm' = a consumable that waits to trigger. */
-  onPick?: 'healAll2' | 'extraPizza' | 'fridge' | 'arm' | 'pick' | 'roulette' | 'crispy' | 'bogo';
+  /** Card text written by hand (the scene's own toppings, and flavour the effects can't give). */
+  text?: TextOverride;
+  /** Called once when picked (immediate effects). */
+  onPick?: OnPick;
   /** Pick toppings: choose one of 3 random toppings of this rarity, free. */
   pick?: Rarity;
   /** Only offered while this holds (Peel Roulette needs 3 other peels, Head Chef something that throws). */
   offerIf?: (env: OfferEnv) => boolean;
   /** Only offered while wave events can happen (not after Do Not Disturb and friends). */
   needsEvents?: boolean;
-  /** 'meter': only when the peel's meter (or timer) can be sped up · 'tank': only when the wave-start meter matters. */
-  needsMeter?: 'meter' | 'tank';
-  /** permanent (default): levels and stacks · unique: once per run · consumable: one use, back after a cooldown. */
+  needsMeter?: NeedsMeter;
+  /** Permanent when left out. */
   kind?: UpgradeKind;
   /** Proc toppings: an ability-style trigger and effects (scaled by level), run by the scene. */
   proc?: Proc;
-  /** Trade-off toppings: the catch, shown as its own red line. */
-  downside?: string;
   /** One-time cost when bought: pizzas on the table lose this much freshness (never below 1). */
   freshNow?: number;
   /** One-time cost when bought: pizzas on the table lose this many slices (never below 1). */
   slicesNow?: number;
 }
 
-const pct = (n: number) => `${Math.round(n * 100)}%`;
-
 export const UPGRADES: Upgrade[] = [
   // ——— Common ———
-  {
-    id: 'heavy', name: 'Heavy Hand', icon: '💪', rarity: 'common', max: 8,
-    desc: () => '+25% smack damage',
+  Topping({
+    id: 'heavy', name: 'Heavy Hand', icon: '💪',
+    rarity: Rarity.Common,
+    maxLevel: 8,
     effects: [
       Effect.Stat(
         Stat.Damage,
         Op.Mul(Unit.Mult(1.25)),
       ),
     ],
-  },
-  {
-    id: 'peel', name: 'Bigger Peel', icon: '🏓', rarity: 'common', max: 6,
-    desc: (l) => (l === 1 ? 'Smacks hit every foot in range, +35% radius' : '+35% smack radius'),
+  }),
+  Topping({
+    id: 'peel', name: 'Bigger Peel', icon: '🏓',
+    rarity: Rarity.Common,
+    maxLevel: 6,
+    // (the scene: from LV1 smacks hit every foot in range)
+    text: { up: (l, auto) => (l <= 1 ? `Smacks hit every foot in range, ${auto}` : auto) },
     effects: [
       Effect.Stat(
         Stat.Radius,
         Op.Add(Unit.Px(9)),
       ),
     ],
-  },
-  {
-    id: 'crit', name: 'Critical Crust', icon: '🎯', rarity: 'common', max: 6,
-    desc: () => '+8% critical smack chance',
+  }),
+  Topping({
+    id: 'crit', name: 'Critical Crust', icon: '🎯',
+    rarity: Rarity.Common,
+    maxLevel: 6,
     effects: [
       Effect.Stat(
         Stat.CritChance,
         Op.Add(Unit.Chance(8)),
       ),
     ],
-  },
-  {
-    id: 'chili', name: 'Chili Flakes', icon: '🌶️', rarity: 'common', max: 5,
-    desc: (l) => (l === 1 ? 'Smacks set feet on fire: 6 dmg/s' : '+6 burn dmg/s'),
+  }),
+  Topping({
+    id: 'chili', name: 'Chili Flakes', icon: '🌶️',
+    rarity: Rarity.Common,
+    maxLevel: 5,
+    // (LV1 keeps its words: the balance sim's shopping bot picks "automatic" toppings by their card text, src/devSim.ts
+    // AUTO, and the generated "Smacks burn feet" would change what it buys, so the seeded runs)
+    text: { up: (l, auto) => (l <= 1 ? 'Smacks set feet on fire: 6 dmg/s' : auto) },
     effects: [
       Effect.Stat(
         Stat.BurnDps,
         Op.Add(Unit.Amount(6)),
       ),
     ],
-  },
-  {
-    id: 'freezer', name: 'Freezer Burn', icon: '❄️', rarity: 'common', max: 4,
-    desc: (l) => (l === 1 ? 'Smacks chill feet: -20% speed for 2s' : '+12% chill strength'),
+  }),
+  Topping({
+    id: 'freezer', name: 'Freezer Burn', icon: '❄️',
+    rarity: Rarity.Common,
+    maxLevel: 4,
     effects: [
       Effect.Stat(
         Stat.SlowPct,
         Op.Add(Unit.Percent(20)).EachLevelUp.Add(Unit.Percent(12)),
       ),
     ],
-  },
-  {
-    id: 'tips', name: 'Tip Jar', icon: '🫙', rarity: 'common', max: 5,
-    desc: () => '+25% tips from feet (all tip boosts top out at ×2.5)',
+  }),
+  Topping({
+    id: 'tips', name: 'Tip Jar', icon: '🫙',
+    rarity: Rarity.Common,
+    maxLevel: 5,
+    text: { up: (_l, auto) => `${auto} from feet (all tip boosts top out at ×${TIP_MULT_CAP})`, scene: [TIP_MULT_CAP] },
     effects: [
       Effect.Stat(
         Stat.CoinMult,
         Op.Add(Unit.Percent(25)),
       ),
     ],
-  },
-  {
-    id: 'combo', name: 'Combo Chef', icon: '👨‍🍳', rarity: 'common', max: 5,
-    desc: () => 'Combos last +0.4s and score +10%',
+  }),
+  Topping({
+    id: 'combo', name: 'Combo Chef', icon: '👨‍🍳',
+    rarity: Rarity.Common,
+    maxLevel: 5,
     effects: [
       Effect.Stat(
         Stat.ComboBonus,
@@ -248,67 +285,85 @@ export const UPGRADES: Upgrade[] = [
         Op.Add(Unit.Percent(10)),
       ),
     ],
-  },
-  {
-    id: 'spring', name: 'Spring-Loaded', icon: '🌀', rarity: 'common', max: 4,
-    desc: () => '+40% knockback: send feet flying back up',
+  }),
+  Topping({
+    id: 'spring', name: 'Spring-Loaded', icon: '🌀',
+    rarity: Rarity.Common,
+    maxLevel: 4,
+    text: { up: (_l, auto) => `${auto}: send feet flying back up` },
     effects: [
       Effect.Stat(
         Stat.Knockback,
         Op.Mul(Unit.Mult(1.4)),
       ),
     ],
-  },
-  {
-    id: 'oregano', name: 'Oregano Overdrive', icon: '🌿', rarity: 'common', max: 4,
-    desc: () => meterBoostText(35),
+  }),
+  Topping({
+    id: 'oregano', name: 'Oregano Overdrive', icon: '🌿',
+    rarity: Rarity.Common,
+    maxLevel: 4,
+    needsMeter: NeedsMeter.Meter,
     effects: [
       Effect.Stat(
         Stat.SuperGain,
         Op.Add(Unit.Percent(35)),
       ),
     ],
-  },
-  {
-    id: 'oven', name: 'Fresh From the Oven', icon: '🧑‍🍳', rarity: 'common', max: 1, kind: 'consumable',
-    desc: () => 'Heal every pizza 2 slices, right now',
-    onPick: 'healAll2',
-  },
-  {
-    id: 'proof', name: 'Slow Proof', icon: '🍞', rarity: 'common', max: 3,
-    desc: () => '+1 slice regrowth on every pizza after each wave',
+  }),
+  KitTopping({
+    id: 'oven', name: 'Fresh From the Oven', icon: '🧑‍🍳',
+    rarity: Rarity.Common,
+    maxLevel: 1,
+    kind: UpgradeKind.Consumable,
+    text: { up: 'Heal every pizza 2 slices, right now' },
+    onPick: OnPick.HealAll2,
+  }),
+  Topping({
+    id: 'proof', name: 'Slow Proof', icon: '🍞',
+    rarity: Rarity.Common,
+    maxLevel: 3,
     effects: [
       Effect.Stat(
         Stat.RegenPerWave,
         Op.Add(Unit.PerWave(1)),
       ),
     ],
-  },
-  {
-    id: 'fridge', name: 'Fridge Magnet', icon: '🧊', rarity: 'rare', max: 2,
-    desc: () => '+4 freshness on every pizza, now and for new ones',
+  }),
+  Topping({
+    id: 'fridge', name: 'Fridge Magnet', icon: '🧊',
+    rarity: Rarity.Rare,
+    maxLevel: 2,
+    // (the scene: onPick tops up the pizzas on the table now)
+    text: { up: (_l, auto) => `${auto}, now and for new ones` },
     effects: [
       Effect.Stat(
         Stat.FreshBonus,
         Op.Add(Unit.Amount(4)),
       ),
     ],
-    onPick: 'fridge',
-  },
-  {
-    id: 'leftovers', name: 'Leftovers Box', icon: '🥡', rarity: 'common', max: 1, kind: 'consumable',
-    desc: () => 'The next pizza to go stale stays fresh 4 more waves',
-    onPick: 'arm',
-  },
-  {
-    id: 'dough', name: 'Emergency Dough', icon: '🫓', rarity: 'rare', max: 1, kind: 'consumable',
-    desc: () => 'A pizza that drops to 1 slice regains 3, once',
-    onPick: 'arm',
-  },
+    onPick: OnPick.Fridge,
+  }),
+  KitTopping({
+    id: 'leftovers', name: 'Leftovers Box', icon: '🥡',
+    rarity: Rarity.Common,
+    maxLevel: 1,
+    kind: UpgradeKind.Consumable,
+    text: { up: 'The next pizza to go stale stays fresh 4 more waves' },
+    onPick: OnPick.Arm,
+  }),
+  KitTopping({
+    id: 'dough', name: 'Emergency Dough', icon: '🫓',
+    rarity: Rarity.Rare,
+    maxLevel: 1,
+    kind: UpgradeKind.Consumable,
+    text: { up: 'A pizza that drops to 1 slice regains 3, once' },
+    onPick: OnPick.Arm,
+  }),
   // ——— Rare ———
-  {
-    id: 'zap', name: 'Garlic Lightning', icon: '⚡', rarity: 'rare', max: 4,
-    desc: (l) => (l === 1 ? '18% chance a smack arcs to 2 nearby feet' : '+10% arc chance, +1 target'),
+  Topping({
+    id: 'zap', name: 'Garlic Lightning', icon: '⚡',
+    rarity: Rarity.Rare,
+    maxLevel: 4,
     effects: [
       Effect.Stat(
         Stat.ChainChance,
@@ -319,189 +374,214 @@ export const UPGRADES: Upgrade[] = [
         Op.Nothing.EachLevelUp.Add(Unit.Count(1)),
       ),
     ],
-  },
-  {
-    id: 'cutter', name: 'Orbiting Cutter', icon: '⚙️', rarity: 'rare', max: 4,
-    desc: (l) => (l === 1 ? 'A pizza cutter orbits your peel, slicing feet' : '+1 orbiting cutter'),
+  }),
+  Topping({
+    id: 'cutter', name: 'Orbiting Cutter', icon: '⚙️',
+    rarity: Rarity.Rare,
+    maxLevel: 4,
     effects: [
       Effect.Stat(
         Stat.Cutters,
         Op.Add(Unit.Count(1)),
       ),
     ],
-  },
-  {
-    id: 'garlic', name: 'Garlic Breath', icon: '🧄', rarity: 'rare', max: 4,
-    desc: () => 'Feet close to any pizza take 8 dmg/s',
+  }),
+  Topping({
+    id: 'garlic', name: 'Garlic Breath', icon: '🧄',
+    rarity: Rarity.Rare,
+    maxLevel: 4,
     effects: [
       Effect.Stat(
         Stat.GarlicDps,
         Op.Add(Unit.Amount(8)),
       ),
     ],
-  },
-  {
-    id: 'shield', name: 'Mozzarella Shield', icon: '🧀', rarity: 'rare', max: 2,
-    desc: () => 'Each pizza blocks +1 stomp every wave',
+  }),
+  Topping({
+    id: 'shield', name: 'Mozzarella Shield', icon: '🧀',
+    rarity: Rarity.Rare,
+    maxLevel: 2,
     effects: [
       Effect.Stat(
         Stat.Shields,
         Op.Add(Unit.PerWave(1)),
       ),
     ],
-  },
-  {
-    id: 'tickle', name: 'Tickle Feather', icon: '🪶', rarity: 'rare', max: 4,
-    desc: () => '+8% chance smacks stun feet for 1.2s',
+  }),
+  Topping({
+    id: 'tickle', name: 'Tickle Feather', icon: '🪶',
+    rarity: Rarity.Rare,
+    maxLevel: 4,
     effects: [
       Effect.Stat(
         Stat.StunChance,
         Op.Add(Unit.Chance(8)),
       ),
     ],
-  },
-  {
-    id: 'double', name: 'Double Slap', icon: '👏', rarity: 'rare', max: 4,
-    desc: () => '+12% chance to smack twice',
+  }),
+  Topping({
+    id: 'double', name: 'Double Slap', icon: '👏',
+    rarity: Rarity.Rare,
+    maxLevel: 4,
     effects: [
       Effect.Stat(
         Stat.DoubleChance,
         Op.Add(Unit.Chance(12)),
       ),
     ],
-  },
-  {
-    id: 'sturdy', name: 'Sturdy Crust', icon: '🧱', rarity: 'rare', max: 3,
-    desc: () => '+15% chance pizzas shrug off a stomp',
+  }),
+  Topping({
+    id: 'sturdy', name: 'Sturdy Crust', icon: '🧱',
+    rarity: Rarity.Rare,
+    maxLevel: 3,
     effects: [
       Effect.Stat(
         Stat.ShrugChance,
         Op.Add(Unit.Chance(15)),
       ),
     ],
-  },
-  {
-    id: 'olive', name: 'Olive Launcher', icon: '🫒', rarity: 'rare', max: 4,
-    desc: (l) => (l === 1 ? 'Auto-fires an olive at a foot every 1.6s' : 'Fires olives 35% faster'),
+  }),
+  Topping({
+    id: 'olive', name: 'Olive Launcher', icon: '🫒',
+    rarity: Rarity.Rare,
+    maxLevel: 4,
     effects: [
       Effect.Stat(
         Stat.OliveRate,
         Op.Set(Unit.Every(Unit.Seconds(1.6))).EachLevelUp.Mul(Unit.Mult(1.35)),
       ),
     ],
-  },
-  {
-    id: 'mercy', name: 'Cutter\'s Mercy', icon: '🔪', rarity: 'rare', max: 3,
-    desc: (l) => `Smacks instantly finish feet under ${8 * l}% health`,
+  }),
+  Topping({
+    id: 'mercy', name: 'Cutter\'s Mercy', icon: '🔪',
+    rarity: Rarity.Rare,
+    maxLevel: 3,
     effects: [
       Effect.Stat(
         Stat.Execute,
         Op.Add(Unit.Percent(8)),
       ),
     ],
-  },
-  {
-    id: 'siesta', name: 'Siesta', icon: '😴', rarity: 'rare', max: 3,
-    desc: () => 'All feet move 8% slower',
+  }),
+  Topping({
+    id: 'siesta', name: 'Siesta', icon: '😴',
+    rarity: Rarity.Rare,
+    maxLevel: 3,
     effects: [
       Effect.Stat(
         Stat.SpeedMult,
         Op.Mul(Unit.Mult(0.92)),
       ),
     ],
-  },
+  }),
   // ——— Epic ———
-  {
-    id: 'pineapple', name: 'Explosive Pineapple', icon: '🍍', rarity: 'epic', max: 3,
-    desc: () => 'Smacked-down feet explode for 30 area damage',
+  Topping({
+    id: 'pineapple', name: 'Explosive Pineapple', icon: '🍍',
+    rarity: Rarity.Epic,
+    maxLevel: 3,
     effects: [
       Effect.Stat(
         Stat.ExplodeDmg,
         Op.Add(Unit.Amount(30)),
       ),
     ],
-  },
-  {
-    id: 'trap', name: 'Mousetraps', icon: '🪤', rarity: 'epic', max: 2,
-    desc: () => 'Each wave, a trap under every pizza snaps the first stomper (100 dmg + stun)',
+  }),
+  Topping({
+    id: 'trap', name: 'Mousetraps', icon: '🪤',
+    rarity: Rarity.Epic,
+    maxLevel: 2,
+    // (the scene: a trap snaps for 100 and stuns)
+    text: { up: (_l, auto) => `${auto}: it snaps a stomper (100 dmg + stun)`, scene: [100] },
     effects: [
       Effect.Stat(
         Stat.Traps,
         Op.Add(Unit.Count(1)),
       ),
     ],
-  },
-  {
-    id: 'brutal', name: 'Brutal Crits', icon: '💥', rarity: 'epic', max: 3,
-    desc: () => '+100% critical damage',
+  }),
+  Topping({
+    id: 'brutal', name: 'Brutal Crits', icon: '💥',
+    rarity: Rarity.Epic,
+    maxLevel: 3,
     effects: [
       Effect.Stat(
         Stat.CritMult,
         Op.Add(Unit.Percent(100)),
       ),
     ],
-  },
-  {
-    id: 'hotoven', name: 'Hot Plates', icon: '♨️', rarity: 'epic', max: 2,
-    desc: () => 'Feet that stomp a pizza burn for 15 dmg/s',
+  }),
+  Topping({
+    id: 'hotoven', name: 'Hot Plates', icon: '♨️',
+    rarity: Rarity.Epic,
+    maxLevel: 2,
     effects: [
       Effect.Stat(
         Stat.StompBurn,
         Op.Add(Unit.Amount(15)),
       ),
     ],
-  },
-  {
-    id: 'lucky', name: 'Lucky Pepperoni', icon: '🍀', rarity: 'epic', max: 3,
-    desc: () => 'Better upgrade rarities, more Golden Feet',
+  }),
+  Topping({
+    id: 'lucky', name: 'Lucky Pepperoni', icon: '🍀',
+    rarity: Rarity.Epic,
+    maxLevel: 3,
     effects: [
       Effect.Stat(
         Stat.Luck,
         Op.Add(Unit.Count(1)),
       ),
     ],
-  },
-  {
-    id: 'reroll', name: 'Second Opinion', icon: '🎲', rarity: 'epic', max: 2,
-    desc: () => '+1 free reroll on every upgrade screen',
+  }),
+  Topping({
+    id: 'reroll', name: 'Second Opinion', icon: '🎲',
+    rarity: Rarity.Epic,
+    maxLevel: 2,
     effects: [
       Effect.Stat(
         Stat.FreeRerolls,
         Op.Add(Unit.Count(1)),
       ),
     ],
-  },
+  }),
   // ——— Legendary ———
-  {
-    id: 'helping', name: 'Second Helping', icon: '🍕', rarity: 'legendary', max: 1, kind: 'unique',
-    desc: () => 'A brand-new pizza joins the table',
-    onPick: 'extraPizza',
-  },
-  {
-    id: 'angel', name: 'Pizza Angel', icon: '👼', rarity: 'legendary', max: 1, kind: 'consumable',
-    desc: () => 'The next pizza destroyed rises again with 4 slices',
-    onPick: 'arm',
-  },
-  {
-    id: 'freeze', name: 'Freeze Frame', icon: '⏳', rarity: 'legendary', max: 1,
-    desc: () => freezeText(),
+  KitTopping({
+    id: 'helping', name: 'Second Helping', icon: '🍕',
+    rarity: Rarity.Legendary,
+    maxLevel: 1,
+    kind: UpgradeKind.Unique,
+    text: { up: 'A brand-new pizza joins the table' },
+    onPick: OnPick.ExtraPizza,
+  }),
+  KitTopping({
+    id: 'angel', name: 'Pizza Angel', icon: '👼',
+    rarity: Rarity.Legendary,
+    maxLevel: 1,
+    kind: UpgradeKind.Consumable,
+    text: { up: 'The next pizza destroyed rises again with 4 slices' },
+    onPick: OnPick.Arm,
+  }),
+  Topping({
+    id: 'freeze', name: 'Freeze Frame', icon: '⏳',
+    rarity: Rarity.Legendary,
+    maxLevel: 1,
     effects: [
       Effect.Stat(
         Stat.FreezeSlam,
         Op.On(),
       ),
     ],
-  },
-  {
-    id: 'midas', name: 'Golden Touch', icon: '👑', rarity: 'legendary', max: 2,
-    desc: () => '8% of smacked-down feet turn to gold: 5x tips',
+  }),
+  Topping({
+    id: 'midas', name: 'Golden Touch', icon: '👑',
+    rarity: Rarity.Legendary,
+    maxLevel: 2,
     effects: [
       Effect.Stat(
         Stat.GoldenTouch,
         Op.Add(Unit.Chance(8)),
       ),
     ],
-  },
+  }),
   ...MORE_TOPPINGS,
   ...TRADEOFF_TOPPINGS,
   ...EVENT_TOPPINGS,
@@ -512,37 +592,23 @@ export const UPGRADES: Upgrade[] = [
 
 export const UPGRADE_BY_ID: Record<string, Upgrade> = Object.fromEntries(UPGRADES.map((u) => [u.id, u]));
 
-export const RARITY_WEIGHT: Record<Rarity, number> = { common: 60, rare: 28, epic: 10, legendary: 2.5 };
-
-export const RARITY_COLOR: Record<Rarity, string> = {
-  common: '#8fd16a',
-  rare: '#4cc9f0',
-  epic: '#b06bff',
-  legendary: '#ffbf1f',
-};
-
-/** Base topping price by rarity (plus RARITY_PER_WAVE a wave). Consumables and trade-offs cost less. */
-export const RARITY_PRICE: Record<Rarity, number> = { common: 40, rare: 90, epic: 160, legendary: 260 };
-/** Tips added per wave, by rarity: rarer toppings stay proportionally dearer all run (legendary ~3–4× common). */
-export const RARITY_PER_WAVE: Record<Rarity, number> = { common: 4, rare: 6, epic: 8, legendary: 12 };
-
-/** Price of the next level: rarity base + 4 per wave, +35% for every level already owned (so stacking
- * one upgrade gets expensive and tips spread across the run); consumables are 30% cheaper. */
+/** Price of the next level: the rarity's base + its price a wave (RARITY_DEFS), +35% for every level already owned (so
+ * stacking one upgrade gets expensive and tips spread across the run); consumables are 30% cheaper, and trade-offs
+ * (a card with a downside) 20%. */
 export function upgradePrice(u: Upgrade, wave: number, owned = 0): number {
   // tips per wave roughly triple from wave 10 to wave 30, so prices climb faster later on (×1.07 at 10, ×1.6 at 30, ×2.2 cap)
   const late = 1 + Math.min(1.2, 0.6 * (wave / 30) ** 2);
-  const base = (RARITY_PRICE[u.rarity] + RARITY_PER_WAVE[u.rarity] * wave) * late * (1 + 0.35 * owned);
+  const r = RARITY_DEFS[u.rarity];
+  const base = (r.price + r.perWave * wave) * late * (1 + 0.35 * owned);
   // consumables are one-use; trade-offs pay part of their price in the downside
-  const k = ((u.kind ?? 'permanent') === 'consumable' ? 0.7 : 1) * (u.downside ? 0.8 : 1);
+  const k = (kindOf(u) === UpgradeKind.Consumable ? 0.7 : 1) * (isTradeoff(u) ? 0.8 : 1);
   return Math.round((base * k) / 5) * 5;
 }
 
 export function kindOf(u: Upgrade): UpgradeKind {
-  return u.kind ?? 'permanent';
+  return u.kind ?? UpgradeKind.Permanent;
 }
 
-/** Waves a used consumable stays out of the shop. */
-export const CONSUMABLE_COOLDOWN = 3;
 
 /** Topping tricks whose own damage is automatic: every trick that hits through the kit's damage() or effects()
  *  (src/game/toppingKit.ts; the scene marks those auto). Keep in step when a trick learns to hit. */
@@ -561,4 +627,3 @@ export function isAutoTopping(u: Upgrade): boolean {
 /** The line Your Toppings adds under an automatic topping. */
 export const AUTO_TOPPING_NOTE = '🔥 Runs hot while you keep smacking; stop and it cools off.';
 
-export { pct };

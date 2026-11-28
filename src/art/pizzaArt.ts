@@ -3,7 +3,8 @@
 
 import { toppingDrawer } from './registry';
 import type { PizzaType, Topping } from '../data/pizzas';
-import { TIER_LOOK, type PizzaRarity } from '../data/pizzaRarity';
+import { RARITY_DEFS, Rarity } from '../data/rarity';
+import type { PizzaRarity } from '../data/pizzaRarity';
 import { EXTRA_COUNTS, EXTRA_ORDER, drawDrizzles, drawExtraTopping } from './toppingsExtra';
 import { type Ctx, blob, ellipse, grain, hashStr, makeCanvas, mix, rgba, rng, roundRect, shade } from './util';
 
@@ -962,10 +963,10 @@ export function drawSliceSprite(p: PizzaType, top: HTMLCanvasElement): HTMLCanva
   return o;
 }
 
-/** A portrait's plate (drawn at the origin, unsquashed: the caller tilts it), in its tier's materials (TIER_LOOK).
+/** A portrait's plate (drawn at the origin, unsquashed: the caller tilts it), in its tier's materials (its rarity's pizza look, RARITY_DEFS).
  *  `square`: a square pizza's rectangular platter (rounded corners), as on the table in play. */
 function tierPlate(ctx: Ctx, r: PizzaRarity, square = false): void {
-  const t = TIER_LOOK[r];
+  const t = RARITY_DEFS[r].pizza.look;
   const R = square ? 214 : 205;
   // the plate's outline at half-size h: a circle, or a rounded square
   const shape = (c: Ctx, x: number, y: number, rx: number, ry: number) => {
@@ -986,17 +987,17 @@ function tierPlate(ctx: Ctx, r: PizzaRarity, square = false): void {
   ctx.strokeStyle = t.edge;
   ctx.stroke();
   // the well
-  const inner = r === 'common' ? R - 10 : R - 18;
+  const inner = r === Rarity.Common ? R - 10 : R - 18;
   const well = ctx.createRadialGradient(-50, -70, 20, 0, 0, inner + 10);
-  if (r === 'common') {
+  if (r === Rarity.Common) {
     well.addColorStop(0, '#f0cf9c');
     well.addColorStop(0.7, t.b);
     well.addColorStop(1, t.a);
-  } else if (r === 'rare') {
+  } else if (r === Rarity.Rare) {
     well.addColorStop(0, '#ffffff');
     well.addColorStop(0.8, '#e4e9f0');
     well.addColorStop(1, '#a6b0bd');
-  } else if (r === 'epic') {
+  } else if (r === Rarity.Epic) {
     well.addColorStop(0, '#b98cff');
     well.addColorStop(0.75, '#7a3ae0');
     well.addColorStop(1, '#4a1a9a');
@@ -1008,7 +1009,7 @@ function tierPlate(ctx: Ctx, r: PizzaRarity, square = false): void {
   shape(ctx, 0, 0, inner, inner);
   ctx.fillStyle = well;
   ctx.fill();
-  if (r === 'common') {
+  if (r === Rarity.Common) {
     // the board's grain: faint rings
     ctx.lineWidth = 3;
     for (let k = 1; k <= 5; k++) {
@@ -1020,7 +1021,7 @@ function tierPlate(ctx: Ctx, r: PizzaRarity, square = false): void {
     // a fine line between rim and well
     shape(ctx, 0, 0, inner, inner);
     ctx.lineWidth = 4;
-    ctx.strokeStyle = r === 'epic' ? '#ffe680' : rgba(t.edge, 0.45);
+    ctx.strokeStyle = r === Rarity.Epic ? '#ffe680' : rgba(t.edge, 0.45);
     ctx.stroke();
   }
 }
@@ -1053,7 +1054,7 @@ export function pizzaPortrait(p: PizzaType, top: HTMLCanvasElement, size = 160, 
   ctx.save();
   ctx.translate(PIZZA_CANVAS_W / 2, PIZZA_CANVAS_H / 2 + 26);
   ctx.scale(1, TILT);
-  tierPlate(ctx, p.rarity ?? 'common', p.shape === 'square');
+  tierPlate(ctx, p.rarity ?? Rarity.Common, p.shape === 'square');
   ctx.restore();
   if (alive.some(Boolean)) {
     const [pc, pctx] = makeCanvas(PIZZA_CANVAS_W, PIZZA_CANVAS_H);

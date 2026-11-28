@@ -44,6 +44,8 @@ export const Ally = {
   FriendlyGhost: 'friendlyGhost',
 } as const;
 export type AllyId = (typeof Ally)[keyof typeof Ally];
+/** An ally as a card names it. */
+const ALLY_NAME: Record<AllyId, string> = { friendlyGhost: 'friendly ghost' };
 
 export type ActionData =
   | { a: 'tips'; pay: PayData; at: AtData }
@@ -177,23 +179,24 @@ export function runAction(a: ActionData, host: ActionHost, fire: Fire): boolean 
 export function describeAction(a: ActionData): string {
   switch (a.a) {
     case 'tips':
-      return a.pay.p === 'fixed' ? `+${a.pay.n} tips` : a.pay.p === 'kill' ? `its tips ×${a.pay.m}` : a.pay.p === 'earned' ? `+${Math.round(a.pay.share * 100)}% of the wave's tips` : 'tips by the wave';
+      return a.pay.p === 'fixed' ? `+${a.pay.n} tips` : a.pay.p === 'kill' ? `its tips ×${a.pay.m} (at least ${a.pay.min})` : a.pay.p === 'earned' ? `+${Math.round(a.pay.share * 100)}% of the wave's tips` : 'tips for the wave';
     case 'reroll':
       return 'a free reroll';
     case 'heal':
-      return `+${a.n} slice${a.n === 1 ? '' : 's'} ${a.who === 'table' ? 'to every pizza' : 'to its neighbours'}`;
+      return `${a.who === 'table' ? 'every pizza regrows' : 'its neighbours regrow'} +${a.n} slice${a.n === 1 ? '' : 's'}`;
     case 'meter':
       return `+${Math.round(a.add * 100)}% meter`;
     case 'crust':
-      return `+${a.n} Golden Crust`;
+      return `+${a.n} Golden Crust${a.n === 1 ? '' : 's'}`;
     case 'apply':
       return describeStatus(a.status);
     case 'summon':
-      return `summons a ${a.ally === 'friendlyGhost' ? 'friendly ghost' : a.ally}`;
+      return `summon a ${ALLY_NAME[a.ally]}`;
     case 'show':
       return '';
     case 'custom':
-      return a.id;
+      // (a one-off by its name: danceBeat → "dance beat")
+      return a.id.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase();
     case 'later':
       return describeAction(a.act);
     case 'seq':

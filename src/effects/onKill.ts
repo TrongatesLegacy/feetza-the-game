@@ -14,4 +14,4 @@ export interface OnKillData extends TriggerData {
 
 const make = (action: ActionData, o: TriggerOpts = {}): OnKillData => ({ kind: 'onKill', action, ...o });
 
-export const OnKillEffect = effectKind('onKill', make, triggerSpec<OnKillData>(GameEvent.Kill, 'kills'));
+export const OnKillEffect = effectKind('onKill', make, triggerSpec<OnKillData>(GameEvent.Kill, 'kill'));

@@ -44,6 +44,7 @@ export default tseslint.config(
       'effects/no-effect-arithmetic': 'error',
       'effects/op-needs-unit': 'error',
       'effects/no-loose-strings': 'error',
+      'effects/typed-item-names': 'error',
     },
   },
 );

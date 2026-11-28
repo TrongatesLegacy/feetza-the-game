@@ -8,6 +8,12 @@
 //   effects/op-needs-unit         no bare number passed to an Op.*: wrap it in its Unit.* maker
 //   effects/no-loose-strings      no hand-typed string where a typed name exists (Stat., UnitKind., Custom., …)
 //                                 (fixable for Effect.Stat's stat and Unit.of's unit)
+//   effects/typed-item-names      no hand-typed rarity, kind, onPick, needsMeter or pick in an item definition (a    (fixable)
+//                                 topping builder's argument, or an object with an id and a rarity) or a check on
+//                                 one (u.rarity === 'epic', kindOf(u) !== 'consumable', c.kind === 'unique', case 'epic':,
+//                                 p.rarity ?? 'common', RARITY_DEFS['epic']): Rarity.Epic…. Without type information it
+//                                 can't see a rarity passed as an argument (rarityOpen('epic', …)) or compared through a
+//                                 local (const k = kindOf(u); k === 'unique'): TypeScript accepts the string there.
 //
 // What counts as a declaration: an Effect.* call (Effect.Stat, Effect.OnKill…), an Op.* call or chain
 // (Op.Add(…).EachLevelUp.Mul(…)), a Unit maker (Unit.Chance, Unit.Seconds… : a capital letter), and everything inside
@@ -416,6 +422,93 @@ const noLooseStrings = {
   },
 };
 
+// ——— typed item names: rarity, kind, onPick, needsMeter, pick ———
+
+/** The typed names an item's small fields take (src/data/rarity.ts, src/data/itemKinds.ts): field → its holder and
+ *  the names it takes. */
+const ITEM_NAMES = {
+  rarity: { holder: 'Rarity', names: ['common', 'rare', 'epic', 'legendary'] },
+  pick: { holder: 'Rarity', names: ['common', 'rare', 'epic', 'legendary'] },
+  kind: { holder: 'UpgradeKind', names: ['permanent', 'unique', 'consumable'] },
+  onPick: { holder: 'OnPick', names: ['healAll2', 'extraPizza', 'fridge', 'arm', 'pick', 'roulette', 'crispy', 'bogo'] },
+  needsMeter: { holder: 'NeedsMeter', names: ['meter', 'tank'] },
+};
+/** The topping families' builders (src/data/toppingDefs.ts): their argument is an item definition. */
+const BUILDERS = new Set(['Topping', 'KitTopping', 'ProcTopping', 'PickTopping', 'FreshTradeoff']);
+
+const propName = (p) => (p.type === 'Property' && !p.computed ? (p.key.type === 'Identifier' ? p.key.name : typeof p.key.value === 'string' ? p.key.value : null) : null);
+
+/** An item definition: a builder's argument, or an object literal with an `id` and a `rarity` (a pizza, a topping). */
+function isItem(obj) {
+  if (obj.type !== 'ObjectExpression') return false;
+  const p = obj.parent;
+  if (p?.type === 'CallExpression' && p.arguments[0] === obj && p.callee.type === 'Identifier' && BUILDERS.has(p.callee.name)) return true;
+  const keys = new Set(obj.properties.map(propName));
+  return keys.has('id') && keys.has('rarity');
+}
+
+/** What a compared value is: `x.rarity`, `x.onPick`, `x.needsMeter`, `x.pick` or kindOf(x) → its field. */
+function comparedField(n) {
+  if (n.type === 'ChainExpression') n = n.expression;
+  // (x.kind: only its own names are flagged, so a shop offer's kind 'special' isn't)
+  if (n.type === 'MemberExpression' && !n.computed && ['rarity', 'onPick', 'needsMeter', 'pick', 'kind'].includes(n.property.name)) return n.property.name;
+  if (n.type === 'CallExpression' && n.callee.type === 'Identifier' && n.callee.name === 'kindOf') return 'kind';
+  return null;
+}
+
+const typedItemNames = {
+  meta: {
+    type: 'problem',
+    fixable: 'code',
+    docs: { description: 'No hand-typed rarity, kind, onPick, needsMeter or pick in item definitions and checks: use the typed names (Rarity.Epic, UpgradeKind.Consumable…).' },
+    messages: { typed: 'Hand-typed {{text}}: use {{fix}}.' },
+    schema: [],
+  },
+  create(context) {
+    const sc = context.sourceCode;
+    const isStr = (n) => n.type === 'Literal' && typeof n.value === 'string';
+    const report = (lit, field) => {
+      const t = ITEM_NAMES[field];
+      if (!t.names.includes(lit.value)) return;
+      const fix = `${t.holder}.${pascal(lit.value)}`;
+      context.report({ node: lit, messageId: 'typed', data: { text: sc.getText(lit), fix }, fix: inScope(sc, lit, t.holder) ? (fixer) => fixer.replaceText(lit, fix) : null });
+    };
+    return {
+      Property(node) {
+        const field = propName(node);
+        if (!field || !ITEM_NAMES[field] || !isStr(node.value)) return;
+        // a rarity anywhere; the other fields only in an item definition (other objects have kinds and picks of their own)
+        if (field !== 'rarity' && !isItem(node.parent)) return;
+        report(node.value, field);
+      },
+      BinaryExpression(node) {
+        if (!['===', '!==', '==', '!='].includes(node.operator)) return;
+        for (const [a, b] of [
+          [node.left, node.right],
+          [node.right, node.left],
+        ]) {
+          const field = isStr(b) ? comparedField(a) : null;
+          if (field) report(b, field);
+        }
+      },
+      // a switch on one: case 'epic':
+      SwitchCase(node) {
+        const field = node.test && isStr(node.test) ? comparedField(node.parent.discriminant) : null;
+        if (field) report(node.test, field);
+      },
+      // a fallback for one: p.rarity ?? 'common'
+      LogicalExpression(node) {
+        const field = node.operator === '??' && isStr(node.right) ? comparedField(node.left) : null;
+        if (field) report(node.right, field);
+      },
+      // a rarity's definition by hand: RARITY_DEFS['epic']
+      MemberExpression(node) {
+        if (node.computed && node.object.type === 'Identifier' && node.object.name === 'RARITY_DEFS' && isStr(node.property)) report(node.property, 'rarity');
+      },
+    };
+  },
+};
+
 export default {
   meta: { name: 'feetza-effects' },
   rules: {
@@ -424,5 +517,6 @@ export default {
     'no-effect-arithmetic': noEffectArithmetic,
     'op-needs-unit': opNeedsUnit,
     'no-loose-strings': noLooseStrings,
+    'typed-item-names': typedItemNames,
   },
 };

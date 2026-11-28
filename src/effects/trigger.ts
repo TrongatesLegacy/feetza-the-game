@@ -113,9 +113,17 @@ function runActionCounted(e: TriggerData, ctx: PlayCtx, fire: Fire): boolean {
   return runAction(e.action, ctx, fire);
 }
 
+/** "3rd", "10th" */
+const nth = (n: number) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] ?? 'th'}`;
+
+/** A trigger in words, as a card reads: "15% chance on a kill: summon a friendly ghost", "Every 10th kill: …",
+ *  "On a stomp: …" (`what` is the moment, singular: "kill"). */
 export function describeTrigger(what: string, e: TriggerData): string {
-  const pre = e.chance !== undefined ? `${Math.round(e.chance * 100)}% of ${what}` : e.nth ? `every ${typeof e.nth.n === 'number' ? e.nth.n : e.nth.n.plain}th ${what.replace(/s$/, '')}` : `on ${what}`;
-  return `${pre}: ${describeAction(e.action)}`;
+  const n = e.nth ? (typeof e.nth.n === 'number' ? e.nth.n : e.nth.n.plain) : 0;
+  const a = /^[aeiou]/.test(what) ? 'an' : 'a';
+  const pre = e.chance !== undefined ? `${Math.round(e.chance * 100)}% chance on ${a} ${what}` : e.nth ? `Every ${nth(n)} ${what}` : `On ${a} ${what}`;
+  const once = e.oncePerWave ? ' (once a wave)' : '';
+  return `${pre}${once}: ${describeAction(e.action)}`;
 }
 
 export function triggerTags(kind: TriggerKindId, e: TriggerData): TagId[] {

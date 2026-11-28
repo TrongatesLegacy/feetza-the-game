@@ -6,7 +6,8 @@ import { crand } from '../systems/cosmeticRandom';
 import { META, MILESTONE_BY_PIZZA } from '../data/meta';
 import { PIZZAS, PIZZA_BY_ID, type PizzaRoute, type PizzaType } from '../data/pizzas';
 import { awardMilestones, milestoneProgress } from '../game/Run';
-import { AUTO_TOPPING_NOTE, RARITY_COLOR, UPGRADES, UPGRADE_BY_ID, isAutoTopping, kindOf, type Rarity } from '../data/upgrades';
+import { AUTO_TOPPING_NOTE, RARITY_DEFS, Rarity, UPGRADES, UPGRADE_BY_ID, UPGRADE_KIND_DEFS, UpgradeKind, isAutoTopping, kindOf } from '../data/upgrades';
+import { cardLine, cardText, type CardText } from '../game/cardText';
 import { glyph, slamPrompt } from '../systems/gamepad';
 import type { RunSummary, ShopActions, ShopPizza, ShopState, SlotSymbol, YourTopping } from './shopTypes';
 import { INTROS, freshBar, freshForever, pizzaThumb } from './bits';
@@ -86,13 +87,12 @@ export function previewCard(key: string, el: HTMLElement): HTMLElement | null {
     const k = kindOf(u);
     return h(
       'div',
-      { class: `tcard tframed ${u.rarity} tip-card`, style: `--rc:${RARITY_COLOR[u.rarity]}` },
+      { class: `tcard tframed ${u.rarity} tip-card`, style: `--rc:${RARITY_DEFS[u.rarity].color}` },
       toppingFrame(),
       h('div', { class: 'rarity ttab' }, u.rarity),
-      h('div', { class: 'tc-top' }, h('span', { class: 'ic' }, u.icon), h('span', { class: `kind ${k}` }, k === 'permanent' ? 'PERMANENT' : k === 'unique' ? 'ONCE PER RUN' : 'ONE USE')),
-      h('div', { class: 'nm' }, `${u.name}${u.max > 1 ? ` LV${lvl}` : ''}`),
-      h('div', { class: 'ds' }, u.desc(lvl)),
-      u.downside ? h('div', { class: 'down' }, `▼ ${u.downside}`) : null,
+      h('div', { class: 'tc-top' }, h('span', { class: 'ic' }, u.icon), h('span', { class: `kind ${k}` }, UPGRADE_KIND_DEFS[k].tag)),
+      h('div', { class: 'nm' }, `${u.name}${u.maxLevel > 1 ? ` LV${lvl}` : ''}`),
+      ...cardTextBlock(cardText(u, lvl), 'ds'),
     );
   }
   if (kind === 'pizza') {
@@ -164,6 +164,9 @@ function installReorderDrag(): void {
 }
 
 const toppingFrame = (): HTMLElement => h('span', { class: 'tfx', 'aria-hidden': 'true' });
+/** A topping's card text (src/game/cardText.ts) as a card shows it: its upside (in `cls`), then its downside on a red
+ *  line of its own. */
+const cardTextBlock = (t: CardText, cls: string): HTMLElement[] => [h('div', { class: cls }, t.up), ...(t.down ? [h('div', { class: 'down' }, `▼ ${t.down}`)] : [])];
 
 /** A counter tab's label: its full wording, and a short one for a phone's narrow cards (style.css swaps them). */
 const tabText = (full: string, short: string): HTMLElement[] => [h('span', { class: 'tl' }, full), h('span', { class: 'ts' }, short)];
@@ -612,7 +615,7 @@ class Hud {
     this.owned.replaceChildren(
       ...Object.entries(owned).map(([id, lvl]) => {
         const u = UPGRADE_BY_ID[id];
-        const e = h('div', { class: 'u', title: `${u.name}: ${u.desc(1)}`, style: `--rc:${RARITY_COLOR[u.rarity]}` }, u.icon);
+        const e = h('div', { class: 'u', title: `${u.name}: ${cardLine(u, 1)}`, style: `--rc:${RARITY_DEFS[u.rarity].color}` }, u.icon);
         if (lvl > 1) e.append(h('b', {}, String(lvl)));
         return e;
       }),
@@ -1137,7 +1140,7 @@ class UI {
               audio.sfx('sfx_levelup');
               renderLineup();
               // a Legendary kept: its full-screen reveal
-              if (p.rarity === 'legendary') legendReveal(p.id, 'YOURS FOR GOOD!');
+              if (p.rarity === Rarity.Legendary) legendReveal(p.id, 'YOURS FOR GOOD!');
             });
             buy.disabled = r.bought || save.crusts < p.cost;
             const tier = tierAttrs(p.rarity, p.id);
@@ -1152,7 +1155,7 @@ class UI {
             );
             // a Legendary Rare Find's dealt moment (the counter's: the lineup dims round it, a shaft of light, the
             // fanfare and the LEGENDARY! stamp), once each time it's dealt
-            if (p.rarity === 'legendary' && !r.shown) {
+            if (p.rarity === Rarity.Legendary && !r.shown) {
               r.shown = true;
               LEGENDARY_COUNTER.dealt?.(card, p.id);
             }
@@ -1264,15 +1267,15 @@ class UI {
           // its rarity, a tab of its frame
           h('div', { class: 'rarity ttab' }, c.rarity),
           h('div', { class: 'key' }, String(i + 1)),
-          h('span', { class: `kind ${c.kind}` }, c.kind === 'permanent' ? 'PERMANENT' : c.kind === 'unique' ? 'ONCE PER RUN' : 'ONE USE'),
+          h('span', { class: `kind ${c.kind}` }, UPGRADE_KIND_DEFS[c.kind].tag),
           // Exclusive Menu's guaranteed card: marked, so it's clear which one a reroll gives up
           c.exclusive && !c.sold ? h('span', { class: 'xtag', title: 'Exclusive Menu: this shop’s guaranteed Epic-or-better card. A reroll gives it up.' }, 'EXCLUSIVE') : null,
           h('div', { class: 'icon' }, c.icon),
           h('div', { class: 'name' }, c.name),
-          // a long description is set smaller (and at most three lines, the full text on hover), so it never makes the card
-          // (and the whole shop) taller
-          h('div', { class: `desc${c.desc.length > 105 ? ' xlong' : c.desc.length > 75 ? ' long' : ''}`, title: c.desc }, h('span', { class: 'dt' }, c.desc)),
-          c.downside ? h('div', { class: 'down' }, `▼ ${c.downside}`) : null,
+          // the card's text: one block of a fixed height (up to 4 lines, the downside included), so every card's name,
+          // text, level line and button sit in the same places, whatever its rarity and however long its text
+          // (F.cardTextFit() checks every topping's text fits)
+          h('div', { class: 'ctext', title: c.downside ? `${c.desc} · ▼ ${c.downside}` : c.desc }, h('div', { class: 'desc' }, c.desc), c.downside ? h('div', { class: 'down' }, `▼ ${c.downside}`) : null),
           // a deal (FREE, HALF PRICE…) rides on the level line, clear of everything else
           h('div', { class: 'lvl' }, c.lvl, !c.sold && (c.free || c.tag) ? h('span', { class: `ptag ${c.free ? 'free' : c.tag!.kind}` }, c.free ? 'FREE' : c.tag!.text) : null),
           b,
@@ -1397,7 +1400,7 @@ class UI {
         const key = `${o.kind}:${o.id}`;
         if (dealtOffers.has(key)) return;
         dealtOffers.add(key);
-        if (o.rarity !== 'common') dealCard(offers[i], o.rarity, o.id, order++);
+        if (o.rarity !== Rarity.Common) dealCard(offers[i], o.rarity, o.id, order++);
       });
       // Pizza Slots: in the third slot when no Chef's Special turned up
       if (st.slots) offers.push(slotsRow(st.slots, act.slots, act.slotsTake));
@@ -1497,41 +1500,43 @@ class UI {
     const search = h('input', { class: 'yt-search', type: 'search', placeholder: 'Search your toppings', 'aria-label': 'Search your toppings' }) as HTMLInputElement;
     const body = h('div', { class: 'scroll yt-list' });
     // rarest first, then by name; a row of rarity tabs filters them
-    const RANK: Record<string, number> = { legendary: 0, epic: 1, rare: 2, common: 3 };
-    list = [...list].sort((a, b) => (RANK[UPGRADE_BY_ID[a.id]?.rarity] ?? 9) - (RANK[UPGRADE_BY_ID[b.id]?.rarity] ?? 9) || (UPGRADE_BY_ID[a.id]?.name ?? '').localeCompare(UPGRADE_BY_ID[b.id]?.name ?? ''));
+    // rarest first, then by name
+    const rank = (id: string) => (UPGRADE_BY_ID[id] ? -Rarity.rank(UPGRADE_BY_ID[id].rarity) : 9);
+    list = [...list].sort((a, b) => rank(a.id) - rank(b.id) || (UPGRADE_BY_ID[a.id]?.name ?? '').localeCompare(UPGRADE_BY_ID[b.id]?.name ?? ''));
     let rarity: string | null = null;
     const rarTabs = h('div', { class: 'tabs locker-tabs yt-rar' });
     const rows = list.map((y) => {
       const u = UPGRADE_BY_ID[y.id];
       const k = kindOf(u);
       // what it does at the level you have (level 1 for one-use and used ones), and what the next level brings
-      const lvl = k === 'permanent' ? Math.max(1, y.lvl) : 1;
-      const now = u.desc(lvl);
-      const cap = y.max ?? u.max;
-      const next = k === 'permanent' && y.back === null && lvl < cap ? u.desc(lvl + 1) : '';
+      const lvl = k === UpgradeKind.Permanent ? Math.max(1, y.lvl) : 1;
+      const text = cardText(u, lvl);
+      const now = text.up;
+      const cap = y.max ?? u.maxLevel;
+      const next = k === UpgradeKind.Permanent && y.back === null && lvl < cap ? cardText(u, lvl + 1).up : '';
       // cooldowns hold the first wave a used consumable may be dealt again: it's back in that wave's shop
       const status =
         y.back !== null
           ? h('span', { class: 'yt-st back' }, `Used · back in the shop after wave ${y.back}${y.back > wave ? ` (${y.back - wave} to go)` : ''}`)
           : y.armed
             ? h('span', { class: 'yt-st ready' }, 'READY · waiting to trigger')
-            : k === 'permanent'
-              ? h('span', { class: 'yt-st' }, `LV ${y.lvl} / ${y.max ?? u.max}`)
-              : h('span', { class: 'yt-st' }, k === 'unique' ? 'Once per run' : 'One use');
+            : k === UpgradeKind.Permanent
+              ? h('span', { class: 'yt-st' }, `LV ${y.lvl} / ${y.max ?? u.maxLevel}`)
+              : h('span', { class: 'yt-st' }, k === UpgradeKind.Unique ? 'Once per run' : 'One use');
       const row = h(
         'div',
-        { class: `ytop${y.back !== null ? ' used' : ''}`, style: `--rc:${RARITY_COLOR[u.rarity]}` },
+        { class: `ytop${y.back !== null ? ' used' : ''}`, style: `--rc:${RARITY_DEFS[u.rarity].color}` },
         h('div', { class: 'ic' }, u.icon),
-        h('div', { class: 'tx' }, h('div', { class: 'yt-head' }, h('b', {}, u.name), h('span', { class: `rar ${u.rarity}` }, u.rarity), status), h('span', {}, now), next ? h('small', { class: 'next' }, `Next level: ${next}`) : null, isAutoTopping(u) ? h('small', { class: 'next auto' }, AUTO_TOPPING_NOTE) : null, u.downside ? h('em', { class: 'down' }, `▼ ${u.downside}`) : null),
+        h('div', { class: 'tx' }, h('div', { class: 'yt-head' }, h('b', {}, u.name), h('span', { class: `rar ${u.rarity}` }, u.rarity), status), h('span', {}, now), next ? h('small', { class: 'next' }, `Next level: ${next}`) : null, isAutoTopping(u) ? h('small', { class: 'next auto' }, AUTO_TOPPING_NOTE) : null, text.down ? h('em', { class: 'down' }, `▼ ${text.down}`) : null),
       );
-      return { row, rarity: u.rarity as string, text: `${u.name} ${now} ${u.rarity} ${u.downside ?? ''}`.toLowerCase() };
+      return { row, rarity: u.rarity as string, text: `${u.name} ${now} ${u.rarity} ${text.down ?? ''}`.toLowerCase() };
     });
     const empty = h('div', { class: 'hint' }, list.length ? 'No toppings match that.' : 'No toppings yet. Buy some from the cards!');
     const filter = () => {
       const q = search.value.trim().toLowerCase();
       const shown = rows.filter((r) => (!q || r.text.includes(q)) && (!rarity || r.rarity === rarity));
       body.replaceChildren(...shown.map((r) => r.row), ...(shown.length ? [] : [empty]));
-      const tabs: [string | null, string][] = [[null, 'ALL'], ['legendary', 'LEGENDARY'], ['epic', 'EPIC'], ['rare', 'RARE'], ['common', 'COMMON']];
+      const tabs: [string | null, string][] = [[null, 'ALL'], ...[...Rarity.all].reverse().map((r): [string, string] => [r, RARITY_DEFS[r].label.toUpperCase()])];
       rarTabs.replaceChildren(
         ...tabs
           .filter(([r]) => !r || rows.some((x) => x.rarity === r))
@@ -1680,7 +1685,7 @@ class UI {
     };
     for (const { p, i } of order) {
       // (in its tier's frame, as everywhere a pizza card shows)
-      const r = PIZZA_BY_ID[p.id]?.rarity ?? 'common';
+      const r = PIZZA_BY_ID[p.id]?.rarity ?? Rarity.Common;
       const tier = tierAttrs(r, p.id);
       const t = h(
         'button',
@@ -1714,8 +1719,8 @@ class UI {
       { class: 'swap2' },
       h(
         'div',
-        { class: `incoming ${tierAttrs(PIZZA_BY_ID[o.id]?.rarity ?? 'common', o.id).cls}`, style: tierAttrs(PIZZA_BY_ID[o.id]?.rarity ?? 'common', o.id).style },
-        ...tierFrame(PIZZA_BY_ID[o.id]?.rarity ?? 'common', false),
+        { class: `incoming ${tierAttrs(PIZZA_BY_ID[o.id]?.rarity ?? Rarity.Common, o.id).cls}`, style: tierAttrs(PIZZA_BY_ID[o.id]?.rarity ?? Rarity.Common, o.id).style },
+        ...tierFrame(PIZZA_BY_ID[o.id]?.rarity ?? Rarity.Common, false),
         h('img', { src: pizzaPortraitURL(o.id), alt: '' }),
         h('div', { class: 'in-text' }, h('span', { class: 'tag' }, `COMING IN · ${fmt(o.cost)} TIPS`), h('b', {}, o.name), h('span', {}, `${o.perk} · arrives whole`)),
         h('div', { class: 'in-ask' }, h('b', {}, 'WHERE DOES IT GO?'), h('span', {}, o.canAdd ? 'Add a plate or swap one out' : 'Table full: pick a pizza to swap out')),
@@ -2074,7 +2079,7 @@ class UI {
         persist();
         audio.sfx('sfx_levelup');
         row.replaceChildren(h('span', {}, `🍕 ${trial.name} is yours!`));
-        if (trial.rarity === 'legendary') legendReveal(trial.id, 'YOURS FOR GOOD!');
+        if (trial.rarity === Rarity.Legendary) legendReveal(trial.id, 'YOURS FOR GOOD!');
       });
       // (the run's crusts are already banked when this opens)
       keep.disabled = save.crusts < trial.cost;
@@ -2108,7 +2113,7 @@ class UI {
   pizzeria(onClose: () => void, openOn: { tab?: 'upgrades' | 'pizzas' | 'toppings'; pizza?: string } = {}): HTMLElement {
     type Tab = 'upgrades' | 'pizzas' | 'toppings';
     // catch up on milestones met before they named their pizza (a Legendary won gets its reveal)
-    for (const w of awardMilestones(null)) if (w.pizza?.rarity === 'legendary') legendReveal(w.pizza.id, `MILESTONE: ${w.m.name.toUpperCase()}`);
+    for (const w of awardMilestones(null)) if (w.pizza?.rarity === Rarity.Legendary) legendReveal(w.pizza.id, `MILESTONE: ${w.m.name.toUpperCase()}`);
     // NEW badges stay for this visit; looking at a tab clears them for next time
     const newPizzas = new Set(save.pizzasNew);
     const newTops = new Set(save.toppingsNew);
@@ -2203,7 +2208,7 @@ class UI {
             newPizzas.add(p.id);
             save.pizzasNew = save.pizzasNew.filter((x) => x !== p.id);
             persist();
-            if (p.rarity === 'legendary') legendReveal(p.id, 'YOURS!');
+            if (p.rarity === Rarity.Legendary) legendReveal(p.id, 'YOURS!');
             else audio.sfx('sfx_levelup');
             render();
           });
@@ -2270,14 +2275,14 @@ class UI {
       ];
     };
     // every topping in the game: seen ones in full, the rest as ??? in their rarity colour
-    const RARITIES: Rarity[] = ['common', 'rare', 'epic', 'legendary'];
+    const RARITIES = Rarity.all;
     const toppingsTab = (): HTMLElement[] => {
       const seen = new Set(save.seenToppings);
       const rTabs = h('div', { class: 'tabs locker-tabs' });
       const rSelect = h('select', { class: 'locker-select', 'aria-label': 'Rarity' }) as HTMLSelectElement;
       const sTabs = h('div', { class: 'tabs locker-tabs' });
       const sSelect = h('select', { class: 'locker-select', 'aria-label': 'Seen or not' }) as HTMLSelectElement;
-      const rOpts: ['all' | Rarity, string][] = [['all', 'ALL'], ...RARITIES.map((r) => [r, r.toUpperCase()] as [Rarity, string])];
+      const rOpts: ['all' | Rarity, string][] = [['all', 'ALL'], ...RARITIES.map((r) => [r, RARITY_DEFS[r].label.toUpperCase()] as [Rarity, string])];
       const sOpts: ['all' | 'seen' | 'unseen', string][] = [['all', 'ALL'], ['seen', 'SEEN'], ['unseen', 'NOT SEEN']];
       // seen/total on every rarity button (and how many each seen filter holds)
       const ofRarity = (v: 'all' | Rarity) => UPGRADES.filter((u) => v === 'all' || u.rarity === v);
@@ -2291,21 +2296,20 @@ class UI {
       rSelect.addEventListener('change', () => ((rarity = rSelect.value as typeof rarity), render()));
       sSelect.addEventListener('change', () => ((seenFilter = sSelect.value as typeof seenFilter), render()));
       const list = UPGRADES.filter((u) => (rarity === 'all' || u.rarity === rarity) && (seenFilter === 'all' || (seenFilter === 'seen') === seen.has(u.id))).sort(
-        (a, b) => RARITIES.indexOf(a.rarity) - RARITIES.indexOf(b.rarity) || Number(seen.has(b.id)) - Number(seen.has(a.id)) || Number(newTops.has(b.id)) - Number(newTops.has(a.id)) || a.name.localeCompare(b.name),
+        (a, b) => Rarity.compare(a.rarity, b.rarity) || Number(seen.has(b.id)) - Number(seen.has(a.id)) || Number(newTops.has(b.id)) - Number(newTops.has(a.id)) || a.name.localeCompare(b.name),
       );
       const card = (u: (typeof UPGRADES)[number]) => {
-        if (!seen.has(u.id)) return h('div', { class: `tcard unseen ${u.rarity}`, style: `--rc:${RARITY_COLOR[u.rarity]}`, 'aria-label': `Not seen yet: a ${u.rarity} topping` }, h('div', { class: 'q' }, '???'), h('div', { class: 'rarity' }, u.rarity));
+        if (!seen.has(u.id)) return h('div', { class: `tcard unseen ${u.rarity}`, style: `--rc:${RARITY_DEFS[u.rarity].color}`, 'aria-label': `Not seen yet: a ${u.rarity} topping` }, h('div', { class: 'q' }, '???'), h('div', { class: 'rarity' }, u.rarity));
         const k = kindOf(u);
         const runs = save.toppingRuns[u.id] ?? 0;
         return h(
           'div',
-          { class: `tcard tframed ${u.rarity}${runs ? ' bought' : ''}`, style: `--rc:${RARITY_COLOR[u.rarity]}` },
+          { class: `tcard tframed ${u.rarity}${runs ? ' bought' : ''}`, style: `--rc:${RARITY_DEFS[u.rarity].color}` },
           toppingFrame(),
           h('div', { class: 'rarity ttab' }, u.rarity),
-          h('div', { class: 'tc-top' }, h('span', { class: 'ic' }, u.icon), h('span', { class: `kind ${k}` }, k === 'permanent' ? 'PERMANENT' : k === 'unique' ? 'ONCE PER RUN' : 'ONE USE')),
+          h('div', { class: 'tc-top' }, h('span', { class: 'ic' }, u.icon), h('span', { class: `kind ${k}` }, UPGRADE_KIND_DEFS[k].tag)),
           h('div', { class: 'nm' }, u.name),
-          h('div', { class: 'ds' }, u.desc(1)),
-          u.downside ? h('div', { class: 'down' }, `▼ ${u.downside}`) : null,
+          ...cardTextBlock(cardText(u, 1), 'ds'),
           runs ? h('div', { class: 'runs' }, h('span', { class: 'tick', 'aria-hidden': 'true' }, '✔'), `Bought in ${runs} run${runs === 1 ? '' : 's'}`) : null,
           newTops.has(u.id) ? h('span', { class: 'tag new' }, 'NEW') : null,
         );
@@ -2438,7 +2442,7 @@ class UI {
       const ms = MILESTONE_BY_PIZZA[id];
       // how a locked pizza unlocks, by its route
       const gate = legendGate(p);
-      const how = p.route === 'special' ? (p.rarity === 'legendary' ? `🔒 ${gate.why}` : '🔒 Chef’s Special in the shop') : p.route === 'milestone' ? `🔒 Milestone: ${ms?.name ?? 'a milestone'}` : p.route === 'rare' ? (gate.open ? '🔒 Rare Find on the new-run screen' : `🔒 Rare Find, once you ${gate.why.charAt(0).toLowerCase()}${gate.why.slice(1)}`) : gate.open ? `🔒 ${p.cost} Golden Crusts` : `🔒 ${fmt(p.cost)} Golden Crusts · ${gate.why}`;
+      const how = p.route === 'special' ? (p.rarity === Rarity.Legendary ? `🔒 ${gate.why}` : '🔒 Chef’s Special in the shop') : p.route === 'milestone' ? `🔒 Milestone: ${ms?.name ?? 'a milestone'}` : p.route === 'rare' ? (gate.open ? '🔒 Rare Find on the new-run screen' : `🔒 Rare Find, once you ${gate.why.charAt(0).toLowerCase()}${gate.why.slice(1)}`) : gate.open ? `🔒 ${p.cost} Golden Crusts` : `🔒 ${fmt(p.cost)} Golden Crusts · ${gate.why}`;
       if (hiddenRare(p)) {
         detail.replaceChildren(h('img', { src: pizzaPortraitURL(id), alt: '', style: 'filter:brightness(0) opacity(0.35)' }), h('div', {}, h('div', { class: 'dt-head' }, h('h3', {}, '???'), h('span', { class: 'chip' }, how)), h('p', {}, 'A Rare Find. It turns up only by luck, in a lineup on the new-run screen.')));
         return;

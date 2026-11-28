@@ -1,7 +1,7 @@
 // The Pick toppings' window (choose 1 of 3 toppings of a rarity, free) and Peel Roulette's (choose 1 of 3
 // of your other peels). Both open over the shop and must be answered: the choice is the topping's effect.
 
-import { RARITY_COLOR, kindOf, type Upgrade } from '../data/upgrades';
+import { RARITY_DEFS, UPGRADE_KIND_DEFS, kindOf, type Upgrade } from '../data/upgrades';
 import { abilityFor, abilityKindLabel, describeAbility } from '../game/abilities';
 import { PEEL_BY_ID, peelThumbURL } from '../game/peels';
 import { audio } from '../systems/audio';
@@ -13,10 +13,9 @@ export interface PickOption {
   /** The card's level line: NEW, LV 2 → 3, One use… */
   lvl: string;
   desc: string;
-  downside?: string;
+  downside?: string | null;
 }
 
-const RARITY_LABEL = { common: 'COMMON', rare: 'RARE', epic: 'EPIC', legendary: 'LEGENDARY' } as const;
 
 /** Choose one topping, free. */
 export function pickWindow(o: { title: string; rarity: Upgrade['rarity']; options: PickOption[]; onPick: (id: string) => void }): HTMLElement {
@@ -36,7 +35,7 @@ export function pickWindow(o: { title: string; rarity: Upgrade['rarity']; option
       'div',
       { class: `card ${p.u.rarity}`, tabindex: 0, role: 'button', 'aria-label': `${p.u.name}: ${p.desc}`, 'data-fk': `pick:${p.u.id}` },
       h('div', { class: 'key' }, String(i + 1)),
-      h('span', { class: `kind ${k}` }, k === 'permanent' ? 'PERMANENT' : k === 'unique' ? 'ONCE PER RUN' : 'ONE USE'),
+      h('span', { class: `kind ${k}` }, UPGRADE_KIND_DEFS[k].tag),
       h('div', { class: 'rarity' }, p.u.rarity),
       h('div', { class: 'icon' }, p.u.icon),
       h('div', { class: 'name' }, p.u.name),
@@ -58,8 +57,8 @@ export function pickWindow(o: { title: string; rarity: Upgrade['rarity']; option
   };
   const panel = h(
     'div',
-    { class: 'panel modal pickwin', style: `--rc:${RARITY_COLOR[o.rarity]}` },
-    h('div', { class: 'pick-badge' }, `🎁 ${RARITY_LABEL[o.rarity]} PICK`),
+    { class: 'panel modal pickwin', style: `--rc:${RARITY_DEFS[o.rarity].color}` },
+    h('div', { class: 'pick-badge' }, `🎁 ${RARITY_DEFS[o.rarity].label.toUpperCase()} PICK`),
     h('div', { class: 'title' }, o.title),
     h('div', { class: 'subtitle' }, o.options.length < 3 ? `Only ${o.options.length} left to choose from · it’s on the house` : 'Choose one · it’s on the house'),
     h('div', { class: 'cards pick-cards' }, ...cards),
@@ -126,7 +125,7 @@ export function rouletteWindow(o: { current: string; options: string[]; onPick: 
 }
 
 /** Pizza Slots won a topping: its full card, to add to your toppings or sell for half its usual price. */
-export function slotsPrizeWindow(o: { u: Upgrade; lvl: string; desc: string; downside?: string; sell: number; onChoose: (choice: 'add' | 'sell') => void }): HTMLElement {
+export function slotsPrizeWindow(o: { u: Upgrade; lvl: string; desc: string; downside?: string | null; sell: number; onChoose: (choice: 'add' | 'sell') => void }): HTMLElement {
   let s: HTMLElement;
   let chosen = false;
   const choose = (c: 'add' | 'sell') => {
@@ -140,7 +139,7 @@ export function slotsPrizeWindow(o: { u: Upgrade; lvl: string; desc: string; dow
   const card = h(
     'div',
     { class: `card ${o.u.rarity} slots-card`, 'aria-label': `${o.u.name}: ${o.desc}` },
-    h('span', { class: `kind ${k}` }, k === 'permanent' ? 'PERMANENT' : k === 'unique' ? 'ONCE PER RUN' : 'ONE USE'),
+    h('span', { class: `kind ${k}` }, UPGRADE_KIND_DEFS[k].tag),
     h('div', { class: 'rarity' }, o.u.rarity),
     h('div', { class: 'icon' }, o.u.icon),
     h('div', { class: 'name' }, o.u.name),
@@ -152,7 +151,7 @@ export function slotsPrizeWindow(o: { u: Upgrade; lvl: string; desc: string; dow
   const sell = btn(`SELL · ${o.sell} TIPS`, 'yellow', () => choose('sell'));
   const panel = h(
     'div',
-    { class: 'panel modal pickwin slotswin', style: `--rc:${RARITY_COLOR[o.u.rarity]}` },
+    { class: 'panel modal pickwin slotswin', style: `--rc:${RARITY_DEFS[o.u.rarity].color}` },
     h('div', { class: 'pick-badge' }, '🎰 PIZZA SLOTS · THREE OF A KIND'),
     h('div', { class: 'title' }, 'YOU WON A TOPPING!'),
     h('div', { class: 'subtitle' }, 'Add it to your toppings, or sell it for half its usual price'),
