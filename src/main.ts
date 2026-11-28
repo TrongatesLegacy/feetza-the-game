@@ -13,6 +13,7 @@ import { pad } from './systems/gamepad';
 import { applyA11y } from './ui/a11y';
 import { previewCard, ui } from './ui/ui';
 import { installTips, setTipCards } from './ui/tips';
+import { installCosmeticKeys } from './systems/cosmeticText';
 
 /** The balance sim (?sim) always draws with Phaser's canvas renderer. With AUTO a sim page got WebGL only while the
  *  browser would give it a context: with two worker tabs and a fresh page every run, contexts ran out part way
@@ -21,6 +22,9 @@ import { installTips, setTipCards } from './ui/tips';
  *  reach play, so a seeded run depended on how many pages the browser had opened before it. The sim shows nothing
  *  anyway: the canvas renderer is always there, and uses no GPU. */
 const SIM = import.meta.env.DEV && new URLSearchParams(location.search).has('sim');
+
+// visual text and tile sprites never take numbers from the game's seeded sequence (src/systems/cosmeticText.ts)
+installCosmeticKeys();
 
 // Dev-only: the art prebuild's page (scripts/prebuild/run.mjs) runs the painters on a game of its own
 if (import.meta.env.DEV && new URLSearchParams(location.search).has('prebuild')) void import('./devPrebuild').then((m) => m.runPrebuild());
